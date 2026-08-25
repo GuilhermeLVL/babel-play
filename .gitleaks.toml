@@ -1,0 +1,12 @@
+# Allowlist do gitleaks — ESTREITA e nomeada. Cada entrada diz o que é e por que não é segredo.
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Falsos positivos conhecidos, um por linha, com motivo"
+# scripts/models-hashes.json: manifesto TOFU de integridade dos pesos de modelo — só SHA-256 hex,
+# público por natureza (é o que garante que o download não foi trocado).
+paths = ['''scripts/models-hashes\.json''']
+# Segredo HS256 DE TESTE, gerado para a suíte de isolamento multi-tenant e assinado no nome.
+regexes = ["const SECRET = 'segredo-e2e-hs256-marco1'"]
+regexTarget = "line"

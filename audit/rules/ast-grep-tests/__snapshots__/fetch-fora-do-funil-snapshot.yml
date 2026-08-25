@@ -1,0 +1,32 @@
+id: fetch-fora-do-funil
+snapshots:
+  'fetch("/api/gemini/chat", { method: "POST" })':
+    labels:
+    - source: 'fetch("/api/gemini/chat", { method: "POST" })'
+      style: primary
+      start: 0
+      end: 45
+    - source: /api/gemini/chat
+      style: secondary
+      start: 7
+      end: 23
+  fetch('/api/ai/stt/available'):
+    labels:
+    - source: fetch('/api/ai/stt/available')
+      style: primary
+      start: 0
+      end: 30
+    - source: /api/ai/stt/available
+      style: secondary
+      start: 7
+      end: 28
+  fetch(`/api/sessions/${id}/audio`):
+    labels:
+    - source: fetch(`/api/sessions/${id}/audio`)
+      style: primary
+      start: 0
+      end: 34
+    - source: /api/sessions/
+      style: secondary
+      start: 7
+      end: 21

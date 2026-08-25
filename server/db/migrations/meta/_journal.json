@@ -1,0 +1,104 @@
+{
+  "version": "7",
+  "dialect": "sqlite",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "6",
+      "when": 1783372816167,
+      "tag": "0000_slim_edwin_jarvis",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1785350256015,
+      "tag": "0001_legal_rachel_grey",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1785365975607,
+      "tag": "0002_silky_anthem",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1785367702436,
+      "tag": "0003_milky_rick_jones",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1785941273018,
+      "tag": "0004_stormy_metal_master",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "6",
+      "when": 1786144372078,
+      "tag": "0005_tranquil_fantastic_four",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "6",
+      "when": 1786163627957,
+      "tag": "0006_chief_rick_jones",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "6",
+      "when": 1786208791171,
+      "tag": "0007_open_bloodstorm",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "6",
+      "when": 1786647699364,
+      "tag": "0008_greedy_katie_power",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "6",
+      "when": 1786732892881,
+      "tag": "0009_jittery_the_stranger",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "6",
+      "when": 1786743775354,
+      "tag": "0010_backfill_vocab_session_orfa",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "6",
+      "when": 1786743883357,
+      "tag": "0011_fk_e_cascata",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "6",
+      "when": 1786743962197,
+      "tag": "0012_cascata_soft_delete",
+      "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "6",
+      "when": 1787345204937,
+      "tag": "0013_futuristic_rawhide_kid",
+      "breakpoints": true
+    }
+  ]
+}

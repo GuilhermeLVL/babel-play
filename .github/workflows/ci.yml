@@ -1,0 +1,32 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      # Actions fixadas por SHA (tag é ponteiro mutável); a versão legível fica no comentário,
+      # que é o que o Dependabot atualiza.
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm run typecheck:core
+      - run: npm run lint
+      - run: npm test
+      - run: npm run build
+      # Falha em HIGH/CRITICAL, exceto a allowlist NOMEADA das sem fix upstream.
+      - name: Auditoria de dependências
+        run: npm run audit:gate
+      # Invariantes arquiteturais deste repositório (não SAST genérico): as regras têm fixture,
+      # porque uma regra errada devolve zero achados e isso tem a cara de "código limpo".
+      - name: Regras arquiteturais (ast-grep)
+        run: |
+          ./node_modules/.bin/ast-grep test -c sgconfig.yml
+          ./node_modules/.bin/ast-grep scan -c sgconfig.yml src server server.ts

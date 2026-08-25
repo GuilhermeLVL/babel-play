@@ -1,0 +1,61 @@
+# Babel Play — modo PÚBLICO multi-usuário.
+#
+#   cp .env.docker.example .env.docker   (e preencha)
+#   docker compose --env-file .env.docker up -d --build
+#   curl -fsS http://localhost:3000/api/health
+#
+# O `--env-file` NÃO é opcional: sem ele o compose usa o `.env` da raiz (que tem a
+# configuração LOCAL de desenvolvimento) para substituir as variáveis abaixo, e a
+# imagem sairia com o Supabase errado embutido no bundle do cliente.
+#
+# HTTPS fica a cargo do proxy reverso na frente (Caddy/Traefik/nginx). O app não
+# termina TLS — e `AUTH_REQUIRED=1` sem HTTPS entrega o token em texto claro.
+
+services:
+  app:
+    build:
+      context: .
+      # As VITE_* precisam chegar no BUILD (o Vite as embute no bundle do cliente),
+      # não só no runtime — senão a SPA sobe sem tela de login.
+      args:
+        VITE_SUPABASE_URL: ${VITE_SUPABASE_URL:?defina no .env.docker}
+        VITE_SUPABASE_ANON_KEY: ${VITE_SUPABASE_ANON_KEY:?defina no .env.docker}
+        VITE_AUTH_REQUIRED: "1"
+    restart: unless-stopped
+    env_file: .env.docker
+    environment:
+      # Modo público: exige JWT do Supabase em toda rota /api.
+      # Também DESLIGA por design as capacidades locais — POST /api/import/youtube
+      # e /api/audio/* respondem 403 mesmo autenticado (rodam yt-dlp e WASAPI no
+      # servidor; não existem num deploy hospedado).
+      AUTH_REQUIRED: "1"
+      NODE_ENV: production
+      # F6-01 — modo cluster. A carga mediu vazão PLANA (~100 req/s) com a latência crescendo
+      # linear a partir de 2 VUs: saturação de processo único. Vazio ou 1 = um processo só.
+      # Suba junto o `memory` abaixo: cada worker é um heap Node inteiro.
+      CLUSTER_WORKERS: "${CLUSTER_WORKERS:-1}"
+    ports:
+      # Só no loopback do host: quem publica na internet é o proxy reverso.
+      - "127.0.0.1:3000:3000"
+    volumes:
+      # SQLite + áudios das sessões. SEM isto o dado morre a cada `docker compose up`.
+      #
+      # Com MAIS DE UMA RÉPLICA, todas precisam do MESMO volume: o WAL destrava
+      # múltiplos processos na mesma máquina, mas NÃO funciona sobre NFS/SMB —
+      # réplicas em hosts distintos exigem Postgres (ver docs/audit/04-scalability.md).
+      - babel-data:/data
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      start_period: 40s
+      retries: 3
+    # Teto de memória: o servidor é CRUD + proxy (a inferência roda no navegador),
+    # mas o import de documento carrega PDF/DOCX na memória.
+    deploy:
+      resources:
+        limits:
+          memory: 1g
+
+volumes:
+  babel-data:

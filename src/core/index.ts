@@ -1,0 +1,45 @@
+/**
+ * Núcleo isomórfico do Babel Play (TS puro, sem DOM/Node/react).
+ * Módulos liftados verbatim do app desktop (`../Tradutor`) — ver `docs/estrategia-reuso-web.md`.
+ */
+
+export * from './learning/contract'
+export * from './learning/scheduler'
+export * from './learning/cloze'
+export * from './learning/due'
+export * from './learning/quality'
+export * from './learning/trilha'
+export * from './learning/etapas'
+export * from './learning/interesses'
+export * from './learning/xp'
+export * from './learning/fluencia'
+/* Reexporte NOMEADO, e não `export *`: `cefrWordlist` também declara `CefrLevel` e `NIVEIS`, que
+   já vêm de `contract` e de `trilha`. Um `export *` criaria ambiguidade no barril e o TypeScript
+   recusaria — melhor escolher aqui do que renomear tipos que meia dúzia de arquivos já importa. */
+export { nivelCefr, coberturaDaWordlist, type NivelCefr, type ProcedenciaCefr } from './learning/cefrWordlist'
+export * from './minigames/types'
+export * from './minigames/revelavel'
+export * from './minigames/sequencia'
+export * from './minigames/itemSource'
+export * from './minigames/estadoDosJogos'
+export * from './minigames/desbloqueio'
+export * from './minigames/duracao'
+export * from './minigames/source'
+export * from './minigames/grade'
+export * from './minigames/wordsearch'
+export * from './minigames/termo'
+export * from './minigames/scramble'
+export * from './minigames/bingo'
+export * from './minigames/escuta'
+export * from './learning/keywords'
+export * from './learning/cefr'
+export * from './learning/text-stats'
+export * from './learning/passive-voice'
+export * from './learning/fillers'
+export * from './learning/sobreposicao'
+export * from './learning/pronunciation'
+export * from './robustness'
+export * from './gateway/llm-types'
+export * from './gateway/profile'
+export * from './gateway/budget'
+export * from './gateway/gateway'

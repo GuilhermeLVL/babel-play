@@ -1,0 +1,10 @@
+id: env-fora-de-config
+language: TypeScript
+severity: warning
+message: >-
+  `process.env` lido dentro de uma rota. Configuração espalhada pelos handlers torna o deploy
+  irreprodutível e esconde de qualquer inventário quais variáveis o servidor realmente exige.
+files:
+  - 'server/routes/*.ts'
+rule:
+  pattern: process.env.$NOME

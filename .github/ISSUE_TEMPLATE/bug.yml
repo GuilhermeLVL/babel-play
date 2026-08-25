@@ -1,0 +1,51 @@
+name: Bug report
+description: Something is broken
+labels: [bug]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: What you did, what you expected, what you got.
+    validations:
+      required: true
+  - type: input
+    id: browser
+    attributes:
+      label: Browser and version
+      placeholder: Chrome 140 / Edge / Firefox / Safari 18
+    validations:
+      required: true
+  - type: dropdown
+    id: webgpu
+    attributes:
+      label: WebGPU
+      options:
+        - available
+        - not available / fell back to WASM
+        - unknown
+    validations:
+      required: true
+  - type: input
+    id: os
+    attributes:
+      label: OS and hardware
+      placeholder: Windows 11, RTX 3060 · macOS 15, M1 · Android 14, Pixel 7
+  - type: input
+    id: model
+    attributes:
+      label: STT / MT model in use
+      placeholder: whisper-tiny local · opus-mt en-ROMANCE · Chrome Translator API
+  - type: dropdown
+    id: account
+    attributes:
+      label: Account mode
+      options:
+        - no account
+        - signed in
+        - self-host
+  - type: textarea
+    id: console
+    attributes:
+      label: Console / network errors
+      render: text

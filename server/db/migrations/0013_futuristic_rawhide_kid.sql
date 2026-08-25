@@ -1,0 +1,2 @@
+ALTER TABLE `sessions` ADD `origem_local_id` text;--> statement-breakpoint
+CREATE UNIQUE INDEX `uq_sessions_user_origem_local` ON `sessions` (`user_id`,`origem_local_id`) WHERE "sessions"."deleted_at" is null and "sessions"."origem_local_id" is not null;

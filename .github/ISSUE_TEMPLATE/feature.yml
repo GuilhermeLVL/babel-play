@@ -1,0 +1,22 @@
+name: Feature request
+description: Something the app should do
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: The problem
+      description: What you are trying to do and where it fails today.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposal
+      description: How you imagine it. Screenshots welcome.
+  - type: checkboxes
+    id: local
+    attributes:
+      label: Data stays on the device?
+      options:
+        - label: This can work without sending user data to a server by default

@@ -1,0 +1,1 @@
+CREATE INDEX `idx_exercise_results_kind_round` ON `exercise_results` (`exercise_kind`,`round_id`);

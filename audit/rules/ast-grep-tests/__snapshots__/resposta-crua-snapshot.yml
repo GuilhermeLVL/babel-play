@@ -1,0 +1,8 @@
+id: resposta-crua
+snapshots:
+  res.send(capa.bytes):
+    labels:
+    - source: res.send(capa.bytes)
+      style: primary
+      start: 0
+      end: 20

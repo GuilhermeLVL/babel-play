@@ -1,0 +1,1393 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Archivo:wght@500;600;700;800;900&family=IBM+Plex+Mono:wght@400;500;600&family=Geist:wght@400;500;600;700;800;900&family=Geist+Mono:wght@400;500;600&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --color-canvas: var(--canvas);
+  --color-surface: var(--surface);
+  --color-surface-hover: var(--surface-hover);
+  --color-ink: var(--ink);
+  --color-ink-muted: var(--ink-muted);
+  --color-ink-faint: var(--ink-faint);
+  --color-ink-contrast: var(--ink-contrast);
+  --color-accent: var(--accent);
+  --color-accent-soft: var(--accent-soft);
+  --color-accent-ink: var(--accent-ink);
+  --color-accent-contrast: var(--accent-contrast);
+  --color-good: var(--good);
+  --color-good-soft: var(--good-soft);
+  --color-good-ink: var(--good-ink);
+  --color-warn: var(--warn);
+  --color-warn-soft: var(--warn-soft);
+  --color-warn-ink: var(--warn-ink);
+  --color-rare: var(--rare);
+  --color-rare-soft: var(--rare-soft);
+  --color-rare-ink: var(--rare-ink);
+  --color-error: var(--error);
+  --color-error-soft: var(--error-soft);
+  --color-error-ink: var(--error-ink);
+  --color-border-subtle: var(--border-subtle);
+
+  --font-display: var(--font-display-val);
+  --font-body: var(--font-body-val);
+  --font-mono: var(--font-mono-val);
+
+  --radius-xl: var(--radius-btn);
+  --radius-2xl: var(--radius-card);
+
+  --shadow-card: var(--shadow-card-val);
+  --shadow-btn: var(--shadow-btn-val);
+  --shadow-btn-hover: var(--shadow-btn-hover-val);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   TOKENS DERIVADOS — precisam ser redeclarados em TODO bloco de tema.
+   ═══════════════════════════════════════════════════════════════════════════
+   Um custom property com var()/color-mix() é substituído no COMPUTED-VALUE TIME
+   do elemento que o DECLARA, e depois herdado já resolvido. Ou seja: declarar
+   `--good-ink: color-mix(…var(--good)…)` só em :root NÃO faz o token se
+   recalcular dentro de `[data-theme="mochi"]` — ele chega ali com a cor do
+   tema babel. (Um EditablePanel com tema próprio herdava os tokens do tema
+   ERRADO exatamente por isso.)
+
+   Por isso as 5 linhas abaixo aparecem, idênticas, em cada bloco:
+
+     --ink-contrast   texto sobre um fundo `bg-ink`. É sempre --canvas: no tema
+                      claro o ink é escuro (canvas claro contrasta); no escuro o
+                      ink é claro (canvas escuro contrasta). Antes usávamos
+                      --accent-contrast (#fff) aqui — branco sobre um --ink CLARO
+                      no dark = texto invisível. Era o bug do botão primário.
+     --*-ink          variantes de TEXTO das cores semânticas. As cores cruas
+                      (--good/--warn/…) são calibradas para PREENCHIMENTO e
+                      reprovam como texto; misturá-las com --ink escurece no tema
+                      claro e clareia no escuro.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+@layer base {
+  :root {
+    /* ESQUEMA DE COR NATIVO — sem isto, o navegador desenha TODO widget dele próprio
+       (popup do <select>, scrollbars, input[type=color|range], bolhas de validação) com a
+       paleta CLARA do sistema operacional, mesmo com o app inteiro em tema escuro: era a
+       causa do dropdown "DESIGN SYSTEM" abrir branco com destaque azul do Windows.
+       O par `.dark { color-scheme: dark }` (abaixo) é o que conserta tudo de uma vez —
+       a classe vive no <html>, então herda para o documento e para a janela do overlay. */
+    color-scheme: light;
+    /* Sliders, checkboxes e radios nativos passam a seguir a cor do tema. */
+    accent-color: var(--accent);
+
+    --canvas: #E6E2D6;
+    --surface: #F5F2EA;
+    --surface-hover: #EBE7DB;
+    --ink: #26241F;
+    --ink-muted: #5E5A50;
+    --ink-faint: #7A7568;
+    --accent: #F04E23;
+    --accent-soft: #FBDDD3;
+    --accent-ink: #C93A15;
+    --good: #3E6B44;
+    --good-soft: #DCE7DB;
+    --warn: #C98A12;
+    --warn-soft: #F4E7CB;
+    --rare: #5B5EA6;
+    --rare-soft: #E1E1F2;
+    --error: #C92A2A;
+    --error-soft: #FFE3E3;
+    --border-subtle: #C6BFAC;
+    --accent-contrast: #ffffff;
+
+    --ink-contrast: var(--canvas);
+    --good-ink: color-mix(in srgb, var(--good) 50%, var(--ink));
+    --warn-ink: color-mix(in srgb, var(--warn) 50%, var(--ink));
+    --rare-ink: color-mix(in srgb, var(--rare) 55%, var(--ink));
+    --error-ink: color-mix(in srgb, var(--error) 60%, var(--ink));
+    --good-contrast: #ffffff;  /* #3E6B44 → 6.19:1 */
+    --warn-contrast: #111111;  /* #C98A12 → 7.13:1 */
+    --error-contrast: #ffffff; /* #C92A2A → 5.46:1 */
+
+    --font-display-val: "Archivo", sans-serif;
+    --font-body-val: "Inter", sans-serif;
+    --font-mono-val: "IBM Plex Mono", monospace;
+    --radius-card: 16px;
+    --radius-btn: 12px;
+    --border-width-card: 2px;
+
+    --shadow-card-val: inset 0 1px 0 rgba(255,255,255,0.6), 0 2px 5px rgba(38,36,31,0.08);
+    --shadow-btn-val: inset 0 1px 0 rgba(255,255,255,0.25), 0 2px 0 rgba(0,0,0,0.18);
+    --shadow-btn-hover-val: inset 0 1px 0 rgba(255,255,255,0.35), 0 1px 0 rgba(0,0,0,0.18);
+
+    /* ─────────── Presets de aparência da TRANSCRIÇÃO (src/lib/transcriptUtils.ts) ───────────
+       `getTranscriptStyleClasses` deixa o usuário escolher um estilo de leitura para a transcrição
+       ao vivo (Sépia, Oceano, Neon, Alto Contraste) — INDEPENDENTE do tema de 6 cores do app: "Sépia"
+       precisa parecer sépia mesmo com o app no tema Vercel. Por isso NÃO usam --color-* dos temas
+       acima (que mudam por tema/modo) — são constantes fixas, declaradas uma única vez aqui (ao
+       contrário dos tokens derivados do bloco anterior, não dependem de nenhum --color-* de tema
+       para se recalcular, então não precisam ser redeclaradas por tema). Existiam antes como hex cru
+       espalhado em classes Tailwind arbitrárias (`bg-[#faf6ee]`…); a cor continua fixa por design,
+       só deixou de estar duplicada como string mágica pelo arquivo. */
+    --transcript-highlight: #fef08a;
+    --transcript-sepia-bg: #faf6ee;
+    --transcript-sepia-border: #e4d5bc;
+    --transcript-sepia-text: #433422;
+    --transcript-sepia-text-soft: #5c4f3c;
+    --transcript-ocean-bg: #f0f9ff;
+    --transcript-ocean-border: #bae6fd;
+    --transcript-ocean-text: #0369a1;
+    --transcript-ocean-text-soft: #0891b2;
+    --transcript-neon-bg: #000000;
+    --transcript-neon-text: #ffffff;
+    --transcript-neon-border: #27272a;
+    --transcript-neon-chip: #18181b;
+    --transcript-neon-original: #a3e635;
+    --transcript-neon-translated: #22d3ee;
+  }
+
+  .dark, [class*="dark"] {
+    /* A metade que faltava: avisa o navegador que estamos no escuro (ver :root acima). */
+    color-scheme: dark;
+
+    --canvas: #0B0E14;
+    --surface: #151922;
+    --surface-hover: #1F2430;
+    --ink: #F0F6FC;
+    --ink-muted: #8B949E;
+    --ink-faint: #79828C;
+    --accent: #FF5A36;
+    --accent-soft: rgba(255, 90, 54, 0.15);
+    --accent-ink: #FF7B5C;
+    --good: #3FB950;
+    --good-soft: rgba(63, 185, 80, 0.15);
+    --warn: #D29922;
+    --warn-soft: rgba(210, 153, 34, 0.15);
+    --rare: #58A6FF;
+    --rare-soft: rgba(88, 166, 255, 0.15);
+    --error: #F85149;
+    --error-soft: rgba(248, 81, 73, 0.15);
+    --border-subtle: #333B48;
+    --accent-contrast: #ffffff;
+
+    --ink-contrast: var(--canvas);
+    --good-ink: color-mix(in srgb, var(--good) 50%, var(--ink));
+    --warn-ink: color-mix(in srgb, var(--warn) 50%, var(--ink));
+    --rare-ink: color-mix(in srgb, var(--rare) 55%, var(--ink));
+    --error-ink: color-mix(in srgb, var(--error) 60%, var(--ink));
+    --good-contrast: #111111;  /* #3FB950 → 8.27:1 */
+    --warn-contrast: #111111;  /* #D29922 → 8.32:1 */
+    --error-contrast: #111111; /* #F85149 → 6.26:1 */
+
+    --font-display-val: "Archivo", sans-serif;
+    --font-body-val: "Inter", sans-serif;
+    --font-mono-val: "IBM Plex Mono", monospace;
+    --radius-card: 16px;
+    --radius-btn: 12px;
+    --border-width-card: 2px;
+
+    --shadow-card-val: inset 0 1px 0 rgba(255,255,255,0.05), 0 2px 8px rgba(0,0,0,0.5);
+    --shadow-btn-val: 0 1.5px 2px rgba(0,0,0,0.4);
+    --shadow-btn-hover-val: 0 2px 4px rgba(0,0,0,0.55);
+  }
+
+  /* Theme: Babel (Terracotta & Parchment) — o tema PADRÃO.
+     Precisa existir como bloco próprio: sem ele, um EditablePanel marcado
+     data-theme="babel" dentro de uma raiz mochi/notion herdaria a paleta do
+     tema de fora. */
+  [data-theme="babel"] {
+    --canvas: #E6E2D6;
+    --surface: #F5F2EA;
+    --surface-hover: #EBE7DB;
+    --ink: #26241F;
+    --ink-muted: #5E5A50;
+    --ink-faint: #696459;
+    --accent: #F04E23;
+    --accent-soft: #FBDDD3;
+    --accent-ink: #b93613;
+    --good: #3E6B44;
+    --good-soft: #DCE7DB;
+    --warn: #C98A12;
+    --warn-soft: #F4E7CB;
+    --rare: #5B5EA6;
+    --rare-soft: #E1E1F2;
+    --error: #C92A2A;
+    --error-soft: #FFE3E3;
+    --border-subtle: #C6BFAC;
+    --accent-contrast: #3d1105;
+
+    --ink-contrast: var(--canvas);
+    --good-ink: color-mix(in srgb, var(--good) 50%, var(--ink));
+    --warn-ink: color-mix(in srgb, var(--warn) 50%, var(--ink));
+    --rare-ink: color-mix(in srgb, var(--rare) 55%, var(--ink));
+    --error-ink: color-mix(in srgb, var(--error) 60%, var(--ink));
+    --good-contrast: #ffffff;  /* #3E6B44 → 6.19:1 */
+    --warn-contrast: #111111;  /* #C98A12 → 7.13:1 */
+    --error-contrast: #ffffff; /* #C92A2A → 5.46:1 */
+
+    --font-display-val: "Archivo", sans-serif;
+    --font-body-val: "Inter", sans-serif;
+    --font-mono-val: "IBM Plex Mono", monospace;
+    --radius-card: 16px;
+    --radius-btn: 12px;
+    --border-width-card: 2px;
+
+    --shadow-card-val: inset 0 1px 0 rgba(255,255,255,0.6), 0 2px 5px rgba(38,36,31,0.08);
+  }
+  [data-theme="babel"].dark, .dark [data-theme="babel"], [data-theme="babel"] [class*="dark"] {
+    --canvas: #0B0E14;
+    --surface: #151922;
+    --surface-hover: #1F2430;
+    --ink: #F0F6FC;
+    --ink-muted: #8B949E;
+    --ink-faint: #838b95;
+    --accent: #FF5A36;
+    --accent-soft: rgba(255, 90, 54, 0.15);
+    --accent-ink: #FF7B5C;
+    --good: #3FB950;
+    --good-soft: rgba(63, 185, 80, 0.15);
+    --warn: #D29922;
+    --warn-soft: rgba(210, 153, 34, 0.15);
+    --rare: #58A6FF;
+    --rare-soft: rgba(88, 166, 255, 0.15);
+    --error: #F85149;
+    --error-soft: rgba(248, 81, 73, 0.15);
+    --border-subtle: #333B48;
+    --accent-contrast: #551507;
+
+    --ink-contrast: var(--canvas);
+    --good-ink: color-mix(in srgb, var(--good) 50%, var(--ink));
+    --warn-ink: color-mix(in srgb, var(--warn) 50%, var(--ink));
+    --rare-ink: color-mix(in srgb, var(--rare) 55%, var(--ink));
+    --error-ink: color-mix(in srgb, var(--error) 60%, var(--ink));
+    --good-contrast: #111111;  /* #3FB950 → 8.27:1 */
+    --warn-contrast: #111111;  /* #D29922 → 8.32:1 */
+    --error-contrast: #111111; /* #F85149 → 6.26:1 */
+
+    --shadow-card-val: inset 0 1px 0 rgba(255,255,255,0.05), 0 2px 8px rgba(0,0,0,0.5);
+  }
+
+  /* ═══════════ Theme: Instrument Premium (F6) — ADITIVO, não altera nenhum tema acima ═══════════ */
+  /* LIGHT (fallback — o premium brilha no DARK). Traz radius/fontes/shadow + paleta teal clara. */
+  [data-theme="premium"] {
+    --canvas: #F2F9F7;
+    --surface: #ffffff;
+    --surface-hover: #E8F3F0;
+    --ink: #0B1A16;
+    --ink-muted: #46574F;
+    --ink-faint: #61716d;
+    --accent: #0D9488;
+    --accent-soft: rgba(13, 148, 136, 0.12);
+    --accent-ink: #0e716a;
+    --accent-contrast: #03211e;
+    --good: #16A34A;  --good-soft: rgba(22,163,74,0.12);
+    --warn: #CA8A04;  --warn-soft: rgba(202,138,4,0.12);
+    --rare: #2563EB;  --rare-soft: rgba(37,99,235,0.12);
+    --error: #DC2626; --error-soft: rgba(220,38,38,0.12);
+    --border-subtle: #D3E4DF;
+    --ink-contrast: var(--canvas);
+    --good-ink: color-mix(in srgb, var(--good) 65%, var(--ink));
+    --warn-ink: color-mix(in srgb, var(--warn) 63%, var(--ink));
+    --rare-ink: color-mix(in srgb, var(--rare) 65%, var(--ink));
+    --error-ink: color-mix(in srgb, var(--error) 65%, var(--ink));
+    --good-contrast: #062d14; --warn-contrast: #3d2b05; --error-contrast: #ffffff;
+    --radius-card: 16px; --radius-btn: 12px;
+    --font-display-val: 'Archivo', system-ui, sans-serif;
+    --font-body-val: 'Inter', system-ui, sans-serif;
+    --font-mono-val: 'IBM Plex Mono', ui-monospace, monospace;
+    --shadow-card-val: inset 0 1px 0 rgba(255,255,255,0.6), 0 2px 6px rgba(11,26,22,0.08);
+    --shadow-btn-val: 0 1px 2px rgba(11,26,22,0.12);
+    --shadow-btn-hover-val: 0 2px 6px rgba(13,148,136,0.25);
+  }
+  /* DARK — o premium de verdade: camadas profundas teal→navy, contraste rico. */
+  [data-theme="premium"].dark, .dark [data-theme="premium"], [data-theme="premium"] [class*="dark"] {
+    --canvas: #05090D;
+    --surface: #0D1720;
+    --surface-hover: #16232F;
+    --ink: #E9F2F0;
+    --ink-muted: #8FA6A0;
+    --ink-faint: #778d84;
+    --accent: #2DD4BF;
+    --accent-soft: rgba(45, 212, 191, 0.16);
+    --accent-ink: #5EEAD4;
+    --accent-contrast: #032420;
+    --good: #34D399; --good-soft: rgba(52,211,153,0.16);
+    --warn: #FBBF24; --warn-soft: rgba(251,191,36,0.16);
+    --rare: #60A5FA; --rare-soft: rgba(96,165,250,0.16);
+    --error: #F87171; --error-soft: rgba(248,113,113,0.16);
+    --border-subtle: #21323E;
+    --ink-contrast: var(--canvas);
+    --good-ink: color-mix(in srgb, var(--good) 50%, var(--ink));
+    --warn-ink: color-mix(in srgb, var(--warn) 50%, var(--ink));
+    --rare-ink: color-mix(in srgb, var(--rare) 55%, var(--ink));
+    --error-ink: color-mix(in srgb, var(--error) 60%, var(--ink));
+    --good-contrast: #04140E; --warn-contrast: #171203; --error-contrast: #1a0606;
+    --shadow-card-val: inset 0 1px 0 rgba(255,255,255,0.04), 0 8px 30px rgba(0,0,0,0.55);
+  }
+
+  /* ── Premium EXTRAS (só premium+dark) — gradiente de camadas, glow, metal e partículas ── */
+  /* Fundo em gradiente com tons intermediários (teal → navy → deep). */
+  [data-theme="premium"].dark body {
+    background:
+      radial-gradient(1200px 620px at 12% -12%, rgba(45,212,191,0.10), transparent 60%),
+      radial-gradient(1000px 560px at 112% 8%, rgba(96,165,250,0.10), transparent 55%),
+      linear-gradient(160deg, #05090D 0%, #071219 45%, #0A1620 100%) fixed;
+  }
+  /* Glow/bloom sutil nos pontos focais: botão primário. */
+  [data-theme="premium"].dark .btn-ink,
+  [data-theme="premium"].dark .btn-solid {
+    box-shadow: 0 0 0 1px rgba(45,212,191,0.18), 0 10px 28px -10px rgba(45,212,191,0.5);
+  }
+  /* Efeito "metal" (gradiente anisotrópico) nos títulos display. */
+  [data-theme="premium"].dark h1.font-display,
+  [data-theme="premium"].dark h2.font-display {
+    background: linear-gradient(178deg, #FFFFFF 0%, #D6EEE9 38%, #86C7BD 100%);
+    -webkit-background-clip: text; background-clip: text;
+    -webkit-text-fill-color: transparent; color: transparent;
+    text-shadow: 0 0 24px rgba(45,212,191,0.18);
+  }
+  /* Hero: brilho radial + partículas ambient (baixa densidade, movimento lento). */
+  [data-theme="premium"].dark .auth-hero {
+    background:
+      radial-gradient(700px 400px at 20% 15%, rgba(45,212,191,0.16), transparent 60%),
+      radial-gradient(600px 380px at 90% 90%, rgba(96,165,250,0.14), transparent 60%),
+      linear-gradient(155deg, #06111A 0%, #081A22 60%, #0A2028 100%);
+  }
+  [data-theme="premium"].dark .auth-hero::after {
+    content: ""; position: absolute; inset: 0; pointer-events: none; z-index: 1;
+    background-image:
+      radial-gradient(1.5px 1.5px at 18% 28%, rgba(255,255,255,0.55), transparent 60%),
+      radial-gradient(1px 1px at 68% 62%, rgba(94,234,212,0.6), transparent 60%),
+      radial-gradient(1.5px 1.5px at 42% 82%, rgba(255,255,255,0.4), transparent 60%),
+      radial-gradient(1px 1px at 84% 24%, rgba(96,165,250,0.5), transparent 60%),
+      radial-gradient(1px 1px at 54% 12%, rgba(255,255,255,0.35), transparent 60%),
+      radial-gradient(1.5px 1.5px at 30% 55%, rgba(94,234,212,0.4), transparent 60%);
+    opacity: 0.7;
+    animation: premium-drift 26s ease-in-out infinite alternate;
+  }
+  @keyframes premium-drift {
+    from { transform: translate3d(0, 0, 0); }
+    to   { transform: translate3d(-14px, -20px, 0); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    [data-theme="premium"].dark .auth-hero::after { animation: none; }
+  }
+
+  /* Theme: Linear (Indigo) — LIGHT mode */
+  [data-theme="linear"] {
+    --canvas: #f9f9fb;
+    --surface: #ffffff;
+    --surface-hover: #f2f2f5;
+    --ink: #1c1d21;
+    --ink-muted: #62646c;
+    --ink-faint: #6b6e77;
+    --accent: #5e6ad2;
+    --accent-soft: rgba(94, 106, 210, 0.12);
+    --accent-ink: #4a53b8;
+    --good: #17a34a;
+    --good-soft: rgba(23, 163, 74, 0.12);
+    --warn: #c2790b;
+    --warn-soft: rgba(194, 121, 11, 0.12);
+    --rare: #7c3aed;
+    --rare-soft: rgba(124, 58, 237, 0.12);
+    --error: #dc2626;
+    --error-soft: rgba(220, 38, 38, 0.12);
+    --border-subtle: #d8d8e0;
+    --accent-contrast: #ffffff;
+
+    --ink-contrast: var(--canvas);
+    --good-ink: color-mix(in srgb, var(--good) 50%, var(--ink));
+    --warn-ink: color-mix(in srgb, var(--warn) 50%, var(--ink));
+    --rare-ink: color-mix(in srgb, var(--rare) 55%, var(--ink));
+    --error-ink: color-mix(in srgb, var(--error) 60%, var(--ink));
+    --good-contrast: #111111;  /* #17a34a → 6.37:1 */
+    --warn-contrast: #111111;  /* #c2790b → 6.03:1 */
+    --error-contrast: #ffffff; /* #dc2626 → 4.83:1 */
+
+    --font-display-val: "Inter", sans-serif;
+    --font-body-val: "Inter", sans-serif;
+    --font-mono-val: "IBM Plex Mono", monospace;
+    --radius-card: 12px;
+    --radius-btn: 8px;
+    --border-width-card: 1px;
+
+    --shadow-card-val: 0 1px 2px rgba(28,29,33,0.06), 0 1px 3px rgba(28,29,33,0.05);
+  }
+  /* Theme: Linear (Sleek Obsidian & Indigo) — DARK mode */
+  [data-theme="linear"].dark, .dark [data-theme="linear"], [data-theme="linear"] [class*="dark"] {
+    --canvas: #08080a;
+    --surface: #121216;
+    --surface-hover: #181822;
+    --ink: #f7f8f8;
+    --ink-muted: #8a8f98;
+    --ink-faint: #7d8189;
+    --accent: #5e6ad2;
+    --accent-soft: rgba(94, 106, 210, 0.15);
+    --accent-ink: #7d86dc;
+    --good: #22c55e;
+    --good-soft: rgba(34, 197, 94, 0.15);
+    --warn: #f59e0b;
+    --warn-soft: rgba(245, 158, 11, 0.15);
+    --rare: #8b5cf6;
+    --rare-soft: rgba(139, 92, 246, 0.15);
+    --error: #ef4444;
+    --error-soft: rgba(239, 68, 68, 0.15);
+    --border-subtle: #2f2f3a;
+    --accent-contrast: #ffffff;
+
+    --ink-contrast: var(--canvas);
+    --good-ink: color-mix(in srgb, var(--good) 50%, var(--ink));
+    --warn-ink: color-mix(in srgb, var(--warn) 50%, var(--ink));
+    --rare-ink: color-mix(in srgb, var(--rare) 55%, var(--ink));
+    --error-ink: color-mix(in srgb, var(--error) 60%, var(--ink));
+    --good-contrast: #111111;  /* #22c55e → 9.22:1 */
+    --warn-contrast: #111111;  /* #f59e0b → 9.78:1 */
+    --error-contrast: #111111; /* #ef4444 → 5.58:1 */
+
+    --font-display-val: "Inter", sans-serif;
+    --font-body-val: "Inter", sans-serif;
+    --font-mono-val: "IBM Plex Mono", monospace;
+    --radius-card: 12px;
+    --radius-btn: 8px;
+    --border-width-card: 1px;
+
+    --shadow-card-val: inset 0 1px 0 rgba(255,255,255,0.03), 0 4px 12px rgba(0,0,0,0.6);
+  }
+
+  /* Theme: Vercel (Monochrome Geist) */
+  [data-theme="vercel"] {
+    --canvas: #ffffff;
+    --surface: #fafafa;
+    --surface-hover: #eaeaea;
+    --ink: #000000;
+    --ink-muted: #666666;
+    --ink-faint: #696969;
+    --accent: #000000;
+    --accent-soft: rgba(0, 0, 0, 0.06);
+    --accent-ink: #000000;
+    --good: #10b981;
+    --good-soft: rgba(16, 185, 129, 0.1);
+    --warn: #f59e0b;
+    --warn-soft: rgba(245, 158, 11, 0.1);
+    --rare: #7c3aed;
+    --rare-soft: rgba(124, 58, 237, 0.1);
+    --error: #ef4444;
+    --error-soft: rgba(239, 68, 68, 0.1);
+    --border-subtle: #dedede;
+    --accent-contrast: #ffffff;
+
+    --ink-contrast: var(--canvas);
+    --good-ink: color-mix(in srgb, var(--good) 50%, var(--ink));
+    --warn-ink: color-mix(in srgb, var(--warn) 50%, var(--ink));
+    --rare-ink: color-mix(in srgb, var(--rare) 55%, var(--ink));
+    --error-ink: color-mix(in srgb, var(--error) 60%, var(--ink));
+    --good-contrast: #111111;  /* #10b981 → 8.28:1 */
+    --warn-contrast: #111111;  /* #f59e0b → 9.78:1 */
+    --error-contrast: #111111; /* #ef4444 → 5.58:1 */
+
+    --font-display-val: "Geist", "Inter", sans-serif;
+    --font-body-val: "Geist", "Inter", sans-serif;
+    --font-mono-val: "Geist Mono", monospace;
+    --radius-card: 0px;
+    --radius-btn: 0px;
+    --border-width-card: 1px;
+
+    --shadow-card-val: 0 1px 2px rgba(0,0,0,0.05);
+  }
+  [data-theme="vercel"].dark, .dark [data-theme="vercel"], [data-theme="vercel"] [class*="dark"] {
+    --canvas: #000000;
+    --surface: #111111;
+    --surface-hover: #222222;
+    --ink: #ffffff;
+    --ink-muted: #898989;
+    --ink-faint: #8a8a8a;
+    --accent: #ffffff;
+    --accent-soft: rgba(255, 255, 255, 0.12);
+    --accent-ink: #ffffff;
+    /* O bloco claro do vercel tem especificidade menor mas MESMO alvo: sem
+       redeclarar aqui, as semânticas do claro (emerald/amber/violet escuros)
+       vazavam para o dark. */
+    --good: #3fb950;
+    --good-soft: rgba(63, 185, 80, 0.14);
+    --warn: #f5a623;
+    --warn-soft: rgba(245, 166, 35, 0.14);
+    --rare: #a78bfa;
+    --rare-soft: rgba(167, 139, 250, 0.14);
+    --error: #ff6b6b;
+    --error-soft: rgba(255, 107, 107, 0.14);
+    --border-subtle: #3d3d3d;
+    --accent-contrast: #000000;
+
+    --ink-contrast: var(--canvas);
+    --good-ink: color-mix(in srgb, var(--good) 50%, var(--ink));
+    --warn-ink: color-mix(in srgb, var(--warn) 50%, var(--ink));
+    --rare-ink: color-mix(in srgb, var(--rare) 55%, var(--ink));
+    --error-ink: color-mix(in srgb, var(--error) 60%, var(--ink));
+    --good-contrast: #111111;  /* #3fb950 → 8.27:1 */
+    --warn-contrast: #111111;  /* #f5a623 → 10.36:1 */
+    --error-contrast: #111111; /* #ff6b6b → 7.57:1 */
+
+    --font-display-val: "Geist", "Inter", sans-serif;
+    --font-body-val: "Geist", "Inter", sans-serif;
+    --font-mono-val: "Geist Mono", monospace;
+    --radius-card: 0px;
+    --radius-btn: 0px;
+    --border-width-card: 1px;
+
+    --shadow-card-val: 0 0 0 1px #333333, 0 8px 30px rgba(0,0,0,0.8);
+  }
+
+  /* Theme: Mochi (Parchment & Everforest) */
+  [data-theme="mochi"] {
+    --canvas: #f3efdf;
+    --surface: #fdf6e3;
+    --surface-hover: #f4edd8;
+    --ink: #2b3339;
+    --ink-muted: #5c6a72;
+    --ink-faint: #636e6e;
+    --accent: #87c095;
+    --accent-soft: #e2f0e5;
+    --accent-ink: #4f7358;
+    --good: #a7c080;
+    --good-soft: #edf5e2;
+    --warn: #dbbc7f;
+    --warn-soft: #faf5eb;
+    --rare: #7fbbb3;
+    --rare-soft: #ebf5f4;
+    --error: #e67e80;
+    --error-soft: #fbeeed;
+    --border-subtle: #cbb992;
+    --accent-contrast: #1a202c;
+
+    --ink-contrast: var(--canvas);
+    --good-ink: color-mix(in srgb, var(--good) 43%, var(--ink));
+    --warn-ink: color-mix(in srgb, var(--warn) 41%, var(--ink));
+    --rare-ink: color-mix(in srgb, var(--rare) 45%, var(--ink));
+    --error-ink: color-mix(in srgb, var(--error) 55%, var(--ink));
+    --good-contrast: #111111;  /* #a7c080 → 10.49:1 */
+    --warn-contrast: #111111;  /* #dbbc7f → 11.51:1 */
+    --error-contrast: #111111; /* #e67e80 → 7.66:1 */
+
+    --font-display-val: "Inter", sans-serif;
+    --font-body-val: "Inter", sans-serif;
+    --font-mono-val: "IBM Plex Mono", monospace;
+    --radius-card: 24px;
+    --radius-btn: 16px;
+    --border-width-card: 2px;
+
+    --shadow-card-val: inset 0 1px 0 rgba(255,255,255,0.7), 0 2px 4px rgba(43,51,57,0.05);
+  }
+  [data-theme="mochi"].dark, .dark [data-theme="mochi"], [data-theme="mochi"] [class*="dark"] {
+    --canvas: #2d353b;
+    --surface: #343f44;
+    --surface-hover: #3d484d;
+    --ink: #d3c6aa;
+    --ink-muted: #acb6af;
+    --ink-faint: #adb6ab;
+    --accent: #a7c080;
+    --accent-soft: rgba(167, 192, 128, 0.15);
+    --accent-ink: #c1d3a5;
+    --good: #83c092;
+    --good-soft: rgba(131, 192, 146, 0.05);
+    --warn: #dbbc7f;
+    --warn-soft: rgba(219, 188, 127, 0.09);
+    --rare: #7fbbb3;
+    --rare-soft: rgba(127, 187, 179, 0.03);
+    --error: #e67e80;
+    --error-soft: rgba(230, 126, 128, 0.15);
+    --border-subtle: #515e66;
+    --accent-contrast: #1c1e21;
+
+    --ink-contrast: var(--canvas);
+    --good-ink: color-mix(in srgb, var(--good) 50%, var(--ink));
+    --warn-ink: color-mix(in srgb, var(--warn) 50%, var(--ink));
+    --rare-ink: color-mix(in srgb, var(--rare) 55%, var(--ink));
+    --error-ink: color-mix(in srgb, var(--error) 60%, var(--ink));
+    --good-contrast: #111111;  /* #83c092 → 9.92:1 */
+    --warn-contrast: #111111;  /* #dbbc7f → 11.51:1 */
+    --error-contrast: #111111; /* #e67e80 → 7.66:1 */
+
+    --font-display-val: "Inter", sans-serif;
+    --font-body-val: "Inter", sans-serif;
+    --font-mono-val: "IBM Plex Mono", monospace;
+    --radius-card: 24px;
+    --radius-btn: 16px;
+    --border-width-card: 2px;
+
+    --shadow-card-val: inset 0 1px 0 rgba(255,255,255,0.03), 0 4px 10px rgba(0,0,0,0.3);
+  }
+
+  /* Theme: Notion (Charcoal Minimalist) */
+  [data-theme="notion"] {
+    --canvas: #ffffff;
+    --surface: #f7f7f5;
+    --surface-hover: #f1f1ef;
+    --ink: #37352f;
+    --ink-muted: #6f6e6b;
+    --ink-faint: #6f6e6c;
+    --accent: #2383e2;
+    --accent-soft: #e3f2fd;
+    --accent-ink: #1669d7;
+    --good: #0f7b4e;
+    --good-soft: #e2f5ec;
+    --warn: #dfab01;
+    --warn-soft: #fcf6e2;
+    --rare: #6931d8;
+    --rare-soft: #f1ecfc;
+    --error: #d44037;
+    --error-soft: #fbebeb;
+    --border-subtle: #d8d7d4;
+    --accent-contrast: #061a2d;
+
+    --ink-contrast: var(--canvas);
+    --good-ink: color-mix(in srgb, var(--good) 50%, var(--ink));
+    --warn-ink: color-mix(in srgb, var(--warn) 46%, var(--ink));
+    --rare-ink: color-mix(in srgb, var(--rare) 55%, var(--ink));
+    --error-ink: color-mix(in srgb, var(--error) 60%, var(--ink));
+    --good-contrast: #ffffff;  /* #0f7b4e → 5.3:1 */
+    --warn-contrast: #111111;  /* #dfab01 → 9.96:1 */
+    --error-contrast: #040101; /* #d44037 → 4.59:1 */
+
+    --font-display-val: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    --font-body-val: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    --font-mono-val: SFMono-Regular, Consolas, "Liberation Mono", Menlo, Courier, monospace;
+    --radius-card: 6px;
+    --radius-btn: 4px;
+    --border-width-card: 1px;
+
+    --shadow-card-val: 0 1px 2px rgba(15,15,15,0.05);
+  }
+  [data-theme="notion"].dark, .dark [data-theme="notion"], [data-theme="notion"] [class*="dark"] {
+    --canvas: #191919;
+    --surface: #202020;
+    --surface-hover: #2f2f2f;
+    --ink: #fffff6;
+    --ink-muted: #9b9a97;
+    --ink-faint: #969696;
+    --accent: #2eaadc;
+    --accent-soft: rgba(46, 170, 220, 0.12);
+    --accent-ink: #3eb1df;
+    --good: #43c690;
+    --good-soft: rgba(67, 198, 144, 0.12);
+    --warn: #dfab01;
+    --warn-soft: rgba(223, 171, 1, 0.12);
+    --rare: #9b62ff;
+    --rare-soft: rgba(155, 98, 255, 0.12);
+    --error: #ff7369;
+    --error-soft: rgba(255, 115, 105, 0.12);
+    --border-subtle: #3a3a3a;
+    --accent-contrast: #191919;
+
+    --ink-contrast: var(--canvas);
+    --good-ink: color-mix(in srgb, var(--good) 50%, var(--ink));
+    --warn-ink: color-mix(in srgb, var(--warn) 50%, var(--ink));
+    --rare-ink: color-mix(in srgb, var(--rare) 55%, var(--ink));
+    --error-ink: color-mix(in srgb, var(--error) 60%, var(--ink));
+    --good-contrast: #111111;  /* #43c690 → 9.72:1 */
+    --warn-contrast: #111111;  /* #dfab01 → 9.96:1 */
+    --error-contrast: #111111; /* #ff7369 → 7.91:1 */
+
+    --font-display-val: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    --font-body-val: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    --font-mono-val: SFMono-Regular, Consolas, "Liberation Mono", Menlo, Courier, monospace;
+    --radius-card: 6px;
+    --radius-btn: 4px;
+    --border-width-card: 1px;
+
+    --shadow-card-val: 0 1px 2px rgba(0,0,0,0.4);
+  }
+
+  /* Theme: Custom (paleta escolhida pelo usuário) — LIGHT */
+  [data-theme="custom"] {
+    --canvas: var(--custom-canvas, #E6E2D6);
+    --surface: var(--custom-surface, #F5F2EA);
+    --ink: var(--custom-ink, #26241F);
+    --accent: var(--custom-accent, #F04E23);
+
+    /* Derivadas com color-mix nativo, a partir das 4 cores escolhidas. */
+    --surface-hover: color-mix(in srgb, var(--surface) 92%, var(--ink) 8%);
+    --accent-soft: color-mix(in srgb, var(--accent) 15%, transparent);
+    --accent-ink: var(--accent);
+    --ink-muted: color-mix(in srgb, var(--ink) 70%, var(--canvas));
+    --ink-faint: color-mix(in srgb, var(--ink) 55%, var(--canvas));
+    --border-subtle: color-mix(in srgb, var(--ink) 25%, var(--canvas));
+    --accent-contrast: #ffffff;
+
+    --good: #3E6B44;
+    --good-soft: color-mix(in srgb, var(--good) 15%, var(--surface));
+    --warn: #C98A12;
+    --warn-soft: color-mix(in srgb, var(--warn) 15%, var(--surface));
+    --rare: #5B5EA6;
+    --rare-soft: color-mix(in srgb, var(--rare) 15%, var(--surface));
+    --error: #C92A2A;
+    --error-soft: color-mix(in srgb, var(--error) 15%, var(--surface));
+
+    --ink-contrast: var(--canvas);
+    --good-ink: color-mix(in srgb, var(--good) 50%, var(--ink));
+    --warn-ink: color-mix(in srgb, var(--warn) 50%, var(--ink));
+    --rare-ink: color-mix(in srgb, var(--rare) 55%, var(--ink));
+    --error-ink: color-mix(in srgb, var(--error) 60%, var(--ink));
+    --good-contrast: #ffffff;  /* #3E6B44 → 6.19:1 */
+    --warn-contrast: #111111;  /* #C98A12 → 7.13:1 */
+    --error-contrast: #ffffff; /* #C92A2A → 5.46:1 */
+
+    --font-display-val: "Archivo", sans-serif;
+    --font-body-val: "Inter", sans-serif;
+    --font-mono-val: "IBM Plex Mono", monospace;
+    --radius-card: 16px;
+    --radius-btn: 12px;
+    --border-width-card: 2px;
+
+    --shadow-card-val: inset 0 1px 0 rgba(255,255,255,0.6), 0 2px 5px rgba(38,36,31,0.08);
+  }
+  /* Theme: Custom — DARK.
+     Este bloco NÃO existia. Como `[data-theme="custom"]` vinha DEPOIS de `.dark`
+     no arquivo e tem a mesma especificidade, ele sobrescrevia tudo: alternar para
+     o modo escuro no tema custom era um no-op silencioso. As semânticas ganham
+     versões claras (legíveis sobre fundo escuro) e os softs são derivados. */
+  [data-theme="custom"].dark, .dark [data-theme="custom"], [data-theme="custom"] [class*="dark"] {
+    --canvas: var(--custom-canvas-dark, #0B0E14);
+    --surface: var(--custom-surface-dark, #151922);
+    --ink: var(--custom-ink-dark, #F0F6FC);
+    --accent: var(--custom-accent, #FF5A36);
+
+    --surface-hover: color-mix(in srgb, var(--surface) 88%, var(--ink) 12%);
+    --accent-soft: color-mix(in srgb, var(--accent) 15%, transparent);
+    --accent-ink: color-mix(in srgb, var(--accent) 75%, var(--ink));
+    --ink-muted: color-mix(in srgb, var(--ink) 65%, var(--canvas));
+    --ink-faint: color-mix(in srgb, var(--ink) 45%, var(--canvas));
+    --border-subtle: color-mix(in srgb, var(--ink) 22%, var(--canvas));
+    --accent-contrast: #ffffff;
+
+    --good: #3FB950;
+    --good-soft: color-mix(in srgb, var(--good) 15%, transparent);
+    --warn: #D29922;
+    --warn-soft: color-mix(in srgb, var(--warn) 15%, transparent);
+    --rare: #58A6FF;
+    --rare-soft: color-mix(in srgb, var(--rare) 15%, transparent);
+    --error: #F85149;
+    --error-soft: color-mix(in srgb, var(--error) 15%, transparent);
+
+    --ink-contrast: var(--canvas);
+    --good-ink: color-mix(in srgb, var(--good) 50%, var(--ink));
+    --warn-ink: color-mix(in srgb, var(--warn) 50%, var(--ink));
+    --rare-ink: color-mix(in srgb, var(--rare) 55%, var(--ink));
+    --error-ink: color-mix(in srgb, var(--error) 60%, var(--ink));
+    --good-contrast: #111111;  /* #3FB950 → 8.27:1 */
+    --warn-contrast: #111111;  /* #D29922 → 8.32:1 */
+    --error-contrast: #111111; /* #F85149 → 6.26:1 */
+
+    --shadow-card-val: inset 0 1px 0 rgba(255,255,255,0.05), 0 2px 8px rgba(0,0,0,0.5);
+  }
+
+  body {
+    background-color: var(--color-canvas);
+    color: var(--color-ink);
+    font-family: var(--font-body);
+    transition: background-color 0.25s ease, border-color 0.25s ease, border-radius 0.25s ease;
+  }
+}
+
+@layer components {
+  .btn-solid {
+    @apply inline-flex items-center justify-center gap-2 bg-accent font-bold rounded-xl px-4 py-2.5 transition-all duration-200 active:scale-95 shadow-btn hover:shadow-btn-hover hover:brightness-105 text-[13.5px] cursor-pointer;
+    /* Texto seguro sobre o preenchimento accent: `white` some no accent branco do
+       vercel-dark e lava no accent verde-claro do mochi. */
+    color: var(--accent-contrast);
+  }
+  /* Botão primário NEUTRO (preenchimento `--ink`). Use esta classe em vez de
+     `btn-solid bg-ink text-white`: no modo escuro o --ink é CLARO, então
+     `text-white` era branco sobre branco. --ink-contrast é sempre o --canvas. */
+  .btn-ink {
+    @apply inline-flex items-center justify-center gap-2 bg-ink font-bold rounded-xl px-4 py-2.5 transition-all duration-200 active:scale-95 shadow-btn hover:shadow-btn-hover hover:brightness-110 text-[13.5px] cursor-pointer;
+    color: var(--ink-contrast);
+  }
+  .btn-outline {
+    @apply inline-flex items-center justify-center gap-2 bg-surface text-ink-muted border border-border-subtle font-semibold rounded-xl px-4 py-2.5 transition-all duration-200 active:scale-95 shadow-card hover:border-accent hover:text-ink text-[13px] cursor-pointer;
+  }
+  .card-panel {
+    background-color: var(--color-surface);
+    border-width: var(--border-width-card);
+    border-style: solid;
+    border-color: var(--color-border-subtle);
+    border-radius: var(--radius-2xl);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.05), var(--shadow-card);
+    overflow: hidden;
+    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .card-panel:hover {
+    box-shadow: var(--shadow-card);
+    border-color: var(--color-accent);
+  }
+  /* --ink-faint reprovava em contraste sobre `surface` em TODOS os temas — e como
+     .label-mono é o caption padrão da app, todo rótulo mono ficava ilegível. */
+  .label-mono {
+    @apply font-mono font-bold text-[10px] text-ink-muted uppercase tracking-[0.12em];
+  }
+  .badge-tag {
+    @apply inline-flex items-center gap-1 text-[10.5px] font-mono font-extrabold px-2.5 py-1 rounded-full uppercase tracking-wider;
+  }
+  /* As variantes usam a cor de TEXTO (-ink), não a de preenchimento: `text-good`
+     sobre `bg-good-soft` dava 1.68:1 no mochi claro. */
+  .badge-tag.ok {
+    @apply bg-good-soft text-good-ink;
+  }
+  .badge-tag.warn {
+    @apply bg-warn-soft text-warn-ink;
+  }
+  .badge-tag.acc {
+    @apply bg-accent-soft text-accent-ink;
+  }
+  .badge-tag.rare {
+    @apply bg-rare-soft text-rare-ink;
+  }
+  .badge-tag.err {
+    @apply bg-error-soft text-error-ink;
+  }
+  .kpi-pill {
+    @apply inline-flex items-center gap-1.5 text-[11.5px] font-bold border border-border-subtle rounded-full px-3 py-1 text-ink-muted bg-surface transition-colors hover:border-accent hover:text-ink cursor-pointer;
+  }
+  .kpi-pill.active {
+    @apply bg-accent border-accent;
+    color: var(--accent-contrast);
+  }
+
+  /* Active Production CSS Classes */
+  .ap-prompt {
+    @apply text-lg md:text-xl font-medium text-ink leading-relaxed tracking-normal;
+  }
+  .ap-blank {
+    @apply font-mono text-accent bg-accent-soft px-3 py-1 mx-1 rounded-md border-b-2 border-dashed border-accent font-extrabold animate-pulse;
+  }
+  .ap-input {
+    @apply w-full p-4 border-2 border-border-subtle rounded-xl text-center text-lg font-semibold bg-canvas outline-none focus:border-accent focus:ring-2 focus:ring-accent-soft/20 transition-all shadow-sm;
+  }
+  /* Campo de FORMULÁRIO (auth/config) — distinto do .ap-input de jogo (que é text-center/text-lg/p-4).
+     Alinhado à esquerda, tamanho normal e padding vertical SIMÉTRICO → caret centralizado, baseline ok. */
+  .field-input {
+    @apply w-full rounded-xl border border-border-subtle bg-canvas px-3.5 py-2.5 text-sm text-ink leading-normal outline-none transition-colors placeholder:text-ink-faint focus:border-accent focus:ring-2 focus:ring-accent-soft/25;
+  }
+  .ap-result-correct {
+    @apply bg-good-soft/20 border border-good/30 p-5 rounded-2xl text-center shadow-sm;
+  }
+  .ap-result-partial {
+    @apply bg-warn-soft/20 border border-warn/30 p-5 rounded-2xl text-center shadow-sm;
+  }
+  .ap-result-error {
+    @apply bg-error-soft/20 border border-error/30 p-5 rounded-2xl text-center shadow-sm;
+  }
+  .ap-validation-label {
+    @apply font-mono text-xs uppercase tracking-wider font-extrabold flex items-center gap-1.5;
+  }
+
+  /* Entrada dos avisos (Toast/confirmação). Anterior às utilidades de entrada abaixo; mantida
+     porque tem curva própria e é disparada por classe única. */
+  @keyframes babel-toast-in {
+    from { opacity: 0; transform: translateY(6px) scale(0.98); }
+    to   { opacity: 1; transform: none; }
+  }
+  .babel-toast {
+    animation: babel-toast-in 180ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .babel-toast { animation: none; }
+  }
+}
+
+/* ══════════════════════ ANIMAÇÕES DE ENTRADA ══════════════════════
+   POR QUE ISTO EXISTE. A app tem 235 ocorrências de `animate-in`, `fade-in`, `zoom-in-95` e
+   `slide-in-from-*` espalhadas por 15+ arquivos — todas herdadas do `tailwindcss-animate`, que
+   NUNCA esteve instalado neste projeto. Eram 235 no-ops: metade da sensação de "os efeitos não
+   funcionam" vinha daqui, e nenhuma quantidade de partícula nova compensaria isso.
+
+   Implementadas aqui em vez de instalar o pacote: ele é do ecossistema Tailwind v3 e este projeto
+   é v4 com tokens próprios. São ~20 linhas — dependência não se paga.
+
+   COMO FUNCIONA (mesma composição do pacote original, para as classes existentes valerem sem
+   tocar em nenhum .tsx): `animate-in` liga a animação e as demais classes só ajustam variáveis
+   do estado INICIAL. `fade-in` sozinho não faz nada — é modificador, como no original.
+
+   Não há guarda de acessibilidade aqui de propósito: `body.performance-mode`, `body.animations-off`
+   e a consulta de `prefers-reduced-motion` (mais abaixo neste arquivo) já zeram `animation-duration`
+   de TUDO com `!important`. Uma guarda local seria redundante e mais um lugar para esquecer. */
+
+@keyframes babel-enter {
+  from {
+    opacity: var(--enter-opacity, 1);
+    transform: translate3d(var(--enter-x, 0), var(--enter-y, 0), 0) scale(var(--enter-scale, 1));
+  }
+}
+
+.animate-in {
+  --enter-opacity: 1;
+  --enter-x: 0;
+  --enter-y: 0;
+  --enter-scale: 1;
+  /* `--tw-duration` é o que as classes `duration-*` do Tailwind v4 definem; sem elas, 200ms. */
+  animation: babel-enter var(--tw-duration, 200ms) cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.fade-in, .fade-in-0 { --enter-opacity: 0; }
+
+.zoom-in, .zoom-in-95 { --enter-scale: 0.95; }
+.zoom-in-90 { --enter-scale: 0.9; }
+
+/* Distâncias na escala do Tailwind (1 = 0.25rem). A variante sem número usa 0.5rem. */
+.slide-in-from-top    { --enter-y: -0.5rem; }
+.slide-in-from-top-1  { --enter-y: -0.25rem; }
+.slide-in-from-top-2  { --enter-y: -0.5rem; }
+.slide-in-from-top-4  { --enter-y: -1rem; }
+.slide-in-from-bottom   { --enter-y: 0.5rem; }
+.slide-in-from-bottom-1 { --enter-y: 0.25rem; }
+.slide-in-from-bottom-2 { --enter-y: 0.5rem; }
+.slide-in-from-bottom-4 { --enter-y: 1rem; }
+.slide-in-from-bottom-5 { --enter-y: 1.25rem; }
+.slide-in-from-left    { --enter-x: -0.5rem; }
+.slide-in-from-left-1  { --enter-x: -0.25rem; }
+.slide-in-from-left-2  { --enter-x: -0.5rem; }
+.slide-in-from-left-4  { --enter-x: -1rem; }
+.slide-in-from-right   { --enter-x: 0.5rem; }
+.slide-in-from-right-1 { --enter-x: 0.25rem; }
+.slide-in-from-right-2 { --enter-x: 0.5rem; }
+.slide-in-from-right-4 { --enter-x: 1rem; }
+
+/* O número que sobe e some ("+10", "×3"). Sobe pouco (28px) e sai rápido: um número que voa
+   longe demais tira o olho de onde a ação está acontecendo. As guardas globais de movimento
+   reduzido / Modo Desempenho, mais abaixo neste arquivo, já zeram esta animação também. */
+@keyframes babel-float {
+  0%   { opacity: 0; transform: translate(-50%, -50%) scale(0.8); }
+  18%  { opacity: 1; transform: translate(-50%, -60%) scale(1.12); }
+  100% { opacity: 0; transform: translate(-50%, -140%) scale(1); }
+}
+.babel-float {
+  animation: babel-float 1s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  text-shadow: 0 1px 3px color-mix(in srgb, var(--canvas) 70%, transparent);
+}
+
+/* ─────────────── GESTO DO TOUR GUIADO ───────────────
+   O anel que se abre e o dedo que "toca". É esta parte que o texto não consegue substituir:
+   dizer "arraste sobre as letras" é uma frase; VER a mão descer sobre a grade é entender.
+
+   Duas animações separadas de propósito — a onda pulsa contínua (chama o olho) e o gesto tem uma
+   batida curta (mostra a ação). Juntas num keyframe só, o movimento vira ruído.
+
+   As guardas globais de Modo Desempenho e movimento reduzido, mais abaixo, zeram as duas: quem
+   pediu tela parada continua vendo o destaque e a frase, que é o essencial. */
+@keyframes babel-tour-onda {
+  0%   { transform: scale(0.6); opacity: 0.9; }
+  70%  { transform: scale(2.1); opacity: 0; }
+  100% { transform: scale(2.1); opacity: 0; }
+}
+.babel-tour-onda { animation: babel-tour-onda 1.6s ease-out infinite; }
+
+@keyframes babel-tour-gesto {
+  0%, 60%, 100% { transform: translate(0, 0) scale(1); }
+  70%           { transform: translate(0, 3px) scale(0.86); }
+  80%           { transform: translate(0, 0) scale(1); }
+}
+.babel-tour-gesto { animation: babel-tour-gesto 1.6s ease-in-out infinite; }
+
+/* ─────────────── PULSO DE LOCALIZAÇÃO ───────────────
+   O "radar" do caça-palavras: as duas PONTAS da palavra procurada balançam e pulsam por alguns
+   segundos. É a ajuda certa para esse jogo porque o que trava ali quase nunca é a memória — a
+   pessoa lembrou a palavra e não a acha no meio de 144 letras. Mostrar onde ela começa e termina
+   devolve a direção sem entregar a resposta: ainda é preciso ler o traço inteiro.
+
+   Balanço curto e leve (2px): o movimento serve para o olho ENCONTRAR, não para chacoalhar a
+   tela. As guardas de Modo Desempenho e movimento reduzido, mais abaixo, já o zeram. */
+@keyframes babel-pulso {
+  0%, 100% { transform: translateX(0) scale(1); }
+  25%      { transform: translateX(-2px) scale(1.12); }
+  75%      { transform: translateX(2px) scale(1.12); }
+}
+.babel-pulso {
+  animation: babel-pulso 620ms ease-in-out infinite;
+}
+
+/* ─────────────── VIRADA 3D DA CARTA ───────────────
+   Feita com TRANSIÇÃO (não com @keyframes) de propósito: as guardas de Modo Desempenho e de
+   movimento reduzido, mais abaixo, zeram `transition-duration` junto com `animation-duration` —
+   então o efeito desliga sozinho para quem pediu, sem uma segunda regra para manter.
+
+   `backface-visibility: hidden` é o que faz a carta parecer sólida: sem ele, o verso continua
+   visível espelhado durante o giro e o efeito lê como um papel transparente girando.
+
+   O `perspective` mora no PAI. No próprio elemento que gira, cada carta ganharia um ponto de
+   fuga próprio e a grade inteira pareceria estufada no centro. */
+.carta3d {
+  perspective: 900px;
+  /* A altura vem do `min-h` da carta; o giro é posicionado por `inset`, não por altura relativa —
+     `height: 100%` contra um pai que só tem `min-height` não resolve de forma confiável. */
+  position: relative;
+}
+.carta3d-giro {
+  position: absolute;
+  inset: 0;
+  transform-style: preserve-3d;
+  transition: transform 420ms cubic-bezier(0.2, 0.8, 0.25, 1);
+}
+.carta3d.aberta .carta3d-giro { transform: rotateY(180deg); }
+.carta3d-frente,
+.carta3d-verso {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: inherit;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+.carta3d-verso { transform: rotateY(180deg); }
+
+/* ─────────────── CORREÇÃO GLOBAL DE CONTRASTE ───────────────
+   Duas famílias de preenchimento, dois tokens de texto DIFERENTES. Antes havia
+   uma só regra mandando --accent-contrast (#fff) em tudo — inclusive nos
+   elementos `bg-ink`, onde no modo escuro o fundo é CLARO. Branco sobre branco:
+   era assim que o botão primário sumia no tema padrão (babel-dark). */
+
+/* 1) Preenchimento ACCENT → texto --accent-contrast */
+.btn-solid,
+.kpi-pill.active,
+button.bg-accent,
+span.bg-accent,
+a.bg-accent,
+div.bg-accent.text-white {
+  color: var(--accent-contrast) !important;
+}
+
+/* 2) Preenchimento INK → texto --ink-contrast (= --canvas do tema em vigor).
+      `.btn-solid.bg-ink` está listado para vencer a regra (1) quando um mesmo
+      elemento carrega as duas classes — o caso dos ~10 `btn-solid bg-ink text-white`
+      espalhados pelos exercícios. */
+.btn-ink,
+.btn-solid.bg-ink,
+button.bg-ink,
+span.bg-ink,
+a.bg-ink,
+div.bg-ink,
+div.bg-ink.text-white,
+div.bg-ink.text-surface {
+  color: var(--ink-contrast) !important;
+}
+
+/* 3) Preenchimento SOFT → texto do MESMO matiz (`--<cor>-ink`).
+      C4 — este caso faltava, e a omissão produzia o pior contraste do produto inteiro.
+      O botão "Exportar" da Sessão é `btn-solid bg-rare-soft text-rare-ink` (ou -good-/-error-,
+      conforme o tipo da gravação: vídeo, documento, áudio). A regra (1) acima, criada para
+      impedir branco-sobre-branco, alcançava `.btn-solid` com `!important` e ATROPELAVA o
+      `text-rare-ink` declarado no elemento.
+
+      Resultado medido no premium escuro: texto #032420 sobre #152538 — razão de 1,05:1, onde o
+      mínimo é 4,5:1. Praticamente invisível, em todos os temas, desde sempre.
+
+      A ironia importa para não repetir o erro: uma salvaguarda de contraste virou a maior
+      falha de contraste. O mecanismo de escape já existia logo acima — a regra (2) lista
+      `.btn-solid.bg-ink` justamente para vencer a (1) — e bastava estender o mesmo padrão aos
+      preenchimentos `-soft`. */
+.btn-solid.bg-accent-soft { color: var(--accent-ink) !important; }
+.btn-solid.bg-good-soft   { color: var(--good-ink) !important; }
+.btn-solid.bg-warn-soft   { color: var(--warn-ink) !important; }
+.btn-solid.bg-rare-soft   { color: var(--rare-ink) !important; }
+.btn-solid.bg-error-soft  { color: var(--error-ink) !important; }
+
+/* 3b) Preenchimento SEMÂNTICO SÓLIDO → o `-contrast` da mesma familia.
+      Irmão da regra acima, para o botao pintado com a cor cheia em vez da versao suave.
+      Medido: "Abrir exercicios" sobre `bg-warn` dava 2,93:1 e "Abrir vocabulario" sobre
+      `bg-good` dava 3,29:1, porque a regra (1) impunha `--accent-contrast` — o contraste do
+      ACCENT — sobre um fundo amarelo ou verde. Os tokens certos ja existiam e nao eram usados. */
+.btn-solid.bg-good  { color: var(--good-contrast) !important; }
+.btn-solid.bg-warn  { color: var(--warn-contrast) !important; }
+.btn-solid.bg-error { color: var(--error-contrast) !important; }
+
+/* 4) `text-accent` COMO COR DE TEXTO sobre superfície.
+      `--accent` é cor de PREENCHIMENTO: saturada, escolhida para ter algo legível POR CIMA
+      dela. Usada como cor de texto sobre `--canvas`/`--surface` ela reprova em todos os temas —
+      medido 1,82:1 no mochi, contra o mínimo de 4,5:1. `--accent-ink` existe exatamente para
+      este caso e é a mesma matiz ajustada para ser lida.
+
+      A regra cobre o cabeçalho de seção `.label-mono`, que é onde a combinação se repete em
+      Hub, Biblioteca, Ajustes e outras. Deliberadamente NÃO é uma varredura global de
+      `text-accent`: das 176 ocorrências, muitas estão sobre fundo colorido, onde a cor cheia é
+      a correta. Trocar todas às cegas quebraria o que hoje funciona. */
+.label-mono.text-accent { color: var(--accent-ink) !important; }
+
+/* Ícones herdam a cor do texto resolvida acima. */
+.btn-solid svg,
+.kpi-pill.active svg,
+button.bg-accent svg,
+span.bg-accent svg,
+a.bg-accent svg,
+div.bg-accent.text-white svg,
+.btn-ink svg,
+.btn-solid.bg-ink svg,
+button.bg-ink svg,
+span.bg-ink svg,
+a.bg-ink svg,
+div.bg-ink svg,
+div.bg-ink.text-white svg,
+div.bg-ink.text-surface svg {
+  color: currentColor !important;
+  stroke: currentColor !important;
+}
+
+/* Fallback para os `bg-accent text-white` que não são button/span/a/div.
+   Dois seletores de classe (0,2,0) vencem o `.text-white` (0,1,0) do Tailwind. */
+.bg-accent.text-white {
+  color: var(--accent-contrast);
+}
+.bg-accent.text-white svg {
+  color: var(--accent-contrast);
+  stroke: currentColor;
+}
+
+/* 3) Preenchimentos SEMÂNTICOS (warn / good / error) → texto de contraste.
+      Estes três faltavam: só `accent` e `ink` estavam protegidos. `bg-warn text-white` dava
+      ~1,7:1 sobre o âmbar `#dbbc7f` do mochi — reprovava até em AA — e o redesign espalhou
+      esse par pelos botões novos do Hub.
+
+      Como os valores variam muito entre os 14 temas (o `--good` vai de `#3E6B44` a `#43c690`),
+      não existe uma cor fixa correta: cada bloco de tema declara o seu `*-contrast` com o
+      valor VERIFICADO — preto ou branco, o que der o maior contraste WCAG contra aquele
+      preenchimento. A razão obtida está no comentário ao lado de cada declaração; a pior de
+      todas as 42 combinações é 4,59:1, ou seja, todas passam em AA.
+
+      (Chegamos a tentar derivar isso em CSS com `oklch(from … l …)`, que seria mais elegante:
+      não funcionou — o valor caía silenciosamente no fallback e TODOS os temas ficavam com
+      texto preto, incluindo os verdes escuros onde preto dá 3,39:1. Literal verificado ganha
+      de elegante que falha em silêncio.) */
+button.bg-warn, span.bg-warn, a.bg-warn, div.bg-warn,
+.bg-warn.text-white {
+  color: var(--warn-contrast) !important;
+}
+button.bg-good, span.bg-good, a.bg-good, div.bg-good,
+.bg-good.text-white {
+  color: var(--good-contrast) !important;
+}
+button.bg-error, span.bg-error, a.bg-error, div.bg-error,
+.bg-error.text-white {
+  color: var(--error-contrast) !important;
+}
+button.bg-warn svg, span.bg-warn svg, a.bg-warn svg, div.bg-warn svg,
+button.bg-good svg, span.bg-good svg, a.bg-good svg, div.bg-good svg,
+button.bg-error svg, span.bg-error svg, a.bg-error svg, div.bg-error svg {
+  color: currentColor !important;
+  stroke: currentColor !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   WIDGETS NATIVOS E SCROLLBARS — antes espalhados/hardcoded.
+
+   1) O popup do <select> é desenhado pelo NAVEGADOR, fora do documento: nenhuma
+      classe Tailwind na <option> o alcança. O `color-scheme` declarado em :root/.dark
+      resolve no Chromium; esta regra é o reforço para Firefox/Linux, onde o popup
+      pode ignorar o esquema herdado.
+   2) `.custom-scrollbar` morava num <style> INLINE dentro do LiveCapture, com cores
+      fixas em rgba(0,0,0,…): a barra sumia nos temas escuros e a regra só existia
+      enquanto aquela tela estava montada — as outras ~18 áreas roláveis ficavam com a
+      scrollbar padrão do sistema. Aqui vale para o app inteiro e segue os tokens.
+   ═══════════════════════════════════════════════════════════════════════════ */
+select option,
+select optgroup {
+  background-color: var(--surface);
+  color: var(--ink);
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--ink) 20%, transparent);
+  border-radius: 3px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: color-mix(in srgb, var(--ink) 35%, transparent);
+}
+/* Firefox */
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--ink) 20%, transparent) transparent;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   PERFIS DE EXIBIÇÃO POR FAIXA ETÁRIA
+
+   O que estas classes NÃO fazem: mexer no tamanho do texto.
+
+   A versão anterior tinha `.age-senior { font-size: 18px }` + `.age-senior p, span, button,
+   input, select { font-size: 1.1rem }` + `.font-scale-xl { font-size: 1.3em !important }` no
+   <main> + `documentElement.style.fontSize = 135%`. Quatro mecanismos concorrentes, dois deles
+   com `!important`, multiplicando-se: o resultado era o app IDÊNTICO só que com fonte gigante,
+   sem hierarquia (o seletor cego em `span` igualava rótulo de 10px e título de 24px) e com
+   containers estourando.
+
+   Agora a escala de texto é UMA só, na raiz, controlada pelo A-/A+ (ver App.tsx). O que sobra
+   aqui é o que de fato distingue um perfil do outro: densidade, alvo de toque e foco.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* LEITURA AMPLIADA / SÊNIOR — mais espaço para o dedo e para o olho, sem inflar a fonte. */
+.age-senior {
+  line-height: 1.7;
+  letter-spacing: 0.01em;
+}
+/* Alvo de toque de 48px: a perda de precisão motora é o problema real dessa faixa, não a fonte
+   (essa o usuário resolve no A+). Vale para o que é clicável de verdade — `:not()` preserva os
+   ícones-botão quadrados, que já nascem com dimensão fixa. */
+.age-senior button:not(.no-min-target),
+.age-senior .btn-solid,
+.age-senior .btn-outline,
+.age-senior .btn-ink,
+.age-senior input:not([type='checkbox']):not([type='radio']):not([type='range']),
+.age-senior select {
+  min-height: 48px;
+}
+.age-senior .btn-solid,
+.age-senior .btn-outline,
+.age-senior .btn-ink {
+  padding-inline: 1.25rem;
+}
+/* Foco visível reforçado: teclado e lupa de tela dependem dele, e o anel padrão de 2px some
+   sobre fundos claros de baixo contraste. */
+.age-senior :focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 2px;
+}
+/* Respiro entre blocos — o "parágrafo denso" é o que faz a tela parecer intransponível. */
+.age-senior p {
+  max-width: 68ch;
+}
+
+/* GAMER / KIDS — cantos mais macios e traço mais forte. Sem fonte "de pré-escola": essa faixa
+   rejeita interface infantilizada, quer se sentir usando uma ferramenta de verdade. */
+.age-kids .card-panel {
+  border-radius: 20px;
+}
+.age-kids .btn-solid,
+.age-kids .btn-outline,
+.age-kids .btn-ink {
+  border-radius: 16px;
+  font-weight: 800;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   RECUOS DO SHELL — o espaço que a moldura ocupa nas bordas da janela.
+
+   Elementos `position: fixed` (o botão flutuante do iChat, o balão de contexto) não enxergam
+   o layout: com o menu à direita eles caíam EM CIMA dos controles do rail, e no celular ficavam
+   atrás da dock inferior. Estas variáveis dizem a eles de quanto se afastar, e as classes que
+   as ligam são as mesmas que decidem a moldura — ou seja, não há um segundo lugar para manter.
+   ═══════════════════════════════════════════════════════════════════════════ */
+:root {
+  --shell-inset-right: 0px;
+  --shell-inset-bottom: 0px;
+}
+/* Abaixo de `md` a dock inferior existe sempre, qualquer que seja a posição escolhida. */
+@media (max-width: 767.98px) {
+  :root { --shell-inset-bottom: 60px; }
+}
+@media (min-width: 768px) {
+  body.shell-rail-right { --shell-inset-right: 232px; }
+  body.shell-rail-right.shell-rail-collapsed { --shell-inset-right: 68px; }
+  body.shell-bar-bottom { --shell-inset-bottom: 60px; }
+}
+
+/* ───────────────────────────────────────────────────────────────────────────
+   RESERVA PARA O BOTÃO FLUTUANTE DO iCHAT.
+
+   O mesmo raciocínio das variáveis acima, aplicado ao CONTEÚDO em vez da moldura: o FAB é
+   `position: fixed` no canto inferior direito e sempre esteve por cima de alguma coisa. Na
+   auditoria ele cobria o primeiro card de jogo no mobile, e o balão de sintonia cobria a
+   ressalva "1753 de 1902 cartões ficaram FORA do cálculo" — exatamente o texto que este
+   produto existe para não esconder.
+
+   O botão fica; quem passa a ceder espaço é o fim do scroll. ~104px = altura do FAB (~72px)
+   mais o respiro de 1,5rem que ele já usa.
+   ─────────────────────────────────────────────────────────────────────────── */
+main [class*="overflow-y-auto"],
+main [class*="overflow-auto"] {
+  padding-bottom: var(--ichat-reserva, 104px);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   MODO ULTRA DESEMPENHO  ·  ANIMAÇÕES DESLIGADAS  ·  REDUCED MOTION
+
+   `.performance-mode` existia como classe no <body> desde a rodada anterior — mas SEM UMA
+   ÚNICA REGRA CSS correspondente. O botão ligava e desligava algo que não existia.
+
+   As duas classes são independentes: `performance-mode` corta o custo de PINTURA (desfoque,
+   sombra composta, gradiente), `animations-off` corta o MOVIMENTO. Um PC fraco não ganha nada
+   perdendo uma transição de 150ms; e quem tem enjoo de movimento não precisa de uma app feia.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* — Custo de pintura — */
+body.performance-mode *,
+body.performance-mode *::before,
+body.performance-mode *::after {
+  /* `backdrop-filter` é o item mais caro da app: cada barra translúcida força o compositor a
+     reamostrar tudo que está atrás dela, a cada quadro. */
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  text-shadow: none !important;
+}
+body.performance-mode .card-panel {
+  /* Sombra composta (inset + drop) vira borda sólida: mesmo limite visual, custo zero. */
+  box-shadow: none !important;
+}
+body.performance-mode .shadow-card,
+body.performance-mode .shadow-btn,
+body.performance-mode [class*='shadow-2xl'],
+body.performance-mode [class*='shadow-xl'],
+body.performance-mode [class*='drop-shadow'] {
+  box-shadow: none !important;
+  filter: none !important;
+}
+/* Gradiente decorativo some; o dos DADOS fica.
+   `[class*='bg-gradient']` sozinho apagava também o gradiente do waveform da Análise e as
+   barras de progresso — que não são enfeite, são a informação. Só o que estiver marcado como
+   decorativo perde o gradiente. */
+body.performance-mode [data-decor='gradient'] {
+  background-image: none !important;
+}
+
+/* Superfícies translúcidas passam a ser opacas — sem blur, a transparência só polui.
+   ATENÇÃO AO SELETOR: este bloco já mirou as TAGS `header`, `aside` e `nav`, e isso pintava um
+   retângulo de fundo em oito blocos de TÍTULO espalhados pela app (Hub, Biblioteca, Ajustes,
+   Captura, Leitura, Study, Overlay, LayoutStudio) — todos usam essas tags pelo significado, não
+   por serem moldura. `[data-shell]` marca só as quatro peças que de fato são chrome. */
+body.performance-mode [data-shell] {
+  background-color: var(--surface) !important;
+}
+
+/* — Movimento — */
+body.performance-mode *,
+body.performance-mode *::before,
+body.performance-mode *::after,
+body.animations-off *,
+body.animations-off *::before,
+body.animations-off *::after {
+  animation-duration: 0.001ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.001ms !important;
+  scroll-behavior: auto !important;
+}
+/* Hover que move o elemento (`-translate-y`, `scale`) some junto: é movimento, e em lista longa
+   é repaint a cada passagem do mouse. */
+body.performance-mode .hover\:-translate-y-1:hover,
+body.animations-off .hover\:-translate-y-1:hover {
+  transform: none !important;
+}
+
+/* A preferência declarada no sistema vale por si — mas NÃO vence uma escolha explícita.
+   `body.animations-on` só aparece quando o usuário ligou o interruptor de animações de propósito
+   (ver App.tsx). Sem esse escopo, quem tem "reduzir movimento" no Windows ficava com a app
+   permanentemente estática mesmo depois de pedir o contrário dentro do app — o botão existia e não
+   fazia nada, que é o mesmo defeito que o veto do áudio tinha. */
+@media (prefers-reduced-motion: reduce) {
+  body:not(.animations-on) *,
+  body:not(.animations-on) *::before,
+  body:not(.animations-on) *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+

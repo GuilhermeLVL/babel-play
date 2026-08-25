@@ -67,7 +67,7 @@
     "pdfjs-dist": "^6.1.200",
     "react": "^19.0.1",
     "react-dom": "^19.0.1",
-    "recharts": "^3.9.2",
+    "recharts": "^3.10.1",
     "tesseract.js": "^7.0.0",
     "zod": "^4.4.3"
   },

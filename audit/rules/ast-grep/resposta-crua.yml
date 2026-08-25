@@ -1,0 +1,13 @@
+id: resposta-crua
+language: TypeScript
+severity: warning
+message: >-
+  `res.send()` com valor dinâmico escreve no corpo sem escape nem contrato de tipo. O Semgrep
+  flagou exatamente este padrão em server/routes/sessions.ts:87 (CWE-79). Aqui o objetivo é o
+  CENSO do padrão, não um vetor: quantos handlers respondem por fora do `.json()`.
+files:
+  - 'server/**/*.ts'
+ignores:
+  - '**/*.test.ts'
+rule:
+  pattern: $RES.send($ARG)

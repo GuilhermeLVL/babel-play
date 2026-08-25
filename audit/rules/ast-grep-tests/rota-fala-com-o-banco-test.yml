@@ -1,0 +1,7 @@
+id: rota-fala-com-o-banco
+valid:
+  - 'const c = await vocabRepo.patch(req.userId, id, patch)'
+  - 'const r = await repo.db.listar()'
+invalid:
+  - 'await db.run(sql`SELECT 1 FROM sessions LIMIT 1`)'
+  - 'const linhas = await db.select().from(sessions)'

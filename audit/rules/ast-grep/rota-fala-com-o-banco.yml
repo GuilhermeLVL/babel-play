@@ -1,0 +1,11 @@
+id: rota-fala-com-o-banco
+language: TypeScript
+severity: warning
+message: >-
+  Rota chamando o Drizzle direto. `server/db/repositories/` existe para concentrar a aplicação do
+  `userId`; contornar esse ponto é a classe de falha que F3-06 mediu (vazamento entre contas).
+  Se a chamada é legítima (health probe, por exemplo), ela precisa de motivo escrito.
+files:
+  - 'server/routes/*.ts'
+rule:
+  pattern: db.$METODO($$$ARGS)

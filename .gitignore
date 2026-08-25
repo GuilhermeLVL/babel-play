@@ -1,0 +1,69 @@
+# ── Dependências / build ─────────────────────────────────────────────────────
+node_modules/
+dist/
+dist-server/
+dist-ssr/
+.vite/
+*.tsbuildinfo
+
+# ── Ambiente e segredos: NUNCA versionar. Só os templates *.example entram. ──
+.env
+.env.*
+!.env.example
+!.env.*.example
+*.local
+*.local.*
+.claude/settings.local.json
+# Configuração de MCP contém identificadores de projeto pessoais (project_ref do Supabase).
+.mcp.json
+
+# ── Binários de runtime copiados de node_modules (scripts/copiar-assets-runtime.mjs) ──
+# Eram 42 MB versionados. `npm install` os recria; o Dockerfile também.
+/public/ort-wasm-*
+/public/silero_vad_*.onnx
+/public/vad.worklet.bundle*
+# Pesos dos modelos (scripts/fetch-models.mjs; Docker assa na imagem)
+/public/models/
+
+# ── Banco local (SQLite) e dados — SÓ o diretório do root (não src/data/) ───
+/data/
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+*.sqlite
+backups/
+
+# ── Artefatos de medição/auditoria: vivem no repositório PRIVADO de auditoria ─
+# (no público estes diretórios não existem; aqui evitam artefato solto em commit)
+results/
+scripts/audit/results/
+audit/evidence/
+audit/baseline/golden-ci/
+docs/auditoria/_raw/
+.playwright-mcp/
+test-results/
+playwright-report/
+coverage/
+.cache-canario/
+.deepeval/
+.deepeval_telemetry.txt
+
+# ── Projetos vizinhos que moram nesta pasta mas não neste repositório ────────
+desktop-overlay/
+assets/
+
+# ── Fixtures com conteúdo real do usuário (regenere com `npm run proto:fixtures`) ─
+prototypes/data/real/
+
+# ── Logs / SO / editor / OneDrive ────────────────────────────────────────────
+*.log
+npm-debug.log*
+.DS_Store
+Thumbs.db
+desktop.ini
+~$*
+*.tmp
+.vscode/
+!.vscode/extensions.json
+.idea/

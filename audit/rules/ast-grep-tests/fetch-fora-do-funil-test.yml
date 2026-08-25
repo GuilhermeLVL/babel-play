@@ -1,0 +1,10 @@
+id: fetch-fora-do-funil
+valid:
+  - "apiFetch('/api/sessions')"
+  - "fetch('https://api.externa.com/v1')"
+  - "fetch(url)"
+  - "fetch(`${base}/v1/chat`)"
+invalid:
+  - "fetch('/api/ai/stt/available')"
+  - 'fetch("/api/gemini/chat", { method: "POST" })'
+  - "fetch(`/api/sessions/${id}/audio`)"

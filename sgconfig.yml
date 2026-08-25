@@ -1,0 +1,14 @@
+# Configuração do ast-grep. Existe na raiz porque é onde o `ast-grep scan` procura por padrão,
+# e porque os globs das regras são resolvidos a partir daqui.
+#
+# As regras NÃO são de segurança genérica — para isso já há Semgrep com packs nomeados. Elas
+# codificam invariantes ARQUITETURAIS deste repositório, que nenhum scanner de prateleira conhece.
+ruleDirs:
+  - audit/rules/ast-grep
+
+# `ast-grep test` roda os casos abaixo contra as regras. Existe porque uma regra errada é PIOR que
+# nenhuma regra: ela devolve zero achados e isso tem a cara exata de "o código está limpo".
+# Medido: a primeira versão de `catch-vazio` inocentava um `catch` nu sempre que houvesse um
+# comentário qualquer no corpo do `try`, e só a fixture denunciou.
+testConfigs:
+  - testDir: audit/rules/ast-grep-tests

@@ -1,0 +1,6 @@
+id: resposta-crua
+valid:
+  - 'res.json({ ok: true })'
+  - 'res.status(404).json({ error: "nao encontrado" })'
+invalid:
+  - 'res.send(capa.bytes)'

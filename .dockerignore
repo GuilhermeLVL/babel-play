@@ -1,0 +1,31 @@
+# Nunca entram na imagem — segredos, dado local e artefatos de build da máquina.
+.env
+.env.*
+!.env.example
+!.env.docker.example
+.mcp.json
+data/
+dist/
+dist-server/
+node_modules/
+.git/
+.github/
+
+# Auditoria e docs: não fazem parte do runtime.
+docs/
+openspec/
+scripts/audit/results/
+results/
+audit/
+prototypes/
+_graveyard/
+desktop-overlay/
+assets/
+.playwright-mcp/
+
+# Ruído de editor/SO.
+*.log
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

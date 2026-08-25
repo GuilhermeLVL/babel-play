@@ -1,0 +1,5 @@
+id: env-fora-de-config
+valid:
+  - 'const url = config.supabaseUrl'
+invalid:
+  - 'const url = process.env.SUPABASE_URL'

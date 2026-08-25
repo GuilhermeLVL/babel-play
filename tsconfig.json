@@ -1,0 +1,39 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "experimentalDecorators": true,
+    "useDefineForClassFields": false,
+    "module": "ESNext",
+    "lib": [
+      "ES2022",
+      "DOM",
+      "DOM.Iterable"
+    ],
+    "skipLibCheck": true,
+    "moduleResolution": "bundler",
+    "isolatedModules": true,
+    "moduleDetection": "force",
+    "allowJs": true,
+    "jsx": "react-jsx",
+    "paths": {
+      "@/*": [
+        "./*"
+      ],
+      "@core": [
+        "./src/core/index.ts"
+      ],
+      "@core/*": [
+        "./src/core/*"
+      ]
+    },
+    "allowImportingTsExtensions": true,
+    "noEmit": true
+  },
+  "// exclude": [
+    "`_graveyard/` é a quarentena do protocolo de auditoria: trecho removido do build, guardado",
+    "ao lado do caminho original até a onda seguinte. São FRAGMENTOS, não módulos — não compilam",
+    "sozinhos por desenho. Declarar `exclude` substitui o default do tsc, então node_modules e os",
+    "diretórios de saída precisam voltar aqui explicitamente."
+  ],
+  "exclude": ["_graveyard", "node_modules", "dist", "dist-server", "coverage"]
+}

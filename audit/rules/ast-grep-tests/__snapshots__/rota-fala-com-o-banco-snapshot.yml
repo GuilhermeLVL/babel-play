@@ -1,0 +1,14 @@
+id: rota-fala-com-o-banco
+snapshots:
+  await db.run(sql`SELECT 1 FROM sessions LIMIT 1`):
+    labels:
+    - source: db.run(sql`SELECT 1 FROM sessions LIMIT 1`)
+      style: primary
+      start: 6
+      end: 49
+  const linhas = await db.select().from(sessions):
+    labels:
+    - source: db.select()
+      style: primary
+      start: 21
+      end: 32

@@ -1,0 +1,28 @@
+id: fetch-fora-do-funil
+language: TypeScript
+severity: error
+message: >-
+  `fetch('/api/…')` fora de `src/data/api.ts` contorna o funil `apiFetch`: não injeta o Bearer no
+  modo público, não trata 401 com refresh e — o que esta regra guarda — SAI PARA A REDE sem conta,
+  quando o servidor em memória deveria responder. O teste-sentinela (`tests/anonimo-sem-rede`) só
+  cobre o que passa por `data/api`; esta regra cobre o resto do `src/`.
+files:
+  - 'src/**/*.ts'
+  - 'src/**/*.tsx'
+ignores:
+  - 'src/data/api.ts'
+  - '**/*.test.ts'
+  - '**/*.test.tsx'
+rule:
+  # Dois padrões, não um: `fetch($URL, $$$)` NÃO casa a chamada de um argumento só (medido na
+  # fixture — 2 de 3 casos inválidos saíam "Missing"). Sem a fixture a regra passaria em branco
+  # exatamente no caso mais comum.
+  any:
+    - pattern: fetch($URL)
+    - pattern: fetch($URL, $$$)
+constraints:
+  URL:
+    # O literal ('…', "…" ou `…${x}`) tem um `string_fragment` filho; é nele que o caminho começa.
+    has:
+      kind: string_fragment
+      regex: '^/api'

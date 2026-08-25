@@ -1,0 +1,13 @@
+id: catch-vazio
+valid:
+  # Nota escrita = intenção registrada. Degradação graciosa é padrão declarado deste projeto.
+  - 'try { f() } catch { /* intencional: sem tradução, quem chama decide */ }'
+  - 'try { f() } catch { // sem rede, segue com o cache
+    }'
+  # Erro tratado não é erro engolido.
+  - 'try { f() } catch { log(e) }'
+invalid:
+  # Nu de verdade.
+  - 'try { f() } catch { }'
+  # O CASO QUE A PRIMEIRA VERSÃO DEIXAVA PASSAR: comentário no corpo do `try`, `catch` continua nu.
+  - 'try { /* prepara */ f() } catch { }'

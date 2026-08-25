@@ -1,0 +1,14 @@
+id: catch-vazio
+snapshots:
+  try { /* prepara */ f() } catch { }:
+    labels:
+    - source: try { /* prepara */ f() } catch { }
+      style: primary
+      start: 0
+      end: 35
+  try { f() } catch { }:
+    labels:
+    - source: try { f() } catch { }
+      style: primary
+      start: 0
+      end: 21

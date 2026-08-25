@@ -1,0 +1,30 @@
+id: catch-vazio
+language: TypeScript
+severity: warning
+message: >-
+  `catch` que engole o erro SEM dizer por quê: nem trata, nem registra, nem deixa nota. A falha
+  vira comportamento silencioso e some de qualquer diagnóstico. A metodologia registra essa
+  armadilha paga — o `-e` do tsx engolindo stderr fazia o coletor gravar
+  `_naoFoiPossivelDeterminar` com stderr vazio, pior do que falhar alto.
+files:
+  - 'server/**/*.ts'
+  - 'src/**/*.ts'
+ignores:
+  - '**/*.test.ts'
+rule:
+  # O pattern já exige um `catch` sem NENHUMA instrução (comentário não conta como instrução).
+  pattern: 'try { $$$CORPO } catch { }'
+  # Degradação graciosa é padrão declarado deste projeto: `catch` vazio COM nota escrita é intenção
+  # registrada, não descuido. Sem este `not`, a regra devolve 70 ocorrências, quase todas
+  # deliberadas, e o ruído afoga o caso que importa.
+  #
+  # `field: handler` NÃO É DECORAÇÃO — é o conserto de um falso-verde medido por fixture. A primeira
+  # versão usava `not: has: {kind: comment, stopBy: end}` sem escopo, o que varre o try_statement
+  # INTEIRO: um comentário qualquer no corpo do `try` bastava para inocentar um `catch` nu. A
+  # fixture pegou exatamente esse caso (3 casos, a regra achou 1 e deveria achar 2).
+  not:
+    has:
+      field: handler
+      has:
+        stopBy: end
+        kind: comment

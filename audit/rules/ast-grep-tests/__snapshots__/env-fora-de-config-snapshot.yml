@@ -1,0 +1,8 @@
+id: env-fora-de-config
+snapshots:
+  const url = process.env.SUPABASE_URL:
+    labels:
+    - source: process.env.SUPABASE_URL
+      style: primary
+      start: 12
+      end: 36

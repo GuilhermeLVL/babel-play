@@ -43,7 +43,7 @@
     "backup": "node scripts/backup.mjs"
   },
   "dependencies": {
-    "@google/genai": "^2.4.0",
+    "@google/genai": "^2.18.0",
     "@huggingface/transformers": "^4.2.0",
     "@libsql/client": "^0.17.4",
     "@mozilla/readability": "^0.6.0",

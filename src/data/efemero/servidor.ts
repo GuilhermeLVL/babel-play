@@ -38,7 +38,8 @@ const uuid = (): string =>
  * do áudio do sistema), sem banco, sem custo e sem dado de usuário. O próprio servidor decide se
  * existem (no modo público responde 403) — o cliente só pergunta. É a única exceção ao "nada sai".
  */
-const PASSAM_DIRETO: RegExp[] = [/^\/api\/audio\/loopback\//];
+// Na edição leve não há servidor nenhum: nem essa sonda sai (era um 503 no console a cada abertura).
+const PASSAM_DIRETO: RegExp[] = EDICAO_LEVE ? [] : [/^\/api\/audio\/loopback\//];
 
 /**
  * Só AÇÕES da pessoa avisam o App para oferecer a conta. Sondas automáticas (disponibilidade de

@@ -748,7 +748,10 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
       try { ui = s?.ui ? JSON.parse(s.ui) : {}; } catch { ui = {}; }
       if (ui.audioInputId) setInputDeviceId(ui.audioInputId);
       if (ui.audioOutputId) setOutputDeviceId(ui.audioOutputId);
-      if (ui.systemSource === 'display' || ui.systemSource === 'loopback' || ui.systemSource === 'server') setSystemSource(ui.systemSource);
+      // Leve: só existe "aba/tela". Uma escolha antiga salva ('loopback'/'server') ficava ativa sem
+      // aparecer no seletor e bloqueava a captura (medido no teste do dono, 2026-08-26).
+      if (EDICAO_LEVE) setSystemSource('display');
+      else if (ui.systemSource === 'display' || ui.systemSource === 'loopback' || ui.systemSource === 'server') setSystemSource(ui.systemSource);
       if (ui.loopbackDeviceId) setLoopbackDeviceId(ui.loopbackDeviceId);
       if (typeof ui.ttsSpeed === 'number') setTtsSpeed(ui.ttsSpeed);
       if (ui.micEngine === 'browser' || ui.micEngine === 'whisper') setMicEngine(ui.micEngine);

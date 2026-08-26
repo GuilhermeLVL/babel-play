@@ -204,6 +204,10 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
    * plano reabriria a sala a cada troca de aba. Se isso for feito, este estado precisa mudar junto.
    */
   const [salaAberta, setSalaAberta] = useState(!embutido);
+  /* Números do baralho (contagens, mapa, recorte, revisão) COLAPSADOS por padrão: quem chega quer
+     jogar, não auditar o acervo — pedido do dono (2026-08-26). A escolha persiste no navegador. */
+  const [detalhes, setDetalhes] = useState<boolean>(() => { try { return localStorage.getItem('babel.play.detalhes') === '1'; } catch { return false; } });
+  const alternarDetalhes = () => setDetalhes((v) => { try { localStorage.setItem('babel.play.detalhes', v ? '0' : '1'); } catch { /* sem storage */ } return !v; });
   const [curando, setCurando] = useState(false);
   const [importando, setImportando] = useState(false);
   /** Idioma da pessoa — é o destino da tradução das palavras da trilha. */
@@ -1909,7 +1913,16 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
           cada leva acrescenta um pedaço nesta linha — que, embrulhada em 412px, ganhava mais uma
           linha e empurrava a grade inteira. 84px são as três linhas que o estado cheio ocupa nesse
           viewport (medido). A partir de `sm` tudo cabe numa linha só e não há o que reservar. */}
-      <section aria-label="Seu baralho" className="card-panel bg-surface px-3 py-2.5 mb-2 min-h-[84px] sm:min-h-0 flex flex-wrap items-center gap-x-3 gap-y-1 text-[12px] text-ink-muted">
+      <button
+        type="button"
+        onClick={alternarDetalhes}
+        aria-expanded={detalhes}
+        className="mb-2 flex items-center gap-1.5 text-[12px] font-bold text-ink-muted hover:text-ink transition-colors cursor-pointer min-h-[24px]"
+      >
+        <ChevronRight className={`w-3.5 h-3.5 transition-transform ${detalhes ? 'rotate-90' : ''}`} aria-hidden />
+        {detalhes ? 'Esconder os números do baralho' : `Ver os números do baralho (${contagem.total} palavras)`}
+      </button>
+      <section aria-label="Seu baralho" className={`card-panel bg-surface px-3 py-2.5 mb-2 min-h-[84px] sm:min-h-0 flex flex-wrap items-center gap-x-3 gap-y-1 text-[12px] text-ink-muted ${detalhes ? '' : 'hidden'}`}>
         <span className="label-mono">Seu baralho</span>
         <span className="font-bold text-good-ink" title={`${contagem.total} palavras do idioma escolhido passaram na régua de qualidade.`}>
           {contagem.total} no idioma
@@ -1935,7 +1948,7 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
           logo acima — passavam batido, embora sejam as duas respostas para "por que tão pouco?".
           Ficam colados nos números que provocam a pergunta, e cada um traz o SEU número: um total
           sem conteúdo não convence ninguém a clicar. */}
-      <section aria-label="Explorar o baralho" className="grid gap-3 sm:grid-cols-2 mb-4">
+      <section aria-label="Explorar o baralho" className={`grid gap-3 sm:grid-cols-2 mb-4 ${detalhes ? '' : 'hidden'}`}>
         {/* Os dois cards têm a MESMA altura reservada porque o texto de cada um muda de número de
             linhas quando as contagens chegam — e eles ficam logo acima da grade de nove jogos, que
             era o que descia. 100px é a altura do estado mais alto em 412px (medido). */}
@@ -2059,10 +2072,10 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
               Enquanto as métricas não chegaram, o espaço fica reservado: o card nascia da resposta
               da rede e empurrava para baixo tudo o que já estava pintado (0,05 do CLS medido no
               Jogar). 78px = p-4 + o bloco de 44 do ícone + a borda do `card-panel`. */}
-          {vencidos === 0 && !metrics && (
+          {detalhes && vencidos === 0 && !metrics && (
             <div className="w-full h-[78px] mb-4 rounded-2xl bg-surface border border-border-subtle animate-pulse" aria-hidden />
           )}
-          {vencidos > 0 && (
+          {detalhes && vencidos > 0 && (
             <button
               onClick={() => pedirParaJogar({ id: 'blitz' })}
               className="w-full card-panel bg-accent-soft/40 border-accent/30 p-4 mb-4 flex items-center gap-4 text-left hover:border-accent transition-colors cursor-pointer"

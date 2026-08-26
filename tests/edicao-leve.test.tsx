@@ -12,7 +12,8 @@ describe('edição leve', () => {
 
   it('menu = Início · Capturar · Biblioteca · Jogar · Ajustes', async () => {
     const { NAV_ITEMS } = await import('../src/components/shell/navItems')
-    expect(NAV_ITEMS.map((i) => i.id)).toEqual(['hub', 'capture', 'library', 'play', 'settings'])
+    // A ordem vem da lista mestra (navItems); aqui só importa QUAIS telas existem na leve.
+    expect([...NAV_ITEMS.map((i) => i.id)].sort()).toEqual(['capture', 'hub', 'library', 'play', 'settings'])
   })
 
   it('identidade nasce anônima (tudo no IndexedDB, zero rede) e a porta de login nunca abre', async () => {

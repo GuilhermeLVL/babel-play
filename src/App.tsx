@@ -742,7 +742,8 @@ export default function App() {
       {/* Overlays globais (chat + estúdio de layout) — lazy: não pesam no primeiro paint. */}
       <Suspense fallback={null}>
         {/* Global iChat assistant with layout capabilities */}
-        <IChat
+        {/* Tutor iChat depende de /api/gemini/chat: fora da edição leve. */}
+        {!EDICAO_LEVE && <IChat
           activeView={mappedActiveViewForChat}
           selectedRecording={selectedRecording}
           liveTranscription={liveTranscription}
@@ -759,7 +760,7 @@ export default function App() {
           practiceSeed={practiceSeed?.text}
           recordings={recordings}
           ageProfile={ageProfile}
-        />
+        />}
 
         {isStudioOpen && (
           <LayoutStudio

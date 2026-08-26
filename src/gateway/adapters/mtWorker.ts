@@ -57,10 +57,12 @@ const pipes = new Map<string, any>()
 // + o cascade de dtypes e falhava de novo, inundando o console e gastando ciclos. Falhou uma vez →
 // falha rápido para sempre → o gateway cai limpo para o próximo adapter (Chrome/Edge Translator).
 const failedModels = new Map<string, string>()
-// Ordem de dtype: int8 (menor, ~113MB) → fp16 (~223MB, sempre funciona). EVITAMOS q8/q4/bnb4/
-// q4f16 desses opus-mt: usam quant de 4-bit "NBits" que quebra a criação de sessão no ORT atual
-// ("MatMulNBits Missing required scale"). WASM (CPU) p/ não disputar a GPU com o Whisper.
-const MT_DTYPES = ['int8', 'fp16'] as const
+// Ordem de dtype: int8 (menor, ~113MB) → q4. MEDIDO em 2026-08: os repos Xenova/opus-mt-* só
+// publicam `int8` e `q4` — o `fp16` que ficava aqui como "sempre funciona" dava 404, então quando
+// o int8 falhava no ORT (`qdq_actions.cc`) o opus-mt morria para a sessão e a legenda caía no
+// MyMemory. O q4 do opus-mt carrega no ORT atual (o "MatMulNBits" que se temia era de outra
+// família de quantização). WASM (CPU) p/ não disputar a GPU com o Whisper.
+const MT_DTYPES = ['int8', 'q4'] as const
 async function getPipe(model: string): Promise<any> {
   let p = pipes.get(model)
   if (p) return p

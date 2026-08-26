@@ -19,6 +19,7 @@
  * do `App`. A tela "Carregando…" que o App já pintava enquanto o `getSession()` ia e voltava é a
  * mesma; ela só passou a cobrir também o download do pacote, que é a parte rápida da espera.
  */
+import { EDICAO_LEVE } from './edicao'
 import type { SupabaseClient } from '@supabase/supabase-js'
 
 // O tsconfig raiz não carrega os tipos do Vite (vite/client); `import.meta.env` existe em runtime.
@@ -66,7 +67,7 @@ export function carregarSupabase(): Promise<SupabaseClient | null> {
 if (configurado) void carregarSupabase()
 
 /** Auth exigida no cliente? Espelha o AUTH_REQUIRED do servidor. Só é `true` se houver projeto. */
-export const authRequired: boolean = env.VITE_AUTH_REQUIRED === '1' && configurado
+export const authRequired: boolean = !EDICAO_LEVE && env.VITE_AUTH_REQUIRED === '1' && configurado
 
 /** Token de acesso da sessão atual, ou null (sem login / não configurado). */
 export async function getAccessToken(): Promise<string | null> {

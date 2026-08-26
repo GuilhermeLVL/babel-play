@@ -14,6 +14,7 @@ import { pipeline, env, TextStreamer } from '@huggingface/transformers'
 import { configureModelDelivery } from './transformersEnv'
 import { criarRastreadorDeProgresso, rotuloDeBytes } from './modelProgress'
 import { registrarModeloBaixado } from '../modelManifest'
+import { filtrarAlucinacao } from '../alucinacao'
 
 // Entrega dos pesos: cache do navegador (padrão) ou self-host same-origin (VITE_SELF_HOST_MODELS).
 configureModelDelivery()
@@ -195,7 +196,7 @@ self.onmessage = async (e: MessageEvent) => {
       self.postMessage({
         type: 'result',
         id,
-        text: (out.text ?? '').trim(),
+        text: filtrarAlucinacao((out.text ?? '').trim(), audioSec),
       })
     }
   } catch (err) {

@@ -28,6 +28,27 @@ const LANG_CODE = /^[a-z]{2,3}(-[a-z0-9]{2,8})*$/i
 const SENTINEL =
   /(MYMEMORY WARNING|YOU USED ALL AVAILABLE FREE TRANSLATIONS|IS AN INVALID (TARGET|SOURCE) LANGUAGE|QUERY LENGTH LIMIT EXCEEDED)/i
 
+/**
+ * COTA LOCAL. A API não devolve quanto resta; sem contar, o app batia no teto (~5k chars/dia
+ * anônimos) e a legenda passava a receber o aviso de cota no lugar da tradução. Contamos por dia
+ * (UTC) em localStorage e paramos ANTES do teto, com folga — melhor "sem tradução" do que lixo.
+ */
+const COTA_CHAVE = 'babel.mymemory.cota'
+const COTA_DIA = 4_500
+function cotaDeHoje(): { dia: string; usados: number } {
+  const dia = new Date().toISOString().slice(0, 10)
+  try {
+    const b = JSON.parse(localStorage.getItem(COTA_CHAVE) || 'null') as { dia?: string; usados?: number } | null
+    if (b && b.dia === dia && typeof b.usados === 'number') return { dia, usados: b.usados }
+  } catch { /* sem storage → sem cota (ambiente de teste) */ }
+  return { dia, usados: 0 }
+}
+function registrarUso(chars: number): void {
+  const c = cotaDeHoje()
+  try { localStorage.setItem(COTA_CHAVE, JSON.stringify({ dia: c.dia, usados: c.usados + chars })) } catch { /* idem */ }
+}
+export function cotaMyMemoryRestante(): number { return Math.max(0, COTA_DIA - cotaDeHoje().usados) }
+
 export class MyMemoryMt implements TranslationProvider {
   readonly id = 'mymemory'
   readonly runtime = 'browser' as const
@@ -41,6 +62,7 @@ export class MyMemoryMt implements TranslationProvider {
    */
   supports(src: string | null, tgt: string): boolean {
     if (!src || !tgt || src === tgt) return false
+    if (cotaMyMemoryRestante() <= 0) return false
     return LANG_CODE.test(src) && LANG_CODE.test(tgt)
   }
 
@@ -81,6 +103,8 @@ export class MyMemoryMt implements TranslationProvider {
       )
     }
 
-    return { text: translated, detectedSourceLang: src, engine: 'mymemory' }
+    registrarUso(text.length)
+    // Último recurso público: correto em frases comuns, ruim em gíria e contexto. A UI marca "≈".
+    return { text: translated, detectedSourceLang: src, engine: 'mymemory', approximate: true }
   }
 }

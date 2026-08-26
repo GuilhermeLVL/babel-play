@@ -22,7 +22,7 @@ const DEFAULT_TIMEOUT_MS: Record<Capability, number> = {
   stt: 30_000,
   llm: 45_000,
   vlm: 45_000,
-  mt: 15_000,
+  mt: 6_000,   // legenda ao vivo: 15 s por tentativa era o dobro do que a pessoa espera olhando
   tts: 15_000,
   embed: 20_000,
 }
@@ -88,7 +88,9 @@ export class AiGateway {
       const timeoutMs = opts.timeoutMs ?? DEFAULT_TIMEOUT_MS[cap] ?? 30_000
       try {
         const result = await breaker.run(() =>
-          withRetry(opts.retries ?? 2, 400, () =>
+          // MT: 0 re-tentativas — numa legenda ao vivo, tentar de novo o MESMO tradutor que
+          // acabou de falhar só atrasa o próximo da cascata, que é a verdadeira segunda chance.
+          withRetry(opts.retries ?? (cap === 'mt' ? 0 : 2), 400, () =>
             // A-01: sem este teto, um `attempt` pendurado congelava a cascata — o retry nunca
             // disparava, o breaker nunca abria, o próximo binding nunca era tentado. `withTimeout`
             // já existia em robustness.ts e não tinha nenhum call site.

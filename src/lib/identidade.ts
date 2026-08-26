@@ -14,6 +14,7 @@
  * testes que importam `data/api` sem renderizar o App — ela devolve o estado atual na hora; senão
  * qualquer chamada ficaria pendurada para sempre esperando um `definirIdentidade` que nunca vem.
  */
+import { EDICAO_LEVE } from './edicao';
 import { authRequired } from './supabase';
 
 export type EstadoDeIdentidade = 'carregando' | 'anonimo' | 'conta' | 'selfhost';
@@ -21,7 +22,7 @@ export type IdentidadeResolvida = Exclude<EstadoDeIdentidade, 'carregando'>;
 
 const EVENTO = 'babel_identidade_changed';
 
-let estado: EstadoDeIdentidade = authRequired ? 'carregando' : 'selfhost';
+let estado: EstadoDeIdentidade = EDICAO_LEVE ? 'anonimo' : authRequired ? 'carregando' : 'selfhost';
 let armada = false;
 let resolver: ((e: IdentidadeResolvida) => void) | null = null;
 let pronta: Promise<IdentidadeResolvida> | null = null;
@@ -69,7 +70,7 @@ export function aoMudarIdentidade(cb: (depois: IdentidadeResolvida, antes: Estad
 
 /** Só para testes: volta ao estado de módulo recém-carregado. */
 export function _reiniciarIdentidade(): void {
-  estado = authRequired ? 'carregando' : 'selfhost';
+  estado = EDICAO_LEVE ? 'anonimo' : authRequired ? 'carregando' : 'selfhost';
   armada = false;
   resolver = null;
   pronta = null;

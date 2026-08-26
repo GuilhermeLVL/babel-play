@@ -3,6 +3,7 @@ import { PerfilAdaptativoDeIdioma, destinoDaTraducao } from '../../lib/perfilDeI
 import { OrdemDasTraducoes } from '../../lib/ordemDaTraducao';
 import { traduzirVersos, explicarParada } from '../../lib/versosDoVocabulario';
 import { apiFetch } from '../../data/api';
+import { EDICAO_LEVE } from '../../lib/edicao';
 import BuscaDeCapa from '../BuscaDeCapa';
 import { buildGateway } from '../../gateway';
 import { startSystemAudioCapture, startSystemLoopbackCapture, startServerLoopbackCapture, startMicCapture, probeSystemAudio, probeLoopback, probeServerLoopback, serverLoopbackSupported, type AudioCapture, type SystemAudioProbe } from '../../gateway/capture/systemAudio';
@@ -963,8 +964,10 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
        melhor que o palpite de uma fala isolada, não pior. */
     const origem = src || idiomaObservadoRef.current || '';
     const cacheKey = `${origem}|${tgt}|${text}`;
-    const applyTranslation = (translated: string) => {
-      const capitalized = translated.charAt(0).toUpperCase() + translated.slice(1);
+    const applyTranslation = (translated: string, aproximada = false) => {
+      // "≈" na frente: o último recurso público (MyMemory) acerta frases comuns e erra gíria e
+      // contexto. Dizer que é aproximada é o que separa "tradução ruim" de "app mentindo".
+      const capitalized = (aproximada ? '≈ ' : '') + translated.charAt(0).toUpperCase() + translated.slice(1);
       // As palavras de vocabulário já foram extraídas da fala real no commit do
       // enunciado (wordsFromText); a tradução só atualiza o texto traduzido.
       setSpeechSegments(prev => prev.map(seg => seg.id === segId ? {
@@ -1005,7 +1008,7 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
        ver o bloco acima. Só chega `null` aqui quando nem o perfil convergiu ainda, e aí o
        Tradutor IA do servidor detecta a origem sozinho, como antes. */
     gateway.mt.translate(text, origem || null, tgt)
-      .then(({ text: translated, engine }) => {
+      .then(({ text: translated, engine, approximate }) => {
         if (settled) return;               // timeout já degradou → ignora resposta tardia
         settled = true; clearTimeout(timeout);
         capMetrics.mt(Math.round(performance.now() - mtT0), engine || 'mt');
@@ -1019,7 +1022,7 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
           const firstKey = translationCacheRef.current.keys().next().value;
           if (firstKey !== undefined) translationCacheRef.current.delete(firstKey);
         }
-        if (atual) applyTranslation(translated);
+        if (atual) applyTranslation(translated, approximate === true);
       })
       .catch(err => {
         if (settled) return;
@@ -1264,12 +1267,13 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
           seqToSegmentRef.current.delete(seq);
           lastPartialTextRef.current.delete(seq);
           if (!clean) {
-            // Final vazio: se um parcial já mostrou texto, COMMITA o parcial (não apaga — evita flicker).
+            /* Final vazio: o decode COMPLETO do trecho não achou fala. Antes, se um parcial já tinha
+               mostrado texto, ele era COMMITADO "para evitar flicker" — e era assim que uma frase
+               inventada sobre ruído ficava na tela para sempre. O final é a leitura melhor; se ele
+               diz vazio, o parcial era alucinação e sai. */
             capMetrics.final(seq, { decodeMs, queueDepth, text: '', audioMs });
-            setSpeechSegments(prev => prev.flatMap(s => {
-              if (s.id !== uttId) return [s];
-              return s.originalText ? [{ ...s, isPartial: false }] : [];
-            }));
+            clog('Whisper final vazio → parcial descartado (seq', seq, ')');
+            setSpeechSegments(prev => prev.filter(s => s.id !== uttId));
             return;
           }
           /* O IDIOMA DEIXOU DE FICAR NA FRENTE DO TEXTO.
@@ -1400,7 +1404,7 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
     // conteúdo (tiny erra feio fora do EN) — nuvem-primeiro quando disponível, senão o
     // melhor modelo local viável no dispositivo. O selo da UI reflete a rota.
     // Pelo funil: sem conta responde 501 → `cloudAvailable=false` → rota local, que é o correto.
-    const cloudAvailable = await apiFetch('/api/ai/stt/available').then(r => r.ok).catch(() => false);
+    const cloudAvailable = EDICAO_LEVE ? false : await apiFetch('/api/ai/stt/available').then(r => r.ok).catch(() => false);
     const route = routeStt({
       contentLang: listenLang,
       autoDetect: autoDetectLangRef.current || autoDetectMyLangRef.current,
@@ -2974,8 +2978,8 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
                         <span>Foco Cheio</span>
                       </button>
 
-                      {/* BINGO — transforma assistir em jogo sem atrapalhar a captura. */}
-                      <button
+                      {/* BINGO — transforma assistir em jogo sem atrapalhar a captura. Fora da leve: Jogar já é uma tela. */}
+                      {!EDICAO_LEVE && <button
                         onClick={() => setShowBingo(v => !v)}
                         aria-pressed={showBingo}
                         title="Cartela de palavras que acende quando você as ouve"
@@ -2985,7 +2989,7 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
                       >
                         <Ticket className="w-3.5 h-3.5" />
                         <span>Bingo</span>
-                      </button>
+                      </button>}
 
                       {/* O botão "Visual" saiu daqui: eram três botões disputando a mesma linha, e
                           o ajuste de fontes/tamanhos da transcrição pertence ao mesmo lugar que os
@@ -3054,6 +3058,11 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
                             <option value="display">Uma aba do navegador (YouTube, chamada)</option>
                             <option value="loopback">Dispositivo de loopback (avançado)</option>
                           </select>
+                        )}
+                        {systemEnabled && !serverCaptureAvailable && (
+                          <span className="text-[10px] text-ink-faint" title="A captura do som inteiro do computador sem configurar nada usa o servidor local (Windows). Na versão hospedada, use uma aba/tela compartilhada ou um dispositivo de loopback.">
+                            som inteiro do PC sem configurar: só na versão instalada
+                          </span>
                         )}
                         <span className="text-[10px] text-ink-faint flex items-center gap-1.5">
                           {micEnabled && `microfone via ${micEngine === 'browser' ? 'navegador' : 'transcrição local'}`}

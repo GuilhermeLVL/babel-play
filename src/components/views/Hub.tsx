@@ -1,4 +1,5 @@
 import { Mic, Upload, ArrowRight, Sparkles, TrendingUp, AlertTriangle, Video, FileText, Headphones, ChevronDown, ChevronUp, Gamepad2, Target, Sprout, Rocket, Eye, Zap, Check } from 'lucide-react';
+import { EDICAO_LEVE } from '../../lib/edicao';
 import React, { useState, useEffect, useRef } from 'react';
 import { Recording } from '../../types';
 import { fetchSettings, patchUiSettings, fetchExerciseResults, type AppMetrics } from '../../data/api';
@@ -27,6 +28,8 @@ interface HubProps {
 }
 
 export default function Hub({ onChangeView, recordings, ageProfile = 'pro', progress, metrics }: HubProps) {
+  // Edição leve: Vocabulário e Revisão não existem como telas; o caminho é Jogar.
+  const ir = (view: string, data?: unknown) => onChangeView(EDICAO_LEVE && (view === 'metrics' || view === 'study') ? 'play' : view, data as never);
   const [filterCategory, setFilterCategory] = useState<'all' | 'video' | 'audio' | 'document'>('all');
 
   /**
@@ -219,7 +222,7 @@ export default function Hub({ onChangeView, recordings, ageProfile = 'pro', prog
               )}
             </p>
             <div className="flex flex-wrap items-center justify-center sm:justify-start gap-3 mt-4">
-              <button onClick={() => onChangeView('study')} className="btn-solid py-3 px-6">
+              <button onClick={() => ir('study')} className="btn-solid py-3 px-6">
                 {ageProfile === 'kids' ? 'Bora!' : ageProfile === 'senior' ? 'Começar a revisão' : 'Revisar agora'}
               </button>
               {/* Quem não quer revisar agora tem uma saída DECLARADA, em vez de precisar adivinhar
@@ -305,7 +308,7 @@ export default function Hub({ onChangeView, recordings, ageProfile = 'pro', prog
         <h2 className="font-display font-extrabold text-lg text-ink mb-4">Métricas do Perfil</h2>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-          <button className="card-panel p-5 text-left hover:border-accent hover:shadow-card transition-all group" onClick={() => onChangeView('metrics')}>
+          <button className="card-panel p-5 text-left hover:border-accent hover:shadow-card transition-all group" onClick={() => ir('metrics')}>
             <span className="label-mono block mb-1 text-ink-muted group-hover:text-accent transition-colors">Palavras Produzidas</span>
             <div className="font-display font-black text-2xl tracking-tight text-ink mb-1">
               {metrics ? fmtNum(metrics.wordsCaptured) : '—'}
@@ -315,7 +318,7 @@ export default function Hub({ onChangeView, recordings, ageProfile = 'pro', prog
             </div>
           </button>
 
-          <button className="card-panel p-5 text-left hover:border-accent hover:shadow-card transition-all group" onClick={() => onChangeView('metrics')}>
+          <button className="card-panel p-5 text-left hover:border-accent hover:shadow-card transition-all group" onClick={() => ir('metrics')}>
             <span className="label-mono block mb-1 text-ink-muted group-hover:text-accent transition-colors">Vocabulário no Deck</span>
             <div className="font-display font-black text-2xl tracking-tight text-ink mb-1">
               {metrics ? fmtNum(metrics.deckSize) : '—'}
@@ -346,7 +349,7 @@ export default function Hub({ onChangeView, recordings, ageProfile = 'pro', prog
               )}
             </div>
             <button
-              onClick={() => onChangeView('study')}
+              onClick={() => ir('study')}
               className="mt-3 text-xs font-bold text-accent hover:text-accent-ink flex items-center gap-1 transition-colors group/btn self-start"
             >
               Medir agora <ArrowRight className="w-3.5 h-3.5 transform group-hover/btn:translate-x-1 transition-transform" />
@@ -510,7 +513,7 @@ export default function Hub({ onChangeView, recordings, ageProfile = 'pro', prog
               <p className="text-[12px] text-ink-muted leading-relaxed">Pratique Shadowing para medir e elevar a fidelidade da sua pronúncia.</p>
             </div>
             <button
-              onClick={() => onChangeView('study')}
+              onClick={() => ir('study')}
               className="mt-4 w-full py-2 text-[11.5px] font-bold rounded-xl bg-surface transition-all duration-200 cursor-pointer text-center border border-rare/30 text-rare hover:bg-rare-soft hover:text-rare-ink"
             >
               Medir precisão
@@ -531,7 +534,7 @@ export default function Hub({ onChangeView, recordings, ageProfile = 'pro', prog
               </p>
             </div>
             <button
-              onClick={() => onChangeView('study')}
+              onClick={() => ir('study')}
               className="mt-4 w-full py-2 text-[11.5px] font-bold rounded-xl bg-surface transition-all duration-200 cursor-pointer text-center border border-rare/30 text-rare hover:bg-rare-soft hover:text-rare-ink"
             >
               Estudar deck
@@ -553,7 +556,7 @@ export default function Hub({ onChangeView, recordings, ageProfile = 'pro', prog
               </p>
             </div>
             <button
-              onClick={() => onChangeView('study')}
+              onClick={() => ir('study')}
               className="mt-4 w-full py-2 text-[11.5px] font-bold rounded-xl bg-surface transition-all duration-200 cursor-pointer text-center border border-warn/30 text-warn hover:bg-warn-soft hover:text-warn-ink"
             >
               Revisar agora

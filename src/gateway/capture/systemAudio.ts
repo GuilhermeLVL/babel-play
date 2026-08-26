@@ -217,7 +217,7 @@ async function startCaptureFromStream(
     negativeSpeechThreshold: 0.35,
     redemptionMs: 450,   // fecha ~0,45s após o silêncio → limite de frase mais natural
     preSpeechPadMs: 300, // prepende 0,3s → não corta o INÍCIO das sentenças
-    minSpeechMs: 250,    // descarta ruídos < 0,25s
+    minSpeechMs: 400,    // descarta ruídos < 0,4s (era 250: ruído curto virava frase inventada)
     onSpeechStart: () => {
       speechStartTs = performance.now();
       currentSeq = ++seqCounter;

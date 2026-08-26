@@ -11,6 +11,8 @@
  * chega aqui: ele responde no navegador.
  */
 interface Env { API_ORIGIN?: string }
+// Tipo mínimo do Pages Function — evita depender de @cloudflare/workers-types só por esta assinatura.
+type PagesFunction<E> = (ctx: { request: Request; env: E }) => Promise<Response>
 
 export const onRequest: PagesFunction<Env> = async ({ request, env }) => {
   const origem = (env.API_ORIGIN ?? '').replace(/\/+$/, '')

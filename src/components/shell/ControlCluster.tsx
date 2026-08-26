@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
+import { EDICAO_LEVE } from '../../lib/edicao';
 import {
   Bot,
   Sliders,
@@ -288,8 +289,8 @@ export default function ControlCluster(props: ControlClusterProps) {
 
       <div className={orientation === 'column' ? 'hidden' : 'w-px h-5 bg-border-subtle/70 mx-1'} />
 
-      {/* Tutor */}
-      <button
+      {/* Tutor — depende de /api/gemini/chat; na edição leve não há API. */}
+      {!EDICAO_LEVE && <button
         type="button"
         onClick={click(onToggleChat)}
         title="Abrir o tutor BabelBot"
@@ -298,7 +299,7 @@ export default function ControlCluster(props: ControlClusterProps) {
       >
         <Bot className="w-4 h-4" />
         <span aria-hidden className="absolute top-1.5 right-1.5 w-1.5 h-1.5 bg-good rounded-full" />
-      </button>
+      </button>}
 
       {/* Claro / escuro */}
       <IconButton onClick={click(toggleDarkMode)} title={darkMode ? 'Mudar para o modo claro' : 'Mudar para o modo escuro'}>
@@ -326,8 +327,8 @@ export default function ControlCluster(props: ControlClusterProps) {
           responde "quem sou eu e como saio". Mora aqui, e não em `NAV_ITEMS`, porque este cluster
           é a única peça que as quatro posições de menu e a barra do celular compartilham —
           `MobileNav` renderiza a lista de navegação INTEIRA e já está no limite de largura. */}
-      <div className={orientation === 'column' ? 'hidden' : 'w-px h-5 bg-border-subtle/70 mx-1'} />
-      <MenuDaConta onIr={onChangeView} orientation={orientation} />
+      {!EDICAO_LEVE && <div className={orientation === 'column' ? 'hidden' : 'w-px h-5 bg-border-subtle/70 mx-1'} />}
+      {!EDICAO_LEVE && <MenuDaConta onIr={onChangeView} orientation={orientation} />}
 
       {isMenuOpen && coords && (
         <div

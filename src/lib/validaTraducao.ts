@@ -84,9 +84,21 @@ export function validarTraducao(
   esperado: string,
   origem: string | null,
   deteccao: DeteccaoDeSaida | null,
+  textoOriginal?: string,
 ): VeredictoDaTraducao {
   const texto = (traduzido || '').trim()
   const alvo = base(esperado)
+
+  /* REGRA BARATA, ANTES DO DETECTOR: se a "tradução" é o texto original de volta (só caixa/espaço
+     diferentes) e os idiomas pedidos são distintos, o tradutor não traduziu — vale para frases
+     curtas também, onde o detector de idioma não tem sinal. Era o caso das legendas "traduzidas"
+     idênticas ao que foi dito. */
+  const original = (textoOriginal || '').trim()
+  const de = base(origem || '')
+  const norm = (t: string) => t.toLowerCase().replace(/\s+/g, ' ')
+  if (original && de && alvo && de !== alvo && original.length >= 4 && norm(original) === norm(texto)) {
+    return { ok: false, motivo: 'nao-traduziu', detectado: de, esperado: alvo }
+  }
 
   // Sem alvo declarado não há o que conferir; e texto curto não sustenta detecção.
   if (!precisaConferir(texto, esperado)) return { ok: true }
@@ -97,7 +109,6 @@ export function validarTraducao(
   if (!detectado || detectado === alvo) return { ok: true }
 
   // Saída no idioma de ENTRADA: o tradutor devolveu o texto sem traduzir.
-  const de = base(origem || '')
   if (de && detectado === de) {
     return { ok: false, motivo: 'nao-traduziu', detectado, esperado: alvo }
   }

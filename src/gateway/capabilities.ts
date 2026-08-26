@@ -19,6 +19,8 @@ export interface MtResult {
   text: string
   detectedSourceLang?: string
   engine: string
+  /** Tradução de qualidade não garantida (último recurso público): a UI marca com "≈". */
+  approximate?: boolean
 }
 
 export interface TranslationProvider extends AdapterMeta {

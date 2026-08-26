@@ -14,6 +14,7 @@
  * recursos do servidor (régua CEFR, wordlist, reconciliação) ficam para a migração — o servidor
  * reaplica tudo quando os dados sobem.
  */
+import { EDICAO_LEVE } from '../../lib/edicao';
 import { abrirStore, type CartaoLocal, type ExercicioLocal, type FalaLocal, type SessaoLocal } from './store';
 import { Fsrs5Strategy, type Grade, type SchedulingState } from '../../core/learning/scheduler';
 import type { AppMetrics } from '../../core/learning/contract';
@@ -52,7 +53,7 @@ const ACOES_QUE_CONVIDAM: RegExp[] = [
 
 /** Resposta padronizada para o que não existe sem conta. Em ação da pessoa, avisa o App. */
 export function naoDisponivelSemConta(rota: string): Response {
-  if (typeof window !== 'undefined' && ACOES_QUE_CONVIDAM.some((r) => r.test(rota))) {
+  if (!EDICAO_LEVE && typeof window !== 'undefined' && ACOES_QUE_CONVIDAM.some((r) => r.test(rota))) {
     window.dispatchEvent(new CustomEvent(EVENTO_EXIGE_CONTA, { detail: { rota } }));
   }
   return json({ error: 'conta necessária', codigo: CODIGO_EXIGE_CONTA, rota }, 501);

@@ -1,0 +1,19 @@
+# Cloudflare Pages — cabeçalhos do site estático.
+#
+# Cross-origin isolation liga `SharedArrayBuffer` e, com ele, as THREADS do WASM do ONNX Runtime
+# (sem isto o Whisper roda em 1 thread). `credentialless` em vez de `require-corp`: os pesos vêm
+# do Hugging Face Hub por fetch com CORS, e `require-corp` exigiria CORP em cada resposta deles.
+# Se algum recurso externo parar de carregar sob COEP, a saída é remover estas duas linhas —
+# o app funciona sem elas, só mais lento.
+/*
+  Cross-Origin-Opener-Policy: same-origin
+  Cross-Origin-Embedder-Policy: credentialless
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+
+/ort-wasm-*
+  Cache-Control: public, max-age=31536000, immutable
+/silero_vad_*
+  Cache-Control: public, max-age=31536000, immutable
+/assets/*
+  Cache-Control: public, max-age=31536000, immutable

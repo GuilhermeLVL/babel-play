@@ -160,7 +160,7 @@ export function buildGateway({ profile, cloudConsent }: GatewayDeps) {
             const saida = precisaConferir(r.text, tgt)
               ? await detectLanguage(r.text).catch(() => null)
               : null
-            const veredicto = validarTraducao(r.text, tgt, src, saida)
+            const veredicto = validarTraducao(r.text, tgt, src, saida, text)
             if (!veredicto.ok) throw new Error(explicarRejeicao(veredicto, adapter.id))
             return r
           },

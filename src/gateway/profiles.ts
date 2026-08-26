@@ -1,3 +1,4 @@
+import { EDICAO_LEVE } from '../lib/edicao'
 import type { Profile } from '@core'
 
 /**
@@ -23,7 +24,7 @@ export const BUILTIN_PROFILES: Profile[] = [
       stt: [{ adapterId: 'web-speech' }, { adapterId: 'whisper-local' }, { adapterId: 'groq-whisper', model: 'whisper-large-v3-turbo' }],
       // Cadeia de tradução: nativo do Chrome (mais rápido, se disponível) → opus-mt local
       // (on-device, offline) → MyMemory (rede, último recurso).
-      mt: [{ adapterId: 'chrome-translator' }, { adapterId: 'opus-mt-local' }, { adapterId: 'server-llm-mt' }, { adapterId: 'mymemory' }],
+      mt: [{ adapterId: 'chrome-translator' }, { adapterId: 'opus-mt-local' }, ...(EDICAO_LEVE ? [] : [{ adapterId: 'server-llm-mt' }]), { adapterId: 'mymemory' }],
       // LLM grátis-sem-chave (WebLLM / Chrome Prompt API) entra numa próxima etapa.
     },
   },

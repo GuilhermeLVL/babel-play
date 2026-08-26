@@ -666,7 +666,7 @@ export default function App() {
               ageProfile={ageProfile}
             />
           )}
-          {activeView === 'library' && !anonimo && (
+          {activeView === 'library' && (EDICAO_LEVE || !anonimo) && (
             <Library onChangeView={navigateTo} recordings={recordings} onRecordingsChange={setRecordings} ageProfile={ageProfile} />
           )}
           {/* `selectedRecordingId` e NÃO `selectedRecording`: este último cai na gravação mais

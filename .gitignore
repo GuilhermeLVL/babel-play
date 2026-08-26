@@ -67,3 +67,5 @@ desktop.ini
 .vscode/
 !.vscode/extensions.json
 .idea/
+hub-leve.png
+.playwright-mcp/

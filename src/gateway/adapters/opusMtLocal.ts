@@ -23,12 +23,16 @@ export class OpusMtLocal implements TranslationProvider {
   private onProgress: ((p: number, label?: string, bytes?: { loaded: number; total: number }) => void) | null = null
 
   private readonly ROMANCE = new Set(['pt', 'es', 'fr', 'it', 'ro', 'ca', 'gl'])
+  private readonly DEDICADOS = new Set(['es', 'fr', 'it', 'de'])
 
   private modelFor(src: string, tgt: string): string | null {
     const s = src.toLowerCase().split('-')[0]
     const t = tgt.toLowerCase().split('-')[0]
     if (s === t) return null
-    if (s === 'en' && this.ROMANCE.has(t)) return 'Xenova/opus-mt-en-ROMANCE'
+    // Espelho de `dirConfig` no worker: dedicados para es/fr/it/de, ROMANCE para o resto.
+    if (s === 'en' && this.DEDICADOS.has(t)) return `Xenova/opus-mt-en-${t}`
+    if (this.DEDICADOS.has(s) && t === 'en') return `Xenova/opus-mt-${s}-en`
+    if (s === 'en' && t === 'pt') return 'Xenova/opus-mt-en-ROMANCE' // só pt tem o ID do token (ver worker)
     if (this.ROMANCE.has(s) && t === 'en') return 'Xenova/opus-mt-ROMANCE-en'
     return null
   }

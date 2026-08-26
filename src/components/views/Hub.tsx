@@ -582,12 +582,12 @@ export default function Hub({ onChangeView, recordings, ageProfile = 'pro', prog
             <h3 className="font-display font-extrabold text-lg text-ink">Sessões Recentes</h3>
             <p className="text-[12px] text-ink-muted">Estudos e mídias salvos organizados por tipo de arquivo.</p>
           </div>
-          {!EDICAO_LEVE && <button
+          <button
             className="text-[12.5px] font-bold text-accent-ink hover:text-accent flex items-center gap-1 py-1 transition-colors self-start sm:self-auto"
             onClick={() => onChangeView('library')}
           >
             Ver biblioteca completa &rarr;
-          </button>}
+          </button>
         </div>
 
         {/* Categories segmented control */}

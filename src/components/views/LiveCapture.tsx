@@ -3069,7 +3069,8 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
                           >
                             {serverCaptureAvailable && <option value="server">Som do computador ★ (sem configurar nada)</option>}
                             <option value="display">Uma aba do navegador (YouTube, chamada)</option>
-                            <option value="loopback">Dispositivo de loopback (avançado)</option>
+                            {/* Leve: sem Stereo Mix/VB-Cable a rota abre o microfone; sem servidor não há como orientar. Fora. */}
+                            {!EDICAO_LEVE && <option value="loopback">Dispositivo de loopback (avançado)</option>}
                           </select>
                         )}
                         {systemEnabled && !serverCaptureAvailable && (

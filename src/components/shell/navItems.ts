@@ -94,7 +94,7 @@ export function navLabel(item: NavItemDef, profile: AgeProfileType, compact = fa
 
 /**
  * EDIÇÃO LEVE: só o que funciona inteiro sem conta e sem servidor — Início, Capturar, Jogar e
- * Ajustes. Biblioteca, Sessão e Vocabulário voltam com a edição completa (elas persistem na conta).
+ * Ajustes. Biblioteca entra (as sessões vivem no IndexedDB deste navegador — provisório, sem conta). Sessão e Vocabulário voltam com a edição completa.
  */
-const LEVE: ReadonlySet<ViewType> = new Set<ViewType>(['hub', 'capture', 'play', 'settings']);
+const LEVE: ReadonlySet<ViewType> = new Set<ViewType>(['hub', 'capture', 'library', 'play', 'settings']);
 export const NAV_ITEMS: NavItemDef[] = EDICAO_LEVE ? TODOS_OS_ITENS.filter((i) => LEVE.has(i.id)) : TODOS_OS_ITENS;

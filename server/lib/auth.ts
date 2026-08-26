@@ -59,8 +59,8 @@ const ALGORITMOS_HS = ['HS256'] as const
 
 export function mecanismoDe(opts: VerifierOptions = {}): MecanismoDeVerificacao {
   if (opts.key) return 'chave-injetada'
-  if (opts.jwtSecret ?? process.env.SUPABASE_JWT_SECRET) return 'hs256-compartilhado'
   if ((opts.supabaseUrl ?? process.env.SUPABASE_URL ?? '').trim()) return 'jwks-assimetrico'
+  if (opts.jwtSecret ?? process.env.SUPABASE_JWT_SECRET) return 'hs256-compartilhado'
   return 'nao-configurado'
 }
 
@@ -69,19 +69,16 @@ export function mecanismoDe(opts: VerifierOptions = {}): MecanismoDeVerificacao 
  * Valida `aud=authenticated` e o `iss`.
  *
  * ─────────────────────────────────────────────────────────────────────────────────────────
- * PRECEDÊNCIA — o que está medido, e o que continua em aberto (F15-01).
+ * PRECEDÊNCIA (F15-01, decidida em 2026-08-26): JWKS ASSIMÉTRICO PRIMEIRO.
  *
- * A ordem abaixo testa `jwtSecret` ANTES de `supabaseUrl`. Consequência medida pela sonda
- * `audit/scripts/sonda-jwt.ts`: com as duas variáveis presentes, o caminho JWKS assimétrico —
- * que o cabeçalho deste arquivo chama de "primário" — NUNCA é construído, e a autenticação
- * inteira passa a depender de um segredo compartilhado.
+ * Até aqui `jwtSecret` era testado ANTES de `supabaseUrl`, e a sonda `audit/scripts/sonda-jwt.ts`
+ * mediu a consequência: com as duas variáveis presentes, o JWKS nunca era construído e toda a
+ * autenticação dependia de um segredo compartilhado. A inversão ficou em aberto porque projeto
+ * Supabase LEGADO emite HS256 — e preferir o JWKS quebraria o login de todos.
  *
- * A ordem NÃO foi invertida aqui de propósito. Inverter muda qual mecanismo autentica os usuários
- * em produção: um projeto Supabase legado emite tokens HS256, e preferir o JWKS quebraria o login
- * de todo mundo. É decisão de operação, não de código, e está registrada como achado ABERTO.
- *
- * O que MUDOU: o mecanismo ativo deixou de ser invisível (`mecanismoDe`, usado no boot), o `iss`
- * passou a ser exigido no modo público, e a lista de algoritmos é declarada.
+ * O projeto de produção é NOVO (chaves assimétricas, ES256), então a ordem certa é a de cima:
+ * com `SUPABASE_URL` o verificador é o JWKS; `SUPABASE_JWT_SECRET` só vale quando não há URL
+ * (self-host sem projeto, testes). O boot continua anunciando o mecanismo ativo (`mecanismoDe`).
  */
 export function createVerifier(opts: VerifierOptions = {}): (token: string) => Promise<UserId> {
   const supabaseUrl = (opts.supabaseUrl ?? process.env.SUPABASE_URL ?? '').replace(/\/+$/, '')
@@ -91,12 +88,12 @@ export function createVerifier(opts: VerifierOptions = {}): (token: string) => P
   let key: VerifyKey | undefined = opts.key
   let algoritmos: readonly string[] = [...ALGORITMOS_JWKS, ...ALGORITMOS_HS]
   if (!key) {
-    if (jwtSecret) {
-      key = new TextEncoder().encode(jwtSecret) // HS256 (fallback)
-      algoritmos = ALGORITMOS_HS
-    } else if (issuer) {
+    if (issuer) {
       key = createRemoteJWKSet(new URL(`${issuer}/.well-known/jwks.json`)) // JWKS (primário)
       algoritmos = ALGORITMOS_JWKS
+    } else if (jwtSecret) {
+      key = new TextEncoder().encode(jwtSecret) // HS256: só sem SUPABASE_URL
+      algoritmos = ALGORITMOS_HS
     }
   }
 

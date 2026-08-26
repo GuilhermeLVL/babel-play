@@ -459,15 +459,16 @@ async function startServer({ prepararDados = true } = {}) {
    */
   const configuracao = verificarConfiguracaoNoBoot();
   /*
-   * DIZER qual mecanismo autentica — achado F15-01. A precedencia do `createVerifier` prefere o
-   * segredo compartilhado ao JWKS assimetrico quando as duas variaveis existem, e ate aqui isso era
-   * invisivel: o operador nao tinha como saber que o material assimetrico estava presente e inerte.
+   * DIZER qual mecanismo autentica — achado F15-01 (fechado em 2026-08-26: o JWKS assimetrico
+   * tem precedencia; o segredo compartilhado so vale sem SUPABASE_URL). Se as duas variaveis
+   * existem, o segredo esta presente e INERTE — e o operador precisa saber, porque segredo
+   * inerte em .env e material de vazamento sem funcao.
    */
   if (configuracao.modoPublico) {
     const mecanismo = mecanismoDe();
     console.log(`[auth] verificacao de token por: ${mecanismo}`);
-    if (mecanismo === "hs256-compartilhado" && process.env.SUPABASE_URL) {
-      console.warn("[auth] AVISO: SUPABASE_JWT_SECRET tem precedencia sobre o JWKS assimetrico — o JWKS esta configurado e NAO esta em uso (F15-01).");
+    if (mecanismo === "jwks-assimetrico" && process.env.SUPABASE_JWT_SECRET) {
+      console.warn("[auth] AVISO: SUPABASE_JWT_SECRET esta definido mas NAO e usado — com SUPABASE_URL a verificacao e pelo JWKS assimetrico. Remova o segredo do ambiente.");
     }
   }
   if (configuracao.ok) {

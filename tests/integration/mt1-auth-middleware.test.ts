@@ -109,12 +109,17 @@ describe('modo público (AUTH_REQUIRED=1)', () => {
     expect(res.statusCode).toBe(401)
   })
 
-  it('token HS256 válido → req.userId = sub e next()', async () => {
+  /*
+   * F15-01 (2026-08-26): com SUPABASE_URL presente, quem verifica é o JWKS assimétrico — o segredo
+   * compartilhado fica INERTE. Um token HS256 assinado com o segredo tem de ser recusado aqui;
+   * antes ele era aceito, e era isso que deixava toda a autenticação pendurada num segredo.
+   */
+  it('token HS256 pelo segredo, COM SUPABASE_URL → 401 (o JWKS assimétrico tem precedência)', async () => {
     const token = await signHS({ sub: 'user-A' })
-    const req = mkReq(`Bearer ${token}`)
-    const nexted = await run(makeAuthMiddleware(verifier()), req, mkRes())
-    expect(nexted).toBe(true)
-    expect(req.userId).toBe('user-A')
+    const res = mkRes()
+    const nexted = await run(makeAuthMiddleware(verifier()), mkReq(`Bearer ${token}`), res)
+    expect(nexted).toBe(false)
+    expect(res.statusCode).toBe(401)
   })
 
   /*

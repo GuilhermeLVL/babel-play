@@ -8,21 +8,20 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest'
 import express from 'express'
 import type { Server } from 'node:http'
-import { SignJWT } from 'jose'
+import { SignJWT, generateKeyPair } from 'jose'
 import { setupEphemeralDb, type EphemeralDb } from '../harness/ephemeralDb'
 
-const SECRET = 'segredo-e2e-hs256-marco1'
-const enc = new TextEncoder().encode(SECRET)
 /*
- * A origem entrou aqui junto com F15-01: verificacao por segredo compartilhado em modo publico
- * passou a exigir `SUPABASE_URL`, porque sem ela o `iss` do token nao era validado. Este e2e
- * representa um deploy bem configurado, entao declara as duas pontas.
+ * F15-01 (2026-08-26): o deploy bem configurado e JWKS ASSIMETRICO com origem declarada. Este e2e
+ * representa isso com um par ES256 gerado aqui e injetado como `key` (o JWKS remoto e a mesma
+ * verificacao, com a chave vinda da rede); o `iss` continua exigido pela `SUPABASE_URL`.
  */
 const URL_SUPABASE = 'https://projeto-e2e.supabase.co'
 const ISS = `${URL_SUPABASE}/auth/v1`
+const { publicKey, privateKey } = await generateKeyPair('ES256')
 const mkToken = (sub: string) =>
-  new SignJWT({}).setProtectedHeader({ alg: 'HS256' }).setSubject(sub)
-    .setAudience('authenticated').setIssuer(ISS).setIssuedAt().setExpirationTime('1h').sign(enc)
+  new SignJWT({}).setProtectedHeader({ alg: 'ES256' }).setSubject(sub)
+    .setAudience('authenticated').setIssuer(ISS).setIssuedAt().setExpirationTime('1h').sign(privateKey)
 
 let h: EphemeralDb
 let server: Server
@@ -46,7 +45,7 @@ beforeAll(async () => {
 
   const app = express()
   app.use(express.json())
-  app.use('/api', makeAuthMiddleware(createVerifier({ jwtSecret: SECRET, supabaseUrl: URL_SUPABASE })))
+  app.use('/api', makeAuthMiddleware(createVerifier({ key: publicKey, supabaseUrl: URL_SUPABASE })))
   app.use('/api/sessions', sessionsRouter)
 
   server = app.listen(0)

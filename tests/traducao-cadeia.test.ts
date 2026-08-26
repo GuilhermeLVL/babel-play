@@ -26,3 +26,14 @@ describe('tradução: cadeia confiável', () => {
     expect(v.ok).toBe(true)
   })
 })
+
+describe('gateway: a cascata de MT chama o motor de verdade', () => {
+  it('uma tentativa por motor — com 0 o withRetry não executava nada', async () => {
+    const { AiGateway } = await import('../src/core/gateway/gateway')
+    const { BreakerRegistry } = await import('../src/core/robustness')
+    const { BudgetLedger } = await import('../src/core/gateway/budget')
+    const profile = { id: 'p', name: 'p', builtin: true, economyMode: true, budget: { maxCloudRequests: 0, maxTokens: 0 }, bindings: { mt: [{ adapterId: 'x' }] } } as never
+    const core = new AiGateway(profile, new BreakerRegistry(), new BudgetLedger({ maxCloudRequests: 0, maxTokens: 0 }), () => true)
+    await expect(core.run('mt', async () => 'traduzido')).resolves.toBe('traduzido')
+  })
+})

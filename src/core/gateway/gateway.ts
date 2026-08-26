@@ -88,9 +88,11 @@ export class AiGateway {
       const timeoutMs = opts.timeoutMs ?? DEFAULT_TIMEOUT_MS[cap] ?? 30_000
       try {
         const result = await breaker.run(() =>
-          // MT: 0 re-tentativas — numa legenda ao vivo, tentar de novo o MESMO tradutor que
-          // acabou de falhar só atrasa o próximo da cascata, que é a verdadeira segunda chance.
-          withRetry(opts.retries ?? (cap === 'mt' ? 0 : 2), 400, () =>
+          // MT: UMA tentativa (o parâmetro é TENTATIVAS, não re-tentativas) — numa legenda ao vivo,
+          // tentar de novo o MESMO tradutor que acabou de falhar só atrasa o próximo da cascata.
+          // Com 0 aqui, `withRetry` não executava nada e rejeitava com undefined: toda tradução
+          // morria antes de chamar o motor (medido na hospedada, 2026-08-26).
+          withRetry(opts.retries ?? (cap === 'mt' ? 1 : 2), 400, () =>
             // A-01: sem este teto, um `attempt` pendurado congelava a cascata — o retry nunca
             // disparava, o breaker nunca abria, o próximo binding nunca era tentado. `withTimeout`
             // já existia em robustness.ts e não tinha nenhum call site.

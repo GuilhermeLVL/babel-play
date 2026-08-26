@@ -167,6 +167,30 @@ export function buildGateway({ profile, cloudConsent }: GatewayDeps) {
           { isCloud }
         ),
 
+      /**
+       * DIAGNÓSTICO: roda cada motor da cadeia isoladamente e diz o que cada um respondeu — com o
+       * estado do disjuntor. Existe porque "não traduz" na máquina do usuário não tinha como ser
+       * observado (2026-08-26). Exposto em `window.__babelMt.diagnosticar(texto, de, para)`.
+       */
+      diagnosticar: async (text: string, src: string, tgt: string): Promise<Array<Record<string, unknown>>> => {
+        const linhas: Array<Record<string, unknown>> = []
+        for (const b of core.getProfile().bindings.mt ?? []) {
+          const t0 = Date.now()
+          try {
+            const a = resolveMt(b)
+            const breaker = breakers.get(b.adapterId)
+            const suporta = a.supports(src, tgt)
+            if (!suporta) { linhas.push({ id: b.adapterId, suporta, disjuntorAberto: breaker.isOpen }); continue }
+            const r = await a.translate(text, src, tgt)
+            const veredicto = validarTraducao(r.text, tgt, src, null, text)
+            linhas.push({ id: b.adapterId, suporta, disjuntorAberto: breaker.isOpen, texto: r.text, aproximada: r.approximate === true, veredicto, ms: Date.now() - t0 })
+          } catch (e) {
+            linhas.push({ id: b.adapterId, erro: String((e as Error)?.message ?? e), ms: Date.now() - t0 })
+          }
+        }
+        return linhas
+      },
+
       /** Aquece os adapters de MT locais (ex.: opus-mt) para as direções esperadas, em background. */
       warmup: (pairs: Array<[string, string]>): void => {
         for (const b of core.getProfile().bindings.mt ?? []) {

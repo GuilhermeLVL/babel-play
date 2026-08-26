@@ -1487,7 +1487,19 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
       systemCaptureRef.current = source === 'server'
         ? await startServerLoopbackCapture(cb)
         : source === 'loopback'
-          ? await startSystemLoopbackCapture(loopbackDeviceIdRef.current || undefined, cb)
+          ? await (async () => {
+              /* Sem dispositivo escolhido E sem nenhum candidato (Stereo Mix / VB-Cable) o getUserMedia
+                 abriria o MICROFONE padrão — e a pessoa acharia que o "loopback" estava ligado enquanto
+                 ouvia o próprio ambiente. Medido no teste do dono (2026-08-26): sem legenda nenhuma.
+                 Melhor recusar com o caminho certo do que capturar a fonte errada em silêncio. */
+              if (!loopbackDeviceIdRef.current) {
+                const { inputs } = await listDevices();
+                if (!filterLoopbackDevices(inputs).detected) {
+                  throw new Error('Nenhum dispositivo de loopback (Stereo Mix / VB-Cable) existe neste computador — sem ele, esta rota captaria o microfone. Use "Compartilhar aba/tela" (marque "compartilhar áudio") ou instale o VB-Audio Cable.');
+                }
+              }
+              return startSystemLoopbackCapture(loopbackDeviceIdRef.current || undefined, cb);
+            })()
           : await startSystemAudioCapture(cb);
       clog('captura do sistema ATIVA ✓');
       if (systemCaptureRef.current) anchorSessionClock(systemCaptureRef.current.startedAtMs, 'system');
@@ -3003,7 +3015,7 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
                   {!isRecording && (
                     <div className="space-y-2.5">
                       <span className="text-[9px] font-mono font-bold uppercase tracking-wider text-ink-faint">O que você quer capturar?</span>
-                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                      <div className={`grid grid-cols-1 ${EDICAO_LEVE ? 'sm:grid-cols-2' : 'sm:grid-cols-3'} gap-2`}>
                         {([
                           {
                             id: 'media' as const,
@@ -3017,12 +3029,13 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
                             titulo: ageProfile === 'kids' ? 'Jogo + Amigos' : ageProfile === 'senior' ? 'Chamada de Vídeo' : 'Conversa / chamada',
                             sub: ageProfile === 'kids' ? 'Discord, Call ou partida multiplayer' : ageProfile === 'senior' ? 'Conversas no WhatsApp, Zoom ou família' : 'Reunião, call, Discord — você e os outros'
                           },
-                          {
+                          // Edição leve: "Minha voz" (só microfone) não faz sentido para quem veio ouvir vídeo/jogo.
+                          ...(EDICAO_LEVE ? [] : [{
                             id: 'mic' as const,
                             icon: <Mic className="w-4 h-4" />,
                             titulo: ageProfile === 'kids' ? 'Minha Voz' : ageProfile === 'senior' ? 'Gravar Minha Voz' : 'Minha voz',
                             sub: ageProfile === 'kids' ? 'Falar no microfone e testar pronúncia' : ageProfile === 'senior' ? 'Falar para o microfone com tradução direta' : 'Praticar fala, ditar — só o microfone'
-                          },
+                          }]),
                         ]).map((c) => (
                           <button
                             key={c.id}
@@ -3260,6 +3273,11 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
                   </button>
                 )}
                 <div ref={transcriptScrollRef} onScroll={handleTranscriptScroll} className="flex-1 min-h-0 overflow-y-auto custom-scrollbar pr-2">
+                  {/* Primeiro contato: o download do modelo (dezenas de MB) acontecia atrás do painel de
+                      ajustes — a tela dizia "Ouvindo…" por minutos sem explicar nada. Aqui, onde a pessoa olha. */}
+                  {isRecording && modelPrep && !modelPrep.done && (
+                    <div className="mb-3"><ModelPrepPanel state={modelPrep} onRetry={prepareModels} /></div>
+                  )}
                   <ChatTranscript
                     segments={speechSegments}
                     speakers={speakerProfiles}
@@ -3534,6 +3552,11 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
               </button>
             )}
             <div ref={focusScrollRef} onScroll={handleFocusScroll} className="flex-1 min-h-0 overflow-y-auto custom-scrollbar pr-4">
+              {/* Primeiro contato: o download do modelo (dezenas de MB) acontecia atrás do painel de
+                  ajustes — a tela dizia "Ouvindo…" por minutos sem explicar nada. Aqui, onde a pessoa olha. */}
+              {isRecording && modelPrep && !modelPrep.done && (
+                <div className="mb-3"><ModelPrepPanel state={modelPrep} onRetry={prepareModels} /></div>
+              )}
               <ChatTranscript
                 segments={speechSegments}
                 speakers={speakerProfiles}

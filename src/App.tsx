@@ -681,7 +681,7 @@ export default function App() {
               seed={practiceSeed}
             />
           )}
-          {activeView === 'analysis' && !anonimo && (
+          {activeView === 'analysis' && (EDICAO_LEVE || !anonimo) && (
             <Analysis
               onChangeView={navigateTo}
               recording={selectedRecording}

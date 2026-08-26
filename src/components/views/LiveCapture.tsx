@@ -893,6 +893,23 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
    */
   const ordemMtRef = useRef(new OrdemDasTraducoes());
 
+  /** Balões que degradaram para "(texto original)" voltam a "…" e pedem tradução de novo. */
+  const retraduzirDegradados = () => {
+    setSpeechSegments(prev => {
+      const alvo = prev.filter(seg => !seg.isPartial && seg.originalText && seg.translatedText === `(${seg.originalText})`);
+      if (alvo.length === 0) return prev;
+      clog('tradutor pronto: retraduzindo', alvo.length, 'balão(ões) degradado(s)');
+      const ids = new Set(alvo.map(seg => seg.id));
+      setTimeout(() => {
+        for (const seg of alvo) {
+          const doSistema = seg.source === 'system';
+          translateSegment(seg.id, seg.originalText, doSistema ? targetLangRef.current : sourceLangRef.current, doSistema ? sourceLangRef.current : targetLangRef.current);
+        }
+      }, 0);
+      return prev.map(seg => (ids.has(seg.id) ? { ...seg, translatedText: '…' } : seg));
+    });
+  };
+
   const translateSegment = (
     segId: string,
     text: string,
@@ -1454,8 +1471,16 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
     setModelPrep({ whisper: 0, mt: null, fromCache: cached, error: null, done: false });
     try {
       // Tradutor local (best-effort; direção "ouço → meu idioma"). Emite barra própria.
-      gateway.mt.preload(listenLang, myLang, (p, _l, bytes) =>
-        setModelPrep((s) => (s ? { ...s, mt: p >= 1 ? 1 : p, mtBytes: bytes ?? s.mtBytes } : s)));
+      gateway.mt.preload(listenLang, myLang, (p, _l, bytes) => {
+        setModelPrep((s) => (s ? { ...s, mt: p >= 1 ? 1 : p, mtBytes: bytes ?? s.mtBytes } : s));
+        if (p >= 1) {
+          /* O tradutor local (113 MB) fica pronto DEPOIS do Whisper. Tudo que foi falado nesse
+             intervalo já tinha degradado para "(texto original)" e ficava assim para sempre —
+             medido no teste do dono (2026-08-26): legenda certa, tradução nenhuma. Retraduz. */
+          retraduzirDegradados();
+          setTimeout(() => setModelPrep((s) => (s?.done ? null : s)), 1800);
+        }
+      });
       // Whisper (obrigatório para transcrever o áudio do sistema/aba).
       await gateway.stt.preloadModel((p, _l, bytes) =>
         setModelPrep((s) => (s ? { ...s, whisper: p >= 1 ? 1 : p, whisperBytes: bytes ?? s.whisperBytes } : s)));
@@ -1463,7 +1488,8 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
       modelReadyRef.current = true;
       flushPendingUtterances();
       setModelPrep((s) => (s ? { ...s, whisper: 1, done: true } : s));
-      setTimeout(() => setModelPrep((s) => (s?.done ? null : s)), 1800);
+      // O painel só some quando o tradutor também acabou (ou não existe para este par).
+      setTimeout(() => setModelPrep((s) => (s?.done && (s.mt == null || s.mt >= 1) ? null : s)), 1800);
     } catch (e) {
       clog('preparação do modelo FALHOU:', String(e));
       const msg = String((e as Error)?.message ?? e);
@@ -3279,7 +3305,7 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
                 <div ref={transcriptScrollRef} onScroll={handleTranscriptScroll} className="flex-1 min-h-0 overflow-y-auto custom-scrollbar pr-2">
                   {/* Primeiro contato: o download do modelo (dezenas de MB) acontecia atrás do painel de
                       ajustes — a tela dizia "Ouvindo…" por minutos sem explicar nada. Aqui, onde a pessoa olha. */}
-                  {isRecording && modelPrep && !modelPrep.done && (
+                  {isRecording && modelPrep && !(modelPrep.done && (modelPrep.mt == null || modelPrep.mt >= 1)) && (
                     <div className="mb-3"><ModelPrepPanel state={modelPrep} onRetry={prepareModels} /></div>
                   )}
                   <ChatTranscript
@@ -3558,7 +3584,7 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
             <div ref={focusScrollRef} onScroll={handleFocusScroll} className="flex-1 min-h-0 overflow-y-auto custom-scrollbar pr-4">
               {/* Primeiro contato: o download do modelo (dezenas de MB) acontecia atrás do painel de
                   ajustes — a tela dizia "Ouvindo…" por minutos sem explicar nada. Aqui, onde a pessoa olha. */}
-              {isRecording && modelPrep && !modelPrep.done && (
+              {isRecording && modelPrep && !(modelPrep.done && (modelPrep.mt == null || modelPrep.mt >= 1)) && (
                 <div className="mb-3"><ModelPrepPanel state={modelPrep} onRetry={prepareModels} /></div>
               )}
               <ChatTranscript

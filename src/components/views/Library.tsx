@@ -48,6 +48,9 @@ interface LibraryProps {
   ageProfile?: 'kids' | 'pro' | 'senior';
 }
 
+/** Aba do Cofre (RAG) desligada da interface — ver comentário no botão. */
+const MOSTRAR_COFRE = false as boolean
+
 export default function Library({ onChangeView, recordings, onRecordingsChange, ageProfile = 'pro' }: LibraryProps) {
   const [showImport, setShowImport] = useState(false);
   // Entitlements do plano ativo (self-host = tudo liberado). Reage à troca em Configurações.
@@ -431,7 +434,7 @@ export default function Library({ onChangeView, recordings, onRecordingsChange, 
           </button>
           {/* "Cofre de Memória" (RAG) fora da interface: sem índice de embeddings real era uma
               vitrine vazia (decisão do dono, 2026-08-26). O componente fica no código. */}
-          {false && <button
+          {MOSTRAR_COFRE && <button
             onClick={() => setActiveTab('vault')}
             aria-pressed={activeTab === 'vault'}
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[13px] font-bold transition-colors cursor-pointer ${activeTab === 'vault' ? 'bg-surface shadow-sm text-ink' : 'text-ink-muted hover:text-ink'}`}

@@ -1,5 +1,5 @@
 ﻿import React, { useEffect, useRef, useState } from 'react';
-import { EyeOff, MousePointer, Palette, ArrowDown, Volume2, Film, MessagesSquare, Gamepad2, Brain, Star, Radio, type LucideIcon } from 'lucide-react';
+import { EyeOff, MousePointer, Palette, ArrowDown, Volume2, Film, MessagesSquare, Gamepad2, Brain, Star, Radio, type LucideIcon, ChevronRight } from 'lucide-react';
 import { LangChip } from './LangFlag';
 import { initials } from './ChatTranscript';
 import { THEME_OPTIONS, type ThemeType } from '../lib/appearance';
@@ -83,16 +83,18 @@ const DEFAULT_OVERLAY: OverlaySettings = {
   outboundColor: '',
   independence: 'intermediate',
   fontScale: 1,
-  videoShowHistory: false,
+  // Ligado por padrao (pedido do dono, 2026-08-27): acompanhar legenda de video sem o
+  // historico obrigava a ler no ritmo da fala; quem preferir a legenda unica desliga no painel.
+  videoShowHistory: true,
 };
 
 /** Predefinições de fábrica — um clique configura o overlay inteiro para o cenário.
  *  Ícones (lucide) em vez de emoji: consistência visual com o resto do app. */
 const OVERLAY_PRESETS: Array<{ id: string; nome: string; settings: Partial<OverlaySettings> }> = [
-  { id: 'filme', nome: 'Filme', settings: { layoutMode: 'video', bgColor: 'transparent', originalTextColor: '#FFFFFF', translatedTextColor: '#FFEA00', independence: 'intermediate', fontScale: 1, videoShowHistory: false } },
+  { id: 'filme', nome: 'Filme', settings: { layoutMode: 'video', bgColor: 'transparent', originalTextColor: '#FFFFFF', translatedTextColor: '#FFEA00', independence: 'intermediate', fontScale: 1, videoShowHistory: true } },
   { id: 'conversa', nome: 'Conversa', settings: { layoutMode: 'conversation', bgColor: 'transparent', inboundColor: '', outboundColor: '', independence: 'assisted', fontScale: 1 } },
   { id: 'jogo', nome: 'Jogo', settings: { layoutMode: 'game', bgColor: 'transparent', originalTextColor: '#FFFFFF', translatedTextColor: '#9AE6B4', independence: 'intermediate', fontScale: 0.85 } },
-  { id: 'imersao', nome: 'Imersão', settings: { layoutMode: 'video', independence: 'immersion', fontScale: 1.1, videoShowHistory: false } },
+  { id: 'imersao', nome: 'Imersão', settings: { layoutMode: 'video', independence: 'immersion', fontScale: 1.1, videoShowHistory: true } },
 ];
 
 const PRESET_ICONS: Record<string, LucideIcon> = {
@@ -467,7 +469,10 @@ export default function Overlay({ isVisible, onClose, bgColor, onBgColorChange, 
               setShowSettingsPanel(abrindo);
               // Abrir o painel TRAVA os controles: sem isto, o painel abria já em modo
               // click-through e o primeiro clique dentro dele não chegava a nada.
-              if (abrindo) setClickThrough(false);
+              // Fechar DESTRAVA de volta — sem isto a barra ficava presa aberta para sempre
+              // (reclamação real: "não consigo fechar o menu de novo").
+              setClickThrough(!abrindo ? true : false);
+              if (!abrindo) setBarOpen(false);
             }}
             className={`p-2 rounded-lg transition-colors ${showSettingsPanel ? 'bg-accent text-white' : 'text-ink-muted hover:bg-surface-hover'}`}
             title="Personalizar aparência"
@@ -477,6 +482,16 @@ export default function Overlay({ isVisible, onClose, bgColor, onBgColorChange, 
           </button>
           <button onClick={onClose} className="p-2 text-ink-muted hover:bg-surface-hover hover:text-error rounded-lg transition-colors" title="Fechar overlay" aria-label="Fechar overlay">
             <EyeOff className="w-4 h-4" />
+          </button>
+          {/* RECOLHER: o caminho de volta explícito. A barra abria por hover e ficava presa
+              quando o painel/trava entravam; agora um clique fecha tudo e devolve o mouse. */}
+          <button
+            onClick={() => { setShowSettingsPanel(false); setClickThrough(true); setBarOpen(false); }}
+            className="p-2 text-ink-muted hover:bg-surface-hover hover:text-ink rounded-lg transition-colors"
+            title="Recolher esta barra"
+            aria-label="Recolher esta barra"
+          >
+            <ChevronRight className="w-4 h-4" />
           </button>
         </div>
       </div>
@@ -494,7 +509,12 @@ export default function Overlay({ isVisible, onClose, bgColor, onBgColorChange, 
               Ancorado em CIMA e embaixo (`inset-y-4`): com altura conhecida, o HUD cresce até o
               topo da janela quando há fala demais, em vez de parar nos antigos 45vh. */}
           {layoutMode === 'game' && hasAnyCaption && (
-            <div className="absolute inset-y-4 left-4 w-80 max-w-[calc(100%-2rem)] flex flex-col justify-end">
+            /* JANELA INTEIRA, conversa estilo WhatsApp (pedido do dono, 2026-08-27): antes o HUD
+               era uma coluna fixa de 320px no canto esquerdo — numa janela larga sobrava um vazio
+               enorme e o texto não acompanhava o tamanho que a pessoa deu ao overlay. Agora os
+               balões usam a largura toda: OUTROS à esquerda, VOCÊ à direita, cada balão com teto
+               de 78% para os lados continuarem legíveis. */
+            <div className="absolute inset-4 flex flex-col justify-end">
               <CaptionScroller
                 items={captions}
                 containerClassName="flex flex-col gap-2 flex-1 min-h-0 overflow-y-auto custom-scrollbar pr-1"
@@ -503,9 +523,9 @@ export default function Overlay({ isVisible, onClose, bgColor, onBgColorChange, 
                   const cls = isIn ? inboundClass : outboundClass;
                   const custom = isIn ? inboundColor : outboundColor;
                   return (
+                    <div key={c.id} className={`flex ${isIn ? 'justify-start' : 'justify-end'}`}>
                     <div
-                      key={c.id}
-                      className={`backdrop-blur-sm rounded-lg p-3 border-l-4 ${isIn ? 'border-l-accent' : 'border-l-good'} shadow-xl ${cls} ${independenceLevel === 'immersion' ? 'cursor-pointer' : ''}`}
+                      className={`w-fit max-w-[78%] backdrop-blur-sm rounded-lg p-3 ${isIn ? 'border-l-4 border-l-accent' : 'border-r-4 border-r-good'} shadow-xl ${cls} ${independenceLevel === 'immersion' ? 'cursor-pointer' : ''}`}
                       // Borda = cor da PESSOA identificada (inline vence a classe; sem cor → tema).
                       style={{ ...(custom ? { backgroundColor: custom } : null), ...(c.speakerColor ? { borderLeftColor: c.speakerColor } : null) }}
                       onClick={() => { if (independenceLevel === 'immersion') setPeekId(c.id); }}
@@ -525,6 +545,7 @@ export default function Overlay({ isVisible, onClose, bgColor, onBgColorChange, 
                           <ListenBtn text={c.translated} lang={transLangOf(c)} />
                         </div>
                       )}
+                    </div>
                     </div>
                   );
                 }}

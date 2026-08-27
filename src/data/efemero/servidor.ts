@@ -329,6 +329,7 @@ function exercicioDe(base: Json, item: Json, agora: number): ExercicioLocal {
     kind: str(item.kind) ?? str(base.kind), origem: str(base.origem), sessionId: str(base.sessionId),
     itemRef: str(item.itemRef), cardId: str(item.cardId), correct: num(item.correct), attempts: num(item.attempts),
     ms: num(item.ms), hinted: num(item.hinted), score: num(item.score) ?? num(base.score),
+    melhorSequencia: num(base.melhorSequencia),
   };
 }
 
@@ -384,14 +385,21 @@ async function recordes(_m: RegExpMatchArray, url: URL): Promise<Response> {
   const db = await abrirStore();
   const origem = url.searchParams.get('origem');
   const linhas = (await db.getAll('exercicios')).filter((l) => l.exerciseKind && (!origem || l.origem === origem));
-  const porJogo = new Map<string, { exerciseKind: string; melhorPontos: number; melhorEm: number; rodadas: Set<string> }>();
+  const porJogo = new Map<string, { exerciseKind: string; melhorPontos: number; melhorEm: number; melhorCombo: number; certos: number; total: number; ultimaEm: number; rodadas: Set<string> }>();
   for (const l of linhas) {
-    const r = porJogo.get(l.exerciseKind!) ?? { exerciseKind: l.exerciseKind!, melhorPontos: 0, melhorEm: 0, rodadas: new Set<string>() };
+    const r = porJogo.get(l.exerciseKind!) ?? { exerciseKind: l.exerciseKind!, melhorPontos: 0, melhorEm: 0, melhorCombo: 0, certos: 0, total: 0, ultimaEm: 0, rodadas: new Set<string>() };
     if ((l.score ?? 0) > r.melhorPontos) { r.melhorPontos = l.score ?? 0; r.melhorEm = l.createdAt; }
+    if ((l.melhorSequencia ?? 0) > r.melhorCombo) r.melhorCombo = l.melhorSequencia ?? 0;
+    if (l.correct != null) { r.total += 1; if (l.correct === 1) r.certos += 1; }
+    if (l.createdAt > r.ultimaEm) r.ultimaEm = l.createdAt;
     r.rodadas.add(l.roundId ?? l.id);
     porJogo.set(l.exerciseKind!, r);
   }
-  return json([...porJogo.values()].map((r) => ({ exerciseKind: r.exerciseKind, melhorPontos: r.melhorPontos, melhorEm: r.melhorEm, rodadas: r.rodadas.size })));
+  return json([...porJogo.values()].map((r) => ({
+    exerciseKind: r.exerciseKind, melhorPontos: r.melhorPontos, melhorEm: r.melhorEm,
+    melhorCombo: r.melhorCombo, precisao: r.total > 0 ? Math.round((r.certos / r.total) * 100) : null,
+    ultimaEm: r.ultimaEm, rodadas: r.rodadas.size,
+  })));
 }
 
 async function gastarSeeds(_m: RegExpMatchArray, _u: URL, init: RequestInit): Promise<Response> {

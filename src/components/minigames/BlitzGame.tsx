@@ -7,6 +7,7 @@ import { comemorar, pontosDoElemento, pontosFlutuantes, multiplicador, tremor, t
 import { emitBurst } from '../../lib/effects';
 import { play } from '../../lib/soundFx';
 import { sortearEventoRaro, eventosCondicionais } from '../../lib/eventosDeJogo';
+import { enviarParaRanking, lerApelido, salvarApelido, apelidoValido } from '../../lib/ranking';
 import {
   bonusDeTempo, pontosDoAcerto, emFever, ehMarco, rotuloDaSequencia, estrelasDaRodada,
   PENALIDADE_ERRO_S, SEQUENCIA_FEVER,
@@ -125,6 +126,8 @@ export default function BlitzGame({ items, ageProfile, onFinish, onExit }: Blitz
   const [ondas, setOndas] = useState<number[]>([]);
   const [marco, setMarco] = useState<{ id: number; texto: string } | null>(null);
   /** Tela de resultado (fim da rodada). O onFinish só dispara no "Continuar". */
+  const [apelido, setApelido] = useState(lerApelido());
+  const [envio, setEnvio] = useState<'parado' | 'enviando' | 'ok' | 'indisponivel' | 'recusado'>('parado');
   const [resultado, setResultado] = useState<{
     report: RoundReport; estrelas: 0 | 1 | 2 | 3; recorde: boolean; melhorSeq: number;
   } | null>(null);
@@ -357,9 +360,44 @@ export default function BlitzGame({ items, ageProfile, onFinish, onExit }: Blitz
             <span className="flex items-center gap-1"><Flame className="w-4 h-4 text-warn" aria-hidden /> melhor combo: <b className="text-ink">{resultado.melhorSeq}</b></span>
             <span>acertos: <b className="text-ink">{resultado.report.items.filter(o => o.correct).length}/{resultado.report.items.length}</b></span>
           </div>
+          {/* Ranking global: opt-in, com apelido — só pontos e combo saem daqui. */}
+          {pontosRef.current > 0 && (
+            <div className="mt-6 pt-5 border-t border-border-subtle text-left">
+              <p className="text-[11px] font-bold uppercase tracking-wider text-ink-faint mb-2">Ranking global</p>
+              {envio === 'ok' ? (
+                <p className="text-[13px] font-bold text-good-ink">Pontuação enviada! Veja a tabela em "Recordes e ranking".</p>
+              ) : envio === 'indisponivel' ? (
+                <p className="text-[12.5px] text-ink-muted">O ranking vive na versão publicada do app — neste ambiente ele fica desligado.</p>
+              ) : (
+                <div className="flex items-center gap-2">
+                  <input
+                    value={apelido}
+                    onChange={(e) => setApelido(e.target.value)}
+                    placeholder="Seu apelido (3–20 letras)"
+                    maxLength={20}
+                    className="flex-1 min-w-0 px-3 py-2 rounded-xl bg-canvas border border-border-subtle text-[13px] text-ink outline-none focus:border-accent"
+                    aria-label="Apelido para o ranking"
+                  />
+                  <button
+                    onClick={async () => {
+                      if (!apelidoValido(apelido)) { setEnvio('recusado'); return; }
+                      salvarApelido(apelido);
+                      setEnvio('enviando');
+                      setEnvio(await enviarParaRanking('blitz', pontosRef.current, melhorSeqRef.current));
+                    }}
+                    disabled={envio === 'enviando'}
+                    className="shrink-0 px-4 py-2 rounded-xl bg-warn text-white text-[13px] font-bold shadow-btn cursor-pointer disabled:opacity-60"
+                  >
+                    {envio === 'enviando' ? 'Enviando…' : 'Enviar'}
+                  </button>
+                </div>
+              )}
+              {envio === 'recusado' && <p className="text-[11.5px] text-error-ink mt-1.5">Apelido inválido ou envio recusado — use 3 a 20 letras/números.</p>}
+            </div>
+          )}
           <button
             onClick={() => onFinish(resultado.report)}
-            className="btn-ink w-full justify-center mt-7 cursor-pointer"
+            className="btn-ink w-full justify-center mt-5 cursor-pointer"
           >
             Continuar
           </button>

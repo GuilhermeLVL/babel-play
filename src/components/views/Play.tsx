@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState, useRef, useDeferredValue } from 'react';
 import { createPortal } from 'react-dom';
-import { Play as IconePlay, Check, Timer, Mic, ChevronRight, ChevronLeft, Pin, ListChecks, Map as MapIcon, Sprout, Flame, Lock, HelpCircle, Package, Trophy, SlidersHorizontal as SlidersIcon } from 'lucide-react';
+import { Play as IconePlay, Check, Timer, Mic, ChevronRight, ChevronLeft, Pin, ListChecks, Map as MapIcon, Sprout, Flame, Lock, HelpCircle, Package, Trophy, SlidersHorizontal as SlidersIcon, Trophy as TrophyIcon } from 'lucide-react';
 import { apiFetch, fetchDeck, reviewCard, salvarRodada, fetchSessions, fetchSessionTranscript, patchUiSettings, fetchSettings, bulkAddCards, fetchHistoricoDeItens, fetchExerciseResults, fetchRecordes, gastarSeeds, type AppMetrics, type HistoricoDeItem } from '../../data/api';
 import { toSentences, type Sentence, type PracticeSeed } from '../../lib/sentences';
 import type { VocabCard, Recording } from '../../types';
@@ -33,6 +33,7 @@ import { useAudioDaSessao } from '../../lib/audioDaSessao';
 import CuradoriaBaralho from './CuradoriaBaralho';
 import MapaDoConteudo from './MapaDoConteudo';
 import ArteDoJogo from '../minigames/ArteDosJogos';
+import Recordes from './play/Recordes';
 import { JOGOS, type JogoUI } from './play/jogos';
 import PainelTrilha from './PainelTrilha';
 import BaralhoAnki from './BaralhoAnki';
@@ -206,6 +207,7 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
   const [salaAberta, setSalaAberta] = useState(!embutido);
   /* Números do baralho (contagens, mapa, recorte, revisão) COLAPSADOS por padrão: quem chega quer
      jogar, não auditar o acervo, pedido do dono (2026-08-26). A escolha persiste no navegador. */
+  const [verRecordes, setVerRecordes] = useState(false);
   const [detalhes, setDetalhes] = useState<boolean>(() => { try { return localStorage.getItem('babel.play.detalhes') === '1'; } catch { return false; } });
   const alternarDetalhes = () => setDetalhes((v) => { try { localStorage.setItem('babel.play.detalhes', v ? '0' : '1'); } catch { /* sem storage */ } return !v; });
   const [curando, setCurando] = useState(false);
@@ -749,6 +751,7 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
     }
 
     const gravacao = await salvarRodada({
+      melhorSequencia: pontos.melhorSequencia,
       roundId, exerciseKind: report.gameId, origem, sessionId: daSessao, score: report.score, itens,
     });
     if (!gravacao.ok) falhas.push(`${gravacao.status ?? 'rede'}: ${gravacao.motivo}`);
@@ -1900,6 +1903,7 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
         </div>
       )}
 
+      {verRecordes && <Recordes ageProfile={ageProfile} onFechar={() => setVerRecordes(false)} />}
       {/* ── STATUS ── Só números, na MESMA base do baralho, e nada aqui é clicável.
           Ficavam na mesma linha das ações, em texto cinza idêntico: "988 em outro idioma" (que
           não faz nada) ao lado de "19 para revisar" (que abre uma tela cheia), distinguidos
@@ -1913,15 +1917,24 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
           cada leva acrescenta um pedaço nesta linha, que, embrulhada em 412px, ganhava mais uma
           linha e empurrava a grade inteira. 84px são as três linhas que o estado cheio ocupa nesse
           viewport (medido). A partir de `sm` tudo cabe numa linha só e não há o que reservar. */}
+      <div className="mb-2 flex items-center gap-4">
       <button
         type="button"
         onClick={alternarDetalhes}
         aria-expanded={detalhes}
-        className="mb-2 flex items-center gap-1.5 text-[12px] font-bold text-ink-muted hover:text-ink transition-colors cursor-pointer min-h-[24px]"
+        className="flex items-center gap-1.5 text-[12px] font-bold text-ink-muted hover:text-ink transition-colors cursor-pointer min-h-[24px]"
       >
         <ChevronRight className={`w-3.5 h-3.5 transition-transform ${detalhes ? 'rotate-90' : ''}`} aria-hidden />
         {detalhes ? 'Esconder os números do baralho' : `Ver os números do baralho (${contagem.total} palavras)`}
       </button>
+      <button
+        type="button"
+        onClick={() => setVerRecordes(true)}
+        className="flex items-center gap-1.5 text-[12px] font-bold text-warn-ink hover:text-warn transition-colors cursor-pointer min-h-[24px]"
+      >
+        <TrophyIcon className="w-3.5 h-3.5" aria-hidden /> Recordes e ranking
+      </button>
+      </div>
       <section aria-label="Seu baralho" className={`card-panel bg-surface px-3 py-2.5 mb-2 min-h-[84px] sm:min-h-0 flex flex-wrap items-center gap-x-3 gap-y-1 text-[12px] text-ink-muted ${detalhes ? '' : 'hidden'}`}>
         <span className="label-mono">Seu baralho</span>
         <span className="font-bold text-good-ink" title={`${contagem.total} palavras do idioma escolhido passaram na régua de qualidade.`}>

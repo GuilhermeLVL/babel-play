@@ -101,6 +101,8 @@ export interface ExercicioLocal {
   ms: number | null;
   hinted: number | null;
   score: number | null;
+  /** Combo maximo da RODADA (igual em todas as linhas do mesmo roundId). */
+  melhorSequencia: number | null;
 }
 
 export interface GastoLocal {

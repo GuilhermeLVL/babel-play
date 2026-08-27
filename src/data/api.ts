@@ -675,6 +675,8 @@ export async function salvarRodada(payload: {
   origem?: string
   sessionId?: string
   score?: number
+  /** Combo maximo da rodada (vira recorde de combo). */
+  melhorSequencia?: number
   itens: Array<{ cardId?: string; itemRef?: string; correct?: number; attempts?: number; ms?: number; hinted?: number; kind?: string }>
 }): Promise<GravacaoDeExercicio> {
   try {
@@ -801,6 +803,11 @@ export interface RecordeDoJogo {
   melhorEm: number
   /** Rodadas DISTINTAS já jogadas — `score` é gravado por item, então contar linhas mentiria. */
   rodadas: number
+  /** Combo máximo já alcançado no jogo (0 quando as rodadas antigas não gravavam isso). */
+  melhorCombo?: number
+  /** % de acerto entre todos os itens respondidos, ou null sem itens. */
+  precisao?: number | null
+  ultimaEm?: number
 }
 
 /**

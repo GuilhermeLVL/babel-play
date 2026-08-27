@@ -6,6 +6,7 @@ import {
   BarChart2,
   BookOpen,
   Settings as SettingsIcon,
+  Heart,
   type LucideIcon
 } from 'lucide-react';
 import { EDICAO_LEVE } from '../../lib/edicao';
@@ -82,6 +83,14 @@ const TODOS_OS_ITENS: NavItemDef[] = [
     short: 'Ajustes',
     labels: { kids: 'Ajustes', pro: 'Ajustes', senior: 'Configurações' },
     secondary: true
+  },
+  {
+    // Quem fez o app, contato e apoio — identidade de projeto independente à vista.
+    id: 'sobre',
+    icon: Heart,
+    short: 'Sobre',
+    labels: { kids: 'Sobre', pro: 'Sobre', senior: 'Sobre o App' },
+    secondary: true
   }
 ];
 
@@ -96,5 +105,5 @@ export function navLabel(item: NavItemDef, profile: AgeProfileType, compact = fa
  * EDIÇÃO LEVE: só o que funciona inteiro sem conta e sem servidor — Início, Capturar, Jogar e
  * Ajustes. Biblioteca entra (as sessões vivem no IndexedDB deste navegador — provisório, sem conta). Sessão e Vocabulário voltam com a edição completa.
  */
-const LEVE: ReadonlySet<ViewType> = new Set<ViewType>(['hub', 'capture', 'library', 'metrics', 'play', 'settings']);
+const LEVE: ReadonlySet<ViewType> = new Set<ViewType>(['hub', 'capture', 'library', 'metrics', 'play', 'settings', 'sobre']);
 export const NAV_ITEMS: NavItemDef[] = EDICAO_LEVE ? TODOS_OS_ITENS.filter((i) => LEVE.has(i.id)) : TODOS_OS_ITENS;

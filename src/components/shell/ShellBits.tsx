@@ -1,15 +1,41 @@
 import React from 'react';
-import { Sparkles, Flame, Sprout } from 'lucide-react';
+import { Flame, Sprout } from 'lucide-react';
 import { compactNumber, type DerivedProgress } from '../../lib/progress';
+
+/**
+ * A MARCA — balão de fala com um play dentro: "aperte o play em outra língua".
+ * Desenhada em SVG inline para seguir o TEMA (as cores são tokens, não hex): no vercel-dark o
+ * gradiente vira o accent do tema, e a marca continua parecendo da casa. O mesmo desenho, com
+ * cores fixas, vive em public/favicon.svg.
+ */
+export function MarcaBabel({ className = 'w-8 h-8' }: { className?: string }) {
+  const id = React.useId();
+  return (
+    <svg viewBox="0 0 32 32" className={`${className} shrink-0`} aria-hidden>
+      <defs>
+        <linearGradient id={id} x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stopColor="var(--accent)" />
+          <stop offset="1" stopColor="var(--warn)" />
+        </linearGradient>
+      </defs>
+      <rect x="1" y="1" width="30" height="30" rx="9" fill={`url(#${id})`} />
+      {/* Balão de fala com rabinho, branco. */}
+      <path d="M12 6.5h8a5 5 0 0 1 5 5v3.5a5 5 0 0 1-5 5h-4.6l-4.1 4.4c-.55.6-1.55.2-1.55-.6V20a5 5 0 0 1-2.75-4.45V11.5a5 5 0 0 1 5-5Z" fill="#fff" />
+      {/* O play, apontando adiante. */}
+      <path d="M14.2 9.9c0-.62.66-1 1.2-.7l5.1 2.9c.54.3.54 1.08 0 1.4l-5.1 2.9c-.54.3-1.2-.1-1.2-.7Z" fill="var(--accent)" />
+    </svg>
+  );
+}
 
 export function Brand({ compact = false }: { compact?: boolean }) {
   return (
-    <div className="flex items-center gap-2.5 shrink-0" title="Babel OS">
-      <div className="w-8 h-8 rounded-xl bg-accent flex items-center justify-center shrink-0">
-        {/* `text-accent-contrast`, nunca `text-white`: no vercel-dark o accent É branco. */}
-        <Sparkles className="w-4 h-4 text-accent-contrast" />
-      </div>
-      {!compact && <span className="font-display font-black text-lg tracking-tight text-ink leading-none">Babel OS</span>}
+    <div className="flex items-center gap-2.5 shrink-0" title="Babel Play">
+      <MarcaBabel />
+      {!compact && (
+        <span className="font-marca font-extrabold text-[19px] tracking-tight text-ink leading-none whitespace-nowrap">
+          Babel<span className="text-accent"> Play</span>
+        </span>
+      )}
     </div>
   );
 }

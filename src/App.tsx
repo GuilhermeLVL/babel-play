@@ -675,7 +675,9 @@ export default function App() {
    * DOM, a leitura por teclado e o leitor de tela contam a mesma história.
    */
   return (
-    <div className="flex flex-col h-screen w-full bg-surface overflow-hidden relative">
+    // `h-dvh`: com 100vh a raiz cinza (bg-surface) ficava maior que a viewport dinamica e o
+    // overflow-hidden cortava o rodape, a "faixa cinza" que escondia conteudo na Captura.
+    <div className="flex flex-col h-dvh w-full bg-surface overflow-hidden relative">
       {/* Barra do topo: a de desktop quando a preferência é "topo"; senão, só a do celular. */}
       {menuPosition === 'top' ? shell : <MobileTopBar progress={progress} controls={mobileControls} />}
 

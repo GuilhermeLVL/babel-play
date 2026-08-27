@@ -9,4 +9,10 @@
  */
 const env: Record<string, string | undefined> = (import.meta as unknown as { env?: Record<string, string | undefined> }).env ?? {}
 
+// O CSS precisa saber da edicao (ex.: reserva do iChat so na completa). Marcado aqui, no load
+// do modulo, para valer antes do primeiro paint — efeito React chegaria tarde.
+if (typeof document !== 'undefined' && env.VITE_EDICAO === 'leve') {
+  document.documentElement.setAttribute('data-edicao', 'leve');
+}
+
 export const EDICAO_LEVE: boolean = env.VITE_EDICAO === 'leve'

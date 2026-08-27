@@ -66,9 +66,23 @@ async function acquireDisplayStream(): Promise<MediaStream> {
     if (lastDisplayReleaseTs && since < DISPLAY_RELEASE_COOLDOWN_MS) {
       await sleep(DISPLAY_RELEASE_COOLDOWN_MS - since);
     }
-    // FORMA MÍNIMA E COMPROVADA: { video:true, audio:true } — é o que aciona o checkbox
-    // "Compartilhar áudio do sistema"/"áudio da aba" de forma confiável no Chrome/Edge.
-    const stream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: true });
+    /* CONSTRAINTS COMPLETAS (2026-08-27). Além do { video, audio } mínimo:
+       - systemAudio: 'include' — pede ao Chrome para OFERECER "áudio do sistema" também na aba
+         Tela inteira (sem isto alguns canais/versões só mostram o checkbox na aba Guia);
+       - monitorTypeSurfaces: 'include' — garante a aba "Tela inteira" no picker;
+       - selfBrowserSurface: 'exclude' — tira a própria janela do Babel do picker (eco garantido);
+       - surfaceSwitching: 'include' — deixa trocar de aba no meio sem reabrir o picker;
+       - suppressLocalAudioPlayback: false — o som CONTINUA tocando no alto-falante da pessoa.
+       O que constraint NENHUMA resolve: JANELA não expõe áudio no Chrome/Windows (limitação de
+       plataforma; o próprio picker avisa). Esse caso vira o erro tipado JANELA_SEM_AUDIO abaixo. */
+    const stream = await navigator.mediaDevices.getDisplayMedia({
+      video: true,
+      audio: { suppressLocalAudioPlayback: false } as MediaTrackConstraints,
+      systemAudio: 'include',
+      monitorTypeSurfaces: 'include',
+      selfBrowserSurface: 'exclude',
+      surfaceSwitching: 'include',
+    } as MediaStreamConstraints);
     activeDisplayStream = stream;
     return stream;
   } finally {
@@ -354,7 +368,11 @@ export async function startSystemAudioCapture(cb: SystemAudioCallbacks): Promise
         msg = 'Nenhum áudio foi compartilhado. Escolha uma ABA (marque "áudio da aba") ou a TELA INTEIRA (marque "áudio do sistema"). Uma JANELA não tem áudio.';
       }
       vlog('SEM faixa de áudio ✗ (superfície:', surface, ')');
-      throw new Error(msg);
+      // Erro TIPADO: o LiveCapture usa o código para abrir o guia com botão "Escolher de novo"
+      // (repetir o picker exige um novo gesto do usuário — não dá para reabrir sozinho).
+      const err = new Error(msg) as Error & { code?: string };
+      err.code = surface === 'window' ? 'JANELA_SEM_AUDIO' : 'SEM_AUDIO_COMPARTILHADO';
+      throw err;
     }
     vlog('faixa de áudio ✓ (superfície:', surface, '),', audioTracks[0].label || '(sem rótulo)');
 

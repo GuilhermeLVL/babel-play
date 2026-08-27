@@ -309,6 +309,8 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
   }, []);
 
   const [isFocusMode, setIsFocusMode] = useState(false);
+  /** Guia pós-erro do compartilhamento ('JANELA_SEM_AUDIO' | 'SEM_AUDIO_COMPARTILHADO'). */
+  const [guiaDeAudio, setGuiaDeAudio] = useState<string | null>(null);
   const [showVisualSettings, setShowVisualSettings] = useState(false);
 
   // --- PERSISTENT SESSION CONFIGURATIONS ---
@@ -1538,8 +1540,16 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
       setTimeout(() => setFeedbackMsg(''), 5000);
     } catch (err) {
       clog('getDisplayMedia FALHOU:', (err as Error).message);
-      setFeedbackMsg((err as Error).message);
-      setTimeout(() => setFeedbackMsg(''), 7000);
+      const code = (err as Error & { code?: string }).code;
+      if (code === 'JANELA_SEM_AUDIO' || code === 'SEM_AUDIO_COMPARTILHADO') {
+        // Sem áudio na superfície escolhida: em vez de um toast que some, um guia com o botão
+        // de tentar de novo (o picker só reabre com um novo gesto do usuário).
+        setIsFocusMode(false);
+        setGuiaDeAudio(code);
+      } else {
+        setFeedbackMsg((err as Error).message);
+        setTimeout(() => setFeedbackMsg(''), 7000);
+      }
       // mantém o painel se estava em erro de modelo; só limpa se não havia erro
       setModelPrep((s) => (s?.error ? s : null));
       // Se o sistema era a ÚNICA fonte, encerra a gravação (se o mic também estiver ligado, ele continua).
@@ -1864,6 +1874,9 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
     burstFromElement(document.activeElement, 'record');
     clog('▶ START, microfone:', micEnabled, '| sistema:', systemEnabled, resuming ? '| RETOMANDO' : '');
     setIsRecording(true);
+    /* Gravou → FOCO CHEIO na hora (pedido do dono, 2026-08-27): a tela de acompanhar é a melhor
+       casa da legenda ao vivo; a barra do topo do Foco oferece as outras rotas. */
+    setIsFocusMode(true);
     isRecordingRef.current = true;
     sessionStartMsRef.current = resuming ? Date.now() - timer * 1000 : Date.now();
     shouldAnchorClockRef.current = !resuming; // sessão nova → o relógio será re-ancorado ao recorder
@@ -2998,18 +3011,8 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
                     </div>
 
                     <div className="flex items-center gap-2">
-                      {/* Relay junto das ações de gravação (saiu do canto morto do header). */}
-                      <button
-                        onClick={() => setShowOverlay(!showOverlay)}
-                        title={isDocumentPiPSupported()
-                          ? 'Legendas ao vivo numa janela flutuante sempre-no-topo (por cima de jogo/vídeo/chamada)'
-                          : 'Janela flutuante requer Chrome/Edge; aqui o overlay abre embutido na tela'}
-                        className={`p-1.5 px-2 border rounded-xl transition-all flex items-center gap-1 font-bold text-[11px] cursor-pointer ${showOverlay ? 'bg-accent border-accent text-white shadow-btn' : 'bg-canvas border-border-subtle text-ink-muted hover:text-ink hover:border-accent'}`}
-                      >
-                        <Layout className="w-3.5 h-3.5" />
-                        <span>Legendas flutuantes{showOverlay ? ' ativas' : ''}</span>
-                      </button>
-
+                      {/* O Relay ("Legendas flutuantes") mudou de casa: é o botão de destaque ao
+                          lado do Iniciar/Parar — funcionalidade essencial não mora em atalho pequeno. */}
                       <button
                         onClick={() => setIsFocusMode(true)}
                         className="p-1.5 px-2 bg-canvas border border-border-subtle rounded-xl text-ink hover:text-accent hover:border-accent transition-all flex items-center gap-1 font-bold text-[11px] cursor-pointer"
@@ -3124,7 +3127,7 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
 
                   {/* Linha 3 — CTA + timer (esquerda) · idiomas (direita) */}
                   <div className="grid grid-cols-1 md:grid-cols-3 items-center gap-4">
-                    <div className="flex items-center gap-4 md:col-span-2">
+                    <div className="flex flex-wrap items-center gap-3 md:col-span-2">
                       {isRecording ? (
                         <button
                           onClick={handleStopRecording}
@@ -3148,6 +3151,26 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
                             : (resumeId ? 'Continuar captura' : 'Iniciar captura')}
                         </button>
                       )}
+
+                      {/* LEGENDAS FLUTUANTES — a porta de destaque. É o que permite usar o app por
+                          cima de jogo/chamada; por isso vive AQUI, ao lado do gesto principal, com
+                          cor própria e pulso quando está gravando sem elas. */}
+                      <button
+                        onClick={() => setShowOverlay(!showOverlay)}
+                        title={isDocumentPiPSupported()
+                          ? 'Legendas ao vivo numa janela flutuante sempre-no-topo (por cima de jogo/vídeo/chamada)'
+                          : 'Janela flutuante requer Chrome/Edge; aqui o overlay abre embutido na tela'}
+                        className={`flex items-center gap-2 py-3 px-5 rounded-xl font-extrabold text-xs md:text-sm transition-all cursor-pointer shrink-0 min-h-[48px] border-2 ${
+                          showOverlay
+                            ? 'bg-good text-white border-good shadow-btn'
+                            : isRecording
+                              ? 'bg-warn text-white border-warn shadow-btn animate-pulse'
+                              : 'bg-warn-soft text-warn-ink border-warn hover:brightness-105'
+                        }`}
+                      >
+                        <Layout className="w-5 h-5" />
+                        {showOverlay ? 'Legendas flutuantes ativas' : 'Legendas flutuantes'}
+                      </button>
 
                       <div className="flex items-baseline gap-1">
                         <span className="font-mono text-2xl font-black text-ink tracking-widest">
@@ -3511,6 +3534,46 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
       {showGuide && <GuidePanel onClose={() => setShowGuide(false)} />}
 
       {/* FIXED FOCUS FULLSCREEN OVERLAY */}
+      {/* GUIA DO COMPARTILHAMENTO SEM ÁUDIO — o caminho de volta, não só o aviso. */}
+      {guiaDeAudio && (
+        <div className="fixed inset-0 z-50 bg-ink/40 backdrop-blur-sm flex items-center justify-center p-4" role="dialog" aria-label="Como compartilhar com áudio">
+          <div className="card-panel bg-surface w-full max-w-md p-6">
+            <h2 className="font-display font-extrabold text-lg text-ink mb-2">
+              {guiaDeAudio === 'JANELA_SEM_AUDIO' ? 'Janela não tem áudio no navegador' : 'Faltou marcar o áudio'}
+            </h2>
+            <div className="text-[13.5px] text-ink-muted leading-relaxed space-y-2">
+              {guiaDeAudio === 'JANELA_SEM_AUDIO' ? (
+                <>
+                  <p>O Chrome não entrega o áudio de uma JANELA (limitação da plataforma, não do Babel). Para jogos e apps fora do navegador:</p>
+                  <ol className="list-decimal ml-5 space-y-1">
+                    <li>Clique em <b className="text-ink">Escolher de novo</b>;</li>
+                    <li>Na janela de seleção, escolha a aba <b className="text-ink">Tela inteira</b>;</li>
+                    <li>Marque <b className="text-ink">"Também compartilhar o áudio do sistema"</b> (canto inferior).</li>
+                  </ol>
+                </>
+              ) : (
+                <>
+                  <p>Você compartilhou, mas sem áudio. Repita a escolha e:</p>
+                  <ol className="list-decimal ml-5 space-y-1">
+                    <li>Numa <b className="text-ink">aba</b>: marque "Compartilhar áudio da guia";</li>
+                    <li>Na <b className="text-ink">Tela inteira</b>: marque "Também compartilhar o áudio do sistema".</li>
+                  </ol>
+                </>
+              )}
+            </div>
+            <div className="flex items-center justify-end gap-2 mt-5">
+              <button onClick={() => setGuiaDeAudio(null)} className="px-4 py-2 rounded-xl border border-border-subtle text-[13px] font-bold text-ink-muted hover:text-ink cursor-pointer">Cancelar</button>
+              <button
+                onClick={() => { setGuiaDeAudio(null); void handleStartSystemCapture(); }}
+                className="px-5 py-2 rounded-xl bg-accent hover:bg-accent-ink text-white text-[13px] font-bold shadow-btn cursor-pointer"
+              >
+                Escolher de novo
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {isFocusMode && (
         <div className="fixed inset-0 bg-canvas z-50 flex flex-col p-6 md:p-10 animate-in fade-in duration-200 overflow-hidden">
           {/* Focus Mode Header */}
@@ -3528,9 +3591,22 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
               </div>
             </div>
 
-            <div className="flex items-center gap-3">
+            <div className="flex flex-wrap items-center gap-3">
+              {/* BARRA DE ACOMPANHAMENTO — o Foco abre sozinho ao gravar; aqui a pessoa escolhe
+                  como seguir: legendas flutuantes por cima de qualquer app, ou a tela normal.
+                  Sair do Foco NUNCA para a gravação. */}
+              <button
+                onClick={() => setShowOverlay(!showOverlay)}
+                title="As legendas seguem você numa janelinha sempre-no-topo, por cima do jogo ou da chamada"
+                className={`flex items-center gap-1.5 py-2 px-4 rounded-xl font-bold text-xs shadow-btn transition-all hover:scale-105 cursor-pointer border-2 ${
+                  showOverlay ? 'bg-good text-white border-good' : 'bg-warn text-white border-warn'
+                }`}
+              >
+                <Layout className="w-4 h-4" /> {showOverlay ? 'Flutuantes ativas' : 'Legendas flutuantes'}
+              </button>
+
               {/* Quick Settings toggler inside Focus mode */}
-              <button 
+              <button
                 onClick={() => setShowVisualSettings(!showVisualSettings)}
                 className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold border transition-all cursor-pointer ${
                   showVisualSettings ? 'bg-surface border-accent text-accent' : 'border-border-subtle bg-surface hover:bg-surface-hover text-ink-muted hover:text-ink'
@@ -3543,7 +3619,7 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
                 onClick={() => setIsFocusMode(false)}
                 className="flex items-center gap-1.5 py-2 px-4 bg-accent hover:bg-accent-ink text-white rounded-xl font-bold text-xs shadow-btn transition-all hover:scale-105 cursor-pointer"
               >
-                <Minimize2 className="w-4 h-4" /> Sair do Modo Foco
+                <Minimize2 className="w-4 h-4" /> Tela normal
               </button>
             </div>
           </div>

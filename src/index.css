@@ -1537,60 +1537,45 @@ body.animations-off .hover\:-translate-y-1:hover {
 .performance-mode .sobre-blob, .performance-mode .sobre-anel::before { animation: none; }
 
 /* ─────────────── FONTE "ARCADE (PIXEL)" ───────────────
-   `data-fonte` no <html> (lib/theme.ts). Fica no FIM do arquivo de proposito: os temas redefinem
-   os tokens de fonte em blocos [data-theme=...] e este bloco precisa vencer todos por ordem.
-   VT323 e pixel mas legivel em corpo; sobe o tamanho-base porque a metrica dela e miuda. */
+   `data-fonte` no <html> (lib/theme.ts). DECISAO 2026-08-27 (2a rodada de legibilidade): a fonte
+   pixel vale SO para titulos/display e para a marca — o corpo do texto fica na familia normal.
+   A rodada anterior pixelava o corpo (VT323) com pisos e bumps por faixa; mesmo assim seguia
+   dificil de ler. Diversificar (titulo pixel + corpo limpo) mantem o clima sem custar leitura. */
 [data-fonte="pixel"] {
   --font-display-val: 'Silkscreen', 'Archivo', sans-serif;
-  --font-body-val: 'VT323', 'IBM Plex Mono', monospace;
-  /* MICRO-RÓTULOS MONO (label-mono etc., 10px uppercase): VT323 ali é ilegível — ficam na mono
-     legível. O clima pixel vem dos títulos e do corpo, não do microtexto. */
-  --font-mono-val: 'IBM Plex Mono', monospace;
 }
-[data-fonte="pixel"] body {
-  /* VT323 tem corpo visual pequeno para o tamanho declarado: sobe a base inteira. */
-  font-size: 1.14em;
-  letter-spacing: 0.015em;
-  /* Pixel de verdade nao suaviza borda de glifo. */
-  -webkit-font-smoothing: none;
-}
-
-/* ── LEGIBILIDADE POR FAIXA (medido em 2026-08-27: VT323 aparecia a 10–12,5px e Silkscreen a
-   13,5px — ilegíveis; o dono não conseguia ler). Regra: abaixo de 13px declarados a fonte pixel
-   NÃO se aplica (volta a família normal); de 13 a 15px o tamanho sobe para a faixa em que a
-   VT323/Silkscreen funcionam. `!important` é aceitável aqui: o modo é opt-in e a regra é a última
-   palavra de acessibilidade sobre utilitários arbitrários. */
-[data-fonte="pixel"] :is([class*="text-[9"], [class*="text-[10"], [class*="text-[11"], [class*="text-[12"]) {
-  font-family: 'Inter', 'Archivo', system-ui, sans-serif !important;
-  -webkit-font-smoothing: antialiased;
-}
-[data-fonte="pixel"] [class*="text-[13"] { font-size: 16.5px !important; }
-[data-fonte="pixel"] [class*="text-[14"] { font-size: 17px !important; }
-[data-fonte="pixel"] [class*="text-[15"] { font-size: 18px !important; }
-/* As classes de escala padrão do Tailwind entram nas mesmas faixas dos utilitários arbitrários. */
-[data-fonte="pixel"] .text-xs {
-  font-family: 'Inter', 'Archivo', system-ui, sans-serif !important;
-  -webkit-font-smoothing: antialiased;
-}
-[data-fonte="pixel"] .text-sm { font-size: 17px !important; }
-[data-fonte="pixel"] .text-base { font-size: 18px !important; }
-/* EXCEÇÃO: dentro da navegação os rótulos têm largura contada a dedo — o bump geral truncava
-   ("PÁGINA INI_"). Display (Silkscreen) fica em 14px, que ela aguenta; o resto (VT323 seria
-   ilegível nesse teto) volta para a família normal. */
-[data-fonte="pixel"] :is(nav, aside) :is([class*="text-[13"], [class*="text-[14"], .text-sm) {
-  font-family: 'Inter', 'Archivo', system-ui, sans-serif !important;
-  font-size: 13.5px !important;
-  -webkit-font-smoothing: antialiased;
-}
-[data-fonte="pixel"] :is(nav, aside) :is([class*="text-[13"], [class*="text-[14"], .text-sm):is(.font-display, .font-marca) {
-  font-family: 'Silkscreen', 'Archivo', sans-serif !important;
-  font-size: 14px !important;
-}
-
-/* Silkscreen precisa respirar: espaçamento leve em qualquer display do modo pixel. */
+/* Silkscreen precisa respirar e quebra abaixo de ~13px: espaçamento leve + piso. */
 [data-fonte="pixel"] .font-display, [data-fonte="pixel"] .font-marca { letter-spacing: 0.02em; }
-/* Campos de texto: VT323 pequena em input é dor de cabeça dupla (leitura + caret). */
-[data-fonte="pixel"] :is(input, textarea, select) { font-size: 16px; }
+[data-fonte="pixel"] :is(.font-display, .font-marca):is([class*="text-[9"], [class*="text-[10"], [class*="text-[11"], [class*="text-[12"], .text-xs) {
+  font-size: 13px !important;
+}
+
+/* ─────────────── TELA SOBRE — blobs flutuantes e anel do avatar ───────────────
+   Movimento LENTO (18–26 s por volta) e desfocado: presença, não distração. As guardas globais
+   desligam tudo. O anel do avatar é um conic-gradient girando devagar atrás da foto. */
+@keyframes sobre-flutua {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33%      { transform: translate(24px, -18px) scale(1.08); }
+  66%      { transform: translate(-16px, 14px) scale(0.95); }
+}
+.sobre-blob { animation: sobre-flutua 18s ease-in-out infinite; }
+.sobre-blob-2 { animation-duration: 24s; animation-delay: -8s; }
+.sobre-blob-3 { animation-duration: 26s; animation-delay: -14s; }
+
+@keyframes sobre-gira { to { transform: rotate(360deg); } }
+.sobre-anel::before {
+  content: '';
+  position: absolute; inset: -4px; border-radius: 9999px;
+  background: conic-gradient(from 0deg, var(--accent), var(--warn), var(--good), var(--accent));
+  animation: sobre-gira 8s linear infinite;
+  filter: blur(1px);
+}
+.sobre-anel { isolation: isolate; }
+.sobre-anel img { position: relative; z-index: 1; }
+
+.animations-off .sobre-blob, .animations-off .sobre-anel::before,
+.performance-mode .sobre-blob, .performance-mode .sobre-anel::before { animation: none; }
+
 
 /* ─────────────── EFEITOS DE TELA (juice: momentos raros) ─────────────── */
 @keyframes babel-zoom-pulso-kf {

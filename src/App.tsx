@@ -210,13 +210,18 @@ export default function App() {
    * o layout. Aqui fica só a raiz — todo `rem` da app acompanha, e uma vez só.
    */
   useEffect(() => {
+    /* Trocar o font-size da raiz só escala o que é `rem` — e boa parte da app usa utilitários em
+       PX (`text-[13px]`), que ficavam do mesmo tamanho: o A+/A- "não funcionava" (reclamação real,
+       2026-08-27). `zoom` escala o pixel CSS inteiro (px, rem, ícones, espaçamentos juntos) e é
+       suportado pelos navegadores que o app já exige (Chrome/Edge; Firefox 126+). */
     const scaleMap: Record<FontScale, string> = {
-      sm: '93.75%', // 15px
-      md: '100%',   // 16px
-      lg: '112.5%', // 18px
-      xl: '125%'    // 20px
+      sm: '0.94',
+      md: '1',
+      lg: '1.15',
+      xl: '1.3',
     };
-    document.documentElement.style.fontSize = scaleMap[fontScale];
+    document.documentElement.style.fontSize = '100%';
+    (document.body.style as unknown as { zoom: string }).zoom = scaleMap[fontScale];
   }, [fontScale]);
 
   const setFontScale = (next: FontScale) => {

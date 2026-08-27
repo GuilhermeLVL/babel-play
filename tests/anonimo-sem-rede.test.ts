@@ -155,7 +155,13 @@ describe('anônimo sem rede', () => {
     expect((await api.apiFetch(`/api/sessions/${sessaoId}/audio`)).status).toBe(404)
   })
 
-  it('SENTINELA: o fetch global nunca foi chamado', () => {
-    expect(rede).not.toHaveBeenCalled()
+  it('SENTINELA: nenhuma requisição sai, exceto a busca de imagem opt-in (Openverse)', () => {
+    /* A ÚNICA exceção documentada (2026-08-27): a busca de imagem do popover de palavra vai
+       direto ao Openverse quando não há servidor — sai só a PALAVRA pesquisada, num gesto
+       explícito do usuário. Nada da sessão, nada de identificador. Qualquer outra URL derruba. */
+    for (const chamada of rede.mock.calls) {
+      const url = String(chamada[0])
+      expect(url.startsWith('https://api.openverse.org/'), `URL inesperada: ${url}`).toBe(true)
+    }
   })
 })

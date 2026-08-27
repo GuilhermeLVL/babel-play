@@ -109,6 +109,11 @@ function IconButton({
   );
 }
 
+/** O popover de Aparência saiu da barra (2026-08-27): tema/fonte/partículas agora se equipam na
+ *  LOJA e o básico (perfil, posição, tamanho) vive nos Ajustes — dois donos para a mesma
+ *  preferência era a confusão que o dono pediu para remover. O código fica para a volta atrás. */
+const MOSTRAR_PAINEL_APARENCIA = false as boolean;
+
 export default function ControlCluster(props: ControlClusterProps) {
   const [particulasEscolhida, setParticulasEscolhida] = React.useState<ParticulasType>(readParticulas);
   const {
@@ -318,7 +323,7 @@ export default function ControlCluster(props: ControlClusterProps) {
       </IconButton>
 
       {/* Aparência */}
-      <button
+      {MOSTRAR_PAINEL_APARENCIA && <button
         ref={triggerRef}
         type="button"
         onClick={() => setIsMenuOpen((v) => !v)}
@@ -331,7 +336,7 @@ export default function ControlCluster(props: ControlClusterProps) {
         }`}
       >
         <Palette className="w-4 h-4" />
-      </button>
+      </button>}
 
       {/* ── A CONTA ────────────────────────────────────────────────────────────────────────────
           Último da fileira porque é o item de MAIS ALTO nível: os outros ajustam a tela, este

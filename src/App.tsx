@@ -19,6 +19,7 @@ const IChat = lazy(() => import('./components/IChat'));
 const LayoutStudio = lazy(() => import('./components/LayoutStudio'));
 const Perfil = lazy(() => import('./components/views/Perfil'));
 const Sobre = lazy(() => import('./components/views/Sobre'));
+const Loja = lazy(() => import('./components/views/Loja'));
 const Login = lazy(() => import('./components/Login'));
 const ResetPassword = lazy(() => import('./components/auth/ResetPassword'));
 // O tour de boas-vindas só existe para quem AINDA não passou por ele (`onboarded === false`) —
@@ -693,7 +694,10 @@ export default function App() {
             performanceMode={performanceMode}
             theme={theme}
             darkMode={darkMode}
-            ambient={ageProfile !== 'senior'}
+            /* Ambiente para TODOS os perfis (dono, 2026-08-27): na leve o padrão é sênior e
+               ninguém via partícula nenhuma — quebrava a imersão. Os interruptores de animação
+               e o Modo Desempenho continuam mandando. */
+            ambient
           />
           {/* Os números que sobem ("+10", "×3") — camada própria, no topo da árvore, para não
               serem cortados pelo `overflow` de nenhum container de jogo. */}
@@ -751,6 +755,18 @@ export default function App() {
 
           {activeView === 'profile' && !anonimo && <Perfil progress={progress} ageProfile={ageProfile} />}
           {activeView === 'sobre' && <Sobre />}
+          {activeView === 'loja' && (
+            <Loja
+              progress={progress}
+              theme={theme}
+              setTheme={setTheme}
+              fonte={fonte}
+              setFonte={setFonte}
+              menuPosition={menuPosition}
+              setMenuPosition={setMenuPosition}
+              onOpenStudio={() => setIsStudioOpen(true)}
+            />
+          )}
           {activeView === 'settings' && (
             <Settings
               theme={theme}

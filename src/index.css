@@ -1608,3 +1608,10 @@ body.animations-off .hover\:-translate-y-1:hover {
 
 .animations-off .babel-zoom-pulso, .animations-off .babel-glitch, .animations-off .babel-flash,
 .performance-mode .babel-glitch { animation: none; }
+
+/* ─────────────── ÍCONES NUNCA ESMAGAM ───────────────
+   Ícone é quadrado ou não é ícone. Num flex apertado (agora que o A+ escala a interface inteira,
+   linhas que cabiam passam a transbordar) os svg sem shrink-0 eram espremidos na horizontal —
+   medido nos screenshots do dono (2026-08-27): FAB da Leitura virando pílula, bolinhas de cor
+   viradas ovais. Regra única em vez de caçar shrink-0 em 300 botões. */
+svg.lucide { flex-shrink: 0; }

@@ -192,9 +192,13 @@ export default function Reading({ recording, onChangeView }: ReadingProps = {}) 
     const idx = context
       ? studyTexts.findIndex(t => t.original === context)
       : studyTexts.findIndex(t => t.original.toLowerCase().includes(wordStr.toLowerCase()));
-    const ctx = context || (idx >= 0 ? studyTexts[idx].original : '');
-    // Fora de uma frase conhecida, o rótulo é o idioma declarado da sessão (o override manda).
-    const declaredLang = idx >= 0 ? langOfSentence(idx) : (forcedLang || langPair.src);
+    // A palavra pode ter vindo do LADO TRADUZIDO (o popover agora vale nos dois lados): se não
+    // está em nenhum original, procura nas traduções e rotula com o idioma-destino.
+    const idxTrad = idx < 0
+      ? studyTexts.findIndex(t => (t.translation || '').toLowerCase().includes(wordStr.toLowerCase()))
+      : -1;
+    const ctx = context || (idx >= 0 ? studyTexts[idx].original : (idxTrad >= 0 ? studyTexts[idxTrad].translation || '' : ''));
+    const declaredLang = idx >= 0 ? langOfSentence(idx) : idxTrad >= 0 ? langPair.tgt : (forcedLang || langPair.src);
     return {
       word: wordStr,
       context: ctx || undefined,
@@ -328,6 +332,9 @@ export default function Reading({ recording, onChangeView }: ReadingProps = {}) 
   const popover = usePopoverDePalavra();
   const hoveredWord = popover.palavra;
   const [fontSize, setFontSize] = useState<number>(18);
+  /* Espelho síncrono da pausa: o `onend` da utterance dispara no PAUSE em vários Chromes e
+     encadeava a próxima frase — era o "cliquei em pausar e ele recomeçou". */
+  const narrationPausedRef = useRef(false);
   const [readingTheme, setReadingTheme] = useState<'light' | 'sepia' | 'dark'>('light');
   const [selectedTool, setSelectedTool] = useState<ReadingTool>('none');
   const [viewMode, setViewMode] = useState<'original' | 'bilingual-intercalated' | 'bilingual-side-by-side'>('bilingual-intercalated');
@@ -755,6 +762,7 @@ export default function Reading({ recording, onChangeView }: ReadingProps = {}) 
       }
       const step = steps[stepIndex];
       const utterance = new SpeechSynthesisUtterance(step.text);
+      narrationPausedRef.current = false;
       currentUtteranceRef.current = utterance;
 
       const voice = voiceFor(step.lang);
@@ -767,6 +775,9 @@ export default function Reading({ recording, onChangeView }: ReadingProps = {}) 
 
       utterance.onend = () => {
         if (runId !== runIdRef.current) return; // fala cancelada/substituída, não encadeia
+        // PAUSA NÃO ENCADEIA: em vários Chromes o pause() dispara onend; sem esta guarda a
+        // narração "pausada" pulava para a próxima frase sozinha.
+        if (narrationPausedRef.current) return;
         speakStep(stepIndex + 1);
       };
       utterance.onerror = () => {
@@ -795,9 +806,11 @@ export default function Reading({ recording, onChangeView }: ReadingProps = {}) 
       return;
     }
     if (isNarrationPaused) {
+      narrationPausedRef.current = false;
       window.speechSynthesis.resume();
       setIsNarrationPaused(false);
     } else {
+      narrationPausedRef.current = true;
       window.speechSynthesis.pause();
       setIsNarrationPaused(true);
     }
@@ -806,6 +819,7 @@ export default function Reading({ recording, onChangeView }: ReadingProps = {}) 
   const stopNarration = () => {
     if (!('speechSynthesis' in window)) return;
     runIdRef.current++; // invalida qualquer onend pendente
+    narrationPausedRef.current = false;
     window.speechSynthesis.cancel();
     setIsNarrating(false);
     setIsNarrationPaused(false);
@@ -834,7 +848,7 @@ export default function Reading({ recording, onChangeView }: ReadingProps = {}) 
   useEffect(() => {
     if (lastNarrationSigRef.current === narrationSig) return;
     lastNarrationSigRef.current = narrationSig;
-    if (isNarrating && activeNarratingSentenceIndex !== null) {
+    if (isNarrating && !isNarrationPaused && activeNarratingSentenceIndex !== null) {
       void speakFrom(activeNarratingSentenceIndex);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -998,7 +1012,8 @@ export default function Reading({ recording, onChangeView }: ReadingProps = {}) 
     // no caminho até o cartão não pode deixar o fechamento seguir agendado.
     popover.cancelarFechamento();
     // Qualquer palavra de conteúdo (>=3 letras, alfabética) é interativa.
-    if (cleanWord.length >= 3 && /^[a-z]+$/.test(cleanWord)) {
+    // Unicode como o clique (938): 'ação', 'über' e alfabetos não-latinos também abrem o cartão.
+    if (cleanWord.length >= 3 && /^\p{L}+$/u.test(cleanWord)) {
       popover.abrirEm(e.target as HTMLElement, cleanWord);
     }
   };
@@ -1130,9 +1145,14 @@ export default function Reading({ recording, onChangeView }: ReadingProps = {}) 
     const isActive = activeNarratingSentenceIndex === index;
     return (
       <button
-        onClick={() => void speakFrom(index)}
-        title="Ouvir a partir desta frase"
-        className={`absolute -left-9 top-2 hidden lg:flex w-7 h-7 items-center justify-center rounded-full border transition-all cursor-pointer
+        onClick={() => {
+          /* Se ESTA frase já está tocando, o botão é um PAUSE de verdade — antes ele mostrava o
+             ícone de pausa mas chamava speakFrom() e reiniciava a frase do zero. */
+          if (isActive && isNarrating) { toggleNarration(); return; }
+          void speakFrom(index);
+        }}
+        title={isActive && isNarrating && !isNarrationPaused ? 'Pausar' : 'Ouvir a partir desta frase'}
+        className={`no-min-target absolute -left-9 top-2 hidden lg:flex w-7 h-7 items-center justify-center rounded-full border transition-all cursor-pointer
           ${isActive
             ? 'bg-accent border-accent text-white opacity-100'
             : 'bg-surface border-border-subtle text-ink-muted opacity-0 group-hover/sent:opacity-100 hover:text-accent hover:border-accent'}`}
@@ -1179,24 +1199,8 @@ export default function Reading({ recording, onChangeView }: ReadingProps = {}) 
 
             {/* Quick custom layout settings */}
             <div className="flex items-center gap-2 flex-wrap">
-              {/* Font Size */}
-              <div className="flex bg-surface border border-border-subtle rounded-lg p-0.5">
-                <button 
-                  onClick={() => setFontSize(Math.max(12, fontSize - 2))} 
-                  className="px-2 py-1 text-xs font-bold hover:bg-surface-hover text-ink rounded"
-                  title="Diminuir Fonte"
-                >
-                  A-
-                </button>
-                <button 
-                  onClick={() => setFontSize(Math.min(30, fontSize + 2))} 
-                  className="px-2 py-1 text-xs font-bold hover:bg-surface-hover text-ink rounded"
-                  title="Aumentar Fonte"
-                >
-                  A+
-                </button>
-              </div>
-
+              {/* O trio Claro/Sepia/Escuro saiu: o tema da leitura segue o claro/escuro do app
+                  (um dono so para a mesma preferencia). */}
               {/* Theme Selection */}
               <div className="flex bg-surface border border-border-subtle rounded-lg p-0.5">
                 <button 
@@ -1238,6 +1242,19 @@ export default function Reading({ recording, onChangeView }: ReadingProps = {}) 
                 </button>
               </div>
 
+              {/* Visualização mora AQUI, junto de A± e largura — as opções de COMO LER num lugar
+                  só (antes ficava noutra barra, lá embaixo, e a tela parecia dois menus brigando). */}
+              <select
+                aria-label="Modo de visualização do texto"
+                value={viewMode}
+                onChange={(e) => setViewMode(e.target.value as 'original' | 'bilingual-intercalated' | 'bilingual-side-by-side')}
+                className="bg-surface border border-border-subtle rounded-lg px-2.5 py-1.5 text-xs font-bold text-ink outline-none cursor-pointer no-min-target"
+              >
+                <option value="original">Original ({langLabel(langPair.src)})</option>
+                <option value="bilingual-intercalated">Intercalado</option>
+                <option value="bilingual-side-by-side">Lado a Lado</option>
+              </select>
+
               {/* REMOVIDO: o botão "Estudos & Notas" (toggle de `showTutor`). Era herança de uma
                   versão antiga e, pior, já era um NO-OP: o painel `notesSidebar` tem `show:false`
                   no layoutStore, então o EditablePanel retornava null mesmo com o toggle ligado. O
@@ -1272,7 +1289,7 @@ export default function Reading({ recording, onChangeView }: ReadingProps = {}) 
                 onClick={toggleNarration}
                 disabled={!studyTexts.length}
                 title={!isNarrating ? 'Ouvir' : isNarrationPaused ? 'Retomar' : 'Pausar'}
-                className="w-10 h-10 rounded-full bg-accent hover:bg-accent-ink text-white flex items-center justify-center shadow-btn transition-all hover:scale-105 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+                className="no-min-target w-10 h-10 rounded-full bg-accent hover:bg-accent-ink text-white flex items-center justify-center shadow-btn transition-all hover:scale-105 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
               >
                 {isNarrating && !isNarrationPaused
                   ? <Pause className="w-5 h-5" />
@@ -1492,20 +1509,6 @@ export default function Reading({ recording, onChangeView }: ReadingProps = {}) 
               </button>
             </div>
 
-            <div className="flex items-center gap-2">
-              <span className="text-[11px] font-mono text-ink-muted">Visualização:</span>
-              {/* C2 — o "Visualização:" ao lado é um `span`, não um `<label for>`. */}
-              <select
-                aria-label="Modo de visualização do texto"
-                value={viewMode}
-                onChange={(e) => setViewMode(e.target.value as any)}
-                className="bg-canvas border border-border-subtle rounded-lg px-2.5 py-1 text-xs font-bold text-ink outline-none"
-              >
-                <option value="original">Original ({langLabel(langPair.src)})</option>
-                <option value="bilingual-intercalated">Intercalado</option>
-                <option value="bilingual-side-by-side">Lado a Lado</option>
-              </select>
-            </div>
           </div>
 
           {isDrawModeActive ? (
@@ -1570,7 +1573,7 @@ export default function Reading({ recording, onChangeView }: ReadingProps = {}) 
                         key={c.hex}
                         onClick={() => setBrushColor(c.hex)}
                         style={{ backgroundColor: c.hex }}
-                        className={`w-5 h-5 rounded-full transition-all ${
+                        className={`no-min-target shrink-0 w-5 h-5 rounded-full transition-all ${
                           brushColor === c.hex ? 'ring-2 ring-offset-2 ring-accent scale-110' : 'opacity-80 hover:opacity-100'
                         }`}
                         title={c.name}
@@ -1802,7 +1805,16 @@ export default function Reading({ recording, onChangeView }: ReadingProps = {}) 
                         <span className="text-[10px] uppercase font-mono font-bold text-ink-muted block mb-1">{sentenceObj.speaker}</span>
                       )}
                       <p className="text-[13.5px] text-ink-muted italic leading-relaxed">
-                        {sentenceObj.translation}
+                        {tokenizarTexto(sentenceObj.translation || '').map((token) => (
+                          <span
+                            key={token.id}
+                            onMouseEnter={(e) => handleMouseEnter(e, token.clean)}
+                            onMouseLeave={handleMouseLeave}
+                            className="inline px-0.5 rounded cursor-pointer hover:bg-surface-hover transition-colors"
+                          >
+                            {token.original}{' '}
+                          </span>
+                        ))}
                       </p>
                     </div>
                   );
@@ -1880,7 +1892,16 @@ export default function Reading({ recording, onChangeView }: ReadingProps = {}) 
                     {/* Intercalated translation if set */}
                     {viewMode === 'bilingual-intercalated' && (
                       <div className="text-[13.5px] text-ink-muted italic pl-2 border-l-2 border-border-subtle mt-1.5">
-                        {sentenceObj.translation}
+                        {tokenizarTexto(sentenceObj.translation || '').map((token) => (
+                          <span
+                            key={token.id}
+                            onMouseEnter={(e) => handleMouseEnter(e, token.clean)}
+                            onMouseLeave={handleMouseLeave}
+                            className="inline px-0.5 rounded cursor-pointer hover:bg-surface-hover transition-colors"
+                          >
+                            {token.original}{' '}
+                          </span>
+                        ))}
                       </div>
                     )}
                   </div>

@@ -73,6 +73,7 @@ import { SpeakerClusterer } from '../../lib/speakerCluster';
 import { DominantLangTracker } from '../../lib/convoLang';
 import { preloadSpeakerId, embedUtterance, disposeSpeakerId } from '../../lib/speakerId';
 import { play } from '../../lib/soundFx';
+import { misturarAudios } from '../../lib/misturarAudios';
 import { burstFromElement } from '../../lib/effects';
 import { coreOnly } from '../../lib/profile';
 import { toast } from '../Toast';
@@ -1952,7 +1953,9 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
     if (meterRef.current) { meterRef.current.stop(); meterRef.current = null; }
     let sysBlob: Blob | null = null;
     let micBlob: Blob | null = null;
+    let sysInicioMs = 0;
     if (systemCaptureRef.current) {
+      sysInicioMs = systemCaptureRef.current.startedAtMs ?? 0;
       try { sysBlob = await systemCaptureRef.current.stop(); } catch {}
       systemCaptureRef.current = null;
     }
@@ -1960,8 +1963,18 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
       try { micBlob = await micCaptureRef.current.stop(); } catch {}
       micCaptureRef.current = null;
     }
-    // Player do Analysis: prefere o áudio do SISTEMA (o que você estuda); senão, o do mic.
+    // Player do Analysis: com as DUAS fontes, mistura (a sua voz também fica na sessão — antes o
+    // mic era descartado e a pessoa não conseguia se reescutar nos exercícios); senão, a que houver.
     recordedAudioRef.current = sysBlob ?? micBlob;
+    if (sysBlob && micBlob) {
+      try {
+        const offsetMic = sysInicioMs > 0 && micStartedAtRef.current > 0 ? micStartedAtRef.current - sysInicioMs : 0;
+        recordedAudioRef.current = await misturarAudios(sysBlob, micBlob, offsetMic);
+        clog('áudio da sessão: sistema + microfone misturados (offset', Math.round(offsetMic), 'ms)');
+      } catch (e) {
+        clog('mixagem falhou, mantendo só o áudio do sistema:', String(e));
+      }
+    }
     seqToSegmentRef.current.clear();
     lastPartialTextRef.current.clear();
     clog('métricas da sessão:', capMetrics.summary());

@@ -61,6 +61,13 @@ export function isSoundMuted(): boolean {
 }
 
 /** Chamado de onde o tema é aplicado (lib/theme.ts). Sem isto o kit fica no padrão. */
+/** Voz do modo ARCADE: onda quadrada curta e aguda, o timbre 8-bits, independente do tema. */
+const PIXEL_VOICE: ThemeVoice = { wave: 'square', root: 7, decay: 0.4, gain: 0.7, errorWave: 'square' };
+let fontePixel = false;
+export function setSoundFonte(fonte: string) {
+  fontePixel = fonte === 'pixel';
+}
+
 export function setSoundTheme(theme: ThemeType) {
   currentTheme = theme;
 }
@@ -248,7 +255,7 @@ export function play(event: SoundEvent, opts: { transpose?: number } = {}): void
     const ctx = getAudioContext();
     if (!ctx) return;
 
-    const voice = THEME_VOICES[currentTheme] ?? THEME_VOICES.custom;
+    const voice = fontePixel ? PIXEL_VOICE : (THEME_VOICES[currentTheme] ?? THEME_VOICES.custom);
     const shape = EVENTS[event];
     if (!shape) return;
 

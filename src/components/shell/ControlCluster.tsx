@@ -20,9 +20,8 @@ import {
   PanelRight,
   PanelTop,
   PanelBottom,
-  Check
-} from 'lucide-react';
-import { THEME_OPTIONS, type ThemeType } from '../../lib/appearance';
+  Check, Type } from 'lucide-react';
+import { THEME_OPTIONS, type ThemeType, FONTE_OPTIONS, type FonteType } from '../../lib/appearance';
 import type { AgeProfileType, MenuPositionType } from './navItems';
 import MenuDaConta from './MenuDaConta';
 
@@ -42,6 +41,8 @@ export interface ControlClusterProps {
   decreaseFontScale: () => void;
   menuPosition: MenuPositionType;
   setMenuPosition: (pos: MenuPositionType) => void;
+  fonte: FonteType;
+  setFonte: (f: FonteType) => void;
   soundEnabled: boolean;
   toggleSound: () => void;
   animationsEnabled: boolean;
@@ -117,6 +118,8 @@ export default function ControlCluster(props: ControlClusterProps) {
     decreaseFontScale,
     menuPosition,
     setMenuPosition,
+  fonte,
+  setFonte,
     soundEnabled,
     toggleSound,
     animationsEnabled,
@@ -389,6 +392,28 @@ export default function ControlCluster(props: ControlClusterProps) {
                   >
                     <opt.icon className="w-3.5 h-3.5" />
                     {opt.label}
+                  </button>
+                ))}
+              </div>
+            </section>
+
+            {/* Fonte da interface */}
+            <section>
+              <h3 className="label-mono mb-2 px-1">Fonte</h3>
+              <div className="grid grid-cols-2 gap-1 p-1 bg-surface-hover/70 border border-border-subtle rounded-xl">
+                {FONTE_OPTIONS.map((opt) => (
+                  <button
+                    key={opt.id}
+                    type="button"
+                    onClick={click(() => setFonte(opt.id))}
+                    aria-pressed={fonte === opt.id}
+                    title={opt.desc}
+                    className={`py-2 px-2 rounded-lg font-bold text-[11px] flex items-center justify-center gap-1.5 cursor-pointer transition-colors ${
+                      fonte === opt.id ? 'bg-accent text-accent-contrast' : 'text-ink-muted hover:text-ink hover:bg-surface'
+                    }`}
+                  >
+                    {opt.id === 'pixel' ? <Gamepad2 className="w-3.5 h-3.5" /> : <Type className="w-3.5 h-3.5" />}
+                    {opt.name}
                   </button>
                 ))}
               </div>

@@ -17,13 +17,34 @@ import {
   DEFAULT_CUSTOM_COLORS,
   type CustomColors,
   type ThemeType,
+  type FonteType,
 } from './appearance';
-import { setSoundTheme } from './soundFx';
+import { setSoundTheme, setSoundFonte } from './soundFx';
 
 export const THEME_KEY = 'app_theme';
+export const FONTE_KEY = 'app_fonte';
 export const DARK_KEY = 'theme';
 
 export const DEFAULT_THEME: ThemeType = 'babel';
+export const DEFAULT_FONTE: FonteType = 'padrao';
+
+export function coerceFonte(value: unknown): FonteType {
+  return value === 'pixel' ? 'pixel' : DEFAULT_FONTE;
+}
+
+export function readFonte(): FonteType {
+  try { return coerceFonte(localStorage.getItem(FONTE_KEY)); } catch { return DEFAULT_FONTE; }
+}
+
+/**
+ * A fonte vive num atributo proprio (`data-fonte`) e nao dentro do tema: qualquer tema pode ser
+ * combinado com a tipografia pixel. O CSS le o atributo; particulas e som tambem (ParticleCanvas
+ * consulta `dataset.fonte` ao criar particulas; `setSoundFonte` troca a voz para onda quadrada).
+ */
+export function applyFonte(fonte: FonteType): void {
+  document.documentElement.setAttribute('data-fonte', fonte);
+  setSoundFonte(fonte);
+}
 
 /**
  * TEM DE ESPELHAR `THEME_OPTIONS` (appearance.ts). `tests/temasOferecidos.test.ts` trava essa
@@ -99,12 +120,14 @@ export function applyDarkMode(dark: boolean): void {
 export function bootTheme(): void {
   applyTheme(readTheme());
   applyDarkMode(readDarkMode());
+  applyFonte(readFonte());
 }
 
 interface PersistOptions {
   theme?: ThemeType;
   darkMode?: boolean;
   customColors?: CustomColors;
+  fonte?: FonteType;
 }
 
 /**
@@ -140,7 +163,7 @@ function scheduleServerPatch(patch: Record<string, unknown>): void {
  * O `patchUiSettings` MESCLA no blob `ui` — nunca sobrescreve
  * `onboarded`/`providerMode`/`credentialId`.
  */
-export function persistTheme({ theme, darkMode, customColors }: PersistOptions): void {
+export function persistTheme({ theme, darkMode, customColors, fonte }: PersistOptions): void {
   const patch: Record<string, unknown> = {};
 
   if (customColors) {
@@ -157,6 +180,11 @@ export function persistTheme({ theme, darkMode, customColors }: PersistOptions):
     applyDarkMode(darkMode);
     patch.darkMode = darkMode;
   }
+  if (fonte !== undefined) {
+    try { localStorage.setItem(FONTE_KEY, fonte); } catch { /* modo privado */ }
+    applyFonte(fonte);
+    patch.fonte = fonte;
+  }
 
   if (Object.keys(patch).length > 0) scheduleServerPatch(patch);
 }
@@ -164,6 +192,7 @@ export function persistTheme({ theme, darkMode, customColors }: PersistOptions):
 export interface HydratedTheme {
   theme: ThemeType;
   darkMode: boolean;
+  fonte: FonteType;
 }
 
 /**
@@ -171,7 +200,7 @@ export interface HydratedTheme {
  * O servidor VENCE: é a cópia durável. Devolve o estado final para o React.
  */
 export function hydrateTheme(ui: Record<string, unknown> | null | undefined): HydratedTheme {
-  const current: HydratedTheme = { theme: readTheme(), darkMode: readDarkMode() };
+  const current: HydratedTheme = { theme: readTheme(), darkMode: readDarkMode(), fonte: readFonte() };
   if (!ui) return current;
 
   if (ui.customColors && typeof ui.customColors === 'object') {
@@ -186,6 +215,11 @@ export function hydrateTheme(ui: Record<string, unknown> | null | undefined): Hy
     current.darkMode = ui.darkMode;
     try { localStorage.setItem(DARK_KEY, current.darkMode ? 'dark' : 'light'); } catch { /* modo privado */ }
     applyDarkMode(current.darkMode);
+  }
+  if (ui.fonte !== undefined) {
+    current.fonte = coerceFonte(ui.fonte);
+    try { localStorage.setItem(FONTE_KEY, current.fonte); } catch { /* modo privado */ }
+    applyFonte(current.fonte);
   }
   return current;
 }

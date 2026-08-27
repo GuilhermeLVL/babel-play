@@ -23,9 +23,9 @@ import type { ThemeType } from './appearance';
 export type BurstKind = 'xp' | 'record' | 'levelUp' | 'combo' | 'perfeito' | 'confete' | 'erro';
 
 /** Como a partícula é desenhada. Confete é retângulo girando — é o que dá a leitura de "festa". */
-export type FormaParticula = 'circulo' | 'confete';
+export type FormaParticula = 'circulo' | 'confete' | 'pixel' | 'raio' | 'coracao' | 'fumaca' | 'emoji';
 /** De onde a rajada nasce: do ponto (radial) ou do topo da tela (chuva). */
-export type OrigemRajada = 'radial' | 'chuva';
+export type OrigemRajada = 'radial' | 'chuva' | 'travessia' | 'cantos';
 
 export interface ParticlePreset {
   /** Quantidade na camada ambiente. 0 desliga o ambiente sem desligar as rajadas. */
@@ -197,6 +197,10 @@ export interface BurstSpec {
   size: [number, number];
   life: number;
   colorToken: ParticlePreset['colorToken'];
+  /** Cores fixas por particula (sorteadas); quando ausente, vale o token do tema. */
+  paleta?: string[];
+  /** Para forma 'emoji': o(s) caractere(s) sorteado(s) por particula. */
+  emojis?: string[];
   forma?: FormaParticula;
   origem?: OrigemRajada;
   /** Gravidade extra (confete cai; faísca sobe e some). */

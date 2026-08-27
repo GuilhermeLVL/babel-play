@@ -35,8 +35,8 @@ import type { PracticeSeed } from './lib/sentences';
 import { fetchSessions, fetchSettings, fetchMetrics, patchUiSettings, type AppMetrics } from './data/api';
 import Toaster from './components/Toast';
 import { PROFILE_KEY, CREDENTIAL_KEY, MODE_KEY } from './gateway/activeProfile';
-import type { ThemeType } from './lib/appearance';
-import { readTheme, readDarkMode, hydrateTheme, persistTheme } from './lib/theme';
+import type { ThemeType, FonteType } from './lib/appearance';
+import { readTheme, readDarkMode, readFonte, hydrateTheme, persistTheme } from './lib/theme';
 import { carregarSupabase, authRequired } from './lib/supabase';
 import { carregarEntitlements, limparEntitlements } from './lib/entitlements';
 import { armarIdentidade, definirIdentidade, estaAnonimo, aoMudarIdentidade } from './lib/identidade';
@@ -161,6 +161,7 @@ export default function App() {
   };
 
   const [theme, setThemeState] = useState<ThemeType>(readTheme);
+  const [fonte, setFonteState] = useState<FonteType>(readFonte);
   const [darkMode, setDarkMode] = useState<boolean>(readDarkMode);
   const [isStudioOpen, setIsStudioOpen] = useState(false);
   /* O atalho vem do hook; o botão do shell escreve no mesmo estado. Enquanto o Study estiver
@@ -312,6 +313,10 @@ export default function App() {
     setThemeState(next);
     persistTheme({ theme: next });
   };
+  const setFonte = (next: FonteType) => {
+    setFonteState(next);
+    persistTheme({ fonte: next });
+  };
   const toggleDarkMode = () => {
     setDarkMode(prev => {
       const next = !prev;
@@ -390,6 +395,7 @@ export default function App() {
         const applied = hydrateTheme(ui);
         setThemeState(applied.theme);
         setDarkMode(applied.darkMode);
+        setFonteState(applied.fonte);
         // Sem conta não há onboarding: ele configura credenciais e perfil, que são da conta.
         setOnboarded(EDICAO_LEVE ? !!ui?.onboarded : estaAnonimo() ? true : !!ui?.onboarded);
       })
@@ -582,6 +588,8 @@ export default function App() {
     <StudioHeader
       theme={theme}
       setTheme={setTheme}
+      fonte={fonte}
+      setFonte={setFonte}
       darkMode={darkMode}
       toggleDarkMode={toggleDarkMode}
       onOpenStudio={() => setIsStudioOpen(true)}
@@ -613,6 +621,7 @@ export default function App() {
     onToggleChat: () => setIsChatOpen((prev) => !prev),
     fontScale, increaseFontScale, decreaseFontScale,
     menuPosition, setMenuPosition,
+    fonte, setFonte,
     soundEnabled, toggleSound,
     animationsEnabled, toggleAnimations,
     performanceMode, togglePerformanceMode,

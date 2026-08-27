@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Archivo:wght@500;600;700;800;900&family=IBM+Plex+Mono:wght@400;500;600&family=Geist:wght@400;500;600;700;800;900&family=Geist+Mono:wght@400;500;600&family=Baloo+2:wght@700;800&family=Silkscreen:wght@400;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Archivo:wght@500;600;700;800;900&family=IBM+Plex+Mono:wght@400;500;600&family=Geist:wght@400;500;600;700;800;900&family=Geist+Mono:wght@400;500;600&family=Baloo+2:wght@700;800&family=Silkscreen:wght@400;700&family=VT323&display=swap');
 @import "tailwindcss";
 
 @theme {
@@ -1535,3 +1535,19 @@ body.animations-off .hover\:-translate-y-1:hover {
 
 .animations-off .sobre-blob, .animations-off .sobre-anel::before,
 .performance-mode .sobre-blob, .performance-mode .sobre-anel::before { animation: none; }
+
+/* ─────────────── FONTE "ARCADE (PIXEL)" ───────────────
+   `data-fonte` no <html> (lib/theme.ts). Fica no FIM do arquivo de proposito: os temas redefinem
+   os tokens de fonte em blocos [data-theme=...] e este bloco precisa vencer todos por ordem.
+   VT323 e pixel mas legivel em corpo; sobe o tamanho-base porque a metrica dela e miuda. */
+[data-fonte="pixel"] {
+  --font-display-val: 'Silkscreen', 'Archivo', sans-serif;
+  --font-body-val: 'VT323', 'IBM Plex Mono', monospace;
+  --font-mono-val: 'VT323', 'IBM Plex Mono', monospace;
+}
+[data-fonte="pixel"] body {
+  font-size: 1.09em;
+  letter-spacing: 0.015em;
+  /* Pixel de verdade nao suaviza borda de glifo. */
+  -webkit-font-smoothing: none;
+}

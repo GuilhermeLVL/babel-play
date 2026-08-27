@@ -33,6 +33,16 @@ export interface ThemeOption {
 }
 
 // Swatch values mirror the light-mode theme tokens defined in src/index.css.
+/** Fonte global da interface. 'pixel' e a linguagem da marca (Silkscreen/VT323, jogos classicos). */
+export type FonteType = 'padrao' | 'pixel';
+
+export interface FonteOption { id: FonteType; name: string; desc: string }
+
+export const FONTE_OPTIONS: FonteOption[] = [
+  { id: 'padrao', name: 'Padrão', desc: 'A tipografia normal do app (Inter/Archivo).' },
+  { id: 'pixel', name: 'Arcade (pixel)', desc: 'Estilo jogos clássicos: tudo pixelado, partículas quadradas e som 8-bits.' },
+];
+
 export const THEME_OPTIONS: ThemeOption[] = [
   {
     id: 'babel',

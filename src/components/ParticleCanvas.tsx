@@ -32,8 +32,10 @@ interface P {
   life: number | null;
   maxLife: number;
   color: string;
-  /** Confete é retângulo girando; o resto é círculo. */
-  forma?: 'circulo' | 'confete';
+  /** Forma do desenho — ver o switch no draw(). */
+  forma?: import('../lib/effects').FormaParticula;
+  /** Caractere para a forma 'emoji'. */
+  emoji?: string;
   /** Rotação e velocidade angular — só o confete usa (é o que dá a leitura de papel caindo). */
   giro?: number;
   giroVel?: number;
@@ -169,25 +171,42 @@ export default function ParticleCanvas({ enabled, performanceMode, theme, darkMo
         }
       }
 
+      // Modo ARCADE: qualquer rajada redonda vira quadrado pixelado (a fonte comanda a fisica visual).
+      const modoPixel = typeof document !== 'undefined' && document.documentElement.getAttribute('data-fonte') === 'pixel';
+      // 'travessia': objetos que cruzam a tela voando; o lado de entrada e sorteado por rajada.
+      const dirTravessia = Math.random() < 0.5 ? 1 : -1;
       for (let i = 0; i < spec.count; i++) {
         const chuva = spec.origem === 'chuva';
+        const travessia = spec.origem === 'travessia';
+        const cantos = spec.origem === 'cantos';
         const ang = (Math.PI * 2 * i) / spec.count + rand(-0.25, 0.25);
         const sp = spec.speed * rand(0.45, 1);
         const ms = spec.life * rand(0.7, 1);
         particles.push({
           // A chuva nasce ao longo do topo da tela; a radial, no ponto do acontecimento.
-          x: chuva ? rand(0, width) : ox,
-          y: chuva ? rand(-40, -4) : oy,
-          vx: chuva ? rand(-0.6, 0.6) : Math.cos(ang) * sp,
-          vy: chuva ? rand(0.6, 1.8) : Math.sin(ang) * sp - 0.6, // radial tem viés p/ cima: cai melhor aos olhos
+          x: chuva ? rand(0, width)
+            : travessia ? (dirTravessia > 0 ? -60 : width + 60)
+            : cantos ? (i % 2 === 0 ? rand(0, width * 0.12) : rand(width * 0.88, width))
+            : ox,
+          y: chuva ? rand(-40, -4)
+            : travessia ? rand(height * 0.12, height * 0.72)
+            : cantos ? (i % 4 < 2 ? rand(0, height * 0.15) : rand(height * 0.85, height))
+            : oy,
+          vx: chuva ? rand(-0.6, 0.6)
+            : travessia ? dirTravessia * sp * rand(1.6, 2.6)
+            : Math.cos(ang) * sp,
+          vy: chuva ? rand(0.6, 1.8)
+            : travessia ? rand(-0.35, 0.35)
+            : Math.sin(ang) * sp - 0.6, // radial tem viés p/ cima: cai melhor aos olhos
           size: rand(spec.size[0], spec.size[1]),
           alpha: 0.9,
           alphaDir: -1,
           phase: 0,
           life: ms,
           maxLife: ms,
-          color,
-          forma: spec.forma ?? 'circulo',
+          color: spec.paleta ? spec.paleta[Math.floor(Math.random() * spec.paleta.length)] : color,
+          forma: spec.forma ?? (modoPixel ? 'pixel' : 'circulo'),
+          emoji: spec.emojis ? spec.emojis[Math.floor(Math.random() * spec.emojis.length)] : undefined,
           giro: rand(0, Math.PI * 2),
           giroVel: rand(-0.18, 0.18),
           gravidade: spec.gravidade,
@@ -231,7 +250,7 @@ export default function ParticleCanvas({ enabled, performanceMode, theme, darkMo
           p.life -= dtReal;
           if (p.life <= 0) { particles.splice(i, 1); continue; }
           // Confete quase não tem atrito (ele PLANA); faísca desacelera rápido.
-          const atrito = Math.pow(p.forma === 'confete' ? 0.99 : 0.94, k);
+          const atrito = Math.pow(p.forma === 'confete' || p.forma === 'emoji' ? 0.995 : p.forma === 'fumaca' ? 0.97 : 0.94, k);
           p.vx *= atrito; p.vy *= atrito;
           p.vy += (p.gravidade ?? 0.045) * k;
           p.x += p.vx * k; p.y += p.vy * k;
@@ -287,6 +306,54 @@ export default function ParticleCanvas({ enabled, performanceMode, theme, darkMo
           ctx.rotate(p.giro ?? 0);
           ctx.fillRect(-p.size / 2, -p.size * 0.35, p.size, p.size * 0.7);
           ctx.restore();
+        } else if (p.forma === 'pixel') {
+          // Quadrado duro, sem glow e em coordenadas inteiras: pixel de verdade nao borra.
+          ctx.shadowBlur = 0;
+          const lado = Math.max(2, Math.round(p.size)) * 2;
+          ctx.fillRect(Math.round(p.x) - lado / 2, Math.round(p.y) - lado / 2, lado, lado);
+        } else if (p.forma === 'emoji') {
+          ctx.shadowBlur = 0;
+          ctx.save();
+          ctx.translate(p.x, p.y);
+          ctx.rotate((p.giro ?? 0) * 0.6);
+          ctx.font = `${Math.max(12, Math.round(p.size * 5))}px serif`;
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText(p.emoji ?? '⭐', 0, 0);
+          ctx.restore();
+        } else if (p.forma === 'coracao') {
+          ctx.save();
+          ctx.translate(p.x, p.y);
+          ctx.rotate((p.giro ?? 0) * 0.3);
+          const s = p.size;
+          ctx.beginPath();
+          ctx.moveTo(0, s * 0.6);
+          ctx.bezierCurveTo(-s * 1.4, -s * 0.5, -s * 0.5, -s * 1.4, 0, -s * 0.4);
+          ctx.bezierCurveTo(s * 0.5, -s * 1.4, s * 1.4, -s * 0.5, 0, s * 0.6);
+          ctx.fill();
+          ctx.restore();
+        } else if (p.forma === 'raio') {
+          ctx.save();
+          ctx.translate(p.x, p.y);
+          ctx.rotate(p.giro ?? 0);
+          const s = p.size;
+          ctx.beginPath();
+          ctx.moveTo(0, -s * 1.6);
+          ctx.lineTo(s * 0.55, -s * 0.2);
+          ctx.lineTo(s * 0.15, -s * 0.2);
+          ctx.lineTo(s * 0.5, s * 1.6);
+          ctx.lineTo(-s * 0.45, s * 0.1);
+          ctx.lineTo(-0.05 * s, s * 0.1);
+          ctx.closePath();
+          ctx.fill();
+          ctx.restore();
+        } else if (p.forma === 'fumaca') {
+          // Cresce e esmaece: o raio sobe conforme a vida se esvai.
+          const vivida = p.maxLife > 0 ? 1 - Math.max(0, p.life ?? 0) / p.maxLife : 0;
+          ctx.globalAlpha = Math.max(0, ctx.globalAlpha * 0.35);
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, p.size * (1 + 2.2 * vivida), 0, Math.PI * 2);
+          ctx.fill();
         } else {
           ctx.beginPath();
           ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);

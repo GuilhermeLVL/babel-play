@@ -11,6 +11,8 @@ export type { AgeProfileType, MenuPositionType } from './shell/navItems';
 export type { FontScale } from './shell/ControlCluster';
 
 interface StudioHeaderProps {
+  fonte: ControlClusterProps['fonte'];
+  setFonte: ControlClusterProps['setFonte'];
   theme: ThemeType;
   setTheme: (theme: ThemeType) => void;
   darkMode: boolean;
@@ -60,6 +62,8 @@ export default function StudioHeader({
   onChangeView,
   menuPosition,
   setMenuPosition,
+  fonte,
+  setFonte,
   soundEnabled,
   toggleSound,
   animationsEnabled,
@@ -72,6 +76,8 @@ export default function StudioHeader({
   const controls: Omit<ControlClusterProps, 'orientation'> = {
     theme,
     setTheme,
+    fonte,
+    setFonte,
     darkMode,
     toggleDarkMode,
     onOpenStudio,

@@ -21,6 +21,7 @@ import {
 } from './appearance';
 import { setSoundTheme, setSoundFonte } from './soundFx';
 import { applyParticulas, readParticulas } from './particulas';
+import { applyCursor, readCursor } from './cursores';
 
 export const THEME_KEY = 'app_theme';
 export const FONTE_KEY = 'app_fonte';
@@ -123,6 +124,7 @@ export function bootTheme(): void {
   applyDarkMode(readDarkMode());
   applyFonte(readFonte());
   applyParticulas(readParticulas());
+  applyCursor(readCursor());
 }
 
 interface PersistOptions {

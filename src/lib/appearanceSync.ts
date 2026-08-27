@@ -77,4 +77,4 @@ export function applyAppearance(root: StyledElement, body: StyledElement, snap: 
 }
 
 /** Atributos que o observador precisa vigiar para não perder nenhuma das mudanças acima. */
-export const APPEARANCE_ATTRS = ['class', 'data-theme', 'style'] as const;
+export const APPEARANCE_ATTRS = ['class', 'data-theme', 'data-fonte', 'data-particulas', 'data-cursor', 'style'] as const;

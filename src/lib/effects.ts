@@ -22,7 +22,8 @@ import type { ThemeType } from './appearance';
 
 // Os kinds dos EVENTOS (patos, raios...) sao usados por lib/eventosDeJogo.
 export type BurstKind = 'xp' | 'record' | 'levelUp' | 'combo' | 'perfeito' | 'confete' | 'erro'
-  | 'patos' | 'voleibol' | 'coracoes' | 'raios' | 'fogos' | 'pizza' | 'trofeu' | 'fumaca';
+  | 'patos' | 'voleibol' | 'coracoes' | 'raios' | 'fogos' | 'pizza' | 'trofeu' | 'fumaca'
+  | 'rastroFaisca' | 'rastroEstrelas' | 'rastroCoracoes' | 'rastroPixel' | 'rastroEmoji';
 
 /** Como a partícula é desenhada. Confete é retângulo girando — é o que dá a leitura de "festa". */
 export type FormaParticula = 'circulo' | 'confete' | 'pixel' | 'raio' | 'coracao' | 'fumaca' | 'emoji';
@@ -234,6 +235,14 @@ export const BURST_SPECS: Record<BurstKind, BurstSpec> = {
   pizza:    { count: 12, speed: 1.8, size: [4, 7], life: 3000, colorToken: '--warn', forma: 'emoji', emojis: ['🍕', '🍔', '🌮'], origem: 'chuva', gravidade: 0.035 },
   trofeu:   { count: 2,  speed: 2.2, size: [8, 10], life: 3000, colorToken: '--warn', forma: 'emoji', emojis: ['🏆'], origem: 'travessia' },
   fumaca:   { count: 14, speed: 1.2, size: [4, 7], life: 1400, colorToken: '--ink-muted', forma: 'fumaca', gravidade: -0.015 },
+
+  // ── RASTRO DO MOUSE (lib/rastroDoMouse): emitido a cada ~45ms — POUCAS particulas e vida curta,
+  //    senão o teto de vivas engole as comemorações de verdade. ──
+  rastroFaisca:   { count: 3, speed: 1.4, size: [1.2, 2.2], life: 450, colorToken: '--accent', gravidade: 0.02 },
+  rastroEstrelas: { count: 2, speed: 1.1, size: [3, 4.5], life: 600, colorToken: '--warn', forma: 'emoji', emojis: ['⭐', '✨'] },
+  rastroCoracoes: { count: 2, speed: 1.1, size: [2.5, 4], life: 600, colorToken: '--accent', forma: 'coracao', paleta: ['#F04E23', '#FF7BAC', '#E63946'] },
+  rastroPixel:    { count: 3, speed: 1.4, size: [1.5, 2.5], life: 450, colorToken: '--accent', forma: 'pixel', paleta: ['#F04E23', '#F59E0B', '#3E8E4E'] },
+  rastroEmoji:    { count: 2, speed: 1.1, size: [3, 4.5], life: 650, colorToken: '--warn', forma: 'emoji' },
 };
 
 // ─────────────────────────────── Barramento de rajadas ───────────────────────────────

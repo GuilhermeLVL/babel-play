@@ -1,3 +1,4 @@
+import { comemorar } from '../lib/juice';
 import React, { useEffect, useState } from 'react';
 import {
   X, Palette, LayoutGrid, Sun, Moon, Sparkles, RotateCcw, Move,
@@ -117,12 +118,20 @@ export default function LayoutStudio({ isOpen, onClose, theme, setTheme, darkMod
       <header className="shrink-0 border-b border-border-subtle bg-surface/80 backdrop-blur-md">
         <div className="max-w-5xl mx-auto w-full px-5 md:px-8 py-4 flex items-center justify-between gap-4 flex-wrap">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-accent-soft text-accent flex items-center justify-center shrink-0">
+            {/* O Estúdio é o item LENDÁRIO da Loja: o cabeçalho carrega a mesma linguagem de
+                raridade, com a aura do accent atual pintada ao vivo. */}
+            <div
+              className="w-11 h-11 rounded-2xl text-white flex items-center justify-center shrink-0 shadow-btn"
+              style={{ background: 'linear-gradient(135deg, var(--accent), var(--warn))' }}
+            >
               <Sparkles className="w-5 h-5" />
             </div>
             <div>
-              <h1 className="font-display font-extrabold text-lg md:text-xl text-ink tracking-tight leading-none">Personalizar Interface</h1>
-              <p className="text-[12px] text-ink-muted mt-1">Ajuste cores, tema e a disposição das telas.</p>
+              <h1 className="font-marca font-bold text-lg md:text-xl text-ink tracking-tight leading-none flex items-center gap-2">
+                Estúdio de Personalização
+                <span className="text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full border border-warn bg-warn/10 text-warn-ink">Lendário</span>
+              </h1>
+              <p className="text-[12px] text-ink-muted mt-1">Cores, tema e a disposição das telas — do seu jeito, nos mínimos detalhes.</p>
             </div>
           </div>
           <button
@@ -235,23 +244,43 @@ export default function LayoutStudio({ isOpen, onClose, theme, setTheme, darkMod
                   </div>
 
                   <div className="mt-5">
-                    <div className="text-[11px] font-bold uppercase tracking-wider text-ink-muted mb-2">Paletas prontas</div>
-                    <div className="flex flex-wrap gap-2">
-                      {PRESET_PALETTES.map((p) => (
-                        <button
-                          key={p.name}
-                          onClick={() => applyPreset(p)}
-                          className="flex items-center gap-2 pl-1.5 pr-3 py-1.5 rounded-full border border-border-subtle bg-canvas hover:border-accent transition-colors cursor-pointer"
-                          title={p.name}
-                        >
-                          <span className="flex -space-x-1">
-                            {[p.canvas, p.accent, p.ink].map((c, i) => (
-                              <span key={i} className="w-4 h-4 rounded-full border border-surface" style={{ backgroundColor: c }} />
-                            ))}
-                          </span>
-                          <span className="text-[12px] font-bold text-ink">{p.name}</span>
-                        </button>
-                      ))}
+                    <div className="text-[11px] font-bold uppercase tracking-wider text-ink-muted mb-2">Galeria de paletas</div>
+                    {/* Cards-mockup em vez de pílulas: cada paleta mostra COMO a interface fica
+                        (barra, card, botão pintados com as cores dela) e marca a equipada. */}
+                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+                      {PRESET_PALETTES.map((p) => {
+                        const equipada = theme === 'custom'
+                          && customColors.accent.toLowerCase() === p.accent.toLowerCase()
+                          && customColors.canvas.toLowerCase() === p.canvas.toLowerCase();
+                        return (
+                          <button
+                            key={p.name}
+                            onClick={(e) => {
+                              applyPreset(p);
+                              comemorar('acerto', e.currentTarget, { texto: p.name + '!' });
+                            }}
+                            aria-pressed={equipada}
+                            className={`text-left rounded-xl border-2 overflow-hidden transition-all hover:-translate-y-0.5 hover:shadow-card cursor-pointer ${
+                              equipada ? 'border-accent' : 'border-border-subtle hover:border-accent/60'
+                            }`}
+                            title={p.name}
+                          >
+                            {/* O mini-mockup: título + card + botão, pintados com a paleta. */}
+                            <span className="block p-2.5" style={{ backgroundColor: p.canvas }}>
+                              <span className="block h-1.5 w-2/3 rounded-full mb-1.5" style={{ backgroundColor: p.ink, opacity: 0.85 }} />
+                              <span className="block rounded-lg p-1.5 mb-1.5" style={{ backgroundColor: p.surface, border: `1px solid ${p.ink}22` }}>
+                                <span className="block h-1 w-3/4 rounded-full mb-1" style={{ backgroundColor: p.ink, opacity: 0.55 }} />
+                                <span className="block h-1 w-1/2 rounded-full" style={{ backgroundColor: p.ink, opacity: 0.35 }} />
+                              </span>
+                              <span className="inline-block h-3.5 px-3 rounded-md" style={{ backgroundColor: p.accent }} />
+                            </span>
+                            <span className="flex items-center justify-between px-2.5 py-1.5 bg-surface">
+                              <span className="text-[11.5px] font-bold text-ink truncate">{p.name}</span>
+                              {equipada && <Check className="w-3.5 h-3.5 text-accent shrink-0" />}
+                            </span>
+                          </button>
+                        );
+                      })}
                     </div>
                   </div>
                 </div>

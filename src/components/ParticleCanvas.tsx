@@ -1,3 +1,5 @@
+import { ajusteDeBurst } from '../lib/aprimoramentos';
+import { emojisDoPack } from '../lib/particulas';
 import React, { useEffect, useRef } from 'react';
 import type { ThemeType } from '../lib/appearance';
 import { resolveParticleStyle, BURST_SPECS, onBurst, type BurstKind } from '../lib/effects';
@@ -148,6 +150,10 @@ export default function ParticleCanvas({ enabled, performanceMode, theme, darkMo
     /** As coordenadas da rajada chegam em VIEWPORT; o canvas pode não começar no topo da janela. */
     const spawnBurst = (vx: number, vy: number, kind: BurstKind) => {
       const spec = BURST_SPECS[kind];
+      // Aprimoramento + intensidade da loja: mais/maiores particulas para quem subiu de nivel;
+      // o TETO de vivas continua valendo por cima, e o count multiplicado entra na poda e nos angulos.
+      const { countMul, sizeMul } = ajusteDeBurst();
+      const countFinal = Math.max(1, Math.round(spec.count * countMul));
       const rect = canvasRef.current!.getBoundingClientRect();
       const ox = vx - rect.left;
       const oy = vy - rect.top;
@@ -160,7 +166,7 @@ export default function ParticleCanvas({ enabled, performanceMode, theme, darkMo
       // primeiras a nascer) e não têm `life`. Uma poda ingênua pelo início comeria justamente
       // elas, e o fundo do app iria esvaziando a cada comemoração até a próxima remontagem.
       const TETO = 420;
-      const excesso = particles.length + spec.count - TETO;
+      const excesso = particles.length + countFinal - TETO;
       if (excesso > 0) {
         let removidas = 0;
         for (let i = 0; i < particles.length && removidas < excesso; i++) {
@@ -179,15 +185,15 @@ export default function ParticleCanvas({ enabled, performanceMode, theme, darkMo
         skin === 'pixel' ? 'pixel'
         : skin === 'confete' ? 'confete'
         : skin === 'coracoes' ? 'coracao'
-        : skin === 'estrelas' ? 'emoji'
+        : skin === 'estrelas' || skin === 'emoji' ? 'emoji'
         : null;
       // 'travessia': objetos que cruzam a tela voando; o lado de entrada e sorteado por rajada.
       const dirTravessia = Math.random() < 0.5 ? 1 : -1;
-      for (let i = 0; i < spec.count; i++) {
+      for (let i = 0; i < countFinal; i++) {
         const chuva = spec.origem === 'chuva';
         const travessia = spec.origem === 'travessia';
         const cantos = spec.origem === 'cantos';
-        const ang = (Math.PI * 2 * i) / spec.count + rand(-0.25, 0.25);
+        const ang = (Math.PI * 2 * i) / countFinal + rand(-0.25, 0.25);
         const sp = spec.speed * rand(0.45, 1);
         const ms = spec.life * rand(0.7, 1);
         particles.push({
@@ -206,7 +212,7 @@ export default function ParticleCanvas({ enabled, performanceMode, theme, darkMo
           vy: chuva ? rand(0.6, 1.8)
             : travessia ? rand(-0.35, 0.35)
             : Math.sin(ang) * sp - 0.6, // radial tem viés p/ cima: cai melhor aos olhos
-          size: rand(spec.size[0], spec.size[1]),
+          size: rand(spec.size[0], spec.size[1]) * sizeMul,
           alpha: 0.9,
           alphaDir: -1,
           phase: 0,
@@ -214,7 +220,14 @@ export default function ParticleCanvas({ enabled, performanceMode, theme, darkMo
           maxLife: ms,
           color: spec.paleta ? spec.paleta[Math.floor(Math.random() * spec.paleta.length)] : color,
           forma: spec.forma ?? formaDaSkin ?? (modoPixel ? 'pixel' : 'circulo'),
-          emoji: spec.emojis ? spec.emojis[Math.floor(Math.random() * spec.emojis.length)] : (!spec.forma && skin === 'estrelas' ? (Math.random() < 0.5 ? '⭐' : '✨') : undefined),
+          emoji: spec.emojis
+            ? spec.emojis[Math.floor(Math.random() * spec.emojis.length)]
+            : spec.forma === 'emoji'
+              // Forma emoji sem lista própria (skin/rastro): sorteia do PACK equipado na loja.
+              ? emojisDoPack()[Math.floor(Math.random() * emojisDoPack().length)]
+              : (!spec.forma && (skin === 'estrelas' || skin === 'emoji')
+                ? (skin === 'emoji' ? emojisDoPack()[Math.floor(Math.random() * emojisDoPack().length)] : (Math.random() < 0.5 ? '⭐' : '✨'))
+                : undefined),
           giro: rand(0, Math.PI * 2),
           giroVel: rand(-0.18, 0.18),
           gravidade: spec.gravidade,

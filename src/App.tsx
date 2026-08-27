@@ -54,6 +54,7 @@ import MobileTopBar from './components/shell/MobileTopBar';
 import ParticleCanvas from './components/ParticleCanvas';
 import { setSoundMuted, play } from './lib/soundFx';
 import { installSfxDelegate } from './lib/sfxDelegate';
+import { instalarRastroDoMouse } from './lib/rastroDoMouse';
 import { deriveProgress } from './lib/progress';
 import { recompensasDoNivel, rotuloDaRecompensa, ativarLiberacaoTotal, liberadoTudo } from './lib/desbloqueios';
 import { comemorar } from './lib/juice';
@@ -316,6 +317,8 @@ export default function App() {
    * não ter sido botão por botão. Respeita o mute pelo `setSoundMuted` acima.
    */
   useEffect(() => installSfxDelegate(), []);
+  // Rastro do mouse (item de loja): listeners globais uma vez; o estilo é lido a cada evento.
+  useEffect(() => instalarRastroDoMouse(), []);
 
   /* LIBERACAO TOTAL para demonstracao: `window.babel.liberarTudo()` (ou `.travarTudo()`) no
      console, ou abrir com `?liberar=1`. So destrava cosmeticos (temas/posicoes/estudio). */

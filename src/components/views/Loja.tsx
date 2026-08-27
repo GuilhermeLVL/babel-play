@@ -21,7 +21,13 @@ import { gastarSeeds } from '../../data/api';
 import { toast } from '../Toast';
 import { comemorar, explodirAleatorio } from '../../lib/juice';
 import { emitBurst } from '../../lib/effects';
-import { setParticulas, readParticulas } from '../../lib/particulas';
+import { setParticulas, readParticulas, setPack, readPack, PACKS_DE_EMOJI } from '../../lib/particulas';
+import { setCursor, readCursor, CURSORES } from '../../lib/cursores';
+import { setRastro, readRastro } from '../../lib/rastroDoMouse';
+import {
+  nivelDoAprimoramento, custoDoProximoNivel, registrarAprimoramento, progressoDoAprimoramento,
+  NIVEL_MAXIMO, lerIntensidade, setIntensidade, intensidadeMaxima, type Intensidade,
+} from '../../lib/aprimoramentos';
 import type { ThemeType, FonteType } from '../../lib/appearance';
 import type { MenuPositionType } from '../shell/navItems';
 import type { DerivedProgress } from '../../lib/progress';
@@ -49,6 +55,9 @@ const FILTROS = [
   { id: 'tudo', nome: 'Tudo' },
   { id: 'tema', nome: 'Temas' },
   { id: 'particulas', nome: 'Partículas' },
+  { id: 'pack', nome: 'Emojis' },
+  { id: 'cursor', nome: 'Cursor' },
+  { id: 'rastro', nome: 'Rastro' },
   { id: 'posicao', nome: 'Layout' },
   { id: 'estudio', nome: 'Estúdio' },
 ] as const;
@@ -61,7 +70,8 @@ export default function Loja({ progress, theme, setTheme, fonte, setFonte, menuP
   const saldo = progress.available ? progress.seeds : 0;
 
   const itens = useMemo(
-    () => CATALOGO_DA_LOJA.filter((i) => filtro === 'tudo' || i.tipo === filtro),
+    // Aprimoramentos aparecem junto das partículas (é o upgrade DELAS e da sorte de eventos).
+    () => CATALOGO_DA_LOJA.filter((i) => filtro === 'tudo' || i.tipo === filtro || (filtro === 'particulas' && i.tipo === 'aprimoramento')),
     [filtro],
   );
   const vitrine = vitrineDoProximoNivel(nivel);
@@ -71,6 +81,9 @@ export default function Loja({ progress, theme, setTheme, fonte, setFonte, menuP
     if (item.tipo === 'fonte') return fonte === item.alvo;
     if (item.tipo === 'particulas') return readParticulas() === item.alvo;
     if (item.tipo === 'posicao') return menuPosition === item.alvo;
+    if (item.tipo === 'pack') return readPack() === item.alvo;
+    if (item.tipo === 'cursor') return readCursor() === item.alvo;
+    if (item.tipo === 'rastro') return readRastro() === item.alvo;
     return false;
   };
 
@@ -79,8 +92,32 @@ export default function Loja({ progress, theme, setTheme, fonte, setFonte, menuP
     else if (item.tipo === 'fonte') setFonte(item.alvo as FonteType);
     else if (item.tipo === 'particulas') { setParticulas(item.alvo as never); force((n) => n + 1); }
     else if (item.tipo === 'posicao') setMenuPosition(item.alvo as MenuPositionType);
+    else if (item.tipo === 'pack') { setPack(item.alvo); force((n) => n + 1); }
+    else if (item.tipo === 'cursor') { setCursor(item.alvo); force((n) => n + 1); }
+    else if (item.tipo === 'rastro') { setRastro(item.alvo); force((n) => n + 1); }
     else if (item.tipo === 'estudio') { onOpenStudio(); return; }
     comemorar('acerto', el, { texto: 'Equipado!' });
+  };
+
+  /** Compra o PRÓXIMO nível de um aprimoramento (spendId por nível: idempotente por degrau). */
+  const aprimorar = async (item: ItemDaLoja, el: HTMLElement | null) => {
+    const custo = custoDoProximoNivel(item.alvo);
+    if (custo === null) return;
+    const proximo = nivelDoAprimoramento(item.alvo) + 1;
+    setComprando(item.id);
+    try {
+      const r = await gastarSeeds({ spendId: `apr-${item.alvo}-n${proximo}`, amount: custo, reason: `aprimoramento:${item.alvo}:${proximo}` });
+      if (r && (r as { ok?: boolean }).ok === false) { toast.warn('Não deu para aprimorar agora. Tente de novo.'); return; }
+      registrarAprimoramento(item.alvo);
+      comemorar('subiuNivel', el, { texto: `Nv. ${proximo}!` });
+      explodirAleatorio(2, 'fogos');
+      toast.ok(`${item.nome} subiu para o nível ${proximo}!`);
+      force((n) => n + 1);
+    } catch {
+      toast.warn('Não deu para aprimorar agora. Tente de novo.');
+    } finally {
+      setComprando(null);
+    }
   };
 
   const comprar = async (item: ItemDaLoja, el: HTMLElement | null) => {
@@ -200,7 +237,23 @@ export default function Loja({ progress, theme, setTheme, fonte, setFonte, menuP
                   </span>
                 ) : item.tipo === 'particulas' ? (
                   <span className="font-display font-black text-3xl select-none" aria-hidden>
-                    {item.alvo === 'coracoes' ? '💛🧡❤️' : item.alvo === 'estrelas' ? '⭐✨🌟' : item.alvo === 'confete' ? '🎊🎉' : '🟧🟨🟩'}
+                    {item.alvo === 'coracoes' ? '💛🧡❤️' : item.alvo === 'estrelas' ? '⭐✨🌟' : item.alvo === 'confete' ? '🎊🎉' : item.alvo === 'emoji' ? PACKS_DE_EMOJI.find((pk) => pk.id === readPack())?.emojis.slice(0, 3).join('') : '🟧🟨🟩'}
+                  </span>
+                ) : item.tipo === 'pack' ? (
+                  <span className="font-display font-black text-2xl select-none tracking-wider" aria-hidden>
+                    {PACKS_DE_EMOJI.find((pk) => pk.id === item.alvo)?.emojis.slice(0, 4).join(' ')}
+                  </span>
+                ) : item.tipo === 'cursor' ? (
+                  <span className="font-display font-black text-4xl select-none" aria-hidden>
+                    {CURSORES.find((c) => c.id === item.alvo)?.emoji}
+                  </span>
+                ) : item.tipo === 'rastro' ? (
+                  <span className="font-display font-black text-3xl select-none" aria-hidden>
+                    {item.alvo === 'off' ? '🚫' : item.alvo === 'coracoes' ? '🖱️💨❤️' : item.alvo === 'estrelas' ? '🖱️💨⭐' : item.alvo === 'emoji' ? '🖱️💨🦆' : '🖱️💨✨'}
+                  </span>
+                ) : item.tipo === 'aprimoramento' ? (
+                  <span className="font-display font-black text-4xl select-none" aria-hidden>
+                    {item.alvo === 'sorte' ? '🎲' : '💥'}
                   </span>
                 ) : item.tipo === 'estudio' ? (
                   <Wand2 className="w-10 h-10 text-warn" aria-hidden />
@@ -216,7 +269,68 @@ export default function Loja({ progress, theme, setTheme, fonte, setFonte, menuP
                 </div>
                 <p className="text-[12px] text-ink-muted leading-snug flex-1">{item.desc}</p>
 
-                {estado === 'equipavel' ? (
+                {item.tipo === 'aprimoramento' ? (
+                  (() => {
+                    const nv = nivelDoAprimoramento(item.alvo);
+                    const custo = custoDoProximoNivel(item.alvo);
+                    const pct = progressoDoAprimoramento(item.alvo);
+                    return (
+                      <div className="space-y-2">
+                        {/* A barra de progressão do upgrade — o "battle pass" do item. */}
+                        <div>
+                          <div className="flex items-center justify-between text-[11px] font-black mb-1">
+                            <span className="text-ink">Nv. {nv} / {NIVEL_MAXIMO}</span>
+                            <span className="text-ink-muted tabular-nums">{pct}%</span>
+                          </div>
+                          <div className="h-2 rounded-full bg-canvas border border-border-subtle overflow-hidden">
+                            <div className="h-full rounded-full bg-warn transition-all duration-500" style={{ width: `${pct}%` }} />
+                          </div>
+                        </div>
+                        {custo === null ? (
+                          <div className="w-full py-2 rounded-xl bg-warn/15 border border-warn text-center text-[12.5px] font-black text-warn-ink">★ Dominado</div>
+                        ) : (
+                          <button
+                            onClick={(e) => void aprimorar(item, e.currentTarget)}
+                            disabled={comprando === item.id || saldo < custo}
+                            className="w-full py-2.5 rounded-xl bg-warn hover:brightness-110 text-white font-bold text-[13px] shadow-btn transition-all cursor-pointer disabled:opacity-50"
+                          >
+                            <span className="inline-flex items-center gap-1.5"><Sprout className="w-4 h-4" /> {comprando === item.id ? 'Aprimorando…' : `Aprimorar · ${custo} Seeds`}</span>
+                          </button>
+                        )}
+                        {item.alvo === 'particulas' && nv > 0 && (
+                          <div>
+                            <p className="text-[10.5px] uppercase tracking-wider font-black text-ink-faint mb-1">Intensidade (sua escolha)</p>
+                            <div className="grid grid-cols-3 gap-1 p-1 bg-canvas border border-border-subtle rounded-xl">
+                              {(['pequena', 'media', 'grande'] as Intensidade[]).map((intz) => {
+                                const teto = intensidadeMaxima(nv);
+                                const permitida = ['pequena', 'media', 'grande'].indexOf(intz) <= ['pequena', 'media', 'grande'].indexOf(teto);
+                                return (
+                                  <button
+                                    key={intz}
+                                    disabled={!permitida}
+                                    onClick={(e) => {
+                                      setIntensidade(intz);
+                                      force((n) => n + 1);
+                                      const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
+                                      emitBurst(r.left + r.width / 2, r.top, 'xp');
+                                    }}
+                                    aria-pressed={lerIntensidade() === intz}
+                                    className={`py-1.5 rounded-lg text-[11px] font-bold cursor-pointer transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${
+                                      lerIntensidade() === intz ? 'bg-accent text-accent-contrast' : 'text-ink-muted hover:text-ink'
+                                    }`}
+                                    title={permitida ? undefined : `Requer Nv. ${intz === 'grande' ? 2 : 1}`}
+                                  >
+                                    {intz === 'pequena' ? 'Pequena' : intz === 'media' ? 'Média' : 'Grande'}
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })()
+                ) : estado === 'equipavel' ? (
                   <button
                     onClick={(e) => equipar(item, e.currentTarget)}
                     disabled={equipado}

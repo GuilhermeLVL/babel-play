@@ -40,8 +40,10 @@ const doDia = (agora: Date) => `${agora.toISOString().slice(0, 10)}.jsonl`
  * Falha em silêncio: não conseguir podar é um problema de espaço em disco, não motivo para
  * derrubar o request que estava sendo observado.
  */
-function podar(dir: string, manter: number): void {
-  const limite = Date.now() - manter * 86_400_000
+function podar(dir: string, manter: number, agoraMs: number): void {
+  // O relógio vem de fora (é o mesmo `agora` injetável do sink): com `Date.now()` aqui a poda
+  // ignorava o relógio de teste e apagava o diário "de ontem" assim que o calendário real passava.
+  const limite = agoraMs - manter * 86_400_000
   try {
     for (const nome of readdirSync(dir)) {
       if (!/^\d{4}-\d{2}-\d{2}\.jsonl$/.test(nome)) continue
@@ -71,7 +73,7 @@ export function diarioEmArquivo({ dir, manter = DIAS_PADRAO, agora = () => new D
       const marca = arquivo.slice(0, 10)
       if (marca !== ultimaPodaEm) {
         ultimaPodaEm = marca
-        podar(dir, manter)
+        podar(dir, manter, hoje.getTime())
       }
       appendFileSync(path.join(dir, arquivo), `${JSON.stringify(evento)}\n`, 'utf8')
     } catch {

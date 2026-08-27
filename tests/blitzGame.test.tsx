@@ -32,8 +32,12 @@ import type { MinigameItem, RoundReport } from '../src/core/minigames/types'
 vi.mock('../src/lib/juice', () => ({
   comemorar: vi.fn(),
   pontosDoElemento: vi.fn(),
+  pontosFlutuantes: vi.fn(),
+  tremor: vi.fn(),
   multiplicador: () => 1,
 }))
+vi.mock('../src/lib/effects', () => ({ emitBurst: vi.fn() }))
+vi.mock('../src/lib/soundFx', () => ({ play: vi.fn() }))
 
 const { default: BlitzGame } = await import('../src/components/minigames/BlitzGame')
 

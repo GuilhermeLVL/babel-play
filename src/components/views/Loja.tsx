@@ -106,6 +106,7 @@ export default function Loja({ progress, theme, setTheme, fonte, setFonte, menuP
   };
 
   return (
+    <div className="flex-1 h-full min-h-0 overflow-y-auto custom-scrollbar" aria-label="Loja">
     <div className="max-w-5xl mx-auto px-4 sm:px-6 py-8 space-y-8 animate-in fade-in duration-300">
       {/* ── TOPO: saldo, nível, e a promessa da tela ── */}
       <section className="relative overflow-hidden rounded-3xl border border-border-subtle bg-surface px-6 py-8 sm:px-8">
@@ -249,6 +250,7 @@ export default function Loja({ progress, theme, setTheme, fonte, setFonte, menuP
       <p className="text-center text-[11.5px] text-ink-faint pb-4">
         Seeds se ganham estudando: 1 por palavra capturada, 4 por revisão certa. Nada aqui custa dinheiro.
       </p>
+    </div>
     </div>
   );
 }

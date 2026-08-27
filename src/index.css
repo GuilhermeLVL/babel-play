@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Archivo:wght@500;600;700;800;900&family=IBM+Plex+Mono:wght@400;500;600&family=Geist:wght@400;500;600;700;800;900&family=Geist+Mono:wght@400;500;600&family=Baloo+2:wght@700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Archivo:wght@500;600;700;800;900&family=IBM+Plex+Mono:wght@400;500;600&family=Geist:wght@400;500;600;700;800;900&family=Geist+Mono:wght@400;500;600&family=Baloo+2:wght@700;800&family=Silkscreen:wght@400;700&display=swap');
 @import "tailwindcss";
 
 @theme {
@@ -1506,7 +1506,9 @@ body.animations-off .hover\:-translate-y-1:hover {
    A identidade do app: Baloo 2 (redonda, gordinha, amigável — a mesma família visual do
    "arcade de brinquedo" dos jogos) só na marca e em momentos de celebração. O corpo do app
    continua em Inter/Archivo: a marca é tempero, não prato. */
-.font-marca { font-family: 'Baloo 2', 'Archivo', system-ui, sans-serif; }
+/* Marca escolhida pelo dono (2026-08-27, opcao 9B): pixel. Silkscreen e a fonte do wordmark;
+   Baloo 2 segue disponivel para celebracoes dos jogos. */
+.font-marca { font-family: 'Silkscreen', 'Baloo 2', 'Archivo', system-ui, sans-serif; }
 
 /* ─────────────── TELA SOBRE — blobs flutuantes e anel do avatar ───────────────
    Movimento LENTO (18–26 s por volta) e desfocado: presença, não distração. As guardas globais

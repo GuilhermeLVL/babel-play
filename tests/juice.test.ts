@@ -78,7 +78,10 @@ describe('as rajadas não podem virar espetáculo pirotécnico', () => {
       // 80 é o limite que o canvas absorve sem engasgar num notebook fraco; acima disso o efeito
       // deixa de ser retorno e vira custo de quadro.
       expect(spec.count, `rajada "${nome}"`).toBeLessThanOrEqual(80);
-      expect(spec.life, `rajada "${nome}"`).toBeLessThanOrEqual(2500);
+      // Vida: os EVENTOS (patos atravessando, troféu voando) são poucos objetos e lentos — vida
+      // longa ali é barata. O que continua proibido é MUITA partícula viva por MUITO tempo.
+      expect(spec.life, `rajada "${nome}"`).toBeLessThanOrEqual(3500);
+      expect(spec.count * spec.life, `rajada "${nome}" (orçamento count×life)`).toBeLessThanOrEqual(160_000);
     }
   });
 

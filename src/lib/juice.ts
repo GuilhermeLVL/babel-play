@@ -158,4 +158,75 @@ export function tremor(el: Element | null, intensidade = 3): void {
  *
  * O re-export mantém quem já importava daqui funcionando sem edição (é o caso de `tests/juice`).
  */
+/* ─────────────────────────── EFEITOS DE TELA (momentos raros) ───────────────────────────
+   Tremor/zoom/glitch/flash agem no PALCO INTEIRO (#root) e por isso sao reservados a marcos,
+   fever e recorde — o comum continua local. Todos respeitam `movimentoReduzido()`. A vibracao
+   so existe em tela de toque (pointer: coarse) e nunca passa de meio segundo. */
+
+function elementoDePalco(): HTMLElement | null {
+  return document.getElementById('root');
+}
+
+function classeTransitoria(nome: string, duracaoMs: number): void {
+  if (movimentoReduzido()) return;
+  const alvo = elementoDePalco();
+  if (!alvo || alvo.classList.contains(nome)) return;
+  alvo.classList.add(nome);
+  setTimeout(() => alvo.classList.remove(nome), duracaoMs);
+}
+
+/** Tremor da TELA inteira (o `tremor` acima e por elemento). */
+export function tremorDeTela(intensidade = 4): void {
+  tremor(elementoDePalco(), intensidade);
+}
+
+/** Zoom sutil (1 → 1.02 → 1) do palco. */
+export function pulsoDeZoom(): void {
+  classeTransitoria('babel-zoom-pulso', 320);
+}
+
+/** Interferencia: fatias deslocadas + desvio de matiz por ~400 ms. */
+export function glitchDeTela(): void {
+  classeTransitoria('babel-glitch', 420);
+}
+
+/** Clarão de 140 ms — o "flash de câmera" do recorde. */
+export function flashDeTela(): void {
+  classeTransitoria('babel-flash', 160);
+}
+
+/** Vibra so em aparelho de toque, e so se as animacoes estao ligadas. */
+export function vibrar(padrao: number[]): void {
+  if (movimentoReduzido()) return;
+  if (typeof navigator === 'undefined' || typeof navigator.vibrate !== 'function') return;
+  if (!window.matchMedia?.('(pointer: coarse)').matches) return;
+  try { navigator.vibrate(padrao); } catch { /* bloqueado */ }
+}
+
+/** Rajadas em N pontos ALEATORIOS da viewport — a festa deixa de ser sempre no centro. */
+export function explodirAleatorio(vezes: number, kind: BurstKind): void {
+  if (typeof window === 'undefined') return;
+  for (let i = 0; i < vezes; i++) {
+    const x = window.innerWidth * (0.12 + Math.random() * 0.76);
+    const y = window.innerHeight * (0.15 + Math.random() * 0.6);
+    setTimeout(() => emitBurst(x, y, kind), i * 130);
+  }
+}
+
+/**
+ * Encena um `EfeitoComposto` de `lib/eventosDeJogo`: rajadas espalhadas + som + tela + vibracao.
+ * Tambem registra o evento como "visto" (colecionavel da antessala).
+ */
+export function executarEfeito(ev: import('./eventosDeJogo').EfeitoComposto): void {
+  for (const r of ev.rajadas) explodirAleatorio(r.vezes ?? 1, r.kind);
+  if (ev.som) play(ev.som);
+  if (ev.tela === 'tremor') tremorDeTela(5);
+  else if (ev.tela === 'zoom') pulsoDeZoom();
+  else if (ev.tela === 'glitch') glitchDeTela();
+  else if (ev.tela === 'flash') flashDeTela();
+  if (ev.vibracao) vibrar(ev.vibracao);
+  // import tardio para nao criar ciclo estatico juice ↔ eventosDeJogo
+  void import('./eventosDeJogo').then((m) => m.marcarEventoVisto(ev.id));
+}
+
 export { multiplicador } from '../core/minigames/grade';

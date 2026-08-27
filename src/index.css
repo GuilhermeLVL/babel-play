@@ -1551,3 +1551,31 @@ body.animations-off .hover\:-translate-y-1:hover {
   /* Pixel de verdade nao suaviza borda de glifo. */
   -webkit-font-smoothing: none;
 }
+
+/* ─────────────── EFEITOS DE TELA (juice: momentos raros) ─────────────── */
+@keyframes babel-zoom-pulso-kf {
+  0% { transform: scale(1); }
+  35% { transform: scale(1.02); }
+  100% { transform: scale(1); }
+}
+.babel-zoom-pulso { animation: babel-zoom-pulso-kf 0.32s ease-out; }
+
+@keyframes babel-glitch-kf {
+  0%   { clip-path: inset(0); transform: translateX(0); filter: none; }
+  15%  { clip-path: inset(8% 0 62% 0); transform: translateX(-6px); filter: hue-rotate(35deg); }
+  30%  { clip-path: inset(52% 0 18% 0); transform: translateX(5px); filter: hue-rotate(-30deg) saturate(1.6); }
+  45%  { clip-path: inset(24% 0 40% 0); transform: translateX(-3px); }
+  60%  { clip-path: inset(70% 0 4% 0); transform: translateX(4px); filter: hue-rotate(20deg); }
+  100% { clip-path: inset(0); transform: translateX(0); filter: none; }
+}
+.babel-glitch { animation: babel-glitch-kf 0.42s steps(6, end); }
+
+@keyframes babel-flash-kf {
+  0% { filter: brightness(1); }
+  25% { filter: brightness(1.9) saturate(0.6); }
+  100% { filter: brightness(1); }
+}
+.babel-flash { animation: babel-flash-kf 0.16s ease-out; }
+
+.animations-off .babel-zoom-pulso, .animations-off .babel-glitch, .animations-off .babel-flash,
+.performance-mode .babel-glitch { animation: none; }

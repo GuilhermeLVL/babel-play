@@ -3,9 +3,10 @@ import { X, Scissors, Zap, Flame, Star, Trophy } from 'lucide-react';
 import type { MinigameItem, ItemOutcome, RoundReport } from '@core';
 import { distractorsFor, scoreRound } from '@core';
 import type { AgeProfileType } from '../../lib/profile';
-import { comemorar, pontosDoElemento, pontosFlutuantes, multiplicador, tremor } from '../../lib/juice';
+import { comemorar, pontosDoElemento, pontosFlutuantes, multiplicador, tremor, tremorDeTela, pulsoDeZoom, flashDeTela, vibrar, executarEfeito } from '../../lib/juice';
 import { emitBurst } from '../../lib/effects';
 import { play } from '../../lib/soundFx';
+import { sortearEventoRaro, eventosCondicionais } from '../../lib/eventosDeJogo';
 import {
   bonusDeTempo, pontosDoAcerto, emFever, ehMarco, rotuloDaSequencia, estrelasDaRodada,
   PENALIDADE_ERRO_S, SEQUENCIA_FEVER,
@@ -183,7 +184,13 @@ export default function BlitzGame({ items, ageProfile, onFinish, onExit }: Blitz
     // Fanfarra: um arpejo por estrela, subindo; recorde ganha a festa grande.
     for (let i = 0; i < estrelas; i++) setTimeout(() => play('fanfarra', { transpose: i * 4 }), 200 + i * 380);
     if (recorde) {
-      setTimeout(() => { play('levelUp'); explodirBordas(10, 'confete'); }, 200 + estrelas * 380);
+      setTimeout(() => {
+        flashDeTela();
+        pulsoDeZoom();
+        vibrar([40, 60, 40]);
+        for (const ev of eventosCondicionais({ combo: 0, fever: false, recorde: true })) executarEfeito(ev);
+        play('levelUp'); explodirBordas(10, 'confete');
+      }, 200 + estrelas * 380);
     } else if (estrelas === 3) {
       setTimeout(() => explodirBordas(8, 'confete'), 900);
     }
@@ -246,16 +253,28 @@ export default function BlitzGame({ items, ageProfile, onFinish, onExit }: Blitz
         play('timeBonus');
         setTimeout(() => pontosDoElemento('+' + segundos + 's', relogioRef.current, 'bom'), 80);
       }
-      // 4. Marcos e fever: onda de choque + festa nas bordas, reservada ao que é raro.
+      // 4. Eventos: um RARO pode ser sorteado em qualquer acerto (patos, bola, glitch...);
+      //    os CONDICIONAIS disparam nos limiares (combo 10/15). Nunca no erro.
+      const raro = sortearEventoRaro(Math.random);
+      if (raro) {
+        executarEfeito(raro);
+        setTimeout(() => pontosFlutuantes(raro.nome + '!', window.innerWidth / 2, window.innerHeight * 0.22, 'bom'), 200);
+      }
+      for (const ev of eventosCondicionais({ combo: nova, fever: emFever(nova) })) executarEfeito(ev);
+      // 5. Marcos e fever: onda de choque + festa nas bordas, reservada ao que é raro.
       if (nova === SEQUENCIA_FEVER && !comDica) {
         play('fever');
         explodirBordas(8, 'levelUp');
+        pulsoDeZoom();
+        vibrar([20, 40, 20]);
         tremor(palcoRef.current, 6);
         setOndas(o => [...o, nova]);
         setMarco({ id: nova, texto: 'FEVER ×2' });
       } else if (ehMarco(nova) && !comDica) {
         play('levelUp');
         explodirBordas(nova >= 20 ? 12 : 6, nova >= 10 ? 'levelUp' : 'combo');
+        tremorDeTela(4);
+        vibrar([30]);
         tremor(palcoRef.current, 4);
         setOndas(o => [...o, nova]);
         setMarco({ id: nova, texto: nova + ' seguidas!' });

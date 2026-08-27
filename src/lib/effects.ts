@@ -20,7 +20,9 @@ import type { ThemeType } from './appearance';
  *    — ganhar XP, iniciar a gravação, subir de nível — e morrem em menos de um segundo.
  */
 
-export type BurstKind = 'xp' | 'record' | 'levelUp' | 'combo' | 'perfeito' | 'confete' | 'erro';
+// Os kinds dos EVENTOS (patos, raios...) sao usados por lib/eventosDeJogo.
+export type BurstKind = 'xp' | 'record' | 'levelUp' | 'combo' | 'perfeito' | 'confete' | 'erro'
+  | 'patos' | 'voleibol' | 'coracoes' | 'raios' | 'fogos' | 'pizza' | 'trofeu' | 'fumaca';
 
 /** Como a partícula é desenhada. Confete é retângulo girando — é o que dá a leitura de "festa". */
 export type FormaParticula = 'circulo' | 'confete' | 'pixel' | 'raio' | 'coracao' | 'fumaca' | 'emoji';
@@ -222,6 +224,16 @@ export const BURST_SPECS: Record<BurstKind, BurstSpec> = {
   confete: { count: 36, speed: 4, size: [2.5, 5], life: 1500, colorToken: '--good', forma: 'confete', gravidade: 0.06 },
   // Erro: um tremor curto de partículas escuras. Existe para o acerto ter contraste.
   erro: { count: 8, speed: 1.8, size: [1, 2], life: 380, colorToken: '--ink-muted' },
+
+  // ── EVENTOS (lib/eventosDeJogo): raros e condicionais. Emojis via fillText — baratos e vivos. ──
+  patos:    { count: 16, speed: 1.6, size: [4, 7], life: 3200, colorToken: '--warn', forma: 'emoji', emojis: ['🦆'], origem: 'chuva', gravidade: 0.03 },
+  voleibol: { count: 3,  speed: 2.6, size: [6, 9], life: 2600, colorToken: '--warn', forma: 'emoji', emojis: ['🏐', '⚽', '🏀'], origem: 'travessia' },
+  coracoes: { count: 22, speed: 2.0, size: [3, 6], life: 2400, colorToken: '--accent', forma: 'coracao', origem: 'chuva', gravidade: 0.02, paleta: ['#F04E23', '#FF7BAC', '#FFB3C6', '#E63946'] },
+  raios:    { count: 10, speed: 4.5, size: [3, 5], life: 700,  colorToken: '--warn', forma: 'raio', origem: 'cantos', paleta: ['#F59E0B', '#FFD166', '#FFF3B0'] },
+  fogos:    { count: 34, speed: 5,   size: [1.6, 3.2], life: 1200, colorToken: '--accent', paleta: ['#F04E23', '#F59E0B', '#3E8E4E', '#4C9AFF', '#FF7BAC'], gravidade: 0.03 },
+  pizza:    { count: 12, speed: 1.8, size: [4, 7], life: 3000, colorToken: '--warn', forma: 'emoji', emojis: ['🍕', '🍔', '🌮'], origem: 'chuva', gravidade: 0.035 },
+  trofeu:   { count: 2,  speed: 2.2, size: [8, 10], life: 3000, colorToken: '--warn', forma: 'emoji', emojis: ['🏆'], origem: 'travessia' },
+  fumaca:   { count: 14, speed: 1.2, size: [4, 7], life: 1400, colorToken: '--ink-muted', forma: 'fumaca', gravidade: -0.015 },
 };
 
 // ─────────────────────────────── Barramento de rajadas ───────────────────────────────

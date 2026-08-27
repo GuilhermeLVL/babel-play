@@ -127,7 +127,7 @@ describe('anônimo sem rede', () => {
     const hist = await api.fetchHistoricoDeItens({ origem: 'baralho' })
     expect(hist.find((h) => h.itemRef === 'hello')).toMatchObject({ vezes: 1, erros: 1, ultimoAcerto: false })
     const rec = await api.fetchRecordes({ origem: 'baralho' })
-    expect(rec).toEqual([{ exerciseKind: 'termo', melhorPontos: 80, melhorEm: expect.any(Number), rodadas: 1 }])
+    expect(rec).toEqual([{ exerciseKind: 'termo', melhorPontos: 80, melhorEm: expect.any(Number), rodadas: 1, melhorCombo: expect.any(Number), precisao: expect.any(Number), ultimaEm: expect.any(Number) }])
     const a = await api.gastarSeeds({ spendId: 'compra-0001', amount: 5, reason: 'dica' })
     const b = await api.gastarSeeds({ spendId: 'compra-0001', amount: 5, reason: 'dica' })
     expect(a).toMatchObject({ jaExistia: false, seedsGastas: 5 })

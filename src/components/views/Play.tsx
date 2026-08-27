@@ -16,7 +16,7 @@ import {
   estadoDeCadaJogo, comoDesbloquear, type ContextoDeDesbloqueio, type Desbloqueio,
   estimativaDeMinutos, rotuloDeDuracao, pistasDaTriagem, resumoDosPulados,
   previaSegura, repetidosDaUltima, MAPA_REVELA_ALVO,
-  pontuarRodada, xpFromRound, acumular, mesmaCorrente, marcarPromovidas, resumir,
+  pontuarRodada, xpFromRound, acumular, mesmaCorrente, marcarPromovidas, resumir, agruparFases,
   type RodadaEscuta, type RodadaDitado, type RodadaConectores,
   type MinigameId, type MinigameItem, type RoundReport, type RodadaTermo, type RodadaFrase,
   type FonteDeItens, type Triagem, type DadoTrilha, type CefrLevel,
@@ -333,6 +333,8 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
   const [historico, setHistorico] = useState<Map<string, HistoricoDeItem>>(new Map());
   /** Os itens da última rodada de cada jogo nesta fonte — é o que "repetir" remonta. */
   const [ultimaRodada, setUltimaRodada] = useState<Map<string, string[]>>(new Map());
+  /** As linhas cruas desta fonte — a antessala agrupa em FASES (estrelas + rejogar). */
+  const [linhasDaFonte, setLinhasDaFonte] = useState<Parameters<typeof agruparFases>[0]>([]);
   /**
    * DESDE QUANDO existe registro do que caiu. `null` = nunca houve rodada gravada.
    *
@@ -1008,6 +1010,7 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
         porJogo.set(jogo, lista);
       }
       setUltimaRodada(porJogo);
+      setLinhasDaFonte(linhas);
 
       const comIdentidade = linhas.filter(l => l.roundId && typeof l.createdAt === 'number');
       setHistoricoDesde(comIdentidade.length ? Math.min(...comIdentidade.map(l => l.createdAt as number)) : null);
@@ -1535,6 +1538,15 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
            já era calculado neste componente para o lobby, bastava repassar. */
         fonte={{ rotulo: rotuloDaFonte(fonte, sessaoEmUso?.title), idioma: langLabelPt(fonte.lang) }}
         duracao={rotuloDeDuracao(estimativaDeMinutos(antessala.previa.length, temposMedidos))}
+        /* O MAPA DE FASES: as rodadas passadas deste jogo nesta fonte, com estrelas e rejogar.
+           `historico.size` é o nº de itens distintos já jogados — o numerador do % de vocabulário. */
+        fases={agruparFases(linhasDaFonte, antessala.jogo)}
+        onJogarFase={(refs) => {
+          const r = montarRodada(antessala.jogo, null, new Set(refs));
+          if (r) setAntessala(r);
+        }}
+        acervoTotal={acervoDaFonte.length}
+        itensJogados={historico.size}
         onJogar={() => comecar(antessala)}
         onTrocar={() => {
           const naTela = new Set<string>(antessala.previa.map(i => i.ref));

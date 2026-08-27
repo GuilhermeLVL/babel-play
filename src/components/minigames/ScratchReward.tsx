@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Sparkles, Play, RotateCcw, Flame, Trophy, Sprout } from 'lucide-react';
+import { Sparkles, Play, RotateCcw, Flame, Trophy, Sprout, Star, Target, Timer } from 'lucide-react';
 import type { RoundReport, ResumoDaSequencia } from '@core';
-import { summarize } from '@core';
+import { summarize, estrelasDaRodada } from '@core';
 import type { AgeProfileType } from '../../lib/profile';
 import { comemorar, pontosDoElemento } from '../../lib/juice';
 import { burstFromElement } from '../../lib/effects';
@@ -159,14 +159,35 @@ export default function ScratchReward({
     if (bateuRecorde) burstFromElement(placarRef.current, 'record');
   };
 
+  const estrelas = estrelasDaRodada(resumo.precisao);
+  const segundos = Math.round((report.durationMs ?? 0) / 1000);
+
   return (
-    <div className="flex-1 flex flex-col items-center justify-center gap-5 p-6 animate-in fade-in duration-200">
+    /* `min-h-[70vh]`: no modo aba (sem o invólucro `fixed inset-0` do telaCheia) o contêiner não
+       tinha altura, o `justify-center` não tinha o que centrar e a tela inteira grudava no TOPO —
+       o "bug do resultado lá em cima" relatado pelo dono (2026-08-27). Com o piso de altura, o
+       centro existe nos dois modos. */
+    <div className="flex-1 min-h-[70vh] flex flex-col items-center justify-center gap-5 p-6 animate-in fade-in duration-200">
       <div className="text-center">
         <p className="label-mono">{ageProfile === 'senior' ? 'Fim da rodada' : 'Rodada concluída'}</p>
         <h2 className="font-display font-black text-2xl text-ink mt-1">
           {resumo.acertos} de {resumo.total}
         </h2>
-        <p className="text-[13px] text-ink-muted mt-0.5">{resumo.precisao}% de acerto</p>
+        {/* AS ESTRELAS DA FASE — a mesma régua de `estrelasDaRodada` usada no mapa de fases da
+            antessala: o que você ganha aqui é o que aparece lá. Estrela vazia fica na tela de
+            propósito: é ela que diz "dá para voltar e buscar as 3". */}
+        <div className="flex items-center justify-center gap-1 mt-2" aria-label={`${estrelas} de 3 estrelas`} title={`${estrelas} de 3 estrelas (${resumo.precisao}% de acerto)`}>
+          {[1, 2, 3].map((n) => (
+            <Star key={n} className={`w-7 h-7 ${n <= estrelas ? 'text-warn fill-warn' : 'text-border-subtle'}`} aria-hidden />
+          ))}
+        </div>
+        {/* Estatísticas com ícone, uma linha: pontos, precisão, tempo. É o "detalhezinho de
+            imersão" pedido — números que a rodada já tinha e não mostrava. */}
+        <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 mt-2.5 text-[13px] text-ink-muted tabular-nums">
+          <span className="flex items-center gap-1.5" title="Pontos desta rodada"><Trophy className="w-3.5 h-3.5 text-warn" aria-hidden /> <b className="text-ink font-display">{report.score}</b> pts</span>
+          <span className="flex items-center gap-1.5" title="Precisão"><Target className="w-3.5 h-3.5 text-good" aria-hidden /> {resumo.precisao}%</span>
+          {segundos > 0 && <span className="flex items-center gap-1.5" title="Duração da rodada"><Timer className="w-3.5 h-3.5" aria-hidden /> {segundos}s</span>}
+        </div>
       </div>
 
       {/* A recompensa fica embaixo; o canvas por cima é a camada que se raspa.
@@ -234,6 +255,16 @@ export default function ScratchReward({
             </p>
           )}
 
+          {/* A CAÇA AO RECORDE — o outro gancho da esteira: quando o recorde está perto, dizer a
+              DISTÂNCIA transforma "mais uma" de hábito em missão. Só aparece a até 50% de alcance:
+              "faltam 4.000" não motiva ninguém, "faltam 40" sim. */}
+          {!bateuRecorde && sequencia && recorde !== null && recorde > sequencia.pontos && recorde - sequencia.pontos <= Math.max(30, recorde * 0.5) && (
+            <p className="flex items-center gap-1.5 text-[13px] font-bold text-warn-ink">
+              <Trophy className="w-4 h-4" aria-hidden />
+              faltam {recorde - sequencia.pontos} pts para o seu recorde
+            </p>
+          )}
+
           <div className="flex flex-col items-center gap-2 w-full">
             {/* Emendar é a ação principal e tem o peso visual disso. Quando não há mais material
                 elegível, o botão SOME em vez de ficar inerte, botão que não faz nada ensina que
@@ -251,9 +282,15 @@ export default function ScratchReward({
 
             <div className="flex flex-wrap items-center justify-center gap-2">
               {onRepetir && (
-                <button onClick={onRepetir} className="btn-outline">
+                <button
+                  onClick={onRepetir}
+                  className="btn-outline"
+                  title={estrelas < 3 ? 'As mesmas palavras — para buscar as 3 estrelas' : 'As mesmas palavras de novo'}
+                >
                   <RotateCcw className="w-4 h-4" aria-hidden />
-                  {ageProfile === 'senior' ? 'Repetir as mesmas palavras' : 'De novo, estas'}
+                  {estrelas < 3
+                    ? (ageProfile === 'senior' ? 'Repetir e melhorar as estrelas' : 'De novo, pelas 3 estrelas')
+                    : (ageProfile === 'senior' ? 'Repetir as mesmas palavras' : 'De novo, estas')}
                 </button>
               )}
               <button

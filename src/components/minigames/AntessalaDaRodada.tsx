@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
-import { X, Play, Shuffle, RotateCcw, Trophy, Flame, Target, Sparkles } from 'lucide-react';
+import { X, Play, Shuffle, RotateCcw, Trophy, Flame, Target, Sparkles, Star, SlidersHorizontal, ChevronDown } from 'lucide-react';
 import { fetchRecordes, type RecordeDoJogo } from '../../data/api';
 import { eventosVistos, todosOsEventos } from '../../lib/eventosDeJogo';
 import { IconePixel } from '../views/play/IconesPixel';
-import type { MinigameId } from '@core';
+import type { MinigameId, FaseJogada } from '@core';
+import { nivelNoJogo } from '@core';
 import type { AgeProfileType } from '../../lib/profile';
 import type { ItemDaAntessala } from '@core';
 import { Segmentado, Ladrilho } from '../ui';
@@ -94,6 +95,18 @@ interface AntessalaProps {
   };
   /** Estimativa de duração, quando MEDIDA. `null` vira "rodada curta" — nunca um minuto chutado. */
   duracao?: string | null;
+  /**
+   * As FASES já jogadas deste jogo nesta fonte, mais recente primeiro (`agruparFases`).
+   * É o mapa de fases do pedido do dono: cada rodada passada com estrelas, pontos e a
+   * possibilidade de REJOGAR aquele conteúdo exato para melhorar a pontuação.
+   */
+  fases?: FaseJogada[];
+  /** Remonta a rodada com os itens exatos de uma fase passada. */
+  onJogarFase?: (refs: string[]) => void;
+  /** Tamanho do acervo da fonte — é o denominador do "% do vocabulário já jogado". */
+  acervoTotal?: number;
+  /** Quantos itens distintos do acervo a pessoa já jogou (o numerador). */
+  itensJogados?: number;
   /** `null` quando não há rodada anterior deste jogo nesta fonte. */
   onRepetir: (() => void) | null;
   onTrocar: () => void;
@@ -162,6 +175,10 @@ export default function AntessalaDaRodada({
   ageProfile,
   fonte,
   duracao,
+  fases,
+  onJogarFase,
+  acervoTotal,
+  itensJogados,
   onRepetir,
   onTrocar,
   onJogar,
@@ -321,8 +338,17 @@ export default function AntessalaDaRodada({
                 Linha de chips, não modal: o usuário já está a um clique de jogar. Chip sem itens
                 suficientes fica DESABILITADO com o motivo, botão que falha ao ser clicado é pior
                 que botão ausente. */}
+            {/* RECOLHIDOS por pedido do dono (2026-08-27): as duas fileiras de chips vinham ANTES
+                do progresso e da lista — configuração raramente mexida cobrindo a informação que
+                decide "jogo ou não". Continuam a um clique, mas agora pedem o clique. */}
             {filtroDificuldade && (
-              <div className="mt-3 space-y-1.5">
+              <details className="mt-3 group">
+                <summary className="flex items-center gap-1.5 text-[12px] font-semibold text-ink-muted hover:text-ink cursor-pointer select-none w-fit list-none [&::-webkit-details-marker]:hidden">
+                  <SlidersHorizontal className="w-3.5 h-3.5" aria-hidden />
+                  Ajustar a rodada (nível e foco)
+                  <ChevronDown className="w-3.5 h-3.5 transition-transform group-open:rotate-180" aria-hidden />
+                </summary>
+                <div className="mt-2 space-y-1.5">
                 <Segmentado
                   rotulo="nível"
                   rotuloDoGrupo="Dificuldade das palavras desta rodada"
@@ -358,7 +384,8 @@ export default function AntessalaDaRodada({
                     Seleção montada no seu dispositivo (sem conexão com o servidor).
                   </p>
                 )}
-              </div>
+                </div>
+              </details>
             )}
           </div>
           {/* p-2 sobre um ícone de 20px dá 36px de alvo. O projeto já teve de voltar aqui uma vez:
@@ -373,19 +400,52 @@ export default function AntessalaDaRodada({
           </button>
         </header>
 
-        {/* ── A FAIXA DO PLACAR: o que você tem a bater. Só aparece com histórico. ── */}
-        {gameId && recorde && (
-          <div className="card-panel bg-canvas px-4 py-3 mb-5 flex flex-wrap items-center gap-x-5 gap-y-1.5 text-[12.5px]">
-            <span className="flex items-center gap-2 font-bold text-ink">
-              <IconePixel id={gameId as MinigameId} className="w-6 h-6" /> Seu placar neste jogo
-            </span>
-            <span className="flex items-center gap-1.5 text-warn-ink font-black tabular-nums"><Trophy className="w-3.5 h-3.5" aria-hidden /> {recorde.melhorPontos}</span>
-            {(recorde.melhorCombo ?? 0) > 0 && <span className="flex items-center gap-1.5 text-ink tabular-nums"><Flame className="w-3.5 h-3.5 text-warn" aria-hidden /> combo {recorde.melhorCombo}</span>}
-            {recorde.precisao != null && <span className="flex items-center gap-1.5 text-ink tabular-nums"><Target className="w-3.5 h-3.5 text-good" aria-hidden /> {recorde.precisao}%</span>}
-            <span className="text-ink-muted">{recorde.rodadas} {recorde.rodadas === 1 ? 'rodada' : 'rodadas'}</span>
-            <span className="flex items-center gap-1.5 text-ink-muted ml-auto"><Sparkles className="w-3.5 h-3.5 text-accent" aria-hidden /> eventos raros: {vistos}/{totalEventos}</span>
-          </div>
-        )}
+        {/* ── O HERÓI DO PROGRESSO: a primeira coisa depois do título é o SEU caminho neste jogo,
+            não a configuração da rodada (pedido do dono, 2026-08-27). Nível com barra, recorde a
+            bater, % do vocabulário já enfrentado — o que mostra que jogar de novo constrói algo.
+            Só aparece com histórico: para quem nunca jogou não há progresso a mentir. ── */}
+        {gameId && recorde && (() => {
+          const niv = nivelNoJogo(recorde.rodadas);
+          const pctVocab = acervoTotal && acervoTotal > 0
+            ? Math.min(100, Math.round(((itensJogados ?? 0) / acervoTotal) * 100))
+            : null;
+          return (
+            <section className="card-panel bg-canvas p-4 mb-5">
+              <div className="flex flex-wrap items-center gap-x-5 gap-y-3">
+                <div className="flex items-center gap-3 min-w-0">
+                  <IconePixel id={gameId as MinigameId} className="w-9 h-9 shrink-0" />
+                  <div className="min-w-0">
+                    <p className="font-display font-black text-[15px] text-ink leading-tight">
+                      Nível {niv.nivel} <span className="font-semibold text-ink-muted">neste jogo</span>
+                    </p>
+                    {/* A barra até o próximo nível: 3 rodadas por nível, contado das rodadas
+                        REALMENTE jogadas (recorde.rodadas — rodadas distintas por roundId). */}
+                    <div className="flex items-center gap-2 mt-1">
+                      <div className="w-28 h-2 rounded-full bg-surface overflow-hidden border border-border-subtle" role="progressbar" aria-valuenow={niv.noNivel} aria-valuemax={niv.porNivel} aria-label="Progresso até o próximo nível">
+                        <div className="h-full rounded-full bg-accent transition-all" style={{ width: `${niv.pct}%` }} />
+                      </div>
+                      <span className="text-[11px] text-ink-muted tabular-nums">{niv.noNivel}/{niv.porNivel} p/ nível {niv.nivel + 1}</span>
+                    </div>
+                  </div>
+                </div>
+                <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-[12.5px] ml-auto">
+                  <span className="flex items-center gap-1.5 text-warn-ink font-black tabular-nums" title="Sua melhor pontuação neste jogo"><Trophy className="w-3.5 h-3.5" aria-hidden /> {recorde.melhorPontos}</span>
+                  {(recorde.melhorCombo ?? 0) > 0 && <span className="flex items-center gap-1.5 text-ink tabular-nums" title="Seu maior combo"><Flame className="w-3.5 h-3.5 text-warn" aria-hidden /> ×{recorde.melhorCombo}</span>}
+                  {recorde.precisao != null && <span className="flex items-center gap-1.5 text-ink tabular-nums" title="Precisão histórica"><Target className="w-3.5 h-3.5 text-good" aria-hidden /> {recorde.precisao}%</span>}
+                </div>
+              </div>
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-3 pt-3 border-t border-border-subtle text-[12px] text-ink-muted">
+                <span><b className="text-ink tabular-nums">{recorde.rodadas}</b> {recorde.rodadas === 1 ? 'rodada jogada' : 'rodadas jogadas'}</span>
+                {pctVocab != null && (
+                  <span title={`${itensJogados ?? 0} de ${acervoTotal} itens desta fonte já apareceram para você`}>
+                    <b className="text-ink tabular-nums">{pctVocab}%</b> do vocabulário enfrentado
+                  </span>
+                )}
+                <span className="flex items-center gap-1.5 ml-auto"><Sparkles className="w-3.5 h-3.5 text-accent" aria-hidden /> eventos raros: {vistos}/{totalEventos}</span>
+              </div>
+            </section>
+          );
+        })()}
 
         {/* ── O SALDO ────────────────────────────────────────────────────────────────────────
             Os mesmos quatro números de sempre, agora em ladrilhos: numa linha corrida de texto
@@ -488,6 +548,49 @@ export default function AntessalaDaRodada({
           <p className="text-[12px] text-ink-faint mb-3">
             mostrando {MAX_VISIVEL} de {itens.length}, o resto entra na mesma rodada
           </p>
+        )}
+
+        {/* ── SUAS FASES: as rodadas passadas viram um mapa de fases com estrelas — e cada uma
+            pode ser REJOGADA com o conteúdo exato, para caçar as 3 estrelas ou bater os pontos.
+            Limitado às 6 mais recentes: é uma prateleira de retorno rápido, não um arquivo. ── */}
+        {fases && fases.length > 0 && onJogarFase && (
+          <section className="mt-5">
+            <p className="label-mono mb-2">Suas fases neste jogo</p>
+            <ul className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
+              {fases.slice(0, 6).map((f, idx) => (
+                <li key={f.roundId}>
+                  <button
+                    onClick={() => onJogarFase(f.refs)}
+                    disabled={f.refs.length === 0}
+                    className="w-full text-left card-panel bg-surface hover:border-accent transition-colors p-3 cursor-pointer disabled:opacity-50 disabled:cursor-default group"
+                    title={f.refs.length ? 'Jogar esta fase de novo com as mesmas palavras' : 'Esta rodada antiga não guardou as palavras'}
+                  >
+                    <span className="flex items-center justify-between gap-2">
+                      <span className="text-[12px] font-bold text-ink">Fase {fases.length - idx}</span>
+                      {/* Estrela TEXTUALMENTE preenchida ou vazia — cor sozinha não passa no
+                          alto contraste; o title diz a régua. */}
+                      <span className="flex items-center gap-0.5" title={`${f.estrelas} de 3 estrelas (${f.precisao}% de acerto)`} aria-label={`${f.estrelas} de 3 estrelas`}>
+                        {[1, 2, 3].map((n) => (
+                          <Star key={n} className={`w-3.5 h-3.5 ${n <= f.estrelas ? 'text-warn fill-warn' : 'text-border-subtle'}`} aria-hidden />
+                        ))}
+                      </span>
+                    </span>
+                    <span className="flex flex-wrap items-center gap-x-3 gap-y-0.5 mt-1.5 text-[11.5px] text-ink-muted tabular-nums">
+                      {f.pontos > 0 && <span className="flex items-center gap-1"><Trophy className="w-3 h-3" aria-hidden /> {f.pontos}</span>}
+                      <span className="flex items-center gap-1"><Target className="w-3 h-3" aria-hidden /> {f.acertos}/{f.total}</span>
+                      {f.combo > 1 && <span className="flex items-center gap-1"><Flame className="w-3 h-3" aria-hidden /> ×{f.combo}</span>}
+                      {quandoCaiu(f.quando) && <span className="ml-auto text-ink-faint">{quandoCaiu(f.quando)}</span>}
+                    </span>
+                    {f.refs.length > 0 && (
+                      <span className="flex items-center gap-1 mt-1.5 text-[11px] font-semibold text-accent-ink opacity-0 group-hover:opacity-100 transition-opacity">
+                        <RotateCcw className="w-3 h-3" aria-hidden /> jogar de novo{f.estrelas < 3 ? ' e melhorar' : ''}
+                      </span>
+                    )}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </section>
         )}
 
         <div className="flex flex-wrap items-center gap-2.5 mt-5">

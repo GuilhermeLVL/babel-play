@@ -64,7 +64,9 @@ export default function ResumoDaRodada({
   const Tendencia = delta == null ? null : delta > 0.01 ? TrendingUp : delta < -0.01 ? TrendingDown : Minus
 
   return (
-    <div className="card-panel p-5 space-y-4 max-w-xl mx-auto">
+    /* `my-auto` centra o cartão dentro do invólucro flex do `telaCheia`; sem ele o resumo grudava
+       no topo da tela (o mesmo defeito da raspadinha). `overflow-y-auto` protege rodadas longas. */
+    <div className="card-panel p-5 space-y-4 max-w-xl w-full mx-auto my-auto max-h-[92vh] overflow-y-auto custom-scrollbar">
       <div className="flex items-baseline justify-between">
         <h2 className="font-display font-extrabold text-[17px] text-ink">Rodada concluída</h2>
         <span className="label-mono">{jogo} · {fonte}</span>

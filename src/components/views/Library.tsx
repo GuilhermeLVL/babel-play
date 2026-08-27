@@ -429,13 +429,15 @@ export default function Library({ onChangeView, recordings, onRecordingsChange, 
           >
             {ageProfile === 'kids' ? 'Meus Vídeos & Áudios' : ageProfile === 'senior' ? 'Minhas Lições' : 'Coleções e Mídia'}
           </button>
-          <button
+          {/* "Cofre de Memória" (RAG) fora da interface: sem índice de embeddings real era uma
+              vitrine vazia (decisão do dono, 2026-08-26). O componente fica no código. */}
+          {false && <button
             onClick={() => setActiveTab('vault')}
             aria-pressed={activeTab === 'vault'}
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[13px] font-bold transition-colors cursor-pointer ${activeTab === 'vault' ? 'bg-surface shadow-sm text-ink' : 'text-ink-muted hover:text-ink'}`}
           >
             <Lock className="w-3.5 h-3.5" /> {ageProfile === 'kids' ? 'Cofre Secreto' : ageProfile === 'senior' ? 'Arquivos Seguros' : 'Cofre de Memória'}
-          </button>
+          </button>}
         </div>
 
         {activeTab === 'collections' && (

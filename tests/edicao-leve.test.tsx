@@ -10,10 +10,10 @@ vi.mock('../src/lib/edicao', () => ({ EDICAO_LEVE: true }))
 describe('edição leve', () => {
   beforeEach(() => vi.resetModules())
 
-  it('menu = Início · Capturar · Biblioteca · Jogar · Ajustes', async () => {
+  it('menu = Início · Capturar · Biblioteca · Vocabulário · Jogar · Ajustes', async () => {
     const { NAV_ITEMS } = await import('../src/components/shell/navItems')
     // A ordem vem da lista mestra (navItems); aqui só importa QUAIS telas existem na leve.
-    expect([...NAV_ITEMS.map((i) => i.id)].sort()).toEqual(['capture', 'hub', 'library', 'play', 'settings'])
+    expect([...NAV_ITEMS.map((i) => i.id)].sort()).toEqual(['capture', 'hub', 'library', 'metrics', 'play', 'settings'])
   })
 
   it('identidade nasce anônima (tudo no IndexedDB, zero rede) e a porta de login nunca abre', async () => {

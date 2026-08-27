@@ -28,8 +28,8 @@ interface HubProps {
 }
 
 export default function Hub({ onChangeView, recordings, ageProfile = 'pro', progress, metrics }: HubProps) {
-  // Edição leve: Vocabulário e Revisão não existem como telas; o caminho é Jogar.
-  const ir = (view: string, data?: unknown) => onChangeView(EDICAO_LEVE && (view === 'metrics' || view === 'study') ? 'play' : view, data as never);
+  // Edição leve: a Revisão (study) não existe como tela; o caminho é Jogar. Vocabulário existe.
+  const ir = (view: string, data?: unknown) => onChangeView(EDICAO_LEVE && view === 'study' ? 'play' : view, data as never);
   const [filterCategory, setFilterCategory] = useState<'all' | 'video' | 'audio' | 'document'>('all');
 
   /**

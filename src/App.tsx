@@ -697,7 +697,7 @@ export default function App() {
               metrics={metrics}
             />
           )}
-          {activeView === 'metrics' && !anonimo && <Metrics recordings={recordings} onChangeView={navigateTo} ageProfile={ageProfile} />}
+          {activeView === 'metrics' && (EDICAO_LEVE || !anonimo) && <Metrics recordings={recordings} onChangeView={navigateTo} ageProfile={ageProfile} />}
 
           {activeView === 'profile' && !anonimo && <Perfil progress={progress} ageProfile={ageProfile} />}
           {activeView === 'settings' && (

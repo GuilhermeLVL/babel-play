@@ -27,11 +27,11 @@ describe('aprimoramentos', () => {
   })
 
   it('intensidade tem teto pelo nível, e voltar para pequena é sempre permitido', () => {
-    expect(intensidadeMaxima(0)).toBe('pequena')
+    expect(intensidadeMaxima(0)).toBe('media') // média é livre: o padrão do app não pode nascer invisível
     expect(intensidadeMaxima(1)).toBe('media')
     expect(intensidadeMaxima(2)).toBe('grande')
     setIntensidade('grande')
-    expect(intensidadeEfetiva()).toBe('pequena') // Nv.0: o desejo não fura o teto
+    expect(intensidadeEfetiva()).toBe('media') // Nv.0: o desejo não fura o teto
     registrarAprimoramento('particulas')
     registrarAprimoramento('particulas')
     expect(intensidadeEfetiva()).toBe('grande')
@@ -42,7 +42,7 @@ describe('aprimoramentos', () => {
   it('multiplicadores crescem com nível e intensidade, com teto duro', () => {
     setIntensidade('media')
     const base = ajusteDeBurst()
-    expect(base.countMul).toBeCloseTo(0.7) // Nv.0 força intensidade pequena (teto)
+    expect(base.countMul).toBeCloseTo(1) // Nv.0 + média = comportamento clássico intacto
     registrarAprimoramento('particulas')
     registrarAprimoramento('particulas')
     registrarAprimoramento('particulas')

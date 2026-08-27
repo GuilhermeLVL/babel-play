@@ -46,9 +46,11 @@ export function progressoDoAprimoramento(id: string): number {
 
 // ── Intensidade (preferência livre, com teto no nível dominado) ──
 
-/** Intensidade exige nível: média = Nv.1+, grande = Nv.2+. Pequena é sempre livre. */
+/** Pequena e média são livres (média é o padrão do app); só a GRANDE é prêmio (Nv.2+).
+ *  A 1ª versão travava até a média no Nv.0 — resultado real: o rastro do mouse nascia com
+ *  faíscas de 1px por 0,45s, invisíveis (achado do dono, 2026-08-27). */
 export function intensidadeMaxima(nivel: number): Intensidade {
-  return nivel >= 2 ? 'grande' : nivel >= 1 ? 'media' : 'pequena';
+  return nivel >= 2 ? 'grande' : 'media';
 }
 
 const ORDEM: Intensidade[] = ['pequena', 'media', 'grande'];

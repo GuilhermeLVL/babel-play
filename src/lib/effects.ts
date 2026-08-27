@@ -238,11 +238,11 @@ export const BURST_SPECS: Record<BurstKind, BurstSpec> = {
 
   // ── RASTRO DO MOUSE (lib/rastroDoMouse): emitido a cada ~45ms — POUCAS particulas e vida curta,
   //    senão o teto de vivas engole as comemorações de verdade. ──
-  rastroFaisca:   { count: 3, speed: 1.4, size: [1.2, 2.2], life: 450, colorToken: '--accent', gravidade: 0.02 },
-  rastroEstrelas: { count: 2, speed: 1.1, size: [3, 4.5], life: 600, colorToken: '--warn', forma: 'emoji', emojis: ['⭐', '✨'] },
-  rastroCoracoes: { count: 2, speed: 1.1, size: [2.5, 4], life: 600, colorToken: '--accent', forma: 'coracao', paleta: ['#F04E23', '#FF7BAC', '#E63946'] },
-  rastroPixel:    { count: 3, speed: 1.4, size: [1.5, 2.5], life: 450, colorToken: '--accent', forma: 'pixel', paleta: ['#F04E23', '#F59E0B', '#3E8E4E'] },
-  rastroEmoji:    { count: 2, speed: 1.1, size: [3, 4.5], life: 650, colorToken: '--warn', forma: 'emoji' },
+  rastroFaisca:   { count: 4, speed: 1.6, size: [2, 3.2], life: 650, colorToken: '--accent', gravidade: 0.02 },
+  rastroEstrelas: { count: 2, speed: 1.1, size: [3.5, 5], life: 750, colorToken: '--warn', forma: 'emoji', emojis: ['⭐', '✨'] },
+  rastroCoracoes: { count: 2, speed: 1.1, size: [3, 4.5], life: 750, colorToken: '--accent', forma: 'coracao', paleta: ['#F04E23', '#FF7BAC', '#E63946'] },
+  rastroPixel:    { count: 4, speed: 1.6, size: [2, 3], life: 650, colorToken: '--accent', forma: 'pixel', paleta: ['#F04E23', '#F59E0B', '#3E8E4E'] },
+  rastroEmoji:    { count: 2, speed: 1.1, size: [3.5, 5], life: 800, colorToken: '--warn', forma: 'emoji' },
 };
 
 // ─────────────────────────────── Barramento de rajadas ───────────────────────────────

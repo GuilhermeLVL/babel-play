@@ -24,6 +24,8 @@ interface P {
   x: number; y: number; vx: number; vy: number;
   size: number; alpha: number; alphaDir: number;
   phase: number;
+  /** Recém-nascida: não paga a vida do intervalo em que ainda não existia (ver render). */
+  nova?: boolean;
   /**
    * Rajada: milissegundos restantes. `null` = partícula ambiente (não morre).
    *
@@ -62,6 +64,8 @@ export default function ParticleCanvas({ enabled, performanceMode, theme, darkMo
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   /** Fila de rajadas pedidas entre um quadro e outro (o listener não pode tocar no estado do loop). */
   const pendingRef = useRef<Array<{ x: number; y: number; kind: BurstKind }>>([]);
+  /** Acorda o loop quando ele dormiu por falta de partículas (ver `dormindo` no render). */
+  const wakeRef = useRef<(() => void) | null>(null);
 
   /**
    * `enabled` JÁ carrega a decisão resolvida: o App inicializa o interruptor a partir do
@@ -74,7 +78,7 @@ export default function ParticleCanvas({ enabled, performanceMode, theme, darkMo
   // O barramento fica ligado enquanto o canvas existir — inclusive quando o ambiente está off.
   useEffect(() => {
     if (!active) return;
-    return onBurst((e) => { pendingRef.current.push(e); });
+    return onBurst((e) => { pendingRef.current.push(e); wakeRef.current?.(); });
   }, [active]);
 
   useEffect(() => {
@@ -158,6 +162,9 @@ export default function ParticleCanvas({ enabled, performanceMode, theme, darkMo
       const ox = vx - rect.left;
       const oy = vy - rect.top;
       const color = readColor(spec.colorToken);
+      // LIDO UMA VEZ POR RAJADA, não por partícula: `emojisDoPack()` faz localStorage + JSON.parse,
+      // e dentro do loop isso virava dezenas de leituras síncronas por comemoração.
+      const packDaLoja = emojisDoPack();
       // TETO DE PARTÍCULAS VIVAS. Sem ele, comemorações em sequência empilham milhares de objetos
       // e a animação engasga justamente na hora de comemorar — que é quando o travamento mais
       // estraga. Descarta as rajadas mais ANTIGAS em vez de recusar a nova.
@@ -216,6 +223,7 @@ export default function ParticleCanvas({ enabled, performanceMode, theme, darkMo
           alpha: 0.9,
           alphaDir: -1,
           phase: 0,
+          nova: true,
           life: ms,
           maxLife: ms,
           color: spec.paleta ? spec.paleta[Math.floor(Math.random() * spec.paleta.length)] : color,
@@ -224,9 +232,9 @@ export default function ParticleCanvas({ enabled, performanceMode, theme, darkMo
             ? spec.emojis[Math.floor(Math.random() * spec.emojis.length)]
             : spec.forma === 'emoji'
               // Forma emoji sem lista própria (skin/rastro): sorteia do PACK equipado na loja.
-              ? emojisDoPack()[Math.floor(Math.random() * emojisDoPack().length)]
+              ? packDaLoja[Math.floor(Math.random() * packDaLoja.length)]
               : (!spec.forma && (skin === 'estrelas' || skin === 'emoji')
-                ? (skin === 'emoji' ? emojisDoPack()[Math.floor(Math.random() * emojisDoPack().length)] : (Math.random() < 0.5 ? '⭐' : '✨'))
+                ? (skin === 'emoji' ? packDaLoja[Math.floor(Math.random() * packDaLoja.length)] : (Math.random() < 0.5 ? '⭐' : '✨'))
                 : undefined),
           giro: rand(0, Math.PI * 2),
           giroVel: rand(-0.18, 0.18),
@@ -240,6 +248,18 @@ export default function ParticleCanvas({ enabled, performanceMode, theme, darkMo
        câmera lenta exatamente nos PCs modestos que o Modo Desempenho existe para atender.
        O teto de 3 evita que uma pausa da aba teleporte tudo de uma vez ao voltar. */
     let lastTs = 0;
+    /* SONO DO LOOP. Com ambiente desligado (perfil sênior / painel de leitura) e nenhuma rajada
+       viva, o rAF ficava limpando um canvas de viewport inteira a 60fps para sempre — custo de
+       CPU/bateria por nada. Quando não há partícula nem pedido pendente, o loop PARA; o próprio
+       barramento (`onBurst` → wakeRef) o acorda no próximo pedido. `lastTs` zera no despertar:
+       um `dtReal` do tamanho do cochilo mataria a rajada nova antes do primeiro quadro. */
+    let dormindo = false;
+    wakeRef.current = () => {
+      if (!dormindo) return;
+      dormindo = false;
+      lastTs = 0;
+      animFrameId = requestAnimationFrame(render);
+    };
 
     const render = (ts: number) => {
       /* DUAS MEDIDAS DE TEMPO, e a distinção não é preciosismo — foi um defeito medido.
@@ -268,7 +288,11 @@ export default function ParticleCanvas({ enabled, performanceMode, theme, darkMo
 
         if (p.life !== null) {
           // ── Rajada: desacelera, esmaece e morre — em tempo de RELÓGIO (ver `dtReal` acima).
-          p.life -= dtReal;
+          // Exceto no quadro do NASCIMENTO: a partícula que acabou de entrar na fila não viveu o
+          // intervalo medido por `dtReal`. Numa aba estrangulada (rAF ~1fps) esse intervalo é ~1s
+          // e uma faísca de 650ms morria ANTES do primeiro desenho — rajada invisível.
+          if (p.nova) p.nova = false;
+          else p.life -= dtReal;
           if (p.life <= 0) { particles.splice(i, 1); continue; }
           // Confete quase não tem atrito (ele PLANA); faísca desacelera rápido.
           const atrito = Math.pow(p.forma === 'confete' || p.forma === 'emoji' ? 0.995 : p.forma === 'fumaca' ? 0.97 : 0.94, k);
@@ -385,6 +409,10 @@ export default function ParticleCanvas({ enabled, performanceMode, theme, darkMo
       ctx.shadowBlur = 0;
       ctx.globalCompositeOperation = 'source-over';
 
+      if (particles.length === 0 && pendingRef.current.length === 0) {
+        dormindo = true; // o quadro que acabou de rodar já deixou o canvas limpo
+        return;
+      }
       animFrameId = requestAnimationFrame(render);
     };
     animFrameId = requestAnimationFrame(render);
@@ -393,6 +421,7 @@ export default function ParticleCanvas({ enabled, performanceMode, theme, darkMo
       observer.disconnect();
       temaObserver.disconnect();
       cancelAnimationFrame(animFrameId);
+      wakeRef.current = null;
     };
   }, [active, theme, darkMode, ambient]);
 

@@ -54,10 +54,12 @@ export function instalarRastroDoMouse(): void {
   let ultimoY = -999;
 
   window.addEventListener('pointermove', (e) => {
-    const id = readRastro();
-    if (id === 'off' || animacoesDesligadas()) return;
+    // O acelerador vem ANTES da leitura do estilo: pointermove dispara dezenas de vezes por
+    // segundo e `readRastro()` toca o localStorage — barato um a um, caro em rajada contínua.
     const agora = performance.now();
     if (agora - ultimoT < INTERVALO_MS) return;
+    const id = readRastro();
+    if (id === 'off' || animacoesDesligadas()) return;
     const dx = e.clientX - ultimoX;
     const dy = e.clientY - ultimoY;
     if (dx * dx + dy * dy < DISTANCIA_MIN * DISTANCIA_MIN) return;

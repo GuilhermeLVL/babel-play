@@ -1502,6 +1502,7 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
     const refsAnteriores = ultimaRodada.get(antessala.jogo) ?? [];
     return telaCheia(
       <AntessalaDaRodada
+        gameId={antessala.jogo}
         titulo={jogoUI?.titulo[ageProfile] ?? ''}
         /* Z1 — CHIPS DE DIFICULDADE. Só aparecem onde significam algo: os 5 jogos de frase jogam
            sobre falas, que não têm dificuldade por palavra. Chip inerte ensina que a tela mente. */

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Grid3x3, Search, Timer, Type, Shuffle, Music, Headphones, PenLine, Link2 } from 'lucide-react';
+import { IconePixel } from './IconesPixel';
 import type { MinigameId } from '@core';
 import type { AgeProfileType } from '../../../lib/profile';
 
@@ -35,7 +35,7 @@ export const JOGOS: JogoUI[] = [
   {
     chave: 'memory',
     id: 'memory',
-    icone: <Grid3x3 className="w-5 h-5" />,
+    icone: <IconePixel id="memory" className="w-5 h-5" />,
     titulo: { kids: 'Jogo da memória', pro: 'Memória: palavra e tradução', senior: 'Jogo da memória' },
     descricao: {
       kids: 'Ache os pares de cartas viradas',
@@ -46,7 +46,7 @@ export const JOGOS: JogoUI[] = [
   {
     chave: 'wordsearch',
     id: 'wordsearch',
-    icone: <Search className="w-5 h-5" />,
+    icone: <IconePixel id="wordsearch" className="w-5 h-5" />,
     titulo: { kids: 'Caça-palavras', pro: 'Caça-palavras por definição', senior: 'Caça-palavras' },
     descricao: {
       kids: 'Leia a dica e ache a palavra escondida',
@@ -57,7 +57,7 @@ export const JOGOS: JogoUI[] = [
   {
     chave: 'termo',
     id: 'termo',
-    icone: <Type className="w-5 h-5" />,
+    icone: <IconePixel id="termo" className="w-5 h-5" />,
     titulo: { kids: 'Escreva a palavra', pro: 'Soletrar (Termo)', senior: 'Escrever a palavra' },
     descricao: {
       kids: 'Acertou? Vêm duas de uma vez. Acertou de novo? Quatro!',
@@ -68,7 +68,7 @@ export const JOGOS: JogoUI[] = [
   {
     chave: 'scramble',
     id: 'scramble',
-    icone: <Shuffle className="w-5 h-5" />,
+    icone: <IconePixel id="scramble" className="w-5 h-5" />,
     titulo: { kids: 'Monte a frase', pro: 'Frase embaralhada', senior: 'Montar a frase' },
     descricao: {
       kids: 'Coloque as palavras na ordem certa',
@@ -79,7 +79,7 @@ export const JOGOS: JogoUI[] = [
   {
     chave: 'karaoke',
     id: 'karaoke',
-    icone: <Music className="w-5 h-5" />,
+    icone: <IconePixel id="karaoke" className="w-5 h-5" />,
     titulo: { kids: 'Cante junto', pro: 'Karaokê da fala', senior: 'Repetir em voz alta' },
     descricao: {
       kids: 'Fale junto com o áudio e veja sua nota',
@@ -90,7 +90,7 @@ export const JOGOS: JogoUI[] = [
   {
     chave: 'escuta',
     id: 'escuta',
-    icone: <Headphones className="w-5 h-5" />,
+    icone: <IconePixel id="escuta" className="w-5 h-5" />,
     titulo: { kids: 'Qual foi?', pro: 'Qual foi a fala? (escuta)', senior: 'Reconhecer a fala' },
     descricao: {
       kids: 'Ouça e ache a frase certa entre as parecidas',
@@ -101,7 +101,7 @@ export const JOGOS: JogoUI[] = [
   {
     chave: 'ditado',
     id: 'ditado',
-    icone: <PenLine className="w-5 h-5" />,
+    icone: <IconePixel id="ditado" className="w-5 h-5" />,
     titulo: { kids: 'Escreva o que ouviu', pro: 'Ditado', senior: 'Escrever o que ouviu' },
     descricao: {
       kids: 'Ouça quantas vezes quiser e escreva',
@@ -112,7 +112,7 @@ export const JOGOS: JogoUI[] = [
   {
     chave: 'conectores',
     id: 'conectores',
-    icone: <Link2 className="w-5 h-5" />,
+    icone: <IconePixel id="conectores" className="w-5 h-5" />,
     titulo: { kids: 'Palavras que ligam', pro: 'Caça-conectores', senior: 'Palavras de ligação' },
     descricao: {
       kids: 'Ache as palavrinhas que mudam o rumo da frase',
@@ -123,7 +123,7 @@ export const JOGOS: JogoUI[] = [
   {
     chave: 'blitz',
     id: 'blitz',
-    icone: <Timer className="w-5 h-5" />,
+    icone: <IconePixel id="blitz" className="w-5 h-5" />,
     titulo: { kids: 'Duelo relâmpago', pro: 'Duelo relâmpago (contra o tempo)', senior: 'Desafio rápido' },
     descricao: {
       kids: 'Acerte rápido e faça sequência para multiplicar',

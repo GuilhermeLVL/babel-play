@@ -1,5 +1,9 @@
-import { useMemo } from 'react';
-import { X, Play, Shuffle, RotateCcw } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
+import { X, Play, Shuffle, RotateCcw, Trophy, Flame, Target, Sparkles } from 'lucide-react';
+import { fetchRecordes, type RecordeDoJogo } from '../../data/api';
+import { eventosVistos, todosOsEventos } from '../../lib/eventosDeJogo';
+import { IconePixel } from '../views/play/IconesPixel';
+import type { MinigameId } from '@core';
 import type { AgeProfileType } from '../../lib/profile';
 import type { ItemDaAntessala } from '@core';
 import { Segmentado, Ladrilho } from '../ui';
@@ -61,6 +65,8 @@ interface FiltroDificuldade {
 
 interface AntessalaProps {
   titulo: string;
+  /** Id do jogo — liga a faixa de recordes (melhor placar/combo/precisão) e o colecionável. */
+  gameId?: string;
   /** `null` quando o filtro não se aplica a este jogo. */
   filtroDificuldade?: FiltroDificuldade | null;
   itens: ItemDaAntessala[];
@@ -147,6 +153,7 @@ function quandoCaiu(ultimaEm?: number): string | null {
 
 export default function AntessalaDaRodada({
   titulo,
+  gameId,
   filtroDificuldade,
   itens,
   historico,
@@ -162,6 +169,16 @@ export default function AntessalaDaRodada({
   pularSempre,
   onMudarPularSempre,
 }: AntessalaProps) {
+  /* Recordes DESTE jogo: transforma a antessala em tela pré-jogo — a pessoa vê o que tem a bater
+     antes de apertar Jogar. Best-effort: sem histórico, a faixa simplesmente não aparece. */
+  const [recorde, setRecorde] = useState<RecordeDoJogo | null>(null);
+  useEffect(() => {
+    if (!gameId) return;
+    void fetchRecordes().then((rs) => setRecorde(rs.find((r) => r.exerciseKind === gameId) ?? null));
+  }, [gameId]);
+  const vistos = eventosVistos().length;
+  const totalEventos = todosOsEventos().length;
+
   /**
    * O SALDO em número. É a linha que responde "o que vem" sem obrigar a contar selos na lista —
    * e é ela que denuncia a rodada repetida: "0 você nunca viu" cinco vezes seguidas é visível.
@@ -355,6 +372,20 @@ export default function AntessalaDaRodada({
             <X className="w-5 h-5" />
           </button>
         </header>
+
+        {/* ── A FAIXA DO PLACAR: o que você tem a bater. Só aparece com histórico. ── */}
+        {gameId && recorde && (
+          <div className="card-panel bg-canvas px-4 py-3 mb-5 flex flex-wrap items-center gap-x-5 gap-y-1.5 text-[12.5px]">
+            <span className="flex items-center gap-2 font-bold text-ink">
+              <IconePixel id={gameId as MinigameId} className="w-6 h-6" /> Seu placar neste jogo
+            </span>
+            <span className="flex items-center gap-1.5 text-warn-ink font-black tabular-nums"><Trophy className="w-3.5 h-3.5" aria-hidden /> {recorde.melhorPontos}</span>
+            {(recorde.melhorCombo ?? 0) > 0 && <span className="flex items-center gap-1.5 text-ink tabular-nums"><Flame className="w-3.5 h-3.5 text-warn" aria-hidden /> combo {recorde.melhorCombo}</span>}
+            {recorde.precisao != null && <span className="flex items-center gap-1.5 text-ink tabular-nums"><Target className="w-3.5 h-3.5 text-good" aria-hidden /> {recorde.precisao}%</span>}
+            <span className="text-ink-muted">{recorde.rodadas} {recorde.rodadas === 1 ? 'rodada' : 'rodadas'}</span>
+            <span className="flex items-center gap-1.5 text-ink-muted ml-auto"><Sparkles className="w-3.5 h-3.5 text-accent" aria-hidden /> eventos raros: {vistos}/{totalEventos}</span>
+          </div>
+        )}
 
         {/* ── O SALDO ────────────────────────────────────────────────────────────────────────
             Os mesmos quatro números de sempre, agora em ladrilhos: numa linha corrida de texto

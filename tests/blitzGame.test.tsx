@@ -34,7 +34,20 @@ vi.mock('../src/lib/juice', () => ({
   pontosDoElemento: vi.fn(),
   pontosFlutuantes: vi.fn(),
   tremor: vi.fn(),
+  tremorDeTela: vi.fn(),
+  pulsoDeZoom: vi.fn(),
+  flashDeTela: vi.fn(),
+  vibrar: vi.fn(),
+  executarEfeito: vi.fn(),
   multiplicador: () => 1,
+}))
+// Sem sorteio nos testes: um evento raro (4% por acerto) tornava a rodada não-determinística.
+vi.mock('../src/lib/eventosDeJogo', () => ({
+  sortearEventoRaro: () => null,
+  eventosCondicionais: () => [],
+}))
+vi.mock('../src/lib/ranking', () => ({
+  enviarParaRanking: vi.fn(), lerApelido: () => '', salvarApelido: vi.fn(), apelidoValido: () => false,
 }))
 vi.mock('../src/lib/effects', () => ({ emitBurst: vi.fn() }))
 vi.mock('../src/lib/soundFx', () => ({ play: vi.fn() }))

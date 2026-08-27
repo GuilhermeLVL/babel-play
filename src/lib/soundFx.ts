@@ -45,7 +45,8 @@ export type SoundEvent =
   // ── Duelo relâmpago (jogo contra o tempo)
   | 'tick'         // último segundos: um toque seco por segundo
   | 'timeBonus'    // ganhou segundos de volta — deslizada para cima
-  | 'fever';       // entrou no modo fever — acorde cheio
+  | 'fever'        // entrou no modo fever — acorde cheio
+  | 'fanfarra';    // fim de rodada — arpejo maior; transpose sobe com as estrelas
 
 let audioCtx: AudioContext | null = null;
 let soundMuted = false;
@@ -167,6 +168,7 @@ export const EVENTS: Record<SoundEvent, EventShape> = {
   tick:        { steps: [0],              dur: 0.03, stagger: 0,     gain: 0.4,  harsh: true },
   timeBonus:   { steps: [7],              dur: 0.12, stagger: 0,     gain: 0.7,  slide: 1.5 },
   fever:       { steps: [0, 4, 7, 12],    dur: 0.22, stagger: 0.04,  gain: 1 },
+  fanfarra:    { steps: [0, 4, 7, 12, 16], dur: 0.16, stagger: 0.09, gain: 1 },
 };
 
 /** Volume-mestre do kit. Um número, para calibrar tudo de uma vez. */

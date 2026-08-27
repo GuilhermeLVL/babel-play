@@ -79,6 +79,8 @@ interface SettingsProps {
   // Reabre o tour de apresentação só na sessão atual (não persiste nada, ao
   // contrário de "Reconfigurar", que apaga a escolha local/nuvem no servidor).
   onReplayTour: () => void;
+  /** Abre a tela Sobre (quem fez o app). Opcional: fora da leve o App pode não passar. */
+  onAbrirSobre?: () => void;
   ageProfile?: AgeProfileType;
   // Preferências de shell. Vivem no App (localStorage) porque o shell é renderizado fora
   // desta view; aqui esta tela é o lugar CANÔNICO de mexer nelas — o popover da paleta é
@@ -150,6 +152,7 @@ export default function Settings({
   darkMode,
   onOpenStudio,
   onReplayTour,
+  onAbrirSobre,
   ageProfile = 'pro',
   setAgeProfile,
   menuPosition,
@@ -790,6 +793,20 @@ export default function Settings({
                 Abrir guia
               </button>
             </div>
+            {onAbrirSobre && (
+              <div className="p-5 flex items-center justify-between gap-3 border-b border-border-subtle">
+                <div>
+                  <div className="font-bold text-[14px] mb-1">Sobre o Babel Play</div>
+                  <p className="text-[12px] text-ink-muted">Quem fez o app, como entrar em contato e como apoiar o projeto.</p>
+                </div>
+                <button
+                  onClick={onAbrirSobre}
+                  className="shrink-0 px-4 py-2 rounded-xl border border-border-subtle bg-surface hover:border-accent text-[13px] font-bold cursor-pointer"
+                >
+                  Abrir
+                </button>
+              </div>
+            )}
             <div className="p-5 flex items-center justify-between gap-3 border-b border-border-subtle">
               <div>
                 <div className="font-bold text-[14px] mb-1">Rever apresentação</div>

@@ -1433,3 +1433,71 @@ body.animations-off .hover\:-translate-y-1:hover {
 
 .animations-off .blitz-pop, .animations-off .blitz-refill, .animations-off .blitz-erro,
 .animations-off .blitz-fever, .performance-mode .blitz-fever { animation: none; }
+
+/* ─────────────── DUELO RELÂMPAGO v2 — "arcade de brinquedo" ───────────────
+   Botões gordos com sombra dura que AFUNDAM ao apertar; acerto dá squash & stretch; combo é um
+   selo grande; marcos soltam uma onda de choque. Só transform/opacity/box-shadow — nada muda
+   layout. As guardas globais (.animations-off/.performance-mode) desligam tudo no fim. */
+.blitz-btn {
+  border-width: 2px;
+  border-radius: 1rem;
+  box-shadow: 0 5px 0 0 var(--border-subtle);
+  transition: transform 0.09s ease, box-shadow 0.09s ease, background-color 0.15s, border-color 0.15s;
+}
+.blitz-btn:not(:disabled):hover { transform: translateY(-2px); box-shadow: 0 7px 0 0 var(--border-subtle); }
+.blitz-btn:not(:disabled):active { transform: translateY(4px); box-shadow: 0 1px 0 0 var(--border-subtle); }
+.blitz-btn-certa { box-shadow: 0 5px 0 0 color-mix(in srgb, var(--good) 60%, transparent) !important; }
+.blitz-btn-errada { box-shadow: 0 5px 0 0 color-mix(in srgb, var(--error) 60%, transparent) !important; }
+
+@keyframes blitz-squash {
+  0%   { transform: scale(1, 1); }
+  30%  { transform: scale(1.12, 0.82); }
+  60%  { transform: scale(0.94, 1.1) translateY(-6px); }
+  100% { transform: scale(1, 1); }
+}
+.blitz-squash { animation: blitz-squash 0.45s cubic-bezier(0.34, 1.56, 0.64, 1); }
+
+@keyframes blitz-balanca {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-7px) rotate(-1deg); }
+  45% { transform: translateX(6px) rotate(1deg); }
+  70% { transform: translateX(-4px); }
+}
+.blitz-balanca { animation: blitz-balanca 0.4s ease-out; }
+
+/* O selo do combo: número gigante semitransparente acima da pergunta. */
+@keyframes blitz-selo-pop {
+  0%   { transform: scale(0.6); opacity: 0; }
+  40%  { transform: scale(1.18); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+.blitz-selo { animation: blitz-selo-pop 0.28s cubic-bezier(0.34, 1.56, 0.64, 1); }
+
+/* Onda de choque dos marcos: um anel que nasce no centro e expande. */
+@keyframes blitz-onda {
+  0%   { transform: translate(-50%, -50%) scale(0.2); opacity: 0.9; border-width: 6px; }
+  100% { transform: translate(-50%, -50%) scale(3.2); opacity: 0; border-width: 1px; }
+}
+.blitz-onda {
+  position: absolute; left: 50%; top: 50%; width: 180px; height: 180px;
+  border: 4px solid var(--warn); border-radius: 9999px; pointer-events: none;
+  animation: blitz-onda 0.7s ease-out forwards;
+}
+
+/* Estrelas do resultado: caem uma a uma. */
+@keyframes blitz-estrela {
+  0%   { transform: scale(2.4) rotate(-18deg); opacity: 0; }
+  60%  { transform: scale(0.9) rotate(4deg); opacity: 1; }
+  100% { transform: scale(1) rotate(0); opacity: 1; }
+}
+.blitz-estrela { animation: blitz-estrela 0.45s cubic-bezier(0.34, 1.56, 0.64, 1) both; }
+
+@keyframes blitz-recorde {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.08); }
+}
+.blitz-recorde { animation: blitz-recorde 0.8s ease-in-out infinite; }
+
+.animations-off .blitz-squash, .animations-off .blitz-balanca, .animations-off .blitz-selo,
+.animations-off .blitz-onda, .animations-off .blitz-estrela, .animations-off .blitz-recorde,
+.performance-mode .blitz-onda, .performance-mode .blitz-recorde { animation: none; }

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { bonusDeVelocidade, bonusDeTempo, pontosDoAcerto, emFever, ehMarco, rotuloDaSequencia } from '../src/core/minigames/blitzRegras'
+import { bonusDeVelocidade, bonusDeTempo, pontosDoAcerto, emFever, ehMarco, rotuloDaSequencia, estrelasDaRodada } from '../src/core/minigames/blitzRegras'
 
 describe('duelo relâmpago: regras de velocidade e tempo', () => {
   it('bônus de velocidade cai linearmente e zera aos 3 s', () => {
@@ -27,5 +27,17 @@ describe('duelo relâmpago: regras de velocidade e tempo', () => {
     expect(rotuloDaSequencia(2)).toBe('combo')
     expect(rotuloDaSequencia(5)).toBe('em chamas')
     expect(rotuloDaSequencia(8)).toBe('FEVER')
+  })
+})
+
+describe('estrelas da rodada', () => {
+  const o = (correct: boolean, hinted = false) => ({ correct, hinted })
+  it('3 = impecável; 2 = ≥70%; 1 = acertou algo; 0 = nada ou vazio', () => {
+    expect(estrelasDaRodada([])).toBe(0)
+    expect(estrelasDaRodada([o(false), o(false)])).toBe(0)
+    expect(estrelasDaRodada([o(true), o(true)])).toBe(3)
+    expect(estrelasDaRodada([o(true), o(true, true)])).toBe(2)
+    expect(estrelasDaRodada([o(true), o(true), o(true), o(false), o(true), o(true), o(true), o(true), o(true), o(true)])).toBe(2)
+    expect(estrelasDaRodada([o(true), o(false), o(false)])).toBe(1)
   })
 })

@@ -108,5 +108,5 @@ export type SchedulerType = 'fsrs' | 'leitner';
  * porque minigame vive do BARALHO, que é global — sob a Análise ele herdaria a exigência de uma
  * sessão gravada e, sem nenhuma, a tela renderizava em branco.
  */
-export type ViewType = 'hub' | 'capture' | 'study' | 'play' | 'library' | 'analysis' | 'settings' | 'reading' | 'metrics' | 'profile';
+export type ViewType = 'hub' | 'capture' | 'study' | 'play' | 'library' | 'analysis' | 'settings' | 'reading' | 'metrics' | 'profile' | 'sobre';
 

@@ -66,3 +66,17 @@ export function rotuloDaSequencia(sequencia: number): string {
   if (sequencia >= 2) return 'combo';
   return '';
 }
+
+/**
+ * Estrelas da rodada (0–3), para a tela de resultado:
+ *   3 = todos os respondidos certos, sem dica; 2 = ≥ 70% de acerto; 1 = acertou algo; 0 = nada.
+ * Conta só o que foi RESPONDIDO — quem não foi perguntado não derruba estrela.
+ */
+export function estrelasDaRodada(outcomes: ReadonlyArray<{ correct: boolean; hinted?: boolean }>): 0 | 1 | 2 | 3 {
+  if (outcomes.length === 0) return 0
+  const certos = outcomes.filter((o) => o.correct).length
+  if (certos === 0) return 0
+  if (certos === outcomes.length && outcomes.every((o) => !o.hinted)) return 3
+  if (certos / outcomes.length >= 0.7) return 2
+  return 1
+}

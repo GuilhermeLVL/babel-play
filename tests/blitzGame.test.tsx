@@ -100,19 +100,23 @@ describe('BlitzGame — a rodada congela quando acaba', () => {
     let relatorio: RoundReport | null = null
     render(<BlitzGame items={items} ageProfile="pro" onFinish={r => { relatorio = r }} onExit={() => {}} />)
 
-    /* Responde os três. Entre um item e o outro há o intervalo de 550 ms da revelação. */
-    for (let i = 0; i < items.length; i++) {
+    /* Responde os dois primeiros (a revelação do acerto dura 420 ms) e o último SEM avançar. */
+    for (let i = 0; i < items.length - 1; i++) {
       responderCerto(items)
       avancar(560)
     }
+    responderCerto(items)
 
-    /* AQUI ESTAVA O DEFEITO: neste ponto `onFinish` ainda não disparou (falta a comemoração de
-       900 ms) e, antes da correção, as quatro alternativas já estavam habilitadas de novo. */
+    /* AQUI ESTAVA O DEFEITO: na janela da revelação do último item, um segundo toque tinha de
+       encontrar os botões desabilitados — antes da correção eles reabilitavam. */
     expect(relatorio).toBeNull()
     const segundoToque = clicar('cat')
     expect(segundoToque).toBe('desabilitado')
 
-    avancar(1000)
+    /* v2: a rodada termina numa TELA DE RESULTADO; o relatório só sai no "Continuar". */
+    avancar(500)
+    expect(relatorio).toBeNull()
+    expect(clicar('Continuar')).toBe('clicou')
     expect(relatorio).not.toBeNull()
     expect(relatorio!.items).toHaveLength(3)
   })
@@ -122,13 +126,15 @@ describe('BlitzGame — a rodada congela quando acaba', () => {
     let relatorio: RoundReport | null = null
     render(<BlitzGame items={items} ageProfile="pro" onFinish={r => { relatorio = r }} onExit={() => {}} />)
 
-    for (let i = 0; i < items.length; i++) {
+    for (let i = 0; i < items.length - 1; i++) {
       responderCerto(items)
       avancar(560)
     }
-    clicar('cat')          // toque extra, deve ser ignorado
+    responderCerto(items)
+    clicar('cat')          // toque extra na janela da revelação, deve ser ignorado
     clicar('dog')          // e outro, em alternativa diferente
-    avancar(1000)
+    avancar(500)
+    clicar('Continuar')
 
     const ids = relatorio!.items.map(o => o.cardId)
     expect(ids).toHaveLength(3)
@@ -142,12 +148,14 @@ describe('BlitzGame — a rodada congela quando acaba', () => {
     let relatorio: RoundReport | null = null
     render(<BlitzGame items={items} ageProfile="pro" onFinish={r => { relatorio = r }} onExit={() => {}} />)
 
-    for (let i = 0; i < items.length; i++) {
+    for (let i = 0; i < items.length - 1; i++) {
       responderCerto(items)
       avancar(560)
     }
+    responderCerto(items)
     clicar('cat')
-    avancar(1000)
+    avancar(500)
+    clicar('Continuar')
     expect(relatorio!.items).toHaveLength(3)
   })
 
@@ -159,10 +167,12 @@ describe('BlitzGame — a rodada congela quando acaba', () => {
     /* Deixa o relógio inteiro correr sem responder nada. 60 s no perfil `pro`, 1 s por tique. */
     esgotarOTempo()
 
-    /* "quem não foi perguntado não errou" — e agora também não pode acertar depois da hora. */
-    expect(clicar('house')).toBe('desabilitado')
+    /* "quem não foi perguntado não errou" — e a pergunta nem existe mais: a tela de resultado
+       tomou o lugar (v2). Acertar depois da hora continua impossível. */
+    expect(clicar('house')).toBe('ausente')
 
-    avancar(1000)
+    expect(relatorio).toBeNull()
+    expect(clicar('Continuar')).toBe('clicou')
     expect(relatorio).not.toBeNull()
     expect(relatorio!.items).toHaveLength(0)
   })
@@ -171,8 +181,9 @@ describe('BlitzGame — a rodada congela quando acaba', () => {
     const items = itens()
     render(<BlitzGame items={items} ageProfile="pro" onFinish={() => {}} onExit={() => {}} />)
     esgotarOTempo()
-    const tesoura = screen.getByRole('button', { name: 'Cortar duas alternativas' })
-    expect((tesoura as HTMLButtonElement).disabled).toBe(true)
+    /* v2: a tela de resultado substitui o jogo — a tesoura some junto com a pergunta. */
+    const tesoura = screen.queryByRole('button', { name: 'Cortar duas alternativas' })
+    expect(tesoura === null || (tesoura as HTMLButtonElement).disabled).toBe(true)
   })
 
   /* A rodada normal tem de continuar funcionando: sem isto, "congelar" poderia ser só travar tudo. */

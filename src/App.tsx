@@ -18,6 +18,7 @@ const Play = lazy(() => import('./components/views/Play'));
 const IChat = lazy(() => import('./components/IChat'));
 const LayoutStudio = lazy(() => import('./components/LayoutStudio'));
 const Perfil = lazy(() => import('./components/views/Perfil'));
+const Sobre = lazy(() => import('./components/views/Sobre'));
 const Login = lazy(() => import('./components/Login'));
 const ResetPassword = lazy(() => import('./components/auth/ResetPassword'));
 // O tour de boas-vindas só existe para quem AINDA não passou por ele (`onboarded === false`) —
@@ -700,12 +701,14 @@ export default function App() {
           {activeView === 'metrics' && (EDICAO_LEVE || !anonimo) && <Metrics recordings={recordings} onChangeView={navigateTo} ageProfile={ageProfile} />}
 
           {activeView === 'profile' && !anonimo && <Perfil progress={progress} ageProfile={ageProfile} />}
+          {activeView === 'sobre' && <Sobre />}
           {activeView === 'settings' && (
             <Settings
               theme={theme}
               darkMode={darkMode}
               onOpenStudio={() => setIsStudioOpen(true)}
               onReplayTour={() => setOnboarded(false)}
+              onAbrirSobre={() => setActiveView('sobre')}
               ageProfile={ageProfile}
               setAgeProfile={setAgeProfile}
               menuPosition={menuPosition}

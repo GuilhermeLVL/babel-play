@@ -143,7 +143,7 @@ export default function PracticeMenu({ onChangeView, sessionId, studyLang = '' }
 
       <div className="py-1">
         {/* OS DESTINOS MUDARAM quando os exercícios legados saíram, e mudaram para o substituto
-            de verdade — não para o lobby genérico. O trecho selecionado viaja junto e entra na
+            de verdade, não para o lobby genérico. O trecho selecionado viaja junto e entra na
             frente da fila da rodada (ver `priorizar` em `Play.tsx`).
 
             "Reescrever este trecho" SAIU e não foi substituído: o exercício de reescrita dependia

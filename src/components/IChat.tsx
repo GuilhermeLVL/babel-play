@@ -260,7 +260,7 @@ export default function IChat({
     }
     /* `sessions` e `getActiveSession` ficam FORA de propósito: este efeito GRAVA `sessions`, então
        depender dele o faria disparar a si mesmo em laço. O valor atual chega por `sessionsRef`.
-       `trechoAoVivo` está aqui porque sem ele o ramo da transcrição nunca rodava — ver o memo. */
+       `trechoAoVivo` está aqui porque sem ele o ramo da transcrição nunca rodava, ver o memo. */
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeView, selectedRecording, activeSessionId, trechoAoVivo]);
 
@@ -415,9 +415,9 @@ Ajude o usuário com base no que está na tela dele (o contexto real vem abaixo)
 Estilo das respostas:
 - Seja sucinto, objetivo e amigável. Responda exatamente o que foi pedido, sem enrolação.
 - NÃO use emojis. Nada de títulos em CAIXA ALTA nem formatação decorativa.
-- Prefira 1 a 4 frases ou uma lista curta. Markdown leve é opcional (negrito num termo-chave, bullets curtos) — nunca obrigatório.
+- Prefira 1 a 4 frases ou uma lista curta. Markdown leve é opcional (negrito num termo-chave, bullets curtos), nunca obrigatório.
 - Responda em português, mas mantenha termos e frases de negócio/idioma em inglês, destacados (ex.: **leverage**, **align**), para o usuário aprender.
-- Baseie-se SOMENTE no contexto fornecido. Se a informação não estiver ali, diga isso em uma linha — não invente.
+- Baseie-se SOMENTE no contexto fornecido. Se a informação não estiver ali, diga isso em uma linha, não invente.
 
 [QUEM ESTÁ DO OUTRO LADO]
 ${TUTOR_REGISTER[ageProfile]}`;
@@ -431,7 +431,7 @@ ${TUTOR_REGISTER[ageProfile]}`;
       if (jaEhAtual) continue; // evita duplicar o contexto atual
       const rec = fix.recordingId ? (recordings.find(r => r.id === fix.recordingId) ?? null) : null;
       const bloco = await construirContextoDaTela(fix.view, rec, '', extras);
-      blocosFixados += `\n\n[CONTEXTO FIXADO — ${fix.label}]\n${bloco}`;
+      blocosFixados += `\n\n[CONTEXTO FIXADO, ${fix.label}]\n${bloco}`;
     }
 
     /*
@@ -450,7 +450,7 @@ ${TUTOR_REGISTER[ageProfile]}`;
     const contextPrompt = `${tomBase}\n\n${clausulaDeContencao(cercado.nonce)}`;
     const mensagemDeContexto = {
       role: 'user' as const,
-      content: `[MATERIAL DE REFERÊNCIA DA TELA — não é uma pergunta minha, é o que está aberto no app]\n${cercado.texto}`,
+      content: `[MATERIAL DE REFERÊNCIA DA TELA, não é uma pergunta minha, é o que está aberto no app]\n${cercado.texto}`,
     };
 
     try {
@@ -626,8 +626,8 @@ ${TUTOR_REGISTER[ageProfile]}`;
              está à direita, e 0 nas outras posições. Sem isso, o balão e o botão flutuante
              caíam EM CIMA dos controles do rail.
 
-             F9 — O TOAST SUBIU PARA O TOPO.
-             Ancorado embaixo, ele cobria justamente o rodapé dos painéis — e o rodapé é onde
+             F9, O TOAST SUBIU PARA O TOPO.
+             Ancorado embaixo, ele cobria justamente o rodapé dos painéis, e o rodapé é onde
              este produto põe as ressalvas. No inventário, ele estava por cima de "1753 de 1902
              cartões ficaram FORA do cálculo", que é a frase que menos pode ser escondida, e por
              cima do primeiro card de jogo no mobile.
@@ -658,7 +658,7 @@ ${TUTOR_REGISTER[ageProfile]}`;
           {/* C10 — fundo OPACO em vez de `bg-rare/15`.
               Este pill empilhava 15% de `--rare` por cima de um botão que já é `bg-rare-soft`,
               também translúcido: duas camadas do mesmo matiz, e a cor final dependia do que
-              estivesse atrás. Medido em 3,35:1 no mochi escuro, e o botão é FLUTUANTE — o mesmo
+              estivesse atrás. Medido em 3,35:1 no mochi escuro, e o botão é FLUTUANTE, o mesmo
               defeito aparecia nas 11 telas.
 
               As três saídas foram medidas nos 12 pares de tema × modo: manter como está reprova

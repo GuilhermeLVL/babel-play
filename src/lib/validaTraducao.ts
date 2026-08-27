@@ -90,7 +90,7 @@ export function validarTraducao(
   const alvo = base(esperado)
 
   /* REGRA BARATA, ANTES DO DETECTOR: se a "tradução" é o texto original de volta (só caixa/espaço
-     diferentes) e os idiomas pedidos são distintos, o tradutor não traduziu — vale para frases
+     diferentes) e os idiomas pedidos são distintos, o tradutor não traduziu, vale para frases
      curtas também, onde o detector de idioma não tem sinal. Era o caso das legendas "traduzidas"
      idênticas ao que foi dito. */
   const original = (textoOriginal || '').trim()

@@ -363,7 +363,7 @@ export default function BlitzGame({ items, ageProfile, onFinish, onExit }: Blitz
             onClick={(e) => cortarDuas(e.currentTarget)}
             disabled={cortesRestantes <= 0 || cortadas.length > 0 || !!escolhido || acabou}
             className="p-2 rounded-lg text-ink-muted hover:text-warn-ink hover:bg-surface-hover disabled:opacity-40 cursor-pointer"
-            title={'Cortar duas alternativas erradas (' + cortesRestantes + ' restantes — conta como dica)'}
+            title={'Cortar duas alternativas erradas (' + cortesRestantes + ' restantes, conta como dica)'}
             data-tour="tesoura"
             aria-label="Cortar duas alternativas"
           >

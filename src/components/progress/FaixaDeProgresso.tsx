@@ -67,7 +67,7 @@ export default function FaixaDeProgresso({ progress, ageProfile }: { progress: D
         />
         <p className="text-[11.5px] text-ink-muted mt-1.5">
           {progress.practicedToday
-            ? `Você já revisou hoje — ofensiva de ${progress.streakDays} ${progress.streakDays === 1 ? 'dia' : 'dias'}.`
+            ? `Você já revisou hoje, ofensiva de ${progress.streakDays} ${progress.streakDays === 1 ? 'dia' : 'dias'}.`
             : 'Uma revisão hoje mantém a sua ofensiva viva.'}
         </p>
       </div>

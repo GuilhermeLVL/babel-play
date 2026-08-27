@@ -121,13 +121,13 @@ export default function AnalysisExpandedKpi({ kpi, onClose, utterances, vicios }
          token, feita em `core/learning/fillers.ts`. O que exige cuidado é a lista ser por idioma. */
       case 'fillers': {
         if (!vicios || vicios.palavras === 0) {
-          return <SemDado motivo="Sem dados suficientes para esta análise nesta sessão. Nenhuma fala em idioma com lista de marcadores. Só português e inglês têm lista — em outros idiomas o app diz que não sabe, em vez de mostrar zero." />;
+          return <SemDado motivo="Sem dados suficientes para esta análise nesta sessão. Nenhuma fala em idioma com lista de marcadores. Só português e inglês têm lista, em outros idiomas o app diz que não sabe, em vez de mostrar zero." />;
         }
         const maior = vicios.detalhe[0]?.vezes ?? 1;
         return (
           <div className="space-y-6">
             <p className="text-[13px] text-ink-muted leading-relaxed">
-              Contagem de marcadores de hesitação no seu transcrito — <strong className="text-ink">{vicios.total}</strong> em{' '}
+              Contagem de marcadores de hesitação no seu transcrito, <strong className="text-ink">{vicios.total}</strong> em{' '}
               {vicios.palavras} palavras ({vicios.porMilPalavras} por mil), usando a lista de{' '}
               {vicios.idiomas.join(' e ')}.
             </p>
@@ -151,14 +151,14 @@ export default function AnalysisExpandedKpi({ kpi, onClose, utterances, vicios }
             {/* Sem isto o total parece completo quando não é. */}
             {vicios.palavrasSemLista > 0 && (
               <p className="text-[12px] text-ink-faint leading-relaxed">
-                {vicios.palavrasSemLista} palavras ficaram de fora da conta — estão em idiomas sem lista
+                {vicios.palavrasSemLista} palavras ficaram de fora da conta, estão em idiomas sem lista
                 de marcadores, e chutar seria inventar.
               </p>
             )}
 
             <p className="text-[11.5px] text-ink-faint leading-relaxed">
               Só entram marcadores que não podem ser outra coisa. Palavras ambíguas ficam fora de
-              propósito: <em>like</em> é verbo, <em>assim</em> é advérbio, <em>sabe</em> é verbo — incluí-las
+              propósito: <em>like</em> é verbo, <em>assim</em> é advérbio, <em>sabe</em> é verbo, incluí-las
               inflaria a contagem em cerca de 5× no inglês. E <em>um</em> conta como hesitação só em fala
               inglesa; em português é artigo.
             </p>
@@ -313,7 +313,7 @@ export default function AnalysisExpandedKpi({ kpi, onClose, utterances, vicios }
           <div className="space-y-6">
             <div>
               <p className="text-[13px] text-ink-muted leading-relaxed">
-                O índice de facilidade de leitura Flesch avalia a complexidade do texto com base em sílabas por palavra e tamanho das frases — cálculo que exige análise linguística (contagem silábica) ainda não implementada.
+                O índice de facilidade de leitura Flesch avalia a complexidade do texto com base em sílabas por palavra e tamanho das frases, cálculo que exige análise linguística (contagem silábica) ainda não implementada.
               </p>
             </div>
             <SemDado motivo="Esta análise exigiria um modelo de linguagem, que este painel não chama." />
@@ -325,7 +325,7 @@ export default function AnalysisExpandedKpi({ kpi, onClose, utterances, vicios }
           <div className="space-y-6">
             <div>
               <p className="text-[13px] text-ink-muted leading-relaxed">
-                A densidade lexical é a proporção de palavras de conteúdo (substantivos, verbos, adjetivos, advérbios) sobre palavras funcionais — sua medição requer etiquetagem gramatical (POS tagging) por NLP.
+                A densidade lexical é a proporção de palavras de conteúdo (substantivos, verbos, adjetivos, advérbios) sobre palavras funcionais, sua medição requer etiquetagem gramatical (POS tagging) por NLP.
               </p>
             </div>
             <SemDado motivo="Esta análise exigiria um modelo de linguagem, que este painel não chama." />
@@ -365,7 +365,7 @@ export default function AnalysisExpandedKpi({ kpi, onClose, utterances, vicios }
               <p className="text-[13px] text-ink-muted leading-relaxed">
                 Palavras-chave por frequência: os termos de conteúdo mais salientes do
                 transcrito desta sessão, com a contagem real de ocorrências. Classificação
-                semântica em tópicos nomeados exigiria um modelo de linguagem — estes são termos, não tópicos.
+                semântica em tópicos nomeados exigiria um modelo de linguagem, estes são termos, não tópicos.
               </p>
             </div>
             {freq.length === 0 ? (

@@ -147,7 +147,7 @@ export function conferirDitado(esperado: string, escrito: string): ResultadoDita
   const chave = (s: string) => normalizarPalavra(s) || s.trim().toLowerCase();
 
   /* Alinhamento simples por posição, com uma janela de tolerância: se a pessoa pulou ou repetiu
-     uma palavra, comparar rigidamente por índice marcaria TODO o resto como errado — e um erro
+     uma palavra, comparar rigidamente por índice marcaria TODO o resto como errado, e um erro
      no começo apagaria o mérito da frase inteira. A janela de ±2 reencontra o alinhamento. */
   const usadas = new Set<number>();
   const palavras: ResultadoDitado['palavras'] = alvo.map((esperada, i) => {
@@ -164,7 +164,7 @@ export function conferirDitado(esperado: string, escrito: string): ResultadoDita
   /* SEGUNDA PASSADA — só depois de saber quais palavras ditas já foram consumidas por outro
      alvo. Antes isto era feito na mesma passada, com `dito[i]`, e INVENTAVA um erro: quando a
      pessoa PULA uma palavra, a seguinte desliza para aquele índice, então a tela dizia "esperava
-     'Brasil', ouvimos 'Os'" — quando "Os" foi falado certo e casou com o próprio lugar logo
+     'Brasil', ouvimos 'Os'", quando "Os" foi falado certo e casou com o próprio lugar logo
      depois. Trocar por engolir são correções diferentes: uma é repetir a palavra, a outra é
      lembrar de dizê-la. Sem substituta de verdade, `escrita` fica `null` e a tela diz "não
      ouvimos esta palavra". */

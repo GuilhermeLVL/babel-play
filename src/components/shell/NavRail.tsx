@@ -106,7 +106,7 @@ export default function NavRail({ activeView, onChangeView, ageProfile, side, co
       {/* Rodapé ancorado: utilitários */}
       <div className={`shrink-0 border-t border-border-subtle/70 py-3 space-y-2 ${collapsed ? 'px-2' : 'px-3'}`}>
         {/* Sempre `column` (= quebra em linhas): oito controles de 36px somam ~300px e não cabem
-            nos 232px do rail expandido — em `row` eles vazavam por fora da borda. */}
+            nos 232px do rail expandido, em `row` eles vazavam por fora da borda. */}
         <ControlCluster {...controls} orientation="column" />
         {collapsed && (
           <button

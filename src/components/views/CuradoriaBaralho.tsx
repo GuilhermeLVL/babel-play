@@ -94,7 +94,7 @@ export default function CuradoriaBaralho({ triagem, idioma, ageProfile, onVoltar
       danger: true,
       title: `Arquivar ${itens.length} ${itens.length === 1 ? 'palavra' : 'palavras'}?`,
       detail: `Todas com o mesmo motivo: ${ROTULO_MOTIVO[motivo].titulo.toLowerCase()}. `
-        + 'Elas saem das rodadas e continuam guardadas — nada é apagado, e dá para trazer de volta.',
+        + 'Elas saem das rodadas e continuam guardadas, nada é apagado, e dá para trazer de volta.',
       confirmLabel: 'Arquivar todas',
     });
     if (!ok) return;
@@ -111,7 +111,7 @@ export default function CuradoriaBaralho({ triagem, idioma, ageProfile, onVoltar
       setResolvidos(prev => new Set([...prev, ...itens.map(i => i.card.id)]));
       await onMudou();
       if (gravadas === itens.length) toast.ok(`${gravadas} saíram das rodadas`);
-      else toast.warn(`${gravadas} de ${itens.length} arquivadas — as outras falharam e continuam na lista`);
+      else toast.warn(`${gravadas} de ${itens.length} arquivadas, as outras falharam e continuam na lista`);
     } finally { setOcupado(null); }
   };
 
@@ -145,7 +145,7 @@ export default function CuradoriaBaralho({ triagem, idioma, ageProfile, onVoltar
           {ageProfile === 'kids' ? 'Arrumar as palavras' : 'Curadoria do baralho'}
         </h1>
         <p className="text-[13px] text-ink-muted mt-1 max-w-[70ch]">
-          Estas <b>{pendentes.length}</b> não entram nas rodadas de {langLabel(idioma) || 'nenhum idioma'} —
+          Estas <b>{pendentes.length}</b> não entram nas rodadas de {langLabel(idioma) || 'nenhum idioma'},
           e abaixo está o motivo de cada uma. <b>Nada foi apagado.</b> Arquivar só tira do sorteio;
           o cartão continua guardado.
         </p>
@@ -158,7 +158,7 @@ export default function CuradoriaBaralho({ triagem, idioma, ageProfile, onVoltar
         {triagem.outroIdioma.length > 0 && (
           <span className="text-ink-muted flex items-center gap-1.5">
             <Languages className="w-3.5 h-3.5" aria-hidden />
-            {triagem.outroIdioma.length} em outro idioma — estas estão certas, só não são desta rodada
+            {triagem.outroIdioma.length} em outro idioma, estas estão certas, só não são desta rodada
           </span>
         )}
         {total > 0 && (
@@ -188,7 +188,7 @@ export default function CuradoriaBaralho({ triagem, idioma, ageProfile, onVoltar
                 </h2>
                 <span className="text-[12px] font-bold text-ink-muted">{contagem[motivo]}</span>
                 {/* A ação em lote fica no CABEÇALHO do grupo, não no rodapé: é aqui que a pessoa lê
-                    o motivo e decide. E só aparece a partir de 3 itens — com dois, o botão de lote
+                    o motivo e decide. E só aparece a partir de 3 itens, com dois, o botão de lote
                     é mais clique do que arquivar cada um. */}
                 {itens.length >= 3 && (
                   <button
@@ -263,7 +263,7 @@ export default function CuradoriaBaralho({ triagem, idioma, ageProfile, onVoltar
                         <button
                           onClick={() => void marcarResolvido(card.id)}
                           className="p-2 rounded-lg text-ink-muted hover:text-good-ink hover:bg-surface-hover cursor-pointer"
-                          title="Está certo assim — só não mostrar mais"
+                          title="Está certo assim, só não mostrar mais"
                           aria-label={`Manter ${card.word}`}
                         >
                           <Check className="w-4 h-4" />
@@ -277,7 +277,7 @@ export default function CuradoriaBaralho({ triagem, idioma, ageProfile, onVoltar
               {/* Teto de 40 por grupo, dito em voz alta: lista silenciosamente cortada mente. */}
               {itens.length > 40 && (
                 <p className="text-[12px] text-ink-faint mt-2">
-                  mostrando 40 de {itens.length} — resolva estas e as próximas aparecem
+                  mostrando 40 de {itens.length}, resolva estas e as próximas aparecem
                 </p>
               )}
             </section>

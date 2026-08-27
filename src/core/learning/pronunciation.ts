@@ -91,7 +91,7 @@ export function scorePronunciation(
   let feedback: string
   if (!aNorm) feedback = 'Não captei sua fala. Verifique o microfone e tente repetir a frase.'
   else if (overall >= 85) feedback = 'Excelente! Sua fala correspondeu de perto à frase-alvo.'
-  else if (overall >= 60) feedback = 'Bom! A maior parte bateu com o alvo — repita para refinar as palavras que faltaram.'
+  else if (overall >= 60) feedback = 'Bom! A maior parte bateu com o alvo, repita para refinar as palavras que faltaram.'
   else feedback = 'Continue praticando: boa parte das palavras-alvo não apareceu na sua fala.'
 
   return { accuracy, fluency, speed, transcript: attempt, feedback }

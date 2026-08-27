@@ -63,7 +63,7 @@ const SCRIPT_RANGES: Array<{ lang: string; re: RegExp }> = [
   { lang: 'ja', re: /[぀-ゟ゠-ヿ]/ },          // kana (decisivo p/ japonês)
   { lang: 'ko', re: /[가-힯ᄀ-ᇿ]/ },          // hangul
   { lang: 'zh', re: /[一-鿿]/ },                        // han (sem kana → chinês)
-  { lang: 'ru', re: /[Ѐ-ӿ]/ },                        // cirílico (ru/uk — desambiguado abaixo)
+  { lang: 'ru', re: /[Ѐ-ӿ]/ },                        // cirílico (ru/uk, desambiguado abaixo)
   { lang: 'ar', re: /[؀-ۿ]/ },
   { lang: 'he', re: /[֐-׿]/ },
   { lang: 'el', re: /[Ͱ-Ͽ]/ },

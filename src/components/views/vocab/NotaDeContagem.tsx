@@ -49,7 +49,7 @@ export default function NotaDeContagem({
         {totalLegado > 0 && (
           <>
             {' '}
-            {pctLegado >= 99 ? 'Todas' : `${totalLegado} de ${total}`} as palavras do seu acervo vêm de antes disso —
+            {pctLegado >= 99 ? 'Todas' : `${totalLegado} de ${total}`} as palavras do seu acervo vêm de antes disso,
             elas aparecem como <strong className="text-ink">1×</strong> porque os encontros anteriores
             não foram registrados, não porque só aconteceram uma vez.
           </>

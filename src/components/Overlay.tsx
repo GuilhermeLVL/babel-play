@@ -415,11 +415,11 @@ export default function Overlay({ isVisible, onClose, bgColor, onBgColorChange, 
       {/* Barra de controles — FORA DO FLUXO (`absolute`), à direita do topo.
           A ALÇA sempre visível (o punho à esquerda da barra) substitui a antiga dica "Controles
           ocultos", que era um elemento `absolute` no MESMO canto: por ser posicionado e vir depois
-          no DOM, ele ganhava o hit-test e cobria exatamente os botões Personalizar e Fechar — o
+          no DOM, ele ganhava o hit-test e cobria exatamente os botões Personalizar e Fechar, o
           primeiro clique do usuário sempre acertava a dica, nunca o botão. Uma affordance só.
 
           Ela era uma LINHA do flex (`shrink-0`), então a legenda começava 74px abaixo do topo da
-          janela — sempre, mesmo com a barra ociosa. Agora a alça é a única coisa que fica por cima
+          janela, sempre, mesmo com a barra ociosa. Agora a alça é a única coisa que fica por cima
           da legenda, e a barra inteira só aparece quando o ponteiro chega. `barAberta` mantém tudo
           expandido enquanto o painel está aberto ou os controles estão travados, senão o usuário
           perderia a barra debaixo do dedo enquanto ajusta. */}
@@ -589,7 +589,7 @@ export default function Overlay({ isVisible, onClose, bgColor, onBgColorChange, 
           {/* MODO CONVERSA — balões roláveis (eles à esquerda, você à direita).
               O `max-h-[calc(100%-1rem)]` que ficava aqui era INERTE: o pai era `absolute` de altura
               auto, e um percentual contra altura indeterminada resolve como `none`. Medido: a lista
-              ficava com 1764px numa janela de 440 — 1416px transbordavam para cima e morriam no
+              ficava com 1764px numa janela de 440, 1416px transbordavam para cima e morriam no
               `overflow-hidden` da raiz, o scroll nunca engatava (`scrollHeight === clientHeight`)
               e por isso o auto-scroll e o botão "novas falas" eram código morto. */}
           {layoutMode === 'conversation' && hasAnyCaption && (
@@ -667,7 +667,7 @@ export default function Overlay({ isVisible, onClose, bgColor, onBgColorChange, 
               </span>
               <p className="text-[13px] font-bold text-ink">Esperando a primeira fala</p>
               <p className="text-[11px] text-ink-muted max-w-[38ch] leading-snug">
-                Dê play no vídeo ou comece a falar — a legenda aparece aqui, por cima de tudo.
+                Dê play no vídeo ou comece a falar, a legenda aparece aqui, por cima de tudo.
               </p>
             </div>
           )}
@@ -766,7 +766,7 @@ export default function Overlay({ isVisible, onClose, bgColor, onBgColorChange, 
                 >
                   <option value="assisted">Sempre visível (apoio total)</option>
                   <option value="intermediate">Visível, discreta</option>
-                  <option value="immersion">Imersão — oculta (clique na legenda para espiar)</option>
+                  <option value="immersion">Imersão, oculta (clique na legenda para espiar)</option>
                 </select>
               </div>
 

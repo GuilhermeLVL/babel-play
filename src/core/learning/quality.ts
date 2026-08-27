@@ -61,12 +61,12 @@ export function baseLangDe(code: string | undefined | null): string {
 
 /* ─────────────────────────── PALAVRAS GRAMATICAIS ───────────────────────────
    Por IDIOMA, e não uma lista só. A lista única de `keywords.ts` mistura inglês e português, o
-   que produz dois erros silenciosos: "a" (artigo em ambos) é filtrado nos dois — certo por
-   acidente —, mas "no" (advérbio inglês / preposição portuguesa) e "é" derrubam palavras válidas
+   que produz dois erros silenciosos: "a" (artigo em ambos) é filtrado nos dois, certo por
+   acidente,, mas "no" (advérbio inglês / preposição portuguesa) e "é" derrubam palavras válidas
    do outro idioma.
 
    IDIOMA SEM LISTA NÃO FILTRA NADA. É deliberado: aplicar a régua inglesa ao francês reprovaria
-   vocabulário legítimo, e um filtro que erra é pior que filtro nenhum — some com o material da
+   vocabulário legítimo, e um filtro que erra é pior que filtro nenhum, some com o material da
    pessoa sem ela saber por quê. */
 
 const GRAMATICAIS: Record<string, ReadonlySet<string>> = {
@@ -141,7 +141,7 @@ export function pistaUtil(traducao: string): boolean {
   /* Pronome/demonstrativo sozinho ("Isso é", "Tu") não define coisa nenhuma.
      `(?!\p{L})` e NÃO `\b`: o `\b` do JavaScript é definido por `[A-Za-z0-9_]`, então um acento
      conta como fronteira de palavra e `/^esta\b/` casava com **"estação"**. Medido: as pistas
-     "estação" (de `station` e de `season`) eram reprovadas como pronome solto — e qualquer cartão
+     "estação" (de `station` e de `season`) eram reprovadas como pronome solto, e qualquer cartão
      capturado traduzido "estágio", "estância" ou "estado" caía no mesmo buraco, em silêncio. */
   if (/^(isso|isto|aquilo|esse|essa|este|esta|tu|eu|ele|ela|nós|voc[êe]|it|this|that)(?!\p{L})/iu.test(t)
       && t.split(/\s+/).length <= 2) return false;
@@ -389,11 +389,11 @@ export function motivoLegivel(motivo: string): string {
 /** Texto curto de cada motivo, na voz do produto (a tela não deve inventar o seu). */
 export const ROTULO_MOTIVO: Record<MotivoDescarte, { titulo: string; conserto: string }> = {
   'sem-pista': { titulo: 'Sem tradução nem frase', conserto: 'Escreva a tradução para ela poder virar pergunta.' },
-  'pista-ruim': { titulo: 'A tradução não explica', conserto: 'Troque por uma definição curta — hoje é um pedaço de fala.' },
+  'pista-ruim': { titulo: 'A tradução não explica', conserto: 'Troque por uma definição curta, hoje é um pedaço de fala.' },
   'palavra-curta': { titulo: 'Curta demais', conserto: 'Uma letra só não dá exercício.' },
-  'palavra-ruido': { titulo: 'Ruído da captura', conserto: 'Veio com número ou símbolo — corrija ou arquive.' },
+  'palavra-ruido': { titulo: 'Ruído da captura', conserto: 'Veio com número ou símbolo, corrija ou arquive.' },
   'traducao-igual': { titulo: 'Tradução igual à palavra', conserto: 'Assim ela não ensina nada; traduza de verdade.' },
-  'gramatical': { titulo: 'Palavra gramatical', conserto: 'Artigo, pronome ou auxiliar — é ruído, não vocabulário.' },
+  'gramatical': { titulo: 'Palavra gramatical', conserto: 'Artigo, pronome ou auxiliar, é ruído, não vocabulário.' },
   'duplicada': { titulo: 'Repetida', conserto: 'Já existe outra igual; mantivemos a mais completa.' },
   'idioma-incerto': { titulo: 'Sem idioma marcado', conserto: 'Sem idioma ela não entra em rodada nenhuma.' },
 };

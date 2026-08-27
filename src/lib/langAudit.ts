@@ -119,7 +119,7 @@ async function classify(input: AuditInput, cfg: LangConfig): Promise<LangFinding
       proposed: null,
       reason: current.srcLang
         ? `${term.cap} não tem texto de origem, então não há como conferir o rótulo "${current.srcLang}". Só você sabe.`
-        : `${term.cap} não tem idioma nem texto de origem. Não há nada que nos permita deduzir o idioma — precisa ser você a dizer.`,
+        : `${term.cap} não tem idioma nem texto de origem. Não há nada que nos permita deduzir o idioma, precisa ser você a dizer.`,
     };
   }
 
@@ -175,7 +175,7 @@ async function classify(input: AuditInput, cfg: LangConfig): Promise<LangFinding
       ...withDetection,
       verdict: 'confiante',
       proposed,
-      reason: `O idioma está certo (${lang}), mas a direção da tradução está errada: ${term.low} traduz para "${current.tgtLang ?? '—'}" em vez de "${proposed.tgtLang}".`,
+      reason: `O idioma está certo (${lang}), mas a direção da tradução está errada: ${term.low} traduz para "${current.tgtLang ?? '-'}" em vez de "${proposed.tgtLang}".`,
     };
   }
 
@@ -188,9 +188,9 @@ async function classify(input: AuditInput, cfg: LangConfig): Promise<LangFinding
     verdict: 'ambiguo',
     proposed,
     reason: unexpectedStrong
-      ? `O texto parece ${lang} (${pct}%), mas ${lang} não é um idioma que você configurou e essa detecção é só heurística — palavras curtas em inglês colidem com ${lang}. Confira antes de aplicar.`
+      ? `O texto parece ${lang} (${pct}%), mas ${lang} não é um idioma que você configurou e essa detecção é só heurística, palavras curtas em inglês colidem com ${lang}. Confira antes de aplicar.`
       : current.srcLang
-        ? `${term.cap} diz "${current.srcLang}" e o texto parece ${lang}, mas só com ${pct}% de confiança — pouco para sobrescrever no automático.`
+        ? `${term.cap} diz "${current.srcLang}" e o texto parece ${lang}, mas só com ${pct}% de confiança, pouco para sobrescrever no automático.`
         : `${term.cap} está sem idioma. O texto parece ${lang}, mas só com ${pct}% de confiança.`,
   };
 }

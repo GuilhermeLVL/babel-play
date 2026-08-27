@@ -56,7 +56,7 @@ export class StreamingCloudStt implements SttProvider {
   /** TODO: abrir o WSS, enviar PCM e emitir onPartial/onFinal. */
   startStream(_opts: StreamingSttOptions): StreamingSttSession {
     throw new Error(
-      `${this.id}: streaming de nuvem ainda não implementado — traga uma API key e registre o adapter (ver comentário no topo do arquivo).`
+      `${this.id}: streaming de nuvem ainda não implementado, traga uma API key e registre o adapter (ver comentário no topo do arquivo).`
     )
   }
 

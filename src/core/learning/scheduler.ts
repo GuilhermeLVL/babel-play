@@ -198,7 +198,7 @@ export function getNextCard<T extends SchedulingState>(
 export function migrateLeitnerToFsrs<T extends SchedulingState>(card: T, now: number): T {
   if (card.stability !== undefined) return card // idempotente
   const box = clamp(Math.round(card.box ?? 1), 1, 5)
-  if (box <= 1) return card // carta nova: sem histórico p/ migrar — FSRS define ao revisar
+  if (box <= 1) return card // carta nova: sem histórico p/ migrar, FSRS define ao revisar
   const stability = clampS(LEITNER_DAYS[box - 1])
   const difficulty = initialDifficulty(FSRS5_DEFAULT_WEIGHTS, 3)
   // lastReview retrocedido p/ a retrievability bater com o dueAt já agendado

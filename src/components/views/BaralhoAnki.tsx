@@ -210,14 +210,14 @@ export default function BaralhoAnki({
               {leitura.temMidia && (
                 <p className="flex items-start gap-2 text-[11px] text-warn-ink">
                   <Info className="w-3.5 h-3.5 mt-0.5 shrink-0" aria-hidden />
-                  Este baralho tem áudio ou imagem. Trazemos só o texto — o resto ficaria sem uso aqui.
+                  Este baralho tem áudio ou imagem. Trazemos só o texto, o resto ficaria sem uso aqui.
                 </p>
               )}
               {leitura.notas.length > TETO && (
                 <p className="flex items-start gap-2 text-[11px] text-warn-ink">
                   <Info className="w-3.5 h-3.5 mt-0.5 shrink-0" aria-hidden />
                   Vou trazer as primeiras <b>{TETO}</b>. Mais que isso de uma vez encheria a sua fila
-                  de revisão de amanhã — importe de novo quando quiser as próximas.
+                  de revisão de amanhã, importe de novo quando quiser as próximas.
                 </p>
               )}
 
@@ -285,7 +285,7 @@ export default function BaralhoAnki({
           <p className="text-[11px] text-ink-faint leading-relaxed">
             O <b>.apkg</b> abre no Anki com duplo clique e já chega com nome de baralho. O
             <b> .txt</b> é separado por tabulação: o Anki importa sem plugin nenhum, e abre em
-            planilha. Em nenhum dos dois vai o histórico de revisão — o agendamento daqui é outro,
+            planilha. Em nenhum dos dois vai o histórico de revisão, o agendamento daqui é outro,
             e as datas não corresponderiam a nada lá.
           </p>
         </section>

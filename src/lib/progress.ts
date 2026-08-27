@@ -114,7 +114,7 @@ export function deriveProgress(metrics: AppMetrics | null | undefined): DerivedP
       /* ERA 20, E ERA MENTIRA. Nenhuma regra de ganho dá seeds por gravar: `seedsGanhasDeEventos`
          só conta palavra capturada (1) e revisão certa (4). O "+20 Seeds" era um número solto que
          prometia uma recompensa que o sistema nunca creditou. As seeds de uma gravação vêm das
-         PALAVRAS que ela produz, e essa é a missão de vocabulário — aqui a recompensa é o XP. */
+         PALAVRAS que ela produz, e essa é a missão de vocabulário, aqui a recompensa é o XP. */
       rewardSeeds: 0,
       rewardUnit: 'por gravação'
     },

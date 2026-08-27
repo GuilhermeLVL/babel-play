@@ -225,13 +225,13 @@ export default function DitadoGame({ rodadas, audioUrl, ageProfile, onFinish, on
         {conferido && (
           <div className="w-full flex flex-col gap-2 animate-in fade-in">
             <p className="text-[12px] text-ink-muted">
-              {conferido.acertos} de {conferido.total} palavras — {conferido.precisao}%
+              {conferido.acertos} de {conferido.total} palavras, {conferido.precisao}%
             </p>
             <p className="flex flex-wrap gap-x-2 gap-y-1.5">
               {/* `palavras` — o campo real de `ResultadoDitado`. Estava `itemRefs`, resíduo da
                   renomeação `ItemOutcome.palavra`→`itemRef`, que varreu este componente por engano:
                   `undefined.map()` dentro do render, ou seja, o Ditado QUEBRAVA ao clicar em
-                  "Conferir" — justo a correção palavra a palavra, que é o que ensina. Passou porque
+                  "Conferir", justo a correção palavra a palavra, que é o que ensina. Passou porque
                   `@types/react` não estava instalado e `conferido` era `any`. */}
               {conferido.palavras.map((p, i) => (
                 <span key={i} className="flex flex-col items-center">
@@ -242,7 +242,7 @@ export default function DitadoGame({ rodadas, audioUrl, ageProfile, onFinish, on
                   {!p.certa && p.escrita && (
                     <span className="text-[11px] text-ink-faint line-through">{p.escrita}</span>
                   )}
-                  {!p.certa && !p.escrita && <span className="text-[11px] text-ink-faint">—</span>}
+                  {!p.certa && !p.escrita && <span className="text-[11px] text-ink-faint">-</span>}
                 </span>
               ))}
             </p>
@@ -257,7 +257,7 @@ export default function DitadoGame({ rodadas, audioUrl, ageProfile, onFinish, on
             onClick={() => { const r = conferirDitado(rodada.fala.text, texto); setConferido(r); avancar(r, true); }}
             className="flex items-center gap-1.5 text-[11px] text-ink-faint hover:text-warn-ink cursor-pointer"
           >
-            <SkipForward className="w-3.5 h-3.5" /> não consigo — pular
+            <SkipForward className="w-3.5 h-3.5" /> não consigo, pular
           </button>
         )}
       </div>

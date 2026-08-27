@@ -50,7 +50,7 @@ export function lerFonteGuardada(sessoesExistentes: readonly string[]): FonteGua
     if (!texto) return PADRAO;
     cru = JSON.parse(texto);
   } catch {
-    return PADRAO;   // storage bloqueado ou JSON corrompido — o padrão sempre funciona
+    return PADRAO;   // storage bloqueado ou JSON corrompido, o padrão sempre funciona
   }
 
   const o = (cru ?? {}) as Partial<FonteGuardada>;

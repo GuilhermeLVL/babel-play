@@ -222,7 +222,7 @@ export function priorizar<T>(lista: T[], alvo: string | undefined, texto: (x: T)
    QUAIS FONTES A TELA PODE OFERECER
 
    O lobby de jogos é montado em dois lugares: a tela Jogar e a aba "Jogos" de uma sessão
-   (`embutido`). `Play.tsx` já escondia o cabeçalho e a barra de progresso no modo embutido —
+   (`embutido`). `Play.tsx` já escondia o cabeçalho e a barra de progresso no modo embutido,
    mas NÃO a faixa "De onde vêm as palavras", que continuava oferecendo "Minhas palavras",
    "Trilha" e um seletor de outra gravação.
 

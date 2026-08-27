@@ -65,17 +65,17 @@ const COPY: Record<Mode, ModeCopy> = {
     headerTitle: 'Conferir o idioma dos meus cartões',
     headerIntro:
       'Compara o idioma gravado em cada cartão com a frase de onde a palavra saiu, e mostra o que não bate.',
-    emptyMsg: 'Você ainda não tem cartões no baralho — não há nada para auditar.',
+    emptyMsg: 'Você ainda não tem cartões no baralho, não há nada para auditar.',
     analyzing: (n) =>
-      `Analisando ${n} ${n === 1 ? 'cartão' : 'cartões'}. A detecção roda um texto de cada vez — em baralhos grandes isso leva alguns segundos.`,
+      `Analisando ${n} ${n === 1 ? 'cartão' : 'cartões'}. A detecção roda um texto de cada vez, em baralhos grandes isso leva alguns segundos.`,
     chip: { ok: 'Certos', fix: 'A corrigir', amb: 'Ambíguos', none: 'Sem sinal' },
     proposedIntro: 'O texto do cartão contradiz o idioma gravado. Desmarque o que não quiser corrigir.',
     ambiguousIntro:
       'O sinal existe, mas é fraco demais para sobrescrever no automático. Marque só o que você reconhecer, e confirme o idioma.',
     noSignalIntro:
-      'Não temos como saber o idioma destes cartões: ficam como estão. Não há proposta nossa aqui — se você souber, pode dizer no seletor; se não, deixe em branco.',
+      'Não temos como saber o idioma destes cartões: ficam como estão. Não há proposta nossa aqui, se você souber, pode dizer no seletor; se não, deixe em branco.',
     okLine: (n) => `${n} ${n === 1 ? 'cartão já está certo' : 'cartões já estão certos'}`,
-    applyIdle: 'Nenhum cartão marcado — nada será gravado.',
+    applyIdle: 'Nenhum cartão marcado, nada será gravado.',
     willWrite: (n) => `${n} ${n === 1 ? 'cartão será reescrito' : 'cartões serão reescritos'} no banco.`,
     confirmTitle: (n) => `Gravar ${n} ${n === 1 ? 'correção' : 'correções'} no banco?`,
     confirmDetail:
@@ -92,17 +92,17 @@ const COPY: Record<Mode, ModeCopy> = {
     headerTitle: 'Conferir o idioma das minhas falas',
     headerIntro:
       'Compara o idioma gravado em cada fala das suas transcrições com o texto dela, e mostra o que não bate.',
-    emptyMsg: 'Você ainda não tem falas transcritas — não há nada para auditar.',
+    emptyMsg: 'Você ainda não tem falas transcritas, não há nada para auditar.',
     analyzing: (n) =>
-      `Analisando ${n} ${n === 1 ? 'fala' : 'falas'}. A detecção roda um texto de cada vez — pode levar alguns segundos.`,
+      `Analisando ${n} ${n === 1 ? 'fala' : 'falas'}. A detecção roda um texto de cada vez, pode levar alguns segundos.`,
     chip: { ok: 'Certas', fix: 'A corrigir', amb: 'Ambíguas', none: 'Sem sinal' },
     proposedIntro: 'O texto da fala contradiz o idioma gravado. Desmarque o que não quiser corrigir.',
     ambiguousIntro:
       'O sinal existe, mas é fraco demais para sobrescrever no automático. Marque só o que você reconhecer, e confirme o idioma.',
     noSignalIntro:
-      'Não temos como saber o idioma destas falas: ficam como estão. Não há proposta nossa aqui — se você souber, pode dizer no seletor; se não, deixe em branco.',
+      'Não temos como saber o idioma destas falas: ficam como estão. Não há proposta nossa aqui, se você souber, pode dizer no seletor; se não, deixe em branco.',
     okLine: (n) => `${n} ${n === 1 ? 'fala já está certa' : 'falas já estão certas'}`,
-    applyIdle: 'Nenhuma fala marcada — nada será gravado.',
+    applyIdle: 'Nenhuma fala marcada, nada será gravado.',
     willWrite: (n) => `${n} ${n === 1 ? 'fala será reescrita' : 'falas serão reescritas'} no banco.`,
     confirmTitle: (n) => `Gravar ${n} ${n === 1 ? 'correção' : 'correções'} no banco?`,
     confirmDetail:
@@ -144,8 +144,8 @@ function LangSelect({
 
 /** Rótulo atual do item. `—` quando a coluna está nula: é informação ausente, não um idioma. */
 function CurrentPair({ current }: { current: LangFinding['current'] }) {
-  const src = current.srcLang ? langLabel(current.srcLang) : '—';
-  const tgt = current.tgtLang ? langLabel(current.tgtLang) : '—';
+  const src = current.srcLang ? langLabel(current.srcLang) : '-';
+  const tgt = current.tgtLang ? langLabel(current.tgtLang) : '-';
   return (
     <span className="font-mono text-[11.5px] text-ink-muted">
       {src} → {tgt}

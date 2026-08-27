@@ -218,7 +218,7 @@ export default function Analysis({
         translation: s.translation,
         // Idioma REAL do texto `original` desta fala (o TTS/STT desta tela segue este campo).
         lang: s.lang,
-        speaker: s.speaker || '—',
+        speaker: s.speaker || '-',
         time: `${String(mm).padStart(2, '0')}:${String(ss).padStart(2, '0')}`,
         words: [] as string[],
         startTime,
@@ -612,7 +612,7 @@ export default function Analysis({
       ocorrencias,
       retencao,
       /* `phonetics` vem do dicionário na captura; muitos cartões não têm. Sem ela a linha não
-         aparece — o app não tem dicionário fonético para preencher, e chutar IPA é inventar. */
+         aparece, o app não tem dicionário fonético para preencher, e chutar IPA é inventar. */
       fonetica: (card?.phonetics ? String(card.phonetics) : '').trim() || null,
       nivel: card?.cefrLevel ? String(card.cefrLevel) : null,
       nivelConfianca: card?.cefrConfidence != null ? Number(card.cefrConfidence) : null,
@@ -865,7 +865,7 @@ export default function Analysis({
             <span className="w-2.5 h-2.5 rounded-full bg-accent animate-pulse"></span>
             <span className="font-display font-black text-sm md:text-base tracking-tight uppercase text-ink">
               {/* Chamava-se "Estúdio de Sombra (Shadowing)" e prometia um exercício que não
-                  existe mais — e que, mesmo antes, não era isto: este painel é o PLAYER, com a
+                  existe mais, e que, mesmo antes, não era isto: este painel é o PLAYER, com a
                   legenda acompanhando o áudio. O nome passa a ser o que ele faz. Repetir em voz
                   alta virou o Karaokê, no Jogar. */}
               {ageProfile === 'kids'
@@ -973,7 +973,7 @@ export default function Analysis({
               </div>
 
               <div className="absolute top-4 right-4 bg-black/60 border border-white/10 px-2.5 py-1 rounded-lg text-[10px] font-mono font-extrabold text-white flex items-center gap-1.5 backdrop-blur-md">
-                <span>WPM: {activeWpm ?? '—'}</span>
+                <span>WPM: {activeWpm ?? '-'}</span>
               </div>
             </div>
           ) : (
@@ -988,12 +988,12 @@ export default function Analysis({
                 UM slider, não 44 botões.
 
                 As barras eram `<button>` de ~2px cada. O axe acusava 44 violações de
-                `target-size` numa tela só — 44 dos 45 do produto inteiro — e alargá-las para os
+                `target-size` numa tela só, 44 dos 45 do produto inteiro, e alargá-las para os
                 24px exigidos destruiria o waveform. O erro era o PADRÃO: busca em áudio é uma
                 faixa contínua, não 44 destinos discretos.
 
                 Agora a faixa inteira é um `slider` com teclado (setas, Home/End) e as barras são
-                `aria-hidden` — desenho, não controle. Para leitor de tela isso deixa de ser uma
+                `aria-hidden`, desenho, não controle. Para leitor de tela isso deixa de ser uma
                 fileira de 44 botões e vira "posição no áudio", que é o que de fato é.
               */}
               <div
@@ -1087,7 +1087,7 @@ export default function Analysis({
               {/* C2/C5 — este `range` carrega duas responsabilidades. Fecha a violação `label`,
                   e é a ALTERNATIVA ACESSÍVEL que legitima a exceção da C5: os 104 segmentos
                   clicáveis da linha do tempo têm 4,9 px e não podem ter 24 (a largura codifica a
-                  posição no tempo — a isenção "apresentação essencial" da WCAG 2.5.8). A exceção
+                  posição no tempo, a isenção "apresentação essencial" da WCAG 2.5.8). A exceção
                   só se sustenta porque existe este controle, operável por teclado e nomeado.
                   `aria-valuetext` troca "248" por "4:08", que é o que a pessoa precisa ouvir. */}
               <input
@@ -1105,15 +1105,15 @@ export default function Analysis({
               />
               
               {/* Marcadores de fala na linha do tempo: um por trecho, todos iguais.
-                  F2 — antes, um trecho era pintado de âmbar e ficava PULSANDO quando continha
+                  F2, antes, um trecho era pintado de âmbar e ficava PULSANDO quando continha
                   uma de quatro palavras cravadas no código (`heuristics`, `leverage`, `synergy`,
                   `volatility`). O destaque afirmava "aqui tem um trecho difícil" com base numa
                   lista fixa em inglês: numa gravação sem nenhuma dessas palavras, nada nunca era
                   destacado; numa que tivesse "leverage" por acaso, um ponto qualquer pulsava.
                   Sinal inventado é pior que sinal nenhum, porque o usuário confia nele.
 
-                  Marcar dificuldade de verdade é possível — o cartão já guarda `cefr_level` e
-                  `difficulty_score` — mas é trabalho de outra fase, e inventar enquanto isso não
+                  Marcar dificuldade de verdade é possível, o cartão já guarda `cefr_level` e
+                  `difficulty_score`, mas é trabalho de outra fase, e inventar enquanto isso não
                   é opção. O ponto continua fazendo o que sempre fez de fato: pular para a fala. */}
               {parsedSentences.map((s, idx) => {
                 const percentage = (s.startTime / totalDurationSeconds) * 100;
@@ -1572,7 +1572,7 @@ export default function Analysis({
             {/* Saiu daqui o botão "Jogar com esta sessão": era um destino de tela inteira escondido
                 entre os controles do cabeçalho, ao lado de "Exportar". O mesmo conteúdo agora é a
                 aba "Jogos", visível na barra de sub-abas. A tela global de jogos continua existindo
-                pelo menu — ela vive do baralho e não pode depender de uma sessão (`types.ts:80-84`). */}
+                pelo menu, ela vive do baralho e não pode depender de uma sessão (`types.ts:80-84`). */}
             <button className={exportBtnClass} onClick={() => setShowExportModal(true)}>
               <Download className="w-4 h-4" /> <span>Exportar</span>
             </button>
@@ -1582,7 +1582,7 @@ export default function Analysis({
         {/* Sub-abas — a ORDEM é a mesma nos três perfis (prática antes de métrica); o que muda é a
             linguagem e quantas abrem de uma vez. Em Kids/Sênior, "Visão Geral & Métricas" entra no
             "Ver mais": é a aba mais densa e a menos acionável para quem está começando. Ela continua
-            a um clique — nenhuma aba deixa de existir. */}
+            a um clique, nenhuma aba deixa de existir. */}
         <div className={tabContainerClass}>
           <button
             className={`px-4 py-1.5 rounded-lg text-[13px] font-bold whitespace-nowrap transition-all ${currentTab === 'transcript' ? activeTabClass : inactiveTabClass}`}
@@ -1679,17 +1679,17 @@ export default function Analysis({
                   </div>
                   <div className="card-panel p-4 cursor-pointer hover:border-accent hover:shadow-md transition-all" onClick={() => setExpandedAnalysisKpi('flesch')}>
                     <span className="label-mono block mb-1 font-semibold text-ink-muted flex items-center gap-1.5"><Crosshair className="w-3.5 h-3.5" /> Complexidade (Flesch)</span>
-                    <div className="font-display font-black text-2xl tracking-tight text-accent-ink">{stats.readingEase != null ? stats.readingEase : '—'}{stats.readingEase != null && <span className="text-[14px] text-ink-faint ml-0.5">pts</span>}</div>
+                    <div className="font-display font-black text-2xl tracking-tight text-accent-ink">{stats.readingEase != null ? stats.readingEase : '-'}{stats.readingEase != null && <span className="text-[14px] text-ink-faint ml-0.5">pts</span>}</div>
                     <div className="text-[11.5px] text-ink-muted mt-1 font-medium">{stats.readingEase != null ? 'Flesch Reading Ease (maior = mais fácil)' : 'requer +texto'}</div>
                   </div>
                   <div className="card-panel p-4 cursor-pointer hover:border-accent hover:shadow-md transition-all" onClick={() => setExpandedAnalysisKpi('density')}>
                     <span className="label-mono block mb-1 font-semibold text-ink-muted flex items-center gap-1.5"><BarChart2 className="w-3.5 h-3.5" /> Densidade Lexical</span>
-                    <div className="font-display font-black text-2xl tracking-tight">{stats.wordCount > 0 ? stats.lexicalDensityPct : '—'}{stats.wordCount > 0 && <span className="text-[14px] text-ink-faint ml-0.5">%</span>}</div>
+                    <div className="font-display font-black text-2xl tracking-tight">{stats.wordCount > 0 ? stats.lexicalDensityPct : '-'}{stats.wordCount > 0 && <span className="text-[14px] text-ink-faint ml-0.5">%</span>}</div>
                     <div className="text-[11.5px] text-ink-muted mt-1 font-medium">Palavras de conteúdo</div>
                   </div>
                   <div className="card-panel p-4 cursor-pointer hover:border-accent hover:shadow-md transition-all" onClick={() => setExpandedAnalysisKpi('jargons')}>
                     <span className="label-mono block mb-1 font-semibold text-ink-muted flex items-center gap-1.5"><Zap className="w-3.5 h-3.5" /> Vocábulos Únicos</span>
-                    <div className="font-display font-black text-2xl tracking-tight text-good">{stats.wordCount > 0 ? stats.uniqueWords.toLocaleString('pt-BR') : '—'}</div>
+                    <div className="font-display font-black text-2xl tracking-tight text-good">{stats.wordCount > 0 ? stats.uniqueWords.toLocaleString('pt-BR') : '-'}</div>
                     <div className="text-[11.5px] text-ink-muted mt-1 font-medium">Palavras distintas no texto</div>
                   </div>
                 </>
@@ -1697,13 +1697,13 @@ export default function Analysis({
                 <>
                   <div className="card-panel p-4 cursor-pointer hover:border-accent hover:shadow-md transition-all" onClick={() => setExpandedAnalysisKpi('ppm')}>
                     <span className="label-mono block mb-1 font-semibold text-ink-muted flex items-center gap-1.5"><Activity className="w-3.5 h-3.5" /> Ritmo de Fala (PPM)</span>
-                    <div className="font-display font-black text-2xl tracking-tight text-accent-ink">{realWpm != null ? realWpm : '—'}{realWpm != null && <span className="text-[14px] text-ink-faint ml-0.5">ppm</span>}</div>
+                    <div className="font-display font-black text-2xl tracking-tight text-accent-ink">{realWpm != null ? realWpm : '-'}{realWpm != null && <span className="text-[14px] text-ink-faint ml-0.5">ppm</span>}</div>
                     <div className="text-[11.5px] text-ink-muted mt-1 font-medium">{realWpm != null ? 'Palavras/min (timing real)' : 'requer timing das falas'}</div>
                   </div>
                   <div className="card-panel p-4 cursor-pointer hover:border-accent hover:shadow-md transition-all" onClick={() => setExpandedAnalysisKpi('fillers')}>
                     <span className="label-mono block mb-1 font-semibold text-ink-muted flex items-center gap-1.5"><MessageSquareWarning className="w-3.5 h-3.5" /> Vícios de Linguagem</span>
                     <div className="font-display font-black text-2xl tracking-tight text-ink">
-                      {realVicios.palavras > 0 ? realVicios.total : '—'}
+                      {realVicios.palavras > 0 ? realVicios.total : '-'}
                     </div>
                     <div className="text-[11.5px] text-ink-muted mt-1 font-medium">
                       {realVicios.palavras > 0
@@ -1713,17 +1713,17 @@ export default function Analysis({
                   </div>
                   <div className="card-panel p-4 cursor-pointer hover:border-accent hover:shadow-md transition-all" onClick={() => setExpandedAnalysisKpi('lexical_richness')}>
                     <span className="label-mono block mb-1 font-semibold text-ink-muted flex items-center gap-1.5"><Crosshair className="w-3.5 h-3.5" /> Riqueza Lexical (TTR)</span>
-                    <div className="font-display font-black text-2xl tracking-tight">{stats.wordCount > 0 ? Math.round(stats.typeTokenRatio * 100) : '—'}{stats.wordCount > 0 && <span className="text-[14px] text-ink-faint ml-0.5">/100</span>}</div>
+                    <div className="font-display font-black text-2xl tracking-tight">{stats.wordCount > 0 ? Math.round(stats.typeTokenRatio * 100) : '-'}{stats.wordCount > 0 && <span className="text-[14px] text-ink-faint ml-0.5">/100</span>}</div>
                     <div className="text-[11.5px] text-ink-muted mt-1 font-medium">Razão tipo/token do texto</div>
                   </div>
                   {/* F7 — "Tom Vocal Predominante" SAIU da faixa de herói.
-                      Ocupava 1/5 da faixa mais nobre da tela exibindo "—", porque o app não
+                      Ocupava 1/5 da faixa mais nobre da tela exibindo "-", porque o app não
                       analisa pitch do áudio (achado C2). A honestidade estava certa; a POSIÇÃO
-                      estava errada — um dado que não existe não disputa espaço com os que
+                      estava errada, um dado que não existe não disputa espaço com os que
                       existem. Ele continua na tela, com o motivo, na faixa de baixo. */}
                   <div className="card-panel p-4 cursor-pointer hover:border-accent hover:shadow-md transition-all" onClick={() => setExpandedAnalysisKpi('long_pauses')}>
                     <span className="label-mono block mb-1 font-semibold text-ink-muted flex items-center gap-1.5"><AlertTriangle className="w-3.5 h-3.5" /> Pausas Longas (&gt;3s)</span>
-                    <div className="font-display font-black text-2xl tracking-tight text-error">{realLongPauses != null ? realLongPauses : '—'}</div>
+                    <div className="font-display font-black text-2xl tracking-tight text-error">{realLongPauses != null ? realLongPauses : '-'}</div>
                     <div className="text-[11.5px] text-ink-muted mt-1 font-medium">{realLongPauses != null ? 'Entre falas (timing real)' : 'requer timing das falas'}</div>
                   </div>
                 </>
@@ -1782,7 +1782,7 @@ export default function Analysis({
                                 do provedor a cada abertura de tela e não funcionaria no perfil
                                 Privado/Local. É uma feature com custo e consentimento a decidir, não
                                 algo que está a caminho. */}
-                            Acima, a abertura REAL da transcrição — não um resumo. Resumo automático exige
+                            Acima, a abertura REAL da transcrição, não um resumo. Resumo automático exige
                             um modelo de linguagem, que este painel não chama. A transcrição completa está
                             na aba correspondente.
                           </p>
@@ -1808,7 +1808,7 @@ export default function Analysis({
                   <p className="text-[12.5px] text-ink-muted leading-relaxed">
                     Termos de maior saliência extraídos da transcrição real (determinístico). O vocabulário formará a base dos seus exercícios.
                     {/* Estes termos são REAIS (extração determinística). O que não existe é agrupá-los
-                        em tópicos nomeados — isso exige um modelo de linguagem. Sem "em breve". */}
+                        em tópicos nomeados, isso exige um modelo de linguagem. Sem "em breve". */}
                     <span className="text-ink-faint"> São termos, não tópicos: agrupá-los sob um nome de assunto exigiria um modelo de linguagem.</span>
                   </p>
                 </div>
@@ -1819,11 +1819,11 @@ export default function Analysis({
                     <div className="space-y-3">
                       <div className="flex items-center justify-between border-b border-border-subtle pb-2">
                         <span className="text-[13px] text-ink-muted">Pausas longas (&gt;3s)</span>
-                        <span className="font-bold text-[13px] text-ink">{realLongPauses != null ? `${realLongPauses} (timing real)` : '—'}</span>
+                        <span className="font-bold text-[13px] text-ink">{realLongPauses != null ? `${realLongPauses} (timing real)` : '-'}</span>
                       </div>
                       <div className="flex items-center justify-between border-b border-border-subtle pb-2">
                         <span className="text-[13px] text-ink-muted">Maior monólogo</span>
-                        <span className="font-bold text-[13px] text-ink">{realMonologue != null ? formatSeconds(Math.round(realMonologue / 1000)) : '—'}</span>
+                        <span className="font-bold text-[13px] text-ink">{realMonologue != null ? formatSeconds(Math.round(realMonologue / 1000)) : '-'}</span>
                       </div>
                       <div className="flex items-center justify-between pb-1">
                         <span className="text-[13px] text-ink-muted">Interrupções (sobreposição)</span>
@@ -1851,7 +1851,7 @@ export default function Analysis({
               {/* Right Column: Visual Charts & Analytics */}
               <div className="space-y-6">
                 {/* O painel "Benchmarking: Você vs. Perfil Executivo" saiu. Comparar alguém com um
-                    "perfil executivo" exige um CORPUS DE REFERÊNCIA que o projeto não tem — não é
+                    "perfil executivo" exige um CORPUS DE REFERÊNCIA que o projeto não tem, não é
                     questão de ligar uma IA, é que a régua não existe. Prometê-lo como "em breve"
                     anunciava uma comparação que nunca foi possível fazer. */}
 
@@ -1870,14 +1870,14 @@ export default function Analysis({
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div className="card-panel p-5 bg-gradient-to-br from-rare/10 to-transparent border-rare/20 cursor-pointer hover:border-rare/40 hover:shadow-md transition-all" onClick={() => setExpandedAnalysisKpi('lexical_richness')}>
                       <span className="label-mono block mb-2 font-semibold text-rare-ink">Total de Vocábulos Únicos</span>
-                      <div className="font-display font-black text-3xl tracking-tight text-ink">{stats.wordCount > 0 ? stats.uniqueWords.toLocaleString('pt-BR') : '—'}</div>
+                      <div className="font-display font-black text-3xl tracking-tight text-ink">{stats.wordCount > 0 ? stats.uniqueWords.toLocaleString('pt-BR') : '-'}</div>
                       <p className="text-[12px] text-ink-muted mt-2">Palavras distintas na transcrição desta sessão.</p>
                     </div>
                     <div className="card-panel p-5 cursor-pointer hover:border-accent hover:shadow-md transition-all" onClick={() => setExpandedAnalysisKpi('jargons')}>
                       <span className="label-mono block mb-2 font-semibold text-ink-muted">Termos Técnicos/Jargões</span>
                       {/* Jargão exige um LÉXICO DE DOMÍNIO que o projeto não tem — separar termo
                           técnico de palavra comum depende de saber o assunto. Não é "em breve". */}
-                      <div className="font-display font-black text-3xl tracking-tight text-ink-muted">—</div>
+                      <div className="font-display font-black text-3xl tracking-tight text-ink-muted">-</div>
                       <p className="text-[12px] text-ink-muted mt-2">Distinguir jargão de palavra comum exige um léxico do domínio, que o app não tem.</p>
                     </div>
                     <div className="card-panel p-5 cursor-pointer hover:border-accent hover:shadow-md transition-all" onClick={() => setExpandedAnalysisKpi('study_time')}>
@@ -1890,12 +1890,12 @@ export default function Analysis({
                   {/* C1 — AQUI HAVIA UMA TABELA FABRICADA, o pior defeito que este produto podia ter.
                       "Termo / Expressão · Tradução Contextual · Categoria · Ocorrências", com três
                       linhas cravadas no JSX (uma delas dizendo "5×"), idênticas para toda sessão de
-                      todo usuário — contagens de ocorrência inventadas, apresentadas como análise
+                      todo usuário, contagens de ocorrência inventadas, apresentadas como análise
                       lexical do que a pessoa acabou de gravar.
 
                       Extrair expressões-chave exige reconhecimento de termo com peso de domínio, e
                       este painel não chama modelo nenhum. A resposta honesta é dizer isso, não
-                      preencher o vazio com algo plausível — e era justamente a plausibilidade que
+                      preencher o vazio com algo plausível, e era justamente a plausibilidade que
                       tornava a tabela difícil de notar: uma sessão sobre tecnologia bem que poderia
                       conter aquelas palavras.
 
@@ -1991,7 +1991,7 @@ export default function Analysis({
                             {/* A estimativa CEFR é heurística de baixa confiança — o docstring de
                                 `estimateCefr` pede que a UI diga isso, e antes ela dizia "C2 (Master)".
 
-                                F3 — aqui havia um limiar próprio de 0,6, contra 0,5 no resto do app.
+                                F3, aqui havia um limiar próprio de 0,6, contra 0,5 no resto do app.
                                 Uma estimativa de 55% saía rotulada "estimativa" NESTA tela e sem
                                 rótulo nenhum em Analytics. Agora o selo e o limiar são os mesmos
                                 em todo lugar, e o percentual fica visível em vez de implícito. */}
@@ -2011,7 +2011,7 @@ export default function Analysis({
                         <div className="bg-surface border border-border-subtle rounded-xl p-3">
                           <span className="text-[11px] text-ink-muted font-semibold uppercase tracking-wider block mb-1">Retenção (FSRS)</span>
                           <span className={`font-mono text-lg font-bold ${lexicalDetail?.retencao != null ? 'text-accent' : 'text-ink-muted'}`}>
-                            {lexicalDetail?.retencao != null ? `${lexicalDetail.retencao}%` : '—'}
+                            {lexicalDetail?.retencao != null ? `${lexicalDetail.retencao}%` : '-'}
                           </span>
                           <span className="block text-[10px] text-ink-faint mt-0.5">
                             {lexicalDetail?.retencao != null ? 'na data de hoje' : 'só após a 1ª revisão'}
@@ -2050,7 +2050,7 @@ export default function Analysis({
                       </div>
 
                       {/* O botão era um "Enviar para SRS" sem `onClick`. E para a maioria das palavras
-                          deste painel ele não faria sentido nenhum: elas JÁ estão no baralho — foi de
+                          deste painel ele não faria sentido nenhum: elas JÁ estão no baralho, foi de
                           lá que vieram para o gráfico. Agora ele só existe quando há o que fazer. */}
                       {lexicalDetail?.noDeck ? (
                         <p className="text-[12px] text-ink-faint text-center flex items-center justify-center gap-1.5">
@@ -2074,17 +2074,17 @@ export default function Analysis({
               <div className="space-y-6 animate-in fade-in slide-in-from-right-4">
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   {/* Silêncio MEDIDO entre as falas. Onde havia "45 seg · representa 12% da gravação,
-                      ritmo saudável" cravado no JSX — número inventado apresentado como medição. O
+                      ritmo saudável" cravado no JSX, número inventado apresentado como medição. O
                       juízo ("ritmo saudável") não volta: não há norma no app com que comparar. */}
                   <div className="card-panel p-5">
                     <span className="label-mono block mb-2 font-semibold text-ink-muted">Pausas Articulatórias</span>
                     <div className="font-display font-black text-3xl tracking-tight text-ink">
-                      {realSilencio != null ? Math.round(realSilencio.ms / 1000) : '—'}
+                      {realSilencio != null ? Math.round(realSilencio.ms / 1000) : '-'}
                       {realSilencio != null && <span className="text-[14px] text-ink-faint ml-1">seg</span>}
                     </div>
                     <p className="text-[12px] text-ink-muted mt-2">
                       {realSilencio != null
-                        ? `Soma dos intervalos entre falas — ${realSilencio.pct}% do trecho falado (timing real).`
+                        ? `Soma dos intervalos entre falas, ${realSilencio.pct}% do trecho falado (timing real).`
                         : 'Requer timing das falas; esta gravação não tem.'}
                     </p>
                   </div>
@@ -2094,28 +2094,28 @@ export default function Analysis({
                   >
                     <span className="label-mono block mb-2 font-semibold text-ink-muted">Vícios Identificados</span>
                     <div className="font-display font-black text-3xl tracking-tight text-ink">
-                      {realVicios.palavras > 0 ? realVicios.total : '—'}
+                      {realVicios.palavras > 0 ? realVicios.total : '-'}
                     </div>
                     <p className="text-[12px] text-ink-muted mt-2">
                       {realVicios.palavras === 0
                         ? 'Nenhuma fala em idioma com lista de marcadores (só português e inglês).'
                         : realVicios.total === 0
                           ? `Nenhum marcador de hesitação em ${realVicios.palavras} palavras.`
-                          : `${realVicios.porMilPalavras} por mil palavras — ${realVicios.detalhe.slice(0, 3).map(d => `"${d.marcador}" ${d.vezes}×`).join(', ')}.`}
+                          : `${realVicios.porMilPalavras} por mil palavras, ${realVicios.detalhe.slice(0, 3).map(d => `"${d.marcador}" ${d.vezes}×`).join(', ')}.`}
                     </p>
                   </div>
                   <div className="card-panel p-5">
                     <span className="label-mono block mb-2 font-semibold text-ink-muted">Tom Predominante</span>
-                    <div className="font-display font-black text-3xl tracking-tight text-ink-muted">—</div>
+                    <div className="font-display font-black text-3xl tracking-tight text-ink-muted">-</div>
                     <p className="text-[12px] text-ink-muted mt-2">
-                      Depende de variação de pitch, que exige análise acústica do áudio — o app não faz.
+                      Depende de variação de pitch, que exige análise acústica do áudio, o app não faz.
                       Nada foi estimado.
                     </p>
                   </div>
                 </div>
                 
                 {/* Este painel se chamava "Assinatura Acústica & Densidade" e mostrava, embaixo do
-                    título, um aviso sobre "evolução ao longo do tempo" — título de uma coisa,
+                    título, um aviso sobre "evolução ao longo do tempo", título de uma coisa,
                     conteúdo de outra. Assinatura acústica exige análise do áudio, que o app não faz,
                     então o título saiu junto: manter o título de um gráfico que nunca vai existir é
                     prometer pelo cabeçalho. O que ficou é a evolução, que é real. */}
@@ -2154,7 +2154,7 @@ export default function Analysis({
                   </button>
                   {/* Era um `<button className="kpi-pill active">` sem `onClick`: parecia um controle
                       ligado e não fazia nada, com o agravante de continuar aceso quando o botão ao
-                      lado escondia o original — ou seja, dizia "Bilíngue" numa exibição que não era.
+                      lado escondia o original, ou seja, dizia "Bilíngue" numa exibição que não era.
                       Não é controle nenhum, é o ESTADO de `hideOriginal`, e agora é um rótulo. */}
                   <span
                     className={`kpi-pill ${tsSettings.hideOriginal ? '' : 'active'} cursor-default`}
@@ -2258,7 +2258,7 @@ export default function Analysis({
 
               {/*
                 `tabIndex={0}` + rótulo: região com rolagem precisa ser alcançável pelo teclado.
-                Sem isso, quem não usa mouse não consegue rolar a transcrição — e ela é o conteúdo
+                Sem isso, quem não usa mouse não consegue rolar a transcrição, e ela é o conteúdo
                 principal desta tela. Era a violação `scrollable-region-focusable` do axe.
               */}
               <div
@@ -2271,7 +2271,7 @@ export default function Analysis({
                   const { sizeClasses, fontClass, colorClasses } = getTranscriptStyleClasses(tsSettings);
                   const originalTokens = tokenizarTexto(sentence.original);
                   /* Os dois ramos de `displayOrder` desenham a MESMA linha de palavras e só trocam
-                     a ordem em relação à tradução. Tudo o que não é a margem sai daqui uma vez —
+                     a ordem em relação à tradução. Tudo o que não é a margem sai daqui uma vez,
                      senão a duplicação volta na forma de dois blocos de props idênticos. */
                   const propsDosTokens = {
                     tokens: originalTokens,
@@ -2309,7 +2309,7 @@ export default function Analysis({
                              acessível: eram 177 "botão" mudos na tela. `aria-label` nomeia;
                              `tabIndex={-1}` tira da tabulação sequencial, porque clicar no
                              próprio trecho (logo ao lado, acessível) faz exatamente a mesma
-                             coisa — é atalho de mouse, não um segundo caminho. */
+                             coisa, é atalho de mouse, não um segundo caminho. */
                           aria-label={recording.type !== 'document' ? 'Reproduzir este trecho no Estúdio' : 'Ouvir este trecho'}
                           tabIndex={-1}
                           title={recording.type !== 'document' ? 'Reproduzir no Estúdio' : 'Ouvir TTS'} 
@@ -2457,13 +2457,13 @@ export default function Analysis({
                             strings literais `basically`, `leverage`, `heuristics` e `synergy`:
                             apareciam em qualquer sessão que contivesse a palavra, com um conselho
                             escrito à mão que nada tinha a ver com o conteúdo da gravação, e
-                            sumiam em qualquer outra — dando a impressão de uma análise que não
+                            sumiam em qualquer outra, dando a impressão de uma análise que não
                             existia.
 
                             Três linhas acima, este mesmo arquivo declara que o produto não
                             fabrica dado. Não há substituto "real" aqui: gerar uma dica exigiria
                             um modelo de linguagem, que este painel não chama. Quando não há dica
-                            derivada da sessão, não há card — é o mesmo padrão que a app já aplica
+                            derivada da sessão, não há card, é o mesmo padrão que a app já aplica
                             em `AntessalaDaRodada` ("nenhuma palavra difícil neste recorte") e no
                             selo `sem nível` do catálogo.
 
@@ -2506,7 +2506,7 @@ export default function Analysis({
             {modoRevisao ? (
               <>
                 {/* Saída explícita da revisão. Sem ela, o único caminho de volta seria clicar na aba
-                    que já está destacada como ativa — ninguém tenta clicar no que parece selecionado. */}
+                    que já está destacada como ativa, ninguém tenta clicar no que parece selecionado. */}
                 <button
                   onClick={() => onSubTabChange('practice')}
                   className={`flex items-center gap-1.5 text-[12.5px] font-bold transition-colors mb-3 py-1 group ${backLinkClass}`}
@@ -2515,7 +2515,7 @@ export default function Analysis({
                   <span>Voltar aos jogos</span>
                 </button>
                 {/* `key` pelo id da sessão: sem ela, trocar de sessão REUSA a mesma instância e o
-                    estado interno sobrevive — a fila de revisão (`reviewCards`), o índice, o
+                    estado interno sobrevive, a fila de revisão (`reviewCards`), o índice, o
                     "mostrar resposta". Quando as contagens das duas sessões coincidem, nada na tela
                     denuncia, e a pessoa revisa os cartões da sessão anterior achando que são desta.
                     Remontar é o comportamento certo: a sessão é a identidade desta tela. */}
@@ -2558,7 +2558,7 @@ export default function Analysis({
       </div>
 
       {/* Cartão flutuante da palavra sob o cursor. A MOLDURA é a mesma da Leitura (`PopoverFlutuante`);
-          o conteúdo abaixo é só desta tela — aqui há imagem, significados e estado de carregamento. */}
+          o conteúdo abaixo é só desta tela, aqui há imagem, significados e estado de carregamento. */}
       {hoveredWord && (
         <PopoverFlutuante {...popover.props}>
           {(() => {
@@ -2679,7 +2679,7 @@ export default function Analysis({
                     `- Frases: ${stats.sentenceCount}\n` +
                     `- Densidade lexical: ${stats.lexicalDensityPct}%\n` +
                     `- Razão tipo/token: ${Math.round(stats.typeTokenRatio * 100)}/100\n` +
-                    `- Facilidade de leitura (Flesch): ${stats.readingEase != null ? stats.readingEase : '—'}\n\n` +
+                    `- Facilidade de leitura (Flesch): ${stats.readingEase != null ? stats.readingEase : '-'}\n\n` +
                     `Gerado em ${new Date().toLocaleDateString('pt-BR')}`;
                     
                   const blob = new Blob([content], { type: 'text/markdown;charset=utf-8;' });

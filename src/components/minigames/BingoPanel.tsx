@@ -96,7 +96,7 @@ export default function BingoPanel({ falas, ageProfile, onClose }: BingoPanelPro
           ? 'Cartela cheia! Sorteie outra para continuar.'
           : ageProfile === 'senior'
             ? 'As palavras acendem sozinhas quando alguém as fala.'
-            : 'Assista normalmente — as casas acendem quando a palavra aparece na fala.'}
+            : 'Assista normalmente, as casas acendem quando a palavra aparece na fala.'}
       </p>
 
       {carregando ? (
@@ -105,7 +105,7 @@ export default function BingoPanel({ falas, ageProfile, onClose }: BingoPanelPro
         </div>
       ) : cartela.length === 0 ? (
         <p className="text-[12px] text-ink-muted py-4 text-center">
-          Salve algumas palavras primeiro — a cartela é feita com as suas.
+          Salve algumas palavras primeiro, a cartela é feita com as suas.
         </p>
       ) : (
         <div className="grid gap-1.5" style={{ gridTemplateColumns: `repeat(${LADO_CARTELA}, minmax(0, 1fr))` }}>

@@ -196,7 +196,7 @@ export default function ParticleCanvas({ enabled, performanceMode, theme, darkMo
     };
 
     /* Normalização por tempo: `k` é quantos "quadros de 60fps" se passaram desde o último desenho.
-       Sem isto, a velocidade de tudo dependeria do FPS da máquina — as partículas andariam em
+       Sem isto, a velocidade de tudo dependeria do FPS da máquina, as partículas andariam em
        câmera lenta exatamente nos PCs modestos que o Modo Desempenho existe para atender.
        O teto de 3 evita que uma pausa da aba teleporte tudo de uma vez ao voltar. */
     let lastTs = 0;
@@ -208,7 +208,7 @@ export default function ParticleCanvas({ enabled, performanceMode, theme, darkMo
 
          Antes a vida também usava o valor limitado. Consequência, medida numa janela sem foco (o
          Chrome derruba o rAF para ~3fps): uma chuva de confete de 2,2s continuava na tela DEZ
-         SEGUNDOS depois — a comemoração virava sujeira grudada. Quanto mais fraca a máquina, pior
+         SEGUNDOS depois, a comemoração virava sujeira grudada. Quanto mais fraca a máquina, pior
          ficava, que é exatamente ao contrário do que se quer. */
       const dtReal = lastTs ? ts - lastTs : 16.7;
       const dt = Math.min(dtReal, 50);
@@ -322,10 +322,10 @@ export default function ParticleCanvas({ enabled, performanceMode, theme, darkMo
 
          SUBIU DE 30 PARA 38, e a régua continua a mesma: abaixo dos modais (z-50+) e abaixo do
          "+10" flutuante (z-40), que precisa ficar legível por cima do confete. A 30 ela empatava
-         com o `MobileNav` — e, empatando, quem vem depois na árvore ganha, então no celular a
+         com o `MobileNav`, e, empatando, quem vem depois na árvore ganha, então no celular a
          rajada já sumia atrás da barra. Agora também passa por baixo da partida em tela cheia
          embutida na sessão (z-[35]), que senão engoliria o confete justo onde ele mais importa:
-         o acerto e o cartão de raspar. Camada decorativa e `pointer-events-none` — cobrir a
+         o acerto e o cartão de raspar. Camada decorativa e `pointer-events-none`, cobrir a
          interface é o trabalho dela, não um efeito colateral. */
       className="fixed inset-0 w-full h-full pointer-events-none z-[38]"
     />

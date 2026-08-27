@@ -20,7 +20,7 @@ import type { PassoTour } from './TourGuiado';
 export const PASSOS_DOS_JOGOS: Record<MinigameId, PassoTour[]> = {
   memory: [
     { alvo: '[data-tour="mesa"]', texto: 'Toque numa carta para virar. Depois vire outra e tente formar o par: palavra e tradução.', gesto: 'clique' },
-    { alvo: '[data-tour="espiar"]', texto: 'Travou? Isto abre a mesa inteira por um instante, duas vezes por rodada — e custa nota.', gesto: 'clique' },
+    { alvo: '[data-tour="espiar"]', texto: 'Travou? Isto abre a mesa inteira por um instante, duas vezes por rodada, e custa nota.', gesto: 'clique' },
     { alvo: '[data-tour="placar"]', texto: 'Pares seguidos sem errar multiplicam os seus pontos.' },
   ],
   wordsearch: [
@@ -30,14 +30,14 @@ export const PASSOS_DOS_JOGOS: Record<MinigameId, PassoTour[]> = {
   ],
   termo: [
     { alvo: '[data-tour="pista"]', texto: 'A pista é o significado. Escreva a palavra que ele descreve.' },
-    { alvo: '[data-tour="tabuleiro"]', texto: 'Toque num quadrado para escrever nele — dá para preencher fora de ordem.', gesto: 'clique' },
+    { alvo: '[data-tour="tabuleiro"]', texto: 'Toque num quadrado para escrever nele, dá para preencher fora de ordem.', gesto: 'clique' },
     { alvo: '[data-tour="varinha"]', texto: 'A varinha preenche as letras que você já descobriu. Essa é de graça.', gesto: 'clique' },
     { alvo: '[data-tour="teclado"]', texto: 'Verde é letra no lugar certo; amarelo existe na palavra, mas em outra posição.', gesto: 'digite' },
   ],
   scramble: [
-    { alvo: '[data-tour="traducao"]', texto: 'Este é o significado da frase — é ele que guia a ordem das palavras.' },
+    { alvo: '[data-tour="traducao"]', texto: 'Este é o significado da frase, é ele que guia a ordem das palavras.' },
     { alvo: '[data-tour="pecas"]', texto: 'Toque nas palavras na ordem certa. Tocar de novo devolve a palavra.', gesto: 'clique' },
-    { alvo: '[data-tour="conferir"]', texto: 'Se errar, eu digo QUANTAS estão no lugar — sem dizer quais.', gesto: 'clique' },
+    { alvo: '[data-tour="conferir"]', texto: 'Se errar, eu digo QUANTAS estão no lugar, sem dizer quais.', gesto: 'clique' },
     { alvo: '[data-tour="dica-scramble"]', texto: 'Empacou? A lâmpada encaixa a próxima palavra certa no lugar, e custa nota.', gesto: 'clique' },
   ],
   karaoke: [
@@ -48,21 +48,21 @@ export const PASSOS_DOS_JOGOS: Record<MinigameId, PassoTour[]> = {
   blitz: [
     { alvo: '[data-tour="pergunta"]', texto: 'Você tem poucos segundos: responder rápido é o que prova que a palavra está firme.' },
     { alvo: '[data-tour="alternativas"]', texto: 'As alternativas erradas são outras palavras reais do seu baralho.', gesto: 'clique' },
-    { alvo: '[data-tour="tesoura"]', texto: 'A tesoura corta duas alternativas erradas — duas vezes por rodada. Custa nota.', gesto: 'clique' },
+    { alvo: '[data-tour="tesoura"]', texto: 'A tesoura corta duas alternativas erradas, duas vezes por rodada. Custa nota.', gesto: 'clique' },
   ],
   escuta: [
-    { alvo: '[data-tour="ouvir"]', texto: 'O trecho toca sozinho. Ouça de novo quantas vezes quiser — isso não tira ponto.', gesto: 'clique' },
+    { alvo: '[data-tour="ouvir"]', texto: 'O trecho toca sozinho. Ouça de novo quantas vezes quiser, isso não tira ponto.', gesto: 'clique' },
     { alvo: '[data-tour="devagar"]', texto: 'Ainda difícil? Aqui ele toca devagar, sem mudar o tom da voz.', gesto: 'clique' },
-    { alvo: '[data-tour="alternativas"]', texto: 'Escolha qual frase foi dita. As outras são falas da mesma gravação — só ouvindo dá.', gesto: 'clique' },
+    { alvo: '[data-tour="alternativas"]', texto: 'Escolha qual frase foi dita. As outras são falas da mesma gravação, só ouvindo dá.', gesto: 'clique' },
   ],
   ditado: [
     { alvo: '[data-tour="ouvir"]', texto: 'Ouça o trecho. Pode repetir à vontade, e devagar também.', gesto: 'clique' },
-    { alvo: '[data-tour="entrada"]', texto: 'Escreva o que você entendeu. Acento e pontuação não contam — o jogo é de ouvido.', gesto: 'digite' },
+    { alvo: '[data-tour="entrada"]', texto: 'Escreva o que você entendeu. Acento e pontuação não contam, o jogo é de ouvido.', gesto: 'digite' },
     { alvo: '[data-tour="dica-ditado"]', texto: 'Empacou numa palavra? A lâmpada escreve a próxima para você, e isso custa nota.', gesto: 'clique' },
     { alvo: '[data-tour="conferir"]', texto: 'Ao conferir, eu mostro cada palavra e o que você escreveu no lugar.', gesto: 'clique' },
   ],
   conectores: [
-    { alvo: '[data-tour="frase-conectores"]', texto: 'Toque nas palavras que ligam uma ideia à outra — "porque", "porém", "however".', gesto: 'clique' },
+    { alvo: '[data-tour="frase-conectores"]', texto: 'Toque nas palavras que ligam uma ideia à outra, "porque", "porém", "however".', gesto: 'clique' },
     { alvo: '[data-tour="conferir"]', texto: 'Marcar demais atrapalha: deixar passar e marcar à toa pesam igual na nota.', gesto: 'clique' },
   ],
 };

@@ -84,7 +84,7 @@ export default function AiEnginePanel() {
 
   const bindingLabel = (cap: Capability): string => {
     const first = profile.bindings[cap]?.[0];
-    if (!first) return '—';
+    if (!first) return '-';
     const where = first.baseUrl ? ' · local' : first.credentialId ? ' · nuvem' : '';
     return first.adapterId + where;
   };
@@ -128,14 +128,14 @@ export default function AiEnginePanel() {
       </div>
 
       {/* ── O QUE ESTE JEITO CONSEGUE FAZER ──────────────────────────────────────────────────
-          Antes esta grade dizia `STT · whisper-local`, `VLM · —`. Os dois lados eram opacos: a
+          Antes esta grade dizia `STT · whisper-local`, `VLM ·,`. Os dois lados eram opacos: a
           sigla não diz o que a capacidade FAZ, e o travessão não diz que a coisa não funciona
-          naquele perfil — parecia campo vazio, não recurso ausente. Quem escolhia "Privado/Local"
+          naquele perfil, parecia campo vazio, não recurso ausente. Quem escolhia "Privado/Local"
           descobria que a busca por sentido não funcionava ao tentar usá-la.
 
           Agora cada linha diz a capacidade em português, o que ela alimenta na tela, e o VEREDITO.
           O nome técnico do motor continua ali, à direita: era a informação útil da versão antiga e
-          continua sendo — para quem depura, é a única que importa. */}
+          continua sendo, para quem depura, é a única que importa. */}
       <div className="p-5 border-b border-border-subtle">
         <div className="label-mono mb-3">O que este jeito consegue fazer</div>
         <ul className="flex flex-col gap-1.5">
@@ -143,9 +143,9 @@ export default function AiEnginePanel() {
             const meta = CAPACIDADE[cap];
             const motor = bindingLabel(cap);
             /* O veredito sai do PERFIL, não de uma tabela escrita à mão: sem binding declarado, a
-               capacidade não roda — e é isso que a linha diz. Uma tabela paralela sairia de sincronia
+               capacidade não roda, e é isso que a linha diz. Uma tabela paralela sairia de sincronia
                com `gateway/profiles.ts` no primeiro perfil novo. */
-            const atende = motor !== '—';
+            const atende = motor !== '-';
             return (
               <li
                 key={cap}

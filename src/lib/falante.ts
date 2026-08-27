@@ -106,7 +106,7 @@ export function criarFalante(
         };
 
         /* O `error` do <audio> é a única fonte de causa da falha de CARGA (rede, formato, arquivo
-           corrompido) — `mediaErrorMessage` a traduz. Sem isto o jogo caía na voz sintetizada, ou
+           corrompido), `mediaErrorMessage` a traduz. Sem isto o jogo caía na voz sintetizada, ou
            no silêncio quando nem ela existe, e a pessoa não tinha como saber por quê. */
         const falhouACarga = () => {
           if (!jaAvisouDoAudio) {

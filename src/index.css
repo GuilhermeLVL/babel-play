@@ -1507,3 +1507,29 @@ body.animations-off .hover\:-translate-y-1:hover {
    "arcade de brinquedo" dos jogos) só na marca e em momentos de celebração. O corpo do app
    continua em Inter/Archivo: a marca é tempero, não prato. */
 .font-marca { font-family: 'Baloo 2', 'Archivo', system-ui, sans-serif; }
+
+/* ─────────────── TELA SOBRE — blobs flutuantes e anel do avatar ───────────────
+   Movimento LENTO (18–26 s por volta) e desfocado: presença, não distração. As guardas globais
+   desligam tudo. O anel do avatar é um conic-gradient girando devagar atrás da foto. */
+@keyframes sobre-flutua {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33%      { transform: translate(24px, -18px) scale(1.08); }
+  66%      { transform: translate(-16px, 14px) scale(0.95); }
+}
+.sobre-blob { animation: sobre-flutua 18s ease-in-out infinite; }
+.sobre-blob-2 { animation-duration: 24s; animation-delay: -8s; }
+.sobre-blob-3 { animation-duration: 26s; animation-delay: -14s; }
+
+@keyframes sobre-gira { to { transform: rotate(360deg); } }
+.sobre-anel::before {
+  content: '';
+  position: absolute; inset: -4px; border-radius: 9999px;
+  background: conic-gradient(from 0deg, var(--accent), var(--warn), var(--good), var(--accent));
+  animation: sobre-gira 8s linear infinite;
+  filter: blur(1px);
+}
+.sobre-anel { isolation: isolate; }
+.sobre-anel img { position: relative; z-index: 1; }
+
+.animations-off .sobre-blob, .animations-off .sobre-anel::before,
+.performance-mode .sobre-blob, .performance-mode .sobre-anel::before { animation: none; }

@@ -174,7 +174,7 @@ export function cardLangs(resolved: ResolvedWord): { srcLang?: string; tgtLang?:
 export function mtNoteFor(resolved: ResolvedWord, translation: string): string | null {
   if (translation) return null;
   if (resolved.coverage === 'same') {
-    return `A palavra já está em ${langLabel(resolved.lang)} — não há o que traduzir.`;
+    return `A palavra já está em ${langLabel(resolved.lang)}, não há o que traduzir.`;
   }
   if (resolved.coverage === 'unknown') {
     return 'Não há motor de tradução para este par de idiomas.';

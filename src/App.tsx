@@ -3,7 +3,7 @@ import { EDICAO_LEVE } from './lib/edicao';
 import OnboardingLeve from './components/OnboardingLeve';
 import LayoutEditorToolbar from './components/LayoutEditorToolbar';
 import PracticeMenu from './components/PracticeMenu';
-import Hub from './components/views/Hub'; // tela inicial — eager p/ primeiro paint instantâneo
+import Hub from './components/views/Hub'; // tela inicial, eager p/ primeiro paint instantâneo
 
 // CODE-SPLITTING: as demais views e overlays pesados carregam SOB DEMANDA. Antes, tudo caía num único
 // bundle de arranque (~1,9 MB) — incluindo o onnxruntime-web/VAD (Captura), o recharts (Métricas) e o
@@ -169,7 +169,7 @@ export default function App() {
   const [ageProfile, setAgeProfileState] = useState<AgeProfileType>(readAgeProfile);
 
   const [menuPosition, setMenuPositionState] = useState<MenuPositionType>(
-    () => readStoredEnum(MENU_POSITION_KEY, MENU_POSITIONS, 'top')
+    () => readStoredEnum(MENU_POSITION_KEY, MENU_POSITIONS, EDICAO_LEVE ? 'left' : 'top')
   );
   const [soundEnabled, setSoundEnabledState] = useState<boolean>(() => {
     return readStoredValue('babel.sound_enabled') !== 'false';
@@ -459,7 +459,7 @@ export default function App() {
         setSelectedRecordingId(data?.id ?? null);
         /* "Praticar ISTO" chega aqui quando o alvo é um JOGO. Os atalhos do menu de contexto e do
            painel de vocabulário apontavam para os exercícios legados; com eles fora, o destino
-           passou a ser o minijogo equivalente, e a semente precisa viajar junto — senão o atalho
+           passou a ser o minijogo equivalente, e a semente precisa viajar junto, senão o atalho
            abriria o lobby genérico e escolher uma frase não teria efeito. */
         setPracticeSeed(data?.seed ?? null);
       }
@@ -467,7 +467,7 @@ export default function App() {
   };
 
   /* ═══════════════════════════════════════════════════════════════════════
-     F10 — A URL ESPELHA O ESTADO.
+     F10, A URL ESPELHA O ESTADO.
 
      Aditivo: a máquina de estados acima continua sendo a implementação. Estes três efeitos
      apenas mantêm a barra de endereço em sincronia com ela.
@@ -638,7 +638,7 @@ export default function App() {
         <main className={`flex-1 min-w-0 flex flex-col h-full relative overflow-hidden bg-canvas age-${ageProfile}`}>
           {/* O AMBIENTE fica fora do perfil sênior de propósito: movimento contínuo de fundo é
               exatamente o que atrapalha quem já tem dificuldade de leitura. As RAJADAS continuam
-              para os três — são curtas e confirmam uma ação que a pessoa acabou de fazer. */}
+              para os três, são curtas e confirmam uma ação que a pessoa acabou de fazer. */}
           <ParticleCanvas
             enabled={animationsEnabled}
             performanceMode={performanceMode}
@@ -727,7 +727,7 @@ export default function App() {
       </main>
 
       {/* Menu de prática GLOBAL: selecione texto em qualquer tela → botão direito → praticar.
-          É o que elimina o maior atrito da app — antes, para praticar um trecho, o usuário tinha de
+          É o que elimina o maior atrito da app, antes, para praticar um trecho, o usuário tinha de
           sair da tela, achar a Central de Exercícios (que nem view de primeiro nível era) e ainda
           assim o exercício rodava num texto fixo, não no dele. Agora o conteúdo vai até o exercício. */}
       {!EDICAO_LEVE && <GateDeConta aberto={gate !== null} motivo={gate ?? ''} onFechar={fecharGate} onEntrar={() => { fecharGate(); setPedindoLogin(true); }} />}
@@ -800,7 +800,7 @@ export default function App() {
       />
 
       {/* Host único dos avisos e das confirmações. Sem ele, `toast()` e `askConfirm()` não têm onde
-          aparecer — e os erros voltam a ser invisíveis, que é o bug que eles existem para corrigir. */}
+          aparecer, e os erros voltam a ser invisíveis, que é o bug que eles existem para corrigir. */}
       <Toaster />
     </div>
   );

@@ -85,7 +85,7 @@ export function EvolucaoSemanal({
               agora vale para todas. */}
           <p className="text-[11px] text-ink-faint mt-2 leading-relaxed">
             {dados.length === 1
-              ? 'Uma semana só — é o dado real, mas um ponto não é tendência.'
+              ? 'Uma semana só, é o dado real, mas um ponto não é tendência.'
               : `Palavras adicionadas ao baralho por semana, ${dados.length} semanas do seu histórico.`}
           </p>
         </>

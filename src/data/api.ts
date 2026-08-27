@@ -70,7 +70,7 @@ export interface UtteranceRow {
 }
 
 function fmtDuration(ms: number | null): string {
-  if (!ms || ms < 1000) return '—'
+  if (!ms || ms < 1000) return '-'
   const total = Math.round(ms / 1000)
   const m = Math.floor(total / 60)
   const s = total % 60
@@ -390,14 +390,14 @@ export function rowToVocabCard(row: VocabRow): VocabCard {
     fsrsPredictedRetention: 0,
     fsrsDueAt: dueIso,
     /* LIDO DO BANCO, não mais fixo em `true`.
-       Enquanto era constante, TODO `filter(c => c.inDeck)` do app era um no-op — inclusive o da
-       tela de jogos — e arquivar um cartão não tinha efeito nenhum. A coluna sempre existiu
+       Enquanto era constante, TODO `filter(c => c.inDeck)` do app era um no-op, inclusive o da
+       tela de jogos, e arquivar um cartão não tinha efeito nenhum. A coluna sempre existiu
        (`schema.ts`); só o cliente é que a ignorava. `?? true` mantém os cartões antigos, gravados
        antes de a coluna ser preenchida, dentro do baralho. */
     inDeck: row.inDeck == null ? true : row.inDeck === 1,
     stability: row.stability ?? undefined,
     /* Segundo insumo da retenção real (`retrievability(dias, estabilidade)`, `@core`). Sem isto a
-       UI só tinha a estabilidade — metade da conta — e o painel "Requer Atenção" classificava os
+       UI só tinha a estabilidade, metade da conta, e o painel "Requer Atenção" classificava os
        151 cartões revisados como "nunca revisados", invertendo o próprio diagnóstico. */
     lastReview: row.lastReview ?? undefined,
     reps: row.reps ?? undefined,

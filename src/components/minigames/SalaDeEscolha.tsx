@@ -149,7 +149,7 @@ export default function SalaDeEscolha({
     /* ANCORADA NO TOPO, e não centrada. A sala abre na primeira pintura e cresce três vezes
        enquanto os dados chegam (chips de idioma com o baralho, lista de gravações com as sessões,
        rodapé com o idioma). Centrada, cada crescimento empurrava METADE dele para cima e movia
-       tudo o que já estava pintado — medido em CLS 0,364 no Jogar (achado F0-02). Presa no topo,
+       tudo o que já estava pintado, medido em CLS 0,364 no Jogar (achado F0-02). Presa no topo,
        o crescimento só desce o que vem abaixo dele. */
     <div
       className="fixed inset-0 z-[45] flex items-start justify-center p-4 pt-[6vh] bg-black/60 backdrop-blur-sm animate-in fade-in duration-200"
@@ -202,7 +202,7 @@ export default function SalaDeEscolha({
                   contagem: i.jogaveis,
                   dica: `${i.jogaveis} prontas para jogo de par, de ${i.total} no idioma`,
                   motivoBloqueio: i.jogaveis === 0
-                    ? `você tem ${i.total} palavras neste idioma, mas nenhuma com tradução — sem ela os jogos de par não montam`
+                    ? `você tem ${i.total} palavras neste idioma, mas nenhuma com tradução, sem ela os jogos de par não montam`
                     : undefined,
                 }))}
               />
@@ -330,7 +330,7 @@ export default function SalaDeEscolha({
         {/* ── O RODAPÉ: o que a escolha promete, e o único clique necessário. ──────────────── */}
         {/* SEM `flex-wrap`: a frase de aviso ("não tem palavras prontas") é longa e empurrava o
             botão para a linha de baixo; quando a contagem chegava, ela encolhia e os dois voltavam
-            para a mesma linha — o botão subia 31px com o diálogo já pintado. Numa linha só, o
+            para a mesma linha, o botão subia 31px com o diálogo já pintado. Numa linha só, o
             rodapé tem a altura do botão nos dois estados. */}
         <footer className="flex items-center justify-between gap-3 p-5 border-t border-border-subtle">
           <p className="text-[12.5px] text-ink-muted min-w-0">

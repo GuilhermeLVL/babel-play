@@ -193,7 +193,7 @@ export default function ControlCluster(props: ControlClusterProps) {
   }, [isMenuOpen, place]);
 
   /* O som saiu daqui: o listener delegado (lib/sfxDelegate) já toca `click` em qualquer <button>,
-     e `toggleOn`/`toggleOff` nos que declaram `aria-pressed` — que é o caso destes. Manter a
+     e `toggleOn`/`toggleOff` nos que declaram `aria-pressed`, que é o caso destes. Manter a
      chamada manual tocaria em dobro. */
   const click = (fn: () => void) => () => { fn(); };
 
@@ -208,7 +208,7 @@ export default function ControlCluster(props: ControlClusterProps) {
       {/* ── BUSCA GLOBAL ─────────────────────────────────────────────────────────────────────
           Na barra horizontal vira uma pílula larga com o atalho impresso: um ⌘K que ninguém vê não
           é um atalho, é um segredo. No rail vertical o espaço não comporta a pílula, e ela encolhe
-          para o mesmo alvo de 36px dos outros controles — o `title` continua ensinando a tecla. */}
+          para o mesmo alvo de 36px dos outros controles, o `title` continua ensinando a tecla. */}
       <button
         type="button"
         onClick={() => onOpenSearch()}
@@ -278,7 +278,7 @@ export default function ControlCluster(props: ControlClusterProps) {
         onClick={click(togglePerformanceMode)}
         title={
           performanceMode
-            ? 'Modo desempenho ligado — visual simplificado para PCs modestos'
+            ? 'Modo desempenho ligado, visual simplificado para PCs modestos'
             : 'Ligar o modo desempenho (visual simplificado, app mais leve)'
         }
         active={performanceMode}
@@ -325,7 +325,7 @@ export default function ControlCluster(props: ControlClusterProps) {
       {/* ── A CONTA ────────────────────────────────────────────────────────────────────────────
           Último da fileira porque é o item de MAIS ALTO nível: os outros ajustam a tela, este
           responde "quem sou eu e como saio". Mora aqui, e não em `NAV_ITEMS`, porque este cluster
-          é a única peça que as quatro posições de menu e a barra do celular compartilham —
+          é a única peça que as quatro posições de menu e a barra do celular compartilham,
           `MobileNav` renderiza a lista de navegação INTEIRA e já está no limite de largura. */}
       {!EDICAO_LEVE && <div className={orientation === 'column' ? 'hidden' : 'w-px h-5 bg-border-subtle/70 mx-1'} />}
       {!EDICAO_LEVE && <MenuDaConta onIr={onChangeView} orientation={orientation} />}

@@ -85,7 +85,7 @@ export default function AbaVoce() {
           >
             {/* As iniciais SÃO o avatar. Upload exigiria Supabase Storage, que o projeto não usa em
                 lugar nenhum, e não há quota de armazenamento por usuário. */}
-            {iniciaisDe(nome || perfil?.displayName, perfil?.email) || '—'}
+            {iniciaisDe(nome || perfil?.displayName, perfil?.email) || '-'}
           </div>
 
           <div className="flex-1 min-w-0 space-y-4">
@@ -144,7 +144,7 @@ export default function AbaVoce() {
         <h2 className="font-display font-bold text-lg text-ink mb-1">Do que você gosta</h2>
         <p className="text-[12.5px] text-ink-muted mb-4 max-w-[64ch]">
           Isto guia o que vale a pena importar e que exemplos aparecem nos jogos. Escolha até{' '}
-          <b>{MAX_INTERESSES}</b> — marcar tudo não diz nada sobre você.
+          <b>{MAX_INTERESSES}</b>, marcar tudo não diz nada sobre você.
         </p>
 
         <div className="card-panel bg-surface p-5 space-y-4">
@@ -180,7 +180,7 @@ export default function AbaVoce() {
       </section>
 
       {/* ── CONTA E SEGURANÇA ───────────────────────────────────────────────────────────────
-          Fica por ÚLTIMO e devolve `null` sem login — por isso os campos de identidade vêm acima.
+          Fica por ÚLTIMO e devolve `null` sem login, por isso os campos de identidade vêm acima.
           Era o inverso disso que deixava a aba de conta vazia no modo local. */}
       {authRequired
         ? <AccountSecuritySection />
@@ -190,7 +190,7 @@ export default function AbaVoce() {
             <div className="card-panel bg-surface p-5">
               <p className="text-[13px] text-ink-muted max-w-[64ch]">
                 Este app está rodando no seu computador, sem login. Não há senha nem sessão para
-                gerenciar — os seus dados ficam neste dispositivo.
+                gerenciar, os seus dados ficam neste dispositivo.
               </p>
             </div>
           </section>

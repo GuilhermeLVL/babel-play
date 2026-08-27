@@ -244,7 +244,7 @@ export class SpeakerClusterer {
       vencedor.weight = Math.min(this.maxCentroidWeight, vencedor.weight + perdedor.weight);
       this.clusters = this.clusters.filter(c => c.id !== perdedor.id);
       merged.push({ from: perdedor.id, into: vencedor.id });
-      if (perdedor.id === into.id) break; // o próprio "into" foi absorvido — nada mais a comparar
+      if (perdedor.id === into.id) break; // o próprio "into" foi absorvido, nada mais a comparar
     }
     return merged;
   }

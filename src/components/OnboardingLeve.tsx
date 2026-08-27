@@ -23,7 +23,7 @@ export type ObjetivoLeve = 'jogos' | 'estudos' | 'trabalho';
 
 const OBJETIVOS: Array<{ id: ObjetivoLeve; icone: React.ReactNode; titulo: string; sub: string }> = [
   { id: 'jogos', icone: <Gamepad2 className="w-5 h-5" />, titulo: 'Jogos e vídeos', sub: 'Entender o que falam no Discord, na live, na série.' },
-  { id: 'estudos', icone: <GraduationCap className="w-5 h-5" />, titulo: 'Estudos', sub: 'Aulas, palestras, documentários — e revisar o vocabulário depois.' },
+  { id: 'estudos', icone: <GraduationCap className="w-5 h-5" />, titulo: 'Estudos', sub: 'Aulas, palestras, documentários, e revisar o vocabulário depois.' },
   { id: 'trabalho', icone: <Briefcase className="w-5 h-5" />, titulo: 'Trabalho', sub: 'Reuniões e chamadas em outro idioma, sem perder o fio.' },
 ];
 
@@ -84,7 +84,7 @@ export default function OnboardingLeve({ onComplete }: { onComplete: () => void 
             </div>
             <p className="mt-4 text-[13.5px] text-ink-muted leading-relaxed">
               Fiz o Babel Play sozinho, como projeto independente e de código aberto: legendas ao
-              vivo e tradução do que você assiste, joga e ouve — <b className="text-ink">de graça,
+              vivo e tradução do que você assiste, joga e ouve, <b className="text-ink">de graça,
               sem conta, e sem o seu áudio sair do computador</b>.
             </p>
             <div className="flex flex-wrap gap-2 mt-4">

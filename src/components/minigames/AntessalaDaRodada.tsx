@@ -204,13 +204,13 @@ export default function AntessalaDaRodada({
    */
   /* A pergunta certa é "o título carrega alguma coisa além do esqueleto?", e não "existe campo
      `pista`?". Quando o jogo permite a pista, ela SOBE para o título e o campo `pista` fica vazio
-     — checar o campo colapsava para o resumo justamente as listas que informam (o Termo mostrando
+    , checar o campo colapsava para o resumo justamente as listas que informam (o Termo mostrando
      sete traduções distintas viraria "7 palavras, de 6 a 6 letras"). Onde o título É o esqueleto,
      aí sim não há o que distinguir.
 
      E A CONTA É POR MAIORIA, NÃO POR `some`. Medido na tela com o baralho real: uma rodada de
      Memória com OITO itens, sete deles puro esqueleto e UM com nível CEFR (herdado de uma
-     importação da trilha), passava no `some` e imprimia oito linhas "N letras · VENCIDA" — a
+     importação da trilha), passava no `some` e imprimia oito linhas "N letras · VENCIDA", a
      parede de repetição que este bloco existe para evitar, derrubada por um único item. A lista só
      se paga quando a maior parte dela distingue; abaixo disso, o resumo diz mais em duas linhas. */
   const informativos = itens.filter(i => (i.titulo && i.titulo !== i.forma) || i.cefr || historico.has(i.ref)).length;
@@ -224,7 +224,7 @@ export default function AntessalaDaRodada({
   // `COPY` é para termo reutilizado entre telas, e enchê-lo de frase local é como ele apodrece.
   const subtitulo: Record<AgeProfileType, string> = {
     kids: 'Isto é o que vem agora. Não gostou? Troca.',
-    pro: 'Prévia da rodada — o conteúdo exato que será jogado, antes de começar.',
+    pro: 'Prévia da rodada, o conteúdo exato que será jogado, antes de começar.',
     senior: 'Veja o que vai aparecer. Você pode trocar antes de começar.',
   };
   const rotuloTotal: Record<AgeProfileType, string> = {
@@ -302,7 +302,7 @@ export default function AntessalaDaRodada({
 
             {/* ── CHIPS DE DIFICULDADE (Z1) ───────────────────────────────────────────────
                 Linha de chips, não modal: o usuário já está a um clique de jogar. Chip sem itens
-                suficientes fica DESABILITADO com o motivo — botão que falha ao ser clicado é pior
+                suficientes fica DESABILITADO com o motivo, botão que falha ao ser clicado é pior
                 que botão ausente. */}
             {filtroDificuldade && (
               <div className="mt-3 space-y-1.5">
@@ -359,7 +359,7 @@ export default function AntessalaDaRodada({
         {/* ── O SALDO ────────────────────────────────────────────────────────────────────────
             Os mesmos quatro números de sempre, agora em ladrilhos: numa linha corrida de texto
             ("8 nesta rodada · 7 inéditos · 1 já vistos") todos pesavam igual, e o que carrega a
-            decisão de jogar ou trocar é o "quantas você nunca viu" — cinco rodadas seguidas com
+            decisão de jogar ou trocar é o "quantas você nunca viu", cinco rodadas seguidas com
             zero ali é a denúncia de sorteio repetido que esta tela existe para dar.
 
             "Vencidos" continua sendo o único com cor: é o único que fala de PRAZO. */}
@@ -373,7 +373,7 @@ export default function AntessalaDaRodada({
         {/* A DENÚNCIA DA REPETIÇÃO, em número.
             Este é o trabalho que a lista de palavras fazia mal: para notar que "são as mesmas 7 da
             rodada passada" era preciso guardar as 7 de cabeça. Aqui a comparação já vem feita, e o
-            botão que resolve está logo abaixo. Só aparece quando há repetição — uma linha dizendo
+            botão que resolve está logo abaixo. Só aparece quando há repetição, uma linha dizendo
             "0 repetidos" toda vez viraria ruído e ninguém leria a que importa. */}
         {repetidos > 0 && (
           <section className="card-panel bg-surface p-3 mb-5 flex flex-wrap items-center gap-x-3 gap-y-1.5">
@@ -383,7 +383,7 @@ export default function AntessalaDaRodada({
             <p className="text-[13px] text-ink-muted">
               <b className="text-ink">{repetidos} {repetidos === 1 ? 'item' : 'itens'}</b>
               {' '}de {saldo.total} {repetidos === 1 ? 'já caiu' : 'já caíram'} na sua última rodada deste jogo
-              {repetidos === saldo.total ? ' — é a mesma rodada.' : '.'}
+              {repetidos === saldo.total ? ', é a mesma rodada.' : '.'}
             </p>
           </section>
         )}
@@ -401,10 +401,10 @@ export default function AntessalaDaRodada({
               {faixa
                 ? <>{faixa.unidade === 'palavras' ? 'falas' : 'palavras'}, de <b>{faixa.min}</b> a <b>{faixa.max}</b> {faixa.unidade}</>
                 : <>itens</>}
-              {saldo.novos === itens.length ? ' — todas inéditas para você.' : '.'}
+              {saldo.novos === itens.length ? ', todas inéditas para você.' : '.'}
             </p>
             <p className="text-[12px] text-ink-muted mt-1.5 max-w-[62ch] leading-snug">
-              Este jogo esconde o conteúdo até você jogar — mostrar aqui entregaria a resposta.
+              Este jogo esconde o conteúdo até você jogar, mostrar aqui entregaria a resposta.
               O que dá para saber antes está na linha de cima.
             </p>
           </section>
@@ -420,7 +420,7 @@ export default function AntessalaDaRodada({
                 >
                   {/* O título já vem REDIGIDO pelo core: a frase (karaokê/conectores), a tradução
                       (Termo/duelo/caça-palavras/embaralhada) ou só o esqueleto ("7 letras") nos três
-                      que não podem mostrar nada. A tela não escolhe — se escolhesse, voltaria a ser
+                      que não podem mostrar nada. A tela não escolhe, se escolhesse, voltaria a ser
                       um lugar onde alguém pode esquecer a regra. */}
                   <span className="font-display font-bold text-[14px] text-ink min-w-[8rem] flex-1 truncate" title={item.titulo}>
                     {item.titulo}
@@ -455,7 +455,7 @@ export default function AntessalaDaRodada({
         {/* Excedente ANUNCIADO: sem esta linha a pessoa acharia que a rodada tem 24 itens. */}
         {listaInforma && itens.length > MAX_VISIVEL && (
           <p className="text-[12px] text-ink-faint mb-3">
-            mostrando {MAX_VISIVEL} de {itens.length} — o resto entra na mesma rodada
+            mostrando {MAX_VISIVEL} de {itens.length}, o resto entra na mesma rodada
           </p>
         )}
 

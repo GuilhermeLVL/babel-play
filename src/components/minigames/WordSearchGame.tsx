@@ -232,7 +232,7 @@ export default function WordSearchGame({ items, ageProfile, onFinish, onExit }: 
       )}
 
       {/* O CAMPO DE DESTAQUE. Fica ACIMA da grade e centralizado com ela: à direita, junto do
-          radar, ele competiria com as ajudas que penalizam — e este não penaliza. */}
+          radar, ele competiria com as ajudas que penalizam, e este não penaliza. */}
       <div className="flex items-center justify-center gap-2 mb-2 shrink-0">
         <label htmlFor="destaque-letras" className="flex items-center gap-1.5 text-[12px] text-ink-muted">
           <Highlighter className="w-3.5 h-3.5" aria-hidden />
@@ -248,7 +248,7 @@ export default function WordSearchGame({ items, ageProfile, onFinish, onExit }: 
           spellCheck={false}
           placeholder="ex.: A"
           /* `w-20` e não largura total: o campo é para uma ou duas letras, e um campo largo
-             convidaria a digitar a palavra inteira — que é o que o jogo pede para PROCURAR. */
+             convidaria a digitar a palavra inteira, que é o que o jogo pede para PROCURAR. */
           className="w-20 px-2.5 py-1.5 rounded-lg bg-canvas border border-border-subtle text-[13px] font-bold text-ink text-center uppercase focus:border-accent outline-none"
           aria-describedby="destaque-ajuda"
         />
@@ -262,7 +262,7 @@ export default function WordSearchGame({ items, ageProfile, onFinish, onExit }: 
       </div>
 
       {/* As duas colunas como um PAR centralizado. Com `mx-auto` na grade, cada uma se centrava no
-          próprio espaço e sobrava um vão enorme no meio da tela — grade num canto, pistas no outro. */}
+          próprio espaço e sobrava um vão enorme no meio da tela, grade num canto, pistas no outro. */}
       <div className="flex flex-col lg:flex-row gap-5 lg:gap-8 items-start justify-center my-auto w-fit mx-auto">
         {/* A GRADE */}
         <div
@@ -369,7 +369,7 @@ export default function WordSearchGame({ items, ageProfile, onFinish, onExit }: 
                       <button
                         onClick={(e) => revelar(i, e.currentTarget)}
                         className="p-1 rounded text-ink-faint hover:text-error-ink cursor-pointer shrink-0"
-                        title="Não lembro — revelar (conta como erro)"
+                        title="Não lembro, revelar (conta como erro)"
                         aria-label="Revelar esta palavra"
                       >
                         <Eye className="w-3.5 h-3.5" />

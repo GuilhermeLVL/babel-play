@@ -15,7 +15,7 @@ export * from './learning/xp'
 export * from './learning/fluencia'
 /* Reexporte NOMEADO, e não `export *`: `cefrWordlist` também declara `CefrLevel` e `NIVEIS`, que
    já vêm de `contract` e de `trilha`. Um `export *` criaria ambiguidade no barril e o TypeScript
-   recusaria — melhor escolher aqui do que renomear tipos que meia dúzia de arquivos já importa. */
+   recusaria, melhor escolher aqui do que renomear tipos que meia dúzia de arquivos já importa. */
 export { nivelCefr, coberturaDaWordlist, type NivelCefr, type ProcedenciaCefr } from './learning/cefrWordlist'
 export * from './minigames/types'
 export * from './minigames/revelavel'

@@ -23,7 +23,7 @@ import type { ThemeType } from './appearance';
 
 export type SoundEvent =
   // ── Navegação e chrome
-  | 'click'        // botão genérico — o mais discreto de todos
+  | 'click'        // botão genérico, o mais discreto de todos
   | 'nav'          // trocou de tela ou de aba
   | 'open'         // overlay abriu
   | 'close'        // overlay fechou
@@ -38,15 +38,15 @@ export type SoundEvent =
   // ── Resultado
   | 'success'      // acertou / concluiu
   | 'error'        // falhou
-  | 'combo'        // emendou acertos — entre o acerto comum e o subir de nível
+  | 'combo'        // emendou acertos, entre o acerto comum e o subir de nível
   | 'recordStart'  // começou a gravar
   | 'recordStop'   // parou de gravar
-  | 'levelUp'      // subiu de nível — o único celebratório
+  | 'levelUp'      // subiu de nível, o único celebratório
   // ── Duelo relâmpago (jogo contra o tempo)
   | 'tick'         // último segundos: um toque seco por segundo
-  | 'timeBonus'    // ganhou segundos de volta — deslizada para cima
-  | 'fever'        // entrou no modo fever — acorde cheio
-  | 'fanfarra';    // fim de rodada — arpejo maior; transpose sobe com as estrelas
+  | 'timeBonus'    // ganhou segundos de volta, deslizada para cima
+  | 'fever'        // entrou no modo fever, acorde cheio
+  | 'fanfarra';    // fim de rodada, arpejo maior; transpose sobe com as estrelas
 
 let audioCtx: AudioContext | null = null;
 let soundMuted = false;

@@ -215,7 +215,7 @@ export function setVoicePref(lang: string, voiceName: string): void {
     localStorage.setItem(VOICE_PREFS_KEY, JSON.stringify(prefs));
     // Barramento de reatividade (mesmo padrão do layoutStore) — as telas abertas se atualizam.
     window.dispatchEvent(new CustomEvent('babel_voice_prefs_changed', { detail: prefs }));
-  } catch { /* storage cheio/bloqueado — a fala continua funcionando, só não persiste */ }
+  } catch { /* storage cheio/bloqueado, a fala continua funcionando, só não persiste */ }
 }
 
 /** Escuta mudanças na preferência de voz. Devolve o unsubscribe. */

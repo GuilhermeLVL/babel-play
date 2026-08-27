@@ -67,7 +67,7 @@ export const COMO_SE_JOGA: Record<MinigameId, ConteudoComoSeJoga> = {
     passos: [
       'Vire uma carta e depois outra.',
       'Se as duas forem a mesma palavra e a tradução dela, o par fecha.',
-      'Errou? As cartas voltam — e a repetição é justamente o que fixa.',
+      'Errou? As cartas voltam, e a repetição é justamente o que fixa.',
     ],
     avaliacao: 'Fechar o par de primeira vale "bom"; com duas ou três tentativas, "difícil". Nunca vale "fácil": aqui você tem tempo para pensar, e tempo não prova fluência.',
     limites: 'Ver a tradução na mesa é reconhecimento, não produção. Você pode fechar todos os pares e ainda não conseguir usar a palavra ao falar.',
@@ -78,12 +78,12 @@ export const COMO_SE_JOGA: Record<MinigameId, ConteudoComoSeJoga> = {
   wordsearch: {
     treina: 'Lembrar a palavra a partir do significado, antes de procurá-la.',
     passos: [
-      'Leia a pista na lista ao lado — ela é a tradução, nunca a palavra.',
+      'Leia a pista na lista ao lado, ela é a tradução, nunca a palavra.',
       'Lembre qual é a palavra e arraste sobre as letras no quadro.',
       'O traço pode ir em qualquer direção, inclusive na diagonal.',
     ],
-    avaliacao: 'Achar sem ajuda vale "bom". Errar o traço não conta como erro de memória — isso é mira, e mira não estraga a sua revisão.',
-    limites: 'A palavra está escrita no quadro. Isso ajuda quem quase lembrava, mas não treina escrever do zero — para isso existe o Soletrar.',
+    avaliacao: 'Achar sem ajuda vale "bom". Errar o traço não conta como erro de memória, isso é mira, e mira não estraga a sua revisão.',
+    limites: 'A palavra está escrita no quadro. Isso ajuda quem quase lembrava, mas não treina escrever do zero, para isso existe o Soletrar.',
     ajudas: [
       { o_que: 'O radar faz as duas pontas de uma palavra pulsarem no quadro (três por rodada).', custo: null },
       { o_que: 'A dica revela a primeira letra e diz a direção do traço.', custo: 'limita a nota a "difícil"' },
@@ -91,14 +91,14 @@ export const COMO_SE_JOGA: Record<MinigameId, ConteudoComoSeJoga> = {
     ],
   },
   termo: {
-    treina: 'Escrever a palavra letra por letra — produção, que é mais difícil e mais valiosa que reconhecer.',
+    treina: 'Escrever a palavra letra por letra, produção, que é mais difícil e mais valiosa que reconhecer.',
     passos: [
       'A pista é o significado; escreva a palavra que ele descreve.',
       'Verde: letra no lugar certo. Amarelo: existe na palavra, mas em outra posição.',
       'Clique num quadrado (ou use as setas) para escrever fora de ordem.',
       'Acertou? O próximo degrau tem duas palavras ao mesmo tempo. E depois, quatro.',
     ],
-    avaliacao: 'Acertar de primeira vale "fácil" — é a evidência mais forte de domínio que dá para coletar por escrito. Da segunda tentativa em diante você já tem as cores ajudando, então vale menos.',
+    avaliacao: 'Acertar de primeira vale "fácil", é a evidência mais forte de domínio que dá para coletar por escrito. Da segunda tentativa em diante você já tem as cores ajudando, então vale menos.',
     limites: 'Mede grafia, não pronúncia. Escrever certo e falar certo são duas habilidades, e esta só cobre a primeira.',
     ajudas: [
       { o_que: 'A varinha preenche as letras que você JÁ descobriu nas tentativas anteriores.', custo: null },
@@ -107,13 +107,13 @@ export const COMO_SE_JOGA: Record<MinigameId, ConteudoComoSeJoga> = {
     ],
   },
   scramble: {
-    treina: 'A ordem das palavras — a única coisa que nenhum outro exercício do app cobre.',
+    treina: 'A ordem das palavras, a única coisa que nenhum outro exercício do app cobre.',
     passos: [
       'Leia o significado da frase, que fica visível de propósito.',
       'Clique nas palavras na ordem certa; clicar de novo devolve a palavra.',
-      'Confira. Se errar, o jogo diz quantas estão no lugar — sem dizer quais.',
+      'Confira. Se errar, o jogo diz quantas estão no lugar, sem dizer quais.',
     ],
-    avaliacao: 'Este jogo usa falas da sua gravação, que não têm cartão no baralho. Por isso ele não mexe na sua agenda de revisão — vale pelos pontos e pela prática.',
+    avaliacao: 'Este jogo usa falas da sua gravação, que não têm cartão no baralho. Por isso ele não mexe na sua agenda de revisão, vale pelos pontos e pela prática.',
     limites: 'A frase vem do reconhecimento de voz. Se a captura cortou no meio, a ordem "certa" é a que foi transcrita, não necessariamente a que foi dita.',
     ajudas: [
       { o_que: 'A dica encaixa a próxima palavra certa no lugar.', custo: 'limita a nota a "difícil"' },
@@ -123,25 +123,25 @@ export const COMO_SE_JOGA: Record<MinigameId, ConteudoComoSeJoga> = {
   karaoke: {
     treina: 'Pronúncia, repetindo uma fala real com o áudio original como modelo.',
     passos: [
-      'Ouça a frase — as palavras acendem no ritmo do áudio de verdade.',
+      'Ouça a frase, as palavras acendem no ritmo do áudio de verdade.',
       'Toque em Falar e repita.',
       'A nota compara o que o reconhecedor entendeu com o que estava escrito.',
     ],
     avaliacao: 'A nota é de SEMELHANÇA DE TEXTO, não de fonemas: o reconhecedor transcreve o que você falou e comparamos as palavras.',
-    limites: 'Por causa disso, uma palavra bem pronunciada pode aparecer como erro se o reconhecedor entender outra — e um sotaque diferente do esperado derruba a nota sem que a fala esteja errada. Trate como termômetro, nunca como veredito.',
+    limites: 'Por causa disso, uma palavra bem pronunciada pode aparecer como erro se o reconhecedor entender outra, e um sotaque diferente do esperado derruba a nota sem que a fala esteja errada. Trate como termômetro, nunca como veredito.',
     ajudas: [
-      { o_que: 'Ouvir devagar toca a 0,6× sem deixar a voz esquisita — dá para separar as palavras.', custo: null },
+      { o_que: 'Ouvir devagar toca a 0,6× sem deixar a voz esquisita, dá para separar as palavras.', custo: null },
       { o_que: 'Pular passa para a próxima fala.', custo: null },
     ],
   },
   escuta: {
-    treina: 'Distinguir o que foi DITO — a habilidade que nenhum outro jogo daqui treina sozinha.',
+    treina: 'Distinguir o que foi DITO, a habilidade que nenhum outro jogo daqui treina sozinha.',
     passos: [
       'O trecho toca sozinho quando a rodada começa.',
       'Leia as alternativas e escolha qual frase você ouviu.',
       'Ouça de novo quantas vezes precisar antes de responder.',
     ],
-    avaliacao: 'As alternativas erradas são outras falas da MESMA gravação, com tamanho parecido — mesmo assunto, mesmo sotaque. Não dá para eliminar por dedução: é preciso ouvir.',
+    avaliacao: 'As alternativas erradas são outras falas da MESMA gravação, com tamanho parecido, mesmo assunto, mesmo sotaque. Não dá para eliminar por dedução: é preciso ouvir.',
     limites: 'Escolher entre quatro é mais fácil que entender do zero. Acertar aqui não garante que você pegaria a frase no meio de uma conversa.',
     ajudas: [
       { o_que: 'Ouvir de novo, sem limite.', custo: null },
@@ -149,14 +149,14 @@ export const COMO_SE_JOGA: Record<MinigameId, ConteudoComoSeJoga> = {
     ],
   },
   ditado: {
-    treina: 'Ouvir e ESCREVER — junta escuta com grafia, que é onde a maioria trava.',
+    treina: 'Ouvir e ESCREVER, junta escuta com grafia, que é onde a maioria trava.',
     passos: [
       'Ouça o trecho (ele toca sozinho ao começar).',
       'Escreva o que você entendeu na linha.',
       'Confira: a correção mostra cada palavra, e o que você escreveu no lugar.',
     ],
-    avaliacao: 'A conferência é palavra a palavra, não uma porcentagem solta — você vê exatamente onde errou. Acerto a partir de 80% das palavras.',
-    limites: 'Pontuação e acento NÃO contam, porque o jogo é de ouvido. Isso significa que ele não verifica a sua escrita formal — para grafia exata, o Soletrar é o lugar.',
+    avaliacao: 'A conferência é palavra a palavra, não uma porcentagem solta, você vê exatamente onde errou. Acerto a partir de 80% das palavras.',
+    limites: 'Pontuação e acento NÃO contam, porque o jogo é de ouvido. Isso significa que ele não verifica a sua escrita formal, para grafia exata, o Soletrar é o lugar.',
     ajudas: [
       { o_que: 'Ouvir de novo e ouvir devagar, sem limite.', custo: null },
       { o_que: 'A lâmpada escreve a próxima palavra para você.', custo: 'limita a nota a "difícil"' },
@@ -164,20 +164,20 @@ export const COMO_SE_JOGA: Record<MinigameId, ConteudoComoSeJoga> = {
     ],
   },
   conectores: {
-    treina: 'Perceber as palavras que AMARRAM as ideias — o que separa entender palavras de entender o texto.',
+    treina: 'Perceber as palavras que AMARRAM as ideias, o que separa entender palavras de entender o texto.',
     passos: [
       'Leia a frase, que veio de uma gravação sua.',
       'Toque nas palavras que ligam uma ideia à outra ("porém", "porque", "however").',
       'Confira. As que passaram batido aparecem contornadas.',
     ],
-    avaliacao: 'A nota pesa os DOIS erros: deixar conector passar e marcar palavra que não é. Por isso clicar em tudo não garante nota boa — o contrário, aliás.',
+    avaliacao: 'A nota pesa os DOIS erros: deixar conector passar e marcar palavra que não é. Por isso clicar em tudo não garante nota boa, o contrário, aliás.',
     limites: 'A lista de conectores é fixa e existe só para alguns idiomas. Ela não cobre toda expressão de ligação possível, e uma que falte não é erro seu.',
     ajudas: [
       { o_que: 'Dá para marcar e desmarcar à vontade antes de conferir.', custo: null },
     ],
   },
   blitz: {
-    treina: 'Recuperação RÁPIDA — o sinal de que a palavra está firme, e não só acessível.',
+    treina: 'Recuperação RÁPIDA, o sinal de que a palavra está firme, e não só acessível.',
     passos: [
       'Uma pergunta por vez, com quatro alternativas reais do seu baralho.',
       'Responda antes de o tempo acabar.',

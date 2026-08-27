@@ -126,7 +126,7 @@ async function startCaptureFromStream(
     recorder = new MediaRecorder(audioStream, recMime ? { mimeType: recMime } : undefined);
     recorder.ondataavailable = (e) => { if (e.data && e.data.size) recChunks.push(e.data); };
     recorder.start(1000); // timeslice → chunks periódicos (não perde tudo se algo falhar)
-    startedAtMs = Date.now(); // t=0 REAL da gravação — captura AQUI, não no clique em START
+    startedAtMs = Date.now(); // t=0 REAL da gravação, captura AQUI, não no clique em START
     vlog(label, 'MediaRecorder gravando (', recMime || 'default', ')');
   } catch (e) {
     vlog(label, 'MediaRecorder indisponível:', String(e));
@@ -212,7 +212,7 @@ async function startCaptureFromStream(
     getStream: () => Promise.resolve(audioStream),
     pauseStream: async () => {},
     resumeStream: async (s) => s,
-    submitUserSpeechOnPause: true, // pause() entrega o áudio acumulado — usado no corte forçado
+    submitUserSpeechOnPause: true, // pause() entrega o áudio acumulado, usado no corte forçado
     positiveSpeechThreshold: 0.5,
     negativeSpeechThreshold: 0.35,
     redemptionMs: 450,   // fecha ~0,45s após o silêncio → limite de frase mais natural
@@ -240,7 +240,7 @@ async function startCaptureFromStream(
     },
     onVADMisfire: () => {
       speaking = false;
-      vlog(label, 'VAD → misfire (ruído curto, ignorado) — seq', currentSeq);
+      vlog(label, 'VAD → misfire (ruído curto, ignorado), seq', currentSeq);
       cb.onMisfire?.(currentSeq);
       resetUtterance();
     },
@@ -327,10 +327,10 @@ export async function startSystemAudioCapture(cb: SystemAudioCallbacks): Promise
       if (err instanceof DOMException && (err.name === "NotReadableError" || err.name === "AbortError")) {
         releaseActiveDisplayStream();
         throw new Error(
-          'O Windows não conseguiu INICIAR a captura do áudio da TELA (NotReadableError) — limitação conhecida ' +
+          'O Windows não conseguiu INICIAR a captura do áudio da TELA (NotReadableError), limitação conhecida ' +
           'do Chrome no Windows para o áudio de tela inteira (o áudio de ABA costuma funcionar). ' +
           'Caminhos que funcionam: ' +
-          '(1) ROTA CONFIÁVEL p/ Discord/jogos/sistema inteiro: troque a fonte para "Dispositivo de loopback (Stereo Mix / VB-Cable)" — veja o guia; ' +
+          '(1) ROTA CONFIÁVEL p/ Discord/jogos/sistema inteiro: troque a fonte para "Dispositivo de loopback (Stereo Mix / VB-Cable)", veja o guia; ' +
           '(2) para conteúdo numa ABA (YouTube, chamada): compartilhe a ABA e marque "compartilhar áudio da aba"; ' +
           '(3) se insistir na tela inteira, desative o "modo exclusivo" do dispositivo de reprodução (Som → Propriedades → Avançado) e feche apps que usem o áudio.'
         );
@@ -347,7 +347,7 @@ export async function startSystemAudioCapture(cb: SystemAudioCallbacks): Promise
       stream.getTracks().forEach((t) => t.stop());
       let msg: string;
       if (surface === 'window') {
-        msg = 'O modo JANELA não captura áudio no Chrome (limitação da plataforma — a própria janela de seleção avisa "To share audio, share a tab or screen instead"). Para jogos/apps, use a TELA INTEIRA e marque "Também compartilhar o áudio do sistema".';
+        msg = 'O modo JANELA não captura áudio no Chrome (limitação da plataforma, a própria janela de seleção avisa "To share audio, share a tab or screen instead"). Para jogos/apps, use a TELA INTEIRA e marque "Também compartilhar o áudio do sistema".';
       } else if (surface === 'monitor') {
         msg = 'Você compartilhou a Tela, mas NÃO marcou "Também compartilhar o áudio do sistema". Clique de novo e ATIVE essa opção (o botão fica no canto inferior esquerdo da janela de seleção).';
       } else {
@@ -356,7 +356,7 @@ export async function startSystemAudioCapture(cb: SystemAudioCallbacks): Promise
       vlog('SEM faixa de áudio ✗ (superfície:', surface, ')');
       throw new Error(msg);
     }
-    vlog('faixa de áudio ✓ (superfície:', surface, ') —', audioTracks[0].label || '(sem rótulo)');
+    vlog('faixa de áudio ✓ (superfície:', surface, '),', audioTracks[0].label || '(sem rótulo)');
 
     // NÃO paramos a faixa de vídeo: em "Tela inteira", parar o vídeo ENCERRA o áudio do
     // sistema junto. Mantemos o stream vivo (fullStream) e usamos só o áudio no pipeline.
@@ -490,7 +490,7 @@ export async function startServerLoopbackCapture(cb: SystemAudioCallbacks): Prom
       try { msg = (await resp.json()).error || msg; } catch { /* corpo não-JSON */ }
       throw new Error(msg);
     }
-    vlog('loopback do SERVIDOR conectado — montando grafo WebAudio (AudioWorklet)…');
+    vlog('loopback do SERVIDOR conectado, montando grafo WebAudio (AudioWorklet)…');
 
     // Grafo: PCM → AudioWorklet (thread de ÁUDIO, zero-cópia via transferable) →
     // MediaStreamDestination (vira stream p/ o pipeline VAD). O ScriptProcessor anterior
@@ -647,7 +647,7 @@ export async function probeSystemAudio(): Promise<SystemAudioProbe> {
     if (err instanceof DOMException && (err.name === 'NotReadableError' || err.name === 'AbortError')) {
       // Mesmo diagnóstico do fluxo real: o SO não conseguiu abrir o loopback do áudio da tela.
       throw new Error(
-        'O Windows não conseguiu INICIAR o áudio da TELA (NotReadableError) — limitação do Chrome no Windows. ' +
+        'O Windows não conseguiu INICIAR o áudio da TELA (NotReadableError), limitação do Chrome no Windows. ' +
         'Use a fonte "Dispositivo de loopback (Stereo Mix / VB-Cable)" para Discord/jogos/sistema inteiro, ' +
         'ou compartilhe uma ABA com "áudio da aba" (esse caminho funciona).'
       );
@@ -657,7 +657,7 @@ export async function probeSystemAudio(): Promise<SystemAudioProbe> {
   const vTrack = stream.getVideoTracks()[0];
   const surface = ((vTrack?.getSettings?.() as any)?.displaySurface as string) ?? '?';
   const aTracks = stream.getAudioTracks();
-  vlog('PROBE → superfície:', surface, '| áudio:', aTracks.length, '| label:', aTracks[0]?.label || '—');
+  vlog('PROBE → superfície:', surface, '| áudio:', aTracks.length, '| label:', aTracks[0]?.label || '-');
   if (aTracks.length === 0) {
     releaseActiveDisplayStream();
     return { surface, audioTrackCount: 0, audioLabel: '', peakLevel: 0, verdict: 'no-audio-track' };

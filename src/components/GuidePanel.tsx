@@ -15,7 +15,7 @@ const FLUXOS: Array<{ icon: React.ReactNode; titulo: string; passos: string }> =
   {
     icon: <Mic className="w-4 h-4" />,
     titulo: 'Praticar a sua fala',
-    passos: 'Capturar → deixe o Microfone ligado e fale. Sua voz é transcrita e traduzida para o idioma que você estuda — bom para ensaiar frases antes de uma reunião.',
+    passos: 'Capturar → deixe o Microfone ligado e fale. Sua voz é transcrita e traduzida para o idioma que você estuda, bom para ensaiar frases antes de uma reunião.',
   },
   {
     icon: <Download className="w-4 h-4" />,
@@ -30,7 +30,7 @@ const FLUXOS: Array<{ icon: React.ReactNode; titulo: string; passos: string }> =
   {
     icon: <MessageCircle className="w-4 h-4" />,
     titulo: 'Perguntar ao tutor (iChat)',
-    passos: 'O balão no canto abre um tutor que enxerga o conteúdo da tela atual — dá para fixar um contexto (ex.: um vídeo) e seguir conversando sobre ele em qualquer tela.',
+    passos: 'O balão no canto abre um tutor que enxerga o conteúdo da tela atual, dá para fixar um contexto (ex.: um vídeo) e seguir conversando sobre ele em qualquer tela.',
   },
   {
     icon: <GraduationCap className="w-4 h-4" />,
@@ -40,9 +40,9 @@ const FLUXOS: Array<{ icon: React.ReactNode; titulo: string; passos: string }> =
 ];
 
 const PEGADINHAS: string[] = [
-  'Primeira captura: o modelo de transcrição baixa uma única vez (~30MB) — a fala dita durante o download fica guardada e aparece assim que ele termina.',
-  'Compartilhando uma ABA, marque "compartilhar áudio da guia" no popup do navegador — sem isso não há som.',
-  'Abra o app sempre pelo MESMO endereço (localhost e a mesma porta) — senão o navegador baixa o modelo de novo.',
+  'Primeira captura: o modelo de transcrição baixa uma única vez (~30MB), a fala dita durante o download fica guardada e aparece assim que ele termina.',
+  'Compartilhando uma ABA, marque "compartilhar áudio da guia" no popup do navegador, sem isso não há som.',
+  'Abra o app sempre pelo MESMO endereço (localhost e a mesma porta), senão o navegador baixa o modelo de novo.',
 ];
 
 export default function GuidePanel({ onClose }: { onClose: () => void }) {

@@ -140,17 +140,17 @@ export const PARTICLE_PRESETS: Record<ThemeType, ParticlePreset> = {
 
 /* ══════════════════ ADAPTAÇÃO A CLARO / ESCURO ══════════════════
    O PROBLEMA MEDIDO: os presets acima foram calibrados olhando o tema padrão no escuro. Em fundo
-   CLARO, uma partícula a 6% de opacidade sobre uma superfície clara é matematicamente invisível —
+   CLARO, uma partícula a 6% de opacidade sobre uma superfície clara é matematicamente invisível,
    e era o caso de `vercel` (0.06–0.16) e `notion` (0.07–0.20). O usuário relatou exatamente isso:
    "só aparece num tema". Não era impressão: em quatro dos seis temas não havia o que ver.
 
    Duas correções, e nenhuma delas mexe na intenção de desenho de cada tema:
 
-   1. PISO DE OPACIDADE por modo. Nenhum preset pode resolver abaixo dele — a contenção do vercel
+   1. PISO DE OPACIDADE por modo. Nenhum preset pode resolver abaixo dele, a contenção do vercel
       continua sendo "quase nada", mas "quase nada" passa a ser visível, não zero.
    2. MODO DE COMPOSIÇÃO. No escuro, `lighter` faz as partículas SOMAREM luz ao fundo (é o que dá
-      a sensação de brasa). No claro isso as apagaria — cor somada a um fundo já claro satura em
-      branco —, então lá vale a composição normal com opacidade maior.
+      a sensação de brasa). No claro isso as apagaria, cor somada a um fundo já claro satura em
+      branco,, então lá vale a composição normal com opacidade maior.
 
    O token de cor de cada tema é preservado de propósito: trocar o cinza do vercel/notion por
    `--accent` deixaria visível, mas às custas da identidade monocromática deles. */

@@ -154,7 +154,7 @@ export default function Metrics({ recordings, onChangeView, ageProfile = 'pro' }
   const levelDist = useMemo(() => metrics?.levelDistribution ?? [], [metrics]);
   const levelTotal = levelDist.reduce((sum, l) => sum + l.count, 0);
   const topLevel = useMemo(() => {
-    if (!levelDist.length) return '—';
+    if (!levelDist.length) return '-';
     return [...levelDist].sort((a, b) => b.count - a.count)[0].level;
   }, [levelDist]);
 
@@ -163,7 +163,7 @@ export default function Metrics({ recordings, onChangeView, ageProfile = 'pro' }
   /* C1 — quando o nível não tem base, ele não ocupa posição de herói (ver a faixa abaixo dos KPIs).
 
      `levelTotal` NÃO serve para dizer "quantas foram classificadas": ele soma o balde 'N/D'
-     junto, e o texto saía se contradizendo ("1901 classificadas de 1901 — a maior parte está
+     junto, e o texto saía se contradizendo ("1901 classificadas de 1901, a maior parte está
      fora da wordlist"). Classificada é a que tem nível CEFR de verdade. */
   const niveisComCefr = useMemo(
     () => levelDist.filter((l) => l.level !== 'N/D').reduce((n, l) => n + l.count, 0),
@@ -427,7 +427,7 @@ export default function Metrics({ recordings, onChangeView, ageProfile = 'pro' }
                   <Activity className="w-4 h-4 text-good" />
                   <span className="text-[11px] font-bold uppercase tracking-wider font-mono">{t('metric.retention', ageProfile)}</span>
                 </div>
-                <div className="font-display font-black text-4xl tracking-tight text-ink mb-1">{metrics && metrics.avgRetentionConfidence > 0 ? Math.round(metrics.avgRetention * 100) + '%' : '—'}</div>
+                <div className="font-display font-black text-4xl tracking-tight text-ink mb-1">{metrics && metrics.avgRetentionConfidence > 0 ? Math.round(metrics.avgRetention * 100) + '%' : '-'}</div>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-1 text-[12px] text-ink-muted font-bold">
                     {metrics && metrics.avgRetentionConfidence > 0
@@ -459,8 +459,8 @@ export default function Metrics({ recordings, onChangeView, ageProfile = 'pro' }
 
               {/* C1 — "NÍVEL PREDOMINANTE" SAIU DA FAIXA DE HERÓI.
                   Exibia "N/D" com o selo "estimativa · confiança 12%" ocupando um quarto da faixa
-                  mais nobre da tela. A honestidade estava impecável — o produto sabe que não sabe,
-                  e diz — mas a POSIÇÃO estava errada: 88% do acervo está fora da wordlist CEFR, ou
+                  mais nobre da tela. A honestidade estava impecável, o produto sabe que não sabe,
+                  e diz, mas a POSIÇÃO estava errada: 88% do acervo está fora da wordlist CEFR, ou
                   seja, não há base para um nível único, e um dado que não existe não disputa
                   espaço com os que existem. Ele continua na tela, logo abaixo, com o motivo.
                   Mesmo tratamento dado ao "Tom Vocal" na aba da Sessão. */}
@@ -470,7 +470,7 @@ export default function Metrics({ recordings, onChangeView, ageProfile = 'pro' }
               <SemDado
                 compacto
                 className="mb-6"
-                motivo={`Nível predominante: só ${niveisComCefr} de ${metrics?.deckSize ?? 0} palavras têm nível CEFR conhecido — o resto está fora da wordlist, e nível fora dela não é estimado. Sem essa base, um nível único do acervo não significaria nada.`}
+                motivo={`Nível predominante: só ${niveisComCefr} de ${metrics?.deckSize ?? 0} palavras têm nível CEFR conhecido, o resto está fora da wordlist, e nível fora dela não é estimado. Sem essa base, um nível único do acervo não significaria nada.`}
               />
             )}
 
@@ -496,7 +496,7 @@ export default function Metrics({ recordings, onChangeView, ageProfile = 'pro' }
                 {lowRetentionAnalysis.totalCalculavel > 0 ? (
                   <>
                     {/* F8 — A BASE SOBE PARA JUNTO DO TÍTULO.
-                        Ela existia, mas como nota de rodapé em cinza de 10,5px no fim do card —
+                        Ela existia, mas como nota de rodapé em cinza de 10,5px no fim do card,
                         e, no inventário, estava parcialmente COBERTA pelo balão do iChat. O
                         usuário lia quatro termos "que precisam de atenção" sem saber que 92% do
                         acervo não entrou na conta. A ressalva não mudou de texto; mudou de lugar. */}
@@ -524,8 +524,8 @@ export default function Metrics({ recordings, onChangeView, ageProfile = 'pro' }
 
                           {/* A BARRA, e por que ela vale a pena ao lado de um número já escrito.
                               "18%" e "34%" são dois números que exigem ser comparados de cabeça,
-                              linha a linha. A barra torna a ordem — e a distância entre a pior e a
-                              menos pior — legível de relance, que é para isso que a lista existe.
+                              linha a linha. A barra torna a ordem, e a distância entre a pior e a
+                              menos pior, legível de relance, que é para isso que a lista existe.
                               O número fica: é ele que permite conferir, e a barra sozinha não diz
                               quanto. */}
                           <span className="shrink-0 flex items-center gap-2.5">
@@ -542,7 +542,7 @@ export default function Metrics({ recordings, onChangeView, ageProfile = 'pro' }
                               {retencaoPct}%
                             </span>
                             {/* "há 21 dias" responde a pergunta seguinte — por que esta caiu tanto
-                                — e vem de `lastReview`, que o banco sempre gravou. Só aparece
+                               , e vem de `lastReview`, que o banco sempre gravou. Só aparece
                                 quando existe: um traço em branco não informa nada. */}
                             <span className="hidden md:block text-[11px] text-ink-faint font-mono w-20 text-right">
                               {desdeAUltimaRevisao(card.lastReview)}
@@ -554,7 +554,7 @@ export default function Metrics({ recordings, onChangeView, ageProfile = 'pro' }
                     {/* F8 — A PONTE QUE FALTAVA.
                         Esta tela identificava os termos em risco e não oferecia caminho nenhum
                         para agir sobre eles: o único botão da página era "Exportar Relatório".
-                        Informar sem conduzir é o que fazia dela um beco — não estava escondida
+                        Informar sem conduzir é o que fazia dela um beco, não estava escondida
                         (1 clique do menu), estava sem saída. */}
                     <button
                       onClick={() => onChangeView?.('study')}
@@ -566,7 +566,7 @@ export default function Metrics({ recordings, onChangeView, ageProfile = 'pro' }
 
                     {(lowRetentionAnalysis.semRevisao > 0 || lowRetentionAnalysis.semEstabilidade > 0) && (
                       <p className="text-[10.5px] text-ink-muted mt-3 pt-3 border-t border-border-subtle shrink-0">
-                        {lowRetentionAnalysis.semRevisao + lowRetentionAnalysis.semEstabilidade} de {lowRetentionAnalysis.totalDeck} cartões ficaram FORA do cálculo — sem revisão FSRS, retenção não existe:{' '}
+                        {lowRetentionAnalysis.semRevisao + lowRetentionAnalysis.semEstabilidade} de {lowRetentionAnalysis.totalDeck} cartões ficaram FORA do cálculo, sem revisão FSRS, retenção não existe:{' '}
                         {lowRetentionAnalysis.semRevisao} nunca revisados, {lowRetentionAnalysis.semEstabilidade} sem estabilidade FSRS ainda.
                       </p>
                     )}
@@ -576,7 +576,7 @@ export default function Metrics({ recordings, onChangeView, ageProfile = 'pro' }
                     <SemDado
                       compacto
                       motivo={lowRetentionAnalysis.totalDeck === 0
-                        ? 'Seu deck ainda está vazio — sem cartões, não há retenção para ranquear.'
+                        ? 'Seu deck ainda está vazio, sem cartões, não há retenção para ranquear.'
                         : `Nenhum dos ${lowRetentionAnalysis.totalDeck} cartões tem retenção calculável ainda: ${lowRetentionAnalysis.semRevisao} nunca foram revisados e ${lowRetentionAnalysis.semEstabilidade} não têm estabilidade FSRS. Revise alguns cartões no Estudo para começar a ver este ranqueamento.`}
                     />
                   </div>
@@ -613,7 +613,7 @@ export default function Metrics({ recordings, onChangeView, ageProfile = 'pro' }
                   </h3>
                   {levelDist.length > 0 && <Confianca valor={metrics?.levelConfidence ?? 0} estimativa />}
                 </div>
-                <p className="text-[12px] text-ink-muted mb-6">Estimativa aproximada de nível — não represente como classificação exata.</p>
+                <p className="text-[12px] text-ink-muted mb-6">Estimativa aproximada de nível, não represente como classificação exata.</p>
 
                 {levelDist.length > 0 ? (
                   <>
@@ -657,7 +657,7 @@ export default function Metrics({ recordings, onChangeView, ageProfile = 'pro' }
                   Busque, filtre por nível e origem, ordene. Clique num termo para abrir o Analista de Vocabulário.
                 </p>
                 {/* F5: a lista antiga era `vocabCards.map()` sobre os 2.116 cartões medidos, num
-                    scroller de 320px — sem busca, filtro, ordenação, paginação, loading nem erro.
+                    scroller de 320px, sem busca, filtro, ordenação, paginação, loading nem erro.
                     O catálogo resolve tudo isso no servidor e virtualiza a lista. */}
                 <CatalogoDePalavras aoAbrirPalavra={(id) => {
                   const c = vocabCards.find((x) => x.id === id)
@@ -677,7 +677,7 @@ export default function Metrics({ recordings, onChangeView, ageProfile = 'pro' }
                 <p className="text-[12px] text-ink-muted mb-4">Avaliação multidimensional da fala espontânea.</p>
                 <div className="flex-1 min-h-0 flex items-center justify-center">
                   {/* Sem "em breve": não há nada a caminho. Um radar por dimensão exigiria uma
-                      avaliação por modelo de linguagem A CADA abertura de tela — custo por token e
+                      avaliação por modelo de linguagem A CADA abertura de tela, custo por token e
                       envio do seu texto para fora, que o perfil Privado/Local proíbe. É uma feature
                       com preço e consentimento a decidir, não uma data. */}
                   <SemDado compacto motivo={`Avaliar fluência, gramática e pronúncia por dimensão exigiria um modelo de linguagem, que este painel não chama.`} />
@@ -741,10 +741,10 @@ export default function Metrics({ recordings, onChangeView, ageProfile = 'pro' }
 
             {/*
               Complexidade Estrutural & Tom. Antes era UM aviso culpando "IA generativa" por três
-              coisas — só o TOM depende disso. Complexidade gramatical (`computeTextStats`) e voz
+              coisas, só o TOM depende disso. Complexidade gramatical (`computeTextStats`) e voz
               passiva (`detectarVozPassiva`) são determinísticas, sem IA, e vêm de baixo. As duas são
               heurísticas AJUSTADAS PARA INGLÊS (ver os módulos em `@core`), por isso só falas cujo
-              `sourceLang` normaliza para 'en' entram no corpus — a tela diz quantas ficaram fora.
+              `sourceLang` normaliza para 'en' entram no corpus, a tela diz quantas ficaram fora.
             */}
             <div className="card-panel p-6 space-y-6">
               <div>
@@ -752,7 +752,7 @@ export default function Metrics({ recordings, onChangeView, ageProfile = 'pro' }
                   <BarChart2 className="w-5 h-5 text-accent" /> Complexidade Gramatical
                 </h3>
                 <p className="text-[11.5px] text-ink-muted mb-4">
-                  Estatísticas determinísticas do texto (sem IA) — heurística ajustada para INGLÊS
+                  Estatísticas determinísticas do texto (sem IA), heurística ajustada para INGLÊS
                   (sílabas e Flesch Reading Ease não valem para outros idiomas).
                   {englishCorpus.totalFalas > 0 && (
                     <> {englishCorpus.emIngles} de {englishCorpus.totalFalas} falas capturadas são em inglês
@@ -767,7 +767,7 @@ export default function Metrics({ recordings, onChangeView, ageProfile = 'pro' }
                     </div>
                     <div className="bg-surface border border-border-subtle rounded-xl p-3">
                       <div className="text-[10px] font-bold uppercase tracking-wider text-ink-muted mb-1">Flesch Reading Ease</div>
-                      <div className="font-display font-black text-xl text-ink">{textStats.readingEase != null ? textStats.readingEase : '—'}</div>
+                      <div className="font-display font-black text-xl text-ink">{textStats.readingEase != null ? textStats.readingEase : '-'}</div>
                       {textStats.readingEase == null && <div className="text-[10px] text-ink-muted mt-0.5">precisa de 10+ palavras</div>}
                     </div>
                     <div className="bg-surface border border-border-subtle rounded-xl p-3">
@@ -781,8 +781,8 @@ export default function Metrics({ recordings, onChangeView, ageProfile = 'pro' }
                   </div>
                 ) : (
                   <SemDado compacto motivo={`{englishCorpus.totalFalas === 0
-                      ? 'Nenhuma fala capturada ainda — grave ou importe uma sessão para medir complexidade.'
-                      : 'Nenhuma das falas capturadas está em inglês — a heurística de complexidade só vale para inglês.'}`} />
+                      ? 'Nenhuma fala capturada ainda, grave ou importe uma sessão para medir complexidade.'
+                      : 'Nenhuma das falas capturadas está em inglês, a heurística de complexidade só vale para inglês.'}`} />
                 )}
               </div>
 
@@ -793,7 +793,7 @@ export default function Metrics({ recordings, onChangeView, ageProfile = 'pro' }
                 <p className="text-[11.5px] text-ink-muted mb-4">
                   Detecção por padrão "be + particípio" (inglês), sem IA. É HEURÍSTICA, não um parser
                   gramatical: perde particípios irregulares fora da lista curada e pode confundir um
-                  punhado de adjetivos em "-ed" com voz passiva — os números são um indício, não um veredito.
+                  punhado de adjetivos em "-ed" com voz passiva, os números são um indício, não um veredito.
                 </p>
                 {textStats.wordCount > 0 ? (
                   <>
@@ -819,7 +819,7 @@ export default function Metrics({ recordings, onChangeView, ageProfile = 'pro' }
               <div className="pt-6 border-t border-border-subtle">
                 <h3 className="font-display font-extrabold text-[16px] text-ink mb-2">Tom da Fala</h3>
                 <SemDado compacto motivo={`Classificar tom (confiante/analítico/hesitante) exige análise acústica e prosódica do
-                  áudio — o app transcreve, mas não mede pitch nem entonação. Nada foi estimado.`} />
+                  áudio, o app transcreve, mas não mede pitch nem entonação. Nada foi estimado.`} />
               </div>
             </div>
         </PainelDeAba>

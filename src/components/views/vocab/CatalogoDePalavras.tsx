@@ -55,7 +55,7 @@ function faixaDe(score: number | null): 'facil' | 'medio' | 'dificil' | null {
 
 /** O marcador de procedência não é enfeite: 88% dos níveis do acervo são AUSENTES. */
 function SeloDeNivel({ nivel, fonte }: { nivel: string | null; fonte: string | null }) {
-  if (!nivel) return <span className="badge-tag" title="Palavra fora da wordlist — nível desconhecido, não estimado">sem nível</span>
+  if (!nivel) return <span className="badge-tag" title="Palavra fora da wordlist, nível desconhecido, não estimado">sem nível</span>
   const curado = fonte === 'curado'
   return (
     <span className={`badge-tag ${curado ? 'ok' : 'acc'}`} title={curado ? 'Nível curado' : 'Nível de wordlist (CEFR-J)'}>
@@ -119,7 +119,7 @@ export default function CatalogoDePalavras({ aoAbrirPalavra }: { aoAbrirPalavra?
   }, [ordem, buscaAplicada, niveis, origens, cursor])
 
   /* `carregar` fica FORA das deps de propósito: ela depende de `cursor`, que esta chamada zera.
-     Incluí-la faria o efeito re-disparar a cada página carregada e reiniciar a lista do começo —
+     Incluí-la faria o efeito re-disparar a cada página carregada e reiniciar a lista do começo,
      o oposto de paginar. As deps aqui são exatamente o que reinicia a busca. */
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { setCursor(null); void carregar(false) }, [ordem, buscaAplicada, niveis, origens])

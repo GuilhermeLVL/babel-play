@@ -190,7 +190,7 @@ export default function Library({ onChangeView, recordings, onRecordingsChange, 
     try {
       const r = await importYoutube(url);
       if (r.needsClientStt) {
-        setImportMsg('Vídeo sem legenda — transcrevendo o áudio com o Whisper local…');
+        setImportMsg('Vídeo sem legenda, transcrevendo o áudio com o Whisper local…');
         await transcribeImportedAudio(r.id, r.sourceLang, (p) => {
           if (p.phase === 'model') setImportMsg(`Carregando modelo local… ${Math.round(p.progress * 100)}%`);
           else if (p.phase === 'segment') setImportMsg(p.label || 'Transcrevendo…');
@@ -215,7 +215,7 @@ export default function Library({ onChangeView, recordings, onRecordingsChange, 
     try {
       const art = await importWeb(url);
       const { recording, sentences } = await buildDocumentSession({ title: art.title, text: art.text, langHint: art.lang });
-      toast.ok(`Artigo importado — ${sentences} frase${sentences === 1 ? '' : 's'}.`);
+      toast.ok(`Artigo importado, ${sentences} frase${sentences === 1 ? '' : 's'}.`);
       await refreshAndOpen(recording.id);
     } catch (e) {
       toast.error(String((e as Error)?.message || e), { detail: e });
@@ -234,7 +234,7 @@ export default function Library({ onChangeView, recordings, onRecordingsChange, 
     try {
       const doc = await importDocument(file);
       const { recording, sentences } = await buildDocumentSession({ title: doc.title, text: doc.text, langHint: doc.lang });
-      toast.ok(`Documento importado — ${sentences} frase${sentences === 1 ? '' : 's'}.`);
+      toast.ok(`Documento importado, ${sentences} frase${sentences === 1 ? '' : 's'}.`);
       await refreshAndOpen(recording.id);
     } catch (err) {
       toast.error(String((err as Error)?.message || err), { detail: err });
@@ -421,7 +421,7 @@ export default function Library({ onChangeView, recordings, onRecordingsChange, 
       <div className="px-4 md:px-8 py-2.5 border-b border-border-subtle shrink-0 flex flex-wrap items-center gap-3">
         {/* F9 — as abas SOBREVIVEM ao mobile.
             Era `hidden md:flex`: abaixo de 768px o "Cofre de Memória" simplesmente deixava de
-            existir, sem nenhuma indicação de que havia outra aba. Confirmado no inventário — o
+            existir, sem nenhuma indicação de que havia outra aba. Confirmado no inventário, o
             passo falhou APENAS no viewport mobile. Esconder uma função por largura de tela é
             diferente de não ter a função: o usuário de celular não descobre que ela existe. */}
         <div className="flex bg-surface-hover p-1 rounded-lg border border-border-subtle shrink-0">
@@ -607,21 +607,21 @@ export default function Library({ onChangeView, recordings, onRecordingsChange, 
                   <button className="text-ink-muted hover:text-ink text-[12px] font-bold bg-surface px-3 py-1.5 rounded border border-border-subtle disabled:opacity-50" disabled={importBusy} onClick={() => { setShowImport(false); setImportSource(null); setImportUrl(''); }}>Cancelar</button>
                 </div>
                 <p className="text-[12.5px] text-ink-muted mb-6">
-                  Importe de um vídeo do YouTube, um documento (.pdf/.docx/.txt), um artigo da web ou um áudio local — vira uma sessão com transcrição e vocabulário. O idioma é <strong className="text-ink font-semibold">detectado do conteúdo</strong>, nunca inventado. Passe o mouse no ícone de informação de cada opção para ver como funciona.
+                  Importe de um vídeo do YouTube, um documento (.pdf/.docx/.txt), um artigo da web ou um áudio local, vira uma sessão com transcrição e vocabulário. O idioma é <strong className="text-ink font-semibold">detectado do conteúdo</strong>, nunca inventado. Passe o mouse no ícone de informação de cada opção para ver como funciona.
                 </p>
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 mb-6">
                   {([
                     { key: 'youtube' as const, icon: <Youtube className="w-5 h-5" />, label: 'Link do YouTube', sub: 'Legenda ou Whisper local', hint: 'Usa a legenda do vídeo quando existe (rápido, com tempos reais). Sem legenda, transcreve o áudio no seu navegador com o Whisper local (mais lento). Precisa do yt-dlp instalado no servidor.' },
-                    { key: 'document' as const, icon: <FileText className="w-5 h-5" />, label: 'Documento de Texto', sub: 'PDF, DOCX, TXT', hint: 'Extrai o texto do arquivo e monta uma sessão de estudo (sem áudio — a leitura usa voz sintética). PDF digitalizado, sem camada de texto, não é suportado.' },
+                    { key: 'document' as const, icon: <FileText className="w-5 h-5" />, label: 'Documento de Texto', sub: 'PDF, DOCX, TXT', hint: 'Extrai o texto do arquivo e monta uma sessão de estudo (sem áudio, a leitura usa voz sintética). PDF digitalizado, sem camada de texto, não é suportado.' },
                     { key: 'web' as const, icon: <LinkIcon className="w-5 h-5" />, label: 'Link da Web', sub: 'Artigos e Blogs', hint: 'Baixa a página e extrai só o artigo principal (sem menus nem anúncios), virando uma sessão de estudo com vocabulário.' },
-                    { key: 'local' as const, icon: <Upload className="w-5 h-5" />, label: 'Áudio Local', sub: 'MP3, WAV, M4A', hint: 'Transcreve um arquivo de áudio no seu navegador com o Whisper local, com tempos reais. Só áudio por enquanto — vídeo ainda não.' },
+                    { key: 'local' as const, icon: <Upload className="w-5 h-5" />, label: 'Áudio Local', sub: 'MP3, WAV, M4A', hint: 'Transcreve um arquivo de áudio no seu navegador com o Whisper local, com tempos reais. Só áudio por enquanto, vídeo ainda não.' },
                   ]).map((src, idx) => {
                     const active = importSource === src.key;
                     // GATE de plano (honesto: mostra com selo "Pro" e explica; nunca esconde).
                     const gated = src.key === 'youtube' && !entitlements.youtubeImport;
                     const pick = () => {
                       if (gated) {
-                        toast.error('Importar do YouTube é um recurso Pro — o download roda no servidor (yt-dlp). No plano local/self-host ele é liberado.');
+                        toast.error('Importar do YouTube é um recurso Pro, o download roda no servidor (yt-dlp). No plano local/self-host ele é liberado.');
                         return;
                       }
                       selectSource(src.key);
@@ -692,7 +692,7 @@ export default function Library({ onChangeView, recordings, onRecordingsChange, 
                       Escolher arquivo
                     </button>
                     <span className="text-[11.5px] text-ink-muted">
-                      {importSource === 'document' ? 'Aceita PDF, DOCX ou TXT' : 'Aceita MP3, WAV ou M4A — só áudio'}
+                      {importSource === 'document' ? 'Aceita PDF, DOCX ou TXT' : 'Aceita MP3, WAV ou M4A, só áudio'}
                     </span>
                   </div>
                 )}
@@ -826,7 +826,7 @@ export default function Library({ onChangeView, recordings, onRecordingsChange, 
               <p className="text-[12.5px] text-ink-muted mt-2 max-w-md">
                 {isFiltered
                   ? 'Nenhuma mídia corresponde à busca ou aos filtros selecionados. Ajuste os termos ou limpe os filtros.'
-                  : 'Capture uma sessão ao vivo ou importe uma mídia — tudo que você gravar aparece aqui, pronto para análise.'}
+                  : 'Capture uma sessão ao vivo ou importe uma mídia, tudo que você gravar aparece aqui, pronto para análise.'}
               </p>
               <div className="flex flex-wrap items-center justify-center gap-2 mt-5">
                 {isFiltered ? (
@@ -859,12 +859,12 @@ export default function Library({ onChangeView, recordings, onRecordingsChange, 
                   <div className="flex items-center gap-2">
                     <h2 className="font-display font-bold text-xl text-ink">Cofre de Memória (RAG)</h2>
                     {/* O bloco todo fica: é o aviso mais honesto do app ("Nada é indexado ou
-                        consultado por enquanto"). Só o pill de data sai — a frase abaixo já diz a
+                        consultado por enquanto"). Só o pill de data sai, a frase abaixo já diz a
                         causa real, e "Em breve" prometia um prazo que ninguém definiu. */}
                     <span className="kpi-pill text-[10px]">Não construído</span>
                   </div>
                   <p className="text-[13.5px] text-ink-muted mt-1 leading-relaxed">
-                    A busca semântica sobre o histórico de sessões requer um índice de embeddings — ainda não construído.
+                    A busca semântica sobre o histórico de sessões requer um índice de embeddings, ainda não construído.
                     Quando disponível, você poderá recuperar trechos por conceito (não só por palavra exata) e definir
                     políticas de retenção. Nada é indexado ou consultado por enquanto.
                   </p>
@@ -878,7 +878,7 @@ export default function Library({ onChangeView, recordings, onRecordingsChange, 
                 <p className="text-[12px] text-ink-muted mb-4">Disponível quando o índice de embeddings existir.</p>
                 <div className="flex items-center gap-3">
                   <input id="library-retention-days" name="library-retention-days" type="range" min="1" max="90" defaultValue={30} disabled className="flex-1 accent-ink cursor-not-allowed" />
-                  <span className="font-mono text-[13px] font-bold text-ink-muted w-16">— dias</span>
+                  <span className="font-mono text-[13px] font-bold text-ink-muted w-16">dias</span>
                 </div>
               </div>
             </div>
@@ -1036,7 +1036,7 @@ function MenuDaMidia({
   return createPortal(
     <>
       {/* Camada invisível: clicar fora fecha. Fica no portal junto do menu para cobrir a tela
-          inteira — dentro do card ela só cobriria o card. */}
+          inteira, dentro do card ela só cobriria o card. */}
       <div className="fixed inset-0 z-[69]" onClick={(e) => { e.stopPropagation(); onFechar(); }} />
       <div
         style={{ top: caixa.top, left: caixa.left, width: caixa.largura }}
@@ -1117,9 +1117,9 @@ function PainelDeFiltros({
 
   const opcoesTamanho: { key: 'all' | 'short' | 'medium' | 'long'; label: string }[] = [
     { key: 'all', label: 'Qualquer tamanho' },
-    { key: 'short', label: 'Curta — até 2 min de leitura' },
-    { key: 'medium', label: 'Média — 2 a 8 min' },
-    { key: 'long', label: 'Longa — mais de 8 min' },
+    { key: 'short', label: 'Curta, até 2 min de leitura' },
+    { key: 'medium', label: 'Média, 2 a 8 min' },
+    { key: 'long', label: 'Longa, mais de 8 min' },
   ];
 
   return createPortal(

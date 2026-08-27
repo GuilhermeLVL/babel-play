@@ -96,7 +96,7 @@ export default function VocabularyPanel({
   useEffect(() => {
     if (!term || !lang) { setEntry(null); return; }
     let alive = true;
-    setEntry(null); // limpa o verbete da palavra anterior — nunca mostrar dado de outra palavra
+    setEntry(null); // limpa o verbete da palavra anterior, nunca mostrar dado de outra palavra
     void lookup(term, lang).then(r => { if (alive) setEntry(r); });
     return () => { alive = false; };
   }, [term, lang]);
@@ -181,7 +181,7 @@ export default function VocabularyPanel({
                   <h4 className="font-display font-black text-2xl text-ink tracking-tight break-words">"{word.word}"</h4>
                   {/* Fonética REAL do verbete. Fonte própria: na prática só o Wiktionary inglês publica
                       IPA em marcação legível, então uma definição em português costuma vir com um IPA
-                      vindo do wiki inglês — e o link diz exatamente de onde. */}
+                      vindo do wiki inglês, e o link diz exatamente de onde. */}
                   {ipa && (
                     <span className="font-mono text-[11px] text-ink-muted mt-0.5 flex items-center gap-1.5">
                       {ipa}
@@ -242,7 +242,7 @@ export default function VocabularyPanel({
               <div className="border-t border-border-subtle pt-2 space-y-1.5">
                 <span className="label-mono block">Tradução automática</span>
                 {/* Sem tradução: dizemos o MOTIVO (par sem motor, falha do MT) em vez de deixar
-                    "traduzindo…" eterno — e jamais preenchemos com um texto inventado. */}
+                    "traduzindo…" eterno, e jamais preenchemos com um texto inventado. */}
                 {word.translation ? (
                   <p className="text-[14px] font-bold text-accent-ink leading-tight">{word.translation}</p>
                 ) : mtNote ? (
@@ -311,7 +311,7 @@ export default function VocabularyPanel({
                       origin={`${found.source.wiki} · ${found.source.license}`}
                       method={`verbete em ${langLabel(found.lang)}, definido em ${langLabel(found.glossLang)}`}
                       url={found.source.url}
-                      limits="Conteúdo escrito e revisado pela comunidade do Wiktionary. É citável e você pode conferir no link — mas, como toda obra colaborativa, um verbete pode estar incompleto ou desatualizado."
+                      limits="Conteúdo escrito e revisado pela comunidade do Wiktionary. É citável e você pode conferir no link, mas, como toda obra colaborativa, um verbete pode estar incompleto ou desatualizado."
                     />
                   </>
                 )}
@@ -398,7 +398,7 @@ export default function VocabularyPanel({
                     <Zap className="w-3.5 h-3.5" /> Revisar agora
                   </button>
                   {/* Era o `vocab_drill`, que saiu junto com os legados. O substituto é o Duelo
-                      relâmpago — a mesma mecânica de múltipla escolha rápida, só que com as
+                      relâmpago, a mesma mecânica de múltipla escolha rápida, só que com as
                       palavras REAIS do baralho e contando no progresso, o que o antigo não fazia
                       (`metrics.ts` só lê `kind: 'drill'`). A palavra escolhida entra na frente. */}
                   <button

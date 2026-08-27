@@ -217,7 +217,7 @@ export default function ScrambleGame({ rodadas, ageProfile, onFinish, onExit }: 
         {conferido === 'errado' && (
           <p className="text-center text-[13px] text-warn-ink animate-in fade-in">
             {acertosParciais > 0
-              ? `${acertosParciais} ${acertosParciais === 1 ? 'palavra está' : 'palavras estão'} no lugar certo — continue.`
+              ? `${acertosParciais} ${acertosParciais === 1 ? 'palavra está' : 'palavras estão'} no lugar certo, continue.`
               : 'Ainda não. Tente começar por outra palavra.'}
           </p>
         )}

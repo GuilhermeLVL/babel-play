@@ -48,7 +48,7 @@ export interface Dificuldade {
 
 /* ── Pesos ────────────────────────────────────────────────────────────────────────────────────
    `lexical` só vale quando o nível tem procedência real. Nível estimado por comprimento de palavra
-   tem peso ZERO — não é rebaixado, é excluído (ver cefrWordlist.ts). */
+   tem peso ZERO, não é rebaixado, é excluído (ver cefrWordlist.ts). */
 const PESO = {
   lexical: 0.35,
   familiaridade: 0.25,

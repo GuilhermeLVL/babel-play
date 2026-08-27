@@ -124,7 +124,7 @@ export const MINIGAMES: Record<MinigameId, MinigameDef> = {
   blitz: { id: 'blitz', minItems: 4, maxItems: 20, requiresTranslation: false, writesSrs: true, modalidade: 'palavra' },
   // Termo: exige tradução (é a pista) e palavras de 4 a 8 letras — ver `termo.ts`.
   /* `maxItems: 7` = 1+2+4, a escada completa. Estava em 5 e a carta chegava a anunciar "5 prontas"
-     para uma rodada que consome 7 — o rótulo e o jogo discordavam. Quem manda no tamanho real é
+     para uma rodada que consome 7, o rótulo e o jogo discordavam. Quem manda no tamanho real é
      `consumoDaEscada` (`minigames/termo.ts`); este teto existe para o rótulo não prometer menos. */
   termo: { id: 'termo', minItems: 3, maxItems: 7, requiresTranslation: true, writesSrs: true, modalidade: 'palavra' },
   // Frase embaralhada e karaokê vivem de FALAS, não de cartões: não há nota de SRS a dar.

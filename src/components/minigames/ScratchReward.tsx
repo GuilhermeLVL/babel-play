@@ -86,7 +86,7 @@ export default function ScratchReward({
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
     /* DUAS DEMÃOS, e a primeira é o conserto de um defeito real.
-       `--accent-soft` é `color-mix(… 15%, transparent)` — ou seja, 85% TRANSPARENTE. Pintar a
+       `--accent-soft` é `color-mix(… 15%, transparent)`, ou seja, 85% TRANSPARENTE. Pintar a
        tampa só com ele deixava o prêmio aparecer por baixo: o "+12 XP" e o "RASPE AQUI" ficavam
        um em cima do outro e a raspadinha não escondia nada. A demão opaca de `--surface` vem
        primeiro e a tinta do acento por cima, para a tampa tapar de verdade e ainda ter cor. */
@@ -236,7 +236,7 @@ export default function ScratchReward({
 
           <div className="flex flex-col items-center gap-2 w-full">
             {/* Emendar é a ação principal e tem o peso visual disso. Quando não há mais material
-                elegível, o botão SOME em vez de ficar inerte — botão que não faz nada ensina que
+                elegível, o botão SOME em vez de ficar inerte, botão que não faz nada ensina que
                 a tela está quebrada (foi o que aconteceu com a dica que cobria os controles). */}
             {!semMaterial && (
               <button
@@ -282,7 +282,7 @@ export default function ScratchReward({
                 /* Saldo curto: o botão não some, fica DESLIGADO com o motivo. Sumir esconderia
                    que a opção existe, e é ela que dá sentido a juntar seeds. */
                 <p className="text-[11px] text-ink-faint">
-                  trocar mantendo o combo custa {custoPular} seeds — você tem {saldoSeeds}
+                  trocar mantendo o combo custa {custoPular} seeds, você tem {saldoSeeds}
                 </p>
               )
             )}

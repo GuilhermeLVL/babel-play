@@ -103,7 +103,7 @@ export default function MetricsExpandedKpi({ kpi, onClose, metrics }: MetricsExp
                 <div className="card-panel p-5 bg-surface border-border-subtle">
                   <div className="text-[11px] font-bold text-ink-muted uppercase mb-1">Retenção Média</div>
                   <div className="font-display font-black text-3xl text-ink">
-                    {metrics!.avgRetentionConfidence > 0 ? `${Math.round(metrics!.avgRetention * 100)}%` : '—'}
+                    {metrics!.avgRetentionConfidence > 0 ? `${Math.round(metrics!.avgRetention * 100)}%` : '-'}
                   </div>
                   <div className="text-[11px] text-ink-muted font-bold mt-1">
                     {metrics!.avgRetentionConfidence > 0 ? `${Math.round(metrics!.avgRetentionConfidence * 100)}% de confiança` : 'sem revisões ainda'}
@@ -112,7 +112,7 @@ export default function MetricsExpandedKpi({ kpi, onClose, metrics }: MetricsExp
                 <div className="card-panel p-5 bg-surface border-border-subtle">
                   <div className="text-[11px] font-bold text-ink-muted uppercase mb-1">Estabilidade Média</div>
                   <div className="font-display font-black text-3xl text-ink">
-                    {metrics!.avgStability > 0 ? `${metrics!.avgStability.toFixed(1)}d` : '—'}
+                    {metrics!.avgStability > 0 ? `${metrics!.avgStability.toFixed(1)}d` : '-'}
                   </div>
                   <div className="text-[11px] text-ink-muted font-bold mt-1">Intervalo médio de memória (FSRS)</div>
                 </div>
@@ -132,13 +132,13 @@ export default function MetricsExpandedKpi({ kpi, onClose, metrics }: MetricsExp
                     </div>
                     <div>
                       <div className="font-display font-bold text-2xl text-ink">
-                        {metrics!.accuracyConfidence > 0 ? `${Math.round(metrics!.accuracy * 100)}%` : '—'}
+                        {metrics!.accuracyConfidence > 0 ? `${Math.round(metrics!.accuracy * 100)}%` : '-'}
                       </div>
                       <div className="text-[11px] text-ink-muted uppercase font-bold mt-1">Acurácia</div>
                     </div>
                   </div>
                 ) : (
-                  <SemDado motivo="Nenhuma revisão registrada ainda — a retenção por fonte aparecerá quando houver histórico." />
+                  <SemDado motivo="Nenhuma revisão registrada ainda, a retenção por fonte aparecerá quando houver histórico." />
                 )}
               </div>
             </>
@@ -151,14 +151,14 @@ export default function MetricsExpandedKpi({ kpi, onClose, metrics }: MetricsExp
                 <div className="card-panel p-5 bg-surface border-border-subtle">
                   <div className="text-[11px] font-bold text-ink-muted uppercase mb-1 flex items-center gap-1"><Mic className="w-3 h-3" /> Tempo de Fala</div>
                   <div className="font-display font-black text-3xl text-ink">
-                    {metrics!.speakingMs > 0 ? fmtMinutes(metrics!.speakingMs) : '—'}
+                    {metrics!.speakingMs > 0 ? fmtMinutes(metrics!.speakingMs) : '-'}
                   </div>
                   <div className="text-[11px] text-ink-muted font-bold mt-1">Áudio captado ao vivo</div>
                 </div>
                 <div className="card-panel p-5 bg-surface border-border-subtle">
                   <div className="text-[11px] font-bold text-ink-muted uppercase mb-1">Ritmo (WPM)</div>
                   <div className="font-display font-black text-3xl text-ink">
-                    {metrics!.wpmConfidence > 0 ? Math.round(metrics!.wpm) : '—'}
+                    {metrics!.wpmConfidence > 0 ? Math.round(metrics!.wpm) : '-'}
                   </div>
                   <div className="text-[11px] text-ink-muted font-bold mt-1">
                     {metrics!.wpmConfidence > 0 ? `${Math.round(metrics!.wpmConfidence * 100)}% de confiança` : 'sem fala suficiente'}
@@ -170,7 +170,7 @@ export default function MetricsExpandedKpi({ kpi, onClose, metrics }: MetricsExp
                 <h3 className="font-bold text-[14px] text-ink mb-4 flex items-center gap-2">
                   <Clock className="w-4 h-4 text-rare" /> Distribuição por atividade
                 </h3>
-                <SemDado motivo="Ainda não há segmentação de tempo por tipo de atividade — sem dados fabricados. Disponível quando o app registrar a duração de cada sessão." />
+                <SemDado motivo="Ainda não há segmentação de tempo por tipo de atividade, sem dados fabricados. Disponível quando o app registrar a duração de cada sessão." />
               </div>
             </>
           )}

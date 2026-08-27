@@ -75,7 +75,7 @@ export default function SecurityPanel() {
     <div className="grid gap-6">
       <section className="card-panel p-5">
         <h3 className="font-display text-base font-bold text-ink">Verificação em duas etapas (2FA)</h3>
-        <p className="mt-1 text-sm text-ink-muted">Um código do app autenticador além da senha — recomendado.</p>
+        <p className="mt-1 text-sm text-ink-muted">Um código do app autenticador além da senha, recomendado.</p>
 
         {erro && <p className="mt-3 text-sm text-error-ink" role="alert">{erro}</p>}
         {aviso && <p className="mt-3 text-sm text-good-ink" role="status">{aviso}</p>}

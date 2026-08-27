@@ -67,7 +67,7 @@ export async function buildDocumentSession(input: {
     sourceLang,
     sourceText: s,
     targetLang,
-    engine: 'import-text', // selo de procedência: texto importado (sem timestamps — sem áudio)
+    engine: 'import-text', // selo de procedência: texto importado (sem timestamps, sem áudio)
   }))
 
   const recording = await createSession({

@@ -85,7 +85,7 @@ export default function BuscaGlobal({
         label: c.word,
         /* A dica é a TRADUÇÃO, e só. O mockup trazia "apareceu 11 vezes", mas a contagem de
            ocorrências vive em `vocab_occurrences` no servidor e não chega ao `VocabCard` do
-           cliente — exibi-la aqui exigiria inventar o número ou uma segunda ida à rede por palavra. */
+           cliente, exibi-la aqui exigiria inventar o número ou uma segunda ida à rede por palavra. */
         hint: c.translation || undefined,
         keywords: c.translation,
         icon: <BookOpen className="w-4 h-4" />,

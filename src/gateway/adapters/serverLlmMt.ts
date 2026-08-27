@@ -39,7 +39,7 @@ export class ServerLlmMt implements TranslationProvider {
     })
     /* 501 (sem chave/plano) OU qualquer 5xx (API fora do ar, Pages sem API_ORIGIN → 503): o
        adaptador se desliga para a sessão. Antes só o 501 desligava, e um 503 era re-tentado a
-       cada frase com 15 s de timeout — foi a principal fonte da lentidão medida na versão hospedada. */
+       cada frase com 15 s de timeout, foi a principal fonte da lentidão medida na versão hospedada. */
     if (res.status === 501 || res.status >= 500) {
       this.unavailable = true
       throw new Error(`tradução por LLM de nuvem indisponível (HTTP ${res.status})`)

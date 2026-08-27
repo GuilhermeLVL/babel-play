@@ -37,7 +37,7 @@ function Bar({ label, progress, bytes }: { label: string; progress: number | nul
         </span>
         <span className="text-ink-muted tabular-nums">
           {emMb && !complete ? <span className="opacity-70 mr-1.5">{emMb}</span> : null}
-          {progress == null ? '—' : `${pct}%`}
+          {progress == null ? '-' : `${pct}%`}
         </span>
       </div>
       <div className="h-2 bg-canvas rounded-full overflow-hidden border border-border-subtle">
@@ -83,7 +83,7 @@ export default function ModelPrepPanel({
   if (done) {
     return (
       <div className={`flex items-center justify-center gap-2 text-[13px] font-semibold text-good ${compact ? '' : 'py-2'}`}>
-        <CheckCircle2 className="w-4 h-4" /> Modelo pronto — no dispositivo, offline.
+        <CheckCircle2 className="w-4 h-4" /> Modelo pronto, no dispositivo, offline.
       </div>
     );
   }
@@ -98,7 +98,7 @@ export default function ModelPrepPanel({
       {mt !== null && <Bar label="Tradutor (opus-mt)" progress={mt} bytes={mtBytes} />}
       <p className="text-[11px] text-ink-muted leading-relaxed">
         {fromCache
-          ? 'Os pesos já estão no seu navegador — nada é baixado de novo.'
+          ? 'Os pesos já estão no seu navegador, nada é baixado de novo.'
           : 'Roda 100% no seu dispositivo depois de baixar. Recarregar a página não baixa de novo.'}
       </p>
     </div>

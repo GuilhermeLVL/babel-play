@@ -126,7 +126,7 @@ export function useAudioDaSessao(sessionId: string | null | undefined, temAudio:
       .catch(e => { if (vivo) { setErro(String(e?.message ?? e)); setCarregando(false); } });
 
     /* A limpeza devolve a referência SEMPRE, inclusive quando o efeito foi cancelado antes de
-       resolver — a referência foi tomada em `urlDeAudio`, não em `then`. */
+       resolver, a referência foi tomada em `urlDeAudio`, não em `then`. */
     return () => { vivo = false; liberar(sessionId); };
   }, [sessionId, temAudio]);
 

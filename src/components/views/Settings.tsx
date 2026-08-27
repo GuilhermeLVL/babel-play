@@ -352,7 +352,7 @@ export default function Settings({
           </div>
           <div className="card-panel">
             {/* Os DOIS idiomas, com nomes que não admitem inversão: o que você fala e o que estuda.
-                O "meu idioma" deixou de ser um detalhe escondido na tela de Captura — ele decide a
+                O "meu idioma" deixou de ser um detalhe escondido na tela de Captura, ele decide a
                 DIREÇÃO da tradução de todo cartão de vocabulário. */}
             <div className="p-5 border-b border-border-subtle">
               <div className="font-bold text-[14px] mb-1">Idioma que estou aprendendo</div>
@@ -371,7 +371,7 @@ export default function Settings({
             <div className="p-5">
               <div className="font-bold text-[14px] mb-1">Meu idioma</div>
               <p className="text-[12px] text-ink-muted mb-3">
-                O idioma que você já fala — o do seu microfone e o das traduções que você lê.
+                O idioma que você já fala, o do seu microfone e o das traduções que você lê.
               </p>
               <LangPicker
                 id="settings-mine-lang"
@@ -383,7 +383,7 @@ export default function Settings({
               {/* Aviso honesto: com os dois iguais não há o que traduzir (`mtCoverage` = 'same'). */}
               {baseLang(langCfg.mine) === baseLang(langCfg.studying) && (
                 <p className="text-[12px] text-warn-ink mt-2">
-                  Os dois idiomas são o mesmo — não há tradução a fazer, e os cartões ficarão sem verso.
+                  Os dois idiomas são o mesmo, não há tradução a fazer, e os cartões ficarão sem verso.
                 </p>
               )}
             </div>
@@ -450,11 +450,11 @@ export default function Settings({
                 <p className="text-[11.5px] text-ink-muted mt-0.5">
                   {wpmMeasured != null
                     ? <>Comparado ao alvo da meta selecionada ({GOAL_TARGETS[ui.goal]?.badge ?? 'sem alvo de ppm'}).</>
-                    : <>Grave ou faça Shadowing para medir seu ritmo — ainda sem dados suficientes.</>}
+                    : <>Grave ou faça Shadowing para medir seu ritmo, ainda sem dados suficientes.</>}
                 </p>
               </div>
               <div className="flex items-baseline gap-1.5 shrink-0">
-                <span className="font-mono font-black text-2xl text-accent">{wpmMeasured != null ? wpmMeasured : '—'}</span>
+                <span className="font-mono font-black text-2xl text-accent">{wpmMeasured != null ? wpmMeasured : '-'}</span>
                 <span className="text-[11px] font-bold text-ink-muted">ppm</span>
                 {wpmMeasured != null && GOAL_TARGETS[ui.goal]?.ppm != null && (
                   <span className="text-[11px] text-ink-faint font-mono ml-1">/ {GOAL_TARGETS[ui.goal]?.ppm} alvo</span>
@@ -610,7 +610,7 @@ export default function Settings({
             <PrefToggle
               icon={Gauge}
               title="Modo ultra desempenho"
-              description="Desliga desfoques, sombras compostas e gradientes. Para PCs modestos — o app fica mais simples e bem mais leve."
+              description="Desliga desfoques, sombras compostas e gradientes. Para PCs modestos, o app fica mais simples e bem mais leve."
               checked={performanceMode}
               onChange={togglePerformanceMode}
               onLabel="Ativo"
@@ -661,7 +661,7 @@ export default function Settings({
               >
                 {BUILTIN_PROFILES.map((p) => (
                   <option key={p.id} value={p.id} disabled={p.id === 'cloud-quality' && !entitlements.managedCloudStt}>
-                    {p.name}{p.id === 'cloud-quality' && !entitlements.managedCloudStt ? ' — Pro' : ''}
+                    {p.name}{p.id === 'cloud-quality' && !entitlements.managedCloudStt ? ', Pro' : ''}
                   </option>
                 ))}
               </select>
@@ -682,7 +682,7 @@ export default function Settings({
                 </p>
               )}
               <p className="text-[11px] text-ink-faint mt-2">
-                Gates do plano Grátis: importação do YouTube e nuvem gerenciada viram “Pro” (com selo e explicação — nada some).
+                Gates do plano Grátis: importação do YouTube e nuvem gerenciada viram “Pro” (com selo e explicação, nada some).
                 Rodando no seu computador (self-host), tudo é liberado.
               </p>
             </div>
@@ -726,8 +726,8 @@ export default function Settings({
         </section>
 
         {/* A seção "Integrações de Mídia" saiu inteira (Google Calendar & Meet, Notion, Figma/FigJam):
-            não existe nenhuma infraestrutura de integração com serviços externos no projeto — nem
-            OAuth, nem API client, nem endpoint — e "Em breve" é uma promessa de data que ninguém pode
+            não existe nenhuma infraestrutura de integração com serviços externos no projeto, nem
+            OAuth, nem API client, nem endpoint, e "Em breve" é uma promessa de data que ninguém pode
             cumprir. Volta quando existir a primeira integração de verdade. */}
 
       </PainelDeAba>

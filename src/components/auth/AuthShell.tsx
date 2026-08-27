@@ -21,7 +21,7 @@ export default function AuthShell({ children, hero }: { children: React.ReactNod
             {hero?.subtitle ?? 'Vídeos, reuniões, podcasts: cada conversa vira prática de idioma, no seu ritmo.'}
           </p>
         </div>
-        <div className="relative z-10 text-xs text-canvas/50">Sua conta, seus dados — isolados e seguros.</div>
+        <div className="relative z-10 text-xs text-canvas/50">Sua conta, seus dados, isolados e seguros.</div>
         {/* Brilho accent (assinatura sutil) */}
         <div className="pointer-events-none absolute -right-32 -top-24 h-80 w-80 rounded-full bg-accent/40 blur-3xl" aria-hidden="true" />
         <div className="pointer-events-none absolute -bottom-32 -left-16 h-72 w-72 rounded-full bg-rare/30 blur-3xl" aria-hidden="true" />

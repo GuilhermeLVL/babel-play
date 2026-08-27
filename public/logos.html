@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Babel Play · variações de logo</title>
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@700;800&family=Fredoka:wght@600;700&family=Titan+One&family=Lilita+One&family=Righteous&family=Space+Grotesk:wght@700&family=Chewy&display=swap" rel="stylesheet">
+<style>
+  :root { --bg:#F4F1E8; --card:#fff; --ink:#26241F; --muted:#7A756A; --borda:#E5E0D2; }
+  body.escuro { --bg:#12110E; --card:#1D1B17; --ink:#F2EFE6; --muted:#9A948A; --borda:#2E2B25; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink); font-family:system-ui,sans-serif; padding:32px 20px 60px; transition:background .3s; }
+  h1 { font-family:'Baloo 2',sans-serif; margin:0 0 4px; }
+  p.sub { color:var(--muted); margin:0 0 28px; font-size:14px; }
+  .grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(340px,1fr)); gap:20px; max-width:1200px; margin:0 auto; }
+  .card { background:var(--card); border:1px solid var(--borda); border-radius:20px; padding:28px 24px; transition:background .3s; }
+  .num { display:inline-flex; width:26px; height:26px; border-radius:8px; background:#F04E23; color:#fff; font-weight:800; align-items:center; justify-content:center; font-size:14px; margin-bottom:14px; }
+  .marca { display:flex; align-items:center; gap:14px; min-height:72px; }
+  .marca svg { flex-shrink:0; }
+  .nome { font-size:30px; line-height:1; letter-spacing:-.5px; }
+  .desc { color:var(--muted); font-size:13px; margin-top:16px; line-height:1.5; }
+  .mini { display:flex; gap:10px; margin-top:16px; align-items:center; }
+  .mini svg { border-radius:8px; }
+  .toggle { position:fixed; top:18px; right:18px; padding:10px 16px; border-radius:12px; border:1px solid var(--borda); background:var(--card); color:var(--ink); font-weight:700; cursor:pointer; }
+  .topo { max-width:1200px; margin:0 auto 24px; }
+</style>
+</head>
+<body>
+<button class="toggle" onclick="document.body.classList.toggle('escuro')">claro / escuro</button>
+<div class="topo">
+  <h1>Variações de logo · Babel Play</h1>
+  <p class="sub">Cada opção tem ícone + wordmark com uma fonte própria. Use o botão no canto para conferir no fundo escuro. Diga o número da que mais te agrada (e o que ajustar).</p>
+</div>
+<div class="grid">
+
+  <!-- 1. TORRE DE BABEL EM BLOCOS -->
+  <div class="card">
+    <span class="num">1</span>
+    <div class="marca">
+      <svg width="64" height="64" viewBox="0 0 64 64">
+        <rect x="8" y="42" width="48" height="14" rx="5" fill="#F04E23"/>
+        <rect x="14" y="26" width="36" height="13" rx="5" fill="#F59E0B"/>
+        <rect x="21" y="11" width="22" height="12" rx="5" fill="#3E8E4E"/>
+        <path d="M28 45.5c0-1.6 1.7-2.6 3.1-1.8l7.6 4.3c1.4.8 1.4 2.8 0 3.6l-7.6 4.3c-1.4.8-3.1-.2-3.1-1.8Z" fill="#fff"/>
+      </svg>
+      <span class="nome" style="font-family:'Baloo 2';font-weight:800">Babel <span style="color:#F04E23">Play</span></span>
+    </div>
+    <p class="desc"><b>Torre de Babel em blocos de brinquedo</b>, com o play encaixado na base. Conta a lenda do nome, parece jogo de montar, e as três cores são as do app. Fonte: Baloo 2.</p>
+    <div class="mini">
+      <svg width="28" height="28" viewBox="0 0 64 64"><rect width="64" height="64" rx="16" fill="#F04E23"/><rect x="14" y="38" width="36" height="12" rx="4" fill="#fff" opacity=".95"/><rect x="19" y="24" width="26" height="11" rx="4" fill="#fff" opacity=".75"/><rect x="24" y="11" width="16" height="10" rx="4" fill="#fff" opacity=".55"/></svg>
+      <span style="color:var(--muted);font-size:12px">favicon</span>
+    </div>
+  </div>
+
+  <!-- 2. DUAS BOLHAS DE FALA -->
+  <div class="card">
+    <span class="num">2</span>
+    <div class="marca">
+      <svg width="64" height="64" viewBox="0 0 64 64">
+        <path d="M14 8h26a10 10 0 0 1 10 10v8a10 10 0 0 1-10 10h-3l-6 7v-7H14A10 10 0 0 1 4 26v-8A10 10 0 0 1 14 8Z" fill="#F59E0B" opacity=".85"/>
+        <path d="M24 22h26a10 10 0 0 1 10 10v9a10 10 0 0 1-10 10h-4.5l-6.5 7.5V51H24a10 10 0 0 1-10-10v-9a10 10 0 0 1 10-10Z" fill="#F04E23"/>
+        <path d="M32 31.5c0-1.5 1.6-2.4 2.9-1.7l8.2 4.7c1.3.8 1.3 2.7 0 3.4l-8.2 4.7c-1.3.8-2.9-.2-2.9-1.7Z" fill="#fff"/>
+      </svg>
+      <span class="nome" style="font-family:'Fredoka';font-weight:700">Babel <span style="color:#F04E23">Play</span></span>
+    </div>
+    <p class="desc"><b>Duas bolhas de conversa sobrepostas</b> (o idioma que chega e o que você entende), com o play na da frente. É a ideia de tradução em uma imagem. Fonte: Fredoka (redonda, moderna).</p>
+  </div>
+
+  <!-- 3. ARCADE BADGE -->
+  <div class="card">
+    <span class="num">3</span>
+    <div class="marca">
+      <svg width="64" height="64" viewBox="0 0 64 64">
+        <rect x="3" y="3" width="58" height="58" rx="16" fill="#26241F"/>
+        <rect x="7" y="7" width="50" height="50" rx="12" fill="none" stroke="#F59E0B" stroke-width="2.5"/>
+        <path d="M22 18c0-2.4 2.6-3.9 4.7-2.7l17.4 10c2.1 1.2 2.1 4.2 0 5.4l-17.4 10c-2.1 1.2-4.7-.3-4.7-2.7Z" fill="#F04E23"/>
+        <path d="M20 46h24" stroke="#F59E0B" stroke-width="4" stroke-linecap="round"/>
+        <path d="M26 52h12" stroke="#F59E0B" stroke-width="4" stroke-linecap="round" opacity=".55"/>
+      </svg>
+      <span class="nome" style="font-family:'Righteous'">BABEL<span style="color:#F04E23">PLAY</span></span>
+    </div>
+    <p class="desc"><b>Insígnia de fliperama</b>: play gigante, moldura dupla, "linhas de velocidade". A cara dos minijogos e do modo arcade. Fonte: Righteous (retrô-futurista).</p>
+  </div>
+
+  <!-- 4. MASCOTE FONE -->
+  <div class="card">
+    <span class="num">4</span>
+    <div class="marca">
+      <svg width="64" height="64" viewBox="0 0 64 64">
+        <circle cx="32" cy="34" r="22" fill="#F59E0B"/>
+        <path d="M10 34a22 22 0 0 1 44 0" fill="none" stroke="#26241F" stroke-width="6" stroke-linecap="round"/>
+        <rect x="4" y="28" width="10" height="16" rx="5" fill="#F04E23"/>
+        <rect x="50" y="28" width="10" height="16" rx="5" fill="#F04E23"/>
+        <circle cx="25" cy="34" r="3.5" fill="#26241F"/>
+        <circle cx="39" cy="34" r="3.5" fill="#26241F"/>
+        <path d="M26 43c3.5 3.5 8.5 3.5 12 0" fill="none" stroke="#26241F" stroke-width="3" stroke-linecap="round"/>
+      </svg>
+      <span class="nome" style="font-family:'Chewy'">Babel <span style="color:#F04E23">Play</span></span>
+    </div>
+    <p class="desc"><b>Mascote de fones</b>: uma carinha feliz ouvindo. É o mais "personagem" de todos, rende adesivos, reações nos jogos e identidade emocional. Fonte: Chewy (cartoon).</p>
+  </div>
+
+  <!-- 5. MONOGRAMA B-PLAY -->
+  <div class="card">
+    <span class="num">5</span>
+    <div class="marca">
+      <svg width="64" height="64" viewBox="0 0 64 64">
+        <defs><linearGradient id="g5" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#F04E23"/><stop offset="1" stop-color="#F59E0B"/></linearGradient></defs>
+        <rect x="2" y="2" width="60" height="60" rx="18" fill="url(#g5)"/>
+        <path d="M20 14h13a11 11 0 0 1 8.2 18.3A11 11 0 0 1 33 50.5H20Zm8 8v7h5a3.5 3.5 0 0 0 0-7Zm0 15v7.5h5.5a3.75 3.75 0 0 0 0-7.5Z" fill="#fff"/>
+        <path d="M42 26.5c0-1.4 1.5-2.3 2.7-1.6l7.4 4.3c1.2.7 1.2 2.5 0 3.2l-7.4 4.3c-1.2.7-2.7-.2-2.7-1.6Z" fill="#26241F"/>
+      </svg>
+      <span class="nome" style="font-family:'Space Grotesk';font-weight:700">babel<span style="color:#F04E23">·play</span></span>
+    </div>
+    <p class="desc"><b>Monograma "B" + play</b>: sólido, geométrico, escala bem de favicon a loja de apps. O mais "produto sério" dos seis. Fonte: Space Grotesk.</p>
+  </div>
+
+  <!-- 6. BALÃO EQUALIZADOR -->
+  <div class="card">
+    <span class="num">6</span>
+    <div class="marca">
+      <svg width="64" height="64" viewBox="0 0 64 64">
+        <path d="M16 8h32a12 12 0 0 1 12 12v14a12 12 0 0 1-12 12H31l-9 10.5c-1.2 1.4-3.5.6-3.5-1.3V46A12 12 0 0 1 4 34V20A12 12 0 0 1 16 8Z" fill="#F04E23"/>
+        <g stroke="#fff" stroke-width="4.5" stroke-linecap="round">
+          <path d="M18 23v8"/>
+          <path d="M27 18v18"/>
+          <path d="M36 22v10"/>
+          <path d="M45 16v22"/>
+        </g>
+      </svg>
+      <span class="nome" style="font-family:'Lilita One'">Babel <span style="color:#F59E0B">Play</span></span>
+    </div>
+    <p class="desc"><b>Balão de fala com equalizador</b>: a voz dentro da conversa. Fala + som + energia numa forma só, bem reconhecível pequena. Fonte: Lilita One (gorda, de jogo).</p>
+  </div>
+
+</div>
+</body>
+</html>

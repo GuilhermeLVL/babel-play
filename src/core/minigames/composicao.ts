@@ -162,7 +162,7 @@ function proveniencia(c: CartaoParaCompor, p: PedidoDeComposicao, de: 'servidor'
 export function composicaoLocal(cartoes: CartaoParaCompor[], p: PedidoDeComposicao, motivo?: string): Composicao {
   let pool = cartoes
   /* O FALLBACK TINHA O MESMO BURACO DO SERVIDOR. Pôr o filtro de idioma só na rota deixaria a
-     composição errada exatamente quando a rede cai — que é quando um app local-first tem de estar
+     composição errada exatamente quando a rede cai, que é quando um app local-first tem de estar
      certo. `baseLangDe` é a mesma normalização de `quality.ts`, para as duas verdades serem uma. */
   if (p.fonte.lang) {
     const alvo = baseLangDe(p.fonte.lang)

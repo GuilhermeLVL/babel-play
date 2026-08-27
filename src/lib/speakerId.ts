@@ -43,7 +43,7 @@ function getWorker(): Worker | null {
     }
   }
   worker.onerror = (e) => {
-    console.warn('[speakerId] worker morreu — identificação de voz desativada nesta sessão:', e.message)
+    console.warn('[speakerId] worker morreu, identificação de voz desativada nesta sessão:', e.message)
     broken = true
     for (const p of pending.values()) p.resolve(null)
     pending.clear()

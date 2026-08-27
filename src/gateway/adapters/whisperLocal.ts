@@ -58,12 +58,12 @@ export class WhisperLocalStt implements SttProvider {
     if (!modelId) return
     this.routedModel = modelId
     if (this.worker && this.loadedModel && this.loadedModel !== modelId) {
-      console.log('[whisper] roteador trocou o modelo:', this.loadedModel, '→', modelId, '— recriando worker')
+      console.log('[whisper] roteador trocou o modelo:', this.loadedModel, '→', modelId, 'recriando worker')
       try { this.worker.terminate() } catch { /* já morto */ }
       this.worker = null
       this.asrReady = false
       this.loadedModel = null
-      for (const p of this.pending.values()) p.reject(new Error('modelo de transcrição trocado — recarregando'))
+      for (const p of this.pending.values()) p.reject(new Error('modelo de transcrição trocado, recarregando'))
       this.pending.clear()
       this.readyPromise = null
       this.readyResolve = null
@@ -130,12 +130,12 @@ export class WhisperLocalStt implements SttProvider {
    * Pendências em voo são rejeitadas; a próxima chamada re-inicializa em WASM.
    */
   private fallbackToWasm(): void {
-    this.onProgress?.(0, 'GPU indisponível — trocando para o modo compatível (WASM)…')
+    this.onProgress?.(0, 'GPU indisponível, trocando para o modo compatível (WASM)…')
     try { this.worker?.terminate() } catch { /* já morto */ }
     this.worker = null
     this.asrReady = false
     this.forcedDevice = 'wasm'
-    for (const p of this.pending.values()) p.reject(new Error('WebGPU falhou — recarregando em WASM'))
+    for (const p of this.pending.values()) p.reject(new Error('WebGPU falhou, recarregando em WASM'))
     this.pending.clear()
     this.readyPromise = null
     this.readyResolve = null
@@ -256,7 +256,7 @@ export class WhisperLocalStt implements SttProvider {
           // recria FORÇANDO WASM — a partir do próximo enunciado, tudo volta a funcionar
           // localmente (mais lento, porém vivo). Mesmo mecanismo do watchdog de load.
           if (!this.forcedDevice && /webgpu|device|d3d12|dawn|buffer/i.test(String(message || ''))) {
-            console.warn('[whisper] erro de WebGPU em runtime — recriando o worker em WASM:', String(message).slice(0, 120))
+            console.warn('[whisper] erro de WebGPU em runtime, recriando o worker em WASM:', String(message).slice(0, 120))
             this.fallbackToWasm()
           }
           break
@@ -308,14 +308,14 @@ export class WhisperLocalStt implements SttProvider {
           tickMs: WhisperLocalStt.WATCHDOG_TICK_MS,
           aoTravar: (paradoHa) => {
             if (this.asrReady || this.readyPromise !== armed) return // resolveu ou já foi recriado
-            console.warn('[whisper] sem progresso há', Math.round(paradoHa / 1000), 's — GPU ocupada/instável. Recriando com WASM…')
-            this.onProgress?.(0, 'GPU ocupada — trocando para o modo compatível (WASM)…')
+            console.warn('[whisper] sem progresso há', Math.round(paradoHa / 1000), 's, GPU ocupada/instável. Recriando com WASM…')
+            this.onProgress?.(0, 'GPU ocupada, trocando para o modo compatível (WASM)…')
             try { this.worker?.terminate() } catch { /* já morto */ }
             // Zera o estado e força WASM; o retry abaixo reaproveita a MESMA readyPromise externa.
             this.worker = null
             this.asrReady = false
             this.forcedDevice = 'wasm'
-            for (const p of this.pending.values()) p.reject(new Error('WebGPU travado — recarregando em WASM'))
+            for (const p of this.pending.values()) p.reject(new Error('WebGPU travado, recarregando em WASM'))
             this.pending.clear()
             const resolveOuter = this.readyResolve
             const rejectOuter = this.readyReject

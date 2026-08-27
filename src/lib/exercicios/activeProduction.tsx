@@ -179,7 +179,7 @@ export function ActiveProductionExercise({
       const detail = err instanceof Error ? err.message : 'motivo desconhecido';
       setLlmError(
         `Não foi possível verificar com IA (${detail}). Configure um provedor de LLM (ex.: Ollama local) ` +
-          'no seu perfil, ou use a verificação local — ela compara sua resposta com a palavra-alvo.',
+          'no seu perfil, ou use a verificação local, ela compara sua resposta com a palavra-alvo.',
       );
     } finally {
       setIsLoadingLlm(false);
@@ -261,7 +261,7 @@ export function ActiveProductionExercise({
 
         {/* Translation and Pronunciation Hint (Not targeting the word) */}
         <div className="text-sm text-ink-muted max-w-md mx-auto italic mt-1 mb-4">
-          Definição: <span className="font-bold text-ink">{card.translation}</span> — {card.explanation}
+          Definição: <span className="font-bold text-ink">{card.translation}</span>, {card.explanation}
         </div>
 
         {/* Input Form */}

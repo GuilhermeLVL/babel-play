@@ -100,7 +100,7 @@ export function AiBadge({ model, className = '' }: { model?: string; className?:
   return (
     <span
       className={`badge-tag warn ${className}`}
-      title="Conteúdo gerado por um modelo de linguagem. Pode conter erros — confira antes de decorar."
+      title="Conteúdo gerado por um modelo de linguagem. Pode conter erros, confira antes de decorar."
     >
       <Cpu className="w-3 h-3" />
       {model ? `Gerado por IA · ${model}` : 'Gerado por IA'}

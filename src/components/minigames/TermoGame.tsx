@@ -224,7 +224,7 @@ export default function TermoGame({ rodadas, ageProfile, onFinish, onExit }: Ter
 
      A POSIÇÃO E O PALPITE VIVEM EM `ref`, e o estado só espelha para desenhar. O motivo é um
      defeito medido: lendo `cursor` do fecho do render, duas teclas no MESMO tique enxergavam a
-     mesma posição antiga e as letras caíam embaralhadas — "SUPREMO" virava "SUP_O_M_". Com quem
+     mesma posição antiga e as letras caíam embaralhadas, "SUPREMO" virava "SUP_O_M_". Com quem
      digita devagar isso não aparece (cada tecla é um render), mas repetição de tecla e teclado
      rápido caem exatamente nesse caso. */
 
@@ -382,7 +382,7 @@ export default function TermoGame({ rodadas, ageProfile, onFinish, onExit }: Ter
     <div className="flex-1 relative flex flex-col items-center p-3 sm:p-4 animate-in fade-in duration-200 overflow-y-auto custom-scrollbar">
       {/* AS FERRAMENTAS moram no canto da TELA, não numa faixa junto ao título.
           Num cabeçalho de largura fixa, o título ficava colado à esquerda enquanto o tabuleiro
-          (bem mais estreito) ficava no meio — dois blocos desalinhados sem motivo. Soltas no
+          (bem mais estreito) ficava no meio, dois blocos desalinhados sem motivo. Soltas no
           canto, elas ficam sempre no mesmo lugar, com 1, 2 ou 4 tabuleiros. */}
       <span className="absolute top-3 right-3 z-20 flex items-center gap-0.5">
         <button data-tour="varinha" onClick={(e) => usarLetrasCertas(e.currentTarget)} disabled={fimDoGrupo} className="p-2 rounded-lg text-ink-muted hover:text-good-ink hover:bg-surface-hover disabled:opacity-40 cursor-pointer" title="Preencher as letras que você já descobriu (não conta como dica)" aria-label="Preencher letras já descobertas">
@@ -438,7 +438,7 @@ export default function TermoGame({ rodadas, ageProfile, onFinish, onExit }: Ter
           As pistas já moraram num bloco separado no topo, e com quatro tabuleiros ninguém sabia
           qual pista era de qual grade: era preciso contar posições. Colada ao tabuleiro, a
           correspondência não precisa ser explicada.
-          No Quarteto, quatro colunas quando a tela permite — empilhado 2×2 metade das grades fica
+          No Quarteto, quatro colunas quando a tela permite, empilhado 2×2 metade das grades fica
           fora da tela, e num jogo em que o palpite vale para todas, não ver metade é perder a jogada. */}
       <div ref={gradeRef} data-tour="tabuleiro" className={`grid gap-x-3 sm:gap-x-6 gap-y-4 mb-4 ${
         nTabuleiros === 4 ? 'grid-cols-2 xl:grid-cols-4' : nTabuleiros === 2 ? 'grid-cols-2' : 'grid-cols-1'

@@ -105,13 +105,13 @@ function EmptyState({ scenario, ageProfile, isRecording }: {
   const passos = scenario === 'media'
     ? [
         { icon: <Play className="w-4 h-4" />, txt: ageProfile === 'kids' ? 'Abra o vídeo ou o jogo' : 'Abra o vídeo, aula ou podcast em qualquer app' },
-        { icon: <MonitorPlay className="w-4 h-4" />, txt: 'Clique em iniciar — pegamos o som do computador' },
+        { icon: <MonitorPlay className="w-4 h-4" />, txt: 'Clique em iniciar, pegamos o som do computador' },
         { icon: <Headphones className="w-4 h-4" />, txt: 'A legenda bilíngue aparece aqui e nas Legendas flutuantes' },
       ]
     : scenario === 'conversation'
       ? [
           { icon: <Play className="w-4 h-4" />, txt: ageProfile === 'senior' ? 'Abra a sua chamada (WhatsApp, Zoom…)' : 'Entre na call, reunião ou partida' },
-          { icon: <MessagesSquare className="w-4 h-4" />, txt: 'Clique em iniciar — capturamos você e os outros ao mesmo tempo' },
+          { icon: <MessagesSquare className="w-4 h-4" />, txt: 'Clique em iniciar, capturamos você e os outros ao mesmo tempo' },
           { icon: <Mic className="w-4 h-4" />, txt: 'Cada voz vira uma pessoa, com cor e lado próprios' },
         ]
       : [
@@ -278,7 +278,7 @@ export default function ChatTranscript({
 
               {/* BALÃO. Superfície do TEMA nos dois lados (nunca `bg-accent` com texto branco: nos
                   temas de destaque claro isso vira texto branco em fundo branco). A identidade vem
-                  da faixa colorida da pessoa e do lado — não de um fundo colorido ilegível. */}
+                  da faixa colorida da pessoa e do lado, não de um fundo colorido ilegível. */}
               <div
                 className={`relative px-3 py-2 shadow-sm ${colorClasses.container} ${
                   usaLados

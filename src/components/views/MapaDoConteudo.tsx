@@ -249,7 +249,7 @@ export default function MapaDoConteudo({
   };
   const txtVazio: Record<AgeProfileType, string> = {
     kids: 'Não tem nada aqui ainda. Capture palavras ou traga da trilha.',
-    pro: 'Nenhum item neste conjunto — nada a mapear.',
+    pro: 'Nenhum item neste conjunto, nada a mapear.',
     senior: 'Este conjunto está vazio. Guarde palavras primeiro.',
   };
   const txtFiltroVazio: Record<AgeProfileType, string> = {
@@ -306,20 +306,20 @@ export default function MapaDoConteudo({
         </section>
 
         {/* HISTÓRICO PARCIAL, dito em voz alta. Sem esta linha o mapa afirmaria "nunca caiu" sobre
-            palavras que a pessoa já jogou — o registro por item (`item_ref`) só passou a existir na
+            palavras que a pessoa já jogou, o registro por item (`item_ref`) só passou a existir na
             data abaixo, e rodadas anteriores a ela não deixaram rastro de QUAL item caiu. */}
         {typeof historicoDesde === 'number' && (
           <p className="flex items-start gap-1.5 text-[11.5px] text-ink-faint mb-5 max-w-[70ch]">
             <Info className="w-3.5 h-3.5 mt-0.5 shrink-0" aria-hidden />
             O registro do que caiu em cada rodada começou em{' '}
             {new Date(historicoDesde).toLocaleDateString('pt-BR')}. O que você jogou antes disso não
-            aparece aqui — pode haver palavra marcada como "nunca caiu" que você já viu.
+            aparece aqui, pode haver palavra marcada como "nunca caiu" que você já viu.
           </p>
         )}
 
         {/* OS NÍVEIS. Mesmo padrão do PainelTrilha, com um número diferente por baixo: lá a barra
             mede quanto do nível está NO BARALHO, aqui mede quanto do nível já APARECEU numa rodada.
-            São perguntas distintas — ter a palavra e ter jogado a palavra. */}
+            São perguntas distintas, ter a palavra e ter jogado a palavra. */}
         {niveis && niveis.length > 0 && onEscolherNivel && (
           <div className="flex flex-wrap gap-1.5 mb-5">
             {niveis.map(n => {
@@ -352,7 +352,7 @@ export default function MapaDoConteudo({
         )}
 
         {/* OS FILTROS, com a contagem colada. Um filtro que daria zero fica VISÍVEL e desabilitado
-            mostrando o 0: some-lo esconderia a informação mais útil da tela — "não errei nenhuma"
+            mostrando o 0: some-lo esconderia a informação mais útil da tela, "não errei nenhuma"
             e "não existe esse filtro" viram a mesma coisa quando o chip desaparece.
             `py-2` sobre texto de 12px passa de 24px de alvo. */}
         <div className="flex flex-wrap gap-1.5 mb-4" role="group" aria-label="Filtrar o mapa">
@@ -424,7 +424,7 @@ export default function MapaDoConteudo({
             palavras. O filtro é o que faz o resto aparecer, então ele é dito na mesma frase. */}
         {ordenados.length > MAX_VISIVEL && (
           <p className="text-[12px] text-ink-faint mt-3">
-            mostrando {MAX_VISIVEL} de {ordenados.length} — filtre para ver o resto
+            mostrando {MAX_VISIVEL} de {ordenados.length}, filtre para ver o resto
           </p>
         )}
       </div>

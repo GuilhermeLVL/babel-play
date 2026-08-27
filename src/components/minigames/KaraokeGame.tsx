@@ -135,7 +135,7 @@ export default function KaraokeGame({ falas, audioUrl, ageProfile, onFinish, onE
       const s = scorePronunciation(fala.texto, dito, { durationMs: duracao });
       /* O alinhamento vem de `conferirDitado`, o MESMO que o jogo de Ditado usa: janela de ±2
          para reencontrar o compasso quando se pula ou repete uma palavra, e comparação sem acento
-         nem pontuação — o STT não entrega pontuação confiável, e punir por ela ensinaria a coisa
+         nem pontuação, o STT não entrega pontuação confiável, e punir por ela ensinaria a coisa
          errada. Escrever um segundo alinhador aqui seria duas verdades sobre o mesmo erro. */
       setNota({ accuracy: s.accuracy, transcript: dito, diff: conferirDitado(fala.texto, dito) });
       setFase('avaliado');
@@ -145,7 +145,7 @@ export default function KaraokeGame({ falas, audioUrl, ageProfile, onFinish, onE
         texto: s.accuracy + '%',
       });
       /* SUBSTITUI em vez de empilhar. Cada "Falar agora" cria um reconhecimento novo, então falar
-         três vezes na mesma fala gerava TRÊS outcomes com o mesmo `itemRef` — e o histórico passava
+         três vezes na mesma fala gerava TRÊS outcomes com o mesmo `itemRef`, e o histórico passava
          a achar que a fala caiu três vezes. Vale a última nota, e `attempts` conta as tentativas,
          que é exatamente o campo que existe para isso. */
       registrarFala({
@@ -213,7 +213,7 @@ export default function KaraokeGame({ falas, audioUrl, ageProfile, onFinish, onE
       const todos = resultadosRef.current;
       const impecavel = todos.length > 0 && todos.every(o => o.correct);
       /* Rodada de ZERO itens não comemora erro. Antes, `todos.some(...)` era falso numa lista vazia
-         e caía em `'erro'` — o jogo dizia que a pessoa errou uma rodada em que nada foi avaliado, e
+         e caía em `'erro'`, o jogo dizia que a pessoa errou uma rodada em que nada foi avaliado, e
          a raspadinha mostrava "0 de 0 · 0%". É o mesmo princípio que este arquivo já aplica quando
          não há reconhecimento de voz: sem avaliação, não se dá nota. */
       if (todos.length > 0) {
@@ -257,7 +257,7 @@ export default function KaraokeGame({ falas, audioUrl, ageProfile, onFinish, onE
 
       <div className="w-full max-w-2xl flex flex-col items-center gap-6">
         {/* A FRASE: acende em sincronia com o áudio enquanto se ouve e, DEPOIS de falar, vira o
-            resultado — cada palavra com o próprio veredito. É a mesma frase servindo aos dois
+            resultado, cada palavra com o próprio veredito. É a mesma frase servindo aos dois
             momentos, em vez de um segundo bloco repetindo o texto embaixo. */}
         <p data-tour="frase" className="flex flex-wrap justify-center gap-x-2 gap-y-1 text-center">
           {palavras.map((p, i) => {
@@ -329,7 +329,7 @@ export default function KaraokeGame({ falas, audioUrl, ageProfile, onFinish, onE
               {nota.diff.acertos} de {nota.diff.total} palavras
             </p>
             {/* As que escaparam, listadas: passar o mouse em cima já mostra, mas no toque não há
-                mouse — e é justamente quem está no celular que mais precisa. */}
+                mouse, e é justamente quem está no celular que mais precisa. */}
             {nota.diff.acertos < nota.diff.total && (
               <p className="text-[12px] text-ink-muted mt-1.5 leading-relaxed">
                 escapou:{' '}
@@ -348,7 +348,7 @@ export default function KaraokeGame({ falas, audioUrl, ageProfile, onFinish, onE
 
         {semReconhecimento && (
           <p className="text-[12px] text-warn-ink text-center max-w-[46ch]">
-            Este navegador não tem reconhecimento de voz, então não dá para dar nota aqui — e nota
+            Este navegador não tem reconhecimento de voz, então não dá para dar nota aqui, e nota
             de pronúncia inventada seria pior que nenhuma. Você ainda pode ouvir e repetir.
           </p>
         )}

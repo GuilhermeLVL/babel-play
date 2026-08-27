@@ -85,7 +85,7 @@ export default function Hub({ onChangeView, recordings, ageProfile = 'pro', prog
           if (parsed.cefrGoal === 'B2' || parsed.cefrGoal === 'C1' || parsed.cefrGoal === 'C2') {
             setSelectedLevel(parsed.cefrGoal);
           }
-        } catch { /* ui inválido — ignora */ }
+        } catch { /* ui inválido, ignora */ }
       }
       levelLoaded.current = true;
     })();
@@ -138,7 +138,7 @@ export default function Hub({ onChangeView, recordings, ageProfile = 'pro', prog
           {ageProfile === 'kids'
             ? 'Pronto para os desafios?'
             : ageProfile === 'senior'
-            ? 'Bem-vindo ao Babel OS'
+            ? 'Bem-vindo ao Babel Play'
             : 'O que você quer fazer agora?'}
         </h1>
         <p className="text-ink-muted text-sm max-w-[62ch]">
@@ -146,10 +146,44 @@ export default function Hub({ onChangeView, recordings, ageProfile = 'pro', prog
             ? 'Três frentes para evoluir: gravar, praticar e cultivar palavras.'
             : ageProfile === 'senior'
             ? 'Escolha um dos três passos abaixo. Cada um leva a uma tela só, com o que precisa.'
-            : 'Captura, prática e vocabulário — com o estado real de cada frente.'}
+            : 'Captura, prática e vocabulário, com o estado real de cada frente.'}
         </p>
       </header>
 
+      {/* Main Actions Panel — movido para o topo (como no design novo) */}
+      <EditablePanel
+        viewKey="hub"
+        panelKey="quickActions"
+        title="Ações Rápidas"
+        canResizeWidth={false}
+        canResizeHeight={false}
+        defaultHeight={0}
+      >
+      <section className="mb-8">
+        {/* TRÊS PILARES — a MESMA estrutura nos três perfis.
+            Antes, cada perfil renderizava uma árvore JSX completamente diferente (livro de missões
+            × guia de passos × grid executivo). Trocar de perfil parecia trocar de aplicativo, e as
+            três versões envelheciam separadamente, foi assim que os emojis e os números fixos
+            sobreviveram só em duas delas. Aqui a estrutura é uma; o que varia é a LINGUAGEM, a
+            densidade e se as recompensas aparecem. */}
+        <div className={ageProfile === 'senior' ? 'space-y-4' : 'grid grid-cols-1 md:grid-cols-3 gap-5'}>
+          {PILLARS.map((pillar, idx) => (
+            <PillarCard
+              key={pillar.id}
+              pillar={pillar}
+              index={idx}
+              ageProfile={ageProfile}
+              mission={progress.missions.find((m) => m.id === pillar.id)}
+              progressAvailable={progress.available}
+              onChangeView={onChangeView}
+            />
+          ))}
+        </div>
+      </section>
+      </EditablePanel>
+
+      {/* XP e revisão vencida vêm DEPOIS dos três passos (pedido do dono, 2026-08-27):
+          quem chega novo lê primeiro O QUE FAZER; números e pendências são contexto, não porta. */}
       <FaixaDeProgresso progress={progress} ageProfile={ageProfile} />
 
       {/* ── AS QUE ESTÃO PRESTES A ESCAPAR ────────────────────────────────────────────────────
@@ -159,14 +193,14 @@ export default function Hub({ onChangeView, recordings, ageProfile = 'pro', prog
           chance de lembrar, e o resto espera sem custo. Uma decisão que caduca merece o topo.
 
           O CARD SÓ EXISTE QUANDO HÁ O QUE REVISAR. Sem vencidas ele some inteiro, em vez de virar
-          um "0 palavras para revisar" — que ocuparia o lugar mais nobre da tela para não dizer
+          um "0 palavras para revisar", que ocuparia o lugar mais nobre da tela para não dizer
           nada, e ensinaria a ignorar aquele espaço justamente nos dias em que ele importa.
 
           O TEMPO É MEDIDO ou não é dito: `estimativaDeMinutos` cala abaixo de 20 respostas
           cronometradas e a linha vira "rodada curta". */}
       {/* ENQUANTO AS MÉTRICAS NÃO CHEGARAM, O ESPAÇO FICA RESERVADO.
           O card entra entre a faixa de progresso e TODO o resto da tela, e nascia com a resposta
-          da rede — empurrando de uma vez os três pilares, o relatório e as sessões recentes (é a
+          da rede, empurrando de uma vez os três pilares, o relatório e as sessões recentes (é a
           maior parcela do CLS 0,311 medido no Início, achado F0-02). O esqueleto repete as mesmas
           classes de caixa do card real para a altura sair das mesmas regras nos dois tamanhos de
           tela; os blocos internos declaram a altura do conteúdo que vai ocupá-los. */}
@@ -238,37 +272,7 @@ export default function Hub({ onChangeView, recordings, ageProfile = 'pro', prog
         </section>
       )}
 
-      {/* Main Actions Panel — movido para o topo (como no design novo) */}
-      <EditablePanel
-        viewKey="hub"
-        panelKey="quickActions"
-        title="Ações Rápidas"
-        canResizeWidth={false}
-        canResizeHeight={false}
-        defaultHeight={0}
-      >
-      <section className="mb-8">
-        {/* TRÊS PILARES — a MESMA estrutura nos três perfis.
-            Antes, cada perfil renderizava uma árvore JSX completamente diferente (livro de missões
-            × guia de passos × grid executivo). Trocar de perfil parecia trocar de aplicativo, e as
-            três versões envelheciam separadamente — foi assim que os emojis e os números fixos
-            sobreviveram só em duas delas. Aqui a estrutura é uma; o que varia é a LINGUAGEM, a
-            densidade e se as recompensas aparecem. */}
-        <div className={ageProfile === 'senior' ? 'space-y-4' : 'grid grid-cols-1 md:grid-cols-3 gap-5'}>
-          {PILLARS.map((pillar, idx) => (
-            <PillarCard
-              key={pillar.id}
-              pillar={pillar}
-              index={idx}
-              ageProfile={ageProfile}
-              mission={progress.missions.find((m) => m.id === pillar.id)}
-              progressAvailable={progress.available}
-              onChangeView={onChangeView}
-            />
-          ))}
-        </div>
-      </section>
-      </EditablePanel>
+
 
       {/* Colapsável: Relatório de Performance Detalhada */}
       <div className={EDICAO_LEVE ? 'hidden' : 'mb-8'}>
@@ -311,7 +315,7 @@ export default function Hub({ onChangeView, recordings, ageProfile = 'pro', prog
           <button className="card-panel p-5 text-left hover:border-accent hover:shadow-card transition-all group" onClick={() => ir('metrics')}>
             <span className="label-mono block mb-1 text-ink-muted group-hover:text-accent transition-colors">Palavras Produzidas</span>
             <div className="font-display font-black text-2xl tracking-tight text-ink mb-1">
-              {metrics ? fmtNum(metrics.wordsCaptured) : '—'}
+              {metrics ? fmtNum(metrics.wordsCaptured) : '-'}
             </div>
             <div className="text-[11.5px] font-semibold text-ink-muted flex items-center gap-1">
               <TrendingUp className="w-3.5 h-3.5" /> {metrics?.sessions ?? 0} sessão(ões) capturada(s)
@@ -321,7 +325,7 @@ export default function Hub({ onChangeView, recordings, ageProfile = 'pro', prog
           <button className="card-panel p-5 text-left hover:border-accent hover:shadow-card transition-all group" onClick={() => ir('metrics')}>
             <span className="label-mono block mb-1 text-ink-muted group-hover:text-accent transition-colors">Vocabulário no Deck</span>
             <div className="font-display font-black text-2xl tracking-tight text-ink mb-1">
-              {metrics ? fmtNum(metrics.deckSize) : '—'}
+              {metrics ? fmtNum(metrics.deckSize) : '-'}
             </div>
             <div className="text-[11.5px] font-medium text-ink-muted">{metrics?.dueToday ?? 0} para revisar hoje • {metrics?.newCards ?? 0} novos</div>
           </button>
@@ -359,10 +363,10 @@ export default function Hub({ onChangeView, recordings, ageProfile = 'pro', prog
           <div className="card-panel p-5 text-left group bg-surface">
             <span className="label-mono block mb-1 text-ink-muted">Vícios de Linguagem</span>
             {/* A contagem de vícios (marcadores de hesitação) é REAL desde src/core/learning/fillers.ts
-                — não requer processamento de linguagem, é busca de token por idioma. Ela já aparece
+               , não requer processamento de linguagem, é busca de token por idioma. Ela já aparece
                 por sessão na tela de Análise (aba "Desempenho & Fluência"). O que falta é só o
                 SOMATÓRIO entre todas as sessões: exigiria campo novo em AppMetrics (src/data/api.ts)
-                mais agregação no servidor — fora do escopo desta correção, por isso o card mostra
+                mais agregação no servidor, fora do escopo desta correção, por isso o card mostra
                 onde o número já existe em vez de fingir que a contagem em si está pendente. */}
             <div className="font-display font-bold text-sm text-ink mt-2 mb-1 flex items-center gap-2">
               Por sessão
@@ -447,7 +451,7 @@ export default function Hub({ onChangeView, recordings, ageProfile = 'pro', prog
               <div className="flex justify-between items-center text-[12px] mb-2">
                 <span className="font-bold text-ink-muted">Ritmo de Fala</span>
                 <span className="font-mono font-extrabold text-accent">
-                  {wpmMeasured != null ? `${wpmMeasured}` : '—'} <span className="text-ink-faint font-normal">/ {targetWpm} ppm</span>
+                  {wpmMeasured != null ? `${wpmMeasured}` : '-'} <span className="text-ink-faint font-normal">/ {targetWpm} ppm</span>
                 </span>
               </div>
               <div className="w-full h-2.5 bg-canvas overflow-hidden border border-border-subtle/40 rounded-full">
@@ -455,7 +459,7 @@ export default function Hub({ onChangeView, recordings, ageProfile = 'pro', prog
               </div>
               <span className="text-[11px] text-ink-muted mt-2 block leading-snug">
                 {wpmMeasured != null
-                  ? <>Medido: {wpmMeasured} ppm{wpmLowConf ? ' (estimativa — poucas sessões)' : ''} · alvo declarado {targetWpm} ppm.</>
+                  ? <>Medido: {wpmMeasured} ppm{wpmLowConf ? ' (estimativa, poucas sessões)' : ''} · alvo declarado {targetWpm} ppm.</>
                   : <>Alvo declarado {targetWpm} ppm. Sem fala capturada suficiente para medir seu ritmo.</>}
               </span>
             </div>
@@ -465,7 +469,7 @@ export default function Hub({ onChangeView, recordings, ageProfile = 'pro', prog
               <div className="flex justify-between items-center text-[12px] mb-2">
                 <span className="font-bold text-ink-muted">Vocabulário no Nível-Alvo</span>
                 <span className="font-mono font-extrabold text-good">
-                  {vocabAdherence != null ? `${vocabAdherence}%` : '—'}
+                  {vocabAdherence != null ? `${vocabAdherence}%` : '-'}
                 </span>
               </div>
               <div className="w-full h-2.5 bg-canvas overflow-hidden border border-border-subtle/40 rounded-full">
@@ -479,7 +483,7 @@ export default function Hub({ onChangeView, recordings, ageProfile = 'pro', prog
             </div>
 
             {/* Clareza & Concisão: a metade "vícios" já é medida (fillers.ts, por sessão), mas esta
-                caixa é uma comparação alvo × medido AGREGADA como as duas irmãs acima — e o
+                caixa é uma comparação alvo × medido AGREGADA como as duas irmãs acima, e o
                 agregado entre sessões não existe (ver comentário do card "Vícios de Linguagem"
                 mais acima). "Pausas preenchidas" (duração de silêncio) também nunca foi medido;
                 fillers.ts conta MARCADORES de hesitação (palavras), não pausas. Por isso o pill
@@ -552,7 +556,7 @@ export default function Hub({ onChangeView, recordings, ageProfile = 'pro', prog
               <p className="text-[12px] text-ink-muted leading-relaxed">
                 {metrics && metrics.dueToday > 0
                   ? <>Você tem {metrics.dueToday} carta(s) para revisar hoje. Ofensiva atual de {metrics.streakDays} dia(s).</>
-                  : <>Nenhuma carta vencida no momento. Ofensiva atual de {metrics?.streakDays ?? 0} dia(s) — continue capturando para manter o ritmo.</>}
+                  : <>Nenhuma carta vencida no momento. Ofensiva atual de {metrics?.streakDays ?? 0} dia(s), continue capturando para manter o ritmo.</>}
               </p>
             </div>
             <button
@@ -642,7 +646,7 @@ export default function Hub({ onChangeView, recordings, ageProfile = 'pro', prog
             icone={<Headphones className="w-7 h-7" />}
             titulo={recordings.length === 0 ? 'Nenhuma sessão ainda' : 'Nada nesta categoria'}
             explicacao={recordings.length === 0
-              ? 'Capture sua primeira sessão ou importe uma mídia pela Biblioteca — ela aparecerá aqui.'
+              ? 'Capture sua primeira sessão ou importe uma mídia pela Biblioteca, ela aparecerá aqui.'
               : 'Nenhuma sessão salva com este tipo de arquivo. Escolha outra categoria ou capture uma nova sessão.'}
             acao={{
               rotulo: <><Mic className="w-4 h-4" /> Nova captura</>,
@@ -692,7 +696,7 @@ export default function Hub({ onChangeView, recordings, ageProfile = 'pro', prog
                       <span className="uppercase">{rec.type === 'video' ? 'YouTube' : rec.type === 'document' ? 'PDF' : 'ÁUDIO'}</span>
                       {/* O ESTADO, quando ele muda o que dá para fazer.
                           Uma sessão ainda em processamento não tem transcrição, então clicar nela
-                          leva a uma tela pela metade — e a lista não dizia isso em lugar nenhum.
+                          leva a uma tela pela metade, e a lista não dizia isso em lugar nenhum.
                           "Processado" não ganha selo: o normal não precisa de etiqueta, e etiquetar
                           tudo faz o selo que importa desaparecer no meio dos outros. */}
                       {rec.status !== 'Processado' && (
@@ -762,7 +766,7 @@ const PILLARS: PillarDef[] = [
     },
     body: {
       kids: 'Fale no microfone, acerte os desafios e ganhe pontos de pronúncia.',
-      pro: 'Shadowing, ditado, reescrita, roleplay e mais — sobre o seu próprio conteúdo.',
+      pro: 'Shadowing, ditado, reescrita, roleplay e mais, sobre o seu próprio conteúdo.',
       senior: 'Exercícios de repetição simples, no seu ritmo e sem cronômetro.'
     },
     cta: { kids: 'Iniciar desafio', pro: 'Abrir exercícios', senior: 'Ver exercícios' }
@@ -778,7 +782,7 @@ const PILLARS: PillarDef[] = [
       senior: 'Minhas palavras'
     },
     body: {
-      kids: 'Regue as palavras do seu deck para elas não murcharem — e colha Seeds.',
+      kids: 'Regue as palavras do seu deck para elas não murcharem, e colha Seeds.',
       pro: 'Deck com repetição espaçada: o que revisar hoje e o que ainda é novo.',
       senior: 'Seu caderno de palavras, com tradução e pronúncia em áudio.'
     },
@@ -810,7 +814,7 @@ function pillarStatus(mission: Mission | undefined, profile: AgeProfile): string
         ? null
         : profile === 'senior'
         ? 'Você ainda não gravou nada. Comece por aqui.'
-        : 'Nenhuma gravação ainda — este é o ponto de partida.';
+        : 'Nenhuma gravação ainda, este é o ponto de partida.';
     case 'practice':
       if (mission.pending === 0) return profile === 'senior' ? 'Nada para revisar agora. Tudo em dia.' : 'Revisão em dia.';
       return `${mission.pending} ${mission.pending === 1 ? 'palavra pronta' : 'palavras prontas'} para revisar`;

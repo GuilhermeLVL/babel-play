@@ -19,6 +19,7 @@
  * eixo do idioma entra por fora deste (chave → idioma → perfil), sem reescrever os consumidores.
  */
 
+import { EDICAO_LEVE } from './edicao';
 export type AgeProfileType = 'kids' | 'pro' | 'senior';
 
 export function isAgeProfile(v: unknown): v is AgeProfileType {
@@ -37,7 +38,9 @@ const AGE_PROFILE_KEY = 'babel.age_profile';
  * aberto não reflete ali até reabrir — limite aceito conscientemente.
  */
 export function readAgeProfile(): AgeProfileType {
-  return readStoredEnum(AGE_PROFILE_KEY, ['kids', 'pro', 'senior'], 'pro');
+  // Edição leve: o padrão é o perfil SÊNIOR (linguagem simples, passos numerados) — decisão do
+  // dono (2026-08-27): a primeira visita deve ser a mais guiada; quem quiser troca em Aparência.
+  return readStoredEnum(AGE_PROFILE_KEY, ['kids', 'pro', 'senior'], EDICAO_LEVE ? 'senior' : 'pro');
 }
 
 /**
@@ -167,8 +170,8 @@ export const COPY = {
     senior: 'Pronúncia do "-ed" em inglês'
   },
   'ex.ed_drill.hint': {
-    kids: 'três sons diferentes — acerte qual é',
-    pro: 'terminais /t/ /d/ /ɪd/ — conteúdo em inglês',
+    kids: 'três sons diferentes, acerte qual é',
+    pro: 'terminais /t/ /d/ /ɪd/, conteúdo em inglês',
     senior: 'três formas de falar o fim do verbo, em inglês'
   },
   'ex.scenario_interview': {
@@ -194,8 +197,8 @@ export const COPY = {
 
   // ── Motivos de bloqueio ──────────────────────────────────────────────────
   'block.emptyDeck': {
-    kids: 'Seu baralho está vazio — capture palavras primeiro.',
-    pro: 'Seu deck está vazio — adicione palavras primeiro.',
+    kids: 'Seu baralho está vazio, capture palavras primeiro.',
+    pro: 'Seu deck está vazio, adicione palavras primeiro.',
     senior: 'Você ainda não guardou palavras. Grave algo primeiro.'
   },
   'block.notMature': {
@@ -227,7 +230,7 @@ export const COPY = {
   },
   'now.due.sub': {
     kids: 'Treine agora para manter a sua ofensiva viva.',
-    pro: 'Revisão espaçada ({sched}) — o agendamento vem do servidor.',
+    pro: 'Revisão espaçada ({sched}), o agendamento vem do servidor.',
     senior: 'São as palavras que você está prestes a esquecer.'
   },
   'now.due.cta': {
@@ -395,7 +398,7 @@ export const TUTOR_REGISTER: Record<AgeProfileType, string> = {
   kids:
     'O usuário é uma criança ou adolescente (7 a 15 anos) que joga Roblox/Minecraft. Fale de forma ' +
     'direta e animada, com frases curtas e exemplos do mundo dele (jogos, vídeos, amigos). Não use ' +
-    'siglas técnicas (SRS, CEFR, FSRS, WPM) nem tom de professor formal — e também não infantilize: ' +
+    'siglas técnicas (SRS, CEFR, FSRS, WPM) nem tom de professor formal, e também não infantilize: ' +
     'ele quer ser tratado como alguém capaz. Máximo de 3 frases por resposta.',
   pro:
     'O usuário é um adulto usando a ferramenta para trabalho ou estudo sério. Pode usar os termos ' +

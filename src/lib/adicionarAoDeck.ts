@@ -60,7 +60,7 @@ export async function ficharCartao(c: CartaoAFichar): Promise<VocabCard[]> {
     // O servidor aplica a régua de qualidade e deduplica: quando recusa, a tela DIZ o
     // motivo. Clique que não faz nada e não explica é indistinguível de bug.
     if (skipped.length) toast.warn(`"${skipped[0].word}": ${motivoLegivel(skipped[0].motivo)}`);
-  } catch { /* falha silenciosa — deck permanece consistente */ }
+  } catch { /* falha silenciosa, deck permanece consistente */ }
   return [];
 }
 
@@ -85,7 +85,7 @@ export async function ficharPalavraDoAnalista(w: VocabWord, config: LangConfig):
   });
   return ficharCartao({
     word: w.word,
-    back: w.translation || '', // tradução REAL (ou vazia — nunca inventada)
+    back: w.translation || '', // tradução REAL (ou vazia, nunca inventada)
     sentence,
     resolved,
     cloze,

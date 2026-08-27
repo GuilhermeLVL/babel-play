@@ -73,7 +73,7 @@ export function promptFor(card: VocabCard): { prompt: string; clozed: boolean } 
     const cloze = makeCloze(frase, card.word);
     if (cloze?.prompt) return { prompt: cloze.prompt, clozed: true };
   }
-  return null; // sem pista possível — o cartão sai da rodada
+  return null; // sem pista possível, o cartão sai da rodada
 }
 
 /**

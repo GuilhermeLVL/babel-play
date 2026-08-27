@@ -48,7 +48,7 @@ export default function MenuDaConta({ onIr, orientation }: MenuDaContaProps) {
   const painel = useRef<HTMLDivElement | null>(null);
 
   /* `fixed` com coordenadas MEDIDAS, e não `absolute`: a raiz do app é `overflow-hidden` e o rail
-     vertical é um flex de altura total dentro dela — um popover absoluto ali seria recortado. E um
+     vertical é um flex de altura total dentro dela, um popover absoluto ali seria recortado. E um
      `top` fixo abriria para baixo mesmo com o menu no rodapé, ou seja, fora da tela. É a mesma
      conta (e o mesmo motivo) do popover de aparência, três arquivos ao lado. */
   useEffect(() => {

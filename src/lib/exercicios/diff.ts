@@ -5,7 +5,7 @@ export function normalize(str: string): string {
     .replace(/[\u0300-\u036f]/g, "") // Remove accents
     /* Pontuação. As barras de escape em `\/`, `\^` e `\*` eram inúteis: dentro de `[...]` a barra
        não precisa de escape, `^` só é especial na PRIMEIRA posição e `*` não é quantificador ali.
-       O `\-` no meio da classe é MANTIDO de propósito — sem ele, `=-_` seria lido como o intervalo
+       O `\-` no meio da classe é MANTIDO de propósito, sem ele, `=-_` seria lido como o intervalo
        de `=` a `_`, que engoliria letras maiúsculas e dígitos. */
     .replace(/[.,/#!$%^&*;:{}=\-_`~()?"']/g, "") // Remove punctuation
     .replace(/\s+/g, " ") // Normalize spacing

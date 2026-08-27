@@ -80,7 +80,7 @@ export default function PainelTrilha({
         <span className="text-[12px] text-ink-muted">
           {ageProfile === 'senior'
             ? 'Palavras escolhidas por nível, para você não depender só do que gravou.'
-            : 'Vocabulário curado por nível — o que falta no que você captura.'}
+            : 'Vocabulário curado por nível, o que falta no que você captura.'}
         </span>
       </div>
 
@@ -124,7 +124,7 @@ export default function PainelTrilha({
 
       {/* ── O CAMINHO DENTRO DO NÍVEL ──────────────────────────────────────────────────────────
           "581 palavras do A2" é verdade e não convida ninguém a começar: não há onde parar, nem
-          como saber que se avançou. As etapas quebram o nível em passos de 28 — o suficiente para
+          como saber que se avançou. As etapas quebram o nível em passos de 28, o suficiente para
           fechar um em poucas rodadas de 8, que é o que transforma progresso em algo que acontece.
 
           O nome de cada etapa é o nível e o número, não um tema. O dado é uma lista alfabética de
@@ -140,12 +140,12 @@ export default function PainelTrilha({
           </div>
 
           {/* Um traço por etapa: feitas em verde, a atual em destaque, as futuras apagadas. A
-              contagem exata está escrita acima — a régua serve para ver a distância de relance. */}
+              contagem exata está escrita acima, a régua serve para ver a distância de relance. */}
           <ol className="flex flex-wrap gap-1" aria-label={`Progresso do ${nivelAtivo}: etapa ${posicao.atual} de ${posicao.total}`}>
             {etapas.map(p => (
               <li
                 key={p.etapa.id}
-                title={`${p.etapa.nome} — ${p.jaTem} de ${p.total} no seu caderno`}
+                title={`${p.etapa.nome}, ${p.jaTem} de ${p.total} no seu caderno`}
                 aria-current={p.estado === 'atual' ? 'step' : undefined}
                 className={`h-1.5 rounded-full ${
                   p.estado === 'feita' ? 'w-5 bg-good'
@@ -163,10 +163,10 @@ export default function PainelTrilha({
           como "desenhar" num teste) e pedia para o usuário conferir. Agora nível e tradução vêm
           ambos de listas públicas escritas por gente, embutidas no app: nada é traduzido na hora,
           nada depende de rede, e a trilha funciona no perfil Privado/Local. O que continua honesto
-          dizer é que a cobertura NÃO é total — as palavras sem tradução conferida ficaram de fora
+          dizer é que a cobertura NÃO é total, as palavras sem tradução conferida ficaram de fora
           em vez de entrarem adivinhadas, e por isso os níveis altos têm menos. */}
       <p className="text-[11px] text-ink-faint leading-relaxed">
-        Nível e tradução vêm de listas públicas curadas, embutidas no app — nada é traduzido na
+        Nível e tradução vêm de listas públicas curadas, embutidas no app, nada é traduzido na
         hora. Palavra sem tradução conferida ficou de fora, então os níveis avançados têm menos.
       </p>
 

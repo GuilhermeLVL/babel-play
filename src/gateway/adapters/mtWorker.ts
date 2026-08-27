@@ -117,7 +117,7 @@ async function getPipe(model: string): Promise<any> {
   }
   const msg = String((lastErr as Error)?.message || lastErr).slice(0, 120)
   failedModels.set(model, msg)
-  console.warn(`[mt:worker] ${model} DESATIVADO nesta sessão (todos os dtypes falharam) — usando tradutor de fallback.`)
+  console.warn(`[mt:worker] ${model} DESATIVADO nesta sessão (todos os dtypes falharam), usando tradutor de fallback.`)
   throw lastErr instanceof Error ? lastErr : new Error(String(lastErr))
 }
 

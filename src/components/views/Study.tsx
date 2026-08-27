@@ -273,7 +273,7 @@ export default function Study({
 
   // Idempotent migration of state between Leitner and FSRS
   /* O `handleMigrateToFsrs` que existia aqui foi REMOVIDO. Era inalcançável — nenhum caller no
-     arquivo — e, se algum dia fosse ligado, FABRICARIA estado de FSRS a partir das caixas do
+     arquivo, e, se algum dia fosse ligado, FABRICARIA estado de FSRS a partir das caixas do
      Leitner: estabilidade 1,8 / dificuldade 5,5 para a caixa 2, 28,0 / 2,0 para a caixa 5, e
      `fsrsPredictedRetention: 0.90` para todo cartão. Quarenta linhas de números inventados
      esperando um botão. Migração de verdade tem de sair de revisões reais, não de uma tabela
@@ -487,7 +487,7 @@ export default function Study({
     },
   /* As duas `run` entram nas deps: era a AUSÊNCIA delas que fazia o catálogo servir uma closure com
      os cartões de antes da última avaliação. Agora que `activeVocabCards` é memoizado, incluí-las
-     não faz o memo recalcular a cada render — só quando os cartões realmente mudam.
+     não faz o memo recalcular a cada render, só quando os cartões realmente mudam.
 
      `sentences.length`, `hasAudio` e `hasTimestamps` SAÍRAM: eram dependências dos exercícios de
      mídia, que não existem mais neste catálogo (sobraram dois, e nenhum lê essas condições). Deps
@@ -576,7 +576,7 @@ export default function Study({
             </span>
           )}
           {/* A paleta é atalho de quem já domina a ferramenta. Para Kids e Sênior ela seria mais um
-              elemento a decifrar no topo — e a lista abaixo já cabe inteira na tela nesses perfis. */}
+              elemento a decifrar no topo, e a lista abaixo já cabe inteira na tela nesses perfis. */}
           {showsPowerUserAffordances(ageProfile) && (
             <button
               onClick={() => setPaletteOpen(true)}
@@ -638,8 +638,8 @@ export default function Study({
             </div>
             <h3 className="font-display font-extrabold text-base text-ink">Seu deck está vazio</h3>
             <p className="text-[12.5px] text-ink-muted mt-2 max-w-md">
-              Clique numa palavra em qualquer transcrição — ou <b className="text-ink">selecione um trecho e use o
-              botão direito</b> — para mandá-la ao deck. A revisão espaçada aparece aqui assim que houver cartões.
+              Clique numa palavra em qualquer transcrição, ou <b className="text-ink">selecione um trecho e use o
+              botão direito</b>, para mandá-la ao deck. A revisão espaçada aparece aqui assim que houver cartões.
             </p>
             {onChangeView && (
               <button onClick={() => onChangeView('capture')} className="btn-solid mt-5">
@@ -652,7 +652,7 @@ export default function Study({
 
       {/* ══════════════════ EXERCÍCIOS — linhas, não cards ══════════════════
           Antes eram cards duplicados espalhados por 3 abas (Revisão Espaçada aparecia 3×), com os
-          exercícios de mídia ESCONDIDOS conforme o tipo da sessão — quem tinha áudio nunca descobria
+          exercícios de mídia ESCONDIDOS conforme o tipo da sessão, quem tinha áudio nunca descobria
           que Caption Sync existia. Agora: uma lista só, tudo sempre visível, e o que não dá para
           rodar fica DESABILITADO com o motivo real. */}
       <section className="mb-8">
@@ -667,7 +667,7 @@ export default function Study({
       </section>
 
       {/* ══════════════════ MEU VOCABULÁRIO ══════════════════
-          A busca e o filtro EXISTIAM no estado (`searchVocab`, `filterStatus`) mas NUNCA tiveram UI —
+          A busca e o filtro EXISTIAM no estado (`searchVocab`, `filterStatus`) mas NUNCA tiveram UI,
           o código filtrava por um valor que o usuário não tinha como mudar. Agora estão ligados. */}
       <section className="mb-8">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-3">
@@ -720,7 +720,7 @@ export default function Study({
                   <span className="block text-[13px] font-bold text-ink group-hover:text-accent transition-colors truncate">
                     {card.word}
                   </span>
-                  <span className="block text-[11px] text-ink-muted truncate">{card.translation || '—'}</span>
+                  <span className="block text-[11px] text-ink-muted truncate">{card.translation || '-'}</span>
                 </button>
 
                 <button

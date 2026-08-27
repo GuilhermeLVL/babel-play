@@ -39,7 +39,7 @@ export function micErrorMessage(err: unknown): string {
       return 'Nenhum microfone encontrado. Conecte um microfone (ou escolha outro dispositivo de entrada) e tente de novo.';
     case 'NotReadableError':
     case 'TrackStartError':
-      return 'O microfone existe, mas o sistema não conseguiu abri-lo — outro programa pode estar usando-o. Feche-o e tente de novo.';
+      return 'O microfone existe, mas o sistema não conseguiu abri-lo, outro programa pode estar usando-o. Feche-o e tente de novo.';
     case 'OverconstrainedError':
       return 'O microfone escolhido não atende às restrições pedidas. Selecione outro dispositivo de entrada.';
     case 'SecurityError':

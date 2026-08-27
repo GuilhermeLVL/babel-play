@@ -61,7 +61,7 @@ export default function ModalDeMigracao({ aberto, onFechar, onMigrou }: ModalDeM
             )}
             {fase === 'migrando' && (
               <p className="mt-1 text-sm text-ink-muted" role="status" aria-live="polite">
-                Subindo {progresso ? `${Math.min(progresso.feitas + 1, progresso.total)} de ${progresso.total}` : '…'}{progresso?.atual ? ` — ${progresso.atual}` : ''}
+                Subindo {progresso ? `${Math.min(progresso.feitas + 1, progresso.total)} de ${progresso.total}` : '…'}{progresso?.atual ? `, ${progresso.atual}` : ''}
               </p>
             )}
             {fase === 'resultado' && relatorio && (

@@ -226,7 +226,7 @@ export default function Reading({ recording, onChangeView }: ReadingProps = {}) 
     } else {
       const built = await buildVocabWord(origin, gateway.mt);
       resolved = built.resolved;
-      back = built.vocab.translation; // tradução REAL (ou vazio — nunca inventada)
+      back = built.vocab.translation; // tradução REAL (ou vazio, nunca inventada)
     }
 
     // Gravação e aviso de recusa em `lib/adicionarAoDeck` — o mesmo caminho da Análise, que
@@ -766,11 +766,11 @@ export default function Reading({ recording, onChangeView }: ReadingProps = {}) 
       setCurrentSpeakingLang(baseLang(step.lang));
 
       utterance.onend = () => {
-        if (runId !== runIdRef.current) return; // fala cancelada/substituída — não encadeia
+        if (runId !== runIdRef.current) return; // fala cancelada/substituída, não encadeia
         speakStep(stepIndex + 1);
       };
       utterance.onerror = () => {
-        if (runId !== runIdRef.current) return; // `cancel()` também dispara onerror — ignore
+        if (runId !== runIdRef.current) return; // `cancel()` também dispara onerror, ignore
         setIsNarrating(false);
         setIsNarrationPaused(false);
         setActiveNarratingSentenceIndex(null);
@@ -909,7 +909,7 @@ export default function Reading({ recording, onChangeView }: ReadingProps = {}) 
     return (
       <span
         className="ml-2 align-middle inline-flex items-center gap-1 text-[9px] font-mono uppercase tracking-wider px-1.5 py-0.5 rounded border border-dashed border-border-subtle text-ink-faint"
-        title={`Idioma NÃO detectado (sem sinal suficiente) — assumindo o idioma declarado da sessão: ${langLabel(langPair.src)}`}
+        title={`Idioma NÃO detectado (sem sinal suficiente), assumindo o idioma declarado da sessão: ${langLabel(langPair.src)}`}
       >
         {langLabel(langPair.src)}?
       </span>
@@ -989,7 +989,7 @@ export default function Reading({ recording, onChangeView }: ReadingProps = {}) 
   //  controlada só pelo layoutStore/LayoutStudio agora.)
   const [chatInput, setChatInput] = useState('');
   const [messages, setMessages] = useState<{role: 'user' | 'tutor', text: string}[]>([
-    { role: 'tutor', text: 'Olá! Faça uma pergunta sobre o texto — gramática, vocabulário ou uma frase específica.' }
+    { role: 'tutor', text: 'Olá! Faça uma pergunta sobre o texto, gramática, vocabulário ou uma frase específica.' }
   ]);
   const [tutorThinking, setTutorThinking] = useState(false);
 
@@ -1026,10 +1026,10 @@ export default function Reading({ recording, onChangeView }: ReadingProps = {}) 
       if (reply) {
         setMessages(prev => [...prev, { role: 'tutor', text: reply }]);
       } else {
-        setMessages(prev => [...prev, { role: 'tutor', text: 'Tutor de IA indisponível — configure um modelo local (Ollama) ou uma chave em Configurações.' }]);
+        setMessages(prev => [...prev, { role: 'tutor', text: 'Tutor de IA indisponível, configure um modelo local (Ollama) ou uma chave em Configurações.' }]);
       }
     } catch {
-      setMessages(prev => [...prev, { role: 'tutor', text: 'Tutor de IA indisponível — configure um modelo local (Ollama) ou uma chave em Configurações.' }]);
+      setMessages(prev => [...prev, { role: 'tutor', text: 'Tutor de IA indisponível, configure um modelo local (Ollama) ou uma chave em Configurações.' }]);
     } finally {
       setTutorThinking(false);
     }
@@ -1148,7 +1148,7 @@ export default function Reading({ recording, onChangeView }: ReadingProps = {}) 
     <div className={`flex-1 w-full relative flex flex-col md:flex-row ${getCanvasBgClass()} overflow-hidden`}>
       
       {/* Área de leitura. FLUIDA (não mais 65% fixos): antes o painel era travado em 65% da largura
-          e os 35% restantes eram reservados para a `notesSidebar` — que tem `show:false` no
+          e os 35% restantes eram reservados para a `notesSidebar`, que tem `show:false` no
           layoutStore e portanto NUNCA renderizava. Resultado: um bloco morto de espaço em branco à
           direita. Agora a área ocupa tudo o que sobra (flex-1) e o texto é CENTRALIZADO numa coluna
           de leitura confortável, com respiro simétrico dos dois lados. Quando o Analista de
@@ -1239,7 +1239,7 @@ export default function Reading({ recording, onChangeView }: ReadingProps = {}) 
               </div>
 
               {/* REMOVIDO: o botão "Estudos & Notas" (toggle de `showTutor`). Era herança de uma
-                  versão antiga e — pior — já era um NO-OP: o painel `notesSidebar` tem `show:false`
+                  versão antiga e, pior, já era um NO-OP: o painel `notesSidebar` tem `show:false`
                   no layoutStore, então o EditablePanel retornava null mesmo com o toggle ligado. O
                   painel de notas segue no código, controlado apenas pelo LayoutStudio. */}
             </div>
@@ -1251,7 +1251,7 @@ export default function Reading({ recording, onChangeView }: ReadingProps = {}) 
             de velocidade + 3 botões), sempre aberto, empurrando o texto pra baixo. O botão dizia
             "Pausar" mesmo já pausado, não dava pra pular frase, não havia progresso, e mexer na
             voz/velocidade PARAVA a narração (perdia o lugar).
-            AGORA: uma barra tipo audiobook — ⏮ ▶/⏸ ⏭, progresso "Frase X de N", presets de
+            AGORA: uma barra tipo audiobook, ⏮ ▶/⏸ ⏭, progresso "Frase X de N", presets de
             velocidade, e voz/tom escondidos atrás de um "⚙". A frase ativa rola sozinha pra vista, e
             clicar em qualquer frase toca a partir dela. */}
         <div className={`rounded-xl border shadow-sm mb-6 transition-colors ${getThemeClass()}`}>
@@ -1446,7 +1446,7 @@ export default function Reading({ recording, onChangeView }: ReadingProps = {}) 
                   <AlertTriangle className="w-3.5 h-3.5 text-warn shrink-0 mt-0.5" />
                   <span>
                     Seu sistema não tem voz instalada para{' '}
-                    <b className="text-ink">{missingVoiceLangs.map(l => langLabel(l)).join(', ')}</b> — essas
+                    <b className="text-ink">{missingVoiceLangs.map(l => langLabel(l)).join(', ')}</b>, essas
                     frases não serão narradas com o sotaque correto. Instale em{' '}
                     <b className="text-ink">Configurações do Windows → Hora e Idioma → Voz</b>.
                   </span>
@@ -1454,12 +1454,12 @@ export default function Reading({ recording, onChangeView }: ReadingProps = {}) 
               )}
 
               <p className="text-[10px] text-ink-faint">
-                Mudanças de voz, tom, velocidade ou modo são aplicadas na <b className="text-ink-muted">frase atual</b> — a narração continua de onde estava.
+                Mudanças de voz, tom, velocidade ou modo são aplicadas na <b className="text-ink-muted">frase atual</b>, a narração continua de onde estava.
                 {narrationMode === 'auto' && !forcedLang && (
                   <> Detecção de idioma: <b className="text-ink-muted">{nativeDetector ? 'detector on-device do navegador' : 'heurística local'}</b>; frases sem sinal usam o idioma declarado da sessão ({langLabel(langPair.src)}).</>
                 )}
                 {forcedLang && (
-                  <> <b className="text-ink-muted">Idioma forçado</b> — o modo e a detecção estão desligados.</>
+                  <> <b className="text-ink-muted">Idioma forçado</b>, o modo e a detecção estão desligados.</>
                 )}
               </p>
             </div>
@@ -1894,7 +1894,7 @@ export default function Reading({ recording, onChangeView }: ReadingProps = {}) 
       </EditablePanel>
       
       {/* Sidebar de notas. Sem o botão legado, sua visibilidade vem SÓ do layoutStore
-          (`reading.notesSidebar.show`, hoje `false`) — quem quiser a revisão de marcações liga o
+          (`reading.notesSidebar.show`, hoje `false`), quem quiser a revisão de marcações liga o
           painel pelo LayoutStudio. O EditablePanel já retorna null quando `show` é false. */}
         <EditablePanel
           viewKey="reading"
@@ -2191,7 +2191,7 @@ export default function Reading({ recording, onChangeView }: ReadingProps = {}) 
       )}
 
       {/* Prévia de imagem da palavra sob o cursor. A MOLDURA é a mesma da Análise
-          (`PopoverFlutuante`); o conteúdo é só desta tela — aqui é a imagem, e nada mais. */}
+          (`PopoverFlutuante`); o conteúdo é só desta tela, aqui é a imagem, e nada mais. */}
       {hoveredWord && (
         <PopoverFlutuante {...popover.props}>
           {wordPreview && (

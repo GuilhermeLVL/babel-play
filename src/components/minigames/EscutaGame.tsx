@@ -178,7 +178,7 @@ export default function EscutaGame({ rodadas, audioUrl, ageProfile, onFinish, on
             <Turtle className="w-4 h-4" /> devagar
           </button>
         </div>
-        <p className="text-[12px] text-ink-faint">Ouça quantas vezes quiser — isso não tira ponto.</p>
+        <p className="text-[12px] text-ink-faint">Ouça quantas vezes quiser, isso não tira ponto.</p>
 
         {/* AS ALTERNATIVAS */}
         <div data-tour="alternativas" className="w-full flex flex-col gap-2">

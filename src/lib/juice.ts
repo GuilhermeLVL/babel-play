@@ -24,10 +24,10 @@ import { play } from './soundFx';
 
 /** Acontecimentos que merecem retorno. O nome descreve o FATO, não o efeito. */
 export type Comemoracao =
-  | 'acerto'        // acertou um item — o mais frequente, e por isso o mais contido
-  | 'sequencia'     // emendou acertos (combo) — faísca quente
-  | 'rodadaBoa'     // terminou bem — confete no ponto
-  | 'rodadaPerfeita'// terminou sem erro — chuva de confete na tela toda
+  | 'acerto'        // acertou um item, o mais frequente, e por isso o mais contido
+  | 'sequencia'     // emendou acertos (combo), faísca quente
+  | 'rodadaBoa'     // terminou bem, confete no ponto
+  | 'rodadaPerfeita'// terminou sem erro, chuva de confete na tela toda
   | 'subiuNivel'
   | 'erro';
 
@@ -88,7 +88,7 @@ export function comemorar(
    número abstrato num objeto que SAIU do lugar onde a pessoa acabou de agir.
 
    Feito com um barramento (como as rajadas) para que a camada visual seja única e viva no topo
-   da árvore — assim ele nunca é cortado pelo `overflow` do container do jogo, que foi exatamente
+   da árvore, assim ele nunca é cortado pelo `overflow` do container do jogo, que foi exatamente
    o problema que o canvas de partículas teve. */
 
 export interface PontoFlutuante {
@@ -121,7 +121,7 @@ export function pontosDoElemento(texto: string, el: Element | null, tom: PontoFl
 
 /* ─────────────────────────── TREMOR ───────────────────────────
    Um empurrãozinho de 3–6px. É o efeito mais fácil de exagerar: acima disso a tela parece
-   quebrada e dá enjoo. Curto (200ms), sem repetição, e só no elemento do acontecimento —
+   quebrada e dá enjoo. Curto (200ms), sem repetição, e só no elemento do acontecimento,
    nunca na tela inteira. */
 
 export function tremor(el: Element | null, intensidade = 3): void {

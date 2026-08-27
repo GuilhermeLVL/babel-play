@@ -50,7 +50,8 @@ export interface Sobreposicoes {
 /** Identidade do falante: o nome da diarização; sem ele, a via de captura. '' = indeterminável. */
 function quemFalou(f: FalaComTempo): string {
   const nome = (f.speaker ?? '').trim()
-  if (nome && nome !== '—') return nome
+  // Aceita os dois glifos de "sem nome": o hífen atual e o travessão de sessões antigas.
+    if (nome && nome !== '-' && nome !== '—') return nome
   return (f.source ?? '').trim()
 }
 
@@ -79,7 +80,7 @@ export function contarSobreposicoes(falas: ReadonlyArray<FalaComTempo>): Sobrepo
   if (comTempo.length < 2 || falantes.length < 2) return null
 
   /* Ordena por início para o barrido: uma vez que `ini` do candidato passa do `fim` do atual,
-     nenhum candidato seguinte pode sobrepor este — e o laço interno para. */
+     nenhum candidato seguinte pode sobrepor este, e o laço interno para. */
   comTempo.sort((a, b) => a.ini - b.ini || a.fim - b.fim)
 
   let total = 0

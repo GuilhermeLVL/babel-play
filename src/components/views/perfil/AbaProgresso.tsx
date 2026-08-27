@@ -59,7 +59,7 @@ export default function AbaProgresso({ progress, ageProfile }: AbaProgressoProps
       <FaixaDeProgresso progress={progress} ageProfile={ageProfile} />
 
       {/* ── A CURVA ──────────────────────────────────────────────────────────────────────────
-          Reconstruída dos carimbos de tempo que já existem (sessões, revisões, itens de jogo) —
+          Reconstruída dos carimbos de tempo que já existem (sessões, revisões, itens de jogo),
           não há tabela de XP e não precisa haver. A ressalva embaixo é obrigatória: mudar os pesos
           reescreveria este gráfico, e fingir um livro-razão que não existe seria pior que a
           limitação. */}
@@ -123,7 +123,7 @@ export default function AbaProgresso({ progress, ageProfile }: AbaProgressoProps
               )}
 
               <p className="text-[11px] text-ink-faint mt-4 leading-snug max-w-[70ch]">
-                Reconstruído a partir das suas gravações, revisões e rodadas — não há um registro
+                Reconstruído a partir das suas gravações, revisões e rodadas, não há um registro
                 separado de XP. Se a fórmula de pontos mudar, este gráfico muda junto.
               </p>
             </>
@@ -137,7 +137,7 @@ export default function AbaProgresso({ progress, ageProfile }: AbaProgressoProps
       <section>
         <h2 className="font-display font-bold text-lg text-ink mb-1">Onde você está no idioma</h2>
         <p className="text-[12.5px] text-ink-muted mb-4 max-w-[64ch]">
-          Medido pelo que você <b>sustenta</b> — a chance de lembrar agora, e não quantas palavras
+          Medido pelo que você <b>sustenta</b>, a chance de lembrar agora, e não quantas palavras
           você tem guardadas.
         </p>
 
@@ -175,7 +175,7 @@ export default function AbaProgresso({ progress, ageProfile }: AbaProgressoProps
                         className="flex-1"
                       />
                       <span className="text-[12px] font-mono tabular-nums w-12 text-right text-ink">
-                        {f.retencao === null ? '—' : `${Math.round(f.retencao * 100)}%`}
+                        {f.retencao === null ? '-' : `${Math.round(f.retencao * 100)}%`}
                       </span>
                       <span className="text-[11px] text-ink-faint w-32 text-right hidden sm:block">
                         {/* Sem evidência, diz o que falta — não deixa o traço sem explicação. */}
@@ -195,7 +195,7 @@ export default function AbaProgresso({ progress, ageProfile }: AbaProgressoProps
                 {fluencia.semNivel > 0 && (
                   <p className="text-[11px] text-ink-faint">
                     {fluencia.semNivel.toLocaleString('pt-BR')} palavras ficaram de fora porque não
-                    estão na lista de níveis conferidos — elas não foram chutadas para faixa nenhuma.
+                    estão na lista de níveis conferidos, elas não foram chutadas para faixa nenhuma.
                   </p>
                 )}
               </div>

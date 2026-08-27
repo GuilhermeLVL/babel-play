@@ -143,7 +143,7 @@ export function buildGateway({ profile, cloudConsent }: GatewayDeps) {
 
             /* A RESPOSTA VEIO NO IDIOMA QUE PEDIMOS?
                Ninguém perguntava isso, e o resultado chegou à tela de um usuário: um vídeo em
-               espanhol, tradução pedida para português, e o que apareceu foi TCHECO — uma
+               espanhol, tradução pedida para português, e o que apareceu foi TCHECO, uma
                tradução correta do espanhol, no idioma errado. Nenhum erro, nenhum disjuntor,
                texto direto para a interface.
 
@@ -152,7 +152,7 @@ export function buildGateway({ profile, cloudConsent }: GatewayDeps) {
                tradutor que responde no idioma errado é um tradutor com defeito, e o gateway já
                sabe lidar com defeito. */
             /* SÓ DETECTA QUANDO A DETECÇÃO PODE MUDAR O VEREDICTO. `validarTraducao` aprova de
-               saída o que é curto demais ou sem alvo — mas a detecção já tinha sido paga para
+               saída o que é curto demais ou sem alvo, mas a detecção já tinha sido paga para
                chegar até lá. Numa legenda ao vivo a maioria das falas é curta, então era uma
                detecção desperdiçada por tradução, dentro do caminho que o usuário está esperando. */
             // A detecção pode falhar (offline, texto curto); `null` significa "não sei", e a

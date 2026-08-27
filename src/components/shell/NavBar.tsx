@@ -26,7 +26,7 @@ export default function NavBar({ activeView, onChangeView, ageProfile, edge, con
   return (
     <header
       /* `data-shell` marca a MOLDURA. O Modo Desempenho precisa tornar estas superfícies opacas
-         (sem desfoque, a transparência só suja) — e antes ele fazia isso mirando a TAG `header`,
+         (sem desfoque, a transparência só suja), e antes ele fazia isso mirando a TAG `header`,
          que a app inteira usa em blocos de título. Ver a regra em index.css. */
       data-shell="bar"
       className={`h-[60px] w-full items-center gap-3 px-3 md:px-5 bg-surface/90 backdrop-blur-md z-20 shrink-0 select-none ${

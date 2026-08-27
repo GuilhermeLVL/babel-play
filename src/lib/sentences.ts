@@ -65,9 +65,9 @@ export interface PracticeSeed {
  * existia.
  */
 export type ExerciseId =
-  | 'review'            // Revisão espaçada (SRS) — Estudo
-  | 'active_production' // Produção ativa — Estudo
-  | MinigameId;         // os jogos — Jogar
+  | 'review'            // Revisão espaçada (SRS), Estudo
+  | 'active_production' // Produção ativa, Estudo
+  | MinigameId;         // os jogos, Jogar
 
 /**
  * EM QUE TELA aquele exercício mora.

@@ -139,7 +139,7 @@ export default function Onboarding({ onComplete }: { onComplete: () => void }) {
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
     /* `goNext`/`goBack` ficam fora das deps DE PROPÓSITO. Elas são recriadas a cada render, então
-       incluí-las faria este efeito remover e registrar o listener de `keydown` em cada render — e
+       incluí-las faria este efeito remover e registrar o listener de `keydown` em cada render, e
        `step`/`inTour`, que já estão aqui, são o único estado que as duas leem. O listener sempre
        enxerga a versão da render atual porque o efeito é reexecutado quando esse estado muda. */
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -246,12 +246,12 @@ export default function Onboarding({ onComplete }: { onComplete: () => void }) {
           >
             <p className="text-ink text-[15px] leading-relaxed">
               Aprenda idiomas com o conteúdo que você já assiste. O Babel Play captura
-              o <strong className="text-ink">som do seu computador</strong> (vídeos, chamadas, jogos — sem configurar nada,
+              o <strong className="text-ink">som do seu computador</strong> (vídeos, chamadas, jogos, sem configurar nada,
               quando rodando localmente) ou de <strong className="text-ink">uma aba do navegador</strong>, transcreve a fala,
               traduz e transforma tudo em material de estudo.
             </p>
             <p className="text-[13px] text-ink-muted leading-relaxed mt-3">
-              Também dá para <strong className="text-ink">importar</strong>: link do YouTube, artigo da web, PDF/DOCX ou um áudio seu —
+              Também dá para <strong className="text-ink">importar</strong>: link do YouTube, artigo da web, PDF/DOCX ou um áudio seu,
               tudo vira uma sessão com vocabulário, exercícios e leitura narrada. E as legendas ao vivo podem flutuar
               numa <strong className="text-ink">janelinha sempre-no-topo</strong> por cima do jogo ou da chamada.
             </p>
@@ -269,7 +269,7 @@ export default function Onboarding({ onComplete }: { onComplete: () => void }) {
           >
             <p className="text-[13.5px] text-ink-muted leading-relaxed mb-4">
               Isso ajusta a linguagem e quanta coisa aparece de uma vez. <strong className="text-ink">Nenhum
-              recurso é removido</strong> — o que sai da primeira tela fica sempre a um clique. Dá para trocar
+              recurso é removido</strong>, o que sai da primeira tela fica sempre a um clique. Dá para trocar
               quando quiser, em Configurações.
             </p>
             <div className="space-y-2.5">
@@ -320,7 +320,7 @@ export default function Onboarding({ onComplete }: { onComplete: () => void }) {
           >
             <div className="grid sm:grid-cols-2 gap-3 mt-1">
               <LoopStep n={1} icon={<Mic className="w-4 h-4" />} title="Capturar ou importar"
-                desc="Som do computador, aba do navegador, microfone — ou importe YouTube, artigo, documento e áudio." />
+                desc="Som do computador, aba do navegador, microfone, ou importe YouTube, artigo, documento e áudio." />
               <LoopStep n={2} icon={<Languages className="w-4 h-4" />} title="Transcrever & traduzir"
                 desc="A fala vira texto com tradução ao lado, em tempo real; legendas podem flutuar sobre qualquer app." />
               <LoopStep n={3} icon={<ScanText className="w-4 h-4" />} title="Analisar"
@@ -343,16 +343,16 @@ export default function Onboarding({ onComplete }: { onComplete: () => void }) {
           >
             <p className="text-ink text-[15px] leading-relaxed">
               O áudio do <strong className="text-ink">sistema</strong> é transcrito (Whisper) e traduzido (opus-mt)
-              <strong className="text-ink"> localmente, no seu dispositivo</strong> — esse áudio não sai da sua máquina.
+              <strong className="text-ink"> localmente, no seu dispositivo</strong>, esse áudio não sai da sua máquina.
             </p>
             <p className="text-[13px] text-ink-muted leading-relaxed mt-3">
               Sendo honestos com as exceções do modo grátis: o <strong className="text-ink">microfone</strong> usa por padrão o
-              reconhecimento do navegador (que envia a fala ao provedor do navegador — troque para “Whisper local” nos ajustes
+              reconhecimento do navegador (que envia a fala ao provedor do navegador, troque para “Whisper local” nos ajustes
               se preferir 100% offline), e quando a tradução local não cobre o par de idiomas usamos um serviço web como reserva.
             </p>
             <p className="text-[13px] text-ink-muted leading-relaxed mt-3">
               Se você preferir usar a nuvem para ganhar qualidade, fornece sua própria chave de API:
-              ela é <strong className="text-ink">cifrada no servidor</strong> e nunca volta ao navegador — guardamos só uma referência.
+              ela é <strong className="text-ink">cifrada no servidor</strong> e nunca volta ao navegador, guardamos só uma referência.
             </p>
           </TourSlide>
         )}
@@ -445,7 +445,7 @@ export default function Onboarding({ onComplete }: { onComplete: () => void }) {
             <div className="flex items-center gap-2 text-ink font-bold"><HardDrive className="w-4 h-4 text-accent" /> Tudo pronto para rodar local</div>
             <p className="text-[13px] text-ink-muted leading-relaxed">
               O modelo de transcrição é preparado na sua <strong className="text-ink">primeira captura</strong>,
-              com barra de progresso em MB{tamanhoEstimadoMb ? <> — {tamanhoMedido ? '' : 'cerca de '}<strong className="text-ink">{tamanhoEstimadoMb} MB</strong></> : null}.
+              com barra de progresso em MB{tamanhoEstimadoMb ? <>, {tamanhoMedido ? '' : 'cerca de '}<strong className="text-ink">{tamanhoEstimadoMb} MB</strong></> : null}.
               Depois disso ele fica no seu navegador e roda offline.
             </p>
             <p className="text-[11px] text-ink-muted">

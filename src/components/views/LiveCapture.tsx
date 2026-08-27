@@ -531,7 +531,7 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
   const langTouchedRef = useRef(false);
   const applyScenario = (s: CaptureScenario, fromUser = true) => {
     if (fromUser) scenarioTouchedRef.current = true;
-    else if (scenarioTouchedRef.current) return; // reidratação chegou tarde — não desfaz o clique
+    else if (scenarioTouchedRef.current) return; // reidratação chegou tarde, não desfaz o clique
     setCaptureScenario(s);
     setMicEnabled(s !== 'media');
     setSystemEnabled(s !== 'mic');
@@ -573,7 +573,7 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
       if (!hasLabels) return;                       // sem rótulos não dá para concluir nada
       if (filterLoopbackDevices(inputs).detected) return;  // existe dispositivo: a escolha vale
       setSystemSource('server');
-      setFeedbackMsg('Nenhum dispositivo de loopback (Stereo Mix / VB-Cable) foi encontrado — mudei para "Som do computador", que não precisa de configuração.');
+      setFeedbackMsg('Nenhum dispositivo de loopback (Stereo Mix / VB-Cable) foi encontrado, mudei para "Som do computador", que não precisa de configuração.');
       setTimeout(() => setFeedbackMsg(''), 8000);
     })();
   }, [serverCaptureAvailable, systemSource]);
@@ -763,13 +763,13 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
       // dela vence (ver `scenarioTouchedRef`).
       if (ui.captureScenario === 'media' || ui.captureScenario === 'conversation' || ui.captureScenario === 'mic') applyScenario(ui.captureScenario, false);
       /* Esta linha estava DUPLICADA, caractere por caractere. Sem efeito visível — atribuir o mesmo
-         valor duas vezes é idempotente — mas quem lesse depois ficaria procurando a diferença. */
+         valor duas vezes é idempotente, mas quem lesse depois ficaria procurando a diferença. */
       if (ui.sttQuality === 'auto' || ui.sttQuality === 'fast' || ui.sttQuality === 'accurate' || ui.sttQuality === 'cloud') { setSttQuality(ui.sttQuality); setSttQualityMirror(ui.sttQuality); }
       settingsLoadedRef.current = true;
     })();
     /* Deps VAZIAS de propósito: isto carrega os ajustes salvos UMA vez, na montagem. `applyScenario`
        é recriada a cada render; incluí-la faria a carga inicial rodar de novo e sobrescrever, com o
-       valor gravado, o cenário que a pessoa acabou de escolher na tela — exatamente o que o
+       valor gravado, o cenário que a pessoa acabou de escolher na tela, exatamente o que o
        `fromUser = false` acima existe para evitar. */
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -875,7 +875,7 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
     if (source === 'mic' && systemEnabled) return; // o sistema é a fonte do áudio salvo → ele ancora
     sessionStartMsRef.current = startedAtMs;
     shouldAnchorClockRef.current = false;
-    clog('⏱ relógio ancorado ao início do recorder (', source, ') — legenda alinhada ao áudio salvo');
+    clog('⏱ relógio ancorado ao início do recorder (', source, '), legenda alinhada ao áudio salvo');
   };
 
   // Tradução DESACOPLADA, deduplicada e com cache — nunca bloqueia a exibição do texto.
@@ -919,7 +919,7 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
   ) => {
     /* PARCIAL NÃO ENFILEIRA TRADUÇÃO. Cada refinamento do parcial gastava uma chamada de MT
        inteira que era descartada segundos depois pelo refinamento seguinte. Com uma tradução já
-       em voo para este balão, o parcial seguinte simplesmente não é pedido — o decode final
+       em voo para este balão, o parcial seguinte simplesmente não é pedido, o decode final
        sempre traduz, então nenhum balão fica sem legenda por causa disto. */
     if (opts?.descartarSeOcupado && ordemMtRef.current.ocupado(segId)) return;
     const selo = ordemMtRef.current.abrir(segId);
@@ -945,7 +945,7 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
        O idioma OBSERVADO na sessão (já convergido, resistente a detecção isolada errada) tem
        precedência sobre o desta fala: numa conversa em português, um "Thank you." solto não
        deve mudar o destino da tradução do trecho inteiro. Sem observação ainda, cai no idioma
-       desta fala — que é o melhor palpite disponível no começo. */
+       desta fala, que é o melhor palpite disponível no começo. */
     const observado = idiomaObservadoRef.current || baseLang(src);
     const decisao = destinoDaTraducao(observado, mine, studying);
 
@@ -967,20 +967,20 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
         const conf = Math.round(perfilIdiomaRef.current.ler().confianca * 100);
         clog('perfil de idioma convergiu:', observado, `(${conf}% das falas)`, '→ traduzindo para', decisao.destino);
         setFeedbackMsg(
-          `Detectei que o áudio está em ${langLabel(observado)} (${conf}% das falas) — traduzindo para ${langLabel(decisao.destino)}.`,
+          `Detectei que o áudio está em ${langLabel(observado)} (${conf}% das falas), traduzindo para ${langLabel(decisao.destino)}.`,
         );
         setTimeout(() => setFeedbackMsg(''), 7000);
       }
     }
 
     /* ORIGEM VAZIA DESQUALIFICA TRÊS DOS QUATRO TRADUTORES.
-       `chrome-translator`, `mymemory` e `opus-mt-local` recusam `src` nulo no `supports()` —
+       `chrome-translator`, `mymemory` e `opus-mt-local` recusam `src` nulo no `supports()`,
        precisam do par explícito. Sobra o `server-llm-mt`, e quando ele está fora o gateway
        responde `NoRouteError`. Era a causa dos erros intermitentes no log: com detecção
        automática, `src` chegava vazio sempre que a detecção daquela fala falhava.
 
        O perfil da sessão preenche a lacuna: já sabemos, com confiança medida, o que está sendo
-       falado. Usar isso como origem devolve os três tradutores à cascata — e é informação
+       falado. Usar isso como origem devolve os três tradutores à cascata, e é informação
        melhor que o palpite de uma fala isolada, não pior. */
     const origem = src || idiomaObservadoRef.current || '';
     const cacheKey = `${origem}|${tgt}|${text}`;
@@ -1014,7 +1014,7 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
       // que a tradução caiu e o que o usuário está vendo é o texto original.
       if (!mtFailNotifiedRef.current) {
         mtFailNotifiedRef.current = true;
-        setFeedbackMsg('Tradução indisponível agora (motores locais e web falharam) — mostrando o texto original entre parênteses.');
+        setFeedbackMsg('Tradução indisponível agora (motores locais e web falharam), mostrando o texto original entre parênteses.');
         setTimeout(() => setFeedbackMsg(''), 8000);
       }
     };
@@ -1077,7 +1077,7 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
            Sem dica, o Whisper LOCAL (fallback, `whisper-base`) não recebe idioma fixo. O
            comentário no worker já avisava por quê: "idioma FIXO pula a auto-detecção e evita
            traduzir sozinho". Sem ele, o modelo pequeno TRADUZIA para inglês em vez de
-           transcrever — num vídeo em espanhol o log alternava entre `groq-whisper` devolvendo
+           transcrever, num vídeo em espanhol o log alternava entre `groq-whisper` devolvendo
            "le pillamos desprevenido por detrás" e `whisper-local` devolvendo "Let's continue.
            Now we can do it". Texto inglês entrava no detector, o perfil via inglês, e o rótulo
            mentia.
@@ -1085,7 +1085,7 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
            Também é latência de verdade: sem dica, o modelo gasta uma passada só para descobrir
            o idioma, a cada fala. Com o perfil convergido, essa passada some.
 
-           As primeiras falas seguem sem dica (o perfil ainda ouve) — é o único jeito de
+           As primeiras falas seguem sem dica (o perfil ainda ouve), é o único jeito de
            descobrir o idioma sem pedir ao usuário. A partir da convergência, fixa. */
         return { hint: idiomaObservadoRef.current || '', from: '', to: sourceLangRef.current.split('-')[0] };
       }
@@ -1109,7 +1109,7 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
       // (senão cada clique em palavra virava uma fala nova transcrita e traduzida).
       if (isTtsActive()) {
         suppressedSeqsRef.current.add(seq);
-        clog('anti-eco: fala', seq, source, 'iniciada durante TTS — suprimida');
+        clog('anti-eco: fala', seq, source, 'iniciada durante TTS, suprimida');
         return;
       }
       if (!modelReadyRef.current) return; // modelo ainda baixando → não cria balão vazio
@@ -1148,7 +1148,7 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
          balão piscava um texto em inglês antes de o final trazer o espanhol.
 
          Pior, ele cobra por isso: o decode do parcial ocupa o worker, e o final da fala seguinte
-         espera — justo nas primeiras falas, que são as que fazem o perfil convergir. Pular o
+         espera, justo nas primeiras falas, que são as que fazem o perfil convergir. Pular o
          parcial aqui ACELERA a convergência e apaga o flash em inglês; assim que o perfil conclui,
          `hint` deixa de ser vazio e os parciais voltam pelo resto da sessão.
 
@@ -1188,20 +1188,20 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
         // Limite de ~24 trechos (~2 min de fala) para não crescer sem fim se a carga travar.
         if (pendingUtterancesRef.current.length < 24) {
           pendingUtterancesRef.current.push({ pcm: pcm.slice(), sr, rawSeq, source });
-          clog('modelo ainda carregando — trecho', rawSeq, source, 'GUARDADO p/ transcrever depois (', pendingUtterancesRef.current.length, 'na fila)');
+          clog('modelo ainda carregando, trecho', rawSeq, source, 'GUARDADO p/ transcrever depois (', pendingUtterancesRef.current.length, 'na fila)');
           if (pendingUtterancesRef.current.length === 1) {
-            setFeedbackMsg('O modelo ainda está carregando — sua fala está sendo GUARDADA e será transcrita assim que ele ficar pronto.');
+            setFeedbackMsg('O modelo ainda está carregando, sua fala está sendo GUARDADA e será transcrita assim que ele ficar pronto.');
             setTimeout(() => setFeedbackMsg(''), 5000);
           }
         } else {
-          clog('modelo ainda carregando — fila cheia, trecho', rawSeq, source, 'descartado');
+          clog('modelo ainda carregando, fila cheia, trecho', rawSeq, source, 'descartado');
         }
         return;
       }
       const seq = rawSeq + offset;
       const uttId = seqToSegmentRef.current.get(seq) ?? `${idPrefix}-${seq}`;
       capMetrics.speechEnd(seq);
-      clog('enunciado', source, '(seq', seq, ') →', pcm.length, 'amostras @', sr, 'Hz — decode final');
+      clog('enunciado', source, '(seq', seq, ') →', pcm.length, 'amostras @', sr, 'Hz, decode final');
       setSpeechSegments(prev => prev.some(s => s.id === uttId) ? prev : [...prev, {
         id: uttId, speakerId: speakerIdFor(), source, timestamp: formatTime(timerRef.current),
         originalText: '', translatedText: '…', words: [], isPartial: true, tStartMs: nowRel(),
@@ -1224,7 +1224,7 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
           // genérico) e é GUARDADA sob este id; se uma segunda fala confirmar, ela é reetiquetada.
           // É o que impede um trecho ruidoso isolado de virar "Pessoa 5" para sempre.
           if (provisional) {
-            clog('voz nova PROVISÓRIA', clusterId, '(sim', similarity.toFixed(2), ') — aguarda confirmação');
+            clog('voz nova PROVISÓRIA', clusterId, '(sim', similarity.toFixed(2), '), aguarda confirmação');
             const pendentes = provisionalUttsRef.current.get(clusterId) ?? [];
             pendentes.push(uttId);
             provisionalUttsRef.current.set(clusterId, pendentes);
@@ -1260,7 +1260,7 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
             }
             const mortos = new Set(merged.map(m => `voice_${m.from}`));
             setSpeakerProfiles(prev => prev.filter(p => !mortos.has(p.id)));
-            setFeedbackMsg(`Vozes parecidas foram unidas — agora são ${clustererRef.current.count} pessoa(s).`);
+            setFeedbackMsg(`Vozes parecidas foram unidas, agora são ${clustererRef.current.count} pessoa(s).`);
             setTimeout(() => setFeedbackMsg(''), 4000);
           }
         });
@@ -1288,7 +1288,7 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
           lastPartialTextRef.current.delete(seq);
           if (!clean) {
             /* Final vazio: o decode COMPLETO do trecho não achou fala. Antes, se um parcial já tinha
-               mostrado texto, ele era COMMITADO "para evitar flicker" — e era assim que uma frase
+               mostrado texto, ele era COMMITADO "para evitar flicker", e era assim que uma frase
                inventada sobre ruído ficava na tela para sempre. O final é a leitura melhor; se ele
                diz vazio, o parcial era alucinação e sai. */
             capMetrics.final(seq, { decodeMs, queueDepth, text: '', audioMs });
@@ -1302,7 +1302,7 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
              detector on-device do navegador. Agora o texto vai para a tela imediatamente.
 
              E há uma fonte melhor que o detector de texto: o `language` que o motor devolve. O
-             Whisper de nuvem identifica o idioma dentro do decode, a partir do ÁUDIO — não do
+             Whisper de nuvem identifica o idioma dentro do decode, a partir do ÁUDIO, não do
              texto. Fala curta ("Vale, vamos") não dá sinal para palavras-função, e era exatamente
              onde a identificação falhava. Medido pelo áudio, dá. */
           const idiomaDoMotor = baseLang(language || '');
@@ -1332,7 +1332,7 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
             perfilIdiomaRef.current.observar(detectado, suspeita ? 0.5 : 1);
             const leitura = perfilIdiomaRef.current.ler();
             /* O ESTADO DO PERFIL VAI PARA O LOG SEMPRE, não só quando muda o destino da tradução.
-               Antes ele só aparecia no caso "redirecionado" — num vídeo em espanhol com usuário em
+               Antes ele só aparecia no caso "redirecionado", num vídeo em espanhol com usuário em
                português não há redirecionamento, então o perfil trabalhava em silêncio absoluto. */
             if (leitura.idioma !== antes) {
               clog('perfil de idioma:', antes || '(ouvindo)', '→', leitura.idioma,
@@ -1350,7 +1350,7 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
             return;
           }
           /* A detecção só volta a SEGURAR a tradução no caso frio em que ela é a única fonte de
-             origem — nem o motor informou, nem o perfil convergiu. Sem origem, três dos quatro
+             origem, nem o motor informou, nem o perfil convergiu. Sem origem, três dos quatro
              tradutores se recusam a atuar (`supports()` exige o par), e sobra só o LLM do
              servidor: esperar alguns milissegundos ali compra a cascata inteira. Fora desse caso,
              a tradução parte na hora e a observação corre por fora. */
@@ -1394,7 +1394,7 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
     const pending = pendingUtterancesRef.current;
     if (!pending.length) return;
     pendingUtterancesRef.current = [];
-    clog('modelo pronto — transcrevendo', pending.length, 'trecho(s) guardado(s) durante a carga');
+    clog('modelo pronto, transcrevendo', pending.length, 'trecho(s) guardado(s) durante a carga');
     for (const u of pending) {
       (u.source === 'system' ? sysHandlers : micHandlers).onUtterance(u.pcm, u.sr, u.rawSeq);
     }
@@ -1407,7 +1407,7 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
     // A-P3-14: na captura dupla (mic + sistema) esta função era chamada DUAS vezes sem guard —
     // as duas resetavam `modelPrep` e sobrescreviam o `onProgress` do adapter, e a barra zerava
     // no meio. O guard é liberado no fim (sucesso ou erro) para o retry continuar possível.
-    if (prepareEmVooRef.current) { clog('preparação já em andamento — ignorando chamada duplicada'); return; }
+    if (prepareEmVooRef.current) { clog('preparação já em andamento, ignorando chamada duplicada'); return; }
     prepareEmVooRef.current = true;
     try {
       await prepareModelsInterno();
@@ -1475,7 +1475,7 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
         setModelPrep((s) => (s ? { ...s, mt: p >= 1 ? 1 : p, mtBytes: bytes ?? s.mtBytes } : s));
         if (p >= 1) {
           /* O tradutor local (113 MB) fica pronto DEPOIS do Whisper. Tudo que foi falado nesse
-             intervalo já tinha degradado para "(texto original)" e ficava assim para sempre —
+             intervalo já tinha degradado para "(texto original)" e ficava assim para sempre,
              medido no teste do dono (2026-08-26): legenda certa, tradução nenhuma. Retraduz. */
           retraduzirDegradados();
           setTimeout(() => setModelPrep((s) => (s?.done ? null : s)), 1800);
@@ -1518,13 +1518,13 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
         : source === 'loopback'
           ? await (async () => {
               /* Sem dispositivo escolhido E sem nenhum candidato (Stereo Mix / VB-Cable) o getUserMedia
-                 abriria o MICROFONE padrão — e a pessoa acharia que o "loopback" estava ligado enquanto
+                 abriria o MICROFONE padrão, e a pessoa acharia que o "loopback" estava ligado enquanto
                  ouvia o próprio ambiente. Medido no teste do dono (2026-08-26): sem legenda nenhuma.
                  Melhor recusar com o caminho certo do que capturar a fonte errada em silêncio. */
               if (!loopbackDeviceIdRef.current) {
                 const { inputs } = await listDevices();
                 if (!filterLoopbackDevices(inputs).detected) {
-                  throw new Error('Nenhum dispositivo de loopback (Stereo Mix / VB-Cable) existe neste computador — sem ele, esta rota captaria o microfone. Use "Compartilhar aba/tela" (marque "compartilhar áudio") ou instale o VB-Audio Cable.');
+                  throw new Error('Nenhum dispositivo de loopback (Stereo Mix / VB-Cable) existe neste computador, sem ele, esta rota captaria o microfone. Use "Compartilhar aba/tela" (marque "compartilhar áudio") ou instale o VB-Audio Cable.');
                 }
               }
               return startSystemLoopbackCapture(loopbackDeviceIdRef.current || undefined, cb);
@@ -1573,7 +1573,7 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
       micStartedAtRef.current = micCaptureRef.current?.startedAtMs ?? 0;
       anchorSessionClock(micStartedAtRef.current, 'mic'); // ancora só se o mic for a fonte do áudio salvo
       if (!systemEnabled) {
-        setFeedbackMsg('Microfone ativo (Whisper local). Fale — a transcrição aparece e refina em tempo real.');
+        setFeedbackMsg('Microfone ativo (Whisper local). Fale, a transcrição aparece e refina em tempo real.');
         setTimeout(() => setFeedbackMsg(''), 3500);
       }
     } catch (err) {
@@ -1655,11 +1655,11 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
       clog('microfone (Web Speech) ATIVO ✓');
       void startMeter(); // waveform real (a Web Speech não fornece nível)
       if (!systemEnabled) {
-        setFeedbackMsg('Microfone (navegador) ativo — transcrição instantânea. Fale à vontade.');
+        setFeedbackMsg('Microfone (navegador) ativo, transcrição instantânea. Fale à vontade.');
         setTimeout(() => setFeedbackMsg(''), 3000);
       }
     } catch (e) {
-      setFeedbackMsg('Web Speech indisponível: ' + (e as Error).message + ' — troque para o motor Whisper.');
+      setFeedbackMsg('Web Speech indisponível: ' + (e as Error).message + ', troque para o motor Whisper.');
       setTimeout(() => setFeedbackMsg(''), 5000);
       if (!systemEnabled) { setIsRecording(false); isRecordingRef.current = false; }
     }
@@ -1709,7 +1709,7 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
       const runs: Promise<void>[] = [];
       for (let i = 0; i < count; i++) { runs.push(runOne(pcm)); await sleep(120); }
       await Promise.all(runs);
-      clog('__simSystem concluído — window.__capSummary():', capMetrics.summary());
+      clog('__simSystem concluído, window.__capSummary():', capMetrics.summary());
       return capMetrics.summary();
     };
 
@@ -1862,7 +1862,7 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
     // que a pessoa acabou de apertar. Antes, começar a gravar era completamente silencioso.
     play('recordStart');
     burstFromElement(document.activeElement, 'record');
-    clog('▶ START — microfone:', micEnabled, '| sistema:', systemEnabled, resuming ? '| RETOMANDO' : '');
+    clog('▶ START, microfone:', micEnabled, '| sistema:', systemEnabled, resuming ? '| RETOMANDO' : '');
     setIsRecording(true);
     isRecordingRef.current = true;
     sessionStartMsRef.current = resuming ? Date.now() - timer * 1000 : Date.now();
@@ -1890,7 +1890,7 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
       setSpeakerIdStatus('loading');
       void preloadSpeakerId().then((ok) => {
         setSpeakerIdStatus(ok ? 'ready' : 'unavailable');
-        clog(ok ? 'identificação de voz PRONTA ✓ (WeSpeaker q8, WASM)' : 'identificação de voz INDISPONÍVEL — segue com atribuição manual');
+        clog(ok ? 'identificação de voz PRONTA ✓ (WeSpeaker q8, WASM)' : 'identificação de voz INDISPONÍVEL, segue com atribuição manual');
       });
     } else {
       setSpeakerIdStatus('off');
@@ -1917,7 +1917,7 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
     setSpeechSegments([]);
     setTimer(0);
     setCustomSessionTitle('');
-    setFeedbackMsg('Modo retomar encerrado — a próxima captura cria uma sessão nova.');
+    setFeedbackMsg('Modo retomar encerrado, a próxima captura cria uma sessão nova.');
     setTimeout(() => setFeedbackMsg(''), 3000);
   };
 
@@ -1954,7 +1954,7 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
     clog('métricas da sessão:', capMetrics.summary());
 
     if (speechSegments.length === 0) {
-      setFeedbackMsg('Nenhuma fala capturada — nada para salvar.');
+      setFeedbackMsg('Nenhuma fala capturada, nada para salvar.');
       setTimeout(() => setFeedbackMsg(''), 3000);
       return;
     }
@@ -1962,11 +1962,11 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
     // Pré-preenche o modal: retomando → título/capa existentes; senão, título por data.
     if (resumeId) {
       const existing = (recordings ?? []).find(r => r.id === resumeId);
-      setCustomSessionTitle(prev => prev.trim() || existing?.title || `Captura ao vivo — ${new Date().toLocaleString('pt-BR')}`);
+      setCustomSessionTitle(prev => prev.trim() || existing?.title || `Captura ao vivo, ${new Date().toLocaleString('pt-BR')}`);
       setCustomSessionImage(existing?.imageUrl ?? '');
       setImgQuery(existing?.title ?? '');
     } else {
-      setCustomSessionTitle(`Captura ao vivo — ${new Date().toLocaleString('pt-BR')}`);
+      setCustomSessionTitle(`Captura ao vivo, ${new Date().toLocaleString('pt-BR')}`);
       setCustomSessionImage('');
       setImgQuery('');
     }
@@ -1992,7 +1992,7 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
   // (nunca duplica na Biblioteca). Depois sobe o áudio e gera os cards de vocabulário.
   const handleFinalizeSave = async (shouldRedirect: boolean) => {
     const segs = speechSegments;
-    const title = customSessionTitle.trim() || `Captura ao vivo — ${new Date().toLocaleString('pt-BR')}`;
+    const title = customSessionTitle.trim() || `Captura ao vivo, ${new Date().toLocaleString('pt-BR')}`;
     const cover = customSessionImage.trim();
     setShowSaveModal(false);
     setFeedbackMsg('Salvando sessão…');
@@ -2070,7 +2070,7 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
       /* A SESSÃO JÁ ESTÁ SALVA AQUI. Libera a tela ANTES de enriquecer o vocabulário.
          Antes, `onSave()` só rodava depois de traduzir palavra por palavra, e a pessoa ficava
          presa em "Salvando sessão…" sem conseguir iniciar outra captura nem navegar. O que
-         importa — a gravação e as falas — já está no servidor neste ponto; o verso dos cartões
+         importa, a gravação e as falas, já está no servidor neste ponto; o verso dos cartões
          é enriquecimento, e enriquecimento não segura ninguém. */
       onSave(recording, shouldRedirect);
       recordedAudioRef.current = null;
@@ -2099,7 +2099,7 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
 
       /* Os versos que faltam vão em LOTE, com desistência rápida e concorrência limitada
          (`lib/versosDoVocabulario`). O laço serial anterior fazia uma chamada de rede por
-         palavra — e com o tradutor fora do ar, cada uma ainda pagava a tentativa antes de
+         palavra, e com o tradutor fora do ar, cada uma ainda pagava a tentativa antes de
          estourar. Quanto pior o tradutor, mais longa a espera. */
       const semVerso = pendentes.filter((p) => !p.back);
       const traducao = await traduzirVersos(
@@ -2122,7 +2122,7 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
       });
       /* O NÚMERO QUE A TELA MOSTRA É O QUE O SERVIDOR GRAVOU, não o que tentamos gravar.
          `cards` é a lista TENTADA; desde que a régua de qualidade entrou, boa parte dela é
-         recusada (repetida, sem tradução, ruído). A tela continuava anunciando o total tentado —
+         recusada (repetida, sem tradução, ruído). A tela continuava anunciando o total tentado,
          dizia "30 cards" quando entraram 12. Inflar em silêncio foi como o baralho chegou a 1.506
          cartões com 194 repetições; anunciar o que não entrou é a mesma mentira com outro nome. */
       const entrada = cards.length ? await bulkAddCards(cards) : { cards: [], skipped: [] };
@@ -2194,7 +2194,7 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
     })();
     return () => { cancelled = true; };
     /* Sem supressão aqui: as dependências deste efeito estão completas, e a diretiva
-       `eslint-disable-next-line` que existia neste ponto era MORTA — o próprio lint a reportava
+       `eslint-disable-next-line` que existia neste ponto era MORTA, o próprio lint a reportava
        como inútil. Supressão que não suprime nada é pior que nenhuma: quem lê presume que há uma
        regra sendo dobrada e vai procurar o motivo. */
   }, [resumingRecordingId]);
@@ -2487,7 +2487,7 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
           animation: scanLine 3s infinite ease-in-out;
         }
         /* .custom-scrollbar mudou para src/index.css (global, com os tokens do tema):
-           aqui as cores eram fixas em rgba(0,0,0,…) — invisíveis no escuro — e a regra
+           aqui as cores eram fixas em rgba(0,0,0,…), invisíveis no escuro, e a regra
            só existia enquanto ESTA tela estava montada. */
       `}</style>
 
@@ -2500,7 +2500,7 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
 
       {/* --- HEADER: identidade da tela à esquerda; utilidades à direita.
           O botão do Relay saiu daqui (canto morto) e foi para o hero, junto das ações
-          de gravação — onde o usuário realmente trabalha. --- */}
+          de gravação, onde o usuário realmente trabalha. --- */}
       {/* Barra de ferramentas em UMA linha. A descrição da tela saiu daqui e desceu para o topo
           da coluna de trabalho (rolável): ela orienta na chegada e depois libera a altura, em vez
           de custar ~30px fixos em toda sessão de gravação. */}
@@ -2541,7 +2541,7 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
           </button>
           <span
             className="hidden md:inline-flex items-center gap-2 bg-canvas text-rare-ink border border-rare/20 text-[11px] px-3 py-1.5 rounded-lg font-bold"
-            title={`Detalhe técnico — sistema: Whisper local · microfone: ${micEngine === 'browser' ? 'Web Speech (rede)' : 'Whisper local'} · perfil de IA: ${activeProfileName}`}
+            title={`Detalhe técnico, sistema: Whisper local · microfone: ${micEngine === 'browser' ? 'Web Speech (rede)' : 'Whisper local'} · perfil de IA: ${activeProfileName}`}
           >
             <Cpu className="w-3.5 h-3.5 animate-pulse text-accent" />
             {ageProfile === 'kids'
@@ -2562,7 +2562,7 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
             <RefreshCw className="w-3.5 h-3.5" />
             Retomando: {customSessionTitle || (recordings ?? []).find(r => r.id === resumeId)?.title || 'sessão'}
             <span className="text-[10px] font-mono font-semibold text-ink-muted">
-              continua o transcript e a duração — salvar não cria uma nova sessão
+              continua o transcript e a duração, salvar não cria uma nova sessão
             </span>
           </span>
           <button
@@ -2614,7 +2614,7 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
             </div>
 
             {/* ─────────── FONTES DE CAPTURA (avançado) ───────────
-                Estes controles ficavam TODOS empilhados na tela de captura, antes do botão Iniciar —
+                Estes controles ficavam TODOS empilhados na tela de captura, antes do botão Iniciar,
                 era o maior gargalo de onboarding. Agora moram aqui: quem quer só gravar não os vê;
                 quem precisa ajustar (Discord/jogos, Stereo Mix, motor do mic) abre esta gaveta. */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 mb-5">
@@ -2622,7 +2622,7 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
               {/* ÁUDIO DO SISTEMA — como capturar (a decisão que realmente importa) */}
               <div className="space-y-2 bg-canvas border border-border-subtle rounded-xl p-3.5">
                 <label className="text-[10px] text-ink-muted font-bold uppercase tracking-wider flex items-center gap-1">
-                  <Monitor className="w-3 h-3 text-accent" /> Áudio do Sistema — como capturar
+                  <Monitor className="w-3 h-3 text-accent" /> Áudio do Sistema, como capturar
                 </label>
 
                 {/* A ROTA de captura é a decisão mais técnica desta tela. Em Kids/Sênior ela abre
@@ -2644,7 +2644,7 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
                   {serverCaptureAvailable && (
                     <button
                       onClick={() => setSystemSource('server')}
-                      title="O servidor local captura o mix do Windows (WASAPI loopback) e envia ao app. ZERO setup e ZERO permissão de navegador — capta o sistema INTEIRO (Discord/jogos/qualquer app)."
+                      title="O servidor local captura o mix do Windows (WASAPI loopback) e envia ao app. ZERO setup e ZERO permissão de navegador, capta o sistema INTEIRO (Discord/jogos/qualquer app)."
                       className={`px-2.5 py-1 rounded-md font-bold transition-all cursor-pointer ${systemSource === 'server' ? 'bg-accent text-white shadow-btn' : 'text-ink-muted hover:text-ink'}`}
                     >
                       Computador (servidor) ★
@@ -2659,7 +2659,7 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
                   </button>
                   <button
                     onClick={() => setSystemSource('loopback')}
-                    title="Captura um dispositivo de loopback (Stereo Mix / VB-Cable) como microfone. À prova de falhas — capta o sistema INTEIRO (Discord/jogos). Requer setup único."
+                    title="Captura um dispositivo de loopback (Stereo Mix / VB-Cable) como microfone. À prova de falhas, capta o sistema INTEIRO (Discord/jogos). Requer setup único."
                     className={`px-2.5 py-1 rounded-md font-bold transition-all cursor-pointer ${systemSource === 'loopback' ? 'bg-accent text-white shadow-btn' : 'text-ink-muted hover:text-ink'}`}
                   >
                     Dispositivo de loopback
@@ -2683,21 +2683,21 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
                 <div className="text-[10px] text-ink-muted space-y-1.5 pt-1">
                   {systemSource === 'server' ? (
                     <>
-                      <p>O <b className="text-ink">servidor local</b> captura tudo que o computador toca (WASAPI loopback) e envia ao app — <b className="text-ink">sem popup de compartilhamento e sem configurar dispositivo</b>. Capta o sistema inteiro: Discord, jogos, players, chamadas.</p>
-                      <p className="text-ink-faint">Esta rota escuta a <b>saída padrão</b> do Windows. Para capturar uma saída específica, defina-a como padrão no Windows (Som → Saída) — ou use <b>Compartilhar aba</b> (só uma aba) / <b>Dispositivo de loopback</b> (escolhe o dispositivo abaixo).</p>
+                      <p>O <b className="text-ink">servidor local</b> captura tudo que o computador toca (WASAPI loopback) e envia ao app, <b className="text-ink">sem popup de compartilhamento e sem configurar dispositivo</b>. Capta o sistema inteiro: Discord, jogos, players, chamadas.</p>
+                      <p className="text-ink-faint">Esta rota escuta a <b>saída padrão</b> do Windows. Para capturar uma saída específica, defina-a como padrão no Windows (Som → Saída), ou use <b>Compartilhar aba</b> (só uma aba) / <b>Dispositivo de loopback</b> (escolhe o dispositivo abaixo).</p>
                       <p className="text-ink-faint">Disponível porque o app está rodando com o servidor local no Windows. O áudio não sai da sua máquina.</p>
                     </>
                   ) : systemSource === 'display' ? (
                     <>
-                      <p><b className="text-ink">Aba</b> (YouTube, chamada web): escolha a <b className="text-ink">aba</b> e marque <b className="text-ink">"áudio da aba"</b> — caminho confiável.</p>
-                      <p><b className="text-ink">Tela inteira</b> (Discord/jogo): marque <b className="text-ink">"Compartilhar o áudio do sistema"</b>. No Windows isso às vezes falha (NotReadableError) — nesse caso use <b className="text-ink">Dispositivo de loopback</b>.</p>
-                      <p className="text-ink-faint">"Janela" não tem áudio no Chrome. O áudio do sistema vem INTEIRO (mixado) — não dá para isolar um app.</p>
+                      <p><b className="text-ink">Aba</b> (YouTube, chamada web): escolha a <b className="text-ink">aba</b> e marque <b className="text-ink">"áudio da aba"</b>, caminho confiável.</p>
+                      <p><b className="text-ink">Tela inteira</b> (Discord/jogo): marque <b className="text-ink">"Compartilhar o áudio do sistema"</b>. No Windows isso às vezes falha (NotReadableError), nesse caso use <b className="text-ink">Dispositivo de loopback</b>.</p>
+                      <p className="text-ink-faint">"Janela" não tem áudio no Chrome. O áudio do sistema vem INTEIRO (mixado), não dá para isolar um app.</p>
                     </>
                   ) : (
                     <>
-                      <p>Capta o <b className="text-ink">sistema inteiro</b> (Discord, jogos, qualquer app) como se fosse um microfone — sem o erro de compartilhamento de tela.</p>
+                      <p>Capta o <b className="text-ink">sistema inteiro</b> (Discord, jogos, qualquer app) como se fosse um microfone, sem o erro de compartilhamento de tela.</p>
                       {!loopbackDetected && (
-                        <p className="text-warn-ink font-bold">Nenhum dispositivo de loopback detectado — siga um dos dois caminhos abaixo.</p>
+                        <p className="text-warn-ink font-bold">Nenhum dispositivo de loopback detectado, siga um dos dois caminhos abaixo.</p>
                       )}
 
                       {/* GAVETA: o passo-a-passo só ocupa a tela de quem precisa dele. Abre sozinha
@@ -2714,8 +2714,8 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
 
                       {showSetupGuide && (
                         <div className="space-y-1.5 pt-1 pl-4 border-l-2 border-border-subtle">
-                          <p><b className="text-ink">A — Stereo Mix:</b> Som → aba <b className="text-ink">Gravação</b> → botão direito → <b className="text-ink">"Mostrar dispositivos desabilitados"</b> → ative <b className="text-ink">"Mixagem estéreo"</b> e selecione-a acima.</p>
-                          <p><b className="text-ink">B — VB-Audio Cable:</b> instale de <a href="https://vb-audio.com/Cable/" target="_blank" rel="noreferrer" className="text-accent underline">vb-audio.com/Cable</a>, defina <b className="text-ink">"CABLE Input"</b> como saída do Windows (ative "Escutar este dispositivo" p/ continuar ouvindo) e selecione <b className="text-ink">"CABLE Output"</b> acima.</p>
+                          <p><b className="text-ink">A, Stereo Mix:</b> Som → aba <b className="text-ink">Gravação</b> → botão direito → <b className="text-ink">"Mostrar dispositivos desabilitados"</b> → ative <b className="text-ink">"Mixagem estéreo"</b> e selecione-a acima.</p>
+                          <p><b className="text-ink">B, VB-Audio Cable:</b> instale de <a href="https://vb-audio.com/Cable/" target="_blank" rel="noreferrer" className="text-accent underline">vb-audio.com/Cable</a>, defina <b className="text-ink">"CABLE Input"</b> como saída do Windows (ative "Escutar este dispositivo" p/ continuar ouvindo) e selecione <b className="text-ink">"CABLE Output"</b> acima.</p>
                           {!loopbackDetected && (
                             <p className="text-warn-ink">Se já ativou, conceda a permissão de microfone e recarregue a página.</p>
                           )}
@@ -2738,7 +2738,7 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
                   {probe && (
                     <div className={`mt-2 rounded-md p-2 border text-[10px] ${probe.verdict === 'ok' ? 'border-good/40 bg-good-soft/30 text-good-ink' : 'border-warn/40 bg-warn-soft/30 text-warn-ink'}`}>
                       <p className="font-bold">
-                        {probe.verdict === 'ok' && '✓ Áudio do sistema OK — sinal detectado!'}
+                        {probe.verdict === 'ok' && '✓ Áudio do sistema OK, sinal detectado!'}
                         {probe.verdict === 'silent' && '⚠ Faixa de áudio existe, mas está SILENCIOSA (nível ~0)'}
                         {probe.verdict === 'no-audio-track' && '✗ Nenhuma faixa de áudio foi compartilhada'}
                       </p>
@@ -2767,21 +2767,21 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
               {/* MICROFONE — motor + dispositivo */}
               <div className="space-y-2 bg-canvas border border-border-subtle rounded-xl p-3.5">
                 <label className="text-[10px] text-ink-muted font-bold uppercase tracking-wider flex items-center gap-1">
-                  <Mic className="w-3 h-3 text-accent" /> Microfone — motor e dispositivo
+                  <Mic className="w-3 h-3 text-accent" /> Microfone, motor e dispositivo
                 </label>
 
                 <div className="flex items-center gap-1 bg-surface border border-border-subtle rounded-lg p-0.5 text-[10px] w-fit">
                   <button
                     onClick={() => setMicEngine('browser')}
                     disabled={!webSpeechSupported}
-                    title="Web Speech API do navegador — leve, instantânea, ótima p/ português. Usa o mic padrão do Windows e requer internet."
+                    title="Web Speech API do navegador, leve, instantânea, ótima p/ português. Usa o mic padrão do Windows e requer internet."
                     className={`px-2.5 py-1 rounded-md font-bold transition-all disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer ${micEngine === 'browser' ? 'bg-accent text-white shadow-btn' : 'text-ink-muted hover:text-ink'}`}
                   >
                     Navegador (rápido)
                   </button>
                   <button
                     onClick={() => setMicEngine('whisper')}
-                    title="Whisper local — offline e permite escolher o dispositivo de entrada, porém mais pesado."
+                    title="Whisper local, offline e permite escolher o dispositivo de entrada, porém mais pesado."
                     className={`px-2.5 py-1 rounded-md font-bold transition-all cursor-pointer ${micEngine === 'whisper' ? 'bg-accent text-white shadow-btn' : 'text-ink-muted hover:text-ink'}`}
                   >
                     Whisper (offline)
@@ -2820,7 +2820,7 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
                           const { inputs, outputs, hasLabels } = await listDevices();
                           setAudioInputs(inputs); setAudioOutputs(outputs); setDeviceLabelsReady(hasLabels);
                         } catch {
-                          setFeedbackMsg('Permissão do microfone negada — os nomes dos dispositivos ficam ocultos.');
+                          setFeedbackMsg('Permissão do microfone negada, os nomes dos dispositivos ficam ocultos.');
                           setTimeout(() => setFeedbackMsg(''), 4000);
                         }
                       }}
@@ -2831,7 +2831,7 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
                   </div>
                 )}
                 {micEngine === 'browser' && (
-                  <p className="text-[9px] text-ink-faint leading-tight">Para ESCOLHER o dispositivo do microfone, troque o motor para Whisper (acima) — a Web Speech usa sempre o padrão do Windows.</p>
+                  <p className="text-[9px] text-ink-faint leading-tight">Para ESCOLHER o dispositivo do microfone, troque o motor para Whisper (acima), a Web Speech usa sempre o padrão do Windows.</p>
                 )}
               </div>
             </div>
@@ -2862,7 +2862,7 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
 
               {/* Motor de IA: leitura do PERFIL ATIVO, que é o que realmente alimenta o
                   gateway. Antes havia aqui três <select> (voz/visão/chat) cujo estado não
-                  chegava a lugar nenhum — a escolha real de adapter vem do perfil. */}
+                  chegava a lugar nenhum, a escolha real de adapter vem do perfil. */}
               <div className="space-y-1.5">
                 <label className="text-[10px] text-ink-muted font-bold uppercase tracking-wider flex items-center gap-1">Motor de IA ativo</label>
                 <div className="bg-canvas border border-border-subtle rounded-md p-2 flex items-center justify-between gap-2">
@@ -2895,10 +2895,10 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
                   }}
                   className="w-full bg-surface border border-border-subtle rounded-lg p-2 text-xs font-semibold text-ink cursor-pointer focus:border-accent outline-none"
                 >
-                  <option value="auto">Automática (recomendado) — escolhe o melhor motor pelo idioma</option>
-                  <option value="fast">Rápida — modelo leve local (menos precisa fora do inglês)</option>
-                  <option value="accurate">Precisa — melhor modelo local (download maior, mais pesada)</option>
-                  <option value="cloud">Nuvem — máxima qualidade via servidor (requer chave; usa rede)</option>
+                  <option value="auto">Automática (recomendado), escolhe o melhor motor pelo idioma</option>
+                  <option value="fast">Rápida, modelo leve local (menos precisa fora do inglês)</option>
+                  <option value="accurate">Precisa, melhor modelo local (download maior, mais pesada)</option>
+                  <option value="cloud">Nuvem, máxima qualidade via servidor (requer chave; usa rede)</option>
                 </select>
                 <p className="text-[9px] text-ink-faint leading-tight">
                   Automática: inglês usa o modelo leve local; outros idiomas usam a nuvem quando configurada (melhor qualidade) ou o melhor modelo local do seu dispositivo. O selo no topo mostra o motor em uso. O perfil Privado/Local nunca usa nuvem.
@@ -2917,7 +2917,7 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
                 />
                 <span className="text-[11px] leading-relaxed">
                   <b className="text-ink">Modo desempenho (jogos)</b>
-                  <span className="text-ink-muted"> — a legenda aparece só no fim de cada frase, sem o refino em tempo real. Reduz muito o uso de GPU/CPU enquanto você joga ou roda apps pesados.</span>
+                  <span className="text-ink-muted">, a legenda aparece só no fim de cada frase, sem o refino em tempo real. Reduz muito o uso de GPU/CPU enquanto você joga ou roda apps pesados.</span>
                 </span>
               </label>
             </div>
@@ -2977,7 +2977,7 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
 
                 {/* ══════════════ HERO RECORDER — o centro de comando da captura ══════════════
                     ANTES: os controles ficavam espalhados no RODAPÉ do card de transcrição (abaixo da
-                    dobra) — toggles, sub-toggles, guia de setup, botão "Testar" e só então o CTA. Era o
+                    dobra), toggles, sub-toggles, guia de setup, botão "Testar" e só então o CTA. Era o
                     maior gargalo de onboarding.
                     AGORA: fontes + CTA + timer + idiomas num card só, no TOPO. Tudo que é avançado
                     (fonte do sistema, device de loopback, motor do mic, teste de captura, guia do
@@ -3034,7 +3034,7 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
 
                       {/* O botão "Visual" saiu daqui: eram três botões disputando a mesma linha, e
                           o ajuste de fontes/tamanhos da transcrição pertence ao mesmo lugar que os
-                          outros ajustes. Virou uma seção do modal de configurações — mesmo
+                          outros ajustes. Virou uma seção do modal de configurações, mesmo
                           componente (`TranscriptVisualSettings`), nenhum recurso perdido. */}
                     </div>
                   </div>
@@ -3050,20 +3050,20 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
                             id: 'media' as const,
                             icon: <MonitorPlay className="w-4 h-4" />,
                             titulo: ageProfile === 'kids' ? 'Som do Jogo / Vídeo' : ageProfile === 'senior' ? 'Som do Computador' : 'Assistir mídia',
-                            sub: ageProfile === 'kids' ? 'Roblox, YouTube, Twitch — som do computador' : ageProfile === 'senior' ? 'Vídeos da internet, aulas ou músicas' : 'Vídeo, aula, podcast, jogo — o som do computador'
+                            sub: ageProfile === 'kids' ? 'Roblox, YouTube, Twitch, som do computador' : ageProfile === 'senior' ? 'Vídeos da internet, aulas ou músicas' : 'Vídeo, aula, podcast, jogo, o som do computador'
                           },
                           {
                             id: 'conversation' as const,
                             icon: <MessagesSquare className="w-4 h-4" />,
                             titulo: ageProfile === 'kids' ? 'Jogo + Amigos' : ageProfile === 'senior' ? 'Chamada de Vídeo' : 'Conversa / chamada',
-                            sub: ageProfile === 'kids' ? 'Discord, Call ou partida multiplayer' : ageProfile === 'senior' ? 'Conversas no WhatsApp, Zoom ou família' : 'Reunião, call, Discord — você e os outros'
+                            sub: ageProfile === 'kids' ? 'Discord, Call ou partida multiplayer' : ageProfile === 'senior' ? 'Conversas no WhatsApp, Zoom ou família' : 'Reunião, call, Discord, você e os outros'
                           },
                           // Edição leve: "Minha voz" (só microfone) não faz sentido para quem veio ouvir vídeo/jogo.
                           ...(EDICAO_LEVE ? [] : [{
                             id: 'mic' as const,
                             icon: <Mic className="w-4 h-4" />,
                             titulo: ageProfile === 'kids' ? 'Minha Voz' : ageProfile === 'senior' ? 'Gravar Minha Voz' : 'Minha voz',
-                            sub: ageProfile === 'kids' ? 'Falar no microfone e testar pronúncia' : ageProfile === 'senior' ? 'Falar para o microfone com tradução direta' : 'Praticar fala, ditar — só o microfone'
+                            sub: ageProfile === 'kids' ? 'Falar no microfone e testar pronúncia' : ageProfile === 'senior' ? 'Falar para o microfone com tradução direta' : 'Praticar fala, ditar, só o microfone'
                           }]),
                         ]).map((c) => (
                           <button
@@ -3211,7 +3211,7 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
                             o sistema já sabia a resposta há 40 falas. */}
                         {captureScenario === 'media' && (autoDetectLang
                           ? (idiomaObservado
-                            ? <>Detectei <b>{langLabel(idiomaObservado)}</b> no conteúdo ({Math.round(perfilIdiomaRef.current.ler().confianca * 100)}% das falas) — legenda em <b>{langLabel(destinoDaTraducao(idiomaObservado, baseLang(sourceLang), baseLang(targetLang)).destino || sourceLang)}</b>.</>
+                            ? <>Detectei <b>{langLabel(idiomaObservado)}</b> no conteúdo ({Math.round(perfilIdiomaRef.current.ler().confianca * 100)}% das falas), legenda em <b>{langLabel(destinoDaTraducao(idiomaObservado, baseLang(sourceLang), baseLang(targetLang)).destino || sourceLang)}</b>.</>
                             : <>O idioma do conteúdo é detectado sozinho (pode até misturar) e tudo vira legenda em <b>{langLabel(sourceLang)}</b>.</>)
                           : <>Cada fala vira legenda bilíngue em <b>{langLabel(sourceLang)}</b>.</>)}
                         {captureScenario === 'conversation' && (
@@ -3227,11 +3227,11 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
                       {/* Limite honesto: a Web Speech (motor padrão do mic) não detecta idioma. */}
                       {autoDetectMyLang && captureScenario !== 'media' && micEngine === 'browser' && (
                         <p className="text-[9px] text-warn-ink md:text-right leading-tight">
-                          ⚠ No microfone, a detecção automática exige o motor Whisper (ajustes avançados) — no motor navegador vale o idioma escolhido.
+                          ⚠ No microfone, a detecção automática exige o motor Whisper (ajustes avançados), no motor navegador vale o idioma escolhido.
                         </p>
                       )}
                       {/* Cobertura REAL do par (única tela do app que avisa sobre isso). 'online' =
-                          funciona, mas depende de rede; 'unknown' = não há motor nenhum para o par —
+                          funciona, mas depende de rede; 'unknown' = não há motor nenhum para o par,
                           um aviso bem diferente, porque nem com internet vai traduzir. */}
                       {!autoDetectLang && (() => {
                         const coverage = mtCoverage(sourceLang, targetLang);
@@ -3245,7 +3245,7 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
                         if (coverage === 'unknown') {
                           return (
                             <p className="text-[9px] text-warn-ink md:text-right leading-tight">
-                              ⚠ Não há tradutor para {langLabel(sourceLang)}↔{langLabel(targetLang)} — as falas serão transcritas, mas ficarão sem tradução.
+                              ⚠ Não há tradutor para {langLabel(sourceLang)}↔{langLabel(targetLang)}, as falas serão transcritas, mas ficarão sem tradução.
                             </p>
                           );
                         }
@@ -3257,9 +3257,9 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
                   {/* Microcopy contextual do cenário — orienta o próximo passo em uma linha. */}
                   {!isRecording && (
                     <p className="text-[10px] text-ink-faint leading-tight">
-                      {captureScenario === 'media' && 'Dê o play no vídeo/áudio em qualquer app e clique em Iniciar — a legenda bilíngue aparece aqui e nas Legendas flutuantes.'}
+                      {captureScenario === 'media' && 'Dê o play no vídeo/áudio em qualquer app e clique em Iniciar, a legenda bilíngue aparece aqui e nas Legendas flutuantes.'}
                       {captureScenario === 'conversation' && 'Captura você (microfone) e os outros (som do computador) ao mesmo tempo. Cada voz é identificada e ganha cor própria; cada lado é traduzido na direção certa.'}
-                      {captureScenario === 'mic' && 'Fale ao microfone — sua fala vira texto e tradução na hora. Bom para praticar antes de uma reunião.'}
+                      {captureScenario === 'mic' && 'Fale ao microfone, sua fala vira texto e tradução na hora. Bom para praticar antes de uma reunião.'}
                     </p>
                   )}
 
@@ -3304,7 +3304,7 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
                 )}
                 <div ref={transcriptScrollRef} onScroll={handleTranscriptScroll} className="flex-1 min-h-0 overflow-y-auto custom-scrollbar pr-2">
                   {/* Primeiro contato: o download do modelo (dezenas de MB) acontecia atrás do painel de
-                      ajustes — a tela dizia "Ouvindo…" por minutos sem explicar nada. Aqui, onde a pessoa olha. */}
+                      ajustes, a tela dizia "Ouvindo…" por minutos sem explicar nada. Aqui, onde a pessoa olha. */}
                   {isRecording && modelPrep && !(modelPrep.done && (modelPrep.mt == null || modelPrep.mt >= 1)) && (
                     <div className="mb-3"><ModelPrepPanel state={modelPrep} onRetry={prepareModels} /></div>
                   )}
@@ -3372,7 +3372,7 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
           {/* FALANTES — identificação AUTOMÁTICA de voz (WeSpeaker local, beta) + correção
               manual. Cada voz nova do som do computador vira "Pessoa N" com cor própria; o
               usuário renomeia com um clique. Só no cenário CONVERSA (nos outros há um falante
-              por lado — era ruído). */}
+              por lado, era ruído). */}
           {captureScenario === 'conversation' && (
           <EditablePanel
             viewKey="capture"
@@ -3403,7 +3403,7 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
                     {!speakerAutoId && 'Atribuição manual: clique num nome antes de falar para etiquetar as próximas falas.'}
                     {speakerAutoId && speakerIdStatus === 'loading' && 'Carregando o identificador de vozes (6,7MB, uma vez)… as falas são etiquetadas assim que ele ficar pronto.'}
                     {speakerAutoId && speakerIdStatus === 'ready' && 'Cada voz do som do computador vira uma pessoa com cor própria (beta). Clique no lápis para dar nome; vozes parecidas podem se fundir.'}
-                    {speakerAutoId && speakerIdStatus === 'unavailable' && 'O identificador de vozes não carregou (sem internet no 1º uso?) — atribuição manual nesta sessão.'}
+                    {speakerAutoId && speakerIdStatus === 'unavailable' && 'O identificador de vozes não carregou (sem internet no 1º uso?), atribuição manual nesta sessão.'}
                     {speakerAutoId && speakerIdStatus === 'off' && 'Ao iniciar a captura, cada voz do som do computador vira uma pessoa com cor própria (beta). O % é o tempo de fala real.'}
                   </p>
                 </div>
@@ -3492,7 +3492,7 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
         {/* COLUNA DIREITA: ANALISTA DE VOCABULÁRIO        */}
         {/* ============================================== */}
         {/* Painel COMPARTILHADO (o mesmo de Análise/Leitura/Estudo/Métricas). Fica OCULTO até o
-            usuário clicar numa palavra do transcript — sem palavra, o componente nem monta. */}
+            usuário clicar numa palavra do transcript, sem palavra, o componente nem monta. */}
         <VocabularyPanel
           viewKey="capture"
           word={selectedExamWord}
@@ -3583,7 +3583,7 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
             )}
             <div ref={focusScrollRef} onScroll={handleFocusScroll} className="flex-1 min-h-0 overflow-y-auto custom-scrollbar pr-4">
               {/* Primeiro contato: o download do modelo (dezenas de MB) acontecia atrás do painel de
-                  ajustes — a tela dizia "Ouvindo…" por minutos sem explicar nada. Aqui, onde a pessoa olha. */}
+                  ajustes, a tela dizia "Ouvindo…" por minutos sem explicar nada. Aqui, onde a pessoa olha. */}
               {isRecording && modelPrep && !(modelPrep.done && (modelPrep.mt == null || modelPrep.mt >= 1)) && (
                 <div className="mb-3"><ModelPrepPanel state={modelPrep} onRetry={prepareModels} /></div>
               )}
@@ -3692,7 +3692,7 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
                 <h3 className="font-display font-extrabold text-[17px] text-ink">Opções de Encerramento da Sessão</h3>
                 <p className="text-xs text-ink-muted mt-1">
                   {resumeId
-                    ? 'Sessão retomada — ao salvar, ela é atualizada no mesmo item da biblioteca.'
+                    ? 'Sessão retomada, ao salvar, ela é atualizada no mesmo item da biblioteca.'
                     : 'Sua gravação foi interrompida. Configure os metadados antes de salvar na biblioteca.'}
                 </p>
               </div>

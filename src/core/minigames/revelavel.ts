@@ -245,12 +245,12 @@ export function previaSegura(jogo: MinigameId, crus: ItemCru[]): ItemDaAntessala
        `forma` VAI JUNTO, mesmo virando o título. Ela ficava de fora aqui, e o efeito passou
        despercebido por ser a dois passos de distância: a antessala decide entre lista e resumo
        comparando `titulo !== forma`, e com `forma` ausente a comparação dava SEMPRE verdadeiro.
-       Resultado — o card "este jogo esconde o conteúdo até você jogar", escrito justamente para os
+       Resultado, o card "este jogo esconde o conteúdo até você jogar", escrito justamente para os
        três jogos que não podem revelar nada, era código morto: a Memória imprimia oito linhas
        "N letras · VENCIDA" que ninguém consegue usar para decidir jogar ou trocar.
 
        `tamanho` (a mesma medida, crua) já ia. Omitir só o rótulo era descuido, não decisão. */
-    return { ref: c.ref, titulo: forma ?? '—', forma, tamanho, cefr: nivel, origem };
+    return { ref: c.ref, titulo: forma ?? '-', forma, tamanho, cefr: nivel, origem };
   });
 }
 

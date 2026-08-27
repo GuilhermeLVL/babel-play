@@ -170,7 +170,7 @@ export default function MemoryGame({ items, ageProfile, onFinish, onExit }: Memo
             className="p-2 rounded-lg text-ink-muted hover:text-warn-ink hover:bg-surface-hover disabled:opacity-40 transition-colors cursor-pointer"
             data-tour="espiar"
             aria-label="Espiar a mesa"
-            title={`Espiar todas as cartas (${ESPIADAS - espiadasRef.current} restantes — conta como dica)`}
+            title={`Espiar todas as cartas (${ESPIADAS - espiadasRef.current} restantes, conta como dica)`}
           >
             <Eye className="w-4 h-4" />
           </button>

@@ -50,7 +50,7 @@ export const JOGOS: JogoUI[] = [
     titulo: { kids: 'Caça-palavras', pro: 'Caça-palavras por definição', senior: 'Caça-palavras' },
     descricao: {
       kids: 'Leia a dica e ache a palavra escondida',
-      pro: 'A pista é a tradução — lembre da palavra antes de procurar',
+      pro: 'A pista é a tradução, lembre da palavra antes de procurar',
       senior: 'Leia a tradução e encontre a palavra no quadro',
     },
   },
@@ -84,7 +84,7 @@ export const JOGOS: JogoUI[] = [
     descricao: {
       kids: 'Fale junto com o áudio e veja sua nota',
       pro: 'A fala real toca com as palavras acendendo; você repete',
-      senior: 'Ouça a frase e repita — recebe uma nota de pronúncia',
+      senior: 'Ouça a frase e repita, recebe uma nota de pronúncia',
     },
   },
   {
@@ -105,7 +105,7 @@ export const JOGOS: JogoUI[] = [
     titulo: { kids: 'Escreva o que ouviu', pro: 'Ditado', senior: 'Escrever o que ouviu' },
     descricao: {
       kids: 'Ouça quantas vezes quiser e escreva',
-      pro: 'Correção palavra a palavra — você vê exatamente onde errou',
+      pro: 'Correção palavra a palavra, você vê exatamente onde errou',
       senior: 'Ouça com calma e escreva a frase; a correção mostra cada palavra',
     },
   },
@@ -116,7 +116,7 @@ export const JOGOS: JogoUI[] = [
     titulo: { kids: 'Palavras que ligam', pro: 'Caça-conectores', senior: 'Palavras de ligação' },
     descricao: {
       kids: 'Ache as palavrinhas que mudam o rumo da frase',
-      pro: 'Marcadores de discurso na fala real — o que amarra as ideias',
+      pro: 'Marcadores de discurso na fala real, o que amarra as ideias',
       senior: 'Marque as palavras que ligam uma ideia à outra',
     },
   },

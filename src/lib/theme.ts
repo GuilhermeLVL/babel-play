@@ -131,7 +131,7 @@ function scheduleServerPatch(patch: Record<string, unknown>): void {
     // Best-effort: a UI já refletiu a mudança; se o servidor cair, o localStorage segura.
     inFlight = inFlight
       .then(() => patchUiSettings(toSend))
-      .catch(() => { /* offline — o espelho local basta */ });
+      .catch(() => { /* offline, o espelho local basta */ });
   }, SERVER_DEBOUNCE_MS);
 }
 

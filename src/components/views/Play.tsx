@@ -137,7 +137,7 @@ interface RodadaPronta {
 }
 
 /* Quem já sabe o que quer não deve pagar um clique por rodada. Fica no `localStorage`, no
-   precedente de `minigames/passosDosJogos.ts` — e a antessala continua alcançável pelo ícone de
+   precedente de `minigames/passosDosJogos.ts`, e a antessala continua alcançável pelo ícone de
    lista na carta, senão desligar seria um caminho sem volta. */
 const CHAVE_PULAR = 'babel.pular_antessala';
 const pularAntessala = (): boolean => {
@@ -205,7 +205,7 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
    */
   const [salaAberta, setSalaAberta] = useState(!embutido);
   /* Números do baralho (contagens, mapa, recorte, revisão) COLAPSADOS por padrão: quem chega quer
-     jogar, não auditar o acervo — pedido do dono (2026-08-26). A escolha persiste no navegador. */
+     jogar, não auditar o acervo, pedido do dono (2026-08-26). A escolha persiste no navegador. */
   const [detalhes, setDetalhes] = useState<boolean>(() => { try { return localStorage.getItem('babel.play.detalhes') === '1'; } catch { return false; } });
   const alternarDetalhes = () => setDetalhes((v) => { try { localStorage.setItem('babel.play.detalhes', v ? '0' : '1'); } catch { /* sem storage */ } return !v; });
   const [curando, setCurando] = useState(false);
@@ -220,7 +220,7 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
   const [frases, setFrases] = useState<Sentence[]>([]);
   /* O CAMINHO da API para o áudio da sessão. É a IDENTIDADE ("esta gravação tem som") e continua
      alimentando o gate; o que vai para o `<audio src>` dos jogos é a URL de blob, resolvida abaixo
-     por `useAudioDaSessao` — a rota exige Bearer e `<audio src>` não manda cabeçalho nenhum. */
+     por `useAudioDaSessao`, a rota exige Bearer e `<audio src>` não manda cabeçalho nenhum. */
   const [audioSessao, setAudioSessao] = useState<string>('');
   const [idDoAudio, setIdDoAudio] = useState<string | null>(null);
   /**
@@ -446,7 +446,7 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
 
          O tamanho da rodada é decidido por `rodadasDaEscada`, no core, e não aqui. O comentário
          que existia neste lugar afirmava que "com menos de 7, `planoDaEscada` encurta a escada em
-         vez de recusar o jogo" — era falso, e foi essa premissa que deixou o Termo inacessível:
+         vez de recusar o jogo", era falso, e foi essa premissa que deixou o Termo inacessível:
          com `mesmoTamanho`, pedir 7 e ter 5 devolvia lista VAZIA, nunca uma escada curta. */
       const r = rodadasDaEscada(cartas, { evitar });
       if (!r.length) return null;
@@ -564,7 +564,7 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
      * mudar entre o cálculo da carta e o clique, e "não aconteceu nada" é a pior resposta possível.
      */
     if (!pronta) {
-      toast.error('Não deu para montar esta rodada agora — o material mudou desde que a carta foi calculada.');
+      toast.error('Não deu para montar esta rodada agora, o material mudou desde que a carta foi calculada.');
       return;
     }
     /* Voltar ao lobby e clicar de novo é corrente NOVA. Sem isto, sair no meio e reentrar mais
@@ -572,7 +572,7 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
     setSequencia(null);
     /* A FONTE DA VERDADE É O ESTADO, não o `localStorage`.
        Antes esta linha lia `pularAntessala()` direto do storage enquanto o checkbox espelhava
-       `pularSempre` — dois leitores da mesma preferência, que discordavam por um render sempre que
+       `pularSempre`, dois leitores da mesma preferência, que discordavam por um render sempre que
        ela mudava. Agora o storage é só persistência; quem decide é o estado. */
     if (pularSempre && !forcarAntessala) { comecar(pronta); return; }
     setAntessala(pronta);
@@ -588,7 +588,7 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
   };
 
   /* ───────────── A CORRENTE: as três saídas do fim de rodada ─────────────
-     Nenhuma delas é código novo de verdade — são as MESMAS chamadas que a antessala já fazia
+     Nenhuma delas é código novo de verdade, são as MESMAS chamadas que a antessala já fazia
      ("trocar por outras" e "repetir a última"), agora alcançáveis do outro lado da partida. */
 
   /**
@@ -645,10 +645,10 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
     try {
       const spendId = `pular-${resultado.gameId}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
       const r = await gastarSeeds({ spendId, amount: CUSTO_PULAR, reason: 'pular-rodada', ref: resultado.gameId });
-      if (!r) { toast.error('Não consegui gastar as seeds agora — nada foi cobrado.'); return; }
+      if (!r) { toast.error('Não consegui gastar as seeds agora, nada foi cobrado.'); return; }
       /* O servidor é a autoridade sobre o saldo, mas `progress` só se atualiza quando as métricas
          forem recarregadas pelo App. Este desconto local existe para o número na tela não mentir
-         no instante seguinte ao clique — e para não deixar gastar duas vezes o que já não há. */
+         no instante seguinte ao clique, e para não deixar gastar duas vezes o que já não há. */
       setGastasLocais(g => g + CUSTO_PULAR);
     } finally {
       setGastando(false);
@@ -682,7 +682,7 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
     setRodadaConectores(null);
     const def = MINIGAMES[report.gameId];
     /* Alimenta a memória curta com o que acabou de cair. O teto existe para a lista não virar o
-       baralho inteiro numa maratona — aí ela deixaria de despriorizar coisa nenhuma. */
+       baralho inteiro numa maratona, aí ela deixaria de despriorizar coisa nenhuma. */
     setVistasRecentes(anterior => {
       const nova = new Set(anterior);
       for (const o of report.items) if (o.itemRef) nova.add(o.itemRef);
@@ -727,7 +727,7 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
     /* UMA REQUISIÇÃO POR RODADA (F3), não uma por item.
        `sessionId` amarra o resultado à gravação quando se joga a partir dela. E `cardId` agora
        viaja junto: `itemRef` guarda a PALAVRA, e por isso só 14,9% dos resultados no banco real
-       eram correlacionáveis a um cartão — nenhum por id. Sem a referência, desempenho não
+       eram correlacionáveis a um cartão, nenhum por id. Sem a referência, desempenho não
        realimenta a dificuldade. */
     const daSessao = fonte.id === 'sessao' ? fonte.sessionId : undefined;
     const itens = report.items.map((o) => ({
@@ -775,15 +775,15 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
       /* `Set` na itemRef: um jogo pode apresentar a MESMA palavra mais de uma vez na rodada (o
          Duelo sorteia distratores do próprio lote), e sem isto o lote sairia com a palavra
          repetida. O servidor deduplica e não criaria linha dupla, mas mandar duas é pedir para
-         ele recusar uma e contar como "pulada" — um número errado por culpa nossa. */
+         ele recusar uma e contar como "pulada", um número errado por culpa nossa. */
       const vistas = new Set<string>();
       const errados = report.items.filter(o => {
         if (o.correct || o.cardId || !o.itemRef) return false;
         const k = o.itemRef.toLowerCase();
         if (vistas.has(k)) return false;
         /* E ESTE `Set` atravessa a corrente. O de cima só deduplica DENTRO de uma rodada; numa
-           sequência encadeada, errar a mesma palavra em duas rodadas seguidas — antes de o
-           `fetchDeck` lá embaixo voltar do servidor — criaria a mesma carta duas vezes, porque a
+           sequência encadeada, errar a mesma palavra em duas rodadas seguidas, antes de o
+           `fetchDeck` lá embaixo voltar do servidor, criaria a mesma carta duas vezes, porque a
            segunda ainda veria `!c.id`. */
         if (corrente.jaPromovidas.has(k)) return false;
         vistas.add(k);
@@ -882,7 +882,7 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
     fonteRestaurada.current = true;
     const guardada = lerFonteGuardada(sessoes.map(s => s.id));
     /* RESTAURAR A MESMA FONTE NÃO É MUDAR DE FONTE. No caso comum — quem nunca escolheu nada, ou
-       escolheu "todas as minhas gravações" — o que vem do `localStorage` é exatamente o que já
+       escolheu "todas as minhas gravações", o que vem do `localStorage` é exatamente o que já
        está no estado, e o objeto novo fazia o React refazer triagem, composição e gate por nada
        (medido: uma passada inteira do pipeline). Devolver `f` faz o React abortar a atualização. */
     setFonte(f => {
@@ -969,7 +969,7 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
     let cancelado = false;
     void (async () => {
       /* Os recordes entram NESTE efeito, e não num novo: ele já é disparado por `[origemAtual,
-         resultado]` — exatamente quando a fonte muda e quando uma rodada pôde ter batido um
+         resultado]`, exatamente quando a fonte muda e quando uma rodada pôde ter batido um
          recorde. Um efeito próprio duplicaria a lógica de quando recarregar. */
       const [hist, linhas, recs] = await Promise.all([
         fetchHistoricoDeItens({ origem: origemAtual }),
@@ -982,11 +982,11 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
 
       /* Os tempos MEDIDOS por item, para a antessala poder dizer "leva uns 4 minutos" sem chutar.
          `ms` é gravado desde a migração 0001 e nunca tinha sido lido de volta. Quem decide se há
-         amostra suficiente é `@core/minigames/duracao` — aqui só se junta o que existe. */
+         amostra suficiente é `@core/minigames/duracao`, aqui só se junta o que existe. */
       setTemposMedidos(linhas.map(l => l.ms).filter((ms): ms is number => typeof ms === 'number'));
 
       /* A última rodada de CADA jogo nesta fonte. As linhas vêm mais recentes primeiro, então a
-         primeira `roundId` que aparece para um jogo é a mais nova — e só ela interessa. */
+         primeira `roundId` que aparece para um jogo é a mais nova, e só ela interessa. */
       const porJogo = new Map<string, string[]>();
       const rodadaEscolhida = new Map<string, string>();
       for (const l of linhas) {
@@ -1044,7 +1044,7 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
    * divergindo entre telas neste projeto (ver o cabeçalho de `lib/langConfig.ts`).
    */
   /* A TRIAGEM DE QUALIDADE continua local (é régua de conteúdo, não seleção), mas QUEM ESCOLHE
-     as palavras passou a ser o servidor — ver `composicao.ts`. O filtro de dificuldade em JS
+     as palavras passou a ser o servidor, ver `composicao.ts`. O filtro de dificuldade em JS
      sobre o deck inteiro deixou de existir. */
   const triagem: Triagem = useMemo(
     () => {
@@ -1057,7 +1057,7 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
   );
 
   /* COMPOSIÇÃO SERVIDA. Re-pede quando muda fonte, faixa ou estratégia. Falha de rede cai para
-     composição local com a origem marcada — a app é local-first e rodada vazia não é opção. */
+     composição local com a origem marcada, a app é local-first e rodada vazia não é opção. */
   useEffect(() => {
     let vivo = true;
     contarPassada('composicao', { cartoes: (deck ?? []).length, fonte: fonte.id, lang: fonte.lang });
@@ -1104,7 +1104,7 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
    * tradução.
    */
   /* FORA DO CAMINHO DA PRIMEIRA PINTURA. `idiomasDisponiveis` roda `triarCartoes` sobre o baralho
-     INTEIRO, particionado por idioma — medido, é a conta mais cara desta tela (achado F0-02), e
+     INTEIRO, particionado por idioma, medido, é a conta mais cara desta tela (achado F0-02), e
      ela acontecia no mesmo render em que o baralho chega, junto da triagem e do gate dos nove
      jogos. Diferido, o baralho pinta primeiro e a contagem dos idiomas entra no render seguinte;
      é a mesma lista, um quadro depois. */
@@ -1389,7 +1389,7 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
     if (d.acao === 'trocar-idioma' && d.lang) { aplicarEscolha({ ...base, lang: d.lang }); return; }
     /* Aplica direto, sem reabrir a sala: a queixa era ATRITO, e mandar de volta para o menu quem
        acabou de ler "jogue em inglês" é pedir a mesma decisão duas vezes. A mudança é visível na
-       hora — a faixa "Praticando" e a grade inteira se refazem. */
+       hora, a faixa "Praticando" e a grade inteira se refazem. */
     if (d.acao === 'trocar-fonte' && d.paraFonte) {
       aplicarEscolha({ ...base, origem: d.paraFonte, escopo: 'todas', sessionId: undefined });
       return;
@@ -1522,7 +1522,7 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
         repetidos={repetidosDaUltima(antessala.previa, new Set(refsAnteriores))}
         ageProfile={ageProfile}
         /* O recorte que a pessoa escolheu no lobby seguia até aqui e sumia da tela. `rotuloDaFonte`
-           já era calculado neste componente para o lobby — bastava repassar. */
+           já era calculado neste componente para o lobby, bastava repassar. */
         fonte={{ rotulo: rotuloDaFonte(fonte, sessaoEmUso?.title), idioma: langLabelPt(fonte.lang) }}
         duracao={rotuloDeDuracao(estimativaDeMinutos(antessala.previa.length, temposMedidos))}
         onJogar={() => comecar(antessala)}
@@ -1675,12 +1675,12 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
 
        O MAPA MOSTRA A PALAVRA, e a antessala não: `MAPA_REVELA_ALVO` (em `revelavel.ts`) é a
        exceção declarada à regra anti-spoiler, com o porquê escrito lá. Em resumo: o mapa é
-       retrospectivo e somente-leitura, sobre o acervo inteiro — uma lista de "7 letras · nunca
+       retrospectivo e somente-leitura, sobre o acervo inteiro, uma lista de "7 letras · nunca
        caiu" repetida quatrocentas vezes não responderia nada. */
     void MAPA_REVELA_ALVO;
     /* O MAPA VÊ O ACERVO INTEIRO, não o recorte da rodada.
        A intenção original ("mapa e jogo falam do mesmo conjunto") continua valendo: o conjunto é
-       a FONTE. O teto de 200 é artefato da composição, não propriedade da fonte — e vazava para
+       a FONTE. O teto de 200 é artefato da composição, não propriedade da fonte, e vazava para
        cá, fazendo o mapa anunciar "200 itens no conjunto" e "2% deste conjunto já apareceu"
        sobre um baralho de 1.902. Um resumo de cobertura calculado sobre 10% do acervo é pior
        que nenhum: o usuário decide o que estudar com base nele. */
@@ -1770,7 +1770,7 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
   }
 
   /* `pb-28`: o botão flutuante do tutor fica no canto inferior direito, fixo, e cobria a última
-     carta da grade — medido. A folga devolve a carta ao alcance do clique.
+     carta da grade, medido. A folga devolve a carta ao alcance do clique.
 
      Embutido, nada disso é nosso: o container da aba já rola e já tem padding, e repetir os dois
      aqui daria scroller dentro de scroller (duas barras, roda do mouse presa na de dentro) e
@@ -1778,13 +1778,13 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
   return (
     <div className={embutido ? 'animate-in fade-in duration-200' : 'flex-1 overflow-y-auto custom-scrollbar p-6 lg:p-10 pb-28 animate-in fade-in duration-200'}>
       {/* LARGURA MÁXIMA. Sem ela, num monitor de 1920 a faixa de revisão esticava por 1.829px e
-          a arte de cada carta ia a 263px de altura — grande e grosseira, porque os desenhos são
+          a arte de cada carta ia a 263px de altura, grande e grosseira, porque os desenhos são
           feitos de poucas formas. Limitar o conteúdo resolve os dois de uma vez, e de quebra o
           texto para de atravessar a tela inteira, que já é ruim de ler por si só. */}
       {sala}
       <div className="max-w-6xl mx-auto">
       {/* Embutido não tem cabeçalho próprio: a tela da sessão já traz um `<h1>` logo acima, e um
-          segundo `<h1>` na mesma página quebra a navegação por cabeçalho do leitor de tela — a
+          segundo `<h1>` na mesma página quebra a navegação por cabeçalho do leitor de tela, a
           pessoa passa a ter dois "títulos da página" e nenhum diz onde ela está. */}
       {!embutido && (
         <header className="mb-6 flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
@@ -1800,7 +1800,7 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
           </div>
           {/* PROGRESSO no cabeçalho, compacto: nível com a barra até o próximo, ofensiva e seeds.
               Mesma fonte do Início (`deriveProgress(metrics)`), e cada número explica no `title`
-              de onde saiu — XP vem de sessões, palavras e revisões medidas; seeds são ganhas menos
+              de onde saiu, XP vem de sessões, palavras e revisões medidas; seeds são ganhas menos
               gastas. Sem métrica, esqueleto: nunca um zero que parece dado. */}
           {progress.available ? (
             <section
@@ -1809,7 +1809,7 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
             >
               <div
                 className="min-w-[8.5rem]"
-                title={`${progress.xp} XP no total — ${metrics ? `${metrics.sessions} ${metrics.sessions === 1 ? 'sessão' : 'sessões'}, ${metrics.wordsCaptured} palavras capturadas, ${metrics.reviews} revisões, ${metrics.drillItems ?? 0} itens de jogo` : 'calculado das suas métricas'}. Faltam ${progress.xpForLevel - progress.xpIntoLevel} XP para o próximo.`}
+                title={`${progress.xp} XP no total, ${metrics ? `${metrics.sessions} ${metrics.sessions === 1 ? 'sessão' : 'sessões'}, ${metrics.wordsCaptured} palavras capturadas, ${metrics.reviews} revisões, ${metrics.drillItems ?? 0} itens de jogo` : 'calculado das suas métricas'}. Faltam ${progress.xpForLevel - progress.xpIntoLevel} XP para o próximo.`}
               >
                 <div className="flex items-baseline justify-between gap-3">
                   <span className="label-mono">{ageProfile === 'senior' ? 'Etapa' : 'Nível'} {progress.level}</span>
@@ -1842,7 +1842,7 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
 
       {/* A CORRENTE QUE ACABOU DE ENCERRAR.
           Sair no meio de uma rodada perde a rodada parcial (nenhum dos nove jogos expõe relatório
-          parcial). O que já estava somado, porém, foi conquistado — apagá-lo sem dizer nada é o
+          parcial). O que já estava somado, porém, foi conquistado, apagá-lo sem dizer nada é o
           tipo de silêncio que faz a pessoa achar que o app perdeu o progresso dela. */}
       {ultimaCorrente && ultimaCorrente.rodadas > 1 && (
         <div className="mb-4 flex flex-wrap items-center gap-x-3 gap-y-1 text-[12px] animate-in fade-in">
@@ -1856,15 +1856,15 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
       {/* ─── A FONTE DA RODADA ───
           De onde vêm as palavras e em que idioma. É a peça que faltava: sem ela, uma rodada de
           "inglês" sorteava entre as 1.166 palavras em português e as 337 em inglês do mesmo
-          baralho — a queixa de "mistura tudo" era literal. */}
+          baralho, a queixa de "mistura tudo" era literal. */}
       {/* ════════════════════════════════════════════════════════════════════════
-          F6 — CONFIGURAR e AGIR deixaram de dividir a mesma régua.
+          F6, CONFIGURAR e AGIR deixaram de dividir a mesma régua.
 
           Antes, uma única linha horizontal misturava três naturezas sem nada distingui-las:
             CONFIGURAR  idioma · "Minhas palavras" · nome da sessão · "Trilha"
             STATUS      "200 prontas" · "988 em outro idioma"
             AGIR        "19 para revisar" (abre tela cheia) · "mapa do conteúdo" (idem)
-          "988 em outro idioma" não era clicável e "19 para revisar" era — ambos texto cinza de
+          "988 em outro idioma" não era clicável e "19 para revisar" era, ambos texto cinza de
           12px na mesma linha, distinguidos só por um sublinhado.
 
           Agora: configuração RECOLHIDA (o caso comum não mexe nela), status numa faixa própria e
@@ -1879,7 +1879,7 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
       {fontesOferecidas.length > 1 && (
         /* ── O QUE ESTÁ VALENDO, E COMO TROCAR ──────────────────────────────────────────────
            Aqui havia um `<details>` recolhido cujo resumo era "Praticar · Minhas palavras ·
-           ajustar" em texto pequeno. Ninguém abria — e quem abria encontrava um seletor de
+           ajustar" em texto pequeno. Ninguém abria, e quem abria encontrava um seletor de
            idioma, três botões de fonte e um chevron que revelava uma lista de gravações
            renderizada FORA do próprio `<details>`, que continuava na tela depois de fechá-lo.
 
@@ -1905,12 +1905,12 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
           não faz nada) ao lado de "19 para revisar" (que abre uma tela cheia), distinguidos
           apenas por um sublinhado. */}
       {/* O NÚMERO ÚNICO SOMAVA DUAS POPULAÇÕES DIFERENTES, e era isso que fazia a queda parecer
-          defeito. "921 prontas" contava junto o cartão com tradução e o cartão que só tem frase —
+          defeito. "921 prontas" contava junto o cartão com tradução e o cartão que só tem frase,
           medido no baralho real, 56% do acervo não tem tradução nenhuma. Os oito jogos de par
           precisam de tradução; só o duelo relâmpago joga com a lacuna da frase. Daí a Memória
           abrir com 8 de 246 e não de 921, e daí a conta parecer errada quando era só incompleta. */}
       {/* `min-h`: os números chegam em duas levas (a triagem local e depois a composição servida) e
-          cada leva acrescenta um pedaço nesta linha — que, embrulhada em 412px, ganhava mais uma
+          cada leva acrescenta um pedaço nesta linha, que, embrulhada em 412px, ganhava mais uma
           linha e empurrava a grade inteira. 84px são as três linhas que o estado cheio ocupa nesse
           viewport (medido). A partir de `sm` tudo cabe numa linha só e não há o que reservar. */}
       <button
@@ -1931,7 +1931,7 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
           · {pistas.comTraducao.length} com tradução
         </span>
         {pistas.soComFrase.length > 0 && (
-          <span title="Sem tradução, mas com frase real — o duelo relâmpago joga com a lacuna.">
+          <span title="Sem tradução, mas com frase real, o duelo relâmpago joga com a lacuna.">
             · {pistas.soComFrase.length} só com frase
           </span>
         )}
@@ -1945,12 +1945,12 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
 
       {/* ── AGIR ── Dois CARDS, e não dois links de texto.
           Eram `<button>` com sublinhado pontilhado, do mesmo tamanho e cor da linha de números
-          logo acima — passavam batido, embora sejam as duas respostas para "por que tão pouco?".
+          logo acima, passavam batido, embora sejam as duas respostas para "por que tão pouco?".
           Ficam colados nos números que provocam a pergunta, e cada um traz o SEU número: um total
           sem conteúdo não convence ninguém a clicar. */}
       <section aria-label="Explorar o baralho" className={`grid gap-3 sm:grid-cols-2 mb-4 ${detalhes ? '' : 'hidden'}`}>
         {/* Os dois cards têm a MESMA altura reservada porque o texto de cada um muda de número de
-            linhas quando as contagens chegam — e eles ficam logo acima da grade de nove jogos, que
+            linhas quando as contagens chegam, e eles ficam logo acima da grade de nove jogos, que
             era o que descia. 100px é a altura do estado mais alto em 412px (medido). */}
         <button
           onClick={() => setVendoMapa(true)}
@@ -1992,7 +1992,7 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
         ) : (
           /* Sem `opacity-70` no cartão inteiro. Ele apagava junto o texto secundário, que já é
              `text-ink-muted`: o par caía de 5,57:1 para 3,25:1 no tema vercel escuro, abaixo dos
-             4,5:1. Medido em axe color-contrast. Este é o estado "nada pendente" — ele deve ficar
+             4,5:1. Medido em axe color-contrast. Este é o estado "nada pendente", ele deve ficar
              discreto, e fica: sem borda de destaque, com o ícone em tom suave. Apagar o texto não
              era o que produzia a discrição, era só o efeito colateral que quebrava a leitura. */
           <div className="card-panel bg-surface p-4 min-h-[100px] sm:min-h-0 flex items-start gap-3">
@@ -2055,7 +2055,7 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
               {tamanhoDoBaralho === 0 ? 'Você ainda não salvou palavras' : `Faltam ${menorMinimo - tamanhoDoBaralho} palavras`}
             </p>
             <p className="text-[13px] text-ink-muted mt-1.5 max-w-[46ch]">
-              Os jogos usam as palavras que você guarda das suas gravações — nada de lista pronta.
+              Os jogos usam as palavras que você guarda das suas gravações, nada de lista pronta.
               Você tem <b>{tamanhoDoBaralho}</b> e precisa de <b>{menorMinimo}</b> para a primeira rodada.
             </p>
           </div>
@@ -2097,16 +2097,16 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
 
           {/* ── SUA PRÓXIMA RODADA ─────────────────────────────────────────────────────────────
               O lobby respondia "quais jogos existem" e deixava a escolha inteira por conta de quem
-              chega — nove cartas, cada uma com dois números. Quem só quer jogar pagava uma decisão
+              chega, nove cartas, cada uma com dois números. Quem só quer jogar pagava uma decisão
               antes de qualquer coisa acontecer.
 
               O JOGO OFERECIDO É O PRIMEIRO DA ORDEM DO USUÁRIO que dá para jogar agora, e isso é
-              deliberado: a ordem já É a preferência declarada (`lib/ordemDosJogos` — fixar no topo,
+              deliberado: a ordem já É a preferência declarada (`lib/ordemDosJogos`, fixar no topo,
               mover), então respeitá-la é ler o que a pessoa disse, não inventar uma recomendação
               que ela não pediu e não pode conferir.
 
               O CARD NÃO PROMETE COMPOSIÇÃO. Ele diz o tamanho da rodada, a fonte e a duração
-              medida — tudo já conhecido. Quantas são novas e quantas venceram só se sabe DEPOIS do
+              medida, tudo já conhecido. Quantas são novas e quantas venceram só se sabe DEPOIS do
               sorteio, e é a antessala (um clique adiante) que reporta isso. Antecipar aqui seria
               uma promessa que o sorteio pode não cumprir. */}
           {proximaRodada && (
@@ -2143,7 +2143,7 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
                 a antessala sumiu para quem a desligou uma vez.
 
                 O controle mora AQUI, e não em Ajustes, porque o lobby já é o dono das preferências
-                de jogo — a ordem das cartas e os favoritos também são decididos e guardados nesta
+                de jogo, a ordem das cartas e os favoritos também são decididos e guardados nesta
                 tela. E porque enterrá-lo em Ajustes → aba → seção repetiria o defeito original:
                 um controle a três cliques do lugar onde ele faz efeito. */}
             <label className="flex items-center gap-2 text-[12px] text-ink-muted cursor-pointer select-none ml-auto">
@@ -2188,21 +2188,21 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
               /* C6 — A CARTA DEIXOU DE SER UM `<button>`.
                  Ela era um botão contendo quatro controles focáveis (o "?", as duas setas, o
                  alfinete). O comentário mais abaixo já registrava a intenção de evitar botão
-                 dentro de botão usando `<span role="button">` — a intenção estava certa, o
+                 dentro de botão usando `<span role="button">`, a intenção estava certa, o
                  mecanismo não: para a norma o que conta é DESCENDENTE FOCÁVEL, e `role="button"`
                  com `tabIndex={0}` é exatamente isso. O axe media 36 nós em `nested-interactive`.
 
                  O padrão aqui é o de carta com ação primária: o container não é interativo, o
                  TÍTULO é o botão de verdade e um pseudoelemento estende sua área de clique sobre
                  a carta inteira; os controles secundários sobem para `z-10` e continuam
-                 alcançáveis. O comportamento visível não muda — clicar em qualquer lugar da carta
-                 ainda começa a rodada — mas a árvore passa a ser válida e cada controle vira uma
+                 alcançáveis. O comportamento visível não muda, clicar em qualquer lugar da carta
+                 ainda começa a rodada, mas a árvore passa a ser válida e cada controle vira uma
                  parada de tabulação legítima. */
               return (
                 <div
                   key={j.chave}
                   /* C9 — `opacity-60` saiu do estado bloqueado. Ela apagava o CARTÃO INTEIRO,
-                     inclusive o texto que explica POR QUE está bloqueado — medido em 2,26:1 e
+                     inclusive o texto que explica POR QUE está bloqueado, medido em 2,26:1 e
                      2,28:1, contra o mínimo de 4,5:1. Justo a frase que a pessoa precisa ler
                      ("falta 1 palavra") era a mais difícil de ler.
 
@@ -2224,11 +2224,11 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
                       texto da carta e levava a página a 1.800px de rolagem com nove jogos. Menor,
                       ela continua dizendo o que o jogo é e cabe mais jogo na tela. */}
                   {/* Dois detalhes que não são decorativos:
-                      · `w-full` — a carta é um flex com `align-items: flex-start` (vem do
+                      · `w-full`, a carta é um flex com `align-items: flex-start` (vem do
                         `.card-panel`), então a faixa não esticava sozinha: derivava a largura do
                         próprio SVG e deixava um vão preto de ~180px à direita, em TODA carta.
                       · `16/7` é exatamente a proporção do `viewBox` do desenho. Qualquer outra
-                        faz o SVG encaixar por dentro e sobrar fundo nas laterais — o mesmo vão,
+                        faz o SVG encaixar por dentro e sobrar fundo nas laterais, o mesmo vão,
                         por outro caminho. O tamanho da arte é controlado pela largura máxima do
                         conteúdo, não por achatar a faixa. */}
                   <span className={`block w-full aspect-[16/7] bg-canvas border-b border-border-subtle ${liberado ? '' : 'grayscale'}`} aria-hidden>
@@ -2256,7 +2256,7 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
                     </button>
                     {/* Instrução que não some é instrução que atrapalha: depois da primeira vez,
                         ela fica aqui, a um clique, em vez de voltar sozinha.
-                        C5 — `min-w-6 min-h-6` são os 24px de WCAG 2.2 AA 2.5.8; antes era `p-1.5`
+                        C5, `min-w-6 min-h-6` são os 24px de WCAG 2.2 AA 2.5.8; antes era `p-1.5`
                         sobre um ícone de 14px, o que dava 22px. */}
                     <button
                       onClick={() => setExplicando(j.id)}
@@ -2269,7 +2269,7 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
                   </span>
 
                   {/* ORGANIZAR A GRADE — alfinete e setas.
-                      C6 — agora são `<button>` de verdade. Eram `<span role="button">` porque a
+                      C6, agora são `<button>` de verdade. Eram `<span role="button">` porque a
                       carta inteira era um botão e botão dentro de botão é HTML inválido; com a
                       carta virando `<div>`, a razão do contorno deixou de existir e o elemento
                       certo voltou a ser possível. O `z-10` os mantém acima da área de clique
@@ -2322,7 +2322,7 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
                       DUAS CONTAS, e não uma. O gate mede o pool inteiro (`quantidade: 99`) mas a
                       rodada joga `maxItems`: dizer só "47 palavras prontas" fazia a carta prometer
                       uma partida de 47 e entregar 8, sem contar quais. Agora a primeira conta é a
-                      da RODADA — que é o que vai acontecer ao clicar — e o pool vem em seguida. */}
+                      da RODADA, que é o que vai acontecer ao clicar, e o pool vem em seguida. */}
                   <span className={`text-[11px] font-bold mt-auto pt-1 ${liberado ? 'text-good-ink' : 'text-ink-faint'}`}>
                     {(() => {
                       const unidade = j.estado.fonte === 'falas' ? ['fala', 'falas'] : ['palavra', 'palavras'];
@@ -2336,13 +2336,13 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
                           : `${naRodada} ${naRodada === 1 ? unidade[0] : unidade[1]} nesta rodada`;
                       }
                       /* O MOTIVO REAL, e não "faltam N falas". Na trilha esses jogos ficavam
-                         bloqueados por um número que não explicava nada — a pessoa não tem como
+                         bloqueados por um número que não explicava nada, a pessoa não tem como
                          adivinhar que a trilha não tem frase nem áudio. */
                       const motivo = 'motivo' in j.estado ? j.estado.motivo : undefined;
                       if (motivo === 'trilha-sem-frase') {
                         return ageProfile === 'kids'
                           ? 'a trilha tem palavras, não frases'
-                          : 'a trilha tem palavras soltas — este jogo precisa de frase; escolha uma gravação';
+                          : 'a trilha tem palavras soltas, este jogo precisa de frase; escolha uma gravação';
                       }
                       if (motivo === 'sem-voz') return 'este navegador não tem voz sintetizada';
                       // Estado transitório e honesto: a gravação TEM som, ele está a caminho.
@@ -2350,7 +2350,7 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
                       if (j.estado.fonte === 'falas' && j.estado.disponiveis === 0) return 'precisa de uma gravação com legenda';
 
                       /* A CONTA INTEIRA, e não só o que falta.
-                         "faltam 2 palavras" não diz de quantas nem sobre o quê — e a pessoa não tem
+                         "faltam 2 palavras" não diz de quantas nem sobre o quê, e a pessoa não tem
                          como saber se 2 palavras é perto ou longe, nem em que idioma elas contam.
                          Com "precisa de 4 · você tem 2 do espanhol", a mesma linha responde as três
                          perguntas e o caminho de saída fica óbvio: gravar mais naquele idioma. */
@@ -2364,7 +2364,7 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
                   {/* A PORTA DE SAÍDA — uma ação, a mais barata que resolve.
                       `z-10` porque o título estende a área de clique dele sobre a carta inteira
                       (`after:inset-0`); sem isso o clique aqui viraria "começar a rodada", que
-                      está desabilitada — ou seja, um botão que não faz nada.
+                      está desabilitada, ou seja, um botão que não faz nada.
                       Quando `comoDesbloquear` devolve `null` (sem voz, áudio a caminho) NÃO
                       aparece botão: não existe ação, e inventar uma seria mentir. */}
                   {!liberado && (() => {
@@ -2403,7 +2403,7 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
       </div>
 
       {/* O progresso mora no CABEÇALHO (ver acima): uma linha, ao lado do título, onde o olho
-          passa antes de jogar — e não empurra a primeira carta. Fora quando embutido: nível,
+          passa antes de jogar, e não empurra a primeira carta. Fora quando embutido: nível,
           streak e seeds são do PERFIL; a aba da sessão fala de UMA sessão. */}
 
       <div className="mt-6 flex flex-wrap items-center gap-4">
@@ -2415,7 +2415,7 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
           {ageProfile === 'kids' ? 'Trazer palavras de fora' : 'Importar / exportar baralho (Anki)'}
         </button>
         {/* Dizia "Exercícios completos", prometendo os doze legados. Sobraram dois, e os dois são
-            de MEMÓRIA (revisão espaçada e produção ativa) — o resto virou jogo e mora aqui. O
+            de MEMÓRIA (revisão espaçada e produção ativa), o resto virou jogo e mora aqui. O
             rótulo passa a dizer para onde leva de verdade. */}
         <button
           onClick={() => onChangeView('study')}

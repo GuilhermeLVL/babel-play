@@ -15,7 +15,7 @@ type Mode = 'login' | 'signup' | 'forgot';
 const TITULO: Record<Mode, string> = { login: 'Entrar', signup: 'Criar conta', forgot: 'Recuperar senha' };
 const SUB: Record<Mode, string> = {
   login: 'Bem-vindo de volta.',
-  signup: 'Comece em segundos — sua conta, seus dados.',
+  signup: 'Comece em segundos, sua conta, seus dados.',
   forgot: 'Enviamos um link de redefinição por e-mail.',
 };
 
@@ -71,7 +71,7 @@ export default function Login({ onContinuarSemConta }: LoginProps = {}) {
     }
   }
 
-  const heroRecuperar = { title: (<>Sem<br />estresse.</>), subtitle: 'Enviamos um link seguro pro seu e-mail — você define uma nova senha e volta em segundos.' };
+  const heroRecuperar = { title: (<>Sem<br />estresse.</>), subtitle: 'Enviamos um link seguro pro seu e-mail, você define uma nova senha e volta em segundos.' };
 
   return (
     <AuthShell hero={modo === 'forgot' ? heroRecuperar : undefined}>
@@ -80,7 +80,7 @@ export default function Login({ onContinuarSemConta }: LoginProps = {}) {
 
       {!configurado && (
         <p className="mb-4 rounded-lg bg-warn-soft px-3 py-2 text-sm text-warn-ink" role="alert">
-          Login não configurado neste ambiente — defina as variáveis <code>VITE_SUPABASE_*</code> no <code>.env</code>.
+          Login não configurado neste ambiente, defina as variáveis <code>VITE_SUPABASE_*</code> no <code>.env</code>.
         </p>
       )}
 

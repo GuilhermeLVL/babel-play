@@ -233,7 +233,7 @@ async function fetchSection(
   wordLang: string,
 ): Promise<WikiHit | null> {
   const heading = sectionName(wikiLang, wordLang);
-  if (!heading) return null; // sem mapa do nome da seção, não temos como localizar — e não chutamos
+  if (!heading) return null; // sem mapa do nome da seção, não temos como localizar, e não chutamos
 
   const index = await sectionIndex(host, word, heading);
   if (index === null) return null;

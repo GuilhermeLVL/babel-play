@@ -54,9 +54,9 @@ export function motivoDoGate(origem: string): string {
 /** Texto do convite por tela — diz o que a conta desbloqueia ALI, não genericamente. */
 export const CONVITE: Record<string, { titulo: string; explicacao: string }> = {
   library: { titulo: 'Sua biblioteca fica na sua conta', explicacao: 'Sem conta, cada sessão vive só neste navegador. Com conta, suas gravações ficam guardadas, organizadas e disponíveis em qualquer aparelho.' },
-  analysis: { titulo: 'A análise da sessão precisa de conta', explicacao: 'Transcrição editável, leitura guiada, métricas por sessão e os jogos sobre o que você gravou — tudo salvo na sua conta.' },
+  analysis: { titulo: 'A análise da sessão precisa de conta', explicacao: 'Transcrição editável, leitura guiada, métricas por sessão e os jogos sobre o que você gravou, tudo salvo na sua conta.' },
   study: { titulo: 'A revisão precisa de conta', explicacao: 'A repetição espaçada só faz sentido quando o progresso é lembrado de um dia para o outro.' },
   reading: { titulo: 'A leitura guiada precisa de conta', explicacao: 'Anotações e progresso de leitura ficam na sua conta.' },
-  metrics: { titulo: 'Seu vocabulário fica na sua conta', explicacao: 'As palavras que você captura viram um baralho com revisão espaçada — e isso precisa ser lembrado entre visitas.' },
+  metrics: { titulo: 'Seu vocabulário fica na sua conta', explicacao: 'As palavras que você captura viram um baralho com revisão espaçada, e isso precisa ser lembrado entre visitas.' },
   profile: { titulo: 'O perfil é da conta', explicacao: 'Nome, objetivo, nível e histórico de XP existem a partir do momento em que você cria a conta.' },
 };

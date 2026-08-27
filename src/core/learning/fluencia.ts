@@ -169,7 +169,7 @@ function derivarRotulo(
   }
 
   /* Sobe enquanto sustenta, e PARA no primeiro buraco. A parada é a regra inteira: uma faixa alta
-     sustentada depois de uma baixa que falha não conta — CEFR é cumulativo. */
+     sustentada depois de uma baixa que falha não conta, CEFR é cumulativo. */
   let alcancado: CefrLevel | null = null;
   let parouEm: FaixaDeFluencia | null = null;
 
@@ -179,7 +179,7 @@ function derivarRotulo(
     break;
   }
 
-  const pct = (v: number | null) => (v === null ? '—' : `${Math.round(v * 100)}%`);
+  const pct = (v: number | null) => (v === null ? '-' : `${Math.round(v * 100)}%`);
 
   if (!alcancado) {
     const primeira = faixas[0];

@@ -128,7 +128,7 @@ export default function ConectoresGame({ rodadas, ageProfile, onFinish, onExit }
           <Link2 className="w-4 h-4 text-accent shrink-0" aria-hidden />
           {ageProfile === 'senior'
             ? 'Toque nas palavras que ligam uma ideia à outra.'
-            : 'Marque as palavras que amarram as ideias — as que mudam o rumo da frase.'}
+            : 'Marque as palavras que amarram as ideias, as que mudam o rumo da frase.'}
         </p>
 
         {/* A FRASE, palavra por palavra clicável. */}

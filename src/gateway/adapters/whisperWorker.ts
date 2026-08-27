@@ -118,7 +118,7 @@ async function ensurePipeline(model?: string, dtypeKey?: string, device?: string
     // Fallback robusto: repo sem os arquivos do dtype híbrido → usa q8 (no mesmo device).
     // Rastreador NOVO: o dtype mudou, logo os arquivos e o total mudaram. Reaproveitar o anterior
     // faria a barra nascer no percentual da tentativa que falhou.
-    console.warn('[whisper:worker] dtype', wantDtype, 'indisponível no repo — caindo para q8:', String((err as Error)?.message || err).slice(0, 120))
+    console.warn('[whisper:worker] dtype', wantDtype, 'indisponível no repo, caindo para q8:', String((err as Error)?.message || err).slice(0, 120))
     self.postMessage({ type: 'progress', progress: 0, loaded: 0, total: 0, label: 'usando formato alternativo (q8)…' })
     progresso = novoProgresso('Whisper (q8)')
     asr = await pipeline('automatic-speech-recognition', asrModel, {

@@ -93,7 +93,7 @@ export default function CommandPalette({ open, onClose, commands, placeholder = 
   return (
     <div
       /* z-[100] fica acima de TODA a pilha do app (dock 30 · partida 35 · partículas 38 · score 40 ·
-         ComoSeJoga 90 · tour 95). A busca é sempre deliberada — alguém apertou ⌘K — e um diálogo de
+         ComoSeJoga 90 · tour 95). A busca é sempre deliberada, alguém apertou ⌘K, e um diálogo de
          digitação escondido atrás de uma cortina é pior do que um que cobre a cortina: este último
          sai com Esc, o primeiro engole o que se digita sem dar sinal. */
       className="fixed inset-0 z-[100] flex items-start justify-center pt-[12vh] px-4 bg-black/40 animate-in fade-in duration-150"
@@ -122,7 +122,7 @@ export default function CommandPalette({ open, onClose, commands, placeholder = 
             results.map((c, i) => {
               const disabled = !!c.disabledReason;
               /* Cabeçalho quando o grupo muda. Como `results` preserva a ordem dos comandos, isto
-                 basta para agrupar — sem uma segunda estrutura de dados que possa sair de sincronia
+                 basta para agrupar, sem uma segunda estrutura de dados que possa sair de sincronia
                  com o índice do cursor, que é o que a navegação por teclado usa. */
               const abreGrupo = c.grupo && c.grupo !== results[i - 1]?.grupo;
               return (

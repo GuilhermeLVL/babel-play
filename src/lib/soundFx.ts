@@ -41,7 +41,11 @@ export type SoundEvent =
   | 'combo'        // emendou acertos — entre o acerto comum e o subir de nível
   | 'recordStart'  // começou a gravar
   | 'recordStop'   // parou de gravar
-  | 'levelUp';     // subiu de nível — o único celebratório
+  | 'levelUp'      // subiu de nível — o único celebratório
+  // ── Duelo relâmpago (jogo contra o tempo)
+  | 'tick'         // último segundos: um toque seco por segundo
+  | 'timeBonus'    // ganhou segundos de volta — deslizada para cima
+  | 'fever';       // entrou no modo fever — acorde cheio
 
 let audioCtx: AudioContext | null = null;
 let soundMuted = false;
@@ -156,7 +160,13 @@ export const EVENTS: Record<SoundEvent, EventShape> = {
   combo:       { steps: [0, 4, 7],        dur: 0.055, stagger: 0.03, gain: 0.75 },
   recordStart: { steps: [-5, 2, 7],       dur: 0.09, stagger: 0.05,  gain: 0.85 },
   recordStop:  { steps: [7, 2, -5],       dur: 0.09, stagger: 0.05,  gain: 0.85 },
-  levelUp:     { steps: [0, 7, 12, 19],   dur: 0.2,  stagger: 0.07,  gain: 1.1 }
+  levelUp:     { steps: [0, 7, 12, 19],   dur: 0.2,  stagger: 0.07,  gain: 1.1 },
+
+  // Duelo relâmpago. `tick` é o mais baixo: toca todo segundo no fim. `timeBonus` desliza para
+  // cima (ganho). `fever` é o único acorde de quatro notas fora do levelUp — é raro de propósito.
+  tick:        { steps: [0],              dur: 0.03, stagger: 0,     gain: 0.4,  harsh: true },
+  timeBonus:   { steps: [7],              dur: 0.12, stagger: 0,     gain: 0.7,  slide: 1.5 },
+  fever:       { steps: [0, 4, 7, 12],    dur: 0.22, stagger: 0.04,  gain: 1 },
 };
 
 /** Volume-mestre do kit. Um número, para calibrar tudo de uma vez. */
@@ -216,7 +226,12 @@ export function playGeneric(event: SoundEvent): void {
  *
  * Nunca lança: um erro de áudio jamais pode derrubar uma interação.
  */
-export function play(event: SoundEvent): void {
+/**
+ * `transpose`: semitons somados à nota-base. O Duelo relâmpago sobe o `combo` um semitom por acerto
+ * em sequência — a escada que sobe é o retorno mais imediato de "está dando certo". Limitado a
+ * ±24 para não virar apito.
+ */
+export function play(event: SoundEvent, opts: { transpose?: number } = {}): void {
   if (soundMuted) { cancelPendingGeneric(); return; }
 
   // Um som pedido diretamente é sempre mais específico que o `click` que o delegado agendou.
@@ -241,7 +256,8 @@ export function play(event: SoundEvent): void {
     const now = ctx.currentTime;
 
     shape.steps.forEach((step, idx) => {
-      const freq = 440 * Math.pow(2, (voice.root + step) / 12);
+      const transpose = Math.max(-24, Math.min(24, opts.transpose ?? 0));
+      const freq = 440 * Math.pow(2, (voice.root + step + transpose) / 12);
       const t0 = now + idx * shape.stagger;
 
       const osc = ctx.createOscillator();

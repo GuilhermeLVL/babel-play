@@ -1,0 +1,11 @@
+# Cloudflare Pages — projeto babel-play (edição leve hospedada).
+# Lido pelo `wrangler pages deploy dist`: é o que liga o D1 do ranking global à Function
+# `functions/api/rank/[[path]].ts`. Sem este binding a rota degrada para "ranking indisponível".
+name = "babel-play"
+pages_build_output_dir = "dist"
+compatibility_date = "2026-08-01"
+
+[[d1_databases]]
+binding = "RANK_DB"
+database_name = "babel-rank"
+database_id = "5d4418de-e2e0-4be2-a4d6-0dd4c7389df2"

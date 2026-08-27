@@ -6,7 +6,7 @@ import type { AgeProfileType } from '../../lib/profile';
 import { comemorar, pontosDoElemento, pontosFlutuantes, multiplicador, tremor, tremorDeTela, pulsoDeZoom, flashDeTela, vibrar, executarEfeito } from '../../lib/juice';
 import { emitBurst } from '../../lib/effects';
 import { play } from '../../lib/soundFx';
-import { sortearEventoRaro, eventosCondicionais } from '../../lib/eventosDeJogo';
+import { eventosCondicionais } from '../../lib/eventosDeJogo';
 import { enviarParaRanking, lerApelido, salvarApelido, apelidoValido } from '../../lib/ranking';
 import {
   bonusDeTempo, pontosDoAcerto, emFever, ehMarco, rotuloDaSequencia, estrelasDaRodada,
@@ -256,13 +256,8 @@ export default function BlitzGame({ items, ageProfile, onFinish, onExit }: Blitz
         play('timeBonus');
         setTimeout(() => pontosDoElemento('+' + segundos + 's', relogioRef.current, 'bom'), 80);
       }
-      // 4. Eventos: um RARO pode ser sorteado em qualquer acerto (patos, bola, glitch...);
-      //    os CONDICIONAIS disparam nos limiares (combo 10/15). Nunca no erro.
-      const raro = sortearEventoRaro(Math.random);
-      if (raro) {
-        executarEfeito(raro);
-        setTimeout(() => pontosFlutuantes(raro.nome + '!', window.innerWidth / 2, window.innerHeight * 0.22, 'bom'), 200);
-      }
+      // 4. Eventos CONDICIONAIS nos limiares (combo 5/10/15). O sorteio dos RAROS mora no
+      //    próprio `comemorar` (vale para os nove jogos) — nada de rolar o dado duas vezes aqui.
       for (const ev of eventosCondicionais({ combo: nova, fever: emFever(nova) })) executarEfeito(ev);
       // 5. Marcos e fever: onda de choque + festa nas bordas, reservada ao que é raro.
       if (nova === SEQUENCIA_FEVER && !comDica) {

@@ -54,7 +54,7 @@ import ParticleCanvas from './components/ParticleCanvas';
 import { setSoundMuted, play } from './lib/soundFx';
 import { installSfxDelegate } from './lib/sfxDelegate';
 import { deriveProgress } from './lib/progress';
-import { recompensasDoNivel, rotuloDaRecompensa } from './lib/desbloqueios';
+import { recompensasDoNivel, rotuloDaRecompensa, ativarLiberacaoTotal, liberadoTudo } from './lib/desbloqueios';
 import { comemorar } from './lib/juice';
 import { isAgeProfile, readAgeProfile, readStoredEnum, readStoredValue } from './lib/profile';
 import { emitBurst } from './lib/effects';
@@ -310,6 +310,17 @@ export default function App() {
    * não ter sido botão por botão. Respeita o mute pelo `setSoundMuted` acima.
    */
   useEffect(() => installSfxDelegate(), []);
+
+  /* LIBERACAO TOTAL para demonstracao: `window.babel.liberarTudo()` (ou `.travarTudo()`) no
+     console, ou abrir com `?liberar=1`. So destrava cosmeticos (temas/posicoes/estudio). */
+  useEffect(() => {
+    (window as unknown as { babel?: unknown }).babel = {
+      liberarTudo: () => { ativarLiberacaoTotal(true); location.reload(); },
+      travarTudo: () => { ativarLiberacaoTotal(false); location.reload(); },
+      liberado: () => liberadoTudo(),
+    };
+    if (new URLSearchParams(location.search).get('liberar') === '1') ativarLiberacaoTotal(true);
+  }, []);
 
   const setTheme = (next: ThemeType) => {
     setThemeState(next);
@@ -740,6 +751,7 @@ export default function App() {
               onOpenStudio={() => setIsStudioOpen(true)}
               onReplayTour={() => setOnboarded(false)}
               onAbrirSobre={() => setActiveView('sobre')}
+              nivel={progress.available ? progress.level : 99}
               ageProfile={ageProfile}
               setAgeProfile={setAgeProfile}
               menuPosition={menuPosition}

@@ -29,11 +29,14 @@ export interface EfeitoComposto {
 
 /** Eventos RAROS por acerto, com a probabilidade de cada um. A soma (~4,3%) é o teto por acerto. */
 export const EVENTOS_RAROS: ReadonlyArray<{ prob: number; efeito: EfeitoComposto }> = [
-  { prob: 0.02, efeito: { id: 'patos', nome: 'Chuva de patos', rajadas: [{ kind: 'patos' }], som: 'add' } },
-  { prob: 0.01, efeito: { id: 'voleibol', nome: 'Bola em jogo', rajadas: [{ kind: 'voleibol' }], som: 'speak' } },
-  { prob: 0.007, efeito: { id: 'coracoes', nome: 'Chuva de corações', rajadas: [{ kind: 'coracoes' }], som: 'combo' } },
-  { prob: 0.004, efeito: { id: 'glitch', nome: 'Interferência', rajadas: [{ kind: 'fumaca', vezes: 2 }], som: 'error', tela: 'glitch' } },
-  { prob: 0.002, efeito: { id: 'pizza', nome: 'Rodízio surpresa', rajadas: [{ kind: 'pizza' }], som: 'levelUp' } },
+  // Calibrado para cima em 2026-08-27: a leva anterior (~4%) era invisível numa sessão normal —
+  // o dono jogou várias e não viu nada. A escada continua: quanto mais raro, mais forte.
+  { prob: 0.08, efeito: { id: 'estrelas', nome: 'Chuva de estrelas', rajadas: [{ kind: 'confete' }], som: 'combo' } },
+  { prob: 0.05, efeito: { id: 'patos', nome: 'Chuva de patos', rajadas: [{ kind: 'patos' }], som: 'add' } },
+  { prob: 0.03, efeito: { id: 'voleibol', nome: 'Bola em jogo', rajadas: [{ kind: 'voleibol' }], som: 'speak' } },
+  { prob: 0.03, efeito: { id: 'coracoes', nome: 'Chuva de corações', rajadas: [{ kind: 'coracoes' }], som: 'combo' } },
+  { prob: 0.015, efeito: { id: 'glitch', nome: 'Interferência', rajadas: [{ kind: 'fumaca', vezes: 2 }], som: 'error', tela: 'glitch' } },
+  { prob: 0.012, efeito: { id: 'pizza', nome: 'Rodízio surpresa', rajadas: [{ kind: 'pizza' }], som: 'levelUp', tela: 'zoom' } },
 ];
 
 /**
@@ -63,6 +66,9 @@ export interface ContextoDeJogada {
 /** Eventos garantidos por estado. Podem acumular (combo 10 + fever, por exemplo). */
 export function eventosCondicionais(ctx: ContextoDeJogada): EfeitoComposto[] {
   const lista: EfeitoComposto[] = [];
+  if (ctx.combo === 5) {
+    lista.push({ id: 'aquecendo', nome: 'Aquecendo!', rajadas: [{ kind: 'combo', vezes: 2 }], som: 'combo', tela: 'zoom' });
+  }
   if (ctx.combo === 10) {
     lista.push({ id: 'tempestade', nome: 'Tempestade de raios', rajadas: [{ kind: 'raios', vezes: 3 }], som: 'fever', tela: 'tremor', vibracao: [30] });
   }
@@ -81,7 +87,7 @@ export function eventosCondicionais(ctx: ContextoDeJogada): EfeitoComposto[] {
 /** Ids de todos os eventos existentes — o "colecionável" da antessala conta quantos já foram vistos. */
 export function todosOsEventos(): string[] {
   const raros = EVENTOS_RAROS.map((e) => e.efeito.id);
-  return [...raros, 'tempestade', 'sobrecarga', 'fogos', 'perfeita'];
+  return [...raros, 'aquecendo', 'tempestade', 'sobrecarga', 'fogos', 'perfeita'];
 }
 
 const CHAVE_VISTOS = 'babel.eventos_vistos';

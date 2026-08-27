@@ -1,4 +1,5 @@
 import { emitBurst, type BurstKind } from './effects';
+import { sortearEventoRaro } from './eventosDeJogo';
 import { play } from './soundFx';
 
 /**
@@ -79,6 +80,15 @@ export function comemorar(
   const { x, y } = centro(alvo ?? null);
   emitBurst(x, y, RAJADA[tipo]);
   play(SOM[tipo]);
+  /* EVENTO RARO por acerto, em QUALQUER jogo: o sorteio mora aqui porque `comemorar` é o único
+     vocabulário compartilhado pelos nove — nenhum jogo precisa saber que os patos existem. */
+  if (tipo === 'acerto' || tipo === 'sequencia') {
+    const raro = sortearEventoRaro(Math.random);
+    if (raro) {
+      executarEfeito(raro);
+      pontosFlutuantes(raro.nome + '!', window.innerWidth / 2, window.innerHeight * 0.22, 'bom');
+    }
+  }
   if (opts.texto) pontosFlutuantes(opts.texto, x, y, tipo === 'erro' ? 'ruim' : 'bom');
   if (opts.tremer) tremor(alvo ?? null, tipo === 'rodadaPerfeita' ? 6 : 3);
 }

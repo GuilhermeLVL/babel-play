@@ -20,6 +20,7 @@ import {
   type FonteType,
 } from './appearance';
 import { setSoundTheme, setSoundFonte } from './soundFx';
+import { applyParticulas, readParticulas } from './particulas';
 
 export const THEME_KEY = 'app_theme';
 export const FONTE_KEY = 'app_fonte';
@@ -121,6 +122,7 @@ export function bootTheme(): void {
   applyTheme(readTheme());
   applyDarkMode(readDarkMode());
   applyFonte(readFonte());
+  applyParticulas(readParticulas());
 }
 
 interface PersistOptions {

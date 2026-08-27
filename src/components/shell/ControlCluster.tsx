@@ -23,6 +23,8 @@ import {
   Check, Type, Lock } from 'lucide-react';
 import { THEME_OPTIONS, type ThemeType, FONTE_OPTIONS, type FonteType } from '../../lib/appearance';
 import { desbloqueado, nivelNecessario } from '../../lib/desbloqueios';
+import { PARTICULAS_OPTIONS, readParticulas, setParticulas, type ParticulasType } from '../../lib/particulas';
+import { emitBurst } from '../../lib/effects';
 import { toast } from '../Toast';
 import type { AgeProfileType, MenuPositionType } from './navItems';
 import MenuDaConta from './MenuDaConta';
@@ -108,6 +110,7 @@ function IconButton({
 }
 
 export default function ControlCluster(props: ControlClusterProps) {
+  const [particulasEscolhida, setParticulasEscolhida] = React.useState<ParticulasType>(readParticulas);
   const {
     theme,
     setTheme,
@@ -431,6 +434,31 @@ export default function ControlCluster(props: ControlClusterProps) {
                   >
                     {!desbloqueado(nivel, 'fonte', opt.id, fonte) ? <Lock className="w-3.5 h-3.5" /> : opt.id === 'pixel' ? <Gamepad2 className="w-3.5 h-3.5" /> : <Type className="w-3.5 h-3.5" />}
                     {desbloqueado(nivel, 'fonte', opt.id, fonte) ? opt.name : `${opt.name} · Nv. ${nivelNecessario('fonte', opt.id)}`}
+                  </button>
+                ))}
+              </div>
+            </section>
+
+            {/* Particulas: a skin das comemoracoes comuns. Escolher dispara uma amostra na hora. */}
+            <section>
+              <h3 className="label-mono mb-2 px-1">Partículas</h3>
+              <div className="grid grid-cols-3 gap-1 p-1 bg-surface-hover/70 border border-border-subtle rounded-xl">
+                {PARTICULAS_OPTIONS.map((opt) => (
+                  <button
+                    key={opt.id}
+                    type="button"
+                    title={opt.desc}
+                    onClick={(e) => {
+                      setParticulasEscolhida(setParticulas(opt.id));
+                      const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
+                      emitBurst(r.left + r.width / 2, r.top, 'xp');
+                    }}
+                    aria-pressed={particulasEscolhida === opt.id}
+                    className={`py-2 px-1 rounded-lg font-bold text-[10.5px] cursor-pointer transition-colors ${
+                      particulasEscolhida === opt.id ? 'bg-accent text-accent-contrast' : 'text-ink-muted hover:text-ink hover:bg-surface'
+                    }`}
+                  >
+                    {opt.name}
                   </button>
                 ))}
               </div>

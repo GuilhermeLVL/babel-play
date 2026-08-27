@@ -10,6 +10,8 @@ import LangPicker from '../LangPicker';
 import { BUILTIN_PROFILES, DEFAULT_PROFILE_ID } from '../../gateway/profiles';
 import { fetchSettings, saveSettings, patchUiSettings, fetchMetrics, type AppMetrics } from '../../data/api';
 import { THEME_OPTIONS, type ThemeType } from '../../lib/appearance';
+import { desbloqueado, nivelNecessario } from '../../lib/desbloqueios';
+import { toast } from '../Toast';
 import { baseLang } from '../../lib/languages';
 import {
   langConfigFrom,
@@ -81,6 +83,8 @@ interface SettingsProps {
   onReplayTour: () => void;
   /** Abre a tela Sobre (quem fez o app). Opcional: fora da leve o App pode não passar. */
   onAbrirSobre?: () => void;
+  /** Nível do jogador — a aba de aparência respeita os mesmos cadeados do painel rápido. */
+  nivel?: number;
   ageProfile?: AgeProfileType;
   // Preferências de shell. Vivem no App (localStorage) porque o shell é renderizado fora
   // desta view; aqui esta tela é o lugar CANÔNICO de mexer nelas — o popover da paleta é
@@ -153,6 +157,7 @@ export default function Settings({
   onOpenStudio,
   onReplayTour,
   onAbrirSobre,
+  nivel = 1,
   ageProfile = 'pro',
   setAgeProfile,
   menuPosition,
@@ -495,8 +500,17 @@ export default function Settings({
                 <p className="text-[12px] text-ink-muted mt-0.5">{activeTheme.desc}</p>
               </div>
             </div>
-            <button onClick={onOpenStudio} className="btn-solid shrink-0">
-              <Sparkles className="w-4 h-4" /> Abrir Studio
+            <button
+              onClick={() => {
+                if (!desbloqueado(nivel, 'estudio', 'abrir')) {
+                  toast.info(`O estúdio de cores destrava no nível ${nivelNecessario('estudio', 'abrir')} — continue jogando!`);
+                  return;
+                }
+                onOpenStudio();
+              }}
+              className="btn-solid shrink-0"
+            >
+              <Sparkles className="w-4 h-4" /> {desbloqueado(nivel, 'estudio', 'abrir') ? 'Abrir Studio' : `Studio · Nv. ${nivelNecessario('estudio', 'abrir')}`}
             </button>
           </div>
 
@@ -552,7 +566,13 @@ export default function Settings({
                   <button
                     key={opt.id}
                     type="button"
-                    onClick={() => setMenuPosition(opt.id)}
+                    onClick={() => {
+                      if (!desbloqueado(nivel, 'posicao', opt.id, menuPosition)) {
+                        toast.info(`Alcance o nível ${nivelNecessario('posicao', opt.id)} para liberar esta posição.`);
+                        return;
+                      }
+                      setMenuPosition(opt.id);
+                    }}
                     aria-pressed={menuPosition === opt.id}
                     className={`p-3 rounded-xl border flex flex-col items-center gap-1.5 font-bold text-[12px] cursor-pointer transition-colors ${
                       menuPosition === opt.id

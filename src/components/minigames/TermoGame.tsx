@@ -440,7 +440,7 @@ export default function TermoGame({ rodadas, ageProfile, onFinish, onExit }: Ter
           correspondência não precisa ser explicada.
           No Quarteto, quatro colunas quando a tela permite, empilhado 2×2 metade das grades fica
           fora da tela, e num jogo em que o palpite vale para todas, não ver metade é perder a jogada. */}
-      <div ref={gradeRef} data-tour="tabuleiro" className={`grid gap-x-3 sm:gap-x-6 gap-y-4 mb-4 ${
+      <div ref={gradeRef} data-tour="tabuleiro" className={`grid w-full max-w-6xl gap-x-4 sm:gap-x-10 xl:gap-x-16 gap-y-4 mb-4 justify-items-center ${
         nTabuleiros === 4 ? 'grid-cols-2 xl:grid-cols-4' : nTabuleiros === 2 ? 'grid-cols-2' : 'grid-cols-1'
       }`}>
         {grupo.map((r, tIdx) => {
@@ -499,7 +499,7 @@ export default function TermoGame({ rodadas, ageProfile, onFinish, onExit }: Ter
       {/* TECLADO — o estado vem só dos tabuleiros ainda abertos (ver `estadoDoTecladoMulti`).
           GRUDADO NO PÉ DA TELA: com quatro tabuleiros de nove linhas o conteúdo passa da altura
           da janela, e um teclado que rola para fora deixa o jogo sem entrada. */}
-      <div data-tour="teclado" className="flex flex-col gap-1.5 w-full max-w-md sticky bottom-0 pt-2 pb-1 bg-canvas/95 backdrop-blur-sm z-10">
+      <div data-tour="teclado" className="flex flex-col gap-1.5 w-full max-w-xl sticky bottom-0 pt-2 pb-1 bg-canvas/95 backdrop-blur-sm z-10">
         {LINHAS_TECLADO.map((linha, i) => (
           <div key={linha} className="flex gap-1 justify-center">
             {i === 2 && (

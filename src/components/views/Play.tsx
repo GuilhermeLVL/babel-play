@@ -208,6 +208,12 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
   /* Números do baralho (contagens, mapa, recorte, revisão) COLAPSADOS por padrão: quem chega quer
      jogar, não auditar o acervo, pedido do dono (2026-08-26). A escolha persiste no navegador. */
   const [verRecordes, setVerRecordes] = useState(false);
+  /* Recorde por jogo, para o selo das cartas. Relê ao abrir o painel de recordes e na montagem
+     (o selo da carta pode ficar uma rodada atrás; o painel é sempre atual). */
+  const [recordesMapa, setRecordesMapa] = useState<Map<string, number>>(new Map());
+  useEffect(() => {
+    void fetchRecordes().then((rs) => setRecordesMapa(new Map(rs.map((r) => [r.exerciseKind, r.melhorPontos]))));
+  }, [verRecordes]);
   const [detalhes, setDetalhes] = useState<boolean>(() => { try { return localStorage.getItem('babel.play.detalhes') === '1'; } catch { return false; } });
   const alternarDetalhes = () => setDetalhes((v) => { try { localStorage.setItem('babel.play.detalhes', v ? '0' : '1'); } catch { /* sem storage */ } return !v; });
   const [curando, setCurando] = useState(false);
@@ -2227,8 +2233,8 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
 
                      O bloqueio continua evidente sem custar legibilidade: o cadeado no lugar do
                      ícone, a arte em `grayscale`, o fundo recuado e a frase do motivo. */
-                  className={`card-panel text-left flex flex-col overflow-hidden transition-all relative ${
-                    liberado ? 'bg-surface hover:border-accent hover:-translate-y-0.5' : 'bg-canvas border-dashed'
+                  className={`card-panel text-left flex flex-col overflow-hidden transition-all relative group ${
+                    liberado ? 'bg-surface hover:border-accent hover:-translate-y-1 hover:shadow-card' : 'bg-canvas border-dashed'
                   }`}
                 >
                   {/* A MINIATURA mostra a MECÂNICA antes de a pessoa ler o título — é a diferença
@@ -2245,9 +2251,15 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
                         faz o SVG encaixar por dentro e sobrar fundo nas laterais, o mesmo vão,
                         por outro caminho. O tamanho da arte é controlado pela largura máxima do
                         conteúdo, não por achatar a faixa. */}
-                  <span className={`block w-full aspect-[16/7] bg-canvas border-b border-border-subtle ${liberado ? '' : 'grayscale'}`} aria-hidden>
-                    <ArteDoJogo jogo={j.id} />
+                  <span className={`block w-full aspect-[16/7] bg-canvas border-b border-border-subtle overflow-hidden ${liberado ? '' : 'grayscale'}`} aria-hidden>
+                    <span className="block w-full h-full transition-transform duration-300 group-hover:scale-[1.04]"><ArteDoJogo jogo={j.id} /></span>
                   </span>
+                  {/* O SEU recorde na carta: motivo de voltar ("dá para bater?") sem abrir nada. */}
+                  {liberado && (recordesMapa.get(j.id) ?? 0) > 0 && (
+                    <span className="absolute top-2 right-2 flex items-center gap-1 px-2 py-0.5 rounded-full bg-ink/70 text-white text-[10.5px] font-black tabular-nums backdrop-blur-sm" aria-label={`Seu recorde: ${recordesMapa.get(j.id)} pontos`}>
+                      <TrophyIcon className="w-3 h-3 text-warn" aria-hidden /> {recordesMapa.get(j.id)}
+                    </span>
+                  )}
 
                   <span className="w-full p-4 flex flex-col gap-2 flex-1">
                   <span className="flex items-center gap-2.5">

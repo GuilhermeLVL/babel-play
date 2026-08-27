@@ -171,8 +171,16 @@ export default function ParticleCanvas({ enabled, performanceMode, theme, darkMo
         }
       }
 
-      // Modo ARCADE: qualquer rajada redonda vira quadrado pixelado (a fonte comanda a fisica visual).
+      // A SKIN de particulas (Aparencia) decide a forma das rajadas comuns; a fonte Arcade forca
+      // pixel quando a skin esta no padrao do tema. Rajadas com forma propria (eventos) nao mudam.
+      const skin = typeof document !== 'undefined' ? document.documentElement.getAttribute('data-particulas') : null;
       const modoPixel = typeof document !== 'undefined' && document.documentElement.getAttribute('data-fonte') === 'pixel';
+      const formaDaSkin: import('../lib/effects').FormaParticula | null =
+        skin === 'pixel' ? 'pixel'
+        : skin === 'confete' ? 'confete'
+        : skin === 'coracoes' ? 'coracao'
+        : skin === 'estrelas' ? 'emoji'
+        : null;
       // 'travessia': objetos que cruzam a tela voando; o lado de entrada e sorteado por rajada.
       const dirTravessia = Math.random() < 0.5 ? 1 : -1;
       for (let i = 0; i < spec.count; i++) {
@@ -205,8 +213,8 @@ export default function ParticleCanvas({ enabled, performanceMode, theme, darkMo
           life: ms,
           maxLife: ms,
           color: spec.paleta ? spec.paleta[Math.floor(Math.random() * spec.paleta.length)] : color,
-          forma: spec.forma ?? (modoPixel ? 'pixel' : 'circulo'),
-          emoji: spec.emojis ? spec.emojis[Math.floor(Math.random() * spec.emojis.length)] : undefined,
+          forma: spec.forma ?? formaDaSkin ?? (modoPixel ? 'pixel' : 'circulo'),
+          emoji: spec.emojis ? spec.emojis[Math.floor(Math.random() * spec.emojis.length)] : (!spec.forma && skin === 'estrelas' ? (Math.random() < 0.5 ? '⭐' : '✨') : undefined),
           giro: rand(0, Math.PI * 2),
           giroVel: rand(-0.18, 0.18),
           gravidade: spec.gravidade,

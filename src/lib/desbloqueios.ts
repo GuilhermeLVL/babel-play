@@ -22,9 +22,9 @@ const CATALOGO: Record<TipoDesbloqueavel, Record<string, number>> = {
     premium: 8,
     custom: 10,
   },
-  fonte: {
-    pixel: 5,
-  },
+  // Fonte: LIVRE desde o inicio (decisao do dono, 2026-08-27: a troca padrao/arcade e vitrine
+  // da identidade do app, nao premio). O registro fica vazio de proposito.
+  fonte: {},
   posicao: {
     right: 3,
     bottom: 3,
@@ -35,6 +35,23 @@ const CATALOGO: Record<TipoDesbloqueavel, Record<string, number>> = {
 };
 
 /** Nível necessário para usar o item (1 = livre desde o início). */
+const CHAVE_LIBERADO = 'babel.liberado';
+
+/**
+ * LIBERACAO TOTAL (dono/testes): `window.babel.liberarTudo()` no console, ou `?liberar=1` na URL.
+ * Nao e segredo de seguranca — e cosmetico; existe para demonstracao e validacao.
+ */
+export function liberadoTudo(): boolean {
+  try { return localStorage.getItem(CHAVE_LIBERADO) === '1'; } catch { return false; }
+}
+
+export function ativarLiberacaoTotal(ligar = true): void {
+  try {
+    if (ligar) localStorage.setItem(CHAVE_LIBERADO, '1');
+    else localStorage.removeItem(CHAVE_LIBERADO);
+  } catch { /* sem storage */ }
+}
+
 export function nivelNecessario(tipo: TipoDesbloqueavel, id: string): number {
   return CATALOGO[tipo]?.[id] ?? 1;
 }
@@ -43,6 +60,7 @@ export function nivelNecessario(tipo: TipoDesbloqueavel, id: string): number {
  * `escolhaAtual`: o que a pessoa JÁ usa — nunca é rebaixado (regra 2).
  */
 export function desbloqueado(nivel: number, tipo: TipoDesbloqueavel, id: string, escolhaAtual?: string): boolean {
+  if (liberadoTudo()) return true;
   if (escolhaAtual !== undefined && escolhaAtual === id) return true;
   return nivel >= nivelNecessario(tipo, id);
 }

@@ -20,8 +20,10 @@ import {
   PanelRight,
   PanelTop,
   PanelBottom,
-  Check, Type } from 'lucide-react';
+  Check, Type, Lock } from 'lucide-react';
 import { THEME_OPTIONS, type ThemeType, FONTE_OPTIONS, type FonteType } from '../../lib/appearance';
+import { desbloqueado, nivelNecessario } from '../../lib/desbloqueios';
+import { toast } from '../Toast';
 import type { AgeProfileType, MenuPositionType } from './navItems';
 import MenuDaConta from './MenuDaConta';
 
@@ -43,6 +45,8 @@ export interface ControlClusterProps {
   setMenuPosition: (pos: MenuPositionType) => void;
   fonte: FonteType;
   setFonte: (f: FonteType) => void;
+  /** Nível do jogador (deriveProgress) — aparência é recompensa: o que falta fica com cadeado. */
+  nivel: number;
   soundEnabled: boolean;
   toggleSound: () => void;
   animationsEnabled: boolean;
@@ -120,6 +124,7 @@ export default function ControlCluster(props: ControlClusterProps) {
     setMenuPosition,
   fonte,
   setFonte,
+  nivel,
     soundEnabled,
     toggleSound,
     animationsEnabled,
@@ -357,14 +362,20 @@ export default function ControlCluster(props: ControlClusterProps) {
                   <button
                     key={opt.id}
                     type="button"
-                    onClick={click(() => setMenuPosition(opt.id))}
+                    onClick={click(() => {
+                      if (!desbloqueado(nivel, 'posicao', opt.id, menuPosition)) {
+                        toast.info(`Alcance o nível ${nivelNecessario('posicao', opt.id)} para liberar esta posição.`);
+                        return;
+                      }
+                      setMenuPosition(opt.id);
+                    })}
                     aria-pressed={menuPosition === opt.id}
                     className={`py-2 px-1 rounded-lg font-bold text-[10px] flex flex-col items-center gap-1 cursor-pointer transition-colors ${
-                      menuPosition === opt.id ? 'bg-accent text-accent-contrast' : 'text-ink-muted hover:text-ink hover:bg-surface'
+                      menuPosition === opt.id ? 'bg-accent text-accent-contrast' : desbloqueado(nivel, 'posicao', opt.id, menuPosition) ? 'text-ink-muted hover:text-ink hover:bg-surface' : 'text-ink-faint opacity-60'
                     }`}
                   >
-                    <opt.icon className="w-4 h-4" />
-                    {opt.label}
+                    {desbloqueado(nivel, 'posicao', opt.id, menuPosition) ? <opt.icon className="w-4 h-4" /> : <Lock className="w-4 h-4" />}
+                    {desbloqueado(nivel, 'posicao', opt.id, menuPosition) ? opt.label : `Nv. ${nivelNecessario('posicao', opt.id)}`}
                   </button>
                 ))}
               </div>
@@ -405,15 +416,21 @@ export default function ControlCluster(props: ControlClusterProps) {
                   <button
                     key={opt.id}
                     type="button"
-                    onClick={click(() => setFonte(opt.id))}
+                    onClick={click(() => {
+                      if (!desbloqueado(nivel, 'fonte', opt.id, fonte)) {
+                        toast.info(`A fonte ${opt.name} destrava no nível ${nivelNecessario('fonte', opt.id)} — continue jogando!`);
+                        return;
+                      }
+                      setFonte(opt.id);
+                    })}
                     aria-pressed={fonte === opt.id}
                     title={opt.desc}
                     className={`py-2 px-2 rounded-lg font-bold text-[11px] flex items-center justify-center gap-1.5 cursor-pointer transition-colors ${
                       fonte === opt.id ? 'bg-accent text-accent-contrast' : 'text-ink-muted hover:text-ink hover:bg-surface'
                     }`}
                   >
-                    {opt.id === 'pixel' ? <Gamepad2 className="w-3.5 h-3.5" /> : <Type className="w-3.5 h-3.5" />}
-                    {opt.name}
+                    {!desbloqueado(nivel, 'fonte', opt.id, fonte) ? <Lock className="w-3.5 h-3.5" /> : opt.id === 'pixel' ? <Gamepad2 className="w-3.5 h-3.5" /> : <Type className="w-3.5 h-3.5" />}
+                    {desbloqueado(nivel, 'fonte', opt.id, fonte) ? opt.name : `${opt.name} · Nv. ${nivelNecessario('fonte', opt.id)}`}
                   </button>
                 ))}
               </div>
@@ -427,19 +444,31 @@ export default function ControlCluster(props: ControlClusterProps) {
                   <button
                     key={opt.id}
                     type="button"
-                    onClick={click(() => setTheme(opt.id))}
+                    onClick={click(() => {
+                      if (!desbloqueado(nivel, 'tema', opt.id, theme)) {
+                        toast.info(`O tema ${opt.name} destrava no nível ${nivelNecessario('tema', opt.id)} — continue jogando!`);
+                        return;
+                      }
+                      setTheme(opt.id);
+                    })}
                     className={`w-full text-left px-3 py-2 rounded-xl flex items-center justify-between font-bold text-xs cursor-pointer transition-colors ${
-                      theme === opt.id ? 'bg-accent-soft text-accent-ink' : 'hover:bg-surface-hover text-ink-muted hover:text-ink'
+                      theme === opt.id ? 'bg-accent-soft text-accent-ink' : desbloqueado(nivel, 'tema', opt.id, theme) ? 'hover:bg-surface-hover text-ink-muted hover:text-ink' : 'text-ink-faint opacity-60'
                     }`}
                   >
                     <span>{opt.name}</span>
-                    {theme === opt.id && <Check className="w-3.5 h-3.5 shrink-0" />}
+                    {theme === opt.id ? <Check className="w-3.5 h-3.5 shrink-0" />
+                      : !desbloqueado(nivel, 'tema', opt.id, theme) ? <span className="flex items-center gap-1 text-[10px]"><Lock className="w-3 h-3" /> Nv. {nivelNecessario('tema', opt.id)}</span>
+                      : null}
                   </button>
                 ))}
               </div>
               <button
                 type="button"
                 onClick={() => {
+                  if (!desbloqueado(nivel, 'estudio', 'abrir')) {
+                    toast.info(`O estúdio de cores destrava no nível ${nivelNecessario('estudio', 'abrir')} — a personalização total é o prêmio final.`);
+                    return;
+                  }
                   onOpenStudio();
                   setIsMenuOpen(false);
                 }}

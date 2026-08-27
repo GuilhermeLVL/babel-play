@@ -13,6 +13,7 @@ export type { FontScale } from './shell/ControlCluster';
 interface StudioHeaderProps {
   fonte: ControlClusterProps['fonte'];
   setFonte: ControlClusterProps['setFonte'];
+  nivel: number;
   theme: ThemeType;
   setTheme: (theme: ThemeType) => void;
   darkMode: boolean;
@@ -64,6 +65,7 @@ export default function StudioHeader({
   setMenuPosition,
   fonte,
   setFonte,
+  nivel,
   soundEnabled,
   toggleSound,
   animationsEnabled,
@@ -78,6 +80,7 @@ export default function StudioHeader({
     setTheme,
     fonte,
     setFonte,
+    nivel,
     darkMode,
     toggleDarkMode,
     onOpenStudio,

@@ -33,7 +33,7 @@ import BuscaGlobal from './components/BuscaGlobal';
 import { useCommandPalette } from './components/CommandPalette';
 import type { PracticeSeed } from './lib/sentences';
 import { fetchSessions, fetchSettings, fetchMetrics, patchUiSettings, type AppMetrics } from './data/api';
-import Toaster from './components/Toast';
+import Toaster, { toast } from './components/Toast';
 import { PROFILE_KEY, CREDENTIAL_KEY, MODE_KEY } from './gateway/activeProfile';
 import type { ThemeType, FonteType } from './lib/appearance';
 import { readTheme, readDarkMode, readFonte, hydrateTheme, persistTheme } from './lib/theme';
@@ -54,6 +54,8 @@ import ParticleCanvas from './components/ParticleCanvas';
 import { setSoundMuted, play } from './lib/soundFx';
 import { installSfxDelegate } from './lib/sfxDelegate';
 import { deriveProgress } from './lib/progress';
+import { recompensasDoNivel, rotuloDaRecompensa } from './lib/desbloqueios';
+import { comemorar } from './lib/juice';
 import { isAgeProfile, readAgeProfile, readStoredEnum, readStoredValue } from './lib/profile';
 import { emitBurst } from './lib/effects';
 import { isOnAuthCallback, clearAuthCallbackUrl } from './lib/authCallback';
@@ -356,6 +358,24 @@ export default function App() {
 
   const progress = useMemo(() => deriveProgress(metrics), [metrics]);
 
+  /* SUBIU DE NÍVEL → festa + o que destravou. O último nível visto fica no navegador; na primeira
+     visita só registra (ninguém "sobe" para o nível atual). Aparência é recompensa (desbloqueios). */
+  useEffect(() => {
+    if (!progress.available) return;
+    let visto = 0;
+    try { visto = Number(localStorage.getItem('babel.nivel_visto')) || 0; } catch { /* sem storage */ }
+    if (visto === 0) { try { localStorage.setItem('babel.nivel_visto', String(progress.level)); } catch { /* idem */ } return; }
+    if (progress.level > visto) {
+      try { localStorage.setItem('babel.nivel_visto', String(progress.level)); } catch { /* idem */ }
+      comemorar('subiuNivel', null, { tremer: true });
+      const novidades: string[] = [];
+      for (let n = visto + 1; n <= progress.level; n++) for (const r of recompensasDoNivel(n)) novidades.push(rotuloDaRecompensa(r));
+      toast.ok(novidades.length > 0
+        ? `Nível ${progress.level}! Você destravou: ${novidades.join(', ')}.`
+        : `Nível ${progress.level}! Continue jogando — o próximo desbloqueio vem aí.`);
+    }
+  }, [progress.available, progress.level]);
+
   /**
    * SUBIDA DE NÍVEL — o único momento que a app comemora com força.
    *
@@ -590,6 +610,7 @@ export default function App() {
       setTheme={setTheme}
       fonte={fonte}
       setFonte={setFonte}
+      nivel={progress.available ? progress.level : 99}
       darkMode={darkMode}
       toggleDarkMode={toggleDarkMode}
       onOpenStudio={() => setIsStudioOpen(true)}
@@ -622,6 +643,7 @@ export default function App() {
     fontScale, increaseFontScale, decreaseFontScale,
     menuPosition, setMenuPosition,
     fonte, setFonte,
+    nivel: progress.available ? progress.level : 99,
     soundEnabled, toggleSound,
     animationsEnabled, toggleAnimations,
     performanceMode, togglePerformanceMode,

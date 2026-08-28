@@ -25,15 +25,15 @@ import { gastarSeeds } from '../../data/api';
 import { toast } from '../Toast';
 import { comemorar, explodirAleatorio } from '../../lib/juice';
 import { emitBurst } from '../../lib/effects';
-import { setParticulas, readParticulas, setPack, readPack, PACKS_DE_EMOJI } from '../../lib/particulas';
-import { setCursor, readCursor, CURSORES } from '../../lib/cursores';
-import { setRastro, readRastro } from '../../lib/rastroDoMouse';
+import { readParticulas, readPack, PACKS_DE_EMOJI } from '../../lib/particulas';
+import { readCursor, CURSORES } from '../../lib/cursores';
+import { readRastro } from '../../lib/rastroDoMouse';
 import {
   nivelDoAprimoramento, custoDoProximoNivel, registrarAprimoramento, progressoDoAprimoramento,
   NIVEL_MAXIMO, lerIntensidade, setIntensidade, intensidadeMaxima, type Intensidade,
 } from '../../lib/aprimoramentos';
 import type { ThemeType, FonteType } from '../../lib/appearance';
-import type { MenuPositionType } from '../shell/navItems';
+import type { MenuPositionType, AgeProfileType } from '../shell/navItems';
 import type { DerivedProgress } from '../../lib/progress';
 
 interface LojaProps {
@@ -48,6 +48,9 @@ interface LojaProps {
   /** Contexto das conquistas (montado no App). A aba "Conquistas" mora aqui na edição leve,
    *  onde o Perfil não existe. */
   ctxConquistas: ContextoDeConquistas | null;
+  /** Perfil de exibição — editado na aba Visual (único dono desde 2026-08-28). */
+  ageProfile: AgeProfileType;
+  setAgeProfile: (p: AgeProfileType) => void;
 }
 
 const ICONE_DO_TIPO: Record<string, React.ReactNode> = {
@@ -70,8 +73,9 @@ const FILTROS = [
   { id: 'galeria', nome: 'Galeria' },
 ] as const;
 
-export default function Loja({ progress, theme, setTheme, fonte, setFonte, menuPosition, setMenuPosition, onOpenStudio, ctxConquistas }: LojaProps) {
-  const [aba, setAba] = useState('loja');
+export default function Loja({ progress, theme, setTheme, fonte, setFonte, menuPosition, setMenuPosition, onOpenStudio, ctxConquistas, ageProfile, setAgeProfile }: LojaProps) {
+  // A tela ÚNICA abre no Visual: personalizar é o uso; comprar e conquistar são os caminhos.
+  const [aba, setAba] = useState('personalizar');
   const [filtro, setFiltro] = useState<(typeof FILTROS)[number]['id']>('tudo');
   const [comprando, setComprando] = useState<string | null>(null);
   const [, force] = useState(0);
@@ -96,18 +100,14 @@ export default function Loja({ progress, theme, setTheme, fonte, setFonte, menuP
     return false;
   };
 
-  const equipar = (item: ItemDaLoja, el: HTMLElement | null) => {
-    if (item.tipo === 'tema') setTheme(item.alvo as ThemeType);
-    else if (item.tipo === 'fonte') setFonte(item.alvo as FonteType);
-    else if (item.tipo === 'particulas') { setParticulas(item.alvo as never); force((n) => n + 1); }
-    else if (item.tipo === 'posicao') setMenuPosition(item.alvo as MenuPositionType);
-    else if (item.tipo === 'pack') { setPack(item.alvo); force((n) => n + 1); }
-    else if (item.tipo === 'cursor') { setCursor(item.alvo); force((n) => n + 1); }
-    else if (item.tipo === 'rastro') { setRastro(item.alvo); force((n) => n + 1); }
-    else if (item.tipo === 'estudio') { onOpenStudio(); return; }
-    // Capacidades da galeria não se "equipam": abrem a aba de personalização, onde são usadas.
-    else if (item.tipo === 'galeria') { setAba('personalizar'); return; }
-    comemorar('acerto', el, { texto: 'Equipado!' });
+  /**
+   * CENTRALIZAÇÃO (2026-08-28): a Loja COMPRA/LIBERA; quem EQUIPA é a aba Visual, e só ela.
+   * Antes "Equipar" aqui era o terceiro caminho para os mesmos setters (cluster, Estúdio, Loja) —
+   * e a galeria tinha um quarto. Um item liberado leva à aba Visual, já na peça certa.
+   */
+  const equipar = (item: ItemDaLoja) => {
+    if (item.tipo === 'estudio') { onOpenStudio(); return; }
+    setAba('personalizar');
   };
 
   /** Compra o PRÓXIMO nível de um aprimoramento (spendId por nível: idempotente por degrau). */
@@ -197,13 +197,20 @@ export default function Loja({ progress, theme, setTheme, fonte, setFonte, menuP
         aoTrocar={setAba}
         itens={[
           { id: 'loja', rotulo: 'Loja', icone: <ShoppingBag className="w-4 h-4" /> },
-          { id: 'personalizar', rotulo: 'Perfis & criar o seu', icone: <Wand2 className="w-4 h-4" /> },
-          { id: 'conquistas', rotulo: 'Conquistas & como ganhar', icone: <Trophy className="w-4 h-4" /> },
+          { id: 'personalizar', rotulo: 'Visual', icone: <Wand2 className="w-4 h-4" /> },
+          { id: 'conquistas', rotulo: 'Conquistas', icone: <Trophy className="w-4 h-4" /> },
         ]}
       />
 
       <PainelDeAba id="personalizar" ativo={aba}>
-        <Personalizar theme={theme} setTheme={setTheme} fonte={fonte} setFonte={setFonte} nivel={nivel} saldo={saldo} onIrParaLoja={() => { setAba('loja'); setFiltro('galeria'); }} />
+        <Personalizar
+          theme={theme} setTheme={setTheme} fonte={fonte} setFonte={setFonte}
+          nivel={nivel} saldo={saldo}
+          ageProfile={ageProfile} setAgeProfile={setAgeProfile}
+          menuPosition={menuPosition} setMenuPosition={setMenuPosition}
+          onOpenStudio={onOpenStudio}
+          onIrParaLoja={() => { setAba('loja'); setFiltro('galeria'); }}
+        />
       </PainelDeAba>
 
       <PainelDeAba id="conquistas" ativo={aba}>
@@ -373,13 +380,14 @@ export default function Loja({ progress, theme, setTheme, fonte, setFonte, menuP
                   })()
                 ) : estado === 'equipavel' ? (
                   <button
-                    onClick={(e) => equipar(item, e.currentTarget)}
-                    disabled={equipado}
+                    onClick={() => equipar(item)}
                     className={`w-full py-2.5 rounded-xl font-bold text-[13px] transition-all cursor-pointer ${
-                      equipado ? 'bg-good-soft text-good-ink cursor-default' : 'bg-accent hover:bg-accent-ink text-white shadow-btn'
+                      equipado ? 'bg-good-soft text-good-ink' : 'bg-canvas border border-border-subtle text-ink hover:border-accent'
                     }`}
                   >
-                    {equipado ? <span className="inline-flex items-center gap-1.5"><Check className="w-4 h-4" /> Equipado</span> : item.tipo === 'estudio' ? 'Abrir o Estúdio' : item.tipo === 'galeria' ? 'Usar em Perfis & criar' : 'Equipar'}
+                    {equipado
+                      ? <span className="inline-flex items-center gap-1.5"><Check className="w-4 h-4" /> Em uso · ver no Visual</span>
+                      : item.tipo === 'estudio' ? 'Abrir o Estúdio' : <span className="inline-flex items-center gap-1.5"><Check className="w-4 h-4 text-good" /> Liberado · usar no Visual</span>}
                   </button>
                 ) : estado === 'compravel' ? (
                   <button

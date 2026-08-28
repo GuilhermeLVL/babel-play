@@ -82,8 +82,9 @@ const TODOS_OS_ITENS: NavItemDef[] = [
     // A vitrine da progressão: desbloqueios por nível e compras com Seeds.
     id: 'loja',
     icon: ShoppingBag,
-    short: 'Loja',
-    labels: { kids: 'Loja', pro: 'Loja', senior: 'Loja de Prêmios' },
+    short: 'Personalizar',
+    /* A tela ÚNICA de personalização (2026-08-28): visual, loja e conquistas num lugar só. */
+    labels: { kids: 'Meu visual', pro: 'Personalizar', senior: 'Personalizar' },
     secondary: true
   },
   {

@@ -78,3 +78,22 @@ for exclusivo). Mapa em `lib/galeria/acesso.ts`:
 O editor nunca esconde: mostra o cadeado, o motivo e "Obter · N Seeds". Presets trancados listam o
 que falta. Tela reorganizada: "Seu visual agora" + perfis + acordeão (uma peça por vez) com um
 seletor de emojis único.
+
+### Centralização (2026-08-28) — uma tela, um dono por preferência
+
+Mapeado antes de mexer: tema editável em 4 lugares (Estúdio, cluster morto, Loja, Personalizar),
+paleta em 3 galerias que discordavam, som/animações/desempenho em 2, perfil/posição em 3, e dois
+furos de gate (Estúdio e galeria de paletas contornavam o nível). Depois:
+
+| Preferência | Único dono |
+| --- | --- |
+| tema, paleta, fonte, partículas, emojis, cursor, rastro, perfil de exibição, posição do menu, perfis | **Personalizar › Visual** |
+| cores livres e layout dos painéis | Estúdio (aberto SÓ pelo Visual, com o gate do nível/Loja) |
+| comprar/liberar | Personalizar › Loja (não equipa mais; "Liberado · usar no Visual") |
+| tamanho do texto, som, animações, desempenho, claro/escuro | barra de controles (sempre à vista) |
+| idioma, captura, motores, conta, dados | Ajustes (sem aparência) |
+
+Removidos: popover de Aparência do cluster (170 linhas atrás de flag falsa), seções Aparência e
+Desempenho dos Ajustes, Modo/Tema/galeria do Estúdio, "Equipar" da Loja. Segurança: o atalho
+`window.babel.liberarTudo()` / `?liberar=1` só existe em desenvolvimento, e o Ajustes deixou de
+assumir nível 99 enquanto as métricas carregam.

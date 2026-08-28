@@ -327,6 +327,10 @@ export default function App() {
   /* LIBERACAO TOTAL para demonstracao: `window.babel.liberarTudo()` (ou `.travarTudo()`) no
      console, ou abrir com `?liberar=1`. So destrava cosmeticos (temas/posicoes/estudio). */
   useEffect(() => {
+    /* SÓ EM DESENVOLVIMENTO (2026-08-28): na versão publicada este atalho era um jeito de burlar
+       níveis, Seeds e conquistas. Em produção o objeto e o parâmetro `?liberar` não existem. */
+    const env = (import.meta as unknown as { env?: { DEV?: boolean } }).env;
+    if (!env?.DEV) return;
     (window as unknown as { babel?: unknown }).babel = {
       liberarTudo: () => { ativarLiberacaoTotal(true); location.reload(); },
       travarTudo: () => { ativarLiberacaoTotal(false); location.reload(); },
@@ -807,6 +811,8 @@ export default function App() {
               setMenuPosition={setMenuPosition}
               onOpenStudio={() => setIsStudioOpen(true)}
               ctxConquistas={ctxConquistas}
+              ageProfile={ageProfile}
+              setAgeProfile={setAgeProfile}
             />
           )}
           {activeView === 'settings' && (
@@ -816,7 +822,10 @@ export default function App() {
               onOpenStudio={() => setIsStudioOpen(true)}
               onReplayTour={() => setOnboarded(false)}
               onAbrirSobre={() => setActiveView('sobre')}
-              nivel={progress.available ? progress.level : 99}
+              onChangeView={navigateTo}
+              /* Era 99 enquanto as métricas não chegavam: um clique rápido nos Ajustes abria tudo
+                 como nível 99. Sem métrica, nível 1 — a régua nunca é generosa por engano. */
+              nivel={progress.available ? progress.level : 1}
               ageProfile={ageProfile}
               setAgeProfile={setAgeProfile}
               menuPosition={menuPosition}

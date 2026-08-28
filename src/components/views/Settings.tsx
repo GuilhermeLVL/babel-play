@@ -1,4 +1,4 @@
-import { Moon, Sun, User, Shield, Sparkles, Server, Target, Globe, Mic, Layers, Video, PenTool, BarChart2, Languages, Palette, PlayCircle, AlertTriangle, Gamepad2, Zap, Eye, PanelTop, PanelBottom, PanelLeft, PanelRight, Volume2, Gauge, Type } from 'lucide-react';
+import { User, Shield, Sparkles, Server, Target, Globe, Mic, Layers, Video, PenTool, BarChart2, Languages, Palette, PlayCircle, AlertTriangle, Gamepad2, Zap, Eye } from 'lucide-react';
 import { EDICAO_LEVE } from '../../lib/edicao';
 import TranscricaoLeve from '../TranscricaoLeve';
 import React, { useEffect, useRef, useState } from 'react';
@@ -9,9 +9,7 @@ import LangAudit from './LangAudit';
 import LangPicker from '../LangPicker';
 import { BUILTIN_PROFILES, DEFAULT_PROFILE_ID } from '../../gateway/profiles';
 import { fetchSettings, saveSettings, patchUiSettings, fetchMetrics, type AppMetrics } from '../../data/api';
-import { THEME_OPTIONS, type ThemeType } from '../../lib/appearance';
-import { desbloqueado, nivelNecessario } from '../../lib/desbloqueios';
-import { toast } from '../Toast';
+import type { ThemeType } from '../../lib/appearance';
 import { baseLang } from '../../lib/languages';
 import {
   langConfigFrom,
@@ -100,76 +98,18 @@ interface SettingsProps {
   toggleAnimations: () => void;
   performanceMode: boolean;
   togglePerformanceMode: () => void;
+  /** Navegar para outra tela (o atalho "Abrir Personalizar"). */
+  onChangeView: (view: string) => void;
 }
 
-/** Interruptor com rótulo e explicação — o padrão desta tela para preferências booleanas. */
-function PrefToggle({
-  icon: Icon,
-  title,
-  description,
-  checked,
-  onChange,
-  onLabel = 'Ligado',
-  offLabel = 'Desligado'
-}: {
-  icon: React.ComponentType<{ className?: string }>;
-  title: string;
-  description: string;
-  checked: boolean;
-  onChange: () => void;
-  onLabel?: string;
-  offLabel?: string;
-}) {
-  return (
-    <button
-      type="button"
-      role="switch"
-      aria-checked={checked}
-      onClick={onChange}
-      className="w-full p-5 flex items-start gap-4 text-left cursor-pointer hover:bg-surface-hover/50 transition-colors"
-    >
-      <span
-        className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${
-          checked ? 'bg-accent-soft text-accent-ink' : 'bg-surface-hover text-ink-muted'
-        }`}
-        aria-hidden
-      >
-        <Icon className="w-4 h-4" />
-      </span>
-      <span className="min-w-0 flex-1">
-        <span className="block font-bold text-[14px] text-ink">{title}</span>
-        <span className="block text-[12px] text-ink-muted mt-0.5">{description}</span>
-      </span>
-      <span
-        className={`shrink-0 mt-1 text-[11px] font-mono font-bold px-2.5 py-1 rounded-full border ${
-          checked ? 'bg-good-soft text-good-ink border-good/30' : 'bg-surface-hover text-ink-muted border-border-subtle'
-        }`}
-      >
-        {checked ? onLabel : offLabel}
-      </span>
-    </button>
-  );
-}
 
+/* As props de aparência/efeitos continuam no contrato (o App as passa), mas esta tela NÃO as
+   edita mais — ver o bloco "Aparência" abaixo. Só o que é usado é desestruturado. */
 export default function Settings({
-  theme,
-  darkMode,
-  onOpenStudio,
   onReplayTour,
   onAbrirSobre,
-  nivel = 1,
   ageProfile = 'pro',
-  setAgeProfile,
-  menuPosition,
-  setMenuPosition,
-  fontScale,
-  setFontScale,
-  soundEnabled,
-  toggleSound,
-  animationsEnabled,
-  toggleAnimations,
-  performanceMode,
-  togglePerformanceMode
+  onChangeView
 }: SettingsProps) {
   /**
    * Idiomas do usuário — a configuração REAL, lida e escrita por `lib/langConfig`.
@@ -303,7 +243,6 @@ export default function Settings({
     await patchUiSettings({ onboarded: false });
     window.location.reload();
   };
-  const activeTheme = THEME_OPTIONS.find(t => t.id === theme) ?? THEME_OPTIONS[0];
 
   const setGoal = (goal: string) => { void persistUi({ ...ui, goal }); };
   const setPersona = (persona: string) => { void persistUi({ ...ui, persona }); };
@@ -474,182 +413,27 @@ export default function Settings({
       {/* ═════════════ COMO O APP SE PARECE ═════════════ */}
       <PainelDeAba id="aparencia" ativo={aba} className="space-y-8">
 
-        {/* Aparência — o seletor completo vive no Studio (tema, paleta, layout).
-            Aqui mostramos só o estado atual e o atalho, para não manter dois
-            controles concorrentes escrevendo a mesma preferência. */}
+        {/* CENTRALIZAÇÃO (2026-08-28): tema, perfil de exibição, posição do menu, tamanho do texto,
+            som, animações e desempenho SAÍRAM daqui. Cada um tem agora UM dono: o visual inteiro
+            vive em Personalizar; os interruptores de acessibilidade (texto, som, animações,
+            desempenho, claro/escuro) vivem só na barra de controles, visíveis em toda tela. Dois
+            controles para a mesma preferência era a confusão (e a brecha) que o dono pediu para
+            remover. */}
         <section>
           <div className="flex items-center gap-2 mb-4 text-ink">
             <Palette className="w-5 h-5" />
             <h2 className="font-display font-bold text-lg">Aparência</h2>
           </div>
-          <div className="card-panel p-5 flex flex-col md:flex-row md:items-center justify-between gap-4">
-            <div className="flex items-center gap-4 min-w-0">
-              <div className="flex -space-x-1.5 shrink-0">
-                {[activeTheme.swatches.canvas, activeTheme.swatches.surface, activeTheme.swatches.accent, activeTheme.swatches.ink].map((c, i) => (
-                  <span key={i} className="w-7 h-7 rounded-full border-2 border-surface shadow-sm" style={{ backgroundColor: c }} />
-                ))}
-              </div>
-              <div className="min-w-0">
-                <div className="font-bold text-[14px] text-ink flex items-center gap-2">
-                  {activeTheme.name}
-                  <span className="kpi-pill cursor-default text-[11px] gap-1">
-                    {darkMode ? <Moon className="w-3 h-3" /> : <Sun className="w-3 h-3" />}
-                    {darkMode ? 'Escuro' : 'Claro'}
-                  </span>
-                </div>
-                <p className="text-[12px] text-ink-muted mt-0.5">{activeTheme.desc}</p>
-              </div>
-            </div>
-            <button
-              onClick={() => {
-                if (!desbloqueado(nivel, 'estudio', 'abrir')) {
-                  toast.info(`O estúdio de cores destrava no nível ${nivelNecessario('estudio', 'abrir')} — continue jogando!`);
-                  return;
-                }
-                onOpenStudio();
-              }}
-              className="btn-solid shrink-0"
-            >
-              <Sparkles className="w-4 h-4" /> {desbloqueado(nivel, 'estudio', 'abrir') ? 'Abrir Studio' : `Studio · Nv. ${nivelNecessario('estudio', 'abrir')}`}
+          <div className="card-panel p-5 space-y-3">
+            <p className="text-[13px] text-ink">
+              Tudo que muda a cara do app mora numa tela só: <b>Personalizar</b> (no menu). Tema e paletas, fonte, partículas, emojis, cursor, rastro, perfil de exibição, posição do menu, perfis prontos, a Loja e as conquistas.
+            </p>
+            <p className="text-[12.5px] text-ink-muted">
+              Tamanho do texto, som, animações, modo desempenho e claro/escuro ficam nos botões da barra de controles, sempre à vista.
+            </p>
+            <button onClick={() => onChangeView('loja')} className="btn-solid">
+              <Sparkles className="w-4 h-4" /> Abrir Personalizar
             </button>
-          </div>
-
-          {/* Perfil de exibição — a MESMA preferência do popover da paleta, escrita aqui com
-              espaço para explicar o que cada uma faz. O atalho continua no topo; o lugar de
-              entender a escolha é este. */}
-          <div className="card-panel mt-4">
-            <div className="p-5 border-b border-border-subtle">
-              <div className="font-bold text-[14px] mb-1">Perfil de exibição</div>
-              <p className="text-[12px] text-ink-muted mb-3">
-                Muda a linguagem e a densidade das telas. Não muda o tema nem esconde recurso nenhum.
-              </p>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                {([
-                  { id: 'kids' as const, icon: Gamepad2, label: 'Kids / Gamer', desc: 'Missões, recompensas e linguagem de jogo.' },
-                  { id: 'pro' as const, icon: Zap, label: 'Produtividade', desc: 'Densidade alta e vocabulário técnico.' },
-                  { id: 'senior' as const, icon: Eye, label: 'Leitura ampliada', desc: 'Passo a passo, alvos de 48px e mais respiro.' }
-                ]).map((opt) => (
-                  <button
-                    key={opt.id}
-                    type="button"
-                    onClick={() => setAgeProfile(opt.id)}
-                    aria-pressed={ageProfile === opt.id}
-                    className={`p-3 rounded-xl border text-left cursor-pointer transition-colors ${
-                      ageProfile === opt.id
-                        ? 'border-accent bg-accent-soft text-accent-ink'
-                        : 'border-border-subtle bg-surface hover:border-accent text-ink-muted'
-                    }`}
-                  >
-                    <span className="flex items-center gap-2 font-bold text-[13px]">
-                      <opt.icon className="w-4 h-4 shrink-0" aria-hidden /> {opt.label}
-                    </span>
-                    <span className="block text-[11.5px] mt-1 opacity-80">{opt.desc}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Posição do menu — o pedido explícito: dar liberdade de escolher onde a navegação fica. */}
-            <div className="p-5 border-b border-border-subtle">
-              <div className="font-bold text-[14px] mb-1">Posição do menu de navegação</div>
-              <p className="text-[12px] text-ink-muted mb-3">
-                Vale para telas grandes. No celular a app é sempre controles em cima e destinos embaixo,
-                que é o que a mão alcança.
-              </p>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                {([
-                  { id: 'top' as const, icon: PanelTop, label: 'No topo' },
-                  { id: 'left' as const, icon: PanelLeft, label: 'À esquerda' },
-                  { id: 'right' as const, icon: PanelRight, label: 'À direita' },
-                  { id: 'bottom' as const, icon: PanelBottom, label: 'Embaixo' }
-                ]).map((opt) => (
-                  <button
-                    key={opt.id}
-                    type="button"
-                    onClick={() => {
-                      if (!desbloqueado(nivel, 'posicao', opt.id, menuPosition)) {
-                        toast.info(`Alcance o nível ${nivelNecessario('posicao', opt.id)} para liberar esta posição.`);
-                        return;
-                      }
-                      setMenuPosition(opt.id);
-                    }}
-                    aria-pressed={menuPosition === opt.id}
-                    className={`p-3 rounded-xl border flex flex-col items-center gap-1.5 font-bold text-[12px] cursor-pointer transition-colors ${
-                      menuPosition === opt.id
-                        ? 'border-accent bg-accent-soft text-accent-ink'
-                        : 'border-border-subtle bg-surface hover:border-accent text-ink-muted'
-                    }`}
-                  >
-                    <opt.icon className="w-5 h-5" aria-hidden /> {opt.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Escala de texto — o MESMO estado do A-/A+ do topo, uma fonte só de verdade. */}
-            <div className="p-5">
-              <div className="font-bold text-[14px] mb-1">Tamanho do texto</div>
-              <p className="text-[12px] text-ink-muted mb-3">
-                Escala tudo de uma vez, mantendo as proporções entre título, texto e rótulo.
-              </p>
-              <div className="flex flex-wrap gap-2">
-                {([
-                  { id: 'sm' as const, label: 'Compacto', px: 13 },
-                  { id: 'md' as const, label: 'Padrão', px: 15 },
-                  { id: 'lg' as const, label: 'Grande', px: 17 },
-                  { id: 'xl' as const, label: 'Muito grande', px: 19 }
-                ]).map((opt) => (
-                  <button
-                    key={opt.id}
-                    type="button"
-                    onClick={() => setFontScale(opt.id)}
-                    aria-pressed={fontScale === opt.id}
-                    className={`px-4 py-2.5 rounded-xl border font-bold cursor-pointer transition-colors flex items-center gap-2 ${
-                      fontScale === opt.id
-                        ? 'border-accent bg-accent-soft text-accent-ink'
-                        : 'border-border-subtle bg-surface hover:border-accent text-ink-muted'
-                    }`}
-                    style={{ fontSize: opt.px }}
-                  >
-                    <Type className="w-4 h-4 shrink-0" aria-hidden /> {opt.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* Desempenho e efeitos — o modo ultra leve pedido para PCs modestos, e os interruptores
-            de som e de movimento. Antes só existiam como ícones no topo, sem explicação. */}
-        <section>
-          <div className="flex items-center gap-2 mb-4 text-ink">
-            <Gauge className="w-5 h-5" />
-            <h2 className="font-display font-bold text-lg">Desempenho e efeitos</h2>
-          </div>
-          <div className="card-panel divide-y divide-border-subtle">
-            <PrefToggle
-              icon={Gauge}
-              title="Modo ultra desempenho"
-              description="Desliga desfoques, sombras compostas e gradientes. Para PCs modestos, o app fica mais simples e bem mais leve."
-              checked={performanceMode}
-              onChange={togglePerformanceMode}
-              onLabel="Ativo"
-              offLabel="Inativo"
-            />
-            <PrefToggle
-              icon={Sparkles}
-              title="Animações e partículas"
-              description="Transições, brilhos e a poeira luminosa de fundo. Se o sistema já pede menos movimento, o app respeita isso sozinho."
-              checked={animationsEnabled}
-              onChange={toggleAnimations}
-            />
-            <PrefToggle
-              icon={Volume2}
-              title="Sons da interface"
-              description="Cliques curtos ao navegar e ao concluir uma ação. Não afeta o áudio das gravações nem a pronúncia."
-              checked={soundEnabled}
-              onChange={toggleSound}
-            />
           </div>
         </section>
 

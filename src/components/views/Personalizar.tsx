@@ -15,7 +15,12 @@ import {
 import { PARTICULAS_OPTIONS, PACKS_DE_EMOJI, PACK_CUSTOM, readParticulas, setParticulas, readPack, setPack, setPackCustom, lerPackCustom, type ParticulasType } from '../../lib/particulas';
 import { CURSORES, readCursor, setCursor, idDeCursorDeEmoji, emojiDoCursor } from '../../lib/cursores';
 import { FORMAS_DE_RASTRO, RASTROS, readRastro, setRastro, estiloDeRastro, idDeRastroGerado, idDeRastroDeEmojis } from '../../lib/rastroDoMouse';
-import { applyCustomColors, FONTE_OPTIONS, type ThemeType, type FonteType } from '../../lib/appearance';
+import { applyCustomColors, FONTE_OPTIONS, THEME_OPTIONS, type ThemeType, type FonteType } from '../../lib/appearance';
+import { desbloqueado, nivelNecessario } from '../../lib/desbloqueios';
+import { CATALOGO_DA_LOJA } from '../../lib/loja';
+import { acessoAoItem } from '../../lib/galeria/acesso';
+import type { AgeProfileType, MenuPositionType } from '../shell/navItems';
+import { Gamepad2, Zap, Eye, PanelTop, PanelLeft, PanelRight, PanelBottom, Monitor, SlidersHorizontal } from 'lucide-react';
 
 /**
  * PERSONALIZAR — presets completos e o editor "Monte o seu", NA MESMA RÉGUA DA LOJA.
@@ -36,11 +41,18 @@ interface PersonalizarProps {
   nivel: number;
   saldo: number;
   onIrParaLoja: () => void;
+  /* CENTRALIZAÇÃO (2026-08-28): perfil de exibição, posição do menu e o Estúdio também moram
+     aqui agora — eram editados em Ajustes, no cluster e na Loja. */
+  ageProfile: AgeProfileType;
+  setAgeProfile: (p: AgeProfileType) => void;
+  menuPosition: MenuPositionType;
+  setMenuPosition: (p: MenuPositionType) => void;
+  onOpenStudio: () => void;
 }
 
-type Secao = 'paleta' | 'fonte' | 'particulas' | 'emojis' | 'cursor' | 'rastro';
+type Secao = 'tema' | 'paleta' | 'fonte' | 'particulas' | 'emojis' | 'cursor' | 'rastro' | 'tela';
 
-export default function Personalizar({ theme, setTheme, fonte, setFonte, nivel, saldo, onIrParaLoja }: PersonalizarProps) {
+export default function Personalizar({ theme, setTheme, fonte, setFonte, nivel, saldo, onIrParaLoja, ageProfile, setAgeProfile, menuPosition, setMenuPosition, onOpenStudio }: PersonalizarProps) {
   const [, force] = useState(0);
   const rerender = () => force((n) => n + 1);
   const [aberta, setAberta] = useState<Secao | null>(null);
@@ -241,6 +253,36 @@ export default function Personalizar({ theme, setTheme, fonte, setFonte, nivel, 
       {/* ── MONTE O SEU (acordeão) ── */}
       <p className="label-mono">Monte o seu, peça por peça</p>
       <div className="space-y-2">
+        <Secao id="tema" icone={<Monitor className="w-4 h-4" />} titulo="Tema pronto" resumo={THEME_OPTIONS.find((t) => t.id === theme)?.name ?? theme}>
+          {/* Os temas NATIVOS (CSS completo) — antes escolhidos no Estúdio sem cadeado nenhum, o
+              furo que deixava equipar o tema de nível 10 no nível 1. Aqui a régua da Loja vale. */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
+            {THEME_OPTIONS.filter((t) => t.id !== 'custom').map((t) => {
+              const item = CATALOGO_DA_LOJA.find((i) => i.tipo === 'tema' && i.alvo === t.id);
+              const a = acessoAoItem(item?.id, nivel, saldoAgora);
+              const ativo = theme === t.id;
+              return (
+                <button key={t.id} disabled={!a.liberado} onClick={() => setTheme(t.id)} aria-pressed={ativo} title={a.liberado ? t.desc : `${t.name} · ${a.motivo}`} className={`rounded-xl border-2 overflow-hidden text-left cursor-pointer transition-all disabled:opacity-50 disabled:cursor-not-allowed ${ativo ? 'border-accent' : 'border-border-subtle hover:border-accent/60'}`}>
+                  <span className="flex gap-1 p-2" style={{ backgroundColor: t.swatches.canvas }}>
+                    {[t.swatches.surface, t.swatches.accent, t.swatches.ink].map((c, i) => <span key={i} className="w-5 h-5 rounded-full border border-surface" style={{ backgroundColor: c }} />)}
+                  </span>
+                  <span className="flex items-center justify-between px-2 py-1 bg-surface">
+                    <span className="text-[11px] font-bold text-ink truncate">{t.name}</span>
+                    {ativo ? <Check className="w-3 h-3 text-accent shrink-0" /> : !a.liberado ? <Lock className="w-3 h-3 text-ink-faint shrink-0" /> : null}
+                  </span>
+                  {!a.liberado && <span className="block px-2 pb-1.5 bg-surface"><Cadeado a={a} compacto /></span>}
+                </button>
+              );
+            })}
+          </div>
+          <div className="mt-3 flex flex-wrap items-center gap-2 text-[12.5px] text-ink-muted">
+            <span>Cores livres e layout das telas:</span>
+            {desbloqueado(nivel, 'estudio', 'abrir')
+              ? <button onClick={onOpenStudio} className="btn-outline text-[12px] py-1.5"><SlidersHorizontal className="w-3.5 h-3.5" aria-hidden /> Abrir o Estúdio</button>
+              : <span className="inline-flex items-center gap-1"><Lock className="w-3 h-3" aria-hidden /> Estúdio · Nível {nivelNecessario('estudio', 'abrir')} ou pela Loja</span>}
+          </div>
+        </Secao>
+
         <Secao id="paleta" icone={<Palette className="w-4 h-4" />} titulo="Paleta de cores" resumo={`${paletaNome} · ${todasAsPaletas().length} paletas em 6 estilos`}>
           <div className="flex flex-wrap items-center gap-2 mb-3">
             <label className="relative flex-1 min-w-[12rem]">
@@ -376,6 +418,45 @@ export default function Personalizar({ theme, setTheme, fonte, setFonte, nivel, 
             </div>
           </div>
           <p className="text-[11.5px] text-ink-faint mt-2">Rastro atual: {estiloDeRastro(rastroAtual)?.nome ?? 'desligado'}. Mexa o mouse para ver.</p>
+        </Secao>
+
+        <Secao id="tela" icone={<Monitor className="w-4 h-4" />} titulo="Tela: perfil de exibição e posição do menu" resumo={`${ageProfile === 'kids' ? 'Kids / Gamer' : ageProfile === 'senior' ? 'Leitura ampliada' : 'Produtividade'} · menu ${menuPosition === 'top' ? 'no topo' : menuPosition === 'left' ? 'à esquerda' : menuPosition === 'right' ? 'à direita' : 'embaixo'}`}>
+          <p className="text-[12px] font-bold text-ink mb-1.5">Perfil de exibição</p>
+          <p className="text-[12px] text-ink-muted mb-2">Muda a linguagem e a densidade das telas. Não muda o tema nem esconde recurso nenhum.</p>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mb-4">
+            {([
+              { id: 'kids' as const, icon: Gamepad2, label: 'Kids / Gamer', desc: 'Missões, recompensas e linguagem de jogo.' },
+              { id: 'pro' as const, icon: Zap, label: 'Produtividade', desc: 'Densidade alta e vocabulário técnico.' },
+              { id: 'senior' as const, icon: Eye, label: 'Leitura ampliada', desc: 'Passo a passo, alvos de 48px e mais respiro.' },
+            ]).map((opt) => (
+              <button key={opt.id} onClick={() => setAgeProfile(opt.id)} aria-pressed={ageProfile === opt.id} className={`p-3 rounded-xl border text-left cursor-pointer transition-colors ${ageProfile === opt.id ? 'border-accent bg-accent-soft text-accent-ink' : 'border-border-subtle bg-canvas hover:border-accent text-ink-muted'}`}>
+                <span className="flex items-center gap-2 font-bold text-[13px]"><opt.icon className="w-4 h-4 shrink-0" aria-hidden /> {opt.label}</span>
+                <span className="block text-[11.5px] mt-1 opacity-80">{opt.desc}</span>
+              </button>
+            ))}
+          </div>
+          <p className="text-[12px] font-bold text-ink mb-1.5">Posição do menu</p>
+          <p className="text-[12px] text-ink-muted mb-2">Vale para telas grandes. No celular a app é sempre controles em cima e destinos embaixo.</p>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+            {([
+              { id: 'top' as const, icon: PanelTop, label: 'No topo' },
+              { id: 'left' as const, icon: PanelLeft, label: 'À esquerda' },
+              { id: 'right' as const, icon: PanelRight, label: 'À direita' },
+              { id: 'bottom' as const, icon: PanelBottom, label: 'Embaixo' },
+            ]).map((opt) => {
+              const livre = desbloqueado(nivel, 'posicao', opt.id, menuPosition);
+              const item = CATALOGO_DA_LOJA.find((i) => i.tipo === 'posicao' && i.alvo === opt.id);
+              const a = livre ? { liberado: true } as Acesso : acessoAoItem(item?.id, nivel, saldoAgora);
+              return (
+                <div key={opt.id} className="flex flex-col gap-1">
+                  <button disabled={!a.liberado} onClick={() => setMenuPosition(opt.id)} aria-pressed={menuPosition === opt.id} className={`p-3 rounded-xl border flex flex-col items-center gap-1.5 font-bold text-[12px] cursor-pointer transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${menuPosition === opt.id ? 'border-accent bg-accent-soft text-accent-ink' : 'border-border-subtle bg-canvas hover:border-accent text-ink-muted'}`}>
+                    {a.liberado ? <opt.icon className="w-5 h-5" aria-hidden /> : <Lock className="w-5 h-5" aria-hidden />} {opt.label}
+                  </button>
+                  {!a.liberado && <Cadeado a={a} compacto />}
+                </div>
+              );
+            })}
+          </div>
         </Secao>
       </div>
     </div>

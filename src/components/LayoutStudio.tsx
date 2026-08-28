@@ -1,7 +1,6 @@
-import { comemorar } from '../lib/juice';
 import React, { useEffect, useState } from 'react';
 import {
-  X, Palette, LayoutGrid, Sun, Moon, Sparkles, RotateCcw, Move,
+  X, Palette, LayoutGrid, Sparkles, RotateCcw, Move,
   Eye, EyeOff, Check, SlidersHorizontal, ChevronDown,
   Home, Mic, Library as LibraryIcon, BarChart2, BookOpen, LineChart
 } from 'lucide-react';
@@ -9,7 +8,7 @@ import { useLayout } from '../hooks/useLayout';
 import { AppLayoutConfig, PanelConfig } from '../lib/layoutStore';
 import { VIEWS_LABELS, PANEL_TITLES } from '../lib/panelMeta';
 import {
-  THEME_OPTIONS, PRESET_PALETTES, SIZE_PRESETS,
+  SIZE_PRESETS,
   type CustomColors, type ThemeType, readCustomColors
 } from '../lib/appearance';
 import { persistTheme } from '../lib/theme';
@@ -48,7 +47,9 @@ const nearestSizeLabel = (heightPx: number): string => {
   return best.label;
 };
 
-export default function LayoutStudio({ isOpen, onClose, theme, setTheme, darkMode, toggleDarkMode }: LayoutStudioProps) {
+/* `darkMode`/`toggleDarkMode` seguem no contrato (o App as passa) mas o Estúdio não edita mais o
+   modo — o interruptor único é o da barra de controles (centralização, 2026-08-28). */
+export default function LayoutStudio({ isOpen, onClose, theme, setTheme }: LayoutStudioProps) {
   const { layout, updatePanel, applyIntelligentLayout, resetToDefault, toggleEditMode, editMode } = useLayout();
 
   const [tab, setTab] = useState<'aparencia' | 'layout'>('aparencia');
@@ -160,49 +161,12 @@ export default function LayoutStudio({ isOpen, onClose, theme, setTheme, darkMod
         <div className="max-w-5xl mx-auto w-full px-5 md:px-8 py-6 md:py-8">
           {tab === 'aparencia' ? (
             <div className="space-y-8">
-              {/* Mode */}
-              <section>
-                <h2 className="text-[13px] font-bold uppercase tracking-wider text-ink-muted mb-3">Modo</h2>
-                <div className="inline-flex items-center gap-1 p-1 bg-surface border border-border-subtle rounded-xl">
-                  <button onClick={() => { if (darkMode) toggleDarkMode(); }} className={`flex items-center gap-1.5 ${seg(!darkMode)}`}>
-                    <Sun className="w-4 h-4" /> Claro
-                  </button>
-                  <button onClick={() => { if (!darkMode) toggleDarkMode(); }} className={`flex items-center gap-1.5 ${seg(darkMode)}`}>
-                    <Moon className="w-4 h-4" /> Escuro
-                  </button>
-                </div>
-              </section>
-
-              {/* Theme */}
-              <section>
-                <h2 className="text-[13px] font-bold uppercase tracking-wider text-ink-muted mb-3">Tema</h2>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                  {THEME_OPTIONS.map((opt) => {
-                    const sw = opt.id === 'custom' ? customColors : opt.swatches;
-                    const selected = theme === opt.id;
-                    return (
-                      <button
-                        key={opt.id}
-                        onClick={() => setTheme(opt.id)}
-                        className={`p-4 rounded-2xl border-2 text-left transition-all cursor-pointer ${
-                          selected ? 'border-accent bg-accent-soft/20 shadow-sm' : 'border-border-subtle bg-surface hover:border-accent/60'
-                        }`}
-                      >
-                        <div className="flex items-center justify-between mb-3">
-                          <div className="flex -space-x-1.5">
-                            {[sw.canvas, sw.surface, sw.accent, sw.ink].map((c, i) => (
-                              <span key={i} className="w-6 h-6 rounded-full border-2 border-surface shadow-sm" style={{ backgroundColor: c }} />
-                            ))}
-                          </div>
-                          {selected && <Check className="w-4 h-4 text-accent" />}
-                        </div>
-                        <div className="font-bold text-[13.5px] text-ink">{opt.name}</div>
-                        <p className="text-[11.5px] text-ink-muted mt-0.5 leading-snug">{opt.desc}</p>
-                      </button>
-                    );
-                  })}
-                </div>
-              </section>
+              {/* CENTRALIZAÇÃO (2026-08-28): o Modo claro/escuro, a grade de Temas e a galeria de
+                  paletas SAÍRAM daqui — viviam também em Personalizar e no cluster, três donos para
+                  a mesma preferência. O Estúdio ficou com o que só ele faz: cores livres e layout. */}
+              <p className="text-[12.5px] text-ink-muted -mt-2">
+                Temas prontos, paletas da galeria, modo claro/escuro e o resto do visual ficam em <b className="text-ink">Personalizar</b>. Aqui você edita as cores <b className="text-ink">livremente</b> e o layout das telas.
+              </p>
 
               {/* Custom palette */}
               <section>
@@ -243,46 +207,6 @@ export default function LayoutStudio({ isOpen, onClose, theme, setTheme, darkMod
                     ))}
                   </div>
 
-                  <div className="mt-5">
-                    <div className="text-[11px] font-bold uppercase tracking-wider text-ink-muted mb-2">Galeria de paletas</div>
-                    {/* Cards-mockup em vez de pílulas: cada paleta mostra COMO a interface fica
-                        (barra, card, botão pintados com as cores dela) e marca a equipada. */}
-                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-                      {PRESET_PALETTES.map((p) => {
-                        const equipada = theme === 'custom'
-                          && customColors.accent.toLowerCase() === p.accent.toLowerCase()
-                          && customColors.canvas.toLowerCase() === p.canvas.toLowerCase();
-                        return (
-                          <button
-                            key={p.name}
-                            onClick={(e) => {
-                              applyPreset(p);
-                              comemorar('acerto', e.currentTarget, { texto: p.name + '!' });
-                            }}
-                            aria-pressed={equipada}
-                            className={`text-left rounded-xl border-2 overflow-hidden transition-all hover:-translate-y-0.5 hover:shadow-card cursor-pointer ${
-                              equipada ? 'border-accent' : 'border-border-subtle hover:border-accent/60'
-                            }`}
-                            title={p.name}
-                          >
-                            {/* O mini-mockup: título + card + botão, pintados com a paleta. */}
-                            <span className="block p-2.5" style={{ backgroundColor: p.canvas }}>
-                              <span className="block h-1.5 w-2/3 rounded-full mb-1.5" style={{ backgroundColor: p.ink, opacity: 0.85 }} />
-                              <span className="block rounded-lg p-1.5 mb-1.5" style={{ backgroundColor: p.surface, border: `1px solid ${p.ink}22` }}>
-                                <span className="block h-1 w-3/4 rounded-full mb-1" style={{ backgroundColor: p.ink, opacity: 0.55 }} />
-                                <span className="block h-1 w-1/2 rounded-full" style={{ backgroundColor: p.ink, opacity: 0.35 }} />
-                              </span>
-                              <span className="inline-block h-3.5 px-3 rounded-md" style={{ backgroundColor: p.accent }} />
-                            </span>
-                            <span className="flex items-center justify-between px-2.5 py-1.5 bg-surface">
-                              <span className="text-[11.5px] font-bold text-ink truncate">{p.name}</span>
-                              {equipada && <Check className="w-3.5 h-3.5 text-accent shrink-0" />}
-                            </span>
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
                 </div>
               </section>
 

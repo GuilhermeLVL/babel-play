@@ -1,7 +1,100 @@
 import type { VocabCard } from '../../types';
 import { isDueNow } from '../learning/due';
-import { normalizarPalavra } from './wordsearch';
 import { pistaUtil, chaveComparavel } from '../learning/quality';
+import { ordenarPorMemoria, type HistoricoDoItem } from '../learning/memoriaDeItens';
+
+/**
+ * TERMO JUSTO (seleção v2, 2026-08-28) — três defeitos medidos e consertados aqui:
+ *
+ *  1. `normalizarPalavra` apaga tudo que não é A–Z DEPOIS de tirar acentos: `œuvre` virava `UVRE`,
+ *     `well-being` virava `WELLBEING` (9 letras, fora do teto) e a grade mostrava a forma mutilada.
+ *     Agora a chave do Termo preserva letras Unicode e palavras com hífen/espaço ficam FORA com
+ *     motivo dito (`diagnosticoTermo`), em vez de entrar coladas.
+ *  2. SINÔNIMOS: a pista é uma tradução, e "morto" descreve `dead` e `deceased`. Quem escrevia o
+ *     sinônimo certo perdia a tentativa. Agora cada rodada carrega `alternativas` (outras palavras
+ *     do MESMO acervo com a mesma tradução) e `julgarPalpite` reconhece o sinônimo: não gasta
+ *     tentativa, orienta ("a desta rodada tem 6 letras e começa com S") e revela a 1ª letra.
+ *  3. "QUASE": a uma letra da resposta (`distanciaDeEdicao` = 1) na última tentativa, o jogo avisa
+ *     sem gastar a tentativa — uma vez por tabuleiro. Erro de digitação não é erro de vocabulário.
+ */
+
+/** Chave de comparação do Termo: sem acento, maiúscula, só LETRAS (Unicode). Hífen/espaço somem
+ *  aqui só para COMPARAR; a elegibilidade os trata antes (ver `diagnosticoTermo`). */
+export function chaveDoTermo(texto: string): string {
+  return (texto ?? '').normalize('NFD').replace(/[̀-ͯ]/g, '').toUpperCase().replace(/[^\p{L}]/gu, '');
+}
+
+export type MotivoForaDoTermo = 'hifen-ou-espaco' | 'curta' | 'longa' | 'sem-pista';
+
+/** Por que uma palavra não joga o Termo — para a antessala dizer em vez de sumir com ela. */
+export function motivoForaDoTermo(c: Pick<VocabCard, 'word' | 'translation' | 'inDeck'>): MotivoForaDoTermo | null {
+  const bruto = (c.word ?? '').trim();
+  if (/[\s-]/.test(bruto)) return 'hifen-ou-espaco';
+  const n = chaveDoTermo(bruto).length;
+  if (n < MIN_LETRAS) return 'curta';
+  if (n > MAX_LETRAS) return 'longa';
+  if (!pistaUtil(c.translation ?? '')) return 'sem-pista';
+  return null;
+}
+
+export function diagnosticoTermo(cards: VocabCard[]): { jogaveis: number; foraPor: Record<MotivoForaDoTermo, number> } {
+  const foraPor: Record<MotivoForaDoTermo, number> = { 'hifen-ou-espaco': 0, curta: 0, longa: 0, 'sem-pista': 0 };
+  let jogaveis = 0;
+  for (const c of cards) {
+    if (!c.inDeck) continue;
+    const m = motivoForaDoTermo(c);
+    if (m) foraPor[m] += 1; else jogaveis += 1;
+  }
+  return { jogaveis, foraPor };
+}
+
+/** Levenshtein pequeno, só para o "quase". */
+export function distanciaDeEdicao(a: string, b: string): number {
+  const m = a.length, n = b.length;
+  if (!m) return n; if (!n) return m;
+  let prev = Array.from({ length: n + 1 }, (_, j) => j);
+  for (let i = 1; i <= m; i++) {
+    const cur = [i];
+    for (let j = 1; j <= n; j++) {
+      cur[j] = Math.min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+    }
+    prev = cur;
+  }
+  return prev[n];
+}
+
+export interface Julgamento {
+  palpite: Palpite;
+  acertou: boolean;
+  /** O palpite é OUTRA palavra válida para a mesma pista (não gasta tentativa). */
+  sinonimo?: string;
+  /** A uma letra da resposta (não gasta tentativa; uma vez por tabuleiro). */
+  quase?: boolean;
+  /** Orientação para a tela. */
+  dica?: string;
+}
+
+/**
+ * Julga um palpite CONTRA A RODADA (resposta + alternativas), não só contra a resposta.
+ * `quaseJaUsado`: o aviso de "quase" só vale uma vez por tabuleiro.
+ */
+export function julgarPalpite(palpiteBruto: string, rodada: RodadaTermo, opts: { ultimaTentativa?: boolean; quaseJaUsado?: boolean } = {}): Julgamento {
+  const palpite = avaliarPalpite(palpiteBruto, rodada.resposta);
+  if (acertou(palpite)) return { palpite, acertou: true };
+  const chave = chaveDoTermo(palpiteBruto);
+  const sinonimo = (rodada.alternativas ?? []).find((a) => chaveDoTermo(a) === chave);
+  if (sinonimo) {
+    const alvo = rodada.resposta;
+    return {
+      palpite, acertou: false, sinonimo,
+      dica: `"${sinonimo}" também significa isso — mas a desta rodada tem ${alvo.length} letras e começa com ${alvo[0]}.`,
+    };
+  }
+  if (opts.ultimaTentativa && !opts.quaseJaUsado && distanciaDeEdicao(chave, rodada.resposta) === 1) {
+    return { palpite, acertou: false, quase: true, dica: 'Quase: uma letra de diferença. Esta não conta como tentativa.' };
+  }
+  return { palpite, acertou: false };
+}
 
 /**
  * TERMO — soletrar a palavra a partir do significado.
@@ -124,7 +217,7 @@ export const DEGRAUS_MINIMOS = 2;
  */
 export function rodadasDaEscada(
   cards: VocabCard[],
-  opts: { dificil?: boolean; now?: number; shuffle?: <T>(xs: T[]) => T[]; evitar?: ReadonlySet<string> } = {},
+  opts: { dificil?: boolean; now?: number; shuffle?: <T>(xs: T[]) => T[]; evitar?: ReadonlySet<string>; memoria?: ReadonlyMap<string, HistoricoDoItem>; semente?: string; diaDe?: (ts: number) => number } = {},
 ): RodadaTermo[] {
   const disponiveis = contarJogaveisMulti(cards);
   if (planoDaEscada(disponiveis).length < DEGRAUS_MINIMOS) return [];
@@ -156,8 +249,8 @@ export function montarEscada(rodadas: RodadaTermo[], plano: number[]): RodadaTer
  * Uma passada só produziria quatro amarelas e mentiria para o jogador.
  */
 export function avaliarPalpite(palpite: string, resposta: string): Palpite {
-  const p = normalizarPalavra(palpite).split('');
-  const r = normalizarPalavra(resposta).split('');
+  const p = chaveDoTermo(palpite).split('');
+  const r = chaveDoTermo(resposta).split('');
   const estados: EstadoLetra[] = new Array(p.length).fill('ausente');
 
   // Estoque de letras da resposta ainda "disponíveis" para casar.
@@ -221,6 +314,10 @@ export interface RodadaTermo {
   /** A pista (tradução). Vazia no modo difícil. */
   pista: string;
   lang: string;
+  /** Outras palavras do acervo com a MESMA tradução (sinônimos aceitos por `julgarPalpite`). */
+  alternativas?: string[];
+  /** Frase de contexto, quando a pista é ambígua (tem alternativas). */
+  contexto?: string;
 }
 
 /**
@@ -249,18 +346,25 @@ function embaralhar<T>(xs: T[]): T[] {
 export function buildTermoRounds(
   cards: VocabCard[],
   opts: { quantidade?: number; dificil?: boolean; now?: number; mesmoTamanho?: boolean;
-          shuffle?: <T>(xs: T[]) => T[]; evitar?: ReadonlySet<string> } = {},
+          shuffle?: <T>(xs: T[]) => T[]; evitar?: ReadonlySet<string>;
+          memoria?: ReadonlyMap<string, HistoricoDoItem>; semente?: string; diaDe?: (ts: number) => number } = {},
 ): RodadaTermo[] {
   const now = opts.now ?? Date.now();
   const quantidade = opts.quantidade ?? 5;
-  let candidatos = cards.filter(c => {
-    if (!c.inDeck) return false;
-    const palavra = normalizarPalavra(c.word ?? '');
-    if (palavra.length < MIN_LETRAS || palavra.length > MAX_LETRAS) return false;
-    // Sem tradução não há pista honesta; no modo difícil a pista some, mas ainda queremos
-    // poder mostrá-la ao revelar a resposta no fim.
-    return pistaUtil(c.translation ?? '');
-  });
+  // Elegibilidade pela chave Unicode (ver `motivoForaDoTermo`): hífen/espaço fora, acentos ok.
+  let candidatos = cards.filter(c => c.inDeck && motivoForaDoTermo(c) === null);
+  /* SINÔNIMOS DO ACERVO: para cada tradução, quais palavras (do acervo INTEIRO recebido) a
+     carregam. É o que permite aceitar "deceased" quando a rodada pediu "dead". */
+  const porPista = new Map<string, string[]>();
+  for (const c of cards) {
+    if (!c.inDeck) continue;
+    const chave = chaveComparavel(c.translation ?? '');
+    if (!chave) continue;
+    const lista = porPista.get(chave) ?? [];
+    const w = (c.word ?? '').trim();
+    if (w && !lista.includes(w)) lista.push(w);
+    porPista.set(chave, lista);
+  }
 
   // NO DUETO/QUARTETO as palavras PRECISAM ter o mesmo tamanho: o palpite é um só e é avaliado
   // em todos os tabuleiros ao mesmo tempo — com tamanhos diferentes não existe palpite válido.
@@ -283,11 +387,22 @@ export function buildTermoRounds(
   const shuffle = opts.shuffle ?? embaralhar;
   const evitar = opts.evitar;
   const semPenalidade = (c: VocabCard) => !evitar?.has(c.word);
-  const grupo = (vencido: boolean) => shuffle(candidatos.filter(c => isDueNow(c, 'fsrs', now) === vencido));
-  const porUrgencia = [...grupo(true), ...grupo(false)];
-  const ordenados = !evitar?.size
-    ? porUrgencia
-    : [...porUrgencia.filter(semPenalidade), ...porUrgencia.filter(c => !semPenalidade(c))];
+  let ordenados: VocabCard[];
+  if (opts.memoria && opts.semente) {
+    // Seleção v2: régua de memória + semente própria do Termo (rotação distinta dos outros jogos).
+    const { ordenados: porMemoria } = ordenarPorMemoria(candidatos, c => c.word, {
+      memoria: opts.memoria, semente: `termo:${opts.semente}`, agora: now,
+      diaDe: opts.diaDe ?? ((ts) => Math.floor(ts / 86_400_000)),
+      urgente: c => isDueNow(c, 'fsrs', now), cotaDeNovas: 0.3, limite: quantidade,
+    });
+    ordenados = !evitar?.size ? porMemoria : [...porMemoria.filter(semPenalidade), ...porMemoria.filter(c => !semPenalidade(c))];
+  } else {
+    const grupo = (vencido: boolean) => shuffle(candidatos.filter(c => isDueNow(c, 'fsrs', now) === vencido));
+    const porUrgencia = [...grupo(true), ...grupo(false)];
+    ordenados = !evitar?.size
+      ? porUrgencia
+      : [...porUrgencia.filter(semPenalidade), ...porUrgencia.filter(c => !semPenalidade(c))];
+  }
 
   /**
    * PISTA REPETIDA NÃO ENTRA DUAS VEZES — e aqui isso é mais grave que em qualquer outro jogo.
@@ -312,26 +427,33 @@ export function buildTermoRounds(
     escolhidos.push(c);
   }
 
-  return escolhidos.map(c => ({
-    cardId: c.id,
-    resposta: normalizarPalavra(c.word),
-    palavra: (c.word ?? '').trim(),
-    pista: opts.dificil ? '' : (c.translation ?? '').trim(),
-    lang: c.srcLang || '',
-  }));
+  return escolhidos.map(c => {
+    const palavra = (c.word ?? '').trim();
+    const alternativas = (porPista.get(chaveComparavel(c.translation ?? '')) ?? []).filter(w => chaveDoTermo(w) !== chaveDoTermo(palavra));
+    return {
+      cardId: c.id,
+      resposta: chaveDoTermo(palavra),
+      palavra,
+      pista: opts.dificil ? '' : (c.translation ?? '').trim(),
+      lang: c.srcLang || '',
+      ...(alternativas.length ? { alternativas } : {}),
+      // Pista ambígua nasce com a frase de contexto (quando existe): é o desempate honesto.
+      ...(alternativas.length && (c.sentence ?? '').trim() ? { contexto: (c.sentence ?? '').trim() } : {}),
+    };
+  });
 }
 
 /** O maior conjunto de cartões que compartilham o mesmo número de letras (desempate: mais curto). */
 function maiorGrupoPorTamanho(cards: VocabCard[]): VocabCard[] {
   const porTamanho = new Map<number, VocabCard[]>();
   for (const c of cards) {
-    const n = normalizarPalavra(c.word ?? '').length;
+    const n = chaveDoTermo(c.word ?? '').length;
     const lista = porTamanho.get(n);
     if (lista) lista.push(c); else porTamanho.set(n, [c]);
   }
   let melhor: VocabCard[] = [];
   for (const [tamanho, lista] of porTamanho) {
-    const tamanhoMelhor = melhor.length ? normalizarPalavra(melhor[0].word ?? '').length : Infinity;
+    const tamanhoMelhor = melhor.length ? chaveDoTermo(melhor[0].word ?? '').length : Infinity;
     if (lista.length > melhor.length || (lista.length === melhor.length && tamanho < tamanhoMelhor)) melhor = lista;
   }
   return melhor;
@@ -343,11 +465,7 @@ function maiorGrupoPorTamanho(cards: VocabCard[]): VocabCard[] {
  * todas de comprimentos diferentes não joga Dueto, e a tela precisa dizer isso com número.
  */
 export function contarJogaveisMulti(cards: VocabCard[]): number {
-  const jogaveis = cards.filter(c => {
-    if (!c.inDeck) return false;
-    const p = normalizarPalavra(c.word ?? '');
-    return p.length >= MIN_LETRAS && p.length <= MAX_LETRAS && pistaUtil(c.translation ?? '');
-  });
+  const jogaveis = cards.filter(c => c.inDeck && motivoForaDoTermo(c) === null);
   return maiorGrupoPorTamanho(jogaveis).length;
 }
 
@@ -406,9 +524,5 @@ export function dicaDeLetra(
 
 /** Quantas palavras do baralho servem para o Termo (a tela usa para gatear com número). */
 export function contarJogaveisTermo(cards: VocabCard[]): number {
-  return cards.filter(c => {
-    if (!c.inDeck) return false;
-    const p = normalizarPalavra(c.word ?? '');
-    return p.length >= MIN_LETRAS && p.length <= MAX_LETRAS && pistaUtil(c.translation ?? '');
-  }).length;
+  return diagnosticoTermo(cards).jogaveis;
 }

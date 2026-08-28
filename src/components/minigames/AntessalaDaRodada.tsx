@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
-import { X, Play, Shuffle, RotateCcw, Trophy, Flame, Target, Sparkles, Star, SlidersHorizontal, ChevronDown } from 'lucide-react';
+import { X, Play, Shuffle, RotateCcw, Trophy, Flame, Target, Sparkles, Star, SlidersHorizontal, ChevronDown, LifeBuoy, HelpCircle, ListChecks } from 'lucide-react';
 import { fetchRecordes, type RecordeDoJogo } from '../../data/api';
 import { eventosVistos, todosOsEventos } from '../../lib/eventosDeJogo';
 import { IconePixel } from '../views/play/IconesPixel';
-import type { MinigameId, FaseJogada } from '@core';
-import { nivelNoJogo } from '@core';
+import type { MinigameId, FaseJogada, EstadoDoItem } from '@core';
+import type { FaixaDificuldade, EstrategiaDaUI } from '../../core/minigames/composicao';
+import { nivelNoJogo, LEECH_APOS, JANELAS_DE_RETORNO, ALVO_MIN, ALVO_MAX, JANELA_DE_RODADAS } from '@core';
 import type { AgeProfileType } from '../../lib/profile';
 import type { ItemDaAntessala } from '@core';
 import { Segmentado, Ladrilho } from '../ui';
@@ -49,8 +50,8 @@ export interface HistoricoDoItem {
  * têm dificuldade por palavra. Chip inerte ensina que a tela mente; ausência de chip, não.
  */
 /** Nomeadas porque agora atravessam a fronteira do `Segmentado`, que devolve `string`. */
-type FaixaDeDificuldade = 'facil' | 'medio' | 'dificil';
-type Estrategia = 'equilibrado' | 'recentes' | 'frequentes' | 'em-dificuldade';
+type FaixaDeDificuldade = FaixaDificuldade;
+type Estrategia = EstrategiaDaUI;
 
 interface FiltroDificuldade {
   faixas: FaixaDeDificuldade[];
@@ -107,6 +108,18 @@ interface AntessalaProps {
   acervoTotal?: number;
   /** Quantos itens distintos do acervo a pessoa já jogou (o numerador). */
   itensJogados?: number;
+  /* ── SELEÇÃO v2 (2026-08-28) ── */
+  /** Estado de memória de cada item da rodada (tag + motivo) — o "por que estas?". */
+  estados?: ReadonlyMap<string, EstadoDoItem>;
+  /** Itens do acervo marcados como difíceis para você (fora da rotação) e a rodada de resgate. */
+  leeches?: string[];
+  onResgate?: (() => void) | null;
+  /** Decisão do modo Auto (faixa + motivo), ou null quando o filtro é manual/não se aplica. */
+  auto?: { faixa: FaixaDificuldade; motivo: string } | null;
+  /** Termo: quantas palavras ficaram fora e por quê. */
+  diagnosticoTermo?: { jogaveis: number; foraPor: Record<string, number> } | null;
+  /** Etapa da trilha que recorta esta rodada. */
+  etapa?: string | null;
   /** `null` quando não há rodada anterior deste jogo nesta fonte. */
   onRepetir: (() => void) | null;
   onTrocar: () => void;
@@ -179,6 +192,12 @@ export default function AntessalaDaRodada({
   onJogarFase,
   acervoTotal,
   itensJogados,
+  estados,
+  leeches,
+  onResgate,
+  auto,
+  diagnosticoTermo,
+  etapa,
   onRepetir,
   onTrocar,
   onJogar,
@@ -215,6 +234,7 @@ export default function AntessalaDaRodada({
     { id: 'dificil' as const, rotulo: 'Difícil' },
   ];
   const ESTRATEGIAS = [
+    { id: 'auto' as const, rotulo: 'Auto' },
     { id: 'equilibrado' as const, rotulo: 'Equilibrado' },
     { id: 'recentes' as const, rotulo: 'Recentes' },
     { id: 'frequentes' as const, rotulo: 'Mais vistas' },
@@ -223,6 +243,24 @@ export default function AntessalaDaRodada({
 
   const visiveis = itens.slice(0, MAX_VISIVEL);
   const vazia = itens.length === 0;
+
+  /* "POR QUE ESTAS?" — contagem por motivo, da memória de itens. E a lista só nasce ABERTA quando
+     há algo que pede atenção (erro voltando / difícil para você); senão fica colapsada, para não
+     empurrar os botões para fora da dobra (pedido do dono, 2026-08-28). */
+  const porMotivo = useMemo(() => {
+    const c = { errando: 0, novas: 0, aprendendo: 0, firmes: 0, leech: 0 };
+    for (const it of itens) {
+      const e = estados?.get(it.ref);
+      if (!e) continue;
+      if (e.tag === 'errando') c.errando++;
+      else if (e.tag === 'nova') c.novas++;
+      else if (e.tag === 'aprendendo') c.aprendendo++;
+      else if (e.tag === 'firme') c.firmes++;
+      else if (e.tag === 'leech') c.leech++;
+    }
+    return c;
+  }, [itens, estados]);
+  const listaAbertaPorPadrao = porMotivo.errando > 0 || porMotivo.leech > 0;
 
   /**
    * A LISTA SÓ SE PAGA QUANDO AS LINHAS DIFEREM.
@@ -479,6 +517,55 @@ export default function AntessalaDaRodada({
           </section>
         )}
 
+        {/* ── POR QUE ESTAS? + AUTO + ETAPA + LEECHES ── */}
+        {!vazia && (estados || auto || etapa || (leeches && leeches.length > 0) || diagnosticoTermo) && (
+          <section className="card-panel bg-surface p-4 mb-5 space-y-2.5">
+            <p className="label-mono flex items-center gap-1.5"><ListChecks className="w-3.5 h-3.5" aria-hidden /> Por que estas?</p>
+            <div className="flex flex-wrap items-center gap-1.5 text-[12px]">
+              {porMotivo.errando > 0 && <span className="badge-tag err">{porMotivo.errando} voltando porque você errou</span>}
+              {saldo.devidos > 0 && <span className="badge-tag warn">{saldo.devidos} vencidas no agendador</span>}
+              {porMotivo.novas > 0 && <span className="badge-tag ok">{porMotivo.novas} novas</span>}
+              {porMotivo.aprendendo > 0 && <span className="badge-tag">{porMotivo.aprendendo} em aprendizado</span>}
+              {porMotivo.firmes > 0 && <span className="badge-tag">{porMotivo.firmes} firmes (completando)</span>}
+              {etapa && <span className="badge-tag acc">{etapa}</span>}
+            </div>
+            {auto && (
+              <p className="text-[12.5px] text-ink-muted"><b className="text-ink">Dificuldade automática:</b> {auto.motivo}</p>
+            )}
+            {diagnosticoTermo && Object.values(diagnosticoTermo.foraPor).some((n) => n > 0) && (
+              <p className="text-[12px] text-ink-faint">
+                Fora do Termo: {Object.entries(diagnosticoTermo.foraPor).filter(([, n]) => n > 0).map(([k, n]) =>
+                  `${n} ${k === 'hifen-ou-espaco' ? 'com hífen/espaço' : k === 'curta' ? 'curtas demais' : k === 'longa' ? 'longas demais' : 'sem pista útil'}`).join(' · ')}.
+              </p>
+            )}
+            {leeches && leeches.length > 0 && (
+              <div className="flex flex-wrap items-center gap-2 pt-1">
+                <span className="badge-tag err flex items-center gap-1"><LifeBuoy className="w-3 h-3" aria-hidden /> {leeches.length} {leeches.length === 1 ? 'palavra difícil para você' : 'palavras difíceis para você'}</span>
+                <span className="text-[12px] text-ink-muted">Saíram da rotação depois de {LEECH_APOS} erros seguidos. Voltam numa rodada só delas, com ajuda liberada.</span>
+                {onResgate && (
+                  <button onClick={onResgate} className="btn-outline text-[12px] py-1.5">
+                    <LifeBuoy className="w-3.5 h-3.5" aria-hidden /> Rodada de resgate
+                  </button>
+                )}
+              </div>
+            )}
+            <details className="group">
+              <summary className="flex items-center gap-1.5 text-[12px] font-semibold text-ink-muted hover:text-ink cursor-pointer select-none w-fit list-none [&::-webkit-details-marker]:hidden">
+                <HelpCircle className="w-3.5 h-3.5" aria-hidden /> Como funciona a repetição e a dificuldade
+                <ChevronDown className="w-3.5 h-3.5 transition-transform group-open:rotate-180" aria-hidden />
+              </summary>
+              <ul className="mt-2 text-[12px] text-ink-muted leading-snug space-y-1 max-w-[70ch] list-disc pl-4">
+                <li>Cada palavra ou frase tem uma memória única em todos os jogos: nova → em aprendizado → firme.</li>
+                <li>Errou? Ela volta espaçada: 1º erro em {JANELAS_DE_RETORNO[0]} rodadas, 2º seguido em {JANELAS_DE_RETORNO[1]}, 3º só no dia seguinte. Um acerto zera a contagem.</li>
+                <li>{LEECH_APOS} erros seguidos marcam a palavra como difícil para você: ela sai do sorteio comum e volta na rodada de resgate.</li>
+                <li>Cada rodada garante pelo menos 30% de itens novos, para o vocabulário crescer; vencidas no agendador vêm antes.</li>
+                <li>Cada jogo tem a própria rotação: o mesmo acervo não rende as mesmas palavras em todos os jogos no mesmo dia.</li>
+                <li>Dificuldade automática mira {ALVO_MIN}-{ALVO_MAX}% de acerto: sobe ou desce um degrau a cada {JANELA_DE_RODADAS} rodadas. Os chips em "Ajustar a rodada" assumem o controle quando você quiser.</li>
+              </ul>
+            </details>
+          </section>
+        )}
+
         {vazia ? (
           <section className="card-panel bg-surface p-8 text-center">
             <p className="text-[13px] text-ink-muted">{txtVazia[ageProfile]}</p>
@@ -500,10 +587,18 @@ export default function AntessalaDaRodada({
             </p>
           </section>
         ) : (
-          <ul className="flex flex-col gap-1.5 mb-3">
+          /* COLAPSADA por padrão (pedido do dono): a lista ocupava a tela e empurrava os botões.
+             Abre sozinha quando há erro voltando ou palavra difícil, que é quando vale olhar. */
+          <details className="mb-3 group" open={listaAbertaPorPadrao}>
+            <summary className="flex items-center gap-1.5 text-[12.5px] font-semibold text-ink hover:text-accent cursor-pointer select-none w-fit list-none [&::-webkit-details-marker]:hidden mb-2">
+              Ver {itens.length === 1 ? 'o item' : `os ${itens.length} itens`} desta rodada
+              <ChevronDown className="w-3.5 h-3.5 transition-transform group-open:rotate-180" aria-hidden />
+            </summary>
+          <ul className="flex flex-col gap-1.5">
             {visiveis.map((item) => {
               const selo = seloDoItem(item.ref, historico, vencidos);
               const quando = quandoCaiu(historico.get(item.ref)?.ultimaEm);
+              const motivoMemoria = estados?.get(item.ref)?.motivo;
               return (
                 <li
                   key={item.ref}
@@ -530,6 +625,9 @@ export default function AntessalaDaRodada({
                   {item.cefr && <span className="badge-tag acc shrink-0" title="Nível curado desta palavra">{item.cefr}</span>}
                   {/* Distância da última vez: é o que diferencia "já viu" de "acabou de cair". */}
                   {quando && <span className="text-[11px] text-ink-faint shrink-0">{quando}</span>}
+                  {motivoMemoria && motivoMemoria !== 'já viu' && motivoMemoria !== 'nova para você' && (
+                    <span className="text-[11px] text-ink-faint shrink-0 italic">{motivoMemoria}</span>
+                  )}
                   {/* O selo tem TEXTO, não só cor — daltônico e tema de alto contraste leem igual. */}
                   <span
                     className={`badge-tag ${selo.variante} ml-auto shrink-0`}
@@ -541,6 +639,7 @@ export default function AntessalaDaRodada({
               );
             })}
           </ul>
+          </details>
         )}
 
         {/* Excedente ANUNCIADO: sem esta linha a pessoa acharia que a rodada tem 24 itens. */}

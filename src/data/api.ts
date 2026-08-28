@@ -742,6 +742,9 @@ export interface HistoricoDeItem {
   erros: number
   ultimaEm: number
   ultimoAcerto: boolean
+  /** Seleção v2 (opcionais: a edição completa ainda não os calcula; o core trata ausência). */
+  errosSeguidos?: number
+  rodadasDesdeUltimoErro?: number
 }
 
 /**

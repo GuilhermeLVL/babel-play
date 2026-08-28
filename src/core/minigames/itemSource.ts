@@ -4,6 +4,7 @@ import { makeCloze } from '../learning/cloze';
 import { avaliarCartao, chaveComparavel } from '../learning/quality';
 import type { MinigameItem, MinigameId } from './types';
 import { MINIGAMES } from './types';
+import { ordenarPorMemoria, type HistoricoDoItem } from '../learning/memoriaDeItens';
 
 /**
  * DE ONDE VÊM OS ITENS DE UMA RODADA.
@@ -41,6 +42,19 @@ export interface BuildItemsOptions {
    * seguinte, e na outra, indefinidamente.
    */
   evitar?: ReadonlySet<string>;
+  /**
+   * SELEÇÃO v2 (2026-08-28). Com `memoria` + `semente`, a ordem passa a ser a régua de
+   * `ordenarPorMemoria`: errando (janela vencida) → vencidas → novas (cota 30%) → aprendendo →
+   * firmes; leeches ficam de fora; embaralhamento com semente POR JOGO (rotação própria de cada
+   * jogo no mesmo acervo). Sem os dois, vale o comportamento clássico (compatível com os testes).
+   */
+  memoria?: ReadonlyMap<string, HistoricoDoItem>;
+  semente?: string;
+  agora?: number;
+  diaDe?: (ts: number) => number;
+  /** Com memória: `evitar` vira EXCLUSÃO das que caíram nas últimas rodadas — com fallback para
+   *  demoção quando excluir deixaria menos que o mínimo do jogo. */
+  excluirEvitadas?: boolean;
 }
 
 /** Embaralhamento padrão (Fisher-Yates). Injetável para o teste ser determinístico. */
@@ -102,17 +116,40 @@ export function buildItems(gameId: MinigameId, cards: VocabCard[], opts: BuildIt
    * caíam sempre na mesma sequência e a partida virava repetição. Medido antes do conserto: o
    * Termo entregava as MESMAS 7 palavras em 5 rodadas seguidas, num baralho de 200.
    */
-  const base = gameId === 'blitz'
-    // O duelo é a revisão cronometrada: do mais atrasado ao menos, sem embaralhar os vencidos —
-    // aqui a ordem de urgência É a mecânica. Completa com o resto quando faltam vencidos.
-    ? [...vencidos, ...shuffle(resto)]
-    : [...shuffle(vencidos), ...shuffle(resto)];
-
-  // Estável: `filter` preserva a ordem acima dentro de cada metade.
   const evitar = opts.evitar;
-  const ordenados = !evitar?.size
-    ? base
-    : [...base.filter(c => !evitar.has(c.word)), ...base.filter(c => evitar.has(c.word))];
+  let ordenados: VocabCard[];
+  if (opts.memoria && opts.semente) {
+    /* SELEÇÃO v2: a régua de memória decide as camadas; a semente por jogo decide a ordem dentro
+       delas. O duelo mantém os vencidos por urgência (é a mecânica dele): a régua só reordena o
+       resto. */
+    const urgentesSet = new Set(vencidos);
+    const { ordenados: porMemoria } = ordenarPorMemoria(noBaralho, c => c.word, {
+      memoria: opts.memoria, semente: `${gameId}:${opts.semente}`, agora: now,
+      diaDe: opts.diaDe ?? ((ts) => Math.floor(ts / 86_400_000)),
+      urgente: c => urgentesSet.has(c), cotaDeNovas: 0.3, limite: limite,
+    });
+    ordenados = gameId === 'blitz'
+      ? [...vencidos.filter(c => porMemoria.includes(c)), ...porMemoria.filter(c => !urgentesSet.has(c))]
+      : porMemoria;
+    if (evitar?.size) {
+      const semEvitadas = ordenados.filter(c => !evitar.has(c.word));
+      // Exclusão de verdade quando sobra material; senão, demoção (nunca uma rodada vazia).
+      ordenados = opts.excluirEvitadas && semEvitadas.length >= def.minItems
+        ? semEvitadas
+        : [...semEvitadas, ...ordenados.filter(c => evitar.has(c.word))];
+    }
+  } else {
+    const base = gameId === 'blitz'
+      // O duelo é a revisão cronometrada: do mais atrasado ao menos, sem embaralhar os vencidos —
+      // aqui a ordem de urgência É a mecânica. Completa com o resto quando faltam vencidos.
+      ? [...vencidos, ...shuffle(resto)]
+      : [...shuffle(vencidos), ...shuffle(resto)];
+
+    // Estável: `filter` preserva a ordem acima dentro de cada metade.
+    ordenados = !evitar?.size
+      ? base
+      : [...base.filter(c => !evitar.has(c.word)), ...base.filter(c => evitar.has(c.word))];
+  }
 
   const itens: MinigameItem[] = [];
   /**

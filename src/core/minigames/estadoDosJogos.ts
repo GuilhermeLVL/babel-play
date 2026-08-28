@@ -83,6 +83,12 @@ export interface EntradaDoEstado {
   audioPronto?: boolean;
   /** O navegador oferece síntese de voz? É o que permite a trilha rodar os jogos de áudio. */
   temVoz: boolean;
+  /**
+   * SELEÇÃO v2: as FRASES DA TRILHA (Tatoeba, `frasesDaTrilha`), separadas de `frases` de
+   * propósito — `frases` continua sendo a gravação, e na trilha os jogos de frase NÃO podem contar
+   * falas de uma gravação qualquer (era o defeito antigo). Só a Frase embaralhada as consome.
+   */
+  frasesDaTrilha?: FalaComAudio[];
   fonteId: 'baralho' | 'sessao' | 'trilha';
   lang: string;
 }
@@ -171,7 +177,14 @@ export function estadoDoJogo(id: MinigameId, e: EntradaDoEstado, pools?: PoolPor
   }
 
   if (def.modalidade !== 'palavra') {
-    const semFrase = e.fonteId === 'trilha';
+    /* Seleção v2: a trilha passou a entregar FRASES (Tatoeba, `e.frasesDaTrilha`) — e SÓ a Frase
+       embaralhada as consome. Os de áudio seguem no caminho "palavra falada por TTS"; o Caça-
+       conectores continua bloqueado (4,5% das frases têm conector); e `e.frases` (a gravação)
+       nunca conta na trilha, que era o defeito antigo. */
+    const daTrilha = e.fonteId === 'trilha';
+    const frasesDaTrilha = daTrilha && id === 'scramble' ? (e.frasesDaTrilha ?? []) : [];
+    const semFrase = daTrilha && !frasesDaTrilha.length;
+    const falas = daTrilha ? frasesDaTrilha : e.frases;
 
     if (semFrase && !def.aceitaPalavraFalada) {
       return { id, ok: false, disponiveis: 0, faltam: def.minItems, fonte: 'falas', motivo: 'trilha-sem-frase', tamanhoDaRodada: 0 };
@@ -197,7 +210,7 @@ export function estadoDoJogo(id: MinigameId, e: EntradaDoEstado, pools?: PoolPor
     }
 
     const n =
-      id === 'scramble' ? buildScrambleRounds(e.frases, { quantidade: TETO_DE_FALAS }).length
+      id === 'scramble' ? buildScrambleRounds(falas, { quantidade: TETO_DE_FALAS }).length
         : id === 'escuta' ? (e.temAudio ? buildRodadasEscuta(e.frases, { quantidade: TETO_DE_FALAS }).length : 0)
           : id === 'ditado' ? (e.temAudio ? buildRodadasDitado(e.frases, { quantidade: TETO_DE_FALAS }).length : 0)
             : id === 'conectores' ? (temConectores(e.lang) ? buildRodadasConectores(e.frases, { lang: e.lang, quantidade: TETO_DE_FALAS }).length : 0)

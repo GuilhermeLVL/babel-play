@@ -198,6 +198,15 @@ export interface CartoesOpts {
  * está adicionando vocabulário novo, e sim praticando um nível. Repetir uma palavra conhecida numa
  * partida é prática; gravá-la de novo no baralho é lixo.
  */
+/** Escore 0..1 de partida: nível CEFR (0.7 do peso) + comprimento da palavra (0.3). Espalha
+ *  dentro do nível para os cortes fixos (0.34/0.67) produzirem as três faixas. */
+const ESCALA_DO_NIVEL: Record<string, number> = { A1: 0.12, A2: 0.3, B1: 0.48, B2: 0.64, C1: 0.8, C2: 0.92 };
+export function escoreDaTrilha(nivel: CefrLevel, palavra: string): number {
+  const base = ESCALA_DO_NIVEL[nivel] ?? 0.5;
+  const forma = Math.min(1, Math.max(0, (palavra.trim().length - 3) / 9));
+  return Math.round((base * 0.7 + forma * 0.3) * 100) / 100;
+}
+
 export function cartoesDaTrilha(
   dado: DadoTrilha,
   nivel: CefrLevel,
@@ -217,6 +226,11 @@ export function cartoesDaTrilha(
     srcLang: lang,
     cefrLevel: nivel,
     cefrConfidence: CONFIANCA_CURADA,
+    /* SELEÇÃO v2: a camada de dificuldade era INERTE na trilha (cartão em memória, sem
+       `difficultyScore`), então os chips e o modo Auto não tinham efeito. O nível CEFR curado é
+       procedência real (`lexical` em `dificuldade.ts`), e dentro de um nível a palavra mais longa
+       tende a ser mais difícil (`forma`). É um escore de partida: o histórico vai por cima. */
+    difficultyScore: escoreDaTrilha(nivel, palavra ?? ''),
     /* `sourceSessionId` continua sendo escrito porque é o que `bulkAdd` decompõe para gravar
        `origin_kind='trilha'` na ocorrência. Mas ele NÃO sobrevive na coluna do cartão (o servidor
        o sanea para NULL), então quem filtra é `daTrilha`. Os dois juntos: um para escrever, outro

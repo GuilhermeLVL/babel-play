@@ -371,16 +371,26 @@ async function historicoPorItem(_m: RegExpMatchArray, url: URL): Promise<Respons
   const linhas = (await db.getAll('exercicios'))
     .filter((l) => l.itemRef && (!origem || l.origem === origem) && l.createdAt >= desde)
     .sort((a, b) => a.createdAt - b.createdAt);
-  const agregado = new Map<string, { itemRef: string; vezes: number; erros: number; ultimaEm: number; ultimoAcerto: boolean }>();
+  /* SELEÇÃO v2: além de vezes/erros, a régua de retorno precisa de ERROS SEGUIDOS (contados do
+     fim) e de quantas RODADAS do mesmo jogo já passaram desde o último erro. As rodadas são
+     contadas por `roundId` distinto do mesmo `exerciseKind` depois da linha errada. */
+  const agregado = new Map<string, { itemRef: string; vezes: number; erros: number; ultimaEm: number; ultimoAcerto: boolean; errosSeguidos: number; rodadasDesdeUltimoErro: number; _ultimoErroEm: number; _jogo: string | null }>();
   for (const l of linhas) {
-    const h = agregado.get(l.itemRef!) ?? { itemRef: l.itemRef!, vezes: 0, erros: 0, ultimaEm: 0, ultimoAcerto: false };
+    const h = agregado.get(l.itemRef!) ?? { itemRef: l.itemRef!, vezes: 0, erros: 0, ultimaEm: 0, ultimoAcerto: false, errosSeguidos: 0, rodadasDesdeUltimoErro: 0, _ultimoErroEm: 0, _jogo: null };
     h.vezes += 1;
-    if (l.correct !== 1) h.erros += 1;
+    if (l.correct !== 1) { h.erros += 1; h.errosSeguidos += 1; h._ultimoErroEm = l.createdAt; h._jogo = l.exerciseKind; }
+    else h.errosSeguidos = 0;
     h.ultimaEm = l.createdAt;
     h.ultimoAcerto = l.correct === 1;
     agregado.set(l.itemRef!, h);
   }
-  return json([...agregado.values()]);
+  for (const h of agregado.values()) {
+    if (!h._ultimoErroEm) continue;
+    const rodadas = new Set<string>();
+    for (const l of linhas) if (l.roundId && l.exerciseKind === h._jogo && l.createdAt > h._ultimoErroEm) rodadas.add(l.roundId);
+    h.rodadasDesdeUltimoErro = rodadas.size;
+  }
+  return json([...agregado.values()].map(({ _ultimoErroEm: _a, _jogo: _b, ...h }) => h));
 }
 
 async function recordes(_m: RegExpMatchArray, url: URL): Promise<Response> {

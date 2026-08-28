@@ -93,17 +93,18 @@ export const COMO_SE_JOGA: Record<MinigameId, ConteudoComoSeJoga> = {
   termo: {
     treina: 'Escrever a palavra letra por letra, produção, que é mais difícil e mais valiosa que reconhecer.',
     passos: [
-      'A pista é o significado; escreva a palavra que ele descreve.',
-      'Verde: letra no lugar certo. Amarelo: existe na palavra, mas em outra posição.',
-      'Clique num quadrado (ou use as setas) para escrever fora de ordem.',
-      'Acertou? O próximo degrau tem duas palavras ao mesmo tempo. E depois, quatro.',
+      'A pista é o significado; escreva a palavra que ele descreve. O número de quadrados já diz quantas letras ela tem.',
+      'Verde: letra no lugar certo. Amarelo: existe na palavra, mas em outra posição. Acentos não contam.',
+      'Escreveu um sinônimo válido do seu caderno? Não perde a tentativa: o jogo diz quantas letras a desta rodada tem e revela a primeira.',
+      'Na última tentativa, errar por UMA letra não gasta a jogada (avisa "quase", uma vez por tabuleiro).',
+      'Acertou? O próximo degrau tem duas palavras ao mesmo tempo. E depois, quatro. Se as tentativas acabarem, a palavra é mostrada e a rodada fecha.',
     ],
-    avaliacao: 'Acertar de primeira vale "fácil", é a evidência mais forte de domínio que dá para coletar por escrito. Da segunda tentativa em diante você já tem as cores ajudando, então vale menos.',
+    avaliacao: 'Acertar de primeira vale "fácil", é a evidência mais forte de domínio que dá para coletar por escrito. Da segunda tentativa em diante você já tem as cores ajudando, então vale menos. Palavras com hífen ou espaço ficam fora deste jogo (a antessala diz quantas).',
     limites: 'Mede grafia, não pronúncia. Escrever certo e falar certo são duas habilidades, e esta só cobre a primeira.',
     ajudas: [
       { o_que: 'A varinha preenche as letras que você JÁ descobriu nas tentativas anteriores.', custo: null },
-      { o_que: 'Ouvir toca a palavra em voz alta.', custo: 'limita a nota a "difícil"' },
-      { o_que: 'A lâmpada revela uma letra que você ainda não achou.', custo: 'limita a nota a "difícil"' },
+      { o_que: 'Ouvir toca a palavra em voz alta.', custo: null },
+      { o_que: 'A lâmpada revela uma letra que você ainda não achou.', custo: 'limita a nota a "difícil" só naquele tabuleiro' },
     ],
   },
   scramble: {

@@ -23,14 +23,45 @@ import { baseLangDe } from '../learning/quality'
 
 export type FaixaDificuldade = 'facil' | 'medio' | 'dificil'
 export type EstrategiaDeDistribuicao = 'equilibrado' | 'recentes' | 'frequentes' | 'em-dificuldade'
+/** O que a UI escolhe: as quatro do servidor OU 'auto' (faixa decidida pela precisão recente,
+ *  ver `autoDificuldade.ts`). 'auto' viaja ao servidor como 'equilibrado' + faixa calculada. */
+export type EstrategiaDaUI = EstrategiaDeDistribuicao | 'auto'
 
 /** Mesmos cortes do servidor (`core/learning/dificuldade.ts`). Divergir seria ter duas verdades. */
 export const CORTE_FACIL = 0.34
 export const CORTE_DIFICIL = 0.67
 
-export function faixaDe(score: number | null | undefined): FaixaDificuldade | null {
+export interface CortesDeFaixa { corte1: number; corte2: number }
+
+/** `cortes` opcional: os do SERVIDOR (por quantil do deck) quando ele os mandou — sem isso o
+ *  rótulo da faixa aqui divergia do rótulo com que o servidor selecionou. */
+export function faixaDe(score: number | null | undefined, cortes?: CortesDeFaixa | null): FaixaDificuldade | null {
   if (score == null) return null
-  return score < CORTE_FACIL ? 'facil' : score < CORTE_DIFICIL ? 'medio' : 'dificil'
+  const c1 = cortes?.corte1 ?? CORTE_FACIL
+  const c2 = cortes?.corte2 ?? CORTE_DIFICIL
+  return score < c1 ? 'facil' : score < c2 ? 'medio' : 'dificil'
+}
+
+/**
+ * BALANCEAMENTO 50% médio / 25% fácil / 25% difícil — a MESMA regra do servidor
+ * (`server/db/repositories/vocab.ts balancear`). Existia só lá: offline, a rodada "equilibrada"
+ * saía com uma mistura diferente sob o mesmo rótulo. Completa em ordem quando falta uma faixa.
+ */
+export function balancear<T extends { difficultyScore: number | null }>(pool: T[], limite: number, cortes?: CortesDeFaixa | null): T[] {
+  const por: Record<FaixaDificuldade | 'semFaixa', T[]> = { facil: [], medio: [], dificil: [], semFaixa: [] }
+  for (const c of pool) por[faixaDe(c.difficultyScore, cortes) ?? 'semFaixa'].push(c)
+  const querMedio = Math.round(limite * 0.5)
+  const querFacil = Math.round(limite * 0.25)
+  const escolhidos: T[] = [
+    ...por.medio.slice(0, querMedio),
+    ...por.facil.slice(0, querFacil),
+    ...por.dificil.slice(0, limite - querMedio - querFacil),
+  ]
+  if (escolhidos.length < limite) {
+    const ja = new Set(escolhidos)
+    for (const c of pool) { if (escolhidos.length >= limite) break; if (!ja.has(c)) { escolhidos.push(c); ja.add(c) } }
+  }
+  return escolhidos
 }
 
 /** O filtro de dificuldade só faz sentido onde o item É um cartão de vocabulário. */
@@ -83,6 +114,8 @@ export interface Composicao {
   origemDaComposicao: 'servidor' | 'fallback-local'
   /** Preenchido quando caiu para local, para o relatório e para a UI poderem dizer por quê. */
   motivoDoFallback?: string
+  /** Os cortes de faixa que o servidor usou (quantis do deck). Guardados para a UI rotular igual. */
+  cortes?: CortesDeFaixa | null
 }
 
 /** O que a TELA precisa saber sobre o tamanho da fonte. Ver `contagemDaFonte`. */
@@ -190,7 +223,9 @@ export function composicaoLocal(cartoes: CartaoParaCompor[], p: PedidoDeComposic
     }
   })
 
-  const escolhidos = ordenado.slice(0, p.limite)
+  // Paridade com o servidor: só o equilibrado balanceia 50/25/25 (os outros já são um recorte).
+  const equilibrado = !p.estrategia || p.estrategia === 'equilibrado'
+  const escolhidos = equilibrado ? balancear(ordenado, p.limite) : ordenado.slice(0, p.limite)
   return {
     total: pool.length,
     origemDaComposicao: 'fallback-local',
@@ -263,11 +298,15 @@ export async function compor(
   buscar: BuscarComposicao = buscarPadrao,
 ): Promise<Composicao> {
   try {
-    const dados = await buscar(caminhoDaComposicao(p)) as { itens?: Array<Record<string, unknown>>; total?: number } | null
+    const dados = await buscar(caminhoDaComposicao(p)) as { itens?: Array<Record<string, unknown>>; total?: number; cortes?: { corte1?: number; corte2?: number } | null } | null
     if (!dados || !Array.isArray(dados.itens)) return composicaoLocal(cartoesLocais, p, 'corpo malformado')
+    const cortes = dados.cortes && typeof dados.cortes.corte1 === 'number' && typeof dados.cortes.corte2 === 'number'
+      ? { corte1: dados.cortes.corte1, corte2: dados.cortes.corte2 }
+      : null
     return {
       total: Number(dados.total ?? dados.itens.length),
       origemDaComposicao: 'servidor',
+      cortes,
       itens: dados.itens.map((i: Record<string, unknown>) => ({
         cardId: (i.cardId as string) ?? null,
         word: String(i.word ?? ''),

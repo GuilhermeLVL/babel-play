@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { X, Delete, CornerDownLeft, Lightbulb, Volume2, WandSparkles, ChevronsUp } from 'lucide-react';
 import type { ItemOutcome, RoundReport, RodadaTermo, Palpite } from '@core';
 import {
-  avaliarPalpite, acertou, estadoDoTecladoMulti, dicaDeLetra, letrasCertas,
+  julgarPalpite, acertou, estadoDoTecladoMulti, dicaDeLetra, letrasCertas,
   TENTATIVAS_POR_MODO, modoDeTabuleiros, montarEscada, planoDaEscada, scoreRound,
 } from '@core';
 import type { AgeProfileType } from '../../lib/profile';
@@ -60,6 +60,12 @@ export default function TermoGame({ rodadas, ageProfile, onFinish, onExit }: Ter
   const [fimDoGrupo, setFimDoGrupo] = useState(false);
   const [reveladas, setReveladas] = useState<Record<number, Record<number, string>>>({});
   const [usouDica, setUsouDica] = useState(false);
+  /* TERMO JUSTO: a dica é POR TABULEIRO (uma lâmpada no 1º não rebaixa os outros três), o "quase"
+     vale uma vez por tabuleiro, e o aviso de sinônimo/quase aparece acima da grade. */
+  const [dicaPorTab, setDicaPorTab] = useState<boolean[]>([false]);
+  const [quaseUsado, setQuaseUsado] = useState<boolean[]>([false]);
+  const [aviso, setAviso] = useState<string | null>(null);
+  const resolvidoEmTsRef = useRef<(number | null)[]>([null]);
   const [sequencia, setSequencia] = useState(0);
   const [pontos, setPontos] = useState(0);
   const [subiuDegrau, setSubiuDegrau] = useState(false);
@@ -121,8 +127,12 @@ export default function TermoGame({ rodadas, ageProfile, onFinish, onExit }: Ter
     setTentativas(0);
     setReveladas({});
     setUsouDica(false);
+    setDicaPorTab(Array(n).fill(false));
+    setQuaseUsado(Array(n).fill(false));
+    setAviso(null);
     setFimDoGrupo(false);
     resolvidoEmRef.current = Array(n).fill(null);
+    resolvidoEmTsRef.current = Array(n).fill(null);
     inicioGrupoRef.current = Date.now();
   };
 
@@ -155,9 +165,15 @@ export default function TermoGame({ rodadas, ageProfile, onFinish, onExit }: Ter
       // A jogada em que ESTE tabuleiro fechou — não a do fim do degrau. Sem isso, quem acerta na
       // 2ª jogada seria agendado como se tivesse levado sete só porque o vizinho demorou.
       attempts: resolvidoEmRef.current[i] ?? tentativasUsadas,
-      ms: agora - inicioGrupoRef.current,
-      hinted: usouDica,
-      revealed: !resolvidosFinais[i],
+      // Tempo DESTE tabuleiro (até fechar), não do degrau inteiro: senão o quarteto nunca ganha
+      // o bônus de velocidade e um tabuleiro rápido paga pelo vizinho lento.
+      ms: (resolvidoEmTsRef.current[i] ?? agora) - inicioGrupoRef.current,
+      // Dica POR tabuleiro: só quem recebeu letra revelada tem a nota limitada.
+      hinted: dicaPorTab[i] ?? false,
+      /* Acabar as tentativas NÃO é "revelou": `revealed` é o gesto voluntário de desistir. Antes
+         os dois eram iguais e a derrota honesta era gravada como entrega — nota 1 dos dois jeitos,
+         mas o histórico mentia sobre o que aconteceu. */
+      revealed: false,
     }));
     resultadosRef.current = [...resultadosRef.current, ...doGrupo];
 
@@ -183,13 +199,37 @@ export default function TermoGame({ rodadas, ageProfile, onFinish, onExit }: Ter
     if (fimDoGrupo || !grupo || !preenchido) return;
     const palpite = atual.join('');
 
+    /* JULGAMENTO CONTRA A RODADA (sinônimos e "quase"), não só contra a resposta. Se algum
+       tabuleiro aberto reconhece o palpite como sinônimo válido, ou como "quase" na última
+       tentativa, a jogada é DE GRAÇA: avisa, orienta, revela a 1ª letra (no sinônimo) e não
+       gasta tentativa. Errar de vocabulário é diferente de errar de digitação ou de acertar
+       outra palavra com o mesmo sentido. */
+    const ultima = tentativas + 1 >= maxTentativas;
+    const julgamentos = grupo.map((r, i) => (resolvidos[i] ? null : julgarPalpite(palpite, r, { ultimaTentativa: ultima, quaseJaUsado: quaseUsado[i] })));
+    const gratis = julgamentos.find(j => j && !j.acertou && (j.sinonimo || j.quase));
+    if (gratis) {
+      const i = julgamentos.indexOf(gratis);
+      setAviso(gratis.dica ?? null);
+      if (gratis.sinonimo) {
+        const primeira = grupo[i].resposta[0];
+        setReveladas(prev => ({ ...prev, [i]: { ...(prev[i] ?? {}), 0: primeira } }));
+      }
+      if (gratis.quase) setQuaseUsado(q => q.map((v, k) => (k === i ? true : v)));
+      comemorar('acerto', gradeRef.current, { texto: gratis.sinonimo ? 'sinônimo!' : 'quase!' });
+      const proxima = linhaInicial(tamanho, palpitesPorTab, resolvidos, gratis.sinonimo ? { ...reveladas, [i]: { ...(reveladas[i] ?? {}), 0: grupo[i].resposta[0] } } : reveladas);
+      cursorEscolhidoRef.current = false;
+      escrever(proxima, proximaVaga(proxima, 0));
+      return;
+    }
+    setAviso(null);
+
     const novosPalpites = palpitesPorTab.map((lista, i) =>
-      resolvidos[i] ? lista : [...lista, avaliarPalpite(palpite, grupo[i].resposta)]
+      resolvidos[i] ? lista : [...lista, julgamentos[i]!.palpite]
     );
     const novosResolvidos = resolvidos.map((r, i) => r || acertou(novosPalpites[i][novosPalpites[i].length - 1]));
     const fechouAgora = novosResolvidos.filter((r, i) => r && !resolvidos[i]).length;
     const tentativasUsadas = tentativas + 1;
-    novosResolvidos.forEach((r, i) => { if (r && !resolvidos[i]) resolvidoEmRef.current[i] = tentativasUsadas; });
+    novosResolvidos.forEach((r, i) => { if (r && !resolvidos[i]) { resolvidoEmRef.current[i] = tentativasUsadas; resolvidoEmTsRef.current[i] = Date.now(); } });
 
     setPalpitesPorTab(novosPalpites);
     setResolvidos(novosResolvidos);
@@ -306,6 +346,7 @@ export default function TermoGame({ rodadas, ageProfile, onFinish, onExit }: Ter
     if (!d) return;
     const letra = d.letra.toUpperCase();
     setUsouDica(true);
+    setDicaPorTab(v => v.map((x, k) => (k === alvo ? true : x)));
     setSequencia(0); // a sequência é mérito; com ajuda ela recomeça
     setReveladas(prev => ({ ...prev, [alvo]: { ...(prev[alvo] ?? {}), [d.posicao]: letra } }));
     // Entra no palpite de verdade: é o que faz o Enter confirmar e a dica sobreviver ao envio.
@@ -320,8 +361,8 @@ export default function TermoGame({ rodadas, ageProfile, onFinish, onExit }: Ter
     if (!grupo) return;
     const alvo = resolvidos.findIndex(r => !r);
     if (alvo < 0) return;
-    setUsouDica(true);
-    speak(grupo[alvo].resposta, { lang: toBcp47(grupo[alvo].lang || 'en') });
+    // Ouvir NÃO é dica: não revela letra nenhuma, e ligar grafia ao som é o objetivo do jogo.
+    speak(grupo[alvo].palavra || grupo[alvo].resposta, { lang: toBcp47(grupo[alvo].lang || 'en') });
   };
 
   // Sem lista de dependências de propósito: o ouvinte é reinstalado a cada render para que
@@ -455,8 +496,15 @@ export default function TermoGame({ rodadas, ageProfile, onFinish, onExit }: Ter
                   : 'text-accent-ink font-extrabold'
                 }`}
               >
-                {resolvidos[tIdx] || fimDoGrupo ? r.resposta : r.pista || '?'}
+                {resolvidos[tIdx] || fimDoGrupo ? (r.palavra || r.resposta).toUpperCase() : r.pista || '?'}
               </p>
+              {/* Pista AMBÍGUA (há sinônimos no acervo): a frase de contexto desempata. */}
+              {!resolvidos[tIdx] && !fimDoGrupo && r.contexto && (
+                <p className="text-center text-[11.5px] italic text-ink-muted px-2 -mt-1 mb-1 max-w-[36ch] mx-auto leading-snug">“{r.contexto}”</p>
+              )}
+              {tIdx === 0 && aviso && !fimDoGrupo && (
+                <p role="status" className="text-center text-[12px] font-semibold text-warn-ink bg-warn-soft border border-warn/30 rounded-lg px-2 py-1 mb-1 max-w-[40ch] mx-auto leading-snug">{aviso}</p>
+              )}
               {Array.from({ length: maxTentativas }).map((_, linha) => {
                 const p = (palpitesPorTab[tIdx] ?? [])[linha];
                 const digitando = !resolvidos[tIdx] && !fimDoGrupo && linha === (palpitesPorTab[tIdx] ?? []).length;

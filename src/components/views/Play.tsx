@@ -17,6 +17,9 @@ import {
   estimativaDeMinutos, rotuloDeDuracao, pistasDaTriagem, resumoDosPulados,
   previaSegura, repetidosDaUltima, MAPA_REVELA_ALVO,
   pontuarRodada, xpFromRound, acumular, mesmaCorrente, marcarPromovidas, resumir, agruparFases,
+  faixaAuto, diaLocal, estadoDoItem, ordenarPorMemoria, etapasDoNivel, progressoDasEtapas, etapaAtual,
+  frasesDaTrilha, diagnosticoTermo, rngDe, chaveDaPalavra as chaveDaPalavraCore,
+  type EstadoDoItem,
   type RodadaEscuta, type RodadaDitado, type RodadaConectores,
   type MinigameId, type MinigameItem, type RoundReport, type RodadaTermo, type RodadaFrase,
   type FonteDeItens, type Triagem, type DadoTrilha, type CefrLevel,
@@ -27,6 +30,8 @@ import { baseLang, langLabelPt } from '../../lib/languages';
 import { langConfigFrom } from '../../lib/langConfig';
 import { gravarFonteGuardada, lerFonteGuardada } from '../../lib/fonteDaPratica';
 import { contarPassada } from '../../lib/passadasDoPipeline';
+import { faixaDe as faixaDaComposicao, type EstrategiaDaUI } from '../../core/minigames/composicao';
+import { lerPrecisoes, registrarPrecisao, registrarVistas, vistasRecentes as vistasGuardadas } from '../../lib/memoriaLocal';
 import SalaDeEscolha from '../minigames/SalaDeEscolha';
 import { isTtsSupported } from '../../lib/tts';
 import { useAudioDaSessao } from '../../lib/audioDaSessao';
@@ -54,7 +59,7 @@ import ScratchReward from '../minigames/ScratchReward';
 import ResumoDaRodada, { type ItemDaRodada } from '../minigames/ResumoDaRodada';
 import {
   compor, aceitaFiltroDeDificuldade, faixaDe as faixaDeScore, contagemDaFonte, recortarPelaComposicao,
-  type FaixaDificuldade, type EstrategiaDeDistribuicao,
+  type FaixaDificuldade,
   type Composicao, type CartaoParaCompor,
 } from '../../core/minigames/composicao';
 import EscutaGame from '../minigames/EscutaGame';
@@ -259,7 +264,9 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
   /* Z1 — FILTRO DE DIFICULDADE. Vale para os 4 jogos de modalidade `palavra`; os 5 de frase
      jogam sobre falas, que não têm dificuldade por palavra (ver `composicao.ts`). */
   const [faixas, setFaixas] = useState<FaixaDificuldade[]>([]);
-  const [estrategia, setEstrategia] = useState<EstrategiaDeDistribuicao>('equilibrado');
+  /* SELEÇÃO v2: 'auto' é o padrão — a faixa vem da precisão recente do jogo (`faixaAuto`), com
+     o motivo dito na antessala. Escolher um chip de nível tira do automático. */
+  const [estrategia, setEstrategia] = useState<EstrategiaDaUI>('auto');
   const [composicao, setComposicao] = useState<Composicao | null>(null);
 
   /** F6: passo 2 (resumo com os erros) antes de voltar. Ligado ao fim de cada rodada. */
@@ -370,8 +377,38 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
     evitarTambem?: ReadonlySet<string>,
   ): RodadaPronta | null => {
     const trecho = semente?.word || semente?.text;
-    const cartas = apenas?.size ? jogaveis.filter(c => apenas.has(c.word)) : jogaveis;
-    const falas = apenas?.size ? frases.filter(f => apenas.has(f.id)) : frases;
+    const agora = Date.now();
+    /* SELEÇÃO v2 — os insumos da régua: a memória de itens (histórico por `item_ref`, em todos os
+       jogos) e a SEMENTE do dia (rotação própria por jogo dentro do mesmo acervo). */
+    const sementeDoDia = String(diaLocal(agora));
+    const memoria = historico;
+    /* A trilha recorta pela ETAPA atual (+ o que está voltando por erro ou vencido): estudar a
+       etapa 7 não deveria sortear o nível A2 inteiro. Sem material suficiente, alarga. */
+    let base = jogaveis;
+    if (!apenas?.size && fonte.id === 'trilha' && etapaDaTrilha) {
+      const daEtapa = new Set(etapaDaTrilha.palavras.map((p) => chaveDaPalavraCore(p)));
+      const recorte = jogaveis.filter((c) => {
+        if (daEtapa.has(chaveDaPalavraCore(c.word))) return true;
+        const e = estadoDoItem(memoria.get(c.word));
+        return e.tag === 'errando' || isDueNow(c, 'fsrs', agora);
+      });
+      if (recorte.length >= MINIGAMES[jogo].minItems) base = recorte;
+    }
+    /* Modo AUTO: a faixa decidida pela precisão recente filtra aqui (o pedido ao servidor não muda
+       por jogo). Sem material na faixa, alarga para o acervo inteiro em vez de recusar a rodada. */
+    if (!apenas?.size && estrategia === 'auto' && aceitaFiltroDeDificuldade(jogo)) {
+      const { faixa } = decisaoAuto(jogo);
+      const naFaixa = base.filter((c) => {
+        const f = faixaDaComposicao((c as { difficultyScore?: number | null }).difficultyScore ?? null, composicao?.cortes);
+        return f == null || f === faixa;
+      });
+      if (naFaixa.length >= MINIGAMES[jogo].minItems) base = naFaixa;
+    }
+    const cartas = apenas?.size ? jogaveis.filter(c => apenas.has(c.word)) : base;
+    /* Frases: na trilha vêm das 2.552 frases Tatoeba (`frasesDaTrilha`), que antes eram código
+       morto e deixavam a Frase embaralhada bloqueada com "trilha sem frase". */
+    const falasBrutas = fonte.id === 'trilha' ? frasesTrilha : frases;
+    const falas = apenas?.size ? falasBrutas.filter(f => apenas.has(f.id)) : falasBrutas;
     /* Repetir NÃO deve evitar o que acabou de cair — é justamente isso que se está pedindo.
        Já o "trocar por outras" precisa evitar TAMBÉM o que está na tela agora: quem clica ali está
        dizendo "essas não". Medido antes deste ajuste: trocar devolvia 4 dos 12 itens de volta. */
@@ -443,10 +480,16 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
      * jogável em vez de virar beco sem saída.
      */
     const falasNaOrdem = (() => {
-      if (!evitar?.size) return falas;
+      /* SELEÇÃO v2: os cinco jogos de frase passam pela MESMA régua de memória das palavras
+         (errando → novas → aprendendo → firmes; leeches fora; semente própria por jogo). Antes só
+         demoviam o que tinha acabado de cair, e isso morria no F5. */
+      const { ordenados } = ordenarPorMemoria(falas, f => f.id, {
+        memoria, semente: `${jogo}:${sementeDoDia}`, agora, diaDe: diaLocal, cotaDeNovas: 0.3,
+      });
+      if (!evitar?.size) return ordenados;
       const frescas: typeof falas = [];
       const vistas: typeof falas = [];
-      for (const f of falas) (evitar.has(f.id) ? vistas : frescas).push(f);
+      for (const f of ordenados) (evitar.has(f.id) ? vistas : frescas).push(f);
       return [...frescas, ...vistas];
     })();
 
@@ -458,7 +501,7 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
          que existia neste lugar afirmava que "com menos de 7, `planoDaEscada` encurta a escada em
          vez de recusar o jogo", era falso, e foi essa premissa que deixou o Termo inacessível:
          com `mesmoTamanho`, pedir 7 e ter 5 devolvia lista VAZIA, nunca uma escada curta. */
-      const r = rodadasDaEscada(cartas, { evitar });
+      const r = rodadasDaEscada(cartas, { evitar, memoria, semente: sementeDoDia, diaDe: diaLocal });
       if (!r.length) return null;
       return pronta(
         r.map(x => ({ ref: x.palavra, alvo: x.palavra, pista: x.pista, ...nivelDe(x.palavra) })),
@@ -466,7 +509,9 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
       );
     }
     if (jogo === 'scramble') {
-      const r = buildScrambleRounds(falasNaOrdem, { quantidade: MINIGAMES.scramble.maxItems });
+      // `rand` com semente: a Frase embaralhada não embaralhava a ORDEM das falas (mesma rodada
+      // para sempre); a ordem já vem da memória, e o embaralhar das peças fica determinístico no dia.
+      const r = buildScrambleRounds(falasNaOrdem, { quantidade: MINIGAMES.scramble.maxItems, rand: rngDe(`scramble:${sementeDoDia}:${falasNaOrdem.length}`) });
       if (r.length < MINIGAMES.scramble.minItems) return null;
       return pronta(
         r.map(x => ({ ref: x.sentenceId ?? '', alvo: x.correta.join(' '), pista: x.traducao })),
@@ -545,7 +590,7 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
         () => setRodadaKaraoke(lista),
       );
     }
-    const itens = priorizar(buildItems(jogo, cartas, { evitar }), trecho, x => x.answer);
+    const itens = priorizar(buildItems(jogo, cartas, { evitar, memoria, semente: sementeDoDia, diaDe: diaLocal, excluirEvitadas: true, now: agora }), trecho, x => x.answer);
     if (itens.length < MINIGAMES[jogo].minItems) return null;
     return pronta(
       itens.map(i => ({ ref: i.answer, alvo: i.answer, pista: i.prompt, ...nivelDe(i.answer) })),
@@ -693,12 +738,17 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
     const def = MINIGAMES[report.gameId];
     /* Alimenta a memória curta com o que acabou de cair. O teto existe para a lista não virar o
        baralho inteiro numa maratona, aí ela deixaria de despriorizar coisa nenhuma. */
-    setVistasRecentes(anterior => {
-      const nova = new Set(anterior);
-      for (const o of report.items) if (o.itemRef) nova.add(o.itemRef);
-      const TETO = 60;
-      return nova.size <= TETO ? nova : new Set([...nova].slice(-TETO));
-    });
+    /* SELEÇÃO v2: a memória curta agora PERSISTE por origem (sobrevive ao F5, teto 200), e a
+       precisão desta rodada alimenta o modo Auto deste jogo. */
+    {
+      const origemDaRodada = fonte.id === 'sessao' ? `sessao:${fonte.sessionId ?? ''}` : fonte.id === 'trilha' ? `trilha:${fonte.nivel ?? ''}` : 'baralho';
+      const refs = report.items.map(o => o.itemRef).filter((r): r is string => !!r);
+      registrarVistas(origemDaRodada, refs);
+      setVistasRecentes(vistasGuardadas(origemDaRodada));
+      const total = report.items.length;
+      const certos = report.items.filter(o => o.correct && !o.revealed).length;
+      if (total > 0) registrarPrecisao(report.gameId, (certos / total) * 100);
+    }
     /**
      * A RODADA PASSA A TER NOME E OS ITENS, IDENTIDADE.
      *
@@ -1028,7 +1078,8 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
      sessão gravaria o recorde na `origem` errada. (`acumular` já tem o guard como cinto; isto é a
      suspensória, para o placar sumir da tela no instante da troca, e não só na rodada seguinte.) */
   useEffect(() => {
-    setVistasRecentes(new Set());
+    const origemDaFonte = fonte.id === 'sessao' ? `sessao:${fonte.sessionId ?? ''}` : fonte.id === 'trilha' ? `trilha:${fonte.nivel ?? ''}` : 'baralho';
+    setVistasRecentes(vistasGuardadas(origemDaFonte));
     setSequencia(null);
   }, [fonte.id, fonte.sessionId, fonte.nivel, fonte.lang]);
 
@@ -1096,7 +1147,8 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
                   cartões de qualquer idioma e o seletor do lobby não tinha efeito nenhum. */
                lang: baseLang(fonte.lang) },
       dificuldade: faixas.length ? faixas : undefined,
-      estrategia,
+      // 'auto' é decisão do cliente (por jogo); ao servidor vai o equilibrado.
+      estrategia: estrategia === 'auto' ? 'equilibrado' : estrategia,
       limite: LIMITE_DA_COMPOSICAO,
     }, paraCompor, buscarComposicaoPeloFunil).then((c) => { if (vivo) setComposicao(c); });
     return () => { vivo = false; };
@@ -1110,6 +1162,26 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
     () => (baseLang(fonte.lang) === 'en' ? (trilhaEn as DadoTrilha) : null),
     [fonte.lang],
   );
+
+  /* SELEÇÃO v2 — as frases da trilha (Tatoeba) no formato que os jogos de frase consomem. */
+  const frasesTrilha = useMemo<Sentence[]>(
+    () => (fonte.id === 'trilha' && trilha && fonte.nivel ? (frasesDaTrilha(trilha, fonte.nivel) as unknown as Sentence[]) : []),
+    [fonte.id, fonte.nivel, trilha],
+  );
+
+  /* A ETAPA ATUAL da trilha: primeira não feita (≥80% das palavras já no caderno). Recorta a
+     rodada em `montarRodada`; `acertos` vem do histórico (a coluna "acertou" nunca era passada). */
+  const etapaDaTrilha = useMemo(() => {
+    if (fonte.id !== 'trilha' || !trilha || !fonte.nivel) return null;
+    const etapas = etapasDoNivel(trilha, fonte.nivel);
+    const jaTem = new Set((deck ?? []).filter(c => c.daTrilha).map(c => chaveDaPalavraCore(c.word)));
+    const acertos = new Set([...historico.values()].filter(h => h.ultimoAcerto).map(h => chaveDaPalavraCore(h.itemRef)));
+    return etapaAtual(progressoDasEtapas(etapas, jaTem, acertos));
+  }, [fonte.id, fonte.nivel, trilha, deck, historico]);
+
+  /** Decisão do modo Auto para um jogo: precisões recentes (localStorage) → faixa + motivo. */
+  const decisaoAuto = (jogo: MinigameId) => faixaAuto({ ultimasPrecisoes: lerPrecisoes(jogo), faixaAtual: faixaAutoAtualRef.current[jogo] ?? null });
+  const faixaAutoAtualRef = useRef<Partial<Record<MinigameId, FaixaDificuldade>>>({});
 
   /**
    * O QUE A SALA DE ESCOLHA PRECISA SABER.
@@ -1225,6 +1297,13 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
   /* As duas populações dentro de `usaveis`: a que serve aos jogos de par e a que só serve ao
      duelo. Separar é o que permite a faixa de status dizer a verdade inteira. */
   const pistas = useMemo(() => pistasDaTriagem(triagem), [triagem]);
+
+  /* SELEÇÃO v2: os itens do acervo marcados como difíceis para você (≥ LEECH_APOS erros seguidos).
+     Ficam fora da rotação comum e voltam na rodada de resgate da antessala. */
+  const leechesDoAcervo = useMemo(
+    () => acervoDaFonte.filter(c => estadoDoItem(historico.get(c.word)).tag === 'leech').map(c => c.word),
+    [acervoDaFonte, historico],
+  );
 
   /* Quantas do acervo NUNCA apareceram numa rodada. Sai do histórico que já está em memória —
      é o número que faz o card do mapa valer o clique, em vez de repetir o total. */
@@ -1363,6 +1442,7 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
     const porId = estadoDeCadaJogo({
       cartas: jogaveis,
       frases,
+      frasesDaTrilha: fonte.id === 'trilha' ? frasesTrilha : undefined,
       temAudio: !!audioSessao,
       audioPronto: !!audioParaJogos,
       temVoz,
@@ -1524,9 +1604,10 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
           estrategia,
           aoTrocarFaixa: (f: FaixaDificuldade) => {
             setFaixas((atual) => (atual.includes(f) ? atual.filter((x) => x !== f) : [...atual, f]));
+            if (estrategia === 'auto') setEstrategia('equilibrado'); // chip manual assume o controle
             setAntessala(null);   // o recorte mudou: a prévia atual não vale mais
           },
-          aoTrocarEstrategia: (e: EstrategiaDeDistribuicao) => { setEstrategia(e); setAntessala(null); },
+          aoTrocarEstrategia: (e: EstrategiaDaUI) => { setEstrategia(e); if (e === 'auto') setFaixas([]); setAntessala(null); },
           disponivelPorFaixa: contagemPorFaixa,
           minimoDoJogo: MINIGAMES[antessala.jogo]?.minItems ?? 3,
           origemDaComposicao: composicao?.origemDaComposicao ?? 'fallback-local',
@@ -1551,6 +1632,20 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
         }}
         acervoTotal={acervoDaFonte.length}
         itensJogados={historico.size}
+        /* SELEÇÃO v2 — o "por que estas?", o Auto com motivo, a etapa, os leeches e o resgate. */
+        estados={new Map<string, EstadoDoItem>(antessala.previa.map(i => [i.ref, estadoDoItem(historico.get(i.ref))]))}
+        leeches={leechesDoAcervo}
+        onResgate={leechesDoAcervo.length
+          ? () => {
+              // Só as difíceis + 2 firmes/aprendendo para dar respiro; sem cronômetro de combo aqui.
+              const firmes = acervoDaFonte.filter(c => { const t = estadoDoItem(historico.get(c.word)).tag; return t === 'firme' || t === 'aprendendo'; }).slice(0, 2).map(c => c.word);
+              const r = montarRodada(antessala.jogo, null, new Set([...leechesDoAcervo, ...firmes]));
+              if (r) setAntessala(r); else toast.warn('Este jogo precisa de mais itens para a rodada de resgate. Tente outro jogo.');
+            }
+          : null}
+        auto={estrategia === 'auto' && aceitaFiltroDeDificuldade(antessala.jogo) ? (() => { const d = decisaoAuto(antessala.jogo); faixaAutoAtualRef.current[antessala.jogo] = d.faixa; return { faixa: d.faixa, motivo: d.motivo }; })() : null}
+        diagnosticoTermo={antessala.jogo === 'termo' ? diagnosticoTermo(acervoDaFonte) : null}
+        etapa={fonte.id === 'trilha' && etapaDaTrilha ? etapaDaTrilha.nome : null}
         onJogar={() => comecar(antessala)}
         onTrocar={() => {
           const naTela = new Set<string>(antessala.previa.map(i => i.ref));

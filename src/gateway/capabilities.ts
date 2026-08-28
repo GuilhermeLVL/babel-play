@@ -15,6 +15,15 @@ export interface AdapterMeta {
 
 // ───────────────────────────── Tradução (MT) ─────────────────────────────
 
+/** Opções de uma tradução. `falada`/`contexto` só importam ao motor de LLM (tradução comunicativa). */
+export interface MtOptions {
+  signal?: AbortSignal
+  /** O texto é FALA espontânea (transcrição do microfone), não texto escrito. */
+  falada?: boolean
+  /** Últimas falas da conversa, para pronome/tempo/referente. */
+  contexto?: ReadonlyArray<string>
+}
+
 export interface MtResult {
   text: string
   detectedSourceLang?: string
@@ -25,7 +34,7 @@ export interface MtResult {
 
 export interface TranslationProvider extends AdapterMeta {
   supports(src: string | null, tgt: string): boolean
-  translate(text: string, src: string | null, tgt: string, opts?: { signal?: AbortSignal }): Promise<MtResult>
+  translate(text: string, src: string | null, tgt: string, opts?: MtOptions): Promise<MtResult>
   /** Aquece o modelo desta direção em background (no-op para adapters de rede/nativos). */
   preload?(src: string, tgt: string, onProgress?: (progress: number, label?: string, bytes?: { loaded: number; total: number }) => void): void
 }

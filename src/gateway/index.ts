@@ -14,6 +14,7 @@ import type { CapabilityBinding, ChatMessage, ChatResult, Profile } from '@core'
 import type {
   LlmOptions,
   LlmProvider,
+  MtOptions,
   MtResult,
   SttCallbacks,
   SttFinal,
@@ -132,9 +133,27 @@ export function buildGateway({ profile, cloudConsent }: GatewayDeps) {
         text: string,
         src: string | null,
         tgt: string,
-        opts?: { signal?: AbortSignal }
-      ): Promise<MtResult> =>
-        core.run(
+        opts?: MtOptions
+      ): Promise<MtResult> => (async () => {
+        /* FALA DO MICROFONE VAI AO LLM PRIMEIRO. Na cadeia o `server-llm-mt` é o terceiro: só
+           corria se o opus-mt falhasse — ou seja, com o opus-mt funcionando, o motor que traduz
+           SENTIDO nunca era chamado, e "a gente tava de boa" chegava à tela ao pé da letra. Para a
+           fala (registro informal, gíria, contexto), o LLM vai primeiro quando existe na cadeia e
+           está disponível; se recusar (402/501, disjuntor aberto), a cascata normal segue. */
+        if (opts?.falada) {
+          const b = (core.getProfile().bindings.mt ?? []).find((x) => x.adapterId === 'server-llm-mt')
+          if (b && !breakers.get(b.adapterId).isOpen && cloudConsent?.() !== false) {
+            try {
+              const a = resolveMt(b)
+              if (a.supports(src, tgt)) {
+                const r = await breakers.get(b.adapterId).run(() => a.translate(text, src, tgt, opts))
+                const veredicto = validarTraducao(r.text, tgt, src, null, text)
+                if (veredicto.ok && r.text) return r
+              }
+            } catch { /* cai para a cascata normal */ }
+          }
+        }
+        return core.run(
           'mt',
           async (b) => {
             const adapter = resolveMt(b)
@@ -165,7 +184,8 @@ export function buildGateway({ profile, cloudConsent }: GatewayDeps) {
             return r
           },
           { isCloud }
-        ),
+        )
+      })(),
 
       /**
        * DIAGNÓSTICO: roda cada motor da cadeia isoladamente e diz o que cada um respondeu — com o

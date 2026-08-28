@@ -7,7 +7,8 @@ import { apiFetch } from '../../data/api'
  * responde 501 e a cadeia segue (honesto: nunca inventa tradução).
  *
  * Diferencial: NÃO exige o idioma de origem — o LLM detecta. É o motor que sustenta o
- * modo multi-idioma (detecção automática) da captura.
+ * modo multi-idioma (detecção automática) da captura. E é o único motor que traduz o
+ * SENTIDO de fala informal (prompt comunicativo + contexto das falas anteriores).
  */
 export class ServerLlmMt implements TranslationProvider {
   readonly id = 'server-llm-mt'
@@ -15,7 +16,7 @@ export class ServerLlmMt implements TranslationProvider {
   readonly cost = 'byo-cloud' as const
   readonly label = 'Tradutor IA (servidor)'
 
-  // Falha de configuração (501) é PERMANENTE na sessão — evita bater no endpoint a cada frase.
+  // Falha de configuração (501) ou de plano (402) é PERMANENTE na sessão — evita bater no endpoint a cada frase.
   private unavailable = false
 
   supports(src: string | null, tgt: string): boolean {
@@ -27,20 +28,20 @@ export class ServerLlmMt implements TranslationProvider {
     text: string,
     src: string | null,
     tgt: string,
-    opts?: { signal?: AbortSignal }
+    opts?: { signal?: AbortSignal; contexto?: ReadonlyArray<string>; falada?: boolean }
   ): Promise<MtResult> {
     // Pelo funil: sem conta o servidor em memória responde 501 (a nuvem gerenciada exige conta) e
     // este adaptador se marca indisponível — a tradução cai para o caminho local, como deve.
     const res = await apiFetch('/api/ai/mt', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ text, src: src || undefined, tgt }),
+      body: JSON.stringify({ text, src: src || undefined, tgt, contexto: opts?.contexto?.slice(-3), falada: opts?.falada === true }),
       signal: opts?.signal,
     })
-    /* 501 (sem chave/plano) OU qualquer 5xx (API fora do ar, Pages sem API_ORIGIN → 503): o
-       adaptador se desliga para a sessão. Antes só o 501 desligava, e um 503 era re-tentado a
-       cada frase com 15 s de timeout, foi a principal fonte da lentidão medida na versão hospedada. */
-    if (res.status === 501 || res.status >= 500) {
+    /* 501 (sem chave) OU qualquer 5xx (API fora do ar, Pages sem API_ORIGIN → 503) OU 402 (plano
+       sem a nuvem gerenciada): o adaptador se desliga para a sessão. O 402 não desligava e um
+       usuário sem plano pagava uma ida ao servidor por frase, para receber sempre a mesma recusa. */
+    if (res.status === 501 || res.status === 402 || res.status >= 500) {
       this.unavailable = true
       throw new Error(`tradução por LLM de nuvem indisponível (HTTP ${res.status})`)
     }

@@ -4,6 +4,7 @@ import { hasEntitlement } from '../lib/entitlements'
 import { reserveManagedCall, refundManagedCall } from '../lib/usageQuota'
 import { log } from '../lib/logger'
 import { erroDeRota } from '../lib/erroDeRota'
+import { nomeDoIdioma, systemComunicativo, userComunicativo } from '../../src/lib/traducao/promptComunicativo'
 
 /**
  * Tradução via LLM (Groq) no SERVIDOR — o elo que faltava na cadeia de MT.
@@ -21,13 +22,13 @@ const bodySchema = z.object({
   text: z.string().min(1).max(4000),
   src: z.string().max(20).optional(),
   tgt: z.string().min(2).max(20),
+  /** Fala espontânea (microfone): usa o prompt COMUNICATIVO (sentido, não palavra por palavra). */
+  falada: z.boolean().optional(),
+  /** Últimas falas da conversa (≤ 3, ≤ 300 chars cada), só para referência. */
+  contexto: z.array(z.string().max(300)).max(3).optional(),
 }).strip()
 
-const LANG_NAMES: Record<string, string> = {
-  pt: 'português', en: 'inglês', es: 'espanhol', fr: 'francês', de: 'alemão', it: 'italiano',
-  ja: 'japonês', ko: 'coreano', zh: 'chinês', ru: 'russo', ar: 'árabe', hi: 'híndi', nl: 'holandês',
-}
-const langName = (code: string) => LANG_NAMES[code.split('-')[0].toLowerCase()] || code
+const langName = nomeDoIdioma
 
 export async function mtTranslateProxy(req: Request, res: Response): Promise<void> {
   const parsed = bodySchema.safeParse(req.body ?? {})
@@ -35,7 +36,7 @@ export async function mtTranslateProxy(req: Request, res: Response): Promise<voi
     res.status(400).json({ error: 'payload inválido: text/tgt obrigatórios' })
     return
   }
-  const { text, src, tgt } = parsed.data
+  const { text, src, tgt, falada, contexto } = parsed.data
 
   // SaaS Fatia 1b — este proxy é 100% nuvem GERENCIADA (chave do dono). Exige o entitlement; a cadeia
   // de tradução LOCAL (Chrome Translator/opus-mt/MyMemory) roda no cliente e não passa por aqui, então
@@ -75,20 +76,30 @@ export async function mtTranslateProxy(req: Request, res: Response): Promise<voi
   const t0 = Date.now()
   try {
     const origem = src ? ` O texto está em ${langName(src)}.` : ''
-    const r = await fetch(`${base}/chat/completions`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
-      body: JSON.stringify({
-        model,
-        temperature: 0,
-        max_tokens: 1200,
-        messages: [
+    /* Dois prompts, um por natureza do texto. FALA (microfone): intérprete — sentido, registro
+       informal, contexto das falas anteriores (src/lib/traducao/promptComunicativo.ts, compartilhado
+       com o eval). TEXTO (legenda do sistema, importação): o tradutor fiel de sempre. */
+    const messages = falada
+      ? [
+          { role: 'system', content: systemComunicativo(tgt, src) },
+          { role: 'user', content: userComunicativo(text, contexto) },
+        ]
+      : [
           {
             role: 'system',
             content: `Você é um tradutor profissional. Traduza o texto do usuário para ${langName(tgt)}.${origem} Responda APENAS com a tradução — sem aspas, sem comentários, sem explicações. Preserve o tom e a pontuação.`,
           },
           { role: 'user', content: text },
-        ],
+        ]
+    const r = await fetch(`${base}/chat/completions`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
+      body: JSON.stringify({
+        model,
+        // Fala pede um pouco de liberdade para escolher a expressão natural; texto fica determinístico.
+        temperature: falada ? 0.2 : 0,
+        max_tokens: 1200,
+        messages,
       }),
       signal: AbortSignal.timeout(12_000),
     })

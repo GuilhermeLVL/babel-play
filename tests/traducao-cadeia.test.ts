@@ -37,3 +37,30 @@ describe('gateway: a cascata de MT chama o motor de verdade', () => {
     await expect(core.run('mt', async () => 'traduzido')).resolves.toBe('traduzido')
   })
 })
+
+describe('tradução comunicativa da fala', () => {
+  beforeEach(() => vi.resetModules())
+
+  it('server-llm-mt se desliga na sessão também em 402 (sem plano), não só em 501/5xx', async () => {
+    const { apiFetch } = await import('../src/data/api')
+    ;(apiFetch as unknown as ReturnType<typeof vi.fn>).mockResolvedValue(new Response('{}', { status: 402 }))
+    const { ServerLlmMt } = await import('../src/gateway/adapters/serverLlmMt')
+    const a = new ServerLlmMt() as unknown as { translate: (t: string, s: string, d: string) => Promise<unknown>; unavailable?: boolean; supports: (s: string, t: string) => boolean }
+    await expect(a.translate('valeu', 'pt', 'en')).rejects.toThrow(/indisponível/)
+    expect(a.unavailable).toBe(true)
+    expect(a.supports('pt', 'en')).toBe(false)
+  })
+
+  it('manda `falada` e o contexto (≤3 falas) ao servidor', async () => {
+    const { apiFetch } = await import('../src/data/api')
+    const mock = apiFetch as unknown as ReturnType<typeof vi.fn>
+    mock.mockResolvedValue(new Response(JSON.stringify({ text: 'We were chilling.' }), { status: 200 }))
+    const { ServerLlmMt } = await import('../src/gateway/adapters/serverLlmMt')
+    const a = new ServerLlmMt()
+    const r = await a.translate('a gente tava de boa', 'pt', 'en', { falada: true, contexto: ['1', '2', '3', '4'] })
+    expect(r.text).toBe('We were chilling.')
+    const body = JSON.parse(mock.mock.calls.at(-1)![1].body as string)
+    expect(body.falada).toBe(true)
+    expect(body.contexto).toEqual(['2', '3', '4'])
+  })
+})

@@ -89,6 +89,10 @@ const MT_DTYPES = ['q8', 'int8', 'q4'] as const
 // MEDIDO (2026-08-26): com a otimização de grafo padrão o ORT nem cria a sessão (o erro qdq acima);
 // em 'basic' carrega e traduz. Não é preferência, é o único nível que funciona hoje.
 const ORT_GRAPH_OPT = 'basic'
+/* DECODE: antes ia sem opção nenhuma (greedy, sem teto) — o candidato mais literal e, em frase
+   longa, sem freio. Beam 2 é o menor que já melhora a escolha de expressão sem dobrar o tempo no
+   WASM; `no_repeat_ngram_size` mata o "the the" do greedy; `max_length` é o freio. */
+const GERACAO = { num_beams: 2, max_length: 256, no_repeat_ngram_size: 3, early_stopping: true } as const
 // `diag` (só diagnóstico, via mensagem): força a lista de dtypes e o nível de otimização do ORT.
 let diag: { dtypes?: string[]; graphOpt?: string } = {}
 async function getPipe(model: string): Promise<any> {
@@ -158,10 +162,10 @@ self.onmessage = async (e: MessageEvent) => {
       const ids = [BigInt(tokenId), ...Array.from(enc.input_ids.data as BigInt64Array)]
       const input_ids = new Tensor('int64', BigInt64Array.from(ids), [1, ids.length])
       const attention_mask = new Tensor('int64', BigInt64Array.from(ids.map(() => BigInt(1))), [1, ids.length])
-      const gen = await pipe.model.generate({ input_ids, attention_mask })
+      const gen = await pipe.model.generate({ input_ids, attention_mask, ...GERACAO })
       translated = pipe.tokenizer.batch_decode(gen, { skip_special_tokens: true })[0]
     } else {
-      const out = await pipe(cfg.langToken ? `${cfg.langToken} ${text}` : text)
+      const out = await pipe(cfg.langToken ? `${cfg.langToken} ${text}` : text, GERACAO)
       translated = Array.isArray(out) ? out[0]?.translation_text : out?.translation_text
     }
     self.postMessage({ type: 'result', id, text: (translated ?? '').trim() })

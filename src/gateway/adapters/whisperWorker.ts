@@ -14,7 +14,10 @@ import { pipeline, env, TextStreamer } from '@huggingface/transformers'
 import { configureModelDelivery } from './transformersEnv'
 import { criarRastreadorDeProgresso, rotuloDeBytes } from './modelProgress'
 import { registrarModeloBaixado } from '../modelManifest'
-import { filtrarAlucinacao } from '../alucinacao'
+import { filtrarAlucinacao, tokensPorSegundo } from '../alucinacao'
+/* `initial_prompt` POR FONTE (contexto das falas anteriores do mic/sistema) foi avaliado e NÃO
+   entrou: a versão instalada de @huggingface/transformers não expõe `prompt_ids` no pipeline de
+   ASR (conferido no bundle). Quando expuser, o lugar é o objeto de opções abaixo. */
 
 // Entrega dos pesos: cache do navegador (padrão) ou self-host same-origin (VITE_SELF_HOST_MODELS).
 configureModelDelivery()
@@ -173,9 +176,11 @@ self.onmessage = async (e: MessageEvent) => {
       // curto, "continua inventando" até bater o max_new_tokens. Limitar à DURAÇÃO real do áudio
       // (~15 tokens/s é folgado p/ fala — a real mede ~3/s) corta a geração desenfreada sem
       // cortar fala legítima. Ex.: parcial de 1s → 15 tokens; trecho de 6s → 90 (< teto de 128).
+      // POR IDIOMA: português/espanhol tokenizam pior que inglês no vocabulário do Whisper —
+      // 15 tok/s truncava fala rápida em PT (medido no cenário conversa). Ver alucinacao.ts.
       const audioSec = pcm.length / 16000
-      const hardCap = maxNewTokens || 128
-      const dynMax = Math.max(8, Math.min(hardCap, Math.round(audioSec * 15)))
+      const hardCap = maxNewTokens || (language && language !== 'en' ? 160 : 128)
+      const dynMax = Math.max(8, Math.min(hardCap, Math.round(audioSec * tokensPorSegundo(language))))
 
       // Decode enxuto p/ baixa latência: greedy (sem beam), cache ligado (implícito no grafo
       // merged), idioma FIXO (pula auto-detecção e evita "traduzir" sozinho), sem timestamps.
@@ -196,7 +201,7 @@ self.onmessage = async (e: MessageEvent) => {
       self.postMessage({
         type: 'result',
         id,
-        text: filtrarAlucinacao((out.text ?? '').trim(), audioSec),
+        text: filtrarAlucinacao((out.text ?? '').trim(), audioSec, language),
       })
     }
   } catch (err) {

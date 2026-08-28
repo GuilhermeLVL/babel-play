@@ -12,6 +12,10 @@ import { WebSpeechStt } from '../../gateway/adapters/webSpeech';
 import type { SttSession } from '../../gateway/capabilities';
 import { mtCoverage, langLabel, baseLang, toBcp47 } from '../../lib/languages';
 import { detectLanguage } from '../../lib/langDetect';
+// Fala do MIC em português → português claro antes de traduzir (vícios, contrações, gíria).
+import { prepararFala, chaveNormalizada } from '../../lib/traducao/prepararFala';
+// Cenário conversa sem fone: a caixa de som entra pelo mic — detecta e descarta.
+import { classificarVazamento, type Intervalo } from '../../lib/vazamento';
 // Configuração de idioma: fonte ÚNICA (`mine` = o que VOCÊ fala no mic; `studying` = o que você
 // ESTUDA, o áudio estrangeiro). Antes os defaults nasciam aqui, em `useState`.
 import { fetchLangConfig, saveLangConfig, onLangConfigChange, DEFAULT_LANG_CONFIG, type LangConfig } from '../../lib/langConfig';
@@ -323,7 +327,9 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
   const [deviceLabelsReady, setDeviceLabelsReady] = useState(false);
   // Motor de transcrição do MICROFONE: 'browser' = Web Speech (rápido, leve, ótimo p/ PT — PADRÃO)
   // ou 'whisper' = getUserMedia+VAD+Whisper local (offline, escolhe dispositivo). Persistido.
-  const [micEngine, setMicEngine] = useState<'browser' | 'whisper'>('browser');
+  // EDIÇÃO LEVE: padrão Whisper — a Web Speech ignora a dica de idioma por fala, o filtro de
+  // vazamento e a preparação da fala, e no cenário conversa transcreve a caixa de som como "você".
+  const [micEngine, setMicEngine] = useState<'browser' | 'whisper'>(EDICAO_LEVE ? 'whisper' : 'browser');
   const webSpeechSupported = typeof window !== 'undefined' && ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window);
   // Velocidade do TTS (escutar tradução/palavra). Persistida em settings.ui.
   const [ttsSpeed, setTtsSpeed] = useState(1.0);
@@ -401,6 +407,19 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
   const [idiomaObservado, setIdiomaObservado] = useState('');
   const idiomaObservadoRef = useRef('');
   useEffect(() => { idiomaObservadoRef.current = idiomaObservado; }, [idiomaObservado]);
+  /**
+   * PERFIL DO MICROFONE — o mic nunca alimentava o perfil acima (que é do SISTEMA), então o app
+   * jamais aprendia que "eu falo" estava configurado errado. Este ouve só a sua voz; ao
+   * convergir num idioma diferente do configurado, AVISA uma vez (não troca sozinho).
+   */
+  const perfilMicRef = useRef(new PerfilAdaptativoDeIdioma());
+  const avisoIdiomaMicRef = useRef(false);
+  /** Janelas de fala do SISTEMA (fechadas) e as em curso — base do detector de vazamento. */
+  const sysFalasRef = useRef<Intervalo[]>([]);
+  const sysAbertasRef = useRef<Map<number, number>>(new Map());
+  /** Início (ms) de cada enunciado do MIC, por seq. */
+  const micInicioRef = useRef<Map<number, number>>(new Map());
+  const avisoVazamentoRef = useRef(false);
 
   /** Garante o perfil 'voice_N' (criado na 1ª fala daquela voz; nome/cor padrão renomeáveis). */
   const ensureVoiceProfile = (clusterId: number) => {
@@ -429,6 +448,9 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
 
   // Segmentos de fala capturados AO VIVO (começa vazio; sem simulação).
   const [speechSegments, setSpeechSegments] = useState<SpeechSegment[]>([]);
+  // Espelho para os handlers assíncronos lerem as últimas falas (contexto da tradução comunicativa).
+  const speechSegmentsRef = useRef<SpeechSegment[]>([]);
+  useEffect(() => { speechSegmentsRef.current = speechSegments; }, [speechSegments]);
 
   // % de tempo de fala REAL por falante, somando a duração (tEnd−tStart) dos enunciados finais.
   // null enquanto não há nenhum enunciado com timing — a UI então omite o número em vez de exibir 0% falso.
@@ -918,7 +940,7 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
     text: string,
     srcCode?: string,
     tgtCode?: string,
-    opts?: { descartarSeOcupado?: boolean },
+    opts?: { descartarSeOcupado?: boolean; falada?: boolean },
   ) => {
     /* PARCIAL NÃO ENFILEIRA TRADUÇÃO. Cada refinamento do parcial gastava uma chamada de MT
        inteira que era descartada segundos depois pelo refinamento seguinte. Com uma tradução já
@@ -986,7 +1008,14 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
        falado. Usar isso como origem devolve os três tradutores à cascata, e é informação
        melhor que o palpite de uma fala isolada, não pior. */
     const origem = src || idiomaObservadoRef.current || '';
-    const cacheKey = `${origem}|${tgt}|${text}`;
+    /* FALA em português vai "arrumada" para o motor: sem "né"/"ahn", sem "tá"/"pra", gíria em
+       português claro. É o que faz o opus-mt/Chrome Translator (motores de texto escrito) darem o
+       SENTIDO em vez de "the people" para "a gente". Texto do sistema não passa por aqui. */
+    const preparada = opts?.falada ? prepararFala(text, origem, tgt) : { texto: text, mudou: false };
+    const textoParaMt = preparada.texto;
+    if (preparada.mudou) clog('fala preparada:', JSON.stringify(text).slice(0, 60), '→', JSON.stringify(preparada.traducaoPronta ?? textoParaMt).slice(0, 60));
+    // Chave tolerante a caixa/pontuação final: "Tá bom." e "tá bom" eram duas entradas.
+    const cacheKey = `${origem}|${tgt}|${chaveNormalizada(textoParaMt)}`;
     const applyTranslation = (translated: string, aproximada = false) => {
       // "≈" na frente: o último recurso público (MyMemory) acerta frases comuns e erra gíria e
       // contexto. Dizer que é aproximada é o que separa "tradução ruim" de "app mentindo".
@@ -998,12 +1027,21 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
         translatedText: capitalized,
       } : seg));
     };
+    // Expressão inteira conhecida ("valeu!", "pois é."): a tradução natural já está pronta.
+    if (preparada.traducaoPronta) {
+      if (ordemMtRef.current.encerrar(segId, selo)) applyTranslation(preparada.traducaoPronta);
+      return;
+    }
     const cached = translationCacheRef.current.get(cacheKey);
     if (cached) {
       if (ordemMtRef.current.encerrar(segId, selo)) applyTranslation(cached);
       return;
     }
     const mtT0 = performance.now();
+    // Contexto para o LLM (só na fala): as últimas 3 falas comprometidas da conversa.
+    const contexto = opts?.falada
+      ? speechSegmentsRef.current.filter(s => !s.isPartial && s.originalText && s.id !== segId).slice(-3).map(s => `${s.source === 'mic' ? 'Eu' : 'Outro'}: ${s.originalText}`)
+      : undefined;
 
     // Rede de segurança: a tradução NUNCA pode deixar o balão preso em "…". Se vier vazia, der
     // erro, OU travar (timeout) — degrada para o texto ORIGINAL entre parênteses (honesto e útil
@@ -1030,7 +1068,7 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
     /* `origem` já caiu para o idioma OBSERVADO da sessão quando esta fala não foi detectada —
        ver o bloco acima. Só chega `null` aqui quando nem o perfil convergiu ainda, e aí o
        Tradutor IA do servidor detecta a origem sozinho, como antes. */
-    gateway.mt.translate(text, origem || null, tgt)
+    gateway.mt.translate(textoParaMt, origem || null, tgt, { falada: opts?.falada === true, contexto })
       .then(({ text: translated, engine, approximate }) => {
         if (settled) return;               // timeout já degradou → ignora resposta tardia
         settled = true; clearTimeout(timeout);
@@ -1119,6 +1157,7 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
       const uttId = `${idPrefix}-${seq}`;
       seqToSegmentRef.current.set(seq, uttId);
       capMetrics.start(seq, source);
+      if (isSys) sysAbertasRef.current.set(seq, Date.now()); else micInicioRef.current.set(seq, Date.now());
       setSpeechSegments(prev => prev.some(s => s.id === uttId) ? prev : [...prev, {
         id: uttId, speakerId: speakerIdFor(), source, timestamp: formatTime(timerRef.current),
         originalText: '', translatedText: '…', words: [], isPartial: true, tStartMs: nowRel(),
@@ -1155,9 +1194,9 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
          parcial aqui ACELERA a convergência e apaga o flash em inglês; assim que o perfil conclui,
          `hint` deixa de ser vazio e os parciais voltam pelo resto da sessão.
 
-         DECLARADO: isto cobre o áudio do SISTEMA. Na sua própria voz em modo automático não há
-         perfil sobre o qual convergir, então lá o parcial segue como antes. */
-      if (isSys && !from && !hint) return;
+         Vale para as DUAS fontes: o mic em modo automático também mandava parcial sem dica e o
+         balão de "você" piscava inglês antes do final em português. */
+      if (!from && !hint) return;
       gateway.stt.transcribePartial(pcm, sr, { languageHint: hint })
         .then(res => {
           if (!res) { capMetrics.saturated(seq); return; } // worker ocupado → parcial descartado
@@ -1172,7 +1211,7 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
             // `descartarSeOcupado`: já há tradução em voo para este balão → não pede outra. Cada
             // refinamento do parcial custava uma chamada de MT que o refinamento seguinte jogava
             // fora; o final sempre traduz, então nenhuma legenda deixa de existir por causa disto.
-            translateSegment(uttId, clean, from, to, { descartarSeOcupado: true });
+            translateSegment(uttId, clean, from, to, { descartarSeOcupado: true, falada: !isSys });
           }
         })
         .catch(() => { capMetrics.saturated(seq); });
@@ -1309,6 +1348,16 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
              texto. Fala curta ("Vale, vamos") não dá sinal para palavras-função, e era exatamente
              onde a identificação falhava. Medido pelo áudio, dá. */
           const idiomaDoMotor = baseLang(language || '');
+          // Janela desta fala, para o detector de vazamento (sistema fecha a sua; mic lê a sua).
+          const agora = Date.now();
+          if (isSys) {
+            const ini = sysAbertasRef.current.get(seq) ?? agora - audioMs;
+            sysAbertasRef.current.delete(seq);
+            sysFalasRef.current.push({ inicioMs: ini, fimMs: agora });
+            if (sysFalasRef.current.length > 40) sysFalasRef.current.splice(0, sysFalasRef.current.length - 40);
+          }
+          const micJanela: Intervalo = { inicioMs: micInicioRef.current.get(seq) ?? agora - audioMs, fimMs: agora };
+          micInicioRef.current.delete(seq);
           capMetrics.final(seq, { decodeMs, queueDepth, text: clean, audioMs });
           setSpeechSegments(prev => prev.map(s => s.id === uttId
             ? { ...s, originalText: clean, translatedText: '…', words: wordsFromText(clean), isPartial: false, tEndMs: nowRel(), lang: (from || idiomaDoMotor) || undefined, engine }
@@ -1347,9 +1396,51 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
             return detectado;
           };
 
+          /** SUA VOZ no cenário conversa: é vazamento da caixa de som? E você fala mesmo o idioma configurado? */
+          const avaliarFalaDoMic = async (): Promise<boolean> => {
+            let det = idiomaDoMotor;
+            if (!det) { try { det = baseLang((await detectLanguage(clean))?.lang || ''); } catch { /* '' */ } }
+            const idiomaDoSistema = idiomaObservadoRef.current || baseLang(targetLangRef.current);
+            const abertas = [...sysAbertasRef.current.values()].map(ini => ({ inicioMs: ini, fimMs: Date.now() }));
+            const { veredicto, fracao } = classificarVazamento({
+              idiomaDetectado: det || null,
+              idiomaDoMic: from || baseLang(sourceLangRef.current),
+              idiomaDoSistema,
+              mic: micJanela,
+              falasDoSistema: [...sysFalasRef.current, ...abertas],
+            });
+            if (veredicto === 'vazamento') {
+              clog('vazamento: fala do mic soa como', det, 'com', Math.round(fracao * 100) + '% sobre o sistema → descartada (seq', seq, ')');
+              capMetrics.drop(seq);
+              setSpeechSegments(prev => prev.filter(s => s.id !== uttId));
+              if (!avisoVazamentoRef.current) {
+                avisoVazamentoRef.current = true;
+                setFeedbackMsg('O microfone está captando o áudio da chamada. Use fone de ouvido para a sua fala sair limpa.');
+                setTimeout(() => setFeedbackMsg(''), 9000);
+              }
+              return false;
+            }
+            if (det) {
+              perfilMicRef.current.observar(det, 1);
+              const leitura = perfilMicRef.current.ler();
+              const configurado = baseLang(sourceLangRef.current);
+              if (leitura.estado === 'convergido' && leitura.idioma !== configurado && !avisoIdiomaMicRef.current) {
+                avisoIdiomaMicRef.current = true;
+                clog('perfil do mic convergiu em', leitura.idioma, 'mas "eu falo" está', configurado);
+                setFeedbackMsg(`Você parece falar ${langLabel(leitura.idioma)}, mas "Eu falo" está em ${langLabel(configurado)}. Ajuste no seletor de idiomas para a transcrição melhorar.`);
+                setTimeout(() => setFeedbackMsg(''), 9000);
+              }
+            }
+            return true;
+          };
+
           if (from) {
             // Idioma FIXO: não há o que observar nem por que esperar.
-            translateSegment(uttId, clean, from, to);
+            if (!isSys && captureScenarioRef.current === 'conversation') {
+              void avaliarFalaDoMic().then(ok => { if (ok) translateSegment(uttId, clean, from, to, { falada: true }); });
+              return;
+            }
+            translateSegment(uttId, clean, from, to, { falada: !isSys });
             return;
           }
           /* A detecção só volta a SEGURAR a tradução no caso frio em que ela é a única fonte de
@@ -1359,7 +1450,7 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
              a tradução parte na hora e a observação corre por fora. */
           const origemConhecida = idiomaDoMotor || idiomaObservadoRef.current;
           if (origemConhecida) {
-            translateSegment(uttId, clean, origemConhecida, to);
+            translateSegment(uttId, clean, origemConhecida, to, { falada: !isSys });
             void observarIdioma().then((d) => {
               if (d && d !== idiomaDoMotor) {
                 setSpeechSegments(prev => prev.map(s => s.id === uttId ? { ...s, lang: d } : s));
@@ -1369,7 +1460,7 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
           }
           void observarIdioma().then((d) => {
             if (d) setSpeechSegments(prev => prev.map(s => s.id === uttId ? { ...s, lang: d } : s));
-            translateSegment(uttId, clean, d, to);
+            translateSegment(uttId, clean, d, to, { falada: !isSys });
           });
         })
         .catch(err => {
@@ -1430,6 +1521,8 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
     const cloudAvailable = EDICAO_LEVE ? false : await apiFetch('/api/ai/stt/available').then(r => r.ok).catch(() => false);
     const route = routeStt({
       contentLang: listenLang,
+      // O mesmo modelo decodifica o MIC: se você fala PT enquanto ouve EN, "tiny de inglês" não serve.
+      micLang: micEnabled && micEngine === 'whisper' ? myLang : '',
       autoDetect: autoDetectLangRef.current || autoDetectMyLangRef.current,
       quality: getSttQuality(),
       hasWebGpu: !!(navigator as any).gpu,
@@ -1659,7 +1752,7 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
             if (idx !== -1) { const u = [...prev]; u[idx] = committed; return u; }
             return [...prev, committed];
           });
-          translateSegment(uttId, clean, from, to);
+          translateSegment(uttId, clean, from, to, { falada: true });
         },
         onError: (e: Error) => { clog('web-speech mic erro:', String(e)); },
       });

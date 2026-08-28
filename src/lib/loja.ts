@@ -19,7 +19,7 @@ export type Raridade = 'comum' | 'raro' | 'epico' | 'lendario';
 
 /** Tipos além dos desbloqueáveis clássicos: packs de emoji, cursores, rastro do mouse e os
  *  APRIMORAMENTOS (upgrades com barra de progressão — ver lib/aprimoramentos). */
-export type TipoDaLoja = TipoDesbloqueavel | 'particulas' | 'pack' | 'cursor' | 'rastro' | 'aprimoramento';
+export type TipoDaLoja = TipoDesbloqueavel | 'particulas' | 'pack' | 'cursor' | 'rastro' | 'aprimoramento' | 'galeria';
 
 export interface ItemDaLoja {
   id: string;
@@ -104,6 +104,21 @@ export const CATALOGO_DA_LOJA: ItemDaLoja[] = [
   { id: 'ras-pixel', tipo: 'rastro', alvo: 'pixel', nome: 'Rastro Pixel', desc: 'Quadradinhos 8-bits no caminho.', raridade: 'epico', nivel: 6, precoSeeds: 230 },
   { id: 'ras-emoji', tipo: 'rastro', alvo: 'emoji', nome: 'Rastro Emoji', desc: 'O pack equipado escorrendo do cursor.', raridade: 'lendario', nivel: 8, precoSeeds: 380 },
   { id: 'ras-arcoiris', tipo: 'rastro', alvo: 'arcoiris', nome: 'Rastro Arco-íris', desc: 'Seis cores escorrendo do cursor. Só para quem viu todos os eventos raros.', raridade: 'lendario', nivel: 1, exclusivoDe: 'colecionador' },
+  // ── GALERIA (ver lib/galeria/acesso.ts): capacidades de personalização na MESMA régua da Loja ──
+  { id: 'gal-estilo-pastel', tipo: 'galeria', alvo: 'estilo:pastel', nome: 'Paletas Pastel', desc: '30 paletas suaves, uma por matiz.', raridade: 'comum', nivel: 2, precoSeeds: 50 },
+  { id: 'gal-estilo-escuro', tipo: 'galeria', alvo: 'estilo:escuro', nome: 'Paletas Escuras', desc: '30 paletas escuras, uma por matiz.', raridade: 'comum', nivel: 3, precoSeeds: 60 },
+  { id: 'gal-estilo-neon', tipo: 'galeria', alvo: 'estilo:neon', nome: 'Paletas Néon', desc: '30 paletas de acento néon sobre preto.', raridade: 'raro', nivel: 5, precoSeeds: 120 },
+  { id: 'gal-estilo-meia-noite', tipo: 'galeria', alvo: 'estilo:meia-noite', nome: 'Paletas Meia-noite', desc: '30 paletas profundas, para estudar à noite.', raridade: 'epico', nivel: 7, precoSeeds: 220 },
+  { id: 'gal-editor-pack', tipo: 'galeria', alvo: 'editor-pack', nome: 'Editor de pack', desc: 'Monte o seu pack de emojis: escolha um a um, categoria inteira, ou tire só um.', raridade: 'comum', nivel: 2, precoSeeds: 50 },
+  { id: 'gal-cursor-emoji', tipo: 'galeria', alvo: 'cursor-emoji', nome: 'Cursor de qualquer emoji', desc: 'Todo emoji liberado do catálogo vira ponteiro.', raridade: 'raro', nivel: 3, precoSeeds: 100 },
+  { id: 'gal-cat-patos', tipo: 'galeria', alvo: 'cat:patos', nome: 'Emojis: Patos & aves', desc: '🦆 🐤 🐔 🦢 🦩 e cia. para packs, cursor e rastro.', raridade: 'comum', nivel: 2, precoSeeds: 40 },
+  { id: 'gal-cat-esportes', tipo: 'galeria', alvo: 'cat:esportes', nome: 'Emojis: Esportes', desc: '⚽ 🏀 🏆 🎮 e cia.', raridade: 'comum', nivel: 2, precoSeeds: 40 },
+  { id: 'gal-cat-festa', tipo: 'galeria', alvo: 'cat:festa', nome: 'Emojis: Festa', desc: '🎉 🎊 🎈 🥳 e cia.', raridade: 'comum', nivel: 3, precoSeeds: 50 },
+  { id: 'gal-cat-musica', tipo: 'galeria', alvo: 'cat:musica', nome: 'Emojis: Música', desc: '🎵 🎸 🎧 🥁 e cia.', raridade: 'comum', nivel: 3, precoSeeds: 50 },
+  { id: 'gal-cat-espaco', tipo: 'galeria', alvo: 'cat:espaco', nome: 'Emojis: Espaço', desc: '🚀 🪐 👽 🛸 e cia.', raridade: 'raro', nivel: 4, precoSeeds: 100 },
+  { id: 'gal-cat-transporte', tipo: 'galeria', alvo: 'cat:transporte', nome: 'Emojis: Transporte', desc: '🚗 ✈️ 🚂 ⛵ e cia.', raridade: 'raro', nivel: 4, precoSeeds: 100 },
+  { id: 'gal-cat-objetos', tipo: 'galeria', alvo: 'cat:objetos', nome: 'Emojis: Objetos', desc: '💎 👑 🔮 🔑 e cia.', raridade: 'raro', nivel: 5, precoSeeds: 110 },
+  { id: 'gal-cat-bebidas', tipo: 'galeria', alvo: 'cat:bebidas', nome: 'Emojis: Bebidas', desc: '☕ 🧋 🍹 🥂 e cia.', raridade: 'comum', nivel: 5, precoSeeds: 60 },
 ];
 
 const CHAVE_POSSE = 'babel.loja_possuidos';

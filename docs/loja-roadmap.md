@@ -59,3 +59,22 @@ Partículas com intensidade editável, Sorte de Eventos) · **Packs de emoji (12
   perfis próprios salvos com nome. Tela: Loja → "Perfis & criar o seu".
 - Custo: ~12 KB de dados; nenhum asset baixado. Itens da galeria são livres (a Loja continua vendendo os
   temas nativos, packs e cursores curados por Seeds/nível).
+
+### Acesso à galeria (2026-08-28, v2) — a mesma régua da Loja
+
+Cada capacidade virou item `tipo: 'galeria'` no catálogo e abre por nível OU Seeds (conquista onde
+for exclusivo). Mapa em `lib/galeria/acesso.ts`:
+
+| Nível | Abre |
+| --- | --- |
+| 1 | paletas Claro e Papel · 5 categorias de emoji (animais, comidas, natureza, rostos, símbolos) · packs prontos · 5 perfis livres |
+| 2 | paletas Pastel (50) · editor de pack (50) · emojis Patos & aves (40), Esportes (40) |
+| 3 | paletas Escuro (60) · cursor de qualquer emoji (100) · Festa (50), Música (50) |
+| 4 | Espaço (100), Transporte (100) · rastro forma × paleta por forma (= o rastro da Loja) |
+| 5 | paletas Néon (120) · Objetos (110), Bebidas (60) |
+| 7 | paletas Meia-noite (220) |
+| conquista | Corações (pack) · Bolinhas do rastro (Colecionador) · tema Aurora (Constante) |
+
+O editor nunca esconde: mostra o cadeado, o motivo e "Obter · N Seeds". Presets trancados listam o
+que falta. Tela reorganizada: "Seu visual agora" + perfis + acordeão (uma peça por vez) com um
+seletor de emojis único.

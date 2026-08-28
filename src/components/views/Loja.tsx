@@ -67,6 +67,7 @@ const FILTROS = [
   { id: 'rastro', nome: 'Rastro' },
   { id: 'posicao', nome: 'Layout' },
   { id: 'estudio', nome: 'Estúdio' },
+  { id: 'galeria', nome: 'Galeria' },
 ] as const;
 
 export default function Loja({ progress, theme, setTheme, fonte, setFonte, menuPosition, setMenuPosition, onOpenStudio, ctxConquistas }: LojaProps) {
@@ -104,6 +105,8 @@ export default function Loja({ progress, theme, setTheme, fonte, setFonte, menuP
     else if (item.tipo === 'cursor') { setCursor(item.alvo); force((n) => n + 1); }
     else if (item.tipo === 'rastro') { setRastro(item.alvo); force((n) => n + 1); }
     else if (item.tipo === 'estudio') { onOpenStudio(); return; }
+    // Capacidades da galeria não se "equipam": abrem a aba de personalização, onde são usadas.
+    else if (item.tipo === 'galeria') { setAba('personalizar'); return; }
     comemorar('acerto', el, { texto: 'Equipado!' });
   };
 
@@ -200,7 +203,7 @@ export default function Loja({ progress, theme, setTheme, fonte, setFonte, menuP
       />
 
       <PainelDeAba id="personalizar" ativo={aba}>
-        <Personalizar theme={theme} setTheme={setTheme} fonte={fonte} setFonte={setFonte} />
+        <Personalizar theme={theme} setTheme={setTheme} fonte={fonte} setFonte={setFonte} nivel={nivel} saldo={saldo} onIrParaLoja={() => { setAba('loja'); setFiltro('galeria'); }} />
       </PainelDeAba>
 
       <PainelDeAba id="conquistas" ativo={aba}>
@@ -289,6 +292,10 @@ export default function Loja({ progress, theme, setTheme, fonte, setFonte, menuP
                   </span>
                 ) : item.tipo === 'estudio' ? (
                   <Wand2 className="w-10 h-10 text-warn" aria-hidden />
+                ) : item.tipo === 'galeria' ? (
+                  <span className="font-display font-black text-3xl select-none" aria-hidden>
+                    {item.alvo.startsWith('estilo:') ? '🎨' : item.alvo === 'editor-pack' ? '✏️' : item.alvo === 'cursor-emoji' ? '🖱️' : (item.desc.match(/\p{Extended_Pictographic}+/gu) ?? ['✨']).slice(0, 3).join('')}
+                  </span>
                 ) : (
                   <Gamepad2 className="w-10 h-10 text-ink-muted" aria-hidden />
                 )}
@@ -372,7 +379,7 @@ export default function Loja({ progress, theme, setTheme, fonte, setFonte, menuP
                       equipado ? 'bg-good-soft text-good-ink cursor-default' : 'bg-accent hover:bg-accent-ink text-white shadow-btn'
                     }`}
                   >
-                    {equipado ? <span className="inline-flex items-center gap-1.5"><Check className="w-4 h-4" /> Equipado</span> : item.tipo === 'estudio' ? 'Abrir o Estúdio' : 'Equipar'}
+                    {equipado ? <span className="inline-flex items-center gap-1.5"><Check className="w-4 h-4" /> Equipado</span> : item.tipo === 'estudio' ? 'Abrir o Estúdio' : item.tipo === 'galeria' ? 'Usar em Perfis & criar' : 'Equipar'}
                   </button>
                 ) : estado === 'compravel' ? (
                   <button

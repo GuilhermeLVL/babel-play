@@ -60,7 +60,10 @@ import { setSoundMuted, play } from './lib/soundFx';
 import { installSfxDelegate } from './lib/sfxDelegate';
 import { instalarRastroDoMouse } from './lib/rastroDoMouse';
 import { deriveProgress } from './lib/progress';
-import { recompensasDoNivel, rotuloDaRecompensa, ativarLiberacaoTotal, liberadoTudo } from './lib/desbloqueios';
+import { ativarLiberacaoTotal, liberadoTudo } from './lib/desbloqueios';
+import { recompensasDoNivelCompleto, itemDaConquista } from './lib/galeria/progressao';
+import { equiparItem, type ContextoDeEquipar } from './lib/galeria/equipar';
+import RecompensaDesbloqueada, { recompensasVistas, chaveDaRecompensa, type Recompensa } from './components/RecompensaDesbloqueada';
 import { comemorar } from './lib/juice';
 import { isAgeProfile, readAgeProfile, readStoredEnum, readStoredValue } from './lib/profile';
 import { emitBurst } from './lib/effects';
@@ -413,12 +416,24 @@ export default function App() {
   useEffect(() => {
     if (!ctxConquistas) return;
     void verificarConquistas(ctxConquistas).then((novas) => {
-      for (const c of novas) {
-        comemorar('subiuNivel', null, { tremer: true });
-        toast.ok(`${c.emoji} Conquista: ${c.nome}! +${c.recompensa.seeds} Seeds${c.recompensa.cosmetico ? ' e um item exclusivo na Loja' : ''}.`);
-      }
+      /* v3: a conquista é ENTREGUE no modal de resgate (com "Equipar agora" no exclusivo), não
+         num toast que some. A fila mostra uma por vez e espera a rodada fechar. */
+      const vistas = recompensasVistas();
+      const entradas: Recompensa[] = novas
+        .map((c): Recompensa => ({ tipo: 'conquista', id: c.id, nome: c.nome, emoji: c.emoji, seeds: c.recompensa.seeds, xp: c.recompensa.xp, item: itemDaConquista(c.id) }))
+        .filter((r) => !vistas.has(chaveDaRecompensa(r)));
+      if (entradas.length) setFilaDeRecompensas((f) => [...f, ...entradas]);
     });
   }, [ctxConquistas]);
+
+  /** v3: fila do modal de resgate (nível/conquista) e o contexto único de equipar. */
+  const [filaDeRecompensas, setFilaDeRecompensas] = useState<Recompensa[]>([]);
+  const [lojaAba, setLojaAba] = useState<string | null>(null);
+  // Sem useMemo: os setters são redefinidos a cada render (não são useCallback) e o objeto é barato.
+  const equiparCtx: ContextoDeEquipar = {
+    setTheme, setFonte, setMenuPosition, onOpenStudio: () => setIsStudioOpen(true),
+    nivel: progress.available ? progress.level : 1, saldo: progress.available ? progress.seeds : 0,
+  };
 
   /* SUBIU DE NÍVEL → festa + o que destravou. O último nível visto fica no navegador; na primeira
      visita só registra (ninguém "sobe" para o nível atual). Aparência é recompensa (desbloqueios). */
@@ -429,12 +444,16 @@ export default function App() {
     if (visto === 0) { try { localStorage.setItem('babel.nivel_visto', String(progress.level)); } catch { /* idem */ } return; }
     if (progress.level > visto) {
       try { localStorage.setItem('babel.nivel_visto', String(progress.level)); } catch { /* idem */ }
-      comemorar('subiuNivel', null, { tremer: true });
-      const novidades: string[] = [];
-      for (let n = visto + 1; n <= progress.level; n++) for (const r of recompensasDoNivel(n)) novidades.push(rotuloDaRecompensa(r));
-      toast.ok(novidades.length > 0
-        ? `Nível ${progress.level}! Você destravou: ${novidades.join(', ')}.`
-        : `Nível ${progress.level}! Continue jogando — o próximo desbloqueio vem aí.`);
+      /* v3: cada nível subido vira UMA entrada no modal de resgate, com TUDO que abriu (Loja +
+         galeria — `recompensasDoNivelCompleto`), e "Equipar agora" por item. O toast saiu. */
+      const vistas = recompensasVistas();
+      const entradas: Recompensa[] = [];
+      for (let n = visto + 1; n <= progress.level; n++) {
+        const r: Recompensa = { tipo: 'nivel', nivel: n, itens: recompensasDoNivelCompleto(n) };
+        if (!vistas.has(chaveDaRecompensa(r))) entradas.push(r);
+      }
+      if (entradas.length) setFilaDeRecompensas((f) => [...f, ...entradas]);
+      else comemorar('subiuNivel', null, { tremer: true });
     }
   }, [progress.available, progress.level]);
 
@@ -526,6 +545,8 @@ export default function App() {
       setAnalysisSubTab('reading');
     } else {
       setActiveView(view as ViewType);
+      // v3: Personalizar aceita a aba de destino ("progressao" do fim de rodada, "loja" do cadeado).
+      if (view === 'loja') setLojaAba(typeof data?.aba === 'string' ? data.aba : null);
       // `capture` com `resumeId` retoma uma sessão existente (Biblioteca → "Retomar
       // Captura"). Sem o id, é uma captura nova — limpar, senão a próxima gravação
       // sobrescreveria a sessão retomada anteriormente.
@@ -813,8 +834,17 @@ export default function App() {
               ctxConquistas={ctxConquistas}
               ageProfile={ageProfile}
               setAgeProfile={setAgeProfile}
+              abaInicial={lojaAba}
+              equiparCtx={equiparCtx}
             />
           )}
+          {/* v3: recompensa entregue na hora — em qualquer tela, esperando a rodada fechar. */}
+          <RecompensaDesbloqueada
+            fila={filaDeRecompensas}
+            onEquipar={(item) => equiparItem(item, equiparCtx)}
+            onFechar={() => setFilaDeRecompensas((f) => f.slice(1))}
+            onVerPersonalizar={() => navigateTo('loja', { aba: 'personalizar' })}
+          />
           {activeView === 'settings' && (
             <Settings
               theme={theme}

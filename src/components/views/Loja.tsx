@@ -1,26 +1,27 @@
 /**
- * A LOJA — vitrine gamificada de tudo que se desbloqueia (pedido do dono, 2026-08-27).
+ * PERSONALIZAR v3 — a casca com QUATRO áreas claras (pedido do dono, 2026-08-28):
  *
- * Três ideias de design, na ordem em que aparecem na tela:
- *   1. O SALDO E O NÍVEL no topo: a loja é o lugar onde o progresso vira coisa — a pessoa
- *      precisa ver o que tem para gastar antes de olhar as prateleiras.
- *   2. "NO PRÓXIMO NÍVEL": a vitrine do que está QUASE na mão — é o motivo de voltar amanhã.
- *   3. PRATELEIRAS COM RARIDADE (comum → lendário, como nas lojas de jogo): borda e selo por
- *      raridade, prévia real (swatches do tema, amostra de partícula ao passar o mouse), e um
- *      botão só por card: Equipado ✓ · Equipar · Obter por N Seeds · cadeado com o caminho.
+ *   · Meu visual    → o que já é seu, para equipar (o editor por peça — `Personalizar`).
+ *   · Loja          → SÓ o que ainda se compra/libera por nível ou Seeds (nada de possuído aqui).
+ *   · Conquistas    → o que SÓ vem por conquista (exclusivos em destaque) + a grade + "como ganhar".
+ *   · Progressão    → a grade de tudo que dá para liberar, nível a nível, e a curva de XP.
  *
- * A loja NÃO é um segundo dono da aparência: equipar delega a persistTheme/setParticulas/
- * setMenuPosition — os mesmos caminhos dos Ajustes.
+ * No topo, sempre visível: a barra de XP do nível, "faltam N XP", o saldo e a PRÓXIMA recompensa.
+ * Comprar aqui e equipar ali passam pelo mesmo `equiparItem` (lib/galeria/equipar) — o único
+ * caminho que equipa no app. Os textos dos estados vêm de `lib/galeria/textos`.
  */
-import { useMemo, useState } from 'react';
-import { ShoppingBag, Sprout, Lock, Check, Sparkles, Palette, Type, Gamepad2, PanelRight, Wand2, Trophy, Star } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
+import { ShoppingBag, Sprout, Lock, Check, Sparkles, Palette, Type, Gamepad2, PanelRight, Wand2, Trophy, Star, Map, Shirt } from 'lucide-react';
 import { Abas, PainelDeAba } from '../ui';
 import Conquistas from './Conquistas';
 import Personalizar from './Personalizar';
 import { REGRAS, type ContextoDeConquistas } from '@core';
 import {
-  CATALOGO_DA_LOJA, COR_DA_RARIDADE, estadoDoItem, marcarPosse, vitrineDoProximoNivel, type ItemDaLoja,
+  CATALOGO_DA_LOJA, COR_DA_RARIDADE, estadoDoItem, marcarPosse, type ItemDaLoja,
 } from '../../lib/loja';
+import { itensPorNivel, proximaRecompensa, estadoDaColecao, emojiDoItem } from '../../lib/galeria/progressao';
+import { equiparItem, equipavel, type ContextoDeEquipar } from '../../lib/galeria/equipar';
+import { TEXTOS } from '../../lib/galeria/textos';
 import { gastarSeeds } from '../../data/api';
 import { toast } from '../Toast';
 import { comemorar, explodirAleatorio } from '../../lib/juice';
@@ -48,9 +49,13 @@ interface LojaProps {
   /** Contexto das conquistas (montado no App). A aba "Conquistas" mora aqui na edição leve,
    *  onde o Perfil não existe. */
   ctxConquistas: ContextoDeConquistas | null;
-  /** Perfil de exibição — editado na aba Visual (único dono desde 2026-08-28). */
+  /** Perfil de exibição — editado na aba Meu visual (único dono desde 2026-08-28). */
   ageProfile: AgeProfileType;
   setAgeProfile: (p: AgeProfileType) => void;
+  /** v3: aba de destino ao abrir ("progressao" do fim de rodada). */
+  abaInicial?: string | null;
+  /** v3: o contexto único de equipar (App). Opcional só para os testes de tela. */
+  equiparCtx?: ContextoDeEquipar;
 }
 
 const ICONE_DO_TIPO: Record<string, React.ReactNode> = {
@@ -73,21 +78,37 @@ const FILTROS = [
   { id: 'galeria', nome: 'Galeria' },
 ] as const;
 
-export default function Loja({ progress, theme, setTheme, fonte, setFonte, menuPosition, setMenuPosition, onOpenStudio, ctxConquistas, ageProfile, setAgeProfile }: LojaProps) {
-  // A tela ÚNICA abre no Visual: personalizar é o uso; comprar e conquistar são os caminhos.
-  const [aba, setAba] = useState('personalizar');
+const ABAS_VALIDAS = ['personalizar', 'loja', 'conquistas', 'progressao'] as const;
+
+export default function Loja({ progress, theme, setTheme, fonte, setFonte, menuPosition, setMenuPosition, onOpenStudio, ctxConquistas, ageProfile, setAgeProfile, abaInicial, equiparCtx }: LojaProps) {
+  // A tela ÚNICA abre no Meu visual: personalizar é o uso; comprar e conquistar são os caminhos.
+  const [aba, setAba] = useState<string>(ABAS_VALIDAS.includes(abaInicial as never) ? (abaInicial as string) : 'personalizar');
+  useEffect(() => { if (ABAS_VALIDAS.includes(abaInicial as never)) setAba(abaInicial as string); }, [abaInicial]);
   const [filtro, setFiltro] = useState<(typeof FILTROS)[number]['id']>('tudo');
   const [comprando, setComprando] = useState<string | null>(null);
   const [, force] = useState(0);
   const nivel = progress.available ? progress.level : 1;
   const saldo = progress.available ? progress.seeds : 0;
+  const ctxEquipar: ContextoDeEquipar = equiparCtx ?? { setTheme, setFonte, setMenuPosition, onOpenStudio, nivel, saldo };
 
+  // Recém-comprados nesta visita continuam na prateleira como 'Liberado · Equipar agora'.
+  const [recemComprados] = useState(() => new Set<string>());
+  const colecao = useMemo(() => estadoDaColecao(nivel, saldo), [nivel, saldo, comprando]); // eslint-disable-line react-hooks/exhaustive-deps -- `comprando` força reler a posse depois da compra
+  /* LOJA = só o que ainda NÃO é seu e NÃO é exclusivo. Possuído vai para "Meu visual";
+     exclusivo, para "Conquistas". Os aprimoramentos ficam aqui (são compra em degraus). */
   const itens = useMemo(
-    // Aprimoramentos aparecem junto das partículas (é o upgrade DELAS e da sorte de eventos).
-    () => CATALOGO_DA_LOJA.filter((i) => filtro === 'tudo' || i.tipo === filtro || (filtro === 'particulas' && i.tipo === 'aprimoramento')),
-    [filtro],
+    () => CATALOGO_DA_LOJA.filter((i) => {
+      if (i.exclusivoDe) return false;
+      if (i.tipo === 'aprimoramento') return filtro === 'tudo' || filtro === 'particulas';
+      const seu = estadoDoItem(i, nivel, saldo).estado === 'equipavel';
+      // Um item recém-comprado nesta visita continua na prateleira como "Liberado" (com Equipar agora).
+      if (seu && !recemComprados.has(i.id)) return false;
+      return filtro === 'tudo' || i.tipo === filtro;
+    }),
+    [filtro, nivel, saldo, comprando], // eslint-disable-line react-hooks/exhaustive-deps
   );
-  const vitrine = vitrineDoProximoNivel(nivel);
+  const proxima = proximaRecompensa(nivel);
+  const faltamXp = progress.available ? Math.max(0, progress.xpForLevel - progress.xpIntoLevel) : 0;
 
   const equipadoAtual = (item: ItemDaLoja): boolean => {
     if (item.tipo === 'tema') return theme === item.alvo;
@@ -100,14 +121,13 @@ export default function Loja({ progress, theme, setTheme, fonte, setFonte, menuP
     return false;
   };
 
-  /**
-   * CENTRALIZAÇÃO (2026-08-28): a Loja COMPRA/LIBERA; quem EQUIPA é a aba Visual, e só ela.
-   * Antes "Equipar" aqui era o terceiro caminho para os mesmos setters (cluster, Estúdio, Loja) —
-   * e a galeria tinha um quarto. Um item liberado leva à aba Visual, já na peça certa.
-   */
-  const equipar = (item: ItemDaLoja) => {
-    if (item.tipo === 'estudio') { onOpenStudio(); return; }
-    setAba('personalizar');
+  /** "Equipar agora" depois da compra — pelo único caminho que equipa. */
+  const equiparAgora = (item: ItemDaLoja, el: HTMLElement | null) => {
+    if (!equipavel(item)) { setAba('personalizar'); return; }
+    if (equiparItem(item, ctxEquipar)) {
+      comemorar('acerto', el, { texto: TEXTOS.emUso });
+      force((n) => n + 1);
+    }
   };
 
   /** Compra o PRÓXIMO nível de um aprimoramento (spendId por nível: idempotente por degrau). */
@@ -142,9 +162,10 @@ export default function Loja({ progress, theme, setTheme, fonte, setFonte, menuP
         return;
       }
       marcarPosse(item.id);
+      recemComprados.add(item.id);
       comemorar('subiuNivel', el, { texto: 'Seu!' });
       explodirAleatorio(3, 'confete');
-      toast.ok(`${item.nome} é seu! Já pode equipar.`);
+      toast.ok(`${item.nome} é seu!`);
       force((n) => n + 1);
     } catch {
       toast.warn('Não deu para completar a compra agora. Tente de novo.');
@@ -153,52 +174,76 @@ export default function Loja({ progress, theme, setTheme, fonte, setFonte, menuP
     }
   };
 
+  const porNivel = useMemo(() => itensPorNivel(), []);
+  const possuidosIds = useMemo(() => new Set(colecao.possuidos.map((i) => i.id)), [colecao]);
+
   return (
-    <div className="flex-1 h-full min-h-0 overflow-y-auto custom-scrollbar" aria-label="Loja">
+    <div className="flex-1 h-full min-h-0 overflow-y-auto custom-scrollbar" aria-label="Personalizar">
     <div className="max-w-5xl mx-auto px-4 sm:px-6 py-8 space-y-8 animate-in fade-in duration-300">
-      {/* ── TOPO: saldo, nível, e a promessa da tela ── */}
-      <section className="relative overflow-hidden rounded-3xl border border-border-subtle bg-surface px-6 py-8 sm:px-8">
+      {/* ── TOPO GAMIFICADO: nível com barra de XP, saldo, e a PRÓXIMA recompensa ── */}
+      <section className="relative overflow-hidden rounded-3xl border border-border-subtle bg-surface px-6 py-7 sm:px-8">
         <div aria-hidden className="pointer-events-none absolute inset-0">
           <span className="sobre-blob absolute -top-14 right-8 w-56 h-56 rounded-full bg-warn/20 blur-3xl" />
           <span className="sobre-blob sobre-blob-2 absolute -bottom-16 -left-8 w-64 h-64 rounded-full bg-accent/15 blur-3xl" />
         </div>
-        <div className="relative flex flex-col sm:flex-row sm:items-center gap-5 justify-between">
-          <div>
-            <p className="label-mono mb-1.5">Loja & desbloqueios</p>
-            <h1 className="font-marca font-bold text-2xl sm:text-3xl text-ink tracking-tight flex items-center gap-2.5">
-              <ShoppingBag className="w-7 h-7 text-accent" /> Tudo que dá para conquistar
-            </h1>
-            <p className="text-[13.5px] text-ink-muted mt-1.5 max-w-xl">
-              Cada nível libera itens de graça. As <b className="text-ink">Seeds</b> que você ganha
-              estudando compram o atalho de quem não quer esperar. Os itens <b className="text-ink">exclusivos</b> só
-              saem por conquista.
-            </p>
-          </div>
-          <div className="flex items-center gap-3 shrink-0">
-            <div className="card-panel bg-canvas px-4 py-3 text-center min-w-[92px]">
-              <p className="font-display font-black text-2xl text-ink tabular-nums">{nivel}</p>
-              <p className="text-[10px] uppercase tracking-wider text-ink-muted font-bold">nível</p>
-            </div>
-            <div className="card-panel bg-canvas px-4 py-3 text-center min-w-[92px]">
-              <p className="flex items-center justify-center gap-1 font-display font-black text-2xl text-good tabular-nums">
-                <Sprout className="w-5 h-5" aria-hidden /> {saldo}
+        <div className="relative space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-4 justify-between">
+            <div>
+              <p className="label-mono mb-1.5">Personalizar</p>
+              <h1 className="font-marca font-bold text-2xl sm:text-3xl text-ink tracking-tight flex items-center gap-2.5">
+                <Shirt className="w-7 h-7 text-accent" /> Seu visual, sua progressão
+              </h1>
+              <p className="text-[13.5px] text-ink-muted mt-1.5 max-w-xl">
+                O que é seu fica em <b className="text-ink">Meu visual</b>. Cada nível libera itens de graça; as <b className="text-ink">Seeds</b> compram o atalho na Loja; os <b className="text-ink">exclusivos</b> só saem por conquista.
               </p>
-              <p className="text-[10px] uppercase tracking-wider text-ink-muted font-bold">seeds</p>
             </div>
+            <div className="flex items-center gap-3 shrink-0">
+              <div className="card-panel bg-canvas px-4 py-3 text-center min-w-[92px]">
+                <p className="font-display font-black text-2xl text-ink tabular-nums">{nivel}</p>
+                <p className="text-[10px] uppercase tracking-wider text-ink-muted font-bold">nível</p>
+              </div>
+              <div className="card-panel bg-canvas px-4 py-3 text-center min-w-[92px]">
+                <p className="flex items-center justify-center gap-1 font-display font-black text-2xl text-good tabular-nums">
+                  <Sprout className="w-5 h-5" aria-hidden /> {saldo}
+                </p>
+                <p className="text-[10px] uppercase tracking-wider text-ink-muted font-bold">seeds</p>
+              </div>
+            </div>
+          </div>
+          {/* A barra de XP + a próxima recompensa: para onde estou indo. */}
+          <div className="card-panel bg-canvas p-4 flex flex-col sm:flex-row sm:items-center gap-4">
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center justify-between text-[12px] mb-1.5">
+                <span className="font-bold text-ink">{TEXTOS.nivel(nivel)}</span>
+                <span className="text-ink-muted tabular-nums">{progress.available ? `${progress.xpIntoLevel} / ${progress.xpForLevel} XP · ${TEXTOS.faltamXp(faltamXp)}` : '…'}</span>
+              </div>
+              <div className="h-2.5 rounded-full bg-surface border border-border-subtle overflow-hidden" role="progressbar" aria-valuenow={progress.levelPct} aria-valuemax={100} aria-label={`Progresso para o nível ${nivel + 1}`}>
+                <div className="h-full rounded-full bg-accent transition-all" style={{ width: `${progress.levelPct}%` }} />
+              </div>
+            </div>
+            {proxima && (
+              <div className="flex items-center gap-3 sm:border-l sm:border-border-subtle sm:pl-4 min-w-0">
+                <span className="text-3xl shrink-0" aria-hidden>{emojiDoItem(proxima.destaque)}</span>
+                <div className="min-w-0">
+                  <p className="text-[10.5px] uppercase tracking-wider font-black text-ink-faint">{TEXTOS.proximaRecompensa} · {TEXTOS.nivel(proxima.nivel)}</p>
+                  <p className="font-bold text-[13.5px] text-ink truncate">{proxima.destaque.nome}{proxima.itens.length > 1 ? <span className="text-ink-muted font-semibold"> +{proxima.itens.length - 1}</span> : null}</p>
+                  <button onClick={() => setAba('progressao')} className="text-[11.5px] text-accent-ink underline cursor-pointer">{TEXTOS.verTudoQueVem}</button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </section>
 
-      {/* ── LOJA · CONQUISTAS. Na edição leve o Perfil não existe; a tela de conquistas (e a
-          tabela "como ganhar") mora aqui, ao lado do que ela compra. ── */}
       <Abas
-        rotuloDoGrupo="Seções da loja"
+        rotuloDoGrupo="Áreas de Personalizar"
         ativo={aba}
         aoTrocar={setAba}
         itens={[
-          { id: 'loja', rotulo: 'Loja', icone: <ShoppingBag className="w-4 h-4" /> },
-          { id: 'personalizar', rotulo: 'Visual', icone: <Wand2 className="w-4 h-4" /> },
-          { id: 'conquistas', rotulo: 'Conquistas', icone: <Trophy className="w-4 h-4" /> },
+          { id: 'personalizar', rotulo: `Meu visual · ${colecao.possuidos.length}`, icone: <Wand2 className="w-4 h-4" /> },
+          { id: 'loja', rotulo: `Loja · ${colecao.compraveis.length + colecao.porNivel.length}`, icone: <ShoppingBag className="w-4 h-4" /> },
+          { id: 'conquistas', rotulo: `Conquistas · ${colecao.porConquista.length}`, icone: <Trophy className="w-4 h-4" /> },
+          { id: 'progressao', rotulo: 'Progressão', icone: <Map className="w-4 h-4" /> },
         ]}
       />
 
@@ -217,18 +262,75 @@ export default function Loja({ progress, theme, setTheme, fonte, setFonte, menuP
         <Conquistas progress={progress} ctx={ctxConquistas} />
       </PainelDeAba>
 
+      {/* ── PROGRESSÃO: a grade de tudo que dá para liberar, nível a nível ── */}
+      <PainelDeAba id="progressao" ativo={aba}>
+        <div className="space-y-6">
+          <p className="text-[13px] text-ink-muted">Cada linha é um nível e o que ele libera de graça. <Check className="inline w-3.5 h-3.5 text-good" aria-hidden /> é seu · <b className="text-ink">▶</b> é o seu nível · <Lock className="inline w-3 h-3" aria-hidden /> ainda vem. Tudo que tem preço também dá para obter antes, na Loja.</p>
+          <ol className="space-y-3">
+            {[...porNivel.entries()].map(([n, lista]) => {
+              const passado = n < nivel; const atual = n === nivel;
+              return (
+                <li key={n} className={`card-panel p-4 border-2 ${atual ? 'border-accent bg-accent-soft/40' : passado ? 'border-border-subtle' : 'border-border-subtle opacity-90'}`}>
+                  <div className="flex items-center gap-3 mb-2">
+                    <span className={`w-9 h-9 rounded-xl flex items-center justify-center font-display font-black text-[14px] shrink-0 ${atual ? 'bg-accent text-accent-contrast' : passado ? 'bg-good-soft text-good-ink' : 'bg-canvas border border-border-subtle text-ink-muted'}`}>
+                      {passado ? <Check className="w-4 h-4" aria-hidden /> : atual ? '▶' : n}
+                    </span>
+                    <div>
+                      <p className="font-bold text-[14px] text-ink leading-tight">{TEXTOS.nivel(n)}{atual ? ' · você está aqui' : ''}</p>
+                      <p className="text-[11.5px] text-ink-muted">{lista.length} {lista.length === 1 ? 'item' : 'itens'}{n > nivel && n === proxima?.nivel ? ` · ${TEXTOS.faltamXp(faltamXp)}` : ''}</p>
+                    </div>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {lista.map((i) => {
+                      const seu = possuidosIds.has(i.id);
+                      const cor = COR_DA_RARIDADE[i.raridade];
+                      return (
+                        <span key={i.id} title={i.desc} className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border text-[12px] font-bold ${cor.borda} ${cor.fundo} ${seu ? 'text-ink' : n <= nivel ? 'text-ink' : 'text-ink-muted'}`}>
+                          <span aria-hidden>{emojiDoItem(i)}</span> {i.nome}
+                          {seu ? <Check className="w-3.5 h-3.5 text-good" aria-hidden /> : n > nivel ? <Lock className="w-3 h-3" aria-hidden /> : null}
+                          {!seu && n > nivel && i.precoSeeds !== undefined && <span className="text-ink-faint font-semibold">· {i.precoSeeds}</span>}
+                        </span>
+                      );
+                    })}
+                  </div>
+                </li>
+              );
+            })}
+          </ol>
+          {colecao.porConquista.length > 0 && (
+            <section>
+              <p className="label-mono mb-2">Só por conquista</p>
+              <div className="flex flex-wrap gap-2">
+                {CATALOGO_DA_LOJA.filter((i) => i.exclusivoDe).map((i) => {
+                  const seu = possuidosIds.has(i.id);
+                  const cor = COR_DA_RARIDADE[i.raridade];
+                  const { motivo } = estadoDoItem(i, nivel, saldo);
+                  return (
+                    <span key={i.id} title={i.desc} className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border text-[12px] font-bold ${cor.borda} ${cor.fundo} text-ink`}>
+                      <Star className="w-3 h-3 fill-warn text-warn" aria-hidden /> <span aria-hidden>{emojiDoItem(i)}</span> {i.nome}
+                      {seu ? <Check className="w-3.5 h-3.5 text-good" aria-hidden /> : <span className="text-ink-muted font-semibold">· {motivo}</span>}
+                    </span>
+                  );
+                })}
+              </div>
+              <button onClick={() => setAba('conquistas')} className="mt-2 text-[12px] text-accent-ink underline cursor-pointer">Ver as conquistas</button>
+            </section>
+          )}
+        </div>
+      </PainelDeAba>
+
       <PainelDeAba id="loja" ativo={aba}>
       <div className="space-y-8">
       {/* ── NO PRÓXIMO NÍVEL: o motivo de continuar ── */}
-      {vitrine.length > 0 && (
+      {proxima && (
         <section className="card-panel bg-canvas border-accent/30 p-4 sm:p-5">
           <p className="flex items-center gap-2 text-[12px] font-black uppercase tracking-wider text-accent-ink mb-3">
-            <Sparkles className="w-4 h-4" /> No nível {vitrine[0].nivel} você libera
+            <Sparkles className="w-4 h-4" /> No nível {proxima.nivel} você libera de graça
           </p>
           <div className="flex flex-wrap gap-2">
-            {vitrine.map((i) => (
+            {proxima.itens.map((i) => (
               <span key={i.id} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-[12.5px] font-bold text-ink ${COR_DA_RARIDADE[i.raridade].borda} ${COR_DA_RARIDADE[i.raridade].fundo}`}>
-                {ICONE_DO_TIPO[i.tipo]} {i.nome}
+                {ICONE_DO_TIPO[i.tipo] ?? <span aria-hidden>{emojiDoItem(i)}</span>} {i.nome}
               </span>
             ))}
           </div>
@@ -250,6 +352,10 @@ export default function Loja({ progress, theme, setTheme, fonte, setFonte, menuP
           </button>
         ))}
       </div>
+
+      {itens.length === 0 && (
+        <p className="text-center text-[13px] text-ink-muted py-6">Nada para comprar neste filtro: tudo já é seu. Veja em <button onClick={() => setAba('personalizar')} className="underline text-accent-ink cursor-pointer">Meu visual</button>.</p>
+      )}
 
       {/* ── PRATELEIRAS ── */}
       <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -312,7 +418,7 @@ export default function Loja({ progress, theme, setTheme, fonte, setFonte, menuP
                 <div className="flex items-center justify-between gap-2">
                   <h3 className="font-bold text-[14px] text-ink leading-tight">{item.nome}</h3>
                   <span className={`shrink-0 text-[9.5px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full border ${raridade.borda} ${raridade.fundo} text-ink`}>
-                    {item.exclusivoDe ? <span className="inline-flex items-center gap-1"><Star className="w-3 h-3 fill-warn text-warn" aria-hidden /> Exclusivo</span> : raridade.rotulo}
+                    {raridade.rotulo}
                   </span>
                 </div>
                 <p className="text-[12px] text-ink-muted leading-snug flex-1">{item.desc}</p>
@@ -379,15 +485,18 @@ export default function Loja({ progress, theme, setTheme, fonte, setFonte, menuP
                     );
                   })()
                 ) : estado === 'equipavel' ? (
+                  /* Recém-comprado: "Equipar agora" pelo caminho único; capacidade da galeria leva ao Meu visual. */
                   <button
-                    onClick={() => equipar(item)}
+                    onClick={(e) => equiparAgora(item, e.currentTarget)}
                     className={`w-full py-2.5 rounded-xl font-bold text-[13px] transition-all cursor-pointer ${
-                      equipado ? 'bg-good-soft text-good-ink' : 'bg-canvas border border-border-subtle text-ink hover:border-accent'
+                      equipado ? 'bg-good-soft text-good-ink' : 'bg-accent text-accent-contrast hover:brightness-110'
                     }`}
                   >
                     {equipado
-                      ? <span className="inline-flex items-center gap-1.5"><Check className="w-4 h-4" /> Em uso · ver no Visual</span>
-                      : item.tipo === 'estudio' ? 'Abrir o Estúdio' : <span className="inline-flex items-center gap-1.5"><Check className="w-4 h-4 text-good" /> Liberado · usar no Visual</span>}
+                      ? <span className="inline-flex items-center gap-1.5"><Check className="w-4 h-4" /> {TEXTOS.emUso}</span>
+                      : item.tipo === 'estudio' ? 'Abrir o Estúdio'
+                      : equipavel(item) ? <span className="inline-flex items-center gap-1.5"><Check className="w-4 h-4" /> {TEXTOS.liberado} · {TEXTOS.equiparAgora}</span>
+                      : <span className="inline-flex items-center gap-1.5"><Check className="w-4 h-4" /> {TEXTOS.liberado} · usar no Meu visual</span>}
                   </button>
                 ) : estado === 'compravel' ? (
                   <button
@@ -396,7 +505,7 @@ export default function Loja({ progress, theme, setTheme, fonte, setFonte, menuP
                     className="w-full py-2.5 rounded-xl bg-good hover:brightness-110 text-white font-bold text-[13px] shadow-btn transition-all cursor-pointer disabled:opacity-60"
                   >
                     <span className="inline-flex items-center gap-1.5">
-                      <Sprout className="w-4 h-4" /> {comprando === item.id ? 'Comprando…' : `Obter por ${item.precoSeeds} Seeds`}
+                      <Sprout className="w-4 h-4" /> {comprando === item.id ? 'Comprando…' : TEXTOS.obter(item.precoSeeds!)}
                     </span>
                   </button>
                 ) : (

@@ -261,6 +261,18 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
   const [rodadaDitado, setRodadaDitado] = useState<RodadaDitado[] | null>(null);
   const [rodadaConectores, setRodadaConectores] = useState<RodadaConectores[] | null>(null);
   const [resultado, setResultado] = useState<RoundReport | null>(null);
+  /* v3 — RODADA EM CURSO marca o body (`data-jogo-ativo`): o modal de recompensa (App) espera
+     `babel:rodada-fechou` em vez de cobrir a partida. Fechar a rodada dispara o evento. */
+  const emRodada = !resultado && !!(rodada || rodadaTermo || rodadaFrase || rodadaKaraoke || rodadaEscuta || rodadaDitado || rodadaConectores);
+  useEffect(() => {
+    if (emRodada) document.body.setAttribute('data-jogo-ativo', '1');
+    else {
+      const estava = document.body.hasAttribute('data-jogo-ativo');
+      document.body.removeAttribute('data-jogo-ativo');
+      if (estava) window.dispatchEvent(new Event('babel:rodada-fechou'));
+    }
+    return () => { document.body.removeAttribute('data-jogo-ativo'); };
+  }, [emRodada]);
   /* Z1 — FILTRO DE DIFICULDADE. Vale para os 4 jogos de modalidade `palavra`; os 5 de frase
      jogam sobre falas, que não têm dificuldade por palavra (ver `composicao.ts`). */
   const [faixas, setFaixas] = useState<FaixaDificuldade[]>([]);
@@ -1597,6 +1609,7 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
       <AntessalaDaRodada
         gameId={antessala.jogo}
         titulo={jogoUI?.titulo[ageProfile] ?? ''}
+        nivelGeral={progress.available ? progress.level : undefined}
         /* Z1 — CHIPS DE DIFICULDADE. Só aparecem onde significam algo: os 5 jogos de frase jogam
            sobre falas, que não têm dificuldade por palavra. Chip inerte ensina que a tela mente. */
         filtroDificuldade={aceitaFiltroDeDificuldade(antessala.jogo) ? {
@@ -1758,6 +1771,8 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
         onPularVez={saldoSeeds >= CUSTO_PULAR && !gastando ? pularVez : null}
         custoPular={CUSTO_PULAR}
         saldoSeeds={saldoSeeds}
+        progress={progress}
+        onVerProgressao={() => onChangeView('loja', { aba: 'progressao' })}
       />,
     );
   }

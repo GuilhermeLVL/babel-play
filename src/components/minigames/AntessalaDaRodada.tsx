@@ -9,6 +9,7 @@ import { nivelNoJogo, LEECH_APOS, JANELAS_DE_RETORNO, ALVO_MIN, ALVO_MAX, JANELA
 import type { AgeProfileType } from '../../lib/profile';
 import type { ItemDaAntessala } from '@core';
 import { Segmentado, Ladrilho } from '../ui';
+import { proximaRecompensa, emojiDoItem } from '../../lib/galeria/progressao';
 
 /**
  * ANTESSALA DA RODADA — o que vai cair, dito ANTES de a partida começar.
@@ -111,6 +112,8 @@ interface AntessalaProps {
   /* ── SELEÇÃO v2 (2026-08-28) ── */
   /** Estado de memória de cada item da rodada (tag + motivo) — o "por que estas?". */
   estados?: ReadonlyMap<string, EstadoDoItem>;
+  /** v3: nível GERAL do app (não o do jogo), para mostrar a próxima recompensa ao lado do herói. */
+  nivelGeral?: number;
   /** Itens do acervo marcados como difíceis para você (fora da rotação) e a rodada de resgate. */
   leeches?: string[];
   onResgate?: (() => void) | null;
@@ -194,6 +197,7 @@ export default function AntessalaDaRodada({
   itensJogados,
   estados,
   leeches,
+  nivelGeral,
   onResgate,
   auto,
   diagnosticoTermo,
@@ -472,6 +476,15 @@ export default function AntessalaDaRodada({
                   {recorde.precisao != null && <span className="flex items-center gap-1.5 text-ink tabular-nums" title="Precisão histórica"><Target className="w-3.5 h-3.5 text-good" aria-hidden /> {recorde.precisao}%</span>}
                 </div>
               </div>
+              {/* v3: a próxima recompensa do NÍVEL GERAL — jogar constrói algo além deste jogo. */}
+              {nivelGeral != null && (() => {
+                const prox = proximaRecompensa(nivelGeral);
+                return prox ? (
+                  <p className="mt-2 text-[12px] text-ink-muted">
+                    Nível geral {nivelGeral} · no {prox.nivel} você libera <span aria-hidden>{emojiDoItem(prox.destaque)}</span> <b className="text-ink">{prox.destaque.nome}</b>{prox.itens.length > 1 ? ` e mais ${prox.itens.length - 1}` : ''}
+                  </p>
+                ) : null;
+              })()}
               <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-3 pt-3 border-t border-border-subtle text-[12px] text-ink-muted">
                 <span><b className="text-ink tabular-nums">{recorde.rodadas}</b> {recorde.rodadas === 1 ? 'rodada jogada' : 'rodadas jogadas'}</span>
                 {pctVocab != null && (

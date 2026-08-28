@@ -1,10 +1,8 @@
 import { useMemo, useState } from 'react';
-import { Check, Palette, Sparkles, MousePointer2, Wind, Save, Trash2, Search, Wand2, Type, Lock, ChevronDown, ShoppingBag, Sprout } from 'lucide-react';
+import { Check, Palette, Sparkles, MousePointer2, Wind, Save, Trash2, Search, Wand2, Type, Lock, ChevronDown, ShoppingBag } from 'lucide-react';
 import { toast } from '../Toast';
 import { comemorar, explodirAleatorio } from '../../lib/juice';
 import { emitBurst } from '../../lib/effects';
-import { gastarSeeds } from '../../data/api';
-import { marcarPosse } from '../../lib/loja';
 import { todasAsPaletas, buscarPaletas, paletaPorId, ESTILOS, type EstiloDePaleta, type Paleta } from '../../lib/galeria/paletas';
 import { CATEGORIAS_DE_EMOJI, todosOsEmojis } from '../../lib/galeria/emojis';
 import { PRESETS, perfisSalvos, salvarPerfil, apagarPerfil, type Perfil } from '../../lib/galeria/perfis';
@@ -59,9 +57,7 @@ export default function Personalizar({ theme, setTheme, fonte, setFonte, nivel, 
   const [busca, setBusca] = useState('');
   const [estilo, setEstilo] = useState<EstiloDePaleta | 'todos'>('todos');
   const [nomeDoPerfil, setNomeDoPerfil] = useState('');
-  const [comprando, setComprando] = useState<string | null>(null);
-  const [gastasAqui, setGastasAqui] = useState(0);
-  const saldoAgora = Math.max(0, saldo - gastasAqui);
+  const saldoAgora = saldo;
   const [paletaAtiva, setPaletaAtiva] = useState<string | null>(() => { try { return localStorage.getItem('babel.paleta_ativa'); } catch { return null; } });
   const [emojisDoRastro, setEmojisDoRastro] = useState<string[]>(() => { const a = readRastro(); return a.startsWith('emojis:') ? a.slice(7).split(',') : []; });
 
@@ -71,21 +67,6 @@ export default function Personalizar({ theme, setTheme, fonte, setFonte, nivel, 
   const cursorAtual = readCursor();
   const estiloDaPaleta = (id: string) => paletaPorId(id)?.estilo;
   const ctxAcesso = { nivel, saldo: saldoAgora, estiloDaPaleta, categorias: CATEGORIAS_DE_EMOJI };
-
-  /** Compra um item de capacidade da galeria (mesmo `spendId` idempotente da Loja). */
-  const obter = async (a: Acesso) => {
-    if (!a.item?.precoSeeds || !a.compravel) return;
-    setComprando(a.item.id);
-    try {
-      const r = await gastarSeeds({ spendId: `loja-${a.item.id}`, amount: a.item.precoSeeds, reason: `loja:${a.item.id}` });
-      if (!r) { toast.warn('Não deu para obter agora. Tente de novo.'); return; }
-      marcarPosse(a.item.id);
-      if (!r.jaExistia) setGastasAqui((g) => g + a.item!.precoSeeds!);
-      explodirAleatorio(2, 'confete');
-      toast.ok(`${a.item.nome} liberado!`);
-      rerender();
-    } finally { setComprando(null); }
-  };
 
   const aplicarPaleta = (p: Paleta, el?: HTMLElement | null) => {
     applyCustomColors({ canvas: p.canvas, surface: p.surface, ink: p.ink, accent: p.accent });
@@ -126,12 +107,13 @@ export default function Personalizar({ theme, setTheme, fonte, setFonte, nivel, 
   };
 
   /* ── Peças reutilizadas ── */
+  /* v3: o cadeado aqui é só DICA — comprar é na Loja (uma área por verbo). O botão leva lá. */
   const Cadeado = ({ a, compacto }: { a: Acesso; compacto?: boolean }) => a.liberado ? null : (
     <span className={`inline-flex items-center gap-1.5 ${compacto ? 'text-[11px]' : 'text-[12px]'} text-ink-muted`}>
       <Lock className="w-3 h-3" aria-hidden /> {a.motivo}
-      {a.compravel && a.item?.precoSeeds && (
-        <button onClick={() => void obter(a)} disabled={comprando === a.item.id} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-good text-white font-bold text-[11px] cursor-pointer disabled:opacity-60">
-          <Sprout className="w-3 h-3" aria-hidden /> {comprando === a.item.id ? '…' : `Obter · ${a.item.precoSeeds}`}
+      {a.item && (
+        <button onClick={onIrParaLoja} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg border border-border-subtle hover:border-accent text-ink font-bold text-[11px] cursor-pointer">
+          <ShoppingBag className="w-3 h-3" aria-hidden /> {a.compravel && a.item.precoSeeds ? `ver na Loja · ${a.item.precoSeeds} Seeds` : 'ver na Loja'}
         </button>
       )}
     </span>

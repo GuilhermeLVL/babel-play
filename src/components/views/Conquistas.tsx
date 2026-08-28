@@ -6,6 +6,8 @@ import {
 } from '@core';
 import { conquistasDesbloqueadas, dataDaConquista } from '../../lib/conquistasPosse';
 import { CATALOGO_DA_LOJA, COR_DA_RARIDADE } from '../../lib/loja';
+import { emojiDoItem } from '../../lib/galeria/progressao';
+import { TEXTOS } from '../../lib/galeria/textos';
 import type { DerivedProgress } from '../../lib/progress';
 
 /**
@@ -40,6 +42,10 @@ export default function Conquistas({ progress, ctx }: ConquistasProps) {
   const porRaridade = ORDEM.map((r) => ({ r, itens: lista.filter((p) => p.conquista.raridade === r) }));
   const totalFeitas = lista.filter((p) => p.conquistada || feitas.has(p.conquista.id)).length;
   const proximosNiveis = Array.from({ length: 5 }, (_, i) => progress.level + 1 + i);
+  const exclusivos = useMemo(
+    () => CATALOGO_DA_LOJA.filter((i) => i.exclusivoDe).map((item) => ({ item, prog: lista.find((p) => p.conquista.id === item.exclusivoDe) ?? null })),
+    [lista],
+  );
 
   return (
     <div className="space-y-8">
@@ -60,6 +66,42 @@ export default function Conquistas({ progress, ctx }: ConquistasProps) {
           {progress.streakDays > 0 && <span className="flex items-center gap-1.5 text-ink"><Flame className="w-3.5 h-3.5 text-warn" aria-hidden /> {progress.streakDays} dias seguidos</span>}
         </div>
       </section>
+
+      {/* ── OS EXCLUSIVOS EM DESTAQUE (v3): o que SÓ vem por conquista, com a conquista que abre
+          e o progresso dela. A Loja não vende; aqui é o único lugar onde eles aparecem juntos. ── */}
+      {exclusivos.length > 0 && (
+        <section>
+          <p className="label-mono mb-2">Só por conquista</p>
+          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3">
+            {exclusivos.map(({ item, prog }) => {
+              const feita = !!prog && (prog.conquistada || feitas.has(prog.conquista.id));
+              const cor = COR_DA_RARIDADE[item.raridade];
+              return (
+                <div key={item.id} className={`card-panel border-2 p-4 flex flex-col gap-2 ${cor.borda} ${cor.fundo}`}>
+                  <div className="flex items-center gap-2">
+                    <span className="text-2xl" aria-hidden>{emojiDoItem(item)}</span>
+                    <div className="min-w-0">
+                      <p className="font-bold text-[13.5px] text-ink leading-tight truncate">{item.nome}</p>
+                      <p className="text-[11px] text-warn-ink font-bold flex items-center gap-1"><Star className="w-3 h-3 fill-warn text-warn" aria-hidden /> Exclusivo</p>
+                    </div>
+                  </div>
+                  {prog && (
+                    <>
+                      <p className="text-[11.5px] text-ink-muted">{feita ? <span className="text-good-ink font-bold flex items-center gap-1"><Check className="w-3.5 h-3.5" /> {TEXTOS.liberado}</span> : TEXTOS.conquista(prog.conquista.nome)}</p>
+                      {!feita && (
+                        <div>
+                          <div className="flex items-center justify-between text-[10.5px] mb-1 text-ink-muted tabular-nums"><span>{prog.atual} / {prog.meta}</span><span>{prog.pct}%</span></div>
+                          <div className="h-1.5 rounded-full bg-canvas border border-border-subtle overflow-hidden"><div className="h-full rounded-full bg-accent" style={{ width: `${prog.pct}%` }} /></div>
+                        </div>
+                      )}
+                    </>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </section>
+      )}
 
       {/* ── COMO GANHAR: gerado das REGRAS, nunca redigido à mão ── */}
       <section>

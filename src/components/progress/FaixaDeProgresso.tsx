@@ -2,6 +2,8 @@ import { Bot, Flame, Sprout } from 'lucide-react';
 import { compactNumber, type DerivedProgress } from '../../lib/progress';
 import type { AgeProfileType } from '../../lib/profile';
 import { Barra } from '../ui';
+import { proximaRecompensa, emojiDoItem } from '../../lib/galeria/progressao';
+import { TEXTOS } from '../../lib/galeria/textos';
 
 /**
  * A FAIXA DE PROGRESSO — nível, XP, ofensiva e seeds.
@@ -42,6 +44,8 @@ export default function FaixaDeProgresso({ progress, ageProfile }: { progress: D
   }
 
   const levelWord = ageProfile === 'senior' ? 'Etapa' : 'Nível';
+  // v3: a faixa diz para ONDE se vai — o 1º item do próximo nível que libera algo.
+  const proxima = proximaRecompensa(progress.level);
 
   return (
     <section
@@ -69,6 +73,12 @@ export default function FaixaDeProgresso({ progress, ageProfile }: { progress: D
           {progress.practicedToday
             ? `Você já revisou hoje, ofensiva de ${progress.streakDays} ${progress.streakDays === 1 ? 'dia' : 'dias'}.`
             : 'Uma revisão hoje mantém a sua ofensiva viva.'}
+          {proxima && (
+            <span className="block mt-0.5">
+              {TEXTOS.faltamXp(progress.xpForLevel - progress.xpIntoLevel)} · próximo: <span aria-hidden>{emojiDoItem(proxima.destaque)}</span> <b className="text-ink">{proxima.destaque.nome}</b>
+              {proxima.itens.length > 1 && <span className="text-ink-faint"> +{proxima.itens.length - 1}</span>}
+            </span>
+          )}
         </p>
       </div>
 

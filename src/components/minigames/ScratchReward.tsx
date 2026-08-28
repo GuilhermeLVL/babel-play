@@ -5,6 +5,9 @@ import { summarize, estrelasDaRodada } from '@core';
 import type { AgeProfileType } from '../../lib/profile';
 import { comemorar, pontosDoElemento } from '../../lib/juice';
 import { burstFromElement } from '../../lib/effects';
+import type { DerivedProgress } from '../../lib/progress';
+import { proximaRecompensa, emojiDoItem } from '../../lib/galeria/progressao';
+import { TEXTOS } from '../../lib/galeria/textos';
 
 /**
  * RASPADINHA — e, agora, a EMENDA para a próxima rodada.
@@ -48,6 +51,10 @@ interface ScratchRewardProps {
   onPularVez: (() => void) | null;
   custoPular: number;
   saldoSeeds: number;
+  /** v3: onde estou e o que vem — "Nível N · faltam X XP · próximo: 🎁 Nome". */
+  progress?: DerivedProgress;
+  /** Abre Personalizar › Progressão. */
+  onVerProgressao?: () => void;
 }
 
 /** Fração da área raspada a partir da qual revelamos o resto automaticamente. */
@@ -55,8 +62,9 @@ const LIMIAR_REVELACAO = 0.45;
 
 export default function ScratchReward({
   report, ageProfile, sequencia, recorde, onContinuar, onRepetir, onDone, semMaterial,
-  onPularVez, custoPular, saldoSeeds,
+  onPularVez, custoPular, saldoSeeds, progress, onVerProgressao,
 }: ScratchRewardProps) {
+  const proxima = progress?.available ? proximaRecompensa(progress.level) : null;
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const placarRef = useRef<HTMLDivElement | null>(null);
   const [revelado, setRevelado] = useState(false);
@@ -329,6 +337,15 @@ export default function ScratchReward({
             <p className="text-[12px] text-ink-muted text-center max-w-[42ch] leading-snug">
               Acabaram as palavras elegíveis desta fonte por agora. Volte aos jogos para trocar de
               fonte, ou repita estas mesmas.
+            </p>
+          )}
+
+          {/* v3: onde estou e o que vem — a razão de mais uma rodada além do placar. */}
+          {progress?.available && (
+            <p className="flex flex-wrap items-center justify-center gap-x-1.5 text-[12px] text-ink-muted tabular-nums">
+              <b className="text-ink">{TEXTOS.nivel(progress.level)}</b> · {TEXTOS.faltamXp(progress.xpForLevel - progress.xpIntoLevel)}
+              {proxima && <> · próximo: <span aria-hidden>{emojiDoItem(proxima.destaque)}</span> <b className="text-ink">{proxima.destaque.nome}</b></>}
+              {onVerProgressao && <button onClick={onVerProgressao} className="underline hover:text-accent cursor-pointer">ver</button>}
             </p>
           )}
         </div>

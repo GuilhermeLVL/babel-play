@@ -97,3 +97,12 @@ Removidos: popover de Aparência do cluster (170 linhas atrás de flag falsa), s
 Desempenho dos Ajustes, Modo/Tema/galeria do Estúdio, "Equipar" da Loja. Segurança: o atalho
 `window.babel.liberarTudo()` / `?liberar=1` só existe em desenvolvimento, e o Ajustes deixou de
 assumir nível 99 enquanto as métricas carregam.
+
+## Personalizar v3 — quatro áreas, progressão visível, recompensa na hora (2026-08-28)
+
+- **Áreas**: `Meu visual` (só o que é seu; cadeado vira dica "ver na Loja") · `Loja` (só o que ainda se compra/libera; possuídos somem, exclusivos não entram; recém-comprado ganha "Equipar agora") · `Conquistas` (os 4 exclusivos em destaque com a conquista e o progresso, + grade + "como ganhar") · `Progressão` (linha por nível com ✓/▶/🔒 e preço do atalho; seção "só por conquista").
+- **Topo**: barra de XP do nível, "faltam N XP", saldo, e a **próxima recompensa** (`proximaRecompensa` — o mais raro do menor nível acima) com "ver tudo que vem".
+- **Núcleo puro** `lib/galeria/progressao.ts` (`itensPorNivel`, `proximaRecompensa`, `estadoDaColecao`, `recompensasDoNivelCompleto`, `itemDaConquista`, `emojiDoItem`), `lib/galeria/equipar.ts` (`equiparItem` — o ÚNICO caminho que equipa), `lib/galeria/textos.ts` (glossário: Liberado / Em uso / Equipar agora / Obter · N Seeds / Nível N / Conquista: X).
+- **Modal de resgate** `components/RecompensaDesbloqueada.tsx`: em level-up lista TUDO que o nível abriu (Loja + galeria) com "Equipar agora"; em conquista mostra Seeds/XP e o exclusivo. Fila (um por vez), `babel.recompensas_vistas`, e **não interrompe rodada**: Play marca `body[data-jogo-ativo]` e dispara `babel:rodada-fechou`. Os toasts de nível/conquista saíram.
+- **No jogo**: fim de rodada (`ScratchReward`) mostra "Nível N · faltam X XP · próximo: 🎁 Nome · ver"; a antessala mostra "no nível N você libera …"; a faixa do Início idem. `onChangeView('loja', { aba })` abre a aba certa.
+- Testes: `progressao`, `equipar`, `recompensa` (+ suíte).

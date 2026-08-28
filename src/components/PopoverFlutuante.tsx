@@ -1,4 +1,5 @@
 import React from 'react';
+import { createPortal } from 'react-dom';
 
 /**
  * A MOLDURA do popover que segue a palavra sob o cursor — só a moldura.
@@ -32,7 +33,13 @@ export interface PopoverFlutuanteProps {
 }
 
 export default function PopoverFlutuante({ posicao, onEntrar, onSair, children }: PopoverFlutuanteProps) {
-  return (
+  /* NO `body`, POR PORTAL. A posição vem em coordenadas de viewport (`position: fixed`), mas um
+     `fixed` dentro de um ancestral com `transform`/`zoom` (o `animate-in` das telas, o A± do
+     corpo) passa a ser medido a partir DESSE ancestral: o cartão abria centenas de pixels longe
+     da palavra (relato do dono, 2026-08-28). É o mesmo conserto documentado em
+     `lib/posicaoFlutuante` para os menus; faltava aplicá-lo aqui. */
+  if (typeof document === 'undefined') return null;
+  return createPortal(
     <div
       className="fixed z-50 animate-in fade-in zoom-in-95 duration-200 shadow-2xl rounded-xl overflow-hidden bg-surface border border-border-subtle"
       style={{
@@ -44,6 +51,7 @@ export default function PopoverFlutuante({ posicao, onEntrar, onSair, children }
       onMouseLeave={onSair}
     >
       {children}
-    </div>
+    </div>,
+    document.body,
   );
 }

@@ -693,6 +693,8 @@ export default function Analysis({
   // Cache por palavra evita refetch ao re-passar o mouse.
   interface HoverEntry { image: ImageResult | null; translation: string | null; note: string | null; context: string | null; lang: string | null }
   const hoverCacheRef = useRef<Map<string, HoverEntry>>(new Map());
+  const vocabCardsRef = useRef(vocabCards);
+  vocabCardsRef.current = vocabCards;
   const [hoverData, setHoverData] = useState<(HoverEntry & { word: string; loading: boolean }) | null>(null);
 
   React.useEffect(() => {
@@ -700,26 +702,37 @@ export default function Analysis({
     if (!word) { setHoverData(null); return; }
     const cached = hoverCacheRef.current.get(word);
     if (cached) { setHoverData({ word, ...cached, loading: false }); return; }
-    setHoverData({ word, image: null, translation: null, note: null, context: null, lang: null, loading: true });
+    const origin = originOfWord(word);
+    /* O CADERNO É O ATALHO: palavra já fichada tem tradução guardada — aparece na hora, sem
+       esperar motor nenhum. Foi o caso do relato: "Já está no Deck" e "Traduzindo…" na mesma tela. */
+    const doCaderno = vocabCardsRef.current.find((c) => c.word.toLowerCase() === word.toLowerCase())?.translation || null;
+    setHoverData({ word, image: null, translation: doCaderno, note: null, context: origin.context ?? null, lang: null, loading: true });
     let alive = true;
-    (async () => {
-      const origin = originOfWord(word);
-      let image: ImageResult | null;
-      try { const imgs = await searchImages(word); image = imgs[0] ?? null; } catch { image = null; }
-      // O produtor único resolve idioma + direção + motor. Aqui não se escolhe direção nenhuma.
-      const { vocab, resolved } = await buildVocabWord(origin, gateway.mt);
-      const entry: HoverEntry = {
-        image,
-        translation: vocab.translation || null,
-        note: mtNoteFor(resolved, vocab.translation),
-        context: origin.context ?? null,
-        lang: resolved.lang || null,
-      };
-      // Corrida: só aplica se a palavra ainda é a mesma quando a promessa resolve.
+    /* Estado PARCIAL: cada pedaço entra assim que chega. Antes o cartão esperava imagem E
+       tradução em série, e a tradução (motor local carregando modelo, sem teto de tempo) podia
+       nunca voltar: "Buscando imagem…" ficava eterno mesmo com a imagem já baixada. */
+    const parcial: HoverEntry = { image: null, translation: doCaderno, note: null, context: origin.context ?? null, lang: null };
+    const publicar = (final: boolean) => {
       if (!alive) return;
-      hoverCacheRef.current.set(word, entry);
-      setHoverData({ word, ...entry, loading: false });
-    })();
+      if (final) hoverCacheRef.current.set(word, { ...parcial });
+      setHoverData({ word, ...parcial, loading: !final });
+    };
+    const TETO_MS = 7000;
+    const comTeto = <T,>(p: Promise<T>, fallback: T) => Promise.race([p, new Promise<T>((r) => setTimeout(() => r(fallback), TETO_MS))]);
+    const imagem = comTeto(searchImages(word).then((imgs) => imgs[0] ?? null).catch(() => null), null)
+      .then((img) => { parcial.image = img; });
+    const traducao = doCaderno
+      ? Promise.resolve()
+      : comTeto(buildVocabWord(origin, gateway.mt), null).then((r) => {
+          if (r) {
+            parcial.translation = r.vocab.translation || null;
+            parcial.note = mtNoteFor(r.resolved, r.vocab.translation);
+            parcial.lang = r.resolved.lang || null;
+          } else {
+            parcial.note = 'A tradução demorou demais; clique na palavra para tentar de novo.';
+          }
+        }).catch(() => { parcial.note = 'Sem tradução automática agora.'; });
+    void Promise.allSettled([imagem, traducao]).then(() => publicar(true));
     return () => { alive = false; };
   }, [hoveredWord, originOfWord, gateway]);
 

@@ -7,8 +7,17 @@
  * barramento das comemorações (`emitBurst`), então o canvas, os tetos e as guardas de
  * animação/desempenho existentes valem sem código novo. Estilo persistido em `babel.rastro`
  * ('off' desliga; é o padrão — rastro é conquista da loja, não ruído de fábrica).
+ *
+ * GALERIA (2026-08-28): além dos estilos fixos, existem os PERSONALIZADOS, codificados no id:
+ *   · `gen:<forma>:<paleta>`  — forma (faisca|estrelas|coracoes|pixel|arcoiris) nas cores da
+ *                               paleta da galeria (`lib/galeria/paletas`);
+ *   · `emojis:<lista>`         — emojis escolhidos um a um (separados por vírgula).
+ * Nada disso cria spec nova: `estiloDeRastro()` resolve o id para um `kind` base + um
+ * `sobrescrever` (cores/emojis) e o canvas aplica por cima. Centenas de combinações, zero custo.
  */
-import { emitBurst, type BurstKind } from './effects';
+import { emitBurst, type BurstKind, type BurstSpec } from './effects';
+import { paletaPorId, coresDaPaleta } from './galeria/paletas';
+import { sanearListaDeEmojis } from './galeria/emojis';
 
 export interface EstiloDeRastro { id: string; nome: string; kind: BurstKind }
 
@@ -23,22 +32,62 @@ export const RASTROS: EstiloDeRastro[] = [
   { id: 'arcoiris', nome: 'Arco-íris', kind: 'rastroArcoiris' },
 ];
 
+/** Formas que aceitam paleta no rastro personalizado. */
+export const FORMAS_DE_RASTRO: Array<{ id: string; nome: string; kind: BurstKind }> = [
+  { id: 'faisca', nome: 'Faíscas', kind: 'rastroFaisca' },
+  { id: 'estrelas', nome: 'Estrelas', kind: 'rastroEstrelas' },
+  { id: 'coracoes', nome: 'Corações', kind: 'rastroCoracoes' },
+  { id: 'pixel', nome: 'Pixel', kind: 'rastroPixel' },
+  { id: 'arcoiris', nome: 'Bolinhas', kind: 'rastroArcoiris' },
+];
+
 const CHAVE = 'babel.rastro';
 const INTERVALO_MS = 45;
 const DISTANCIA_MIN = 14;
 
+export interface RastroResolvido { kind: BurstKind; sobrescrever?: Partial<BurstSpec>; nome: string }
+
+/** Resolve QUALQUER id (fixo ou personalizado) para o que o canvas precisa. `null` = inválido. */
+export function estiloDeRastro(id: string): RastroResolvido | null {
+  const fixo = RASTROS.find((r) => r.id === id);
+  if (fixo) return fixo.id === 'off' ? null : { kind: fixo.kind, nome: fixo.nome };
+  if (id.startsWith('gen:')) {
+    const [, formaId, paletaId] = id.split(':');
+    const forma = FORMAS_DE_RASTRO.find((f) => f.id === formaId);
+    const paleta = paletaPorId(paletaId ?? '');
+    if (!forma || !paleta) return null;
+    const cores = coresDaPaleta(paleta).slice(0, 2);
+    return { kind: forma.kind, nome: `${forma.nome} · ${paleta.nome}`, sobrescrever: { paleta: [paleta.accent, ...cores] } };
+  }
+  if (id.startsWith('emojis:')) {
+    const lista = sanearListaDeEmojis(id.slice('emojis:'.length).split(','));
+    if (!lista.length) return null;
+    return { kind: 'rastroEmoji', nome: `Emojis ${lista.slice(0, 3).join('')}`, sobrescrever: { emojis: lista } };
+  }
+  return null;
+}
+
+export function rastroValido(id: string): boolean {
+  return id === 'off' || estiloDeRastro(id) !== null;
+}
+
 export function readRastro(): string {
   try {
     const v = localStorage.getItem(CHAVE) ?? 'off';
-    return RASTROS.some((r) => r.id === v) ? v : 'off';
+    return rastroValido(v) ? v : 'off';
   } catch { return 'off'; }
 }
 
 export function setRastro(id: string): string {
-  const valido = RASTROS.some((r) => r.id === id) ? id : 'off';
+  const valido = rastroValido(id) ? id : 'off';
   try { localStorage.setItem(CHAVE, valido); } catch { /* sem storage */ }
   return valido;
 }
+
+/** Monta o id de um rastro personalizado por forma + paleta. */
+export function idDeRastroGerado(forma: string, paletaId: string): string { return `gen:${forma}:${paletaId}`; }
+/** Monta o id de um rastro de emojis escolhidos. */
+export function idDeRastroDeEmojis(lista: string[]): string { return `emojis:${sanearListaDeEmojis(lista).join(',')}`; }
 
 function animacoesDesligadas(): boolean {
   const b = document.body;
@@ -68,15 +117,15 @@ export function instalarRastroDoMouse(): void {
     ultimoT = agora;
     ultimoX = e.clientX;
     ultimoY = e.clientY;
-    const estilo = RASTROS.find((r) => r.id === id);
-    if (estilo) emitBurst(e.clientX, e.clientY, estilo.kind);
+    const estilo = estiloDeRastro(id);
+    if (estilo) emitBurst(e.clientX, e.clientY, estilo.kind, estilo.sobrescrever);
   }, { passive: true });
 
   window.addEventListener('pointerdown', (e) => {
     const id = readRastro();
     if (id === 'off' || animacoesDesligadas()) return;
-    const estilo = RASTROS.find((r) => r.id === id);
+    const estilo = estiloDeRastro(id);
     // Clique = três emissões rápidas: a mini-explosão que dá peso ao toque.
-    if (estilo) for (let i = 0; i < 3; i++) setTimeout(() => emitBurst(e.clientX, e.clientY, estilo.kind), i * 40);
+    if (estilo) for (let i = 0; i < 3; i++) setTimeout(() => emitBurst(e.clientX, e.clientY, estilo.kind, estilo.sobrescrever), i * 40);
   }, { passive: true });
 }

@@ -43,3 +43,19 @@ Partículas com intensidade editável, Sorte de Eventos) · **Packs de emoji (12
 2. Todo item tem prévia REAL antes de comprar (o mouse, uma amostra de partícula, o mockup).
 3. Reversível sempre: equipar nunca tranca (a lição das posições do menu).
 4. Guardas de acessibilidade vencem cosmético: animações desligadas silenciam tudo.
+
+## Galeria & perfis (2026-08-28) — FEITO
+
+- **Paletas**: 30 matizes × 6 estilos (claro, pastel, papel, escuro, néon, meia-noite) + 20 curadas =
+  200 paletas geradas em tempo de execução (`lib/galeria/paletas.ts`), aplicadas pelo tema `custom`
+  (quatro variáveis CSS). Zero CSS novo; teste trava contraste ink×fundo ≥ 7:1 em todas.
+- **Emojis**: catálogo de ~380 em 14 categorias (`lib/galeria/emojis.ts`); pack PERSONALIZADO
+  (`babel.pack_custom`): escolher um a um, categoria inteira, excluir. Alimenta partículas e rastro.
+- **Rastros**: forma (faíscas/estrelas/corações/pixel/bolinhas) × qualquer paleta = 1.000+ combinações
+  (`gen:<forma>:<paleta>`), ou lista de emojis escolhidos (`emojis:<lista>`). Resolvidos em tempo de
+  execução para `kind` + `sobrescrever` da spec — nenhuma spec nova.
+- **Cursores**: qualquer emoji do catálogo (`emoji:<char>`); a regra CSS é injetada só para o equipado.
+- **Perfis**: 16 presets completos ("Tudo de pato", "Tudo de coração", Arcade, Espaço, Pizzaria…) +
+  perfis próprios salvos com nome. Tela: Loja → "Perfis & criar o seu".
+- Custo: ~12 KB de dados; nenhum asset baixado. Itens da galeria são livres (a Loja continua vendendo os
+  temas nativos, packs e cursores curados por Seeds/nível).

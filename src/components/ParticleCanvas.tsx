@@ -2,7 +2,7 @@ import { ajusteDeBurst } from '../lib/aprimoramentos';
 import { emojisDoPack } from '../lib/particulas';
 import React, { useEffect, useRef } from 'react';
 import type { ThemeType } from '../lib/appearance';
-import { resolveParticleStyle, BURST_SPECS, onBurst, type BurstKind } from '../lib/effects';
+import { resolveParticleStyle, BURST_SPECS, onBurst, type BurstKind, type BurstSpec } from '../lib/effects';
 
 interface ParticleCanvasProps {
   /** Interruptor do usuário (Animações e efeitos). */
@@ -63,7 +63,7 @@ interface P {
 export default function ParticleCanvas({ enabled, performanceMode, theme, darkMode, ambient }: ParticleCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   /** Fila de rajadas pedidas entre um quadro e outro (o listener não pode tocar no estado do loop). */
-  const pendingRef = useRef<Array<{ x: number; y: number; kind: BurstKind }>>([]);
+  const pendingRef = useRef<Array<{ x: number; y: number; kind: BurstKind; sobrescrever?: Partial<BurstSpec> }>>([]);
   /** Acorda o loop quando ele dormiu por falta de partículas (ver `dormindo` no render). */
   const wakeRef = useRef<(() => void) | null>(null);
 
@@ -152,8 +152,8 @@ export default function ParticleCanvas({ enabled, performanceMode, theme, darkMo
     spawnAmbient();
 
     /** As coordenadas da rajada chegam em VIEWPORT; o canvas pode não começar no topo da janela. */
-    const spawnBurst = (vx: number, vy: number, kind: BurstKind) => {
-      const spec = BURST_SPECS[kind];
+    const spawnBurst = (vx: number, vy: number, kind: BurstKind, sobrescrever?: Partial<BurstSpec>) => {
+      const spec: typeof BURST_SPECS[BurstKind] = sobrescrever ? { ...BURST_SPECS[kind], ...sobrescrever } : BURST_SPECS[kind];
       // Aprimoramento + intensidade da loja: mais/maiores particulas para quem subiu de nivel;
       // o TETO de vivas continua valendo por cima, e o count multiplicado entra na poda e nos angulos.
       const { countMul, sizeMul } = ajusteDeBurst();
@@ -278,7 +278,7 @@ export default function ParticleCanvas({ enabled, performanceMode, theme, darkMo
 
       // Drena os pedidos acumulados desde o último quadro.
       if (pendingRef.current.length) {
-        for (const b of pendingRef.current) spawnBurst(b.x, b.y, b.kind);
+        for (const b of pendingRef.current) spawnBurst(b.x, b.y, b.kind, b.sobrescrever);
         pendingRef.current.length = 0;
       }
 

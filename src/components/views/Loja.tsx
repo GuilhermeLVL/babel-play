@@ -16,6 +16,7 @@ import { useMemo, useState } from 'react';
 import { ShoppingBag, Sprout, Lock, Check, Sparkles, Palette, Type, Gamepad2, PanelRight, Wand2, Trophy, Star } from 'lucide-react';
 import { Abas, PainelDeAba } from '../ui';
 import Conquistas from './Conquistas';
+import Personalizar from './Personalizar';
 import { REGRAS, type ContextoDeConquistas } from '@core';
 import {
   CATALOGO_DA_LOJA, COR_DA_RARIDADE, estadoDoItem, marcarPosse, vitrineDoProximoNivel, type ItemDaLoja,
@@ -193,9 +194,14 @@ export default function Loja({ progress, theme, setTheme, fonte, setFonte, menuP
         aoTrocar={setAba}
         itens={[
           { id: 'loja', rotulo: 'Loja', icone: <ShoppingBag className="w-4 h-4" /> },
+          { id: 'personalizar', rotulo: 'Perfis & criar o seu', icone: <Wand2 className="w-4 h-4" /> },
           { id: 'conquistas', rotulo: 'Conquistas & como ganhar', icone: <Trophy className="w-4 h-4" /> },
         ]}
       />
+
+      <PainelDeAba id="personalizar" ativo={aba}>
+        <Personalizar theme={theme} setTheme={setTheme} fonte={fonte} setFonte={setFonte} />
+      </PainelDeAba>
 
       <PainelDeAba id="conquistas" ativo={aba}>
         <Conquistas progress={progress} ctx={ctxConquistas} />

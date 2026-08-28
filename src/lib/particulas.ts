@@ -7,6 +7,8 @@
  * eventos) NAO mudam — evento raro tem identidade propria.
  */
 /* `cometa` é EXCLUSIVA de conquista ("Ouvinte"): círculo com cauda, nunca à venda. */
+import { sanearListaDeEmojis } from './galeria/emojis';
+
 export type ParticulasType = 'tema' | 'pixel' | 'confete' | 'coracoes' | 'estrelas' | 'emoji' | 'cometa';
 
 export interface ParticulasOption { id: ParticulasType; name: string; desc: string }
@@ -62,20 +64,38 @@ export const PACKS_DE_EMOJI: PackDeEmoji[] = [
 ];
 
 const CHAVE_PACK = 'app_particulas_pack';
+const CHAVE_PACK_CUSTOM = 'babel.pack_custom';
+/** O pack PERSONALIZADO (galeria, 2026-08-28): a lista que a pessoa montou no editor. */
+export const PACK_CUSTOM = 'custom';
 
 export function readPack(): string {
   try {
     const v = localStorage.getItem(CHAVE_PACK) ?? 'classico';
+    if (v === PACK_CUSTOM) return lerPackCustom().length ? PACK_CUSTOM : 'classico';
     return PACKS_DE_EMOJI.some((p) => p.id === v) ? v : 'classico';
   } catch { return 'classico'; }
 }
 
 export function setPack(id: string): string {
-  const valido = PACKS_DE_EMOJI.some((p) => p.id === id) ? id : 'classico';
+  const valido = id === PACK_CUSTOM ? PACK_CUSTOM : PACKS_DE_EMOJI.some((p) => p.id === id) ? id : 'classico';
   try { localStorage.setItem(CHAVE_PACK, valido); } catch { /* sem storage */ }
   return valido;
 }
 
+export function lerPackCustom(): string[] {
+  try { return sanearListaDeEmojis(JSON.parse(localStorage.getItem(CHAVE_PACK_CUSTOM) || '[]')); } catch { return []; }
+}
+
+/** Grava a lista personalizada (só emojis do catálogo) e a equipa. Lista vazia volta ao clássico. */
+export function setPackCustom(lista: string[]): string[] {
+  const limpa = sanearListaDeEmojis(lista);
+  try { localStorage.setItem(CHAVE_PACK_CUSTOM, JSON.stringify(limpa)); } catch { /* sem storage */ }
+  setPack(limpa.length ? PACK_CUSTOM : 'classico');
+  return limpa;
+}
+
 export function emojisDoPack(): string[] {
-  return PACKS_DE_EMOJI.find((p) => p.id === readPack())?.emojis ?? ['⭐', '✨'];
+  const id = readPack();
+  if (id === PACK_CUSTOM) { const c = lerPackCustom(); if (c.length) return c; }
+  return PACKS_DE_EMOJI.find((p) => p.id === id)?.emojis ?? ['⭐', '✨'];
 }

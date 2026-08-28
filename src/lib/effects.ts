@@ -266,6 +266,9 @@ export interface BurstEvent {
   x: number;
   y: number;
   kind: BurstKind;
+  /** Galeria (2026-08-28): rastros/partículas PERSONALIZADOS sobrescrevem cores/emojis/forma da
+   *  spec base — é o que permite "rastro de estrelas na paleta X" sem uma spec por combinação. */
+  sobrescrever?: Partial<BurstSpec>;
 }
 
 type Listener = (e: BurstEvent) => void;
@@ -284,8 +287,8 @@ export function onBurst(fn: Listener): () => void {
  * por essas dez camadas seria fiação sem nenhum ganho — e o emissor não precisa saber se existe
  * um canvas ouvindo: se as animações estiverem desligadas, ninguém escuta e nada acontece.
  */
-export function emitBurst(x: number, y: number, kind: BurstKind): void {
-  for (const fn of listeners) fn({ x, y, kind });
+export function emitBurst(x: number, y: number, kind: BurstKind, sobrescrever?: Partial<BurstSpec>): void {
+  for (const fn of listeners) fn(sobrescrever ? { x, y, kind, sobrescrever } : { x, y, kind });
 }
 
 /** Atalho: rajada no centro de um elemento (o botão que o usuário acabou de clicar). */

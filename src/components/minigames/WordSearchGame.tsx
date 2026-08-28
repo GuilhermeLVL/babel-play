@@ -285,7 +285,15 @@ export default function WordSearchGame({ items, ageProfile, onFinish, onExit }: 
                   onPointerDown={() => { setInicio({ linha: l, coluna: c }); setHover({ linha: l, coluna: c }); }}
                   onPointerEnter={() => { if (inicio) setHover({ linha: l, coluna: c }); }}
                   onPointerUp={(e) => soltar({ linha: l, coluna: c }, e.currentTarget)}
-                  className={`w-8 h-8 sm:w-9 sm:h-9 rounded-md text-[12px] sm:text-[13px] font-bold transition-colors cursor-pointer ${
+                  /* Célula que ESCALA com a tela (2026-08-28): 32-36px fixos deixavam a grade
+                     minúscula num monitor. Cresce com a altura, encolhe no celular, e nunca
+                     estoura a largura disponível para a grade inteira. */
+                  style={{
+                    width: `max(1.6rem, min(clamp(1.9rem, 6.2vh, 3.4rem), calc((100vw - 26rem) / ${grade.tamanho})))`,
+                    height: `max(1.6rem, min(clamp(1.9rem, 6.2vh, 3.4rem), calc((100vw - 26rem) / ${grade.tamanho})))`,
+                    fontSize: `calc(max(1.6rem, min(clamp(1.9rem, 6.2vh, 3.4rem), calc((100vw - 26rem) / ${grade.tamanho}))) * 0.42)`,
+                  }}
+                  className={`rounded-md font-bold transition-colors cursor-pointer ${
                     achada
                       ? 'bg-good-soft text-good-ink'
                       : selecionada

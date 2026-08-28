@@ -412,10 +412,17 @@ export default function TermoGame({ rodadas, ageProfile, onFinish, onExit }: Ter
       ? (ageProfile === 'pro' ? 'Dueto' : 'Duas de uma vez')
       : (ageProfile === 'pro' ? 'Quarteto' : 'Quatro de uma vez');
 
-  // A célula encolhe conforme o número de tabuleiros: quatro grades de 48px não cabem num celular.
-  const cel = nTabuleiros === 1 ? 'w-11 h-11 sm:w-12 sm:h-12 text-lg'
-    : nTabuleiros === 2 ? 'w-9 h-9 sm:w-10 sm:h-10 text-sm'
-    : 'w-7 h-7 sm:w-8 sm:h-8 text-xs';
+  /* A CÉLULA ESCALA COM A TELA (pedido do dono, 2026-08-28: grade minúscula num mar de espaço).
+     Antes eram 44px fixos: num monitor de 1080p o tabuleiro ocupava 1/5 da altura e o teclado
+     ficava colado no pé, com um vazio enorme no meio. Agora a célula cresce com a altura da
+     janela (vh) e encolhe no celular (mínimo em rem); com quatro tabuleiros ela também respeita a
+     LARGURA (32 colunas + folgas têm de caber). A fonte acompanha a célula. */
+  const tamanhoCel = nTabuleiros === 1
+    ? 'clamp(2.75rem, 7.5vh, 4.5rem)'
+    : nTabuleiros === 2
+      ? 'min(clamp(2.25rem, 6vh, 3.6rem), calc((100vw - 8rem) / 18))'
+      : 'min(clamp(1.75rem, 4.8vh, 3rem), calc((100vw - 8rem) / 38))';
+  const estiloCel: React.CSSProperties = { width: tamanhoCel, height: tamanhoCel, fontSize: `calc(${tamanhoCel} * 0.46)` };
 
   const mult = multiplicador(sequencia);
 
@@ -440,10 +447,13 @@ export default function TermoGame({ rodadas, ageProfile, onFinish, onExit }: Ter
         </button>
       </span>
 
-      {/* `m-auto` e não `justify-center`: num container rolável, centralizar por `justify`
-          impede a rolagem para o começo quando o conteúdo passa da altura da janela. */}
-      <div className="m-auto w-full flex flex-col items-center">
-      <header className="flex flex-col items-center mb-3 shrink-0 text-center">
+      {/* UM BLOCO SÓ (título + tabuleiros + teclado), centrado com `my-auto`: antes o teclado
+          ficava grudado no pé da tela e os tabuleiros centrados sozinhos no meio — dois blocos
+          com um vazio entre eles. `my-auto` e não `justify-center`: num container rolável,
+          centralizar por `justify` impede a rolagem para o começo quando o conteúdo passa da
+          altura da janela. */}
+      <div className="my-auto w-full flex flex-col items-center gap-1 py-2">
+      <header className="flex flex-col items-center mb-2 shrink-0 text-center">
         <h2 className="font-display font-black text-lg text-ink flex items-center gap-2">
           {nomeDoDegrau}
           {/* A escada precisa ser VISÍVEL, senão subir de degrau parece o jogo mudando sozinho. */}
@@ -481,13 +491,13 @@ export default function TermoGame({ rodadas, ageProfile, onFinish, onExit }: Ter
           correspondência não precisa ser explicada.
           No Quarteto, quatro colunas quando a tela permite, empilhado 2×2 metade das grades fica
           fora da tela, e num jogo em que o palpite vale para todas, não ver metade é perder a jogada. */}
-      <div ref={gradeRef} data-tour="tabuleiro" className={`grid w-full max-w-6xl gap-x-4 sm:gap-x-10 xl:gap-x-16 gap-y-4 mb-4 justify-items-center ${
+      <div ref={gradeRef} data-tour="tabuleiro" className={`grid w-full max-w-6xl gap-x-4 sm:gap-x-8 xl:gap-x-12 gap-y-4 mb-2 justify-items-center ${
         nTabuleiros === 4 ? 'grid-cols-2 xl:grid-cols-4' : nTabuleiros === 2 ? 'grid-cols-2' : 'grid-cols-1'
       }`}>
         {grupo.map((r, tIdx) => {
           const certas = letrasCertas(palpitesPorTab[tIdx] ?? [], r.resposta.length);
           return (
-            <div key={tIdx} className={`flex flex-col gap-1 transition-opacity ${resolvidos[tIdx] ? 'opacity-45' : ''}`}>
+            <div key={tIdx} className={`flex flex-col gap-1.5 transition-opacity ${resolvidos[tIdx] ? 'opacity-45' : ''}`}>
               <p
                 data-tour={tIdx === 0 ? 'pista' : undefined}
                 className={`text-center text-[13px] leading-tight px-2 py-1.5 mb-1 rounded-lg transition-colors ${
@@ -509,7 +519,7 @@ export default function TermoGame({ rodadas, ageProfile, onFinish, onExit }: Ter
                 const p = (palpitesPorTab[tIdx] ?? [])[linha];
                 const digitando = !resolvidos[tIdx] && !fimDoGrupo && linha === (palpitesPorTab[tIdx] ?? []).length;
                 return (
-                  <div key={linha} className="flex gap-1 justify-center">
+                  <div key={linha} className="flex gap-1.5 justify-center">
                     {Array.from({ length: r.resposta.length }).map((_, col) => {
                       const revelada = reveladas[tIdx]?.[col];
                       const letra = p ? p.letras[col] : digitando ? atual[col] : '';
@@ -525,7 +535,8 @@ export default function TermoGame({ rodadas, ageProfile, onFinish, onExit }: Ter
                           disabled={!digitando}
                           onClick={() => irPara(col)}
                           aria-label={digitando ? `Posição ${col + 1}${atual[col] ? `, letra ${atual[col]}` : ', vazia'}` : undefined}
-                          className={`${cel} rounded-lg border-2 flex items-center justify-center font-display font-black transition-all ${cor(estado)} ${
+                          style={estiloCel}
+                          className={`rounded-lg border-2 flex items-center justify-center font-display font-black transition-all ${cor(estado)} ${
                             digitando ? 'cursor-pointer' : ''
                           } ${noCursor ? 'border-accent ring-2 ring-accent/40 scale-105' : ''} ${
                             ehFantasma ? (revelada ? 'text-warn-ink' : 'text-ink-muted') : ''
@@ -542,30 +553,31 @@ export default function TermoGame({ rodadas, ageProfile, onFinish, onExit }: Ter
           );
         })}
       </div>
-      </div>
 
       {/* TECLADO — o estado vem só dos tabuleiros ainda abertos (ver `estadoDoTecladoMulti`).
-          GRUDADO NO PÉ DA TELA: com quatro tabuleiros de nove linhas o conteúdo passa da altura
-          da janela, e um teclado que rola para fora deixa o jogo sem entrada. */}
-      <div data-tour="teclado" className="flex flex-col gap-1.5 w-full max-w-xl sticky bottom-0 pt-2 pb-1 bg-canvas/95 backdrop-blur-sm z-10">
+          Logo abaixo dos tabuleiros, no mesmo bloco centrado; `sticky bottom-0` só entra em ação
+          quando o conteúdo passa da altura da janela (quarteto no celular), para o teclado nunca
+          rolar para fora e deixar o jogo sem entrada. Teclas maiores: o alvo era 44px num
+          monitor onde cabiam 56. */}
+      <div data-tour="teclado" className="flex flex-col gap-1.5 w-full max-w-2xl sticky bottom-0 pt-3 pb-1 bg-canvas/95 backdrop-blur-sm z-10">
         {LINHAS_TECLADO.map((linha, i) => (
-          <div key={linha} className="flex gap-1 justify-center">
+          <div key={linha} className="flex gap-1 sm:gap-1.5 justify-center">
             {i === 2 && (
-              <button onClick={enviar} disabled={!preenchido || fimDoGrupo} className="px-2.5 h-11 rounded-lg bg-accent text-white font-bold text-[11px] flex items-center gap-1 disabled:opacity-40 cursor-pointer" aria-label="Enviar palpite">
-                <CornerDownLeft className="w-3.5 h-3.5" />
+              <button onClick={enviar} disabled={!preenchido || fimDoGrupo} className="px-3 sm:px-4 h-11 sm:h-14 rounded-lg bg-accent text-white font-bold text-[11px] flex items-center gap-1 disabled:opacity-40 cursor-pointer" aria-label="Enviar palpite">
+                <CornerDownLeft className="w-4 h-4" />
               </button>
             )}
             {linha.split('').map(letra => (
               <button
                 key={letra}
                 onClick={() => digitar(letra)}
-                className={`flex-1 min-w-0 h-11 rounded-lg border font-bold text-[13px] transition-colors cursor-pointer ${cor(teclado[letra])}`}
+                className={`flex-1 min-w-0 h-11 sm:h-14 rounded-lg border font-bold text-sm sm:text-base transition-colors cursor-pointer ${cor(teclado[letra])}`}
               >
                 {letra}
               </button>
             ))}
             {i === 2 && (
-              <button onClick={apagar} className="px-2.5 h-11 rounded-lg bg-canvas border border-border-subtle text-ink cursor-pointer" aria-label="Apagar letra">
+              <button onClick={apagar} className="px-3 sm:px-4 h-11 sm:h-14 rounded-lg bg-canvas border border-border-subtle text-ink cursor-pointer" aria-label="Apagar letra">
                 <Delete className="w-4 h-4" />
               </button>
             )}
@@ -576,6 +588,7 @@ export default function TermoGame({ rodadas, ageProfile, onFinish, onExit }: Ter
             ? 'Toque num quadrado para escrever nele.'
             : 'Clique num quadrado (ou use ← →) para escrever fora de ordem.'}
         </p>
+      </div>
       </div>
     </div>
   );

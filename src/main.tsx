@@ -1,6 +1,7 @@
 import {StrictMode} from 'react';
 import {createRoot} from 'react-dom/client';
 import App from './App.tsx';
+import ErroDaTela from './components/ErroDaTela';
 import './index.css';
 import {bootTheme} from './lib/theme';
 
@@ -11,6 +12,8 @@ bootTheme();
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <App />
+    <ErroDaTela>
+      <App />
+    </ErroDaTela>
   </StrictMode>,
 );

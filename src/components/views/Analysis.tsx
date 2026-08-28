@@ -1442,7 +1442,27 @@ export default function Analysis({
     );
   };
 
-  if (!recording) return null;
+  /* NUNCA `return null` aqui: era uma tela PRETA de verdade. Enquanto a lista de gravações ainda
+     não chegou (abrir /sessao/<id> direto pela URL) mostra "abrindo"; se a lista chegou e o id
+     não existe, diz isso e oferece o caminho de volta. */
+  if (!recording) {
+    const aindaCarregando = allRecordings.length === 0;
+    return (
+      <div className="flex-1 min-h-[60vh] flex items-center justify-center p-6">
+        <div className="text-center max-w-sm">
+          <p className="label-mono mb-2">{aindaCarregando ? 'Abrindo a sessão' : 'Sessão não encontrada'}</p>
+          <p className="text-[13px] text-ink-muted leading-snug">
+            {aindaCarregando
+              ? 'Um instante: carregando as suas gravações.'
+              : 'Esta gravação não está mais na sua biblioteca, ou o endereço veio errado.'}
+          </p>
+          {!aindaCarregando && (
+            <button onClick={() => onChangeView('library')} className="btn-outline mt-4">Voltar para Biblioteca</button>
+          )}
+        </div>
+      </div>
+    );
+  }
 
   const isVideo = recording.type === 'video';
   const isDoc = recording.type === 'document';
@@ -1454,9 +1474,9 @@ export default function Analysis({
   let backLinkClass = 'text-accent hover:text-accent/80';
   let selectClass = 'bg-surface border border-border-subtle text-ink';
   let exportBtnClass = 'btn-ink hover:bg-ink-muted border-none';
-  let activeTabClass = 'bg-surface border-b-2 border-accent text-accent shadow-sm font-extrabold';
-  let inactiveTabClass = 'text-ink-muted hover:text-ink font-bold';
-  let tabContainerClass = 'bg-surface border border-border-subtle p-1 rounded-xl w-fit mb-6 flex overflow-x-auto max-w-full shadow-sm';
+  let activeTabClass = 'bg-accent text-white shadow-btn font-extrabold';
+  let inactiveTabClass = 'text-ink hover:bg-surface-hover font-bold';
+  let tabContainerClass = 'bg-canvas border-2 border-border-subtle p-1.5 rounded-2xl w-fit mb-6 flex items-center gap-1 overflow-x-auto max-w-full shadow-card';
 
   // Cada tipo de gravação ganha um acento semântico (não decorativo): vídeo→error,
   // documento→good, áudio→rare. Usa sempre -soft (preenchimento) + -ink (texto sobre
@@ -1467,27 +1487,27 @@ export default function Analysis({
     backLinkClass = 'text-error-ink hover:text-error';
     selectClass = 'bg-surface border border-border-subtle text-ink';
     exportBtnClass = 'btn-solid bg-error-soft text-error-ink border-none';
-    activeTabClass = 'bg-surface border-b-2 border-error text-error-ink shadow-sm font-extrabold';
-    inactiveTabClass = 'text-ink-muted hover:text-ink font-bold';
-    tabContainerClass = 'bg-surface border border-border-subtle p-1 rounded-xl w-fit mb-6 flex overflow-x-auto max-w-full shadow-sm';
+    activeTabClass = 'bg-error text-white shadow-btn font-extrabold';
+    inactiveTabClass = 'text-ink hover:bg-surface-hover font-bold';
+    tabContainerClass = 'bg-canvas border-2 border-border-subtle p-1.5 rounded-2xl w-fit mb-6 flex items-center gap-1 overflow-x-auto max-w-full shadow-card';
   } else if (isDoc) {
     headerBgClass = 'bg-surface/30 border-b border-good/20';
     badgeClass = 'bg-good-soft text-good-ink border border-good/20';
     backLinkClass = 'text-good-ink hover:text-good';
     selectClass = 'bg-surface border border-border-subtle text-ink';
     exportBtnClass = 'btn-solid bg-good-soft text-good-ink border-none';
-    activeTabClass = 'bg-surface border-b-2 border-good text-good-ink shadow-sm font-extrabold';
-    inactiveTabClass = 'text-ink-muted hover:text-ink font-bold';
-    tabContainerClass = 'bg-surface border border-border-subtle p-1 rounded-xl w-fit mb-6 flex overflow-x-auto max-w-full shadow-sm';
+    activeTabClass = 'bg-good text-white shadow-btn font-extrabold';
+    inactiveTabClass = 'text-ink hover:bg-surface-hover font-bold';
+    tabContainerClass = 'bg-canvas border-2 border-border-subtle p-1.5 rounded-2xl w-fit mb-6 flex items-center gap-1 overflow-x-auto max-w-full shadow-card';
   } else if (isAudio) {
     headerBgClass = 'bg-surface/30 border-b border-rare/20';
     badgeClass = 'bg-rare-soft text-rare-ink border border-rare/20';
     backLinkClass = 'text-rare-ink hover:text-rare';
     selectClass = 'bg-surface border border-border-subtle text-ink';
     exportBtnClass = 'btn-solid bg-rare-soft text-rare-ink border-none';
-    activeTabClass = 'bg-surface border-b-2 border-rare text-rare-ink shadow-sm font-extrabold';
-    inactiveTabClass = 'text-ink-muted hover:text-ink font-bold';
-    tabContainerClass = 'bg-surface border border-border-subtle p-1 rounded-xl w-fit mb-6 flex overflow-x-auto max-w-full shadow-sm';
+    activeTabClass = 'bg-rare text-white shadow-btn font-extrabold';
+    inactiveTabClass = 'text-ink hover:bg-surface-hover font-bold';
+    tabContainerClass = 'bg-canvas border-2 border-border-subtle p-1.5 rounded-2xl w-fit mb-6 flex items-center gap-1 overflow-x-auto max-w-full shadow-card';
   }
 
   return (
@@ -1583,31 +1603,35 @@ export default function Analysis({
             linguagem e quantas abrem de uma vez. Em Kids/Sênior, "Visão Geral & Métricas" entra no
             "Ver mais": é a aba mais densa e a menos acionável para quem está começando. Ela continua
             a um clique, nenhuma aba deixa de existir. */}
-        <div className={tabContainerClass}>
+        {/* ABAS COM PRESENÇA (pedido do dono, 2026-08-28: "passou despercebido"). Antes eram
+            texto apagado num trilho fino; agora a aba ativa é um botão sólido na cor do tipo de
+            mídia, as inativas têm a cor do texto principal, e um rótulo diz o que a barra é. */}
+        <p className="label-mono mb-2">O que fazer com esta sessão</p>
+        <div className={tabContainerClass} role="tablist" aria-label="Seções da sessão">
           <button
-            className={`px-4 py-1.5 rounded-lg text-[13px] font-bold whitespace-nowrap transition-all ${currentTab === 'transcript' ? activeTabClass : inactiveTabClass}`}
+            className={`px-5 py-2.5 rounded-xl text-[14px] font-bold whitespace-nowrap transition-all cursor-pointer ${currentTab === 'transcript' ? activeTabClass : inactiveTabClass}`}
             onClick={() => onSubTabChange('transcript')}
             aria-pressed={currentTab === 'transcript'}
           >
             {t(recording.type === 'document' ? 'sessionTab.transcript.doc' : 'sessionTab.transcript', ageProfile)}
           </button>
           <button
-            className={`flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-[13px] font-bold whitespace-nowrap transition-all ${currentTab === 'reading' ? activeTabClass : inactiveTabClass}`}
+            className={`flex items-center gap-1.5 px-5 py-2.5 rounded-xl text-[14px] font-bold whitespace-nowrap transition-all cursor-pointer ${currentTab === 'reading' ? activeTabClass : inactiveTabClass}`}
             onClick={() => onSubTabChange('reading')}
             aria-pressed={currentTab === 'reading'}
           >
-            <BookOpen className="w-3.5 h-3.5" /> {t('sessionTab.reading', ageProfile)}
+            <BookOpen className="w-4 h-4" /> {t('sessionTab.reading', ageProfile)}
           </button>
           <button
-            className={`flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-[13px] font-bold whitespace-nowrap transition-all ${currentTab === 'practice' ? activeTabClass : inactiveTabClass}`}
+            className={`flex items-center gap-1.5 px-5 py-2.5 rounded-xl text-[14px] font-bold whitespace-nowrap transition-all cursor-pointer ${currentTab === 'practice' ? activeTabClass : inactiveTabClass}`}
             onClick={() => onSubTabChange('practice')}
             aria-pressed={currentTab === 'practice'}
           >
-            <Gamepad2 className="w-3.5 h-3.5" /> {t('sessionTab.practice', ageProfile)}
+            <Gamepad2 className="w-4 h-4" /> {t('sessionTab.practice', ageProfile)}
           </button>
           {(!coreOnly(ageProfile) || showAllTabs || currentTab === 'overview') && (
             <button
-              className={`px-4 py-1.5 rounded-lg text-[13px] font-bold whitespace-nowrap transition-all ${currentTab === 'overview' ? activeTabClass : inactiveTabClass}`}
+              className={`px-5 py-2.5 rounded-xl text-[14px] font-bold whitespace-nowrap transition-all cursor-pointer ${currentTab === 'overview' ? activeTabClass : inactiveTabClass}`}
               onClick={() => onSubTabChange('overview')}
             aria-pressed={currentTab === 'overview'}
             >
@@ -1617,7 +1641,7 @@ export default function Analysis({
           {coreOnly(ageProfile) && !showAllTabs && currentTab !== 'overview' && (
             <button
               onClick={() => setShowAllTabs(true)}
-              className={`${inactiveTabClass} flex items-center gap-1 px-3 py-1.5 rounded-lg text-[13px] font-bold whitespace-nowrap`}
+              className={`${inactiveTabClass} flex items-center gap-1 px-4 py-2.5 rounded-xl text-[14px] font-bold whitespace-nowrap cursor-pointer`}
               title={t('sessionTab.overview', ageProfile)}
             >
               <MoreHorizontal className="w-3.5 h-3.5" /> Mais

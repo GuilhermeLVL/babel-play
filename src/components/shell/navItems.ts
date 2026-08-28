@@ -79,13 +79,6 @@ const TODOS_OS_ITENS: NavItemDef[] = [
     labels: { kids: 'Palavras', pro: 'Vocabulário', senior: 'Minhas Palavras' }
   },
   {
-    id: 'settings',
-    icon: SettingsIcon,
-    short: 'Ajustes',
-    labels: { kids: 'Ajustes', pro: 'Ajustes', senior: 'Configurações' },
-    secondary: true
-  },
-  {
     // A vitrine da progressão: desbloqueios por nível e compras com Seeds.
     id: 'loja',
     icon: ShoppingBag,
@@ -100,6 +93,15 @@ const TODOS_OS_ITENS: NavItemDef[] = [
     short: 'Sobre',
     labels: { kids: 'Sobre', pro: 'Sobre', senior: 'Sobre o App' },
     secondary: true
+  },
+  {
+    // POR ÚLTIMO de propósito (pedido do dono, 2026-08-28): configuração é o que menos se abre;
+    // no meio da lista ela separava as telas de uso das telas de descoberta (Loja, Sobre).
+    id: 'settings',
+    icon: SettingsIcon,
+    short: 'Ajustes',
+    labels: { kids: 'Ajustes', pro: 'Ajustes', senior: 'Configurações' },
+    secondary: true
   }
 ];
 
@@ -112,7 +114,7 @@ export function navLabel(item: NavItemDef, profile: AgeProfileType, compact = fa
 
 /**
  * EDIÇÃO LEVE: só o que funciona inteiro sem conta e sem servidor — Início, Capturar, Jogar e
- * Ajustes. Biblioteca entra (as sessões vivem no IndexedDB deste navegador — provisório, sem conta). Sessão e Vocabulário voltam com a edição completa.
+ * Ajustes. Biblioteca entra (as sessões vivem no IndexedDB deste navegador — provisório, sem conta). Sessão e Vocabulário voltam com a edição completa; a tela de Vocabulário saiu do menu da leve a pedido do dono (2026-08-28): o caderno vive dentro de cada sessão e nos jogos.
  */
-const LEVE: ReadonlySet<ViewType> = new Set<ViewType>(['hub', 'capture', 'library', 'metrics', 'play', 'settings', 'sobre', 'loja']);
+const LEVE: ReadonlySet<ViewType> = new Set<ViewType>(['hub', 'capture', 'library', 'play', 'loja', 'sobre', 'settings']);
 export const NAV_ITEMS: NavItemDef[] = EDICAO_LEVE ? TODOS_OS_ITENS.filter((i) => LEVE.has(i.id)) : TODOS_OS_ITENS;

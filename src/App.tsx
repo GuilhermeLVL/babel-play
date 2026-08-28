@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef, Suspense, lazy } from 'react';
+import React, { useState, useEffect, useMemo, useRef, Suspense } from 'react';
 import { EDICAO_LEVE } from './lib/edicao';
 import OnboardingLeve from './components/OnboardingLeve';
 import LayoutEditorToolbar from './components/LayoutEditorToolbar';
@@ -9,24 +9,25 @@ import Hub from './components/views/Hub'; // tela inicial, eager p/ primeiro pai
 // bundle de arranque (~1,9 MB) — incluindo o onnxruntime-web/VAD (Captura), o recharts (Métricas) e o
 // gateway/offlineTranscribe (Análise/Biblioteca), pesos que só importam quando você abre aquela tela.
 // Agora cada view puxa o seu chunk quando aberta → app leve e dinâmica.
-const LiveCapture = lazy(() => import('./components/views/LiveCapture'));
-const Library = lazy(() => import('./components/views/Library'));
-const Analysis = lazy(() => import('./components/views/Analysis'));
-const Settings = lazy(() => import('./components/views/Settings'));
-const Metrics = lazy(() => import('./components/views/Metrics'));
-const Play = lazy(() => import('./components/views/Play'));
-const IChat = lazy(() => import('./components/IChat'));
-const LayoutStudio = lazy(() => import('./components/LayoutStudio'));
-const Perfil = lazy(() => import('./components/views/Perfil'));
-const Sobre = lazy(() => import('./components/views/Sobre'));
-const Loja = lazy(() => import('./components/views/Loja'));
-const Login = lazy(() => import('./components/Login'));
-const ResetPassword = lazy(() => import('./components/auth/ResetPassword'));
+import { lazyComRecarga } from './lib/lazyComRecarga';
+const LiveCapture = lazyComRecarga(() => import('./components/views/LiveCapture'));
+const Library = lazyComRecarga(() => import('./components/views/Library'));
+const Analysis = lazyComRecarga(() => import('./components/views/Analysis'));
+const Settings = lazyComRecarga(() => import('./components/views/Settings'));
+const Metrics = lazyComRecarga(() => import('./components/views/Metrics'));
+const Play = lazyComRecarga(() => import('./components/views/Play'));
+const IChat = lazyComRecarga(() => import('./components/IChat'));
+const LayoutStudio = lazyComRecarga(() => import('./components/LayoutStudio'));
+const Perfil = lazyComRecarga(() => import('./components/views/Perfil'));
+const Sobre = lazyComRecarga(() => import('./components/views/Sobre'));
+const Loja = lazyComRecarga(() => import('./components/views/Loja'));
+const Login = lazyComRecarga(() => import('./components/Login'));
+const ResetPassword = lazyComRecarga(() => import('./components/auth/ResetPassword'));
 // O tour de boas-vindas só existe para quem AINDA não passou por ele (`onboarded === false`) —
 // para todo mundo mais era peso morto no arranque (25 kB de fonte no chunk de entrada). Enquanto
 // `onboarded` é `null` a tela já mostrava "Carregando…", então o fallback do Suspense abaixo é a
 // mesma pintura que o usuário via antes: nada muda na tela, só o momento do download.
-const Onboarding = lazy(() => import('./components/Onboarding'));
+const Onboarding = lazyComRecarga(() => import('./components/Onboarding'));
 import { ViewType, Recording } from './types';
 import { askNavGuard } from './lib/navGuard';
 import FloatingScoreLayer from './components/FloatingScoreLayer';

@@ -167,7 +167,8 @@ export default function Hub({ onChangeView, recordings, ageProfile = 'pro', prog
             sobreviveram só em duas delas. Aqui a estrutura é uma; o que varia é a LINGUAGEM, a
             densidade e se as recompensas aparecem. */}
         <div className={ageProfile === 'senior' ? 'space-y-4' : 'grid grid-cols-1 md:grid-cols-3 gap-5'}>
-          {PILLARS.map((pillar, idx) => (
+          {/* Na edição leve o caderno de palavras não é uma tela própria (pedido do dono, 2026-08-28). */}
+            {PILLARS.filter((p) => !(EDICAO_LEVE && p.id === 'vocabulary')).map((pillar, idx) => (
             <PillarCard
               key={pillar.id}
               pillar={pillar}

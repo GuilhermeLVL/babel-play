@@ -2501,6 +2501,57 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
     setTimeout(() => setFeedbackMsg(''), 2000);
   };
 
+  /* OS SELETORES DE IDIOMA, UMA VEZ SÓ. Antes viviam só na tela normal; o Foco Cheio
+     mostrava o par como rótulo fixo e trocar o idioma exigia sair do foco (pedido do dono,
+     2026-08-27). A mesma árvore serve às duas telas, então não há como divergirem. */
+  /* `p` prefixa os ids: a tela normal continua montada sob o Foco, e dois `#their-lang` na
+     mesma página fariam o `label` apontar para o errado. */
+  const seletoresDeIdioma = (p = '') => (
+    <div className="flex items-center gap-1.5 flex-wrap md:justify-end">
+      {captureScenario !== 'media' && (
+        <LangSelect
+          id={p + 'my-lang'}
+          label={captureScenario === 'mic' ? 'Falo em' : 'Eu falo'}
+          icon={<Mic className="w-2.5 h-2.5" />}
+          value={sourceLang}
+          auto={autoDetectMyLang}
+          allowAuto
+          onPick={({ auto, code }) => { langTouchedRef.current = true; setAutoDetectMyLang(auto); if (code) setSourceLang(code); }}
+        />
+      )}
+      {captureScenario === 'conversation' && <ArrowRight className="w-3.5 h-3.5 text-ink-faint mt-3 shrink-0" />}
+      {captureScenario !== 'mic' && (
+        <LangSelect
+          id={p + 'their-lang'}
+          label={captureScenario === 'media'
+            ? (ageProfile === 'kids' ? 'Língua do vídeo/jogo' : 'Idioma do conteúdo')
+            : 'Eles falam'}
+          icon={<Headphones className="w-2.5 h-2.5" />}
+          value={targetLang}
+          auto={autoDetectLang}
+          allowAuto
+          accent
+          onPick={({ auto, code }) => { langTouchedRef.current = true; setAutoDetectLang(auto); if (code) setTargetLang(code); }}
+        />
+      )}
+      {captureScenario !== 'conversation' && (
+        <>
+          <ArrowRight className="w-3.5 h-3.5 text-ink-faint mt-3 shrink-0" />
+          <LangSelect
+            id={p + 'translate-to'}
+            label={ageProfile === 'kids' ? 'Ler em' : 'Traduzir para'}
+            value={captureScenario === 'media' ? sourceLang : targetLang}
+            onPick={({ code }) => {
+              if (!code) return;
+              langTouchedRef.current = true;
+              if (captureScenario === 'media') setSourceLang(code); else setTargetLang(code);
+            }}
+          />
+        </>
+      )}
+    </div>
+  );
+
   return (
     <div className="flex-1 flex flex-col h-full bg-canvas text-ink overflow-hidden relative font-body">
       <style>{`
@@ -3196,49 +3247,7 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
                         sempre, com rótulos que fazem sentido para o que o usuário está fazendo.
                         A direção da tradução por fonte (sistema ↔ mic) continua automática. */}
                     <div className="flex flex-col md:items-end gap-1 md:col-span-1">
-                      <div className="flex items-center gap-1.5 flex-wrap md:justify-end">
-                        {captureScenario !== 'media' && (
-                          <LangSelect
-                            id="my-lang"
-                            label={captureScenario === 'mic' ? 'Falo em' : 'Eu falo'}
-                            icon={<Mic className="w-2.5 h-2.5" />}
-                            value={sourceLang}
-                            auto={autoDetectMyLang}
-                            allowAuto
-                            onPick={({ auto, code }) => { langTouchedRef.current = true; setAutoDetectMyLang(auto); if (code) setSourceLang(code); }}
-                          />
-                        )}
-                        {captureScenario === 'conversation' && <ArrowRight className="w-3.5 h-3.5 text-ink-faint mt-3 shrink-0" />}
-                        {captureScenario !== 'mic' && (
-                          <LangSelect
-                            id="their-lang"
-                            label={captureScenario === 'media'
-                              ? (ageProfile === 'kids' ? 'Língua do vídeo/jogo' : 'Idioma do conteúdo')
-                              : 'Eles falam'}
-                            icon={<Headphones className="w-2.5 h-2.5" />}
-                            value={targetLang}
-                            auto={autoDetectLang}
-                            allowAuto
-                            accent
-                            onPick={({ auto, code }) => { langTouchedRef.current = true; setAutoDetectLang(auto); if (code) setTargetLang(code); }}
-                          />
-                        )}
-                        {captureScenario !== 'conversation' && (
-                          <>
-                            <ArrowRight className="w-3.5 h-3.5 text-ink-faint mt-3 shrink-0" />
-                            <LangSelect
-                              id="translate-to"
-                              label={ageProfile === 'kids' ? 'Ler em' : 'Traduzir para'}
-                              value={captureScenario === 'media' ? sourceLang : targetLang}
-                              onPick={({ code }) => {
-                                if (!code) return;
-                                langTouchedRef.current = true;
-                                if (captureScenario === 'media') setSourceLang(code); else setTargetLang(code);
-                              }}
-                            />
-                          </>
-                        )}
-                      </div>
+                      {seletoresDeIdioma()}
                       {/* RESUMO HUMANO da direção — o fluxo fica óbvio sem jargão (público leigo). */}
                       <p className="text-[9px] text-ink-faint md:text-right leading-tight">
                         {/* C13 — o automático agora DIZ o que descobriu. Antes prometia "é
@@ -3652,11 +3661,9 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
                 <span className="text-xs text-ink-muted font-bold uppercase tracking-wider">Tempo Decorrido</span>
               </div>
 
-              {/* Focus mode languages indicator */}
+              {/* Os MESMOS seletores da tela normal: trocar o idioma no Foco Cheio sem sair dele. */}
               <div className="flex items-center gap-2">
-                <span className="badge-tag ok">{langLabel(sourceLang)}</span>
-                <ArrowRight className="w-3.5 h-3.5 text-ink-faint" />
-                <span className="badge-tag border border-accent/20 bg-accent-soft text-accent-ink font-bold">{langLabel(targetLang)}</span>
+                {seletoresDeIdioma('foco-')}
               </div>
             </div>
 

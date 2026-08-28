@@ -107,7 +107,7 @@ describe('fim de rodada (raspadinha)', () => {
     render(
       <ScratchReward
         report={report as never} ageProfile="pro"
-        sequencia={{ rodadas: 2, pontos: 300, precisao: 80, combo: 2 }}
+        sequencia={{ rodadas: 2, pontos: 300, precisao: 80, combo: 2 } as never}
         recorde={320}
         onContinuar={() => {}} onRepetir={null} onDone={() => {}}
         onPularVez={null} custoPular={10} saldoSeeds={0}

@@ -531,6 +531,50 @@
     --shadow-card-val: 0 0 0 1px #333333, 0 8px 30px rgba(0,0,0,0.8);
   }
 
+  /* Theme: Aurora — EXCLUSIVO de conquista ("Constante", 30 dias seguidos). Sempre escuro:
+     noite polar, verde-aurora de acento, violeta de raro. As duas variantes são iguais de
+     propósito — o tema é a noite; não existe "Aurora clara". */
+  [data-theme="aurora"], [data-theme="aurora"].dark, .dark [data-theme="aurora"] {
+    color-scheme: dark;
+    --canvas: #070B14;
+    --surface: #0E1626;
+    --surface-hover: #15203A;
+    --ink: #E6EDF7;
+    --ink-muted: #A7B4C9;
+    --ink-faint: #7C8AA3;
+    --accent: #4ADE80;
+    --accent-soft: rgba(74, 222, 128, 0.14);
+    --accent-ink: #86EFAC;
+    --good: #34D399;
+    --good-soft: rgba(52, 211, 153, 0.12);
+    --warn: #F5D06F;
+    --warn-soft: rgba(245, 208, 111, 0.12);
+    --rare: #A78BFA;
+    --rare-soft: rgba(167, 139, 250, 0.14);
+    --error: #FB7185;
+    --error-soft: rgba(251, 113, 133, 0.14);
+    --border-subtle: #22304A;
+    --accent-contrast: #05240F;
+
+    --ink-contrast: var(--canvas);
+    --good-ink: color-mix(in srgb, var(--good) 55%, var(--ink));
+    --warn-ink: color-mix(in srgb, var(--warn) 55%, var(--ink));
+    --rare-ink: color-mix(in srgb, var(--rare) 60%, var(--ink));
+    --error-ink: color-mix(in srgb, var(--error) 60%, var(--ink));
+    --good-contrast: #062A1B;
+    --warn-contrast: #2A2005;
+    --error-contrast: #2A0810;
+
+    --font-display-val: "Archivo", sans-serif;
+    --font-body-val: "Inter", sans-serif;
+    --font-mono-val: "IBM Plex Mono", monospace;
+    --radius-card: 20px;
+    --radius-btn: 14px;
+    --border-width-card: 1px;
+
+    --shadow-card-val: 0 0 0 1px rgba(74, 222, 128, 0.08), 0 12px 30px rgba(0, 0, 0, 0.45);
+  }
+
   /* Theme: Mochi (Parchment & Everforest) */
   [data-theme="mochi"] {
     --canvas: #f3efdf;

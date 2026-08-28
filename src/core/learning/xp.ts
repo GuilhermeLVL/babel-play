@@ -29,6 +29,17 @@ export const PESOS_XP = {
    */
   itemDeJogo: 1,
   itemDeJogoCerto: 2,
+  /* ECONOMIA v2 (2026-08-28) — o que passou a contar. Ver `economia.ts` para a tabela dita. */
+  /** Abrir o app no dia. */
+  presenca: 10,
+  /** Cada marco de 7 dias seguidos de presença. */
+  sequencia7: 50,
+  /** Cada 5 minutos de sessão gravada, com teto diário. */
+  capturaPor5Min: 10,
+  /** Palavra FICHADA no caderno (um cartão criado por ação da pessoa). */
+  cartao: 2,
+  /** Rodada de jogo fechada sem erro. */
+  rodadaPerfeita: 15,
 } as const;
 
 /**
@@ -40,9 +51,21 @@ export const PESOS_XP = {
  * dias de ofensiva e a perdesse ficaria com saldo NEGATIVO: o app cobraria de volta uma compra
  * feita, por não ter estudado ontem. O ganho agora só depende do que foi FEITO, e nunca diminui.
  */
+/*
+ * ECONOMIA v2 (2026-08-28). `palavraCapturada` SAIU das Seeds: era a soma de palavras dos
+ * transcritos, e uma importação de 325 palavras rendia 325 Seeds sem nenhuma ação (a Loja
+ * inteira custava menos que duas capturas). Toda fonte de Seeds agora é um ESFORÇO da pessoa:
+ * fichar, acertar, jogar sem errar, aparecer todo dia, gravar de verdade (com teto diário).
+ * O ganho continua só crescendo: marcos de sequência são contados do histórico, não do estado.
+ */
 export const PESOS_SEEDS = {
-  palavraCapturada: 1,
-  revisaoCerta: 4,
+  cartao: 1,
+  revisaoCerta: 2,
+  jogoCerto: 1,
+  rodadaPerfeita: 5,
+  presenca: 5,
+  capturaPor5Min: 1,
+  sequencia7: 25,
 } as const;
 
 /** Os fatos que produzem XP. Todos contáveis, todos com carimbo de tempo no banco. */
@@ -53,6 +76,19 @@ export interface EventosDeXp {
   revisoesCertas: number;
   itensDeJogo?: number;
   itensDeJogoCertos?: number;
+  /** Dias com presença registrada. */
+  presencas?: number;
+  /** Marcos de 7 dias seguidos já alcançados (histórico, nunca diminui). */
+  sequencias7?: number;
+  /** Minutos de captura PREMIADOS (já com o teto diário aplicado). */
+  capturaMinutosPremiados?: number;
+  /** Cartões criados no caderno. */
+  cartoesCriados?: number;
+  /** Rodadas de jogo 100% certas. */
+  rodadasPerfeitas?: number;
+  /** Créditos avulsos (conquistas), já somados pelo servidor. */
+  xpCreditado?: number;
+  seedsCreditadas?: number;
 }
 
 export function xpDeEventos(e: EventosDeXp): number {
@@ -62,13 +98,30 @@ export function xpDeEventos(e: EventosDeXp): number {
     e.revisoes * PESOS_XP.revisao +
     e.revisoesCertas * PESOS_XP.revisaoCerta +
     (e.itensDeJogo ?? 0) * PESOS_XP.itemDeJogo +
-    (e.itensDeJogoCertos ?? 0) * PESOS_XP.itemDeJogoCerto
+    (e.itensDeJogoCertos ?? 0) * PESOS_XP.itemDeJogoCerto +
+    (e.presencas ?? 0) * PESOS_XP.presenca +
+    (e.sequencias7 ?? 0) * PESOS_XP.sequencia7 +
+    Math.floor((e.capturaMinutosPremiados ?? 0) / 5) * PESOS_XP.capturaPor5Min +
+    (e.cartoesCriados ?? 0) * PESOS_XP.cartao +
+    (e.rodadasPerfeitas ?? 0) * PESOS_XP.rodadaPerfeita +
+    (e.xpCreditado ?? 0)
   );
 }
 
 /** Seeds GANHAS (só cresce). O saldo subtrai os gastos, que vivem numa tabela de eventos. */
-export function seedsGanhasDeEventos(e: Pick<EventosDeXp, 'palavrasCapturadas' | 'revisoesCertas'>): number {
-  return e.palavrasCapturadas * PESOS_SEEDS.palavraCapturada + e.revisoesCertas * PESOS_SEEDS.revisaoCerta;
+export function seedsGanhasDeEventos(
+  e: Pick<EventosDeXp, 'revisoesCertas' | 'itensDeJogoCertos' | 'presencas' | 'sequencias7' | 'capturaMinutosPremiados' | 'cartoesCriados' | 'rodadasPerfeitas' | 'seedsCreditadas'>,
+): number {
+  return (
+    (e.cartoesCriados ?? 0) * PESOS_SEEDS.cartao +
+    e.revisoesCertas * PESOS_SEEDS.revisaoCerta +
+    (e.itensDeJogoCertos ?? 0) * PESOS_SEEDS.jogoCerto +
+    (e.rodadasPerfeitas ?? 0) * PESOS_SEEDS.rodadaPerfeita +
+    (e.presencas ?? 0) * PESOS_SEEDS.presenca +
+    Math.floor((e.capturaMinutosPremiados ?? 0) / 5) * PESOS_SEEDS.capturaPor5Min +
+    (e.sequencias7 ?? 0) * PESOS_SEEDS.sequencia7 +
+    (e.seedsCreditadas ?? 0)
+  );
 }
 
 /**

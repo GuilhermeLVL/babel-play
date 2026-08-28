@@ -12,6 +12,8 @@ export * from './learning/trilha'
 export * from './learning/etapas'
 export * from './learning/interesses'
 export * from './learning/xp'
+export * from './learning/economia'
+export * from './learning/conquistas'
 export * from './learning/fluencia'
 /* Reexporte NOMEADO, e não `export *`: `cefrWordlist` também declara `CefrLevel` e `NIVEIS`, que
    já vêm de `contract` e de `trilha`. Um `export *` criaria ambiguidade no barril e o TypeScript

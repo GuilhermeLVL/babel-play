@@ -63,6 +63,29 @@ export interface AppMetrics {
   streakDays: number
   /** Total de seeds JÁ GASTAS. O servidor sempre computa; `deriveProgress` faz ganhas − gastas. */
   seedsGastas: number
+
+  /* ── ECONOMIA v2 (2026-08-28). OPCIONAIS de propósito: o servidor efêmero (IndexedDB) já os
+     calcula; a edição completa (Postgres) passa a calculá-los numa entrega própria, e até lá
+     `deriveProgress` trata ausência como zero — nunca como erro. ── */
+  /** Dias distintos com presença registrada. */
+  presencas?: number
+  /** Sequência ATUAL de dias de presença (termina hoje). */
+  streakPresenca?: number
+  /** Maior sequência de presença já feita. */
+  maiorSequenciaPresenca?: number
+  /** Marcos de 7 dias seguidos já alcançados (histórico, nunca diminui). */
+  sequencias7?: number
+  /** Minutos totais de sessão gravada. */
+  capturaMinutos?: number
+  /** Minutos de captura PREMIADOS (teto diário aplicado). */
+  capturaMinutosPremiados?: number
+  /** Rodadas de jogo 100% certas (com o mínimo de itens do jogo). */
+  rodadasPerfeitas?: number
+  /** Créditos avulsos (conquistas) já somados. */
+  seedsCreditadas?: number
+  xpCreditado?: number
+  /** Idiomas distintos das sessões gravadas (conquista "Poliglota"). */
+  idiomas?: number
   /** média de estabilidade FSRS (dias) das cartas revisadas. */
   avgStability: number
   /** retenção prevista média (0..1) — PROBABILÍSTICA. */

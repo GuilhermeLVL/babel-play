@@ -648,7 +648,7 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
    * tela onde se clica rápido, e sem idempotência o duplo-clique cobraria duas vezes. Se o débito
    * falhar (rede, saldo), nada é entregue — degradar em silêncio aqui seria dar o item de graça.
    */
-  const CUSTO_PULAR = 25;
+  const CUSTO_PULAR = 40; // economia v2: subiu com a Loja (≈ metade de um dia ativo)
   const pularVez = async () => {
     if (!resultado || !sequencia || saldoSeeds < CUSTO_PULAR || gastando) return;
     setGastando(true);
@@ -763,6 +763,10 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
       roundId, exerciseKind: report.gameId, origem, sessionId: daSessao, score: report.score, itens,
     });
     if (!gravacao.ok) falhas.push(`${gravacao.status ?? 'rede'}: ${gravacao.motivo}`);
+    /* ECONOMIA v2: a rodada gravada muda Seeds/XP (acertos, rodada perfeita) e pode fechar uma
+       conquista. O App recarrega as métricas ao ouvir isto — antes só recarregava quando a lista
+       de sessões mudava, e o saldo ficava uma rodada atrás. */
+    if (gravacao.ok) window.dispatchEvent(new CustomEvent('babel:metricas-mudaram'));
 
     if (falhas.length) {
       /* ANTES ISTO ERA SÓ UM console.warn: a rodada sumia e o usuário nunca sabia. Um erro que o

@@ -65,8 +65,16 @@ describe('seeds — o ganho nunca encolhe', () => {
     /* O termo `streakDays * 10` saiu da fórmula: com Seeds virando SALDO, perder um dia de ofensiva
        reduziria o ganho TOTAL e o saldo ficaria negativo — o app cobraria de volta uma compra já
        feita. Este teste existe para o termo não voltar. */
-    const eventos = { palavrasCapturadas: 50, revisoesCertas: 10 }
-    expect(seedsGanhasDeEventos(eventos)).toBe(50 * PESOS_SEEDS.palavraCapturada + 10 * PESOS_SEEDS.revisaoCerta)
+    const eventos = { cartoesCriados: 50, revisoesCertas: 10 }
+    expect(seedsGanhasDeEventos(eventos)).toBe(50 * PESOS_SEEDS.cartao + 10 * PESOS_SEEDS.revisaoCerta)
+  })
+
+  it('ECONOMIA v2: palavra CAPTURADA não rende Seed — 325 palavras importadas = 0 Seeds', () => {
+    /* Era o furo medido em 2026-08-28: uma importação de 325 palavras dava 325 Seeds sem ação
+       nenhuma. Seeds agora só vêm do que a pessoa FAZ. */
+    const p = deriveProgress(metricas({ wordsCaptured: 325, sessions: 1 }))
+    expect(p.seeds).toBe(0)
+    expect(p.xp).toBeGreaterThan(0) // XP continua contando a captura
   })
 
   it('o saldo nunca fica negativo, mesmo com gasto acima do ganho', () => {
@@ -115,7 +123,7 @@ describe('as missões prometem o que o sistema credita', () => {
     /* A missão de captura anunciava "+20 Seeds" — um número solto. `seedsGanhasDeEventos` só conta
        palavra capturada (1) e revisão certa (4); gravar, por si, não credita seed nenhuma. A
        promessa era falsa e nunca seria cumprida. */
-    const permitidos = new Set([0, PESOS_SEEDS.palavraCapturada, PESOS_SEEDS.revisaoCerta])
+    const permitidos = new Set<number>([0, ...Object.values(PESOS_SEEDS)])
     for (const m of deriveProgress(metricas()).missions) {
       expect(permitidos.has(m.rewardSeeds), `missão ${m.id} promete ${m.rewardSeeds} seeds, fora das regras de ganho`).toBe(true)
     }

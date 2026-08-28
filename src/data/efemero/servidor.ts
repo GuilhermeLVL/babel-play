@@ -18,6 +18,8 @@ import { EDICAO_LEVE } from '../../lib/edicao';
 import { abrirStore, type CartaoLocal, type ExercicioLocal, type FalaLocal, type SessaoLocal } from './store';
 import { Fsrs5Strategy, type Grade, type SchedulingState } from '../../core/learning/scheduler';
 import type { AppMetrics } from '../../core/learning/contract';
+import { diaLocal, marcosDeSequencia, minutosPremiados, sequencias } from '../../core/learning/economia';
+import { MINIGAMES } from '../../core/minigames/types';
 
 export const CODIGO_EXIGE_CONTA = 'EXIGE_CONTA';
 export const EVENTO_EXIGE_CONTA = 'babel_exige_conta';
@@ -415,14 +417,43 @@ async function gastarSeeds(_m: RegExpMatchArray, _u: URL, init: RequestInit): Pr
   return json({ jaExistia, gasto: existente?.amount ?? amount, seedsGastas: total });
 }
 
+/* ── ECONOMIA v2 (2026-08-28) ── */
+
+/** Presença do dia: idempotente por dia local. O cliente manda o `dia` que calculou (fuso dele). */
+async function registrarPresenca(_m: RegExpMatchArray, _u: URL, init: RequestInit): Promise<Response> {
+  const p = lerJson(init);
+  const dia = num(p.dia) ?? diaLocal(Date.now());
+  const db = await abrirStore();
+  const jaExistia = !!(await db.get('presencas', dia));
+  if (!jaExistia) await db.put('presencas', { dia, createdAt: Date.now() });
+  const dias = (await db.getAll('presencas')).map((x) => x.dia);
+  const { atual } = sequencias(dias, dia);
+  return json({ jaExistia, dia, streakPresenca: atual });
+}
+
+/** Crédito avulso (conquista): idempotente por `creditoId`, mesmo padrão de `gastarSeeds`. */
+async function creditarSeeds(_m: RegExpMatchArray, _u: URL, init: RequestInit): Promise<Response> {
+  const p = lerJson(init);
+  const creditoId = str(p.creditoId);
+  const amount = num(p.amount);
+  if (!creditoId || amount === null || amount < 0) return json({ error: 'creditoId e amount são obrigatórios' }, 400);
+  const db = await abrirStore();
+  const existente = await db.get('creditos', creditoId);
+  const jaExistia = !!existente;
+  if (!jaExistia) await db.put('creditos', { creditoId, amount, xp: num(p.xp) ?? 0, reason: str(p.reason) ?? '', createdAt: Date.now() });
+  const todos = await db.getAll('creditos');
+  return json({ jaExistia, seedsCreditadas: todos.reduce((n, c) => n + c.amount, 0), xpCreditado: todos.reduce((n, c) => n + c.xp, 0) });
+}
+
 // ───────────────────────────── Métricas ─────────────────────────────
 
 async function metricas(_m: RegExpMatchArray, url: URL): Promise<Response> {
   const db = await abrirStore();
   const agora = Date.now();
   const sessionId = url.searchParams.get('sessao');
-  const [sessoesTodas, cartoesTodos, revisoes, falasTodas, exercicios, gastos] = await Promise.all([
+  const [sessoesTodas, cartoesTodos, revisoes, falasTodas, exercicios, gastos, presencas, creditos] = await Promise.all([
     db.getAll('sessoes'), db.getAll('cartoes'), db.getAll('revisoes'), db.getAll('falas'), db.getAll('exercicios'), db.getAll('gastos'),
+    db.getAll('presencas'), db.getAll('creditos'),
   ]);
   const sessoes = sessionId ? sessoesTodas.filter((s) => s.id === sessionId) : sessoesTodas;
   const cartoes = sessionId ? cartoesTodos.filter((c) => c.sessionId === sessionId) : cartoesTodos;
@@ -439,6 +470,41 @@ async function metricas(_m: RegExpMatchArray, url: URL): Promise<Response> {
   const dias = new Set(revs.map((r) => Math.floor(r.reviewedAt / DIA)));
   let streakDays = 0;
   for (let d = Math.floor(agora / DIA); dias.has(d); d -= 1) streakDays += 1;
+
+  /* ── ECONOMIA v2: presença, tempo de captura premiado, rodadas perfeitas, créditos. ── */
+  const diasDePresenca = presencas.map((x) => x.dia);
+  const seq = sequencias(diasDePresenca, diaLocal(agora));
+  const sequencias7 = marcosDeSequencia(diasDePresenca, 7);
+  // Minutos de captura por dia local; o teto diário vive no core (`minutosPremiados`).
+  const minutosPorDia = new Map<number, number>();
+  let capturaMinutos = 0;
+  for (const s of sessoes) {
+    const min = (s.durationMs ?? 0) / 60_000;
+    if (min <= 0) continue;
+    capturaMinutos += min;
+    const d = diaLocal(s.createdAt);
+    minutosPorDia.set(d, (minutosPorDia.get(d) ?? 0) + min);
+  }
+  const capturaMinutosPremiados = Math.floor(minutosPremiados(minutosPorDia.values()));
+  // Rodada perfeita = todos os itens certos E tamanho ≥ mínimo do jogo (senão uma rodada de 1
+  // item viraria fábrica de "perfeitas").
+  const porRodada = new Map<string, { kind: string | null; total: number; certos: number }>();
+  for (const e of drills) {
+    if (!e.roundId) continue;
+    const r = porRodada.get(e.roundId) ?? { kind: e.exerciseKind, total: 0, certos: 0 };
+    r.total += 1;
+    if (e.correct === 1) r.certos += 1;
+    porRodada.set(e.roundId, r);
+  }
+  let rodadasPerfeitas = 0;
+  for (const r of porRodada.values()) {
+    const minimo = (r.kind && (MINIGAMES as Record<string, { minItems?: number } | undefined>)[r.kind]?.minItems) ?? 3;
+    if (r.total >= minimo && r.certos === r.total) rodadasPerfeitas += 1;
+  }
+  const seedsCreditadas = creditos.reduce((n, c) => n + c.amount, 0);
+  const xpCreditado = creditos.reduce((n, c) => n + c.xp, 0);
+  // A ofensiva que a tela mostra é a MAIOR entre revisar e aparecer: aparecer todo dia também conta.
+  streakDays = Math.max(streakDays, seq.atual);
 
   const revisados = noDeck.filter((c) => c.stability != null);
   const avgStability = revisados.length ? revisados.reduce((n, c) => n + (c.stability ?? 0), 0) / revisados.length : 0;
@@ -467,6 +533,16 @@ async function metricas(_m: RegExpMatchArray, url: URL): Promise<Response> {
     accuracyConfidence: Math.min(1, totalAvaliado / 20),
     streakDays,
     seedsGastas: gastos.reduce((n, g) => n + g.amount, 0),
+    presencas: presencas.length,
+    streakPresenca: seq.atual,
+    maiorSequenciaPresenca: seq.maior,
+    sequencias7,
+    capturaMinutos: Math.round(capturaMinutos),
+    capturaMinutosPremiados,
+    rodadasPerfeitas,
+    seedsCreditadas,
+    xpCreditado,
+    idiomas: new Set(sessoes.map((s) => s.sourceLang).filter((l): l is string => !!l)).size,
     avgStability,
     avgRetention,
     avgRetentionConfidence: Math.min(1, retencoes.length / 20),
@@ -537,6 +613,8 @@ const ROTAS: Array<{ metodo: string; padrao: RegExp; handler: Handler }> = [
   { metodo: 'POST', padrao: /^\/api\/vocab\/([^/]+)\/review$/, handler: revisarCartao },
   { metodo: 'GET', padrao: /^\/api\/metrics\/profile$/, handler: metricas },
   { metodo: 'POST', padrao: /^\/api\/metrics\/seeds\/gastar$/, handler: gastarSeeds },
+  { metodo: 'POST', padrao: /^\/api\/metrics\/seeds\/creditar$/, handler: creditarSeeds },
+  { metodo: 'POST', padrao: /^\/api\/metrics\/presenca$/, handler: registrarPresenca },
   { metodo: 'POST', padrao: /^\/api\/exercises\/rodada$/, handler: gravarRodada },
   { metodo: 'POST', padrao: /^\/api\/exercises\/results$/, handler: gravarResultado },
   { metodo: 'GET', padrao: /^\/api\/exercises\/results$/, handler: listarResultados },

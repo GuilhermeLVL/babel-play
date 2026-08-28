@@ -14,9 +14,9 @@ beforeEach(() => {
 describe('aprimoramentos', () => {
   it('sobe de nível com custo crescente e para no máximo', () => {
     expect(nivelDoAprimoramento('particulas')).toBe(0)
-    expect(custoDoProximoNivel('particulas')).toBe(30)
+    expect(custoDoProximoNivel('particulas')).toBe(50)  // economia v2: 50 → 110 → 220
     registrarAprimoramento('particulas')
-    expect(custoDoProximoNivel('particulas')).toBe(60)
+    expect(custoDoProximoNivel('particulas')).toBe(110)
     registrarAprimoramento('particulas')
     registrarAprimoramento('particulas')
     expect(nivelDoAprimoramento('particulas')).toBe(3)

@@ -1,11 +1,13 @@
 import { useState } from 'react';
-import { User, TrendingUp } from 'lucide-react';
+import { User, TrendingUp, Trophy } from 'lucide-react';
 import { Abas, PainelDeAba } from '../ui';
 import { usePerfil } from '../../lib/usePerfil';
 import type { DerivedProgress } from '../../lib/progress';
 import type { AgeProfileType } from '../../lib/profile';
+import type { ContextoDeConquistas } from '@core';
 import AbaVoce from './perfil/AbaVoce';
 import AbaProgresso from './perfil/AbaProgresso';
+import Conquistas from './Conquistas';
 
 /**
  * PERFIL — quem você é e onde você está.
@@ -28,9 +30,11 @@ import AbaProgresso from './perfil/AbaProgresso';
 interface PerfilProps {
   progress: DerivedProgress;
   ageProfile: AgeProfileType;
+  /** Contexto das conquistas (montado no App). `null` enquanto as métricas não chegaram. */
+  ctxConquistas: ContextoDeConquistas | null;
 }
 
-export default function Perfil({ progress, ageProfile }: PerfilProps) {
+export default function Perfil({ progress, ageProfile, ctxConquistas }: PerfilProps) {
   const [aba, setAba] = useState('voce');
   const { perfil } = usePerfil();
 
@@ -59,6 +63,7 @@ export default function Perfil({ progress, ageProfile }: PerfilProps) {
           itens={[
             { id: 'voce', rotulo: 'Você', icone: <User className="w-4 h-4" /> },
             { id: 'progresso', rotulo: 'Progresso', icone: <TrendingUp className="w-4 h-4" /> },
+            { id: 'conquistas', rotulo: 'Conquistas', icone: <Trophy className="w-4 h-4" /> },
           ]}
         />
 
@@ -68,6 +73,10 @@ export default function Perfil({ progress, ageProfile }: PerfilProps) {
 
         <PainelDeAba id="progresso" ativo={aba}>
           <AbaProgresso progress={progress} ageProfile={ageProfile} />
+        </PainelDeAba>
+
+        <PainelDeAba id="conquistas" ativo={aba}>
+          <Conquistas progress={progress} ctx={ctxConquistas} />
         </PainelDeAba>
       </div>
     </div>

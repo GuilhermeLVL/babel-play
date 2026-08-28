@@ -796,6 +796,46 @@ export async function gastarSeeds(input: {
   }
 }
 
+/* ── ECONOMIA v2 (2026-08-28) ── */
+
+/** Registra a presença do dia. Idempotente por dia; `null` em falha (a tela não credita nada). */
+export async function registrarPresenca(dia: number): Promise<{ jaExistia: boolean; dia: number; streakPresenca: number } | null> {
+  try {
+    const res = await apiFetch('/api/metrics/presenca', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ dia }),
+    })
+    if (!res.ok) return null
+    return await res.json()
+  } catch {
+    return null
+  }
+}
+
+/**
+ * Credita Seeds/XP avulsos (conquistas). Idempotente por `creditoId`, como `gastarSeeds`.
+ * `null` em falha: quem chamou NÃO marca a conquista — senão seria "conquistada sem as Seeds".
+ */
+export async function creditarSeeds(input: {
+  creditoId: string
+  amount: number
+  xp?: number
+  reason: string
+}): Promise<{ jaExistia: boolean; seedsCreditadas: number; xpCreditado: number } | null> {
+  try {
+    const res = await apiFetch('/api/metrics/seeds/creditar', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(input),
+    })
+    if (!res.ok) return null
+    return await res.json()
+  } catch {
+    return null
+  }
+}
+
 /** O melhor placar já feito num jogo, numa fonte. Chave = `exerciseKind`. */
 export interface RecordeDoJogo {
   exerciseKind: string

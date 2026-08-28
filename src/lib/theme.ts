@@ -54,7 +54,7 @@ export function applyFonte(fonte: FonteType): void {
  * completa no CSS (inclusive modo escuro), mas ausente daqui: `coerceTheme()` caía no
  * `?? DEFAULT_THEME` e quem escolhesse "premium" recebia "babel", sem erro e sem aviso.
  */
-const VALID_THEMES: readonly ThemeType[] = ['babel', 'linear', 'vercel', 'mochi', 'notion', 'premium', 'custom'];
+const VALID_THEMES: readonly ThemeType[] = ['babel', 'linear', 'vercel', 'mochi', 'notion', 'premium', 'aurora', 'custom'];
 
 /**
  * Presets mortos da versão anterior das Configurações. Eram persistidos em

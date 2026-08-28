@@ -193,6 +193,7 @@ export default function ParticleCanvas({ enabled, performanceMode, theme, darkMo
         : skin === 'confete' ? 'confete'
         : skin === 'coracoes' ? 'coracao'
         : skin === 'estrelas' || skin === 'emoji' ? 'emoji'
+        : skin === 'cometa' ? 'cometa'
         : null;
       // 'travessia': objetos que cruzam a tela voando; o lado de entrada e sorteado por rajada.
       const dirTravessia = Math.random() < 0.5 ? 1 : -1;
@@ -366,6 +367,21 @@ export default function ParticleCanvas({ enabled, performanceMode, theme, darkMo
           ctx.textBaseline = 'middle';
           ctx.fillText(p.emoji ?? '⭐', 0, 0);
           ctx.restore();
+        } else if (p.forma === 'cometa') {
+          // Cauda: três círculos decrescentes ATRÁS do vetor de velocidade, depois a cabeça.
+          const vlen = Math.hypot(p.vx, p.vy) || 1;
+          const ux = p.vx / vlen, uy = p.vy / vlen;
+          const alphaBase = ctx.globalAlpha;
+          for (let k = 3; k >= 1; k--) {
+            ctx.globalAlpha = alphaBase * (0.18 * (4 - k));
+            ctx.beginPath();
+            ctx.arc(p.x - ux * p.size * 1.6 * k, p.y - uy * p.size * 1.6 * k, p.size * (1 - k * 0.22), 0, Math.PI * 2);
+            ctx.fill();
+          }
+          ctx.globalAlpha = alphaBase;
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+          ctx.fill();
         } else if (p.forma === 'coracao') {
           ctx.save();
           ctx.translate(p.x, p.y);

@@ -12,10 +12,31 @@ describe('loja', () => {
     const vercel = CATALOGO_DA_LOJA.find((i) => i.id === 'tema-vercel')!
     expect(estadoDoItem(vercel, 4, 0).estado).toBe('equipavel')
     expect(estadoDoItem(vercel, 1, 999).estado).toBe('compravel')
-    expect(estadoDoItem(vercel, 1, 0)).toEqual({ estado: 'bloqueado', motivo: 'Nível 4 ou 80 Seeds' })
+    expect(estadoDoItem(vercel, 1, 0)).toEqual({ estado: 'bloqueado', motivo: 'Nível 4 ou 110 Seeds' })
     marcarPosse(vercel.id)
     expect(estadoDoItem(vercel, 1, 0).estado).toBe('equipavel')
     localStorage.removeItem('babel.loja_possuidos')
+  })
+  it('exclusivo de conquista: nem nível 99 nem 9999 Seeds abrem; a conquista abre', () => {
+    localStorage.removeItem('babel.conquistas')
+    localStorage.removeItem('babel.liberado')
+    const aurora = CATALOGO_DA_LOJA.find((i) => i.id === 'tema-aurora')!
+    expect(aurora.precoSeeds).toBeUndefined()
+    expect(estadoDoItem(aurora, 99, 9999)).toEqual({ estado: 'bloqueado', motivo: 'Conquista: Constante' })
+    localStorage.setItem('babel.conquistas', JSON.stringify(['constante']))
+    expect(estadoDoItem(aurora, 1, 0).estado).toBe('equipavel')
+    localStorage.removeItem('babel.conquistas')
+    // e a vitrine "no próximo nível" nunca promete um exclusivo
+    for (const n of [1, 5, 9]) expect(vitrineDoProximoNivel(n).some((i) => i.exclusivoDe)).toBe(false)
+  })
+  it('preços seguem as faixas da economia v2 (comum < raro < épico < lendário)', () => {
+    const faixa: Record<string, [number, number]> = { comum: [40, 60], raro: [100, 140], epico: [200, 260], lendario: [380, 600] }
+    for (const i of CATALOGO_DA_LOJA) {
+      if (i.precoSeeds === undefined) continue
+      const [min, max] = faixa[i.raridade]
+      expect(i.precoSeeds, `${i.id} (${i.raridade}) = ${i.precoSeeds}`).toBeGreaterThanOrEqual(min)
+      expect(i.precoSeeds, `${i.id} (${i.raridade}) = ${i.precoSeeds}`).toBeLessThanOrEqual(max)
+    }
   })
   it('vitrine do próximo nível aponta o degrau mais próximo', () => {
     const v = vitrineDoProximoNivel(1)

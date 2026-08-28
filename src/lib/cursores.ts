@@ -19,6 +19,8 @@ export const CURSORES: CursorTematico[] = [
   { id: 'pizza', nome: 'Pizza', emoji: '🍕' },
   { id: 'invader', nome: 'Invader', emoji: '👾' },
   { id: 'foguete', nome: 'Foguete', emoji: '🚀' },
+  /* Exclusivo de conquista ("Perfeccionista"): não está à venda. */
+  { id: 'coroa', nome: 'Coroa', emoji: '👑' },
 ];
 
 const CHAVE = 'babel.cursor';

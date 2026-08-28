@@ -23,10 +23,11 @@ import type { ThemeType } from './appearance';
 // Os kinds dos EVENTOS (patos, raios...) sao usados por lib/eventosDeJogo.
 export type BurstKind = 'xp' | 'record' | 'levelUp' | 'combo' | 'perfeito' | 'confete' | 'erro'
   | 'patos' | 'voleibol' | 'coracoes' | 'raios' | 'fogos' | 'pizza' | 'trofeu' | 'fumaca'
-  | 'rastroFaisca' | 'rastroEstrelas' | 'rastroCoracoes' | 'rastroPixel' | 'rastroEmoji';
+  | 'rastroFaisca' | 'rastroEstrelas' | 'rastroCoracoes' | 'rastroPixel' | 'rastroEmoji' | 'rastroArcoiris';
 
-/** Como a partícula é desenhada. Confete é retângulo girando — é o que dá a leitura de "festa". */
-export type FormaParticula = 'circulo' | 'confete' | 'pixel' | 'raio' | 'coracao' | 'fumaca' | 'emoji';
+/** Como a partícula é desenhada. Confete é retângulo girando — é o que dá a leitura de "festa".
+ *  `cometa` (exclusiva de conquista): círculo com cauda de três círculos decrescentes atrás. */
+export type FormaParticula = 'circulo' | 'confete' | 'pixel' | 'raio' | 'coracao' | 'fumaca' | 'emoji' | 'cometa';
 /** De onde a rajada nasce: do ponto (radial) ou do topo da tela (chuva). */
 export type OrigemRajada = 'radial' | 'chuva' | 'travessia' | 'cantos';
 
@@ -77,6 +78,18 @@ export const PARTICLE_PRESETS: Record<ThemeType, ParticlePreset> = {
     wobbleSpeed: 0,
     alpha: [0.1, 0.3],
     glow: false,
+    colorToken: '--accent'
+  },
+  // Aurora (exclusivo de conquista): noite polar — véus lentos, brilhantes, subindo devagar.
+  aurora: {
+    ambientCount: 22,
+    size: [1.2, 3],
+    driftX: 0.1,
+    driftY: -0.12,
+    wobble: 0.9,
+    wobbleSpeed: 0.012,
+    alpha: [0.16, 0.5],
+    glow: true,
     colorToken: '--accent'
   },
   // Monocromático, cantos retos, contraste. O tema É contenção: quase nada, e sem halo.
@@ -243,6 +256,8 @@ export const BURST_SPECS: Record<BurstKind, BurstSpec> = {
   rastroCoracoes: { count: 2, speed: 1.1, size: [3, 4.5], life: 750, colorToken: '--accent', forma: 'coracao', paleta: ['#F04E23', '#FF7BAC', '#E63946'] },
   rastroPixel:    { count: 4, speed: 1.6, size: [2, 3], life: 650, colorToken: '--accent', forma: 'pixel', paleta: ['#F04E23', '#F59E0B', '#3E8E4E'] },
   rastroEmoji:    { count: 2, speed: 1.1, size: [3.5, 5], life: 800, colorToken: '--warn', forma: 'emoji' },
+  // Exclusivo de conquista: seis cores, círculos com glow — o arco-íris escorrendo do cursor.
+  rastroArcoiris: { count: 5, speed: 1.5, size: [2.2, 3.4], life: 700, colorToken: '--accent', gravidade: 0.015, paleta: ['#FF3B30', '#FF9500', '#FFD60A', '#34C759', '#0A84FF', '#AF52DE'] },
 };
 
 // ─────────────────────────────── Barramento de rajadas ───────────────────────────────

@@ -10,6 +10,8 @@
  *      (o cadeado vale para TROCAR para algo ainda não conquistado, nunca para expulsar).
  */
 
+import { conquistasDesbloqueadas } from './conquistasPosse';
+
 export type TipoDesbloqueavel = 'tema' | 'fonte' | 'posicao' | 'estudio';
 
 /** nível mínimo por item; o que não está aqui é livre desde o início. */
@@ -59,9 +61,19 @@ export function nivelNecessario(tipo: TipoDesbloqueavel, id: string): number {
 /**
  * `escolhaAtual`: o que a pessoa JÁ usa — nunca é rebaixado (regra 2).
  */
+/**
+ * EXCLUSIVOS DE CONQUISTA (economia v2): não têm nível nem preço; só a conquista abre.
+ * Chave `tipo:id` → id da conquista (catálogo em `@core/learning/conquistas`).
+ */
+export const EXCLUSIVOS_DE_CONQUISTA: Record<string, string> = {
+  'tema:aurora': 'constante',
+};
+
 export function desbloqueado(nivel: number, tipo: TipoDesbloqueavel, id: string, escolhaAtual?: string): boolean {
   if (liberadoTudo()) return true;
   if (escolhaAtual !== undefined && escolhaAtual === id) return true;
+  const conquista = EXCLUSIVOS_DE_CONQUISTA[`${tipo}:${id}`];
+  if (conquista) return conquistasDesbloqueadas().has(conquista);
   return nivel >= nivelNecessario(tipo, id);
 }
 

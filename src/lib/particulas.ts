@@ -6,7 +6,8 @@
  * a forma da skin. Rajadas com forma propria (confete de rodada perfeita, patos, raios dos
  * eventos) NAO mudam — evento raro tem identidade propria.
  */
-export type ParticulasType = 'tema' | 'pixel' | 'confete' | 'coracoes' | 'estrelas' | 'emoji';
+/* `cometa` é EXCLUSIVA de conquista ("Ouvinte"): círculo com cauda, nunca à venda. */
+export type ParticulasType = 'tema' | 'pixel' | 'confete' | 'coracoes' | 'estrelas' | 'emoji' | 'cometa';
 
 export interface ParticulasOption { id: ParticulasType; name: string; desc: string }
 
@@ -17,6 +18,7 @@ export const PARTICULAS_OPTIONS: ParticulasOption[] = [
   { id: 'coracoes', name: 'Coracoes', desc: 'Coracoes subindo a cada acerto.' },
   { id: 'estrelas', name: 'Estrelas', desc: 'Estrelinhas brilhantes.' },
   { id: 'emoji', name: 'Chuva de Emojis', desc: 'Os emojis do PACK equipado em cada acerto.' },
+  { id: 'cometa', name: 'Cometa', desc: 'Exclusiva de conquista: bolas de luz com cauda.' },
 ];
 
 const CHAVE = 'app_particulas';

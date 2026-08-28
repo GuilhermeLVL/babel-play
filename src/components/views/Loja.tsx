@@ -13,7 +13,10 @@
  * setMenuPosition — os mesmos caminhos dos Ajustes.
  */
 import { useMemo, useState } from 'react';
-import { ShoppingBag, Sprout, Lock, Check, Sparkles, Palette, Type, Gamepad2, PanelRight, Wand2 } from 'lucide-react';
+import { ShoppingBag, Sprout, Lock, Check, Sparkles, Palette, Type, Gamepad2, PanelRight, Wand2, Trophy, Star } from 'lucide-react';
+import { Abas, PainelDeAba } from '../ui';
+import Conquistas from './Conquistas';
+import { REGRAS, type ContextoDeConquistas } from '@core';
 import {
   CATALOGO_DA_LOJA, COR_DA_RARIDADE, estadoDoItem, marcarPosse, vitrineDoProximoNivel, type ItemDaLoja,
 } from '../../lib/loja';
@@ -41,6 +44,9 @@ interface LojaProps {
   menuPosition: MenuPositionType;
   setMenuPosition: (p: MenuPositionType) => void;
   onOpenStudio: () => void;
+  /** Contexto das conquistas (montado no App). A aba "Conquistas" mora aqui na edição leve,
+   *  onde o Perfil não existe. */
+  ctxConquistas: ContextoDeConquistas | null;
 }
 
 const ICONE_DO_TIPO: Record<string, React.ReactNode> = {
@@ -62,7 +68,8 @@ const FILTROS = [
   { id: 'estudio', nome: 'Estúdio' },
 ] as const;
 
-export default function Loja({ progress, theme, setTheme, fonte, setFonte, menuPosition, setMenuPosition, onOpenStudio }: LojaProps) {
+export default function Loja({ progress, theme, setTheme, fonte, setFonte, menuPosition, setMenuPosition, onOpenStudio, ctxConquistas }: LojaProps) {
+  const [aba, setAba] = useState('loja');
   const [filtro, setFiltro] = useState<(typeof FILTROS)[number]['id']>('tudo');
   const [comprando, setComprando] = useState<string | null>(null);
   const [, force] = useState(0);
@@ -159,7 +166,8 @@ export default function Loja({ progress, theme, setTheme, fonte, setFonte, menuP
             </h1>
             <p className="text-[13.5px] text-ink-muted mt-1.5 max-w-xl">
               Cada nível libera itens de graça. As <b className="text-ink">Seeds</b> que você ganha
-              estudando compram o atalho de quem não quer esperar.
+              estudando compram o atalho de quem não quer esperar. Os itens <b className="text-ink">exclusivos</b> só
+              saem por conquista.
             </p>
           </div>
           <div className="flex items-center gap-3 shrink-0">
@@ -177,6 +185,24 @@ export default function Loja({ progress, theme, setTheme, fonte, setFonte, menuP
         </div>
       </section>
 
+      {/* ── LOJA · CONQUISTAS. Na edição leve o Perfil não existe; a tela de conquistas (e a
+          tabela "como ganhar") mora aqui, ao lado do que ela compra. ── */}
+      <Abas
+        rotuloDoGrupo="Seções da loja"
+        ativo={aba}
+        aoTrocar={setAba}
+        itens={[
+          { id: 'loja', rotulo: 'Loja', icone: <ShoppingBag className="w-4 h-4" /> },
+          { id: 'conquistas', rotulo: 'Conquistas & como ganhar', icone: <Trophy className="w-4 h-4" /> },
+        ]}
+      />
+
+      <PainelDeAba id="conquistas" ativo={aba}>
+        <Conquistas progress={progress} ctx={ctxConquistas} />
+      </PainelDeAba>
+
+      <PainelDeAba id="loja" ativo={aba}>
+      <div className="space-y-8">
       {/* ── NO PRÓXIMO NÍVEL: o motivo de continuar ── */}
       {vitrine.length > 0 && (
         <section className="card-panel bg-canvas border-accent/30 p-4 sm:p-5">
@@ -265,7 +291,9 @@ export default function Loja({ progress, theme, setTheme, fonte, setFonte, menuP
               <div className="p-4 flex flex-col gap-2 flex-1">
                 <div className="flex items-center justify-between gap-2">
                   <h3 className="font-bold text-[14px] text-ink leading-tight">{item.nome}</h3>
-                  <span className={`shrink-0 text-[9.5px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full border ${raridade.borda} ${raridade.fundo} text-ink`}>{raridade.rotulo}</span>
+                  <span className={`shrink-0 text-[9.5px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full border ${raridade.borda} ${raridade.fundo} text-ink`}>
+                    {item.exclusivoDe ? <span className="inline-flex items-center gap-1"><Star className="w-3 h-3 fill-warn text-warn" aria-hidden /> Exclusivo</span> : raridade.rotulo}
+                  </span>
                 </div>
                 <p className="text-[12px] text-ink-muted leading-snug flex-1">{item.desc}</p>
 
@@ -361,9 +389,13 @@ export default function Loja({ progress, theme, setTheme, fonte, setFonte, menuP
         })}
       </div>
 
+      {/* O rodapé lê das REGRAS: o que a Loja diz sobre ganhar Seeds é o que o sistema credita. */}
       <p className="text-center text-[11.5px] text-ink-faint pb-4">
-        Seeds se ganham estudando: 1 por palavra capturada, 4 por revisão certa. Nada aqui custa dinheiro.
+        Seeds se ganham fazendo: {REGRAS.filter((r) => r.seeds > 0).slice(0, 4).map((r) => `${r.seeds} ${r.unidade}`).join(' · ')}.
+        {' '}<button onClick={() => setAba('conquistas')} className="underline hover:text-accent cursor-pointer">Ver todas as regras</button>. Nada aqui custa dinheiro.
       </p>
+      </div>
+      </PainelDeAba>
     </div>
     </div>
   );

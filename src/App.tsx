@@ -34,7 +34,10 @@ import FloatingScoreLayer from './components/FloatingScoreLayer';
 import BuscaGlobal from './components/BuscaGlobal';
 import { useCommandPalette } from './components/CommandPalette';
 import type { PracticeSeed } from './lib/sentences';
-import { fetchSessions, fetchSettings, fetchMetrics, patchUiSettings, type AppMetrics } from './data/api';
+import { fetchSessions, fetchSettings, fetchMetrics, fetchRecordes, patchUiSettings, type AppMetrics, type RecordeDoJogo } from './data/api';
+import { registrarPresencaHoje } from './lib/presenca';
+import { montarContextoDeConquistas, verificarConquistas } from './lib/conquistas';
+import type { ContextoDeConquistas } from '@core';
 import Toaster, { toast } from './components/Toast';
 import { PROFILE_KEY, CREDENTIAL_KEY, MODE_KEY } from './gateway/activeProfile';
 import type { ThemeType, FonteType } from './lib/appearance';
@@ -369,15 +372,49 @@ export default function App() {
    * Recarrega quando a lista de sessões muda, que é quando o dado de fato envelhece.
    */
   const [metrics, setMetrics] = useState<AppMetrics | null>(null);
+  const [recordes, setRecordes] = useState<RecordeDoJogo[]>([]);
+  /* ECONOMIA v2: além da lista de sessões, uma rodada gravada, uma presença ou um crédito de
+     conquista também envelhecem as métricas — quem faz isso dispara `babel:metricas-mudaram`. */
+  const [versaoDasMetricas, setVersaoDasMetricas] = useState(0);
+  useEffect(() => {
+    const bump = () => setVersaoDasMetricas((v) => v + 1);
+    window.addEventListener('babel:metricas-mudaram', bump);
+    window.addEventListener('babel:conquista', bump);
+    return () => { window.removeEventListener('babel:metricas-mudaram', bump); window.removeEventListener('babel:conquista', bump); };
+  }, []);
   useEffect(() => {
     let alive = true;
-    fetchMetrics()
-      .then((m) => { if (alive) setMetrics(m); })
+    Promise.all([fetchMetrics(), fetchRecordes()])
+      .then(([m, rs]) => { if (alive) { setMetrics(m); setRecordes(rs); } })
       .catch(() => { if (alive) setMetrics(null); });
     return () => { alive = false; };
-  }, [recordings.length]);
+  }, [recordings.length, versaoDasMetricas]);
 
   const progress = useMemo(() => deriveProgress(metrics), [metrics]);
+
+  /* PRESENÇA DO DIA — uma vez por dia, no boot. O toast só aparece quando creditou de verdade. */
+  useEffect(() => {
+    void registrarPresencaHoje().then((r) => {
+      if (!r?.creditou) return;
+      toast.ok(r.streak > 1 ? `+${r.seeds} Seeds pela presença · ${r.streak} dias seguidos!` : `+${r.seeds} Seeds pela presença de hoje.`);
+      setVersaoDasMetricas((v) => v + 1);
+    });
+  }, []);
+
+  /* CONQUISTAS — avaliadas a cada métrica nova; o crédito é idempotente no servidor. */
+  const ctxConquistas = useMemo<ContextoDeConquistas | null>(
+    () => (metrics ? montarContextoDeConquistas({ metricas: metrics, nivel: progress.level, recordes }) : null),
+    [metrics, progress.level, recordes],
+  );
+  useEffect(() => {
+    if (!ctxConquistas) return;
+    void verificarConquistas(ctxConquistas).then((novas) => {
+      for (const c of novas) {
+        comemorar('subiuNivel', null, { tremer: true });
+        toast.ok(`${c.emoji} Conquista: ${c.nome}! +${c.recompensa.seeds} Seeds${c.recompensa.cosmetico ? ' e um item exclusivo na Loja' : ''}.`);
+      }
+    });
+  }, [ctxConquistas]);
 
   /* SUBIU DE NÍVEL → festa + o que destravou. O último nível visto fica no navegador; na primeira
      visita só registra (ninguém "sobe" para o nível atual). Aparência é recompensa (desbloqueios). */
@@ -757,7 +794,7 @@ export default function App() {
           )}
           {activeView === 'metrics' && (EDICAO_LEVE || !anonimo) && <Metrics recordings={recordings} onChangeView={navigateTo} ageProfile={ageProfile} />}
 
-          {activeView === 'profile' && !anonimo && <Perfil progress={progress} ageProfile={ageProfile} />}
+          {activeView === 'profile' && !anonimo && <Perfil progress={progress} ageProfile={ageProfile} ctxConquistas={ctxConquistas} />}
           {activeView === 'sobre' && <Sobre />}
           {activeView === 'loja' && (
             <Loja
@@ -769,6 +806,7 @@ export default function App() {
               menuPosition={menuPosition}
               setMenuPosition={setMenuPosition}
               onOpenStudio={() => setIsStudioOpen(true)}
+              ctxConquistas={ctxConquistas}
             />
           )}
           {activeView === 'settings' && (

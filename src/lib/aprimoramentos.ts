@@ -11,7 +11,9 @@
 export const NIVEL_MAXIMO = 3;
 
 /** Custo do PRÓXIMO nível (índice = nível atual). */
-export const CUSTOS_DE_NIVEL = [30, 60, 120] as const;
+/* Economia v2 (2026-08-28): subiu de 30/60/120 junto com a Loja — dominar um aprimoramento
+   custa ~4-5 dias de uso ativo, não uma captura. */
+export const CUSTOS_DE_NIVEL = [50, 110, 220] as const;
 
 export type Intensidade = 'pequena' | 'media' | 'grande';
 

@@ -19,6 +19,8 @@ export const RASTROS: EstiloDeRastro[] = [
   { id: 'coracoes', nome: 'Corações', kind: 'rastroCoracoes' },
   { id: 'pixel', nome: 'Pixel', kind: 'rastroPixel' },
   { id: 'emoji', nome: 'Emoji (pack equipado)', kind: 'rastroEmoji' },
+  /* Exclusivo de conquista ("Colecionador"): não está à venda. */
+  { id: 'arcoiris', nome: 'Arco-íris', kind: 'rastroArcoiris' },
 ];
 
 const CHAVE = 'babel.rastro';

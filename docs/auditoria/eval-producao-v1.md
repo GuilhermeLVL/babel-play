@@ -114,9 +114,8 @@ tokens no mesmo caso — é a alavanca de custo, e cabe medir se a qualidade agu
   sala. Serve para comparar variantes entre si, não para publicar um número absoluto.
 - **O gold set de tradução é meu**, não é benchmark público — e as duas "falhas" acima mostram
   exatamente esse limite.
-- **O WER mede o Whisper local**, que é o caminho gratuito. O STT de nuvem (Groq
-  `whisper-large-v3-turbo`) **não foi medido** e provavelmente é bem melhor; isso é a próxima
-  medição, e importa porque é outra coisa que o plano pago venderia.
+- **Esta seção mede só o Whisper local**, que é o caminho gratuito. O STT de nuvem foi medido na
+  rodada 2, abaixo — e a suspeita de que seria "bem melhor" se confirmou por margem larga.
 
 ---
 

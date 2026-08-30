@@ -75,3 +75,6 @@ hub-leve.png
 tests/fixtures/audio/
 tests/fixtures/cenarios-diarizacao/*.wav
 docs/auditoria/eval/resultados-*.json
+
+# Corpus FLORES-200 (baixado por scripts/eval-fala/baixar-flores.mjs; manifesto versionado)
+tests/fixtures/flores/*.jsonl

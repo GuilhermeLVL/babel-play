@@ -212,7 +212,10 @@ async function traduzir(base, chave, modelo, caso) {
   }
 }
 
-/** Avalia UM modelo no gold set inteiro. Nunca lança: a falha vira dado. */
+/** Falta de saldo interrompe a bateria inteira: insistir só produz ruído caro de interpretar. */
+class SemSaldo extends Error {}
+
+/** Avalia UM modelo no gold set inteiro. Só lança quando o problema é do PROVEDOR, não do modelo. */
 async function avaliarModelo(base, chave, modelo, casos) {
   const comHip = []
   const falhas = []
@@ -231,6 +234,13 @@ async function avaliarModelo(base, chave, modelo, casos) {
     } catch (e) {
       falhas.push({ id: c.id, erro: e.message })
       process.stdout.write('x')
+      /* SEM SALDO NÃO SE INSISTE. Numa bateria de 800 chamadas o crédito acabou na 84ª e as 716
+         seguintes falharam com 402 — ruído que quase virou conclusão errada: a primeira falha do
+         modelo tinha outra causa, e ler só ela sugeria que o modelo colapsava em frase longa. Não
+         colapsava; o dinheiro tinha acabado. Parar na hora mantém o diagnóstico legível. */
+      if (/\b402\b|requires more credits|insufficient/i.test(e.message)) {
+        throw new SemSaldo(`crédito esgotado no provedor durante a avaliação de ${modelo}`)
+      }
     }
   }
   const taxaDeFalha = falhas.length / casos.length
@@ -269,10 +279,24 @@ async function main() {
   console.log(`(. ok  x falha — resposta vazia CONTA como falha)\n`)
 
   const execucoes = []
-  for (let volta = 1; volta <= REPETICOES; volta++) {
+  let interrompida = null
+  for (let volta = 1; volta <= REPETICOES && !interrompida; volta++) {
     for (const modelo of MODELOS) {
       process.stdout.write(`${modelo.padEnd(40)} `)
-      const r = await avaliarModelo(base, chave, modelo, casos)
+      let r
+      try {
+        r = await avaliarModelo(base, chave, modelo, casos)
+      } catch (e) {
+        if (e instanceof SemSaldo) {
+          console.log(`
+
+BATERIA INTERROMPIDA: ${e.message}.`)
+          console.log(`Os resultados JÁ obtidos abaixo são válidos; os modelos não avaliados ficaram de fora.`)
+          interrompida = e.message
+          break
+        }
+        throw e
+      }
       const nota = r.geral ? `${(r.geral.chrf * 100).toFixed(1)}%` : '—'
       const custo = custoPorMilFalas(r, precos)
       console.log(`  chrF++ ${nota.padStart(6)}  ${custo === null ? 'custo ?' : `US$ ${custo.toFixed(3)}/mil`}${r.valido ? '' : `  INVÁLIDO (${r.falhas.length} falhas)`}`)
@@ -341,10 +365,17 @@ ${'modelo'.padEnd(40)} ${'chrF++'.padStart(7)} ${'ampl.'.padStart(6)} ${'US$/mil
 
   // Um arquivo por corpus: sobrescrever o do FLORES com o da fala apagaria metade da evidência.
   const SAIDA = `${SAIDA_BASE}-${CORPUS}.json`
+  /* E uma execução SEM RESULTADO não sobrescreve uma que teve. Aconteceu comigo: a bateria abortou
+     por falta de saldo na primeira chamada e apagou o arquivo com 84 traduções boas da execução
+     anterior. Medição perdida é medição que alguém vai pagar de novo para refazer. */
+  if (!execucoes.some((e) => e.casos.length > 0)) {
+    console.log(`\nnenhum resultado obtido — o arquivo anterior foi PRESERVADO (${SAIDA})`)
+    return
+  }
   mkdirSync(path.dirname(SAIDA), { recursive: true })
   writeFileSync(SAIDA, JSON.stringify({
     geradoEm: new Date().toISOString(),
-    provedor: PROVEDOR, corpus: CORPUS, totalDeCasos: casos.length,
+    provedor: PROVEDOR, corpus: CORPUS, totalDeCasos: casos.length, interrompida,
     raciocinio: RACIOCINIO || 'padrão do modelo',
     esforco: ESFORCO || 'padrão', semContexto: SEM_CONTEXTO, repeticoes: REPETICOES,
     precos: { consultadoEm, usados: Object.fromEntries(MODELOS.map((m) => [m, precos[m] ?? null])) },

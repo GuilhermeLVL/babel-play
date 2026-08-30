@@ -1,0 +1,219 @@
+{
+  "taxaHz": 16000,
+  "silencioMs": 500,
+  "cenarios": [
+    {
+      "nome": "alternancia-2",
+      "descricao": "dois falantes revezando — o caso base",
+      "arquivo": "alternancia-2.wav",
+      "duracaoS": 14.94,
+      "falantesReais": 2,
+      "turnos": [
+        {
+          "inicioMs": 0,
+          "fimMs": 3501,
+          "falante": "MA_HV222"
+        },
+        {
+          "inicioMs": 4001,
+          "fimMs": 7362,
+          "falante": "MA_HV107"
+        },
+        {
+          "inicioMs": 7862,
+          "fimMs": 12204,
+          "falante": "MA_HV222"
+        },
+        {
+          "inicioMs": 12704,
+          "fimMs": 14944,
+          "falante": "MA_HV107"
+        }
+      ]
+    },
+    {
+      "nome": "alternancia-3",
+      "descricao": "três falantes revezando — mais gente, mais confusão de cluster",
+      "arquivo": "alternancia-3.wav",
+      "duracaoS": 22.98,
+      "falantesReais": 3,
+      "turnos": [
+        {
+          "inicioMs": 0,
+          "fimMs": 3501,
+          "falante": "MA_HV222"
+        },
+        {
+          "inicioMs": 4001,
+          "fimMs": 7362,
+          "falante": "MA_HV107"
+        },
+        {
+          "inicioMs": 7862,
+          "fimMs": 11203,
+          "falante": "MA_HV253"
+        },
+        {
+          "inicioMs": 11703,
+          "fimMs": 16045,
+          "falante": "MA_HV222"
+        },
+        {
+          "inicioMs": 16545,
+          "fimMs": 18785,
+          "falante": "MA_HV107"
+        },
+        {
+          "inicioMs": 19285,
+          "fimMs": 22985,
+          "falante": "MA_HV253"
+        }
+      ]
+    },
+    {
+      "nome": "mesmo-falante",
+      "descricao": "UMA pessoa só — teste de fragmentação: não pode virar várias",
+      "arquivo": "mesmo-falante.wav",
+      "duracaoS": 13.95,
+      "falantesReais": 1,
+      "turnos": [
+        {
+          "inicioMs": 0,
+          "fimMs": 3501,
+          "falante": "MA_HV222"
+        },
+        {
+          "inicioMs": 4001,
+          "fimMs": 8343,
+          "falante": "MA_HV222"
+        },
+        {
+          "inicioMs": 8843,
+          "fimMs": 11344,
+          "falante": "MA_HV222"
+        },
+        {
+          "inicioMs": 11844,
+          "fimMs": 13945,
+          "falante": "MA_HV222"
+        }
+      ]
+    },
+    {
+      "nome": "volume-variavel",
+      "descricao": "mesma pessoa alta e baixa — o eixo de microfone/distância variável",
+      "arquivo": "volume-variavel.wav",
+      "duracaoS": 13.95,
+      "falantesReais": 1,
+      "turnos": [
+        {
+          "inicioMs": 0,
+          "fimMs": 3501,
+          "falante": "MA_HV222"
+        },
+        {
+          "inicioMs": 4001,
+          "fimMs": 8343,
+          "falante": "MA_HV222"
+        },
+        {
+          "inicioMs": 8843,
+          "fimMs": 11344,
+          "falante": "MA_HV222"
+        },
+        {
+          "inicioMs": 11844,
+          "fimMs": 13945,
+          "falante": "MA_HV222"
+        }
+      ]
+    },
+    {
+      "nome": "ruido-10db",
+      "descricao": "dois falantes com ruído branco a 10 dB de SNR",
+      "arquivo": "ruido-10db.wav",
+      "duracaoS": 14.94,
+      "falantesReais": 2,
+      "turnos": [
+        {
+          "inicioMs": 0,
+          "fimMs": 3501,
+          "falante": "MA_HV222"
+        },
+        {
+          "inicioMs": 4001,
+          "fimMs": 7362,
+          "falante": "MA_HV107"
+        },
+        {
+          "inicioMs": 7862,
+          "fimMs": 12204,
+          "falante": "MA_HV222"
+        },
+        {
+          "inicioMs": 12704,
+          "fimMs": 14944,
+          "falante": "MA_HV107"
+        }
+      ]
+    },
+    {
+      "nome": "banda-estreita",
+      "descricao": "dois falantes em banda de 8 kHz — telefone / microfone barato",
+      "arquivo": "banda-estreita.wav",
+      "duracaoS": 14.94,
+      "falantesReais": 2,
+      "turnos": [
+        {
+          "inicioMs": 0,
+          "fimMs": 3501,
+          "falante": "MA_HV222"
+        },
+        {
+          "inicioMs": 4001,
+          "fimMs": 7362,
+          "falante": "MA_HV107"
+        },
+        {
+          "inicioMs": 7862,
+          "fimMs": 12204,
+          "falante": "MA_HV222"
+        },
+        {
+          "inicioMs": 12704,
+          "fimMs": 14944,
+          "falante": "MA_HV107"
+        }
+      ]
+    },
+    {
+      "nome": "turnos-curtos",
+      "descricao": "réplicas abaixo de 1,2 s alternando entre duas pessoas — expõe a regra de herança do falante",
+      "arquivo": "turnos-curtos.wav",
+      "duracaoS": 4.12,
+      "falantesReais": 2,
+      "turnos": [
+        {
+          "inicioMs": 0,
+          "fimMs": 501,
+          "falante": "MA_HV106"
+        },
+        {
+          "inicioMs": 1000,
+          "fimMs": 1641,
+          "falante": "MA_HV253"
+        },
+        {
+          "inicioMs": 2141,
+          "fimMs": 2981,
+          "falante": "MA_HV106"
+        },
+        {
+          "inicioMs": 3481,
+          "fimMs": 4121,
+          "falante": "MA_HV253"
+        }
+      ]
+    }
+  ]
+}

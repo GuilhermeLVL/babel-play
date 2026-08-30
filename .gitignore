@@ -69,3 +69,9 @@ desktop.ini
 .idea/
 hub-leve.png
 .playwright-mcp/
+
+# Áudio do corpus de avaliação (baixado por scripts/eval-fala/baixar-corpus.py) e cenários gerados.
+# Os MANIFESTOS são versionados; o áudio, não.
+tests/fixtures/audio/
+tests/fixtures/cenarios-diarizacao/*.wav
+docs/auditoria/eval/resultados-*.json

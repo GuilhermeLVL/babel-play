@@ -22,11 +22,15 @@ export interface LogFields {
   maiorFaixaPct?: number
   tipoDeCorte?: string
   total?: number
+  /* Tokens que o modelo gastou RACIOCINANDO. Entra aqui porque é a causa não óbvia de uma tradução
+     vazia: o modelo consome o `max_tokens` inteiro pensando e devolve HTTP 200 sem conteúdo. É
+     número agregado do provedor, sem nada do usuário. */
+  raciocinio?: number
 }
 
 const ALLOWED = new Set([
   'ts', 'level', 'event', 'route', 'provider', 'status', 'latencyMs', 'fallbackLevel', 'error', 'requestId',
-  'maiorFaixaPct', 'tipoDeCorte', 'total',
+  'maiorFaixaPct', 'tipoDeCorte', 'total', 'raciocinio',
 ])
 
 /**

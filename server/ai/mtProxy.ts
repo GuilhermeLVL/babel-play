@@ -119,7 +119,11 @@ export async function mtTranslateProxy(req: Request, res: Response): Promise<voi
     }
     const data = (await r.json()) as {
       choices?: Array<{ message?: { content?: string } }>
-      usage?: { prompt_tokens?: number; completion_tokens?: number }
+      usage?: {
+        prompt_tokens?: number
+        completion_tokens?: number
+        completion_tokens_details?: { reasoning_tokens?: number }
+      }
     }
     /* O `usage` era LIDO E JOGADO FORA. Sem ele não existe custo por usuário — e nos modelos de
        raciocínio a saída inclui os tokens de pensamento, a parte cara. Contabiliza, não limita:
@@ -130,7 +134,18 @@ export async function mtTranslateProxy(req: Request, res: Response): Promise<voi
     )
     const translated = data.choices?.[0]?.message?.content?.trim()
     if (!translated) {
-      res.status(502).json({ error: 'Groq devolveu resposta vazia' })
+      /* RESPOSTA VAZIA TEM UMA CAUSA COMUM E NADA ÓBVIA: modelo de raciocínio que gasta o
+         `max_tokens` inteiro PENSANDO, sem sobrar orçamento para a resposta. O provedor devolve
+         HTTP 200 e conteúdo vazio — não há erro para ler. Medido na bancada
+         (scripts/eval-fala/medir-traducao-llm.mjs): o `qwen3.7-flash` gasta 593 tokens para
+         responder "Boa sorte!". Um "resposta vazia" seco mandaria quem depura procurar no lugar
+         errado; o número de tokens de raciocínio aponta direto para o teto. */
+      const raciocinio = data.usage?.completion_tokens_details?.reasoning_tokens ?? 0
+      const causa = raciocinio > 0
+        ? `o modelo gastou ${raciocinio} tokens raciocinando dentro do teto de 1200 e não sobrou orçamento para a tradução`
+        : 'o provedor devolveu conteúdo vazio'
+      log('warn', { event: 'mt_vazio', route: '/api/ai/mt', raciocinio, requestId: req.requestId })
+      res.status(502).json({ error: `tradução vazia: ${causa}` })
       return
     }
     reservaPendente = false // consumada: a reserva vira a chamada entregue

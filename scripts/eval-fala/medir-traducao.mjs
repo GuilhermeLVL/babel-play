@@ -29,6 +29,8 @@ const SAIDA = 'docs/auditoria/eval/resultados-traducao.json'
 
 const args = process.argv.slice(2)
 const COMPARAR_ES = args.includes('--comparar-es')
+/** Espelha GERACAO de src/gateway/adapters/mtWorker.ts:95 — o decode REAL desta cópia. */
+const GERACAO = { num_beams: 2, max_length: 256, no_repeat_ngram_size: 3, early_stopping: true }
 /** `--frase-unica` volta ao comportamento antigo (texto inteiro de uma vez), para comparar. */
 const FRASE_UNICA = args.includes('--frase-unica')
 
@@ -53,7 +55,7 @@ async function traduzirCom(rota, textos) {
       const gen = await mt.model.generate({ input_ids, attention_mask, max_new_tokens: 128, num_beams: 1, do_sample: false })
       return mt.tokenizer.batch_decode(gen, { skip_special_tokens: true })[0] ?? ''
     }
-    const r = await mt(frase, { max_new_tokens: 128, num_beams: 1, do_sample: false })
+    const r = await mt(frase, GERACAO)
     return (Array.isArray(r) ? r[0]?.translation_text : r?.translation_text) ?? ''
   }
 

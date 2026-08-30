@@ -4,6 +4,7 @@ import { OrdemDasTraducoes } from '../../lib/ordemDaTraducao';
 import { traduzirVersos, explicarParada } from '../../lib/versosDoVocabulario';
 import { apiFetch } from '../../data/api';
 import { EDICAO_LEVE } from '../../lib/edicao';
+import { getEntitlements } from '../../lib/entitlements';
 import BuscaDeCapa from '../BuscaDeCapa';
 import { buildGateway } from '../../gateway';
 import { startSystemAudioCapture, startSystemLoopbackCapture, startServerLoopbackCapture, startMicCapture, probeSystemAudio, probeLoopback, probeServerLoopback, serverLoopbackSupported, type AudioCapture, type SystemAudioProbe } from '../../gateway/capture/systemAudio';
@@ -935,6 +936,31 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
     });
   };
 
+  /** Aviso único de sessão: a nuvem que o plano promete caiu e a tradução voltou ao motor local. */
+  const degradacaoAvisadaRef = useRef(false);
+
+  /**
+   * AVISA QUANDO A NUVEM CAI, em vez de degradar em silêncio.
+   *
+   * A cascata é boa: se o `server-llm-mt` falha, o `opus-mt` local assume e o usuário continua
+   * lendo alguma coisa. O problema é o SILÊNCIO. Medido (docs/auditoria/eval-producao-v1.md): o
+   * local traduz idiomático a 27,4% e a nuvem a 83,1% — quem paga pela nuvem e recebe o local
+   * recebe de volta exatamente a tradução literal que motivou a assinatura, sem nenhum sinal de
+   * que algo mudou. Cobrar por isso caladamente é o pior primeiro contato possível com um assinante.
+   *
+   * Só para quem TEM direito à nuvem: para o plano gratuito o motor local não é degradação, é o
+   * produto — avisar ali seria transformar funcionamento normal em mensagem de erro.
+   */
+  const avisarSeDegradou = (engine: string | undefined, falada: boolean) => {
+    if (!falada || degradacaoAvisadaRef.current) return;
+    if (!engine || engine === 'server-llm-mt' || engine === 'groq-llm') return;
+    if (!getEntitlements().managedCloudLlm) return;
+    degradacaoAvisadaRef.current = true;
+    clog('tradução degradou para', engine, '— a nuvem do plano não respondeu');
+    setFeedbackMsg('A tradução de nuvem não respondeu; seguindo com o tradutor local, que é mais literal.');
+    setTimeout(() => setFeedbackMsg(''), 8000);
+  };
+
   const translateSegment = (
     segId: string,
     text: string,
@@ -1073,6 +1099,7 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
         if (settled) return;               // timeout já degradou → ignora resposta tardia
         settled = true; clearTimeout(timeout);
         capMetrics.mt(Math.round(performance.now() - mtT0), engine || 'mt');
+        avisarSeDegradou(engine, opts?.falada === true);
         // `atual` = este pedido ainda é o mais recente do balão. Um resultado ATRASADO não escreve
         // na tela (sobrescreveria a tradução do final pelo texto pela metade), mas ainda é uma
         // tradução válida deste texto: entra no cache, e o próximo pedido igual chega instantâneo.

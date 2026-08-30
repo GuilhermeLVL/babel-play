@@ -20,12 +20,27 @@ function currentWindow(): string {
   return new Date().toISOString().slice(0, 7)
 }
 
-/** Teto mensal por plano. selfhost ∞; pro do env (default 1000); demais 0 (free já barrado por entitlement). */
+/**
+ * Teto mensal de CHAMADAS gerenciadas. selfhost ∞; pro do env; demais 0 (o free já é barrado antes,
+ * pelo entitlement).
+ *
+ * O DEFAULT ERA 1.000, E ISSO ENTREGAVA ~50 MINUTOS DE CONVERSA POR MÊS. Três rotas dividem este
+ * mesmo contador — STT (`sttProxy.ts`), tradução (`mtProxy.ts`) e tutor (`server.ts`) — e cada fala
+ * ao microfone consome DUAS: uma para transcrever, outra para traduzir. Mil chamadas eram, na
+ * prática, quinhentas falas: pouco demais para sustentar uma assinatura.
+ *
+ * 12.000 vem de orçamento explícito, não de gosto: ~6.000 falas ≈ 10 h de conversa, o perfil do
+ * "usuário pesado" de `docs/auditoria/viabilidade-producao-v1.md`. Ao preço medido de US$ 0,107 por
+ * mil falas traduzidas, esse teto custa ~US$ 0,64/mês.
+ *
+ * Este teto é de FAIR-USE, não de dinheiro: uma chamada pode ser de um segundo ou de vinte e cinco
+ * megabytes. O teto de gasto real é o de segundos, em `capSegundosParaPlano`.
+ */
 export function capForPlan(plan: Plan): number {
   if (plan === 'selfhost') return Infinity
   if (plan === 'pro') {
     const n = Number(process.env.PRO_MONTHLY_MANAGED_CALLS)
-    return Number.isFinite(n) && n > 0 ? n : 1000
+    return Number.isFinite(n) && n > 0 ? n : 12_000
   }
   return 0
 }

@@ -37,8 +37,11 @@ todas, e independe de qualquer decisão de qualidade.
 | `inclusionai/ling-3.0-flash` | 64,6% | 0,007 | comunicativo |
 
 Fora do ranking por falha: `z-ai/glm-5.2:free`, `minimax/minimax-m3:free` e
-`google/gemma-4-31b-it:free` — todos com 429 do provedor. **Camada gratuita não sustenta medição**,
-e por consequência não sustentaria produção.
+`google/gemma-4-31b-it:free` — todos com 429 do provedor **nesta janela**.
+
+Horas depois, o `minimax-m3:free` respondeu 60 de 60 (seção 6) enquanto os outros dois seguiam em
+429. Ou seja, a camada gratuita não é "ruim": ela é **intermitente**, e a intermitência é o
+problema — não dá para saber, na hora de uma conversa, se ela vai estar lá.
 
 ### O DeepSeek não é barato para este uso
 

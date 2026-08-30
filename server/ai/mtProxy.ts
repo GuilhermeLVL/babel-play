@@ -59,7 +59,16 @@ export async function mtTranslateProxy(req: Request, res: Response): Promise<voi
     return
   }
   const base = process.env.GROQ_BASE_URL || 'https://api.groq.com/openai/v1'
-  const model = process.env.GROQ_LLM_MODEL || process.env.GROQ_MODEL || 'llama-3.3-70b-versatile'
+  /* `llama-3.3-70b-versatile` foi movido para enterprise pela Groq e responde `model_not_found`
+     para uma chave normal — verificado CONTRA A API, não só na documentação. Enquanto foi o
+     padrão, esta rota devolvia 502 e a cascata caía calada no opus-mt local, ou seja, o produto
+     voltava à tradução literal sem dizer que tinha degradado.
+     O substituto foi MEDIDO no mesmo gold set (docs/auditoria/eval-producao-v1.md): chrF++ 85,2%
+     contra 56,6% do local, e o idiomático — a queixa de origem — sobe de 27,4% para 83,1%.
+     ATENÇÃO: é modelo de raciocínio, e os tokens de pensamento contam como SAÍDA. Com
+     `max_tokens` baixo ele devolve string VAZIA (medido: 64 tokens → vazio). O teto abaixo é
+     1200 e precisa continuar folgado. */
+  const model = process.env.GROQ_LLM_MODEL || process.env.GROQ_MODEL || 'openai/gpt-oss-120b'
 
   // Fair-use: RESERVA a chamada ANTES de falar com o provedor. Conferir antes e contabilizar
   // depois abria uma janela do tamanho da chamada de rede em que N requisições simultâneas liam

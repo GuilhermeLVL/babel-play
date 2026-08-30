@@ -182,13 +182,28 @@ async function traduzir(base, chave, modelo, caso) {
   if (RACIOCINIO === 'off') corpo.reasoning = { enabled: false }
   else if (RACIOCINIO) corpo.reasoning = { effort: RACIOCINIO }
 
-  const r = await fetch(`${base}/chat/completions`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${chave}` },
-    body: JSON.stringify(corpo),
-    signal: AbortSignal.timeout(90_000),
-  })
-  if (!r.ok) throw new Error(`HTTP ${r.status}: ${(await r.text()).slice(0, 140)}`)
+  /* ESPERA PROGRESSIVA NO 429 — sem isto a bateria mede a COTA do provedor, não o modelo. Medido:
+     na camada gratuita da Groq, 49 de 60 chamadas foram recusadas e o modelo saiu "inválido"; o
+     mesmo modelo, dentro da cota, é o melhor do conjunto. Já havia sido corrigido em `medir-wer.mjs`
+     e eu não tinha trazido para cá. */
+  let r
+  for (let tentativa = 0; ; tentativa++) {
+    r = await fetch(`${base}/chat/completions`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${chave}` },
+      body: JSON.stringify(corpo),
+      signal: AbortSignal.timeout(90_000),
+    })
+    if (r.ok) break
+    const corpoErro = (await r.text()).slice(0, 140)
+    if ((r.status === 429 || r.status >= 500) && tentativa < 5) {
+      const sugerido = Number(r.headers.get('retry-after')) * 1000
+      const espera = Number.isFinite(sugerido) && sugerido > 0 ? sugerido : 3000 * 2 ** tentativa
+      await new Promise((s) => setTimeout(s, espera))
+      continue
+    }
+    throw new Error(`HTTP ${r.status}: ${corpoErro}`)
+  }
   const d = await r.json()
   if (d.error) throw new Error(String(d.error.message ?? d.error).slice(0, 140))
   const msg = d.choices?.[0]?.message ?? {}
@@ -363,8 +378,10 @@ ${'modelo'.padEnd(40)} ${'chrF++'.padStart(7)} ${'ampl.'.padStart(6)} ${'US$/mil
     }
   }
 
-  // Um arquivo por corpus: sobrescrever o do FLORES com o da fala apagaria metade da evidência.
-  const SAIDA = `${SAIDA_BASE}-${CORPUS}.json`
+  /* Um arquivo por corpus E POR PROVEDOR. Sobrescrever o resultado do OpenRouter com o da Groq
+     apagaria justamente a comparação que a bateria existe para produzir — e como cada execução
+     custa dinheiro (ou uma janela de cota gratuita), medição perdida é medição refeita. */
+  const SAIDA = `${SAIDA_BASE}-${CORPUS}-${PROVEDOR}.json`
   /* E uma execução SEM RESULTADO não sobrescreve uma que teve. Aconteceu comigo: a bateria abortou
      por falta de saldo na primeira chamada e apagou o arquivo com 84 traduções boas da execução
      anterior. Medição perdida é medição que alguém vai pagar de novo para refazer. */

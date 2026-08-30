@@ -117,11 +117,42 @@ mandatory for this endpoint"*), então essa alavanca não se aplica a eles.
 
 ---
 
+## 6. Um modelo GRATUITO empata com o que pagamos
+
+Primeira comparação em **corpus único** (o gold set de 60 casos) e com **as duas métricas**:
+
+| modelo | chrF++ | juiz (0-5) | US$/mil falas |
+|---|---|---|---|
+| `minimax/minimax-m3:free` | **71,9%** | 4,67 | **0,000** |
+| `openai/gpt-oss-120b` (em produção) | 69,5% | **4,76** | 0,029 |
+
+**As duas métricas discordam** — o chrF++ prefere o gratuito, o juiz prefere o pago — e as duas
+diferenças (2,4 pontos e 0,09) cabem dentro da variação que este mesmo gold set já mostrou. É
+empate, agora entre um modelo pago e um gratuito.
+
+Por categoria, o gratuito: literal 5,00 · registro 4,80 · gênero 4,73 · fala espontânea 4,63 ·
+idiomático 4,60 · **pronome 4,27** (o mais fraco, e é o que depende de contexto entre frases).
+
+### O que impede adotá-lo hoje NÃO é qualidade
+
+É **confiabilidade**. Na mesma sessão, três modelos gratuitos (`glm-5.2:free`,
+`gemma-4-31b-it:free`, e antes o próprio conjunto `:free`) responderam **HTTP 429 do provedor** e
+ficaram inutilizáveis por janelas inteiras. Uma camada gratuita que some no meio de uma medição
+sumiria também no meio de uma conversa de um assinante.
+
+O caminho que os números sugerem, e que ainda não foi testado: **gratuito como motor primário, pago
+como reserva na cascata**. O gateway já sabe fazer isso — é a mesma estrutura de fallback com
+disjuntor que roteia `chrome-translator → opus-mt → server-llm-mt`. Isso reduziria o custo de
+tradução sem apostar a experiência do assinante numa cota de terceiro.
+
 ## O que ficou por medir, e por quê
 
 - **FLORES-200 (200 frases)**: a bateria parou na 84ª chamada — a conta do OpenRouter ficou sem
-  saldo. Os finalistas não foram comparados em corpus grande, e é isso que separaria o empate.
-- **Gold set de 60 casos**: pronto e versionado, ainda não rodado pelo mesmo motivo.
+  saldo. Os finalistas não foram comparados em corpus grande, e é isso que separaria os empates.
+- **Gold set de 60 casos**: rodado com `minimax-m3:free` e `gpt-oss-120b` (seção 6). Os demais
+  candidatos dependem de saldo.
+- **Repetições no corpus de 60**: cada modelo rodou UMA vez ali. Os empates da seção 6 são
+  coerentes com a variação já medida, mas não foram confirmados por repetição.
 - **Latência**: não medida como número de produção. Camada gratuita tem limite de requisição, e
   latência ali descreve a cota, não o modelo.
 

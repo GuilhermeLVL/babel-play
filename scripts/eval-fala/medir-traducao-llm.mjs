@@ -47,7 +47,10 @@ import { systemComunicativo, userComunicativo } from '../../src/lib/traducao/pro
  * Os dois juntos, sempre. Quem ganha no FLORES e perde na fala não serve para este produto.
  */
 const CORPORA = {
-  fala: 'tests/eval/fixtures/gold-traducao-v0.jsonl',
+  /** 60 casos, 10 por categoria. É o corpus de decisão para ESTE produto. */
+  fala: 'tests/eval/fixtures/gold-traducao-v1.jsonl',
+  /** Os 16 originais, mantidos para comparar com as medições de agosto/2026. */
+  'fala-v0': 'tests/eval/fixtures/gold-traducao-v0.jsonl',
   flores: 'tests/fixtures/flores/flores-en-pt.jsonl',
 }
 const SAIDA_BASE = 'docs/auditoria/eval/resultados-traducao-llm'

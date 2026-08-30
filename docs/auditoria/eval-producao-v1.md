@@ -117,3 +117,60 @@ tokens no mesmo caso — é a alavanca de custo, e cabe medir se a qualidade agu
 - **O WER mede o Whisper local**, que é o caminho gratuito. O STT de nuvem (Groq
   `whisper-large-v3-turbo`) **não foi medido** e provavelmente é bem melhor; isso é a próxima
   medição, e importa porque é outra coisa que o plano pago venderia.
+
+---
+
+## Rodada 2 — o STT de NUVEM, medido (2026-08-30)
+
+O plano pago promete "IA de nuvem, melhor que a local". Isso nunca tinha sido medido; agora tem
+número, nos mesmos 48 áudios do CORAA.
+
+| variante | WER | CER | RTF | sub/ins/del |
+|---|---|---|---|---|
+| tiny / sem dica | 103,1% | 84,5% | 0,11 | 282/19/265 |
+| tiny / com dica pt | 84,7% | 66,1% | 0,11 | 244/19/202 |
+| base / sem dica | 104,4% | 83,1% | 0,17 | 375/28/170 |
+| **base / com dica pt** ← plano grátis | **57,2%** | 36,6% | 0,18 | 192/35/87 |
+| **nuvem / com dica pt** ← plano pago | **24,0%** | **13,4%** | 0,57 | 72/16/44 |
+
+**O caminho pago erra menos da metade do que o gratuito.** E o ganho é maior justamente onde o
+produto mais sofre — a fala curta, que é o que o VAD entrega:
+
+| faixa | 1-2 | 3-5 | 6-10 | 11-20 | 21+ |
+|---|---|---|---|---|---|
+| base / com dica | **167%** | 76% | 75% | 60% | 39% |
+| nuvem / com dica | **50%** | 26% | 36% | 22% | 18% |
+
+O `base` local é *inutilizável* em enunciado de uma ou duas palavras (167% de WER: inventa mais
+palavras do que existem). A nuvem erra metade — ruim em termos absolutos, mas outra categoria.
+
+O RTF da nuvem (0,57 contra 0,18) inclui ida e volta de rede num laço sequencial: é indicativo de
+latência, não número de produção, onde as chamadas são concorrentes.
+
+### Três erros MEUS no caminho, todos capazes de inverter a conclusão
+
+A primeira execução deu **64,7% para a nuvem — pior que o local**. Não era o modelo:
+
+1. **Apliquei o filtro de alucinação à nuvem, que em produção não passa por ele.**
+   `groqWhisper.ts:79` devolve `json.text` cru; só o caminho local filtra. Eu comparava dois
+   pós-processamentos, não dois transcritores.
+2. **Chamei o filtro sem o idioma**, nas duas variantes. Sem idioma o teto cai de 8 para 6
+   palavras/segundo — o valor calibrado em inglês — e transcrição legítima de fala rápida em
+   português é descartada como invenção. A produção passa o idioma (`whisperWorker.ts:204`).
+3. **Falha de infraestrutura virava transcrição vazia.** Com 48 áudios seguidos, o limite de
+   requisição da Groq derrubava 28 chamadas, e cada recusa entrava na conta como deleção total. Em
+   8 áudios, que cabem na cota, a mesma nuvem dava 23,4%.
+
+A lição, de novo: **um harness infiel mede outro produto.** Aqui a diferença foi entre "a nuvem não
+vale o que custa" e "a nuvem erra menos da metade".
+
+### O que isto significa para o plano pago
+
+As duas metades agora têm vantagem medida, e não é marketing:
+
+| | grátis (navegador) | pago (nuvem) |
+|---|---|---|
+| Transcrição (WER) | 57,2% | **24,0%** |
+| Tradução (chrF++) | 56,6% | **85,2%** |
+| Tradução idiomática | 27,4% | **83,1%** |
+| Download inicial | ~230–413 MB | nenhum |

@@ -53,12 +53,19 @@ export async function mtTranslateProxy(req: Request, res: Response): Promise<voi
   }
 
   // Configuração ANTES da reserva: sem chave não há chamada a reservar.
-  const apiKey = process.env.GROQ_API_KEY
+  /* NOME NEUTRO, COM COMPATIBILIDADE. O corpo desta requisição é OpenAI-compatible puro, então
+     qualquer provedor com essa API serve trocando URL, chave e modelo — zero código. O que
+     atrapalhava era o NOME: apontar `GROQ_API_KEY` para o OpenRouter funciona e mente para quem
+     for ler o `.env` depois. `LLM_*` é o nome honesto; os `GROQ_*` continuam válidos para não
+     quebrar deploy existente.
+     Medido, e é dinheiro parado: o MESMO `gpt-oss-120b` custa US$ 0,029 por mil falas no OpenRouter
+     contra US$ 0,107 na Groq (docs/auditoria/eval-modelos-v1.md). */
+  const apiKey = process.env.LLM_API_KEY || process.env.GROQ_API_KEY
   if (!apiKey) {
-    res.status(501).json({ error: 'tradução por LLM não configurada no servidor (sem GROQ_API_KEY)' })
+    res.status(501).json({ error: 'tradução por LLM não configurada no servidor (defina LLM_API_KEY)' })
     return
   }
-  const base = process.env.GROQ_BASE_URL || 'https://api.groq.com/openai/v1'
+  const base = process.env.LLM_BASE_URL || process.env.GROQ_BASE_URL || 'https://api.groq.com/openai/v1'
   /* `llama-3.3-70b-versatile` foi movido para enterprise pela Groq e responde `model_not_found`
      para uma chave normal — verificado CONTRA A API, não só na documentação. Enquanto foi o
      padrão, esta rota devolvia 502 e a cascata caía calada no opus-mt local, ou seja, o produto
@@ -68,7 +75,7 @@ export async function mtTranslateProxy(req: Request, res: Response): Promise<voi
      ATENÇÃO: é modelo de raciocínio, e os tokens de pensamento contam como SAÍDA. Com
      `max_tokens` baixo ele devolve string VAZIA (medido: 64 tokens → vazio). O teto abaixo é
      1200 e precisa continuar folgado. */
-  const model = process.env.GROQ_LLM_MODEL || process.env.GROQ_MODEL || 'openai/gpt-oss-120b'
+  const model = process.env.LLM_MODEL || process.env.GROQ_LLM_MODEL || process.env.GROQ_MODEL || 'openai/gpt-oss-120b'
 
   // Fair-use: RESERVA a chamada ANTES de falar com o provedor. Conferir antes e contabilizar
   // depois abria uma janela do tamanho da chamada de rede em que N requisições simultâneas liam
@@ -114,7 +121,7 @@ export async function mtTranslateProxy(req: Request, res: Response): Promise<voi
     })
     if (!r.ok) {
       const detail = (await r.text()).slice(0, 160)
-      res.status(502).json({ error: `Groq recusou a tradução (HTTP ${r.status}): ${detail}` })
+      res.status(502).json({ error: `o provedor de LLM recusou a tradução (HTTP ${r.status}): ${detail}` })
       return
     }
     const data = (await r.json()) as {

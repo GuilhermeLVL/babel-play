@@ -260,11 +260,11 @@ async function tryOllamaChat(
 // Groq (nuvem, OpenAI-compatible) — rápido e não depende de GPU local.
 // Preferido para o iChat/tutor quando há GROQ_API_KEY no .env.
 const GROQ_CHAT_URL =
-  (process.env.GROQ_BASE_URL || "https://api.groq.com/openai/v1").replace(/\/+$/, "") +
+  (process.env.LLM_BASE_URL || process.env.GROQ_BASE_URL || "https://api.groq.com/openai/v1").replace(/\/+$/, "") +
   "/chat/completions";
 const GROQ_LLM_MODEL =
   // Ver server/ai/mtProxy.ts: o llama-3.3-70b virou enterprise e responde model_not_found.
-  process.env.GROQ_LLM_MODEL || process.env.GROQ_MODEL || "openai/gpt-oss-120b";
+  process.env.LLM_MODEL || process.env.GROQ_LLM_MODEL || process.env.GROQ_MODEL || "openai/gpt-oss-120b";
 
 async function tryGroqChat(
   messages: Array<{ role: string; content: string }>,

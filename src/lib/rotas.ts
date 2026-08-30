@@ -19,7 +19,7 @@
  *  · caminho desconhecido cai no Hub. Uma URL digitada errado não pode produzir tela em branco.
  */
 
-export type ViewDeRota = 'hub' | 'capture' | 'play' | 'library' | 'analysis' | 'metrics' | 'settings' | 'profile' | 'sobre' | 'loja'
+export type ViewDeRota = 'hub' | 'capture' | 'play' | 'library' | 'analysis' | 'metrics' | 'settings' | 'profile' | 'sobre' | 'loja' | 'planos'
 
 export interface EstadoDeRota {
   view: ViewDeRota
@@ -40,6 +40,7 @@ const SEGMENTO: Record<Exclude<ViewDeRota, 'analysis'>, string> = {
   profile: 'perfil',
   sobre: 'sobre',
   loja: 'loja',
+  planos: 'plano',
 }
 const VIEW_DE_SEGMENTO = Object.fromEntries(
   Object.entries(SEGMENTO).filter(([, seg]) => seg).map(([v, seg]) => [seg, v as ViewDeRota]),

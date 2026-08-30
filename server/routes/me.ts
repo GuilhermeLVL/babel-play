@@ -2,6 +2,8 @@
 import { Router } from 'express'
 import { getEntitlementsForUser, getPlanForUser } from '../lib/entitlements'
 import { usoDeArmazenamento, capDeArmazenamento, reconciliarSeVencido } from '../lib/storageQuota'
+import { capForPlan, capSegundosParaPlano, METRIC_MANAGED, METRIC_STT_SEGUNDOS, METRIC_LLM_TOKENS } from '../lib/usageQuota'
+import { usageCountersRepo } from '../db/repositories/usageCounters'
 import { authRequired } from '../lib/auth'
 import { adminDoSupabase } from '../lib/config'
 import { usersRepo } from '../db/repositories/users'
@@ -186,6 +188,42 @@ meRouter.delete('/', async (req, res) => {
  * não existe rota para o cliente mudar o plano por aqui (isso é do billing, Fatia 6). O enforcement
  * real acontece nos proxies de IA (Fatia 1b), não neste GET.
  */
+/**
+ * CONSUMO DO MÊS — quanto do plano já foi usado.
+ *
+ * POR QUE ESTA ROTA EXISTE. Os contadores existiam e ninguém via: a única coisa que a interface
+ * mostrava era armazenamento. Um assinante não tinha como saber se estava perto do teto, e
+ * descobria o limite ao ser recusado no meio de uma conversa — que é a pior hora possível.
+ *
+ * Devolve o teto junto do usado, porque número solto não informa nada: "1.200 chamadas" só quer
+ * dizer alguma coisa ao lado de "de 12.000". `null` no teto significa SEM teto (self-host), e não
+ * "desconhecido" — `Infinity` não sobrevive ao JSON.
+ *
+ * Read-only e derivado do plano NO SERVIDOR, como `/entitlements`.
+ */
+meRouter.get('/uso', async (req, res) => {
+  try {
+    const plano = await getPlanForUser(req.userId)
+    const janela = new Date().toISOString().slice(0, 7)
+    const [chamadas, segundos, tokens] = await Promise.all([
+      usageCountersRepo.get(req.userId, METRIC_MANAGED, janela),
+      usageCountersRepo.get(req.userId, METRIC_STT_SEGUNDOS, janela),
+      usageCountersRepo.get(req.userId, METRIC_LLM_TOKENS, janela),
+    ])
+    const finito = (n: number): number | null => (Number.isFinite(n) ? n : null)
+    res.json({
+      plano,
+      janela,
+      chamadas: { usado: chamadas, teto: finito(capForPlan(plano)) },
+      segundosDeAudio: { usado: segundos, teto: finito(capSegundosParaPlano(plano)) },
+      // Tokens são CONTABILIDADE, não teto: só se conhecem depois da resposta do provedor.
+      tokensDeLlm: { usado: tokens, teto: null },
+    })
+  } catch (err) {
+    res.status(500).json({ error: erroDeRota(err, { event: 'me_route_error' }) })
+  }
+})
+
 meRouter.get('/entitlements', async (req, res) => {
   try {
     // Provisiona a conta no 1º acesso (idempotente) — assim o usuário aparece na gestão admin.

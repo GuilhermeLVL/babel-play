@@ -19,6 +19,7 @@ const Play = lazyComRecarga(() => import('./components/views/Play'));
 const IChat = lazyComRecarga(() => import('./components/IChat'));
 const LayoutStudio = lazyComRecarga(() => import('./components/LayoutStudio'));
 const Perfil = lazyComRecarga(() => import('./components/views/Perfil'));
+const Planos = lazyComRecarga(() => import('./components/views/Planos'));
 const Sobre = lazyComRecarga(() => import('./components/views/Sobre'));
 const Loja = lazyComRecarga(() => import('./components/views/Loja'));
 const Login = lazyComRecarga(() => import('./components/Login'));
@@ -820,6 +821,9 @@ export default function App() {
           {activeView === 'metrics' && (EDICAO_LEVE || !anonimo) && <Metrics recordings={recordings} onChangeView={navigateTo} ageProfile={ageProfile} />}
 
           {activeView === 'profile' && !anonimo && <Perfil progress={progress} ageProfile={ageProfile} ctxConquistas={ctxConquistas} />}
+          {/* Plano e consumo. Diferente do Perfil, aparece TAMBÉM sem conta: é justamente
+              quem não tem conta que precisa saber o que um plano daria. */}
+          {activeView === 'planos' && <Planos />}
           {activeView === 'sobre' && <Sobre />}
           {activeView === 'loja' && (
             <Loja

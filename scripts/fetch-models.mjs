@@ -28,6 +28,11 @@ const MODELS = [
   'onnx-community/whisper-tiny',
   'Xenova/opus-mt-en-ROMANCE',
   'Xenova/opus-mt-ROMANCE-en',
+  // Identificação de voz (src/lib/speakerIdWorker.ts:20). Estava FORA desta lista: em self-host
+  // (VITE_SELF_HOST_MODELS=1, Docker) os pesos caíam no fallback remoto do HF Hub e, sem internet
+  // no primeiro uso, `speakerIdStatus` virava `unavailable` — a identificação automática de
+  // falantes simplesmente não existia no deploy offline.
+  'onnx-community/wespeaker-voxceleb-resnet34-LM',
 ]
 
 // Só precisamos dos dtypes que os workers realmente usam (encoder fp32, decoder q4 no Whisper;
@@ -35,7 +40,13 @@ const MODELS = [
 const dtypeArg = process.argv.indexOf('--onnx-dtype')
 const KEEP_DTYPES = dtypeArg > -1 && process.argv[dtypeArg + 1]
   ? process.argv[dtypeArg + 1].split(',')
-  : ['fp32', 'q4', 'int8', 'fp16']
+  /* ATENÇÃO AO NOME DO ARQUIVO: no transformers.js o dtype `q8` é gravado em disco como
+     `model_quantized.onnx`, NÃO `model_q8.onnx`. O WeSpeaker é carregado em q8
+     (speakerIdWorker.ts:31) e o Whisper cai nele quando o `hybrid` falha; sem `quantized` nesta
+     lista, o self-host baixaria a PASTA do modelo sem o peso que o runtime pede — a falha mais
+     silenciosa possível, porque tudo parece ter sido baixado. Verificado no repositório: lá há
+     `model_quantized.onnx` (6,7 MB) e não existe nenhum `model_q8`. */
+  : ['fp32', 'q4', 'quantized', 'int8', 'fp16']
 
 function keepOnnx(path) {
   if (!path.endsWith('.onnx') && !path.endsWith('.onnx_data')) return true // configs/tokenizers sempre

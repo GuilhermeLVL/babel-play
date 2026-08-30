@@ -1,7 +1,7 @@
 import type { Request, Response } from 'express'
 import { z } from 'zod'
 import { hasEntitlement } from '../lib/entitlements'
-import { reserveManagedCall, refundManagedCall } from '../lib/usageQuota'
+import { reserveManagedCall, refundManagedCall, registrarTokensDeLlm } from '../lib/usageQuota'
 import { log } from '../lib/logger'
 import { erroDeRota } from '../lib/erroDeRota'
 import { nomeDoIdioma, systemComunicativo, userComunicativo } from '../../src/lib/traducao/promptComunicativo'
@@ -117,7 +117,17 @@ export async function mtTranslateProxy(req: Request, res: Response): Promise<voi
       res.status(502).json({ error: `Groq recusou a tradução (HTTP ${r.status}): ${detail}` })
       return
     }
-    const data = (await r.json()) as { choices?: Array<{ message?: { content?: string } }> }
+    const data = (await r.json()) as {
+      choices?: Array<{ message?: { content?: string } }>
+      usage?: { prompt_tokens?: number; completion_tokens?: number }
+    }
+    /* O `usage` era LIDO E JOGADO FORA. Sem ele não existe custo por usuário — e nos modelos de
+       raciocínio a saída inclui os tokens de pensamento, a parte cara. Contabiliza, não limita:
+       tokens só se conhecem depois da resposta, e recusar aqui já não devolveria o dinheiro. */
+    void registrarTokensDeLlm(
+      req.userId,
+      (data.usage?.prompt_tokens ?? 0) + (data.usage?.completion_tokens ?? 0)
+    )
     const translated = data.choices?.[0]?.message?.content?.trim()
     if (!translated) {
       res.status(502).json({ error: 'Groq devolveu resposta vazia' })

@@ -3,6 +3,7 @@ import { Check, Minus, Cloud, Cpu, Sparkles } from 'lucide-react';
 import { Abas, PainelDeAba, Barra, Vazio } from '../ui';
 import { getEntitlements, onPlanChange, PLAN_LABELS } from '../../lib/entitlements';
 import { carregarUso, fracao, duracaoLegivel, type UsoDoMes } from '../../lib/uso';
+import Assinar from './planos/Assinar';
 
 /**
  * PLANOS E USO — o que cada plano dá, e quanto do seu já foi usado.
@@ -208,8 +209,8 @@ export default function Planos() {
             que traz a qualidade acima e dispensa o download dos modelos.
           </p>
 
-          {/* AQUI ENTRA O BOTÃO DE ASSINAR quando houver provedor de pagamento e webhook. Enquanto
-              não houver, um botão que não cobra seria pior que nenhum. */}
+          {/* Só renderiza no modo público, com billing configurado — ver o cabeçalho do componente. */}
+          <Assinar />
         </PainelDeAba>
 
         <PainelDeAba id="uso" ativo={aba}>

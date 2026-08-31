@@ -99,6 +99,13 @@
       "when": 1787345204937,
       "tag": "0013_futuristic_rawhide_kid",
       "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "6",
+      "when": 1788185757319,
+      "tag": "0014_same_next_avengers",
+      "breakpoints": true
     }
   ]
 }

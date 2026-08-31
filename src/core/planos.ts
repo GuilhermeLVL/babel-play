@@ -47,6 +47,8 @@ export interface QuotasDoPlano {
 
 export interface DefinicaoDePlano {
   rotulo: string
+  /** Preço mensal em reais. `null` = não-vendável (free é grátis; selfhost não se compra). */
+  precoMensalBrl: number | null
   entitlements: EntitlementsDoPlano
   quotas: QuotasDoPlano
 }
@@ -54,12 +56,14 @@ export interface DefinicaoDePlano {
 export const PLAN_MATRIX: Record<PlanoDeAssinatura, DefinicaoDePlano> = {
   free: {
     rotulo: 'Grátis',
+    precoMensalBrl: null,
     entitlements: { youtubeImport: false, managedCloudStt: false, managedCloudLlm: false, largerModels: false },
     // Chamadas 0: o free já é barrado antes, pelo entitlement — o teto só reafirma.
     quotas: { chamadasMes: 0, sttSegundosMes: 0, armazenamentoMb: 500 },
   },
   essencial: {
     rotulo: 'Essencial',
+    precoMensalBrl: 9.9,
     /* Tradução de nuvem SIM, STT de nuvem NÃO — os dois gates são independentes nos proxies
        (mtProxy.ts:46, sttProxy.ts:44), e essa independência é o que torna o plano viável. */
     entitlements: { youtubeImport: false, managedCloudStt: false, managedCloudLlm: true, largerModels: false },
@@ -67,6 +71,7 @@ export const PLAN_MATRIX: Record<PlanoDeAssinatura, DefinicaoDePlano> = {
   },
   pro: {
     rotulo: 'Pro',
+    precoMensalBrl: 19.9,
     entitlements: { youtubeImport: true, managedCloudStt: true, managedCloudLlm: true, largerModels: true },
     /* 12.000 ≈ 6.000 falas ≈ 10 h de conversa/mês (cada fala usa 2 chamadas); 36.000 s = 10 h
        faturadas de STT. Orçamento explícito em docs/auditoria/viabilidade-producao-v1.md. */
@@ -74,6 +79,7 @@ export const PLAN_MATRIX: Record<PlanoDeAssinatura, DefinicaoDePlano> = {
   },
   selfhost: {
     rotulo: 'Self-host (tudo liberado)',
+    precoMensalBrl: null,
     // A chave de IA é do próprio dono da instância: não há custo nosso, nada a gatear.
     entitlements: { youtubeImport: true, managedCloudStt: true, managedCloudLlm: true, largerModels: true },
     quotas: { chamadasMes: null, sttSegundosMes: null, armazenamentoMb: null },

@@ -448,6 +448,23 @@ export const subscriptions = sqliteTable('subscriptions', {
  * (bloquear+avisar no teto) entra na Fatia 1b/3; aqui só a estrutura. `unique(user_id, metric, window)`
  * torna o upsert idempotente.
  */
+/**
+ * E3 — EVENTOS DE BILLING recebidos por webhook. A entrega do provedor é *at-least-once* (a doc do
+ * Asaas manda implementar idempotência pelo id do evento): o INSERT nesta tabela é o teste-e-marca
+ * atômico — evento repetido conflita na PK e vira 200 sem efeito, nunca uma segunda promoção.
+ * `userId` fica NULL quando o evento não aponta usuário (é registro de auditoria mesmo assim).
+ */
+export const billingEvents = sqliteTable('billing_events', {
+  /** O id do EVENTO no provedor (`evt_…` no Asaas) — a chave da idempotência. */
+  id: text('id').primaryKey(),
+  createdAt: integer('created_at').notNull(),
+  provider: text('provider').notNull(), // 'asaas'
+  event: text('event').notNull(), // 'PAYMENT_CONFIRMED' | 'PAYMENT_OVERDUE' | …
+  userId: text('user_id'),
+  /** Id da cobrança/assinatura no provedor, para auditoria cruzada. */
+  providerRef: text('provider_ref'),
+})
+
 export const usageCounters = sqliteTable('usage_counters', {
   id: text('id').primaryKey(),
   ...meta,

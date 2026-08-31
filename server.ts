@@ -17,6 +17,7 @@ import { imagesRouter } from "./server/routes/images";
 import { meRouter } from "./server/routes/me";
 import { adminRouter } from "./server/routes/admin";
 import { errosRouter } from "./server/routes/erros";
+import { billingRouter, asaasWebhookRouter } from "./server/routes/billing";
 import { audioRouter } from "./server/audio/loopback";
 import { prepareLlmRequest } from "./server/ai/llmRequest";
 import { seedIfEmpty } from "./server/db/seed";
@@ -137,6 +138,11 @@ app.get("/api/health", healthHandler);
 // Auth (Marco 1) — montada UMA vez, após o health e antes de todo router. Cobre todos os
 // routers /api E o /api/gemini/chat inline (registrado mais abaixo). Modo aberto (self-host):
 // injeta LOCAL_OWNER sem token nem tela. Modo público (AUTH_REQUIRED=1): exige JWT do Supabase.
+/* E3 — o WEBHOOK de billing vem ANTES do auth de usuário: o Asaas não tem JWT de ninguém. A
+   autenticação dele é própria (header asaas-access-token, comparação em tempo constante) e sem o
+   segredo configurado ele recusa tudo. */
+app.use("/api/billing/webhook/asaas", capturarAssincrono(asaasWebhookRouter));
+
 app.use("/api", authMiddleware);
 
 // Rate-limit por tenant — DEPOIS do auth, para a chave ser o usuário e não o IP.
@@ -148,7 +154,7 @@ if (authRequired()) {
     // `/api/me` entrou junto com a exclusão de conta: `DELETE /api/me` apaga 17 tabelas e
     // `GET /api/me/exportar` lê a conta inteira em memória. As duas sem teto seriam o mesmo
     // vetor de F4-02 por outra porta.
-    ["/api/sessions", "/api/vocab", "/api/settings", "/api/exercises", "/api/metrics", "/api/images", "/api/me", "/api/erros-do-cliente"],
+    ["/api/sessions", "/api/vocab", "/api/settings", "/api/exercises", "/api/metrics", "/api/images", "/api/me", "/api/erros-do-cliente", "/api/billing"],
     writeLimiter,
   );
 }
@@ -178,6 +184,8 @@ app.use("/api/me", capturarAssincrono(meRouter));
 app.use("/api/admin", capturarAssincrono(adminRouter));
 // E4 — erros do NAVEGADOR entram no mesmo funil do diário; teto por usuário dentro da rota.
 app.use("/api/erros-do-cliente", capturarAssincrono(errosRouter));
+// E3 — assinar/cancelar (atrás do auth; a PROMOÇÃO do plano é só do webhook acima).
+app.use("/api/billing", capturarAssincrono(billingRouter));
 // Áudio do sistema via WASAPI loopback do PRÓPRIO servidor local (Windows) — a rota sem
 // fricção para capturar o que o computador toca; o navegador só consome o PCM.
 // Capacidade local: no modo público (AUTH_REQUIRED) ela some (403), mesmo autenticado.

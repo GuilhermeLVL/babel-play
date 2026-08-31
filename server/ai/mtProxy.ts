@@ -77,6 +77,23 @@ export async function mtTranslateProxy(req: Request, res: Response): Promise<voi
      1200 e precisa continuar folgado. */
   const model = process.env.LLM_MODEL || process.env.GROQ_LLM_MODEL || process.env.GROQ_MODEL || 'openai/gpt-oss-120b'
 
+  /* CASCATA COM RESERVA (E2 do plano de lançamento). O primário pode ser um modelo barato ou
+     gratuito — a bancada mediu o `minimax-m3:free` EMPATANDO com o pago nas duas métricas
+     (docs/auditoria/eval-modelos-v1.md §6) — mas a camada gratuita é INTERMITENTE: some por
+     janelas inteiras com 429. A reserva é o que permite colher a economia sem apostar a
+     experiência do assinante na cota de um terceiro. Só existe se as TRÊS envs estiverem
+     definidas; sem elas, o comportamento é exatamente o de antes. */
+  const reserva =
+    process.env.LLM_RESERVA_BASE_URL && process.env.LLM_RESERVA_API_KEY && process.env.LLM_RESERVA_MODEL
+      ? {
+          rotulo: 'llm-reserva' as const,
+          base: process.env.LLM_RESERVA_BASE_URL,
+          apiKey: process.env.LLM_RESERVA_API_KEY,
+          model: process.env.LLM_RESERVA_MODEL,
+        }
+      : null
+  const provedores = [{ rotulo: 'llm-primario' as const, base, apiKey, model }, ...(reserva ? [reserva] : [])]
+
   // Fair-use: RESERVA a chamada ANTES de falar com o provedor. Conferir antes e contabilizar
   // depois abria uma janela do tamanho da chamada de rede em que N requisições simultâneas liam
   // o mesmo contador e todas passavam — 20 aceitas contra teto de 5, todas cobradas (P0-1).
@@ -107,70 +124,99 @@ export async function mtTranslateProxy(req: Request, res: Response): Promise<voi
           },
           { role: 'user', content: text },
         ]
-    const r = await fetch(`${base}/chat/completions`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
-      body: JSON.stringify({
-        model,
-        // Fala pede um pouco de liberdade para escolher a expressão natural; texto fica determinístico.
-        temperature: falada ? 0.2 : 0,
-        max_tokens: 1200,
-        messages,
-      }),
-      signal: AbortSignal.timeout(12_000),
-    })
-    if (!r.ok) {
-      const detail = (await r.text()).slice(0, 160)
-      res.status(502).json({ error: `o provedor de LLM recusou a tradução (HTTP ${r.status}): ${detail}` })
-      return
-    }
-    const data = (await r.json()) as {
-      choices?: Array<{ message?: { content?: string } }>
-      usage?: {
-        prompt_tokens?: number
-        completion_tokens?: number
-        completion_tokens_details?: { reasoning_tokens?: number }
+    /** Uma tentativa contra UM provedor. Falha vira valor, nunca exceção — a cascata decide. */
+    const tentar = async (prov: (typeof provedores)[number]) => {
+      const r = await fetch(`${prov.base}/chat/completions`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${prov.apiKey}` },
+        body: JSON.stringify({
+          model: prov.model,
+          // Fala pede um pouco de liberdade para escolher a expressão natural; texto fica determinístico.
+          temperature: falada ? 0.2 : 0,
+          max_tokens: 1200,
+          messages,
+        }),
+        signal: AbortSignal.timeout(12_000),
+      })
+      if (!r.ok) {
+        return { ok: false as const, status: r.status, causa: `HTTP ${r.status}: ${(await r.text()).slice(0, 160)}` }
+      }
+      const data = (await r.json()) as {
+        choices?: Array<{ message?: { content?: string } }>
+        usage?: {
+          prompt_tokens?: number
+          completion_tokens?: number
+          completion_tokens_details?: { reasoning_tokens?: number }
+        }
+      }
+      const texto = data.choices?.[0]?.message?.content?.trim()
+      if (!texto) {
+        /* RESPOSTA VAZIA TEM UMA CAUSA COMUM E NADA ÓBVIA: modelo de raciocínio que gasta o
+           `max_tokens` inteiro PENSANDO — o provedor devolve HTTP 200 sem conteúdo, sem erro para
+           ler. Medido: o `qwen3.7-flash` gasta 593 tokens para responder "Boa sorte!". O número de
+           raciocínio na mensagem aponta direto para o teto, em vez de mandar procurar no provedor. */
+        const raciocinio = data.usage?.completion_tokens_details?.reasoning_tokens ?? 0
+        return {
+          ok: false as const,
+          status: 200,
+          causa: raciocinio > 0
+            ? `resposta vazia — gastou ${raciocinio} tokens raciocinando dentro do teto de 1200`
+            : 'resposta vazia do provedor',
+        }
+      }
+      return {
+        ok: true as const,
+        texto,
+        tokens: (data.usage?.prompt_tokens ?? 0) + (data.usage?.completion_tokens ?? 0),
       }
     }
-    /* O `usage` era LIDO E JOGADO FORA. Sem ele não existe custo por usuário — e nos modelos de
-       raciocínio a saída inclui os tokens de pensamento, a parte cara. Contabiliza, não limita:
-       tokens só se conhecem depois da resposta, e recusar aqui já não devolveria o dinheiro. */
-    void registrarTokensDeLlm(
-      req.userId,
-      (data.usage?.prompt_tokens ?? 0) + (data.usage?.completion_tokens ?? 0)
-    )
-    const translated = data.choices?.[0]?.message?.content?.trim()
-    if (!translated) {
-      /* RESPOSTA VAZIA TEM UMA CAUSA COMUM E NADA ÓBVIA: modelo de raciocínio que gasta o
-         `max_tokens` inteiro PENSANDO, sem sobrar orçamento para a resposta. O provedor devolve
-         HTTP 200 e conteúdo vazio — não há erro para ler. Medido na bancada
-         (scripts/eval-fala/medir-traducao-llm.mjs): o `qwen3.7-flash` gasta 593 tokens para
-         responder "Boa sorte!". Um "resposta vazia" seco mandaria quem depura procurar no lugar
-         errado; o número de tokens de raciocínio aponta direto para o teto. */
-      const raciocinio = data.usage?.completion_tokens_details?.reasoning_tokens ?? 0
-      const causa = raciocinio > 0
-        ? `o modelo gastou ${raciocinio} tokens raciocinando dentro do teto de 1200 e não sobrou orçamento para a tradução`
-        : 'o provedor devolveu conteúdo vazio'
-      log('warn', { event: 'mt_vazio', route: '/api/ai/mt', raciocinio, requestId: req.requestId })
-      res.status(502).json({ error: `tradução vazia: ${causa}` })
+
+    let entregue: { texto: string; tokens: number; rotulo: string; model: string } | null = null
+    let ultimaFalha = 'sem provedor'
+    for (const prov of provedores) {
+      let resultado: Awaited<ReturnType<typeof tentar>>
+      try {
+        resultado = await tentar(prov)
+      } catch (e) {
+        // Timeout/rede também é motivo de cair para a reserva, não de responder 502 direto.
+        resultado = { ok: false, status: 0, causa: String((e as Error)?.message ?? e).slice(0, 120) }
+      }
+      if (resultado.ok) {
+        entregue = { texto: resultado.texto, tokens: resultado.tokens, rotulo: prov.rotulo, model: prov.model }
+        break
+      }
+      ultimaFalha = resultado.causa
+      /* Todo tipo de falha do primário tenta a reserva — inclusive 4xx: uma chave revogada ou um
+         modelo que o provedor aposentou (aconteceu: o llama-3.3-70b sumiu do self-serve em dias)
+         são exatamente os casos em que a reserva salva o assinante. */
+      log('warn', {
+        event: 'mt_provedor_falhou', route: '/api/ai/mt', provider: prov.rotulo,
+        status: resultado.status, error: resultado.causa.slice(0, 120), requestId: req.requestId,
+      })
+    }
+
+    if (!entregue) {
+      res.status(502).json({ error: `tradução indisponível: ${ultimaFalha}` })
       return
     }
+
+    /* O `usage` era LIDO E JOGADO FORA. Sem ele não existe custo por usuário — e nos modelos de
+       raciocínio a saída inclui os tokens de pensamento, a parte cara. Contabiliza, não limita. */
+    void registrarTokensDeLlm(req.userId, entregue.tokens)
     reservaPendente = false // consumada: a reserva vira a chamada entregue
     log('info', {
-      event: 'mt_translated', route: '/api/ai/mt', provider: 'groq-llm',
+      event: 'mt_translated', route: '/api/ai/mt', provider: entregue.rotulo,
       status: 200, latencyMs: Date.now() - t0, requestId: req.requestId,
     })
-    // Procedência no PAYLOAD (auditoria Fase 5): o cliente já tem o contrato de selo
-    // (src/components/Provenance.tsx:18) mas precisava adivinhar o `kind` a partir do
-    // nome do motor. Aqui a origem viaja junto com o dado — uma tradução por LLM é
-    // `ai`, nunca `computed`, e o modelo que a produziu fica explícito.
-    // Campo ADITIVO: quem só lê `text`/`engine` continua funcionando.
+    // Procedência no PAYLOAD: a origem diz o modelo que REALMENTE serviu — com a cascata, pode ser
+    // o da reserva. `engine` continua 'groq-llm' por contrato com o cliente (serverLlmMt.ts e
+    // capMetrics chaveiam nele); o rename é o item A5 de PROXIMOS-PASSOS.
     res.json({
-      text: translated,
+      text: entregue.texto,
       engine: 'groq-llm',
       provenance: {
         kind: 'ai',
-        origin: model,
+        origin: entregue.model,
         method: 'tradução por LLM',
         limits: 'Tradução gerada por modelo de linguagem — pode conter erros de sentido, registro ou termo técnico. Confira antes de decorar.',
       },

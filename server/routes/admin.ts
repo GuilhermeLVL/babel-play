@@ -9,6 +9,8 @@ import { PLANOS_DE_ASSINATURA, type PlanoDeAssinatura } from '../../src/core/pla
 import { usersRepo } from '../db/repositories/users'
 import { subscriptionsRepo } from '../db/repositories/subscriptions'
 import { requireRole } from '../lib/rbac'
+import { lerUltimosErros } from '../lib/diarioDeErros'
+import { resumoDoDono } from '../db/repositories/resumo'
 import { asUserId } from '../lib/authContext'
 import { idParamSchema, parseOr400 } from '../validation'
 
@@ -61,4 +63,24 @@ adminRouter.patch('/users/:id/plan', requireRole('admin'), async (req, res) => {
   const target = asUserId(req.params.id)
   if (!(await usersRepo.get(target))) { res.status(404).json({ error: 'usuário não encontrado' }); return }
   res.json(await subscriptionsRepo.upsert(target, { plan: parsed.data.plan, status: 'active' }))
+})
+
+/**
+ * O DIÁRIO DE ERROS, finalmente lido por alguém (E4). Até aqui ele gravava em disco e a leitura era
+ * grep manual via SSH — "ninguém é acordado" (diarioDeErros.ts). Inclui os erros do CLIENTE, que
+ * entram pelo mesmo funil (`POST /api/erros-do-cliente`).
+ */
+adminRouter.get('/erros', requireRole('admin'), (req, res) => {
+  const limite = Math.min(500, Math.max(1, Number(req.query.limite) || 100))
+  const { dir, erros } = lerUltimosErros(limite)
+  if (dir === null) {
+    res.json({ diario: 'desligado (ERROS_DIR=off ou sink não registrado)', erros: [] })
+    return
+  }
+  res.json({ diario: dir, total: erros.length, erros })
+})
+
+/** Os números agregados do dono — contagens das tabelas existentes, sem telemetria nova. */
+adminRouter.get('/resumo', requireRole('admin'), async (_req, res) => {
+  res.json(await resumoDoDono())
 })

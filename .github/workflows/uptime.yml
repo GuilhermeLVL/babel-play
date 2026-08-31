@@ -1,0 +1,87 @@
+# VIGIA DE PRODUÇÃO (E4) — fecha a lacuna documentada em server/lib/diarioDeErros.ts:
+# "ele não ALERTA. Ninguém é acordado." Até aqui, NADA avisava o dono quando a produção caía.
+#
+# Zero infraestrutura externa de propósito: o cron do Actions bate no /api/health (que sonda o
+# banco de verdade, não só a porta) e, em falha, abre UMA issue no repositório — o GitHub manda o
+# e-mail. Recuperou? A issue é fechada com um comentário. Sem conta nova, sem custo, sem webhook.
+#
+# Configuração: defina a variável de repositório HEALTH_URL (Settings → Secrets and variables →
+# Actions → Variables), ex.: https://api.seudominio.com/api/health
+# Sem ela o workflow termina em sucesso avisando que está desarmado — cron que falha para sempre
+# só ensina a ignorar o vermelho.
+name: uptime
+
+on:
+  schedule:
+    - cron: "*/15 * * * *" # a cada 15 min — o mínimo que o Actions honra com folga
+  workflow_dispatch: {}
+
+permissions:
+  issues: write
+
+concurrency:
+  group: uptime
+  cancel-in-progress: false
+
+jobs:
+  sondar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Sondar /api/health
+        id: sonda
+        env:
+          HEALTH_URL: ${{ vars.HEALTH_URL }}
+        run: |
+          if [ -z "$HEALTH_URL" ]; then
+            echo "desarmado=true" >> "$GITHUB_OUTPUT"
+            echo "HEALTH_URL não definida — vigia desarmado (defina em Settings → Variables)."
+            exit 0
+          fi
+          echo "desarmado=false" >> "$GITHUB_OUTPUT"
+          # 3 tentativas com pausa: um blip de rede do runner não pode virar alarme falso.
+          for i in 1 2 3; do
+            code=$(curl -s -o resposta.json -w "%{http_code}" --max-time 20 "$HEALTH_URL" || echo 000)
+            if [ "$code" = "200" ]; then
+              echo "ok=true" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+            sleep 20
+          done
+          echo "ok=false" >> "$GITHUB_OUTPUT"
+          echo "code=$code" >> "$GITHUB_OUTPUT"
+          echo "corpo=$(head -c 300 resposta.json 2>/dev/null || echo sem-corpo)" >> "$GITHUB_OUTPUT"
+
+      - name: Abrir (ou manter) a issue de queda
+        if: steps.sonda.outputs.desarmado == 'false' && steps.sonda.outputs.ok == 'false'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          existente=$(gh issue list --label producao-caiu --state open --json number --jq '.[0].number // empty')
+          if [ -n "$existente" ]; then
+            echo "issue #$existente já aberta — sem duplicar."
+            exit 0
+          fi
+          gh label create producao-caiu --color B60205 --description "aberta pelo vigia de uptime" 2>/dev/null || true
+          gh issue create \
+            --title "🔴 Produção fora do ar ($(date -u +%Y-%m-%dT%H:%MZ))" \
+            --label producao-caiu \
+            --body "O vigia bateu 3 vezes em \`/api/health\` e falhou.
+
+- **HTTP**: ${{ steps.sonda.outputs.code }}
+- **Corpo**: \`${{ steps.sonda.outputs.corpo }}\`
+- **Run**: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+
+Esta issue fecha sozinha quando a sonda voltar a responder 200."
+
+      - name: Fechar a issue quando recuperar
+        if: steps.sonda.outputs.desarmado == 'false' && steps.sonda.outputs.ok == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          existente=$(gh issue list --label producao-caiu --state open --json number --jq '.[0].number // empty')
+          if [ -n "$existente" ]; then
+            gh issue close "$existente" --comment "A sonda voltou a responder 200 em $(date -u +%Y-%m-%dT%H:%MZ). Fechando."
+          fi

@@ -16,6 +16,7 @@ import { settingsRouter } from "./server/routes/settings";
 import { imagesRouter } from "./server/routes/images";
 import { meRouter } from "./server/routes/me";
 import { adminRouter } from "./server/routes/admin";
+import { errosRouter } from "./server/routes/erros";
 import { audioRouter } from "./server/audio/loopback";
 import { prepareLlmRequest } from "./server/ai/llmRequest";
 import { seedIfEmpty } from "./server/db/seed";
@@ -147,7 +148,7 @@ if (authRequired()) {
     // `/api/me` entrou junto com a exclusão de conta: `DELETE /api/me` apaga 17 tabelas e
     // `GET /api/me/exportar` lê a conta inteira em memória. As duas sem teto seriam o mesmo
     // vetor de F4-02 por outra porta.
-    ["/api/sessions", "/api/vocab", "/api/settings", "/api/exercises", "/api/metrics", "/api/images", "/api/me"],
+    ["/api/sessions", "/api/vocab", "/api/settings", "/api/exercises", "/api/metrics", "/api/images", "/api/me", "/api/erros-do-cliente"],
     writeLimiter,
   );
 }
@@ -175,6 +176,8 @@ app.use("/api/images", capturarAssincrono(imagesRouter));
 app.use("/api/me", capturarAssincrono(meRouter));
 // SaaS Fatia 2 — RBAC: endpoints admin cross-tenant (cada rota gateada por requireRole internamente).
 app.use("/api/admin", capturarAssincrono(adminRouter));
+// E4 — erros do NAVEGADOR entram no mesmo funil do diário; teto por usuário dentro da rota.
+app.use("/api/erros-do-cliente", capturarAssincrono(errosRouter));
 // Áudio do sistema via WASAPI loopback do PRÓPRIO servidor local (Windows) — a rota sem
 // fricção para capturar o que o computador toca; o navegador só consome o PCM.
 // Capacidade local: no modo público (AUTH_REQUIRED) ela some (403), mesmo autenticado.

@@ -23,7 +23,7 @@
  * volume é baixo por definição — se o volume de erro for alto o bastante para o custo de I/O
  * importar, o problema não é o log.
  */
-import { appendFileSync, mkdirSync, readdirSync, statSync, unlinkSync } from 'node:fs'
+import { appendFileSync, mkdirSync, readdirSync, readFileSync, statSync, unlinkSync } from 'node:fs'
 import path from 'node:path'
 import type { SinkDeErro } from './logger'
 
@@ -62,8 +62,12 @@ export interface OpcoesDoDiario {
   agora?: () => Date
 }
 
+/** O diretório do sink ATIVO — preenchido por `diarioEmArquivo`, lido por `lerUltimosErros`. */
+let dirAtivo: string | null = null
+
 export function diarioEmArquivo({ dir, manter = DIAS_PADRAO, agora = () => new Date() }: OpcoesDoDiario): SinkDeErro {
   mkdirSync(dir, { recursive: true })
+  dirAtivo = dir // registrado = legível: é o que permite GET /api/admin/erros sem re-resolver o caminho
   let ultimaPodaEm = ''
 
   return (evento) => {
@@ -84,4 +88,31 @@ export function diarioEmArquivo({ dir, manter = DIAS_PADRAO, agora = () => new D
        */
     }
   }
+}
+
+/**
+ * Os últimos erros do diário — hoje e ontem, mais recentes primeiro.
+ *
+ * FECHA A LACUNA DOCUMENTADA NO TOPO DESTE ARQUIVO: o diário gravava e NINGUÉM lia — "ele não
+ * alerta, ninguém é acordado", e a leitura era grep manual no disco do servidor. Com isto o
+ * `GET /api/admin/erros` mostra o que está quebrando sem SSH.
+ *
+ * Linha ilegível vira `{ bruto }` em vez de sumir: diário de erros que esconde erro do próprio
+ * formato seria a piada errada.
+ */
+export function lerUltimosErros(limite = 100, agora: () => Date = () => new Date()): { dir: string | null; erros: unknown[] } {
+  if (!dirAtivo) return { dir: null, erros: [] }
+  const hoje = agora()
+  const ontem = new Date(hoje.getTime() - 86_400_000)
+  const linhas: unknown[] = []
+  for (const dia of [ontem, hoje]) {
+    try {
+      const texto = readFileSync(path.join(dirAtivo, doDia(dia)), 'utf8')
+      for (const l of texto.split('\n')) {
+        if (!l.trim()) continue
+        try { linhas.push(JSON.parse(l)) } catch { linhas.push({ bruto: l.slice(0, 300) }) }
+      }
+    } catch { /* dia sem arquivo é normal */ }
+  }
+  return { dir: dirAtivo, erros: linhas.slice(-limite).reverse() }
 }

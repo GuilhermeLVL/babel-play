@@ -1,5 +1,6 @@
 import React from 'react';
 import { RefreshCw, Home } from 'lucide-react';
+import { reportarErro } from '../lib/relatorioDeErros';
 
 /**
  * A REDE DE PROTEÇÃO que faltava: sem um ErrorBoundary, qualquer exceção de render (ou um chunk
@@ -9,15 +10,19 @@ import { RefreshCw, Home } from 'lucide-react';
  *
  * Nada de detalhe técnico para o usuário; o erro vai para o console, onde quem depura o acha.
  */
-interface Estado { erro: Error | null }
+interface Estado { erro: Error | null; idDoErro: string | null }
 
 export default class ErroDaTela extends React.Component<{ children: React.ReactNode }, Estado> {
-  state: Estado = { erro: null };
+  state: Estado = { erro: null, idDoErro: null };
 
-  static getDerivedStateFromError(erro: Error): Estado { return { erro }; }
+  static getDerivedStateFromError(erro: Error): Partial<Estado> { return { erro }; }
 
   componentDidCatch(erro: Error, info: React.ErrorInfo): void {
     console.error('[babel] erro de render', erro, info.componentStack);
+    /* E4 — o erro deixou de morrer no console: vai para o diário do servidor, e o ID volta para a
+       TELA. É o que o usuário cita no suporte, e o que o dono procura em /api/admin/erros. */
+    const id = reportarErro('render', erro.message, info.componentStack?.split('\n')[1]?.trim());
+    this.setState({ idDoErro: id });
   }
 
   render() {
@@ -31,6 +36,11 @@ export default class ErroDaTela extends React.Component<{ children: React.ReactN
             Costuma ser uma versão nova do app chegando enquanto a antiga ainda estava aberta.
             Recarregar resolve na maioria das vezes; nada do que você gravou se perde.
           </p>
+          {this.state.idDoErro && (
+            <p className="text-[11px] text-ink-faint mt-2">
+              Se precisar de ajuda, cite o código <code className="font-mono">{this.state.idDoErro}</code>.
+            </p>
+          )}
           <div className="flex flex-wrap items-center justify-center gap-2.5 mt-5">
             <button onClick={() => window.location.reload()} className="btn-solid">
               <RefreshCw className="w-4 h-4" aria-hidden /> Recarregar

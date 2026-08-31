@@ -263,8 +263,14 @@ export default function Sobre() {
         </div>
       </section>
 
-      <p className="flex items-center justify-center gap-1.5 text-[12px] text-ink-faint pb-6">
+      <p className="flex items-center justify-center gap-1.5 text-[12px] text-ink-faint">
         <Rocket className="w-3.5 h-3.5" aria-hidden /> Babel Play · feito com teimosia por um dev independente 🇧🇷
+      </p>
+      {/* E5 — os documentos legais existem e precisam ser ENCONTRÁVEIS, não só existir. */}
+      <p className="flex items-center justify-center gap-3 text-[12px] text-ink-faint pb-6">
+        <a href="/privacidade.html" className="underline hover:text-ink">Política de privacidade</a>
+        <span aria-hidden>·</span>
+        <a href="/termos.html" className="underline hover:text-ink">Termos de uso</a>
       </p>
     </div>
     </div>

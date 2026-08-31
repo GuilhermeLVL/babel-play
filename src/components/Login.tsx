@@ -136,6 +136,12 @@ export default function Login({ onContinuarSemConta }: LoginProps = {}) {
       {onContinuarSemConta && modo !== 'forgot' && (
         <div className="mt-4 text-center">
           <button type="button" onClick={onContinuarSemConta} className="btn-outline w-full justify-center">Continuar sem conta</button>
+          {/* E5 — quem cria conta precisa conseguir LER o que está aceitando, antes de aceitar. */}
+          <p className="text-[11px] text-ink-faint text-center mt-3">
+            Ao criar uma conta você concorda com os{' '}
+            <a href="/termos.html" target="_blank" rel="noopener" className="underline">termos de uso</a> e a{' '}
+            <a href="/privacidade.html" target="_blank" rel="noopener" className="underline">política de privacidade</a>.
+          </p>
           <p className="mt-2 text-[11px] text-ink-faint">Transcreva, traduza e jogue com a sessão atual. Nada sai deste navegador até você criar uma conta.</p>
         </div>
       )}

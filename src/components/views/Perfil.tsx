@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { User, TrendingUp, Trophy } from 'lucide-react';
+import { User, TrendingUp, Trophy, ShieldCheck } from 'lucide-react';
 import { Abas, PainelDeAba } from '../ui';
 import { usePerfil } from '../../lib/usePerfil';
 import type { DerivedProgress } from '../../lib/progress';
@@ -8,6 +8,7 @@ import type { ContextoDeConquistas } from '@core';
 import AbaVoce from './perfil/AbaVoce';
 import AbaProgresso from './perfil/AbaProgresso';
 import Conquistas from './Conquistas';
+import AbaDados from './perfil/AbaDados';
 
 /**
  * PERFIL — quem você é e onde você está.
@@ -64,6 +65,8 @@ export default function Perfil({ progress, ageProfile, ctxConquistas }: PerfilPr
             { id: 'voce', rotulo: 'Você', icone: <User className="w-4 h-4" /> },
             { id: 'progresso', rotulo: 'Progresso', icone: <TrendingUp className="w-4 h-4" /> },
             { id: 'conquistas', rotulo: 'Conquistas', icone: <Trophy className="w-4 h-4" /> },
+            // LGPD art. 18: exportar e excluir existiam no servidor e NENHUMA tela chamava (E5).
+            { id: 'dados', rotulo: 'Seus dados', icone: <ShieldCheck className="w-4 h-4" /> },
           ]}
         />
 
@@ -77,6 +80,10 @@ export default function Perfil({ progress, ageProfile, ctxConquistas }: PerfilPr
 
         <PainelDeAba id="conquistas" ativo={aba}>
           <Conquistas progress={progress} ctx={ctxConquistas} />
+        </PainelDeAba>
+
+        <PainelDeAba id="dados" ativo={aba}>
+          <AbaDados />
         </PainelDeAba>
       </div>
     </div>

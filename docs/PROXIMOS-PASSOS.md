@@ -1,7 +1,7 @@
 # Próximos passos — Babel Play
 
 Documento vivo. Existe para você **não reconstruir contexto** ao voltar cansado: o que está pronto,
-o que falta, e em que ordem. Atualizado em 2026-08-30.
+o que falta, e em que ordem. Atualizado em 2026-08-31 (pós E1–E5).
 
 ---
 
@@ -19,8 +19,12 @@ promessa:
 
 Método e ressalvas: `docs/auditoria/eval-producao-v1.md`.
 
-**A parte que não existe é a cobrança.** Tudo o mais existe: contas, planos com autoridade no
-servidor, quotas com reserva atômica, tela de plano e consumo.
+**A cobrança agora EXISTE em código** (Asaas: assinar, webhook idempotente, cancelar — 2.067
+testes) e falta só o teste com a conta sandbox real. Três planos: Grátis, **Essencial R$ 9,90**
+(tradução de nuvem, transcrição local) e Pro R$ 19,90 — todos derivados de uma matriz única
+(`src/core/planos.ts`). Observabilidade fechou o laço: erro do navegador vai ao diário, o diário é
+lido em `/api/admin/erros`, e um workflow de uptime abre issue quando a produção cai. LGPD tem
+interface (Perfil → Seus dados), e as páginas de privacidade e termos existem e estão linkadas.
 
 ---
 
@@ -28,14 +32,18 @@ servidor, quotas com reserva atômica, tela de plano e consumo.
 
 Estas travam trabalho. Estão detalhadas em `docs/auditoria/decisao-infraestrutura-v1.md`.
 
-1. **Provedor de pagamento.** Recomendação: **Asaas** (1,99% + R$ 0,49; Pix recorrente; feito para
-   ticket baixo recorrente). A Stripe tem API melhor e custa 48% mais neste ticket, com Pix só por
-   convite.
-2. **Preço.** Recomendação: **R$ 19,90/mês** — margem de ~60% já contando o usuário pesado.
-3. **Lançar limitado ou completo.** Recomendação: limitado primeiro, com a cobrança preparada. A
-   recomendação é mais fraca do que era, porque agora há vantagem medida para vender.
-4. **Crédito no OpenRouter** (~US$ 5) — só se quiser terminar a comparação de modelos. Não é
-   necessário para lançar.
+1. ~~Provedor de pagamento~~ — **DECIDIDO: Asaas** (2026-08-31). Implementado; falta a conta.
+2. ~~Preço~~ — **DECIDIDO: Essencial R$ 9,90, Pro R$ 19,90, só mensal no lançamento.**
+3. **Criar a conta Asaas (CNPJ) e a chave SANDBOX** → preencher `ASAAS_API_KEY` e
+   `ASAAS_WEBHOOK_TOKEN`, cadastrar o webhook no painel apontando para
+   `/api/billing/webhook/asaas` — e aí rodamos o ponta a ponta de verdade.
+4. **Criar conta DeepInfra** (~US$ 5 pré-pago) → medir o STT 3,3× mais barato com o harness
+   (`STT_BASE_URL/STT_API_KEY/STT_MODEL`; a troca é env).
+5. **Definir `HEALTH_URL`** nas variáveis do repositório do GitHub quando houver produção — arma o
+   vigia de uptime.
+6. **Revisão humana dos textos legais** (`public/privacidade.html`, `public/termos.html`): escritos
+   do comportamento real do código, mas texto legal merece um segundo par de olhos antes do ar.
+7. Crédito no OpenRouter (~US$ 5) — opcional, só para fechar a comparação de modelos.
 
 ---
 
@@ -47,8 +55,8 @@ Estas travam trabalho. Estão detalhadas em `docs/auditoria/decisao-infraestrutu
 |---|---|---|
 | A1 | ~~Backup do banco~~ — **JÁ EXISTE e funciona** | `npm run backup` faz `VACUUM INTO` (não cópia de arquivo, que sob WAL corromperia), verifica `integrity_check`, confere contagens, inclui a mídia e rotaciona. Rodado em 31/08: OK. Falta só **agendar** em produção. |
 | A2 | ~~Varredura de segurança~~ — **FEITA** | gitleaks, Trivy e as regras `ast-grep` do projeto. Resultado em `docs/auditoria/seguranca-v1.md`. Só o Semgrep ficou de fora (Docker parado). |
-| A3 | **Workflow de deploy** | Publicação é manual hoje; o CI só testa, não publica. |
-| A4 | **Cascata com modelo gratuito primário** | O `minimax-m3:free` empatou com o pago. Reserva paga cobre a intermitência. |
+| A3 | **Workflow de deploy** | Publicação é manual hoje; o CI só testa, não publica. (O de UPTIME existe desde 31/08.) |
+| A4 | ~~Cascata com gratuito primário~~ — **FEITA** | `LLM_RESERVA_*` no mtProxy: falha do primário cai para a reserva; quota debitada uma vez, testado. Falta só APONTAR as envs. |
 | A5 | **Rótulo `engine: 'groq-llm'`** vira nome neutro | Mente se o provedor mudar. Toca métricas e um teste. |
 | A6 | **Teste de carga** | Só um sondagem feita: 40 requisições simultâneas, todas 200, ~26 req/s — mas em modo de desenvolvimento, com Vite no meio. Não é capacidade. |
 
@@ -89,13 +97,14 @@ Três módulos que ninguém importa (`docs/auditoria/grafo-v1.md` §2):
 | `src/gateway/adapters/streamingCloudStt.ts` | 67 | Stub nunca registrado em perfil nenhum. Remover |
 | `server/db/repositories/index.ts` | 27 | Barril que ninguém importa. Remover |
 
-### B — Depende da decisão de pagamento
+### B — Cobrança — **FEITA em código (2026-08-31)**
 
-| # | Tarefa |
-|---|---|
-| B1 | Webhook do provedor → tabela `subscriptions` (o lugar está marcado em `server/routes/me.ts:186`) |
-| B2 | Tela de assinatura: assinar, ver status, cancelar (o lugar está marcado em `views/Planos.tsx`) |
-| B3 | Testes de idempotência do webhook (evento repetido não pode cobrar nem promover duas vezes) |
+| # | Tarefa | Estado |
+|---|---|---|
+| B1 | Webhook Asaas → `subscriptions` | ✅ idempotente por id de evento, com desmarque em falha (os dois lados testados) |
+| B2 | Tela de assinatura | ✅ `views/planos/Assinar.tsx` — inicia e abre o link; quem promove é só o webhook |
+| B3 | Testes de idempotência | ✅ 7 cenários em `tests/integration/billing-webhook.test.ts` |
+| B4 | **Ponta a ponta no sandbox real** | ⏳ depende da conta Asaas (item 3 acima) |
 
 ### C — Depende de crédito no OpenRouter
 

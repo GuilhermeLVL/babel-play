@@ -66,12 +66,9 @@ const TODOS_OS_ITENS: NavItemDef[] = [
     short: 'Biblioteca',
     labels: { kids: 'Biblioteca', pro: 'Biblioteca', senior: 'Minhas Mídias' }
   },
-  {
-    id: 'analysis',
-    icon: BarChart2,
-    short: 'Sessão',
-    labels: { kids: 'Praticar', pro: 'Sessão', senior: 'Minhas Aulas' }
-  },
+  /* 'analysis' SAIU do menu de topo (decisão do dono, 31/08): uma aula/sessão sempre vive
+     DENTRO de uma mídia capturada — o caminho é Biblioteca → mídia → aula. A rota continua
+     existindo; só a porta redundante no topo foi removida. */
   {
     id: 'metrics',
     icon: BookOpen,

@@ -69,3 +69,33 @@ export function passeNivel(nivel: number, pctDoNivel: number): number {
 export function slotDestravado(s: SlotDoPasse, nivel: number): boolean {
   return nivel >= s.decada
 }
+
+/* ── FILEIRA PREMIUM (decisão do dono, 31/08: as DUAS fileiras aparecem desde já) ──
+ *
+ * O conteúdo premium é DADO, não venda: a compra do passe depende da moeda comprada existir no
+ * servidor (spec economia-de-creditos), então a fileira renderiza trancada com a coroa e sem
+ * nenhum botão de compra — o desenho aprovado, com a economia honesta.
+ *
+ * A matemática do "passe que se paga": os slots de Créditos somam MAIS do que o preço planejado
+ * (950) — quem completa recompra o próximo, o modelo Fortnite que o dono pediu. */
+export type SlotPremium =
+  | { tipo: 'creditos'; slot: number; decada: number; quantidade: number }
+  | { tipo: 'variante'; slot: number; decada: number; nome: string; raridade: 'lendario' }
+
+const CREDITOS_POR_DECADA = [0, 8, 9, 10, 11, 12, 13, 14, 15, 16, 18]
+
+export function premiumDoNivel(lv: number): SlotPremium {
+  const d = Math.min(10, Math.ceil(lv / 10))
+  if (lv % 10 === 0) return { tipo: 'variante', slot: lv, decada: d, nome: `Variante Dourada ${d}`, raridade: 'lendario' }
+  return { tipo: 'creditos', slot: lv, decada: d, quantidade: CREDITOS_POR_DECADA[d] }
+}
+
+/** Quanto a fileira Premium devolve em Créditos — precisa ser > o preço do passe. */
+export function totalPremiumEmCreditos(): number {
+  let total = 0
+  for (let lv = 1; lv <= 100; lv++) {
+    const s = premiumDoNivel(lv)
+    if (s.tipo === 'creditos') total += s.quantidade
+  }
+  return total
+}

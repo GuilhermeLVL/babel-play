@@ -7,7 +7,7 @@
  * 4. Slots de Seeds têm creditoId determinístico (idempotência no servidor).
  */
 import { describe, it, expect } from 'vitest';
-import { slotsDoPasse, passeNivel, slotDestravado } from '../src/lib/galeria/passe';
+import { slotsDoPasse, passeNivel, slotDestravado, premiumDoNivel, totalPremiumEmCreditos } from '../src/lib/galeria/passe';
 import { CATALOGO_DA_LOJA } from '../src/lib/loja';
 
 describe('slotsDoPasse', () => {
@@ -59,5 +59,20 @@ describe('passeNivel e destravamento', () => {
     const s = slotsDoPasse().find((x) => x.decada === 4)!;
     expect(slotDestravado(s, 3)).toBe(false);
     expect(slotDestravado(s, 4)).toBe(true);
+  });
+});
+
+describe('fileira Premium', () => {
+  it('o passe se paga: devolve MAIS Créditos do que o preço planejado (950)', () => {
+    expect(totalPremiumEmCreditos()).toBeGreaterThan(950);
+  });
+
+  it('marcos de dezena são variantes; o resto devolve Créditos', () => {
+    expect(premiumDoNivel(60).tipo).toBe('variante');
+    expect(premiumDoNivel(59).tipo).toBe('creditos');
+  });
+
+  it('é determinístico', () => {
+    expect(JSON.stringify(premiumDoNivel(37))).toBe(JSON.stringify(premiumDoNivel(37)));
   });
 });

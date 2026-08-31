@@ -1,9 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Check, Crown, Leaf, Lock, Star, Ticket } from 'lucide-react';
+// Sprout, e não Leaf: é o ícone que TODA a aplicação usa para Seeds (FaixaDeProgresso,
+// Conquistas, Loja) — um conceito, um ícone.
+import { Check, Coins, Crown, Lock, Sprout, Star, Ticket } from 'lucide-react';
 import { COR_DA_RARIDADE, estadoDoItem, type ItemDaLoja } from '../../../lib/loja';
 import { emojiDoItem } from '../../../lib/galeria/progressao';
 import { equiparItem, equipavel, type ContextoDeEquipar } from '../../../lib/galeria/equipar';
-import { passeNivel, slotsDoPasse, slotDestravado, TEMPORADA_ATUAL, type SlotDoPasse } from '../../../lib/galeria/passe';
+import { passeNivel, premiumDoNivel, slotsDoPasse, slotDestravado, totalPremiumEmCreditos, TEMPORADA_ATUAL, type SlotDoPasse } from '../../../lib/galeria/passe';
 import { creditarSeeds } from '../../../data/api';
 import { toast } from '../../Toast';
 import type { DerivedProgress } from '../../../lib/progress';
@@ -44,6 +46,15 @@ export default function PasseDeTemporada({
   const pct = progress.available ? progress.levelPct : 0;
   const marcador = passeNivel(nivel, pct);
   const slots = useMemo(slotsDoPasse, []);
+  // Colunas do trilho: um nível por coluna; década cheia empilha o excedente na coluna do marco.
+  const colunas = useMemo(() => {
+    const por = new Map<number, SlotDoPasse[]>();
+    for (const x of slots) por.set(x.slot, [...(por.get(x.slot) ?? []), x]);
+    return Array.from({ length: 100 }, (_, i) => {
+      const nv = i + 1;
+      return { nivel: nv, decada: Math.ceil(nv / 10), livres: por.get(nv) ?? [] };
+    });
+  }, [slots]);
   const trilhaRef = useRef<HTMLDivElement | null>(null);
   const [, force] = useState(0);
   const rerender = () => force((x) => x + 1);
@@ -113,9 +124,13 @@ export default function PasseDeTemporada({
             destrava antes nem depois do que já destravava. Você está no <b className="text-ink">nível {marcador}</b> do passe.
           </p>
         </div>
-        {/* A fileira Premium existe no desenho aprovado, mas moeda comprada exige o inventário
-            no servidor (spec economia-de-creditos) — até lá, nenhum botão falso aqui. */}
-        <p className="text-[11px] text-ink-faint flex items-center gap-1.5"><Crown className="w-3.5 h-3.5" aria-hidden /> Trilha Grátis — completa para todo mundo</p>
+        {/* As DUAS fileiras aparecem (decisão do dono): a Premium mostra o que devolve, mas a
+            COMPRA só existe quando a moeda comprada existir no servidor (spec
+            economia-de-creditos) — informação sem botão falso. */}
+        <p className="text-[11px] text-ink-faint flex items-center gap-1.5 max-w-[28ch]">
+          <Crown className="w-3.5 h-3.5 text-warn-ink shrink-0" aria-hidden />
+          O Premium devolve {totalPremiumEmCreditos()} Créditos — a compra abre junto com a loja de créditos.
+        </p>
       </div>
 
       <div className="flex gap-1.5 flex-wrap" role="group" aria-label="Ir para um trecho do passe">
@@ -130,55 +145,85 @@ export default function PasseDeTemporada({
         ))}
       </div>
 
-      <div ref={trilhaRef} className="overflow-x-auto pb-2 -mx-1 px-1">
-        <div className="flex gap-2">
-          {slots.map((s) => {
-            const aberto = slotDestravado(s, nivel);
-            const atual = s.slot === marcador;
-            const marco = s.slot % 10 === 0;
-            if (s.tipo === 'seeds') {
+      <div className="flex gap-2">
+        <div className="shrink-0 hidden sm:flex flex-col gap-2 pt-7 w-[74px]">
+          <div className="h-[118px] card-panel flex flex-col items-center justify-center gap-1 text-[9.5px] font-black uppercase tracking-wider text-ink-muted"><Check className="w-3.5 h-3.5 text-good" aria-hidden />Grátis</div>
+          <div className="h-[118px] card-panel bg-warn-soft/30 border-warn/30 flex flex-col items-center justify-center gap-1 text-[9.5px] font-black uppercase tracking-wider text-warn-ink"><Crown className="w-3.5 h-3.5" aria-hidden />Premium</div>
+        </div>
+        <div ref={trilhaRef} className="overflow-x-auto pb-2 flex-1 min-w-0">
+          <div className="flex">
+            {colunas.map((col) => {
+              const aberto = nivel >= col.decada;
+              const atual = col.nivel === marcador;
+              const marco = col.nivel % 10 === 0;
+              const prem = premiumDoNivel(col.nivel);
               return (
-                <button
-                  key={`s-${s.slot}-seeds`}
-                  id={`passe-slot-${s.slot}`}
-                  onClick={() => aoTocar(s)}
-                  className={`shrink-0 w-[104px] card-panel border-dashed p-2.5 text-left cursor-pointer ${atual ? 'border-accent' : ''} ${aberto ? '' : 'opacity-60'}`}
-                  aria-label={`Nível ${s.slot} do passe: ${s.quantidade} Seeds${aberto ? ', resgatadas' : ', bloqueado'}`}
-                >
-                  <p className="text-[10px] font-mono font-bold text-ink-faint mb-1.5">{s.slot}</p>
-                  <p className="flex items-center gap-1.5 text-[13px] font-bold text-good-ink"><Leaf className="w-4 h-4" aria-hidden /> +{s.quantidade}</p>
-                  <p className="text-[10px] text-ink-faint mt-1">{aberto ? <span className="inline-flex items-center gap-1"><Check className="w-3 h-3 text-good" aria-hidden /> resgatado</span> : <span className="inline-flex items-center gap-1"><Lock className="w-3 h-3" aria-hidden /> nível {s.decada}</span>}</p>
-                </button>
+                <div key={col.nivel} id={`passe-slot-${col.nivel}`} className="shrink-0 w-[128px] px-1 flex flex-col gap-2">
+                  <p className={`flex items-center justify-center gap-1.5 h-5 text-[10.5px] font-mono font-bold rounded-md ${atual ? 'bg-accent text-accent-contrast' : nivel > col.decada ? 'text-accent-ink' : 'text-ink-faint'}`}>
+                    {col.nivel}
+                    {marco && <Star className="w-3 h-3 fill-warn text-warn" aria-hidden />}
+                    {atual && <span className="font-sans font-bold">· você</span>}
+                  </p>
+
+                  {/* Fileira GRÁTIS */}
+                  <div className="h-[118px] flex flex-col gap-1.5">
+                    {col.livres.map((sl) => {
+                      if (sl.tipo === 'seeds') {
+                        return (
+                          <button
+                            key={sl.creditoId}
+                            onClick={() => aoTocar(sl)}
+                            className={`flex-1 card-panel border-dashed p-2 text-left cursor-pointer min-h-0 ${aberto ? '' : 'opacity-60'}`}
+                            aria-label={`Nível ${col.nivel} do passe, trilha grátis: ${sl.quantidade} Seeds${aberto ? ', resgatadas' : ', bloqueado'}`}
+                          >
+                            <p className="flex items-center gap-1.5 text-[13px] font-bold text-good-ink"><Sprout className="w-4 h-4" aria-hidden /> +{sl.quantidade}</p>
+                            <p className="text-[9.5px] text-ink-faint mt-0.5">{aberto ? 'resgatado' : `nível ${sl.decada}`}</p>
+                          </button>
+                        );
+                      }
+                      const i = sl.item;
+                      const cor = COR_DA_RARIDADE[i.raridade];
+                      const eq = equipadoAtual(i);
+                      return (
+                        <button
+                          key={i.id}
+                          onClick={() => aoTocar(sl)}
+                          title={i.desc}
+                          className={`flex-1 card-panel p-2 text-left cursor-pointer border-2 min-h-0 overflow-hidden ${cor.borda} ${aberto ? cor.fundo : 'opacity-70'}`}
+                          aria-label={`Nível ${col.nivel} do passe, trilha grátis: ${i.nome}${aberto ? '' : ', bloqueado'}`}
+                        >
+                          <p className={`text-lg leading-none mb-1 ${aberto ? '' : 'grayscale opacity-60'}`} aria-hidden>{emojiDoItem(i)}</p>
+                          <p className="text-[10.5px] font-bold text-ink leading-tight truncate">{i.nome}</p>
+                          <p className="text-[9px] text-ink-faint mt-0.5 flex items-center gap-1">
+                            {eq ? <span className="inline-flex items-center gap-1 text-good-ink font-bold"><Check className="w-3 h-3" aria-hidden />Equipado</span>
+                              : aberto ? 'equipar'
+                              : <><Lock className="w-2.5 h-2.5" aria-hidden />nível {sl.decada}</>}
+                          </p>
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {/* Fileira PREMIUM — trancada até a loja de créditos existir; sem botão falso. */}
+                  <div
+                    className="h-[118px] card-panel bg-warn-soft/20 border-warn/25 p-2 flex flex-col justify-between"
+                    role="img"
+                    aria-label={`Nível ${col.nivel} do passe, trilha premium: ${prem.tipo === 'creditos' ? `${prem.quantidade} Créditos` : prem.nome}, disponível quando a loja de créditos abrir`}
+                  >
+                    {prem.tipo === 'creditos' ? (
+                      <p className="flex items-center gap-1.5 text-[13px] font-bold text-warn-ink"><Coins className="w-4 h-4" aria-hidden /> +{prem.quantidade}</p>
+                    ) : (
+                      <div>
+                        <p className="text-lg leading-none mb-1 grayscale opacity-70" aria-hidden>👑</p>
+                        <p className="text-[10.5px] font-bold text-ink leading-tight">{prem.nome}</p>
+                      </div>
+                    )}
+                    <p className="text-[9px] text-warn-ink flex items-center gap-1"><Crown className="w-2.5 h-2.5" aria-hidden />Premium</p>
+                  </div>
+                </div>
               );
-            }
-            const i = s.item;
-            const cor = COR_DA_RARIDADE[i.raridade];
-            const eq = equipadoAtual(i);
-            return (
-              <button
-                key={`s-${s.slot}-${i.id}`}
-                id={`passe-slot-${s.slot}`}
-                onClick={() => aoTocar(s)}
-                title={i.desc}
-                className={`shrink-0 w-[124px] card-panel p-2.5 text-left cursor-pointer border-2 ${cor.borda} ${aberto ? cor.fundo : 'opacity-70'} ${atual ? 'ring-2 ring-accent' : ''}`}
-                aria-label={`Nível ${s.slot} do passe: ${i.nome}${aberto ? '' : ', bloqueado'}`}
-              >
-                <p className="flex items-center justify-between text-[10px] font-mono font-bold text-ink-faint mb-1.5">
-                  <span>{s.slot}</span>
-                  {marco && <Star className="w-3 h-3 fill-warn text-warn" aria-hidden />}
-                </p>
-                <p className={`text-2xl leading-none mb-1.5 ${aberto ? '' : 'grayscale opacity-60'}`} aria-hidden>{emojiDoItem(i)}</p>
-                <p className="text-[11.5px] font-bold text-ink leading-tight">{i.nome}</p>
-                <p className="text-[10px] text-ink-faint mt-1">
-                  {eq
-                    ? <span className="inline-flex items-center gap-1 text-good-ink font-bold"><Check className="w-3 h-3" aria-hidden /> Equipado</span>
-                    : aberto
-                    ? 'Seu — equipar'
-                    : <span className="inline-flex items-center gap-1"><Lock className="w-3 h-3" aria-hidden /> nível {s.decada}{i.precoSeeds !== undefined ? ` · ${i.precoSeeds} na Loja` : ''}</span>}
-                </p>
-              </button>
-            );
-          })}
+            })}
+          </div>
         </div>
       </div>
     </div>

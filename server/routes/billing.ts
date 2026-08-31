@@ -19,7 +19,7 @@ import { PLAN_MATRIX, ehPlanoDeAssinatura, type PlanoDeAssinatura } from '../../
 import { subscriptionsRepo } from '../db/repositories/subscriptions'
 import { billingEventsRepo } from '../db/repositories/billingEvents'
 import { asUserId } from '../lib/authContext'
-import { asaasConfigurado, cancelarAssinatura, criarAssinatura, criarCliente, primeiraCobranca } from '../lib/asaas'
+import { asaasConfigurado, cancelarAssinatura, criarAssinatura, criarCliente, primeiraCobranca, webhookToken } from '../lib/asaas'
 import { parseOr400 } from '../validation'
 import { erroDeRota } from '../lib/erroDeRota'
 import { log } from '../lib/logger'
@@ -133,7 +133,7 @@ export const asaasWebhookRouter = Router()
 asaasWebhookRouter.use(json({ limit: '100kb' }))
 
 asaasWebhookRouter.post('/', async (req, res) => {
-  const segredo = process.env.ASAAS_WEBHOOK_TOKEN
+  const segredo = webhookToken()
   if (!segredo) {
     // Sem segredo configurado o webhook NÃO processa nada: aceitar evento sem autenticar seria
     // deixar qualquer POST da internet promover plano.

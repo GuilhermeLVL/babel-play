@@ -19,6 +19,13 @@ const base = (): string => process.env.ASAAS_BASE_URL || 'https://api-sandbox.as
 
 export const asaasConfigurado = (): boolean => Boolean(process.env.ASAAS_API_KEY)
 
+/**
+ * O segredo do webhook, lido em TEMPO DE CHAMADA como as outras envs deste módulo (o teste troca
+ * a env entre casos). Morar aqui — e não no handler — é o que a regra `env-fora-de-config` exige:
+ * este arquivo é o inventário de tudo que o Asaas requer do ambiente.
+ */
+export const webhookToken = (): string | undefined => process.env.ASAAS_WEBHOOK_TOKEN
+
 async function chamar<T>(caminho: string, init?: RequestInit): Promise<T> {
   const chave = process.env.ASAAS_API_KEY
   if (!chave) throw new Error('ASAAS_API_KEY ausente')

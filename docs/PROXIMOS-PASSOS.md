@@ -79,6 +79,16 @@ idempotência — e o desenho pretendido é decisão de produto (o que a presen�
 conquista credita, se o saldo passa a ser evento ou continua derivado). O cliente foi escrito em
 2026-08-28 supondo um servidor que nunca veio.
 
+### A8 — Código morto encontrado pelo grafo
+
+Três módulos que ninguém importa (`docs/auditoria/grafo-v1.md` §2):
+
+| módulo | linhas | o que fazer |
+|---|---|---|
+| `src/gateway/ocr.ts` | 128 | OCR real e funcional (Tesseract.js), **desligado**. Ligar ou remover |
+| `src/gateway/adapters/streamingCloudStt.ts` | 67 | Stub nunca registrado em perfil nenhum. Remover |
+| `server/db/repositories/index.ts` | 27 | Barril que ninguém importa. Remover |
+
 ### B — Depende da decisão de pagamento
 
 | # | Tarefa |

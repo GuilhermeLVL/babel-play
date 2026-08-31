@@ -55,12 +55,20 @@ Estas travam trabalho. Estão detalhadas em `docs/auditoria/decisao-infraestrutu
 |---|---|---|
 | A1 | ~~Backup do banco~~ — **JÁ EXISTE e funciona** | `npm run backup` faz `VACUUM INTO` (não cópia de arquivo, que sob WAL corromperia), verifica `integrity_check`, confere contagens, inclui a mídia e rotaciona. Rodado em 31/08: OK. Falta só **agendar** em produção. |
 | A2 | ~~Varredura de segurança~~ — **FEITA** | gitleaks, Trivy e as regras `ast-grep` do projeto. Resultado em `docs/auditoria/seguranca-v1.md`. Só o Semgrep ficou de fora (Docker parado). |
-| A3 | **Workflow de deploy** | Publicação é manual hoje; o CI só testa, não publica. (O de UPTIME existe desde 31/08.) |
+| A3 | ~~Workflow de deploy~~ — **FEITO (31/08)** | `.github/workflows/deploy-pages.yml`: manual (workflow_dispatch), desarmado até os secrets `CLOUDFLARE_API_TOKEN`/`CLOUDFLARE_ACCOUNT_ID` existirem; valida (typecheck+testes+audit) antes de publicar `build:leve` via wrangler (mantém o binding D1 do ranking). |
 | A4 | ~~Cascata com gratuito primário~~ — **FEITA** | `LLM_RESERVA_*` no mtProxy: falha do primário cai para a reserva; quota debitada uma vez, testado. Falta só APONTAR as envs. |
-| A5 | **Rótulo `engine: 'groq-llm'`** vira nome neutro | Mente se o provedor mudar. Toca métricas e um teste. |
+| A5 | ~~Rótulo `engine`~~ — **FEITO (31/08)** | `'server-llm-mt'` no lugar de `'groq-llm'`; VocabularyPanel mantém as duas chaves para sessões antigas. |
 | A6 | **Teste de carga** | Só um sondagem feita: 40 requisições simultâneas, todas 200, ~26 req/s — mas em modo de desenvolvimento, com Vite no meio. Não é capacidade. |
 
-### A7 — ACHADO NOVO: a "economia v2" tem metade cliente e nenhuma metade servidor
+### A7 — ~~economia v2 sem metade servidor~~ — **FEITO (31/08)**
+
+Rotas `POST /api/metrics/presenca` e `POST /api/metrics/seeds/creditar` implementadas espelhando o
+servidor efêmero (migração 0015: `seed_credits` + `presencas`, idempotência por índice parcial,
+janela de ±2 dias na presença); `computeProfile` devolve os campos e a ofensiva usa a MAIOR entre
+revisar e aparecer. 7 testes em `tests/integration/economia-v2.test.ts`. Verificado ao vivo: no
+primeiro carregamento o app creditou sozinho as conquistas represadas pelos 404.
+
+#### O achado original (histórico)
 
 Encontrado em 2026-08-30, verificando a tela nova no navegador: duas rotas que o cliente chama
 **não existem no servidor Express** e respondem 404.
@@ -87,7 +95,7 @@ idempotência — e o desenho pretendido é decisão de produto (o que a presen�
 conquista credita, se o saldo passa a ser evento ou continua derivado). O cliente foi escrito em
 2026-08-28 supondo um servidor que nunca veio.
 
-### A8 — Código morto encontrado pelo grafo
+### A8 — ~~Código morto~~ — **FEITO (31/08)**: `streamingCloudStt.ts` e `repositories/index.ts` removidos; `ocr.ts` FICA (decisão registrada em openspec/changes/vision-ocr-web).
 
 Três módulos que ninguém importa (`docs/auditoria/grafo-v1.md` §2):
 

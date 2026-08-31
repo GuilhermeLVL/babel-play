@@ -79,6 +79,13 @@ export function acessoAoItem(id: string | undefined, nivel: number, saldo: numbe
   return { liberado: false, item, motivo: e.motivo ?? (item.precoSeeds ? `Nível ${item.nivel} ou ${item.precoSeeds} Seeds` : `Nível ${item.nivel}`), compravel: e.estado === 'compravel' };
 }
 
+/**
+ * PALETAS × TEMA CUSTOM (decisão registrada na spec galeria-gating-fechado, 31/08): paleta é o
+ * produto CURADO, em escada por estilo (claro/papel livres → meia-noite nv7) — aplicá-la seta
+ * `theme='custom'` por mecânica, não por venda. Cores ARBITRÁRIAS são outro produto (o Estúdio /
+ * `tema-custom`, nível 10), com porta própria. Por isso o gate de paleta é o do ESTILO, aqui,
+ * e o de cores livres é o do Estúdio — os dois fail-closed nas próprias funções.
+ */
 export const acessoAoEstilo = (estilo: EstiloDePaleta, nivel: number, saldo: number) => acessoAoItem(ITEM_DO_ESTILO[estilo], nivel, saldo);
 export const acessoACategoria = (categoria: string, nivel: number, saldo: number) => acessoAoItem(ITEM_DA_CATEGORIA[categoria], nivel, saldo);
 export const acessoAFormaDeRastro = (forma: string, nivel: number, saldo: number) => acessoAoItem(ITEM_DA_FORMA_DE_RASTRO[forma], nivel, saldo);

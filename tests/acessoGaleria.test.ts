@@ -66,3 +66,16 @@ describe('mapa de acesso da galeria — a mesma régua da Loja', () => {
     expect(faltaParaOPerfil(pato, { ...ctx, nivel: 10 })).toEqual([])
   })
 })
+
+/* ── Brechas fechadas (spec galeria-gating-fechado, 31/08) ── */
+import { acessoAoCursorDeEmoji } from '../src/lib/galeria/acesso';
+
+describe('brecha B3 — emoji fora do catálogo não é liberado por ausência', () => {
+  it('o gate do "qualquer emoji" existe e NÃO é livre no nível 1', () => {
+    const a = acessoAoCursorDeEmoji(1, 0);
+    // Se um dia o item gal-cursor-emoji sumir do catálogo, acessoAoItem(undefined) devolveria
+    // liberado e a brecha reabriria em silêncio — este teste é o alarme.
+    expect(a.liberado).toBe(false);
+    expect(a.motivo).toBeTruthy();
+  });
+});

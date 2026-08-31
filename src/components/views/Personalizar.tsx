@@ -69,6 +69,12 @@ export default function Personalizar({ theme, setTheme, fonte, setFonte, nivel, 
   const ctxAcesso = { nivel, saldo: saldoAgora, estiloDaPaleta, categorias: CATEGORIAS_DE_EMOJI };
 
   const aplicarPaleta = (p: Paleta, el?: HTMLElement | null) => {
+    /* A régua na FUNÇÃO, não só no botão (spec galeria-gating-fechado): o disabled do grid é
+       cortesia visual; quem garante é este check — qualquer caminho novo (perfil, atalho, bug de
+       UI) esbarra aqui. Paletas são o produto CURADO em escada por estilo; cores arbitrárias são
+       outro produto (o Estúdio, nível 10), com a própria porta. */
+    const acesso = acessoAoEstilo(p.estilo, nivel, saldoAgora);
+    if (!acesso.liberado) { toast.warn(`Estilo ainda trancado — ${acesso.motivo}.`); return; }
     applyCustomColors({ canvas: p.canvas, surface: p.surface, ink: p.ink, accent: p.accent });
     setTheme('custom');
     try { localStorage.setItem('babel.paleta_ativa', p.id); } catch { /* sem storage */ }
@@ -164,7 +170,11 @@ export default function Personalizar({ theme, setTheme, fonte, setFonte, nivel, 
             <div className="flex flex-wrap gap-1 max-h-36 overflow-y-auto custom-scrollbar">
               {lista.map((e) => {
                 const dentro = selecionados.has(e);
-                const aE = q ? acessoACategoria(CATEGORIAS_DE_EMOJI.find((c) => c.emojis.includes(e))?.id ?? '', nivel, saldoAgora) : acesso;
+                /* Emoji colado FORA do catálogo caía em categoria '' → item undefined → liberado
+                   (brecha B3). Fora do catálogo agora é o produto "qualquer emoji" (o item do
+                   cursor de emoji), nunca liberado por ausência. */
+                const catDoEmoji = CATEGORIAS_DE_EMOJI.find((c) => c.emojis.includes(e))?.id;
+                const aE = q ? (catDoEmoji ? acessoACategoria(catDoEmoji, nivel, saldoAgora) : acessoAoCursorDeEmoji(nivel, saldoAgora)) : acesso;
                 return <button key={e} disabled={!aE.liberado} onClick={() => aoTocar(e)} aria-pressed={dentro} title={aE.liberado ? e : aE.motivo} className={`w-9 h-9 rounded-lg text-xl border cursor-pointer transition-transform hover:scale-110 disabled:opacity-40 disabled:cursor-not-allowed ${dentro ? 'bg-accent-soft border-accent' : 'bg-canvas border-border-subtle'}`}>{e}</button>;
               })}
             </div>

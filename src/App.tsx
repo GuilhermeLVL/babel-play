@@ -31,6 +31,7 @@ const ResetPassword = lazyComRecarga(() => import('./components/auth/ResetPasswo
 const Onboarding = lazyComRecarga(() => import('./components/Onboarding'));
 import { ViewType, Recording } from './types';
 import { askNavGuard } from './lib/navGuard';
+import { desbloqueado } from './lib/desbloqueios';
 import FloatingScoreLayer from './components/FloatingScoreLayer';
 import BuscaGlobal from './components/BuscaGlobal';
 import { useCommandPalette } from './components/CommandPalette';
@@ -434,9 +435,23 @@ export default function App() {
   /** v3: fila do modal de resgate (nível/conquista) e o contexto único de equipar. */
   const [filaDeRecompensas, setFilaDeRecompensas] = useState<Recompensa[]>([]);
   const [lojaAba, setLojaAba] = useState<string | null>(null);
+  /**
+   * PORTA ÚNICA do Estúdio de Layout (brecha B2, spec galeria-gating-fechado): eram cinco
+   * callsites passando `abrirEstudio` cru — a proteção morava só em QUEM
+   * renderizava o botão, e o Estúdio de nível 10 abria por qualquer entrada nova. Agora o gate
+   * mora na porta: fora do nível, diz o que falta em vez de abrir.
+   */
+  const abrirEstudio = () => {
+    const nivelAtual = progress.available ? progress.level : 1;
+    if (!desbloqueado(nivelAtual, 'estudio', 'abrir')) {
+      toast.warn(`O Estúdio de Layout abre no nível 10 — você está no ${nivelAtual}. Ele também está na Loja.`);
+      return;
+    }
+    setIsStudioOpen(true);
+  };
   // Sem useMemo: os setters são redefinidos a cada render (não são useCallback) e o objeto é barato.
   const equiparCtx: ContextoDeEquipar = {
-    setTheme, setFonte, setMenuPosition, onOpenStudio: () => setIsStudioOpen(true),
+    setTheme, setFonte, setMenuPosition, onOpenStudio: abrirEstudio,
     nivel: progress.available ? progress.level : 1, saldo: progress.available ? progress.seeds : 0,
   };
 
@@ -701,7 +716,7 @@ export default function App() {
       nivel={progress.available ? progress.level : 99}
       darkMode={darkMode}
       toggleDarkMode={toggleDarkMode}
-      onOpenStudio={() => setIsStudioOpen(true)}
+      onOpenStudio={abrirEstudio}
       ageProfile={ageProfile}
       setAgeProfile={setAgeProfile}
       fontScale={fontScale}
@@ -723,7 +738,7 @@ export default function App() {
 
   const mobileControls = {
     theme, setTheme, darkMode, toggleDarkMode,
-    onOpenStudio: () => setIsStudioOpen(true),
+    onOpenStudio: abrirEstudio,
     ageProfile, setAgeProfile,
     fontScale, cycleFontScale,
     menuPosition, setMenuPosition,
@@ -835,7 +850,7 @@ export default function App() {
               setFonte={setFonte}
               menuPosition={menuPosition}
               setMenuPosition={setMenuPosition}
-              onOpenStudio={() => setIsStudioOpen(true)}
+              onOpenStudio={abrirEstudio}
               ctxConquistas={ctxConquistas}
               ageProfile={ageProfile}
               setAgeProfile={setAgeProfile}
@@ -854,7 +869,7 @@ export default function App() {
             <Settings
               theme={theme}
               darkMode={darkMode}
-              onOpenStudio={() => setIsStudioOpen(true)}
+              onOpenStudio={abrirEstudio}
               onReplayTour={() => setOnboarded(false)}
               onAbrirSobre={() => setActiveView('sobre')}
               onChangeView={navigateTo}

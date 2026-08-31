@@ -1,7 +1,7 @@
 ## 1. Protótipos
 
 - [x] 1.1 Página HTML com as 3 direções (impeccable + artifact-design)
-- [ ] 1.2 Escolha do dono
+- [x] 1.2 Escolha do dono — DIREÇÃO A (trilha de temporada), 31/08; versão completa publicada no artifact para aprovação final antes da etapa 2
 
 ## 2. Implementação (após 1.2)
 

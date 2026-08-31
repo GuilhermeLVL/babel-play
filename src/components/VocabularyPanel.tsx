@@ -10,7 +10,9 @@ import { langLabel } from '../lib/languages';
 
 /** Rótulos amigáveis dos motores de tradução — o usuário não deve ler ids técnicos crus. */
 const MT_ENGINE_LABELS: Record<string, string> = {
+  // As duas chaves de propósito: sessões antigas gravaram 'groq-llm'; as novas gravam o id neutro.
   'groq-llm': 'Tradutor IA (servidor)',
+  'server-llm-mt': 'Tradutor IA (servidor)',
   'mymemory': 'MyMemory (web)',
   'opus-mt-local': 'Tradutor local (opus-mt)',
   'chrome-translator': 'Tradutor do navegador',

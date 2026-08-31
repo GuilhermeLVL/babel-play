@@ -52,6 +52,7 @@ export class ServerLlmMt implements TranslationProvider {
     }
     const data = (await res.json()) as { text?: string }
     if (!data.text) throw new Error('Tradutor IA devolveu resposta vazia')
-    return { text: data.text, detectedSourceLang: src || undefined, engine: 'groq-llm' }
+    // O id neutro do próprio adaptador (A5): o servidor pode servir por qualquer provedor da cascata.
+    return { text: data.text, detectedSourceLang: src || undefined, engine: 'server-llm-mt' }
   }
 }

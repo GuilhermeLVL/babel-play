@@ -47,6 +47,6 @@ describe('SaaS Fatia 1b — enforcement MT gerenciado', () => {
     const req = mockReq(asUserId('pro'), { text: 'hello', tgt: 'pt' }), res = mockRes()
     await mtTranslateProxy(req, res)
     expect(res.statusCode).toBe(200)
-    expect(res.body).toMatchObject({ text: 'olá', engine: 'groq-llm' })
+    expect(res.body).toMatchObject({ text: 'olá', engine: 'server-llm-mt' })
   })
 })

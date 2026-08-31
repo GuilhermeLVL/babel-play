@@ -209,11 +209,12 @@ export async function mtTranslateProxy(req: Request, res: Response): Promise<voi
       status: 200, latencyMs: Date.now() - t0, requestId: req.requestId,
     })
     // Procedência no PAYLOAD: a origem diz o modelo que REALMENTE serviu — com a cascata, pode ser
-    // o da reserva. `engine` continua 'groq-llm' por contrato com o cliente (serverLlmMt.ts e
-    // capMetrics chaveiam nele); o rename é o item A5 de PROXIMOS-PASSOS.
+    // o da reserva. `engine` é o id NEUTRO do adaptador (A5): 'groq-llm' mentia quando o provedor
+    // era outro. Sessões antigas gravadas com o rótulo velho seguem legíveis (VocabularyPanel
+    // mantém as duas chaves).
     res.json({
       text: entregue.texto,
-      engine: 'groq-llm',
+      engine: 'server-llm-mt',
       provenance: {
         kind: 'ai',
         origin: entregue.model,

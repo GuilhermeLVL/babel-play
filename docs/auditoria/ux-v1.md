@@ -35,7 +35,24 @@ auditoria anterior). Eles existem na árvore de acessibilidade, mas não na tela
 ali é menor do que a contagem sugeria. Medir pela árvore superestima; olhar só a tela subestima; é
 preciso os dois.
 
-## Backlog de UX — visto, não feito (em ordem de valor)
+## Backlog de UX — TODO EXECUTADO (2026-08-31, commits 13d0e4d..99ad099)
+
+1. Sobreposição de CTAs no Hub → "um número, um dono": com vencidas o pilar cala (a contagem vive
+   no herói) e o 3º "Revisar agora" saiu do painel de estatísticas.
+2. `border-l-4` do trecho ativo na Sessão → fundo tonal + borda completa fina, verificado nos
+   modos claro e escuro (mesmos tokens ⇒ os 12 pares seguem coerentes por construção).
+3. Faixa de progresso no perfil sênior → só Etapa + barra; ofensiva narrada na frase; contadores
+   gêmeos e teaser de recompensa saem.
+4. Pente kids/sênior → a tabela COPY e o Hub já seguiam o registro; único desvio era a frase do
+   herói kids ("Estas 20 você está prestes a esquecer"), reescrita em ordem natural.
+5. Ajustes → um nome ("Ajustes" nos três perfis), um seletor de perfil de IA (o painel rico virou
+   controlável e assumiu persistência + gate Pro; o <select> duplicado saiu), jargão de vendedor
+   removido, e a seção "Seu Perfil de Uso" (persona morta, lida por ninguém) removida.
+
+Bônus da mesma rodada: engine 'server-llm-mt' substitui o rótulo 'groq-llm' que mentia o provedor
+(A5), com as duas chaves mantidas no VocabularyPanel para sessões antigas.
+
+## O backlog original (para referência)
 
 1. **Sobreposição de CTAs no Hub**: o pilar "Exercícios" e a seção "20 palavras prontas para
    revisar" pedem a mesma ação com dois botões diferentes ("Abrir exercícios" / "Revisar agora").

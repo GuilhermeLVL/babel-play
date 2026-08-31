@@ -44,8 +44,15 @@ export default function FaixaDeProgresso({ progress, ageProfile }: { progress: D
   }
 
   const levelWord = ageProfile === 'senior' ? 'Etapa' : 'Nível';
+  /**
+   * PERFIL SÊNIOR: um conceito, não quatro (auditoria de UX, 31/08). NÍVEL + XP + OFENSIVA +
+   * SEEDS de uma vez é exatamente a carga que esse perfil pede para não ter. Fica a etapa com a
+   * barra — a frase abaixo já narra a ofensiva em português corrente quando ela existe — e saem
+   * os contadores gêmeos e o teaser de recompensa da galeria.
+   */
+  const simples = ageProfile === 'senior';
   // v3: a faixa diz para ONDE se vai — o 1º item do próximo nível que libera algo.
-  const proxima = proximaRecompensa(progress.level);
+  const proxima = simples ? null : proximaRecompensa(progress.level);
 
   return (
     <section
@@ -82,7 +89,7 @@ export default function FaixaDeProgresso({ progress, ageProfile }: { progress: D
         </p>
       </div>
 
-      <div className="flex items-center gap-4 shrink-0">
+      {!simples && <div className="flex items-center gap-4 shrink-0">
         <div className="text-center">
           <div className="flex items-center gap-1.5 font-display font-black text-ink text-lg leading-none">
             <Flame className="w-4 h-4 text-warn" aria-hidden /> {progress.streakDays}
@@ -95,7 +102,7 @@ export default function FaixaDeProgresso({ progress, ageProfile }: { progress: D
           </div>
           <div className="label-mono mt-1">Seeds</div>
         </div>
-      </div>
+      </div>}
     </section>
   );
 }

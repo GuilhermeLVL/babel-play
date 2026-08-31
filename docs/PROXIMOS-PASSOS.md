@@ -47,6 +47,13 @@ Estas travam trabalho. Estão detalhadas em `docs/auditoria/decisao-infraestrutu
 
 ---
 
+## ⇒ A PRÓXIMA SESSÃO COMEÇA AQUI
+
+`docs/HANDOFF-PROXIMA-SESSAO.md` tem o prompt pronto para colar numa conversa nova, e a etapa que
+abre a fila é a mudança `auditoria-ux-e-economia-de-recompensas` (auditoria crítica na perspectiva
+do usuário + redesenho da curva de recompensa do passe + perfis salvos + voltar ao original).
+Ela vem ANTES de tudo o que está listado abaixo.
+
 ## Fila de trabalho
 
 ### A — Não depende de nada seu

@@ -836,13 +836,14 @@ export default function App() {
           )}
           {activeView === 'metrics' && (EDICAO_LEVE || !anonimo) && <Metrics recordings={recordings} onChangeView={navigateTo} ageProfile={ageProfile} />}
 
-          {activeView === 'profile' && !anonimo && <Perfil progress={progress} ageProfile={ageProfile} ctxConquistas={ctxConquistas} />}
+          {activeView === 'profile' && !anonimo && <Perfil progress={progress} ageProfile={ageProfile} />}
           {/* Plano e consumo. Diferente do Perfil, aparece TAMBÉM sem conta: é justamente
               quem não tem conta que precisa saber o que um plano daria. */}
           {activeView === 'planos' && <Planos />}
           {activeView === 'sobre' && <Sobre />}
           {activeView === 'loja' && (
             <Loja
+              ctxConquistas={ctxConquistas}
               progress={progress}
               theme={theme}
               setTheme={setTheme}
@@ -851,7 +852,6 @@ export default function App() {
               menuPosition={menuPosition}
               setMenuPosition={setMenuPosition}
               onOpenStudio={abrirEstudio}
-              ctxConquistas={ctxConquistas}
               ageProfile={ageProfile}
               setAgeProfile={setAgeProfile}
               abaInicial={lojaAba}

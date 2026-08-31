@@ -234,7 +234,9 @@ export default function Loja({ progress, theme, setTheme, fonte, setFonte, menuP
                 <div className="min-w-0">
                   <p className="text-[10.5px] uppercase tracking-wider font-black text-ink-faint">{TEXTOS.proximaRecompensa} · {TEXTOS.nivel(proxima.nivel)}</p>
                   <p className="font-bold text-[13.5px] text-ink truncate">{proxima.destaque.nome}{proxima.itens.length > 1 ? <span className="text-ink-muted font-semibold"> +{proxima.itens.length - 1}</span> : null}</p>
-                  <button onClick={() => setAba('progressao')} className="text-[11.5px] text-accent-ink underline cursor-pointer">{TEXTOS.verTudoQueVem}</button>
+                  {/* Apontava para setAba('progressao') — aba que a v4 absorveu no Passe: o clique
+                      deixava a tela sem painel nenhum. */}
+                  <button onClick={() => setAba('passe')} className="text-[11.5px] text-accent-ink underline cursor-pointer">Ver no Passe</button>
                 </div>
               </div>
             )}

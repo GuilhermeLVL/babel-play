@@ -1,13 +1,11 @@
 import { useState } from 'react';
-import { User, TrendingUp, Trophy, ShieldCheck } from 'lucide-react';
+import { User, TrendingUp, ShieldCheck } from 'lucide-react';
 import { Abas, PainelDeAba } from '../ui';
 import { usePerfil } from '../../lib/usePerfil';
 import type { DerivedProgress } from '../../lib/progress';
 import type { AgeProfileType } from '../../lib/profile';
-import type { ContextoDeConquistas } from '@core';
 import AbaVoce from './perfil/AbaVoce';
 import AbaProgresso from './perfil/AbaProgresso';
-import Conquistas from './Conquistas';
 import AbaDados from './perfil/AbaDados';
 
 /**
@@ -31,11 +29,9 @@ import AbaDados from './perfil/AbaDados';
 interface PerfilProps {
   progress: DerivedProgress;
   ageProfile: AgeProfileType;
-  /** Contexto das conquistas (montado no App). `null` enquanto as métricas não chegaram. */
-  ctxConquistas: ContextoDeConquistas | null;
 }
 
-export default function Perfil({ progress, ageProfile, ctxConquistas }: PerfilProps) {
+export default function Perfil({ progress, ageProfile }: PerfilProps) {
   const [aba, setAba] = useState('voce');
   const { perfil } = usePerfil();
 
@@ -64,7 +60,9 @@ export default function Perfil({ progress, ageProfile, ctxConquistas }: PerfilPr
           itens={[
             { id: 'voce', rotulo: 'Você', icone: <User className="w-4 h-4" /> },
             { id: 'progresso', rotulo: 'Progresso', icone: <TrendingUp className="w-4 h-4" /> },
-            { id: 'conquistas', rotulo: 'Conquistas', icone: <Trophy className="w-4 h-4" /> },
+            /* 'Conquistas' saiu do Perfil (v4, 31/08): a MESMA tela vivia aqui e em
+               Personalizar → Desafios — duplicidade que a auditoria do dono pediu para matar.
+               Um lugar só: Desafios. */
             // LGPD art. 18: exportar e excluir existiam no servidor e NENHUMA tela chamava (E5).
             { id: 'dados', rotulo: 'Seus dados', icone: <ShieldCheck className="w-4 h-4" /> },
           ]}
@@ -76,10 +74,6 @@ export default function Perfil({ progress, ageProfile, ctxConquistas }: PerfilPr
 
         <PainelDeAba id="progresso" ativo={aba}>
           <AbaProgresso progress={progress} ageProfile={ageProfile} />
-        </PainelDeAba>
-
-        <PainelDeAba id="conquistas" ativo={aba}>
-          <Conquistas progress={progress} ctx={ctxConquistas} />
         </PainelDeAba>
 
         <PainelDeAba id="dados" ativo={aba}>

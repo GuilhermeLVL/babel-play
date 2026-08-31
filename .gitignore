@@ -78,3 +78,6 @@ docs/auditoria/eval/resultados-*.json
 
 # Corpus FLORES-200 (baixado por scripts/eval-fala/baixar-flores.mjs; manifesto versionado)
 tests/fixtures/flores/*.jsonl
+
+# Saída do grafo (graphify) — reconstruível, não versionar
+graphify-out/

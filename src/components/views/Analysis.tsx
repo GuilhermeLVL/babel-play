@@ -939,7 +939,15 @@ export default function Analysis({
               preload="metadata"
               // O áudio da sessão não tinha `onError`: falha de carga deixava o player parado sem
               // explicação — que é o caminho do achado D1.
-              onError={(e) => toast.error(mediaErrorMessage(e.currentTarget))}
+              onError={(e) => {
+                  /* MediaError code 4 também dispara com src VAZIO (blob ainda carregando) e com
+                     blob revogado (StrictMode desmonta/remonta) — acusar "formato não suportado"
+                     nesses casos era mentira vista em produção (31/08). Sem src, não há o que
+                     reportar ao usuário. */
+                  const el = e.currentTarget;
+                  if (!el.currentSrc && !el.src) return;
+                  toast.error(mediaErrorMessage(el));
+                }}
               onLoadedMetadata={(e) => { const d = e.currentTarget.duration; if (isFinite(d) && d > 0) setAudioDuration(d); }}
               onTimeUpdate={(e) => {
                 const a = e.currentTarget;
@@ -1940,17 +1948,21 @@ export default function Analysis({
                       dado real do deck. Remover as duas seria trocar um erro por outro. */}
                   <SemDado motivo="Lista de expressoes-chave: exige extracao de termos com peso de dominio, que este painel nao calcula. Abaixo, a topologia lexical construida a partir dos cartoes REAIS do seu deck." />
                   
+                  {/* ESCOPO HONESTO (spec metricas-honestas-consertos): o título dizia "da Sessão"
+                      e o scatter plotava o deck INTEIRO — ao contrário do KPI logo acima, que
+                      filtra por sourceSessionId. Agora o filtro existe e, quando a sessão não tem
+                      cartões, o vazio diz isso em vez de mostrar dados de outro escopo. */}
                   <div className="card-panel p-0 overflow-hidden">
                     <div className="p-5 border-b border-border-subtle bg-surface">
                       <h3 className="font-display font-extrabold text-[15px] text-ink flex items-center gap-2">
                         <Brain className="w-4 h-4 text-rare" /> Topologia Lexical da Sessão
                       </h3>
                       <p className="text-[12px] text-ink-muted mt-1">
-                        Cada ponto é um card real do seu deck: caixa Leitner (x) × estabilidade FSRS em dias (y), tamanho pela dificuldade.
+                        Cada ponto é um card salvo A PARTIR desta sessão: caixa Leitner (x) × estabilidade FSRS em dias (y), tamanho pela dificuldade.
                       </p>
                     </div>
                     <div className="p-5 bg-canvas">
-                      {vocabCards.length > 0 ? (
+                      {vocabCards.filter((c) => c.sourceSessionId === recording.id).length > 0 ? (
                         <div className="w-full" style={{ height: 300 }}>
                           <ResponsiveContainer width="100%" height="100%">
                             <ScatterChart margin={{ top: 20, right: 20, bottom: 20, left: -20 }} onClick={(e: any) => { if(e && e.activePayload && e.activePayload.length > 0) { setSelectedLexicalWord(e.activePayload[0].payload.name); } }}>
@@ -1959,7 +1971,7 @@ export default function Analysis({
                               <YAxis type="number" dataKey="y" name="Estabilidade (dias)" stroke="var(--ink-muted)" tick={{ fontSize: 11 }} />
                               <ZAxis type="number" dataKey="z" range={[60, 320]} name="Dificuldade" />
                               <Tooltip cursor={{ strokeDasharray: '3 3', stroke: 'var(--accent)', opacity: 0.5 }} contentStyle={{ backgroundColor: 'var(--surface)', borderColor: 'var(--border-subtle)', borderRadius: '8px', color: 'var(--ink)' }} itemStyle={{ fontSize: '12px', fontWeight: 'bold' }} />
-                              <Scatter name="Vocabulário" data={vocabCards.map((c) => ({
+                              <Scatter name="Vocabulário" data={vocabCards.filter((c) => c.sourceSessionId === recording.id).map((c) => ({
                                 name: c.word,
                                 x: c.leitnerBox ?? 1,
                                 y: Math.round(((c.fsrsStability ?? c.stability ?? 0) as number) * 10) / 10,
@@ -1974,7 +1986,9 @@ export default function Analysis({
                             <Brain className="w-6 h-6" />
                           </div>
                           <p className="text-[13px] font-medium max-w-xs leading-relaxed">
-                            Nenhum vocábulo no deck ainda. Passe o mouse sobre um termo na transcrição e adicione-o para ver a topologia real.
+                            {vocabCards.length > 0
+                              ? 'Nenhum cartão do seu deck veio DESTA sessão. Passe o mouse sobre um termo na transcrição e adicione-o para ver a topologia dela.'
+                              : 'Nenhum vocábulo no deck ainda. Passe o mouse sobre um termo na transcrição e adicione-o para ver a topologia real.'}
                           </p>
                         </div>
                       )}

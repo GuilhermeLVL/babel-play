@@ -19,7 +19,9 @@ export function mediaErrorMessage(el: HTMLMediaElement | null): string {
     case 1: return 'A carga do áudio foi abortada.';
     case 2: return 'Erro de rede ao baixar o áudio desta sessão.';
     case 3: return 'O áudio desta sessão está corrompido e não pôde ser decodificado.';
-    case 4: return 'O navegador não suporta o formato do áudio desta sessão.';
+    /* Code 4 NÃO é só codec: um blob revogado (remontagem do React) e um src que sumiu caem
+       aqui também. A mensagem admite as duas causas e dá a ação barata primeiro. */
+    case 4: return 'Não consegui reproduzir este áudio. Recarregar a página costuma resolver; se persistir, o navegador não suporta este formato.';
     default: return 'Não foi possível carregar o áudio desta sessão.';
   }
 }

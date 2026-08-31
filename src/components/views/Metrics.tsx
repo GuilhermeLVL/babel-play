@@ -262,8 +262,12 @@ export default function Metrics({ recordings, onChangeView, ageProfile = 'pro' }
     for (const c of vocabCards) {
       const estabilidade = Number(c.fsrsStability ?? c.stability ?? 0);
       const ultima = Number(c.lastReview ?? 0);
-      if (!(estabilidade > 0)) { semEstabilidade++; continue; }
+      /* A ORDEM decide o balde, e a antiga mentia: cartão NOVO (sem revisão E sem estabilidade)
+         caía em "sem estabilidade", forçando a frase "0 nunca foram revisados" num deck de 201
+         novos — visto em produção em 31/08. "Nunca revisado" é a causa raiz e vem primeiro;
+         "sem estabilidade" fica para o caso raro de cartão revisado sem FSRS (legado Leitner). */
       if (!(ultima > 0)) { semRevisao++; continue; }
+      if (!(estabilidade > 0)) { semEstabilidade++; continue; }
       const dias = Math.max(0, (now - ultima) / 86_400_000);
       comRetencao.push({ card: c, retencaoPct: Math.round(retrievability(dias, estabilidade) * 100) });
     }
@@ -577,7 +581,11 @@ export default function Metrics({ recordings, onChangeView, ageProfile = 'pro' }
                       compacto
                       motivo={lowRetentionAnalysis.totalDeck === 0
                         ? 'Seu deck ainda está vazio, sem cartões, não há retenção para ranquear.'
-                        : `Nenhum dos ${lowRetentionAnalysis.totalDeck} cartões tem retenção calculável ainda: ${lowRetentionAnalysis.semRevisao} nunca foram revisados e ${lowRetentionAnalysis.semEstabilidade} não têm estabilidade FSRS. Revise alguns cartões no Estudo para começar a ver este ranqueamento.`}
+                        : `Nenhum dos ${lowRetentionAnalysis.totalDeck} cartões tem retenção calculável ainda${
+                            lowRetentionAnalysis.semRevisao > 0
+                              ? ` — ${lowRetentionAnalysis.semRevisao === lowRetentionAnalysis.totalDeck ? 'nenhum' : `${lowRetentionAnalysis.totalDeck - lowRetentionAnalysis.semRevisao} de ${lowRetentionAnalysis.totalDeck}`} foi revisado`
+                              : ''
+                          }. Revise alguns cartões no Estudo para começar a ver este ranqueamento.`}
                     />
                   </div>
                 )}
@@ -780,9 +788,11 @@ export default function Metrics({ recordings, onChangeView, ageProfile = 'pro' }
                     </div>
                   </div>
                 ) : (
-                  <SemDado compacto motivo={`{englishCorpus.totalFalas === 0
+                  // Era uma template string com o ternário DENTRO das crases — o usuário lia
+                  // código-fonte na tela (visto em 31/08).
+                  <SemDado compacto motivo={englishCorpus.totalFalas === 0
                       ? 'Nenhuma fala capturada ainda, grave ou importe uma sessão para medir complexidade.'
-                      : 'Nenhuma das falas capturadas está em inglês, a heurística de complexidade só vale para inglês.'}`} />
+                      : 'Nenhuma das falas capturadas está em inglês, a heurística de complexidade só vale para inglês.'} />
                 )}
               </div>
 

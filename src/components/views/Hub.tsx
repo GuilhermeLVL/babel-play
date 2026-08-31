@@ -1,5 +1,6 @@
 import { Mic, Upload, ArrowRight, Sparkles, TrendingUp, AlertTriangle, Video, FileText, Headphones, ChevronDown, ChevronUp, Gamepad2, Target, Sprout, Rocket, Eye, Zap, Check } from 'lucide-react';
 import { EDICAO_LEVE } from '../../lib/edicao';
+import { getEntitlements } from '../../lib/entitlements';
 import React, { useState, useEffect, useRef } from 'react';
 import { Recording } from '../../types';
 import { fetchSettings, patchUiSettings, fetchExerciseResults, type AppMetrics } from '../../data/api';
@@ -131,7 +132,9 @@ export default function Hub({ onChangeView, recordings, ageProfile = 'pro', prog
         <span className="label-mono text-accent flex items-center gap-1.5">
           {ageProfile === 'kids' ? <Gamepad2 className="w-3.5 h-3.5" aria-hidden /> : ageProfile === 'senior' ? <Eye className="w-3.5 h-3.5" aria-hidden /> : <Zap className="w-3.5 h-3.5" aria-hidden />}
           <span>
-            {ageProfile === 'kids' ? 'Central do jogador' : ageProfile === 'senior' ? 'Aprendizado fácil' : 'Painel de performance'}
+            {/* "Painel de performance" era jargão corporativo na tela de boas-vindas (auditoria de UX,
+              31/08): o registro de produto pede que a ferramenta desapareça na tarefa. */}
+          {ageProfile === 'kids' ? 'Central do jogador' : ageProfile === 'senior' ? 'Aprendizado fácil' : 'Seu estudo'}
           </span>
         </span>
         <h1 className="font-display font-black text-3xl md:text-4xl text-ink tracking-tight mt-1 mb-1 text-balance">
@@ -242,7 +245,7 @@ export default function Hub({ onChangeView, recordings, ageProfile = 'pro', prog
                 ? `Estas ${agora} você está prestes a esquecer`
                 : ageProfile === 'senior'
                   ? `${agora} palavras estão na hora de rever`
-                  : `${agora} palavras venceram no agendador`}
+                  : `${agora} palavras prontas para revisar`}
             </h2>
             <p className="text-[13px] text-ink-muted mt-1.5">
               {rotuloDeDuracao(estimativaDeMinutos(agora, temposMedidos))}
@@ -286,10 +289,12 @@ export default function Hub({ onChangeView, recordings, ageProfile = 'pro', prog
               <TrendingUp className="w-4 h-4" />
             </div>
             <div className="text-left">
-              <span className="text-[10px] font-mono uppercase tracking-wider font-bold text-ink-muted">Relatório Executivo</span>
-              <h4 className="font-display font-black text-xs md:text-sm mt-0.5 tracking-tight uppercase text-ink">
-                {showDetailedStats ? 'Colapsar Relatório de Performance' : 'Visualizar Relatório de Performance Detalhada'}
-              </h4>
+              {/* Era um triplo rótulo gritado ("RELATÓRIO EXECUTIVO" + "VISUALIZAR RELATÓRIO DE
+                  PERFORMANCE DETALHADA" + "Expandir") — o leitor de tela anunciava os três de uma
+                  vez. Um botão de expandir precisa de UM nome; o chevron e o "Expandir" já dizem o
+                  estado. */}
+              <h4 className="font-display font-bold text-sm text-ink">Estatísticas detalhadas</h4>
+              <span className="text-[11.5px] text-ink-muted">Retenção, tempo de estudo e evolução semanal</span>
             </div>
           </div>
           <div className="flex items-center gap-1.5 text-xs font-mono font-bold text-ink-muted">
@@ -298,6 +303,21 @@ export default function Hub({ onChangeView, recordings, ageProfile = 'pro', prog
           </div>
         </button>
       </div>
+
+      {/* DESCOBRIBILIDADE DO PLANO (auditoria de UX, 31/08). A tela de Planos só existia atrás do
+          menu do avatar, e nem o dono a achou. Uma LINHA discreta, só para quem está no Grátis:
+          upgrade é informação, não banner — o registro de produto proíbe gritar. */}
+      {!EDICAO_LEVE && (getEntitlements().plan === 'free' || getEntitlements().plan === 'anonimo') && (
+        <p className="text-[12.5px] text-ink-muted -mt-4 mb-8">
+          Você está no plano Grátis — tudo roda no seu computador.{' '}
+          <button
+            onClick={() => onChangeView('planos')}
+            className="font-bold text-accent-ink underline decoration-dotted underline-offset-4 cursor-pointer"
+          >
+            Conhecer os planos
+          </button>
+        </p>
+      )}
 
       {/* Progress Dashboard & Metrics — só quando expandido */}
       {showDetailedStats && (

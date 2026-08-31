@@ -700,7 +700,6 @@ export default function App() {
       onOpenStudio={() => setIsStudioOpen(true)}
       ageProfile={ageProfile}
       setAgeProfile={setAgeProfile}
-      onToggleChat={() => setIsChatOpen((prev) => !prev)}
       fontScale={fontScale}
       increaseFontScale={increaseFontScale}
       decreaseFontScale={decreaseFontScale}
@@ -723,7 +722,6 @@ export default function App() {
     theme, setTheme, darkMode, toggleDarkMode,
     onOpenStudio: () => setIsStudioOpen(true),
     ageProfile, setAgeProfile,
-    onToggleChat: () => setIsChatOpen((prev) => !prev),
     fontScale, increaseFontScale, decreaseFontScale,
     menuPosition, setMenuPosition,
     fonte, setFonte,

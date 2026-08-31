@@ -1,19 +1,16 @@
 import React from 'react';
 import { EDICAO_LEVE } from '../../lib/edicao';
 import {
-  Bot,
   Sun,
   Moon,
   Plus,
   Minus,
-  Volume2,
-  VolumeX,
   Search,
-  Gauge,
   Sparkles } from 'lucide-react';
 import type { ThemeType, FonteType } from '../../lib/appearance';
 import type { AgeProfileType, MenuPositionType } from './navItems';
 import MenuDaConta from './MenuDaConta';
+import MenuDeConforto from './MenuDeConforto';
 
 export type FontScale = 'sm' | 'md' | 'lg' | 'xl';
 
@@ -25,7 +22,6 @@ export interface ControlClusterProps {
   onOpenStudio: () => void;
   ageProfile: AgeProfileType;
   setAgeProfile: (profile: AgeProfileType) => void;
-  onToggleChat: () => void;
   fontScale: FontScale;
   increaseFontScale: () => void;
   decreaseFontScale: () => void;
@@ -107,7 +103,6 @@ export default function ControlCluster(props: ControlClusterProps) {
   const {
     darkMode,
     toggleDarkMode,
-    onToggleChat,
     fontScale,
     increaseFontScale,
     decreaseFontScale,
@@ -183,53 +178,23 @@ export default function ControlCluster(props: ControlClusterProps) {
 
       <div className={orientation === 'column' ? 'hidden' : 'w-px h-5 bg-border-subtle/70 mx-1'} />
 
-      {/* Som de interface */}
-      <IconButton
-        onClick={() => toggleSound()}
-        title={soundEnabled ? 'Silenciar os sons da interface' : 'Ativar os sons da interface'}
-        active={soundEnabled}
-        tone="good"
-      >
-        {soundEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
-      </IconButton>
+      {/* Som, animações e desempenho — preferências raras, agrupadas num popover COM RÓTULOS
+          (auditoria de UX, 31/08): oito ícones soltos no cabeçalho exigiam decifração; três deles
+          a maioria toca uma vez. Ver MenuDeConforto. */}
+      <MenuDeConforto
+        soundEnabled={soundEnabled}
+        toggleSound={toggleSound}
+        animationsEnabled={animationsEnabled}
+        toggleAnimations={click(toggleAnimations)}
+        performanceMode={performanceMode}
+        togglePerformanceMode={click(togglePerformanceMode)}
+        orientation={orientation}
+      />
 
-      {/* Animações e efeitos */}
-      <IconButton
-        onClick={click(toggleAnimations)}
-        title={animationsEnabled ? 'Parar as animações e os efeitos' : 'Ativar as animações e os efeitos'}
-        active={animationsEnabled}
-        tone="accent"
-      >
-        <Sparkles className={`w-4 h-4 ${animationsEnabled ? '' : 'opacity-50'}`} />
-      </IconButton>
-
-      {/* Modo desempenho */}
-      <IconButton
-        onClick={click(togglePerformanceMode)}
-        title={
-          performanceMode
-            ? 'Modo desempenho ligado, visual simplificado para PCs modestos'
-            : 'Ligar o modo desempenho (visual simplificado, app mais leve)'
-        }
-        active={performanceMode}
-        tone="warn"
-      >
-        <Gauge className="w-4 h-4" />
-      </IconButton>
-
-      <div className={orientation === 'column' ? 'hidden' : 'w-px h-5 bg-border-subtle/70 mx-1'} />
-
-      {/* Tutor — depende de /api/gemini/chat; na edição leve não há API. */}
-      {!EDICAO_LEVE && <button
-        type="button"
-        onClick={click(onToggleChat)}
-        title="Abrir o tutor BabelBot"
-        aria-label="Abrir o tutor BabelBot"
-        className="w-9 h-9 rounded-lg text-accent-ink hover:bg-surface-hover flex items-center justify-center transition-colors relative cursor-pointer shrink-0"
-      >
-        <Bot className="w-4 h-4" />
-        <span aria-hidden className="absolute top-1.5 right-1.5 w-1.5 h-1.5 bg-good rounded-full" />
-      </button>}
+      {/* O botão do tutor SAIU daqui (auditoria de UX, 31/08): ele e o balão flutuante do iChat
+          abriam o MESMO painel com dois nomes diferentes ("BabelBot" aqui, "iChat" lá) — duas
+          portas com placas distintas para a mesma sala é atrito puro. O balão flutuante fica,
+          porque carrega contexto ("sintonizado com…") e está sempre visível. */}
 
       {/* Claro / escuro */}
       <IconButton onClick={click(toggleDarkMode)} title={darkMode ? 'Mudar para o modo claro' : 'Mudar para o modo escuro'}>

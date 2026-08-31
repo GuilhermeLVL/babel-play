@@ -21,7 +21,6 @@ interface StudioHeaderProps {
   onOpenStudio: () => void;
   ageProfile: AgeProfileType;
   setAgeProfile: (profile: AgeProfileType) => void;
-  onToggleChat: () => void;
   fontScale: FontScale;
   increaseFontScale: () => void;
   decreaseFontScale: () => void;
@@ -55,7 +54,6 @@ export default function StudioHeader({
   onOpenStudio,
   ageProfile,
   setAgeProfile,
-  onToggleChat,
   fontScale,
   increaseFontScale,
   decreaseFontScale,
@@ -86,7 +84,6 @@ export default function StudioHeader({
     onOpenStudio,
     ageProfile,
     setAgeProfile,
-    onToggleChat,
     fontScale,
     increaseFontScale,
     decreaseFontScale,

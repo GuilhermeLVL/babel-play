@@ -485,6 +485,12 @@ export default function Settings({
                   {entitlements.armazenamento.teto === null ? ' (sem teto)' : ` de ${Math.round(entitlements.armazenamento.teto / 1_048_576)} MB`}
                 </p>
               )}
+              {/* DESCOBRIBILIDADE (auditoria de UX, 31/08): a tela de Planos existia e o próprio
+                  dono do produto não a encontrou — ela só vivia atrás do menu do avatar. Este é o
+                  primeiro dos dois caminhos visíveis (o outro está no Hub). */}
+              <button onClick={() => onChangeView('planos')} className="btn-outline mt-1 mb-2">
+                Ver planos e preços
+              </button>
               <p className="text-[11px] text-ink-faint mt-2">
                 Gates do plano Grátis: importação do YouTube e nuvem gerenciada viram “Pro” (com selo e explicação, nada some).
                 Rodando no seu computador (self-host), tudo é liberado.

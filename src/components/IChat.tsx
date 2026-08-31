@@ -650,8 +650,8 @@ ${TUTOR_REGISTER[ageProfile]}`;
           /* Compacto no celular: com o rótulo, este botão cobria o CTA principal do Hub numa
              tela de 390px. Vira um círculo de ícone, que é o que cabe. */
           className="fixed z-40 p-4 rounded-full shadow-2xl flex items-center justify-center gap-2 hover:scale-105 active:scale-95 transition-all cursor-pointer group border bg-rare-soft hover:brightness-95 text-rare-ink border-rare"
-          title="iChat: Tutor Inteligente de Business English"
-          aria-label="Abrir o iChat, tutor inteligente"
+          title="iChat — seu tutor de estudos"
+          aria-label="Abrir o iChat, seu tutor de estudos"
         >
           <Sparkles className="w-5 h-5 fill-rare-ink group-hover:rotate-12 transition-all duration-300 text-rare-ink" />
           <span className="hidden sm:inline text-xs font-bold font-display pr-1">iChat</span>

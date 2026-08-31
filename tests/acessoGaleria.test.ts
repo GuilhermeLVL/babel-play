@@ -68,8 +68,6 @@ describe('mapa de acesso da galeria — a mesma régua da Loja', () => {
 })
 
 /* ── Brechas fechadas (spec galeria-gating-fechado, 31/08) ── */
-import { acessoAoCursorDeEmoji } from '../src/lib/galeria/acesso';
-
 describe('brecha B3 — emoji fora do catálogo não é liberado por ausência', () => {
   it('o gate do "qualquer emoji" existe e NÃO é livre no nível 1', () => {
     const a = acessoAoCursorDeEmoji(1, 0);

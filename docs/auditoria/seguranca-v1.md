@@ -100,3 +100,22 @@ perseguindo.
 - A superfície de autenticação **não foi reauditada**: as auditorias anteriores (F15-01, P0-1, S-01)
   estão registradas no código com correções aplicadas, e refazê-las seria a duplicação que este
   trabalho vem evitando.
+
+
+---
+
+## Adendo (31/08, tarde) — Semgrep rodado: a lacuna fechou
+
+O Docker voltou e o Semgrep rodou via container (`p/security-audit` + `p/secrets` +
+`p/typescript`): **212 regras, 514 arquivos, 2 achados — ambos falsos positivos** contra código
+já endurecido:
+
+1. `sessions.ts:102` `res.send(capa.bytes)` (regra de XSS por escrita direta): é exatamente o
+   vetor do SVG que uma auditoria anterior encontrou E fechou — `lerCapaEmbutida` só aceita a
+   lista FECHADA de subtipos (`png/jpeg/jpg/gif/webp/avif`, `capaDeSessao.ts`), então `svg+xml`
+   nunca vira Content-Type. A regra genérica não enxerga a allowlist.
+2. `scripts/eval-fala/baixar-corpus.py:60` `urlopen` (auditoria de rede): URL CONSTANTE do
+   HuggingFace num script offline de medição — não há entrada de usuário.
+
+Com isso, a varredura planejada está completa: gitleaks ✅, Trivy ✅, ast-grep ✅, audit:gate ✅,
+Semgrep ✅.

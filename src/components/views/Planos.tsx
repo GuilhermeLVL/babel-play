@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Check, Minus, Cloud, Cpu } from 'lucide-react';
+import { Check, Minus, Cloud, Cpu, Sparkles } from 'lucide-react';
 import { Abas, PainelDeAba, Barra, Vazio } from '../ui';
 import { getEntitlements, onPlanChange, PLAN_LABELS } from '../../lib/entitlements';
 import { carregarUso, fracao, duracaoLegivel, type UsoDoMes } from '../../lib/uso';
@@ -22,47 +22,56 @@ import { carregarUso, fracao, duracaoLegivel, type UsoDoMes } from '../../lib/us
  * lugar marcado abaixo.
  */
 
-/** Uma linha do comparativo. `pro` ausente = igual ao grátis. */
+/** Uma linha do comparativo, com uma célula por plano vendável. */
 interface Recurso {
   nome: string;
   gratis: string | boolean;
+  essencial: string | boolean;
   pro: string | boolean;
   /** De onde saiu o número, quando é medido. Aparece como nota abaixo da tabela. */
   fonte?: string;
 }
 
+/*
+ * O ESSENCIAL vende UMA coisa, e é a maior queixa medida: tradução contextualizada (idiomático
+ * 27%→83%). A transcrição continua local — é isso que o deixa a R$ 9,90. Números de
+ * docs/auditoria/eval-producao-v1.md; a fonte de cada um fica visível na própria tabela.
+ */
 const RECURSOS: Recurso[] = [
-  { nome: 'Captura ao vivo (microfone e áudio do sistema)', gratis: true, pro: true },
-  { nome: 'Tradução no seu navegador', gratis: true, pro: true },
-  { nome: 'Identificação de falantes', gratis: true, pro: true },
-  { nome: 'Jogos, vocabulário e revisão', gratis: true, pro: true },
-  {
-    nome: 'Erro de transcrição em português falado',
-    gratis: '57%',
-    pro: '24%',
-    fonte: 'WER medido em 48 falas espontâneas do corpus CORAA',
-  },
+  { nome: 'Captura ao vivo (microfone e áudio do sistema)', gratis: true, essencial: true, pro: true },
+  { nome: 'Identificação de falantes', gratis: true, essencial: true, pro: true },
+  { nome: 'Jogos, vocabulário e revisão', gratis: true, essencial: true, pro: true },
   {
     nome: 'Qualidade de tradução (geral)',
     gratis: '57%',
+    essencial: '85%',
     pro: '85%',
     fonte: 'chrF++ no gold set de fenômenos de conversa',
   },
   {
     nome: 'Expressões idiomáticas',
     gratis: '27%',
+    essencial: '83%',
     pro: '83%',
     fonte: '"Break a leg" vira "Boa sorte", não "Quebre uma perna"',
   },
   {
-    nome: 'Download inicial de modelos',
-    gratis: '230 a 413 MB',
-    pro: 'nenhum',
-    fonte: 'os modelos rodam no servidor; o navegador não baixa nada',
+    nome: 'Erro de transcrição em português falado',
+    gratis: '57%',
+    essencial: '57%',
+    pro: '24%',
+    fonte: 'WER medido em 48 falas espontâneas do corpus CORAA',
   },
-  { nome: 'Importar do YouTube', gratis: false, pro: true },
-  { nome: 'Suas sessões guardadas na conta', gratis: '500 MB', pro: '5 GB' },
-  { nome: 'Sua própria chave de IA (BYOK)', gratis: true, pro: true },
+  {
+    nome: 'Modelos para baixar no primeiro uso',
+    gratis: '230 a 413 MB',
+    essencial: '230 a 300 MB',
+    pro: 'nenhum',
+    fonte: 'no Pro a transcrição também roda no servidor; o navegador não baixa nada',
+  },
+  { nome: 'Importar do YouTube', gratis: false, essencial: false, pro: true },
+  { nome: 'Suas sessões guardadas na conta', gratis: '500 MB', essencial: '1 GB', pro: '5 GB' },
+  { nome: 'Sua própria chave de IA (BYOK)', gratis: true, essencial: true, pro: true },
 ];
 
 function Marca({ v }: { v: string | boolean }) {
@@ -159,8 +168,13 @@ export default function Planos() {
                   <th className="text-center font-semibold text-ink pb-3 px-3 whitespace-nowrap">
                     <Cpu size={14} className="inline mr-1" aria-hidden />Grátis
                   </th>
+                  <th className="text-center font-semibold text-ink pb-3 px-3 whitespace-nowrap">
+                    <Sparkles size={14} className="inline mr-1" aria-hidden />Essencial
+                    <span className="block text-[11px] font-normal text-ink-muted">R$ 9,90/mês</span>
+                  </th>
                   <th className="text-center font-semibold text-accent pb-3 px-3 whitespace-nowrap">
                     <Cloud size={14} className="inline mr-1" aria-hidden />Pro
+                    <span className="block text-[11px] font-normal text-ink-muted">R$ 19,90/mês</span>
                   </th>
                 </tr>
               </thead>
@@ -172,6 +186,7 @@ export default function Planos() {
                       {r.fonte && <span className="block text-[11px] text-ink-faint mt-0.5">{r.fonte}</span>}
                     </td>
                     <td className="py-3 px-3 text-center"><Marca v={r.gratis} /></td>
+                    <td className="py-3 px-3 text-center"><Marca v={r.essencial} /></td>
                     <td className="py-3 px-3 text-center"><Marca v={r.pro} /></td>
                   </tr>
                 ))}
@@ -188,8 +203,9 @@ export default function Planos() {
 
           <p className="text-[12px] text-ink-muted mt-2 leading-relaxed">
             O plano grátis roda tudo <strong className="text-ink">no seu computador</strong>: nada do
-            que você fala sai do navegador. O Pro processa no servidor, o que traz a qualidade acima
-            e dispensa o download dos modelos.
+            que você fala sai do navegador. O Essencial manda só a <strong className="text-ink">tradução</strong> para
+            o servidor — a fala continua transcrita localmente. O Pro processa tudo no servidor, o
+            que traz a qualidade acima e dispensa o download dos modelos.
           </p>
 
           {/* AQUI ENTRA O BOTÃO DE ASSINAR quando houver provedor de pagamento e webhook. Enquanto

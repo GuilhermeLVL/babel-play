@@ -5,7 +5,10 @@ import { subscriptions } from '../schema'
 import type { UserId } from '../../lib/authContext'
 
 export type Subscription = typeof subscriptions.$inferSelect
-export type Plan = 'free' | 'pro' | 'selfhost'
+import type { PlanoDeAssinatura } from '../../../src/core/planos'
+// O tipo deriva da MATRIZ (src/core/planos.ts) — era uma união escrita à mão aqui, uma das
+// cinco cópias que a mudança planos-essencial consolidou.
+export type Plan = PlanoDeAssinatura
 export type SubStatus = 'trialing' | 'active' | 'past_due' | 'canceled'
 
 export interface SubscriptionPatch {

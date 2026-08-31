@@ -7,6 +7,7 @@ import type { UserId } from './authContext'
 import { getPlanForUser } from './entitlements'
 import type { Plan } from '../db/repositories/subscriptions'
 import { usageCountersRepo } from '../db/repositories/usageCounters'
+import { PLAN_MATRIX } from '../../src/core/planos'
 import { log } from './logger'
 
 export const METRIC_MANAGED = 'managed_calls'
@@ -19,6 +20,19 @@ export const METRIC_LLM_TOKENS = 'llm_tokens'
 function currentWindow(): string {
   return new Date().toISOString().slice(0, 7)
 }
+
+/**
+ * Override numérico por env, com o default vindo da MATRIZ. `null` na matriz = sem teto
+ * (Infinity). A semântica antiga não muda: env definida e válida vence o default.
+ */
+function tetoComEnv(padrao: number | null, envNome: string): number {
+  const n = Number(process.env[envNome])
+  if (Number.isFinite(n) && n > 0) return n
+  return padrao === null ? Infinity : padrao
+}
+
+/** Env de quota por plano: `PRO_MONTHLY_MANAGED_CALLS`, `ESSENCIAL_MONTHLY_MANAGED_CALLS`… */
+const envDoPlano = (plan: Plan, sufixo: string): string => `${plan.toUpperCase()}_${sufixo}`
 
 /**
  * Teto mensal de CHAMADAS gerenciadas. selfhost ∞; pro do env; demais 0 (o free já é barrado antes,
@@ -37,12 +51,7 @@ function currentWindow(): string {
  * megabytes. O teto de gasto real é o de segundos, em `capSegundosParaPlano`.
  */
 export function capForPlan(plan: Plan): number {
-  if (plan === 'selfhost') return Infinity
-  if (plan === 'pro') {
-    const n = Number(process.env.PRO_MONTHLY_MANAGED_CALLS)
-    return Number.isFinite(n) && n > 0 ? n : 12_000
-  }
-  return 0
+  return tetoComEnv(PLAN_MATRIX[plan].quotas.chamadasMes, envDoPlano(plan, 'MONTHLY_MANAGED_CALLS'))
 }
 
 /**
@@ -105,12 +114,7 @@ export async function refundManagedCall(userId: UserId): Promise<void> {
  * docs/auditoria/eval-producao-v1.md, e a US$ 0,04/hora custa ~US$ 0,67/mês com o mínimo faturado.
  */
 export function capSegundosParaPlano(plan: Plan): number {
-  if (plan === 'selfhost') return Infinity
-  if (plan === 'pro') {
-    const n = Number(process.env.PRO_MONTHLY_STT_SECONDS)
-    return Number.isFinite(n) && n > 0 ? n : 36_000
-  }
-  return 0
+  return tetoComEnv(PLAN_MATRIX[plan].quotas.sttSegundosMes, envDoPlano(plan, 'MONTHLY_STT_SECONDS'))
 }
 
 /**

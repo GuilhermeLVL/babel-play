@@ -5,6 +5,7 @@
  */
 import { Router } from 'express'
 import { z } from 'zod'
+import { PLANOS_DE_ASSINATURA, type PlanoDeAssinatura } from '../../src/core/planos'
 import { usersRepo } from '../db/repositories/users'
 import { subscriptionsRepo } from '../db/repositories/subscriptions'
 import { requireRole } from '../lib/rbac'
@@ -52,7 +53,7 @@ adminRouter.patch('/users/:id', requireRole('admin'), async (req, res) => {
   res.json(await usersRepo.get(target))
 })
 
-const planSchema = z.object({ plan: z.enum(['free', 'pro', 'selfhost']) }).strip()
+const planSchema = z.object({ plan: z.enum(PLANOS_DE_ASSINATURA as unknown as [PlanoDeAssinatura, ...PlanoDeAssinatura[]]) }).strip() // deriva da matriz
 
 adminRouter.patch('/users/:id/plan', requireRole('admin'), async (req, res) => {
   const parsed = planSchema.safeParse(req.body ?? {})

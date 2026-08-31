@@ -47,8 +47,12 @@ beforeAll(async () => {
   ])
 
   await db.insert(schema.utterances).values([
-    { id: 'u1', ...meta, sessionId: SESSAO_A, idx: 0, tStartMs: 0, tEndMs: 10_000, sourceText: 'one two three four five' },
-    { id: 'u2', ...meta, sessionId: SESSAO_B, idx: 0, tStartMs: 0, tEndMs: 10_000, sourceText: 'six seven' },
+    // `source: 'mic'` explícito: desde a spec progresso-de-idioma, speakingMs é SÓ a voz do
+    // usuário; fala sem source cai em listeningMs (inflar o ativo seria o erro pior).
+    { id: 'u1', ...meta, sessionId: SESSAO_A, idx: 0, tStartMs: 0, tEndMs: 10_000, source: 'mic', sourceText: 'one two three four five' },
+    { id: 'u2', ...meta, sessionId: SESSAO_B, idx: 0, tStartMs: 0, tEndMs: 10_000, source: 'mic', sourceText: 'six seven' },
+    // Áudio de terceiro ('tab') na sessão A: NÃO pode entrar no speakingMs.
+    { id: 'u3', ...meta, sessionId: SESSAO_A, idx: 1, tStartMs: 0, tEndMs: 5_000, source: 'tab', sourceText: 'video audio words' },
   ])
 })
 
@@ -83,6 +87,12 @@ describe('computeProfile aceita escopo de sessão', () => {
     const a = await computeProfile(OWNER, { sessionId: SESSAO_A })
     expect(g.speakingMs).toBe(20_000)
     expect(a.speakingMs).toBe(10_000)
+  })
+
+  it("ativo × passivo: 'tab' vai para listeningMs e fica fora do speakingMs", async () => {
+    const a = await computeProfile(OWNER, { sessionId: SESSAO_A })
+    expect(a.speakingMs).toBe(10_000)
+    expect(a.listeningMs).toBe(5_000)
   })
 
   it('`base` diz sobre quantos itens a métrica foi calculada', async () => {

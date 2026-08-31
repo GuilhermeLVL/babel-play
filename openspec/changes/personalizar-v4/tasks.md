@@ -1,6 +1,6 @@
 ## 1. Protótipos
 
-- [ ] 1.1 Página HTML com as 3 direções (impeccable + artifact-design)
+- [x] 1.1 Página HTML com as 3 direções (impeccable + artifact-design)
 - [ ] 1.2 Escolha do dono
 
 ## 2. Implementação (após 1.2)

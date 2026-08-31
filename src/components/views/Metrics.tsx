@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
+import { baixarRelatorio } from '../../lib/relatorioDeProgresso';
 import { useExameDePalavra } from '../../lib/useExameDePalavra';
 import { ficharPalavraDoAnalista } from '../../lib/adicionarAoDeck';
 import { fetchMetrics, fetchDeck, fetchAllUtterances, type AppMetrics, type UtteranceRow } from '../../data/api';
@@ -352,7 +353,13 @@ export default function Metrics({ recordings, onChangeView, ageProfile = 'pro' }
                 )}
               </p>
             </div>
-            <button className="flex items-center gap-2 px-4 py-2 bg-surface border border-border-subtle rounded-lg text-xs md:text-sm font-bold text-ink hover:bg-surface-hover hover:border-ink transition-colors shadow-sm cursor-pointer">
+            {/* Este botão existia SEM onClick — controle falso (achado da spec
+                progresso-de-idioma). Agora exporta de verdade: um .txt gerado dos dados reais
+                (palavras difíceis, tempo ativo × passivo, ritmo), pensado para sair do app. */}
+            <button
+              onClick={() => { if (metrics) { baixarRelatorio(metrics); } }}
+              disabled={!metrics}
+              className="flex items-center gap-2 px-4 py-2 bg-surface border border-border-subtle rounded-lg text-xs md:text-sm font-bold text-ink hover:bg-surface-hover hover:border-ink transition-colors shadow-sm cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">
               <Download className="w-4 h-4" /> {ageProfile === 'kids' ? 'Baixar Palavras' : ageProfile === 'senior' ? 'Exportar Meu Caderno' : 'Exportar Relatório'}
             </button>
           </div>
@@ -591,6 +598,38 @@ export default function Metrics({ recordings, onChangeView, ageProfile = 'pro' }
                 )}
               </div>
             </div>
+
+            {/* SUAS PALAVRAS DIFÍCEIS (spec progresso-de-idioma): o schema gravava lapses,
+                dificuldade FSRS e o grade de cada revisão — e nada mostrava. O ranking vem
+                pronto do servidor (>= 2 revisões por cartão; base fraca fica de fora e o vazio
+                diz isso). Diferente do "Requer Atenção" (retenção decaindo AGORA), este é o
+                histórico do que o usuário mais ERRA. */}
+            {(metrics?.palavrasDificeis?.length ?? 0) > 0 && (
+              <div className="card-panel p-6">
+                <div className="flex justify-between items-center mb-1 flex-wrap gap-2">
+                  <h3 className="font-display font-extrabold text-[16px] text-ink flex items-center gap-2">
+                    <Target className="w-5 h-5 text-error-ink" /> Suas palavras difíceis
+                  </h3>
+                  <button onClick={() => onChangeView?.('study')} className="btn-outline">
+                    Praticar estas agora
+                  </button>
+                </div>
+                <p className="text-[12px] text-ink-muted mb-4">
+                  As que você mais esquece e erra, pelo histórico real de revisões (só entram
+                  cartões com 2+ revisões).
+                </p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                  {metrics!.palavrasDificeis!.map((p) => (
+                    <div key={p.cardId} className="flex items-center justify-between gap-2 bg-canvas border border-border-subtle rounded-lg px-3 py-2">
+                      <span className="font-bold text-[13.5px] text-ink truncate">{p.word}</span>
+                      <span className="text-[11px] text-ink-muted font-mono shrink-0">
+                        {p.lapses > 0 ? `${p.lapses}× esquecida · ` : ''}{Math.round(p.fracaoDeErro * 100)}% erro
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
         </PainelDeAba>
 
         {/* --- LEXICAL INTELLIGENCE TAB --- */}

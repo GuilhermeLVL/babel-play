@@ -72,17 +72,24 @@ export async function computeProfile(userId: UserId, opts: OpcoesDePerfil = {}):
   const inDeck = cards.filter((c) => c.inDeck !== 0)
   const wordsCaptured = sess.reduce((n, s) => n + (s.wordCount ?? 0), 0)
 
-  // Tempo de fala real: soma das durações dos enunciados com timing válido.
+  /**
+   * ATIVO × PASSIVO (spec progresso-de-idioma): `utterances.source` distingue a VOZ do usuário
+   * ('mic') do áudio que ele ouviu ('tab') — e a soma antiga misturava os dois, então o "tempo de
+   * fala" incluía o YouTube. Agora os dois tempos existem separados, `speakingMs` é SÓ o mic, e o
+   * WPM (ritmo da fala do usuário) só conta palavras que ELE disse. Falas antigas sem `source`
+   * caem em passivo: inflar o tempo ativo seria o erro pior.
+   */
   let speakingMs = 0
-  for (const u of utts) {
-    const a = u.tStartMs, b = u.tEndMs
-    if (a != null && b != null && b > a) speakingMs += b - a
-  }
-  // Palavras faladas nos enunciados com timing (para um WPM coerente com o tempo medido).
+  let listeningMs = 0
   let timedWords = 0
   for (const u of utts) {
-    if (u.tStartMs != null && u.tEndMs != null && u.tEndMs > u.tStartMs) {
+    const a = u.tStartMs, b = u.tEndMs
+    if (a == null || b == null || b <= a) continue
+    if (u.source === 'mic') {
+      speakingMs += b - a
       timedWords += (u.sourceText ?? '').trim().split(/\s+/).filter(Boolean).length
+    } else {
+      listeningMs += b - a
     }
   }
   const speakingMin = speakingMs / 60_000
@@ -118,6 +125,53 @@ export async function computeProfile(userId: UserId, opts: OpcoesDePerfil = {}):
 
   const reviews = logsNoEscopo.length
   const correctReviews = logsNoEscopo.filter((l) => (l.grade ?? 0) >= 3).length
+
+  /**
+   * PALAVRAS DIFÍCEIS (spec progresso-de-idioma): o schema grava lapses, difficulty (FSRS) e o
+   * grade de cada revisão há meses — e nada agregava. O ranking pesa o que o usuário ERRA:
+   * lapses (esquecimentos, o sinal mais forte), dificuldade FSRS e a fração de notas ruins.
+   * Só entra cartão com >= 2 revisões: com menos, "difícil" seria chute — a base vai junto.
+   */
+  const logsPorCartao = new Map<string, { total: number; ruins: number }>()
+  for (const l of logsNoEscopo) {
+    const r = logsPorCartao.get(l.cardId) ?? { total: 0, ruins: 0 }
+    r.total += 1
+    if ((l.grade ?? 0) < 3) r.ruins += 1
+    logsPorCartao.set(l.cardId, r)
+  }
+  const palavrasDificeis = inDeck
+    .map((c) => {
+      const logs = logsPorCartao.get(c.id) ?? { total: 0, ruins: 0 }
+      const lapses = c.lapses ?? 0
+      const fsrsDif = c.difficulty ?? 0 // FSRS: 1..10
+      const fracRuim = logs.total > 0 ? logs.ruins / logs.total : 0
+      return {
+        cardId: c.id,
+        word: c.word ?? '',
+        lapses,
+        revisoes: logs.total,
+        fracaoDeErro: Math.round(fracRuim * 100) / 100,
+        // Peso: cada lapse vale muito; erro recente e dificuldade FSRS desempatam.
+        pontuacao: lapses * 3 + fracRuim * 2 + fsrsDif / 10,
+      }
+    })
+    .filter((x) => x.word && x.revisoes >= 2 && x.pontuacao > 0.5)
+    .sort((a, b) => b.pontuacao - a.pontuacao)
+    .slice(0, 12)
+
+  // Acerto por TIPO de exercício — o dado existia linha a linha em exercise_results.
+  const porTipo = new Map<string, { total: number; certos: number }>()
+  for (const d of drillsNoEscopo) {
+    if (d.correct == null || !d.exerciseKind) continue
+    const r = porTipo.get(d.exerciseKind) ?? { total: 0, certos: 0 }
+    r.total += 1
+    if (d.correct > 0) r.certos += 1
+    porTipo.set(d.exerciseKind, r)
+  }
+  const acertoPorExercicio = [...porTipo.entries()]
+    .map(([kind, r]) => ({ kind, total: r.total, acerto: Math.round((r.certos / r.total) * 100) }))
+    .filter((x) => x.total >= 3) // menos que isso é anedota, não taxa
+    .sort((a, b) => a.acerto - b.acerto)
   const accuracy = reviews > 0 ? correctReviews / reviews : 0
 
   const stabilities = inDeck.map((c) => c.stability).filter((s): s is number => s != null)
@@ -186,6 +240,9 @@ export async function computeProfile(userId: UserId, opts: OpcoesDePerfil = {}):
     avgRetentionConfidence: retentions.length >= 4 ? 0.7 : retentions.length > 0 ? 0.3 : 0,
     vocabByWeek,
     speakingMs,
+    listeningMs,
+    palavrasDificeis,
+    acertoPorExercicio,
     wpm,
     wpmConfidence: speakingMs >= 60_000 ? 0.7 : speakingMs > 0 ? 0.4 : 0,
     uniqueWords,

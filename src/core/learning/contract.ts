@@ -95,6 +95,14 @@ export interface AppMetrics {
   vocabByWeek: Array<{ weekStart: number; count: number }>
   /** tempo total de fala (ms) somado dos enunciados com timing — determinístico. */
   speakingMs: number
+  /** Tempo de áudio OUVIDO ('tab') — o par passivo de speakingMs, que agora é só o mic
+      (spec progresso-de-idioma). Opcional: servidores antigos e o efêmero podem não mandar. */
+  listeningMs?: number
+  /** Ranking das palavras que o usuário mais erra (lapses + dificuldade FSRS + notas ruins);
+      só cartões com >= 2 revisões entram — a base fraca fica declarada pela ausência. */
+  palavrasDificeis?: Array<{ cardId: string; word: string; lapses: number; revisoes: number; fracaoDeErro: number; pontuacao: number }>
+  /** Taxa de acerto por tipo de exercício (mínimo 3 itens por tipo), pior primeiro. */
+  acertoPorExercicio?: Array<{ kind: string; total: number; acerto: number }>
   /** palavras por minuto (fala) — determinístico, mas confiança cai com amostra curta. */
   wpm: number
   wpmConfidence: number

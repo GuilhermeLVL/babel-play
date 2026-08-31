@@ -208,7 +208,10 @@ export default function App() {
 
   const FONT_SCALE_ORDER: FontScale[] = ['sm', 'md', 'lg', 'xl'];
   const [fontScale, setFontScaleState] = useState<FontScale>(
-    () => readStoredEnum('babel.font_scale', FONT_SCALE_ORDER, 'md')
+    /* O default acompanha o perfil padrão (sênior / Leitura ampliada): 'lg'. O boot direto em
+       senior não passa por `setAgeProfile`, então a sugestão de fonte de lá não roda — o padrão
+       precisa nascer certo aqui. Preferência gravada continua vencendo. */
+    () => readStoredEnum('babel.font_scale', FONT_SCALE_ORDER, 'lg')
   );
 
   /**
@@ -239,14 +242,15 @@ export default function App() {
     localStorage.setItem('babel.font_scale', next);
   };
 
-  const stepFontScale = (delta: 1 | -1) => {
+  /**
+   * UM botão que CICLA (pedido do dono, 31/08): clique avança a escala e, na máxima, volta à
+   * mínima. Substitui o trio (menos / indicador / mais) — menos alvos no cabeçalho, e o próprio
+   * "A" crescendo mostra onde se está. O salto xl->sm é anunciado pelo aria-label do botão.
+   */
+  const cycleFontScale = () => {
     const idx = FONT_SCALE_ORDER.indexOf(fontScale);
-    const next = FONT_SCALE_ORDER[Math.min(FONT_SCALE_ORDER.length - 1, Math.max(0, idx + delta))];
-    if (next !== fontScale) setFontScale(next);
+    setFontScale(FONT_SCALE_ORDER[(idx + 1) % FONT_SCALE_ORDER.length]);
   };
-
-  const increaseFontScale = () => stepFontScale(1);
-  const decreaseFontScale = () => stepFontScale(-1);
 
   const setAgeProfile = (profile: AgeProfileType) => {
     setAgeProfileState(profile);
@@ -701,8 +705,7 @@ export default function App() {
       ageProfile={ageProfile}
       setAgeProfile={setAgeProfile}
       fontScale={fontScale}
-      increaseFontScale={increaseFontScale}
-      decreaseFontScale={decreaseFontScale}
+      cycleFontScale={cycleFontScale}
       activeView={activeView}
       onChangeView={navigateTo}
       menuPosition={menuPosition}
@@ -722,7 +725,7 @@ export default function App() {
     theme, setTheme, darkMode, toggleDarkMode,
     onOpenStudio: () => setIsStudioOpen(true),
     ageProfile, setAgeProfile,
-    fontScale, increaseFontScale, decreaseFontScale,
+    fontScale, cycleFontScale,
     menuPosition, setMenuPosition,
     fonte, setFonte,
     nivel: progress.available ? progress.level : 99,

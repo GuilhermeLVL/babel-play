@@ -40,9 +40,10 @@ describe('readAgeProfile', () => {
     }
   });
 
-  it('valor inválido guardado cai em "pro" — o `||` não pegava porque "banana" é truthy', () => {
+  it('valor inválido guardado cai no padrão "senior" — o `||` não pegava porque "banana" é truthy', () => {
     instalarStorage(storageCom('banana'));
-    expect(readAgeProfile()).toBe('pro');
+    // Padrão mudou para 'senior' (Leitura ampliada) em 2026-08-31 — spec leitura-ampliada-padrao.
+    expect(readAgeProfile()).toBe('senior');
   });
 
   it('e o perfil devolvido sempre indexa as tabelas de cópia', () => {
@@ -52,15 +53,17 @@ describe('readAgeProfile', () => {
     expect(t('now.due.cta', perfil)).not.toBe('');
   });
 
-  it('storage bloqueado devolve "pro" sem propagar a exceção', () => {
+  it('storage bloqueado devolve o padrão "senior" sem propagar a exceção', () => {
     instalarStorage(storageQueLanca());
     expect(() => readAgeProfile()).not.toThrow();
-    expect(readAgeProfile()).toBe('pro');
+    // Padrão mudou para 'senior' (Leitura ampliada) em 2026-08-31 — spec leitura-ampliada-padrao.
+    expect(readAgeProfile()).toBe('senior');
   });
 
-  it('storage ausente (chave nunca escrita) cai em "pro"', () => {
+  it('storage ausente (chave nunca escrita) cai no padrão "senior"', () => {
     instalarStorage(storageCom(null));
-    expect(readAgeProfile()).toBe('pro');
+    // Padrão mudou para 'senior' (Leitura ampliada) em 2026-08-31 — spec leitura-ampliada-padrao.
+    expect(readAgeProfile()).toBe('senior');
   });
 });
 

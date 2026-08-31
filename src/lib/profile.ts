@@ -19,7 +19,7 @@
  * eixo do idioma entra por fora deste (chave → idioma → perfil), sem reescrever os consumidores.
  */
 
-import { EDICAO_LEVE } from './edicao';
+
 export type AgeProfileType = 'kids' | 'pro' | 'senior';
 
 export function isAgeProfile(v: unknown): v is AgeProfileType {
@@ -38,9 +38,11 @@ const AGE_PROFILE_KEY = 'babel.age_profile';
  * aberto não reflete ali até reabrir — limite aceito conscientemente.
  */
 export function readAgeProfile(): AgeProfileType {
-  // Edição leve: o padrão é o perfil SÊNIOR (linguagem simples, passos numerados) — decisão do
-  // dono (2026-08-27): a primeira visita deve ser a mais guiada; quem quiser troca em Aparência.
-  return readStoredEnum(AGE_PROFILE_KEY, ['kids', 'pro', 'senior'], EDICAO_LEVE ? 'senior' : 'pro');
+  // O padrão é SEMPRE o perfil sênior / "Leitura ampliada" — decisão do dono estendida ao build
+  // completo em 2026-08-31 (spec leitura-ampliada-padrao): a primeira visita deve ser a mais
+  // confortável e guiada; quem quiser densidade troca em Personalizar → Tela. A preferência
+  // gravada (local ou do servidor) continua vencendo.
+  return readStoredEnum(AGE_PROFILE_KEY, ['kids', 'pro', 'senior'], 'senior');
 }
 
 /**

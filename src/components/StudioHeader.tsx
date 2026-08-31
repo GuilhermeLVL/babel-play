@@ -22,8 +22,7 @@ interface StudioHeaderProps {
   ageProfile: AgeProfileType;
   setAgeProfile: (profile: AgeProfileType) => void;
   fontScale: FontScale;
-  increaseFontScale: () => void;
-  decreaseFontScale: () => void;
+  cycleFontScale: () => void;
   activeView: ViewType;
   onChangeView: (view: ViewType) => void;
   menuPosition: MenuPositionType;
@@ -55,8 +54,7 @@ export default function StudioHeader({
   ageProfile,
   setAgeProfile,
   fontScale,
-  increaseFontScale,
-  decreaseFontScale,
+  cycleFontScale,
   activeView,
   onChangeView,
   menuPosition,
@@ -85,8 +83,7 @@ export default function StudioHeader({
     ageProfile,
     setAgeProfile,
     fontScale,
-    increaseFontScale,
-    decreaseFontScale,
+    cycleFontScale,
     menuPosition,
     setMenuPosition,
     soundEnabled,

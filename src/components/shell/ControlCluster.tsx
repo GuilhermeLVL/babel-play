@@ -3,8 +3,6 @@ import { EDICAO_LEVE } from '../../lib/edicao';
 import {
   Sun,
   Moon,
-  Plus,
-  Minus,
   Search,
   Sparkles } from 'lucide-react';
 import type { ThemeType, FonteType } from '../../lib/appearance';
@@ -23,8 +21,7 @@ export interface ControlClusterProps {
   ageProfile: AgeProfileType;
   setAgeProfile: (profile: AgeProfileType) => void;
   fontScale: FontScale;
-  increaseFontScale: () => void;
-  decreaseFontScale: () => void;
+  cycleFontScale: () => void;
   menuPosition: MenuPositionType;
   setMenuPosition: (pos: MenuPositionType) => void;
   fonte: FonteType;
@@ -49,7 +46,13 @@ export interface ControlClusterProps {
   onChangeView: (view: string) => void;
 }
 
-const FONT_SCALE_LABEL: Record<FontScale, string> = { sm: 'A', md: 'A', lg: 'A', xl: 'A' };
+/* O rótulo diz o estado E a ação — inclusive o salto do máximo para o mínimo. */
+const ROTULO_DO_CICLO: Record<FontScale, string> = {
+  sm: 'Tamanho do texto: pequeno — clique para aumentar',
+  md: 'Tamanho do texto: médio — clique para aumentar',
+  lg: 'Tamanho do texto: grande — clique para aumentar',
+  xl: 'Tamanho do texto: máximo — clique para voltar ao pequeno',
+};
 const FONT_SCALE_ORDER: FontScale[] = ['sm', 'md', 'lg', 'xl'];
 
 /**
@@ -104,8 +107,7 @@ export default function ControlCluster(props: ControlClusterProps) {
     darkMode,
     toggleDarkMode,
     fontScale,
-    increaseFontScale,
-    decreaseFontScale,
+    cycleFontScale,
     soundEnabled,
     toggleSound,
     animationsEnabled,
@@ -160,21 +162,24 @@ export default function ControlCluster(props: ControlClusterProps) {
       <div className={orientation === 'column' ? 'hidden' : 'w-px h-5 bg-border-subtle/70 mx-1'} />
 
       {/* Escala de fonte — o indicador é o próprio "A" mudando de tamanho, não uma sigla a decifrar */}
-      <div className="flex items-center gap-0.5 shrink-0">
-        <IconButton onClick={click(decreaseFontScale)} title="Diminuir o tamanho do texto">
-          <Minus className="w-4 h-4" />
-        </IconButton>
+      {/* UM botão que cicla (spec controle-de-fonte-ciclico): eram três alvos (menos / indicador
+          passivo / mais); agora o "A" é o botão E o indicador — cresce com a escala, e no máximo
+          o clique volta ao mínimo, dito pelo aria-label. */}
+      <button
+        type="button"
+        onClick={click(cycleFontScale)}
+        title={ROTULO_DO_CICLO[fontScale]}
+        aria-label={ROTULO_DO_CICLO[fontScale]}
+        className="w-9 h-9 rounded-lg text-ink-muted hover:bg-surface-hover hover:text-ink flex items-center justify-center transition-colors cursor-pointer shrink-0"
+      >
         <span
-          className="w-6 text-center font-display font-black text-ink select-none leading-none"
+          className="font-display font-black select-none leading-none"
           style={{ fontSize: `${11 + scaleIndex * 2}px` }}
           aria-hidden
         >
-          {FONT_SCALE_LABEL[fontScale]}
+          A
         </span>
-        <IconButton onClick={click(increaseFontScale)} title="Aumentar o tamanho do texto">
-          <Plus className="w-4 h-4" />
-        </IconButton>
-      </div>
+      </button>
 
       <div className={orientation === 'column' ? 'hidden' : 'w-px h-5 bg-border-subtle/70 mx-1'} />
 

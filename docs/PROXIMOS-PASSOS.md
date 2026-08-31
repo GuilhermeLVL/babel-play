@@ -52,6 +52,33 @@ Estas travam trabalho. Estão detalhadas em `docs/auditoria/decisao-infraestrutu
 | A5 | **Rótulo `engine: 'groq-llm'`** vira nome neutro | Mente se o provedor mudar. Toca métricas e um teste. |
 | A6 | **Teste de carga** | Ninguém sabe como a aplicação se comporta com N usuários. |
 
+### A7 — ACHADO NOVO: a "economia v2" tem metade cliente e nenhuma metade servidor
+
+Encontrado em 2026-08-30, verificando a tela nova no navegador: duas rotas que o cliente chama
+**não existem no servidor Express** e respondem 404.
+
+| chamada do cliente | servidor real | servidor efêmero (modo sem conta) |
+|---|---|---|
+| `POST /api/metrics/presenca` | **404** | existe (`efemero/servidor.ts:627`) |
+| `POST /api/metrics/seeds/creditar` | **404** | existe (`efemero/servidor.ts:626`) |
+| `POST /api/metrics/seeds/gastar` | existe | existe |
+
+O servidor expõe só `/profile`, `/xp` e `/seeds/gastar` (`server/routes/metrics.ts:20,38,59`).
+
+**Consequência visível:** `src/lib/conquistas.ts:6` diz, corretamente, que sem o crédito a conquista
+NÃO é marcada — "nunca conquistada sem as Seeds". Só que a falha não é de rede, é permanente: a
+rota não existe. Ou seja, **na conta logada as conquistas nunca desbloqueiam**, e a tentativa se
+repete a cada avaliação (foram 3 chamadas num único carregamento de página).
+
+Vale notar a inversão: **o modo SEM conta funciona e o modo COM conta não** — o servidor em memória
+da edição leve implementa as duas rotas.
+
+**Por que não corrigi agora:** não é conserto, é implementação. Não existe tabela de créditos no
+schema (só `seed_spends`), então fechar isso exige migração, repositório, rotas e testes de
+idempotência — e o desenho pretendido é decisão de produto (o que a presença credita, o que uma
+conquista credita, se o saldo passa a ser evento ou continua derivado). O cliente foi escrito em
+2026-08-28 supondo um servidor que nunca veio.
+
 ### B — Depende da decisão de pagamento
 
 | # | Tarefa |

@@ -11,15 +11,16 @@
  * caminho que equipa no app. Os textos dos estados vêm de `lib/galeria/textos`.
  */
 import { useEffect, useMemo, useState } from 'react';
-import { ShoppingBag, Sprout, Lock, Check, Sparkles, Palette, Type, Gamepad2, PanelRight, Wand2, Trophy, Star, Map, Shirt } from 'lucide-react';
+import { ShoppingBag, Sprout, Lock, Check, Sparkles, Palette, Type, Gamepad2, PanelRight, Wand2, Trophy, Shirt, Ticket, LibraryBig } from 'lucide-react';
 import { Abas, PainelDeAba } from '../ui';
 import Conquistas from './Conquistas';
+import PasseDeTemporada from './passe/PasseDeTemporada';
 import Personalizar from './Personalizar';
 import { REGRAS, type ContextoDeConquistas } from '@core';
 import {
   CATALOGO_DA_LOJA, COR_DA_RARIDADE, estadoDoItem, marcarPosse, type ItemDaLoja,
 } from '../../lib/loja';
-import { itensPorNivel, proximaRecompensa, estadoDaColecao, emojiDoItem } from '../../lib/galeria/progressao';
+import { proximaRecompensa, estadoDaColecao, emojiDoItem } from '../../lib/galeria/progressao';
 import { equiparItem, equipavel, type ContextoDeEquipar } from '../../lib/galeria/equipar';
 import { TEXTOS } from '../../lib/galeria/textos';
 import { gastarSeeds } from '../../data/api';
@@ -78,12 +79,20 @@ const FILTROS = [
   { id: 'galeria', nome: 'Galeria' },
 ] as const;
 
-const ABAS_VALIDAS = ['personalizar', 'loja', 'conquistas', 'progressao'] as const;
+/* v4 (spec personalizar-v4, protótipo aprovado 31/08): 'progressao' virou o PASSE — a mesma
+   informação (o que cada nível libera) na lente de 100 posições aprovada pelo dono. O id antigo
+   segue aceito como alias para navegação gravada/links não quebrarem. */
+const ABAS_VALIDAS = ['passe', 'personalizar', 'loja', 'conquistas'] as const;
+const ALIAS_DE_ABA: Record<string, string> = { progressao: 'passe' };
 
 export default function Loja({ progress, theme, setTheme, fonte, setFonte, menuPosition, setMenuPosition, onOpenStudio, ctxConquistas, ageProfile, setAgeProfile, abaInicial, equiparCtx }: LojaProps) {
   // A tela ÚNICA abre no Meu visual: personalizar é o uso; comprar e conquistar são os caminhos.
-  const [aba, setAba] = useState<string>(ABAS_VALIDAS.includes(abaInicial as never) ? (abaInicial as string) : 'personalizar');
-  useEffect(() => { if (ABAS_VALIDAS.includes(abaInicial as never)) setAba(abaInicial as string); }, [abaInicial]);
+  const normalizarAba = (a: string | undefined | null): string | null => {
+    const alvo = a ? (ALIAS_DE_ABA[a] ?? a) : null;
+    return alvo && ABAS_VALIDAS.includes(alvo as never) ? alvo : null;
+  };
+  const [aba, setAba] = useState<string>(normalizarAba(abaInicial) ?? 'personalizar');
+  useEffect(() => { const alvo = normalizarAba(abaInicial); if (alvo) setAba(alvo); }, [abaInicial]);
   const [filtro, setFiltro] = useState<(typeof FILTROS)[number]['id']>('tudo');
   const [comprando, setComprando] = useState<string | null>(null);
   const [, force] = useState(0);
@@ -174,8 +183,6 @@ export default function Loja({ progress, theme, setTheme, fonte, setFonte, menuP
     }
   };
 
-  const porNivel = useMemo(() => itensPorNivel(), []);
-  const possuidosIds = useMemo(() => new Set(colecao.possuidos.map((i) => i.id)), [colecao]);
 
   return (
     <div className="flex-1 h-full min-h-0 overflow-y-auto custom-scrollbar" aria-label="Personalizar">
@@ -240,12 +247,16 @@ export default function Loja({ progress, theme, setTheme, fonte, setFonte, menuP
         ativo={aba}
         aoTrocar={setAba}
         itens={[
-          { id: 'personalizar', rotulo: `Meu visual · ${colecao.possuidos.length}`, icone: <Wand2 className="w-4 h-4" /> },
+          { id: 'passe', rotulo: 'Passe', icone: <Ticket className="w-4 h-4" /> },
+          { id: 'personalizar', rotulo: `Biblioteca · ${colecao.possuidos.length}`, icone: <LibraryBig className="w-4 h-4" /> },
           { id: 'loja', rotulo: `Loja · ${colecao.compraveis.length + colecao.porNivel.length}`, icone: <ShoppingBag className="w-4 h-4" /> },
-          { id: 'conquistas', rotulo: `Conquistas · ${colecao.porConquista.length}`, icone: <Trophy className="w-4 h-4" /> },
-          { id: 'progressao', rotulo: 'Progressão', icone: <Map className="w-4 h-4" /> },
+          { id: 'conquistas', rotulo: `Desafios · ${colecao.porConquista.length}`, icone: <Trophy className="w-4 h-4" /> },
         ]}
       />
+
+      <PainelDeAba id="passe" ativo={aba}>
+        <PasseDeTemporada progress={progress} ctxEquipar={ctxEquipar} equipadoAtual={equipadoAtual} />
+      </PainelDeAba>
 
       <PainelDeAba id="personalizar" ativo={aba}>
         <Personalizar
@@ -262,63 +273,8 @@ export default function Loja({ progress, theme, setTheme, fonte, setFonte, menuP
         <Conquistas progress={progress} ctx={ctxConquistas} />
       </PainelDeAba>
 
-      {/* ── PROGRESSÃO: a grade de tudo que dá para liberar, nível a nível ── */}
-      <PainelDeAba id="progressao" ativo={aba}>
-        <div className="space-y-6">
-          <p className="text-[13px] text-ink-muted">Cada linha é um nível e o que ele libera de graça. <Check className="inline w-3.5 h-3.5 text-good" aria-hidden /> é seu · <b className="text-ink">▶</b> é o seu nível · <Lock className="inline w-3 h-3" aria-hidden /> ainda vem. Tudo que tem preço também dá para obter antes, na Loja.</p>
-          <ol className="space-y-3">
-            {[...porNivel.entries()].map(([n, lista]) => {
-              const passado = n < nivel; const atual = n === nivel;
-              return (
-                <li key={n} className={`card-panel p-4 border-2 ${atual ? 'border-accent bg-accent-soft/40' : passado ? 'border-border-subtle' : 'border-border-subtle opacity-90'}`}>
-                  <div className="flex items-center gap-3 mb-2">
-                    <span className={`w-9 h-9 rounded-xl flex items-center justify-center font-display font-black text-[14px] shrink-0 ${atual ? 'bg-accent text-accent-contrast' : passado ? 'bg-good-soft text-good-ink' : 'bg-canvas border border-border-subtle text-ink-muted'}`}>
-                      {passado ? <Check className="w-4 h-4" aria-hidden /> : atual ? '▶' : n}
-                    </span>
-                    <div>
-                      <p className="font-bold text-[14px] text-ink leading-tight">{TEXTOS.nivel(n)}{atual ? ' · você está aqui' : ''}</p>
-                      <p className="text-[11.5px] text-ink-muted">{lista.length} {lista.length === 1 ? 'item' : 'itens'}{n > nivel && n === proxima?.nivel ? ` · ${TEXTOS.faltamXp(faltamXp)}` : ''}</p>
-                    </div>
-                  </div>
-                  <div className="flex flex-wrap gap-2">
-                    {lista.map((i) => {
-                      const seu = possuidosIds.has(i.id);
-                      const cor = COR_DA_RARIDADE[i.raridade];
-                      return (
-                        <span key={i.id} title={i.desc} className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border text-[12px] font-bold ${cor.borda} ${cor.fundo} ${seu ? 'text-ink' : n <= nivel ? 'text-ink' : 'text-ink-muted'}`}>
-                          <span aria-hidden>{emojiDoItem(i)}</span> {i.nome}
-                          {seu ? <Check className="w-3.5 h-3.5 text-good" aria-hidden /> : n > nivel ? <Lock className="w-3 h-3" aria-hidden /> : null}
-                          {!seu && n > nivel && i.precoSeeds !== undefined && <span className="text-ink-faint font-semibold">· {i.precoSeeds}</span>}
-                        </span>
-                      );
-                    })}
-                  </div>
-                </li>
-              );
-            })}
-          </ol>
-          {colecao.porConquista.length > 0 && (
-            <section>
-              <p className="label-mono mb-2">Só por conquista</p>
-              <div className="flex flex-wrap gap-2">
-                {CATALOGO_DA_LOJA.filter((i) => i.exclusivoDe).map((i) => {
-                  const seu = possuidosIds.has(i.id);
-                  const cor = COR_DA_RARIDADE[i.raridade];
-                  const { motivo } = estadoDoItem(i, nivel, saldo);
-                  return (
-                    <span key={i.id} title={i.desc} className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border text-[12px] font-bold ${cor.borda} ${cor.fundo} text-ink`}>
-                      <Star className="w-3 h-3 fill-warn text-warn" aria-hidden /> <span aria-hidden>{emojiDoItem(i)}</span> {i.nome}
-                      {seu ? <Check className="w-3.5 h-3.5 text-good" aria-hidden /> : <span className="text-ink-muted font-semibold">· {motivo}</span>}
-                    </span>
-                  );
-                })}
-              </div>
-              <button onClick={() => setAba('conquistas')} className="mt-2 text-[12px] text-accent-ink underline cursor-pointer">Ver as conquistas</button>
-            </section>
-          )}
-        </div>
-      </PainelDeAba>
-
+      {/* A antiga aba Progressão (grade nível-a-nível) foi absorvida pelo Passe: mesma
+          informação, na apresentação aprovada do protótipo. */}
       <PainelDeAba id="loja" ativo={aba}>
       <div className="space-y-8">
       {/* ── NO PRÓXIMO NÍVEL: o motivo de continuar ── */}

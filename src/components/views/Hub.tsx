@@ -242,7 +242,7 @@ export default function Hub({ onChangeView, recordings, ageProfile = 'pro', prog
           <div className="min-w-0 flex-1 text-center sm:text-left">
             <h2 className="font-display font-black text-xl md:text-2xl text-ink tracking-tight text-balance">
               {ageProfile === 'kids'
-                ? `Estas ${agora} você está prestes a esquecer`
+                ? `Você está quase esquecendo estas ${agora}`
                 : ageProfile === 'senior'
                   ? `${agora} palavras estão na hora de rever`
                   : `${agora} palavras prontas para revisar`}

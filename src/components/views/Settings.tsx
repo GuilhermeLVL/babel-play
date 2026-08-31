@@ -1,4 +1,4 @@
-import { User, Shield, Sparkles, Server, Target, Globe, Mic, Layers, Video, PenTool, BarChart2, Languages, Palette, PlayCircle, AlertTriangle, Gamepad2, Zap, Eye } from 'lucide-react';
+import { User, Shield, Sparkles, Server, Target, Languages, Palette, PlayCircle, AlertTriangle, Gamepad2, Zap, Eye } from 'lucide-react';
 import { EDICAO_LEVE } from '../../lib/edicao';
 import TranscricaoLeve from '../TranscricaoLeve';
 import React, { useEffect, useRef, useState } from 'react';
@@ -7,7 +7,7 @@ import GuidePanel from '../GuidePanel';
 import AccountSecuritySection from '../auth/AccountSecuritySection';
 import LangAudit from './LangAudit';
 import LangPicker from '../LangPicker';
-import { BUILTIN_PROFILES, DEFAULT_PROFILE_ID } from '../../gateway/profiles';
+import { DEFAULT_PROFILE_ID } from '../../gateway/profiles';
 import { fetchSettings, saveSettings, patchUiSettings, fetchMetrics, type AppMetrics } from '../../data/api';
 import type { ThemeType } from '../../lib/appearance';
 import { baseLang } from '../../lib/languages';
@@ -245,7 +245,6 @@ export default function Settings({
   };
 
   const setGoal = (goal: string) => { void persistUi({ ...ui, goal }); };
-  const setPersona = (persona: string) => { void persistUi({ ...ui, persona }); };
 
   return (
     <div className="flex-1 overflow-y-auto w-full bg-canvas">
@@ -256,7 +255,9 @@ export default function Settings({
           <span>{ageProfile === 'kids' ? 'Ajustes do jogador' : ageProfile === 'senior' ? 'Painel de opções' : 'Preferências do app'}</span>
         </span>
         <h1 className="font-display font-black text-2xl md:text-3xl text-ink tracking-tight mt-1 mb-2">
-          {ageProfile === 'kids' ? 'Configurações & Ajustes' : ageProfile === 'senior' ? 'Ajustes Simples do Aplicativo' : 'Configurações'}
+          {/* A tela tinha TRÊS nomes — "Ajustes" no menu, "Configurações" no título, "Preferências
+              do app" no kicker (auditoria de UX, 31/08). Um vocabulário: ela se chama Ajustes. */}
+          {ageProfile === 'kids' ? 'Ajustes do jogo' : ageProfile === 'senior' ? 'Ajustes do aplicativo' : 'Ajustes'}
         </h1>
         <p className="text-ink-muted text-xs md:text-sm">
           {ageProfile === 'kids'
@@ -450,29 +451,9 @@ export default function Settings({
             <h2 className="font-display font-bold text-lg">Onde as contas rodam</h2>
           </div>
           <div className="card-panel">
-            <div className="p-5 border-b border-border-subtle">
-              <div className="font-bold text-[14px] mb-1">Perfil de IA ativo</div>
-              <p className="text-[12px] text-ink-muted mb-3">Define quais motores alimentam cada capacidade. É o mesmo perfil testado no painel abaixo.</p>
-              {/* C2 — o título é um `div`, não um `<label for>`. Sem `aria-label` o leitor de
-                  tela anuncia "caixa de combinação" e nada mais (axe: `select-name`, WCAG 4.1.2). */}
-              <select
-                aria-label="Perfil de IA ativo"
-                id="settings-ai-profile"
-                name="aiProfile"
-                value={activeProfileId}
-                onChange={(e) => void changeProfile(e.target.value)}
-                className="w-full bg-surface border border-border-subtle rounded-xl p-3 text-[13px] outline-none focus:border-accent transition-colors"
-              >
-                {BUILTIN_PROFILES.map((p) => (
-                  <option key={p.id} value={p.id} disabled={p.id === 'cloud-quality' && !entitlements.managedCloudStt}>
-                    {p.name}{p.id === 'cloud-quality' && !entitlements.managedCloudStt ? ', Pro' : ''}
-                  </option>
-                ))}
-              </select>
-              {!entitlements.managedCloudStt && (
-                <p className="text-[11px] text-ink-faint mt-2">O perfil de nuvem gerenciada é Pro. Com a SUA chave de API (BYOK, abaixo) a nuvem é liberada em qualquer plano.</p>
-              )}
-            </div>
+            {/* UM SELETOR, UM DONO (auditoria de UX, 31/08): aqui vivia um <select> "Perfil de IA
+                ativo" que escolhia A MESMA coisa que os três cartões do painel logo abaixo — dois
+                controles para um estado. O painel assumiu a persistência e o gate Pro via props. */}
             {/* Plano do usuário — leitura: quem decide é o servidor (GET /api/me/entitlements). */}
             <div className="p-5" data-testid="settings-plano">
               <div className="font-bold text-[14px] mb-1">Plano</div>
@@ -492,8 +473,9 @@ export default function Settings({
                 Ver planos e preços
               </button>
               <p className="text-[11px] text-ink-faint mt-2">
-                Gates do plano Grátis: importação do YouTube e nuvem gerenciada viram “Pro” (com selo e explicação, nada some).
-                Rodando no seu computador (self-host), tudo é liberado.
+                No plano Grátis, a importação do YouTube e a nuvem gerenciada aparecem com o selo
+                “Pro” — nada some, e com a SUA chave de API (BYOK, abaixo) a nuvem é liberada em
+                qualquer plano. Rodando no seu computador (self-host), tudo é liberado.
               </p>
             </div>
           </div>
@@ -505,7 +487,11 @@ export default function Settings({
             <Server className="w-5 h-5" />
             <h2 className="font-display font-bold text-lg">Motores de Inteligência Artificial</h2>
           </div>
-          <AiEnginePanel />
+          <AiEnginePanel
+            activeId={activeProfileId}
+            onSelect={(id) => void changeProfile(id)}
+            bloqueados={entitlements.managedCloudStt ? [] : ['cloud-quality']}
+          />
         </section>
 
         {/* Privacy & Processing */}
@@ -548,36 +534,10 @@ export default function Settings({
         {/* Conta e Segurança — só no modo com login (authRequired); no self-host não renderiza */}
         {!EDICAO_LEVE && <AccountSecuritySection />}
 
-        {/* Persona — preferência salva (persistida como JSON) */}
-        <section>
-          <div className="flex items-center gap-2 mb-4 text-ink">
-            <User className="w-5 h-5" />
-            <h2 className="font-display font-bold text-lg">Seu Perfil de Uso</h2>
-          </div>
-          <div className="card-panel p-5">
-            <p className="text-[13px] text-ink-muted mb-4">Ajuda a organizar o foco principal do seu uso.</p>
-            <div className="flex flex-wrap gap-2">
-              <button onClick={() => setPersona('idiomas')} className={`kpi-pill flex items-center gap-1.5 ${ui.persona === 'idiomas' ? 'active' : ''}`}>
-                <Globe className="w-3.5 h-3.5" /> Idiomas
-              </button>
-              <button onClick={() => setPersona('fala')} className={`kpi-pill flex items-center gap-1.5 ${ui.persona === 'fala' ? 'active' : ''}`}>
-                <Mic className="w-3.5 h-3.5" /> Fala
-              </button>
-              <button onClick={() => setPersona('tudo')} className={`kpi-pill flex items-center gap-1.5 ${ui.persona === 'tudo' ? 'active' : ''}`}>
-                <Layers className="w-3.5 h-3.5" /> Tudo
-              </button>
-              <button onClick={() => setPersona('conteudo')} className={`kpi-pill flex items-center gap-1.5 ${ui.persona === 'conteudo' ? 'active' : ''}`}>
-                <Video className="w-3.5 h-3.5" /> Conteúdo
-              </button>
-              <button onClick={() => setPersona('escrita')} className={`kpi-pill flex items-center gap-1.5 ${ui.persona === 'escrita' ? 'active' : ''}`}>
-                <PenTool className="w-3.5 h-3.5" /> Escrita
-              </button>
-              <button onClick={() => setPersona('dados')} className={`kpi-pill flex items-center gap-1.5 ${ui.persona === 'dados' ? 'active' : ''}`}>
-                <BarChart2 className="w-3.5 h-3.5" /> Dados
-              </button>
-            </div>
-          </div>
-        </section>
+        {/* A seção "Seu Perfil de Uso" (6 botões de persona) saiu inteira: `ui.persona` não é
+            lido por NENHUM outro código — era um controle que prometia "organizar o foco do seu
+            uso" e não fazia nada. Mesmo critério das seções de clonagem de voz e integrações:
+            controle falso não fica. O campo persistido antigo é ignorado sem erro. */}
 
         {/* A seção "Sua Voz & Clonagem" saiu inteira: não existe nenhuma infraestrutura de clonagem de
             voz no projeto (nem modelo, nem pipeline de treino), e "Em breve" é uma promessa de data

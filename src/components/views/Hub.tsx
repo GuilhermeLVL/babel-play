@@ -1,6 +1,7 @@
 import { Mic, Upload, ArrowRight, Sparkles, TrendingUp, Video, FileText, Headphones, ChevronDown, ChevronUp, Gamepad2, Target, Sprout, Rocket, Eye, Zap, Check } from 'lucide-react';
 import { EDICAO_LEVE } from '../../lib/edicao';
 import { getEntitlements } from '../../lib/entitlements';
+import CardDePlanos from '../CardDePlanos';
 import React, { useState, useEffect, useRef } from 'react';
 import { Recording } from '../../types';
 import { fetchSettings, patchUiSettings, fetchExerciseResults, type AppMetrics } from '../../data/api';
@@ -304,20 +305,11 @@ export default function Hub({ onChangeView, recordings, ageProfile = 'pro', prog
         </button>
       </div>
 
-      {/* DESCOBRIBILIDADE DO PLANO (auditoria de UX, 31/08). A tela de Planos só existia atrás do
-          menu do avatar, e nem o dono a achou. Uma LINHA discreta, só para quem está no Grátis:
-          upgrade é informação, não banner — o registro de produto proíbe gritar. */}
-      {!EDICAO_LEVE && (getEntitlements().plan === 'free' || getEntitlements().plan === 'anonimo') && (
-        <p className="text-[12.5px] text-ink-muted -mt-4 mb-8">
-          Você está no plano Grátis — tudo roda no seu computador.{' '}
-          <button
-            onClick={() => onChangeView('planos')}
-            className="font-bold text-accent-ink underline decoration-dotted underline-offset-4 cursor-pointer"
-          >
-            Conhecer os planos
-          </button>
-        </p>
-      )}
+      {/* DESCOBRIBILIDADE DO PLANO, segunda rodada (spec planos-visiveis): a linha discreta da
+          auditoria anterior informava mas não tinha o peso de card que o dono pediu. O componente
+          carrega TODAS as regras (só Grátis/anônimo, nunca na leve, dispensável, preço da
+          matriz) — aqui só se diz onde ele fica. */}
+      <CardDePlanos onVerPlanos={() => onChangeView('planos')} />
 
       {/* Progress Dashboard & Metrics — só quando expandido */}
       {showDetailedStats && (

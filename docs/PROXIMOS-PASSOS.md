@@ -58,7 +58,7 @@ Estas travam trabalho. Estão detalhadas em `docs/auditoria/decisao-infraestrutu
 | A3 | ~~Workflow de deploy~~ — **FEITO (31/08)** | `.github/workflows/deploy-pages.yml`: manual (workflow_dispatch), desarmado até os secrets `CLOUDFLARE_API_TOKEN`/`CLOUDFLARE_ACCOUNT_ID` existirem; valida (typecheck+testes+audit) antes de publicar `build:leve` via wrangler (mantém o binding D1 do ranking). |
 | A4 | ~~Cascata com gratuito primário~~ — **FEITA** | `LLM_RESERVA_*` no mtProxy: falha do primário cai para a reserva; quota debitada uma vez, testado. Falta só APONTAR as envs. |
 | A5 | ~~Rótulo `engine`~~ — **FEITO (31/08)** | `'server-llm-mt'` no lugar de `'groq-llm'`; VocabularyPanel mantém as duas chaves para sessões antigas. |
-| A6 | **Teste de carga** | Só um sondagem feita: 40 requisições simultâneas, todas 200, ~26 req/s — mas em modo de desenvolvimento, com Vite no meio. Não é capacidade. |
+| A6 | ~~Teste de carga~~ — **FEITO no build de produção (31/08)** | `node dist-server/server.cjs` + sonda de 10s por rota: `/api/health` 4.560 req/s (p95 12ms), estático `/` 878 req/s (p95 42ms), `POST /presenca` 2.136 req/s (p95 12ms), zero falhas (429 do rate limiter conta como tratado). Os 26 req/s antigos eram o Vite no meio. Para o lançamento indie, capacidade não é gargalo. |
 
 ### A7 — ~~economia v2 sem metade servidor~~ — **FEITO (31/08)**
 

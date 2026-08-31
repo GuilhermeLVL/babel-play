@@ -53,6 +53,12 @@ function marcarEnviado(jogo: string, pontos: number): void {
 
 export async function lerRanking(jogo: string, limite = 20): Promise<LinhaDoRanking[] | null> {
   try {
+    /* EXCEÇÃO DELIBERADA, suprimida na linha abaixo porque a regra não lê prosa. O funil `apiFetch`
+       desvia para o servidor EM MEMÓRIA quando a identidade é anônima (`data/api.ts:25`), e esse
+       servidor não tem `/api/rank` — passar por ele quebraria o ranking exatamente no modo para o
+       qual ele foi feito. O ranking é público por design: sai apelido escolhido, pontos e combo,
+       sem identidade, e só depois que o usuário escolhe um apelido. Ver o cabeçalho do módulo. */
+    // ast-grep-ignore: fetch-fora-do-funil
     const res = await fetch(`/api/rank/${encodeURIComponent(jogo)}?limite=${limite}`, { headers: { accept: 'application/json' } });
     if (!res.ok) return null;
     const dados = (await res.json()) as { linhas?: LinhaDoRanking[] };
@@ -66,6 +72,7 @@ export async function enviarParaRanking(jogo: string, pontos: number, combo: num
   const apelido = lerApelido();
   if (!apelidoValido(apelido)) return 'recusado';
   try {
+    // ast-grep-ignore: fetch-fora-do-funil — mesma exceção do `lerRanking` acima, documentada lá.
     const res = await fetch(`/api/rank/${encodeURIComponent(jogo)}`, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },

@@ -45,12 +45,12 @@ Estas travam trabalho. Estão detalhadas em `docs/auditoria/decisao-infraestrutu
 
 | # | Tarefa | Por que importa |
 |---|---|---|
-| A1 | **Backup e teste de restauração do banco** | Não existe rotina. É a única perda irreversível possível. |
-| A2 | **Varredura de segurança** (Semgrep + Trivy via Docker) | Nunca foi rodada nesta cópia. Antes de expor ao público. |
+| A1 | ~~Backup do banco~~ — **JÁ EXISTE e funciona** | `npm run backup` faz `VACUUM INTO` (não cópia de arquivo, que sob WAL corromperia), verifica `integrity_check`, confere contagens, inclui a mídia e rotaciona. Rodado em 31/08: OK. Falta só **agendar** em produção. |
+| A2 | ~~Varredura de segurança~~ — **FEITA** | gitleaks, Trivy e as regras `ast-grep` do projeto. Resultado em `docs/auditoria/seguranca-v1.md`. Só o Semgrep ficou de fora (Docker parado). |
 | A3 | **Workflow de deploy** | Publicação é manual hoje; o CI só testa, não publica. |
 | A4 | **Cascata com modelo gratuito primário** | O `minimax-m3:free` empatou com o pago. Reserva paga cobre a intermitência. |
 | A5 | **Rótulo `engine: 'groq-llm'`** vira nome neutro | Mente se o provedor mudar. Toca métricas e um teste. |
-| A6 | **Teste de carga** | Ninguém sabe como a aplicação se comporta com N usuários. |
+| A6 | **Teste de carga** | Só um sondagem feita: 40 requisições simultâneas, todas 200, ~26 req/s — mas em modo de desenvolvimento, com Vite no meio. Não é capacidade. |
 
 ### A7 — ACHADO NOVO: a "economia v2" tem metade cliente e nenhuma metade servidor
 
@@ -117,6 +117,11 @@ Três módulos que ninguém importa (`docs/auditoria/grafo-v1.md` §2):
 ---
 
 ## Armadilhas já pagas — não repetir
+
+- **Antes de construir, procure.** Eu anotei "não existe rotina de backup" e ela existia, completa e
+  boa (`scripts/backup.mjs` + `scripts/diagnosis/verificar-backup.mjs`). Uma anotação errada num
+  documento de próximos passos é pior que nenhuma: manda refazer o que está pronto.
+
 
 Estas custaram tempo. Estão aqui para não custarem de novo.
 

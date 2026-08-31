@@ -81,3 +81,6 @@ tests/fixtures/flores/*.jsonl
 
 # Saída do grafo (graphify) — reconstruível, não versionar
 graphify-out/
+
+# Cópias de segurança geradas por scripts/backup.mjs
+backups/

@@ -106,6 +106,13 @@
       "when": 1788185757319,
       "tag": "0014_same_next_avengers",
       "breakpoints": true
+    },
+    {
+      "idx": 15,
+      "version": "6",
+      "when": 1788192493490,
+      "tag": "0015_slim_stingray",
+      "breakpoints": true
     }
   ]
 }

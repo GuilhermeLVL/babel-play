@@ -191,6 +191,23 @@ export const seedSpendSchema = z.object({
   ref: shortStr(120),
 }).strip()
 
+/** Crédito avulso (conquista) — economia v2. Zero é válido: há conquistas só de XP. */
+export const seedCreditSchema = z.object({
+  creditoId: z.string().min(8).max(80),
+  amount: z.number().int().min(0).max(10_000),
+  xp: z.number().int().min(0).max(10_000).default(0),
+  reason: z.string().min(1).max(60),
+}).strip()
+
+/**
+ * Presença do dia — economia v2. O `dia` vem do CLIENTE porque o fuso é o dele; a janela de ±2
+ * dias em torno do relógio do servidor aceita qualquer fuso real e barra um dia inventado (que
+ * fabricaria sequência retroativa).
+ */
+export const presencaSchema = z.object({
+  dia: z.number().int().optional(),
+}).strip()
+
 /* ────────────────────────────────────────────────────────────────────────────
  * P2-1 — rotas que liam `req.body`/`req.query` cru, agora com fronteira de formato.
  * ──────────────────────────────────────────────────────────────────────────── */

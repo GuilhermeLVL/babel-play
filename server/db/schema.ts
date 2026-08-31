@@ -298,6 +298,42 @@ export const seedSpends = sqliteTable('seed_spends', {
   uniqueIndex('uq_seed_spends_user_spend').on(t.userId, t.spendId).where(sql`${t.deletedAt} is null`),
 ])
 
+/**
+ * ECONOMIA v2 — a metade servidor que faltava (A7, 2026-08-30/31).
+ *
+ * O cliente foi escrito em 2026-08-28 chamando `POST /api/metrics/presenca` e
+ * `POST /api/metrics/seeds/creditar` — e as rotas só existiam no servidor EFÊMERO (modo sem
+ * conta), então na conta logada as conquistas nunca desbloqueavam: a falha era 404 permanente,
+ * não rede. O desenho aqui ESPELHA o efêmero, que é a implementação de referência já em produção:
+ * crédito é evento idempotente por (user_id, credito_id) — mesmo argumento de `seed_spends`, um
+ * crédito que se recalcula não é crédito — e presença é uma linha por (user_id, dia local).
+ */
+export const seedCredits = sqliteTable('seed_credits', {
+  id: text('id').primaryKey(),
+  ...meta,
+  /** Id gerado pelo CLIENTE (ex.: 'conquista:primeira-captura'). Reenvio = mesmo crédito. */
+  creditoId: text('credito_id').notNull(),
+  /** Seeds creditadas. Zero é válido: há conquistas que só dão XP. */
+  amount: integer('amount').notNull(),
+  /** XP creditado junto (conquistas dão os dois). */
+  xp: integer('xp').notNull().default(0),
+  /** De onde veio: 'conquista:<id>' | … Diagnóstico e auditoria do saldo. */
+  reason: text('reason').notNull(),
+}, (t) => [
+  index('idx_seed_credits_credito_id').on(t.creditoId),
+  // Parcial pelo mesmo motivo de uq_seed_spends_user_spend (P2-N2): unicidade só entre vivas.
+  uniqueIndex('uq_seed_credits_user_credito').on(t.userId, t.creditoId).where(sql`${t.deletedAt} is null`),
+])
+
+export const presencas = sqliteTable('presencas', {
+  id: text('id').primaryKey(),
+  ...meta,
+  /** Dia LOCAL do usuário (inteiro de `diaLocal`) — o fuso é o dele, não o do servidor. */
+  dia: integer('dia').notNull(),
+}, (t) => [
+  uniqueIndex('uq_presencas_user_dia').on(t.userId, t.dia).where(sql`${t.deletedAt} is null`),
+])
+
 export const analyses = sqliteTable('analyses', {
   id: text('id').primaryKey(),
   ...meta,

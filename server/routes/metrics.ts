@@ -2,7 +2,9 @@
 import { Router } from 'express'
 import { computeProfile, computeXpHistory } from '../db/repositories/metrics'
 import { seedSpendsRepo } from '../db/repositories/seedSpends'
-import { seedSpendSchema, parseOr400, metricsProfileQuerySchema, metricsXpQuerySchema } from '../validation'
+import { economiaRepo } from '../db/repositories/economia'
+import { diaLocal, sequencias } from '../../src/core/learning/economia'
+import { seedSpendSchema, seedCreditSchema, presencaSchema, parseOr400, metricsProfileQuerySchema, metricsXpQuerySchema } from '../validation'
 import { erroDeRota } from '../lib/erroDeRota'
 
 export const metricsRouter = Router()
@@ -65,5 +67,45 @@ metricsRouter.post('/seeds/gastar', async (req, res) => {
     res.json({ jaExistia, gasto: linha.amount, seedsGastas: perfil.seedsGastas })
   } catch (err) {
     res.status(400).json({ error: erroDeRota(err, { event: 'metrics_route_error', route: req.path, requestId: req.requestId }) })
+  }
+})
+
+/**
+ * ECONOMIA v2 (A7) — as duas rotas que o cliente chamava desde 2026-08-28 e que só existiam no
+ * servidor efêmero: na conta logada, TODA conquista falhava com 404 permanente e nunca
+ * desbloqueava. O contrato (payload e resposta) espelha o efêmero, que é a referência em uso.
+ */
+
+/** Presença do dia: idempotente por (usuário, dia local). O `dia` vem do fuso do CLIENTE. */
+metricsRouter.post('/presenca', async (req, res) => {
+  const payload = parseOr400(presencaSchema, req.body, res)
+  if (!payload) return
+  try {
+    const hojeDoServidor = diaLocal(Date.now())
+    const dia = payload.dia ?? hojeDoServidor
+    // Fuso real fica a no máximo 1 dia do servidor; 2 de folga barra dia inventado sem
+    // rejeitar nenhum fuso legítimo. Dia fora da janela = 400, não presença retroativa.
+    if (Math.abs(dia - hojeDoServidor) > 2) {
+      res.status(400).json({ error: 'dia fora da janela aceitável' })
+      return
+    }
+    const { jaExistia } = await economiaRepo.registrarPresenca(req.userId, dia)
+    const { atual } = sequencias(await economiaRepo.diasDePresenca(req.userId), dia)
+    res.json({ jaExistia, dia, streakPresenca: atual })
+  } catch (err) {
+    res.status(500).json({ error: erroDeRota(err, { event: 'metrics_route_error', route: req.path, requestId: req.requestId }) })
+  }
+})
+
+/** Crédito avulso (conquista): idempotente por `creditoId`, o gêmeo de `/seeds/gastar`. */
+metricsRouter.post('/seeds/creditar', async (req, res) => {
+  const payload = parseOr400(seedCreditSchema, req.body, res)
+  if (!payload) return
+  try {
+    const { jaExistia } = await economiaRepo.creditar(req.userId, payload)
+    const totais = await economiaRepo.totaisCreditados(req.userId)
+    res.json({ jaExistia, ...totais })
+  } catch (err) {
+    res.status(500).json({ error: erroDeRota(err, { event: 'metrics_route_error', route: req.path, requestId: req.requestId }) })
   }
 })

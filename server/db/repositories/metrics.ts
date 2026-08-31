@@ -8,6 +8,8 @@ import { and, eq, isNull } from 'drizzle-orm'
 import { db } from '../db'
 import { sessions, vocabCards, reviewLogs, utterances, exerciseResults } from '../schema'
 import { retrievability } from '../../../src/core/learning/scheduler'
+import { diaLocal, sequencias } from '../../../src/core/learning/economia'
+import { economiaRepo } from './economia'
 import { xpDeEventos, nivelDoXp, type EventosDeXp } from '../../../src/core/learning/xp'
 import type { AppMetrics } from '../../../src/core/learning/contract'
 import { seedSpendsRepo } from './seedSpends'
@@ -143,6 +145,12 @@ export async function computeProfile(userId: UserId, opts: OpcoesDePerfil = {}):
      se recalcula não é gasto — voltaria ao valor cheio no próximo carregamento. */
   const seedsGastas = await seedSpendsRepo.totalGasto(userId)
 
+  /* ECONOMIA v2 (A7): os créditos avulsos e a presença agora existem no servidor real. O cliente
+     (`deriveProgress`) já lia estes campos com `?? 0` — a paridade é com o servidor efêmero. */
+  const { seedsCreditadas, xpCreditado } = await economiaRepo.totaisCreditados(userId)
+  const diasDePresenca = await economiaRepo.diasDePresenca(userId)
+  const seqPresenca = sequencias(diasDePresenca, diaLocal(now))
+
   const byWeek = new Map<number, number>()
   for (const c of inDeck) {
     const t = c.addedAt ?? c.createdAt
@@ -165,8 +173,14 @@ export async function computeProfile(userId: UserId, opts: OpcoesDePerfil = {}):
     drillCorrect,
     accuracy,
     accuracyConfidence: reviews >= 4 ? 0.9 : reviews > 0 ? 0.4 : 0,
-    streakDays,
+    // A ofensiva exibida é a MAIOR entre revisar e aparecer — mesma regra do efêmero.
+    streakDays: Math.max(streakDays, seqPresenca.atual),
     seedsGastas,
+    seedsCreditadas,
+    xpCreditado,
+    presencas: diasDePresenca.length,
+    streakPresenca: seqPresenca.atual,
+    maiorSequenciaPresenca: seqPresenca.maior,
     avgStability,
     avgRetention,
     avgRetentionConfidence: retentions.length >= 4 ? 0.7 : retentions.length > 0 ? 0.3 : 0,

@@ -1,4 +1,4 @@
-import { Mic, Upload, ArrowRight, Sparkles, TrendingUp, AlertTriangle, Video, FileText, Headphones, ChevronDown, ChevronUp, Gamepad2, Target, Sprout, Rocket, Eye, Zap, Check } from 'lucide-react';
+import { Mic, Upload, ArrowRight, Sparkles, TrendingUp, Video, FileText, Headphones, ChevronDown, ChevronUp, Gamepad2, Target, Sprout, Rocket, Eye, Zap, Check } from 'lucide-react';
 import { EDICAO_LEVE } from '../../lib/edicao';
 import { getEntitlements } from '../../lib/entitlements';
 import React, { useState, useEffect, useRef } from 'react';
@@ -566,27 +566,9 @@ export default function Hub({ onChangeView, recordings, ageProfile = 'pro', prog
             </button>
           </div>
 
-          {/* Revisão de hoje — copy ligada a dado real (dueToday / streakDays) */}
-          <div className="card-panel p-5 flex flex-col justify-between min-h-[160px] bg-warn-soft/10 border-warn/20 hover:border-warn/40">
-            <div>
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-[9px] px-1.5 py-0.5 rounded font-mono font-bold uppercase tracking-wider bg-warn-soft text-warn">Revisão</span>
-                <AlertTriangle className="w-4 h-4 text-warn" />
-              </div>
-              <h4 className="font-display font-bold text-[13.5px] text-ink mb-1">Revisão de Hoje</h4>
-              <p className="text-[12px] text-ink-muted leading-relaxed">
-                {metrics && metrics.dueToday > 0
-                  ? <>Você tem {metrics.dueToday} carta(s) para revisar hoje. Ofensiva atual de {metrics.streakDays} dia(s).</>
-                  : <>Nenhuma carta vencida no momento. Ofensiva atual de {metrics?.streakDays ?? 0} dia(s), continue capturando para manter o ritmo.</>}
-              </p>
-            </div>
-            <button
-              onClick={() => ir('study')}
-              className="mt-4 w-full py-2 text-[11.5px] font-bold rounded-xl bg-surface transition-all duration-200 cursor-pointer text-center border border-warn/30 text-warn hover:bg-warn-soft hover:text-warn-ink"
-            >
-              Revisar agora
-            </button>
-          </div>
+          {/* O cartão "Revisão de Hoje" SAIU daqui (auditoria de UX, 31/08): era o TERCEIRO lugar
+              da mesma tela com um botão "Revisar agora" para o mesmo destino — o cartão-herói e o
+              pilar já cobrem a revisão. Painel de estatísticas mostra estatística. */}
         </div>
       </section>
       </EditablePanel>
@@ -838,7 +820,12 @@ function pillarStatus(mission: Mission | undefined, profile: AgeProfile): string
         : 'Nenhuma gravação ainda, este é o ponto de partida.';
     case 'practice':
       if (mission.pending === 0) return profile === 'senior' ? 'Nada para revisar agora. Tudo em dia.' : 'Revisão em dia.';
-      return `${mission.pending} ${mission.pending === 1 ? 'palavra pronta' : 'palavras prontas'} para revisar`;
+      /* UM NÚMERO, UM DONO (auditoria de UX, 31/08). Quando há vencidas, o cartão-herói da revisão
+         está VISÍVEL logo acima dizendo "N prontas para revisar" — e este pilar repetia a mesma
+         frase com OUTRO número (o total, contra a rodada curta do herói): dois valores para "a
+         mesma coisa" lado a lado confundem em vez de informar. Com vencidas, o pilar cala; a
+         contagem vive no herói, que só existe exatamente nesses dias. */
+      return null;
     case 'vocabulary':
       if (mission.pending === 0) return profile === 'senior' ? 'Nenhuma palavra nova esperando.' : 'Sem palavras novas na fila.';
       return `${mission.pending} ${mission.pending === 1 ? 'palavra nova' : 'palavras novas'} esperando`;

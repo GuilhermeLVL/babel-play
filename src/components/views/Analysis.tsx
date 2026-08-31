@@ -2330,11 +2330,14 @@ export default function Analysis({
                         if (recording.type !== 'document') playFrom(sentence.startTime);
                       }}
                       onDoubleClick={() => { if (uttId) startEditUtt(uttId, sentence.original, sentence.translation); }}
-                      className={`group relative p-3.5 rounded-xl border-l-4 transition-all duration-300 ${isEditing ? 'cursor-default' : 'cursor-pointer'} ${
+                      /* Trecho ativo: era `border-l-4` (listra lateral). O estado agora é dito por
+                         FUNDO tonal + borda completa fina — a listra era ornamento herdado, e o
+                         fundo funciona igual nos 12 pares tema x modo porque usa os mesmos tokens. */
+                      className={`group relative p-3.5 rounded-xl border transition-all duration-300 ${isEditing ? 'cursor-default' : 'cursor-pointer'} ${
                         isEditing
                           ? 'bg-surface-hover/40 border-accent shadow-sm'
                           : isActive && recording.type !== 'document'
-                          ? 'bg-accent-soft/10 border-accent shadow-sm animate-pulse-subtle'
+                          ? 'bg-accent-soft/20 border-accent/60 shadow-sm animate-pulse-subtle'
                           : 'border-transparent hover:bg-surface-hover/40 hover:border-border-subtle'
                       } ${colorClasses.container}`}
                       style={{ fontFamily: fontClass }}

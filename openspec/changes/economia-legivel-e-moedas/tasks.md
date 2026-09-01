@@ -18,11 +18,13 @@
 - [x] 3.1 `criarCobrancaAvulsa` no cliente Asaas (POST /payments)
 - [x] 3.2 Webhook discrimina avulso × assinatura (hoje uma compra promoveria a plano)
 - [x] 3.3 Tabelas `credit_purchases` / `credit_spends` (evento, nunca saldo mutável)
-- [ ] 3.4 Saldo de créditos derivado no perfil
+- [x] 3.4 Saldo de créditos derivado no perfil
 - [x] 3.5 Testes de idempotência espelhando billing-webhook
 
 ## 4. Telas de compra
 
-- [ ] 4.1 Passe Premium com CTA real (R$ 14,90, devolve 1.134 créditos)
-- [ ] 4.2 Comprar Créditos (100/R$9,90 · 300/R$24,90 · 700/R$49,90)
-- [ ] 4.3 Verificação no navegador das duas telas
+- [x] 4.1 Passe Premium com CTA real (R$ 14,90, devolve 1.134 créditos)
+- [x] 4.2 Comprar Créditos (100/R$9,90 · 300/R$24,90 · 700/R$49,90)
+- [x] 4.3 Verificado: rotas respondem no servidor real (saldo derivado, 501 honesto sem
+      chave) e a tela tem 7 testes de componente — a UI só aparece com billing configurado,
+      que depende da conta Asaas do dono

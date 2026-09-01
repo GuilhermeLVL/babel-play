@@ -23,6 +23,7 @@ import {
 import { proximaRecompensa, estadoDaColecao, emojiDoItem } from '../../lib/galeria/progressao';
 import { equiparItem, equipavel, type ContextoDeEquipar } from '../../lib/galeria/equipar';
 import { TEXTOS, palavraDeNivel } from '../../lib/galeria/textos';
+import ComprarCreditos from './loja/ComprarCreditos';
 import { gastarSeeds } from '../../data/api';
 import { toast } from '../Toast';
 import { comemorar, explodirAleatorio } from '../../lib/juice';
@@ -265,7 +266,7 @@ export default function Loja({ progress, theme, setTheme, fonte, setFonte, menuP
       />
 
       <PainelDeAba id="passe" ativo={aba}>
-        <PasseDeTemporada progress={progress} ctxEquipar={ctxEquipar} equipadoAtual={equipadoAtual} />
+        <PasseDeTemporada progress={progress} ctxEquipar={ctxEquipar} equipadoAtual={equipadoAtual} aoComprarPasse={() => { setAba('loja'); setFiltro('tudo'); }} />
       </PainelDeAba>
 
       <PainelDeAba id="personalizar" ativo={aba}>
@@ -484,6 +485,11 @@ export default function Loja({ progress, theme, setTheme, fonte, setFonte, menuP
           );
         })}
       </div>
+
+      {/* A PRATELEIRA PAGA (economia-legivel-e-moedas). Fica DEPOIS de tudo que se ganha
+          estudando, e não antes: a ordem da tela é a ordem da prioridade — primeiro o que a
+          pessoa conquista, por último o que ela pode comprar. */}
+      <ComprarCreditos />
 
       {/* O rodapé lê das REGRAS: o que a Loja diz sobre ganhar Seeds é o que o sistema credita. */}
       <p className="text-center text-[11.5px] text-ink-faint pb-4">

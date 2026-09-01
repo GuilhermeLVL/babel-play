@@ -36,11 +36,13 @@ function marcarCreditado(id: string): void {
 }
 
 export default function PasseDeTemporada({
-  progress, ctxEquipar, equipadoAtual,
+  progress, ctxEquipar, equipadoAtual, aoComprarPasse,
 }: {
   progress: DerivedProgress;
   ctxEquipar: ContextoDeEquipar;
   equipadoAtual: (item: ItemDaLoja) => boolean;
+  /** Leva à prateleira paga. Ausente = self-host/sem conta, e aí não há o que vender. */
+  aoComprarPasse?: () => void;
 }) {
   const nivel = progress.available ? progress.level : 1;
   const pct = progress.available ? progress.levelPct : 0;
@@ -129,13 +131,24 @@ export default function PasseDeTemporada({
             destrava antes nem depois do que já destravava. Você está na <b className="text-ink">casa {marcador}</b> do passe.
           </p>
         </div>
-        {/* As DUAS fileiras aparecem (decisão do dono): a Premium mostra o que devolve, mas a
-            COMPRA só existe quando a moeda comprada existir no servidor (spec
-            economia-de-creditos) — informação sem botão falso. */}
-        <p className="text-[11px] text-ink-faint flex items-center gap-1.5 max-w-[28ch]">
-          <Crown className="w-3.5 h-3.5 text-warn-ink shrink-0" aria-hidden />
-          O Premium devolve {totalPremiumEmCreditos()} Créditos — a compra abre junto com a loja de créditos.
-        </p>
+        {/* O CTA DEIXOU DE SER PROMESSA. Até aqui a fileira Premium era informação sem botão
+            ("a compra abre junto com a loja de créditos") porque a moeda comprada não existia no
+            servidor. Agora existe — e o botão leva à prateleira, que é onde se paga. Continua
+            sem prometer nada no clique: quem concede é o webhook. */}
+        <div className="max-w-[30ch] text-right">
+          <p className="text-[11px] text-ink-faint flex items-center gap-1.5">
+            <Crown className="w-3.5 h-3.5 text-premium shrink-0" aria-hidden />
+            O Premium devolve {totalPremiumEmCreditos()} Créditos ao longo da trilha — mais do que custa.
+          </p>
+          {aoComprarPasse && (
+            <button
+              onClick={aoComprarPasse}
+              className="mt-2 px-3 py-1.5 rounded-xl border-2 border-premium bg-premium-soft text-premium-ink font-bold text-[12px] cursor-pointer hover:brightness-110"
+            >
+              Ver o Passe Premium
+            </button>
+          )}
+        </div>
       </div>
 
       <div className="flex gap-1.5 flex-wrap" role="group" aria-label="Ir para um trecho do passe">

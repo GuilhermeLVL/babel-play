@@ -7,7 +7,7 @@ import { emojiDoItem, estadoDaColecao } from '../../../lib/galeria/progressao';
 import { equiparItem, equipavel, type ContextoDeEquipar } from '../../../lib/galeria/equipar';
 import { possuidos } from '../../../lib/loja';
 import { cromasDaPeca, temOCroma, cromaEquipado } from '../../../lib/galeria/cromas';
-import EditorDoItem, { temPersonalizacao } from './EditorDoItem';
+import EditorDoItem, { temPersonalizacao, temCroma } from './EditorDoItem';
 
 /**
  * O INVENTÁRIO (protótipo aprovado 01/09, tarefa 3.2) — a arrumação que jogos usam há vinte
@@ -196,7 +196,9 @@ export default function Inventario({
             const cor = COR_DA_RARIDADE[item.raridade];
             const org = ORIGEM[origemDe(item)];
             const eq = equipadoAtual(item);
-            const cromas = cromasDaPeca(item.id, item.raridade);
+            // Pack e cursor entram no editor pelo conteúdo (os emojis), não pela cor: contar
+            // cromas neles seria anunciar um produto que a peça não tem.
+            const cromas = temCroma(item) ? cromasDaPeca(item.id, item.raridade) : [];
             const meusCromas = cromas.filter(temOCroma).length;
             return (
               <>
@@ -232,12 +234,12 @@ export default function Inventario({
                     >
                       <span className="inline-flex items-center gap-1.5"><Pencil className="w-3.5 h-3.5" aria-hidden /> Personalizar</span>
                     </button>
-                    <p className="text-[11px] text-ink-faint mt-2 leading-snug">
+                    {cromas.length > 0 && <p className="text-[11px] text-ink-faint mt-2 leading-snug">
                       {meusCromas === 1
                         ? `1 das ${cromas.length} cores desta peça é sua.`
                         : `${meusCromas} das ${cromas.length} cores desta peça são suas.`}{' '}
                       As outras se desbloqueiam com Seeds — a peça é a mesma, muda a cor.
-                    </p>
+                    </p>}
                   </>
                 )}
 
@@ -266,7 +268,10 @@ export default function Inventario({
       {editando && (
         <EditorDoItem
           item={editando}
+          nivel={nivel}
           saldo={saldo}
+          setTheme={ctx.setTheme}
+          onIrParaLoja={onIrParaLoja}
           aoFechar={() => { setEditando(null); rerender(); }}
           aoEquipar={() => equipar(editando)}
           aoComprar={rerender}

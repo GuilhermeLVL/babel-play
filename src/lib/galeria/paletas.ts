@@ -118,3 +118,23 @@ export function buscarPaletas(termo: string, estilo?: EstiloDePaleta | 'todos'):
 export function coresDaPaleta(p: Paleta): string[] {
   return [p.accent, p.ink, p.surface, p.canvas];
 }
+
+/**
+ * A PALETA ATIVA — qual das 200 está pintando a tela agora.
+ *
+ * Mora aqui porque duas telas precisam da mesma resposta (o editor da peça, que aplica, e
+ * `restaurar.ts`, que limpa). Enquanto era um `localStorage.getItem` solto dentro do componente,
+ * "voltar ao visual original" e "aplicar paleta" mexiam na mesma chave por caminhos diferentes.
+ */
+const CHAVE_ATIVA = 'babel.paleta_ativa'
+
+export function lerPaletaAtiva(): string | null {
+  try { return localStorage.getItem(CHAVE_ATIVA) } catch { return null }
+}
+
+export function gravarPaletaAtiva(id: string | null): void {
+  try {
+    if (id) localStorage.setItem(CHAVE_ATIVA, id)
+    else localStorage.removeItem(CHAVE_ATIVA)
+  } catch { /* sem storage: a paleta continua aplicada nesta sessão */ }
+}

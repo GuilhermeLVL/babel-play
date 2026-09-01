@@ -29,3 +29,18 @@
       ordenada pelo que falta menos
 - [x] 3.4 Cabeçalho de temporada com a carteira (Seeds sempre; Créditos quando há billing)
 - [x] 3.5 Verificação no navegador das quatro abas + o editor de croma aberto
+
+## 4. A limpeza do legado (pedido do dono, 01/09)
+
+- [x] 4.1 O acordeão "Monte o seu, peça por peça" sai de `Personalizar.tsx` (519 → 245 linhas):
+      sete das oito seções repetiam, em chips, o que a grade do inventário já faz
+- [x] 4.2 O que era profundidade e não repetição muda de lugar em vez de sumir — paletas, editor
+      de pack, cursor de qualquer emoji e rastro de emojis abrem pelo "Personalizar" da peça
+- [x] 4.3 `SeletorDeEmojis` e `SeletorDePaletas` viram arquivos próprios (eram funções declaradas
+      no corpo do componente, remontadas a cada render e inalcançáveis de fora)
+- [x] 4.4 "Meus perfis salvos" e "Perfis prontos" viram uma seção só — a diferença entre os dois
+      grupos já está no cartão, que só nos seus tem renomear e apagar
+- [x] 4.5 Perfil de exibição sai do acordeão e fica aberto: é acessibilidade, e direito não se
+      esconde atrás de um clique
+- [x] 4.6 `lerPaletaAtiva`/`gravarPaletaAtiva` em `paletas.ts` — a chave era lida e escrita por
+      três caminhos diferentes (a tela, o restaurador, o editor)

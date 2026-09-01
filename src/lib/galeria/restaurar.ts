@@ -15,6 +15,7 @@ import { setParticulas } from '../particulas'
 import { setPack } from '../particulas'
 import { setCursor } from '../cursores'
 import { setRastro } from '../rastroDoMouse'
+import { gravarPaletaAtiva } from './paletas'
 
 export const VISUAL_PADRAO = {
   tema: DEFAULT_THEME as ThemeType,
@@ -31,6 +32,6 @@ export function restaurarVisualPadrao(): { tema: ThemeType; fonte: FonteType } {
   setCursor(VISUAL_PADRAO.cursor)
   setRastro(VISUAL_PADRAO.rastro)
   // A paleta ativa é um apontador para o tema `custom`; sem ela, o tema padrão volta limpo.
-  try { localStorage.removeItem('babel.paleta_ativa') } catch { /* sem storage */ }
+  gravarPaletaAtiva(null)
   return { tema: VISUAL_PADRAO.tema, fonte: VISUAL_PADRAO.fonte }
 }

@@ -41,4 +41,8 @@
 
 - [x] 6.1 `npx vitest run` · `npm run typecheck` · `npm run lint` · `npm run audit:gate` ·
       `npx ast-grep scan -c sgconfig.yml src server server.ts`
-- [ ] 6.2 Navegador: a prateleira paga aparece, o item premium equipa, e a fileira do passe credita
+- [x] 6.2 As rotas provadas contra um servidor Express de verdade (curl): gasto sem saldo → 402
+      com quanto falta · motivo desconhecido → 400 · item de Seeds forjado como premium → 400 ·
+      passe sem compra → `creditado: 0` · `GET /creditos` devolvendo `itensPremium`
+- [ ] 6.3 Conferência VISUAL da prateleira paga e da fileira do passe — pendente: o navegador do
+      Chrome DevTools está em uso por outra sessão neste mesmo repositório

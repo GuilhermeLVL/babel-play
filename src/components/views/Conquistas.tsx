@@ -6,7 +6,7 @@ import {
 } from '@core';
 import { conquistasDesbloqueadas, dataDaConquista } from '../../lib/conquistasPosse';
 import { CATALOGO_DA_LOJA, COR_DA_RARIDADE } from '../../lib/loja';
-import { emojiDoItem } from '../../lib/galeria/progressao';
+import MiniaturaDoItem from '../MiniaturaDoItem';
 import { TEXTOS } from '../../lib/galeria/textos';
 import type { DerivedProgress } from '../../lib/progress';
 
@@ -79,7 +79,7 @@ export default function Conquistas({ progress, ctx }: ConquistasProps) {
               return (
                 <div key={item.id} className={`card-panel border-2 p-4 flex flex-col gap-2 ${cor.borda} ${cor.fundo}`}>
                   <div className="flex items-center gap-2">
-                    <span className="text-2xl" aria-hidden>{emojiDoItem(item)}</span>
+                    <MiniaturaDoItem item={item} />
                     <div className="min-w-0">
                       <p className="font-bold text-[13.5px] text-ink leading-tight truncate">{item.nome}</p>
                       <p className="text-[11px] text-warn-ink font-bold flex items-center gap-1"><Star className="w-3 h-3 fill-warn text-warn" aria-hidden /> Exclusivo</p>

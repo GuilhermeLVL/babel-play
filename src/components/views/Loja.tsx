@@ -11,7 +11,7 @@
  * caminho que equipa no app. Os textos dos estados vêm de `lib/galeria/textos`.
  */
 import { useEffect, useMemo, useState } from 'react';
-import { ShoppingBag, Sprout, Lock, Check, Sparkles, Palette, Type, Gamepad2, PanelRight, Wand2, Trophy, Shirt, Ticket } from 'lucide-react';
+import { ShoppingBag, Sprout, Lock, Check, Sparkles, Trophy, Shirt, Ticket } from 'lucide-react';
 import { Abas, PainelDeAba } from '../ui';
 import Conquistas from './Conquistas';
 import PasseDeTemporada from './passe/PasseDeTemporada';
@@ -20,9 +20,10 @@ import { REGRAS, type ContextoDeConquistas } from '@core';
 import {
   CATALOGO_DA_LOJA, COR_DA_RARIDADE, estadoDoItem, marcarPosse, type ItemDaLoja,
 } from '../../lib/loja';
-import { proximaRecompensa, estadoDaColecao, emojiDoItem } from '../../lib/galeria/progressao';
+import { proximaRecompensa, estadoDaColecao } from '../../lib/galeria/progressao';
 import { equiparItem, equipavel, type ContextoDeEquipar } from '../../lib/galeria/equipar';
 import { TEXTOS } from '../../lib/galeria/textos';
+import MiniaturaDoItem from '../MiniaturaDoItem';
 import ComprarCreditos from './loja/ComprarCreditos';
 import CabecalhoDeTemporada from './loja/CabecalhoDeTemporada';
 import { useCarteira } from '../../lib/carteira';
@@ -30,8 +31,8 @@ import { gastarSeeds } from '../../data/api';
 import { toast } from '../Toast';
 import { comemorar, explodirAleatorio } from '../../lib/juice';
 import { emitBurst } from '../../lib/effects';
-import { readParticulas, readPack, PACKS_DE_EMOJI } from '../../lib/particulas';
-import { readCursor, CURSORES } from '../../lib/cursores';
+import { readParticulas, readPack } from '../../lib/particulas';
+import { readCursor } from '../../lib/cursores';
 import { readRastro } from '../../lib/rastroDoMouse';
 import {
   nivelDoAprimoramento, custoDoProximoNivel, registrarAprimoramento, progressoDoAprimoramento,
@@ -64,13 +65,6 @@ interface LojaProps {
   equiparCtx?: ContextoDeEquipar;
 }
 
-const ICONE_DO_TIPO: Record<string, React.ReactNode> = {
-  tema: <Palette className="w-3.5 h-3.5" />,
-  fonte: <Type className="w-3.5 h-3.5" />,
-  particulas: <Sparkles className="w-3.5 h-3.5" />,
-  posicao: <PanelRight className="w-3.5 h-3.5" />,
-  estudio: <Wand2 className="w-3.5 h-3.5" />,
-};
 
 const FILTROS = [
   { id: 'tudo', nome: 'Tudo' },
@@ -236,44 +230,14 @@ export default function Loja({ progress, theme, setTheme, fonte, setFonte, menuP
             }
           }}
         >
-          {/* Prévia */}
-          <div className={`h-24 flex items-center justify-center gap-2 ${raridade.fundo} border-b ${raridade.borda}`}>
-            {item.previa ? (
-              <span className="flex -space-x-1.5">
-                {item.previa.map((c, i) => (
-                  <span key={i} className="w-9 h-9 rounded-full border-2 border-surface shadow-sm shrink-0" style={{ backgroundColor: c }} />
-                ))}
-              </span>
-            ) : item.tipo === 'particulas' ? (
-              <span className="font-display font-black text-3xl select-none" aria-hidden>
-                {item.alvo === 'coracoes' ? '💛🧡❤️' : item.alvo === 'estrelas' ? '⭐✨🌟' : item.alvo === 'confete' ? '🎊🎉' : item.alvo === 'emoji' ? PACKS_DE_EMOJI.find((pk) => pk.id === readPack())?.emojis.slice(0, 3).join('') : '🟧🟨🟩'}
-              </span>
-            ) : item.tipo === 'pack' ? (
-              <span className="font-display font-black text-2xl select-none tracking-wider" aria-hidden>
-                {PACKS_DE_EMOJI.find((pk) => pk.id === item.alvo)?.emojis.slice(0, 4).join(' ')}
-              </span>
-            ) : item.tipo === 'cursor' ? (
-              <span className="font-display font-black text-4xl select-none" aria-hidden>
-                {CURSORES.find((c) => c.id === item.alvo)?.emoji}
-              </span>
-            ) : item.tipo === 'rastro' ? (
-              <span className="font-display font-black text-3xl select-none" aria-hidden>
-                {item.alvo === 'off' ? '🚫' : item.alvo === 'coracoes' ? '🖱️💨❤️' : item.alvo === 'estrelas' ? '🖱️💨⭐' : item.alvo === 'emoji' ? '🖱️💨🦆' : '🖱️💨✨'}
-              </span>
-            ) : item.tipo === 'aprimoramento' ? (
-              <span className="font-display font-black text-4xl select-none" aria-hidden>
-                {item.alvo === 'sorte' ? '🎲' : '💥'}
-              </span>
-            ) : item.tipo === 'estudio' ? (
-              <Wand2 className="w-10 h-10 text-warn" aria-hidden />
-            ) : item.tipo === 'galeria' ? (
-              <span className="font-display font-black text-3xl select-none" aria-hidden>
-                {item.alvo.startsWith('estilo:') ? '🎨' : item.alvo === 'editor-pack' ? '✏️' : item.alvo === 'cursor-emoji' ? '🖱️' : (item.desc.match(/\p{Extended_Pictographic}+/gu) ?? ['✨']).slice(0, 3).join('')}
-              </span>
-            ) : (
-              <Gamepad2 className="w-10 h-10 text-ink-muted" aria-hidden />
-            )}
-          </div>
+              {/* A PRÉVIA REAL DA PEÇA. Aqui havia uma cadeia de nove `if` que redesenhava, a
+                  mão e em outra ordem, o que a peça mostra — a segunda versao da mesma verdade,
+                  que já tinha divergido da grade do inventário. `MiniaturaDoItem` lê as MESMAS
+                  fontes que o app lê para desenhar de verdade, e as duas telas passam a mostrar
+                  a mesma coisa porque leem o mesmo lugar. */}
+              <div className={`h-24 flex items-center justify-center gap-2 ${raridade.fundo} border-b ${raridade.borda}`}>
+                <MiniaturaDoItem item={item} tam="grande" />
+              </div>
 
           <div className="p-4 flex flex-col gap-2 flex-1">
             <div className="flex items-center justify-between gap-2">
@@ -443,7 +407,7 @@ export default function Loja({ progress, theme, setTheme, fonte, setFonte, menuP
           <div className="flex flex-wrap gap-2">
             {proxima.itens.map((i) => (
               <span key={i.id} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-[12.5px] font-bold text-ink ${COR_DA_RARIDADE[i.raridade].borda} ${COR_DA_RARIDADE[i.raridade].fundo}`}>
-                {ICONE_DO_TIPO[i.tipo] ?? <span aria-hidden>{emojiDoItem(i)}</span>} {i.nome}
+                <MiniaturaDoItem item={i} /> {i.nome}
               </span>
             ))}
           </div>

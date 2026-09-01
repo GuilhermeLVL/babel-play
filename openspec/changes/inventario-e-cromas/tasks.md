@@ -48,3 +48,16 @@
       com layout próprio some da tela; o campo "salvar este visual" vai junto, para a categoria a
       que pertence. "Liberar mais na Loja" sai porque o "Ir à Loja" do inventário já leva ao mesmo
       lugar, e leva dizendo quantas peças faltam
+
+## 5. Miniaturas reais (pedido do dono, 01/09)
+
+- [x] 5.1 `components/MiniaturaDoItem.tsx`: a miniatura mostra o que a peça DESENHA, lendo as
+      mesmas fontes que o app lê para desenhar de verdade (`estiloDeRastro`, a forma do `alvo`,
+      os emojis do pack, as cores do tema, a família da fonte, a paleta do estilo)
+- [x] 5.2 Usada nas QUATRO telas que listam itens lado a lado — inventário, passe, conquistas e
+      o modal de "subiu de nível". `emojiDoItem` (um ícone por tipo) some dessas quatro
+- [x] 5.3 A cadeia de nove `if` que a Loja tinha para desenhar prévia sai: era a segunda versão
+      da mesma verdade, e já tinha divergido da grade
+- [x] 5.4 Defeito achado PELA miniatura: `ras-oceano` prometia "estrelas nas cores do oceano
+      profundo", mas a forma `estrelas` desenha ⭐/✨ por `fillText` e emoji ignora cor — era
+      idêntico ao Rastro Estrelas. Passa a usar `gen:faisca:oceano-profundo`, que aceita a paleta

@@ -136,7 +136,11 @@ export const CATALOGO_DA_LOJA: ItemDaLoja[] = [
   { id: 'pack-doces', tipo: 'pack', alvo: 'doces', nome: 'Pack Doces', desc: '🍩 🍪 🧁 🍰 🍫 🍬 🍭', raridade: 'comum', nivel: 6, precoSeeds: 60 },
   { id: 'pack-gatos', tipo: 'pack', alvo: 'gatos', nome: 'Pack Gatos', desc: '🐱 🐈 🐾 😺 😻 🐯 🦁', raridade: 'comum', nivel: 6, precoSeeds: 60 },
   { id: 'cur-golfinho', tipo: 'cursor', alvo: 'golfinho', nome: 'Cursor Golfinho', desc: 'Um golfinho nada pelo ponteiro. 🐬', raridade: 'raro', nivel: 6, precoSeeds: 120 },
-  { id: 'ras-oceano', tipo: 'rastro', alvo: 'gen:estrelas:oceano-profundo', nome: 'Rastro Maré', desc: 'Estrelas nas cores do oceano profundo.', raridade: 'raro', nivel: 6, precoSeeds: 130 },
+  /* FAÍSCA, e não estrela: a forma `estrelas` desenha ⭐ e ✨ por `fillText` (effects.ts), e
+     emoji IGNORA cor — este item prometia "nas cores do oceano profundo" e entregava a mesma
+     estrela amarela do Rastro Estrelas. As miniaturas reais (01/09) mostraram os dois idênticos
+     lado a lado, que foi como o defeito apareceu. Faísca é círculo pintado: a paleta vale. */
+  { id: 'ras-oceano', tipo: 'rastro', alvo: 'gen:faisca:oceano-profundo', nome: 'Rastro Maré', desc: 'Faíscas nas cores do oceano profundo.', raridade: 'raro', nivel: 6, precoSeeds: 130 },
 
   { id: 'pack-jardim', tipo: 'pack', alvo: 'jardim', nome: 'Pack Jardim', desc: '🌷 🌻 🌹 🌵 🍀 🌿 🌱', raridade: 'raro', nivel: 7, precoSeeds: 110 },
   { id: 'cur-coruja', tipo: 'cursor', alvo: 'coruja', nome: 'Cursor Coruja', desc: 'Quem estuda de madrugada tem companhia. 🦉', raridade: 'raro', nivel: 7, precoSeeds: 140 },

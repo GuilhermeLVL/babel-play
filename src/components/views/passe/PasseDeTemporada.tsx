@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState } from 'react';
 // Conquistas, Loja) — um conceito, um ícone.
 import { Check, Coins, Crown, Lock, Sprout, Star } from 'lucide-react';
 import { COR_DA_RARIDADE, estadoDoItem, type ItemDaLoja } from '../../../lib/loja';
-import { emojiDoItem } from '../../../lib/galeria/progressao';
+import MiniaturaDoItem from '../../MiniaturaDoItem';
 import { equiparItem, equipavel, type ContextoDeEquipar } from '../../../lib/galeria/equipar';
 import { passeNivel, premiumDoNivel, slotsDoPasse, slotDestravado, totalPremiumEmCreditos, TEMPORADA_ATUAL, type SlotDoPasse } from '../../../lib/galeria/passe';
 import { creditarSeeds } from '../../../data/api';
@@ -231,7 +231,7 @@ export default function PasseDeTemporada({
                           aria-label={`Casa ${col.nivel} do passe, trilha grátis: ${i.nome}${aberto ? '' : ', bloqueado'}${eq ? ', equipado' : ''}`}
                         >
                           <Selo ok={eq} trancado={!aberto} />
-                          <span className={`${solo ? 'text-[34px]' : 'text-[20px]'} leading-none`} aria-hidden>{emojiDoItem(i)}</span>
+                          <MiniaturaDoItem item={i} tam={solo ? 'grande' : 'grade'} />
                           <span className="text-[10.5px] font-bold text-ink leading-tight text-center line-clamp-2">{i.nome}</span>
                           <span className="font-mono text-[8.5px] uppercase tracking-wider font-bold text-ink-faint">{cor.rotulo}</span>
                         </button>

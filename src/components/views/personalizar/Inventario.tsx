@@ -3,12 +3,13 @@ import { Check, Lock, Palette, Pencil, Save, ShoppingBag, Sparkles, Sprout, Tras
 import { toast } from '../../Toast';
 import { comemorar } from '../../../lib/juice';
 import { CATALOGO_DA_LOJA, COR_DA_RARIDADE, ORIGEM, estadoDoItem, type ItemDaLoja, type OrigemDoItem } from '../../../lib/loja';
-import { emojiDoItem, estadoDaColecao } from '../../../lib/galeria/progressao';
+import { estadoDaColecao } from '../../../lib/galeria/progressao';
 import { equiparItem, equipavel, type ContextoDeEquipar } from '../../../lib/galeria/equipar';
 import { possuidos } from '../../../lib/loja';
 import { cromasDaPeca, temOCroma, cromaEquipado } from '../../../lib/galeria/cromas';
 import { paletaPorId } from '../../../lib/galeria/paletas';
 import type { Perfil } from '../../../lib/galeria/perfis';
+import MiniaturaDoItem from '../../MiniaturaDoItem';
 import EditorDoItem, { temPersonalizacao, temCroma } from './EditorDoItem';
 
 /**
@@ -56,24 +57,6 @@ const ICONE_DA_ORIGEM: Record<OrigemDoItem, React.ReactNode> = {
   conquista: <Trophy className="w-3.5 h-3.5" aria-hidden />,
   creditos: <Crown className="w-3.5 h-3.5" aria-hidden />,
 };
-
-/**
- * A ARTE DE UM ITEM. Tema usa as PRÓPRIAS cores, não o emoji do tipo: com `emojiDoItem` dando um
- * 🎨 para todo tema, cinco temas lado a lado viravam cinco ícones idênticos — o nome embaixo era
- * a única diferença, e uma grade visual que só se lê pelo texto não é uma grade visual.
- */
-function Arte({ item, grande }: { item: ItemDaLoja; grande?: boolean }) {
-  if (item.previa) {
-    return (
-      <span className={`flex ${grande ? 'gap-1.5' : 'gap-0.5'}`} aria-hidden>
-        {item.previa.map((c, i) => (
-          <span key={i} className={`${grande ? 'w-7 h-7' : 'w-3.5 h-3.5'} rounded-full border border-border-subtle`} style={{ backgroundColor: c }} />
-        ))}
-      </span>
-    );
-  }
-  return <span className={grande ? 'text-[46px]' : 'text-[26px] leading-none'} aria-hidden>{emojiDoItem(item)}</span>;
-}
 
 /** As quatro cores de um perfil, quando ele aponta para uma paleta. */
 function coresDoPerfil(p: Perfil): string[] | null {
@@ -257,7 +240,7 @@ export default function Inventario({
                   >
                     {eq && <Check className="absolute top-1.5 right-1.5 w-3.5 h-3.5 text-good" aria-hidden />}
                     {croma && <Palette className="absolute top-1.5 left-1.5 w-3 h-3 text-rare" aria-hidden />}
-                    <Arte item={i} />
+                    <MiniaturaDoItem item={i} />
                     <span className="text-[9.5px] font-bold text-ink-muted leading-tight text-center line-clamp-2">{i.nome}</span>
                   </button>
                 );
@@ -343,7 +326,7 @@ export default function Inventario({
             return (
               <>
                 <div className={`h-28 rounded-xl border ${cor.borda} ${cor.fundo} flex items-center justify-center mb-3`} aria-hidden>
-                  <Arte item={item} grande />
+                  <MiniaturaDoItem item={item} tam="grande" />
                 </div>
                 <h4 className="font-display font-black text-[16px] text-ink leading-tight">{item.nome}</h4>
                 <p className="font-mono text-[10px] uppercase tracking-wider font-bold text-ink-faint mt-1">{cor.rotulo}</p>

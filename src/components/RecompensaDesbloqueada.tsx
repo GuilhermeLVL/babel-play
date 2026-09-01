@@ -13,7 +13,7 @@ import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Sparkles, Trophy, Check, X, Sprout } from 'lucide-react';
 import { COR_DA_RARIDADE, type ItemDaLoja } from '../lib/loja';
-import { emojiDoItem } from '../lib/galeria/progressao';
+import MiniaturaDoItem from './MiniaturaDoItem';
 import { TEXTOS } from '../lib/galeria/textos';
 import { comemorar, explodirAleatorio } from '../lib/juice';
 
@@ -111,7 +111,7 @@ export default function RecompensaDesbloqueada({ fila, onEquipar, onFechar, onVe
                 const peca = i.tipo !== 'galeria' && i.tipo !== 'aprimoramento';
                 return (
                   <li key={i.id} className={`flex items-center gap-3 p-3 rounded-2xl border-2 ${cor.borda} ${cor.fundo}`}>
-                    <span className="text-2xl shrink-0" aria-hidden>{emojiDoItem(i)}</span>
+                    <span className="shrink-0"><MiniaturaDoItem item={i} /></span>
                     <div className="min-w-0 flex-1">
                       <p className="font-bold text-[13.5px] text-ink leading-tight truncate">{i.nome}</p>
                       <p className="text-[11.5px] text-ink-muted truncate">{i.desc}</p>

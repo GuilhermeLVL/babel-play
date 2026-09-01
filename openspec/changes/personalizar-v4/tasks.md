@@ -8,7 +8,9 @@
 - [x] 2.1 `ItemDaColecao` único; raridade única
 - [x] 2.2 Reorganização das abas na direção escolhida
 - [x] 2.3 Conquistas em um lugar só (aba Desafios; Perfil mantém por decisão de acesso)
-- [ ] 2.4 (pendente: pooling/cache no ParticleCanvas) Pooling + cache de emoji no ParticleCanvas
+- [x] 2.4 Pooling + cache de emoji no ParticleCanvas — glifo rasterizado uma vez por
+      emoji×tamanho (drawImage no lugar de fillText por quadro), partícula morta volta ao pool
+      e remoção vira troca-e-pop O(1); verificado ao vivo com a skin emoji, console limpo
 
 ## 3. v4 no app (31/08, protótipo aprovado)
 

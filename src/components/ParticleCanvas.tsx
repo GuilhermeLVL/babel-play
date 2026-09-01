@@ -99,6 +99,53 @@ export default function ParticleCanvas({ enabled, performanceMode, theme, darkMo
     let width = 0, height = 0, animFrameId = 0;
     const particles: P[] = [];
 
+    /**
+     * POOL DE PARTÍCULAS (personalizar-v4 2.4). Rajadas em sequência criavam e abandonavam
+     * centenas de objetos por comemoração — pressão de GC exatamente no momento do confete.
+     * Partícula morta volta para cá e `novaParticula` a reveste em vez de alocar.
+     */
+    const pool: P[] = [];
+    const novaParticula = (props: P): P => {
+      const p = pool.pop();
+      if (!p) return props;
+      Object.assign(p, props);
+      return p;
+    };
+    /** Remove por troca-e-pop (O(1), sem o deslocamento do splice) e devolve ao pool. */
+    const matarParticula = (i: number) => {
+      const morta = particles[i];
+      const ultima = particles.pop()!;
+      if (morta !== ultima) particles[i] = ultima;
+      // Limpa o que é opcional: um emoji herdado apareceria na próxima faísca redonda.
+      morta.emoji = undefined; morta.forma = undefined; morta.nova = undefined;
+      if (pool.length < 512) pool.push(morta);
+    };
+
+    /**
+     * CACHE DE EMOJI (personalizar-v4 2.4). `fillText` re-rasteriza o glifo A CADA QUADRO por
+     * partícula — shaping de fonte é o custo dominante da chuva de emojis. Cada par
+     * emoji×tamanho é desenhado UMA vez num canvas offscreen e depois só copiado (`drawImage`).
+     * Tamanho em degraus de 4px para o cache não explodir com `rand(size)` contínuo.
+     */
+    const cacheDeEmoji = new Map<string, HTMLCanvasElement>();
+    const emojiRasterizado = (emoji: string, px: number): HTMLCanvasElement => {
+      const chave = `${emoji}:${px}`;
+      const pronto = cacheDeEmoji.get(chave);
+      if (pronto) return pronto;
+      if (cacheDeEmoji.size > 256) cacheDeEmoji.clear(); // packs trocados ao vivo não acumulam
+      const off = document.createElement('canvas');
+      // Folga de 25%: glifos com ascendente/descendente (🎈, 🎉) cortavam no quadrado exato.
+      const lado = Math.ceil(px * 1.25);
+      off.width = lado; off.height = lado;
+      const octx = off.getContext('2d')!;
+      octx.font = `${px}px serif`;
+      octx.textAlign = 'center';
+      octx.textBaseline = 'middle';
+      octx.fillText(emoji, lado / 2, lado / 2);
+      cacheDeEmoji.set(chave, off);
+      return off;
+    };
+
     const resize = () => {
       const dpr = Math.min(window.devicePixelRatio || 1, 2);
       const rect = canvas.getBoundingClientRect();
@@ -134,7 +181,7 @@ export default function ParticleCanvas({ enabled, performanceMode, theme, darkMo
       if (!ambient) return;
       // Nasce dentro da faixa visível (metade de cima); fora dela o desvanecimento já zerou.
       for (let i = 0; i < preset.ambientCount; i++) {
-        particles.push({
+        particles.push(novaParticula({
           x: Math.random() * width,
           y: Math.random() * height * 0.5,
           vx: preset.driftX * rand(-1, 1) * 2,
@@ -146,7 +193,7 @@ export default function ParticleCanvas({ enabled, performanceMode, theme, darkMo
           life: null,
           maxLife: 0,
           color: ambientColor
-        });
+        }));
       }
     };
     spawnAmbient();
@@ -178,7 +225,7 @@ export default function ParticleCanvas({ enabled, performanceMode, theme, darkMo
         let removidas = 0;
         for (let i = 0; i < particles.length && removidas < excesso; i++) {
           if (particles[i].life === null) continue; // ambiente: nunca é podado
-          particles.splice(i, 1);
+          matarParticula(i); // troca-e-pop: o slot i recebe outra e é reexaminado
           i--;
           removidas++;
         }
@@ -204,7 +251,7 @@ export default function ParticleCanvas({ enabled, performanceMode, theme, darkMo
         const ang = (Math.PI * 2 * i) / countFinal + rand(-0.25, 0.25);
         const sp = spec.speed * rand(0.45, 1);
         const ms = spec.life * rand(0.7, 1);
-        particles.push({
+        particles.push(novaParticula({
           // A chuva nasce ao longo do topo da tela; a radial, no ponto do acontecimento.
           x: chuva ? rand(0, width)
             : travessia ? (dirTravessia > 0 ? -60 : width + 60)
@@ -240,7 +287,7 @@ export default function ParticleCanvas({ enabled, performanceMode, theme, darkMo
           giro: rand(0, Math.PI * 2),
           giroVel: rand(-0.18, 0.18),
           gravidade: spec.gravidade,
-        });
+        }));
       }
     };
 
@@ -294,7 +341,8 @@ export default function ParticleCanvas({ enabled, performanceMode, theme, darkMo
           // e uma faísca de 650ms morria ANTES do primeiro desenho — rajada invisível.
           if (p.nova) p.nova = false;
           else p.life -= dtReal;
-          if (p.life <= 0) { particles.splice(i, 1); continue; }
+          // Troca-e-pop no laço DECRESCENTE: quem entra no slot i já foi processada neste quadro.
+          if (p.life <= 0) { matarParticula(i); continue; }
           // Confete quase não tem atrito (ele PLANA); faísca desacelera rápido.
           const atrito = Math.pow(p.forma === 'confete' || p.forma === 'emoji' ? 0.995 : p.forma === 'fumaca' ? 0.97 : 0.94, k);
           p.vx *= atrito; p.vy *= atrito;
@@ -362,10 +410,10 @@ export default function ParticleCanvas({ enabled, performanceMode, theme, darkMo
           ctx.save();
           ctx.translate(p.x, p.y);
           ctx.rotate((p.giro ?? 0) * 0.6);
-          ctx.font = `${Math.max(12, Math.round(p.size * 5))}px serif`;
-          ctx.textAlign = 'center';
-          ctx.textBaseline = 'middle';
-          ctx.fillText(p.emoji ?? '⭐', 0, 0);
+          // Glifo pré-rasterizado (degraus de 4px) copiado com drawImage — ver cacheDeEmoji.
+          const px = Math.max(12, Math.round((p.size * 5) / 4) * 4);
+          const glifo = emojiRasterizado(p.emoji ?? '⭐', px);
+          ctx.drawImage(glifo, -glifo.width / 2, -glifo.height / 2);
           ctx.restore();
         } else if (p.forma === 'cometa') {
           // Cauda: três círculos decrescentes ATRÁS do vetor de velocidade, depois a cabeça.

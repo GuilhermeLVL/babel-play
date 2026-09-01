@@ -9,7 +9,7 @@ import { t, coreOnly } from '../../lib/profile';
 import {
   BookOpen, Clock, Activity, Zap, ArrowUpRight, AlertCircle,
   Download, LayoutGrid, Brain, Mic, Info, PieChart as PieChartIcon,
-  Sprout, Eye, MoreHorizontal, BarChart2, MessageSquareWarning, Target} from 'lucide-react';
+  Sprout, Eye, MoreHorizontal, BarChart2, MessageSquareWarning, Target, Headphones} from 'lucide-react';
 import {
   ResponsiveContainer, XAxis, YAxis, Tooltip, CartesianGrid,
   AreaChart, Area, PieChart, Pie, Cell
@@ -171,6 +171,8 @@ export default function Metrics({ recordings, onChangeView, ageProfile = 'pro' }
     [levelDist]
   );
   const niveisSemBase = !levelDist.length || ehBaixaConfianca(metrics?.levelConfidence ?? 0);
+  /** Há distribuição para desenhar? Só "N/D" é ausência de dado, não uma fatia. */
+  const temNivelReal = niveisComCefr > 0;
 
   // --- ANALISTA DE VOCABULÁRIO (painel compartilhado) ---
   // Fonte REAL da lista de vocábulos desta tela: o deck do backend (mesmo do Estudo/FSRS).
@@ -196,6 +198,14 @@ export default function Metrics({ recordings, onChangeView, ageProfile = 'pro' }
   const selectedExamWord = exame.palavraExaminada;
   const setSelectedExamWord = exame.setPalavraExaminada;
   const examineWord = exame.examinar;
+  /* Cartão sem verso não é detalhe: é o acervo inteiro perdendo serventia. Acontece quando os
+     dois idiomas configurados são o mesmo — o app avisa em Ajustes e mesmo assim ficha. Contamos
+     aqui para a tela poder dizer, e apontar onde se conserta a causa. */
+  const minutosDoIdioma = Math.round(((metrics?.listeningMs ?? 0) + (metrics?.speakingMs ?? 0)) / 60000);
+  const semVerso = useMemo(
+    () => vocabCards.filter((c) => !(c.translation ?? '').trim()).length,
+    [vocabCards],
+  );
   const speakWord = exame.falar;
   const ttsSpeed = exame.velocidade;
   const setTtsSpeed = exame.setVelocidade;
@@ -357,7 +367,7 @@ export default function Metrics({ recordings, onChangeView, ageProfile = 'pro' }
                 progresso-de-idioma). Agora exporta de verdade: um .txt gerado dos dados reais
                 (palavras difíceis, tempo ativo × passivo, ritmo), pensado para sair do app. */}
             <button
-              onClick={() => { if (metrics) { baixarRelatorio(metrics); } }}
+              onClick={() => { if (metrics) { baixarRelatorio(metrics, vocabCards); } }}
               disabled={!metrics}
               className="flex items-center gap-2 px-4 py-2 bg-surface border border-border-subtle rounded-lg text-xs md:text-sm font-bold text-ink hover:bg-surface-hover hover:border-ink transition-colors shadow-sm cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">
               <Download className="w-4 h-4" /> {ageProfile === 'kids' ? 'Baixar Palavras' : ageProfile === 'senior' ? 'Exportar Meu Caderno' : 'Exportar Relatório'}
@@ -465,6 +475,23 @@ export default function Metrics({ recordings, onChangeView, ageProfile = 'pro' }
                 <div className="flex items-center justify-between mt-1">
                   <div className="text-[12px] text-ink-muted">{metrics?.sessions ?? 0} sessões • {metrics?.streakDays ?? 0} dias seguidos</div>
                   <ArrowUpRight className="w-4 h-4 text-ink-muted opacity-0 group-hover:opacity-100 transition-opacity" />
+                </div>
+              </div>
+
+              {/* TEMPO COM O IDIOMA — `listeningMs` e `speakingMs` eram computados pelo servidor e
+                  não tinham lugar em tela nenhuma (só no .txt exportado). É o número que cresce
+                  desde o primeiro dia, mesmo antes da primeira revisão. */}
+              <div className="card-panel p-6 relative overflow-hidden">
+                <div className="flex items-center gap-2 mb-3 text-ink-muted">
+                  <Headphones className="w-4 h-4 text-rare" />
+                  <span className="text-[11px] font-bold uppercase tracking-wider font-mono">Tempo com o idioma</span>
+                </div>
+                <div className="font-display font-black text-4xl tracking-tight text-ink mb-1">
+                  {minutosDoIdioma}<span className="text-2xl"> min</span>
+                </div>
+                <div className="text-[12px] text-ink-muted font-bold">
+                  {(metrics?.wordsCaptured ?? 0).toLocaleString('pt-BR')} palavras ouvidas
+                  {(metrics?.speakingMs ?? 0) > 0 && ` • ${Math.round((metrics!.speakingMs ?? 0) / 60000)} min falando`}
                 </div>
               </div>
 
@@ -630,6 +657,40 @@ export default function Metrics({ recordings, onChangeView, ageProfile = 'pro' }
                 </div>
               </div>
             )}
+
+            {/* O ACERVO, na tela que leva o nome dele (spec entrega-honesta).
+                Esta lista morava na aba "Detalhes das palavras", que a revelação progressiva
+                esconde atrás do botão "Mais" — então a tela chamada Minhas Palavras abria na
+                única aba sem palavras. Esconder ANÁLISE é revelação progressiva; esconder o
+                ACERVO é a tela não cumprir o próprio nome. As análises ficam nas abas. */}
+            <div className="card-panel p-6 flex flex-col">
+              <div className="flex justify-between items-center mb-1 flex-wrap gap-2">
+                <h3 className="font-display font-extrabold text-[16px] text-ink flex items-center gap-2">
+                  <BookOpen className="w-5 h-5 text-accent" /> Suas palavras
+                </h3>
+                <span className="text-[12px] text-ink-muted font-bold tabular-nums">
+                  {(metrics?.deckSize ?? 0).toLocaleString('pt-BR')} no caderno
+                </span>
+              </div>
+              <p className="text-[12px] text-ink-muted mb-4">
+                Busque, filtre por nível e origem, ordene. Clique num termo para ouvir a pronúncia
+                e ver a explicação.
+              </p>
+              <CatalogoDePalavras aoAbrirPalavra={(id) => {
+                const c = vocabCards.find((x) => x.id === id)
+                if (c) void examineWord(c.word, c.sentence)
+              }} />
+              {semVerso > 0 && (
+                <p className="text-[12px] text-warn-ink mt-3 leading-relaxed">
+                  <b>{semVerso.toLocaleString('pt-BR')} {semVerso === 1 ? 'palavra está' : 'palavras estão'} sem tradução.</b>{' '}
+                  Isso acontece quando o idioma que você aprende e o seu idioma são o mesmo — não há
+                  o que traduzir, e o cartão fica sem verso.{' '}
+                  <button onClick={() => onChangeView?.('settings')} className="underline font-bold hover:text-ink cursor-pointer">
+                    Conferir os dois idiomas
+                  </button>
+                </p>
+              )}
+            </div>
         </PainelDeAba>
 
         {/* --- LEXICAL INTELLIGENCE TAB --- */}
@@ -662,7 +723,11 @@ export default function Metrics({ recordings, onChangeView, ageProfile = 'pro' }
                 </div>
                 <p className="text-[12px] text-ink-muted mb-6">Estimativa aproximada de nível, não represente como classificação exata.</p>
 
-                {levelDist.length > 0 ? (
+                {/* "N/D" NÃO É UMA DISTRIBUIÇÃO. Com todo o acervo fora da wordlist, o donut
+                    desenhava uma fatia única de 100% "N/D" — um gráfico que não informa nada,
+                    ao lado de um Resumo que já declara "não há base". `temNivelReal` faz o
+                    componente cair no estado vazio, que explica em vez de desenhar. */}
+                {temNivelReal ? (
                   <>
                     <div className="w-full" style={{ height: 240 }}>
                       <ResponsiveContainer width="100%" height="100%">
@@ -695,22 +760,6 @@ export default function Metrics({ recordings, onChangeView, ageProfile = 'pro' }
                 )}
               </div>
 
-              {/* Per-word deep dive — lista REAL do deck; o clique abre o Analista de Vocabulário */}
-              <div className="card-panel p-6 flex flex-col">
-                <h3 className="font-display font-extrabold text-[16px] text-ink mb-1 flex items-center gap-2">
-                  <Brain className="w-5 h-5 text-accent" /> Análise Lexical por Palavra
-                </h3>
-                <p className="text-[12px] text-ink-muted mb-4">
-                  Busque, filtre por nível e origem, ordene. Clique num termo para abrir o Analista de Vocabulário.
-                </p>
-                {/* F5: a lista antiga era `vocabCards.map()` sobre os 2.116 cartões medidos, num
-                    scroller de 320px, sem busca, filtro, ordenação, paginação, loading nem erro.
-                    O catálogo resolve tudo isso no servidor e virtualiza a lista. */}
-                <CatalogoDePalavras aoAbrirPalavra={(id) => {
-                  const c = vocabCards.find((x) => x.id === id)
-                  if (c) void examineWord(c.word, c.sentence)
-                }} />
-              </div>
             </div>
         </PainelDeAba>
 

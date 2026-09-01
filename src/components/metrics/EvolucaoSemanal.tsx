@@ -76,7 +76,15 @@ export function EvolucaoSemanal({
                   formatter={(v: number) => [`${v} palavras`, 'Capturadas']}
                   labelFormatter={(l: string) => `Semana de ${l}`}
                 />
-                <Area type="monotone" dataKey="palavras" name="Palavras" stroke="var(--accent)" fill="url(#gradEvolucaoSemanal)" />
+                {/* `dot` explícito com UMA semana: o recharts não desenha ponto por padrão, então
+                    uma série de um item virava um gráfico literalmente em branco — grade, eixos e
+                    nada dentro. O texto abaixo já diz que um ponto não é tendência; o ponto
+                    precisa ao menos existir. */}
+                <Area
+                  type="monotone" dataKey="palavras" name="Palavras"
+                  stroke="var(--accent)" fill="url(#gradEvolucaoSemanal)"
+                  dot={dados.length === 1 ? { r: 4, fill: 'var(--accent)', stroke: 'var(--accent)' } : false}
+                />
               </AreaChart>
             </ResponsiveContainer>
           </div>

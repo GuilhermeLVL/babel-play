@@ -37,4 +37,21 @@ describe('gerarRelatorioDeProgresso', () => {
     const r = gerarRelatorioDeProgresso({ ...base, avgRetentionConfidence: 0 });
     expect(r).toContain('sem base ainda');
   });
+
+  /* "Exportar Meu Caderno" gerava um arquivo sem nenhuma palavra — o usuário pedia o caderno e
+     recebia o boletim (spec entrega-honesta). */
+  it('o caderno exportado contém as palavras, e diz quais estão sem tradução', () => {
+    const cartoes = [
+      { id: 'a', word: 'leverage', translation: 'alavancagem' },
+      { id: 'b', word: 'cohort', translation: '' },
+    ] as never;
+    const r = gerarRelatorioDeProgresso(base, cartoes);
+    expect(r).toContain('== Meu caderno (2 palavras) ==');
+    expect(r).toContain('- leverage — alavancagem');
+    expect(r).toContain('- cohort — (sem tradução)');
+  });
+
+  it('sem cartões, o relatório continua válido e não inventa seção vazia', () => {
+    expect(gerarRelatorioDeProgresso(base)).not.toContain('Meu caderno');
+  });
 });

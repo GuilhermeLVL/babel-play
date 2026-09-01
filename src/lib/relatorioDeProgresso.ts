@@ -1,4 +1,5 @@
 import type { AppMetrics } from '@core';
+import type { VocabCard } from '../types';
 
 /**
  * RELATÓRIO DE PROGRESSO EM TEXTO (spec progresso-de-idioma).
@@ -11,7 +12,15 @@ import type { AppMetrics } from '@core';
 
 const min = (ms: number) => Math.round(ms / 60_000);
 
-export function gerarRelatorioDeProgresso(m: AppMetrics): string {
+/**
+ * O CADERNO É O QUE O BOTÃO PROMETE.
+ *
+ * "Exportar Meu Caderno" gerava um .txt com agregados e NENHUMA palavra — o usuário pedia o
+ * caderno e recebia o boletim. As palavras são opcionais no tipo porque o relatório continua
+ * válido sem elas (a tela pode não ter o deck carregado ainda), mas quando existem, elas são o
+ * conteúdo principal e vêm primeiro.
+ */
+export function gerarRelatorioDeProgresso(m: AppMetrics, cartoes: ReadonlyArray<VocabCard> = []): string {
   const linhas: string[] = [];
   const data = new Date().toLocaleDateString('pt-BR');
   linhas.push(`RELATÓRIO DE ESTUDO — Babel Play · ${data}`);
@@ -55,13 +64,23 @@ export function gerarRelatorioDeProgresso(m: AppMetrics): string {
     linhas.push('');
   }
 
+  if (cartoes.length > 0) {
+    linhas.push(`== Meu caderno (${cartoes.length} palavra${cartoes.length === 1 ? '' : 's'}) ==`);
+    for (const c of cartoes) {
+      const verso = (c.translation ?? '').trim();
+      // Sem verso é informação, não linha faltando: é o que o usuário precisa consertar.
+      linhas.push(verso ? `- ${c.word} — ${verso}` : `- ${c.word} — (sem tradução)`);
+    }
+    linhas.push('');
+  }
+
   linhas.push(`Ofensiva: ${m.streakDays} dia${m.streakDays === 1 ? '' : 's'} · gerado pelo Babel Play a partir dos seus dados reais (nada estimado por IA).`);
   return linhas.join('\n');
 }
 
 /** Baixa o relatório como .txt — o caminho que funciona igual em todo navegador. */
-export function baixarRelatorio(m: AppMetrics): void {
-  const blob = new Blob([gerarRelatorioDeProgresso(m)], { type: 'text/plain;charset=utf-8' });
+export function baixarRelatorio(m: AppMetrics, cartoes: ReadonlyArray<VocabCard> = []): void {
+  const blob = new Blob([gerarRelatorioDeProgresso(m, cartoes)], { type: 'text/plain;charset=utf-8' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;

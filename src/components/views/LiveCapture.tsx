@@ -4,6 +4,7 @@ import { OrdemDasTraducoes } from '../../lib/ordemDaTraducao';
 import { traduzirVersos, explicarParada } from '../../lib/versosDoVocabulario';
 import { apiFetch } from '../../data/api';
 import { EDICAO_LEVE } from '../../lib/edicao';
+import { cenarioDasFontes, fontesDoCenario } from '../../lib/cenarioDeCaptura';
 import { getEntitlements } from '../../lib/entitlements';
 import BuscaDeCapa from '../BuscaDeCapa';
 import { buildGateway } from '../../gateway';
@@ -40,7 +41,6 @@ import {
   Headphones,
   ArrowDown,
   MonitorPlay,
-  MessagesSquare,
   StopCircle, 
   Settings2, 
   Cpu, 
@@ -559,8 +559,22 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
     if (fromUser) scenarioTouchedRef.current = true;
     else if (scenarioTouchedRef.current) return; // reidratação chegou tarde, não desfaz o clique
     setCaptureScenario(s);
-    setMicEnabled(s !== 'media');
-    setSystemEnabled(s !== 'mic');
+    const { mic, sistema } = fontesDoCenario(s);
+    setMicEnabled(mic);
+    setSystemEnabled(sistema);
+  };
+  /**
+   * A ESCOLHA DIRETA: o usuário liga as fontes, e o cenário é derivado (`cenarioDeCaptura.ts`).
+   * Antes eram três cartões que escolhiam as fontes por baixo sem dizer; agora a fonte é a
+   * escolha e o cenário é a consequência — a mesma informação, na ordem em que se pensa.
+   */
+  const alternarFonte = (qual: 'mic' | 'sistema', ligado: boolean) => {
+    scenarioTouchedRef.current = true;
+    const mic = qual === 'mic' ? ligado : micEnabled;
+    const sistema = qual === 'sistema' ? ligado : systemEnabled;
+    setMicEnabled(mic);
+    setSystemEnabled(sistema);
+    setCaptureScenario(cenarioDasFontes(mic, sistema));
   };
   // A rota "servidor local" (WASAPI loopback no Node) só existe quando o backend roda no
   // Windows com o módulo nativo — sondamos uma vez e só então mostramos a opção.
@@ -3226,51 +3240,56 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
                     </div>
                   </div>
 
-                  {/* Linha 2 — CENÁRIO: o usuário escolhe O QUE quer capturar; fontes, rótulos de
-                      idioma e painéis se configuram sozinhos (fim dos toggles técnicos mic/sistema). */}
+                  {/* Linha 2 — AS FONTES, diretas. Os três cartões de cenário saíram (pedido do
+                      dono, 31/08): eles ligavam mic e sistema por baixo sem dizer, e obrigavam a
+                      pessoa a traduzir a própria intenção para uma das nossas categorias. Agora ela
+                      liga o que quer gravar e o cenário é derivado (`lib/cenarioDeCaptura.ts`). */}
                   {!isRecording && (
                     <div className="space-y-2.5">
-                      <span className="text-[9px] font-mono font-bold uppercase tracking-wider text-ink-faint">O que você quer capturar?</span>
-                      <div className={`grid grid-cols-1 ${EDICAO_LEVE ? 'sm:grid-cols-2' : 'sm:grid-cols-3'} gap-2`}>
+                      <span className="text-[9px] font-mono font-bold uppercase tracking-wider text-ink-faint">O que entra na gravação?</span>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                         {([
                           {
-                            id: 'media' as const,
+                            id: 'sistema' as const,
+                            ligado: systemEnabled,
                             icon: <MonitorPlay className="w-4 h-4" />,
-                            titulo: ageProfile === 'kids' ? 'Som do Jogo / Vídeo' : ageProfile === 'senior' ? 'Som do Computador' : 'Assistir mídia',
-                            sub: ageProfile === 'kids' ? 'Roblox, YouTube, Twitch, som do computador' : ageProfile === 'senior' ? 'Vídeos da internet, aulas ou músicas' : 'Vídeo, aula, podcast, jogo, o som do computador'
+                            titulo: ageProfile === 'kids' ? 'Som do jogo e dos vídeos' : 'Som do computador',
+                            sub: ageProfile === 'kids' ? 'Roblox, YouTube, Discord, Twitch' : ageProfile === 'senior' ? 'Vídeos, aulas, músicas e chamadas' : 'Vídeo, aula, podcast, jogo, chamada',
                           },
                           {
-                            id: 'conversation' as const,
-                            icon: <MessagesSquare className="w-4 h-4" />,
-                            titulo: ageProfile === 'kids' ? 'Jogo + Amigos' : ageProfile === 'senior' ? 'Chamada de Vídeo' : 'Conversa / chamada',
-                            sub: ageProfile === 'kids' ? 'Discord, Call ou partida multiplayer' : ageProfile === 'senior' ? 'Conversas no WhatsApp, Zoom ou família' : 'Reunião, call, Discord, você e os outros'
-                          },
-                          // Edição leve: "Minha voz" (só microfone) não faz sentido para quem veio ouvir vídeo/jogo.
-                          ...(EDICAO_LEVE ? [] : [{
                             id: 'mic' as const,
+                            ligado: micEnabled,
                             icon: <Mic className="w-4 h-4" />,
-                            titulo: ageProfile === 'kids' ? 'Minha Voz' : ageProfile === 'senior' ? 'Gravar Minha Voz' : 'Minha voz',
-                            sub: ageProfile === 'kids' ? 'Falar no microfone e testar pronúncia' : ageProfile === 'senior' ? 'Falar para o microfone com tradução direta' : 'Praticar fala, ditar, só o microfone'
-                          }]),
-                        ]).map((c) => (
+                            titulo: ageProfile === 'kids' ? 'Minha voz' : 'Meu microfone',
+                            sub: ageProfile === 'senior' ? 'A sua fala, para praticar pronúncia' : 'Sua fala — praticar, ditar, ou entrar na conversa',
+                          },
+                        ]).map((f) => (
                           <button
-                            key={c.id}
-                            onClick={() => applyScenario(c.id)}
-                            aria-pressed={captureScenario === c.id}
+                            key={f.id}
+                            onClick={() => alternarFonte(f.id, !f.ligado)}
+                            role="switch"
+                            aria-checked={f.ligado}
                             className={`flex items-start gap-2.5 p-3 rounded-xl border text-left transition-all cursor-pointer ${
-                              captureScenario === c.id
+                              f.ligado
                                 ? 'bg-accent-soft/50 border-accent ring-1 ring-accent/30 shadow-sm'
-                                : 'bg-canvas border-border-subtle hover:border-accent/50 hover:-translate-y-0.5'
+                                : 'bg-canvas border-border-subtle hover:border-accent/50'
                             }`}
                           >
-                            <span className={`shrink-0 mt-0.5 ${captureScenario === c.id ? 'text-accent' : 'text-ink-muted'}`}>{c.icon}</span>
-                            <span className="min-w-0">
-                              <span className={`block text-[12px] font-bold leading-tight ${captureScenario === c.id ? 'text-accent-ink' : 'text-ink'}`}>{c.titulo}</span>
-                              <span className="block text-[10px] text-ink leading-snug mt-0.5">{c.sub}</span>
+                            <span className={`shrink-0 mt-0.5 ${f.ligado ? 'text-accent' : 'text-ink-faint'}`}>{f.icon}</span>
+                            <span className="min-w-0 flex-1">
+                              <span className={`block text-[12px] font-bold leading-tight ${f.ligado ? 'text-accent-ink' : 'text-ink'}`}>{f.titulo}</span>
+                              <span className="block text-[10px] text-ink-muted leading-snug mt-0.5">{f.sub}</span>
+                            </span>
+                            {/* O estado precisa ser legível SEM depender de cor (o app tem 7 temas). */}
+                            <span className={`shrink-0 mt-0.5 text-[9px] font-mono font-bold uppercase tracking-wider ${f.ligado ? 'text-accent' : 'text-ink-faint'}`}>
+                              {f.ligado ? 'entra' : 'fora'}
                             </span>
                           </button>
                         ))}
                       </div>
+                      {!micEnabled && !systemEnabled && (
+                        <p className="text-[11px] text-warn-ink">Ligue ao menos uma fonte para poder gravar.</p>
+                      )}
 
                       {/* Fonte do sistema (só nos cenários que a usam) + atalho para o avançado. */}
                       <div className="flex flex-wrap items-center gap-2">
@@ -3389,6 +3408,19 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
                           ? <>Sua fala é detectada em qualquer idioma e traduzida para <b>{langLabel(targetLang)}</b>.</>
                           : <>Sua fala vira texto em <b>{langLabel(sourceLang)}</b> com tradução em <b>{langLabel(targetLang)}</b>.</>)}
                       </p>
+                      {/* IDIOMAS IGUAIS = CARTÃO SEM VERSO (spec entrega-honesta). Ajustes já avisa
+                          quem passa por lá; quem vai direto gravar não via nada, e o caderno enchia
+                          de palavras sem tradução — 198 de 201 na conta do dono. O aviso mora aqui
+                          porque é aqui que a palavra é fichada. */}
+                      {baseLang(sourceLang) === baseLang(targetLang) && (
+                        <p className="text-[9px] text-warn-ink md:text-right leading-tight">
+                          ⚠ Os dois idiomas são o mesmo: não há o que traduzir, e as palavras fichadas
+                          ficam <b>sem verso</b> (não servem para revisar).{' '}
+                          <button onClick={() => setShowConfigPanel(true)} className="underline font-bold cursor-pointer">
+                            trocar um dos dois
+                          </button>
+                        </p>
+                      )}
                       {/* Limite honesto: a Web Speech (motor padrão do mic) não detecta idioma. */}
                       {autoDetectMyLang && captureScenario !== 'media' && micEngine === 'browser' && (
                         <p className="text-[9px] text-warn-ink md:text-right leading-tight">

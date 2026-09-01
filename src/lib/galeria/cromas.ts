@@ -17,6 +17,7 @@
  */
 import { MATIZES } from './paletas'
 import type { Raridade } from '../loja'
+import { PRECO_DO_CROMA } from '@core'
 
 /** As quatro vias de um croma. Só uma delas envolve gastar a moeda de estudo. */
 export type ViaDoCroma = 'incluso' | 'meu' | 'seeds' | 'conquista' | 'premium'
@@ -39,9 +40,9 @@ export interface Croma {
  * a Seed sobrando vai parar, não uma segunda barreira na frente do conteúdo. Quem não comprar
  * nenhum não perde nada — a peça já funciona com a cor inclusa.
  */
-export const PRECO_DO_CROMA: Record<Raridade, number> = {
-  comum: 15, raro: 25, epico: 40, lendario: 60,
-}
+/* A tabela mudou para `core/economiaAutoridade.ts` — o SERVIDOR precisa dela para conferir o
+   preço de um croma antes de debitar. Reexportada aqui para nenhuma tela mudar de import. */
+export { PRECO_DO_CROMA }
 
 const CHAVE = 'babel.cromas'
 

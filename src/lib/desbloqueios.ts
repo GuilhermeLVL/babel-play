@@ -11,8 +11,10 @@
  */
 
 import { conquistasDesbloqueadas } from './conquistasPosse';
+import type { TipoDesbloqueavel } from '@core';
 
-export type TipoDesbloqueavel = 'tema' | 'fonte' | 'posicao' | 'estudio';
+// O tipo mudou para `core/loja.ts` (o catálogo é quem o consome); a REGRA de nível continua aqui.
+export type { TipoDesbloqueavel };
 
 /** nível mínimo por item; o que não está aqui é livre desde o início. */
 const CATALOGO: Record<TipoDesbloqueavel, Record<string, number>> = {

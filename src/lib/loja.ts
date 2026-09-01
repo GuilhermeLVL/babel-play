@@ -80,6 +80,25 @@ export function hidratarPosse(doServidor: readonly string[] | undefined, autorit
   } catch { /* sem storage: estadoDoItem cai no nível, e a posse volta na próxima carga */ }
 }
 
+/**
+ * A POSSE DO QUE SE PAGOU COM DINHEIRO — espelho de leitura, nunca fonte.
+ *
+ * Nada comprado com dinheiro pode viver em `localStorage` (spec economia-de-creditos): o servidor
+ * deriva do log (`credit_spends.reason LIKE 'premium:%'`) e o cliente só guarda a resposta para a
+ * tela não ficar cega entre um carregamento e outro. Por isso ela é SEMPRE substituída, sem o
+ * ramo de união que a posse de Seeds tem — não existe compra premium offline.
+ */
+const CHAVE_PREMIUM = 'babel.premium_possuidos';
+
+export function premiumPossuidos(): Set<string> {
+  try { return new Set(JSON.parse(localStorage.getItem(CHAVE_PREMIUM) || '[]') as string[]); } catch { return new Set(); }
+}
+
+export function hidratarPremium(doServidor: readonly string[] | undefined): void {
+  if (!doServidor) return;
+  try { localStorage.setItem(CHAVE_PREMIUM, JSON.stringify([...new Set(doServidor)])); } catch { /* sem storage */ }
+}
+
 export type EstadoDoItem = 'equipavel' | 'compravel' | 'bloqueado';
 
 /** Um item está disponível se: liberou tudo, OU nível alcançado, OU comprado com Seeds. */
@@ -92,6 +111,13 @@ export function estadoDoItem(item: ItemDaLoja, nivel: number, saldoSeeds: number
     if (conquistasDesbloqueadas().has(item.exclusivoDe)) return { estado: 'equipavel' };
     const c = CONQUISTAS.find((x) => x.id === item.exclusivoDe);
     return { estado: 'bloqueado', motivo: `Conquista: ${c?.nome ?? item.exclusivoDe}` };
+  }
+  /* PREMIUM: paga-se com Créditos ou vem no Passe. Nível e Seeds não abrem — como o exclusivo
+     de conquista, é uma via só, e a tela tem de dizer QUAL. O saldo de Créditos é do servidor
+     (`useCarteira`), então quem decide "compravel" aqui é a POSSE; a tela pede o resto. */
+  if (item.precoCreditos !== undefined) {
+    if (premiumPossuidos().has(item.id)) return { estado: 'equipavel' };
+    return { estado: 'bloqueado', motivo: `${item.precoCreditos} Créditos ou o Passe` };
   }
   if (nivel >= item.nivel || possuidos().has(item.id)) return { estado: 'equipavel' };
   if (item.precoSeeds !== undefined && saldoSeeds >= item.precoSeeds) return { estado: 'compravel' };
@@ -152,6 +178,9 @@ export const ORIGEM: Record<OrigemDoItem, { rotulo: string; comoSeGanha: string;
  */
 export function origemDoItem(item: ItemDaLoja, possuido = false): OrigemDoItem {
   if (item.exclusivoDe) return 'conquista';
+  /* `ORIGEM.creditos` existia com o rótulo "Passe Premium e prateleira paga" e esta função nunca
+     o devolvia — a quarta origem da régua era um rótulo sem dono. Agora tem. */
+  if (item.precoCreditos !== undefined) return 'creditos';
   if (possuido) return 'seeds';
   return 'nivel';
 }

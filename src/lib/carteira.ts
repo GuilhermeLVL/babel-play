@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { apiFetch } from '../data/api'
 import { authRequired } from './supabase'
+import { hidratarPremium } from './loja'
 
 /**
  * A CARTEIRA DE CRÉDITOS — leitura única compartilhada pelo cabeçalho, pelo Passe e pela Loja.
@@ -35,12 +36,15 @@ export function useCarteira(): Carteira {
     if (!authRequired) { setDisponivel(false); return }
     let vivo = true
     void apiFetch('/api/billing/creditos')
-      .then(async (r) => (r.ok ? ((await r.json()) as { saldo: number; temPasse: boolean }) : null))
+      .then(async (r) => (r.ok ? ((await r.json()) as { saldo: number; temPasse: boolean; itensPremium?: string[] }) : null))
       .then((e) => {
         if (!vivo) return
         // Resposta ausente NÃO vira zero: um saldo inventado faria a tela oferecer o que não dá.
         if (!e) { setDisponivel(false); return }
         setCreditos(e.saldo); setTemPasse(e.temPasse); setDisponivel(true)
+        /* A posse do que se pagou com dinheiro vem SEMPRE daqui — o espelho local nunca é fonte
+           (spec economia-de-creditos: nada comprado com dinheiro vive em localStorage). */
+        hidratarPremium(e.itensPremium)
       })
       .catch(() => { if (vivo) setDisponivel(false) })
     return () => { vivo = false }

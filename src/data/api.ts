@@ -823,6 +823,35 @@ export async function registrarPresenca(dia: number): Promise<{ jaExistia: boole
  * Credita Seeds/XP avulsos (conquistas). Idempotente por `creditoId`, como `gastarSeeds`.
  * `null` em falha: quem chamou NÃO marca a conquista — senão seria "conquistada sem as Seeds".
  */
+/**
+ * GASTA CRÉDITOS — a moeda comprada com dinheiro.
+ *
+ * Gêmeo de `gastarSeeds`, e o contrato é o mesmo: `spendId` é a chave de idempotência, e o
+ * servidor recusa quando o `amount` não bate com o catálogo, em vez de cobrar em silêncio um
+ * valor que a tela não mostrou.
+ */
+/**
+ * OS CRÉDITOS DA TRILHA PAGA. O servidor decide QUAIS casas foram alcançadas (do nível que ele
+ * mesmo calcula) e credita cada uma uma vez. Sem o passe devolve `creditado: 0` — não é erro,
+ * é a resposta honesta de quem não comprou.
+ */
+export async function creditarPasse(): Promise<{ creditado: number; temPasse: boolean; saldo?: number } | null> {
+  const r = await apiFetch('/api/billing/creditar-passe', { method: 'POST' });
+  if (!r.ok) return null;
+  return (await r.json()) as { creditado: number; temPasse: boolean; saldo?: number };
+}
+
+export async function gastarCreditos(payload: { spendId: string; amount: number; reason: string; ref?: string }):
+  Promise<{ jaExistia: boolean; gasto: number; saldo: number } | null> {
+  const r = await apiFetch('/api/billing/gastar', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+  if (!r.ok) return null;
+  return (await r.json()) as { jaExistia: boolean; gasto: number; saldo: number };
+}
+
 export async function creditarSeeds(input: {
   creditoId: string
   amount: number

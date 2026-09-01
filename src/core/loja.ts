@@ -47,6 +47,20 @@ export interface ItemDaLoja {
    * a Loja mostra o cadeado "Conquista: X" e o item só fica equipável com a conquista feita.
    */
   exclusivoDe?: string;
+  /**
+   * PREÇO EM CRÉDITOS — a moeda comprada com dinheiro (mudança credito-com-destino).
+   *
+   * Um item tem preço numa moeda OU na outra, nunca nas duas: misturar as duas faria o mesmo
+   * objeto ter dois valores e apagaria a linha que separa "ganhei estudando" de "paguei". Item
+   * com `precoCreditos` não tem `precoSeeds`, e a régua das quatro origens o classifica como
+   * `creditos`.
+   */
+  precoCreditos?: number;
+  /**
+   * EXCLUSIVO DO PASSE PREMIUM: a casa da trilha paga que o entrega. Nem nível, nem Seeds, nem
+   * Créditos avulsos — só a trilha, e só para quem comprou o passe.
+   */
+  exclusivoDoPasse?: number;
 }
 
 /* PREÇOS (economia v2, 2026-08-28). Calibrados para o ritmo que o dono pediu — lendário em ≈ 1
@@ -172,4 +186,33 @@ export const CATALOGO_DA_LOJA: ItemDaLoja[] = [
   { id: 'cur-raio', tipo: 'cursor', alvo: 'raio', nome: 'Cursor Raio', desc: 'Rápido como quem já sabe a resposta. ⚡', raridade: 'lendario', nivel: 10, precoSeeds: 400 },
   { id: 'ras-ametista', tipo: 'rastro', alvo: 'gen:estrelas:amethyst-night', nome: 'Rastro Ametista', desc: 'Estrelas roxas na noite — o mais raro da trilha.', raridade: 'lendario', nivel: 10, precoSeeds: 420 },
   { id: 'ras-ouro', tipo: 'rastro', alvo: 'gen:faisca:sunset-gold', nome: 'Rastro Ouro', desc: 'Faíscas douradas de fim de tarde.', raridade: 'lendario', nivel: 10, precoSeeds: 420 },
+
+  /* ── AS DEZ VARIANTES DOURADAS (mudança credito-com-destino) ───────────────────────────────
+   *
+   * `galeria/passe.ts` prometia "Variante Dourada N" em cada marco de dezena da trilha paga — e a
+   * promessa era só uma string `nome`: os itens não existiam no catálogo, então o marco coroava o
+   * nada. Aqui elas passam a existir.
+   *
+   * NENHUMA ARTE NOVA, pela mesma técnica dos 25 itens das décadas 6-10: são peças que o app já
+   * sabe desenhar, na paleta dourada (`sunset-gold`, `ouro-*`). O que as torna especiais é a VIA,
+   * não o pixel.
+   *
+   * DUAS PORTAS, e é isso que dá destino ao Crédito: vêm de graça no Passe da temporada (`
+   * exclusivoDoPasse` = a casa que as entrega) OU se compram avulsas com Créditos.
+   *
+   * O PREÇO DE 150 É UM PADRÃO DERIVADO, não uma decisão de produto: o Passe custa R$ 14,90 e
+   * devolve 1.134 Créditos, então as dez variantes a 150 somam 1.500 — quem compra o passe leva
+   * as dez de graça e ainda sobra crédito; quem compra avulso paga mais caro pelo conjunto. É a
+   * relação que faz o passe valer a pena sem tornar o avulso inútil. O dono ajusta o número.
+   */
+  { id: 'dourada-1', tipo: 'particulas', alvo: 'estrelas', nome: 'Faíscas Douradas', desc: 'A explosão de acerto em ouro velho. ✨', raridade: 'lendario', nivel: 1, precoCreditos: 150, exclusivoDoPasse: 10 },
+  { id: 'dourada-2', tipo: 'rastro', alvo: 'gen:faisca:sunset-gold', nome: 'Rastro Dourado', desc: 'Ouro escorrendo do cursor.', raridade: 'lendario', nivel: 1, precoCreditos: 150, exclusivoDoPasse: 20 },
+  { id: 'dourada-3', tipo: 'cursor', alvo: 'coroa', nome: 'Ponteiro de Ouro', desc: 'A coroa, em dourado. 👑', raridade: 'lendario', nivel: 1, precoCreditos: 150, exclusivoDoPasse: 30 },
+  { id: 'dourada-4', tipo: 'rastro', alvo: 'gen:estrelas:ouro-neon', nome: 'Estrelas de Ouro', desc: 'Estrelas douradas sobre o escuro.', raridade: 'lendario', nivel: 1, precoCreditos: 150, exclusivoDoPasse: 40 },
+  { id: 'dourada-5', tipo: 'pack', alvo: 'tesouros', nome: 'Pack Tesouro Dourado', desc: '💎 👑 🏆 🪙 ⭐ 🔱', raridade: 'lendario', nivel: 1, precoCreditos: 150, exclusivoDoPasse: 50 },
+  { id: 'dourada-6', tipo: 'rastro', alvo: 'gen:pixel:ouro-escuro', nome: 'Pixel Dourado', desc: 'Quadradinhos de ouro, estilo arcade.', raridade: 'lendario', nivel: 1, precoCreditos: 150, exclusivoDoPasse: 60 },
+  { id: 'dourada-7', tipo: 'cursor', alvo: 'tridente', nome: 'Tridente de Ouro', desc: 'O ponteiro dos mares, em ouro. 🔱', raridade: 'lendario', nivel: 1, precoCreditos: 150, exclusivoDoPasse: 70 },
+  { id: 'dourada-8', tipo: 'rastro', alvo: 'gen:coracoes:ouro-pastel', nome: 'Corações de Ouro', desc: 'Corações dourados, discretos.', raridade: 'lendario', nivel: 1, precoCreditos: 150, exclusivoDoPasse: 80 },
+  { id: 'dourada-9', tipo: 'particulas', alvo: 'confete', nome: 'Confete Dourado', desc: 'Papel picado de ouro em cada acerto.', raridade: 'lendario', nivel: 1, precoCreditos: 150, exclusivoDoPasse: 90 },
+  { id: 'dourada-10', tipo: 'rastro', alvo: 'gen:arcoiris:sunset-gold', nome: 'Aurora Dourada', desc: 'O último marco da temporada — bolinhas de ouro.', raridade: 'lendario', nivel: 1, precoCreditos: 150, exclusivoDoPasse: 100 },
 ];

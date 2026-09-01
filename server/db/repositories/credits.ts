@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto'
-import { and, desc, eq, isNull, sql, sum } from 'drizzle-orm'
+import { and, desc, eq, isNull, like, sql, sum } from 'drizzle-orm'
 import { db } from '../db'
 import { creditPurchases, creditSpends } from '../schema'
 import type { UserId } from '../../lib/authContext'
@@ -117,6 +117,50 @@ export const creditsRepo = {
       .limit(1)
     if (!rows[0]) throw new Error('falha ao gravar gasto de créditos')
     return { linha: rows[0], jaExistia }
+  },
+
+  /**
+   * CRÉDITO CONCEDIDO SEM PAGAMENTO NOVO — as casas da trilha do Passe.
+   *
+   * Reusa `credit_purchases` em vez de tabela nova, e o motivo é o mesmo da posse derivada do
+   * razão: o saldo já é `compras pagas − gastos`, então uma concessão é uma compra que nasce
+   * `pago` com valor zero. O `providerPaymentId` carrega o id da concessão
+   * (`passe:t1:premium-7`), e o índice único dele é o que garante uma vez só — a mesma chave de
+   * idempotência que protege o webhook.
+   *
+   * Se isto virasse tabela própria, o saldo passaria a somar de dois lugares, e saldo com duas
+   * fontes é como as duas deixam de bater.
+   */
+  async registrarConcessao(userId: UserId, input: { concessaoId: string; creditos: number }) {
+    const agora = Date.now()
+    const r = await db.run(sql`
+      INSERT INTO ${creditPurchases}
+        (id, created_at, updated_at, user_id, sku, creditos, valor_centavos, provider, provider_payment_id, status, paid_at)
+      VALUES
+        (${randomUUID()}, ${agora}, ${agora}, ${userId}, 'concessao', ${input.creditos}, 0, 'interno', ${input.concessaoId}, 'pago', ${agora})
+      ON CONFLICT (provider_payment_id) WHERE deleted_at IS NULL DO NOTHING
+    `)
+    return { jaExistia: Number((r as { rowsAffected?: number }).rowsAffected ?? 0) === 0 }
+  },
+
+  /** Este gasto já foi cobrado? Mesma razão do gêmeo de Seeds: o reenvio não pode pedir saldo. */
+  async jaGastou(userId: UserId, spendId: string): Promise<boolean> {
+    const r = await db.select({ id: creditSpends.id }).from(creditSpends)
+      .where(and(eq(creditSpends.spendId, spendId), eq(creditSpends.userId, userId), isNull(creditSpends.deletedAt)))
+      .limit(1)
+    return r.length > 0
+  },
+
+  /**
+   * OS ITENS PREMIUM COMPRADOS, derivados do log — como a posse da Loja já é.
+   *
+   * Nada comprado com dinheiro pode viver em `localStorage` (spec economia-de-creditos): a posse
+   * do que se paga nasce e morre no servidor, e o cliente só espelha.
+   */
+  async itensPremium(userId: UserId): Promise<string[]> {
+    const linhas = await db.select({ reason: creditSpends.reason }).from(creditSpends)
+      .where(and(eq(creditSpends.userId, userId), isNull(creditSpends.deletedAt), like(creditSpends.reason, 'premium:%')))
+    return [...new Set(linhas.map((l) => l.reason.slice('premium:'.length)).filter(Boolean))]
   },
 
   async comprasDoUsuario(userId: UserId, limite = 20) {

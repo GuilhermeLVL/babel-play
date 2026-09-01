@@ -14,6 +14,7 @@ import path from 'node:path'
 import { readFile, rm } from 'node:fs/promises'
 import { AUDIO_DIR, armazenamentoDeMidia } from './sessions'
 import { sessionsRepo } from '../db/repositories/sessions'
+import { hasEntitlement } from '../lib/entitlements'
 import { hasYtDlp, resolveYouTube, fetchCaptions, downloadAudio } from '../import/youtube'
 import { extractArticle } from '../import/web'
 import { extractDocument } from '../import/document'
@@ -93,6 +94,27 @@ importRouter.post('/youtube', async (req, res) => {
   let reservaPendente = 0
   const corpo = parseOr400(importUrlSchema, req.body, res)
   if (!corpo) return
+
+  /**
+   * O GATE QUE SÓ EXISTIA NO CLIENTE (auditoria de 01/09).
+   *
+   * `Library.tsx:621` desenhava o selo "Pro" e recusava o clique — e esta rota não checava
+   * entitlement nenhum. Quem chamasse direto importava do YouTube no plano Grátis, e o download
+   * roda no NOSSO servidor (yt-dlp): é custo real, não cosmético. `managedCloudStt` e
+   * `managedCloudLlm` já eram conferidos aqui do lado; este ficou de fora.
+   *
+   * FAIL-CLOSED como os irmãos: erro ao checar o plano vira 502, nunca "passa direto".
+   */
+  try {
+    if (!(await hasEntitlement(req.userId, 'youtubeImport'))) {
+      res.status(402).json({ error: 'importar do YouTube requer plano Pro', entitlement: 'youtubeImport' })
+      return
+    }
+  } catch (err) {
+    res.status(502).json({ error: erroDeRota(err, { event: 'import_entitlement_error', route: req.path, requestId: req.requestId }) })
+    return
+  }
+
   try {
     const url = corpo.url.trim()
     if (!isYouTube(url)) { res.status(400).json({ error: 'Informe um link de vídeo do YouTube.' }); return }

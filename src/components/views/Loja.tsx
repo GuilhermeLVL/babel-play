@@ -11,7 +11,7 @@
  * caminho que equipa no app. Os textos dos estados vêm de `lib/galeria/textos`.
  */
 import { useEffect, useMemo, useState } from 'react';
-import { ShoppingBag, Sprout, Lock, Check, Sparkles, Coins, Trophy, Shirt, Ticket } from 'lucide-react';
+import { ShoppingBag, Sprout, Lock, Check, Sparkles, Coins, Crown, Trophy, Shirt, Ticket } from 'lucide-react';
 import { Abas, PainelDeAba } from '../ui';
 import Conquistas from './Conquistas';
 import PasseDeTemporada from './passe/PasseDeTemporada';
@@ -27,7 +27,7 @@ import MiniaturaDoItem from '../MiniaturaDoItem';
 import ComprarCreditos from './loja/ComprarCreditos';
 import CabecalhoDeTemporada from './loja/CabecalhoDeTemporada';
 import { useCarteira } from '../../lib/carteira';
-import { gastarSeeds } from '../../data/api';
+import { gastarSeeds, gastarCreditos } from '../../data/api';
 import { toast } from '../Toast';
 import { comemorar, explodirAleatorio } from '../../lib/juice';
 import { emitBurst } from '../../lib/effects';
@@ -133,8 +133,13 @@ export default function Loja({ progress, theme, setTheme, fonte, setFonte, menuP
     i.tipo === 'aprimoramento' ? custoDoProximoNivel(i.alvo)
     : estadoDoItem(i, nivel, saldo).estado === 'compravel' ? (i.precoSeeds ?? null)
     : null;
-  const podeAgora = itens.filter((i) => { const c = custoDe(i); return c !== null && saldo >= c; });
-  const aindaNao = itens
+  /* A PRATELEIRA PAGA sai das duas de Seeds: misturar as moedas na mesma grade faria o preço
+     em Créditos parecer preço em Seeds, que é exatamente a confusão que a régua das quatro
+     origens existe para evitar. */
+  const premium = itens.filter((i) => i.precoCreditos !== undefined);
+  const deSeeds = itens.filter((i) => i.precoCreditos === undefined);
+  const podeAgora = deSeeds.filter((i) => { const c = custoDe(i); return c !== null && saldo >= c; });
+  const aindaNao = deSeeds
     .filter((i) => !podeAgora.includes(i))
     .sort((a, b) => {
       // Falta de Seeds ordena pela diferença; falta de nível, pelo nível — e Seeds vem primeiro,
@@ -192,6 +197,35 @@ export default function Loja({ progress, theme, setTheme, fonte, setFonte, menuP
       force((n) => n + 1);
     } catch {
       toast.warn('Não deu para aprimorar agora. Tente de novo.');
+    } finally {
+      setComprando(null);
+    }
+  };
+
+  /**
+   * COMPRA COM CRÉDITOS — a moeda que custou dinheiro.
+   *
+   * Gêmea de `comprar`, com uma diferença que importa: a posse do que se paga NÃO é marcada
+   * localmente. Ela vem do servidor na próxima leitura da carteira (`credit_spends`), porque nada
+   * comprado com dinheiro pode viver em localStorage. Por isso o `recarregar()` no fim.
+   */
+  const comprarComCreditos = async (item: ItemDaLoja, el: HTMLElement | null) => {
+    if (item.precoCreditos === undefined) return;
+    if ((carteira.creditos ?? 0) < item.precoCreditos) {
+      toast.warn(`Faltam ${item.precoCreditos - (carteira.creditos ?? 0)} Créditos. Eles se compram aqui embaixo, ou vêm no Passe.`);
+      return;
+    }
+    setComprando(item.id);
+    try {
+      const r = await gastarCreditos({ spendId: `premium-${item.id}`, amount: item.precoCreditos, reason: `premium:${item.id}` });
+      if (!r) { toast.warn('Não deu para completar a compra agora. Tente de novo.'); return; }
+      comemorar('subiuNivel', el, { texto: 'Seu!' });
+      explodirAleatorio(3, 'fogos');
+      toast.ok(`${item.nome} é seu!`);
+      carteira.recarregar();
+      force((n) => n + 1);
+    } catch {
+      toast.warn('Não deu para completar a compra agora. Tente de novo.');
     } finally {
       setComprando(null);
     }
@@ -314,6 +348,36 @@ export default function Loja({ progress, theme, setTheme, fonte, setFonte, menuP
                 : <span className="inline-flex items-center gap-1.5"><Check className="w-3.5 h-3.5" aria-hidden /> usar no Meu visual</span>}
             </button>
           ) : (
+            item.precoCreditos !== undefined ? (
+              /* PREMIUM: uma via só, e a tela diz qual. Nível e Seeds não abrem — como o
+                 exclusivo de conquista, misturar as moedas apagaria a diferença entre
+                 "ganhei estudando" e "paguei". */
+              <>
+                <div className="flex items-center justify-between gap-2 pt-1 border-t border-border-subtle">
+                  <span className="inline-flex items-center gap-1 font-mono font-bold text-[13px] text-premium tabular-nums">
+                    <Coins className="w-3.5 h-3.5" aria-hidden /> {item.precoCreditos}
+                  </span>
+                  <span className="inline-flex items-center gap-1 font-mono text-[11px] text-ink-faint">
+                    <Crown className="w-3 h-3" aria-hidden /> ou no Passe
+                  </span>
+                </div>
+                {carteira.disponivel ? (
+                  <button
+                    onClick={(e) => void comprarComCreditos(item, e.currentTarget)}
+                    disabled={comprando === item.id}
+                    className="w-full py-2 rounded-xl bg-premium hover:brightness-110 text-white font-bold text-[12.5px] shadow-btn cursor-pointer disabled:opacity-60"
+                  >
+                    {comprando === item.id ? 'Comprando…'
+                      : (carteira.creditos ?? 0) < item.precoCreditos ? `Faltam ${item.precoCreditos - (carteira.creditos ?? 0)}`
+                      : 'Comprar com Créditos'}
+                  </button>
+                ) : (
+                  <div className="w-full py-2 rounded-xl bg-canvas border border-border-subtle text-center text-[11.5px] font-bold text-ink-muted">
+                    Sem compra nesta instalação
+                  </div>
+                )}
+              </>
+            ) : (
             <>
               {/* OS DOIS CAMINHOS, lado a lado e iconados. Antes viviam colados numa frase
                   ("Nível 9 ou 550 Seeds") dentro de um botão cinza — e o cinza dizia
@@ -342,7 +406,7 @@ export default function Loja({ progress, theme, setTheme, fonte, setFonte, menuP
                 </div>
               )}
             </>
-          )}
+          ))}
         </div>
       </div>
     );
@@ -527,6 +591,25 @@ export default function Loja({ progress, theme, setTheme, fonte, setFonte, menuP
           </p>
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
             {naPrateleira(aindaNao).map((item) => <CartaoDaLoja key={item.id} item={item} />)}
+          </div>
+        </section>
+      )}
+
+      {/* ── A PRATELEIRA PAGA ─────────────────────────────────────────────────────────
+             `ORIGEM.creditos` anunciava "Passe Premium e prateleira paga" desde a régua das
+             quatro origens — e a prateleira não existia: nenhum item tinha preço em Créditos, e
+             `creditsRepo.debitar` nunca era chamado. Quem pagasse R$ 49,90 recebia um número que
+             não comprava nada. Aqui ele passa a comprar. */}
+      {premium.length > 0 && (
+        <section>
+          <p className="label-mono mb-3 flex items-center gap-1.5 flex-wrap">
+            <Coins className="w-3.5 h-3.5 text-premium" aria-hidden /> Com Créditos · {premium.length}
+            <span className="font-sans normal-case tracking-normal text-ink-faint">
+              — vêm de graça no Passe da temporada, ou avulsos aqui
+            </span>
+          </p>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+            {premium.map((item) => <CartaoDaLoja key={item.id} item={item} />)}
           </div>
         </section>
       )}

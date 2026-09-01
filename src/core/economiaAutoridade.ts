@@ -51,7 +51,8 @@ export type GastoAutorizado =
 /** Por que um motivo foi recusado — texto curto, para o 400 dizer o que houve. */
 export type RecusaDeGasto = { erro: string }
 
-export function ehRecusa(r: GastoAutorizado | RecusaDeGasto): r is RecusaDeGasto {
+/** Vale para qualquer autorização — de Seeds ou de Créditos. */
+export function ehRecusa<T extends object>(r: T | RecusaDeGasto): r is RecusaDeGasto {
   return 'erro' in r
 }
 
@@ -97,6 +98,27 @@ export function autorizarGasto(reason: string): GastoAutorizado | RecusaDeGasto 
   }
 
   return { erro: `motivo desconhecido: ${reason.slice(0, 24)}` }
+}
+
+/* ── Autorização de um gasto de CRÉDITOS (a moeda comprada) ────────────────────────────────── */
+
+export type GastoDeCredito =
+  | { tipo: 'premium'; itemId: string; preco: number }
+
+/**
+ * O gasto de Créditos tem a MESMA régua do de Seeds, e por um motivo direto: é a moeda que custou
+ * dinheiro. Se o preço em Seeds já não podia vir do cliente, o preço em Créditos menos ainda.
+ *
+ * `premium:<id>` é o único formato porque, por enquanto, o único destino do Crédito é a prateleira
+ * paga. Quando houver um segundo, ele entra aqui e não em cada rota.
+ */
+export function autorizarGastoDeCredito(reason: string): GastoDeCredito | RecusaDeGasto {
+  if (!reason.startsWith('premium:')) return { erro: `motivo desconhecido: ${reason.slice(0, 24)}` }
+  const itemId = reason.slice('premium:'.length)
+  const item = itemPorId(itemId)
+  if (!item) return { erro: `item inexistente: ${itemId}` }
+  if (item.precoCreditos === undefined) return { erro: `${itemId} não é vendido em Créditos` }
+  return { tipo: 'premium', itemId, preco: item.precoCreditos }
 }
 
 /* ── Autorização de um CRÉDITO ──────────────────────────────────────────────────────────────── */

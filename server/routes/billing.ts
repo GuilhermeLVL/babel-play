@@ -18,6 +18,9 @@ import { z } from 'zod'
 import { PLAN_MATRIX, ehPlanoDeAssinatura, planoPeloPreco, type PlanoDeAssinatura } from '../../src/core/planos'
 import { creditsRepo } from '../db/repositories/credits'
 import { pacotePorSku, centavosParaReais } from '../../src/core/creditos'
+import { autorizarGastoDeCredito, ehRecusa } from '../../src/core/economiaAutoridade'
+import { premiumDoNivel, passeNivel, TEMPORADA_ATUAL } from '../../src/core/passe'
+import { economiaDoUsuario } from '../db/repositories/metrics'
 import { subscriptionsRepo } from '../db/repositories/subscriptions'
 import { billingEventsRepo } from '../db/repositories/billingEvents'
 import { asUserId } from '../lib/authContext'
@@ -30,6 +33,18 @@ import { log } from '../lib/logger'
 /* ------------------------------------------------------------------ rotas do usuário (atrás do auth) */
 
 export const billingRouter = Router()
+
+/**
+ * GASTO DE CRÉDITOS. `amount` continua no contrato para o cliente declarar o que a tela mostrou —
+ * e o servidor recusa quando não bate, em vez de cobrar em silêncio um valor que a pessoa não viu.
+ * Mesma decisão do gasto de Seeds.
+ */
+const gastarCreditoSchema = z.object({
+  spendId: z.string().min(8).max(64),
+  amount: z.number().int().min(1).max(100_000),
+  reason: z.string().min(1).max(80),
+  ref: z.string().max(120).optional(),
+}).strip()
 
 const assinarSchema = z.object({
   plano: z.string(),
@@ -91,17 +106,101 @@ billingRouter.post('/comprar', async (req, res) => {
 /** Saldo e histórico — derivados do razão, nunca de um campo mutável. */
 billingRouter.get('/creditos', async (req, res) => {
   try {
-    const [saldo, compras] = await Promise.all([
+    const [saldo, compras, itensPremium] = await Promise.all([
       creditsRepo.saldo(req.userId),
       creditsRepo.comprasDoUsuario(req.userId, 10),
+      creditsRepo.itensPremium(req.userId),
     ])
     res.json({
       saldo,
       temPasse: compras.some((c) => c.sku === 'passe-t1' && c.status === 'pago'),
+      /* A posse do que se pagou vem do SERVIDOR, sempre: nada comprado com dinheiro vive em
+         localStorage (spec economia-de-creditos). O cliente só espelha. */
+      itensPremium,
       compras: compras.map((c) => ({ sku: c.sku, status: c.status, creditos: c.creditos, em: c.createdAt })),
     })
   } catch (err) {
     res.status(500).json({ error: erroDeRota(err, { event: 'billing_error' }) })
+  }
+})
+
+/**
+ * GASTA CRÉDITOS — a rota que faltava para a moeda comprada existir de verdade.
+ *
+ * `creditsRepo.debitar` estava escrito, testado e NUNCA CHAMADO: dava para comprar Créditos e não
+ * havia onde gastá-los. Quem pagasse R$ 49,90 pelos 700 recebia um número que aparecia no
+ * cabeçalho e não comprava nada — pior do que não vender, porque é vender uma promessa que o
+ * código não cumpre.
+ *
+ * A régua é a mesma da Fase 1, e com mais razão: esta moeda custou dinheiro. Motivo em formato
+ * fechado, preço do catálogo, saldo conferido. E a conferência de saldo só roda quando o gasto
+ * ainda não foi cobrado, senão o reenvio de uma compra já paga viraria 402.
+ */
+billingRouter.post('/gastar', async (req, res) => {
+  const payload = parseOr400(gastarCreditoSchema, req.body, res)
+  if (!payload) return
+  try {
+    const autorizacao = autorizarGastoDeCredito(payload.reason)
+    if (ehRecusa(autorizacao)) {
+      res.status(400).json({ error: autorizacao.erro })
+      return
+    }
+    if (payload.amount !== autorizacao.preco) {
+      res.status(400).json({ error: 'preço divergente do catálogo', preco: autorizacao.preco })
+      return
+    }
+    if (!(await creditsRepo.jaGastou(req.userId, payload.spendId))) {
+      const saldo = await creditsRepo.saldo(req.userId)
+      if (saldo < autorizacao.preco) {
+        res.status(402).json({ error: 'saldo de Créditos insuficiente', falta: autorizacao.preco - saldo, saldo })
+        return
+      }
+    }
+    const { jaExistia } = await creditsRepo.debitar(req.userId, { ...payload, amount: autorizacao.preco })
+    res.json({ jaExistia, gasto: autorizacao.preco, saldo: await creditsRepo.saldo(req.userId) })
+  } catch (err) {
+    res.status(400).json({ error: erroDeRota(err, { event: 'billing_error', route: req.path, requestId: req.requestId }) })
+  }
+})
+
+/**
+ * OS CRÉDITOS DA TRILHA PAGA — a promessa que a tela fazia e nenhum código cumpria.
+ *
+ * `ComprarCreditos` e o CTA do Passe anunciam "1.134 Créditos ao longo da trilha"
+ * (`core/creditos.ts`, `PasseDeTemporada.tsx`), e a fileira premium era `role="img"` sem handler:
+ * ninguém creditava nada. Quem pagasse R$ 14,90 recebia uma fileira trancada que continuava
+ * trancada.
+ *
+ * O DESENHO É O DAS SEEDS DO PASSE, que já funciona: o servidor decide QUAIS casas foram
+ * alcançadas (do nível que ele mesmo calcula, não do que o cliente diz), e credita cada uma UMA
+ * vez, idempotente por `passe:<temporada>:premium-<n>`. Reabrir a tela nunca credita duas vezes.
+ *
+ * SEM O PASSE, NADA. A fileira continua sendo vitrine honesta — mostra o que viria, sem entregar.
+ */
+billingRouter.post('/creditar-passe', async (req, res) => {
+  try {
+    const compras = await creditsRepo.comprasDoUsuario(req.userId, 50)
+    const temPasse = compras.some((c) => c.sku === 'passe-t1' && c.status === 'pago')
+    if (!temPasse) {
+      res.json({ creditado: 0, temPasse: false })
+      return
+    }
+    const { nivel } = await economiaDoUsuario(req.userId)
+    // A casa alcançada vem do NÍVEL do servidor. `pct: 0` é o piso: só casa inteira conta.
+    const ate = passeNivel(nivel, 0)
+    let creditado = 0
+    for (let casa = 1; casa <= ate; casa++) {
+      const slot = premiumDoNivel(casa)
+      if (slot.tipo !== 'creditos') continue
+      const r = await creditsRepo.registrarConcessao(req.userId, {
+        concessaoId: `passe:${TEMPORADA_ATUAL}:premium-${casa}`,
+        creditos: slot.quantidade,
+      })
+      if (!r.jaExistia) creditado += slot.quantidade
+    }
+    res.json({ creditado, temPasse: true, saldo: await creditsRepo.saldo(req.userId) })
+  } catch (err) {
+    res.status(500).json({ error: erroDeRota(err, { event: 'billing_error', route: req.path, requestId: req.requestId }) })
   }
 })
 

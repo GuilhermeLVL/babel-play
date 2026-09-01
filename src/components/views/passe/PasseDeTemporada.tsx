@@ -6,7 +6,7 @@ import { COR_DA_RARIDADE, estadoDoItem, type ItemDaLoja } from '../../../lib/loj
 import MiniaturaDoItem from '../../MiniaturaDoItem';
 import { equiparItem, equipavel, type ContextoDeEquipar } from '../../../lib/galeria/equipar';
 import { passeNivel, premiumDoNivel, slotsDoPasse, slotDestravado, totalPremiumEmCreditos, TEMPORADA_ATUAL, type SlotDoPasse } from '../../../lib/galeria/passe';
-import { creditarSeeds } from '../../../data/api';
+import { creditarSeeds, creditarPasse } from '../../../data/api';
 import { toast } from '../../Toast';
 import type { DerivedProgress } from '../../../lib/progress';
 
@@ -104,6 +104,26 @@ export default function PasseDeTemporada({
     })();
     return () => { vivo = false; };
   }, [nivel, progress.available, slots]);
+
+  /**
+   * OS CRÉDITOS DA TRILHA PAGA — a promessa que a tela fazia e nenhum código cumpria.
+   *
+   * O CTA anuncia "devolve mais do que custa" e a fileira premium era `role="img"` sem handler:
+   * quem pagasse R$ 14,90 recebia uma fileira trancada que continuava trancada. Agora, ao abrir,
+   * quem tem o passe recebe as casas que já alcançou.
+   *
+   * O SERVIDOR É QUEM DECIDE quais casas contam — do nível que ele calcula, não do que a tela diz
+   * — e cada uma credita uma vez só (`passe:<temporada>:premium-<n>`). Reabrir não credita de
+   * novo, e sem o passe a resposta é `creditado: 0`, que não é erro.
+   */
+  useEffect(() => {
+    if (!temPasse) return;
+    let vivo = true;
+    void creditarPasse().then((r) => {
+      if (vivo && r && r.creditado > 0) toast.ok(`Passe: +${r.creditado} Créditos das casas que você já alcançou.`);
+    });
+    return () => { vivo = false; };
+  }, [temPasse, nivel]);
 
   /* A PÁGINA CERTA NÃO BASTA: a década tem 10 colunas e o trilho rola. Sem isto, quem está na
      casa 59 abre a década 6 vendo a casa 51 — a informação que a pessoa veio buscar fica fora da

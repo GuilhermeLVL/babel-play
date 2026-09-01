@@ -49,13 +49,26 @@ Estas travam trabalho. Estão detalhadas em `docs/auditoria/decisao-infraestrutu
 
 ## ⇒ A PRÓXIMA SESSÃO COMEÇA AQUI
 
-A mudança `auditoria-ux-e-economia-de-recompensas` foi EXECUTADA em 31/08 (14/14 tasks, com
-pendências menores anotadas nas próprias tasks): relatório em `docs/auditoria/ux-v2.md`, passe
-recomposto em Cofres por década, perfis salvos com renomear, "Voltar ao visual original", e as
-correções de coerência (palavra de nível única, aba "Meu visual", ícones sem overload, gate
-interno do Estúdio). O que sobrou de lá: itens da lista §6.5 do ux-v2 (sub-aba na URL, DOM
-duplicado em Capturar, avisos do detector, conciliação 615×409 seeds) e tirar os itens-padrão
-do passe quando a spec de catálogo existir. A fila abaixo volta a valer.
+A mudança `auditoria-ux-e-economia-de-recompensas` foi EXECUTADA em 31/08 (14/14 tasks):
+relatório em `docs/auditoria/ux-v2.md`, passe recomposto em Cofres por década, perfis salvos
+com renomear, "Voltar ao visual original", e as correções de coerência (palavra de nível única,
+aba "Meu visual", ícones sem overload, gate interno do Estúdio).
+
+Na mesma data, a fila destravada também andou:
+- **Pendências do ux-v2 §6.5 fechadas**: sub-aba de Personalizar na URL (`/loja/passe|meu-visual|
+  itens|desafios`), detector de design zerado (listras, bounce, transition:height), perfil de
+  exibição declarado como acessibilidade. Duas viraram apuração: o "DOM duplicado" em Capturar
+  era display:none (fora da árvore a11y — falso positivo) e o 615×409 de seeds são as duas
+  metades por desenho (fórmula + razão); o que resta ali é decisão SUA: perdoar ou não o rombo
+  histórico de gastos (2.120) que prende o saldo em 0.
+- **progresso-de-idioma 6/6**: as palavras difíceis viram fonte de rodada nos jogos.
+- **personalizar-v4 10/12**: pooling + cache de emoji no ParticleCanvas (restam 3.5/3.6, atrás
+  da economia de créditos).
+- **economia-de-creditos 1.2**: posse da Loja é leitura do servidor (B4 fechada, sem tabela
+  nova); da fase 1 falta só o sandbox Asaas — que é seu.
+
+O que sobra executável sem você: D1–D4 abaixo (qualidade de fala — pesquisa/produto) e tirar os
+itens-padrão do passe quando a spec de catálogo existir. Todo o resto trava nas suas decisões.
 
 ## Fila de trabalho
 

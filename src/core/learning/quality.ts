@@ -126,19 +126,59 @@ export function idiomasComRegua(): string[] {
 /* ─────────────────────────── A PISTA ─────────────────────────── */
 
 /**
+ * A ORIGEM do cartão muda o que conta como "pista boa" — não o que conta como LIXO.
+ *
+ * 'captura' (default): vocabulário nasce de fala transcrita ao vivo. Aqui pontuação de frase
+ * cortada, dígito solto e pronome desgarrado SÃO sinal de ruído — é o caso descrito no docblock
+ * do arquivo ("Isso é", "rápida!!").
+ *
+ * 'curado': vocabulário importado de um baralho já pronto (ex.: Anki), cujo verso é definição de
+ * dicionário, não fala. Medido no baralho real "4000 Essential English Words" (3.600 notas):
+ * mediana do verso 57 chars/11 palavras, p90 76/15, p99 96/18, MÁXIMO 125 chars/24 palavras. Com
+ * o limite de captura (42/5) só 61 de 3.600 notas (1,7%) passavam — a régua certa para fala
+ * transcrita reprovava quase todo material curado.
+ */
+export type OrigemCartao = 'captura' | 'curado';
+
+/** captura: inalterado (42/5) — é o funil de fala para o qual a régua nasceu.
+ *  curado: 160/30 cobre 100% do baralho medido (máx 125/24) com folga e ainda barra parágrafo. */
+const LIMITES_DA_PISTA: Record<OrigemCartao, { chars: number; palavras: number }> = {
+  captura: { chars: 42, palavras: 5 },
+  curado: { chars: 160, palavras: 30 },
+};
+
+/**
  * A tradução serve de PISTA?
  *
  * Nasceu dentro do Termo (`pistaUtil`) e subiu para cá porque o defeito nunca foi do Termo: era do
  * funil que alimenta TODOS os jogos. Cada regra abaixo veio de um caso real que apareceu jogando.
  */
-export function pistaUtil(traducao: string): boolean {
+export function pistaUtil(traducao: string, origem: OrigemCartao = 'captura'): boolean {
   const t = (traducao ?? '').trim();
-  if (t.length < 2 || t.length > 42) return false;   // fragmento longo não é definição
-  if (/\d/.test(t)) return false;                    // número no meio é ruído da captura
-  if (/[!?]/.test(t)) return false;                  // "rápida!!" é fala, não significado
-  if (/\.\.\.|…/.test(t)) return false;              // reticências = frase cortada
-  if (t.split(/\s+/).length > 5) return false;       // pista boa é curta
-  /* Pronome/demonstrativo sozinho ("Isso é", "Tu") não define coisa nenhuma.
+  const limite = LIMITES_DA_PISTA[origem];
+  if (t.length < 2 || t.length > limite.chars) return false; // fragmento longo não é definição
+  if (t.split(/\s+/).length > limite.palavras) return false; // pista boa é curta
+
+  // Dígito, pontuação de frase cortada e reticências são ruído SÓ na fala transcrita: "a period
+  // of 100 years" é definição legítima de "century" num baralho curado, não fala capturada.
+  if (origem === 'captura') {
+    if (/\d/.test(t)) return false;         // número no meio é ruído da captura
+    if (/[!?]/.test(t)) return false;       // "rápida!!" é fala, não significado
+    if (/\.\.\.|…/.test(t)) return false;   // reticências = frase cortada
+  }
+
+  /* Pontuação REPETIDA ("rápida!!", "quê??") é ênfase de fala, e nenhum dicionário escreve assim.
+     Vale nos dois perfis: no curado, um `!` isolado pode aparecer numa definição legítima ("an
+     expression of surprise, like 'wow!'"), mas dois seguidos não — é o único sinal que separa
+     "rápida!!" de uma tradução curta e boa depois que o limite de tamanho deixa de barrá-la. */
+  if (/([!?])\1/.test(t)) return false;
+
+  /* Pronome/demonstrativo sozinho ("Isso é", "Tu") não define coisa nenhuma — e vale nos DOIS
+     perfis, ao contrário das regras acima. Chegou a ficar restrita à captura enquanto o perfil
+     curado era desenhado, e um teste mostrou o buraco: sem ela, "Isso é" passava como pista
+     legítima de baralho, porque tem 6 caracteres e 2 palavras e não cai em nenhum limite de
+     tamanho. Manter custa nada — nenhuma tradução de verdade tem a forma "pronome + no máximo
+     mais uma palavra" — e é a única regra que separa fragmento curto de tradução curta.
      `(?!\p{L})` e NÃO `\b`: o `\b` do JavaScript é definido por `[A-Za-z0-9_]`, então um acento
      conta como fronteira de palavra e `/^esta\b/` casava com **"estação"**. Medido: as pistas
      "estação" (de `station` e de `season`) eram reprovadas como pronome solto, e qualquer cartão
@@ -170,6 +210,9 @@ export interface OpcoesAvaliacao {
   lang?: string;
   /** Exige idioma marcado no cartão. A tela de curadoria liga; o jogo, não. */
   exigirIdioma?: boolean;
+  /** Default 'captura': nenhum chamador existente muda de comportamento — a régua de captura
+   *  continua guardando o funil de fala para o qual foi calibrada. Veja `OrigemCartao`. */
+  origem?: OrigemCartao;
 }
 
 /**
@@ -201,7 +244,7 @@ export function avaliarCartao(card: VocabCard, opts: OpcoesAvaliacao = {}): Vere
   if (!traducao) return frase ? APROVADO(0.5) : REPROVADO('sem-pista');
 
   if (chaveComparavel(traducao) === chaveComparavel(palavra)) return REPROVADO('traducao-igual');
-  if (!pistaUtil(traducao)) return REPROVADO('pista-ruim');
+  if (!pistaUtil(traducao, opts.origem ?? 'captura')) return REPROVADO('pista-ruim');
 
   /* PONTUAÇÃO — só ordena os aprovados. Uma pista curta e de uma palavra é a melhor: define sem
      contar a resposta. Ter frase de origem soma, porque permite o modo lacuna. */

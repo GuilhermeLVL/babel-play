@@ -8,9 +8,10 @@ import { and, eq, isNull } from 'drizzle-orm'
 import { db } from '../db'
 import { sessions, vocabCards, reviewLogs, utterances, exerciseResults } from '../schema'
 import { retrievability } from '../../../src/core/learning/scheduler'
-import { diaLocal, sequencias } from '../../../src/core/learning/economia'
+import { diaLocal, sequencias, marcosDeSequencia, minutosPremiados } from '../../../src/core/learning/economia'
+import { MINIGAMES } from '../../../src/core/minigames/types'
 import { economiaRepo } from './economia'
-import { xpDeEventos, nivelDoXp, type EventosDeXp } from '../../../src/core/learning/xp'
+import { xpDeEventos, nivelDoXp, seedsGanhasDeEventos, type EventosDeXp } from '../../../src/core/learning/xp'
 import type { AppMetrics } from '../../../src/core/learning/contract'
 import { seedSpendsRepo } from './seedSpends'
 import type { UserId } from '../../lib/authContext'
@@ -209,6 +210,48 @@ export async function computeProfile(userId: UserId, opts: OpcoesDePerfil = {}):
   const diasDePresenca = await economiaRepo.diasDePresenca(userId)
   const seqPresenca = sequencias(diasDePresenca, diaLocal(now))
 
+  /**
+   * OS TRÊS CONTADORES QUE FALTAVAM — e por que eles passaram a importar.
+   *
+   * `docs/economia-v2.md` registrou como follow-up "os mesmos agregados em
+   * server/db/repositories/metrics.ts", e ficou. Enquanto o saldo era calculado só no navegador
+   * (`src/lib/progress.ts`), a ausência custava pouco: o cliente tratava como `?? 0` e a conta
+   * fechava com um ganho subestimado. A partir do momento em que o SERVIDOR passa a recusar um
+   * gasto por saldo insuficiente, subestimar o ganho vira recusar compra legítima — a ausência
+   * deixa de ser imprecisão e passa a ser defeito.
+   *
+   * O cálculo é o do servidor efêmero (`src/data/efemero/servidor.ts`), que é a implementação de
+   * referência em uso: os mesmos ajudantes puros do core, sobre as mesmas linhas.
+   */
+  const sequencias7 = marcosDeSequencia(diasDePresenca, 7)
+
+  // Minutos de captura por DIA LOCAL — o teto diário vive no core (`minutosPremiados`), e é ele
+  // que impede uma gravação de oito horas de virar Seeds de oito horas.
+  const minutosPorDia = new Map<number, number>()
+  for (const x of sess) {
+    const min = (x.durationMs ?? 0) / 60_000
+    if (min <= 0) continue
+    const d = diaLocal(x.createdAt)
+    minutosPorDia.set(d, (minutosPorDia.get(d) ?? 0) + min)
+  }
+  const capturaMinutosPremiados = Math.floor(minutosPremiados(minutosPorDia.values()))
+
+  /* Rodada perfeita = todos os itens certos E tamanho ≥ mínimo do jogo. Sem o piso, uma rodada de
+     um item só viraria fábrica de "perfeitas" — e cada uma vale 5 Seeds e 15 XP. */
+  const porRodada = new Map<string, { kind: string | null; total: number; certos: number }>()
+  for (const e of drillsNoEscopo) {
+    if (!e.roundId) continue
+    const r = porRodada.get(e.roundId) ?? { kind: e.exerciseKind, total: 0, certos: 0 }
+    r.total += 1
+    if ((e.correct ?? 0) > 0) r.certos += 1
+    porRodada.set(e.roundId, r)
+  }
+  let rodadasPerfeitas = 0
+  for (const r of porRodada.values()) {
+    const minimo = (r.kind && (MINIGAMES as Record<string, { minItems?: number } | undefined>)[r.kind]?.minItems) ?? 3
+    if (r.total >= minimo && r.certos === r.total) rodadasPerfeitas += 1
+  }
+
   const byWeek = new Map<number, number>()
   for (const c of inDeck) {
     const t = c.addedAt ?? c.createdAt
@@ -239,6 +282,9 @@ export async function computeProfile(userId: UserId, opts: OpcoesDePerfil = {}):
     seedsCreditadas,
     xpCreditado,
     presencas: diasDePresenca.length,
+    sequencias7,
+    capturaMinutosPremiados,
+    rodadasPerfeitas,
     streakPresenca: seqPresenca.atual,
     maiorSequenciaPresenca: seqPresenca.maior,
     avgStability,
@@ -391,4 +437,42 @@ export async function computeXpHistory(
   }
 
   return { pontos, marcos, xpTotal: acumulado }
+}
+
+/**
+ * A ECONOMIA DO USUÁRIO, no servidor — a metade que faltava para o gasto poder ser recusado e o
+ * crédito poder ser conferido.
+ *
+ * Até 01/09 saldo e nível só existiam no navegador (`src/lib/progress.ts`), e as duas rotas de
+ * moeda gravavam o que o cliente mandasse: dava para gastar o que não se tinha e para creditar
+ * uma conquista que não aconteceu. Um cliente adulterado não tem botão desabilitado.
+ *
+ * A fórmula é a MESMA do cliente — `xpDeEventos` e `seedsGanhasDeEventos`, do core, sobre as
+ * mesmas métricas. Duas fórmulas para o mesmo número é como o saldo do servidor e o da tela
+ * passariam a discordar.
+ */
+export async function economiaDoUsuario(userId: UserId): Promise<{
+  metricas: AppMetrics; nivel: number; ganhas: number; gastas: number; saldo: number
+}> {
+  const m = await computeProfile(userId)
+  const eventos: EventosDeXp = {
+    sessoes: m.sessions,
+    palavrasCapturadas: m.wordsCaptured,
+    revisoes: m.reviews,
+    revisoesCertas: m.correctReviews,
+    itensDeJogo: m.drillItems ?? 0,
+    itensDeJogoCertos: m.drillCorrect ?? 0,
+    presencas: m.presencas ?? 0,
+    sequencias7: m.sequencias7 ?? 0,
+    capturaMinutosPremiados: m.capturaMinutosPremiados ?? 0,
+    cartoesCriados: m.deckSize ?? 0,
+    rodadasPerfeitas: m.rodadasPerfeitas ?? 0,
+    xpCreditado: m.xpCreditado ?? 0,
+    seedsCreditadas: m.seedsCreditadas ?? 0,
+  }
+  const ganhas = seedsGanhasDeEventos(eventos)
+  const gastas = m.seedsGastas ?? 0
+  /* Piso em zero pelo mesmo motivo do cliente: um gasto gravado antes de a fórmula mudar poderia,
+     em tese, passar do ganho — e aí o piso é o que impede um saldo negativo de travar a conta. */
+  return { metricas: m, nivel: nivelDoXp(xpDeEventos(eventos)), ganhas, gastas, saldo: Math.max(0, ganhas - gastas) }
 }

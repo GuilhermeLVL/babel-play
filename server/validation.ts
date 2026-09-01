@@ -191,12 +191,17 @@ export const seedSpendSchema = z.object({
   ref: shortStr(120),
 }).strip()
 
-/** Crédito avulso (conquista) — economia v2. Zero é válido: há conquistas só de XP. */
+/**
+ * Crédito avulso (conquista) — economia v2, endurecido em 01/09.
+ *
+ * `amount` e `xp` SAÍRAM do contrato: a rota resolve o `creditoId` no catálogo de conquistas e
+ * credita a recompensa DA REGRA. Enquanto vinham do corpo, com teto de 10.000 cada, um laço de
+ * requisições cunhava 1,2 milhão de Seeds e de XP por minuto — e XP vira nível, que destrava o
+ * catálogo. Continuam ACEITOS e ignorados (`.strip()` os descarta) para o cliente antigo não
+ * quebrar no meio de um deploy; o `reason` idem, porque quem o escreve agora é o servidor.
+ */
 export const seedCreditSchema = z.object({
   creditoId: z.string().min(8).max(80),
-  amount: z.number().int().min(0).max(10_000),
-  xp: z.number().int().min(0).max(10_000).default(0),
-  reason: z.string().min(1).max(60),
 }).strip()
 
 /**

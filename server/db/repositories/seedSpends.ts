@@ -71,6 +71,20 @@ export const seedSpendsRepo = {
     return { linha: rows[0], jaExistia }
   },
 
+  /**
+   * ESTE GASTO JÁ FOI COBRADO? A conferência de saldo (`/seeds/gastar`) precisa saber, porque o
+   * reenvio de uma compra já paga NÃO pode ser recusado por saldo: quem gastou as últimas 40
+   * Seeds veria o retry da própria compra virar 402, e a idempotência deixaria de ser idempotente.
+   */
+  async jaGastou(userId: UserId, spendId: string): Promise<boolean> {
+    const r = await db
+      .select({ id: seedSpends.id })
+      .from(seedSpends)
+      .where(and(eq(seedSpends.spendId, spendId), eq(seedSpends.userId, userId), isNull(seedSpends.deletedAt)))
+      .limit(1)
+    return r.length > 0
+  },
+
   /** O total gasto. É o que `deriveProgress` subtrai do ganho para chegar ao saldo. */
   async totalGasto(userId: UserId): Promise<number> {
     const r = await db

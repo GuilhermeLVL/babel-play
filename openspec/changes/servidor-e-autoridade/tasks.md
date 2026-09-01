@@ -1,27 +1,27 @@
 ## 1. O catálogo passa a ser do core (pré-requisito de tudo)
 
-- [ ] 1.1 `CATALOGO_DA_LOJA` e os tipos (`ItemDaLoja`, `Raridade`) saem de `src/lib/loja.ts` para
+- [x] 1.1 `CATALOGO_DA_LOJA` e os tipos (`ItemDaLoja`, `Raridade`) saem de `src/lib/loja.ts` para
       `src/core/loja.ts` — módulo puro, sem DOM e sem localStorage, no molde de `core/planos.ts`.
       `src/lib/loja.ts` passa a reexportar, para nenhum import de tela quebrar
-- [ ] 1.2 `src/core/economia-servidor.ts`: `precoDoItem(id)`, `itemDoCatalogo(id)`,
+- [x] 1.2 `src/core/economia-servidor.ts`: `precoDoItem(id)`, `itemDoCatalogo(id)`,
       `recompensaDaConquista(id)` e `condicaoDaConquista(id)` — as funções que o servidor consulta
-- [ ] 1.3 `npm run typecheck:core` continua passando (o core não pode ganhar dependência de browser)
+- [x] 1.3 `npm run typecheck:core` continua passando (o core não pode ganhar dependência de browser)
 
 ## 2. `/seeds/creditar` — o valor vem da regra
 
-- [ ] 2.1 A rota resolve `creditoId` no catálogo e usa `amount`/`xp` DA REGRA
-- [ ] 2.2 `creditoId` desconhecido → 400
-- [ ] 2.3 Condição conferida contra os contadores do servidor (`computeProfile`) → não cumprida = 400
-- [ ] 2.4 `seedCreditSchema` deixa de aceitar `amount`/`xp` do cliente (campos saem do contrato)
+- [x] 2.1 A rota resolve `creditoId` no catálogo e usa `amount`/`xp` DA REGRA
+- [x] 2.2 `creditoId` desconhecido → 400
+- [x] 2.3 Condição conferida contra os contadores do servidor (`computeProfile`) → não cumprida = 400
+- [x] 2.4 `seedCreditSchema` deixa de aceitar `amount`/`xp` do cliente (campos saem do contrato)
 
 ## 3. `/seeds/gastar` — motivo, preço e saldo
 
-- [ ] 3.1 `reason` validado por formato fechado: `loja:<id>` · `croma:<item>:<matiz>` ·
+- [x] 3.1 `reason` validado por formato fechado: `loja:<id>` · `croma:<item>:<matiz>` ·
       `apr-<alvo>-n<N>` · `pular-rodada`
-- [ ] 3.2 O id citado tem de existir no catálogo, e `amount` tem de ser o preço dele
-- [ ] 3.3 Item com `exclusivoDe` nunca é comprável por esta porta → 400
-- [ ] 3.4 Saldo conferido na mesma transação do débito → 402 com quanto falta
-- [ ] 3.5 A idempotência por `spendId` continua intacta (o caminho feliz não muda)
+- [x] 3.2 O id citado tem de existir no catálogo, e `amount` tem de ser o preço dele
+- [x] 3.3 Item com `exclusivoDe` nunca é comprável por esta porta → 400
+- [x] 3.4 Saldo conferido na mesma transação do débito → 402 com quanto falta
+- [x] 3.5 A idempotência por `spendId` continua intacta (o caminho feliz não muda)
 
 ## 4. A assinatura concedida é a que foi paga
 
@@ -42,18 +42,22 @@
 
 ## 6. A invariante declarada passa a valer
 
+- [x] 6.0 `computeProfile` passa a calcular `sequencias7`, `capturaMinutosPremiados` e
+      `rodadasPerfeitas` — eram `?? 0` no cliente e viraram BLOQUEIO ao ligar a conferência de
+      saldo: subestimar o ganho é recusar compra legítima. Cálculo espelhado do servidor efêmero
+
 - [ ] 6.1 `computeXpHistory` soma `xpCreditado`, presença, sequências e rodadas perfeitas — ou o
       comentário de `server/db/repositories/metrics.ts:282-285` deixa de afirmar o que não cumpre
 
 ## 7. Testes que reprovam o ataque
 
-- [ ] 7.1 `tests/integration/economia-autoridade.test.ts`, no molde dos `mt1-tenant-*` (Express real,
+- [x] 7.1 `tests/integration/economia-autoridade.test.ts`, no molde dos `mt1-tenant-*` (Express real,
       dois tokens): valor inflado → valor da regra · `creditoId` inventado → 400 · conquista não
       cumprida → 400 · exclusivo por `reason` forjado → 400 · preço abaixo do catálogo → 400 ·
       gasto sem saldo → 402
 - [ ] 7.2 `tests/integration/billing-webhook.test.ts` ganha o caso da escalada de plano
 - [ ] 7.3 `wordCount` absurdo → 400 em `tests/integration/validacao-input.test.ts`
-- [ ] 7.4 Os 2.159 testes atuais continuam passando (o caminho feliz não muda)
+- [x] 7.4 Os 2.159 testes atuais continuam passando (o caminho feliz não muda)
 
 ## 8. Verificação
 

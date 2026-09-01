@@ -116,3 +116,22 @@ export function seedsDoCofreDoPasse(creditoId: string, quantiaPorDecada: readonl
   const q = quantiaPorDecada[decada]
   return typeof q === 'number' && q > 0 ? q : null
 }
+
+/**
+ * AS CONQUISTAS QUE O SERVIDOR SABE CONFERIR HOJE.
+ *
+ * Onze das catorze dependem só de `metricas`, do nível ou do número de compras — tudo que
+ * `computeProfile` já devolve. As três de fora dependem de estado que só o navegador tem:
+ * `colecionador` (eventos raros vistos), `poliglota` (idiomas distintos) e `duelista` (melhor
+ * combo por jogo).
+ *
+ * Para essas três o servidor credita o valor CORRETO da regra sem conferir a condição. A exposição
+ * é limitada e mensurável: as catorze conquistas somam 860 Seeds e 930 XP, uma vez cada
+ * (idempotente por `creditoId`) — cerca de dez dias de jogo legítimo. Antes desta mudança o mesmo
+ * endpoint cunhava 1,2 milhão de Seeds por minuto. Fechá-las de vez exige levar recordes e eventos
+ * raros para o servidor, que é trabalho de outra mudança.
+ */
+export const CONQUISTAS_CONFERIVEIS: ReadonlySet<string> = new Set([
+  'primeira-captura', 'ouvinte', 'caderno-cheio', 'revisor', 'sem-erro', 'perfeccionista',
+  'maratonista', 'constante', 'cliente', 'nivel-5', 'nivel-10',
+])

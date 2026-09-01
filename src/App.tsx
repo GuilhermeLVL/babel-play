@@ -46,7 +46,7 @@ import type { ThemeType, FonteType } from './lib/appearance';
 import { readTheme, readDarkMode, readFonte, hydrateTheme, persistTheme } from './lib/theme';
 import { carregarSupabase, authRequired } from './lib/supabase';
 import { carregarEntitlements, limparEntitlements } from './lib/entitlements';
-import { armarIdentidade, definirIdentidade, estaAnonimo, aoMudarIdentidade } from './lib/identidade';
+import { armarIdentidade, definirIdentidade, estaAnonimo, aoMudarIdentidade, estadoDeIdentidade } from './lib/identidade';
 import { EVENTO_EXIGE_CONTA } from './data/efemero/servidor';
 import { aceitarAnonimo, anonimoAceito, exigeConta, motivoDoGate, porta } from './components/conta/exigeConta';
 import CartaoDeConvite from './components/conta/CartaoDeConvite';
@@ -70,6 +70,7 @@ import { comemorar } from './lib/juice';
 import { isAgeProfile, readAgeProfile, readStoredEnum, readStoredValue } from './lib/profile';
 import { hidratarPosse } from './lib/loja';
 import { hidratarCromas } from './lib/galeria/cromas';
+import { hidratarAprimoramentos } from './lib/aprimoramentos';
 import { emitBurst } from './lib/effects';
 import { isOnAuthCallback, clearAuthCallbackUrl } from './lib/authCallback';
 import { lerUrlAtual, publicarUrl, type ViewDeRota, type EstadoDeRota } from './lib/rotas';
@@ -404,9 +405,14 @@ export default function App() {
         if (!alive) return;
         setMetrics(m);
         setRecordes(rs);
-        // B4: o servidor é a fonte da posse da Loja; o localStorage vira espelho (union).
-        hidratarPosse(m?.itensComprados);
-        hidratarCromas(m?.cromasComprados);
+        /* B4: o servidor é a fonte da posse da Loja. COM CONTA ele SUBSTITUI o espelho local
+           (01/09): a união de antes preservava a compra offline e, junto com ela, qualquer id
+           injetado à mão no localStorage — que nunca mais saía. Sem conta a união continua,
+           porque ali o espelho local é a única fonte que existe. */
+        const comConta = estadoDeIdentidade() === 'conta';
+        hidratarPosse(m?.itensComprados, comConta);
+        hidratarCromas(m?.cromasComprados, comConta);
+        hidratarAprimoramentos(m?.aprimoramentos, comConta);
       })
       .catch(() => { if (alive) setMetrics(null); });
     return () => { alive = false; };

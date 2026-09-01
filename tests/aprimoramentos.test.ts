@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it } from 'vitest'
 import {
   nivelDoAprimoramento, custoDoProximoNivel, registrarAprimoramento, progressoDoAprimoramento,
   intensidadeMaxima, setIntensidade, intensidadeEfetiva, ajusteDeBurst, sorteDeEventos,
+  hidratarAprimoramentos,
 } from '../src/lib/aprimoramentos'
 import { sortearEventoRaro } from '../src/lib/eventosDeJogo'
 
@@ -64,5 +65,37 @@ describe('aprimoramentos', () => {
     // um dado que NÃO sorteava nada no neutro passa a sortear com a chance aumentada
     expect(sortearEventoRaro(() => 0.3, 1)).toBeNull()
     expect(sortearEventoRaro(() => 0.3, 1.75)).not.toBeNull()
+  })
+})
+
+/**
+ * O NÍVEL DEIXA DE VIVER SÓ NO NAVEGADOR (mudança servidor-e-autoridade).
+ *
+ * O gasto sempre foi gravado no log (`reason = 'aprimoramento:<alvo>:<n>'`) e nada lia de volta:
+ * editar `babel.aprimoramentos` dava Nv.3 em tudo, invisível ao servidor — e trocar de navegador
+ * perdia o que foi pago de verdade. As duas metades do mesmo defeito.
+ */
+describe('hidratação do servidor', () => {
+  it('com conta, o servidor substitui — o nível forjado à mão some', () => {
+    registrarAprimoramento('particulas')
+    registrarAprimoramento('particulas')
+    registrarAprimoramento('particulas')
+    expect(nivelDoAprimoramento('particulas')).toBe(3)
+
+    hidratarAprimoramentos({ particulas: 1 }, true)
+    expect(nivelDoAprimoramento('particulas')).toBe(1)
+  })
+
+  it('sem conta, soma — o que foi comprado offline não se perde', () => {
+    registrarAprimoramento('sorte')
+    hidratarAprimoramentos({ particulas: 2 }, false)
+    expect(nivelDoAprimoramento('sorte')).toBe(1)
+    expect(nivelDoAprimoramento('particulas')).toBe(2)
+  })
+
+  it('resposta ausente não mexe em nada', () => {
+    registrarAprimoramento('sorte')
+    hidratarAprimoramentos(undefined, true)
+    expect(nivelDoAprimoramento('sorte')).toBe(1)
   })
 })

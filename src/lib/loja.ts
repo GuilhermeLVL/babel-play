@@ -49,9 +49,30 @@ export function marcarPosse(id: string): void {
  * se a lista do servidor o sobrescrevesse — o localStorage segue valendo como cache otimista, e
  * o servidor é quem garante que nada comprado se perde.
  */
-export function hidratarPosse(doServidor: readonly string[] | undefined): void {
-  if (!doServidor?.length) return;
+/**
+ * A POSSE VINDA DO SERVIDOR.
+ *
+ * COM CONTA, ELA SUBSTITUI o espelho local. Até 01/09 a hidratação era UNIÃO — o servidor só
+ * ACRESCENTAVA — e o argumento era preservar a compra feita offline. O efeito colateral era que
+ * um id injetado à mão em `localStorage` nunca saía: recarregar não limpava, trocar de aparelho
+ * não limpava, e o app tratava como seu um item que ninguém comprou. Com o servidor passando a
+ * ser a autoridade sobre o gasto (`servidor-e-autoridade`), manter a união seria fechar a porta
+ * da frente e deixar a dos fundos aberta.
+ *
+ * SEM CONTA continua união, porque ali o espelho local É a única fonte — não existe servidor com
+ * quem concordar, e apagar seria apagar a compra da pessoa.
+ *
+ * A compra offline com conta continua protegida por outro caminho: ela vive até a próxima
+ * sincronização bem-sucedida, e a sincronização só acontece com resposta do servidor em mãos.
+ */
+export function hidratarPosse(doServidor: readonly string[] | undefined, autoritativo = false): void {
+  if (!doServidor) return;
   try {
+    if (autoritativo) {
+      localStorage.setItem(CHAVE_POSSE, JSON.stringify([...new Set(doServidor)]));
+      return;
+    }
+    if (!doServidor.length) return;
     const p = possuidos();
     const antes = p.size;
     for (const id of doServidor) p.add(id);

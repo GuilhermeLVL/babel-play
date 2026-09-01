@@ -99,6 +99,27 @@ describe('equipar croma', () => {
 })
 
 describe('hidratação do servidor', () => {
+  /**
+   * COM CONTA, O SERVIDOR SUBSTITUI (mudança servidor-e-autoridade).
+   *
+   * A união preservava a compra offline e, junto com ela, qualquer id injetado à mão no
+   * localStorage — que nunca mais saía: recarregar não limpava, trocar de aparelho não limpava.
+   * Fechar o gasto no servidor e deixar a posse local intocada seria trancar a porta da frente.
+   */
+  it('modo autoritativo apaga o que o servidor não conhece', () => {
+    marcarCroma(idDoCroma('part-estrelas', 'forjado'))
+    hidratarCromas([idDoCroma('ras-faisca', 'ambar')], true)
+    const s = cromasPossuidos()
+    expect(s.has(idDoCroma('ras-faisca', 'ambar'))).toBe(true)
+    expect(s.has(idDoCroma('part-estrelas', 'forjado')), 'id forjado tem de sumir').toBe(false)
+  })
+
+  it('lista vazia do servidor com conta esvazia — quem não comprou nada não tem nada', () => {
+    marcarCroma(idDoCroma('part-estrelas', 'forjado'))
+    hidratarCromas([], true)
+    expect(cromasPossuidos().size).toBe(0)
+  })
+
   it('soma ao espelho local sem apagar a compra que ainda não sincronizou', () => {
     marcarCroma(idDoCroma('part-estrelas', 'offline'))
     hidratarCromas([idDoCroma('ras-faisca', 'ambar'), idDoCroma('tema-babel', 'roxo')])

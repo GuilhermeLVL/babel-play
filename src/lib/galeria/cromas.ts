@@ -68,9 +68,15 @@ export function marcarCroma(id: string): void {
  * Loja: uma compra feita offline (débito ainda na fila) não pode sumir porque a lista do servidor
  * ainda não a conhece.
  */
-export function hidratarCromas(doServidor: readonly string[] | undefined): void {
-  if (!doServidor?.length) return
+/** Mesma regra de `hidratarPosse`: com conta o servidor substitui; sem conta, soma. */
+export function hidratarCromas(doServidor: readonly string[] | undefined, autoritativo = false): void {
+  if (!doServidor) return
   try {
+    if (autoritativo) {
+      localStorage.setItem(CHAVE, JSON.stringify([...new Set(doServidor)]))
+      return
+    }
+    if (!doServidor.length) return
     const s = cromasPossuidos()
     const antes = s.size
     for (const id of doServidor) s.add(id)

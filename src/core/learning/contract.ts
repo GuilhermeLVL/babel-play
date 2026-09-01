@@ -75,6 +75,14 @@ export interface AppMetrics {
    */
   cromasComprados?: string[]
 
+  /**
+   * NÍVEL DE CADA APRIMORAMENTO, derivado do mesmo log (`aprimoramento:<alvo>:<n>`).
+   *
+   * Vivia só em `localStorage`: o gasto era gravado e nada lia de volta, então editar a chave
+   * dava Nv.3 em tudo — e trocar de navegador perdia o que foi pago de verdade.
+   */
+  aprimoramentos?: Record<string, number>
+
   /* ── ECONOMIA v2 (2026-08-28). OPCIONAIS de propósito: o servidor efêmero (IndexedDB) já os
      calcula; a edição completa (Postgres) passa a calculá-los numa entrega própria, e até lá
      `deriveProgress` trata ausência como zero — nunca como erro. ── */

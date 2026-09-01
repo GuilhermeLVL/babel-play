@@ -85,6 +85,30 @@ export const seedSpendsRepo = {
     return r.length > 0
   },
 
+  /**
+   * OS APRIMORAMENTOS COMPRADOS, derivados do log — como a posse da Loja já era.
+   *
+   * O nível de cada aprimoramento vivia só em `localStorage` (`babel.aprimoramentos`): o gasto
+   * era gravado com `reason = 'aprimoramento:<alvo>:<n>'` e NADA lia de volta. Um usuário que
+   * editasse a chave ficava com Nv.3 em tudo, invisível ao servidor, e trocar de navegador
+   * perdia o que foi pago de verdade. Contar os degraus pagos resolve os dois.
+   */
+  async aprimoramentosComprados(userId: UserId): Promise<Record<string, number>> {
+    const linhas = await db
+      .select({ reason: seedSpends.reason })
+      .from(seedSpends)
+      .where(and(eq(seedSpends.userId, userId), isNull(seedSpends.deletedAt), like(seedSpends.reason, 'aprimoramento:%')))
+    const porAlvo: Record<string, number> = {}
+    for (const l of linhas) {
+      const [, alvo, n] = l.reason.split(':')
+      const nivel = Number(n)
+      if (!alvo || !Number.isInteger(nivel)) continue
+      // O NÍVEL é o maior degrau pago, não a contagem: um degrau reenviado é o mesmo degrau.
+      porAlvo[alvo] = Math.max(porAlvo[alvo] ?? 0, nivel)
+    }
+    return porAlvo
+  },
+
   /** O total gasto. É o que `deriveProgress` subtrai do ganho para chegar ao saldo. */
   async totalGasto(userId: UserId): Promise<number> {
     const r = await db

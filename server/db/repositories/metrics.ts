@@ -200,6 +200,7 @@ export async function computeProfile(userId: UserId, opts: OpcoesDePerfil = {}):
      se recalcula não é gasto — voltaria ao valor cheio no próximo carregamento. */
   const seedsGastas = await seedSpendsRepo.totalGasto(userId)
   const cromasComprados = await seedSpendsRepo.cromasComprados(userId)
+  const aprimoramentos = await seedSpendsRepo.aprimoramentosComprados(userId)
   /* B4 fechada (economia-de-creditos 1.2): a posse da Loja viaja no perfil, derivada do log de
      compras — o cliente hidrata o espelho local a partir daqui em vez de confiar só nele. */
   const itensComprados = await seedSpendsRepo.itensComprados(userId)
@@ -279,6 +280,7 @@ export async function computeProfile(userId: UserId, opts: OpcoesDePerfil = {}):
     seedsGastas,
     itensComprados,
     cromasComprados,
+    aprimoramentos,
     seedsCreditadas,
     xpCreditado,
     presencas: diasDePresenca.length,

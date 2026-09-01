@@ -37,8 +37,8 @@
 - [ ] 5.2 `/api/exercises/rodada`: itens têm de referenciar cartões do próprio usuário
 - [x] 5.3 `writeLimiter` também no webhook (hoje montado antes de tudo, `server.ts:144`)
 - [x] 5.4 `liberadoTudo()` só com `import.meta.env.DEV` (`src/lib/desbloqueios.ts:46`)
-- [ ] 5.5 Aprimoramentos derivam do ledger (`reason LIKE 'aprimoramento:%'`), não do localStorage
-- [ ] 5.6 Hidratação de posse e cromas substitui o espelho local em modo público; UNION continua
+- [x] 5.5 Aprimoramentos derivam do ledger (`reason LIKE 'aprimoramento:%'`), não do localStorage
+- [x] 5.6 Hidratação de posse e cromas substitui o espelho local em modo público; UNION continua
       no modo sem conta (`src/lib/loja.ts:196`, `src/lib/galeria/cromas.ts:70`)
 
 ## 6. A invariante declarada passa a valer

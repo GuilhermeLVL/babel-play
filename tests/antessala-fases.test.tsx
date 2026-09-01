@@ -64,16 +64,39 @@ describe('antessala redesenhada', () => {
     expect(onJogarFase).toHaveBeenCalledWith(['a', 'b'])
   })
 
-  it('os chips de dificuldade ficam RECOLHIDOS atrás de "Ajustar a rodada"', () => {
-    montar({
-      filtroDificuldade: {
-        faixas: [], estrategia: 'equilibrado', aoTrocarFaixa: () => {}, aoTrocarEstrategia: () => {},
-        disponivelPorFaixa: { facil: 5, medio: 5, dificil: 5 }, minimoDoJogo: 3, origemDaComposicao: 'servidor',
-      },
-    })
-    const detalhes = screen.getByText(/Ajustar a rodada/).closest('details') as HTMLDetailsElement
+  const filtro = {
+    faixas: [] as [], estrategia: 'equilibrado' as const, aoTrocarFaixa: () => {}, aoTrocarEstrategia: () => {},
+    disponivelPorFaixa: { facil: 5, medio: 5, dificil: 5 }, minimoDoJogo: 3, origemDaComposicao: 'servidor' as const,
+  }
+
+  it('os chips de dificuldade ficam RECOLHIDOS', () => {
+    montar({ filtroDificuldade: filtro })
+    const detalhes = screen.getByText(/foco:/).closest('details') as HTMLDetailsElement
     expect(detalhes).toBeTruthy()
     expect(detalhes.open).toBe(false) // fechado por padrão: configuração não cobre o progresso
+  })
+
+  /**
+   * O CONTROLE PRECISA DIZER O QUE ESTÁ VALENDO.
+   *
+   * Recolhido ele estava certo; MUDO ele não estava. O resumo dizia só "Ajustar a rodada (nível e
+   * foco)" em texto apagado, e o nível vigente ("Difícil mantido") era reportado quatro faixas
+   * abaixo, dentro de "Por que estas?". Quem queria trocar a dificuldade não achava o controle, e
+   * quem achava não sabia de onde estava saindo.
+   */
+  it('o resumo anuncia o nível vigente sem precisar abrir', () => {
+    montar({ filtroDificuldade: filtro, auto: { faixa: 'dificil', motivo: 'Difícil mantido: 100% nas últimas 3.' } })
+    expect(screen.getByText(/Nível: difícil \(automático\)/i)).toBeTruthy()
+    expect(screen.getByText(/foco: equilibrado/i)).toBeTruthy()
+  })
+
+  it('com escolha manual, o resumo mostra as faixas escolhidas em vez do automático', () => {
+    montar({
+      filtroDificuldade: { ...filtro, faixas: ['facil'] },
+      auto: { faixa: 'dificil', motivo: 'Difícil mantido.' },
+    })
+    expect(screen.getByText(/Nível: fácil/i)).toBeTruthy()
+    expect(screen.queryByText(/\(automático\)/i)).toBeNull()
   })
 })
 

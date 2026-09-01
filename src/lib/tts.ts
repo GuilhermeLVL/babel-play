@@ -170,6 +170,30 @@ export function hasVoiceFor(lang: string): boolean {
   return voicesFor(lang).length > 0;
 }
 
+/**
+ * A LISTA DE VOZES JÁ CHEGOU? Não é o mesmo que "existe voz".
+ *
+ * `getVoices()` costuma voltar VAZIO no primeiro acesso e só popular no evento `voiceschanged`.
+ * Quem pergunta "tem voz em francês?" antes disso recebe `false` — e um `false` desses vira um
+ * jogo bloqueado por engano, com a mensagem errada. Quem decide bloquear precisa saber a
+ * diferença entre "não tem" e "ainda não sei".
+ */
+export function vozesCarregadas(): boolean {
+  return getVoices().length > 0;
+}
+
+/**
+ * Avisa quando a lista de vozes muda. Devolve a função de cancelar.
+ *
+ * `addEventListener` e não `onvoiceschanged =` porque o `Reading` já registra o dele — atribuir
+ * o handler derrubaria o outro, que é o defeito que o comentário do cache acima documenta.
+ */
+export function aoMudarVozes(cb: () => void): () => void {
+  if (!isTtsSupported() || !window.speechSynthesis.addEventListener) return () => {};
+  window.speechSynthesis.addEventListener('voiceschanged', cb);
+  return () => window.speechSynthesis.removeEventListener('voiceschanged', cb);
+}
+
 // ─────────────────── Voz preferida POR IDIOMA (compartilhada por toda a app) ───────────────────
 
 /**

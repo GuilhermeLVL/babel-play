@@ -25,6 +25,18 @@ export interface JogoUI {
   icone: React.ReactNode;
   titulo: Record<AgeProfileType, string>;
   descricao: Record<AgeProfileType, string>;
+  /**
+   * A DESCRIÇÃO QUANDO A FONTE É A TRILHA — só para os jogos que MUDAM DE NATUREZA ali.
+   *
+   * Na trilha não existe gravação nem áudio recortado: ditado, escuta e karaokê passam a ouvir
+   * PALAVRAS faladas por voz sintetizada (`Play.tsx`, o ramo `aceitaPalavraFalada`). As descrições
+   * seguiam dizendo "a fala real toca", "outras falas da mesma gravação", "ouça a frase" — e a
+   * pessoa clicava esperando uma coisa e recebia outra.
+   *
+   * É opcional de propósito. A regra continua sendo dizer a fonte UMA vez, no topo da tela; isto
+   * aqui existe só onde o jogo em si é outro, não para repetir "trilha" em nove cartas.
+   */
+  descricaoNaTrilha?: Record<AgeProfileType, string>;
 }
 
 /**
@@ -72,8 +84,9 @@ export const JOGOS: JogoUI[] = [
     titulo: { kids: 'Monte a frase', pro: 'Frase embaralhada', senior: 'Montar a frase' },
     descricao: {
       kids: 'Coloque as palavras na ordem certa',
-      pro: 'Uma frase real da sua gravação, fora de ordem',
-      senior: 'Ordene as palavras de uma frase que você gravou',
+      // Sem "sua gravação": na trilha a frase vem do Tatoeba, e a fonte já está dita no topo.
+      pro: 'Uma frase real, fora de ordem',
+      senior: 'Ordene as palavras até a frase fazer sentido',
     },
   },
   {
@@ -86,6 +99,11 @@ export const JOGOS: JogoUI[] = [
       pro: 'A fala real toca com as palavras acendendo; você repete',
       senior: 'Ouça a frase e repita, recebe uma nota de pronúncia',
     },
+    descricaoNaTrilha: {
+      kids: 'Ouça a palavra e fale junto',
+      pro: 'A palavra é falada por voz sintetizada; você repete e recebe a nota',
+      senior: 'Ouça a palavra e repita, recebe uma nota de pronúncia',
+    },
   },
   {
     chave: 'escuta',
@@ -94,8 +112,13 @@ export const JOGOS: JogoUI[] = [
     titulo: { kids: 'Qual foi?', pro: 'Qual foi a fala? (escuta)', senior: 'Reconhecer a fala' },
     descricao: {
       kids: 'Ouça e ache a frase certa entre as parecidas',
-      pro: 'Só o áudio: as alternativas são outras falas da mesma gravação',
+      pro: 'Só o áudio: as alternativas são outras falas parecidas',
       senior: 'Ouça o trecho e escolha qual frase foi dita',
+    },
+    descricaoNaTrilha: {
+      kids: 'Ouça e ache a palavra certa entre as parecidas',
+      pro: 'Par mínimo: as alternativas são outras palavras da mesma leva',
+      senior: 'Ouça a palavra e escolha qual foi dita',
     },
   },
   {
@@ -107,6 +130,11 @@ export const JOGOS: JogoUI[] = [
       kids: 'Ouça quantas vezes quiser e escreva',
       pro: 'Correção palavra a palavra, você vê exatamente onde errou',
       senior: 'Ouça com calma e escreva a frase; a correção mostra cada palavra',
+    },
+    descricaoNaTrilha: {
+      kids: 'Ouça a palavra e escreva',
+      pro: 'Uma palavra por vez, falada; a correção mostra letra a letra',
+      senior: 'Ouça a palavra com calma e escreva',
     },
   },
   {

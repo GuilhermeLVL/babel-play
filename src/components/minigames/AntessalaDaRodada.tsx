@@ -383,13 +383,37 @@ export default function AntessalaDaRodada({
             {/* RECOLHIDOS por pedido do dono (2026-08-27): as duas fileiras de chips vinham ANTES
                 do progresso e da lista — configuração raramente mexida cobrindo a informação que
                 decide "jogo ou não". Continuam a um clique, mas agora pedem o clique. */}
+            {/* O RESUMO DIZ O ESTADO — era só um convite mudo.
+                Ele dizia "Ajustar a rodada (nível e foco)" em 12px apagados, e o que a rodada
+                estava valendo ("Difícil mantido") aparecia QUATRO faixas abaixo, dentro do cartão
+                "Por que estas?". Quem queria trocar a dificuldade não achava o controle, e quem
+                achava não sabia de onde estava saindo.
+                Continua RECOLHIDO de propósito (decisão de 27/08: os chips abertos cobriam a
+                informação que decide jogar ou não). O que muda é que agora ele se anuncia. */}
             {filtroDificuldade && (
               <details className="mt-3 group">
-                <summary className="flex items-center gap-1.5 text-[12px] font-semibold text-ink-muted hover:text-ink cursor-pointer select-none w-fit list-none [&::-webkit-details-marker]:hidden">
-                  <SlidersHorizontal className="w-3.5 h-3.5" aria-hidden />
-                  Ajustar a rodada (nível e foco)
-                  <ChevronDown className="w-3.5 h-3.5 transition-transform group-open:rotate-180" aria-hidden />
+                <summary className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[12.5px] text-ink-muted hover:text-ink cursor-pointer select-none w-fit list-none [&::-webkit-details-marker]:hidden">
+                  <SlidersHorizontal className="w-3.5 h-3.5 shrink-0" aria-hidden />
+                  <span className="font-semibold text-ink">
+                    {(() => {
+                      const escolhidas = FAIXAS.filter(f => filtroDificuldade.faixas.includes(f.id));
+                      if (escolhidas.length && escolhidas.length < FAIXAS.length) {
+                        return `Nível: ${escolhidas.map(f => f.rotulo.toLowerCase()).join(' e ')}`;
+                      }
+                      /* Sem escolha explícita quem manda é o automático — e aí o nível que ele
+                         decidiu é o que a pessoa precisa ver, não a palavra "automático" sozinha. */
+                      return auto ? `Nível: ${FAIXAS.find(f => f.id === auto.faixa)?.rotulo.toLowerCase() ?? auto.faixa} (automático)` : 'Nível: todos';
+                    })()}
+                  </span>
+                  <span aria-hidden>·</span>
+                  <span>foco: {ESTRATEGIAS.find(e => e.id === filtroDificuldade.estrategia)?.rotulo.toLowerCase() ?? filtroDificuldade.estrategia}</span>
+                  <span className="font-semibold text-accent-ink group-open:hidden">trocar</span>
+                  <ChevronDown className="w-3.5 h-3.5 shrink-0 transition-transform group-open:rotate-180" aria-hidden />
                 </summary>
+                {/* O PORQUÊ DO AUTOMÁTICO mora COM o controle, não a quatro faixas dele. */}
+                {auto && !filtroDificuldade.faixas.length && (
+                  <p className="mt-1.5 text-[12px] text-ink-faint">{auto.motivo}</p>
+                )}
                 <div className="mt-2 space-y-1.5">
                 <Segmentado
                   rotulo="nível"
@@ -505,11 +529,17 @@ export default function AntessalaDaRodada({
             zero ali é a denúncia de sorteio repetido que esta tela existe para dar.
 
             "Vencidos" continua sendo o único com cor: é o único que fala de PRAZO. */}
+        {/* ZERO NEM SEMPRE É AUSÊNCIA — e é por isso que a regra aqui não é "esconda todo zero".
+            Numa rodada só de itens novos, três dos quatro ladrilhos mostravam "0": números que
+            não decidem nada ocupando a mesma tela que a decisão de jogar ou trocar.
+            Mas `novos = 0` é DIFERENTE: é a denúncia de sorteio repetido que esta tela existe
+            para dar, e escondê-la apagaria justamente o sinal mais útil dela. Então os dois
+            primeiros ficam sempre, e os dois que só falam de ausência aparecem quando existem. */}
         <section className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-5">
           <Ladrilho valor={saldo.total} rotulo={rotuloTotal[ageProfile]} />
           <Ladrilho valor={saldo.novos} rotulo={rotuloNovos[ageProfile]} tom={saldo.novos > 0 ? 'good' : 'ink'} />
-          <Ladrilho valor={saldo.vistos} rotulo={rotuloVistos[ageProfile]} />
-          <Ladrilho valor={saldo.devidos} rotulo={rotuloVencidos[ageProfile]} tom={saldo.devidos > 0 ? 'warn' : 'ink'} />
+          {saldo.vistos > 0 && <Ladrilho valor={saldo.vistos} rotulo={rotuloVistos[ageProfile]} />}
+          {saldo.devidos > 0 && <Ladrilho valor={saldo.devidos} rotulo={rotuloVencidos[ageProfile]} tom="warn" />}
         </section>
 
         {/* A DENÚNCIA DA REPETIÇÃO, em número.
@@ -542,8 +572,15 @@ export default function AntessalaDaRodada({
               {porMotivo.firmes > 0 && <span className="badge-tag">{porMotivo.firmes} firmes (completando)</span>}
               {etapa && <span className="badge-tag acc">{etapa}</span>}
             </div>
-            {auto && (
-              <p className="text-[12.5px] text-ink-muted"><b className="text-ink">Dificuldade automática:</b> {auto.motivo}</p>
+            {/* O motivo do automático subiu para JUNTO do controle de nível (ver o `<details>`
+                lá em cima). Ele ficava aqui, quatro faixas abaixo do botão que o muda: a pessoa
+                lia "Difícil mantido" sem ter como ligar isso a nada que pudesse tocar.
+                Fica repetido aqui só quando a escolha é MANUAL, porque aí o de cima mostra os
+                chips escolhidos e este texto explica o que o automático faria. */}
+            {auto && filtroDificuldade && filtroDificuldade.faixas.length > 0 && (
+              <p className="text-[12.5px] text-ink-muted">
+                <b className="text-ink">No automático seria:</b> {auto.motivo}
+              </p>
             )}
             {diagnosticoTermo && Object.values(diagnosticoTermo.foraPor).some((n) => n > 0) && (
               <p className="text-[12px] text-ink-faint">

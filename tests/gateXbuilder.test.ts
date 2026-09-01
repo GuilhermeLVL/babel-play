@@ -20,7 +20,7 @@ import { describe, it, expect } from 'vitest'
 import { estadoDoJogo, type EntradaDoEstado } from '../src/core/minigames/estadoDosJogos'
 import { MINIGAMES, type MinigameId } from '../src/core/minigames/types'
 import {
-  rodadasDaEscada, consumoDaEscada, contarJogaveisMulti, planoDaEscada, DEGRAUS_MINIMOS,
+  rodadasDaEscada, consumoDaEscada, contarJogaveisMulti, planoDaEscada, DEGRAUS_MINIMOS, ESCADA_POR_FAIXA,
   MIN_LETRAS, MAX_LETRAS,
 } from '../src/core/minigames/termo'
 import { buildItems } from '../src/core/minigames/itemSource'
@@ -160,9 +160,16 @@ describe('gate × builder — a carta liberada sempre abre', () => {
   })
 
   it('rodadasDaEscada nunca devolve um tamanho que a escada não consome', () => {
-    for (let n = 0; n <= 10; n++) {
-      const r = rodadasDaEscada(palavrasIguais(n))
-      expect(consumoDaEscada(r.length), `${n} palavras → ${r.length} rodadas`).toBe(r.length)
+    /* A escada passou a depender da FAIXA (o quarteto deixou de ser o destino de todo mundo), e a
+       invariante tem de ser medida contra a escada que o montador de fato usou — comparar com a
+       `ESCADA_PADRAO` fixa era o que fazia este teste acusar 5 onde o certo é 5.
+       De quebra a checagem ficou mais forte: antes valia para uma escada, agora para as três. */
+    for (const faixa of ['facil', 'medio', 'dificil'] as const) {
+      const escada = ESCADA_POR_FAIXA[faixa]
+      for (let n = 0; n <= 10; n++) {
+        const r = rodadasDaEscada(palavrasIguais(n), { faixa })
+        expect(consumoDaEscada(r.length, escada), `${faixa}: ${n} palavras → ${r.length} rodadas`).toBe(r.length)
+      }
     }
   })
 

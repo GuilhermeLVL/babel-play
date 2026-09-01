@@ -2,6 +2,7 @@ import type { VocabCard } from '../../types';
 import { isDueNow } from '../learning/due';
 import { pistaUtil, chaveComparavel } from '../learning/quality';
 import { ordenarPorMemoria, type HistoricoDoItem } from '../learning/memoriaDeItens';
+import type { FaixaDificuldade } from './composicao';
 
 /**
  * TERMO JUSTO (seleção v2, 2026-08-28) — três defeitos medidos e consertados aqui:
@@ -26,13 +27,22 @@ export function chaveDoTermo(texto: string): string {
 
 export type MotivoForaDoTermo = 'hifen-ou-espaco' | 'curta' | 'longa' | 'sem-pista';
 
-/** Por que uma palavra não joga o Termo — para a antessala dizer em vez de sumir com ela. */
-export function motivoForaDoTermo(c: Pick<VocabCard, 'word' | 'translation' | 'inDeck'>): MotivoForaDoTermo | null {
+/**
+ * Por que uma palavra não joga o Termo — para a antessala dizer em vez de sumir com ela.
+ *
+ * A FAIXA governa o comprimento aceito (ver `LETRAS_POR_FAIXA`). Sem faixa, vale o médio, que é
+ * a régua histórica: quem não passa faixa não vê mudança nenhuma.
+ */
+export function motivoForaDoTermo(
+  c: Pick<VocabCard, 'word' | 'translation' | 'inDeck'>,
+  faixa: FaixaDificuldade = 'medio',
+): MotivoForaDoTermo | null {
   const bruto = (c.word ?? '').trim();
   if (/[\s-]/.test(bruto)) return 'hifen-ou-espaco';
   const n = chaveDoTermo(bruto).length;
-  if (n < MIN_LETRAS) return 'curta';
-  if (n > MAX_LETRAS) return 'longa';
+  const regua = LETRAS_POR_FAIXA[faixa] ?? LETRAS_POR_FAIXA.medio;
+  if (n < regua.min) return 'curta';
+  if (n > regua.max) return 'longa';
   if (!pistaUtil(c.translation ?? '')) return 'sem-pista';
   return null;
 }
@@ -121,6 +131,21 @@ export interface Palpite {
 /** Tamanhos aceitos: abaixo de 4 é trivial, acima de 8 vira sopa de letras. */
 export const MIN_LETRAS = 4;
 export const MAX_LETRAS = 8;
+
+/**
+ * O COMPRIMENTO DA PALAVRA É DIFICULDADE — e era a alavanca que a faixa não alcançava.
+ *
+ * O Termo tinha régua única (4–8 letras) para todo mundo. A faixa (`facil`/`medio`/`dificil`) já
+ * existia e já recortava o material da rodada; faltava ela chegar às duas coisas que decidem o
+ * custo real deste jogo: quantas letras a palavra tem e até quantos tabuleiros a escada sobe.
+ *
+ * O médio é a régua histórica, de propósito: quem não passa faixa não vê mudança.
+ */
+export const LETRAS_POR_FAIXA: Record<FaixaDificuldade, { min: number; max: number }> = {
+  facil: { min: 4, max: 6 },
+  medio: { min: MIN_LETRAS, max: MAX_LETRAS },
+  dificil: { min: 5, max: 10 },
+};
 /**
  * Tentativas por MODO, como no jogo original: quanto mais tabuleiros simultâneos, mais chances.
  * A conta do original é boa e não vale reinventar — com 4 palavras e 6 tentativas o jogo é
@@ -144,6 +169,21 @@ export const TABULEIROS_POR_MODO: Record<ModoTermo, number> = { termo: 1, dueto:
  * quem não acerta parou no degrau que era o dele.
  */
 export const ESCADA_PADRAO: number[] = [1, 2, 4];
+
+/**
+ * ATÉ ONDE A ESCADA SOBE, por faixa. Cada degrau é o número de tabuleiros simultâneos.
+ *
+ * O quarteto deixa de ser o destino de todo mundo. Na tela ele é uma parede — quatro grades lado
+ * a lado, nove linhas de tentativa cada, e um teclado embaixo —, e quem estava começando recebia
+ * exatamente o mesmo jogo de quem já domina. No fácil a escada não sobe: um tabuleiro por vez,
+ * três vezes; a repetição é o que ensina, e dividir a atenção em quatro no começo só ensina a
+ * desistir. O difícil mantém o 1→2→4 original.
+ */
+export const ESCADA_POR_FAIXA: Record<FaixaDificuldade, number[]> = {
+  facil: [1, 1, 1],
+  medio: [1, 2, 2],
+  dificil: [1, 2, 4],
+};
 
 /** O modo correspondente a um número de tabuleiros (é o que decide as tentativas do degrau). */
 export function modoDeTabuleiros(n: number): ModoTermo {
@@ -217,14 +257,19 @@ export const DEGRAUS_MINIMOS = 2;
  */
 export function rodadasDaEscada(
   cards: VocabCard[],
-  opts: { dificil?: boolean; now?: number; shuffle?: <T>(xs: T[]) => T[]; evitar?: ReadonlySet<string>; memoria?: ReadonlyMap<string, HistoricoDoItem>; semente?: string; diaDe?: (ts: number) => number } = {},
+  opts: { dificil?: boolean; now?: number; shuffle?: <T>(xs: T[]) => T[]; evitar?: ReadonlySet<string>; memoria?: ReadonlyMap<string, HistoricoDoItem>; semente?: string; diaDe?: (ts: number) => number; faixa?: FaixaDificuldade } = {},
 ): RodadaTermo[] {
-  const disponiveis = contarJogaveisMulti(cards);
-  if (planoDaEscada(disponiveis).length < DEGRAUS_MINIMOS) return [];
+  /* A FAIXA GOVERNA AS DUAS ALAVANCAS que decidem o custo do Termo: quantas letras a palavra pode
+     ter e até quantos tabuleiros a escada sobe. Sem ela, todo mundo recebia 4–8 letras e o
+     quarteto no fim — o mesmo jogo para quem começou hoje e para quem já domina. */
+  const faixa = opts.faixa ?? 'medio';
+  const escada = ESCADA_POR_FAIXA[faixa] ?? ESCADA_PADRAO;
+  const disponiveis = contarJogaveisMulti(cards, faixa);
+  if (planoDaEscada(disponiveis, escada).length < DEGRAUS_MINIMOS) return [];
 
-  const rodadas = buildTermoRounds(cards, { ...opts, quantidade: consumoDaEscada(disponiveis), mesmoTamanho: true });
-  if (planoDaEscada(rodadas.length).length < DEGRAUS_MINIMOS) return [];
-  return rodadas.slice(0, consumoDaEscada(rodadas.length));
+  const rodadas = buildTermoRounds(cards, { ...opts, faixa, quantidade: consumoDaEscada(disponiveis, escada), mesmoTamanho: true });
+  if (planoDaEscada(rodadas.length, escada).length < DEGRAUS_MINIMOS) return [];
+  return rodadas.slice(0, consumoDaEscada(rodadas.length, escada));
 }
 
 /** Fatia as palavras nos degraus do plano (1, depois 2, depois 4). */
@@ -347,12 +392,14 @@ export function buildTermoRounds(
   cards: VocabCard[],
   opts: { quantidade?: number; dificil?: boolean; now?: number; mesmoTamanho?: boolean;
           shuffle?: <T>(xs: T[]) => T[]; evitar?: ReadonlySet<string>;
-          memoria?: ReadonlyMap<string, HistoricoDoItem>; semente?: string; diaDe?: (ts: number) => number } = {},
+          memoria?: ReadonlyMap<string, HistoricoDoItem>; semente?: string; diaDe?: (ts: number) => number;
+          faixa?: FaixaDificuldade } = {},
 ): RodadaTermo[] {
   const now = opts.now ?? Date.now();
   const quantidade = opts.quantidade ?? 5;
   // Elegibilidade pela chave Unicode (ver `motivoForaDoTermo`): hífen/espaço fora, acentos ok.
-  let candidatos = cards.filter(c => c.inDeck && motivoForaDoTermo(c) === null);
+  // A FAIXA entra aqui: é ela que decide o comprimento aceito (ver `LETRAS_POR_FAIXA`).
+  let candidatos = cards.filter(c => c.inDeck && motivoForaDoTermo(c, opts.faixa ?? 'medio') === null);
   /* SINÔNIMOS DO ACERVO: para cada tradução, quais palavras (do acervo INTEIRO recebido) a
      carregam. É o que permite aceitar "deceased" quando a rodada pediu "dead". */
   const porPista = new Map<string, string[]>();
@@ -464,8 +511,8 @@ function maiorGrupoPorTamanho(cards: VocabCard[]): VocabCard[] {
  * jogáveis, e sim o tamanho do maior grupo de mesmo comprimento. Um baralho com 20 palavras
  * todas de comprimentos diferentes não joga Dueto, e a tela precisa dizer isso com número.
  */
-export function contarJogaveisMulti(cards: VocabCard[]): number {
-  const jogaveis = cards.filter(c => c.inDeck && motivoForaDoTermo(c) === null);
+export function contarJogaveisMulti(cards: VocabCard[], faixa: FaixaDificuldade = 'medio'): number {
+  const jogaveis = cards.filter(c => c.inDeck && motivoForaDoTermo(c, faixa) === null);
   return maiorGrupoPorTamanho(jogaveis).length;
 }
 

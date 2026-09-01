@@ -38,6 +38,18 @@ interface ScratchRewardProps {
   onContinuar: () => void;
   /** Estas mesmas de novo. `null` quando a rodada não deixou `itemRef` para remontar. */
   onRepetir: (() => void) | null;
+  /**
+   * VER O QUE ESCAPOU — leva ao resumo da rodada. `null` quando não houve erro.
+   *
+   * Existe porque o resumo estava ROUBANDO o lugar desta tela: `verResumo` era ligado junto com
+   * o resultado, e a cascata testa `resultado && verResumo` ANTES de `resultado` — então a
+   * raspadinha, que é o único clímax de recompensa do app, nunca era alcançada. O comentário do
+   * próprio ramo já dizia "passo 2, DEPOIS da raspadinha"; faltava o caminho entre as duas.
+   *
+   * É uma ação NOVA e não o `onDone` sequestrado: aquele botão diz "Voltar aos jogos", e mandá-lo
+   * para outra tela seria a mesma quebra de promessa que o resto deste trabalho está desfazendo.
+   */
+  onVerErros?: (() => void) | null;
   onDone: () => void;
   /** Acabou o material elegível: não há "mais uma" honesta a oferecer. */
   semMaterial?: boolean;
@@ -61,7 +73,7 @@ interface ScratchRewardProps {
 const LIMIAR_REVELACAO = 0.45;
 
 export default function ScratchReward({
-  report, ageProfile, sequencia, recorde, onContinuar, onRepetir, onDone, semMaterial,
+  report, ageProfile, sequencia, recorde, onContinuar, onRepetir, onVerErros, onDone, semMaterial,
   onPularVez, custoPular, saldoSeeds, progress, onVerProgressao,
 }: ScratchRewardProps) {
   const proxima = progress?.available ? proximaRecompensa(progress.level) : null;
@@ -299,6 +311,14 @@ export default function ScratchReward({
                   {estrelas < 3
                     ? (ageProfile === 'senior' ? 'Repetir e melhorar as estrelas' : 'De novo, pelas 3 estrelas')
                     : (ageProfile === 'senior' ? 'Repetir as mesmas palavras' : 'De novo, estas')}
+                </button>
+              )}
+              {/* Só aparece quando há o que mostrar: sem erro, "ver o que errei" é um convite a
+                  uma tela vazia. As palavras erradas já eram gravadas item a item em
+                  `exercise_results` e nunca tinham sido mostradas a ninguém. */}
+              {onVerErros && (
+                <button onClick={onVerErros} className="btn-outline" title="As palavras que escaparam nesta rodada">
+                  {ageProfile === 'kids' ? 'O que eu errei' : 'Ver o que escapou'}
                 </button>
               )}
               <button

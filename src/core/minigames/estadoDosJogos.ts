@@ -1,7 +1,8 @@
 import { MINIGAMES, type MinigameId } from './types';
 import { canPlay, promptFor } from './itemSource';
 import { chaveComparavel } from '../learning/quality';
-import { contarJogaveisMulti, consumoDaEscada } from './termo';
+import { contarJogaveisMulti, consumoDaEscada, ESCADA_POR_FAIXA } from './termo';
+import type { FaixaDificuldade } from './composicao';
 import { buildScrambleRounds } from './scramble';
 import { buildRodadasEscuta, buildRodadasDitado, buildRodadasConectores, temConectores } from './escuta';
 import type { VocabCard } from '../../types';
@@ -91,6 +92,13 @@ export interface EntradaDoEstado {
   frasesDaTrilha?: FalaComAudio[];
   fonteId: 'baralho' | 'sessao' | 'trilha' | 'dificeis';
   lang: string;
+  /**
+   * A FAIXA VIGENTE. O Termo é o único jogo cujo TAMANHO depende dela: a escada sobe até 1, 2
+   * ou 4 tabuleiros conforme a faixa, e o gate anuncia esse tamanho. Sem isto o gate prometia
+   * 7 palavras e o montador entregava 5 — a divergência gate×montador que já sumiu com o jogo
+   * uma vez, e que um teste desta pasta existe para impedir. Omitida = `medio`.
+   */
+  faixa?: FaixaDificuldade;
 }
 
 /** Teto alto para MEDIR o acervo — não é o tamanho da rodada. */
@@ -104,8 +112,8 @@ const TETO_DE_FALAS = 99;
  * Para oito dos nove jogos é o teto do jogo, ou o acervo quando ele é menor. O Termo é a exceção
  * declarada: a escada consome 3 ou 7, e é `consumoDaEscada` que sabe disso.
  */
-function tamanhoDaRodadaDe(id: MinigameId, disponiveis: number): number {
-  if (id === 'termo') return consumoDaEscada(disponiveis);
+function tamanhoDaRodadaDe(id: MinigameId, disponiveis: number, faixa: FaixaDificuldade = 'medio'): number {
+  if (id === 'termo') return consumoDaEscada(disponiveis, ESCADA_POR_FAIXA[faixa]);
   return Math.min(disponiveis, MINIGAMES[id].maxItems);
 }
 
@@ -172,8 +180,8 @@ export function estadoDoJogo(id: MinigameId, e: EntradaDoEstado, pools?: PoolPor
    * com número, em vez de falhar no clique.
    */
   if (id === 'termo') {
-    const n = contarJogaveisMulti(e.cartas);
-    return { id, ok: n >= def.minItems, disponiveis: n, faltam: Math.max(0, def.minItems - n), fonte: 'baralho', tamanhoDaRodada: tamanhoDaRodadaDe(id, n) };
+    const n = contarJogaveisMulti(e.cartas, e.faixa ?? 'medio');
+    return { id, ok: n >= def.minItems, disponiveis: n, faltam: Math.max(0, def.minItems - n), fonte: 'baralho', tamanhoDaRodada: tamanhoDaRodadaDe(id, n, e.faixa) };
   }
 
   if (def.modalidade !== 'palavra') {

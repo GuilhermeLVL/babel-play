@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { X, Play as IconePlay, Mic, GraduationCap, Flame } from 'lucide-react';
+import { X, Check as IconeCheck, Mic, GraduationCap, Flame } from 'lucide-react';
 import { Segmentado } from '../ui';
 import LangPicker from '../LangPicker';
 import { langLabelPt } from '../../lib/languages';
@@ -361,9 +361,18 @@ export default function SalaDeEscolha({
             )}
           </p>
 
+          {/* O RÓTULO DIZ O QUE O BOTÃO FAZ.
+              Ele se chamava "Jogar" e trazia um ícone de play, mas `confirmar` só emite
+              `aoConfirmar(escolha)` — do outro lado, `aplicarEscolha` troca idioma e fonte e
+              devolve a pessoa ao lobby, com nove cartas para escolher. Prometer play e entregar
+              uma troca de fonte é a quebra de promessa mais cara da tela, porque acontece no
+              único gesto forte dela.
+              Não vira play de verdade porque a rodada é montada a partir de `jogaveis`, derivado
+              da fonte NOVA — que só existe no render seguinte; começar aqui montaria a rodada com
+              a fonte antiga. Quem quer um clique até a partida usa o "Jogar agora" do lobby. */}
           <button ref={botaoJogar} onClick={confirmar} className="btn-solid py-3 px-6">
-            <IconePlay className="w-4 h-4" aria-hidden />
-            {ageProfile === 'kids' ? 'Bora!' : 'Jogar'}
+            <IconeCheck className="w-4 h-4" aria-hidden />
+            {ageProfile === 'kids' ? 'Usar estas!' : 'Usar estas palavras'}
           </button>
         </footer>
       </div>

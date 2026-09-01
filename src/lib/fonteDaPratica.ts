@@ -77,3 +77,15 @@ export function gravarFonteGuardada(f: FonteGuardada): void {
     }));
   } catch { /* storage bloqueado */ }
 }
+
+/**
+ * A PESSOA JÁ ESCOLHEU ALGUMA VEZ?
+ *
+ * `lerFonteGuardada` devolve o PADRÃO quando não há nada gravado, e isso é o certo para montar a
+ * fonte — mas apaga a diferença entre "nunca escolheu" e "escolheu justamente o padrão". A tela
+ * precisa dessa diferença: a Sala de Escolha abria a CADA entrada, para todo mundo, inclusive para
+ * quem já tinha decidido e só queria jogar. Agora ela abre para quem ainda não decidiu.
+ */
+export function temFonteGuardada(): boolean {
+  try { return localStorage.getItem(CHAVE) !== null; } catch { return false; }
+}

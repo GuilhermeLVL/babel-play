@@ -318,6 +318,24 @@ export function progressoDaTrilha(dado: DadoTrilha, jaTem: ReadonlySet<string>):
 }
 
 /**
+ * QUAIS NÍVEIS ENTRAM NA RODADA — um, quando escolhido; todos, quando não.
+ *
+ * DEFEITO QUE ISTO CONSERTA. A Sala de Escolha diz, por escrito, "Sem escolher, a trilha joga com
+ * todos os níveis de uma vez". A tela fazia o oposto: sem `nivel`, caía no baralho triado, que
+ * para quem nunca jogou a trilha é VAZIO (nenhuma palavra foi promovida a cartão ainda). A pessoa
+ * lia "2.784 palavras prontas", confirmava, e a rodada não montava. Escolher um nível resolvia —
+ * o que fazia o defeito parecer preferência de uso.
+ *
+ * Devolve só os níveis que EXISTEM no arquivo: as listas C1 e C2 do inglês são magras (114 e 64),
+ * e um dia um idioma novo pode chegar sem elas.
+ */
+export function niveisEmJogo(dado: DadoTrilha, nivel?: CefrLevel): CefrLevel[] {
+  const existentes = NIVEIS_CEFR.filter(n => (dado.niveis[n] ?? []).length > 0)
+  if (!nivel) return existentes
+  return existentes.includes(nivel) ? [nivel] : []
+}
+
+/**
  * O nível sugerido: o primeiro que ainda não está praticamente completo.
  *
  * O corte em 80% é deliberado e não em 100%: as listas têm palavras raras que a pessoa pode nunca

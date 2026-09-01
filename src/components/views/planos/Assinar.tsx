@@ -45,8 +45,24 @@ export default function Assinar() {
   }, []);
 
   // Self-host e modo sem conta não têm o que comprar; sem billing configurado, nada a prometer.
-  if (!authRequired || !status?.configurado) return null;
-
+  /**
+   * SEM COBRANÇA CONFIGURADA, A TELA DIZ (mudança vender-onde-se-ve).
+   *
+   * Devolver `null` fazia a compra SUMIR: quem abria não descobria que não dava, descobria que
+   * não existia. É o mesmo defeito de degradar em silêncio que esta base vem perseguindo — e a
+   * Loja já resolvia isso no cartão de Créditos, dizendo na cara que ali não há o que vender.
+   */
+  if (!authRequired || !status?.configurado) {
+    return (
+      <section className="card-panel bg-surface p-5" data-testid="assinar">
+        <p className="text-[12.5px] text-ink-muted max-w-[68ch] leading-relaxed">
+          Nesta instalação não há assinatura — sem conta e sem cobrança configurada, não existe o
+          que cobrar. <b className="text-ink">O plano Grátis é o que está rodando aqui</b>, e ele
+          é o app inteiro rodando no seu computador.
+        </p>
+      </section>
+    );
+  }
   const ativa = status.assinatura && (status.assinatura.status === 'active' || status.assinatura.status === 'past_due');
 
   const assinar = async () => {

@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto'
 import { and, desc, eq, isNull, like, sql, sum } from 'drizzle-orm'
 import { db } from '../db'
 import { creditPurchases, creditSpends } from '../schema'
+import type { SkuDeCredito } from '../../../src/core/creditos'
 import type { UserId } from '../../lib/authContext'
 
 /**
@@ -18,7 +19,9 @@ import type { UserId } from '../../lib/authContext'
  *    `pago` é o webhook, com o id do pagamento do provedor. Conceder no clique seria dar
  *    crédito para quem abandonou o checkout.
  */
-export type SkuDeCredito = 'c100' | 'c300' | 'c700' | 'passe-t1'
+/* O tipo era redeclarado aqui, cópia de `core/creditos.ts`: dois lugares para a mesma lista de
+   SKUs é como um SKU novo entra num e não no outro. */
+export type { SkuDeCredito }
 
 export interface NovaCompra {
   sku: SkuDeCredito

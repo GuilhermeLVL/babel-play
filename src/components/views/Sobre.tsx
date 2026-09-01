@@ -9,6 +9,9 @@
  * hierarquia agora vem do layout, não só deles. Dados do autor: `lib/criador.ts` (placeholders
  * `*_AQUI` ficam ocultos).
  */
+import { planoAnunciavel } from '../CardDePlanos';
+import { precoEmReais, PRECO_DO_PASSE_CENTAVOS } from '../../core/creditos';
+import { menorPrecoDeAssinatura } from '../../core/planos';
 import { useState } from 'react';
 import {
   Github, Globe, Linkedin, Mail, Copy, Check, Heart, MessageSquare, Headphones,
@@ -67,7 +70,7 @@ const FATOS = [
   'Feito por uma pessoa só',
 ];
 
-export default function Sobre() {
+export default function Sobre({ onVerPlanos }: { onVerPlanos?: (view: string) => void } = {}) {
   const [copiado, setCopiado] = useState(false);
   const copiarPix = async () => {
     try {
@@ -160,6 +163,19 @@ export default function Sobre() {
               temas, efeitos, o Passe de Temporada. Nada disso ensina nada. É só bonito, e é o que
               ajuda a manter o resto de pé.
             </p>
+            {/* O PREÇO E O CAMINHO (mudança vender-onde-se-ve). O parágrafo acima citava o Passe
+                e os planos como coisas à venda, sem dizer quanto custam e sem levar a lugar
+                nenhum — anunciar sem preço e sem porta é a versão educada de não anunciar. */}
+            {planoAnunciavel() && onVerPlanos && (
+              <p className="flex flex-wrap items-center gap-2 text-[13px]">
+                <button onClick={() => onVerPlanos('planos')} className="btn-outline !py-2 !text-[12.5px]">
+                  Planos a partir de R$ {menorPrecoDeAssinatura()}/mês
+                </button>
+                <button onClick={() => onVerPlanos('loja')} className="btn-outline !py-2 !text-[12.5px]">
+                  Passe de Temporada · {precoEmReais(PRECO_DO_PASSE_CENTAVOS)}
+                </button>
+              </p>
+            )}
           </div>
         </div>
         <aside className="lg:pt-14">

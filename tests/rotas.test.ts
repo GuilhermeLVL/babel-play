@@ -111,3 +111,25 @@ describe('ida e volta — o estado sobrevive ao recarregamento', () => {
     })
   }
 })
+
+/**
+ * OS ENDEREÇOS DO QUE ESTÁ À VENDA (mudança vender-onde-se-ve).
+ *
+ * `ComprarCreditos` não tinha URL nenhuma: vivia dentro de uma aba que a DESMONTA quando inativa,
+ * e não havia link que levasse a ela. E `/planos`, no plural — que é o que qualquer pessoa digita
+ * — caía no Hub em silêncio, porque o mapa só conhecia o singular.
+ */
+describe('as rotas do que está à venda', () => {
+  it('/creditos abre a compra de Créditos', () => {
+    expect(urlParaEstado('/creditos')).toEqual({ view: 'loja', lojaTab: 'loja' })
+  })
+
+  it('/planos vale como /plano — o plural é o que se digita', () => {
+    expect(urlParaEstado('/planos')).toEqual({ view: 'planos' })
+    expect(urlParaEstado('/plano')).toEqual({ view: 'planos' })
+  })
+
+  it('mas a URL publicada continua sendo a canônica — uma tela, um endereço na barra', () => {
+    expect(estadoParaUrl({ view: 'planos' })).toBe('/plano')
+  })
+})

@@ -1,3 +1,4 @@
+import { menorPrecoDeAssinatura } from '../../core/planos';
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { User, Settings as SettingsIcon, LogOut, LogIn, CreditCard } from 'lucide-react';
@@ -142,7 +143,7 @@ export default function MenuDaConta({ onIr, orientation }: MenuDaContaProps) {
             <span className="flex-1 text-left">Plano e consumo</span>
             {/* O preço só aparece para quem TEM o que comprar (spec planos-visiveis); para o
                 assinante o item volta a ser neutro. */}
-            {planoAnunciavel() && <span className="text-[11px] text-accent-ink font-semibold">R$ 9,90+</span>}
+            {planoAnunciavel() && <span className="text-[11px] text-accent-ink font-semibold">R$ {menorPrecoDeAssinatura()}+</span>}
           </button>
           <button role="menuitem" onClick={() => ir('settings')} className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-[13px] text-ink hover:bg-surface-hover cursor-pointer">
             <SettingsIcon className="w-4 h-4 text-ink-muted" aria-hidden /> Ajustes

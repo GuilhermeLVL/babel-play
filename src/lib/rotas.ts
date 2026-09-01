@@ -44,6 +44,22 @@ const SEGMENTO: Record<Exclude<ViewDeRota, 'analysis'>, string> = {
   loja: 'loja',
   planos: 'plano',
 }
+
+/**
+ * ALIASES DE ENTRADA — segmentos que LEEM para uma view, sem serem o endereço canônico dela.
+ *
+ * `/planos` (plural) caía no Hub em silêncio, e plural é o que qualquer pessoa digita: o singular
+ * é a escolha de quem escreveu o mapa, não a de quem digita a URL. `/creditos` é o endereço que
+ * `ComprarCreditos` nunca teve — a tela vivia dentro de uma aba que a DESMONTA quando inativa, e
+ * não havia link que levasse a ela.
+ *
+ * Só de leitura: `estadoParaUrl` continua publicando o canônico, senão a mesma tela teria dois
+ * endereços na barra e o histórico ficaria ambíguo.
+ */
+const ALIAS_DE_SEGMENTO: Record<string, { view: ViewDeRota; lojaTab?: EstadoDeRota['lojaTab'] }> = {
+  planos: { view: 'planos' },
+  creditos: { view: 'loja', lojaTab: 'loja' },
+}
 const VIEW_DE_SEGMENTO = Object.fromEntries(
   Object.entries(SEGMENTO).filter(([, seg]) => seg).map(([v, seg]) => [seg, v as ViewDeRota]),
 ) as Record<string, ViewDeRota>
@@ -122,6 +138,9 @@ export function urlParaEstado(caminho: string): EstadoDeRota {
     // Sub-aba desconhecida degrada para a tela, nunca para o Hub: o usuário pediu Personalizar.
     return aba ? { view: 'loja', lojaTab: aba } : { view: 'loja' }
   }
+
+  const alias = ALIAS_DE_SEGMENTO[partes[0]]
+  if (alias) return alias.lojaTab ? { view: alias.view, lojaTab: alias.lojaTab } : { view: alias.view }
 
   const view = VIEW_DE_SEGMENTO[partes[0]]
   // Caminho desconhecido cai no Hub: uma URL errada não pode virar tela em branco.

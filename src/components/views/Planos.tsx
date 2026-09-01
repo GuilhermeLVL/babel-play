@@ -1,3 +1,4 @@
+import { precoDoPlano, armazenamentoEmTexto } from '../../core/planos';
 import { useEffect, useState } from 'react';
 import { Check, Minus, Cloud, Cpu, Sparkles } from 'lucide-react';
 import { Abas, PainelDeAba, Barra, Vazio } from '../ui';
@@ -71,7 +72,9 @@ const RECURSOS: Recurso[] = [
     fonte: 'no Pro a transcrição também roda no servidor; o navegador não baixa nada',
   },
   { nome: 'Importar do YouTube', gratis: false, essencial: false, pro: true },
-  { nome: 'Suas sessões guardadas na conta', gratis: '500 MB', essencial: '1 GB', pro: '5 GB' },
+  /* Derivado da quota, não escrito à mão: mudar `armazenamentoMb` na matriz e esquecer esta
+     linha faria a tabela prometer um teto que o servidor não aplica. */
+  { nome: 'Suas sessões guardadas na conta', gratis: armazenamentoEmTexto('free'), essencial: armazenamentoEmTexto('essencial'), pro: armazenamentoEmTexto('pro') },
   { nome: 'Sua própria chave de IA (BYOK)', gratis: true, essencial: true, pro: true },
 ];
 
@@ -171,11 +174,11 @@ export default function Planos() {
                   </th>
                   <th className="text-center font-semibold text-ink pb-3 px-3 whitespace-nowrap">
                     <Sparkles size={14} className="inline mr-1" aria-hidden />Essencial
-                    <span className="block text-[11px] font-normal text-ink-muted">R$ 9,90/mês</span>
+                    <span className="block text-[11px] font-normal text-ink-muted">R$ {precoDoPlano('essencial')}/mês</span>
                   </th>
                   <th className="text-center font-semibold text-accent pb-3 px-3 whitespace-nowrap">
                     <Cloud size={14} className="inline mr-1" aria-hidden />Pro
-                    <span className="block text-[11px] font-normal text-ink-muted">R$ 19,90/mês</span>
+                    <span className="block text-[11px] font-normal text-ink-muted">R$ {precoDoPlano('pro')}/mês</span>
                   </th>
                 </tr>
               </thead>

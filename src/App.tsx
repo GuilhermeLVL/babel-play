@@ -856,7 +856,7 @@ export default function App() {
           {/* Plano e consumo. Diferente do Perfil, aparece TAMBÉM sem conta: é justamente
               quem não tem conta que precisa saber o que um plano daria. */}
           {activeView === 'planos' && <Planos />}
-          {activeView === 'sobre' && <Sobre />}
+          {activeView === 'sobre' && <Sobre onVerPlanos={(v) => navigateTo(v)} />}
           {activeView === 'loja' && (
             <Loja
               ctxConquistas={ctxConquistas}

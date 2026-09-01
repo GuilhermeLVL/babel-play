@@ -110,3 +110,31 @@ export function planoPeloPreco(valor: number | undefined): PlanoDeAssinatura | n
   }
   return null
 }
+
+/**
+ * O PREÇO, FORMATADO, DE UM LUGAR SÓ (mudança vender-onde-se-ve).
+ *
+ * A matriz sempre foi a fonte, e mesmo assim quatro telas escreviam o número à mão:
+ * `Planos.tsx` na tabela comparativa (duas vezes), `MenuDaConta.tsx` no selo do avatar, e o texto
+ * das quotas de armazenamento. Preço duplicado diverge — foi exatamente por isso que `PLAN_MATRIX`
+ * existe, e a duplicação tinha voltado pela porta da apresentação.
+ */
+export function precoDoPlano(plano: PlanoDeAssinatura): string | null {
+  const v = PLAN_MATRIX[plano].precoMensalBrl
+  return v === null ? null : v.toFixed(2).replace('.', ',')
+}
+
+/** O menor preço mensal entre os planos vendáveis — para "a partir de R$ X". */
+export function menorPrecoDeAssinatura(): string | null {
+  const precos = PLANOS_DE_ASSINATURA
+    .map((p) => PLAN_MATRIX[p].precoMensalBrl)
+    .filter((v): v is number => typeof v === 'number' && v > 0)
+  return precos.length ? Math.min(...precos).toFixed(2).replace('.', ',') : null
+}
+
+/** "500 MB" / "1 GB" — o teto de armazenamento em texto, derivado da quota. */
+export function armazenamentoEmTexto(plano: PlanoDeAssinatura): string {
+  const mb = PLAN_MATRIX[plano].quotas.armazenamentoMb
+  if (mb === null) return 'sem teto'
+  return mb >= 1024 ? `${(mb / 1024).toFixed(mb % 1024 === 0 ? 0 : 1)} GB` : `${mb} MB`
+}

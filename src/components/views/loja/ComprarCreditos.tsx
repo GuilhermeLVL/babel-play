@@ -49,8 +49,27 @@ export default function ComprarCreditos() {
     return () => { vivo = false; };
   }, []);
 
-  // Self-host e modo sem conta não têm o que vender; sem billing, nada a prometer.
-  if (!authRequired || configurado === false) return null;
+  /**
+   * SEM COBRANÇA CONFIGURADA, A TELA DIZ (mudança vender-onde-se-ve).
+   *
+   * Devolver `null` fazia a compra SUMIR: quem abria não descobria que não dava, descobria que
+   * não existia. É o mesmo defeito de degradar em silêncio que esta base vem perseguindo — e a
+   * Loja já resolvia isso no cartão de Créditos, dizendo na cara que ali não há o que vender.
+   */
+  if (!authRequired || configurado === false) {
+    return (
+      <section className="card-panel bg-surface p-5" data-testid="comprar-creditos">
+        <p className="label-mono mb-2 flex items-center gap-1.5">
+          <Coins className="w-3.5 h-3.5 text-premium" aria-hidden /> Créditos
+        </p>
+        <p className="text-[12.5px] text-ink-muted max-w-[68ch] leading-relaxed">
+          Nesta instalação não há compra com dinheiro — sem conta e sem cobrança configurada, não
+          existe o que vender. <b className="text-ink">Tudo o que se aprende continua inteiro</b>:
+          Créditos compram enfeite, nunca progresso.
+        </p>
+      </section>
+    );
+  }
 
   const comprar = async () => {
     if (!escolhido) return;

@@ -8,6 +8,7 @@ import {
   Settings as SettingsIcon,
   Heart,
   Shirt,
+  CreditCard,
   type LucideIcon
 } from 'lucide-react';
 import { EDICAO_LEVE } from '../../lib/edicao';
@@ -92,6 +93,18 @@ const TODOS_OS_ITENS: NavItemDef[] = [
     icon: Heart,
     short: 'Sobre',
     labels: { kids: 'Sobre', pro: 'Sobre', senior: 'Sobre o App' },
+    secondary: true
+  },
+  {
+    /* PLANOS ENTRA NA NAVEGAÇÃO (mudança vender-onde-se-ve). Existia só por três atalhos —
+       menu do avatar, um card no Hub e um botão em Ajustes — e o próprio dono não o achou. O que
+       está à venda precisa estar onde se procura, não onde quem escreveu sabe que está.
+       Fica ao lado de Sobre porque as duas respondem à mesma pergunta: "o que é isto, e como se
+       sustenta?". Fora da edição leve, que não tem cobrança. */
+    id: 'planos',
+    icon: CreditCard,
+    short: 'Planos',
+    labels: { kids: 'Planos', pro: 'Planos', senior: 'Planos e preços' },
     secondary: true
   },
   {

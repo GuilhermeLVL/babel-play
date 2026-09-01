@@ -54,15 +54,26 @@ it('declara que crédito não compra progresso — é a linha que separa isto de
   expect(t).toContain('Não compram progresso')
 })
 
-it('não existe onde não há o que vender', async () => {
+/**
+ * SEM COBRANÇA, A TELA DIZ — não some (mudança vender-onde-se-ve).
+ *
+ * Estes dois testes travavam o comportamento antigo: `return null`. Sumir fazia quem abria não
+ * descobrir que não dava, e sim que não existia — o mesmo defeito de degradar em silêncio que
+ * esta base persegue. A regra nova é a que a Loja já aplicava no cartão de Créditos: dizer na
+ * cara que ali não há o que vender. O que continua proibido é oferecer uma compra que não
+ * funcionaria — e é isso que os dois checam agora.
+ */
+it('sem conta, explica que ali não há o que vender — em vez de sumir', async () => {
   vi.doMock('../src/lib/supabase', () => ({ authRequired: false }))
   vi.doMock('../src/data/api', () => ({ apiFetch: vi.fn(async () => ({ ok: true, json: async () => ({ configurado: true }) })) }))
   const { default: ComprarCreditos } = await import('../src/components/views/loja/ComprarCreditos')
   const { container } = render(<ComprarCreditos />)
-  expect(container.querySelector('[data-testid="comprar-creditos"]')).toBeNull()
+  expect(container.querySelector('[data-testid="comprar-creditos"]')).not.toBeNull()
+  expect(container.textContent).toContain('não há compra com dinheiro')
+  expect(container.querySelector('button')).toBeNull() // nada de oferecer o que não funcionaria
 })
 
-it('sem billing configurado, some — nada de prometer compra que não existe', async () => {
+it('sem billing configurado, explica — nada de prometer compra que não existe', async () => {
   vi.doMock('../src/lib/supabase', () => ({ authRequired: true }))
   vi.doMock('../src/data/api', () => ({
     apiFetch: vi.fn(async (url: string) => (url.includes('/status')
@@ -71,7 +82,8 @@ it('sem billing configurado, some — nada de prometer compra que não existe', 
   }))
   const { default: ComprarCreditos } = await import('../src/components/views/loja/ComprarCreditos')
   const { container } = render(<ComprarCreditos />)
-  await waitFor(() => expect(container.querySelector('[data-testid="comprar-creditos"]')).toBeNull())
+  await waitFor(() => expect(container.textContent).toContain('não há compra com dinheiro'))
+  expect(container.querySelector('button'), 'sem processador, nada a clicar').toBeNull()
 })
 
 it('pagar exige nome e CPF completos', async () => {

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Sparkles, X } from 'lucide-react';
-import { PLAN_MATRIX, PLANOS_DE_ASSINATURA } from '../core/planos';
+import { menorPrecoDeAssinatura } from '../core/planos';
 import { getEntitlements } from '../lib/entitlements';
 import { EDICAO_LEVE } from '../lib/edicao';
 import { readStoredValue } from '../lib/profile';
@@ -22,14 +22,8 @@ import { readStoredValue } from '../lib/profile';
 
 const CHAVE_DISPENSA = 'babel.card_planos_dispensado';
 
-/** O menor preço mensal entre os planos vendáveis — a matriz é a única fonte. */
-function menorPreco(): string | null {
-  const precos = PLANOS_DE_ASSINATURA
-    .map((p) => PLAN_MATRIX[p].precoMensalBrl)
-    .filter((v): v is number => typeof v === 'number' && v > 0);
-  if (precos.length === 0) return null;
-  return Math.min(...precos).toFixed(2).replace('.', ',');
-}
+/* `menorPreco` mudou para `core/planos.ts` (mudança vender-onde-se-ve): três telas o
+   calculavam, e preço calculado em três lugares é preço que diverge em três lugares. */
 
 /** `true` quando o usuário atual deve ver material de planos (Grátis/anônimo, fora da leve). */
 export function planoAnunciavel(): boolean {
@@ -40,7 +34,7 @@ export function planoAnunciavel(): boolean {
 
 export default function CardDePlanos({ onVerPlanos }: { onVerPlanos: () => void }) {
   const [dispensado, setDispensado] = useState(() => readStoredValue(CHAVE_DISPENSA) === '1');
-  const preco = menorPreco();
+  const preco = menorPrecoDeAssinatura();
   /* Quota de armazenamento estourando (>90%) é o momento em que o upgrade deixa de ser anúncio e
      vira solução — nesse caso o card fala do problema real e IGNORA a dispensa (o aviso de quota
      é operacional, não marketing). */

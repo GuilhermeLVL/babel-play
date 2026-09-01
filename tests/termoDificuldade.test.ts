@@ -25,17 +25,23 @@ describe('a régua de letras segue a faixa', () => {
     expect(motivoForaDoTermo(carta('bread', 'pão'))).toBeNull()
   })
 
-  it('no fácil, palavra de 7 letras fica de fora por comprimento', () => {
-    expect(motivoForaDoTermo(carta('shelter', 'abrigo'), 'facil')).toBe('longa')
-    expect(motivoForaDoTermo(carta('shelter', 'abrigo'), 'medio')).toBeNull()
+  it('NENHUMA faixa passa do teto — acima dele deixa de ser dificuldade e vira parede', () => {
+    expect(MAX_LETRAS).toBe(6)
+    for (const f of ['facil', 'medio', 'dificil'] as const) {
+      expect(LETRAS_POR_FAIXA[f].max).toBeLessThanOrEqual(MAX_LETRAS)
+      // 7 letras: um dueto disso já são 14 quadrados numa linha, e o quarteto 28.
+      expect(motivoForaDoTermo(carta('shelter', 'abrigo'), f)).toBe('longa')
+      expect(motivoForaDoTermo(carta('friendship', 'amizade'), f)).toBe('longa')
+    }
   })
 
-  it('no difícil, palavra de 10 letras entra — e no médio não', () => {
-    expect(motivoForaDoTermo(carta('friendship', 'amizade'), 'dificil')).toBeNull()
-    expect(motivoForaDoTermo(carta('friendship', 'amizade'), 'medio')).toBe('longa')
+  it('no fácil, 6 letras já fica de fora — o começo é só de palavra curta', () => {
+    expect(motivoForaDoTermo(carta('garden', 'jardim'), 'facil')).toBe('longa')
+    expect(motivoForaDoTermo(carta('garden', 'jardim'), 'medio')).toBeNull()
+    expect(motivoForaDoTermo(carta('garden', 'jardim'), 'dificil')).toBeNull()
   })
 
-  it('o difícil também sobe o piso: 4 letras vira curta demais', () => {
+  it('o difícil sobe o PISO em vez do teto: 4 letras vira curta demais', () => {
     expect(motivoForaDoTermo(carta('bread', 'pão'), 'dificil')).toBeNull()
     expect(motivoForaDoTermo(carta('door', 'porta'), 'dificil')).toBe('curta')
     expect(motivoForaDoTermo(carta('door', 'porta'), 'facil')).toBeNull()
@@ -44,12 +50,39 @@ describe('a régua de letras segue a faixa', () => {
   it('a contagem de jogáveis respeita a faixa pedida', () => {
     const baralho = [
       carta('door', 'porta'), carta('bread', 'pão'), carta('house', 'casa'),
-      carta('shelter', 'abrigo'), carta('kitchen', 'cozinha'), carta('morning', 'manhã'),
+      carta('garden', 'jardim'), carta('winter', 'inverno'), carta('summer', 'verão'),
     ]
-    // fácil: só as de 4–6 letras (door, bread, house)
-    expect(contarJogaveisMulti(baralho, 'facil')).toBeLessThanOrEqual(3)
-    // médio aceita as de 7 também, então o maior grupo do mesmo tamanho cresce
-    expect(contarJogaveisMulti(baralho, 'medio')).toBeGreaterThanOrEqual(contarJogaveisMulti(baralho, 'facil'))
+    // fácil pára em 5 letras: o maior grupo possível é {bread, house}
+    expect(contarJogaveisMulti(baralho, 'facil')).toBe(2)
+    // médio aceita as de 6, e aí o maior grupo vira {garden, winter, summer}
+    expect(contarJogaveisMulti(baralho, 'medio')).toBe(3)
+  })
+})
+
+/**
+ * TODAS AS PALAVRAS DE UMA RODADA TÊM O MESMO COMPRIMENTO — e no Dueto/Quarteto isso não é
+ * estética, é a condição de o jogo ter solução: o palpite é UM SÓ, avaliado em todos os
+ * tabuleiros ao mesmo tempo. Com tamanhos diferentes não existe palpite válido para os dois.
+ *
+ * `mesmoTamanho` + `maiorGrupoPorTamanho` garantem isso desde sempre, mas nada afirmava a
+ * invariante em teste — e ela é fácil de perder: basta alguém completar uma escada curta com
+ * sobras de outro grupo, que é exatamente o tipo de "melhoria" que parece inofensiva.
+ */
+describe('a rodada inteira cabe no mesmo tabuleiro', () => {
+  it('mesmo com o baralho misturando comprimentos, a escada sai toda do mesmo tamanho', () => {
+    const baralho = [
+      ['door', 'porta'], ['bread', 'pão'], ['house', 'casa'], ['water', 'água'],
+      ['green', 'verde'], ['story', 'conto'], ['plant', 'planta'], ['child', 'criança'],
+      ['garden', 'jardim'], ['winter', 'inverno'], ['summer', 'verão'], ['forest', 'floresta'],
+      ['tree', 'árvore'], ['fish', 'peixe'], ['bird', 'pássaro'],
+    ].map(([w, t]) => carta(w, t))
+    for (const faixa of ['facil', 'medio', 'dificil'] as const) {
+      const r = rodadasDaEscada(baralho, { faixa })
+      expect(r.length, `faixa ${faixa} precisa montar rodada`).toBeGreaterThan(0)
+      const tamanhos = new Set(r.map((x) => x.resposta.length))
+      expect([...tamanhos], `faixa ${faixa}`).toHaveLength(1)
+      expect([...tamanhos][0]).toBeLessThanOrEqual(MAX_LETRAS)
+    }
   })
 })
 

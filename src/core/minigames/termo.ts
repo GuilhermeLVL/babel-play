@@ -128,9 +128,22 @@ export interface Palpite {
   estados: EstadoLetra[];
 }
 
-/** Tamanhos aceitos: abaixo de 4 é trivial, acima de 8 vira sopa de letras. */
+/**
+ * Tamanhos aceitos. Abaixo de 4 é trivial; acima de 6 vira PAREDE.
+ *
+ * O teto era 8, e a faixa difícil o esticava até 10. Na tela isso deixou de ser dificuldade e
+ * virou defeito: um dueto de 10 letras são vinte quadrados numa linha atravessando o monitor
+ * inteiro, e o quarteto seriam quarenta. Ninguém lê uma palavra assim como palavra — lê como
+ * grade —, e o teclado desce para fora da dobra.
+ *
+ * O 6 foi MEDIDO na trilha inteira, contando o maior grupo de mesmo comprimento por etapa (que é
+ * o que o Termo de fato consome). Descer de 8 para 6 praticamente não custa material — B1 vai de
+ * 27 para 27 etapas jogáveis em 28, B2 de 20 para 19 em 21 —, enquanto descer para 5 quebraria
+ * um quinto do B1 (27 → 22 de 28) e deixaria C1/C2 na mediana de 3, o mínimo absoluto da escada.
+ * Difícil passa a ser quantos tabuleiros ao mesmo tempo, não quantos quadrados por linha.
+ */
 export const MIN_LETRAS = 4;
-export const MAX_LETRAS = 8;
+export const MAX_LETRAS = 6;
 
 /**
  * O COMPRIMENTO DA PALAVRA É DIFICULDADE — e era a alavanca que a faixa não alcançava.
@@ -139,12 +152,15 @@ export const MAX_LETRAS = 8;
  * existia e já recortava o material da rodada; faltava ela chegar às duas coisas que decidem o
  * custo real deste jogo: quantas letras a palavra tem e até quantos tabuleiros a escada sobe.
  *
- * O médio é a régua histórica, de propósito: quem não passa faixa não vê mudança.
+ * NENHUMA FAIXA PASSA DE `MAX_LETRAS`. O comprimento serve para separar o começo do resto —
+ * fácil fica em palavras curtas (4–5), difícil tira as curtas da mesa (5–6) —, mas o teto é o
+ * mesmo para todo mundo, porque acima dele o problema deixa de ser dificuldade e vira parede.
+ * Quem escala a dificuldade de verdade é `ESCADA_POR_FAIXA`: quantos tabuleiros de uma vez.
  */
 export const LETRAS_POR_FAIXA: Record<FaixaDificuldade, { min: number; max: number }> = {
-  facil: { min: 4, max: 6 },
+  facil: { min: 4, max: 5 },
   medio: { min: MIN_LETRAS, max: MAX_LETRAS },
-  dificil: { min: 5, max: 10 },
+  dificil: { min: 5, max: MAX_LETRAS },
 };
 /**
  * Tentativas por MODO, como no jogo original: quanto mais tabuleiros simultâneos, mais chances.

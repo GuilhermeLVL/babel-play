@@ -84,7 +84,9 @@ describe('Termo — seleção de palavras', () => {
   });
 
   it('a resposta vai normalizada (só letras maiúsculas)', () => {
-    expect(buildTermoRounds([card({ word: 'coração' })])[0].resposta).toBe('CORACAO');
+    // 'avião' e não 'coração': a normalização é a mesma, e CORACAO tem 7 letras — passa do
+    // teto de `MAX_LETRAS`, então o cartão seria recusado antes de chegar à normalização.
+    expect(buildTermoRounds([card({ word: 'avião' })])[0].resposta).toBe('AVIAO');
   });
 
   it('respeita a faixa de tamanho declarada', () => {

@@ -222,7 +222,7 @@ Tradução por Wikidata Lexemes (CC0) + Wikcionário/kaikki (CC BY-SA 3.0); fras
 | E3.2 | Carga sob demanda da trilha | `en.json` já é chunk de 237 KB, mas **três rotas o puxam**; o caminho ingênuo multiplica por N |
 | E3.3 | Registrar o **idioma nativo** na estrutura | A trilha é "inglês para quem fala português", não "inglês" (F26) |
 | E3.4 | Espanhol e Francês | O pipeline roda como está |
-| E3.5 | Alemão e Italiano | Alemão estoura o teto de 8 letras do Termo (`termo.ts:122-123`) |
+| E3.5 | Alemão e Italiano | Alemão estoura o teto de 6 letras do Termo (`LETRAS_POR_FAIXA`), agora com folga menor |
 | E3.6 | Japonês, Chinês, Coreano | **Bloqueado**: sem espaço entre palavras, os 5 jogos de frase morrem (`quality.ts:225`, `scramble.ts:31`, `escuta.ts:112`, `pronunciation.ts:34`). Precisa de `Intl.Segmenter` e teclado próprio antes |
 
 #### E4 — Jogos multi-idioma e rodada mista

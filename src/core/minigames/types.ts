@@ -122,7 +122,7 @@ export const MINIGAMES: Record<MinigameId, MinigameDef> = {
   memory: { id: 'memory', minItems: 4, maxItems: 8, requiresTranslation: true, writesSrs: true, modalidade: 'palavra' },
   wordsearch: { id: 'wordsearch', minItems: 4, maxItems: 8, requiresTranslation: false, writesSrs: true, modalidade: 'palavra' },
   blitz: { id: 'blitz', minItems: 4, maxItems: 20, requiresTranslation: false, writesSrs: true, modalidade: 'palavra' },
-  // Termo: exige tradução (é a pista) e palavras de 4 a 8 letras — ver `termo.ts`.
+  // Termo: exige tradução (é a pista) e palavras de 4 a 6 letras — ver `LETRAS_POR_FAIXA`.
   /* `maxItems: 7` = 1+2+4, a escada completa. Estava em 5 e a carta chegava a anunciar "5 prontas"
      para uma rodada que consome 7, o rótulo e o jogo discordavam. Quem manda no tamanho real é
      `consumoDaEscada` (`minigames/termo.ts`); este teto existe para o rótulo não prometer menos. */

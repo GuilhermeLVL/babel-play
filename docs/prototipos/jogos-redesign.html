@@ -1,0 +1,787 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Jogar</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@700;800;900&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+/* ═══════════════════════════════════════════════════════════════════
+   TOKENS — copiados do tema "babel" real (src/index.css:198), para a
+   comparação com a tela de hoje ser justa. Nomes idênticos aos do app.
+   ═══════════════════════════════════════════════════════════════════ */
+:root {
+  --canvas:#E6E2D6; --surface:#F5F2EA; --surface-hover:#EBE7DB;
+  --ink:#26241F; --ink-muted:#5E5A50; --ink-faint:#696459;
+  --accent:#F04E23; --accent-soft:#FBDDD3; --accent-ink:#b93613; --accent-contrast:#3d1105;
+  --good:#3E6B44;  --good-soft:#DCE7DB;
+  --warn:#C98A12;  --warn-soft:#F4E7CB;
+  --rare:#5B5EA6;  --rare-soft:#E1E1F2;
+  --error:#C92A2A; --error-soft:#FFE3E3;
+  --border-subtle:#C6BFAC;
+  --good-ink:color-mix(in srgb, var(--good) 50%, var(--ink));
+  --warn-ink:color-mix(in srgb, var(--warn) 50%, var(--ink));
+  --rare-ink:color-mix(in srgb, var(--rare) 55%, var(--ink));
+
+  --font-display:"Archivo",sans-serif; --font-body:"Inter",sans-serif; --font-mono:"IBM Plex Mono",monospace;
+  --r-card:16px; --r-btn:12px; --r-sm:8px;
+  --s1:4px; --s2:8px; --s3:12px; --s4:16px; --s5:22px; --s6:30px; --s7:44px;
+  --z-sticky:10; --z-sheet:50; --z-toast:60;
+  --ease:cubic-bezier(.22,1,.36,1); --fast:140ms; --base:200ms;
+  --shadow-card:inset 0 1px 0 rgba(255,255,255,.6), 0 2px 5px rgba(38,36,31,.08);
+  --shadow-lift:0 10px 24px -12px rgba(38,36,31,.35);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --canvas:#0B0E14; --surface:#151922; --surface-hover:#1F2430;
+    --ink:#F0F6FC; --ink-muted:#A9B2C0; --ink-faint:#8D95A3;
+    --accent:#FF5A36; --accent-soft:#3A1408; --accent-ink:#FF8B6F; --accent-contrast:#1A0800;
+    --good:#5FA968; --good-soft:#16261A;
+    --warn:#E0A83A; --warn-soft:#2A2110;
+    --rare:#8C8FD6; --rare-soft:#1C1D33;
+    --error:#E45A5A; --error-soft:#2E1414;
+    --border-subtle:#2A3140;
+    --shadow-card:0 2px 5px rgba(0,0,0,.4);
+    --shadow-lift:0 10px 24px -12px rgba(0,0,0,.7);
+  }
+}
+
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--canvas);color:var(--ink);font-family:var(--font-body);font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased}
+button,select{font:inherit;color:inherit}
+button{cursor:pointer;border:none;background:none}
+:where(button,a,[tabindex],summary):focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:var(--r-sm)}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+h1,h2,h3{font-family:var(--font-display);margin:0}
+
+/* ───────────── ÍCONES ─────────────
+   Traçado, 24×24, `currentColor` — a mesma família (lucide) que o app já usa.
+   Nada de emoji na interface: eles mudam de desenho a cada sistema operacional,
+   não herdam a cor do tema e não escalam com o A± do corpo. */
+.ico{display:inline-flex;align-items:center;justify-content:center;flex:none;
+  width:1.15em;height:1.15em;vertical-align:-.18em}
+.ico svg{width:100%;height:100%;display:block}
+.ico-lg{width:1.5em;height:1.5em}
+
+.shell{max-width:1160px;margin:0 auto;padding:var(--s5) var(--s5) var(--s7)}
+
+/* ───────────── cabeçalho: título + a economia, agora clicável ───────────── */
+.top{display:flex;align-items:center;gap:var(--s4);flex-wrap:wrap;margin-bottom:var(--s5)}
+.top h1{font-size:26px;font-weight:900;letter-spacing:-.02em}
+.top .sub{color:var(--ink-muted);font-size:13px;margin:2px 0 0}
+/* F32: da tela de jogos não saía nenhum caminho para a economia que ela alimenta. Agora sai. */
+.econ{margin-left:auto;display:flex;align-items:center;gap:var(--s4);padding:10px var(--s4);
+  background:var(--surface);border:1px solid var(--border-subtle);border-radius:999px;
+  box-shadow:var(--shadow-card);transition:border-color var(--fast) var(--ease),transform var(--fast) var(--ease)}
+.econ:hover{border-color:var(--accent);transform:translateY(-1px)}
+.econ .etapa{display:flex;align-items:center;gap:var(--s2)}
+.econ .badge{width:30px;height:30px;border-radius:50%;background:var(--accent);color:#fff;
+  display:grid;place-items:center;font-family:var(--font-mono);font-weight:600;font-size:12px}
+.econ .barra{width:88px;height:6px;border-radius:3px;background:var(--canvas);overflow:hidden}
+.econ .barra i{display:block;height:100%;width:29%;background:var(--accent);border-radius:3px}
+.econ .kpi{display:flex;align-items:center;gap:5px;font-size:13px;font-weight:700;white-space:nowrap}
+.econ .kpi small{font-weight:500;color:var(--ink-muted)}
+
+/* ───────────── ABAS DE FONTE — a separação vira a primeira leitura ───────────── */
+.fontes{display:flex;gap:var(--s2);flex-wrap:wrap;align-items:center;margin-bottom:var(--s3)}
+.fonte{display:inline-flex;align-items:center;gap:var(--s2);padding:11px var(--s4);
+  border:1px solid var(--border-subtle);border-radius:var(--r-btn);background:var(--surface);
+  font-size:13.5px;font-weight:700;transition:all var(--fast) var(--ease)}
+.fonte:hover{border-color:var(--ink-faint)}
+.fonte[aria-selected="true"]{background:var(--ink);color:var(--canvas);border-color:var(--ink)}
+.fonte .n{font-family:var(--font-mono);font-size:11px;font-weight:600;padding:2px 6px;border-radius:99px;
+  background:color-mix(in srgb, var(--ink) 10%, transparent)}
+.fonte[aria-selected="true"] .n{background:color-mix(in srgb, var(--canvas) 22%, transparent)}
+.fonte[disabled]{opacity:.5;cursor:not-allowed}
+.idioma{margin-left:auto;display:inline-flex;align-items:center;gap:7px;padding:9px 12px;
+  border:1px solid var(--border-subtle);border-radius:var(--r-btn);background:var(--surface);
+  font-size:12.5px;font-weight:600}
+.idioma:hover{border-color:var(--accent)}
+.flag{width:19px;height:13px;border-radius:2px;display:block;flex:none;box-shadow:0 0 0 1px rgba(0,0,0,.12)}
+
+/* faixa de contexto da fonte — diz o que você está praticando, sempre */
+.contexto{display:flex;align-items:center;gap:var(--s3);flex-wrap:wrap;
+  padding:var(--s3) var(--s4);background:var(--surface);border:1px solid var(--border-subtle);
+  border-radius:var(--r-card);box-shadow:var(--shadow-card);margin-bottom:var(--s4)}
+.contexto .rot{font-family:var(--font-mono);font-size:10px;font-weight:600;letter-spacing:.08em;
+  text-transform:uppercase;color:var(--ink-faint)}
+.contexto .principal{font-weight:700;font-size:14px}
+.contexto .prog{flex:1;min-width:120px;max-width:260px;height:7px;border-radius:4px;background:var(--canvas);overflow:hidden}
+.contexto .prog i{display:block;height:100%;background:var(--good);border-radius:4px}
+.contexto .det{font-size:12.5px;color:var(--ink-muted)}
+.niveis{display:flex;gap:5px;flex-wrap:wrap}
+.nivel{padding:5px 10px;border:1px solid var(--border-subtle);border-radius:99px;background:var(--canvas);
+  font-family:var(--font-mono);font-size:11px;font-weight:600}
+.nivel[aria-pressed="true"]{background:var(--good);color:#fff;border-color:var(--good)}
+.nivel:hover:not([aria-pressed="true"]){border-color:var(--good)}
+
+/* ───────────── CONTINUAR — a ação principal, um clique ───────────── */
+.continuar{display:flex;align-items:center;gap:var(--s4);flex-wrap:wrap;
+  padding:var(--s4) var(--s5);margin-bottom:var(--s5);
+  background:var(--surface);border:2px solid var(--accent);border-radius:var(--r-card);
+  box-shadow:var(--shadow-lift)}
+.continuar .quem{flex:1;min-width:200px}
+.continuar .rot{font-family:var(--font-mono);font-size:10px;font-weight:600;letter-spacing:.09em;
+  text-transform:uppercase;color:var(--accent-ink)}
+.continuar h2{font-size:20px;font-weight:800;letter-spacing:-.01em;margin:2px 0 3px}
+.continuar .meta{font-size:13px;color:var(--ink-muted)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:9px;min-height:48px;padding:0 var(--s5);
+  border-radius:var(--r-btn);font-size:14px;font-weight:800;white-space:nowrap;
+  transition:background var(--fast) var(--ease),transform var(--fast) var(--ease),border-color var(--fast) var(--ease)}
+.btn:active{transform:translateY(1px)}
+.btn-primary{background:var(--accent);color:#fff}
+.btn-primary:hover{background:var(--accent-ink)}
+.btn-ghost{border:1px solid var(--border-subtle);background:var(--surface);color:var(--ink)}
+.btn-ghost:hover{border-color:var(--ink-faint);background:var(--surface-hover)}
+.btn-sm{min-height:38px;padding:0 var(--s4);font-size:13px;font-weight:700}
+
+/* ───────────── grade ───────────── */
+.grade-topo{display:flex;align-items:center;gap:var(--s3);margin-bottom:var(--s3)}
+.grade-topo h2{font-family:var(--font-mono);font-size:10px;font-weight:600;letter-spacing:.09em;
+  text-transform:uppercase;color:var(--ink-faint)}
+.legenda{display:flex;gap:var(--s3);margin-left:auto;flex-wrap:wrap;font-size:11.5px;color:var(--ink-muted)}
+.legenda span{display:inline-flex;align-items:center;gap:5px}
+.legenda i{width:9px;height:9px;border-radius:3px;display:block}
+
+ul.grade{list-style:none;margin:0;padding:0;display:grid;gap:var(--s3);
+  grid-template-columns:repeat(auto-fill,minmax(232px,1fr))}
+
+.carta{position:relative;display:flex;flex-direction:column;height:100%;
+  background:var(--surface);border:1px solid var(--border-subtle);border-radius:var(--r-card);
+  overflow:hidden;box-shadow:var(--shadow-card);
+  transition:transform var(--base) var(--ease),box-shadow var(--base) var(--ease),border-color var(--base) var(--ease)}
+.carta:hover{transform:translateY(-3px);box-shadow:var(--shadow-lift);border-color:var(--tom)}
+/* a arte pega o tom da FAMÍLIA do jogo — cor com significado, não decoração */
+.arte{display:block;width:100%;aspect-ratio:16/7;background:color-mix(in srgb, var(--tom) 9%, var(--canvas));
+  border-bottom:1px solid var(--border-subtle);color:var(--tom)}
+.arte svg{display:block;width:100%;height:100%}
+.corpo{padding:var(--s3) var(--s4) var(--s4);display:flex;flex-direction:column;gap:5px;flex:1}
+.carta h3{font-size:15px;font-weight:800;letter-spacing:-.01em}
+/* o botão do título cobre a carta: um alvo só, do tamanho da carta */
+.carta h3 button{text-align:left;font:inherit;color:inherit}
+.carta h3 button::after{content:"";position:absolute;inset:0}
+.linha{font-size:12.5px;color:var(--ink-muted);margin-top:auto}
+.linha b{color:var(--ink);font-weight:600}
+
+/* o "?" sai do fluxo e só aparece quando pedido — mas é focável sempre */
+.ajuda{position:absolute;top:var(--s2);right:var(--s2);z-index:2;width:30px;height:30px;border-radius:50%;
+  display:grid;place-items:center;background:color-mix(in srgb, var(--surface) 88%, transparent);
+  border:1px solid var(--border-subtle);color:var(--ink-muted);
+  opacity:0;transition:opacity var(--fast) var(--ease),color var(--fast) var(--ease)}
+.carta:hover .ajuda,.ajuda:focus-visible{opacity:1}
+.ajuda:hover{color:var(--ink);border-color:var(--ink-faint)}
+@media (hover:none){.ajuda{opacity:1}}
+
+/* bloqueio: a PORTA primeiro, a aritmética depois e uma vez só */
+.carta.travada{background:var(--canvas)}
+.carta.travada .arte{filter:none;opacity:.85}
+.porta{display:inline-flex;align-items:center;gap:6px;align-self:flex-start;margin-top:auto;
+  padding:8px 13px;border-radius:var(--r-btn);border:1px solid var(--tom);
+  background:color-mix(in srgb, var(--tom) 12%, transparent);color:var(--tom);
+  font-size:12.5px;font-weight:700;position:relative;z-index:2}
+.porta:hover{background:color-mix(in srgb, var(--tom) 20%, transparent)}
+.porque{font-size:11.5px;color:var(--ink-faint);margin-top:5px}
+
+/* modo organizar — o cromo some da leitura padrão e vira um modo */
+.organizar{display:none;gap:5px;margin-top:var(--s2);position:relative;z-index:2}
+body[data-modo="organizar"] .organizar{display:flex}
+body[data-modo="organizar"] .carta h3 button::after{display:none}
+body[data-modo="organizar"] .carta{cursor:default}
+.mini{width:32px;height:32px;border-radius:var(--r-sm);border:1px solid var(--border-subtle);
+  background:var(--surface);display:grid;place-items:center;color:var(--ink-muted)}
+.mini:hover{border-color:var(--ink);color:var(--ink)}
+.mini[aria-pressed="true"]{background:var(--warn-soft);border-color:var(--warn);color:var(--warn-ink)}
+.pin{position:absolute;top:var(--s2);left:var(--s2);z-index:2;font-size:14px;display:none}
+.carta[data-fixado="1"] .pin{display:block}
+
+/* ───────────── folha de detalhe (substitui ficha + antessala) ───────────── */
+dialog.folha{border:none;padding:0;background:transparent;max-width:min(520px,92vw);width:100%}
+dialog.folha::backdrop{background:rgba(20,18,14,.45);backdrop-filter:blur(2px)}
+.folha-caixa{background:var(--surface);border:1px solid var(--border-subtle);border-radius:var(--r-card);
+  box-shadow:0 24px 60px -20px rgba(0,0,0,.5);overflow:hidden}
+.folha-topo{display:flex;align-items:flex-start;gap:var(--s3);padding:var(--s4);border-bottom:1px solid var(--border-subtle)}
+.folha-topo .selo{width:52px;height:52px;border-radius:var(--r-btn);flex:none;
+  background:color-mix(in srgb, var(--tom) 14%, var(--canvas));color:var(--tom);display:grid;place-items:center}
+.folha-topo h2{font-size:19px;font-weight:800}
+.folha-topo p{margin:3px 0 0;font-size:13px;color:var(--ink-muted)}
+.fechar{margin-left:auto;width:32px;height:32px;border-radius:50%;display:grid;place-items:center;
+  color:var(--ink-muted);border:1px solid transparent}
+.fechar:hover{background:var(--canvas);color:var(--ink)}
+.folha-corpo{padding:var(--s4)}
+/* só fatos que NÃO são zero — três zeros não informam nada */
+.fatos{display:flex;gap:var(--s2);flex-wrap:wrap;margin-bottom:var(--s4)}
+.fato{padding:8px 12px;border-radius:var(--r-btn);background:var(--canvas);border:1px solid var(--border-subtle);
+  font-size:12.5px}
+.fato b{font-family:var(--font-mono);font-size:14px;font-weight:600}
+.folha details{border-top:1px solid var(--border-subtle);padding:var(--s3) 0}
+.folha summary{cursor:pointer;font-size:13px;font-weight:700;color:var(--ink-muted);list-style:none;
+  display:flex;align-items:center;gap:7px}
+.folha summary::-webkit-details-marker{display:none}
+.folha summary::before{content:"▸";transition:transform var(--fast) var(--ease);display:inline-block}
+.folha details[open] summary::before{transform:rotate(90deg)}
+.folha details p,.folha details ol{font-size:13px;color:var(--ink-muted);margin:var(--s2) 0 0;line-height:1.65}
+.folha details ol{padding-left:20px}
+.folha-pe{display:flex;gap:var(--s2);padding:var(--s4);border-top:1px solid var(--border-subtle);
+  background:var(--canvas);flex-wrap:wrap}
+
+/* ───────────── fim de rodada ───────────── */
+.fim{max-width:560px;margin:0 auto;text-align:center;padding:var(--s6) 0}
+.fim .rot{font-family:var(--font-mono);font-size:10px;font-weight:600;letter-spacing:.1em;
+  text-transform:uppercase;color:var(--ink-faint)}
+.fim h2{font-size:30px;font-weight:900;letter-spacing:-.02em;margin:var(--s2) 0}
+.placar{display:flex;justify-content:center;gap:var(--s2);flex-wrap:wrap;margin:var(--s5) 0}
+.placar div{padding:var(--s3) var(--s4);border-radius:var(--r-card);background:var(--surface);
+  border:1px solid var(--border-subtle);min-width:104px;box-shadow:var(--shadow-card)}
+.placar b{display:block;font-family:var(--font-mono);font-size:23px;font-weight:600}
+.placar span{font-size:11.5px;color:var(--ink-muted)}
+/* a raspadinha: o clímax que hoje nunca chega à tela */
+.raspa{position:relative;margin:var(--s5) auto;width:min(340px,100%);height:112px;border-radius:var(--r-card);
+  border:2px dashed var(--accent);background:var(--accent-soft);display:grid;place-items:center;overflow:hidden}
+.raspa .premio{opacity:0;transition:opacity var(--base) var(--ease);text-align:center}
+.raspa[data-aberta="1"] .premio{opacity:1}
+.raspa .capa{position:absolute;inset:0;background:var(--accent);color:#fff;display:grid;place-items:center;
+  font-weight:800;font-size:14px;letter-spacing:.02em;transition:opacity var(--base) var(--ease)}
+.raspa[data-aberta="1"] .capa{opacity:0;pointer-events:none}
+.premio .emoji{font-size:30px;display:block;line-height:1}
+.premio .nome{display:block;font-weight:800;margin-top:5px}
+.premio .rar{display:block;font-family:var(--font-mono);font-size:10px;letter-spacing:.09em;
+  text-transform:uppercase;color:var(--accent-ink);margin-top:2px}
+.errei{text-align:left;background:var(--surface);border:1px solid var(--border-subtle);border-radius:var(--r-card);
+  padding:var(--s4);margin:var(--s5) 0}
+.errei h3{font-size:13px;font-weight:700;margin-bottom:var(--s2)}
+.errei ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px;font-size:13px}
+.errei li{display:flex;gap:var(--s2);align-items:baseline}
+.errei .p{font-weight:700}
+.errei .t{color:var(--ink-muted)}
+.acoes{display:flex;gap:var(--s2);justify-content:center;flex-wrap:wrap}
+
+.rodape{margin-top:var(--s7);font-size:12.5px;color:var(--ink-faint)}
+.rodape summary{cursor:pointer;color:var(--ink-muted);font-weight:600}
+.rodape ul{margin:var(--s3) 0 0;padding-left:19px;line-height:1.8}
+.rodape b{color:var(--ink-muted)}
+
+.toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);z-index:var(--z-toast);
+  padding:10px var(--s4);border-radius:999px;background:var(--ink);color:var(--canvas);
+  font-size:13px;font-weight:600;box-shadow:var(--shadow-lift);animation:sobe var(--base) var(--ease) both}
+.toast[hidden]{display:none}
+@keyframes sobe{from{opacity:0;transform:translate(-50%,10px)}}
+
+.tela[hidden]{display:none}
+@media (max-width:640px){
+  .shell{padding:var(--s4) var(--s3) var(--s6)}
+  .econ{margin-left:0;width:100%;justify-content:space-between}
+  .continuar .btn{width:100%}
+  ul.grade{grid-template-columns:1fr 1fr;gap:var(--s2)}
+  .carta h3{font-size:13.5px}
+}
+@media (prefers-reduced-motion:reduce){
+  *{animation-duration:1ms!important;transition-duration:1ms!important}
+}
+</style>
+</head>
+<body data-modo="jogar">
+
+<main class="shell">
+
+  <!-- ══════════════ TELA 1 · A GRADE ══════════════ -->
+  <section class="tela" id="telaGrade">
+
+    <header class="top">
+      <div>
+        <h1>Jogar</h1>
+        <p class="sub">Rodadas curtas. Cada acerto conta para a sua memória.</p>
+      </div>
+      <button class="econ" type="button" id="btnEcon" title="Ver o passe, a loja e os desafios">
+        <span class="etapa">
+          <span class="badge">10</span>
+          <span class="barra" aria-hidden="true"><i></i></span>
+          <span class="kpi">288<small>/1000 XP</small></span>
+        </span>
+        <span class="kpi"><i class="ico" data-ico="chama"></i>2<small>dias</small></span>
+        <span class="kpi"><i class="ico" data-ico="broto"></i>555<small>seeds</small></span>
+      </button>
+    </header>
+
+    <!-- A separação trilha × gravações é a PRIMEIRA leitura, não um modal atrás de "trocar" -->
+    <div class="fontes" role="tablist" aria-label="De onde vêm as palavras">
+      <button class="fonte" role="tab" aria-selected="true" data-fonte="trilha" type="button">
+        <i class="ico" data-ico="capelo"></i>Trilha <span class="n">2784</span>
+      </button>
+      <button class="fonte" role="tab" aria-selected="false" data-fonte="gravacoes" type="button">
+        <i class="ico" data-ico="microfone"></i>Minhas gravações <span class="n">3</span>
+      </button>
+      <button class="fonte" role="tab" aria-selected="false" data-fonte="dificeis" type="button">
+        <i class="ico" data-ico="chama"></i>Difíceis <span class="n">442</span>
+      </button>
+      <button class="idioma" type="button" id="btnIdioma" title="Trocar o idioma da prática">
+        <span class="mark" id="markIdioma" aria-hidden="true"></span>
+        <span id="rotIdioma">Inglês</span>
+        <i class="ico" data-ico="seta-baixo" aria-hidden="true"></i>
+      </button>
+    </div>
+
+    <div class="contexto" id="contexto"></div>
+
+    <!-- UM clique até jogar. Sem modal antes, sem prévia obrigatória depois. -->
+    <div class="continuar">
+      <div class="quem">
+        <span class="rot">Continuar de onde parou</span>
+        <h2 id="contTitulo">Montar a frase</h2>
+        <p class="meta" id="contMeta">5 falas · trilha de inglês · cerca de 2 minutos</p>
+      </div>
+      <button class="btn btn-ghost btn-sm" type="button" id="btnPreviaCont">Ver a rodada</button>
+      <button class="btn btn-primary" type="button" id="btnJogarJa"><i class="ico" data-ico="play"></i>Jogar agora</button>
+    </div>
+
+    <div class="grade-topo">
+      <h2>Escolha um jogo</h2>
+      <div class="legenda" aria-label="A cor diz o que o jogo treina">
+        <span><i style="background:var(--accent)"></i> palavra</span>
+        <span><i style="background:var(--good)"></i> frase</span>
+        <span><i style="background:var(--rare)"></i> escuta</span>
+      </div>
+      <button class="btn btn-ghost btn-sm" type="button" id="btnOrganizar" aria-pressed="false">Organizar</button>
+    </div>
+
+    <ul class="grade" id="grade"></ul>
+
+    <details class="rodape">
+      <summary>O que mudou nesta versão, e por quê</summary>
+      <ul id="mudancas"></ul>
+    </details>
+  </section>
+
+  <!-- ══════════════ TELA 2 · FIM DA RODADA ══════════════ -->
+  <section class="tela" id="telaFim" hidden>
+    <div class="fim">
+      <span class="rot">Rodada encerrada</span>
+      <h2 id="fimTitulo">Montar a frase</h2>
+
+      <div class="placar">
+        <div><b id="fimPontos">240</b><span>pontos</span></div>
+        <div><b id="fimAcertos">4/5</b><span>acertos</span></div>
+        <div><b>×3</b><span>combo</span></div>
+        <div><b>+18</b><span>XP</span></div>
+        <div><b>+6</b><span><i class="ico" data-ico="broto"></i> seeds</span></div>
+      </div>
+
+      <!-- F28: a raspadinha é o único clímax de recompensa do app e hoje nunca chega à tela -->
+      <div class="raspa" id="raspa" data-aberta="0">
+        <div class="premio">
+          <i class="ico ico-lg emoji" data-ico="presente" aria-hidden="true"></i>
+          <span class="nome">Cursor Dragão</span>
+          <span class="rar">épico · 1 em 40 rodadas</span>
+        </div>
+        <button class="capa" type="button" id="btnRaspar">Raspe para ver o que caiu</button>
+      </div>
+
+      <div class="errei">
+        <h3>Uma escapou — ela volta na próxima</h3>
+        <ul>
+          <li><span class="p">"Above all, children need love."</span></li>
+          <li><span class="t">Você montou: <i>Children need love above all.</i></span></li>
+        </ul>
+      </div>
+
+      <div class="acoes">
+        <button class="btn btn-primary" type="button" id="btnMaisUma">Mais uma rodada</button>
+        <button class="btn btn-ghost" type="button" id="btnRefazer">Refazer a que errei</button>
+        <button class="btn btn-ghost" type="button" id="btnSair">Voltar aos jogos</button>
+      </div>
+    </div>
+  </section>
+</main>
+
+<!-- ══════════════ FOLHA DE DETALHE (ficha + prévia num lugar só) ══════════════ -->
+<dialog class="folha" id="folha" aria-labelledby="folhaTitulo">
+  <div class="folha-caixa">
+    <div class="folha-topo">
+      <span class="selo" id="folhaSelo" aria-hidden="true"></span>
+      <div>
+        <h2 id="folhaTitulo"></h2>
+        <p id="folhaTreina"></p>
+      </div>
+      <button class="fechar" type="button" id="folhaFechar" aria-label="Fechar"><i class="ico" data-ico="fechar"></i></button>
+    </div>
+    <div class="folha-corpo">
+      <div class="fatos" id="folhaFatos"></div>
+      <details>
+        <summary>Como se joga</summary>
+        <ol id="folhaPassos"></ol>
+      </details>
+      <details>
+        <summary>Como isto conta na sua memória</summary>
+        <p id="folhaMemoria"></p>
+      </details>
+    </div>
+    <div class="folha-pe">
+      <button class="btn btn-primary" type="button" id="folhaComecar"><i class="ico" data-ico="play"></i>Começar</button>
+      <button class="btn btn-ghost" type="button" id="folhaTrocar">Trocar os itens</button>
+    </div>
+  </div>
+</dialog>
+
+<div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+<span class="sr" id="live" role="status" aria-live="polite"></span>
+
+<script>
+(() => {
+const $ = (id) => document.getElementById(id);
+const reduzido = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+/* ═══ ÍCONES ═══
+   Traçado 24×24 em `currentColor`, no desenho da lucide — a biblioteca que o app já usa
+   (`lucide-react`). Emoji ficou de fora da interface de propósito: cada sistema operacional
+   desenha o seu (o capelo do Windows não é o do Android), a cor é do fabricante e não do tema,
+   e o tamanho não acompanha o A± do corpo. As bandeiras seguem sendo SVG pelo mesmo motivo. */
+const P = (d) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
+const ICO = {
+  capelo:    P('<path d="M21.42 10.92a1 1 0 0 0-.02-1.84L12.83 5.18a2 2 0 0 0-1.66 0L2.6 9.08a1 1 0 0 0 0 1.83l8.57 3.91a2 2 0 0 0 1.66 0z"/><path d="M22 10v6"/><path d="M6 12.5V16a6 3 0 0 0 12 0v-3.5"/>'),
+  microfone: P('<path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><path d="M12 19v3"/>'),
+  chama:     P('<path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.07-2.14-.22-4.05 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.15.43-2.29 1-3a2.5 2.5 0 0 0 2.5 2.5z"/>'),
+  broto:     P('<path d="M7 20h10"/><path d="M10 20c5.5-2.5.8-6.4 3-10"/><path d="M9.5 9.4c1.1.8 1.8 2.2 2.3 3.7-2 .4-3.5.4-4.8-.3-1.2-.6-2.3-1.9-3-4.2 2.8-.5 4.4 0 5.5.8z"/><path d="M14.1 6a7 7 0 0 0-1.1 4c1.9-.1 3.3-.6 4.3-1.4 1-1 1.6-2.3 1.7-4.6-2.7.1-4 1-4.9 2z"/>'),
+  alfinete:  P('<path d="M12 17v5"/><path d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H8a2 2 0 0 0 0 4 1 1 0 0 1 1 1z"/>'),
+  presente:  P('<path d="M20 12v10H4V12"/><path d="M2 7h20v5H2z"/><path d="M12 22V7"/><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"/><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/>'),
+  play:      '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7 4.5v15a1 1 0 0 0 1.53.85l12-7.5a1 1 0 0 0 0-1.7l-12-7.5A1 1 0 0 0 7 4.5z"/></svg>',
+  'seta-baixo': P('<path d="m6 9 6 6 6-6"/>'),
+  esquerda:  P('<path d="m15 18-6-6 6-6"/>'),
+  direita:   P('<path d="m9 18 6-6-6-6"/>'),
+  fechar:    P('<path d="M18 6 6 18"/><path d="m6 6 12 12"/>'),
+};
+/** Preenche todo `[data-ico]` que ainda esteja vazio — a grade é redesenhada a cada render. */
+function pintarIcones(raiz = document) {
+  raiz.querySelectorAll('[data-ico]').forEach((el) => {
+    if (!el.firstElementChild) el.innerHTML = ICO[el.dataset.ico] || '';
+  });
+}
+
+/* ── Bandeiras SVG, nunca emoji: o Windows renderiza 🇧🇷 como as letras "BR"
+      (mesma razão registrada em src/components/LangFlag.tsx). ── */
+const BANDEIRA = {
+  en:'<svg class="flag" viewBox="0 0 30 21"><rect width="30" height="21" fill="#fff"/><g fill="#B22234"><rect width="30" height="1.62"/><rect y="3.23" width="30" height="1.62"/><rect y="6.46" width="30" height="1.62"/><rect y="9.69" width="30" height="1.62"/><rect y="12.92" width="30" height="1.62"/><rect y="16.15" width="30" height="1.62"/><rect y="19.38" width="30" height="1.62"/></g><rect width="13" height="11.3" fill="#3C3B6E"/></svg>',
+  es:'<svg class="flag" viewBox="0 0 30 21"><rect width="30" height="21" fill="#C60B1E"/><rect y="5.25" width="30" height="10.5" fill="#FFC400"/></svg>',
+  fr:'<svg class="flag" viewBox="0 0 30 21"><rect width="30" height="21" fill="#fff"/><rect width="10" height="21" fill="#002395"/><rect x="20" width="10" height="21" fill="#ED2939"/></svg>',
+};
+
+/* ═══ AS ARTES ═══
+   A cor é SISTEMA, não decoração: o tom vem da FAMÍLIA do jogo (o que ele treina),
+   e a silhueta identifica o jogo dentro da família. Isto responde ao achado de que
+   nove jogos dividiam três cores por acidente — agora as três cores significam algo.
+   Nenhuma cor literal: tudo herda `currentColor` do tom da família. */
+const T = { palavra:'var(--accent)', frase:'var(--good)', escuta:'var(--rare)' };
+
+const A = {
+  // duas cartas viradas + o par fechado
+  memory:`<svg viewBox="0 0 160 70" aria-hidden="true"><rect x="18" y="14" width="34" height="42" rx="5" fill="currentColor" opacity=".25"/><rect x="58" y="14" width="34" height="42" rx="5" fill="currentColor"/><rect x="98" y="14" width="34" height="42" rx="5" fill="none" stroke="currentColor" stroke-width="2.5" stroke-dasharray="4 4"/><path d="M66 35h18M66 42h11" stroke="var(--surface)" stroke-width="3" stroke-linecap="round"/></svg>`,
+  // grade com o traço da palavra encontrada
+  wordsearch:`<svg viewBox="0 0 160 70" aria-hidden="true"><g fill="currentColor" opacity=".22">${Array.from({length:24},(_,i)=>`<rect x="${28+(i%8)*14}" y="${16+Math.floor(i/8)*14}" width="10" height="10" rx="2"/>`).join('')}</g><path d="M33 21l70 28" stroke="currentColor" stroke-width="6" stroke-linecap="round" opacity=".95"/></svg>`,
+  // teclas + a letra que entra
+  termo:`<svg viewBox="0 0 160 70" aria-hidden="true"><g fill="currentColor" opacity=".22">${Array.from({length:5},(_,i)=>`<rect x="${30+i*21}" y="14" width="17" height="17" rx="3"/>`).join('')}</g><rect x="30" y="14" width="17" height="17" rx="3" fill="currentColor"/><rect x="51" y="14" width="17" height="17" rx="3" fill="currentColor" opacity=".55"/><g fill="currentColor" opacity=".3">${Array.from({length:7},(_,i)=>`<rect x="${24+i*16}" y="42" width="12" height="12" rx="2.5"/>`).join('')}</g></svg>`,
+  // blocos de palavra sendo reordenados
+  scramble:`<svg viewBox="0 0 160 70" aria-hidden="true"><rect x="20" y="16" width="30" height="15" rx="7.5" fill="currentColor" opacity=".3"/><rect x="55" y="16" width="42" height="15" rx="7.5" fill="currentColor"/><rect x="102" y="16" width="26" height="15" rx="7.5" fill="currentColor" opacity=".3"/><path d="M76 36v10M76 46l-5-5M76 46l5-5" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/><rect x="34" y="48" width="34" height="13" rx="6.5" fill="currentColor" opacity=".18"/><rect x="72" y="48" width="54" height="13" rx="6.5" fill="currentColor" opacity=".18"/></svg>`,
+  // onda + microfone: você fala
+  karaoke:`<svg viewBox="0 0 160 70" aria-hidden="true"><g stroke="currentColor" stroke-width="4" stroke-linecap="round" opacity=".45">${[0,1,2,3,4,5].map(i=>`<path d="M${24+i*11} ${35-[8,16,11,20,13,7][i]}v${[16,32,22,40,26,14][i]}"/>`).join('')}</g><circle cx="118" cy="35" r="17" fill="currentColor"/><path d="M118 28v9M114 33a4 4 0 0 0 8 0" stroke="var(--surface)" stroke-width="2.6" stroke-linecap="round" fill="none"/></svg>`,
+  // onda + duas opções, uma marcada: você escolhe
+  escuta:`<svg viewBox="0 0 160 70" aria-hidden="true"><g stroke="currentColor" stroke-width="4" stroke-linecap="round" opacity=".45">${[0,1,2,3].map(i=>`<path d="M${22+i*11} ${35-[9,17,12,20][i]}v${[18,34,24,40][i]}"/>`).join('')}</g><rect x="76" y="14" width="60" height="17" rx="8.5" fill="currentColor"/><path d="M84 22.5l4 4 7-8" stroke="var(--surface)" stroke-width="2.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/><rect x="76" y="39" width="60" height="17" rx="8.5" fill="none" stroke="currentColor" stroke-width="2" opacity=".5"/></svg>`,
+  // onda + linha de escrita com cursor: você escreve
+  ditado:`<svg viewBox="0 0 160 70" aria-hidden="true"><g stroke="currentColor" stroke-width="4" stroke-linecap="round" opacity=".45">${[0,1,2,3].map(i=>`<path d="M${22+i*11} ${35-[8,16,11,19][i]}v${[16,32,22,38][i]}"/>`).join('')}</g><rect x="76" y="26" width="40" height="7" rx="3.5" fill="currentColor" opacity=".35"/><rect x="76" y="38" width="26" height="7" rx="3.5" fill="currentColor" opacity=".35"/><rect x="106" y="35" width="3" height="13" rx="1.5" fill="currentColor"/></svg>`,
+  // duas ideias ligadas por um nó
+  conectores:`<svg viewBox="0 0 160 70" aria-hidden="true"><rect x="16" y="27" width="44" height="16" rx="8" fill="currentColor" opacity=".3"/><rect x="100" y="27" width="44" height="16" rx="8" fill="currentColor" opacity=".3"/><path d="M62 35h12M86 35h12" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-dasharray="3 4"/><circle cx="80" cy="35" r="11" fill="currentColor"/><path d="M75 35h10" stroke="var(--surface)" stroke-width="2.6" stroke-linecap="round"/></svg>`,
+  // relógio + raio
+  blitz:`<svg viewBox="0 0 160 70" aria-hidden="true"><circle cx="58" cy="35" r="21" fill="none" stroke="currentColor" stroke-width="4" opacity=".4"/><path d="M58 24v11l8 5" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" fill="none"/><path d="M104 12l-12 24h11l-5 22 20-27h-12l6-19z" fill="currentColor"/></svg>`,
+};
+
+/* ═══ OS 9 JOGOS ═══ (mesmos ids e famílias do app real) */
+const JOGOS = [
+  {id:'memory',    fam:'palavra', nome:'Jogo da memória',   treina:'Ligar a palavra ao significado, nos dois sentidos.',
+   passos:['Vire uma carta e depois outra.','Fecha o par se forem a palavra e a tradução dela.','Errou? As cartas voltam — e a repetição é o que fixa.'],
+   memoria:'Fechar de primeira vale "bom". Nunca vale "fácil": aqui você tem tempo, e tempo não prova fluência.'},
+  {id:'wordsearch',fam:'palavra', nome:'Caça-palavras',     treina:'Reconhecer a forma escrita a partir do significado.',
+   passos:['Leia a tradução na lista ao lado.','Ache a palavra no quadro e trace com o dedo ou o mouse.'],
+   memoria:'Errar a mira não é errar a memória: um traço torto não derruba a sua nota.'},
+  {id:'termo',     fam:'palavra', nome:'Escrever a palavra',treina:'Produzir a grafia inteira, sem ter a resposta na tela.',
+   passos:['Você vê a tradução e escreve a palavra.','Acertou de primeira? O próximo tabuleiro dobra.'],
+   memoria:'Escrever certo de primeira é o único jeito de valer "fácil" — produção conta mais que reconhecimento.'},
+  {id:'scramble',  fam:'frase',   nome:'Montar a frase',    treina:'A ordem das palavras — o que o dicionário não ensina.',
+   passos:['As palavras de uma frase real aparecem embaralhadas.','Toque na ordem certa.'],
+   memoria:'Frase não tem cartão próprio, então não mexe no seu agendamento — mas conta XP e combo.'},
+  {id:'karaoke',   fam:'escuta',  nome:'Repetir em voz alta',treina:'Pronúncia: dizer, não só reconhecer.',
+   passos:['Ouça a fala.','Repita em voz alta.','Recebe uma nota de proximidade.'],
+   memoria:'A nota compara o que foi reconhecido com o texto. Não mede fonema: é aproximação, e a tela diz isso.'},
+  {id:'escuta',    fam:'escuta',  nome:'Reconhecer a fala', treina:'Separar o que você ouviu de frases parecidas.',
+   passos:['Ouça o trecho.','Escolha qual das frases foi dita.'],
+   memoria:'As opções erradas são frases próximas de propósito — acertar por sorte é difícil.'},
+  {id:'ditado',    fam:'escuta',  nome:'Escrever o que ouviu',treina:'Ouvir e escrever: o teste mais duro dos três.',
+   passos:['Ouça com calma, quantas vezes quiser.','Escreva a frase.','A correção mostra palavra por palavra.'],
+   memoria:'Vale como treino, não como revisão de cartão: a frase não tem cartão para agendar.'},
+  {id:'conectores',fam:'frase',   nome:'Palavras de ligação',treina:'Os fios que ligam uma ideia à outra.',
+   passos:['Leia a frase.','Marque as palavras que ligam as ideias.'],
+   memoria:'A nota é por precisão e cobertura: marcar tudo não ajuda.'},
+  {id:'blitz',     fam:'palavra', nome:'Desafio rápido',    treina:'Velocidade — a prova de que a palavra já é sua.',
+   passos:['Múltipla escolha, contra o relógio.','Responder rápido e certo vale mais.'],
+   memoria:'É o único jogo em que a velocidade vira "fácil". Nos outros, tempo sobrando não prova nada.'},
+];
+
+/* ═══ ESTADO ═══ */
+const estado = {
+  fonte:'trilha', idioma:'en', nivel:'B1',
+  ordem: JOGOS.map(j=>j.id), fixados: [],
+  aberto: null,
+};
+
+/* Conteúdo por fonte — é isto que faz as cartas pararem de mentir sobre a matéria.
+   Hoje 4 descrições e 5 fichas afirmam "sua gravação" mesmo no meio da trilha. */
+const POR_FONTE = {
+  trilha: {
+    rot:'Curso', principal:'Trilha de inglês',
+    disp:{memory:28,wordsearch:28,termo:28,scramble:24,karaoke:24,escuta:24,ditado:24,conectores:0,blitz:28},
+    nota:{conectores:'a trilha traz palavras soltas; este precisa de frase corrida'},
+    porta:{conectores:'Jogar com minhas gravações'},
+  },
+  gravacoes: {
+    rot:'Revisão', principal:'Minhas gravações',
+    disp:{memory:3,wordsearch:3,termo:1,scramble:35,karaoke:72,escuta:56,ditado:41,conectores:15,blitz:3},
+    nota:{}, porta:{},
+  },
+  dificeis: {
+    rot:'Resgate', principal:'Palavras difíceis',
+    disp:{memory:442,wordsearch:442,termo:442,scramble:0,karaoke:0,escuta:0,ditado:0,conectores:0,blitz:442},
+    nota:{scramble:'as difíceis são palavras; este precisa de frase',karaoke:'as difíceis são palavras; este precisa de frase',
+          escuta:'as difíceis são palavras; este precisa de frase',ditado:'as difíceis são palavras; este precisa de frase',
+          conectores:'as difíceis são palavras; este precisa de frase'},
+    porta:{scramble:'Jogar com minhas gravações',karaoke:'Jogar com minhas gravações',
+           escuta:'Jogar com minhas gravações',ditado:'Jogar com minhas gravações',conectores:'Jogar com minhas gravações'},
+  },
+};
+
+const MINIMO = {memory:4,wordsearch:4,termo:3,scramble:3,karaoke:3,escuta:4,ditado:3,conectores:3,blitz:4};
+const NA_RODADA = {memory:8,wordsearch:8,termo:7,scramble:5,karaoke:6,escuta:6,ditado:5,conectores:5,blitz:20};
+const IDIOMAS = {en:'Inglês', es:'Espanhol', fr:'Francês'};
+
+/* ═══ RENDER ═══ */
+function ctxDaFonte() {
+  const f = POR_FONTE[estado.fonte];
+  const c = $('contexto');
+  if (estado.fonte === 'trilha') {
+    // A trilha é CURSO: tem começo, etapa atual e fim visível. Hoje esse sinal só
+    // aparece depois de já se ter escolhido a trilha, dentro de um modal.
+    c.innerHTML =
+      '<span class="rot">Etapa 10 de 29</span>' +
+      '<span class="principal">28 palavras, de <i>cost</i> a <i>decide</i></span>' +
+      '<span class="prog" aria-hidden="true"><i style="width:34%"></i></span>' +
+      '<span class="det">34% do nível B1</span>' +
+      '<span class="niveis" role="group" aria-label="Nível da trilha">' +
+      ['A1','A2','B1','B2','C1','C2'].map(n =>
+        `<button class="nivel" type="button" data-nivel="${n}" aria-pressed="${n===estado.nivel}">${n}</button>`).join('') +
+      '</span>';
+  } else if (estado.fonte === 'gravacoes') {
+    c.innerHTML =
+      '<span class="rot">Revisão do que você ouviu</span>' +
+      '<span class="principal">3 palavras · 35 falas</span>' +
+      '<span class="det">de <b>Reunião de terça</b> e mais 2 gravações</span>' +
+      '<button class="btn btn-ghost btn-sm" type="button" data-acao="escolher-gravacao" style="margin-left:auto">Escolher a gravação</button>';
+  } else {
+    c.innerHTML =
+      '<span class="rot">O que está escapando</span>' +
+      '<span class="principal">442 palavras pedindo revisão</span>' +
+      '<span class="det">as que você mais erra, primeiro</span>';
+  }
+}
+
+function cartaDe(j) {
+  const f = POR_FONTE[estado.fonte];
+  const disp = f.disp[j.id] ?? 0;
+  const min = MINIMO[j.id];
+  const liberado = disp >= min;
+  const naRodada = Math.min(NA_RODADA[j.id], disp);
+  const fixado = estado.fixados.includes(j.id) ? '1' : '0';
+
+  let miolo;
+  if (liberado) {
+    miolo = `<span class="linha"><b>${naRodada}</b> nesta rodada · ${disp} disponíveis</span>`;
+  } else {
+    // A PORTA primeiro. A aritmética depois, uma vez só, em voz baixa.
+    const rotPorta = f.porta[j.id] || (estado.fonte === 'trilha' ? 'Jogar com minhas gravações' : 'Jogar com a trilha');
+    const motivo = f.nota[j.id] || `você tem ${disp} de ${min} palavras`;
+    miolo = `<button class="porta" type="button" data-porta="${j.id}">${rotPorta} →</button>
+             <span class="porque">${motivo}</span>`;
+  }
+
+  return `<li>
+    <article class="carta ${liberado?'':'travada'}" style="--tom:${T[j.fam]}" data-fixado="${fixado}" data-jogo="${j.id}">
+      <span class="pin" aria-hidden="true"><i class="ico" data-ico="alfinete"></i></span>
+      <button class="ajuda" type="button" data-ficha="${j.id}" aria-label="Como se joga: ${j.nome}">?</button>
+      <span class="arte" aria-hidden="true">${A[j.id]}</span>
+      <div class="corpo">
+        <h3><button type="button" data-jogar="${j.id}" ${liberado?'':'disabled'}>${j.nome}</button></h3>
+        ${miolo}
+        <div class="organizar">
+          <button class="mini" type="button" data-mover="${j.id}:-1" aria-label="Mover ${j.nome} para a esquerda"><i class="ico" data-ico="esquerda"></i></button>
+          <button class="mini" type="button" data-mover="${j.id}:1" aria-label="Mover ${j.nome} para a direita"><i class="ico" data-ico="direita"></i></button>
+          <button class="mini" type="button" data-fixar="${j.id}" aria-pressed="${fixado==='1'}" aria-label="Fixar ${j.nome} no topo"><i class="ico" data-ico="alfinete"></i></button>
+        </div>
+      </div>
+    </article>
+  </li>`;
+}
+
+function ordenados() {
+  const fix = estado.ordem.filter(id => estado.fixados.includes(id));
+  const resto = estado.ordem.filter(id => !estado.fixados.includes(id));
+  return [...fix, ...resto].map(id => JOGOS.find(j => j.id === id));
+}
+
+function render() {
+  ctxDaFonte();
+  $('grade').innerHTML = ordenados().map(cartaDe).join('');
+  pintarIcones($('grade'));
+  const prim = ordenados().find(j => (POR_FONTE[estado.fonte].disp[j.id] ?? 0) >= MINIMO[j.id]);
+  const f = POR_FONTE[estado.fonte];
+  if (prim) {
+    $('contTitulo').textContent = prim.nome;
+    const n = Math.min(NA_RODADA[prim.id], f.disp[prim.id]);
+    $('contMeta').textContent =
+      `${n} ${prim.fam==='palavra'?'palavras':'falas'} · ${f.principal.toLowerCase()} · cerca de ${Math.max(1,Math.round(n/3))} minutos`;
+    $('btnJogarJa').dataset.jogo = prim.id;
+    $('btnPreviaCont').dataset.jogo = prim.id;
+  }
+  $('markIdioma').innerHTML = BANDEIRA[estado.idioma];
+  $('rotIdioma').textContent = IDIOMAS[estado.idioma];
+}
+
+/* ═══ FOLHA DE DETALHE — a ficha e a prévia num lugar só ═══ */
+function abrirFicha(id) {
+  const j = JOGOS.find(x => x.id === id);
+  const f = POR_FONTE[estado.fonte];
+  const disp = f.disp[id] ?? 0;
+  const n = Math.min(NA_RODADA[id], disp);
+  document.documentElement.style.setProperty('--tom', T[j.fam]);
+  $('folha').style.setProperty('--tom', T[j.fam]);
+  $('folhaSelo').innerHTML = A[id];
+  $('folhaTitulo').textContent = j.nome;
+  $('folhaTreina').textContent = j.treina;
+  /* Só fatos que NÃO são zero. A antessala de hoje mostra quatro tiles e três deles
+     costumam ser "0" — três zeros não informam nada e ocupam a tela inteira. */
+  const fatos = [[n,'nesta rodada'],[Math.min(n,5),'novas para você'],[Math.max(0,n-5),'voltando por erro']]
+    .filter(([v]) => v > 0);
+  $('folhaFatos').innerHTML = fatos.map(([v,r]) => `<span class="fato"><b>${v}</b> ${r}</span>`).join('');
+  $('folhaPassos').innerHTML = j.passos.map(p => `<li>${p}</li>`).join('');
+  $('folhaMemoria').textContent = j.memoria;
+  $('folhaComecar').dataset.jogo = id;
+  $('folha').showModal();
+}
+
+/* ═══ AVISOS ═══ */
+let tt;
+function aviso(msg) {
+  const el = $('toast');
+  el.textContent = msg; el.hidden = false;
+  clearTimeout(tt); tt = setTimeout(() => { el.hidden = true; }, 2400);
+  $('live').textContent = msg;
+}
+
+function irPara(tela) {
+  $('telaGrade').hidden = tela !== 'grade';
+  $('telaFim').hidden = tela !== 'fim';
+  window.scrollTo({ top: 0, behavior: reduzido ? 'auto' : 'smooth' });
+}
+
+function jogar(id) {
+  const j = JOGOS.find(x => x.id === id);
+  if ($('folha').open) $('folha').close();
+  $('fimTitulo').textContent = j.nome;
+  $('raspa').dataset.aberta = '0';
+  irPara('fim');
+}
+
+/* ═══ LIGAÇÕES ═══ */
+document.addEventListener('click', (e) => {
+  const t = e.target.closest('[data-jogar],[data-ficha],[data-porta],[data-mover],[data-fixar],[data-fonte],[data-nivel],[data-acao]');
+  if (!t) return;
+
+  if (t.dataset.jogar)  { if (document.body.dataset.modo !== 'organizar') jogar(t.dataset.jogar); return; }
+  if (t.dataset.ficha)  { abrirFicha(t.dataset.ficha); return; }
+  if (t.dataset.porta)  {
+    // A porta TROCA a fonte e volta com o jogo liberado — sem reabrir modal nenhum.
+    estado.fonte = estado.fonte === 'trilha' ? 'gravacoes' : 'trilha';
+    document.querySelectorAll('.fonte').forEach(b => b.setAttribute('aria-selected', String(b.dataset.fonte === estado.fonte)));
+    render();
+    aviso('Troquei para ' + POR_FONTE[estado.fonte].principal.toLowerCase());
+    return;
+  }
+  if (t.dataset.fonte)  {
+    estado.fonte = t.dataset.fonte;
+    document.querySelectorAll('.fonte').forEach(b => b.setAttribute('aria-selected', String(b === t)));
+    render();
+    return;
+  }
+  if (t.dataset.nivel)  { estado.nivel = t.dataset.nivel; render(); return; }
+  if (t.dataset.mover)  {
+    const [id, dir] = t.dataset.mover.split(':');
+    const i = estado.ordem.indexOf(id), k = i + Number(dir);
+    if (k < 0 || k >= estado.ordem.length) return;
+    [estado.ordem[i], estado.ordem[k]] = [estado.ordem[k], estado.ordem[i]];
+    render(); return;
+  }
+  if (t.dataset.fixar)  {
+    const id = t.dataset.fixar;
+    estado.fixados = estado.fixados.includes(id) ? estado.fixados.filter(x => x !== id) : [...estado.fixados, id];
+    render(); return;
+  }
+  if (t.dataset.acao === 'escolher-gravacao') { aviso('Aqui abriria a lista de gravações'); return; }
+});
+
+$('btnOrganizar').addEventListener('click', (e) => {
+  const on = document.body.dataset.modo !== 'organizar';
+  document.body.dataset.modo = on ? 'organizar' : 'jogar';
+  e.currentTarget.setAttribute('aria-pressed', String(on));
+  e.currentTarget.textContent = on ? 'Pronto' : 'Organizar';
+  aviso(on ? 'Arraste a ordem com as setas; toque no alfinete para fixar' : 'Ordem guardada');
+});
+
+$('btnJogarJa').addEventListener('click', (e) => jogar(e.currentTarget.dataset.jogo));
+$('btnPreviaCont').addEventListener('click', (e) => abrirFicha(e.currentTarget.dataset.jogo));
+$('folhaComecar').addEventListener('click', (e) => jogar(e.currentTarget.dataset.jogo));
+$('folhaTrocar').addEventListener('click', () => aviso('Troquei os itens desta rodada'));
+$('folhaFechar').addEventListener('click', () => $('folha').close());
+$('btnEcon').addEventListener('click', () => aviso('Aqui abriria o passe, a loja e os desafios'));
+$('btnIdioma').addEventListener('click', () => {
+  const ordem = ['en','es','fr'];
+  estado.idioma = ordem[(ordem.indexOf(estado.idioma) + 1) % ordem.length];
+  render();
+  aviso(estado.idioma === 'en' ? 'Inglês — trilha completa'
+      : 'Trilha de ' + IDIOMAS[estado.idioma].toLowerCase() + ' (faixas por frequência)');
+});
+
+$('btnRaspar').addEventListener('click', () => { $('raspa').dataset.aberta = '1'; aviso('Cursor Dragão desbloqueado'); });
+$('btnMaisUma').addEventListener('click', () => { irPara('grade'); aviso('Mais uma rodada — combo mantido'); });
+$('btnRefazer').addEventListener('click', () => { irPara('grade'); aviso('A que você errou volta na próxima rodada'); });
+$('btnSair').addEventListener('click', () => irPara('grade'));
+
+/* ═══ O QUE MUDOU — para a revisão de design, fora do caminho ═══ */
+const MUDANCAS = [
+  '<b>Saiu o modal que abria sozinho.</b> A escolha de conteúdo virou as três abas do topo: a separação trilha × gravações é a primeira coisa que se lê, não um segredo atrás de "trocar".',
+  '<b>Um clique até jogar.</b> "Jogar agora" leva direto à rodada. A prévia virou opcional, no "?" ou em "Ver a rodada" — as duas saídas já existiam no app, faltava inverter o padrão.',
+  '<b>27 botões saíram da leitura padrão.</b> Reordenar e fixar viraram o modo "Organizar" da grade inteira. O recurso continua; o cromo sai de cima de cada carta.',
+  '<b>A cor virou sistema.</b> O tom diz o que o jogo treina — palavra, frase ou escuta — e a silhueta diz qual jogo é. Antes, nove jogos dividiam três cores por acidente e três artes eram o mesmo desenho.',
+  '<b>Uma metáfora por carta.</b> A arte e o ícone pixel mostravam duas imagens diferentes do mesmo jogo a 10px de distância. Ficou a arte.',
+  '<b>Bloqueio pela porta, não pela falta.</b> Antes: "falta 1 palavra · precisa de 4 · você tem 3 do inglês" — o mesmo fato três vezes, em negativo. Agora a saída vem primeiro e o motivo, uma vez, embaixo.',
+  '<b>As cartas param de mentir sobre a matéria.</b> A descrição e o motivo do bloqueio mudam com a fonte: na trilha ninguém mais promete "uma frase que você gravou".',
+  '<b>A trilha parece um curso.</b> Etapa 10 de 29, o trecho que vem, e quanto falta do nível — o sinal de progresso que hoje só existe depois de escolher a trilha.',
+  '<b>A raspadinha chega à tela.</b> O único clímax de recompensa do app estava construído e não aparecia na jornada.',
+  '<b>A economia ficou a um clique.</b> O crachá de etapa/XP/seeds virou botão para o passe — antes a tela alimentava a economia e não levava até ela.',
+  '<b>Só fatos diferentes de zero.</b> A prévia mostrava quatro números e três costumavam ser "0".',
+  '<b>Semântica de lista.</b> A grade virou <code>&lt;ul&gt;/&lt;li&gt;</code> com um alvo por carta, em vez de 5 repetições do nome do jogo por cartão.',
+];
+$('mudancas').innerHTML = MUDANCAS.map(m => `<li>${m}</li>`).join('');
+
+pintarIcones();
+irPara('grade');
+render();
+})();
+</script>
+</body>
+</html>

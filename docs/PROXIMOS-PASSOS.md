@@ -161,11 +161,97 @@ Três módulos que ninguém importa (`docs/auditoria/grafo-v1.md` §2):
 
 ---
 
+### E — Tela de jogos: auditoria feita, redesenho pendente (01/09)
+
+Auditoria completa em **`docs/auditoria/tela-de-jogos-v1.md`** — 48 achados confirmados de 49
+propostos, cada um verificado por um cético que tentou refutá-lo no código. O protótipo navegável do
+redesenho está em **`docs/prototipos/jogos-redesign.html`**. Os códigos `F01…F49` abaixo referenciam
+achados daquele documento.
+
+**O que a auditoria mudou no pedido:** a separação "trilha × conteúdo capturado" **já existe e está
+bem construída** (`src/core/minigames/source.ts:23`, partição exclusiva em `:74-98`, e o servidor
+concorda em `server/db/repositories/vocab.ts:476-486`). O trabalho não é construir a separação — é
+torná-la legível na tela. Ver a armadilha logo abaixo.
+
+#### E1 — Defeitos de correção (não dependem do redesenho)
+
+Estes quebram promessas que a tela faz. Valem conserto isolado, na ordem que der.
+
+| # | Defeito | Onde |
+|---|---|---|
+| F02 | O botão **"Jogar"** da Sala de Escolha **não joga** — ícone de play, foco inicial, e só troca a fonte | `SalaDeEscolha.tsx:364` → `aplicarEscolha` (`Play.tsx:1136`) |
+| F08 | Escolher "Trilha" **sem nível entrega zero itens**; a tela promete 2.784, depois 704, depois nada | recorte por `fonte.nivel` |
+| F11 | **Na trilha, acertar não conta na memória** — e o cabeçalho e as fichas prometem que conta | cartão de trilha nasce com `id:''` (`trilha.ts:147`) |
+| F10 | Os jogos de frase **ignoram a fonte escolhida**; a alavanca para trocar a gravação é código morto | `Play.tsx:437`; seção `:2188-2210` inalcançável |
+| F45 | **Falha de rede aparece como "Você ainda não salvou palavras"** | `Play.tsx:937-952`: no ramo de erro `deck` fica `null` |
+| — | A **fonte guardada nunca é restaurada** para quem não tem gravações (escolheu "Trilha B1", volta em "Minhas palavras") | `Play.tsx:972-985`, guard `!sessoes.length` |
+| F29 | A conquista **"Colecionador" é matematicamente impossível**; 8 dos 9 jogos não têm festa de combo | `eventosDeJogo.ts:89-92` × os 3 call sites de `executarEfeito` |
+| F30 | A única explicação de moeda na tela **ensina uma regra revogada** ("4 por revisão certa"; a tabela viva diz 2) | `Play.tsx:1997` × `xp.ts:61-69` |
+| F34 | A chama de dias seguidos **não pode ser movida por jogar**, e o texto afirma que pode | `metrics.ts:279` |
+| F25 | O portão de áudio pergunta se o navegador **tem voz**, nunca se há voz **naquele idioma** — e `hasVoiceFor` existe e nunca é chamada | `estadoDosJogos.ts` × `tts.ts:171` |
+| F43 | **Dois diálogos modais empilhados** na entrada, e o de cima não move o foco | `App.tsx:879` sobre `SalaDeEscolha` |
+| F44 | **Esc dentro da Sala fecha a Sala inteira**, e o seletor de idioma vaza a armadilha de foco | `LangPicker.tsx:150,190` × `SalaDeEscolha.tsx:117` |
+| — | **Código inerte** que qualquer refatoração carregaria: a seção `:2188-2210` e o paginador `:2337-2359` (`POR_PAGINA=9` para 9 jogos) | `Play.tsx` |
+
+#### E2 — Redesenho da tela
+
+Medido na tela de hoje: **317 palavras, 57 botões, 27 deles (47%) só para reordenar cartas**, 90
+palavras antes de "Escolha um jogo", 3 telas cheias até jogar. O protótipo entrega **189 palavras e
+32 botões** no estado padrão, com o mesmo conjunto de recursos.
+
+| # | Tarefa | Por que importa |
+|---|---|---|
+| E2.1 | Abas de fonte no topo (Trilha · Minhas gravações · Difíceis), com faixa de contexto por fonte | Torna a separação a primeira leitura, em vez de um segredo atrás de "trocar". Resolve F09, F12, F13 |
+| E2.2 | Inverter dois defaults: `salaAberta` só quando a fonte guardada não rende rodada, e `pularSempre` ligado | Um clique até jogar. **As duas saídas já existem** (`Play.tsx:2054` e `:2479`) — é default, não construção |
+| E2.3 | Reordenar/fixar viram o modo "Organizar" da grade | Tira 27 botões da leitura padrão sem perder o recurso (F07, F47) |
+| E2.4 | Refazer as 9 artes: cor = família (palavra/frase/escuta), silhueta = jogo, **uma** metáfora por carta | Hoje 3 artes são o mesmo desenho, Memória e Termo desenham no fundo, e cada carta mostra 2 metáforas (F14–F18) |
+| E2.5 | Bloqueio pela porta, não pela falta; descrição e motivo mudam com a fonte | Hoje 4 descrições e 5 fichas afirmam "sua gravação" no meio da trilha (F09, F37) |
+| E2.6 | Ficha + antessala viram uma folha de detalhe só, com fatos ≠ zero | "Como se joga" tem 1.203 palavras, 28% delas repetindo o tour (F36, F40) |
+| E2.7 | Raspadinha e caminho para a economia na jornada | O único clímax de recompensa do app não chega à tela (F28, F32) |
+
+#### E3 — Trilhas em outros idiomas
+
+Decidido: **faixas por frequência, rotuladas como tal** (OpenSubtitles, CC BY-SA 4.0) — nunca chamar
+de CEFR o que não foi medido. CEFR-J é inglês-only e Goethe/Cervantes não têm licença aberta.
+Tradução por Wikidata Lexemes (CC0) + Wikcionário/kaikki (CC BY-SA 3.0); frases do Tatoeba
+(CC BY 2.0 FR, **exige nomear os autores**). Manter a validação ida-e-volta.
+
+| # | Tarefa | Estado |
+|---|---|---|
+| E3.1 | Versionar o script de geração da trilha | Hoje só a saída é versionada (`FONTES.md:178-188`). Repetir isto à mão em 7 idiomas não se sustenta |
+| E3.2 | Carga sob demanda da trilha | `en.json` já é chunk de 237 KB, mas **três rotas o puxam**; o caminho ingênuo multiplica por N |
+| E3.3 | Registrar o **idioma nativo** na estrutura | A trilha é "inglês para quem fala português", não "inglês" (F26) |
+| E3.4 | Espanhol e Francês | O pipeline roda como está |
+| E3.5 | Alemão e Italiano | Alemão estoura o teto de 8 letras do Termo (`termo.ts:122-123`) |
+| E3.6 | Japonês, Chinês, Coreano | **Bloqueado**: sem espaço entre palavras, os 5 jogos de frase morrem (`quality.ts:225`, `scramble.ts:31`, `escuta.ts:112`, `pronunciation.ts:34`). Precisa de `Intl.Segmenter` e teclado próprio antes |
+
+#### E4 — Jogos multi-idioma e rodada mista
+
+Fase A (trocar sem fricção) depende só do conserto da fonte guardada. Fase B (rodada mista) tem
+pré-requisitos duros:
+
+| # | Barreira | Onde |
+|---|---|---|
+| E4.1 | `normalizarPalavra` só aceita A–Z → grade **vazia** em ru/el/ja/zh/ar/he | `wordsearch.ts:55-57,111` |
+| E4.2 | Teclado do Termo é QWERTY latino fixo | `TermoGame.tsx:42,392` |
+| E4.3 | TTS cai em `en-US` quando o cartão não tem `srcLang` | `tts.ts:237`, `TermoGame.tsx:365`, `KaraokeGame.tsx:124` |
+| E4.4 | Numa rodada mista o Duelo **entrega a resposta pelo idioma** — regressão de um bug já consertado | `source.ts:17`, `itemSource.ts:230` |
+| E4.5 | `MinigameItem.lang` promete decidir voz e teclado e está **morto** em 4 jogos | `types.ts:25-38` |
+| E4.6 | Conectores e régua gramatical só en/pt/es | `escuta.ts:204-224`, `quality.ts:72-112` |
+
+---
+
 ## Armadilhas já pagas — não repetir
 
 - **Antes de construir, procure.** Eu anotei "não existe rotina de backup" e ela existia, completa e
   boa (`scripts/backup.mjs` + `scripts/diagnosis/verificar-backup.mjs`). Uma anotação errada num
   documento de próximos passos é pior que nenhuma: manda refazer o que está pronto.
+
+- **E aconteceu de novo (01/09).** A tela de jogos ia ganhar uma "separação entre trilha e
+  conteúdo capturado" que **já existia, exclusiva e testada** (`src/core/minigames/source.ts:23`,
+  com o servidor concordando em `server/db/repositories/vocab.ts:476-486`). O que faltava era ela
+  aparecer na tela. Duas vezes seguidas o mesmo erro: a diferença entre "não existe" e "existe e não
+  aparece" é a diferença entre um mês de trabalho e uma tarde.
 
 
 Estas custaram tempo. Estão aqui para não custarem de novo.

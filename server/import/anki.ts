@@ -442,7 +442,7 @@ export async function lerApkg(apkg: Buffer): Promise<LeituraAnki> {
     /* O ESQUEMA NOVO às vezes guarda a hierarquia do baralho com `\x1f` em vez de `::` — os dois
        precisam virar `::`, senão "Idiomas::Inglês" e "Idiomas\x1fInglês" pareceriam baralhos
        diferentes quando são o mesmo, só escrito por versões diferentes do Anki. */
-    const normalizarNomeBaralho = (s: string) => s.split(/::|\x1f/).join('::')
+    const normalizarNomeBaralho = (s: string) => s.split(SEP).join('::')
 
     // ── Nome do baralho, por id ──────────────────────────────────────────
     const nomePorBaralho = new Map<string, string>()

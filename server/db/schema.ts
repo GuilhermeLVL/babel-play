@@ -654,3 +654,55 @@ export const ankiImports = sqliteTable('anki_imports', {
 }, (t) => [
   index('idx_anki_imports_user_deck').on(t.userId, t.deckId),
 ])
+
+/**
+ * MOTOR ANKI — MÍDIA (`openspec/changes/motor-anki-midia`).
+ *
+ * `anki_media` é o ARQUIVO físico (gravado pelo seam `armazenamentoDoAmbiente`, nome derivado do
+ * hash em `anki-media/<userId>/<sha256>`); `anki_note_media` é a REFERÊNCIA de uma nota a ele.
+ * As duas tabelas são separadas porque N notas podem citar o MESMO arquivo (mesma pronúncia
+ * reaproveitada entre baralhos, ou entre frente/frase de exemplo da mesma nota) — sem a separação,
+ * dedupe por conteúdo não teria onde morar.
+ *
+ * Índice único `(user_id, sha256)`, NÃO GLOBAL — decisão jurídica, não técnica (ver design.md,
+ * Decisão 2): mídia enviada pelo usuário é cópia privada análoga a cloud storage; um arquivo
+ * único servido a MUITOS usuários descaracteriza essa cópia privada e se aproxima de distribuição,
+ * que é a fronteira que o programa decidiu não cruzar. Dedupe global economizaria mais disco, mas
+ * também tornaria arbitrária a atribuição de cota por plano (de quem é o byte de um arquivo
+ * compartilhado?) — então cada usuário paga (e dedupe) só a própria cópia.
+ */
+export const ankiMedia = sqliteTable('anki_media', {
+  id: text('id').primaryKey(),
+  ...meta,
+  /** sha256 CALCULADO NO SERVIDOR (nunca o do cliente) — é o nome do objeto no storage. */
+  sha256: text('sha256').notNull(),
+  bytes: integer('bytes').notNull(),
+  /** Detectado por magic bytes (`tipoDeArquivo.ts`), não pelo Content-Type declarado no upload. */
+  contentType: text('content_type').notNull(),
+}, (t) => [
+  index('idx_anki_media_user').on(t.userId, t.deletedAt),
+  uniqueIndex('uq_anki_media_user_sha256').on(t.userId, t.sha256),
+])
+
+/**
+ * Referência de UMA nota a UM arquivo de mídia. `mediaId` é ANULÁVEL de propósito: a nota (com
+ * `frente`/`verso` já preenchidos por `extrairMidia`) pode existir, e a referência ser conhecida
+ * pelo `nomeOriginal`, ANTES de o arquivo em si ter sido enviado (Decisão 1: extração/negociação
+ * de mídia acontece na ATIVAÇÃO, não no upload da coleção) — uma linha aqui com `mediaId` nulo é
+ * "referenciado, mas ainda faltando", exatamente o que a auditoria de baralho (tasks.md §5.2)
+ * precisa mostrar.
+ */
+export const ankiNoteMedia = sqliteTable('anki_note_media', {
+  id: text('id').primaryKey(),
+  ...meta,
+  noteId: text('note_id').notNull().references(() => ankiNotes.id),
+  /** Anulável: a referência pode existir sem o arquivo ter chegado (ver comentário da tabela). */
+  mediaId: text('media_id').references(() => ankiMedia.id),
+  /** 'audio_palavra' | 'audio_frase' | 'imagem'. */
+  papel: text('papel').notNull(),
+  /** Nome tal como veio de dentro do `.apkg` (`palavra.mp3`) — resolve a referência no render. */
+  nomeOriginal: text('nome_original').notNull(),
+}, (t) => [
+  index('idx_anki_note_media_note').on(t.noteId),
+  index('idx_anki_note_media_media').on(t.mediaId),
+])

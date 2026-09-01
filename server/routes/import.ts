@@ -54,15 +54,24 @@ export const importRouter = Router()
  * que não serve fica no acervo com `motivoDescarte` gravado, não é descartado do banco.
  */
 /**
- * `NotaAnki` (o parser, que não é meu para editar) não carrega `guid` — esse campo só existe no
- * SQLite interno do Anki e o parser hoje não o expõe. Sem ele não há como `gravarNotas` reconhecer
- * "já vi esta nota" num reimport. A saída é sintetizar um guid ESTÁVEL a partir do conteúdo
- * (notetype + frente + verso): mesmo conteúdo → mesmo guid → mesmo reimport não duplica; conteúdo
- * mudou → guid muda → a rota trata como nota "nova" (efeito colateral aceitável documentado no
- * relato: o acervo ganha uma linha extra em vez de atualizar a antiga quando o AUTOR do baralho
- * edita um campo, porque não temos o id estável real do Anki para amarrar as duas).
+ * A IDENTIDADE DA NOTA — de onde vem, e por que a diferença importa.
+ *
+ * O `.apkg` traz `notes.guid`, o id estável do Anki: o mesmo entre exportações e entre máquinas. É
+ * ele que faz um reimport ATUALIZAR a nota em vez de criar outra, inclusive quando o autor do
+ * baralho corrigiu uma tradução. Esse é o caso que importa, e é justamente onde uma chave derivada
+ * do conteúdo falha: o conteúdo mudou, a chave mudou, e a nota corrigida entraria como uma segunda
+ * nota, ao lado da antiga.
+ *
+ * Arquivo de TEXTO (`.txt/.csv/.tsv`) não tem identidade nenhuma — quem o gerou não guardou id. Aí
+ * sim resta derivar do conteúdo, e a limitação é real e declarada: editar a linha cria uma nota
+ * nova. Preferimos isso a inventar um id que fingiria uma estabilidade que o formato não tem.
  */
-function guidSintetico(n: { notetype?: string | null; frente: string; verso: string }): string {
+function guidDaNota(n: { guid?: string; notetype?: string | null; frente: string; verso: string }): string {
+  if (n.guid) return n.guid
+  return guidDerivadoDoConteudo(n)
+}
+
+function guidDerivadoDoConteudo(n: { notetype?: string | null; frente: string; verso: string }): string {
   return createHash('sha256')
     .update(`${n.notetype ?? ''}\x1f${n.frente}\x1f${n.verso}`, 'utf8')
     .digest('hex')
@@ -153,10 +162,14 @@ importRouter.post('/anki', raw({ type: () => true, limit: '200mb' }), erroDeTama
       const motivoDescarte = veredito.serve ? null : (veredito.motivo ?? 'descartada')
       if (motivoDescarte) porMotivo[motivoDescarte] = (porMotivo[motivoDescarte] ?? 0) + 1
       return {
-        guid: guidSintetico(n),
+        guid: guidDaNota(n),
         notetype: n.notetype ?? null,
         estruturaHash: n.estruturaHash ?? null,
-        camposBrutos: n.midia || n.lacunas ? JSON.stringify({ midia: n.midia, lacunas: n.lacunas }) : null,
+        /* OS CAMPOS ORIGINAIS, por nome — é o que sustenta "trocar o mapeamento sem reimportar".
+           Guardar aqui só mídia e lacunas, como esta linha fazia, jogava fora exatamente o que a
+           reclassificação precisa ler: o valor bruto de cada campo do baralho. Sem eles, corrigir
+           um campo mal mapeado exigiria o arquivo de novo — 214 MB, no baralho que medimos. */
+        camposBrutos: JSON.stringify({ campos: n.camposBrutos ?? {}, midia: n.midia, lacunas: n.lacunas }),
         frente: n.frente,
         verso: n.verso,
         exemplo: n.exemplo ?? null,

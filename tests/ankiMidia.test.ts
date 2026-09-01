@@ -48,7 +48,7 @@ async function montarApkgModerno(opts: OpcoesApkg): Promise<Buffer> {
       CREATE TABLE notetypes (id integer primary key, name text not null);
       CREATE TABLE fields (ntid integer not null, ord integer not null, name text not null);
       CREATE TABLE decks (id integer primary key, name text not null);
-      CREATE TABLE notes (id integer primary key, mid integer not null, flds text not null, tags text not null);
+      CREATE TABLE notes (id integer primary key, guid text not null, mid integer not null, flds text not null, tags text not null);
       CREATE TABLE cards (id integer primary key, nid integer not null, did integer not null, ord integer not null);
     `);
 
@@ -70,7 +70,7 @@ async function montarApkgModerno(opts: OpcoesApkg): Promise<Buffer> {
     for (let inicio = 0; inicio < opts.notas.length; inicio += LOTE) {
       const fatia = opts.notas.slice(inicio, inicio + LOTE);
       const valoresNotas = fatia
-        .map(n => `(${n.id},${n.mid},${esc(n.flds.join(SEP))},${esc(n.tags ?? '')})`)
+        .map(n => `(${n.id},${esc(`guid-${n.id}`)},${n.mid},${esc(n.flds.join(SEP))},${esc(n.tags ?? '')})`)
         .join(',');
       const valoresCards = fatia
         .map(n => `(${idCartao++},${n.id},${n.baralhoId},0)`)

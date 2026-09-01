@@ -100,6 +100,14 @@ async function semear(id: string): Promise<Semeado> {
   await db.insert(schema.exerciseResults).values({ id: `ex-${id}`, ...meta, kind: 'quiz', correct: 1, exerciseKind: 'blitz' })
   await db.insert(schema.analyses).values({ id: `an-${id}`, ...meta, sessionId: sessao.id, analysis: '{}' })
   await db.insert(schema.profiles).values({ id: `prof-${id}`, ...meta, name: `perfil-${id}` })
+  /* Acervo Anki: o baralho vem ANTES da nota (FK), e a nota aponta para o cartão de vocabulário —
+     é essa aresta que faz a exclusão falhar se `anki_notes` for apagada depois de `vocab_cards`. */
+  await db.insert(schema.ankiDecks).values({ id: `deck-${id}`, ...meta, nome: `baralho-${id}`, arquivoOrigem: `${id}.apkg` })
+  await db.insert(schema.ankiImports).values({ id: `imp-${id}`, ...meta, deckId: `deck-${id}`, arquivo: `${id}.apkg`, estado: 'concluido' })
+  await db.insert(schema.ankiNotes).values({
+    id: `nota-${id}`, ...meta, deckId: `deck-${id}`, guid: `guid-${id}`, frente: `palavra-${id}`,
+    verso: `traducao-${id}`, camposBrutos: '{"Word":"x"}', estado: 'ativa', projectedCardId: `card-${id}`, importId: `imp-${id}`,
+  })
   await db.insert(schema.seedSpends).values({ id: `sp-${id}`, ...meta, spendId: `sp-${id}`, amount: 5, reason: 'pular-rodada' })
   await db.insert(schema.usageCounters).values({ id: `uc-${id}`, ...meta, metric: 'llm_tokens', window: '2026-08', count: 10 })
 

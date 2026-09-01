@@ -555,3 +555,102 @@ export const usageCounters = sqliteTable('usage_counters', {
 }, (t) => [
   unique('uq_usage_user_metric_window').on(t.userId, t.metric, t.window),
 ])
+
+/**
+ * MOTOR ANKI — ACERVO (`openspec/changes/motor-anki-acervo`).
+ *
+ * Decisão 1 do design: acervo PRÓPRIO, não uma quinta `FonteId`. `vocab_cards` não muda uma
+ * vírgula — o vínculo mora em `anki_notes.projected_card_id`, e se a projeção inteira for
+ * revertida o app continua de pé. As três tabelas abaixo são ADITIVAS: nenhuma tabela existente
+ * é alterada por esta migração.
+ *
+ * Política de rollback (Decisão 7): o repositório não tem rollback automático (zero `down`
+ * existentes). Para tabela nova, reverter é seguro — `down.sql` manual em
+ * `openspec/changes/motor-anki-acervo/down.sql` faz só `DROP TABLE`, antes de haver adoção.
+ */
+
+/** Um baralho `.apkg` importado. `arquivoOrigem` + `nome` é a chave de idempotência de reimport. */
+export const ankiDecks = sqliteTable('anki_decks', {
+  id: text('id').primaryKey(),
+  ...meta,
+  /** Nome exibido no app — pode ser editado pelo usuário. */
+  nome: text('nome').notNull(),
+  /** Nome do baralho tal como veio de dentro do `.apkg` (auditoria/diagnóstico). */
+  nomeNoArquivo: text('nome_no_arquivo'),
+  /** Nome do arquivo `.apkg` enviado. Junto com `nome` forma a chave de `criarOuAcharDeck`. */
+  arquivoOrigem: text('arquivo_origem').notNull(),
+  /** 'ativo' | 'desativado'. Desativado não deleta — as notas viram 'arquivada'. */
+  estado: text('estado').notNull().default('ativo'),
+  idiomaOrigem: text('idioma_origem'),
+  idiomaAlvo: text('idioma_alvo'),
+}, (t) => [
+  index('idx_anki_decks_user').on(t.userId, t.deletedAt),
+])
+
+/**
+ * Uma nota Anki — o registro CANÔNICO, sobrevive independente de virar cartão jogável ou não.
+ *
+ * `guid` é o identificador estável do Anki (sobrevive a reexport); o par `(deck_id, guid)` é
+ * ÚNICO e é a chave do upsert de `gravarNotas` — reimportar o mesmo baralho não duplica.
+ *
+ * `campos_brutos` guarda TODOS os campos da nota como JSON (`{nome: valor}`), íntegros, mesmo os
+ * que o app não usa hoje — é o que permite a Decisão 4 (fusão de duas notas no mesmo cartão) não
+ * perder nada: a nota original continua inspecionável.
+ */
+export const ankiNotes = sqliteTable('anki_notes', {
+  id: text('id').primaryKey(),
+  ...meta,
+  deckId: text('deck_id').notNull().references(() => ankiDecks.id),
+  /** Id estável do Anki — sobrevive a reexport do mesmo baralho. */
+  guid: text('guid').notNull(),
+  /** Nome do notetype no Anki ('Basic', 'Cloze', …) — diagnóstico do mapeamento de campos. */
+  notetype: text('notetype'),
+  /** Hash da ESTRUTURA de campos (nomes+ordem) — detecta notetype que mudou de forma entre imports. */
+  estruturaHash: text('estrutura_hash'),
+  /** JSON `{nomeDoCampo: valor}` — todos os campos, íntegros. Ver comentário da tabela. */
+  camposBrutos: text('campos_brutos'),
+  /** Campos mapeados para o jogo (podem ser derivados de `campos_brutos` por heurística/config). */
+  frente: text('frente'),
+  verso: text('verso'),
+  exemplo: text('exemplo'),
+  tags: text('tags'),
+  /** 'arquivada' (fora da fila) | 'ativa' (projetada em vocab_cards) | 'ausente_no_arquivo'. */
+  estado: text('estado').notNull().default('arquivada'),
+  /** FK anulável: só existe enquanto a nota está projetada como cartão jogável. */
+  projectedCardId: text('projected_card_id').references(() => vocabCards.id),
+  /** 'desativacao' | 'manual' | null — decide se um reimport REATIVA o cartão soft-deletado ou
+   *  cria um novo (Decisão 4: a aresta perigosa do índice parcial). */
+  motivoDaBaixa: text('motivo_da_baixa'),
+  /** Por que a nota não é jogável (lixo detectado por `avaliarCartao`), quando aplicável. */
+  motivoDescarte: text('motivo_descarte'),
+  importId: text('import_id'),
+}, (t) => [
+  index('idx_anki_notes_user_deck').on(t.userId, t.deckId),
+  uniqueIndex('uq_anki_notes_deck_guid').on(t.deckId, t.guid),
+  index('idx_anki_notes_deck_estado').on(t.deckId, t.estado),
+])
+
+/**
+ * LEDGER de importação (Decisão 5): não há scheduler no servidor, então "job" é uma sequência de
+ * requisições pequenas dirigidas pelo cliente, e o progresso precisa ser consultável entre elas.
+ * `porMotivo` é JSON com a contagem de descarte por `motivoDescarte`, para a tela explicar o total.
+ */
+export const ankiImports = sqliteTable('anki_imports', {
+  id: text('id').primaryKey(),
+  ...meta,
+  deckId: text('deck_id').notNull().references(() => ankiDecks.id),
+  arquivo: text('arquivo'),
+  bytes: integer('bytes'),
+  hashDoArquivo: text('hash_do_arquivo'),
+  /** 'lendo' | 'gravando' | 'concluido' | 'parcial' | 'falhou'. */
+  estado: text('estado').notNull().default('lendo'),
+  notasLidas: integer('notas_lidas').notNull().default(0),
+  notasNovas: integer('notas_novas').notNull().default(0),
+  notasAtualizadas: integer('notas_atualizadas').notNull().default(0),
+  notasDescartadas: integer('notas_descartadas').notNull().default(0),
+  /** JSON `{motivo: contagem}`. */
+  porMotivo: text('por_motivo'),
+  erro: text('erro'),
+}, (t) => [
+  index('idx_anki_imports_user_deck').on(t.userId, t.deckId),
+])

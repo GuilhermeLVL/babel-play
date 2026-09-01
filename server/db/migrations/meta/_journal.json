@@ -120,6 +120,13 @@
       "when": 1788230826971,
       "tag": "0016_charming_prima",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "6",
+      "when": 1788305583837,
+      "tag": "0017_warm_sprite",
+      "breakpoints": true
     }
   ]
 }

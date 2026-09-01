@@ -11,7 +11,7 @@
 import { eq, inArray } from 'drizzle-orm'
 import { db } from '../db'
 import {
-  analyses, exerciseResults, profiles, providerCredentials,
+  analyses, ankiDecks, ankiImports, ankiNotes, exerciseResults, profiles, providerCredentials,
   reviewLogs, secrets, seedSpends, sessions, settings, subscriptions,
   usageCounters, userInterests, users, utterances, vocabCards, vocabOccurrences,
 } from '../schema'
@@ -30,6 +30,15 @@ const TABELAS_DO_TITULAR: ReadonlyArray<readonly [string, any]> = [
   ['exerciseResults', exerciseResults],
   ['analyses', analyses],
   ['utterances', utterances],
+  /* O ACERVO ANKI ENTRA AQUI, E ANTES DE `vocabCards` — não é ordem alfabética, é a FOREIGN KEY.
+     `anki_notes.projected_card_id` referencia `vocab_cards`, e com `foreign_keys = ON` apagar o
+     cartão antes da nota derruba o `batch` INTEIRO: o pedido de exclusão falharia com erro de
+     constraint, e a promessa da LGPD viraria a mesma promessa não cumprida que este arquivo
+     existe para consertar. Esquecer as três tabelas seria pior ainda em silêncio — o baralho
+     importado (com o conteúdo que a pessoa escolheu trazer) sobreviveria ao pedido de eliminação. */
+  ['ankiNotes', ankiNotes],
+  ['ankiImports', ankiImports],
+  ['ankiDecks', ankiDecks],
   ['vocabCards', vocabCards],
   ['sessions', sessions],
   ['settings', settings],

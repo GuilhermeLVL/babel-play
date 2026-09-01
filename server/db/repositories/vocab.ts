@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto'
 import { and, desc, eq, inArray, isNull, sql } from 'drizzle-orm'
 import { db } from '../db'
-import { vocabCards, vocabOccurrences, reviewLogs, sessions } from '../schema'
+import { vocabCards, vocabOccurrences, reviewLogs, sessions, ankiNotes, ankiDecks } from '../schema'
 import { makeFsrs5, type Grade, type SchedulingState } from '../../../src/core/learning/scheduler'
 import { nivelCefr } from '../../../src/core/learning/cefrWordlist'
 import { avaliarCartao, type MotivoDescarte } from '../../../src/core/learning/quality'
@@ -86,6 +86,28 @@ export function toState(card: VocabCard): SchedulingState {
     lastReview: card.lastReview ?? undefined,
   }
 }
+
+/** Uma nota do acervo Anki, tal como `projetarDoAnki` a recebe — já sem os detalhes do parser. */
+export interface NotaParaProjetar {
+  id: string
+  frente: string | null
+  verso: string | null
+  exemplo: string | null
+  /** 'desativacao' | 'manual' | null — decide reativar o cartão soft-deletado ou criar um novo. */
+  motivoDaBaixa?: string | null
+}
+
+export interface ResultadoProjecao {
+  /** Cartões NOVOS criados por esta chamada. */
+  criados: number
+  /** Notas que casaram com um cartão VIVO já existente (mesma normKey) — ganharam ocorrência. */
+  reaproveitados: number
+  /** Cartões soft-deletados RESSUSCITADOS (mesmo id, histórico preservado) — a armadilha da Decisão 4. */
+  reativados: number
+}
+
+/** Teto por chamada de `ativarLote` — o mesmo número que o cliente já pratica (Decisão 3). */
+export const LOTE_DE_ATIVACAO = 300
 
 // Marco 1: userId obrigatório (branded) em TODA função deste repositório, sem exceção.
 // P3-1: a migração de boot (que atravessa tenants) mudou para server/db/manutencao.ts.
@@ -484,6 +506,14 @@ export const vocabRepo = {
     } else if (opts.fonte === 'trilha') {
       cond.push(sql`EXISTS (SELECT 1 FROM ${vocabOccurrences} o WHERE o.card_id = ${vocabCards.id}
         AND o.origin_kind = 'trilha'${opts.fonteRef ? sql` AND o.origin_ref = ${opts.fonteRef}` : sql``})`)
+    } else if (opts.fonte === 'baralho' && opts.fonteRef?.startsWith('anki:')) {
+      /* "Jogar só com este baralho" (Decisão 2 do design motor-anki-acervo): um ramo NOVO na
+         cláusula que já existe, não um mecanismo novo. `fonte='baralho'` SEM ref continua caindo
+         no ramo `else` de baixo — comportamento antigo intocado, de propósito (é o acervo inteiro
+         do usuário). Só com `fonteRef='anki:<deckId>'` é que recorta por baralho. */
+      const deckId = opts.fonteRef.slice('anki:'.length)
+      cond.push(sql`EXISTS (SELECT 1 FROM ${vocabOccurrences} o WHERE o.card_id = ${vocabCards.id}
+        AND o.origin_kind = 'anki' AND o.origin_ref = ${deckId})`)
     } else {
       /* "Minhas gravações" EXCLUI a trilha — o mesmo `!daTrilha` que `cartoesDaFonte` aplica no
          cliente. Sem esta linha o servidor priorizaria palavras da trilha que o cliente descarta
@@ -656,5 +686,184 @@ export const vocabRepo = {
         .where(and(eq(reviewLogs.cardId, id), eq(reviewLogs.userId, userId), isNull(reviewLogs.deletedAt))),
     ])
     return true
+  },
+
+  /**
+   * PROJEÇÃO (motor-anki-acervo, Fase 3) — transforma nota do acervo em cartão jogável.
+   *
+   * Reusa o MESMO upsert por `(userId, normKey)` de `bulkAdd` — mesmo `targetWhere`/`setWhere`,
+   * porque o índice `uq_vocab_user_norm` é PARCIAL (`deleted_at IS NULL`) e o SQLite só reconhece
+   * o índice se o `ON CONFLICT` repetir o predicado (ver comentário de `bulkAdd` acima).
+   *
+   * Perfil de qualidade `'curado'`: o verso de um baralho pronto é definição de dicionário, não
+   * fala transcrita — a régua de `avaliarCartao` calibrada para "Isso é" e "rápida!!" reprovaria
+   * quase todo material legítimo (Decisão 6 do design). Nota que não serve fica com
+   * `motivo_descarte` gravado e NÃO é projetada — nem cartão, nem ocorrência.
+   */
+  async projetarDoAnki(
+    userId: UserId,
+    deckId: string,
+    notas: NotaParaProjetar[],
+    deckLang: { srcLang?: string | null; tgtLang?: string | null } = {},
+  ): Promise<ResultadoProjecao> {
+    if (!notas.length) return { criados: 0, reaproveitados: 0, reativados: 0 }
+    const now = Date.now()
+    let criados = 0
+    let reaproveitados = 0
+    let reativados = 0
+
+    for (const nota of notas) {
+      const palavra = (nota.frente ?? '').trim()
+      if (!palavra) continue // sem frente não há palavra — nada para projetar
+
+      const veredito = avaliarCartao(
+        { word: palavra, translation: nota.verso ?? '', sentence: nota.exemplo ?? '', srcLang: deckLang.srcLang } as never,
+        { origem: 'curado' },
+      )
+      if (!veredito.serve) {
+        await db.update(ankiNotes).set({ motivoDescarte: veredito.motivo ?? null, updatedAt: now })
+          .where(and(eq(ankiNotes.id, nota.id), eq(ankiNotes.userId, userId)))
+        continue
+      }
+
+      const normKey = chaveDedup(palavra, deckLang.srcLang ?? null)
+
+      /* A ARMADILHA (Decisão 4 do design): o índice único é PARCIAL, então o upsert abaixo NUNCA
+         vê um cartão soft-deletado — ele criaria uma linha PARALELA e o histórico FSRS (review_logs)
+         racharia em dois cartões para a mesma palavra. Por isso, ANTES do upsert, procuramos o
+         cartão morto desta normKey. Só ressuscitamos (limpa `deleted_at`, preserva id e histórico)
+         quando a NOTA que estamos projetando registra que a baixa veio de DESATIVAR o baralho —
+         nunca quando o usuário apagou o cartão manualmente uma vez; aí respeitamos a vontade dele
+         e deixamos o upsert criar um cartão novo. */
+      let card: VocabCard | undefined
+      if (nota.motivoDaBaixa === 'desativacao') {
+        const mortos = await db.select().from(vocabCards)
+          .where(and(eq(vocabCards.userId, userId), eq(vocabCards.normKey, normKey), sql`${vocabCards.deletedAt} IS NOT NULL`))
+          .orderBy(desc(vocabCards.deletedAt))
+          .limit(1)
+        if (mortos[0]) {
+          await db.update(vocabCards)
+            .set({ deletedAt: null, updatedAt: now, occurrences: sql`${vocabCards.occurrences} + 1`, lastSeenAt: now })
+            .where(eq(vocabCards.id, mortos[0].id))
+          const relidos = await db.select().from(vocabCards).where(eq(vocabCards.id, mortos[0].id)).limit(1)
+          card = relidos[0]
+          reativados++
+        }
+      }
+
+      if (!card) {
+        const cefr = nivelCefr(palavra, deckLang.srcLang ?? 'en', { curado: null })
+        const row: typeof vocabCards.$inferInsert = {
+          id: randomUUID(),
+          createdAt: now,
+          updatedAt: now,
+          userId,
+          word: palavra,
+          back: nota.verso ?? null,
+          sentence: nota.exemplo ?? null,
+          srcLang: deckLang.srcLang ?? null,
+          tgtLang: deckLang.tgtLang ?? null,
+          sessionId: null,
+          clozePrompt: null,
+          clozeAnswer: null,
+          cefrLevel: cefr.level,
+          cefrConfidence: cefr.confidence,
+          cefrSource: cefr.source,
+          box: 1,
+          dueAt: now,
+          inDeck: 1,
+          addedAt: now,
+          normKey,
+          occurrences: 1,
+          firstSeenAt: now,
+          lastSeenAt: now,
+        }
+        await db.insert(vocabCards).values(row).onConflictDoUpdate({
+          target: [vocabCards.userId, vocabCards.normKey],
+          // Mesmo predicado do índice parcial — ver comentário de `bulkAdd`.
+          targetWhere: sql`${vocabCards.deletedAt} IS NULL`,
+          set: {
+            occurrences: sql`${vocabCards.occurrences} + 1`,
+            lastSeenAt: now,
+            updatedAt: now,
+            back: sql`COALESCE(NULLIF(${vocabCards.back}, ''), ${row.back ?? null})`,
+            sentence: sql`COALESCE(NULLIF(${vocabCards.sentence}, ''), ${row.sentence ?? null})`,
+          },
+          setWhere: sql`${vocabCards.deletedAt} IS NULL`,
+        })
+
+        const finais = await db.select().from(vocabCards)
+          .where(and(eq(vocabCards.userId, userId), isNull(vocabCards.deletedAt), eq(vocabCards.normKey, normKey)))
+          .limit(1)
+        card = finais[0]
+        if (!card) throw new Error('falha ao reler cartão projetado')
+        // Nasceu agora nesta chamada (occurrences=1 e addedAt=now) => criado; senão, já existia => reaproveitado.
+        if (card.occurrences === 1 && card.addedAt === now) criados++
+        else reaproveitados++
+      }
+
+      await db.insert(vocabOccurrences).values({
+        id: randomUUID(),
+        createdAt: now,
+        updatedAt: now,
+        userId,
+        cardId: card.id,
+        occurredAt: now,
+        originKind: 'anki',
+        originRef: deckId,
+        sentence: nota.exemplo ?? null,
+        utteranceId: null,
+      })
+
+      await db.update(ankiNotes).set({
+        projectedCardId: card.id,
+        estado: 'ativa',
+        motivoDaBaixa: null,
+        motivoDescarte: null,
+        updatedAt: now,
+      }).where(and(eq(ankiNotes.id, nota.id), eq(ankiNotes.userId, userId)))
+    }
+
+    return { criados, reaproveitados, reativados }
+  },
+
+  /**
+   * ATIVAÇÃO EM LOTE (Decisão 3 do design) — a resposta a "3.000 vencidos de uma vez": nota nasce
+   * `'arquivada'` (fora da fila) e só entra no jogo quando alguém pede, no máximo
+   * `LOTE_DE_ATIVACAO` por chamada.
+   *
+   * IDEMPOTENTE por construção: `projetarDoAnki` marca a nota `estado='ativa'`, e a consulta abaixo
+   * só pega `estado='arquivada'` — chamar duas vezes não pega a mesma nota de novo, mesmo sem
+   * nenhum controle explícito de "já processei este id".
+   */
+  async ativarLote(userId: UserId, deckId: string, limite: number = LOTE_DE_ATIVACAO): Promise<{ ativadas: number; restantes: number }> {
+    const decks = await db.select().from(ankiDecks)
+      .where(and(eq(ankiDecks.id, deckId), eq(ankiDecks.userId, userId)))
+      .limit(1)
+    const deckLang = { srcLang: decks[0]?.idiomaOrigem ?? null, tgtLang: decks[0]?.idiomaAlvo ?? null }
+
+    // Só notas sem motivo de descarte já conhecido: uma nota barrada numa chamada anterior não
+    // volta a ser tentada a cada lote (ela só sai de `motivo_descarte` se o conteúdo mudar num
+    // reimport, que é `gravarNotas` quem decide).
+    const condBase = [
+      eq(ankiNotes.deckId, deckId),
+      eq(ankiNotes.userId, userId),
+      isNull(ankiNotes.deletedAt),
+      eq(ankiNotes.estado, 'arquivada'),
+      isNull(ankiNotes.motivoDescarte),
+    ]
+    const proximas = await db.select().from(ankiNotes).where(and(...condBase))
+      .orderBy(ankiNotes.createdAt, ankiNotes.id)
+      .limit(Math.max(1, limite))
+
+    const resultado = proximas.length
+      ? await this.projetarDoAnki(userId, deckId, proximas.map((n) => ({
+        id: n.id, frente: n.frente, verso: n.verso, exemplo: n.exemplo, motivoDaBaixa: n.motivoDaBaixa,
+      })), deckLang)
+      : { criados: 0, reaproveitados: 0, reativados: 0 }
+
+    const [{ n: restantes }] = await db.select({ n: sql<number>`count(*)` }).from(ankiNotes).where(and(...condBase))
+
+    return { ativadas: resultado.criados + resultado.reaproveitados + resultado.reativados, restantes: Number(restantes) }
   },
 }

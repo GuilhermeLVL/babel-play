@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { X, Play, Shuffle, RotateCcw, Medal, Zap, Target, Sparkles, Star, SlidersHorizontal, ChevronDown, LifeBuoy, HelpCircle, ListChecks } from 'lucide-react';
+import { X, Play, Shuffle, RotateCcw, Medal, Zap, Target, Sparkles, Star, SlidersHorizontal, ChevronDown, LifeBuoy, HelpCircle, ListChecks , ChevronLeft, ChevronRight} from 'lucide-react';
 import { fetchRecordes, type RecordeDoJogo } from '../../data/api';
 import { eventosVistos, todosOsEventos } from '../../lib/eventosDeJogo';
 import { IconePixel } from '../views/play/IconesPixel';
@@ -105,6 +105,18 @@ interface AntessalaProps {
   fases?: FaseJogada[];
   /** Remonta a rodada com os itens exatos de uma fase passada. */
   onJogarFase?: (refs: string[]) => void;
+  /**
+   * Uma AMOSTRA do que caiu numa fase, para a linha da tabela mostrar ao passar o mouse.
+   *
+   * Vem de fora porque montar a amostra exige o baralho (para achar a tradução de cada `ref`) e
+   * exige passar pelo funil `previaSegura` — a mesma cerca anti-spoiler da prévia. Num jogo em
+   * que a palavra É a resposta (Termo, Caça-palavras), o que aparece é a PISTA; imprimir a
+   * resposta aqui estragaria justamente o "jogar de novo" que a linha oferece.
+   *
+   * `total` vem separado porque a amostra é recortada de propósito: a linha mostra alguma coisa,
+   * não a rodada inteira.
+   */
+  amostraDaFase?: (refs: string[]) => { textos: string[]; total: number };
   /** Tamanho do acervo da fonte — é o denominador do "% do vocabulário já jogado". */
   acervoTotal?: number;
   /** Quantos itens distintos do acervo a pessoa já jogou (o numerador). */
@@ -193,6 +205,7 @@ export default function AntessalaDaRodada({
   duracao,
   fases,
   onJogarFase,
+  amostraDaFase,
   acervoTotal,
   itensJogados,
   estados,
@@ -212,6 +225,9 @@ export default function AntessalaDaRodada({
   /* Recordes DESTE jogo: transforma a antessala em tela pré-jogo — a pessoa vê o que tem a bater
      antes de apertar Jogar. Best-effort: sem histórico, a faixa simplesmente não aparece. */
   const [recorde, setRecorde] = useState<RecordeDoJogo | null>(null);
+  /** Página do histórico de fases. Zera ao trocar de jogo: página 3 de outro jogo não existe. */
+  const [paginaDeFases, setPaginaDeFases] = useState(0);
+  useEffect(() => { setPaginaDeFases(0); }, [gameId]);
   useEffect(() => {
     if (!gameId) return;
     void fetchRecordes().then((rs) => setRecorde(rs.find((r) => r.exerciseKind === gameId) ?? null));
@@ -699,48 +715,138 @@ export default function AntessalaDaRodada({
           </p>
         )}
 
-        {/* ── SUAS FASES: as rodadas passadas viram um mapa de fases com estrelas — e cada uma
-            pode ser REJOGADA com o conteúdo exato, para caçar as 3 estrelas ou bater os pontos.
-            Limitado às 6 mais recentes: é uma prateleira de retorno rápido, não um arquivo. ── */}
-        {fases && fases.length > 0 && onJogarFase && (
-          <section className="mt-5">
-            <p className="label-mono mb-2">Suas fases neste jogo</p>
-            <ul className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
-              {fases.slice(0, 6).map((f, idx) => (
-                <li key={f.roundId}>
-                  <button
-                    onClick={() => onJogarFase(f.refs)}
-                    disabled={f.refs.length === 0}
-                    className="w-full text-left card-panel bg-surface hover:border-accent transition-colors p-3 cursor-pointer disabled:opacity-50 disabled:cursor-default group"
-                    title={f.refs.length ? 'Jogar esta fase de novo com as mesmas palavras' : 'Esta rodada antiga não guardou as palavras'}
-                  >
-                    <span className="flex items-center justify-between gap-2">
-                      <span className="text-[12px] font-bold text-ink">Fase {fases.length - idx}</span>
-                      {/* Estrela TEXTUALMENTE preenchida ou vazia — cor sozinha não passa no
-                          alto contraste; o title diz a régua. */}
-                      <span className="flex items-center gap-0.5" title={`${f.estrelas} de 3 estrelas (${f.precisao}% de acerto)`} aria-label={`${f.estrelas} de 3 estrelas`}>
-                        {[1, 2, 3].map((n) => (
-                          <Star key={n} className={`w-3.5 h-3.5 ${n <= f.estrelas ? 'text-warn fill-warn' : 'text-border-subtle'}`} aria-hidden />
-                        ))}
-                      </span>
-                    </span>
-                    <span className="flex flex-wrap items-center gap-x-3 gap-y-0.5 mt-1.5 text-[11.5px] text-ink-muted tabular-nums">
-                      {f.pontos > 0 && <span className="flex items-center gap-1"><Medal className="w-3 h-3" aria-hidden /> {f.pontos}</span>}
-                      <span className="flex items-center gap-1"><Target className="w-3 h-3" aria-hidden /> {f.acertos}/{f.total}</span>
-                      {f.combo > 1 && <span className="flex items-center gap-1"><Zap className="w-3 h-3" aria-hidden /> ×{f.combo}</span>}
-                      {quandoCaiu(f.quando) && <span className="ml-auto text-ink-faint">{quandoCaiu(f.quando)}</span>}
-                    </span>
-                    {f.refs.length > 0 && (
-                      <span className="flex items-center gap-1 mt-1.5 text-[11px] font-semibold text-accent-ink opacity-0 group-hover:opacity-100 transition-opacity">
-                        <RotateCcw className="w-3 h-3" aria-hidden /> jogar de novo{f.estrelas < 3 ? ' e melhorar' : ''}
-                      </span>
-                    )}
-                  </button>
-                </li>
-              ))}
-            </ul>
-          </section>
-        )}
+        {/* ── SUAS FASES — TABELA PAGINADA.
+            Eram cartões numa grade cortada nas 6 mais recentes: quem jogou vinte rodadas via seis
+            e não tinha como chegar nas outras, e as seis já ocupavam meia tela. Tabela porque os
+            campos se repetem em toda linha (fase, pontos, estrelas, quando) e comparar entre
+            rodadas é o que se faz aqui — comparar é justamente o que uma grade de cartões atrapalha.
+
+            A AMOSTRA DE PALAVRAS aparece ao passar o mouse (ou ao focar pelo teclado) e passa pelo
+            funil `previaSegura`: num jogo onde a palavra É a resposta, o que sai é a pista. A
+            coluna reserva a largura sempre, então revelar não empurra a tabela. ── */}
+        {fases && fases.length > 0 && onJogarFase && (() => {
+          const POR_PAGINA = 6;
+          const paginas = Math.ceil(fases.length / POR_PAGINA);
+          const pagina = Math.min(paginaDeFases, paginas - 1);
+          const daPagina = fases.slice(pagina * POR_PAGINA, pagina * POR_PAGINA + POR_PAGINA);
+          return (
+            <section className="mt-5">
+              <div className="flex items-center justify-between gap-3 mb-2">
+                <p className="label-mono">Suas fases neste jogo</p>
+                {paginas > 1 && (
+                  <nav className="flex items-center gap-1 text-[11px] text-ink-muted" aria-label="Páginas das fases">
+                    <button
+                      type="button"
+                      onClick={() => setPaginaDeFases((p) => Math.max(0, p - 1))}
+                      disabled={pagina === 0}
+                      className="p-1 rounded-lg border border-border-subtle disabled:opacity-35 disabled:cursor-default hover:border-accent cursor-pointer"
+                      aria-label="Página anterior"
+                    >
+                      <ChevronLeft className="w-3.5 h-3.5" aria-hidden />
+                    </button>
+                    <span className="tabular-nums px-1" aria-live="polite">{pagina + 1}/{paginas}</span>
+                    <button
+                      type="button"
+                      onClick={() => setPaginaDeFases((p) => Math.min(paginas - 1, p + 1))}
+                      disabled={pagina >= paginas - 1}
+                      className="p-1 rounded-lg border border-border-subtle disabled:opacity-35 disabled:cursor-default hover:border-accent cursor-pointer"
+                      aria-label="Próxima página"
+                    >
+                      <ChevronRight className="w-3.5 h-3.5" aria-hidden />
+                    </button>
+                  </nav>
+                )}
+              </div>
+
+              <div className="card-panel bg-surface overflow-x-auto">
+                <table className="w-full text-[12px] border-collapse">
+                  <caption className="sr-only">
+                    Rodadas passadas deste jogo. Cada linha rejoga a fase com as mesmas palavras.
+                  </caption>
+                  <thead>
+                    <tr className="text-ink-faint">
+                      <th scope="col" className="text-left font-bold uppercase tracking-wider text-[9px] px-3 py-2">Fase</th>
+                      <th scope="col" className="text-right font-bold uppercase tracking-wider text-[9px] px-3 py-2">Pontos</th>
+                      <th scope="col" className="text-left font-bold uppercase tracking-wider text-[9px] px-3 py-2">Estrelas</th>
+                      <th scope="col" className="text-left font-bold uppercase tracking-wider text-[9px] px-3 py-2">Quando</th>
+                      <th scope="col" className="text-left font-bold uppercase tracking-wider text-[9px] px-3 py-2 w-[40%]">O que caiu</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {daPagina.map((f, idx) => {
+                      const numero = fases.length - (pagina * POR_PAGINA + idx);
+                      const amostra = amostraDaFase?.(f.refs);
+                      const podeRejogar = f.refs.length > 0;
+                      return (
+                        <tr
+                          key={f.roundId}
+                          className="border-t border-border-subtle group hover:bg-canvas/50 focus-within:bg-canvas/50 transition-colors"
+                        >
+                          <th scope="row" className="text-left px-3 py-2">
+                            <button
+                              type="button"
+                              onClick={() => onJogarFase(f.refs)}
+                              disabled={!podeRejogar}
+                              title={podeRejogar
+                                ? 'Jogar esta fase de novo com as mesmas palavras'
+                                : 'Esta rodada antiga não guardou as palavras'}
+                              className="font-bold text-ink hover:text-accent-ink disabled:opacity-50 disabled:cursor-default cursor-pointer flex items-center gap-1.5"
+                            >
+                              {podeRejogar && (
+                                <RotateCcw
+                                  className="w-3 h-3 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity"
+                                  aria-hidden
+                                />
+                              )}
+                              Fase {numero}
+                            </button>
+                          </th>
+                          <td className="px-3 py-2 text-right tabular-nums text-ink-muted">{f.pontos || '—'}</td>
+                          <td className="px-3 py-2">
+                            {/* Preenchida ou vazia por FORMA, não por cor: o app tem 7 temas e o
+                                alto contraste apaga a diferença de matiz. */}
+                            <span
+                              className="flex items-center gap-0.5"
+                              aria-label={`${f.estrelas} de 3 estrelas`}
+                              title={`${f.estrelas} de 3 (${f.precisao}% de acerto)`}
+                            >
+                              {[1, 2, 3].map((n) => (
+                                <Star key={n} className={`w-3 h-3 ${n <= f.estrelas ? 'text-warn fill-warn' : 'text-border-subtle'}`} aria-hidden />
+                              ))}
+                            </span>
+                          </td>
+                          <td className="px-3 py-2 text-ink-faint whitespace-nowrap">{quandoCaiu(f.quando) || '—'}</td>
+                          <td className="px-3 py-2">
+                            <span className="flex flex-wrap items-center gap-1 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity">
+                              {amostra && amostra.textos.length > 0 ? (
+                                <>
+                                  {amostra.textos.map((t) => (
+                                    <span
+                                      key={t}
+                                      title={t}
+                                      className="px-1.5 py-0.5 rounded-md bg-canvas border border-border-subtle text-[11px] text-ink-muted max-w-[14ch] truncate"
+                                    >
+                                      {t}
+                                    </span>
+                                  ))}
+                                  {amostra.total > amostra.textos.length && (
+                                    <span className="text-[11px] text-ink-faint">+{amostra.total - amostra.textos.length}</span>
+                                  )}
+                                </>
+                              ) : (
+                                <span className="text-[11px] text-ink-faint">{f.acertos} de {f.total} nesta fase</span>
+                              )}
+                            </span>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </section>
+          );
+        })()}
 
         <div className="flex flex-wrap items-center gap-2.5 mt-5">
           <button onClick={onJogar} disabled={vazia} className="btn-solid disabled:opacity-40">

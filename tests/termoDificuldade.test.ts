@@ -86,6 +86,46 @@ describe('a rodada inteira cabe no mesmo tabuleiro', () => {
   })
 })
 
+/**
+ * REFAZER UMA FASE PASSADA NÃO PASSA PELA RÉGUA DE HOJE.
+ *
+ * O DEFEITO, reproduzido com as rodadas reais do banco: "jogar esta fase de novo" reaplicava a
+ * régua de comprimento vigente sobre palavras escolhidas noutro dia. `find, ball, left` (4 letras)
+ * ficava impossível no difícil; `legend, sponge, empire` (6) no fácil; e `sadness, geology,
+ * mystery` (7) em TODAS as faixas, por terem sido jogadas quando o teto ainda era 8. Como
+ * `rodadasDaEscada` devolve `[]` sem escada e quem chamava engolia o `null`, o botão simplesmente
+ * não fazia nada — sem erro, sem aviso.
+ */
+describe('refazer uma fase usa as palavras dela, não a régua de hoje', () => {
+  const fase = (ws: Array<[string, string]>) => ws.map(([w, t]) => carta(w, t))
+
+  it('as três fases que o banco tinha e que nenhuma faixa aceitava voltam a montar', () => {
+    const casos: Array<[string, Array<[string, string]>]> = [
+      ['4 letras', [['find', 'encontrar'], ['ball', 'bola'], ['left', 'esquerda']]],
+      ['6 letras', [['legend', 'lenda'], ['sponge', 'esponja'], ['empire', 'império']]],
+      ['7 letras (teto antigo)', [['sadness', 'tristeza'], ['geology', 'geologia'], ['mystery', 'mistério']]],
+    ]
+    for (const [rotulo, ws] of casos) {
+      const r = rodadasDaEscada(fase(ws), { faixa: 'livre' })
+      expect(r.length, rotulo).toBeGreaterThanOrEqual(3)
+      expect(r.map(x => x.palavra).sort(), rotulo).toEqual(ws.map(([w]) => w).sort())
+    }
+  })
+
+  it('e cada uma delas era mesmo impossível em alguma faixa — a prova do defeito', () => {
+    expect(rodadasDaEscada(fase([['find','encontrar'],['ball','bola'],['left','esquerda']]), { faixa: 'dificil' })).toEqual([])
+    expect(rodadasDaEscada(fase([['legend','lenda'],['sponge','esponja'],['empire','império']]), { faixa: 'facil' })).toEqual([])
+    for (const f of ['facil', 'medio', 'dificil'] as const) {
+      expect(rodadasDaEscada(fase([['sadness','tristeza'],['geology','geologia'],['mystery','mistério']]), { faixa: f }), f).toEqual([])
+    }
+  })
+
+  it('o livre solta SÓ o comprimento — hífen e pista inútil continuam barrando', () => {
+    expect(motivoForaDoTermo(carta('ice cream', 'sorvete'), 'livre')).toBe('hifen-ou-espaco')
+    expect(motivoForaDoTermo(carta('sadness', 'tristeza'), 'livre')).toBeNull()
+  })
+})
+
 describe('a escada para onde a faixa manda', () => {
   it('o quarteto deixa de ser o destino padrão', () => {
     expect(Math.max(...ESCADA_POR_FAIXA.facil)).toBe(1)

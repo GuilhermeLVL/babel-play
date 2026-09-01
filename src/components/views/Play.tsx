@@ -647,7 +647,12 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
          tela era um quarteto — quatro grades lado a lado, nove linhas cada — para quem estava
          começando. Agora as letras e o teto da escada seguem a mesma faixa do resto.
          A escolha explícita nos chips vence; sem ela, a decisão automática pela precisão recente. */
-      const faixaDoTermo = faixas.length === 1 ? faixas[0] : faixas.length ? undefined : decisaoAuto('termo').faixa;
+      /* REFAZER NÃO É ESCOLHER DIFICULDADE. Com `apenas`, as palavras JÁ foram escolhidas numa
+         rodada que aconteceu, e reaplicar a régua de letras de hoje sobre elas tornava fases
+         inteiras impossíveis de refazer — o clique morria em silêncio. Ver `ReguaDeLetras`. */
+      const faixaDoTermo = apenas?.size
+        ? 'livre' as const
+        : faixas.length === 1 ? faixas[0] : faixas.length ? undefined : decisaoAuto('termo').faixa;
       const r = rodadasDaEscada(cartas, { evitar, memoria, semente: sementeDoDia, diaDe: diaLocal, faixa: faixaDoTermo });
       if (!r.length) return null;
       return pronta(
@@ -1895,9 +1900,34 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
         /* O MAPA DE FASES: as rodadas passadas deste jogo nesta fonte, com estrelas e rejogar.
            `historico.size` é o nº de itens distintos já jogados — o numerador do % de vocabulário. */
         fases={agruparFases(linhasDaFonte, antessala.jogo)}
+        /**
+         * A AMOSTRA QUE A TABELA MOSTRA NO HOVER — pela MESMA cerca da prévia.
+         *
+         * `previaSegura` decide, por jogo, o que pode ir à tela: no Termo e no Caça-palavras a
+         * palavra É a resposta e o que sai é a PISTA. Reimplementar a regra aqui seria criar a
+         * segunda verdade que os oito ramos de `montarRodada` já criaram uma vez, e que custou o
+         * Termo imprimindo a palavra que ia pedir para soletrar.
+         *
+         * Recortada em quatro de propósito: a linha responde "o que caiu aqui?", não "liste a
+         * rodada". O `+N` diz que há mais sem precisar mostrá-los.
+         */
+        amostraDaFase={(refs) => {
+          const crus: ItemCru[] = refs.map((ref) => ({
+            ref,
+            alvo: ref,
+            pista: porPalavra.get(ref.toLowerCase())?.translation ?? undefined,
+          }));
+          const seguros = previaSegura(antessala.jogo, crus);
+          return { textos: seguros.slice(0, 4).map((i) => i.titulo), total: seguros.length };
+        }}
         onJogarFase={(refs) => {
           const r = montarRodada(antessala.jogo, null, new Set(refs));
+          /* CLIQUE MORTO NUNCA MAIS — a mesma regra de `pedirParaJogar`. Este `if` era mudo, e foi
+             assim que a régua de letras derrubando uma fase antiga virou "o botão não faz nada".
+             O material pode ter sumido de verdade (palavra removida do baralho), e aí a pessoa
+             precisa saber disso em vez de clicar de novo. */
           if (r) setAntessala(r);
+          else toast.error('Não deu para remontar esta fase: as palavras dela não estão mais no material desta fonte.');
         }}
         acervoTotal={acervoDaFonte.length}
         itensJogados={historico.size}

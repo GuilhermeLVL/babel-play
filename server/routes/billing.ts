@@ -16,10 +16,13 @@ import { Router, json } from 'express'
 import { timingSafeEqual } from 'node:crypto'
 import { z } from 'zod'
 import { PLAN_MATRIX, ehPlanoDeAssinatura, type PlanoDeAssinatura } from '../../src/core/planos'
+import { creditsRepo } from '../db/repositories/credits'
+import { pacotePorSku, centavosParaReais } from '../../src/core/creditos'
 import { subscriptionsRepo } from '../db/repositories/subscriptions'
 import { billingEventsRepo } from '../db/repositories/billingEvents'
 import { asUserId } from '../lib/authContext'
-import { asaasConfigurado, cancelarAssinatura, criarAssinatura, criarCliente, primeiraCobranca, webhookToken } from '../lib/asaas'
+import { asaasConfigurado, cancelarAssinatura, criarAssinatura,
+  criarCobrancaAvulsa, criarCliente, primeiraCobranca, webhookToken } from '../lib/asaas'
 import { parseOr400 } from '../validation'
 import { erroDeRota } from '../lib/erroDeRota'
 import { log } from '../lib/logger'
@@ -35,6 +38,72 @@ const assinarSchema = z.object({
   cpfCnpj: z.string().regex(/^\d{11}$|^\d{14}$/, 'CPF (11 dígitos) ou CNPJ (14), só números'),
   email: z.string().email().max(200).optional(),
 }).strip()
+
+/**
+ * COMPRAR CRÉDITOS OU O PASSE — cobrança avulsa (mudança economia-legivel-e-moedas).
+ *
+ * Espelha `/assinar` de propósito, inclusive no que NÃO faz: devolve o link e grava a compra
+ * como `pendente`. Quem concede é o webhook, quando o pagamento confirmar. Conceder aqui seria
+ * dar crédito a quem abandonou o checkout — e o crédito é dinheiro.
+ */
+const comprarSchema = z.object({
+  sku: z.string().min(2).max(24),
+  nome: z.string().min(2).max(120),
+  cpfCnpj: z.string().regex(/^\d{11}$|^\d{14}$/, 'CPF (11) ou CNPJ (14) dígitos'),
+  email: z.string().email().max(160).optional(),
+})
+
+billingRouter.post('/comprar', async (req, res) => {
+  const dados = parseOr400(comprarSchema, req.body, res)
+  if (!dados) return
+  if (!asaasConfigurado()) {
+    res.status(501).json({ error: 'cobrança não configurada no servidor (ASAAS_API_KEY ausente)' })
+    return
+  }
+  const pacote = pacotePorSku(dados.sku)
+  if (!pacote) {
+    res.status(400).json({ error: 'pacote inexistente' })
+    return
+  }
+
+  try {
+    // Mesmo cliente Asaas da assinatura, quando já existe: um CPF, um cadastro no provedor.
+    const atual = await subscriptionsRepo.getActive(req.userId)
+    const clienteId =
+      atual?.providerCustomerId ?? (await criarCliente(req.userId, dados.nome, dados.cpfCnpj, dados.email)).id
+
+    const cobranca = await criarCobrancaAvulsa(
+      req.userId, clienteId, centavosParaReais(pacote.precoCentavos), `Babel Play — ${pacote.nome}`,
+    )
+    await creditsRepo.registrarCompra(req.userId, {
+      sku: pacote.sku as import('../db/repositories/credits').SkuDeCredito,
+      creditos: pacote.creditos,
+      valorCentavos: pacote.precoCentavos,
+      providerPaymentId: cobranca.id,
+    })
+    log('info', { event: 'billing_compra_criada', route: '/api/billing/comprar', requestId: req.requestId })
+    res.json({ linkDePagamento: cobranca.invoiceUrl ?? null, cobranca: cobranca.id })
+  } catch (err) {
+    res.status(502).json({ error: `falha ao criar cobrança: ${erroDeRota(err, { event: 'billing_error' })}` })
+  }
+})
+
+/** Saldo e histórico — derivados do razão, nunca de um campo mutável. */
+billingRouter.get('/creditos', async (req, res) => {
+  try {
+    const [saldo, compras] = await Promise.all([
+      creditsRepo.saldo(req.userId),
+      creditsRepo.comprasDoUsuario(req.userId, 10),
+    ])
+    res.json({
+      saldo,
+      temPasse: compras.some((c) => c.sku === 'passe-t1' && c.status === 'pago'),
+      compras: compras.map((c) => ({ sku: c.sku, status: c.status, creditos: c.creditos, em: c.createdAt })),
+    })
+  } catch (err) {
+    res.status(500).json({ error: erroDeRota(err, { event: 'billing_error' }) })
+  }
+})
 
 billingRouter.post('/assinar', async (req, res) => {
   const dados = parseOr400(assinarSchema, req.body, res)
@@ -179,6 +248,27 @@ asaasWebhookRouter.post('/', async (req, res) => {
          e o próximo pagamento re-estica a janela. */
       case 'PAYMENT_CONFIRMED':
       case 'PAYMENT_RECEIVED': {
+        /**
+         * ASSINATURA OU COMPRA AVULSA? A pergunta que faltava.
+         *
+         * Este `case` tratava TODO pagamento confirmado como mensalidade e promovia o pagador a
+         * 'essencial' (o fallback logo abaixo). Enquanto só existiam assinaturas, funcionava. Com
+         * a venda de créditos, uma compra de R$ 9,90 em moeda daria um plano de R$ 9,90/mês de
+         * graça — e o Asaas manda os dois tipos de evento pelo mesmo webhook.
+         *
+         * `payment.subscription` é o discriminador do próprio provedor: presente = parcela de uma
+         * assinatura; ausente = cobrança avulsa. Não inventamos convenção nova para isso.
+         */
+        if (!ev.payment?.subscription && ev.payment?.id) {
+          const compra = await creditsRepo.confirmarPagamento(ev.payment.id)
+          if (compra) {
+            log('info', { event: 'billing_credito_confirmado', requestId: req.requestId })
+            break
+          }
+          // Avulso que não é compra nossa: audita e NÃO promove plano nenhum.
+          log('warn', { event: 'billing_avulso_desconhecido', error: ev.payment.id })
+          break
+        }
         const atual = await subscriptionsRepo.getActive(userId)
         const plano: PlanoDeAssinatura =
           atual && ehPlanoDeAssinatura(atual.plan) && PLAN_MATRIX[atual.plan].precoMensalBrl !== null
@@ -197,6 +287,12 @@ asaasWebhookRouter.post('/', async (req, res) => {
         await subscriptionsRepo.upsert(userId, { status: 'past_due' })
         break
       case 'PAYMENT_REFUNDED':
+        // Estorno de compra avulsa: a compra deixa de conceder crédito (evento inverso).
+        if (!ev.payment?.subscription && ev.payment?.id) {
+          await creditsRepo.cancelarCompra(ev.payment.id)
+          break
+        }
+        // fallthrough: estorno de assinatura cancela o plano, como antes.
       case 'SUBSCRIPTION_DELETED':
         await subscriptionsRepo.upsert(userId, { status: 'canceled' })
         break

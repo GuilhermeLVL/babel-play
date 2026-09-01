@@ -113,6 +113,13 @@
       "when": 1788192493490,
       "tag": "0015_slim_stingray",
       "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "6",
+      "when": 1788230826971,
+      "tag": "0016_charming_prima",
+      "breakpoints": true
     }
   ]
 }

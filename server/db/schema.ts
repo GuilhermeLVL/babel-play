@@ -325,6 +325,51 @@ export const seedCredits = sqliteTable('seed_credits', {
   uniqueIndex('uq_seed_credits_user_credito').on(t.userId, t.creditoId).where(sql`${t.deletedAt} is null`),
 ])
 
+/**
+ * CRÉDITOS — a moeda COMPRADA (spec economia-de-creditos + economia-legivel-e-moedas).
+ *
+ * A regra que separa isto de `seed_credits`: Seeds são GANHAS e o cliente pode calculá-las;
+ * Créditos são comprados com dinheiro e por isso vivem SÓ aqui — "nada comprado com dinheiro
+ * pode viver em localStorage". O saldo nunca é campo mutável: é `compras pagas − gastos`, do
+ * mesmo jeito que o saldo de Seeds, para que reembolso seja um evento inverso e não um UPDATE.
+ *
+ * `provider_payment_id` é único porque é a chave de idempotência do webhook: o Asaas reentrega
+ * o mesmo evento quando não recebe 200, e crédito duplicado é dinheiro de graça.
+ */
+export const creditPurchases = sqliteTable('credit_purchases', {
+  id: text('id').primaryKey(),
+  ...meta,
+  /** O pacote comprado ('c100' | 'c300' | 'c700' | 'passe-t1'). */
+  sku: text('sku').notNull(),
+  /** Quantos créditos a compra concede quando confirmar. */
+  creditos: integer('creditos').notNull(),
+  /** Em CENTAVOS: dinheiro em ponto flutuante é como se perde um centavo por transação. */
+  valorCentavos: integer('valor_centavos').notNull(),
+  provider: text('provider').notNull().default('asaas'),
+  /** Id da cobrança no provedor. É por ele que o webhook encontra esta linha. */
+  providerPaymentId: text('provider_payment_id'),
+  /** 'pendente' até o webhook confirmar; 'pago' concede; 'cancelado' não concede nada. */
+  status: text('status').notNull().default('pendente'),
+  paidAt: integer('paid_at'),
+}, (t) => [
+  index('idx_credit_purchases_user').on(t.userId),
+  uniqueIndex('uq_credit_purchases_payment').on(t.providerPaymentId).where(sql`${t.deletedAt} is null`),
+])
+
+/** O outro lado: gasto de créditos. Mesmo desenho de `seed_spends` — evento, idempotente por id. */
+export const creditSpends = sqliteTable('credit_spends', {
+  id: text('id').primaryKey(),
+  ...meta,
+  /** Id gerado pelo cliente; reenvio do mesmo id pelo mesmo dono não cobra de novo. */
+  spendId: text('spend_id').notNull(),
+  amount: integer('amount').notNull(),
+  reason: text('reason').notNull(),
+  ref: text('ref'),
+}, (t) => [
+  index('idx_credit_spends_spend_id').on(t.spendId),
+  uniqueIndex('uq_credit_spends_user_spend').on(t.userId, t.spendId).where(sql`${t.deletedAt} is null`),
+])
+
 export const presencas = sqliteTable('presencas', {
   id: text('id').primaryKey(),
   ...meta,

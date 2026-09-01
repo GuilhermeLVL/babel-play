@@ -35,8 +35,19 @@ const req = (body: unknown, token: string | undefined = SEGREDO) => ({
   body,
   header: (k: string) => (k.toLowerCase() === 'asaas-access-token' ? token : undefined),
 })
+/**
+ * PAGAMENTO DE ASSINATURA — carrega `payment.subscription`, e é isso que o distingue de uma
+ * compra avulsa. Este helper não tinha o campo, o que significa que os testes vinham
+ * exercitando a forma AVULSA e recebendo promoção de plano: exatamente o bug que a venda de
+ * créditos ia expor em produção (uma compra de R$ 9,90 virava assinatura de graça).
+ */
 const evento = (id: string, event: string, userId: string) => ({
-  id, event, payment: { id: `pay_${id}`, externalReference: userId },
+  id, event, payment: { id: `pay_${id}`, subscription: `sub_${userId}`, externalReference: userId },
+})
+
+/** O outro tipo que chega no MESMO webhook: cobrança avulsa (créditos, passe). Sem `subscription`. */
+const eventoAvulso = (id: string, event: string, userId: string, paymentId: string) => ({
+  id, event, payment: { id: paymentId, externalReference: userId },
 })
 
 beforeAll(async () => {
@@ -69,6 +80,39 @@ describe('autenticação do webhook', () => {
     expect(res.statusCode).toBe(501)
     expect(await subs.getActive(asUserId('u-w2'))).toBeNull()
     process.env.ASAAS_WEBHOOK_TOKEN = SEGREDO
+  })
+})
+
+/**
+ * O BUG QUE A VENDA DE MOEDA IA EXPOR (economia-legivel-e-moedas).
+ *
+ * O `case PAYMENT_CONFIRMED` tratava TODO pagamento como mensalidade e promovia o pagador ao
+ * plano 'essencial'. Enquanto só existiam assinaturas, funcionava. Com créditos à venda, uma
+ * compra de R$ 9,90 em moeda daria um plano de R$ 9,90/mês de graça — e os dois tipos de evento
+ * chegam pelo MESMO webhook.
+ */
+describe('compra avulsa não vira assinatura', () => {
+  it('pagamento sem `subscription` NÃO promove plano nenhum', async () => {
+    const u = asUserId('u-avulso')
+    const res = mockRes()
+    await handler()(req(eventoAvulso('evt_av1', 'PAYMENT_CONFIRMED', 'u-avulso', 'pay_desconhecido')), res)
+    expect(res.statusCode).toBe(200)
+    // Antes desta correção, aqui havia uma assinatura 'essencial' ativa que ninguém contratou.
+    expect(await subs.getActive(u)).toBeNull()
+  })
+
+  it('e a compra registrada é confirmada, creditando o pacote', async () => {
+    const { creditsRepo } = (await h.load('../../server/db/repositories/credits')) as any
+    const u = asUserId('u-comprador')
+    await creditsRepo.registrarCompra(u, { sku: 'c300', creditos: 300, valorCentavos: 2490, providerPaymentId: 'pay_credito' })
+    expect(await creditsRepo.saldo(u)).toBe(0)
+
+    const res = mockRes()
+    await handler()(req(eventoAvulso('evt_av2', 'PAYMENT_CONFIRMED', 'u-comprador', 'pay_credito')), res)
+    expect(res.statusCode).toBe(200)
+    expect(await creditsRepo.saldo(u)).toBe(300)
+    // E continua sem virar assinante.
+    expect(await subs.getActive(u)).toBeNull()
   })
 })
 

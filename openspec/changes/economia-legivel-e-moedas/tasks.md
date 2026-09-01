@@ -15,11 +15,11 @@
 
 ## 3. Moedas (backend antes da tela)
 
-- [ ] 3.1 `criarCobrancaAvulsa` no cliente Asaas (POST /payments)
-- [ ] 3.2 Webhook discrimina avulso × assinatura (hoje uma compra promoveria a plano)
-- [ ] 3.3 Tabelas `credit_purchases` / `credit_spends` (evento, nunca saldo mutável)
+- [x] 3.1 `criarCobrancaAvulsa` no cliente Asaas (POST /payments)
+- [x] 3.2 Webhook discrimina avulso × assinatura (hoje uma compra promoveria a plano)
+- [x] 3.3 Tabelas `credit_purchases` / `credit_spends` (evento, nunca saldo mutável)
 - [ ] 3.4 Saldo de créditos derivado no perfil
-- [ ] 3.5 Testes de idempotência espelhando billing-webhook
+- [x] 3.5 Testes de idempotência espelhando billing-webhook
 
 ## 4. Telas de compra
 

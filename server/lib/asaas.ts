@@ -84,6 +84,38 @@ export async function criarAssinatura(
   })
 }
 
+/**
+ * COBRANÇA AVULSA — pagamento único, não assinatura (créditos e Passe de Temporada).
+ *
+ * Irmã de `criarAssinatura` e igual em tudo que importa: mesmo `chamar`, mesmo `billingType:
+ * 'UNDEFINED'` (o Asaas oferece Pix, boleto e cartão e o pagador escolhe), mesmo
+ * `externalReference` com o userId — é por ele que o webhook sabe de quem é o pagamento.
+ *
+ * A diferença que o webhook enxerga: a cobrança avulsa NÃO tem `subscription`, e é assim que
+ * `billing.ts` distingue "comprou moeda" de "pagou a mensalidade" antes de conceder qualquer
+ * coisa. Sem essa distinção, uma compra de créditos promoveria o comprador a assinante.
+ */
+export async function criarCobrancaAvulsa(
+  userId: UserId,
+  clienteId: string,
+  valorBrl: number,
+  descricao: string,
+): Promise<CobrancaAsaas> {
+  // Vencimento em 3 dias: boleto e Pix precisam de janela; o crédito só entra na confirmação.
+  const vence = new Date(Date.now() + 3 * 86_400_000).toISOString().slice(0, 10)
+  return chamar<CobrancaAsaas>('/payments', {
+    method: 'POST',
+    body: JSON.stringify({
+      customer: clienteId,
+      billingType: 'UNDEFINED',
+      value: valorBrl,
+      dueDate: vence,
+      description: descricao,
+      externalReference: String(userId),
+    }),
+  })
+}
+
 /** A primeira cobrança da assinatura — é dela que sai o link de pagamento (`invoiceUrl`). */
 export async function primeiraCobranca(assinaturaId: string): Promise<CobrancaAsaas | null> {
   const r = await chamar<{ data?: CobrancaAsaas[] }>(`/subscriptions/${assinaturaId}/payments?limit=1`)

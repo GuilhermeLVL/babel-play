@@ -43,6 +43,7 @@ function montar(escolha: Partial<EscolhaDaPratica> = {}) {
     <SalaDeEscolha
       escolhaAtual={{ origem: 'gravacoes', escopo: 'todas', lang: 'en', ...escolha }}
       idiomas={IDIOMAS}
+      dificeis={0}
       gravacoes={GRAVACOES}
       trilhaDe={trilhaDe}
       ageProfile="pro"
@@ -145,6 +146,7 @@ describe('os números são de material JOGÁVEL', () => {
       <SalaDeEscolha
         escolhaAtual={{ origem: 'gravacoes', escopo: 'todas', lang: 'en' }}
         idiomas={IDIOMAS}
+        dificeis={0}
         gravacoes={[]}
         trilhaDe={trilhaDe}
         ageProfile="pro"

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { X, Play as IconePlay, Mic, GraduationCap } from 'lucide-react';
+import { X, Play as IconePlay, Mic, GraduationCap, Flame } from 'lucide-react';
 import { Segmentado } from '../ui';
 import LangPicker from '../LangPicker';
 import { langLabelPt } from '../../lib/languages';
@@ -56,13 +56,15 @@ interface SalaProps {
    * antigo, e a pessoa via a opção recusar exatamente o que ela acabou de pedir.
    */
   trilhaDe: (lang: string) => { niveis: CefrLevel[]; total: number };
+  /** Tamanho do ranking de palavras difíceis (servidor). Menos de 4 = sem rodada possível. */
+  dificeis: number;
   ageProfile: AgeProfileType;
   aoConfirmar: (e: EscolhaDaPratica) => void;
   aoFechar: () => void;
 }
 
 export default function SalaDeEscolha({
-  escolhaAtual, idiomas, gravacoes, trilhaDe, ageProfile, aoConfirmar, aoFechar,
+  escolhaAtual, idiomas, gravacoes, trilhaDe, dificeis, ageProfile, aoConfirmar, aoFechar,
 }: SalaProps) {
   const [lang, setLang] = useState(escolhaAtual.lang);
   const [origem, setOrigem] = useState<OrigemDaPratica>(escolhaAtual.origem);
@@ -258,6 +260,16 @@ export default function SalaDeEscolha({
                   contagem: temTrilha ? totalDaTrilha : undefined,
                   tom: 'good',
                   motivoBloqueio: temTrilha ? undefined : `ainda não existe trilha em ${langLabelPt(lang)}`,
+                },
+                // O ranking do servidor como fonte (progresso-de-idioma 2.3): as palavras que
+                // você mais ERRA, na ordem da dor. Aparece sempre; sem material, diz o porquê.
+                {
+                  id: 'dificeis',
+                  rotulo: ageProfile === 'kids' ? 'As que eu mais erro' : 'Palavras difíceis',
+                  icone: <Flame className="w-3.5 h-3.5" aria-hidden />,
+                  contagem: dificeis >= 4 ? dificeis : undefined,
+                  tom: 'warn',
+                  motivoBloqueio: dificeis >= 4 ? undefined : 'revise mais um pouco — o ranking de difíceis ainda não tem material para uma rodada',
                 },
               ]}
             />

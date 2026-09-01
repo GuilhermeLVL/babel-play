@@ -33,7 +33,9 @@ export interface FonteGuardada {
 
 const PADRAO: FonteGuardada = { origem: 'gravacoes', escopo: 'todas' };
 
-const ORIGENS: OrigemDaPratica[] = ['gravacoes', 'trilha'];
+// 'dificeis' guarda SÓ a origem — o ranking em si é lido vivo do servidor a cada visita
+// (congelar ids aqui seria praticar a foto de um dia; ver FonteDeItens.cardIds no core).
+const ORIGENS: OrigemDaPratica[] = ['gravacoes', 'trilha', 'dificeis'];
 const ESCOPOS: EscopoDeGravacoes[] = ['todas', 'uma'];
 const NIVEIS = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2'];
 

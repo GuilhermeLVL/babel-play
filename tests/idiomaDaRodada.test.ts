@@ -173,3 +173,25 @@ describe('o fallback offline também filtra idioma', () => {
     expect(c.itens.length).toBe(DECK.length)
   })
 })
+
+describe('fonte dificeis — o ranking do servidor vira rodada (progresso-de-idioma 2.3)', () => {
+  it('recorta pelo ranking e DEVOLVE NA ORDEM DELE — a rodada começa pelo que mais dói', () => {
+    const t = cartoesDaFonte(DECK, { id: 'dificeis', lang: 'en', cardIds: ['en3', 'en1', 'en4'] })
+    expect(t.usaveis.map(c => c.id)).toEqual(['en3', 'en1', 'en4'])
+  })
+
+  it('sem cardIds injetados, a resposta é VAZIO — a mesma regra da sessão sem id', () => {
+    expect(cartoesDaFonte(DECK, { id: 'dificeis', lang: 'en' }).usaveis).toEqual([])
+    expect(cartoesDaFonte(DECK, { id: 'dificeis', lang: 'en', cardIds: [] }).usaveis).toEqual([])
+  })
+
+  it('a triagem de idioma continua valendo por cima do ranking', () => {
+    const t = cartoesDaFonte(DECK, { id: 'dificeis', lang: 'en', cardIds: ['pt1', 'en2'] })
+    expect(t.usaveis.map(c => c.id)).toEqual(['en2'])
+  })
+
+  it('id que não existe mais no baralho é ignorado sem quebrar a rodada', () => {
+    const t = cartoesDaFonte(DECK, { id: 'dificeis', lang: 'en', cardIds: ['apagado', 'en1'] })
+    expect(t.usaveis.map(c => c.id)).toEqual(['en1'])
+  })
+})

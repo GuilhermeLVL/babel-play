@@ -89,7 +89,7 @@ export interface EntradaDoEstado {
    * falas de uma gravação qualquer (era o defeito antigo). Só a Frase embaralhada as consome.
    */
   frasesDaTrilha?: FalaComAudio[];
-  fonteId: 'baralho' | 'sessao' | 'trilha';
+  fonteId: 'baralho' | 'sessao' | 'trilha' | 'dificeis';
   lang: string;
 }
 

@@ -196,6 +196,21 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
   const [fonte, setFonte] = useState<FonteDeItens>({ id: 'baralho', lang: '' });
 
   /**
+   * O RANKING DE DIFÍCEIS, injetado VIVO na fonte (progresso-de-idioma 2.3). O estado `fonte`
+   * guarda só `{id:'dificeis', lang}`; os ids vêm do servidor a cada render — congelá-los no
+   * estado (ou no localStorage) faria a rodada praticar a foto do dia da escolha, e "difícil"
+   * é exatamente o que muda conforme se pratica.
+   */
+  const rankingDeDificeis = useMemo(
+    () => (metrics?.palavrasDificeis ?? []).map((p) => p.cardId),
+    [metrics],
+  );
+  const fonteComRanking = useMemo<FonteDeItens>(
+    () => (fonte.id === 'dificeis' ? { ...fonte, cardIds: rankingDeDificeis } : fonte),
+    [fonte, rankingDeDificeis],
+  );
+
+  /**
    * A SALA DE ESCOLHA — aberta UMA VEZ POR ENTRADA na tela, e é só isso que este estado faz.
    *
    * Funciona porque `App.tsx` renderiza `{activeView === 'play' && <Play/>}` **sem `key` e sem
@@ -753,7 +768,7 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
     /* SELEÇÃO v2: a memória curta agora PERSISTE por origem (sobrevive ao F5, teto 200), e a
        precisão desta rodada alimenta o modo Auto deste jogo. */
     {
-      const origemDaRodada = fonte.id === 'sessao' ? `sessao:${fonte.sessionId ?? ''}` : fonte.id === 'trilha' ? `trilha:${fonte.nivel ?? ''}` : 'baralho';
+      const origemDaRodada = fonte.id === 'sessao' ? `sessao:${fonte.sessionId ?? ''}` : fonte.id === 'trilha' ? `trilha:${fonte.nivel ?? ''}` : fonte.id === 'dificeis' ? 'dificeis' : 'baralho';
       const refs = report.items.map(o => o.itemRef).filter((r): r is string => !!r);
       registrarVistas(origemDaRodada, refs);
       setVistasRecentes(vistasGuardadas(origemDaRodada));
@@ -775,6 +790,7 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
     const roundId = `${report.gameId}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
     const origem = fonte.id === 'sessao' ? `sessao:${fonte.sessionId ?? ''}`
       : fonte.id === 'trilha' ? `trilha:${fonte.nivel ?? ''}`
+      : fonte.id === 'dificeis' ? 'dificeis'
       : 'baralho';
 
     /**
@@ -968,6 +984,14 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
     });
   }, [embutido, sessoes]);
 
+  /* FONTE 'dificeis' SEM MATERIAL degrada para o baralho — o ranking guardado ontem pode ter
+     esvaziado hoje (revisar bem TIRA palavra do ranking, que é o objetivo). Só age com as
+     métricas carregadas: antes disso, ranking vazio significa "ainda não sei". */
+  useEffect(() => {
+    if (!metrics || fonte.id !== 'dificeis' || rankingDeDificeis.length >= 4) return;
+    setFonte(f => ({ id: 'baralho', lang: f.lang }));
+  }, [metrics, fonte.id, rankingDeDificeis.length]);
+
   /**
    * Falas para os jogos de frase. Quando se chega por uma sessão, são as DAQUELA sessão; senão, a
    * gravação mais recente com áudio. Falha aqui não impede os jogos de baralho: são independentes.
@@ -1034,6 +1058,7 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
    *  rodada escreve, senão o histórico da fonte errada apareceria na antessala. */
   const origemAtual = fonte.id === 'sessao' ? `sessao:${fonte.sessionId ?? ''}`
     : fonte.id === 'trilha' ? `trilha:${fonte.nivel ?? ''}`
+    : fonte.id === 'dificeis' ? 'dificeis'
     : 'baralho';
 
   /**
@@ -1090,7 +1115,7 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
      sessão gravaria o recorde na `origem` errada. (`acumular` já tem o guard como cinto; isto é a
      suspensória, para o placar sumir da tela no instante da troca, e não só na rodada seguinte.) */
   useEffect(() => {
-    const origemDaFonte = fonte.id === 'sessao' ? `sessao:${fonte.sessionId ?? ''}` : fonte.id === 'trilha' ? `trilha:${fonte.nivel ?? ''}` : 'baralho';
+    const origemDaFonte = fonte.id === 'sessao' ? `sessao:${fonte.sessionId ?? ''}` : fonte.id === 'trilha' ? `trilha:${fonte.nivel ?? ''}` : fonte.id === 'dificeis' ? 'dificeis' : 'baralho';
     setVistasRecentes(vistasGuardadas(origemDaFonte));
     setSequencia(null);
   }, [fonte.id, fonte.sessionId, fonte.nivel, fonte.lang]);
@@ -1130,9 +1155,9 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
       /* Instrumento, não lógica — ver `lib/passadasDoPipeline`. Desligado, custa uma leitura de
          propriedade; ligado, é o que prova quantas vezes o baralho inteiro é triado por carga. */
       contarPassada('triagem', { cartoes: (deck ?? []).length, fonte: fonte.id, lang: fonte.lang });
-      return cartoesDaFonte(deck ?? [], fonte);
+      return cartoesDaFonte(deck ?? [], fonteComRanking);
     },
-    [deck, fonte],
+    [deck, fonteComRanking, fonte.id, fonte.lang],
   );
 
   /* COMPOSIÇÃO SERVIDA. Re-pede quando muda fonte, faixa ou estratégia. Falha de rede cai para
@@ -1228,8 +1253,10 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
       temSessao: !!(recording || sessaoEmUso),
       temTrilha: !!trilha,
       sessoesDisponiveis: sessoes.length,
+      // 4 é o menor `minItems` dos jogos: com menos que isso a fonte abriria só telas trancadas.
+      temDificeis: rankingDeDificeis.length >= 4,
     }),
-    [embutido, recording, sessaoEmUso, trilha, sessoes.length],
+    [embutido, recording, sessaoEmUso, trilha, sessoes.length, rankingDeDificeis.length],
   );
 
   /**
@@ -1389,7 +1416,9 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
   const origemDaPalavra = React.useCallback(
     (palavra: string, cardId?: string): 'baralho' | 'sessao' | 'trilha' => {
       const achado = (cardId && proveniencias.get(cardId)) || proveniencias.get(palavra.toLowerCase());
-      return achado?.origem ?? fonte.id;
+      // 'dificeis' não é procedência DE ITEM: a palavra difícil veio do baralho — o ranking só
+      // escolheu a rodada. Por item, o palpite honesto é o baralho.
+      return achado?.origem ?? (fonte.id === 'dificeis' ? 'baralho' : fonte.id);
     },
     [proveniencias, fonte.id],
   );
@@ -1884,6 +1913,7 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
       idiomas={idiomasDoBaralho}
       gravacoes={sessoes}
       trilhaDe={trilhaDe}
+      dificeis={rankingDeDificeis.length}
       ageProfile={ageProfile}
       aoFechar={() => setSalaAberta(false)}
       aoConfirmar={(escolha) => {

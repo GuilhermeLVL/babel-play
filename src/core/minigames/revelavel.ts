@@ -112,7 +112,7 @@ export interface ItemCru {
   idioma?: string;
 }
 
-export type OrigemDoItem = 'baralho' | 'sessao' | 'trilha';
+export type OrigemDoItem = 'baralho' | 'sessao' | 'trilha' | 'dificeis';
 
 /** Como a origem chega à tela: já redigida e já cercada. */
 export interface OrigemNaTela {

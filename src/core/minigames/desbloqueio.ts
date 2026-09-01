@@ -54,8 +54,9 @@ export interface Desbloqueio {
 }
 
 export interface ContextoDeDesbloqueio {
-  /** Onde a prática está agora — decide qual é "a outra ponta" do binário. */
-  fonteId: 'baralho' | 'sessao' | 'trilha';
+  /** Onde a prática está agora — decide qual é "a outra ponta" do binário. A fonte 'dificeis'
+   *  conta como baralho para as portas: a saída dela é sempre "jogar com tudo". */
+  fonteId: 'baralho' | 'sessao' | 'trilha' | 'dificeis';
   /** Idiomas com material JOGÁVEL, sem o idioma atual. Vem de `idiomasDisponiveis`. */
   outrosIdiomas: ReadonlyArray<{ lang: string; jogaveis: number }>;
   /** Quantos itens jogáveis a outra ponta do binário tem. `0` quando ela não existe. */

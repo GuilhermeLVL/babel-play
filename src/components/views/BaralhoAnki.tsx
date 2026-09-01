@@ -1,4 +1,5 @@
 import React, { useRef, useState } from 'react';
+import JSZip from 'jszip';
 import { ArrowLeft, Upload, Download, Loader2, AlertTriangle, FileText, Info } from 'lucide-react';
 import { lerBaralhoAnki, bulkAddCards, exportarApkg, type LeituraAnki, type CartaoPulado } from '../../data/api';
 import { motivoLegivel, ROTULO_MOTIVO, foraDoBulkAdd, type MotivoDescarte } from '@core';
@@ -48,6 +49,44 @@ export default function BaralhoAnki({
   const [resultado, setResultado] = useState<{ entraram: number; pulados: CartaoPulado[] } | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
 
+  /**
+   * MANDA SÓ A COLEÇÃO — sem isto, baralhos reais nem chegam ao servidor.
+   *
+   * O DEFEITO, com o "4000 Essential English Words" do AnkiWeb: o `.apkg` tem **214 MB**, a rota
+   * aceita 200, e o estouro acontece no middleware `raw()` — ANTES do `try/catch` do handler —,
+   * então virava um 500 "erro interno" que não dizia nada. Do lado de quem usa: "tentei subir e
+   * não deu".
+   *
+   * Mas o tamanho é quase todo MÍDIA que o importador joga fora: aquele arquivo tem 14.948
+   * entradas, das quais 14.946 são áudio e imagem. O que o parser lê é uma só —
+   * `collection.anki2x` — e ela tem 630 KB. Medido: **224.592.115 → 629.713 bytes, 356× menor.**
+   *
+   * Reempacotar em vez de mandar a coleção crua mantém o servidor intacto: ele continua
+   * recebendo um `.apkg` legítimo, com o mesmo nome de entrada que já procura, e o caminho do
+   * `.anki21b` (zstd dentro do zip) segue funcionando porque os bytes são copiados como estão.
+   *
+   * Em caso de dúvida, manda o arquivo original: um zip que não abre aqui pode abrir lá, e a
+   * mensagem do servidor explica melhor do que um erro inventado no cliente.
+   */
+  const soAColecao = async (arquivo: File): Promise<File> => {
+    if (!/\.apkg$/i.test(arquivo.name)) return arquivo;
+    try {
+      const zip = await JSZip.loadAsync(arquivo);
+      const nome = ['collection.anki21b', 'collection.anki21', 'collection.anki2']
+        .find((n) => zip.file(n));
+      if (!nome) return arquivo;
+      const dados = await zip.file(nome)!.async('uint8array');
+      const enxuto = new JSZip();
+      enxuto.file(nome, dados);
+      const blob = await enxuto.generateAsync({ type: 'blob', compression: 'DEFLATE' });
+      // Só vale a pena se de fato encolheu; senão o original já era enxuto.
+      if (blob.size >= arquivo.size) return arquivo;
+      return new File([blob], arquivo.name, { type: 'application/octet-stream' });
+    } catch {
+      return arquivo;
+    }
+  };
+
   const escolher = async (arquivo: File | undefined) => {
     if (!arquivo) return;
     setErro(null);
@@ -56,7 +95,7 @@ export default function BaralhoAnki({
     setNomeArquivo(arquivo.name);
     setLendo(true);
     try {
-      setLeitura(await lerBaralhoAnki(arquivo));
+      setLeitura(await lerBaralhoAnki(await soAColecao(arquivo)));
     } catch (e) {
       setErro((e as Error).message);
     } finally {

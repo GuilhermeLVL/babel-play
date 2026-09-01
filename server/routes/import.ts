@@ -9,7 +9,7 @@
  *  - POST /anki     (corpo binário)    → lê um baralho .apkg/.txt e devolve as notas (NÃO grava)
  *  - POST /anki/export { cartoes }     → devolve um .apkg pronto para o Anki
  */
-import { Router, raw } from 'express'
+import { Router, raw, type ErrorRequestHandler } from 'express'
 import path from 'node:path'
 import { readFile, rm } from 'node:fs/promises'
 import { AUDIO_DIR, armazenamentoDeMidia } from './sessions'
@@ -69,7 +69,29 @@ importRouter.post('/anki/export', async (req, res) => {
   }
 })
 
-importRouter.post('/anki', raw({ type: () => true, limit: '200mb' }), async (req, res) => {
+/**
+ * O ESTOURO DE TAMANHO PRECISA DIZER O QUE HOUVE.
+ *
+ * `raw({ limit })` rejeita ANTES do handler, então o `try/catch` de lá nunca vê o erro: ele caía
+ * no tratador global e virava um 500 "erro interno". Medido subindo um `.apkg` de 214 MB: meio
+ * segundo, 500, e nenhuma pista — nem o tamanho, nem o limite, nem o que fazer.
+ *
+ * O cliente agora manda só a coleção (ver `soAColecao` em `BaralhoAnki`), então este caminho é
+ * rede de segurança: vale para quem chama a rota direto e para um `.apkg` que não abra no
+ * navegador. Mas rede de segurança que mente não segura ninguém.
+ */
+const erroDeTamanho: ErrorRequestHandler = (err, _req, res, next) => {
+  const e = err as { type?: string; status?: number; length?: number; limit?: number }
+  if (e?.type !== 'entity.too.large') return next(err)
+  const mb = (n?: number) => (n ? `${(n / 1_048_576).toFixed(0)} MB` : '?')
+  res.status(413).json({
+    error: `este arquivo tem ${mb(e.length)} e o limite é ${mb(e.limit)}. `
+      + 'Num .apkg quase todo o tamanho é áudio e imagem, que não são importados: '
+      + 'exporte o baralho no Anki SEM mídia, ou tente pelo navegador (ele já manda só a lista de palavras).',
+  })
+}
+
+importRouter.post('/anki', raw({ type: () => true, limit: '200mb' }), erroDeTamanho, async (req, res) => {
   const cab = parseOr400(uploadHeadersSchema, req.headers, res)
   if (!cab) return
   try {

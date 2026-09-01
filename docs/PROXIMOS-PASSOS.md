@@ -239,6 +239,29 @@ pré-requisitos duros:
 | E4.5 | `MinigameItem.lang` promete decidir voz e teclado e está **morto** em 4 jogos | `types.ts:25-38` |
 | E4.6 | Conectores e régua gramatical só en/pt/es | `escuta.ts:204-224`, `quality.ts:72-112` |
 
+### F — Motor de ingestão e ludificação de baralhos Anki (01/09)
+
+Programa em gates (G0 pesquisa → G1 spec → G2 protótipo → G3 implementação → G4 ludificação).
+Pesquisa em `docs/pesquisa/motor-anki/G0-relatorio.md`; specs em `openspec/changes/motor-anki-*`.
+A decisão que atravessa tudo: **acervo Anki próprio + projeção em `vocab_cards`**, sem 5ª `FonteId`
+— o filtro por baralho entra pelo `fonte.ref` que já existia, e `vocab_cards` não muda de forma.
+
+| # | O quê | Estado |
+|---|---|---|
+| F0 | ~~`origemDe()` reconhece `anki:`~~ — cada import destruía a procedência; `origin_kind='anki'` estava documentado e nunca era escrito | **FEITO** (`a524f56`) |
+| F1 | ~~Parser lê mídia, cloze, nome de baralho/tipo de nota, hash de estrutura, e ganha teto de notas~~ | **FEITO** — medido no baralho real: 3.600 notas, 6 sub-baralhos, 3.600 com mídia referenciada que antes era apagada |
+| F2 | ~~Perfil de qualidade por origem~~ — `pistaUtil` (42 chars/5 palavras) foi calibrada para fala capturada e recusava definição de dicionário | **FEITO** — 61 de 3.600 viraram **3.590** |
+| F3 | ~~Acervo (`anki_decks`/`anki_notes`/`anki_imports`) + projeção em lotes de 300~~ | **FEITO** — inclui a armadilha do índice parcial (desativar+reimportar rachava o histórico FSRS em dois cartões) |
+| F4 | ~~Exclusão de conta (LGPD) quebrava com a FK nova~~ — `SQLITE_CONSTRAINT` no batch inteiro | **FEITO** — e o baralho importado deixou de sobreviver a um pedido de eliminação |
+| F5 | Rotas do acervo + tela Biblioteca › Baralhos + Mapeador de campos | em andamento |
+| F6 | Mídia: mapa (JSON e protobuf), zstd por arquivo, dedupe **por usuário** (razão jurídica) e cota | em andamento |
+| F7 | Filtro por baralho no lobby + frase do baralho nos jogos de frase | pendente |
+| F8 | Corpus de 10+ baralhos reais medidos (`scripts/corpus-anki/`) — baralhos ficam FORA do repo | pendente: depende de baixar os arquivos |
+
+**Aberto para você decidir:** os cartões importados pelo funil antigo (ocorrência `manual`, sem
+baralho) ficam como estão — não há dado para reconstruir de qual baralho vieram. O funil novo vale
+daqui pra frente.
+
 ---
 
 ## Armadilhas já pagas — não repetir

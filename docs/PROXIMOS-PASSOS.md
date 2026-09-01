@@ -47,28 +47,33 @@ Estas travam trabalho. Estão detalhadas em `docs/auditoria/decisao-infraestrutu
 
 ---
 
-## ⇒ A PRÓXIMA SESSÃO COMEÇA AQUI
+## ⇒ ONDE O PRODUTO ESTÁ (01/09)
 
-A mudança `auditoria-ux-e-economia-de-recompensas` foi EXECUTADA em 31/08 (14/14 tasks):
-relatório em `docs/auditoria/ux-v2.md`, passe recomposto em Cofres por década, perfis salvos
-com renomear, "Voltar ao visual original", e as correções de coerência (palavra de nível única,
-aba "Meu visual", ícones sem overload, gate interno do Estúdio).
+A rodada de 31/08–01/09 fechou a **economia legível** (protótipo aprovado pelo dono em artifact):
 
-Na mesma data, a fila destravada também andou:
-- **Pendências do ux-v2 §6.5 fechadas**: sub-aba de Personalizar na URL (`/loja/passe|meu-visual|
-  itens|desafios`), detector de design zerado (listras, bounce, transition:height), perfil de
-  exibição declarado como acessibilidade. Duas viraram apuração: o "DOM duplicado" em Capturar
-  era display:none (fora da árvore a11y — falso positivo) e o 615×409 de seeds são as duas
-  metades por desenho (fórmula + razão); o que resta ali é decisão SUA: perdoar ou não o rombo
-  histórico de gastos (2.120) que prende o saldo em 0.
-- **progresso-de-idioma 6/6**: as palavras difíceis viram fonte de rodada nos jogos.
-- **personalizar-v4 10/12**: pooling + cache de emoji no ParticleCanvas (restam 3.5/3.6, atrás
-  da economia de créditos).
-- **economia-de-creditos 1.2**: posse da Loja é leitura do servidor (B4 fechada, sem tabela
-  nova); da fase 1 falta só o sandbox Asaas — que é seu.
+- **Passe cheio**: 25 itens novos nas décadas 5–10 (packs, cursores e rastros montados do que já
+  existia), cofres derivados e o marco de cada dezena com o item mais raro. **Nenhuma casa vazia**,
+  travado por teste — antes eram 33 vazias e 8 dos 10 marcos ocos.
+- **Régua das quatro origens** (nível · Seeds · conquista · créditos): cor e ícone por token, "Meu
+  visual" agrupado por como o item foi conseguido, raridade fora dos hex crus, e o ícone deixou de
+  ser sorteado da descrição por regex.
+- **Moeda comprada**: razão `credit_purchases`/`credit_spends` com saldo derivado, cobrança avulsa
+  no Asaas, e o **bug do webhook corrigido** (todo pagamento confirmado promovia a plano — uma
+  compra de créditos daria assinatura de graça).
+- **Telas de compra**: Passe (R$ 14,90) e pacotes (100/300/700), que só aparecem com billing
+  configurado.
+- **Minhas Palavras** entrega palavras (a lista estava escondida atrás do botão "Mais"), o export
+  exporta o caderno, e a captura avisa quando os dois idiomas são iguais.
+- **Sobre** reescrito: aprender é grátis e sem conta; paga-se nuvem e enfeite.
+- **Gravar Áudio**: os três cartões de cenário viraram dois interruptores diretos.
 
-O que sobra executável sem você: D1–D4 abaixo (qualidade de fala — pesquisa/produto) e tirar os
-itens-padrão do passe quando a spec de catálogo existir. Todo o resto trava nas suas decisões.
+**O que trava em você:** conta Asaas + chave sandbox (sem ela a compra responde 501 e as telas de
+venda não aparecem), DeepInfra, secrets do Cloudflare, revisão dos textos legais — e a decisão
+sobre perdoar o rombo histórico de Seeds (2.120 gastas contra 615 ganhas prendem o saldo em 0).
+
+**Pendências anotadas:** unificar o cartão de item nas 4 abas (`economia-legivel-e-moedas` 2.5),
+mesada mensal de créditos por plano e catálogo premium (`economia-de-creditos` 2.3/2.4), e as
+divergências de sistema de design fora da economia (Hub, Library, Analysis — mapeadas no artifact).
 
 ## Fila de trabalho
 

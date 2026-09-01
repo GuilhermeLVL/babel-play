@@ -1,11 +1,12 @@
 import { useMemo, useState } from 'react';
-import { Check, Palette, Sparkles, MousePointer2, Wind, Save, Trash2, Search, Wand2, Type, Lock, ChevronDown, ShoppingBag } from 'lucide-react';
+import { Check, Palette, Sparkles, MousePointer2, Wind, Save, Trash2, Search, Wand2, Type, Lock, ChevronDown, ShoppingBag, Undo2, Pencil } from 'lucide-react';
 import { toast } from '../Toast';
 import { comemorar, explodirAleatorio } from '../../lib/juice';
 import { emitBurst } from '../../lib/effects';
 import { todasAsPaletas, buscarPaletas, paletaPorId, ESTILOS, type EstiloDePaleta, type Paleta } from '../../lib/galeria/paletas';
 import { CATEGORIAS_DE_EMOJI, todosOsEmojis } from '../../lib/galeria/emojis';
-import { PRESETS, perfisSalvos, salvarPerfil, apagarPerfil, type Perfil } from '../../lib/galeria/perfis';
+import { PRESETS, perfisSalvos, salvarPerfil, apagarPerfil, renomearPerfil, type Perfil } from '../../lib/galeria/perfis';
+import { restaurarVisualPadrao } from '../../lib/galeria/restaurar';
 import {
   acessoAoEstilo, acessoACategoria, acessoAFormaDeRastro, acessoAoEditorDePack, acessoAoCursorDeEmoji, acessoAoRastroDeEmojis,
   faltaParaOPerfil, type Acesso,
@@ -112,6 +113,25 @@ export default function Personalizar({ theme, setTheme, fonte, setFonte, nivel, 
     rerender();
   };
 
+  /* O direito de desfazer (ux-v2 §3): devolve o padrão do app num clique, posse intacta. */
+  const voltarAoOriginal = () => {
+    const { tema, fonte: fontePadrao } = restaurarVisualPadrao();
+    setTheme(tema);
+    setFonte(fontePadrao);
+    setPaletaAtiva(null);
+    setEmojisDoRastro([]);
+    toast.ok('Visual original de volta. Tudo o que você desbloqueou continua seu.');
+    rerender();
+  };
+
+  const renomear = (p: Perfil) => {
+    // prompt nativo: um campo, teclado-acessível, sem estado novo — suficiente para um nome.
+    const nome = window.prompt(`Novo nome para "${p.nome}":`, p.nome);
+    if (nome === null) return;
+    if (renomearPerfil(p.id, nome)) { toast.ok(`Perfil renomeado para "${nome.trim()}".`); rerender(); }
+    else toast.warn('O nome não pode ficar vazio.');
+  };
+
   /* ── Peças reutilizadas ── */
   /* v3: o cadeado aqui é só DICA — comprar é na Loja (uma área por verbo). O botão leva lá. */
   const Cadeado = ({ a, compacto }: { a: Acesso; compacto?: boolean }) => a.liberado ? null : (
@@ -187,6 +207,33 @@ export default function Personalizar({ theme, setTheme, fonte, setFonte, nivel, 
     );
   };
 
+  /** Um cartão para os dois grids (meus e prontos): aplicar, e nos meus renomear/apagar. */
+  const CartaoDePerfil = ({ p }: { p: Perfil }) => {
+    const pal = p.paleta ? paletaPorId(p.paleta) : null;
+    const falta = faltaParaOPerfil(p, ctxAcesso);
+    const trancado = falta.length > 0;
+    return (
+      <div className={`card-panel p-3 border-2 ${trancado ? 'border-border-subtle opacity-90' : 'border-border-subtle hover:border-accent'} flex flex-col gap-1.5`}>
+        <button onClick={(e) => aplicarPerfil(p, e.currentTarget)} className="text-left cursor-pointer">
+          <span className="flex items-center gap-2">
+            <span className="text-2xl" aria-hidden>{p.emoji}</span>
+            <span className="font-bold text-[13.5px] text-ink flex-1 truncate">{p.nome}</span>
+            {trancado ? <Lock className="w-3.5 h-3.5 text-ink-faint shrink-0" aria-hidden /> : null}
+          </span>
+          {pal && <span className="flex gap-1 mt-2">{[pal.canvas, pal.surface, pal.accent, pal.ink].map((c, i) => <span key={i} className="w-5 h-5 rounded-full border border-surface" style={{ backgroundColor: c }} />)}</span>}
+          <span className="block text-[11.5px] text-ink-muted mt-1.5 leading-snug">{p.desc}</span>
+        </button>
+        {trancado && <p className="text-[11px] text-ink-faint leading-snug">Falta: {falta.slice(0, 2).join(' · ')}{falta.length > 2 ? ` +${falta.length - 2}` : ''}</p>}
+        {p.proprio && (
+          <span className="flex items-center gap-3">
+            <button onClick={() => renomear(p)} className="text-[11px] text-ink-faint hover:text-ink inline-flex items-center gap-1 cursor-pointer"><Pencil className="w-3 h-3" aria-hidden /> renomear</button>
+            <button onClick={() => { apagarPerfil(p.id); rerender(); }} className="text-[11px] text-ink-faint hover:text-error inline-flex items-center gap-1 cursor-pointer"><Trash2 className="w-3 h-3" aria-hidden /> apagar</button>
+          </span>
+        )}
+      </div>
+    );
+  };
+
   const paletaNome = theme === 'custom' && paletaAtiva ? paletaPorId(paletaAtiva)?.nome ?? 'Paleta' : `Tema ${theme}`;
   const packNome = readPack() === PACK_CUSTOM ? `Meu pack (${packCustom.length})` : PACKS_DE_EMOJI.find((p) => p.id === readPack())?.nome ?? 'Clássico';
   const editorDePack = acessoAoEditorDePack(nivel, saldoAgora);
@@ -212,33 +259,26 @@ export default function Personalizar({ theme, setTheme, fonte, setFonte, nivel, 
           <input value={nomeDoPerfil} onChange={(e) => setNomeDoPerfil(e.target.value)} placeholder="Nome para salvar este visual" className="flex-1 min-w-[12rem] px-3 py-2 rounded-xl bg-surface border border-border-subtle text-[13px] text-ink outline-none focus:border-accent" />
           <button onClick={salvarAtual} className="btn-solid"><Save className="w-4 h-4" aria-hidden /> Salvar como perfil</button>
           <button onClick={onIrParaLoja} className="btn-outline"><ShoppingBag className="w-4 h-4" aria-hidden /> Liberar mais na Loja</button>
+          {/* DIREITO, não recompensa: desfazer o visual nunca depende de nível nem de Seeds. */}
+          <button onClick={voltarAoOriginal} className="btn-outline"><Undo2 className="w-4 h-4" aria-hidden /> Voltar ao visual original</button>
         </div>
       </section>
 
-      {/* ── PERFIS PRONTOS + SEUS ── */}
+      {/* ── MEUS PERFIS (salvos pela pessoa: aplicar, renomear, excluir) ── */}
+      {perfisSalvos().length > 0 && (
+        <section>
+          <p className="label-mono mb-2 flex items-center gap-1.5"><Save className="w-3.5 h-3.5" aria-hidden /> Meus perfis salvos</p>
+          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3">
+            {perfisSalvos().map((p) => <CartaoDePerfil key={p.id} p={p} />)}
+          </div>
+        </section>
+      )}
+
+      {/* ── PERFIS PRONTOS ── */}
       <section>
         <p className="label-mono mb-2 flex items-center gap-1.5"><Wand2 className="w-3.5 h-3.5" aria-hidden /> Perfis prontos: um toque muda tudo</p>
         <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3">
-          {[...perfisSalvos(), ...PRESETS].map((p) => {
-            const pal = p.paleta ? paletaPorId(p.paleta) : null;
-            const falta = faltaParaOPerfil(p, ctxAcesso);
-            const trancado = falta.length > 0;
-            return (
-              <div key={p.id} className={`card-panel p-3 border-2 ${trancado ? 'border-border-subtle opacity-90' : 'border-border-subtle hover:border-accent'} flex flex-col gap-1.5`}>
-                <button onClick={(e) => aplicarPerfil(p, e.currentTarget)} className="text-left cursor-pointer">
-                  <span className="flex items-center gap-2">
-                    <span className="text-2xl" aria-hidden>{p.emoji}</span>
-                    <span className="font-bold text-[13.5px] text-ink flex-1 truncate">{p.nome}</span>
-                    {trancado ? <Lock className="w-3.5 h-3.5 text-ink-faint shrink-0" aria-hidden /> : null}
-                  </span>
-                  {pal && <span className="flex gap-1 mt-2">{[pal.canvas, pal.surface, pal.accent, pal.ink].map((c, i) => <span key={i} className="w-5 h-5 rounded-full border border-surface" style={{ backgroundColor: c }} />)}</span>}
-                  <span className="block text-[11.5px] text-ink-muted mt-1.5 leading-snug">{p.desc}</span>
-                </button>
-                {trancado && <p className="text-[11px] text-ink-faint leading-snug">Falta: {falta.slice(0, 2).join(' · ')}{falta.length > 2 ? ` +${falta.length - 2}` : ''}</p>}
-                {p.proprio && <button onClick={() => { apagarPerfil(p.id); rerender(); }} className="self-start text-[11px] text-ink-faint hover:text-error inline-flex items-center gap-1 cursor-pointer"><Trash2 className="w-3 h-3" aria-hidden /> apagar</button>}
-              </div>
-            );
-          })}
+          {PRESETS.map((p) => <CartaoDePerfil key={p.id} p={p} />)}
         </div>
       </section>
 

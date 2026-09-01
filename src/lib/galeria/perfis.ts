@@ -62,10 +62,24 @@ export function perfisSalvos(): Perfil[] {
 
 export function salvarPerfil(p: Omit<Perfil, 'id' | 'proprio'> & { id?: string }): Perfil {
   const lista = perfisSalvos();
-  const id = p.id ?? `meu-${Date.now().toString(36)}`;
+  // Sufixo aleatório: só o timestamp colidia quando dois perfis eram salvos no mesmo
+  // milissegundo — o upsert por id engolia o primeiro (pego por teste em 31/08).
+  const id = p.id ?? `meu-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`;
   const novo: Perfil = { ...p, id, proprio: true };
   const semEle = lista.filter((x) => x.id !== id);
   try { localStorage.setItem(CHAVE, JSON.stringify([novo, ...semEle].slice(0, 30))); } catch { /* sem storage */ }
+  return novo;
+}
+
+/** Renomeia NO LUGAR: mesma combinação, mesma posição na lista — só o nome muda. */
+export function renomearPerfil(id: string, nome: string): Perfil | null {
+  const limpo = nome.trim();
+  if (!limpo) return null;
+  const lista = perfisSalvos();
+  const alvo = lista.find((x) => x.id === id);
+  if (!alvo) return null;
+  const novo: Perfil = { ...alvo, nome: limpo };
+  try { localStorage.setItem(CHAVE, JSON.stringify(lista.map((x) => (x.id === id ? novo : x)))); } catch { /* sem storage */ }
   return novo;
 }
 

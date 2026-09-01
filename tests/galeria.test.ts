@@ -2,7 +2,8 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 import { todasAsPaletas, buscarPaletas, paletaPorId } from '../src/lib/galeria/paletas'
 import { CATEGORIAS_DE_EMOJI, todosOsEmojis, sanearListaDeEmojis } from '../src/lib/galeria/emojis'
-import { PRESETS, perfisSalvos, salvarPerfil, apagarPerfil } from '../src/lib/galeria/perfis'
+import { PRESETS, perfisSalvos, salvarPerfil, apagarPerfil, renomearPerfil } from '../src/lib/galeria/perfis'
+import { restaurarVisualPadrao } from '../src/lib/galeria/restaurar'
 import { estiloDeRastro, setRastro, readRastro, idDeRastroGerado, idDeRastroDeEmojis, rastroValido } from '../src/lib/rastroDoMouse'
 import { setCursor, readCursor, idDeCursorDeEmoji, emojiDoCursor, cursorValido } from '../src/lib/cursores'
 import { setPackCustom, lerPackCustom, readPack, emojisDoPack, PACK_CUSTOM, PACKS_DE_EMOJI, setPack } from '../src/lib/particulas'
@@ -111,5 +112,30 @@ describe('perfis', () => {
     expect(perfisSalvos()[0].proprio).toBe(true)
     apagarPerfil(p.id)
     expect(perfisSalvos()).toEqual([])
+  })
+  it('renomear muda só o nome, no lugar, e rejeita vazio', () => {
+    const a = salvarPerfil({ nome: 'A', emoji: '🅰️', desc: '', tema: 'babel', fonte: 'padrao', particulas: 'tema', pack: 'classico', cursor: 'padrao', rastro: 'off' })
+    const b = salvarPerfil({ nome: 'B', emoji: '🅱️', desc: '', tema: 'babel', fonte: 'padrao', particulas: 'tema', pack: 'classico', cursor: 'padrao', rastro: 'off' })
+    expect(renomearPerfil(a.id, '  ')).toBeNull()
+    expect(renomearPerfil('nao-existe', 'X')).toBeNull()
+    const novo = renomearPerfil(a.id, 'A renomeado')
+    expect(novo?.nome).toBe('A renomeado')
+    // Ordem preservada: renomear não é re-salvar (salvarPerfil põe no topo; renomear não).
+    expect(perfisSalvos().map((x) => x.id)).toEqual([b.id, a.id])
+    expect(perfisSalvos().find((x) => x.id === a.id)?.rastro).toBe('off')
+    apagarPerfil(a.id); apagarPerfil(b.id)
+  })
+})
+
+describe('restaurarVisualPadrao', () => {
+  it('devolve os padrões e limpa a paleta ativa, sem tocar em posse', () => {
+    localStorage.setItem('babel.paleta_ativa', 'arcade')
+    localStorage.setItem('babel.perfis', JSON.stringify([{ id: 'meu-1', nome: 'Meu', emoji: '✨', desc: '', fonte: 'pixel', particulas: 'emoji', pack: ['🦆'], cursor: 'pato', rastro: 'emojis:🦆' }]))
+    const r = restaurarVisualPadrao()
+    expect(r).toEqual({ tema: 'babel', fonte: 'padrao' })
+    expect(localStorage.getItem('babel.paleta_ativa')).toBeNull()
+    // Posse e perfis salvos são intocados: reset é sobre o que está vestido.
+    expect(JSON.parse(localStorage.getItem('babel.perfis')!)).toHaveLength(1)
+    localStorage.removeItem('babel.perfis')
   })
 })

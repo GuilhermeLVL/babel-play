@@ -181,11 +181,19 @@ export const vocabRepo = {
 
     /* ORIGEM da ocorrência. `trilha:en` era enviado pelo cliente e virava NULL aqui, porque o
        código só aceitava id de sessão existente — e o filtro que depois procurava 'trilha:en'
-       nunca casava. Agora a origem é decomposta em (tipo, referência) e sobrevive. */
+       nunca casava. Agora a origem é decomposta em (tipo, referência) e sobrevive.
+
+       `anki:` caiu na MESMA armadilha, um degrau depois: a tela de importação manda
+       `anki:<arquivo>` desde que existe (`BaralhoAnki.tsx`), o schema documenta 'anki' como valor
+       de `origin_kind` — e nenhuma linha jamais o escrevia: tudo virava 'manual'/NULL, e depois
+       não havia como distinguir cartão importado de cartão digitado. Perda irrecuperável, a cada
+       import. O filtro "jogar só com este baralho" (EXISTS por origin_kind/origin_ref) só tem
+       dado para casar porque este ramo grava o valor. */
     const origemDe = (c: NewVocabCard): { kind: string; ref: string | null } => {
       const s = c.sessionId
       if (!s) return { kind: 'manual', ref: null }
       if (s.startsWith('trilha:')) return { kind: 'trilha', ref: s.slice('trilha:'.length) }
+      if (s.startsWith('anki:')) return { kind: 'anki', ref: s.slice('anki:'.length) }
       return dosDono.has(s) ? { kind: 'sessao', ref: s } : { kind: 'manual', ref: null }
     }
 

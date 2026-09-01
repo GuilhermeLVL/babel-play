@@ -34,7 +34,12 @@
 ## 5. Portas laterais de XP e de posse
 
 - [x] 5.1 Teto em `wordCount` no `patchSessionSchema` (`server/validation.ts:306`)
-- [ ] 5.2 `/api/exercises/rodada`: itens têm de referenciar cartões do próprio usuário
+- [ ] 5.2 `/api/exercises/rodada` — PRECISA DE DECISÃO DO DONO, não de código. `addRodada` já
+      confere o dono do cartão e anula referência alheia (`exerciseResults.ts:229-237`), mas o
+      ITEM continua contando para XP e Seeds, e `Play.tsx:822` mostra que item legítimo PODE vir
+      sem cartão — então exigir cartão zeraria ganho de jogo real. O guarda proporcional é um TETO
+      DIÁRIO de ganho por jogo, como `capturaMinutosPremiados` já faz para gravação; isso muda o
+      equilíbrio do jogo e é decisão de produto
 - [x] 5.3 `writeLimiter` também no webhook (hoje montado antes de tudo, `server.ts:144`)
 - [x] 5.4 `liberadoTudo()` só com `import.meta.env.DEV` (`src/lib/desbloqueios.ts:46`)
 - [x] 5.5 Aprimoramentos derivam do ledger (`reason LIKE 'aprimoramento:%'`), não do localStorage
@@ -47,8 +52,10 @@
       `rodadasPerfeitas` — eram `?? 0` no cliente e viraram BLOQUEIO ao ligar a conferência de
       saldo: subestimar o ganho é recusar compra legítima. Cálculo espelhado do servidor efêmero
 
-- [ ] 6.1 `computeXpHistory` soma `xpCreditado`, presença, sequências e rodadas perfeitas — ou o
-      comentário de `server/db/repositories/metrics.ts:282-285` deixa de afirmar o que não cumpre
+- [x] 6.1 O comentário de `computeXpHistory` deixa de afirmar uma igualdade que o código não
+      cumpre, e passa a listar o que entra e o que não entra. Igualar de fato (bucketizar crédito
+      de conquista, presença e marcos no tempo) é trabalho de uma mudança própria — afirmar
+      invariante que não existe é pior do que não ter invariante
 
 ## 7. Testes que reprovam o ataque
 
@@ -62,9 +69,9 @@
 
 ## 8. Verificação
 
-- [ ] 8.1 `npx vitest run` · `npm run typecheck` · `npm run lint` · `npm run audit:gate` ·
+- [x] 8.1 `npx vitest run` · `npm run typecheck` · `npm run lint` · `npm run audit:gate` ·
       `npx ast-grep scan -c sgconfig.yml src server server.ts`
-- [ ] 8.2 Prova do ataque com `AUTH_REQUIRED=1` e token de teste: o `curl` de `amount: 10000`
+- [x] 8.2 Prova do ataque com `AUTH_REQUIRED=1` e token de teste: o `curl` de `amount: 10000`
       passa antes e falha depois
-- [ ] 8.3 Navegador (`npm run dev:local`): comprar, equipar e creditar conquista continuam
+- [x] 8.3 Navegador (`npm run dev:local`): comprar, equipar e creditar conquista continuam
       funcionando pelo caminho normal

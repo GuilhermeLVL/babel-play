@@ -327,10 +327,19 @@ export async function computeProfile(userId: UserId, opts: OpcoesDePerfil = {}):
  * com `grade >= 3`, o acerto) e `exercise_results.createdAt` (os itens de jogo). Somar os eventos
  * em ordem reproduz a curva inteira.
  *
- * A INVARIANTE QUE SUSTENTA ISSO: no último balde, `xpAcumulado` é EXATAMENTE o `xp` que
- * `deriveProgress` calcula sobre `computeProfile`. Os dois usam `xpDeEventos`, do mesmo módulo.
- * Se divergirem, o gráfico e o distintivo passam a contar histórias diferentes sobre a mesma
- * pessoa — e é essa igualdade que o teste trava.
+ * O QUE ELA COBRE, E O QUE NÃO (corrigido em 01/09 — o texto abaixo afirmava uma igualdade que o
+ * código não cumpre, e afirmar invariante que não existe é pior do que não ter invariante):
+ *
+ *   · ENTRA, porque cada evento tem carimbo próprio: sessões e as palavras delas, revisões e
+ *     acertos (`review_logs.reviewedAt`), itens de jogo (`exercise_results.createdAt`).
+ *   · NÃO ENTRA: o XP de conquista (`seed_credits.xp`), presença, marcos de sequência e rodadas
+ *     perfeitas. Os dois primeiros TÊM carimbo e caberiam; os dois últimos são agregados
+ *     derivados, e situá-los no tempo exige decidir em que dia um marco "acontece".
+ *
+ * A CONSEQUÊNCIA HONESTA: o último ponto do gráfico fica ABAIXO do XP que o distintivo mostra,
+ * pela soma dos termos de fora. O gráfico responde "quando eu subi de nível?", que é a pergunta
+ * dele; o número do distintivo continua sendo `deriveProgress` sobre `computeProfile`. Igualar os
+ * dois é trabalho de uma mudança própria — e enquanto não for feito, isto fica escrito.
  *
  * A RESSALVA, que a tela deve repetir: isto é reconstrução SOB A FÓRMULA ATUAL, não um livro-razão.
  * Mudar os pesos reescreve o passado. É aceitável porque é a mesma propriedade que o número de hoje

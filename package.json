@@ -59,7 +59,7 @@
     "express-rate-limit": "^8.6.0",
     "helmet": "^8.3.0",
     "idb": "^8.0.3",
-    "jose": "^6.2.8",
+    "jose": "^6.2.10",
     "jsdom": "^29.1.1",
     "jszip": "^3.10.1",
     "loopback-capture": "^2.0.0",

@@ -202,7 +202,24 @@ function TranscriptVisualSettings({ idPrefix, dense, tsSettings, updateSetting }
  * Rótulo + <LangPicker/>: uma escolha só (o "Detectar automaticamente" é a primeira opção da
  * lista), com bandeira TAMBÉM na lista — o que a `<option>` nativa não permite (só aceita texto).
  */
-function LangSelect({ id, label, icon, value, auto = false, allowAuto = false, accent = false, onPick }: {
+/**
+ * A seta ENTRE os dois idiomas — a mesma ideia nas duas formas, o desenho seguindo a forma.
+ *
+ * Na linha ela aponta para a direita e ganha `mt-3` para descer até a altura da caixa (os campos
+ * têm rótulo em cima, então o centro vertical do grupo não é o centro da caixa). Empilhada ela
+ * gira para baixo e alinha com o texto do campo (`ml-3` = o `px-3` do botão em modo `block`),
+ * formando uma espinha vertical entre origem e destino.
+ */
+function SetaDoPar({ empilhado }: { empilhado: boolean }) {
+  return (
+    <ArrowRight
+      aria-hidden
+      className={`w-3.5 h-3.5 text-ink-faint shrink-0 ${empilhado ? 'rotate-90 ml-3 -my-1' : 'mt-3'}`}
+    />
+  );
+}
+
+function LangSelect({ id, label, icon, value, auto = false, allowAuto = false, accent = false, block = false, onPick }: {
   id: string;
   label: string;
   icon?: React.ReactNode;
@@ -212,10 +229,12 @@ function LangSelect({ id, label, icon, value, auto = false, allowAuto = false, a
   allowAuto?: boolean;
   /** Caixa destacada (o idioma do conteúdo/estudo). */
   accent?: boolean;
+  /** Ocupa a largura toda — a forma da gaveta, onde os campos são empilhados. */
+  block?: boolean;
   onPick: (v: { auto: boolean; code?: string }) => void;
 }) {
   return (
-    <div className="flex flex-col items-start gap-0.5">
+    <div className={`flex flex-col items-start gap-0.5 ${block ? 'w-full' : ''}`}>
       <span className="text-[8px] font-bold uppercase tracking-wider text-ink-faint flex items-center gap-1">
         {icon} {label}
       </span>
@@ -226,6 +245,7 @@ function LangSelect({ id, label, icon, value, auto = false, allowAuto = false, a
         auto={auto}
         allowAuto={allowAuto}
         accent={accent}
+        block={block}
         onPick={onPick}
       />
     </div>
@@ -2733,8 +2753,20 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
      2026-08-27). A mesma árvore serve às duas telas, então não há como divergirem. */
   /* `p` prefixa os ids: a tela normal continua montada sob o Foco, e dois `#their-lang` na
      mesma página fariam o `label` apontar para o errado. */
-  const seletoresDeIdioma = (p = '') => (
-    <div className="flex items-center gap-1.5 flex-wrap md:justify-end">
+  /**
+   * `empilhado` é a forma da GAVETA, e ela não é a mesma da barra.
+   *
+   * A linha (`flex-wrap md:justify-end`) foi desenhada para a barra larga, onde os dois campos e a
+   * seta cabem lado a lado. Dentro da gaveta — que tem a largura do chip — ela quebrava, e o
+   * resultado era medido: o primeiro campo com 240px e o segundo com 165px, bordas esquerdas em
+   * 572 e 671 (escada), 186px de vazio à esquerda da segunda linha, e a SETA órfã no fim da
+   * primeira, apontando para a margem em vez de para o campo seguinte.
+   *
+   * Empilhado, os campos ocupam a largura toda (`block`), começam na mesma borda e a seta gira
+   * para baixo — continua dizendo "daqui para ali", que é a única coisa que ela precisa dizer.
+   */
+  const seletoresDeIdioma = (p = '', empilhado = false) => (
+    <div className={empilhado ? 'flex flex-col items-stretch gap-1.5' : 'flex items-center gap-1.5 flex-wrap md:justify-end'}>
       {captureScenario !== 'media' && (
         <LangSelect
           id={p + 'my-lang'}
@@ -2743,10 +2775,11 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
           value={sourceLang}
           auto={autoDetectMyLang}
           allowAuto
+          block={empilhado}
           onPick={({ auto, code }) => { langTouchedRef.current = true; setAutoDetectMyLang(auto); if (code) setSourceLang(code); }}
         />
       )}
-      {captureScenario === 'conversation' && <ArrowRight className="w-3.5 h-3.5 text-ink-faint mt-3 shrink-0" />}
+      {captureScenario === 'conversation' && <SetaDoPar empilhado={empilhado} />}
       {captureScenario !== 'mic' && (
         <LangSelect
           id={p + 'their-lang'}
@@ -2758,16 +2791,18 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
           auto={autoDetectLang}
           allowAuto
           accent
+          block={empilhado}
           onPick={({ auto, code }) => { langTouchedRef.current = true; setAutoDetectLang(auto); if (code) setTargetLang(code); }}
         />
       )}
       {captureScenario !== 'conversation' && (
         <>
-          <ArrowRight className="w-3.5 h-3.5 text-ink-faint mt-3 shrink-0" />
+          <SetaDoPar empilhado={empilhado} />
           <LangSelect
             id={p + 'translate-to'}
             label={ageProfile === 'kids' ? 'Ler em' : 'Traduzir para'}
             value={captureScenario === 'media' ? sourceLang : targetLang}
+            block={empilhado}
             onPick={({ code }) => {
               if (!code) return;
               langTouchedRef.current = true;
@@ -3531,7 +3566,7 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
                           <span className="block text-[9px] font-mono font-bold uppercase tracking-wider text-ink-faint">
                             Idiomas da sessão
                           </span>
-                          {seletoresDeIdioma('pop-')}
+                          {seletoresDeIdioma('pop-', true)}
                           {/* RESUMO HUMANO da direção — o fluxo fica óbvio sem jargão (público leigo). */}
                           <p className="text-[10px] text-ink-muted leading-snug">{resumoDaDirecao()}</p>
                         </div>,

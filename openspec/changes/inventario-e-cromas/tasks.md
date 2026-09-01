@@ -61,3 +61,19 @@
 - [x] 5.4 Defeito achado PELA miniatura: `ras-oceano` prometia "estrelas nas cores do oceano
       profundo", mas a forma `estrelas` desenha ⭐/✨ por `fillText` e emoji ignora cor — era
       idêntico ao Rastro Estrelas. Passa a usar `gen:faisca:oceano-profundo`, que aceita a paleta
+
+## 6. A Loja vira vitrine (pedido do dono, 01/09)
+
+- [x] 6.1 AS DUAS MOEDAS DECLARADAS: dois cartões dizendo o que cada uma é, de onde vem e o que
+      compra. A carteira do cabeçalho mostrava só os saldos — em lugar nenhum a loja dizia a
+      diferença, que é justamente a linha entre este app e um pay-to-win
+- [x] 6.2 Cartão compacto: arte, nome, e uma linha de preço com OS DOIS CAMINHOS iconados
+      (🌱 550 · 🔒 nv. 9). Antes o preço vivia dentro da frase "Nível 9 ou 550 Seeds", num botão
+      cinza de cadeado — cinza sobre a informação que mais importa numa loja
+- [x] 6.3 Destaque por regra: o mais caro que o saldo paga hoje; sem nada ao alcance, o que falta
+      menos. Sai das prateleiras, para o mesmo cartão não aparecer duas vezes seguidas
+- [x] 6.4 Grade de 4 colunas no lugar de 3 cartões altos; ação concreta ("Faltam 341 Seeds")
+- [x] 6.5 A parede de 8 chips do "no nível N você libera de graça" vira uma linha com atalho para
+      o Passe, que mostra a mesma coisa inteira
+- [x] 6.6 As fichas de intensidade das partículas saem da Loja: são ajuste da peça e já moram no
+      editor da peça — eram a mesma escolha em dois lugares com dois desenhos

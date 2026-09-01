@@ -27,3 +27,24 @@ process.env.MIGRATIONS_DIR ??= path.resolve(process.cwd(), 'server', 'db', 'migr
 afterAll(() => {
   try { rmSync(dir, { recursive: true, force: true }) } catch { /* OneDrive/AV pode segurar */ }
 })
+
+/**
+ * `ResizeObserver` NO JSDOM — que não o implementa.
+ *
+ * O Termo mede o container para dimensionar a célula (ver `core/minigames/termoLayout`): a
+ * fórmula CSS anterior usava `vw`/`vh`, que mentem sob o `zoom` do A± e colavam os quatro
+ * tabuleiros do Quarteto. Medir é a correção, e medir exige o observador.
+ *
+ * O esboço é INERTE de propósito — não dispara callback. Num jsdom todo elemento tem tamanho
+ * zero, então um callback que rodasse entregaria um layout falso e testes de componente
+ * passariam a afirmar coisas sobre uma tela que não existe. O componente já nasce com um valor
+ * padrão razoável, e é ele que os testes de componente veem; quem verifica a conta de verdade é
+ * `tests/termoLayout.test.ts`, sobre a função pura, sem DOM nenhum.
+ */
+if (typeof globalThis.ResizeObserver === 'undefined') {
+  globalThis.ResizeObserver = class {
+    observe() {}
+    unobserve() {}
+    disconnect() {}
+  } as unknown as typeof ResizeObserver
+}

@@ -1,9 +1,10 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { X, Delete, CornerDownLeft, Lightbulb, Volume2, WandSparkles, ChevronsUp } from 'lucide-react';
 import type { ItemOutcome, RoundReport, RodadaTermo, Palpite } from '@core';
 import {
   julgarPalpite, acertou, estadoDoTecladoMulti, dicaDeLetra, letrasCertas,
   TENTATIVAS_POR_MODO, modoDeTabuleiros, montarEscada, planoDaEscada, scoreRound,
+  layoutDoTermo, GAP_TABULEIRO, type LayoutDoTermo,
 } from '@core';
 import type { AgeProfileType } from '../../lib/profile';
 import { comemorar, pontosDoElemento, multiplicador } from '../../lib/juice';
@@ -49,6 +50,38 @@ export default function TermoGame({ rodadas, ageProfile, onFinish, onExit }: Ter
   const grupo = grupos[grupoIdx];
   const nTabuleiros = grupo?.length ?? 1;
   const maxTentativas = TENTATIVAS_POR_MODO[modoDeTabuleiros(nTabuleiros)];
+
+  const colunas = grupo?.[0]?.resposta.length ?? 5;
+  const temContexto = !!grupo?.some(r => !!r.contexto);
+  const [layout, setLayout] = useState<LayoutDoTermo>({ celula: 44, porFileira: nTabuleiros, moldura: 0, apertado: false });
+
+  useLayoutEffect(() => {
+    const raiz = raizRef.current;
+    const grade = gradeRef.current;
+    if (!raiz || !grade) return;
+    const medir = () => {
+      const cabecalhoDaTela = raiz.querySelector('header')?.clientHeight ?? 0;
+      const teclado = raiz.querySelector<HTMLElement>('[data-tour="teclado"]')?.offsetHeight ?? 0;
+      setLayout(layoutDoTermo({
+        largura: grade.clientWidth,
+        altura: raiz.clientHeight - cabecalhoDaTela - teclado - 24,
+        tabuleiros: nTabuleiros,
+        colunas,
+        linhas: maxTentativas,
+        // A pista mora acima de cada tabuleiro; com frase de contexto ela ocupa duas vezes mais.
+        cabecalho: temContexto ? 88 : 44,
+      }));
+      /* A MOLDURA VEM DA CONTA, não de uma classe. Se o padding vivesse só no CSS, ele cobraria
+         uma largura que o cálculo não conhece — que é precisamente como os quatro tabuleiros se
+         colaram da primeira vez. Aqui quem desenha aplica o número que quem calcula usou. */
+    };
+    medir();
+    const ro = new ResizeObserver(medir);
+    ro.observe(raiz);
+    window.addEventListener('resize', medir);
+    return () => { ro.disconnect(); window.removeEventListener('resize', medir); };
+  }, [nTabuleiros, colunas, maxTentativas, temContexto]);
+
   const tamanho = grupo?.[0]?.resposta.length ?? 5;
 
   const [palpitesPorTab, setPalpitesPorTab] = useState<Palpite[][]>([[]]);
@@ -88,6 +121,8 @@ export default function TermoGame({ rodadas, ageProfile, onFinish, onExit }: Ter
   const cursorEscolhidoRef = useRef(false);
   const encerradoRef = useRef(false);
   const gradeRef = useRef<HTMLDivElement | null>(null);
+  /** A tela do jogo inteira — é dela que sai o orçamento de altura (ver `medirLayout`). */
+  const raizRef = useRef<HTMLDivElement | null>(null);
 
   const teclado = useMemo(() => estadoDoTecladoMulti(palpitesPorTab, resolvidos), [palpitesPorTab, resolvidos]);
   const preenchido = atual.every(l => l !== '');
@@ -412,22 +447,38 @@ export default function TermoGame({ rodadas, ageProfile, onFinish, onExit }: Ter
       ? (ageProfile === 'pro' ? 'Dueto' : 'Duas de uma vez')
       : (ageProfile === 'pro' ? 'Quarteto' : 'Quatro de uma vez');
 
-  /* A CÉLULA ESCALA COM A TELA (pedido do dono, 2026-08-28: grade minúscula num mar de espaço).
-     Antes eram 44px fixos: num monitor de 1080p o tabuleiro ocupava 1/5 da altura e o teclado
-     ficava colado no pé, com um vazio enorme no meio. Agora a célula cresce com a altura da
-     janela (vh) e encolhe no celular (mínimo em rem); com quatro tabuleiros ela também respeita a
-     LARGURA (32 colunas + folgas têm de caber). A fonte acompanha a célula. */
-  const tamanhoCel = nTabuleiros === 1
-    ? 'clamp(2.75rem, 7.5vh, 4.5rem)'
-    : nTabuleiros === 2
-      ? 'min(clamp(2.25rem, 6vh, 3.6rem), calc((100vw - 8rem) / 18))'
-      : 'min(clamp(1.75rem, 4.8vh, 3rem), calc((100vw - 8rem) / 38))';
-  const estiloCel: React.CSSProperties = { width: tamanhoCel, height: tamanhoCel, fontSize: `calc(${tamanhoCel} * 0.46)` };
+  /**
+   * A CÉLULA É MEDIDA, NÃO ESTIMADA — e a diferença é o Quarteto parar de se colar.
+   *
+   * A versão anterior era CSS puro: `min(clamp(1.75rem, 4.8vh, 3rem), calc((100vw - 8rem) / 38))`.
+   * Media (zoom 1.15, viewport 1920, container `max-w-6xl` = 1152): célula de 49,3px, quatro
+   * tabuleiros de seis letras somando 1447px, estouro de 151px. Na tela, os quatro colados — as
+   * folgas são a primeira coisa que o navegador come quando o conteúdo não cabe.
+   *
+   * Duas causas, independentes:
+   *  1. o orçamento vinha de `100vw` (1920) enquanto a grade é limitada a `max-w-6xl` (1152) —
+   *     quanto maior o monitor, pior, que é o contrário do esperado;
+   *  2. `vw`/`vh` dentro de `body{zoom}` (o A±) resolvem contra a viewport SEM zoom e só depois
+   *     são multiplicados por ele: a 1,15, saem 15% maiores que a viewport de verdade. (`rem`
+   *     escala junto com o zoom e não tem esse problema — o que quebra é misturar as duas
+   *     famílias na mesma conta, que é o que `min(clamp(rem, vh, rem), calc(vw...))` fazia.)
+   *
+   * `clientWidth`/`offsetHeight` já vêm no espaço de layout zoomado, então a conta feita com eles
+   * é invariante ao zoom por construção — não há fator a corrigir em lugar nenhum. A regra mora
+   * em `@core/minigames/termoLayout`, pura, com varredura de 7 telas × 5 zooms em teste.
+   *
+   * O observador olha a RAIZ, nunca a grade: a altura da grade depende da célula, e observar
+   * quem se mede seria um laço. A raiz é dimensionada pela janela, e muda quando o A± muda —
+   * que é exatamente quando esta conta precisa rodar de novo.
+   */
+  const estiloCel: React.CSSProperties = {
+    width: layout.celula, height: layout.celula, fontSize: Math.round(layout.celula * 0.46),
+  };
 
   const mult = multiplicador(sequencia);
 
   return (
-    <div className="flex-1 relative flex flex-col items-center p-3 sm:p-4 animate-in fade-in duration-200 overflow-y-auto custom-scrollbar">
+    <div ref={raizRef} className="flex-1 relative flex flex-col items-center p-3 sm:p-4 animate-in fade-in duration-200 overflow-y-auto custom-scrollbar">
       {/* AS FERRAMENTAS moram no canto da TELA, não numa faixa junto ao título.
           Num cabeçalho de largura fixa, o título ficava colado à esquerda enquanto o tabuleiro
           (bem mais estreito) ficava no meio, dois blocos desalinhados sem motivo. Soltas no
@@ -491,13 +542,35 @@ export default function TermoGame({ rodadas, ageProfile, onFinish, onExit }: Ter
           correspondência não precisa ser explicada.
           No Quarteto, quatro colunas quando a tela permite, empilhado 2×2 metade das grades fica
           fora da tela, e num jogo em que o palpite vale para todas, não ver metade é perder a jogada. */}
-      <div ref={gradeRef} data-tour="tabuleiro" className={`grid w-full max-w-6xl gap-x-4 sm:gap-x-8 xl:gap-x-12 gap-y-4 mb-2 justify-items-center ${
-        nTabuleiros === 4 ? 'grid-cols-2 xl:grid-cols-4' : nTabuleiros === 2 ? 'grid-cols-2' : 'grid-cols-1'
-      }`}>
+      <div
+        ref={gradeRef}
+        data-tour="tabuleiro"
+        /* `overflow-x-auto` SÓ quando a conta declarou aperto (celular + zoom alto + quarteto).
+           Rolar de lado é degradação honesta; colar os tabuleiros é defeito. */
+        className={`w-full max-w-6xl mb-2 ${layout.apertado ? 'overflow-x-auto custom-scrollbar' : ''}`}
+      >
+        <div
+          className="grid mx-auto w-max justify-items-center"
+          style={{
+            gridTemplateColumns: `repeat(${layout.porFileira}, max-content)`,
+            columnGap: GAP_TABULEIRO,
+            rowGap: GAP_TABULEIRO,
+          }}
+        >
         {grupo.map((r, tIdx) => {
           const certas = letrasCertas(palpitesPorTab[tIdx] ?? [], r.resposta.length);
           return (
-            <div key={tIdx} className={`flex flex-col gap-1.5 transition-opacity ${resolvidos[tIdx] ? 'opacity-45' : ''}`}>
+            /* CADA TABULEIRO NUM CARTÃO quando há mais de um. A folga sozinha é ambígua: entre
+               quadrados da mesma palavra há 6px, entre tabuleiros 28px, e a olho nu 28px ainda
+               pode ser lido como "espaço um pouco maior" em vez de "outra palavra". A borda
+               resolve a ambiguidade sem depender de o olho comparar distâncias. */
+            <div
+              key={tIdx}
+              className={`flex flex-col gap-1.5 transition-opacity ${resolvidos[tIdx] ? 'opacity-45' : ''} ${
+                layout.moldura ? 'rounded-2xl border border-border-subtle bg-canvas/40' : ''
+              }`}
+              style={layout.moldura ? { padding: layout.moldura / 2 - 1 } : undefined}
+            >
               <p
                 data-tour={tIdx === 0 ? 'pista' : undefined}
                 className={`text-center text-[13px] leading-tight px-2 py-1.5 mb-1 rounded-lg transition-colors ${
@@ -552,6 +625,7 @@ export default function TermoGame({ rodadas, ageProfile, onFinish, onExit }: Ter
             </div>
           );
         })}
+        </div>
       </div>
 
       {/* TECLADO — o estado vem só dos tabuleiros ainda abertos (ver `estadoDoTecladoMulti`).

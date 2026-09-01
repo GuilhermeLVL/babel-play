@@ -213,7 +213,7 @@ export default function Conquistas({ progress, ctx }: ConquistasProps) {
       ))}
 
       <p className="text-center text-[11.5px] text-ink-faint pb-2">
-        Presença vale {PESOS_SEEDS.presenca} Seeds por dia, e nada aqui custa dinheiro.
+        Presença vale {PESOS_SEEDS.presenca} Seeds por dia. Conquista não se compra com dinheiro nenhum: só fazendo.
       </p>
     </div>
   );

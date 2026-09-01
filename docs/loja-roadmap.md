@@ -39,7 +39,11 @@ Partículas com intensidade editável, Sorte de Eventos) · **Packs de emoji (12
 
 ## Princípios que valem para tudo
 
-1. Nada custa dinheiro; a moeda é estudo (Seeds) ou constância (nível).
+1. **Aprender nunca custa dinheiro.** Seeds e nível saem de estudo e constância, e não estão à
+   venda — nenhuma quantia compra XP, Seeds, conquista ou posição na trilha grátis.
+   *(Revisado em 31/08: o princípio original dizia "nada custa dinheiro". Deixou de valer para o
+   cosmético premium — Passe de Temporada e Créditos, decisão do dono. O que a regra protege é o
+   que sempre importou: a progressão não se compra.)*
 2. Todo item tem prévia REAL antes de comprar (o mouse, uma amostra de partícula, o mockup).
 3. Reversível sempre: equipar nunca tranca (a lição das posições do menu).
 4. Guardas de acessibilidade vencem cosmético: animações desligadas silenciam tudo.

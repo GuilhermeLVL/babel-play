@@ -488,7 +488,7 @@ export default function Loja({ progress, theme, setTheme, fonte, setFonte, menuP
       {/* O rodapé lê das REGRAS: o que a Loja diz sobre ganhar Seeds é o que o sistema credita. */}
       <p className="text-center text-[11.5px] text-ink-faint pb-4">
         Seeds se ganham fazendo: {REGRAS.filter((r) => r.seeds > 0).slice(0, 4).map((r) => `${r.seeds} ${r.unidade}`).join(' · ')}.
-        {' '}<button onClick={() => setAba('conquistas')} className="underline hover:text-accent cursor-pointer">Ver todas as regras</button>. Nada aqui custa dinheiro.
+        {' '}<button onClick={() => setAba('conquistas')} className="underline hover:text-accent cursor-pointer">Ver todas as regras</button>. Seeds não se compram com dinheiro: só estudando.
       </p>
       </div>
       </PainelDeAba>

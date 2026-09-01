@@ -1,7 +1,7 @@
 import { Mic, Upload, ArrowRight, Sparkles, TrendingUp, Video, FileText, Headphones, ChevronDown, ChevronUp, Gamepad2, Target, Sprout, Rocket, Eye, Zap, Check } from 'lucide-react';
 import { EDICAO_LEVE } from '../../lib/edicao';
-import { getEntitlements } from '../../lib/entitlements';
 import CardDePlanos from '../CardDePlanos';
+import AvisoDeConta from '../conta/AvisoDeConta';
 import React, { useState, useEffect, useRef } from 'react';
 import { Recording } from '../../types';
 import { fetchSettings, patchUiSettings, fetchExerciseResults, type AppMetrics } from '../../data/api';
@@ -309,6 +309,11 @@ export default function Hub({ onChangeView, recordings, ageProfile = 'pro', prog
           auditoria anterior informava mas não tinha o peso de card que o dono pediu. O componente
           carrega TODAS as regras (só Grátis/anônimo, nunca na leve, dispensável, preço da
           matriz) — aqui só se diz onde ele fica. */}
+      {/* O AVISO POR MARCO DE USO (mudança porta-de-entrada). Vem ANTES do card de planos porque
+          é mais urgente: um fala de guardar o que já existe, o outro de comprar mais. Só aparece
+          sem conta, com motivo concreto, e some para sempre quando dispensado. */}
+      <AvisoDeConta metrics={metrics} onEntrar={() => onChangeView('login')} />
+
       <CardDePlanos onVerPlanos={() => onChangeView('planos')} />
 
       {/* Progress Dashboard & Metrics — só quando expandido */}

@@ -871,6 +871,7 @@ export default function App() {
               ageProfile={ageProfile}
               setAgeProfile={setAgeProfile}
               abaInicial={lojaAba}
+              onEntrar={() => setPedindoLogin(true)}
               aoTrocarDeAba={setLojaAba}
               equiparCtx={equiparCtx}
             />

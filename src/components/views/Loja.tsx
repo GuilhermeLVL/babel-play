@@ -27,6 +27,8 @@ import MiniaturaDoItem from '../MiniaturaDoItem';
 import ComprarCreditos from './loja/ComprarCreditos';
 import CabecalhoDeTemporada from './loja/CabecalhoDeTemporada';
 import { useCarteira } from '../../lib/carteira';
+import { estaAnonimo } from '../../lib/identidade';
+import CartaoDeConvite from '../conta/CartaoDeConvite';
 import { gastarSeeds, gastarCreditos } from '../../data/api';
 import { toast } from '../Toast';
 import { comemorar, explodirAleatorio } from '../../lib/juice';
@@ -66,6 +68,8 @@ interface LojaProps {
   aoTrocarDeAba?: (aba: string) => void;
   /** v3: o contexto único de equipar (App). Opcional só para os testes de tela. */
   equiparCtx?: ContextoDeEquipar;
+  /** Leva à porta de entrada. Ausente = self-host/edição leve, onde não há conta. */
+  onEntrar?: () => void;
 }
 
 
@@ -87,7 +91,7 @@ const FILTROS = [
 const ABAS_VALIDAS = ['passe', 'personalizar', 'loja', 'conquistas'] as const;
 const ALIAS_DE_ABA: Record<string, string> = { progressao: 'passe' };
 
-export default function Loja({ progress, theme, setTheme, fonte, setFonte, menuPosition, setMenuPosition, onOpenStudio, ctxConquistas, ageProfile, setAgeProfile, abaInicial, aoTrocarDeAba, equiparCtx }: LojaProps) {
+export default function Loja({ progress, theme, setTheme, fonte, setFonte, menuPosition, setMenuPosition, onOpenStudio, ctxConquistas, ageProfile, setAgeProfile, abaInicial, aoTrocarDeAba, equiparCtx, onEntrar }: LojaProps) {
   // A tela ÚNICA abre no Meu visual: personalizar é o uso; comprar e conquistar são os caminhos.
   const normalizarAba = (a: string | undefined | null): string | null => {
     const alvo = a ? (ALIAS_DE_ABA[a] ?? a) : null;
@@ -104,6 +108,16 @@ export default function Loja({ progress, theme, setTheme, fonte, setFonte, menuP
   const nivel = progress.available ? progress.level : 1;
   const saldo = progress.available ? progress.seeds : 0;
   const ctxEquipar: ContextoDeEquipar = equiparCtx ?? { setTheme, setFonte, setMenuPosition, onOpenStudio, nivel, saldo };
+  /**
+   * A ECONOMIA EXIGE CONTA — e a acessibilidade não (mudança porta-de-entrada).
+   *
+   * O recorte é por ABA porque esta tela guarda duas coisas de natureza diferente: a economia
+   * (Loja, Passe, Desafios), que só é confiável com o servidor arbitrando, e a acessibilidade
+   * (equipar o que já é seu, o perfil de exibição), que é direito declarado e não se tranca atrás
+   * de cadastro. Gatear a view inteira trancaria "Leitura ampliada" junto.
+   */
+  const semConta = estaAnonimo();
+
   // A carteira de Créditos é a única moeda que o cliente não deriva sozinho: o servidor arbitra.
   const carteira = useCarteira();
 
@@ -445,8 +459,10 @@ export default function Loja({ progress, theme, setTheme, fonte, setFonte, menuP
       />
 
       <PainelDeAba id="passe" ativo={aba}>
+      {semConta ? <CartaoDeConvite view="passe" onEntrar={() => onEntrar?.()} onVoltar={() => setAba('personalizar')} /> : (
         <PasseDeTemporada progress={progress} ctxEquipar={ctxEquipar} equipadoAtual={equipadoAtual} temPasse={carteira.temPasse}
           aoComprarPasse={carteira.disponivel ? () => { setAba('loja'); setFiltro('tudo'); } : undefined} />
+      )}
       </PainelDeAba>
 
       <PainelDeAba id="personalizar" ativo={aba}>
@@ -461,12 +477,15 @@ export default function Loja({ progress, theme, setTheme, fonte, setFonte, menuP
       </PainelDeAba>
 
       <PainelDeAba id="conquistas" ativo={aba}>
+      {semConta ? <CartaoDeConvite view="conquistas" onEntrar={() => onEntrar?.()} onVoltar={() => setAba('personalizar')} /> : (
         <Conquistas progress={progress} ctx={ctxConquistas} />
+      )}
       </PainelDeAba>
 
       {/* A antiga aba Progressão (grade nível-a-nível) foi absorvida pelo Passe: mesma
           informação, na apresentação aprovada do protótipo. */}
       <PainelDeAba id="loja" ativo={aba}>
+      {semConta ? <CartaoDeConvite view="loja" onEntrar={() => onEntrar?.()} onVoltar={() => setAba('personalizar')} /> : (
       <div className="space-y-8">
       {/* ── AS DUAS MOEDAS, DECLARADAS ────────────────────────────────────────────────
              O dono: "não estamos informando os dois tipos de moeda". A carteira do cabeçalho
@@ -624,6 +643,7 @@ export default function Loja({ progress, theme, setTheme, fonte, setFonte, menuP
         {' '}<button onClick={() => setAba('conquistas')} className="underline hover:text-accent cursor-pointer">Ver todas as regras</button>. Seeds não se compram com dinheiro: só estudando.
       </p>
       </div>
+      )}
       </PainelDeAba>
     </div>
     </div>

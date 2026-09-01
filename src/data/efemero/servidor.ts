@@ -20,6 +20,7 @@ import { Fsrs5Strategy, type Grade, type SchedulingState } from '../../core/lear
 import type { AppMetrics } from '../../core/learning/contract';
 import { diaLocal, marcosDeSequencia, minutosPremiados, sequencias } from '../../core/learning/economia';
 import { MINIGAMES } from '../../core/minigames/types';
+import { estadoDoTeto, motivoDoTeto } from '../../core/tetoAnonimo';
 
 export const CODIGO_EXIGE_CONTA = 'EXIGE_CONTA';
 export const EVENTO_EXIGE_CONTA = 'babel_exige_conta';
@@ -116,6 +117,16 @@ async function listarSessoes(): Promise<Response> {
 async function criarSessao(_m: RegExpMatchArray, _u: URL, init: RequestInit): Promise<Response> {
   const p = lerJson(init);
   const db = await abrirStore();
+
+  /* O TETO DO MODO SEM CONTA (mudança porta-de-entrada). Sem conta o acervo mora num só navegador
+     e some com ele; deixar acumular é deixar preparada uma perda grande. O 507 é o mesmo código
+     que a cota de armazenamento do servidor real usa — a tela já sabe tratá-lo. */
+  const jaGuardadas = await db.count('sessoes');
+  const teto = estadoDoTeto('sessoes', jaGuardadas);
+  if (!teto.cabe) {
+    return json({ error: motivoDoTeto('sessoes'), codigo: 'TETO_ANONIMO', recurso: 'sessoes', ...teto }, 507);
+  }
+
   const agora = Date.now();
   const id = uuid();
   const brutas = Array.isArray(p.utterances) ? (p.utterances as Json[]) : [];
@@ -245,6 +256,15 @@ async function adicionarCartoes(_m: RegExpMatchArray, _u: URL, init: RequestInit
   const p = lerJson(init);
   const entrada = Array.isArray(p.cards) ? (p.cards as Json[]) : [];
   const db = await abrirStore();
+
+  /* Mesmo teto, outro recurso. A recusa é do LOTE inteiro e não parcial de propósito: fichar
+     metade das palavras que a pessoa marcou, em silêncio, seria pior do que recusar e explicar. */
+  const jaFichadas = await db.count('cartoes');
+  const tetoP = estadoDoTeto('palavras', jaFichadas);
+  if (!tetoP.cabe) {
+    return json({ error: motivoDoTeto('palavras'), codigo: 'TETO_ANONIMO', recurso: 'palavras', ...tetoP }, 507);
+  }
+
   const agora = Date.now();
   const skipped: Array<{ word: string; motivo: string }> = [];
   const resultado = new Map<string, CartaoLocal>();

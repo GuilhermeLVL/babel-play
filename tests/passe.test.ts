@@ -41,7 +41,19 @@ describe('slotsDoPasse', () => {
   it('creditoId dos slots de Seeds é determinístico e único', () => {
     const ids = slots.filter((s) => s.tipo === 'seeds').map((s) => (s.tipo === 'seeds' ? s.creditoId : ''));
     expect(new Set(ids).size).toBe(ids.length);
-    expect(ids[0]).toMatch(/^passe:t1:slot-\d+$/);
+    expect(ids[0]).toMatch(/^passe:t1:(slot-\d+|cofre-d\d+)$/);
+  });
+
+  it('a moeda é UM Cofre denso por década, nunca migalhas (auditoria ux-v2 §2)', () => {
+    const seeds = slots.filter((s): s is Extract<(typeof slots)[number], { tipo: 'seeds' }> => s.tipo === 'seeds');
+    const porDecada = new Map<number, number>();
+    for (const s of seeds) porDecada.set(s.decada, (porDecada.get(s.decada) ?? 0) + 1);
+    for (const [d, n] of porDecada) expect(n, `década ${d} com moeda fatiada`).toBe(1);
+    for (const s of seeds) expect(s.quantidade, `cofre da década ${s.decada} raso demais`).toBeGreaterThanOrEqual(60);
+    // A quantidade total é a mesma ordem de grandeza da curva antiga (1613): forma nova, economia igual.
+    const total = seeds.reduce((acc, s) => acc + s.quantidade, 0);
+    expect(total).toBeGreaterThan(1500);
+    expect(total).toBeLessThan(1700);
   });
 
   it('o layout é determinístico entre chamadas', () => {

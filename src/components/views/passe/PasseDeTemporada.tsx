@@ -58,6 +58,9 @@ export default function PasseDeTemporada({
   const trilhaRef = useRef<HTMLDivElement | null>(null);
   const [, force] = useState(0);
   const rerender = () => force((x) => x + 1);
+  // Só o que o SERVIDOR confirmou conta como creditado — o cartão nunca afirma "resgatado"
+  // por conta própria (auditoria ux-v2 §2.2: o rótulo mentia antes do resultado do crédito).
+  const [creditados, setCreditados] = useState<Set<string>>(lerCreditados);
 
   /**
    * CRÉDITO DOS SLOTS DE SEEDS destravados e ainda não resgatados. O localStorage é só um
@@ -81,6 +84,7 @@ export default function PasseDeTemporada({
         marcarCreditado(s.creditoId);
         if (!r.jaExistia) total += s.quantidade;
       }
+      if (vivo) setCreditados(lerCreditados());
       if (vivo && total > 0) toast.ok(`Passe: +${total} Seeds dos níveis que você já alcançou.`);
     })();
     return () => { vivo = false; };
@@ -93,14 +97,15 @@ export default function PasseDeTemporada({
 
   const aoTocar = (s: SlotDoPasse) => {
     if (!slotDestravado(s, nivel)) {
-      toast.warn(`Nível ${s.decada * 10 - 9}–${s.decada * 10} do passe: chega com o nível ${s.decada} do app. XP de estudo sobe o passe.`);
+      toast.warn(`Casas ${s.decada * 10 - 9}–${s.decada * 10} do passe: chegam com o nível ${s.decada} do app. XP de estudo sobe o passe.`);
       return;
     }
     if (s.tipo === 'seeds') {
-      toast.ok(`+${s.quantidade} Seeds — já creditadas quando você alcançou este trecho.`);
+      if (lerCreditados().has(s.creditoId)) toast.ok(`Cofre da década ${s.decada}: +${s.quantidade} Seeds já creditadas na sua conta.`);
+      else toast.ok(`Cofre da década ${s.decada}: +${s.quantidade} Seeds — creditando; se a rede falhar, tentamos de novo na próxima visita.`);
       return;
     }
-    if (!equipavel(s.item)) { toast.ok(`${s.item.nome}: capacidade da galeria — use em Biblioteca.`); return; }
+    if (!equipavel(s.item)) { toast.ok(`${s.item.nome}: capacidade da galeria — use em Meu visual.`); return; }
     if (equiparItem(s.item, ctxEquipar)) { rerender(); toast.ok(`${s.item.nome} equipado.`); }
     else {
       const { motivo } = estadoDoItem(s.item, ctxEquipar.nivel, ctxEquipar.saldo);
@@ -120,8 +125,8 @@ export default function PasseDeTemporada({
             <Ticket className="w-4 h-4" aria-hidden /> Temporada 1 · Fundação
           </p>
           <p className="text-[12.5px] text-ink-muted mt-1 max-w-[70ch]">
-            100 níveis com os itens reais do catálogo — a década N é o nível N do app, então nada
-            destrava antes nem depois do que já destravava. Você está no <b className="text-ink">nível {marcador}</b> do passe.
+            100 casas com os itens reais do catálogo — a década N é o nível N do app, então nada
+            destrava antes nem depois do que já destravava. Você está na <b className="text-ink">casa {marcador}</b> do passe.
           </p>
         </div>
         {/* As DUAS fileiras aparecem (decisão do dono): a Premium mostra o que devolve, mas a
@@ -165,19 +170,29 @@ export default function PasseDeTemporada({
                     {atual && <span className="font-sans font-bold">· você</span>}
                   </p>
 
-                  {/* Fileira GRÁTIS */}
+                  {/* Fileira GRÁTIS — esparsa de propósito (um Cofre por década, ux-v2 §2):
+                      coluna sem recompensa grátis mostra o traço, sem cartão falso. */}
                   <div className="h-[118px] flex flex-col gap-1.5">
+                    {col.livres.length === 0 && (
+                      <div className="flex-1 rounded-xl border border-dashed border-border-subtle/60 flex items-center justify-center" aria-hidden>
+                        <span className="text-ink-faint/50 text-[11px]">—</span>
+                      </div>
+                    )}
                     {col.livres.map((sl) => {
                       if (sl.tipo === 'seeds') {
+                        // "creditado" só com confirmação do servidor; "disponível" é o estado
+                        // honesto do meio (ux-v2 §2.2 — o rótulo antigo afirmava o resgate antes).
+                        const estadoCofre = !aberto ? `nível ${sl.decada}` : creditados.has(sl.creditoId) ? 'creditado' : 'disponível';
                         return (
                           <button
                             key={sl.creditoId}
                             onClick={() => aoTocar(sl)}
-                            className={`flex-1 card-panel border-dashed p-2 text-left cursor-pointer min-h-0 ${aberto ? '' : 'opacity-60'}`}
-                            aria-label={`Nível ${col.nivel} do passe, trilha grátis: ${sl.quantidade} Seeds${aberto ? ', resgatadas' : ', bloqueado'}`}
+                            className={`flex-1 card-panel p-2 text-left cursor-pointer min-h-0 border-2 border-good/50 ${aberto ? 'bg-good-soft/30' : 'opacity-60'}`}
+                            aria-label={`Casa ${col.nivel} do passe, trilha grátis: Cofre da década ${sl.decada}, ${sl.quantidade} Seeds, ${estadoCofre}`}
                           >
                             <p className="flex items-center gap-1.5 text-[13px] font-bold text-good-ink"><Sprout className="w-4 h-4" aria-hidden /> +{sl.quantidade}</p>
-                            <p className="text-[9.5px] text-ink-faint mt-0.5">{aberto ? 'resgatado' : `nível ${sl.decada}`}</p>
+                            <p className="text-[10px] font-bold text-ink leading-tight mt-0.5">Cofre da década {sl.decada}</p>
+                            <p className="text-[9.5px] text-ink-faint mt-0.5">{estadoCofre}</p>
                           </button>
                         );
                       }
@@ -190,7 +205,7 @@ export default function PasseDeTemporada({
                           onClick={() => aoTocar(sl)}
                           title={i.desc}
                           className={`flex-1 card-panel p-2 text-left cursor-pointer border-2 min-h-0 overflow-hidden ${cor.borda} ${aberto ? cor.fundo : 'opacity-70'}`}
-                          aria-label={`Nível ${col.nivel} do passe, trilha grátis: ${i.nome}${aberto ? '' : ', bloqueado'}`}
+                          aria-label={`Casa ${col.nivel} do passe, trilha grátis: ${i.nome}${aberto ? '' : ', bloqueado'}`}
                         >
                           <p className={`text-lg leading-none mb-1 ${aberto ? '' : 'grayscale opacity-60'}`} aria-hidden>{emojiDoItem(i)}</p>
                           <p className="text-[10.5px] font-bold text-ink leading-tight truncate">{i.nome}</p>
@@ -208,7 +223,7 @@ export default function PasseDeTemporada({
                   <div
                     className="h-[118px] card-panel bg-warn-soft/20 border-warn/25 p-2 flex flex-col justify-between"
                     role="img"
-                    aria-label={`Nível ${col.nivel} do passe, trilha premium: ${prem.tipo === 'creditos' ? `${prem.quantidade} Créditos` : prem.nome}, disponível quando a loja de créditos abrir`}
+                    aria-label={`Casa ${col.nivel} do passe, trilha premium: ${prem.tipo === 'creditos' ? `${prem.quantidade} Créditos` : prem.nome}, disponível quando a loja de créditos abrir`}
                   >
                     {prem.tipo === 'creditos' ? (
                       <p className="flex items-center gap-1.5 text-[13px] font-bold text-warn-ink"><Coins className="w-4 h-4" aria-hidden /> +{prem.quantidade}</p>

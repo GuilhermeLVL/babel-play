@@ -8,7 +8,7 @@
  * mostra o estado explicativo em vez de dados falsos.
  */
 import { useEffect, useState } from 'react';
-import { X, Trophy, Flame, Target, Globe2, Medal } from 'lucide-react';
+import { X, Zap, Target, Globe2, Medal } from 'lucide-react';
 import { fetchRecordes, type RecordeDoJogo } from '../../../data/api';
 import { lerRanking, lerApelido, type LinhaDoRanking } from '../../../lib/ranking';
 import { eventosVistos, todosOsEventos } from '../../../lib/eventosDeJogo';
@@ -43,7 +43,7 @@ export default function Recordes({ ageProfile, onFechar }: { ageProfile: AgeProf
       <div className="card-panel bg-surface w-full max-w-2xl max-h-[85vh] overflow-y-auto custom-scrollbar p-6">
         <div className="flex items-center justify-between mb-4">
           <h2 className="flex items-center gap-2 font-marca font-bold text-xl text-ink">
-            <Trophy className="w-6 h-6 text-warn" /> Recordes
+            <Medal className="w-6 h-6 text-warn" /> Recordes
           </h2>
           <button onClick={onFechar} className="p-2 rounded-lg text-ink-muted hover:bg-surface-hover hover:text-ink cursor-pointer" aria-label="Fechar">
             <X className="w-5 h-5" />
@@ -83,7 +83,7 @@ export default function Recordes({ ageProfile, onFechar }: { ageProfile: AgeProf
                     <tr className="text-left text-[10px] uppercase tracking-wider text-ink-faint border-b border-border-subtle">
                       <th className="py-2 pr-3 font-bold">Jogo</th>
                       <th className="py-2 pr-3 font-bold text-right">Melhor</th>
-                      <th className="py-2 pr-3 font-bold text-right"><span className="inline-flex items-center gap-1"><Flame className="w-3 h-3" />combo</span></th>
+                      <th className="py-2 pr-3 font-bold text-right"><span className="inline-flex items-center gap-1"><Zap className="w-3 h-3" />combo</span></th>
                       <th className="py-2 pr-3 font-bold text-right"><span className="inline-flex items-center gap-1"><Target className="w-3 h-3" />precisão</span></th>
                       <th className="py-2 font-bold text-right">rodadas</th>
                     </tr>
@@ -129,7 +129,7 @@ export default function Recordes({ ageProfile, onFechar }: { ageProfile: AgeProf
                   <li key={l.apelido + i} className={`flex items-center gap-3 px-3 py-2 rounded-xl ${l.apelido === apelido ? 'bg-accent-soft border border-accent/40' : i % 2 === 0 ? 'bg-canvas' : ''}`}>
                     <span className="w-7 text-center font-black tabular-nums text-ink-muted">{i < 3 ? <Medal className={`w-4 h-4 inline ${i === 0 ? 'text-warn' : i === 1 ? 'text-ink-faint' : 'text-accent'}`} /> : i + 1}</span>
                     <span className="flex-1 min-w-0 truncate font-bold text-[13px] text-ink">{l.apelido}{l.apelido === apelido && <span className="text-accent-ink"> (você)</span>}</span>
-                    <span className="flex items-center gap-1 text-[12px] text-ink-muted tabular-nums"><Flame className="w-3 h-3" />{l.combo}</span>
+                    <span className="flex items-center gap-1 text-[12px] text-ink-muted tabular-nums"><Zap className="w-3 h-3" />{l.combo}</span>
                     <span className="font-black text-[14px] text-warn-ink tabular-nums">{l.pontos}</span>
                   </li>
                 ))}

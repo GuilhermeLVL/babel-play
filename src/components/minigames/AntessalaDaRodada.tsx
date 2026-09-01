@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { X, Play, Shuffle, RotateCcw, Trophy, Flame, Target, Sparkles, Star, SlidersHorizontal, ChevronDown, LifeBuoy, HelpCircle, ListChecks } from 'lucide-react';
+import { X, Play, Shuffle, RotateCcw, Medal, Zap, Target, Sparkles, Star, SlidersHorizontal, ChevronDown, LifeBuoy, HelpCircle, ListChecks } from 'lucide-react';
 import { fetchRecordes, type RecordeDoJogo } from '../../data/api';
 import { eventosVistos, todosOsEventos } from '../../lib/eventosDeJogo';
 import { IconePixel } from '../views/play/IconesPixel';
@@ -471,8 +471,8 @@ export default function AntessalaDaRodada({
                   </div>
                 </div>
                 <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-[12.5px] ml-auto">
-                  <span className="flex items-center gap-1.5 text-warn-ink font-black tabular-nums" title="Sua melhor pontuação neste jogo"><Trophy className="w-3.5 h-3.5" aria-hidden /> {recorde.melhorPontos}</span>
-                  {(recorde.melhorCombo ?? 0) > 0 && <span className="flex items-center gap-1.5 text-ink tabular-nums" title="Seu maior combo"><Flame className="w-3.5 h-3.5 text-warn" aria-hidden /> ×{recorde.melhorCombo}</span>}
+                  <span className="flex items-center gap-1.5 text-warn-ink font-black tabular-nums" title="Sua melhor pontuação neste jogo"><Medal className="w-3.5 h-3.5" aria-hidden /> {recorde.melhorPontos}</span>
+                  {(recorde.melhorCombo ?? 0) > 0 && <span className="flex items-center gap-1.5 text-ink tabular-nums" title="Seu maior combo"><Zap className="w-3.5 h-3.5 text-warn" aria-hidden /> ×{recorde.melhorCombo}</span>}
                   {recorde.precisao != null && <span className="flex items-center gap-1.5 text-ink tabular-nums" title="Precisão histórica"><Target className="w-3.5 h-3.5 text-good" aria-hidden /> {recorde.precisao}%</span>}
                 </div>
               </div>
@@ -688,9 +688,9 @@ export default function AntessalaDaRodada({
                       </span>
                     </span>
                     <span className="flex flex-wrap items-center gap-x-3 gap-y-0.5 mt-1.5 text-[11.5px] text-ink-muted tabular-nums">
-                      {f.pontos > 0 && <span className="flex items-center gap-1"><Trophy className="w-3 h-3" aria-hidden /> {f.pontos}</span>}
+                      {f.pontos > 0 && <span className="flex items-center gap-1"><Medal className="w-3 h-3" aria-hidden /> {f.pontos}</span>}
                       <span className="flex items-center gap-1"><Target className="w-3 h-3" aria-hidden /> {f.acertos}/{f.total}</span>
-                      {f.combo > 1 && <span className="flex items-center gap-1"><Flame className="w-3 h-3" aria-hidden /> ×{f.combo}</span>}
+                      {f.combo > 1 && <span className="flex items-center gap-1"><Zap className="w-3 h-3" aria-hidden /> ×{f.combo}</span>}
                       {quandoCaiu(f.quando) && <span className="ml-auto text-ink-faint">{quandoCaiu(f.quando)}</span>}
                     </span>
                     {f.refs.length > 0 && (

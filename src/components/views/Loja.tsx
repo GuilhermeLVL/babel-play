@@ -11,7 +11,7 @@
  * caminho que equipa no app. Os textos dos estados vêm de `lib/galeria/textos`.
  */
 import { useEffect, useMemo, useState } from 'react';
-import { ShoppingBag, Sprout, Lock, Check, Sparkles, Palette, Type, Gamepad2, PanelRight, Wand2, Trophy, Shirt, Ticket, LibraryBig } from 'lucide-react';
+import { ShoppingBag, Sprout, Lock, Check, Sparkles, Palette, Type, Gamepad2, PanelRight, Wand2, Trophy, Shirt, Ticket } from 'lucide-react';
 import { Abas, PainelDeAba } from '../ui';
 import Conquistas from './Conquistas';
 import PasseDeTemporada from './passe/PasseDeTemporada';
@@ -22,7 +22,7 @@ import {
 } from '../../lib/loja';
 import { proximaRecompensa, estadoDaColecao, emojiDoItem } from '../../lib/galeria/progressao';
 import { equiparItem, equipavel, type ContextoDeEquipar } from '../../lib/galeria/equipar';
-import { TEXTOS } from '../../lib/galeria/textos';
+import { TEXTOS, palavraDeNivel } from '../../lib/galeria/textos';
 import { gastarSeeds } from '../../data/api';
 import { toast } from '../Toast';
 import { comemorar, explodirAleatorio } from '../../lib/juice';
@@ -207,7 +207,7 @@ export default function Loja({ progress, theme, setTheme, fonte, setFonte, menuP
             <div className="flex items-center gap-3 shrink-0">
               <div className="card-panel bg-canvas px-4 py-3 text-center min-w-[92px]">
                 <p className="font-display font-black text-2xl text-ink tabular-nums">{nivel}</p>
-                <p className="text-[10px] uppercase tracking-wider text-ink-muted font-bold">nível</p>
+                <p className="text-[10px] uppercase tracking-wider text-ink-muted font-bold">{palavraDeNivel()}</p>
               </div>
               <div className="card-panel bg-canvas px-4 py-3 text-center min-w-[92px]">
                 <p className="flex items-center justify-center gap-1 font-display font-black text-2xl text-good tabular-nums">
@@ -224,7 +224,7 @@ export default function Loja({ progress, theme, setTheme, fonte, setFonte, menuP
                 <span className="font-bold text-ink">{TEXTOS.nivel(nivel)}</span>
                 <span className="text-ink-muted tabular-nums">{progress.available ? `${progress.xpIntoLevel} / ${progress.xpForLevel} XP · ${TEXTOS.faltamXp(faltamXp)}` : '…'}</span>
               </div>
-              <div className="h-2.5 rounded-full bg-surface border border-border-subtle overflow-hidden" role="progressbar" aria-valuenow={progress.levelPct} aria-valuemax={100} aria-label={`Progresso para o nível ${nivel + 1}`}>
+              <div className="h-2.5 rounded-full bg-surface border border-border-subtle overflow-hidden" role="progressbar" aria-valuenow={progress.levelPct} aria-valuemax={100} aria-label={`Progresso para ${palavraDeNivel().toLowerCase()} ${nivel + 1}`}>
                 <div className="h-full rounded-full bg-accent transition-all" style={{ width: `${progress.levelPct}%` }} />
               </div>
             </div>
@@ -250,7 +250,10 @@ export default function Loja({ progress, theme, setTheme, fonte, setFonte, menuP
         aoTrocar={setAba}
         itens={[
           { id: 'passe', rotulo: 'Passe', icone: <Ticket className="w-4 h-4" /> },
-          { id: 'personalizar', rotulo: `Biblioteca · ${colecao.possuidos.length}`, icone: <LibraryBig className="w-4 h-4" /> },
+          // "Meu visual", não "Biblioteca": biblioteca já é a tela de mídias (rota /biblioteca)
+          // — mesmo nome para dois lugares confundia (ux-v2 §1.2); o cabeçalho desta tela já
+          // chama o que é seu de "Meu visual".
+          { id: 'personalizar', rotulo: `Meu visual · ${colecao.possuidos.length}`, icone: <Shirt className="w-4 h-4" /> },
           { id: 'loja', rotulo: `Loja · ${colecao.compraveis.length + colecao.porNivel.length}`, icone: <ShoppingBag className="w-4 h-4" /> },
           { id: 'conquistas', rotulo: `Desafios · ${colecao.porConquista.length}`, icone: <Trophy className="w-4 h-4" /> },
         ]}

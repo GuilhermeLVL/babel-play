@@ -7,7 +7,7 @@ import {
   BookOpen,
   Settings as SettingsIcon,
   Heart,
-  ShoppingBag,
+  Shirt,
   type LucideIcon
 } from 'lucide-react';
 import { EDICAO_LEVE } from '../../lib/edicao';
@@ -78,7 +78,9 @@ const TODOS_OS_ITENS: NavItemDef[] = [
   {
     // A vitrine da progressão: desbloqueios por nível e compras com Seeds.
     id: 'loja',
-    icon: ShoppingBag,
+    // Camiseta, não sacola (ux-v2 §1.3): a tela é primeiro o guarda-roupa ("Meu visual" é a aba
+    // default); a sacola sugeria loja e a Loja é só uma das quatro áreas.
+    icon: Shirt,
     short: 'Personalizar',
     /* A tela ÚNICA de personalização (2026-08-28): visual, loja e conquistas num lugar só. */
     labels: { kids: 'Meu visual', pro: 'Personalizar', senior: 'Personalizar' },

@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Sparkles, Play, RotateCcw, Flame, Trophy, Sprout, Star, Target, Timer } from 'lucide-react';
+import { Sparkles, Play, RotateCcw, Zap, Medal, Sprout, Star, Target, Timer } from 'lucide-react';
 import type { RoundReport, ResumoDaSequencia } from '@core';
 import { summarize, estrelasDaRodada } from '@core';
 import type { AgeProfileType } from '../../lib/profile';
@@ -192,7 +192,7 @@ export default function ScratchReward({
         {/* Estatísticas com ícone, uma linha: pontos, precisão, tempo. É o "detalhezinho de
             imersão" pedido — números que a rodada já tinha e não mostrava. */}
         <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 mt-2.5 text-[13px] text-ink-muted tabular-nums">
-          <span className="flex items-center gap-1.5" title="Pontos desta rodada"><Trophy className="w-3.5 h-3.5 text-warn" aria-hidden /> <b className="text-ink font-display">{report.score}</b> pts</span>
+          <span className="flex items-center gap-1.5" title="Pontos desta rodada"><Medal className="w-3.5 h-3.5 text-warn" aria-hidden /> <b className="text-ink font-display">{report.score}</b> pts</span>
           <span className="flex items-center gap-1.5" title="Precisão"><Target className="w-3.5 h-3.5 text-good" aria-hidden /> {resumo.precisao}%</span>
           {segundos > 0 && <span className="flex items-center gap-1.5" title="Duração da rodada"><Timer className="w-3.5 h-3.5" aria-hidden /> {segundos}s</span>}
         </div>
@@ -246,7 +246,7 @@ export default function ScratchReward({
               <span className="text-ink-muted">{sequencia.precisao}% no total</span>
               {bateuRecorde ? (
                 <span className="badge-tag acc shrink-0 flex items-center gap-1">
-                  <Trophy className="w-3 h-3" aria-hidden /> RECORDE
+                  <Medal className="w-3 h-3" aria-hidden /> RECORDE
                 </span>
               ) : recorde !== null && recorde > 0 && (
                 <span className="text-[11px] text-ink-faint">seu recorde: {recorde}</span>
@@ -258,7 +258,7 @@ export default function ScratchReward({
               nesta tela que fala sobre a próxima rodada em vez da que acabou. */}
           {sequencia && sequencia.combo >= 3 && (
             <p className="flex items-center gap-1.5 text-[13px] font-bold text-accent-ink">
-              <Flame className="w-4 h-4" aria-hidden />
+              <Zap className="w-4 h-4" aria-hidden />
               combo ×{sequencia.combo} continua na próxima
             </p>
           )}
@@ -268,7 +268,7 @@ export default function ScratchReward({
               "faltam 4.000" não motiva ninguém, "faltam 40" sim. */}
           {!bateuRecorde && sequencia && recorde !== null && recorde > sequencia.pontos && recorde - sequencia.pontos <= Math.max(30, recorde * 0.5) && (
             <p className="flex items-center gap-1.5 text-[13px] font-bold text-warn-ink">
-              <Trophy className="w-4 h-4" aria-hidden />
+              <Medal className="w-4 h-4" aria-hidden />
               faltam {recorde - sequencia.pontos} pts para o seu recorde
             </p>
           )}

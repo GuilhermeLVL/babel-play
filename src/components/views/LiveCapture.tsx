@@ -63,7 +63,7 @@ import {
   Loader2,
   ChevronDown,
   Image as ImageIcon,
-  Ticket
+  LayoutGrid
 } from 'lucide-react';
 import Overlay, { OverlayCaption } from '../Overlay';
 import LangPicker from '../LangPicker';
@@ -3215,7 +3215,7 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
                           showBingo ? 'bg-accent border-accent text-white shadow-btn' : 'bg-canvas border-border-subtle text-ink-muted hover:text-ink hover:border-accent'
                         }`}
                       >
-                        <Ticket className="w-3.5 h-3.5" />
+                        <LayoutGrid className="w-3.5 h-3.5" />
                         <span>Bingo</span>
                       </button>}
 

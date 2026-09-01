@@ -199,7 +199,10 @@ export default function Planos() {
             As porcentagens de qualidade são <strong className="text-ink">medidas</strong>, não
             estimadas: taxa de erro de palavra no corpus CORAA de fala espontânea brasileira, e
             chrF++ num conjunto anotado por fenômeno (pronome, gênero, idiomático, registro). O
-            método e os números completos estão em <code>docs/auditoria/eval-producao-v1.md</code>.
+            {/* Sem caminho de repositório na tela (ux-v2 §1.10): o leigo não tem onde clicar num
+                path de arquivo; o método publicado é alcançável pelo GitHub do projeto (Sobre). */}
+            método e os números completos estão publicados no repositório do projeto — o link
+            fica na tela Sobre.
           </p>
 
           <p className="text-[12px] text-ink-muted mt-2 leading-relaxed">

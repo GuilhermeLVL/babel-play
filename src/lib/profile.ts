@@ -346,6 +346,17 @@ export const COPY = {
     senior: 'Resumo desta aula'
   },
 
+  // ── Vocabulário de progressão ────────────────────────────────────────────
+  // A PALAVRA do nível de gamificação, num lugar só (auditoria ux-v2 §1.7: o mesmo número era
+  // "ETAPA" no Hub, "NÍVEL" em Personalizar e "nível" nos marcos do Perfil — dentro do MESMO
+  // perfil de exibição). "Etapa" fica reservada ao sênior; a trilha CEFR ("A2 · etapa 7") é
+  // outro conceito e continua com a palavra dela.
+  'word.level': {
+    kids: 'Nível',
+    pro: 'Nível',
+    senior: 'Etapa'
+  },
+
   // ── Revelação progressiva ────────────────────────────────────────────────
   'reveal.more': {
     kids: 'Ver tudo ({n})',

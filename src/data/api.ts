@@ -81,8 +81,11 @@ function fmtDate(ts: number): string {
   const d = new Date(ts)
   const now = new Date()
   if (d.toDateString() === now.toDateString()) return 'Hoje'
-  const diffDays = Math.floor((now.getTime() - ts) / 86_400_000)
-  if (diffDays === 1) return 'Ontem'
+  // Diferença por dia de CALENDÁRIO, não por 24h corridas: gravado ontem à noite e visto de
+  // manhã dava floor(0.6)=0 → "Há 0 dias" (ux-v2 §1.9).
+  const meiaNoite = (x: Date) => new Date(x.getFullYear(), x.getMonth(), x.getDate()).getTime()
+  const diffDays = Math.round((meiaNoite(now) - meiaNoite(d)) / 86_400_000)
+  if (diffDays <= 1) return 'Ontem'
   if (diffDays < 7) return `Há ${diffDays} dias`
   return d.toLocaleDateString('pt-BR')
 }

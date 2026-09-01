@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { X, Scissors, Zap, Flame, Star, Trophy } from 'lucide-react';
+import { X, Scissors, Zap, Star, Medal } from 'lucide-react';
 import type { MinigameItem, ItemOutcome, RoundReport } from '@core';
 import { distractorsFor, scoreRound } from '@core';
 import type { AgeProfileType } from '../../lib/profile';
@@ -346,13 +346,13 @@ export default function BlitzGame({ items, ageProfile, onFinish, onExit }: Blitz
           <p className="text-[12px] text-ink-muted mt-1">pontos</p>
           {resultado.recorde ? (
             <p className="flex items-center justify-center gap-1.5 mt-3 font-black text-[15px] text-warn-ink">
-              <Trophy className="w-5 h-5" aria-hidden /> NOVO RECORDE!
+              <Medal className="w-5 h-5" aria-hidden /> NOVO RECORDE!
             </p>
           ) : (
             lerRecorde() > 0 && <p className="text-[12px] text-ink-faint mt-3">recorde pessoal: {lerRecorde()}</p>
           )}
           <div className="flex items-center justify-center gap-5 mt-4 text-[13px] text-ink-muted">
-            <span className="flex items-center gap-1"><Flame className="w-4 h-4 text-warn" aria-hidden /> melhor combo: <b className="text-ink">{resultado.melhorSeq}</b></span>
+            <span className="flex items-center gap-1"><Zap className="w-4 h-4 text-warn" aria-hidden /> melhor combo: <b className="text-ink">{resultado.melhorSeq}</b></span>
             <span>acertos: <b className="text-ink">{resultado.report.items.filter(o => o.correct).length}/{resultado.report.items.length}</b></span>
           </div>
           {/* Ranking global: opt-in, com apelido — só pontos e combo saem daqui. */}
@@ -452,7 +452,7 @@ export default function BlitzGame({ items, ageProfile, onFinish, onExit }: Blitz
         <div className="h-12 flex items-end justify-center" aria-hidden={sequencia < 2}>
           {sequencia >= 2 && (
             <span key={'selo' + sequencia} className={`blitz-selo flex items-baseline gap-1.5 select-none ${fever ? 'text-warn-ink' : sequencia >= 5 ? 'text-warn-ink' : 'text-accent-ink'}`}>
-              {fever ? <Zap className="w-6 h-6 self-center" aria-hidden /> : <Flame className="w-6 h-6 self-center" aria-hidden />}
+              <Zap className="w-6 h-6 self-center" aria-hidden />
               <span className="font-display font-black text-4xl leading-none">×{multVisivel}</span>
               {rotulo && <span className="font-black uppercase tracking-widest text-[12px] opacity-80">{rotulo}</span>}
             </span>

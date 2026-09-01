@@ -19,6 +19,12 @@
   --color-warn: var(--warn);
   --color-warn-soft: var(--warn-soft);
   --color-warn-ink: var(--warn-ink);
+  /* Origem e raridade da economia — ver o bloco :root que os define. */
+  --color-epic: var(--epic);
+  --color-epic-soft: var(--epic-soft);
+  --color-premium: var(--premium);
+  --color-premium-soft: var(--premium-soft);
+  --color-premium-ink: var(--premium-ink);
   --color-rare: var(--rare);
   --color-rare-soft: var(--rare-soft);
   --color-rare-ink: var(--rare-ink);
@@ -1322,6 +1328,22 @@ select optgroup {
 :root {
   --shell-inset-right: 0px;
   --shell-inset-bottom: 0px;
+}
+
+/* ─────────────── ORIGEM E RARIDADE (economia-legivel-e-moedas) ───────────────
+   Duas cores que os cartões da economia precisavam e não existiam como token — e é por isso que
+   `COR_DA_RARIDADE` carregava hex crus (#4C9AFF, #A66CFF) que brigavam com os 7 temas.
+
+   Estas NÃO variam por tema, de propósito: raridade e moeda comprada são constantes de marca
+   (o "épico roxo" e o "premium dourado-violeta" precisam significar a mesma coisa em qualquer
+   tema, como em todo jogo que usa raridade). As outras origens reusam os tokens semânticos que
+   já existem e JÁ significam isso no app: accent = progressão, good = Seeds, warn = conquista. */
+:root {
+  --epic: #A66CFF;
+  --epic-soft: rgba(166, 108, 255, 0.14);
+  --premium: #8B5CF6;
+  --premium-soft: rgba(139, 92, 246, 0.14);
+  --premium-ink: color-mix(in srgb, var(--premium) 55%, var(--ink));
 }
 /* Abaixo de `md` a dock inferior existe sempre, qualquer que seja a posição escolhida. */
 @media (max-width: 767.98px) {

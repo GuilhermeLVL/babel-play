@@ -6,11 +6,12 @@
 
 ## 2. A régua das quatro origens
 
-- [ ] 2.1 `origemDoItem` no core: nível · Seeds · conquista · créditos
-- [ ] 2.2 `estadoDaColecao` separa os três baldes que hoje viram "possuidos"
-- [ ] 2.3 Ícone por tipo/origem (fim do emoji sorteado da descrição por regex)
-- [ ] 2.4 `COR_DA_RARIDADE` sai dos hex crus e passa a token; cor do cartão = origem
-- [ ] 2.5 Um cartão único usado pelas 4 abas
+- [x] 2.1 `origemDoItem` no core: nível · Seeds · conquista · créditos
+- [x] 2.2 `estadoDaColecao` separa os três baldes que hoje viram "possuidos"
+- [x] 2.3 Ícone por tipo/origem (fim do emoji sorteado da descrição por regex)
+- [x] 2.4 `COR_DA_RARIDADE` sai dos hex crus e passa a token; cor do cartão = origem
+- [ ] 2.5 Um cartão único usado pelas 4 abas — PENDENTE: a régua já vale em Meu visual e
+      no Passe; unificar o componente é refactor visual maior, fica para a rodada seguinte
 
 ## 3. Moedas (backend antes da tela)
 

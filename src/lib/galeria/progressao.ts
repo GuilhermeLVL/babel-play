@@ -44,6 +44,16 @@ export function proximaRecompensa(nivelAtual: number, catalogo: ReadonlyArray<It
 export interface EstadoDaColecao {
   /** Já é seu (nível alcançado, comprado, ou conquista feita) — equipável. */
   possuidos: ItemDaLoja[]
+  /**
+   * OS MESMOS `possuidos`, separados por COMO foram conseguidos (mudança
+   * economia-legivel-e-moedas). Três origens caíam num balde só e a coleção deixava de contar a
+   * própria história: o tema que você ganhou subindo de nível ficava idêntico ao que você
+   * comprou e ao que você conquistou. `possuidos` continua sendo a união, porque metade das
+   * telas só quer saber "é meu?".
+   */
+  ganhosPorNivel: ItemDaLoja[]
+  compradosComSeeds: ItemDaLoja[]
+  conquistados: ItemDaLoja[]
   /** Dá para comprar agora com o saldo. */
   compraveis: ItemDaLoja[]
   /** Ainda trancado por nível (compra possível, mas o saldo não chega, ou sem preço). */
@@ -54,11 +64,22 @@ export interface EstadoDaColecao {
 
 /** Classifica cada item do catálogo numa das quatro áreas. Aprimoramentos ficam fora (têm régua própria). */
 export function estadoDaColecao(nivel: number, saldo: number, catalogo: ReadonlyArray<ItemDaLoja> = CATALOGO_DA_LOJA): EstadoDaColecao {
-  const r: EstadoDaColecao = { possuidos: [], compraveis: [], porNivel: [], porConquista: [] }
+  const r: EstadoDaColecao = {
+    possuidos: [], ganhosPorNivel: [], compradosComSeeds: [], conquistados: [],
+    compraveis: [], porNivel: [], porConquista: [],
+  }
+  const comprados = possuidos()
   for (const i of catalogo) {
     if (i.tipo === 'aprimoramento') continue
     const { estado } = estadoDoItem(i, nivel, saldo)
-    if (estado === 'equipavel') r.possuidos.push(i)
+    if (estado === 'equipavel') {
+      r.possuidos.push(i)
+      // A ordem importa: conquista ganha de compra, e compra ganha de nível — um item comprado
+      // ANTES de o nível chegar continua sendo "eu comprei", que é o que a pessoa lembra.
+      if (i.exclusivoDe) r.conquistados.push(i)
+      else if (comprados.has(i.id)) r.compradosComSeeds.push(i)
+      else r.ganhosPorNivel.push(i)
+    }
     else if (i.exclusivoDe) r.porConquista.push(i)
     else if (estado === 'compravel') r.compraveis.push(i)
     else r.porNivel.push(i)
@@ -85,7 +106,14 @@ export function foiComprado(item: ItemDaLoja): boolean {
 
 /** Emoji/ícone textual de um item, para linhas compactas ("🎁 Nome"). */
 export function emojiDoItem(item: ItemDaLoja): string {
-  const m = item.desc.match(/\p{Extended_Pictographic}/u)
+  /* O TIPO MANDA, e a descrição é só o desempate.
+     Antes era o contrário: o primeiro emoji da descrição, por regex, virava o ícone — então o
+     ícone dependia do texto que alguém escreveu, e dois cursores tinham símbolos diferentes
+     enquanto um tema e um pack podiam ter o mesmo. Não era um sistema, era um acidente por item.
+     Agora o tipo dá o ícone estável, e só os tipos que se distinguem PELO conteúdo (packs e
+     cursores, onde o emoji É o produto) continuam lendo a descrição. */
+  const ehDoConteudo = item.tipo === 'pack' || item.tipo === 'cursor' || item.tipo === 'rastro'
+  const m = ehDoConteudo ? item.desc.match(/\p{Extended_Pictographic}/u) : null
   if (m) return m[0]
   switch (item.tipo) {
     case 'tema': return '🎨'

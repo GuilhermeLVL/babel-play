@@ -225,12 +225,55 @@ export function vitrineDoProximoNivel(nivelAtual: number): ItemDaLoja[] {
   return Number.isFinite(menorNivel) ? proximos.filter((i) => i.nivel === menorNivel) : [];
 }
 
+/**
+ * RARIDADE — agora em TOKENS, não em hex cru.
+ *
+ * `#4C9AFF` e `#A66CFF` estavam escritos à mão aqui, e é o tipo de coisa que os primitivos de
+ * `ui/` proíbem por teste ("um literal vira texto invisível em algum tema"). Como esta constante
+ * mora em `lib/`, o teste não a alcançava — e as duas cores brigavam com os 7 temas × claro/escuro.
+ */
 export const COR_DA_RARIDADE: Record<Raridade, { borda: string; fundo: string; rotulo: string }> = {
   comum: { borda: 'border-border-subtle', fundo: 'bg-surface', rotulo: 'Comum' },
-  raro: { borda: 'border-[#4C9AFF]', fundo: 'bg-[#4C9AFF]/10', rotulo: 'Raro' },
-  epico: { borda: 'border-[#A66CFF]', fundo: 'bg-[#A66CFF]/10', rotulo: 'Épico' },
+  raro: { borda: 'border-rare', fundo: 'bg-rare-soft', rotulo: 'Raro' },
+  epico: { borda: 'border-epic', fundo: 'bg-epic-soft', rotulo: 'Épico' },
   lendario: { borda: 'border-warn', fundo: 'bg-warn/10', rotulo: 'Lendário' },
 };
+
+/**
+ * A RÉGUA DAS QUATRO ORIGENS (mudança economia-legivel-e-moedas).
+ *
+ * O DEFEITO QUE ISTO CONSERTA. O app tem quatro maneiras de dar um item — nível, Seeds,
+ * conquista e (agora) créditos — e NENHUMA delas tinha sinal visual. A cor do cartão respondia
+ * "quão especial é?" (raridade) e ninguém respondia "como eu consigo?". Pior: depois de obtido,
+ * a origem sumia de vez (`estadoDaColecao` jogava as três primeiras no mesmo balde), então a
+ * coleção não contava mais a história de como foi montada. Era a maior fonte da sensação que o
+ * dono relatou: "nada parece estar ligado".
+ *
+ * A partir daqui, ORIGEM é a pergunta que a COR responde, em qualquer tela; a raridade vira selo.
+ */
+export type OrigemDoItem = 'nivel' | 'seeds' | 'conquista' | 'creditos';
+
+export const ORIGEM: Record<OrigemDoItem, { rotulo: string; comoSeGanha: string; borda: string; fundo: string; texto: string }> = {
+  // Os três primeiros reusam tokens que JÁ significam isso no app (accent = progressão na barra
+  // de XP, good = o verde das Seeds, warn = o dourado do troféu). O quarto é o token novo.
+  nivel: { rotulo: 'Nível', comoSeGanha: 'chega estudando', borda: 'border-accent', fundo: 'bg-accent-soft', texto: 'text-accent-ink' },
+  seeds: { rotulo: 'Seeds', comoSeGanha: 'compra com a moeda de estudo', borda: 'border-good', fundo: 'bg-good-soft', texto: 'text-good-ink' },
+  conquista: { rotulo: 'Conquista', comoSeGanha: 'só fazendo — não se compra', borda: 'border-warn', fundo: 'bg-warn-soft', texto: 'text-warn-ink' },
+  creditos: { rotulo: 'Créditos', comoSeGanha: 'Passe Premium e prateleira paga', borda: 'border-premium', fundo: 'bg-premium-soft', texto: 'text-premium-ink' },
+};
+
+/**
+ * De onde vem um item — a resposta que a tela precisa dar.
+ *
+ * `possuido` distingue o que foi COMPRADO do que chegou pelo nível: os dois são "seus", e é
+ * justamente essa diferença que a coleção perdia. Sem o contexto (quem só quer saber a natureza
+ * do item), a resposta é a origem POSSÍVEL, não a efetiva.
+ */
+export function origemDoItem(item: ItemDaLoja, possuido = false): OrigemDoItem {
+  if (item.exclusivoDe) return 'conquista';
+  if (possuido) return 'seeds';
+  return 'nivel';
+}
 
 /** Consistência com o catálogo de níveis do `desbloqueios` (teste trava). */
 export function nivelCoerente(item: ItemDaLoja): boolean {

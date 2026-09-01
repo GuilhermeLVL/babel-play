@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Check, Palette, Sparkles, MousePointer2, Wind, Save, Trash2, Search, Wand2, Type, Lock, ChevronDown, ShoppingBag, Undo2, Pencil } from 'lucide-react';
+import { Shirt, Check, Palette, Sparkles, MousePointer2, Wind, Save, Trash2, Search, Wand2, Type, Lock, ChevronDown, ShoppingBag, Undo2, Pencil } from 'lucide-react';
 import { toast } from '../Toast';
 import { comemorar, explodirAleatorio } from '../../lib/juice';
 import { emitBurst } from '../../lib/effects';
@@ -8,6 +8,7 @@ import { CATEGORIAS_DE_EMOJI, todosOsEmojis } from '../../lib/galeria/emojis';
 import { PRESETS, perfisSalvos, salvarPerfil, apagarPerfil, renomearPerfil, type Perfil } from '../../lib/galeria/perfis';
 import { restaurarVisualPadrao } from '../../lib/galeria/restaurar';
 import { palavraDeNivel } from '../../lib/galeria/textos';
+import { estadoDaColecao, emojiDoItem } from '../../lib/galeria/progressao';
 import {
   acessoAoEstilo, acessoACategoria, acessoAFormaDeRastro, acessoAoEditorDePack, acessoAoCursorDeEmoji, acessoAoRastroDeEmojis,
   faltaParaOPerfil, type Acesso,
@@ -17,7 +18,7 @@ import { CURSORES, readCursor, setCursor, idDeCursorDeEmoji, emojiDoCursor } fro
 import { FORMAS_DE_RASTRO, RASTROS, readRastro, setRastro, estiloDeRastro, idDeRastroGerado, idDeRastroDeEmojis } from '../../lib/rastroDoMouse';
 import { applyCustomColors, FONTE_OPTIONS, THEME_OPTIONS, type ThemeType, type FonteType } from '../../lib/appearance';
 import { desbloqueado, nivelNecessario } from '../../lib/desbloqueios';
-import { CATALOGO_DA_LOJA } from '../../lib/loja';
+import { CATALOGO_DA_LOJA, COR_DA_RARIDADE, ORIGEM } from '../../lib/loja';
 import { acessoAoItem } from '../../lib/galeria/acesso';
 import type { AgeProfileType, MenuPositionType } from '../shell/navItems';
 import { Gamepad2, Zap, Eye, PanelTop, PanelLeft, PanelRight, PanelBottom, Monitor, SlidersHorizontal } from 'lucide-react';
@@ -235,6 +236,10 @@ export default function Personalizar({ theme, setTheme, fonte, setFonte, nivel, 
     );
   };
 
+  /* A coleção separada por origem — recalcula quando nível ou saldo mudam (é o que decide o
+     que já é seu), e depois de uma compra (o `rerender` do componente refaz a leitura da posse). */
+  const colecao = useMemo(() => estadoDaColecao(nivel, saldoAgora), [nivel, saldoAgora]);
+
   const paletaNome = theme === 'custom' && paletaAtiva ? paletaPorId(paletaAtiva)?.nome ?? 'Paleta' : `Tema ${theme}`;
   const packNome = readPack() === PACK_CUSTOM ? `Meu pack (${packCustom.length})` : PACKS_DE_EMOJI.find((p) => p.id === readPack())?.nome ?? 'Clássico';
   const editorDePack = acessoAoEditorDePack(nivel, saldoAgora);
@@ -262,6 +267,54 @@ export default function Personalizar({ theme, setTheme, fonte, setFonte, nivel, 
           <button onClick={onIrParaLoja} className="btn-outline"><ShoppingBag className="w-4 h-4" aria-hidden /> Liberar mais na Loja</button>
           {/* DIREITO, não recompensa: desfazer o visual nunca depende de nível nem de Seeds. */}
           <button onClick={voltarAoOriginal} className="btn-outline"><Undo2 className="w-4 h-4" aria-hidden /> Voltar ao visual original</button>
+        </div>
+      </section>
+
+      {/* ── A COLEÇÃO, POR ORIGEM (mudança economia-legivel-e-moedas) ──────────────────
+          Estes itens apareciam numa lista única, e as três origens ficavam indistinguíveis: o
+          tema que você ganhou subindo de nível parecia igual ao que comprou e ao que conquistou.
+          Agrupar por COMO foi conseguido devolve à coleção a história de como ela foi montada —
+          era a maior fonte do "nada parece estar ligado". */}
+      <section>
+        <p className="label-mono mb-2 flex items-center gap-1.5"><Shirt className="w-3.5 h-3.5" aria-hidden /> O que já é seu · {colecao.possuidos.length}</p>
+        <div className="grid sm:grid-cols-3 gap-3">
+          {([
+            { origem: 'nivel' as const, itens: colecao.ganhosPorNivel, titulo: `Ganhei ${palavraDeNivel().toLowerCase()} a ${palavraDeNivel().toLowerCase()}` },
+            { origem: 'seeds' as const, itens: colecao.compradosComSeeds, titulo: 'Comprei com Seeds' },
+            { origem: 'conquista' as const, itens: colecao.conquistados, titulo: 'Conquistei' },
+          ]).map(({ origem, itens, titulo }) => {
+            const cor = ORIGEM[origem];
+            return (
+              <div key={origem} className={`card-panel p-3 border-2 ${cor.borda} ${cor.fundo}`}>
+                <p className={`text-[10.5px] font-mono font-bold uppercase tracking-wider ${cor.texto} flex items-center justify-between gap-2`}>
+                  <span>{titulo}</span><span className="tabular-nums">{itens.length}</span>
+                </p>
+                {itens.length === 0 ? (
+                  /* Vazio que EXPLICA: "0" sozinho parece defeito; dizer como se ganha é o que
+                     transforma a caixa vazia em próximo passo. */
+                  <p className="text-[11.5px] text-ink-muted mt-2 leading-snug">Nada ainda — {cor.comoSeGanha}.</p>
+                ) : (
+                  /* NOME, não só ícone: com o ícone vindo do TIPO (a correção do emoji sorteado),
+                     dez temas viram dez paletas idênticas lado a lado — informação zero. O chip
+                     com nome é o que deixa a coleção legível. */
+                  <div className="flex flex-wrap gap-1 mt-2">
+                    {itens.slice(0, 5).map((i) => (
+                      <span key={i.id} title={COR_DA_RARIDADE[i.raridade].rotulo}
+                        className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-lg bg-canvas/70 border border-border-subtle text-[11px] text-ink max-w-full">
+                        <span aria-hidden>{emojiDoItem(i)}</span>
+                        <span className="truncate">{i.nome}</span>
+                      </span>
+                    ))}
+                    {itens.length > 5 && (
+                      <button onClick={onIrParaLoja} className="px-1.5 py-0.5 text-[11px] text-ink-faint hover:text-ink cursor-pointer">
+                        +{itens.length - 5}
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
       </section>
 

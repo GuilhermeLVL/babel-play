@@ -2885,6 +2885,42 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
     );
   };
 
+  /**
+   * AS LEGENDAS FLUTUANTES, UMA VEZ SÓ — mesma razão de `botaoDoMicrofone` logo acima.
+   *
+   * Eram dois botões escritos à mão em telas diferentes, e já tinham divergido: rótulo de ativo
+   * diferente, um explicando o limite do PiP no `title` e o outro não, e cores de estado que não
+   * batiam. Uma árvore, duas variantes.
+   *
+   * O botão PULSA quando a gravação está rolando e as legendas estão desligadas: é o único
+   * momento em que ele tem algo a dizer, e é o recurso que faz o app servir por cima de um jogo
+   * ou de uma chamada.
+   */
+  const botaoDasLegendas = (variante: 'tela' | 'foco' = 'tela') => {
+    const foco = variante === 'foco';
+    return (
+      <button
+        onClick={() => setShowOverlay(!showOverlay)}
+        aria-pressed={showOverlay}
+        title={isDocumentPiPSupported()
+          ? 'Legendas ao vivo numa janela flutuante sempre-no-topo (por cima de jogo/vídeo/chamada)'
+          : 'Janela flutuante requer Chrome/Edge; aqui o overlay abre embutido na tela'}
+        className={`flex items-center gap-2 rounded-xl transition-all cursor-pointer shrink-0 ${
+          foco ? 'py-3 px-6 text-xs font-bold border' : 'py-3 px-5 text-xs md:text-sm font-extrabold border-2 min-h-[48px]'
+        } ${
+          showOverlay
+            ? 'bg-good text-white border-good shadow-btn'
+            : isRecording
+              ? 'bg-warn text-white border-warn shadow-btn animate-pulse'
+              : 'bg-warn-soft text-warn-ink border-warn hover:brightness-105'
+        }`}
+      >
+        <Layout className={foco ? 'w-4 h-4' : 'w-5 h-5'} />
+        {showOverlay ? (foco ? 'Flutuantes ativas' : 'Legendas flutuantes ativas') : 'Legendas flutuantes'}
+      </button>
+    );
+  };
+
   /* O PAR DE IDIOMAS COMO O CHIP O RESUME — leitura, nunca edição.
      Espelha os mesmos rótulos de `seletoresDeIdioma`, que continua sendo o único lugar que
      ESCREVE o par (ele é o recheio da gaveta). Em 'media' o idioma do conteúdo é `targetLang`
@@ -3488,22 +3524,7 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
                       {/* LEGENDAS FLUTUANTES — a porta de destaque. É o que permite usar o app por
                           cima de jogo/chamada; por isso vive AQUI, ao lado do gesto principal, com
                           cor própria e pulso quando está gravando sem elas. */}
-                      <button
-                        onClick={() => setShowOverlay(!showOverlay)}
-                        title={isDocumentPiPSupported()
-                          ? 'Legendas ao vivo numa janela flutuante sempre-no-topo (por cima de jogo/vídeo/chamada)'
-                          : 'Janela flutuante requer Chrome/Edge; aqui o overlay abre embutido na tela'}
-                        className={`flex items-center gap-2 py-3 px-5 rounded-xl font-extrabold text-xs md:text-sm transition-all cursor-pointer shrink-0 min-h-[48px] border-2 ${
-                          showOverlay
-                            ? 'bg-good text-white border-good shadow-btn'
-                            : isRecording
-                              ? 'bg-warn text-white border-warn shadow-btn animate-pulse'
-                              : 'bg-warn-soft text-warn-ink border-warn hover:brightness-105'
-                        }`}
-                      >
-                        <Layout className="w-5 h-5" />
-                        {showOverlay ? 'Legendas flutuantes ativas' : 'Legendas flutuantes'}
-                      </button>
+                      {botaoDasLegendas()}
 
                       <div className="flex items-baseline gap-1">
                         <span className="font-mono text-2xl font-black text-ink tracking-widest">
@@ -3937,19 +3958,6 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
             </div>
 
             <div className="flex flex-wrap items-center gap-3">
-              {/* BARRA DE ACOMPANHAMENTO — o Foco abre sozinho ao gravar; aqui a pessoa escolhe
-                  como seguir: legendas flutuantes por cima de qualquer app, ou a tela normal.
-                  Sair do Foco NUNCA para a gravação. */}
-              <button
-                onClick={() => setShowOverlay(!showOverlay)}
-                title="As legendas seguem você numa janelinha sempre-no-topo, por cima do jogo ou da chamada"
-                className={`flex items-center gap-1.5 py-2 px-4 rounded-xl font-bold text-xs shadow-btn transition-all hover:scale-105 cursor-pointer border-2 ${
-                  showOverlay ? 'bg-good text-white border-good' : 'bg-warn text-white border-warn'
-                }`}
-              >
-                <Layout className="w-4 h-4" /> {showOverlay ? 'Flutuantes ativas' : 'Legendas flutuantes'}
-              </button>
-
               {/* Quick Settings toggler inside Focus mode */}
               <button
                 onClick={() => setShowVisualSettings(!showVisualSettings)}
@@ -4037,9 +4045,15 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
               </div>
               
               <div className="flex flex-wrap items-center gap-3">
-                {/* O microfone vem ANTES do parar/iniciar: no Foco, ligar a própria voz é o gesto
-                    que se repete durante a sessão; parar acontece uma vez, no fim. */}
+                {/* OS DOIS INTERRUPTORES DE SESSÃO VEM ANTES DO PARAR/INICIAR: mutar a própria voz e
+                    ligar as legendas por cima do jogo são gestos que se REPETEM durante a sessão;
+                    parar acontece uma vez, no fim.
+
+                    As legendas flutuantes moravam lá em cima, no cabeçalho do Foco, a uma tela de
+                    distância dos outros dois controles da mesma sessão — e são elas que fazem o app
+                    servir por cima de um jogo ou de uma chamada, que é o motivo de o Foco existir. */}
                 {botaoDoMicrofone('foco')}
+                {botaoDasLegendas('foco')}
                 {isRecording ? (
                   <button
                     onClick={handleStopRecording}

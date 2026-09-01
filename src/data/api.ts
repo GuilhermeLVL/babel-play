@@ -745,7 +745,13 @@ export interface HistoricoDeItem {
   erros: number
   ultimaEm: number
   ultimoAcerto: boolean
-  /** Seleção v2 (opcionais: a edição completa ainda não os calcula; o core trata ausência). */
+  /**
+   * A régua de retorno do erro (`core/learning/memoriaDeItens`) lê estes dois. Os DOIS servidores
+   * os calculam — o efêmero desde sempre, o real desde que a ausência foi rastreada até o efeito:
+   * sem eles `estadoDoItem` trava em 1 erro seguido (nenhum leech) e `prontoParaVoltar` devolve
+   * sempre `true` (nenhum espaçamento). Continuam opcionais no tipo só para uma resposta antiga
+   * em cache não quebrar a tela.
+   */
   errosSeguidos?: number
   rodadasDesdeUltimoErro?: number
 }

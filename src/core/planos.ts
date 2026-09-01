@@ -91,3 +91,22 @@ export const PLANOS_DE_ASSINATURA = Object.keys(PLAN_MATRIX) as readonly PlanoDe
 
 export const ehPlanoDeAssinatura = (v: unknown): v is PlanoDeAssinatura =>
   typeof v === 'string' && (PLANOS_DE_ASSINATURA as readonly string[]).includes(v)
+
+/**
+ * QUAL PLANO CUSTA ESTE VALOR — a pergunta que o webhook precisa fazer.
+ *
+ * O DEFEITO QUE ISTO FECHA (auditoria de 01/09). O webhook concedia `atual.plan`, que é a
+ * INTENÇÃO gravada por `POST /api/billing/assinar` — e assinar é de graça. A sequência era:
+ * assinar `essencial`, assinar `pro` (a intenção vira `pro`), pagar só a cobrança do essencial, e
+ * receber Pro por R$ 9,90. O dinheiro tem de decidir, não a intenção.
+ *
+ * Tolerância de um centavo porque o provedor devolve o valor em ponto flutuante.
+ */
+export function planoPeloPreco(valor: number | undefined): PlanoDeAssinatura | null {
+  if (typeof valor !== 'number' || !Number.isFinite(valor)) return null
+  for (const p of PLANOS_DE_ASSINATURA) {
+    const preco = PLAN_MATRIX[p].precoMensalBrl
+    if (preco !== null && Math.abs(preco - valor) < 0.01) return p
+  }
+  return null
+}

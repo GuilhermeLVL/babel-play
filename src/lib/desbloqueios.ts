@@ -42,10 +42,16 @@ const CATALOGO: Record<TipoDesbloqueavel, Record<string, number>> = {
 const CHAVE_LIBERADO = 'babel.liberado';
 
 /**
- * LIBERACAO TOTAL (dono/testes): `window.babel.liberarTudo()` no console, ou `?liberar=1` na URL.
- * Nao e segredo de seguranca — e cosmetico; existe para demonstracao e validacao.
+ * LIBERAÇÃO TOTAL (dono/testes): `window.babel.liberarTudo()` no console, ou `?liberar=1` na URL.
+ *
+ * SÓ EM DESENVOLVIMENTO, desde 01/09. Ela é avaliada ANTES de tudo em `estadoDoItem`
+ * (`lib/loja.ts`), então uma chave de localStorage destravava o catálogo inteiro — e o comentário
+ * antigo ("não é segredo de segurança, é cosmético") deixou de valer quando a mesma tela passou a
+ * vender item com dinheiro. Continua existindo para demonstração e validação; deixa de existir no
+ * build que vai ao ar.
  */
 export function liberadoTudo(): boolean {
+  if (!import.meta.env.DEV) return false;
   try { return localStorage.getItem(CHAVE_LIBERADO) === '1'; } catch { return false; }
 }
 

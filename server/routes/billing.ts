@@ -15,7 +15,7 @@
 import { Router, json } from 'express'
 import { timingSafeEqual } from 'node:crypto'
 import { z } from 'zod'
-import { PLAN_MATRIX, ehPlanoDeAssinatura, type PlanoDeAssinatura } from '../../src/core/planos'
+import { PLAN_MATRIX, ehPlanoDeAssinatura, planoPeloPreco, type PlanoDeAssinatura } from '../../src/core/planos'
 import { creditsRepo } from '../db/repositories/credits'
 import { pacotePorSku, centavosParaReais } from '../../src/core/creditos'
 import { subscriptionsRepo } from '../db/repositories/subscriptions'
@@ -183,6 +183,9 @@ const eventoSchema = z.object({
     subscription: z.string().optional(),
     externalReference: z.string().optional(),
     dueDate: z.string().optional(),
+    /* O VALOR PAGO. Entrou em 01/09: sem ele, o webhook não tinha como saber se a parcela que
+       confirmou era a do plano que ele estava prestes a conceder. */
+    value: z.number().optional(),
   }).optional(),
   subscription: z.object({
     id: z.string().optional(),
@@ -270,14 +273,57 @@ asaasWebhookRouter.post('/', async (req, res) => {
           break
         }
         const atual = await subscriptionsRepo.getActive(userId)
-        const plano: PlanoDeAssinatura =
+
+        /**
+         * A ASSINATURA QUE PAGOU TEM DE SER A QUE ESTÁ REGISTRADA.
+         *
+         * `POST /api/billing/assinar` grava a intenção e é DE GRAÇA — dá para criar quantas
+         * assinaturas quiser no provedor. Sem esta conferência, a parcela de uma assinatura antiga
+         * confirmava a intenção mais recente.
+         */
+        if (atual?.providerSubscriptionId && ev.payment?.subscription
+            && atual.providerSubscriptionId !== ev.payment.subscription) {
+          log('warn', {
+            event: 'billing_assinatura_divergente',
+            error: `pago ${ev.payment.subscription}, registrado ${atual.providerSubscriptionId}`,
+            requestId: req.requestId,
+          })
+          break
+        }
+
+        /**
+         * O PLANO SAI DO VALOR PAGO, não da intenção.
+         *
+         * A escalada que isto fecha: assinar `essencial`, assinar `pro` (a intenção vira `pro`),
+         * pagar só a cobrança do essencial — e receber Pro por R$ 9,90. Enquanto quem decidia era
+         * `atual.plan`, reescrever a intenção era de graça e o pagamento não era conferido.
+         *
+         * Sem valor no evento (provedor que não o mande), cai na intenção: é o comportamento
+         * anterior, e recusar toda promoção por falta de um campo opcional trocaria uma escalada
+         * por uma negação de serviço a quem pagou.
+         */
+        const planoPago = planoPeloPreco(ev.payment?.value)
+        const planoDaIntencao: PlanoDeAssinatura =
           atual && ehPlanoDeAssinatura(atual.plan) && PLAN_MATRIX[atual.plan].precoMensalBrl !== null
             ? atual.plan
             : 'essencial'
+        const plano: PlanoDeAssinatura = planoPago ?? planoDaIntencao
+        if (planoPago && planoPago !== planoDaIntencao) {
+          log('warn', {
+            event: 'billing_plano_divergente',
+            error: `pago ${planoPago} (R$ ${ev.payment?.value}), intenção ${planoDaIntencao} — vale o pago`,
+            requestId: req.requestId,
+          })
+        }
+
+        /* A validade sai do VENCIMENTO da parcela paga quando ele vem, com cinco dias de folga
+           para a próxima cobrança compensar. Sem `dueDate`, o mês redondo de antes. */
+        const vencimento = ev.payment?.dueDate ? Date.parse(`${ev.payment.dueDate}T12:00:00Z`) : NaN
+        const base = Number.isFinite(vencimento) ? vencimento : Date.now()
         await subscriptionsRepo.upsert(userId, {
           plan: plano,
           status: 'active',
-          currentPeriodEnd: Date.now() + 35 * 86_400_000,
+          currentPeriodEnd: base + 35 * 86_400_000,
           cancelAtPeriodEnd: 0,
         })
         break

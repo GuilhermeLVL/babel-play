@@ -302,13 +302,21 @@ export const patchUtteranceSchema = z.object({
   speakerName: shortStr(120),
 }).strip()
 
-/** PATCH de sessão: `kind`/`status` sem teto e números negativos passavam. */
+/**
+ * PATCH de sessão: `kind`/`status` sem teto e números negativos passavam.
+ *
+ * O TETO SUPERIOR entrou em 01/09. `wordCount` só tinha piso, e cada palavra capturada vale 2 XP
+ * (`core/learning/xp.ts`) — um `wordCount: 1e9` eram dois bilhões de XP, gravados e permanentes,
+ * pela porta de uma rota que ninguém associava a economia. Os tetos são generosos de propósito:
+ * 200 mil palavras e 24 horas não recusam nenhuma sessão real, e barram a ordem de grandeza que
+ * só aparece em adulteração.
+ */
 export const patchSessionSchema = z.object({
   title: shortStr(200),
   kind: shortStr(30),
   status: shortStr(30),
-  durationMs: z.number().int().min(0).optional(),
-  wordCount: z.number().int().min(0).optional(),
+  durationMs: z.number().int().min(0).max(24 * 60 * 60 * 1000).optional(),
+  wordCount: z.number().int().min(0).max(200_000).optional(),
 }).strip()
 
 /** Busca de imagem: `q` sem teto virava chave do cache em memória (200 entradas). */

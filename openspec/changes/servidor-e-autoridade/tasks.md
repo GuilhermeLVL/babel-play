@@ -25,17 +25,18 @@
 
 ## 4. A assinatura concedida é a que foi paga
 
-- [ ] 4.1 O webhook confere `payment.subscription` contra `providerSubscriptionId` da intenção
-- [ ] 4.2 E o `payment.value` contra `PLAN_MATRIX[plano].precoMensalBrl`
-- [ ] 4.3 Divergência não promove e fica registrada em `billing_events` para auditoria
-- [ ] 4.4 `currentPeriodEnd` deriva do ciclo pago, não dos +35 dias fixos (`billing.ts:280`)
+- [x] 4.1 O webhook confere `payment.subscription` contra `providerSubscriptionId` da intenção
+- [x] 4.2 E o `payment.value` contra `PLAN_MATRIX[plano].precoMensalBrl`
+- [x] 4.3 Divergência não promove e fica registrada em `billing_events` para auditoria
+- [x] 4.4 `currentPeriodEnd` deriva do vencimento da parcela paga quando ele vem no evento;
+      sem `dueDate`, o mês redondo de antes
 
 ## 5. Portas laterais de XP e de posse
 
-- [ ] 5.1 Teto em `wordCount` no `patchSessionSchema` (`server/validation.ts:306`)
+- [x] 5.1 Teto em `wordCount` no `patchSessionSchema` (`server/validation.ts:306`)
 - [ ] 5.2 `/api/exercises/rodada`: itens têm de referenciar cartões do próprio usuário
-- [ ] 5.3 `writeLimiter` também no webhook (hoje montado antes de tudo, `server.ts:144`)
-- [ ] 5.4 `liberadoTudo()` só com `import.meta.env.DEV` (`src/lib/desbloqueios.ts:46`)
+- [x] 5.3 `writeLimiter` também no webhook (hoje montado antes de tudo, `server.ts:144`)
+- [x] 5.4 `liberadoTudo()` só com `import.meta.env.DEV` (`src/lib/desbloqueios.ts:46`)
 - [ ] 5.5 Aprimoramentos derivam do ledger (`reason LIKE 'aprimoramento:%'`), não do localStorage
 - [ ] 5.6 Hidratação de posse e cromas substitui o espelho local em modo público; UNION continua
       no modo sem conta (`src/lib/loja.ts:196`, `src/lib/galeria/cromas.ts:70`)
@@ -55,8 +56,8 @@
       dois tokens): valor inflado → valor da regra · `creditoId` inventado → 400 · conquista não
       cumprida → 400 · exclusivo por `reason` forjado → 400 · preço abaixo do catálogo → 400 ·
       gasto sem saldo → 402
-- [ ] 7.2 `tests/integration/billing-webhook.test.ts` ganha o caso da escalada de plano
-- [ ] 7.3 `wordCount` absurdo → 400 em `tests/integration/validacao-input.test.ts`
+- [x] 7.2 `tests/integration/billing-webhook.test.ts` ganha o caso da escalada de plano
+- [x] 7.3 `wordCount` absurdo → 400 em `tests/integration/validacao-input.test.ts`
 - [x] 7.4 Os 2.159 testes atuais continuam passando (o caminho feliz não muda)
 
 ## 8. Verificação

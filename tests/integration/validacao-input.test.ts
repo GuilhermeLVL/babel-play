@@ -100,3 +100,25 @@ describe('exerciseResults.sessionId — P2-8 (FK pendurada cross-tenant)', () =>
     expect(r.sessionId).toBeNull()
   })
 })
+
+/**
+ * O TETO SUPERIOR DE `wordCount` (mudança servidor-e-autoridade).
+ *
+ * O schema só tinha piso, e cada palavra capturada vale 2 XP (`core/learning/xp.ts`) — um
+ * `wordCount: 1e9` eram dois bilhões de XP, gravados e permanentes, pela porta de uma rota que
+ * ninguém associava a economia. O teste antigo cobria `durationMs` negativo e `kind` gigante;
+ * nunca o valor absurdo para cima, porque não havia o que testar.
+ */
+describe('PATCH de sessão: teto superior', () => {
+  it('wordCount absurdo é recusado', () => {
+    expect(patchSessionSchema.safeParse({ wordCount: 1_000_000_000 }).success).toBe(false)
+  })
+
+  it('duração acima de 24 horas é recusada', () => {
+    expect(patchSessionSchema.safeParse({ durationMs: 25 * 60 * 60 * 1000 }).success).toBe(false)
+  })
+
+  it('e uma sessão longa de verdade continua passando', () => {
+    expect(patchSessionSchema.safeParse({ wordCount: 40_000, durationMs: 3 * 60 * 60 * 1000 }).success).toBe(true)
+  })
+})

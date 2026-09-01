@@ -141,6 +141,12 @@ app.get("/api/health", healthHandler);
 /* E3 — o WEBHOOK de billing vem ANTES do auth de usuário: o Asaas não tem JWT de ninguém. A
    autenticação dele é própria (header asaas-access-token, comparação em tempo constante) e sem o
    segredo configurado ele recusa tudo. */
+/* E o webhook ganha TETO (01/09). Ele fica fora do `writeLimiter` de baixo por estar antes do
+   auth, e ficava sem limite nenhum: cada POST faz consulta e escrita no banco, e a autenticação
+   dele é um bearer estático — segredo vazado virava escrita ilimitada. A chave cai no IP
+   (`chaveDoRequest` só usa o usuário quando existe), e um 429 aqui é seguro: o Asaas reentrega o
+   evento que não recebeu 200, e a idempotência por id garante que a reentrega não duplica. */
+if (authRequired()) app.use("/api/billing/webhook/asaas", writeLimiter);
 app.use("/api/billing/webhook/asaas", capturarAssincrono(asaasWebhookRouter));
 
 app.use("/api", authMiddleware);

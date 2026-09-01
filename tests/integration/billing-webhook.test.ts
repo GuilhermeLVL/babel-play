@@ -116,6 +116,59 @@ describe('compra avulsa não vira assinatura', () => {
   })
 })
 
+/**
+ * A ESCALADA DE PLANO COM DINHEIRO REAL (auditoria de 01/09, fechada em `servidor-e-autoridade`).
+ *
+ * `POST /api/billing/assinar` grava a INTENÇÃO e é de graça: dá para criar quantas assinaturas se
+ * quiser no provedor. O webhook concedia `atual.plan` sem conferir NEM qual assinatura pagou NEM
+ * quanto foi pago. A sequência era:
+ *
+ *   1. assinar `essencial` (R$ 9,90) — o provedor cria a assinatura S1
+ *   2. assinar `pro` (R$ 19,90) — cria S2 e a intenção gravada vira `pro`
+ *   3. pagar SÓ a parcela de S1
+ *   4. o webhook lê a intenção (`pro`) e concede Pro por R$ 9,90
+ *
+ * As duas defesas: a assinatura que pagou tem de ser a registrada, e o PLANO SAI DO VALOR PAGO.
+ */
+describe('a assinatura concedida é a que foi paga', () => {
+  it('parcela de OUTRA assinatura não confirma a intenção gravada', async () => {
+    const u = asUserId('u-esc1')
+    await subs.upsert(u, { plan: 'pro', status: 'trialing', provider: 'asaas', providerSubscriptionId: 'sub_S2' })
+    const res = mockRes()
+    await handler()(req({
+      id: 'evt_esc1', event: 'PAYMENT_CONFIRMED',
+      payment: { id: 'pay_esc1', subscription: 'sub_S1', externalReference: 'u-esc1', value: 9.9 },
+    }), res)
+    expect(res.statusCode).toBe(200) // 200 para o provedor não reentregar; o efeito é que não houve
+    expect((await subs.getActive(u))?.status).not.toBe('active')
+  })
+
+  it('pagar o preço do essencial concede ESSENCIAL, mesmo com a intenção em pro', async () => {
+    const u = asUserId('u-esc2')
+    await subs.upsert(u, { plan: 'pro', status: 'trialing', provider: 'asaas', providerSubscriptionId: 'sub_S1' })
+    const res = mockRes()
+    await handler()(req({
+      id: 'evt_esc2', event: 'PAYMENT_CONFIRMED',
+      payment: { id: 'pay_esc2', subscription: 'sub_S1', externalReference: 'u-esc2', value: 9.9 },
+    }), res)
+    expect(res.statusCode).toBe(200)
+    const sub = await subs.getActive(u)
+    expect(sub.status).toBe('active')
+    expect(sub.plan, 'pagou 9,90 — não pode receber Pro').toBe('essencial')
+  })
+
+  it('pagar o preço do Pro concede PRO', async () => {
+    const u = asUserId('u-esc3')
+    await subs.upsert(u, { plan: 'essencial', status: 'trialing', provider: 'asaas', providerSubscriptionId: 'sub_S3' })
+    const res = mockRes()
+    await handler()(req({
+      id: 'evt_esc3', event: 'PAYMENT_CONFIRMED',
+      payment: { id: 'pay_esc3', subscription: 'sub_S3', externalReference: 'u-esc3', value: 19.9 },
+    }), res)
+    expect((await subs.getActive(u)).plan).toBe('pro')
+  })
+})
+
 describe('o ciclo de vida do plano', () => {
   it('pagamento confirmado ativa o plano da INTENÇÃO gravada por /assinar', async () => {
     const u = asUserId('u-ciclo')

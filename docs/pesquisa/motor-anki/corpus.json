@@ -1,0 +1,380 @@
+{
+  "geradoEm": "2026-09-01T23:52:08.171Z",
+  "dir": "C:/Users/Guilh/AppData/Local/Temp/corpus",
+  "medicoes": [
+    {
+      "arquivo": "4000_Essential_English_Words_all_books_en-en.apkg",
+      "bytes": 224592115,
+      "formatoInterno": "collection.anki21",
+      "ms": 453,
+      "rssPicoMb": 301,
+      "notas": 3600,
+      "descartadas": 271,
+      "campos": [
+        "№",
+        "IMG",
+        "English",
+        "Transcription",
+        "Audio",
+        "BrTranscription",
+        "AmTranscription",
+        "Am&BrTranscription"
+      ],
+      "temMidia": true,
+      "regua": {
+        "aprovadas": 3590,
+        "aprovadasNaCaptura": 61,
+        "percentualAprovadas": 99.7,
+        "porMotivo": {
+          "sem-pista": 0,
+          "pista-ruim": 0,
+          "palavra-curta": 0,
+          "palavra-ruido": 0,
+          "traducao-igual": 0,
+          "gramatical": 10,
+          "duplicada": 0,
+          "idioma-incerto": 0
+        }
+      },
+      "jogos": {
+        "memory": {
+          "elegivel": true,
+          "itensDisponiveis": 3590,
+          "minItems": 4
+        },
+        "wordsearch": {
+          "elegivel": true,
+          "itensDisponiveis": 3590,
+          "minItems": 4
+        },
+        "blitz": {
+          "elegivel": true,
+          "itensDisponiveis": 3590,
+          "minItems": 4
+        },
+        "termo": {
+          "elegivel": true,
+          "itensDisponiveis": 1659,
+          "minItems": 3
+        },
+        "scramble": {
+          "elegivel": true,
+          "itensDisponiveis": 3590,
+          "minItems": 3
+        },
+        "karaoke": {
+          "elegivel": true,
+          "itensDisponiveis": 3590,
+          "minItems": 3
+        },
+        "escuta": {
+          "elegivel": true,
+          "itensDisponiveis": 3590,
+          "minItems": 4
+        },
+        "ditado": {
+          "elegivel": true,
+          "itensDisponiveis": 3590,
+          "minItems": 3
+        },
+        "conectores": {
+          "elegivel": true,
+          "itensDisponiveis": 3590,
+          "minItems": 3
+        }
+      },
+      "amostra": [
+        {
+          "frente": "agree",
+          "verso": "To agree is to have the same opinion or belief as another p…"
+        },
+        {
+          "frente": "alcohol",
+          "verso": "Alcohol is a type of drink that can make people drunk."
+        },
+        {
+          "frente": "arrive",
+          "verso": "To arrive is to get somewhere."
+        }
+      ],
+      "idiomaInferido": "en"
+    },
+    {
+      "arquivo": "baralho-antigo.apkg",
+      "bytes": 823,
+      "formatoInterno": "collection.anki2",
+      "ms": 5,
+      "rssPicoMb": 0,
+      "notas": 4,
+      "descartadas": 1,
+      "campos": [
+        "Front",
+        "Back",
+        "Example"
+      ],
+      "temMidia": false,
+      "regua": {
+        "aprovadas": 4,
+        "aprovadasNaCaptura": 4,
+        "percentualAprovadas": 100,
+        "porMotivo": {
+          "sem-pista": 0,
+          "pista-ruim": 0,
+          "palavra-curta": 0,
+          "palavra-ruido": 0,
+          "traducao-igual": 0,
+          "gramatical": 0,
+          "duplicada": 0,
+          "idioma-incerto": 0
+        }
+      },
+      "jogos": {
+        "memory": {
+          "elegivel": true,
+          "itensDisponiveis": 4,
+          "minItems": 4
+        },
+        "wordsearch": {
+          "elegivel": true,
+          "itensDisponiveis": 4,
+          "minItems": 4
+        },
+        "blitz": {
+          "elegivel": true,
+          "itensDisponiveis": 4,
+          "minItems": 4
+        },
+        "termo": {
+          "elegivel": true,
+          "itensDisponiveis": 4,
+          "minItems": 3
+        },
+        "scramble": {
+          "elegivel": true,
+          "itensDisponiveis": 4,
+          "minItems": 3
+        },
+        "karaoke": {
+          "elegivel": true,
+          "itensDisponiveis": 4,
+          "minItems": 3
+        },
+        "escuta": {
+          "elegivel": true,
+          "itensDisponiveis": 4,
+          "minItems": 4
+        },
+        "ditado": {
+          "elegivel": true,
+          "itensDisponiveis": 4,
+          "minItems": 3
+        },
+        "conectores": {
+          "elegivel": true,
+          "itensDisponiveis": 4,
+          "minItems": 3
+        }
+      },
+      "amostra": [
+        {
+          "frente": "house",
+          "verso": "casa"
+        },
+        {
+          "frente": "water",
+          "verso": "água"
+        },
+        {
+          "frente": "bread",
+          "verso": "pão"
+        }
+      ],
+      "idiomaInferido": "en"
+    },
+    {
+      "arquivo": "baralho-moderno.apkg",
+      "bytes": 895,
+      "formatoInterno": "collection.anki21b",
+      "ms": 4,
+      "rssPicoMb": 0,
+      "notas": 4,
+      "descartadas": 1,
+      "campos": [
+        "Frente",
+        "Verso",
+        "Frase"
+      ],
+      "temMidia": false,
+      "regua": {
+        "aprovadas": 4,
+        "aprovadasNaCaptura": 4,
+        "percentualAprovadas": 100,
+        "porMotivo": {
+          "sem-pista": 0,
+          "pista-ruim": 0,
+          "palavra-curta": 0,
+          "palavra-ruido": 0,
+          "traducao-igual": 0,
+          "gramatical": 0,
+          "duplicada": 0,
+          "idioma-incerto": 0
+        }
+      },
+      "jogos": {
+        "memory": {
+          "elegivel": true,
+          "itensDisponiveis": 4,
+          "minItems": 4
+        },
+        "wordsearch": {
+          "elegivel": true,
+          "itensDisponiveis": 4,
+          "minItems": 4
+        },
+        "blitz": {
+          "elegivel": true,
+          "itensDisponiveis": 4,
+          "minItems": 4
+        },
+        "termo": {
+          "elegivel": true,
+          "itensDisponiveis": 4,
+          "minItems": 3
+        },
+        "scramble": {
+          "elegivel": true,
+          "itensDisponiveis": 4,
+          "minItems": 3
+        },
+        "karaoke": {
+          "elegivel": true,
+          "itensDisponiveis": 4,
+          "minItems": 3
+        },
+        "escuta": {
+          "elegivel": true,
+          "itensDisponiveis": 4,
+          "minItems": 4
+        },
+        "ditado": {
+          "elegivel": true,
+          "itensDisponiveis": 4,
+          "minItems": 3
+        },
+        "conectores": {
+          "elegivel": true,
+          "itensDisponiveis": 4,
+          "minItems": 3
+        }
+      },
+      "amostra": [
+        {
+          "frente": "house",
+          "verso": "casa"
+        },
+        {
+          "frente": "water",
+          "verso": "água"
+        },
+        {
+          "frente": "bread",
+          "verso": "pão"
+        }
+      ],
+      "idiomaInferido": "en"
+    },
+    {
+      "arquivo": "simples.txt",
+      "bytes": 33,
+      "formatoInterno": "texto (separado por tabulação)",
+      "ms": 1,
+      "rssPicoMb": 0,
+      "notas": 2,
+      "descartadas": 0,
+      "campos": [
+        "Front",
+        "Back"
+      ],
+      "temMidia": false,
+      "regua": {
+        "aprovadas": 2,
+        "aprovadasNaCaptura": 2,
+        "percentualAprovadas": 100,
+        "porMotivo": {
+          "sem-pista": 0,
+          "pista-ruim": 0,
+          "palavra-curta": 0,
+          "palavra-ruido": 0,
+          "traducao-igual": 0,
+          "gramatical": 0,
+          "duplicada": 0,
+          "idioma-incerto": 0
+        }
+      },
+      "jogos": {
+        "memory": {
+          "elegivel": false,
+          "itensDisponiveis": 2,
+          "minItems": 4
+        },
+        "wordsearch": {
+          "elegivel": false,
+          "itensDisponiveis": 2,
+          "minItems": 4
+        },
+        "blitz": {
+          "elegivel": false,
+          "itensDisponiveis": 2,
+          "minItems": 4
+        },
+        "termo": {
+          "elegivel": false,
+          "itensDisponiveis": 2,
+          "minItems": 3
+        },
+        "scramble": {
+          "elegivel": false,
+          "itensDisponiveis": 2,
+          "minItems": 3
+        },
+        "karaoke": {
+          "elegivel": false,
+          "itensDisponiveis": 2,
+          "minItems": 3
+        },
+        "escuta": {
+          "elegivel": false,
+          "itensDisponiveis": 2,
+          "minItems": 4
+        },
+        "ditado": {
+          "elegivel": false,
+          "itensDisponiveis": 2,
+          "minItems": 3
+        },
+        "conectores": {
+          "elegivel": false,
+          "itensDisponiveis": 2,
+          "minItems": 3
+        }
+      },
+      "amostra": [
+        {
+          "frente": "agua",
+          "verso": "water"
+        },
+        {
+          "frente": "casa",
+          "verso": "house"
+        }
+      ],
+      "idiomaInferido": "en"
+    }
+  ],
+  "erros": [
+    {
+      "arquivo": "corrompido-truncado.apkg",
+      "erro": "Corrupted zip: can't find end of central directory"
+    }
+  ]
+}

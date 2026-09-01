@@ -50,7 +50,12 @@ function lerArgs(argv: string[]): Args {
  * jeito sem instrumentar o V8 (perf_hooks não expõe RSS por trecho de código).
  */
 async function medirComPicoDeMemoria<T>(fn: () => Promise<T>): Promise<{ resultado: T; ms: number; rssPicoMb: number }> {
-  let pico = process.memoryUsage().rss
+  /* O NÚMERO REPORTADO É O DELTA, não o RSS absoluto: o processo já carrega ~365 MB de Node,
+     vitest e do próprio runner, e imprimir isso ao lado de um baralho de 823 bytes sugeriria que
+     ler o baralho custou 365 MB. O que a medição precisa responder é "quanto ESTE arquivo pesa
+     enquanto é lido", e a resposta é o quanto o pico subiu acima da linha de base. */
+  const base = process.memoryUsage().rss
+  let pico = base
   const amostrador = setInterval(() => {
     const atual = process.memoryUsage().rss
     if (atual > pico) pico = atual
@@ -59,7 +64,7 @@ async function medirComPicoDeMemoria<T>(fn: () => Promise<T>): Promise<{ resulta
   try {
     const resultado = await fn()
     const ms = performance.now() - inicio
-    return { resultado, ms, rssPicoMb: Math.round((pico / (1024 * 1024)) * 10) / 10 }
+    return { resultado, ms, rssPicoMb: Math.round(((pico - base) / (1024 * 1024)) * 10) / 10 }
   } finally {
     clearInterval(amostrador)
   }
@@ -154,7 +159,10 @@ interface MedicaoArquivo {
   campos: string[]
   temMidia: boolean
   regua: {
+    /** Aprovadas pelo perfil `curado` — a régua certa para baralho. */
     aprovadas: number
+    /** Aprovadas pela régua de FALA CAPTURADA. A distância entre as duas diz o tipo do baralho. */
+    aprovadasNaCaptura: number
     percentualAprovadas: number
     porMotivo: Record<MotivoDescarte, number>
   }
@@ -205,10 +213,18 @@ async function medirArquivo(caminho: string, bytes: number): Promise<MedicaoArqu
   const cards = leitura.notas.map(n => notaParaCard(n, idiomaInferido))
   const porMotivo: Record<MotivoDescarte, number> = { ...MOTIVOS_ZERO }
   const aprovados: VocabCard[] = []
+  let aprovadasNaCaptura = 0
   for (const card of cards) {
-    const v = avaliarCartao(card, { exigirIdioma: false })
+    /* O PERFIL É `curado`, e a diferença não é detalhe: a régua default foi calibrada para FALA
+       CAPTURADA (pista de no máximo 42 caracteres / 5 palavras) e recusa definição de dicionário.
+       Medido no "4000 Essential English Words": 61 aprovadas no perfil de captura contra 3.590 no
+       curado. Medir um baralho com a régua da captura responderia a pergunta errada.
+       O número da captura fica ao lado, porque a distância entre os dois é o que diz se aquele
+       baralho é de tradução curta ou de definição longa. */
+    const v = avaliarCartao(card, { exigirIdioma: false, origem: 'curado' })
     if (v.serve) aprovados.push(card)
     else if (v.motivo) porMotivo[v.motivo]++
+    if (avaliarCartao(card, { exigirIdioma: false }).serve) aprovadasNaCaptura++
   }
 
   const amostra: AmostraDeNota[] = leitura.notas.slice(0, 3).map(n => ({
@@ -228,6 +244,7 @@ async function medirArquivo(caminho: string, bytes: number): Promise<MedicaoArqu
     temMidia: leitura.temMidia,
     regua: {
       aprovadas: aprovados.length,
+      aprovadasNaCaptura,
       percentualAprovadas: cards.length ? Math.round((aprovados.length / cards.length) * 1000) / 10 : 0,
       porMotivo,
     },
@@ -241,8 +258,8 @@ async function medirArquivo(caminho: string, bytes: number): Promise<MedicaoArqu
 
 function imprimirTabela(medicoes: MedicaoArquivo[], erros: MedicaoErro[]): void {
   console.log('')
-  console.log('arquivo'.padEnd(32), 'notas'.padStart(7), 'aprov.'.padStart(7), '%'.padStart(6), 'jogos'.padStart(6), 'ms'.padStart(7), 'MB'.padStart(6))
-  console.log('-'.repeat(32 + 7 + 7 + 6 + 6 + 7 + 6 + 12))
+  console.log('arquivo'.padEnd(32), 'notas'.padStart(7), 'aprov.'.padStart(7), '%'.padStart(6), 'captura'.padStart(8), 'jogos'.padStart(6), 'ms'.padStart(7), '+MB'.padStart(6))
+  console.log('-'.repeat(32 + 7 + 7 + 6 + 8 + 6 + 7 + 6 + 14))
   for (const m of medicoes) {
     const jogosElegiveis = Object.values(m.jogos).filter(j => j.elegivel).length
     console.log(
@@ -250,6 +267,7 @@ function imprimirTabela(medicoes: MedicaoArquivo[], erros: MedicaoErro[]): void 
       String(m.notas).padStart(7),
       String(m.regua.aprovadas).padStart(7),
       `${m.regua.percentualAprovadas}%`.padStart(6),
+      String(m.regua.aprovadasNaCaptura).padStart(8),
       `${jogosElegiveis}/${Object.keys(m.jogos).length}`.padStart(6),
       String(m.ms).padStart(7),
       String(m.rssPicoMb).padStart(6),

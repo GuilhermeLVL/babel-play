@@ -2,6 +2,7 @@ import { mkdtemp, writeFile, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { zstdDecompressSync } from 'node:zlib'
+import { createHash } from 'node:crypto'
 import JSZip from 'jszip'
 import { createClient } from '@libsql/client'
 
@@ -32,12 +33,35 @@ import { createClient } from '@libsql/client'
 /** Separador de campos de uma nota do Anki. */
 const SEP = '\x1f'
 
+/** Referências de mídia que um campo cita — o ARQUIVO não é importado, só o nome sobrevive. */
+export interface RefsDeMidia {
+  sons: string[]
+  imagens: string[]
+}
+
+/** Uma lacuna de cloze (`{{c1::resposta::dica}}`) — um ordinal vira um cartão no Anki. */
+export interface Lacuna {
+  ordinal: number
+  resposta: string
+  dica?: string
+}
+
 export interface NotaAnki {
   frente: string
   verso: string
   /** Frase de exemplo, quando o baralho tiver um campo com essa cara. */
   exemplo?: string
   tags: string[]
+  /** Refs de mídia agregadas de TODOS os campos da nota, sem duplicatas, na ordem de aparição. */
+  midia?: RefsDeMidia
+  /** Lacunas de cloze agregadas de todos os campos, ordenadas por ordinal. */
+  lacunas?: Lacuna[]
+  /** Nome do baralho de origem (primeiro cartão da nota), hierarquia com `::`. */
+  baralho?: string
+  /** Nome do note type (modelo) da nota. */
+  notetype?: string
+  /** sha256[:16] dos nomes de campo normalizados, na ordem — reconhece "já vi este tipo". */
+  estruturaHash?: string
 }
 
 export interface LeituraAnki {
@@ -50,6 +74,12 @@ export interface LeituraAnki {
   descartadas: number
   /** O baralho tinha mídia? Não importamos, e é preciso dizer. */
   temMidia: boolean
+  /** Nomes de baralho distintos encontrados, ordenados. */
+  baralhos?: string[]
+  /** true quando o arquivo tem mais notas que `TETO_DE_NOTAS` — a leitura foi cortada. */
+  truncado?: boolean
+  /** `SELECT count(*)` real de `notes`, mesmo quando a leitura foi cortada. */
+  totalNoArquivo?: number
 }
 
 /**
@@ -77,6 +107,108 @@ export function limparCampo(bruto: string): string {
     .replace(/\s+/g, ' ')
     .trim()
 }
+
+/** Desfaz as entidades HTML mais comuns num nome de arquivo de mídia. */
+function decodificarEntidades(s: string): string {
+  return s
+    .replace(/&amp;/gi, '&')
+    .replace(/&quot;/gi, '"')
+    .replace(/&#39;/gi, "'")
+    .replace(/&lt;/gi, '<')
+    .replace(/&gt;/gi, '>')
+}
+
+/**
+ * EXTRAI as referências de mídia ANTES de `limparCampo` apagar o marcador.
+ *
+ * O DEFEITO QUE ISTO CONSERTA: `limparCampo` some com `[sound:x.mp3]` e `<img src=...>` porque o
+ * ARQUIVO não é importado — mas o NOME sobrevivia em lugar nenhum. Um baralho de pronúncia que só
+ * tem áudio nos campos (frente = palavra, verso = tradução, som só no campo `Audio`) perdia essa
+ * referência silenciosamente: a nota virava texto puro sem ninguém saber que existia um arquivo.
+ *
+ * `<img>` aceita aspas simples, duplas e sem aspas — os três são HTML válido, e o Anki gera os
+ * três dependendo da versão/plugin que escreveu o campo.
+ */
+export function extrairMidia(bruto: string): RefsDeMidia {
+  const texto = bruto ?? ''
+  const sons: string[] = []
+  const imagens: string[] = []
+
+  const reSom = /\[sound:([^\]]+)\]/gi
+  let m: RegExpExecArray | null
+  while ((m = reSom.exec(texto))) {
+    const nome = decodificarEntidades(m[1].trim())
+    if (nome && !sons.includes(nome)) sons.push(nome)
+  }
+
+  const reImg = /<img[^>]*\bsrc\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+))[^>]*>/gi
+  while ((m = reImg.exec(texto))) {
+    const nome = decodificarEntidades((m[1] ?? m[2] ?? m[3] ?? '').trim())
+    if (nome && !imagens.includes(nome)) imagens.push(nome)
+  }
+
+  return { sons, imagens }
+}
+
+/**
+ * EXTRAI as lacunas de cloze e devolve o texto com elas substituídas pela resposta.
+ *
+ * `{{c1::resposta}}` ou `{{c1::resposta::dica}}` — a dica é o SEGUNDO `::`, não qualquer `::` no
+ * meio da resposta, daí procurar só o primeiro `indexOf('::')` dentro do conteúdo já isolado por
+ * `}}`, em vez de um regex com dois grupos opcionais (que teria uma ambiguidade de mínimo/máximo
+ * bem mais fácil de acertar errado do que este split direto).
+ *
+ * SE ISTO NÃO RODASSE antes de `limparCampo`, `{{c1::...}}` cru vazaria para a tela: o campo
+ * limpo hoje só tira HTML e `[sound:]`/`<img>`, não marcação de cloze.
+ */
+export function extrairCloze(bruto: string): { texto: string; lacunas: Lacuna[] } {
+  const lacunas: Lacuna[] = []
+  const re = /\{\{c(\d+)::([\s\S]*?)\}\}/g
+  const texto = (bruto ?? '').replace(re, (_all, ord: string, conteudo: string) => {
+    const i = conteudo.indexOf('::')
+    const resposta = i >= 0 ? conteudo.slice(0, i) : conteudo
+    const dica = i >= 0 ? conteudo.slice(i + 2) : undefined
+    lacunas.push({ ordinal: Number(ord), resposta, dica })
+    return resposta
+  })
+  lacunas.sort((a, b) => a.ordinal - b.ordinal)
+  return { texto, lacunas }
+}
+
+/** Limpa o campo já COM as lacunas de cloze resolvidas — a ordem importa (ver `extrairCloze`). */
+function limparELacunas(bruto: string): { texto: string; lacunas: Lacuna[] } {
+  const { texto, lacunas } = extrairCloze(bruto ?? '')
+  return { texto: limparCampo(texto), lacunas }
+}
+
+/**
+ * HASH DA ESTRUTURA do note type — reconhece "já vi este tipo de nota antes" para reaplicar um
+ * mapeamento de campos salvo, sem depender do NOME do modelo (que a pessoa pode ter renomeado).
+ *
+ * Normaliza antes de gerar o hash: minúsculas, sem acento, espaços/hífen/underscore colapsados —
+ * senão `Front-Text` e `front_text` (mesmo campo, grafias diferentes) virariam tipos "novos" a
+ * cada exportação. A ORDEM entra no hash de propósito: campos iguais em ordem diferente mapeiam
+ * para frente/verso diferentes, então são estruturas distintas de verdade.
+ */
+export function hashDaEstrutura(campos: string[]): string {
+  const normalizados = (campos ?? []).map(c =>
+    (c ?? '')
+      .normalize('NFD').replace(/[̀-ͯ]/g, '')
+      .toLowerCase()
+      .trim()
+      .replace(/[\s_-]+/g, ' ')
+  )
+  return createHash('sha256').update(normalizados.join('|'), 'utf8').digest('hex').slice(0, 16)
+}
+
+/**
+ * TETO DE NOTAS lidas de um único `.apkg` — o conserto para o baralho de 300k notas que hoje
+ * carrega tudo em memória de uma vez porque `SELECT ... FROM notes` não tem LIMIT.
+ *
+ * 50 mil é folgado para todo baralho de idioma real (o maior do AnkiWeb fica na casa dos
+ * milhares) e ainda cabe num array em memória sem risco de repetir o F4-01 por outra porta.
+ */
+export const TETO_DE_NOTAS = 50_000
 
 /** Qual campo é a frase de exemplo? Pelo NOME, quando o baralho nomeia os campos. */
 function indiceDoExemplo(campos: string[]): number {
@@ -290,23 +422,97 @@ export async function lerApkg(apkg: Buffer): Promise<LeituraAnki> {
       } catch { /* sem nomes: cai no posicional */ }
     }
 
-    // ── As notas ────────────────────────────────────────────────────────
-    const r = await cliente.execute('SELECT mid, flds, tags FROM notes')
+    // ── Nome do note type, por modelo ───────────────────────────────────
+    const nomePorModelo = new Map<string, string>()
+    try {
+      const r = await cliente.execute('SELECT id, name FROM notetypes')
+      for (const linha of r.rows) nomePorModelo.set(String(linha.id), String(linha.name ?? ''))
+    } catch { /* baralho antigo: a tabela não existe */ }
+    if (!nomePorModelo.size) {
+      try {
+        const r = await cliente.execute('SELECT models FROM col LIMIT 1')
+        const bruto = String(r.rows[0]?.models ?? '')
+        if (bruto) {
+          const modelos = JSON.parse(bruto) as Record<string, { name?: string }>
+          for (const [mid, m] of Object.entries(modelos)) nomePorModelo.set(mid, String(m.name ?? ''))
+        }
+      } catch { /* sem nome: nota fica sem notetype */ }
+    }
+
+    /* O ESQUEMA NOVO às vezes guarda a hierarquia do baralho com `\x1f` em vez de `::` — os dois
+       precisam virar `::`, senão "Idiomas::Inglês" e "Idiomas\x1fInglês" pareceriam baralhos
+       diferentes quando são o mesmo, só escrito por versões diferentes do Anki. */
+    const normalizarNomeBaralho = (s: string) => s.split(/::|\x1f/).join('::')
+
+    // ── Nome do baralho, por id ──────────────────────────────────────────
+    const nomePorBaralho = new Map<string, string>()
+    try {
+      const r = await cliente.execute('SELECT id, name FROM decks')
+      for (const linha of r.rows) nomePorBaralho.set(String(linha.id), normalizarNomeBaralho(String(linha.name ?? '')))
+    } catch { /* baralho antigo: a tabela não existe */ }
+    if (!nomePorBaralho.size) {
+      try {
+        const r = await cliente.execute('SELECT decks FROM col LIMIT 1')
+        const bruto = String(r.rows[0]?.decks ?? '')
+        if (bruto) {
+          const decks = JSON.parse(bruto) as Record<string, { name?: string }>
+          for (const [did, d] of Object.entries(decks)) nomePorBaralho.set(did, normalizarNomeBaralho(String(d.name ?? '')))
+        }
+      } catch { /* sem nome: nota fica sem baralho */ }
+    }
+
+    /* Nota → baralho pelo PRIMEIRO cartão (menor `ord`): a mesma nota pode ter cartões em decks
+       diferentes (cloze com override de deck por cartão, por exemplo), e um só precisa vencer. */
+    const baralhoIdPorNota = new Map<string, string>()
+    try {
+      const r = await cliente.execute('SELECT nid, did FROM cards ORDER BY nid, ord')
+      for (const linha of r.rows) {
+        const nid = String(linha.nid)
+        if (!baralhoIdPorNota.has(nid)) baralhoIdPorNota.set(nid, String(linha.did))
+      }
+    } catch { /* sem cards: notas ficam sem baralho */ }
+
+    // ── As notas, com TETO — sem isto um baralho de centenas de milhares de notas carrega tudo
+    // de uma vez em memória (ver `TETO_DE_NOTAS`). O count separado é o que permite avisar
+    // "truncado" mesmo depois de cortar a leitura.
+    const contagem = await cliente.execute('SELECT count(*) c FROM notes')
+    const totalNoArquivo = Number(contagem.rows[0]?.c ?? 0)
+    const truncado = totalNoArquivo > TETO_DE_NOTAS
+
+    const r = await cliente.execute({
+      sql: 'SELECT id, mid, flds, tags FROM notes LIMIT ?',
+      args: [TETO_DE_NOTAS],
+    })
     const notas: NotaAnki[] = []
     let descartadas = 0
     let camposVistos: string[] = []
+    const baralhosVistos = new Set<string>()
 
     for (const linha of r.rows) {
       const partes = String(linha.flds ?? '').split(SEP)
       const nomes = camposPorModelo.get(String(linha.mid)) ?? []
       if (nomes.length && !camposVistos.length) camposVistos = nomes.filter(Boolean)
 
+      // Mídia é extraída do campo BRUTO — depois de `limparCampo` a referência já não existe.
+      const sons: string[] = []
+      const imagens: string[] = []
+      for (const parte of partes) {
+        const m = extrairMidia(parte ?? '')
+        for (const s of m.sons) if (!sons.includes(s)) sons.push(s)
+        for (const im of m.imagens) if (!imagens.includes(im)) imagens.push(im)
+      }
+      const midia = sons.length || imagens.length ? { sons, imagens } : undefined
+
+      // Cloze resolvido ANTES de limpar (ver `limparELacunas`), campo a campo.
+      const camposLimpos = partes.map(p => limparELacunas(p ?? ''))
+      const lacunasDaNota = camposLimpos.flatMap(c => c.lacunas).sort((a, b) => a.ordinal - b.ordinal)
+
       /* Pelo NOME quando o baralho os nomeia; posicional quando não (ver `indicePorNome`). O
          índice só vale se o campo tiver conteúdo depois de limpo — um `Meaning` vazio não é
          melhor que o `flds[1]` que ele substituiria. */
       const porNomeOuPosicao = (padroes: RegExp[], posicao: number) => {
         const i = indicePorNome(nomes, padroes)
-        return (i >= 0 ? limparCampo(partes[i] ?? '') : '') || limparCampo(partes[posicao] ?? '')
+        return (i >= 0 ? camposLimpos[i]?.texto : '') || camposLimpos[posicao]?.texto || ''
       }
       const frente = porNomeOuPosicao(PADRAO_FRENTE, 0)
       const verso = porNomeOuPosicao(PADRAO_VERSO, 1)
@@ -314,20 +520,38 @@ export async function lerApkg(apkg: Buffer): Promise<LeituraAnki> {
       if (!frente || !verso) { descartadas++; continue }
 
       const iExemplo = indiceDoExemplo(nomes)
-      const cru = iExemplo >= 0 ? limparCampo(partes[iExemplo] ?? '') : limparCampo(partes[2] ?? '')
+      const cru = iExemplo >= 0 ? camposLimpos[iExemplo]?.texto ?? '' : camposLimpos[2]?.texto ?? ''
       /* O exemplo não pode ser a própria palavra nem a própria tradução: onde o posicional cai em
          cima de um dos dois, a frase "de contexto" seria a resposta repetida. */
       const exemplo = cru && cru !== frente && cru !== verso ? cru : ''
+
+      const baralhoId = baralhoIdPorNota.get(String(linha.id))
+      const baralho = baralhoId ? nomePorBaralho.get(baralhoId) : undefined
+      if (baralho) baralhosVistos.add(baralho)
 
       notas.push({
         frente,
         verso,
         exemplo: exemplo || undefined,
         tags: String(linha.tags ?? '').split(/\s+/).filter(Boolean),
+        midia,
+        lacunas: lacunasDaNota.length ? lacunasDaNota : undefined,
+        baralho,
+        notetype: nomePorModelo.get(String(linha.mid)) || undefined,
+        estruturaHash: nomes.length ? hashDaEstrutura(nomes) : undefined,
       })
     }
 
-    return { notas, formato, campos: camposVistos, descartadas, temMidia }
+    return {
+      notas,
+      formato,
+      campos: camposVistos,
+      descartadas,
+      temMidia,
+      baralhos: baralhosVistos.size ? [...baralhosVistos].sort() : undefined,
+      truncado,
+      totalNoArquivo,
+    }
   } finally {
     cliente.close()
     await rm(dir, { recursive: true, force: true }).catch(() => { /* temporário: some com o SO */ })

@@ -69,6 +69,7 @@ import RecompensaDesbloqueada, { recompensasVistas, chaveDaRecompensa, type Reco
 import { comemorar } from './lib/juice';
 import { isAgeProfile, readAgeProfile, readStoredEnum, readStoredValue } from './lib/profile';
 import { hidratarPosse } from './lib/loja';
+import { hidratarCromas } from './lib/galeria/cromas';
 import { emitBurst } from './lib/effects';
 import { isOnAuthCallback, clearAuthCallbackUrl } from './lib/authCallback';
 import { lerUrlAtual, publicarUrl, type ViewDeRota, type EstadoDeRota } from './lib/rotas';
@@ -405,6 +406,7 @@ export default function App() {
         setRecordes(rs);
         // B4: o servidor é a fonte da posse da Loja; o localStorage vira espelho (union).
         hidratarPosse(m?.itensComprados);
+        hidratarCromas(m?.cromasComprados);
       })
       .catch(() => { if (alive) setMetrics(null); });
     return () => { alive = false; };

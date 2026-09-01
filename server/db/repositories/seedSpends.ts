@@ -96,6 +96,21 @@ export const seedSpendsRepo = {
     return [...new Set(rows.map((r) => r.reason.slice('loja:'.length)).filter(Boolean))]
   },
 
+  /**
+   * OS CROMAS COMPRADOS — mesma derivação de `itensComprados`, outro prefixo.
+   *
+   * Croma é cor comprada com a moeda de estudo, e por isso segue a regra que a brecha B4
+   * estabeleceu: quem guarda a posse é o razão de eventos, não o navegador. O id devolvido é o
+   * mesmo que o cliente usa (`croma:<item>:<matiz>`), então a hidratação é uma união direta.
+   */
+  async cromasComprados(userId: UserId): Promise<string[]> {
+    const rows = await db
+      .select({ reason: seedSpends.reason })
+      .from(seedSpends)
+      .where(and(eq(seedSpends.userId, userId), isNull(seedSpends.deletedAt), like(seedSpends.reason, 'croma:%')))
+    return [...new Set(rows.map((r) => r.reason).filter(Boolean))]
+  },
+
   async listar(userId: UserId, limite = 50): Promise<SeedSpend[]> {
     return db
       .select()

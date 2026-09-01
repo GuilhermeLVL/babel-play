@@ -69,6 +69,11 @@ export interface AppMetrics {
    * espelho hidratado. Opcional pela mesma regra da economia v2: ausência = lista vazia, não erro.
    */
   itensComprados?: string[]
+  /**
+   * Cromas comprados (`croma:<item>:<matiz>`), derivados do mesmo razão. Opcional pela regra da
+   * economia v2: ausência é lista vazia, nunca erro.
+   */
+  cromasComprados?: string[]
 
   /* ── ECONOMIA v2 (2026-08-28). OPCIONAIS de propósito: o servidor efêmero (IndexedDB) já os
      calcula; a edição completa (Postgres) passa a calculá-los numa entrega própria, e até lá

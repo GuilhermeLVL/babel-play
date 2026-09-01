@@ -32,7 +32,7 @@ export const ESTILOS: Array<{ id: EstiloDePaleta; nome: string }> = [
   { id: 'meia-noite', nome: 'Meia-noite' },
 ];
 
-const MATIZES: Array<{ id: string; nome: string; h: number }> = [
+export const MATIZES: Array<{ id: string; nome: string; h: number }> = [
   { id: 'vermelho', nome: 'Vermelho', h: 4 }, { id: 'terracota', nome: 'Terracota', h: 16 }, { id: 'laranja', nome: 'Laranja', h: 28 },
   { id: 'ambar', nome: 'Âmbar', h: 40 }, { id: 'mostarda', nome: 'Mostarda', h: 50 }, { id: 'oliva', nome: 'Oliva', h: 70 },
   { id: 'lima', nome: 'Lima', h: 90 }, { id: 'verde', nome: 'Verde', h: 130 }, { id: 'esmeralda', nome: 'Esmeralda', h: 152 },

@@ -198,6 +198,7 @@ export async function computeProfile(userId: UserId, opts: OpcoesDePerfil = {}):
   /* O outro lado da moeda. Vem de uma tabela de eventos, e não de contagem derivada: gasto que
      se recalcula não é gasto — voltaria ao valor cheio no próximo carregamento. */
   const seedsGastas = await seedSpendsRepo.totalGasto(userId)
+  const cromasComprados = await seedSpendsRepo.cromasComprados(userId)
   /* B4 fechada (economia-de-creditos 1.2): a posse da Loja viaja no perfil, derivada do log de
      compras — o cliente hidrata o espelho local a partir daqui em vez de confiar só nele. */
   const itensComprados = await seedSpendsRepo.itensComprados(userId)
@@ -234,6 +235,7 @@ export async function computeProfile(userId: UserId, opts: OpcoesDePerfil = {}):
     streakDays: Math.max(streakDays, seqPresenca.atual),
     seedsGastas,
     itensComprados,
+    cromasComprados,
     seedsCreditadas,
     xpCreditado,
     presencas: diasDePresenca.length,

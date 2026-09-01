@@ -1,5 +1,6 @@
 import { ajusteDeBurst } from '../lib/aprimoramentos';
 import { emojisDoPack } from '../lib/particulas';
+import { corDoCromaEquipado } from '../lib/galeria/cromas';
 import React, { useEffect, useRef } from 'react';
 import type { ThemeType } from '../lib/appearance';
 import { resolveParticleStyle, BURST_SPECS, onBurst, type BurstKind, type BurstSpec } from '../lib/effects';
@@ -208,7 +209,12 @@ export default function ParticleCanvas({ enabled, performanceMode, theme, darkMo
       const rect = canvasRef.current!.getBoundingClientRect();
       const ox = vx - rect.left;
       const oy = vy - rect.top;
-      const color = readColor(spec.colorToken);
+      /* CROMA (mudança inventario-e-cromas): quando a pessoa desbloqueou e equipou uma cor para
+         a skin de partículas, ela vence o token do tema. Sem croma equipado a função devolve
+         null e tudo segue exatamente como antes — é isso que torna a economia nova aditiva. */
+      const skinAtual = typeof document !== 'undefined' ? document.documentElement.getAttribute('data-particulas') : null;
+      const croma = skinAtual ? corDoCromaEquipado('part-' + skinAtual) : null;
+      const color = croma ?? readColor(spec.colorToken);
       // LIDO UMA VEZ POR RAJADA, não por partícula: `emojisDoPack()` faz localStorage + JSON.parse,
       // e dentro do loop isso virava dezenas de leituras síncronas por comemoração.
       const packDaLoja = emojisDoPack();

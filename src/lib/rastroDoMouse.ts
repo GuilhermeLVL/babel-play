@@ -11,12 +11,18 @@
  * GALERIA (2026-08-28): além dos estilos fixos, existem os PERSONALIZADOS, codificados no id:
  *   · `gen:<forma>:<paleta>`  — forma (faisca|estrelas|coracoes|pixel|arcoiris) nas cores da
  *                               paleta da galeria (`lib/galeria/paletas`);
- *   · `emojis:<lista>`         — emojis escolhidos um a um (separados por vírgula).
+ *   · `emojis:<lista>`         — emojis escolhidos um a um (separados por vírgula);
+ *   · `croma:<forma>:<matiz>`  — forma na COR DE UM CROMA comprado (inventario-e-cromas).
+ *
+ * Por que o croma não reusa `gen:`: `gen:` aponta para uma PALETA da galeria, que tem porta
+ * própria por estilo (`acessoAoEstilo`). Um croma é outra compra, com outro preço, e apontar
+ * para uma paleta faria a compra de 25 Seeds abrir de lado um produto de 380. O croma carrega
+ * o matiz e nada mais — a cor sai dele, não de uma paleta que a pessoa não comprou.
  * Nada disso cria spec nova: `estiloDeRastro()` resolve o id para um `kind` base + um
  * `sobrescrever` (cores/emojis) e o canvas aplica por cima. Centenas de combinações, zero custo.
  */
 import { emitBurst, type BurstKind, type BurstSpec } from './effects';
-import { paletaPorId, coresDaPaleta } from './galeria/paletas';
+import { paletaPorId, coresDaPaleta, MATIZES } from './galeria/paletas';
 import { sanearListaDeEmojis } from './galeria/emojis';
 
 export interface EstiloDeRastro { id: string; nome: string; kind: BurstKind }
@@ -59,6 +65,14 @@ export function estiloDeRastro(id: string): RastroResolvido | null {
     const cores = coresDaPaleta(paleta).slice(0, 2);
     return { kind: forma.kind, nome: `${forma.nome} · ${paleta.nome}`, sobrescrever: { paleta: [paleta.accent, ...cores] } };
   }
+  if (id.startsWith('croma:')) {
+    const [, formaId, matiz] = id.split(':')
+    const forma = FORMAS_DE_RASTRO.find((f) => f.id === formaId)
+    const m = MATIZES.find((x) => x.id === matiz)
+    if (!forma || !m) return null
+    // Duas cores: o matiz e uma versão mais funda dele — é o que dá volume ao rastro.
+    return { kind: forma.kind, nome: `${forma.nome} · ${m.nome}`, sobrescrever: { paleta: [`hsl(${m.h} 85% 62%)`, `hsl(${m.h} 72% 46%)`] } }
+  }
   if (id.startsWith('emojis:')) {
     const lista = sanearListaDeEmojis(id.slice('emojis:'.length).split(','));
     if (!lista.length) return null;
@@ -86,6 +100,8 @@ export function setRastro(id: string): string {
 
 /** Monta o id de um rastro personalizado por forma + paleta. */
 export function idDeRastroGerado(forma: string, paletaId: string): string { return `gen:${forma}:${paletaId}`; }
+/** Monta o id de um rastro na cor de um croma comprado. */
+export function idDeRastroDeCroma(forma: string, matiz: string): string { return `croma:${forma}:${matiz}`; }
 /** Monta o id de um rastro de emojis escolhidos. */
 export function idDeRastroDeEmojis(lista: string[]): string { return `emojis:${sanearListaDeEmojis(lista).join(',')}`; }
 

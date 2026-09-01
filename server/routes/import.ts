@@ -12,6 +12,7 @@
 import { Router, raw, type ErrorRequestHandler } from 'express'
 import path from 'node:path'
 import { readFile, rm } from 'node:fs/promises'
+import { createHash } from 'node:crypto'
 import { AUDIO_DIR, armazenamentoDeMidia } from './sessions'
 import { sessionsRepo } from '../db/repositories/sessions'
 import { hasEntitlement } from '../lib/entitlements'
@@ -23,6 +24,8 @@ import { lerApkg, lerTextoAnki } from '../import/anki'
 import { parseOr400, ankiExportSchema, importUrlSchema, uploadHeadersSchema } from '../validation'
 import { montarApkg } from '../import/ankiExport'
 import { erroDeRota } from '../lib/erroDeRota'
+import { ankiRepo } from '../db/repositories/anki'
+import { avaliarCartao } from '../../src/core/learning/quality'
 import {
   reservarArmazenamento,
   liberarArmazenamento,
@@ -43,11 +46,28 @@ export const importRouter = Router()
  * BARALHO DO ANKI. Mesmo padrão do `/document`: corpo binário cru com o nome no cabeçalho — o
  * projeto não usa multer e não precisa.
  *
- * A rota só LÊ e devolve as notas; quem grava é o cliente, chamando `/api/vocab/bulk-add`. Isso é
- * de propósito: assim o baralho importado passa pela MESMA régua de qualidade e pela MESMA
- * deduplicação de tudo que entra no vocabulário, em vez de ter um caminho paralelo por onde o
- * lixo voltaria a entrar.
+ * A rota GRAVA o acervo (motor-anki-acervo, §5.1): `criarOuAcharDeck` → `criarImport` →
+ * `gravarNotas` → `marcarAusentes` → `atualizarImport(concluido)`. Isso substitui o caminho antigo
+ * (só ler e o cliente chamar `/api/vocab/bulk-add`) porque o acervo precisa existir como registro
+ * PRÓPRIO — rastreável, arquivável, reimportável sem duplicar — antes de qualquer nota virar
+ * cartão jogável. A régua de qualidade (`avaliarCartao`, perfil `'curado'`) roda aqui por nota; o
+ * que não serve fica no acervo com `motivoDescarte` gravado, não é descartado do banco.
  */
+/**
+ * `NotaAnki` (o parser, que não é meu para editar) não carrega `guid` — esse campo só existe no
+ * SQLite interno do Anki e o parser hoje não o expõe. Sem ele não há como `gravarNotas` reconhecer
+ * "já vi esta nota" num reimport. A saída é sintetizar um guid ESTÁVEL a partir do conteúdo
+ * (notetype + frente + verso): mesmo conteúdo → mesmo guid → mesmo reimport não duplica; conteúdo
+ * mudou → guid muda → a rota trata como nota "nova" (efeito colateral aceitável documentado no
+ * relato: o acervo ganha uma linha extra em vez de atualizar a antiga quando o AUTOR do baralho
+ * edita um campo, porque não temos o id estável real do Anki para amarrar as duas).
+ */
+function guidSintetico(n: { notetype?: string | null; frente: string; verso: string }): string {
+  return createHash('sha256')
+    .update(`${n.notetype ?? ''}\x1f${n.frente}\x1f${n.verso}`, 'utf8')
+    .digest('hex')
+    .slice(0, 32)
+}
 /**
  * Gera um `.apkg` a partir dos cartões enviados.
  *
@@ -94,15 +114,100 @@ const erroDeTamanho: ErrorRequestHandler = (err, _req, res, next) => {
 importRouter.post('/anki', raw({ type: () => true, limit: '200mb' }), erroDeTamanho, async (req, res) => {
   const cab = parseOr400(uploadHeadersSchema, req.headers, res)
   if (!cab) return
+  const buf = req.body as Buffer
+  if (!buf?.length) { res.status(400).json({ error: 'arquivo vazio' }); return }
+  const nome = decodeURIComponent(cab['x-filename'] || 'baralho')
+
+  // Leitura: se o ARQUIVO não abre (zip corrompido, formato desconhecido), nada foi criado ainda
+  // no acervo — é só um 400, igual ao comportamento antigo.
+  let r: Awaited<ReturnType<typeof lerApkg>>
   try {
-    const buf = req.body as Buffer
-    if (!buf?.length) { res.status(400).json({ error: 'arquivo vazio' }); return }
-    const nome = decodeURIComponent(cab['x-filename'] || 'baralho')
     const ehTexto = /\.(txt|csv|tsv)$/i.test(nome)
-    const r = ehTexto ? lerTextoAnki(buf.toString('utf8')) : await lerApkg(buf)
-    res.json(r)
+    r = ehTexto ? lerTextoAnki(buf.toString('utf8')) : await lerApkg(buf)
   } catch (err) {
     res.status(400).json({ error: erroDeRota(err, { event: 'import_route_error' }) })
+    return
+  }
+
+  // Nome do baralho: o primeiro baralho visto no arquivo, ou o nome do arquivo sem extensão.
+  const nomeDoDeck = r.baralhos?.[0] || nome.replace(/\.[^.]+$/, '') || 'baralho'
+  let importId: string | undefined
+  try {
+    const deck = await ankiRepo.criarOuAcharDeck(req.userId, {
+      nome: nomeDoDeck,
+      nomeNoArquivo: r.baralhos?.[0] ?? null,
+      arquivoOrigem: nome,
+    })
+    const imp = await ankiRepo.criarImport(req.userId, { deckId: deck.id, arquivo: nome, bytes: buf.length })
+    importId = imp.id
+    await ankiRepo.atualizarImport(imp.id, { estado: 'gravando' })
+
+    // Qualidade por nota (Decisão 6 do design: perfil 'curado', não 'captura') — a nota que não
+    // serve continua no acervo com o motivo anotado; quem filtra depois é a ativação.
+    const porMotivo: Record<string, number> = {}
+    const notasParaGravar = r.notas.map((n) => {
+      const veredito = avaliarCartao(
+        { word: n.frente, translation: n.verso, sentence: n.exemplo ?? '', srcLang: undefined } as never,
+        { origem: 'curado' },
+      )
+      const motivoDescarte = veredito.serve ? null : (veredito.motivo ?? 'descartada')
+      if (motivoDescarte) porMotivo[motivoDescarte] = (porMotivo[motivoDescarte] ?? 0) + 1
+      return {
+        guid: guidSintetico(n),
+        notetype: n.notetype ?? null,
+        estruturaHash: n.estruturaHash ?? null,
+        camposBrutos: n.midia || n.lacunas ? JSON.stringify({ midia: n.midia, lacunas: n.lacunas }) : null,
+        frente: n.frente,
+        verso: n.verso,
+        exemplo: n.exemplo ?? null,
+        tags: n.tags?.length ? n.tags.join(' ') : null,
+        motivoDescarte,
+      }
+    })
+
+    const resultado = await ankiRepo.gravarNotas(req.userId, deck.id, imp.id, notasParaGravar)
+    await ankiRepo.marcarAusentes(req.userId, deck.id, notasParaGravar.map((n) => n.guid))
+
+    const notasDescartadas = Object.values(porMotivo).reduce((a, b) => a + b, 0)
+    await ankiRepo.atualizarImport(imp.id, {
+      estado: 'concluido',
+      notasLidas: r.notas.length,
+      notasNovas: resultado.novas,
+      notasAtualizadas: resultado.atualizadas,
+      notasDescartadas,
+      porMotivo,
+    })
+
+    const trunc = (s: string | null | undefined) => (s ?? '').slice(0, 80)
+    const amostra = r.notas.slice(0, 4).map((n) => ({
+      frente: trunc(n.frente), verso: trunc(n.verso), exemplo: trunc(n.exemplo),
+    }))
+
+    res.json({
+      importId: imp.id,
+      deckId: deck.id,
+      resumo: {
+        notas: r.notas.length,
+        novas: resultado.novas,
+        atualizadas: resultado.atualizadas,
+        iguais: resultado.iguais,
+        descartadas: notasDescartadas,
+        porMotivo,
+      },
+      campos: r.campos,
+      notetype: r.notas[0]?.notetype ?? null,
+      estruturaHash: r.notas[0]?.estruturaHash ?? null,
+      baralhos: r.baralhos,
+      formato: r.formato,
+      truncado: r.truncado,
+      totalNoArquivo: r.totalNoArquivo,
+      amostra,
+    })
+  } catch (err) {
+    // O que já entrou no acervo PERMANECE — só o ledger registra que esta fatia falhou.
+    const msg = erroDeRota(err, { event: 'import_route_error' })
+    if (importId) await ankiRepo.atualizarImport(importId, { estado: 'falhou', erro: msg }).catch(() => {})
+    res.status(400).json({ error: msg })
   }
 })
 

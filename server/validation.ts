@@ -426,6 +426,36 @@ export const uploadHeadersSchema = z.object({
   'content-type': z.string().max(200).optional(),
 }).strip()
 
+/* ══════════════════ motor-anki-acervo — schemas das rotas do acervo (`/api/anki`) ══════════════════
+ *
+ * Diferença deliberada do `bulkAddCardsSchema` (achado citado no brief): ali a validação é do LOTE
+ * INTEIRO — uma palavra ruim derruba a rodada com 500. Aqui os schemas validam só os PARÂMETROS da
+ * rota (query/params/body de ação); o CONTEÚDO de cada nota é tratado item a item no repositório e
+ * no `avaliarCartao`, que devolve motivo por nota em vez de recusar o lote.
+ */
+
+/** Query de `GET /api/anki/decks/:id/notas` — cursor + filtros, mesmo padrão de `vocabPaginaQuerySchema`. */
+export const ankiNotasQuerySchema = z.object({
+  cursor: z.string().max(128).optional(),
+  cursorId: z.string().max(128).optional(),
+  estado: z.enum(['arquivada', 'ativa', 'ausente_no_arquivo']).optional(),
+  busca: z.string().max(200).optional(),
+  limite: z.coerce.number().int().min(1).max(500).optional(),
+}).strip()
+
+/** Body de `POST /api/anki/decks/:id/ativar` — `limite` é opcional; o repositório aplica o teto default. */
+export const ankiAtivarSchema = z.object({
+  limite: z.coerce.number().int().min(1).max(1000).optional(),
+}).strip()
+
+/**
+ * `DELETE /api/anki/decks/:id` — purga física (notas + import + deck). `confirmar: true` é
+ * OBRIGATÓRIO, mesmo contrato de `excluirContaSchema`: sem confirmação explícita a rota nunca apaga.
+ */
+export const ankiPurgarSchema = z.object({
+  confirmar: z.literal(true),
+}).strip()
+
 /**
  * Valida e responde 400 com a PRIMEIRA razão legível quando o payload não passa.
  * Devolve `null` nesse caso — o handler deve retornar imediatamente.

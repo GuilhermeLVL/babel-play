@@ -10,6 +10,7 @@ import { aiRouter } from "./server/routes/ai";
 import { sessionsRouter } from "./server/routes/sessions";
 import { importRouter } from "./server/routes/import";
 import { vocabRouter } from "./server/routes/vocab";
+import { ankiRouter } from "./server/routes/anki";
 import { metricsRouter } from "./server/routes/metrics";
 import { exercisesRouter } from "./server/routes/exercises";
 import { settingsRouter } from "./server/routes/settings";
@@ -160,7 +161,7 @@ if (authRequired()) {
     // `/api/me` entrou junto com a exclusão de conta: `DELETE /api/me` apaga 17 tabelas e
     // `GET /api/me/exportar` lê a conta inteira em memória. As duas sem teto seriam o mesmo
     // vetor de F4-02 por outra porta.
-    ["/api/sessions", "/api/vocab", "/api/settings", "/api/exercises", "/api/metrics", "/api/images", "/api/me", "/api/erros-do-cliente", "/api/billing"],
+    ["/api/sessions", "/api/vocab", "/api/settings", "/api/exercises", "/api/metrics", "/api/images", "/api/me", "/api/erros-do-cliente", "/api/billing", "/api/anki"],
     writeLimiter,
   );
 }
@@ -180,6 +181,8 @@ if (authRequired()) {
 }
 app.use("/api/import", capturarAssincrono(importRouter));
 app.use("/api/vocab", capturarAssincrono(vocabRouter));
+// Acervo Anki (motor-anki-acervo) — decks/notas/ativação, escopado por userId (auth já resolvido acima).
+app.use("/api/anki", capturarAssincrono(ankiRouter));
 app.use("/api/metrics", capturarAssincrono(metricsRouter));
 app.use("/api/exercises", capturarAssincrono(exercisesRouter));
 app.use("/api/settings", capturarAssincrono(settingsRouter));

@@ -1659,3 +1659,13 @@ body.animations-off .hover\:-translate-y-1:hover {
    medido nos screenshots do dono (2026-08-27): FAB da Leitura virando pílula, bolinhas de cor
    viradas ovais. Regra única em vez de caçar shrink-0 em 300 botões. */
 svg.lucide { flex-shrink: 0; }
+
+/* ─────────────── EQUALIZADOR DE GRAVAÇÃO ───────────────
+   Medidor respira por scaleY com ease-in-out — o `animate-bounce` (translateY saltitante)
+   fazia as barras PULAREM, o tique de easing que a auditoria de design aponta (ux-v2 §1.13). */
+@keyframes eq-bar-kf {
+  0%, 100% { transform: scaleY(0.35); }
+  50% { transform: scaleY(1); }
+}
+.eq-bar { transform-origin: bottom; animation: eq-bar-kf 0.9s ease-in-out infinite; }
+.animations-off .eq-bar, .performance-mode .eq-bar { animation: none; transform: scaleY(0.7); }

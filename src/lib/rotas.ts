@@ -27,6 +27,8 @@ export interface EstadoDeRota {
   sessionId?: string
   /** Só para `analysis`: qual aba. */
   subTab?: 'transcript' | 'reading' | 'practice' | 'overview' | 'study'
+  /** Só para `loja` (Personalizar): qual das 4 áreas. Sem ela, a tela abre na padrão. */
+  lojaTab?: 'passe' | 'personalizar' | 'loja' | 'conquistas'
 }
 
 /** View de topo → segmento. `analysis` é tratada à parte porque carrega id e aba. */
@@ -55,6 +57,21 @@ const ABA: Record<string, string> = {
 }
 const ABA_DE_SEGMENTO = Object.fromEntries(Object.entries(ABA).map(([k, v]) => [v, k]))
 
+/**
+ * Área de Personalizar → segmento (ux-v2 §1.6: sem isto, recarregar e deep-link caíam sempre na
+ * aba padrão). O segmento fala a língua do RÓTULO ("meu-visual", "desafios"), não a do id
+ * interno — a URL é interface.
+ */
+const ABA_DA_LOJA: Record<NonNullable<EstadoDeRota['lojaTab']>, string> = {
+  passe: 'passe',
+  personalizar: 'meu-visual',
+  loja: 'itens',
+  conquistas: 'desafios',
+}
+const ABA_DA_LOJA_DE_SEGMENTO = Object.fromEntries(
+  Object.entries(ABA_DA_LOJA).map(([k, v]) => [v, k]),
+) as Record<string, NonNullable<EstadoDeRota['lojaTab']>>
+
 export function estadoParaUrl(e: EstadoDeRota): string {
   if (e.view === 'analysis') {
     // `/revisar` primeiro: é a porta da revisão espaçada, e ela vence a aba genérica.
@@ -65,6 +82,7 @@ export function estadoParaUrl(e: EstadoDeRota): string {
     const aba = e.subTab ? ABA[e.subTab] : ''
     return aba ? `/sessao/${e.sessionId}/${aba}` : `/sessao/${e.sessionId}`
   }
+  if (e.view === 'loja' && e.lojaTab) return `/loja/${ABA_DA_LOJA[e.lojaTab]}`
   const seg = SEGMENTO[e.view]
   return seg ? `/${seg}` : '/'
 }
@@ -97,6 +115,12 @@ export function urlParaEstado(caminho: string): EstadoDeRota {
     return aba
       ? { view: 'analysis', sessionId: partes[1], subTab: aba as EstadoDeRota['subTab'] }
       : { view: 'analysis', sessionId: partes[1] }
+  }
+
+  if (partes[0] === 'loja' && partes[1]) {
+    const aba = ABA_DA_LOJA_DE_SEGMENTO[partes[1]]
+    // Sub-aba desconhecida degrada para a tela, nunca para o Hub: o usuário pediu Personalizar.
+    return aba ? { view: 'loja', lojaTab: aba } : { view: 'loja' }
   }
 
   const view = VIEW_DE_SEGMENTO[partes[0]]

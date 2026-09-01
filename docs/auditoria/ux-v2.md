@@ -80,10 +80,11 @@ Plano → "O que cada plano dá" termina com "os números completos estão em
 `docs/auditoria/eval-producao-v1.md`" — referência de dev exposta ao leigo, sem link. Trocar
 por texto simples ("medição própria publicada no repositório do projeto") ou por link real.
 
-### 1.11 Duplicação de controles no DOM em Capturar
-`/capturar` renderiza o cluster de controles duas vezes (variantes desktop+mobile ambas no
-DOM): os botões "Buscar", "Tamanho do texto", etc. aparecem duplicados na árvore de
-acessibilidade — leitor de tela anuncia tudo em dobro.
+### 1.11 ~~Duplicação de controles no DOM em Capturar~~ — FALSO POSITIVO (apurado 31/08)
+As variantes desktop+mobile coexistem no DOM, mas a oculta usa `hidden` (`display:none`), que
+SAI da árvore de acessibilidade — o snapshot a11y de `/capturar` mostra UM só cluster. Leitor
+de tela não ouve nada em dobro. Nenhuma correção necessária; fica o registro do método: a
+auditoria original contou botões por `querySelectorAll` (DOM), não pela árvore de acessibilidade.
 
 ### 1.12 O que está COERENTE (não mexer)
 - Menu da conta: 3 itens, todos levam a telas reais (Meu perfil, Plano e consumo, Ajustes).
@@ -119,8 +120,13 @@ via `/api/metrics/profile`: `seedsCreditadas: 409`, `seedsGastas: 2120` — o sa
 histórico em que se gastou 5× o que foi creditado (gastos da fase pré-economia-v2, quando a
 compra funcionava e o crédito não). Não é bug do passe, mas expõe dois problemas:
 1. O rótulo "resgatado" continua mentindo por construção (afirma antes do resultado do crédito).
-2. **Perfil → Progresso diz "615 ganhas no total" enquanto a API diz 409 creditadas** — duas
-   fontes para o mesmo número. Apurar qual é a certa e unificar.
+   [corrigido em 31/08: só diz "creditado" após confirmação do servidor]
+2. ~~Perfil diz 615 × API diz 409~~ — APURADO em 31/08, não é bug: `seedsGanhas` (615) =
+   créditos do razão (409) + seeds derivadas da atividade pela fórmula (`seedsGanhasDeEventos`,
+   `core/learning/xp.ts:112`). A API expõe só a metade do razão; o Perfil soma as duas por
+   desenho. O que sobra é DECISÃO DE PRODUTO: o rombo histórico (2.120 gastas > 615 ganhas,
+   gastos da fase em que a compra funcionava e o crédito não) prende o saldo em 0 — perdoar os
+   gastos antigos (zerar `seedsGastas` até uma data) ou deixar o usuário "pagar a dívida".
 Recomendação extra: dado o histórico inconsistente, considerar um acerto único de saldo
 (migração/documentação) para contas antigas, senão o usuário fica níveis inteiros vendo "+N
 Seeds resgatadas" sem o saldo sair de 0 — a pior versão possível da sensação de "não ganhei nada".

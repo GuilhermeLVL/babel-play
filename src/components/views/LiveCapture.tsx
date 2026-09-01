@@ -3438,7 +3438,9 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
                           <div
                             key={i}
                             className="w-[3.5px] bg-accent rounded-full"
-                            style={{ height: `${h}%`, opacity: 0.3 + lvl * 0.7, transition: 'height 70ms linear' }}
+                            /* scaleY no lugar de animar `height`: mesma leitura visual sem
+                               re-layout a cada frame do medidor (ux-v2 §1.13). */
+                            style={{ height: '100%', transformOrigin: 'bottom', transform: `scaleY(${h / 100})`, opacity: 0.3 + lvl * 0.7, transition: 'transform 70ms linear' }}
                           />
                         );
                       })}

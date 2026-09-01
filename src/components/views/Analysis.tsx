@@ -903,7 +903,7 @@ export default function Analysis({
               }`}
               title="Diminui a velocidade automaticamente em trechos com vocabulário complexo"
             >
-              <Zap className={`w-3.5 h-3.5 ${autoSlowEnabled ? 'text-warn animate-bounce' : ''}`} />
+              <Zap className={`w-3.5 h-3.5 ${autoSlowEnabled ? 'text-warn animate-pulse' : ''}`} />
               <span>Smart Slow-Mo</span>
             </button>
 
@@ -2344,7 +2344,7 @@ export default function Analysis({
                         if (recording.type !== 'document') playFrom(sentence.startTime);
                       }}
                       onDoubleClick={() => { if (uttId) startEditUtt(uttId, sentence.original, sentence.translation); }}
-                      /* Trecho ativo: era `border-l-4` (listra lateral). O estado agora é dito por
+                      /* Trecho ativo: era a listra lateral grossa. O estado agora é dito por
                          FUNDO tonal + borda completa fina — a listra era ornamento herdado, e o
                          fundo funciona igual nos 12 pares tema x modo porque usa os mesmos tokens. */
                       className={`group relative p-3.5 rounded-xl border transition-all duration-300 ${isEditing ? 'cursor-default' : 'cursor-pointer'} ${

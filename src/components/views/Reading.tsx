@@ -1712,7 +1712,7 @@ export default function Reading({ recording, onChangeView }: ReadingProps = {}) 
             className={`absolute inset-0 z-10 ${isDrawModeActive ? 'pointer-events-auto cursor-crosshair' : 'pointer-events-none'}`}
           />
 
-          <p className="mb-6 italic text-[13px] border-l-4 border-accent pl-3 text-ink-muted">
+          <p className="mb-6 italic text-[13px] border-l-2 border-accent/50 pl-3 text-ink-muted">
             Dica: Clique com o mouse em qualquer palavra para ouvir sua pronúncia. Ative os pincéis de grifo acima para categorizar termos, adicionar notas e até comentários gravados em áudio!
           </p>
 
@@ -1732,11 +1732,13 @@ export default function Reading({ recording, onChangeView }: ReadingProps = {}) 
                 <span className="text-[10px] font-mono font-bold tracking-wider text-accent uppercase block pb-1 border-b">Texto Original ({langLabel(langPair.src)})</span>
                 {studyTexts.map((sentenceObj, sIdx) => {
                   const isNarratingActive = activeNarratingSentenceIndex === sIdx;
+                  // Estado ativo por fundo tonal + borda fina completa, como Analysis já faz —
+                  // a listra lateral grossa era o ornamento que a auditoria de design aponta (ux-v2 §1.13).
                   return (
                     <div
                       key={sIdx}
                       id={`sentence-${sIdx}`}
-                      className={`group/sent relative p-3 rounded-lg transition-all ${isNarratingActive ? 'bg-accent/10 border-l-4 border-accent' : 'border-l-4 border-transparent'}`}
+                      className={`group/sent relative p-3 rounded-lg transition-all border ${isNarratingActive ? 'bg-accent/10 border-accent/40' : 'border-transparent'}`}
                     >
                       <SentencePlayButton index={sIdx} />
                       {(sentenceObj.speaker || narrationMode === 'auto') && (
@@ -2135,12 +2137,12 @@ export default function Reading({ recording, onChangeView }: ReadingProps = {}) 
               {isRecordingAudio ? (
                 <div className="space-y-2">
                   <div className="flex items-center justify-center gap-1">
-                    <span className="w-1 h-5 bg-rare rounded animate-bounce duration-300" style={{ animationDelay: '0.1s' }} />
-                    <span className="w-1 h-9 bg-rare rounded animate-bounce duration-300" style={{ animationDelay: '0.2s' }} />
-                    <span className="w-1 h-12 bg-rare rounded animate-bounce duration-300" style={{ animationDelay: '0.3s' }} />
-                    <span className="w-1 h-7 bg-rare rounded animate-bounce duration-300" style={{ animationDelay: '0.4s' }} />
-                    <span className="w-1 h-11 bg-rare rounded animate-bounce duration-300" style={{ animationDelay: '0.5s' }} />
-                    <span className="w-1 h-4 bg-rare rounded animate-bounce duration-300" style={{ animationDelay: '0.6s' }} />
+                    <span className="w-1 h-5 bg-rare rounded eq-bar" style={{ animationDelay: '0.1s' }} />
+                    <span className="w-1 h-9 bg-rare rounded eq-bar" style={{ animationDelay: '0.2s' }} />
+                    <span className="w-1 h-12 bg-rare rounded eq-bar" style={{ animationDelay: '0.3s' }} />
+                    <span className="w-1 h-7 bg-rare rounded eq-bar" style={{ animationDelay: '0.4s' }} />
+                    <span className="w-1 h-11 bg-rare rounded eq-bar" style={{ animationDelay: '0.5s' }} />
+                    <span className="w-1 h-4 bg-rare rounded eq-bar" style={{ animationDelay: '0.6s' }} />
                   </div>
                   <span className="text-xs font-mono text-error-ink font-bold block animate-pulse">
                     Gravando: {recordingSeconds}s

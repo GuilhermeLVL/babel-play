@@ -616,7 +616,7 @@ export default function App() {
     if (isOnAuthCallback()) return; // o callback tem dono; não é rota de tela
     const e = lerUrlAtual();
     if (e.view === 'hub' && window.location.pathname === '/') return;
-    doNavigate(e.subTab === 'study' ? 'study' : e.view, { id: e.sessionId, subTab: e.subTab });
+    doNavigate(e.subTab === 'study' ? 'study' : e.view, { id: e.sessionId, subTab: e.subTab, aba: e.lojaTab });
   }, []);
 
   /* 2) NAVEGAÇÃO → URL. Espelha o estado corrente sempre que ele muda. */
@@ -626,15 +626,16 @@ export default function App() {
       view: (activeView === 'study' || activeView === 'reading' ? 'analysis' : activeView) as ViewDeRota,
       sessionId: activeView === 'analysis' ? (selectedRecordingId ?? recordings[0]?.id ?? undefined) : undefined,
       subTab: activeView === 'analysis' ? (analysisSubTab as EstadoDeRota['subTab']) : undefined,
+      lojaTab: activeView === 'loja' ? ((lojaAba ?? undefined) as EstadoDeRota['lojaTab']) : undefined,
     });
-  }, [activeView, selectedRecordingId, recordings, analysisSubTab]);
+  }, [activeView, selectedRecordingId, recordings, analysisSubTab, lojaAba]);
 
   /* 3) BOTÃO VOLTAR. Sem isto, "voltar" saía do app — era o beco relatado na auditoria.
         Passa pelo `navGuard`: uma captura em andamento ainda pode pedir confirmação. */
   useEffect(() => {
     const aoVoltar = () => {
       const e = lerUrlAtual();
-      navigateTo(e.subTab === 'study' ? 'study' : e.view, { id: e.sessionId, subTab: e.subTab });
+      navigateTo(e.subTab === 'study' ? 'study' : e.view, { id: e.sessionId, subTab: e.subTab, aba: e.lojaTab });
     };
     window.addEventListener('popstate', aoVoltar);
     return () => window.removeEventListener('popstate', aoVoltar);
@@ -855,6 +856,7 @@ export default function App() {
               ageProfile={ageProfile}
               setAgeProfile={setAgeProfile}
               abaInicial={lojaAba}
+              aoTrocarDeAba={setLojaAba}
               equiparCtx={equiparCtx}
             />
           )}

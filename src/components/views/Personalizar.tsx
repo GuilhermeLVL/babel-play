@@ -7,6 +7,7 @@ import { todasAsPaletas, buscarPaletas, paletaPorId, ESTILOS, type EstiloDePalet
 import { CATEGORIAS_DE_EMOJI, todosOsEmojis } from '../../lib/galeria/emojis';
 import { PRESETS, perfisSalvos, salvarPerfil, apagarPerfil, renomearPerfil, type Perfil } from '../../lib/galeria/perfis';
 import { restaurarVisualPadrao } from '../../lib/galeria/restaurar';
+import { palavraDeNivel } from '../../lib/galeria/textos';
 import {
   acessoAoEstilo, acessoACategoria, acessoAFormaDeRastro, acessoAoEditorDePack, acessoAoCursorDeEmoji, acessoAoRastroDeEmojis,
   faltaParaOPerfil, type Acesso,
@@ -454,7 +455,9 @@ export default function Personalizar({ theme, setTheme, fonte, setFonte, nivel, 
 
         <Secao id="tela" icone={<Monitor className="w-4 h-4" />} titulo="Tela: perfil de exibição e posição do menu" resumo={`${ageProfile === 'kids' ? 'Kids / Gamer' : ageProfile === 'senior' ? 'Leitura ampliada' : 'Produtividade'} · menu ${menuPosition === 'top' ? 'no topo' : menuPosition === 'left' ? 'à esquerda' : menuPosition === 'right' ? 'à direita' : 'embaixo'}`}>
           <p className="text-[12px] font-bold text-ink mb-1.5">Perfil de exibição</p>
-          <p className="text-[12px] text-ink-muted mb-2">Muda a linguagem e a densidade das telas. Não muda o tema nem esconde recurso nenhum.</p>
+          {/* DIREITO declarado onde mora (ux-v2 §4.4): a seção vive numa tela de recompensas e o
+              leigo lia o perfil como mais um cosmético trancável. */}
+          <p className="text-[12px] text-ink-muted mb-2">Muda a linguagem e a densidade das telas. Não muda o tema nem esconde recurso nenhum. <b className="text-ink">Isto é acessibilidade: sempre grátis, em qualquer {palavraDeNivel().toLowerCase()}.</b></p>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mb-4">
             {([
               { id: 'kids' as const, icon: Gamepad2, label: 'Kids / Gamer', desc: 'Missões, recompensas e linguagem de jogo.' },

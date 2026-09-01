@@ -55,6 +55,8 @@ interface LojaProps {
   setAgeProfile: (p: AgeProfileType) => void;
   /** v3: aba de destino ao abrir ("progressao" do fim de rodada). */
   abaInicial?: string | null;
+  /** Espelha a aba na URL (ux-v2 §1.6): o App publica `/loja/<área>` a cada troca. */
+  aoTrocarDeAba?: (aba: string) => void;
   /** v3: o contexto único de equipar (App). Opcional só para os testes de tela. */
   equiparCtx?: ContextoDeEquipar;
 }
@@ -85,14 +87,17 @@ const FILTROS = [
 const ABAS_VALIDAS = ['passe', 'personalizar', 'loja', 'conquistas'] as const;
 const ALIAS_DE_ABA: Record<string, string> = { progressao: 'passe' };
 
-export default function Loja({ progress, theme, setTheme, fonte, setFonte, menuPosition, setMenuPosition, onOpenStudio, ctxConquistas, ageProfile, setAgeProfile, abaInicial, equiparCtx }: LojaProps) {
+export default function Loja({ progress, theme, setTheme, fonte, setFonte, menuPosition, setMenuPosition, onOpenStudio, ctxConquistas, ageProfile, setAgeProfile, abaInicial, aoTrocarDeAba, equiparCtx }: LojaProps) {
   // A tela ÚNICA abre no Meu visual: personalizar é o uso; comprar e conquistar são os caminhos.
   const normalizarAba = (a: string | undefined | null): string | null => {
     const alvo = a ? (ALIAS_DE_ABA[a] ?? a) : null;
     return alvo && ABAS_VALIDAS.includes(alvo as never) ? alvo : null;
   };
-  const [aba, setAba] = useState<string>(normalizarAba(abaInicial) ?? 'personalizar');
-  useEffect(() => { const alvo = normalizarAba(abaInicial); if (alvo) setAba(alvo); }, [abaInicial]);
+  const [aba, setAbaInterna] = useState<string>(normalizarAba(abaInicial) ?? 'personalizar');
+  useEffect(() => { const alvo = normalizarAba(abaInicial); if (alvo) setAbaInterna(alvo); }, [abaInicial]);
+  // Toda troca (clique na aba OU atalho interno como "Ver no Passe") avisa o App, que espelha
+  // a área na URL — recarregar e compartilhar voltam ao mesmo lugar.
+  const setAba = (a: string) => { setAbaInterna(a); aoTrocarDeAba?.(a); };
   const [filtro, setFiltro] = useState<(typeof FILTROS)[number]['id']>('tudo');
   const [comprando, setComprando] = useState<string | null>(null);
   const [, force] = useState(0);

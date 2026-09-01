@@ -45,6 +45,14 @@ describe('estadoParaUrl', () => {
   it('sessão sem id não inventa caminho de sessão', () => {
     expect(estadoParaUrl({ view: 'analysis' })).toBe('/sessao')
   })
+
+  it('a área de Personalizar entra no caminho, na língua do rótulo (ux-v2 §1.6)', () => {
+    expect(estadoParaUrl({ view: 'loja', lojaTab: 'passe' })).toBe('/loja/passe')
+    expect(estadoParaUrl({ view: 'loja', lojaTab: 'personalizar' })).toBe('/loja/meu-visual')
+    expect(estadoParaUrl({ view: 'loja', lojaTab: 'loja' })).toBe('/loja/itens')
+    expect(estadoParaUrl({ view: 'loja', lojaTab: 'conquistas' })).toBe('/loja/desafios')
+    expect(estadoParaUrl({ view: 'loja' })).toBe('/loja')
+  })
 })
 
 describe('urlParaEstado', () => {
@@ -73,6 +81,11 @@ describe('urlParaEstado', () => {
   it('ignora o callback de auth — ele tem dono e não é rota de tela', () => {
     expect(urlParaEstado('/auth/callback')).toEqual({ view: 'hub' })
   })
+
+  it('sub-aba de Personalizar desconhecida degrada para a tela, não para o Hub', () => {
+    expect(urlParaEstado('/loja/meu-visual')).toEqual({ view: 'loja', lojaTab: 'personalizar' })
+    expect(urlParaEstado('/loja/nao-existe')).toEqual({ view: 'loja' })
+  })
 })
 
 describe('ida e volta — o estado sobrevive ao recarregamento', () => {
@@ -87,6 +100,10 @@ describe('ida e volta — o estado sobrevive ao recarregamento', () => {
     { view: 'analysis', sessionId: 's1', subTab: 'practice' },
     { view: 'analysis', sessionId: 's1', subTab: 'study' },
     { view: 'analysis', subTab: 'study' },
+    { view: 'loja', lojaTab: 'passe' },
+    { view: 'loja', lojaTab: 'personalizar' },
+    { view: 'loja', lojaTab: 'loja' },
+    { view: 'loja', lojaTab: 'conquistas' },
   ]
   for (const c of casos) {
     it(`preserva ${JSON.stringify(c)}`, () => {

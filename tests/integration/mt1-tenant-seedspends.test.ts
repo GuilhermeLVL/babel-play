@@ -37,4 +37,13 @@ describe('Marco 1 — isolamento seedSpends', () => {
     expect(r.jaExistia).toBe(true)
     expect(await repo.totalGasto(A)).toBe(100) // não virou 200
   })
+
+  it('itensComprados deriva a posse do log de compras, isolada por usuário (B4)', async () => {
+    await repo.debitar(A, { spendId: 'loja-tema-x', amount: 140, reason: 'loja:tema-x' })
+    await repo.debitar(A, { spendId: 'loja-cursor-y', amount: 100, reason: 'loja:cursor-y' })
+    await repo.debitar(B, { spendId: 'loja-tema-z', amount: 200, reason: 'loja:tema-z' })
+    // O gasto que não é compra de Loja ('pular') fica de fora; a lista é por dono.
+    expect((await repo.itensComprados(A)).sort()).toEqual(['cursor-y', 'tema-x'])
+    expect(await repo.itensComprados(B)).toEqual(['tema-z'])
+  })
 })

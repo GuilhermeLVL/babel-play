@@ -135,6 +135,28 @@ export function marcarPosse(id: string): void {
   } catch { /* sem storage */ }
 }
 
+/**
+ * B4 FECHADA (economia-de-creditos 1.2): o SERVIDOR vira a fonte da posse.
+ *
+ * A compra sempre foi evento idempotente no servidor (`gastarSeeds`, reason `loja:<id>`) — o
+ * furo era o caminho de volta: só o localStorage lembrava o que foi comprado, então trocar de
+ * navegador "perdia" a compra e editar o DevTools "ganhava" uma. O perfil agora traz
+ * `itensComprados` derivado do log, e este UNION hidrata o espelho local a cada carga.
+ *
+ * UNION, não substituição: uma compra feita offline (o débito ainda na fila) sumiria do espelho
+ * se a lista do servidor o sobrescrevesse — o localStorage segue valendo como cache otimista, e
+ * o servidor é quem garante que nada comprado se perde.
+ */
+export function hidratarPosse(doServidor: readonly string[] | undefined): void {
+  if (!doServidor?.length) return;
+  try {
+    const p = possuidos();
+    const antes = p.size;
+    for (const id of doServidor) p.add(id);
+    if (p.size !== antes) localStorage.setItem(CHAVE_POSSE, JSON.stringify([...p]));
+  } catch { /* sem storage: estadoDoItem cai no nível, e a posse volta na próxima carga */ }
+}
+
 export type EstadoDoItem = 'equipavel' | 'compravel' | 'bloqueado';
 
 /** Um item está disponível se: liberou tudo, OU nível alcançado, OU comprado com Seeds. */

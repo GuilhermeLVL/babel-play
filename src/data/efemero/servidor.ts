@@ -543,6 +543,8 @@ async function metricas(_m: RegExpMatchArray, url: URL): Promise<Response> {
     accuracyConfidence: Math.min(1, totalAvaliado / 20),
     streakDays,
     seedsGastas: gastos.reduce((n, g) => n + g.amount, 0),
+    // Paridade com o servidor real (B4): posse derivada do log de compras da Loja.
+    itensComprados: [...new Set(gastos.map((g) => g.reason).filter((r) => r.startsWith('loja:')).map((r) => r.slice('loja:'.length)))],
     presencas: presencas.length,
     streakPresenca: seq.atual,
     maiorSequenciaPresenca: seq.maior,

@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto'
-import { and, desc, eq, isNull, sql, sum } from 'drizzle-orm'
+import { and, desc, eq, isNull, like, sql, sum } from 'drizzle-orm'
 import { db } from '../db'
 import { seedSpends } from '../schema'
 import type { UserId } from '../../lib/authContext'
@@ -78,6 +78,22 @@ export const seedSpendsRepo = {
       .from(seedSpends)
       .where(and(eq(seedSpends.userId, userId), isNull(seedSpends.deletedAt)))
     return Number(r[0]?.total ?? 0)
+  },
+
+  /**
+   * A POSSE DA LOJA, derivada do razão de gastos (economia-de-creditos 1.2 / brecha B4).
+   *
+   * A compra sempre foi evento no servidor (`reason: 'loja:<itemId>'`); o que faltava era o
+   * caminho de VOLTA — o cliente confiava só no `localStorage`, que some com o navegador e
+   * se edita no DevTools. Não há tabela nova: inventário É o log de compras, a mesma regra
+   * "saldo por eventos, nunca saldo mutável" da spec.
+   */
+  async itensComprados(userId: UserId): Promise<string[]> {
+    const rows = await db
+      .select({ reason: seedSpends.reason })
+      .from(seedSpends)
+      .where(and(eq(seedSpends.userId, userId), isNull(seedSpends.deletedAt), like(seedSpends.reason, 'loja:%')))
+    return [...new Set(rows.map((r) => r.reason.slice('loja:'.length)).filter(Boolean))]
   },
 
   async listar(userId: UserId, limite = 50): Promise<SeedSpend[]> {

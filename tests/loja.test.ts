@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, expect, it } from 'vitest'
-import { CATALOGO_DA_LOJA, estadoDoItem, marcarPosse, nivelCoerente, vitrineDoProximoNivel } from '../src/lib/loja'
+import { CATALOGO_DA_LOJA, estadoDoItem, marcarPosse, hidratarPosse, possuidos, nivelCoerente, vitrineDoProximoNivel } from '../src/lib/loja'
 
 describe('loja', () => {
   it('o catálogo espelha os níveis do módulo de desbloqueios', () => {
@@ -43,5 +43,17 @@ describe('loja', () => {
     expect(v.length).toBeGreaterThan(0)
     expect(new Set(v.map((i) => i.nivel)).size).toBe(1)
     expect(v[0].nivel).toBe(2)
+  })
+
+  it('hidratarPosse: o servidor soma ao espelho local sem apagar a compra offline (B4)', () => {
+    localStorage.removeItem('babel.loja_possuidos')
+    marcarPosse('offline-1') // compra otimista que o servidor ainda não conhece
+    hidratarPosse(['do-servidor-a', 'do-servidor-b'])
+    expect([...possuidos()].sort()).toEqual(['do-servidor-a', 'do-servidor-b', 'offline-1'])
+    // Lista vazia/ausente não zera nada — offline continua valendo.
+    hidratarPosse([])
+    hidratarPosse(undefined)
+    expect(possuidos().size).toBe(3)
+    localStorage.removeItem('babel.loja_possuidos')
   })
 })

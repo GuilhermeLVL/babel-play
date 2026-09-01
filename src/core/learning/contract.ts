@@ -63,6 +63,12 @@ export interface AppMetrics {
   streakDays: number
   /** Total de seeds JÁ GASTAS. O servidor sempre computa; `deriveProgress` faz ganhas − gastas. */
   seedsGastas: number
+  /**
+   * Ids dos itens da Loja comprados, derivados do log de gastos (`reason: 'loja:<id>'`).
+   * B4 fechada (economia-de-creditos 1.2): o servidor é a fonte da posse; o localStorage vira
+   * espelho hidratado. Opcional pela mesma regra da economia v2: ausência = lista vazia, não erro.
+   */
+  itensComprados?: string[]
 
   /* ── ECONOMIA v2 (2026-08-28). OPCIONAIS de propósito: o servidor efêmero (IndexedDB) já os
      calcula; a edição completa (Postgres) passa a calculá-los numa entrega própria, e até lá

@@ -198,6 +198,9 @@ export async function computeProfile(userId: UserId, opts: OpcoesDePerfil = {}):
   /* O outro lado da moeda. Vem de uma tabela de eventos, e não de contagem derivada: gasto que
      se recalcula não é gasto — voltaria ao valor cheio no próximo carregamento. */
   const seedsGastas = await seedSpendsRepo.totalGasto(userId)
+  /* B4 fechada (economia-de-creditos 1.2): a posse da Loja viaja no perfil, derivada do log de
+     compras — o cliente hidrata o espelho local a partir daqui em vez de confiar só nele. */
+  const itensComprados = await seedSpendsRepo.itensComprados(userId)
 
   /* ECONOMIA v2 (A7): os créditos avulsos e a presença agora existem no servidor real. O cliente
      (`deriveProgress`) já lia estes campos com `?? 0` — a paridade é com o servidor efêmero. */
@@ -230,6 +233,7 @@ export async function computeProfile(userId: UserId, opts: OpcoesDePerfil = {}):
     // A ofensiva exibida é a MAIOR entre revisar e aparecer — mesma regra do efêmero.
     streakDays: Math.max(streakDays, seqPresenca.atual),
     seedsGastas,
+    itensComprados,
     seedsCreditadas,
     xpCreditado,
     presencas: diasDePresenca.length,

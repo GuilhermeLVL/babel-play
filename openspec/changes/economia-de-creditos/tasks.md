@@ -1,7 +1,10 @@
 ## 1. Pré-requisitos (outras mudanças)
 
 - [ ] 1.1 Asaas validado em sandbox (dependência do dono)
-- [ ] 1.2 Inventário server-side de posse (fecha a brecha B4)
+- [x] 1.2 Inventário server-side de posse (fecha a brecha B4) — sem tabela nova: a compra
+      sempre foi evento (`seed_spends.reason = 'loja:<id>'`); o perfil agora devolve
+      `itensComprados` derivado do log e o cliente hidrata o espelho local por UNION
+      (compra offline preservada). Servidor real + efêmero em paridade; verificado ao vivo.
 
 ## 2. Implementação futura (não desta rodada)
 

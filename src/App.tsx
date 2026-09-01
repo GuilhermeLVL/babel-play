@@ -68,6 +68,7 @@ import { equiparItem, type ContextoDeEquipar } from './lib/galeria/equipar';
 import RecompensaDesbloqueada, { recompensasVistas, chaveDaRecompensa, type Recompensa } from './components/RecompensaDesbloqueada';
 import { comemorar } from './lib/juice';
 import { isAgeProfile, readAgeProfile, readStoredEnum, readStoredValue } from './lib/profile';
+import { hidratarPosse } from './lib/loja';
 import { emitBurst } from './lib/effects';
 import { isOnAuthCallback, clearAuthCallbackUrl } from './lib/authCallback';
 import { lerUrlAtual, publicarUrl, type ViewDeRota, type EstadoDeRota } from './lib/rotas';
@@ -398,7 +399,13 @@ export default function App() {
   useEffect(() => {
     let alive = true;
     Promise.all([fetchMetrics(), fetchRecordes()])
-      .then(([m, rs]) => { if (alive) { setMetrics(m); setRecordes(rs); } })
+      .then(([m, rs]) => {
+        if (!alive) return;
+        setMetrics(m);
+        setRecordes(rs);
+        // B4: o servidor é a fonte da posse da Loja; o localStorage vira espelho (union).
+        hidratarPosse(m?.itensComprados);
+      })
       .catch(() => { if (alive) setMetrics(null); });
     return () => { alive = false; };
   }, [recordings.length, versaoDasMetricas]);

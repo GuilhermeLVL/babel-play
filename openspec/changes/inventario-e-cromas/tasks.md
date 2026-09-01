@@ -44,3 +44,7 @@
       esconde atrás de um clique
 - [x] 4.6 `lerPaletaAtiva`/`gravarPaletaAtiva` em `paletas.ts` — a chave era lida e escrita por
       três caminhos diferentes (a tela, o restaurador, o editor)
+- [x] 4.7 PERFIS viram uma CATEGORIA do inventário (segunda rodada, 01/09): a grade de 19 cartões
+      com layout próprio some da tela; o campo "salvar este visual" vai junto, para a categoria a
+      que pertence. "Liberar mais na Loja" sai porque o "Ir à Loja" do inventário já leva ao mesmo
+      lugar, e leva dizendo quantas peças faltam

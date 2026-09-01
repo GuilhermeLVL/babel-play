@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Save, Trash2, Wand2, Lock, ShoppingBag, Undo2, Pencil, Gamepad2, Zap, Eye } from 'lucide-react';
+import { Undo2, Gamepad2, Zap, Eye } from 'lucide-react';
 import { toast } from '../Toast';
 import { comemorar, explodirAleatorio } from '../../lib/juice';
 import { paletaPorId, lerPaletaAtiva, gravarPaletaAtiva, type Paleta } from '../../lib/galeria/paletas';
@@ -16,25 +16,26 @@ import Inventario from './personalizar/Inventario';
 import type { AgeProfileType, MenuPositionType } from '../shell/navItems';
 
 /**
- * MEU VISUAL — o inventário, os perfis de um toque, e o perfil de exibição.
+ * MEU VISUAL — o inventário e o perfil de exibição. Só isso.
  *
  * O QUE SAIU DAQUI (e para onde foi), na limpeza pedida pelo dono em 01/09: "está tendo um
  * acúmulo de conteúdo legado; remova o que é passado e deixe o novo".
  *
- * Esta tela carregava um acordeão de OITO seções chamado "Monte o seu, peça por peça". Sete
- * delas ofereciam de novo o que a grade do inventário já faz — escolher tema, fonte, partícula,
- * pack, cursor, rastro, posição do menu — só que numa lista de chips, com outro desenho e outra
- * régua de cadeado. Duas telas para a mesma decisão é exatamente o que fazia o app parecer
- * desconectado de si mesmo.
+ * PRIMEIRA RODADA — o acordeão de OITO seções ("Monte o seu, peça por peça"). Sete delas
+ * ofereciam de novo o que a grade do inventário já faz — escolher tema, fonte, partícula, pack,
+ * cursor, rastro, posição do menu — só que numa lista de chips, com outro desenho e outra régua
+ * de cadeado. O que era PROFUNDIDADE (as 200 paletas, o editor do pack, o cursor de qualquer
+ * emoji, o rastro de emojis) mudou de lugar em vez de sumir: abre pelo botão "Personalizar" da
+ * peça, em `personalizar/EditorDoItem`.
  *
- * O que era PROFUNDIDADE e não repetição (as 200 paletas, o editor do pack, o cursor de qualquer
- * emoji, o rastro de emojis) mudou de lugar em vez de sumir: agora abre pelo botão "Personalizar"
- * da peça, em `personalizar/EditorDoItem`. A pergunta nasce na peça, e é lá que ela é respondida.
+ * SEGUNDA RODADA — a grade de 19 perfis, que era o último pedaço com layout próprio fora do
+ * inventário. Virou uma CATEGORIA lá dentro, ao lado de Temas e Rastros: perfil é um loadout
+ * inteiro em vez de uma peça, e uma aba é exatamente como jogo trata loadout. Junto com ela foi
+ * o campo "salvar este visual", que agora mora na categoria a que pertence.
  *
- * O QUE FICOU AQUI, e por que não cabia no inventário:
- *  · PERFIS — trocam o visual INTEIRO num toque; não são uma peça para equipar.
- *  · PERFIL DE EXIBIÇÃO — é acessibilidade, sempre grátis, e não é item de catálogo nenhum.
- *    Fica sem cadeado e sem acordeão, porque direito não se esconde atrás de um clique.
+ * O QUE FICOU AQUI: o PERFIL DE EXIBIÇÃO. Não é peça de catálogo nem cosmético — é
+ * acessibilidade, sempre grátis. Fica sem cadeado e sem acordeão, porque direito não se esconde
+ * atrás de um clique (ux-v2 §4.4).
  */
 interface PersonalizarProps {
   theme: ThemeType;
@@ -54,7 +55,6 @@ interface PersonalizarProps {
 export default function Personalizar({ theme, setTheme, fonte, setFonte, nivel, saldo, onIrParaLoja, ageProfile, setAgeProfile, menuPosition, setMenuPosition, onOpenStudio }: PersonalizarProps) {
   const [, force] = useState(0);
   const rerender = () => force((n) => n + 1);
-  const [nomeDoPerfil, setNomeDoPerfil] = useState('');
   const saldoAgora = saldo;
 
   const packCustom = lerPackCustom();
@@ -89,17 +89,16 @@ export default function Personalizar({ theme, setTheme, fonte, setFonte, nivel, 
     rerender();
   };
 
-  const salvarAtual = () => {
-    const nome = nomeDoPerfil.trim() || `Meu perfil ${perfisSalvos().length + 1}`;
+  const salvarAtual = (nome: string) => {
+    const nomeFinal = nome.trim() || `Meu perfil ${perfisSalvos().length + 1}`;
     const pack = readPack();
     salvarPerfil({
-      nome, emoji: emojiDoCursor(readCursor()) ?? '✨', desc: 'Montado por você.',
+      nome: nomeFinal, emoji: emojiDoCursor(readCursor()) ?? '✨', desc: 'Montado por você.',
       ...(theme === 'custom' && paletaAtiva ? { paleta: paletaAtiva } : { tema: theme }),
       fonte, particulas: readParticulas(), pack: pack === PACK_CUSTOM ? lerPackCustom() : pack,
       cursor: readCursor(), rastro: readRastro(),
     });
-    setNomeDoPerfil('');
-    toast.ok(`Perfil "${nome}" salvo.`);
+    toast.ok(`Perfil "${nomeFinal}" salvo.`);
     rerender();
   };
 
@@ -120,43 +119,16 @@ export default function Personalizar({ theme, setTheme, fonte, setFonte, nivel, 
     else toast.warn('O nome não pode ficar vazio.');
   };
 
-  /** Um cartão para os dois grupos (meus e prontos): aplicar, e nos meus renomear/apagar. */
-  const CartaoDePerfil = ({ p }: { p: Perfil }) => {
-    const pal = p.paleta ? paletaPorId(p.paleta) : null;
-    const falta = faltaParaOPerfil(p, ctxAcesso);
-    const trancado = falta.length > 0;
-    return (
-      <div className={`card-panel p-3 border-2 ${trancado ? 'border-border-subtle opacity-90' : 'border-border-subtle hover:border-accent'} flex flex-col gap-1.5`}>
-        <button onClick={(e) => aplicarPerfil(p, e.currentTarget)} className="text-left cursor-pointer">
-          <span className="flex items-center gap-2">
-            <span className="text-2xl" aria-hidden>{p.emoji}</span>
-            <span className="font-bold text-[13.5px] text-ink flex-1 truncate">{p.nome}</span>
-            {trancado ? <Lock className="w-3.5 h-3.5 text-ink-faint shrink-0" aria-hidden /> : null}
-          </span>
-          {pal && <span className="flex gap-1 mt-2">{[pal.canvas, pal.surface, pal.accent, pal.ink].map((c, i) => <span key={i} className="w-5 h-5 rounded-full border border-surface" style={{ backgroundColor: c }} />)}</span>}
-          <span className="block text-[11.5px] text-ink-muted mt-1.5 leading-snug">{p.desc}</span>
-        </button>
-        {trancado && <p className="text-[11px] text-ink-faint leading-snug">Falta: {falta.slice(0, 2).join(' · ')}{falta.length > 2 ? ` +${falta.length - 2}` : ''}</p>}
-        {p.proprio && (
-          <span className="flex items-center gap-3">
-            <button onClick={() => renomear(p)} className="text-[11px] text-ink-faint hover:text-ink inline-flex items-center gap-1 cursor-pointer"><Pencil className="w-3 h-3" aria-hidden /> renomear</button>
-            <button onClick={() => { apagarPerfil(p.id); rerender(); }} className="text-[11px] text-ink-faint hover:text-error inline-flex items-center gap-1 cursor-pointer"><Trash2 className="w-3 h-3" aria-hidden /> apagar</button>
-          </span>
-        )}
-      </div>
-    );
-  };
-
   const paletaNome = theme === 'custom' && paletaAtiva ? paletaPorId(paletaAtiva)?.nome ?? 'Paleta' : `Tema ${theme}`;
   const packNome = readPack() === PACK_CUSTOM ? `Meu pack (${packCustom.length})` : PACKS_DE_EMOJI.find((p) => p.id === readPack())?.nome ?? 'Clássico';
   /* Meus perfis primeiro: o que a pessoa montou vale mais do que o que veio de fábrica. */
-  const meusPerfis = perfisSalvos();
+  const perfis = [...perfisSalvos(), ...PRESETS];
 
   return (
     <div className="space-y-6">
-      {/* ── O INVENTÁRIO (protótipo aprovado 01/09) ──────────────────────────────────────
-             Loadout, categorias, o acervo inteiro e a prévia com origem, equipar e
-             personalizar. Ele é o único lugar da tela onde se troca uma peça. */}
+      {/* ── O INVENTÁRIO ────────────────────────────────────────────────────────────────
+             Loadout, categorias (peças E perfis), o acervo inteiro e a prévia com origem,
+             equipar e personalizar. É o único lugar da tela onde se troca alguma coisa. */}
       <Inventario
         nivel={nivel}
         saldo={saldoAgora}
@@ -181,32 +153,21 @@ export default function Personalizar({ theme, setTheme, fonte, setFonte, nivel, 
         ]}
         onIrParaLoja={onIrParaLoja}
         aoMudar={rerender}
+        perfis={perfis}
+        faltaDoPerfil={(p) => faltaParaOPerfil(p, ctxAcesso)}
+        aoAplicarPerfil={aplicarPerfil}
+        aoRenomearPerfil={renomear}
+        aoApagarPerfil={(p) => { apagarPerfil(p.id); rerender(); }}
+        aoSalvarPerfil={salvarAtual}
       />
 
-      {/* Salvar, liberar mais e desfazer — as três ações sobre o visual INTEIRO, e não sobre uma
-          peça: por isso ficam fora do inventário, embaixo dele. */}
+      {/* A única ação que sobrou fora do inventário. "Salvar" foi para a categoria Perfis, que é
+          sobre isso, e "Liberar mais na Loja" saiu porque o "Ir à Loja" do inventário já leva ao
+          mesmo lugar — e leva com contexto, dizendo quantas peças faltam.
+          DIREITO, não recompensa: desfazer o visual nunca depende de nível nem de Seeds. */}
       <div className="flex flex-wrap items-center gap-2">
-        <input value={nomeDoPerfil} onChange={(e) => setNomeDoPerfil(e.target.value)} placeholder="Nome para salvar este visual" className="flex-1 min-w-[12rem] px-3 py-2 rounded-xl bg-surface border border-border-subtle text-[13px] text-ink outline-none focus:border-accent" />
-        <button onClick={salvarAtual} className="btn-solid"><Save className="w-4 h-4" aria-hidden /> Salvar como perfil</button>
-        <button onClick={onIrParaLoja} className="btn-outline"><ShoppingBag className="w-4 h-4" aria-hidden /> Liberar mais na Loja</button>
-        {/* DIREITO, não recompensa: desfazer o visual nunca depende de nível nem de Seeds. */}
         <button onClick={voltarAoOriginal} className="btn-outline"><Undo2 className="w-4 h-4" aria-hidden /> Voltar ao visual original</button>
       </div>
-
-      {/* ── PERFIS: um toque muda tudo ──────────────────────────────────────────────────
-             Eram duas seções com dois títulos ("meus salvos" e "prontos"); viraram uma, com os
-             seus na frente. A diferença entre os dois grupos é quem fez — e isso o cartão já
-             diz, porque só o seu tem renomear e apagar. */}
-      <section>
-        <p className="label-mono mb-2 flex items-center gap-1.5">
-          <Wand2 className="w-3.5 h-3.5" aria-hidden /> Perfis: um toque muda tudo
-          <span className="text-ink-faint">· {meusPerfis.length + PRESETS.length}</span>
-        </p>
-        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3">
-          {meusPerfis.map((p) => <CartaoDePerfil key={p.id} p={p} />)}
-          {PRESETS.map((p) => <CartaoDePerfil key={p.id} p={p} />)}
-        </div>
-      </section>
 
       {/* ── PERFIL DE EXIBIÇÃO ───────────────────────────────────────────────────────────
              DIREITO declarado onde mora (ux-v2 §4.4): a seção vive numa tela de recompensas e o

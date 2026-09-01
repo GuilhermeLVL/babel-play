@@ -2337,6 +2337,13 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
           é a altura de repouso do botão: p-3 + uma linha de texto + a borda do `card-panel`. */}
       {!embutido && (
         <div className="mb-4 min-h-[46px]">
+      {/* ── A FAIXA DE FONTES TEM DOIS LADOS, e o direito não depende do esquerdo.
+             As ABAS só existem quando há mais de uma fonte para escolher. As AÇÕES (trazer um
+             baralho de fora, ajustar idioma/nível) valem sempre — e o Anki vale sobretudo para
+             quem AINDA não tem material, que é justamente quem cai no ramo de uma fonte só.
+             Aninhar as ações dentro do `fontesOferecidas.length > 1` esconderia a porta de
+             entrada de quem mais precisa dela. ── */}
+      <div className="flex flex-wrap items-center gap-2">
       {fontesOferecidas.length > 1 && (
         /* ── O QUE ESTÁ VALENDO, E COMO TROCAR ──────────────────────────────────────────────
            Aqui havia um `<details>` recolhido cujo resumo era "Praticar · Minhas palavras ·
@@ -2385,16 +2392,36 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
               </button>
             );
           })}
-          <button
-            onClick={() => setSalaAberta(true)}
-            title="Idioma, nível da trilha e qual gravação"
-            className="ml-auto flex items-center gap-1.5 px-3 py-2.5 rounded-xl border border-border-subtle bg-surface text-[12.5px] font-bold text-ink hover:border-accent transition-colors cursor-pointer"
-          >
-            <SlidersIcon className="w-3.5 h-3.5" aria-hidden />
-            {fonte.lang ? langLabelPt(fonte.lang) : 'ajustar'}
-          </button>
         </div>
       )}
+
+        {/* AS AÇÕES DA FAIXA. `ml-auto` empurra para a direita quando há abas; sem elas, o grupo
+            é a faixa inteira e continua alinhado à esquerda, onde a leitura começa. */}
+        <div className={`flex items-center gap-2 ${fontesOferecidas.length > 1 ? 'ml-auto' : ''}`}>
+          {/* O ANKI SUBIU PARA CÁ. Morava no rodapé da tela, abaixo de nove cartas de jogo e da
+              faixa de progresso, em texto de 12px sem contorno — a única porta para trazer
+              vocabulário de fora, no lugar onde menos se olha. Aqui ele fica ao lado das outras
+              formas de escolher COM O QUE jogar, que é a decisão de que ele faz parte. */}
+          <button
+            onClick={() => setImportando(true)}
+            title="Trazer um baralho .apkg/.txt do Anki, ou levar as suas palavras para lá"
+            className="flex items-center gap-1.5 px-3 py-2.5 rounded-xl border border-border-subtle bg-surface text-[12.5px] font-bold text-ink hover:border-accent transition-colors cursor-pointer"
+          >
+            <Package className="w-3.5 h-3.5" aria-hidden />
+            {ageProfile === 'kids' ? 'Palavras de fora' : 'Anki'}
+          </button>
+          {fontesOferecidas.length > 1 && (
+            <button
+              onClick={() => setSalaAberta(true)}
+              title="Idioma, nível da trilha e qual gravação"
+              className="flex items-center gap-1.5 px-3 py-2.5 rounded-xl border border-border-subtle bg-surface text-[12.5px] font-bold text-ink hover:border-accent transition-colors cursor-pointer"
+            >
+              <SlidersIcon className="w-3.5 h-3.5" aria-hidden />
+              {fonte.lang ? langLabelPt(fonte.lang) : 'ajustar'}
+            </button>
+          )}
+        </div>
+      </div>
         </div>
       )}
 
@@ -2936,13 +2963,8 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
           streak e seeds são do PERFIL; a aba da sessão fala de UMA sessão. */}
 
       <div className="mt-6 flex flex-wrap items-center gap-4">
-        <button
-          onClick={() => setImportando(true)}
-          className="flex items-center gap-1.5 text-[12px] text-ink-muted hover:text-accent cursor-pointer py-1"
-        >
-          <Package className="w-3.5 h-3.5" aria-hidden />
-          {ageProfile === 'kids' ? 'Trazer palavras de fora' : 'Importar / exportar baralho (Anki)'}
-        </button>
+        {/* O Anki saiu daqui e subiu para a faixa de fontes: era a única porta para trazer
+            vocabulário de fora e estava no rodapé, abaixo de nove cartas e da faixa de progresso. */}
         {/* Dizia "Exercícios completos", prometendo os doze legados. Sobraram dois, e os dois são
             de MEMÓRIA (revisão espaçada e produção ativa), o resto virou jogo e mora aqui. O
             rótulo passa a dizer para onde leva de verdade. */}

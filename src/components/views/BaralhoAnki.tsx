@@ -1,7 +1,7 @@
 import React, { useRef, useState } from 'react';
 import { ArrowLeft, Upload, Download, Loader2, AlertTriangle, FileText, Info } from 'lucide-react';
 import { lerBaralhoAnki, bulkAddCards, exportarApkg, type LeituraAnki, type CartaoPulado } from '../../data/api';
-import { motivoLegivel, ROTULO_MOTIVO, type MotivoDescarte } from '@core';
+import { motivoLegivel, ROTULO_MOTIVO, foraDoBulkAdd, type MotivoDescarte } from '@core';
 import type { VocabCard } from '../../types';
 import type { AgeProfileType } from '../../lib/profile';
 import { toast } from '../Toast';
@@ -68,7 +68,34 @@ export default function BaralhoAnki({
     if (!leitura) return;
     setGravando(true);
     try {
-      const { cards, skipped } = await bulkAddCards(leitura.notas.slice(0, TETO).map(n => ({
+      /**
+       * O QUE A FRONTEIRA DO SERVIDOR RECUSA SAI ANTES DE VIAJAR — e sem isto UMA nota ruim
+       * derrubava o baralho inteiro.
+       *
+       * `bulkAddCardsSchema` valida o LOTE: uma palavra de uma letra faz a rota devolver 400 e
+       * NENHUM cartão entra. Medido num baralho de 39 notas com a palavra `a` no meio: 39 lidas,
+       * zero gravadas. E não é caso raro — todo baralho de idioma tem artigo ou pronome de uma
+       * letra ("a", "I", "o"), e baralhos de japonês/chinês têm palavras de um caractere às
+       * centenas.
+       *
+       * Filtrar aqui não é contornar a régua: é aplicar a MESMA régua antes, para que o lote que
+       * chega seja aceitável e o que não passa seja RELATADO em vez de derrubar o resto. O motivo
+       * `palavra-curta` já existe em `MotivoDescarte` e a tela já sabe exibi-lo — este caminho só
+       * nunca tinha sido ligado.
+       */
+      const daLeitura = leitura.notas.slice(0, TETO);
+      const vao = daLeitura.filter(n => foraDoBulkAdd(n.frente) === null);
+      const foraPorFormato: CartaoPulado[] = daLeitura
+        .map(n => ({ n, motivo: foraDoBulkAdd(n.frente) }))
+        .filter((x): x is { n: typeof x.n; motivo: NonNullable<typeof x.motivo> } => x.motivo !== null)
+        .map(x => ({ word: x.n.frente, motivo: x.motivo }));
+
+      if (!vao.length) {
+        setResultado({ entraram: 0, pulados: foraPorFormato });
+        return;
+      }
+
+      const { cards, skipped } = await bulkAddCards(vao.map(n => ({
         word: n.frente,
         back: n.verso,
         sentence: n.exemplo,
@@ -76,7 +103,7 @@ export default function BaralhoAnki({
         tgtLang: idiomaNativo,
         sessionId: `anki:${nomeArquivo}`.slice(0, 64),
       })));
-      setResultado({ entraram: cards.length, pulados: skipped });
+      setResultado({ entraram: cards.length, pulados: [...foraPorFormato, ...skipped] });
       await onImportou();
       if (cards.length) toast.ok(`${cards.length} ${cards.length === 1 ? 'palavra entrou' : 'palavras entraram'}`);
     } catch (e) {

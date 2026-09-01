@@ -425,3 +425,29 @@ export function pistasDaTriagem(t: Triagem): { comTraducao: VocabCard[]; soComFr
   }
   return { comTraducao, soComFrase };
 }
+
+/**
+ * A FRONTEIRA DE FORMATO DO `bulk-add`, do lado do cliente — espelho de `bulkAddCardsSchema`.
+ *
+ * O DEFEITO QUE ISTO CONSERTA: a validação do servidor é do LOTE INTEIRO. Uma nota fora do
+ * formato faz a rota devolver 400 e NENHUM cartão entra. Medido importando um baralho Anki de 39
+ * notas com a palavra `a` no meio: 39 lidas, **zero gravadas**, e a tela dizia só "0 entraram no
+ * seu baralho" — sem causa, sem culpado, sem o que fazer a respeito.
+ *
+ * Não é caso raro: todo baralho de idioma carrega artigo ou pronome de uma letra ("a", "I", "o"),
+ * e baralhos de japonês e chinês têm palavras de um caractere às centenas. Quem importasse um
+ * baralho grande veria o import falhar inteiro por causa de uma linha.
+ *
+ * Aplicar a mesma régua ANTES de enviar não contorna a validação: faz o lote que chega ser
+ * aceitável, e o que não passa ser RELATADO (com `MotivoDescarte`, que a tela já sabe exibir) em
+ * vez de derrubar as outras. A régua de CONTEÚDO (tradução vazia, ruído, gramatical, duplicata)
+ * continua morando no servidor — aqui é só o formato, e só porque ele é tudo-ou-nada.
+ */
+export const LIMITES_DO_BULK_ADD = { min: 2, max: 200 } as const;
+
+export function foraDoBulkAdd(palavra: string): Extract<MotivoDescarte, 'palavra-curta'> | 'palavra-longa' | null {
+  const n = (palavra ?? '').trim().length;
+  if (n < LIMITES_DO_BULK_ADD.min) return 'palavra-curta';
+  if (n > LIMITES_DO_BULK_ADD.max) return 'palavra-longa';
+  return null;
+}

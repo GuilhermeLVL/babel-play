@@ -527,7 +527,20 @@ export async function bulkAddCards(cards: NewCardPayload[]): Promise<BulkAddResu
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ cards }),
   })
-  if (!res.ok) return { cards: [], skipped: [] }
+  /**
+   * FALHA TEM DE DOER — devolver vazio aqui era indistinguível de "nada tinha para entrar".
+   *
+   * MEDIDO importando um baralho de 39 notas: uma delas era a palavra `a`, de uma letra, que a
+   * fronteira de formato do servidor recusa (`word: min(2)`). A validação é do LOTE INTEIRO, então
+   * o 400 derrubou as 39 — e este `return` transformou a mensagem exata do servidor
+   * ("cards.34.word — Too small") em "0 entraram no seu baralho", sem causa e sem culpado.
+   *
+   * Quem chama já tem `try/catch` e já sabe mostrar erro; o que faltava era o erro existir.
+   */
+  if (!res.ok) {
+    const corpo = await res.json().catch(() => null) as { error?: string } | null
+    throw new Error(corpo?.error ?? `não consegui salvar as palavras (HTTP ${res.status})`)
+  }
   const body = (await res.json()) as { cards: VocabRow[]; skipped?: CartaoPulado[] }
   const criados = (body.cards ?? []).map(rowToVocabCard)
   /* Som de "guardei" no ponto onde a palavra ENTRA no deck, e so quando entrou de verdade —

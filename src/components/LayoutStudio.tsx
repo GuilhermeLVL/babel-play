@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import {
   X, Palette, LayoutGrid, Sparkles, RotateCcw, Move,
-  Eye, EyeOff, Check, SlidersHorizontal, ChevronDown,
+  Eye, EyeOff, Check, SlidersHorizontal, ChevronDown, Lock,
   Home, Mic, Library as LibraryIcon, BarChart2, BookOpen, LineChart
 } from 'lucide-react';
 import { useLayout } from '../hooks/useLayout';
@@ -12,6 +12,7 @@ import {
   type CustomColors, type ThemeType, readCustomColors
 } from '../lib/appearance';
 import { persistTheme } from '../lib/theme';
+import { acessoAoItem } from '../lib/galeria/acesso';
 import { askConfirm } from './Toast';
 
 interface LayoutStudioProps {
@@ -21,6 +22,9 @@ interface LayoutStudioProps {
   setTheme: (theme: ThemeType) => void;
   darkMode: boolean;
   toggleDarkMode: () => void;
+  /** Para o gate interno (ux-v2 §4.2): a régua vale DENTRO do Estúdio, não só na porta. */
+  nivel: number;
+  saldo: number;
 }
 
 const SCREEN_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
@@ -49,8 +53,13 @@ const nearestSizeLabel = (heightPx: number): string => {
 
 /* `darkMode`/`toggleDarkMode` seguem no contrato (o App as passa) mas o Estúdio não edita mais o
    modo — o interruptor único é o da barra de controles (centralização, 2026-08-28). */
-export default function LayoutStudio({ isOpen, onClose, theme, setTheme }: LayoutStudioProps) {
+export default function LayoutStudio({ isOpen, onClose, theme, setTheme, nivel, saldo }: LayoutStudioProps) {
   const { layout, updatePanel, applyIntelligentLayout, resetToDefault, toggleEditMode, editMode } = useLayout();
+
+  /* TODO CAMINHO PASSA PELA RÉGUA (spec galeria-gating-fechado; ux-v2 §4.2): o Estúdio confiava
+     só no botão de entrada — qualquer render direto entregava o editor E3 completo. A checagem
+     aqui dentro fecha a classe, com estado honesto no lugar de tela escondida. */
+  const acessoEstudio = acessoAoItem('estudio', nivel, saldo);
 
   const [tab, setTab] = useState<'aparencia' | 'layout'>('aparencia');
   const [activeScreen, setActiveScreen] = useState<keyof AppLayoutConfig>('hub');
@@ -71,6 +80,19 @@ export default function LayoutStudio({ isOpen, onClose, theme, setTheme }: Layou
   }, [isOpen, onClose]);
 
   if (!isOpen) return null;
+
+  if (!acessoEstudio.liberado) {
+    return (
+      <div className="fixed inset-0 z-[110] bg-canvas/95 backdrop-blur-sm flex items-center justify-center p-6" role="dialog" aria-label="Estúdio ainda trancado">
+        <div className="card-panel bg-surface max-w-md w-full p-6 text-center space-y-3">
+          <Lock className="w-8 h-8 mx-auto text-ink-faint" aria-hidden />
+          <h2 className="font-bold text-lg text-ink">O Estúdio ainda está trancado</h2>
+          <p className="text-[13px] text-ink-muted">{acessoEstudio.motivo ?? 'Continue estudando para liberar.'} O caminho para obter é a Loja, em Personalizar.</p>
+          <button onClick={onClose} className="btn-solid mx-auto">Voltar</button>
+        </div>
+      </div>
+    );
+  }
 
   // `persistTheme` aplica no DOM, grava no localStorage e MESCLA em settings.ui
   // (servidor). O `setTheme` do App faz o mesmo para o tema — daí a paleta ir

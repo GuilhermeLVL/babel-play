@@ -940,6 +940,8 @@ export default function App() {
             setTheme={setTheme}
             darkMode={darkMode}
             toggleDarkMode={toggleDarkMode}
+            nivel={progress.available ? progress.level : 1}
+            saldo={progress.available ? progress.seeds : 0}
           />
         )}
       </Suspense>

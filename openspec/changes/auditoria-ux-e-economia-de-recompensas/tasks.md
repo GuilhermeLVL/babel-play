@@ -31,5 +31,14 @@
 
 ## 4. Correções da auditoria
 
-- [ ] 4.1 Aplicar as correções de coerência e redirecionamento achadas em 1.1
-- [ ] 4.2 Reposicionar as capacidades classificadas na categoria errada em 1.4
+- [x] 4.1 Aplicar as correções de coerência e redirecionamento achadas em 1.1 — feito o núcleo:
+      palavra de nível única por perfil (word.level em profile.ts, TEXTOS/Faixa/Perfil/Loja),
+      aba "Meu visual" (fim do duplo "Biblioteca"), nav com camiseta, passe fala em "casa",
+      Trophy/Flame/Ticket sem overload (Medal/Zap/LayoutGrid nos jogos), datas por dia de
+      calendário, Planos sem caminho de repo. PENDENTES (baixa prioridade, ux-v2 §6 item 5):
+      sub-aba na URL (1.6), cluster duplicado no DOM em Capturar (1.11), avisos do detector em
+      Analysis/Reading/LiveCapture (1.13), conciliação 615×409 seeds (2.2)
+- [x] 4.2 Reposicionar capacidades na categoria errada — gate interno do Estúdio (a régua vale
+      dentro, não só na porta) e o direito de desfazer criado (3.2). PENDENTES: mover a seção
+      "tela" (perfil de exibição) para fora da tela de recompensas (4.4) e tirar os
+      itens-padrão da trilha do passe (4.3 — depende da spec própria de catálogo)

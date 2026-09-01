@@ -49,10 +49,13 @@ Estas travam trabalho. Estão detalhadas em `docs/auditoria/decisao-infraestrutu
 
 ## ⇒ A PRÓXIMA SESSÃO COMEÇA AQUI
 
-`docs/HANDOFF-PROXIMA-SESSAO.md` tem o prompt pronto para colar numa conversa nova, e a etapa que
-abre a fila é a mudança `auditoria-ux-e-economia-de-recompensas` (auditoria crítica na perspectiva
-do usuário + redesenho da curva de recompensa do passe + perfis salvos + voltar ao original).
-Ela vem ANTES de tudo o que está listado abaixo.
+A mudança `auditoria-ux-e-economia-de-recompensas` foi EXECUTADA em 31/08 (14/14 tasks, com
+pendências menores anotadas nas próprias tasks): relatório em `docs/auditoria/ux-v2.md`, passe
+recomposto em Cofres por década, perfis salvos com renomear, "Voltar ao visual original", e as
+correções de coerência (palavra de nível única, aba "Meu visual", ícones sem overload, gate
+interno do Estúdio). O que sobrou de lá: itens da lista §6.5 do ux-v2 (sub-aba na URL, DOM
+duplicado em Capturar, avisos do detector, conciliação 615×409 seeds) e tirar os itens-padrão
+do passe quando a spec de catálogo existir. A fila abaixo volta a valer.
 
 ## Fila de trabalho
 

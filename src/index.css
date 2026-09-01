@@ -1691,3 +1691,17 @@ svg.lucide { flex-shrink: 0; }
 }
 .eq-bar { transform-origin: bottom; animation: eq-bar-kf 0.9s ease-in-out infinite; }
 .animations-off .eq-bar, .performance-mode .eq-bar { animation: none; transform: scaleY(0.7); }
+
+/*
+ * ALTURA DA JANELA, CORRIGIDA PELO ZOOM DO A±.
+ *
+ * `h-dvh` (= `height: 100dvh`) parece a resposta certa e não é quando existe `body { zoom: N }`:
+ * as unidades de viewport resolvem contra a janela REAL e o resultado é multiplicado pelo zoom
+ * depois. A 1,3 a casca do app ficava 30% mais alta que a tela; a 1,5, medido no Termo numa
+ * janela de 893px, o painel tinha 1250px e o teclado — último filho da coluna — ficava fora da
+ * tela, sem rolagem que o alcançasse (a casca é `overflow-hidden`).
+ *
+ * `--zoom-a` é publicado por `App.tsx` junto com o próprio zoom, no `documentElement`, que está
+ * fora do subarvore escalado. O `1` de reserva mantém isto correto se a variável faltar.
+ */
+.h-tela { height: calc(100dvh / var(--zoom-a, 1)); }

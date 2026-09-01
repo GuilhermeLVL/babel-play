@@ -239,6 +239,19 @@ export default function App() {
     };
     document.documentElement.style.fontSize = '100%';
     (document.body.style as unknown as { zoom: string }).zoom = scaleMap[fontScale];
+    /**
+     * O ZOOM PRECISA SER LEGÍVEL PELO CSS — e sem isto o A± estourava a altura do app inteiro.
+     *
+     * `zoom` no `body` escala o pixel CSS, mas as unidades de VIEWPORT (`dvh`/`vh`/`vw`) continuam
+     * resolvendo contra a janela real e só DEPOIS são multiplicadas pelo zoom. A casca usava
+     * `h-dvh`: a 1,3 ela virava 130% da janela. Medido no Termo, a 1,5 numa janela de 893px, o
+     * painel tinha 1250px — e o teclado, que é o último filho, simplesmente ficava fora da tela.
+     *
+     * Publicar a escala como variável deixa o CSS dividir de volta (ver `.h-tela` em index.css).
+     * Fica no `documentElement`, que está FORA do subarvore com zoom: assim o valor lido é o
+     * número puro, e não um número já escalado.
+     */
+    document.documentElement.style.setProperty('--zoom-a', scaleMap[fontScale]);
   }, [fontScale]);
 
   const setFontScale = (next: FontScale) => {
@@ -688,15 +701,15 @@ export default function App() {
 
   // Marco 1: OAuth/recuperação voltando em /auth/callback — aguarda o supabase-js processar a URL.
   if (authRequired && processingCallback) {
-    return <div className="flex h-screen w-full items-center justify-center bg-canvas text-ink-muted text-sm">Concluindo login…</div>;
+    return <div className="flex h-tela w-full items-center justify-center bg-canvas text-ink-muted text-sm">Concluindo login…</div>;
   }
   // Marco 1: porta de login. Só no modo público (authRequired); no local é pulada inteira.
   if (authRequired && session === undefined) {
-    return <div className="flex h-screen w-full items-center justify-center bg-canvas text-ink-muted text-sm">Carregando…</div>;
+    return <div className="flex h-tela w-full items-center justify-center bg-canvas text-ink-muted text-sm">Carregando…</div>;
   }
   if (authRequired && recovery) {
     return (
-      <Suspense fallback={<div className="flex h-screen w-full items-center justify-center bg-canvas text-ink-muted text-sm">Carregando…</div>}>
+      <Suspense fallback={<div className="flex h-tela w-full items-center justify-center bg-canvas text-ink-muted text-sm">Carregando…</div>}>
         <ResetPassword onDone={() => setRecovery(false)} />
         <Toaster />
       </Suspense>
@@ -704,7 +717,7 @@ export default function App() {
   }
   if (porta({ authRequired, temSessao: !!session, anonimoAceito: semContaAceito, pedindoLogin }) === 'login') {
     return (
-      <Suspense fallback={<div className="flex h-screen w-full items-center justify-center bg-canvas text-ink-muted text-sm">Carregando…</div>}>
+      <Suspense fallback={<div className="flex h-tela w-full items-center justify-center bg-canvas text-ink-muted text-sm">Carregando…</div>}>
         <Login onContinuarSemConta={() => { aceitarAnonimo(); setSemContaAceito(true); setPedindoLogin(false); }} />
         <Toaster />
       </Suspense>
@@ -712,11 +725,11 @@ export default function App() {
   }
 
   if (onboarded === null) {
-    return <div className="flex h-screen w-full items-center justify-center bg-canvas text-ink-muted text-sm">Carregando…</div>;
+    return <div className="flex h-tela w-full items-center justify-center bg-canvas text-ink-muted text-sm">Carregando…</div>;
   }
   if (onboarded === false) {
     return (
-      <Suspense fallback={<div className="flex h-screen w-full items-center justify-center bg-canvas text-ink-muted text-sm">Carregando…</div>}>
+      <Suspense fallback={<div className="flex h-tela w-full items-center justify-center bg-canvas text-ink-muted text-sm">Carregando…</div>}>
         {EDICAO_LEVE ? <OnboardingLeve onComplete={() => setOnboarded(true)} /> : <Onboarding onComplete={() => setOnboarded(true)} />}
         <Toaster />
       </Suspense>
@@ -777,7 +790,7 @@ export default function App() {
   return (
     // `h-dvh`: com 100vh a raiz cinza (bg-surface) ficava maior que a viewport dinamica e o
     // overflow-hidden cortava o rodape, a "faixa cinza" que escondia conteudo na Captura.
-    <div className="flex flex-col h-dvh w-full bg-surface overflow-hidden relative">
+    <div className="flex flex-col h-tela w-full bg-surface overflow-hidden relative">
       {/* Barra do topo: a de desktop quando a preferência é "topo"; senão, só a do celular. */}
       {menuPosition === 'top' ? shell : <MobileTopBar progress={progress} controls={mobileControls} />}
 

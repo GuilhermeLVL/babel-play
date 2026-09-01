@@ -40,6 +40,19 @@
  * no aparelho mais comum que existe.
  */
 export const CELULA_MIN = 22;
+/**
+ * O piso da ALTURA — e ele é bem mais alto que o da largura, de propósito.
+ *
+ * As duas pressões têm saídas diferentes. Falta de LARGURA não tem saída boa: rolar de lado num
+ * jogo de digitar é péssimo, então vale espremer até `CELULA_MIN`. Falta de ALTURA tem: a área do
+ * tabuleiro rola, e a linha que está sendo digitada continua à vista.
+ *
+ * Sem este piso a conta ficava de cabeça para baixo em relação ao A±: mais zoom → menos altura
+ * em px de layout → quadrado menor. Medido a 1,3 numa janela de 893px: a célula caiu de 66 para
+ * 32, e 32 × 1,3 = 42 px na tela contra 66 no zoom 1. Ou seja, aumentar a fonte DIMINUÍA o jogo —
+ * exatamente o contrário do que quem mexe no A± está pedindo.
+ */
+export const CELULA_CONFORTAVEL = 44;
 export const CELULA_MAX = 72;
 /** Folga entre quadrados da MESMA palavra (o `gap-1.5` do Tailwind). */
 export const GAP_CELULA = 6;
@@ -104,10 +117,10 @@ export interface LayoutDoTermo {
  *
  *  · A LARGURA É DURA. Estourar de lado é o defeito que se está consertando: o navegador come as
  *    folgas entre tabuleiros, e vinte e quatro quadrados viram uma fileira contínua.
- *  · A ALTURA É PREFERÊNCIA. A tela do jogo já é `overflow-y-auto` — rolar na vertical é o
- *    gesto natural e não esconde nada, porque o palpite atual fica sempre à vista. Ela serve
- *    para a grade CRESCER num monitor grande (era o pedido de 2026-08-28), não para encolher
- *    abaixo do legível num celular.
+ *  · A ALTURA É PREFERÊNCIA, com piso em `CELULA_CONFORTAVEL`. A área do tabuleiro rola — rolar
+ *    na vertical é o gesto natural e não esconde nada, porque a linha sendo digitada fica à
+ *    vista. Ela serve para a grade CRESCER num monitor grande (era o pedido de 2026-08-28), nunca
+ *    para espremer o jogo quando alguém aumenta a fonte.
  */
 function celulaDoArranjo(e: EspacoDoTermo, porFileira: number, moldura: number): number {
   const fileiras = Math.ceil(e.tabuleiros / porFileira);
@@ -119,35 +132,37 @@ function celulaDoArranjo(e: EspacoDoTermo, porFileira: number, moldura: number):
   const alturaUtil = e.altura - (e.cabecalho + GAP_TABULEIRO + moldura) * fileiras;
   const porAltura = (alturaUtil / fileiras - GAP_CELULA * (e.linhas - 1)) / e.linhas;
 
-  return Math.min(porLargura, Math.max(porAltura, CELULA_MIN), CELULA_MAX);
+  return Math.min(porLargura, Math.max(porAltura, CELULA_CONFORTAVEL), CELULA_MAX);
 }
 
 /**
  * Escolhe arranjo e tamanho de célula para o espaço que existe.
  *
- * O Quarteto tem dois arranjos possíveis e eles se opõem: 1×4 pede o quádruplo de largura, 2×2
- * pede o dobro de altura. Em vez de um limiar arbitrário (que erraria em alguma combinação de
- * tela e zoom), testa os dois e fica com o que produz o maior quadrado — a regra é a mesma em
- * qualquer tela, e é isso que a torna verificável.
+ * UMA FILEIRA SÓ É A PREFERÊNCIA, E O MOTIVO É DE MECÂNICA, NÃO DE ESTÉTICA. No Quarteto o
+ * palpite é UM SÓ e vale para os quatro tabuleiros ao mesmo tempo: quem não vê metade das grades
+ * está jogando com metade da informação. Empilhar 2×2 obriga a rolar entre as fileiras a cada
+ * palpite, e é disso que o comentário original do componente avisava.
  *
- * 2×2 no Quarteto NÃO é regressão do que o comentário do componente avisava ("empilhado 2×2
- * metade das grades fica fora da tela"). Aquilo valia quando a célula era grande demais para o
- * espaço; aqui a célula é derivada do espaço, então as quatro cabem — é justamente o caso em que
- * 1×4 espremeria os quadrados abaixo do legível.
+ * Por isso o critério NÃO é "o maior quadrado": é "cabe em uma fileira com quadrado legível?".
+ * Só quando 1×4 espremeria abaixo de `CELULA_MIN` — na prática, celular — o 2×2 entra, e aí
+ * rolar entre fileiras é melhor que quadrados ilegíveis.
  */
 export function layoutDoTermo(e: EspacoDoTermo): LayoutDoTermo {
   const arranjos = e.tabuleiros === 4 ? [4, 2] : [e.tabuleiros];
   // Um tabuleiro só não tem do que ser separado: cartão ali seria enfeite cobrando largura.
   const molduras = e.tabuleiros === 1 ? [0] : [MOLDURA_FOLGADA, MOLDURA_MINIMA];
 
+  /* Duas preferências em ordem, e a de FORA vale mais: primeiro tenta manter tudo numa fileira
+     (mecânica), e só dentro dessa escolha tenta manter o respiro da moldura (conforto). Assim
+     nenhuma tela grande perde o respiro à toa, e nenhum celular perde a fileira única por causa
+     de 8px de padding. */
   let melhor = { celula: 0, porFileira: arranjos[0], moldura: molduras[0] };
-  for (const moldura of molduras) {
-    for (const porFileira of arranjos) {
+  for (const porFileira of arranjos) {
+    for (const moldura of molduras) {
       const celula = celulaDoArranjo(e, porFileira, moldura);
       if (celula > melhor.celula) melhor = { celula, porFileira, moldura };
+      if (celula >= CELULA_MIN) break;
     }
-    /* A moldura folgada é a preferência; a mínima só entra quando a folgada não dá um quadrado
-       legível. Sem esta saída, telas grandes perderiam o respiro para nada. */
     if (melhor.celula >= CELULA_MIN) break;
   }
 

@@ -15,7 +15,7 @@
 import { describe, it, expect } from 'vitest'
 import {
   layoutDoTermo, larguraDoTabuleiro,
-  CELULA_MIN, CELULA_MAX, GAP_CELULA, GAP_TABULEIRO,
+  CELULA_MIN, CELULA_MAX, CELULA_CONFORTAVEL, GAP_CELULA, GAP_TABULEIRO,
 } from '../src/core/minigames/termoLayout'
 
 /** Telas reais, da menor à maior. */
@@ -111,21 +111,44 @@ describe('a célula fica dentro dos limites do legível', () => {
     }
   })
 
-  it('mais zoom = célula MAIOR na tela: é para isso que o A± existe', () => {
-    // A célula em px de layout encolhe (o espaço de layout encolheu), mas o tamanho RENDERIZADO
-    // — que é o que a pessoa enxerga — precisa crescer. Era exatamente isto que o `vh` quebrava.
-    const renderizada = (zoom: number) => layoutDoTermo(espaco(1920, 1080, zoom, 4, 6)).celula * zoom
-    expect(renderizada(1.15)).toBeGreaterThan(renderizada(1))
-    expect(renderizada(1.5)).toBeGreaterThan(renderizada(1.15))
-  })
-})
+  it('falta de ALTURA nunca espreme abaixo do confortável — ela vira rolagem', () => {
+    /* O DEFEITO QUE ISTO IMPEDE: mais zoom → menos altura em px de layout → quadrado menor.
+       Medido a 1,3 numa janela de 893px, a célula caiu de 66 para 32 px de layout — e 32 × 1,3 =
+       42 px na tela contra 66 no zoom 1. Aumentar a fonte DIMINUÍA o jogo, que é o oposto do que
+       quem mexe no A± está pedindo.
 
-describe('o quarteto escolhe o arranjo que dá o maior quadrado', () => {
-  it('em tela larga e baixa, prefere 1×4', () => {
-    expect(layoutDoTermo(espaco(2560, 1080, 1, 4, 6)).porFileira).toBe(4)
+       Onde a largura sobra, quem manda passa a ser o piso, e a pressão de altura vira rolagem da
+       área do tabuleiro — saída barata, porque a linha sendo digitada continua à vista. Onde a
+       largura NÃO sobra (celular estreito com zoom alto) o quadrado encolhe mesmo, e está certo:
+       a alternativa seria rolar de lado num jogo de digitar. */
+    for (const [nome, w, h] of TELAS) {
+      for (const zoom of ZOOMS) {
+        for (const tabuleiros of TABULEIROS) {
+          const e = espaco(w, h, zoom, tabuleiros, 6)
+          const { celula, porFileira, moldura } = layoutDoTermo(e)
+          const cabeNaLargura = larguraDoTabuleiro(CELULA_CONFORTAVEL, 6, moldura) * porFileira
+            + GAP_TABULEIRO * (porFileira - 1) <= e.largura
+          if (cabeNaLargura) {
+            expect(celula, `${nome} z${zoom} ${tabuleiros} tab`).toBeGreaterThanOrEqual(CELULA_CONFORTAVEL)
+          }
+        }
+      }
+    }
+  })})
+
+describe('o quarteto fica em UMA fileira sempre que der', () => {
+  /* Não é estética: o palpite é um só e vale para os quatro tabuleiros: quem não vê metade das
+     grades joga com metade da informação. Rolar entre fileiras a cada palpite é o custo que esta
+     preferência evita. */
+  it('em qualquer tela de computador, 1×4 — mesmo que 2×2 desse quadrado maior', () => {
+    for (const [nome, w, h] of TELAS.filter(([, w]) => w >= 1280)) {
+      for (const zoom of ZOOMS) {
+        expect(layoutDoTermo(espaco(w, h, zoom, 4, 6)).porFileira, `${nome} z${zoom}`).toBe(4)
+      }
+    }
   })
 
-  it('em celular, prefere 2×2 — 1×4 espremeria os quadrados abaixo do legível', () => {
+  it('em celular, 2×2 — aí 1×4 espremeria os quadrados abaixo do legível', () => {
     expect(layoutDoTermo(espaco(390, 844, 1, 4, 5)).porFileira).toBe(2)
   })
 

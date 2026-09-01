@@ -60,11 +60,12 @@ export default function TermoGame({ rodadas, ageProfile, onFinish, onExit }: Ter
     const grade = gradeRef.current;
     if (!raiz || !grade) return;
     const medir = () => {
-      const cabecalhoDaTela = raiz.querySelector('header')?.clientHeight ?? 0;
-      const teclado = raiz.querySelector<HTMLElement>('[data-tour="teclado"]')?.offsetHeight ?? 0;
       setLayout(layoutDoTermo({
         largura: grade.clientWidth,
-        altura: raiz.clientHeight - cabecalhoDaTela - teclado - 24,
+        /* MEDIDO, NÃO DEDUZIDO. Antes era `raiz.clientHeight - cabeçalho - teclado - 24`, e a
+           dedução esquecia tudo que mora entre eles (mensagens de acerto, avisos, margens): a
+           grade começava 88px abaixo do que a conta supunha. A área rolável É o orçamento. */
+        altura: areaRef.current?.clientHeight ?? 0,
         tabuleiros: nTabuleiros,
         colunas,
         linhas: maxTentativas,
@@ -78,6 +79,7 @@ export default function TermoGame({ rodadas, ageProfile, onFinish, onExit }: Ter
     medir();
     const ro = new ResizeObserver(medir);
     ro.observe(raiz);
+    if (areaRef.current) ro.observe(areaRef.current);
     window.addEventListener('resize', medir);
     return () => { ro.disconnect(); window.removeEventListener('resize', medir); };
   }, [nTabuleiros, colunas, maxTentativas, temContexto]);
@@ -123,6 +125,8 @@ export default function TermoGame({ rodadas, ageProfile, onFinish, onExit }: Ter
   const gradeRef = useRef<HTMLDivElement | null>(null);
   /** A tela do jogo inteira — é dela que sai o orçamento de altura (ver `medirLayout`). */
   const raizRef = useRef<HTMLDivElement | null>(null);
+  /** A área que rola — a altura DELA é o orçamento do tabuleiro, sem dedução nenhuma. */
+  const areaRef = useRef<HTMLDivElement | null>(null);
 
   const teclado = useMemo(() => estadoDoTecladoMulti(palpitesPorTab, resolvidos), [palpitesPorTab, resolvidos]);
   const preenchido = atual.every(l => l !== '');
@@ -478,7 +482,7 @@ export default function TermoGame({ rodadas, ageProfile, onFinish, onExit }: Ter
   const mult = multiplicador(sequencia);
 
   return (
-    <div ref={raizRef} className="flex-1 relative flex flex-col items-center p-3 sm:p-4 animate-in fade-in duration-200 overflow-y-auto custom-scrollbar">
+    <div ref={raizRef} className="flex-1 relative flex flex-col items-center p-3 sm:p-4 animate-in fade-in duration-200 overflow-hidden">
       {/* AS FERRAMENTAS moram no canto da TELA, não numa faixa junto ao título.
           Num cabeçalho de largura fixa, o título ficava colado à esquerda enquanto o tabuleiro
           (bem mais estreito) ficava no meio, dois blocos desalinhados sem motivo. Soltas no
@@ -503,7 +507,15 @@ export default function TermoGame({ rodadas, ageProfile, onFinish, onExit }: Ter
           com um vazio entre eles. `my-auto` e não `justify-center`: num container rolável,
           centralizar por `justify` impede a rolagem para o começo quando o conteúdo passa da
           altura da janela. */}
-      <div className="my-auto w-full flex flex-col items-center gap-1 py-2">
+      {/* COLUNA DE TRÊS PARTES: cabeçalho, área do tabuleiro (a única que rola) e teclado.
+          Era `my-auto` numa raiz que rolava inteira, com o teclado `sticky bottom-0` — e sticky,
+          por definição, SOBREPÕE quando o conteúdo passa da altura. Medido: grade terminando em
+          606px e teclado começando em 536px, 70px de teclas por cima das últimas tentativas.
+          Nenhuma aritmética conserta isso, porque o problema não era o tamanho da grade e sim o
+          teclado não reservar o próprio espaço. Aqui ele é irmão de um `flex-1`: sobrepor virou
+          impossível, e o orçamento de altura passa a ser medido do container onde o tabuleiro
+          realmente mora, em vez de deduzido dos vizinhos. */}
+      <div className="w-full flex-1 min-h-0 flex flex-col items-center gap-1 py-2">
       <header className="flex flex-col items-center mb-2 shrink-0 text-center">
         <h2 className="font-display font-black text-lg text-ink flex items-center gap-2">
           {nomeDoDegrau}
@@ -542,12 +554,15 @@ export default function TermoGame({ rodadas, ageProfile, onFinish, onExit }: Ter
           correspondência não precisa ser explicada.
           No Quarteto, quatro colunas quando a tela permite, empilhado 2×2 metade das grades fica
           fora da tela, e num jogo em que o palpite vale para todas, não ver metade é perder a jogada. */}
+      <div ref={areaRef} className="w-full flex-1 min-h-0 overflow-y-auto custom-scrollbar flex">
       <div
         ref={gradeRef}
         data-tour="tabuleiro"
         /* `overflow-x-auto` SÓ quando a conta declarou aperto (celular + zoom alto + quarteto).
            Rolar de lado é degradação honesta; colar os tabuleiros é defeito. */
-        className={`w-full max-w-6xl mb-2 ${layout.apertado ? 'overflow-x-auto custom-scrollbar' : ''}`}
+        /* `m-auto`: centraliza quando cabe e NÃO corta o topo quando não cabe — que é o que
+           `items-center` faria num container que rola. */
+        className={`w-full max-w-6xl m-auto ${layout.apertado ? 'overflow-x-auto custom-scrollbar' : ''}`}
       >
         <div
           className="grid mx-auto w-max justify-items-center"
@@ -627,13 +642,13 @@ export default function TermoGame({ rodadas, ageProfile, onFinish, onExit }: Ter
         })}
         </div>
       </div>
+      </div>
 
       {/* TECLADO — o estado vem só dos tabuleiros ainda abertos (ver `estadoDoTecladoMulti`).
-          Logo abaixo dos tabuleiros, no mesmo bloco centrado; `sticky bottom-0` só entra em ação
-          quando o conteúdo passa da altura da janela (quarteto no celular), para o teclado nunca
-          rolar para fora e deixar o jogo sem entrada. Teclas maiores: o alvo era 44px num
-          monitor onde cabiam 56. */}
-      <div data-tour="teclado" className="flex flex-col gap-1.5 w-full max-w-2xl sticky bottom-0 pt-3 pb-1 bg-canvas/95 backdrop-blur-sm z-10">
+          `shrink-0` e irmão do `flex-1` acima: ele RESERVA a própria altura, então nunca rola para
+          fora (que era o objetivo do `sticky bottom-0`) e nunca cobre o tabuleiro (que era o
+          efeito colateral dele). Teclas maiores: o alvo era 44px num monitor onde cabiam 56. */}
+      <div data-tour="teclado" className="flex flex-col gap-1.5 w-full max-w-2xl shrink-0 pt-3 pb-1 bg-canvas/95 z-10">
         {LINHAS_TECLADO.map((linha, i) => (
           <div key={linha} className="flex gap-1 sm:gap-1.5 justify-center">
             {i === 2 && (

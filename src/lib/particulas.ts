@@ -61,6 +61,21 @@ export const PACKS_DE_EMOJI: PackDeEmoji[] = [
   { id: 'esportes', nome: 'Esportes', emojis: ['⚽', '🏀', '🏐', '🏆', '🎮', '🥇', '🏁'] },
   { id: 'brasil', nome: 'Brasil', emojis: ['🇧🇷', '⚽', '🏖️', '🦜', '☕', '🌴', '🎭'] },
   { id: 'tesouros', nome: 'Tesouros', emojis: ['💎', '👑', '🪙', '💰', '🔮', '🏆', '✨'] },
+  /* PACKS DA TEMPORADA 1 (mudança economia-legivel-e-moedas). O passe tinha 59 itens para 100
+     casas e 33 delas ficavam vazias — inclusive 8 dos 10 marcos de dezena. Estes packs são
+     conteúdo REAL e sem arte nova: listas curadas do mesmo catálogo de emojis que o editor já
+     usa, no mesmo formato dos 12 acima. Cada um vira um item do catálogo, nas décadas pobres. */
+  { id: 'oceano', nome: 'Oceano', emojis: ['🐬', '🐳', '🐙', '🐠', '🦈', '🌊', '🐟'] },
+  { id: 'doces', nome: 'Doces', emojis: ['🍩', '🍪', '🧁', '🍰', '🍫', '🍬', '🍭'] },
+  { id: 'gatos', nome: 'Gatos', emojis: ['🐱', '🐈', '😺', '😻', '🐯', '🦁', '🐅'] },
+  { id: 'jardim', nome: 'Jardim', emojis: ['🌷', '🌻', '🌹', '🌵', '🍀', '🌿', '🌱'] },
+  { id: 'noite', nome: 'Noite', emojis: ['🌙', '⭐', '✨', '🌌', '🦉', '🌠', '💤'] },
+  { id: 'viagem', nome: 'Viagem', emojis: ['✈️', '🚂', '⛵', '🗺️', '🏝️', '🚢', '🚁'] },
+  { id: 'clima', nome: 'Clima', emojis: ['☀️', '🌧️', '⛈️', '🌈', '❄️', '🌪️', '⚡'] },
+  { id: 'medieval', nome: 'Medieval', emojis: ['⚔️', '🛡️', '👑', '🐉', '🗝️', '🏹', '💎'] },
+  { id: 'circo', nome: 'Circo', emojis: ['🎪', '🎈', '🍿', '🎭', '🎩', '🎊', '🎁'] },
+  { id: 'gala', nome: 'Gala', emojis: ['🎩', '🥂', '🎭', '💫', '🕯️', '🪩', '🎼'] },
+  { id: 'lendas', nome: 'Lendas', emojis: ['🐉', '🦄', '🔱', '⚡', '🔥', '👑', '💫'] },
 ];
 
 const CHAVE_PACK = 'app_particulas_pack';

@@ -119,6 +119,48 @@ export const CATALOGO_DA_LOJA: ItemDaLoja[] = [
   { id: 'gal-cat-transporte', tipo: 'galeria', alvo: 'cat:transporte', nome: 'Emojis: Transporte', desc: '🚗 ✈️ 🚂 ⛵ e cia.', raridade: 'raro', nivel: 4, precoSeeds: 100 },
   { id: 'gal-cat-objetos', tipo: 'galeria', alvo: 'cat:objetos', nome: 'Emojis: Objetos', desc: '💎 👑 🔮 🔑 e cia.', raridade: 'raro', nivel: 5, precoSeeds: 110 },
   { id: 'gal-cat-bebidas', tipo: 'galeria', alvo: 'cat:bebidas', nome: 'Emojis: Bebidas', desc: '☕ 🧋 🍹 🥂 e cia.', raridade: 'comum', nivel: 5, precoSeeds: 60 },
+
+  /* ── TEMPORADA 1: O QUE ENCHE O PASSE (mudança economia-legivel-e-moedas) ──────────────
+   *
+   * O passe tinha 59 itens para 100 casas, e a distribuição era invertida: 43 deles nos níveis
+   * 1-5, contra 16 nos níveis 6-10. Resultado medido: 33 casas vazias, 29 delas na segunda
+   * metade, e 8 dos 10 marcos ★ de dezena mostrando uma estrela dourada sobre o vazio.
+   *
+   * Estes 25 itens são conteúdo REAL sem arte nova nem sistema novo — packs de emoji montados
+   * do catálogo que o editor já usa, rastros `gen:<forma>:<paleta>` que o motor já resolve, e
+   * cursores de emoji que a regra de CSS já injeta. Todos entram nos níveis 5-10, que é onde
+   * faltava. Depois deles, cada década tem itens suficientes para não haver casa vazia.
+   */
+  { id: 'pack-oceano', tipo: 'pack', alvo: 'oceano', nome: 'Pack Oceano', desc: '🐬 🐳 🐙 🐠 🦈 🌊 🐚', raridade: 'comum', nivel: 5, precoSeeds: 60 },
+
+  { id: 'pack-doces', tipo: 'pack', alvo: 'doces', nome: 'Pack Doces', desc: '🍩 🍪 🧁 🍰 🍫 🍬 🍭', raridade: 'comum', nivel: 6, precoSeeds: 60 },
+  { id: 'pack-gatos', tipo: 'pack', alvo: 'gatos', nome: 'Pack Gatos', desc: '🐱 🐈 🐾 😺 😻 🐯 🦁', raridade: 'comum', nivel: 6, precoSeeds: 60 },
+  { id: 'cur-golfinho', tipo: 'cursor', alvo: 'golfinho', nome: 'Cursor Golfinho', desc: 'Um golfinho nada pelo ponteiro. 🐬', raridade: 'raro', nivel: 6, precoSeeds: 120 },
+  { id: 'ras-oceano', tipo: 'rastro', alvo: 'gen:estrelas:oceano-profundo', nome: 'Rastro Maré', desc: 'Estrelas nas cores do oceano profundo.', raridade: 'raro', nivel: 6, precoSeeds: 130 },
+
+  { id: 'pack-jardim', tipo: 'pack', alvo: 'jardim', nome: 'Pack Jardim', desc: '🌷 🌻 🌹 🌵 🍀 🌿 🌱', raridade: 'raro', nivel: 7, precoSeeds: 110 },
+  { id: 'cur-coruja', tipo: 'cursor', alvo: 'coruja', nome: 'Cursor Coruja', desc: 'Quem estuda de madrugada tem companhia. 🦉', raridade: 'raro', nivel: 7, precoSeeds: 140 },
+  { id: 'ras-lofi', tipo: 'rastro', alvo: 'gen:coracoes:lo-fi', nome: 'Rastro Lo-fi', desc: 'Corações em roxo sereno, para estudar horas.', raridade: 'raro', nivel: 7, precoSeeds: 140 },
+
+  { id: 'pack-noite', tipo: 'pack', alvo: 'noite', nome: 'Pack Noite', desc: '🌙 ⭐ ✨ 🌌 🦉 🌠 💤', raridade: 'raro', nivel: 8, precoSeeds: 140 },
+  { id: 'pack-viagem', tipo: 'pack', alvo: 'viagem', nome: 'Pack Viagem', desc: '✈️ 🚂 ⛵ 🗺️ 🧳 🏝️ 🎒', raridade: 'raro', nivel: 8, precoSeeds: 140 },
+  { id: 'pack-clima', tipo: 'pack', alvo: 'clima', nome: 'Pack Clima', desc: '☀️ 🌧️ ⛈️ 🌈 ❄️ ☁️ 🌪️', raridade: 'raro', nivel: 8, precoSeeds: 140 },
+  { id: 'cur-borboleta', tipo: 'cursor', alvo: 'borboleta', nome: 'Cursor Borboleta', desc: 'Leve, e some quando você para. 🦋', raridade: 'epico', nivel: 8, precoSeeds: 220 },
+  { id: 'ras-arcade', tipo: 'rastro', alvo: 'gen:pixel:arcade', nome: 'Rastro Arcade', desc: 'Quadradinhos em néon magenta, direto dos anos 80.', raridade: 'epico', nivel: 8, precoSeeds: 230 },
+
+  { id: 'pack-medieval', tipo: 'pack', alvo: 'medieval', nome: 'Pack Medieval', desc: '⚔️ 🛡️ 🏰 👑 🐉 🗝️ 🏹', raridade: 'epico', nivel: 9, precoSeeds: 240 },
+  { id: 'pack-circo', tipo: 'pack', alvo: 'circo', nome: 'Pack Circo', desc: '🎪 🎠 🤹 🎈 🍿 🎭 🎩', raridade: 'epico', nivel: 9, precoSeeds: 240 },
+  { id: 'cur-dragao', tipo: 'cursor', alvo: 'dragao', nome: 'Cursor Dragão', desc: 'O ponteiro que guarda o tesouro. 🐉', raridade: 'epico', nivel: 9, precoSeeds: 250 },
+  { id: 'cur-unicornio', tipo: 'cursor', alvo: 'unicornio', nome: 'Cursor Unicórnio', desc: 'Raro como acertar tudo de primeira. 🦄', raridade: 'epico', nivel: 9, precoSeeds: 250 },
+  { id: 'ras-esmeralda', tipo: 'rastro', alvo: 'gen:faisca:deep-emerald', nome: 'Rastro Esmeralda', desc: 'Faíscas verdes profundas atrás do cursor.', raridade: 'epico', nivel: 9, precoSeeds: 250 },
+  { id: 'ras-menta', tipo: 'rastro', alvo: 'gen:arcoiris:menta-fresca', nome: 'Rastro Menta', desc: 'Bolinhas verde-menta, claras e leves.', raridade: 'epico', nivel: 9, precoSeeds: 250 },
+
+  { id: 'pack-gala', tipo: 'pack', alvo: 'gala', nome: 'Pack Gala', desc: '🎩 🥂 🎭 💫 🕯️ 🪩 🎼', raridade: 'epico', nivel: 10, precoSeeds: 260 },
+  { id: 'pack-lendas', tipo: 'pack', alvo: 'lendas', nome: 'Pack Lendas', desc: '🐉 🦄 🔱 ⚡ 🧙 🗿 🔥', raridade: 'lendario', nivel: 10, precoSeeds: 450 },
+  { id: 'cur-tridente', tipo: 'cursor', alvo: 'tridente', nome: 'Cursor Tridente', desc: 'O ponteiro dos mares. 🔱', raridade: 'lendario', nivel: 10, precoSeeds: 400 },
+  { id: 'cur-raio', tipo: 'cursor', alvo: 'raio', nome: 'Cursor Raio', desc: 'Rápido como quem já sabe a resposta. ⚡', raridade: 'lendario', nivel: 10, precoSeeds: 400 },
+  { id: 'ras-ametista', tipo: 'rastro', alvo: 'gen:estrelas:amethyst-night', nome: 'Rastro Ametista', desc: 'Estrelas roxas na noite — o mais raro da trilha.', raridade: 'lendario', nivel: 10, precoSeeds: 420 },
+  { id: 'ras-ouro', tipo: 'rastro', alvo: 'gen:faisca:sunset-gold', nome: 'Rastro Ouro', desc: 'Faíscas douradas de fim de tarde.', raridade: 'lendario', nivel: 10, precoSeeds: 420 },
 ];
 
 const CHAVE_POSSE = 'babel.loja_possuidos';

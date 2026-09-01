@@ -24,6 +24,16 @@ export const CURSORES: CursorTematico[] = [
   { id: 'pizza', nome: 'Pizza', emoji: '🍕' },
   { id: 'invader', nome: 'Invader', emoji: '👾' },
   { id: 'foguete', nome: 'Foguete', emoji: '🚀' },
+  /* TEMPORADA 1 (economia-legivel-e-moedas): cursores das décadas 6-10, onde o passe tinha
+     casa vazia. Entram como itens PRÓPRIOS da lista — o catálogo aponta para o id daqui, e não
+     para `emoji:<char>`, senão o item fica fora da régua que `cursorValido` aplica. */
+  { id: 'golfinho', nome: 'Golfinho', emoji: '🐬' },
+  { id: 'coruja', nome: 'Coruja', emoji: '🦉' },
+  { id: 'borboleta', nome: 'Borboleta', emoji: '🦋' },
+  { id: 'dragao', nome: 'Dragão', emoji: '🐉' },
+  { id: 'unicornio', nome: 'Unicórnio', emoji: '🦄' },
+  { id: 'tridente', nome: 'Tridente', emoji: '🔱' },
+  { id: 'raio', nome: 'Raio', emoji: '⚡' },
   /* Exclusivo de conquista ("Perfeccionista"): não está à venda. */
   { id: 'coroa', nome: 'Coroa', emoji: '👑' },
 ];

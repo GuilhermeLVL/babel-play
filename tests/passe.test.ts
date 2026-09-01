@@ -41,16 +41,38 @@ describe('slotsDoPasse', () => {
   it('creditoId dos slots de Seeds é determinístico e único', () => {
     const ids = slots.filter((s) => s.tipo === 'seeds').map((s) => (s.tipo === 'seeds' ? s.creditoId : ''));
     expect(new Set(ids).size).toBe(ids.length);
-    expect(ids[0]).toMatch(/^passe:t1:(slot-\d+|cofre-d\d+)$/);
+    expect(ids[0]).toMatch(/^passe:t1:(slot-\d+|cofre-d\d+(-\d+)?)$/);
   });
 
-  it('a moeda é UM Cofre denso por década, nunca migalhas (auditoria ux-v2 §2)', () => {
+  /**
+   * NENHUMA CASA VAZIA — o contrato que o dono pediu em 31/08 ("cada nível entrega algo").
+   * A versão anterior deixava 33 das 100 casas vazias, 29 delas nas décadas 6-10, e 8 dos 10
+   * marcos ★ eram uma estrela dourada sobre o nada. Este teste é o que impede a regressão:
+   * mexer no catálogo sem repor conteúdo reprova aqui, não na tela do usuário.
+   */
+  it('as 100 casas estão ocupadas — nenhuma vazia', () => {
+    const ocupadas = new Set(slots.map((s) => s.slot));
+    const vazias = Array.from({ length: 100 }, (_, i) => i + 1).filter((n) => !ocupadas.has(n));
+    expect(vazias, `casas vazias: ${vazias.join(', ')}`).toEqual([]);
+  });
+
+  it('o marco de cada dezena é o item mais raro da década (a estrela coroa algo)', () => {
+    const peso = { comum: 0, raro: 1, epico: 2, lendario: 3 } as const;
+    for (let d = 1; d <= 10; d++) {
+      const daDecada = slots.filter((s) => s.decada === d && s.tipo === 'item');
+      const noMarco = daDecada.filter((s) => s.slot === d * 10);
+      expect(noMarco.length, `marco da década ${d} vazio`).toBeGreaterThan(0);
+      const maiorDaDecada = Math.max(...daDecada.map((s) => (s.tipo === 'item' ? peso[s.item.raridade] : -1)));
+      const noMarcoMax = Math.max(...noMarco.map((s) => (s.tipo === 'item' ? peso[s.item.raridade] : -1)));
+      expect(noMarcoMax, `década ${d}: o marco não tem o item mais raro`).toBe(maiorDaDecada);
+    }
+  });
+
+  it('a moeda é cofre denso, e o total da temporada não inflacionou', () => {
     const seeds = slots.filter((s): s is Extract<(typeof slots)[number], { tipo: 'seeds' }> => s.tipo === 'seeds');
-    const porDecada = new Map<number, number>();
-    for (const s of seeds) porDecada.set(s.decada, (porDecada.get(s.decada) ?? 0) + 1);
-    for (const [d, n] of porDecada) expect(n, `década ${d} com moeda fatiada`).toBe(1);
-    for (const s of seeds) expect(s.quantidade, `cofre da década ${s.decada} raso demais`).toBeGreaterThanOrEqual(60);
-    // A quantidade total é a mesma ordem de grandeza da curva antiga (1613): forma nova, economia igual.
+    // Cofre raso é a migalha que o dono reclamou; o piso vale por cofre, não por década.
+    for (const s of seeds) expect(s.quantidade, `cofre da década ${s.decada} raso demais`).toBeGreaterThanOrEqual(30);
+    // Mesma economia da curva anterior (1.613-1.615): mudou a forma, não a quantidade.
     const total = seeds.reduce((acc, s) => acc + s.quantidade, 0);
     expect(total).toBeGreaterThan(1500);
     expect(total).toBeLessThan(1700);

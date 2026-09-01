@@ -27,19 +27,29 @@ export type SlotDoPasse =
   | { tipo: 'seeds'; slot: number; decada: number; quantidade: number; creditoId: string }
 
 /**
- * UM COFRE POR DÉCADA (auditoria ux-v2 §2, 31/08). Todos os slots de uma década destravam no
- * MESMO instante (`slotDestravado` = nível ≥ década), então fatiar a moeda em 5–8 slots de
- * 10–50 era gotejamento ilusório — o usuário recebia as migalhas juntas e lia "+25" repetido
- * como "não ganhei nada". A mesma quantidade (1615 ≈ os 1613 de antes), num bloco denso e
- * nomeável por década; a trilha grátis fica esparsa, como manda o gênero — a Premium preenche
- * as 100 colunas. Década 3 tem 11 itens e nenhuma vaga: cofre zero.
+ * NENHUMA CASA VAZIA (mudança economia-legivel-e-moedas, 31/08).
+ *
+ * A versão anterior punha um Cofre por década e deixava o resto vazio, com o argumento de que a
+ * década inteira destrava junta — verdadeiro sobre o gate e irrelevante para quem joga: eram 33
+ * casas vazias, 29 delas na segunda metade, e **8 dos 10 marcos ★ mostrando uma estrela dourada
+ * sobre o nada**. O catálogo ganhou 25 itens nas décadas 6-10 (`loja.ts`) e agora toda casa
+ * entrega algo nomeável.
+ *
+ * DUAS REGRAS DE ARRUMAÇÃO, e as duas existem por causa da leitura da tela:
+ *  1. O MARCO É O MAIS RARO. A última casa da dezena recebe o item de maior raridade da década —
+ *     a estrela do trilho passa a coroar o que a década inteira prometia.
+ *  2. O COFRE PREENCHE O QUE SOBRA. O número de cofres é DERIVADO (10 − itens), então nunca há
+ *     vaga: década com 8 itens ganha 2 cofres, com 9 ganha 1, com 11 não ganha nenhum e empilha
+ *     o excedente. Mudar o catálogo não pode reabrir buraco — o teste prende isso.
  */
-const COFRE_POR_DECADA = [0, 60, 60, 0, 100, 150, 210, 220, 240, 260, 315]
+const RARIDADE_ORDEM = { comum: 0, raro: 1, epico: 2, lendario: 3 } as const
+
+/** Seeds de UM cofre da década. O total (≈1.614) é o mesmo da curva anterior: muda a forma. */
+const SEEDS_POR_COFRE = [0, 30, 60, 0, 50, 70, 95, 105, 120, 135, 172]
 
 /**
- * Os slots, determinísticos a partir do catálogo: itens da década na ordem do catálogo (que é
- * a ordem editorial da loja) + um Cofre de Seeds na primeira vaga. Exclusivos de conquista
- * ficam FORA — o passe não vende nem antecipa o que só o feito abre.
+ * Os slots, determinísticos a partir do catálogo. Exclusivos de conquista ficam FORA — o passe
+ * não vende nem antecipa o que só o feito abre.
  */
 export function slotsDoPasse(): SlotDoPasse[] {
   const porDecada = new Map<number, ItemDaLoja[]>()
@@ -48,28 +58,37 @@ export function slotsDoPasse(): SlotDoPasse[] {
     const d = Math.min(10, Math.max(1, i.nivel))
     porDecada.set(d, [...(porDecada.get(d) ?? []), i])
   }
+
   const slots: SlotDoPasse[] = []
   for (let d = 1; d <= 10; d++) {
-    const itens = porDecada.get(d) ?? []
-    for (let pos = 0; pos < Math.min(10, itens.length); pos++) {
-      slots.push({ tipo: 'item', slot: (d - 1) * 10 + pos + 1, decada: d, item: itens[pos] })
+    const todos = porDecada.get(d) ?? []
+    const base = (d - 1) * 10
+    // Ordem de raridade decide SÓ quem fica com o marco; o resto mantém a ordem editorial do
+    // catálogo, que é o que dá coerência de tema dentro da década.
+    const maisRaro = [...todos].sort((a, b) => RARIDADE_ORDEM[b.raridade] - RARIDADE_ORDEM[a.raridade])[0]
+    const demais = todos.filter((i) => i !== maisRaro)
+
+    const cofres = Math.max(0, 10 - todos.length)
+    const quantia = SEEDS_POR_COFRE[d]
+    let usados = 0
+
+    for (let pos = 0; pos < 9; pos++) {
+      const slot = base + pos + 1
+      const item = demais[pos]
+      if (item) { slots.push({ tipo: 'item', slot, decada: d, item }); continue }
+      if (usados < cofres && quantia > 0) {
+        usados++
+        // creditoId por POSIÇÃO: mais de um cofre por década, cada um creditado uma vez só.
+        slots.push({ tipo: 'seeds', slot, decada: d, quantidade: quantia, creditoId: `passe:${TEMPORADA_ATUAL}:cofre-d${d}-${usados}` })
+      }
     }
-    // O Cofre da década ocupa a primeira vaga depois dos itens. O creditoId `cofre-dN` é
-    // NOVO de propósito: os `slot-N` antigos já creditados ficam como estão (idempotência
-    // preservada) e o Cofre credita uma vez — windfall único, decidido no design da mudança.
-    if (itens.length < 10 && COFRE_POR_DECADA[d] > 0) {
-      slots.push({
-        tipo: 'seeds',
-        slot: (d - 1) * 10 + itens.length + 1,
-        decada: d,
-        quantidade: COFRE_POR_DECADA[d],
-        creditoId: `passe:${TEMPORADA_ATUAL}:cofre-d${d}`,
-      })
-    }
-    // Década com MAIS de 10 itens: os excedentes entram como slots extras da mesma década —
-    // melhor uma década "cheia" do que um item real fora do passe.
-    for (let pos = 10; pos < itens.length; pos++) {
-      slots.push({ tipo: 'item', slot: (d - 1) * 10 + 10, decada: d, item: itens[pos] })
+
+    // A casa 10 é o MARCO: sempre o item mais raro da década.
+    if (maisRaro) slots.push({ tipo: 'item', slot: base + 10, decada: d, item: maisRaro })
+
+    // Década com mais de 10 itens: o excedente divide a coluna do marco em vez de ficar fora.
+    for (let pos = 9; pos < demais.length; pos++) {
+      slots.push({ tipo: 'item', slot: base + 10, decada: d, item: demais[pos] })
     }
   }
   return slots

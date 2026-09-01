@@ -28,17 +28,28 @@ describe('cenarioDasFontes', () => {
 
 describe('ida e volta com o cenário salvo', () => {
   const cenarios: CenarioDeCaptura[] = ['media', 'conversation', 'mic']
-  for (const c of cenarios) {
-    it(`restaurar "${c}" devolve as fontes que o produzem`, () => {
-      const { mic, sistema } = fontesDoCenario(c)
-      expect(cenarioDasFontes(mic, sistema)).toBe(c)
-    })
-  }
 
-  it('todo cenário salvo liga ao menos uma fonte — ninguém fica sem captura', () => {
-    for (const c of cenarios) {
+  /* O som do sistema deixou de ser escolha: a tela não tem mais interruptor de fonte, só o
+     mudo/ativo do microfone. Logo `fontesDoCenario` liga o sistema SEMPRE, e a ida e volta
+     idêntica vale para os cenários que já ligavam o sistema. */
+  it('restaurar "media" e "conversation" devolve as fontes que os produzem', () => {
+    for (const c of ['media', 'conversation'] as CenarioDeCaptura[]) {
       const { mic, sistema } = fontesDoCenario(c)
-      expect(mic || sistema, c).toBe(true)
+      expect(cenarioDasFontes(mic, sistema), c).toBe(c)
+    }
+  })
+
+  it('um "mic" salvo de antes normaliza para conversa em vez de ficar sem som do sistema', () => {
+    const { mic, sistema } = fontesDoCenario('mic')
+    expect(sistema).toBe(true)
+    expect(mic).toBe(true)
+    expect(cenarioDasFontes(mic, sistema)).toBe('conversation')
+  })
+
+  it('todo cenário salvo liga o som do sistema — ninguém fica sem caminho de volta', () => {
+    for (const c of cenarios) {
+      const { sistema } = fontesDoCenario(c)
+      expect(sistema, c).toBe(true)
     }
   })
 })

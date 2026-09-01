@@ -30,7 +30,18 @@ export function cenarioDasFontes(micLigado: boolean, sistemaLigado: boolean): Ce
   return 'media'
 }
 
-/** As fontes que um cenário salvo implica — usado ao restaurar a preferência da visita anterior. */
+/**
+ * As fontes que um cenário salvo implica — usado ao restaurar a preferência da visita anterior.
+ *
+ * O SOM DO SISTEMA DEIXOU DE SER UMA ESCOLHA (redesign do Espaço de Gravação). A tela não tem
+ * mais interruptor de fonte: o som do computador entra sempre, e o microfone é um MUDO/ATIVO
+ * alternável durante a sessão. Por isso `sistema` é `true` para qualquer cenário salvo.
+ *
+ * Consequência assumida: um `'mic'` gravado numa visita antiga NÃO faz a volta idêntica — ele
+ * normaliza para `'conversation'`. É de propósito. Se devolvêssemos `sistema: false`, a pessoa
+ * ficaria sem som do computador e sem nenhum controle na tela para religá-lo — exatamente o beco
+ * sem saída que o teste de ida e volta existia para impedir.
+ */
 export function fontesDoCenario(c: CenarioDeCaptura): { mic: boolean; sistema: boolean } {
-  return { mic: c !== 'media', sistema: c !== 'mic' }
+  return { mic: c !== 'media', sistema: true }
 }

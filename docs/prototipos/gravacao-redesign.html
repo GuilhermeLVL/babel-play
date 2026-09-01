@@ -1,0 +1,794 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Espaço de Gravação</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@700;900&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+/* ═══════════════════════════════════════════════════════════════════
+   TOKENS — mesmos NOMES do app (src/index.css) para o port ser direto.
+   Valores: tema escuro verde (o que o dono usa hoje).
+   ═══════════════════════════════════════════════════════════════════ */
+:root {
+  --canvas:        #07090A;
+  --surface:       #0E1311;
+  --surface-hover: #141B17;
+  --surface-2:     #121A15;
+
+  --ink:           #E8F2EA;
+  --ink-muted:     #9FB3A4;   /* 8,4:1 sobre --surface */
+  --ink-faint:     #7E947F;   /* 5,5:1 — só rótulos ≥11px */
+  --ink-contrast:  #052B14;   /* texto POR CIMA de --accent */
+
+  --accent:        #4ADE80;
+  --accent-ink:    #86EFAC;
+  --accent-soft:   rgba(74, 222, 128, .11);
+  --accent-line:   rgba(74, 222, 128, .38);
+
+  --warn:          #FBBF24;
+  --warn-ink:      #FCD34D;
+  --warn-soft:     rgba(251, 191, 36, .10);
+
+  --error:         #F0533C;
+  --error-soft:    rgba(240, 83, 60, .12);
+
+  --border:        #1D2822;
+  --border-strong: #2B3A31;
+
+  --font-display: "Archivo", system-ui, sans-serif;
+  --font-body:    "Inter", system-ui, -apple-system, sans-serif;
+  --font-mono:    "IBM Plex Mono", ui-monospace, monospace;
+
+  --r-sm: 8px;  --r-md: 11px;  --r-lg: 14px;  --r-xl: 18px;
+
+  /* escala de espaço única */
+  --s1: 4px; --s2: 8px; --s3: 12px; --s4: 16px; --s5: 22px; --s6: 30px; --s7: 44px;
+
+  /* escala de camadas semântica */
+  --z-console: 9; --z-sticky: 10; --z-popover: 50; --z-toast: 60;
+
+  --topbar-h: 57px;   /* medido em runtime */
+
+  --ease: cubic-bezier(.22, 1, .36, 1);       /* ease-out-quint */
+  --fast: 140ms; --base: 200ms;
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body {
+  background: var(--canvas);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: 14px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+button, select { font: inherit; color: inherit; }
+button { cursor: pointer; border: none; background: none; }
+
+:where(button, select, a, [tabindex]):focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: var(--r-sm);
+}
+
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+.shell { max-width: 1240px; margin: 0 auto; padding: 0 var(--s5) var(--s7); }
+
+/* ─────────────────────────  TOPO  ───────────────────────── */
+.topbar {
+  position: sticky; top: 0; z-index: var(--z-sticky);
+  display: flex; align-items: center; gap: var(--s4);
+  padding: var(--s3) var(--s5);
+  background: color-mix(in srgb, var(--canvas) 88%, transparent);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--border);
+}
+.topbar h1 {
+  font-family: var(--font-display); font-weight: 700;
+  font-size: 15px; letter-spacing: -.01em; margin: 0; flex: 1;
+}
+.topbar .eye { color: var(--accent); display: grid; place-items: center; }
+
+.ghost {
+  display: inline-flex; align-items: center; gap: 6px;
+  min-height: 32px; padding: 0 10px;
+  border: 1px solid var(--border); border-radius: var(--r-md);
+  color: var(--ink-muted); font-size: 12px; font-weight: 600;
+  transition: color var(--fast) var(--ease), border-color var(--fast) var(--ease), background var(--fast) var(--ease);
+}
+.ghost:hover { color: var(--ink); border-color: var(--border-strong); background: var(--surface-hover); }
+.ghost[aria-pressed="true"] { color: var(--accent-ink); border-color: var(--accent-line); background: var(--accent-soft); }
+.ghost.icon-only { padding: 0; width: 32px; justify-content: center; }
+
+.ready {
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 0 10px; min-height: 32px;
+  font-size: 12px; font-weight: 600; color: var(--accent-ink);
+  background: var(--accent-soft); border: 1px solid var(--accent-line); border-radius: var(--r-md);
+}
+.ready .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); }
+
+/* ─────────────────  BARRA DE COMANDO (o coração)  ───────────────── */
+.console {
+  margin-top: var(--s5);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-xl);
+  transition: border-color var(--base) var(--ease), box-shadow var(--base) var(--ease);
+}
+/* O console GRUDA no topo: mutar o microfone no meio da sessão não pode
+   depender de rolar a página de volta. Só onde a altura sobra. */
+@media (min-width: 721px) and (min-height: 620px) {
+  .console { position: sticky; top: calc(var(--topbar-h) + var(--s3)); z-index: var(--z-console); }
+}
+body[data-rec="on"] .console {
+  border-color: var(--accent-line);
+  box-shadow: 0 0 0 1px var(--accent-soft), 0 18px 50px -30px var(--accent);
+}
+
+.console-head {
+  display: flex; align-items: center; gap: var(--s3);
+  padding: var(--s3) var(--s4);
+  border-bottom: 1px solid var(--border);
+}
+.state {
+  display: flex; align-items: center; gap: 9px;
+  font-family: var(--font-display); font-weight: 900;
+  font-size: 12px; letter-spacing: .09em; text-transform: uppercase;
+  color: var(--ink);
+}
+.pulse { position: relative; width: 9px; height: 9px; flex: none; }
+.pulse i { position: absolute; inset: 0; border-radius: 50%; background: var(--ink-faint); }
+body[data-rec="on"] .pulse i { background: var(--accent); }
+body[data-rec="on"] .pulse::after {
+  content: ""; position: absolute; inset: 0; border-radius: 50%;
+  background: var(--accent); animation: ping 1.6s var(--ease) infinite;
+}
+@keyframes ping { 0% { transform: scale(1); opacity: .7 } 70%, 100% { transform: scale(2.6); opacity: 0 } }
+
+.timer {
+  font-family: var(--font-mono); font-weight: 600; font-size: 15px;
+  letter-spacing: .12em; color: var(--ink-muted);
+  font-variant-numeric: tabular-nums;
+}
+body[data-rec="on"] .timer { color: var(--ink); }
+.head-actions { margin-left: auto; display: flex; gap: var(--s2); }
+
+/* linha de ação: tudo que importa numa fileira só */
+.actions {
+  display: flex; flex-wrap: wrap; align-items: center; gap: var(--s2);
+  padding: var(--s4);
+}
+.actions .grow { flex: 1 1 var(--s6); min-width: 0; }
+
+.btn {
+  display: inline-flex; align-items: center; gap: 9px;
+  min-height: 46px; padding: 0 var(--s4);
+  border-radius: var(--r-lg);
+  font-size: 13.5px; font-weight: 700; letter-spacing: -.005em;
+  white-space: nowrap;
+  transition: background var(--fast) var(--ease), border-color var(--fast) var(--ease),
+              color var(--fast) var(--ease), transform var(--fast) var(--ease);
+}
+.btn:active { transform: translateY(1px); }
+
+.btn-primary { background: var(--accent); color: var(--ink-contrast); padding: 0 var(--s5); }
+.btn-primary:hover { background: var(--accent-ink); }
+
+.btn-stop { background: var(--error); color: #fff; padding: 0 var(--s5); }
+.btn-stop:hover { background: color-mix(in srgb, var(--error) 84%, #fff); }
+
+.btn-outline { border: 1px solid var(--border-strong); color: var(--ink); background: var(--surface-2); }
+.btn-outline:hover { border-color: var(--ink-faint); background: var(--surface-hover); }
+.btn-outline[aria-pressed="true"] {
+  border-color: var(--warn); color: var(--warn-ink); background: var(--warn-soft);
+}
+
+/* ── O TOGGLE DO MICROFONE — o controle novo. Estado legível SEM cor:
+      o rótulo diz, o ícone risca, e as barras de nível só existem quando ativo. ── */
+.mic {
+  display: inline-flex; align-items: center; gap: 10px;
+  min-height: 46px; padding: 0 var(--s4) 0 13px;
+  border: 1px solid var(--border-strong); border-radius: var(--r-lg);
+  background: var(--surface-2); color: var(--ink-muted);
+  font-size: 13.5px; font-weight: 700; white-space: nowrap;
+  transition: background var(--fast) var(--ease), border-color var(--fast) var(--ease), color var(--fast) var(--ease);
+}
+.mic:hover { border-color: var(--ink-faint); color: var(--ink); }
+.mic[aria-checked="true"] {
+  background: var(--accent-soft); border-color: var(--accent-line); color: var(--accent-ink);
+}
+.mic .key {
+  font-family: var(--font-mono); font-size: 10px; font-weight: 600;
+  padding: 2px 5px; border-radius: 5px;
+  border: 1px solid var(--border-strong); color: var(--ink-faint);
+}
+.mic[aria-checked="true"] .key { border-color: var(--accent-line); color: var(--accent-ink); }
+
+.meter { display: none; align-items: flex-end; gap: 2px; height: 15px; }
+.mic[aria-checked="true"] .meter { display: flex; }
+.meter i {
+  width: 3px; border-radius: 2px; background: var(--accent);
+  height: 3px; transition: height 90ms linear;
+}
+.mic[data-busy="true"] { opacity: .65; pointer-events: none; }
+.mic .spin { display: none; }
+.mic[data-busy="true"] .spin { display: block; animation: spin 700ms linear infinite; }
+.mic[data-busy="true"] .glyph, .mic[data-busy="true"] .meter { display: none; }
+@keyframes spin { to { transform: rotate(360deg) } }
+
+/* chip de idioma — o par inteiro num alvo só, detalhes no popover */
+.lang {
+  display: inline-flex; align-items: center; gap: 8px;
+  min-height: 46px; padding: 0 13px;
+  border: 1px solid var(--border-strong); border-radius: var(--r-lg);
+  background: var(--surface-2); color: var(--ink);
+  font-size: 13px; font-weight: 600;
+}
+.lang:hover { border-color: var(--ink-faint); background: var(--surface-hover); }
+.lang .arrow { color: var(--ink-faint); }
+.lang .side { display: inline-flex; align-items: center; gap: 7px; }
+.mark { display: inline-flex; align-items: center; color: var(--accent); }
+/* Bandeiras em SVG, nunca emoji: o Windows renderiza 🇧🇷 como as letras "BR"
+   (mesma razão registrada em src/components/LangFlag.tsx). */
+.flag {
+  width: 19px; height: 13px; border-radius: 2px; display: block; flex: none;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, .12);
+}
+.lang .warnflag { display: none; width: 6px; height: 6px; border-radius: 50%; background: var(--warn); }
+.lang[data-warn="true"] { border-color: color-mix(in srgb, var(--warn) 55%, var(--border-strong)); }
+.lang[data-warn="true"] .warnflag { display: block; }
+
+/* rodapé do console: uma linha de orientação + avisos só quando existem */
+.console-foot {
+  display: flex; flex-wrap: wrap; align-items: center; gap: var(--s2) var(--s3);
+  padding: 0 var(--s4) var(--s4);
+  font-size: 12px; color: var(--ink-faint);
+}
+.console-foot b { color: var(--ink-muted); font-weight: 600; }
+.notice {
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 5px 10px; border-radius: var(--r-md);
+  background: var(--warn-soft); color: var(--warn-ink);
+  border: 1px solid color-mix(in srgb, var(--warn) 32%, transparent);
+  font-size: 12px;
+}
+.notice button { text-decoration: underline; font-weight: 700; color: inherit; }
+.notice[hidden] { display: none; }
+
+/* onda real — só existe gravando */
+.wave {
+  display: none; align-items: flex-end; justify-content: center; gap: 3px;
+  height: 34px; margin: 0 var(--s4) var(--s4);
+  padding: var(--s2); border-radius: var(--r-md);
+  background: var(--surface-2); border: 1px solid var(--border);
+}
+body[data-rec="on"] .wave { display: flex; }
+.wave i { width: 3px; border-radius: 2px; background: var(--accent); height: 3px; opacity: .85; }
+.wave i.mic-bar { background: var(--warn); }
+
+/* ─────────────────────  TRANSCRIÇÃO  ───────────────────── */
+.stage {
+  margin-top: var(--s4);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-xl);
+  min-height: 340px;
+  display: flex; flex-direction: column;
+}
+.stage-head {
+  display: flex; align-items: center; gap: var(--s3);
+  padding: var(--s3) var(--s4); border-bottom: 1px solid var(--border);
+  font-size: 12px; font-weight: 600; color: var(--ink-muted);
+}
+/* a transcrição rola DENTRO do palco — a página não cresce e o console não sai da tela */
+.feed {
+  padding: var(--s4); display: flex; flex-direction: column; gap: var(--s3);
+  overflow-y: auto; max-height: 48vh; scrollbar-width: thin;
+}
+
+.line { display: flex; flex-direction: column; gap: 3px; max-width: min(62ch, 78%); }
+.line .who {
+  font-family: var(--font-mono); font-size: 10px; font-weight: 600;
+  letter-spacing: .07em; text-transform: uppercase; color: var(--ink-faint);
+}
+.bubble {
+  padding: 10px var(--s3); border-radius: var(--r-lg);
+  background: var(--surface-2); border: 1px solid var(--border);
+}
+.bubble .orig { color: var(--ink); }
+.bubble .trad { color: var(--ink-muted); font-size: 13px; margin-top: 3px; }
+.line.me { align-self: flex-end; align-items: flex-end; text-align: right; }
+.line.me .bubble { background: var(--accent-soft); border-color: var(--accent-line); }
+.line.me .who { color: var(--accent-ink); }
+
+.enter { animation: rise var(--base) var(--ease) both; }
+@keyframes rise { from { opacity: 0; transform: translateY(7px) } }
+
+/* estado vazio que ENSINA — três passos, uma fileira, sem card gigante */
+.empty { padding: var(--s6) var(--s4) var(--s7); text-align: center; }
+.empty h2 { font-family: var(--font-display); font-weight: 700; font-size: 17px; margin: 0 0 var(--s2); }
+.empty p { color: var(--ink-muted); margin: 0 auto var(--s5); max-width: 52ch; }
+.steps {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: var(--s3); max-width: 780px; margin: 0 auto; text-align: left;
+}
+.step { display: flex; gap: 10px; align-items: flex-start; font-size: 13px; color: var(--ink-muted); }
+.step .n {
+  flex: none; width: 20px; height: 20px; border-radius: 50%;
+  display: grid; place-items: center;
+  font-family: var(--font-mono); font-size: 11px; font-weight: 600;
+  color: var(--accent-ink); background: var(--accent-soft); border: 1px solid var(--accent-line);
+}
+.step b { color: var(--ink); font-weight: 600; }
+.hint {
+  margin: var(--s6) auto 0; padding-top: var(--s5);
+  max-width: 52ch; font-size: 12.5px; color: var(--ink-faint);
+  border-top: 1px solid var(--border);
+}
+.hint kbd {
+  font-family: var(--font-mono); font-size: 11px; padding: 2px 6px;
+  border: 1px solid var(--border-strong); border-radius: 5px; color: var(--ink-muted);
+}
+
+/* ─────────────────────  POPOVER DE IDIOMA  ───────────────────── */
+#langPop {
+  position: fixed; margin: 0; z-index: var(--z-popover);
+  width: min(340px, calc(100vw - 32px));
+  padding: var(--s4);
+  background: var(--surface); color: var(--ink);
+  border: 1px solid var(--border-strong); border-radius: var(--r-lg);
+  box-shadow: 0 24px 60px -20px #000;
+}
+#langPop::backdrop { background: rgba(0,0,0,.35); }
+#langPop h3 { font-size: 13px; margin: 0 0 var(--s3); font-weight: 700; }
+.field { display: block; margin-bottom: var(--s3); }
+.field > span {
+  display: block; font-size: 11px; font-weight: 600; color: var(--ink-muted); margin-bottom: 5px;
+}
+/* a bandeira da escolha atual, sem trocar o <select> nativo por um menu inventado */
+.fieldwrap { position: relative; }
+.fieldwrap .mark { position: absolute; left: 11px; top: 50%; transform: translateY(-50%); pointer-events: none; }
+.field select {
+  width: 100%; min-height: 40px; padding: 0 10px 0 39px;
+  background: var(--surface-2); border: 1px solid var(--border-strong);
+  border-radius: var(--r-md); color: var(--ink);
+}
+.field select:hover { border-color: var(--ink-faint); }
+#langPop p { font-size: 12px; color: var(--ink-muted); margin: 0; }
+
+/* aviso vivo (aria-live) — feedback do mic sem virar modal */
+.toast {
+  position: fixed; z-index: var(--z-toast);
+  left: 50%; bottom: 26px; transform: translateX(-50%);
+  padding: 9px var(--s4); border-radius: 999px;
+  background: var(--surface); border: 1px solid var(--border-strong);
+  font-size: 13px; font-weight: 600; color: var(--ink);
+  box-shadow: 0 18px 40px -18px #000;
+  animation: toastin var(--base) var(--ease) both;
+}
+.toast[hidden] { display: none; }
+.toast .dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; margin-right: 8px; }
+@keyframes toastin { from { opacity: 0; transform: translate(-50%, 10px) } }
+
+/* nota de review — fora do caminho */
+.review { margin-top: var(--s6); font-size: 12.5px; color: var(--ink-faint); }
+.review summary { cursor: pointer; color: var(--ink-muted); font-weight: 600; }
+.review ul { margin: var(--s3) 0 0; padding-left: 18px; line-height: 1.7; }
+.review b { color: var(--ink-muted); }
+
+@media (max-width: 720px) {
+  .shell { padding: 0 var(--s3) var(--s6); }
+  .topbar { padding: var(--s3); }
+  .topbar h1 { font-size: 14px; }
+  .btn, .mic, .lang { flex: 1 1 100%; justify-content: center; }
+  .actions .grow { display: none; }
+  .line { max-width: 92%; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::after { animation-duration: 1ms !important; animation-iteration-count: 1 !important; transition-duration: 1ms !important; }
+}
+</style>
+</head>
+<body data-rec="off">
+
+<header class="topbar">
+  <span class="eye" aria-hidden="true">
+    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+  </span>
+  <h1>Gravação com tradução direta</h1>
+  <span class="ready"><span class="dot"></span>Reconhecimento pronto</span>
+  <button class="ghost" type="button">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/><circle cx="9" cy="6" r="2" fill="currentColor"/><circle cx="15" cy="12" r="2" fill="currentColor"/><circle cx="8" cy="18" r="2" fill="currentColor"/></svg>
+    Ajustes
+  </button>
+  <button class="ghost icon-only" type="button" aria-label="Ajuda">?</button>
+</header>
+
+<main class="shell">
+
+  <!-- ══════════ CONSOLE: status · ação · idioma. Nada mais. ══════════ -->
+  <section class="console" aria-label="Console de gravação">
+
+    <div class="console-head">
+      <span class="state">
+        <span class="pulse" aria-hidden="true"><i></i></span>
+        <span id="stateLabel">Espaço de gravação</span>
+      </span>
+      <span class="timer" id="timer">00:00</span>
+
+      <div class="head-actions">
+        <button class="ghost" type="button">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg>
+          Foco cheio
+        </button>
+        <button class="ghost" type="button" id="bingo" aria-pressed="false">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
+          Bingo
+        </button>
+      </div>
+    </div>
+
+    <div class="actions">
+      <!-- 1. o gesto principal -->
+      <button class="btn btn-primary" type="button" id="rec">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true" id="recIcon"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2M12 19v3"/></svg>
+        <span id="recLabel">Iniciar gravação</span>
+      </button>
+
+      <!-- 2. O MICROFONE: mudo por padrão, alternável a qualquer momento -->
+      <button class="mic" type="button" id="mic" role="switch" aria-checked="false"
+              title="Ligar ou mutar o seu microfone (tecla M)">
+        <span class="glyph" aria-hidden="true">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" id="micIcon">
+            <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2M12 19v3"/>
+            <line x1="3" y1="3" x2="21" y2="21" id="micSlash"/>
+          </svg>
+        </span>
+        <span class="spin" aria-hidden="true">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 12a9 9 0 1 1-6.2-8.6"/></svg>
+        </span>
+        <span id="micLabel">Microfone mudo</span>
+        <span class="meter" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></span>
+        <span class="key" aria-hidden="true">M</span>
+      </button>
+
+      <!-- 3. a porta para usar por cima de jogo/chamada -->
+      <button class="btn btn-outline" type="button" id="overlay" aria-pressed="false">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="2.5" y="4.5" width="19" height="15" rx="2.5"/><path d="M2.5 14.5h19"/></svg>
+        <span id="overlayLabel">Legendas flutuantes</span>
+      </button>
+
+      <span class="grow"></span>
+
+      <button class="lang" type="button" id="langChip" popovertarget="langPop" data-warn="false">
+        <span class="warnflag" aria-hidden="true"></span>
+        <span class="side"><span class="mark" id="markFrom" aria-hidden="true"></span><span id="langFrom">Detectar sozinho</span></span>
+        <span class="arrow" aria-hidden="true">→</span>
+        <span class="side"><span class="mark" id="markTo" aria-hidden="true"></span><span id="langTo">Português (BR)</span></span>
+      </button>
+    </div>
+
+    <p class="console-foot">
+      <span id="foot">O som do computador entra sozinho. Dê play no vídeo, aula ou chamada e clique em iniciar.</span>
+      <span class="notice" id="sameLangWarn" hidden>
+        Os dois idiomas são o mesmo — as palavras fichadas ficam sem verso.
+        <button type="button" popovertarget="langPop">trocar</button>
+      </span>
+    </p>
+
+    <div class="wave" id="wave" aria-hidden="true"></div>
+  </section>
+
+  <!-- ══════════ TRANSCRIÇÃO ══════════ -->
+  <section class="stage" aria-label="Transcrição ao vivo">
+    <div class="stage-head">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 5h16v11H8l-4 4V5Z"/></svg>
+      Transcrição ao vivo
+    </div>
+
+    <div class="empty" id="empty">
+      <h2>Sua conversa aparece aqui</h2>
+      <p>Legenda bilíngue de qualquer som que toque no computador — e da sua voz, quando você quiser.</p>
+      <div class="steps">
+        <div class="step"><span class="n">1</span><span>Abra o <b>vídeo, aula, podcast ou chamada</b> em qualquer app.</span></div>
+        <div class="step"><span class="n">2</span><span>Clique em <b>iniciar</b> — pegamos o som do computador sozinhos.</span></div>
+        <div class="step"><span class="n">3</span><span>A legenda aparece <b>aqui</b> e nas legendas flutuantes.</span></div>
+      </div>
+      <p class="hint">Quer falar também? Ligue o microfone a qualquer momento com <kbd>M</kbd> — antes ou no meio da gravação.</p>
+    </div>
+
+    <div class="feed" id="feed" hidden></div>
+  </section>
+
+  <details class="review">
+    <summary>O que mudou nesta versão</summary>
+    <ul>
+      <li><b>Saiu</b> o bloco “O que entra na gravação?” (2 cartões + seletor de fonte + “ajustes avançados”). A pessoa não escolhe mais cenário: o som do computador entra sempre, sozinho.</li>
+      <li><b>Entrou</b> o microfone como <b>interruptor</b>, mudo por padrão, na mesma linha do gesto principal — alternável antes e <b>durante</b> a sessão, por clique ou pela tecla <kbd>M</kbd>.</li>
+      <li><b>Encolheu</b> o par de idiomas: dois seletores + 4 linhas de aviso viraram um chip (“Detectar sozinho → Português (BR)”) com os detalhes num popover, e um aviso inline só quando ele existe.</li>
+      <li><b>Rota do som</b> agora é automática; trocar de rota (aba, loopback, servidor) vive só em Ajustes, para quem precisa.</li>
+      <li>Estado do microfone é legível <b>sem depender de cor</b> (rótulo + ícone riscado + barras de nível), porque o app tem 7 temas.</li>
+      <li>O console <b>gruda no topo</b> e a transcrição rola por dentro: mutar no meio da sessão nunca exige rolar a página de volta.</li>
+      <li>Quatro blocos empilhados (fontes · seletor de rota · CTA+idiomas · microcopy) viraram <b>uma fileira de ação</b> e uma linha de orientação.</li>
+    </ul>
+  </details>
+</main>
+
+<div id="langPop" popover>
+  <h3>Idiomas da sessão</h3>
+  <label class="field">
+    <span>Idioma do conteúdo</span>
+    <span class="fieldwrap">
+      <span class="mark" id="markSelFrom" aria-hidden="true"></span>
+      <select id="selFrom">
+        <option value="auto" selected>Detectar sozinho</option>
+        <option value="en">Inglês</option>
+        <option value="es">Espanhol</option>
+        <option value="fr">Francês</option>
+        <option value="pt">Português (BR)</option>
+      </select>
+    </span>
+  </label>
+  <label class="field">
+    <span>Traduzir para</span>
+    <span class="fieldwrap">
+      <span class="mark" id="markSelTo" aria-hidden="true"></span>
+      <select id="selTo">
+        <option value="pt" selected>Português (BR)</option>
+        <option value="en">Inglês</option>
+        <option value="es">Espanhol</option>
+      </select>
+    </span>
+  </label>
+  <p id="langExplain">O idioma do conteúdo é detectado sozinho — pode até misturar — e tudo vira legenda em Português (BR).</p>
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+<span class="sr" id="live" role="status" aria-live="polite"></span>
+
+<script>
+(() => {
+  const $ = (id) => document.getElementById(id);
+  const body = document.body;
+  const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  const state = { rec: false, mic: false, overlay: false, t: 0 };
+  body.dataset.rec = 'off';   // o CSS lê data-rec; não depender do atributo vir no HTML
+  let tick = null, feedTimer = null, raf = null, toastTimer = null;
+
+  /* ── onda de áudio: 40 barras, nível maior quando o mic também entra ── */
+  const wave = $('wave');
+  const bars = Array.from({ length: 40 }, () => {
+    const i = document.createElement('i');
+    wave.appendChild(i);
+    return i;
+  });
+  const meter = document.querySelectorAll('#mic .meter i');
+
+  function animate(t) {
+    const amp = state.rec ? 1 : 0;
+    bars.forEach((b, i) => {
+      const isMic = state.mic && i % 5 === 0;
+      const n = Math.abs(Math.sin(t / (240 + i * 11) + i)) * (isMic ? 0.8 : 1);
+      b.style.height = (3 + n * 26 * amp) + 'px';
+      b.classList.toggle('mic-bar', isMic);
+    });
+    if (state.mic) {
+      meter.forEach((m, i) => {
+        m.style.height = (3 + Math.abs(Math.sin(t / (170 + i * 40))) * 12) + 'px';
+      });
+    }
+    raf = requestAnimationFrame(animate);
+  }
+  /* Sem movimento a onda ainda precisa PARECER uma onda: um traço reto de 3px
+     lê como componente quebrado, não como "animação desligada". */
+  function paintStatic() {
+    bars.forEach((b, i) => {
+      b.style.height = (5 + Math.abs(Math.sin(i * 0.72)) * 20) + 'px';
+      b.classList.toggle('mic-bar', state.mic && i % 5 === 0);
+    });
+    meter.forEach((m, i) => { m.style.height = (4 + Math.abs(Math.sin(i * 1.1)) * 9) + 'px'; });
+  }
+  function startWave() {
+    if (reduced) { paintStatic(); return; }
+    if (!raf) raf = requestAnimationFrame(animate);
+  }
+  function stopWave() {
+    if (raf) { cancelAnimationFrame(raf); raf = null; }
+    bars.forEach((b) => { b.style.height = '3px'; });
+    meter.forEach((m) => { m.style.height = '7px'; });
+  }
+
+  /* ── aviso efêmero: confirma a troca sem virar modal ── */
+  function toast(msg, color) {
+    const el = $('toast');
+    el.innerHTML = '<span class="dot" style="background:' + color + '"></span>' + msg;
+    el.hidden = false;
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => { el.hidden = true; }, 2600);
+    $('live').textContent = msg;
+  }
+
+  /* ── falas simuladas: sistema sempre; "você" só com o mic ligado ── */
+  const script = [
+    { who: 'system', orig: "So the first thing we need to talk about is the schedule.", trad: "Então a primeira coisa que precisamos falar é o cronograma." },
+    { who: 'mic',    orig: "Sorry, could you repeat the last part?", trad: "Desculpa, você pode repetir a última parte?" },
+    { who: 'system', orig: "Sure — I said the deadline moved to next Friday.", trad: "Claro — eu disse que o prazo mudou para a próxima sexta." },
+    { who: 'mic',    orig: "Got it, that works for me.", trad: "Entendi, isso funciona para mim." },
+    { who: 'system', orig: "Great. I'll send the updated plan tonight.", trad: "Ótimo. Eu envio o plano atualizado hoje à noite." },
+    { who: 'system', orig: "One more thing — the budget review is still open.", trad: "Mais uma coisa — a revisão do orçamento ainda está aberta." },
+    { who: 'mic',    orig: "I can take a look at it tomorrow morning.", trad: "Eu posso dar uma olhada amanhã de manhã." },
+    { who: 'system', orig: "Perfect, thanks. Any questions before we wrap up?", trad: "Perfeito, obrigado. Alguma pergunta antes de encerrarmos?" }
+  ];
+  let cursor = 0;
+
+  function emit() {
+    // procura a próxima fala válida: a sua voz só entra se o mic estiver ligado
+    let guard = 0;
+    while (guard++ < script.length) {
+      const item = script[cursor % script.length];
+      cursor++;
+      if (item.who === 'mic' && !state.mic) continue;
+
+      const el = document.createElement('article');
+      el.className = 'line' + (item.who === 'mic' ? ' me' : '') + (reduced ? '' : ' enter');
+      el.innerHTML =
+        '<span class="who">' + (item.who === 'mic' ? 'Você · microfone' : 'Pessoa 1 · som do computador') + '</span>' +
+        '<div class="bubble"><div class="orig"></div><div class="trad"></div></div>';
+      el.querySelector('.orig').textContent = item.orig;
+      el.querySelector('.trad').textContent = item.trad;
+      $('feed').appendChild(el);
+      el.scrollIntoView({ block: 'nearest', behavior: reduced ? 'auto' : 'smooth' });
+      return;
+    }
+  }
+
+  /* ── gravação ── */
+  function setRec(on) {
+    state.rec = on;
+    body.dataset.rec = on ? 'on' : 'off';
+    $('stateLabel').textContent = on ? 'Gravando' : 'Espaço de gravação';
+    $('recLabel').textContent = on ? 'Parar e salvar' : 'Iniciar gravação';
+    $('rec').className = 'btn ' + (on ? 'btn-stop' : 'btn-primary');
+    $('recIcon').innerHTML = on
+      ? '<rect x="5" y="5" width="14" height="14" rx="3" fill="currentColor" stroke="none"/>'
+      : '<path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2M12 19v3"/>';
+    $('foot').textContent = on
+      ? (state.mic ? 'Gravando o som do computador e a sua voz.' : 'Gravando o som do computador. Sua voz está fora — ligue o microfone quando quiser entrar.')
+      : 'O som do computador entra sozinho. Dê play no vídeo, aula ou chamada e clique em iniciar.';
+
+    if (on) {
+      state.t = 0;
+      $('empty').hidden = true;
+      $('feed').hidden = false;
+      $('feed').innerHTML = '';
+      cursor = 0;
+      tick = setInterval(() => {
+        state.t++;
+        const m = String(Math.floor(state.t / 60)).padStart(2, '0');
+        const s = String(state.t % 60).padStart(2, '0');
+        $('timer').textContent = m + ':' + s;
+      }, 1000);
+      feedTimer = setInterval(emit, 2600);
+      setTimeout(emit, 700);
+      startWave();
+      toast('Gravando — som do computador', 'var(--accent)');
+    } else {
+      clearInterval(tick); clearInterval(feedTimer);
+      stopWave();
+      $('timer').textContent = '00:00';
+      if (!$('feed').children.length) { $('feed').hidden = true; $('empty').hidden = false; }
+      toast('Sessão salva', 'var(--ink-muted)');
+    }
+  }
+
+  /* ── microfone: pede permissão na primeira vez, depois é instantâneo ── */
+  let permitted = false;
+  function setMic(on) {
+    const btn = $('mic');
+    const apply = () => {
+      state.mic = on;
+      btn.setAttribute('aria-checked', String(on));
+      btn.dataset.busy = 'false';
+      $('micLabel').textContent = on ? 'Microfone ativo' : 'Microfone mudo';
+      $('micSlash').style.display = on ? 'none' : '';
+      if (!on) meter.forEach((m) => { m.style.height = '3px'; });
+      if (reduced && state.rec) paintStatic();
+      if (state.rec) {
+        $('foot').textContent = on
+          ? 'Gravando o som do computador e a sua voz.'
+          : 'Gravando o som do computador. Sua voz está fora — ligue o microfone quando quiser entrar.';
+      }
+      toast(on ? 'Microfone ligado — sua fala entra a partir de agora' : 'Microfone mudo — só o som do computador',
+            on ? 'var(--accent)' : 'var(--ink-faint)');
+    };
+
+    if (on && !permitted) {
+      btn.dataset.busy = 'true';
+      $('micLabel').textContent = 'Pedindo permissão…';
+      setTimeout(() => { permitted = true; apply(); }, 520);
+      return;
+    }
+    apply();
+  }
+
+  /* ── idiomas ── */
+  const NAMES = { auto: 'Detectar sozinho', en: 'Inglês', es: 'Espanhol', fr: 'Francês', pt: 'Português (BR)' };
+
+  /* Bandeiras SVG (não emoji — ver .flag no CSS). viewBox 30×21 = proporção 3:2. */
+  const FLAGS = {
+    pt: '<svg class="flag" viewBox="0 0 30 21"><rect width="30" height="21" fill="#009B3A"/><path d="M15 2.6 27.4 10.5 15 18.4 2.6 10.5Z" fill="#FEDF00"/><circle cx="15" cy="10.5" r="4.5" fill="#002776"/></svg>',
+    en: '<svg class="flag" viewBox="0 0 30 21"><rect width="30" height="21" fill="#fff"/><g fill="#B22234"><rect width="30" height="1.62"/><rect y="3.23" width="30" height="1.62"/><rect y="6.46" width="30" height="1.62"/><rect y="9.69" width="30" height="1.62"/><rect y="12.92" width="30" height="1.62"/><rect y="16.15" width="30" height="1.62"/><rect y="19.38" width="30" height="1.62"/></g><rect width="13" height="11.3" fill="#3C3B6E"/></svg>',
+    es: '<svg class="flag" viewBox="0 0 30 21"><rect width="30" height="21" fill="#C60B1E"/><rect y="5.25" width="30" height="10.5" fill="#FFC400"/></svg>',
+    fr: '<svg class="flag" viewBox="0 0 30 21"><rect width="30" height="21" fill="#fff"/><rect width="10" height="21" fill="#002395"/><rect x="20" width="10" height="21" fill="#ED2939"/></svg>',
+    // "detectar sozinho" não tem país: a faísca é o símbolo do automático no app
+    auto: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 3v4M12 17v4M3 12h4M17 12h4M6.3 6.3l2.8 2.8M14.9 14.9l2.8 2.8M17.7 6.3l-2.8 2.8M9.1 14.9l-2.8 2.8"/></svg>'
+  };
+
+  function syncLang() {
+    const from = $('selFrom').value, to = $('selTo').value;
+    $('langFrom').textContent = NAMES[from];
+    $('langTo').textContent = NAMES[to];
+    $('markFrom').innerHTML = $('markSelFrom').innerHTML = FLAGS[from] || '';
+    $('markTo').innerHTML = $('markSelTo').innerHTML = FLAGS[to] || '';
+    const clash = from === to;
+    $('langChip').dataset.warn = String(clash);
+    $('sameLangWarn').hidden = !clash;
+    $('langExplain').textContent = clash
+      ? 'Não há o que traduzir: as palavras fichadas ficam sem verso e não servem para revisar.'
+      : from === 'auto'
+        ? 'O idioma do conteúdo é detectado sozinho — pode até misturar — e tudo vira legenda em ' + NAMES[to] + '.'
+        : 'Cada fala em ' + NAMES[from] + ' vira legenda bilíngue com ' + NAMES[to] + '.';
+  }
+
+  /* ── ligações ── */
+  $('rec').addEventListener('click', () => setRec(!state.rec));
+  $('mic').addEventListener('click', () => setMic(!state.mic));
+  $('overlay').addEventListener('click', () => {
+    state.overlay = !state.overlay;
+    $('overlay').setAttribute('aria-pressed', String(state.overlay));
+    $('overlayLabel').textContent = state.overlay ? 'Legendas flutuantes ativas' : 'Legendas flutuantes';
+  });
+  $('bingo').addEventListener('click', (e) => {
+    const on = e.currentTarget.getAttribute('aria-pressed') !== 'true';
+    e.currentTarget.setAttribute('aria-pressed', String(on));
+  });
+  $('selFrom').addEventListener('change', syncLang);
+  $('selTo').addEventListener('change', syncLang);
+
+  // o popover é ancorado no chip e vive na top-layer (não é cortado por overflow)
+  $('langPop').addEventListener('beforetoggle', (e) => {
+    if (e.newState !== 'open') return;
+    const r = $('langChip').getBoundingClientRect();
+    const pop = $('langPop');
+    pop.style.top = Math.min(r.bottom + 8, innerHeight - 300) + 'px';
+    pop.style.left = Math.max(16, Math.min(r.right - 340, innerWidth - 356)) + 'px';
+  });
+
+  addEventListener('keydown', (e) => {
+    if (e.key.toLowerCase() !== 'm' || e.metaKey || e.ctrlKey || e.altKey) return;
+    const tag = document.activeElement && document.activeElement.tagName;
+    if (tag === 'INPUT' || tag === 'SELECT' || tag === 'TEXTAREA') return;
+    e.preventDefault();
+    setMic(!state.mic);
+  });
+
+  // o console gruda logo abaixo da barra de topo — a altura real, não um palpite
+  const topbar = document.querySelector('.topbar');
+  const measure = () => document.documentElement.style
+    .setProperty('--topbar-h', topbar.getBoundingClientRect().height + 'px');
+  addEventListener('resize', measure);
+  measure();
+
+  syncLang();
+})();
+</script>
+</body>
+</html>

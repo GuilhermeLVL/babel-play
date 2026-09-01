@@ -190,6 +190,12 @@ export default function LangPicker({
       {open && caixa && createPortal(
         <div
           ref={popupRef}
+          /* MARCA DE PERTENCIMENTO. Esta lista vive num portal no `body`, logo ela está FORA da
+             árvore de quem a abriu. Um contêiner que feche no clique-fora (a gaveta de idiomas do
+             Espaço de Gravação) veria o clique num idioma como "clique fora" e sumiria no meio da
+             escolha. O atributo deixa esses contêineres reconhecerem a lista como parte da mesma
+             interação, via `closest('[data-lang-ui]')`. */
+          data-lang-ui=""
           // `w-72` (288px) porque "Detectar automaticamente" não cabia em 240 e vinha cortado.
           // `fixed` + portal no `body`: ver `posicionar` — dentro da árvore, um `.card-panel`
           // com `overflow: hidden` recortava a lista inteira.

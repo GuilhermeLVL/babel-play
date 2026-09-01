@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import { PerfilAdaptativoDeIdioma, destinoDaTraducao } from '../../lib/perfilDeIdioma';
 import { OrdemDasTraducoes } from '../../lib/ordemDaTraducao';
 import { traduzirVersos, explicarParada } from '../../lib/versosDoVocabulario';
 import { apiFetch } from '../../data/api';
 import { EDICAO_LEVE } from '../../lib/edicao';
-import { cenarioDasFontes, fontesDoCenario } from '../../lib/cenarioDeCaptura';
+import { cenarioDasFontes } from '../../lib/cenarioDeCaptura';
 import { getEntitlements } from '../../lib/entitlements';
 import BuscaDeCapa from '../BuscaDeCapa';
 import { buildGateway } from '../../gateway';
@@ -36,11 +37,11 @@ import {
 } from '../../data/api';
 import ModelPrepPanel, { type ModelPrepState } from '../ModelPrepPanel';
 import { makeCloze, extractKeywords, resumoDosPulados, motivoLegivel } from '@core';
-import { 
+import {
   Mic,
+  MicOff,
   Headphones,
   ArrowDown,
-  MonitorPlay,
   StopCircle, 
   Settings2, 
   Cpu, 
@@ -61,12 +62,17 @@ import {
   Minimize2,
   X,
   Loader2,
+  Sparkles,
   ChevronDown,
   Image as ImageIcon,
   LayoutGrid
 } from 'lucide-react';
 import Overlay, { OverlayCaption } from '../Overlay';
 import LangPicker from '../LangPicker';
+import { usePosicaoFlutuante } from '../../lib/posicaoFlutuante';
+// Bandeira SVG do idioma (nunca emoji: o Windows renderiza 🇧🇷 como "BR") + o rótulo curto.
+import { LangFlag } from '../LangFlag';
+import { langShortLabel } from '../../lib/langFlag';
 import { setNavGuard } from '../../lib/navGuard';
 // A conversa em balões (lados opostos, agrupamento por pessoa, estado vazio que ensina).
 // Um componente só serve a tela embutida E o Modo Foco — antes eram dois blocos que divergiam.
@@ -507,7 +513,55 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
   // desnecessário). Quem quiser só uma das fontes desmarca a outra com um clique no hero card.
   // Padrão casa com o cenário inicial 'media' (assistir mídia): só o sistema ligado.
   const [micEnabled, setMicEnabled] = useState(false);
-  const [systemEnabled, setSystemEnabled] = useState(true);
+  /** Ligou o mic no meio da sessão e o navegador ainda está perguntando pela permissão. */
+  const [micAbrindo, setMicAbrindo] = useState(false);
+
+  /* A GAVETA DE IDIOMAS. O par virou um chip; os seletores e a explicação da direção moram
+     atrás dele — antes ocupavam três linhas permanentes de uma tela cujo único gesto é gravar.
+     `fixed` com coordenadas medidas, e não `absolute`: a raiz do app é `overflow-hidden` e o
+     painel seria recortado (mesmo motivo documentado em shell/MenuDeConforto). */
+  const [idiomasAbertos, setIdiomasAbertos] = useState(false);
+  const gatilhoIdiomas = useRef<HTMLButtonElement | null>(null);
+  const painelIdiomas = useRef<HTMLDivElement | null>(null);
+  /* A conta de ONDE abrir é do `usePosicaoFlutuante` — o mesmo hook do LangPicker e do menu da
+     Biblioteca. Escrevi essa conta à mão primeiro e o painel saiu pela borda da tela: ele tenta
+     alinhar pela direita, cai para a esquerda se não couber, e só então encosta na margem, além
+     de recalcular em rolagem e redimensionamento. Duas telas já pagaram para descobrir isso. */
+  const caixaIdiomas = usePosicaoFlutuante(idiomasAbertos, gatilhoIdiomas, {
+    largura: 320,
+    alturaEstimada: 220,
+  });
+  /* O Foco Cheio cobre a tela normal, mas a gaveta vive num PORTAL no `body` — ela sobreviveria
+     por cima do Foco, ancorada num chip que ninguém mais vê. Fecha junto. */
+  useEffect(() => { if (isFocusMode) setIdiomasAbertos(false); }, [isFocusMode]);
+  useEffect(() => {
+    if (!idiomasAbertos) return;
+    /* `[data-lang-ui]` cobre a lista do LangPicker, que abre num portal no `body`: sem isso,
+       escolher um idioma seria lido como clique fora e fecharia a gaveta no meio da escolha. */
+    const fora = (e: MouseEvent) => {
+      const alvo = e.target as Node;
+      if (painelIdiomas.current?.contains(alvo) || gatilhoIdiomas.current?.contains(alvo)) return;
+      if (alvo instanceof Element && alvo.closest('[data-lang-ui]')) return;
+      setIdiomasAbertos(false);
+    };
+    const esc = (e: KeyboardEvent) => { if (e.key === 'Escape') setIdiomasAbertos(false); };
+    document.addEventListener('mousedown', fora);
+    document.addEventListener('keydown', esc);
+    return () => {
+      document.removeEventListener('mousedown', fora);
+      document.removeEventListener('keydown', esc);
+    };
+  }, [idiomasAbertos]);
+  /**
+   * O SOM DO COMPUTADOR ENTRA SEMPRE — deixou de ser estado porque deixou de ser escolha.
+   *
+   * Continua existindo como variável, e não como `true` espalhado pelo arquivo, porque os
+   * caminhos de ERRO dependem dela: quando a captura do sistema falha (a pessoa fecha a caixa de
+   * compartilhamento), é `systemEnabled` que decide se a sessão morre ou segue só com o microfone.
+   * Anotado como `boolean` de propósito: sem isso o TypeScript estreita para o literal `true` e
+   * passa a tratar esses ramos de erro como inalcançáveis.
+   */
+  const systemEnabled: boolean = true;
   // COMO capturar o áudio do sistema: 'display' = compartilhar aba/tela (getDisplayMedia; zero
   // setup, mas o áudio de TELA sofre a limitação NotReadableError no Windows) ou 'loopback' =
   // dispositivo de entrada de loopback (Stereo Mix / VB-Cable via getUserMedia; à prova de falhas,
@@ -543,38 +597,32 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
   // Espelho p/ os handlers assíncronos (a identificação de voz só roda no cenário Conversa).
   const captureScenarioRef = useRef<CaptureScenario>('media');
   useEffect(() => { captureScenarioRef.current = captureScenario; }, [captureScenario]);
-  /**
-   * O usuário JÁ escolheu um cenário nesta montagem? Se sim, a reidratação assíncrona das
-   * configurações não pode mais sobrescrever a escolha dele.
-   *
-   * BUG QUE ISTO CORRIGE (observado): `fetchSettings()` é assíncrono e o `applyScenario` da
-   * reidratação roda quando a resposta chega. Numa máquina lenta isso acontece DEPOIS de a tela
-   * já estar clicável — o usuário escolhia "Conversa" e a tela pulava sozinha de volta para o
-   * cenário salvo, segundos depois, sem nenhuma explicação. Escolha do usuário sempre vence.
-   */
-  const scenarioTouchedRef = useRef(false);
-  /** Idem para os IDIOMAS: escolha feita antes de a carga assíncrona chegar não pode ser desfeita. */
+  /** Escolha de IDIOMA feita antes de a carga assíncrona chegar não pode ser desfeita por ela. */
   const langTouchedRef = useRef(false);
-  const applyScenario = (s: CaptureScenario, fromUser = true) => {
-    if (fromUser) scenarioTouchedRef.current = true;
-    else if (scenarioTouchedRef.current) return; // reidratação chegou tarde, não desfaz o clique
-    setCaptureScenario(s);
-    const { mic, sistema } = fontesDoCenario(s);
-    setMicEnabled(mic);
-    setSystemEnabled(sistema);
-  };
-  /**
-   * A ESCOLHA DIRETA: o usuário liga as fontes, e o cenário é derivado (`cenarioDeCaptura.ts`).
-   * Antes eram três cartões que escolhiam as fontes por baixo sem dizer; agora a fonte é a
-   * escolha e o cenário é a consequência — a mesma informação, na ordem em que se pensa.
+  /*
+   * O CENÁRIO NÃO É MAIS RESTAURADO DA VISITA ANTERIOR — e `applyScenario` foi embora com ele.
+   *
+   * Enquanto o cenário decidia as fontes, guardá-lo fazia sentido. Agora o som do computador
+   * entra SEMPRE e o microfone é um mudo/ativo alternável durante a sessão: o cenário virou
+   * consequência de um interruptor, não uma preferência.
+   *
+   * E restaurá-lo seria pior que inútil. Um `'conversation'` salvo religaria o microfone na
+   * abertura da tela, sem nenhum gesto da pessoa — a gravação começaria captando o barulho da
+   * casa porque numa terça-feira alguém praticou pronúncia. Toda sessão começa MUDA; falar custa
+   * um clique, e é um clique deliberado.
    */
-  const alternarFonte = (qual: 'mic' | 'sistema', ligado: boolean) => {
-    scenarioTouchedRef.current = true;
-    const mic = qual === 'mic' ? ligado : micEnabled;
-    const sistema = qual === 'sistema' ? ligado : systemEnabled;
-    setMicEnabled(mic);
-    setSystemEnabled(sistema);
-    setCaptureScenario(cenarioDasFontes(mic, sistema));
+
+  /**
+   * A ÚNICA FONTE QUE A PESSOA ESCOLHE é o microfone: o som do computador entra sempre, então
+   * `systemEnabled` não tem mais quem o desligue, e o cenário continua sendo a consequência
+   * das fontes (`cenarioDeCaptura.ts`), não uma escolha à parte.
+   *
+   * Aqui só a PREFERÊNCIA muda. Abrir a captura, mutar a faixa e cuidar do motor navegador é
+   * trabalho de `alternarMicrofone`, que chama isto e segue adiante quando há sessão no ar.
+   */
+  const marcarMicrofone = (ligado: boolean) => {
+    setMicEnabled(ligado);
+    setCaptureScenario(cenarioDasFontes(ligado, systemEnabled));
   };
   // A rota "servidor local" (WASAPI loopback no Node) só existe quando o backend roda no
   // Windows com o módulo nativo — sondamos uma vez e só então mostramos a opção.
@@ -799,19 +847,14 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
       if (!langTouchedRef.current && typeof ui.autoDetectLang === 'boolean') setAutoDetectLang(ui.autoDetectLang);
       if (!langTouchedRef.current && typeof ui.autoDetectMyLang === 'boolean') setAutoDetectMyLang(ui.autoDetectMyLang);
       if (typeof ui.speakerAutoId === 'boolean') setSpeakerAutoId(ui.speakerAutoId);
-      // `fromUser = false`: se a pessoa já clicou num cenário enquanto isto carregava, a escolha
-      // dela vence (ver `scenarioTouchedRef`).
-      if (ui.captureScenario === 'media' || ui.captureScenario === 'conversation' || ui.captureScenario === 'mic') applyScenario(ui.captureScenario, false);
+      // `ui.captureScenario` NÃO é restaurado: toda sessão começa com o microfone mudo.
+      // O porquê está no bloco de comentário sobre o cenário, junto de `marcarMicrofone`.
       /* Esta linha estava DUPLICADA, caractere por caractere. Sem efeito visível — atribuir o mesmo
          valor duas vezes é idempotente, mas quem lesse depois ficaria procurando a diferença. */
       if (ui.sttQuality === 'auto' || ui.sttQuality === 'fast' || ui.sttQuality === 'accurate' || ui.sttQuality === 'cloud') { setSttQuality(ui.sttQuality); setSttQualityMirror(ui.sttQuality); }
       settingsLoadedRef.current = true;
     })();
-    /* Deps VAZIAS de propósito: isto carrega os ajustes salvos UMA vez, na montagem. `applyScenario`
-       é recriada a cada render; incluí-la faria a carga inicial rodar de novo e sobrescrever, com o
-       valor gravado, o cenário que a pessoa acabou de escolher na tela, exatamente o que o
-       `fromUser = false` acima existe para evitar. */
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    /* Deps VAZIAS de propósito: isto carrega os ajustes salvos UMA vez, na montagem. */
   }, []);
 
   // Outra tela mudou o idioma (Configurações, por exemplo)? Reflete aqui — a config é uma só.
@@ -1811,9 +1854,59 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
   };
 
   // Liga o microfone conforme o motor escolhido (navegador vs Whisper).
-  const startMic = () => {
+  // Devolve promessa para que quem liga o mic NO MEIO da sessão saiba quando a permissão
+  // do navegador terminou — é esse intervalo que o botão mostra como "pedindo permissão…".
+  const startMic = async (): Promise<void> => {
     if (micEngine === 'browser' && webSpeechSupported) startWebSpeechMic();
-    else void handleStartMicCapture();
+    else await handleStartMicCapture();
+  };
+
+  /**
+   * O INTERRUPTOR DO MICROFONE — a única fonte que a pessoa escolhe, e ela pode escolher
+   * A QUALQUER MOMENTO, inclusive no meio da gravação.
+   *
+   * O QUE ISTO SUBSTITUI. A tela pedia, ANTES de gravar, quais fontes entravam: dois cartões
+   * ("Som do computador" / "Meu microfone") mais um seletor de rota. Era uma decisão tomada no
+   * pior momento possível — antes de a sessão existir — e irreversível depois: quem começasse a
+   * assistir uma aula e quisesse repetir uma frase em voz alta tinha de parar, salvar e recomeçar.
+   * Agora o som do computador entra sempre e o microfone é um MUDO/ATIVO, como em qualquer chamada.
+   *
+   * TRÊS CAMINHOS, porque o estado real da captura é diferente em cada um:
+   *  1. Fora da sessão — só marca a preferência; nada é aberto (nenhuma permissão pedida à toa).
+   *  2. Primeira vez ATIVO na sessão — abre a captura agora. É aqui, e só aqui, que o navegador
+   *     pede permissão do microfone: quem nunca desmuta nunca vê o pedido.
+   *  3. Já aberto — alterna o mudo da faixa. Nada de fechar e reabrir: ver `AudioCapture.setMuted`.
+   */
+  const alternarMicrofone = (ligado: boolean) => {
+    marcarMicrofone(ligado);
+    if (!isRecordingRef.current) return; // (1) fora da sessão: só a preferência
+
+    if (!ligado) {
+      micCaptureRef.current?.setMuted(true);
+      /* O motor NAVEGADOR (Web Speech) não grava áudio nenhum — não há blob para preservar,
+         então encerrar o reconhecedor É o mudo dele. Ao desmutar, começa outro. */
+      if (webSpeechRef.current) {
+        try { webSpeechRef.current.stop(); } catch { /* já parado */ }
+        webSpeechRef.current = null;
+        webSpeechPartialIdRef.current = null;
+      }
+      clog('microfone MUDO no meio da sessão');
+      setFeedbackMsg('Microfone mudo, só o som do computador entra agora.');
+      setTimeout(() => setFeedbackMsg(''), 2500);
+      return;
+    }
+
+    if (micCaptureRef.current) {                       // (3) já aberto: só desmuta
+      micCaptureRef.current.setMuted(false);
+      clog('microfone ATIVO de novo (faixa reabilitada)');
+      setFeedbackMsg('Microfone ativo, sua fala entra a partir de agora.');
+      setTimeout(() => setFeedbackMsg(''), 2500);
+      return;
+    }
+
+    clog('microfone ATIVO no meio da sessão: abrindo a captura agora');  // (2) primeira vez
+    setMicAbrindo(true);
+    void startMic().finally(() => setMicAbrindo(false));
   };
 
   // Harness OFFLINE de teste (dev): injeta um PCM conhecido pelo MESMO caminho do sistema
@@ -2048,7 +2141,7 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
     const s = sourceLang.split('-')[0], t = targetLang.split('-')[0];
     gateway.mt.warmup([[s, t], [t, s]]);
     if (!resuming) setTimer(0);
-    if (micEnabled) startMic();
+    if (micEnabled) void startMic();
     if (systemEnabled) void handleStartSystemCapture();
   };
 
@@ -2141,7 +2234,7 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
     setIsRecording(true);
     isRecordingRef.current = true;
     sessionStartMsRef.current = Date.now() - timer * 1000; // continua a linha do tempo
-    if (micEnabled) startMic();
+    if (micEnabled) void startMic();
     if (systemEnabled) void handleStartSystemCapture();
     setFeedbackMsg('Gravação retomada!');
     setTimeout(() => setFeedbackMsg(''), 1500);
@@ -2685,6 +2778,89 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
       )}
     </div>
   );
+
+  /* O RESUMO HUMANO da direção da tradução — o fluxo sem jargão, para público leigo.
+     Vive numa função porque agora tem DUAS casas: a gaveta de idiomas do Espaço de Gravação
+     (onde a pessoa edita o par) e o Foco Cheio. Duplicá-lo faria as duas telas divergirem. */
+  const resumoDaDirecao = () => (
+    <>
+      {/* C13 — o automático agora DIZ o que descobriu. Antes prometia "é detectado sozinho"
+          e nunca mostrava o resultado: numa sessão inteira em português, a tela seguia
+          anunciando o idioma configurado enquanto o sistema já sabia a resposta há 40 falas. */}
+      {captureScenario === 'media' && (autoDetectLang
+        ? (idiomaObservado
+          ? <>Detectei <b>{langLabel(idiomaObservado)}</b> no conteúdo ({Math.round(perfilIdiomaRef.current.ler().confianca * 100)}% das falas), legenda em <b>{langLabel(destinoDaTraducao(idiomaObservado, baseLang(sourceLang), baseLang(targetLang)).destino || sourceLang)}</b>.</>
+          : <>O idioma do conteúdo é detectado sozinho (pode até misturar) e tudo vira legenda em <b>{langLabel(sourceLang)}</b>.</>)
+        : <>Cada fala vira legenda bilíngue em <b>{langLabel(sourceLang)}</b>.</>)}
+      {captureScenario === 'conversation' && (
+        <>
+          {idiomaObservado && autoDetectLang && <>Eles estão falando <b>{langLabel(idiomaObservado)}</b> · </>}
+          Você lê os outros em <b>{langLabel(sourceLang)}</b> · sua fala aparece {autoDetectMyLang ? <>no idioma da conversa (detectado ao vivo)</> : <>em <b>{langLabel(targetLang)}</b></>}.
+        </>
+      )}
+      {captureScenario === 'mic' && (autoDetectMyLang
+        ? <>Sua fala é detectada em qualquer idioma e traduzida para <b>{langLabel(targetLang)}</b>.</>
+        : <>Sua fala vira texto em <b>{langLabel(sourceLang)}</b> com tradução em <b>{langLabel(targetLang)}</b>.</>)}
+    </>
+  );
+
+  /**
+   * O INTERRUPTOR DO MICROFONE — UMA implementação, duas telas.
+   *
+   * O Foco Cheio precisa dele tanto quanto a tela normal, e por um motivo concreto:
+   * `handleStartRecording` manda a pessoa para o Foco no instante em que a gravação começa.
+   * É lá que ela passa a sessão inteira. Um controle que só existisse na tela normal seria um
+   * controle que some exatamente quando passa a ser útil — e "ligar o microfone durante a
+   * sessão" é a razão de o botão existir.
+   *
+   * Mesma árvore nas duas casas, como em `seletoresDeIdioma`: é o que impede de divergirem.
+   */
+  const botaoDoMicrofone = (variante: 'tela' | 'foco' = 'tela') => {
+    const iconeCls = variante === 'foco' ? 'w-4 h-4' : 'w-5 h-5';
+    return (
+      <button
+        onClick={() => alternarMicrofone(!micEnabled)}
+        role="switch"
+        aria-checked={micEnabled}
+        disabled={micAbrindo}
+        title={micEnabled
+          ? 'Sua fala está entrando na gravação. Clique para mutar.'
+          : 'Sua fala está fora da gravação. Clique para entrar — vale a qualquer momento, inclusive gravando.'}
+        className={`flex items-center gap-2 rounded-xl transition-all cursor-pointer shrink-0 disabled:cursor-wait ${
+          variante === 'foco'
+            ? 'py-3 px-6 text-xs font-bold border'
+            : 'py-3 px-5 text-xs md:text-sm font-extrabold border-2 min-h-[48px]'
+        } ${
+          micEnabled
+            ? 'bg-accent-soft border-accent text-accent-ink shadow-btn'
+            : 'bg-canvas border-border-subtle text-ink-muted hover:text-ink hover:border-ink-faint'
+        }`}
+      >
+        {micAbrindo
+          ? <Loader2 className={`${iconeCls} animate-spin`} />
+          : micEnabled ? <Mic className={iconeCls} /> : <MicOff className={iconeCls} />}
+        {/* O estado é dito por ESCRITO, não só pela cor: o app tem 7 temas e o ícone sozinho
+            (mic vs mic cortado) já falhou em teste de leitura. */}
+        {micAbrindo
+          ? 'Pedindo permissão…'
+          : ageProfile === 'kids'
+            ? (micEnabled ? 'Minha voz entra' : 'Minha voz fora')
+            : (micEnabled ? 'Microfone ativo' : 'Microfone mudo')}
+      </button>
+    );
+  };
+
+  /* O PAR DE IDIOMAS COMO O CHIP O RESUME — leitura, nunca edição.
+     Espelha os mesmos rótulos de `seletoresDeIdioma`, que continua sendo o único lugar que
+     ESCREVE o par (ele é o recheio da gaveta). Em 'media' o idioma do conteúdo é `targetLang`
+     e a legenda sai em `sourceLang`; em conversa é "eu falo" → "eles falam". */
+  const parResumido = captureScenario === 'media'
+    ? { auto: autoDetectLang, de: targetLang, para: sourceLang }
+    : { auto: autoDetectMyLang, de: sourceLang, para: targetLang };
+
+  /* IDIOMAS IGUAIS = CARTÃO SEM VERSO (spec entrega-honesta). O chip precisa avisar mesmo
+     fechado: é aqui que a palavra é fichada, e o caderno enchia de palavras sem tradução. */
+  const mesmoIdioma = baseLang(sourceLang) === baseLang(targetLang);
 
   return (
     <div className="flex-1 flex flex-col h-full bg-canvas text-ink overflow-hidden relative font-body">
@@ -3240,94 +3416,6 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
                     </div>
                   </div>
 
-                  {/* Linha 2 — AS FONTES, diretas. Os três cartões de cenário saíram (pedido do
-                      dono, 31/08): eles ligavam mic e sistema por baixo sem dizer, e obrigavam a
-                      pessoa a traduzir a própria intenção para uma das nossas categorias. Agora ela
-                      liga o que quer gravar e o cenário é derivado (`lib/cenarioDeCaptura.ts`). */}
-                  {!isRecording && (
-                    <div className="space-y-2.5">
-                      <span className="text-[9px] font-mono font-bold uppercase tracking-wider text-ink-faint">O que entra na gravação?</span>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                        {([
-                          {
-                            id: 'sistema' as const,
-                            ligado: systemEnabled,
-                            icon: <MonitorPlay className="w-4 h-4" />,
-                            titulo: ageProfile === 'kids' ? 'Som do jogo e dos vídeos' : 'Som do computador',
-                            sub: ageProfile === 'kids' ? 'Roblox, YouTube, Discord, Twitch' : ageProfile === 'senior' ? 'Vídeos, aulas, músicas e chamadas' : 'Vídeo, aula, podcast, jogo, chamada',
-                          },
-                          {
-                            id: 'mic' as const,
-                            ligado: micEnabled,
-                            icon: <Mic className="w-4 h-4" />,
-                            titulo: ageProfile === 'kids' ? 'Minha voz' : 'Meu microfone',
-                            sub: ageProfile === 'senior' ? 'A sua fala, para praticar pronúncia' : 'Sua fala — praticar, ditar, ou entrar na conversa',
-                          },
-                        ]).map((f) => (
-                          <button
-                            key={f.id}
-                            onClick={() => alternarFonte(f.id, !f.ligado)}
-                            role="switch"
-                            aria-checked={f.ligado}
-                            className={`flex items-start gap-2.5 p-3 rounded-xl border text-left transition-all cursor-pointer ${
-                              f.ligado
-                                ? 'bg-accent-soft/50 border-accent ring-1 ring-accent/30 shadow-sm'
-                                : 'bg-canvas border-border-subtle hover:border-accent/50'
-                            }`}
-                          >
-                            <span className={`shrink-0 mt-0.5 ${f.ligado ? 'text-accent' : 'text-ink-faint'}`}>{f.icon}</span>
-                            <span className="min-w-0 flex-1">
-                              <span className={`block text-[12px] font-bold leading-tight ${f.ligado ? 'text-accent-ink' : 'text-ink'}`}>{f.titulo}</span>
-                              <span className="block text-[10px] text-ink-muted leading-snug mt-0.5">{f.sub}</span>
-                            </span>
-                            {/* O estado precisa ser legível SEM depender de cor (o app tem 7 temas). */}
-                            <span className={`shrink-0 mt-0.5 text-[9px] font-mono font-bold uppercase tracking-wider ${f.ligado ? 'text-accent' : 'text-ink-faint'}`}>
-                              {f.ligado ? 'entra' : 'fora'}
-                            </span>
-                          </button>
-                        ))}
-                      </div>
-                      {!micEnabled && !systemEnabled && (
-                        <p className="text-[11px] text-warn-ink">Ligue ao menos uma fonte para poder gravar.</p>
-                      )}
-
-                      {/* Fonte do sistema (só nos cenários que a usam) + atalho para o avançado. */}
-                      <div className="flex flex-wrap items-center gap-2">
-                        {systemEnabled && (
-                          <select
-                            id="system-source-preset"
-                            name="systemSourcePreset"
-                            value={systemSource}
-                            onChange={(e) => setSystemSource(e.target.value as 'display' | 'loopback' | 'server')}
-                            title="De onde vem o som (vídeos, chamadas, jogos)"
-                            className="bg-canvas border border-border-subtle rounded-lg px-2 py-1.5 text-[11px] font-bold text-ink cursor-pointer outline-none focus:border-accent"
-                          >
-                            {serverCaptureAvailable && <option value="server">Som do computador ★ (sem configurar nada)</option>}
-                            <option value="display">Uma aba do navegador (YouTube, chamada)</option>
-                            {/* Leve: sem Stereo Mix/VB-Cable a rota abre o microfone; sem servidor não há como orientar. Fora. */}
-                            {!EDICAO_LEVE && <option value="loopback">Dispositivo de loopback (avançado)</option>}
-                          </select>
-                        )}
-                        {systemEnabled && !serverCaptureAvailable && (
-                          <span className="text-[10px] text-ink-faint" title="A captura do som inteiro do computador sem configurar nada usa o servidor local (Windows). Na versão hospedada, use uma aba/tela compartilhada ou um dispositivo de loopback.">
-                            som inteiro do PC sem configurar: só na versão instalada
-                          </span>
-                        )}
-                        <span className="text-[10px] text-ink-faint flex items-center gap-1.5">
-                          {micEnabled && `microfone via ${micEngine === 'browser' ? 'navegador' : 'transcrição local'}`}
-                          <button
-                            onClick={() => setShowConfigPanel(true)}
-                            /* C5 — 15px de altura; WCAG 2.2 AA 2.5.8 pede 24. */
-                            className="underline hover:text-accent font-bold cursor-pointer min-h-6 min-w-6 py-1 inline-flex items-center"
-                            title="Abrir configurações avançadas de captura"
-                          >
-                            ajustes avançados
-                          </button>
-                        </span>
-                      </div>
-                    </div>
-                  )}
-
                   {/* Linha 3 — CTA + timer (esquerda) · idiomas (direita) */}
                   <div className="grid grid-cols-1 md:grid-cols-3 items-center gap-4">
                     <div className="flex flex-wrap items-center gap-3 md:col-span-2">
@@ -3354,6 +3442,13 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
                             : (resumeId ? 'Continuar captura' : 'Iniciar captura')}
                         </button>
                       )}
+
+                      {/* O MICROFONE — a única fonte que a pessoa escolhe, e o único controle que
+                          vale ANTES e DURANTE a sessão. Vive ao lado do gesto principal justamente
+                          porque é um gesto de mesma ordem: no meio de uma aula dá vontade de repetir
+                          a frase em voz alta, e isso não pode exigir parar e recomeçar a gravação.
+                          A mecânica (abrir tarde, mutar sem fechar) está em `alternarMicrofone`. */}
+                      {botaoDoMicrofone()}
 
                       {/* LEGENDAS FLUTUANTES — a porta de destaque. É o que permite usar o app por
                           cima de jogo/chamada; por isso vive AQUI, ao lado do gesto principal, com
@@ -3386,28 +3481,62 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
                         sempre, com rótulos que fazem sentido para o que o usuário está fazendo.
                         A direção da tradução por fonte (sistema ↔ mic) continua automática. */}
                     <div className="flex flex-col md:items-end gap-1 md:col-span-1">
-                      {seletoresDeIdioma()}
-                      {/* RESUMO HUMANO da direção — o fluxo fica óbvio sem jargão (público leigo). */}
-                      <p className="text-[9px] text-ink-faint md:text-right leading-tight">
-                        {/* C13 — o automático agora DIZ o que descobriu. Antes prometia "é
-                            detectado sozinho" e nunca mostrava o resultado: numa sessão inteira
-                            em português, a tela seguia anunciando o idioma configurado enquanto
-                            o sistema já sabia a resposta há 40 falas. */}
-                        {captureScenario === 'media' && (autoDetectLang
-                          ? (idiomaObservado
-                            ? <>Detectei <b>{langLabel(idiomaObservado)}</b> no conteúdo ({Math.round(perfilIdiomaRef.current.ler().confianca * 100)}% das falas), legenda em <b>{langLabel(destinoDaTraducao(idiomaObservado, baseLang(sourceLang), baseLang(targetLang)).destino || sourceLang)}</b>.</>
-                            : <>O idioma do conteúdo é detectado sozinho (pode até misturar) e tudo vira legenda em <b>{langLabel(sourceLang)}</b>.</>)
-                          : <>Cada fala vira legenda bilíngue em <b>{langLabel(sourceLang)}</b>.</>)}
-                        {captureScenario === 'conversation' && (
-                          <>
-                            {idiomaObservado && autoDetectLang && <>Eles estão falando <b>{langLabel(idiomaObservado)}</b> · </>}
-                            Você lê os outros em <b>{langLabel(sourceLang)}</b> · sua fala aparece {autoDetectMyLang ? <>no idioma da conversa (detectado ao vivo)</> : <>em <b>{langLabel(targetLang)}</b></>}.
-                          </>
-                        )}
-                        {captureScenario === 'mic' && (autoDetectMyLang
-                          ? <>Sua fala é detectada em qualquer idioma e traduzida para <b>{langLabel(targetLang)}</b>.</>
-                          : <>Sua fala vira texto em <b>{langLabel(sourceLang)}</b> com tradução em <b>{langLabel(targetLang)}</b>.</>)}
-                      </p>
+                      {/* O PAR NUM CHIP. Os dois seletores e a explicação da direção ocupavam três
+                          linhas fixas da tela — informação que se lê UMA vez e se muda quase nunca,
+                          disputando espaço com o único gesto que importa aqui. Agora o chip mostra
+                          o par (com bandeira, como no resto do app) e a gaveta guarda a edição.
+                          Os AVISOS ficaram de fora dela de propósito: são a parte que a pessoa
+                          precisa ver sem clicar em nada. */}
+                      <button
+                        ref={gatilhoIdiomas}
+                        type="button"
+                        onClick={() => setIdiomasAbertos(a => !a)}
+                        aria-haspopup="dialog"
+                        aria-expanded={idiomasAbertos}
+                        title="Ver e trocar os idiomas da sessão"
+                        className={`flex items-center gap-2 px-2.5 py-2 rounded-xl border bg-canvas cursor-pointer transition-colors min-h-10 ${
+                          mesmoIdioma ? 'border-warn' : 'border-border-subtle hover:border-accent'
+                        }`}
+                      >
+                        {/* O aviso não pode depender só da cor da borda (o app tem 7 temas). */}
+                        {mesmoIdioma && <span className="w-1.5 h-1.5 rounded-full bg-warn shrink-0" aria-hidden />}
+                        <span className="flex items-center gap-1.5 text-[11px] font-bold text-ink">
+                          {parResumido.auto
+                            ? <Sparkles className="w-3.5 h-3.5 text-accent shrink-0" aria-hidden />
+                            : <LangFlag code={parResumido.de} className="w-4 h-3" />}
+                          {parResumido.auto ? 'Detectar' : langShortLabel(parResumido.de)}
+                        </span>
+                        <ArrowRight className="w-3 h-3 text-ink-faint shrink-0" aria-hidden />
+                        <span className="flex items-center gap-1.5 text-[11px] font-bold text-ink">
+                          <LangFlag code={parResumido.para} className="w-4 h-3" />
+                          {langLabel(parResumido.para)}
+                        </span>
+                        <ChevronDown className={`w-3.5 h-3.5 text-ink-faint shrink-0 transition-transform ${idiomasAbertos ? 'rotate-180' : ''}`} aria-hidden />
+                      </button>
+
+                      {/* Portal no `body`: o card da captura entra com `animate-in`, e um `fixed`
+                          sob um ancestral com `transform` passa a ser medido a partir dele — o
+                          mesmo conserto já documentado em LangPicker e PopoverFlutuante.
+                          z-65 fica ABAIXO do z-70 da lista do LangPicker, senão a lista de idiomas
+                          abriria atrás da própria gaveta que a contém. */}
+                      {idiomasAbertos && caixaIdiomas && createPortal(
+                        <div
+                          ref={painelIdiomas}
+                          data-lang-ui=""
+                          role="dialog"
+                          aria-label="Idiomas da sessão"
+                          style={{ top: caixaIdiomas.top, left: caixaIdiomas.left, width: caixaIdiomas.largura }}
+                          className="fixed z-[65] bg-surface border border-border-subtle rounded-xl shadow-2xl p-3.5 space-y-2.5 animate-in fade-in slide-in-from-top-1 duration-150"
+                        >
+                          <span className="block text-[9px] font-mono font-bold uppercase tracking-wider text-ink-faint">
+                            Idiomas da sessão
+                          </span>
+                          {seletoresDeIdioma('pop-')}
+                          {/* RESUMO HUMANO da direção — o fluxo fica óbvio sem jargão (público leigo). */}
+                          <p className="text-[10px] text-ink-muted leading-snug">{resumoDaDirecao()}</p>
+                        </div>,
+                        document.body,
+                      )}
                       {/* IDIOMAS IGUAIS = CARTÃO SEM VERSO (spec entrega-honesta). Ajustes já avisa
                           quem passa por lá; quem vai direto gravar não via nada, e o caderno enchia
                           de palavras sem tradução — 198 de 201 na conta do dono. O aviso mora aqui
@@ -3451,14 +3580,19 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
                     </div>
                   </div>
 
-                  {/* Microcopy contextual do cenário — orienta o próximo passo em uma linha. */}
-                  {!isRecording && (
-                    <p className="text-[10px] text-ink-faint leading-tight">
-                      {captureScenario === 'media' && 'Dê o play no vídeo/áudio em qualquer app e clique em Iniciar, a legenda bilíngue aparece aqui e nas Legendas flutuantes.'}
-                      {captureScenario === 'conversation' && 'Captura você (microfone) e os outros (som do computador) ao mesmo tempo. Cada voz é identificada e ganha cor própria; cada lado é traduzido na direção certa.'}
-                      {captureScenario === 'mic' && 'Fale ao microfone, sua fala vira texto e tradução na hora. Bom para praticar antes de uma reunião.'}
-                    </p>
-                  )}
+                  {/* UMA linha de orientação, e ela vale GRAVANDO TAMBÉM.
+                      Antes só aparecia antes de iniciar — justamente quando o estado era mais fácil
+                      de adivinhar. Agora que a fonte muda no meio da sessão, é durante a gravação
+                      que a pessoa precisa ler, em palavras, se a própria voz está entrando. */}
+                  <p className="text-[10px] text-ink-faint leading-tight">
+                    {isRecording
+                      ? (micEnabled
+                        ? 'Gravando o som do computador e a sua voz. Cada voz é identificada e traduzida na direção certa.'
+                        : 'Gravando o som do computador. Sua voz está fora — ligue o microfone quando quiser entrar.')
+                      : (micEnabled
+                        ? 'O som do computador e a sua voz entram juntos. Dê o play no vídeo, aula ou chamada e clique em Iniciar.'
+                        : 'O som do computador entra sozinho. Dê o play no vídeo, aula ou chamada e clique em Iniciar — a legenda bilíngue aparece aqui e nas Legendas flutuantes.')}
+                  </p>
 
                   {/* Linha 4 — WAVEFORM REAL: as barras seguem o nível de áudio efetivamente capturado
                       (sonda RMS), não uma animação decorativa. */}
@@ -3867,9 +4001,12 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
                 Status: {isRecording ? 'Gravação Ativa' : 'Pronto para Gravar'}
               </div>
               
-              <div className="flex gap-4">
+              <div className="flex flex-wrap items-center gap-3">
+                {/* O microfone vem ANTES do parar/iniciar: no Foco, ligar a própria voz é o gesto
+                    que se repete durante a sessão; parar acontece uma vez, no fim. */}
+                {botaoDoMicrofone('foco')}
                 {isRecording ? (
-                  <button 
+                  <button
                     onClick={handleStopRecording}
                           data-sfx="none"
                     className="flex items-center gap-2 py-3 px-6 bg-error-soft text-error-ink border border-error/40 hover:brightness-105 rounded-xl font-bold text-xs shadow-btn transition-all hover:scale-[1.03] cursor-pointer"

@@ -43,6 +43,57 @@ export interface OpcoesFlutuante {
  * encostar na borda. Fixar um dos lados no código foi exatamente o que quebrou quando o mesmo
  * componente mudou de canto.
  */
+/**
+ * A CONTA, PURA — recebe retângulos, devolve a caixa. Sem DOM, para poder ser testada.
+ *
+ * O `zoom` é o do ANCESTRAL em que o popup será renderizado (na prática, o `body`: todos os
+ * consumidores fazem portal para lá). Ele existe porque o app tem o A± de acessibilidade, que
+ * aplica `body { zoom: N }` — e `zoom` reescala tudo que é `position: fixed` dentro dele.
+ *
+ * O QUE ISSO OBRIGA. `getBoundingClientRect()` e `window.innerWidth` já vêm em pixels de TELA,
+ * então a decisão de caber usa o tamanho RENDERIZADO (`largura × zoom`); mas o número escrito no
+ * `style` é multiplicado pelo zoom depois, então o resultado sai dividido por ele. Com `zoom = 1`
+ * — o caso de quase todo mundo — as duas operações se cancelam e nada muda.
+ *
+ * BUG QUE ISTO CONSERTA (observado com A+ ligado): a gaveta de idiomas da captura abria ~200px
+ * fora da direita da tela. Valia para os quatro consumidores do hook, não só para ela.
+ */
+export function caixaFlutuante(
+  g: { top: number; bottom: number; left: number; right: number; width: number },
+  viewport: { width: number; height: number },
+  opts: { largura: number | 'ancora'; alturaEstimada: number; margem: number; zoom: number },
+): CaixaFlutuante {
+  const { largura, alturaEstimada, margem, zoom } = opts;
+  // Tamanhos como serão PINTADOS, para decidir o que cabe onde.
+  const w = largura === 'ancora' ? g.width : largura * zoom;
+  const h = alturaEstimada * zoom;
+
+  let esquerda = largura === 'ancora' ? g.left : g.right - w;
+  if (esquerda < margem) esquerda = g.left;
+  if (esquerda + w > viewport.width - margem) esquerda = viewport.width - w - margem;
+
+  // Abre para baixo quando cabe; para cima quando não cabe. Sem isto, um gatilho no pé da tela
+  // abre um menu que nasce fora dela.
+  const cabeAbaixo = g.bottom + 4 + h <= viewport.height - margem;
+  const topo = cabeAbaixo ? g.bottom + 4 : Math.max(margem, g.top - h - 4);
+
+  return {
+    top: topo / zoom,
+    left: Math.max(margem, esquerda) / zoom,
+    largura: largura === 'ancora' ? g.width / zoom : largura,
+  };
+}
+
+/** O `zoom` acumulado dos ancestrais de `el` — 1 quando o A± está no tamanho normal. */
+function zoomAcumulado(el: HTMLElement | null): number {
+  let z = 1;
+  for (let n: HTMLElement | null = el; n; n = n.parentElement) {
+    const v = parseFloat(getComputedStyle(n).zoom || '1');
+    if (Number.isFinite(v) && v > 0) z *= v;
+  }
+  return z;
+}
+
 export function usePosicaoFlutuante(
   aberto: boolean,
   ancora: { current: HTMLElement | null },
@@ -54,20 +105,13 @@ export function usePosicaoFlutuante(
   const calcular = useCallback(() => {
     const g = ancora.current?.getBoundingClientRect();
     if (!g) return;
-    const w = largura === 'ancora' ? g.width : largura;
-
-    let esquerda = largura === 'ancora' ? g.left : g.right - w;
-    if (esquerda < margem) esquerda = g.left;
-    if (esquerda + w > window.innerWidth - margem) esquerda = window.innerWidth - w - margem;
-
-    // Abre para baixo quando cabe; para cima quando não cabe. Sem isto, um gatilho no pé da tela
-    // abre um menu que nasce fora dela.
-    const cabeAbaixo = g.bottom + 4 + alturaEstimada <= window.innerHeight - margem;
-    const topo = cabeAbaixo
-      ? g.bottom + 4
-      : Math.max(margem, g.top - alturaEstimada - 4);
-
-    setCaixa({ top: topo, left: Math.max(margem, esquerda), largura: w });
+    /* O popup é renderizado por portal no `body`: é o zoom DELE que reescala o `fixed`. */
+    const zoom = typeof document === 'undefined' ? 1 : zoomAcumulado(document.body);
+    setCaixa(caixaFlutuante(
+      g,
+      { width: window.innerWidth, height: window.innerHeight },
+      { largura, alturaEstimada, margem, zoom },
+    ));
   }, [ancora, largura, alturaEstimada, margem]);
 
   // Antes de pintar: um quadro na posição errada é visível e parece defeito.

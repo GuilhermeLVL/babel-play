@@ -141,6 +141,13 @@
       "when": 1788357887272,
       "tag": "0019_seletor_facetado",
       "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "6",
+      "when": 1788358900000,
+      "tag": "0020_sonda_de_ocorrencias",
+      "breakpoints": true
     }
   ]
 }

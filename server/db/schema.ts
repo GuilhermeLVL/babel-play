@@ -196,6 +196,11 @@ export const vocabOccurrences = sqliteTable('vocab_occurrences', {
   index('idx_occ_user_card').on(t.userId, t.cardId),
   index('idx_occ_user_time').on(t.userId, t.occurredAt),
   index('idx_occ_origem').on(t.userId, t.originKind, t.originRef),
+  /* A SONDA DO FILTRO FACETADO (migração 0020): os EXISTS de `selecionarParaJogo` correlacionam
+     por (user_id, card_id) e ainda filtram origin_kind/origin_ref. Sem as quatro colunas em UM
+     índice, o planner escolhia `idx_occ_origem` e visitava milhares de ocorrências POR candidato
+     — medido em 20k cartões: 2,7–46 s por seleção (docs/pesquisa/medicao-filtro-20k.md). */
+  index('idx_occ_probe').on(t.userId, t.cardId, t.originKind, t.originRef),
 ])
 
 export const reviewLogs = sqliteTable('review_logs', {

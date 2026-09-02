@@ -392,7 +392,7 @@ export const vocabRepo = {
     if (opts.ate) cond.push(sql`${vocabCards.lastSeenAt} <= ${opts.ate}`)
     if (opts.origens?.length) {
       cond.push(sql`EXISTS (SELECT 1 FROM ${vocabOccurrences} o
-        WHERE o.card_id = ${vocabCards.id} AND o.origin_kind IN ${opts.origens})`)
+        WHERE o.user_id = ${userId} AND o.card_id = ${vocabCards.id} AND o.origin_kind IN ${opts.origens})`)
     }
 
     const colunaDe = {
@@ -568,28 +568,33 @@ export const vocabRepo = {
        * campos (`idiomas`, `recorte.niveis`, etc.) já eram "OR dentro do campo" por serem listas
        * passadas a `IN (...)`. Aqui a união vira `OR` entre sub-EXISTS/NOT EXISTS, um por fonte
        * presente em `fontes`; o resultado inteiro entra como UMA condição na interseção do WHERE.
+       *
+       * TODO EXISTS sobre `vocab_occurrences` carrega `o.user_id = ?` mesmo sendo redundante
+       * (card_id já é do usuário): os três índices da tabela começam por `user_id`, e a sonda
+       * correlacionada só por `card_id` vira SCAN — medido em 20k cartões, era a diferença entre
+       * 4,2 s e milissegundos no filtro padrão (docs/pesquisa/medicao-filtro-20k.md).
        */
       const f = opts.filtro
       const membros: ReturnType<typeof sql>[] = []
       if (f.fontes.includes('trilha')) {
-        membros.push(sql`EXISTS (SELECT 1 FROM ${vocabOccurrences} o WHERE o.card_id = ${vocabCards.id}
+        membros.push(sql`EXISTS (SELECT 1 FROM ${vocabOccurrences} o WHERE o.user_id = ${userId} AND o.card_id = ${vocabCards.id}
           AND o.origin_kind = 'trilha')`)
       }
       if (f.fontes.includes('sessao')) {
         membros.push(f.sessoes?.length
-          ? sql`EXISTS (SELECT 1 FROM ${vocabOccurrences} o WHERE o.card_id = ${vocabCards.id}
+          ? sql`EXISTS (SELECT 1 FROM ${vocabOccurrences} o WHERE o.user_id = ${userId} AND o.card_id = ${vocabCards.id}
               AND o.origin_kind = 'sessao' AND o.origin_ref IN ${f.sessoes})`
-          : sql`EXISTS (SELECT 1 FROM ${vocabOccurrences} o WHERE o.card_id = ${vocabCards.id}
+          : sql`EXISTS (SELECT 1 FROM ${vocabOccurrences} o WHERE o.user_id = ${userId} AND o.card_id = ${vocabCards.id}
               AND o.origin_kind = 'sessao')`)
       }
       if (f.fontes.includes('baralho')) {
         membros.push(f.baralhos?.length
-          ? sql`EXISTS (SELECT 1 FROM ${vocabOccurrences} o WHERE o.card_id = ${vocabCards.id}
+          ? sql`EXISTS (SELECT 1 FROM ${vocabOccurrences} o WHERE o.user_id = ${userId} AND o.card_id = ${vocabCards.id}
               AND o.origin_kind = 'anki' AND o.origin_ref IN ${f.baralhos})`
           // Sem baralhos específicos: "baralho" sozinho significa "não é trilha" — mesma
           // semântica do ramo `else` dos chamadores antigos (o EXISTS de 'anki' exigiria que
           // TODO cartão manual também tivesse ocorrência 'anki', o que nunca foi verdade).
-          : sql`NOT EXISTS (SELECT 1 FROM ${vocabOccurrences} o WHERE o.card_id = ${vocabCards.id}
+          : sql`NOT EXISTS (SELECT 1 FROM ${vocabOccurrences} o WHERE o.user_id = ${userId} AND o.card_id = ${vocabCards.id}
               AND o.origin_kind = 'trilha')`)
       }
       /* `fontes` é obrigatório e não-vazio no schema Zod da rota — na prática sempre há ao menos
@@ -613,10 +618,10 @@ export const vocabRepo = {
       if (f.midia?.comTraducao) cond.push(sql`(${vocabCards.back} IS NOT NULL AND ${vocabCards.back} != '')`)
       if (f.midia?.comFrase) cond.push(sql`(${vocabCards.sentence} IS NOT NULL AND ${vocabCards.sentence} != '')`)
     } else if (opts.fonte === 'sessao' && opts.fonteRef) {
-      cond.push(sql`EXISTS (SELECT 1 FROM ${vocabOccurrences} o WHERE o.card_id = ${vocabCards.id}
+      cond.push(sql`EXISTS (SELECT 1 FROM ${vocabOccurrences} o WHERE o.user_id = ${userId} AND o.card_id = ${vocabCards.id}
         AND o.origin_kind = 'sessao' AND o.origin_ref = ${opts.fonteRef})`)
     } else if (opts.fonte === 'trilha') {
-      cond.push(sql`EXISTS (SELECT 1 FROM ${vocabOccurrences} o WHERE o.card_id = ${vocabCards.id}
+      cond.push(sql`EXISTS (SELECT 1 FROM ${vocabOccurrences} o WHERE o.user_id = ${userId} AND o.card_id = ${vocabCards.id}
         AND o.origin_kind = 'trilha'${opts.fonteRef ? sql` AND o.origin_ref = ${opts.fonteRef}` : sql``})`)
     } else if (opts.fonte === 'baralho' && opts.fonteRef?.startsWith('anki:')) {
       /* "Jogar só com este baralho" (Decisão 2 do design motor-anki-acervo): um ramo NOVO na
@@ -624,14 +629,14 @@ export const vocabRepo = {
          no ramo `else` de baixo — comportamento antigo intocado, de propósito (é o acervo inteiro
          do usuário). Só com `fonteRef='anki:<deckId>'` é que recorta por baralho. */
       const deckId = opts.fonteRef.slice('anki:'.length)
-      cond.push(sql`EXISTS (SELECT 1 FROM ${vocabOccurrences} o WHERE o.card_id = ${vocabCards.id}
+      cond.push(sql`EXISTS (SELECT 1 FROM ${vocabOccurrences} o WHERE o.user_id = ${userId} AND o.card_id = ${vocabCards.id}
         AND o.origin_kind = 'anki' AND o.origin_ref = ${deckId})`)
     } else {
       /* "Minhas gravações" EXCLUI a trilha — o mesmo `!daTrilha` que `cartoesDaFonte` aplica no
          cliente. Sem esta linha o servidor priorizaria palavras da trilha que o cliente descarta
          logo em seguida, gastando slots da rodada com material que nunca chega aos jogos. As duas
          pontas têm de concordar sobre o que é "gravações", senão o recorte fica torto de novo. */
-      cond.push(sql`NOT EXISTS (SELECT 1 FROM ${vocabOccurrences} o WHERE o.card_id = ${vocabCards.id}
+      cond.push(sql`NOT EXISTS (SELECT 1 FROM ${vocabOccurrences} o WHERE o.user_id = ${userId} AND o.card_id = ${vocabCards.id}
         AND o.origin_kind = 'trilha')`)
     }
     if (opts.evitar?.length) cond.push(sql`${vocabCards.id} NOT IN ${opts.evitar}`)
@@ -691,7 +696,7 @@ export const vocabRepo = {
       .where(and(eq(vocabCards.userId, userId), isNull(vocabCards.deletedAt)))
     const [{ n: legado }] = await db.select({ n: sql<number>`count(*)` }).from(vocabCards)
       .where(and(eq(vocabCards.userId, userId), isNull(vocabCards.deletedAt),
-        sql`NOT EXISTS (SELECT 1 FROM ${vocabOccurrences} o WHERE o.card_id = ${vocabCards.id} AND o.origin_kind <> 'legado')`))
+        sql`NOT EXISTS (SELECT 1 FROM ${vocabOccurrences} o WHERE o.user_id = ${userId} AND o.card_id = ${vocabCards.id} AND o.origin_kind <> 'legado')`))
     return { inicioEm: inicio ?? null, totalLegado: Number(legado), total: Number(total) }
   },
 

@@ -20,8 +20,9 @@ describe('a fronteira de formato do bulk-add', () => {
   it('a palavra de UMA letra é o caso que derrubava o lote', () => {
     expect(foraDoBulkAdd('a')).toBe('palavra-curta')
     expect(foraDoBulkAdd('I')).toBe('palavra-curta')
-    // Um caractere só, mesmo não-latino: baralhos de japonês/chinês têm às centenas.
-    expect(foraDoBulkAdd('日')).toBe('palavra-curta')
+    // Um caractere de escrita logográfica É uma palavra inteira (日 = dia). Descartá-lo custava
+    // 70% de um baralho japonês, medido no G0 multi-idioma.
+    expect(foraDoBulkAdd('日')).toBeNull()
   })
 
   it('espaço em volta não conta — é assim que o servidor mede (`z.string().trim()`)', () => {

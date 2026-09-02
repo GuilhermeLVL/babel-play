@@ -508,7 +508,7 @@ export const LIMITES_DO_BULK_ADD = { min: 2, max: 200 } as const;
 
 export function foraDoBulkAdd(palavra: string): Extract<MotivoDescarte, 'palavra-curta'> | 'palavra-longa' | null {
   const n = (palavra ?? '').trim().length;
-  if (n < LIMITES_DO_BULK_ADD.min) return 'palavra-curta';
+  if (n < Math.min(LIMITES_DO_BULK_ADD.min, minimoDeCaracteres(palavra))) return 'palavra-curta';
   if (n > LIMITES_DO_BULK_ADD.max) return 'palavra-longa';
   return null;
 }

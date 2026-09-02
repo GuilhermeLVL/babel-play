@@ -26,6 +26,7 @@ import { montarApkg } from '../import/ankiExport'
 import { erroDeRota } from '../lib/erroDeRota'
 import { ankiRepo } from '../db/repositories/anki'
 import { avaliarCartao } from '../../src/core/learning/quality'
+import { vocabRepo } from '../db/repositories/vocab'
 import { vazaResposta } from '../../src/core/learning/pistaDeJogo'
 import {
   reservarArmazenamento,
@@ -305,6 +306,11 @@ importRouter.post('/anki', raw({ type: () => true, limit: '200mb' }), erroDeTama
       porMotivo,
     })
 
+    /* Importar tem de ENTREGAR algo jogável. Antes toda nota nascia arquivada e a tela de jogar
+       continuava igual: quem importou concluía que o app não fez nada (G0, defeito 2). Um lote
+       entra na hora; o resto continua atrás de "Ativar mais", que é o controle de volume. */
+    const ativadasNoImport = await vocabRepo.ativarLote(req.userId, deck.id).catch(() => ({ ativadas: 0 }))
+
     const trunc = (s: string | null | undefined) => (s ?? '').slice(0, 80)
     const amostra = r.notas.slice(0, 4).map((n) => ({
       frente: trunc(n.frente), verso: trunc(n.verso), exemplo: trunc(n.exemplo),
@@ -314,6 +320,7 @@ importRouter.post('/anki', raw({ type: () => true, limit: '200mb' }), erroDeTama
       importId: imp.id,
       deckId: deck.id,
       resumo: {
+        ativadas: ativadasNoImport.ativadas ?? 0,
         notas: r.notas.length,
         novas: resultado.novas,
         atualizadas: resultado.atualizadas,

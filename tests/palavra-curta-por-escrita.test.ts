@@ -4,7 +4,7 @@
  * 家 (casa), 本 (livro) são palavras inteiras.
  */
 import { describe, it, expect } from 'vitest';
-import { avaliarCartao } from '../src/core/learning/quality';
+import { avaliarCartao, foraDoBulkAdd } from '../src/core/learning/quality';
 
 const cartao = (word: string, translation: string) =>
   ({ word, translation, sentence: '', srcLang: 'ja', inDeck: 1 } as never);
@@ -33,5 +33,19 @@ describe('palavra de um caractere', () => {
 
   it('vazio continua reprovado', () => {
     expect(avaliarCartao(cartao('', 'nada')).motivo).toBe('palavra-curta');
+  });
+});
+
+describe('a segunda régua de comprimento (foraDoBulkAdd, usada na projeção do Anki)', () => {
+  it.each(['車', '山', '窓', '물'])('%s passa', (p) => {
+    expect(foraDoBulkAdd(p)).toBeNull();
+  });
+
+  it('letra latina solta continua barrada', () => {
+    expect(foraDoBulkAdd('a')).toBe('palavra-curta');
+  });
+
+  it('e o teto continua valendo', () => {
+    expect(foraDoBulkAdd('x'.repeat(201))).toBe('palavra-longa');
   });
 });

@@ -123,9 +123,12 @@ describe('POST /api/anki/decks/:id/ativar — projeta o lote (5.2)', () => {
     ])
     const deckId = imp.body.deckId
 
+    // O import já entrega um lote ativado (senão a tela de jogar continuava vazia depois de
+    // importar — G0, defeito 2). O que a rota garante aqui é o RESTO e a idempotência.
+    expect(imp.body.resumo.ativadas).toBeGreaterThan(0)
+
     const r1 = await chamar(ankiRouter, 'post', '/decks/:id/ativar', { userId: U, params: { id: deckId }, body: {} })
     expect(r1.statusCode).toBe(200)
-    expect(r1.body.ativadas).toBeGreaterThan(0)
 
     const r2 = await chamar(ankiRouter, 'post', '/decks/:id/ativar', { userId: U, params: { id: deckId }, body: {} })
     expect(r2.statusCode).toBe(200)

@@ -1,6 +1,7 @@
 import type { VocabCard } from '../../types';
 import { isDueNow } from '../learning/due';
 import { pistaUtil, chaveComparavel } from '../learning/quality';
+import { pistaDeJogo } from '../learning/pistaDeJogo';
 import { ordenarPorMemoria, type HistoricoDoItem } from '../learning/memoriaDeItens';
 import type { FaixaDificuldade } from './composicao';
 
@@ -535,11 +536,17 @@ export function buildTermoRounds(
       cardId: c.id,
       resposta: chaveDoTermo(palavra),
       palavra,
-      pista: opts.dificil ? '' : (c.translation ?? '').trim(),
+      /* A DICA NÃO PODE CONTER A PALAVRA QUE SE DIGITA. Era o defeito mais visível do Termo com
+         baralho importado: a dica de `abandon` era "To abandon something is to leave it forever"
+         — a resposta impressa acima do teclado. `pistaDeJogo` mascara alvo e flexões; a frase de
+         contexto passa pela mesma régua, pelo mesmo motivo. */
+      pista: opts.dificil ? '' : pistaDeJogo(palavra, c.translation).texto,
       lang: c.srcLang || '',
       ...(alternativas.length ? { alternativas } : {}),
       // Pista ambígua nasce com a frase de contexto (quando existe): é o desempate honesto.
-      ...(alternativas.length && (c.sentence ?? '').trim() ? { contexto: (c.sentence ?? '').trim() } : {}),
+      ...(alternativas.length && (c.sentence ?? '').trim()
+        ? { contexto: pistaDeJogo(palavra, c.sentence).texto }
+        : {}),
     };
   });
 }

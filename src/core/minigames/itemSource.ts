@@ -2,6 +2,7 @@ import type { VocabCard, SchedulerType } from '../../types';
 import { byUrgency, isDueNow } from '../learning/due';
 import { makeCloze } from '../learning/cloze';
 import { avaliarCartao, chaveComparavel } from '../learning/quality';
+import { pistaDeJogo } from '../learning/pistaDeJogo';
 import type { MinigameItem, MinigameId } from './types';
 import { MINIGAMES } from './types';
 import { ordenarPorMemoria, type HistoricoDoItem } from '../learning/memoriaDeItens';
@@ -80,7 +81,17 @@ export function promptFor(card: VocabCard): { prompt: string; clozed: boolean } 
   if (!veredito.serve && veredito.motivo !== 'pista-ruim' && veredito.motivo !== 'traducao-igual') return null;
 
   const traducao = (card.translation ?? '').trim();
-  if (traducao && veredito.serve) return { prompt: traducao, clozed: false };
+  if (traducao && veredito.serve) {
+    /* A PISTA NÃO PODE CONTER A RESPOSTA. Medido no acervo do dono: 100% dos versos do baralho
+       "4000 Essential English Words" trazem a própria palavra ("To abandon something is to leave
+       it forever"), porque o verso é DEFINIÇÃO no mesmo idioma, não tradução. Sem esta passagem,
+       a Memória casava o par sozinha e o Duelo entregava a resposta no enunciado. Mascarar em vez
+       de recusar mantém o material — e vira o exercício de definição-com-lacuna. Cartão cuja
+       pista SÓ tinha a resposta (vira lacuna solitária) segue para a frase, abaixo. */
+    const p = pistaDeJogo(card.word, traducao);
+    const sobrouTexto = p.texto.replace(/———/g, '').replace(/[^\p{L}\p{N}]+/gu, '').length >= 2;
+    if (sobrouTexto) return { prompt: p.texto, clozed: p.mascarada };
+  }
 
   const frase = (card.sentence ?? '').trim();
   if (frase) {

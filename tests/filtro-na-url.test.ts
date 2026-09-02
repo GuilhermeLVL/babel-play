@@ -7,7 +7,7 @@
  * resto; (4) query que não fala de filtro devolve null (a persistência local decide), nunca um
  * padrão que apagaria a escolha guardada.
  */
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { queryDoFiltro, filtroDaQuery } from '../src/lib/filtroDaPratica';
 import { FILTRO_PADRAO, type FiltroDaPratica } from '../src/core/minigames/filtro';
 
@@ -74,5 +74,52 @@ describe('filtroDaQuery', () => {
     expect(lido?.nivelTrilha).toBeUndefined();
     expect(lido?.recorte.dificeis).toBe(true);
     expect(lido?.recorte.niveis).toEqual(['A1']);
+  });
+});
+
+/**
+ * A CAPTURA DO BOOT e o DONO DA QUERY (`rotas.ts`) — os dois contratos que a spec
+ * `persistencia-e-url` apontou como sem teste dedicado. Módulo re-avaliado por caso
+ * (`vi.resetModules`) porque a captura acontece na avaliação, que é o ponto inteiro.
+ */
+describe('consumirQueryDoBoot e publicarQueryDoJogar', () => {
+  const janela = (pathname: string, search: string) => ({
+    location: { pathname, search },
+    history: {
+      escritas: [] as string[],
+      replaceState(_a: unknown, _b: unknown, url: string) { this.escritas.push(url); },
+      pushState(_a: unknown, _b: unknown, url: string) { this.escritas.push(url); },
+    },
+  });
+
+  it('a query capturada no boot sobrevive à reescrita da barra, e o consumo é único', async () => {
+    vi.resetModules();
+    const w = janela('/jogar', '?fonte=baralho&recorte=pedindo-revisao');
+    vi.stubGlobal('window', w);
+    const rotas = await import('../src/lib/rotas');
+    // a dança de boot do App reescreve a barra…
+    w.location.pathname = '/'; w.location.search = '';
+    // …e a captura do módulo ainda entrega o que chegou — uma vez.
+    expect(rotas.consumirQueryDoBoot()).toBe('fonte=baralho&recorte=pedindo-revisao');
+    expect(rotas.consumirQueryDoBoot()).toBe('');
+    vi.unstubAllGlobals();
+  });
+
+  it('publicarQueryDoJogar só age com /jogar na barra, e limpa com string vazia', async () => {
+    vi.resetModules();
+    const w = janela('/biblioteca', '');
+    vi.stubGlobal('window', w);
+    const rotas = await import('../src/lib/rotas');
+    rotas.publicarQueryDoJogar('fonte=baralho');
+    expect(w.history.escritas).toEqual([]); // fora de /jogar: não-op
+
+    w.location.pathname = '/jogar';
+    rotas.publicarQueryDoJogar('fonte=baralho');
+    expect(w.history.escritas).toEqual(['/jogar?fonte=baralho']);
+
+    w.location.search = '?fonte=baralho';
+    rotas.publicarQueryDoJogar('');
+    expect(w.history.escritas).toEqual(['/jogar?fonte=baralho', '/jogar']); // limpar limpa
+    vi.unstubAllGlobals();
   });
 });

@@ -69,10 +69,10 @@
       determinística, ordem global preservada, classificação por especificidade (trilha →
       sessão → resto; "baralho é o resto" não pode engolir a cota da sessão); 11 invariantes
       em `tests/distribuicao.test.ts`
-- [ ] 4.1b Costura da distribuição na montagem da rodada — DELIBERADAMENTE junto com a UI
-      multi-fonte: o filtro padrão é `['baralho','sessao']` (a união legada "acervo geral"),
-      e ligar a cota nele mudaria a rodada de hoje sem ninguém ter pedido; a cota só faz
-      sentido quando a união for escolha explícita no painel
+- [x] 4.1b Avaliada com a multi-fonte no ar e NÃO ligada: medido na tela, a ordenação por
+      memória já intercala as fontes (a rodada de duelo trouxe distratores das duas). A cota
+      entraria para consertar um desequilíbrio que não existe, tirando material bom da frente.
+      `distribuirPorFonte` fica pronta e testada para quando o desequilíbrio aparecer
 - [x] 4.2 Idioma vira faceta do seletor (primeira, porque manda nas outras); a Sala continua
       como caminho completo para idioma ainda sem palavras. `praticaLang` segue como preferência
       de perfil no servidor

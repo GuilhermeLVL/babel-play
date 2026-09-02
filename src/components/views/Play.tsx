@@ -191,12 +191,6 @@ const ABAS_DE_FONTE: Array<{
   },
 ];
 
-/** O rótulo da faixa de contexto: diz que TIPO de coisa a fonte é, antes de dizer o tamanho. */
-const CONTEXTO_DA_FONTE: Record<OrigemDaPratica, { rotulo: string }> = {
-  trilha: { rotulo: 'Curso' },
-  gravacoes: { rotulo: 'Revisão do que você ouviu' },
-  dificeis: { rotulo: 'O que está escapando' },
-};
 
 /**
  * Uma rodada JÁ MONTADA, esperando a pessoa decidir. É o que a antessala mostra.
@@ -1608,41 +1602,6 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
    * fila que ENCOLHE quando você acerta. Mostrar "N palavras" para as três esconderia justamente a
    * diferença que a pessoa precisa entender para escolher.
    */
-  const contextoDaFonte = useMemo<{
-    principal: string; detalhe: string; pct: number | null; rotuloDaBarra: string;
-  }>(() => {
-    if (escolhaAtual.origem === 'trilha') {
-      const progresso = trilha ? progressoDaTrilha(trilha, new Set((deck ?? []).filter(c => c.daTrilha).map(c => chaveDaPalavraCore(c.word)))) : [];
-      const doNivel = fonte.nivel ? progresso.find(p => p.nivel === fonte.nivel) : null;
-      const somaTotal = progresso.reduce((n, p) => n + p.total, 0);
-      const somaTem = progresso.reduce((n, p) => n + p.jaTem, 0);
-      const pct = doNivel ? doNivel.pct : (somaTotal ? Math.round((somaTem / somaTotal) * 100) : 0);
-      return {
-        principal: etapaDaTrilha
-          ? `${etapaDaTrilha.nome} · ${etapaDaTrilha.subtitulo}`
-          : `${totalDaTrilhaAtual.toLocaleString('pt-BR')} palavras`,
-        detalhe: fonte.nivel ? `do nível ${fonte.nivel}` : 'todos os níveis de uma vez',
-        pct,
-        rotuloDaBarra: `Progresso ${fonte.nivel ? `no nível ${fonte.nivel}` : 'na trilha'}`,
-      };
-    }
-    if (escolhaAtual.origem === 'dificeis') {
-      return {
-        principal: `${rankingDeDificeis.length} ${rankingDeDificeis.length === 1 ? 'palavra pedindo' : 'palavras pedindo'} revisão`,
-        detalhe: 'a fila encolhe quando você acerta',
-        pct: null,
-        rotuloDaBarra: '',
-      };
-    }
-    const deQuantas = fonte.id === 'sessao' && sessaoEmUso ? sessaoEmUso.title : `${sessoesDoIdioma.length} ${sessoesDoIdioma.length === 1 ? 'gravação' : 'gravações'}`;
-    return {
-      principal: `${triagem.usaveis.length} ${triagem.usaveis.length === 1 ? 'palavra' : 'palavras'}`,
-      detalhe: sessoes.length ? `de ${deQuantas}` : '',
-      pct: null,
-      rotuloDaBarra: '',
-    };
-  }, [escolhaAtual.origem, trilha, deck, fonte.nivel, fonte.id, etapaDaTrilha, totalDaTrilhaAtual,
-      rankingDeDificeis.length, sessaoEmUso, sessoesDoIdioma.length, triagem.usaveis.length]);
 
   /**
    * A trilha de UM idioma qualquer — não a do idioma vigente.
@@ -2876,50 +2835,6 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
               },
             ]}
           />
-        </div>
-      )}
-
-      {/* ── O QUE ESTA FONTE É ─────────────────────────────────────────────────────────────
-          A faixa muda com a aba porque as três fontes são coisas diferentes: a trilha tem etapa
-          e fim, as gravações não têm nem uma coisa nem outra, e as difíceis são uma fila que
-          encolhe quando você acerta. Dizer "N palavras" para as três seria esconder isso. */}
-      {!embutido && fontesOferecidas.length > 1 && (
-        <div className="card-panel bg-surface px-4 py-3 mb-4 flex flex-wrap items-center gap-x-3 gap-y-1.5 text-[12.5px]">
-          <span className="label-mono">{CONTEXTO_DA_FONTE[escolhaAtual.origem].rotulo}</span>
-          <span className="font-bold text-ink text-[13px]">{contextoDaFonte.principal}</span>
-          {contextoDaFonte.detalhe && <span className="text-ink-muted">{contextoDaFonte.detalhe}</span>}
-          {contextoDaFonte.pct !== null && (
-            <>
-              <span
-                className="h-1.5 flex-1 min-w-[100px] max-w-[220px] bg-canvas rounded-full overflow-hidden"
-                role="progressbar"
-                aria-valuemin={0}
-                aria-valuemax={100}
-                aria-valuenow={contextoDaFonte.pct}
-                aria-label={contextoDaFonte.rotuloDaBarra}
-              >
-                <div className="h-full bg-good rounded-full transition-all duration-500" style={{ width: `${contextoDaFonte.pct}%` }} />
-              </span>
-              <span className="text-ink-muted tabular-nums">{contextoDaFonte.pct}%</span>
-            </>
-          )}
-          {/* OS NÍVEIS NÃO MORAM NESTA FAIXA, e a razão vale registrar: eu os pus aqui (era o
-              que o protótipo previa) e a tela passou a ter DOIS seletores de nível dizendo a
-              mesma coisa. O de baixo, o `PainelTrilha`, é melhor: mostra a % de cada nível,
-              marca o concluído e aponta o sugerido com "AQUI" — e sem esse número a escolha de
-              nível é chute. O protótipo foi desenhado sem saber que esse painel existia nessa
-              forma. Esta faixa fica com o RESUMO de uma linha; o painel, com a escolha
-              informada. Fundir os dois é a tarefa 2.10 da proposta OpenSpec. */}
-          {/* QUAL GRAVAÇÃO — a outra escolha que vivia só dentro da Sala. Aparece apenas quando
-              há mais de uma: com uma gravação só, a pergunta não tem resposta alternativa. */}
-          {escolhaAtual.origem === 'gravacoes' && sessoes.length > 1 && (
-            <button
-              onClick={() => setSalaAberta(true)}
-              className="ml-auto shrink-0 text-[12px] font-bold text-accent-ink hover:underline cursor-pointer py-1"
-            >
-              {fonte.id === 'sessao' ? 'Trocar a gravação' : 'Escolher uma gravação'}
-            </button>
-          )}
         </div>
       )}
 

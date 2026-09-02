@@ -65,7 +65,8 @@ import {
   type FaixaDificuldade,
   type Composicao, type CartaoParaCompor,
 } from '../../core/minigames/composicao';
-import { filtroDaFonte, fonteDominante, type FiltroDaPratica } from '../../core/minigames/filtro';
+import { filtroDaFonte, fonteDominante, passaNoFiltro, type FiltroDaPratica } from '../../core/minigames/filtro';
+import Segmentado from '../ui/Segmentado';
 import { lerFiltroGuardado, gravarFiltro } from '../../lib/filtroDaPratica';
 import EscutaGame from '../minigames/EscutaGame';
 import DitadoGame from '../minigames/DitadoGame';
@@ -1673,17 +1674,48 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
     /* Mesmo recorte de `jogaveis`, pelo mesmo motivo: sem nível escolhido a trilha vale INTEIRA.
        Aqui o defeito era ainda mais visível, porque é este acervo que produz o "N disponíveis"
        de cada carta — a tela dizia zero sobre uma trilha de 2.784 palavras. */
-    if (fonte.id !== 'trilha' || !trilha || !niveisDaRodada.length) return triagem.usaveis;
+    if (fonte.id !== 'trilha' || !trilha || !niveisDaRodada.length) {
+      /* FORA DA TRILHA, o acervo exibido passa pelo MESMO filtro da rodada (auditoria S9): com o
+         recorte de baralho ligado, o painel "Seu baralho" dizia o acervo INTEIRO enquanto o gate
+         contava o recortado — dois números discordando na mesma tela. A trilha fica fora do
+         predicado porque seus itens embutidos são pseudo-cartões sem `daTrilha`/`dueAtMs`, e o
+         filtro os comeria por engano. */
+      return triagem.usaveis.filter(c => passaNoFiltro(c, filtro, { rankingDificeis: conjuntoDeDificeis, agora: Date.now() }));
+    }
     const doBanco = new Map(triagem.usaveis.map(c => [chaveDaPalavra(c.word), c]));
     const embutidos = niveisDaRodada
       .flatMap(n => cartoesDaTrilha(trilha, n))
       .filter(c => !doBanco.has(chaveDaPalavra(c.word))) as unknown as VocabCard[];
     return [...triagem.usaveis, ...embutidos];
-  }, [triagem.usaveis, fonte.id, niveisDaRodada, trilha]);
+  }, [triagem.usaveis, fonte.id, niveisDaRodada, trilha, filtro, conjuntoDeDificeis]);
+
+  /* Contagens das pílulas de recorte, medidas na base SEM os recortes ligados (o padrão facetado:
+     cada faceta mostra o que ELA renderia, não o que sobra depois dela mesma). `dueAtMs` é o cru
+     do banco — a string de exibição não serve de régua. */
+  const contagemRecortes = useMemo(() => {
+    const agora = Date.now();
+    /* A base da contagem é o filtro SEM as flags de recorte (padrão facetado: a pílula diz o que
+       ELA renderia dentro do resto do filtro — baralho e idioma inclusos —, não o que sobra depois
+       de si mesma; senão ligar uma pílula zeraria a contagem da outra). */
+    const semRecorte = { ...filtro, recorte: { ...filtro.recorte, pedindoRevisao: undefined, nuncaVistas: undefined } };
+    let pedindo = 0, nunca = 0;
+    for (const c of triagem.usaveis) {
+      if (!passaNoFiltro(c, semRecorte, { rankingDificeis: conjuntoDeDificeis, agora })) continue;
+      const d = (c as { dueAtMs?: number | null }).dueAtMs ?? null;
+      if (d == null) nunca++;
+      else if (d <= agora) pedindo++;
+    }
+    return { pedindo, nunca };
+  }, [triagem.usaveis, filtro, conjuntoDeDificeis]);
 
   /* As duas populações dentro de `usaveis`: a que serve aos jogos de par e a que só serve ao
      duelo. Separar é o que permite a faixa de status dizer a verdade inteira. */
-  const pistas = useMemo(() => pistasDaTriagem(triagem), [triagem]);
+  /* Sobre o ACERVO EXIBIDO (já recortado pelo filtro — S9), não sobre a triagem crua: senão o
+     painel diria "599 no idioma · 847 com tradução", dois escopos na mesma linha. */
+  const pistas = useMemo(
+    () => pistasDaTriagem({ ...triagem, usaveis: acervoDaFonte }),
+    [triagem, acervoDaFonte],
+  );
 
   /* SELEÇÃO v2: os itens do acervo marcados como difíceis para você (≥ LEECH_APOS erros seguidos).
      Ficam fora da rotação comum e voltam na rodada de resgate da antessala. */
@@ -2588,6 +2620,51 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
           )}
         </div>
       </div>
+        </div>
+      )}
+
+      {/* ── RECORTES DO ACERVO + RESUMO-VERDADE (onda facetada) ──────────────────────────
+          As pílulas INTERSECTAM a fonte escolhida — são a primeira faceta visível do filtro. A
+          linha de resumo embaixo é a ÚNICA verdade do que entra na rodada: o painel de números e
+          as cartas derivam do mesmo conjunto (S9), então os números não podem mais discordar.
+          "As que mais escapam" NÃO virou pílula ainda de propósito: a aba dela existe logo acima
+          e dois controles para a mesma coisa confundem — ela migra junto com o painel completo. */}
+      {!embutido && fonte.id !== 'trilha' && fontesOferecidas.length > 1 && (
+        <div className="mb-3 flex flex-wrap items-center gap-x-4 gap-y-2">
+          <Segmentado
+            multiplo
+            variante="chip"
+            rotulo="recorte"
+            rotuloDoGrupo="Recortes do acervo desta rodada"
+            valor={[
+              ...(filtro.recorte.pedindoRevisao ? ['pedindoRevisao'] : []),
+              ...(filtro.recorte.nuncaVistas ? ['nuncaVistas'] : []),
+            ]}
+            aoTrocar={(id) => setFiltro(prev => ({
+              ...prev,
+              recorte: { ...prev.recorte, [id]: !prev.recorte[id as 'pedindoRevisao' | 'nuncaVistas'] },
+            }))}
+            opcoes={[
+              {
+                id: 'pedindoRevisao', rotulo: 'Pedindo revisão', contagem: contagemRecortes.pedindo,
+                motivoBloqueio: contagemRecortes.pedindo === 0 ? 'nada vencido neste acervo agora' : undefined,
+              },
+              {
+                id: 'nuncaVistas', rotulo: 'Nunca vistas', contagem: contagemRecortes.nunca,
+                motivoBloqueio: contagemRecortes.nunca === 0 ? 'tudo aqui já foi visto ao menos uma vez' : undefined,
+              },
+            ]}
+          />
+          <p className="text-[12px] text-ink-muted" aria-live="polite">
+            <span className="font-bold text-ink">{acervoDaFonte.length}</span>
+            {' '}no recorte
+            {baralhoAnki ? <> · {baralhoAnki.nome}</> : null}
+            {fonte.lang ? <> · {langLabelPt(fonte.lang)}</> : null}
+            {acervoDaFonte.length === 0 && (filtro.recorte.pedindoRevisao || filtro.recorte.nuncaVistas || filtro.baralhos.length > 0) ? (
+              /* Vazio ÚTIL (R5): zero não é um beco — diz o que desligar para voltar a ter material. */
+              <span className="text-warn-ink"> — nenhum item passa; desligue um recorte para voltar a ter material</span>
+            ) : null}
+          </p>
         </div>
       )}
 

@@ -1,106 +1,21 @@
-import type { MinigameId } from './types';
 import { MINIGAMES } from './types';
 import type { EstadoDoJogo } from './estadoDosJogos';
 import { ROTULO_DO_MOTIVO } from './estadoDosJogos';
 
 /**
- * O PAINEL DA PRÁTICA — as duas decisões que a tela precisa tomar antes de desenhar qualquer coisa:
- * (1) o que propor agora, e (2) como agrupar os nove jogos.
+ * O PAINEL DA PRÁTICA — como os nove jogos se dividem antes de a tela desenhar qualquer coisa.
  *
- * POR QUE ISTO EXISTE. A tela de hoje mostra nove cartas iguais e deixa a escolha inteira com quem
- * chegou — contados no código: 53 controles e 64 contadores competindo pela mesma atenção. Quem
- * abre "Praticar" quase sempre quer uma coisa só ("praticar agora"), e estava pagando o preço de
- * uma decisão que o app tinha informação de sobra para propor. As cartas bloqueadas eram piores:
- * nove retângulos cinzentos sem dizer o que faltava.
+ * POR QUE ISTO EXISTE. As cartas bloqueadas eram nove retângulos cinzentos sem dizer o que
+ * faltava, misturados com as que abrem: a tela parecia quebrada quando o que faltava era material.
+ * Aqui o que abre e o que não abre viram dois grupos, e todo bloqueado carrega o porquê.
  *
- * A REGRA É PURA E TESTÁVEL de propósito. A sugestão é a primeira coisa que a pessoa lê na tela;
- * se ela mentir ("revisar 2.225") o resto da tela perde credibilidade junto. Aqui dá para travar
- * cada frase com um teste, o que dentro de um componente de 3.300 linhas não daria.
+ * A REGRA É PURA E TESTÁVEL de propósito — dentro de um componente de 3.300 linhas não haveria
+ * como travá-la.
+ *
+ * Houve também um `sugerirRodada`, que propunha UMA rodada no topo da tela (a "ficha"). O dono
+ * pediu a ficha de volta para fora depois de vê-la no app; a regra saiu junto, em vez de ficar
+ * como código sem consumidor. O histórico tem o desenho inteiro, se ele voltar a fazer sentido.
  */
-
-/**
- * Para que cada jogo serve MELHOR, no vocabulário de quem joga — não no de quem programou.
- *
- * `volume`: quantas palavras diferentes a rodada toca por minuto (alto = bom para desafogar fila
- * de revisão). `producao`: o quanto exige produzir a palavra em vez de reconhecê-la (alto = fixa
- * melhor material novo, e cansa mais). Os valores saem dos contratos em `MINIGAMES` — Duelo tem
- * rodada curta por item, Termo consome 7 palavras numa escada longa — e existem para a sugestão
- * poder justificar a escolha em português, não para virar mais um número na tela.
- */
-const PERFIL: Record<MinigameId, { volume: number; producao: number; frase: string }> = {
-  blitz:      { volume: 5, producao: 1, frase: 'é o que mais palavras cobre por minuto' },
-  memory:     { volume: 3, producao: 2, frase: 'fixa o par palavra e significado' },
-  termo:      { volume: 2, producao: 5, frase: 'faz você escrever a palavra de cabeça' },
-  wordsearch: { volume: 3, producao: 3, frase: 'treina reconhecer a forma escrita' },
-  escuta:     { volume: 3, producao: 2, frase: 'treina o ouvido com a sua própria gravação' },
-  ditado:     { volume: 2, producao: 5, frase: 'junta ouvido e escrita' },
-  karaoke:    { volume: 2, producao: 4, frase: 'trabalha a pronúncia em voz alta' },
-  scramble:   { volume: 2, producao: 4, frase: 'treina a ordem das palavras na frase' },
-  conectores: { volume: 2, producao: 3, frase: 'mostra como as ideias se ligam' },
-};
-
-export type MomentoDaPratica = 'revisao' | 'aprender' | 'vazio';
-
-export interface SugestaoDaRodada {
-  /** `null` quando nenhum jogo abre — a tela mostra o caminho de saída, não um botão morto. */
-  jogo: MinigameId | null;
-  momento: MomentoDaPratica;
-  /** Quantas palavras a proposta trata: as vencidas, ou o acervo do recorte. */
-  quantas: number;
-  /**
-   * A justificativa SEM o nome do jogo ("é o que mais palavras cobre por minuto").
-   *
-   * O nome fica de fora porque ele não é único: a tabela da UI (`views/play/jogos.tsx`) tem um
-   * título por perfil de idade — "Ache os pares" para criança, "Memória: palavra e tradução" para
-   * quem já sabe. O núcleo não escolhe qual; entrega a razão, e a tela compõe a frase com o nome
-   * que aquela pessoa vê.
-   */
-  justificativa: string;
-}
-
-export interface EntradaDaSugestao {
-  /** Estado de cada jogo NESTE recorte (a mesma fonte que as cartas usam). */
-  estados: readonly EstadoDoJogo[];
-  /** Itens do recorte que estão pedindo revisão agora. */
-  vencidas: number;
-  /** Tamanho do recorte inteiro. */
-  acervo: number;
-}
-
-/**
- * O que propor agora.
- *
- * DUAS SITUAÇÕES, e a diferença entre elas é o que a tela mais errava: com fila de revisão, o
- * trabalho é DESAFOGAR (ganha quem cobre mais palavras por minuto); sem fila, o trabalho é
- * APRENDER (ganha quem faz produzir a palavra, que fixa melhor). Propor "revisar" sobre material
- * nunca visto foi exatamente o defeito medido no acervo importado.
- *
- * O empate é resolvido pelo tamanho da rodada e, por fim, pela ordem da tabela `MINIGAMES` —
- * determinístico, porque uma sugestão que muda a cada render não é uma sugestão.
- */
-export function sugerirRodada(e: EntradaDaSugestao): SugestaoDaRodada {
-  const abertos = e.estados.filter((s) => s.ok);
-  if (abertos.length === 0) {
-    return { jogo: null, momento: 'vazio', quantas: e.acervo, justificativa: '' };
-  }
-
-  const temFila = e.vencidas > 0 && abertos.some((s) => e.vencidas >= MINIGAMES[s.id].minItems);
-  const momento: MomentoDaPratica = temFila ? 'revisao' : 'aprender';
-  const peso = (s: EstadoDoJogo) => (momento === 'revisao' ? PERFIL[s.id].volume : PERFIL[s.id].producao);
-
-  const melhor = [...abertos].sort((a, b) =>
-    peso(b) - peso(a) ||
-    (b.tamanhoDaRodada ?? b.disponiveis) - (a.tamanhoDaRodada ?? a.disponiveis) ||
-    a.id.localeCompare(b.id),
-  )[0];
-
-  return {
-    jogo: melhor.id,
-    momento,
-    quantas: momento === 'revisao' ? e.vencidas : e.acervo,
-    justificativa: PERFIL[melhor.id].frase,
-  };
-}
 
 export interface JogoAgrupado {
   estado: EstadoDoJogo;

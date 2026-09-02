@@ -14,7 +14,7 @@ import {
   SESSAO_DA_TRILHA, CONFIANCA_CURADA,
   buildRodadasEscuta, buildRodadasDitado, buildRodadasConectores, isDueNow,
   estadoDeCadaJogo, comoDesbloquear, type ContextoDeDesbloqueio, type Desbloqueio,
-  sugerirRodada, agruparJogos,
+  agruparJogos,
   estimativaDeMinutos, rotuloDeDuracao, pistasDaTriagem, resumoDosPulados,
   previaSegura, repetidosDaUltima, MAPA_REVELA_ALVO, origemDoMaterial,
   pontuarRodada, xpFromRound, acumular, mesmaCorrente, marcarPromovidas, resumir, agruparFases,
@@ -35,7 +35,6 @@ import { faixaDe as faixaDaComposicao, type EstrategiaDaUI } from '../../core/mi
 import { lerPrecisoes, registrarPrecisao, registrarVistas, vistasRecentes as vistasGuardadas } from '../../lib/memoriaLocal';
 import SalaDeEscolha from '../minigames/SalaDeEscolha';
 import SeletorDeConteudo from '../minigames/SeletorDeConteudo';
-import { FichaDaRodada } from '../minigames/FichaDaRodada';
 import { isTtsSupported, hasVoiceFor, vozesCarregadas, aoMudarVozes } from '../../lib/tts';
 import { useAudioDaSessao } from '../../lib/audioDaSessao';
 import CuradoriaBaralho from './CuradoriaBaralho';
@@ -2019,10 +2018,6 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
    * o Termo no topo fez um trabalho que o redesenho não tem o direito de desfazer. O que muda é
    * a separação — jogável e bloqueado deixam de disputar a mesma grade.
    */
-  const sugestao = useMemo(
-    () => sugerirRodada({ estados: estados.map(j => j.estado), vencidas: vencidos, acervo: acervoDaFonte.length }),
-    [estados, vencidos, acervoDaFonte.length],
-  );
   const jogosProntos = useMemo(() => ordenados.filter(j => j.estado.ok), [ordenados]);
   const jogosPresos = useMemo(() => {
     const porId = new Map(ordenados.map(j => [j.id, j]));
@@ -2583,34 +2578,6 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
           `fetchSessions`: o botão nascia DEPOIS da primeira pintura e empurrava a faixa de status
           e a grade de nove cartas para baixo (parte do CLS 0,364 medido no achado F0-02). O valor
           é a altura de repouso do botão: p-3 + uma linha de texto + a borda do `card-panel`. */}
-      {/* ── A FICHA DA RODADA: a decisão que quase toda visita vem tomar ────────────────────
-          Quem abre esta tela quase sempre quer uma coisa só — praticar agora — e estava pagando
-          o preço de escolher entre nove cartas iguais, com 64 contadores em volta. A ficha propõe
-          UMA rodada e diz de onde vem o material antes do clique. Quem quer outra coisa continua
-          um clique atrás («escolher outro jogo», e o seletor logo abaixo).
-
-          Fora quando embutido: dentro da aba de uma sessão a fonte é fixa, e propor rodada ali
-          seria oferecer uma decisão que aquela tela não tem o direito de tomar. */}
-      {!embutido && fontesOferecidas.length > 1 && (
-        <div className="mb-4">
-          <FichaDaRodada
-            sugestao={sugestao}
-            nomeDoJogo={sugestao.jogo ? (JOGOS.find(j => j.id === sugestao.jogo)?.titulo[ageProfile] ?? '') : ''}
-            origem={{
-              baralho: baralhoAnki?.nome,
-              idioma: fonte.lang ? langLabelPt(fonte.lang) : undefined,
-            }}
-            aoJogar={() => { if (sugestao.jogo) pedirParaJogar({ id: sugestao.jogo }); }}
-            aoEscolherOutro={() => {
-              /* Não abre modal nenhum: as cartas já estão logo abaixo, e mandar para um segundo
-                 seletor seria pedir a mesma decisão duas vezes. Leva o olho até elas. */
-              document.getElementById('grade-de-jogos')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            }}
-            aoTrazerMaterial={() => setImportando(true)}
-          />
-        </div>
-      )}
-
       {!embutido && (
         <div className="mb-4 min-h-[46px]">
       {/* ── A FAIXA DE FONTES TEM DOIS LADOS, e o direito não depende do esquerdo.

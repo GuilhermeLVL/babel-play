@@ -47,7 +47,31 @@ Estas travam trabalho. Estão detalhadas em `docs/auditoria/decisao-infraestrutu
 
 ---
 
-## ⇒ ONDE O PRODUTO ESTÁ (01/09)
+## ⇒ ONDE O PRODUTO ESTÁ (02/09) — seletor facetado + pente-fino dos jogos
+
+A rodada de 02/09 (branch `eval/medicao-de-fala`, commits `b1b23be..e897817`) redesenhou o seletor
+de conteúdo de "Praticar jogando" e auditou os 9 minijogos pós-Anki:
+
+- **Filtro facetado** (`FiltroDaPratica`): união dentro da faceta, interseção entre facetas, num
+  predicado puro com paridade SQL provada por teste (18/18). O chip "aceso e inerte" ficou
+  inexprimível por construção — o filtro é o estado; a fonte deriva dele.
+- **Contadores coerentes**: com recorte de baralho, 599 em TODOS os pontos da tela onde antes
+  847×599 discordavam; o banner "pedindo revisão" conta o escopo da rodada, não a conta inteira.
+  A régua de qualidade passou a respeitar a origem do cartão (o "20 com tradução · 827 só com
+  frase" sobre um baralho onde todas tinham tradução).
+- **Persistência tripla**: estado → localStorage versionado (com espelho da chave legada por um
+  release) → URL compartilhável (`/jogar?fonte=…&recorte=…`); F5 preserva, reset limpa, e2e cobre.
+- **Idioma sargável**: `src_lang_base` GENERATED VIRTUAL + índice (migração 0019, down manual).
+- **S1–S13 do pente-fino tratados** (fichas em `docs/auditoria/pente-fino-jogos-v1.md`; auditoria
+  do seletor em `docs/auditoria/seletor-de-conteudo-v1.md`; spec em
+  `openspec/changes/seletor-facetado/`).
+
+**Pendências desta frente** (tasks.md da change, onda 4): distribuição multi-fonte proporcional,
+seletor de idioma unificado (`praticaLang` como espelho), 'dificeis' como pílula de recorte,
+unidade notas×cartões na tela Baralhos, re-escopo server-side do `dueToday`, matriz executada
+9×4×4×3, e as pendências herdadas do motor Anki (F6b mídia, F9 Mapeador, F10 frases do baralho).
+
+## ⇒ ONDE O PRODUTO ESTAVA (01/09)
 
 A rodada de 31/08–01/09 fechou a **economia legível** (protótipo aprovado pelo dono em artifact):
 

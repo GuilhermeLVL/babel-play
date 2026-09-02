@@ -1,0 +1,320 @@
+<title>Aba de Jogos — A ou B</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;700;800;900&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+
+<style>
+/* Tokens do produto (src/index.css) — protótipo que inventa paleta não prova nada. */
+:root {
+  color-scheme: light;
+  --canvas:#E6E2D6; --surface:#F5F2EA; --surface-hover:#EBE7DB;
+  --ink:#26241F; --ink-muted:#5E5A50; --ink-faint:#7A7568;
+  --accent:#F04E23; --accent-soft:#FBDDD3; --accent-ink:#C93A15; --accent-contrast:#fff;
+  --good:#3E6B44; --good-soft:#DCE7DB; --warn:#C98A12; --warn-soft:#F4E7CB;
+  --rare:#5B5EA6; --rare-soft:#E1E1F2; --error:#C92A2A;
+  --border:#C6BFAC; --border-strong:#26241F;
+  --shadow-card: inset 0 1px 0 rgba(255,255,255,.6), 0 2px 5px rgba(38,36,31,.08);
+  --shadow-btn: inset 0 1px 0 rgba(255,255,255,.25), 0 2px 0 rgba(0,0,0,.18);
+  --r-card:16px; --r-btn:12px;
+  --f-display:"Archivo", system-ui, sans-serif;
+  --f-body:"Inter", system-ui, sans-serif;
+  --f-mono:"IBM Plex Mono", ui-monospace, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --canvas:#0B0E14; --surface:#151922; --surface-hover:#1F2430;
+    --ink:#F0F6FC; --ink-muted:#8B949E; --ink-faint:#79828C;
+    --accent:#FF5A36; --accent-soft:rgba(255,90,54,.15); --accent-ink:#FF7B5C;
+    --good:#3FB950; --good-soft:rgba(63,185,80,.15); --warn:#D29922; --warn-soft:rgba(210,153,34,.15);
+    --rare:#58A6FF; --rare-soft:rgba(88,166,255,.15); --error:#F85149;
+    --border:#333B48; --border-strong:#48525F;
+    --shadow-card: 0 2px 5px rgba(0,0,0,.35);
+    --shadow-btn: inset 0 1px 0 rgba(255,255,255,.12), 0 2px 0 rgba(0,0,0,.5);
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --canvas:#0B0E14; --surface:#151922; --surface-hover:#1F2430;
+  --ink:#F0F6FC; --ink-muted:#8B949E; --ink-faint:#79828C;
+  --accent:#FF5A36; --accent-soft:rgba(255,90,54,.15); --accent-ink:#FF7B5C;
+  --good:#3FB950; --good-soft:rgba(63,185,80,.15); --warn:#D29922; --warn-soft:rgba(210,153,34,.15);
+  --rare:#58A6FF; --rare-soft:rgba(88,166,255,.15); --error:#F85149;
+  --border:#333B48; --border-strong:#48525F;
+  --shadow-card: 0 2px 5px rgba(0,0,0,.35);
+  --shadow-btn: inset 0 1px 0 rgba(255,255,255,.12), 0 2px 0 rgba(0,0,0,.5);
+}
+* { box-sizing:border-box; }
+body { margin:0; background:var(--canvas); color:var(--ink); font-family:var(--f-body); font-size:15px; line-height:1.5; -webkit-font-smoothing:antialiased; }
+h1,h2,h3 { font-family:var(--f-display); margin:0; letter-spacing:-.015em; text-wrap:balance; }
+button { font:inherit; color:inherit; cursor:pointer; }
+:focus-visible { outline:3px solid var(--accent); outline-offset:2px; border-radius:6px; }
+@media (prefers-reduced-motion: reduce) { *,*::before,*::after { animation-duration:.01ms!important; transition-duration:.01ms!important; } }
+.wrap { max-width:1120px; margin:0 auto; padding:0 20px 60px; }
+.lab { font-family:var(--f-mono); font-size:10.5px; font-weight:600; letter-spacing:.14em; text-transform:uppercase; color:var(--ink-faint); }
+.num { font-variant-numeric:tabular-nums; }
+
+/* ── Barra do protótipo (fora do desenho) ── */
+.barra { display:flex; align-items:center; gap:14px; flex-wrap:wrap; padding:12px 0; border-bottom:2px solid var(--border-strong); margin-bottom:22px; }
+.barra .marca { font-family:var(--f-display); font-weight:800; font-size:15px; margin-right:auto; }
+.seg { display:inline-flex; border:2px solid var(--border-strong); border-radius:99px; overflow:hidden; }
+.seg button { border:none; background:var(--surface); padding:7px 18px; font-weight:700; font-size:13px; }
+.seg button[aria-pressed="true"] { background:var(--accent); color:var(--accent-contrast); }
+.tema { background:none; border:1px solid var(--border); border-radius:99px; padding:4px 11px; font-size:11px; color:var(--ink-muted); }
+
+/* ── Métricas ── */
+.metricas { display:grid; grid-template-columns:repeat(auto-fit,minmax(128px,1fr)); gap:10px; margin-bottom:24px; }
+.met { background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:10px 12px; }
+.met .v { font-family:var(--f-display); font-weight:800; font-size:20px; }
+.met .k { font-size:11px; color:var(--ink-muted); margin-top:1px; }
+.met.melhor { border-color:var(--good); }
+.met.melhor .v { color:var(--good); }
+.met .base { font-family:var(--f-mono); font-size:10px; color:var(--ink-faint); }
+
+/* ── Comum às duas ── */
+.regua { display:flex; align-items:center; gap:16px; flex-wrap:wrap; font-size:12.5px; color:var(--ink-muted); padding-bottom:12px; }
+.regua b { color:var(--ink); }
+.heroi { background:var(--surface); border:2px solid var(--border-strong); border-radius:var(--r-card); box-shadow:var(--shadow-card); padding:20px 22px; display:flex; align-items:center; gap:20px; flex-wrap:wrap; }
+.heroi .txt { flex:1; min-width:220px; }
+.heroi h2 { font-size:clamp(19px,2.6vw,25px); font-weight:800; line-height:1.15; }
+.heroi p { margin:6px 0 0; font-size:13px; color:var(--ink-muted); }
+.btn-primario { background:var(--accent); color:var(--accent-contrast); border:none; border-radius:var(--r-btn); padding:14px 28px; font-family:var(--f-display); font-weight:800; font-size:16px; box-shadow:var(--shadow-btn); transition:transform .12s, filter .12s; }
+.btn-primario:hover { filter:brightness(1.06); transform:translateY(-1px); }
+.btn-txt { background:none; border:none; color:var(--ink-muted); font-size:12.5px; text-decoration:underline; text-underline-offset:3px; padding:4px; }
+.btn-txt:hover { color:var(--accent-ink); }
+.secao { margin:26px 0 12px; display:flex; align-items:baseline; gap:10px; }
+.secao h3 { font-size:15px; font-weight:700; }
+.secao .conta { font-family:var(--f-mono); font-size:11.5px; color:var(--ink-faint); }
+
+/* ── A: vitrine ── */
+.vitrine { display:grid; grid-template-columns:repeat(auto-fill,minmax(210px,1fr)); gap:14px; }
+.jogo-a { position:relative; text-align:left; background:var(--surface); border:2px solid var(--border); border-radius:var(--r-card); padding:0; overflow:hidden; transition:transform .13s, border-color .13s; display:flex; flex-direction:column; min-height:168px; }
+.jogo-a:hover { transform:translateY(-3px); border-color:var(--border-strong); box-shadow:var(--shadow-card); }
+.jogo-a .capa { height:76px; display:grid; place-items:center; border-bottom:2px solid var(--border); }
+.jogo-a .corpo { padding:12px 14px 14px; display:flex; flex-direction:column; gap:4px; flex:1; }
+.jogo-a .nome { font-family:var(--f-display); font-weight:800; font-size:15px; }
+.jogo-a .treina { font-size:12px; color:var(--ink-muted); flex:1; }
+.jogo-a .pe { font-family:var(--f-mono); font-size:10.5px; color:var(--ink-faint); }
+
+/* ── B: lista por família ── */
+.familia { margin-bottom:18px; }
+.familia-topo { display:flex; align-items:center; gap:9px; margin-bottom:8px; }
+.familia-topo .lab { color:var(--ink-muted); }
+.lista { display:flex; flex-direction:column; gap:7px; }
+.jogo-b { display:flex; align-items:center; gap:13px; text-align:left; background:var(--surface); border:1.5px solid var(--border); border-radius:var(--r-btn); padding:11px 14px; transition:border-color .12s, background .12s; }
+.jogo-b:hover { border-color:var(--border-strong); background:var(--surface-hover); }
+.jogo-b .selo { width:34px; height:34px; border-radius:9px; display:grid; place-items:center; flex-shrink:0; }
+.jogo-b .nome { font-family:var(--f-display); font-weight:700; font-size:14.5px; }
+.jogo-b .treina { font-size:12px; color:var(--ink-muted); }
+.jogo-b .qtd { margin-left:auto; font-family:var(--f-mono); font-size:11.5px; color:var(--ink-faint); flex-shrink:0; }
+
+/* ── Passo 2: fonte ── */
+.fundo { position:fixed; inset:0; background:rgba(11,14,20,.55); backdrop-filter:blur(3px); display:grid; place-items:end center; z-index:50; }
+.fundo[hidden] { display:none; }
+.folha { background:var(--surface); border:2px solid var(--border-strong); border-radius:var(--r-card) var(--r-card) 0 0; width:100%; max-width:560px; max-height:86vh; overflow-y:auto; padding:22px; }
+@media (min-width:700px) { .fundo { place-items:center; } .folha { border-radius:var(--r-card); } }
+.folha h3 { font-size:18px; font-weight:800; margin-bottom:3px; }
+.folha .sub { color:var(--ink-muted); font-size:13px; margin:0 0 16px; }
+.fonte { display:flex; align-items:center; gap:12px; width:100%; text-align:left; background:var(--surface); border:1.5px solid var(--border); border-radius:var(--r-btn); padding:12px 14px; margin-bottom:8px; }
+.fonte:hover:not(:disabled) { border-color:var(--accent); }
+.fonte:disabled { opacity:.5; cursor:not-allowed; }
+.fonte .nome { font-weight:600; font-size:14px; }
+.fonte .det { font-size:12px; color:var(--ink-muted); }
+.fonte .qtd { margin-left:auto; font-family:var(--f-mono); font-size:12px; }
+.folha-pe { display:flex; justify-content:space-between; align-items:center; gap:12px; margin-top:16px; padding-top:14px; border-top:1px solid var(--border); }
+
+.nota { margin-top:34px; padding:16px 18px; border-left:3px solid var(--accent); background:var(--surface); border-radius:0 10px 10px 0; font-size:13px; color:var(--ink-muted); }
+.nota b { color:var(--ink); }
+.nota ul { margin:8px 0 0; padding-left:18px; }
+.nota li { margin:5px 0; }
+</style>
+
+<div class="wrap">
+  <div class="barra">
+    <span class="marca">Aba de jogos — protótipo</span>
+    <div class="seg" role="group" aria-label="Alternativa">
+      <button type="button" id="btn-a" aria-pressed="true">A · vitrine</button>
+      <button type="button" id="btn-b" aria-pressed="false">B · por família</button>
+    </div>
+    <button class="tema" type="button" id="btn-tema">tema</button>
+  </div>
+
+  <div class="metricas" id="metricas"></div>
+
+  <div id="palco"></div>
+
+  <div class="nota">
+    <b>O que as duas têm em comum, e por quê.</b>
+    <ul>
+      <li><b>Jogo primeiro, fonte depois.</b> A escolha de conteúdo só aparece depois de escolher o jogo, no passo 2 — e ali as fontes que não alimentam aquele jogo <b>não são oferecidas</b>.</li>
+      <li><b>Um clique resolve.</b> "Continuar" usa a última configuração e dispensa as duas escolhas. É a ação de maior peso visual da tela.</li>
+      <li><b>Identidade por ícone, cor e tipografia</b> — sem ilustração nova e sem emoji, reusando o que <span class="lab" style="letter-spacing:.06em">ArteDosJogos</span> já dá.</li>
+      <li><b>O seletor facetado não sumiu:</b> virou "Escolher com detalhe" dentro do passo 2. Uma verdade só sobre o que entra na rodada.</li>
+    </ul>
+  </div>
+</div>
+
+<div class="fundo" id="folha-fundo" hidden>
+  <div class="folha" role="dialog" aria-modal="true" aria-labelledby="folha-tit">
+    <h3 id="folha-tit">De onde vêm as palavras</h3>
+    <p class="sub" id="folha-sub"></p>
+    <div id="folha-fontes"></div>
+    <div class="folha-pe">
+      <button class="btn-txt" type="button" id="folha-avancado">Escolher com detalhe</button>
+      <button class="btn-primario" type="button" id="folha-jogar" style="padding:11px 22px; font-size:15px">Jogar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* Números reais do acervo medido (02/09): inglês 2.228, curso 2.784, 3 frases, 6 japonês. */
+const JOGOS = [
+  { id:'blitz',    nome:'Desafio rápido',       treina:'reconhecer rápido',      fam:'palavra', tom:'accent', n:2228 },
+  { id:'memory',   nome:'Jogo da memória',      treina:'fixar pares',            fam:'palavra', tom:'rare',   n:2228 },
+  { id:'termo',    nome:'Escrever a palavra',   treina:'escrever de cabeça',     fam:'palavra', tom:'good',   n:1791 },
+  { id:'caca',     nome:'Caça-palavras',        treina:'reconhecer a forma',     fam:'palavra', tom:'warn',   n:2228 },
+  { id:'scramble', nome:'Montar a frase',       treina:'ordem das palavras',     fam:'frase',   tom:'rare',   n:35 },
+  { id:'conect',   nome:'Palavras de ligação',  treina:'conectar ideias',        fam:'frase',   tom:'good',   n:35 },
+  { id:'escuta',   nome:'Reconhecer a fala',    treina:'ouvido',                 fam:'audio',   tom:'accent', n:56 },
+  { id:'ditado',   nome:'Escrever o que ouviu', treina:'ouvido e escrita',       fam:'audio',   tom:'warn',   n:56 },
+  { id:'karaoke',  nome:'Repetir em voz alta',  treina:'pronúncia',              fam:'audio',   tom:'rare',   n:56 },
+];
+const FAMILIAS = { palavra:'com palavras', frase:'com frases', audio:'com áudio' };
+const FONTES = [
+  { id:'baralho', nome:'Meus baralhos',    det:'4000 Essential English Words', n:2228, fams:['palavra'] },
+  { id:'curso',   nome:'Curso de palavras', det:'A1 a C2, 6 etapas',           n:2784, fams:['palavra','frase','audio'] },
+  { id:'grav',    nome:'Minhas gravações',  det:'4 gravações com áudio',       n:56,   fams:['palavra','frase','audio'] },
+  { id:'dificil', nome:'As que mais escapam', det:'ainda sem material',        n:0,    fams:['palavra'] },
+];
+
+/* Ícone geométrico por jogo: forma + cor, sem ilustração e sem emoji. */
+function icone(id, tom, tam) {
+  const c = `var(--${tom})`;
+  const formas = {
+    blitz:    `<path d="M13 2 4 14h6l-1 8 9-12h-6z" fill="${c}"/>`,
+    memory:   `<rect x="3" y="3" width="8" height="8" rx="2" fill="${c}"/><rect x="13" y="3" width="8" height="8" rx="2" fill="${c}" opacity=".45"/><rect x="3" y="13" width="8" height="8" rx="2" fill="${c}" opacity=".45"/><rect x="13" y="13" width="8" height="8" rx="2" fill="${c}"/>`,
+    termo:    `<rect x="3" y="6" width="18" height="12" rx="2" fill="none" stroke="${c}" stroke-width="2"/><path d="M7 12h2M11 12h2M15 12h2" stroke="${c}" stroke-width="2" stroke-linecap="round"/>`,
+    caca:     `<rect x="3" y="3" width="18" height="18" rx="2" fill="none" stroke="${c}" stroke-width="2"/><path d="M6 8l5 8 5-11" stroke="${c}" stroke-width="2.5" fill="none" stroke-linecap="round"/>`,
+    scramble: `<rect x="2" y="9" width="6" height="6" rx="1.5" fill="${c}"/><rect x="9" y="9" width="6" height="6" rx="1.5" fill="${c}" opacity=".5"/><rect x="16" y="9" width="6" height="6" rx="1.5" fill="${c}"/>`,
+    conect:   `<circle cx="6" cy="12" r="3" fill="${c}"/><circle cx="18" cy="12" r="3" fill="${c}"/><path d="M9 12h6" stroke="${c}" stroke-width="2"/>`,
+    escuta:   `<path d="M4 9v6M8 6v12M12 3v18M16 6v12M20 9v6" stroke="${c}" stroke-width="2.5" stroke-linecap="round"/>`,
+    ditado:   `<path d="M4 18h16" stroke="${c}" stroke-width="2" stroke-linecap="round"/><path d="M7 14 15 6l3 3-8 8z" fill="${c}"/>`,
+    karaoke:  `<rect x="9" y="2" width="6" height="11" rx="3" fill="${c}"/><path d="M5 11a7 7 0 0 0 14 0M12 18v4" stroke="${c}" stroke-width="2" fill="none" stroke-linecap="round"/>`,
+  };
+  return `<svg width="${tam}" height="${tam}" viewBox="0 0 24 24" aria-hidden="true">${formas[id] || ''}</svg>`;
+}
+
+const fmt = n => n.toLocaleString('pt-BR');
+const palco = document.getElementById('palco');
+let alternativa = 'a';
+
+const regua = `<div class="regua"><span>Ofensiva <b class="num">7 dias</b></span><span>Nível <b class="num">12</b></span><span>Seeds <b class="num">1.284</b></span></div>`;
+const heroi = `
+  <section class="heroi">
+    <div class="txt">
+      <span class="lab">continuar de onde parou</span>
+      <h2>Desafio rápido, 20 palavras do seu baralho</h2>
+      <p>Mesma escolha da última vez. <span class="num">2.228</span> palavras disponíveis, <span class="num">3</span> pedindo revisão.</p>
+    </div>
+    <button class="btn-primario" type="button" data-jogar="continuar">Continuar</button>
+  </section>`;
+
+function pintarA() {
+  palco.innerHTML = regua + heroi + `
+    <div class="secao"><h3>Escolher outro jogo</h3><span class="conta num">9 jogos</span></div>
+    <div class="vitrine">${JOGOS.map(j => `
+      <button class="jogo-a" type="button" data-jogo="${j.id}">
+        <span class="capa" style="background:var(--${j.tom}-soft)">${icone(j.id, j.tom, 38)}</span>
+        <span class="corpo">
+          <span class="nome">${j.nome}</span>
+          <span class="treina">${j.treina}</span>
+          <span class="pe">${fmt(j.n)} palavras</span>
+        </span>
+      </button>`).join('')}</div>`;
+}
+
+function pintarB() {
+  const porFam = fam => JOGOS.filter(j => j.fam === fam);
+  palco.innerHTML = regua + heroi + `
+    <div class="secao"><h3>Escolher outro jogo</h3><span class="conta num">9 jogos, 3 famílias</span></div>
+    ${Object.entries(FAMILIAS).map(([fam, rotulo]) => `
+      <div class="familia">
+        <div class="familia-topo"><span class="lab">${rotulo}</span><span class="conta num">${porFam(fam).length}</span></div>
+        <div class="lista">${porFam(fam).map(j => `
+          <button class="jogo-b" type="button" data-jogo="${j.id}">
+            <span class="selo" style="background:var(--${j.tom}-soft)">${icone(j.id, j.tom, 20)}</span>
+            <span><span class="nome">${j.nome}</span><br><span class="treina">${j.treina}</span></span>
+            <span class="qtd num">${fmt(j.n)}</span>
+          </button>`).join('')}</div>
+      </div>`).join('')}`;
+}
+
+function medir() {
+  const alvo = palco;
+  const interativos = alvo.querySelectorAll('button, a[href], input, select, [role="button"]').length;
+  const texto = (alvo.innerText || '').replace(/\s+/g, ' ').trim();
+  const palavras = texto ? texto.split(' ').length : 0;
+  const base = { interativos: 35, palavras: 246, decisoes: 2 };
+  const linhas = [
+    { k:'decisões até jogar', v:1, b:base.decisoes, menor:true, nota:'"Continuar"' },
+    { k:'elementos na tela', v:interativos, b:base.interativos, menor:true },
+    { k:'palavras a ler', v:palavras, b:base.palavras, menor:true },
+    { k:'leitura estimada', v:Math.round(palavras/3.3)+'s', b:'75s', menor:true },
+  ];
+  document.getElementById('metricas').innerHTML = linhas.map(l => {
+    const num = typeof l.v === 'number' ? l.v : parseInt(l.v);
+    const bn = typeof l.b === 'number' ? l.b : parseInt(l.b);
+    const melhor = l.menor && num < bn;
+    return `<div class="met ${melhor ? 'melhor' : ''}">
+      <div class="v num">${l.v}</div>
+      <div class="k">${l.k}</div>
+      <div class="base">hoje: ${l.b}${l.nota ? ' · ' + l.nota : ''}</div>
+    </div>`;
+  }).join('');
+}
+
+function pintar() {
+  (alternativa === 'a' ? pintarA : pintarB)();
+  medir();
+  document.getElementById('btn-a').setAttribute('aria-pressed', String(alternativa === 'a'));
+  document.getElementById('btn-b').setAttribute('aria-pressed', String(alternativa === 'b'));
+}
+
+document.getElementById('btn-a').addEventListener('click', () => { alternativa = 'a'; pintar(); });
+document.getElementById('btn-b').addEventListener('click', () => { alternativa = 'b'; pintar(); });
+document.getElementById('btn-tema').addEventListener('click', () => {
+  const r = document.documentElement, atual = r.getAttribute('data-theme');
+  const escuro = atual === 'dark' || (!atual && matchMedia('(prefers-color-scheme: dark)').matches);
+  r.setAttribute('data-theme', escuro ? 'light' : 'dark');
+});
+
+document.addEventListener('click', e => {
+  const cont = e.target.closest('[data-jogar]');
+  if (cont) { alert('Protótipo: a rodada começaria aqui, com a última configuração.'); return; }
+  const jogo = e.target.closest('[data-jogo]');
+  if (jogo) { abrirFonte(jogo.dataset.jogo); return; }
+  if (e.target.closest('#folha-jogar')) { document.getElementById('folha-fundo').hidden = true; alert('Protótipo: a rodada começaria aqui.'); return; }
+  if (e.target.closest('#folha-avancado')) { alert('Protótipo: abre o seletor facetado que já existe hoje.'); return; }
+  const fundo = e.target.closest('#folha-fundo');
+  if (fundo && !e.target.closest('.folha')) fundo.hidden = true;
+});
+document.addEventListener('keydown', e => { if (e.key === 'Escape') document.getElementById('folha-fundo').hidden = true; });
+
+function abrirFonte(idJogo) {
+  const j = JOGOS.find(x => x.id === idJogo);
+  document.getElementById('folha-sub').textContent = `Para o ${j.nome}. Só aparecem as fontes que alimentam este jogo.`;
+  /* Fonte que não alimenta este jogo NÃO é oferecida; a que não tem material aparece travada
+     com o motivo, em vez de sumir sem explicação. */
+  const servem = FONTES.filter(f => f.fams.includes(j.fam));
+  document.getElementById('folha-fontes').innerHTML = servem.map(f => `
+    <button class="fonte" type="button" ${f.n === 0 ? 'disabled title="revise mais um pouco — ainda não há material para uma rodada"' : ''}>
+      <span><span class="nome">${f.nome}</span><br><span class="det">${f.det}</span></span>
+      <span class="qtd num">${f.n === 0 ? '—' : fmt(f.n)}</span>
+    </button>`).join('')
+    + (servem.length < FONTES.length
+        ? `<p class="det" style="margin:10px 2px 0">${FONTES.length - servem.length} fonte(s) não aparecem porque não alimentam este jogo.</p>` : '');
+  document.getElementById('folha-fundo').hidden = false;
+}
+
+pintar();
+</script>

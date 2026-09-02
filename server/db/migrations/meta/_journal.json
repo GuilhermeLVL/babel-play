@@ -148,6 +148,13 @@
       "when": 1788358900000,
       "tag": "0020_sonda_de_ocorrencias",
       "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "6",
+      "when": 1788365000000,
+      "tag": "0021_anki_nasce_sem_agenda",
+      "breakpoints": true
     }
   ]
 }

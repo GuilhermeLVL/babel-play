@@ -900,7 +900,17 @@ export const vocabRepo = {
           cefrConfidence: cefr.confidence,
           cefrSource: cefr.source,
           box: 1,
-          dueAt: now,
+          /* PALAVRA IMPORTADA NASCE SEM AGENDA, e não "vencida agora".
+             Medido no acervo do dono: 2.222 dos 2.225 cartões do baralho tinham `reps = 0` (nunca
+             respondidos) e mesmo assim contavam como vencidos, porque o import carimbava
+             `dueAt = now`. A tela então dizia "2.225 palavras pedindo revisão" sobre material que
+             a pessoa nunca tinha visto, a faceta "Nunca vistas" mostrava ZERO, e o FSRS tratava
+             material novo como material esquecido — todos empatados no mesmo instante, o que
+             apaga qualquer ordenação por urgência.
+             `dueAt = null` é a definição de "nunca vista" no app inteiro (ver `passaRecorte` em
+             `core/minigames/filtro.ts` e `isDueNow`), e `dueAt ASC` põe NULL na frente, então
+             material novo continua tendo prioridade na fila — sem mentir sobre o que ele é. */
+          dueAt: null,
           inDeck: 1,
           addedAt: now,
           normKey,

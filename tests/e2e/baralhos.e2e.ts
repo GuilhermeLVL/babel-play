@@ -63,7 +63,11 @@ test.describe('Baralhos do Anki (condicional a haver baralho já importado)', ()
     ).toBeVisible();
 
     // O saldo é a promessa central da tela: "N de M ativadas", nunca um total bruto sozinho.
-    const jogarSoComEste = page.getByRole('button', { name: 'Jogar só com este' });
+    /* `.first()`: com MAIS DE UM baralho importado o locator casa vários botões, e o modo
+       estrito do Playwright faz `waitFor` estourar — o teste então pulava dizendo "nenhum baralho
+       tem palavra ativada" numa tela que mostrava 1.795 ativadas. Um skip que mente sobre o
+       ambiente é pior que uma falha: esconde cobertura que se acredita ter. */
+    const jogarSoComEste = page.getByRole('button', { name: 'Jogar só com este' }).first();
     const saldoAtivadas = page.getByText(/\d+\s+de\s+\d+\s+ativadas/);
     const temRecorte = await apareceEmAte(jogarSoComEste);
     const temSaldo = (await saldoAtivadas.count().catch(() => 0)) > 0;

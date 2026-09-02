@@ -14,6 +14,7 @@ import {
   SESSAO_DA_TRILHA, CONFIANCA_CURADA,
   buildRodadasEscuta, buildRodadasDitado, buildRodadasConectores, isDueNow,
   estadoDeCadaJogo, comoDesbloquear, type ContextoDeDesbloqueio, type Desbloqueio,
+  sugerirRodada, agruparJogos,
   estimativaDeMinutos, rotuloDeDuracao, pistasDaTriagem, resumoDosPulados,
   previaSegura, repetidosDaUltima, MAPA_REVELA_ALVO, origemDoMaterial,
   pontuarRodada, xpFromRound, acumular, mesmaCorrente, marcarPromovidas, resumir, agruparFases,
@@ -33,6 +34,8 @@ import { contarPassada } from '../../lib/passadasDoPipeline';
 import { faixaDe as faixaDaComposicao, type EstrategiaDaUI } from '../../core/minigames/composicao';
 import { lerPrecisoes, registrarPrecisao, registrarVistas, vistasRecentes as vistasGuardadas } from '../../lib/memoriaLocal';
 import SalaDeEscolha from '../minigames/SalaDeEscolha';
+import SeletorDeConteudo from '../minigames/SeletorDeConteudo';
+import { FichaDaRodada } from '../minigames/FichaDaRodada';
 import { isTtsSupported, hasVoiceFor, vozesCarregadas, aoMudarVozes } from '../../lib/tts';
 import { useAudioDaSessao } from '../../lib/audioDaSessao';
 import CuradoriaBaralho from './CuradoriaBaralho';
@@ -66,7 +69,6 @@ import {
   type Composicao, type CartaoParaCompor,
 } from '../../core/minigames/composicao';
 import { filtroDaFonte, fonteDominante, passaNoFiltro, type FiltroDaPratica } from '../../core/minigames/filtro';
-import Segmentado from '../ui/Segmentado';
 import { lerFiltroGuardado, gravarFiltro, filtroDaQuery, queryDoFiltro } from '../../lib/filtroDaPratica';
 import { lerUrlAtual, publicarQueryDoJogar, consumirQueryDoBoot } from '../../lib/rotas';
 import EscutaGame from '../minigames/EscutaGame';
@@ -284,6 +286,9 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
    * eram estados que não se conheciam. Agora são o mesmo objeto; a incoerência ficou inexprimível.
    */
   const [filtro, setFiltro] = useState<FiltroDaPratica>(() => filtroDaFonte({ id: 'baralho', lang: '' }, null));
+  /* A gaveta do seletor nasce FECHADA: quem chega quer jogar, não configurar. Ela é a resposta
+     ao «Trocar», e o resumo acima dela já diz o que está valendo sem precisar abrir nada. */
+  const [seletorAberto, setSeletorAberto] = useState(false);
   const fonte = useMemo<FonteDeItens>(
     () => ({ ...fonteDominante(filtro), lang: filtro.idiomas[0] ?? '' }),
     [filtro],
@@ -2001,6 +2006,39 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
   const tamanhoDoBaralho = deck?.length ?? 0;
   const menorMinimo = Math.min(...JOGOS.map(j => MINIGAMES[j.id].minItems));
 
+  /**
+   * O QUE A TELA PROPÕE, e como os nove jogos se dividem (redesenho aprovado em 02/09).
+   *
+   * A REGRA MORA NO NÚCLEO (`@core/minigames/painelDaPratica`) porque a frase da ficha é a primeira
+   * coisa que se lê aqui: se ela mentir — como mentia ao propor "revisar 2.225" sobre um baralho
+   * recém-importado que ninguém tinha visto — o resto da tela perde credibilidade junto. Lá dá
+   * para travar cada caso com teste; aqui dentro, não daria.
+   *
+   * A ORDEM DOS PRONTOS CONTINUA SENDO A DO USUÁRIO. `agruparJogos` também sabe ordenar por
+   * rendimento, e essa ordem é usada só nos BLOQUEADOS (mais perto de abrir primeiro): quem fixou
+   * o Termo no topo fez um trabalho que o redesenho não tem o direito de desfazer. O que muda é
+   * a separação — jogável e bloqueado deixam de disputar a mesma grade.
+   */
+  const sugestao = useMemo(
+    () => sugerirRodada({ estados: estados.map(j => j.estado), vencidas: vencidos, acervo: acervoDaFonte.length }),
+    [estados, vencidos, acervoDaFonte.length],
+  );
+  const jogosProntos = useMemo(() => ordenados.filter(j => j.estado.ok), [ordenados]);
+  const jogosPresos = useMemo(() => {
+    const porId = new Map(ordenados.map(j => [j.id, j]));
+    return agruparJogos(estados.map(j => j.estado)).presos
+      .map(p => ({ ...p, ui: porId.get(p.estado.id)! }))
+      .filter(p => p.ui);
+  }, [estados, ordenados]);
+  /* UMA lista, dois grupos. A grade continua sendo um `<ul>` só — o cabeçalho do segundo grupo
+     entra como item na fronteira — porque a carta tem 240 linhas de regras (portas de desbloqueio,
+     modo organizar, recordes, tour) e duplicá-la para ter duas grades seria criar dois lugares
+     onde a mesma carta pode divergir. */
+  const listaDeJogos = useMemo(
+    () => [...jogosProntos, ...jogosPresos.map(p => p.ui)],
+    [jogosProntos, jogosPresos],
+  );
+
 
   /**
    * O TOUR vive ao lado da tela do jogo, não no lugar dela: ele precisa apontar para os elementos
@@ -2545,6 +2583,34 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
           `fetchSessions`: o botão nascia DEPOIS da primeira pintura e empurrava a faixa de status
           e a grade de nove cartas para baixo (parte do CLS 0,364 medido no achado F0-02). O valor
           é a altura de repouso do botão: p-3 + uma linha de texto + a borda do `card-panel`. */}
+      {/* ── A FICHA DA RODADA: a decisão que quase toda visita vem tomar ────────────────────
+          Quem abre esta tela quase sempre quer uma coisa só — praticar agora — e estava pagando
+          o preço de escolher entre nove cartas iguais, com 64 contadores em volta. A ficha propõe
+          UMA rodada e diz de onde vem o material antes do clique. Quem quer outra coisa continua
+          um clique atrás («escolher outro jogo», e o seletor logo abaixo).
+
+          Fora quando embutido: dentro da aba de uma sessão a fonte é fixa, e propor rodada ali
+          seria oferecer uma decisão que aquela tela não tem o direito de tomar. */}
+      {!embutido && fontesOferecidas.length > 1 && (
+        <div className="mb-4">
+          <FichaDaRodada
+            sugestao={sugestao}
+            nomeDoJogo={sugestao.jogo ? (JOGOS.find(j => j.id === sugestao.jogo)?.titulo[ageProfile] ?? '') : ''}
+            origem={{
+              baralho: baralhoAnki?.nome,
+              idioma: fonte.lang ? langLabelPt(fonte.lang) : undefined,
+            }}
+            aoJogar={() => { if (sugestao.jogo) pedirParaJogar({ id: sugestao.jogo }); }}
+            aoEscolherOutro={() => {
+              /* Não abre modal nenhum: as cartas já estão logo abaixo, e mandar para um segundo
+                 seletor seria pedir a mesma decisão duas vezes. Leva o olho até elas. */
+              document.getElementById('grade-de-jogos')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }}
+            aoTrazerMaterial={() => setImportando(true)}
+          />
+        </div>
+      )}
+
       {!embutido && (
         <div className="mb-4 min-h-[46px]">
       {/* ── A FAIXA DE FONTES TEM DOIS LADOS, e o direito não depende do esquerdo.
@@ -2554,58 +2620,13 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
              Aninhar as ações dentro do `fontesOferecidas.length > 1` esconderia a porta de
              entrada de quem mais precisa dela. ── */}
       <div className="flex flex-wrap items-center gap-2">
-      {fontesOferecidas.length > 1 && (
-        /* ── O QUE ESTÁ VALENDO, E COMO TROCAR ──────────────────────────────────────────────
-           Aqui havia um `<details>` recolhido cujo resumo era "Praticar · Minhas palavras ·
-           ajustar" em texto pequeno. Ninguém abria, e quem abria encontrava um seletor de
-           idioma, três botões de fonte e um chevron que revelava uma lista de gravações
-           renderizada FORA do próprio `<details>`, que continuava na tela depois de fechá-lo.
-
-           Agora a escolha é feita na sala, e o que fica aqui é o RECIBO dela: o que está valendo,
-           e um clique para rever. Um botão só, com alvo de toque de verdade. */
-        /* ── DE ONDE VÊM AS PALAVRAS — a primeira leitura da tela ────────────────────────────
-           Isto era um RECIBO: uma linha dizendo "Praticando · Minhas palavras · trocar", e a
-           escolha real morava dentro de um modal atrás daquele link. A separação entre a TRILHA
-           (um curso, com etapa e fim) e AS SUAS GRAVAÇÕES (revisão do que você mesmo ouviu) já
-           existe no dado desde sempre (`FonteId`, `cartoesDaFonte`), e o servidor concorda com
-           ela — mas a tela nunca a mostrou. Aqui ela vira a primeira coisa que se vê, e trocar
-           de matéria custa um clique em vez de abrir um diálogo.
-           A Sala continua existindo para o que ela faz melhor: idioma, nível e QUAL gravação. */
-        <div role="tablist" aria-label="De onde vêm as palavras" className="flex flex-wrap items-center gap-2">
-          {ABAS_DE_FONTE.map(aba => {
-            const disponivel = aba.fontes.some(f => fontesOferecidas.includes(f));
-            const atual = escolhaAtual.origem === aba.origem;
-            const quantas = aba.origem === 'trilha' ? totalDaTrilhaAtual
-              : aba.origem === 'dificeis' ? rankingDeDificeis.length
-              : palavrasDasGravacoes;
-            return (
-              <button
-                key={aba.origem}
-                role="tab"
-                aria-selected={atual}
-                disabled={!disponivel}
-                title={disponivel ? aba.dica : aba.semMaterial}
-                onClick={() => aplicarEscolha({ ...escolhaAtual, origem: aba.origem, escopo: 'todas' })}
-                className={`flex items-center gap-2 px-4 py-2.5 rounded-xl border text-[13.5px] font-bold transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed ${
-                  atual ? 'bg-ink text-ink-contrast border-ink' : 'bg-surface border-border-subtle text-ink hover:border-ink-faint'
-                }`}
-              >
-                {aba.icone}
-                {aba.rotulo[ageProfile]}
-                {/* A contagem some quando é zero: um "0" ao lado do nome parece defeito, e a
-                    razão de não haver material já está no `title` e no estado desabilitado. */}
-                {disponivel && quantas > 0 && (
-                  <span className={`label-mono px-1.5 py-0.5 rounded-full tabular-nums ${atual ? 'bg-canvas/25' : 'bg-canvas'}`}>
-                    {quantas}
-                  </span>
-                )}
-              </button>
-            );
-          })}
-        </div>
-      )}
-
-        {/* AS AÇÕES DA FAIXA. `ml-auto` empurra para a direita quando há abas; sem elas, o grupo
+      {/* AS ABAS DE FONTE SAÍRAM DAQUI — viraram a faceta "de onde vêm" dentro do seletor logo
+          acima. Elas eram a primeira das três linhas de controle que não se conheciam: trocar de
+          aba não atualizava o que os chips de baralho contavam, e o inventário do código mediu 53
+          controles nesta tela. A escolha não sumiu, mudou de lugar: continua a um clique, agora ao
+          lado das outras facetas que dependem dela. O que fica aqui são AÇÕES, não escolhas —
+          trazer material de fora e ajustar idioma/nível não recortam o acervo, abrem outra tela. */}
+      {/* AS AÇÕES DA FAIXA. `ml-auto` empurra para a direita quando há abas; sem elas, o grupo
             é a faixa inteira e continua alinhado à esquerda, onde a leitura começa. */}
         <div className={`flex items-center gap-2 ${fontesOferecidas.length > 1 ? 'ml-auto' : ''}`}>
           {/* O ANKI SUBIU PARA CÁ. Morava no rodapé da tela, abaixo de nove cartas de jogo e da
@@ -2662,58 +2683,118 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
         </div>
       )}
 
-      {/* ── RECORTES DO ACERVO + RESUMO-VERDADE (onda facetada) ──────────────────────────
-          As pílulas INTERSECTAM a fonte escolhida — são a primeira faceta visível do filtro. A
-          linha de resumo embaixo é a ÚNICA verdade do que entra na rodada: o painel de números e
-          as cartas derivam do mesmo conjunto (S9), então os números não podem mais discordar.
-          "As que mais escapam" NÃO virou pílula ainda de propósito: a aba dela existe logo acima
-          e dois controles para a mesma coisa confundem — ela migra junto com o painel completo. */}
-      {!embutido && fonte.id !== 'trilha' && fontesOferecidas.length > 1 && (
-        <div className="mb-3 flex flex-wrap items-center gap-x-4 gap-y-2">
-          <Segmentado
-            multiplo
-            variante="chip"
-            rotulo="recorte"
-            rotuloDoGrupo="Recortes do acervo desta rodada"
-            valor={[
-              ...(filtro.recorte.pedindoRevisao ? ['pedindoRevisao'] : []),
-              ...(filtro.recorte.nuncaVistas ? ['nuncaVistas'] : []),
-              ...(filtro.midia.comTraducao ? ['comTraducao'] : []),
-              ...(filtro.midia.comFrase ? ['comFrase'] : []),
-            ]}
-            aoTrocar={(id) => setFiltro(prev =>
-              id === 'comTraducao' || id === 'comFrase'
-                ? { ...prev, midia: { ...prev.midia, [id]: !prev.midia[id] } }
-                : { ...prev, recorte: { ...prev.recorte, [id]: !prev.recorte[id as 'pedindoRevisao' | 'nuncaVistas'] } })}
-            opcoes={[
+      {/* ── O SELETOR DE CONTEÚDO: três linhas de controle viraram uma (redesenho de 02/09) ───
+          Abas de fonte, chips de baralho e a faixa de recorte eram três controles que não se
+          conheciam — e o inventário do código contou 53 controles e 64 contadores nesta tela.
+          Aqui a escolha inteira é UMA linha de resumo com um «Trocar» que abre a gaveta. A linha
+          é também o resumo-verdade: o painel de números, o mapa e as cartas derivam do MESMO
+          conjunto (S9), então os números não têm como discordar de novo.
+
+          A faceta "de onde vêm" segue EXCLUSIVA nesta etapa (ver `exclusiva` em
+          `SeletorDeConteudo`): somar fontes é mudança de comportamento da rodada e entra com a
+          distribuição por cota, não de carona no redesenho visual. */}
+      {!embutido && fontesOferecidas.length > 1 && (
+        <div className="mb-4">
+          <SeletorDeConteudo
+            total={acervoDaFonte.length}
+            /* O nome curto da ABA, não o título longo do painel de contexto: a linha precisa caber
+               ao lado do total e do idioma, e "Revisão do que você ouviu" empurrava o resto. */
+            nomeDaFonte={baralhoAnki
+              ? baralhoAnki.nome
+              : (ABAS_DE_FONTE.find(a => a.origem === escolhaAtual.origem)?.rotulo[ageProfile] ?? '')}
+            idioma={fonte.lang ? langLabelPt(fonte.lang) : undefined}
+            aberta={seletorAberto}
+            aoAlternar={() => setSeletorAberto(v => !v)}
+            aoLimpar={() => {
+              setFiltro(prev => ({ ...prev, baralhos: [], recorte: {}, midia: {} }));
+            }}
+            avisoDeVazio={
+              acervoDaFonte.length === 0 &&
+              (filtro.recorte.pedindoRevisao || filtro.recorte.nuncaVistas || filtro.midia.comTraducao || filtro.midia.comFrase || filtro.baralhos.length > 0)
+                ? 'nenhum item passa; desligue um recorte para voltar a ter material'
+                : undefined
+            }
+            facetas={[
               {
-                id: 'pedindoRevisao', rotulo: 'Pedindo revisão', contagem: contagemRecortes.pedindo,
-                motivoBloqueio: contagemRecortes.pedindo === 0 ? 'nada vencido neste acervo agora' : undefined,
+                id: 'fonte',
+                rotulo: 'de onde vêm',
+                exclusiva: true,
+                valor: [escolhaAtual.origem],
+                aoTrocar: (origem) => aplicarEscolha({ ...escolhaAtual, origem: origem as OrigemDaPratica, escopo: 'todas' }),
+                /* A fonte sem material continua VISÍVEL, travada e com o porquê — some da tela
+                   era pior: "As que mais escapam" desaparecia sem explicação assim que a pessoa
+                   revisava bem, que é justamente quando ela merece saber por que sumiu. */
+                opcoes: ABAS_DE_FONTE.map(aba => {
+                  const contagem = aba.origem === 'trilha' ? totalDaTrilhaAtual
+                    : aba.origem === 'dificeis' ? rankingDeDificeis.length
+                    : palavrasDasGravacoes;
+                  const oferecida = aba.fontes.some(f => fontesOferecidas.includes(f));
+                  return {
+                    id: aba.origem,
+                    rotulo: aba.rotulo[ageProfile],
+                    contagem,
+                    motivoBloqueio: oferecida ? undefined : aba.semMaterial,
+                  };
+                }),
               },
               {
-                id: 'nuncaVistas', rotulo: 'Nunca vistas', contagem: contagemRecortes.nunca,
-                motivoBloqueio: contagemRecortes.nunca === 0 ? 'tudo aqui já foi visto ao menos uma vez' : undefined,
+                id: 'baralho',
+                rotulo: 'quais baralhos',
+                ajuda: 'nenhum marcado = todos',
+                valor: filtro.baralhos,
+                aoTrocar: (id) => setBaralhoAnki(filtro.baralhos.includes(id) ? null : (decksAnki.find(d => d.id === id) ?? null)),
+                opcoes: fonte.id === 'trilha' ? [] : decksAnki.map((d, i) => ({
+                  id: d.id,
+                  /* O NOME DO BARALHO COMO SE LÊ, não como o Anki o guarda. Dois problemas reais
+                     do acervo do dono: o `::` da hierarquia do Anki ("4000 Essential English
+                     Words::1.Book") é sintaxe de arquivo, não nome; e importar o mesmo arquivo
+                     duas vezes produzia DOIS chips com texto idêntico, impossíveis de distinguir.
+                     O sufixo só aparece quando há de fato colisão — numerar um baralho único seria
+                     ruído. */
+                  rotulo: (() => {
+                    const legivel = d.nome.split('::').filter(Boolean).join(' › ');
+                    const homonimos = decksAnki.filter(o => o.nome === d.nome);
+                    return homonimos.length > 1
+                      ? `${legivel} (${homonimos.indexOf(d) + 1} de ${homonimos.length})`
+                      : legivel;
+                  })(),
+                })),
               },
               {
-                id: 'comTraducao', rotulo: 'Com tradução', contagem: contagemRecortes.traducao,
-                motivoBloqueio: contagemRecortes.traducao === 0 ? 'nenhum item deste acervo tem tradução utilizável' : undefined,
-              },
-              {
-                id: 'comFrase', rotulo: 'Com frase', contagem: contagemRecortes.frase,
-                motivoBloqueio: contagemRecortes.frase === 0 ? 'nenhum item deste acervo tem frase de exemplo' : undefined,
+                id: 'recorte',
+                rotulo: 'recorte',
+                ajuda: 'filtra dentro do que você escolheu acima',
+                valor: [
+                  ...(filtro.recorte.pedindoRevisao ? ['pedindoRevisao'] : []),
+                  ...(filtro.recorte.nuncaVistas ? ['nuncaVistas'] : []),
+                  ...(filtro.midia.comTraducao ? ['comTraducao'] : []),
+                  ...(filtro.midia.comFrase ? ['comFrase'] : []),
+                ],
+                aoTrocar: (id) => setFiltro(prev =>
+                  id === 'comTraducao' || id === 'comFrase'
+                    ? { ...prev, midia: { ...prev.midia, [id]: !prev.midia[id] } }
+                    : { ...prev, recorte: { ...prev.recorte, [id]: !prev.recorte[id as 'pedindoRevisao' | 'nuncaVistas'] } }),
+                opcoes: fonte.id === 'trilha' ? [] : [
+                  {
+                    id: 'pedindoRevisao', rotulo: 'Pedindo revisão', contagem: contagemRecortes.pedindo,
+                    motivoBloqueio: contagemRecortes.pedindo === 0 ? 'nada vencido neste acervo agora' : undefined,
+                  },
+                  {
+                    id: 'nuncaVistas', rotulo: 'Nunca vistas', contagem: contagemRecortes.nunca,
+                    motivoBloqueio: contagemRecortes.nunca === 0 ? 'tudo aqui já foi visto ao menos uma vez' : undefined,
+                  },
+                  {
+                    id: 'comTraducao', rotulo: 'Com tradução', contagem: contagemRecortes.traducao,
+                    motivoBloqueio: contagemRecortes.traducao === 0 ? 'nenhum item deste acervo tem tradução utilizável' : undefined,
+                  },
+                  {
+                    id: 'comFrase', rotulo: 'Com frase', contagem: contagemRecortes.frase,
+                    motivoBloqueio: contagemRecortes.frase === 0 ? 'nenhum item deste acervo tem frase de exemplo' : undefined,
+                  },
+                ],
               },
             ]}
           />
-          <p className="text-[12px] text-ink-muted" aria-live="polite">
-            <span className="font-bold text-ink">{acervoDaFonte.length}</span>
-            {' '}no recorte
-            {baralhoAnki ? <> · {baralhoAnki.nome}</> : null}
-            {fonte.lang ? <> · {langLabelPt(fonte.lang)}</> : null}
-            {acervoDaFonte.length === 0 && (filtro.recorte.pedindoRevisao || filtro.recorte.nuncaVistas || filtro.midia.comTraducao || filtro.midia.comFrase || filtro.baralhos.length > 0) ? (
-              /* Vazio ÚTIL (R5): zero não é um beco — diz o que desligar para voltar a ter material. */
-              <span className="text-warn-ink"> — nenhum item passa; desligue um recorte para voltar a ter material</span>
-            ) : null}
-          </p>
         </div>
       )}
 
@@ -2991,9 +3072,14 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
           </div>
           {/* `<ul>/<li>` e não `<div>`: nove cartas sem semântica de lista chegam ao leitor de
               tela como um monte de coisas soltas, sem "1 de 9" nem como pular o bloco. */}
-          <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 list-none m-0 p-0">
-            {ordenados.map(j => {
+          <ul id="grade-de-jogos" className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 list-none m-0 p-0">
+            {listaDeJogos.map((j, i) => {
               const liberado = j.estado.ok;
+              /* A FRONTEIRA ENTRE OS DOIS GRUPOS. Antes as nove cartas vinham misturadas, e uma
+                 carta bloqueada parecia defeito do app em vez de material que falta. O cabeçalho
+                 entra como item da própria grade (`col-span-full`) para não quebrar a semântica
+                 de lista que o leitor de tela usa para dizer "3 de 9". */
+              const abreOSegundoGrupo = i === jogosProntos.length && jogosPresos.length > 0;
               /* C6 — A CARTA DEIXOU DE SER UM `<button>`.
                  Ela era um botão contendo quatro controles focáveis (o "?", as duas setas, o
                  alfinete). O comentário mais abaixo já registrava a intenção de evitar botão
@@ -3008,7 +3094,16 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
                  ainda começa a rodada, mas a árvore passa a ser válida e cada controle vira uma
                  parada de tabulação legítima. */
               return (
-                <li key={j.chave} className="contents">
+                <React.Fragment key={j.chave}>
+                {abreOSegundoGrupo && (
+                  <li className="col-span-full list-none mt-4 mb-1">
+                    <h3 className="font-display font-bold text-[15px] text-ink">Precisam de outro material</h3>
+                    <p className="text-[12.5px] text-ink-muted mt-0.5 max-w-[64ch]">
+                      Não estão quebrados: pedem algo que este recorte não tem. Cada um diz o que falta.
+                    </p>
+                  </li>
+                )}
+                <li className="contents">
                 <div
                   /* C9 — `opacity-60` saiu do estado bloqueado. Ela apagava o CARTÃO INTEIRO,
                      inclusive o texto que explica POR QUE está bloqueado, medido em 2,26:1 e
@@ -3237,6 +3332,7 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
                   </span>
                 </div>
                 </li>
+                </React.Fragment>
               );
             })}
           </ul>

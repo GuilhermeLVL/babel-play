@@ -97,3 +97,32 @@ describe('pistaDeJogo — o que os jogos consomem', () => {
     expect(pistaDeJogo('x', null)).toEqual({ texto: '', mascarada: false, curta: '' });
   });
 });
+
+/**
+ * A COSTURA COM OS JOGOS — o que `promptFor` entrega depois da máscara.
+ *
+ * O caso do `clozed` é uma regressão real, pega verificando a tela: `clozed` diz a PROCEDÊNCIA da
+ * pista (veio da frase falada, longa demais para a coluna do caça-palavras), não a aparência.
+ * Marcá-lo por causa da máscara derrubou o pool do caça-palavras de 2.228 para 3.
+ */
+describe('promptFor com definição monolíngue', () => {
+  const cartao = (word: string, translation: string, sentence = '') =>
+    ({ id: 'x', word, translation, sentence, inDeck: 1, daAnki: true, srcLang: 'en' } as never);
+
+  it('mascara a resposta e NÃO marca a pista como vinda da frase', async () => {
+    const { promptFor } = await import('../src/core/minigames/itemSource');
+    const p = promptFor(cartao('abandon', 'To abandon something is to leave it forever.'));
+    expect(p).not.toBeNull();
+    expect(p!.prompt).not.toMatch(/abandon/i);
+    expect(p!.prompt).toContain('———');
+    // A garantia que faltava: o caça-palavras precisa continuar aceitando este cartão.
+    expect(p!.clozed).toBe(false);
+  });
+
+  it('tradução curta e bilíngue continua passando intacta', async () => {
+    const { promptFor } = await import('../src/core/minigames/itemSource');
+    const p = promptFor(cartao('abandon', 'abandonar'));
+    expect(p!.prompt).toBe('abandonar');
+    expect(p!.clozed).toBe(false);
+  });
+});

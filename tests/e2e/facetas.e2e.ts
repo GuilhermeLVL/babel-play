@@ -30,11 +30,18 @@ test.describe('Facetas do acervo: fileira RECORTE', () => {
     test.slow();
     await irParaPraticar(page);
 
-    // A fileira só aparece quando há mais de uma fonte oferecida (baralho + trilha, tipicamente),
-    // e a trilha chega de uma chamada assíncrona — por isso o prazo maior aqui, não porque o
-    // elemento seja instável.
-    const grupoRecorte = page.getByRole('group', { name: 'Recortes do acervo desta rodada' });
-    await expect(grupoRecorte, 'a fileira RECORTE deveria existir no lobby fora da aba Curso').toBeVisible({ timeout: 15_000 });
+    /* A FILEIRA MUDOU DE LUGAR no redesenho de 02/09: ela vive dentro da gaveta do seletor, que
+       nasce FECHADA de propósito — quem chega quer jogar, não configurar. O caminho até ela passa
+       pelo «Trocar», e é esse caminho que o teste precisa exercitar agora. O botão só existe com
+       mais de uma fonte oferecida, e a trilha chega de uma chamada assíncrona: daí o prazo maior,
+       não por instabilidade do elemento. */
+    const abrirSeletor = page.getByRole('button', { name: 'Trocar' });
+    await expect(abrirSeletor, 'o seletor de conteúdo deveria estar no lobby').toBeVisible({ timeout: 15_000 });
+    await clicarRobusto(page, abrirSeletor);
+    await expect(abrirSeletor).toHaveAttribute('aria-expanded', 'true');
+
+    const grupoRecorte = page.getByRole('group', { name: 'recorte' });
+    await expect(grupoRecorte, 'a faceta de recorte deveria aparecer com a gaveta aberta').toBeVisible({ timeout: 10_000 });
 
     const pilulaPedindoRevisao = grupoRecorte.getByRole('button', { name: 'Pedindo revisão' });
     await expect(pilulaPedindoRevisao).toBeVisible();
@@ -95,7 +102,11 @@ test.describe('Facetas do acervo: fileira RECORTE', () => {
       page.getByText('O que já foi trazido de fora, e quanto de cada um está de fato jogando com você.'),
     ).toBeVisible();
 
-    const jogarSoComEste = page.getByRole('button', { name: 'Jogar só com este' });
+    /* `.first()`: com MAIS DE UM baralho importado o locator casa vários botões, e o modo
+       estrito do Playwright faz `waitFor` estourar — o teste então pulava dizendo "nenhum baralho
+       tem palavra ativada" numa tela que mostrava 1.795 ativadas. Um skip que mente sobre o
+       ambiente é pior que uma falha: esconde cobertura que se acredita ter. */
+    const jogarSoComEste = page.getByRole('button', { name: 'Jogar só com este' }).first();
     const temRecorte = await apareceEmAte(jogarSoComEste);
     test.skip(
       !temRecorte,
@@ -109,10 +120,11 @@ test.describe('Facetas do acervo: fileira RECORTE', () => {
     await clicarRobusto(page, jogarSoComEste);
     await expect(page.getByRole('button', { name: 'Anki', exact: true })).toBeVisible();
 
-    // O chip do nome do baralho e o resumo com ele visíveis ANTES do reload.
-    await expect(page.getByRole('button', { name: nomeBaralho!, exact: false })).toBeVisible();
-    const linhaResumoComBaralho = page.getByText(new RegExp(`\\d+\\s+no recorte.*${escapaRegex(nomeBaralho!)}`));
-    await expect(linhaResumoComBaralho).toBeVisible();
+    /* O RESUMO MUDOU DE FORMA no redesenho: o nome do baralho agora vive na linha «jogando com»,
+       e o rodapé da gaveta guarda só o total. O que o teste garante continua o mesmo — o recorte
+       é anunciado por escrito antes de a rodada começar. */
+    const resumoComBaralho = page.getByText(new RegExp(`jogando com[\\s\\S]*${escapaRegex(nomeBaralho!)}`, 'i'));
+    await expect(resumoComBaralho, 'a linha «jogando com» deveria nomear o baralho escolhido').toBeVisible();
 
     const filtroAntesDoReload = await page.evaluate((chave) => localStorage.getItem(chave), CHAVE_FILTRO);
     expect(filtroAntesDoReload, 'o recorte por baralho deveria estar gravado antes do F5').not.toBeNull();
@@ -121,12 +133,10 @@ test.describe('Facetas do acervo: fileira RECORTE', () => {
     await page.reload();
     await expect(page.getByRole('main')).toBeVisible();
 
-    const chipDoBaralho = page.getByRole('button', { name: nomeBaralho!, exact: false });
-    await expect(chipDoBaralho, 'o chip do baralho deveria sobreviver ao F5 (persistência nova)').toBeVisible({ timeout: 10_000 });
     await expect(
-      page.getByText(new RegExp(`\\d+\\s+no recorte.*${escapaRegex(nomeBaralho!)}`)),
-      'o resumo "no recorte" deveria continuar mostrando o nome do baralho depois do F5',
-    ).toBeVisible();
+      page.getByText(new RegExp(`jogando com[\\s\\S]*${escapaRegex(nomeBaralho!)}`, 'i')),
+      'o recorte por baralho deveria sobreviver ao F5 (persistência nova)',
+    ).toBeVisible({ timeout: 10_000 });
 
     // "Voltar a jogar com todo o acervo" limpa: o resumo perde o nome do baralho.
     const botaoLimpar = page.getByRole('button', { name: 'Voltar a jogar com todo o acervo' });
@@ -134,8 +144,8 @@ test.describe('Facetas do acervo: fileira RECORTE', () => {
     await clicarRobusto(page, botaoLimpar);
 
     await expect(
-      page.getByText(new RegExp(`\\d+\\s+no recorte.*${escapaRegex(nomeBaralho!)}`)),
-      'depois de limpar, o resumo não deveria mais conter o nome do baralho',
+      page.getByText(new RegExp(`jogando com[\\s\\S]*${escapaRegex(nomeBaralho!)}`, 'i')),
+      'depois de limpar, o resumo não deveria mais nomear o baralho',
     ).not.toBeVisible();
   });
 });

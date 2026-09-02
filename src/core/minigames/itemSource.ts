@@ -90,7 +90,11 @@ export function promptFor(card: VocabCard): { prompt: string; clozed: boolean } 
        pista SÓ tinha a resposta (vira lacuna solitária) segue para a frase, abaixo. */
     const p = pistaDeJogo(card.word, traducao);
     const sobrouTexto = p.texto.replace(/———/g, '').replace(/[^\p{L}\p{N}]+/gu, '').length >= 2;
-    if (sobrouTexto) return { prompt: p.texto, clozed: p.mascarada };
+    /* `clozed` diz a PROCEDÊNCIA da pista (veio da frase falada, que é longa), não a aparência —
+       é o que o caça-palavras usa logo abaixo para recusar parede de texto numa coluna estreita.
+       Uma tradução mascarada continua sendo tradução: marcar `clozed` aqui derrubou o pool do
+       caça-palavras de 2.228 para 3 no acervo do dono, pego na verificação em tela. */
+    if (sobrouTexto) return { prompt: p.texto, clozed: false };
   }
 
   const frase = (card.sentence ?? '').trim();

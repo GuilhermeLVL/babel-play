@@ -181,3 +181,11 @@ export function langLabelPt(code: string): string {
   } catch { /* runtime sem Intl.DisplayNames */ }
   return langLabel(code);
 }
+
+/** Idiomas escritos da direita para a esquerda. */
+const RTL = new Set(['ar', 'he', 'fa', 'ur', 'yi', 'ps', 'sd', 'dv']);
+
+/** Direcao do texto DESTE idioma — para `dir` em quem exibe conteudo do usuario. */
+export function direcaoDoTexto(code: string | null | undefined): 'rtl' | 'ltr' {
+  return RTL.has(baseLang(code ?? '')) ? 'rtl' : 'ltr';
+}

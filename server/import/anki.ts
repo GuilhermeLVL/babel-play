@@ -873,7 +873,8 @@ export function indiceInversoDeMidia(mapa: Map<string, EntradaDeMidia>): Map<str
  * nenhuma na amostra, a resposta honesta é 'desconhecido', não um palpite.
  */
 export type EscritaDominante =
-  | 'latino' | 'cjk' | 'kana' | 'hangul' | 'cirilico' | 'arabe' | 'hebraico' | 'grego' | 'desconhecido'
+  | 'latino' | 'cjk' | 'kana' | 'hangul' | 'cirilico' | 'arabe' | 'hebraico' | 'grego'
+  | 'devanagari' | 'thai' | 'desconhecido'
 
 /* Ordem de checagem importa: kana ANTES de han, porque uma frente japonesa mistura os dois
    (漢字 + かな) e cada caractere só é contado numa faixa — checar han primeiro classificaria
@@ -887,6 +888,8 @@ const FAIXAS: Array<{ escrita: Exclude<EscritaDominante, 'desconhecido'>; regex:
   { escrita: 'arabe', regex: /\p{Script=Arabic}/u },
   { escrita: 'hebraico', regex: /\p{Script=Hebrew}/u },
   { escrita: 'grego', regex: /\p{Script=Greek}/u },
+  { escrita: 'devanagari', regex: /\p{Script=Devanagari}/u },
+  { escrita: 'thai', regex: /\p{Script=Thai}/u },
   { escrita: 'latino', regex: /\p{Script=Latin}/u },
 ]
 

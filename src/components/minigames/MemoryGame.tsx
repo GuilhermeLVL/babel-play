@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { X, Eye } from 'lucide-react';
 import type { MinigameItem, ItemOutcome, RoundReport } from '@core';
 import { scoreRound } from '@core';
+import { direcaoDoTexto } from '../../lib/languages';
 import type { AgeProfileType } from '../../lib/profile';
 import { play } from '../../lib/soundFx';
 import { comemorar, pontosDoElemento, multiplicador } from '../../lib/juice';
@@ -35,6 +36,7 @@ interface Carta {
   itemIndex: number;
   texto: string;
   lado: 'palavra' | 'traducao';
+  lang: string;
 }
 
 /** Cores das duplas — a mesma paleta categórica usada para as pessoas na captura. */
@@ -47,8 +49,9 @@ export default function MemoryGame({ items, ageProfile, onFinish, onExit }: Memo
   const cartas = useMemo<Carta[]>(() => {
     const baralho: Carta[] = [];
     items.forEach((it, i) => {
-      baralho.push({ id: `p${i}`, itemIndex: i, texto: it.answer, lado: 'palavra' });
-      baralho.push({ id: `t${i}`, itemIndex: i, texto: it.prompt, lado: 'traducao' });
+      // A palavra está no idioma praticado; a pista, no nativo. As direções podem diferir.
+      baralho.push({ id: `p${i}`, itemIndex: i, texto: it.answer, lado: 'palavra', lang: it.lang });
+      baralho.push({ id: `t${i}`, itemIndex: i, texto: it.prompt, lado: 'traducao', lang: '' });
     });
     for (let i = baralho.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
@@ -217,6 +220,7 @@ export default function MemoryGame({ items, ageProfile, onFinish, onExit }: Memo
                   <span
                     className={`${carta.texto.length > 45 ? (folgado ? 'text-[11px]' : 'text-[10px]') : folgado ? 'text-[14px]' : 'text-[13px]'} font-bold leading-tight break-words ${folgado ? 'line-clamp-4' : 'line-clamp-3'}`}
                     style={{ color: carta.lado === 'palavra' ? cor : undefined }}
+                    dir={direcaoDoTexto(carta.lang)}
                     title={carta.texto}
                   >
                     {carta.texto}

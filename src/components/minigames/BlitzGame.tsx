@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { X, Scissors, Zap, Star, Medal } from 'lucide-react';
 import type { MinigameItem, ItemOutcome, RoundReport } from '@core';
 import { distractorsFor, scoreRound } from '@core';
+import { direcaoDoTexto } from '../../lib/languages';
 import type { AgeProfileType } from '../../lib/profile';
 import { comemorar, pontosDoElemento, pontosFlutuantes, multiplicador, tremor, tremorDeTela, pulsoDeZoom, flashDeTela, vibrar, executarEfeito } from '../../lib/juice';
 import { emitBurst } from '../../lib/effects';
@@ -475,6 +476,7 @@ export default function BlitzGame({ items, ageProfile, onFinish, onExit }: Blitz
               mesma técnica condicional simples da carta de memória, sem medir DOM. */}
           <p
             data-tour="pergunta"
+            dir={direcaoDoTexto(item.clozed ? item.lang : '')}
             className={`font-display font-black text-ink leading-tight line-clamp-4 ${item.prompt.length > 80 ? 'text-xl sm:text-2xl' : 'text-2xl sm:text-3xl'}`}
             title={item.prompt}
           >
@@ -496,6 +498,7 @@ export default function BlitzGame({ items, ageProfile, onFinish, onExit }: Blitz
                 key={alt}
                 onClick={(e) => responder(alt, e.currentTarget)}
                 disabled={revelando || cortada}
+                dir={direcaoDoTexto(item.lang)}
                 className={`blitz-btn py-4 px-4 font-bold text-[16px] ${
                   cortada
                     ? 'bg-canvas border-border-subtle text-ink-faint line-through opacity-40'

@@ -85,13 +85,13 @@ function guidDerivadoDoConteudo(n: { notetype?: string | null; frente: string; v
  * caso de faltar um código aqui é o mesmo de hoje (carimba sem checar), não um dado novo.
  */
 const LANGS_ESCRITA_LATINA = new Set([
-  'en', 'pt', 'es', 'fr', 'de', 'it', 'nl', 'sv', 'no', 'da', 'fi', 'pl', 'cs', 'sk',
+  'en', 'pt', 'es', 'fr', 'de', 'it', 'nl', 'sv', 'no', 'nb', 'nn', 'da', 'fi', 'pl', 'cs', 'sk',
   'hu', 'ro', 'hr', 'tr', 'id', 'vi', 'af', 'ca', 'et', 'lv', 'lt', 'sl', 'is',
 ])
 
 /** ESCRITAS que o `escritaDominante` pode devolver e que NÃO são latinas. */
 const ESCRITAS_NAO_LATINAS = new Set<EscritaDominante>([
-  'cjk', 'kana', 'hangul', 'cirilico', 'arabe', 'hebraico', 'grego',
+  'cjk', 'kana', 'hangul', 'cirilico', 'arabe', 'hebraico', 'grego', 'devanagari', 'thai',
 ])
 
 /**

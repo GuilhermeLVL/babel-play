@@ -253,10 +253,20 @@ A decisão que atravessa tudo: **acervo Anki próprio + projeção em `vocab_car
 | F2 | ~~Perfil de qualidade por origem~~ — `pistaUtil` (42 chars/5 palavras) foi calibrada para fala capturada e recusava definição de dicionário | **FEITO** — 61 de 3.600 viraram **3.590** |
 | F3 | ~~Acervo (`anki_decks`/`anki_notes`/`anki_imports`) + projeção em lotes de 300~~ | **FEITO** — inclui a armadilha do índice parcial (desativar+reimportar rachava o histórico FSRS em dois cartões) |
 | F4 | ~~Exclusão de conta (LGPD) quebrava com a FK nova~~ — `SQLITE_CONSTRAINT` no batch inteiro | **FEITO** — e o baralho importado deixou de sobreviver a um pedido de eliminação |
-| F5 | Rotas do acervo + tela Biblioteca › Baralhos + Mapeador de campos | em andamento |
-| F6 | Mídia: mapa (JSON e protobuf), zstd por arquivo, dedupe **por usuário** (razão jurídica) e cota | em andamento |
-| F7 | Filtro por baralho no lobby + frase do baralho nos jogos de frase | pendente |
-| F8 | Corpus de 10+ baralhos reais medidos (`scripts/corpus-anki/`) — baralhos ficam FORA do repo | pendente: depende de baixar os arquivos |
+| F5 | ~~Rotas do acervo + tela Biblioteca › Baralhos~~ | **FEITO** — importar grava o acervo; listar/ativar/desativar/purgar; a tela mostra "299 de 3600 ativadas" |
+| F6 | ~~Mídia: mapa (JSON e protobuf), zstd por arquivo, tabelas com dedupe **por usuário**~~ | **FEITO até o storage** — falta a negociação de upload e a cota (F6b) |
+| F7 | ~~Filtro por baralho no lobby~~ | **FEITO** — via o `fonte.ref` que já existia; provado com baralho inexistente devolvendo 0 itens |
+| F8 | Corpus de 10+ baralhos reais medidos (`scripts/corpus-anki/`) — baralhos ficam FORA do repo | 1 de 10 medido: depende de baixar os arquivos (lista pronta em `scripts/corpus-anki/baixar.md`) |
+
+**O que sobrou, em ordem de valor:**
+
+| # | O quê | Por que ainda não |
+|---|---|---|
+| F6b | Upload de mídia negociado por hash + cota | O storage e o parser estão prontos; falta a rota e ligar `somarBytesEmDisco` — que precisa entrar no MESMO passo, senão o contador de cota passa a mentir |
+| F9 | Mapeador de campos (UI de override) | O mapeamento por nome já acerta os baralhos medidos; a UI é para quando ele errar. `camposBrutos` já é guardado, então remapear não vai pedir o arquivo de novo |
+| F10 | Frase do baralho alimentando os 5 jogos de frase | Hoje eles vivem das gravações; o caminho existe (o ramo de TTS da trilha já ensina como) |
+| F11 | Chip de origem na PRÉVIA da rodada | O chip do lobby está feito; a prévia ainda não diz a origem item a item |
+| F12 | Paridade offline do filtro por baralho | Sem servidor, o recorte degrada para "todos" — a spec manda DIZER isso, e ainda não diz |
 
 **Aberto para você decidir:** os cartões importados pelo funil antigo (ocorrência `manual`, sem
 baralho) ficam como estão — não há dado para reconstruir de qual baralho vieram. O funil novo vale

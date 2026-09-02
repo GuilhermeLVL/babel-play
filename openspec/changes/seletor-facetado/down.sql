@@ -1,0 +1,12 @@
+-- Reversão da migração 0019_seletor_facetado.sql
+--
+-- DROP INDEX é suficiente e SEGURO. A coluna `src_lang_base` fica órfã (não é derrubada aqui):
+-- SQLite não tem `ALTER TABLE ... DROP COLUMN GENERATED` que preserve a política aditivo-somente
+-- desta casa sem reconstruir a tabela inteira (`DROP COLUMN` comum funciona em colunas geradas
+-- também, mas exige recriar a tabela por trás dos panos em versões antigas do SQLite e foge do
+-- padrão dos outros `down.sql` deste projeto, que só desfazem o que a migração acrescentou de
+-- CUSTO ativo). Uma coluna VIRTUAL órfã é INOFENSIVA: ela não ocupa disco por linha (é recalculada
+-- a cada leitura), não aparece em nenhum INSERT/UPDATE (coluna gerada não aceita escrita direta) e
+-- não é referenciada por nenhum outro objeto do banco depois que o índice cai. Ela simplesmente
+-- para de ser lida.
+DROP INDEX IF EXISTS `idx_vocab_src_lang_base`;

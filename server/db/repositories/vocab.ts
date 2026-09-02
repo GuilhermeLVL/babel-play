@@ -33,6 +33,28 @@ function balancear<T extends { difficultyScore: number | null }>(cartoes: T[], l
 
 export type VocabCard = typeof vocabCards.$inferSelect
 
+/**
+ * O FILTRO FACETADO da tela de jogos (openspec/changes/seletor-facetado) — UNIÃO dentro de cada
+ * faceta, INTERSEÇÃO entre facetas. Nomes e forma FIXADOS pelo agente do núcleo cliente; não mude.
+ */
+export interface FiltroFacetado {
+  fontes: Array<'baralho' | 'sessao' | 'trilha'>
+  baralhos?: string[]
+  sessoes?: string[]
+  /** Bases ISO-639-1 ('en'). */
+  idiomas?: string[]
+  recorte?: {
+    nuncaVistas?: boolean
+    pedindoRevisao?: boolean
+    niveis?: string[]
+    dificeisIds?: string[]
+  }
+  midia?: {
+    comTraducao?: boolean
+    comFrase?: boolean
+  }
+}
+
 /** Um cartão recusado na entrada, com o motivo — a tela mostra, não engole. */
 export interface SkippedCard {
   word: string
@@ -127,7 +149,7 @@ export const vocabRepo = {
    * `(user_id, origin_kind)`, então a segunda é um lookup indexado único, em vez de um EXISTS por
    * linha sobre um baralho de milhares. `list()` roda depois de cada rodada — o custo importa.
    */
-  async list(userId: UserId): Promise<Array<VocabCard & { daTrilha: boolean; daAnki: boolean }>> {
+  async list(userId: UserId): Promise<Array<VocabCard & { daTrilha: boolean; daAnki: boolean; baralhosAnki: string[] }>> {
     /* `daAnki` VIAJA PELA MESMA RAZÃO QUE `daTrilha`, e a falta dele custava o baralho inteiro: a
        régua de qualidade tem dois perfis (fala capturada × material curado) e o CLIENTE reavalia
        cada cartão antes da rodada. Sem a marca, ele aplicava o teto de 42 caracteres da captura a
@@ -143,7 +165,13 @@ export const vocabRepo = {
           isNull(vocabOccurrences.deletedAt),
           eq(vocabOccurrences.originKind, 'trilha'),
         )),
-      db.selectDistinct({ cardId: vocabOccurrences.cardId }).from(vocabOccurrences)
+      /* Tarefa 3 (seletor-facetado): `origin_ref` viaja junto — é o id do baralho Anki de origem.
+         `selectDistinct` porque a MESMA nota pode gerar mais de uma ocorrência 'anki' para o
+         mesmo cartão (reimport, `ativarLote`), e um cartão pode ter vindo de dois baralhos
+         diferentes (mesma palavra projetada de dois decks). Continua UMA consulta agregada — não
+         N+1: o custo desta chamada não cresce com o número de cartões, só com o de linhas
+         distintas (cardId, deckId), que `idx_occ_origem` já cobre. */
+      db.selectDistinct({ cardId: vocabOccurrences.cardId, deckId: vocabOccurrences.originRef }).from(vocabOccurrences)
         .where(and(
           eq(vocabOccurrences.userId, userId),
           isNull(vocabOccurrences.deletedAt),
@@ -152,7 +180,19 @@ export const vocabRepo = {
     ])
     const daTrilhaIds = new Set(daTrilha.map((r) => r.cardId))
     const daAnkiIds = new Set(daAnki.map((r) => r.cardId))
-    return cartoes.map((c) => ({ ...c, daTrilha: daTrilhaIds.has(c.id), daAnki: daAnkiIds.has(c.id) }))
+    const baralhosPorCartao = new Map<string, string[]>()
+    for (const r of daAnki) {
+      if (!r.deckId) continue
+      const lista = baralhosPorCartao.get(r.cardId)
+      if (lista) lista.push(r.deckId)
+      else baralhosPorCartao.set(r.cardId, [r.deckId])
+    }
+    return cartoes.map((c) => ({
+      ...c,
+      daTrilha: daTrilhaIds.has(c.id),
+      daAnki: daAnkiIds.has(c.id),
+      baralhosAnki: baralhosPorCartao.get(c.id) ?? [],
+    }))
   },
 
   async get(userId: UserId, id: string): Promise<VocabCard | undefined> {
@@ -488,6 +528,12 @@ export const vocabRepo = {
     evitar?: string[]
     /** Base ISO-639-1 ('en', 'pt'). Vazio/ausente = sem filtro, o comportamento antigo. */
     lang?: string | null
+    /**
+     * O SELETOR FACETADO (openspec/changes/seletor-facetado). Quando presente, TEM PRECEDÊNCIA
+     * sobre `fonte`/`fonteRef`/`lang` — os chamadores de hoje (que não enviam `filtro`) continuam
+     * caindo nos ramos antigos, byte a byte.
+     */
+    filtro?: FiltroFacetado
   } = {}) {
     const limite = Math.min(Math.max(opts.limite ?? 20, 1), 200)
     const estrategia = opts.estrategia ?? 'equilibrado'
@@ -508,11 +554,65 @@ export const vocabRepo = {
      * voltamos ao mesmo lugar por outro caminho. É o que o teste de idioma trava.
      */
     const lang = (opts.lang ?? '').toLowerCase().split('-')[0].trim()
-    if (lang) {
-      cond.push(sql`LOWER(SUBSTR(COALESCE(${vocabCards.srcLang}, ''), 1, 2)) = ${lang}`)
+    if (lang && !opts.filtro) {
+      // `filtro` (quando presente) faz sua PRÓPRIA interseção de idiomas mais abaixo — este ramo
+      // é só para os chamadores ANTIGOS, que continuam intocados.
+      cond.push(eq(vocabCards.srcLangBase, lang))
     }
 
-    if (opts.fonte === 'sessao' && opts.fonteRef) {
+    if (opts.filtro) {
+      /**
+       * O FILTRO FACETADO (tarefa 2): união DENTRO de cada faceta, interseção ENTRE facetas.
+       *
+       * `fontes` é a única faceta que é união DE FATO entre membros heterogêneos — os outros
+       * campos (`idiomas`, `recorte.niveis`, etc.) já eram "OR dentro do campo" por serem listas
+       * passadas a `IN (...)`. Aqui a união vira `OR` entre sub-EXISTS/NOT EXISTS, um por fonte
+       * presente em `fontes`; o resultado inteiro entra como UMA condição na interseção do WHERE.
+       */
+      const f = opts.filtro
+      const membros: ReturnType<typeof sql>[] = []
+      if (f.fontes.includes('trilha')) {
+        membros.push(sql`EXISTS (SELECT 1 FROM ${vocabOccurrences} o WHERE o.card_id = ${vocabCards.id}
+          AND o.origin_kind = 'trilha')`)
+      }
+      if (f.fontes.includes('sessao')) {
+        membros.push(f.sessoes?.length
+          ? sql`EXISTS (SELECT 1 FROM ${vocabOccurrences} o WHERE o.card_id = ${vocabCards.id}
+              AND o.origin_kind = 'sessao' AND o.origin_ref IN ${f.sessoes})`
+          : sql`EXISTS (SELECT 1 FROM ${vocabOccurrences} o WHERE o.card_id = ${vocabCards.id}
+              AND o.origin_kind = 'sessao')`)
+      }
+      if (f.fontes.includes('baralho')) {
+        membros.push(f.baralhos?.length
+          ? sql`EXISTS (SELECT 1 FROM ${vocabOccurrences} o WHERE o.card_id = ${vocabCards.id}
+              AND o.origin_kind = 'anki' AND o.origin_ref IN ${f.baralhos})`
+          // Sem baralhos específicos: "baralho" sozinho significa "não é trilha" — mesma
+          // semântica do ramo `else` dos chamadores antigos (o EXISTS de 'anki' exigiria que
+          // TODO cartão manual também tivesse ocorrência 'anki', o que nunca foi verdade).
+          : sql`NOT EXISTS (SELECT 1 FROM ${vocabOccurrences} o WHERE o.card_id = ${vocabCards.id}
+              AND o.origin_kind = 'trilha')`)
+      }
+      /* `fontes` é obrigatório e não-vazio no schema Zod da rota — na prática sempre há ao menos
+         um membro aqui. Mas o REPOSITÓRIO é chamado direto por testes/outros callers sem passar
+         pelo Zod, e `sql.join` de uma lista vazia produz SQL inválido (`()`); `1=0` é o WHERE
+         "nunca casa", a resposta segura para "nenhuma fonte pedida" em vez de um erro de sintaxe. */
+      cond.push(membros.length ? sql`(${sql.join(membros, sql` OR `)})` : sql`1=0`)
+
+      // Interseção: cada faceta abaixo é uma condição A MAIS, sobre índices já existentes
+      // (idx_vocab_src_lang_base, idx_vocab_user_due, idx_vocab_user_cefr) — ver relato da migração.
+      if (f.idiomas?.length) {
+        const bases = f.idiomas.map((l) => l.toLowerCase().split('-')[0].trim()).filter(Boolean)
+        if (bases.length) cond.push(inArray(vocabCards.srcLangBase, bases))
+      }
+      if (f.recorte?.nuncaVistas) cond.push(isNull(vocabCards.dueAt))
+      if (f.recorte?.pedindoRevisao) {
+        cond.push(sql`(${vocabCards.dueAt} IS NOT NULL AND ${vocabCards.dueAt} <= ${Date.now()})`)
+      }
+      if (f.recorte?.niveis?.length) cond.push(inArray(vocabCards.cefrLevel, f.recorte.niveis))
+      if (f.recorte?.dificeisIds?.length) cond.push(inArray(vocabCards.id, f.recorte.dificeisIds))
+      if (f.midia?.comTraducao) cond.push(sql`(${vocabCards.back} IS NOT NULL AND ${vocabCards.back} != '')`)
+      if (f.midia?.comFrase) cond.push(sql`(${vocabCards.sentence} IS NOT NULL AND ${vocabCards.sentence} != '')`)
+    } else if (opts.fonte === 'sessao' && opts.fonteRef) {
       cond.push(sql`EXISTS (SELECT 1 FROM ${vocabOccurrences} o WHERE o.card_id = ${vocabCards.id}
         AND o.origin_kind = 'sessao' AND o.origin_ref = ${opts.fonteRef})`)
     } else if (opts.fonte === 'trilha') {

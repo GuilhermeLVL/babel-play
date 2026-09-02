@@ -130,6 +130,21 @@ export const vocabCards = sqliteTable('vocab_cards', {
   /** Dificuldade calculada (0..1) — materializada, nunca no caminho de leitura. Ver F4. */
   difficultyScore: real('difficulty_score'),
   difficultyAt: integer('difficulty_at'),
+
+  /**
+   * Base ISO-639-1 de `src_lang` ('en-US' → 'en'), SARGÁVEL — a mesma normalização que
+   * `selecionarParaJogo` já fazia em SQL (`LOWER(SUBSTR(src_lang,1,2))`), agora como coluna.
+   *
+   * VIRTUAL, não STORED: SQLite só aceita coluna gerada em `ALTER TABLE ADD COLUMN` quando ela é
+   * VIRTUAL (STORED exige reconstruir a tabela, o que violaria a política aditivo-somente desta
+   * migração). Uma coluna virtual não ocupa disco por linha, mas o ÍNDICE sobre ela é uma
+   * estrutura real e sargável — confirmado com `EXPLAIN QUERY PLAN` (ver relato da migração):
+   * `SEARCH vocab_cards USING INDEX idx_vocab_src_lang_base (src_lang_base=?)`. Zero backfill:
+   * o valor é recalculado a cada leitura, então não há linha "desatualizada" possível.
+   */
+  srcLangBase: text('src_lang_base').generatedAlwaysAs(
+    sql`(lower(substr(coalesce(src_lang,''),1,2)))`, { mode: 'virtual' },
+  ),
 }, (t) => [
   /* UNIQUE que destrava o upsert atômico. Parcial (`deleted_at is null`) porque um cartão
      removido não pode bloquear o recadastro da mesma palavra. Sem ele, a dedup ficava 100% em
@@ -143,6 +158,12 @@ export const vocabCards = sqliteTable('vocab_cards', {
   index('idx_vocab_user_due').on(t.userId, t.dueAt),
   index('idx_vocab_session').on(t.userId, t.sessionId),
   index('idx_vocab_user_dificuldade').on(t.userId, t.difficultyScore),
+  /**
+   * O eixo idioma do filtro facetado (tarefa 1). Antes o predicado era uma EXPRESSÃO
+   * (`LOWER(SUBSTR(src_lang,1,2))=?`) e não podia usar índice — full scan a cada filtro por
+   * idioma. `src_lang_base` é gerada (virtual) e este índice é sobre ela: sargável.
+   */
+  index('idx_vocab_src_lang_base').on(t.srcLangBase),
 ])
 
 /**

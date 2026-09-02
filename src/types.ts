@@ -89,6 +89,15 @@ export interface VocabCard {
    * dicionário. Medido no baralho real: 299 cartões importados, e o lobby anunciava 8.
    */
   daAnki?: boolean;
+  /**
+   * Ids dos baralhos Anki de origem (fecha a tarefa 1.3 de motor-anki-jogos). MESMA razão de
+   * `daAnki`: a procedência real mora em `vocab_occurrences.origin_ref` e não é derivável do
+   * cartão. Ausente ou vazio quando o cartão não é anki (ou é anki sem `origin_ref` legado).
+   *
+   * É o que permite ao filtro facetado OFFLINE (recorte local sem ida ao servidor) não mentir
+   * sobre "quais baralhos este cartão pertence" — sem isto ele só sabia dizer "é anki", nunca QUAL.
+   */
+  baralhosAnki?: string[];
   frequency: 'high' | 'medium' | 'low';
   leitnerBox: number; // 1 to 5
   leitnerDueAt: string; // ISO date or descriptive

@@ -346,6 +346,57 @@ const csv = (maxItens: number, maxCada = 64) =>
 
 const FAIXAS = ['facil', 'medio', 'dificil'] as const
 
+/**
+ * O FILTRO FACETADO (openspec/changes/seletor-facetado) — fio FIXADO pelo agente do núcleo
+ * cliente; nomes não mudam. Tetos ("sensatos"): baralhos/sessões/idiomas/níveis não passam de
+ * dezenas na prática de qualquer conta real; `dificeisIds` é o único que pode ser grande porque
+ * vem de uma seleção manual na tela.
+ */
+const filtroFonteSchema = z.enum(['baralho', 'sessao', 'trilha'])
+export const filtroFacetadoSchema = z.object({
+  fontes: z.array(filtroFonteSchema).min(1).max(3),
+  baralhos: z.array(z.string().max(128)).max(50).optional(),
+  sessoes: z.array(z.string().max(128)).max(50).optional(),
+  idiomas: z.array(z.string().max(16)).max(20).optional(),
+  recorte: z.object({
+    nuncaVistas: z.boolean().optional(),
+    pedindoRevisao: z.boolean().optional(),
+    niveis: z.array(z.string().max(16)).max(20).optional(),
+    dificeisIds: z.array(z.string().max(128)).max(200).optional(),
+  }).strip().optional(),
+  midia: z.object({
+    comTraducao: z.boolean().optional(),
+    comFrase: z.boolean().optional(),
+  }).strip().optional(),
+}).strip()
+export type FiltroFacetadoInput = z.infer<typeof filtroFacetadoSchema>
+
+/**
+ * `filtro` chega como JSON serializado num query param — a rota já é GET (o corpo semântico é
+ * uma leitura, não uma escrita) e `vocabParaJogoQuerySchema` já é toda `req.query`; um objeto
+ * aninhado não cabe em `csv()`. Teto de 20 KB é generoso para os tetos acima (~200 ids de 128
+ * chars cada já cabe em ~26 KB no pior caso isolado, mas o filtro real nunca combina os tetos
+ * máximos de TODOS os campos ao mesmo tempo — 20 KB cobre o uso real com folga sem abrir a porta
+ * para um payload absurdo dentro da URL).
+ */
+const filtroQuerySchema = z.string().max(20_000).optional()
+  .transform((v, ctx) => {
+    if (!v) return undefined
+    let parsed: unknown
+    try {
+      parsed = JSON.parse(v)
+    } catch {
+      ctx.addIssue({ code: 'custom', message: 'filtro: JSON inválido' })
+      return z.NEVER
+    }
+    const r = filtroFacetadoSchema.safeParse(parsed)
+    if (!r.success) {
+      ctx.addIssue({ code: 'custom', message: `filtro: ${r.error.issues[0]?.path.join('.') || '?'} — ${r.error.issues[0]?.message ?? 'inválido'}` })
+      return z.NEVER
+    }
+    return r.data
+  })
+
 export const vocabParaJogoQuerySchema = z.object({
   fonte: z.enum(['baralho', 'sessao', 'trilha']).optional(),
   fonteRef: z.string().max(128).optional(),
@@ -356,6 +407,8 @@ export const vocabParaJogoQuerySchema = z.object({
   limite: z.coerce.number().int().min(1).max(200).optional(),
   evitar: csv(200),
   lang: z.string().max(16).optional(),
+  // Presente => tem PRECEDÊNCIA sobre fonte/fonteRef/lang, no repositório (não aqui).
+  filtro: filtroQuerySchema,
 }).strip()
 
 export const vocabPaginaQuerySchema = z.object({

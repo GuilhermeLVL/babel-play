@@ -387,6 +387,8 @@ export function rowToVocabCard(row: VocabRow): VocabCard {
     /* Sem esta linha o cartão de baralho chega ao cliente sem procedência, e a régua o mede pelo
        teto de fala capturada — 299 cartões importados vira "8 palavras prontas" na tela. */
     daAnki: !!(row as { daAnki?: boolean }).daAnki,
+    /** Tarefa 1.3 de motor-anki-jogos: ver docblock de `VocabCard.baralhosAnki`. */
+    baralhosAnki: (row as { baralhosAnki?: string[] }).baralhosAnki ?? [],
     frequency: 'medium',
     leitnerBox: row.box ?? 1,
     leitnerDueAt: dueIso,

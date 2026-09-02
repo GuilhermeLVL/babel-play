@@ -134,6 +134,13 @@
       "when": 1788306609034,
       "tag": "0018_awesome_scarlet_spider",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "6",
+      "when": 1788357887272,
+      "tag": "0019_seletor_facetado",
+      "breakpoints": true
     }
   ]
 }

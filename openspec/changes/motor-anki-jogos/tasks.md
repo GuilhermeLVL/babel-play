@@ -3,8 +3,10 @@
 - [x] 1.1 `selecionarParaJogo`: ramo `origin_kind='anki' AND origin_ref=<deckId>` na cláusula
       `EXISTS` que já está lá (`vocab.ts:473-486`); o índice `idx_occ_origem` já cobre
 - [x] 1.2 `PedidoDeComposicao.fonte.ref` passa a carregar a referência de baralho (o campo já existe)
-- [ ] 1.3 Payload do deck leva a associação cartão→baralho (análogo a `daTrilha`), para o fallback
-      offline de `cartoesDaFonte` não mentir
+- [x] 1.3 Payload do deck leva a associação cartão→baralho (análogo a `daTrilha`), para o fallback
+      offline de `cartoesDaFonte` não mentir — entregue em `seletor-facetado`: `vocabRepo.list()`
+      agrega `origin_ref` do `selectDistinct` de `daAnki` (continua UMA consulta, sem N+1) e expõe
+      `VocabCard.baralhosAnki: string[]` (`src/types.ts`, mapeado em `src/data/api.ts`)
 - [ ] 1.4 Quando a associação não estiver no payload, **dizer** que o filtro não pôde ser aplicado —
       nunca jogar com tudo em silêncio
 - [x] 1.5 Seletor de baralho no lobby, ao lado das fontes existentes

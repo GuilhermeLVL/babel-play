@@ -14,9 +14,10 @@
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import {
-  compor, aceitaFiltroDeDificuldade, composicaoLocal,
-  type PedidoDeComposicao, type CartaoParaCompor,
+  compor, aceitaFiltroDeDificuldade, composicaoLocal, recortarPelaComposicao, filtroParaComposicao,
+  type PedidoDeComposicao, type CartaoParaCompor, type Composicao,
 } from '../src/core/minigames/composicao'
+import { FILTRO_PADRAO, type FiltroDaPratica, type CartaoFiltravel } from '../src/core/minigames/filtro'
 
 const CARTOES: CartaoParaCompor[] = [
   { id: 'c1', word: 'water', back: 'água', sentence: null, cefrLevel: 'A1', cefrSource: 'wordlist', occurrences: 9, difficultyScore: 0.12, dueAt: 1, srcLang: 'en', tgtLang: 'pt', clozePrompt: null, clozeAnswer: null },
@@ -107,5 +108,100 @@ describe('compor — servidor com fallback', () => {
     await compor({ jogo: 'ditado', fonte: { id: 'baralho' }, limite: 5, dificuldade: ['dificil'] }, CARTOES)
     const url = String((espia.mock.calls as unknown as Array<[unknown]>)[0][0])
     expect(url).not.toContain('dificuldade')
+  })
+})
+
+/**
+ * O FILTRO FACETADO chegando ao adaptador — `recortarPelaComposicao` ganha a alternativa
+ * `{ filtro }` (SEMPRE completa, mas só com elegíveis) e `composicaoLocal` passa a respeitar
+ * `PedidoDeComposicao.filtro` no fallback offline (a paridade de graça).
+ */
+describe('filtroParaComposicao — a escolha vira a forma de fio', () => {
+  it('FILTRO_PADRAO vira um fio sem nada preenchido', () => {
+    const fio = filtroParaComposicao(FILTRO_PADRAO)
+    expect(fio.fontes).toEqual(['baralho', 'sessao'])
+    expect(fio.baralhos).toBeUndefined()
+    expect(fio.sessoes).toBeUndefined()
+    expect(fio.recorte).toBeUndefined()
+    expect(fio.midia).toBeUndefined()
+  })
+
+  it('recorte.dificeis vira dificeisIds — o servidor não conhece o ranking sozinho', () => {
+    const f: FiltroDaPratica = { ...FILTRO_PADRAO, recorte: { dificeis: true } }
+    const fio = filtroParaComposicao(f, ['c1', 'c2'])
+    expect(fio.recorte?.dificeisIds).toEqual(['c1', 'c2'])
+  })
+
+  it('niveis e mídia atravessam quando preenchidos', () => {
+    const f: FiltroDaPratica = { ...FILTRO_PADRAO, recorte: { niveis: ['A1'] }, midia: { comTraducao: true } }
+    const fio = filtroParaComposicao(f)
+    expect(fio.recorte?.niveis).toEqual(['A1'])
+    expect(fio.midia).toEqual({ comTraducao: true })
+  })
+})
+
+describe('recortarPelaComposicao com { filtro } — completa SÓ com elegíveis', () => {
+  const usaveis: Array<{ id: string } & CartaoFiltravel> = [
+    { id: 'a', daTrilha: false, cefrLevel: 'A1' },
+    { id: 'b', daTrilha: false, cefrLevel: 'B2' },
+    { id: 'c', daTrilha: false, cefrLevel: 'A1' },
+  ]
+  const servida: Composicao = {
+    total: 1, origemDaComposicao: 'servidor',
+    itens: [{ cardId: 'b', word: 'x', back: null, sentence: null, clozePrompt: null, clozeAnswer: null, proveniencia: { origem: 'baralho', origemRef: null, nivel: null, nivelFonte: '', dificuldade: null, faixa: null, ocorrencias: null, porQueSelecionado: '', origemDaComposicao: 'servidor' } }],
+  }
+
+  it('filtro vazio (FILTRO_PADRAO) ≡ completar:true antigo', () => {
+    const r = recortarPelaComposicao(usaveis, servida, { filtro: FILTRO_PADRAO })
+    expect(r.map((c) => c.id)).toEqual(['b', 'a', 'c'])
+  })
+
+  it('filtro restritivo: a ORDEM do servidor é respeitada (nunca capa nos servidos), só o COMPLEMENTO é filtrado', () => {
+    const f: FiltroDaPratica = { ...FILTRO_PADRAO, recorte: { niveis: ['A1'] } }
+    // 'b' veio do servidor e entra primeiro mesmo sendo B2 — o servidor já fez sua escolha, e
+    // "nunca capa injustamente nos servidos" é justamente essa garantia. O que muda é o
+    // COMPLEMENTO: só 'a' e 'c' (A1) entram atrás; nada fora do filtro é adicionado por trás.
+    const r = recortarPelaComposicao(usaveis, servida, { filtro: f })
+    expect(r.map((c) => c.id)).toEqual(['b', 'a', 'c'])
+  })
+
+  it('filtro restritivo cujo elegível não foi servido: o complemento ainda entra', () => {
+    const f: FiltroDaPratica = { ...FILTRO_PADRAO, recorte: { niveis: ['B2'] } }
+    // Nada em `usaveis` de nível B2 além de 'b', que já foi servido — o complemento fica vazio.
+    const r = recortarPelaComposicao(usaveis, servida, { filtro: f })
+    expect(r.map((c) => c.id)).toEqual(['b'])
+  })
+
+  it('sem composição, devolve o acervo intacto (como a forma antiga)', () => {
+    const r = recortarPelaComposicao(usaveis, null, { filtro: FILTRO_PADRAO })
+    expect(r).toHaveLength(3)
+  })
+
+  it('a forma antiga { completar } continua idêntica', () => {
+    const comCompletar = recortarPelaComposicao(usaveis, servida, { completar: true })
+    const semCompletar = recortarPelaComposicao(usaveis, servida, { completar: false })
+    expect(comCompletar.map((c) => c.id)).toEqual(['b', 'a', 'c'])
+    expect(semCompletar.map((c) => c.id)).toEqual(['b'])
+  })
+})
+
+describe('composicaoLocal com filtro — a paridade de graça no fallback offline', () => {
+  const cartoes: CartaoParaCompor[] = [
+    { id: 'c1', word: 'water', back: 'água', sentence: 'I like water.', cefrLevel: 'A1', cefrSource: 'x', occurrences: 1, difficultyScore: 0.1, dueAt: 1, srcLang: 'en', tgtLang: 'pt', clozePrompt: null, clozeAnswer: null },
+    { id: 'c2', word: 'leverage', back: null, sentence: null, cefrLevel: 'B2', cefrSource: 'x', occurrences: 1, difficultyScore: 0.5, dueAt: 2, srcLang: 'en', tgtLang: 'pt', clozePrompt: null, clozeAnswer: null },
+  ]
+
+  it('midia.comTraducao filtra offline exatamente como o predicado prevê', () => {
+    const p: PedidoDeComposicao = {
+      jogo: 'memory', fonte: { id: 'baralho' }, limite: 8,
+      filtro: filtroParaComposicao({ ...FILTRO_PADRAO, midia: { comTraducao: true } }),
+    }
+    const r = composicaoLocal(cartoes, p)
+    expect(r.itens.map((i) => i.cardId)).toEqual(['c1'])
+  })
+
+  it('sem filtro no pedido, nada muda', () => {
+    const p: PedidoDeComposicao = { jogo: 'memory', fonte: { id: 'baralho' }, limite: 8 }
+    expect(composicaoLocal(cartoes, p).itens).toHaveLength(2)
   })
 })

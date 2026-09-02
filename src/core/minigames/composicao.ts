@@ -20,6 +20,10 @@
  */
 import { MINIGAMES, type MinigameId } from './types'
 import { baseLangDe } from '../learning/quality'
+import {
+  passaNoFiltro, type FiltroDaPratica, type CartaoFiltravel, type ExtrasDoFiltro,
+} from './filtro'
+import type { CefrLevel } from '../learning/contract'
 
 export type FaixaDificuldade = 'facil' | 'medio' | 'dificil'
 export type EstrategiaDeDistribuicao = 'equilibrado' | 'recentes' | 'frequentes' | 'em-dificuldade'
@@ -169,6 +173,93 @@ export interface PedidoDeComposicao {
   estrategia?: EstrategiaDeDistribuicao
   limite: number
   evitar?: string[]
+  /**
+   * O FILTRO FACETADO, NA FORMA DE FIO. Campo OPCIONAL: sem ele, nada muda — é o mesmo pedido de
+   * sempre. `compor`/`composicaoLocal` TRANSPORTAM o campo sem interpretá-lo pesadamente: o
+   * servidor (dono de outra frente) decide o que fazer dele na rota; o fallback LOCAL usa
+   * `passaNoFiltro` quando ele vier — é a paridade de graça entre as duas metades.
+   */
+  filtro?: FiltroDeComposicao
+}
+
+/**
+ * A FORMA DE FIO do filtro facetado — o que viaja no pedido de composição.
+ *
+ * Não é `FiltroDaPratica` batizado de novo: aquele tipo é a ESCOLHA DA PESSOA (inclui
+ * `recorte.dificeis: boolean`, que só faz sentido ao lado do `rankingDificeis` vivo, que o
+ * servidor nunca viu). Esta forma já resolveu isso — `dificeisIds` é a lista concreta de ids —
+ * porque o servidor não tem como reconstruir o ranking sozinho.
+ */
+export interface FiltroDeComposicao {
+  fontes: Array<'baralho' | 'sessao' | 'trilha'>
+  baralhos?: string[]
+  sessoes?: string[]
+  idiomas?: string[]
+  recorte?: { nuncaVistas?: boolean; pedindoRevisao?: boolean; niveis?: string[]; dificeisIds?: string[] }
+  midia?: { comTraducao?: boolean; comFrase?: boolean }
+}
+
+/**
+ * `FiltroDaPratica` (a escolha) → `FiltroDeComposicao` (o fio).
+ *
+ * `dificeis` vira LISTA DE IDS aqui, e só aqui: o servidor não conhece o ranking de palavras
+ * difíceis (ele é injetado na hora do uso, do lado do cliente — ver `FonteDeItens.cardIds` em
+ * `source.ts`), então a única forma de o servidor aplicar esse recorte é receber os ids prontos.
+ */
+export function filtroParaComposicao(f: FiltroDaPratica, rankingDificeis?: string[]): FiltroDeComposicao {
+  const recorte: FiltroDeComposicao['recorte'] = {
+    nuncaVistas: f.recorte.nuncaVistas || undefined,
+    pedindoRevisao: f.recorte.pedindoRevisao || undefined,
+    niveis: f.recorte.niveis?.length ? f.recorte.niveis : undefined,
+    dificeisIds: f.recorte.dificeis ? (rankingDificeis ?? []) : undefined,
+  }
+  const midia = (f.midia.comTraducao || f.midia.comFrase) ? f.midia : undefined
+  return {
+    fontes: f.fontes,
+    baralhos: f.baralhos.length ? f.baralhos : undefined,
+    sessoes: f.sessoes.length ? f.sessoes : undefined,
+    idiomas: f.idiomas.length ? f.idiomas : undefined,
+    recorte: Object.values(recorte).some((v) => v !== undefined) ? recorte : undefined,
+    midia,
+  }
+}
+
+/**
+ * A forma de fio (`FiltroDeComposicao`) de volta a algo que `passaNoFiltro` entende, para o
+ * fallback LOCAL. `dificeisIds` vira o `ReadonlySet` que `passaNoFiltro` espera em `extras` — o
+ * fio já resolveu o ranking em ids concretos, então aqui não sobra ranking nenhum para injetar,
+ * só o conjunto.
+ */
+function filtroLocalDoFio(fc: FiltroDeComposicao): { filtro: FiltroDaPratica; ranking: ReadonlySet<string> } {
+  const ranking = new Set(fc.recorte?.dificeisIds ?? [])
+  const filtro: FiltroDaPratica = {
+    versao: 1,
+    fontes: fc.fontes,
+    baralhos: fc.baralhos ?? [],
+    sessoes: fc.sessoes ?? [],
+    idiomas: fc.idiomas ?? [],
+    recorte: {
+      dificeis: !!fc.recorte?.dificeisIds?.length,
+      nuncaVistas: fc.recorte?.nuncaVistas,
+      pedindoRevisao: fc.recorte?.pedindoRevisao,
+      niveis: fc.recorte?.niveis as CefrLevel[] | undefined,
+    },
+    midia: fc.midia ?? {},
+  }
+  return { filtro, ranking }
+}
+
+/** `CartaoParaCompor` → `CartaoFiltravel`. Sem `daTrilha`/`sourceSessionId`/`baralhosAnki`: este
+ *  tipo não os carrega (a fonte já escopou o pool antes de chegar aqui) — só idioma, nível,
+ *  mídia e vencimento se beneficiam do filtro no fallback local. */
+function paraFiltravel(c: CartaoParaCompor): CartaoFiltravel {
+  return {
+    srcLang: c.srcLang ?? undefined,
+    cefrLevel: c.cefrLevel ?? undefined,
+    translation: c.back ?? undefined,
+    sentence: c.sentence ?? undefined,
+    fsrsDueAt: c.dueAt,
+  }
 }
 
 function proveniencia(c: CartaoParaCompor, p: PedidoDeComposicao, de: 'servidor' | 'fallback-local'): Proveniencia {
@@ -211,6 +302,13 @@ export function composicaoLocal(cartoes: CartaoParaCompor[], p: PedidoDeComposic
       const f = faixaDe(c.difficultyScore)
       return f == null ? false : querido.has(f)
     })
+  }
+  // A PARIDADE DE GRAÇA: o filtro facetado vale também quando a rede cai — sem isto, um recorte
+  // pedido ("só o que está pedindo revisão") desapareceria em silêncio justamente na hora em que
+  // o app precisa estar certo offline.
+  if (p.filtro) {
+    const { filtro, ranking } = filtroLocalDoFio(p.filtro)
+    pool = pool.filter((c) => passaNoFiltro(paraFiltravel(c), filtro, { rankingDificeis: ranking, idDoCartao: c.id }))
   }
 
   const ordenado = [...pool].sort((a, b) => {
@@ -348,11 +446,33 @@ export async function compor(
  * A INVARIANTE, e é ela que vale o arquivo: **todo cartão devolvido está em `usaveis`.** A
  * composição ORDENA e PRIORIZA; ela nunca ADICIONA. Enquanto isso valer, o bypass não tem como
  * voltar sem quebrar o teste.
+ *
+ * A FLAG `completar` GANHOU UMA ALTERNATIVA, e é o que fecha o defeito por construção: em vez de
+ * um booleano solto que cada chamador interpretava do jeito dele, `{ filtro }` diz exatamente o
+ * que deve entrar no complemento — SEMPRE completa (nunca corta no que o servidor serviu), mas
+ * só admite no complemento local o que `passaNoFiltro` aprova. `{ filtro: FILTRO_PADRAO }`
+ * equivale a `{ completar: true }` porque o filtro padrão não reprova ninguém; um filtro
+ * restritivo equivale a `{ completar: false }` SEM capar injustamente nos itens já servidos
+ * quando o acervo local tem mais elegíveis que o teto do servidor — o mesmo "jogo cinza" que o
+ * comentário acima descreve, só que agora resolvido por um recorte EXPLÍCITO em vez de um
+ * booleano que confundia "não completar" com "não filtrar".
+ *
+ * A FORMA ANTIGA `{ completar }` CONTINUA IGUAL — zero quebra nos chamadores de hoje.
  */
 export function recortarPelaComposicao<T extends { id: string }>(
   usaveis: T[],
   composicao: Composicao | null | undefined,
   opts: { completar: boolean },
+): T[]
+export function recortarPelaComposicao<T extends { id: string } & CartaoFiltravel>(
+  usaveis: T[],
+  composicao: Composicao | null | undefined,
+  opts: { filtro: FiltroDaPratica; extras?: ExtrasDoFiltro },
+): T[]
+export function recortarPelaComposicao<T extends { id: string }>(
+  usaveis: T[],
+  composicao: Composicao | null | undefined,
+  opts: { completar: boolean } | { filtro: FiltroDaPratica; extras?: ExtrasDoFiltro },
 ): T[] {
   if (!composicao?.itens?.length) return usaveis
 
@@ -384,10 +504,20 @@ export function recortarPelaComposicao<T extends { id: string }>(
    * `completar: false` quando há filtro de dificuldade: ali o recorte VEIO do servidor, e completar
    * encheria a rodada com cartões fora da faixa, apagando em silêncio o que a pessoa escolheu.
    */
-  if (!opts.completar) return escolhidos
+  if ('completar' in opts) {
+    if (!opts.completar) return escolhidos
+    for (const carta of usaveis) {
+      if (jaEntrou.has(carta.id)) continue
+      escolhidos.push(carta)
+      jaEntrou.add(carta.id)
+    }
+    return escolhidos
+  }
 
+  // `{ filtro }`: SEMPRE completa, mas o complemento só admite quem passa no filtro facetado.
   for (const carta of usaveis) {
     if (jaEntrou.has(carta.id)) continue
+    if (!passaNoFiltro(carta as unknown as CartaoFiltravel, opts.filtro, opts.extras)) continue
     escolhidos.push(carta)
     jaEntrou.add(carta.id)
   }

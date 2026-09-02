@@ -116,17 +116,37 @@ export interface MinigameDef {
    * palavras só existem dentro de uma frase, e nenhuma voz resolve isso.
    */
   aceitaPalavraFalada?: boolean;
+  /**
+   * O QUE O MATERIAL PRECISA TER, DECLARADO — não checado ad hoc por nome de jogo.
+   *
+   * Nasceu porque a checagem de alfabeto chegou primeiro imperativa: `estadoDoJogo` importava
+   * `entraNaGrade`/`digitavelNoTermo` e testava `if (id === 'wordsearch')` / `if (id === 'termo')`
+   * — dois `if`s escondidos que só quem lesse o gate inteiro descobria. Um 10º jogo com grade ou
+   * teclado próprio não ganhava a checagem sozinho: alguém tinha de lembrar de editar o gate. Foi
+   * assim que o caça-palavras ficou 100% mudo em japonês — auditoria S2: o acervo tinha material de
+   * sobra, só que num alfabeto que a grade não desenha, e nada na TABELA avisava disso.
+   *
+   * Declarado aqui, o avaliador (`elegibilidadeDoJogo`) despacha pelo REQUISITO, não pelo id — ele
+   * não sabe o que é "wordsearch", só sabe que um jogo com `alfabeto: 'latino'` precisa filtrar o
+   * pool por `entraNaGrade`/`digitavelNoTermo` antes de contar. Um jogo que não declara nada (a
+   * memória, por exemplo) nunca degrada por alfabeto — o requisito ausente é a prova de que ele
+   * aceita qualquer letra Unicode.
+   *
+   * Só `wordsearch` (grade) e `termo` (teclado QWERTY fixo) declaram `alfabeto: 'latino'` hoje —
+   * são os dois jogos com componente visual latino embutido (grade de letras, teclado físico).
+   */
+  requisitos?: { alfabeto?: 'latino' };
 }
 
 export const MINIGAMES: Record<MinigameId, MinigameDef> = {
   memory: { id: 'memory', minItems: 4, maxItems: 8, requiresTranslation: true, writesSrs: true, modalidade: 'palavra' },
-  wordsearch: { id: 'wordsearch', minItems: 4, maxItems: 8, requiresTranslation: false, writesSrs: true, modalidade: 'palavra' },
+  wordsearch: { id: 'wordsearch', minItems: 4, maxItems: 8, requiresTranslation: false, writesSrs: true, modalidade: 'palavra', requisitos: { alfabeto: 'latino' } },
   blitz: { id: 'blitz', minItems: 4, maxItems: 20, requiresTranslation: false, writesSrs: true, modalidade: 'palavra' },
   // Termo: exige tradução (é a pista) e palavras de 4 a 6 letras — ver `LETRAS_POR_FAIXA`.
   /* `maxItems: 7` = 1+2+4, a escada completa. Estava em 5 e a carta chegava a anunciar "5 prontas"
      para uma rodada que consome 7, o rótulo e o jogo discordavam. Quem manda no tamanho real é
      `consumoDaEscada` (`minigames/termo.ts`); este teto existe para o rótulo não prometer menos. */
-  termo: { id: 'termo', minItems: 3, maxItems: 7, requiresTranslation: true, writesSrs: true, modalidade: 'palavra' },
+  termo: { id: 'termo', minItems: 3, maxItems: 7, requiresTranslation: true, writesSrs: true, modalidade: 'palavra', requisitos: { alfabeto: 'latino' } },
   // Frase embaralhada e karaokê vivem de FALAS, não de cartões: não há nota de SRS a dar.
   scramble: { id: 'scramble', minItems: 3, maxItems: 5, requiresTranslation: true, writesSrs: false, modalidade: 'frase' },
   karaoke: { id: 'karaoke', minItems: 3, maxItems: 6, requiresTranslation: false, writesSrs: false, modalidade: 'frase-audio', aceitaPalavraFalada: true },

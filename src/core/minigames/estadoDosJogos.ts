@@ -53,6 +53,33 @@ export type MotivoBloqueio =
    */
   | 'alfabeto-nao-suportado';
 
+/**
+ * RÓTULO HUMANO de cada motivo — título curto + o que resolve.
+ *
+ * Os rótulos de hoje moram dentro de `Play.tsx`, como uma cadeia de `if (motivo === …)` espalhada
+ * pelo componente (fora do escopo desta pasta). Esta tabela é a versão declarativa, ao lado do
+ * tipo que ela rotula, para a UI facetada (e o próprio `Play.tsx`, numa onda futura de migração)
+ * consumirem uma verdade só em vez de reescrever a mesma frase em dois lugares.
+ */
+export const ROTULO_DO_MOTIVO: Record<MotivoBloqueio, { titulo: string; conserto: string }> = {
+  'trilha-sem-frase': {
+    titulo: 'precisa de frase',
+    conserto: 'a trilha tem palavras soltas; escolha uma gravação para liberar este jogo',
+  },
+  'sem-voz': {
+    titulo: 'sem voz sintetizada',
+    conserto: 'este navegador não oferece voz no idioma do baralho',
+  },
+  'audio-carregando': {
+    titulo: 'baixando o áudio',
+    conserto: 'a gravação tem som; ele ainda está a caminho',
+  },
+  'alfabeto-nao-suportado': {
+    titulo: 'alfabeto não suportado',
+    conserto: 'o acervo tem material de sobra, mas em um alfabeto que este jogo não escreve',
+  },
+};
+
 export interface EstadoDoJogo {
   id: MinigameId;
   ok: boolean;
@@ -180,6 +207,33 @@ export function poolDosJogosDePalavra(cartas: VocabCard[]): PoolPorJogo {
 }
 
 /**
+ * QUANTO O ACERVO SERVE, COM E SEM O FILTRO DE ALFABETO — fonte única para o gate imperativo
+ * (`estadoDoJogo`) e o avaliador declarativo (`elegibilidadeDoJogo`).
+ *
+ * Só existe para termo e wordsearch, os dois jogos que declaram `requisitos.alfabeto: 'latino'`
+ * em `MINIGAMES`. `semFiltro` é a contagem sobre o acervo inteiro (o que separa "pouco material"
+ * de "material de sobra, alfabeto não suportado"); `apto` é a mesma conta depois de excluir o que
+ * o requisito recusa — `entraNaGrade` para a grade do caça-palavras, `digitavelNoTermo` para o
+ * teclado QWERTY fixo do Termo.
+ */
+function contagemComAlfabeto(
+  id: 'termo' | 'wordsearch',
+  cartas: VocabCard[],
+  faixa: FaixaDificuldade = 'medio',
+): { semFiltro: number; apto: number } {
+  if (id === 'termo') {
+    return {
+      semFiltro: contarJogaveisMulti(cartas, faixa),
+      apto: contarJogaveisMulti(cartas.filter(c => digitavelNoTermo(c.word ?? '')), faixa),
+    };
+  }
+  return {
+    semFiltro: canPlay(id, cartas).disponiveis,
+    apto: canPlay(id, cartas.filter(c => entraNaGrade(c.word ?? ''))).disponiveis,
+  };
+}
+
+/**
  * `pools` vem de fora quando os nove estados são calculados juntos — é o que evita repetir a
  * varredura do acervo em cada jogo de palavra.
  */
@@ -194,11 +248,11 @@ export function estadoDoJogo(id: MinigameId, e: EntradaDoEstado, pools?: PoolPor
    */
   if (id === 'termo') {
     const faixa = e.faixa ?? 'medio';
-    const semFiltroDeAlfabeto = contarJogaveisMulti(e.cartas, faixa);
-    /* Só as digitáveis no teclado QWERTY fixo — ver `digitavelNoTermo`. Contar sobre o acervo
-     * INTEIRO (`semFiltroDeAlfabeto`) e não sobre este subconjunto é o que separa "acervo pequeno
-     * demais" de "acervo tem material, mas em alfabeto que o Termo não suporta". */
-    const n = contarJogaveisMulti(e.cartas.filter(c => digitavelNoTermo(c.word ?? '')), faixa);
+    /* `contagemComAlfabeto` é a MESMA verdade que `elegibilidadeDoJogo` usa para o estado
+     * `degradado` — contar sobre o acervo INTEIRO (`semFiltroDeAlfabeto`) e não só sobre o
+     * subconjunto digitável é o que separa "acervo pequeno demais" de "acervo tem material, mas em
+     * alfabeto que o Termo não suporta". */
+    const { semFiltro: semFiltroDeAlfabeto, apto: n } = contagemComAlfabeto('termo', e.cartas, faixa);
     if (n === 0 && semFiltroDeAlfabeto >= def.minItems) {
       return { id, ok: false, disponiveis: 0, faltam: def.minItems, fonte: 'baralho', motivo: 'alfabeto-nao-suportado', tamanhoDaRodada: 0 };
     }
@@ -249,13 +303,13 @@ export function estadoDoJogo(id: MinigameId, e: EntradaDoEstado, pools?: PoolPor
   }
 
   if (id === 'wordsearch') {
-    const semFiltroDeAlfabeto = canPlay(id, e.cartas);
-    /* Só as que cabem na GRADE — ver `entraNaGrade`. Igual ao Termo: medir sobre o acervo inteiro
-     * é o que distingue "pouco material" de "material de sobra, alfabeto não suportado". */
+    /* Igual ao Termo: medir sobre o acervo inteiro (`semFiltroDeAlfabeto`) é o que distingue
+     * "pouco material" de "material de sobra, alfabeto não suportado" — ver `contagemComAlfabeto`. */
+    const { semFiltro: semFiltroDeAlfabeto } = contagemComAlfabeto('wordsearch', e.cartas);
     const pronto = canPlay(id, e.cartas.filter(c => entraNaGrade(c.word ?? '')));
     const medidos = pools ?? poolDosJogosDePalavra(e.cartas);
     const pool = medidos.get(id) ?? pronto.disponiveis;
-    if (pronto.disponiveis === 0 && semFiltroDeAlfabeto.disponiveis >= def.minItems) {
+    if (pronto.disponiveis === 0 && semFiltroDeAlfabeto >= def.minItems) {
       return { id, ok: false, disponiveis: 0, faltam: def.minItems, fonte: 'baralho', pool, motivo: 'alfabeto-nao-suportado', tamanhoDaRodada: 0 };
     }
     return { id, ...pronto, pool, fonte: 'baralho', tamanhoDaRodada: tamanhoDaRodadaDe(id, pronto.disponiveis) };
@@ -279,4 +333,62 @@ export function estadoDeCadaJogo(e: EntradaDoEstado): Record<MinigameId, EstadoD
   const fora = {} as Record<MinigameId, EstadoDoJogo>;
   for (const id of Object.keys(MINIGAMES) as MinigameId[]) fora[id] = estadoDoJogo(id, e, pools);
   return fora;
+}
+
+/**
+ * TRÊS ESTADOS EM VEZ DE DOIS — é o que a futura UI facetada (disponível/degradado/indisponível)
+ * precisa e que `EstadoDoJogo.ok` (booleano) não consegue expressar. `estadoDoJogo` continua a
+ * MESMA verdade e o MESMO formato — nada aqui a substitui — mas `ok: true` esconde o caso em que o
+ * pool passa no piso só depois de descontar quem o alfabeto exclui; a pessoa clica achando que vai
+ * jogar com o baralho inteiro e a rodada usa uma fração dele, em silêncio.
+ */
+export type EstadoDeElegibilidade =
+  | { estado: 'disponivel' }
+  | { estado: 'degradado'; aptos: number; total: number; inaptosPor: MotivoBloqueio }
+  | { estado: 'indisponivel'; motivo: MotivoBloqueio | 'sem-material'; faltam?: number };
+
+/**
+ * O AVALIADOR ÚNICO — declarativo, puro (sem React, sem DOM), a MESMA verdade que `estadoDoJogo`
+ * usa para termo e wordsearch (`contagemComAlfabeto`), só que devolvendo os três estados que a UI
+ * facetada precisa em vez do par `ok`/`motivo`.
+ *
+ * NÃO conhece jogo por NOME — conhece `requisitos` (`MINIGAMES[jogo].requisitos.alfabeto`). É o
+ * que o torna extensível: um 10º jogo com grade ou teclado próprio só precisa DECLARAR
+ * `requisitos.alfabeto: 'latino'` na tabela para herdar o gate — sem editar este arquivo. Um jogo
+ * que não declara nada (a memória, por exemplo) nunca degrada por alfabeto, porque o requisito
+ * ausente É a prova de que ele aceita qualquer letra Unicode.
+ *
+ * `pool` é o acervo já triado (`cartoesDaFonte` + `triarCartoes`), como em `EntradaDoEstado.cartas`
+ * — este avaliador não filtra por tradução nem por fonte, isso já aconteceu antes dele.
+ */
+export function elegibilidadeDoJogo(
+  jogo: MinigameId,
+  pool: VocabCard[],
+  opts: { temVoz?: boolean; frases?: number } = {},
+): EstadoDeElegibilidade {
+  const def = MINIGAMES[jogo];
+
+  // O ÚNICO requisito declarado hoje é alfabeto, e só termo/wordsearch o carregam.
+  if (def.requisitos?.alfabeto === 'latino' && (jogo === 'termo' || jogo === 'wordsearch')) {
+    const { semFiltro: total, apto: aptos } = contagemComAlfabeto(jogo, pool);
+
+    if (aptos >= def.minItems) {
+      return aptos < total
+        ? { estado: 'degradado', aptos, total, inaptosPor: 'alfabeto-nao-suportado' }
+        : { estado: 'disponivel' };
+    }
+    if (total >= def.minItems) return { estado: 'indisponivel', motivo: 'alfabeto-nao-suportado' };
+    return { estado: 'indisponivel', motivo: 'sem-material', faltam: def.minItems - total };
+  }
+
+  /* Jogos sem requisito declarado: a mesma conta que `estadoDoJogo` faz para o resto da tabela —
+   * `canPlay` para os de palavra, a contagem de frases prontas (`opts.frases`) para os de frase.
+   * `opts.temVoz` cobre o caminho "palavra falada" (escuta/ditado/karaokê na trilha), que troca
+   * FRASE por CARTÃO+voz quando não há frase — ver `estadoDoJogo`. */
+  const disponiveis = def.modalidade === 'palavra'
+    ? canPlay(jogo, pool).disponiveis
+    : (opts.frases ?? (def.aceitaPalavraFalada && opts.temVoz ? pool.length : 0));
+
+  if (disponiveis >= def.minItems) return { estado: 'disponivel' };
+  return { estado: 'indisponivel', motivo: 'sem-material', faltam: def.minItems - disponiveis };
 }

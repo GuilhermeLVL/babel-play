@@ -1,0 +1,2 @@
+ALTER TABLE `vocab_cards` ADD `src_lang_base` text GENERATED ALWAYS AS ((lower(substr(coalesce(src_lang,''),1,2)))) VIRTUAL;--> statement-breakpoint
+CREATE INDEX `idx_vocab_src_lang_base` ON `vocab_cards` (`src_lang_base`);

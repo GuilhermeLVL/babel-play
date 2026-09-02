@@ -1551,6 +1551,21 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
    * Agora é uma pergunta só, e a garantia "a sala não aparece dentro de uma sessão" passa a ter
    * teste — o que já existia e não cobria nada.
    */
+  /* Gravação só aparece no idioma que ela de fato produziu. O idioma vem das PALAVRAS que
+     saíram dela, não do campo declarado na captura: é o que a sessão entregou, não o que foi
+     configurado. Sem isto, as 4 gravações apareciam em todos os idiomas, inclusive nos que nunca
+     foram falados ali. */
+  const sessoesDoIdioma = useMemo(() => {
+    const base = baseLang(fonte.lang);
+    if (!base) return sessoes;
+    const comMaterial = new Set(
+      (deck ?? [])
+        .filter(c => c.sourceSessionId && baseLang(c.srcLang ?? '') === base)
+        .map(c => c.sourceSessionId as string),
+    );
+    return sessoes.filter(s => comMaterial.has(s.id));
+  }, [sessoes, deck, fonte.lang]);
+
   const fontesOferecidas = useMemo(
     () => fontesDisponiveis({
       embutido: !!embutido,
@@ -1619,7 +1634,7 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
         rotuloDaBarra: '',
       };
     }
-    const deQuantas = fonte.id === 'sessao' && sessaoEmUso ? sessaoEmUso.title : `${sessoes.length} ${sessoes.length === 1 ? 'gravação' : 'gravações'}`;
+    const deQuantas = fonte.id === 'sessao' && sessaoEmUso ? sessaoEmUso.title : `${sessoesDoIdioma.length} ${sessoesDoIdioma.length === 1 ? 'gravação' : 'gravações'}`;
     return {
       principal: `${triagem.usaveis.length} ${triagem.usaveis.length === 1 ? 'palavra' : 'palavras'}`,
       detalhe: sessoes.length ? `de ${deQuantas}` : '',
@@ -1627,7 +1642,7 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
       rotuloDaBarra: '',
     };
   }, [escolhaAtual.origem, trilha, deck, fonte.nivel, fonte.id, etapaDaTrilha, totalDaTrilhaAtual,
-      rankingDeDificeis.length, sessaoEmUso, sessoes.length, triagem.usaveis.length]);
+      rankingDeDificeis.length, sessaoEmUso, sessoesDoIdioma.length, triagem.usaveis.length]);
 
   /**
    * A trilha de UM idioma qualquer — não a do idioma vigente.
@@ -2779,7 +2794,7 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
                   sessoes: prev.sessoes.includes(id) ? [] : [id],
                   fontes: prev.sessoes.includes(id) ? prev.fontes : ['sessao'],
                 })),
-                opcoes: fonte.id === 'trilha' || sessoes.length < 2 ? [] : sessoes.map(s => ({
+                opcoes: fonte.id === 'trilha' || sessoesDoIdioma.length < 2 ? [] : sessoesDoIdioma.map(s => ({
                   id: s.id,
                   rotulo: s.title || 'gravação sem título',
                   icone: <Mic className="w-3.5 h-3.5" aria-hidden />,

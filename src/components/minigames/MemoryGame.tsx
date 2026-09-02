@@ -198,7 +198,7 @@ export default function MemoryGame({ items, ageProfile, onFinish, onExit }: Memo
               onClick={(e) => virar(carta, e.currentTarget)}
               disabled={fechada}
               aria-label={aberta ? carta.texto : 'Carta virada para baixo'}
-              className={`carta3d ${aberta ? 'aberta' : ''} ${folgado ? 'min-h-[5.5rem]' : 'min-h-[4.5rem]'} rounded-2xl ${
+              className={`carta3d ${aberta ? 'aberta' : ''} ${folgado ? 'min-h-[6rem]' : 'min-h-[5rem]'} rounded-2xl ${
                 fechada ? 'opacity-70' : 'cursor-pointer'
               } ${!aberta ? 'hover:-translate-y-0.5 transition-transform' : ''}`}
             >
@@ -212,16 +212,10 @@ export default function MemoryGame({ items, ageProfile, onFinish, onExit }: Memo
                   className="carta3d-verso bg-surface shadow-card rounded-2xl px-2.5 py-2 text-center overflow-hidden"
                   style={{ borderColor: cor, borderWidth: 2, borderStyle: 'solid' }}
                 >
-                  {/* Pista curada pode chegar com até 160 caracteres — sem clamp ela vazava da
-                      carta (S5). O `overflow-hidden` acima corta o transbordo; o `line-clamp`
-                      aqui é o que decide ONDE cortar, em linhas cheias em vez de no meio de uma
-                      palavra. `line-clamp-3`/`4` porque a carta grande (`folgado`) tem mais
-                      altura que a pequena. Abaixo de ~80 caracteres o texto cabe folgado no
-                      tamanho normal; acima disso a fonte desce um passo para abrir mais linha
-                      antes do clamp cortar. O `title` guarda o texto INTEIRO — é o que dá acesso
-                      ao conteúdo cortado sem precisar de outra tela. */}
+                  {/* O limiar era 80 chars e foi medido errado: numa carta de ~55px, 65 chars já
+                      dão 4 linhas e o texto vazava por cima e por baixo. */}
                   <span
-                    className={`${carta.texto.length > 80 ? (folgado ? 'text-[12px]' : 'text-[11px]') : folgado ? 'text-[14px]' : 'text-[13px]'} font-bold leading-tight break-words ${folgado ? 'line-clamp-4' : 'line-clamp-3'}`}
+                    className={`${carta.texto.length > 45 ? (folgado ? 'text-[11px]' : 'text-[10px]') : folgado ? 'text-[14px]' : 'text-[13px]'} font-bold leading-tight break-words ${folgado ? 'line-clamp-4' : 'line-clamp-3'}`}
                     style={{ color: carta.lado === 'palavra' ? cor : undefined }}
                     title={carta.texto}
                   >

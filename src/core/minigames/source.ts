@@ -312,3 +312,33 @@ export function cartoesDoFiltro(
     passaNoFiltro(c as unknown as CartaoFiltravel, filtro, { ...extras, idDoCartao: c.id }));
   return triarCartoes(doEscopo, { lang: filtro.idiomas[0] ?? '' });
 }
+
+/**
+ * Frases de exemplo do acervo no formato que os jogos de frase consomem.
+ * `startMs`/`endMs` zerados = sem clipe a recortar, a voz sintetizada fala (mesmo contrato da trilha).
+ */
+export function frasesDoAcervo(
+  cards: VocabCard[],
+  lang: string,
+): Array<{ id: string; text: string; translation: string; lang: string; startMs: number; endMs: number }> {
+  const base = baseLangDe(lang) || '';
+  const vistas = new Set<string>();
+  const saida = [];
+  for (const c of cards ?? []) {
+    const frase = (c.sentence ?? '').trim();
+    if (!frase || frase.split(/\s+/).length < 4) continue;
+    if (base && baseLangDe(c.srcLang ?? '') !== base) continue;
+    const chave = frase.toLowerCase();
+    if (vistas.has(chave)) continue;
+    vistas.add(chave);
+    saida.push({
+      id: `acervo:${c.id || frase.slice(0, 24)}`,
+      text: frase,
+      translation: '',
+      lang: base || (c.srcLang ?? ''),
+      startMs: 0,
+      endMs: 0,
+    });
+  }
+  return saida;
+}

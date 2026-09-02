@@ -95,6 +95,10 @@
       Verificado: 2.228 (só baralho) -> 4.175 (baralho + curso), e a rodada mistura as duas.
       A cota proporcional (`distribuirPorFonte`) NÃO foi ligada: medido na tela, a ordenação por
       memória já intercala as fontes, e cotar sem necessidade só tiraria material bom da frente
-- [ ] 5.2 Frases do baralho alimentando os cinco jogos de frase (F10 do motor Anki)
+- [x] 5.2 Frases do acervo alimentam os cinco jogos de frase (`frasesDoAcervo`), com
+      `startMs/endMs = 0` (voz sintetizada, mesmo contrato da trilha). Entram só como
+      PREENCHIMENTO, quando não há fala gravada: misturar TTS com áudio real numa rodada de
+      escuta entrega a resposta pelo timbre. O scramble as ignora sozinho quando não há tradução
+      da frase. Verificado: os 9 jogos abrem com baralho importado
 - [x] 5.3 Baralho de definição rotulado na tela: "en · ensina por definição" no lugar do par
       de idiomas falso

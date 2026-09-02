@@ -14,7 +14,7 @@ import {
   SESSAO_DA_TRILHA, CONFIANCA_CURADA,
   buildRodadasEscuta, buildRodadasDitado, buildRodadasConectores, isDueNow,
   estadoDeCadaJogo, comoDesbloquear, type ContextoDeDesbloqueio, type Desbloqueio,
-  cartoesDoFiltro,
+  cartoesDoFiltro, frasesDoAcervo,
   agruparJogos,
   estimativaDeMinutos, rotuloDeDuracao, pistasDaTriagem, resumoDosPulados,
   previaSegura, repetidosDaUltima, MAPA_REVELA_ALVO, origemDoMaterial,
@@ -649,7 +649,10 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
     const cartas = semRepetidas(apenas?.size ? jogaveis.filter(c => apenas.has(c.word)) : base, c => c.word);
     /* Frases: na trilha vêm das 2.552 frases Tatoeba (`frasesDaTrilha`), que antes eram código
        morto e deixavam a Frase embaralhada bloqueada com "trilha sem frase". */
-    const falasBrutas = fonte.id === 'trilha' ? frasesTrilha : frases;
+    /* As frases do acervo só entram quando NÃO há fala gravada: numa rodada de escuta, misturar
+       voz sintetizada com áudio real entrega a resposta pelo timbre. */
+    const falasGravadas = comTrilha ? [...frasesTrilha, ...frases] : frases;
+    const falasBrutas = falasGravadas.length ? falasGravadas : frasesDoAcervoAtual;
     const falas = semRepetidas(apenas?.size ? falasBrutas.filter(f => apenas.has(f.id)) : falasBrutas, f => f.id);
     /* Repetir NÃO deve evitar o que acabou de cair — é justamente isso que se está pedindo.
        Já o "trocar por outras" precisa evitar TAMBÉM o que está na tela agora: quem clica ali está
@@ -1703,6 +1706,12 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
        renderização — a mesma armadilha que o comentário acima já registra para `niveisDaRodada`. */
   }, [triagem.usaveis, comTrilha, niveisDaRodada, trilha, composicao, faixas.length, filtro, conjuntoDeDificeis]);
 
+  const frasesDoAcervoAtual = useMemo<Sentence[]>(
+    () => frasesDoAcervo(jogaveis, fonte.lang) as unknown as Sentence[],
+    [jogaveis, fonte.lang],
+  );
+
+
   /**
    * O ACERVO DA FONTE — sem teto. É o conjunto inteiro que a fonte atual oferece.
    *
@@ -1928,8 +1937,8 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
     contarPassada('gate', { cartas: jogaveis.length, falas: frases.length, fonte: fonte.id, lang: fonte.lang });
     const porId = estadoDeCadaJogo({
       cartas: jogaveis,
-      frases,
-      frasesDaTrilha: fonte.id === 'trilha' ? frasesTrilha : undefined,
+      frases: frases.length ? frases : frasesDoAcervoAtual,
+      frasesDaTrilha: comTrilha ? frasesTrilha : undefined,
       temAudio: !!audioSessao,
       audioPronto: !!audioParaJogos,
       temVoz,
@@ -1937,7 +1946,7 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
       lang: fonte.lang,
     });
     return JOGOS.map(j => ({ ...j, estado: porId[j.id] }));
-  }, [jogaveis, frases, audioSessao, audioParaJogos, fonte.lang, fonte.id, temVoz]);
+  }, [jogaveis, frases, frasesDoAcervoAtual, frasesTrilha, comTrilha, audioSessao, audioParaJogos, fonte.lang, fonte.id, temVoz]);
 
   /**
    * O QUE A CARTA BLOQUEADA PRECISA SABER PARA OFERECER UMA SAÍDA.

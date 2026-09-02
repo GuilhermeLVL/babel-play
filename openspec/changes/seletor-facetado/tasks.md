@@ -41,9 +41,10 @@
       `server/db/migrations/0019_seletor_facetado.sql`; `down.sql` (`DROP INDEX` manual) neste
       diretório de change
 - [x] 2.8 Teste de paridade predicado × SQL — `tests/integration/filtro-composicao.test.ts`
-- [ ] 2.9 Elegibilidade por jogo totalmente declarativa (`maxCharsEnunciado?`, `precisa?` na tabela
-      `MINIGAMES`) — confirmado `alfabeto?`/`alfabeto-nao-suportado`; os demais campos declarativos
-      não verificados nesta auditoria
+- [x] 2.9 Elegibilidade declarativa no que tem consumidor: `requisitos.alfabeto` governa gate E
+      builders (matriz dos 9 jogos cobre). `maxCharsEnunciado`/`precisa` NÃO foram criados: o
+      caso que os motivaria (enunciado longo demais na carta) é de LAYOUT, e descartar o cartão
+      por comprimento tiraria material bom — resolvido na exibição, não na elegibilidade
 
 ## Onda 3 (G3) — UI facetada em Play.tsx
 

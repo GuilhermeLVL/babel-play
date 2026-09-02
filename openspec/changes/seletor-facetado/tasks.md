@@ -63,9 +63,15 @@
 
 ## Onda 4 (G4) — pendências declaradas do roadmap
 
-- [ ] 4.1 Distribuição multi-fonte proporcional (piso 1 por fonte, largest-remainder,
-      determinística) — **não implementada**; nenhuma lógica de distribuição proporcional
-      encontrada em `composicao.ts`
+- [x] 4.1a Distribuição multi-fonte proporcional como CONTRATO — `cotasPorMaiorResto`/
+      `distribuirPorFonte` (`src/core/minigames/distribuicao.ts`), piso 1, maior-resto,
+      determinística, ordem global preservada, classificação por especificidade (trilha →
+      sessão → resto; "baralho é o resto" não pode engolir a cota da sessão); 11 invariantes
+      em `tests/distribuicao.test.ts`
+- [ ] 4.1b Costura da distribuição na montagem da rodada — DELIBERADAMENTE junto com a UI
+      multi-fonte: o filtro padrão é `['baralho','sessao']` (a união legada "acervo geral"),
+      e ligar a cota nele mudaria a rodada de hoje sem ninguém ter pedido; a cota só faz
+      sentido quando a união for escolha explícita no painel
 - [ ] 4.2 Seletor de idioma unificado (`praticaLang` como espelho de `filtro.idiomas`) — não
       verificado nesta auditoria
 - [ ] 4.3 `'dificeis'` como pílula de recorte na UI (hoje é campo do filtro,

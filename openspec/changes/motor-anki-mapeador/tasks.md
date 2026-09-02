@@ -1,14 +1,14 @@
 ## 1. Parser expõe o que a decisão precisa
 
-- [ ] 1.1 `estruturaHash` — sha256 dos nomes normalizados + ordem (16 hex). Normalizar: minúsculas,
+- [x] 1.1 `estruturaHash` — sha256 dos nomes normalizados + ordem (16 hex). Normalizar: minúsculas,
       sem acento, separadores (espaço/hífen/underscore/CamelCase) colapsados
-- [ ] 1.2 Nome do tipo de nota (`notetypes.name`, fallback `col.models[mid].name`) e nome do baralho
+- [x] 1.2 Nome do tipo de nota (`notetypes.name`, fallback `col.models[mid].name`) e nome do baralho
       (`decks`, fallback `col.decks`; hierarquia `::`)
-- [ ] 1.3 Confiança por papel: `alta` (igualdade em padrão prioritário) · `media` ("contém", ou
+- [x] 1.3 Confiança por papel: `alta` (igualdade em padrão prioritário) · `media` ("contém", ou
       perfil salvo) · `baixa` (posicional, ou desempate por conteúdo)
 - [ ] 1.4 Desambiguação de `Expression` por amostra de conteúdo (comprimento médio + presença de
       espaço em N notas) — nenhuma lista de nomes resolve isso
-- [ ] 1.5 Detecção de mídia em QUALQUER campo (a marcação de som não mora só em campo chamado Audio)
+- [x] 1.5 Detecção de mídia em QUALQUER campo (a marcação de som não mora só em campo chamado Audio)
 
 ## 2. Priors como dado
 

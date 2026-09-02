@@ -1,14 +1,14 @@
 ## 1. Filtro por baralho (o mecanismo já existe)
 
-- [ ] 1.1 `selecionarParaJogo`: ramo `origin_kind='anki' AND origin_ref=<deckId>` na cláusula
+- [x] 1.1 `selecionarParaJogo`: ramo `origin_kind='anki' AND origin_ref=<deckId>` na cláusula
       `EXISTS` que já está lá (`vocab.ts:473-486`); o índice `idx_occ_origem` já cobre
-- [ ] 1.2 `PedidoDeComposicao.fonte.ref` passa a carregar a referência de baralho (o campo já existe)
+- [x] 1.2 `PedidoDeComposicao.fonte.ref` passa a carregar a referência de baralho (o campo já existe)
 - [ ] 1.3 Payload do deck leva a associação cartão→baralho (análogo a `daTrilha`), para o fallback
       offline de `cartoesDaFonte` não mentir
 - [ ] 1.4 Quando a associação não estiver no payload, **dizer** que o filtro não pôde ser aplicado —
       nunca jogar com tudo em silêncio
-- [ ] 1.5 Seletor de baralho no lobby, ao lado das fontes existentes
-- [ ] 1.6 Teste: escolher baralho recorta; sem escolha, acervo inteiro (comportamento de hoje intacto)
+- [x] 1.5 Seletor de baralho no lobby, ao lado das fontes existentes
+- [x] 1.6 Teste: escolher baralho recorta; sem escolha, acervo inteiro (comportamento de hoje intacto)
 
 ## 2. Matriz jogo × dados
 
@@ -28,18 +28,19 @@
 
 ## 4. Origem visível e progresso
 
-- [ ] 4.1 Chip "Anki · nome do baralho" na prévia, dentro do funil `previaSegura` (nenhum ramo
-      escreve por fora)
+- [ ] 4.1 Chip "Anki · nome do baralho" na PRÉVIA, dentro do funil `previaSegura`. O que existe hoje
+      é o chip na FAIXA do lobby (feito, e é o que torna o recorte visível antes de jogar); a prévia
+      da rodada ainda não diz a origem item a item
 - [ ] 4.2 Anti-spoiler: a origem respeita `REVELAVEL` do jogo
 - [ ] 4.3 Modo "só revisão" para item que não serve a nenhum jogo — grava memória, sem mecânica
 - [ ] 4.4 Progresso por baralho na tela do baralho (quanto já foi praticado)
 
 ## 5. Validação de ponta a ponta
 
-- [ ] 5.1 Navegar importar → mapear → ativar → jogar filtrado → remover (MCP chrome-devtools, porta
+- [x] 5.1 Navegar importar → mapear → ativar → jogar filtrado → remover (MCP chrome-devtools, porta
       3100, **servidor reiniciado**: `server/` não tem watch)
 - [ ] 5.2 Primeira suíte Playwright do repositório (deps já instaladas, zero config hoje):
       `playwright.config.ts` + `tests/e2e/` + script próprio; escopo mínimo = o caminho feliz acima
-- [ ] 5.3 Gates da casa verdes: `typecheck`, `lint`, `audit:gate`, `ast-grep scan`, `vitest run`
+- [x] 5.3 Gates da casa verdes: `typecheck`, `lint`, `audit:gate`, `ast-grep scan`, `vitest run`
 - [ ] 5.4 Jogo novo (memória palavra↔imagem, cloze race etc.) **só** se a medição do corpus mostrar
       que os baralhos reais o sustentam — jogo que funciona em 2% do acervo é mobiliário

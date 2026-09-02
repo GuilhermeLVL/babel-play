@@ -1,23 +1,23 @@
 ## 1. Parser lê a mídia (pré-requisito do resto)
 
-- [ ] 1.1 Extrair as referências `[sound:]`/`<img>` ANTES de limpar o texto (hoje são apagadas e a
+- [x] 1.1 Extrair as referências `[sound:]`/`<img>` ANTES de limpar o texto (hoje são apagadas e a
       referência não sobra nem como ponteiro)
-- [ ] 1.2 Ler o mapa `media` nas DUAS formas: JSON `{"0":"nome"}` (legado) e protobuf `MediaEntries`
+- [x] 1.2 Ler o mapa `media` nas DUAS formas: JSON `{"0":"nome"}` (legado) e protobuf `MediaEntries`
       (moderno — traz nome, tamanho e **sha1** por entrada; o índice da entrada é o nome numérico no zip)
-- [ ] 1.3 Descomprimir mídia **zstd por arquivo** no formato moderno (não é só a coleção que é zstd)
-- [ ] 1.4 Teto de bytes de mídia por requisição, contado durante o fluxo (mesmo padrão do teto de
+- [x] 1.3 Descomprimir mídia **zstd por arquivo** no formato moderno (não é só a coleção que é zstd)
+- [x] 1.4 Teto de bytes de mídia por requisição, contado durante o fluxo (mesmo padrão do teto de
       expansão do zip, que foi resposta a uma bomba de razão 1028:1)
-- [ ] 1.5 Testes com `.apkg` sintético nas duas formas de mapa
+- [x] 1.5 Testes com `.apkg` sintético nas duas formas de mapa
 
 ## 2. Esquema e armazenamento
 
-- [ ] 2.1 `anki_media` — id, user_id, sha256, bytes, content_type, criado, deleted_at; **único
+- [x] 2.1 `anki_media` — id, user_id, sha256, bytes, content_type, criado, deleted_at; **único
       `(user_id, sha256)`** — dedupe por usuário, nunca global (decisão jurídica, ver design)
-- [ ] 2.2 `anki_note_media` — note_id, media_id, papel (`audio_palavra|audio_frase|imagem`),
+- [x] 2.2 `anki_note_media` — note_id, media_id, papel (`audio_palavra|audio_frase|imagem`),
       nome_original (para resolver a referência do campo no render)
-- [ ] 2.3 Gravar via o seam existente (`armazenamentoDoAmbiente`), objeto `anki-media/<userId>/<sha256>`
+- [x] 2.3 Gravar via o seam existente (`armazenamentoDoAmbiente`), objeto `anki-media/<userId>/<sha256>`
       — nome derivado do hash, NUNCA do nome original (que pode conter caminho)
-- [ ] 2.4 Migração aditiva + `down.sql` manual
+- [x] 2.4 Migração aditiva + `down.sql` manual
 
 ## 3. Negociação e upload
 

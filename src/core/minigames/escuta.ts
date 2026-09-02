@@ -1,4 +1,4 @@
-import { avaliarFrase } from '../learning/quality';
+import { avaliarFrase, chaveComparavel } from '../learning/quality';
 import { normalizarPalavra } from './wordsearch';
 
 /**
@@ -263,8 +263,10 @@ export function buildRodadasConectores(
   frases: FalaComAudio[],
   opts: { lang: string; quantidade?: number; shuffle?: <T>(xs: T[]) => T[] } = { lang: '' },
 ): RodadaConectores[] {
-  const lista = CONECTORES[(opts.lang || '').toLowerCase().split('-')[0]];
-  if (!lista) return [];
+  const bruta = CONECTORES[(opts.lang || '').toLowerCase().split('-')[0]];
+  if (!bruta) return [];
+  // Os dois lados pela MESMA chave: a lista guarda "porém" e o token normalizava para "porem".
+  const lista = new Set(Array.from(bruta, (c) => chaveComparavel(c)));
   const shuffle = opts.shuffle ?? embaralhar;
 
   const candidatas = (frases ?? [])
@@ -272,7 +274,7 @@ export function buildRodadasConectores(
     .map(fala => {
       const tokens = fala.text.split(/\s+/).filter(Boolean);
       const alvos = tokens
-        .map((t, i) => (lista.has(normalizarPalavra(t).toLowerCase()) ? i : -1))
+        .map((t, i) => (lista.has(chaveComparavel(t)) ? i : -1))
         .filter(i => i >= 0);
       return { fala, tokens, alvos };
     })

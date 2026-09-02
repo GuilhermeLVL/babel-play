@@ -1394,7 +1394,7 @@ export default function Analysis({
                   <span className="text-[9.5px] font-mono uppercase text-ink-muted tracking-wider block mb-2">Mapeamento de Fonemas Vocalizados</span>
                   <div className="flex flex-wrap gap-1.5 justify-center">
                     {parsedSentences[shadowingSentenceIndex].original.split(' ').map((word, wIdx) => {
-                      const clean = word.replace(/[^a-zA-Z]/g, '').toLowerCase();
+                      const clean = word.replace(/[^\p{L}]/gu, '').toLowerCase();
                       // Removido: `isTarget` comparava com uma lista de 5 palavras HARDCODED
                       // ('heuristics', 'leverage', 'synergy', 'volatility', 'new') e não era lida
                       // por ninguém — resíduo do mesmo padrão que o BL-01 já tinha eliminado.

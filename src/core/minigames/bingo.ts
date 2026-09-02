@@ -1,5 +1,5 @@
 import type { VocabCard } from '../../types';
-import { normalizarPalavra } from './wordsearch';
+import { chaveComparavel } from '../learning/quality';
 
 /**
  * BINGO DA ESCUTA — a cartela que acende sozinha enquanto você assiste.
@@ -29,6 +29,10 @@ export const CASAS = LADO_CARTELA * LADO_CARTELA;
  * Monta a cartela a partir do baralho. Só palavras de 3+ letras: artigos e preposições
  * apareceriam em toda fala e a cartela fecharia sozinha em segundos, sem mérito nenhum.
  */
+/** Em Han/kana/hangul dois caracteres já são palavra de sobra; alfabeto precisa de 3. */
+const ESCRITA_COMPACTA = /[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Hangul}]/u;
+const minimoDaEscrita = (s: string) => (ESCRITA_COMPACTA.test(s) ? 1 : 3);
+
 export function buildCartela(cards: VocabCard[], opts: { casas?: number; shuffle?: <T>(xs: T[]) => T[] } = {}): CasaBingo[] {
   const casas = opts.casas ?? CASAS;
   const shuffle = opts.shuffle ?? (<T,>(xs: T[]) => {
@@ -39,15 +43,15 @@ export function buildCartela(cards: VocabCard[], opts: { casas?: number; shuffle
   const vistas = new Set<string>();
   const candidatos = cards.filter(c => {
     if (!c.inDeck) return false;
-    const chave = normalizarPalavra(c.word ?? '');
-    if (chave.length < 3 || vistas.has(chave)) return false;
+    const chave = chaveComparavel(c.word ?? '');
+    if (chave.length < minimoDaEscrita(chave) || vistas.has(chave)) return false;
     vistas.add(chave);
     return true;
   });
   return shuffle(candidatos).slice(0, casas).map(c => ({
     cardId: c.id,
     palavra: c.word.trim(),
-    chave: normalizarPalavra(c.word),
+    chave: chaveComparavel(c.word),
     ouvidaEm: null,
   }));
 }
@@ -61,7 +65,7 @@ export function buildCartela(cards: VocabCard[], opts: { casas?: number; shuffle
  */
 export function marcarFala(cartela: CasaBingo[], texto: string, agora: number = Date.now()): { cartela: CasaBingo[]; novas: CasaBingo[] } {
   const ditas = new Set(
-    texto.split(/\s+/).map(normalizarPalavra).filter(p => p.length >= 3)
+    texto.split(/\s+/).map(chaveComparavel).filter(p => p.length >= minimoDaEscrita(p))
   );
   const novas: CasaBingo[] = [];
   const atualizada = cartela.map(casa => {

@@ -222,6 +222,12 @@ export interface OpcoesAvaliacao {
  * O motivo devolvido é o PRIMEIRO encontrado, porque é ele que a pessoa precisa consertar
  * primeiro — dizer "sem tradução" para uma palavra que também é um artigo não ajudaria.
  */
+/** Em Han, kana e hangul um caractere é uma palavra inteira (窓 = janela); alfabeto precisa de 2. */
+const ESCRITA_DE_UM_CARACTERE = /[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Hangul}]/u;
+function minimoDeCaracteres(palavra: string): number {
+  return ESCRITA_DE_UM_CARACTERE.test(palavra) ? 1 : 2;
+}
+
 export function avaliarCartao(card: VocabCard, opts: OpcoesAvaliacao = {}): Veredito {
   /* O CARTÃO SABE DE ONDE VEIO, e quem tria uma lista mista não teria como dizer a origem item a
      item. `opts.origem` continua vencendo (é uma decisão explícita de quem chama); na ausência
@@ -231,7 +237,7 @@ export function avaliarCartao(card: VocabCard, opts: OpcoesAvaliacao = {}): Vere
   const traducao = (card.translation ?? '').trim();
   const frase = (card.sentence ?? '').trim();
 
-  if (palavra.length < 2) return REPROVADO('palavra-curta');
+  if (palavra.length < minimoDeCaracteres(palavra)) return REPROVADO('palavra-curta');
 
   // Ruído de captura: dígito, símbolo no meio, ou a mesma letra três vezes seguidas ("aaah").
   if (/\d/.test(palavra)) return REPROVADO('palavra-ruido');

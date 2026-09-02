@@ -214,6 +214,23 @@ describe('listarBaralhos — contagens', () => {
   })
 })
 
+describe('reimportar um baralho DESATIVADO o traz de volta', () => {
+  it('sem isto, desativar era uma porta só de ida — não havia como reativar', async () => {
+    const { deck, imp } = await criarDeckEImport(U, '-revolta')
+    await ankiRepo.gravarNotas(U, deck.id, imp.id, [{ guid: 'v1', frente: 'ledger', verso: 'razao' }])
+    await ankiRepo.desativarBaralho(U, deck.id)
+    expect((await ankiRepo.listarBaralhos(U)).find((d: any) => d.id === deck.id)!.estado).toBe('desativado')
+
+    // Reimportar o MESMO arquivo é o pedido de volta: ninguém sobe de novo o que quer desligado.
+    const voltou = await ankiRepo.criarOuAcharDeck(U, {
+      nome: deck.nome, arquivoOrigem: deck.arquivoOrigem, nomeNoArquivo: deck.nomeNoArquivo,
+    })
+    expect(voltou.id).toBe(deck.id)   // o MESMO baralho, não um paralelo
+    expect(voltou.estado).toBe('ativo')
+    expect((await ankiRepo.listarBaralhos(U)).find((d: any) => d.id === deck.id)!.estado).toBe('ativo')
+  })
+})
+
 describe('listarNotas — paginação por cursor não repete item', () => {
   it('percorrer em páginas de 5 devolve todas as 12 notas, sem repetição', async () => {
     const { deck, imp } = await criarDeckEImport(U, '-cursor')

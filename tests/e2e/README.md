@@ -31,12 +31,31 @@ cobre só o que **existe e está estável hoje**:
 Os seletores usam papel/acessibilidade (`getByRole`) e nunca CSS de classe, para não quebrar a
 cada ajuste de estilo.
 
+## Baralhos do Anki (`baralhos.e2e.ts`)
+
+Cobre o caminho de ingestão de baralhos Anki, que amadureceu depois de `fumaca.e2e.ts` ter sido
+escrita. Sem criar dado (não faz upload de `.apkg`/`.txt` pelo teste — leria o que já estiver no
+ambiente):
+
+- **Sempre verificável**: o lobby (perfil sênior, `/jogar`) tem o botão "Anki"; clicar nele abre a
+  tela de importação (`BaralhoAnki.tsx` — botão "Escolher arquivo"); "Voltar aos jogos" retorna ao
+  lobby.
+- **Condicional a já existir baralho importado**: o botão "Baralhos" só existe na faixa quando
+  `listarBaralhosAnki()` devolve ao menos um baralho (`Play.tsx`, `temBaralhosAnki`). Quando ele
+  não existe no ambiente, os dois testes que dependem dele chamam `test.skip()` com a razão —
+  nunca fingem passar. Quando existe: abrir "Baralhos" mostra o cabeçalho da tela
+  "Baralhos do Anki", e o cartão do baralho expõe "Jogar só com este" (se há nota ativa) ou o
+  saldo "N de M ativadas". Clicar em "Jogar só com este" volta ao lobby com o nome do baralho na
+  faixa (substituindo o rótulo genérico "Baralhos").
+- Um diálogo de recompensa/conquista (`RecompensaDesbloqueada.tsx`) pode aparecer sobreposto,
+  às vezes em fila (uma recompensa por vez, cada uma animando com atraso) — o teste fecha por
+  `aria-label="Fechar"` quantas vezes for preciso antes de interagir com o lobby.
+
+Rodado de verdade contra o ambiente local (sem baralho importado nele): 3 passaram (casca +
+Anki), 2 pulados com a razão de ausência de baralho — nunca "verde forçado".
+
 ## O que esta suíte NÃO cobre (de propósito)
 
-- **Importação de Anki**: as telas de importação estão sendo construídas por outros agentes no
-  momento em que esta suíte foi escrita (`server/db/repositories/anki.ts`,
-  `server/import/anki.ts`). Adicionar cobertura antes da tela existir seria testar promessa, não
-  comportamento.
 - **Captura de áudio, jogos individuais, SRS, loja/créditos**: fluxos reais, mas que dependem de
   estado (gravação existente, XP, sessão) — fora do escopo de um teste de fumaça. Merecem specs
   próprias quando o fluxo estiver maduro.

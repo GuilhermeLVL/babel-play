@@ -149,7 +149,28 @@ export const ankiRepo = {
         isNull(ankiDecks.deletedAt),
       ))
       .limit(1)
-    if (existente[0]) return existente[0]
+    if (existente[0]) {
+      /**
+       * REIMPORTAR UM BARALHO DESATIVADO O TRAZ DE VOLTA — e sem isto não havia NENHUM caminho de
+       * volta. A spec promete, no cenário de desativação, que "o baralho pode voltar"; só que
+       * desativar era a única porta implementada, e reimportar o mesmo arquivo achava o deck
+       * existente e o devolvia ainda desativado. Efeito: o baralho ficava preso fora dos jogos para
+       * sempre, com as notas arquivadas e sem botão nenhum que as tirasse de lá.
+       *
+       * Reimportar É o pedido de volta: ninguém sobe de novo um arquivo que quer manter desligado.
+       * As NOTAS continuam arquivadas de propósito — quem decide quantas voltam à fila é a ativação
+       * em lotes, e ressuscitar 3.600 de uma vez seria justamente o despejo que a ativação existe
+       * para evitar. Os cartões que estavam projetados voltam com o histórico intacto quando o lote
+       * os alcança (ver a reativação em `projetarDoAnki`).
+       */
+      if (existente[0].estado !== 'ativo') {
+        const agora = Date.now()
+        await db.update(ankiDecks).set({ estado: 'ativo', updatedAt: agora })
+          .where(eq(ankiDecks.id, existente[0].id))
+        return { ...existente[0], estado: 'ativo', updatedAt: agora }
+      }
+      return existente[0]
+    }
 
     const now = Date.now()
     const row: typeof ankiDecks.$inferInsert = {

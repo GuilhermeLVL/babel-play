@@ -651,7 +651,11 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
        morto e deixavam a Frase embaralhada bloqueada com "trilha sem frase". */
     /* As frases do acervo só entram quando NÃO há fala gravada: numa rodada de escuta, misturar
        voz sintetizada com áudio real entrega a resposta pelo timbre. */
-    const falasGravadas = comTrilha ? [...frasesTrilha, ...frases] : frases;
+    /* A fala gravada TAMBÉM passa pelo filtro de idioma: sem isto, uma gravação em inglês
+       aparecia numa rodada de árabe — a rodada dizia um idioma e jogava outro (G0, defeito 3). */
+    const doIdioma = (f: { lang?: string }) => !fonte.lang || !f.lang || baseLang(f.lang) === baseLang(fonte.lang);
+    const gravadas = frases.filter(doIdioma);
+    const falasGravadas = comTrilha ? [...frasesTrilha, ...gravadas] : gravadas;
     const falasBrutas = falasGravadas.length ? falasGravadas : frasesDoAcervoAtual;
     const falas = semRepetidas(apenas?.size ? falasBrutas.filter(f => apenas.has(f.id)) : falasBrutas, f => f.id);
     /* Repetir NÃO deve evitar o que acabou de cair — é justamente isso que se está pedindo.
@@ -1706,6 +1710,11 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
        renderização — a mesma armadilha que o comentário acima já registra para `niveisDaRodada`. */
   }, [triagem.usaveis, comTrilha, niveisDaRodada, trilha, composicao, faixas.length, filtro, conjuntoDeDificeis]);
 
+  const frasesDoIdioma = useMemo<Sentence[]>(
+    () => frases.filter(f => !fonte.lang || !f.lang || baseLang(f.lang) === baseLang(fonte.lang)),
+    [frases, fonte.lang],
+  );
+
   const frasesDoAcervoAtual = useMemo<Sentence[]>(
     () => frasesDoAcervo(jogaveis, fonte.lang) as unknown as Sentence[],
     [jogaveis, fonte.lang],
@@ -1934,10 +1943,10 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
    * como os jogos de frase passaram a mentir na trilha.
    */
   const estados = useMemo(() => {
-    contarPassada('gate', { cartas: jogaveis.length, falas: frases.length, fonte: fonte.id, lang: fonte.lang });
+    contarPassada('gate', { cartas: jogaveis.length, falas: frasesDoIdioma.length, fonte: fonte.id, lang: fonte.lang });
     const porId = estadoDeCadaJogo({
       cartas: jogaveis,
-      frases: frases.length ? frases : frasesDoAcervoAtual,
+      frases: frasesDoIdioma.length ? frasesDoIdioma : frasesDoAcervoAtual,
       frasesDaTrilha: comTrilha ? frasesTrilha : undefined,
       temAudio: !!audioSessao,
       audioPronto: !!audioParaJogos,
@@ -1946,7 +1955,7 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
       lang: fonte.lang,
     });
     return JOGOS.map(j => ({ ...j, estado: porId[j.id] }));
-  }, [jogaveis, frases, frasesDoAcervoAtual, frasesTrilha, comTrilha, audioSessao, audioParaJogos, fonte.lang, fonte.id, temVoz]);
+  }, [jogaveis, frasesDoIdioma, frasesDoAcervoAtual, frasesTrilha, comTrilha, audioSessao, audioParaJogos, fonte.lang, fonte.id, temVoz]);
 
   /**
    * O QUE A CARTA BLOQUEADA PRECISA SABER PARA OFERECER UMA SAÍDA.

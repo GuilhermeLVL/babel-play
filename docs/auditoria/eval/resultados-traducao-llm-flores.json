@@ -1,0 +1,22 @@
+{
+  "geradoEm": "2026-08-30T22:34:34.799Z",
+  "provedor": "openrouter",
+  "corpus": "flores",
+  "totalDeCasos": 3,
+  "interrompida": "crédito esgotado no provedor durante a avaliação de openai/gpt-oss-120b",
+  "raciocinio": "padrão do modelo",
+  "esforco": "padrão",
+  "semContexto": false,
+  "repeticoes": 1,
+  "precos": {
+    "consultadoEm": "2026-08-30T22:34:34.517Z",
+    "usados": {
+      "openai/gpt-oss-120b": {
+        "entrada": 0.037,
+        "saida": 0.16999999999999998
+      }
+    }
+  },
+  "execucoes": [],
+  "resumo": []
+}

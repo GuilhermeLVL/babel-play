@@ -1,0 +1,181 @@
+{
+  "geradoEm": "2026-08-30T21:05:01.407Z",
+  "variante": "producao",
+  "limite": "cenarios concatenados: sem fala sobreposta, sem reverberacao, sem ruido ambiente continuo",
+  "linhas": [
+    {
+      "limiar": null,
+      "cenario": "alternancia-2",
+      "descricao": "dois falantes revezando — o caso base",
+      "der": {
+        "perdidoMs": 0,
+        "falsoAlarmeMs": 0,
+        "confusaoMs": 3361,
+        "falaNaReferenciaMs": 13444,
+        "der": 0.25,
+        "colarMs": 250,
+        "mapeamento": {
+          "1": "MA_HV222",
+          "2": "MA_HV107"
+        }
+      },
+      "pureza": {
+        "pureza": 0.75,
+        "cobertura": 0.75,
+        "f1": 0.75,
+        "clustersCriados": 2,
+        "falantesReais": 2
+      },
+      "semEmbedding": 0
+    },
+    {
+      "limiar": null,
+      "cenario": "alternancia-3",
+      "descricao": "três falantes revezando — mais gente, mais confusão de cluster",
+      "der": {
+        "perdidoMs": 0,
+        "falsoAlarmeMs": 0,
+        "confusaoMs": 3361,
+        "falaNaReferenciaMs": 20485,
+        "der": 0.16407127166219185,
+        "colarMs": 250,
+        "mapeamento": {
+          "1": "MA_HV222",
+          "2": "MA_HV253",
+          "3": "MA_HV107"
+        }
+      },
+      "pureza": {
+        "pureza": 0.8333333333333334,
+        "cobertura": 0.8333333333333334,
+        "f1": 0.8333333333333334,
+        "clustersCriados": 3,
+        "falantesReais": 3
+      },
+      "semEmbedding": 0
+    },
+    {
+      "limiar": null,
+      "cenario": "mesmo-falante",
+      "descricao": "UMA pessoa só — teste de fragmentação: não pode virar várias",
+      "der": {
+        "perdidoMs": 0,
+        "falsoAlarmeMs": 0,
+        "confusaoMs": 0,
+        "falaNaReferenciaMs": 12445,
+        "der": 0,
+        "colarMs": 250,
+        "mapeamento": {
+          "1": "MA_HV222"
+        }
+      },
+      "pureza": {
+        "pureza": 1,
+        "cobertura": 1,
+        "f1": 1,
+        "clustersCriados": 1,
+        "falantesReais": 1
+      },
+      "semEmbedding": 0
+    },
+    {
+      "limiar": null,
+      "cenario": "volume-variavel",
+      "descricao": "mesma pessoa alta e baixa — o eixo de microfone/distância variável",
+      "der": {
+        "perdidoMs": 0,
+        "falsoAlarmeMs": 0,
+        "confusaoMs": 0,
+        "falaNaReferenciaMs": 12445,
+        "der": 0,
+        "colarMs": 250,
+        "mapeamento": {
+          "1": "MA_HV222"
+        }
+      },
+      "pureza": {
+        "pureza": 1,
+        "cobertura": 1,
+        "f1": 1,
+        "clustersCriados": 1,
+        "falantesReais": 1
+      },
+      "semEmbedding": 0
+    },
+    {
+      "limiar": null,
+      "cenario": "ruido-10db",
+      "descricao": "dois falantes com ruído branco a 10 dB de SNR",
+      "der": {
+        "perdidoMs": 0,
+        "falsoAlarmeMs": 0,
+        "confusaoMs": 0,
+        "falaNaReferenciaMs": 13444,
+        "der": 0,
+        "colarMs": 250,
+        "mapeamento": {
+          "1": "MA_HV222",
+          "2": "MA_HV107"
+        }
+      },
+      "pureza": {
+        "pureza": 1,
+        "cobertura": 1,
+        "f1": 1,
+        "clustersCriados": 2,
+        "falantesReais": 2
+      },
+      "semEmbedding": 0
+    },
+    {
+      "limiar": null,
+      "cenario": "banda-estreita",
+      "descricao": "dois falantes em banda de 8 kHz — telefone / microfone barato",
+      "der": {
+        "perdidoMs": 0,
+        "falsoAlarmeMs": 0,
+        "confusaoMs": 3361,
+        "falaNaReferenciaMs": 13444,
+        "der": 0.25,
+        "colarMs": 250,
+        "mapeamento": {
+          "1": "MA_HV222",
+          "2": "MA_HV107"
+        }
+      },
+      "pureza": {
+        "pureza": 0.75,
+        "cobertura": 0.75,
+        "f1": 0.75,
+        "clustersCriados": 2,
+        "falantesReais": 2
+      },
+      "semEmbedding": 0
+    },
+    {
+      "limiar": null,
+      "cenario": "turnos-curtos",
+      "descricao": "réplicas abaixo de 1,2 s alternando entre duas pessoas — expõe a regra de herança do falante",
+      "der": {
+        "perdidoMs": 0,
+        "falsoAlarmeMs": 0,
+        "confusaoMs": 501,
+        "falaNaReferenciaMs": 2622,
+        "der": 0.19107551487414187,
+        "colarMs": 250,
+        "mapeamento": {
+          "2": "MA_HV253",
+          "3": "MA_HV106"
+        }
+      },
+      "pureza": {
+        "pureza": 1,
+        "cobertura": 0.75,
+        "f1": 0.8571428571428571,
+        "clustersCriados": 3,
+        "falantesReais": 2
+      },
+      "semEmbedding": 0
+    }
+  ]
+}

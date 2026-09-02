@@ -1,0 +1,2011 @@
+{
+  "geradoEm": "2026-08-30T23:12:32.063Z",
+  "corpus": 48,
+  "resultados": [
+    {
+      "variante": "tiny/sem-dica",
+      "modelo": "tiny",
+      "idioma": null,
+      "geral": {
+        "casos": 48,
+        "wer": 1.0309653916211294,
+        "cer": 0.8451788139429606,
+        "substituicoes": 282,
+        "insercoes": 19,
+        "delecoes": 265,
+        "palavrasNaReferencia": 549
+      },
+      "porFaixa": {
+        "1-2 palavras": {
+          "casos": 3,
+          "wer": 1,
+          "cer": 0.9259259259259259,
+          "substituicoes": 3,
+          "insercoes": 0,
+          "delecoes": 3,
+          "palavrasNaReferencia": 6
+        },
+        "3-5 palavras": {
+          "casos": 11,
+          "wer": 1.3478260869565217,
+          "cer": 0.9444444444444444,
+          "substituicoes": 31,
+          "insercoes": 16,
+          "delecoes": 15,
+          "palavrasNaReferencia": 46
+        },
+        "6-10 palavras": {
+          "casos": 15,
+          "wer": 1.0163934426229508,
+          "cer": 0.8267716535433071,
+          "substituicoes": 81,
+          "insercoes": 2,
+          "delecoes": 41,
+          "palavrasNaReferencia": 122
+        },
+        "11-20 palavras": {
+          "casos": 10,
+          "wer": 1,
+          "cer": 0.8222996515679443,
+          "substituicoes": 69,
+          "insercoes": 0,
+          "delecoes": 75,
+          "palavrasNaReferencia": 144
+        },
+        "21+ palavras": {
+          "casos": 9,
+          "wer": 0.9956709956709957,
+          "cer": 0.8478260869565217,
+          "substituicoes": 98,
+          "insercoes": 1,
+          "delecoes": 131,
+          "palavrasNaReferencia": 231
+        }
+      },
+      "rtf": 0.11216288230478898,
+      "casos": [
+        {
+          "id": "pc_ma_hv106_1092_3494.889_3495.39",
+          "referencia": "não as coisas boas",
+          "hipotese": "",
+          "faixa": "muito-curta",
+          "qualidade": "high"
+        },
+        {
+          "id": "pc_ma_hv106_1108_3569.554_3572.195",
+          "referencia": "só ia oito não dava era uma correria",
+          "hipotese": "I'm not going to do that anymore.",
+          "faixa": "curta",
+          "qualidade": "low"
+        },
+        {
+          "id": "pc_ma_hv106_1180_3795.422_3800.003",
+          "referencia": "porque é muita gente então a pessoa fala pô mas vocês tem dezesseis pessoas para jogar nós só tem cinco",
+          "hipotese": "We have to talk about this in the next episode.",
+          "faixa": "media",
+          "qualidade": "high"
+        },
+        {
+          "id": "pc_ma_hv106_1212_3888.128_3888.968",
+          "referencia": "e o sonho todo mundo tem",
+          "hipotese": "You saw this?",
+          "faixa": "muito-curta",
+          "qualidade": "high"
+        },
+        {
+          "id": "pc_ma_hv106_248_805.696_807.898",
+          "referencia": "o que precisa o que que o ajudante geral faz",
+          "hipotese": "",
+          "faixa": "curta",
+          "qualidade": "high"
+        },
+        {
+          "id": "pc_ma_hv106_465_1460.598_1467.82",
+          "referencia": "aí eu vim cheguei na um dia de manhãzinha na padaria o patrão português olhou para mim e falou você sabe trabalhar",
+          "hipotese": "I'm going to...",
+          "faixa": "longa",
+          "qualidade": "high"
+        },
+        {
+          "id": "pc_ma_hv106_603_1891.84_1893.641",
+          "referencia": "minhas irmãs ficavam furiosas por causa disso né",
+          "hipotese": "Thank you very much.",
+          "faixa": "curta",
+          "qualidade": "high"
+        },
+        {
+          "id": "pc_ma_hv106_715_2232.185_2238.807",
+          "referencia": "e a como a gente morava num lugar que tinha colégio então ela vinha para nossa casa ficava durante a semana estudando e no fim de semana voltava para a casa dos pais",
+          "hipotese": "We'll have a look at the next video.",
+          "faixa": "longa",
+          "qualidade": "high"
+        },
+        {
+          "id": "pc_ma_hv106_726_2268.402_2269.862",
+          "referencia": "uma ou foi duas também porque eu não fui muito de namorada",
+          "hipotese": "It was a great one for me.",
+          "faixa": "muito-curta",
+          "qualidade": "high"
+        },
+        {
+          "id": "pc_ma_hv106_773_2426.129_2431.915",
+          "referencia": "aí minha mãe já tinha vindo morar aqui em são paulo meu pai também morou um tempo aqui vieram os dois",
+          "hipotese": "I think we have to be able to see the game in the game, so we can't get into the game.",
+          "faixa": "media",
+          "qualidade": "low"
+        },
+        {
+          "id": "pc_ma_hv106_912_2878.795_2886.358",
+          "referencia": "então você tem que trabalhar da com a possibilidade que você possa botar o sal não tirar o sal porque não tem jeito",
+          "hipotese": "I don't know if you can use it, but that's not true.",
+          "faixa": "longa",
+          "qualidade": "high"
+        },
+        {
+          "id": "pc_ma_hv106_990_3160.516_3164.498",
+          "referencia": "aí ele falou assim e e aí o horário que você prefere",
+          "hipotese": "I'll follow you.",
+          "faixa": "media",
+          "qualidade": "high"
+        },
+        {
+          "id": "pc_ma_hv107_1030_3665.545_3666.266",
+          "referencia": "ele tem um cabelo",
+          "hipotese": "",
+          "faixa": "muito-curta",
+          "qualidade": "high"
+        },
+        {
+          "id": "pc_ma_hv107_1241_4340.322_4341.023",
+          "referencia": "então é legal",
+          "hipotese": "",
+          "faixa": "muito-curta",
+          "qualidade": "high"
+        },
+        {
+          "id": "pc_ma_hv107_246_909.336_911.397",
+          "referencia": "acordar e já começar a trabalhar eh",
+          "hipotese": "I started working.",
+          "faixa": "curta",
+          "qualidade": "high"
+        },
+        {
+          "id": "pc_ma_hv107_448_1751.436_1756.578",
+          "referencia": "inclusive é até motivo de gozação quando eu falo com o povo uai por que são paulo torcer por rio se está em são paulo",
+          "hipotese": "I'm not sure how to say it.",
+          "faixa": "media",
+          "qualidade": "high"
+        },
+        {
+          "id": "pc_ma_hv107_471_1820.813_1822.294",
+          "referencia": "camisa short",
+          "hipotese": "amazing.",
+          "faixa": "muito-curta",
+          "qualidade": "high"
+        },
+        {
+          "id": "pc_ma_hv107_482_1847.48_1849.041",
+          "referencia": "tomei uns tapa lá né",
+          "hipotese": "I'm gonna stop talking.",
+          "faixa": "curta",
+          "qualidade": "high"
+        },
+        {
+          "id": "pc_ma_hv107_521_1972.127_1975.488",
+          "referencia": "ele criou mas nunca jogou ele só fez o fogo né eh",
+          "hipotese": "I'm gonna be so afraid of food",
+          "faixa": "media",
+          "qualidade": "high"
+        },
+        {
+          "id": "pc_ma_hv107_561_2086.899_2089.14",
+          "referencia": "ele só não jogou mas incentivava muito a gente",
+          "hipotese": "That's all, but this is a lot of people.",
+          "faixa": "curta",
+          "qualidade": "high"
+        },
+        {
+          "id": "pc_ma_hv107_577_2149.219_2158.165",
+          "referencia": "aí quando ela emprestou todo mundo vestiu a camisa do do time né um time completo com calção short mesmo tudo completo uh uh o jogo de camisa",
+          "hipotese": "I think it's a very interesting question.",
+          "faixa": "longa",
+          "qualidade": "high"
+        },
+        {
+          "id": "pc_ma_hv107_658_2477.735_2484.26",
+          "referencia": "nós estava jogando no taboão e ih sempre entra aqueles melhorzinho né",
+          "hipotese": "I'm not sure if it's a better version",
+          "faixa": "longa",
+          "qualidade": "low"
+        },
+        {
+          "id": "pc_ma_hv107_711_2632.561_2640.388",
+          "referencia": "aí eu peguei uma bola do meio de campo no meio de campo o cara passou para mim rasteirinha assim eu peguei de primeira e fiz mais outro gol",
+          "hipotese": "I'll take a moment of the video.",
+          "faixa": "longa",
+          "qualidade": "high"
+        },
+        {
+          "id": "pc_ma_hv107_901_3258.848_3263.649",
+          "referencia": "e a gente monta um para garantir ah o troféu",
+          "hipotese": "And we have a great time.",
+          "faixa": "media",
+          "qualidade": "high"
+        },
+        {
+          "id": "pc_ma_hv222_1016_3671.625_3673.726",
+          "referencia": "fui lá e encontrei outro carro",
+          "hipotese": "for the link on the other card.",
+          "faixa": "curta",
+          "qualidade": "high"
+        },
+        {
+          "id": "pc_ma_hv222_1099_3971.5860000000002_3977.268",
+          "referencia": "e a mulher que morreu deixou quantos filhos",
+          "hipotese": "I'm really happy.",
+          "faixa": "media",
+          "qualidade": "high"
+        },
+        {
+          "id": "pc_ma_hv222_1151_4167.0070000000005_4167.948",
+          "referencia": "ia buscar",
+          "hipotese": "",
+          "faixa": "muito-curta",
+          "qualidade": "high"
+        },
+        {
+          "id": "pc_ma_hv222_126_447.431_448.811",
+          "referencia": "por que não",
+          "hipotese": "Okay, no.",
+          "faixa": "muito-curta",
+          "qualidade": "high"
+        },
+        {
+          "id": "pc_ma_hv222_1282_4634.372_4643.986",
+          "referencia": "o dinheiro para eles eu tinha porque a gente não podia ficar duro de tudo né",
+          "hipotese": "I can't say it.",
+          "faixa": "longa",
+          "qualidade": "high"
+        },
+        {
+          "id": "pc_ma_hv222_1354_4916.84_4918.261",
+          "referencia": "derrubava o arroz tudo",
+          "hipotese": "I love all of you.",
+          "faixa": "muito-curta",
+          "qualidade": "high"
+        },
+        {
+          "id": "pc_ma_hv222_1509_5488.3640000000005_5489.984",
+          "referencia": "e eu tenho dois filhos",
+          "hipotese": "I think you have 2 videos.",
+          "faixa": "curta",
+          "qualidade": "high"
+        },
+        {
+          "id": "pc_ma_hv222_393_1429.673_1435.8770000000002",
+          "referencia": "tinha mais tinha uns quinze pessoas que trabalham comigo mas o que ficou firme mesmo é esse daí",
+          "hipotese": "But I have to make it the same.",
+          "faixa": "longa",
+          "qualidade": "high"
+        },
+        {
+          "id": "pc_ma_hv222_402_1465.7230000000002_1473.807",
+          "referencia": "e apanhava a turma aí porque quando vai começar a colheita não ganhava nem para boia porque para apanhar na mão sabe uhum",
+          "hipotese": "Because when you're going to start collecting, it's not good.",
+          "faixa": "longa",
+          "qualidade": "high"
+        },
+        {
+          "id": "pc_ma_hv222_441_1637.7120000000002_1642.054",
+          "referencia": "aquela pessoa que toma conta falou deixa eu tirar mais um pouco",
+          "hipotese": "this is the most important thing.",
+          "faixa": "media",
+          "qualidade": "high"
+        },
+        {
+          "id": "pc_ma_hv222_541_1997.7990000000002_2000.3000000000002",
+          "referencia": "no jogo de inglês é",
+          "hipotese": "I don't know if you can do this.",
+          "faixa": "curta",
+          "qualidade": "high"
+        },
+        {
+          "id": "pc_ma_hv222_745_2691.687_2695.188",
+          "referencia": "e eu estava com vinte e dois e fiquei",
+          "hipotese": "I was talking to you two.",
+          "faixa": "media",
+          "qualidade": "high"
+        },
+        {
+          "id": "pc_ma_hv253_1034_3766.287_3772.391",
+          "referencia": "ali a gente entrou com o advogado para sair e vamos pagar por metro",
+          "hipotese": "I'll talk about the next one.",
+          "faixa": "longa",
+          "qualidade": "high"
+        },
+        {
+          "id": "pc_ma_hv253_117_506.785_509.627",
+          "referencia": "cada local tinha um candeeiro daquele e iluminava normalmente",
+          "hipotese": "I don't know.",
+          "faixa": "curta",
+          "qualidade": "high"
+        },
+        {
+          "id": "pc_ma_hv253_1219_4529.983_4531.823",
+          "referencia": "aí veio as empresas",
+          "hipotese": "I think that is very well, it's a great idea.",
+          "faixa": "curta",
+          "qualidade": "high"
+        },
+        {
+          "id": "pc_ma_hv253_1451_5489.099_5490.4800000000005",
+          "referencia": "você vai pagar normalmente",
+          "hipotese": "So, I'll be back a moment.",
+          "faixa": "muito-curta",
+          "qualidade": "high"
+        },
+        {
+          "id": "pc_ma_hv253_1489_5655.831_5659.531",
+          "referencia": "tinha que construir onde fosse trezentos reais um metro quadrado",
+          "hipotese": "Thank you for being on the first time.",
+          "faixa": "media",
+          "qualidade": "high"
+        },
+        {
+          "id": "pc_ma_hv253_1509_5740.781_5742.1810000000005",
+          "referencia": "lá no pantanal não saiu ali",
+          "hipotese": "We're going to try it.",
+          "faixa": "muito-curta",
+          "qualidade": "high"
+        },
+        {
+          "id": "pc_ma_hv253_1666_6379.702_6388.987",
+          "referencia": "e você com a moradia digna você é casado você tem esposa ela vai ganhar nenê",
+          "hipotese": "You can say that.",
+          "faixa": "longa",
+          "qualidade": "high"
+        },
+        {
+          "id": "pc_ma_hv253_168_703.204_712.0899999999999",
+          "referencia": "e quando faltava dois dias para eu viajar para são paulo ele chegou e falou o ano de setenta e um estava uma seca muito grande né",
+          "hipotese": "It's a very important thing to me, but I don't have any other questions.",
+          "faixa": "longa",
+          "qualidade": "low"
+        },
+        {
+          "id": "pc_ma_hv253_1720_6605.4130000000005_6608.754000000001",
+          "referencia": "não pode nem falar aqui em uma entrevista",
+          "hipotese": "I can't talk about this.",
+          "faixa": "media",
+          "qualidade": "high"
+        },
+        {
+          "id": "pc_ma_hv253_482_1772.031_1775.173",
+          "referencia": "e já quando eu voltei já foi melhor",
+          "hipotese": "I'll see you in the next video.",
+          "faixa": "media",
+          "qualidade": "high"
+        },
+        {
+          "id": "pc_ma_hv253_783_2892.344_2893.845",
+          "referencia": "não não perguntava muito não",
+          "hipotese": "No, no.",
+          "faixa": "curta",
+          "qualidade": "high"
+        },
+        {
+          "id": "pc_ma_hv253_980_3565.837_3566.477",
+          "referencia": "a maioria",
+          "hipotese": "Yeah, brilliant.",
+          "faixa": "muito-curta",
+          "qualidade": "high"
+        }
+      ],
+      "falhasDeInfra": []
+    },
+    {
+      "variante": "tiny/com-dica-pt",
+      "modelo": "tiny",
+      "idioma": "pt",
+      "geral": {
+        "casos": 48,
+        "wer": 0.8469945355191257,
+        "cer": 0.6613852421910367,
+        "substituicoes": 244,
+        "insercoes": 19,
+        "delecoes": 202,
+        "palavrasNaReferencia": 549
+      },
+      "porFaixa": {
+        "1-2 palavras": {
+          "casos": 3,
+          "wer": 1,
+          "cer": 0.8518518518518519,
+          "substituicoes": 3,
+          "insercoes": 0,
+          "delecoes": 3,
+          "palavrasNaReferencia": 6
+        },
+        "3-5 palavras": {
+          "casos": 11,
+          "wer": 0.8043478260869565,
+          "cer": 0.6444444444444445,
+          "substituicoes": 22,
+          "insercoes": 4,
+          "delecoes": 11,
+          "palavrasNaReferencia": 46
+        },
+        "6-10 palavras": {
+          "casos": 15,
+          "wer": 0.8688524590163934,
+          "cer": 0.6062992125984252,
+          "substituicoes": 77,
+          "insercoes": 8,
+          "delecoes": 21,
+          "palavrasNaReferencia": 122
+        },
+        "11-20 palavras": {
+          "casos": 10,
+          "wer": 0.8472222222222222,
+          "cer": 0.6829268292682927,
+          "substituicoes": 53,
+          "insercoes": 2,
+          "delecoes": 67,
+          "palavrasNaReferencia": 144
+        },
+        "21+ palavras": {
+          "casos": 9,
+          "wer": 0.8398268398268398,
+          "cer": 0.6760869565217391,
+          "substituicoes": 89,
+          "insercoes": 5,
+          "delecoes": 100,
+          "palavrasNaReferencia": 231
+        }
+      },
+      "rtf": 0.10681185137978583,
+      "casos": [
+        {
+          "id": "pc_ma_hv106_1092_3494.889_3495.39",
+          "referencia": "não as coisas boas",
+          "hipotese": "",
+          "faixa": "muito-curta",
+          "qualidade": "high"
+        },
+        {
+          "id": "pc_ma_hv106_1108_3569.554_3572.195",
+          "referencia": "só ia oito não dava era uma correria",
+          "hipotese": "Eu vou ir num dar uma coisa de...",
+          "faixa": "curta",
+          "qualidade": "low"
+        },
+        {
+          "id": "pc_ma_hv106_1180_3795.422_3800.003",
+          "referencia": "porque é muita gente então a pessoa fala pô mas vocês tem dezesseis pessoas para jogar nós só tem cinco",
+          "hipotese": "Porque é muita gente, então só falar como eu vou fazer isso aqui.",
+          "faixa": "media",
+          "qualidade": "high"
+        },
+        {
+          "id": "pc_ma_hv106_1212_3888.128_3888.968",
+          "referencia": "e o sonho todo mundo tem",
+          "hipotese": "Eu só estou falando muito bem.",
+          "faixa": "muito-curta",
+          "qualidade": "high"
+        },
+        {
+          "id": "pc_ma_hv106_248_805.696_807.898",
+          "referencia": "o que precisa o que que o ajudante geral faz",
+          "hipotese": "Se você tem que fazer algo mais fácil.",
+          "faixa": "curta",
+          "qualidade": "high"
+        },
+        {
+          "id": "pc_ma_hv106_465_1460.598_1467.82",
+          "referencia": "aí eu vim cheguei na um dia de manhãzinha na padaria o patrão português olhou para mim e falou você sabe trabalhar",
+          "hipotese": "Eu vim!",
+          "faixa": "longa",
+          "qualidade": "high"
+        },
+        {
+          "id": "pc_ma_hv106_603_1891.84_1893.641",
+          "referencia": "minhas irmãs ficavam furiosas por causa disso né",
+          "hipotese": "Então, eu vou fazer isso aí.",
+          "faixa": "curta",
+          "qualidade": "high"
+        },
+        {
+          "id": "pc_ma_hv106_715_2232.185_2238.807",
+          "referencia": "e a como a gente morava num lugar que tinha colégio então ela vinha para nossa casa ficava durante a semana estudando e no fim de semana voltava para a casa dos pais",
+          "hipotese": "E aqui, como a gente morava no lugar que tinha com a ideia de fazer essa casa. Fica a fazer essa semana de estudar e se você é malnota para deixar de se sair.",
+          "faixa": "longa",
+          "qualidade": "high"
+        },
+        {
+          "id": "pc_ma_hv106_726_2268.402_2269.862",
+          "referencia": "uma ou foi duas também porque eu não fui muito de namorada",
+          "hipotese": "Como foi?",
+          "faixa": "muito-curta",
+          "qualidade": "high"
+        },
+        {
+          "id": "pc_ma_hv106_773_2426.129_2431.915",
+          "referencia": "aí minha mãe já tinha vindo morar aqui em são paulo meu pai também morou um tempo aqui vieram os dois",
+          "hipotese": "e a gente vai virar aqui em São Paulo, bem bem melhor.",
+          "faixa": "media",
+          "qualidade": "low"
+        },
+        {
+          "id": "pc_ma_hv106_912_2878.795_2886.358",
+          "referencia": "então você tem que trabalhar da com a possibilidade que você possa botar o sal não tirar o sal porque não tem jeito",
+          "hipotese": "Então, se você é trabalhado... Um impossibilidade que se possa botar o sal. Não te irá usar porque a gente...",
+          "faixa": "longa",
+          "qualidade": "high"
+        },
+        {
+          "id": "pc_ma_hv106_990_3160.516_3164.498",
+          "referencia": "aí ele falou assim e e aí o horário que você prefere",
+          "hipotese": "Eu vou falar assim... E... Agora você preferisse.",
+          "faixa": "media",
+          "qualidade": "high"
+        },
+        {
+          "id": "pc_ma_hv107_1030_3665.545_3666.266",
+          "referencia": "ele tem um cabelo",
+          "hipotese": "Ele tem um cabelo.",
+          "faixa": "muito-curta",
+          "qualidade": "high"
+        },
+        {
+          "id": "pc_ma_hv107_1241_4340.322_4341.023",
+          "referencia": "então é legal",
+          "hipotese": "Então, vamos...",
+          "faixa": "muito-curta",
+          "qualidade": "high"
+        },
+        {
+          "id": "pc_ma_hv107_246_909.336_911.397",
+          "referencia": "acordar e já começar a trabalhar eh",
+          "hipotese": "Agora eu começar a trabalhar.",
+          "faixa": "curta",
+          "qualidade": "high"
+        },
+        {
+          "id": "pc_ma_hv107_448_1751.436_1756.578",
+          "referencia": "inclusive é até motivo de gozação quando eu falo com o povo uai por que são paulo torcer por rio se está em são paulo",
+          "hipotese": "E agora temos muito tempo de igualdade dação. Agora eu vou fazer um pouco mais para o que são todos os equipos aqui, se tem que ser um pouco...",
+          "faixa": "media",
+          "qualidade": "high"
+        },
+        {
+          "id": "pc_ma_hv107_471_1820.813_1822.294",
+          "referencia": "camisa short",
+          "hipotese": "Mise.",
+          "faixa": "muito-curta",
+          "qualidade": "high"
+        },
+        {
+          "id": "pc_ma_hv107_482_1847.48_1849.041",
+          "referencia": "tomei uns tapa lá né",
+          "hipotese": "Estou bem um stop a lá.",
+          "faixa": "curta",
+          "qualidade": "high"
+        },
+        {
+          "id": "pc_ma_hv107_521_1972.127_1975.488",
+          "referencia": "ele criou mas nunca jogou ele só fez o fogo né eh",
+          "hipotese": "Eu tenho que ver se eu fazer o fogo.",
+          "faixa": "media",
+          "qualidade": "high"
+        },
+        {
+          "id": "pc_ma_hv107_561_2086.899_2089.14",
+          "referencia": "ele só não jogou mas incentivava muito a gente",
+          "hipotese": "É só um vídeo, mas isso dia é uma boa gente.",
+          "faixa": "curta",
+          "qualidade": "high"
+        },
+        {
+          "id": "pc_ma_hv107_577_2149.219_2158.165",
+          "referencia": "aí quando ela emprestou todo mundo vestiu a camisa do do time né um time completo com calção short mesmo tudo completo uh uh o jogo de camisa",
+          "hipotese": "A gente tem uma pessoa que tem uma vida no último tempo e compreta com calção.",
+          "faixa": "longa",
+          "qualidade": "high"
+        },
+        {
+          "id": "pc_ma_hv107_658_2477.735_2484.26",
+          "referencia": "nós estava jogando no taboão e ih sempre entra aqueles melhorzinho né",
+          "hipotese": "É sempre interessante.",
+          "faixa": "longa",
+          "qualidade": "low"
+        },
+        {
+          "id": "pc_ma_hv107_711_2632.561_2640.388",
+          "referencia": "aí eu peguei uma bola do meio de campo no meio de campo o cara passou para mim rasteirinha assim eu peguei de primeira e fiz mais outro gol",
+          "hipotese": "Eu pegando um vídeo de campo.",
+          "faixa": "longa",
+          "qualidade": "high"
+        },
+        {
+          "id": "pc_ma_hv107_901_3258.848_3263.649",
+          "referencia": "e a gente monta um para garantir ah o troféu",
+          "hipotese": "e a gente muita gente, muita gente.",
+          "faixa": "media",
+          "qualidade": "high"
+        },
+        {
+          "id": "pc_ma_hv222_1016_3671.625_3673.726",
+          "referencia": "fui lá e encontrei outro carro",
+          "hipotese": "e foi lá em contra de outra cara.",
+          "faixa": "curta",
+          "qualidade": "high"
+        },
+        {
+          "id": "pc_ma_hv222_1099_3971.5860000000002_3977.268",
+          "referencia": "e a mulher que morreu deixou quantos filhos",
+          "hipotese": "É um pouco mais real de novo.",
+          "faixa": "media",
+          "qualidade": "high"
+        },
+        {
+          "id": "pc_ma_hv222_1151_4167.0070000000005_4167.948",
+          "referencia": "ia buscar",
+          "hipotese": "",
+          "faixa": "muito-curta",
+          "qualidade": "high"
+        },
+        {
+          "id": "pc_ma_hv222_126_447.431_448.811",
+          "referencia": "por que não",
+          "hipotese": "Que não.",
+          "faixa": "muito-curta",
+          "qualidade": "high"
+        },
+        {
+          "id": "pc_ma_hv222_1282_4634.372_4643.986",
+          "referencia": "o dinheiro para eles eu tinha porque a gente não podia ficar duro de tudo né",
+          "hipotese": "para ele, para ele é o primeiro.",
+          "faixa": "longa",
+          "qualidade": "high"
+        },
+        {
+          "id": "pc_ma_hv222_1354_4916.84_4918.261",
+          "referencia": "derrubava o arroz tudo",
+          "hipotese": "Eu vou dar uma coisa tudo.",
+          "faixa": "muito-curta",
+          "qualidade": "high"
+        },
+        {
+          "id": "pc_ma_hv222_1509_5488.3640000000005_5489.984",
+          "referencia": "e eu tenho dois filhos",
+          "hipotese": "Eu tenho dois vídeos.",
+          "faixa": "curta",
+          "qualidade": "high"
+        },
+        {
+          "id": "pc_ma_hv222_393_1429.673_1435.8770000000002",
+          "referencia": "tinha mais tinha uns quinze pessoas que trabalham comigo mas o que ficou firme mesmo é esse daí",
+          "hipotese": "Mas eu tenho que fazer isso aqui.",
+          "faixa": "longa",
+          "qualidade": "high"
+        },
+        {
+          "id": "pc_ma_hv222_402_1465.7230000000002_1473.807",
+          "referencia": "e apanhava a turma aí porque quando vai começar a colheita não ganhava nem para boia porque para apanhar na mão sabe uhum",
+          "hipotese": "Porque quando vai começar a colet, não vai aprender para você.",
+          "faixa": "longa",
+          "qualidade": "high"
+        },
+        {
+          "id": "pc_ma_hv222_441_1637.7120000000002_1642.054",
+          "referencia": "aquela pessoa que toma conta falou deixa eu tirar mais um pouco",
+          "hipotese": "com a gente.",
+          "faixa": "media",
+          "qualidade": "high"
+        },
+        {
+          "id": "pc_ma_hv222_541_1997.7990000000002_2000.3000000000002",
+          "referencia": "no jogo de inglês é",
+          "hipotese": "Eu não vou fazer isso.",
+          "faixa": "curta",
+          "qualidade": "high"
+        },
+        {
+          "id": "pc_ma_hv222_745_2691.687_2695.188",
+          "referencia": "e eu estava com vinte e dois e fiquei",
+          "hipotese": "Eu estava com um vídeo.",
+          "faixa": "media",
+          "qualidade": "high"
+        },
+        {
+          "id": "pc_ma_hv253_1034_3766.287_3772.391",
+          "referencia": "ali a gente entrou com o advogado para sair e vamos pagar por metro",
+          "hipotese": "A gente tem que fazer um jogador para sair para o método.",
+          "faixa": "longa",
+          "qualidade": "high"
+        },
+        {
+          "id": "pc_ma_hv253_117_506.785_509.627",
+          "referencia": "cada local tinha um candeeiro daquele e iluminava normalmente",
+          "hipotese": "Agora eu tenho um congente aqui, ele não me dá um normalmente.",
+          "faixa": "curta",
+          "qualidade": "high"
+        },
+        {
+          "id": "pc_ma_hv253_1219_4529.983_4531.823",
+          "referencia": "aí veio as empresas",
+          "hipotese": "E, por exemplo...",
+          "faixa": "curta",
+          "qualidade": "high"
+        },
+        {
+          "id": "pc_ma_hv253_1451_5489.099_5490.4800000000005",
+          "referencia": "você vai pagar normalmente",
+          "hipotese": "Eu não vou me fazer.",
+          "faixa": "muito-curta",
+          "qualidade": "high"
+        },
+        {
+          "id": "pc_ma_hv253_1489_5655.831_5659.531",
+          "referencia": "tinha que construir onde fosse trezentos reais um metro quadrado",
+          "hipotese": "e não vou fazer isso.",
+          "faixa": "media",
+          "qualidade": "high"
+        },
+        {
+          "id": "pc_ma_hv253_1509_5740.781_5742.1810000000005",
+          "referencia": "lá no pantanal não saiu ali",
+          "hipotese": "Agora, podemos sair ali.",
+          "faixa": "muito-curta",
+          "qualidade": "high"
+        },
+        {
+          "id": "pc_ma_hv253_1666_6379.702_6388.987",
+          "referencia": "e você com a moradia digna você é casado você tem esposa ela vai ganhar nenê",
+          "hipotese": "Você pode falar de adigna. Você é casado. Se você é expós, ele vai regarder.",
+          "faixa": "longa",
+          "qualidade": "high"
+        },
+        {
+          "id": "pc_ma_hv253_168_703.204_712.0899999999999",
+          "referencia": "e quando faltava dois dias para eu viajar para são paulo ele chegou e falou o ano de setenta e um estava uma seca muito grande né",
+          "hipotese": "Quanto foi a nova 2 dias?",
+          "faixa": "longa",
+          "qualidade": "low"
+        },
+        {
+          "id": "pc_ma_hv253_1720_6605.4130000000005_6608.754000000001",
+          "referencia": "não pode nem falar aqui em uma entrevista",
+          "hipotese": "Não pode falar que não é ter visto.",
+          "faixa": "media",
+          "qualidade": "high"
+        },
+        {
+          "id": "pc_ma_hv253_482_1772.031_1775.173",
+          "referencia": "e já quando eu voltei já foi melhor",
+          "hipotese": "E agora quando eu vou ter já foi legal.",
+          "faixa": "media",
+          "qualidade": "high"
+        },
+        {
+          "id": "pc_ma_hv253_783_2892.344_2893.845",
+          "referencia": "não não perguntava muito não",
+          "hipotese": "Não, não.",
+          "faixa": "curta",
+          "qualidade": "high"
+        },
+        {
+          "id": "pc_ma_hv253_980_3565.837_3566.477",
+          "referencia": "a maioria",
+          "hipotese": "Um vídeo.",
+          "faixa": "muito-curta",
+          "qualidade": "high"
+        }
+      ],
+      "falhasDeInfra": []
+    },
+    {
+      "variante": "base/sem-dica",
+      "modelo": "base",
+      "idioma": null,
+      "geral": {
+        "casos": 48,
+        "wer": 1.0437158469945356,
+        "cer": 0.8311453146220009,
+        "substituicoes": 375,
+        "insercoes": 28,
+        "delecoes": 170,
+        "palavrasNaReferencia": 549
+      },
+      "porFaixa": {
+        "1-2 palavras": {
+          "casos": 3,
+          "wer": 1,
+          "cer": 0.8148148148148148,
+          "substituicoes": 3,
+          "insercoes": 0,
+          "delecoes": 3,
+          "palavrasNaReferencia": 6
+        },
+        "3-5 palavras": {
+          "casos": 11,
+          "wer": 1.1304347826086956,
+          "cer": 0.85,
+          "substituicoes": 31,
+          "insercoes": 6,
+          "delecoes": 15,
+          "palavrasNaReferencia": 46
+        },
+        "6-10 palavras": {
+          "casos": 15,
+          "wer": 1.0819672131147542,
+          "cer": 0.860236220472441,
+          "substituicoes": 85,
+          "insercoes": 10,
+          "delecoes": 37,
+          "palavrasNaReferencia": 122
+        },
+        "11-20 palavras": {
+          "casos": 10,
+          "wer": 1.0486111111111112,
+          "cer": 0.872822299651568,
+          "substituicoes": 90,
+          "insercoes": 8,
+          "delecoes": 53,
+          "palavrasNaReferencia": 144
+        },
+        "21+ palavras": {
+          "casos": 9,
+          "wer": 1.0043290043290043,
+          "cer": 0.7858695652173913,
+          "substituicoes": 166,
+          "insercoes": 4,
+          "delecoes": 62,
+          "palavrasNaReferencia": 231
+        }
+      },
+      "rtf": 0.16845858444904704,
+      "casos": [
+        {
+          "id": "pc_ma_hv106_1092_3494.889_3495.39",
+          "referencia": "não as coisas boas",
+          "hipotese": "",
+          "faixa": "muito-curta",
+          "qualidade": "high"
+        },
+        {
+          "id": "pc_ma_hv106_1108_3569.554_3572.195",
+          "referencia": "só ia oito não dava era uma correria",
+          "hipotese": "I'm not going to say anything today.",
+          "faixa": "curta",
+          "qualidade": "low"
+        },
+        {
+          "id": "pc_ma_hv106_1180_3795.422_3800.003",
+          "referencia": "porque é muita gente então a pessoa fala pô mas vocês tem dezesseis pessoas para jogar nós só tem cinco",
+          "hipotese": "because there are a lot of people, so just talk about it. But you have 16 players to play on your own 5",
+          "faixa": "media",
+          "qualidade": "high"
+        },
+        {
+          "id": "pc_ma_hv106_1212_3888.128_3888.968",
+          "referencia": "e o sonho todo mundo tem",
+          "hipotese": "You so",
+          "faixa": "muito-curta",
+          "qualidade": "high"
+        },
+        {
+          "id": "pc_ma_hv106_248_805.696_807.898",
+          "referencia": "o que precisa o que que o ajudante geral faz",
+          "hipotese": "that we simply can continue to generate the file.",
+          "faixa": "curta",
+          "qualidade": "high"
+        },
+        {
+          "id": "pc_ma_hv106_465_1460.598_1467.82",
+          "referencia": "aí eu vim cheguei na um dia de manhãzinha na padaria o patrão português olhou para mim e falou você sabe trabalhar",
+          "hipotese": "I came to a small village in Padaria, for Portuguese. I saw it and said that you know how to work",
+          "faixa": "longa",
+          "qualidade": "high"
+        },
+        {
+          "id": "pc_ma_hv106_603_1891.84_1893.641",
+          "referencia": "minhas irmãs ficavam furiosas por causa disso né",
+          "hipotese": "I'm not sure if it's a real thing.",
+          "faixa": "curta",
+          "qualidade": "high"
+        },
+        {
+          "id": "pc_ma_hv106_715_2232.185_2238.807",
+          "referencia": "e a como a gente morava num lugar que tinha colégio então ela vinha para nossa casa ficava durante a semana estudando e no fim de semana voltava para a casa dos pais",
+          "hipotese": "and as we lived in a place that had college, so she came to our house. She stayed for a week studying until she was able to go back home from her country",
+          "faixa": "longa",
+          "qualidade": "high"
+        },
+        {
+          "id": "pc_ma_hv106_726_2268.402_2269.862",
+          "referencia": "uma ou foi duas também porque eu não fui muito de namorada",
+          "hipotese": "",
+          "faixa": "muito-curta",
+          "qualidade": "high"
+        },
+        {
+          "id": "pc_ma_hv106_773_2426.129_2431.915",
+          "referencia": "aí minha mãe já tinha vindo morar aqui em são paulo meu pai também morou um tempo aqui vieram os dois",
+          "hipotese": "My mom had already been living here in São Paulo. My dad also died a while ago, and came to the two of us",
+          "faixa": "media",
+          "qualidade": "low"
+        },
+        {
+          "id": "pc_ma_hv106_912_2878.795_2886.358",
+          "referencia": "então você tem que trabalhar da com a possibilidade que você possa botar o sal não tirar o sal porque não tem jeito",
+          "hipotese": "So you always have to work with the possibility that you can put salt on it, not to throw salt because of it.",
+          "faixa": "longa",
+          "qualidade": "high"
+        },
+        {
+          "id": "pc_ma_hv106_990_3160.516_3164.498",
+          "referencia": "aí ele falou assim e e aí o horário que você prefere",
+          "hipotese": "and he said,",
+          "faixa": "media",
+          "qualidade": "high"
+        },
+        {
+          "id": "pc_ma_hv107_1030_3665.545_3666.266",
+          "referencia": "ele tem um cabelo",
+          "hipotese": "",
+          "faixa": "muito-curta",
+          "qualidade": "high"
+        },
+        {
+          "id": "pc_ma_hv107_1241_4340.322_4341.023",
+          "referencia": "então é legal",
+          "hipotese": "",
+          "faixa": "muito-curta",
+          "qualidade": "high"
+        },
+        {
+          "id": "pc_ma_hv107_246_909.336_911.397",
+          "referencia": "acordar e já começar a trabalhar eh",
+          "hipotese": "I started working",
+          "faixa": "curta",
+          "qualidade": "high"
+        },
+        {
+          "id": "pc_ma_hv107_448_1751.436_1756.578",
+          "referencia": "inclusive é até motivo de gozação quando eu falo com o povo uai por que são paulo torcer por rio se está em são paulo",
+          "hipotese": "I'm not saying that.",
+          "faixa": "media",
+          "qualidade": "high"
+        },
+        {
+          "id": "pc_ma_hv107_471_1820.813_1822.294",
+          "referencia": "camisa short",
+          "hipotese": "Shorter",
+          "faixa": "muito-curta",
+          "qualidade": "high"
+        },
+        {
+          "id": "pc_ma_hv107_482_1847.48_1849.041",
+          "referencia": "tomei uns tapa lá né",
+          "hipotese": "I'm going to stop there.",
+          "faixa": "curta",
+          "qualidade": "high"
+        },
+        {
+          "id": "pc_ma_hv107_521_1972.127_1975.488",
+          "referencia": "ele criou mas nunca jogou ele só fez o fogo né eh",
+          "hipotese": "So, I'm going to go back and do the first phase of four.",
+          "faixa": "media",
+          "qualidade": "high"
+        },
+        {
+          "id": "pc_ma_hv107_561_2086.899_2089.14",
+          "referencia": "ele só não jogou mas incentivava muito a gente",
+          "hipotese": "but that's what I was thinking.",
+          "faixa": "curta",
+          "qualidade": "high"
+        },
+        {
+          "id": "pc_ma_hv107_577_2149.219_2158.165",
+          "referencia": "aí quando ela emprestou todo mundo vestiu a camisa do do time né um time completo com calção short mesmo tudo completo uh uh o jogo de camisa",
+          "hipotese": "When he started the whole world, he took his shirt off. He didn't take my shirt off with a bag or shorts.",
+          "faixa": "longa",
+          "qualidade": "high"
+        },
+        {
+          "id": "pc_ma_hv107_658_2477.735_2484.26",
+          "referencia": "nós estava jogando no taboão e ih sempre entra aqueles melhorzinho né",
+          "hipotese": "It's always in those melodies.",
+          "faixa": "longa",
+          "qualidade": "low"
+        },
+        {
+          "id": "pc_ma_hv107_711_2632.561_2640.388",
+          "referencia": "aí eu peguei uma bola do meio de campo no meio de campo o cara passou para mim rasteirinha assim eu peguei de primeira e fiz mais outro gol",
+          "hipotese": "I got the middle of the field, the guy went to my restaurant and I took one more goal.",
+          "faixa": "longa",
+          "qualidade": "high"
+        },
+        {
+          "id": "pc_ma_hv107_901_3258.848_3263.649",
+          "referencia": "e a gente monta um para garantir ah o troféu",
+          "hipotese": "and we will meet again in the next video.",
+          "faixa": "media",
+          "qualidade": "high"
+        },
+        {
+          "id": "pc_ma_hv222_1016_3671.625_3673.726",
+          "referencia": "fui lá e encontrei outro carro",
+          "hipotese": "for the line control and other cars.",
+          "faixa": "curta",
+          "qualidade": "high"
+        },
+        {
+          "id": "pc_ma_hv222_1099_3971.5860000000002_3977.268",
+          "referencia": "e a mulher que morreu deixou quantos filhos",
+          "hipotese": "And I'm going to be able",
+          "faixa": "media",
+          "qualidade": "high"
+        },
+        {
+          "id": "pc_ma_hv222_1151_4167.0070000000005_4167.948",
+          "referencia": "ia buscar",
+          "hipotese": "the",
+          "faixa": "muito-curta",
+          "qualidade": "high"
+        },
+        {
+          "id": "pc_ma_hv222_126_447.431_448.811",
+          "referencia": "por que não",
+          "hipotese": "Okay, no.",
+          "faixa": "muito-curta",
+          "qualidade": "high"
+        },
+        {
+          "id": "pc_ma_hv222_1282_4634.372_4643.986",
+          "referencia": "o dinheiro para eles eu tinha porque a gente não podia ficar duro de tudo né",
+          "hipotese": "to be able",
+          "faixa": "longa",
+          "qualidade": "high"
+        },
+        {
+          "id": "pc_ma_hv222_1354_4916.84_4918.261",
+          "referencia": "derrubava o arroz tudo",
+          "hipotese": "God will always be here.",
+          "faixa": "muito-curta",
+          "qualidade": "high"
+        },
+        {
+          "id": "pc_ma_hv222_1509_5488.3640000000005_5489.984",
+          "referencia": "e eu tenho dois filhos",
+          "hipotese": "and you have two wheels.",
+          "faixa": "curta",
+          "qualidade": "high"
+        },
+        {
+          "id": "pc_ma_hv222_393_1429.673_1435.8770000000002",
+          "referencia": "tinha mais tinha uns quinze pessoas que trabalham comigo mas o que ficou firme mesmo é esse daí",
+          "hipotese": "There were more, there was 15 people working with me. But I had to confirm this one",
+          "faixa": "longa",
+          "qualidade": "high"
+        },
+        {
+          "id": "pc_ma_hv222_402_1465.7230000000002_1473.807",
+          "referencia": "e apanhava a turma aí porque quando vai começar a colheita não ganhava nem para boia porque para apanhar na mão sabe uhum",
+          "hipotese": "Because when you start to collect, there is no way out.",
+          "faixa": "longa",
+          "qualidade": "high"
+        },
+        {
+          "id": "pc_ma_hv222_441_1637.7120000000002_1642.054",
+          "referencia": "aquela pessoa que toma conta falou deixa eu tirar mais um pouco",
+          "hipotese": "",
+          "faixa": "media",
+          "qualidade": "high"
+        },
+        {
+          "id": "pc_ma_hv222_541_1997.7990000000002_2000.3000000000002",
+          "referencia": "no jogo de inglês é",
+          "hipotese": "the English.",
+          "faixa": "curta",
+          "qualidade": "high"
+        },
+        {
+          "id": "pc_ma_hv222_745_2691.687_2695.188",
+          "referencia": "e eu estava com vinte e dois e fiquei",
+          "hipotese": "I was with my two, and it ended.",
+          "faixa": "media",
+          "qualidade": "high"
+        },
+        {
+          "id": "pc_ma_hv253_1034_3766.287_3772.391",
+          "referencia": "ali a gente entrou com o advogado para sair e vamos pagar por metro",
+          "hipotese": "and we tried to send it out, so that the message would be sent.",
+          "faixa": "longa",
+          "qualidade": "high"
+        },
+        {
+          "id": "pc_ma_hv253_117_506.785_509.627",
+          "referencia": "cada local tinha um candeeiro daquele e iluminava normalmente",
+          "hipotese": "The",
+          "faixa": "curta",
+          "qualidade": "high"
+        },
+        {
+          "id": "pc_ma_hv253_1219_4529.983_4531.823",
+          "referencia": "aí veio as empresas",
+          "hipotese": "I see what you're saying.",
+          "faixa": "curta",
+          "qualidade": "high"
+        },
+        {
+          "id": "pc_ma_hv253_1451_5489.099_5490.4800000000005",
+          "referencia": "você vai pagar normalmente",
+          "hipotese": "It won't be a moment.",
+          "faixa": "muito-curta",
+          "qualidade": "high"
+        },
+        {
+          "id": "pc_ma_hv253_1489_5655.831_5659.531",
+          "referencia": "tinha que construir onde fosse trezentos reais um metro quadrado",
+          "hipotese": "We are forced to reach that point.",
+          "faixa": "media",
+          "qualidade": "high"
+        },
+        {
+          "id": "pc_ma_hv253_1509_5740.781_5742.1810000000005",
+          "referencia": "lá no pantanal não saiu ali",
+          "hipotese": "The",
+          "faixa": "muito-curta",
+          "qualidade": "high"
+        },
+        {
+          "id": "pc_ma_hv253_1666_6379.702_6388.987",
+          "referencia": "e você com a moradia digna você é casado você tem esposa ela vai ganhar nenê",
+          "hipotese": "You are like a dignified day. You're married, you have a wife and I'll be right back",
+          "faixa": "longa",
+          "qualidade": "high"
+        },
+        {
+          "id": "pc_ma_hv253_168_703.204_712.0899999999999",
+          "referencia": "e quando faltava dois dias para eu viajar para são paulo ele chegou e falou o ano de setenta e um estava uma seca muito grande né",
+          "hipotese": "When I was two days old, I had a lot of time to travel.",
+          "faixa": "longa",
+          "qualidade": "low"
+        },
+        {
+          "id": "pc_ma_hv253_1720_6605.4130000000005_6608.754000000001",
+          "referencia": "não pode nem falar aqui em uma entrevista",
+          "hipotese": "and",
+          "faixa": "media",
+          "qualidade": "high"
+        },
+        {
+          "id": "pc_ma_hv253_482_1772.031_1775.173",
+          "referencia": "e já quando eu voltei já foi melhor",
+          "hipotese": "I can't believe it's been a long time since we've had this.",
+          "faixa": "media",
+          "qualidade": "high"
+        },
+        {
+          "id": "pc_ma_hv253_783_2892.344_2893.845",
+          "referencia": "não não perguntava muito não",
+          "hipotese": "No, I don't know.",
+          "faixa": "curta",
+          "qualidade": "high"
+        },
+        {
+          "id": "pc_ma_hv253_980_3565.837_3566.477",
+          "referencia": "a maioria",
+          "hipotese": "William.",
+          "faixa": "muito-curta",
+          "qualidade": "high"
+        }
+      ],
+      "falhasDeInfra": []
+    },
+    {
+      "variante": "base/com-dica-pt",
+      "modelo": "base",
+      "idioma": "pt",
+      "geral": {
+        "casos": 48,
+        "wer": 0.5719489981785064,
+        "cer": 0.36622906292440016,
+        "substituicoes": 192,
+        "insercoes": 35,
+        "delecoes": 87,
+        "palavrasNaReferencia": 549
+      },
+      "porFaixa": {
+        "1-2 palavras": {
+          "casos": 3,
+          "wer": 1.6666666666666667,
+          "cer": 0.3333333333333333,
+          "substituicoes": 6,
+          "insercoes": 4,
+          "delecoes": 0,
+          "palavrasNaReferencia": 6
+        },
+        "3-5 palavras": {
+          "casos": 11,
+          "wer": 0.7608695652173914,
+          "cer": 0.5055555555555555,
+          "substituicoes": 22,
+          "insercoes": 5,
+          "delecoes": 8,
+          "palavrasNaReferencia": 46
+        },
+        "6-10 palavras": {
+          "casos": 15,
+          "wer": 0.7459016393442623,
+          "cer": 0.5039370078740157,
+          "substituicoes": 59,
+          "insercoes": 9,
+          "delecoes": 23,
+          "palavrasNaReferencia": 122
+        },
+        "11-20 palavras": {
+          "casos": 10,
+          "wer": 0.6041666666666666,
+          "cer": 0.37282229965156793,
+          "substituicoes": 58,
+          "insercoes": 11,
+          "delecoes": 18,
+          "palavrasNaReferencia": 144
+        },
+        "21+ palavras": {
+          "casos": 9,
+          "wer": 0.3939393939393939,
+          "cer": 0.2597826086956522,
+          "substituicoes": 47,
+          "insercoes": 6,
+          "delecoes": 38,
+          "palavrasNaReferencia": 231
+        }
+      },
+      "rtf": 0.17562259299751123,
+      "casos": [
+        {
+          "id": "pc_ma_hv106_1092_3494.889_3495.39",
+          "referencia": "não as coisas boas",
+          "hipotese": "Mas com isso",
+          "faixa": "muito-curta",
+          "qualidade": "high"
+        },
+        {
+          "id": "pc_ma_hv106_1108_3569.554_3572.195",
+          "referencia": "só ia oito não dava era uma correria",
+          "hipotese": "Só ia hoje não da ver, mas eu queria.",
+          "faixa": "curta",
+          "qualidade": "low"
+        },
+        {
+          "id": "pc_ma_hv106_1180_3795.422_3800.003",
+          "referencia": "porque é muita gente então a pessoa fala pô mas vocês tem dezesseis pessoas para jogar nós só tem cinco",
+          "hipotese": "porque é muita gente, só fala porra mas vocês têm 16 pessoas para jogar na sua 105",
+          "faixa": "media",
+          "qualidade": "high"
+        },
+        {
+          "id": "pc_ma_hv106_1212_3888.128_3888.968",
+          "referencia": "e o sonho todo mundo tem",
+          "hipotese": "Eu sou um ícolo muito",
+          "faixa": "muito-curta",
+          "qualidade": "high"
+        },
+        {
+          "id": "pc_ma_hv106_248_805.696_807.898",
+          "referencia": "o que precisa o que que o ajudante geral faz",
+          "hipotese": "que sim quem quer continuar geral faz.",
+          "faixa": "curta",
+          "qualidade": "high"
+        },
+        {
+          "id": "pc_ma_hv106_465_1460.598_1467.82",
+          "referencia": "aí eu vim cheguei na um dia de manhãzinha na padaria o patrão português olhou para mim e falou você sabe trabalhar",
+          "hipotese": "Eu vim, cheguei na um dia de manhãzinha da Padaria, patrão português. Olhou pra mim e falou que você sabe trabalhar",
+          "faixa": "longa",
+          "qualidade": "high"
+        },
+        {
+          "id": "pc_ma_hv106_603_1891.84_1893.641",
+          "referencia": "minhas irmãs ficavam furiosas por causa disso né",
+          "hipotese": "",
+          "faixa": "curta",
+          "qualidade": "high"
+        },
+        {
+          "id": "pc_ma_hv106_715_2232.185_2238.807",
+          "referencia": "e a como a gente morava num lugar que tinha colégio então ela vinha para nossa casa ficava durante a semana estudando e no fim de semana voltava para a casa dos pais",
+          "hipotese": "e a gente morava no lugar que tinha colégio, então ela vinha para nossa casa ficar durante o seu maestro do dano e o fim de semana eu vou estar para os países",
+          "faixa": "longa",
+          "qualidade": "high"
+        },
+        {
+          "id": "pc_ma_hv106_726_2268.402_2269.862",
+          "referencia": "uma ou foi duas também porque eu não fui muito de namorada",
+          "hipotese": "foi duas, a minha corra foi muito namora.",
+          "faixa": "muito-curta",
+          "qualidade": "high"
+        },
+        {
+          "id": "pc_ma_hv106_773_2426.129_2431.915",
+          "referencia": "aí minha mãe já tinha vindo morar aqui em são paulo meu pai também morou um tempo aqui vieram os dois",
+          "hipotese": "E minha mãe já tinha vindo morar aqui em São Paulo, meu pai também morou um tempo aqui e venha os dois.",
+          "faixa": "media",
+          "qualidade": "low"
+        },
+        {
+          "id": "pc_ma_hv106_912_2878.795_2886.358",
+          "referencia": "então você tem que trabalhar da com a possibilidade que você possa botar o sal não tirar o sal porque não tem jeito",
+          "hipotese": "Então, você sempre tem trabalhada com uma possibilidade que você possa botar o sal. Não tirar o sal porque não tem jeito",
+          "faixa": "longa",
+          "qualidade": "high"
+        },
+        {
+          "id": "pc_ma_hv106_990_3160.516_3164.498",
+          "referencia": "aí ele falou assim e e aí o horário que você prefere",
+          "hipotese": "ele falou assim, ou a hora de ser prefédia.",
+          "faixa": "media",
+          "qualidade": "high"
+        },
+        {
+          "id": "pc_ma_hv107_1030_3665.545_3666.266",
+          "referencia": "ele tem um cabelo",
+          "hipotese": "o cabelo.",
+          "faixa": "muito-curta",
+          "qualidade": "high"
+        },
+        {
+          "id": "pc_ma_hv107_1241_4340.322_4341.023",
+          "referencia": "então é legal",
+          "hipotese": "Então, vamos.",
+          "faixa": "muito-curta",
+          "qualidade": "high"
+        },
+        {
+          "id": "pc_ma_hv107_246_909.336_911.397",
+          "referencia": "acordar e já começar a trabalhar eh",
+          "hipotese": "A cor da já começou a trabalhar.",
+          "faixa": "curta",
+          "qualidade": "high"
+        },
+        {
+          "id": "pc_ma_hv107_448_1751.436_1756.578",
+          "referencia": "inclusive é até motivo de gozação quando eu falo com o povo uai por que são paulo torcer por rio se está em são paulo",
+          "hipotese": "inclusive até motivo de guardação quando eu falo com o Paulo, é porque são Paulo?",
+          "faixa": "media",
+          "qualidade": "high"
+        },
+        {
+          "id": "pc_ma_hv107_471_1820.813_1822.294",
+          "referencia": "camisa short",
+          "hipotese": "a misa, shorts.",
+          "faixa": "muito-curta",
+          "qualidade": "high"
+        },
+        {
+          "id": "pc_ma_hv107_482_1847.48_1849.041",
+          "referencia": "tomei uns tapa lá né",
+          "hipotese": "eu estou me um stop lá né",
+          "faixa": "curta",
+          "qualidade": "high"
+        },
+        {
+          "id": "pc_ma_hv107_521_1972.127_1975.488",
+          "referencia": "ele criou mas nunca jogou ele só fez o fogo né eh",
+          "hipotese": "que ele é o mesmo, mas não é o seu caso.",
+          "faixa": "media",
+          "qualidade": "high"
+        },
+        {
+          "id": "pc_ma_hv107_561_2086.899_2089.14",
+          "referencia": "ele só não jogou mas incentivava muito a gente",
+          "hipotese": "Eu sou um viú, mas isso tinha uma muita gente.",
+          "faixa": "curta",
+          "qualidade": "high"
+        },
+        {
+          "id": "pc_ma_hv107_577_2149.219_2158.165",
+          "referencia": "aí quando ela emprestou todo mundo vestiu a camisa do do time né um time completo com calção short mesmo tudo completo uh uh o jogo de camisa",
+          "hipotese": "Aí quando ele percebe todo mundo, ele se choca a camisa do time não te me compérsam com caução, shortmeyer. Tudo que completa o jogo de camisa",
+          "faixa": "longa",
+          "qualidade": "high"
+        },
+        {
+          "id": "pc_ma_hv107_658_2477.735_2484.26",
+          "referencia": "nós estava jogando no taboão e ih sempre entra aqueles melhorzinho né",
+          "hipotese": "Então, a gente está em um tabuão e sempre entra aqueles melhores",
+          "faixa": "longa",
+          "qualidade": "low"
+        },
+        {
+          "id": "pc_ma_hv107_711_2632.561_2640.388",
+          "referencia": "aí eu peguei uma bola do meio de campo no meio de campo o cara passou para mim rasteirinha assim eu peguei de primeira e fiz mais outro gol",
+          "hipotese": "eu pego a bola do meio de campo, o cara passou para mim rastaria. Eu peguei de primeira e fiz mais outro gol",
+          "faixa": "longa",
+          "qualidade": "high"
+        },
+        {
+          "id": "pc_ma_hv107_901_3258.848_3263.649",
+          "referencia": "e a gente monta um para garantir ah o troféu",
+          "hipotese": "e a gente monta um para garantir outro fale.",
+          "faixa": "media",
+          "qualidade": "high"
+        },
+        {
+          "id": "pc_ma_hv222_1016_3671.625_3673.726",
+          "referencia": "fui lá e encontrei outro carro",
+          "hipotese": "e foi lá em contra de outra cara.",
+          "faixa": "curta",
+          "qualidade": "high"
+        },
+        {
+          "id": "pc_ma_hv222_1099_3971.5860000000002_3977.268",
+          "referencia": "e a mulher que morreu deixou quantos filhos",
+          "hipotese": "E a mulher deixou o ponto de fio.",
+          "faixa": "media",
+          "qualidade": "high"
+        },
+        {
+          "id": "pc_ma_hv222_1151_4167.0070000000005_4167.948",
+          "referencia": "ia buscar",
+          "hipotese": "e a busca de",
+          "faixa": "muito-curta",
+          "qualidade": "high"
+        },
+        {
+          "id": "pc_ma_hv222_126_447.431_448.811",
+          "referencia": "por que não",
+          "hipotese": "porque não.",
+          "faixa": "muito-curta",
+          "qualidade": "high"
+        },
+        {
+          "id": "pc_ma_hv222_1282_4634.372_4643.986",
+          "referencia": "o dinheiro para eles eu tinha porque a gente não podia ficar duro de tudo né",
+          "hipotese": "para ele, se eu tinha. Porque a gente não podia ficar duro e tudo né? É?",
+          "faixa": "longa",
+          "qualidade": "high"
+        },
+        {
+          "id": "pc_ma_hv222_1354_4916.84_4918.261",
+          "referencia": "derrubava o arroz tudo",
+          "hipotese": "de Allah, hoje tudo.",
+          "faixa": "muito-curta",
+          "qualidade": "high"
+        },
+        {
+          "id": "pc_ma_hv222_1509_5488.3640000000005_5489.984",
+          "referencia": "e eu tenho dois filhos",
+          "hipotese": "e eu tenho dois vídeos.",
+          "faixa": "curta",
+          "qualidade": "high"
+        },
+        {
+          "id": "pc_ma_hv222_393_1429.673_1435.8770000000002",
+          "referencia": "tinha mais tinha uns quinze pessoas que trabalham comigo mas o que ficou firme mesmo é esse daí",
+          "hipotese": "tem a mais, e eu tenho 15 pessoas que trabalhar com o mil. Mas ou que ficou firmesam esses daí?",
+          "faixa": "longa",
+          "qualidade": "high"
+        },
+        {
+          "id": "pc_ma_hv222_402_1465.7230000000002_1473.807",
+          "referencia": "e apanhava a turma aí porque quando vai começar a colheita não ganhava nem para boia porque para apanhar na mão sabe uhum",
+          "hipotese": "e aí, porque quando vai começar a colher, não vai para nem para boia.",
+          "faixa": "longa",
+          "qualidade": "high"
+        },
+        {
+          "id": "pc_ma_hv222_441_1637.7120000000002_1642.054",
+          "referencia": "aquela pessoa que toma conta falou deixa eu tirar mais um pouco",
+          "hipotese": "que ele tem só que tomar conta, falou deixa tirar mais um pouco",
+          "faixa": "media",
+          "qualidade": "high"
+        },
+        {
+          "id": "pc_ma_hv222_541_1997.7990000000002_2000.3000000000002",
+          "referencia": "no jogo de inglês é",
+          "hipotese": "o jogo de inglês.",
+          "faixa": "curta",
+          "qualidade": "high"
+        },
+        {
+          "id": "pc_ma_hv222_745_2691.687_2695.188",
+          "referencia": "e eu estava com vinte e dois e fiquei",
+          "hipotese": "e eu estava com o dia 2, fiquei",
+          "faixa": "media",
+          "qualidade": "high"
+        },
+        {
+          "id": "pc_ma_hv253_1034_3766.287_3772.391",
+          "referencia": "ali a gente entrou com o advogado para sair e vamos pagar por metro",
+          "hipotese": "e a gente tentou, com o advogado para sair, para passar aí vamos pagar por metro.",
+          "faixa": "longa",
+          "qualidade": "high"
+        },
+        {
+          "id": "pc_ma_hv253_117_506.785_509.627",
+          "referencia": "cada local tinha um candeeiro daquele e iluminava normalmente",
+          "hipotese": "que ela é local, tem um congiel daquele domina de armamento.",
+          "faixa": "curta",
+          "qualidade": "high"
+        },
+        {
+          "id": "pc_ma_hv253_1219_4529.983_4531.823",
+          "referencia": "aí veio as empresas",
+          "hipotese": "Eu já e veio a empresa.",
+          "faixa": "curta",
+          "qualidade": "high"
+        },
+        {
+          "id": "pc_ma_hv253_1451_5489.099_5490.4800000000005",
+          "referencia": "você vai pagar normalmente",
+          "hipotese": "não é?",
+          "faixa": "muito-curta",
+          "qualidade": "high"
+        },
+        {
+          "id": "pc_ma_hv253_1489_5655.831_5659.531",
+          "referencia": "tinha que construir onde fosse trezentos reais um metro quadrado",
+          "hipotese": "que vão ter um quadrado.",
+          "faixa": "media",
+          "qualidade": "high"
+        },
+        {
+          "id": "pc_ma_hv253_1509_5740.781_5742.1810000000005",
+          "referencia": "lá no pantanal não saiu ali",
+          "hipotese": "para o terneiro.",
+          "faixa": "muito-curta",
+          "qualidade": "high"
+        },
+        {
+          "id": "pc_ma_hv253_1666_6379.702_6388.987",
+          "referencia": "e você com a moradia digna você é casado você tem esposa ela vai ganhar nenê",
+          "hipotese": "e você com moradia digna, é casado. Você tem esposo, ele vai ganhar nem não",
+          "faixa": "longa",
+          "qualidade": "high"
+        },
+        {
+          "id": "pc_ma_hv253_168_703.204_712.0899999999999",
+          "referencia": "e quando faltava dois dias para eu viajar para são paulo ele chegou e falou o ano de setenta e um estava uma seca muito grande né",
+          "hipotese": "E quando fortava dois dias para me viajar para São Paulo, eu chegou a falar de 71. Estava uma seca muito grande",
+          "faixa": "longa",
+          "qualidade": "low"
+        },
+        {
+          "id": "pc_ma_hv253_1720_6605.4130000000005_6608.754000000001",
+          "referencia": "não pode nem falar aqui em uma entrevista",
+          "hipotese": "e não pode falar que não é ter risco.",
+          "faixa": "media",
+          "qualidade": "high"
+        },
+        {
+          "id": "pc_ma_hv253_482_1772.031_1775.173",
+          "referencia": "e já quando eu voltei já foi melhor",
+          "hipotese": "e já quando eu vou ter já fui megar.",
+          "faixa": "media",
+          "qualidade": "high"
+        },
+        {
+          "id": "pc_ma_hv253_783_2892.344_2893.845",
+          "referencia": "não não perguntava muito não",
+          "hipotese": "Não, pelo tanto há muito tempo.",
+          "faixa": "curta",
+          "qualidade": "high"
+        },
+        {
+          "id": "pc_ma_hv253_980_3565.837_3566.477",
+          "referencia": "a maioria",
+          "hipotese": "Abrei o dia.",
+          "faixa": "muito-curta",
+          "qualidade": "high"
+        }
+      ],
+      "falhasDeInfra": []
+    },
+    {
+      "variante": "nuvem/com-dica-pt",
+      "modelo": "nuvem",
+      "idioma": "pt",
+      "geral": {
+        "casos": 48,
+        "wer": 0.24043715846994534,
+        "cer": 0.1339972838388411,
+        "substituicoes": 72,
+        "insercoes": 16,
+        "delecoes": 44,
+        "palavrasNaReferencia": 549
+      },
+      "porFaixa": {
+        "1-2 palavras": {
+          "casos": 3,
+          "wer": 0.5,
+          "cer": 0.07407407407407407,
+          "substituicoes": 2,
+          "insercoes": 1,
+          "delecoes": 0,
+          "palavrasNaReferencia": 6
+        },
+        "3-5 palavras": {
+          "casos": 11,
+          "wer": 0.2608695652173913,
+          "cer": 0.10555555555555556,
+          "substituicoes": 5,
+          "insercoes": 5,
+          "delecoes": 2,
+          "palavrasNaReferencia": 46
+        },
+        "6-10 palavras": {
+          "casos": 15,
+          "wer": 0.36065573770491804,
+          "cer": 0.21850393700787402,
+          "substituicoes": 27,
+          "insercoes": 2,
+          "delecoes": 15,
+          "palavrasNaReferencia": 122
+        },
+        "11-20 palavras": {
+          "casos": 10,
+          "wer": 0.2222222222222222,
+          "cer": 0.1289198606271777,
+          "substituicoes": 18,
+          "insercoes": 4,
+          "delecoes": 10,
+          "palavrasNaReferencia": 144
+        },
+        "21+ palavras": {
+          "casos": 9,
+          "wer": 0.1774891774891775,
+          "cer": 0.09782608695652174,
+          "substituicoes": 20,
+          "insercoes": 4,
+          "delecoes": 17,
+          "palavrasNaReferencia": 231
+        }
+      },
+      "rtf": 0.5736645771641732,
+      "casos": [
+        {
+          "id": "pc_ma_hv106_1092_3494.889_3495.39",
+          "referencia": "não as coisas boas",
+          "hipotese": "Não as coisas boas.",
+          "faixa": "muito-curta",
+          "qualidade": "high"
+        },
+        {
+          "id": "pc_ma_hv106_1108_3569.554_3572.195",
+          "referencia": "só ia oito não dava era uma correria",
+          "hipotese": "Só ia 8, não dava, era uma correria.",
+          "faixa": "curta",
+          "qualidade": "low"
+        },
+        {
+          "id": "pc_ma_hv106_1180_3795.422_3800.003",
+          "referencia": "porque é muita gente então a pessoa fala pô mas vocês tem dezesseis pessoas para jogar nós só tem cinco",
+          "hipotese": "Porque muita gente, então, o pessoal fala, pô, mas vocês têm 16 pessoas para jogar, nós só temos 5.",
+          "faixa": "media",
+          "qualidade": "high"
+        },
+        {
+          "id": "pc_ma_hv106_1212_3888.128_3888.968",
+          "referencia": "e o sonho todo mundo tem",
+          "hipotese": "E o sonho que todo mundo tem.",
+          "faixa": "muito-curta",
+          "qualidade": "high"
+        },
+        {
+          "id": "pc_ma_hv106_248_805.696_807.898",
+          "referencia": "o que precisa o que que o ajudante geral faz",
+          "hipotese": "O que o conjunto geral faz?",
+          "faixa": "curta",
+          "qualidade": "high"
+        },
+        {
+          "id": "pc_ma_hv106_465_1460.598_1467.82",
+          "referencia": "aí eu vim cheguei na um dia de manhãzinha na padaria o patrão português olhou para mim e falou você sabe trabalhar",
+          "hipotese": "Aí eu vim, cheguei um dia de manhã na padaria, um patrão português olhou pra mim e falou, você sabe trabalhar?",
+          "faixa": "longa",
+          "qualidade": "high"
+        },
+        {
+          "id": "pc_ma_hv106_603_1891.84_1893.641",
+          "referencia": "minhas irmãs ficavam furiosas por causa disso né",
+          "hipotese": "Minha irmã ficava furiosa por causa disso, né?",
+          "faixa": "curta",
+          "qualidade": "high"
+        },
+        {
+          "id": "pc_ma_hv106_715_2232.185_2238.807",
+          "referencia": "e a como a gente morava num lugar que tinha colégio então ela vinha para nossa casa ficava durante a semana estudando e no fim de semana voltava para a casa dos pais",
+          "hipotese": "E como a gente morava num lugar que tinha colégio, então ela vinha pra nossa casa, ficava durante a semana estudando, e no fim de semana voltava pra casa dos pais.",
+          "faixa": "longa",
+          "qualidade": "high"
+        },
+        {
+          "id": "pc_ma_hv106_726_2268.402_2269.862",
+          "referencia": "uma ou foi duas também porque eu não fui muito de namorada",
+          "hipotese": "Uma foi duas também, que eu não fui muito enamorada.",
+          "faixa": "muito-curta",
+          "qualidade": "high"
+        },
+        {
+          "id": "pc_ma_hv106_773_2426.129_2431.915",
+          "referencia": "aí minha mãe já tinha vindo morar aqui em são paulo meu pai também morou um tempo aqui vieram os dois",
+          "hipotese": "Aí minha mãe já tinha vindo morar aqui em São Paulo, meu pai também morou um tempo aqui, vieram os dois.",
+          "faixa": "media",
+          "qualidade": "low"
+        },
+        {
+          "id": "pc_ma_hv106_912_2878.795_2886.358",
+          "referencia": "então você tem que trabalhar da com a possibilidade que você possa botar o sal não tirar o sal porque não tem jeito",
+          "hipotese": "Então você tem trabalhado com a possibilidade que você possa botar o sal, não tirar o sal, porque não tem jeito",
+          "faixa": "longa",
+          "qualidade": "high"
+        },
+        {
+          "id": "pc_ma_hv106_990_3160.516_3164.498",
+          "referencia": "aí ele falou assim e e aí o horário que você prefere",
+          "hipotese": "Aí ele falou assim, e o horário que você prefere?",
+          "faixa": "media",
+          "qualidade": "high"
+        },
+        {
+          "id": "pc_ma_hv107_1030_3665.545_3666.266",
+          "referencia": "ele tem um cabelo",
+          "hipotese": "Ele tem um cabelo...",
+          "faixa": "muito-curta",
+          "qualidade": "high"
+        },
+        {
+          "id": "pc_ma_hv107_1241_4340.322_4341.023",
+          "referencia": "então é legal",
+          "hipotese": "Então é legal.",
+          "faixa": "muito-curta",
+          "qualidade": "high"
+        },
+        {
+          "id": "pc_ma_hv107_246_909.336_911.397",
+          "referencia": "acordar e já começar a trabalhar eh",
+          "hipotese": "acordar e começar a trabalhar",
+          "faixa": "curta",
+          "qualidade": "high"
+        },
+        {
+          "id": "pc_ma_hv107_448_1751.436_1756.578",
+          "referencia": "inclusive é até motivo de gozação quando eu falo com o povo uai por que são paulo torcer por rio se está em são paulo",
+          "hipotese": "Inclusive, até motivo de igualdade ação é quando eu falo com o povo e por que São Paulo torcer por Rio? Você está em São Paulo.",
+          "faixa": "media",
+          "qualidade": "high"
+        },
+        {
+          "id": "pc_ma_hv107_471_1820.813_1822.294",
+          "referencia": "camisa short",
+          "hipotese": "camisa, short...",
+          "faixa": "muito-curta",
+          "qualidade": "high"
+        },
+        {
+          "id": "pc_ma_hv107_482_1847.48_1849.041",
+          "referencia": "tomei uns tapa lá né",
+          "hipotese": "Tome um tapa lá, né?",
+          "faixa": "curta",
+          "qualidade": "high"
+        },
+        {
+          "id": "pc_ma_hv107_521_1972.127_1975.488",
+          "referencia": "ele criou mas nunca jogou ele só fez o fogo né eh",
+          "hipotese": "Ele criou, mas nunca jogou, só fez o fogo, né?",
+          "faixa": "media",
+          "qualidade": "high"
+        },
+        {
+          "id": "pc_ma_hv107_561_2086.899_2089.14",
+          "referencia": "ele só não jogou mas incentivava muito a gente",
+          "hipotese": "só me jogou, mas isso incentivava muita gente.",
+          "faixa": "curta",
+          "qualidade": "high"
+        },
+        {
+          "id": "pc_ma_hv107_577_2149.219_2158.165",
+          "referencia": "aí quando ela emprestou todo mundo vestiu a camisa do do time né um time completo com calção short mesmo tudo completo uh uh o jogo de camisa",
+          "hipotese": "Aí quando ela emprestou, todo mundo vestiu a camisa do time, era um time completo com calção, short, menino, tudo completo no jogo de camisa.",
+          "faixa": "longa",
+          "qualidade": "high"
+        },
+        {
+          "id": "pc_ma_hv107_658_2477.735_2484.26",
+          "referencia": "nós estava jogando no taboão e ih sempre entra aqueles melhorzinho né",
+          "hipotese": "Então, a gente tava no tabuão e sempre entra aqueles melózinhos, né?",
+          "faixa": "longa",
+          "qualidade": "low"
+        },
+        {
+          "id": "pc_ma_hv107_711_2632.561_2640.388",
+          "referencia": "aí eu peguei uma bola do meio de campo no meio de campo o cara passou para mim rasteirinha assim eu peguei de primeira e fiz mais outro gol",
+          "hipotese": "Aí eu peguei a bola do meio de campo, o cara passou pra mim, rasteirinho assim, eu peguei de primeira e fiz mais outro gol.",
+          "faixa": "longa",
+          "qualidade": "high"
+        },
+        {
+          "id": "pc_ma_hv107_901_3258.848_3263.649",
+          "referencia": "e a gente monta um para garantir ah o troféu",
+          "hipotese": "E a gente monta um para garantir o troféu.",
+          "faixa": "media",
+          "qualidade": "high"
+        },
+        {
+          "id": "pc_ma_hv222_1016_3671.625_3673.726",
+          "referencia": "fui lá e encontrei outro carro",
+          "hipotese": "Foi lá encontrei outra carpa.",
+          "faixa": "curta",
+          "qualidade": "high"
+        },
+        {
+          "id": "pc_ma_hv222_1099_3971.5860000000002_3977.268",
+          "referencia": "e a mulher que morreu deixou quantos filhos",
+          "hipotese": "E a mulher que morreu deixou quantos filhos?",
+          "faixa": "media",
+          "qualidade": "high"
+        },
+        {
+          "id": "pc_ma_hv222_1151_4167.0070000000005_4167.948",
+          "referencia": "ia buscar",
+          "hipotese": "e a busca.",
+          "faixa": "muito-curta",
+          "qualidade": "high"
+        },
+        {
+          "id": "pc_ma_hv222_126_447.431_448.811",
+          "referencia": "por que não",
+          "hipotese": "porque não",
+          "faixa": "muito-curta",
+          "qualidade": "high"
+        },
+        {
+          "id": "pc_ma_hv222_1282_4634.372_4643.986",
+          "referencia": "o dinheiro para eles eu tinha porque a gente não podia ficar duro de tudo né",
+          "hipotese": "o pau de dinheiro pra eles eu tinha porque a gente não podia ficar duro de tudo, né? é",
+          "faixa": "longa",
+          "qualidade": "high"
+        },
+        {
+          "id": "pc_ma_hv222_1354_4916.84_4918.261",
+          "referencia": "derrubava o arroz tudo",
+          "hipotese": "e a gente vai ter lá o arroz tudo.",
+          "faixa": "muito-curta",
+          "qualidade": "high"
+        },
+        {
+          "id": "pc_ma_hv222_1509_5488.3640000000005_5489.984",
+          "referencia": "e eu tenho dois filhos",
+          "hipotese": "e eu tenho dois filhos...",
+          "faixa": "curta",
+          "qualidade": "high"
+        },
+        {
+          "id": "pc_ma_hv222_393_1429.673_1435.8770000000002",
+          "referencia": "tinha mais tinha uns quinze pessoas que trabalham comigo mas o que ficou firme mesmo é esse daí",
+          "hipotese": "Tinha mais, tinha uns 15 pessoas que trabalham comigo, mas o que ficou firme mesmo é esse daí.",
+          "faixa": "longa",
+          "qualidade": "high"
+        },
+        {
+          "id": "pc_ma_hv222_402_1465.7230000000002_1473.807",
+          "referencia": "e apanhava a turma aí porque quando vai começar a colheita não ganhava nem para boia porque para apanhar na mão sabe uhum",
+          "hipotese": "E apanhava a turma aí, porque quando vai começar a colheita, não ganhava nem para boia, porque é para apanhar na mão, sabe?",
+          "faixa": "longa",
+          "qualidade": "high"
+        },
+        {
+          "id": "pc_ma_hv222_441_1637.7120000000002_1642.054",
+          "referencia": "aquela pessoa que toma conta falou deixa eu tirar mais um pouco",
+          "hipotese": "aquela pessoa que toma conta, falou, deixa eu tirar mais um pouco,",
+          "faixa": "media",
+          "qualidade": "high"
+        },
+        {
+          "id": "pc_ma_hv222_541_1997.7990000000002_2000.3000000000002",
+          "referencia": "no jogo de inglês é",
+          "hipotese": "no jogo, de inglês.",
+          "faixa": "curta",
+          "qualidade": "high"
+        },
+        {
+          "id": "pc_ma_hv222_745_2691.687_2695.188",
+          "referencia": "e eu estava com vinte e dois e fiquei",
+          "hipotese": "E eu estava com 22, fiquei.",
+          "faixa": "media",
+          "qualidade": "high"
+        },
+        {
+          "id": "pc_ma_hv253_1034_3766.287_3772.391",
+          "referencia": "ali a gente entrou com o advogado para sair e vamos pagar por metro",
+          "hipotese": "Aí a gente entrou com o advogado, para sair, vamos pagar por metro.",
+          "faixa": "longa",
+          "qualidade": "high"
+        },
+        {
+          "id": "pc_ma_hv253_117_506.785_509.627",
+          "referencia": "cada local tinha um candeeiro daquele e iluminava normalmente",
+          "hipotese": "o local tinha um câncer daquele e iluminava normalmente.",
+          "faixa": "curta",
+          "qualidade": "high"
+        },
+        {
+          "id": "pc_ma_hv253_1219_4529.983_4531.823",
+          "referencia": "aí veio as empresas",
+          "hipotese": "e veio as empresas",
+          "faixa": "curta",
+          "qualidade": "high"
+        },
+        {
+          "id": "pc_ma_hv253_1451_5489.099_5490.4800000000005",
+          "referencia": "você vai pagar normalmente",
+          "hipotese": "Você vai pagar normalmente.",
+          "faixa": "muito-curta",
+          "qualidade": "high"
+        },
+        {
+          "id": "pc_ma_hv253_1489_5655.831_5659.531",
+          "referencia": "tinha que construir onde fosse trezentos reais um metro quadrado",
+          "hipotese": "tem que construir onde fosse R$ 300,00 por metro quadrado",
+          "faixa": "media",
+          "qualidade": "high"
+        },
+        {
+          "id": "pc_ma_hv253_1509_5740.781_5742.1810000000005",
+          "referencia": "lá no pantanal não saiu ali",
+          "hipotese": "A largue por tendência, o saio ali.",
+          "faixa": "muito-curta",
+          "qualidade": "high"
+        },
+        {
+          "id": "pc_ma_hv253_1666_6379.702_6388.987",
+          "referencia": "e você com a moradia digna você é casado você tem esposa ela vai ganhar nenê",
+          "hipotese": "E você com moradia digna. Você é casado. Você tem esposa. Ele vai ganhar neném.",
+          "faixa": "longa",
+          "qualidade": "high"
+        },
+        {
+          "id": "pc_ma_hv253_168_703.204_712.0899999999999",
+          "referencia": "e quando faltava dois dias para eu viajar para são paulo ele chegou e falou o ano de setenta e um estava uma seca muito grande né",
+          "hipotese": "E quando faltava dois dias pra eu vir viajar pra São Paulo, ele chegou e falou... No ano de 71, tava uma seca muito grande,",
+          "faixa": "longa",
+          "qualidade": "low"
+        },
+        {
+          "id": "pc_ma_hv253_1720_6605.4130000000005_6608.754000000001",
+          "referencia": "não pode nem falar aqui em uma entrevista",
+          "hipotese": "Não poder falar aqui numa entrevista.",
+          "faixa": "media",
+          "qualidade": "high"
+        },
+        {
+          "id": "pc_ma_hv253_482_1772.031_1775.173",
+          "referencia": "e já quando eu voltei já foi melhor",
+          "hipotese": "E quando eu voltei já foi melhor.",
+          "faixa": "media",
+          "qualidade": "high"
+        },
+        {
+          "id": "pc_ma_hv253_783_2892.344_2893.845",
+          "referencia": "não não perguntava muito não",
+          "hipotese": "Não, não perguntava muito não.",
+          "faixa": "curta",
+          "qualidade": "high"
+        },
+        {
+          "id": "pc_ma_hv253_980_3565.837_3566.477",
+          "referencia": "a maioria",
+          "hipotese": "a maioria.",
+          "faixa": "muito-curta",
+          "qualidade": "high"
+        }
+      ],
+      "falhasDeInfra": []
+    }
+  ]
+}

@@ -1,0 +1,209 @@
+{
+  "geradoEm": "2026-08-30T20:19:08.997Z",
+  "resultados": [
+    {
+      "rota": "en→pt (ROMANCE + token >>pt_br<<)",
+      "modelo": "Xenova/opus-mt-en-ROMANCE",
+      "geral": {
+        "casos": 16,
+        "chrf": 0.5662826824116772,
+        "precisao": 0.5865208853648343,
+        "recall": 0.5629312048689867
+      },
+      "porCategoria": {
+        "fala-espontanea": {
+          "casos": 2,
+          "chrf": 0.5567079448322113,
+          "precisao": 0.6462716909363645,
+          "recall": 0.5390651824765811
+        },
+        "genero": {
+          "casos": 2,
+          "chrf": 0.7154567619432962,
+          "precisao": 0.7376972533128308,
+          "recall": 0.7101056841156397
+        },
+        "idiomatico": {
+          "casos": 4,
+          "chrf": 0.27413376646702553,
+          "precisao": 0.24534014312626845,
+          "recall": 0.28322072016909183
+        },
+        "literal": {
+          "casos": 3,
+          "chrf": 0.8376302874055207,
+          "precisao": 0.8487861388292423,
+          "recall": 0.8350053276383459
+        },
+        "pronome": {
+          "casos": 3,
+          "chrf": 0.755223273391385,
+          "precisao": 0.7683653593953798,
+          "recall": 0.7520785085978864
+        },
+        "registro": {
+          "casos": 2,
+          "chrf": 0.3205488783884998,
+          "precisao": 0.3917906050800085,
+          "recall": 0.30721157766714086
+        }
+      },
+      "casos": [
+        {
+          "id": "pron-01",
+          "categoria": "pronome",
+          "origem": "I bought a new table. I put it in the kitchen.",
+          "referencia": "Comprei uma mesa nova. Coloquei ela na cozinha.",
+          "contexto": [
+            "I bought a new table."
+          ],
+          "nota": "'it' refere-se a 'table' (feminino em pt). Sem a frase anterior, o tradutor não tem como saber o gênero.",
+          "hipotese": "Comprei uma mesa nova. Eu coloquei na cozinha."
+        },
+        {
+          "id": "pron-02",
+          "categoria": "pronome",
+          "origem": "The book was on the shelf. I read it yesterday.",
+          "referencia": "O livro estava na estante. Eu o li ontem.",
+          "contexto": [
+            "The book was on the shelf."
+          ],
+          "nota": "'it' = livro, masculino.",
+          "hipotese": "O livro estava na prateleira. Eu li ontem."
+        },
+        {
+          "id": "pron-03",
+          "categoria": "pronome",
+          "origem": "She left the door open. Please close it.",
+          "referencia": "Ela deixou a porta aberta. Por favor, feche-a.",
+          "contexto": [
+            "She left the door open."
+          ],
+          "nota": "antecedente feminino na frase anterior.",
+          "hipotese": "Ela deixou a porta aberta. Por favor, feche."
+        },
+        {
+          "id": "gen-01",
+          "categoria": "genero",
+          "origem": "My doctor said I am fine. She was very kind.",
+          "referencia": "Minha médica disse que estou bem. Ela foi muito gentil.",
+          "contexto": [
+            "My doctor said I am fine."
+          ],
+          "nota": "'doctor' só se resolve como 'médica' pela frase seguinte com 'she'.",
+          "hipotese": "Meu médico disse que estou bem. Ela foi muito gentil."
+        },
+        {
+          "id": "gen-02",
+          "categoria": "genero",
+          "origem": "The teacher arrived late. He apologized.",
+          "referencia": "O professor chegou atrasado. Ele pediu desculpas.",
+          "contexto": [
+            "The teacher arrived late."
+          ],
+          "nota": "'teacher' é ambíguo em gênero; 'he' desfaz.",
+          "hipotese": "A professora chegou tarde. Ele pediu desculpas."
+        },
+        {
+          "id": "idiom-01",
+          "categoria": "idiomatico",
+          "origem": "Break a leg!",
+          "referencia": "Boa sorte!",
+          "contexto": [],
+          "nota": "tradução literal ('quebre uma perna') é o erro clássico.",
+          "hipotese": "Quebra a perna!"
+        },
+        {
+          "id": "idiom-02",
+          "categoria": "idiomatico",
+          "origem": "It's raining cats and dogs.",
+          "referencia": "Está chovendo canivete.",
+          "contexto": [],
+          "nota": "expressão idiomática sem equivalente literal.",
+          "hipotese": "Está chovendo gatos e cães."
+        },
+        {
+          "id": "idiom-03",
+          "categoria": "idiomatico",
+          "origem": "That costs an arm and a leg.",
+          "referencia": "Isso custa os olhos da cara.",
+          "contexto": [],
+          "nota": "idiomático com equivalente pt diferente.",
+          "hipotese": "Isso custa um braço e uma perna."
+        },
+        {
+          "id": "idiom-04",
+          "categoria": "idiomatico",
+          "origem": "Let's call it a day.",
+          "referencia": "Vamos encerrar por hoje.",
+          "contexto": [],
+          "nota": "literal seria 'vamos chamar isso de um dia'.",
+          "hipotese": "Vamos acabar com isso."
+        },
+        {
+          "id": "reg-01",
+          "categoria": "registro",
+          "origem": "Hey, what's up?",
+          "referencia": "E aí, tudo bem?",
+          "contexto": [],
+          "nota": "registro coloquial; a versão formal soaria errada numa conversa.",
+          "hipotese": "Oi, e aí?"
+        },
+        {
+          "id": "reg-02",
+          "categoria": "registro",
+          "origem": "I'd appreciate it if you could send the report.",
+          "referencia": "Eu agradeceria se você pudesse enviar o relatório.",
+          "contexto": [],
+          "nota": "registro formal preservado.",
+          "hipotese": "Agradeço se você pode enviar o relatório."
+        },
+        {
+          "id": "lit-01",
+          "categoria": "literal",
+          "origem": "The meeting starts at three.",
+          "referencia": "A reunião começa às três.",
+          "contexto": [],
+          "nota": "caso de controle: frase simples que qualquer tradutor deve acertar.",
+          "hipotese": "A reunião começa às três."
+        },
+        {
+          "id": "lit-02",
+          "categoria": "literal",
+          "origem": "I live in a small house near the river.",
+          "referencia": "Eu moro numa casa pequena perto do rio.",
+          "contexto": [],
+          "nota": "controle: sem ambiguidade nem idiomatismo.",
+          "hipotese": "Eu moro numa pequena casa perto do rio."
+        },
+        {
+          "id": "lit-03",
+          "categoria": "literal",
+          "origem": "She works at a hospital downtown.",
+          "referencia": "Ela trabalha num hospital no centro.",
+          "contexto": [],
+          "nota": "controle.",
+          "hipotese": "Trabalha em um hospital no centro."
+        },
+        {
+          "id": "fala-01",
+          "categoria": "fala-espontanea",
+          "origem": "So, like, I was gonna go, but then I didn't.",
+          "referencia": "Então, tipo, eu ia ir, mas aí não fui.",
+          "contexto": [],
+          "nota": "marcadores de fala espontânea — o que a captura ao vivo realmente produz.",
+          "hipotese": "Então, eu ia ir, mas não fiz."
+        },
+        {
+          "id": "fala-02",
+          "categoria": "fala-espontanea",
+          "origem": "Yeah, no, I mean, it's fine, whatever.",
+          "referencia": "É, não, quer dizer, tá tudo bem, tanto faz.",
+          "contexto": [],
+          "nota": "encadeamento coloquial típico de conversa.",
+          "hipotese": "Sim, não, quer dizer, tudo bem, seja lá."
+        }
+      ]
+    }
+  ]
+}

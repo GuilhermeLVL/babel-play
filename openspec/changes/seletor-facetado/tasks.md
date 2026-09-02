@@ -72,15 +72,26 @@
       multi-fonte: o filtro padrão é `['baralho','sessao']` (a união legada "acervo geral"),
       e ligar a cota nele mudaria a rodada de hoje sem ninguém ter pedido; a cota só faz
       sentido quando a união for escolha explícita no painel
-- [ ] 4.2 Seletor de idioma unificado (`praticaLang` como espelho de `filtro.idiomas`) — não
-      verificado nesta auditoria
-- [ ] 4.3 `'dificeis'` como pílula de recorte na UI (hoje é campo do filtro,
-      `recorte.dificeis`; a superfície visual não foi auditada)
-- [ ] 4.4 Unidade notas×cartões explícita na tela Baralhos (`BaralhosAnki.tsx`) — não verificado
-- [ ] 4.5 Re-escopo server-side do `dueToday` — **não implementado**; nenhuma ocorrência de
-      `dueToday` em `server/db/repositories/vocab.ts`
+- [x] 4.2 Idioma vira faceta do seletor (primeira, porque manda nas outras); a Sala continua
+      como caminho completo para idioma ainda sem palavras. `praticaLang` segue como preferência
+      de perfil no servidor
+- [x] 4.3 `'dificeis'` é pílula de recorte: saiu das fontes, onde nunca coube (atravessa baralho
+      e trilha). A base das contagens passou a ignorar todos os recortes
+- [x] 4.4 "notas ativadas" com a unidade explícita na tela Baralhos
+- [x] 4.5 Resolvido no cliente: o banner conta `vencidosAgora` (escopo da rodada). `dueToday`
+      segue global e correto onde é global (Hub, Métricas); re-escopo no servidor não tem
+      consumidor
 - [ ] 4.6 Matriz executada dos 9 jogos (G2 do roadmap original, 9×4×4×3 células como suíte vitest)
       — não verificada nesta auditoria
 - [x] 4.7 Medição de consulta multi-seleção em acervo 20k+ — `scripts/medicao-filtro/medir.ts` +
       `docs/pesquisa/medicao-filtro-20k.md`; reprovou (SCAN por candidato, 4-46 s), levou ao
       conserto `idx_occ_probe` + `user_id` nas sondas, re-medido: 19-50 ms, nenhum SCAN
+
+## Onda 5 — o que sobrou
+
+- [ ] 5.1 Multi-fonte de verdade (somar trilha + baralho + sessão na mesma rodada). Motor pronto
+      e testado (`core/minigames/distribuicao.ts`); falta o pipeline da trilha, que injeta
+      pseudo-cartões e hoje só roda com `fonte.id === 'trilha'`
+- [ ] 5.2 Frases do baralho alimentando os cinco jogos de frase (F10 do motor Anki)
+- [ ] 5.3 Rotulagem do baralho de definição na TELA (o import já para de carimbar idioma-alvo
+      falso; a tela ainda não diz "ensina por definição")

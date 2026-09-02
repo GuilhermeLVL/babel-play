@@ -1723,14 +1723,23 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
        ELA renderia dentro do resto do filtro — baralho e idioma inclusos —, não o que sobra depois
        de si mesma; senão ligar uma pílula zeraria a contagem da outra). */
     const semRecorte = { ...filtro, recorte: { ...filtro.recorte, pedindoRevisao: undefined, nuncaVistas: undefined } };
-    let pedindo = 0, nunca = 0;
+    /* Mídia segue a MESMA regra, com a sua própria base: o recorte fica, a mídia sai. A régua de
+       "tem tradução" é o predicado — não uma reimplementação local que divergiria dele. */
+    const semMidia = { ...filtro, midia: {} };
+    const soTraducao = { ...semMidia, midia: { comTraducao: true } };
+    const soFrase = { ...semMidia, midia: { comFrase: true } };
+    const extras = { rankingDificeis: conjuntoDeDificeis, agora };
+    let pedindo = 0, nunca = 0, traducao = 0, frase = 0;
     for (const c of triagem.usaveis) {
-      if (!passaNoFiltro(c, semRecorte, { rankingDificeis: conjuntoDeDificeis, agora })) continue;
-      const d = (c as { dueAtMs?: number | null }).dueAtMs ?? null;
-      if (d == null) nunca++;
-      else if (d <= agora) pedindo++;
+      if (passaNoFiltro(c, semRecorte, extras)) {
+        const d = (c as { dueAtMs?: number | null }).dueAtMs ?? null;
+        if (d == null) nunca++;
+        else if (d <= agora) pedindo++;
+      }
+      if (passaNoFiltro(c, soTraducao, extras)) traducao++;
+      if (passaNoFiltro(c, soFrase, extras)) frase++;
     }
-    return { pedindo, nunca };
+    return { pedindo, nunca, traducao, frase };
   }, [triagem.usaveis, filtro, conjuntoDeDificeis]);
 
   /* As duas populações dentro de `usaveis`: a que serve aos jogos de par e a que só serve ao
@@ -2669,11 +2678,13 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
             valor={[
               ...(filtro.recorte.pedindoRevisao ? ['pedindoRevisao'] : []),
               ...(filtro.recorte.nuncaVistas ? ['nuncaVistas'] : []),
+              ...(filtro.midia.comTraducao ? ['comTraducao'] : []),
+              ...(filtro.midia.comFrase ? ['comFrase'] : []),
             ]}
-            aoTrocar={(id) => setFiltro(prev => ({
-              ...prev,
-              recorte: { ...prev.recorte, [id]: !prev.recorte[id as 'pedindoRevisao' | 'nuncaVistas'] },
-            }))}
+            aoTrocar={(id) => setFiltro(prev =>
+              id === 'comTraducao' || id === 'comFrase'
+                ? { ...prev, midia: { ...prev.midia, [id]: !prev.midia[id] } }
+                : { ...prev, recorte: { ...prev.recorte, [id]: !prev.recorte[id as 'pedindoRevisao' | 'nuncaVistas'] } })}
             opcoes={[
               {
                 id: 'pedindoRevisao', rotulo: 'Pedindo revisão', contagem: contagemRecortes.pedindo,
@@ -2683,6 +2694,14 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
                 id: 'nuncaVistas', rotulo: 'Nunca vistas', contagem: contagemRecortes.nunca,
                 motivoBloqueio: contagemRecortes.nunca === 0 ? 'tudo aqui já foi visto ao menos uma vez' : undefined,
               },
+              {
+                id: 'comTraducao', rotulo: 'Com tradução', contagem: contagemRecortes.traducao,
+                motivoBloqueio: contagemRecortes.traducao === 0 ? 'nenhum item deste acervo tem tradução utilizável' : undefined,
+              },
+              {
+                id: 'comFrase', rotulo: 'Com frase', contagem: contagemRecortes.frase,
+                motivoBloqueio: contagemRecortes.frase === 0 ? 'nenhum item deste acervo tem frase de exemplo' : undefined,
+              },
             ]}
           />
           <p className="text-[12px] text-ink-muted" aria-live="polite">
@@ -2690,7 +2709,7 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
             {' '}no recorte
             {baralhoAnki ? <> · {baralhoAnki.nome}</> : null}
             {fonte.lang ? <> · {langLabelPt(fonte.lang)}</> : null}
-            {acervoDaFonte.length === 0 && (filtro.recorte.pedindoRevisao || filtro.recorte.nuncaVistas || filtro.baralhos.length > 0) ? (
+            {acervoDaFonte.length === 0 && (filtro.recorte.pedindoRevisao || filtro.recorte.nuncaVistas || filtro.midia.comTraducao || filtro.midia.comFrase || filtro.baralhos.length > 0) ? (
               /* Vazio ÚTIL (R5): zero não é um beco — diz o que desligar para voltar a ter material. */
               <span className="text-warn-ink"> — nenhum item passa; desligue um recorte para voltar a ter material</span>
             ) : null}

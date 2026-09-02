@@ -228,7 +228,7 @@ function contagemComAlfabeto(
     };
   }
   return {
-    semFiltro: canPlay(id, cartas).disponiveis,
+    semFiltro: canPlay(id, cartas, { ignorarRequisitos: true }).disponiveis,
     apto: canPlay(id, cartas.filter(c => entraNaGrade(c.word ?? ''))).disponiveis,
   };
 }

@@ -47,9 +47,11 @@ const PARES_DEFINICAO: Array<[string, string]> = [
   ['polish', 'To polish is to make something smooth and shiny.'],
   ['reflect', 'To reflect is to think deeply about something.'],
 ];
+/* Palavras de 4 caracteres (a régua de comprimento do Termo, faixa 'medio', pede 4-6) — senão o
+ * teste mediria "curta" em vez de "alfabeto-nao-suportado". */
 const PARES_NAO_LATINO: Array<[string, string]> = [
-  ['食べる', 'comer'], ['飲む', 'beber'], ['見る', 'ver'], ['聞く', 'ouvir'],
-  ['話す', 'falar'], ['書く', 'escrever'], ['読む', 'ler'], ['歩く', 'andar'],
+  ['食べます', 'comer'], ['飲みます', 'beber'], ['話します', 'falar'], ['聞きます', 'ouvir'],
+  ['書きます', 'escrever'], ['読みます', 'ler'], ['歩きます', 'andar'], ['見せます', 'mostrar'],
 ];
 const FRASE_LONGA = (n: number) =>
   `this is an entire sentence used as the front of card number ${n} instead of a single word here now and it keeps going`;
@@ -104,9 +106,11 @@ describe('invariante 2 — nenhum item tem prompt vazio ou só pontuação', () 
 });
 
 /** Pool grande com pistas TODAS distintas — só assim "material de sobra" não esbarra no dedup
- *  de pista (`buildItems` recusa a 2ª ocorrência da mesma pista, por desenho). */
-const POOL_GRANDE: VocabCard[] = Array.from({ length: 30 }, (_, i) => card({
-  id: `g${i}`, word: `wordabc${i}`, translation: `tradução número ${i}`, sentence: `wordabc${i} está na frase.`,
+ *  de pista (`buildItems` recusa a 2ª ocorrência da mesma pista, por desenho). Sem dígito na
+ *  tradução: `pistaUtil` reprova dígito como ruído de captura. */
+const ALFABETO = 'abcdefghijklmnopqrstuvwxyz';
+const POOL_GRANDE: VocabCard[] = Array.from({ length: 26 }, (_, i) => card({
+  id: `g${i}`, word: `word${ALFABETO[i]}`, translation: `tradução ${ALFABETO[i]}`, sentence: `word${ALFABETO[i]} está na frase.`,
 }));
 
 describe('invariante 3 — buildItems respeita maxItems e minItems do gate', () => {
@@ -154,7 +158,7 @@ describe('invariante 4 — caça-palavras e termo recusam alfabeto não-latino',
 });
 
 describe('invariante 5 — wordLonga não vira item jogável em jogo de palavra', () => {
-  const cardsLongos = baralhoDoPerfil(PERFIS.wordLonga, 8);
+  const cardsLongos = baralhoDoPerfil(PERFIS.wordLonga);
 
   it.each(JOGOS_DE_PALAVRA)('%s: nenhum item usa a word de 90+ caracteres como answer', (jogo) => {
     const itens = buildItems(jogo, cardsLongos, { shuffle: semSorte, now: AGORA });
@@ -165,7 +169,7 @@ describe('invariante 5 — wordLonga não vira item jogável em jogo de palavra'
 });
 
 describe('invariante 6 — semTraducao cai fora ou entra com pista da frase, nunca vazia', () => {
-  const cardsSemTraducao = baralhoDoPerfil(PERFIS.semTraducao, 8);
+  const cardsSemTraducao = baralhoDoPerfil(PERFIS.semTraducao);
 
   it.each(JOGOS_DE_PALAVRA)('%s: item de semTraducao tem prompt não-vazio quando aparece', (jogo) => {
     const itens = buildItems(jogo, cardsSemTraducao, { shuffle: semSorte, now: AGORA });
@@ -184,7 +188,7 @@ describe('invariante 6 — semTraducao cai fora ou entra com pista da frase, nun
 
 describe('jogos de frase — o gate bloqueia com motivo em vez de montar rodada vazia', () => {
   const entradaSemFrase = {
-    cartas: baralhoDoPerfil(PERFIS.bilingueCurto, 8),
+    cartas: baralhoDoPerfil(PERFIS.bilingueCurto),
     frases: [],
     temAudio: false,
     temVoz: false,
@@ -200,7 +204,7 @@ describe('jogos de frase — o gate bloqueia com motivo em vez de montar rodada 
   });
 
   const entradaSemAudioPronto = {
-    cartas: baralhoDoPerfil(PERFIS.bilingueCurto, 8),
+    cartas: baralhoDoPerfil(PERFIS.bilingueCurto),
     frases: [{ id: 'f1', text: 'A casa é grande.', startMs: 0, endMs: 1000, lang: 'pt' } as any],
     temAudio: true,
     audioPronto: false,
@@ -221,7 +225,7 @@ describe('jogos de frase — o gate bloqueia com motivo em vez de montar rodada 
 
 describe('termo — a escada não vaza rodada insolúvel quando o material é ambíguo', () => {
   it('perfil não-latino: rodadasDaEscada devolve vazio, não uma escada impossível', () => {
-    const cards = baralhoDoPerfil(PERFIS.naoLatino, 10);
+    const cards = baralhoDoPerfil(PERFIS.naoLatino);
     const rodadas = rodadasDaEscada(cards, { shuffle: semSorte, now: AGORA });
     expect(rodadas.length).toBe(0);
   });

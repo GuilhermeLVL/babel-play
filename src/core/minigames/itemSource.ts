@@ -3,6 +3,8 @@ import { byUrgency, isDueNow } from '../learning/due';
 import { makeCloze } from '../learning/cloze';
 import { avaliarCartao, chaveComparavel } from '../learning/quality';
 import { pistaDeJogo } from '../learning/pistaDeJogo';
+import { digitavelNoTermo } from './termo';
+import { entraNaGrade } from './wordsearch';
 import type { MinigameItem, MinigameId } from './types';
 import { MINIGAMES } from './types';
 import { ordenarPorMemoria, type HistoricoDoItem } from '../learning/memoriaDeItens';
@@ -56,6 +58,8 @@ export interface BuildItemsOptions {
   /** Com memória: `evitar` vira EXCLUSÃO das que caíram nas últimas rodadas — com fallback para
    *  demoção quando excluir deixaria menos que o mínimo do jogo. */
   excluirEvitadas?: boolean;
+  /** Só para medir "material de sobra, alfabeto não suportado" — ver `contagemComAlfabeto`. */
+  ignorarRequisitos?: boolean;
 }
 
 /** Embaralhamento padrão (Fisher-Yates). Injetável para o teste ser determinístico. */
@@ -116,7 +120,12 @@ export function buildItems(gameId: MinigameId, cards: VocabCard[], opts: BuildIt
   const shuffle = opts.shuffle ?? embaralhar;
   const limite = opts.limit ?? def.maxItems;
 
-  const noBaralho = cards.filter(c => c.inDeck && (c.word ?? '').trim());
+  // O gate já recusa alfabeto que o jogo não escreve; o builder recusa junto, para uma chamada
+  // direta não montar rodada impossível (grade vazia, teclado que não digita a palavra).
+  const cabeNoJogo = !opts.ignorarRequisitos && MINIGAMES[gameId].requisitos?.alfabeto === 'latino'
+    ? (c: VocabCard) => (gameId === 'termo' ? digitavelNoTermo(c.word ?? '') : entraNaGrade(c.word ?? ''))
+    : () => true;
+  const noBaralho = cards.filter(c => c.inDeck && (c.word ?? '').trim() && cabeNoJogo(c));
   const vencidos = byUrgency(noBaralho, scheduler, now);
   const resto = noBaralho.filter(c => !isDueNow(c, scheduler, now));
 

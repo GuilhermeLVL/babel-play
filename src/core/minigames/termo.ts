@@ -454,7 +454,9 @@ export function buildTermoRounds(
   const quantidade = opts.quantidade ?? 5;
   // Elegibilidade pela chave Unicode (ver `motivoForaDoTermo`): hífen/espaço fora, acentos ok.
   // A FAIXA entra aqui: é ela que decide o comprimento aceito (ver `LETRAS_POR_FAIXA`).
-  let candidatos = cards.filter(c => c.inDeck && motivoForaDoTermo(c, opts.faixa ?? 'medio') === null);
+  // O teclado é QWERTY fixo: palavra que ele não escreve vira rodada insolúvel.
+  let candidatos = cards.filter(c => c.inDeck && digitavelNoTermo(c.word ?? '')
+    && motivoForaDoTermo(c, opts.faixa ?? 'medio') === null);
   /* SINÔNIMOS DO ACERVO: para cada tradução, quais palavras (do acervo INTEIRO recebido) a
      carregam. É o que permite aceitar "deceased" quando a rodada pediu "dead". */
   const porPista = new Map<string, string[]>();

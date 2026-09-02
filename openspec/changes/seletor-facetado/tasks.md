@@ -81,8 +81,9 @@
 - [x] 4.5 Resolvido no cliente: o banner conta `vencidosAgora` (escopo da rodada). `dueToday`
       segue global e correto onde é global (Hub, Métricas); re-escopo no servidor não tem
       consumidor
-- [ ] 4.6 Matriz executada dos 9 jogos (G2 do roadmap original, 9×4×4×3 células como suíte vitest)
-      — não verificada nesta auditoria
+- [x] 4.6 Matriz executada dos 9 jogos — `tests/matriz-dos-jogos.test.ts`, 39 casos sobre 5
+      perfis de conteúdo. Revelou defeito real: os builders do caça-palavras e do Termo aceitavam
+      alfabeto não-latino (só o gate recusava), montando rodada impossível quando chamados direto
 - [x] 4.7 Medição de consulta multi-seleção em acervo 20k+ — `scripts/medicao-filtro/medir.ts` +
       `docs/pesquisa/medicao-filtro-20k.md`; reprovou (SCAN por candidato, 4-46 s), levou ao
       conserto `idx_occ_probe` + `user_id` nas sondas, re-medido: 19-50 ms, nenhum SCAN

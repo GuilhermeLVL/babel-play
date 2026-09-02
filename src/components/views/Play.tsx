@@ -14,6 +14,7 @@ import {
   SESSAO_DA_TRILHA, CONFIANCA_CURADA,
   buildRodadasEscuta, buildRodadasDitado, buildRodadasConectores, isDueNow,
   estadoDeCadaJogo, comoDesbloquear, type ContextoDeDesbloqueio, type Desbloqueio,
+  cartoesDoFiltro,
   agruparJogos,
   estimativaDeMinutos, rotuloDeDuracao, pistasDaTriagem, resumoDosPulados,
   previaSegura, repetidosDaUltima, MAPA_REVELA_ALVO, origemDoMaterial,
@@ -1422,9 +1423,13 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
       /* Instrumento, não lógica — ver `lib/passadasDoPipeline`. Desligado, custa uma leitura de
          propriedade; ligado, é o que prova quantas vezes o baralho inteiro é triado por carga. */
       contarPassada('triagem', { cartoes: (deck ?? []).length, fonte: fonte.id, lang: fonte.lang });
-      return cartoesDaFonte(deck ?? [], fonteComRanking);
+      // Fonte única mantém a partição exclusiva de sempre (byte a byte). Com mais de uma, quem
+      // parte o acervo é o predicado, que sabe somar.
+      return filtro.fontes.length > 1
+        ? cartoesDoFiltro(deck ?? [], filtro, { rankingDificeis: conjuntoDeDificeis, agora: Date.now() })
+        : cartoesDaFonte(deck ?? [], fonteComRanking);
     },
-    [deck, fonteComRanking, fonte.id, fonte.lang],
+    [deck, fonteComRanking, fonte.id, fonte.lang, filtro, conjuntoDeDificeis],
   );
 
   /* COMPOSIÇÃO SERVIDA. Re-pede quando muda fonte, faixa ou estratégia. Falha de rede cai para
@@ -1489,8 +1494,8 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
    * a rodada não montava. Escolher um nível "consertava" — o que fazia o defeito parecer preferência.
    */
   const niveisDaRodada = useMemo<CefrLevel[]>(
-    () => (fonte.id === 'trilha' && trilha ? niveisEmJogo(trilha, fonte.nivel) : []),
-    [fonte.id, fonte.nivel, trilha],
+    () => (filtro.fontes.includes('trilha') && trilha ? niveisEmJogo(trilha, filtro.nivelTrilha) : []),
+    [filtro.fontes, filtro.nivelTrilha, trilha],
   );
 
   const frasesTrilha = useMemo<Sentence[]>(
@@ -1652,8 +1657,9 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
    * palavra que a pessoa já errou e que voltou para a revisão espaçada tem estado real, e trocá-lo
    * por um cartão novo em folha apagaria esse progresso a cada rodada.
    */
+  const comTrilha = filtro.fontes.includes('trilha');
   const jogaveis = useMemo(() => {
-    if (fonte.id === 'trilha') {
+    if (comTrilha) {
       if (!trilha || !niveisDaRodada.length) return triagem.usaveis;
       const doBanco = new Map(triagem.usaveis.map(c => [chaveDaPalavra(c.word), c]));
       /* `niveisDaRodada` é o nível escolhido, ou TODOS quando não há escolha — ver `niveisEmJogo`.
@@ -1695,7 +1701,7 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
     /* `filtro` e o conjunto de difíceis entraram no corpo (o complemento do recorte passa pelo
        predicado) e por isso entram AQUI: dependência esquecida congelaria o recorte na primeira
        renderização — a mesma armadilha que o comentário acima já registra para `niveisDaRodada`. */
-  }, [triagem.usaveis, fonte.id, niveisDaRodada, trilha, composicao, faixas.length, filtro, conjuntoDeDificeis]);
+  }, [triagem.usaveis, comTrilha, niveisDaRodada, trilha, composicao, faixas.length, filtro, conjuntoDeDificeis]);
 
   /**
    * O ACERVO DA FONTE — sem teto. É o conjunto inteiro que a fonte atual oferece.
@@ -1708,7 +1714,7 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
     /* Mesmo recorte de `jogaveis`, pelo mesmo motivo: sem nível escolhido a trilha vale INTEIRA.
        Aqui o defeito era ainda mais visível, porque é este acervo que produz o "N disponíveis"
        de cada carta — a tela dizia zero sobre uma trilha de 2.784 palavras. */
-    if (fonte.id !== 'trilha' || !trilha || !niveisDaRodada.length) {
+    if (!comTrilha || !trilha || !niveisDaRodada.length) {
       /* FORA DA TRILHA, o acervo exibido passa pelo MESMO filtro da rodada (auditoria S9): com o
          recorte de baralho ligado, o painel "Seu baralho" dizia o acervo INTEIRO enquanto o gate
          contava o recortado — dois números discordando na mesma tela. A trilha fica fora do
@@ -1721,7 +1727,7 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
       .flatMap(n => cartoesDaTrilha(trilha, n))
       .filter(c => !doBanco.has(chaveDaPalavra(c.word))) as unknown as VocabCard[];
     return [...triagem.usaveis, ...embutidos];
-  }, [triagem.usaveis, fonte.id, niveisDaRodada, trilha, filtro, conjuntoDeDificeis]);
+  }, [triagem.usaveis, comTrilha, niveisDaRodada, trilha, filtro, conjuntoDeDificeis]);
 
   /* Contagens das pílulas de recorte, medidas na base SEM os recortes ligados (o padrão facetado:
      cada faceta mostra o que ELA renderia, não o que sobra depois dela mesma). `dueAtMs` é o cru
@@ -2601,9 +2607,11 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
             total={acervoDaFonte.length}
             /* O nome curto da ABA, não o título longo do painel de contexto: a linha precisa caber
                ao lado do total e do idioma, e "Revisão do que você ouviu" empurrava o resto. */
-            nomeDaFonte={baralhoAnki
-              ? baralhoAnki.nome
-              : (ABAS_DE_FONTE.find(a => a.origem === escolhaAtual.origem)?.rotulo[ageProfile] ?? '')}
+            nomeDaFonte={filtro.fontes.length > 1
+              ? `${filtro.fontes.length} fontes`
+              : baralhoAnki
+                ? baralhoAnki.nome
+                : (ABAS_DE_FONTE.find(a => a.origem === escolhaAtual.origem)?.rotulo[ageProfile] ?? '')}
             idioma={fonte.lang ? langLabelPt(fonte.lang) : undefined}
             aberta={seletorAberto}
             aoAlternar={() => setSeletorAberto(v => !v)}
@@ -2670,9 +2678,17 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
               {
                 id: 'fonte',
                 rotulo: 'de onde vêm',
-                exclusiva: true,
-                valor: [escolhaAtual.origem],
-                aoTrocar: (origem) => aplicarEscolha({ ...escolhaAtual, origem: origem as OrigemDaPratica, escopo: 'todas' }),
+                ajuda: 'marque quantas quiser — elas se somam na rodada',
+                valor: filtro.fontes.map(f => (f === 'trilha' ? 'trilha' : 'gravacoes')),
+                aoTrocar: (origem) => {
+                  const alvo = origem === 'trilha' ? 'trilha' as const : 'baralho' as const;
+                  setFiltro(prev => {
+                    const tinha = prev.fontes.includes(alvo);
+                    const fontes = tinha ? prev.fontes.filter(f => f !== alvo) : [...prev.fontes, alvo];
+                    // Nenhuma fonte marcada não é "tudo", é uma rodada que não abre.
+                    return fontes.length ? { ...prev, fontes } : prev;
+                  });
+                },
                 /* A fonte sem material continua VISÍVEL, travada e com o porquê — some da tela
                    era pior: "As que mais escapam" desaparecia sem explicação assim que a pessoa
                    revisava bem, que é justamente quando ela merece saber por que sumiu. */

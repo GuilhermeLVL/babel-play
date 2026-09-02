@@ -90,10 +90,11 @@
 
 ## Onda 5 — o que sobrou
 
-- [ ] 5.1 Multi-fonte de verdade. Motor pronto e testado (`core/minigames/distribuicao.ts`).
-      CUSTO MEDIDO: 20 pontos de `Play.tsx` assumem `fonte.id === 'trilha'` (chave de memória,
-      gate, prévia, composição, ramo de palavra falada). E multi-fonte SEM trilha não entrega
-      nada: as duas fontes da UI são curso e baralho. É onda própria, não um incremento
+- [x] 5.1 Multi-fonte: a faceta soma fontes, `cartoesDoFiltro` tria pelo predicado quando há
+      mais de uma, e os embutidos da trilha entram por `filtro.fontes`, não por fonte dominante.
+      Verificado: 2.228 (só baralho) -> 4.175 (baralho + curso), e a rodada mistura as duas.
+      A cota proporcional (`distribuirPorFonte`) NÃO foi ligada: medido na tela, a ordenação por
+      memória já intercala as fontes, e cotar sem necessidade só tiraria material bom da frente
 - [ ] 5.2 Frases do baralho alimentando os cinco jogos de frase (F10 do motor Anki)
 - [x] 5.3 Baralho de definição rotulado na tela: "en · ensina por definição" no lugar do par
       de idiomas falso

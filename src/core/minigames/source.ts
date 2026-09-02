@@ -1,6 +1,7 @@
 import type { VocabCard } from '../../types';
 import type { CefrLevel } from '../learning/contract';
 import { triarCartoes, baseLangDe, pistasDaTriagem, type Triagem } from '../learning/quality';
+import { passaNoFiltro, type FiltroDaPratica, type CartaoFiltravel, type ExtrasDoFiltro } from './filtro';
 
 /**
  * DE ONDE VÊM OS ITENS DESTA RODADA.
@@ -296,4 +297,18 @@ export function fontesDisponiveis(ctx: ContextoDeFonte): FonteId[] {
 export function podeTrocarDeGravacao(ctx: { embutido: boolean; sessoesDisponiveis: number }): boolean {
   if (ctx.embutido) return false
   return ctx.sessoesDisponiveis > 1
+}
+
+/**
+ * Triagem por FILTRO — o caminho multi-fonte. `cartoesDaFonte` particiona de forma exclusiva
+ * (uma casa por cartão); aqui a união é o predicado, que já sabe somar fontes.
+ */
+export function cartoesDoFiltro(
+  cards: VocabCard[],
+  filtro: FiltroDaPratica,
+  extras?: ExtrasDoFiltro,
+): Triagem {
+  const doEscopo = (cards ?? []).filter(c =>
+    passaNoFiltro(c as unknown as CartaoFiltravel, filtro, { ...extras, idDoCartao: c.id }));
+  return triarCartoes(doEscopo, { lang: filtro.idiomas[0] ?? '' });
 }

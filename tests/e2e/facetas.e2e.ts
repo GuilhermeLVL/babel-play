@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { irParaPraticar, clicarRobusto, apareceEmAte, baralhosNoServidor } from './_helpers';
+import { irParaPraticar, clicarRobusto, apareceEmAte, baralhosNoServidor, abrirSeletor } from './_helpers';
 
 /**
  * A fileira RECORTE do lobby `/jogar` (onda facetada): pílulas "Pedindo revisão"/"Nunca vistas",
@@ -84,7 +84,7 @@ test.describe('Facetas do acervo: fileira RECORTE', () => {
     await expect(linhaResumo).toBeVisible();
   });
 
-  test('o recorte por baralho persiste através de F5, e "Voltar a jogar com todo o acervo" limpa (condicional a haver baralho no servidor)', async ({ page }) => {
+  test('o recorte por baralho persiste através de F5, e o chip que o ligou também o desliga (condicional a haver baralho no servidor)', async ({ page }) => {
     test.slow();
     await irParaPraticar(page);
 
@@ -94,7 +94,8 @@ test.describe('Facetas do acervo: fileira RECORTE', () => {
       `Caso não alcançável sem criar dado (o que este teste não faz) — ${acervo.porque}`,
     );
 
-    const botaoBaralhos = page.getByRole('button', { name: 'Baralhos' });
+    await abrirSeletor(page);
+    const botaoBaralhos = page.getByRole('button', { name: 'Gerenciar baralhos' });
     await expect(botaoBaralhos, 'o servidor tem baralho, então a porta "Baralhos" deveria estar na faixa').toBeVisible({ timeout: 10_000 });
     await clicarRobusto(page, botaoBaralhos);
 
@@ -118,7 +119,7 @@ test.describe('Facetas do acervo: fileira RECORTE', () => {
     test.skip(!nomeBaralho, 'Não deu para ler o nome do baralho no cartão para comparar depois — caso não alcançável sem dado legível.');
 
     await clicarRobusto(page, jogarSoComEste);
-    await expect(page.getByRole('button', { name: 'Anki', exact: true })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Trocar' })).toBeVisible();
 
     /* O RESUMO MUDOU DE FORMA no redesenho: o nome do baralho agora vive na linha «jogando com»,
        e o rodapé da gaveta guarda só o total. O que o teste garante continua o mesmo — o recorte
@@ -138,10 +139,14 @@ test.describe('Facetas do acervo: fileira RECORTE', () => {
       'o recorte por baralho deveria sobreviver ao F5 (persistência nova)',
     ).toBeVisible({ timeout: 10_000 });
 
-    // "Voltar a jogar com todo o acervo" limpa: o resumo perde o nome do baralho.
-    const botaoLimpar = page.getByRole('button', { name: 'Voltar a jogar com todo o acervo' });
-    await expect(botaoLimpar).toBeVisible();
-    await clicarRobusto(page, botaoLimpar);
+    /* TIRAR O RECORTE mudou de caminho: o botão "x" solto na faixa saiu, e quem desliga é o
+       próprio chip do baralho dentro da gaveta — o mesmo controle que ligou, que é como toda
+       faceta se comporta. "limpar tudo" continua existindo para zerar de uma vez. */
+    await abrirSeletor(page);
+    const chipDoBaralho = page.getByRole('group', { name: 'quais baralhos' })
+      .getByRole('button', { pressed: true }).first();
+    await expect(chipDoBaralho, 'o baralho escolhido deveria estar marcado na gaveta').toBeVisible();
+    await clicarRobusto(page, chipDoBaralho);
 
     await expect(
       page.getByText(new RegExp(`jogando com[\\s\\S]*${escapaRegex(nomeBaralho!)}`, 'i')),

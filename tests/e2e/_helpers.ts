@@ -66,7 +66,10 @@ export async function irParaPraticar(page: Page) {
   // rodando em paralelo (vários workers batendo no mesmo `dev:local`) o primeiro carregamento da
   // tela pode legitimamente demorar mais que isso; um orçamento curto aqui produzia falso-negativo
   // ("Anki" não apareceu) que não era sobre o app, era sobre o teste não ter esperado o bastante.
-  const botaoAnki = page.getByRole('button', { name: 'Anki', exact: true });
+  /* O MARCO DE "LOBBY PRONTO" MUDOU: o botão do Anki desceu para dentro da gaveta do seletor
+     (redesenho de 02/09), então esperar por ele aqui esperaria por algo que não está mais na
+     tela de partida. O «Trocar» do seletor é o que sempre existe no lobby, e é o novo marco. */
+  const botaoAnki = page.getByRole('button', { name: 'Trocar' });
   for (let i = 0; i < 20; i++) {
     await fecharSobreposicoes(page);
     if (await botaoAnki.isVisible().catch(() => false)) break;
@@ -95,4 +98,18 @@ export async function baralhosNoServidor(page: Page): Promise<{ quantos: number;
   try { decks = JSON.parse(corpo); } catch { return { quantos: 0, porque: `/api/anki/decks devolveu algo que não é JSON: ${corpo.slice(0, 120)}` }; }
   if (!Array.isArray(decks)) return { quantos: 0, porque: `/api/anki/decks devolveu ${typeof decks}, não uma lista` };
   return { quantos: decks.length, porque: decks.length ? '' : 'o servidor não tem nenhum baralho importado' };
+}
+
+/**
+ * ABRE A GAVETA DO SELETOR e devolve. As ações de material (Anki, baralhos, gravações) vivem no
+ * rodapé dela desde o redesenho: elas pertencem à decisão "de onde vem o que eu jogo", e ficavam
+ * soltas acima da tela parecendo navegação.
+ */
+export async function abrirSeletor(page: Page): Promise<void> {
+  const trocar = page.getByRole('button', { name: 'Trocar' });
+  await trocar.waitFor({ state: 'visible', timeout: 15_000 });
+  if ((await trocar.getAttribute('aria-expanded')) !== 'true') {
+    await clicarRobusto(page, trocar);
+  }
+  await trocar.evaluate((el) => el.getAttribute('aria-expanded'));
 }

@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, type ReactNode } from 'react';
 import Segmentado from '../ui/Segmentado';
 
 /**
@@ -29,7 +29,7 @@ export interface FacetaDoSeletor {
   rotulo: string;
   /** Frase de apoio à direita do rótulo, ex.: "escolha uma ou várias — elas se somam". */
   ajuda?: string;
-  opcoes: Array<{ id: string; rotulo: string; contagem?: number; motivoBloqueio?: string }>;
+  opcoes: Array<{ id: string; rotulo: string; contagem?: number; motivoBloqueio?: string; icone?: ReactNode }>;
   valor: string[];
   aoTrocar: (idDaOpcao: string) => void;
   /**
@@ -55,6 +55,14 @@ export interface SeletorDeConteudoProps {
   aoLimpar: () => void;
   /** Mensagem de vazio útil, quando total === 0. Ex.: "nenhum item passa; desligue um recorte". */
   avisoDeVazio?: string;
+  /**
+   * Ações que TRAZEM ou GERENCIAM material (importar do Anki, abrir os baralhos), no rodapé.
+   *
+   * Ficavam soltas acima do seletor, como três botões sem rótulo de grupo — pareciam navegação da
+   * tela quando na verdade pertencem a esta decisão: de onde vem o que eu jogo. Não são facetas
+   * porque não recortam nada; abrem outra tela. Daí ficarem separadas por uma linha, no rodapé.
+   */
+  acoes?: ReactNode;
 }
 
 const ID_DA_GAVETA = 'seletor-de-conteudo-gaveta';
@@ -68,6 +76,7 @@ export function SeletorDeConteudo({
   aoAlternar,
   aoLimpar,
   avisoDeVazio,
+  acoes,
 }: SeletorDeConteudoProps) {
   // Escape fecha, mas só enquanto a gaveta está aberta — do contrário este seletor roubaria o Esc
   // de outras camadas da tela (diálogos, tour) mesmo fechado.
@@ -163,6 +172,13 @@ export function SeletorDeConteudo({
             />
           </div>
         ))}
+
+        {acoes && (
+          <div className="flex items-center gap-2 flex-wrap pt-3.5 mt-1 border-t border-dashed border-border-subtle">
+            <span className="label-mono mr-1">trazer ou gerenciar</span>
+            {acoes}
+          </div>
+        )}
 
         <div className="flex items-center justify-between gap-3 flex-wrap mt-4 pt-3.5 border-t border-border-subtle">
           <span className="label-mono">{total.toLocaleString('pt-BR')} no recorte</span>

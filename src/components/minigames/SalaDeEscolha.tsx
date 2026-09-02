@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { X, Check as IconeCheck, Mic, GraduationCap, Flame } from 'lucide-react';
+import { X, Check as IconeCheck, Mic, GraduationCap, Flame, Globe, Layers, FileAudio } from 'lucide-react';
 import { Segmentado } from '../ui';
 import LangPicker from '../LangPicker';
 import { langLabelPt } from '../../lib/languages';
@@ -55,7 +55,7 @@ interface SalaProps {
    * a Trilha bloqueada dizendo "ainda não existe trilha em português" — o idioma da frase era o
    * antigo, e a pessoa via a opção recusar exatamente o que ela acabou de pedir.
    */
-  trilhaDe: (lang: string) => { niveis: CefrLevel[]; total: number };
+  trilhaDe: (lang: string) => { niveis: CefrLevel[]; total: number; porNivel?: Partial<Record<CefrLevel, number>> };
   /** Tamanho do ranking de palavras difíceis (servidor). Menos de 4 = sem rodada possível. */
   dificeis: number;
   ageProfile: AgeProfileType;
@@ -77,7 +77,7 @@ export default function SalaDeEscolha({
   const dialogo = useRef<HTMLDivElement | null>(null);
 
   // Sempre sobre o idioma SELECIONADO — ver o docblock de `trilhaDe`.
-  const { niveis: niveisDaTrilha, total: totalDaTrilha } = trilhaDe(lang);
+  const { niveis: niveisDaTrilha, total: totalDaTrilha, porNivel: tamanhoDoNivel } = trilhaDe(lang);
   const temTrilha = niveisDaTrilha.length > 0;
 
   /**
@@ -182,14 +182,20 @@ export default function SalaDeEscolha({
           </button>
         </header>
 
-        <div className="p-5 space-y-5">
+        {/* Uma escala só de espaçamento entre seções (space-y-4) e um separador sutil por seção —
+            é o que substitui a mistura antiga de respiros (space-y-5 fora, mb-2 e mt-2 espalhados
+            dentro de cada bloco), que fazia o modal crescer sem que a altura extra ajudasse a ler. */}
+        <div className="p-5 space-y-4">
 
           {/* ── IDIOMA ──────────────────────────────────────────────────────────────────────
               A contagem é de palavras JOGÁVEIS, não do que está guardado. Antes dava para
               escolher um idioma com centenas de cartões e cair numa tela sem jogo nenhum,
               porque nenhum deles tinha tradução. */}
-          <section>
-            <p className="label-mono mb-2">Idioma</p>
+          <section className="pb-4 border-b border-border-subtle">
+            <p className="label-mono mb-2 flex items-center gap-1.5">
+              <Globe className="w-3 h-3" aria-hidden />
+              Idioma
+            </p>
             {/* A altura de UMA fileira de pílulas fica reservada: os chips só existem depois de
                 `fetchDeck` voltar, e sem a reserva a chegada deles empurrava o resto do diálogo. */}
             <div className="min-h-[30px]">
@@ -238,7 +244,7 @@ export default function SalaDeEscolha({
               Binário e exclusivo. A trilha aparece SEMPRE: quando não há lista para o idioma
               ela vem desabilitada com o motivo, porque escondê-la é o que fez a trilha parecer
               inexistente. */}
-          <section>
+          <section className="pb-4 border-b border-border-subtle">
             <p className="label-mono mb-2">De onde vêm as palavras</p>
             <Segmentado
               rotuloDoGrupo="De onde vêm as palavras"
@@ -278,16 +284,20 @@ export default function SalaDeEscolha({
           {/* ── A SUB-ESCOLHA, só do lado escolhido ───────────────────────────────────────── */}
           {origem === 'gravacoes' ? (
             <section>
-              <p className="label-mono mb-2">Quais gravações</p>
+              <p className="label-mono mb-2 flex items-center gap-1.5">
+                <Layers className="w-3 h-3" aria-hidden />
+                Quais gravações
+              </p>
               <Segmentado
                 rotuloDoGrupo="Quais gravações entram"
                 valor={[escopo]}
                 aoTrocar={(e) => setEscopo(e as EscopoDeGravacoes)}
                 opcoes={[
-                  { id: 'todas', rotulo: 'Todas as gravações' },
+                  { id: 'todas', rotulo: 'Todas as gravações', icone: <Layers className="w-3.5 h-3.5" aria-hidden /> },
                   {
                     id: 'uma',
                     rotulo: 'Uma gravação',
+                    icone: <FileAudio className="w-3.5 h-3.5" aria-hidden />,
                     motivoBloqueio: gravacoes.length ? undefined : 'você ainda não tem gravações salvas',
                   },
                 ]}
@@ -309,6 +319,7 @@ export default function SalaDeEscolha({
                         }`}
                         title={g.title}
                       >
+                        <FileAudio className="w-3.5 h-3.5 shrink-0 text-ink-faint" aria-hidden />
                         <span className="truncate flex-1">{g.title}</span>
                         {/* Sem áudio, três jogos ficam de fora. Dizer ANTES evita a escolha que
                             leva a cartas bloqueadas. */}
@@ -323,18 +334,23 @@ export default function SalaDeEscolha({
             </section>
           ) : (
             <section>
-              <p className="label-mono mb-2">Nível da trilha</p>
+              <p className="label-mono mb-2 flex items-center gap-1.5">
+                <GraduationCap className="w-3 h-3" aria-hidden />
+                Nível da trilha
+              </p>
               <Segmentado
                 rotuloDoGrupo="Nível da trilha"
                 valor={nivel ? [nivel] : []}
                 aoTrocar={(n) => setNivel(n as CefrLevel)}
-                opcoes={niveisDaTrilha.map(n => ({ id: n, rotulo: n }))}
+                /* Cada etapa com o SEU tamanho: escolher "B2" sem saber se ali há 60 ou 600
+                   palavras é escolher às cegas, e a gaveta do lobby já mostrava esse número. */
+                opcoes={niveisDaTrilha.map(n => ({ id: n, rotulo: n, contagem: tamanhoDoNivel?.[n] }))}
               />
-              {!nivel && (
-                <p className="text-[11.5px] text-ink-faint mt-2">
-                  Sem escolher, a trilha joga com todos os níveis de uma vez.
-                </p>
-              )}
+              <p className="text-[11.5px] text-ink-faint mt-2">
+                {nivel
+                  ? <>Nível <b className="text-ink-muted">{nivel}</b> — a trilha combinada tem <b className="text-ink-muted tabular-nums">{totalDaTrilha.toLocaleString('pt-BR')}</b> palavras no total.</>
+                  : 'Sem escolher um nível, a trilha joga com todos de uma vez.'}
+              </p>
             </section>
           )}
         </div>
@@ -344,7 +360,9 @@ export default function SalaDeEscolha({
             botão para a linha de baixo; quando a contagem chegava, ela encolhia e os dois voltavam
             para a mesma linha, o botão subia 31px com o diálogo já pintado. Numa linha só, o
             rodapé tem a altura do botão nos dois estados. */}
-        <footer className="flex items-center justify-between gap-3 p-5 border-t border-border-subtle">
+        {/* `bg-surface-hover` diferencia o rodapé do corpo (mesmo tom usado em hover, aqui parado) —
+            é o que faz a ação primária ler como o DESTINO da tela, não mais uma linha entre outras. */}
+        <footer className="flex items-center justify-between gap-3 p-5 border-t border-border-subtle bg-surface-hover rounded-b-2xl">
           <p className="text-[12.5px] text-ink-muted min-w-0">
             {quantasPromete > 0 ? (
               <>

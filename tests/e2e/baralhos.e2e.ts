@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { fecharSobreposicoes, clicarRobusto, irParaPraticar, apareceEmAte, baralhosNoServidor } from './_helpers';
+import { fecharSobreposicoes, clicarRobusto, irParaPraticar, apareceEmAte, baralhosNoServidor, abrirSeletor } from './_helpers';
 
 /**
  * Baralhos do Anki: cobre o caminho novo (ingestão de baralhos) além da casca já coberta por
@@ -18,7 +18,10 @@ test.describe('Anki: importar', () => {
     test.slow();
     await irParaPraticar(page);
 
-    const botaoAnki = page.getByRole('button', { name: 'Anki', exact: true });
+    /* O ANKI MUDOU DE LUGAR E DE NOME: vive no rodapé da gaveta do seletor, como «Trazer do
+       Anki». O caminho até ele é parte do que este teste cobre agora. */
+    await abrirSeletor(page);
+    const botaoAnki = page.getByRole('button', { name: 'Trazer do Anki' });
     // Prazo maior que o padrão: sob a suíte inteira em paralelo o primeiro carregamento pode
     // legitimamente demorar mais que os 5s padrão do Playwright (ver `irParaPraticar`).
     await expect(botaoAnki).toBeVisible({ timeout: 15_000 });
@@ -27,7 +30,8 @@ test.describe('Anki: importar', () => {
     await expect(page.getByRole('button', { name: 'Escolher arquivo' })).toBeVisible();
 
     await clicarRobusto(page, page.getByRole('button', { name: 'Voltar aos jogos' }));
-    await expect(page.getByRole('button', { name: 'Anki', exact: true })).toBeVisible();
+    await abrirSeletor(page);
+    await expect(page.getByRole('button', { name: 'Trazer do Anki' })).toBeVisible();
   });
 });
 
@@ -54,7 +58,8 @@ test.describe('Baralhos do Anki (condicional a haver baralho já importado)', ()
     );
 
     // Há baralho no servidor: a porta TEM de existir. Se não existir, é defeito, não falta de dado.
-    const botaoBaralhos = page.getByRole('button', { name: 'Baralhos' });
+    await abrirSeletor(page);
+    const botaoBaralhos = page.getByRole('button', { name: 'Gerenciar baralhos' });
     await expect(botaoBaralhos, 'o servidor tem baralho, então a porta "Baralhos" deveria estar na faixa').toBeVisible({ timeout: 10_000 });
     await clicarRobusto(page, botaoBaralhos);
 
@@ -83,13 +88,14 @@ test.describe('Baralhos do Anki (condicional a haver baralho já importado)', ()
     const nomeBaralho = (await cartao.locator('p').first().textContent().catch(() => null))?.trim();
 
     await clicarRobusto(page, jogarSoComEste);
-    await expect(page.getByRole('button', { name: 'Anki', exact: true })).toBeVisible();
+    await abrirSeletor(page);
+    await expect(page.getByRole('button', { name: 'Trazer do Anki' })).toBeVisible();
 
     if (nomeBaralho) {
       await expect(page.getByText(nomeBaralho, { exact: false }).first()).toBeVisible();
     } else {
       // Sem o nome, ao menos prova que a porta genérica "Baralhos" virou o chip do recorte.
-      await expect(page.getByRole('button', { name: 'Baralhos', exact: true })).not.toBeVisible();
+      await expect(page.getByRole('button', { name: 'Gerenciar baralhos' })).not.toBeVisible();
     }
   });
 });

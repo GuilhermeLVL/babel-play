@@ -12,10 +12,22 @@ import { defineConfig, devices } from '@playwright/test';
 export default defineConfig({
   testDir: './tests/e2e',
   testMatch: '**/*.e2e.ts',
-  fullyParallel: true,
+  /**
+   * UM WORKER, SEMPRE — e a razão não é lentidão de máquina.
+   *
+   * O app roda em modo self-host com UM usuário local (`AUTH_REQUIRED` desligada): todos os
+   * workers batem no MESMO banco e no MESMO estado de usuário. Enquanto os testes só liam a tela,
+   * o paralelismo passava por sorte; desde que passaram a escolher baralho e ligar recortes (que
+   * gravam filtro no servidor e no localStorage), dois workers disputam a mesma escolha e um
+   * derruba o outro — falha que aparece só em paralelo e some no teste isolado, o pior tipo de
+   * intermitência para diagnosticar.
+   *
+   * Serial custa ~1 minuto na suíte inteira. Paralelo custava confiança no resultado.
+   */
+  fullyParallel: false,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
-  workers: process.env.CI ? 1 : undefined,
+  workers: 1,
   reporter: 'list',
   use: {
     baseURL: 'http://localhost:3100',

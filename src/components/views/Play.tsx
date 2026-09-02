@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState, useRef, useDeferredValue } from 'react';
 import { createPortal } from 'react-dom';
-import { Check, Timer, Mic, ChevronRight, ChevronLeft, Pin, ListChecks, Map as MapIcon, Sprout, Flame, GraduationCap, Lock, HelpCircle, Package, Trophy, SlidersHorizontal as SlidersIcon, Trophy as TrophyIcon, Layers, X } from 'lucide-react';
+import { Check, Timer, Mic, ChevronRight, ChevronLeft, Pin, ListChecks, Map as MapIcon, Sprout, Flame, GraduationCap, Lock, HelpCircle, Package, Trophy, SlidersHorizontal as SlidersIcon, Trophy as TrophyIcon, Layers, Globe, BookOpen, CalendarClock, Sparkles, Languages, MessageSquareText } from 'lucide-react';
 import { apiFetch, fetchDeck, reviewCard, salvarRodada, fetchSessions, fetchSessionTranscript, patchUiSettings, fetchSettings, bulkAddCards, fetchHistoricoDeItens, fetchExerciseResults, fetchRecordes, gastarSeeds, type AppMetrics, type HistoricoDeItem } from '../../data/api';
 import { toSentences, type Sentence, type PracticeSeed } from '../../lib/sentences';
 import type { VocabCard, Recording } from '../../types';
@@ -1628,10 +1628,15 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
    */
   const trilhaDe = React.useCallback((lang: string) => {
     const dado = baseLang(lang) === 'en' ? (trilhaEn as DadoTrilha) : null;
-    if (!dado) return { niveis: [] as CefrLevel[], total: 0 };
+    if (!dado) return { niveis: [] as CefrLevel[], total: 0, porNivel: {} as Partial<Record<CefrLevel, number>> };
+    const niveis = (Object.keys(dado.niveis) as CefrLevel[]).filter(n => (dado.niveis[n] ?? []).length > 0);
     return {
-      niveis: (Object.keys(dado.niveis) as CefrLevel[]).filter(n => (dado.niveis[n] ?? []).length > 0),
+      niveis,
       total: Object.values(dado.niveis).reduce((n, lista) => n + (lista?.length ?? 0), 0),
+      /* O TAMANHO DE CADA ETAPA, e não só o total. Sem isto a Sala mostrava "A1 A2 B1…" sem
+         número nenhum enquanto a gaveta mostrava "A1 704" — os dois caminhos para a mesma escolha
+         contando verdades diferentes, que é o defeito que este redesenho existe para fechar. */
+      porNivel: Object.fromEntries(niveis.map(n => [n, dado.niveis[n]?.length ?? 0])) as Partial<Record<CefrLevel, number>>,
     };
   }, []);
 
@@ -2578,77 +2583,11 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
           `fetchSessions`: o botão nascia DEPOIS da primeira pintura e empurrava a faixa de status
           e a grade de nove cartas para baixo (parte do CLS 0,364 medido no achado F0-02). O valor
           é a altura de repouso do botão: p-3 + uma linha de texto + a borda do `card-panel`. */}
-      {!embutido && (
-        <div className="mb-4 min-h-[46px]">
-      {/* ── A FAIXA DE FONTES TEM DOIS LADOS, e o direito não depende do esquerdo.
-             As ABAS só existem quando há mais de uma fonte para escolher. As AÇÕES (trazer um
-             baralho de fora, ajustar idioma/nível) valem sempre — e o Anki vale sobretudo para
-             quem AINDA não tem material, que é justamente quem cai no ramo de uma fonte só.
-             Aninhar as ações dentro do `fontesOferecidas.length > 1` esconderia a porta de
-             entrada de quem mais precisa dela. ── */}
-      <div className="flex flex-wrap items-center gap-2">
-      {/* AS ABAS DE FONTE SAÍRAM DAQUI — viraram a faceta "de onde vêm" dentro do seletor logo
-          acima. Elas eram a primeira das três linhas de controle que não se conheciam: trocar de
-          aba não atualizava o que os chips de baralho contavam, e o inventário do código mediu 53
-          controles nesta tela. A escolha não sumiu, mudou de lugar: continua a um clique, agora ao
-          lado das outras facetas que dependem dela. O que fica aqui são AÇÕES, não escolhas —
-          trazer material de fora e ajustar idioma/nível não recortam o acervo, abrem outra tela. */}
-      {/* AS AÇÕES DA FAIXA. `ml-auto` empurra para a direita quando há abas; sem elas, o grupo
-            é a faixa inteira e continua alinhado à esquerda, onde a leitura começa. */}
-        <div className={`flex items-center gap-2 ${fontesOferecidas.length > 1 ? 'ml-auto' : ''}`}>
-          {/* O ANKI SUBIU PARA CÁ. Morava no rodapé da tela, abaixo de nove cartas de jogo e da
-              faixa de progresso, em texto de 12px sem contorno — a única porta para trazer
-              vocabulário de fora, no lugar onde menos se olha. Aqui ele fica ao lado das outras
-              formas de escolher COM O QUE jogar, que é a decisão de que ele faz parte. */}
-          <button
-            onClick={() => setImportando(true)}
-            title="Trazer um baralho .apkg/.txt do Anki, ou levar as suas palavras para lá"
-            className="flex items-center gap-1.5 px-3 py-2.5 rounded-xl border border-border-subtle bg-surface text-[12.5px] font-bold text-ink hover:border-accent transition-colors cursor-pointer"
-          >
-            <Package className="w-3.5 h-3.5" aria-hidden />
-            {ageProfile === 'kids' ? 'Palavras de fora' : 'Anki'}
-          </button>
-          {/* A PORTA PARA OS BARALHOS só existe quando há baralho — senão seria um controle que
-              leva a uma tela vazia, que é a mesma promessa quebrada de um botão morto. O rótulo
-              diz o recorte quando há um escolhido, porque "jogando com o Core 2k" é a informação
-              que muda a leitura de tudo o que está abaixo na tela. */}
-          {temBaralhosAnki && (
-            <button
-              onClick={() => setVendoBaralhos(true)}
-              title="Seus baralhos importados: ativar mais palavras, ou jogar só com um deles"
-              className={`flex items-center gap-1.5 px-3 py-2.5 rounded-xl border text-[12.5px] font-bold transition-colors cursor-pointer ${
-                baralhoAnki ? 'border-accent bg-accent/10 text-accent' : 'border-border-subtle bg-surface text-ink hover:border-accent'
-              }`}
-            >
-              <Layers className="w-3.5 h-3.5" aria-hidden />
-              {baralhoAnki ? baralhoAnki.nome : 'Baralhos'}
-            </button>
-          )}
-          {/* Tirar o recorte precisa ser tão fácil quanto pô-lo: sem esta saída, quem escolheu um
-              baralho ficaria preso a ele sem entender por que os outros jogos esvaziaram. */}
-          {baralhoAnki && (
-            <button
-              onClick={() => setBaralhoAnki(null)}
-              title="Voltar a jogar com todo o acervo"
-              className="flex items-center gap-1.5 px-2.5 py-2.5 rounded-xl border border-border-subtle bg-surface text-[12.5px] font-bold text-ink-soft hover:border-accent transition-colors cursor-pointer"
-            >
-              <X className="w-3.5 h-3.5" aria-hidden />
-            </button>
-          )}
-          {fontesOferecidas.length > 1 && (
-            <button
-              onClick={() => setSalaAberta(true)}
-              title="Idioma, nível da trilha e qual gravação"
-              className="flex items-center gap-1.5 px-3 py-2.5 rounded-xl border border-border-subtle bg-surface text-[12.5px] font-bold text-ink hover:border-accent transition-colors cursor-pointer"
-            >
-              <SlidersIcon className="w-3.5 h-3.5" aria-hidden />
-              {fonte.lang ? langLabelPt(fonte.lang) : 'ajustar'}
-            </button>
-          )}
-        </div>
-      </div>
-        </div>
-      )}
+      {/* A FAIXA DE AÇÕES SAIU DAQUI. Anki, Baralhos e o seletor de idioma flutuavam à direita,
+          acima do seletor, como três botões sem rótulo de grupo: pareciam navegação da tela e
+          eram, na verdade, parte de UMA decisão — de onde vem o que eu jogo. Foram para o rodapé
+          da gaveta, atrás da separação "trazer ou gerenciar", junto das facetas que governam.
+          Com isso a tela perde a terceira linha de controle: sobra o resumo e a gaveta. */}
 
       {/* ── O SELETOR DE CONTEÚDO: três linhas de controle viraram uma (redesenho de 02/09) ───
           Abas de fonte, chips de baralho e a faixa de recorte eram três controles que não se
@@ -2681,7 +2620,57 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
                 ? 'nenhum item passa; desligue um recorte para voltar a ter material'
                 : undefined
             }
+            /* AS AÇÕES DESCERAM PARA DENTRO. Anki, Baralhos e o seletor de idioma ficavam soltos
+               acima da linha, três botões sem rótulo de grupo que pareciam navegação da tela.
+               Pertencem a esta decisão — de onde vem o que eu jogo —, mas não são facetas: não
+               recortam nada, abrem outra tela. Daí ficarem no rodapé, atrás de uma separação. */
+            acoes={
+              <>
+                <button
+                  onClick={() => setImportando(true)}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border-subtle bg-surface text-[12.5px] font-semibold text-ink hover:border-accent transition-colors cursor-pointer"
+                >
+                  <Package className="w-3.5 h-3.5" aria-hidden />
+                  {ageProfile === 'kids' ? 'Palavras de fora' : 'Trazer do Anki'}
+                </button>
+                {temBaralhosAnki && (
+                  <button
+                    onClick={() => setVendoBaralhos(true)}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border-subtle bg-surface text-[12.5px] font-semibold text-ink hover:border-accent transition-colors cursor-pointer"
+                  >
+                    <Layers className="w-3.5 h-3.5" aria-hidden />
+                    Gerenciar baralhos
+                  </button>
+                )}
+                <button
+                  onClick={() => setSalaAberta(true)}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border-subtle bg-surface text-[12.5px] font-semibold text-ink hover:border-accent transition-colors cursor-pointer"
+                >
+                  <SlidersIcon className="w-3.5 h-3.5" aria-hidden />
+                  Escolher gravação
+                </button>
+              </>
+            }
             facetas={[
+              {
+                /* IDIOMA É A PRIMEIRA FACETA porque manda em todas as outras: trocar de idioma
+                   troca o acervo inteiro, e as contagens abaixo passam a falar de outro material.
+                   Ele morava atrás de um botão que abria um modal — a decisão mais determinante
+                   da tela era a mais escondida. A lista completa continua na Sala, para quem
+                   estuda um idioma que ainda não tem palavra nenhuma. */
+                id: 'idioma',
+                rotulo: 'idioma',
+                exclusiva: true,
+                valor: fonte.lang ? [baseLang(fonte.lang)] : [],
+                aoTrocar: (lang) => aplicarEscolha({ ...escolhaAtual, lang }),
+                opcoes: idiomasDoBaralho.map(i => ({
+                  id: i.lang,
+                  rotulo: langLabelPt(i.lang),
+                  contagem: i.jogaveis,
+                  icone: <Globe className="w-3.5 h-3.5" aria-hidden />,
+                  motivoBloqueio: i.jogaveis === 0 ? 'nenhuma palavra pronta para jogar neste idioma ainda' : undefined,
+                })),
+              },
               {
                 id: 'fonte',
                 rotulo: 'de onde vêm',
@@ -2700,9 +2689,39 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
                     id: aba.origem,
                     rotulo: aba.rotulo[ageProfile],
                     contagem,
+                    icone: aba.origem === 'trilha' ? <GraduationCap className="w-3.5 h-3.5" aria-hidden />
+                      : aba.origem === 'dificeis' ? <Flame className="w-3.5 h-3.5" aria-hidden />
+                      : <Mic className="w-3.5 h-3.5" aria-hidden />,
                     motivoBloqueio: oferecida ? undefined : aba.semMaterial,
                   };
                 }),
+              },
+              {
+                /* A VISÃO DA TRILHA, que não existia. Com o Curso escolhido a gaveta mostrava
+                   UMA faceta e mais nada — a pessoa via "2.784 palavras" sem saber que elas estão
+                   organizadas em níveis, nem em qual delas está. O nível já era escolhível, mas só
+                   dentro do modal; aqui ele fica ao lado da fonte que o governa, com o tamanho de
+                   cada etapa à vista. "Todos os níveis" é a ausência de recorte, e por isso vem
+                   primeiro: é o estado em que a trilha nasce. */
+                id: 'nivel',
+                rotulo: 'nível do curso',
+                ajuda: 'cada etapa tem o seu vocabulário',
+                exclusiva: true,
+                valor: [fonte.nivel ?? 'todos'],
+                aoTrocar: (n) => aplicarEscolha({ ...escolhaAtual, nivel: n === 'todos' ? undefined : (n as CefrLevel) }),
+                opcoes: fonte.id !== 'trilha' || !trilha ? [] : [
+                  {
+                    id: 'todos',
+                    rotulo: 'Todos os níveis',
+                    contagem: trilhaDe(fonte.lang).total,
+                    icone: <BookOpen className="w-3.5 h-3.5" aria-hidden />,
+                  },
+                  ...trilhaDe(fonte.lang).niveis.map(n => ({
+                    id: n,
+                    rotulo: n,
+                    contagem: trilha.niveis[n]?.length ?? 0,
+                  })),
+                ],
               },
               {
                 id: 'baralho',
@@ -2710,8 +2729,9 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
                 ajuda: 'nenhum marcado = todos',
                 valor: filtro.baralhos,
                 aoTrocar: (id) => setBaralhoAnki(filtro.baralhos.includes(id) ? null : (decksAnki.find(d => d.id === id) ?? null)),
-                opcoes: fonte.id === 'trilha' ? [] : decksAnki.map((d, i) => ({
+                opcoes: fonte.id === 'trilha' ? [] : decksAnki.map((d) => ({
                   id: d.id,
+                  icone: <Package className="w-3.5 h-3.5" aria-hidden />,
                   /* O NOME DO BARALHO COMO SE LÊ, não como o Anki o guarda. Dois problemas reais
                      do acervo do dono: o `::` da hierarquia do Anki ("4000 Essential English
                      Words::1.Book") é sintaxe de arquivo, não nome; e importar o mesmo arquivo
@@ -2744,18 +2764,22 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
                 opcoes: fonte.id === 'trilha' ? [] : [
                   {
                     id: 'pedindoRevisao', rotulo: 'Pedindo revisão', contagem: contagemRecortes.pedindo,
+                    icone: <CalendarClock className="w-3.5 h-3.5" aria-hidden />,
                     motivoBloqueio: contagemRecortes.pedindo === 0 ? 'nada vencido neste acervo agora' : undefined,
                   },
                   {
                     id: 'nuncaVistas', rotulo: 'Nunca vistas', contagem: contagemRecortes.nunca,
+                    icone: <Sparkles className="w-3.5 h-3.5" aria-hidden />,
                     motivoBloqueio: contagemRecortes.nunca === 0 ? 'tudo aqui já foi visto ao menos uma vez' : undefined,
                   },
                   {
                     id: 'comTraducao', rotulo: 'Com tradução', contagem: contagemRecortes.traducao,
+                    icone: <Languages className="w-3.5 h-3.5" aria-hidden />,
                     motivoBloqueio: contagemRecortes.traducao === 0 ? 'nenhum item deste acervo tem tradução utilizável' : undefined,
                   },
                   {
                     id: 'comFrase', rotulo: 'Com frase', contagem: contagemRecortes.frase,
+                    icone: <MessageSquareText className="w-3.5 h-3.5" aria-hidden />,
                     motivoBloqueio: contagemRecortes.frase === 0 ? 'nenhum item deste acervo tem frase de exemplo' : undefined,
                   },
                 ],

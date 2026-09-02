@@ -18,32 +18,36 @@ Ordem por risco crescente. As fases 0–1 não mudam comportamento nenhum.
 - [x] 2.2 `trilha` vira `useState` + `useEffect` com guard `let vivo`, no mesmo padrão do efeito
       de composição que já existe em `Play.tsx`
 - [x] 2.3 `carregandoTrilha` alimenta o esqueleto da grade — nunca o motivo "sem material"
-- [ ] 2.4 Prefetch ao trocar de idioma na Sala e ao marcar a fonte trilha
+- [x] 2.4 Prefetch ao trocar de idioma na Sala e ao marcar a fonte trilha
 - [x] 2.5 Playwright: entrar em `/jogar`, escolher Trilha, confirmar que a contagem **nunca passa
       por zero** e que nenhum jogo pisca "sem material"
 
 ## Fase 3 — schema (risco médio)
 
-- [ ] 3.1 Script de migração: `en.json` v2 + `glosas/en-pt.json`, contando colisões
-- [ ] 3.2 Join trilha+glosa no carregador (o seam) — `trilha.ts`, `etapas.ts` e `PainelTrilha.tsx`
-      não mudam de forma
-- [ ] 3.3 `DadoTrilha` ganha `escala` e `procedencia`
+- [~] 3.1 O `es` nasceu em v2; o `en` **não foi migrado** — o carregador aceita as duas versões, e
+      converter o inglês agora seria risco sem ganho (ver "o que sobrou", abaixo)
+- [x] 3.2 Join trilha+glosa no carregador (o seam) — `trilha.ts`, `etapas.ts` e `PainelTrilha.tsx`
+      não mudaram de forma. 7 testes em `tests/trilha-carregar.test.ts`
+- [x] 3.3 `DadoTrilha` ganha `escala` e `procedencia`
 
 ## Fase 4 — F26 e honestidade do nível (risco médio, valor alto)
 
-- [ ] 4.1 Promoção usa a glosa do par; par ausente → modo monolíngue com motivo real
-- [ ] 4.2 Palavra sem glosa joga mas não promove
-- [ ] 4.3 `cefrLevel` só é gravado quando `escala === 'cefr'`
-- [ ] 4.4 `nivelCefr` ganha `frequencia` e `faixa`; `level` nulo nesse caso
-- [ ] 4.5 Diagnóstico do dano legado (contagem, sem reescrita automática)
-- [ ] 4.6 Rótulo da etapa derivado de `escala` na tela
+- [x] 4.1 Promoção usa a glosa do par (o join entrega o cartão já com pista)
+- [x] 4.2 Palavra sem glosa joga mas não promove (`filter(c => !!c.translation?.trim())`)
+- [x] 4.3 `cefrLevel` só é gravado quando `escala === 'cefr'`; senão `null` com confiança 0
+- [x] 4.4 `nivelCefr` ganha `frequencia` e `faixa`; `level` nulo nesse caso
+- [x] 4.5 `scripts/trilha/diagnostico.mjs` conta o dano sem reescrever. Neste banco: 0 cartões da
+      trilha (só anki 2.922 e sessao 467), logo 0 de dano
+- [x] 4.6 Rótulo da etapa derivado de `escala` — Sala, gaveta, painel e nome da etapa
 
 ## Fase 5 — pipeline e primeiro idioma novo (risco baixo, por construção)
 
 - [x] 5.1 `scripts/trilha/{fontes,filtrar,faixas,frases,glosas,gerar}.mjs`
-- [ ] 5.2 Gerar a trilha piloto e medir a saída (palavras por nível, % com frase, cobertura)
+- [x] 5.2 Trilha piloto `es`: 5.727 palavras lematizadas, 955 por faixa, 41% com glosa (59% na A1).
+      Wikidata (CC0) 732 pares + Wikcionário/Wiktextract (CC BY-SA) 13.740
 - [ ] 5.3 Amostra de 30 palavras revisada por falante nativo, com a taxa registrada no `FONTES.md`
-- [ ] 5.4 Tabela de cobertura por idioma na tela
+- [x] 5.4 Tabela de cobertura por idioma na tela — `CoberturaDosIdiomas`, recolhida na gaveta do
+      seletor e na Sala, com trilha, palavras, voz do navegador e o que é do usuário
 
 ## Rollout proposto
 

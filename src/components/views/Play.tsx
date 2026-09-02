@@ -36,6 +36,7 @@ import { faixaDe as faixaDaComposicao, type EstrategiaDaUI } from '../../core/mi
 import { lerPrecisoes, registrarPrecisao, registrarVistas, vistasRecentes as vistasGuardadas } from '../../lib/memoriaLocal';
 import SalaDeEscolha from '../minigames/SalaDeEscolha';
 import SeletorDeConteudo from '../minigames/SeletorDeConteudo';
+import CoberturaDosIdiomas from '../minigames/CoberturaDosIdiomas';
 import { isTtsSupported, hasVoiceFor, vozesCarregadas, aoMudarVozes } from '../../lib/tts';
 import { useAudioDaSessao } from '../../lib/audioDaSessao';
 import CuradoriaBaralho from './CuradoriaBaralho';
@@ -47,7 +48,9 @@ import PainelTrilha from './PainelTrilha';
 import BaralhoAnki from './BaralhoAnki';
 import BaralhosAnki from './BaralhosAnki';
 import { listarBaralhosAnki } from '../../data/apiAnki';
-import { indiceDaTrilha, carregarTrilha, trilhaEmCache } from '../../data/trilha/carregar';
+import { indiceDaTrilha, carregarTrilha, trilhaEmCache, precarregarNiveis } from '../../data/trilha/carregar';
+import { escalaDe } from '../../core/learning/cefrWordlist';
+import { rotuloDaEtapa } from '../../core/learning/trilha';
 import ComoSeJoga from '../minigames/ComoSeJoga';
 import AntessalaDaRodada from '../minigames/AntessalaDaRodada';
 import { toast } from '../Toast';
@@ -1098,7 +1101,14 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
      * Roda DEPOIS de a rodada terminar e sem travar a tela — se a rede falhar, perde-se uma
      * promoção, não a partida.
      */
-    if (fonte.id === 'trilha' && fonte.nivel) {
+    /* F26 — A GLOSA É DE UM PAR, e promover ignorando isso corrompe o banco. A trilha do inglês
+       traz tradução PORTUGUESA embutida; para quem estuda com nativo espanhol, gravá-la como
+       `tgtLang: 'es'` produz um cartão que afirma ser espanhol e é português. O índice diz para
+       quais nativos existe glosa; fora deles a rodada joga, mas não promove. */
+    const paresDaTrilha = entradaDaTrilha?.glosas ?? [];
+    const glosaDoNativo = paresDaTrilha.includes(baseLang(idiomaNativo));
+
+    if (fonte.id === 'trilha' && fonte.nivel && glosaDoNativo) {
       /* `Set` na itemRef: um jogo pode apresentar a MESMA palavra mais de uma vez na rodada (o
          Duelo sorteia distratores do próprio lote), e sem isto o lote sairia com a palavra
          repetida. O servidor deduplica e não criaria linha dupla, mas mandar duas é pedir para
@@ -1116,17 +1126,23 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
         vistas.add(k);
         return true;
       });
+      /* F26: `fonte.nivel` só é CEFR quando a trilha do idioma foi medida por linguista. Numa
+         trilha por frequência os mesmos seis rótulos são faixas de corpus, e gravá-los como CEFR
+         curado com confiança 1 plantaria um dado falso no banco. */
+      const curado = escalaDe(fonte.lang) === 'cefr';
       const novos = errados
         .map(o => porPalavra.get((o.itemRef ?? '').toLowerCase()))
         .filter((c): c is VocabCard => !!c && !c.id)
+        // Sem glosa do par não há pista: o cartão jogaria, mas nasceria mudo no baralho.
+        .filter(c => !!c.translation?.trim())
         .map(c => ({
           word: c.word,
           back: c.translation,
           srcLang: c.srcLang,
           tgtLang: idiomaNativo,
           sessionId: SESSAO_DA_TRILHA(fonte.lang),
-          cefrLevel: fonte.nivel,
-          cefrConfidence: CONFIANCA_CURADA,
+          cefrLevel: curado ? fonte.nivel : null,
+          cefrConfidence: curado ? CONFIANCA_CURADA : 0,
         }));
       if (novos.length) {
         try {
@@ -1395,7 +1411,11 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
    */
   const aplicarEscolha = (escolha: EscolhaDaPratica) => {
     if (baseLang(escolha.lang) !== baseLang(fonte.lang)) trocarIdioma(escolha.lang);
-    setFonte(fonteDaEscolha(escolha));
+    /* A TRILHA NÃO ATRAVESSA IDIOMA. Sair do inglês com a fonte trilha marcada deixava a tela
+       anunciando "Curso de palavras · japonês · 0 palavras", sem jogo nenhum e sem dizer por quê.
+       A Sala já caía para as gravações nesse caso; a gaveta e o recorte por baralho, não. */
+    const semTrilha = escolha.origem === 'trilha' && !indiceDaTrilha()[baseLang(escolha.lang)];
+    setFonte(fonteDaEscolha(semTrilha ? { ...escolha, origem: 'gravacoes', nivel: undefined } : escolha));
     // A persistência mudou de lugar: um efeito grava o FILTRO inteiro a cada mudança (e espelha a
     // chave legada) — antes, só a escolha da Sala sobrevivia ao F5; o recorte por baralho evaporava.
   };
@@ -1475,26 +1495,24 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
     return () => { vivo = false; };
   }, [deck, fonte, filtro, faixas, estrategia, baralhoAnki, rankingDeDificeis]);
 
-  /**
-   * A lista curada do idioma escolhido. Hoje só existe inglês (`data/trilha/en.json`); outros
-   * idiomas simplesmente não oferecem a aba, em vez de oferecerem uma trilha vazia.
-   */
-  /* A trilha carrega sob demanda. O ÍNDICE responde pelas contagens (existe? quantas?) sem baixar
-     nada — é ele que impede a aba de sumir e o número de piscar zero enquanto o dado vem. */
+  /* A trilha carrega sob demanda, já unida às glosas do par praticado→nativo. O ÍNDICE responde
+     pelas contagens (existe? quantas?) sem baixar nada — é ele que impede a aba de sumir e o
+     número de piscar zero enquanto o dado vem. */
   const entradaDaTrilha = useMemo(() => indiceDaTrilha()[baseLang(fonte.lang)] ?? null, [fonte.lang]);
-  const [trilha, setTrilha] = useState<DadoTrilha | null>(() => trilhaEmCache(fonte.lang));
+  const [trilha, setTrilha] = useState<DadoTrilha | null>(() => trilhaEmCache(fonte.lang, idiomaNativo));
   const [carregandoTrilha, setCarregandoTrilha] = useState(false);
   useEffect(() => {
     if (!entradaDaTrilha) { setTrilha(null); return; }
-    const emCache = trilhaEmCache(fonte.lang);
+    void precarregarNiveis(fonte.lang);
+    const emCache = trilhaEmCache(fonte.lang, idiomaNativo);
     if (emCache) { setTrilha(emCache); return; }
     let vivo = true;
     setCarregandoTrilha(true);
-    carregarTrilha(fonte.lang)
+    carregarTrilha(fonte.lang, idiomaNativo)
       .then(d => { if (vivo) setTrilha(d); })
       .finally(() => { if (vivo) setCarregandoTrilha(false); });
     return () => { vivo = false; };
-  }, [fonte.lang, entradaDaTrilha]);
+  }, [fonte.lang, idiomaNativo, entradaDaTrilha]);
 
   /* SELEÇÃO v2 — as frases da trilha (Tatoeba) no formato que os jogos de frase consomem. */
   /**
@@ -1629,11 +1647,17 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
    * Hoje só existe `data/trilha/en.json`; o dia em que houver outro, esta é a única função a mudar.
    */
   /* Só contagens — vem do índice, sem baixar o dado. É o que a Sala e o seletor precisam. */
+  const prefetchTrilha = React.useCallback((lang: string) => {
+    void precarregarNiveis(lang);
+    void carregarTrilha(lang, idiomaNativo);
+  }, [idiomaNativo]);
+
   const trilhaDe = React.useCallback((lang: string) => {
     const e = indiceDaTrilha()[baseLang(lang)];
-    if (!e) return { niveis: [] as CefrLevel[], total: 0, porNivel: {} as Partial<Record<CefrLevel, number>> };
+    const vazia = { niveis: [] as CefrLevel[], total: 0, porNivel: {} as Partial<Record<CefrLevel, number>>, escala: null };
+    if (!e) return vazia;
     const niveis = (Object.keys(e.porNivel) as CefrLevel[]).filter(n => (e.porNivel[n] ?? 0) > 0);
-    return { niveis, total: e.total, porNivel: e.porNivel as Partial<Record<CefrLevel, number>> };
+    return { niveis, total: e.total, porNivel: e.porNivel as Partial<Record<CefrLevel, number>>, escala: e.escala };
   }, []);
 
   /**
@@ -2338,8 +2362,12 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
       <BaralhosAnki
         onVoltar={() => { setVendoBaralhos(false); void recarregarBaralhosAnki(); }}
         onImportar={() => { setVendoBaralhos(false); setImportando(true); }}
-        onJogarCom={(id, nome) => {
+        /* O IDIOMA VEM JUNTO. Recortar por um baralho de japonês sem sair do inglês deixava a
+           gaveta — que lista baralhos do idioma vigente — sem o chip do baralho recortado: o
+           recorte ficava ligado e sem o controle que o desliga. */
+        onJogarCom={(id, nome, lang) => {
           setBaralhoAnki({ id, nome });
+          if (lang && baseLang(lang) !== baseLang(fonte.lang)) trocarIdioma(lang);
           setVendoBaralhos(false);
         }}
         /* Ativar projeta cartões novos: o baralho da tela precisa ser relido, senão o lobby
@@ -2428,6 +2456,7 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
       idiomas={idiomasDoBaralho}
       gravacoes={sessoes}
       trilhaDe={trilhaDe}
+      prefetchTrilha={prefetchTrilha}
       dificeis={rankingDeDificeis.length}
       ageProfile={ageProfile}
       aoFechar={() => setSalaAberta(false)}
@@ -2660,6 +2689,11 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
                   <Globe className="w-3.5 h-3.5" aria-hidden />
                   Outro idioma
                 </button>
+                {/* Ao lado de "outro idioma", que é a pergunta que ela responde: o app oferece 28
+                    e não entrega 28 experiências iguais. */}
+                <div className="w-full">
+                  <CoberturaDosIdiomas baralho={idiomasDoBaralho} />
+                </div>
               </>
             }
             facetas={[
@@ -2734,21 +2768,23 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
                    cada etapa à vista. "Todos os níveis" é a ausência de recorte, e por isso vem
                    primeiro: é o estado em que a trilha nasce. */
                 id: 'nivel',
-                rotulo: 'nível do curso',
-                ajuda: 'cada etapa tem o seu vocabulário',
+                rotulo: trilha?.escala === 'frequencia' ? 'faixa do curso' : 'nível do curso',
+                ajuda: trilha?.escala === 'frequencia'
+                  ? 'por frequência de uso — a faixa 1 traz as mais comuns'
+                  : 'cada etapa tem o seu vocabulário',
                 exclusiva: true,
                 valor: [fonte.nivel ?? 'todos'],
                 aoTrocar: (n) => aplicarEscolha({ ...escolhaAtual, nivel: n === 'todos' ? undefined : (n as CefrLevel) }),
                 opcoes: fonte.id !== 'trilha' || !trilha ? [] : [
                   {
                     id: 'todos',
-                    rotulo: 'Todos os níveis',
+                    rotulo: trilha.escala === 'frequencia' ? 'Todas as faixas' : 'Todos os níveis',
                     contagem: trilhaDe(fonte.lang).total,
                     icone: <BookOpen className="w-3.5 h-3.5" aria-hidden />,
                   },
                   ...trilhaDe(fonte.lang).niveis.map(n => ({
                     id: n,
-                    rotulo: n,
+                    rotulo: rotuloDaEtapa(n, trilha.escala),
                     contagem: trilha.niveis[n]?.length ?? 0,
                   })),
                 ],

@@ -34,6 +34,14 @@ export interface DadoTrilha {
   fonte: string;
   versao: string;
   /**
+   * `cefr` = nível medido por linguista. `frequencia` = faixa derivada de quantas vezes a palavra
+   * aparece num corpus. As duas usam os mesmos seis rótulos por conveniência de ordenação, e é
+   * exatamente por isso que a distinção precisa viajar com o dado: chamar faixa de frequência de
+   * "A1" na tela, ou gravá-la como CEFR no cartão, seria mentir num lugar novo.
+   */
+  escala?: 'cefr' | 'frequencia';
+  procedencia?: string;
+  /**
    * `[palavra, traducao]` e, quando existe, `[palavra, traducao, frase, fraseTraduzida]`.
    *
    * O par não é conveniência: é a única forma de a trilha ser jogável sem tradutor externo — ver o
@@ -49,6 +57,20 @@ export interface DadoTrilha {
 
 /** A ordem dos níveis — usada para "até este nível" e para o próximo degrau. */
 export const NIVEIS_CEFR: CefrLevel[] = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2'];
+
+export type EscalaDaTrilha = 'cefr' | 'frequencia';
+
+/**
+ * Como chamar a etapa na tela. Numa trilha por frequência os seis rótulos são fatias do corpus,
+ * e escrever "A1" ali seria afirmar um nível que ninguém mediu.
+ */
+export function rotuloDaEtapa(nivel: CefrLevel, escala?: EscalaDaTrilha | null): string {
+  return escala === 'frequencia' ? String(NIVEIS_CEFR.indexOf(nivel) + 1) : nivel;
+}
+
+export function nomeDaEscala(escala?: EscalaDaTrilha | null): string {
+  return escala === 'frequencia' ? 'Faixa de frequência' : 'Nível';
+}
 
 /** Confiança do nível vindo da trilha. 1 = medido por linguista, não estimado. */
 export const CONFIANCA_CURADA = 1;

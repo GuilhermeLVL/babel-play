@@ -40,7 +40,7 @@ export interface BaralhosAnkiProps {
    * pessoa está olhando os baralhos e sabe qual quer; obrigá-la a voltar e procurar um seletor
    * seria pedir que ela guardasse o nome na cabeça no caminho.
    */
-  onJogarCom?: (deckId: string, nome: string) => void
+  onJogarCom?: (deckId: string, nome: string, lang?: string) => void
   /** Ativar cria cartões: quem montou esta tela precisa reler o baralho depois. */
   onAtivou?: () => void
 }
@@ -236,7 +236,7 @@ function CartaoDeBaralho({
   onAtivarMais: () => void
   onDesativar: () => void
   onPedirPurga: () => void
-  onJogarCom?: (deckId: string, nome: string) => void
+  onJogarCom?: (deckId: string, nome: string, lang?: string) => void
 }) {
   // Quantas dá pra ativar agora: o que não está ativo, nem descartado, nem ausente.
   const restantes = Math.max(0, deck.total - deck.ativas - deck.descartadas - deck.ausentes)
@@ -295,7 +295,7 @@ function CartaoDeBaralho({
             tem com que jogar, e o botão levaria a uma rodada vazia. */}
         {onJogarCom && deck.estado === 'ativo' && deck.ativas > 0 && (
           <button
-            onClick={() => onJogarCom(deck.id, deck.nome)}
+            onClick={() => onJogarCom(deck.id, deck.nome, deck.idiomaOrigem ?? undefined)}
             className="py-1.5 px-3 bg-canvas border border-border-subtle hover:border-accent text-ink rounded-lg font-semibold text-[12px] cursor-pointer flex items-center gap-1.5"
           >
             <Play className="w-3.5 h-3.5" /> Jogar só com este

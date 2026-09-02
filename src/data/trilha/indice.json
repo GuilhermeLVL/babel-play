@@ -15,5 +15,22 @@
     "glosas": [
       "pt"
     ]
+  },
+  "es": {
+    "escala": "frequencia",
+    "versao": 2,
+    "total": 5727,
+    "comFrase": 0,
+    "porNivel": {
+      "A1": 955,
+      "A2": 955,
+      "B1": 955,
+      "B2": 955,
+      "C1": 955,
+      "C2": 952
+    },
+    "glosas": [
+      "pt"
+    ]
   }
 }

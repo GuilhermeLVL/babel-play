@@ -7,6 +7,7 @@ import { fileURLToPath } from 'node:url'
 
 const RAIZ = join(dirname(fileURLToPath(import.meta.url)), '..', '..')
 const DIR = join(RAIZ, 'src', 'data', 'trilha')
+const DIR_GLOSAS = join(RAIZ, 'src', 'data', 'glosas')
 const NIVEIS = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2']
 
 function chave(palavra) {
@@ -18,11 +19,23 @@ const idiomas = readdirSync(DIR)
   .map((f) => f.slice(0, -5))
   .sort()
 
+/** Idiomas nativos com arquivo de glosa para `lang` — é o que a tela pode oferecer como pista. */
+function paresDe(lang) {
+  let arquivos
+  try { arquivos = readdirSync(DIR_GLOSAS) } catch { return [] }
+  return arquivos
+    .filter((f) => f.startsWith(`${lang}-`) && f.endsWith('.json'))
+    .map((f) => f.slice(lang.length + 1, -5))
+    .sort()
+}
+
 mkdirSync(join(DIR, 'niveis'), { recursive: true })
 const indice = {}
 
 for (const lang of idiomas) {
   const dado = JSON.parse(readFileSync(join(DIR, `${lang}.json`), 'utf8'))
+  // v1 guarda a frase em [2] (depois da tradução); v2 é monolíngue e a guarda em [1].
+  const colunaDaFrase = Number(dado.versao) === 2 ? 1 : 2
   const vistas = new Set()
   const porNivel = {}
   const niveis = {}
@@ -36,7 +49,7 @@ for (const lang of idiomas) {
     total += itens.length
     const palavras = []
     for (const item of itens) {
-      if (item[2]) comFrase++
+      if (item[colunaDaFrase]) comFrase++
       const k = chave(item[0])
       if (!k) continue
       if (vistas.has(k)) { colisoes++; continue } // primeira ocorrência vence
@@ -49,11 +62,12 @@ for (const lang of idiomas) {
   writeFileSync(join(DIR, 'niveis', `${lang}.json`), JSON.stringify(niveis) + '\n')
   indice[lang] = {
     escala: dado.escala ?? 'cefr',
-    versao: 1,
+    versao: Number(dado.versao) === 2 ? 2 : 1,
     total,
     comFrase,
     porNivel,
-    glosas: ['pt'],
+    // v1 traz a tradução dentro do par; v2 só joga com pista se houver arquivo do par.
+    glosas: Number(dado.versao) === 2 ? paresDe(lang) : ['pt'],
   }
 
   console.log(`${lang}: total ${total} · comFrase ${comFrase} · únicas ${vistas.size} · colisões ${colisoes}`)

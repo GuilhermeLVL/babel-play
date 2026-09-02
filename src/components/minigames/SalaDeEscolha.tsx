@@ -2,9 +2,11 @@ import { useEffect, useRef, useState } from 'react';
 import { X, Check as IconeCheck, Mic, GraduationCap, Flame, Globe, Layers, FileAudio } from 'lucide-react';
 import { Segmentado } from '../ui';
 import LangPicker from '../LangPicker';
+import CoberturaDosIdiomas from './CoberturaDosIdiomas';
 import { langLabelPt } from '../../lib/languages';
 import type { AgeProfileType } from '../../lib/profile';
 import type { EscolhaDaPratica, OrigemDaPratica, EscopoDeGravacoes, CefrLevel } from '@core';
+import { nomeDaEscala, rotuloDaEtapa, type EscalaDaTrilha } from '../../core/learning/trilha';
 
 /**
  * A SALA DE ESCOLHA — o que você vai jogar, decidido antes de a tela encher de cartas.
@@ -55,7 +57,14 @@ interface SalaProps {
    * a Trilha bloqueada dizendo "ainda não existe trilha em português" — o idioma da frase era o
    * antigo, e a pessoa via a opção recusar exatamente o que ela acabou de pedir.
    */
-  trilhaDe: (lang: string) => { niveis: CefrLevel[]; total: number; porNivel?: Partial<Record<CefrLevel, number>> };
+  trilhaDe: (lang: string) => {
+    niveis: CefrLevel[];
+    total: number;
+    porNivel?: Partial<Record<CefrLevel, number>>;
+    escala?: EscalaDaTrilha | null;
+  };
+  /** Aquece a trilha do idioma enquanto a pessoa ainda decide — o clique em Jogar já a encontra. */
+  prefetchTrilha?: (lang: string) => void;
   /** Tamanho do ranking de palavras difíceis (servidor). Menos de 4 = sem rodada possível. */
   dificeis: number;
   ageProfile: AgeProfileType;
@@ -64,7 +73,7 @@ interface SalaProps {
 }
 
 export default function SalaDeEscolha({
-  escolhaAtual, idiomas, gravacoes, trilhaDe, dificeis, ageProfile, aoConfirmar, aoFechar,
+  escolhaAtual, idiomas, gravacoes, trilhaDe, prefetchTrilha, dificeis, ageProfile, aoConfirmar, aoFechar,
 }: SalaProps) {
   const [lang, setLang] = useState(escolhaAtual.lang);
   const [origem, setOrigem] = useState<OrigemDaPratica>(escolhaAtual.origem);
@@ -77,7 +86,8 @@ export default function SalaDeEscolha({
   const dialogo = useRef<HTMLDivElement | null>(null);
 
   // Sempre sobre o idioma SELECIONADO — ver o docblock de `trilhaDe`.
-  const { niveis: niveisDaTrilha, total: totalDaTrilha, porNivel: tamanhoDoNivel } = trilhaDe(lang);
+  const { niveis: niveisDaTrilha, total: totalDaTrilha, porNivel: tamanhoDoNivel, escala } = trilhaDe(lang);
+  const porFrequencia = escala === 'frequencia';
   const temTrilha = niveisDaTrilha.length > 0;
 
   /**
@@ -102,6 +112,12 @@ export default function SalaDeEscolha({
   useEffect(() => {
     if (origem === 'trilha' && !temTrilha) setOrigem('gravacoes');
   }, [temTrilha, origem]);
+
+  /* O download começa enquanto a sala ainda está aberta: quem confirma encontra a trilha pronta,
+     em vez do esqueleto de carregamento na primeira pintura da grade. */
+  useEffect(() => {
+    if (temTrilha) prefetchTrilha?.(lang);
+  }, [lang, temTrilha, prefetchTrilha]);
 
   /**
    * Foco inicial no botão que a maioria vai apertar. `preventScroll` não é detalhe: sem ele o
@@ -238,6 +254,8 @@ export default function SalaDeEscolha({
                 />
               </div>
             )}
+
+            <CoberturaDosIdiomas baralho={idiomas} />
           </section>
 
           {/* ── DE ONDE ─────────────────────────────────────────────────────────────────────
@@ -336,21 +354,29 @@ export default function SalaDeEscolha({
             <section>
               <p className="label-mono mb-2 flex items-center gap-1.5">
                 <GraduationCap className="w-3 h-3" aria-hidden />
-                Nível da trilha
+                {nomeDaEscala(escala)} da trilha
               </p>
               <Segmentado
-                rotuloDoGrupo="Nível da trilha"
+                rotuloDoGrupo={`${nomeDaEscala(escala)} da trilha`}
                 valor={nivel ? [nivel] : []}
                 aoTrocar={(n) => setNivel(n as CefrLevel)}
                 /* Cada etapa com o SEU tamanho: escolher "B2" sem saber se ali há 60 ou 600
                    palavras é escolher às cegas, e a gaveta do lobby já mostrava esse número. */
-                opcoes={niveisDaTrilha.map(n => ({ id: n, rotulo: n, contagem: tamanhoDoNivel?.[n] }))}
+                opcoes={niveisDaTrilha.map(n => ({
+                  id: n, rotulo: rotuloDaEtapa(n, escala), contagem: tamanhoDoNivel?.[n],
+                }))}
               />
               <p className="text-[11.5px] text-ink-faint mt-2">
                 {nivel
-                  ? <>Nível <b className="text-ink-muted">{nivel}</b> — a trilha combinada tem <b className="text-ink-muted tabular-nums">{totalDaTrilha.toLocaleString('pt-BR')}</b> palavras no total.</>
-                  : 'Sem escolher um nível, a trilha joga com todos de uma vez.'}
+                  ? <>{nomeDaEscala(escala)} <b className="text-ink-muted">{rotuloDaEtapa(nivel, escala)}</b> — a trilha combinada tem <b className="text-ink-muted tabular-nums">{totalDaTrilha.toLocaleString('pt-BR')}</b> palavras no total.</>
+                  : `Sem escolher, a trilha joga com ${porFrequencia ? 'todas as faixas' : 'todos os níveis'} de uma vez.`}
               </p>
+              {/* A promessa da tela tem de bater com o que o dado é: faixa de corpus não é CEFR. */}
+              {porFrequencia && (
+                <p className="text-[11.5px] text-ink-faint mt-1">
+                  Faixas por frequência de uso, não níveis do CEFR — a 1 traz as palavras mais comuns.
+                </p>
+              )}
             </section>
           )}
         </div>

@@ -48,19 +48,21 @@ describe('filtrar — as regras do FONTES.md', () => {
   });
 });
 
-describe('faixas — cobertura cumulativa, não contagem igual', () => {
-  it('a faixa inicial fica pequena quando a cabeça da lista é pesada', () => {
-    // 600 de massa na primeira palavra e 1 em cada uma das outras 600: ~1/6 da massa é 1 palavra.
-    const lista = [e('cabeca', 600), ...Array.from({ length: 600 }, (_, i) => e(`p${i}`, 1))];
+describe('faixas — contagem igual, não cobertura cumulativa', () => {
+  /* Cortar por massa de corpus parece justo e é inviável numa trilha: Zipf concentra a massa em
+     pouquíssimas palavras, e no espanhol real isso deu A1 com 32 palavras contra C2 com 968.179.
+     Faixa é etapa de estudo, e etapa precisa ter tamanho estudável. */
+  it('a cabeça pesada da lista não encolhe a primeira faixa', () => {
+    const lista = [e('cabeca', 600), ...Array.from({ length: 599 }, (_, i) => e(`p${i}`, 1))];
     const porNivel = faixas(lista);
-    expect(porNivel.A1.length).toBe(1);
-    expect(porNivel.C2.length).toBeGreaterThan(porNivel.A1.length);
+    expect(porNivel.A1.length).toBe(100);
+    expect(porNivel.C2.length).toBe(100);
   });
 
-  it('cada faixa carrega perto de um sexto do corpus', () => {
+  it('a fatia do corpus é desigual, e o cumulativo fecha em 1', () => {
     const lista = Array.from({ length: 600 }, (_, i) => e(`p${i}`, 600 - i));
     const cobertura = coberturaDasFaixas(faixas(lista));
-    for (const c of cobertura) expect(c.fatia).toBeGreaterThan(0.1);
+    expect(cobertura[0].fatia).toBeGreaterThan(cobertura.at(-1)!.fatia);
     expect(cobertura.at(-1)!.cumulativo).toBeCloseTo(1, 6);
   });
 

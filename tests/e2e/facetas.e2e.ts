@@ -148,10 +148,16 @@ test.describe('Facetas do acervo: fileira RECORTE', () => {
     await expect(chipDoBaralho, 'o baralho escolhido deveria estar marcado na gaveta').toBeVisible();
     await clicarRobusto(page, chipDoBaralho);
 
+    /* ANCORADO NO RESUMO, e não na tela inteira. O regex `jogando com[\s\S]*<nome>` atravessa
+       tudo o que vem depois, e a gaveta aberta lista os baralhos do idioma vigente — o nome
+       casaria ali mesmo com o recorte já desligado, e o teste falharia pelo motivo errado. */
+    const resumo = page.locator('div')
+      .filter({ has: page.getByRole('button', { name: 'Trocar' }) })
+      .last();
     await expect(
-      page.getByText(new RegExp(`jogando com[\\s\\S]*${escapaRegex(nomeBaralho!)}`, 'i')),
+      resumo,
       'depois de limpar, o resumo não deveria mais nomear o baralho',
-    ).not.toBeVisible();
+    ).not.toContainText(nomeBaralho!);
   });
 });
 

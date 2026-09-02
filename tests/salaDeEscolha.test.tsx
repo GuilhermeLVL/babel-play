@@ -200,3 +200,47 @@ describe('o botão primário diz o que faz', () => {
     expect(screen.queryByRole('button', { name: /^bora!?$/i })).toBeNull()
   })
 })
+
+describe('o rótulo da etapa segue a escala da trilha', () => {
+  const porFrequencia = () => ({
+    niveis: ['A1', 'A2'] as never[],
+    total: 5727,
+    porNivel: { A1: 955, A2: 955 },
+    escala: 'frequencia' as const,
+  })
+
+  it('trilha por frequência não escreve A1 na tela', () => {
+    render(
+      <SalaDeEscolha
+        escolhaAtual={{ origem: 'trilha', escopo: 'todas', lang: 'es' }}
+        idiomas={[{ lang: 'es', total: 10, jogaveis: 10 }]}
+        dificeis={0}
+        gravacoes={[]}
+        trilhaDe={porFrequencia}
+        ageProfile="pro"
+        aoConfirmar={vi.fn()}
+        aoFechar={vi.fn()}
+      />,
+    )
+    expect(screen.getByText(/Faixa de frequência da trilha/)).toBeTruthy()
+    expect(screen.getByText(/não níveis do CEFR/)).toBeTruthy()
+    expect(screen.queryByRole('radio', { name: /^A1/ })).toBeNull()
+  })
+
+  it('trilha CEFR continua dizendo Nível e A1', () => {
+    montar({ origem: 'trilha' })
+    expect(screen.getByText(/Nível da trilha/)).toBeTruthy()
+    expect(screen.queryByText(/não níveis do CEFR/)).toBeNull()
+  })
+})
+
+describe('a tabela de cobertura por idioma', () => {
+  it('vem recolhida e diz o que cada idioma tem', () => {
+    montar()
+    const resumo = screen.getByText('O que cada idioma tem hoje')
+    expect(resumo.closest('details')?.open).toBe(false)
+    fireEvent.click(resumo)
+    expect(screen.getByText('Trilha por nível')).toBeTruthy()
+    expect(screen.getAllByText('Só o seu conteúdo').length).toBeGreaterThan(0)
+  })
+})

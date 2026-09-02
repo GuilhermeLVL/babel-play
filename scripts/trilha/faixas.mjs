@@ -14,20 +14,18 @@ export function faixas(palavras) {
   const lista = palavras ?? [];
   const fora = {};
   for (const n of NIVEIS) fora[n] = [];
-  const massa = lista.reduce((s, p) => s + (Number(p.contagem) || 0), 0);
-  if (!lista.length || massa <= 0) return fora;
+  if (!lista.length) return fora;
 
-  const alvo = massa / NIVEIS.length;
-  let i = 0;
-  let acumulado = 0;
-  for (let k = 0; k < lista.length; k++) {
-    fora[NIVEIS[i]].push(lista[k]);
-    acumulado += Number(lista[k].contagem) || 0;
-    // Avança só depois de a faixa corrente ter ao menos uma palavra, e nunca além da última.
-    const restam = lista.length - (k + 1);
-    const faixasRestantes = NIVEIS.length - (i + 1);
-    if (i < NIVEIS.length - 1 && (acumulado >= alvo * (i + 1) || restam <= faixasRestantes)) i++;
-  }
+  /* Fatias iguais em CONTAGEM, sobre a lista já ordenada por frequência.
+     Cobertura cumulativa igual foi a primeira tentativa e produziu 32 palavras na faixa 1 e 1.579
+     na última (medido no espanhol): Zipf concentra a massa em pouquíssimas palavras, então dividir
+     por massa devolve um topo minúsculo e uma cauda gigante. Para uma trilha o útil é o contrário
+     — a faixa inicial é onde se passa mais tempo. */
+  const porFaixa = Math.ceil(lista.length / NIVEIS.length);
+  lista.forEach((p, k) => {
+    const i = Math.min(NIVEIS.length - 1, Math.floor(k / porFaixa));
+    fora[NIVEIS[i]].push(p);
+  });
   return fora;
 }
 

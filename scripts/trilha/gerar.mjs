@@ -15,6 +15,7 @@ import path from 'node:path';
 import { atribuicao, frequenciaDe, frasesDe } from './fontes.mjs';
 import { filtrar } from './filtrar.mjs';
 import { faixas, coberturaDasFaixas, NIVEIS } from './faixas.mjs';
+import { formasPorLema, glosas as glosasDoIdioma, lematizar } from './lexemes.mjs';
 import { indexar, escolherFrase, vocabularioDe } from './frases.mjs';
 import { avaliarCartao } from '../../src/core/learning/quality.ts';
 
@@ -65,9 +66,18 @@ async function principal(argv) {
   const semFrases = argv.includes('--sem-frases');
   const limite = Number((argv.find((a) => a.startsWith('--limite=')) ?? '').split('=')[1]) || 0;
 
+  const nativo = (argv.find((a) => a.startsWith('--nativo=')) ?? '--nativo=pt').split('=')[1];
+  const semLema = argv.includes('--sem-lema');
+
   const bruta = await frequenciaDe(lang);
-  const { palavras, descartes } = filtrar(limite ? bruta.slice(0, limite) : bruta, lang);
+  /* LEMATIZAR ANTES DE CORTAR: a lista de frequência traz conjugações (estoy, estás, estamos como
+     três entradas), e cortar primeiro gastaria o limite com formas do mesmo verbo. */
+  const mapaDeLemas = semLema ? new Map() : await formasPorLema(lang);
+  const lematizada = mapaDeLemas.size ? lematizar(bruta, mapaDeLemas, lang) : bruta;
+  const { palavras, descartes } = filtrar(limite ? lematizada.slice(0, limite) : lematizada, lang);
   const porNivel = faixas(palavras);
+
+  const { mapa: glosas, doWikidata, doWikcionario } = await glosasDoIdioma(lang, nativo);
 
   const comFrases = new Map();
   if (!semFrases) {
@@ -84,6 +94,17 @@ async function principal(argv) {
 
   const trilha = montarTrilha(lang, porNivel, comFrases);
 
+  /* A glosa é do PAR, e vive fora da trilha (design.md, Decisão 1): a trilha é monolíngue e a
+     tradução pertence a "praticado × nativo". Sem isto os jogos de par não abrem. */
+  const glosasDaTrilha = {};
+  let comGlosa = 0;
+  for (const n of NIVEIS) {
+    for (const [palavra] of trilha.niveis[n]) {
+      const g = glosas.get(String(palavra).toLowerCase());
+      if (g) { glosasDaTrilha[palavra] = g; comGlosa++; }
+    }
+  }
+
   // Confere a saída com a régua do jogo, em vez de confiar no filtro de entrada.
   let reprovados = 0;
   for (const n of NIVEIS) {
@@ -95,13 +116,26 @@ async function principal(argv) {
   }
 
   console.log(relatorio(trilha, porNivel, descartes));
+  const total = NIVEIS.reduce((s, n) => s + trilha.niveis[n].length, 0);
+  const pct = Math.round((comGlosa / Math.max(1, total)) * 100);
+  console.log(`  lemas: ${mapaDeLemas.size ? 'sim' : 'NAO (--sem-lema)'} · glosas ${lang}-${nativo}: ${comGlosa} de ${total} (${pct}%)`
+    + ` · fontes: wikidata ${doWikidata}, wikcionario ${doWikcionario}`);
   if (reprovados) console.log(`  ATENÇÃO: ${reprovados} entradas reprovam na régua do app`);
 
   const destino = path.resolve(process.cwd(), 'src/data/trilha', `${lang}.json`);
-  if (seco) { console.log(`--dry-run: nada escrito (seria ${destino})`); return; }
+  const destinoGlosas = path.resolve(process.cwd(), 'src/data/glosas', `${lang}-${nativo}.json`);
+  if (seco) { console.log(`--dry-run: nada escrito (seriam ${destino} e ${destinoGlosas})`); return; }
   await mkdir(path.dirname(destino), { recursive: true });
   await writeFile(destino, JSON.stringify(trilha) + '\n');
+  await mkdir(path.dirname(destinoGlosas), { recursive: true });
+  await writeFile(destinoGlosas, JSON.stringify({
+    par: `${lang}-${nativo}`, praticado: lang, nativo, versao: 1, trilhaVersao: 2,
+    fonte: 'Wikidata Lexemes (CC0), pares por P5137; Wikcionário via Wiktextract (CC BY-SA)',
+    cobertura: { palavras: comGlosa, doWikidata, doWikcionario },
+    glosas: glosasDaTrilha, frases: {},
+  }) + '\n');
   console.log(`escrito ${destino}`);
+  console.log(`escrito ${destinoGlosas}`);
 }
 
 if (import.meta.url === `file://${process.argv[1]}` || process.argv[1]?.endsWith('gerar.mjs')) {

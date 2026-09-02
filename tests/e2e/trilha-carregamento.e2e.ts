@@ -6,11 +6,28 @@ import { irParaPraticar, clicarRobusto, abrirSeletor } from './_helpers';
  * pisca zero, ou um jogo anuncia "sem material" durante o carregamento — mensagem falsa, não só
  * feia. Este teste existe para que isso não passe despercebido.
  */
+/**
+ * O app é self-host de usuário único: o idioma praticado é preferência de PERFIL, gravada no
+ * servidor, então a sessão anterior — outro teste, ou alguém usando a tela — decide onde este
+ * teste começa. Num idioma sem trilha o curso nem é oferecido, e o teste falharia dizendo que a
+ * trilha quebrou. Ele garante o próprio ponto de partida.
+ */
+async function garantirIdiomaComTrilha(page: import('@playwright/test').Page): Promise<void> {
+  // A faceta é exclusiva, então o Segmentado a expõe como `radiogroup`, não `group`.
+  const ingles = page.getByRole('radiogroup', { name: 'idioma' })
+    .getByRole('radio', { name: /inglês/ });
+  if (await ingles.count() && (await ingles.first().getAttribute('aria-checked')) !== 'true') {
+    await clicarRobusto(page, ingles.first());
+    await page.waitForTimeout(600);
+  }
+}
+
 test.describe('Trilha carregada sob demanda', () => {
   test('a contagem do curso nunca passa por zero ao escolher a fonte', async ({ page }) => {
     test.slow();
     await irParaPraticar(page);
     await abrirSeletor(page);
+    await garantirIdiomaComTrilha(page);
 
     const curso = page.getByRole('group', { name: 'de onde vêm' })
       .getByRole('button', { name: /Curso de palavras/ });
@@ -40,6 +57,7 @@ test.describe('Trilha carregada sob demanda', () => {
     test.slow();
     await irParaPraticar(page);
     await abrirSeletor(page);
+    await garantirIdiomaComTrilha(page);
 
     const curso = page.getByRole('group', { name: 'de onde vêm' })
       .getByRole('button', { name: /Curso de palavras/ });

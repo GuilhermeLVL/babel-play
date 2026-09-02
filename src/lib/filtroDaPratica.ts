@@ -122,3 +122,90 @@ export function gravarFiltro(f: FiltroDaPratica): void {
   const escolha = escolhaDaFonte(fonteDominante(f));
   gravarFonteGuardada({ origem: escolha.origem, escopo: escolha.escopo, sessionId: escolha.sessionId, nivel: escolha.nivel });
 }
+
+/* ── O filtro na URL ─────────────────────────────────────────────────────
+   `rotas.ts` transporta a query de `/jogar` como string OPACA (`EstadoDeRota.jogarQuery`); o
+   formato mora aqui, ao lado da persistência, porque é a MESMA escolha serializada por outro
+   canal — e a leitura passa pelo MESMO saneamento contra sessões/decks apagados. A URL fala a
+   língua de quem a lê (`recorte=pedindo-revisao`, não `recorte[pedindoRevisao]=true`): a barra
+   de endereço é interface, como as rotas da loja já estabeleceram. */
+
+const RECORTE_NA_URL = [
+  ['dificeis', 'dificeis'],
+  ['nuncaVistas', 'nunca-vistas'],
+  ['pedindoRevisao', 'pedindo-revisao'],
+] as const;
+const MIDIA_NA_URL = [
+  ['comTraducao', 'traducao'],
+  ['comFrase', 'frase'],
+] as const;
+
+/** Serializa para a query de `/jogar`. Vazio ('') quando o filtro é o padrão — URL limpa. */
+export function queryDoFiltro(f: FiltroDaPratica): string {
+  const q = new URLSearchParams();
+  q.set('fonte', f.fontes.join(','));
+  if (f.baralhos.length) q.set('baralho', f.baralhos.join(','));
+  if (f.sessoes.length) q.set('sessao', f.sessoes.join(','));
+  if (f.nivelTrilha) q.set('nivel', f.nivelTrilha);
+  if (f.idiomas.length) q.set('idioma', f.idiomas.join(','));
+  const recorte = RECORTE_NA_URL.filter(([campo]) => f.recorte[campo]).map(([, seg]) => seg);
+  if (recorte.length) q.set('recorte', recorte.join(','));
+  if (f.recorte.niveis?.length) q.set('niveis', f.recorte.niveis.join(','));
+  const midia = MIDIA_NA_URL.filter(([campo]) => f.midia[campo]).map(([, seg]) => seg);
+  if (midia.length) q.set('midia', midia.join(','));
+  const texto = q.toString();
+  // Padrão vira URL limpa. A comparação é sobre a SERIALIZAÇÃO (não sobre o objeto) de propósito:
+  // o saneador da persistência materializa `false` explícitos que são semanticamente o padrão.
+  return texto === QUERY_DO_PADRAO ? '' : texto;
+}
+
+const QUERY_DO_PADRAO = new URLSearchParams({ fonte: FILTRO_PADRAO.fontes.join(',') }).toString();
+
+/**
+ * Lê a query de `/jogar` de volta a um filtro. `null` quando a query não fala de filtro (sem o
+ * parâmetro `fonte`) — o chamador cai na persistência local, não num padrão que apagaria a
+ * escolha guardada. Valores desconhecidos são ignorados campo a campo, nunca derrubam o resto:
+ * um link velho com um baralho apagado ainda deve abrir a rodada certa no que sobrou.
+ */
+export function filtroDaQuery(
+  query: string,
+  sessoesExistentes: readonly string[],
+  decksExistentes: readonly string[],
+): FiltroDaPratica | null {
+  let q: URLSearchParams;
+  try {
+    q = new URLSearchParams(query);
+  } catch {
+    return null;
+  }
+  const fonteCrua = q.get('fonte');
+  if (!fonteCrua) return null;
+
+  const lista = (chave: string) => (q.get(chave) ?? '').split(',').filter(Boolean);
+  const fontes = lista('fonte').filter((x): x is 'baralho' | 'sessao' | 'trilha' => FONTES_VALIDAS.has(x));
+  if (fontes.length === 0) return null; // `?fonte=lixo` não é uma escolha — persistência decide
+
+  const recorte = new Set(lista('recorte'));
+  const midia = new Set(lista('midia'));
+  const niveisRecorte = lista('niveis').filter((n): n is CefrLevel => NIVEIS.includes(n as CefrLevel));
+  const nivelCru = q.get('nivel');
+
+  return {
+    versao: 1,
+    fontes,
+    baralhos: lista('baralho').filter((id) => decksExistentes.includes(id)),
+    sessoes: lista('sessao').filter((id) => sessoesExistentes.includes(id)),
+    nivelTrilha: NIVEIS.includes(nivelCru as CefrLevel) ? (nivelCru as CefrLevel) : undefined,
+    idiomas: lista('idioma'),
+    recorte: {
+      dificeis: recorte.has('dificeis'),
+      nuncaVistas: recorte.has('nunca-vistas'),
+      pedindoRevisao: recorte.has('pedindo-revisao'),
+      niveis: niveisRecorte.length ? niveisRecorte : undefined,
+    },
+    midia: {
+      comTraducao: midia.has('traducao'),
+      comFrase: midia.has('frase'),
+    },
+  };
+}

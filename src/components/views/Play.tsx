@@ -67,7 +67,8 @@ import {
 } from '../../core/minigames/composicao';
 import { filtroDaFonte, fonteDominante, passaNoFiltro, type FiltroDaPratica } from '../../core/minigames/filtro';
 import Segmentado from '../ui/Segmentado';
-import { lerFiltroGuardado, gravarFiltro } from '../../lib/filtroDaPratica';
+import { lerFiltroGuardado, gravarFiltro, filtroDaQuery, queryDoFiltro } from '../../lib/filtroDaPratica';
+import { lerUrlAtual, publicarQueryDoJogar, consumirQueryDoBoot } from '../../lib/rotas';
 import EscutaGame from '../minigames/EscutaGame';
 import DitadoGame from '../minigames/DitadoGame';
 import ConectoresGame from '../minigames/ConectoresGame';
@@ -291,7 +292,13 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
     setFiltro(prev => {
       const atual: FonteDeItens = { ...fonteDominante(prev), lang: prev.idiomas[0] ?? '' };
       const nova = typeof upd === 'function' ? upd(atual) : upd;
-      if (mesmaFonte(atual, nova) && baseLang(atual.lang) === baseLang(nova.lang)) return prev; // aborto barato preservado
+      if (mesmaFonte(atual, nova)) {
+        if (baseLang(atual.lang) === baseLang(nova.lang)) return prev; // aborto barato preservado
+        // SÓ o idioma mudou (ex.: o carregador de settings entregando `praticaLang`): trocar
+        // idioma é ajustar UMA faceta, não recomeçar a escolha — reconstruir aqui apagava o
+        // recorte que a URL ou a persistência tinham acabado de restaurar.
+        return { ...prev, idiomas: nova.lang ? [nova.lang] : [] };
+      }
       return filtroDaFonte(nova, nova.id === 'baralho' && prev.baralhos[0] ? { id: prev.baralhos[0] } : null);
     });
   }, []);
@@ -1197,14 +1204,29 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
        lista chegar apagaria o recorte no saneamento (deck "inexistente" só porque ainda não veio). */
     if (embutido || fonteRestaurada.current || !sessoesCarregadas || !decksCarregados) return;
     fonteRestaurada.current = true;
-    const guardado = lerFiltroGuardado(sessoes.map(s => s.id), decksAnki.map(d => d.id));
+    /* A URL VENCE A MEMÓRIA: um link compartilhado com `?fonte=…` é uma escolha EXPLÍCITA de quem
+       o abriu agora; a chave local é a escolha de ontem. Sem query de filtro na barra (o caso
+       normal), `filtroDaQuery` devolve null e a persistência decide como sempre. */
+    /* A query viva na barra vence; sem ela, vale a capturada no BOOT do módulo — a dança de
+       inicialização do App (efeito "navegação → URL" rodando uma vez com a view antiga) reescreve
+       a barra antes de este componente montar, e o caminho volta na passada seguinte mas a query
+       não. Consumo único: um link vale para ESTA abertura, não para toda troca de aba futura. */
+    const daUrl = filtroDaQuery(
+      lerUrlAtual().jogarQuery ?? consumirQueryDoBoot(),
+      sessoes.map(s => s.id),
+      decksAnki.map(d => d.id),
+    );
+    const guardado = daUrl ?? lerFiltroGuardado(sessoes.map(s => s.id), decksAnki.map(d => d.id));
     /* RESTAURAR O MESMO FILTRO NÃO É MUDAR DE FILTRO: devolver `prev` aborta a atualização e poupa
        uma passada inteira do pipeline (triagem, composição, gate) — a mesma economia que a
        restauração de fonte já tinha, mantida aqui. O idioma NÃO vem do guardado: chega pelo
        carregador de settings (preferência de perfil, atravessa dispositivos) e o merge preserva o
        que já estiver no estado. */
     setFiltro(prev => {
-      const restaurado = { ...guardado, idiomas: prev.idiomas.length ? prev.idiomas : guardado.idiomas };
+      // Idioma explícito na URL também vence; o guardado local nunca vence o de settings (perfil).
+      const idiomas = daUrl?.idiomas.length ? daUrl.idiomas
+        : prev.idiomas.length ? prev.idiomas : guardado.idiomas;
+      const restaurado = { ...guardado, idiomas };
       return JSON.stringify(restaurado) === JSON.stringify(prev) ? prev : restaurado;
     });
   }, [embutido, sessoes, sessoesCarregadas, decksCarregados, decksAnki]);
@@ -1378,6 +1400,9 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
   useEffect(() => {
     if (embutido || !fonteRestaurada.current) return;
     gravarFiltro(filtro);
+    // A barra de endereço é o TERCEIRO espelho da mesma escolha (estado → storage → URL): a tela
+    // vira compartilhável por link, e o helper limpa a query quando o filtro volta ao padrão.
+    publicarQueryDoJogar(queryDoFiltro(filtro));
   }, [filtro, embutido]);
 
   /**
@@ -1958,7 +1983,12 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
 
   const mexerNaOrdem = (nova: OrdemDosJogos) => { setOrdem(nova); gravarOrdem(nova); };
 
-  const vencidos = metrics?.dueToday ?? 0;
+  /* O ESCOPO DO BANNER era o pior contador da tela (auditoria, defeito 2): `metrics.dueToday` é
+     GLOBAL da conta — sem idioma, sem aba, sem recorte — e ficava ao lado de números de escopo
+     estrito, sem aviso ("1041 pedindo revisão" sobre um recorte de 847). `vencidosAgora` já
+     existia e é a verdade CERTA: os vencidos DENTRO do que a rodada pode usar — o mesmo conjunto
+     de todos os outros números da tela, e o mesmo que o botão do banner de fato joga. */
+  const vencidos = vencidosAgora.size;
   const tamanhoDoBaralho = deck?.length ?? 0;
   const menorMinimo = Math.min(...JOGOS.map(j => MINIGAMES[j.id].minItems));
 

@@ -133,3 +133,36 @@ describe('as rotas do que está à venda', () => {
     expect(estadoParaUrl({ view: 'planos' })).toBe('/plano')
   })
 })
+
+/**
+ * O FILTRO DA PRÁTICA NA URL (programa do seletor facetado).
+ *
+ * A query era DESCARTADA no parse — um link com filtro abria a tela certa e jogava o filtro fora.
+ * Ela sobrevive apenas em `/jogar`: a rota transporta a string OPACA (`jogarQuery`); quem sabe o
+ * formato é `lib/filtroDaPratica`. Aqui trava-se só o transporte.
+ */
+describe('a query do /jogar', () => {
+  it('sobrevive à ida-e-volta — era descartada no parse', () => {
+    expect(urlParaEstado('/jogar?fonte=baralho&baralho=Deck-A')).toEqual({
+      view: 'play',
+      jogarQuery: 'fonte=baralho&baralho=Deck-A',
+    })
+    expect(estadoParaUrl({ view: 'play', jogarQuery: 'fonte=baralho&baralho=Deck-A' }))
+      .toBe('/jogar?fonte=baralho&baralho=Deck-A')
+  })
+
+  it('preserva a CAIXA da query — ids de baralho e códigos de idioma são sensíveis a caixa', () => {
+    expect(urlParaEstado('/JOGAR?baralho=MixedCase').view).toBe('play')
+    expect(urlParaEstado('/jogar?fonte=baralho&baralho=MixedCase').jogarQuery).toBe('fonte=baralho&baralho=MixedCase')
+  })
+
+  it('em qualquer outra rota a query segue ignorada — o filtro não manda fora do /jogar', () => {
+    expect(urlParaEstado('/biblioteca?fonte=baralho')).toEqual({ view: 'library' })
+    expect(urlParaEstado('/?fonte=baralho')).toEqual({ view: 'hub' })
+  })
+
+  it('sem query, /jogar continua idêntico ao que sempre foi', () => {
+    expect(urlParaEstado('/jogar')).toEqual({ view: 'play' })
+    expect(estadoParaUrl({ view: 'play' })).toBe('/jogar')
+  })
+})

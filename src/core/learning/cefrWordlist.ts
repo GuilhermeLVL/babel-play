@@ -8,7 +8,8 @@
  *
  * ESCOLHA DA FONTE (Ajuste 1 pedia Kelly, EFLLex ou SUBTLEX; escolhi outra e registro o porquê):
  *  - **CEFR-J Vocabulary Profile 1.5** (Tono Laboratory, TUFS) + **Octanove Vocabulary Profile
- *    C1/C2 1.0** — já vendorizados em `src/data/trilha/en.json`, com atribuição em
+ *    C1/C2 1.0** — já vendorizados em `src/data/trilha/en.json`; aqui se lê o derivado
+ *    `niveis/en.json` (só palavra→nível, gerado por `scripts/trilha/derivar.mjs`), com atribuição em
  *    `src/data/trilha/FONTES.md`.
  *  - Por que não SUBTLEX: dá FREQUÊNCIA, não banda CEFR. Converter frequência em A1..C2 exige
  *    cortes arbitrários — trocaria um chute por outro, mais bem vestido.
@@ -20,7 +21,8 @@
  * NÃO recebe nível — recebe `null` com procedência `ausente`. Nível ausente pesa ZERO no modelo de
  * dificuldade (F4); é a diferença entre "não sei" e "chutei".
  */
-import trilhaEn from '../../data/trilha/en.json'
+import niveisEn from '../../data/trilha/niveis/en.json'
+import { indiceDaTrilha } from '../../data/trilha/carregar'
 
 export type CefrLevel = 'A1' | 'A2' | 'B1' | 'B2' | 'C1' | 'C2'
 export type ProcedenciaCefr = 'curado' | 'wordlist' | 'ausente'
@@ -42,7 +44,8 @@ function chave(palavra: string): string {
   return palavra.normalize('NFD').replace(/[̀-ͯ]/g, '').trim().toLowerCase()
 }
 
-type Trilha = { lang: string; niveis: Record<string, Array<[string, string, string?, string?]>> }
+/** `niveis/<lang>.json`: nível → palavras já normalizadas e unidas por `|`. */
+type Niveis = Partial<Record<CefrLevel, string>>
 
 /** Índice palavra → nível, montado uma vez por idioma. */
 const indices = new Map<string, Map<string, CefrLevel>>()
@@ -54,13 +57,11 @@ function indiceDe(lang: string): Map<string, CefrLevel> {
 
   const mapa = new Map<string, CefrLevel>()
   if (idioma === 'en') {
-    const t = trilhaEn as unknown as Trilha
+    const n = niveisEn as Niveis
     for (const nivel of NIVEIS) {
-      for (const item of t.niveis[nivel] ?? []) {
-        const k = chave(item[0])
-        // Primeiro nível vence: a lista vai de A1 para C2, e a banda mais baixa é a correta
-        // para uma palavra que aparece em mais de uma.
-        if (k && !mapa.has(k)) mapa.set(k, nivel)
+      for (const palavra of (n[nivel] ?? '').split('|')) {
+        // Primeiro nível vence — a derivação já aplicou a regra, mas o guard mantém o invariante.
+        if (palavra && !mapa.has(palavra)) mapa.set(palavra, nivel)
       }
     }
   }
@@ -89,15 +90,8 @@ export function nivelCefr(
 
 /** Cobertura da wordlist — para a limitação ser mensurável, e não presumida. */
 export function coberturaDaWordlist(lang = 'en'): { total: number; porNivel: Record<string, number> } {
-  const porNivel: Record<string, number> = {}
   const idioma = (lang || '').toLowerCase().split('-')[0]
-  if (idioma !== 'en') return { total: 0, porNivel }
-  const t = trilhaEn as unknown as Trilha
-  let total = 0
-  for (const nivel of NIVEIS) {
-    const n = (t.niveis[nivel] ?? []).length
-    porNivel[nivel] = n
-    total += n
-  }
-  return { total, porNivel }
+  const entrada = indiceDaTrilha()[idioma]
+  if (!entrada) return { total: 0, porNivel: {} }
+  return { total: entrada.total, porNivel: { ...entrada.porNivel } }
 }

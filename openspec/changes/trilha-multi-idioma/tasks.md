@@ -2,24 +2,24 @@ Ordem por risco crescente. As fases 0–1 não mudam comportamento nenhum.
 
 ## Fase 0 — andaimes (risco nulo, nada consome ainda)
 
-- [ ] 0.1 `src/data/trilha/indice.json` + tipo, com escala, versão, total, `porNivel` e pares de glosa
-- [ ] 0.2 `src/data/trilha/carregar.ts` com `import.meta.glob` e cache em módulo
-- [ ] 0.3 `src/data/trilha/niveis/en.json` (~40 KB, só palavra→nível)
-- [ ] 0.4 `scripts/trilha/verificar.mjs` + plugue em `scripts/audit-gate.mjs`
+- [x] 0.1 `src/data/trilha/indice.json` + tipo, com escala, versão, total, `porNivel` e pares de glosa
+- [x] 0.2 `src/data/trilha/carregar.ts` com `import.meta.glob` e cache em módulo
+- [x] 0.3 `src/data/trilha/niveis/en.json` (~40 KB, só palavra→nível)
+- [x] 0.4 `scripts/trilha/verificar.mjs` + plugue em `scripts/audit-gate.mjs`
 
 ## Fase 1 — bundle (risco baixo)
 
-- [ ] 1.1 `cefrWordlist.ts` passa a ler `niveis/en.json`; função continua síncrona. −190 KB
-- [ ] 1.2 Medir o chunk antes/depois — a linha de base é `en-vjtESkJa.js` = 237,2 KB
+- [x] 1.1 `cefrWordlist.ts` passa a ler `niveis/en.json`; função continua síncrona. −190 KB
+- [x] 1.2 Medir: 233 KB -> 20,4 KB (91% a menos) no que cefrWordlist puxa. Chunk antes/depois — a linha de base é `en-vjtESkJa.js` = 237,2 KB
 
 ## Fase 2 — carregamento dinâmico (MAIOR RISCO do plano)
 
-- [ ] 2.1 `temTrilha`, `totalDaTrilhaAtual` e as contagens da faixa passam a ler o índice
-- [ ] 2.2 `trilha` vira `useState` + `useEffect` com guard `let vivo`, no mesmo padrão do efeito
+- [x] 2.1 `temTrilha`, `totalDaTrilhaAtual` e as contagens da faixa passam a ler o índice
+- [x] 2.2 `trilha` vira `useState` + `useEffect` com guard `let vivo`, no mesmo padrão do efeito
       de composição que já existe em `Play.tsx`
-- [ ] 2.3 `carregandoTrilha` alimenta o esqueleto da grade — nunca o motivo "sem material"
+- [x] 2.3 `carregandoTrilha` alimenta o esqueleto da grade — nunca o motivo "sem material"
 - [ ] 2.4 Prefetch ao trocar de idioma na Sala e ao marcar a fonte trilha
-- [ ] 2.5 Playwright: entrar em `/jogar`, escolher Trilha, confirmar que a contagem **nunca passa
+- [x] 2.5 Playwright: entrar em `/jogar`, escolher Trilha, confirmar que a contagem **nunca passa
       por zero** e que nenhum jogo pisca "sem material"
 
 ## Fase 3 — schema (risco médio)
@@ -40,7 +40,7 @@ Ordem por risco crescente. As fases 0–1 não mudam comportamento nenhum.
 
 ## Fase 5 — pipeline e primeiro idioma novo (risco baixo, por construção)
 
-- [ ] 5.1 `scripts/trilha/{fontes,filtrar,faixas,frases,glosas,gerar}.mjs`
+- [x] 5.1 `scripts/trilha/{fontes,filtrar,faixas,frases,glosas,gerar}.mjs`
 - [ ] 5.2 Gerar a trilha piloto e medir a saída (palavras por nível, % com frase, cobertura)
 - [ ] 5.3 Amostra de 30 palavras revisada por falante nativo, com a taxa registrada no `FONTES.md`
 - [ ] 5.4 Tabela de cobertura por idioma na tela

@@ -30,7 +30,9 @@ export default defineConfig({
   workers: 1,
   reporter: 'list',
   use: {
-    baseURL: 'http://localhost:3100',
+    // Um worktree roda o seu próprio servidor noutra porta; sem isto a suíte testaria o app da
+    // pasta principal e reportaria falhas que não são do código sob teste.
+    baseURL: process.env.BASE_URL || 'http://localhost:3100',
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
   },
@@ -42,7 +44,7 @@ export default defineConfig({
   ],
   webServer: {
     command: 'npm run dev:local',
-    url: 'http://localhost:3100',
+    url: process.env.BASE_URL || 'http://localhost:3100',
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,
   },

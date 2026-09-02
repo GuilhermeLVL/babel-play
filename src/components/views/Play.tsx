@@ -47,7 +47,7 @@ import PainelTrilha from './PainelTrilha';
 import BaralhoAnki from './BaralhoAnki';
 import BaralhosAnki from './BaralhosAnki';
 import { listarBaralhosAnki } from '../../data/apiAnki';
-import trilhaEn from '../../data/trilha/en.json';
+import { indiceDaTrilha, carregarTrilha, trilhaEmCache } from '../../data/trilha/carregar';
 import ComoSeJoga from '../minigames/ComoSeJoga';
 import AntessalaDaRodada from '../minigames/AntessalaDaRodada';
 import { toast } from '../Toast';
@@ -1479,10 +1479,22 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
    * A lista curada do idioma escolhido. Hoje só existe inglês (`data/trilha/en.json`); outros
    * idiomas simplesmente não oferecem a aba, em vez de oferecerem uma trilha vazia.
    */
-  const trilha: DadoTrilha | null = useMemo(
-    () => (baseLang(fonte.lang) === 'en' ? (trilhaEn as DadoTrilha) : null),
-    [fonte.lang],
-  );
+  /* A trilha carrega sob demanda. O ÍNDICE responde pelas contagens (existe? quantas?) sem baixar
+     nada — é ele que impede a aba de sumir e o número de piscar zero enquanto o dado vem. */
+  const entradaDaTrilha = useMemo(() => indiceDaTrilha()[baseLang(fonte.lang)] ?? null, [fonte.lang]);
+  const [trilha, setTrilha] = useState<DadoTrilha | null>(() => trilhaEmCache(fonte.lang));
+  const [carregandoTrilha, setCarregandoTrilha] = useState(false);
+  useEffect(() => {
+    if (!entradaDaTrilha) { setTrilha(null); return; }
+    const emCache = trilhaEmCache(fonte.lang);
+    if (emCache) { setTrilha(emCache); return; }
+    let vivo = true;
+    setCarregandoTrilha(true);
+    carregarTrilha(fonte.lang)
+      .then(d => { if (vivo) setTrilha(d); })
+      .finally(() => { if (vivo) setCarregandoTrilha(false); });
+    return () => { vivo = false; };
+  }, [fonte.lang, entradaDaTrilha]);
 
   /* SELEÇÃO v2 — as frases da trilha (Tatoeba) no formato que os jogos de frase consomem. */
   /**
@@ -1564,12 +1576,12 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
     () => fontesDisponiveis({
       embutido: !!embutido,
       temSessao: !!(recording || sessaoEmUso),
-      temTrilha: !!trilha,
+      temTrilha: !!entradaDaTrilha,
       sessoesDisponiveis: sessoes.length,
       // 4 é o menor `minItems` dos jogos: com menos que isso a fonte abriria só telas trancadas.
       temDificeis: rankingDeDificeis.length >= 4,
     }),
-    [embutido, recording, sessaoEmUso, trilha, sessoes.length, rankingDeDificeis.length],
+    [embutido, recording, sessaoEmUso, entradaDaTrilha, sessoes.length, rankingDeDificeis.length],
   );
 
   /** A fonte vigente no vocabulário DA TELA — é por ele que as abas comparam e trocam. */
@@ -1577,8 +1589,12 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
 
   /** Quantas palavras a trilha do idioma atual tem, no recorte vigente (nível ou todos). */
   const totalDaTrilhaAtual = useMemo(
-    () => (trilha ? niveisEmJogo(trilha, fonte.nivel).reduce((n, nv) => n + (trilha.niveis[nv]?.length ?? 0), 0) : 0),
-    [trilha, fonte.nivel],
+    () => {
+      if (!entradaDaTrilha) return 0;
+      const niveis = fonte.nivel ? [fonte.nivel] : Object.keys(entradaDaTrilha.porNivel);
+      return niveis.reduce((n, nv) => n + (entradaDaTrilha.porNivel[nv] ?? 0), 0);
+    },
+    [entradaDaTrilha, fonte.nivel],
   );
 
   /**
@@ -1612,18 +1628,12 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
    *
    * Hoje só existe `data/trilha/en.json`; o dia em que houver outro, esta é a única função a mudar.
    */
+  /* Só contagens — vem do índice, sem baixar o dado. É o que a Sala e o seletor precisam. */
   const trilhaDe = React.useCallback((lang: string) => {
-    const dado = baseLang(lang) === 'en' ? (trilhaEn as DadoTrilha) : null;
-    if (!dado) return { niveis: [] as CefrLevel[], total: 0, porNivel: {} as Partial<Record<CefrLevel, number>> };
-    const niveis = (Object.keys(dado.niveis) as CefrLevel[]).filter(n => (dado.niveis[n] ?? []).length > 0);
-    return {
-      niveis,
-      total: Object.values(dado.niveis).reduce((n, lista) => n + (lista?.length ?? 0), 0),
-      /* O TAMANHO DE CADA ETAPA, e não só o total. Sem isto a Sala mostrava "A1 A2 B1…" sem
-         número nenhum enquanto a gaveta mostrava "A1 704" — os dois caminhos para a mesma escolha
-         contando verdades diferentes, que é o defeito que este redesenho existe para fechar. */
-      porNivel: Object.fromEntries(niveis.map(n => [n, dado.niveis[n]?.length ?? 0])) as Partial<Record<CefrLevel, number>>,
-    };
+    const e = indiceDaTrilha()[baseLang(lang)];
+    if (!e) return { niveis: [] as CefrLevel[], total: 0, porNivel: {} as Partial<Record<CefrLevel, number>> };
+    const niveis = (Object.keys(e.porNivel) as CefrLevel[]).filter(n => (e.porNivel[n] ?? 0) > 0);
+    return { niveis, total: e.total, porNivel: e.porNivel as Partial<Record<CefrLevel, number>> };
   }, []);
 
   /**
@@ -2019,11 +2029,14 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
    */
   const jogosProntos = useMemo(() => ordenados.filter(j => j.estado.ok), [ordenados]);
   const jogosPresos = useMemo(() => {
+    /* Enquanto a trilha carrega, nenhum jogo é declarado bloqueado: o acervo ainda não chegou, e
+       "faltam N palavras" seria mentira, não só feiura. */
+    if (carregandoTrilha) return [];
     const porId = new Map(ordenados.map(j => [j.id, j]));
     return agruparJogos(estados.map(j => j.estado)).presos
       .map(p => ({ ...p, ui: porId.get(p.estado.id)! }))
       .filter(p => p.ui);
-  }, [estados, ordenados]);
+  }, [estados, ordenados, carregandoTrilha]);
   /* UMA lista, dois grupos. A grade continua sendo um `<ul>` só — o cabeçalho do segundo grupo
      entra como item na fronteira — porque a carta tem 240 linhas de regras (portas de desbloqueio,
      modo organizar, recordes, tour) e duplicá-la para ter duas grades seria criar dois lugares

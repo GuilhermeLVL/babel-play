@@ -39,6 +39,8 @@
     "test:e2e:ui": "playwright test --ui",
     "lint": "eslint src server server.ts tests",
     "audit:gate": "node scripts/audit-gate.mjs",
+    "trilha:derivar": "node scripts/trilha/derivar.mjs",
+    "trilha:verificar": "node scripts/trilha/verificar.mjs",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "tsx server/db/migrate.ts",
     "dev:local": "node subir-dev.mjs",

@@ -114,6 +114,29 @@ export interface ItemCru {
 
 export type OrigemDoItem = 'baralho' | 'sessao' | 'trilha' | 'dificeis';
 
+/**
+ * A ORIGEM REAL DO MATERIAL de uma rodada — que nem sempre é a fonte escolhida no lobby.
+ *
+ * Os cinco jogos de FRASE (modalidade ≠ 'palavra') vivem de falas de GRAVAÇÃO: com a fonte
+ * 'baralho' (ou 'dificeis'), a prévia dizia "do baralho" com o TÍTULO da gravação ao lado, porque
+ * o material de fato vem dela. Auditoria S4: é a reabertura, pela prévia, do defeito que
+ * `estadoDosJogos.ts` declara consertado no gate. Na trilha nada muda — lá o material É da trilha
+ * (frases do Tatoeba ou TTS sobre palavras dela).
+ *
+ * `declarada` vence sempre: um ramo que JÁ SABE a origem do item (os de baralho, via `nivelDe`)
+ * não é corrigido por esta função.
+ */
+export function origemDoMaterial(
+  jogo: MinigameId,
+  fonteId: OrigemDoItem,
+  declarada?: OrigemDoItem,
+): OrigemDoItem {
+  if (declarada) return declarada;
+  const deFala = MINIGAMES[jogo].modalidade !== 'palavra';
+  if (deFala && (fonteId === 'baralho' || fonteId === 'dificeis')) return 'sessao';
+  return fonteId;
+}
+
 /** Como a origem chega à tela: já redigida e já cercada. */
 export interface OrigemNaTela {
   tipo: OrigemDoItem;

@@ -15,7 +15,7 @@ import {
   buildRodadasEscuta, buildRodadasDitado, buildRodadasConectores, isDueNow,
   estadoDeCadaJogo, comoDesbloquear, type ContextoDeDesbloqueio, type Desbloqueio,
   estimativaDeMinutos, rotuloDeDuracao, pistasDaTriagem, resumoDosPulados,
-  previaSegura, repetidosDaUltima, MAPA_REVELA_ALVO,
+  previaSegura, repetidosDaUltima, MAPA_REVELA_ALVO, origemDoMaterial,
   pontuarRodada, xpFromRound, acumular, mesmaCorrente, marcarPromovidas, resumir, agruparFases,
   faixaAuto, diaLocal, estadoDoItem, ordenarPorMemoria, etapasDoNivel, progressoDasEtapas, etapaAtual,
   frasesDaTrilha, diagnosticoTermo, rngDe, chaveDaPalavra as chaveDaPalavraCore, REGRAS, niveisEmJogo,
@@ -121,6 +121,24 @@ interface PlayProps {
  * Este número é só até onde vale a pena o servidor ordenar por vencimento e estratégia; o resto
  * entra na ordem da triagem. Cortar o pool aqui foi o que fez a Memória ver 5 palavras de 323.
  */
+/**
+ * A CHAVE DA MEMÓRIA CURTA (vistas recentes, persistidas por origem no localStorage).
+ *
+ * Uma função só, usada na LEITURA e na GRAVAÇÃO — este cálculo existia copiado em três pontos do
+ * arquivo, e foi assim que o baralho Anki ficou de fora de um deles (auditoria S6): rodada com o
+ * recorte ligado gravava as vistas em 'baralho' e a troca de baralho não zerava nada.
+ *
+ * O baralho entra na chave pela mesma razão que a sessão e o nível entram: trocar de baralho é
+ * começar outro assunto. NOTA: isto é memória LOCAL; a `origem` persistida em `exercise_results`
+ * continua 'baralho' — separar o histórico por baralho é decisão do modelo facetado, não daqui.
+ */
+function chaveDaMemoriaCurta(fonte: FonteDeItens, baralhoAnki: { id: string } | null): string {
+  if (fonte.id === 'sessao') return `sessao:${fonte.sessionId ?? ''}`;
+  if (fonte.id === 'trilha') return `trilha:${fonte.nivel ?? ''}`;
+  if (fonte.id === 'dificeis') return 'dificeis';
+  return baralhoAnki ? `baralho:anki:${baralhoAnki.id}` : 'baralho';
+}
+
 const LIMITE_DA_COMPOSICAO = 200;
 
 /**
@@ -599,11 +617,13 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
        cada um deles. Os cinco jogos de frase tiram material de falas, não de cartões: para eles
        não há proveniência por item, mas a fonte da rodada é conhecida e vale para todos. Um ramo
        que já sabe a origem (os de baralho, via `nivelDe`) mantém a sua. */
+    /* Jogo de FRASE vive de gravação, e a prévia diz isso mesmo quando a aba é outra —
+       `origemDoMaterial` (revelavel.ts) carrega a regra e o porquê (auditoria S4). */
     const pronta = (crus: ItemCru[], aplicar: () => void): RodadaPronta => ({
       jogo,
       previa: previaSegura(jogo, crus.map(c => ({
         ...c,
-        origem: c.origem ?? fonte.id,
+        origem: origemDoMaterial(jogo, fonte.id, c.origem),
         origemRotulo: c.origemRotulo ?? sessaoEmUso?.title,
         idioma: c.idioma ?? fonte.lang,
       }))),
@@ -917,7 +937,7 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
     /* SELEÇÃO v2: a memória curta agora PERSISTE por origem (sobrevive ao F5, teto 200), e a
        precisão desta rodada alimenta o modo Auto deste jogo. */
     {
-      const origemDaRodada = fonte.id === 'sessao' ? `sessao:${fonte.sessionId ?? ''}` : fonte.id === 'trilha' ? `trilha:${fonte.nivel ?? ''}` : fonte.id === 'dificeis' ? 'dificeis' : 'baralho';
+      const origemDaRodada = chaveDaMemoriaCurta(fonte, baralhoAnki);
       const refs = report.items.map(o => o.itemRef).filter((r): r is string => !!r);
       registrarVistas(origemDaRodada, refs);
       setVistasRecentes(vistasGuardadas(origemDaRodada));
@@ -1273,10 +1293,13 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
      sessão gravaria o recorde na `origem` errada. (`acumular` já tem o guard como cinto; isto é a
      suspensória, para o placar sumir da tela no instante da troca, e não só na rodada seguinte.) */
   useEffect(() => {
-    const origemDaFonte = fonte.id === 'sessao' ? `sessao:${fonte.sessionId ?? ''}` : fonte.id === 'trilha' ? `trilha:${fonte.nivel ?? ''}` : fonte.id === 'dificeis' ? 'dificeis' : 'baralho';
+    /* Trocar de BARALHO também é trocar de assunto (auditoria S6): sem o `baralhoAnki` na chave e
+       na dependência, a troca não zerava as vistas nem a corrente — o placar de um baralho
+       continuava numa rodada do outro. */
+    const origemDaFonte = chaveDaMemoriaCurta(fonte, baralhoAnki);
     setVistasRecentes(vistasGuardadas(origemDaFonte));
     setSequencia(null);
-  }, [fonte.id, fonte.sessionId, fonte.nivel, fonte.lang]);
+  }, [fonte.id, fonte.sessionId, fonte.nivel, fonte.lang, baralhoAnki]);
 
   const trocarIdioma = (lang: string) => {
     setFonte(f => ({ ...f, lang }));
@@ -1321,8 +1344,15 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
   /* COMPOSIÇÃO SERVIDA. Re-pede quando muda fonte, faixa ou estratégia. Falha de rede cai para
      composição local com a origem marcada, a app é local-first e rodada vazia não é opção. */
   useEffect(() => {
+    /* NADA DE COMPOR ANTES DO BARALHO CHEGAR. Na montagem, `deck` é null e `fonte.lang` é '' — e
+       o carregador resolve os dois no MESMO commit (batching do React 19, ver o handler). Compor
+       aqui disparava uma requisição com idioma vazio, e idioma vazio DESLIGA o filtro no servidor:
+       durante a janela até a resposta certa chegar, `composicao` segurava um pool multi-idioma —
+       a mesma brecha (E4.4) em que o Duelo entrega a resposta pelo idioma do distrator. Auditoria
+       S13. De quebra, poupa uma requisição inútil por visita à tela. */
+    if (deck == null) return;
     let vivo = true;
-    contarPassada('composicao', { cartoes: (deck ?? []).length, fonte: fonte.id, lang: fonte.lang });
+    contarPassada('composicao', { cartoes: deck.length, fonte: fonte.id, lang: fonte.lang });
     const paraCompor: CartaoParaCompor[] = (deck ?? []).map((c) => ({
       id: c.id, word: c.word, back: c.translation ?? null, sentence: c.sentence ?? null,
       srcLang: c.srcLang ?? null, tgtLang: c.tgtLang ?? null,

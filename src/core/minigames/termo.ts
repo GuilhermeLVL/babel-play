@@ -28,13 +28,27 @@ export function chaveDoTermo(texto: string): string {
 export type MotivoForaDoTermo = 'hifen-ou-espaco' | 'curta' | 'longa' | 'sem-pista';
 
 /**
+ * A PALAVRA DÁ PARA DIGITAR NO TECLADO QWERTY FIXO da tela? — gate mínimo de alfabeto (S2/S3).
+ *
+ * `chaveDoTermo` aceita `\p{L}` (qualquer letra Unicode) de propósito: é a chave de COMPARAÇÃO,
+ * e `œuvre`/`café` precisam sobreviver nela. Mas o teclado do Termo é QWERTY fixo, e `食べる`
+ * passa pela régua de comprimento (3 letras Unicode) e pela pista sem jamais poder ser DIGITADA —
+ * a rodada nasce insolúvel, em silêncio. Este predicado é MAIS ESTRITO que a chave: exige que,
+ * depois de remover acentos, sobrem só letras A–Z. NÃO substitui `chaveDoTermo` — as duas
+ * continuam servindo perguntas diferentes ("é a mesma palavra?" vs. "dá para escrever?").
+ */
+export function digitavelNoTermo(palavra: string): boolean {
+  return /^[A-Z]+$/.test(chaveDoTermo(palavra));
+}
+
+/**
  * Por que uma palavra não joga o Termo — para a antessala dizer em vez de sumir com ela.
  *
  * A FAIXA governa o comprimento aceito (ver `LETRAS_POR_FAIXA`). Sem faixa, vale o médio, que é
  * a régua histórica: quem não passa faixa não vê mudança nenhuma.
  */
 export function motivoForaDoTermo(
-  c: Pick<VocabCard, 'word' | 'translation' | 'inDeck'>,
+  c: Pick<VocabCard, 'word' | 'translation' | 'inDeck' | 'daAnki'>,
   faixa: ReguaDeLetras = 'medio',
 ): MotivoForaDoTermo | null {
   const bruto = (c.word ?? '').trim();
@@ -43,7 +57,13 @@ export function motivoForaDoTermo(
   const regua = faixa === 'livre' ? SEM_REGUA : (LETRAS_POR_FAIXA[faixa] ?? LETRAS_POR_FAIXA.medio);
   if (n < regua.min) return 'curta';
   if (n > regua.max) return 'longa';
-  if (!pistaUtil(c.translation ?? '')) return 'sem-pista';
+  /* A ASSINATURA NEM TRANSPORTAVA `daAnki`, e o efeito era o mesmo de `pistasDaTriagem`
+   * (`core/learning/quality.ts`): `pistaUtil` sem origem usa sempre a régua de captura (42
+   * chars/5 palavras), reprovando como `sem-pista` a definição de dicionário que `avaliarCartao`
+   * já aprovou com o perfil `curado` (160/30). O Termo reprovava o grosso de um baralho Anki que
+   * Memória e Duelo aceitavam, e o gate (`contarJogaveisMulti` → `estadoDosJogos`) concordava com
+   * a régua errada. */
+  if (!pistaUtil(c.translation ?? '', c.daAnki ? 'curado' : 'captura')) return 'sem-pista';
   return null;
 }
 

@@ -9,7 +9,7 @@
  */
 import { describe, it, expect } from 'vitest'
 import {
-  motivoForaDoTermo, contarJogaveisMulti, rodadasDaEscada,
+  motivoForaDoTermo, contarJogaveisMulti, rodadasDaEscada, digitavelNoTermo,
   LETRAS_POR_FAIXA, ESCADA_POR_FAIXA, MIN_LETRAS, MAX_LETRAS,
 } from '../src/core/minigames/termo'
 import type { VocabCard } from '../src/types'
@@ -152,5 +152,50 @@ describe('a escada para onde a faixa manda', () => {
     const baralho = [['bread','pão'],['house','casa'],['water','água'],['green','verde'],['story','conto']]
       .map(([w, t]) => carta(w, t))
     expect(rodadasDaEscada(baralho).length).toBe(rodadasDaEscada(baralho, { faixa: 'medio' }).length)
+  })
+})
+
+/**
+ * S1b — `motivoForaDoTermo` NEM TRANSPORTAVA `daAnki`, e por isso `pistaUtil` era sempre chamado
+ * na régua de captura (42 chars/5 palavras). O Termo reprovava como 'sem-pista' o grosso de um
+ * baralho Anki que Memória e Duelo aceitavam (eles não passam pela régua de captura na tradução).
+ */
+describe('S1b — motivoForaDoTermo respeita o perfil curado quando o cartão veio de um baralho Anki', () => {
+  const definicaoDeDicionario =
+    'A period of one hundred years, often used to describe a century in historical or scientific contexts today.'
+
+  it('cartão daAnki de 100 chars é jogável (null); sem daAnki, sem-pista', () => {
+    const comAnki = { word: 'agree', translation: definicaoDeDicionario, inDeck: true, daAnki: true } as unknown as VocabCard
+    const semAnki = { word: 'agree', translation: definicaoDeDicionario, inDeck: true, daAnki: false } as unknown as VocabCard
+    expect(motivoForaDoTermo(comAnki)).toBeNull()
+    expect(motivoForaDoTermo(semAnki)).toBe('sem-pista')
+  })
+})
+
+/**
+ * S2/S3 — GATE MÍNIMO DE ALFABETO: o teclado do Termo é QWERTY fixo, e `chaveDoTermo` (que aceita
+ * qualquer `\p{L}`) deixava `食べる` passar pela régua de comprimento sem jamais poder ser
+ * digitada. `digitavelNoTermo` é o predicado MAIS ESTRITO que separa as duas perguntas.
+ */
+describe('digitavelNoTermo — o predicado do gate de alfabeto', () => {
+  it('palavra latina, com ou sem acento, é digitável', () => {
+    expect(digitavelNoTermo('agree')).toBe(true)
+    expect(digitavelNoTermo('café')).toBe(true)
+  })
+
+  it('ligadura sem decomposição NFD (œ) não vira A-Z — não é digitável', () => {
+    // `œ` (U+0153) não se decompõe em "o"+"e" via NFD (só NFKD faria isso); `chaveDoTermo` a
+    // preserva como está, e ela não é uma tecla do QWERTY.
+    expect(digitavelNoTermo('œuvre')).toBe(false)
+  })
+
+  it('alfabeto não-latino não é digitável no QWERTY fixo', () => {
+    expect(digitavelNoTermo('食べる')).toBe(false)
+    expect(digitavelNoTermo('привет')).toBe(false)
+  })
+
+  it('não substitui chaveDoTermo — string vazia não é digitável', () => {
+    expect(digitavelNoTermo('')).toBe(false)
+    expect(digitavelNoTermo('123')).toBe(false)
   })
 })

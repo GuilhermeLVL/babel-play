@@ -158,3 +158,58 @@ describe('estado de cada jogo', () => {
     }
   })
 })
+
+/**
+ * S2/S3 — GATE MÍNIMO DE ALFABETO.
+ *
+ * Hoje: um deck 100% japonês passa na régua de qualidade (tem tradução, não é ruído — a régua de
+ * `avaliarCartao` não julga alfabeto) e chega ao caça-palavras e ao Termo como "pronto", quando na
+ * verdade nenhuma das duas telas consegue apresentar a palavra: `normalizarPalavra` reduz `食べる`
+ * a string vazia (a grade fica vazia, só as pistas aparecem) e o teclado do Termo é QWERTY fixo.
+ * O motivo `alfabeto-nao-suportado` existe para a carta dizer a verdade em vez de prometer uma
+ * rodada que não abre.
+ */
+describe('gate de alfabeto — S2/S3', () => {
+  // Todas com 5 letras Unicode (`chaveDoTermo` conta \p{L}) — dentro da régua de comprimento do
+  // Termo (4-6, faixa média), para o bloqueio observado ser mesmo o de ALFABETO, não o de tamanho.
+  const JAPONES = [
+    carta('こんにちは', 'olá'),
+    carta('ありがとう', 'obrigado'),
+    carta('さようなら', 'adeus'),
+    carta('こんばんは', 'boa noite'),
+    carta('すみません', 'desculpe'),
+  ]
+
+  it('deck 100% japonês: wordsearch bloqueia com alfabeto-nao-suportado', () => {
+    const e = estadoDoJogo('wordsearch', { ...BASE, cartas: JAPONES })
+    expect(e.ok).toBe(false)
+    expect(e.motivo).toBe('alfabeto-nao-suportado')
+    expect(e.disponiveis).toBe(0)
+  })
+
+  it('deck 100% japonês: termo bloqueia com alfabeto-nao-suportado', () => {
+    const e = estadoDoJogo('termo', { ...BASE, cartas: JAPONES })
+    expect(e.ok).toBe(false)
+    expect(e.motivo).toBe('alfabeto-nao-suportado')
+    expect(e.disponiveis).toBe(0)
+  })
+
+  it('deck MISTO com >= minItems latinas: o jogo segue liberado com as que servem', () => {
+    const misto = [...JAPONES, ...CARTAS] // CARTAS tem 8 palavras latinas de tamanhos distintos
+    const wordsearch = estadoDoJogo('wordsearch', { ...BASE, cartas: misto })
+    expect(wordsearch.motivo).toBeUndefined()
+    expect(wordsearch.disponiveis).toBeGreaterThanOrEqual(MINIGAMES.wordsearch.minItems)
+
+    const termo = estadoDoJogo('termo', { ...BASE, cartas: misto })
+    expect(termo.motivo).toBeUndefined()
+    // `contarJogaveisMulti` mede o MAIOR GRUPO DE MESMO TAMANHO, não o total — mas não pode ser o
+    // bloqueio de alfabeto: há material latino de sobra, o que falhar aqui é outra régua.
+  })
+
+  it('poucas palavras japonesas (abaixo do mínimo): bloqueia pela contagem, não pelo alfabeto', () => {
+    const poucas = JAPONES.slice(0, 1)
+    const e = estadoDoJogo('wordsearch', { ...BASE, cartas: poucas })
+    expect(e.ok).toBe(false)
+    expect(e.motivo).not.toBe('alfabeto-nao-suportado')
+  })
+})

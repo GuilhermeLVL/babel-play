@@ -209,12 +209,21 @@ export default function MemoryGame({ items, ageProfile, onFinish, onExit }: Memo
                   <span className="w-6 h-6 rounded-lg bg-border-subtle/60" />
                 </span>
                 <span
-                  className="carta3d-verso bg-surface shadow-card rounded-2xl px-2.5 py-2 text-center"
+                  className="carta3d-verso bg-surface shadow-card rounded-2xl px-2.5 py-2 text-center overflow-hidden"
                   style={{ borderColor: cor, borderWidth: 2, borderStyle: 'solid' }}
                 >
+                  {/* Pista curada pode chegar com até 160 caracteres — sem clamp ela vazava da
+                      carta (S5). O `overflow-hidden` acima corta o transbordo; o `line-clamp`
+                      aqui é o que decide ONDE cortar, em linhas cheias em vez de no meio de uma
+                      palavra. `line-clamp-3`/`4` porque a carta grande (`folgado`) tem mais
+                      altura que a pequena. Abaixo de ~80 caracteres o texto cabe folgado no
+                      tamanho normal; acima disso a fonte desce um passo para abrir mais linha
+                      antes do clamp cortar. O `title` guarda o texto INTEIRO — é o que dá acesso
+                      ao conteúdo cortado sem precisar de outra tela. */}
                   <span
-                    className={`${folgado ? 'text-[14px]' : 'text-[13px]'} font-bold leading-tight break-words`}
+                    className={`${carta.texto.length > 80 ? (folgado ? 'text-[12px]' : 'text-[11px]') : folgado ? 'text-[14px]' : 'text-[13px]'} font-bold leading-tight break-words ${folgado ? 'line-clamp-4' : 'line-clamp-3'}`}
                     style={{ color: carta.lado === 'palavra' ? cor : undefined }}
+                    title={carta.texto}
                   >
                     {carta.texto}
                   </span>

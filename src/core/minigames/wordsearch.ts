@@ -57,11 +57,27 @@ export function normalizarPalavra(p: string): string {
 }
 
 /**
+ * A PALAVRA CABE NA GRADE? — a MESMA verdade que `buildGrid` usava só como `filter`, agora
+ * exportada (S2/S3). `normalizarPalavra` reduz a palavra a A–Z; um alfabeto não-latino inteiro
+ * (japonês, por exemplo) vira string vazia, e uma letra sozinha não faz caça-palavras.
+ */
+export function entraNaGrade(palavra: string): boolean {
+  return normalizarPalavra(palavra ?? '').length >= 2;
+}
+
+/**
  * Monta a grade. Palavras longas primeiro (as difíceis de encaixar entram enquanto há espaço);
  * o que não couber sai da rodada em vez de ser truncado.
  */
 export function buildGrid(items: MinigameItem[], opts: { tamanho?: number; seed?: number } = {}): Tabuleiro {
-  const palavras = items.map((it, i) => ({ i, texto: normalizarPalavra(it.answer) })).filter(p => p.texto.length >= 2);
+  const todas = items.map((it, i) => ({ i, texto: normalizarPalavra(it.answer) }));
+  /* PALAVRA DESCARTADA AQUI TAMBÉM É `naoCouberam` — não some da rodada em silêncio.
+   * `WordSearchGame.tsx:38` já tem o contrato certo: `jogaveis` é quem NÃO está em `naoCouberam`,
+   * e a pista era listada sem a palavra ter entrado na grade porque o `filter` de antes descartava
+   * ANTES desta lista existir. Um deck 100% japonês, por exemplo, listava N pistas e desenhava
+   * uma grade com zero palavras — a única saída era "Revelar tudo", nota 1 no FSRS, em silêncio. */
+  const naoCouberamDeAntemao: number[] = todas.filter(p => !entraNaGrade(p.texto)).map(p => p.i);
+  const palavras = todas.filter(p => entraNaGrade(p.texto));
   const maior = palavras.reduce((m, p) => Math.max(m, p.texto.length), 0);
   // A grade precisa caber a maior palavra com folga; nunca menor que 8.
   const tamanho = opts.tamanho ?? Math.max(8, Math.min(14, maior + 2));
@@ -69,7 +85,7 @@ export function buildGrid(items: MinigameItem[], opts: { tamanho?: number; seed?
 
   const letras: string[][] = Array.from({ length: tamanho }, () => Array<string>(tamanho).fill(''));
   const colocadas: PalavraColocada[] = [];
-  const naoCouberam: number[] = [];
+  const naoCouberam: number[] = [...naoCouberamDeAntemao];
 
   const cabe = (texto: string, linha: number, coluna: number, dir: Direcao): boolean => {
     const { dl, dc } = DELTAS[dir];

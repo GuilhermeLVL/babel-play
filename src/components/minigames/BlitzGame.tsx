@@ -402,7 +402,13 @@ export default function BlitzGame({ items, ageProfile, onFinish, onExit }: Blitz
   }
 
   return (
-    <div className="flex-1 flex flex-col p-4 lg:p-8 animate-in fade-in duration-200 relative">
+    /* S7: este container é `flex-1` dentro de uma coluna flex mais externa (o shell do jogo).
+       Um item flex sem `min-h-0` não encolhe abaixo do tamanho do seu CONTEÚDO — é a mesma lição
+       de layout do Termo nesta base ("sticky/overlay não reserva espaço", mas aqui é o oposto:
+       um item cresce e o pai não segura). Com enunciado de 160 caracteres em viewport curta, o
+       palco crescia além da tela e as alternativas saíam sem nenhuma rolagem. `min-h-0` deixa o
+       flex encolher de verdade; `overflow-y-auto` dá para onde o excesso ir. */
+    <div className="flex-1 flex flex-col p-4 lg:p-8 animate-in fade-in duration-200 relative min-h-0 overflow-y-auto">
       <header className="flex items-center justify-between mb-2 shrink-0">
         <span ref={relogioRef}>
           <AnelDoTempo restante={restante} duracao={duracao} apertado={apertado} fever={fever} pulso={anelPulso} />
@@ -430,7 +436,7 @@ export default function BlitzGame({ items, ageProfile, onFinish, onExit }: Blitz
       <div
         ref={palcoRef}
         key={'e' + erroPulso}
-        className={`flex-1 flex flex-col items-center justify-center gap-7 max-w-xl mx-auto w-full relative ${
+        className={`flex-1 flex flex-col items-center justify-center gap-7 max-w-xl mx-auto w-full relative min-h-0 py-2 ${
           fever ? 'blitz-fever' : ''
         } ${erroPulso > 0 ? 'blitz-erro' : ''}`}
       >
@@ -463,7 +469,17 @@ export default function BlitzGame({ items, ageProfile, onFinish, onExit }: Blitz
           <p className="label-mono mb-2">
             {item.clozed ? 'Complete a frase' : ageProfile === 'senior' ? 'Qual palavra significa' : 'Que palavra é'}
           </p>
-          <p data-tour="pergunta" className="font-display font-black text-2xl sm:text-3xl text-ink leading-tight">{item.prompt}</p>
+          {/* Pista curada pode chegar com até 160 caracteres. `line-clamp-4` corta em linha
+              cheia (não no meio de uma palavra); o `title` guarda o texto inteiro. Acima de
+              ~80 chars a fonte desce um degrau para abrir mais linha antes do clamp cortar —
+              mesma técnica condicional simples da carta de memória, sem medir DOM. */}
+          <p
+            data-tour="pergunta"
+            className={`font-display font-black text-ink leading-tight line-clamp-4 ${item.prompt.length > 80 ? 'text-xl sm:text-2xl' : 'text-2xl sm:text-3xl'}`}
+            title={item.prompt}
+          >
+            {item.prompt}
+          </p>
           <p className="text-[11px] text-ink-faint mt-2">{indice + 1} de {items.length}</p>
         </div>
 

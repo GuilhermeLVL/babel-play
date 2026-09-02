@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { avaliarCartao, pistaUtil, type MotivoDescarte } from '../src/core/learning/quality';
+import { avaliarCartao, pistaUtil, pistasDaTriagem, type MotivoDescarte, type Triagem } from '../src/core/learning/quality';
 import type { VocabCard } from '../src/types';
 
 /**
@@ -133,4 +133,32 @@ describe('regressão: sem opts.origem, o veredito é idêntico ao de antes (defa
       expect(semOrigem).toEqual(comOrigemExplicita);
     });
   }
+});
+
+describe('S1a — pistasDaTriagem usava a régua errada para cartão daAnki (bug medido: "20/827")', () => {
+  /* Definição de dicionário: 100 chars, bem acima do limite de captura (42/5) e dentro do de
+   * curado (160/30). `avaliarCartao` já a aprova como 'curado' quando `card.daAnki` é true (é a
+   * origem que `triarCartoes` deriva). `pistasDaTriagem` chamava `pistaUtil` sem origem — sempre
+   * captura — e reprovava o MESMO cartão que o vizinho `avaliarCartao` tinha aprovado: um baralho
+   * de 847 cartões Anki, todos com tradução, aparecia como "20 com tradução · 827 só com frase". */
+  const definicaoDeDicionario =
+    'A period of one hundred years, often used to describe a century in historical or scientific contexts today.';
+
+  const usavel = (over: Partial<import('../src/types').VocabCard>): Triagem => ({
+    usaveis: [card(over)], fora: [], outroIdioma: [],
+  });
+
+  it('cartão daAnki com definição de 100 chars vai para comTraducao (a régua curada aprova)', () => {
+    const t = usavel({ daAnki: true, translation: definicaoDeDicionario });
+    const { comTraducao, soComFrase } = pistasDaTriagem(t);
+    expect(comTraducao).toHaveLength(1);
+    expect(soComFrase).toHaveLength(0);
+  });
+
+  it('o MESMO texto, sem daAnki, vai para soComFrase — a régua de captura reprova (regressão intacta)', () => {
+    const t = usavel({ daAnki: false, translation: definicaoDeDicionario });
+    const { comTraducao, soComFrase } = pistasDaTriagem(t);
+    expect(comTraducao).toHaveLength(0);
+    expect(soComFrase).toHaveLength(1);
+  });
 });

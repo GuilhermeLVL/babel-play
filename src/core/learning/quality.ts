@@ -466,8 +466,16 @@ export function pistasDaTriagem(t: Triagem): { comTraducao: VocabCard[]; soComFr
   const comTraducao: VocabCard[] = [];
   const soComFrase: VocabCard[] = [];
   for (const c of t.usaveis) {
-    // A mesma pergunta que `avaliarCartao` faz para decidir entre pista real e lacuna.
-    if (pistaUtil(c.translation ?? '')) comTraducao.push(c);
+    /* A MESMA DIVERGÊNCIA QUE JÁ CUSTOU CARO EM `motivoForaDoTermo`: esta função chamava
+     * `pistaUtil` SEM origem — sempre régua de captura (42 chars/5 palavras) — enquanto
+     * `avaliarCartao`, que decidiu que este cartão era `usavel`, já usava `curado` (160/30)
+     * quando `card.daAnki` era verdadeiro. Medido num baralho Anki de 847 cartões, todos com
+     * tradução: a tela mostrava "20 com tradução · 827 só com frase" bem ao lado de outra que
+     * dizia "todas passaram na régua" — o mesmo cartão avaliado duas vezes com duas réguas
+     * diferentes. `idiomasDisponiveis` (`minigames/source.ts`) herda o conserto de graça, porque
+     * consome esta função para contar `jogaveis`.
+     */
+    if (pistaUtil(c.translation ?? '', c.daAnki ? 'curado' : 'captura')) comTraducao.push(c);
     else soComFrase.push(c);
   }
   return { comTraducao, soComFrase };

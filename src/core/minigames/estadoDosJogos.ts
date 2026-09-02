@@ -1,7 +1,8 @@
 import { MINIGAMES, type MinigameId } from './types';
 import { canPlay, promptFor } from './itemSource';
 import { chaveComparavel } from '../learning/quality';
-import { contarJogaveisMulti, consumoDaEscada, ESCADA_POR_FAIXA } from './termo';
+import { contarJogaveisMulti, consumoDaEscada, ESCADA_POR_FAIXA, digitavelNoTermo } from './termo';
+import { entraNaGrade } from './wordsearch';
 import type { FaixaDificuldade } from './composicao';
 import { buildScrambleRounds } from './scramble';
 import { buildRodadasEscuta, buildRodadasDitado, buildRodadasConectores, temConectores } from './escuta';
@@ -38,7 +39,19 @@ export type MotivoBloqueio =
    * "o som está pronto". Sem este motivo, a carta cairia no texto de acervo vazio e diria "precisa
    * de uma gravação com legenda" para uma gravação que tem exatamente isso.
    */
-  | 'audio-carregando';
+  | 'audio-carregando'
+  /**
+   * O ACERVO TEM PALAVRAS DE SOBRA, MAS NENHUMA CABE NO JOGO — gate mínimo de alfabeto (S2/S3).
+   *
+   * Hoje: um deck 100% japonês passa na régua de qualidade (tem tradução, não é ruído) e o
+   * caça-palavras listava as pistas com a grade vazia — `normalizarPalavra` reduz `食べる` a
+   * string vazia, e a única saída era Revelar tudo, nota 1 no FSRS, em silêncio. O Termo aceitava
+   * a mesma palavra (`chaveDoTermo` é `\p{L}`) com um teclado QWERTY que não a escreve. Isto NÃO é
+   * "faltam N itens" — o acervo tem material de sobra, só que em alfabeto que o jogo não suporta.
+   * O gate declarativo por jogo (que faixas de idioma cada um aceita) vem noutra onda; aqui é só o
+   * caso extremo: pool suficiente por CONTAGEM, zero digitável/na-grade de fato.
+   */
+  | 'alfabeto-nao-suportado';
 
 export interface EstadoDoJogo {
   id: MinigameId;
@@ -180,7 +193,15 @@ export function estadoDoJogo(id: MinigameId, e: EntradaDoEstado, pools?: PoolPor
    * com número, em vez de falhar no clique.
    */
   if (id === 'termo') {
-    const n = contarJogaveisMulti(e.cartas, e.faixa ?? 'medio');
+    const faixa = e.faixa ?? 'medio';
+    const semFiltroDeAlfabeto = contarJogaveisMulti(e.cartas, faixa);
+    /* Só as digitáveis no teclado QWERTY fixo — ver `digitavelNoTermo`. Contar sobre o acervo
+     * INTEIRO (`semFiltroDeAlfabeto`) e não sobre este subconjunto é o que separa "acervo pequeno
+     * demais" de "acervo tem material, mas em alfabeto que o Termo não suporta". */
+    const n = contarJogaveisMulti(e.cartas.filter(c => digitavelNoTermo(c.word ?? '')), faixa);
+    if (n === 0 && semFiltroDeAlfabeto >= def.minItems) {
+      return { id, ok: false, disponiveis: 0, faltam: def.minItems, fonte: 'baralho', motivo: 'alfabeto-nao-suportado', tamanhoDaRodada: 0 };
+    }
     return { id, ok: n >= def.minItems, disponiveis: n, faltam: Math.max(0, def.minItems - n), fonte: 'baralho', tamanhoDaRodada: tamanhoDaRodadaDe(id, n, e.faixa) };
   }
 
@@ -225,6 +246,19 @@ export function estadoDoJogo(id: MinigameId, e: EntradaDoEstado, pools?: PoolPor
               : (e.temAudio ? e.frases.filter(f => f.endMs > f.startMs && f.text.trim()).length : 0);
 
     return { id, ok: n >= def.minItems, disponiveis: n, faltam: Math.max(0, def.minItems - n), fonte: 'falas', tamanhoDaRodada: tamanhoDaRodadaDe(id, n) };
+  }
+
+  if (id === 'wordsearch') {
+    const semFiltroDeAlfabeto = canPlay(id, e.cartas);
+    /* Só as que cabem na GRADE — ver `entraNaGrade`. Igual ao Termo: medir sobre o acervo inteiro
+     * é o que distingue "pouco material" de "material de sobra, alfabeto não suportado". */
+    const pronto = canPlay(id, e.cartas.filter(c => entraNaGrade(c.word ?? '')));
+    const medidos = pools ?? poolDosJogosDePalavra(e.cartas);
+    const pool = medidos.get(id) ?? pronto.disponiveis;
+    if (pronto.disponiveis === 0 && semFiltroDeAlfabeto.disponiveis >= def.minItems) {
+      return { id, ok: false, disponiveis: 0, faltam: def.minItems, fonte: 'baralho', pool, motivo: 'alfabeto-nao-suportado', tamanhoDaRodada: 0 };
+    }
+    return { id, ...pronto, pool, fonte: 'baralho', tamanhoDaRodada: tamanhoDaRodadaDe(id, pronto.disponiveis) };
   }
 
   const pronto = canPlay(id, e.cartas);

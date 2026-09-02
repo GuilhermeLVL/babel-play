@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import {
   ArrowLeft, Library, Loader2, AlertTriangle, RotateCw, Inbox, Search,
-  PlusCircle, PowerOff, Trash2, ChevronRight, X,
+  PlusCircle, PowerOff, Trash2, ChevronRight, X, Play,
 } from 'lucide-react'
 import {
   listarBaralhosAnki, listarNotasDoBaralho, ativarNotasDoBaralho, desativarBaralho, purgarBaralho,
@@ -35,6 +35,14 @@ export interface BaralhosAnkiProps {
   onVoltar: () => void
   /** Porta para importar um novo baralho — a tela de upload já existe em `BaralhoAnki.tsx`. */
   onImportar: () => void
+  /**
+   * "Jogar só com este" — o recorte da rodada. Fica aqui, e não no lobby, porque é aqui que a
+   * pessoa está olhando os baralhos e sabe qual quer; obrigá-la a voltar e procurar um seletor
+   * seria pedir que ela guardasse o nome na cabeça no caminho.
+   */
+  onJogarCom?: (deckId: string, nome: string) => void
+  /** Ativar cria cartões: quem montou esta tela precisa reler o baralho depois. */
+  onAtivou?: () => void
 }
 
 const FILTROS_ESTADO: Array<{ id: EstadoNota | 'todas'; rotulo: string }> = [
@@ -50,7 +58,7 @@ function fmtData(ts: number): string {
 
 // ───────────────────────────── lista ─────────────────────────────
 
-export default function BaralhosAnki({ onVoltar, onImportar }: BaralhosAnkiProps) {
+export default function BaralhosAnki({ onVoltar, onImportar, onJogarCom, onAtivou }: BaralhosAnkiProps) {
   const [baralhos, setBaralhos] = useState<BaralhoAnkiResumo[]>([])
   const [carregando, setCarregando] = useState(true)
   const [erro, setErro] = useState<string | null>(null)
@@ -80,6 +88,8 @@ export default function BaralhosAnki({ onVoltar, onImportar }: BaralhosAnkiProps
       setBaralhos((antes) => antes.map((b) => (b.id === deck.id
         ? { ...b, ativas: b.ativas + r.ativadas }
         : b)))
+      // Cartões novos existem agora: quem montou esta tela precisa reler o baralho.
+      onAtivou?.()
     } catch (e) {
       setErro(String((e as Error)?.message ?? e))
     } finally {
@@ -190,6 +200,7 @@ export default function BaralhosAnki({ onVoltar, onImportar }: BaralhosAnkiProps
                 onAtivarMais={() => void ativarMais(deck)}
                 onDesativar={() => void desativar(deck)}
                 onPedirPurga={() => setConfirmarPurga(deck)}
+                onJogarCom={onJogarCom}
               />
             </li>
           ))}
@@ -215,7 +226,7 @@ export default function BaralhosAnki({ onVoltar, onImportar }: BaralhosAnkiProps
 // ───────────────────────────── cartão de baralho ─────────────────────────────
 
 function CartaoDeBaralho({
-  deck, ativando, ocupado, aberto, onAbrir, onAtivarMais, onDesativar, onPedirPurga,
+  deck, ativando, ocupado, aberto, onAbrir, onAtivarMais, onDesativar, onPedirPurga, onJogarCom,
 }: {
   deck: BaralhoAnkiResumo
   ativando: boolean
@@ -225,6 +236,7 @@ function CartaoDeBaralho({
   onAtivarMais: () => void
   onDesativar: () => void
   onPedirPurga: () => void
+  onJogarCom?: (deckId: string, nome: string) => void
 }) {
   // Quantas dá pra ativar agora: o que não está ativo, nem descartado, nem ausente.
   const restantes = Math.max(0, deck.total - deck.ativas - deck.descartadas - deck.ausentes)
@@ -272,6 +284,17 @@ function CartaoDeBaralho({
           >
             {ativando ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : null}
             {ativando ? 'ativando…' : `Ativar mais ${Math.min(restantes, 300)}`}
+          </button>
+        )}
+        {/* JOGAR SÓ COM ESTE — a porta existe aqui porque é aqui que a pessoa está olhando os
+            baralhos e sabe qual quer. Só aparece com nota ativa: um baralho sem nada ativado não
+            tem com que jogar, e o botão levaria a uma rodada vazia. */}
+        {onJogarCom && deck.estado === 'ativo' && deck.ativas > 0 && (
+          <button
+            onClick={() => onJogarCom(deck.id, deck.nome)}
+            className="py-1.5 px-3 bg-canvas border border-border-subtle hover:border-accent text-ink rounded-lg font-semibold text-[12px] cursor-pointer flex items-center gap-1.5"
+          >
+            <Play className="w-3.5 h-3.5" /> Jogar só com este
           </button>
         )}
         {deck.estado === 'ativo' && (

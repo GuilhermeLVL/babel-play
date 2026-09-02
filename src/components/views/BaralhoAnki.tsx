@@ -1,8 +1,9 @@
 import React, { useRef, useState } from 'react';
 import JSZip from 'jszip';
-import { ArrowLeft, Upload, Download, Loader2, AlertTriangle, FileText, Info } from 'lucide-react';
-import { lerBaralhoAnki, bulkAddCards, exportarApkg, type LeituraAnki, type CartaoPulado } from '../../data/api';
-import { motivoLegivel, ROTULO_MOTIVO, foraDoBulkAdd, type MotivoDescarte } from '@core';
+import { ArrowLeft, Upload, Download, Loader2, AlertTriangle, FileText, Info, CheckCircle2 } from 'lucide-react';
+import { apiFetch, exportarApkg } from '../../data/api';
+import { ativarNotasDoBaralho, type ResultadoAtivar } from '../../data/apiAnki';
+import { motivoLegivel, ROTULO_MOTIVO, type MotivoDescarte } from '@core';
 import type { VocabCard } from '../../types';
 import type { AgeProfileType } from '../../lib/profile';
 import { toast } from '../Toast';
@@ -18,10 +19,11 @@ import { toast } from '../Toast';
  * app que só aceita entrada prende; poder levar embora é o que torna a escolha de ficar uma
  * escolha de verdade.
  *
- * A IMPORTAÇÃO É EM DOIS PASSOS de propósito — ler, mostrar, e só então gravar. O baralho passa
- * pela MESMA régua de qualidade e pela MESMA deduplicação de tudo que entra no vocabulário; um
- * caminho paralelo seria a porta por onde o lixo que acabamos de tirar voltaria a entrar. E
- * mexer no vocabulário de alguém sem mostrar antes o que vai acontecer é abuso de confiança.
+ * A IMPORTAÇÃO GRAVA O ACERVO DE UMA VEZ — a rota `/api/import/anki` já lê, aplica a régua de
+ * qualidade e grava o baralho, as notas e o ledger de import no servidor; quando a resposta
+ * chega, a importação JÁ aconteceu. O que esta tela decide depois é outra coisa: quantas dessas
+ * notas viram cartão jogável AGORA. Um baralho de 3.600 notas não pode despejar 3.600 cartões
+ * vencidos na fila de revisão de amanhã — por isso ativar é um passo separado, e explícito.
  */
 
 interface BaralhoAnkiProps {
@@ -34,19 +36,66 @@ interface BaralhoAnkiProps {
   onImportou: () => void | Promise<void>;
 }
 
-/** Teto por importação. Um baralho do AnkiWeb tem milhares de notas; entrar tudo de uma vez
- *  inundaria a fila de revisão e a pessoa abriria o app com 3.000 cartões vencendo no mesmo dia. */
+/** Quantas notas oferecer para ativar de uma vez. Mais que isso de uma vez inundaria a fila de
+ *  revisão — a pessoa abriria o app com milhares de cartões vencendo no mesmo dia. */
 const TETO = 300;
 
+/** O que a rota `POST /api/import/anki` devolve HOJE — o import já aconteceu quando isto chega. */
+interface ResumoImportAnki {
+  notas: number;
+  novas: number;
+  atualizadas: number;
+  iguais: number;
+  descartadas: number;
+  porMotivo: Record<string, number>;
+}
+
+interface ImportAnkiResposta {
+  importId: string;
+  deckId: string;
+  resumo: ResumoImportAnki;
+  campos: string[];
+  notetype: string | null;
+  baralhos: string[];
+  formato: string;
+  truncado: boolean;
+  totalNoArquivo: number;
+  amostra: Array<{ frente: string; verso: string; exemplo: string | null }>;
+}
+
+/** Timeout folgado: o `.apkg` reempacotado ainda pode ter dezenas de milhares de notas. */
+const IMPORT_TIMEOUT_MS = 600_000;
+
+/**
+ * GRAVA o acervo no servidor — não é mais "ler e depois confirmar". `bulkAddCards` saiu deste
+ * fluxo porque a rota passou a gravar sozinha (baralho + notas + ledger); um segundo passo de
+ * "gravar" aqui duplicaria o que o servidor já fez, e divergiria da régua de qualidade que roda
+ * lá (perfil `'curado'`, ver `server/routes/import.ts`).
+ */
+async function importarBaralhoAnki(arquivo: File): Promise<ImportAnkiResposta> {
+  const res = await apiFetch('/api/import/anki', {
+    timeoutMs: IMPORT_TIMEOUT_MS,
+    method: 'POST',
+    headers: { 'X-Filename': encodeURIComponent(arquivo.name) },
+    body: arquivo,
+  });
+  if (!res.ok) {
+    const e = await res.json().catch(() => ({ error: 'falha ao importar o baralho' }));
+    throw new Error(e.error ?? 'falha ao importar o baralho');
+  }
+  return (await res.json()) as ImportAnkiResposta;
+}
+
 export default function BaralhoAnki({
-  deck, idioma, idiomaNativo, ageProfile, onVoltar, onImportou,
+  deck, idioma, idiomaNativo: _idiomaNativo, ageProfile, onVoltar, onImportou,
 }: BaralhoAnkiProps) {
-  const [lendo, setLendo] = useState(false);
-  const [gravando, setGravando] = useState(false);
-  const [leitura, setLeitura] = useState<LeituraAnki | null>(null);
+  const [enviando, setEnviando] = useState(false);
   const [nomeArquivo, setNomeArquivo] = useState('');
   const [erro, setErro] = useState<string | null>(null);
-  const [resultado, setResultado] = useState<{ entraram: number; pulados: CartaoPulado[] } | null>(null);
+  const [resultado, setResultado] = useState<ImportAnkiResposta | null>(null);
+  const [ativando, setAtivando] = useState(false);
+  const [erroAtivar, setErroAtivar] = useState<string | null>(null);
+  const [ativacao, setAtivacao] = useState<ResultadoAtivar | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
 
   /**
@@ -91,64 +140,38 @@ export default function BaralhoAnki({
     if (!arquivo) return;
     setErro(null);
     setResultado(null);
-    setLeitura(null);
+    setAtivacao(null);
+    setErroAtivar(null);
     setNomeArquivo(arquivo.name);
-    setLendo(true);
+    setEnviando(true);
     try {
-      setLeitura(await lerBaralhoAnki(await soAColecao(arquivo)));
+      const resp = await importarBaralhoAnki(await soAColecao(arquivo));
+      setResultado(resp);
+      await onImportou();
     } catch (e) {
       setErro((e as Error).message);
     } finally {
-      setLendo(false);
+      setEnviando(false);
     }
   };
 
-  const gravar = async () => {
-    if (!leitura) return;
-    setGravando(true);
+  /** O que dá para ativar: tudo que entrou no acervo, menos o que a régua já descartou. */
+  const podeAtivar = resultado ? Math.max(0, resultado.resumo.notas - resultado.resumo.descartadas) : 0;
+  const sugestaoAtivar = Math.min(TETO, podeAtivar);
+
+  const ativar = async () => {
+    if (!resultado || !sugestaoAtivar) return;
+    setAtivando(true);
+    setErroAtivar(null);
     try {
-      /**
-       * O QUE A FRONTEIRA DO SERVIDOR RECUSA SAI ANTES DE VIAJAR — e sem isto UMA nota ruim
-       * derrubava o baralho inteiro.
-       *
-       * `bulkAddCardsSchema` valida o LOTE: uma palavra de uma letra faz a rota devolver 400 e
-       * NENHUM cartão entra. Medido num baralho de 39 notas com a palavra `a` no meio: 39 lidas,
-       * zero gravadas. E não é caso raro — todo baralho de idioma tem artigo ou pronome de uma
-       * letra ("a", "I", "o"), e baralhos de japonês/chinês têm palavras de um caractere às
-       * centenas.
-       *
-       * Filtrar aqui não é contornar a régua: é aplicar a MESMA régua antes, para que o lote que
-       * chega seja aceitável e o que não passa seja RELATADO em vez de derrubar o resto. O motivo
-       * `palavra-curta` já existe em `MotivoDescarte` e a tela já sabe exibi-lo — este caminho só
-       * nunca tinha sido ligado.
-       */
-      const daLeitura = leitura.notas.slice(0, TETO);
-      const vao = daLeitura.filter(n => foraDoBulkAdd(n.frente) === null);
-      const foraPorFormato: CartaoPulado[] = daLeitura
-        .map(n => ({ n, motivo: foraDoBulkAdd(n.frente) }))
-        .filter((x): x is { n: typeof x.n; motivo: NonNullable<typeof x.motivo> } => x.motivo !== null)
-        .map(x => ({ word: x.n.frente, motivo: x.motivo }));
-
-      if (!vao.length) {
-        setResultado({ entraram: 0, pulados: foraPorFormato });
-        return;
-      }
-
-      const { cards, skipped } = await bulkAddCards(vao.map(n => ({
-        word: n.frente,
-        back: n.verso,
-        sentence: n.exemplo,
-        srcLang: idioma,
-        tgtLang: idiomaNativo,
-        sessionId: `anki:${nomeArquivo}`.slice(0, 64),
-      })));
-      setResultado({ entraram: cards.length, pulados: [...foraPorFormato, ...skipped] });
+      const r = await ativarNotasDoBaralho(resultado.deckId, sugestaoAtivar);
+      setAtivacao(r);
       await onImportou();
-      if (cards.length) toast.ok(`${cards.length} ${cards.length === 1 ? 'palavra entrou' : 'palavras entraram'}`);
+      if (r.ativadas) toast.ok(`${r.ativadas} ${r.ativadas === 1 ? 'palavra entrou' : 'palavras entraram'} na sua fila`);
     } catch (e) {
-      setErro((e as Error).message);
+      setErroAtivar((e as Error).message);
     } finally {
-      setGravando(false);
+      setAtivando(false);
     }
   };
 
@@ -166,7 +189,7 @@ export default function BaralhoAnki({
   /** `.apkg`: abre no Anki com duplo clique e chega com nome de baralho. */
   const exportarBaralho = async () => {
     if (!exportaveis.length) { toast.warn('Não há palavras com tradução para exportar.'); return; }
-    setGravando(true);
+    setEnviando(true);
     try {
       const blob = await exportarApkg(
         exportaveis.map(c => ({ frente: c.word, verso: c.translation, exemplo: c.sentence })),
@@ -176,7 +199,7 @@ export default function BaralhoAnki({
       toast.ok(`${exportaveis.length} palavras no arquivo`);
     } catch (e) {
       toast.error(`Não consegui gerar o .apkg: ${(e as Error).message}`);
-    } finally { setGravando(false); }
+    } finally { setEnviando(false); }
   };
 
   /**
@@ -197,8 +220,6 @@ export default function BaralhoAnki({
       `babel-${idioma || 'deck'}-${new Date().toISOString().slice(0, 10)}.txt`);
     toast.ok(`${linhas.length} palavras exportadas`);
   };
-
-  const totalUtil = leitura ? Math.min(leitura.notas.length, TETO) : 0;
 
   return (
     <div className="flex-1 overflow-y-auto custom-scrollbar p-6 lg:p-10 pb-28 animate-in fade-in duration-200">
@@ -231,10 +252,10 @@ export default function BaralhoAnki({
           />
           <button
             onClick={() => inputRef.current?.click()}
-            disabled={lendo}
+            disabled={enviando}
             className="py-2.5 px-4 bg-accent hover:bg-accent-ink text-white rounded-xl font-bold text-[13px] shadow-btn disabled:opacity-50 cursor-pointer flex items-center justify-center gap-2"
           >
-            {lendo ? <><Loader2 className="w-4 h-4 animate-spin" /> lendo…</> : <><Upload className="w-4 h-4" /> Escolher arquivo</>}
+            {enviando ? <><Loader2 className="w-4 h-4 animate-spin" /> importando…</> : <><Upload className="w-4 h-4" /> Escolher arquivo</>}
           </button>
           <p className="text-[11px] text-ink-faint">
             Aceita <b>.apkg</b> (o que se baixa do AnkiWeb, inclusive os novos, comprimidos) e
@@ -247,70 +268,44 @@ export default function BaralhoAnki({
             </p>
           )}
 
-          {/* A PRÉVIA: o que foi lido, ANTES de gravar. */}
-          {leitura && !resultado && (
+          {/* O SALDO DO ACERVO: a importação já aconteceu quando chega aqui. */}
+          {resultado && (
             <div className="flex flex-col gap-3 border-t border-border-subtle pt-3">
               <div className="text-[12px] text-ink-muted flex flex-wrap gap-x-4 gap-y-1">
-                <span><b className="text-ink">{leitura.notas.length}</b> notas lidas</span>
-                {leitura.descartadas > 0 && <span>{leitura.descartadas} sem um dos lados</span>}
-                <span className="font-mono text-[11px]">{leitura.formato}</span>
+                <span><b className="text-ink">{resultado.resumo.notas}</b> notas lidas de {nomeArquivo}</span>
+                <span className="font-mono text-[11px]">{resultado.formato}</span>
               </div>
-              {leitura.campos.length > 0 && (
+              <ul className="flex flex-wrap gap-x-4 gap-y-1 text-[12px] text-ink-muted">
+                <li><b className="text-good-ink">{resultado.resumo.novas}</b> novas</li>
+                {resultado.resumo.atualizadas > 0 && <li><b className="text-ink">{resultado.resumo.atualizadas}</b> atualizadas</li>}
+                {resultado.resumo.iguais > 0 && <li><b className="text-ink">{resultado.resumo.iguais}</b> iguais ao que já tinha</li>}
+              </ul>
+
+              {resultado.campos.length > 0 && (
                 <p className="text-[11px] text-ink-faint">
-                  Campos do baralho: {leitura.campos.join(' · ')} → viram <b>palavra</b>,{' '}
-                  <b>tradução</b>{leitura.campos.length > 2 && <> e <b>frase</b></>}.
+                  Campos do baralho: {resultado.campos.join(' · ')} → viram <b>palavra</b>,{' '}
+                  <b>tradução</b>{resultado.campos.length > 2 && <> e <b>frase</b></>}.
                 </p>
               )}
 
               {/* Amostra real: a pessoa confere se os lados não vieram trocados. */}
-              <ul className="flex flex-col gap-1">
-                {leitura.notas.slice(0, 4).map((n, i) => (
-                  <li key={i} className="text-[12px] flex gap-2 items-baseline">
-                    <span className="font-bold text-ink">{n.frente}</span>
-                    <span className="text-ink-faint">=</span>
-                    <span className="text-ink-muted truncate">{n.verso}</span>
-                  </li>
-                ))}
-              </ul>
-
-              {leitura.temMidia && (
-                <p className="flex items-start gap-2 text-[11px] text-warn-ink">
-                  <Info className="w-3.5 h-3.5 mt-0.5 shrink-0" aria-hidden />
-                  Este baralho tem áudio ou imagem. Trazemos só o texto, o resto ficaria sem uso aqui.
-                </p>
-              )}
-              {leitura.notas.length > TETO && (
-                <p className="flex items-start gap-2 text-[11px] text-warn-ink">
-                  <Info className="w-3.5 h-3.5 mt-0.5 shrink-0" aria-hidden />
-                  Vou trazer as primeiras <b>{TETO}</b>. Mais que isso de uma vez encheria a sua fila
-                  de revisão de amanhã, importe de novo quando quiser as próximas.
-                </p>
+              {resultado.amostra.length > 0 && (
+                <ul className="flex flex-col gap-1">
+                  {resultado.amostra.map((n, i) => (
+                    <li key={i} className="text-[12px] flex gap-2 items-baseline">
+                      <span className="font-bold text-ink">{n.frente}</span>
+                      <span className="text-ink-faint">=</span>
+                      <span className="text-ink-muted truncate">{n.verso}</span>
+                    </li>
+                  ))}
+                </ul>
               )}
 
-              <button
-                onClick={() => void gravar()}
-                disabled={gravando || !totalUtil}
-                className="py-2.5 px-4 bg-accent hover:bg-accent-ink text-white rounded-xl font-bold text-[13px] shadow-btn disabled:opacity-50 cursor-pointer flex items-center justify-center gap-2"
-              >
-                {gravando ? <><Loader2 className="w-4 h-4 animate-spin" /> gravando…</> : `Trazer ${totalUtil} para o meu baralho`}
-              </button>
-            </div>
-          )}
-
-          {/* O SALDO REAL: entrou, e o que não entrou, com o motivo de cada grupo. */}
-          {resultado && (
-            <div className="flex flex-col gap-2 border-t border-border-subtle pt-3">
-              <p className="text-[13px] font-bold text-good-ink">{resultado.entraram} entraram no seu baralho</p>
-              {resultado.pulados.length > 0 && (
+              {resultado.resumo.descartadas > 0 && (
                 <>
-                  <p className="text-[12px] text-ink-muted">{resultado.pulados.length} não entraram:</p>
+                  <p className="text-[12px] text-ink-muted">{resultado.resumo.descartadas} não entraram no acervo:</p>
                   <ul className="flex flex-col gap-0.5">
-                    {Object.entries(
-                      resultado.pulados.reduce<Record<string, number>>((acc, p) => {
-                        acc[p.motivo] = (acc[p.motivo] ?? 0) + 1;
-                        return acc;
-                      }, {}),
-                    ).map(([motivo, n]) => (
+                    {Object.entries(resultado.resumo.porMotivo).map(([motivo, n]) => (
                       <li key={motivo} className="text-[12px] text-ink-muted">
                         <b className="text-ink">{n}</b>{' '}
                         {ROTULO_MOTIVO[motivo as MotivoDescarte]?.titulo.toLowerCase() ?? motivoLegivel(motivo)}
@@ -318,6 +313,64 @@ export default function BaralhoAnki({
                     ))}
                   </ul>
                 </>
+              )}
+
+              {resultado.truncado && (
+                <p className="flex items-start gap-2 text-[11px] text-warn-ink">
+                  <Info className="w-3.5 h-3.5 mt-0.5 shrink-0" aria-hidden />
+                  Este arquivo tem <b>{resultado.totalNoArquivo}</b> notas, mais do que dá para ler
+                  de uma vez; só as primeiras {resultado.resumo.notas} entraram agora. Importe o
+                  mesmo arquivo de novo depois para trazer o resto.
+                </p>
+              )}
+
+              {/* O PONTO DO PRODUTO, dito sem jargão: entrou no acervo, mas ninguém foi para a
+                  fila de revisão ainda. Sem isto, quem importasse 3.600 notas abriria o app amanhã
+                  com 3.600 cartões vencidos. */}
+              <p className="flex items-start gap-2 text-[12px] text-ink-muted bg-canvas border border-border-subtle rounded-lg p-3">
+                <Info className="w-4 h-4 mt-0.5 shrink-0 text-accent" aria-hidden />
+                Essas palavras já estão guardadas, mas nenhuma foi para a sua fila de estudo ainda.
+                Escolha quantas começar agora — o resto espera, sem pressa.
+              </p>
+
+              {!ativacao && podeAtivar > 0 && (
+                <button
+                  onClick={() => void ativar()}
+                  disabled={ativando}
+                  className="py-2.5 px-4 bg-accent hover:bg-accent-ink text-white rounded-xl font-bold text-[13px] shadow-btn disabled:opacity-50 cursor-pointer flex items-center justify-center gap-2"
+                >
+                  {ativando ? <><Loader2 className="w-4 h-4 animate-spin" /> ativando…</> : `Começar com as primeiras ${sugestaoAtivar}`}
+                </button>
+              )}
+
+              {/* Nada para ativar: a régua recusou tudo. Não mostra botão morto — diz o porquê e
+                  aponta o caminho, em vez de deixar a pessoa clicar em algo que não faz nada. */}
+              {!ativacao && podeAtivar === 0 && (
+                <p className="flex items-start gap-2 text-[12px] text-warn-ink">
+                  <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" aria-hidden />
+                  Nenhuma nota deste baralho passou pela régua de qualidade — reveja o mapeamento
+                  de campos no arquivo original e importe de novo.
+                </p>
+              )}
+
+              {erroAtivar && (
+                <p className="flex items-start gap-2 text-[12px] text-error-ink bg-error-soft border border-error/20 rounded-lg p-3">
+                  <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" aria-hidden /> {erroAtivar}
+                </p>
+              )}
+
+              {ativacao && (
+                <div className="flex flex-col gap-1">
+                  <p className="flex items-center gap-2 text-[13px] font-bold text-good-ink">
+                    <CheckCircle2 className="w-4 h-4 shrink-0" aria-hidden /> {ativacao.ativadas} entraram na sua fila
+                  </p>
+                  {ativacao.restantes > 0 && (
+                    <p className="text-[11px] text-ink-faint">
+                      Ainda há {ativacao.restantes} guardadas no baralho. Traga mais quando quiser,
+                      na Biblioteca de Baralhos.
+                    </p>
+                  )}
+                </div>
               )}
             </div>
           )}
@@ -334,10 +387,10 @@ export default function BaralhoAnki({
           </p>
           <button
             onClick={() => void exportarBaralho()}
-            disabled={gravando || !exportaveis.length}
+            disabled={enviando || !exportaveis.length}
             className="py-2.5 px-4 bg-accent hover:bg-accent-ink text-white rounded-xl font-bold text-[13px] shadow-btn disabled:opacity-50 cursor-pointer flex items-center justify-center gap-2"
           >
-            {gravando ? <><Loader2 className="w-4 h-4 animate-spin" /> montando…</> : <><Download className="w-4 h-4" /> Baralho .apkg</>}
+            {enviando ? <><Loader2 className="w-4 h-4 animate-spin" /> montando…</> : <><Download className="w-4 h-4" /> Baralho .apkg</>}
           </button>
           <button
             onClick={exportar}

@@ -1,6 +1,6 @@
-import React, { useEffect, useMemo, useState, useRef, useDeferredValue } from 'react';
+import React, { useCallback, useEffect, useMemo, useState, useRef, useDeferredValue } from 'react';
 import { createPortal } from 'react-dom';
-import { Check, Timer, Mic, ChevronRight, ChevronLeft, Pin, ListChecks, Map as MapIcon, Sprout, Flame, GraduationCap, Lock, HelpCircle, Package, Trophy, SlidersHorizontal as SlidersIcon, Trophy as TrophyIcon } from 'lucide-react';
+import { Check, Timer, Mic, ChevronRight, ChevronLeft, Pin, ListChecks, Map as MapIcon, Sprout, Flame, GraduationCap, Lock, HelpCircle, Package, Trophy, SlidersHorizontal as SlidersIcon, Trophy as TrophyIcon, Layers, X } from 'lucide-react';
 import { apiFetch, fetchDeck, reviewCard, salvarRodada, fetchSessions, fetchSessionTranscript, patchUiSettings, fetchSettings, bulkAddCards, fetchHistoricoDeItens, fetchExerciseResults, fetchRecordes, gastarSeeds, type AppMetrics, type HistoricoDeItem } from '../../data/api';
 import { toSentences, type Sentence, type PracticeSeed } from '../../lib/sentences';
 import type { VocabCard, Recording } from '../../types';
@@ -42,6 +42,8 @@ import Recordes from './play/Recordes';
 import { JOGOS, type JogoUI } from './play/jogos';
 import PainelTrilha from './PainelTrilha';
 import BaralhoAnki from './BaralhoAnki';
+import BaralhosAnki from './BaralhosAnki';
+import { listarBaralhosAnki } from '../../data/apiAnki';
 import trilhaEn from '../../data/trilha/en.json';
 import ComoSeJoga from '../minigames/ComoSeJoga';
 import AntessalaDaRodada from '../minigames/AntessalaDaRodada';
@@ -305,6 +307,28 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
   const alternarDetalhes = () => setDetalhes((v) => { try { localStorage.setItem('babel.play.detalhes', v ? '0' : '1'); } catch { /* sem storage */ } return !v; });
   const [curando, setCurando] = useState(false);
   const [importando, setImportando] = useState(false);
+  const [vendoBaralhos, setVendoBaralhos] = useState(false);
+  /**
+   * O BARALHO ESCOLHIDO como recorte da rodada — "hoje só o japonês".
+   *
+   * Guardado aqui, e não em `FonteDeItens`, porque não é uma quinta fonte: é um recorte DENTRO de
+   * `'baralho'`, que o servidor já sabe aplicar pela ocorrência (`origin_kind='anki'` +
+   * `origin_ref`). Uma fonte nova obrigaria a mexer em `fontesDisponiveis`, `rotuloDaFonte`,
+   * `OrigemDoItem` e `exercise_results.origem` — que deriva de `FonteId` e por isso não pode ser
+   * renomeado — sem entregar nada que o `ref` não entregue.
+   */
+  const [baralhoAnki, setBaralhoAnki] = useState<{ id: string; nome: string } | null>(null);
+  /** Há baralho importado? Decide se a porta para a Biblioteca de Baralhos existe na faixa. */
+  const [temBaralhosAnki, setTemBaralhosAnki] = useState(false);
+  const recarregarBaralhosAnki = useCallback(async () => {
+    try {
+      const lista = await listarBaralhosAnki();
+      setTemBaralhosAnki(lista.length > 0);
+      // Baralho escolhido que sumiu (purgado noutra aba) não pode continuar recortando a rodada.
+      setBaralhoAnki((atual) => (atual && !lista.some((d) => d.id === atual.id) ? null : atual));
+    } catch { /* sem baralhos: a porta só não aparece */ }
+  }, []);
+  useEffect(() => { void recarregarBaralhosAnki(); }, [recarregarBaralhosAnki]);
   /** Idioma da pessoa — é o destino da tradução das palavras da trilha. */
   const [idiomaNativo, setIdiomaNativo] = useState('pt');
   /**
@@ -1313,7 +1337,12 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
     void compor({
       jogo: 'memory',   // o pool é o mesmo para os jogos de palavra; o jogo só define o recorte final
       fonte: { id: fonte.id === 'sessao' ? 'sessao' : fonte.id === 'trilha' ? 'trilha' : 'baralho',
-               ref: fonte.id === 'sessao' ? fonte.sessionId : fonte.id === 'trilha' ? baseLang(fonte.lang) : null,
+               /* O baralho Anki entra pelo MESMO `ref` que já carregava a gravação e o idioma da
+                  trilha — o servidor filtra pela ocorrência (`origin_kind='anki'`), com o índice
+                  que já existe. Sem baralho escolhido, `null`: o acervo inteiro, como sempre. */
+               ref: fonte.id === 'sessao' ? fonte.sessionId
+                 : fonte.id === 'trilha' ? baseLang(fonte.lang)
+                 : baralhoAnki ? `anki:${baralhoAnki.id}` : null,
                /* O idioma agora VIAJA no pedido. Sem ele o servidor gastava os 200 slots com
                   cartões de qualquer idioma e o seletor do lobby não tinha efeito nenhum. */
                lang: baseLang(fonte.lang) },
@@ -1323,7 +1352,7 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
       limite: LIMITE_DA_COMPOSICAO,
     }, paraCompor, buscarComposicaoPeloFunil).then((c) => { if (vivo) setComposicao(c); });
     return () => { vivo = false; };
-  }, [deck, fonte, faixas, estrategia]);
+  }, [deck, fonte, faixas, estrategia, baralhoAnki]);
 
   /**
    * A lista curada do idioma escolhido. Hoje só existe inglês (`data/trilha/en.json`); outros
@@ -1530,13 +1559,16 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
      */
     return recortarPelaComposicao(triagem.usaveis, composicao, {
       /* Com filtro de faixa ligado, NÃO completar: encher a rodada com cartões fora da faixa
-         apagaria em silêncio o recorte que a pessoa acabou de escolher nos chips. */
-      completar: !faixas.length,
+         apagaria em silêncio o recorte que a pessoa acabou de escolher nos chips.
+         O BARALHO ESCOLHIDO cai na mesma regra, e por isso está aqui: o recorte por baralho vem do
+         SERVIDOR, e `completar` recoloca o resto do acervo atrás da lista dele — o filtro viraria
+         mera ordenação e a pessoa jogaria com o baralho inteiro achando que escolheu um. */
+      completar: !faixas.length && !baralhoAnki,
     });
     /* `niveisDaRodada` no lugar de `fonte.nivel`: é ele que decide quais listas entram, e sem
        nível escolhido ele vale TODAS. Deixá-lo fora daqui congelaria a rodada nos níveis da
        primeira renderização — o mesmo tipo de dependência esquecida que já mordeu este arquivo. */
-  }, [triagem.usaveis, fonte.id, niveisDaRodada, trilha, composicao, faixas.length]);
+  }, [triagem.usaveis, fonte.id, niveisDaRodada, trilha, composicao, faixas.length, baralhoAnki]);
 
   /**
    * O ACERVO DA FONTE — sem teto. É o conjunto inteiro que a fonte atual oferece.
@@ -2093,6 +2125,21 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
       />
     );
   }
+  if (vendoBaralhos) {
+    return telaCheia(
+      <BaralhosAnki
+        onVoltar={() => { setVendoBaralhos(false); void recarregarBaralhosAnki(); }}
+        onImportar={() => { setVendoBaralhos(false); setImportando(true); }}
+        onJogarCom={(id, nome) => {
+          setBaralhoAnki({ id, nome });
+          setVendoBaralhos(false);
+        }}
+        /* Ativar projeta cartões novos: o baralho da tela precisa ser relido, senão o lobby
+           continuaria mostrando o acervo de antes da ativação. */
+        onAtivou={async () => { try { setDeck((await fetchDeck()).filter(c => c.inDeck)); } catch { /* mantém */ } }}
+      />
+    );
+  }
   if (vendoMapa) {
     /* Os itens do mapa saem da MESMA fonte que alimenta a rodada — se saíssem de outro lugar, o
        mapa e o jogo falariam de conjuntos diferentes, que é exatamente o defeito que a barra da
@@ -2410,6 +2457,33 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
             <Package className="w-3.5 h-3.5" aria-hidden />
             {ageProfile === 'kids' ? 'Palavras de fora' : 'Anki'}
           </button>
+          {/* A PORTA PARA OS BARALHOS só existe quando há baralho — senão seria um controle que
+              leva a uma tela vazia, que é a mesma promessa quebrada de um botão morto. O rótulo
+              diz o recorte quando há um escolhido, porque "jogando com o Core 2k" é a informação
+              que muda a leitura de tudo o que está abaixo na tela. */}
+          {temBaralhosAnki && (
+            <button
+              onClick={() => setVendoBaralhos(true)}
+              title="Seus baralhos importados: ativar mais palavras, ou jogar só com um deles"
+              className={`flex items-center gap-1.5 px-3 py-2.5 rounded-xl border text-[12.5px] font-bold transition-colors cursor-pointer ${
+                baralhoAnki ? 'border-accent bg-accent/10 text-accent' : 'border-border-subtle bg-surface text-ink hover:border-accent'
+              }`}
+            >
+              <Layers className="w-3.5 h-3.5" aria-hidden />
+              {baralhoAnki ? baralhoAnki.nome : 'Baralhos'}
+            </button>
+          )}
+          {/* Tirar o recorte precisa ser tão fácil quanto pô-lo: sem esta saída, quem escolheu um
+              baralho ficaria preso a ele sem entender por que os outros jogos esvaziaram. */}
+          {baralhoAnki && (
+            <button
+              onClick={() => setBaralhoAnki(null)}
+              title="Voltar a jogar com todo o acervo"
+              className="flex items-center gap-1.5 px-2.5 py-2.5 rounded-xl border border-border-subtle bg-surface text-[12.5px] font-bold text-ink-soft hover:border-accent transition-colors cursor-pointer"
+            >
+              <X className="w-3.5 h-3.5" aria-hidden />
+            </button>
+          )}
           {fontesOferecidas.length > 1 && (
             <button
               onClick={() => setSalaAberta(true)}

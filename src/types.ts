@@ -79,6 +79,16 @@ export interface VocabCard {
    * "minhas gravações OU trilha" ser exclusiva de verdade.
    */
   daTrilha?: boolean;
+  /**
+   * Veio de um baralho Anki importado. MESMA razão de `daTrilha`: a procedência real mora em
+   * `vocab_occurrences.origin_kind` e não é derivável do cartão.
+   *
+   * O QUE ISTO DECIDE, e por que sem ele o baralho entra e não joga: a régua de qualidade tem dois
+   * perfis (fala capturada × material curado), e o CLIENTE reavalia todo cartão antes da rodada.
+   * Sem saber a origem, ele aplicava a régua de captura — teto de 42 caracteres — a definições de
+   * dicionário. Medido no baralho real: 299 cartões importados, e o lobby anunciava 8.
+   */
+  daAnki?: boolean;
   frequency: 'high' | 'medium' | 'low';
   leitnerBox: number; // 1 to 5
   leitnerDueAt: string; // ISO date or descriptive

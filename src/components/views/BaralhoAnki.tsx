@@ -72,11 +72,21 @@ const IMPORT_TIMEOUT_MS = 600_000;
  * "gravar" aqui duplicaria o que o servidor já fez, e divergiria da régua de qualidade que roda
  * lá (perfil `'curado'`, ver `server/routes/import.ts`).
  */
-async function importarBaralhoAnki(arquivo: File): Promise<ImportAnkiResposta> {
+/**
+ * O IDIOMA VIAJA JUNTO, e sem ele o baralho entra e não chega a jogo nenhum: o cartão nasce com
+ * `srcLang` vazio, a triagem o marca `idioma-incerto` e ele cai na pilha "de outro idioma" assim
+ * que há um idioma selecionado no lobby. Medido importando 3.600 notas: acervo cheio, tela ainda
+ * dizendo "3 palavras". O `.apkg` não declara idioma de forma confiável — quem sabe é esta tela.
+ */
+async function importarBaralhoAnki(arquivo: File, idioma: string, idiomaNativo: string): Promise<ImportAnkiResposta> {
   const res = await apiFetch('/api/import/anki', {
     timeoutMs: IMPORT_TIMEOUT_MS,
     method: 'POST',
-    headers: { 'X-Filename': encodeURIComponent(arquivo.name) },
+    headers: {
+      'X-Filename': encodeURIComponent(arquivo.name),
+      ...(idioma ? { 'X-Src-Lang': idioma } : {}),
+      ...(idiomaNativo ? { 'X-Tgt-Lang': idiomaNativo } : {}),
+    },
     body: arquivo,
   });
   if (!res.ok) {
@@ -87,7 +97,7 @@ async function importarBaralhoAnki(arquivo: File): Promise<ImportAnkiResposta> {
 }
 
 export default function BaralhoAnki({
-  deck, idioma, idiomaNativo: _idiomaNativo, ageProfile, onVoltar, onImportou,
+  deck, idioma, idiomaNativo, ageProfile, onVoltar, onImportou,
 }: BaralhoAnkiProps) {
   const [enviando, setEnviando] = useState(false);
   const [nomeArquivo, setNomeArquivo] = useState('');
@@ -145,7 +155,7 @@ export default function BaralhoAnki({
     setNomeArquivo(arquivo.name);
     setEnviando(true);
     try {
-      const resp = await importarBaralhoAnki(await soAColecao(arquivo));
+      const resp = await importarBaralhoAnki(await soAColecao(arquivo), idioma, idiomaNativo);
       setResultado(resp);
       await onImportou();
     } catch (e) {

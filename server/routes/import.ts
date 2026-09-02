@@ -142,10 +142,24 @@ importRouter.post('/anki', raw({ type: () => true, limit: '200mb' }), erroDeTama
   const nomeDoDeck = r.baralhos?.[0] || nome.replace(/\.[^.]+$/, '') || 'baralho'
   let importId: string | undefined
   try {
+    /**
+     * O IDIOMA DO BARALHO VEM DO CLIENTE, e sem ele o baralho entra e não chega a jogo nenhum.
+     *
+     * Medido importando 3.600 notas reais: todos os cartões projetados nasciam com `src_lang` NULL,
+     * porque o baralho não guardava idioma e `ativarLote` só repassa o que o baralho tem. Cartão
+     * sem idioma é `idioma-incerto` na triagem e vai para a pilha `fora` assim que existe um idioma
+     * selecionado no lobby — ou seja, o acervo enchia e a tela continuava dizendo "3 palavras".
+     *
+     * O `.apkg` não declara idioma de forma confiável (o campo é livre e quase ninguém preenche),
+     * então quem sabe é a tela: ela já tem o idioma que a pessoa está praticando e o nativo dela.
+     * Ausente, fica NULL — e aí o cartão vale para "sem filtro", que é o comportamento antigo.
+     */
     const deck = await ankiRepo.criarOuAcharDeck(req.userId, {
       nome: nomeDoDeck,
       nomeNoArquivo: r.baralhos?.[0] ?? null,
       arquivoOrigem: nome,
+      idiomaOrigem: cab['x-src-lang'] ?? null,
+      idiomaAlvo: cab['x-tgt-lang'] ?? null,
     })
     const imp = await ankiRepo.criarImport(req.userId, { deckId: deck.id, arquivo: nome, bytes: buf.length })
     importId = imp.id

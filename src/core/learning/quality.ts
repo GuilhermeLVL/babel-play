@@ -223,6 +223,10 @@ export interface OpcoesAvaliacao {
  * primeiro — dizer "sem tradução" para uma palavra que também é um artigo não ajudaria.
  */
 export function avaliarCartao(card: VocabCard, opts: OpcoesAvaliacao = {}): Veredito {
+  /* O CARTÃO SABE DE ONDE VEIO, e quem tria uma lista mista não teria como dizer a origem item a
+     item. `opts.origem` continua vencendo (é uma decisão explícita de quem chama); na ausência
+     dela, um cartão de baralho é avaliado como material curado, que é o que ele é. */
+  const origem: OrigemCartao = opts.origem ?? (card.daAnki ? 'curado' : 'captura');
   const palavra = (card.word ?? '').trim();
   const traducao = (card.translation ?? '').trim();
   const frase = (card.sentence ?? '').trim();
@@ -244,7 +248,7 @@ export function avaliarCartao(card: VocabCard, opts: OpcoesAvaliacao = {}): Vere
   if (!traducao) return frase ? APROVADO(0.5) : REPROVADO('sem-pista');
 
   if (chaveComparavel(traducao) === chaveComparavel(palavra)) return REPROVADO('traducao-igual');
-  if (!pistaUtil(traducao, opts.origem ?? 'captura')) return REPROVADO('pista-ruim');
+  if (!pistaUtil(traducao, origem)) return REPROVADO('pista-ruim');
 
   /* PONTUAÇÃO — só ordena os aprovados. Uma pista curta e de uma palavra é a melhor: define sem
      contar a resposta. Ter frase de origem soma, porque permite o modo lacuna. */

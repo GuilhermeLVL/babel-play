@@ -424,6 +424,11 @@ export const importUrlSchema = z.object({
 export const uploadHeadersSchema = z.object({
   'x-filename': z.string().max(400).optional(),
   'content-type': z.string().max(200).optional(),
+  /* O IDIOMA DO BARALHO vem por cabeçalho porque o `.apkg` não o declara de forma confiável — quem
+     sabe é a tela, que já tem o idioma praticado e o nativo. Sem isto o cartão importado nasce sem
+     `srcLang`, a triagem o marca `idioma-incerto` e o baralho inteiro fica fora das rodadas. */
+  'x-src-lang': z.string().regex(/^[A-Za-z-]{2,20}$/).optional(),
+  'x-tgt-lang': z.string().regex(/^[A-Za-z-]{2,20}$/).optional(),
 }).strip()
 
 /* ══════════════════ motor-anki-acervo — schemas das rotas do acervo (`/api/anki`) ══════════════════

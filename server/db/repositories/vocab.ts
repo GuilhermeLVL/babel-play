@@ -127,8 +127,13 @@ export const vocabRepo = {
    * `(user_id, origin_kind)`, então a segunda é um lookup indexado único, em vez de um EXISTS por
    * linha sobre um baralho de milhares. `list()` roda depois de cada rodada — o custo importa.
    */
-  async list(userId: UserId): Promise<Array<VocabCard & { daTrilha: boolean }>> {
-    const [cartoes, daTrilha] = await Promise.all([
+  async list(userId: UserId): Promise<Array<VocabCard & { daTrilha: boolean; daAnki: boolean }>> {
+    /* `daAnki` VIAJA PELA MESMA RAZÃO QUE `daTrilha`, e a falta dele custava o baralho inteiro: a
+       régua de qualidade tem dois perfis (fala capturada × material curado) e o CLIENTE reavalia
+       cada cartão antes da rodada. Sem a marca, ele aplicava o teto de 42 caracteres da captura a
+       definições de dicionário — medido no baralho real: 299 cartões importados e jogáveis, e o
+       lobby anunciando 8. A procedência já estava no banco; só não chegava a quem decide. */
+    const [cartoes, daTrilha, daAnki] = await Promise.all([
       db.select().from(vocabCards)
         .where(and(eq(vocabCards.userId, userId), isNull(vocabCards.deletedAt)))
         .orderBy(desc(vocabCards.addedAt)),
@@ -138,9 +143,16 @@ export const vocabRepo = {
           isNull(vocabOccurrences.deletedAt),
           eq(vocabOccurrences.originKind, 'trilha'),
         )),
+      db.selectDistinct({ cardId: vocabOccurrences.cardId }).from(vocabOccurrences)
+        .where(and(
+          eq(vocabOccurrences.userId, userId),
+          isNull(vocabOccurrences.deletedAt),
+          eq(vocabOccurrences.originKind, 'anki'),
+        )),
     ])
     const daTrilhaIds = new Set(daTrilha.map((r) => r.cardId))
-    return cartoes.map((c) => ({ ...c, daTrilha: daTrilhaIds.has(c.id) }))
+    const daAnkiIds = new Set(daAnki.map((r) => r.cardId))
+    return cartoes.map((c) => ({ ...c, daTrilha: daTrilhaIds.has(c.id), daAnki: daAnkiIds.has(c.id) }))
   },
 
   async get(userId: UserId, id: string): Promise<VocabCard | undefined> {

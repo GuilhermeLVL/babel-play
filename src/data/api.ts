@@ -384,6 +384,9 @@ export function rowToVocabCard(row: VocabRow): VocabCard {
     cefrConfidence: row.cefrConfidence ?? undefined,
     sourceSessionId: row.sessionId ?? undefined,
     daTrilha: !!(row as { daTrilha?: boolean }).daTrilha,
+    /* Sem esta linha o cartão de baralho chega ao cliente sem procedência, e a régua o mede pelo
+       teto de fala capturada — 299 cartões importados vira "8 palavras prontas" na tela. */
+    daAnki: !!(row as { daAnki?: boolean }).daAnki,
     frequency: 'medium',
     leitnerBox: row.box ?? 1,
     leitnerDueAt: dueIso,

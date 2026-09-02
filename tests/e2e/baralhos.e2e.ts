@@ -105,9 +105,9 @@ test.describe('Baralhos do Anki (condicional a haver baralho já importado)', ()
     ).toBeVisible();
 
     const jogarSoComEste = page.getByRole('button', { name: 'Jogar só com este' });
-    const saldoAtivadas = page.getByText(/de\s+\d+\s+ativadas/);
+    const saldoAtivadas = page.getByText(/\d+\s+de\s+\d+\s+ativadas/);
     const temRecorte = await jogarSoComEste.isVisible().catch(() => false);
-    const temSaldo = await saldoAtivadas.first().isVisible().catch(() => false);
+    const temSaldo = (await saldoAtivadas.count().catch(() => 0)) > 0;
     expect(temRecorte || temSaldo, 'esperava o botão "Jogar só com este" ou o saldo "N de M ativadas" no cartão do baralho').toBe(true);
   });
 

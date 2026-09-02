@@ -75,4 +75,6 @@
       `dueToday` em `server/db/repositories/vocab.ts`
 - [ ] 4.6 Matriz executada dos 9 jogos (G2 do roadmap original, 9×4×4×3 células como suíte vitest)
       — não verificada nesta auditoria
-- [ ] 4.7 Medição de consulta multi-seleção em acervo 20k+ — não verificada
+- [x] 4.7 Medição de consulta multi-seleção em acervo 20k+ — `scripts/medicao-filtro/medir.ts` +
+      `docs/pesquisa/medicao-filtro-20k.md`; reprovou (SCAN por candidato, 4-46 s), levou ao
+      conserto `idx_occ_probe` + `user_id` nas sondas, re-medido: 19-50 ms, nenhum SCAN

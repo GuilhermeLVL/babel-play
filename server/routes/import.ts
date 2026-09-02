@@ -26,6 +26,7 @@ import { montarApkg } from '../import/ankiExport'
 import { erroDeRota } from '../lib/erroDeRota'
 import { ankiRepo } from '../db/repositories/anki'
 import { avaliarCartao } from '../../src/core/learning/quality'
+import { vazaResposta } from '../../src/core/learning/pistaDeJogo'
 import {
   reservarArmazenamento,
   liberarArmazenamento,
@@ -108,6 +109,13 @@ const ESCRITAS_NAO_LATINAS = new Set<EscritaDominante>([
  * honesta ali é `null` — o cartão cai em 'idioma-incerto' na triagem, o que é dito na tela via
  * `avisoIdioma`, em vez de mentir silenciosamente como o comportamento antigo.
  */
+function versoEhDefinicao(notas: Array<{ frente: string; verso?: string | null }>): boolean {
+  const comVerso = notas.filter((n) => (n.verso ?? '').trim())
+  if (comVerso.length < 5) return false
+  const repetem = comVerso.filter((n) => vazaResposta(n.verso ?? '', n.frente)).length
+  return repetem / comVerso.length >= 0.7
+}
+
 function decidirIdiomaOrigem(
   cabecalho: string | null,
   frentes: string[],
@@ -243,12 +251,15 @@ importRouter.post('/anki', raw({ type: () => true, limit: '200mb' }), erroDeTama
      */
     const idioma = decidirIdiomaOrigem(cab['x-src-lang'] ?? null, r.notas.slice(0, 200).map((n) => n.frente))
 
+    /* Verso que repete a frente é definição monolíngue, não tradução — carimbar um idioma-alvo
+       ali seria mentir sobre o conteúdo. Medido: 100% num baralho de dicionário de aprendiz. */
+    const monolingue = versoEhDefinicao(r.notas.slice(0, 200))
     const deck = await ankiRepo.criarOuAcharDeck(req.userId, {
       nome: nomeDoDeck,
       nomeNoArquivo: r.baralhos?.[0] ?? null,
       arquivoOrigem: nome,
       idiomaOrigem: idioma.idiomaOrigem,
-      idiomaAlvo: cab['x-tgt-lang'] ?? null,
+      idiomaAlvo: monolingue ? idioma.idiomaOrigem : (cab['x-tgt-lang'] ?? null),
     })
     const imp = await ankiRepo.criarImport(req.userId, { deckId: deck.id, arquivo: nome, bytes: buf.length })
     importId = imp.id

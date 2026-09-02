@@ -1728,12 +1728,8 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
      do banco — a string de exibição não serve de régua. */
   const contagemRecortes = useMemo(() => {
     const agora = Date.now();
-    /* A base da contagem é o filtro SEM as flags de recorte (padrão facetado: a pílula diz o que
-       ELA renderia dentro do resto do filtro — baralho e idioma inclusos —, não o que sobra depois
-       de si mesma; senão ligar uma pílula zeraria a contagem da outra). */
-    const semRecorte = { ...filtro, recorte: { ...filtro.recorte, pedindoRevisao: undefined, nuncaVistas: undefined } };
-    /* Mídia segue a MESMA regra, com a sua própria base: o recorte fica, a mídia sai. A régua de
-       "tem tradução" é o predicado — não uma reimplementação local que divergiria dele. */
+    // Padrão facetado: cada pílula conta o que ELA renderia, sem se descontar.
+    const semRecorte = { ...filtro, recorte: {} };
     const semMidia = { ...filtro, midia: {} };
     const soTraducao = { ...semMidia, midia: { comTraducao: true } };
     const soFrase = { ...semMidia, midia: { comFrase: true } };
@@ -2680,7 +2676,7 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
                 /* A fonte sem material continua VISÍVEL, travada e com o porquê — some da tela
                    era pior: "As que mais escapam" desaparecia sem explicação assim que a pessoa
                    revisava bem, que é justamente quando ela merece saber por que sumiu. */
-                opcoes: ABAS_DE_FONTE.map(aba => {
+                opcoes: ABAS_DE_FONTE.filter(aba => aba.origem !== 'dificeis').map(aba => {
                   const contagem = aba.origem === 'trilha' ? totalDaTrilhaAtual
                     : aba.origem === 'dificeis' ? rankingDeDificeis.length
                     : palavrasDasGravacoes;
@@ -2752,6 +2748,7 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
                 rotulo: 'recorte',
                 ajuda: 'filtra dentro do que você escolheu acima',
                 valor: [
+                  ...(filtro.recorte.dificeis ? ['dificeis'] : []),
                   ...(filtro.recorte.pedindoRevisao ? ['pedindoRevisao'] : []),
                   ...(filtro.recorte.nuncaVistas ? ['nuncaVistas'] : []),
                   ...(filtro.midia.comTraducao ? ['comTraducao'] : []),
@@ -2760,8 +2757,17 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
                 aoTrocar: (id) => setFiltro(prev =>
                   id === 'comTraducao' || id === 'comFrase'
                     ? { ...prev, midia: { ...prev.midia, [id]: !prev.midia[id] } }
-                    : { ...prev, recorte: { ...prev.recorte, [id]: !prev.recorte[id as 'pedindoRevisao' | 'nuncaVistas'] } }),
+                    : { ...prev, recorte: { ...prev.recorte, [id]: !prev.recorte[id as 'pedindoRevisao' | 'nuncaVistas' | 'dificeis'] } }),
                 opcoes: fonte.id === 'trilha' ? [] : [
+                  {
+                    id: 'dificeis',
+                    rotulo: ABAS_DE_FONTE.find(a => a.origem === 'dificeis')?.rotulo[ageProfile] ?? 'As que mais escapam',
+                    contagem: rankingDeDificeis.length,
+                    icone: <Flame className="w-3.5 h-3.5" aria-hidden />,
+                    motivoBloqueio: rankingDeDificeis.length < 4
+                      ? 'revise mais um pouco — ainda não há material para uma rodada'
+                      : undefined,
+                  },
                   {
                     id: 'pedindoRevisao', rotulo: 'Pedindo revisão', contagem: contagemRecortes.pedindo,
                     icone: <CalendarClock className="w-3.5 h-3.5" aria-hidden />,

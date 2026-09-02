@@ -259,8 +259,8 @@ function CartaoDeBaralho({
 
       {/* O SALDO: ativadas de total, e as duas pilhas separadas — nunca somadas, nunca a mesma cor. */}
       <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[12px] text-ink-muted">
-        <span>
-          <b className="text-ink">{deck.ativas}</b> de <b className="text-ink">{deck.total}</b> ativadas
+        <span title="Notas do arquivo do Anki. Uma nota pode virar mais de um cartão na sua fila.">
+          <b className="text-ink">{deck.ativas}</b> de <b className="text-ink">{deck.total}</b> notas ativadas
         </span>
         {deck.descartadas > 0 && (
           <span className="badge-tag err" title="A régua de qualidade recusou estas notas. Dá pra corrigir o mapeamento e reimportar.">

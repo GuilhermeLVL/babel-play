@@ -40,8 +40,8 @@ describe('MemoryGame — a pista longa não vaza da carta', () => {
     const span = screen.getByText(longa);
     expect(span.className).toMatch(/line-clamp-3|line-clamp-4/);
     expect(span.getAttribute('title')).toBe(longa);
-    // Perfil 'pro' não é folgado: a base é text-[13px]; acima de 80 chars desce para text-[11px].
-    expect(span.className).toContain('text-[11px]');
+    // Perfil 'pro' não é folgado: a base é text-[13px]; acima de 45 chars desce para text-[10px], que é o que cabe em 3 linhas na carta de 55px.
+    expect(span.className).toContain('text-[10px]');
     void relatorio;
   });
 

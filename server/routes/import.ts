@@ -19,7 +19,7 @@ import { hasEntitlement } from '../lib/entitlements'
 import { hasYtDlp, resolveYouTube, fetchCaptions, downloadAudio } from '../import/youtube'
 import { extractArticle } from '../import/web'
 import { extractDocument } from '../import/document'
-import { lerApkg, lerTextoAnki } from '../import/anki'
+import { lerApkg, lerTextoAnki, escritaDominante, contagemDeEscritas, type EscritaDominante } from '../import/anki'
 // F11-04: schemas de corpo e de cabeçalho das rotas de importação.
 import { parseOr400, ankiExportSchema, importUrlSchema, uploadHeadersSchema } from '../validation'
 import { montarApkg } from '../import/ankiExport'
@@ -76,6 +76,86 @@ function guidDerivadoDoConteudo(n: { notetype?: string | null; frente: string; v
     .update(`${n.notetype ?? ''}\x1f${n.frente}\x1f${n.verso}`, 'utf8')
     .digest('hex')
     .slice(0, 32)
+}
+
+/**
+ * CÓDIGOS DE IDIOMA DE ESCRITA LATINA reconhecidos no `X-Src-Lang` — a lista dos que a tela do
+ * lobby oferece hoje e cuja escrita nativa É o alfabeto latino. Não precisa ser exaustiva: o pior
+ * caso de faltar um código aqui é o mesmo de hoje (carimba sem checar), não um dado novo.
+ */
+const LANGS_ESCRITA_LATINA = new Set([
+  'en', 'pt', 'es', 'fr', 'de', 'it', 'nl', 'sv', 'no', 'da', 'fi', 'pl', 'cs', 'sk',
+  'hu', 'ro', 'hr', 'tr', 'id', 'vi', 'af', 'ca', 'et', 'lv', 'lt', 'sl', 'is',
+])
+
+/** ESCRITAS que o `escritaDominante` pode devolver e que NÃO são latinas. */
+const ESCRITAS_NAO_LATINAS = new Set<EscritaDominante>([
+  'cjk', 'kana', 'hangul', 'cirilico', 'arabe', 'hebraico', 'grego',
+])
+
+/**
+ * DECIDE se carimba `idiomaOrigem` do cabeçalho — ou recusa, honestamente, quando o cabeçalho e a
+ * escrita real do baralho se contradizem (ver S11 no comentário de topo da rota `/anki`).
+ *
+ * SEM CONFLITO (a maioria dos casos: baralho de inglês com lobby em inglês) → o cabeçalho vale,
+ * exatamente como antes.
+ *
+ * COM CONFLITO, só DUAS escritas dão um idioma INEQUÍVOCO para carimbar no lugar do cabeçalho:
+ * kana → 'ja' e hangul → 'ko' (nenhuma outra língua viva usa essas escritas como principal).
+ * `cjk` puro (sem kana — pode ser chinês) e `cirilico`/`arabe`/`hebraico`/`grego` (cada um serve
+ * VÁRIAS línguas — cirílico é ru/uk/bg/sr/…, por exemplo) são ambíguos: carimbar um palpite seria
+ * trocar "errado por carimbo alheio" por "errado por palpite nosso", igualmente ruim. A resposta
+ * honesta ali é `null` — o cartão cai em 'idioma-incerto' na triagem, o que é dito na tela via
+ * `avisoIdioma`, em vez de mentir silenciosamente como o comportamento antigo.
+ */
+function decidirIdiomaOrigem(
+  cabecalho: string | null,
+  frentes: string[],
+): { idiomaOrigem: string | null; avisoIdioma?: string } {
+  if (!cabecalho) return { idiomaOrigem: null }
+
+  const escrita = escritaDominante(frentes)
+  if (escrita === 'desconhecido') return { idiomaOrigem: cabecalho } // amostra sem letra: nada para contradizer
+
+  const codigoBase = cabecalho.split('-')[0].toLowerCase()
+  const headerEhLatino = LANGS_ESCRITA_LATINA.has(codigoBase)
+  const conteudoEhLatino = escrita === 'latino'
+  const conteudoEhNaoLatino = ESCRITAS_NAO_LATINAS.has(escrita)
+
+  const conflito = (headerEhLatino && conteudoEhNaoLatino) || (!headerEhLatino && conteudoEhLatino)
+  if (!conflito) return { idiomaOrigem: cabecalho }
+
+  /* A DOMINÂNCIA é o critério errado para o japonês, e é justamente o caso-bandeira do defeito:
+     um baralho de vocabulário japonês típico (Core 2k, Kaishi) é majoritariamente KANJI, com kana
+     minoritário — pela dominância cairia em `cjk` ambíguo e o baralho inteiro ficaria sem idioma.
+     Mas kana é assinatura EXCLUSIVA do japonês: chinês nunca o mistura. Então a PRESENÇA de kana
+     (com um piso mínimo contra ruído — uma citação solta num deck chinês) decide 'ja' mesmo com
+     Han dominante; o mesmo vale para hangul → 'ko' (coreano mistura Han, chinês não mistura
+     hangul). Só o que sobra sem nenhuma dessas assinaturas fica ambíguo de verdade. */
+  const { contagem, totalDeLetras } = contagemDeEscritas(frentes)
+  /* O piso tem duas pernas com papéis diferentes: o RELATIVO (2%) protege amostras grandes — uma
+     citação japonesa solta num deck chinês de 200 frentes fica em ~0,4% e não dispara — e o
+     ABSOLUTO (2) protege amostras pequenas, onde 2% de 14 letras arredondaria para zero e qualquer
+     ruído de um caractere decidiria o idioma do baralho. */
+  const presenca = (e: string) => (contagem[e] ?? 0) >= Math.max(2, totalDeLetras * 0.02)
+  if (escrita === 'kana' || (escrita === 'cjk' && presenca('kana'))) {
+    return {
+      idiomaOrigem: 'ja',
+      avisoIdioma: `o cabeçalho dizia "${cabecalho}", mas o baralho é escrito em japonês (kanji + kana) — idioma corrigido para "ja".`,
+    }
+  }
+  if (escrita === 'hangul' || (escrita === 'cjk' && presenca('hangul'))) {
+    return {
+      idiomaOrigem: 'ko',
+      avisoIdioma: `o cabeçalho dizia "${cabecalho}", mas o baralho é escrito em coreano — idioma corrigido para "ko".`,
+    }
+  }
+
+  return {
+    idiomaOrigem: null,
+    avisoIdioma: `o cabeçalho dizia "${cabecalho}", mas o conteúdo do baralho é predominantemente ${escrita} — `
+      + 'como esse script serve mais de um idioma, o idioma do baralho ficou em branco em vez de arriscar um palpite errado.',
+  }
 }
 /**
  * Gera um `.apkg` a partir dos cartões enviados.
@@ -153,12 +233,21 @@ importRouter.post('/anki', raw({ type: () => true, limit: '200mb' }), erroDeTama
      * O `.apkg` não declara idioma de forma confiável (o campo é livre e quase ninguém preenche),
      * então quem sabe é a tela: ela já tem o idioma que a pessoa está praticando e o nativo dela.
      * Ausente, fica NULL — e aí o cartão vale para "sem filtro", que é o comportamento antigo.
+     *
+     * S11 (auditoria) — MAS o cabeçalho `X-Src-Lang` vem do LOBBY, não do baralho: é o idioma que a
+     * PESSOA está praticando na tela, preenchido pelo cliente sem nunca olhar o conteúdo do
+     * arquivo. Importar um deck JAPONÊS com o lobby aberto em inglês carimbava `srcLang='en'` em
+     * milhares de cartões, silenciosamente — envenenando o filtro de idioma para sempre (um
+     * cartão japonês rotulado 'en' nunca mais aparece corretamente etiquetado). A checagem abaixo
+     * confere o cabeçalho contra a ESCRITA de verdade das frentes antes de carimbar.
      */
+    const idioma = decidirIdiomaOrigem(cab['x-src-lang'] ?? null, r.notas.slice(0, 200).map((n) => n.frente))
+
     const deck = await ankiRepo.criarOuAcharDeck(req.userId, {
       nome: nomeDoDeck,
       nomeNoArquivo: r.baralhos?.[0] ?? null,
       arquivoOrigem: nome,
-      idiomaOrigem: cab['x-src-lang'] ?? null,
+      idiomaOrigem: idioma.idiomaOrigem,
       idiomaAlvo: cab['x-tgt-lang'] ?? null,
     })
     const imp = await ankiRepo.criarImport(req.userId, { deckId: deck.id, arquivo: nome, bytes: buf.length })
@@ -229,6 +318,9 @@ importRouter.post('/anki', raw({ type: () => true, limit: '200mb' }), erroDeTama
       truncado: r.truncado,
       totalNoArquivo: r.totalNoArquivo,
       amostra,
+      // S11: presente só quando o cabeçalho e a escrita real do baralho se contradisseram — a
+      // tela mostra, e o cartão sem idioma cai em 'idioma-incerto' na triagem (honesto).
+      avisoIdioma: idioma.avisoIdioma,
     })
   } catch (err) {
     // O que já entrou no acervo PERMANECE — só o ledger registra que esta fatia falhou.

@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import { lerApkg, lerTextoAnki, limparCampo } from '../server/import/anki';
+import { lerApkg, lerTextoAnki, limparCampo, escritaDominante } from '../server/import/anki';
 
 /**
  * O LEITOR DE BARALHOS DO ANKI.
@@ -34,6 +34,68 @@ describe('limpeza dos campos', () => {
   it('desfaz as entidades HTML', () => {
     expect(limparCampo('a &amp; b')).toBe('a & b');
     expect(limparCampo('&quot;oi&quot;')).toBe('"oi"');
+  });
+
+  // S10 (auditoria): antes só 6 entidades nomeadas eram desfeitas — o resto (numéricas, e nomeadas
+  // comuns de deck como acentos) sobrevivia cru no meio da palavra.
+  it('desfaz entidades NUMÉRICAS genéricas (decimal e hex)', () => {
+    expect(limparCampo("it&#39;s")).toBe("it's");
+    expect(limparCampo('caf&#xe9;')).toBe('café');
+    expect(limparCampo('caf&#233;')).toBe('café');
+  });
+
+  it('desfaz entidades NOMEADAS comuns de deck (acentos, aspas tipográficas, travessão)', () => {
+    expect(limparCampo('caf&eacute;')).toBe('café');
+    expect(limparCampo('fran&ccedil;ais')).toBe('français');
+    expect(limparCampo('it&rsquo;s')).toBe('it’s');
+    expect(limparCampo('a&mdash;b')).toBe('a—b');
+  });
+
+  it('não confunde HTML ESCAPADO (texto literal) com uma tag de verdade', () => {
+    // "&lt;div&gt;" é o baralho mostrando o texto "<div>" de propósito — não uma tag real. Se a
+    // entidade decodificasse ANTES da remoção de tags, o "<div>" resultante seria comido pelo
+    // regex de tag, corrompendo o conteúdo.
+    expect(limparCampo('escreva &lt;div&gt; em html')).toBe('escreva <div> em html');
+  });
+
+  // S10: furigana `漢字[かんじ]` vira `漢字`, mas um colchete de definição comum sobrevive.
+  it('remove furigana (colchete IMEDIATAMENTE após Han/Hiragana/Katakana)', () => {
+    expect(limparCampo('漢字[かんじ]')).toBe('漢字');
+    expect(limparCampo('今日[きょう]は忙しい[いそがしい]です')).toBe('今日は忙しいです');
+  });
+
+  it('NÃO remove colchete de definição que não segue caractere CJK/kana', () => {
+    expect(limparCampo('run [informal]')).toBe('run [informal]');
+    expect(limparCampo('to run [away]')).toBe('to run [away]');
+  });
+});
+
+// S11 (auditoria): a base do conserto de "idioma carimbado às cegas" — conta escrita por faixa
+// Unicode sobre uma amostra e decide por maioria (>50% das letras).
+describe('escritaDominante', () => {
+  it('reconhece latino, cjk, kana, hangul, cirílico, árabe, hebraico e grego', () => {
+    expect(escritaDominante(['hello world', 'café'])).toBe('latino');
+    expect(escritaDominante(['你好世界'])).toBe('cjk');
+    expect(escritaDominante(['こんにちは', 'ひらがな'])).toBe('kana');
+    expect(escritaDominante(['안녕하세요'])).toBe('hangul');
+    expect(escritaDominante(['привет мир'])).toBe('cirilico');
+    expect(escritaDominante(['مرحبا بالعالم'])).toBe('arabe');
+    expect(escritaDominante(['שלום עולם'])).toBe('hebraico');
+    expect(escritaDominante(['γειά σου κόσμε'])).toBe('grego');
+  });
+
+  it('mistura de kana + han (japonês real) ainda dá "kana" — o sinal mais forte de ja', () => {
+    expect(escritaDominante(['私は日本語を勉強しています'])).toBe('kana');
+  });
+
+  it('sem letra nenhuma na amostra → desconhecido, não um palpite', () => {
+    expect(escritaDominante(['123', '!!!', '   '])).toBe('desconhecido');
+    expect(escritaDominante([])).toBe('desconhecido');
+  });
+
+  it('escrita minoritária (<=50%) não vence — maioria de verdade decide', () => {
+    // 3 letras latinas vs 2 cirílicas: latino é maioria.
+    expect(escritaDominante(['abc', 'юё'])).toBe('latino');
   });
 });
 

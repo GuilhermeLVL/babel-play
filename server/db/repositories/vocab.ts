@@ -4,7 +4,7 @@ import { db } from '../db'
 import { vocabCards, vocabOccurrences, reviewLogs, sessions, ankiNotes, ankiDecks } from '../schema'
 import { makeFsrs5, type Grade, type SchedulingState } from '../../../src/core/learning/scheduler'
 import { nivelCefr } from '../../../src/core/learning/cefrWordlist'
-import { avaliarCartao, type MotivoDescarte } from '../../../src/core/learning/quality'
+import { avaliarCartao, foraDoBulkAdd, type MotivoDescarte } from '../../../src/core/learning/quality'
 import { calcularDificuldade, faixaDe, cortesDoDeck, type CortesDeFaixa, type FaixaDificuldade } from '../../../src/core/learning/dificuldade'
 import { exerciseResultsRepo } from './exerciseResults'
 import type { UserId } from '../../lib/authContext'
@@ -727,6 +727,19 @@ export const vocabRepo = {
     for (const nota of notas) {
       const palavra = (nota.frente ?? '').trim()
       if (!palavra) continue // sem frente não há palavra — nada para projetar
+
+      /* S8 (auditoria): `avaliarCartao` não tem teto SUPERIOR de tamanho de `word` — a régua de
+         qualidade foi calibrada para reprovar ruído (frase curta demais, sem pista), não frase
+         LONGA demais. Um deck onde "Front" é a frase inteira (em vez da palavra) passava
+         `avaliarCartao` sem problema e virava um botão-parágrafo no Duelo. `foraDoBulkAdd` é a
+         MESMA régua que `bulk-add` já aplica no caminho manual (`quality.ts`); rodá-la aqui fecha
+         o mesmo buraco no caminho do import. */
+      const motivoDeTamanho = foraDoBulkAdd(palavra)
+      if (motivoDeTamanho) {
+        await db.update(ankiNotes).set({ motivoDescarte: motivoDeTamanho, updatedAt: now })
+          .where(and(eq(ankiNotes.id, nota.id), eq(ankiNotes.userId, userId)))
+        continue
+      }
 
       const veredito = avaliarCartao(
         { word: palavra, translation: nota.verso ?? '', sentence: nota.exemplo ?? '', srcLang: deckLang.srcLang } as never,

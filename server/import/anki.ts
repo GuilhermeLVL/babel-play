@@ -95,6 +95,37 @@ export interface LeituraAnki {
 }
 
 /**
+ * ENTIDADES NOMEADAS COMUNS DE DECK (S10) — tabela PEQUENA e deliberada, não uma lib inteira.
+ *
+ * `limparCampo` só desfazia `&nbsp; &amp; &lt; &gt; &quot; &#39;` — as seis que apareciam nos
+ * decks de teste. Qualquer baralho exportado de uma ferramenta que escapa acento (comum em CSV/
+ * Anki-desktop antigo em certas locales) sobrevivia com `&eacute;`, `&rsquo;` etc. no meio da
+ * palavra, e a régua de qualidade reprovava por ruído — de novo, culpando o dado pelo nosso
+ * descuido. A lista é a de entidades NOMEADAS que decks de idioma realmente usam; o resto (a
+ * imensa maioria dos acentos) já cai na decodificação NUMÉRICA genérica abaixo.
+ */
+const ENTIDADES_NOMEADAS: Record<string, string> = {
+  nbsp: ' ', amp: '&', lt: '<', gt: '>', quot: '"',
+  rsquo: '’', lsquo: '‘', rdquo: '”', ldquo: '“',
+  mdash: '—', ndash: '–', hellip: '…',
+  eacute: 'é', egrave: 'è', agrave: 'à', ecirc: 'ê', ccedil: 'ç',
+  ouml: 'ö', uuml: 'ü', auml: 'ä', szlig: 'ß', ntilde: 'ñ',
+  aacute: 'á', iacute: 'í', oacute: 'ó', uacute: 'ú',
+}
+
+/**
+ * Decodifica entidades HTML de um campo: NUMÉRICAS (`&#39;`, `&#x27;`) de forma genérica, mais a
+ * tabela pequena de NOMEADAS acima — inclusive as seis que `limparCampo` tratava uma a uma antes
+ * (`nbsp amp lt gt quot #39`), agora cobertas por esta função só.
+ */
+function decodificarEntidadesDoCampo(s: string): string {
+  return s
+    .replace(/&#x([0-9a-f]+);/gi, (_all, hex: string) => String.fromCodePoint(parseInt(hex, 16)))
+    .replace(/&#(\d+);/g, (_all, dec: string) => String.fromCodePoint(parseInt(dec, 10)))
+    .replace(/&([a-z]+);/gi, (all, nome: string) => ENTIDADES_NOMEADAS[nome.toLowerCase()] ?? all)
+}
+
+/**
  * Limpa o HTML que o Anki guarda no campo.
  *
  * Os campos vêm com marcação de verdade (`<b>`, `<br>`, `<div>`, `[sound:...]`, `<img>`). Jogar
@@ -102,7 +133,7 @@ export interface LeituraAnki {
  * qualidade depois a reprovaria por ruído, o que seria culpar o dado pelo nosso descuido.
  */
 export function limparCampo(bruto: string): string {
-  return (bruto ?? '')
+  const semTagsNemLacunas = (bruto ?? '')
     // Referências de mídia viram nada: não importamos os arquivos, então o marcador só atrapalha.
     .replace(/\[sound:[^\]]*\]/gi, ' ')
     .replace(/<img[^>]*>/gi, ' ')
@@ -110,12 +141,32 @@ export function limparCampo(bruto: string): string {
     .replace(/<br\s*\/?>/gi, ' ')
     .replace(/<\/(div|p|li|tr)>/gi, ' ')
     .replace(/<[^>]+>/g, '')
-    .replace(/&nbsp;/gi, ' ')
-    .replace(/&amp;/gi, '&')
-    .replace(/&lt;/gi, '<')
-    .replace(/&gt;/gi, '>')
-    .replace(/&quot;/gi, '"')
-    .replace(/&#39;/gi, "'")
+    /*
+     * FURIGANA (S10): `漢字[かんじ]` é a notação padrão de decks de japonês — o Anki a exibe com
+     * ruby text, mas em texto puro os colchetes sobram. `漢字[かんじ]` precisa virar `漢字`.
+     *
+     * A REGRA PRECISA DE ESCOPO: um colchete comum, tipo definição informal `"[informal]"` ou
+     * gramática `"to run [away]"`, NÃO é furigana e não pode ser comido — cortaria conteúdo
+     * legítimo do baralho. O que distingue os dois casos é o caractere IMEDIATAMENTE ANTES do `[`:
+     * furigana sempre segue um caractere Han/Hiragana/Katakana (a "palavra base" que a leitura
+     * anota); colchete de definição segue espaço, letra latina ou pontuação. Por isso o `$1` no
+     * replace: o caractere-gatilho é capturado e devolvido, só o `[...]` some.
+     *
+     * Roda DEPOIS de `[sound:...]` já ter sido tratado acima — senão um som citado logo após um
+     * caractere CJK (`猫[sound:cat.mp3]`) seria mordido por este regex também.
+     */
+    .replace(/([\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}])\[[^\]]*\]/gu, '$1')
+
+  /*
+   * ENTIDADES POR ÚLTIMO, depois das tags terem sumido — não antes. Se `&lt;div&gt;` (HTML
+   * ESCAPADO, texto literal que a nota queria mostrar) fosse decodificado ANTES da remoção de
+   * tags, o `<div>` resultante seria confundido com uma tag de verdade e apagado pelo
+   * `.replace(/<[^>]+>/g, '')` acima — corrompendo conteúdo que o próprio Anki preservava como
+   * texto. `decodificarEntidadesDoCampo` cobre as numéricas (`&#39;`, `&#x27;`) e a tabela pequena
+   * de nomeadas (ver `ENTIDADES_NOMEADAS`); ela sozinha já cobre as seis entidades que o código
+   * tratava antes uma a uma.
+   */
+  return decodificarEntidadesDoCampo(semTagsNemLacunas)
     .replace(/\s+/g, ' ')
     .trim()
 }
@@ -803,6 +854,67 @@ export function indiceInversoDeMidia(mapa: Map<string, EntradaDeMidia>): Map<str
   const inverso = new Map<string, string>()
   for (const [numerico, entrada] of mapa) inverso.set(entrada.nome, numerico)
   return inverso
+}
+
+/* ═══════════════════════════ IDIOMA (S11 — motor-anki-acervo) ═══════════════════════════ */
+
+/**
+ * ESCRITA DOMINANTE de uma amostra de texto — a base do conserto do S11.
+ *
+ * O CENÁRIO QUE ISTO EVITA: a rota de import grava `idiomaOrigem` a partir do cabeçalho
+ * `X-Src-Lang`, que o CLIENTE preenche com o idioma do LOBBY (a tela que a pessoa está usando),
+ * não com o idioma do baralho. Importar um deck JAPONÊS com o lobby em inglês carimbava
+ * `srcLang='en'` em milhares de cartões, silenciosamente — envenenando o filtro de idioma para
+ * sempre, porque nada nessa cadeia jamais olhava o CONTEÚDO do baralho para conferir.
+ *
+ * Aqui a conferência: conta caracteres por FAIXA UNICODE (script) sobre uma amostra de frentes, e
+ * decide a escrita dominante por MAIORIA das letras (>50%) — não da amostra inteira, porque
+ * dígitos/pontuação/espaço não dizem nada sobre o idioma e diluiriam a contagem à toa. Sem letra
+ * nenhuma na amostra, a resposta honesta é 'desconhecido', não um palpite.
+ */
+export type EscritaDominante =
+  | 'latino' | 'cjk' | 'kana' | 'hangul' | 'cirilico' | 'arabe' | 'hebraico' | 'grego' | 'desconhecido'
+
+/* Ordem de checagem importa: kana ANTES de han, porque uma frente japonesa mistura os dois
+   (漢字 + かな) e cada caractere só é contado numa faixa — checar han primeiro classificaria
+   caracteres kana como han incorretamente só se as faixas se sobrepusessem (não se sobrepõem,
+   mas a ordem abaixo documenta a intenção de qualquer forma: kana é o sinal mais forte de 'ja'). */
+const FAIXAS: Array<{ escrita: Exclude<EscritaDominante, 'desconhecido'>; regex: RegExp }> = [
+  { escrita: 'kana', regex: /[\p{Script=Hiragana}\p{Script=Katakana}]/u },
+  { escrita: 'hangul', regex: /\p{Script=Hangul}/u },
+  { escrita: 'cjk', regex: /\p{Script=Han}/u },
+  { escrita: 'cirilico', regex: /\p{Script=Cyrillic}/u },
+  { escrita: 'arabe', regex: /\p{Script=Arabic}/u },
+  { escrita: 'hebraico', regex: /\p{Script=Hebrew}/u },
+  { escrita: 'grego', regex: /\p{Script=Greek}/u },
+  { escrita: 'latino', regex: /\p{Script=Latin}/u },
+]
+
+/**
+ * Contagem de LETRAS por escrita numa amostra — a matéria-prima de `escritaDominante` e da
+ * decisão de idioma da rota de import. Exposta separada porque a DOMINÂNCIA não basta para
+ * japonês: um baralho de vocabulário típico é majoritariamente kanji (Han) com kana minoritário,
+ * e só a contagem bruta permite a regra "presença de kana prova japonês" (ver a rota).
+ */
+export function contagemDeEscritas(amostras: string[]): { contagem: Record<string, number>; totalDeLetras: number } {
+  const contagem: Record<string, number> = {}
+  let totalDeLetras = 0
+  for (const linha of amostras) {
+    for (const ch of linha ?? '') {
+      const faixa = FAIXAS.find((f) => f.regex.test(ch))
+      if (!faixa) continue // dígito, pontuação, espaço, emoji — não é letra de nenhuma escrita
+      contagem[faixa.escrita] = (contagem[faixa.escrita] ?? 0) + 1
+      totalDeLetras++
+    }
+  }
+  return { contagem, totalDeLetras }
+}
+
+export function escritaDominante(amostras: string[]): EscritaDominante {
+  const { contagem, totalDeLetras } = contagemDeEscritas(amostras)
+  if (!totalDeLetras) return 'desconhecido'
+  const [escritaTop, qtd] = Object.entries(contagem).sort((a, b) => b[1] - a[1])[0]
+  return qtd / totalDeLetras > 0.5 ? (escritaTop as EscritaDominante) : 'desconhecido'
 }
 
 export function lerTextoAnki(texto: string): LeituraAnki {

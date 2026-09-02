@@ -183,6 +183,110 @@ describe('Escopo por userId — baralho de outro usuário nunca aparece (5.7)', 
   })
 })
 
+describe('S11 (auditoria) — idioma não é carimbado às cegas do cabeçalho', () => {
+  it('deck CJK PURO (sem kana — poderia ser chinês) com X-Src-Lang: en ⇒ idiomaOrigem null + avisoIdioma', async () => {
+    // O CENÁRIO DO DECK ASIÁTICO AMBÍGUO: o lobby está em inglês (o cabeçalho manda 'en'), mas o
+    // conteúdo é Han puro — SEM kana, então não há como saber se é chinês ou japonês escrito só
+    // com kanji. Carimbar um palpite seria trocar "errado por cabeçalho" por "errado por
+    // palpite nosso" — a resposta honesta é ficar sem idioma e avisar.
+    const res = await chamar(importRouter, 'post', '/anki', {
+      userId: U,
+      headers: { 'x-filename': 'cjk.txt', 'x-src-lang': 'en' },
+      body: corpoTexto([
+        ['猫', 'gato', ''],
+        ['犬', 'cachorro', ''],
+        ['水', 'água', ''],
+      ]),
+    })
+
+    expect(res.statusCode).toBe(200)
+    expect(res.body.avisoIdioma).toBeTruthy()
+    expect(String(res.body.avisoIdioma)).toMatch(/en/)
+
+    const decks = await ankiRepo.listarBaralhos(U)
+    const deck = decks.find((d: any) => d.id === res.body.deckId)
+    expect(deck?.idiomaOrigem).toBeNull()
+  })
+
+  it('deck JAPONÊS de verdade (com KANA) com X-Src-Lang: en ⇒ corrige para "ja" (caso inequívoco) e avisa', async () => {
+    // Só kana→'ja' é INEQUÍVOCO (nenhuma outra língua viva usa kana como escrita principal) —
+    // diferente do caso CJK puro acima, aqui dá para corrigir em vez de só zerar.
+    const res = await chamar(importRouter, 'post', '/anki', {
+      userId: U,
+      headers: { 'x-filename': 'japones.txt', 'x-src-lang': 'en' },
+      body: corpoTexto([
+        ['こんにちは', 'olá', ''],
+        ['ありがとう', 'obrigado', ''],
+        ['猫', 'gato', ''],
+      ]),
+    })
+
+    expect(res.statusCode).toBe(200)
+    expect(res.body.avisoIdioma).toBeTruthy()
+    const decks = await ankiRepo.listarBaralhos(U)
+    const deck = decks.find((d: any) => d.id === res.body.deckId)
+    expect(deck?.idiomaOrigem).toBe('ja')
+  })
+
+  it('deck japonês TÍPICO (kanji dominante, kana minoritário) ⇒ "ja" — a dominância era o critério errado', async () => {
+    // O caso-bandeira do defeito: Core 2k/Kaishi são majoritariamente KANJI. Pela dominância
+    // cairiam em `cjk` ambíguo e o baralho inteiro ficaria sem idioma (todo cartão
+    // 'idioma-incerto', fora dos jogos). Kana é assinatura exclusiva do japonês — a PRESENÇA
+    // dele, mesmo minoritária, decide.
+    const res = await chamar(importRouter, 'post', '/anki', {
+      userId: U,
+      headers: { 'x-filename': 'core-tipico.txt', 'x-src-lang': 'en' },
+      body: corpoTexto([
+        ['食料品', 'mantimentos', ''],
+        ['勉強会', 'grupo de estudo', ''],
+        ['図書館', 'biblioteca', ''],
+        ['食べる', 'comer', ''],   // o único com kana (べる) — minoria clara
+      ]),
+    })
+
+    expect(res.statusCode).toBe(200)
+    expect(res.body.avisoIdioma).toContain('japonês')
+    const decks = await ankiRepo.listarBaralhos(U)
+    const deck = decks.find((d: any) => d.id === res.body.deckId)
+    expect(deck?.idiomaOrigem).toBe('ja')
+  })
+
+  it('deck LATINO com X-Src-Lang: en ⇒ carimba normal, sem aviso (comportamento antigo preservado)', async () => {
+    const res = await chamar(importRouter, 'post', '/anki', {
+      userId: U,
+      headers: { 'x-filename': 'ingles.txt', 'x-src-lang': 'en' },
+      body: corpoTexto([
+        ['ledger', 'livro-razão', 'The company keeps a ledger.'],
+        ['churn', 'evasão de clientes', 'High churn hurts revenue.'],
+      ]),
+    })
+
+    expect(res.statusCode).toBe(200)
+    expect(res.body.avisoIdioma).toBeUndefined()
+
+    const decks = await ankiRepo.listarBaralhos(U)
+    const deck = decks.find((d: any) => d.id === res.body.deckId)
+    expect(deck?.idiomaOrigem).toBe('en')
+  })
+
+  it('deck HANGUL com X-Src-Lang: en ⇒ corrige para "ko" (caso inequívoco) e avisa', async () => {
+    const res = await chamar(importRouter, 'post', '/anki', {
+      userId: U,
+      headers: { 'x-filename': 'coreano.txt', 'x-src-lang': 'en' },
+      body: corpoTexto([
+        ['안녕하세요', 'olá', ''],
+        ['감사합니다', 'obrigado', ''],
+      ]),
+    })
+
+    expect(res.statusCode).toBe(200)
+    expect(res.body.avisoIdioma).toBeTruthy()
+    const decks = await ankiRepo.listarBaralhos(U)
+    const deck = decks.find((d: any) => d.id === res.body.deckId)
+    expect(deck?.idiomaOrigem).toBe('ko')
+  })
+})
+
 describe('GET /api/anki/imports/:id — progresso (5.3)', () => {
   it('devolve o estado e os contadores do import', async () => {
     const imp = await importar(U, 'progresso.txt', [

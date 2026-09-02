@@ -113,7 +113,13 @@ export async function computeProfile(userId: UserId, opts: OpcoesDePerfil = {}):
   const lvlConfs = inDeck.map((c) => c.cefrConfidence).filter((x): x is number => x != null)
   const levelConfidence = lvlConfs.length ? lvlConfs.reduce((a, b) => a + b, 0) / lvlConfs.length : 0
   const newCards = inDeck.filter((c) => c.stability == null).length
-  const dueToday = inDeck.filter((c) => (c.dueAt ?? 0) <= now).length
+  /* "Nunca agendado" (dueAt null) NÃO é "vencido" — são coisas diferentes. Antes,
+     `(c.dueAt ?? 0) <= now` tratava um cartão que nunca foi revisado nem uma vez como se
+     estivesse atrasado desde epoch, inflando `dueToday`. Esse número vai para um banner global da
+     tela de jogos ("N pedindo revisão") que já mente por ESCOPO (conta fora do deck selecionado,
+     achado de outra auditoria) — mas ao menos a SEMÂNTICA para de mentir aqui: só conta quem tem
+     data marcada E essa data já passou. */
+  const dueToday = inDeck.filter((c) => c.dueAt != null && c.dueAt <= now).length
 
   /**
    * Itens de exercício/minigame que NÃO viraram revisão de SRS. O discriminador `kind` evita a

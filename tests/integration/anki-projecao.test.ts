@@ -231,6 +231,44 @@ describe('a armadilha — reativação após desativação NÃO racha o históri
   })
 })
 
+describe('S8 (auditoria) — word sem teto superior na projeção', () => {
+  it('nota com "frente" de 250 caracteres NÃO projeta, e a nota grava motivoDescarte', async () => {
+    const u = asUserId('proj-s8')
+    const fraseLonga = 'palavra '.repeat(32).trim() // bem além de LIMITES_DO_BULK_ADD.max (200)
+    expect(fraseLonga.length).toBeGreaterThan(200)
+    const { deck } = await criarDeckComNotas(u, '-s8', [{ frente: fraseLonga, verso: 'definição' }])
+    const notas = await ankiRepo.listarNotas(u, deck.id, {})
+
+    const r = await vocabRepo.projetarDoAnki(u, deck.id, notas.itens.map((n: any) =>
+      ({ id: n.id, frente: n.frente, verso: n.verso, exemplo: n.exemplo, motivoDaBaixa: n.motivoDaBaixa })),
+      { srcLang: 'en', tgtLang: 'pt' })
+
+    // Não virou cartão nenhum.
+    expect(r.criados).toBe(0)
+    expect(r.reaproveitados).toBe(0)
+    expect(r.reativados).toBe(0)
+    const cartao = (await vocabRepo.list(u)).find((c: any) => c.word === fraseLonga)
+    expect(cartao).toBeUndefined()
+
+    // A nota permanece no acervo, com o motivo de descarte gravado (não some do banco).
+    const notaFinal = (await ankiRepo.listarNotas(u, deck.id, {})).itens[0]
+    expect(notaFinal.motivoDescarte).toBe('palavra-longa')
+    expect(notaFinal.estado).not.toBe('ativa')
+  })
+
+  it('palavra dentro do teto (200) continua projetando normalmente', async () => {
+    const u = asUserId('proj-s8-ok')
+    const { deck } = await criarDeckComNotas(u, '-s8ok', [{ frente: 'runway', verso: 'pista de pouso' }])
+    const notas = await ankiRepo.listarNotas(u, deck.id, {})
+
+    const r = await vocabRepo.projetarDoAnki(u, deck.id, notas.itens.map((n: any) =>
+      ({ id: n.id, frente: n.frente, verso: n.verso, exemplo: n.exemplo, motivoDaBaixa: n.motivoDaBaixa })),
+      { srcLang: 'en', tgtLang: 'pt' })
+
+    expect(r.criados).toBe(1)
+  })
+})
+
 describe('selecionarParaJogo — filtro por baralho', () => {
   it('com fonteRef="anki:<deckId>" devolve só os daquele baralho; sem fonteRef, devolve todos', async () => {
     const u = asUserId('proj-filtro')

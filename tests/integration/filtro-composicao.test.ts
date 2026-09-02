@@ -232,7 +232,7 @@ describe('paridade SQL × passaNoFiltro — a mesma verdade dos dois lados', () 
         cefrLevel: l.cefrLevel ?? undefined,
         translation: l.back ?? undefined,
         sentence: l.sentence ?? undefined,
-        fsrsDueAt: l.dueAt ?? null,
+        dueAtMs: l.dueAt ?? null,
       }
     })
 

@@ -106,6 +106,10 @@ export interface VocabCard {
   fsrsDifficulty: number; // 1 to 10
   fsrsPredictedRetention: number; // 0.0 to 1.0 (probabilistic)
   fsrsDueAt: string; // ISO date or descriptive
+  /** O `dueAt` CRU do banco, em ms — a verdade que o filtro facetado consome ("pedindo revisão",
+   *  "nunca vistas"). `fsrsDueAt` acima é string de EXIBIÇÃO; filtrar por ela exigiria parse de
+   *  rótulo, que é como contadores passam a mentir. `null` = nunca agendado. */
+  dueAtMs?: number | null;
   inDeck: boolean;
   stability?: number; // mapped or alternative for fsrsStability
   /**

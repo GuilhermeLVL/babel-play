@@ -77,17 +77,17 @@ describe('passaNoFiltro — recorte: cada flag INTERSECTA', () => {
   it('nuncaVistas x pedindoRevisao: mutuamente exclusivos por construção', () => {
     const nunca = filtro({ recorte: { nuncaVistas: true } })
     const revisao = filtro({ recorte: { pedindoRevisao: true } })
-    expect(passaNoFiltro(cartao({ fsrsDueAt: null }), nunca)).toBe(true)
-    expect(passaNoFiltro(cartao({ fsrsDueAt: 100 }), nunca)).toBe(false)
-    expect(passaNoFiltro(cartao({ fsrsDueAt: 100 }), revisao, { agora: 200 })).toBe(true)
-    expect(passaNoFiltro(cartao({ fsrsDueAt: 300 }), revisao, { agora: 200 })).toBe(false)
-    expect(passaNoFiltro(cartao({ fsrsDueAt: null }), revisao, { agora: 200 })).toBe(false)
+    expect(passaNoFiltro(cartao({ dueAtMs: null }), nunca)).toBe(true)
+    expect(passaNoFiltro(cartao({ dueAtMs: 100 }), nunca)).toBe(false)
+    expect(passaNoFiltro(cartao({ dueAtMs: 100 }), revisao, { agora: 200 })).toBe(true)
+    expect(passaNoFiltro(cartao({ dueAtMs: 300 }), revisao, { agora: 200 })).toBe(false)
+    expect(passaNoFiltro(cartao({ dueAtMs: null }), revisao, { agora: 200 })).toBe(false)
   })
 
   it('interseção: as duas flags juntas nunca casam o mesmo cartão', () => {
     const f = filtro({ recorte: { nuncaVistas: true, pedindoRevisao: true } })
-    expect(passaNoFiltro(cartao({ fsrsDueAt: null }), f, { agora: 200 })).toBe(false)
-    expect(passaNoFiltro(cartao({ fsrsDueAt: 100 }), f, { agora: 200 })).toBe(false)
+    expect(passaNoFiltro(cartao({ dueAtMs: null }), f, { agora: 200 })).toBe(false)
+    expect(passaNoFiltro(cartao({ dueAtMs: 100 }), f, { agora: 200 })).toBe(false)
   })
 
   it('niveis: UNIÃO interna à faceta', () => {

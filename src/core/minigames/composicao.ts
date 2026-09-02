@@ -258,7 +258,7 @@ function paraFiltravel(c: CartaoParaCompor): CartaoFiltravel {
     cefrLevel: c.cefrLevel ?? undefined,
     translation: c.back ?? undefined,
     sentence: c.sentence ?? undefined,
-    fsrsDueAt: c.dueAt,
+    dueAtMs: c.dueAt,
   }
 }
 

@@ -28,7 +28,7 @@ import {
 } from '@core';
 import { baseLang, langLabelPt } from '../../lib/languages';
 import { langConfigFrom } from '../../lib/langConfig';
-import { gravarFonteGuardada, lerFonteGuardada, temFonteGuardada } from '../../lib/fonteDaPratica';
+import { temFonteGuardada } from '../../lib/fonteDaPratica';
 import { contarPassada } from '../../lib/passadasDoPipeline';
 import { faixaDe as faixaDaComposicao, type EstrategiaDaUI } from '../../core/minigames/composicao';
 import { lerPrecisoes, registrarPrecisao, registrarVistas, vistasRecentes as vistasGuardadas } from '../../lib/memoriaLocal';
@@ -61,9 +61,12 @@ import ScratchReward from '../minigames/ScratchReward';
 import ResumoDaRodada, { type ItemDaRodada } from '../minigames/ResumoDaRodada';
 import {
   compor, aceitaFiltroDeDificuldade, faixaDe as faixaDeScore, contagemDaFonte, recortarPelaComposicao,
+  filtroParaComposicao,
   type FaixaDificuldade,
   type Composicao, type CartaoParaCompor,
 } from '../../core/minigames/composicao';
+import { filtroDaFonte, fonteDominante, type FiltroDaPratica } from '../../core/minigames/filtro';
+import { lerFiltroGuardado, gravarFiltro } from '../../lib/filtroDaPratica';
 import EscutaGame from '../minigames/EscutaGame';
 import DitadoGame from '../minigames/DitadoGame';
 import ConectoresGame from '../minigames/ConectoresGame';
@@ -265,7 +268,32 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
    * e a sessão mais recente, sem escolha nenhuma. Medido neste baralho: 1.166 palavras em
    * português e 337 em inglês sorteadas juntas na mesma rodada.
    */
-  const [fonte, setFonte] = useState<FonteDeItens>({ id: 'baralho', lang: '' });
+  /**
+   * A INVERSÃO DA VERDADE (onda facetada): o estado agora é o FILTRO; `fonte` e `setFonte` viram
+   * derivado e shim. Por quê assim, e não o contrário: as facetas (multi-fonte, recorte, mídia)
+   * não são expressáveis em `FonteDeItens`, então `fonte` não pode continuar sendo o estado — mas
+   * os DOZE escritores e as dezenas de leitores de `fonte` espalhados por este arquivo continuam
+   * corretos lendo o derivado e escrevendo pelo shim, que traduz via os adaptadores testados
+   * (`filtroDaFonte`/`fonteDominante`, round-trip provado no core). Trocar cada leitor num passe
+   * só seria a classe de refatoração que quebra em silêncio.
+   *
+   * Efeito colateral DESEJADO do shim: escrever uma fonte que não é 'baralho' DERRUBA o recorte de
+   * baralho — era o defeito "chip aceso e inerte" da auditoria (D2), que existia porque aba e chip
+   * eram estados que não se conheciam. Agora são o mesmo objeto; a incoerência ficou inexprimível.
+   */
+  const [filtro, setFiltro] = useState<FiltroDaPratica>(() => filtroDaFonte({ id: 'baralho', lang: '' }, null));
+  const fonte = useMemo<FonteDeItens>(
+    () => ({ ...fonteDominante(filtro), lang: filtro.idiomas[0] ?? '' }),
+    [filtro],
+  );
+  const setFonte = useCallback((upd: FonteDeItens | ((f: FonteDeItens) => FonteDeItens)) => {
+    setFiltro(prev => {
+      const atual: FonteDeItens = { ...fonteDominante(prev), lang: prev.idiomas[0] ?? '' };
+      const nova = typeof upd === 'function' ? upd(atual) : upd;
+      if (mesmaFonte(atual, nova) && baseLang(atual.lang) === baseLang(nova.lang)) return prev; // aborto barato preservado
+      return filtroDaFonte(nova, nova.id === 'baralho' && prev.baralhos[0] ? { id: prev.baralhos[0] } : null);
+    });
+  }, []);
 
   /**
    * O RANKING DE DIFÍCEIS, injetado VIVO na fonte (progresso-de-idioma 2.3). O estado `fonte`
@@ -277,6 +305,10 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
     () => (metrics?.palavrasDificeis ?? []).map((p) => p.cardId),
     [metrics],
   );
+
+  /* O ranking como CONJUNTO — o formato que `passaNoFiltro` consome no complemento do recorte.
+     Derivado do mesmo memo acima; nunca persiste (regra de `source.ts`: difícil é o que muda). */
+  const conjuntoDeDificeis = useMemo(() => new Set(rankingDeDificeis), [rankingDeDificeis]);
   const fonteComRanking = useMemo<FonteDeItens>(
     () => (fonte.id === 'dificeis' ? { ...fonte, cardIds: rankingDeDificeis } : fonte),
     [fonte, rankingDeDificeis],
@@ -335,18 +367,32 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
    * `OrigemDoItem` e `exercise_results.origem` — que deriva de `FonteId` e por isso não pode ser
    * renomeado — sem entregar nada que o `ref` não entregue.
    */
-  const [baralhoAnki, setBaralhoAnki] = useState<{ id: string; nome: string } | null>(null);
-  /** Há baralho importado? Decide se a porta para a Biblioteca de Baralhos existe na faixa. */
-  const [temBaralhosAnki, setTemBaralhosAnki] = useState(false);
+  const [decksAnki, setDecksAnki] = useState<Array<{ id: string; nome: string }>>([]);
+  const [decksCarregados, setDecksCarregados] = useState(false);
+  const temBaralhosAnki = decksAnki.length > 0;
   const recarregarBaralhosAnki = useCallback(async () => {
     try {
       const lista = await listarBaralhosAnki();
-      setTemBaralhosAnki(lista.length > 0);
+      setDecksAnki(lista.map((d) => ({ id: d.id, nome: d.nome })));
       // Baralho escolhido que sumiu (purgado noutra aba) não pode continuar recortando a rodada.
-      setBaralhoAnki((atual) => (atual && !lista.some((d) => d.id === atual.id) ? null : atual));
-    } catch { /* sem baralhos: a porta só não aparece */ }
+      setFiltro((prev) => {
+        const vivos = prev.baralhos.filter((id) => lista.some((d) => d.id === id));
+        return vivos.length === prev.baralhos.length ? prev : { ...prev, baralhos: vivos };
+      });
+    } catch { /* sem baralhos: a porta só não aparece */ } finally { setDecksCarregados(true); }
   }, []);
   useEffect(() => { void recarregarBaralhosAnki(); }, [recarregarBaralhosAnki]);
+  /** Derivado do filtro — o "chip" é só a cara do primeiro baralho do recorte. */
+  const baralhoAnki = useMemo<{ id: string; nome: string } | null>(() => {
+    const id = filtro.baralhos[0];
+    if (!id) return null;
+    return { id, nome: decksAnki.find((d) => d.id === id)?.nome ?? 'Baralho' };
+  }, [filtro.baralhos, decksAnki]);
+  const setBaralhoAnki = useCallback((v: { id: string; nome: string } | null) => {
+    setFiltro((prev) => v
+      ? { ...prev, fontes: prev.fontes.includes('baralho') ? prev.fontes : [...prev.fontes, 'baralho'], baralhos: [v.id] }
+      : { ...prev, baralhos: [] });
+  }, []);
   /** Idioma da pessoa — é o destino da tradução das palavras da trilha. */
   const [idiomaNativo, setIdiomaNativo] = useState('pt');
   /**
@@ -1128,7 +1174,8 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
       setIdiomaNativo(baseLang(cfg.mine));
     })();
     return () => { cancelado = true; };
-  }, []);
+    // setFonte é useCallback estável; entra na lista só para o linter dizer a verdade.
+  }, [setFonte]);
 
   /**
    * A FONTE VOLTA COMO ESTAVA — uma vez só, e nunca dentro de uma sessão.
@@ -1145,18 +1192,21 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
    */
   const fonteRestaurada = React.useRef(false);
   useEffect(() => {
-    if (embutido || fonteRestaurada.current || !sessoesCarregadas) return;
+    /* Espera TAMBÉM os baralhos: o filtro guardado pode recortar por deck, e restaurar antes da
+       lista chegar apagaria o recorte no saneamento (deck "inexistente" só porque ainda não veio). */
+    if (embutido || fonteRestaurada.current || !sessoesCarregadas || !decksCarregados) return;
     fonteRestaurada.current = true;
-    const guardada = lerFonteGuardada(sessoes.map(s => s.id));
-    /* RESTAURAR A MESMA FONTE NÃO É MUDAR DE FONTE. No caso comum — quem nunca escolheu nada, ou
-       escolheu "todas as minhas gravações", o que vem do `localStorage` é exatamente o que já
-       está no estado, e o objeto novo fazia o React refazer triagem, composição e gate por nada
-       (medido: uma passada inteira do pipeline). Devolver `f` faz o React abortar a atualização. */
-    setFonte(f => {
-      const restaurada = fonteDaEscolha({ ...guardada, lang: f.lang });
-      return mesmaFonte(f, restaurada) ? f : restaurada;
+    const guardado = lerFiltroGuardado(sessoes.map(s => s.id), decksAnki.map(d => d.id));
+    /* RESTAURAR O MESMO FILTRO NÃO É MUDAR DE FILTRO: devolver `prev` aborta a atualização e poupa
+       uma passada inteira do pipeline (triagem, composição, gate) — a mesma economia que a
+       restauração de fonte já tinha, mantida aqui. O idioma NÃO vem do guardado: chega pelo
+       carregador de settings (preferência de perfil, atravessa dispositivos) e o merge preserva o
+       que já estiver no estado. */
+    setFiltro(prev => {
+      const restaurado = { ...guardado, idiomas: prev.idiomas.length ? prev.idiomas : guardado.idiomas };
+      return JSON.stringify(restaurado) === JSON.stringify(prev) ? prev : restaurado;
     });
-  }, [embutido, sessoes, sessoesCarregadas]);
+  }, [embutido, sessoes, sessoesCarregadas, decksCarregados, decksAnki]);
 
   /* FONTE 'dificeis' SEM MATERIAL degrada para o baralho — o ranking guardado ontem pode ter
      esvaziado hoje (revisar bem TIRA palavra do ranking, que é o objetivo). Só age com as
@@ -1164,7 +1214,7 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
   useEffect(() => {
     if (!metrics || fonte.id !== 'dificeis' || rankingDeDificeis.length >= 4) return;
     setFonte(f => ({ id: 'baralho', lang: f.lang }));
-  }, [metrics, fonte.id, rankingDeDificeis.length]);
+  }, [metrics, fonte.id, rankingDeDificeis.length, setFonte]);
 
   /**
    * Falas para os jogos de frase. Quando se chega por uma sessão, são as DAQUELA sessão; senão, a
@@ -1230,7 +1280,7 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
     if (recording?.id) {
       setFonte(f => (f.id === 'sessao' && f.sessionId === recording.id ? f : { ...f, id: 'sessao', sessionId: recording.id }));
     }
-  }, [recording?.id]);
+  }, [recording?.id, setFonte]);
 
   /** A `origem` como ela é gravada em `exercise_results` — precisa casar com o que o fim de
    *  rodada escreve, senão o histórico da fonte errada apareceria na antessala. */
@@ -1299,7 +1349,7 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
     const origemDaFonte = chaveDaMemoriaCurta(fonte, baralhoAnki);
     setVistasRecentes(vistasGuardadas(origemDaFonte));
     setSequencia(null);
-  }, [fonte.id, fonte.sessionId, fonte.nivel, fonte.lang, baralhoAnki]);
+  }, [fonte, baralhoAnki]);
 
   const trocarIdioma = (lang: string) => {
     setFonte(f => ({ ...f, lang }));
@@ -1317,11 +1367,17 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
   const aplicarEscolha = (escolha: EscolhaDaPratica) => {
     if (baseLang(escolha.lang) !== baseLang(fonte.lang)) trocarIdioma(escolha.lang);
     setFonte(fonteDaEscolha(escolha));
-    gravarFonteGuardada({
-      origem: escolha.origem, escopo: escolha.escopo,
-      sessionId: escolha.sessionId, nivel: escolha.nivel,
-    });
+    // A persistência mudou de lugar: um efeito grava o FILTRO inteiro a cada mudança (e espelha a
+    // chave legada) — antes, só a escolha da Sala sobrevivia ao F5; o recorte por baralho evaporava.
   };
+
+  /* GRAVAR SÓ DEPOIS DE RESTAURAR: sem a guarda, o primeiro render (filtro padrão) sobrescreveria
+     o que a pessoa tinha guardado antes de a restauração rodar. Embutido não persiste nada — ali a
+     fonte É a gravação aberta, não uma escolha do usuário. */
+  useEffect(() => {
+    if (embutido || !fonteRestaurada.current) return;
+    gravarFiltro(filtro);
+  }, [filtro, embutido]);
 
   /**
    * A TRIAGEM — calculada uma vez e usada por todos: pelas cartas, pelo início da rodada e pela
@@ -1366,23 +1422,22 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
     }));
     void compor({
       jogo: 'memory',   // o pool é o mesmo para os jogos de palavra; o jogo só define o recorte final
+      /* A fonte legada CONTINUA no pedido — é a proveniência e o caminho dos servidores antigos —
+         mas quem FILTRA agora é o `filtro` facetado abaixo: um objeto só, o mesmo dos dois lados
+         (a paridade SQL × predicado é travada por teste de integração). */
       fonte: { id: fonte.id === 'sessao' ? 'sessao' : fonte.id === 'trilha' ? 'trilha' : 'baralho',
-               /* O baralho Anki entra pelo MESMO `ref` que já carregava a gravação e o idioma da
-                  trilha — o servidor filtra pela ocorrência (`origin_kind='anki'`), com o índice
-                  que já existe. Sem baralho escolhido, `null`: o acervo inteiro, como sempre. */
                ref: fonte.id === 'sessao' ? fonte.sessionId
                  : fonte.id === 'trilha' ? baseLang(fonte.lang)
                  : baralhoAnki ? `anki:${baralhoAnki.id}` : null,
-               /* O idioma agora VIAJA no pedido. Sem ele o servidor gastava os 200 slots com
-                  cartões de qualquer idioma e o seletor do lobby não tinha efeito nenhum. */
                lang: baseLang(fonte.lang) },
+      filtro: filtroParaComposicao(filtro, filtro.recorte.dificeis ? rankingDeDificeis : undefined),
       dificuldade: faixas.length ? faixas : undefined,
       // 'auto' é decisão do cliente (por jogo); ao servidor vai o equilibrado.
       estrategia: estrategia === 'auto' ? 'equilibrado' : estrategia,
       limite: LIMITE_DA_COMPOSICAO,
     }, paraCompor, buscarComposicaoPeloFunil).then((c) => { if (vivo) setComposicao(c); });
     return () => { vivo = false; };
-  }, [deck, fonte, faixas, estrategia, baralhoAnki]);
+  }, [deck, fonte, filtro, faixas, estrategia, baralhoAnki, rankingDeDificeis]);
 
   /**
    * A lista curada do idioma escolhido. Hoje só existe inglês (`data/trilha/en.json`); outros
@@ -1587,18 +1642,25 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
      * `estadoDeCadaJogo` sempre exigiu ("já triadas e recortadas pela fonte"): tudo o que sai daqui
      * está em `triagem.usaveis`.
      */
-    return recortarPelaComposicao(triagem.usaveis, composicao, {
-      /* Com filtro de faixa ligado, NÃO completar: encher a rodada com cartões fora da faixa
-         apagaria em silêncio o recorte que a pessoa acabou de escolher nos chips.
-         O BARALHO ESCOLHIDO cai na mesma regra, e por isso está aqui: o recorte por baralho vem do
-         SERVIDOR, e `completar` recoloca o resto do acervo atrás da lista dele — o filtro viraria
-         mera ordenação e a pessoa jogaria com o baralho inteiro achando que escolheu um. */
-      completar: !faixas.length && !baralhoAnki,
-    });
+    /* Com filtro de FAIXA ligado, a forma antiga `{completar:false}` continua: a faixa não é
+       faceta do filtro (é recorte de dificuldade do servidor) e completar encheria a rodada com
+       cartões fora dela. Sem faixa, a forma nova `{filtro}` assume: SEMPRE completa, mas o
+       complemento só admite quem passa no MESMO predicado que o servidor aplicou — o antigo
+       booleano confundia "não completar" com "não filtrar" e foi como o recorte por baralho capou
+       rodadas em abas onde nem agia (auditoria, defeito 3). */
+    return faixas.length
+      ? recortarPelaComposicao(triagem.usaveis, composicao, { completar: false })
+      : recortarPelaComposicao(triagem.usaveis, composicao, {
+        filtro,
+        extras: { rankingDificeis: conjuntoDeDificeis, agora: Date.now() },
+      });
     /* `niveisDaRodada` no lugar de `fonte.nivel`: é ele que decide quais listas entram, e sem
        nível escolhido ele vale TODAS. Deixá-lo fora daqui congelaria a rodada nos níveis da
        primeira renderização — o mesmo tipo de dependência esquecida que já mordeu este arquivo. */
-  }, [triagem.usaveis, fonte.id, niveisDaRodada, trilha, composicao, faixas.length, baralhoAnki]);
+    /* `filtro` e o conjunto de difíceis entraram no corpo (o complemento do recorte passa pelo
+       predicado) e por isso entram AQUI: dependência esquecida congelaria o recorte na primeira
+       renderização — a mesma armadilha que o comentário acima já registra para `niveisDaRodada`. */
+  }, [triagem.usaveis, fonte.id, niveisDaRodada, trilha, composicao, faixas.length, filtro, conjuntoDeDificeis]);
 
   /**
    * O ACERVO DA FONTE — sem teto. É o conjunto inteiro que a fonte atual oferece.

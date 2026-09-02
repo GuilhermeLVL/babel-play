@@ -66,7 +66,9 @@ export interface CartaoFiltravel {
   cefrLevel?: string;
   translation?: string;
   sentence?: string;
-  fsrsDueAt?: number | null;
+  /** Vencimento em MILISSEGUNDOS crus (o `dueAt` do banco). NÃO é o `fsrsDueAt` do VocabCard,
+   *  que é string de exibição ("ISO ou descritivo") — regra de filtro não faz parse de rótulo. */
+  dueAtMs?: number | null;
 }
 
 /** Extras que o predicado não consegue tirar do cartão sozinho. */
@@ -120,10 +122,10 @@ function passaRecorte(c: CartaoFiltravel, f: FiltroDaPratica, extras?: ExtrasDoF
     const id = extras?.idDoCartao;
     if (!id || !extras?.rankingDificeis?.has(id)) return false;
   }
-  if (r.nuncaVistas && c.fsrsDueAt != null) return false;
+  if (r.nuncaVistas && c.dueAtMs != null) return false;
   if (r.pedindoRevisao) {
     const agora = extras?.agora ?? Date.now();
-    if (c.fsrsDueAt == null || c.fsrsDueAt > agora) return false;
+    if (c.dueAtMs == null || c.dueAtMs > agora) return false;
   }
   if (r.niveis?.length) {
     if (!c.cefrLevel || !r.niveis.includes(c.cefrLevel as CefrLevel)) return false;

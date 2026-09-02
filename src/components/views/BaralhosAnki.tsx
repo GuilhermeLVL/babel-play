@@ -249,7 +249,11 @@ function CartaoDeBaralho({
           <div>
             <p className="font-semibold text-[14px] text-ink group-hover:text-accent">{deck.nome}</p>
             <p className="text-[11px] text-ink-muted mt-0.5">
-              {deck.idiomaOrigem && deck.idiomaAlvo ? `${deck.idiomaOrigem} → ${deck.idiomaAlvo}` : deck.arquivoOrigem}
+              {deck.idiomaOrigem && deck.idiomaAlvo
+                ? (deck.idiomaOrigem === deck.idiomaAlvo
+                    ? `${deck.idiomaOrigem} · ensina por definição`
+                    : `${deck.idiomaOrigem} → ${deck.idiomaAlvo}`)
+                : deck.arquivoOrigem}
               {' · '}{fmtData(deck.createdAt)}
               {deck.estado === 'desativado' && <span className="badge-tag warn ml-1.5">desativado</span>}
             </p>

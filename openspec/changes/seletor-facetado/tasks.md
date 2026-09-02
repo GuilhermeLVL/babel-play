@@ -90,9 +90,10 @@
 
 ## Onda 5 — o que sobrou
 
-- [ ] 5.1 Multi-fonte de verdade (somar trilha + baralho + sessão na mesma rodada). Motor pronto
-      e testado (`core/minigames/distribuicao.ts`); falta o pipeline da trilha, que injeta
-      pseudo-cartões e hoje só roda com `fonte.id === 'trilha'`
+- [ ] 5.1 Multi-fonte de verdade. Motor pronto e testado (`core/minigames/distribuicao.ts`).
+      CUSTO MEDIDO: 20 pontos de `Play.tsx` assumem `fonte.id === 'trilha'` (chave de memória,
+      gate, prévia, composição, ramo de palavra falada). E multi-fonte SEM trilha não entrega
+      nada: as duas fontes da UI são curso e baralho. É onda própria, não um incremento
 - [ ] 5.2 Frases do baralho alimentando os cinco jogos de frase (F10 do motor Anki)
-- [ ] 5.3 Rotulagem do baralho de definição na TELA (o import já para de carimbar idioma-alvo
-      falso; a tela ainda não diz "ensina por definição")
+- [x] 5.3 Baralho de definição rotulado na tela: "en · ensina por definição" no lugar do par
+      de idiomas falso

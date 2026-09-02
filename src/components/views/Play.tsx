@@ -380,13 +380,13 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
    * `OrigemDoItem` e `exercise_results.origem` — que deriva de `FonteId` e por isso não pode ser
    * renomeado — sem entregar nada que o `ref` não entregue.
    */
-  const [decksAnki, setDecksAnki] = useState<Array<{ id: string; nome: string }>>([]);
+  const [decksAnki, setDecksAnki] = useState<Array<{ id: string; nome: string; lang: string | null }>>([]);
   const [decksCarregados, setDecksCarregados] = useState(false);
   const temBaralhosAnki = decksAnki.length > 0;
   const recarregarBaralhosAnki = useCallback(async () => {
     try {
       const lista = await listarBaralhosAnki();
-      setDecksAnki(lista.map((d) => ({ id: d.id, nome: d.nome })));
+      setDecksAnki(lista.map((d) => ({ id: d.id, nome: d.nome, lang: d.idiomaOrigem ?? null })));
       // Baralho escolhido que sumiu (purgado noutra aba) não pode continuar recortando a rodada.
       setFiltro((prev) => {
         const vivos = prev.baralhos.filter((id) => lista.some((d) => d.id === id));
@@ -2664,12 +2664,14 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
                     Gerenciar baralhos
                   </button>
                 )}
+                {/* A Sala só sobra para o que a gaveta não cobre: começar num idioma que ainda
+                    não tem palavra nenhuma (a faceta lista só os que têm material). */}
                 <button
                   onClick={() => setSalaAberta(true)}
                   className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border-subtle bg-surface text-[12.5px] font-semibold text-ink hover:border-accent transition-colors cursor-pointer"
                 >
-                  <SlidersIcon className="w-3.5 h-3.5" aria-hidden />
-                  Escolher gravação
+                  <Globe className="w-3.5 h-3.5" aria-hidden />
+                  Outro idioma
                 </button>
               </>
             }
@@ -2684,7 +2686,18 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
                 rotulo: 'idioma',
                 exclusiva: true,
                 valor: fonte.lang ? [baseLang(fonte.lang)] : [],
-                aoTrocar: (lang) => aplicarEscolha({ ...escolhaAtual, lang }),
+                aoTrocar: (lang) => {
+                  /* Baralho de OUTRO idioma não sobrevive à troca: ficaria marcado recortando
+                     para zero, e o motivo não estaria em lugar nenhum da tela. */
+                  setFiltro(prev => ({
+                    ...prev,
+                    baralhos: prev.baralhos.filter(id => {
+                      const d = decksAnki.find(x => x.id === id);
+                      return !d?.lang || baseLang(d.lang) === baseLang(lang);
+                    }),
+                  }));
+                  aplicarEscolha({ ...escolhaAtual, lang });
+                },
                 opcoes: idiomasDoBaralho.map(i => ({
                   id: i.lang,
                   rotulo: langLabelPt(i.lang),
@@ -2754,12 +2767,34 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
                 ],
               },
               {
+                /* A Sala existia para escolher UMA gravação, e cobrava a volta inteira por isso:
+                   ela repetia idioma, fonte e nível, que já vivem aqui. Como faceta, a escolha
+                   fica ao lado das outras e a Sala deixa de ser caminho obrigatório. */
+                id: 'gravacao',
+                rotulo: 'quais gravações',
+                ajuda: 'nenhuma marcada = todas',
+                valor: filtro.sessoes,
+                aoTrocar: (id) => setFiltro(prev => ({
+                  ...prev,
+                  sessoes: prev.sessoes.includes(id) ? [] : [id],
+                  fontes: prev.sessoes.includes(id) ? prev.fontes : ['sessao'],
+                })),
+                opcoes: fonte.id === 'trilha' || sessoes.length < 2 ? [] : sessoes.map(s => ({
+                  id: s.id,
+                  rotulo: s.title || 'gravação sem título',
+                  icone: <Mic className="w-3.5 h-3.5" aria-hidden />,
+                })),
+              },
+              {
                 id: 'baralho',
                 rotulo: 'quais baralhos',
                 ajuda: 'nenhum marcado = todos',
                 valor: filtro.baralhos,
                 aoTrocar: (id) => setBaralhoAnki(filtro.baralhos.includes(id) ? null : (decksAnki.find(d => d.id === id) ?? null)),
-                opcoes: fonte.id === 'trilha' ? [] : decksAnki.map((d) => ({
+                /* SÓ OS BARALHOS DO IDIOMA ESCOLHIDO. Oferecer um baralho japonês com inglês
+                   selecionado produzia "0 palavras · nenhum item passa" — a tela convidava a uma
+                   escolha que ela mesma anulava. O idioma do baralho vem do import. */
+                opcoes: fonte.id === 'trilha' ? [] : decksAnki.filter(d => !fonte.lang || !d.lang || baseLang(d.lang) === baseLang(fonte.lang)).map((d) => ({
                   id: d.id,
                   icone: <Package className="w-3.5 h-3.5" aria-hidden />,
                   /* O NOME DO BARALHO COMO SE LÊ, não como o Anki o guarda. Dois problemas reais

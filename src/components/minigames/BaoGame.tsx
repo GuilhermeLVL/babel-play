@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { X, Sparkles, Gem, ArrowRight, RotateCcw, Check, Flame, Sprout, Trees, Volume2 } from 'lucide-react';
+import { X, Sparkles, Gem, ArrowRight, RotateCcw, Check, Flame, Sprout, Trees, Volume2, Lightbulb } from 'lucide-react';
 import type { MinigameItem, ItemOutcome, RoundReport } from '@core';
 import type { AgeProfileType } from '../../lib/profile';
 import { play } from '../../lib/soundFx';
@@ -10,13 +10,8 @@ import { speak } from '../../lib/tts';
 /**
  * BAO / MANCALA DOS MORFEMAS — Semeadura & Colheita Morfológica (Bao 🌍).
  *
- * Inspirado no mais sofisticado jogo de mancala da África Oriental (cultura Swahili de Zanzibar e Quênia).
- *
- * Recursos Avançados:
- * 1. Tabuleiro de Madeira entalhada com 2 fileiras de covas e sementes preciosas animadas.
- * 2. Raízes Morfológicas Centrais (ACT, CARE, PLAY, HOPE, FORM, HELP).
- * 3. Semeadura Rítmica: O jogador escolhe a cova do afixo correto para capturar as sementes (Kula no Bao!).
- * 4. Word Tree: Mostra a germinação da raiz gerando a nova palavra derivada.
+ * Mapeado na Fase 3 de SLA (DeKeyser - automatização da formação de palavras).
+ * Tabuleiro harmonizado com o design system do Babel Play, animações lúdicas e botão de dica.
  */
 
 interface MorphemePit {
@@ -34,6 +29,7 @@ interface BaoRound {
   rootMeaning: string;
   targetAffixId: string;
   clue: string;
+  morphHint: string;
   pits: MorphemePit[];
 }
 
@@ -50,6 +46,7 @@ const RODADAS_BAO: BaoRound[] = [
     rootMeaning: 'agir / atuar',
     targetAffixId: 'p-or',
     clue: 'Pessoa que atua profissionalmente em peças de teatro ou filmes de cinema',
+    morphHint: 'Procuramos um SUFIXO que transforma um verbo em agente de ação (-or / -er)!',
     pits: [
       { id: 'p-or', affix: '-OR', type: 'suffix', validWithRoot: true, resultWord: 'ACTOR', resultMeaning: 'Ator', seedsCount: 4 },
       { id: 'p-ion', affix: '-ION', type: 'suffix', validWithRoot: true, resultWord: 'ACTION', resultMeaning: 'Ação', seedsCount: 3 },
@@ -64,6 +61,7 @@ const RODADAS_BAO: BaoRound[] = [
     rootMeaning: 'cuidado / atenção',
     targetAffixId: 'p-ful',
     clue: 'Indivíduo atencioso, que procede com extremo zelo, atenção e cautela',
+    morphHint: 'Procuramos um SUFIXO que significa "cheio de" cuidado (-ful)!',
     pits: [
       { id: 'p-ful', affix: '-FUL', type: 'suffix', validWithRoot: true, resultWord: 'CAREFUL', resultMeaning: 'Cuidadoso', seedsCount: 4 },
       { id: 'p-less', affix: '-LESS', type: 'suffix', validWithRoot: true, resultWord: 'CARELESS', resultMeaning: 'Descuidado', seedsCount: 3 },
@@ -78,6 +76,7 @@ const RODADAS_BAO: BaoRound[] = [
     rootMeaning: 'jogar / brincar',
     targetAffixId: 'p-er',
     clue: 'Indivíduo participante que compete ou atua ativamente no jogo',
+    morphHint: 'Procuramos um SUFIXO nominal de profissão/agente (-er)!',
     pits: [
       { id: 'p-er', affix: '-ER', type: 'suffix', validWithRoot: true, resultWord: 'PLAYER', resultMeaning: 'Jogador', seedsCount: 4 },
       { id: 'p-ful', affix: '-FUL', type: 'suffix', validWithRoot: true, resultWord: 'PLAYFUL', resultMeaning: 'Brincalhão', seedsCount: 3 },
@@ -92,6 +91,7 @@ const RODADAS_BAO: BaoRound[] = [
     rootMeaning: 'forma / moldar',
     targetAffixId: 'p-trans',
     clue: 'Mudar completamente a forma, aspecto ou estrutura de algo',
+    morphHint: 'Procuramos um PREFIXO que significa "através / mudança radical" (trans-)!',
     pits: [
       { id: 'p-trans', affix: 'TRANS-', type: 'prefix', validWithRoot: true, resultWord: 'TRANSFORM', resultMeaning: 'Transformar', seedsCount: 4 },
       { id: 'p-re', affix: 'RE-', type: 'prefix', validWithRoot: true, resultWord: 'REFORM', resultMeaning: 'Reformar', seedsCount: 3 },
@@ -106,6 +106,7 @@ const RODADAS_BAO: BaoRound[] = [
     rootMeaning: 'esperança',
     targetAffixId: 'p-less',
     clue: 'Situação desesperadora, onde não resta nenhuma expectativa de melhora',
+    morphHint: 'Procuramos um SUFIXO que indica "ausência total / sem" (-less)!',
     pits: [
       { id: 'p-less', affix: '-LESS', type: 'suffix', validWithRoot: true, resultWord: 'HOPELESS', resultMeaning: 'Sem esperança / Desesperançoso', seedsCount: 4 },
       { id: 'p-ful', affix: '-FUL', type: 'suffix', validWithRoot: true, resultWord: 'HOPEFUL', resultMeaning: 'Esperançoso', seedsCount: 3 },
@@ -126,6 +127,11 @@ export default function BaoGame({ items: _itemsProp, ageProfile, onFinish, onExi
   const [sucessoMsg, setSucessoMsg] = useState<string | null>(null);
   const [erroMsg, setErroMsg] = useState<string | null>(null);
   const [finalizado, setFinalizado] = useState(false);
+  
+  // Dicas
+  const [dicasRestantes, setDicasRestantes] = useState(3);
+  const [dicaAberta, setDicaAberta] = useState(false);
+  const [covasEliminadas, setCovasEliminadas] = useState<string[]>([]);
 
   const outcomesRef = useRef<ItemOutcome[]>([]);
   const inicioPartidaRef = useRef(Date.now());
@@ -139,10 +145,25 @@ export default function BaoGame({ items: _itemsProp, ageProfile, onFinish, onExi
     setCovaSelecionada(null);
     setSucessoMsg(null);
     setErroMsg(null);
+    setDicaAberta(false);
+    setCovasEliminadas([]);
   }, [indiceRodada]);
 
+  const usarDica = () => {
+    if (dicasRestantes <= 0 || dicaAberta) return;
+    play('click');
+    play('select');
+    setDicasRestantes((d) => d - 1);
+    setDicaAberta(true);
+
+    const incorreta = rodadaAtual.pits.find((p) => p.id !== rodadaAtual.targetAffixId && !covasEliminadas.includes(p.id));
+    if (incorreta) {
+      setCovasEliminadas((prev) => [...prev, incorreta.id]);
+    }
+  };
+
   const handleSemearCova = (pit: MorphemePit, event: React.MouseEvent) => {
-    if (finalizado || covaSelecionada) return;
+    if (finalizado || covaSelecionada || covasEliminadas.includes(pit.id)) return;
 
     setCovaSelecionada(pit.id);
     const correta = pit.id === rodadaAtual.targetAffixId;
@@ -156,7 +177,6 @@ export default function BaoGame({ items: _itemsProp, ageProfile, onFinish, onExi
     });
 
     if (correta) {
-      // CAPTURA DE SEMENTES NO BAO (KULA!)
       play('combo');
       play('select');
       setCombo((c) => c + 1);
@@ -173,7 +193,6 @@ export default function BaoGame({ items: _itemsProp, ageProfile, onFinish, onExi
       pulsoDeZoom();
       flashDeTela();
 
-      // Fala a palavra derivada em inglês
       try {
         speak(pit.resultWord, { lang: 'en-US' });
       } catch {
@@ -188,7 +207,6 @@ export default function BaoGame({ items: _itemsProp, ageProfile, onFinish, onExi
         }
       }, 1800);
     } else {
-      // SEMEOU NA COVA INCORRETA!
       play('error');
       setCombo(0);
       setErroMsg(
@@ -228,7 +246,7 @@ export default function BaoGame({ items: _itemsProp, ageProfile, onFinish, onExi
 
   return (
     <div className="fixed inset-0 z-50 flex flex-col bg-canvas/95 backdrop-blur-md text-ink select-none overflow-y-auto">
-      {/* Topo / Header */}
+      {/* Header Limpo */}
       <header className="flex items-center justify-between px-6 py-4 border-b border-border-subtle bg-surface/90 backdrop-blur-lg sticky top-0 z-20 shadow-sm">
         <div className="flex items-center gap-3">
           <button
@@ -240,10 +258,10 @@ export default function BaoGame({ items: _itemsProp, ageProfile, onFinish, onExi
           </button>
           <div>
             <div className="flex items-center gap-2">
-              <span className="font-display font-black text-xl tracking-wide uppercase bg-gradient-to-r from-amber-600 to-amber-400 bg-clip-text text-transparent">
+              <span className="font-display font-black text-xl tracking-wide uppercase text-accent">
                 Bao Mancala dos Morfemas
               </span>
-              <span className="text-xs px-2.5 py-0.5 rounded-full bg-amber-500/15 text-amber-600 font-bold border border-amber-500/20">
+              <span className="text-xs px-2.5 py-0.5 rounded-full bg-accent-soft text-accent-ink font-bold border border-accent/20">
                 🌍 Swahili · África Oriental
               </span>
             </div>
@@ -253,17 +271,27 @@ export default function BaoGame({ items: _itemsProp, ageProfile, onFinish, onExi
           </div>
         </div>
 
-        {/* Status de Sementes, Combo e Pontos */}
+        {/* Status & Dica */}
         <div className="flex items-center gap-3 sm:gap-4">
+          <button
+            onClick={usarDica}
+            disabled={dicasRestantes <= 0 || dicaAberta}
+            className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-2xl border border-border-subtle bg-surface hover:bg-surface-hover font-bold text-xs text-ink transition-all disabled:opacity-40 disabled:cursor-not-allowed shadow-sm cursor-pointer"
+            title="Receber dica morfológica"
+          >
+            <Lightbulb className="w-4 h-4 text-accent" />
+            <span>Dica ({dicasRestantes})</span>
+          </button>
+
           {combo > 1 && (
-            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-gradient-to-r from-amber-600 to-amber-500 text-white font-black text-xs shadow-lg animate-pulse">
+            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-accent text-accent-contrast font-black text-xs shadow-md animate-pulse">
               <Flame className="w-4 h-4 fill-current" />
               <span>{combo}x KULA COMBO</span>
             </div>
           )}
 
           <div className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-2xl border border-border-subtle bg-surface shadow-sm">
-            <Gem className="w-4 h-4 text-amber-500" />
+            <Gem className="w-4 h-4 text-accent" />
             <span className="font-mono font-black text-base">{sementesCapturadas} sementes</span>
           </div>
 
@@ -274,17 +302,19 @@ export default function BaoGame({ items: _itemsProp, ageProfile, onFinish, onExi
         </div>
       </header>
 
-      {/* Arena do Tabuleiro de Mancala */}
-      <main className="flex-1 p-4 sm:p-8 flex flex-col items-center justify-center max-w-5xl mx-auto w-full">
-        <div className="w-full bg-surface border-2 border-border-subtle rounded-3xl p-6 sm:p-10 shadow-2xl flex flex-col items-center space-y-6" ref={tabuleiroRef}>
+      {/* Arena do Tabuleiro */}
+      <main className="flex-1 p-4 sm:p-8 flex flex-col items-center justify-center max-w-4xl mx-auto w-full">
+        <div className="w-full bg-surface border-2 border-border-subtle rounded-3xl p-6 sm:p-10 shadow-card flex flex-col items-center space-y-6" ref={tabuleiroRef}>
           
           {/* PISTA SEMÂNTICA */}
-          <div className="w-full max-w-2xl text-center space-y-2">
-            <span className="text-xs font-mono uppercase tracking-widest text-amber-600 font-bold">
-              Desafio Morfológico {indiceRodada + 1} de 5
-            </span>
-            <div className="p-4 rounded-2xl bg-amber-500/10 border-2 border-amber-500/30 text-amber-900 dark:text-amber-200">
-              <p className="text-xs font-mono uppercase font-bold tracking-wider text-amber-600 mb-1">
+          <div className="w-full max-w-xl text-center space-y-2">
+            <div className="flex items-center justify-between border-b border-border-subtle pb-2 text-xs font-mono">
+              <span className="text-accent font-bold uppercase tracking-wider">Desafio Morfológico</span>
+              <span className="text-ink-muted">Rodada {indiceRodada + 1} de 5</span>
+            </div>
+
+            <div className="p-4 rounded-2xl bg-surface-hover border border-border-subtle text-ink">
+              <p className="text-xs font-mono uppercase font-bold tracking-wider text-accent mb-1">
                 Pista do Significado Desejado:
               </p>
               <h3 className="font-display font-black text-xl sm:text-2xl text-ink">
@@ -293,54 +323,77 @@ export default function BaoGame({ items: _itemsProp, ageProfile, onFinish, onExi
             </div>
           </div>
 
-          {/* O TABULEIRO FÍSICO DE MADEIRA DE BAO */}
-          <div className="w-full max-w-3xl rounded-3xl border-4 border-amber-950/80 bg-gradient-to-b from-amber-950 to-amber-900 p-6 sm:p-8 shadow-2xl relative text-amber-50">
-            {/* Decorações tribais entalhadas */}
-            <div className="absolute top-2 left-3 text-amber-600/40 text-xs font-mono">BAO SWAHILI</div>
-            <div className="absolute top-2 right-3 text-amber-600/40 text-xs font-mono">MWAMBA</div>
-
-            {/* Raiz Lexical no Centro do Tabuleiro */}
-            <div className="flex flex-col items-center justify-center py-4 border-b border-amber-800 mb-6">
-              <span className="text-[10px] font-mono uppercase tracking-widest text-amber-400 font-bold flex items-center gap-1">
-                <Sprout className="w-3.5 h-3.5" /> RAIZ LEXICAL (STEM)
-              </span>
-              <div className="font-display font-black text-5xl sm:text-6xl tracking-widest text-amber-200 drop-shadow-md">
-                {rodadaAtual.root}
+          {/* DICA MORFOLÓGICA */}
+          {dicaAberta && (
+            <div className="w-full max-w-xl p-4 rounded-2xl bg-accent-soft/40 border border-accent/30 text-ink text-xs sm:text-sm font-medium flex items-center gap-3 animate-fadeIn">
+              <Lightbulb className="w-5 h-5 text-accent shrink-0" />
+              <div>
+                <strong className="text-accent-ink block font-bold">Pista Morfológica:</strong>
+                <span>{rodadaAtual.morphHint}</span>
               </div>
-              <span className="text-xs text-amber-300/80 font-medium mt-1">({rodadaAtual.rootMeaning})</span>
+            </div>
+          )}
+
+          {/* O TABULEIRO LIMPO DO BAO MANCALA */}
+          <div className="w-full max-w-2xl rounded-3xl border-2 border-border-subtle bg-surface-hover/70 p-6 sm:p-8 shadow-sm relative text-ink">
+            {/* Raiz Lexical Central com Animação Saltitante */}
+            <div className="flex flex-col items-center justify-center py-3 border-b border-border-subtle mb-6">
+              <span className="text-[10px] font-mono uppercase tracking-widest text-accent font-bold mb-1 flex items-center gap-1">
+                <Sprout className="w-3.5 h-3.5" /> Raiz Lexical (Stem)
+              </span>
+              <div className="flex items-center justify-center gap-2">
+                <span className="text-3xl animate-bounce">🌱</span>
+                <div className="font-display font-black text-5xl sm:text-6xl tracking-widest text-ink">
+                  {rodadaAtual.root}
+                </div>
+              </div>
+              <span className="text-xs text-ink-muted font-bold mt-1">({rodadaAtual.rootMeaning})</span>
             </div>
 
             {/* As Covas Morfológicas de Afixos */}
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
               {rodadaAtual.pits.map((pit) => {
                 const selecionada = covaSelecionada === pit.id;
                 const eCorreta = pit.id === rodadaAtual.targetAffixId;
+                const eliminada = covasEliminadas.includes(pit.id);
+
+                if (eliminada) {
+                  return (
+                    <div
+                      key={pit.id}
+                      className="p-4 rounded-2xl border-2 border-border-subtle bg-surface/30 opacity-40 flex flex-col items-center justify-center text-center cursor-not-allowed"
+                    >
+                      <span className="text-xs line-through font-bold text-ink-muted">{pit.affix}</span>
+                      <span className="text-[9px] text-error font-mono mt-1">Eliminada ❌</span>
+                    </div>
+                  );
+                }
 
                 return (
                   <button
                     key={pit.id}
                     onClick={(e) => handleSemearCova(pit, e)}
-                    className={`p-4 rounded-2xl border-2 transition-all flex flex-col items-center justify-center relative cursor-pointer shadow-inner ${
+                    className={`p-4 rounded-2xl border-2 transition-all flex flex-col items-center justify-center relative cursor-pointer shadow-sm ${
                       selecionada && eCorreta
-                        ? 'border-emerald-400 bg-emerald-950/80 scale-105 shadow-lg'
+                        ? 'border-good bg-good-soft/80 scale-105 shadow-md text-good-ink'
                         : selecionada && !eCorreta
-                        ? 'border-rose-400 bg-rose-950/80'
-                        : 'border-amber-700/80 bg-amber-900/60 hover:border-amber-400 hover:bg-amber-800/80'
+                        ? 'border-error bg-error/10 text-error'
+                        : 'border-border-subtle bg-surface hover:border-accent hover:bg-accent-soft/20 text-ink'
                     }`}
                   >
-                    <span className="text-xs font-mono uppercase text-amber-400 font-bold mb-1">
+                    <span className="text-[10px] font-mono uppercase text-ink-muted font-bold mb-1">
                       {pit.type === 'prefix' ? 'Prefixo' : 'Sufixo'}
                     </span>
-                    <span className="font-display font-black text-2xl text-amber-100 tracking-wider">
+                    <span className="font-display font-black text-2xl sm:text-3xl tracking-wider text-ink group-hover:text-accent group-hover:scale-110 transition-transform">
                       {pit.affix}
                     </span>
 
-                    {/* Sementes / Pedras Preciosas dentro da Cova */}
+                    {/* Sementes dentro da Cova */}
                     <div className="flex items-center gap-1 mt-2">
                       {Array.from({ length: pit.seedsCount }).map((_, sIdx) => (
-                        <span key={sIdx} className="w-2.5 h-2.5 rounded-full bg-amber-400 shadow-sm animate-pulse" />
+                        <span key={sIdx} className="w-2.5 h-2.5 rounded-full bg-accent animate-pulse" />
                       ))}
-                      <span className="text-[10px] font-mono font-bold text-amber-300 ml-1">
+                      <span className="text-[10px] font-mono font-bold text-ink-muted ml-1">
                         ({pit.seedsCount})
                       </span>
                     </div>
@@ -352,8 +405,8 @@ export default function BaoGame({ items: _itemsProp, ageProfile, onFinish, onExi
 
           {/* MENSAGENS DE FEEDBACK */}
           {sucessoMsg && (
-            <div className="p-4 rounded-2xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-600 font-bold text-center text-sm sm:text-base animate-scaleIn flex items-center gap-2 justify-center">
-              <Check className="w-5 h-5" />
+            <div className="p-4 rounded-2xl bg-good-soft/80 border border-good/30 text-good-ink font-bold text-center text-sm sm:text-base animate-scaleIn flex items-center gap-2 justify-center">
+              <Check className="w-5 h-5 text-good" />
               <span>{sucessoMsg}</span>
             </div>
           )}

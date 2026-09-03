@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { X, Volume2, Sparkles, Award, Timer as TimerIcon, Zap, RotateCcw, Flame } from 'lucide-react';
+import { X, Volume2, Sparkles, Award, Timer as TimerIcon, Zap, RotateCcw, Flame, Lightbulb } from 'lucide-react';
 import type { MinigameItem, ItemOutcome, RoundReport } from '@core';
 import type { AgeProfileType } from '../../lib/profile';
 import { play } from '../../lib/soundFx';
@@ -94,6 +94,11 @@ export default function KarutaGame({ items: itemsProp, ageProfile, onFinish, onE
   const [estaNarrando, setEstaNarrando] = useState(false);
   const [finalizado, setFinalizado] = useState(false);
 
+  // Dicas & Ajuda
+  const [dicasRestantes, setDicasRestantes] = useState(3);
+  const [dicaAberta, setDicaAberta] = useState(false);
+  const [dicaTexto, setDicaTexto] = useState<string | null>(null);
+
   const outcomesRef = useRef<ItemOutcome[]>([]);
   const inicioPartidaRef = useRef(Date.now());
   const inicioRodadaRef = useRef(Date.now());
@@ -101,6 +106,25 @@ export default function KarutaGame({ items: itemsProp, ageProfile, onFinish, onE
   const tatamiRef = useRef<HTMLDivElement>(null);
 
   const itemAlvo = targetItems[indiceAlvo];
+
+  const usarDica = () => {
+    if (dicasRestantes <= 0 || dicaAberta || !itemAlvo) return;
+    play('click');
+    setDicasRestantes((prev) => prev - 1);
+    setDicaAberta(true);
+
+    // Elimina 2 distratores incorretos da mesa
+    const decoys = cartasMesa.filter((c) => !c.isTarget && c.status === 'idle');
+    const toEliminate = shuffleArray(decoys).slice(0, 2).map((c) => c.id);
+
+    setCartasMesa((prev) =>
+      prev.map((c) => (toEliminate.includes(c.id) ? { ...c, status: 'wrong' } : c))
+    );
+
+    const primeiraLetra = itemAlvo.answer.charAt(0).toUpperCase();
+    setDicaTexto(`Pista: A palavra correta em inglês começa com a letra "${primeiraLetra}"!`);
+    play('levelUp');
+  };
 
   // Monta a mesa de cartas espalhadas aleatoriamente a cada rodada
   const montarTatame = (alvo: MinigameItem) => {
@@ -151,6 +175,8 @@ export default function KarutaGame({ items: itemsProp, ageProfile, onFinish, onE
     inicioRodadaRef.current = Date.now();
     tentativasRodadaRef.current = 0;
     setTempo(tempoLimite);
+    setDicaAberta(false);
+    setDicaTexto(null);
 
     montarTatame(itemAlvo);
     narrarAlvo(itemAlvo);
@@ -294,8 +320,18 @@ export default function KarutaGame({ items: itemsProp, ageProfile, onFinish, onE
           </div>
         </div>
 
-        {/* Indicadores de Pontuação, Combo e Tempo */}
+        {/* Indicadores de Pontuação, Combo, Dica e Tempo */}
         <div className="flex items-center gap-3 sm:gap-4">
+          <button
+            onClick={usarDica}
+            disabled={dicasRestantes <= 0 || dicaAberta}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-2xl border border-border-subtle bg-surface hover:bg-surface-hover text-xs font-bold text-ink transition-all disabled:opacity-40 disabled:cursor-not-allowed shadow-sm cursor-pointer"
+            title="Eliminar 2 cartas incorretas e revelar letra inicial"
+          >
+            <Lightbulb className="w-3.5 h-3.5 text-accent" />
+            <span>Dica ({dicasRestantes})</span>
+          </button>
+
           {kimarijiAtivo && (
             <div className="hidden md:flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/20 text-amber-500 border border-amber-500/30 text-xs font-black animate-pulse">
               <Zap className="w-3.5 h-3.5 fill-current" />
@@ -325,8 +361,8 @@ export default function KarutaGame({ items: itemsProp, ageProfile, onFinish, onE
       </header>
 
       {/* Faixa de Leitura: O "Chamador" do Tatame */}
-      <div className="px-6 py-4 bg-surface/60 border-b border-border-subtle flex items-center justify-between">
-        <div className="flex items-center gap-4">
+      <div className="px-6 py-4 bg-surface/80 border-b border-border-subtle flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+        <div className="flex items-center gap-4 flex-wrap">
           <button
             onClick={() => itemAlvo && narrarAlvo(itemAlvo)}
             className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-accent text-accent-contrast font-bold text-sm shadow-card hover:opacity-95 active:scale-95 transition-all cursor-pointer"
@@ -335,13 +371,24 @@ export default function KarutaGame({ items: itemsProp, ageProfile, onFinish, onE
             <Volume2 className={`w-5 h-5 ${estaNarrando ? 'animate-bounce text-white' : ''}`} />
             <span>Ouvir Chamado</span>
           </button>
-          <div className="text-sm">
-            <span className="text-ink-muted">Significado em português: </span>
-            <span className="font-black text-ink text-base underline decoration-accent decoration-2 underline-offset-4">
-              {itemAlvo?.prompt}
-            </span>
+          
+          <div className="flex items-center gap-2">
+            <span className="text-xl animate-bounce">🎴</span>
+            <div className="text-sm">
+              <span className="text-ink-muted">Significado em português: </span>
+              <span className="font-black text-ink text-base underline decoration-accent decoration-2 underline-offset-4">
+                {itemAlvo?.prompt}
+              </span>
+            </div>
           </div>
         </div>
+
+        {dicaTexto && (
+          <div className="px-3.5 py-1.5 rounded-xl bg-accent-soft text-accent-ink text-xs font-bold flex items-center gap-2 animate-fadeIn border border-accent/30">
+            <Lightbulb className="w-3.5 h-3.5 text-accent animate-bounce" />
+            <span>{dicaTexto}</span>
+          </div>
+        )}
 
         <div className="text-xs font-mono text-ink-muted">
           Carta {indiceAlvo + 1} de {targetItems.length}

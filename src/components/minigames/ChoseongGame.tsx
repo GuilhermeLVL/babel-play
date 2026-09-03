@@ -67,6 +67,7 @@ export default function ChoseongGame({ items: itemsProp, ageProfile, onFinish, o
   const [tempo, setTempo] = useState(tempoLimite);
   const [letrasUsuario, setLetrasUsuario] = useState<string[]>([]);
   const [finalizado, setFinalizado] = useState(false);
+  const [dicasRestantes, setDicasRestantes] = useState(3);
 
   const outcomesRef = useRef<ItemOutcome[]>([]);
   const inicioPartidaRef = useRef(Date.now());
@@ -181,9 +182,10 @@ export default function ChoseongGame({ items: itemsProp, ageProfile, onFinish, o
   };
 
   const usarDicaRevelarUmaLetra = () => {
-    if (!puzzleAtual) return;
+    if (!puzzleAtual || dicasRestantes <= 0) return;
     const indexOculto = letrasUsuario.findIndex((l, i) => !l && puzzleAtual.initialLetters[i] === null);
     if (indexOculto !== -1) {
+      setDicasRestantes((d) => d - 1);
       play('timeBonus');
       const novas = [...letrasUsuario];
       novas[indexOculto] = puzzleAtual.targetWord[indexOculto];
@@ -272,8 +274,18 @@ export default function ChoseongGame({ items: itemsProp, ageProfile, onFinish, o
           </div>
         </div>
 
-        {/* Status de Pontos, Streak / Fever e Timer */}
-        <div className="flex items-center gap-4">
+        {/* Status de Pontos, Streak / Fever, Dica e Timer */}
+        <div className="flex items-center gap-3 sm:gap-4">
+          <button
+            onClick={usarDicaRevelarUmaLetra}
+            disabled={dicasRestantes <= 0}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-2xl border border-border-subtle bg-surface hover:bg-surface-hover text-xs font-bold text-ink transition-all disabled:opacity-40 disabled:cursor-not-allowed shadow-sm cursor-pointer"
+            title="Revelar uma letra oculta"
+          >
+            <Lightbulb className="w-3.5 h-3.5 text-accent" />
+            <span>Dica ({dicasRestantes})</span>
+          </button>
+
           {ehModoFebre && (
             <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-gradient-to-r from-orange-500 to-amber-500 text-white font-black text-xs shadow-md animate-bounce">
               <Flame className="w-4 h-4 fill-current" />
@@ -298,13 +310,16 @@ export default function ChoseongGame({ items: itemsProp, ageProfile, onFinish, o
       <main className="flex-1 p-6 flex flex-col items-center justify-center max-w-2xl mx-auto w-full">
         {puzzleAtual && (
           <div className="w-full bg-surface border-2 border-border-subtle rounded-3xl p-6 sm:p-8 shadow-card flex flex-col items-center text-center">
-            {/* Categoria */}
-            <div className="px-3.5 py-1 rounded-full bg-surface-hover border border-border-subtle text-xs font-mono uppercase tracking-wider text-ink-muted mb-3">
-              Categoria: <strong className="text-accent">{puzzleAtual.category}</strong>
+            {/* Mascote Saltitante e Categoria */}
+            <div className="flex items-center gap-2 mb-2">
+              <span className="text-3xl animate-bounce">🧩</span>
+              <div className="px-3.5 py-1 rounded-full bg-surface-hover border border-border-subtle text-xs font-mono uppercase tracking-wider text-ink-muted">
+                Categoria: <strong className="text-accent">{puzzleAtual.category}</strong>
+              </div>
             </div>
 
             {/* Pista Semântica */}
-            <p className="text-sm sm:text-base text-ink font-bold mb-6">
+            <p className="text-sm sm:text-base text-ink font-bold mb-4">
               "{puzzleAtual.prompt}"
             </p>
 
@@ -332,13 +347,14 @@ export default function ChoseongGame({ items: itemsProp, ageProfile, onFinish, o
             </div>
 
             {/* Ações e Botões de Apoio */}
-            <div className="flex gap-3 my-4">
+            <div className="flex gap-3 my-3">
               <button
                 onClick={usarDicaRevelarUmaLetra}
-                className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-border-subtle bg-surface-hover hover:bg-border-subtle text-xs font-bold text-ink-muted hover:text-ink transition-colors cursor-pointer"
+                disabled={dicasRestantes <= 0}
+                className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-border-subtle bg-surface-hover hover:bg-border-subtle text-xs font-bold text-ink transition-colors cursor-pointer disabled:opacity-40"
               >
-                <Lightbulb className="w-4 h-4 text-amber-500" />
-                <span>Revelar uma letra</span>
+                <Lightbulb className="w-4 h-4 text-amber-500 animate-bounce" />
+                <span>Revelar uma letra ({dicasRestantes})</span>
               </button>
 
               <button

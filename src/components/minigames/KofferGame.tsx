@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { X, Briefcase, Heart, Check, Sparkles, AlertCircle, ArrowRight, Lock, Unlock, Eye, EyeOff, ShieldAlert, Plane, Compass, Volume2 } from 'lucide-react';
+import { X, Briefcase, Heart, Check, Sparkles, AlertCircle, ArrowRight, Lock, Unlock, Eye, EyeOff, ShieldAlert, Plane, Compass, Volume2, Lightbulb } from 'lucide-react';
 import type { MinigameItem, ItemOutcome, RoundReport } from '@core';
 import type { AgeProfileType } from '../../lib/profile';
 import { play } from '../../lib/soundFx';
@@ -109,10 +109,38 @@ export default function KofferGame({ items: _itemsProp, ageProfile, onFinish, on
   const [espiandoEmergencia, setEspiandoEmergencia] = useState(false);
   const [artigoErro, setArtigoErro] = useState<string | null>(null);
 
+  // Dicas & Ajuda
+  const [dicasRestantes, setDicasRestantes] = useState(3);
+  const [dicaAberta, setDicaAberta] = useState(false);
+  const [artigoEliminado, setArtigoEliminado] = useState<string | null>(null);
+  const [itemDestacado, setItemDestacado] = useState<string | null>(null);
+
   const outcomesRef = useRef<ItemOutcome[]>([]);
   const inicioPartidaRef = useRef(Date.now());
   const inicioRodadaRef = useRef(Date.now());
   const malaRef = useRef<HTMLDivElement>(null);
+
+  const usarDica = () => {
+    if (dicasRestantes <= 0 || dicaAberta) return;
+    play('click');
+    setDicasRestantes((prev) => prev - 1);
+    setDicaAberta(true);
+
+    if (etapa === 'repetir') {
+      const itemEsperado = itensNaMala[indiceRepeticao];
+      if (itemEsperado) {
+        setItemDestacado(itemEsperado.id);
+        play('levelUp');
+        setTimeout(() => setItemDestacado(null), 3500);
+      }
+    } else if (etapa === 'artigo' && novoItem) {
+      const errados = ['einen', 'eine', 'ein'].filter((a) => a !== novoItem.correctArticle);
+      if (errados.length > 0) {
+        setArtigoEliminado(errados[0]);
+        play('click');
+      }
+    }
+  };
 
   // Início de cada nível
   useEffect(() => {
@@ -121,6 +149,9 @@ export default function KofferGame({ items: _itemsProp, ageProfile, onFinish, on
     setIndiceRepeticao(0);
     setEspiandoEmergencia(false);
     setArtigoErro(null);
+    setDicaAberta(false);
+    setArtigoEliminado(null);
+    setItemDestacado(null);
     setEtapa('apresentar');
     play('add');
 
@@ -268,10 +299,10 @@ export default function KofferGame({ items: _itemsProp, ageProfile, onFinish, on
           </button>
           <div>
             <div className="flex items-center gap-2">
-              <span className="font-display font-black text-xl tracking-wide uppercase bg-gradient-to-r from-blue-500 to-indigo-600 bg-clip-text text-transparent">
+              <span className="font-display font-black text-xl tracking-wide uppercase text-accent">
                 Ich packe meinen Koffer
               </span>
-              <span className="text-xs px-2.5 py-0.5 rounded-full bg-blue-500/15 text-blue-600 font-bold border border-blue-500/20">
+              <span className="text-xs px-2.5 py-0.5 rounded-full bg-accent-soft text-accent-ink font-bold border border-accent/20">
                 {destinoAtual.flag} {destinoAtual.name}
               </span>
             </div>
@@ -283,6 +314,17 @@ export default function KofferGame({ items: _itemsProp, ageProfile, onFinish, on
 
         {/* Status de Vidas & Pontos */}
         <div className="flex items-center gap-3 sm:gap-4">
+          {/* Botão de Dica */}
+          <button
+            onClick={usarDica}
+            disabled={dicasRestantes <= 0 || dicaAberta}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-2xl border border-border-subtle bg-surface hover:bg-surface-hover text-xs font-bold text-ink transition-all disabled:opacity-40 disabled:cursor-not-allowed shadow-sm cursor-pointer"
+            title="Dica de Memória ou Gramática"
+          >
+            <Lightbulb className="w-3.5 h-3.5 text-accent" />
+            <span>Dica ({dicasRestantes})</span>
+          </button>
+
           {/* Seletor de Destino Alternativo */}
           <button
             onClick={() => setDestinoIdx((prev) => (prev + 1) % DESTINATIONS.length)}
@@ -317,30 +359,23 @@ export default function KofferGame({ items: _itemsProp, ageProfile, onFinish, on
       <main className="flex-1 p-4 sm:p-8 flex flex-col items-center justify-center max-w-5xl mx-auto w-full">
         <div className="w-full bg-surface border-2 border-border-subtle rounded-3xl p-6 sm:p-10 shadow-2xl flex flex-col items-center space-y-6" ref={malaRef}>
           
-          {/* A MALA FÍSICA ESTILIZADA */}
-          <div className="w-full max-w-3xl relative rounded-3xl border-4 border-amber-900/60 bg-gradient-to-b from-amber-950/80 to-amber-900/90 p-6 sm:p-8 shadow-2xl text-amber-50">
-            {/* Alça e Cantoneiras Metálicas da Mala */}
-            <div className="absolute -top-4 left-1/2 -translate-x-1/2 w-28 h-5 rounded-t-xl bg-amber-700 border-2 border-amber-500 shadow-md" />
-            <div className="absolute top-2 left-2 w-5 h-5 rounded-tl-lg border-t-2 border-l-2 border-amber-400" />
-            <div className="absolute top-2 right-2 w-5 h-5 rounded-tr-lg border-t-2 border-r-2 border-amber-400" />
-            <div className="absolute bottom-2 left-2 w-5 h-5 rounded-bl-lg border-b-2 border-l-2 border-amber-400" />
-            <div className="absolute bottom-2 right-2 w-5 h-5 rounded-br-lg border-b-2 border-r-2 border-amber-400" />
-
+          {/* A MALA DE VIAGEM */}
+          <div className="w-full max-w-2xl rounded-3xl border-2 border-border-subtle bg-surface-hover/70 p-6 sm:p-8 shadow-sm text-ink">
             {/* Cabeçalho da Mala */}
-            <div className="flex items-center justify-between pb-4 border-b border-amber-700/60 mb-4">
+            <div className="flex items-center justify-between pb-4 border-b border-border-subtle mb-4">
               <div className="flex items-center gap-2">
-                <Briefcase className="w-5 h-5 text-amber-400" />
-                <span className="font-mono font-bold text-xs uppercase tracking-widest text-amber-200">
+                <Briefcase className="w-5 h-5 text-accent" />
+                <span className="font-mono font-bold text-xs uppercase tracking-widest text-ink">
                   Mala de Viagem · {itensNaMala.length} {itensNaMala.length === 1 ? 'Item' : 'Itens'} Guardados
                 </span>
               </div>
               <div className="flex items-center gap-2">
                 {etapa === 'fechar_mala' || etapa === 'repetir' ? (
-                  <span className="flex items-center gap-1 text-xs px-2.5 py-1 rounded-full bg-rose-950 border border-rose-600 text-rose-300 font-bold">
+                  <span className="flex items-center gap-1 text-xs px-2.5 py-1 rounded-full bg-error/15 border border-error/30 text-error font-bold">
                     <Lock className="w-3.5 h-3.5" /> MALA FECHADA! RECORDE DA MEMÓRIA
                   </span>
                 ) : (
-                  <span className="flex items-center gap-1 text-xs px-2.5 py-1 rounded-full bg-emerald-950 border border-emerald-600 text-emerald-300 font-bold">
+                  <span className="flex items-center gap-1 text-xs px-2.5 py-1 rounded-full bg-good-soft border border-good/30 text-good-ink font-bold">
                     <Unlock className="w-3.5 h-3.5" /> MALA ABERTA
                   </span>
                 )}
@@ -350,15 +385,15 @@ export default function KofferGame({ items: _itemsProp, ageProfile, onFinish, on
             {/* Conteúdo Interno da Mala */}
             {etapa === 'repetir' && !espiandoEmergencia ? (
               /* ESTADO FECHADO COM ZÍPER */
-              <div className="py-12 flex flex-col items-center justify-center text-center space-y-4">
-                <div className="p-4 rounded-full bg-amber-900/70 border-2 border-amber-600 shadow-inner animate-pulse">
-                  <Lock className="w-12 h-12 text-amber-300" />
+              <div className="py-10 flex flex-col items-center justify-center text-center space-y-3">
+                <div className="p-4 rounded-full bg-surface border border-border-subtle shadow-sm animate-pulse">
+                  <Lock className="w-10 h-10 text-accent" />
                 </div>
                 <div>
-                  <h3 className="font-display font-black text-2xl text-amber-100">
+                  <h3 className="font-display font-black text-2xl text-ink">
                     O que já estava guardado na mala?
                   </h3>
-                  <p className="text-xs text-amber-300/80 max-w-md mx-auto mt-1">
+                  <p className="text-xs text-ink-muted max-w-md mx-auto mt-1">
                     Toque nos itens abaixo rigorosamente na <strong>mesma ordem</strong> em que foram adicionados!
                   </p>
                 </div>
@@ -369,8 +404,8 @@ export default function KofferGame({ items: _itemsProp, ageProfile, onFinish, on
                     const item = poolItens.find((it) => it.id === id);
                     if (!item) return null;
                     return (
-                      <span key={id} className="flex items-center gap-1.5 px-3 py-1 rounded-xl bg-emerald-900/80 border border-emerald-500 text-emerald-200 text-xs font-bold animate-scaleIn">
-                        <Check className="w-3.5 h-3.5 text-emerald-400" />
+                      <span key={id} className="flex items-center gap-1.5 px-3 py-1 rounded-xl bg-good-soft border border-good/30 text-good-ink text-xs font-bold animate-scaleIn">
+                        <Check className="w-3.5 h-3.5 text-good" />
                         <span>{item.emoji} {item.name}</span>
                       </span>
                     );
@@ -380,7 +415,7 @@ export default function KofferGame({ items: _itemsProp, ageProfile, onFinish, on
                 {/* Botão de Espiada de Emergência */}
                 <button
                   onClick={() => setEspiandoEmergencia(true)}
-                  className="mt-2 text-xs flex items-center gap-1.5 text-amber-400/70 hover:text-amber-300 transition-colors underline cursor-pointer"
+                  className="mt-2 text-xs flex items-center gap-1.5 text-accent hover:underline cursor-pointer"
                 >
                   <Eye className="w-3.5 h-3.5" />
                   <span>Espiar a mala por 1 segundo (-50 pts)</span>
@@ -388,24 +423,26 @@ export default function KofferGame({ items: _itemsProp, ageProfile, onFinish, on
               </div>
             ) : (
               /* ESTADO ABERTO — VISUALIZAÇÃO DOS ITENS DENTRO DA MALA */
-              <div className="py-6">
+              <div className="py-4">
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                   {itensNaMala.map((item, idx) => {
                     const eONovo = idx === itensNaMala.length - 1;
                     return (
                       <div
                         key={item.id}
-                        className={`p-3.5 rounded-2xl flex flex-col items-center justify-center text-center transition-all ${
+                        className={`p-4 rounded-2xl flex flex-col items-center justify-center text-center transition-all ${
                           eONovo
-                            ? 'bg-amber-600/50 border-2 border-amber-400 shadow-lg animate-bounce'
-                            : 'bg-amber-900/40 border border-amber-700/50'
+                            ? 'bg-surface border-2 border-accent shadow-md'
+                            : 'bg-surface/80 border border-border-subtle'
                         }`}
                       >
-                        <span className="text-3xl sm:text-4xl mb-1">{item.emoji}</span>
-                        <span className="font-bold text-sm text-amber-100">{item.name}</span>
-                        <span className="text-[10px] text-amber-300/80 font-medium">({item.translation})</span>
+                        <span className={`text-4xl sm:text-5xl mb-1 ${eONovo ? 'animate-bounce' : ''}`}>
+                          {item.emoji}
+                        </span>
+                        <span className="font-bold text-sm text-ink">{item.name}</span>
+                        <span className="text-[10px] text-ink-muted font-medium">({item.translation})</span>
                         {eONovo && (
-                          <span className="text-[9px] font-black uppercase px-2 py-0.5 rounded-full bg-amber-400 text-amber-950 mt-1">
+                          <span className="text-[9px] font-black uppercase px-2 py-0.5 rounded-full bg-accent text-accent-contrast mt-1">
                             Novo Item!
                           </span>
                         )}
@@ -426,17 +463,27 @@ export default function KofferGame({ items: _itemsProp, ageProfile, onFinish, on
                 Passo {indiceRepeticao + 1} de {itensNaMala.length - 1}: Escolha o próximo item da sequência
               </p>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                {poolItens.map((item) => (
-                  <button
-                    key={item.id}
-                    onClick={() => handleCliqueItemRecall(item)}
-                    className="p-4 rounded-2xl border-2 border-border-subtle bg-surface-hover hover:border-accent hover:bg-accent-soft/20 transition-all shadow-md active:scale-95 flex flex-col items-center justify-center cursor-pointer group"
-                  >
-                    <span className="text-3xl mb-1 group-hover:scale-110 transition-transform">{item.emoji}</span>
-                    <span className="font-bold text-sm text-ink">{item.name}</span>
-                    <span className="text-[10px] text-ink-muted">({item.translation})</span>
-                  </button>
-                ))}
+                {poolItens.map((item) => {
+                  const destacado = item.id === itemDestacado;
+                  return (
+                    <button
+                      key={item.id}
+                      onClick={() => handleCliqueItemRecall(item)}
+                      className={`p-4 rounded-2xl border-2 transition-all shadow-md active:scale-95 flex flex-col items-center justify-center cursor-pointer group ${
+                        destacado
+                          ? 'border-accent ring-4 ring-accent/30 bg-accent-soft text-accent-ink animate-bounce'
+                          : 'border-border-subtle bg-surface-hover hover:border-accent hover:bg-accent-soft/20'
+                      }`}
+                    >
+                      <span className="text-3xl mb-1 group-hover:scale-110 transition-transform">{item.emoji}</span>
+                      <span className="font-bold text-sm text-ink">{item.name}</span>
+                      <span className="text-[10px] text-ink-muted">({item.translation})</span>
+                      {destacado && (
+                        <span className="text-[9px] font-black uppercase text-accent mt-1">É este! 💡</span>
+                      )}
+                    </button>
+                  );
+                })}
               </div>
             </div>
           )}
@@ -467,18 +514,33 @@ export default function KofferGame({ items: _itemsProp, ageProfile, onFinish, on
 
               {/* Botões dos Artigos */}
               <div className="w-full grid grid-cols-3 gap-3">
-                {['einen', 'eine', 'ein'].map((art) => (
-                  <button
-                    key={art}
-                    onClick={(e) => handleEscolhaArtigo(art, e)}
-                    className="py-4 px-3 rounded-2xl border-2 border-border-subtle bg-surface-hover hover:border-blue-500 hover:bg-blue-500/10 transition-all shadow-md active:scale-95 font-display font-black text-xl text-ink cursor-pointer"
-                  >
-                    <span>{art}</span>
-                    <span className="block text-[11px] font-sans text-ink-muted font-medium mt-1">
-                      {art} {novoItem.name}
-                    </span>
-                  </button>
-                ))}
+                {['einen', 'eine', 'ein'].map((art) => {
+                  const eliminado = artigoEliminado === art;
+                  if (eliminado) {
+                    return (
+                      <div
+                        key={art}
+                        className="py-4 px-3 rounded-2xl border-2 border-border-subtle bg-surface-hover/30 opacity-40 text-center flex flex-col items-center justify-center cursor-not-allowed"
+                      >
+                        <span className="line-through font-display font-black text-xl text-ink-muted">{art}</span>
+                        <span className="text-[10px] text-error font-mono mt-1">Eliminado ❌</span>
+                      </div>
+                    );
+                  }
+
+                  return (
+                    <button
+                      key={art}
+                      onClick={(e) => handleEscolhaArtigo(art, e)}
+                      className="py-4 px-3 rounded-2xl border-2 border-border-subtle bg-surface hover:border-blue-500 hover:bg-blue-500/10 transition-all shadow-md active:scale-95 font-display font-black text-xl text-ink cursor-pointer"
+                    >
+                      <span>{art}</span>
+                      <span className="block text-[11px] font-sans text-ink-muted font-medium mt-1">
+                        {art} {novoItem.name}
+                      </span>
+                    </button>
+                  );
+                })}
               </div>
 
               {/* Pílula Didática */}

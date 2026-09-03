@@ -337,10 +337,10 @@ export default function TabooGame({ items: _itemsProp, ageProfile, onFinish, onE
           </button>
           <div>
             <div className="flex items-center gap-2">
-              <span className="font-display font-black text-xl tracking-wide uppercase bg-gradient-to-r from-rose-500 to-amber-500 bg-clip-text text-transparent">
+              <span className="font-display font-black text-xl tracking-wide uppercase text-accent">
                 Taboo Arena
               </span>
-              <span className="text-xs px-2.5 py-0.5 rounded-full bg-rose-500/15 text-rose-500 font-bold border border-rose-500/20">
+              <span className="text-xs px-2.5 py-0.5 rounded-full bg-accent-soft text-accent-ink font-bold border border-accent/20">
                 🌐 Circunlocução C1
               </span>
             </div>
@@ -431,23 +431,25 @@ export default function TabooGame({ items: _itemsProp, ageProfile, onFinish, onE
             </div>
           </div>
 
-          {/* O CARTÃO DE TABOO DE FESTA */}
-          <div className="w-full max-w-lg bg-gradient-to-b from-surface-hover to-surface border-4 border-rose-500/40 rounded-3xl p-6 sm:p-8 shadow-2xl text-center space-y-4 relative overflow-hidden">
-            <div className="absolute top-0 left-0 right-0 h-2 bg-gradient-to-r from-rose-500 via-amber-500 to-rose-500" />
-
+          {/* O CARTÃO DE TABOO */}
+          <div className="w-full max-w-xl bg-surface border-2 border-border-subtle rounded-3xl p-6 sm:p-8 shadow-card text-center space-y-4">
             {/* A PALAVRA ALVO */}
             <div>
               <p className="text-xs uppercase font-mono tracking-widest text-ink-muted font-bold mb-1">
                 CONCEITO ALVO ({indice + 1} de 5)
               </p>
-              <h2 className="font-display font-black text-4xl sm:text-5xl text-ink tracking-wide">
-                {cardAtual.targetWord}
-              </h2>
+              <div className="flex items-center justify-center gap-2">
+                <span className="text-2xl animate-bounce">🎯</span>
+                <h2 className="font-display font-black text-4xl sm:text-5xl text-ink tracking-wide">
+                  {cardAtual.targetWord}
+                </h2>
+              </div>
               <div className="flex items-center justify-center gap-2 mt-1">
                 <span className="text-sm font-bold text-ink-muted">({cardAtual.translation})</span>
                 <button
                   onClick={() => speak(cardAtual.targetWord, { lang: 'en-US' })}
-                  className="p-1 rounded-full hover:bg-surface text-accent"
+                  className="p-1 rounded-full hover:bg-surface-hover text-accent cursor-pointer"
+                  title="Ouvir pronúncia"
                 >
                   <Volume2 className="w-3.5 h-3.5" />
                 </button>
@@ -455,18 +457,18 @@ export default function TabooGame({ items: _itemsProp, ageProfile, onFinish, onE
             </div>
 
             {/* TABOO LIST: AS 4 PALAVRAS PROIBIDAS */}
-            <div className="p-4 rounded-2xl bg-rose-500/10 border-2 border-rose-500/30 text-rose-600">
-              <div className="flex items-center justify-center gap-1.5 text-xs font-black uppercase tracking-widest mb-3">
-                <AlertTriangle className="w-4 h-4 text-rose-500" />
+            <div className="p-4 rounded-2xl bg-surface-hover border border-border-subtle text-ink">
+              <div className="flex items-center justify-center gap-1.5 text-xs font-mono font-bold uppercase tracking-widest text-error mb-3">
+                <AlertTriangle className="w-4 h-4 text-error" />
                 <span>PALAVRAS PROIBIDAS (TABOO)</span>
               </div>
               <div className="grid grid-cols-2 gap-2">
                 {palavrasTabuAtivas.map((tabu, i) => (
                   <div
                     key={i}
-                    className="py-2 px-3 rounded-xl bg-surface border border-rose-500/30 font-display font-black text-sm text-rose-600 shadow-sm flex items-center justify-center gap-1.5"
+                    className="py-2.5 px-3 rounded-xl bg-surface border border-border-subtle font-mono font-bold text-sm text-ink shadow-sm flex items-center justify-center gap-2 hover:scale-105 transition-transform"
                   >
-                    <span className="text-xs">🚫</span>
+                    <span className="text-xs text-error font-bold">🚫</span>
                     <span>{tabu}</span>
                   </div>
                 ))}
@@ -474,7 +476,7 @@ export default function TabooGame({ items: _itemsProp, ageProfile, onFinish, onE
             </div>
 
             {infracaoMsg && (
-              <div className="p-3 rounded-xl bg-error/15 border border-error/40 text-error text-xs font-bold animate-shake">
+              <div className="p-3 rounded-xl bg-error/15 border border-error/30 text-error text-xs font-bold animate-shake">
                 {infracaoMsg}
               </div>
             )}

@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { X, Sparkles, Wand2, Volume2, BookOpen, Shuffle, Check, ArrowRight, Theater, Plus, Palette, RotateCcw } from 'lucide-react';
+import { X, Sparkles, Wand2, Volume2, BookOpen, Shuffle, Check, ArrowRight, Theater, Plus, Palette, RotateCcw, Lightbulb } from 'lucide-react';
 import type { MinigameItem, ItemOutcome, RoundReport } from '@core';
 import type { AgeProfileType } from '../../lib/profile';
 import { play } from '../../lib/soundFx';
@@ -118,6 +118,7 @@ export default function CadavreExquisGame({ items: _itemsProp, ageProfile, onFin
   const [revelando, setRevelando] = useState(false);
   const [pontos, setPontos] = useState(0);
   const [obrasCriadas, setObrasCriadas] = useState<{ en: string; pt: string; emojis: string }[]>([]);
+  const [dicaAberta, setDicaAberta] = useState(false);
   
   // Customização de palavra livre
   const [escrevendoCustom, setEscrevendoCustom] = useState(false);
@@ -248,6 +249,15 @@ export default function CadavreExquisGame({ items: _itemsProp, ageProfile, onFin
         {/* Status de Pontos & Seletor de Tema */}
         <div className="flex items-center gap-3 sm:gap-4">
           <button
+            onClick={() => setDicaAberta((prev) => !prev)}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-2xl border border-border-subtle bg-surface hover:bg-surface-hover text-xs font-bold text-ink transition-all cursor-pointer shadow-sm"
+            title="Dica Sintática"
+          >
+            <Lightbulb className="w-3.5 h-3.5 text-emerald-500" />
+            <span>Dica Sintática</span>
+          </button>
+
+          <button
             onClick={() => setTemaIdx((prev) => (prev + 1) % TEMAS_SURREALISTAS.length)}
             className="hidden sm:flex items-center gap-1.5 px-3.5 py-1.5 rounded-2xl border border-border-subtle bg-surface hover:bg-surface-hover text-xs font-bold transition-all cursor-pointer shadow-sm"
           >
@@ -308,9 +318,12 @@ export default function CadavreExquisGame({ items: _itemsProp, ageProfile, onFin
           {!revelando ? (
             <div className="w-full space-y-4 animate-fadeIn">
               <div className="text-center space-y-1">
-                <span className="text-xs font-mono uppercase tracking-widest text-emerald-600 font-bold">
-                  Etapa {etapaIndice + 1} de 4 · Escolha uma Parte Sintática
-                </span>
+                <div className="flex items-center justify-center gap-2 mb-1">
+                  <span className="text-3xl animate-bounce">🎭</span>
+                  <span className="text-xs font-mono uppercase tracking-widest text-emerald-600 font-bold">
+                    Etapa {etapaIndice + 1} de 4 · Escolha uma Parte Sintática
+                  </span>
+                </div>
                 <h3 className="font-display font-black text-2xl sm:text-3xl text-ink">
                   {papelAtual === 'subject' && 'Quem é o Sujeito da ação?'}
                   {papelAtual === 'verb' && 'O que ele faz? (Verbo)'}
@@ -318,6 +331,22 @@ export default function CadavreExquisGame({ items: _itemsProp, ageProfile, onFin
                   {papelAtual === 'adverb' && 'Onde ou como isso acontece? (Circunstância)'}
                 </h3>
               </div>
+
+              {/* Box de Dica Sintática se ativada */}
+              {dicaAberta && (
+                <div className="w-full max-w-xl mx-auto p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-ink text-xs sm:text-sm font-medium flex items-center gap-3 animate-fadeIn">
+                  <Lightbulb className="w-5 h-5 text-emerald-600 shrink-0" />
+                  <div>
+                    <strong className="text-emerald-700 block font-bold">Guia Gramatical Sintático:</strong>
+                    <span>
+                      {papelAtual === 'subject' && 'O Sujeito (Subject) é o agente que pratica a ação na oração (ex: The dragon, A robot).'}
+                      {papelAtual === 'verb' && 'O Verbo (Verb) descreve o ato, processo ou movimento do sujeito (ex: paints, investigates).'}
+                      {papelAtual === 'object' && 'O Objeto (Object) é o complemento que recebe o efeito ou o alvo da ação verbal (ex: a taco, the moon).'}
+                      {papelAtual === 'adverb' && 'A Circunstância (Adverbial) adiciona tempo, espaço, modo ou atmosfera à sentença (ex: under the deep ocean, before breakfast).'}
+                    </span>
+                  </div>
+                </div>
+              )}
 
               {/* Botões de Cartas Surrealistas */}
               <div className="w-full grid grid-cols-1 sm:grid-cols-2 gap-3">

@@ -159,11 +159,11 @@ export default function MinigamesShowcase({
     {
       id: 'vitendawili' as const,
       regiao: 'africa' as const,
-      titulo: 'Vitendawili Enigmas (Tega!)',
-      origem: '🌍 Quênia & Tanzânia · Fase 5 (C1/C2)',
-      descricao: 'O ritual noturno dos enigmas ao redor do fogo em Swahili! Responda ao chamado "Kitendawili!" e decifre metáforas da sabedoria comunitária.',
+      titulo: 'Vitendawili (Enigmas Culturais)',
+      origem: '🌍 África Oriental · Sabedoria Tradicional',
+      descricao: 'Decifre charadas poéticas e enigmas da tradição Swahili! Cartas ilustradas táteis com dicas do contador de histórias para quebrar o pensamento literal.',
       icone: <Flame className="w-6 h-6 text-orange-500" />,
-      badges: ['Metáforas Culturais', 'Sabedoria Ancestral', 'Pragmática C2'],
+      badges: ['Charadas Culturais', 'Dicas Tradicionais', 'Pensamento Figurado'],
     },
   ];
 

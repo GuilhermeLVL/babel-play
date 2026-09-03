@@ -17,10 +17,28 @@ import { Readable } from 'node:stream';
 
 export const DIR_CACHE = path.resolve(process.cwd(), '.cache/trilha');
 
+/**
+ * Onde o código da fonte difere do nosso. O FrequencyWords separa o chinês por escrita
+ * (`zh_cn` simplificado, `zh_tw` tradicional) e não publica um `zh` só; escolhemos o simplificado,
+ * que é o do continente e o que o Tatoeba usa em `cmn`.
+ */
+const CODIGO_DA_FREQUENCIA = { zh: 'zh_cn' };
+
+/**
+ * Onde o repositório não publica o `_full`. O tailandês só tem a lista de 50 mil — o que é mais do
+ * que a trilha usa (6 mil), então não custa nada além de dizer aqui por que o caminho é outro.
+ */
+const CAMINHO_DA_FREQUENCIA = { th: '2018/th/th_50k.txt' };
+
 export const FONTE_FREQUENCIA = {
   nome: 'hermitdave/FrequencyWords',
   licenca: 'MIT (código) / CC-BY-SA (dados OpenSubtitles)',
-  url: (lang) => `https://raw.githubusercontent.com/hermitdave/FrequencyWords/master/content/2018/${lang}/${lang}_full.txt`,
+  url: (lang) => {
+    const raiz = 'https://raw.githubusercontent.com/hermitdave/FrequencyWords/master/content';
+    if (CAMINHO_DA_FREQUENCIA[lang]) return `${raiz}/${CAMINHO_DA_FREQUENCIA[lang]}`;
+    const c = CODIGO_DA_FREQUENCIA[lang] ?? lang;
+    return `${raiz}/2018/${c}/${c}_full.txt`;
+  },
   arquivo: (lang) => `frequencia-${lang}.txt`,
 };
 

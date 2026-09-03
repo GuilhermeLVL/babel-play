@@ -83,3 +83,17 @@ pela dificuldade de escrita e passa a ser decidida por **onde há dado bom**:
       embutir tokenizador
 - [x] 7.5 Motivo `escrita-sem-separacao`: "Montar a frase" dizia "precisa de gravação com legenda"
       para uma trilha com 5.181 frases
+
+## Fase 8 — os 16 idiomas (feita)
+
+- [x] 8.1 Entraram: ar, de, en, es, fr, he, hi, it, ja, ko, nl, pl, ru, sv, tr, zh — 85.668 palavras
+- [x] 8.2 `foraDaEscrita` tira a sujeira da fonte: legenda chinesa trazia `hello` e `ok`, 11% das
+      palavras fora de Han
+- [x] 8.3 Marcas combinantes (`\p{M}`) fazem parte da palavra, no pipeline E na régua do app —
+      445 palavras árabes e 744 híndis eram descartadas por causa do diacrítico
+- [x] 8.4 `CAMINHO_DA_FREQUENCIA` e `CODIGO_DA_FREQUENCIA` cobrem as exceções da fonte (zh_cn, th_50k)
+- [x] 8.5 Gate de publicação no `verificar.mjs`: recusa trilha com menos de 5% de glosa ou mais de
+      10% fora da escrita do idioma
+- [~] 8.6 `th` NÃO foi publicado: a fonte não segmenta o tailandês em palavras (o idioma não usa
+      espaço, e o corpus foi cortado por espaço), dando 2% de glosa e frases inteiras no lugar de
+      palavras. Precisa de outra fonte, não de outro ajuste

@@ -1,4 +1,21 @@
 {
+  "ar": {
+    "escala": "frequencia",
+    "versao": 2,
+    "total": 5148,
+    "comFrase": 4276,
+    "porNivel": {
+      "A1": 858,
+      "A2": 858,
+      "B1": 858,
+      "B2": 858,
+      "C1": 858,
+      "C2": 858
+    },
+    "glosas": [
+      "pt"
+    ]
+  },
   "de": {
     "escala": "frequencia",
     "versao": 2,
@@ -67,6 +84,57 @@
       "pt"
     ]
   },
+  "he": {
+    "escala": "frequencia",
+    "versao": 2,
+    "total": 5712,
+    "comFrase": 4967,
+    "porNivel": {
+      "A1": 952,
+      "A2": 952,
+      "B1": 952,
+      "B2": 952,
+      "C1": 952,
+      "C2": 952
+    },
+    "glosas": [
+      "pt"
+    ]
+  },
+  "hi": {
+    "escala": "frequencia",
+    "versao": 2,
+    "total": 3010,
+    "comFrase": 246,
+    "porNivel": {
+      "A1": 502,
+      "A2": 502,
+      "B1": 502,
+      "B2": 502,
+      "C1": 502,
+      "C2": 500
+    },
+    "glosas": [
+      "pt"
+    ]
+  },
+  "it": {
+    "escala": "frequencia",
+    "versao": 2,
+    "total": 5780,
+    "comFrase": 5302,
+    "porNivel": {
+      "A1": 964,
+      "A2": 964,
+      "B1": 964,
+      "B2": 964,
+      "C1": 964,
+      "C2": 960
+    },
+    "glosas": [
+      "pt"
+    ]
+  },
   "ja": {
     "escala": "frequencia",
     "versao": 2,
@@ -84,18 +152,120 @@
       "pt"
     ]
   },
+  "ko": {
+    "escala": "frequencia",
+    "versao": 2,
+    "total": 5973,
+    "comFrase": 3234,
+    "porNivel": {
+      "A1": 996,
+      "A2": 996,
+      "B1": 996,
+      "B2": 996,
+      "C1": 996,
+      "C2": 993
+    },
+    "glosas": [
+      "pt"
+    ]
+  },
+  "nl": {
+    "escala": "frequencia",
+    "versao": 2,
+    "total": 5834,
+    "comFrase": 4968,
+    "porNivel": {
+      "A1": 973,
+      "A2": 973,
+      "B1": 973,
+      "B2": 973,
+      "C1": 973,
+      "C2": 969
+    },
+    "glosas": [
+      "pt"
+    ]
+  },
+  "pl": {
+    "escala": "frequencia",
+    "versao": 2,
+    "total": 5747,
+    "comFrase": 5208,
+    "porNivel": {
+      "A1": 958,
+      "A2": 958,
+      "B1": 958,
+      "B2": 958,
+      "C1": 958,
+      "C2": 957
+    },
+    "glosas": [
+      "pt"
+    ]
+  },
   "ru": {
     "escala": "frequencia",
     "versao": 2,
-    "total": 5786,
-    "comFrase": 5521,
+    "total": 5761,
+    "comFrase": 5513,
+    "porNivel": {
+      "A1": 961,
+      "A2": 961,
+      "B1": 961,
+      "B2": 961,
+      "C1": 961,
+      "C2": 956
+    },
+    "glosas": [
+      "pt"
+    ]
+  },
+  "sv": {
+    "escala": "frequencia",
+    "versao": 2,
+    "total": 5727,
+    "comFrase": 4484,
+    "porNivel": {
+      "A1": 955,
+      "A2": 955,
+      "B1": 955,
+      "B2": 955,
+      "C1": 955,
+      "C2": 952
+    },
+    "glosas": [
+      "pt"
+    ]
+  },
+  "tr": {
+    "escala": "frequencia",
+    "versao": 2,
+    "total": 5787,
+    "comFrase": 5184,
     "porNivel": {
       "A1": 965,
       "A2": 965,
       "B1": 965,
       "B2": 965,
       "C1": 965,
-      "C2": 961
+      "C2": 962
+    },
+    "glosas": [
+      "pt"
+    ]
+  },
+  "zh": {
+    "escala": "frequencia",
+    "versao": 2,
+    "total": 5221,
+    "comFrase": 4859,
+    "porNivel": {
+      "A1": 871,
+      "A2": 871,
+      "B1": 871,
+      "B2": 871,
+      "C1": 871,
+      "C2": 866
     },
     "glosas": [
       "pt"

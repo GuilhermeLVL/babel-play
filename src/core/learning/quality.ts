@@ -264,8 +264,12 @@ export function avaliarCartao(card: VocabCard, opts: OpcoesAvaliacao = {}): Vere
   // Ruído de captura: dígito, símbolo no meio, ou a mesma letra três vezes seguidas ("aaah").
   if (/\d/.test(palavra)) return REPROVADO('palavra-ruido');
   if (/(\p{L})\1{2,}/u.test(palavra)) return REPROVADO('palavra-ruido');
-  // Precisa ser majoritariamente letras: "T-Lisa" passa, ">>>" não.
-  const letras = (palavra.match(/\p{L}/gu) ?? []).length;
+  /* Precisa ser majoritariamente letras: "T-Lisa" passa, ">>>" não.
+     `\p{M}` CONTA COMO LETRA aqui, e sem isso a régua reprovava a grafia inteira de vários
+     idiomas: em devanágari a vogal é uma marca combinante, então `तुम्हें` ("você") tem 4 letras e
+     3 marcas e caía como ruído — 744 palavras de 3.010 no híndi, 29 no árabe. A marca é parte da
+     palavra escrita; o que a regra quer barrar é pontuação e símbolo. */
+  const letras = (palavra.match(/[\p{L}\p{M}]/gu) ?? []).length;
   if (letras < palavra.length * 0.6) return REPROVADO('palavra-ruido');
 
   if (opts.exigirIdioma && !baseLangDe(card.srcLang)) return REPROVADO('idioma-incerto');

@@ -15,6 +15,27 @@ export function minimoDeLetras(palavra) {
   return ESCRITA_DE_UM_CARACTERE.test(palavra) ? 1 : 3;
 }
 
+/**
+ * A escrita própria de cada idioma, onde ela é decisiva.
+ *
+ * As listas de frequência vêm de legendas, e legenda de filme chinês tem `hello` e `ok` no meio —
+ * medido: 11% das palavras do chinês não estavam em Han, 15% no tailandês. Numa trilha de chinês,
+ * `hello` não é vocabulário chinês: é sujeira da fonte, e ocupa a vaga de uma palavra que a pessoa
+ * foi ali aprender. Idioma de escrita latina não entra na tabela — ali a mistura é legítima
+ * (`show`, `email`), e a régua gramatical já cuida do resto.
+ */
+const ESCRITA_DO_IDIOMA = {
+  ar: /[\p{Script=Arabic}]/u, he: /[\p{Script=Hebrew}]/u, hi: /[\p{Script=Devanagari}]/u,
+  ja: /[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}]/u,
+  zh: /[\p{Script=Han}]/u, ko: /[\p{Script=Hangul}]/u, ru: /[\p{Script=Cyrillic}]/u,
+  th: /[\p{Script=Thai}]/u, el: /[\p{Script=Greek}]/u,
+};
+
+export function foraDaEscrita(palavra, lang) {
+  const escrita = ESCRITA_DO_IDIOMA[(lang || '').toLowerCase().split('-')[0]];
+  return !!escrita && !escrita.test(palavra);
+}
+
 export const MAX_LETRAS = 14;
 
 /** `null` quando serve; senão o motivo do descarte. */
@@ -24,11 +45,16 @@ export function motivoDoDescarte(palavra, lang) {
   if (/\s/.test(p)) return 'locucao';                 // locução de várias palavras
   if (/\d/.test(p)) return 'digito';
   if (/\./.test(p)) return 'abreviacao';              // `a.m.`
-  if (!/^[\p{L}]+(?:[-'’][\p{L}]+)*$/u.test(p)) return 'simbolo'; // hífen/apóstrofo só internos
+  /* `\p{M}` = marcas combinantes, e sem elas a regra jogava fora vocabulário essencial:
+     medido no árabe, 445 palavras de 6.000 — `شكراً` (obrigado), `مرحباً` (olá) —, porque o
+     diacrítico não é letra. Vale para árabe, hebraico, devanágari e tailandês, onde a marca faz
+     parte da grafia da palavra, não é pontuação. */
+  if (!/^[\p{L}\p{M}]+(?:[-'’][\p{L}\p{M}]+)*$/u.test(p)) return 'simbolo'; // hífen/apóstrofo só internos
   const letras = (p.match(/\p{L}/gu) ?? []).length;
   if (letras < minimoDeLetras(p)) return 'curta';
   if (letras > MAX_LETRAS) return 'longa';
   if (foraDoBulkAdd(p)) return 'fora-do-bulk-add';
+  if (foraDaEscrita(p, lang)) return 'fora-da-escrita';
   if (ehGramatical(p, lang)) return 'gramatical';
   return null;
 }

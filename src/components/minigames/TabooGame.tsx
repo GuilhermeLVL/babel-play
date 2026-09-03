@@ -6,6 +6,7 @@ import { play } from '../../lib/soundFx';
 import { comemorar, tremor, glitchDeTela, flashDeTela, pulsoDeZoom } from '../../lib/juice';
 import { emitBurst } from '../../lib/effects';
 import { speak } from '../../lib/tts';
+import { playJuicedHit, playJuicedError, playJuicedVictory, calculateMultiplier, triggerShake } from '../../lib/gameFeel';
 
 /**
  * TABOO ARENA — Forja da Circunlocução e Paráfrase de Alta Tensão.
@@ -204,11 +205,12 @@ export default function TabooGame({ items: _itemsProp, ageProfile, onFinish, onE
     setRadarInfracao(null);
   }, [textoCriador, palavrasTabuAtivas, modoCriador, cardAtual]);
 
-  // Uso da Bomba de Tabu: destrói uma das palavras proibidas
+  // Uso da Bomba de Tabu: destrói uma das palavras proibidas com explosão sensorial
   const usarBomba = () => {
     if (bombasRestantes <= 0 || palavrasTabuAtivas.length <= 1) return;
-    play('click');
     play('combo');
+    triggerShake(cardRef.current, 'medium');
+    emitBurst(window.innerWidth / 2, window.innerHeight * 0.45, 'fumaca');
     setBombasRestantes((b) => b - 1);
     setPalavrasTabuAtivas((prev) => prev.slice(0, prev.length - 1));
   };
@@ -242,28 +244,26 @@ export default function TabooGame({ items: _itemsProp, ageProfile, onFinish, onE
     });
 
     if (valida) {
-      play('success');
-      play('combo');
       const novoCombo = combo + 1;
       setCombo(novoCombo);
-      const pts = 220 + (novoCombo * 40);
+      const mult = calculateMultiplier(novoCombo);
+      const pts = (220 + (novoCombo * 40)) * mult;
       setPontos((p) => p + pts);
 
-      if (event) {
-        const rect = event.currentTarget.getBoundingClientRect();
-        emitBurst(rect.left + rect.width / 2, rect.top + rect.height / 2, 'combo');
-      }
+      const rect = event?.currentTarget.getBoundingClientRect();
+      playJuicedHit(
+        novoCombo,
+        rect ? { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 } : undefined,
+        `LIMPO! ${mult}x`
+      );
 
       avancarCard();
     } else {
       // ACIONOU TABU! BUZZER ARCADE E GLITCH
-      play('error');
       setCombo(0);
       setInfracaoMsg(motivo || 'Acionou palavra tabu!');
-      if (cardRef.current) {
-        tremor(cardRef.current);
-        glitchDeTela();
-      }
+      playJuicedError(cardRef.current, undefined, 'TABOO DETECTADO!');
+      glitchDeTela();
     }
   };
 
@@ -304,8 +304,7 @@ export default function TabooGame({ items: _itemsProp, ageProfile, onFinish, onE
   const concluirPartida = (venceu: boolean) => {
     setFinalizado(true);
     if (venceu) {
-      play('fanfarra');
-      comemorar('rodadaPerfeita');
+      playJuicedVictory();
     } else {
       play('error');
     }

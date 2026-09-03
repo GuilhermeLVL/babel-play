@@ -6,6 +6,7 @@ import { play } from '../../lib/soundFx';
 import { comemorar, tremor, pulsoDeZoom, flashDeTela } from '../../lib/juice';
 import { emitBurst } from '../../lib/effects';
 import { speak } from '../../lib/tts';
+import { playJuicedHit, playJuicedError, playJuicedVictory, calculateMultiplier } from '../../lib/gameFeel';
 
 /**
  * BAO / MANCALA DOS MORFEMAS — Semeadura & Colheita Morfológica (Bao 🌍).
@@ -167,31 +168,34 @@ export default function BaoGame({ items: _itemsProp, ageProfile, onFinish, onExi
 
     setCovaSelecionada(pit.id);
     const correta = pit.id === rodadaAtual.targetAffixId;
+    const acertou = pit.id === rodadaAtual.targetAffixId;
     const duracao = Date.now() - inicioRodadaRef.current;
 
     outcomesRef.current.push({
       itemRef: `${rodadaAtual.root} + ${pit.affix}`,
-      correct: correta,
+      correct: acertou,
       attempts: 1,
       ms: duracao,
     });
 
-    if (correta) {
-      play('combo');
-      play('select');
-      setCombo((c) => c + 1);
+    if (acertou) {
+      const novoCombo = combo + 1;
+      setCombo(novoCombo);
+      const mult = calculateMultiplier(novoCombo);
 
       const sementesGanhas = pit.seedsCount + 3;
       setSementesCapturadas((s) => s + sementesGanhas);
-      const pts = 200 + (sementesGanhas * 25);
+      const pts = (200 + (sementesGanhas * 25)) * mult;
       setPontos((p) => p + pts);
 
       const rect = event.currentTarget.getBoundingClientRect();
-      emitBurst(rect.left + rect.width / 2, rect.top + rect.height / 2, 'combo');
+      playJuicedHit(
+        novoCombo,
+        { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 },
+        `COLHEITA +${sementesGanhas}! ${mult}x`
+      );
 
       setSucessoMsg(`Colheita Perfeita! Formou: ${pit.resultWord} (${pit.resultMeaning})`);
-      pulsoDeZoom();
-      flashDeTela();
 
       try {
         speak(pit.resultWord, { lang: 'en-US' });
@@ -207,14 +211,13 @@ export default function BaoGame({ items: _itemsProp, ageProfile, onFinish, onExi
         }
       }, 1800);
     } else {
-      play('error');
       setCombo(0);
       setErroMsg(
         pit.validWithRoot
           ? `O afixo "${pit.affix}" existe com "${rodadaAtual.root}" (${pit.resultWord}), mas não atende à pista!`
           : `O afixo "${pit.affix}" não combina com a raiz "${rodadaAtual.root}"!`
       );
-      if (tabuleiroRef.current) tremor(tabuleiroRef.current);
+      playJuicedError(tabuleiroRef.current, undefined, 'AFIXO INCORRETO');
 
       setTimeout(() => {
         setCovaSelecionada(null);
@@ -225,8 +228,7 @@ export default function BaoGame({ items: _itemsProp, ageProfile, onFinish, onExi
   const concluirJogo = (venceu = true) => {
     setFinalizado(true);
     if (venceu) {
-      play('fanfarra');
-      comemorar('rodadaPerfeita');
+      playJuicedVictory();
     } else {
       play('error');
     }

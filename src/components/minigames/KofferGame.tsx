@@ -6,6 +6,7 @@ import { play } from '../../lib/soundFx';
 import { comemorar, tremor, flashDeTela, pulsoDeZoom } from '../../lib/juice';
 import { emitBurst } from '../../lib/effects';
 import { speak } from '../../lib/tts';
+import { playJuicedHit, playJuicedError, playJuicedVictory, calculateMultiplier } from '../../lib/gameFeel';
 
 /**
  * KOFFER GAME — "Ich packe meinen Koffer" (O Jogo da Mala Infinita).
@@ -180,16 +181,14 @@ export default function KofferGame({ items: _itemsProp, ageProfile, onFinish, on
 
     if (item.id === itemEsperado.id) {
       // ACERTOU O PASSO DA SEQUÊNCIA!
-      play('click');
-      play('add');
       const proximoIndice = indiceRepeticao + 1;
       setItensRelembrados((prev) => [...prev, item.id]);
       setIndiceRepeticao(proximoIndice);
+      playJuicedHit(proximoIndice, undefined, `RECALL ${proximoIndice}/${itensNaMala.length - 1}`);
 
       // Se lembrou de todos os itens guardados antes do novo item
       if (proximoIndice >= itensNaMala.length - 1) {
         play('open');
-        play('select');
         pulsoDeZoom();
         setTimeout(() => {
           setEtapa('artigo');
@@ -197,8 +196,7 @@ export default function KofferGame({ items: _itemsProp, ageProfile, onFinish, on
       }
     } else {
       // ERROU A ORDEM DA MALA!
-      play('error');
-      if (malaRef.current) tremor(malaRef.current);
+      playJuicedError(malaRef.current, undefined, 'ORDEM ERRADA!');
       setVidas((v) => {
         const resto = v - 1;
         if (resto <= 0) {
@@ -224,13 +222,12 @@ export default function KofferGame({ items: _itemsProp, ageProfile, onFinish, on
     });
 
     if (correto) {
-      play('success');
-      play('combo');
-      const pts = 200 + (nivelAtual * 50);
+      const mult = calculateMultiplier(nivelAtual);
+      const pts = (200 + (nivelAtual * 50)) * mult;
       setPontos((p) => p + pts);
 
       const rect = event.currentTarget.getBoundingClientRect();
-      emitBurst(rect.left + rect.width / 2, rect.top + rect.height / 2, 'combo');
+      playJuicedHit(nivelAtual, { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 }, `AKKUSATIV! ${mult}x`);
 
       // Toca a frase completa em alemão via TTS
       try {
@@ -250,9 +247,8 @@ export default function KofferGame({ items: _itemsProp, ageProfile, onFinish, on
         }
       }, 1600);
     } else {
-      play('error');
       setArtigoErro(`Atenção: "${novoItem.name}" é ${novoItem.gender.toUpperCase()}! No acusativo usa-se "${novoItem.correctArticle}".`);
-      if (malaRef.current) tremor(malaRef.current);
+      playJuicedError(malaRef.current, undefined, 'ARTIGO INCORRETO');
       setVidas((v) => {
         const resto = v - 1;
         if (resto <= 0) {
@@ -266,8 +262,7 @@ export default function KofferGame({ items: _itemsProp, ageProfile, onFinish, on
   const concluirPartida = (venceu: boolean) => {
     setEtapa('fim');
     if (venceu) {
-      play('fanfarra');
-      comemorar('rodadaPerfeita');
+      playJuicedVictory();
     } else {
       play('error');
     }

@@ -6,6 +6,7 @@ import { play } from '../../lib/soundFx';
 import { comemorar, tremor, flashDeTela, multiplicador } from '../../lib/juice';
 import { emitBurst } from '../../lib/effects';
 import { speak } from '../../lib/tts';
+import { playJuicedHit, playJuicedError, playJuicedVictory, calculateMultiplier } from '../../lib/gameFeel';
 
 /**
  * KARUTA GAME — Reflexo auditivo, varredura visual e pareamento áudio-espacial.
@@ -225,8 +226,7 @@ export default function KarutaGame({ items: itemsProp, ageProfile, onFinish, onE
 
   const concluirJogo = () => {
     setFinalizado(true);
-    play('fanfarra');
-    comemorar('rodadaPerfeita');
+    playJuicedVictory();
     const duracaoTotal = Date.now() - inicioPartidaRef.current;
     const report: RoundReport = {
       gameId: 'blitz' as any,
@@ -249,21 +249,20 @@ export default function KarutaGame({ items: itemsProp, ageProfile, onFinish, onE
     if (carta.isTarget) {
       // ACERTOU! GOLPE CERTEIRO NO TATAME
       const kimarijiHit = kimarijiAtivo;
-      const multiplicadorPontos = kimarijiHit ? 3 : 1;
+      const novoCombo = combo + 1;
+      const multiplicadorPontos = kimarijiHit ? 3 : calculateMultiplier(novoCombo);
       const pts = (120 + (combo * 25)) * multiplicadorPontos;
 
       setPontos((p) => p + pts);
-      setCombo((c) => c + 1);
-      play('success');
+      setCombo(novoCombo);
 
-      if (kimarijiHit) {
-        play('levelUp');
-        flashDeTela();
-      }
-
-      // Efeito de partícula de impacto no ponto exato do toque
+      // Efeito de partícula de impacto e pitch progressivo
       const rect = event.currentTarget.getBoundingClientRect();
-      emitBurst(rect.left + rect.width / 2, rect.top + rect.height / 2, 'combo');
+      playJuicedHit(
+        novoCombo,
+        { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 },
+        kimarijiHit ? 'KIMARIJI 3x!' : `SLAP! +${pts}`
+      );
 
       // Animação de Slap: carta voa com rotação e deslize
       setCartasMesa((prev) =>
@@ -283,9 +282,8 @@ export default function KarutaGame({ items: itemsProp, ageProfile, onFinish, onE
       }, 500);
     } else {
       // ERROU! Golpes em cartas erradas geram penalidade e tremor
-      play('error');
       setCombo(0);
-      if (tatamiRef.current) tremor(tatamiRef.current);
+      playJuicedError(tatamiRef.current, undefined, 'OTETSURI! (FALTA)');
 
       setCartasMesa((prev) =>
         prev.map((c) => (c.id === carta.id ? { ...c, status: 'wrong' } : c))

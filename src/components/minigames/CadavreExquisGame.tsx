@@ -6,6 +6,7 @@ import { play } from '../../lib/soundFx';
 import { comemorar, tremor, flashDeTela, pulsoDeZoom } from '../../lib/juice';
 import { emitBurst } from '../../lib/effects';
 import { speak } from '../../lib/tts';
+import { playJuicedHit, playJuicedVictory, triggerConfetti, calculateMultiplier } from '../../lib/gameFeel';
 
 /**
  * CADAVRE EXQUIS — Laboratório Surrealista de Frases e Sintaxe (Cadavre Exquis 🇫🇷).
@@ -132,17 +133,18 @@ export default function CadavreExquisGame({ items: _itemsProp, ageProfile, onFin
   const opcoesAtuais = temaAtual.cards[papelAtual];
 
   const handleEscolhaSlot = (card: SyntacticCard, event?: React.MouseEvent) => {
-    play('click');
-    play('add');
+    const coords = event
+      ? {
+          x: event.currentTarget.getBoundingClientRect().left + event.currentTarget.getBoundingClientRect().width / 2,
+          y: event.currentTarget.getBoundingClientRect().top + event.currentTarget.getBoundingClientRect().height / 2,
+        }
+      : undefined;
+
+    playJuicedHit(etapaIndice + 1, coords, `+${(etapaIndice + 1) * 50}`);
     const novaFrase = [...fraseMontada, card];
     setFraseMontada(novaFrase);
     setEscrevendoCustom(false);
     setTextoCustom('');
-
-    if (event) {
-      const rect = event.currentTarget.getBoundingClientRect();
-      emitBurst(rect.left + rect.width / 2, rect.top + rect.height / 2, 'combo');
-    }
 
     if (etapaIndice + 1 < ETAPAS.length) {
       setEtapaIndice((prev) => prev + 1);
@@ -169,10 +171,8 @@ export default function CadavreExquisGame({ items: _itemsProp, ageProfile, onFin
 
   const desdobrarFrase = (frase: SyntacticCard[]) => {
     setRevelando(true);
-    play('open');
-    play('levelUp');
-    pulsoDeZoom();
-    flashDeTela();
+    playJuicedVictory();
+    triggerConfetti();
 
     const fraseIngles = frase.map((c) => c.text).join(' ') + '.';
     const frasePortugues = frase.map((c) => c.translation).join(' ') + '.';
@@ -185,7 +185,8 @@ export default function CadavreExquisGame({ items: _itemsProp, ageProfile, onFin
       speak(fraseIngles, { lang: 'en-US' });
     }, 600);
 
-    const pts = 300;
+    const mult = calculateMultiplier(obrasCriadas.length + 1);
+    const pts = 300 * mult;
     setPontos((p) => p + pts);
 
     outcomesRef.current.push({
@@ -199,7 +200,7 @@ export default function CadavreExquisGame({ items: _itemsProp, ageProfile, onFin
   const proximaRodadaOuFim = () => {
     if (obrasCriadas.length >= 3) {
       // Finaliza o jogo após 3 obras surrealistas
-      play('fanfarra');
+      playJuicedVictory();
       comemorar('rodadaPerfeita');
       const duracaoTotal = Date.now() - inicioPartidaRef.current;
       const report: RoundReport = {

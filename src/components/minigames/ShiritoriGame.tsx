@@ -6,6 +6,7 @@ import { play } from '../../lib/soundFx';
 import { comemorar, tremor, flashDeTela, pulsoDeZoom } from '../../lib/juice';
 import { emitBurst } from '../../lib/effects';
 import { speak } from '../../lib/tts';
+import { playJuicedHit, playJuicedError, playJuicedVictory, calculateMultiplier } from '../../lib/gameFeel';
 
 /**
  * SHIRITORI EXPRESS — Cadeia Fonológica de Alta Velocidade (しりとり / 끝말잇기).
@@ -303,19 +304,14 @@ export default function ShiritoriGame({ items: itemsProp, ageProfile, onFinish, 
     concluirPartida(false);
   };
 
-  const registrarAcerto = (palavraEscolhida: ShiritoriWord, bonusCriativo = 0) => {
-    play('combo');
+  const registrarAcerto = (palavraEscolhida: ShiritoriWord, bonusCriativo = 0, coords?: { x: number; y: number }) => {
     const novoCombo = combo + 1;
     setCombo(novoCombo);
-
-    if (novoCombo % 3 === 0) {
-      play('levelUp');
-      pulsoDeZoom();
-      flashDeTela();
-    }
-
-    const pts = 160 + (combo * 35) + bonusCriativo;
+    const mult = calculateMultiplier(novoCombo);
+    const pts = (160 + (novoCombo * 35) + bonusCriativo) * mult;
     setPontos((p) => p + pts);
+
+    playJuicedHit(novoCombo, coords, `+${pts} pts`);
 
     const novoHistorico = new Set(usadasSet);
     novoHistorico.add(palavraEscolhida.word);
@@ -347,14 +343,12 @@ export default function ShiritoriGame({ items: itemsProp, ageProfile, onFinish, 
 
     if (correta) {
       const rect = event.currentTarget.getBoundingClientRect();
-      emitBurst(rect.left + rect.width / 2, rect.top + rect.height / 2, 'combo');
-      registrarAcerto(opcao);
+      registrarAcerto(opcao, 0, { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 });
     } else {
       // Quebrou a corrente fonológica!
-      play('error');
       setCombo(0);
       setErroMsg(`"${opcao.word}" começa com "${opcao.word[0]}", mas a corrente exige a letra "${ultimaLetra}"!`);
-      if (containerRef.current) tremor(containerRef.current);
+      playJuicedError(containerRef.current, undefined, 'CORRENTE QUEBRADA!');
     }
   };
 
@@ -367,30 +361,24 @@ export default function ShiritoriGame({ items: itemsProp, ageProfile, onFinish, 
     if (!palavraDigitada) return;
 
     if (palavraDigitada.length < 3) {
-      play('error');
+      playJuicedError(containerRef.current, undefined, 'MÍNIMO 3 LETRAS');
       setErroMsg('A palavra deve ter pelo menos 3 letras!');
       return;
     }
 
     if (!palavraDigitada.startsWith(ultimaLetra)) {
-      play('error');
+      playJuicedError(containerRef.current, undefined, 'LETRA INCORRETA');
       setErroMsg(`A palavra "${palavraDigitada}" começa com "${palavraDigitada[0]}", mas deve começar com "${ultimaLetra}"!`);
-      if (containerRef.current) tremor(containerRef.current);
       return;
     }
 
     if (usadasSet.has(palavraDigitada)) {
-      play('error');
+      playJuicedError(containerRef.current, undefined, 'JÁ UTILIZADA!');
       setErroMsg(`"${palavraDigitada}" já foi usada nesta corrente! Em Shiritori não é permitido repetir palavras.`);
-      if (containerRef.current) tremor(containerRef.current);
       return;
     }
 
     // Palavra digitada é válida e criativa!
-    play('click');
-    comemorar('sequencia');
-    emitBurst(window.innerWidth / 2, window.innerHeight / 2, 'combo');
-
     const novaPalavraObj: ShiritoriWord = {
       id: `user-${Date.now()}`,
       word: palavraDigitada,
@@ -406,14 +394,13 @@ export default function ShiritoriGame({ items: itemsProp, ageProfile, onFinish, 
       ms: Date.now() - inicioVagaoRef.current,
     });
 
-    registrarAcerto(novaPalavraObj, 100);
+    registrarAcerto(novaPalavraObj, 100, { x: window.innerWidth / 2, y: window.innerHeight / 2 });
   };
 
   const concluirPartida = (venceu = false) => {
     setFinalizado(true);
     if (venceu) {
-      play('fanfarra');
-      comemorar('rodadaPerfeita');
+      playJuicedVictory();
     } else {
       play('error');
     }

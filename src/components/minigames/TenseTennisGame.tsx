@@ -6,6 +6,7 @@ import { play } from '../../lib/soundFx';
 import { comemorar, tremor, flashDeTela, pulsoDeZoom } from '../../lib/juice';
 import { emitBurst } from '../../lib/effects';
 import { speak } from '../../lib/tts';
+import { playJuicedHit, playJuicedError, playJuicedVictory, calculateMultiplier } from '../../lib/gameFeel';
 
 /**
  * TENSE TENNIS / PELOTA GRAMATICAL — O Tênis dos Tempos Verbais (🇪🇸/🇲🇽).
@@ -174,16 +175,14 @@ export default function TenseTennisGame({ items: _itemsProp, ageProfile, onFinis
 
     if (correto) {
       // ACE / REBATIDA PERFEITA!
-      play('combo');
-      play('levelUp');
       const novoRally = rallies + 1;
       setRallies(novoRally);
-      const pts = 180 + (novoRally * 40);
+      const mult = calculateMultiplier(novoRally);
+      const pts = (180 + (novoRally * 40)) * mult;
       setPontos((p) => p + pts);
 
       const rect = event.currentTarget.getBoundingClientRect();
-      emitBurst(rect.left + rect.width / 2, rect.top + rect.height / 2, 'combo');
-      pulsoDeZoom();
+      playJuicedHit(novoRally, { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 }, `ACE! ${mult}x`);
 
       // Fala a conjugação em espanhol
       try {
@@ -203,10 +202,9 @@ export default function TenseTennisGame({ items: _itemsProp, ageProfile, onFinis
   };
 
   const tratarBolaFora = (motivo: string) => {
-    play('error');
     setRallies(0);
     setErroMsg(motivo);
-    if (quadraRef.current) tremor(quadraRef.current);
+    playJuicedError(quadraRef.current, undefined, 'FORA DA QUADRA!');
 
     setTimeout(() => {
       if (indice + 1 >= 5) {
@@ -220,8 +218,7 @@ export default function TenseTennisGame({ items: _itemsProp, ageProfile, onFinis
   const concluirPartida = (venceu: boolean) => {
     setFinalizado(true);
     if (venceu) {
-      play('fanfarra');
-      comemorar('rodadaPerfeita');
+      playJuicedVictory();
     } else {
       play('error');
     }

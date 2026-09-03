@@ -5,6 +5,7 @@ import type { AgeProfileType } from '../../lib/profile';
 import { play } from '../../lib/soundFx';
 import { comemorar, tremor, pulsoDeZoom } from '../../lib/juice';
 import { emitBurst } from '../../lib/effects';
+import { playJuicedHit, playJuicedError, playJuicedVictory, calculateMultiplier } from '../../lib/gameFeel';
 
 /**
  * CHOSEONG GAME — Decifrador de Consoantes Iniciais (초성게임).
@@ -207,25 +208,20 @@ export default function ChoseongGame({ items: itemsProp, ageProfile, onFinish, o
     });
 
     if (sucesso) {
-      play('success');
-      setCombo((c) => {
-        const novoCombo = c + 1;
-        if (novoCombo >= 3) {
-          play('levelUp');
-          pulsoDeZoom();
-        }
-        return novoCombo;
-      });
-
-      const pts = 140 + (combo * 30);
+      const novoCombo = combo + 1;
+      setCombo(novoCombo);
+      const mult = calculateMultiplier(novoCombo);
+      const pts = (140 + (novoCombo * 30)) * mult;
       setPontos((p) => p + pts);
 
-      // Emite partículas de comemoração
-      emitBurst(window.innerWidth / 2, window.innerHeight * 0.45, 'combo');
+      playJuicedHit(
+        novoCombo,
+        { x: window.innerWidth / 2, y: window.innerHeight * 0.45 },
+        `초성 DECIFRADO! ${mult}x`
+      );
     } else {
-      play('error');
       setCombo(0);
-      if (containerRef.current) tremor(containerRef.current);
+      playJuicedError(containerRef.current, undefined, 'INCORRETO');
     }
 
     if (indice + 1 >= puzzles.length) {
@@ -237,8 +233,7 @@ export default function ChoseongGame({ items: itemsProp, ageProfile, onFinish, o
 
   const concluirPartida = () => {
     setFinalizado(true);
-    play('fanfarra');
-    comemorar('rodadaPerfeita');
+    playJuicedVictory();
     const duracaoTotal = Date.now() - inicioPartidaRef.current;
     const report: RoundReport = {
       gameId: 'blitz' as any,

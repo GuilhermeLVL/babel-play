@@ -6,6 +6,7 @@ import { play } from '../../lib/soundFx';
 import { comemorar, tremor, pulsoDeZoom } from '../../lib/juice';
 import { emitBurst } from '../../lib/effects';
 import { speak } from '../../lib/tts';
+import { playJuicedHit, playJuicedError, playJuicedVictory, calculateMultiplier, triggerConfetti } from '../../lib/gameFeel';
 
 /**
  * VITENDAWILI — Enigmas & Metáforas Culturais do Mundo (Swahili 🌍).
@@ -175,16 +176,19 @@ export default function VitendawiliGame({ items: _itemsProp, ageProfile, onFinis
     });
 
     if (opc.correta) {
-      play('success');
-      play('combo');
       const novoCombo = combo + 1;
       setCombo(novoCombo);
-      const pts = 250 + (novoCombo * 40);
+      const mult = calculateMultiplier(novoCombo);
+      const pts = (250 + (novoCombo * 40)) * mult;
       setPontos((p) => p + pts);
 
       const rect = event.currentTarget.getBoundingClientRect();
-      emitBurst(rect.left + rect.width / 2, rect.top + rect.height / 2, 'combo');
-      pulsoDeZoom();
+      playJuicedHit(
+        novoCombo,
+        { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 },
+        `DECIFRADO! ${mult}x`
+      );
+      triggerConfetti({ particleCount: 45, spread: 50 });
 
       setRevelado(true);
 
@@ -195,10 +199,9 @@ export default function VitendawiliGame({ items: _itemsProp, ageProfile, onFinis
         // Ignora
       }
     } else {
-      play('error');
       setCombo(0);
       setOpcoesEliminadas((prev) => [...prev, opc.solution]);
-      if (cardRef.current) tremor(cardRef.current);
+      playJuicedError(cardRef.current, undefined, 'NÃO É ESTE!');
     }
   };
 
@@ -213,8 +216,7 @@ export default function VitendawiliGame({ items: _itemsProp, ageProfile, onFinis
   const concluirPartida = (venceu: boolean) => {
     setFinalizado(true);
     if (venceu) {
-      play('fanfarra');
-      comemorar('rodadaPerfeita');
+      playJuicedVictory();
     } else {
       play('error');
     }

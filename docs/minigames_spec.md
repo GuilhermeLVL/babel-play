@@ -1,47 +1,42 @@
-# ESPECIFICAÇÃO TÉCNICA (OPEN SPEC): NOVOS MINIGAMES CULTURAIS
+# ESPECIFICAÇÃO TÉCNICA (OPEN SPEC): SUÍTE DE MINIGAMES CULTURAIS "JUICED"
 **Módulo:** `@core/minigames` & `src/components/minigames/`  
-**Branch de Trabalho:** `feature/minigames-prototypes`  
-**Autor:** Engenharia de Front-end & Arquitetura de Games  
-**Status:** Proposto / Em Desenvolvimento  
+**Branch de Trabalho:** `feature/minigames-prototypes-juiced` (Isolada de `main`)  
+**Autor:** Engenharia de Front-end, Arquitetura de Games & Game Feel Specialist  
+**Status:** Especificação Proposta / Pronta para Implementação  
 
 ---
 
 ## 1. VISÃO GERAL E OBJETIVO ARQUITETURAL
 
-O objetivo desta especificação é formalizar o contrato técnico, os modelos de dados e os loops de gameplay para a nova geração de minigames do Babel Play, inspirados no Dossiê de Gamificação Cultural e Aquisição de Segunda Língua (SLA).
+O objetivo desta especificação é formalizar a arquitetura técnica, os contratos de estado, o loop de jogabilidade e, fundamentalmente, a **Camada de Game Feel ("Juice")** para a suíte de minigames do Babel Play, integrando princípios de SLA (Second Language Acquisition) e neurociência comportamental do aprendizado.
 
-Cada minigame deve ser desenvolvido como um **componente totalmente desacoplado**, que não polui o estado global da aplicação, consome e reporta dados através do contrato canônico `MinigameItem` / `RoundReport`, e adere estritamente ao Design System e aos perfis etários (`kids`, `pro`, `senior`).
+Cada minigame opera como um componente sandbox desacoplado:
+1. **Zero State Leakage:** Não polui stores globais; troca de dados exclusivamente via `MinigameItem[]` e callback `onFinish(report: RoundReport)`.
+2. **Tokens de Design Puros:** Respeito absoluto à paleta limpa do Babel Play (`bg-surface`, `border-border-subtle`, `text-ink`, `bg-accent`, `bg-accent-soft`), evitando neons artificiais.
+3. **Imersão Sensorial Máxima ("Juice"):** Cada ação do usuário gera retorno sensorial imediato (< 16ms) via física de mola nos botões, screen shake, partículas dinâmicas, escalonamento de pitch sonoro e haptic feedback.
 
 ---
 
-## 2. ARQUITETURA DE COMPONENTES E ISOLAMENTO DE ESTADO
-
-### 2.1 Princípio de Não-Vazamento (Zero State Leakage)
-Nenhum minigame manipula diretamente stores globais ou persistência de dados durante a execução do jogo. A comunicação é unidirecional e encapsulada:
+## 2. ARQUITETURA DE COMPONENTES E CONTRATOS
 
 ```mermaid
-flowchart LR
-    subgraph Host ["Host View (Play.tsx / Antessala)"]
-        Props["MinigameProps<br/>(items, ageProfile, audioUrl)"]
-        Callback["onFinish(report: RoundReport)<br/>onExit()"]
+flowchart TD
+    Host["Host View / Play.tsx"] -->|Injeta Props Imutáveis| Sandbox["Minigame Sandbox Component"]
+    
+    subgraph Engine ["Core Game Engine"]
+        State["useReducer / useState<br/>(turnos, combo, tempo)"]
+        Feel["GameFeelContext / useGameFeel()<br/>(shakes, particles, audio, haptics)"]
+        FSRS["FSRS Difficulty Mapper<br/>(tempo, tentativas, dicas)"]
     end
 
-    subgraph Sandbox ["Minigame Component (Isolado)"]
-        LocalState["useReducer / useState<br/>(turnos, combo, timers locais)"]
-        GameLoop["Tick Engine & User Input"]
-        JuiceFx["Feedback Imediato<br/>(soundFx, juice, burst)"]
-    end
-
-    Props -->|Injeta dados imutáveis| Sandbox
-    Sandbox -->|Gera relatório consolidado| Callback
+    Sandbox --> Engine
+    Engine -->|onFinish(RoundReport)| Host
 ```
 
-### 2.2 Contrato Universal de Props (`MinigameProps`)
-Todos os novos minigames implementam a seguinte interface base:
-
+### 2.1 Contrato Universal de Props (`BaseMinigameProps`)
 ```typescript
 export interface BaseMinigameProps<TItem = MinigameItem> {
-  items: TItem[];
+  items?: TItem[];
   ageProfile: AgeProfileType; // 'kids' | 'pro' | 'senior'
   audioUrl?: string | null;
   onFinish: (report: RoundReport) => void;
@@ -49,153 +44,67 @@ export interface BaseMinigameProps<TItem = MinigameItem> {
 }
 ```
 
-Ao sair prematuramente (`onExit`), nenhuma alteração no agendador de repetição espaçada (FSRS) é gravada. Ao concluir (`onFinish`), o componente emite um `RoundReport` padronizado, delegando a tela hospedeira a responsabilidade de conceder XP, seeds e atualizar o histórico de itens.
+---
+
+## 3. ESPECIFICAÇÃO DOS 9 MINIGAMES CULTURAIS
+
+| Minigame | Cultura / Idioma | Fase SLA | Mecânica Central & Dinâmica |
+| :--- | :--- | :--- | :--- |
+| **1. Karuta Arena** | 🇯🇵 Japão | Fase 1 (A1) | **Audio-Slap Reflex:** Varredura no tatame com decoys, áudio nativo e golpe imediato (*Kimariji 3x*). |
+| **2. Shiritori Express** | 🇯🇵/🇰🇷 Japão / Coreia | Fase 2 (A2) | **Cadeia Fonológica Sem Fim:** Conexão da última à primeira letra com 100+ palavras e digitação livre (+100 pts). |
+| **3. Choseong Arena** | 🇰🇷 Coreia do Sul | Fase 2 (A2) | **Decifrador Consonantal:** Preenchimento de blocos 3D com teclado físico/virtual e Modo Febre (Fever). |
+| **4. Ich packe meinen Koffer** | 🇩🇪 Alemanha | Fase 3 (B1) | **Mala de Viagem & Acusativo:** Mala tátil que fecha no recall da memória de trabalho e declinação (*einen/eine/ein*). |
+| **5. Tense Tennis** | 🇪🇸/🇲🇽 Espanha / LatAm | Fase 3 (B1) | **Pelota Gramatical:** Rebatida do verbo no tempo exigido pelo placar eletrônico sob pressão de tempo. |
+| **6. Bao Mancala** | 🌍 África Oriental / Swahili | Fase 3 (B1) | **Semeadura Morfológica:** Raiz lexical no tabuleiro com captura de covas de afixos válidos (-OR, -ION, RE-). |
+| **7. Cadavre Exquis** | 🇫🇷 França | Fase 4 (B2) | **Laboratório Surrealista:** Montagem de sentenças absurdas por constituintes sintáticos com declamação via TTS. |
+| **8. Taboo Arena** | 🌐 Global / ESL | Fase 5 (C1) | **Forja da Circunlocução:** Paráfrases legais, Power-ups (Bomba, Dica, +15s) e Modo Forja Livre com Taboo Radar. |
+| **9. Vitendawili Enigmas** | 🌍 Swahili / África | Fase 5 (C2) | **Charadas Culturais Tradicionais:** Decifração de metáforas sociopragmáticas com 3 cartas ilustradas táteis e dicas. |
 
 ---
 
-## 3. DATA MODELS & TIPAGEM DOS NOVOS JOGOS
+## 4. CAMADA DE GAME FEEL (JUICE, FEEDBACK TÁTIL & MULTIPLICADORES)
 
-### 3.1 Karuta ("Audio-Slap Reflex")
-Inspirado na tradição japonesa do *Iroha Karuta*, focado no treinamento fonético e no reconhecimento auditivo ultrarrápido (*Kimariji*).
+Esta camada garante que a experiência de aprendizado seja viciante e dopamínica, operando sob o hook canônico `useGameFeel()` e utilitários de alta performance.
 
-```typescript
-export interface KarutaCard {
-  id: string;
-  itemRef: string;
-  cardId?: string;
-  /** Texto impresso na carta (palavra no idioma alvo ou ideograma) */
-  targetText: string;
-  /** Pista ou tradução de suporte */
-  prompt: string;
-  /** Leitura fonética (ex: Hiragana, Pinyin ou IPA) */
-  phonetic?: string;
-  /** Posição na mesa (x, y normalizados de 0 a 1) */
-  x: number;
-  y: number;
-  rotation: number;
-  /** Estado da carta na rodada */
-  status: 'idle' | 'correct' | 'wrong' | 'removed';
-}
+### 4.1 Sistema de Multiplicadores de Combo (Score Multiplier)
+* **Escala Progressiva de Multiplicadores:**
+  * **1x (Base):** Estado neutro inicial.
+  * **2x (Streak):** A partir de 2 acertos consecutivos. Ícone de pontuação começa a pulsar.
+  * **3x (Fire / Kimariji):** A partir de 4 acertos. Borda do HUD ganha resplendor dourado e multiplicador sobe em texto flutuante.
+  * **5x (FEVER MODE):** A partir de 6 acertos consecutivos. A UI inteira entra em modo de alta energia, cronômetro ganha bônus de tempo (+2s) e as partículas dobram de densidade.
+* **Quebra de Combo (Combo Break):** Um erro ou tempo esgotado reseta o combo para 1x, dispara efeito sonoro de buzzer áspero e screen shake na arena.
 
-export interface KarutaRoundState {
-  currentAudioIndex: number;
-  activeCard: KarutaCard;
-  displayedCards: KarutaCard[];
-  roundStartTime: number;
-  audioStartTime: number;
-  streak: number;
-  score: number;
-}
-```
+### 4.2 Feedback Físico e Câmera (Screen Shake & Micro-Springs)
+* **Screen Shake Parametrizado:**
+  * `shake(targetElement, intensity: 'soft' | 'medium' | 'heavy')`
+  * `'soft'` (3px, 150ms): Erro leve de digitação ou timeout preventivo.
+  * `'medium'` (6px, 250ms): Resposta errada na alternativa.
+  * `'heavy'` (10px, 400ms): Violação de tabu na Taboo Arena ou perda de vida no Koffer Game.
+* **Micro-Interação de Mola (Spring Buttons):**
+  * Todos os botões interativos utilizam `active:scale-95 transition-transform duration-100 ease-out`, simulando um interruptor físico tátil.
+  * Hover expansivo `hover:scale-[1.03]` com elevação de sombra.
 
-### 3.2 Ich packe meinen Koffer ("Mala Infinita Gramatical")
-Inspirado na tradição alemã do jogo da mala, focado na memorização sequencial e na declinação automática de artigos e casos gramaticais (Acusativo: *den/die/das* ou *einen/eine/ein*).
+### 4.3 Sistema de Partículas e Explosões Visuais
+* **Engine Dupla de Partículas:**
+  1. **Canvas Confetti 3D (Vitórias e Níveis Perfeitos):** Disparo de chuva de confetes tridimensionais girando na tela inteira (`canvas-confetti`) com paleta harmonizada ao tema do app.
+  2. **Partículas Internas (`emitBurst`):**
+     * **XP / Acerto:** Centelhas esmeralda que sobem a partir do ponto clicado.
+     * **Combo / Fogo:** Partículas douradas em cone radial.
+     * **Glitch / Erro:** Faíscas avermelhadas dispersas que somem em 300ms.
 
-```typescript
-export type GrammaticalGender = 'masculine' | 'feminine' | 'neuter' | 'plural';
-export type GrammaticalCase = 'nominative' | 'accusative' | 'dative' | 'genitive';
-
-export interface KofferItem {
-  id: string;
-  itemRef: string;
-  cardId?: string;
-  name: string; // ex: "Koffer", "Brille", "Buch"
-  translation: string; // ex: "mala", "óculos", "livro"
-  gender: GrammaticalGender;
-  iconName?: string;
-  /** Artigo correto no caso exigido na rodada */
-  correctArticle: string; // ex: "einen", "eine", "ein"
-  distractorArticles: string[]; // ex: ["ein", "eine"] quando a resposta é "einen"
-}
-
-export interface KofferRoundState {
-  sequence: KofferItem[]; // Itens acumulados na mala até o momento
-  step: 'playback' | 'recall_sequence' | 'choose_article' | 'round_success' | 'game_over';
-  currentRecallIndex: number;
-  selectedItemForArticle: KofferItem | null;
-  score: number;
-  lives: number;
-}
-```
-
-### 3.3 Choseong Game ("Decifrador de Consoantes Iniciais")
-Inspirado no jogo coreano 초성게임, focado no resgate lexical rápido através de pistas consonantais ou radicais.
-
-```typescript
-export interface ChoseongPuzzle {
-  id: string;
-  itemRef: string;
-  cardId?: string;
-  consonants: string; // ex: "ㅎㅅ" (para 회사 / 호수) ou "C_T" para línguas latinas
-  targetWord: string;
-  translation: string;
-  category: string; // ex: "Lugares", "Comida", "Profissões"
-  hintSentence?: string;
-  distractorVowels?: string[];
-}
-
-export interface ChoseongRoundState {
-  puzzles: ChoseongPuzzle[];
-  currentIndex: number;
-  inputBuffer: string;
-  timeLeftMs: number;
-  streak: number;
-  score: number;
-}
-```
-
-### 3.4 Taboo Arena ("Forja da Circunlocução")
-Inspirado no clássico jogo de palavras proibidas, focado no desenvolvimento da competência estratégica e na paráfrase.
-
-```typescript
-export interface TabooCard {
-  id: string;
-  itemRef: string;
-  cardId?: string;
-  targetWord: string;
-  translation: string;
-  forbiddenWords: string[]; // 4 a 5 termos tabu
-  category: string;
-  clues: string[]; // Pistas aceitáveis / sugestões
-}
-
-export interface TabooRoundState {
-  cards: TabooCard[];
-  currentIndex: number;
-  timeRemainingS: number;
-  score: number;
-  revealedHints: number;
-  tabooViolated: boolean;
-}
-```
+### 4.4 Pitch-Shifting Audio Escalation & Haptic Feedback
+* **Web Audio API com Escalonamento de Pitch:**
+  * A frequência do som de acerto (`play('success')`) sobe **+1 semitom para cada nível de combo** (até +6 semitons), gerando uma sensação intuitiva de progressão musical contínua.
+* **Haptic Feedback Móvel (`navigator.vibrate`):**
+  * Acerto simples: Pulso háptico suave de `10ms`.
+  * Combo 3x+: Padrão duplo de celebração `[15ms, 30ms, 25ms]`.
+  * Erro / Tabu Violado: Vibração pesada de advertência `[80ms, 40ms, 80ms]`.
+  * Degradação graciosa automática quando `navigator.vibrate` não estiver disponível.
 
 ---
 
-## 4. GAME LOOP & MOTOR DE REGRAS
+## 5. REGRAS DE CONTROLE DE VERSÃO & ISOLAMENTO
 
-### 4.1 Ciclo de Vida Padrão de uma Partida
-1. **Fase de Inicialização:** Carrega itens, calcula tempos pelo perfil etário (`kids` = 1.5x tempo, `senior` = 1.5x tempo e fontes maiores, `pro` = tempo padrão competitivo), prepara assets sonoros.
-2. **Fase de Ação:** O jogador interage com o elemento central (toque, digitação ou seleção de cartas).
-3. **Avaliação e Feedback Imediato (< 16ms):**
-   * Se correto: dispara `play('correct')`, feedback visual háptico/squash, pontuação com combo multiplicador e partículas `emitBurst()`.
-   * Se incorreto: dispara `play('wrong')`, tremor de tela `tremor()`, reset de combo e registro do erro em `ItemOutcome`.
-4. **Fase de Desfecho:** Cálculo de estrelas, tempo total decorrido e envio do `RoundReport` via callback `onFinish`.
-
-### 4.2 Matriz de Pontuação e FSRS Compatibility
-* Cada item respondido de primeira em tempo ótimo (< 2000ms) recebe nota FSRS **4 (Fácil)**.
-* Resposta correta com tempo intermediário recebe nota FSRS **3 (Bom)**.
-* Resposta com uso de dica/tempo esgotando recebe nota FSRS **2 (Difícil)**.
-* Erro ou revelação recebe nota FSRS **1 (Errou)**.
-
----
-
-## 5. DESIGN SYSTEM & POLÍTICA DE ACESSIBILIDADE
-
-* **Tokens Visuais:**
-  * Fundo da mesa de jogo: `bg-surface` com borda sutil `border-border-subtle`.
-  * Botões e cartas interativas: sombras táteis (`shadow-card`), cantos arredondados (`rounded-xl` / `rounded-2xl`).
-  * Cores Semânticas: Sucesso (`--good`), Alerta de tempo (`--warn`), Erro (`--error`), Destaque/Fever (`--accent`).
-* **Acessibilidade:**
-  * Total suporte a navegação por teclado (Enter, Espaço, Setas e números 1-4 para alternativas).
-  * Textos com alto contraste usando `--ink` e `--ink-muted`.
-  * Respeito irrestrito a `prefers-reduced-motion` e `.animations-off`.
+1. **Branch Estritamente Isolada:** Todo o desenvolvimento reside na branch `feature/minigames-prototypes-juiced`.
+2. **Proteção da Branch Principal (`main`):** Nenhum commit, merge ou push pode tocar a branch principal.
+3. **Auditoria Contínua:** Verificação de tipos via `npm run typecheck` com meta de zero erros antes de cada entrega.

@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { X, Volume2, Sparkles, Award, Timer as TimerIcon, Zap, RotateCcw } from 'lucide-react';
+import { X, Volume2, Sparkles, Award, Timer as TimerIcon, Zap, RotateCcw, Flame } from 'lucide-react';
 import type { MinigameItem, ItemOutcome, RoundReport } from '@core';
 import type { AgeProfileType } from '../../lib/profile';
 import { play } from '../../lib/soundFx';
@@ -8,22 +8,27 @@ import { emitBurst } from '../../lib/effects';
 import { speak } from '../../lib/tts';
 
 /**
- * KARUTA GAME — Reflexo auditivo e pareamento áudio-visual em alta velocidade.
+ * KARUTA GAME — Reflexo auditivo, varredura visual e pareamento áudio-espacial.
  *
- * Inspirado no Kyōgi Karuta tradicional japonês. O narrador/áudio recita a palavra ou
- * frase alvo. O jogador deve golpear a carta correspondente na mesa antes que o tempo
- * se esgote. Se acertar nas primeiras sílabas (Kimariji), ganha bônus de 3x pontos.
+ * Inspirado no Kyōgi Karuta tradicional japonês.
+ * As cartas são espalhadas e embaralhadas no tatame com cartas distratoras (decoys).
+ * O narrador vocaliza a palavra-alvo. O jogador deve varrer a mesa visualmente
+ * e golpear a carta certa antes que o tempo esgote.
+ *
+ * Bônus Kimariji: ao bater nas primeiras sílabas (primeiros 1.8s), ganha combo 3x e fanfarra!
  */
 
-interface KarutaCardState {
+interface TatamiCard {
   id: string;
-  itemIndex: number;
-  targetText: string;
+  itemRef: string;
+  text: string;
   prompt: string;
   lang: string;
+  isTarget: boolean;
   rotation: number;
-  color: string;
-  status: 'active' | 'correct' | 'wrong' | 'collected';
+  offsetY: number;
+  offsetX: number;
+  status: 'idle' | 'slapped' | 'wrong' | 'collected';
 }
 
 interface KarutaGameProps {
@@ -33,145 +38,172 @@ interface KarutaGameProps {
   onExit: () => void;
 }
 
-const PALETA_CARTAS = [
-  '#2C2D35', '#243447', '#1F3A2E', '#3D2826', '#34263E',
-  '#2B3942', '#363426', '#3A2834', '#28363D', '#323428'
+const DECOY_POOL: MinigameItem[] = [
+  { prompt: 'Vento', answer: 'Wind', lang: 'en-US' },
+  { prompt: 'Estrela', answer: 'Star', lang: 'en-US' },
+  { prompt: 'Rio', answer: 'River', lang: 'en-US' },
+  { prompt: 'Chuva', answer: 'Rain', lang: 'en-US' },
+  { prompt: 'Montanha', answer: 'Mountain', lang: 'en-US' },
+  { prompt: 'Céu', answer: 'Sky', lang: 'en-US' },
+  { prompt: 'Flor', answer: 'Flower', lang: 'en-US' },
+  { prompt: 'Pássaro', answer: 'Bird', lang: 'en-US' },
 ];
 
-/** Mock inteligente caso o baralho do usuário tenha poucos itens no teste */
-const MOCK_ITEMS_KARUTA: MinigameItem[] = [
-  { prompt: 'Água', answer: 'Water', lang: 'en-US', sentence: 'Fresh cold water' },
-  { prompt: 'Livro', answer: 'Book', lang: 'en-US', sentence: 'An old leather book' },
-  { prompt: 'Noite', answer: 'Night', lang: 'en-US', sentence: 'A silent dark night' },
-  { prompt: 'Coração', answer: 'Heart', lang: 'en-US', sentence: 'Listen to your heart' },
-  { prompt: 'Sol', answer: 'Sun', lang: 'en-US', sentence: 'The sun rises in the east' },
-  { prompt: 'Lua', answer: 'Moon', lang: 'en-US', sentence: 'The moon shines bright' },
-  { prompt: 'Fogo', answer: 'Fire', lang: 'en-US', sentence: 'A warm winter fire' },
-  { prompt: 'Tempo', answer: 'Time', lang: 'en-US', sentence: 'Time flies so fast' },
+const MOCK_TARGETS: MinigameItem[] = [
+  { prompt: 'Água', answer: 'Water', lang: 'en-US' },
+  { prompt: 'Fogo', answer: 'Fire', lang: 'en-US' },
+  { prompt: 'Noite', answer: 'Night', lang: 'en-US' },
+  { prompt: 'Sol', answer: 'Sun', lang: 'en-US' },
+  { prompt: 'Livro', answer: 'Book', lang: 'en-US' },
+  { prompt: 'Coração', answer: 'Heart', lang: 'en-US' },
 ];
+
+function shuffleArray<T>(array: T[]): T[] {
+  const arr = [...array];
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
 
 export default function KarutaGame({ items: itemsProp, ageProfile, onFinish, onExit }: KarutaGameProps) {
-  const items = useMemo(() => {
-    if (itemsProp && itemsProp.length >= 4) return itemsProp;
-    return MOCK_ITEMS_KARUTA;
+  // Itens alvo da partida
+  const targetItems = useMemo<MinigameItem[]>(() => {
+    if (itemsProp && itemsProp.length >= 4) {
+      return shuffleArray(itemsProp).slice(0, 8);
+    }
+    return MOCK_TARGETS;
   }, [itemsProp]);
 
-  const tempoPorRodada = ageProfile === 'senior' ? 12 : ageProfile === 'kids' ? 10 : 7;
-  const [cartas, setCartas] = useState<KarutaCardState[]>([]);
-  const [indiceAtual, setIndiceAtual] = useState(0);
+  // Pool expandido com distratores para o tatame
+  const allPool = useMemo<MinigameItem[]>(() => {
+    const combined = [...targetItems, ...DECOY_POOL];
+    const uniqueMap = new Map<string, MinigameItem>();
+    combined.forEach((item) => uniqueMap.set(item.answer.toLowerCase(), item));
+    return Array.from(uniqueMap.values());
+  }, [targetItems]);
+
+  const tempoLimite = ageProfile === 'senior' ? 12 : ageProfile === 'kids' ? 10 : 8;
+  const [indiceAlvo, setIndiceAlvo] = useState(0);
   const [pontos, setPontos] = useState(0);
   const [combo, setCombo] = useState(0);
-  const [tempoRestante, setTempoRestante] = useState(tempoPorRodada);
-  const [estaFalando, setEstaFalando] = useState(false);
+  const [tempo, setTempo] = useState(tempoLimite);
+  const [cartasMesa, setCartasMesa] = useState<TatamiCard[]>([]);
   const [kimarijiAtivo, setKimarijiAtivo] = useState(true);
-  const [jogoFinalizado, setJogoFinalizado] = useState(false);
+  const [estaNarrando, setEstaNarrando] = useState(false);
+  const [finalizado, setFinalizado] = useState(false);
 
   const outcomesRef = useRef<ItemOutcome[]>([]);
   const inicioPartidaRef = useRef(Date.now());
-  const inicioCartaRef = useRef(Date.now());
-  const tentativasCartaRef = useRef(0);
-  const arenaRef = useRef<HTMLDivElement>(null);
+  const inicioRodadaRef = useRef(Date.now());
+  const tentativasRodadaRef = useRef(0);
+  const tatamiRef = useRef<HTMLDivElement>(null);
 
-  // Inicializa a mesa de cartas
-  useEffect(() => {
-    const novasCartas: KarutaCardState[] = items.map((it, idx) => ({
-      id: `karuta-${idx}`,
-      itemIndex: idx,
-      targetText: it.answer,
-      prompt: it.prompt,
-      lang: it.lang || 'en-US',
-      rotation: (Math.random() * 8) - 4, // leve inclinação realista de mesa de cartas
-      color: PALETA_CARTAS[idx % PALETA_CARTAS.length],
-      status: 'active',
+  const itemAlvo = targetItems[indiceAlvo];
+
+  // Monta a mesa de cartas espalhadas aleatoriamente a cada rodada
+  const montarTatame = (alvo: MinigameItem) => {
+    if (!alvo) return;
+    
+    // Pega o alvo + 7 distratores
+    const distratores = shuffleArray(allPool.filter((i) => i.answer.toLowerCase() !== alvo.answer.toLowerCase())).slice(0, 7);
+    const mesaItens = shuffleArray([alvo, ...distratores]);
+
+    const novasCartas: TatamiCard[] = mesaItens.map((item, idx) => ({
+      id: `tatami-${item.answer}-${idx}-${Date.now()}`,
+      itemRef: item.answer,
+      text: item.answer,
+      prompt: item.prompt,
+      lang: item.lang || 'en-US',
+      isTarget: item.answer.toLowerCase() === alvo.answer.toLowerCase(),
+      rotation: (Math.random() * 14) - 7, // leve rotação realista de mesa de cartas japonesa
+      offsetX: (Math.random() * 8) - 4,
+      offsetY: (Math.random() * 8) - 4,
+      status: 'idle',
     }));
-    setCartas(novasCartas);
-    setIndiceAtual(0);
-    setPontos(0);
-    setCombo(0);
-    outcomesRef.current = [];
-    inicioPartidaRef.current = Date.now();
-    inicioCartaRef.current = Date.now();
-  }, [items]);
 
-  const itemAlvoAtual = items[indiceAtual];
+    setCartasMesa(novasCartas);
+  };
 
-  // Dispara a leitura em voz alta da palavra/frase atual
-  const tocarVoz = (item: MinigameItem) => {
+  const narrarAlvo = (item: MinigameItem) => {
     if (!item) return;
-    setEstaFalando(true);
+    setEstaNarrando(true);
     setKimarijiAtivo(true);
     play('speak');
+
     try {
       speak(item.answer, { lang: item.lang || 'en-US' });
     } catch {
-      // Degradação graciosa caso speech synthesis esteja bloqueada
+      // Degradação graciosa
     }
-    // Janela de Kimariji: nos primeiros 1.8 segundos o acerto dá bônus triplo!
+
+    // Janela do Kimariji: nos primeiros 1.8 segundos o reflexo pontua 3x!
     setTimeout(() => {
       setKimarijiAtivo(false);
-      setEstaFalando(false);
+      setEstaNarrando(false);
     }, 1800);
   };
 
-  // Quando muda de carta alvo
+  // Início de rodada / troca de alvo
   useEffect(() => {
-    if (!itemAlvoAtual || jogoFinalizado) return;
-    inicioCartaRef.current = Date.now();
-    tentativasCartaRef.current = 0;
-    setTempoRestante(tempoPorRodada);
-    tocarVoz(itemAlvoAtual);
-  }, [indiceAtual, itemAlvoAtual, jogoFinalizado, tempoPorRodada]);
+    if (!itemAlvo || finalizado) return;
+    inicioRodadaRef.current = Date.now();
+    tentativasRodadaRef.current = 0;
+    setTempo(tempoLimite);
 
-  // Loop do relógio
+    montarTatame(itemAlvo);
+    narrarAlvo(itemAlvo);
+  }, [indiceAlvo, itemAlvo, finalizado, tempoLimite]);
+
+  // Cronômetro da rodada
   useEffect(() => {
-    if (jogoFinalizado) return;
+    if (finalizado) return;
     const timer = setInterval(() => {
-      setTempoRestante((prev) => {
+      setTempo((prev) => {
         if (prev <= 1) {
-          // Tempo esgotou para esta carta
-          tratarErroOuTimeout(true);
-          return tempoPorRodada;
+          tratarTimeout();
+          return tempoLimite;
         }
         if (prev <= 3) play('tick');
         return prev - 1;
       });
     }, 1000);
     return () => clearInterval(timer);
-  }, [indiceAtual, jogoFinalizado, tempoPorRodada]);
+  }, [indiceAlvo, finalizado, tempoLimite]);
 
-  const tratarErroOuTimeout = (timeout = false) => {
-    tentativasCartaRef.current += 1;
+  const tratarTimeout = () => {
+    tentativasRodadaRef.current += 1;
     play('error');
-    if (arenaRef.current) tremor(arenaRef.current);
+    if (tatamiRef.current) tremor(tatamiRef.current);
     setCombo(0);
 
     outcomesRef.current.push({
-      cardId: itemAlvoAtual?.cardId,
-      itemRef: itemAlvoAtual?.answer,
+      itemRef: itemAlvo.answer,
       correct: false,
-      attempts: tentativasCartaRef.current,
-      ms: Date.now() - inicioCartaRef.current,
-      revealed: timeout,
+      attempts: tentativasRodadaRef.current,
+      ms: Date.now() - inicioRodadaRef.current,
+      revealed: true,
     });
 
-    avancarProximaCarta();
+    avancarProximoAlvo();
   };
 
-  const avancarProximaCarta = () => {
-    if (indiceAtual + 1 >= items.length) {
-      finalizarPartida();
+  const avancarProximoAlvo = () => {
+    if (indiceAlvo + 1 >= targetItems.length) {
+      concluirJogo();
     } else {
-      setIndiceAtual((prev) => prev + 1);
+      setIndiceAlvo((prev) => prev + 1);
     }
   };
 
-  const finalizarPartida = () => {
-    setJogoFinalizado(true);
+  const concluirJogo = () => {
+    setFinalizado(true);
     play('fanfarra');
     comemorar('rodadaPerfeita');
     const duracaoTotal = Date.now() - inicioPartidaRef.current;
     const report: RoundReport = {
-      gameId: 'blitz' as any, // Mapeado para relatório compatível
+      gameId: 'blitz' as any,
       items: outcomesRef.current,
       score: pontos,
       durationMs: duracaoTotal,
@@ -181,102 +213,99 @@ export default function KarutaGame({ items: itemsProp, ageProfile, onFinish, onE
     }, 1800);
   };
 
-  // Manipulador do toque / "Slap" na carta
-  const handleSlapCarta = (carta: KarutaCardState, event: React.MouseEvent) => {
-    if (jogoFinalizado || carta.status === 'collected') return;
+  // Disparo do "Slap" / Golpe na carta
+  const handleSlap = (carta: TatamiCard, event: React.MouseEvent) => {
+    if (finalizado || carta.status !== 'idle') return;
 
-    const tempoResposta = Date.now() - inicioCartaRef.current;
-    tentativasCartaRef.current += 1;
+    tentativasRodadaRef.current += 1;
+    const tempoGasto = Date.now() - inicioRodadaRef.current;
 
-    if (carta.itemIndex === indiceAtual) {
-      // ACERTOU! "SLAP!"
-      const acertouNoKimariji = kimarijiAtivo;
-      const multiplicadorPontos = acertouNoKimariji ? 3 : 1;
-      const pts = (100 + (combo * 20)) * multiplicadorPontos;
+    if (carta.isTarget) {
+      // ACERTOU! GOLPE CERTEIRO NO TATAME
+      const kimarijiHit = kimarijiAtivo;
+      const multiplicadorPontos = kimarijiHit ? 3 : 1;
+      const pts = (120 + (combo * 25)) * multiplicadorPontos;
 
       setPontos((p) => p + pts);
       setCombo((c) => c + 1);
       play('success');
 
-      if (acertouNoKimariji) {
+      if (kimarijiHit) {
         play('levelUp');
         flashDeTela();
       }
 
-      // Emite partículas de impacto exatamente onde a carta foi tocada
+      // Efeito de partícula de impacto no ponto exato do toque
       const rect = event.currentTarget.getBoundingClientRect();
       emitBurst(rect.left + rect.width / 2, rect.top + rect.height / 2, 'combo');
 
-      // Marca carta como recolhida
-      setCartas((prev) =>
-        prev.map((c) =>
-          c.id === carta.id ? { ...c, status: 'collected' } : c
-        )
+      // Animação de Slap: carta voa com rotação e deslize
+      setCartasMesa((prev) =>
+        prev.map((c) => (c.id === carta.id ? { ...c, status: 'slapped' } : c))
       );
 
       outcomesRef.current.push({
-        cardId: itemAlvoAtual.cardId,
-        itemRef: itemAlvoAtual.answer,
+        itemRef: itemAlvo.answer,
         correct: true,
-        attempts: tentativasCartaRef.current,
-        ms: tempoResposta,
-        hinted: !acertouNoKimariji,
+        attempts: tentativasRodadaRef.current,
+        ms: tempoGasto,
+        hinted: !kimarijiHit,
       });
 
-      avancarProximaCarta();
+      setTimeout(() => {
+        avancarProximoAlvo();
+      }, 500);
     } else {
-      // ERROU! Tocou na carta errada
-      setCartas((prev) =>
-        prev.map((c) =>
-          c.id === carta.id ? { ...c, status: 'wrong' } : c
-        )
-      );
+      // ERROU! Golpes em cartas erradas geram penalidade e tremor
       play('error');
-      if (arenaRef.current) tremor(arenaRef.current);
       setCombo(0);
+      if (tatamiRef.current) tremor(tatamiRef.current);
+
+      setCartasMesa((prev) =>
+        prev.map((c) => (c.id === carta.id ? { ...c, status: 'wrong' } : c))
+      );
 
       setTimeout(() => {
-        setCartas((prev) =>
-          prev.map((c) => (c.id === carta.id ? { ...c, status: 'active' } : c))
+        setCartasMesa((prev) =>
+          prev.map((c) => (c.id === carta.id ? { ...c, status: 'idle' } : c))
         );
-      }, 600);
+      }, 500);
     }
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col bg-canvas text-ink select-none overflow-hidden" ref={arenaRef}>
-      {/* Barra de Topo do Jogo */}
-      <header className="flex items-center justify-between px-6 py-4 border-b border-border-subtle bg-surface/80 backdrop-blur-md">
+    <div className="fixed inset-0 z-50 flex flex-col bg-canvas text-ink select-none overflow-hidden" ref={tatamiRef}>
+      {/* Header Superior com Status de Jogo */}
+      <header className="flex items-center justify-between px-6 py-4 border-b border-border-subtle bg-surface/85 backdrop-blur-md">
         <div className="flex items-center gap-3">
           <button
             onClick={onExit}
-            className="p-2 rounded-xl border border-border-subtle bg-surface-hover hover:bg-border-subtle transition-colors"
+            className="p-2 rounded-xl border border-border-subtle bg-surface-hover hover:bg-border-subtle transition-colors cursor-pointer"
             title="Sair do Karuta"
-            aria-label="Sair"
           >
             <X className="w-5 h-5 text-ink" />
           </button>
           <div>
             <div className="flex items-center gap-2">
-              <span className="font-display font-black text-lg tracking-wide uppercase text-accent">Karuta</span>
-              <span className="text-xs px-2 py-0.5 rounded-full bg-accent-soft text-accent-ink font-semibold">Audio-Slap</span>
+              <span className="font-display font-black text-lg tracking-wide uppercase text-accent">Karuta Arena</span>
+              <span className="text-xs px-2 py-0.5 rounded-full bg-accent-soft text-accent-ink font-semibold">Audio-Slap 競技かるた</span>
             </div>
-            <p className="text-xs text-ink-muted">Ouça o chamado e golpeie a carta correta!</p>
+            <p className="text-xs text-ink-muted">Varra o tatame visualmente e golpeie a carta correta antes do tempo zerar!</p>
           </div>
         </div>
 
-        {/* Status de Pontos, Combo e Kimariji */}
-        <div className="flex items-center gap-4">
+        {/* Indicadores de Pontuação, Combo e Tempo */}
+        <div className="flex items-center gap-3 sm:gap-4">
           {kimarijiAtivo && (
-            <div className="hidden sm:flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/20 text-amber-500 border border-amber-500/30 text-xs font-bold animate-pulse">
+            <div className="hidden md:flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/20 text-amber-500 border border-amber-500/30 text-xs font-black animate-pulse">
               <Zap className="w-3.5 h-3.5 fill-current" />
-              <span>BÔNUS KIMARIJI (3x)</span>
+              <span>KIMARIJI (3x)</span>
             </div>
           )}
 
           {combo > 1 && (
             <div className="flex items-center gap-1 px-3 py-1 rounded-xl bg-accent text-accent-contrast font-black text-sm shadow-sm">
-              <Sparkles className="w-3.5 h-3.5" />
+              <Flame className="w-3.5 h-3.5 fill-current" />
               <span>{combo}x COMBO</span>
             </div>
           )}
@@ -286,76 +315,78 @@ export default function KarutaGame({ items: itemsProp, ageProfile, onFinish, onE
             <span className="font-mono font-bold text-base">{pontos}</span>
           </div>
 
-          {/* Anel do Cronômetro */}
           <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-border-subtle bg-surface">
-            <TimerIcon className={`w-4 h-4 ${tempoRestante <= 3 ? 'text-error animate-spin' : 'text-ink-muted'}`} />
-            <span className={`font-mono font-bold ${tempoRestante <= 3 ? 'text-error font-black' : 'text-ink'}`}>
-              {tempoRestante}s
+            <TimerIcon className={`w-4 h-4 ${tempo <= 3 ? 'text-error animate-spin' : 'text-ink-muted'}`} />
+            <span className={`font-mono font-black ${tempo <= 3 ? 'text-error text-lg' : 'text-ink'}`}>
+              {tempo}s
             </span>
           </div>
         </div>
       </header>
 
-      {/* Faixa Central do Chamador (O "Cantor" do Karuta) */}
-      <div className="px-6 py-4 bg-surface/50 border-b border-border-subtle flex items-center justify-between">
+      {/* Faixa de Leitura: O "Chamador" do Tatame */}
+      <div className="px-6 py-4 bg-surface/60 border-b border-border-subtle flex items-center justify-between">
         <div className="flex items-center gap-4">
           <button
-            onClick={() => itemAlvoAtual && tocarVoz(itemAlvoAtual)}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-accent text-accent-contrast font-bold shadow-card hover:opacity-95 active:scale-95 transition-all"
-            aria-label="Repetir áudio da palavra"
+            onClick={() => itemAlvo && narrarAlvo(itemAlvo)}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-accent text-accent-contrast font-bold text-sm shadow-card hover:opacity-95 active:scale-95 transition-all cursor-pointer"
+            aria-label="Repetir áudio do chamado"
           >
-            <Volume2 className={`w-5 h-5 ${estaFalando ? 'animate-bounce' : ''}`} />
-            <span>Repetir Áudio</span>
+            <Volume2 className={`w-5 h-5 ${estaNarrando ? 'animate-bounce text-white' : ''}`} />
+            <span>Ouvir Chamado</span>
           </button>
           <div className="text-sm">
-            <span className="text-ink-muted">Pista conceitual: </span>
-            <span className="font-bold text-ink underline decoration-accent decoration-2 underline-offset-4">
-              {itemAlvoAtual?.prompt}
+            <span className="text-ink-muted">Significado em português: </span>
+            <span className="font-black text-ink text-base underline decoration-accent decoration-2 underline-offset-4">
+              {itemAlvo?.prompt}
             </span>
           </div>
         </div>
 
         <div className="text-xs font-mono text-ink-muted">
-          Carta {indiceAtual + 1} de {items.length}
+          Carta {indiceAlvo + 1} de {targetItems.length}
         </div>
       </div>
 
-      {/* Arena / Tatame de Cartas */}
-      <main className="flex-1 p-6 md:p-10 overflow-y-auto flex items-center justify-center">
-        <div className="w-full max-w-5xl grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 md:gap-6 justify-items-center">
-          {cartas.map((carta) => {
-            const ehColetada = carta.status === 'collected';
+      {/* Arena do Tatame: Cartas Espalhadas com Física Orgânica */}
+      <main className="flex-1 p-6 sm:p-10 overflow-y-auto flex items-center justify-center bg-radial from-surface/20 to-canvas">
+        <div className="w-full max-w-5xl grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 sm:gap-6 justify-items-center">
+          {cartasMesa.map((carta) => {
+            const ehSlap = carta.status === 'slapped';
             const ehErro = carta.status === 'wrong';
 
             return (
               <button
                 key={carta.id}
-                onClick={(e) => handleSlapCarta(carta, e)}
-                disabled={ehColetada || jogoFinalizado}
+                onClick={(e) => handleSlap(carta, e)}
+                disabled={ehSlap || finalizado}
                 style={{
-                  transform: `rotate(${carta.rotation}deg)`,
+                  transform: `rotate(${carta.rotation}deg) translate(${carta.offsetX}px, ${carta.offsetY}px) ${
+                    ehSlap ? 'scale(1.25) translateY(-30px)' : ''
+                  }`,
                 }}
-                className={`group relative w-full aspect-[4/3] max-w-[220px] rounded-2xl p-4 flex flex-col justify-between items-center text-center transition-all duration-200 border-2 shadow-card select-none
-                  ${ehColetada 
-                    ? 'opacity-0 scale-75 pointer-events-none' 
-                    : ehErro 
-                    ? 'border-error bg-error-soft text-error-ink animate-shake' 
-                    : 'border-border-subtle bg-surface hover:border-accent hover:-translate-y-1 active:scale-95'
+                className={`group relative w-full aspect-[4/3] max-w-[210px] rounded-2xl p-4 flex flex-col justify-between items-center text-center transition-all duration-200 border-2 shadow-card select-none cursor-pointer
+                  ${
+                    ehSlap
+                      ? 'border-good bg-good text-white opacity-0 transition-all duration-500 pointer-events-none'
+                      : ehErro
+                      ? 'border-error bg-error-soft text-error-ink animate-shake'
+                      : 'border-border-subtle bg-surface hover:border-accent hover:-translate-y-1.5 active:scale-90 hover:shadow-lg'
                   }`}
               >
-                {/* Marcador decorativo estilo carta japonesa tradicional */}
+                {/* Detalhe de estilo japonês tradicional */}
                 <div className="w-full flex justify-between items-center text-[10px] text-ink-muted uppercase font-mono tracking-widest">
-                  <span>KARUTA</span>
+                  <span>百人一首</span>
                   <span className="w-2 h-2 rounded-full bg-accent/40 group-hover:bg-accent transition-colors" />
                 </div>
 
-                {/* Texto Central da Carta (Palavra no idioma de aprendizado) */}
+                {/* Texto da Carta (Alvo ou Decoy) */}
                 <div className="font-display font-black text-xl sm:text-2xl text-ink group-hover:text-accent transition-colors">
-                  {carta.targetText}
+                  {carta.text}
                 </div>
 
-                {/* Indicador de rodapé */}
-                <div className="text-[10px] text-ink-faint font-sans">
+                {/* Rótulo inferior */}
+                <div className="text-[10px] text-ink-faint font-mono">
                   {carta.lang}
                 </div>
               </button>

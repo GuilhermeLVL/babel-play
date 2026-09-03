@@ -21,7 +21,16 @@
  * pelo mesmo caminho da trilha (`public/`, sob demanda, cacheado pelo CDN).
  */
 
-export type Catalogo = Record<string, string>
+/**
+ * O valor de uma chave: a frase pronta, ou as formas de plural do idioma.
+ *
+ * As categorias são as do CLDR (`Intl.PluralRules`), e cada idioma usa as suas: inglês e português
+ * têm `one`/`other`; russo e polonês têm `one`/`few`/`many`; árabe tem seis; japonês, chinês e
+ * coreano têm uma só. Quem traduz preenche o que o idioma dele pede — não há forma "errada",
+ * há forma ausente, e essa cai no `other`.
+ */
+export type Plural = Partial<Record<Intl.LDMLPluralRule, string>>
+export type Catalogo = Record<string, string | Plural>
 
 /** Idiomas com catálogo em `public/i18n/`. Português é a origem: não tem arquivo nem precisa. */
 export const IDIOMAS_DA_INTERFACE = ['pt', 'en', 'es'] as const
@@ -50,20 +59,59 @@ const base = (lang: string) => (lang || '').toLowerCase().split('-')[0]
  * dívida disfarçada de recurso.
  */
 export function t(texto: string, valores?: Record<string, string | number>): string {
-  const traduzido = catalogos.get(atual)?.[texto] ?? texto
-  if (!valores) return traduzido
-  return traduzido.replace(/\{(\w+)\}/g, (inteiro, chave) =>
+  const bruto = catalogos.get(atual)?.[texto]
+  const traduzido = typeof bruto === 'string' ? bruto : (bruto?.other ?? texto)
+  return interpolar(traduzido, valores)
+}
+
+function interpolar(texto: string, valores?: Record<string, string | number>): string {
+  if (!valores) return texto
+  return texto.replace(/\{(\w+)\}/g, (inteiro, chave) =>
     chave in valores ? String(valores[chave]) : inteiro)
 }
 
 /**
- * Plural de duas formas — a que português, inglês e espanhol usam.
+ * PLURAL PELO CLDR, não por `n === 1`.
  *
- * Idiomas com três ou mais formas (russo, polonês, árabe) exigiriam regra CLDR; quando a interface
- * chegar a um deles, esta função é o lugar de resolver, e o `t` acima não muda.
+ * "Uma ou muitas" é a regra de português, inglês e espanhol — e de mais ninguém. Russo e polonês
+ * pedem três formas (1 / 2-4 / 5+), hebraico três, **árabe seis** (zero, um, dois, poucos, muitos,
+ * outro), e japonês, chinês e coreano uma só. Dos dezesseis idiomas que já têm trilha aqui, seis
+ * não cabem em duas formas: escrever `n === 1` é escolher errar neles.
+ *
+ * `Intl.PluralRules` vem do runtime — o CLDR inteiro, sem dependência nem tabela para manter.
+ *
+ * A chave do catálogo continua sendo o PORTUGUÊS PLURAL (a forma `other`), e o valor traz as
+ * formas do idioma de destino. Sem tradução, decide entre as duas frases portuguesas que o código
+ * passou, com a regra do português.
  */
-export function tp(n: number, umaCoisa: string, muitasCoisas: string, valores?: Record<string, string | number>): string {
-  return t(n === 1 ? umaCoisa : muitasCoisas, { n, ...valores })
+export function tp(
+  n: number,
+  umaCoisa: string,
+  muitasCoisas: string,
+  valores?: Record<string, string | number>,
+): string {
+  const bruto = catalogos.get(atual)?.[muitasCoisas]
+  const vars = { n, ...valores }
+
+  if (bruto && typeof bruto !== 'string') {
+    const categoria = regraDePlural(atual).select(n)
+    // `other` é a única categoria que todo idioma tem — por isso é o fallback dentro do catálogo.
+    return interpolar(bruto[categoria] ?? bruto.other ?? muitasCoisas, vars)
+  }
+  if (typeof bruto === 'string') return interpolar(bruto, vars)
+
+  return interpolar(regraDePlural('pt').select(n) === 'one' ? umaCoisa : muitasCoisas, vars)
+}
+
+const regras = new Map<string, Intl.PluralRules>()
+
+function regraDePlural(lang: string): Intl.PluralRules {
+  let r = regras.get(lang)
+  if (!r) {
+    try { r = new Intl.PluralRules(lang) } catch { r = new Intl.PluralRules('pt') }
+    regras.set(lang, r)
+  }
+  return r
 }
 
 /** O idioma em que a interface está agora. */
@@ -94,4 +142,30 @@ export async function usarIdioma(lang: string): Promise<void> {
   }
   atual = catalogos.has(idioma) ? idioma : 'pt'
   anunciar()
+}
+
+/* ── O QUE MUDA JUNTO COM O IDIOMA, além das palavras ────────────────────────────────────── */
+
+/** Escritas da direita para a esquerda. Mesma lista de `languages.ts`, para o layout da interface. */
+const RTL = new Set(['ar', 'he', 'fa', 'ur', 'yi', 'ps', 'sd', 'dv'])
+
+export const ehRTL = (lang: string): boolean => RTL.has(base(lang))
+
+/**
+ * Número no idioma da interface.
+ *
+ * `toLocaleString('pt-BR')` estava cravado em ~50 lugares: um americano lia "2.733" e entendia
+ * 2,733 — um erro de três ordens de grandeza numa contagem de palavras, dito com toda a confiança.
+ */
+export function numero(n: number): string {
+  return n.toLocaleString(atual)
+}
+
+/** Data no idioma da interface. Mesma razão: 03/09 e 09/03 são dias diferentes. */
+export function data(d: Date | string | number, opcoes?: Intl.DateTimeFormatOptions): string {
+  return new Date(d).toLocaleDateString(atual, opcoes)
+}
+
+export function dataHora(d: Date | string | number, opcoes?: Intl.DateTimeFormatOptions): string {
+  return new Date(d).toLocaleString(atual, opcoes)
 }

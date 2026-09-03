@@ -1,4 +1,4 @@
-import { assinarIdioma, idiomaDaInterface, usarIdioma } from './i18n';
+import { assinarIdioma, ehRTL, idiomaDaInterface, usarIdioma } from './i18n';
 import React from 'react';
 /**
  * CONFIGURAÇÃO DE IDIOMA — leitor único, com nomes que não admitem inversão.
@@ -136,9 +136,18 @@ export function useIdiomaDaInterfaceSeguindoOPerfil(): string {
   const cfg = useLangConfig();
   React.useEffect(() => { void usarIdioma(cfg.mine); }, [cfg.mine]);
 
+  /* O DOCUMENTO INTEIRO acompanha o idioma: `lang` para leitores de tela e para a quebra de linha
+     do navegador, `dir` para árabe e hebraico, que se leem da direita para a esquerda. Sem `dir` a
+     interface ficaria espelhada ao contrário do texto — e nenhuma tradução conserta isso. */
+  const idioma = React.useSyncExternalStore(assinarIdioma, idiomaDaInterface, () => 'pt');
+  React.useEffect(() => {
+    document.documentElement.lang = idioma;
+    document.documentElement.dir = ehRTL(idioma) ? 'rtl' : 'ltr';
+  }, [idioma]);
+
   /* ASSINA, além de definir. Sem isto o catálogo chegava e a tela continuava em português: `t()` é
      função pura sobre estado de módulo, e quem chama (`navLabel`, `tituloDoJogo`) não é componente
      — ninguém tinha por que renderizar de novo. Aqui na raiz, um re-render cobre a árvore toda, e
      a troca de idioma é rara o bastante para isso não ser custo. */
-  return React.useSyncExternalStore(assinarIdioma, idiomaDaInterface, () => 'pt');
+  return idioma;
 }

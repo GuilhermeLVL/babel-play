@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { lematizar } from '../scripts/trilha/lexemes.mjs';
+import { lematizar, escolherPorCognato } from '../scripts/trilha/lexemes.mjs';
 
 const conta = (palavra: string, contagem: number) => ({ palavra, contagem });
 
@@ -25,5 +25,25 @@ describe('lematizar', () => {
 
   it('não descola em idioma sem enclítico', () => {
     expect(lematizar([conta('darme', 3)], dicionario, 'en')[0].palavra).toBe('darme');
+  });
+});
+
+describe('escolherPorCognato', () => {
+  it('a forma parecida vence a acepção lateral', () => {
+    expect(escolherPorCognato('negocio', ['loja', 'negócio'])).toBe('negócio');
+    expect(escolherPorCognato('institución', ['órgão', 'instituição'])).toBe('instituição');
+  });
+
+  it('palavra transparente não gera glosa, e leva as laterais junto', () => {
+    expect(escolherPorCognato('temor', ['insegurança', 'temor'])).toBeNull();
+    expect(escolherPorCognato('infiel', ['mouro', 'infiel'])).toBeNull();
+  });
+
+  it('sem cognato entre as candidatas, respeita a ordem do dicionário', () => {
+    expect(escolherPorCognato('cuchillo', ['faca', 'punhal'])).toBe('faca');
+  });
+
+  it('candidata única passa direto', () => {
+    expect(escolherPorCognato('gota', ['pingo'])).toBe('pingo');
   });
 });

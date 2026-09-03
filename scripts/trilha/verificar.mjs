@@ -26,6 +26,8 @@ for (const [lang, entrada] of Object.entries(indice)) {
 
   let total = 0
   let comFrase = 0
+  // v1 guarda a frase em [2] (depois da tradução); v2 é monolíngue e a guarda em [1].
+  const colunaDaFrase = Number(dado.versao) === 2 ? 1 : 2
   const porNivelReal = {}
   const nivelDaPalavra = new Map()
   for (const nivel of NIVEIS) {
@@ -33,7 +35,7 @@ for (const [lang, entrada] of Object.entries(indice)) {
     porNivelReal[nivel] = itens.length
     total += itens.length
     for (const item of itens) {
-      if (item[2]) comFrase++
+      if (item[colunaDaFrase]) comFrase++
       const k = chave(item[0])
       if (k && !nivelDaPalavra.has(k)) nivelDaPalavra.set(k, nivel)
     }

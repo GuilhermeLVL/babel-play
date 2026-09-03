@@ -45,7 +45,9 @@ Ordem por risco crescente. As fases 0–1 não mudam comportamento nenhum.
 - [x] 5.1 `scripts/trilha/{fontes,filtrar,faixas,frases,glosas,gerar}.mjs`
 - [x] 5.2 Trilha piloto `es`: 5.727 palavras lematizadas, 955 por faixa, 41% com glosa (59% na A1).
       Wikidata (CC0) 732 pares + Wikcionário/Wiktextract (CC BY-SA) 13.740
-- [ ] 5.3 Amostra de 30 palavras revisada por falante nativo, com a taxa registrada no `FONTES.md`
+- [~] 5.3 Amostra de 60 revisada — **por modelo, não por falante nativo humano**, e o `FONTES.md`
+      diz isso. Taxa: 70% antes das correções de glosa, **90% depois**. A revisão humana continua
+      pendente e é o que fecha esta tarefa
 - [x] 5.4 Tabela de cobertura por idioma na tela — `CoberturaDosIdiomas`, recolhida na gaveta do
       seletor e na Sala, com trilha, palavras, voz do navegador e o que é do usuário
 

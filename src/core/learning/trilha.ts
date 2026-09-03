@@ -300,7 +300,13 @@ export function frasesDaTrilha(
   const shuffle = opts.shuffle ?? embaralhar;
   const lang = baseLangDe(dado.lang) || 'en';
   /* Só pares COM frase. Filtra antes de cortar pelo teto, senão uma rodada de 6 podia sair com 2
-     porque quatro sorteados não tinham exemplo. */
+     porque quatro sorteados não tinham exemplo.
+
+     A TRADUÇÃO DA FRASE CONTINUA OBRIGATÓRIA, e isso é decisão, não esquecimento: sem ela quem
+     joga "Montar a frase" não sabe QUAL frase montar, e `fraseJogavel` a exige rio abaixo. As
+     trilhas por frequência (es, fr, de) já trazem o exemplo em ~90% das palavras, mas ainda não a
+     tradução dele — enquanto ela não vier (Tatoeba `links.csv`), esses idiomas não abrem os jogos
+     de frase, e a tela diz isso. */
   const comFrase = doNivel.filter((par): par is [string, string, string, string] => !!par[2] && !!par[3]);
   const teto = opts.quantidade === undefined ? comFrase.length : Math.max(0, opts.quantidade);
   return shuffle(comFrase).slice(0, teto).map(([palavra, , frase, fraseTraduzida]) => ({

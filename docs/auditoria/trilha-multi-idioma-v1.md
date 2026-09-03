@@ -64,6 +64,51 @@ português e inglês.
   idioma ligava um recorte que a gaveta — que lista por idioma — não mostrava para desligar: agora
   o idioma do baralho vem junto.
 
+## Quatro idiomas (segunda rodada)
+
+| Idioma | Escala | Palavras | Com frase | Com glosa |
+|---|---|---|---:|---:|---:|
+| inglês | CEFR | 2.784 | 92% | embutida |
+| alemão | frequência | 5.758 | 93% | 49% |
+| francês | frequência | 5.752 | 93% | 58% |
+| espanhol | frequência | 5.727 | 90% | 37% |
+
+### A qualidade da glosa, medida
+
+Amostra determinística de 60 (10 por faixa, espaçadas na lista), revisada **por modelo, não por
+falante nativo humano** — a revisão humana continua pendente e está registrada como tal.
+
+- **Antes das correções: 70%.** Erros como `negocio=loja`, `planear=planar`, `infiel=mouro`.
+- **Depois: 90%** (54/60), com a cobertura caindo de 41% para 37%: a precisão subiu mais do que a
+  cobertura desceu, e é a precisão que decide se a carta do jogo ensina ou confunde.
+
+Três correções, nesta ordem de impacto:
+
+1. **Palavra transparente não gera glosa.** Se o dicionário traduz `temor` por `temor`, as outras
+   candidatas daquela entrada são acepções laterais — era daí que saíam `temor=insegurança` e
+   `infiel=mouro`. Melhor buraco declarado que pista errada, e quem lê português já lê `temor`.
+2. **O cognato desempata.** A tabela de traduções casa palavra com palavra sem sentido nem classe,
+   e a primeira costuma ser lateral. Entre línguas irmãs a forma parecida é quase sempre a acepção
+   central: `negocio` voltou a ser `negócio`. Só desempata entre candidatas que o dicionário já
+   ofereceu — não inventa tradução por semelhança.
+3. **Fora a metalinguagem e a sujeira de verbete.** `alta = "feminino de alto"`, `África:`,
+   `cebola¹` — nota de dicionário não é pista, e o `¹` apareceria na carta.
+
+**O cognato tem um custo, e ele apareceu na amostra**: `embarazo=embaraço` é falso amigo (é
+*gravidez*). O desempate acerta na média entre es-pt e erra exatamente onde as duas línguas
+divergiram — mais um motivo para a revisão humana.
+
+## Frases: metade do caminho
+
+As trilhas novas trazem exemplo do Tatoeba em ~90% das palavras, e isso está no dado e no índice.
+**Não destrava os jogos de frase ainda**, e a tela diz a verdade ao continuar bloqueando: "Montar a
+frase" exige a TRADUÇÃO da frase (`fraseJogavel`), sem a qual quem joga não sabe qual frase montar.
+A tradução vem do `links.csv` do Tatoeba, que cruza os ids das sentenças — é o próximo passo, bem
+definido e independente.
+
+Tentei soltar essa exigência e reverti: sem a tradução o jogo perde a referência, e a mudança
+trocaria um bloqueio honesto por um exercício ambíguo.
+
 ## Limites declarados
 
 - **41% de cobertura de tradução** no espanhol (59% na faixa 1). Vem de Wikidata Lexemes (CC0) e

@@ -1,4 +1,21 @@
 {
+  "de": {
+    "escala": "frequencia",
+    "versao": 2,
+    "total": 5758,
+    "comFrase": 5370,
+    "porNivel": {
+      "A1": 960,
+      "A2": 960,
+      "B1": 960,
+      "B2": 960,
+      "C1": 960,
+      "C2": 958
+    },
+    "glosas": [
+      "pt"
+    ]
+  },
   "en": {
     "escala": "cefr",
     "versao": 1,
@@ -20,7 +37,7 @@
     "escala": "frequencia",
     "versao": 2,
     "total": 5727,
-    "comFrase": 0,
+    "comFrase": 5163,
     "porNivel": {
       "A1": 955,
       "A2": 955,
@@ -28,6 +45,23 @@
       "B2": 955,
       "C1": 955,
       "C2": 952
+    },
+    "glosas": [
+      "pt"
+    ]
+  },
+  "fr": {
+    "escala": "frequencia",
+    "versao": 2,
+    "total": 5752,
+    "comFrase": 5340,
+    "porNivel": {
+      "A1": 959,
+      "A2": 959,
+      "B1": 959,
+      "B2": 959,
+      "C1": 959,
+      "C2": 957
     },
     "glosas": [
       "pt"

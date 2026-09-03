@@ -546,12 +546,12 @@ export default function Metrics({ recordings, onChangeView, ageProfile = 'pro' }
                       Calculado sobre <strong className="text-ink-muted">{lowRetentionAnalysis.totalCalculavel}</strong> de{' '}
                       <strong className="text-ink-muted">{lowRetentionAnalysis.totalDeck}</strong> cartões.
                     </p>
-                    <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar space-y-1.5 pr-1">
+                    <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar space-y-1.5 pe-1">
                       {lowRetentionAnalysis.piores.map(({ card, retencaoPct }) => (
                         <button
                           key={card.id}
                           onClick={() => void examineWord(card.word, card.sentence)}
-                          className="w-full text-left p-2.5 rounded-lg border border-border-subtle bg-surface hover:bg-surface-hover transition-colors cursor-pointer flex items-center justify-between gap-3"
+                          className="w-full text-start p-2.5 rounded-lg border border-border-subtle bg-surface hover:bg-surface-hover transition-colors cursor-pointer flex items-center justify-between gap-3"
                           title="Analisar termo no Analista de Vocabulário"
                         >
                           <span className="min-w-0">
@@ -577,13 +577,13 @@ export default function Metrics({ recordings, onChangeView, ageProfile = 'pro' }
                             />
                             {/* C9 — `-ink` e não a cor cheia: `--error`/`--warn` são de
                                 PREENCHIMENTO e como texto sobre o card davam 2,54:1. */}
-                            <span className={`text-[12px] font-bold font-mono w-9 text-right ${retencaoPct < 50 ? 'text-error-ink' : 'text-warn-ink'}`}>
+                            <span className={`text-[12px] font-bold font-mono w-9 text-end ${retencaoPct < 50 ? 'text-error-ink' : 'text-warn-ink'}`}>
                               {retencaoPct}%
                             </span>
                             {/* "há 21 dias" responde a pergunta seguinte — por que esta caiu tanto
                                , e vem de `lastReview`, que o banco sempre gravou. Só aparece
                                 quando existe: um traço em branco não informa nada. */}
-                            <span className="hidden md:block text-[11px] text-ink-faint font-mono w-20 text-right">
+                            <span className="hidden md:block text-[11px] text-ink-faint font-mono w-20 text-end">
                               {desdeAUltimaRevisao(card.lastReview)}
                             </span>
                           </span>

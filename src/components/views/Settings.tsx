@@ -352,7 +352,7 @@ export default function Settings({
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <button
                 onClick={() => setGoal('executivo')}
-                className={`p-4 border-2 rounded-xl text-left transition-colors ${ui.goal === 'executivo' ? 'border-accent bg-accent-soft' : 'border-border-subtle bg-surface hover:border-accent'}`}
+                className={`p-4 border-2 rounded-xl text-start transition-colors ${ui.goal === 'executivo' ? 'border-accent bg-accent-soft' : 'border-border-subtle bg-surface hover:border-accent'}`}
               >
                 <div className="font-bold text-[14px] text-ink mb-1">Comunicação Executiva</div>
                 <p className="text-[12px] text-ink-muted mb-2">Foco em concisão, clareza e ritmo pausado.</p>
@@ -360,7 +360,7 @@ export default function Settings({
               </button>
               <button
                 onClick={() => setGoal('creator')}
-                className={`p-4 border-2 rounded-xl text-left transition-colors ${ui.goal === 'creator' ? 'border-accent bg-accent-soft' : 'border-border-subtle bg-surface hover:border-accent'}`}
+                className={`p-4 border-2 rounded-xl text-start transition-colors ${ui.goal === 'creator' ? 'border-accent bg-accent-soft' : 'border-border-subtle bg-surface hover:border-accent'}`}
               >
                 <div className="font-bold text-[14px] text-ink mb-1">Criador / YouTuber</div>
                 <p className="text-[12px] text-ink-muted mb-2">Foco em energia, retenção e vocabulário acessível.</p>
@@ -368,7 +368,7 @@ export default function Settings({
               </button>
               <button
                 onClick={() => setGoal('tedx')}
-                className={`p-4 border-2 rounded-xl text-left transition-colors ${ui.goal === 'tedx' ? 'border-accent bg-accent-soft' : 'border-border-subtle bg-surface hover:border-accent'}`}
+                className={`p-4 border-2 rounded-xl text-start transition-colors ${ui.goal === 'tedx' ? 'border-accent bg-accent-soft' : 'border-border-subtle bg-surface hover:border-accent'}`}
               >
                 <div className="font-bold text-[14px] text-ink mb-1">Estilo Palestrante (TED)</div>
                 <p className="text-[12px] text-ink-muted mb-2">Pausas, vocabulário raro e storytelling.</p>
@@ -376,7 +376,7 @@ export default function Settings({
               </button>
               <button
                 onClick={() => setGoal('tech')}
-                className={`p-4 border-2 rounded-xl text-left transition-colors ${ui.goal === 'tech' ? 'border-accent bg-accent-soft' : 'border-border-subtle bg-surface hover:border-accent'}`}
+                className={`p-4 border-2 rounded-xl text-start transition-colors ${ui.goal === 'tech' ? 'border-accent bg-accent-soft' : 'border-border-subtle bg-surface hover:border-accent'}`}
               >
                 <div className="font-bold text-[14px] text-ink mb-1">Tech / Developer</div>
                 <p className="text-[12px] text-ink-muted mb-2">Inglês/Português misto, termos técnicos sem tradução.</p>
@@ -403,7 +403,7 @@ export default function Settings({
                 <span className="font-mono font-black text-2xl text-accent">{wpmMeasured != null ? wpmMeasured : '-'}</span>
                 <span className="text-[11px] font-bold text-ink-muted">ppm</span>
                 {wpmMeasured != null && GOAL_TARGETS[ui.goal]?.ppm != null && (
-                  <span className="text-[11px] text-ink-faint font-mono ml-1">/ {GOAL_TARGETS[ui.goal]?.ppm} alvo</span>
+                  <span className="text-[11px] text-ink-faint font-mono ms-1">/ {GOAL_TARGETS[ui.goal]?.ppm} alvo</span>
                 )}
               </div>
             </div>

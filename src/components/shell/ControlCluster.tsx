@@ -145,7 +145,7 @@ export default function ControlCluster(props: ControlClusterProps) {
         className={`flex items-center gap-2 rounded-lg text-ink-muted hover:text-ink hover:bg-surface-hover transition-colors cursor-pointer shrink-0 ${
           orientation === 'column'
             ? 'w-9 h-9 justify-center'
-            : 'h-9 pl-2.5 pr-2 border border-border-subtle/60 bg-surface'
+            : 'h-9 ps-2.5 pe-2 border border-border-subtle/60 bg-surface'
         }`}
       >
         <Search className="w-4 h-4 shrink-0" />

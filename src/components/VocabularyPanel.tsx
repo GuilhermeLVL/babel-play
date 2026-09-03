@@ -148,7 +148,7 @@ export default function VocabularyPanel({
         // (Captura/Leitura/Estudo/Métricas), e `max-h-dvh` é o que segura o caso da Análise,
         // onde a linha cresce com o conteúdo e a rolagem é da tela inteira.
         'lg:sticky lg:inset-x-auto lg:bottom-auto lg:top-0 lg:z-auto',
-        'lg:h-full lg:max-h-dvh lg:border-t-0 lg:border-l lg:shadow-none',
+        'lg:h-full lg:max-h-dvh lg:border-t-0 lg:border-s lg:shadow-none',
 
         // Entrada (classes preservadas como estavam).
         'animate-in slide-in-from-right duration-300',
@@ -226,7 +226,7 @@ export default function VocabularyPanel({
                 </div>
                 <button
                   onClick={() => onSpeak(word.word)}
-                  className="p-2 rounded-lg bg-surface border border-border-subtle text-accent hover:text-accent-ink transition-all hover:scale-105 cursor-pointer shrink-0 ml-2"
+                  className="p-2 rounded-lg bg-surface border border-border-subtle text-accent hover:text-accent-ink transition-all hover:scale-105 cursor-pointer shrink-0 ms-2"
                   title="Ouça a pronúncia nativa"
                 >
                   <Volume2 className="w-4 h-4" />

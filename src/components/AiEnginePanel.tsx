@@ -137,7 +137,7 @@ export default function AiEnginePanel({
               onClick={() => selectProfile(p.id)}
               disabled={bloqueado}
               aria-disabled={bloqueado}
-              className={`p-4 border-2 rounded-xl text-left transition-colors ${
+              className={`p-4 border-2 rounded-xl text-start transition-colors ${
                 active ? 'border-accent bg-accent-soft' : 'border-border-subtle bg-surface'
               } ${bloqueado ? 'opacity-60 cursor-not-allowed' : 'hover:border-accent'}`}
             >
@@ -188,7 +188,7 @@ export default function AiEnginePanel({
                     <span className="block text-[11.5px] text-ink-muted leading-snug">{t(meta.onde)}</span>
                   </span>
                 </span>
-                <span className="shrink-0 text-right">
+                <span className="shrink-0 text-end">
                   <span className={`block text-[12px] font-bold ${atende ? 'text-good-ink' : 'text-warn-ink'}`}>
                     {atende ? 'funciona aqui' : 'não dá neste jeito'}
                   </span>
@@ -233,7 +233,7 @@ export default function AiEnginePanel({
         </div>
 
         {result && (
-          <div className="mt-4 ap-result-correct text-left">
+          <div className="mt-4 ap-result-correct text-start">
             <div className="ap-validation-label text-good mb-1.5">
               <Check className="w-3.5 h-3.5" /> Resultado · engine: {result.engine}
             </div>
@@ -241,7 +241,7 @@ export default function AiEnginePanel({
           </div>
         )}
         {status === 'error' && (
-          <div className="mt-4 ap-result-error text-left">
+          <div className="mt-4 ap-result-error text-start">
             <div className="ap-validation-label text-error mb-1.5">
               <AlertTriangle className="w-3.5 h-3.5" /> Falhou
             </div>

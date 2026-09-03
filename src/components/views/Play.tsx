@@ -2573,7 +2573,7 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
                   `progressbar` e embrulhá-la num botão daria um controle dentro de outro. */}
               <button
                 onClick={() => onChangeView('loja')}
-                className="ml-1 shrink-0 min-w-6 min-h-6 inline-flex items-center justify-center rounded-lg text-ink-faint hover:text-accent cursor-pointer after:absolute after:inset-0 after:content-[''] after:rounded-[inherit]"
+                className="ms-1 shrink-0 min-w-6 min-h-6 inline-flex items-center justify-center rounded-lg text-ink-faint hover:text-accent cursor-pointer after:absolute after:inset-0 after:content-[''] after:rounded-[inherit]"
                 title="Ver o passe, a loja e os desafios"
                 aria-label="Ver o passe, a loja e os desafios"
               >
@@ -2952,7 +2952,7 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
             era o que descia. 100px é a altura do estado mais alto em 412px (medido). */}
         <button
           onClick={() => setVendoMapa(true)}
-          className="card-panel bg-surface p-4 min-h-[100px] sm:min-h-0 text-left hover:border-accent transition-colors cursor-pointer flex items-start gap-3"
+          className="card-panel bg-surface p-4 min-h-[100px] sm:min-h-0 text-start hover:border-accent transition-colors cursor-pointer flex items-start gap-3"
         >
           <span className="w-9 h-9 rounded-xl bg-accent-soft text-accent-ink flex items-center justify-center shrink-0" aria-hidden>
             <MapIcon className="w-4 h-4" />
@@ -2971,7 +2971,7 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
         {triagem.fora.length > 0 ? (
           <button
             onClick={() => setCurando(true)}
-            className="card-panel bg-surface p-4 min-h-[100px] sm:min-h-0 text-left hover:border-warn transition-colors cursor-pointer flex items-start gap-3"
+            className="card-panel bg-surface p-4 min-h-[100px] sm:min-h-0 text-start hover:border-warn transition-colors cursor-pointer flex items-start gap-3"
           >
             <span className="w-9 h-9 rounded-xl bg-warn-soft text-warn-ink flex items-center justify-center shrink-0" aria-hidden>
               <SlidersIcon className="w-4 h-4" />
@@ -3052,7 +3052,7 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
           {detalhes && vencidos > 0 && (
             <button
               onClick={() => pedirParaJogar({ id: 'blitz' })}
-              className="w-full card-panel bg-accent-soft/40 border-accent/30 p-4 mb-4 flex items-center gap-4 text-left hover:border-accent transition-colors cursor-pointer"
+              className="w-full card-panel bg-accent-soft/40 border-accent/30 p-4 mb-4 flex items-center gap-4 text-start hover:border-accent transition-colors cursor-pointer"
             >
               <span className="w-11 h-11 rounded-xl bg-accent text-white flex items-center justify-center shrink-0" aria-hidden>
                 <Timer className="w-5 h-5" />
@@ -3094,7 +3094,7 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
                 de jogo, a ordem das cartas e os favoritos também são decididos e guardados nesta
                 tela. E porque enterrá-lo em Ajustes → aba → seção repetiria o defeito original:
                 um controle a três cliques do lugar onde ele faz efeito. */}
-            <label className="flex items-center gap-2 text-[12px] text-ink-muted cursor-pointer select-none ml-auto">
+            <label className="flex items-center gap-2 text-[12px] text-ink-muted cursor-pointer select-none ms-auto">
               <input
                 type="checkbox"
                 checked={!pularSempre}
@@ -3165,7 +3165,7 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
 
                      O bloqueio continua evidente sem custar legibilidade: o cadeado no lugar do
                      ícone, a arte em `grayscale`, o fundo recuado e a frase do motivo. */
-                  className={`card-panel text-left flex flex-col overflow-hidden transition-all relative group ${
+                  className={`card-panel text-start flex flex-col overflow-hidden transition-all relative group ${
                     liberado ? 'bg-surface hover:border-accent hover:-translate-y-1 hover:shadow-card' : 'bg-canvas border-dashed'
                   }`}
                 >
@@ -3223,7 +3223,7 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
                       // mas a caixa própria do botão media 17,5px — e é a caixa que a WCAG 2.5.8
                       // mede, não o pseudoelemento. Garantir os 24px no próprio elemento evita
                       // depender de uma expansão que a norma não enxerga.
-                      className={`font-display font-extrabold text-[14px] text-ink leading-tight flex-1 text-left min-h-6 flex items-center after:absolute after:inset-0 after:content-[''] rounded-lg ${liberado ? 'cursor-pointer' : 'cursor-not-allowed'}`}
+                      className={`font-display font-extrabold text-[14px] text-ink leading-tight flex-1 text-start min-h-6 flex items-center after:absolute after:inset-0 after:content-[''] rounded-lg ${liberado ? 'cursor-pointer' : 'cursor-not-allowed'}`}
                     >
                       {tituloDoJogo(j, ageProfile)}
                     </button>

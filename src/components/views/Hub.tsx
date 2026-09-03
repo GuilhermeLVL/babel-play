@@ -241,7 +241,7 @@ export default function Hub({ onChangeView, recordings, ageProfile = 'pro', prog
             </span>
           </div>
 
-          <div className="min-w-0 flex-1 text-center sm:text-left">
+          <div className="min-w-0 flex-1 text-center sm:text-start">
             <h2 className="font-display font-black text-xl md:text-2xl text-ink tracking-tight text-balance">
               {ageProfile === 'kids'
                 ? `Você está quase esquecendo estas ${agora}`
@@ -290,7 +290,7 @@ export default function Hub({ onChangeView, recordings, ageProfile = 'pro', prog
             <div className="w-8 h-8 flex items-center justify-center transition-transform group-hover:scale-105 shrink-0 rounded-lg bg-accent/10 border border-accent/20 text-accent">
               <TrendingUp className="w-4 h-4" />
             </div>
-            <div className="text-left">
+            <div className="text-start">
               {/* Era um triplo rótulo gritado ("RELATÓRIO EXECUTIVO" + "VISUALIZAR RELATÓRIO DE
                   PERFORMANCE DETALHADA" + "Expandir") — o leitor de tela anunciava os três de uma
                   vez. Um botão de expandir precisa de UM nome; o chevron e o "Expandir" já dizem o
@@ -331,7 +331,7 @@ export default function Hub({ onChangeView, recordings, ageProfile = 'pro', prog
         <h2 className="font-display font-extrabold text-lg text-ink mb-4">Métricas do Perfil</h2>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-          <button className="card-panel p-5 text-left hover:border-accent hover:shadow-card transition-all group" onClick={() => ir('metrics')}>
+          <button className="card-panel p-5 text-start hover:border-accent hover:shadow-card transition-all group" onClick={() => ir('metrics')}>
             <span className="label-mono block mb-1 text-ink-muted group-hover:text-accent transition-colors">Palavras Produzidas</span>
             <div className="font-display font-black text-2xl tracking-tight text-ink mb-1">
               {metrics ? fmtNum(metrics.wordsCaptured) : '-'}
@@ -341,7 +341,7 @@ export default function Hub({ onChangeView, recordings, ageProfile = 'pro', prog
             </div>
           </button>
 
-          <button className="card-panel p-5 text-left hover:border-accent hover:shadow-card transition-all group" onClick={() => ir('metrics')}>
+          <button className="card-panel p-5 text-start hover:border-accent hover:shadow-card transition-all group" onClick={() => ir('metrics')}>
             <span className="label-mono block mb-1 text-ink-muted group-hover:text-accent transition-colors">Vocabulário no Deck</span>
             <div className="font-display font-black text-2xl tracking-tight text-ink mb-1">
               {metrics ? fmtNum(metrics.deckSize) : '-'}
@@ -349,7 +349,7 @@ export default function Hub({ onChangeView, recordings, ageProfile = 'pro', prog
             <div className="text-[11.5px] font-medium text-ink-muted">{metrics?.dueToday ?? 0} para revisar hoje • {metrics?.newCards ?? 0} novos</div>
           </button>
 
-          <div className="card-panel p-5 text-left relative overflow-hidden flex flex-col justify-between border-dashed border-accent-soft/60 hover:border-accent transition-colors bg-surface">
+          <div className="card-panel p-5 text-start relative overflow-hidden flex flex-col justify-between border-dashed border-accent-soft/60 hover:border-accent transition-colors bg-surface">
             <div>
               <div className="flex justify-between items-start">
                 <span className="label-mono block mb-1 text-ink-muted">Ritmo de Fala</span>
@@ -379,7 +379,7 @@ export default function Hub({ onChangeView, recordings, ageProfile = 'pro', prog
             </button>
           </div>
 
-          <div className="card-panel p-5 text-left group bg-surface">
+          <div className="card-panel p-5 text-start group bg-surface">
             <span className="label-mono block mb-1 text-ink-muted">Vícios de Linguagem</span>
             {/* A contagem de vícios (marcadores de hesitação) é REAL desde src/core/learning/fillers.ts
                , não requer processamento de linguagem, é busca de token por idioma. Ela já aparece
@@ -886,7 +886,7 @@ const PillarCard: React.FC<PillarCardProps> = ({
                 title={`Você ganha ${mission.rewardXp} XP e ${mission.rewardSeeds} Seeds ${mission.rewardUnit}`}
               >
                 +{mission.rewardXp} XP · {mission.rewardSeeds} <Sprout className="w-3 h-3" aria-hidden />
-                <span className="normal-case tracking-normal font-sans font-bold ml-0.5">{mission.rewardUnit}</span>
+                <span className="normal-case tracking-normal font-sans font-bold ms-0.5">{mission.rewardUnit}</span>
               </span>
             )}
             {complete && (

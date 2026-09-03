@@ -245,7 +245,7 @@ function CartaoDeBaralho({
   return (
     <div className="card-panel p-4 flex flex-col gap-3">
       <div className="flex items-start justify-between gap-3">
-        <button onClick={onAbrir} className="flex-1 text-left flex items-start gap-2 cursor-pointer group">
+        <button onClick={onAbrir} className="flex-1 text-start flex items-start gap-2 cursor-pointer group">
           <ChevronRight className={`w-4 h-4 mt-0.5 text-ink-muted shrink-0 transition-transform ${aberto ? 'rotate-90' : ''}`} />
           <div>
             <p className="font-semibold text-[14px] text-ink group-hover:text-accent">{deck.nome}</p>
@@ -256,7 +256,7 @@ function CartaoDeBaralho({
                     : `${deck.idiomaOrigem} → ${deck.idiomaAlvo}`)
                 : deck.arquivoOrigem}
               {' · '}{fmtData(deck.createdAt)}
-              {deck.estado === 'desativado' && <span className="badge-tag warn ml-1.5">desativado</span>}
+              {deck.estado === 'desativado' && <span className="badge-tag warn ms-1.5">desativado</span>}
             </p>
           </div>
         </button>
@@ -314,7 +314,7 @@ function CartaoDeBaralho({
         <button
           onClick={onPedirPurga}
           disabled={ocupado}
-          className="py-1.5 px-3 text-error-ink hover:bg-error-soft rounded-lg font-semibold text-[12px] disabled:opacity-50 cursor-pointer flex items-center gap-1.5 ml-auto"
+          className="py-1.5 px-3 text-error-ink hover:bg-error-soft rounded-lg font-semibold text-[12px] disabled:opacity-50 cursor-pointer flex items-center gap-1.5 ms-auto"
         >
           <Trash2 className="w-3.5 h-3.5" /> Purgar
         </button>
@@ -367,7 +367,7 @@ function DetalheDoBaralho({ deck, onFechar }: { deck: BaralhoAnkiResumo; onFecha
   const temFiltro = !!busca || estado !== 'todas'
 
   return (
-    <div className="card-panel p-4 mt-2 space-y-3 border-l-4 border-accent">
+    <div className="card-panel p-4 mt-2 space-y-3 border-s-4 border-accent">
       <div className="flex items-center justify-between">
         <span className="label-mono">notas de "{deck.nome}"</span>
         <button onClick={onFechar} className="text-ink-muted hover:text-ink cursor-pointer" aria-label="Fechar detalhe">
@@ -379,7 +379,7 @@ function DetalheDoBaralho({ deck, onFechar }: { deck: BaralhoAnkiResumo; onFecha
         <div className="relative flex-1 min-w-[200px]">
           <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-ink-muted" />
           <input
-            className="field-input pl-8 w-full"
+            className="field-input ps-8 w-full"
             placeholder="Buscar nota…"
             value={busca}
             onChange={(e) => setBusca(e.target.value)}
@@ -462,7 +462,7 @@ function LinhaDeNota({ nota }: { nota: NotaAnkiDetalhe }) {
       ? <span className="badge-tag warn">arquivada</span>
       : <span className="badge-tag ok">ativa</span>
   return (
-    <li className="px-3 py-2 flex items-center gap-3 text-left border-b border-border-subtle last:border-0">
+    <li className="px-3 py-2 flex items-center gap-3 text-start border-b border-border-subtle last:border-0">
       <span className="font-semibold text-[13px] text-ink truncate w-[26%]">{nota.frente}</span>
       <span className="text-[12px] text-ink-muted truncate flex-1">{nota.verso || <span className="opacity-60">sem tradução</span>}</span>
       {selo}

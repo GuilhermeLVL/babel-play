@@ -312,7 +312,7 @@ export default function LayoutStudio({ isOpen, onClose, theme, setTheme, nivel, 
                         {cfg.show && (
                           <>
                             <div className="flex items-center gap-2 mt-3">
-                              <span className="text-[11px] font-bold uppercase tracking-wider text-ink-muted mr-1">Tamanho</span>
+                              <span className="text-[11px] font-bold uppercase tracking-wider text-ink-muted me-1">Tamanho</span>
                               <div className="inline-flex items-center gap-1 p-1 bg-canvas border border-border-subtle rounded-lg">
                                 {SIZE_PRESETS.map((p) => (
                                   <button

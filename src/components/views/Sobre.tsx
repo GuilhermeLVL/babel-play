@@ -100,7 +100,7 @@ export default function Sobre({ onVerPlanos }: { onVerPlanos?: (view: string) =>
                 loading="lazy"
               />
             </span>
-            <div className="md:text-left">
+            <div className="md:text-start">
               <p className="font-marca font-bold text-xl md:text-2xl text-ink leading-tight">{CRIADOR.nome}</p>
               <p className="text-[13px] text-ink-muted mt-1">{CRIADOR.papel}</p>
             </div>

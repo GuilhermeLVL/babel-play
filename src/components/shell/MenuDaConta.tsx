@@ -140,7 +140,7 @@ export default function MenuDaConta({ onIr, orientation }: MenuDaContaProps) {
               monetização no menu de uso diário pediria atenção que o produto não precisa pedir. */}
           <button role="menuitem" onClick={() => ir('planos')} className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-[13px] text-ink hover:bg-surface-hover cursor-pointer">
             <CreditCard className="w-4 h-4 text-ink-muted" aria-hidden />
-            <span className="flex-1 text-left">Plano e consumo</span>
+            <span className="flex-1 text-start">Plano e consumo</span>
             {/* O preço só aparece para quem TEM o que comprar (spec planos-visiveis); para o
                 assinante o item volta a ser neutro. */}
             {planoAnunciavel() && <span className="text-[11px] text-accent-ink font-semibold">R$ {menorPrecoDeAssinatura()}+</span>}

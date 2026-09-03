@@ -47,7 +47,7 @@ export default function MetricsExpandedKpi({ kpi, onClose, metrics }: MetricsExp
 
   return (
     <div className="fixed inset-0 z-50 bg-ink/80 backdrop-blur-sm flex justify-end">
-      <div className="w-full max-w-2xl bg-canvas h-full shadow-2xl flex flex-col animate-in slide-in-from-right duration-300 border-l border-border-subtle overflow-hidden">
+      <div className="w-full max-w-2xl bg-canvas h-full shadow-2xl flex flex-col animate-in slide-in-from-right duration-300 border-s border-border-subtle overflow-hidden">
 
         {/* Header */}
         <div className="p-6 border-b border-border-subtle bg-surface flex justify-between items-center shrink-0">
@@ -198,7 +198,7 @@ export default function MetricsExpandedKpi({ kpi, onClose, metrics }: MetricsExp
                       <div key={lvl.level} className="card-panel p-5 bg-surface border-border-subtle">
                         <div className="flex justify-between items-end mb-3">
                           <div className="font-bold text-[14px] text-ink">{lvl.level}</div>
-                          <div className="text-right shrink-0 ml-4">
+                          <div className="text-end shrink-0 ms-4">
                             <div className="font-display font-bold text-xl text-ink">{numero(lvl.count)}</div>
                             <div className="text-[11px] font-mono text-ink-muted uppercase">termos · {percent}%</div>
                           </div>

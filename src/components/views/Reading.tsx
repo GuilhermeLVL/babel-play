@@ -913,7 +913,7 @@ export default function Reading({ recording, onChangeView }: ReadingProps = {}) 
     if (det) {
       return (
         <span
-          className="ml-2 align-middle inline-flex items-center gap-1 text-[9px] font-mono font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-accent-soft text-accent-ink"
+          className="ms-2 align-middle inline-flex items-center gap-1 text-[9px] font-mono font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-accent-soft text-accent-ink"
           title={`Idioma detectado (${det.method === 'native' ? 'detector do navegador' : 'heurística local'}) · confiança ${(det.confidence * 100).toFixed(0)}%`}
         >
           {langLabel(det.lang)}
@@ -922,7 +922,7 @@ export default function Reading({ recording, onChangeView }: ReadingProps = {}) 
     }
     return (
       <span
-        className="ml-2 align-middle inline-flex items-center gap-1 text-[9px] font-mono uppercase tracking-wider px-1.5 py-0.5 rounded border border-dashed border-border-subtle text-ink-faint"
+        className="ms-2 align-middle inline-flex items-center gap-1 text-[9px] font-mono uppercase tracking-wider px-1.5 py-0.5 rounded border border-dashed border-border-subtle text-ink-faint"
         title={`Idioma NÃO detectado (sem sinal suficiente), assumindo o idioma declarado da sessão: ${langLabel(langPair.src)}`}
       >
         {langLabel(langPair.src)}?
@@ -1159,7 +1159,7 @@ export default function Reading({ recording, onChangeView }: ReadingProps = {}) 
       >
         {isActive && isNarrating && !isNarrationPaused
           ? <Pause className="w-3 h-3" />
-          : <Play className="w-3 h-3 ml-0.5" />}
+          : <Play className="w-3 h-3 ms-0.5" />}
       </button>
     );
   };
@@ -1293,7 +1293,7 @@ export default function Reading({ recording, onChangeView }: ReadingProps = {}) 
               >
                 {isNarrating && !isNarrationPaused
                   ? <Pause className="w-5 h-5" />
-                  : <Play className="w-5 h-5 ml-0.5" />}
+                  : <Play className="w-5 h-5 ms-0.5" />}
               </button>
 
               <button
@@ -1309,7 +1309,7 @@ export default function Reading({ recording, onChangeView }: ReadingProps = {}) 
                 <button
                   onClick={stopNarration}
                   title="Parar e voltar ao início"
-                  className="p-1.5 ml-1 rounded-lg text-ink-muted hover:text-error hover:bg-surface-hover cursor-pointer"
+                  className="p-1.5 ms-1 rounded-lg text-ink-muted hover:text-error hover:bg-surface-hover cursor-pointer"
                 >
                   <Square className="w-3.5 h-3.5" />
                 </button>
@@ -1559,8 +1559,8 @@ export default function Reading({ recording, onChangeView }: ReadingProps = {}) 
               <div className="flex flex-wrap items-center gap-4">
                 {/* Color Selection */}
                 {drawTool !== 'eraser' && (
-                  <div className="flex items-center gap-1.5 border-l border-border-subtle/50 pl-4">
-                    <span className="text-[11px] font-mono text-ink-muted mr-1">Cor:</span>
+                  <div className="flex items-center gap-1.5 border-s border-border-subtle/50 ps-4">
+                    <span className="text-[11px] font-mono text-ink-muted me-1">Cor:</span>
                     {[
                       { hex: '#ef4444', name: 'Vermelho' },
                       { hex: '#f59e0b', name: 'Amarelo' },
@@ -1583,7 +1583,7 @@ export default function Reading({ recording, onChangeView }: ReadingProps = {}) 
                 )}
 
                 {/* Size Selection */}
-                <div className="flex items-center gap-2 border-l border-border-subtle/50 pl-4">
+                <div className="flex items-center gap-2 border-s border-border-subtle/50 ps-4">
                   <span className="text-[11px] font-mono text-ink-muted">Espessura: {brushSize}px</span>
                   <input
                     type="range"
@@ -1610,7 +1610,7 @@ export default function Reading({ recording, onChangeView }: ReadingProps = {}) 
             </div>
           ) : (
             <div className="flex flex-wrap items-center gap-1.5 animate-in fade-in slide-in-from-top-1">
-              <span className="text-[11px] font-mono font-bold text-ink-muted mr-1">Anotações Semânticas:</span>
+              <span className="text-[11px] font-mono font-bold text-ink-muted me-1">Anotações Semânticas:</span>
               
               <button
                 onClick={() => setSelectedTool(selectedTool === 'highlight-yellow' ? 'none' : 'highlight-yellow')}
@@ -1712,7 +1712,7 @@ export default function Reading({ recording, onChangeView }: ReadingProps = {}) 
             className={`absolute inset-0 z-10 ${isDrawModeActive ? 'pointer-events-auto cursor-crosshair' : 'pointer-events-none'}`}
           />
 
-          <p className="mb-6 italic text-[13px] border-l-2 border-accent/50 pl-3 text-ink-muted">
+          <p className="mb-6 italic text-[13px] border-s-2 border-accent/50 ps-3 text-ink-muted">
             Dica: Clique com o mouse em qualquer palavra para ouvir sua pronúncia. Ative os pincéis de grifo acima para categorizar termos, adicionar notas e até comentários gravados em áudio!
           </p>
 
@@ -1762,7 +1762,7 @@ export default function Reading({ recording, onChangeView }: ReadingProps = {}) 
                           const hasAudio = annotations.some(a => a.textIndex === sIdx && a.wordIndex === token.id && a.type === 'audio');
 
                           return (
-                            <span key={token.id} className="inline-block mr-1.5 relative group">
+                            <span key={token.id} className="inline-block me-1.5 relative group">
                               <span
                                 onMouseEnter={(e) => handleMouseEnter(e, token.clean)}
                                 onClick={() => handleWordClick(sIdx, token.id, token.original)}
@@ -1794,7 +1794,7 @@ export default function Reading({ recording, onChangeView }: ReadingProps = {}) 
               </div>
 
               {/* Right Column (Translation) */}
-              <div className="space-y-6 md:pl-8">
+              <div className="space-y-6 md:ps-8">
                 <span className="text-[10px] font-mono font-bold tracking-wider text-accent uppercase block pb-1 border-b">Tradução ({langLabel(langPair.tgt)})</span>
                 {studyTexts.map((sentenceObj, sIdx) => {
                   const isNarratingActive = activeNarratingSentenceIndex === sIdx;
@@ -1834,7 +1834,7 @@ export default function Reading({ recording, onChangeView }: ReadingProps = {}) 
                     id={`sentence-${sIdx}`}
                     className={`group/sent relative p-4 rounded-xl border transition-all ${
                       isNarratingActive
-                        ? 'bg-accent/10 border-accent/40 shadow-sm pl-4'
+                        ? 'bg-accent/10 border-accent/40 shadow-sm ps-4'
                         : 'border-transparent'
                     }`}
                   >
@@ -1864,7 +1864,7 @@ export default function Reading({ recording, onChangeView }: ReadingProps = {}) 
                         const hasAudio = annotations.some(a => a.textIndex === sIdx && a.wordIndex === token.id && a.type === 'audio');
 
                         return (
-                          <span key={token.id} className="inline-block mr-1.5 relative group">
+                          <span key={token.id} className="inline-block me-1.5 relative group">
                             <span
                               onMouseEnter={(e) => handleMouseEnter(e, token.clean)}
                               onClick={() => handleWordClick(sIdx, token.id, token.original)}
@@ -1893,7 +1893,7 @@ export default function Reading({ recording, onChangeView }: ReadingProps = {}) 
 
                     {/* Intercalated translation if set */}
                     {viewMode === 'bilingual-intercalated' && (
-                      <div className="text-[13.5px] text-ink-muted italic pl-2 border-l-2 border-border-subtle mt-1.5">
+                      <div className="text-[13.5px] text-ink-muted italic ps-2 border-s-2 border-border-subtle mt-1.5">
                         {tokenizarTexto(sentenceObj.translation || '').map((token) => (
                           <span
                             key={token.id}
@@ -1923,7 +1923,7 @@ export default function Reading({ recording, onChangeView }: ReadingProps = {}) 
           viewKey="reading"
           panelKey="notesSidebar"
           title="Estudos & Notas"
-          className="flex flex-col flex-1 md:flex-none md:shrink-0 lg:border-l border-border-subtle"
+          className="flex flex-col flex-1 md:flex-none md:shrink-0 lg:border-s border-border-subtle"
           canResizeWidth={true}
           canResizeHeight={false}
           resizeHandlePosition="left"
@@ -2030,7 +2030,7 @@ export default function Reading({ recording, onChangeView }: ReadingProps = {}) 
                         </div>
                       )}
 
-                      <span className="text-[9px] font-mono text-ink-faint block text-right pt-1">
+                      <span className="text-[9px] font-mono text-ink-faint block text-end pt-1">
                         {ann.createdAt ? new Date(ann.createdAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : 'Agora'}
                       </span>
                     </div>
@@ -2120,7 +2120,7 @@ export default function Reading({ recording, onChangeView }: ReadingProps = {}) 
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="w-full max-w-sm bg-surface text-ink rounded-2xl border border-border-subtle shadow-2xl p-6 text-center space-y-4">
             <div className="flex justify-between items-center">
-              <h3 className="font-display font-bold text-sm text-rare-ink flex items-center gap-1.5 text-left">
+              <h3 className="font-display font-bold text-sm text-rare-ink flex items-center gap-1.5 text-start">
                 <Volume2 className="w-5 h-5" /> Gravar Comentário em Áudio
               </h3>
               <button onClick={() => setRecordingTarget(null)} className="p-1 hover:bg-surface-hover rounded">
@@ -2264,7 +2264,7 @@ export default function Reading({ recording, onChangeView }: ReadingProps = {}) 
                 </div>
 
                 {wordPreview.context && (
-                  <p className="text-[13.5px] leading-relaxed text-ink-muted border-l-2 border-border-subtle pl-3 italic">
+                  <p className="text-[13.5px] leading-relaxed text-ink-muted border-s-2 border-border-subtle ps-3 italic">
                     {wordPreview.context}
                   </p>
                 )}

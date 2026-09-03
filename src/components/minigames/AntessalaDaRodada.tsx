@@ -510,7 +510,7 @@ export default function AntessalaDaRodada({
                     </div>
                   </div>
                 </div>
-                <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-[12.5px] ml-auto">
+                <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-[12.5px] ms-auto">
                   <span className="flex items-center gap-1.5 text-warn-ink font-black tabular-nums" title="Sua melhor pontuação neste jogo"><Medal className="w-3.5 h-3.5" aria-hidden /> {recorde.melhorPontos}</span>
                   {(recorde.melhorCombo ?? 0) > 0 && <span className="flex items-center gap-1.5 text-ink tabular-nums" title="Seu maior combo"><Zap className="w-3.5 h-3.5 text-warn" aria-hidden /> ×{recorde.melhorCombo}</span>}
                   {recorde.precisao != null && <span className="flex items-center gap-1.5 text-ink tabular-nums" title="Precisão histórica"><Target className="w-3.5 h-3.5 text-good" aria-hidden /> {recorde.precisao}%</span>}
@@ -532,7 +532,7 @@ export default function AntessalaDaRodada({
                     <b className="text-ink tabular-nums">{pctVocab}%</b> do vocabulário enfrentado
                   </span>
                 )}
-                <span className="flex items-center gap-1.5 ml-auto"><Sparkles className="w-3.5 h-3.5 text-accent" aria-hidden /> eventos raros: {vistos}/{totalEventos}</span>
+                <span className="flex items-center gap-1.5 ms-auto"><Sparkles className="w-3.5 h-3.5 text-accent" aria-hidden /> eventos raros: {vistos}/{totalEventos}</span>
               </div>
             </section>
           );
@@ -620,7 +620,7 @@ export default function AntessalaDaRodada({
                 <HelpCircle className="w-3.5 h-3.5" aria-hidden /> Como funciona a repetição e a dificuldade
                 <ChevronDown className="w-3.5 h-3.5 transition-transform group-open:rotate-180" aria-hidden />
               </summary>
-              <ul className="mt-2 text-[12px] text-ink-muted leading-snug space-y-1 max-w-[70ch] list-disc pl-4">
+              <ul className="mt-2 text-[12px] text-ink-muted leading-snug space-y-1 max-w-[70ch] list-disc ps-4">
                 <li>Cada palavra ou frase tem uma memória única em todos os jogos: nova → em aprendizado → firme.</li>
                 <li>Errou? Ela volta espaçada: 1º erro em {JANELAS_DE_RETORNO[0]} rodadas, 2º seguido em {JANELAS_DE_RETORNO[1]}, 3º só no dia seguinte. Um acerto zera a contagem.</li>
                 <li>{LEECH_APOS} erros seguidos marcam a palavra como difícil para você: ela sai do sorteio comum e volta na rodada de resgate.</li>
@@ -696,7 +696,7 @@ export default function AntessalaDaRodada({
                   )}
                   {/* O selo tem TEXTO, não só cor — daltônico e tema de alto contraste leem igual. */}
                   <span
-                    className={`badge-tag ${selo.variante} ml-auto shrink-0`}
+                    className={`badge-tag ${selo.variante} ms-auto shrink-0`}
                     title={selo.title}
                   >
                     {selo.texto}
@@ -765,11 +765,11 @@ export default function AntessalaDaRodada({
                   </caption>
                   <thead>
                     <tr className="text-ink-faint">
-                      <th scope="col" className="text-left font-bold uppercase tracking-wider text-[9px] px-3 py-2">Fase</th>
-                      <th scope="col" className="text-right font-bold uppercase tracking-wider text-[9px] px-3 py-2">Pontos</th>
-                      <th scope="col" className="text-left font-bold uppercase tracking-wider text-[9px] px-3 py-2">Estrelas</th>
-                      <th scope="col" className="text-left font-bold uppercase tracking-wider text-[9px] px-3 py-2">Quando</th>
-                      <th scope="col" className="text-left font-bold uppercase tracking-wider text-[9px] px-3 py-2 w-[40%]">O que caiu</th>
+                      <th scope="col" className="text-start font-bold uppercase tracking-wider text-[9px] px-3 py-2">Fase</th>
+                      <th scope="col" className="text-end font-bold uppercase tracking-wider text-[9px] px-3 py-2">Pontos</th>
+                      <th scope="col" className="text-start font-bold uppercase tracking-wider text-[9px] px-3 py-2">Estrelas</th>
+                      <th scope="col" className="text-start font-bold uppercase tracking-wider text-[9px] px-3 py-2">Quando</th>
+                      <th scope="col" className="text-start font-bold uppercase tracking-wider text-[9px] px-3 py-2 w-[40%]">O que caiu</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -782,7 +782,7 @@ export default function AntessalaDaRodada({
                           key={f.roundId}
                           className="border-t border-border-subtle group hover:bg-canvas/50 focus-within:bg-canvas/50 transition-colors"
                         >
-                          <th scope="row" className="text-left px-3 py-2">
+                          <th scope="row" className="text-start px-3 py-2">
                             <button
                               type="button"
                               onClick={() => onJogarFase(f.refs)}
@@ -801,7 +801,7 @@ export default function AntessalaDaRodada({
                               Fase {numero}
                             </button>
                           </th>
-                          <td className="px-3 py-2 text-right tabular-nums text-ink-muted">{f.pontos || '—'}</td>
+                          <td className="px-3 py-2 text-end tabular-nums text-ink-muted">{f.pontos || '—'}</td>
                           <td className="px-3 py-2">
                             {/* Preenchida ou vazia por FORMA, não por cor: o app tem 7 temas e o
                                 alto contraste apaga a diferença de matiz. */}

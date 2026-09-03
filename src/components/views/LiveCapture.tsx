@@ -208,14 +208,14 @@ function TranscriptVisualSettings({ idPrefix, dense, tsSettings, updateSetting }
  *
  * Na linha ela aponta para a direita e ganha `mt-3` para descer até a altura da caixa (os campos
  * têm rótulo em cima, então o centro vertical do grupo não é o centro da caixa). Empilhada ela
- * gira para baixo e alinha com o texto do campo (`ml-3` = o `px-3` do botão em modo `block`),
+ * gira para baixo e alinha com o texto do campo (`ms-3` = o `px-3` do botão em modo `block`),
  * formando uma espinha vertical entre origem e destino.
  */
 function SetaDoPar({ empilhado }: { empilhado: boolean }) {
   return (
     <ArrowRight
       aria-hidden
-      className={`w-3.5 h-3.5 text-ink-faint shrink-0 ${empilhado ? 'rotate-90 ml-3 -my-1' : 'mt-3'}`}
+      className={`w-3.5 h-3.5 text-ink-faint shrink-0 ${empilhado ? 'rotate-90 ms-3 -my-1' : 'mt-3'}`}
     />
   );
 }
@@ -3172,7 +3172,7 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
                       </button>
 
                       {showSetupGuide && (
-                        <div className="space-y-1.5 pt-1 pl-4 border-l-2 border-border-subtle">
+                        <div className="space-y-1.5 pt-1 ps-4 border-s-2 border-border-subtle">
                           <p><b className="text-ink">A, Stereo Mix:</b> Som → aba <b className="text-ink">Gravação</b> → botão direito → <b className="text-ink">"Mostrar dispositivos desabilitados"</b> → ative <b className="text-ink">"Mixagem estéreo"</b> e selecione-a acima.</p>
                           <p><b className="text-ink">B, VB-Audio Cable:</b> instale de <a href="https://vb-audio.com/Cable/" target="_blank" rel="noreferrer" className="text-accent underline">vb-audio.com/Cable</a>, defina <b className="text-ink">"CABLE Input"</b> como saída do Windows (ative "Escutar este dispositivo" p/ continuar ouvindo) e selecione <b className="text-ink">"CABLE Output"</b> acima.</p>
                           {!loopbackDetected && (
@@ -3405,7 +3405,7 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
         {/* ============================================== */}
         {/* LEFT COLUMN: PRIMARY WORKSPACE & STREAMS       */}
         {/* ============================================== */}
-        <div className="flex-1 flex flex-col lg:overflow-y-auto custom-scrollbar border-b lg:border-b-0 lg:border-r border-border-subtle p-4 lg:p-6 space-y-6">
+        <div className="flex-1 flex flex-col lg:overflow-y-auto custom-scrollbar border-b lg:border-b-0 lg:border-e border-border-subtle p-4 lg:p-6 space-y-6">
           {/* SEM `-mb-2`: a margem negativa puxava o painel 8px PARA CIMA DO TEXTO — medido,
               o parágrafo terminava em 151px e o painel começava em 143px. Daí a sobreposição. */}
           <p className="text-[13px] text-ink-muted max-w-[68ch]">
@@ -3599,7 +3599,7 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
                           de palavras sem tradução — 198 de 201 na conta do dono. O aviso mora aqui
                           porque é aqui que a palavra é fichada. */}
                       {baseLang(sourceLang) === baseLang(targetLang) && (
-                        <p className="text-[9px] text-warn-ink md:text-right leading-tight">
+                        <p className="text-[9px] text-warn-ink md:text-end leading-tight">
                           ⚠ Os dois idiomas são o mesmo: não há o que traduzir, e as palavras fichadas
                           ficam <b>sem verso</b> (não servem para revisar).{' '}
                           <button onClick={() => setShowConfigPanel(true)} className="underline font-bold cursor-pointer">
@@ -3609,7 +3609,7 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
                       )}
                       {/* Limite honesto: a Web Speech (motor padrão do mic) não detecta idioma. */}
                       {autoDetectMyLang && captureScenario !== 'media' && micEngine === 'browser' && (
-                        <p className="text-[9px] text-warn-ink md:text-right leading-tight">
+                        <p className="text-[9px] text-warn-ink md:text-end leading-tight">
                           ⚠ No microfone, a detecção automática exige o motor Whisper (ajustes avançados), no motor navegador vale o idioma escolhido.
                         </p>
                       )}
@@ -3620,14 +3620,14 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
                         const coverage = mtCoverage(sourceLang, targetLang);
                         if (coverage === 'online') {
                           return (
-                            <p className="text-[9px] text-warn-ink md:text-right leading-tight">
+                            <p className="text-[9px] text-warn-ink md:text-end leading-tight">
                               ⚠ {langLabel(sourceLang)}↔{langLabel(targetLang)} exige internet (o tradutor local cobre só ↔ inglês).
                             </p>
                           );
                         }
                         if (coverage === 'unknown') {
                           return (
-                            <p className="text-[9px] text-warn-ink md:text-right leading-tight">
+                            <p className="text-[9px] text-warn-ink md:text-end leading-tight">
                               ⚠ Não há tradutor para {langLabel(sourceLang)}↔{langLabel(targetLang)}, as falas serão transcritas, mas ficarão sem tradução.
                             </p>
                           );
@@ -3692,7 +3692,7 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
                     <ArrowDown className="w-3.5 h-3.5" /> Ir para a fala atual
                   </button>
                 )}
-                <div ref={transcriptScrollRef} onScroll={handleTranscriptScroll} className="flex-1 min-h-0 overflow-y-auto custom-scrollbar pr-2">
+                <div ref={transcriptScrollRef} onScroll={handleTranscriptScroll} className="flex-1 min-h-0 overflow-y-auto custom-scrollbar pe-2">
                   {/* Primeiro contato: o download do modelo (dezenas de MB) acontecia atrás do painel de
                       ajustes, a tela dizia "Ouvindo…" por minutos sem explicar nada. Aqui, onde a pessoa olha. */}
                   {isRecording && modelPrep && !(modelPrep.done && (modelPrep.mt == null || modelPrep.mt >= 1)) && (
@@ -3912,7 +3912,7 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
               {guiaDeAudio === 'JANELA_SEM_AUDIO' ? (
                 <>
                   <p>O Chrome não entrega o áudio de uma JANELA (limitação da plataforma, não do Babel). Para jogos e apps fora do navegador:</p>
-                  <ol className="list-decimal ml-5 space-y-1">
+                  <ol className="list-decimal ms-5 space-y-1">
                     <li>Clique em <b className="text-ink">Escolher de novo</b>;</li>
                     <li>Na janela de seleção, escolha a aba <b className="text-ink">Tela inteira</b>;</li>
                     <li>Marque <b className="text-ink">"Também compartilhar o áudio do sistema"</b> (canto inferior).</li>
@@ -3921,7 +3921,7 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
               ) : (
                 <>
                   <p>Você compartilhou, mas sem áudio. Repita a escolha e:</p>
-                  <ol className="list-decimal ml-5 space-y-1">
+                  <ol className="list-decimal ms-5 space-y-1">
                     <li>Numa <b className="text-ink">aba</b>: marque "Compartilhar áudio da guia";</li>
                     <li>Na <b className="text-ink">Tela inteira</b>: marque "Também compartilhar o áudio do sistema".</li>
                   </ol>
@@ -4009,7 +4009,7 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
                 <ArrowDown className="w-4 h-4" /> Ir para a fala atual
               </button>
             )}
-            <div ref={focusScrollRef} onScroll={handleFocusScroll} className="flex-1 min-h-0 overflow-y-auto custom-scrollbar pr-4">
+            <div ref={focusScrollRef} onScroll={handleFocusScroll} className="flex-1 min-h-0 overflow-y-auto custom-scrollbar pe-4">
               {/* Primeiro contato: o download do modelo (dezenas de MB) acontecia atrás do painel de
                   ajustes, a tela dizia "Ouvindo…" por minutos sem explicar nada. Aqui, onde a pessoa olha. */}
               {isRecording && modelPrep && !(modelPrep.done && (modelPrep.mt == null || modelPrep.mt >= 1)) && (

@@ -984,7 +984,7 @@ export default function Analysis({
                 {isPlaying ? (
                   <Video className="w-10 h-10 text-white animate-pulse" />
                 ) : (
-                  <Play className="w-10 h-10 text-white ml-1" />
+                  <Play className="w-10 h-10 text-white ms-1" />
                 )}
               </div>
 
@@ -1100,7 +1100,7 @@ export default function Analysis({
         <div className="bg-surface border border-border-subtle p-4 rounded-xl flex flex-col gap-3">
           <div className="flex items-center gap-4">
             {/* Time label elapsed */}
-            <span className="font-mono text-[12px] font-bold text-ink-muted w-12 text-right">
+            <span className="font-mono text-[12px] font-bold text-ink-muted w-12 text-end">
               {formatSeconds(currentTime)}
             </span>
 
@@ -1160,7 +1160,7 @@ export default function Analysis({
                      */
                     aria-label={rotulo}
                     tabIndex={-1}
-                    className={`absolute w-2.5 h-2.5 -ml-1.25 rounded-full border border-surface shadow-sm transition-all hover:scale-125 z-10 cursor-pointer bg-accent ${
+                    className={`absolute w-2.5 h-2.5 -ms-1.25 rounded-full border border-surface shadow-sm transition-all hover:scale-125 z-10 cursor-pointer bg-accent ${
                       activeSentenceIndex === idx ? 'ring-2 ring-ink scale-125' : ''
                     }`}
                     style={{ left: `${percentage}%` }}
@@ -1187,7 +1187,7 @@ export default function Analysis({
                 {isPlaying ? (
                   <Pause className="w-5 h-5 text-white" />
                 ) : (
-                  <Play className="w-5 h-5 text-white ml-0.5" />
+                  <Play className="w-5 h-5 text-white ms-0.5" />
                 )}
               </button>
 
@@ -1226,7 +1226,7 @@ export default function Analysis({
                     setShadowingStep('idle');
                     setShadowingScore(null);
                   }}
-                  className="ml-2 btn-solid text-[10.5px] py-1 px-2 rounded-md cursor-pointer flex items-center gap-1"
+                  className="ms-2 btn-solid text-[10.5px] py-1 px-2 rounded-md cursor-pointer flex items-center gap-1"
                 >
                   <Mic className="w-3 h-3 text-white" /> Treinar Sombra
                 </button>
@@ -1599,7 +1599,7 @@ export default function Analysis({
                   name="analysis-session-switcher"
                   value={recording.id}
                   onChange={(e) => onChangeView('analysis', { id: e.target.value })}
-                  className={`appearance-none rounded-xl py-2 pl-3.5 pr-9 text-[12.5px] font-bold outline-none cursor-pointer transition-colors ${selectClass}`}
+                  className={`appearance-none rounded-xl py-2 ps-3.5 pe-9 text-[12.5px] font-bold outline-none cursor-pointer transition-colors ${selectClass}`}
                 >
                   {allRecordings.map(r => (
                     <option key={r.id} value={r.id}>
@@ -1720,17 +1720,17 @@ export default function Analysis({
                   </div>
                   <div className="card-panel p-4 cursor-pointer hover:border-accent hover:shadow-md transition-all" onClick={() => setExpandedAnalysisKpi('study_time')}>
                     <span className="label-mono block mb-1 font-semibold text-ink-muted flex items-center gap-1.5"><Clock className="w-3.5 h-3.5" /> Tempo de Estudo</span>
-                    <div className="font-display font-black text-2xl tracking-tight">{Math.max(1, Math.floor(recording.wordCount / 250))}<span className="text-[14px] text-ink-faint ml-0.5">min</span></div>
+                    <div className="font-display font-black text-2xl tracking-tight">{Math.max(1, Math.floor(recording.wordCount / 250))}<span className="text-[14px] text-ink-faint ms-0.5">min</span></div>
                     <div className="text-[11.5px] text-ink-muted mt-1 font-medium">Estimativa de leitura ativa</div>
                   </div>
                   <div className="card-panel p-4 cursor-pointer hover:border-accent hover:shadow-md transition-all" onClick={() => setExpandedAnalysisKpi('flesch')}>
                     <span className="label-mono block mb-1 font-semibold text-ink-muted flex items-center gap-1.5"><Crosshair className="w-3.5 h-3.5" /> Complexidade (Flesch)</span>
-                    <div className="font-display font-black text-2xl tracking-tight text-accent-ink">{stats.readingEase != null ? stats.readingEase : '-'}{stats.readingEase != null && <span className="text-[14px] text-ink-faint ml-0.5">pts</span>}</div>
+                    <div className="font-display font-black text-2xl tracking-tight text-accent-ink">{stats.readingEase != null ? stats.readingEase : '-'}{stats.readingEase != null && <span className="text-[14px] text-ink-faint ms-0.5">pts</span>}</div>
                     <div className="text-[11.5px] text-ink-muted mt-1 font-medium">{stats.readingEase != null ? 'Flesch Reading Ease (maior = mais fácil)' : 'requer +texto'}</div>
                   </div>
                   <div className="card-panel p-4 cursor-pointer hover:border-accent hover:shadow-md transition-all" onClick={() => setExpandedAnalysisKpi('density')}>
                     <span className="label-mono block mb-1 font-semibold text-ink-muted flex items-center gap-1.5"><BarChart2 className="w-3.5 h-3.5" /> Densidade Lexical</span>
-                    <div className="font-display font-black text-2xl tracking-tight">{stats.wordCount > 0 ? stats.lexicalDensityPct : '-'}{stats.wordCount > 0 && <span className="text-[14px] text-ink-faint ml-0.5">%</span>}</div>
+                    <div className="font-display font-black text-2xl tracking-tight">{stats.wordCount > 0 ? stats.lexicalDensityPct : '-'}{stats.wordCount > 0 && <span className="text-[14px] text-ink-faint ms-0.5">%</span>}</div>
                     <div className="text-[11.5px] text-ink-muted mt-1 font-medium">Palavras de conteúdo</div>
                   </div>
                   <div className="card-panel p-4 cursor-pointer hover:border-accent hover:shadow-md transition-all" onClick={() => setExpandedAnalysisKpi('jargons')}>
@@ -1743,7 +1743,7 @@ export default function Analysis({
                 <>
                   <div className="card-panel p-4 cursor-pointer hover:border-accent hover:shadow-md transition-all" onClick={() => setExpandedAnalysisKpi('ppm')}>
                     <span className="label-mono block mb-1 font-semibold text-ink-muted flex items-center gap-1.5"><Activity className="w-3.5 h-3.5" /> Ritmo de Fala (PPM)</span>
-                    <div className="font-display font-black text-2xl tracking-tight text-accent-ink">{realWpm != null ? realWpm : '-'}{realWpm != null && <span className="text-[14px] text-ink-faint ml-0.5">ppm</span>}</div>
+                    <div className="font-display font-black text-2xl tracking-tight text-accent-ink">{realWpm != null ? realWpm : '-'}{realWpm != null && <span className="text-[14px] text-ink-faint ms-0.5">ppm</span>}</div>
                     <div className="text-[11.5px] text-ink-muted mt-1 font-medium">{realWpm != null ? 'Palavras/min (timing real)' : 'requer timing das falas'}</div>
                   </div>
                   <div className="card-panel p-4 cursor-pointer hover:border-accent hover:shadow-md transition-all" onClick={() => setExpandedAnalysisKpi('fillers')}>
@@ -1759,7 +1759,7 @@ export default function Analysis({
                   </div>
                   <div className="card-panel p-4 cursor-pointer hover:border-accent hover:shadow-md transition-all" onClick={() => setExpandedAnalysisKpi('lexical_richness')}>
                     <span className="label-mono block mb-1 font-semibold text-ink-muted flex items-center gap-1.5"><Crosshair className="w-3.5 h-3.5" /> Riqueza Lexical (TTR)</span>
-                    <div className="font-display font-black text-2xl tracking-tight">{stats.wordCount > 0 ? Math.round(stats.typeTokenRatio * 100) : '-'}{stats.wordCount > 0 && <span className="text-[14px] text-ink-faint ml-0.5">/100</span>}</div>
+                    <div className="font-display font-black text-2xl tracking-tight">{stats.wordCount > 0 ? Math.round(stats.typeTokenRatio * 100) : '-'}{stats.wordCount > 0 && <span className="text-[14px] text-ink-faint ms-0.5">/100</span>}</div>
                     <div className="text-[11.5px] text-ink-muted mt-1 font-medium">Razão tipo/token do texto</div>
                   </div>
                   {/* F7 — "Tom Vocal Predominante" SAIU da faixa de herói.
@@ -2082,14 +2082,14 @@ export default function Analysis({
                           <div className="space-y-2">
                             {lexicalDetail.trechos.map((t, i) => (
                               <div key={i} className="p-3 bg-surface/50 border border-border-subtle/50 rounded-xl relative group">
-                                <p className="text-[13px] leading-relaxed text-ink-muted italic pr-9">"{t.texto}"</p>
+                                <p className="text-[13px] leading-relaxed text-ink-muted italic pe-9">"{t.texto}"</p>
                                 <button
                                   onClick={() => playFrom(t.startTime)}
                                   title="Ouvir este trecho"
                                   aria-label={`Ouvir o trecho a partir de ${formatSeconds(t.startTime)}`}
                                   className="absolute right-2 top-2 p-2 bg-canvas rounded-full shadow-sm text-ink-muted hover:text-accent transition-all border border-border-subtle"
                                 >
-                                  <Play className="w-3 h-3 ml-0.5" />
+                                  <Play className="w-3 h-3 ms-0.5" />
                                 </button>
                               </div>
                             ))}
@@ -2132,7 +2132,7 @@ export default function Analysis({
                     <span className="label-mono block mb-2 font-semibold text-ink-muted">Pausas Articulatórias</span>
                     <div className="font-display font-black text-3xl tracking-tight text-ink">
                       {realSilencio != null ? Math.round(realSilencio.ms / 1000) : '-'}
-                      {realSilencio != null && <span className="text-[14px] text-ink-faint ml-1">seg</span>}
+                      {realSilencio != null && <span className="text-[14px] text-ink-faint ms-1">seg</span>}
                     </div>
                     <p className="text-[12px] text-ink-muted mt-2">
                       {realSilencio != null
@@ -2411,7 +2411,7 @@ export default function Analysis({
                           </button>
                         )}
                       </div>
-                      <div className="pl-4 transition-colors">
+                      <div className="ps-4 transition-colors">
                         <div className="text-[10.5px] font-bold text-ink-faint uppercase tracking-widest mb-1.5 flex items-center gap-2">
                           <span className="font-mono text-ink-muted normal-case tracking-normal">{sentence.time}</span>
                           <span className="bg-surface-hover px-1.5 py-0.5 rounded text-[9px] font-extrabold text-accent">{sentence.speaker}</span>
@@ -2673,7 +2673,7 @@ export default function Analysis({
                   </div>
 
                   {d.context && (
-                    <p className="text-[13px] leading-relaxed text-ink-muted border-l-2 border-border-subtle pl-3 italic">
+                    <p className="text-[13px] leading-relaxed text-ink-muted border-s-2 border-border-subtle ps-3 italic">
                       "{d.context}"
                     </p>
                   )}
@@ -2748,7 +2748,7 @@ export default function Analysis({
                   document.body.removeChild(link);
                   setShowExportModal(false);
                 }}
-                className="p-5 border-2 border-border-subtle hover:border-accent bg-surface text-left rounded-xl transition-all cursor-pointer group flex flex-col justify-between h-44"
+                className="p-5 border-2 border-border-subtle hover:border-accent bg-surface text-start rounded-xl transition-all cursor-pointer group flex flex-col justify-between h-44"
               >
                 <div>
                   <div className="flex items-center gap-2 mb-2">
@@ -2780,7 +2780,7 @@ export default function Analysis({
                   URL.revokeObjectURL(url);
                   setShowExportModal(false);
                 }}
-                className="p-5 border-2 border-border-subtle hover:border-rare bg-surface text-left rounded-xl transition-all cursor-pointer group flex flex-col justify-between h-44"
+                className="p-5 border-2 border-border-subtle hover:border-rare bg-surface text-start rounded-xl transition-all cursor-pointer group flex flex-col justify-between h-44"
               >
                 <div>
                   <div className="flex items-center gap-2 mb-2">
@@ -2824,7 +2824,7 @@ export default function Analysis({
                   } catch { /* download best-effort */ }
                   setShowExportModal(false);
                 }}
-                className={`p-5 border-2 border-border-subtle bg-surface text-left rounded-xl transition-all group flex flex-col justify-between h-44 ${
+                className={`p-5 border-2 border-border-subtle bg-surface text-start rounded-xl transition-all group flex flex-col justify-between h-44 ${
                   recording.audioUrl ? 'hover:border-good cursor-pointer' : 'opacity-60 cursor-not-allowed'
                 }`}
               >
@@ -2848,7 +2848,7 @@ export default function Analysis({
 
               {/* Option 4: YouTube Video (Locked) */}
               <div 
-                className="p-5 border-2 border-dashed border-border-subtle bg-surface-hover/50 text-left rounded-xl flex flex-col justify-between h-44 relative opacity-60"
+                className="p-5 border-2 border-dashed border-border-subtle bg-surface-hover/50 text-start rounded-xl flex flex-col justify-between h-44 relative opacity-60"
               >
                 <div>
                   <div className="flex items-center gap-2 mb-2">

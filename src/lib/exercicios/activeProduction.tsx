@@ -307,7 +307,7 @@ export function ActiveProductionExercise({
 
             {/* A IA falhou. Antes isto era invisível: a tela caía na heurística local e mentia o selo. */}
             {llmError && (
-              <p className="text-[11.5px] text-warn-ink bg-warn-soft border border-warn/20 rounded-xl p-3 leading-relaxed text-left">
+              <p className="text-[11.5px] text-warn-ink bg-warn-soft border border-warn/20 rounded-xl p-3 leading-relaxed text-start">
                 {llmError}
               </p>
             )}
@@ -357,7 +357,7 @@ export function ActiveProductionExercise({
 
             {/* O veredito foi de um MODELO: mostramos o motivo DELE e marcamos como conteúdo de IA. */}
             {validationSource === 'probabilistic' && (
-              <div className="bg-canvas border border-border-subtle p-4 rounded-xl text-left space-y-2">
+              <div className="bg-canvas border border-border-subtle p-4 rounded-xl text-start space-y-2">
                 <span className="text-[10px] uppercase font-mono text-ink-muted block">
                   Por que a IA decidiu assim
                 </span>
@@ -369,7 +369,7 @@ export function ActiveProductionExercise({
             )}
 
             {/* Complete sentence revealed */}
-            <div className="bg-canvas border border-border-subtle p-4 rounded-xl text-left">
+            <div className="bg-canvas border border-border-subtle p-4 rounded-xl text-start">
               <span className="text-[10px] uppercase font-mono text-ink-muted block mb-1">Frase Completa Revelada</span>
               <p className="text-[14.5px] text-ink italic leading-relaxed">
                 {card.sentence ? (

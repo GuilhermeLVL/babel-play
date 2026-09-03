@@ -136,7 +136,7 @@ export default function ComprarCreditos() {
       <button
         onClick={() => setEscolhido(passe)}
         aria-pressed={escolhido?.sku === passe.sku}
-        className={`w-full text-left card-panel p-4 border-2 cursor-pointer transition-colors ${
+        className={`w-full text-start card-panel p-4 border-2 cursor-pointer transition-colors ${
           escolhido?.sku === passe.sku ? 'border-premium bg-premium-soft' : 'border-border-subtle hover:border-premium'
         }`}
       >
@@ -155,7 +155,7 @@ export default function ComprarCreditos() {
             key={p.sku}
             onClick={() => setEscolhido(p)}
             aria-pressed={escolhido?.sku === p.sku}
-            className={`card-panel p-3 text-left cursor-pointer border-2 transition-colors ${
+            className={`card-panel p-3 text-start cursor-pointer border-2 transition-colors ${
               escolhido?.sku === p.sku ? 'border-premium bg-premium-soft' : 'border-border-subtle hover:border-premium'
             }`}
           >

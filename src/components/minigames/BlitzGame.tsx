@@ -358,7 +358,7 @@ export default function BlitzGame({ items, ageProfile, onFinish, onExit }: Blitz
           </div>
           {/* Ranking global: opt-in, com apelido — só pontos e combo saem daqui. */}
           {pontosRef.current > 0 && (
-            <div className="mt-6 pt-5 border-t border-border-subtle text-left">
+            <div className="mt-6 pt-5 border-t border-border-subtle text-start">
               <p className="text-[11px] font-bold uppercase tracking-wider text-ink-faint mb-2">Ranking global</p>
               {envio === 'ok' ? (
                 <p className="text-[13px] font-bold text-good-ink">Pontuação enviada! Veja a tabela em "Recordes e ranking".</p>

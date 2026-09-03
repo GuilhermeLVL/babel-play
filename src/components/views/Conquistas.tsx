@@ -61,7 +61,7 @@ export default function Conquistas({ progress, ctx }: ConquistasProps) {
             <p className="text-[12px] text-ink-muted">cada uma dá Seeds e XP; as raras dão itens que a Loja não vende</p>
           </div>
         </div>
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 ml-auto text-[12.5px] tabular-nums">
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 ms-auto text-[12.5px] tabular-nums">
           <span className="flex items-center gap-1.5 text-ink"><Star className="w-3.5 h-3.5 text-warn fill-warn" aria-hidden /> nível {progress.level}</span>
           <span className="flex items-center gap-1.5 text-good-ink font-bold"><Sprout className="w-3.5 h-3.5" aria-hidden /> {progress.seeds} Seeds</span>
           {progress.streakDays > 0 && <span className="flex items-center gap-1.5 text-ink"><Flame className="w-3.5 h-3.5 text-warn" aria-hidden /> {progress.streakDays} dias seguidos</span>}
@@ -110,10 +110,10 @@ export default function Conquistas({ progress, ctx }: ConquistasProps) {
         <div className="card-panel bg-surface overflow-hidden">
           <table className="w-full text-[12.5px]">
             <thead>
-              <tr className="text-left text-[10.5px] uppercase tracking-wider text-ink-faint border-b border-border-subtle">
+              <tr className="text-start text-[10.5px] uppercase tracking-wider text-ink-faint border-b border-border-subtle">
                 <th className="px-4 py-2.5 font-black">Ação</th>
-                <th className="px-3 py-2.5 font-black text-right">XP</th>
-                <th className="px-3 py-2.5 font-black text-right">Seeds</th>
+                <th className="px-3 py-2.5 font-black text-end">XP</th>
+                <th className="px-3 py-2.5 font-black text-end">Seeds</th>
                 <th className="px-4 py-2.5 font-black hidden sm:table-cell">Limite</th>
               </tr>
             </thead>
@@ -124,8 +124,8 @@ export default function Conquistas({ progress, ctx }: ConquistasProps) {
                     <span className="font-semibold">{r.como}</span>
                     <span className="text-ink-faint"> · {r.unidade}</span>
                   </td>
-                  <td className="px-3 py-2.5 text-right tabular-nums text-ink">{r.id === 'conquista' ? 'varia' : `+${r.xp}`}</td>
-                  <td className="px-3 py-2.5 text-right tabular-nums font-bold text-good-ink">{r.id === 'conquista' ? 'varia' : r.seeds > 0 ? `+${r.seeds}` : '—'}</td>
+                  <td className="px-3 py-2.5 text-end tabular-nums text-ink">{r.id === 'conquista' ? 'varia' : `+${r.xp}`}</td>
+                  <td className="px-3 py-2.5 text-end tabular-nums font-bold text-good-ink">{r.id === 'conquista' ? 'varia' : r.seeds > 0 ? `+${r.seeds}` : '—'}</td>
                   <td className="px-4 py-2.5 text-ink-faint hidden sm:table-cell">{r.teto ?? ''}</td>
                 </tr>
               ))}
@@ -204,7 +204,7 @@ export default function Conquistas({ progress, ctx }: ConquistasProps) {
                         <Star className="w-3.5 h-3.5 fill-warn text-warn" aria-hidden /> {exclusivo.nome}
                       </span>
                     )}
-                    {feita && quando && <span className="ml-auto text-ink-faint">{dataCurta(quando)}</span>}
+                    {feita && quando && <span className="ms-auto text-ink-faint">{dataCurta(quando)}</span>}
                   </div>
                 </div>
               );

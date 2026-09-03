@@ -176,7 +176,7 @@ export function SeletorDeConteudo({
 
         {acoes && (
           <div className="flex items-center gap-2 flex-wrap pt-3.5 mt-1 border-t border-dashed border-border-subtle">
-            <span className="label-mono mr-1">trazer ou gerenciar</span>
+            <span className="label-mono me-1">trazer ou gerenciar</span>
             {acoes}
           </div>
         )}

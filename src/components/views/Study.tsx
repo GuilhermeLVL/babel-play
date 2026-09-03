@@ -504,7 +504,7 @@ export default function Study({
         key={ex.id}
         onClick={() => !blocked && ex.run()}
         disabled={!!blocked}
-        className={`w-full flex items-center gap-3.5 px-4 py-3.5 text-left transition-colors ${
+        className={`w-full flex items-center gap-3.5 px-4 py-3.5 text-start transition-colors ${
           blocked ? 'opacity-50 cursor-not-allowed' : 'hover:bg-surface-hover cursor-pointer group'
         }`}
       >
@@ -585,7 +585,7 @@ export default function Study({
             >
               <Search className="w-3.5 h-3.5" />
               <span>Buscar exercício</span>
-              <kbd className="text-[10px] font-mono border border-border-subtle rounded px-1 py-0.5 ml-1">⌘K</kbd>
+              <kbd className="text-[10px] font-mono border border-border-subtle rounded px-1 py-0.5 ms-1">⌘K</kbd>
             </button>
           )}
         </div>
@@ -714,7 +714,7 @@ export default function Study({
               <div key={card.id} className="flex items-center gap-3 px-4 py-2.5 hover:bg-surface-hover transition-colors">
                 <button
                   onClick={() => void examineWord(card.word)}
-                  className="min-w-0 flex-1 text-left cursor-pointer group"
+                  className="min-w-0 flex-1 text-start cursor-pointer group"
                   title="Abrir no Analista de Vocabulário"
                 >
                   <span className="block text-[13px] font-bold text-ink group-hover:text-accent transition-colors truncate">
@@ -1032,7 +1032,7 @@ export default function Study({
                           </div>
 
                           {currentCard?.sentence && (
-                            <div className="bg-canvas border border-border-subtle p-3 rounded-xl max-w-lg mx-auto text-left">
+                            <div className="bg-canvas border border-border-subtle p-3 rounded-xl max-w-lg mx-auto text-start">
                               <span className="text-[10px] uppercase font-mono text-ink-muted block mb-1">Frase Contexto</span>
                               <p className="text-[13px] text-ink italic leading-relaxed">
                                 {currentCard.sentence!.split(new RegExp(`(${currentCard.word})`, 'gi')).map((chunk, index) => {

@@ -333,7 +333,7 @@ export default function SalaDeEscolha({
                       <button
                         onClick={() => setSessionId(g.id)}
                         aria-pressed={sessionId === g.id}
-                        className={`w-full text-left px-2.5 py-2 rounded-lg text-[12.5px] cursor-pointer flex items-center gap-2 ${
+                        className={`w-full text-start px-2.5 py-2 rounded-lg text-[12.5px] cursor-pointer flex items-center gap-2 ${
                           sessionId === g.id ? 'bg-accent-soft text-accent-ink font-bold' : 'text-ink hover:bg-surface-hover'
                         }`}
                         title={g.title}

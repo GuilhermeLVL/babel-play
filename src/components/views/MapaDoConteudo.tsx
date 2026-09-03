@@ -300,7 +300,7 @@ export default function MapaDoConteudo({
             </span>
           )}
           {saldo.total > 0 && (
-            <span className="text-ink-faint ml-auto">
+            <span className="text-ink-faint ms-auto">
               {saldo.pct}% {rotuloCobertura[ageProfile]}
             </span>
           )}
@@ -330,7 +330,7 @@ export default function MapaDoConteudo({
                 <button
                   key={n.nivel}
                   onClick={() => onEscolherNivel(n.nivel)}
-                  className={`px-3 py-2 rounded-xl border text-left transition-all cursor-pointer ${
+                  className={`px-3 py-2 rounded-xl border text-start transition-all cursor-pointer ${
                     ativo ? 'border-accent bg-accent-soft' : 'border-border-subtle hover:border-accent'
                   }`}
                   title={`${n.jaCairam} de ${n.total} palavras do ${n.nivel} já apareceram em alguma rodada`}
@@ -407,7 +407,7 @@ export default function MapaDoConteudo({
                     {it.pista}
                   </span>
                 )}
-                <span className="flex items-center gap-2 ml-auto shrink-0">
+                <span className="flex items-center gap-2 ms-auto shrink-0">
                   {/* A contagem fica FORA do selo: o selo diz o estado, o número diz o quanto —
                       juntos num badge só, "já vi" e "já vi 9x" pareceriam o mesmo item. */}
                   <span className="text-[11px] font-mono text-ink-faint">

@@ -48,7 +48,7 @@ function Linha({
       className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-[13px] text-ink hover:bg-surface-hover cursor-pointer"
     >
       <span className={ativo ? 'text-accent-ink' : 'text-ink-faint'}>{icone}</span>
-      <span className="flex-1 text-left font-semibold">{rotulo}</span>
+      <span className="flex-1 text-start font-semibold">{rotulo}</span>
       <span className={`text-[11px] ${ativo ? 'text-accent-ink font-bold' : 'text-ink-faint'}`}>{estado}</span>
     </button>
   );

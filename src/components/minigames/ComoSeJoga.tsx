@@ -245,7 +245,7 @@ export default function ComoSeJoga({ jogo, titulo, ageProfile, onJogar, onFechar
             </div>
             <button
               onClick={onFechar}
-              className="p-2 -mr-2 -mt-1 rounded-lg text-ink-muted hover:bg-surface-hover hover:text-ink cursor-pointer shrink-0"
+              className="p-2 -me-2 -mt-1 rounded-lg text-ink-muted hover:bg-surface-hover hover:text-ink cursor-pointer shrink-0"
               aria-label="Fechar"
             >
               <X className="w-5 h-5" />

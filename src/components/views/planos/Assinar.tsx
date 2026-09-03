@@ -129,7 +129,7 @@ export default function Assinar() {
       ) : (
         <>
           <p className="font-bold text-[14px] text-ink mb-3">
-            <CreditCard size={15} className="inline mr-1.5" aria-hidden />Assinar
+            <CreditCard size={15} className="inline me-1.5" aria-hidden />Assinar
           </p>
           <div className="flex flex-wrap gap-2 mb-3" role="radiogroup" aria-label="Plano a assinar">
             {VENDAVEIS.map((p) => (

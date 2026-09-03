@@ -59,7 +59,7 @@ export default function SeletorDePaletas({
             value={busca}
             onChange={(e) => setBusca(e.target.value)}
             placeholder="Buscar (roxo, oceano, pastel…)"
-            className="w-full pl-8 pr-3 py-2 rounded-xl bg-canvas border border-border-subtle text-[13px] text-ink outline-none focus:border-accent"
+            className="w-full ps-8 pe-3 py-2 rounded-xl bg-canvas border border-border-subtle text-[13px] text-ink outline-none focus:border-accent"
           />
         </label>
         <div className="flex flex-wrap gap-1">
@@ -96,7 +96,7 @@ export default function SeletorDePaletas({
         </p>
       )}
 
-      <div className="grid grid-cols-3 sm:grid-cols-5 lg:grid-cols-6 gap-2 max-h-[18rem] overflow-y-auto custom-scrollbar pr-1">
+      <div className="grid grid-cols-3 sm:grid-cols-5 lg:grid-cols-6 gap-2 max-h-[18rem] overflow-y-auto custom-scrollbar pe-1">
         {paletas.map((p) => {
           const a = acessoAoEstilo(p.estilo, nivel, saldo);
           return (
@@ -106,7 +106,7 @@ export default function SeletorDePaletas({
               onClick={(e) => aplicar(p, e.currentTarget)}
               aria-pressed={ativa === p.id}
               title={a.liberado ? p.nome : `${p.nome} · ${a.motivo}`}
-              className={`rounded-xl border-2 overflow-hidden text-left cursor-pointer transition-all hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50 ${
+              className={`rounded-xl border-2 overflow-hidden text-start cursor-pointer transition-all hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50 ${
                 ativa === p.id ? 'border-accent' : 'border-border-subtle hover:border-accent/60'
               }`}
             >

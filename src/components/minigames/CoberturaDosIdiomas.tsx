@@ -69,25 +69,25 @@ export default function CoberturaDosIdiomas({ baralho }: Props) {
       <div className="mt-2 max-h-56 overflow-y-auto custom-scrollbar overflow-x-auto">
         <table className="w-full text-[11.5px] border-collapse">
           <thead className="sticky top-0 bg-surface">
-            <tr className="text-ink-faint text-left">
-              <th className="font-normal py-1 pr-2">Idioma</th>
-              <th className="font-normal py-1 pr-2">Vocabulário pronto</th>
-              <th className="font-normal py-1 pr-2 text-right tabular-nums">Palavras</th>
-              <th className="font-normal py-1 pr-2">Voz</th>
-              <th className="font-normal py-1 text-right tabular-nums">Suas</th>
+            <tr className="text-ink-faint text-start">
+              <th className="font-normal py-1 pe-2">Idioma</th>
+              <th className="font-normal py-1 pe-2">Vocabulário pronto</th>
+              <th className="font-normal py-1 pe-2 text-end tabular-nums">Palavras</th>
+              <th className="font-normal py-1 pe-2">Voz</th>
+              <th className="font-normal py-1 text-end tabular-nums">Suas</th>
             </tr>
           </thead>
           <tbody>
             {linhas.map(l => (
               <tr key={l.idioma} className="border-t border-border-subtle">
-                <td className="py-1 pr-2 text-ink">{l.nome}</td>
-                <td className={`py-1 pr-2 ${COR[l.nivel]}`}>{t(ROTULO[l.nivel])}</td>
-                <td className="py-1 pr-2 text-right tabular-nums text-ink-muted">
+                <td className="py-1 pe-2 text-ink">{l.nome}</td>
+                <td className={`py-1 pe-2 ${COR[l.nivel]}`}>{t(ROTULO[l.nivel])}</td>
+                <td className="py-1 pe-2 text-end tabular-nums text-ink-muted">
                   {l.trilha ? numero(l.trilha) : '—'}
                 </td>
                 {/* A voz é do NAVEGADOR de quem lê, não do app: por isso é medida aqui, na hora. */}
-                <td className="py-1 pr-2 text-ink-muted">{l.voz ? 'sim' : 'não'}</td>
-                <td className="py-1 text-right tabular-nums text-ink-muted">
+                <td className="py-1 pe-2 text-ink-muted">{l.voz ? 'sim' : 'não'}</td>
+                <td className="py-1 text-end tabular-nums text-ink-muted">
                   {l.meu ? numero(l.meu) : '—'}
                 </td>
               </tr>

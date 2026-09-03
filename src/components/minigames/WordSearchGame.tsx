@@ -322,7 +322,7 @@ export default function WordSearchGame({ items, ageProfile, onFinish, onExit }: 
           <p className="label-mono mb-2">
             {ageProfile === 'senior' ? 'Procure a palavra de:' : 'Ache a palavra que significa:'}
           </p>
-          <ul className="flex flex-col gap-1.5 overflow-y-auto custom-scrollbar max-h-[60vh] pr-1">
+          <ul className="flex flex-col gap-1.5 overflow-y-auto custom-scrollbar max-h-[60vh] pe-1">
             {jogaveis.map(i => {
               const achada = achados.has(i);
               const revelada = revelados.has(i);

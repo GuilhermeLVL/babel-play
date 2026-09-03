@@ -36,7 +36,7 @@ function Bar({ label, progress, bytes }: { label: string; progress: number | nul
           {label}
         </span>
         <span className="text-ink-muted tabular-nums">
-          {emMb && !complete ? <span className="opacity-70 mr-1.5">{emMb}</span> : null}
+          {emMb && !complete ? <span className="opacity-70 me-1.5">{emMb}</span> : null}
           {progress == null ? '-' : `${pct}%`}
         </span>
       </div>

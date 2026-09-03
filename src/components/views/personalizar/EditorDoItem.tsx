@@ -275,7 +275,7 @@ export default function EditorDoItem({ item, nivel, saldo, aoFechar, aoEquipar, 
                       atual ? 'bg-accent text-accent-contrast border-accent' : 'bg-canvas border-border-subtle text-ink-muted hover:text-ink'
                     } ${travada ? 'opacity-60' : ''}`}
                   >
-                    {travada && <Lock className="w-3 h-3 inline mr-1" aria-hidden />}{i}
+                    {travada && <Lock className="w-3 h-3 inline me-1" aria-hidden />}{i}
                   </button>
                 );
               })}

@@ -174,7 +174,7 @@ export default function PasseDeTemporada({
             </button>
           );
         })}
-        <span className="ml-auto text-[11.5px] text-ink-muted">
+        <span className="ms-auto text-[11.5px] text-ink-muted">
           Você está na <b className="text-ink">casa {marcador}</b> de 100
         </span>
       </div>

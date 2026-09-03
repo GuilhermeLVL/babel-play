@@ -80,22 +80,22 @@ export default function Recordes({ ageProfile, onFechar }: { ageProfile: AgeProf
               <div className="overflow-x-auto">
                 <table className="w-full text-[13px]">
                   <thead>
-                    <tr className="text-left text-[10px] uppercase tracking-wider text-ink-faint border-b border-border-subtle">
-                      <th className="py-2 pr-3 font-bold">Jogo</th>
-                      <th className="py-2 pr-3 font-bold text-right">Melhor</th>
-                      <th className="py-2 pr-3 font-bold text-right"><span className="inline-flex items-center gap-1"><Zap className="w-3 h-3" />combo</span></th>
-                      <th className="py-2 pr-3 font-bold text-right"><span className="inline-flex items-center gap-1"><Target className="w-3 h-3" />precisão</span></th>
-                      <th className="py-2 font-bold text-right">rodadas</th>
+                    <tr className="text-start text-[10px] uppercase tracking-wider text-ink-faint border-b border-border-subtle">
+                      <th className="py-2 pe-3 font-bold">Jogo</th>
+                      <th className="py-2 pe-3 font-bold text-end">Melhor</th>
+                      <th className="py-2 pe-3 font-bold text-end"><span className="inline-flex items-center gap-1"><Zap className="w-3 h-3" />combo</span></th>
+                      <th className="py-2 pe-3 font-bold text-end"><span className="inline-flex items-center gap-1"><Target className="w-3 h-3" />precisão</span></th>
+                      <th className="py-2 font-bold text-end">rodadas</th>
                     </tr>
                   </thead>
                   <tbody>
                     {[...recordes].sort((a, b) => b.melhorPontos - a.melhorPontos).map((r) => (
                       <tr key={r.exerciseKind} className="border-b border-border-subtle/50">
-                        <td className="py-2.5 pr-3 font-bold text-ink">{tituloDoJogo(r.exerciseKind, ageProfile)}</td>
-                        <td className="py-2.5 pr-3 text-right font-black text-warn-ink tabular-nums">{r.melhorPontos}</td>
-                        <td className="py-2.5 pr-3 text-right tabular-nums text-ink">{r.melhorCombo || '-'}</td>
-                        <td className="py-2.5 pr-3 text-right tabular-nums text-ink">{r.precisao != null ? `${r.precisao}%` : '-'}</td>
-                        <td className="py-2.5 text-right tabular-nums text-ink-muted">{r.rodadas}</td>
+                        <td className="py-2.5 pe-3 font-bold text-ink">{tituloDoJogo(r.exerciseKind, ageProfile)}</td>
+                        <td className="py-2.5 pe-3 text-end font-black text-warn-ink tabular-nums">{r.melhorPontos}</td>
+                        <td className="py-2.5 pe-3 text-end tabular-nums text-ink">{r.melhorCombo || '-'}</td>
+                        <td className="py-2.5 pe-3 text-end tabular-nums text-ink">{r.precisao != null ? `${r.precisao}%` : '-'}</td>
+                        <td className="py-2.5 text-end tabular-nums text-ink-muted">{r.rodadas}</td>
                       </tr>
                     ))}
                   </tbody>

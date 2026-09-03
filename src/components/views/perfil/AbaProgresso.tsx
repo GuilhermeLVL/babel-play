@@ -176,10 +176,10 @@ export default function AbaProgresso({ progress, ageProfile }: AbaProgressoProps
                         rotuloAcessivel={`Retenção do ${f.nivel}`}
                         className="flex-1"
                       />
-                      <span className="text-[12px] font-mono tabular-nums w-12 text-right text-ink">
+                      <span className="text-[12px] font-mono tabular-nums w-12 text-end text-ink">
                         {f.retencao === null ? '-' : `${Math.round(f.retencao * 100)}%`}
                       </span>
-                      <span className="text-[11px] text-ink-faint w-32 text-right hidden sm:block">
+                      <span className="text-[11px] text-ink-faint w-32 text-end hidden sm:block">
                         {/* Sem evidência, diz o que falta — não deixa o traço sem explicação. */}
                         {f.retencao === null
                           ? `${f.medidos} de ${MIN_CARTOES_POR_FAIXA} revisadas`

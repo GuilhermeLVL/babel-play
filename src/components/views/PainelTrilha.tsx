@@ -114,7 +114,7 @@ export default function PainelTrilha({
             <button
               key={p.nivel}
               onClick={() => onEscolherNivel(p.nivel)}
-              className={`px-3 py-2 rounded-xl border text-left transition-all cursor-pointer ${
+              className={`px-3 py-2 rounded-xl border text-start transition-all cursor-pointer ${
                 ativo ? 'border-accent bg-accent-soft' : 'border-border-subtle hover:border-accent'
               }`}
               title={`${p.jaTem} de ${p.total} palavras ${porFrequencia ? `da faixa ${rotulo(p.nivel)}` : `do ${p.nivel}`} prontas para jogar na trilha`}

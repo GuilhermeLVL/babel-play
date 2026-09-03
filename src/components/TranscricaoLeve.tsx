@@ -35,7 +35,7 @@ export default function TranscricaoLeve() {
         <div className="grid gap-2" role="radiogroup" aria-label="Qualidade da transcrição">
           {opcoes.map((o) => (
             <button key={o.id} type="button" role="radio" aria-checked={qualidade === o.id} onClick={() => escolher(o.id)}
-              className={`flex items-center gap-3 rounded-xl border p-3 text-left transition-colors cursor-pointer ${qualidade === o.id ? 'border-accent bg-accent-soft' : 'border-border-subtle bg-canvas hover:border-accent'}`}>
+              className={`flex items-center gap-3 rounded-xl border p-3 text-start transition-colors cursor-pointer ${qualidade === o.id ? 'border-accent bg-accent-soft' : 'border-border-subtle bg-canvas hover:border-accent'}`}>
               <span className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${qualidade === o.id ? 'bg-accent text-white' : 'bg-surface text-ink-muted'}`}>{o.icone}</span>
               <span className="min-w-0">
                 <span className="block font-bold text-[13.5px] text-ink">{t(o.titulo)}</span>

@@ -441,7 +441,7 @@ export default function Overlay({ isVisible, onClose, bgColor, onBgColorChange, 
               : 'py-2 px-1.5 opacity-50 hover:opacity-90 max-w-[22px] overflow-hidden'
           }`}
         >
-          <span className="w-1 h-6 rounded-full bg-border-subtle mr-0.5 shrink-0" aria-hidden />
+          <span className="w-1 h-6 rounded-full bg-border-subtle me-0.5 shrink-0" aria-hidden />
           <button
             className={`p-2 rounded-lg transition-colors ${clickThrough ? 'text-ink-muted hover:bg-surface-hover' : 'bg-accent text-white'}`}
             onClick={() => setClickThrough(!clickThrough)}
@@ -517,7 +517,7 @@ export default function Overlay({ isVisible, onClose, bgColor, onBgColorChange, 
             <div className="absolute inset-4 flex flex-col justify-end">
               <CaptionScroller
                 items={captions}
-                containerClassName="flex flex-col gap-2 flex-1 min-h-0 overflow-y-auto custom-scrollbar pr-1"
+                containerClassName="flex flex-col gap-2 flex-1 min-h-0 overflow-y-auto custom-scrollbar pe-1"
                 renderItem={(c) => {
                   const isIn = c.side === 'inbound';
                   const cls = isIn ? inboundClass : outboundClass;
@@ -525,7 +525,7 @@ export default function Overlay({ isVisible, onClose, bgColor, onBgColorChange, 
                   return (
                     <div key={c.id} className={`flex ${isIn ? 'justify-start' : 'justify-end'}`}>
                     <div
-                      className={`w-fit max-w-[78%] backdrop-blur-sm rounded-lg p-3 ${isIn ? 'border-l-4 border-l-accent' : 'border-r-4 border-r-good'} shadow-xl ${cls} ${independenceLevel === 'immersion' ? 'cursor-pointer' : ''}`}
+                      className={`w-fit max-w-[78%] backdrop-blur-sm rounded-lg p-3 ${isIn ? 'border-s-4 border-s-accent' : 'border-e-4 border-e-good'} shadow-xl ${cls} ${independenceLevel === 'immersion' ? 'cursor-pointer' : ''}`}
                       // Borda = cor da PESSOA identificada (inline vence a classe; sem cor → tema).
                       style={{ ...(custom ? { backgroundColor: custom } : null), ...(c.speakerColor ? { borderLeftColor: c.speakerColor } : null) }}
                       onClick={() => { if (independenceLevel === 'immersion') setPeekId(c.id); }}
@@ -647,13 +647,13 @@ export default function Overlay({ isVisible, onClose, bgColor, onBgColorChange, 
                       )}
                       <div className={`flex flex-col max-w-[85%] min-w-0 ${isIn ? 'items-start' : 'items-end'}`}>
                       {primeiraDaSequencia && (
-                        <span className={`flex items-center gap-1.5 text-[11px] font-semibold mb-1 ${isIn ? 'ml-1' : 'mr-1 flex-row-reverse'}`}>
+                        <span className={`flex items-center gap-1.5 text-[11px] font-semibold mb-1 ${isIn ? 'ms-1' : 'me-1 flex-row-reverse'}`}>
                           <span className="text-ink-muted" style={c.speakerColor ? { color: c.speakerColor } : undefined}>{c.speaker}</span>
                           <LangChip code={origLangOf(c)} />
                         </span>
                       )}
                       <div
-                        className={`backdrop-blur-md rounded-2xl ${isIn ? 'rounded-tl-sm border-l-4 border-l-accent' : 'rounded-tr-sm border-r-4 border-r-good'} px-4 py-3 shadow-xl ${cls} ${independenceLevel === 'immersion' ? 'cursor-pointer' : ''}`}
+                        className={`backdrop-blur-md rounded-2xl ${isIn ? 'rounded-tl-sm border-s-4 border-s-accent' : 'rounded-tr-sm border-e-4 border-e-good'} px-4 py-3 shadow-xl ${cls} ${independenceLevel === 'immersion' ? 'cursor-pointer' : ''}`}
                         // Cor da pessoa na borda do balão dos OUTROS (o seu continua verde "você").
                         style={{ ...(custom ? { backgroundColor: custom } : null), ...(isIn && c.speakerColor ? { borderLeftColor: c.speakerColor } : null) }}
                         onClick={() => { if (independenceLevel === 'immersion') setPeekId(c.id); }}
@@ -699,7 +699,7 @@ export default function Overlay({ isVisible, onClose, bgColor, onBgColorChange, 
 
         {/* PAINEL LATERAL — coluna real: nunca sobrepõe as legendas; um único scroll interno. */}
         {showSettingsPanel && (
-          <aside className="pointer-events-auto w-72 max-w-[85vw] shrink-0 h-full overflow-y-auto custom-scrollbar bg-surface border-l border-border-subtle p-4 text-ink animate-in slide-in-from-right-2">
+          <aside className="pointer-events-auto w-72 max-w-[85vw] shrink-0 h-full overflow-y-auto custom-scrollbar bg-surface border-s border-border-subtle p-4 text-ink animate-in slide-in-from-right-2">
             <h3 className="font-bold text-sm mb-3 flex items-center justify-between">
               Personalização
               <button
@@ -828,7 +828,7 @@ export default function Overlay({ isVisible, onClose, bgColor, onBgColorChange, 
                   <span className="text-xs font-mono">{bgColor === 'transparent' ? 'Invisível' : bgColor}</span>
                   <button
                     onClick={() => { const v = bgColor === 'transparent' ? '#000000' : 'transparent'; onBgColorChange(v); update({ bgColor: v }); }}
-                    className="ml-auto text-[10px] border border-border-subtle bg-canvas hover:bg-surface-hover px-2 py-1 rounded"
+                    className="ms-auto text-[10px] border border-border-subtle bg-canvas hover:bg-surface-hover px-2 py-1 rounded"
                   >
                     {bgColor === 'transparent' ? 'Cor sólida' : 'Fundo invisível'}
                   </button>
@@ -858,7 +858,7 @@ export default function Overlay({ isVisible, onClose, bgColor, onBgColorChange, 
                   <input id="overlay-inbound-color" name="overlay-inbound-color" type="color" value={inboundColor || '#000000'} onChange={(e) => update({ inboundColor: e.target.value })} className="w-6 h-6 rounded cursor-pointer bg-transparent border-none p-0" />
                   <span className="text-xs font-mono">{inboundColor || 'Tema padrão'}</span>
                   {inboundColor && (
-                    <button onClick={() => update({ inboundColor: '' })} className="ml-auto text-[10px] border border-border-subtle bg-canvas hover:bg-surface-hover px-2 py-1 rounded">Tema</button>
+                    <button onClick={() => update({ inboundColor: '' })} className="ms-auto text-[10px] border border-border-subtle bg-canvas hover:bg-surface-hover px-2 py-1 rounded">Tema</button>
                   )}
                 </div>
               </div>
@@ -868,7 +868,7 @@ export default function Overlay({ isVisible, onClose, bgColor, onBgColorChange, 
                   <input id="overlay-outbound-color" name="overlay-outbound-color" type="color" value={outboundColor || '#000000'} onChange={(e) => update({ outboundColor: e.target.value })} className="w-6 h-6 rounded cursor-pointer bg-transparent border-none p-0" />
                   <span className="text-xs font-mono">{outboundColor || 'Tema padrão'}</span>
                   {outboundColor && (
-                    <button onClick={() => update({ outboundColor: '' })} className="ml-auto text-[10px] border border-border-subtle bg-canvas hover:bg-surface-hover px-2 py-1 rounded">Tema</button>
+                    <button onClick={() => update({ outboundColor: '' })} className="ms-auto text-[10px] border border-border-subtle bg-canvas hover:bg-surface-hover px-2 py-1 rounded">Tema</button>
                   )}
                 </div>
               </div>

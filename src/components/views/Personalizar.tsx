@@ -188,7 +188,7 @@ export default function Personalizar({ theme, setTheme, fonte, setFonte, nivel, 
               key={opt.id}
               onClick={() => setAgeProfile(opt.id)}
               aria-pressed={ageProfile === opt.id}
-              className={`p-3 rounded-xl border text-left cursor-pointer transition-colors ${
+              className={`p-3 rounded-xl border text-start cursor-pointer transition-colors ${
                 ageProfile === opt.id ? 'border-accent bg-accent-soft text-accent-ink' : 'border-border-subtle bg-surface hover:border-accent text-ink-muted'
               }`}
             >

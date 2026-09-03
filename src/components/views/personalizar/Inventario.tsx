@@ -154,7 +154,7 @@ export default function Inventario({
                 key={c.id}
                 onClick={() => { setCategoria(c.id); setEscolhido(null); }}
                 aria-pressed={categoria === c.id}
-                className={`shrink-0 rounded-xl border px-3 py-2 text-left font-bold text-[12.5px] cursor-pointer flex items-center justify-between gap-2 ${
+                className={`shrink-0 rounded-xl border px-3 py-2 text-start font-bold text-[12.5px] cursor-pointer flex items-center justify-between gap-2 ${
                   categoria === c.id ? 'bg-surface border-border-subtle text-ink' : 'border-transparent text-ink-muted hover:bg-surface hover:text-ink'
                 }`}
               >

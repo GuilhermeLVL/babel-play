@@ -169,16 +169,16 @@ export default function Planos() {
             <table className="w-full text-[13px] border-collapse min-w-[520px]">
               <thead>
                 <tr className="border-b border-subtle">
-                  <th className="text-left font-semibold text-ink-muted pb-3">Recurso</th>
+                  <th className="text-start font-semibold text-ink-muted pb-3">Recurso</th>
                   <th className="text-center font-semibold text-ink pb-3 px-3 whitespace-nowrap">
-                    <Cpu size={14} className="inline mr-1" aria-hidden />Grátis
+                    <Cpu size={14} className="inline me-1" aria-hidden />Grátis
                   </th>
                   <th className="text-center font-semibold text-ink pb-3 px-3 whitespace-nowrap">
-                    <Sparkles size={14} className="inline mr-1" aria-hidden />Essencial
+                    <Sparkles size={14} className="inline me-1" aria-hidden />Essencial
                     <span className="block text-[11px] font-normal text-ink-muted">R$ {precoDoPlano('essencial')}/mês</span>
                   </th>
                   <th className="text-center font-semibold text-accent pb-3 px-3 whitespace-nowrap">
-                    <Cloud size={14} className="inline mr-1" aria-hidden />Pro
+                    <Cloud size={14} className="inline me-1" aria-hidden />Pro
                     <span className="block text-[11px] font-normal text-ink-muted">R$ {precoDoPlano('pro')}/mês</span>
                   </th>
                 </tr>
@@ -186,7 +186,7 @@ export default function Planos() {
               <tbody>
                 {RECURSOS.map((r) => (
                   <tr key={r.nome} className="border-b border-subtle last:border-0">
-                    <td className="py-3 pr-3 text-ink">
+                    <td className="py-3 pe-3 text-ink">
                       {r.nome}
                       {r.fonte && <span className="block text-[11px] text-ink-faint mt-0.5">{r.fonte}</span>}
                     </td>

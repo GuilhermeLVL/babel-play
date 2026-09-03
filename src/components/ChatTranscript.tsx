@@ -133,13 +133,13 @@ function EmptyState({ scenario, ageProfile, isRecording }: {
         </p>
         <p className="text-[12px] text-ink-muted mt-1">Três passos e pronto:</p>
       </div>
-      <ol className="flex flex-col gap-2.5 text-left">
+      <ol className="flex flex-col gap-2.5 text-start">
         {passos.map((p, i) => (
           <li key={i} className="flex items-center gap-3 text-[12.5px] text-ink-muted">
             <span className="w-7 h-7 rounded-lg bg-canvas border border-border-subtle flex items-center justify-center text-ink-faint shrink-0">
               {p.icon}
             </span>
-            <span><b className="text-ink-faint font-mono text-[10px] mr-1.5">{i + 1}</b>{p.txt}</span>
+            <span><b className="text-ink-faint font-mono text-[10px] me-1.5">{i + 1}</b>{p.txt}</span>
           </li>
         ))}
       </ol>

@@ -154,7 +154,7 @@ export default function CatalogoDePalavras({ aoAbrirPalavra }: { aoAbrirPalavra?
         <div className="relative flex-1 min-w-[220px]">
           <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-ink-muted" />
           <input
-            className="field-input pl-8 w-full"
+            className="field-input ps-8 w-full"
             placeholder="Buscar palavra ou tradução…"
             value={busca}
             onChange={(e) => setBusca(e.target.value)}
@@ -177,7 +177,7 @@ export default function CatalogoDePalavras({ aoAbrirPalavra }: { aoAbrirPalavra?
             {n === 'ausente' ? 'sem nível' : n}
           </button>
         ))}
-        <span className="label-mono ml-2">origem</span>
+        <span className="label-mono ms-2">origem</span>
         {ORIGENS.map((o) => (
           <button key={o.id} onClick={() => alternar(origens, setOrigens, o.id)}
             className={`kpi-pill ${origens.includes(o.id) ? 'active' : ''}`} aria-pressed={origens.includes(o.id)}>
@@ -247,13 +247,13 @@ export default function CatalogoDePalavras({ aoAbrirPalavra }: { aoAbrirPalavra?
                   key={c.id}
                   onClick={() => aoAbrirPalavra?.(c.id)}
                   style={{ position: 'absolute', top: (inicio + i) * ALTURA_LINHA, height: ALTURA_LINHA, left: 0, right: 0 }}
-                  className="w-full px-3 flex items-center gap-3 text-left hover:bg-surface border-b border-border-subtle cursor-pointer"
+                  className="w-full px-3 flex items-center gap-3 text-start hover:bg-surface border-b border-border-subtle cursor-pointer"
                 >
                   <span className="font-semibold text-[13px] text-ink truncate w-[26%]">{c.word}</span>
                   <span className="text-[12px] text-ink-muted truncate flex-1">{c.back || <span className="opacity-60">sem tradução</span>}</span>
                   <SeloDeNivel nivel={c.cefrLevel} fonte={c.cefrSource} />
                   {faixa && <span className={`badge-tag ${faixa === 'dificil' ? 'err' : faixa === 'medio' ? 'warn' : 'ok'}`}>{faixa}</span>}
-                  <span className="text-[11px] text-ink-muted tabular-nums w-[64px] text-right"
+                  <span className="text-[11px] text-ink-muted tabular-nums w-[64px] text-end"
                         title={c.occurrences === 1 ? 'encontros anteriores à contagem não foram registrados' : undefined}>
                     {c.occurrences === 1 ? <span className="opacity-60">1× *</span> : `${c.occurrences}×`}
                   </span>

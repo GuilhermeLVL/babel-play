@@ -75,10 +75,10 @@ export default function LayoutEditorToolbar() {
                             <button
                               key={idx}
                               onClick={() => updatePanel(item.view as any, item.panel, { show: true })}
-                              className="w-full text-left px-3 py-2 text-xs font-semibold text-ink hover:bg-surface-hover flex items-center justify-between transition-colors cursor-pointer"
+                              className="w-full text-start px-3 py-2 text-xs font-semibold text-ink hover:bg-surface-hover flex items-center justify-between transition-colors cursor-pointer"
                             >
                               {item.title}
-                              <Eye className="w-3.5 h-3.5 text-rare shrink-0 ml-2" />
+                              <Eye className="w-3.5 h-3.5 text-rare shrink-0 ms-2" />
                             </button>
                           ))}
                         </div>

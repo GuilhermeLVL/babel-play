@@ -654,7 +654,7 @@ ${TUTOR_REGISTER[ageProfile]}`;
           aria-label="Abrir o iChat, seu tutor de estudos"
         >
           <Sparkles className="w-5 h-5 fill-rare-ink group-hover:rotate-12 transition-all duration-300 text-rare-ink" />
-          <span className="hidden sm:inline text-xs font-bold font-display pr-1">iChat</span>
+          <span className="hidden sm:inline text-xs font-bold font-display pe-1">iChat</span>
           {/* C10 — fundo OPACO em vez de `bg-rare/15`.
               Este pill empilhava 15% de `--rare` por cima de um botão que já é `bg-rare-soft`,
               também translúcido: duas camadas do mesmo matiz, e a cor final dependia do que
@@ -685,8 +685,8 @@ ${TUTOR_REGISTER[ageProfile]}`;
             : isMaximized && !isDocked 
               ? "fixed inset-0 w-full h-full max-w-none bg-canvas z-50 flex flex-col transition-all duration-300 animate-in fade-in duration-300"
               : isDocked
-                ? "relative h-full w-full max-w-md bg-canvas border-l border-border-subtle shrink-0 flex flex-col z-30 transition-all duration-300 animate-in slide-in-from-right duration-300"
-                : "fixed top-0 right-0 h-full w-full max-w-md bg-canvas border-l border-border-subtle shadow-3xl flex flex-col z-50 transition-all duration-300 animate-in slide-in-from-right duration-300"
+                ? "relative h-full w-full max-w-md bg-canvas border-s border-border-subtle shrink-0 flex flex-col z-30 transition-all duration-300 animate-in slide-in-from-right duration-300"
+                : "fixed top-0 right-0 h-full w-full max-w-md bg-canvas border-s border-border-subtle shadow-3xl flex flex-col z-50 transition-all duration-300 animate-in slide-in-from-right duration-300"
         }
       >
         {/* Drawer Header */}
@@ -776,7 +776,7 @@ ${TUTOR_REGISTER[ageProfile]}`;
               <Bookmark className="w-3 h-3" /> Fixados:
             </span>
             {contextosFixados.map((c, i) => (
-              <span key={`${c.view}:${c.recordingId}:${i}`} className="inline-flex items-center gap-1 bg-rare-soft/15 text-rare border border-rare/25 rounded-full pl-2 pr-1 py-0.5 text-[10px] font-semibold max-w-[180px]">
+              <span key={`${c.view}:${c.recordingId}:${i}`} className="inline-flex items-center gap-1 bg-rare-soft/15 text-rare border border-rare/25 rounded-full ps-2 pe-1 py-0.5 text-[10px] font-semibold max-w-[180px]">
                 <span className="truncate">{c.label}</span>
                 <button onClick={() => removerFixado(i)} className="hover:bg-rare/20 rounded-full p-0.5 cursor-pointer" title="Remover contexto fixado">
                   <X className="w-2.5 h-2.5" />
@@ -802,7 +802,7 @@ ${TUTOR_REGISTER[ageProfile]}`;
             </div>
 
             {/* Session List Feed */}
-            <div className="flex-1 overflow-y-auto space-y-2.5 pr-1">
+            <div className="flex-1 overflow-y-auto space-y-2.5 pe-1">
               {sessions.map((sess) => {
                 const isActive = sess.id === activeSessionId;
                 const isEditing = sess.id === editingSessionId;
@@ -903,7 +903,7 @@ ${TUTOR_REGISTER[ageProfile]}`;
                       // Basic markdown rendering helper for bold or bullet points
                       if (para.trim().startsWith('* ') || para.trim().startsWith('- ')) {
                         return (
-                          <li key={pIdx} className="ml-3 list-disc mt-1 text-inherit">
+                          <li key={pIdx} className="ms-3 list-disc mt-1 text-inherit">
                             {para.replace(/^[\s*-]+/, '')}
                           </li>
                         );
@@ -929,7 +929,7 @@ ${TUTOR_REGISTER[ageProfile]}`;
                       );
                     })}
                   </div>
-                  <span className={`text-[8.5px] font-mono text-ink-faint ${isUser ? 'text-right' : 'text-left'}`}>
+                  <span className={`text-[8.5px] font-mono text-ink-faint ${isUser ? 'text-end' : 'text-start'}`}>
                     {msg.timestamp}
                   </span>
                 </div>
@@ -1006,9 +1006,9 @@ ${TUTOR_REGISTER[ageProfile]}`;
                       handleSendMessage(tool.text);
                       setShowTools(false);
                     }}
-                    className="w-full text-left bg-canvas hover:bg-rare-soft/5 border border-border-subtle hover:border-rare/30 px-3 py-2 rounded-lg text-[11px] text-ink hover:text-rare font-bold transition-all flex items-center justify-between group cursor-pointer shadow-btn"
+                    className="w-full text-start bg-canvas hover:bg-rare-soft/5 border border-border-subtle hover:border-rare/30 px-3 py-2 rounded-lg text-[11px] text-ink hover:text-rare font-bold transition-all flex items-center justify-between group cursor-pointer shadow-btn"
                   >
-                    <span className="truncate pr-2">{tool.label}</span>
+                    <span className="truncate pe-2">{tool.label}</span>
                     <ArrowRight className="w-3.5 h-3.5 shrink-0 opacity-40 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all text-rare" />
                   </button>
                 ))}

@@ -97,7 +97,7 @@ export default function OnboardingLeve({ onComplete }: { onComplete: () => void 
               Depois, em Ajustes → Ajuda e recomeço, tem a tela "Sobre" com contato e como apoiar o projeto.
             </p>
             <button type="button" onClick={() => setPasso(2)} className="btn-ink w-full justify-center mt-6">
-              Vamos lá <ArrowRight className="w-4 h-4 ml-1" />
+              Vamos lá <ArrowRight className="w-4 h-4 ms-1" />
             </button>
           </div>
         ) : (
@@ -120,7 +120,7 @@ export default function OnboardingLeve({ onComplete }: { onComplete: () => void 
                     role="radio"
                     aria-checked={objetivo === o.id}
                     onClick={() => setObjetivo(o.id)}
-                    className={`flex items-center gap-3 rounded-xl border p-3 text-left transition-colors cursor-pointer ${
+                    className={`flex items-center gap-3 rounded-xl border p-3 text-start transition-colors cursor-pointer ${
                       objetivo === o.id ? 'border-accent bg-accent-soft' : 'border-border-subtle bg-canvas hover:border-accent'
                     }`}
                   >
@@ -135,7 +135,7 @@ export default function OnboardingLeve({ onComplete }: { onComplete: () => void 
             </section>
 
             <button type="button" onClick={concluir} disabled={salvando} className="btn-ink w-full justify-center mt-7 disabled:opacity-60">
-              {salvando ? 'Salvando…' : 'Começar'} <ArrowRight className="w-4 h-4 ml-1" />
+              {salvando ? 'Salvando…' : 'Começar'} <ArrowRight className="w-4 h-4 ms-1" />
             </button>
           </div>
         )}

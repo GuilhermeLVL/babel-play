@@ -323,5 +323,16 @@
   "Artigo, pronome ou auxiliar, é ruído, não vocabulário.": "Article, pronoun or auxiliary — noise, not vocabulary.",
   "Já existe outra igual; mantivemos a mais completa.": "There is already an identical one; we kept the more complete.",
   "Sem idioma marcado": "No language set",
-  "Sem idioma ela não entra em rodada nenhuma.": "Without a language it enters no round at all."
+  "Sem idioma ela não entra em rodada nenhuma.": "Without a language it enters no round at all.",
+  "Encontrei <b>{n}</b> {sessoes} ({audio} com áudio) e <b>{m}</b> {cartoes}.": "I found <b>{n}</b> {sessoes} ({audio} with audio) and <b>{m}</b> {cartoes}.",
+  "As {n} rodadas jogadas sem conta <b>não</b> sobem nesta versão.": "The {n} rounds played without an account will <b>not</b> be uploaded in this version.",
+  "sessões": {
+    "one": "session",
+    "other": "sessions"
+  },
+  "cartões": {
+    "one": "card",
+    "other": "cards"
+  },
+  "Conferindo o que há neste navegador…": "Checking what is in this browser…"
 }

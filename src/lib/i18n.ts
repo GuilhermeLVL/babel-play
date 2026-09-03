@@ -58,10 +58,31 @@ const base = (lang: string) => (lang || '').toLowerCase().split('-')[0]
  * substituir um número ou um nome de idioma, e um mini-motor de expressões dentro da string é
  * dívida disfarçada de recurso.
  */
+/**
+ * A frase traduzida, SEM interpolar — a etapa de lookup, isolada.
+ *
+ * Existe porque `<T>` (texto com formatação no meio) precisa da string crua: interpolar antes
+ * transformaria um `ReactNode` em `[object Object]`. `t()` continua sendo lookup + interpolação,
+ * e as duas portas leem o mesmo catálogo, na mesma chave.
+ */
+export function bruto(texto: string): string {
+  const v = catalogos.get(atual)?.[texto]
+  return typeof v === 'string' ? v : (v?.other ?? texto)
+}
+
+/** Idem para plural: escolhe a forma pelo CLDR e devolve sem interpolar. */
+export function brutoPlural(n: number, umaCoisa: string, muitasCoisas: string): string {
+  const v = catalogos.get(atual)?.[muitasCoisas]
+  if (v && typeof v !== 'string') {
+    // `other` é a única categoria que todo idioma tem — por isso é o fallback dentro do catálogo.
+    return v[regraDePlural(atual).select(n)] ?? v.other ?? muitasCoisas
+  }
+  if (typeof v === 'string') return v
+  return regraDePlural('pt').select(n) === 'one' ? umaCoisa : muitasCoisas
+}
+
 export function t(texto: string, valores?: Record<string, string | number>): string {
-  const bruto = catalogos.get(atual)?.[texto]
-  const traduzido = typeof bruto === 'string' ? bruto : (bruto?.other ?? texto)
-  return interpolar(traduzido, valores)
+  return interpolar(bruto(texto), valores)
 }
 
 function interpolar(texto: string, valores?: Record<string, string | number>): string {
@@ -90,17 +111,7 @@ export function tp(
   muitasCoisas: string,
   valores?: Record<string, string | number>,
 ): string {
-  const bruto = catalogos.get(atual)?.[muitasCoisas]
-  const vars = { n, ...valores }
-
-  if (bruto && typeof bruto !== 'string') {
-    const categoria = regraDePlural(atual).select(n)
-    // `other` é a única categoria que todo idioma tem — por isso é o fallback dentro do catálogo.
-    return interpolar(bruto[categoria] ?? bruto.other ?? muitasCoisas, vars)
-  }
-  if (typeof bruto === 'string') return interpolar(bruto, vars)
-
-  return interpolar(regraDePlural('pt').select(n) === 'one' ? umaCoisa : muitasCoisas, vars)
+  return interpolar(brutoPlural(n, umaCoisa, muitasCoisas), { n, ...valores })
 }
 
 const regras = new Map<string, Intl.PluralRules>()

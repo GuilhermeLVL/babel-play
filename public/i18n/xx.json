@@ -37,6 +37,7 @@
   "Aproveite para treinar a pronúncia nas {n} falas desta gravação.": "[Áprövéíté párá tréíñár á pröñúñçíá ñáš {n} fáláš déštá gráváçãö. ··························]",
   "Área do Texto e Sentenças": "[Áréá dö Téxtö é Šéñtéñçáš ··········]",
   "Artigo, pronome ou auxiliar, é ruído, não vocabulário.": "[Ártígö, pröñömé öü áüxílíár, é rüídö, ñãö vöçábüláríö. ······················]",
+  "As {n} rodadas jogadas sem conta <b>não</b> sobem nesta versão.": "[Áš {n} rödádáš jögádáš šém çöñtá <b>ñãö</b> šöbém ñéštá véršãö. ·························]",
   "Assim ela não ensina nada; traduza de verdade.": "[Ášším élá ñãö éñšíñá ñádá; trádüžá dé vérdádé. ··················]",
   "Aulas, palestras, documentários, e revisar o vocabulário depois.": "[Áüláš, páléštráš, döçüméñtáríöš, é révíšár ö vöçábüláríö dépöíš. ··························]",
   "Biblioteca": "[Bíblíötéçá ····]",
@@ -53,6 +54,10 @@
   "Capturar → \"Relay de Legendas\" abre uma janelinha flutuante sempre-no-topo. Jogando? Ligue o \"Modo desempenho\" nos ajustes avançados para pesar menos.": "[Çáptürár → \"Réláý dé Légéñdáš\" ábré ümá jáñélíñhá flütüáñté šémpré-ñö-töpö. Ĵögáñdö? Lígüé ö \"Mödö déšémpéñhö\" ñöš ájüštéš áváñçádöš párá péšár méñöš. ····························································]",
   "Capturar → deixe o Microfone ligado e fale. Sua voz é transcrita e traduzida para o idioma que você estuda, bom para ensaiar frases antes de uma reunião.": "[Çáptürár → déíxé ö Míçröföñé lígádö é fálé. Šüá vöž é tráñšçrítá é trádüžídá párá ö ídíömá qüé vöçê éštüdá, böm párá éñšáíár frášéš áñtéš dé ümá réüñíãö. ·····························································]",
   "Capture uma sessão para destravar os exercícios de fala.": "[Çáptüré ümá šéššãö párá déštrávár öš éxérçíçíöš dé fálá. ······················]",
+  "cartões": {
+    "one": "[çártõéš ···]",
+    "other": "[çártõéš ···]"
+  },
   "Casar a legenda com o som": "[Çášár á légéñdá çöm ö šöm ··········]",
   "Cenário: entrevista de emprego": "[Çéñáríö: éñtrévíštá dé émprégö ············]",
   "Cenário: restaurante": "[Çéñáríö: réštáüráñté ········]",
@@ -67,6 +72,7 @@
   "Como se joga": "[Çömö šé jögá ·····]",
   "Como você fala": "[Çömö vöçê fálá ······]",
   "Compartilhando uma ABA, marque \"compartilhar áudio da guia\" no popup do navegador, sem isso não há som.": "[Çömpártílháñdö ümá ÁBÁ, márqüé \"çömpártílhár áüdíö dá güíá\" ñö pöpüp dö ñávégádör, šém íššö ñãö há šöm. ·········································]",
+  "Conferindo o que há neste navegador…": "[Çöñféríñdö ö qüé há ñéšté ñávégádör… ··············]",
   "Configurações": "[Çöñfígüráçõéš ·····]",
   "Conteúdo da Sessão → abas Leitura (narração) e Prática (deck de revisão espaçada + 8 exercícios). Clique em qualquer palavra para ver tradução e pronúncia e salvar no deck.": "[Çöñtéúdö dá Šéššãö → ábáš Léítürá (ñárráçãö) é Prátíçá (déçk dé révíšãö éšpáçádá + 8 éxérçíçíöš). Çlíqüé ém qüálqüér pálávrá párá vér trádüçãö é pröñúñçíá é šálvár ñö déçk. ·····································································]",
   "conversa com feedback": "[çöñvéršá çöm féédbáçk ········]",
@@ -93,6 +99,7 @@
   "Duelo relâmpago (contra o tempo)": "[Düélö rélâmpágö (çöñtrá ö témpö) ·············]",
   "É preciso ter uma gravação com o texto já pronto.": "[É préçíšö tér ümá gráváçãö çöm ö téxtö já pröñtö. ····················]",
   "Encontrar as palavras que ligam ideias": "[Éñçöñtrár áš pálávráš qüé lígám ídéíáš ···············]",
+  "Encontrei <b>{n}</b> {sessoes} ({audio} com áudio) e <b>{m}</b> {cartoes}.": "[Éñçöñtréí <b>{n}</b> {sessoes} ({audio} çöm áüdíö) é <b>{m}</b> {cartoes}. ······························]",
   "Entender o que falam no Discord, na live, na série.": "[Éñtéñdér ö qüé fálám ñö Díšçörd, ñá lívé, ñá šéríé. ····················]",
   "Escada: 1 palavra, depois 2 e depois 4 ao mesmo tempo": "[Éšçádá: 1 pálávrá, dépöíš 2 é dépöíš 4 áö méšmö témpö ·····················]",
   "Escolher a palavra mais precisa": "[Éšçölhér á pálávrá máíš préçíšá ············]",
@@ -262,6 +269,10 @@
   "Sem idioma marcado": "[Šém ídíömá márçádö ·······]",
   "sem tradução": "[šém trádüçãö ·····]",
   "Sem tradução nem frase": "[Šém trádüçãö ñém frášé ·········]",
+  "sessões": {
+    "one": "[šéššõéš ···]",
+    "other": "[šéššõéš ···]"
+  },
   "Sessões Recentes": "[Šéššõéš Réçéñtéš ······]",
   "Seu baralho está vazio, capture palavras primeiro.": "[Šéü bárálhö éštá vážíö, çáptüré pálávráš príméírö. ····················]",
   "Seu deck está vazio, adicione palavras primeiro.": "[Šéü déçk éštá vážíö, ádíçíöñé pálávráš príméírö. ···················]",

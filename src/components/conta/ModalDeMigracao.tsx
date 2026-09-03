@@ -5,6 +5,8 @@
 import { useEffect, useState } from 'react';
 import { CloudUpload, X } from 'lucide-react';
 import { inventarioLocal, migrarParaConta, type InventarioLocal, type ProgressoDaMigracao, type RelatorioDeMigracao } from '../../data/migracao';
+import { T } from '../../lib/T';
+import { t, tp } from '../../lib/i18n';
 
 interface ModalDeMigracaoProps {
   aberto: boolean;
@@ -55,8 +57,29 @@ export default function ModalDeMigracao({ aberto, onFechar, onMigrou }: ModalDeM
             {fase === 'inventario' && (
               <p className="mt-1 text-sm text-ink-muted">
                 {inventario
-                  ? <>Encontrei <strong>{inventario.sessoes}</strong> {inventario.sessoes === 1 ? 'sessão' : 'sessões'} ({inventario.comAudio} com áudio) e <strong>{inventario.cartoes}</strong> {inventario.cartoes === 1 ? 'cartão' : 'cartões'}.{inventario.rodadas > 0 && <> As {inventario.rodadas} rodadas jogadas sem conta <strong>não</strong> sobem nesta versão.</>}</>
-                  : 'Conferindo o que há neste navegador…'}
+                  ? <>
+                      {/* DOIS plurais numa frase só: cada sintagma é resolvido por `tp` (que sabe
+                          as formas do idioma) e entra como valor. A moldura continua uma string
+                          inteira, então o tradutor move `{n}` e `{sessoes}` para onde o idioma
+                          dele pede — que é o ponto de existir `<T>`. */}
+                      <T
+                        txt="Encontrei <b>{n}</b> {sessoes} ({audio} com áudio) e <b>{m}</b> {cartoes}."
+                        val={{
+                          n: inventario.sessoes,
+                          sessoes: tp(inventario.sessoes, 'sessão', 'sessões'),
+                          audio: inventario.comAudio,
+                          m: inventario.cartoes,
+                          cartoes: tp(inventario.cartoes, 'cartão', 'cartões'),
+                        }}
+                      />
+                      {inventario.rodadas > 0 && (
+                        <> <T
+                          txt="As {n} rodadas jogadas sem conta <b>não</b> sobem nesta versão."
+                          val={{ n: inventario.rodadas }}
+                        /></>
+                      )}
+                    </>
+                  : t('Conferindo o que há neste navegador…')}
               </p>
             )}
             {fase === 'migrando' && (

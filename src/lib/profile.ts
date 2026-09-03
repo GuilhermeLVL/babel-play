@@ -376,7 +376,7 @@ export type CopyKey = keyof typeof COPY;
  * Traduz uma chave para o perfil em vigor. `vars` substitui `{nome}` no texto — é o que permite
  * "{n} cartas esperando você" e "{n} vencidos agora" serem a MESMA chave com contagens reais.
  */
-export function t(key: CopyKey, profile: AgeProfileType, vars?: Record<string, string | number>): string {
+export function copyDoPerfil(key: CopyKey, profile: AgeProfileType, vars?: Record<string, string | number>): string {
   const entry = COPY[key] as Variants;
   let out: string = entry[profile] ?? entry.pro;
   if (vars) {

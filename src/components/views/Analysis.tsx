@@ -1,5 +1,5 @@
 import { Download, Edit2, Sparkles, MessageSquare, Search, CheckCircle2, Activity, Zap, Volume2, Mic, Video, Play, FileText, Pencil, BookOpen, ArrowLeft, ChevronDown, SlidersHorizontal, Plus, Check, Pause, RefreshCw, Headphones, Lock, MessageSquareWarning, Crosshair, AlertTriangle, TrendingUp, BarChart2, Clock, Brain, LayoutGrid, BookMarked, X, Loader2, MoreHorizontal, Gamepad2 } from 'lucide-react';
-import { t, coreOnly } from '../../lib/profile';
+import { copyDoPerfil, coreOnly } from '../../lib/profile';
 import React, { useState, useRef, useEffect, lazy, Suspense } from 'react';
 import AnalysisExpandedKpi, { AnalysisKpiType } from './AnalysisExpandedKpi';
 import { ResponsiveContainer, Tooltip, CartesianGrid, XAxis, YAxis, ScatterChart, Scatter, ZAxis, AreaChart, Area } from 'recharts';
@@ -1634,21 +1634,21 @@ export default function Analysis({
             onClick={() => onSubTabChange('transcript')}
             aria-pressed={currentTab === 'transcript'}
           >
-            {t(recording.type === 'document' ? 'sessionTab.transcript.doc' : 'sessionTab.transcript', ageProfile)}
+            {copyDoPerfil(recording.type === 'document' ? 'sessionTab.transcript.doc' : 'sessionTab.transcript', ageProfile)}
           </button>
           <button
             className={`flex items-center gap-1.5 px-5 py-2.5 rounded-xl text-[14px] font-bold whitespace-nowrap transition-all cursor-pointer ${currentTab === 'reading' ? activeTabClass : inactiveTabClass}`}
             onClick={() => onSubTabChange('reading')}
             aria-pressed={currentTab === 'reading'}
           >
-            <BookOpen className="w-4 h-4" /> {t('sessionTab.reading', ageProfile)}
+            <BookOpen className="w-4 h-4" /> {copyDoPerfil('sessionTab.reading', ageProfile)}
           </button>
           <button
             className={`flex items-center gap-1.5 px-5 py-2.5 rounded-xl text-[14px] font-bold whitespace-nowrap transition-all cursor-pointer ${currentTab === 'practice' ? activeTabClass : inactiveTabClass}`}
             onClick={() => onSubTabChange('practice')}
             aria-pressed={currentTab === 'practice'}
           >
-            <Gamepad2 className="w-4 h-4" /> {t('sessionTab.practice', ageProfile)}
+            <Gamepad2 className="w-4 h-4" /> {copyDoPerfil('sessionTab.practice', ageProfile)}
           </button>
           {(!coreOnly(ageProfile) || showAllTabs || currentTab === 'overview') && (
             <button
@@ -1656,14 +1656,14 @@ export default function Analysis({
               onClick={() => onSubTabChange('overview')}
             aria-pressed={currentTab === 'overview'}
             >
-              {t('sessionTab.overview', ageProfile)}
+              {copyDoPerfil('sessionTab.overview', ageProfile)}
             </button>
           )}
           {coreOnly(ageProfile) && !showAllTabs && currentTab !== 'overview' && (
             <button
               onClick={() => setShowAllTabs(true)}
               className={`${inactiveTabClass} flex items-center gap-1 px-4 py-2.5 rounded-xl text-[14px] font-bold whitespace-nowrap cursor-pointer`}
-              title={t('sessionTab.overview', ageProfile)}
+              title={copyDoPerfil('sessionTab.overview', ageProfile)}
             >
               <MoreHorizontal className="w-3.5 h-3.5" /> Mais
             </button>

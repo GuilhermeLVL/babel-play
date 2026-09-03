@@ -8,7 +8,7 @@ import {
 import { rotuloDaEtapa } from '../../core/learning/trilha';
 import type { VocabCard } from '../../types';
 import type { AgeProfileType } from '../../lib/profile';
-import { langLabelPt } from '../../lib/languages';
+import { langLabelNaUI } from '../../lib/languages';
 
 /**
  * A TRILHA — trazer vocabulário curado para o baralho, por nível.
@@ -190,8 +190,8 @@ export default function PainelTrilha({
           dizia nenhuma dessas três coisas: parecia quebrada. */}
       {!temTraducao && (
         <p className="text-[12px] text-ink bg-warn-soft border border-warn/30 rounded-xl px-3 py-2">
-          Esta trilha ainda não tem tradução para <b>{langLabelPt(nativo)}</b>
-          {paresDeGlosa.length > 0 && <> — só para {paresDeGlosa.map(langLabelPt).join(', ')}</>}.
+          Esta trilha ainda não tem tradução para <b>{langLabelNaUI(nativo)}</b>
+          {paresDeGlosa.length > 0 && <> — só para {paresDeGlosa.map(langLabelNaUI).join(', ')}</>}.
           Você pode praticar a escrita das palavras, mas os jogos de par ficam de fora e nada entra
           na sua revisão.
         </p>

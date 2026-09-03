@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { indiceDaTrilha } from '../../data/trilha/indice';
 import { hasVoiceFor } from '../../lib/tts';
-import { langLabelPt, LANGUAGES } from '../../lib/languages';
+import { langLabelNaUI, LANGUAGES } from '../../lib/languages';
 
 /**
  * O QUE CADA IDIOMA TEM HOJE.
@@ -48,7 +48,7 @@ export default function CoberturaDosIdiomas({ baralho }: Props) {
       const nivel: Nivel = !entrada ? 'seu-conteudo' : entrada.escala === 'cefr' ? 'completo' : 'parcial';
       return {
         idioma,
-        nome: langLabelPt(l.code),
+        nome: langLabelNaUI(l.code),
         nivel,
         trilha: entrada?.total ?? 0,
         voz: hasVoiceFor(l.code),

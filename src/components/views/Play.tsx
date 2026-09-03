@@ -28,7 +28,7 @@ import {
   type ItemCru, type ItemDaAntessala, type EstadoSequencia, type ResumoDaSequencia,
   type EscolhaDaPratica, type OrigemDaPratica, type FonteId,
 } from '@core';
-import { baseLang, langLabelPt } from '../../lib/languages';
+import { baseLang, langLabelNaUI } from '../../lib/languages';
 import { langConfigFrom } from '../../lib/langConfig';
 import { temFonteGuardada } from '../../lib/fonteDaPratica';
 import { contarPassada } from '../../lib/passadasDoPipeline';
@@ -43,7 +43,8 @@ import CuradoriaBaralho from './CuradoriaBaralho';
 import MapaDoConteudo from './MapaDoConteudo';
 import ArteDoJogo, { tomDoJogo, FAMILIAS } from '../minigames/ArteDosJogos';
 import Recordes from './play/Recordes';
-import { JOGOS, type JogoUI } from './play/jogos';
+import { JOGOS, tituloDoJogo, descricaoDoJogo, type JogoUI } from './play/jogos';
+import { t } from '../../lib/i18n';
 import PainelTrilha from './PainelTrilha';
 import BaralhoAnki from './BaralhoAnki';
 import BaralhosAnki from './BaralhosAnki';
@@ -1988,7 +1989,7 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
       naOutraFonte,
       descartados: triagem.fora.length,
       gravacoes: embutido ? 0 : sessoes.length,
-      nomeDoIdioma: langLabelPt,
+      nomeDoIdioma: langLabelNaUI,
     };
   }, [deck, fonte, embutido, idiomasDoBaralho, triagem.fora.length, sessoes.length, trilhaDe]);
 
@@ -2081,7 +2082,7 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
     tourDe === jogo ? (
       <TourGuiado
         passos={PASSOS_DOS_JOGOS[jogo]}
-        titulo={JOGOS.find(j => j.id === jogo)?.titulo[ageProfile] ?? ''}
+        titulo={((j) => (j ? tituloDoJogo(j, ageProfile) : ''))(JOGOS.find(j => j.id === jogo))}
         onFim={() => { marcarTourFeito(jogo); setTourDe(null); }}
       />
     ) : null,
@@ -2133,7 +2134,7 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
     return telaCheia(
       <AntessalaDaRodada
         gameId={antessala.jogo}
-        titulo={jogoUI?.titulo[ageProfile] ?? ''}
+        titulo={jogoUI ? tituloDoJogo(jogoUI, ageProfile) : ''}
         nivelGeral={progress.available ? progress.level : undefined}
         /* Z1 — CHIPS DE DIFICULDADE. Só aparecem onde significam algo: os 5 jogos de frase jogam
            sobre falas, que não têm dificuldade por palavra. Chip inerte ensina que a tela mente. */
@@ -2159,7 +2160,7 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
         ageProfile={ageProfile}
         /* O recorte que a pessoa escolheu no lobby seguia até aqui e sumia da tela. `rotuloDaFonte`
            já era calculado neste componente para o lobby, bastava repassar. */
-        fonte={{ rotulo: rotuloDaFonte(fonte, sessaoEmUso?.title), idioma: langLabelPt(fonte.lang) }}
+        fonte={{ rotulo: rotuloDaFonte(fonte, sessaoEmUso?.title), idioma: langLabelNaUI(fonte.lang) }}
         duracao={rotuloDeDuracao(estimativaDeMinutos(antessala.previa.length, temposMedidos))}
         /* O MAPA DE FASES: as rodadas passadas deste jogo nesta fonte, com estrelas e rejogar.
            `historico.size` é o nº de itens distintos já jogados — o numerador do % de vocabulário. */
@@ -2279,7 +2280,7 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
     const acertos = itensResumo.filter((i) => i.correct).length;
     return telaCheia(
       <ResumoDaRodada
-        jogo={JOGOS.find((j) => j.id === resultado.gameId)?.titulo[ageProfile] ?? resultado.gameId}
+        jogo={((j) => (j ? tituloDoJogo(j, ageProfile) : resultado.gameId))(JOGOS.find((j) => j.id === resultado.gameId))}
         fonte={rotuloDaFonte(fonte, sessaoEmUso?.title)}
         itens={itensResumo}
         tempoMs={resultado.items.reduce((a, o) => a + (o.ms ?? 0), 0)}
@@ -2337,7 +2338,7 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
     const ficha = (
       <ComoSeJoga
         jogo={explicando}
-        titulo={carta.titulo[ageProfile]}
+        titulo={tituloDoJogo(carta, ageProfile)}
         ageProfile={ageProfile}
         onJogar={() => { setExplicando(null); pedirParaJogar({ id: explicando }); }}
         onFechar={() => setExplicando(null)}
@@ -2646,7 +2647,7 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
               : baralhoAnki
                 ? baralhoAnki.nome
                 : (ABAS_DE_FONTE.find(a => a.origem === escolhaAtual.origem)?.rotulo[ageProfile] ?? '')}
-            idioma={fonte.lang ? langLabelPt(fonte.lang) : undefined}
+            idioma={fonte.lang ? langLabelNaUI(fonte.lang) : undefined}
             aberta={seletorAberto}
             aoAlternar={() => setSeletorAberto(v => !v)}
             aoLimpar={() => {
@@ -2721,7 +2722,7 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
                 },
                 opcoes: idiomasDoBaralho.map(i => ({
                   id: i.lang,
-                  rotulo: langLabelPt(i.lang),
+                  rotulo: langLabelNaUI(i.lang),
                   contagem: i.jogaveis,
                   icone: <Globe className="w-3.5 h-3.5" aria-hidden />,
                   motivoBloqueio: i.jogaveis === 0 ? 'nenhuma palavra pronta para jogar neste idioma ainda' : undefined,
@@ -3224,7 +3225,7 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
                       // depender de uma expansão que a norma não enxerga.
                       className={`font-display font-extrabold text-[14px] text-ink leading-tight flex-1 text-left min-h-6 flex items-center after:absolute after:inset-0 after:content-[''] rounded-lg ${liberado ? 'cursor-pointer' : 'cursor-not-allowed'}`}
                     >
-                      {j.titulo[ageProfile]}
+                      {tituloDoJogo(j, ageProfile)}
                     </button>
                     {/* Instrução que não some é instrução que atrapalha: depois da primeira vez,
                         ela fica aqui, a um clique, em vez de voltar sozinha.
@@ -3238,7 +3239,7 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
                         onClick={() => pedirParaJogar(j, true)}
                         className="relative z-10 min-w-6 min-h-6 inline-flex items-center justify-center rounded-lg text-ink-faint hover:text-accent hover:bg-surface-hover cursor-pointer shrink-0"
                         title="Ver o que vem nesta rodada, sem começar"
-                        aria-label={`Ver o que vem: ${j.titulo[ageProfile]}`}
+                        aria-label={`${t('Ver o que vem')}: ${tituloDoJogo(j, ageProfile)}`}
                       >
                         <ListChecks className="w-4 h-4" />
                       </button>
@@ -3252,7 +3253,7 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
                       onClick={() => setExplicando(j.id)}
                       className="relative z-10 min-w-6 min-h-6 inline-flex items-center justify-center rounded-lg text-ink-faint hover:text-accent hover:bg-surface-hover cursor-pointer shrink-0 opacity-0 group-hover:opacity-100 focus:opacity-100 focus-visible:opacity-100 [@media(hover:none)]:opacity-100 transition-opacity"
                       title="Como se joga"
-                      aria-label={`Como se joga: ${j.titulo[ageProfile]}`}
+                      aria-label={`${t('Como se joga')}: ${tituloDoJogo(j, ageProfile)}`}
                     >
                       <HelpCircle className="w-4 h-4" />
                     </button>
@@ -3284,7 +3285,7 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
                           onClick={() => mexerNaOrdem(mover(ordem, idsVisiveis, j.id, dir))}
                           className="min-w-6 min-h-6 inline-flex items-center justify-center rounded-md text-ink-faint hover:text-accent hover:bg-surface-hover cursor-pointer"
                           title={rot}
-                          aria-label={`${rot}: ${j.titulo[ageProfile]}`}
+                          aria-label={`${rot}: ${tituloDoJogo(j, ageProfile)}`}
                         >
                           {icone}
                         </button>
@@ -3294,7 +3295,7 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
                         onClick={() => mexerNaOrdem(alternarFixado(ordem, j.id))}
                         className={`min-w-6 min-h-6 inline-flex items-center justify-center rounded-md cursor-pointer hover:bg-surface-hover ${ordem.fixados.includes(j.id) ? 'text-accent' : 'text-ink-faint hover:text-accent'}`}
                         title={ordem.fixados.includes(j.id) ? 'Desafixar do topo' : 'Fixar no topo'}
-                        aria-label={`${ordem.fixados.includes(j.id) ? 'Desafixar' : 'Fixar no topo'}: ${j.titulo[ageProfile]}`}
+                        aria-label={`${ordem.fixados.includes(j.id) ? 'Desafixar' : 'Fixar no topo'}: ${tituloDoJogo(j, ageProfile)}`}
                       >
                         <Pin className={`w-3.5 h-3.5 ${ordem.fixados.includes(j.id) ? 'fill-current' : ''}`} />
                       </button>
@@ -3305,7 +3306,7 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
                       "a fala real toca" e "outras falas da mesma gravação" sobre um material que
                       não tem gravação nenhuma. */}
                   <span className="text-[12px] text-ink-muted leading-snug">
-                    {(fonte.id === 'trilha' && j.descricaoNaTrilha ? j.descricaoNaTrilha : j.descricao)[ageProfile]}
+                    {descricaoDoJogo(j, ageProfile, fonte.id === 'trilha')}
                   </span>
                   {/* A PORTA DE SAÍDA — uma ação, a mais barata que resolve.
                       `z-10` porque o título estende a área de clique dele sobre a carta inteira
@@ -3351,13 +3352,13 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
                           ? 'a trilha tem palavras, não frases'
                           : 'a trilha tem palavras soltas, este jogo precisa de frase; escolha uma gravação';
                       }
-                      if (motivo === 'sem-voz') return `este navegador não tem voz em ${langLabelPt(fonte.lang)}`;
+                      if (motivo === 'sem-voz') return `este navegador não tem voz em ${langLabelNaUI(fonte.lang)}`;
                       /* A trilha japonesa TEM 5.181 frases: a mensagem de acervo vazio mandaria a
                          pessoa procurar uma gravação para resolver o que não é falta de material. */
                       if (motivo === 'escrita-sem-separacao') {
                         return ageProfile === 'kids'
-                          ? `em ${langLabelPt(fonte.lang)} as palavras ficam juntinhas, sem espaço`
-                          : `este jogo separa as palavras da frase, e ${langLabelPt(fonte.lang)} não marca onde cada uma começa`;
+                          ? `em ${langLabelNaUI(fonte.lang)} as palavras ficam juntinhas, sem espaço`
+                          : `este jogo separa as palavras da frase, e ${langLabelNaUI(fonte.lang)} não marca onde cada uma começa`;
                       }
                       // Estado transitório e honesto: a gravação TEM som, ele está a caminho.
                       if (motivo === 'audio-carregando') return 'baixando o áudio da gravação…';
@@ -3372,7 +3373,7 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
                       const falta = `${j.estado.faltam === 1 ? 'falta' : 'faltam'} ${j.estado.faltam} ${j.estado.faltam === 1 ? unidade[0] : unidade[1]}`;
                       return ageProfile === 'kids'
                         ? `${falta} para abrir`
-                        : `${falta} · precisa de ${precisa} · você tem ${j.estado.disponiveis} do ${langLabelPt(fonte.lang)}`;
+                        : `${falta} · precisa de ${precisa} · você tem ${j.estado.disponiveis} do ${langLabelNaUI(fonte.lang)}`;
                     })()}
                   </span>
                   {/* O RECORDE, quando existe. Vem da coluna `score`, que era gravada a cada rodada

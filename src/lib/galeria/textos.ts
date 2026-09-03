@@ -4,14 +4,14 @@
  * Personalizar v3 (2026-08-28): a Loja dizia "Liberado · usar no Visual", o editor dizia
  * "Obter · 50", o modal ia dizer outra coisa. Aqui mora a única redação; quem mostra um item lê daqui.
  */
-import { readAgeProfile, t } from '../profile'
+import { readAgeProfile, copyDoPerfil } from '../profile'
 
 /**
  * A palavra do nível segue o perfil de exibição ("Etapa" no sênior — ux-v2 §1.7). Leitura via
  * `readAgeProfile` é o escape documentado em profile.ts: estes textos aparecem em dezenas de
  * selos enterrados; trocar de perfil reflete na próxima renderização de cada tela.
  */
-export const palavraDeNivel = () => t('word.level', readAgeProfile())
+export const palavraDeNivel = () => copyDoPerfil('word.level', readAgeProfile())
 
 export const TEXTOS = {
   liberado: 'Liberado',

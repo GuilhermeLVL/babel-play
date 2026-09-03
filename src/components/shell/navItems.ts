@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { EDICAO_LEVE } from '../../lib/edicao';
 import type { ViewType } from '../../types';
+import { t } from '../../lib/i18n';
 
 // O tipo mora em `lib/profile` (junto do dicionário de linguagem); aqui só reexportamos para não
 // quebrar os ~15 imports que já apontam para este módulo.
@@ -118,11 +119,19 @@ const TODOS_OS_ITENS: NavItemDef[] = [
   }
 ];
 
+/**
+ * O rótulo, já no idioma da interface.
+ *
+ * A tradução entra AQUI, e não nas tabelas acima, porque este é o único ponto por onde os rótulos
+ * saem — o menu inteiro passa a falar outro idioma sem que a definição de navegação mude de forma.
+ * As variantes por perfil continuam sendo escolhidas antes de traduzir: "Minhas Aulas" e "Sessão"
+ * são frases diferentes, e cada uma tem a sua tradução.
+ */
 export function navLabel(item: NavItemDef, profile: AgeProfileType, compact = false): string {
   // No modo compacto (barra horizontal estreita) o rótulo curto evita quebra de linha —
   // exceto no perfil sênior, onde a clareza vale mais que a economia de pixels.
-  if (compact && profile !== 'senior') return item.short;
-  return item.labels[profile];
+  if (compact && profile !== 'senior') return t(item.short);
+  return t(item.labels[profile]);
 }
 
 /**

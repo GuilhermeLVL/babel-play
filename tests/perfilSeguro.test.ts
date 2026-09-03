@@ -11,7 +11,7 @@
  *      do inicializador de um `useState`, isso impede a montagem do App inteiro.
  */
 import { describe, it, expect, afterEach } from 'vitest';
-import { readAgeProfile, readStoredEnum, readStoredValue, COPY, t } from '../src/lib/profile';
+import { readAgeProfile, readStoredEnum, readStoredValue, COPY, copyDoPerfil } from '../src/lib/profile';
 
 const original = Object.getOwnPropertyDescriptor(globalThis, 'localStorage');
 
@@ -50,7 +50,7 @@ describe('readAgeProfile', () => {
     instalarStorage(storageCom('banana'));
     const perfil = readAgeProfile();
     expect(COPY['now.due.cta'][perfil]).toBeTypeOf('string');
-    expect(t('now.due.cta', perfil)).not.toBe('');
+    expect(copyDoPerfil('now.due.cta', perfil)).not.toBe('');
   });
 
   it('storage bloqueado devolve o padrão "senior" sem propagar a exceção', () => {

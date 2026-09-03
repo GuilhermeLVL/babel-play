@@ -1,3 +1,4 @@
+import { assinarIdioma, idiomaDaInterface, usarIdioma } from './i18n';
 import React from 'react';
 /**
  * CONFIGURAÇÃO DE IDIOMA — leitor único, com nomes que não admitem inversão.
@@ -118,4 +119,26 @@ export function useLangConfig(): LangConfig {
     return () => { vivo = false; off(); };
   }, []);
   return cfg;
+}
+
+/**
+ * A INTERFACE SEGUE O IDIOMA DA PESSOA, e não uma preferência à parte.
+ *
+ * `mine` já é "o idioma que você já fala, o do seu microfone e o das traduções que você lê" — pedir
+ * de novo, num campo separado, seria fazer a mesma pergunta duas vezes e criar o estado incoerente
+ * de quem diz falar alemão e lê a tela em português. Quem quiser divergir dos dois troca em
+ * Ajustes; até lá, dizer "meu idioma é inglês" basta para a interface virar inglês.
+ *
+ * Roda uma vez no topo do app e a cada troca em Ajustes. Idioma sem catálogo fica em português —
+ * ver `usarIdioma`.
+ */
+export function useIdiomaDaInterfaceSeguindoOPerfil(): string {
+  const cfg = useLangConfig();
+  React.useEffect(() => { void usarIdioma(cfg.mine); }, [cfg.mine]);
+
+  /* ASSINA, além de definir. Sem isto o catálogo chegava e a tela continuava em português: `t()` é
+     função pura sobre estado de módulo, e quem chama (`navLabel`, `tituloDoJogo`) não é componente
+     — ninguém tinha por que renderizar de novo. Aqui na raiz, um re-render cobre a árvore toda, e
+     a troca de idioma é rara o bastante para isso não ser custo. */
+  return React.useSyncExternalStore(assinarIdioma, idiomaDaInterface, () => 'pt');
 }

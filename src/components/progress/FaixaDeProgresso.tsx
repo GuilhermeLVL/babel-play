@@ -1,6 +1,6 @@
 import { Bot, Flame, Sprout } from 'lucide-react';
 import { compactNumber, type DerivedProgress } from '../../lib/progress';
-import { t, type AgeProfileType } from '../../lib/profile';
+import { copyDoPerfil, type AgeProfileType } from '../../lib/profile';
 import { Barra } from '../ui';
 import { proximaRecompensa, emojiDoItem } from '../../lib/galeria/progressao';
 import { TEXTOS } from '../../lib/galeria/textos';
@@ -43,7 +43,7 @@ export default function FaixaDeProgresso({ progress, ageProfile }: { progress: D
     );
   }
 
-  const levelWord = t('word.level', ageProfile);
+  const levelWord = copyDoPerfil('word.level', ageProfile);
   /**
    * PERFIL SÊNIOR: um conceito, não quatro (auditoria de UX, 31/08). NÍVEL + XP + OFENSIVA +
    * SEEDS de uma vez é exatamente a carga que esse perfil pede para não ter. Fica a etapa com a

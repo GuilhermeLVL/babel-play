@@ -2,6 +2,7 @@ import React from 'react';
 import { IconePixel } from './IconesPixel';
 import type { MinigameId } from '@core';
 import type { AgeProfileType } from '../../../lib/profile';
+import { t } from '../../../lib/i18n';
 
 /**
  * OS NOVE JOGOS, como a tela os apresenta.
@@ -160,3 +161,19 @@ export const JOGOS: JogoUI[] = [
     },
   },
 ];
+
+/**
+ * O título e a descrição do jogo, já no idioma da interface.
+ *
+ * Mesma escolha de `navLabel`: a tradução entra no ponto de SAÍDA, não na tabela. As variantes por
+ * perfil continuam sendo escolhidas antes — "Memória: palavra e tradução" e "Jogo da memória" são
+ * frases diferentes, com traduções diferentes —, e a tabela segue legível como a fonte da redação.
+ */
+export function tituloDoJogo(jogo: JogoUI, perfil: AgeProfileType): string {
+  return t(jogo.titulo[perfil]);
+}
+
+export function descricaoDoJogo(jogo: JogoUI, perfil: AgeProfileType, naTrilha = false): string {
+  const tabela = naTrilha && jogo.descricaoNaTrilha ? jogo.descricaoNaTrilha : jogo.descricao;
+  return t(tabela[perfil]);
+}

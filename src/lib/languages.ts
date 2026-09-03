@@ -1,3 +1,4 @@
+import { idiomaDaInterface } from './i18n';
 /**
  * Lista única de idiomas usada pelos seletores (captura, configurações). `code` é
  * o BCP-47 (para a captura/Whisper e o TTS); `short` é o ISO-639-1 (para o MT).
@@ -172,10 +173,13 @@ export function mtIsLocal(src: string, tgt: string): boolean {
  * API (e o `?? label` cobre um código que ela não conheça), caindo no nome nativo — pior de ler,
  * nunca vazio.
  */
-export function langLabelPt(code: string): string {
+export function langLabelNaUI(code: string): string {
   const b = baseLang(code);
   try {
-    const nome = new Intl.DisplayNames(['pt-BR'], { type: 'language' }).of(b);
+    /* NO IDIOMA DA INTERFACE, não em português fixo: quem lê a tela em inglês precisa de "German"
+       no meio da frase, não de "Alemão". O nome NATIVO (`langLabel`) continua sendo o certo para a
+       LISTA de escolha — lá a pessoa procura o próprio idioma e o reconhece escrito como ele é. */
+    const nome = new Intl.DisplayNames([idiomaDaInterface()], { type: 'language' }).of(b);
     // A API devolve o próprio código quando não conhece o idioma; aí o nome nativo informa mais.
     if (nome && nome.toLowerCase() !== b) return nome.toLowerCase();
   } catch { /* runtime sem Intl.DisplayNames */ }

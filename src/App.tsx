@@ -58,6 +58,7 @@ import StudioHeader, { type AgeProfileType, type MenuPositionType, type FontScal
 import MobileNav from './components/shell/MobileNav';
 import MobileTopBar from './components/shell/MobileTopBar';
 import ParticleCanvas from './components/ParticleCanvas';
+import { useIdiomaDaInterfaceSeguindoOPerfil } from './lib/langConfig';
 import { setSoundMuted, play } from './lib/soundFx';
 import { installSfxDelegate } from './lib/sfxDelegate';
 import { instalarRastroDoMouse } from './lib/rastroDoMouse';
@@ -79,6 +80,10 @@ const MENU_POSITION_KEY = 'babel.menu_position';
 const MENU_POSITIONS: readonly MenuPositionType[] = ['top', 'bottom', 'left', 'right'];
 
 export default function App() {
+  /* A interface acompanha "meu idioma" do perfil — um lugar só, no topo, para não haver tela que
+     troque e tela que não. Ver `useIdiomaDaInterfaceSeguindoOPerfil`. */
+  useIdiomaDaInterfaceSeguindoOPerfil();
+
   const [activeView, setActiveView] = useState<ViewType>('hub');
   const [recordings, setRecordings] = useState<Recording[]>([]);
   const [selectedRecordingId, setSelectedRecordingId] = useState<string | null>(null);

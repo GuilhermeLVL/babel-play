@@ -3,7 +3,7 @@ import { X, Check as IconeCheck, Mic, GraduationCap, Flame, Globe, Layers, FileA
 import { Segmentado } from '../ui';
 import LangPicker from '../LangPicker';
 import CoberturaDosIdiomas from './CoberturaDosIdiomas';
-import { langLabelPt } from '../../lib/languages';
+import { langLabelNaUI } from '../../lib/languages';
 import type { AgeProfileType } from '../../lib/profile';
 import type { EscolhaDaPratica, OrigemDaPratica, EscopoDeGravacoes, CefrLevel } from '@core';
 import { nomeDaEscala, rotuloDaEtapa, type EscalaDaTrilha } from '../../core/learning/trilha';
@@ -222,7 +222,7 @@ export default function SalaDeEscolha({
                 aoTrocar={(l) => { setLang(l); setNivel(undefined); }}
                 opcoes={idiomas.map(i => ({
                   id: i.lang,
-                  rotulo: langLabelPt(i.lang),
+                  rotulo: langLabelNaUI(i.lang),
                   contagem: i.jogaveis,
                   dica: `${i.jogaveis} prontas para jogo de par, de ${i.total} no idioma`,
                   motivoBloqueio: i.jogaveis === 0
@@ -283,7 +283,7 @@ export default function SalaDeEscolha({
                   icone: <GraduationCap className="w-3.5 h-3.5" aria-hidden />,
                   contagem: temTrilha ? totalDaTrilha : undefined,
                   tom: 'good',
-                  motivoBloqueio: temTrilha ? undefined : `ainda não existe trilha em ${langLabelPt(lang)}`,
+                  motivoBloqueio: temTrilha ? undefined : `ainda não existe trilha em ${langLabelNaUI(lang)}`,
                 },
                 // O ranking do servidor como fonte (progresso-de-idioma 2.3): as palavras que
                 // você mais ERRA, na ordem da dor. Aparece sempre; sem material, diz o porquê.

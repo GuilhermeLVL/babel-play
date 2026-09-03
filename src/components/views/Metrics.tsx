@@ -5,7 +5,7 @@ import { ficharPalavraDoAnalista } from '../../lib/adicionarAoDeck';
 import { fetchMetrics, fetchDeck, fetchAllUtterances, type AppMetrics, type UtteranceRow } from '../../data/api';
 import { Recording, VocabCard, VocabWord } from '../../types';
 import EditablePanel from '../EditablePanel';
-import { t, coreOnly } from '../../lib/profile';
+import { copyDoPerfil, coreOnly } from '../../lib/profile';
 import {
   BookOpen, Clock, Activity, Zap, ArrowUpRight, AlertCircle,
   Download, LayoutGrid, Brain, Mic, Info, PieChart as PieChartIcon,
@@ -387,11 +387,11 @@ export default function Metrics({ recordings, onChangeView, ageProfile = 'pro' }
               aoTrocar={(id) => setMainTab(id as typeof mainTab)}
               className="border-b-0"
               itens={[
-                { id: 'dashboard', rotulo: t('metricsTab.dashboard', ageProfile), icone: <LayoutGrid className="w-4 h-4" /> },
+                { id: 'dashboard', rotulo: copyDoPerfil('metricsTab.dashboard', ageProfile), icone: <LayoutGrid className="w-4 h-4" /> },
                 ...((!coreOnly(ageProfile) || showAllTabs || mainTab !== 'dashboard')
                   ? [
-                    { id: 'lexical', rotulo: t('metricsTab.lexical', ageProfile), icone: <Brain className="w-4 h-4" /> },
-                    { id: 'fluency', rotulo: t('metricsTab.fluency', ageProfile), icone: <Mic className="w-4 h-4" /> },
+                    { id: 'lexical', rotulo: copyDoPerfil('metricsTab.lexical', ageProfile), icone: <Brain className="w-4 h-4" /> },
+                    { id: 'fluency', rotulo: copyDoPerfil('metricsTab.fluency', ageProfile), icone: <Mic className="w-4 h-4" /> },
                   ]
                   : []),
               ]}
@@ -425,7 +425,7 @@ export default function Metrics({ recordings, onChangeView, ageProfile = 'pro' }
               >
                 <div className="flex items-center gap-2 mb-3 text-ink-muted group-hover:text-ink transition-colors">
                   <BookOpen className="w-4 h-4 text-accent" />
-                  <span className="text-[11px] font-bold uppercase tracking-wider font-mono">{t('metric.deckSize', ageProfile)}</span>
+                  <span className="text-[11px] font-bold uppercase tracking-wider font-mono">{copyDoPerfil('metric.deckSize', ageProfile)}</span>
                 </div>
                 <div className="font-display font-black text-4xl tracking-tight text-ink mb-1">{(metrics?.deckSize ?? 0).toLocaleString('pt-BR')}</div>
                 <div className="flex items-center justify-between">
@@ -446,7 +446,7 @@ export default function Metrics({ recordings, onChangeView, ageProfile = 'pro' }
               >
                 <div className="flex items-center gap-2 mb-3 text-ink-muted group-hover:text-ink transition-colors">
                   <Activity className="w-4 h-4 text-good" />
-                  <span className="text-[11px] font-bold uppercase tracking-wider font-mono">{t('metric.retention', ageProfile)}</span>
+                  <span className="text-[11px] font-bold uppercase tracking-wider font-mono">{copyDoPerfil('metric.retention', ageProfile)}</span>
                 </div>
                 <div className="font-display font-black text-4xl tracking-tight text-ink mb-1">{metrics && metrics.avgRetentionConfidence > 0 ? Math.round(metrics.avgRetention * 100) + '%' : '-'}</div>
                 <div className="flex items-center justify-between">
@@ -469,7 +469,7 @@ export default function Metrics({ recordings, onChangeView, ageProfile = 'pro' }
               >
                 <div className="flex items-center gap-2 mb-3 text-ink-muted group-hover:text-ink transition-colors">
                   <Clock className="w-4 h-4 text-rare" />
-                  <span className="text-[11px] font-bold uppercase tracking-wider font-mono">{t('metric.reviews', ageProfile)}</span>
+                  <span className="text-[11px] font-bold uppercase tracking-wider font-mono">{copyDoPerfil('metric.reviews', ageProfile)}</span>
                 </div>
                 <div className="font-display font-black text-4xl tracking-tight text-ink mb-1">{metrics?.reviews ?? 0}</div>
                 <div className="flex items-center justify-between mt-1">

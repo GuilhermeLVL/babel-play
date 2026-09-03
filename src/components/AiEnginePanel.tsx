@@ -3,6 +3,7 @@ import { Zap, Check, AlertTriangle, Loader2, ShieldCheck, Cloud, HardDrive, Lang
 import { buildGateway } from '../gateway';
 import { BUILTIN_PROFILES, DEFAULT_PROFILE_ID, getBuiltinProfile } from '../gateway/profiles';
 import type { Capability } from '@core';
+import { t } from '../lib/i18n';
 
 const PROFILE_STORAGE_KEY = 'babel.activeProfileId';
 
@@ -183,8 +184,8 @@ export default function AiEnginePanel({
                     aria-hidden
                   />
                   <span className="min-w-0">
-                    <span className="block font-bold text-[13px] text-ink">{meta.titulo}</span>
-                    <span className="block text-[11.5px] text-ink-muted leading-snug">{meta.onde}</span>
+                    <span className="block font-bold text-[13px] text-ink">{t(meta.titulo)}</span>
+                    <span className="block text-[11.5px] text-ink-muted leading-snug">{t(meta.onde)}</span>
                   </span>
                 </span>
                 <span className="shrink-0 text-right">

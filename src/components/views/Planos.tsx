@@ -5,6 +5,7 @@ import { Abas, PainelDeAba, Barra, Vazio } from '../ui';
 import { getEntitlements, onPlanChange, PLAN_LABELS } from '../../lib/entitlements';
 import { carregarUso, fracao, duracaoLegivel, type UsoDoMes } from '../../lib/uso';
 import Assinar from './planos/Assinar';
+import { t } from '../../lib/i18n';
 
 /**
  * PLANOS E USO — o que cada plano dá, e quanto do seu já foi usado.
@@ -149,7 +150,7 @@ export default function Planos() {
             Seu plano
           </h1>
           <p className="text-ink-muted text-[14px]">
-            Você está no plano <strong className="text-ink">{PLAN_LABELS[meuPlano]}</strong>.
+            Você está no plano <strong className="text-ink">{t(PLAN_LABELS[meuPlano])}</strong>.
           </p>
         </header>
 

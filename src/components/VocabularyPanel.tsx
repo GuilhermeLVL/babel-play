@@ -7,6 +7,7 @@ import type { AppLayoutConfig } from '../lib/layoutStore';
 import type { ExerciseId } from '../lib/sentences';
 import { lookup, forvoUrl, wiktionaryUrl, type DictionaryResult } from '../lib/dictionary';
 import { langLabel } from '../lib/languages';
+import { t } from '../lib/i18n';
 
 /** Rótulos amigáveis dos motores de tradução — o usuário não deve ler ids técnicos crus. */
 const MT_ENGINE_LABELS: Record<string, string> = {
@@ -270,7 +271,7 @@ export default function VocabularyPanel({
                 {word.translation && (
                   <Provenance
                     kind="computed"
-                    origin={MT_ENGINE_LABELS[word.mtEngine ?? ''] ?? word.mtEngine ?? 'guardada no seu caderno'}
+                    origin={t(MT_ENGINE_LABELS[word.mtEngine ?? ''] ?? word.mtEngine ?? 'guardada no seu caderno')}
                     method="tradução automática"
                     limits="Tradução de máquina, palavra fora de contexto. Ela erra em gírias, termos técnicos e palavras com vários sentidos. Para a acepção exata, use o verbete abaixo."
                   />

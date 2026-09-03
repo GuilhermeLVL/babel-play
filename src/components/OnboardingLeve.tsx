@@ -18,6 +18,7 @@ import LangPicker from './LangPicker';
 import { DEFAULT_LANG_CONFIG, saveLangConfig } from '../lib/langConfig';
 import { patchUiSettings } from '../data/api';
 import { CRIADOR, preenchido } from '../lib/criador';
+import { t } from '../lib/i18n';
 
 export type ObjetivoLeve = 'jogos' | 'estudos' | 'trabalho';
 
@@ -125,7 +126,7 @@ export default function OnboardingLeve({ onComplete }: { onComplete: () => void 
                   >
                     <span className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${objetivo === o.id ? 'bg-accent text-white' : 'bg-surface text-ink-muted'}`}>{o.icone}</span>
                     <span className="min-w-0">
-                      <span className="block font-bold text-[13.5px] text-ink">{o.titulo}</span>
+                      <span className="block font-bold text-[13.5px] text-ink">{t(o.titulo)}</span>
                       <span className="block text-[12px] text-ink-muted leading-snug">{o.sub}</span>
                     </span>
                   </button>

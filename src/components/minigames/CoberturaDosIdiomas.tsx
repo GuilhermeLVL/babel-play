@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import { indiceDaTrilha } from '../../data/trilha/indice';
 import { hasVoiceFor } from '../../lib/tts';
 import { langLabelNaUI, LANGUAGES } from '../../lib/languages';
+import { t } from '../../lib/i18n';
 
 /**
  * O QUE CADA IDIOMA TEM HOJE.
@@ -80,7 +81,7 @@ export default function CoberturaDosIdiomas({ baralho }: Props) {
             {linhas.map(l => (
               <tr key={l.idioma} className="border-t border-border-subtle">
                 <td className="py-1 pr-2 text-ink">{l.nome}</td>
-                <td className={`py-1 pr-2 ${COR[l.nivel]}`}>{ROTULO[l.nivel]}</td>
+                <td className={`py-1 pr-2 ${COR[l.nivel]}`}>{t(ROTULO[l.nivel])}</td>
                 <td className="py-1 pr-2 text-right tabular-nums text-ink-muted">
                   {l.trilha ? l.trilha.toLocaleString('pt-BR') : '—'}
                 </td>

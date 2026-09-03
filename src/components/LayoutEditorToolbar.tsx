@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useLayout } from '../hooks/useLayout';
 import { Sparkles, RotateCcw, Check, Eye, EyeOff } from 'lucide-react';
 import { PANEL_TITLES } from '../lib/panelMeta';
+import { t } from '../lib/i18n';
 
 export default function LayoutEditorToolbar() {
   const { 
@@ -28,7 +29,7 @@ export default function LayoutEditorToolbar() {
   Object.entries(layout).forEach(([viewKey, viewConfig]) => {
     Object.entries(viewConfig).forEach(([panelKey, panelConfig]) => {
       if (!(panelConfig as any).show) {
-        hiddenItems.push({ view: viewKey, panel: panelKey, title: PANEL_TITLES[panelKey] || panelKey });
+        hiddenItems.push({ view: viewKey, panel: panelKey, title: t(PANEL_TITLES[panelKey] || panelKey) });
       }
     });
   });

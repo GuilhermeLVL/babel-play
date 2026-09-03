@@ -5,6 +5,7 @@
  */
 import React from 'react';
 import { X, Mic, Monitor, Download, MessageCircle, PictureInPicture2, GraduationCap } from 'lucide-react';
+import { t } from '../lib/i18n';
 
 const FLUXOS: Array<{ icon: React.ReactNode; titulo: string; passos: string }> = [
   {
@@ -67,8 +68,8 @@ export default function GuidePanel({ onClose }: { onClose: () => void }) {
             <div key={f.titulo} className="flex gap-3 bg-surface border border-border-subtle rounded-xl p-3.5">
               <span className="shrink-0 w-8 h-8 rounded-lg bg-accent-soft text-accent flex items-center justify-center">{f.icon}</span>
               <div className="min-w-0">
-                <div className="font-bold text-[13px] text-ink">{f.titulo}</div>
-                <p className="text-[12px] text-ink-muted leading-relaxed mt-0.5">{f.passos}</p>
+                <div className="font-bold text-[13px] text-ink">{t(f.titulo)}</div>
+                <p className="text-[12px] text-ink-muted leading-relaxed mt-0.5">{t(f.passos)}</p>
               </div>
             </div>
           ))}

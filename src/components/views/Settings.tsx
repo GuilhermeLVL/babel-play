@@ -22,6 +22,7 @@ import { getEntitlements, onPlanChange, PLAN_LABELS } from '../../lib/entitlemen
 import type { AgeProfileType, MenuPositionType } from '../shell/navItems';
 import type { FontScale } from '../shell/ControlCluster';
 import { Abas, PainelDeAba } from '../ui';
+import { t } from '../../lib/i18n';
 
 /**
  * AS QUATRO ABAS, e por que esta tela deixou de ser uma rolagem só.
@@ -458,7 +459,7 @@ export default function Settings({
             <div className="p-5" data-testid="settings-plano">
               <div className="font-bold text-[14px] mb-1">Plano</div>
               <p className="text-[13px] mb-1">
-                Seu plano: <strong>{PLAN_LABELS[entitlements.plan]}</strong>
+                Seu plano: <strong>{t(PLAN_LABELS[entitlements.plan])}</strong>
               </p>
               {entitlements.armazenamento && (
                 <p className="text-[12px] text-ink-muted mb-2">

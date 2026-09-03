@@ -7,6 +7,7 @@ import { motivoLegivel, ROTULO_MOTIVO, type MotivoDescarte } from '@core';
 import type { VocabCard } from '../../types';
 import type { AgeProfileType } from '../../lib/profile';
 import { toast } from '../Toast';
+import { t } from '../../lib/i18n';
 
 /**
  * BARALHOS DO ANKI — trazer e levar.
@@ -318,7 +319,7 @@ export default function BaralhoAnki({
                     {Object.entries(resultado.resumo.porMotivo).map(([motivo, n]) => (
                       <li key={motivo} className="text-[12px] text-ink-muted">
                         <b className="text-ink">{n}</b>{' '}
-                        {ROTULO_MOTIVO[motivo as MotivoDescarte]?.titulo.toLowerCase() ?? motivoLegivel(motivo)}
+                        {t(ROTULO_MOTIVO[motivo as MotivoDescarte]?.titulo ?? motivoLegivel(motivo)).toLowerCase()}
                       </li>
                     ))}
                   </ul>

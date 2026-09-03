@@ -14,6 +14,7 @@ import {
 import { persistTheme } from '../lib/theme';
 import { acessoAoItem } from '../lib/galeria/acesso';
 import { askConfirm } from './Toast';
+import { t } from '../lib/i18n';
 
 interface LayoutStudioProps {
   isOpen: boolean;
@@ -274,7 +275,7 @@ export default function LayoutStudio({ isOpen, onClose, theme, setTheme, nivel, 
                           active ? 'bg-accent-soft/30 border-accent text-accent-ink' : 'bg-surface border-border-subtle text-ink-muted hover:text-ink hover:border-accent/60'
                         }`}
                       >
-                        <Icon className="w-4 h-4" /> {VIEWS_LABELS[s] || s}
+                        <Icon className="w-4 h-4" /> {t(VIEWS_LABELS[s] || s)}
                       </button>
                     );
                   })}
@@ -296,7 +297,7 @@ export default function LayoutStudio({ isOpen, onClose, theme, setTheme, nivel, 
                     return (
                       <div key={panelKey} className={`rounded-2xl border bg-surface p-4 transition-colors ${cfg.show ? 'border-border-subtle' : 'border-border-subtle/60 opacity-70'}`}>
                         <div className="flex items-center justify-between gap-3 flex-wrap">
-                          <div className="font-bold text-[13.5px] text-ink">{PANEL_TITLES[panelKey] || panelKey}</div>
+                          <div className="font-bold text-[13.5px] text-ink">{t(PANEL_TITLES[panelKey] || panelKey)}</div>
                           <button
                             onClick={() => updatePanel(activeScreen, panelKey, { show: !cfg.show })}
                             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-bold transition-colors cursor-pointer border ${

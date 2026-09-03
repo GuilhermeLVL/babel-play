@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { ArrowLeft, Check, Info } from 'lucide-react';
 import type { AgeProfileType } from '../../lib/profile';
+import { t } from '../../lib/i18n';
 
 /**
  * MAPA DO CONTEÚDO — o que já caiu, o que nunca caiu, o que eu errei.
@@ -371,7 +372,7 @@ export default function MapaDoConteudo({
                     : 'border-border-subtle text-ink-muted hover:border-accent hover:text-ink'
                 }`}
               >
-                {ROTULO_FILTRO[f][ageProfile]}
+                {t(ROTULO_FILTRO[f][ageProfile])}
                 <span className="font-mono font-bold text-[11px]">{n}</span>
               </button>
             );

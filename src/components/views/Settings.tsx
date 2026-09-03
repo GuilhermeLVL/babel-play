@@ -23,6 +23,7 @@ import type { AgeProfileType, MenuPositionType } from '../shell/navItems';
 import type { FontScale } from '../shell/ControlCluster';
 import { Abas, PainelDeAba } from '../ui';
 import { t } from '../../lib/i18n';
+import { T } from '../../lib/T';
 
 /**
  * AS QUATRO ABAS, e por que esta tela deixou de ser uma rolagem só.
@@ -207,7 +208,7 @@ export default function Settings({
       setLangCfg(saved);
     } catch {
       setLangCfg(previous); // volta ao que o SERVIDOR realmente tem
-      setSaveError('Não foi possível salvar o idioma. Verifique a conexão com o servidor e tente de novo.');
+      setSaveError(t('Não foi possível salvar o idioma. Verifique a conexão com o servidor e tente de novo.'));
     }
   };
 
@@ -221,7 +222,7 @@ export default function Settings({
     if (!saved) {
       setActiveProfileId(previous);
       localStorage.setItem(PROFILE_STORAGE_KEY, previous);
-      setSaveError('Não foi possível salvar o perfil de IA. Verifique a conexão com o servidor e tente de novo.');
+      setSaveError(t('Não foi possível salvar o perfil de IA. Verifique a conexão com o servidor e tente de novo.'));
     }
   };
 
@@ -235,7 +236,7 @@ export default function Settings({
     const saved = await patchUiSettings({ ...next });
     if (!saved) {
       setUi(previous);
-      setSaveError('Não foi possível salvar sua preferência. Verifique a conexão com o servidor e tente de novo.');
+      setSaveError(t('Não foi possível salvar sua preferência. Verifique a conexão com o servidor e tente de novo.'));
     }
   };
 
@@ -253,19 +254,19 @@ export default function Settings({
       <header className="mb-10">
         <span className="label-mono text-accent flex items-center gap-1.5">
           {ageProfile === 'kids' ? <Gamepad2 className="w-3.5 h-3.5" aria-hidden /> : ageProfile === 'senior' ? <Eye className="w-3.5 h-3.5" aria-hidden /> : <Zap className="w-3.5 h-3.5" aria-hidden />}
-          <span>{ageProfile === 'kids' ? 'Ajustes do jogador' : ageProfile === 'senior' ? 'Painel de opções' : 'Preferências do app'}</span>
+          <span>{ageProfile === 'kids' ? t('Ajustes do jogador') : ageProfile === 'senior' ? t('Painel de opções') : t('Preferências do app')}</span>
         </span>
         <h1 className="font-display font-black text-2xl md:text-3xl text-ink tracking-tight mt-1 mb-2">
           {/* A tela tinha TRÊS nomes — "Ajustes" no menu, "Configurações" no título, "Preferências
               do app" no kicker (auditoria de UX, 31/08). Um vocabulário: ela se chama Ajustes. */}
-          {ageProfile === 'kids' ? 'Ajustes do jogo' : ageProfile === 'senior' ? 'Ajustes do aplicativo' : 'Ajustes'}
+          {ageProfile === 'kids' ? t('Ajustes do jogo') : ageProfile === 'senior' ? t('Ajustes do aplicativo') : t('Ajustes')}
         </h1>
         <p className="text-ink-muted text-xs md:text-sm">
           {ageProfile === 'kids'
-            ? 'Escolha os idiomas que você quer praticar e personalize o visual do seu jogo.'
+            ? t('Escolha os idiomas que você quer praticar e personalize o visual do seu jogo.')
             : ageProfile === 'senior'
-            ? 'Configure o idioma que você deseja aprender e altere opções de leitura de forma simples.'
-            : 'Preferências de interface, processamento e integrações.'}
+            ? t('Configure o idioma que você deseja aprender e altere opções de leitura de forma simples.')
+            : t('Preferências de interface, processamento e integrações.')}
         </p>
       </header>
 
@@ -281,10 +282,10 @@ export default function Settings({
       )}
 
       <Abas
-        itens={ABAS}
+        itens={ABAS.map((a) => ({ ...a, rotulo: t(a.rotulo) }))}
         ativo={aba}
         aoTrocar={setAba}
-        rotuloDoGrupo="Seções dos ajustes"
+        rotuloDoGrupo={t('Seções dos ajustes')}
         className="mb-8"
       />
 
@@ -294,34 +295,34 @@ export default function Settings({
         <section>
           <div className="flex items-center gap-2 mb-4 text-ink">
             <Languages className="w-5 h-5" />
-            <h2 className="font-display font-bold text-lg">Os dois idiomas</h2>
+            <h2 className="font-display font-bold text-lg">{t('Os dois idiomas')}</h2>
           </div>
           <div className="card-panel">
             {/* Os DOIS idiomas, com nomes que não admitem inversão: o que você fala e o que estuda.
                 O "meu idioma" deixou de ser um detalhe escondido na tela de Captura, ele decide a
                 DIREÇÃO da tradução de todo cartão de vocabulário. */}
             <div className="p-5 border-b border-border-subtle">
-              <div className="font-bold text-[14px] mb-1">Idioma que estou aprendendo</div>
+              <div className="font-bold text-[14px] mb-1">{t('Idioma que estou aprendendo')}</div>
               <p className="text-[12px] text-ink-muted mb-3">
-                O idioma do áudio/texto estrangeiro. É o idioma das palavras que vão para o seu deck.
+                {t('O idioma do áudio/texto estrangeiro. É o idioma das palavras que vão para o seu deck.')}
               </p>
               {/* Lista ÚNICA (`lib/languages`, 32 idiomas) com bandeira e busca — ver LangPicker. */}
               <LangPicker
                 id="settings-studying-lang"
-                ariaLabel="Idioma que estou aprendendo"
+                ariaLabel={t('Idioma que estou aprendendo')}
                 block
                 value={langCfg.studying}
                 onPick={({ code }) => { if (code) void changeLang({ studying: code }); }}
               />
             </div>
             <div className="p-5">
-              <div className="font-bold text-[14px] mb-1">Meu idioma</div>
+              <div className="font-bold text-[14px] mb-1">{t('Meu idioma')}</div>
               <p className="text-[12px] text-ink-muted mb-3">
-                O idioma que você já fala, o do seu microfone e o das traduções que você lê.
+                {t('O idioma que você já fala, o do seu microfone e o das traduções que você lê.')}
               </p>
               <LangPicker
                 id="settings-mine-lang"
-                ariaLabel="Meu idioma"
+                ariaLabel={t('Meu idioma')}
                 block
                 value={langCfg.mine}
                 onPick={({ code }) => { if (code) void changeLang({ mine: code }); }}
@@ -329,7 +330,7 @@ export default function Settings({
               {/* Aviso honesto: com os dois iguais não há o que traduzir (`mtCoverage` = 'same'). */}
               {baseLang(langCfg.mine) === baseLang(langCfg.studying) && (
                 <p className="text-[12px] text-warn-ink mt-2">
-                  Os dois idiomas são o mesmo, não há tradução a fazer, e os cartões ficarão sem verso.
+                  {t('Os dois idiomas são o mesmo, não há tradução a fazer, e os cartões ficarão sem verso.')}
                 </p>
               )}
             </div>
@@ -346,7 +347,7 @@ export default function Settings({
         <section>
           <div className="flex items-center gap-2 mb-4 text-ink">
             <Target className="w-5 h-5" />
-            <h2 className="font-display font-bold text-lg">Meta de Comunicação</h2>
+            <h2 className="font-display font-bold text-lg">{t('Meta de Comunicação')}</h2>
           </div>
           <div className="card-panel p-5">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -354,33 +355,33 @@ export default function Settings({
                 onClick={() => setGoal('executivo')}
                 className={`p-4 border-2 rounded-xl text-start transition-colors ${ui.goal === 'executivo' ? 'border-accent bg-accent-soft' : 'border-border-subtle bg-surface hover:border-accent'}`}
               >
-                <div className="font-bold text-[14px] text-ink mb-1">Comunicação Executiva</div>
-                <p className="text-[12px] text-ink-muted mb-2">Foco em concisão, clareza e ritmo pausado.</p>
-                <span className={`badge-tag ${GOAL_TARGETS.executivo.badgeClass}`}>{GOAL_TARGETS.executivo.badge}</span>
+                <div className="font-bold text-[14px] text-ink mb-1">{t('Comunicação Executiva')}</div>
+                <p className="text-[12px] text-ink-muted mb-2">{t('Foco em concisão, clareza e ritmo pausado.')}</p>
+                <span className={`badge-tag ${GOAL_TARGETS.executivo.badgeClass}`}>{t(GOAL_TARGETS.executivo.badge)}</span>
               </button>
               <button
                 onClick={() => setGoal('creator')}
                 className={`p-4 border-2 rounded-xl text-start transition-colors ${ui.goal === 'creator' ? 'border-accent bg-accent-soft' : 'border-border-subtle bg-surface hover:border-accent'}`}
               >
-                <div className="font-bold text-[14px] text-ink mb-1">Criador / YouTuber</div>
-                <p className="text-[12px] text-ink-muted mb-2">Foco em energia, retenção e vocabulário acessível.</p>
-                <span className={`badge-tag ${GOAL_TARGETS.creator.badgeClass}`}>{GOAL_TARGETS.creator.badge}</span>
+                <div className="font-bold text-[14px] text-ink mb-1">{t('Criador / YouTuber')}</div>
+                <p className="text-[12px] text-ink-muted mb-2">{t('Foco em energia, retenção e vocabulário acessível.')}</p>
+                <span className={`badge-tag ${GOAL_TARGETS.creator.badgeClass}`}>{t(GOAL_TARGETS.creator.badge)}</span>
               </button>
               <button
                 onClick={() => setGoal('tedx')}
                 className={`p-4 border-2 rounded-xl text-start transition-colors ${ui.goal === 'tedx' ? 'border-accent bg-accent-soft' : 'border-border-subtle bg-surface hover:border-accent'}`}
               >
-                <div className="font-bold text-[14px] text-ink mb-1">Estilo Palestrante (TED)</div>
-                <p className="text-[12px] text-ink-muted mb-2">Pausas, vocabulário raro e storytelling.</p>
-                <span className={`badge-tag ${GOAL_TARGETS.tedx.badgeClass}`}>{GOAL_TARGETS.tedx.badge}</span>
+                <div className="font-bold text-[14px] text-ink mb-1">{t('Estilo Palestrante (TED)')}</div>
+                <p className="text-[12px] text-ink-muted mb-2">{t('Pausas, vocabulário raro e storytelling.')}</p>
+                <span className={`badge-tag ${GOAL_TARGETS.tedx.badgeClass}`}>{t(GOAL_TARGETS.tedx.badge)}</span>
               </button>
               <button
                 onClick={() => setGoal('tech')}
                 className={`p-4 border-2 rounded-xl text-start transition-colors ${ui.goal === 'tech' ? 'border-accent bg-accent-soft' : 'border-border-subtle bg-surface hover:border-accent'}`}
               >
-                <div className="font-bold text-[14px] text-ink mb-1">Tech / Developer</div>
-                <p className="text-[12px] text-ink-muted mb-2">Inglês/Português misto, termos técnicos sem tradução.</p>
-                <span className={`badge-tag ${GOAL_TARGETS.tech.badgeClass}`}>{GOAL_TARGETS.tech.badge}</span>
+                <div className="font-bold text-[14px] text-ink mb-1">{t('Tech / Developer')}</div>
+                <p className="text-[12px] text-ink-muted mb-2">{t('Inglês/Português misto, termos técnicos sem tradução.')}</p>
+                <span className={`badge-tag ${GOAL_TARGETS.tech.badgeClass}`}>{t(GOAL_TARGETS.tech.badge)}</span>
               </button>
             </div>
 
@@ -388,22 +389,22 @@ export default function Settings({
             <div className="mt-5 pt-4 border-t border-border-subtle flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div>
                 <div className="text-[12px] font-bold text-ink flex items-center gap-2">
-                  Seu ritmo medido
+                  {t('Seu ritmo medido')}
                   {wpmMeasured != null && wpmLowConf && (
-                    <span className="kpi-pill opacity-60 cursor-default text-[11px]">estimativa</span>
+                    <span className="kpi-pill opacity-60 cursor-default text-[11px]">{t('estimativa')}</span>
                   )}
                 </div>
                 <p className="text-[11.5px] text-ink-muted mt-0.5">
                   {wpmMeasured != null
-                    ? <>Comparado ao alvo da meta selecionada ({GOAL_TARGETS[ui.goal]?.badge ?? 'sem alvo de ppm'}).</>
-                    : <>Grave ou faça Shadowing para medir seu ritmo, ainda sem dados suficientes.</>}
+                    ? t('Comparado ao alvo da meta selecionada ({alvo}).', { alvo: t(GOAL_TARGETS[ui.goal]?.badge ?? 'sem alvo de ppm') })
+                    : t('Grave ou faça Shadowing para medir seu ritmo, ainda sem dados suficientes.')}
                 </p>
               </div>
               <div className="flex items-baseline gap-1.5 shrink-0">
                 <span className="font-mono font-black text-2xl text-accent">{wpmMeasured != null ? wpmMeasured : '-'}</span>
-                <span className="text-[11px] font-bold text-ink-muted">ppm</span>
+                <span className="text-[11px] font-bold text-ink-muted">{t('ppm')}</span>
                 {wpmMeasured != null && GOAL_TARGETS[ui.goal]?.ppm != null && (
-                  <span className="text-[11px] text-ink-faint font-mono ms-1">/ {GOAL_TARGETS[ui.goal]?.ppm} alvo</span>
+                  <span className="text-[11px] text-ink-faint font-mono ms-1">{t('/ {n} alvo', { n: GOAL_TARGETS[ui.goal]?.ppm })}</span>
                 )}
               </div>
             </div>
@@ -424,17 +425,17 @@ export default function Settings({
         <section>
           <div className="flex items-center gap-2 mb-4 text-ink">
             <Palette className="w-5 h-5" />
-            <h2 className="font-display font-bold text-lg">Aparência</h2>
+            <h2 className="font-display font-bold text-lg">{t('Aparência')}</h2>
           </div>
           <div className="card-panel p-5 space-y-3">
             <p className="text-[13px] text-ink">
-              Tudo que muda a cara do app mora numa tela só: <b>Personalizar</b> (no menu). Tema e paletas, fonte, partículas, emojis, cursor, rastro, perfil de exibição, posição do menu, perfis prontos, a Loja e as conquistas.
+              <T txt="Tudo que muda a cara do app mora numa tela só: <b>Personalizar</b> (no menu). Tema e paletas, fonte, partículas, emojis, cursor, rastro, perfil de exibição, posição do menu, perfis prontos, a Loja e as conquistas." />
             </p>
             <p className="text-[12.5px] text-ink-muted">
-              Tamanho do texto, som, animações, modo desempenho e claro/escuro ficam nos botões da barra de controles, sempre à vista.
+              {t('Tamanho do texto, som, animações, modo desempenho e claro/escuro ficam nos botões da barra de controles, sempre à vista.')}
             </p>
             <button onClick={() => onChangeView('loja')} className="btn-solid">
-              <Sparkles className="w-4 h-4" /> Abrir Personalizar
+              <Sparkles className="w-4 h-4" /> {t('Abrir Personalizar')}
             </button>
           </div>
         </section>
@@ -449,7 +450,7 @@ export default function Settings({
         <section>
           <div className="flex items-center gap-2 mb-4 text-ink">
             <Server className="w-5 h-5" />
-            <h2 className="font-display font-bold text-lg">Onde as contas rodam</h2>
+            <h2 className="font-display font-bold text-lg">{t('Onde as contas rodam')}</h2>
           </div>
           <div className="card-panel">
             {/* UM SELETOR, UM DONO (auditoria de UX, 31/08): aqui vivia um <select> "Perfil de IA
@@ -457,26 +458,26 @@ export default function Settings({
                 controles para um estado. O painel assumiu a persistência e o gate Pro via props. */}
             {/* Plano do usuário — leitura: quem decide é o servidor (GET /api/me/entitlements). */}
             <div className="p-5" data-testid="settings-plano">
-              <div className="font-bold text-[14px] mb-1">Plano</div>
+              <div className="font-bold text-[14px] mb-1">{t('Plano')}</div>
               <p className="text-[13px] mb-1">
-                Seu plano: <strong>{t(PLAN_LABELS[entitlements.plan])}</strong>
+                <T txt="Seu plano: <b>{plano}</b>" val={{ plano: t(PLAN_LABELS[entitlements.plan]) }} />
               </p>
               {entitlements.armazenamento && (
                 <p className="text-[12px] text-ink-muted mb-2">
-                  Armazenamento: {Math.round(entitlements.armazenamento.usados / 1_048_576)} MB
-                  {entitlements.armazenamento.teto === null ? ' (sem teto)' : ` de ${Math.round(entitlements.armazenamento.teto / 1_048_576)} MB`}
+                  {t('Armazenamento: {n} MB', { n: Math.round(entitlements.armazenamento.usados / 1_048_576) })}
+                  {entitlements.armazenamento.teto === null
+                    ? ` ${t('(sem teto)')}`
+                    : ` ${t('de {n} MB', { n: Math.round(entitlements.armazenamento.teto / 1_048_576) })}`}
                 </p>
               )}
               {/* DESCOBRIBILIDADE (auditoria de UX, 31/08): a tela de Planos existia e o próprio
                   dono do produto não a encontrou — ela só vivia atrás do menu do avatar. Este é o
                   primeiro dos dois caminhos visíveis (o outro está no Hub). */}
               <button onClick={() => onChangeView('planos')} className="btn-outline mt-1 mb-2">
-                Ver planos e preços
+                {t('Ver planos e preços')}
               </button>
               <p className="text-[11px] text-ink-faint mt-2">
-                No plano Grátis, a importação do YouTube e a nuvem gerenciada aparecem com o selo
-                “Pro” — nada some, e com a SUA chave de API (BYOK, abaixo) a nuvem é liberada em
-                qualquer plano. Rodando no seu computador (self-host), tudo é liberado.
+                {t('No plano Grátis, a importação do YouTube e a nuvem gerenciada aparecem com o selo “Pro” — nada some, e com a SUA chave de API (BYOK, abaixo) a nuvem é liberada em qualquer plano. Rodando no seu computador (self-host), tudo é liberado.')}
               </p>
             </div>
           </div>
@@ -486,7 +487,7 @@ export default function Settings({
         <section>
           <div className="flex items-center gap-2 mb-4 text-ink">
             <Server className="w-5 h-5" />
-            <h2 className="font-display font-bold text-lg">Motores de Inteligência Artificial</h2>
+            <h2 className="font-display font-bold text-lg">{t('Motores de Inteligência Artificial')}</h2>
           </div>
           <AiEnginePanel
             activeId={activeProfileId}
@@ -499,22 +500,22 @@ export default function Settings({
         <section>
           <div className="flex items-center gap-2 mb-4 text-ink">
             <Shield className="w-5 h-5" />
-            <h2 className="font-display font-bold text-lg">Privacidade e Processamento</h2>
+            <h2 className="font-display font-bold text-lg">{t('Privacidade e Processamento')}</h2>
           </div>
           <div className="card-panel">
             <div className="p-5 border-b border-border-subtle flex justify-between items-center">
               <div>
-                <div className="font-bold text-[14px]">Processamento local por padrão</div>
-                <div className="text-[12px] text-ink-muted mt-1">O perfil "Grátis/Web" e "Privado/Local" transcrevem e traduzem no dispositivo sempre que possível.</div>
+                <div className="font-bold text-[14px]">{t('Processamento local por padrão')}</div>
+                <div className="text-[12px] text-ink-muted mt-1">{t('O perfil "Grátis/Web" e "Privado/Local" transcrevem e traduzem no dispositivo sempre que possível.')}</div>
               </div>
-              <span className="badge-tag ok shrink-0">Ativo</span>
+              <span className="badge-tag ok shrink-0">{t('Ativo')}</span>
             </div>
             <div className="p-5 border-b border-border-subtle flex justify-between items-center">
               <div>
-                <div className="font-bold text-[14px]">Sessões salvas na Biblioteca</div>
-                <div className="text-[12px] text-ink-muted mt-1">As capturas ficam gravadas localmente e aparecem na sua Biblioteca.</div>
+                <div className="font-bold text-[14px]">{t('Sessões salvas na Biblioteca')}</div>
+                <div className="text-[12px] text-ink-muted mt-1">{t('As capturas ficam gravadas localmente e aparecem na sua Biblioteca.')}</div>
               </div>
-              <span className="badge-tag ok shrink-0">Ativo</span>
+              <span className="badge-tag ok shrink-0">{t('Ativo')}</span>
             </div>
             {/* A linha "Estatísticas anônimas de uso" saiu: não existe nenhuma telemetria implementada
                 no projeto (nem coleta, nem envio, nem opt-in), e "Em breve" é uma promessa de data que
@@ -549,59 +550,59 @@ export default function Settings({
         <section>
           <div className="flex items-center gap-2 mb-4 text-ink">
             <PlayCircle className="w-5 h-5" />
-            <h2 className="font-display font-bold text-lg">Ajuda e recomeço</h2>
+            <h2 className="font-display font-bold text-lg">{t('Ajuda e recomeço')}</h2>
           </div>
           <div className="card-panel">
             <div className="p-5 flex items-center justify-between gap-3 border-b border-border-subtle">
               <div>
-                <div className="font-bold text-[14px] mb-1">Guia rápido</div>
-                <p className="text-[12px] text-ink-muted">Os fluxos principais do app em uma página: capturar, importar, overlay, tutor e estudo.</p>
+                <div className="font-bold text-[14px] mb-1">{t('Guia rápido')}</div>
+                <p className="text-[12px] text-ink-muted">{t('Os fluxos principais do app em uma página: capturar, importar, overlay, tutor e estudo.')}</p>
               </div>
               <button
                 onClick={() => setShowGuide(true)}
                 className="shrink-0 px-4 py-2 rounded-xl border border-border-subtle bg-surface hover:border-accent text-[13px] font-bold cursor-pointer"
               >
-                Abrir guia
+                {t('Abrir guia')}
               </button>
             </div>
             {onAbrirSobre && (
               <div className="p-5 flex items-center justify-between gap-3 border-b border-border-subtle">
                 <div>
-                  <div className="font-bold text-[14px] mb-1">Sobre o Babel Play</div>
-                  <p className="text-[12px] text-ink-muted">Quem fez o app, como entrar em contato e como apoiar o projeto.</p>
+                  <div className="font-bold text-[14px] mb-1">{t('Sobre o Babel Play')}</div>
+                  <p className="text-[12px] text-ink-muted">{t('Quem fez o app, como entrar em contato e como apoiar o projeto.')}</p>
                 </div>
                 <button
                   onClick={onAbrirSobre}
                   className="shrink-0 px-4 py-2 rounded-xl border border-border-subtle bg-surface hover:border-accent text-[13px] font-bold cursor-pointer"
                 >
-                  Abrir
+                  {t('Abrir')}
                 </button>
               </div>
             )}
             <div className="p-5 flex items-center justify-between gap-3 border-b border-border-subtle">
               <div>
-                <div className="font-bold text-[14px] mb-1">Rever apresentação</div>
+                <div className="font-bold text-[14px] mb-1">{t('Rever apresentação')}</div>
                 {/* Só reabre o tour nesta sessão — não apaga a escolha local/nuvem já salva. */}
-                <p className="text-[12px] text-ink-muted">Reveja a introdução do app. Não altera sua configuração atual.</p>
+                <p className="text-[12px] text-ink-muted">{t('Reveja a introdução do app. Não altera sua configuração atual.')}</p>
               </div>
               <button
                 onClick={onReplayTour}
                 className="shrink-0 flex items-center gap-1.5 px-4 py-2 rounded-xl border border-border-subtle bg-surface hover:border-accent text-[13px] font-bold cursor-pointer"
               >
-                <PlayCircle className="w-4 h-4" /> Rever apresentação
+                <PlayCircle className="w-4 h-4" /> {t('Rever apresentação')}
               </button>
             </div>
             <div className="p-5 flex items-center justify-between gap-3">
               <div>
-                <div className="font-bold text-[14px] mb-1">Configuração inicial (local vs nuvem)</div>
+                <div className="font-bold text-[14px] mb-1">{t('Configuração inicial (local vs nuvem)')}</div>
                 {/* "Reconfigurar" APAGA a escolha (onboarded:false no servidor) e recarrega. */}
-                <p className="text-[12px] text-ink-muted">Refaça a escolha de rodar local ou usar sua chave de API. Apaga a configuração atual.</p>
+                <p className="text-[12px] text-ink-muted">{t('Refaça a escolha de rodar local ou usar sua chave de API. Apaga a configuração atual.')}</p>
               </div>
               <button
                 onClick={reconfigureAi}
                 className="shrink-0 px-4 py-2 rounded-xl border border-border-subtle bg-surface hover:border-accent text-[13px] font-bold cursor-pointer"
               >
-                Reconfigurar
+                {t('Reconfigurar')}
               </button>
             </div>
           </div>

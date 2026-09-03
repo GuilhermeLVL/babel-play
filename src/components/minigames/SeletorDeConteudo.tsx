@@ -1,6 +1,6 @@
 import { useEffect, useRef, type ReactNode } from 'react';
 import Segmentado from '../ui/Segmentado';
-import { numero } from '../../lib/i18n';
+import { numero, t, tp } from '../../lib/i18n';
 
 /**
  * O SELETOR DE CONTEÚDO — três linhas de controle viradas uma, com uma gaveta atrás do «Trocar».
@@ -103,11 +103,11 @@ export function SeletorDeConteudo({
         }`}
       >
         <div className="flex items-baseline gap-2 flex-wrap flex-1 min-w-[240px] text-[13.5px]">
-          <span className="label-mono">jogando com</span>
+          <span className="label-mono">{t('jogando com')}</span>
           <span className="font-display font-extrabold text-lg tabular-nums text-ink">
             {numero(total)}
           </span>
-          <span className="text-ink-muted">palavras</span>
+          <span className="text-ink-muted">{tp(total, 'palavra', 'palavras')}</span>
           {nomeDaFonte && (
             <>
               <span className="text-ink-faint">·</span>
@@ -140,7 +140,7 @@ export function SeletorDeConteudo({
               : 'bg-surface border-border-subtle hover:bg-surface-hover text-ink'
           }`}
         >
-          Trocar
+          {t('Trocar')}
           <span aria-hidden="true" className={`inline-block text-[9px] transition-transform ${aberta ? 'rotate-90' : ''}`}>▶</span>
         </button>
       </div>
@@ -176,27 +176,27 @@ export function SeletorDeConteudo({
 
         {acoes && (
           <div className="flex items-center gap-2 flex-wrap pt-3.5 mt-1 border-t border-dashed border-border-subtle">
-            <span className="label-mono me-1">trazer ou gerenciar</span>
+            <span className="label-mono me-1">{t('trazer ou gerenciar')}</span>
             {acoes}
           </div>
         )}
 
         <div className="flex items-center justify-between gap-3 flex-wrap mt-4 pt-3.5 border-t border-border-subtle">
-          <span className="label-mono">{numero(total)} no recorte</span>
+          <span className="label-mono">{t('{n} no recorte', { n: numero(total) })}</span>
           <div className="flex items-center gap-2">
             <button
               type="button"
               onClick={aoLimpar}
               className="text-[12.5px] text-ink-muted hover:text-accent-ink underline decoration-dotted underline-offset-4 cursor-pointer"
             >
-              limpar tudo
+              {t('limpar tudo')}
             </button>
             <button
               type="button"
               onClick={aoAlternar}
               className="px-3.5 py-1.5 rounded-lg text-[13px] font-semibold border-2 border-border-subtle bg-surface hover:bg-surface-hover cursor-pointer text-ink"
             >
-              Pronto
+              {t('Pronto')}
             </button>
           </div>
         </div>

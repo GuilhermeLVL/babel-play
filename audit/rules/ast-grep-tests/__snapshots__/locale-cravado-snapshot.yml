@@ -1,0 +1,26 @@
+id: locale-cravado
+snapshots:
+  const s = d.toLocaleDateString("pt-BR"):
+    labels:
+    - source: d.toLocaleDateString("pt-BR")
+      style: primary
+      start: 10
+      end: 39
+  const s = d.toLocaleTimeString("pt-BR"):
+    labels:
+    - source: d.toLocaleTimeString("pt-BR")
+      style: primary
+      start: 10
+      end: 39
+  'const s = n.toLocaleString("pt-BR", { minimumFractionDigits: 1 })':
+    labels:
+    - source: 'n.toLocaleString("pt-BR", { minimumFractionDigits: 1 })'
+      style: primary
+      start: 10
+      end: 65
+  const s = total.toLocaleString("pt-BR"):
+    labels:
+    - source: total.toLocaleString("pt-BR")
+      style: primary
+      start: 10
+      end: 39

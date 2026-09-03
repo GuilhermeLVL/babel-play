@@ -7,7 +7,8 @@ import { langLabelNaUI } from '../../lib/languages';
 import type { AgeProfileType } from '../../lib/profile';
 import type { EscolhaDaPratica, OrigemDaPratica, EscopoDeGravacoes, CefrLevel } from '@core';
 import { nomeDaEscala, rotuloDaEtapa, type EscalaDaTrilha } from '../../core/learning/trilha';
-import { numero } from '../../lib/i18n';
+import { numero, t, tp } from '../../lib/i18n';
+import { T } from '../../lib/T';
 
 /**
  * A SALA DE ESCOLHA — o que você vai jogar, decidido antes de a tela encher de cartas.
@@ -184,16 +185,16 @@ export default function SalaDeEscolha({
       >
         <header className="flex items-start justify-between gap-4 p-5 border-b border-border-subtle">
           <div className="min-w-0">
-            <p className="label-mono text-accent-ink">Antes de jogar</p>
+            <p className="label-mono text-accent-ink">{t('Antes de jogar')}</p>
             <h2 id="sala-titulo" className="font-display font-black text-xl text-ink tracking-tight">
-              {ageProfile === 'kids' ? 'Com o que você quer jogar?' : 'O que você vai praticar'}
+              {ageProfile === 'kids' ? t('Com o que você quer jogar?') : t('O que você vai praticar')}
             </h2>
           </div>
           <button
             onClick={aoFechar}
             className="shrink-0 p-2 rounded-lg text-ink-muted hover:text-ink hover:bg-surface-hover cursor-pointer"
-            aria-label="Fechar sem mudar nada"
-            title="Fechar sem mudar nada"
+            aria-label={t('Fechar sem mudar nada')}
+            title={t('Fechar sem mudar nada')}
           >
             <X className="w-5 h-5" />
           </button>
@@ -211,28 +212,28 @@ export default function SalaDeEscolha({
           <section className="pb-4 border-b border-border-subtle">
             <p className="label-mono mb-2 flex items-center gap-1.5">
               <Globe className="w-3 h-3" aria-hidden />
-              Idioma
+              {t('Idioma')}
             </p>
             {/* A altura de UMA fileira de pílulas fica reservada: os chips só existem depois de
                 `fetchDeck` voltar, e sem a reserva a chegada deles empurrava o resto do diálogo. */}
             <div className="min-h-[30px]">
             {idiomas.length > 0 ? (
               <Segmentado
-                rotuloDoGrupo="Idioma que você vai praticar"
+                rotuloDoGrupo={t('Idioma que você vai praticar')}
                 valor={[lang]}
                 aoTrocar={(l) => { setLang(l); setNivel(undefined); }}
                 opcoes={idiomas.map(i => ({
                   id: i.lang,
                   rotulo: langLabelNaUI(i.lang),
                   contagem: i.jogaveis,
-                  dica: `${i.jogaveis} prontas para jogo de par, de ${i.total} no idioma`,
+                  dica: t('{prontas} prontas para jogo de par, de {total} no idioma', { prontas: i.jogaveis, total: i.total }),
                   motivoBloqueio: i.jogaveis === 0
-                    ? `você tem ${i.total} palavras neste idioma, mas nenhuma com tradução, sem ela os jogos de par não montam`
+                    ? t('você tem {total} palavras neste idioma, mas nenhuma com tradução, sem ela os jogos de par não montam', { total: i.total })
                     : undefined,
                 }))}
               />
             ) : (
-              <p className="text-[13px] text-ink-muted">Ainda não há palavras no seu caderno.</p>
+              <p className="text-[13px] text-ink-muted">{t('Ainda não há palavras no seu caderno.')}</p>
             )}
             </div>
 
@@ -242,13 +243,13 @@ export default function SalaDeEscolha({
               onClick={() => setTrocandoIdioma(v => !v)}
               className="text-[12px] text-ink-muted hover:text-accent-ink underline decoration-dotted underline-offset-4 mt-2 cursor-pointer min-h-6 inline-flex items-center"
             >
-              {trocandoIdioma ? 'esconder a lista completa' : 'escolher outro idioma'}
+              {trocandoIdioma ? t('esconder a lista completa') : t('escolher outro idioma')}
             </button>
             {trocandoIdioma && (
               <div className="mt-2">
                 <LangPicker
                   id="sala-idioma"
-                  ariaLabel="Escolher outro idioma"
+                  ariaLabel={t('Escolher outro idioma')}
                   block
                   value={lang}
                   onPick={({ code }) => { if (code) { setLang(code); setNivel(undefined); setTrocandoIdioma(false); } }}
@@ -264,37 +265,37 @@ export default function SalaDeEscolha({
               ela vem desabilitada com o motivo, porque escondê-la é o que fez a trilha parecer
               inexistente. */}
           <section className="pb-4 border-b border-border-subtle">
-            <p className="label-mono mb-2">De onde vêm as palavras</p>
+            <p className="label-mono mb-2">{t('De onde vêm as palavras')}</p>
             <Segmentado
-              rotuloDoGrupo="De onde vêm as palavras"
+              rotuloDoGrupo={t('De onde vêm as palavras')}
               variante="chip"
               valor={[origem]}
               aoTrocar={(o) => setOrigem(o as OrigemDaPratica)}
               opcoes={[
                 {
                   id: 'gravacoes',
-                  rotulo: ageProfile === 'kids' ? 'O que eu gravei' : 'Minhas gravações',
+                  rotulo: ageProfile === 'kids' ? t('O que eu gravei') : t('Minhas gravações'),
                   icone: <Mic className="w-3.5 h-3.5" aria-hidden />,
                   contagem: doIdioma?.jogaveis ?? 0,
                   tom: 'accent',
                 },
                 {
                   id: 'trilha',
-                  rotulo: 'Trilha',
+                  rotulo: t('Trilha'),
                   icone: <GraduationCap className="w-3.5 h-3.5" aria-hidden />,
                   contagem: temTrilha ? totalDaTrilha : undefined,
                   tom: 'good',
-                  motivoBloqueio: temTrilha ? undefined : `ainda não existe trilha em ${langLabelNaUI(lang)}`,
+                  motivoBloqueio: temTrilha ? undefined : t('ainda não existe trilha em {idioma}', { idioma: langLabelNaUI(lang) }),
                 },
                 // O ranking do servidor como fonte (progresso-de-idioma 2.3): as palavras que
                 // você mais ERRA, na ordem da dor. Aparece sempre; sem material, diz o porquê.
                 {
                   id: 'dificeis',
-                  rotulo: ageProfile === 'kids' ? 'As que eu mais erro' : 'Palavras difíceis',
+                  rotulo: ageProfile === 'kids' ? t('As que eu mais erro') : t('Palavras difíceis'),
                   icone: <Flame className="w-3.5 h-3.5" aria-hidden />,
                   contagem: dificeis >= 4 ? dificeis : undefined,
                   tom: 'warn',
-                  motivoBloqueio: dificeis >= 4 ? undefined : 'revise mais um pouco — o ranking de difíceis ainda não tem material para uma rodada',
+                  motivoBloqueio: dificeis >= 4 ? undefined : t('revise mais um pouco — o ranking de difíceis ainda não tem material para uma rodada'),
                 },
               ]}
             />
@@ -305,19 +306,19 @@ export default function SalaDeEscolha({
             <section>
               <p className="label-mono mb-2 flex items-center gap-1.5">
                 <Layers className="w-3 h-3" aria-hidden />
-                Quais gravações
+                {t('Quais gravações')}
               </p>
               <Segmentado
-                rotuloDoGrupo="Quais gravações entram"
+                rotuloDoGrupo={t('Quais gravações entram')}
                 valor={[escopo]}
                 aoTrocar={(e) => setEscopo(e as EscopoDeGravacoes)}
                 opcoes={[
-                  { id: 'todas', rotulo: 'Todas as gravações', icone: <Layers className="w-3.5 h-3.5" aria-hidden /> },
+                  { id: 'todas', rotulo: t('Todas as gravações'), icone: <Layers className="w-3.5 h-3.5" aria-hidden /> },
                   {
                     id: 'uma',
-                    rotulo: 'Uma gravação',
+                    rotulo: t('Uma gravação'),
                     icone: <FileAudio className="w-3.5 h-3.5" aria-hidden />,
-                    motivoBloqueio: gravacoes.length ? undefined : 'você ainda não tem gravações salvas',
+                    motivoBloqueio: gravacoes.length ? undefined : t('você ainda não tem gravações salvas'),
                   },
                 ]}
               />
@@ -342,7 +343,7 @@ export default function SalaDeEscolha({
                         <span className="truncate flex-1">{g.title}</span>
                         {/* Sem áudio, três jogos ficam de fora. Dizer ANTES evita a escolha que
                             leva a cartas bloqueadas. */}
-                        {!g.audioUrl && <span className="badge-tag shrink-0">sem áudio</span>}
+                        {!g.audioUrl && <span className="badge-tag shrink-0">{t('sem áudio')}</span>}
                       </button>
                     </li>
                   ))}
@@ -355,10 +356,10 @@ export default function SalaDeEscolha({
             <section>
               <p className="label-mono mb-2 flex items-center gap-1.5">
                 <GraduationCap className="w-3 h-3" aria-hidden />
-                {nomeDaEscala(escala)} da trilha
+                {t('{escala} da trilha', { escala: t(nomeDaEscala(escala)) })}
               </p>
               <Segmentado
-                rotuloDoGrupo={`${nomeDaEscala(escala)} da trilha`}
+                rotuloDoGrupo={t('{escala} da trilha', { escala: t(nomeDaEscala(escala)) })}
                 valor={nivel ? [nivel] : []}
                 aoTrocar={(n) => setNivel(n as CefrLevel)}
                 /* Cada etapa com o SEU tamanho: escolher "B2" sem saber se ali há 60 ou 600
@@ -369,13 +370,15 @@ export default function SalaDeEscolha({
               />
               <p className="text-[11.5px] text-ink-faint mt-2">
                 {nivel
-                  ? <>{nomeDaEscala(escala)} <b className="text-ink-muted">{rotuloDaEtapa(nivel, escala)}</b> — a trilha combinada tem <b className="text-ink-muted tabular-nums">{numero(totalDaTrilha)}</b> palavras no total.</>
-                  : `Sem escolher, a trilha joga com ${porFrequencia ? 'todas as faixas' : 'todos os níveis'} de uma vez.`}
+                  ? <T txt="{escala} <b>{etapa}</b> — a trilha combinada tem <b>{total}</b> palavras no total."
+                       tags={{ b: <b className="text-ink-muted tabular-nums" /> }}
+                       val={{ escala: t(nomeDaEscala(escala)), etapa: rotuloDaEtapa(nivel, escala), total: numero(totalDaTrilha) }} />
+                  : t('Sem escolher, a trilha joga com {faixas} de uma vez.', { faixas: porFrequencia ? t('todas as faixas') : t('todos os níveis') })}
               </p>
               {/* A promessa da tela tem de bater com o que o dado é: faixa de corpus não é CEFR. */}
               {porFrequencia && (
                 <p className="text-[11.5px] text-ink-faint mt-1">
-                  Faixas por frequência de uso, não níveis do CEFR — a 1 traz as palavras mais comuns.
+                  {t('Faixas por frequência de uso, não níveis do CEFR — a 1 traz as palavras mais comuns.')}
                 </p>
               )}
             </section>
@@ -394,7 +397,7 @@ export default function SalaDeEscolha({
             {quantasPromete > 0 ? (
               <>
                 <b className="text-ink">{numero(quantasPromete)}</b>{' '}
-                {quantasPromete === 1 ? 'palavra pronta' : 'palavras prontas'}
+                {tp(quantasPromete, 'palavra pronta', 'palavras prontas')}
                 {origem === 'gravacoes' && escopo === 'uma' && gravacaoEscolhida && (
                   <span className="text-ink-faint"> · {gravacaoEscolhida.title}</span>
                 )}
@@ -402,7 +405,7 @@ export default function SalaDeEscolha({
             ) : (
               /* Recorte vazio é dito ANTES de confirmar. Deixar a pessoa entrar e encontrar nove
                  cartas cinzas é o atrito que esta sala existe para eliminar. */
-              <span className="text-warn-ink">Esta escolha não tem palavras prontas ainda.</span>
+              <span className="text-warn-ink">{t('Esta escolha não tem palavras prontas ainda.')}</span>
             )}
           </p>
 
@@ -417,7 +420,7 @@ export default function SalaDeEscolha({
               a fonte antiga. Quem quer um clique até a partida usa o "Jogar agora" do lobby. */}
           <button ref={botaoJogar} onClick={confirmar} className="btn-solid py-3 px-6">
             <IconeCheck className="w-4 h-4" aria-hidden />
-            {ageProfile === 'kids' ? 'Usar estas!' : 'Usar estas palavras'}
+            {ageProfile === 'kids' ? t('Usar estas!') : t('Usar estas palavras')}
           </button>
         </footer>
       </div>

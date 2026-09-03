@@ -1,0 +1,32 @@
+id: locale-cravado
+language: TypeScript
+severity: error
+message: >-
+  Formatação com locale FIXO. `toLocaleString('pt-BR')` estava em 44 lugares e fazia um americano
+  ler "2.733" como 2,733 — três ordens de grandeza de erro numa contagem de palavras, dita com
+  toda a confiança. Datas são piores: 03/09 e 09/03 são dias diferentes e os dois parecem certos.
+  Use `numero`, `numeroCom`, `data`, `dataHora` ou `moeda` de `src/lib/i18n.ts`, que seguem o
+  idioma da interface. Se o locale precisa mesmo ser fixo (um dado que É brasileiro, não a leitura
+  dele), diga isso num comentário na linha de cima.
+files:
+  - 'src/**/*.ts'
+  - 'src/**/*.tsx'
+ignores:
+  # A própria implementação, que é quem tem o direito de chamar `toLocale*` com um locale.
+  - 'src/lib/i18n.ts'
+# O locale entra como META-VARIAVEL com restricao de regex, e nao literal no pattern: `'pt-BR'` e
+# `"pt-BR"` sao nos sintaticos diferentes, e a primeira versao desta regra so pegava aspas simples —
+# a fixture denunciou os quatro casos com aspas duplas passando batido.
+rule:
+  any:
+    - pattern: $X.toLocaleString($LOCALE)
+    - pattern: $X.toLocaleString($LOCALE, $$$ARGS)
+    - pattern: $X.toLocaleDateString($LOCALE)
+    - pattern: $X.toLocaleDateString($LOCALE, $$$ARGS)
+    - pattern: $X.toLocaleTimeString($LOCALE)
+    - pattern: $X.toLocaleTimeString($LOCALE, $$$ARGS)
+constraints:
+  # Só locale CRAVADO. `toLocaleString()` sem argumento e `toLocaleDateString(idiomaDaInterface())`
+  # são decisões diferentes, e legítimas.
+  LOCALE:
+    regex: '^["''][a-z]{2}(-[A-Za-z]{2,4})?["'']$'

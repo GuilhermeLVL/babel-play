@@ -44,7 +44,8 @@ import MapaDoConteudo from './MapaDoConteudo';
 import ArteDoJogo, { tomDoJogo, FAMILIAS } from '../minigames/ArteDosJogos';
 import Recordes from './play/Recordes';
 import { JOGOS, tituloDoJogo, descricaoDoJogo, type JogoUI } from './play/jogos';
-import { numero, t } from '../../lib/i18n';
+import { numero, t, tp } from '../../lib/i18n';
+import { T } from '../../lib/T';
 import PainelTrilha from './PainelTrilha';
 import BaralhoAnki from './BaralhoAnki';
 import BaralhosAnki from './BaralhosAnki';
@@ -2501,12 +2502,12 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
         <header className="mb-6 flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
           <div>
             <h1 className="font-display font-black text-2xl text-ink tracking-tight">
-              {ageProfile === 'kids' ? 'Jogar' : ageProfile === 'senior' ? 'Praticar jogando' : 'Jogar'}
+              {ageProfile === 'senior' ? t('Praticar jogando') : t('Jogar')}
             </h1>
             <p className="text-[13px] text-ink-muted mt-1 max-w-[70ch]">
               {ageProfile === 'senior'
-                ? 'Jogos curtos com as palavras que você já salvou. Cada acerto conta para a sua memória.'
-                : 'Rodadas curtas com as SUAS palavras. O que você acerta aqui conta na revisão.'}
+                ? t('Jogos curtos com as palavras que você já salvou. Cada acerto conta para a sua memória.')
+                : t('Rodadas curtas com as SUAS palavras. O que você acerta aqui conta na revisão.')}
             </p>
           </div>
           {/* PROGRESSO no cabeçalho, compacto: nível com a barra até o próximo, ofensiva e seeds.
@@ -2515,7 +2516,7 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
               gastas. Sem métrica, esqueleto: nunca um zero que parece dado. */}
           {progress.available ? (
             <section
-              aria-label="Seu progresso"
+              aria-label={t('Seu progresso')}
               /* O CRACHÁ INTEIRO É O ALVO, mesmo com a seta ao lado sendo o botão de verdade.
                  O protótipo pedia a pílula toda clicável; o elemento não pode virar `<button>`
                  porque a barra de XP é um `progressbar` e isso daria um controle dentro de outro.
@@ -2526,13 +2527,25 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
             >
               <div
                 className="min-w-[8.5rem]"
-                title={`${progress.xp} XP no total, ${metrics ? `${metrics.sessions} ${metrics.sessions === 1 ? 'sessão' : 'sessões'}, ${metrics.wordsCaptured} palavras capturadas, ${metrics.reviews} revisões, ${metrics.drillItems ?? 0} itens de jogo` : 'calculado das suas métricas'}. Faltam ${progress.xpForLevel - progress.xpIntoLevel} XP para o próximo.`}
+                title={t('{xp} XP no total, {detalhe}. Faltam {faltam} XP para o próximo.', {
+                  xp: progress.xp,
+                  detalhe: metrics
+                    ? t('{sessoes} {unidade}, {palavras} palavras capturadas, {revisoes} revisões, {itens} itens de jogo', {
+                        sessoes: metrics.sessions,
+                        unidade: tp(metrics.sessions, 'sessão', 'sessões'),
+                        palavras: metrics.wordsCaptured,
+                        revisoes: metrics.reviews,
+                        itens: metrics.drillItems ?? 0,
+                      })
+                    : t('calculado das suas métricas'),
+                  faltam: progress.xpForLevel - progress.xpIntoLevel,
+                })}
               >
                 <div className="flex items-baseline justify-between gap-3">
-                  <span className="label-mono">{ageProfile === 'senior' ? 'Etapa' : 'Nível'} {progress.level}</span>
+                  <span className="label-mono">{ageProfile === 'senior' ? t('Etapa') : t('Nível')} {progress.level}</span>
                   <span className="text-[11px] text-ink-muted tabular-nums">{progress.xpIntoLevel}/{progress.xpForLevel} XP</span>
                 </div>
-                <div className="h-1.5 bg-canvas rounded-full mt-1.5 overflow-hidden" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={progress.levelPct} aria-label={`Progresso para ${ageProfile === 'senior' ? 'etapa' : 'nível'} ${progress.level + 1}`}>
+                <div className="h-1.5 bg-canvas rounded-full mt-1.5 overflow-hidden" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={progress.levelPct} aria-label={t('Progresso para {escala} {n}', { escala: ageProfile === 'senior' ? t('etapa') : t('nível'), n: progress.level + 1 })}>
                   <div className="h-full bg-accent rounded-full transition-all duration-500" style={{ width: `${progress.levelPct}%` }} />
                 </div>
               </div>
@@ -2543,11 +2556,13 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
                    revisão para manter a chama — cobrava o que o app não cobra. E jogar uma rodada
                    NÃO move este número: por isso a frase não promete que move. */
                 title={progress.practicedToday
-                  ? `Você já apareceu hoje: ${progress.streakDays} ${progress.streakDays === 1 ? 'dia seguido' : 'dias seguidos'}. Abrir o app amanhã mantém a contagem.`
-                  : 'Dias seguidos em que você abriu o app ou revisou. Não há penalidade por quebrar.'}
+                  ? t('Você já apareceu hoje: {n} {dias}. Abrir o app amanhã mantém a contagem.', {
+                      n: progress.streakDays, dias: tp(progress.streakDays, 'dia seguido', 'dias seguidos'),
+                    })
+                  : t('Dias seguidos em que você abriu o app ou revisou. Não há penalidade por quebrar.')}
               >
                 <Flame className={`w-4 h-4 ${progress.practicedToday ? 'text-warn-ink' : 'text-ink-faint'}`} aria-hidden /> {progress.streakDays}
-                <span className="text-ink-muted font-medium">{progress.streakDays === 1 ? 'dia' : 'dias'}</span>
+                <span className="text-ink-muted font-medium">{tp(progress.streakDays, 'dia', 'dias')}</span>
               </span>
               <span
                 className="flex items-center gap-1.5 text-[13px] font-bold text-ink"
@@ -2558,12 +2573,16 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
                    do subsistema que não o consultava. Mostra primeiro o que ESTA tela move. */
                 title={(() => {
                   const seeds = (id: string) => REGRAS.find(r => r.id === id)?.seeds ?? 0;
-                  return `Saldo: ${progress.seedsGanhas} ganhas − ${metrics?.seedsGastas ?? 0} gastas. `
-                    + `Jogando: ${seeds('jogoCerto')} por acerto e ${seeds('rodadaPerfeita')} por rodada sem erro.`;
+                  return t('Saldo: {ganhas} ganhas − {gastas} gastas. Jogando: {acerto} por acerto e {perfeita} por rodada sem erro.', {
+                    ganhas: progress.seedsGanhas,
+                    gastas: metrics?.seedsGastas ?? 0,
+                    acerto: seeds('jogoCerto'),
+                    perfeita: seeds('rodadaPerfeita'),
+                  });
                 })()}
               >
                 <Sprout className="w-4 h-4 text-good-ink" aria-hidden /> {progress.seeds}
-                <span className="text-ink-muted font-medium">seeds</span>
+                <span className="text-ink-muted font-medium">{t('seeds')}</span>
               </span>
               {/* A SAÍDA PARA A ECONOMIA QUE ESTA TELA ALIMENTA.
                   Jogar rende XP, seeds e conquistas — e daqui não saía nenhum caminho para o
@@ -2574,8 +2593,8 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
               <button
                 onClick={() => onChangeView('loja')}
                 className="ms-1 shrink-0 min-w-6 min-h-6 inline-flex items-center justify-center rounded-lg text-ink-faint hover:text-accent cursor-pointer after:absolute after:inset-0 after:content-[''] after:rounded-[inherit]"
-                title="Ver o passe, a loja e os desafios"
-                aria-label="Ver o passe, a loja e os desafios"
+                title={t('Ver o passe, a loja e os desafios')}
+                aria-label={t('Ver o passe, a loja e os desafios')}
               >
                 <ChevronRight className="w-4 h-4" aria-hidden />
               </button>
@@ -2593,9 +2612,10 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
       {ultimaCorrente && ultimaCorrente.rodadas > 1 && (
         <div className="mb-4 flex flex-wrap items-center gap-x-3 gap-y-1 text-[12px] animate-in fade-in">
           <span className="kpi-pill">
-            sequência encerrada · <b>{ultimaCorrente.rodadas}</b> rodadas · <b>{ultimaCorrente.pontos}</b> pontos
+            <T txt="sequência encerrada · <b>{rodadas}</b> rodadas · <b>{pontos}</b> pontos"
+               val={{ rodadas: ultimaCorrente.rodadas, pontos: ultimaCorrente.pontos }} />
           </span>
-          <span className="text-ink-faint">{ultimaCorrente.precisao}% de acerto no conjunto</span>
+          <span className="text-ink-faint">{t('{n}% de acerto no conjunto', { n: ultimaCorrente.precisao })}</span>
         </div>
       )}
 
@@ -2643,10 +2663,13 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
             /* O nome curto da ABA, não o título longo do painel de contexto: a linha precisa caber
                ao lado do total e do idioma, e "Revisão do que você ouviu" empurrava o resto. */
             nomeDaFonte={filtro.fontes.length > 1
-              ? `${filtro.fontes.length} fontes`
+              ? t('{n} fontes', { n: filtro.fontes.length })
               : baralhoAnki
                 ? baralhoAnki.nome
-                : (ABAS_DE_FONTE.find(a => a.origem === escolhaAtual.origem)?.rotulo[ageProfile] ?? '')}
+                : (() => {
+                    const r = ABAS_DE_FONTE.find(a => a.origem === escolhaAtual.origem)?.rotulo[ageProfile];
+                    return r ? t(r) : '';
+                  })()}
             idioma={fonte.lang ? langLabelNaUI(fonte.lang) : undefined}
             aberta={seletorAberto}
             aoAlternar={() => setSeletorAberto(v => !v)}
@@ -2656,7 +2679,7 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
             avisoDeVazio={
               acervoDaFonte.length === 0 &&
               (filtro.recorte.pedindoRevisao || filtro.recorte.nuncaVistas || filtro.midia.comTraducao || filtro.midia.comFrase || filtro.baralhos.length > 0)
-                ? 'nenhum item passa; desligue um recorte para voltar a ter material'
+                ? t('nenhum item passa; desligue um recorte para voltar a ter material')
                 : undefined
             }
             /* AS AÇÕES DESCERAM PARA DENTRO. Anki, Baralhos e o seletor de idioma ficavam soltos
@@ -2670,7 +2693,7 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
                   className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border-subtle bg-surface text-[12.5px] font-semibold text-ink hover:border-accent transition-colors cursor-pointer"
                 >
                   <Package className="w-3.5 h-3.5" aria-hidden />
-                  {ageProfile === 'kids' ? 'Palavras de fora' : 'Trazer do Anki'}
+                  {ageProfile === 'kids' ? t('Palavras de fora') : t('Trazer do Anki')}
                 </button>
                 {temBaralhosAnki && (
                   <button
@@ -2678,7 +2701,7 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
                     className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border-subtle bg-surface text-[12.5px] font-semibold text-ink hover:border-accent transition-colors cursor-pointer"
                   >
                     <Layers className="w-3.5 h-3.5" aria-hidden />
-                    Gerenciar baralhos
+                    {t('Gerenciar baralhos')}
                   </button>
                 )}
                 {/* A Sala só sobra para o que a gaveta não cobre: começar num idioma que ainda
@@ -2688,7 +2711,7 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
                   className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border-subtle bg-surface text-[12.5px] font-semibold text-ink hover:border-accent transition-colors cursor-pointer"
                 >
                   <Globe className="w-3.5 h-3.5" aria-hidden />
-                  Outro idioma
+                  {t('Outro idioma')}
                 </button>
                 {/* Ao lado de "outro idioma", que é a pergunta que ela responde: o app oferece 28
                     e não entrega 28 experiências iguais. */}
@@ -2705,7 +2728,7 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
                    da tela era a mais escondida. A lista completa continua na Sala, para quem
                    estuda um idioma que ainda não tem palavra nenhuma. */
                 id: 'idioma',
-                rotulo: 'idioma',
+                rotulo: t('idioma'),
                 exclusiva: true,
                 valor: fonte.lang ? [baseLang(fonte.lang)] : [],
                 aoTrocar: (lang) => {
@@ -2725,13 +2748,13 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
                   rotulo: langLabelNaUI(i.lang),
                   contagem: i.jogaveis,
                   icone: <Globe className="w-3.5 h-3.5" aria-hidden />,
-                  motivoBloqueio: i.jogaveis === 0 ? 'nenhuma palavra pronta para jogar neste idioma ainda' : undefined,
+                  motivoBloqueio: i.jogaveis === 0 ? t('nenhuma palavra pronta para jogar neste idioma ainda') : undefined,
                 })),
               },
               {
                 id: 'fonte',
-                rotulo: 'de onde vêm',
-                ajuda: 'marque quantas quiser — elas se somam na rodada',
+                rotulo: t('de onde vêm'),
+                ajuda: t('marque quantas quiser — elas se somam na rodada'),
                 valor: filtro.fontes.map(f => (f === 'trilha' ? 'trilha' : 'gravacoes')),
                 aoTrocar: (origem) => {
                   const alvo = origem === 'trilha' ? 'trilha' as const : 'baralho' as const;
@@ -2752,12 +2775,12 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
                   const oferecida = aba.fontes.some(f => fontesOferecidas.includes(f));
                   return {
                     id: aba.origem,
-                    rotulo: aba.rotulo[ageProfile],
+                    rotulo: t(aba.rotulo[ageProfile]),
                     contagem,
                     icone: aba.origem === 'trilha' ? <GraduationCap className="w-3.5 h-3.5" aria-hidden />
                       : aba.origem === 'dificeis' ? <Flame className="w-3.5 h-3.5" aria-hidden />
                       : <Mic className="w-3.5 h-3.5" aria-hidden />,
-                    motivoBloqueio: oferecida ? undefined : aba.semMaterial,
+                    motivoBloqueio: oferecida ? undefined : t(aba.semMaterial),
                   };
                 }),
               },
@@ -2769,17 +2792,17 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
                    cada etapa à vista. "Todos os níveis" é a ausência de recorte, e por isso vem
                    primeiro: é o estado em que a trilha nasce. */
                 id: 'nivel',
-                rotulo: trilha?.escala === 'frequencia' ? 'faixa do curso' : 'nível do curso',
+                rotulo: trilha?.escala === 'frequencia' ? t('faixa do curso') : t('nível do curso'),
                 ajuda: trilha?.escala === 'frequencia'
-                  ? 'por frequência de uso — a faixa 1 traz as mais comuns'
-                  : 'cada etapa tem o seu vocabulário',
+                  ? t('por frequência de uso — a faixa 1 traz as mais comuns')
+                  : t('cada etapa tem o seu vocabulário'),
                 exclusiva: true,
                 valor: [fonte.nivel ?? 'todos'],
                 aoTrocar: (n) => aplicarEscolha({ ...escolhaAtual, nivel: n === 'todos' ? undefined : (n as CefrLevel) }),
                 opcoes: fonte.id !== 'trilha' || !trilha ? [] : [
                   {
                     id: 'todos',
-                    rotulo: trilha.escala === 'frequencia' ? 'Todas as faixas' : 'Todos os níveis',
+                    rotulo: trilha.escala === 'frequencia' ? t('Todas as faixas') : t('Todos os níveis'),
                     contagem: trilhaDe(fonte.lang).total,
                     icone: <BookOpen className="w-3.5 h-3.5" aria-hidden />,
                   },
@@ -2795,8 +2818,8 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
                    ela repetia idioma, fonte e nível, que já vivem aqui. Como faceta, a escolha
                    fica ao lado das outras e a Sala deixa de ser caminho obrigatório. */
                 id: 'gravacao',
-                rotulo: 'quais gravações',
-                ajuda: 'nenhuma marcada = todas',
+                rotulo: t('quais gravações'),
+                ajuda: t('nenhuma marcada = todas'),
                 valor: filtro.sessoes,
                 aoTrocar: (id) => setFiltro(prev => ({
                   ...prev,
@@ -2805,14 +2828,14 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
                 })),
                 opcoes: fonte.id === 'trilha' || sessoesDoIdioma.length < 2 ? [] : sessoesDoIdioma.map(s => ({
                   id: s.id,
-                  rotulo: s.title || 'gravação sem título',
+                  rotulo: s.title || t('gravação sem título'),
                   icone: <Mic className="w-3.5 h-3.5" aria-hidden />,
                 })),
               },
               {
                 id: 'baralho',
-                rotulo: 'quais baralhos',
-                ajuda: 'nenhum marcado = todos',
+                rotulo: t('quais baralhos'),
+                ajuda: t('nenhum marcado = todos'),
                 valor: filtro.baralhos,
                 aoTrocar: (id) => setBaralhoAnki(filtro.baralhos.includes(id) ? null : (decksAnki.find(d => d.id === id) ?? null)),
                 /* SÓ OS BARALHOS DO IDIOMA ESCOLHIDO. Oferecer um baralho japonês com inglês
@@ -2831,15 +2854,15 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
                     const legivel = d.nome.split('::').filter(Boolean).join(' › ');
                     const homonimos = decksAnki.filter(o => o.nome === d.nome);
                     return homonimos.length > 1
-                      ? `${legivel} (${homonimos.indexOf(d) + 1} de ${homonimos.length})`
+                      ? t('{nome} ({i} de {n})', { nome: legivel, i: homonimos.indexOf(d) + 1, n: homonimos.length })
                       : legivel;
                   })(),
                 })),
               },
               {
                 id: 'recorte',
-                rotulo: 'recorte',
-                ajuda: 'filtra dentro do que você escolheu acima',
+                rotulo: t('recorte'),
+                ajuda: t('filtra dentro do que você escolheu acima'),
                 valor: [
                   ...(filtro.recorte.dificeis ? ['dificeis'] : []),
                   ...(filtro.recorte.pedindoRevisao ? ['pedindoRevisao'] : []),
@@ -2854,32 +2877,32 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
                 opcoes: fonte.id === 'trilha' ? [] : [
                   {
                     id: 'dificeis',
-                    rotulo: ABAS_DE_FONTE.find(a => a.origem === 'dificeis')?.rotulo[ageProfile] ?? 'As que mais escapam',
+                    rotulo: t(ABAS_DE_FONTE.find(a => a.origem === 'dificeis')?.rotulo[ageProfile] ?? 'As que mais escapam'),
                     contagem: rankingDeDificeis.length,
                     icone: <Flame className="w-3.5 h-3.5" aria-hidden />,
                     motivoBloqueio: rankingDeDificeis.length < 4
-                      ? 'revise mais um pouco — ainda não há material para uma rodada'
+                      ? t('revise mais um pouco — ainda não há material para uma rodada')
                       : undefined,
                   },
                   {
-                    id: 'pedindoRevisao', rotulo: 'Pedindo revisão', contagem: contagemRecortes.pedindo,
+                    id: 'pedindoRevisao', rotulo: t('Pedindo revisão'), contagem: contagemRecortes.pedindo,
                     icone: <CalendarClock className="w-3.5 h-3.5" aria-hidden />,
-                    motivoBloqueio: contagemRecortes.pedindo === 0 ? 'nada vencido neste acervo agora' : undefined,
+                    motivoBloqueio: contagemRecortes.pedindo === 0 ? t('nada vencido neste acervo agora') : undefined,
                   },
                   {
-                    id: 'nuncaVistas', rotulo: 'Nunca vistas', contagem: contagemRecortes.nunca,
+                    id: 'nuncaVistas', rotulo: t('Nunca vistas'), contagem: contagemRecortes.nunca,
                     icone: <Sparkles className="w-3.5 h-3.5" aria-hidden />,
-                    motivoBloqueio: contagemRecortes.nunca === 0 ? 'tudo aqui já foi visto ao menos uma vez' : undefined,
+                    motivoBloqueio: contagemRecortes.nunca === 0 ? t('tudo aqui já foi visto ao menos uma vez') : undefined,
                   },
                   {
-                    id: 'comTraducao', rotulo: 'Com tradução', contagem: contagemRecortes.traducao,
+                    id: 'comTraducao', rotulo: t('Com tradução'), contagem: contagemRecortes.traducao,
                     icone: <Languages className="w-3.5 h-3.5" aria-hidden />,
-                    motivoBloqueio: contagemRecortes.traducao === 0 ? 'nenhum item deste acervo tem tradução utilizável' : undefined,
+                    motivoBloqueio: contagemRecortes.traducao === 0 ? t('nenhum item deste acervo tem tradução utilizável') : undefined,
                   },
                   {
-                    id: 'comFrase', rotulo: 'Com frase', contagem: contagemRecortes.frase,
+                    id: 'comFrase', rotulo: t('Com frase'), contagem: contagemRecortes.frase,
                     icone: <MessageSquareText className="w-3.5 h-3.5" aria-hidden />,
-                    motivoBloqueio: contagemRecortes.frase === 0 ? 'nenhum item deste acervo tem frase de exemplo' : undefined,
+                    motivoBloqueio: contagemRecortes.frase === 0 ? t('nenhum item deste acervo tem frase de exemplo') : undefined,
                   },
                 ],
               },
@@ -2910,35 +2933,35 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
         className="flex items-center gap-1.5 text-[12px] font-bold text-ink-muted hover:text-ink transition-colors cursor-pointer min-h-[24px]"
       >
         <ChevronRight className={`w-3.5 h-3.5 transition-transform ${detalhes ? 'rotate-90' : ''}`} aria-hidden />
-        {detalhes ? 'Esconder os números do baralho' : `Ver os números do baralho (${contagem.total} palavras)`}
+        {detalhes ? t('Esconder os números do baralho') : t('Ver os números do baralho ({n} palavras)', { n: contagem.total })}
       </button>
       <button
         type="button"
         onClick={() => setVerRecordes(true)}
         className="flex items-center gap-1.5 text-[12px] font-bold text-warn-ink hover:text-warn transition-colors cursor-pointer min-h-[24px]"
       >
-        <TrophyIcon className="w-3.5 h-3.5" aria-hidden /> Recordes e ranking
+        <TrophyIcon className="w-3.5 h-3.5" aria-hidden /> {t('Recordes e ranking')}
       </button>
       </div>
-      <section aria-label="Seu baralho" className={`card-panel bg-surface px-3 py-2.5 mb-2 min-h-[84px] sm:min-h-0 flex flex-wrap items-center gap-x-3 gap-y-1 text-[12px] text-ink-muted ${detalhes ? '' : 'hidden'}`}>
-        <span className="label-mono">Seu baralho</span>
-        <span className="font-bold text-good-ink" title={`${contagem.total} palavras do idioma escolhido passaram na régua de qualidade.`}>
-          {contagem.total} no idioma
+      <section aria-label={t('Seu baralho')} className={`card-panel bg-surface px-3 py-2.5 mb-2 min-h-[84px] sm:min-h-0 flex flex-wrap items-center gap-x-3 gap-y-1 text-[12px] text-ink-muted ${detalhes ? '' : 'hidden'}`}>
+        <span className="label-mono">{t('Seu baralho')}</span>
+        <span className="font-bold text-good-ink" title={t('{n} palavras do idioma escolhido passaram na régua de qualidade.', { n: contagem.total })}>
+          {t('{n} no idioma', { n: contagem.total })}
         </span>
-        <span title="Jogos de par (memória, caça-palavras, soletrar) precisam de tradução de verdade.">
-          · {pistas.comTraducao.length} com tradução
+        <span title={t('Jogos de par (memória, caça-palavras, soletrar) precisam de tradução de verdade.')}>
+          · {t('{n} com tradução', { n: pistas.comTraducao.length })}
         </span>
         {pistas.soComFrase.length > 0 && (
-          <span title="Sem tradução, mas com frase real, o duelo relâmpago joga com a lacuna.">
-            · {pistas.soComFrase.length} só com frase
+          <span title={t('Sem tradução, mas com frase real, o duelo relâmpago joga com a lacuna.')}>
+            · {t('{n} só com frase', { n: pistas.soComFrase.length })}
           </span>
         )}
         {!coreOnly(ageProfile) && triagem.outroIdioma.length > 0 && (
-          <span title="Existem e prestam, mas são de outro idioma">
-            · {triagem.outroIdioma.length} em outro idioma
+          <span title={t('Existem e prestam, mas são de outro idioma')}>
+            · {t('{n} em outro idioma', { n: triagem.outroIdioma.length })}
           </span>
         )}
-        {triagem.fora.length > 0 && <span>· {triagem.fora.length} fora do recorte</span>}
+        {triagem.fora.length > 0 && <span>· {t('{n} fora do recorte', { n: triagem.fora.length })}</span>}
       </section>
 
       {/* ── AGIR ── Dois CARDS, e não dois links de texto.
@@ -2946,7 +2969,7 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
           logo acima, passavam batido, embora sejam as duas respostas para "por que tão pouco?".
           Ficam colados nos números que provocam a pergunta, e cada um traz o SEU número: um total
           sem conteúdo não convence ninguém a clicar. */}
-      <section aria-label="Explorar o baralho" className={`grid gap-3 sm:grid-cols-2 mb-4 ${detalhes ? '' : 'hidden'}`}>
+      <section aria-label={t('Explorar o baralho')} className={`grid gap-3 sm:grid-cols-2 mb-4 ${detalhes ? '' : 'hidden'}`}>
         {/* Os dois cards têm a MESMA altura reservada porque o texto de cada um muda de número de
             linhas quando as contagens chegam, e eles ficam logo acima da grade de nove jogos, que
             era o que descia. 100px é a altura do estado mais alto em 412px (medido). */}
@@ -2958,10 +2981,13 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
             <MapIcon className="w-4 h-4" />
           </span>
           <span className="min-w-0">
-            <span className="block font-bold text-[13.5px] text-ink">Mapa do conteúdo</span>
+            <span className="block font-bold text-[13.5px] text-ink">{t('Mapa do conteúdo')}</span>
             <span className="block text-[12px] text-ink-muted leading-snug">
-              {numero(acervoDaFonte.length)} {fonte.id === 'sessao' ? 'falas' : 'palavras'}
-              {nuncaCairam > 0 && <> · <b className="text-ink">{numero(nuncaCairam)}</b> nunca caíram</>}
+              {numero(acervoDaFonte.length)}{' '}
+              {fonte.id === 'sessao'
+                ? tp(acervoDaFonte.length, 'fala', 'falas')
+                : tp(acervoDaFonte.length, 'palavra', 'palavras')}
+              {nuncaCairam > 0 && <> · <T txt="<b>{n}</b> nunca caíram" tags={{ b: <b className="text-ink" /> }} val={{ n: numero(nuncaCairam) }} /></>}
             </span>
           </span>
         </button>
@@ -2978,12 +3004,12 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
             </span>
             <span className="min-w-0">
               <span className="block font-bold text-[13.5px] text-ink">
-                {triagem.fora.length} ficaram de fora
+                {t('{n} ficaram de fora', { n: triagem.fora.length })}
               </span>
               {/* `resumoDosPulados` existia e nunca tinha sido usado aqui — é a diferença entre
                   "22 fora do recorte" (que não aciona ninguém) e "13 sem tradução" (que é tarefa). */}
               <span className="block text-[12px] text-ink-muted leading-snug">
-                {resumoDosPulados(triagem.fora) || 'ver o motivo de cada uma'}
+                {resumoDosPulados(triagem.fora) || t('ver o motivo de cada uma')}
               </span>
             </span>
           </button>
@@ -2998,8 +3024,8 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
               <Check className="w-4 h-4" />
             </span>
             <span className="min-w-0">
-              <span className="block font-bold text-[13.5px] text-ink">Nada ficou de fora</span>
-              <span className="block text-[12px] text-ink-muted leading-snug">todas passaram na régua</span>
+              <span className="block font-bold text-[13.5px] text-ink">{t('Nada ficou de fora')}</span>
+              <span className="block text-[12px] text-ink-muted leading-snug">{t('todas passaram na régua')}</span>
             </span>
           </div>
         )}
@@ -3026,18 +3052,20 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
           </span>
           <div>
             <p className="font-display font-extrabold text-[17px] text-ink">
-              {tamanhoDoBaralho === 0 ? 'Você ainda não salvou palavras' : `Faltam ${menorMinimo - tamanhoDoBaralho} palavras`}
+              {tamanhoDoBaralho === 0
+                ? t('Você ainda não salvou palavras')
+                : t('Faltam {n} palavras', { n: menorMinimo - tamanhoDoBaralho })}
             </p>
             <p className="text-[13px] text-ink-muted mt-1.5 max-w-[46ch]">
-              Os jogos usam as palavras que você guarda das suas gravações, nada de lista pronta.
-              Você tem <b>{tamanhoDoBaralho}</b> e precisa de <b>{menorMinimo}</b> para a primeira rodada.
+              <T txt="Os jogos usam as palavras que você guarda das suas gravações, nada de lista pronta. Você tem <b>{tem}</b> e precisa de <b>{precisa}</b> para a primeira rodada."
+                 val={{ tem: tamanhoDoBaralho, precisa: menorMinimo }} />
             </p>
           </div>
           <button
             onClick={() => onChangeView('capture')}
             className="py-2.5 px-5 bg-accent hover:bg-accent-ink text-white rounded-xl font-bold text-[13px] shadow-btn transition-all cursor-pointer"
           >
-            {ageProfile === 'kids' ? 'Gravar alguma coisa' : 'Capturar uma sessão'}
+            {ageProfile === 'kids' ? t('Gravar alguma coisa') : t('Capturar uma sessão')}
           </button>
         </section>
       ) : (
@@ -3059,10 +3087,10 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
               </span>
               <span className="flex-1 min-w-0">
                 <span className="block font-display font-extrabold text-[15px] text-ink">
-                  {vencidos} {vencidos === 1 ? 'palavra pedindo revisão' : 'palavras pedindo revisão'}
+                  {vencidos} {tp(vencidos, 'palavra pedindo revisão', 'palavras pedindo revisão')}
                 </span>
                 <span className="block text-[12px] text-ink-muted">
-                  {ageProfile === 'senior' ? 'Um desafio rápido resolve.' : 'Um duelo relâmpago resolve.'}
+                  {ageProfile === 'senior' ? t('Um desafio rápido resolve.') : t('Um duelo relâmpago resolve.')}
                 </span>
               </span>
               <ChevronRight className="w-5 h-5 text-ink-faint shrink-0" aria-hidden />
@@ -3070,12 +3098,12 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
           )}
 
           <div className="flex items-baseline justify-between gap-3 mb-2">
-            <h2 className="label-mono">Escolha um jogo</h2>
+            <h2 className="label-mono">{t('Escolha um jogo')}</h2>
             {/* A LEGENDA DAS TRÊS CORES. Sem ela o véu da faixa seria decoração; com ela, a cor
                 vira informação — e é a única linha de texto que a grade precisa para agrupar
                 nove jogos. Escondida no celular: lá as cartas empilham e o agrupamento por cor
                 não se lê de relance, então seria texto sem serventia. */}
-            <ul className="hidden sm:flex items-center gap-3 list-none m-0 p-0 text-[11.5px] text-ink-muted" aria-label="A cor diz o que o jogo treina">
+            <ul className="hidden sm:flex items-center gap-3 list-none m-0 p-0 text-[11.5px] text-ink-muted" aria-label={t('A cor diz o que o jogo treina')}>
               {FAMILIAS.map(f => (
                 <li key={f.rotulo} className="flex items-center gap-1.5">
                   <span className="w-2.5 h-2.5 rounded-[3px] shrink-0" style={{ background: f.tom }} aria-hidden />
@@ -3101,7 +3129,7 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
                 onChange={e => mudarPularSempre(!e.target.checked)}
                 className="w-6 h-6 accent-accent cursor-pointer"
               />
-              {ageProfile === 'kids' ? 'Ver o que vem antes de jogar' : 'Mostrar a prévia antes de começar'}
+              {ageProfile === 'kids' ? t('Ver o que vem antes de jogar') : t('Mostrar a prévia antes de começar')}
             </label>
 
             {/* O INTERRUPTOR DO MODO. Ele existe para que a grade em repouso seja só jogos:
@@ -3109,13 +3137,13 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
             <button
               onClick={() => setModoOrganizar(v => !v)}
               aria-pressed={modoOrganizar}
-              title="Mudar a ordem das cartas e fixar as favoritas no topo"
+              title={t('Mudar a ordem das cartas e fixar as favoritas no topo')}
               className={`shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-[12px] font-bold cursor-pointer transition-colors ${
                 modoOrganizar ? 'bg-accent text-accent-contrast border-accent' : 'bg-surface border-border-subtle text-ink-muted hover:text-ink hover:border-ink-faint'
               }`}
             >
               <Pin className="w-3.5 h-3.5" aria-hidden />
-              {modoOrganizar ? 'Pronto' : 'Organizar'}
+              {modoOrganizar ? t('Pronto') : t('Organizar')}
             </button>
           </div>
           {/* `<ul>/<li>` e não `<div>`: nove cartas sem semântica de lista chegam ao leitor de
@@ -3145,9 +3173,9 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
                 <React.Fragment key={j.chave}>
                 {abreOSegundoGrupo && (
                   <li className="col-span-full list-none mt-4 mb-1">
-                    <h3 className="font-display font-bold text-[15px] text-ink">Precisam de outro material</h3>
+                    <h3 className="font-display font-bold text-[15px] text-ink">{t('Precisam de outro material')}</h3>
                     <p className="text-[12.5px] text-ink-muted mt-0.5 max-w-[64ch]">
-                      Não estão quebrados: pedem algo que este recorte não tem. Cada um diz o que falta.
+                      {t('Não estão quebrados: pedem algo que este recorte não tem. Cada um diz o que falta.')}
                     </p>
                   </li>
                 )}
@@ -3197,7 +3225,7 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
                   </span>
                   {/* O SEU recorde na carta: motivo de voltar ("dá para bater?") sem abrir nada. */}
                   {liberado && (recordesMapa.get(j.id) ?? 0) > 0 && (
-                    <span className="absolute top-2 right-2 flex items-center gap-1 px-2 py-0.5 rounded-full bg-ink/70 text-white text-[10.5px] font-black tabular-nums backdrop-blur-sm" aria-label={`Seu recorde: ${recordesMapa.get(j.id)} pontos`}>
+                    <span className="absolute top-2 right-2 flex items-center gap-1 px-2 py-0.5 rounded-full bg-ink/70 text-white text-[10.5px] font-black tabular-nums backdrop-blur-sm" aria-label={t('Seu recorde: {n} pontos', { n: recordesMapa.get(j.id) ?? 0 })}>
                       <TrophyIcon className="w-3 h-3 text-warn" aria-hidden /> {recordesMapa.get(j.id)}
                     </span>
                   )}
@@ -3238,7 +3266,7 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
                       <button
                         onClick={() => pedirParaJogar(j, true)}
                         className="relative z-10 min-w-6 min-h-6 inline-flex items-center justify-center rounded-lg text-ink-faint hover:text-accent hover:bg-surface-hover cursor-pointer shrink-0"
-                        title="Ver o que vem nesta rodada, sem começar"
+                        title={t('Ver o que vem nesta rodada, sem começar')}
                         aria-label={`${t('Ver o que vem')}: ${tituloDoJogo(j, ageProfile)}`}
                       >
                         <ListChecks className="w-4 h-4" />
@@ -3252,7 +3280,7 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
                     <button
                       onClick={() => setExplicando(j.id)}
                       className="relative z-10 min-w-6 min-h-6 inline-flex items-center justify-center rounded-lg text-ink-faint hover:text-accent hover:bg-surface-hover cursor-pointer shrink-0 opacity-0 group-hover:opacity-100 focus:opacity-100 focus-visible:opacity-100 [@media(hover:none)]:opacity-100 transition-opacity"
-                      title="Como se joga"
+                      title={t('Como se joga')}
                       aria-label={`${t('Como se joga')}: ${tituloDoJogo(j, ageProfile)}`}
                     >
                       <HelpCircle className="w-4 h-4" />
@@ -3277,8 +3305,8 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
                   {modoOrganizar && (
                     <span className="relative z-10 flex items-center gap-1 pt-1">
                       {([
-                        { icone: <ChevronLeft className="w-3.5 h-3.5" />, dir: -1 as const, rot: 'Mover para a esquerda' },
-                        { icone: <ChevronRight className="w-3.5 h-3.5" />, dir: 1 as const, rot: 'Mover para a direita' },
+                        { icone: <ChevronLeft className="w-3.5 h-3.5" />, dir: -1 as const, rot: t('Mover para a esquerda') },
+                        { icone: <ChevronRight className="w-3.5 h-3.5" />, dir: 1 as const, rot: t('Mover para a direita') },
                       ]).map(({ icone, dir, rot }) => (
                         <button
                           key={dir}
@@ -3294,8 +3322,8 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
                         aria-pressed={ordem.fixados.includes(j.id)}
                         onClick={() => mexerNaOrdem(alternarFixado(ordem, j.id))}
                         className={`min-w-6 min-h-6 inline-flex items-center justify-center rounded-md cursor-pointer hover:bg-surface-hover ${ordem.fixados.includes(j.id) ? 'text-accent' : 'text-ink-faint hover:text-accent'}`}
-                        title={ordem.fixados.includes(j.id) ? 'Desafixar do topo' : 'Fixar no topo'}
-                        aria-label={`${ordem.fixados.includes(j.id) ? 'Desafixar' : 'Fixar no topo'}: ${tituloDoJogo(j, ageProfile)}`}
+                        title={ordem.fixados.includes(j.id) ? t('Desafixar do topo') : t('Fixar no topo')}
+                        aria-label={`${ordem.fixados.includes(j.id) ? t('Desafixar') : t('Fixar no topo')}: ${tituloDoJogo(j, ageProfile)}`}
                       >
                         <Pin className={`w-3.5 h-3.5 ${ordem.fixados.includes(j.id) ? 'fill-current' : ''}`} />
                       </button>
@@ -3333,15 +3361,17 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
                       da RODADA, que é o que vai acontecer ao clicar, e o pool vem em seguida. */}
                   <span className={`text-[11px] pt-1 ${liberado ? 'font-bold mt-auto text-good-ink' : 'text-ink-muted'}`}>
                     {(() => {
-                      const unidade = j.estado.fonte === 'falas' ? ['fala', 'falas'] : ['palavra', 'palavras'];
+                      const unidade = (n: number) => (j.estado.fonte === 'falas'
+                        ? tp(n, 'fala', 'falas')
+                        : tp(n, 'palavra', 'palavras'));
                       if (liberado) {
                         const total = ('pool' in j.estado ? j.estado.pool : undefined) ?? j.estado.disponiveis;
                         /* O tamanho vem do ESTADO, não de um `min(total, maxItems)` refeito aqui.
                            A conta local mentia para o Termo, cuja escada consome 3 ou 7 e nunca 5. */
                         const naRodada = j.estado.tamanhoDaRodada;
                         return naRodada < total
-                          ? `${naRodada} nesta rodada · ${total} disponíveis`
-                          : `${naRodada} ${naRodada === 1 ? unidade[0] : unidade[1]} nesta rodada`;
+                          ? t('{n} nesta rodada · {total} disponíveis', { n: naRodada, total })
+                          : t('{n} {unidade} nesta rodada', { n: naRodada, unidade: unidade(naRodada) });
                       }
                       /* O MOTIVO REAL, e não "faltam N falas". Na trilha esses jogos ficavam
                          bloqueados por um número que não explicava nada, a pessoa não tem como
@@ -3349,20 +3379,20 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
                       const motivo = 'motivo' in j.estado ? j.estado.motivo : undefined;
                       if (motivo === 'trilha-sem-frase') {
                         return ageProfile === 'kids'
-                          ? 'a trilha tem palavras, não frases'
-                          : 'a trilha tem palavras soltas, este jogo precisa de frase; escolha uma gravação';
+                          ? t('a trilha tem palavras, não frases')
+                          : t('a trilha tem palavras soltas, este jogo precisa de frase; escolha uma gravação');
                       }
-                      if (motivo === 'sem-voz') return `este navegador não tem voz em ${langLabelNaUI(fonte.lang)}`;
+                      if (motivo === 'sem-voz') return t('este navegador não tem voz em {idioma}', { idioma: langLabelNaUI(fonte.lang) });
                       /* A trilha japonesa TEM 5.181 frases: a mensagem de acervo vazio mandaria a
                          pessoa procurar uma gravação para resolver o que não é falta de material. */
                       if (motivo === 'escrita-sem-separacao') {
                         return ageProfile === 'kids'
-                          ? `em ${langLabelNaUI(fonte.lang)} as palavras ficam juntinhas, sem espaço`
-                          : `este jogo separa as palavras da frase, e ${langLabelNaUI(fonte.lang)} não marca onde cada uma começa`;
+                          ? t('em {idioma} as palavras ficam juntinhas, sem espaço', { idioma: langLabelNaUI(fonte.lang) })
+                          : t('este jogo separa as palavras da frase, e {idioma} não marca onde cada uma começa', { idioma: langLabelNaUI(fonte.lang) });
                       }
                       // Estado transitório e honesto: a gravação TEM som, ele está a caminho.
-                      if (motivo === 'audio-carregando') return 'baixando o áudio da gravação…';
-                      if (j.estado.fonte === 'falas' && j.estado.disponiveis === 0) return 'precisa de uma gravação com legenda';
+                      if (motivo === 'audio-carregando') return t('baixando o áudio da gravação…');
+                      if (j.estado.fonte === 'falas' && j.estado.disponiveis === 0) return t('precisa de uma gravação com legenda');
 
                       /* A CONTA INTEIRA, e não só o que falta.
                          "faltam 2 palavras" não diz de quantas nem sobre o quê, e a pessoa não tem
@@ -3370,18 +3400,22 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
                          Com "precisa de 4 · você tem 2 do espanhol", a mesma linha responde as três
                          perguntas e o caminho de saída fica óbvio: gravar mais naquele idioma. */
                       const precisa = MINIGAMES[j.id].minItems;
-                      const falta = `${j.estado.faltam === 1 ? 'falta' : 'faltam'} ${j.estado.faltam} ${j.estado.faltam === 1 ? unidade[0] : unidade[1]}`;
+                      const falta = tp(j.estado.faltam, 'falta {n} {unidade}', 'faltam {n} {unidade}', {
+                        unidade: unidade(j.estado.faltam),
+                      });
                       return ageProfile === 'kids'
-                        ? `${falta} para abrir`
-                        : `${falta} · precisa de ${precisa} · você tem ${j.estado.disponiveis} do ${langLabelNaUI(fonte.lang)}`;
+                        ? t('{falta} para abrir', { falta })
+                        : t('{falta} · precisa de {precisa} · você tem {tem} do {idioma}', {
+                            falta, precisa, tem: j.estado.disponiveis, idioma: langLabelNaUI(fonte.lang),
+                          });
                     })()}
                   </span>
                   {/* O RECORDE, quando existe. Vem da coluna `score`, que era gravada a cada rodada
                       desde a migração 0001 e nunca tinha sido lida de volta. Só aparece com jogo
                       liberado e recorde > 0: "recorde: 0" seria uma provocação sem sentido. */}
                   {liberado && (recordeDoJogo(j.id) ?? 0) > 0 && (
-                    <span className="kpi-pill mt-1.5 self-start" title="Sua melhor sequência neste jogo, nesta fonte">
-                      <Trophy className="w-3 h-3" aria-hidden /> recorde {recordeDoJogo(j.id)}
+                    <span className="kpi-pill mt-1.5 self-start" title={t('Sua melhor sequência neste jogo, nesta fonte')}>
+                      <Trophy className="w-3 h-3" aria-hidden /> {t('recorde {n}', { n: recordeDoJogo(j.id) ?? 0 })}
                     </span>
                   )}
                   </span>
@@ -3396,7 +3430,7 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
 
       {erro && (
         <p className="mt-4 text-[12px] text-warn-ink">
-          Não consegui carregar o seu baralho: {erro}
+          {t('Não consegui carregar o seu baralho: {erro}', { erro })}
         </p>
       )}
       </div>
@@ -3415,7 +3449,7 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
           onClick={() => onChangeView('study')}
           className="text-[12px] text-ink-muted hover:text-accent underline cursor-pointer py-1"
         >
-          {ageProfile === 'kids' ? 'Revisar minhas palavras' : 'Revisão espaçada e produção ativa'}
+          {ageProfile === 'kids' ? t('Revisar minhas palavras') : t('Revisão espaçada e produção ativa')}
         </button>
       </div>
     </div>

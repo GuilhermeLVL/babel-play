@@ -35,6 +35,11 @@ jobs:
       # Falha em HIGH/CRITICAL, exceto a allowlist NOMEADA das sem fix upstream.
       - name: Auditoria de dependências
         run: npm run audit:gate
+      # O e2e existia e nenhum workflow o chamava. E agora ele carrega o teste de layout com
+      # pseudo-localizacao, que e o unico que ve texto cortado antes de haver traducao para cortar.
+      - name: Testes de ponta a ponta
+        run: npm run test:e2e
+
       # Invariantes arquiteturais deste repositório (não SAST genérico): as regras têm fixture,
       # porque uma regra errada devolve zero achados e isso tem a cara de "código limpo".
       - name: Regras arquiteturais (ast-grep)

@@ -5,7 +5,7 @@ import { Abas, PainelDeAba, Barra, Vazio } from '../ui';
 import { getEntitlements, onPlanChange, PLAN_LABELS } from '../../lib/entitlements';
 import { carregarUso, fracao, duracaoLegivel, type UsoDoMes } from '../../lib/uso';
 import Assinar from './planos/Assinar';
-import { t } from '../../lib/i18n';
+import { numero, t } from '../../lib/i18n';
 
 /**
  * PLANOS E USO — o que cada plano dá, e quanto do seu já foi usado.
@@ -241,7 +241,7 @@ export default function Planos() {
                   titulo="Chamadas à IA de nuvem"
                   usado={uso.chamadas.usado}
                   teto={uso.chamadas.teto}
-                  formatar={(n) => n.toLocaleString('pt-BR')}
+                  formatar={(n) => numero(n)}
                   explicacao="Transcrição, tradução e tutor dividem este limite. Cada fala ao microfone usa duas: uma para transcrever, outra para traduzir."
                 />
 
@@ -255,7 +255,7 @@ export default function Planos() {
 
                 {uso.tokensDeLlm.usado > 0 && (
                   <div className="text-[12px] text-ink-muted pt-2 border-t border-subtle">
-                    {uso.tokensDeLlm.usado.toLocaleString('pt-BR')} tokens de tradução usados neste
+                    {numero(uso.tokensDeLlm.usado)} tokens de tradução usados neste
                     mês. Não há limite para isso — é registrado só para acompanhar custo.
                   </div>
                 )}

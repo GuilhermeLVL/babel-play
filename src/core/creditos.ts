@@ -1,3 +1,4 @@
+import { moeda } from '../lib/i18n';
 /**
  * O CATÁLOGO DO QUE SE COMPRA COM DINHEIRO — fonte única, cliente e servidor.
  *
@@ -56,5 +57,5 @@ export function centavosParaReais(centavos: number): number {
 
 /** "R$ 24,90" — uma formatação só, para o preço não divergir entre telas. */
 export function precoEmReais(centavos: number): string {
-  return centavosParaReais(centavos).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
+  return moeda(centavosParaReais(centavos), 'BRL')
 }

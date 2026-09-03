@@ -19,10 +19,11 @@ import React from 'react'
 import { TrendingUp } from 'lucide-react'
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, CartesianGrid } from 'recharts'
 import type { AppMetrics } from '../../core/learning/contract'
+import { data } from '../../lib/i18n';
 
 /** Rótulo curto da semana. Único formato — antes eram dois (`fmtWeek` e um `toLocaleDateString` solto). */
 function rotuloDaSemana(ts: number): string {
-  return new Date(ts).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })
+  return data(new Date(ts), { day: '2-digit', month: '2-digit' })
 }
 
 export function EvolucaoSemanal({

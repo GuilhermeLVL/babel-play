@@ -9,6 +9,7 @@ import { authHeaders } from '../lib/authHeaders'
 import { supabase, authRequired } from '../lib/supabase'
 import { aguardarIdentidade } from '../lib/identidade'
 import { servidorEfemero } from './efemero/servidor'
+import { data } from '../lib/i18n';
 
 // ───────────────────────────── fetch com teto de tempo (A-05) ─────────────────────────────
 // Toda a camada de dados usava `fetch` SEM timeout: uma resposta que nunca chega deixava a UI presa
@@ -87,7 +88,7 @@ function fmtDate(ts: number): string {
   const diffDays = Math.round((meiaNoite(now) - meiaNoite(d)) / 86_400_000)
   if (diffDays <= 1) return 'Ontem'
   if (diffDays < 7) return `Há ${diffDays} dias`
-  return d.toLocaleDateString('pt-BR')
+  return data(d)
 }
 
 function toRecordingType(kind: string | null): Recording['type'] {

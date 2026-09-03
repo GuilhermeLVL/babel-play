@@ -7,6 +7,7 @@ import {
   listarBaralhosAnki, listarNotasDoBaralho, ativarNotasDoBaralho, desativarBaralho, purgarBaralho,
   type BaralhoAnkiResumo, type NotaAnkiDetalhe, type EstadoNota,
 } from '../../data/apiAnki'
+import { data } from '../../lib/i18n';
 
 /**
  * BIBLIOTECA › BARALHOS — o que já foi trazido do Anki, e o que fazer com cada um.
@@ -53,7 +54,7 @@ const FILTROS_ESTADO: Array<{ id: EstadoNota | 'todas'; rotulo: string }> = [
 ]
 
 function fmtData(ts: number): string {
-  return new Date(ts).toLocaleDateString('pt-BR')
+  return data(new Date(ts))
 }
 
 // ───────────────────────────── lista ─────────────────────────────

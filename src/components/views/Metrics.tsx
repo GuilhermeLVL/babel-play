@@ -24,6 +24,7 @@ import VocabularyPanel from '../VocabularyPanel';
 import { Confianca, SemDado, ehBaixaConfianca } from '../Honestidade';
 import { Abas, Barra, PainelDeAba } from '../ui';
 import EvolucaoSemanal from '../metrics/EvolucaoSemanal';
+import { numero } from '../../lib/i18n';
 
 // --- HELPERS ---
 
@@ -427,7 +428,7 @@ export default function Metrics({ recordings, onChangeView, ageProfile = 'pro' }
                   <BookOpen className="w-4 h-4 text-accent" />
                   <span className="text-[11px] font-bold uppercase tracking-wider font-mono">{copyDoPerfil('metric.deckSize', ageProfile)}</span>
                 </div>
-                <div className="font-display font-black text-4xl tracking-tight text-ink mb-1">{(metrics?.deckSize ?? 0).toLocaleString('pt-BR')}</div>
+                <div className="font-display font-black text-4xl tracking-tight text-ink mb-1">{numero(metrics?.deckSize ?? 0)}</div>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-1 text-[12px] text-ink-muted font-bold">
                     {metrics?.newCards ?? 0} novos • {metrics?.dueToday ?? 0} p/ revisar
@@ -490,7 +491,7 @@ export default function Metrics({ recordings, onChangeView, ageProfile = 'pro' }
                   {minutosDoIdioma}<span className="text-2xl"> min</span>
                 </div>
                 <div className="text-[12px] text-ink-muted font-bold">
-                  {(metrics?.wordsCaptured ?? 0).toLocaleString('pt-BR')} palavras ouvidas
+                  {numero(metrics?.wordsCaptured ?? 0)} palavras ouvidas
                   {(metrics?.speakingMs ?? 0) > 0 && ` • ${Math.round((metrics!.speakingMs ?? 0) / 60000)} min falando`}
                 </div>
               </div>
@@ -669,7 +670,7 @@ export default function Metrics({ recordings, onChangeView, ageProfile = 'pro' }
                   <BookOpen className="w-5 h-5 text-accent" /> Suas palavras
                 </h3>
                 <span className="text-[12px] text-ink-muted font-bold tabular-nums">
-                  {(metrics?.deckSize ?? 0).toLocaleString('pt-BR')} no caderno
+                  {numero(metrics?.deckSize ?? 0)} no caderno
                 </span>
               </div>
               <p className="text-[12px] text-ink-muted mb-4">
@@ -682,7 +683,7 @@ export default function Metrics({ recordings, onChangeView, ageProfile = 'pro' }
               }} />
               {semVerso > 0 && (
                 <p className="text-[12px] text-warn-ink mt-3 leading-relaxed">
-                  <b>{semVerso.toLocaleString('pt-BR')} {semVerso === 1 ? 'palavra está' : 'palavras estão'} sem tradução.</b>{' '}
+                  <b>{numero(semVerso)} {semVerso === 1 ? 'palavra está' : 'palavras estão'} sem tradução.</b>{' '}
                   Isso acontece quando o idioma que você aprende e o seu idioma são o mesmo — não há
                   o que traduzir, e o cartão fica sem verso.{' '}
                   <button onClick={() => onChangeView?.('settings')} className="underline font-bold hover:text-ink cursor-pointer">
@@ -700,15 +701,15 @@ export default function Metrics({ recordings, onChangeView, ageProfile = 'pro' }
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div className="card-panel p-6">
                 <div className="text-[11px] font-bold uppercase tracking-wider font-mono text-ink-muted mb-2">Palavras Distintas</div>
-                <div className="font-display font-black text-3xl text-ink">{(metrics?.uniqueWords ?? 0).toLocaleString('pt-BR')}</div>
+                <div className="font-display font-black text-3xl text-ink">{numero(metrics?.uniqueWords ?? 0)}</div>
               </div>
               <div className="card-panel p-6">
                 <div className="text-[11px] font-bold uppercase tracking-wider font-mono text-ink-muted mb-2">Cartões no Deck</div>
-                <div className="font-display font-black text-3xl text-ink">{(metrics?.deckSize ?? 0).toLocaleString('pt-BR')}</div>
+                <div className="font-display font-black text-3xl text-ink">{numero(metrics?.deckSize ?? 0)}</div>
               </div>
               <div className="card-panel p-6">
                 <div className="text-[11px] font-bold uppercase tracking-wider font-mono text-ink-muted mb-2">Palavras Capturadas</div>
-                <div className="font-display font-black text-3xl text-ink">{(metrics?.wordsCaptured ?? 0).toLocaleString('pt-BR')}</div>
+                <div className="font-display font-black text-3xl text-ink">{numero(metrics?.wordsCaptured ?? 0)}</div>
               </div>
             </div>
 

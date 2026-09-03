@@ -1,5 +1,6 @@
 import { useEffect, useRef, type ReactNode } from 'react';
 import Segmentado from '../ui/Segmentado';
+import { numero } from '../../lib/i18n';
 
 /**
  * O SELETOR DE CONTEÚDO — três linhas de controle viradas uma, com uma gaveta atrás do «Trocar».
@@ -104,7 +105,7 @@ export function SeletorDeConteudo({
         <div className="flex items-baseline gap-2 flex-wrap flex-1 min-w-[240px] text-[13.5px]">
           <span className="label-mono">jogando com</span>
           <span className="font-display font-extrabold text-lg tabular-nums text-ink">
-            {total.toLocaleString('pt-BR')}
+            {numero(total)}
           </span>
           <span className="text-ink-muted">palavras</span>
           {nomeDaFonte && (
@@ -181,7 +182,7 @@ export function SeletorDeConteudo({
         )}
 
         <div className="flex items-center justify-between gap-3 flex-wrap mt-4 pt-3.5 border-t border-border-subtle">
-          <span className="label-mono">{total.toLocaleString('pt-BR')} no recorte</span>
+          <span className="label-mono">{numero(total)} no recorte</span>
           <div className="flex items-center gap-2">
             <button
               type="button"

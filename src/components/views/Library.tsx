@@ -19,6 +19,7 @@ import { toast, askConfirm } from '../Toast';
 import { fetchLangConfig } from '../../lib/langConfig';
 import { buildDocumentSession, transcribeImportedAudio } from '../../lib/import/buildSession';
 import { getEntitlements, onPlanChange } from '../../lib/entitlements';
+import { numero } from '../../lib/i18n';
 
 type LibraryTab = 'collections' | 'vault';
 
@@ -796,7 +797,7 @@ export default function Library({ onChangeView, recordings, onRecordingsChange, 
                     <Clock className="w-3.5 h-3.5 shrink-0" />
                     <span>{rec.date}</span>
                     <span>·</span>
-                    <span>{rec.wordCount.toLocaleString('pt-BR')} palavras</span>
+                    <span>{numero(rec.wordCount)} palavras</span>
                   </div>
                   <div className="flex gap-2 flex-wrap mt-auto">
                     {rec.type === 'document' ? (

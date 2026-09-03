@@ -11,6 +11,7 @@ import { palavraDeNivel } from '../../../lib/galeria/textos';
 import FaixaDeProgresso from '../../progress/FaixaDeProgresso';
 import { Barra, Ladrilho } from '../../ui';
 import { Confianca, rotuloDaBase } from '../../Honestidade';
+import { data, numero } from '../../../lib/i18n';
 
 /**
  * O PROGRESSO — nível, a curva no tempo, e a fluência estimada.
@@ -51,7 +52,7 @@ export default function AbaProgresso({ progress, ageProfile }: AbaProgressoProps
 
   const serie = useMemo(() => (historico?.pontos ?? []).map(p => ({
     ...p,
-    rotulo: new Date(p.em).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }),
+    rotulo: data(new Date(p.em), { day: '2-digit', month: 'short' }),
   })), [historico]);
 
   return (
@@ -117,7 +118,7 @@ export default function AbaProgresso({ progress, ageProfile }: AbaProgressoProps
                   {historico!.marcos.slice(-6).map(m => (
                     <li key={`${m.em}-${m.nivel}`} className="kpi-pill cursor-default">
                       <Trophy className="w-3 h-3 text-good" aria-hidden />
-                      {palavraDeNivel().toLowerCase()} {m.nivel} · {new Date(m.em).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: '2-digit' })}
+                      {palavraDeNivel().toLowerCase()} {m.nivel} · {data(new Date(m.em), { day: '2-digit', month: 'short', year: '2-digit' })}
                     </li>
                   ))}
                 </ul>
@@ -195,7 +196,7 @@ export default function AbaProgresso({ progress, ageProfile }: AbaProgressoProps
                 </p>
                 {fluencia.semNivel > 0 && (
                   <p className="text-[11px] text-ink-faint">
-                    {fluencia.semNivel.toLocaleString('pt-BR')} palavras ficaram de fora porque não
+                    {numero(fluencia.semNivel)} palavras ficaram de fora porque não
                     estão na lista de níveis conferidos, elas não foram chutadas para faixa nenhuma.
                   </p>
                 )}

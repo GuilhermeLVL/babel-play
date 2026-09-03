@@ -46,6 +46,7 @@ import { buildGateway } from '../../gateway';
 import { getActiveProfile } from '../../gateway/activeProfile';
 import { toast } from '../Toast';
 import { mediaErrorMessage, speechErrorMessage } from '../../lib/mediaErrors';
+import { data, numero } from '../../lib/i18n';
 
 /** Selo de PROCEDÊNCIA da transcrição (honestidade): de onde vieram as falas desta sessão. */
 function provenanceLabel(engine?: string | null): string | null {
@@ -1714,7 +1715,7 @@ export default function Analysis({
                 <>
                   <div className="card-panel p-4 cursor-pointer hover:border-accent hover:shadow-md transition-all" onClick={() => setExpandedAnalysisKpi('words_read')}>
                     <span className="label-mono block mb-1 font-semibold text-ink-muted flex items-center gap-1.5"><BookOpen className="w-3.5 h-3.5" /> Palavras Lidas</span>
-                    <div className="font-display font-black text-2xl tracking-tight">{recording.wordCount.toLocaleString('pt-BR')}</div>
+                    <div className="font-display font-black text-2xl tracking-tight">{numero(recording.wordCount)}</div>
                     <div className="text-[11.5px] text-ink-muted mt-1 font-medium">Extraídas do arquivo original</div>
                   </div>
                   <div className="card-panel p-4 cursor-pointer hover:border-accent hover:shadow-md transition-all" onClick={() => setExpandedAnalysisKpi('study_time')}>
@@ -1734,7 +1735,7 @@ export default function Analysis({
                   </div>
                   <div className="card-panel p-4 cursor-pointer hover:border-accent hover:shadow-md transition-all" onClick={() => setExpandedAnalysisKpi('jargons')}>
                     <span className="label-mono block mb-1 font-semibold text-ink-muted flex items-center gap-1.5"><Zap className="w-3.5 h-3.5" /> Vocábulos Únicos</span>
-                    <div className="font-display font-black text-2xl tracking-tight text-good">{stats.wordCount > 0 ? stats.uniqueWords.toLocaleString('pt-BR') : '-'}</div>
+                    <div className="font-display font-black text-2xl tracking-tight text-good">{stats.wordCount > 0 ? numero(stats.uniqueWords) : '-'}</div>
                     <div className="text-[11.5px] text-ink-muted mt-1 font-medium">Palavras distintas no texto</div>
                   </div>
                 </>
@@ -1915,7 +1916,7 @@ export default function Analysis({
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div className="card-panel p-5 bg-gradient-to-br from-rare/10 to-transparent border-rare/20 cursor-pointer hover:border-rare/40 hover:shadow-md transition-all" onClick={() => setExpandedAnalysisKpi('lexical_richness')}>
                       <span className="label-mono block mb-2 font-semibold text-rare-ink">Total de Vocábulos Únicos</span>
-                      <div className="font-display font-black text-3xl tracking-tight text-ink">{stats.wordCount > 0 ? stats.uniqueWords.toLocaleString('pt-BR') : '-'}</div>
+                      <div className="font-display font-black text-3xl tracking-tight text-ink">{stats.wordCount > 0 ? numero(stats.uniqueWords) : '-'}</div>
                       <p className="text-[12px] text-ink-muted mt-2">Palavras distintas na transcrição desta sessão.</p>
                     </div>
                     <div className="card-panel p-5 cursor-pointer hover:border-accent hover:shadow-md transition-all" onClick={() => setExpandedAnalysisKpi('jargons')}>
@@ -2734,7 +2735,7 @@ export default function Analysis({
                     `- Densidade lexical: ${stats.lexicalDensityPct}%\n` +
                     `- Razão tipo/token: ${Math.round(stats.typeTokenRatio * 100)}/100\n` +
                     `- Facilidade de leitura (Flesch): ${stats.readingEase != null ? stats.readingEase : '-'}\n\n` +
-                    `Gerado em ${new Date().toLocaleDateString('pt-BR')}`;
+                    `Gerado em ${data(new Date())}`;
                     
                   const blob = new Blob([content], { type: 'text/markdown;charset=utf-8;' });
                   const url = URL.createObjectURL(blob);

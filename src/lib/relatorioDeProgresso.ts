@@ -1,5 +1,7 @@
 import type { AppMetrics } from '@core';
 import type { VocabCard } from '../types';
+// `as dataDaUI` porque este arquivo ja tem uma variavel local `data`.
+import { data as dataDaUI } from './i18n';
 
 /**
  * RELATÓRIO DE PROGRESSO EM TEXTO (spec progresso-de-idioma).
@@ -22,7 +24,7 @@ const min = (ms: number) => Math.round(ms / 60_000);
  */
 export function gerarRelatorioDeProgresso(m: AppMetrics, cartoes: ReadonlyArray<VocabCard> = []): string {
   const linhas: string[] = [];
-  const data = new Date().toLocaleDateString('pt-BR');
+  const data = dataDaUI(new Date());
   linhas.push(`RELATÓRIO DE ESTUDO — Babel Play · ${data}`);
   linhas.push('');
 

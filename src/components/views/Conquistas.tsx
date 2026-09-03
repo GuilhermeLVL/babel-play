@@ -9,6 +9,7 @@ import { CATALOGO_DA_LOJA, COR_DA_RARIDADE } from '../../lib/loja';
 import MiniaturaDoItem from '../MiniaturaDoItem';
 import { TEXTOS } from '../../lib/galeria/textos';
 import type { DerivedProgress } from '../../lib/progress';
+import { data } from '../../lib/i18n';
 
 /**
  * CONQUISTAS & RECOMPENSAS — a tela que diz, em números, como se ganha e o que se ganha.
@@ -28,7 +29,7 @@ interface ConquistasProps {
 const ORDEM: RaridadeDaConquista[] = ['lendario', 'epico', 'raro', 'comum'];
 
 function dataCurta(ts: number): string {
-  return new Date(ts).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' });
+  return data(new Date(ts), { day: '2-digit', month: 'short' });
 }
 
 export default function Conquistas({ progress, ctx }: ConquistasProps) {

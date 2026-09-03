@@ -178,6 +178,11 @@ export function numero(n: number): string {
   return n.toLocaleString(atual)
 }
 
+/** Número com opções (casas decimais, unidade) — mesma regra de locale, controle mais fino. */
+export function numeroCom(n: number, opcoes: Intl.NumberFormatOptions): string {
+  return n.toLocaleString(atual, opcoes)
+}
+
 /** Data no idioma da interface. Mesma razão: 03/09 e 09/03 são dias diferentes. */
 export function data(d: Date | string | number, opcoes?: Intl.DateTimeFormatOptions): string {
   return new Date(d).toLocaleDateString(atual, opcoes)
@@ -185,4 +190,13 @@ export function data(d: Date | string | number, opcoes?: Intl.DateTimeFormatOpti
 
 export function dataHora(d: Date | string | number, opcoes?: Intl.DateTimeFormatOptions): string {
   return new Date(d).toLocaleString(atual, opcoes)
+}
+
+/**
+ * Dinheiro. A MOEDA é do preço, não do leitor: um preço em reais continua em reais para quem lê em
+ * inglês — o que muda é a forma de escrever o número ("R$ 1.234,50" e "R$1,234.50"). Trocar a moeda
+ * pelo locale converteria valor sem taxa de câmbio, que é o erro caro.
+ */
+export function moeda(valor: number, codigo = 'BRL'): string {
+  return valor.toLocaleString(atual, { style: 'currency', currency: codigo })
 }

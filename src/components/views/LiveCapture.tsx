@@ -78,6 +78,7 @@ import { setNavGuard } from '../../lib/navGuard';
 // Um componente só serve a tela embutida E o Modo Foco — antes eram dois blocos que divergiam.
 import ChatTranscript from '../ChatTranscript';
 import BingoPanel from '../minigames/BingoPanel';
+import { dataHora, numero } from '../../lib/i18n';
 // Identificação automática de voz (diarização leve): embedding WeSpeaker por enunciado
 // (worker WASM, 6,7MB) + agrupamento online → "Pessoa 1/2/3" com cor própria.
 import { SpeakerClusterer } from '../../lib/speakerCluster';
@@ -2235,11 +2236,11 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
     // Pré-preenche o modal: retomando → título/capa existentes; senão, título por data.
     if (resumeId) {
       const existing = (recordings ?? []).find(r => r.id === resumeId);
-      setCustomSessionTitle(prev => prev.trim() || existing?.title || `Captura ao vivo, ${new Date().toLocaleString('pt-BR')}`);
+      setCustomSessionTitle(prev => prev.trim() || existing?.title || `Captura ao vivo, ${dataHora(new Date())}`);
       setCustomSessionImage(existing?.imageUrl ?? '');
       setImgQuery(existing?.title ?? '');
     } else {
-      setCustomSessionTitle(`Captura ao vivo, ${new Date().toLocaleString('pt-BR')}`);
+      setCustomSessionTitle(`Captura ao vivo, ${dataHora(new Date())}`);
       setCustomSessionImage('');
       setImgQuery('');
     }
@@ -2265,7 +2266,7 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
   // (nunca duplica na Biblioteca). Depois sobe o áudio e gera os cards de vocabulário.
   const handleFinalizeSave = async (shouldRedirect: boolean) => {
     const segs = speechSegments;
-    const title = customSessionTitle.trim() || `Captura ao vivo, ${new Date().toLocaleString('pt-BR')}`;
+    const title = customSessionTitle.trim() || `Captura ao vivo, ${dataHora(new Date())}`;
     const cover = customSessionImage.trim();
     setShowSaveModal(false);
     setFeedbackMsg('Salvando sessão…');

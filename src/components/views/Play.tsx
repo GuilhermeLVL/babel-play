@@ -44,7 +44,7 @@ import MapaDoConteudo from './MapaDoConteudo';
 import ArteDoJogo, { tomDoJogo, FAMILIAS } from '../minigames/ArteDosJogos';
 import Recordes from './play/Recordes';
 import { JOGOS, tituloDoJogo, descricaoDoJogo, type JogoUI } from './play/jogos';
-import { t } from '../../lib/i18n';
+import { numero, t } from '../../lib/i18n';
 import PainelTrilha from './PainelTrilha';
 import BaralhoAnki from './BaralhoAnki';
 import BaralhosAnki from './BaralhosAnki';
@@ -2960,8 +2960,8 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
           <span className="min-w-0">
             <span className="block font-bold text-[13.5px] text-ink">Mapa do conteúdo</span>
             <span className="block text-[12px] text-ink-muted leading-snug">
-              {acervoDaFonte.length.toLocaleString('pt-BR')} {fonte.id === 'sessao' ? 'falas' : 'palavras'}
-              {nuncaCairam > 0 && <> · <b className="text-ink">{nuncaCairam.toLocaleString('pt-BR')}</b> nunca caíram</>}
+              {numero(acervoDaFonte.length)} {fonte.id === 'sessao' ? 'falas' : 'palavras'}
+              {nuncaCairam > 0 && <> · <b className="text-ink">{numero(nuncaCairam)}</b> nunca caíram</>}
             </span>
           </span>
         </button>

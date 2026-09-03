@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { ArrowLeft, Check, Info } from 'lucide-react';
 import type { AgeProfileType } from '../../lib/profile';
-import { t } from '../../lib/i18n';
+import { data, t } from '../../lib/i18n';
 
 /**
  * MAPA DO CONTEÚDO — o que já caiu, o que nunca caiu, o que eu errei.
@@ -313,7 +313,7 @@ export default function MapaDoConteudo({
           <p className="flex items-start gap-1.5 text-[11.5px] text-ink-faint mb-5 max-w-[70ch]">
             <Info className="w-3.5 h-3.5 mt-0.5 shrink-0" aria-hidden />
             O registro do que caiu em cada rodada começou em{' '}
-            {new Date(historicoDesde).toLocaleDateString('pt-BR')}. O que você jogou antes disso não
+            {data(new Date(historicoDesde))}. O que você jogou antes disso não
             aparece aqui, pode haver palavra marcada como "nunca caiu" que você já viu.
           </p>
         )}

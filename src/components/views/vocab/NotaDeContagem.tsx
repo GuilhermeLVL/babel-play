@@ -14,11 +14,12 @@
  */
 import React from 'react'
 import { Info } from 'lucide-react'
+import { data } from '../../../lib/i18n';
 
 /** Data em que a contagem passou a ser real. Vem do banco (menor `occurred_at` não-legado). */
 export function formatarInicio(inicioEm: number | null): string | null {
   if (!inicioEm) return null
-  return new Date(inicioEm).toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' })
+  return data(new Date(inicioEm), { day: '2-digit', month: 'long', year: 'numeric' })
 }
 
 export default function NotaDeContagem({

@@ -11,6 +11,7 @@ import { ehBaixaConfianca } from '../Honestidade';
 import { Vazio } from '../ui';
 import { estimativaDeMinutos, rotuloDeDuracao } from '@core';
 import FaixaDeProgresso from '../progress/FaixaDeProgresso';
+import { numero } from '../../lib/i18n';
 
 // Metas de ritmo DECLARADAS por nível (benchmark, não medição). O valor MEDIDO
 // vem sempre de metrics.wpm; aqui só guardamos o alvo com que comparar.
@@ -257,7 +258,7 @@ export default function Hub({ onChangeView, recordings, ageProfile = 'pro', prog
                   omissão para quem tem 2.000 vencidas; anunciá-la como a tarefa de agora seria
                   pedir duas horas e meia de alguém que abriu o app para começar. */}
               {metrics.dueToday > agora && (
-                <span className="text-ink-faint"> São {metrics.dueToday.toLocaleString('pt-BR')} no total.</span>
+                <span className="text-ink-faint"> São {numero(metrics.dueToday)} no total.</span>
               )}
             </p>
             <div className="flex flex-wrap items-center justify-center sm:justify-start gap-3 mt-4">

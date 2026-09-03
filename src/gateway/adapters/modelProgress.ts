@@ -1,3 +1,4 @@
+import { numeroCom } from '../../lib/i18n';
 /**
  * Tradutor dos eventos de progresso do @huggingface/transformers para a barra da UI.
  *
@@ -118,6 +119,6 @@ export function criarWatchdogDeEstagnacao(opts: OpcoesWatchdog) {
 /** Rótulo honesto de tamanho para a UI: "12,4 MB de 85,0 MB". */
 export function rotuloDeBytes(loaded: number, total: number): string | null {
   if (!total || total <= 0) return null
-  const mb = (n: number) => (n / 1_048_576).toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })
+  const mb = (n: number) => numeroCom(n / 1_048_576, { minimumFractionDigits: 1, maximumFractionDigits: 1 })
   return `${mb(loaded)} MB de ${mb(total)} MB`
 }

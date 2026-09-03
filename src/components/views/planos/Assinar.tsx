@@ -4,6 +4,7 @@ import { apiFetch } from '../../../data/api';
 import { PLAN_MATRIX, type PlanoDeAssinatura } from '../../../core/planos';
 import { authRequired } from '../../../lib/supabase';
 import { carregarEntitlements } from '../../../lib/entitlements';
+import { data } from '../../../lib/i18n';
 
 /**
  * ASSINAR — o pedaço que faltava da tela de Planos (E3).
@@ -110,7 +111,7 @@ export default function Assinar() {
             Sua assinatura <strong>{status.assinatura!.plano}</strong> está{' '}
             {status.assinatura!.status === 'past_due' ? 'com pagamento pendente' : 'ativa'}
             {status.assinatura!.valeAte
-              ? ` — válida até ${new Date(status.assinatura!.valeAte).toLocaleDateString('pt-BR')}`
+              ? ` — válida até ${data(new Date(status.assinatura!.valeAte))}`
               : ''}.
           </p>
           <button onClick={() => void cancelar()} disabled={ocupado} className="btn-outline mt-3">

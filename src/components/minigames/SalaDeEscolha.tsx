@@ -7,6 +7,7 @@ import { langLabelNaUI } from '../../lib/languages';
 import type { AgeProfileType } from '../../lib/profile';
 import type { EscolhaDaPratica, OrigemDaPratica, EscopoDeGravacoes, CefrLevel } from '@core';
 import { nomeDaEscala, rotuloDaEtapa, type EscalaDaTrilha } from '../../core/learning/trilha';
+import { numero } from '../../lib/i18n';
 
 /**
  * A SALA DE ESCOLHA — o que você vai jogar, decidido antes de a tela encher de cartas.
@@ -368,7 +369,7 @@ export default function SalaDeEscolha({
               />
               <p className="text-[11.5px] text-ink-faint mt-2">
                 {nivel
-                  ? <>{nomeDaEscala(escala)} <b className="text-ink-muted">{rotuloDaEtapa(nivel, escala)}</b> — a trilha combinada tem <b className="text-ink-muted tabular-nums">{totalDaTrilha.toLocaleString('pt-BR')}</b> palavras no total.</>
+                  ? <>{nomeDaEscala(escala)} <b className="text-ink-muted">{rotuloDaEtapa(nivel, escala)}</b> — a trilha combinada tem <b className="text-ink-muted tabular-nums">{numero(totalDaTrilha)}</b> palavras no total.</>
                   : `Sem escolher, a trilha joga com ${porFrequencia ? 'todas as faixas' : 'todos os níveis'} de uma vez.`}
               </p>
               {/* A promessa da tela tem de bater com o que o dado é: faixa de corpus não é CEFR. */}
@@ -392,7 +393,7 @@ export default function SalaDeEscolha({
           <p className="text-[12.5px] text-ink-muted min-w-0">
             {quantasPromete > 0 ? (
               <>
-                <b className="text-ink">{quantasPromete.toLocaleString('pt-BR')}</b>{' '}
+                <b className="text-ink">{numero(quantasPromete)}</b>{' '}
                 {quantasPromete === 1 ? 'palavra pronta' : 'palavras prontas'}
                 {origem === 'gravacoes' && escopo === 'uma' && gravacaoEscolhida && (
                   <span className="text-ink-faint"> · {gravacaoEscolhida.title}</span>

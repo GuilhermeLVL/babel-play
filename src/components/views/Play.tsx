@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState, useRef, useDeferredValue } from 'react';
 import { createPortal } from 'react-dom';
-import { Play as IconePlay, Check, Timer, Mic, ChevronRight, ChevronLeft, Pin, ListChecks, Map as MapIcon, Sprout, Flame, Lock, HelpCircle, Package, Trophy, SlidersHorizontal as SlidersIcon, Trophy as TrophyIcon } from 'lucide-react';
+import { Play as IconePlay, Check, Timer, Mic, ChevronRight, ChevronLeft, Pin, ListChecks, Map as MapIcon, Sprout, Flame, Lock, HelpCircle, Package, Trophy, SlidersHorizontal as SlidersIcon, Trophy as TrophyIcon, Gamepad2 } from 'lucide-react';
+import MinigamesShowcase from '../minigames/MinigamesShowcase';
 import { apiFetch, fetchDeck, reviewCard, salvarRodada, fetchSessions, fetchSessionTranscript, patchUiSettings, fetchSettings, bulkAddCards, fetchHistoricoDeItens, fetchExerciseResults, fetchRecordes, gastarSeeds, type AppMetrics, type HistoricoDeItem } from '../../data/api';
 import { toSentences, type Sentence, type PracticeSeed } from '../../lib/sentences';
 import type { VocabCard, Recording } from '../../types';
@@ -218,6 +219,7 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
   const alternarDetalhes = () => setDetalhes((v) => { try { localStorage.setItem('babel.play.detalhes', v ? '0' : '1'); } catch { /* sem storage */ } return !v; });
   const [curando, setCurando] = useState(false);
   const [importando, setImportando] = useState(false);
+  const [vendoPrototipos, setVendoPrototipos] = useState(false);
   /** Idioma da pessoa — é o destino da tradução das palavras da trilha. */
   const [idiomaNativo, setIdiomaNativo] = useState('pt');
   /**
@@ -1690,6 +1692,20 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
       />
     );
   }
+  if (vendoPrototipos) {
+    return telaCheia(
+      <MinigamesShowcase
+        ageProfile={ageProfile}
+        items={acervoDaFonte.map((c) => ({
+          cardId: c.id,
+          prompt: c.translation || '',
+          answer: c.word,
+          lang: fonte.lang || 'en-US',
+        }))}
+        onBack={() => setVendoPrototipos(false)}
+      />
+    );
+  }
   if (vendoMapa) {
     /* Os itens do mapa saem da MESMA fonte que alimenta a rodada — se saíssem de outro lugar, o
        mapa e o jogo falariam de conjuntos diferentes, que é exatamente o defeito que a barra da
@@ -1811,9 +1827,20 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
       {!embutido && (
         <header className="mb-6 flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
           <div>
-            <h1 className="font-display font-black text-2xl text-ink tracking-tight">
-              {ageProfile === 'kids' ? 'Jogar' : ageProfile === 'senior' ? 'Praticar jogando' : 'Jogar'}
-            </h1>
+            <div className="flex items-center gap-3">
+              <h1 className="font-display font-black text-2xl text-ink tracking-tight">
+                {ageProfile === 'kids' ? 'Jogar' : ageProfile === 'senior' ? 'Praticar jogando' : 'Jogar'}
+              </h1>
+              <button
+                type="button"
+                onClick={() => setVendoPrototipos(true)}
+                className="flex items-center gap-1.5 px-3 py-1 rounded-xl border border-accent/40 bg-accent-soft text-accent-ink font-bold text-xs shadow-sm hover:bg-accent-soft/80 transition-all active:scale-95 cursor-pointer"
+                title="Abrir Laboratório de Novos Minigames (Protótipos Culturais)"
+              >
+                <Gamepad2 className="w-3.5 h-3.5 text-accent" />
+                <span>Novos Jogos (BETA)</span>
+              </button>
+            </div>
             <p className="text-[13px] text-ink-muted mt-1 max-w-[70ch]">
               {ageProfile === 'senior'
                 ? 'Jogos curtos com as palavras que você já salvou. Cada acerto conta para a sua memória.'

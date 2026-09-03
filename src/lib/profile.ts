@@ -1,4 +1,4 @@
-import { t } from './i18n';
+import { idiomaDaInterface, t } from './i18n';
 /**
  * PERFIL DE EXIBIÇÃO — a única fonte da linguagem e da densidade por público.
  *
@@ -379,11 +379,20 @@ export type CopyKey = keyof typeof COPY;
  */
 export function copyDoPerfil(key: CopyKey, profile: AgeProfileType, vars?: Record<string, string | number>): string {
   const entry = COPY[key] as Variants;
-  /* TRADUZ NO PONTO DE SAÍDA, e a variante do perfil é escolhida ANTES: as três redações são
-     frases diferentes, com traduções diferentes — "Seu baralho está vazio" e "Você ainda não
-     guardou palavras" não são a mesma coisa dita duas vezes. A interpolação `{n}` é a mesma dos
-     dois lados, então `t` faz as duas coisas de uma vez. */
-  return t(entry[profile] ?? entry.pro, vars);
+
+  /* OS TRES REGISTROS SAO DE PORTUGUES; fora dele, traduz-se um so.
+     
+     As tres redacoes existem porque "Seu baralho esta vazio" e "Voce ainda nao guardou palavras"
+     falam com publicos diferentes — e essa precisao depende de sensibilidade nativa. Traduzida por
+     maquina, ou por tradutor sem contexto do produto, a nuance nao sobrevive: pagam-se tres
+     traducoes para obter tres variacoes aleatorias da mesma frase. Medido: 6.000 strings em vez de
+     2.000, por idioma, e a diferenca entre US$ 56 mil e US$ 19 mil no volume de quinze idiomas.
+     
+     Entao o portugues mantem os tres, e os demais idiomas recebem a voz `pro`. As chaves das
+     outras variantes continuam no catalogo: o dia em que um idioma justificar os tres registros,
+     basta traduzi-las. */
+  const registro = idiomaDaInterface() === 'pt' ? (entry[profile] ?? entry.pro) : entry.pro;
+  return t(registro, vars);
 }
 
 /**

@@ -146,7 +146,13 @@ export async function usarIdioma(lang: string): Promise<void> {
 
 /* ── O QUE MUDA JUNTO COM O IDIOMA, além das palavras ────────────────────────────────────── */
 
-/** Escritas da direita para a esquerda. Mesma lista de `languages.ts`, para o layout da interface. */
+/**
+ * Escritas da direita para a esquerda — FONTE UNICA.
+ *
+ * Mora aqui, e nao em `languages.ts`, so pela direcao das dependencias: `languages` importa este
+ * modulo, o contrario faria ciclo. `direcaoDoTexto` (para o conteudo do usuario) e `ehRTL` (para o
+ * layout da interface) respondem perguntas diferentes sobre o mesmo fato, e leem a mesma lista.
+ */
 const RTL = new Set(['ar', 'he', 'fa', 'ur', 'yi', 'ps', 'sd', 'dv'])
 
 export const ehRTL = (lang: string): boolean => RTL.has(base(lang))

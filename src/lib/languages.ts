@@ -1,4 +1,4 @@
-import { idiomaDaInterface } from './i18n';
+import { ehRTL, idiomaDaInterface } from './i18n';
 /**
  * Lista única de idiomas usada pelos seletores (captura, configurações). `code` é
  * o BCP-47 (para a captura/Whisper e o TTS); `short` é o ISO-639-1 (para o MT).
@@ -186,10 +186,14 @@ export function langLabelNaUI(code: string): string {
   return langLabel(code);
 }
 
-/** Idiomas escritos da direita para a esquerda. */
-const RTL = new Set(['ar', 'he', 'fa', 'ur', 'yi', 'ps', 'sd', 'dv']);
-
-/** Direcao do texto DESTE idioma — para `dir` em quem exibe conteudo do usuario. */
+/**
+ * Direcao do texto DESTE idioma — para `dir` em quem exibe conteudo do usuario.
+ *
+ * A LISTA VIVE EM `i18n.ts`, e existe uma so. Havia duas — uma aqui, para o conteudo, outra la,
+ * para a interface — e sao perguntas diferentes ("em que direcao se le esta frase do usuario?" e
+ * "em que direcao a tela deve ser montada?") sobre o MESMO fato. Duas copias divergem no dia em
+ * que alguem acrescentar um idioma numa e esquecer a outra.
+ */
 export function direcaoDoTexto(code: string | null | undefined): 'rtl' | 'ltr' {
-  return RTL.has(baseLang(code ?? '')) ? 'rtl' : 'ltr';
+  return ehRTL(code ?? '') ? 'rtl' : 'ltr';
 }

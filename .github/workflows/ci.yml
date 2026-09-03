@@ -21,6 +21,12 @@ jobs:
       - run: npm run lint
       - run: npm test
       - run: npm run build
+      # Chave de catalogo que sumiu do codigo. A chave de traducao E o texto portugues, entao
+      # reescrever uma frase orfana a traducao dela em TODOS os idiomas — e o fallback e legivel,
+      # ou seja, ninguem percebe olhando a tela. So um gate percebe.
+      - name: Chaves de traducao orfas
+        run: npm run i18n:orfas
+
       # Falha em HIGH/CRITICAL, exceto a allowlist NOMEADA das sem fix upstream.
       - name: Auditoria de dependências
         run: npm run audit:gate

@@ -97,3 +97,12 @@ pela dificuldade de escrita e passa a ser decidida por **onde há dado bom**:
 - [~] 8.6 `th` NÃO foi publicado: a fonte não segmenta o tailandês em palavras (o idioma não usa
       espaço, e o corpus foi cortado por espaço), dando 2% de glosa e frases inteiras no lugar de
       palavras. Precisa de outra fonte, não de outro ajuste
+
+## Fase 9 — dados fora do bundle (feita)
+
+- [x] 9.1 `public/trilha/` e `public/glosas/` servidos como estáticos; carregador usa `fetch`
+- [x] 9.2 `dist/assets` 34,0 -> 27,7 MB; entrada intacta em 742 kB
+- [x] 9.3 `indice.json` e `niveis/*.json` seguem embutidos — o índice é síncrono, os níveis são do servidor
+- [x] 9.4 `_headers`: um dia com `must-revalidate`, porque os nomes não têm hash
+- [x] 9.5 Pipeline (`gerar`, `derivar`, `verificar`) reapontado; ciclo completo testado
+- [x] 9.6 `tests/setup-fetch-publico.ts` troca só o transporte, não o código

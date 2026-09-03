@@ -5,7 +5,9 @@ import { readFileSync, existsSync } from 'node:fs'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
-const DIR = join(dirname(fileURLToPath(import.meta.url)), '..', '..', 'src', 'data', 'trilha')
+const RAIZ = join(dirname(fileURLToPath(import.meta.url)), '..', '..')
+const DIR = join(RAIZ, 'public', 'trilha')
+const DIR_DERIVADOS = join(RAIZ, 'src', 'data', 'trilha')
 const NIVEIS = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2']
 const erros = []
 
@@ -52,11 +54,11 @@ function auditarPublicacao(lang, trilha, glosas) {
   return problemas;
 }
 
-const indice = JSON.parse(readFileSync(join(DIR, 'indice.json'), 'utf8'))
+const indice = JSON.parse(readFileSync(join(DIR_DERIVADOS, 'indice.json'), 'utf8'))
 
 for (const [lang, entrada] of Object.entries(indice)) {
   const origem = join(DIR, `${lang}.json`)
-  const derivado = join(DIR, 'niveis', `${lang}.json`)
+  const derivado = join(DIR_DERIVADOS, 'niveis', `${lang}.json`)
   if (!existsSync(origem)) { erros.push(`${lang}: falta ${lang}.json`); continue }
   if (!existsSync(derivado)) { erros.push(`${lang}: falta niveis/${lang}.json`); continue }
 
@@ -105,7 +107,7 @@ for (const [lang, entrada] of Object.entries(indice)) {
   /* O gate roda aqui, e não num script à parte, porque é a mesma pergunta: este dado pode ir para
      a mão de alguém? Sem a glosa do par declarado não há como medir, e aí ele se cala. */
   const par = (entrada.glosas ?? [])[0]
-  const arquivoDeGlosas = par && join(DIR, '..', 'glosas', `${lang}-${par}.json`)
+  const arquivoDeGlosas = par && join(RAIZ, 'public', 'glosas', `${lang}-${par}.json`)
   if (arquivoDeGlosas && existsSync(arquivoDeGlosas)) {
     const { glosas } = JSON.parse(readFileSync(arquivoDeGlosas, 'utf8'))
     for (const problema of auditarPublicacao(lang, dado, glosas)) erros.push(`${lang}: ${problema}`)

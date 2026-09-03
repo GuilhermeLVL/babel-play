@@ -225,3 +225,34 @@ língua apresentada como resposta. Agora o carregador só entrega a tradução e
 
 Antes, o gate de promoção do F26 recusava em silêncio: a pessoa errava palavras e nada era salvo,
 sem explicação. Verificado na tela trocando "Meu idioma" para alemão.
+
+
+## Os dados saíram do bundle (2026-09-03)
+
+Com 16 idiomas, o que era o caminho mais simples virou o mais caro. `import.meta.glob` fazia um
+chunk por idioma — o usuário baixava só o dele —, mas os 6,4 MB de trilhas e glosas passavam pelo
+build e pelo deploy inteiros, sem que ninguém baixasse mais nada por isso.
+
+`public/trilha/<lang>.json` e `public/glosas/<par>.json` agora são servidos como estáticos, e o
+carregador os busca por `fetch`. Medido, antes e depois:
+
+| | antes | depois |
+|---|---:|---:|
+| entrada do app | 742 kB | **742 kB** |
+| `dist/assets` | 34,0 MB | **27,7 MB** |
+| dados servidos sob demanda | — | 6,4 MB em 31 arquivos |
+
+A entrada não muda porque nunca continha esses dados; o que muda é o custo de crescer. Acrescentar
+um idioma deixou de ser uma alteração no bundle.
+
+**O que continua embutido, de propósito:** `indice.json` (4 kB, lido de forma síncrona para
+responder "existe trilha neste idioma?" sem rede) e `niveis/*.json` (864 kB, usados pelo SERVIDOR
+em `vocab.ts`, que não tem de onde buscar por HTTP).
+
+**Cache:** esses nomes não têm hash, então `immutable` serviria dado velho depois de uma regeração.
+`public/_headers` dá a eles um dia com `must-revalidate` — rápido no uso normal, e uma trilha
+corrigida chega no dia seguinte sem ninguém limpar cache.
+
+**Em teste** o transporte é trocado pelo disco (`tests/setup-fetch-publico.ts`) e só ele: o código
+exercitado é o mesmo do navegador, incluindo o `r.ok` e o `catch` que devolve `null` para idioma
+sem trilha.

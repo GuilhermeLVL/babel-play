@@ -1,13 +1,16 @@
 #!/usr/bin/env node
-// Deriva de `src/data/trilha/<lang>.json` os artefatos leves: `niveis/<lang>.json` (palavra→nível,
+// Deriva de `public/trilha/<lang>.json` os artefatos leves: `niveis/<lang>.json` (palavra→nível,
 // níveis unidos por `|`) e `indice.json` (contagens). Saída versionada.
 import { readFileSync, writeFileSync, mkdirSync, readdirSync } from 'node:fs'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const RAIZ = join(dirname(fileURLToPath(import.meta.url)), '..', '..')
-const DIR = join(RAIZ, 'src', 'data', 'trilha')
-const DIR_GLOSAS = join(RAIZ, 'src', 'data', 'glosas')
+/* A trilha e as glosas são SERVIDAS de `public/`; os derivados leves (índice e níveis) seguem
+   embutidos em `src/`, porque o índice é lido de forma síncrona e os níveis, pelo servidor. */
+const DIR = join(RAIZ, 'public', 'trilha')
+const DIR_GLOSAS = join(RAIZ, 'public', 'glosas')
+const DIR_DERIVADOS = join(RAIZ, 'src', 'data', 'trilha')
 const NIVEIS = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2']
 
 function chave(palavra) {
@@ -29,7 +32,7 @@ function paresDe(lang) {
     .sort()
 }
 
-mkdirSync(join(DIR, 'niveis'), { recursive: true })
+mkdirSync(join(DIR_DERIVADOS, 'niveis'), { recursive: true })
 const indice = {}
 
 for (const lang of idiomas) {
@@ -59,7 +62,7 @@ for (const lang of idiomas) {
     if (palavras.length) niveis[nivel] = palavras.join('|')
   }
 
-  writeFileSync(join(DIR, 'niveis', `${lang}.json`), JSON.stringify(niveis) + '\n')
+  writeFileSync(join(DIR_DERIVADOS, 'niveis', `${lang}.json`), JSON.stringify(niveis) + '\n')
   indice[lang] = {
     escala: dado.escala ?? 'cefr',
     versao: Number(dado.versao) === 2 ? 2 : 1,
@@ -74,5 +77,5 @@ for (const lang of idiomas) {
   console.log('  ' + NIVEIS.map((n) => `${n} ${porNivel[n] ?? 0}`).join(' · '))
 }
 
-writeFileSync(join(DIR, 'indice.json'), JSON.stringify(indice, null, 2) + '\n')
+writeFileSync(join(DIR_DERIVADOS, 'indice.json'), JSON.stringify(indice, null, 2) + '\n')
 console.log(`indice.json: ${idiomas.join(', ')}`)

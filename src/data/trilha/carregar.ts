@@ -27,10 +27,34 @@ interface ArquivoDeGlosas {
   frases?: Record<string, string>
 }
 
-const carregadores = import.meta.glob<{ default: unknown }>(['./*.json', '!./indice.json'])
-const carregadoresDeGlosa = import.meta.glob<{ default: ArquivoDeGlosas }>('../glosas/*.json')
+/**
+ * A TRILHA É BAIXADA, NÃO EMBUTIDA — e a diferença é de escala, não de gosto.
+ *
+ * Enquanto eram um ou dois idiomas, `import.meta.glob` era o caminho mais simples: o Vite fazia um
+ * chunk por idioma e o navegador baixava só o do usuário. Com dezesseis, os mesmos arquivos passam
+ * a pesar 6,4 MB dentro do repositório, do build e do deploy — sem que ninguém baixe mais nada,
+ * porque o usuário continua pegando um idioma só. Servidos de `public/`, saem do grafo de módulos:
+ * o build não os processa, o CDN os cacheia com o resto dos estáticos, e acrescentar um idioma
+ * deixa de ser uma mudança no bundle.
+ *
+ * `indice.json` e `niveis/*.json` CONTINUAM embutidos, de propósito: o índice é lido de forma
+ * síncrona (4 kB, responde "existe trilha?" sem rede) e os níveis são usados pelo servidor, que
+ * não tem de onde buscar por HTTP.
+ */
+const RAIZ = '/trilha'
+const RAIZ_DAS_GLOSAS = '/glosas'
 
 const carregadoresDeNiveis = import.meta.glob<{ default: Niveis }>('./niveis/*.json')
+
+async function baixarJson<T>(caminho: string): Promise<T | null> {
+  try {
+    const r = await fetch(caminho)
+    return r.ok ? ((await r.json()) as T) : null
+  } catch {
+    // Offline ou arquivo ausente: quem chama trata `null` como "este idioma não tem trilha".
+    return null
+  }
+}
 
 const cache = new Map<string, Promise<DadoTrilha | null>>()
 const prontos = new Map<string, DadoTrilha>()
@@ -93,20 +117,20 @@ function semGlosaDeOutroPar(dado: DadoTrilha, idioma: string, nativo: string): D
 }
 
 async function carregarGlosas(idioma: string, nativo: string): Promise<ArquivoDeGlosas | null> {
-  const carregador = carregadoresDeGlosa[`../glosas/${idioma}-${base(nativo)}.json`]
-  return carregador ? (await carregador()).default : null
+  return baixarJson<ArquivoDeGlosas>(`${RAIZ_DAS_GLOSAS}/${idioma}-${base(nativo)}.json`)
 }
 
 export function carregarTrilha(lang: string, nativo = 'pt'): Promise<DadoTrilha | null> {
   const idioma = base(lang)
   const chave = `${idioma}-${base(nativo)}`
-  const carregador = carregadores[`./${idioma}.json`]
-  if (!carregador) return Promise.resolve(null)
+  /* O ÍNDICE DECIDE se vale buscar. Sem ele, um idioma sem trilha custaria um 404 por visita —
+     e é justamente o índice que existe para responder isso de graça. */
+  if (!indiceDaTrilha()[idioma]) return Promise.resolve(null)
 
   let p = cache.get(chave)
   if (!p) {
-    p = carregador().then(async (m) => {
-      const cru = m.default
+    p = baixarJson<unknown>(`${RAIZ}/${idioma}.json`).then(async (cru) => {
+      if (!cru) return null
       const dado = ehV2(cru)
         ? juntar(cru, await carregarGlosas(idioma, nativo))
         : semGlosaDeOutroPar(cru as DadoTrilha, idioma, nativo)

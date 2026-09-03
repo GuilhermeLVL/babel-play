@@ -1,6 +1,7 @@
 #!/usr/bin/env -S npx tsx
 /**
- * Gera `src/data/trilha/<lang>.json` no schema v2 (design.md, Decisão 1).
+ * Gera `public/trilha/<lang>.json` no schema v2 (design.md, Decisão 1). O dado é SERVIDO, não
+ * embutido: com dezesseis idiomas, embutir custava 6,4 MB de build sem que ninguém baixasse mais.
  *
  *   npx tsx scripts/trilha/gerar.mjs es
  *   npx tsx scripts/trilha/gerar.mjs es --dry-run --limite=5000 --sem-frases
@@ -137,8 +138,8 @@ async function principal(argv) {
     + ` (${Math.round((frasesTraduzidas / Math.max(1, comFrase)) * 100)}%) — é o que abre os jogos de frase`);
   if (reprovados) console.log(`  ATENÇÃO: ${reprovados} entradas reprovam na régua do app`);
 
-  const destino = path.resolve(process.cwd(), 'src/data/trilha', `${lang}.json`);
-  const destinoGlosas = path.resolve(process.cwd(), 'src/data/glosas', `${lang}-${nativo}.json`);
+  const destino = path.resolve(process.cwd(), 'public/trilha', `${lang}.json`);
+  const destinoGlosas = path.resolve(process.cwd(), 'public/glosas', `${lang}-${nativo}.json`);
   if (seco) { console.log(`--dry-run: nada escrito (seriam ${destino} e ${destinoGlosas})`); return; }
   await mkdir(path.dirname(destino), { recursive: true });
   await writeFile(destino, JSON.stringify(trilha) + '\n');

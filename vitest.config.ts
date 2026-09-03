@@ -23,7 +23,7 @@ export default defineConfig({
      * ter definido a variável antes escreve nos dados de verdade; já aconteceu (uma migração
      * foi aplicada ao banco do desenvolvedor por esse caminho).
      */
-    setupFiles: ['tests/setup-db-isolada.ts'],
+    setupFiles: ['tests/setup-db-isolada.ts', 'tests/setup-fetch-publico.ts'],
   },
   resolve: {
     alias: {

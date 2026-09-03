@@ -8,7 +8,7 @@ import { buildItems } from '../src/core/minigames/itemSource';
 import { pistaUtil } from '../src/core/learning/quality';
 import { COMO_SE_JOGA } from '../src/components/minigames/ComoSeJoga';
 import { MINIGAMES } from '../src/core/minigames/types';
-import trilhaEn from '../src/data/trilha/en.json';
+import trilhaEn from '../public/trilha/en.json';
 import type { VocabCard } from '../src/types';
 
 /**

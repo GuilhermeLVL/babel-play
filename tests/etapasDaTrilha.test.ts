@@ -15,7 +15,7 @@ import {
   TAMANHO_PADRAO, CORTE_DE_FEITA, type DadoTrilhaComEtapas,
 } from '../src/core/learning/etapas'
 import { chaveDaPalavra } from '../src/core/learning/trilha'
-import trilhaEn from '../src/data/trilha/en.json'
+import trilhaEn from '../public/trilha/en.json'
 
 const EN = trilhaEn as unknown as DadoTrilhaComEtapas
 

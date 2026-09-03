@@ -1,6 +1,6 @@
 # Trilha multi-idioma — o que ficou em pé
 
-Medido em 2026-09-02, no worktree `multi-idioma`, servidor na porta 3101.
+Medido entre 2026-09-02 e 2026-09-03, no worktree `multi-idioma`, servidor na porta 3101.
 
 ## O que a tela faz agora
 
@@ -98,35 +98,52 @@ Três correções, nesta ordem de impacto:
 *gravidez*). O desempate acerta na média entre es-pt e erra exatamente onde as duas línguas
 divergiram — mais um motivo para a revisão humana.
 
-## Frases: metade do caminho
+## Frases: os jogos de frase abriram
 
-As trilhas novas trazem exemplo do Tatoeba em ~90% das palavras, e isso está no dado e no índice.
-**Não destrava os jogos de frase ainda**, e a tela diz a verdade ao continuar bloqueando: "Montar a
-frase" exige a TRADUÇÃO da frase (`fraseJogavel`), sem a qual quem joga não sabe qual frase montar.
-A tradução vem do `links.csv` do Tatoeba, que cruza os ids das sentenças — é o próximo passo, bem
-definido e independente.
+As trilhas novas trazem exemplo do Tatoeba em ~90% das palavras **e a tradução dele em português**,
+que é o que `fraseJogavel` exige — sem ela quem monta a frase não sabe qual frase montar.
 
-Tentei soltar essa exigência e reverti: sem a tradução o jogo perde a referência, e a mudança
-trocaria um bloqueio honesto por um exercício ambíguo.
+| Par | Frases com tradução |
+|---|---:|
+| es-pt | 3.696 de 5.163 (72%) |
+| fr-pt | 2.721 de 5.340 (51%) |
+| de-pt | 2.373 de 5.370 (44%) |
+
+Duas decisões fizeram esse número:
+
+1. **O id da frase viaja pelo pipeline.** O Tatoeba liga frases por id, não por texto; `lerFrases`
+   passou a devolver `{ id, frase }` e o índice a carregá-lo. Sem o id não há como achar o par.
+2. **Ter tradução virou o critério mais pesado da escolha da frase.** Antes o pipeline escolhia a
+   melhor frase pelo vocabulário e só então descobria se havia tradução: 20%. Uma frase traduzida
+   com duas palavras difíceis vale mais que a frase perfeita que ninguém pode jogar — 72%.
+
+O par vem do export `<iso3>-por_links.tsv` do Tatoeba (77 mil linhas para es-pt), não do `links.csv`
+global de dezenas de milhões: mesma informação, três ordens de grandeza mais barata.
+
+Verificado na tela, em espanhol: "Montar a frase — 99 disponíveis", com a pista *"Este ano,
+esperamos uma boa colheita"* e as palavras `año cosecha buena Este una esperamos` para ordenar.
 
 ## Limites declarados
 
-- **41% de cobertura de tradução** no espanhol (59% na faixa 1). Vem de Wikidata Lexemes (CC0) e
-  do Wikcionário via Wiktextract (CC BY-SA), somando a via direta e a inversa. Os 59% da faixa 1
-  são o que sustenta os jogos de par no começo da trilha.
+- **37% de cobertura de glosa** no espanhol, 58% no francês, 49% no alemão. Vem de Wikidata
+  Lexemes (CC0) e do Wikcionário via Wiktextract (CC BY-SA), somando a via direta e a inversa. O
+  número caiu de 41% para 37% de propósito, ao trocar cobertura por precisão (acima).
 - **Nomes próprios** na lista de frequência (`harry`, `curtis`, `Tokio`) — vêm de legendas, e não
   há sinal barato que os separe de `Jesús` sem lista curada.
-- **Glosa de classe errada** (`ver=visão`, `isla=quarteirão`): a via inversa casa palavra com
-  palavra sem classe gramatical. Material para a revisão por nativo (tarefa 5.3).
+- **Glosa de classe ou acepção errada** (`qué=qual`, `interrogar=perguntar`, `período=era`): a via
+  inversa casa palavra com palavra sem classe gramatical, e nesses casos o dicionário só ofereceu a
+  lateral. Material para a revisão por nativo (tarefa 5.3).
+- **Os jogos de escuta seguem fechados nos idiomas novos** — não por falta de dado, mas porque este
+  navegador não tem voz em espanhol, francês nem alemão. A tabela de cobertura diz isso por idioma.
 - **`en.json` continua em v1.** O carregador aceita as duas versões; migrar o inglês agora seria
   risco sem ganho.
 
 ## Verificação
 
 - `npx tsc --noEmit` limpo.
-- `vitest`: **2.707 passando, 0 falhando**.
+- `vitest`: **2.715 passando, 0 falhando**.
 - `playwright` (BASE_URL=3101): **8 passando, 0 falhando**.
-- `node scripts/trilha/verificar.mjs`: índice e derivados batem com a origem, nos dois idiomas.
+- `node scripts/trilha/verificar.mjs`: índice e derivados batem com a origem, nos quatro idiomas.
 - ESLint nos arquivos tocados: zero. (Os 44 avisos do repositório são anteriores e em telas que
   este trabalho não encostou.)
 

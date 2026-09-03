@@ -88,14 +88,20 @@ export function lerFrequencia(texto) {
   return fora;
 }
 
-/** Dump do Tatoeba (`id \t lang \t texto`) → array de frases. */
+/**
+ * Dump do Tatoeba (`id \t lang \t texto`) -> `{ id, frase }`.
+ *
+ * O ID VIAJA JUNTO porque e ele que casa a traducao: o Tatoeba liga frases por id, nao por texto,
+ * e sem ele a frase de exemplo chega a trilha sem par em portugues -- que e o que mantinha os
+ * jogos de frase bloqueados nos idiomas novos.
+ */
 export function lerFrases(texto) {
   const fora = [];
   for (const linha of texto.split('\n')) {
     const col = linha.split('\t');
     if (col.length < 3) continue;
     const frase = col[2].trim();
-    if (frase) fora.push(frase);
+    if (frase) fora.push({ id: col[0].trim(), frase });
   }
   return fora;
 }
@@ -121,6 +127,42 @@ export async function frasesDe(lang, opcoes) {
     throw new Error(`baixei ${FONTE_FRASES.arquivo(iso3)}; descomprima para ${tsv} (bunzip2) e rode de novo`);
   }
   return lerFrases(await readFile(tsv, 'utf8'));
+}
+
+/**
+ * Tradução das frases, pelo id do Tatoeba.
+ *
+ * O par vem do export `<iso3>-<iso3nativo>_links.tsv` (só `id \t id`), muito menor que o `links.csv`
+ * global — 77 mil linhas para es-pt contra dezenas de milhões. O texto do lado nativo vem do dump
+ * daquele idioma. Sem os dois arquivos em cache devolve mapa vazio, e a trilha sai com a frase e
+ * sem tradução: os jogos de frase seguem bloqueados, dizendo isso.
+ */
+export async function traducoesDasFrases(lang, nativo) {
+  const iso3 = ISO3[lang];
+  const iso3Nativo = ISO3[nativo];
+  if (!iso3 || !iso3Nativo) return new Map();
+
+  const links = path.join(DIR_CACHE, `links-${iso3}-${iso3Nativo}.tsv`);
+  const frasesNativo = path.join(DIR_CACHE, `tatoeba-${iso3Nativo}.tsv`);
+  try {
+    await stat(links);
+    await stat(frasesNativo);
+  } catch {
+    return new Map();
+  }
+
+  const porId = new Map();
+  for (const { id, frase } of lerFrases(await readFile(frasesNativo, 'utf8'))) porId.set(id, frase);
+
+  const fora = new Map();
+  for (const linha of (await readFile(links, 'utf8')).split('\n')) {
+    const [origem, destino] = linha.split('\t');
+    if (!origem || !destino) continue;
+    const traducao = porId.get(destino.trim());
+    // Primeira tradução vence: o Tatoeba lista várias e a ordem dele é estável entre gerações.
+    if (traducao && !fora.has(origem.trim())) fora.set(origem.trim(), traducao);
+  }
+  return fora;
 }
 
 /** Auxiliar para fonte já em `.gz` (Wiktextract, por exemplo). */

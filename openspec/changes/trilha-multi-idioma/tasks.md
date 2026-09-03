@@ -64,3 +64,11 @@ pela dificuldade de escrita e passa a ser decidida por **onde há dado bom**:
 4. **ar, he** — por último, e só depois de o RTL do G1 ser exercitado em uso real.
 
 `hi` e `th` só entram depois de a detecção nova do G1 rodar sobre baralho real.
+
+## Fase 6 — frases jogáveis (feita)
+
+- [x] 6.1 `lerFrases` devolve `{ id, frase }`; o índice carrega o id
+- [x] 6.2 `traducoesDasFrases` lê o export por par do Tatoeba (`<iso3>-por_links.tsv`)
+- [x] 6.3 Ter tradução vira o critério mais pesado da escolha da frase (20% -> 72% em es-pt)
+- [x] 6.4 `glosas/<par>.json` passa a trazer `frases`, e o join do carregador já as consumia
+- [x] 6.5 `tests/trilha-frases-jogaveis.test.ts` trava o caminho até `buildScrambleRounds`

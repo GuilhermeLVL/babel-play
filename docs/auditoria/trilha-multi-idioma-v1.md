@@ -151,3 +151,77 @@ Dois testes e2e eram frágeis por motivo alheio ao que provam, e foram ancorados
 idioma vigente tinha trilha (o app é de usuário único, e o idioma é preferência de perfil gravada
 no servidor — a sessão anterior decidia onde ele começava); o outro comparava um regex contra a
 tela inteira, e casava o nome do baralho na lista da gaveta aberta.
+
+## Peso: medido, não estimado
+
+Build de produção com os quatro idiomas (`npm run build`, 2026-09-03).
+
+**O que baixa ao abrir o site: 739 kB bruto** — `index` 376 + `vendor-react` 190 + CSS 173. **Nenhum
+dado de idioma entra aí**, com uma exceção medida: `niveis/en.json` (24 kB), importado
+estaticamente por `cefrWordlist` porque é o caminho quente. Verificado procurando as marcas de cada
+arquivo dentro do chunk de entrada: trilha `en`, trilha `es`, `niveis/es` e glosas `es-pt` estão
+todas fora.
+
+**Cada idioma é um chunk separado, sob demanda:**
+
+| Chunk | bruto | gzip |
+|---|---:|---:|
+| trilha es | 271 kB | 103 kB |
+| glosas es-pt | 329 kB | 130 kB |
+| níveis es | 44 kB | 21 kB |
+
+Um usuário baixa **só o do idioma dele, uma vez**: ~239 kB gzip. Medido na tela: a trilha do
+francês carregou em **122 ms**, e nenhum outro idioma foi buscado.
+
+**Banco de dados: zero impacto.** A trilha é arquivo estático servido ao navegador; nada dela é
+gravado. Só entram no banco os cartões que a pessoa **erra** e que são promovidos — e desde o F26
+isso só acontece quando existe glosa do par dela.
+
+**Os 29 MB do `dist/` não são da trilha**: 22,5 MB são o WASM do ONNX Runtime (Whisper e tradução
+local) mais 1,5 MB dos workers. Os quatro idiomas somam 2,1 MB — 7% do total.
+
+### O que escala mal, e onde está o limite
+
+O custo por idioma é ~628 kB bruto. O problema não é o número de idiomas praticados; é que a glosa
+é de um PAR:
+
+| | repositório e deploy |
+|---|---:|
+| 28 idiomas × 1 nativo (pt) | ~17 MB |
+| 28 idiomas × 3 nativos | ~40 MB |
+| 28 idiomas × 5 nativos | ~57 MB |
+
+O que o usuário baixa não muda (239 kB, só o par dele), e o banco continua fora disso. O que cresce
+é o repositório, o tempo de build e o deploy. **Antes de passar de ~8 idiomas, os dados devem sair
+do bundle para `public/`, servidos por `fetch` e cacheados pelo CDN** — o carregador já isola isso
+num lugar só (`carregarTrilha`), então a troca é local.
+
+## Quem não fala português
+
+Levantamento de 2026-09-03. **A interface é 100% pt-BR e não há infraestrutura de i18n** — nenhum
+`t()`, nenhum arquivo de tradução; as strings são literais no JSX, e até os nomes dos idiomas no
+seletor são forçados para português (`Intl.DisplayNames(['pt-BR'])`), de modo que um alemão lê
+"Alemão", não "Deutsch".
+
+O que **já** é multi-idioma: a captura e a tradução de cartões (o destino é derivado de
+`mine`/`studying`, não fixo), a régua de qualidade e o gate dos jogos (indexados pelo idioma
+estudado, e declaram quando não há lista para ele).
+
+O que **não** é:
+
+- O onboarding pergunta o que a pessoa estuda, **não qual é o idioma dela** — fica `pt-BR` por
+  default, e o ajuste "Meu idioma" está numa tela em português.
+- As glosas só existem para nativo `pt`. Um alemão estudando espanhol tem a trilha, e ela é muda.
+- As stopwords de `keywords.ts` misturam inglês e português numa lista só (defeito anterior,
+  já criticado no próprio código).
+
+**Um defeito silencioso foi corrigido agora**: a trilha v1 do inglês traz a glosa portuguesa
+embutida, e ela era servida a qualquer nativo. Um alemão via `about → cerca de` — uma terceira
+língua apresentada como resposta. Agora o carregador só entrega a tradução embutida quando o
+índice diz que o par vale (`semGlosaDeOutroPar`), e o painel **diz o que está acontecendo**:
+
+> Esta trilha ainda não tem tradução para alemão — só para português. Você pode praticar a escrita
+> das palavras, mas os jogos de par ficam de fora e nada entra na sua revisão.
+
+Antes, o gate de promoção do F26 recusava em silêncio: a pessoa errava palavras e nada era salvo,
+sem explicação. Verificado na tela trocando "Meu idioma" para alemão.

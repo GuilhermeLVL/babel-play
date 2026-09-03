@@ -5,6 +5,7 @@ import { registrarNiveis } from '../../core/learning/cefrWordlist'
 import { baseDoIdioma } from './indice'
 
 export { indiceDaTrilha } from './indice'
+import { indiceDaTrilha } from './indice'
 export type { EntradaDoIndice, Indice } from './indice'
 
 /** `niveis/<lang>.json`: nível → palavras normalizadas, unidas por `|`. */
@@ -73,6 +74,24 @@ function juntar(v2: TrilhaV2, glosas: ArquivoDeGlosas | null): DadoTrilha {
   }
 }
 
+/**
+ * A trilha v1 traz a tradução EMBUTIDA, e ela é de um par só (o inglês tem glosa portuguesa). Para
+ * quem estuda com outro idioma nativo isso não é uma pista — é a palavra em uma terceira língua
+ * que ela não fala, servida como se fosse a resposta. O índice diz para quais nativos a tradução
+ * vale; fora deles ela sai, e a trilha joga monolíngue como qualquer outra sem par.
+ */
+function semGlosaDeOutroPar(dado: DadoTrilha, idioma: string, nativo: string): DadoTrilha {
+  const pares = (indiceDaTrilha()[idioma]?.glosas ?? []) as string[]
+  if (pares.includes(base(nativo))) return dado
+
+  const niveis: DadoTrilha['niveis'] = {}
+  for (const [nivel, entradas] of Object.entries(dado.niveis)) {
+    niveis[nivel as CefrLevel] = (entradas ?? []).map(([palavra, , frase, fraseTraduzida]) =>
+      [palavra, '', frase, fraseTraduzida] as [string, string, string?, string?])
+  }
+  return { ...dado, niveis }
+}
+
 async function carregarGlosas(idioma: string, nativo: string): Promise<ArquivoDeGlosas | null> {
   const carregador = carregadoresDeGlosa[`../glosas/${idioma}-${base(nativo)}.json`]
   return carregador ? (await carregador()).default : null
@@ -88,7 +107,9 @@ export function carregarTrilha(lang: string, nativo = 'pt'): Promise<DadoTrilha 
   if (!p) {
     p = carregador().then(async (m) => {
       const cru = m.default
-      const dado = ehV2(cru) ? juntar(cru, await carregarGlosas(idioma, nativo)) : (cru as DadoTrilha)
+      const dado = ehV2(cru)
+        ? juntar(cru, await carregarGlosas(idioma, nativo))
+        : semGlosaDeOutroPar(cru as DadoTrilha, idioma, nativo)
       prontos.set(chave, dado)
       return dado
     })

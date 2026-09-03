@@ -3011,6 +3011,8 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
           ageProfile={ageProfile}
           nivel={fonte.nivel}
           onEscolherNivel={(n: CefrLevel) => setFonte(f => ({ ...f, nivel: n }))}
+          nativo={idiomaNativo}
+          paresDeGlosa={entradaDaTrilha?.glosas ?? []}
         />
       )}
 

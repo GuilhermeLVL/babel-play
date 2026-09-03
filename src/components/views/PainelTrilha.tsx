@@ -8,6 +8,7 @@ import {
 import { rotuloDaEtapa } from '../../core/learning/trilha';
 import type { VocabCard } from '../../types';
 import type { AgeProfileType } from '../../lib/profile';
+import { langLabelPt } from '../../lib/languages';
 
 /**
  * A TRILHA — trazer vocabulário curado para o baralho, por nível.
@@ -33,10 +34,14 @@ interface PainelTrilhaProps {
   ageProfile: AgeProfileType;
   nivel: CefrLevel | undefined;
   onEscolherNivel: (n: CefrLevel) => void;
+  /** Idioma nativo de quem joga — decide se existe tradução para esta trilha. */
+  nativo: string;
+  /** Idiomas nativos para os quais esta trilha tem tradução (vem do índice). */
+  paresDeGlosa: string[];
 }
 
 export default function PainelTrilha({
-  dado, deck, ageProfile, nivel, onEscolherNivel,
+  dado, deck, ageProfile, nivel, onEscolherNivel, nativo, paresDeGlosa,
 }: PainelTrilhaProps) {
 
   /**
@@ -66,6 +71,8 @@ export default function PainelTrilha({
 
   /* A cobertura de tradução é medida no dado, não prometida: numa trilha por frequência ela é
      parcial, e o rodapé precisa dizer o número real. */
+  const temTraducao = paresDeGlosa.includes((nativo || '').toLowerCase().split('-')[0]);
+
   const pctComTraducao = useMemo(() => {
     const pares = Object.values(dado.niveis).flat();
     const com = pares.filter(p => !!p?.[1]).length;
@@ -178,6 +185,18 @@ export default function PainelTrilha({
           nada depende de rede, e a trilha funciona no perfil Privado/Local. O que continua honesto
           dizer é que a cobertura NÃO é total, as palavras sem tradução conferida ficaram de fora
           em vez de entrarem adivinhadas, e por isso os níveis altos têm menos. */}
+      {/* O SILÊNCIO ERA O DEFEITO. Sem tradução para o idioma da pessoa, a trilha joga só a
+          grafia, os jogos de par não abrem e nada é promovido ao caderno — e antes a tela não
+          dizia nenhuma dessas três coisas: parecia quebrada. */}
+      {!temTraducao && (
+        <p className="text-[12px] text-ink bg-warn-soft border border-warn/30 rounded-xl px-3 py-2">
+          Esta trilha ainda não tem tradução para <b>{langLabelPt(nativo)}</b>
+          {paresDeGlosa.length > 0 && <> — só para {paresDeGlosa.map(langLabelPt).join(', ')}</>}.
+          Você pode praticar a escrita das palavras, mas os jogos de par ficam de fora e nada entra
+          na sua revisão.
+        </p>
+      )}
+
       <p className="text-[11px] text-ink-faint leading-relaxed">
         {porFrequencia
           ? <>As faixas vêm da frequência das palavras num corpus público, não de níveis do CEFR:

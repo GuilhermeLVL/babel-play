@@ -21,6 +21,11 @@ jobs:
       - run: npm run lint
       - run: npm test
       - run: npm run build
+      # O catalogo pseudo tem que estar em dia, senao o teste de layout roda sobre um mapa velho
+      # e deixa de ver as strings novas — falha silenciosa, do tipo que este repo ja documenta.
+      - name: Catalogo pseudo em dia
+        run: node scripts/i18n/pseudo.mjs --check
+
       # Chave de catalogo que sumiu do codigo. A chave de traducao E o texto portugues, entao
       # reescrever uma frase orfana a traducao dela em TODOS os idiomas — e o fallback e legivel,
       # ou seja, ninguem percebe olhando a tela. So um gate percebe.

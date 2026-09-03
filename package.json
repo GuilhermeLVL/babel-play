@@ -39,6 +39,7 @@
     "test:e2e:ui": "playwright test --ui",
     "lint": "eslint src server server.ts tests",
     "audit:gate": "node scripts/audit-gate.mjs",
+    "i18n:pseudo": "node scripts/i18n/pseudo.mjs",
     "i18n:orfas": "node scripts/i18n/orfas.mjs",
     "trilha:derivar": "node scripts/trilha/derivar.mjs",
     "trilha:verificar": "node scripts/trilha/verificar.mjs",

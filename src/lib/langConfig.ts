@@ -40,6 +40,11 @@ export interface LangConfig {
  */
 export const DEFAULT_LANG_CONFIG: LangConfig = { mine: 'pt-BR', studying: 'en-US' };
 
+/** `?ui=<idioma>` da URL de entrada — ver `useIdiomaDaInterfaceSeguindoOPerfil`. */
+const OVERRIDE_DA_URL = typeof window !== 'undefined'
+  ? new URLSearchParams(window.location.search).get('ui')
+  : null;
+
 /** Evento de mudança — as telas abertas se atualizam sozinhas (mesmo padrão do `tts.ts`). */
 const CHANGED = 'babel_lang_config_changed';
 
@@ -134,7 +139,23 @@ export function useLangConfig(): LangConfig {
  */
 export function useIdiomaDaInterfaceSeguindoOPerfil(): string {
   const cfg = useLangConfig();
-  React.useEffect(() => { void usarIdioma(cfg.mine); }, [cfg.mine]);
+
+  /* `?ui=<idioma>` VENCE o perfil. Existe por duas razoes praticas:
+     
+     · o pseudo-idioma (`xx`) nao esta na lista de idiomas oferecidos — e nao deve estar, e uma
+       ferramenta de teste, nao uma opcao de produto. Sem este override, o teste de layout nao teria
+       como entrar nele;
+     · ver a tela num idioma sem trocar a preferencia da conta e o que permite conferir uma
+       traducao em segundos, em vez de mexer em Ajustes e lembrar de desfazer.
+     
+     LIDO UMA VEZ, na carga. A tela de jogos reescreve a query string para guardar fonte e idioma
+     (`?fonte=trilha&idioma=en`) e nesse caminho o `ui` some — medido: o override valia so ate a
+     primeira navegacao interna, e a tela voltava ao portugues no meio do teste. Capturar na
+     entrada torna o override estavel por toda a sessao, que e como uma ferramenta de depuracao
+     deve se comportar. */
+  const escolhido = OVERRIDE_DA_URL || cfg.mine;
+
+  React.useEffect(() => { void usarIdioma(escolhido); }, [escolhido]);
 
   /* O DOCUMENTO INTEIRO acompanha o idioma: `lang` para leitores de tela e para a quebra de linha
      do navegador, `dir` para árabe e hebraico, que se leem da direita para a esquerda. Sem `dir` a

@@ -3352,6 +3352,13 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
                           : 'a trilha tem palavras soltas, este jogo precisa de frase; escolha uma gravação';
                       }
                       if (motivo === 'sem-voz') return `este navegador não tem voz em ${langLabelPt(fonte.lang)}`;
+                      /* A trilha japonesa TEM 5.181 frases: a mensagem de acervo vazio mandaria a
+                         pessoa procurar uma gravação para resolver o que não é falta de material. */
+                      if (motivo === 'escrita-sem-separacao') {
+                        return ageProfile === 'kids'
+                          ? `em ${langLabelPt(fonte.lang)} as palavras ficam juntinhas, sem espaço`
+                          : `este jogo separa as palavras da frase, e ${langLabelPt(fonte.lang)} não marca onde cada uma começa`;
+                      }
                       // Estado transitório e honesto: a gravação TEM som, ele está a caminho.
                       if (motivo === 'audio-carregando') return 'baixando o áudio da gravação…';
                       if (j.estado.fonte === 'falas' && j.estado.disponiveis === 0) return 'precisa de uma gravação com legenda';

@@ -85,7 +85,10 @@ async function principal(argv) {
   const traducaoDaFrase = {};
   let frasesTraduzidas = 0;
   if (!semFrases) {
-    const indice = indexar(await frasesDe(lang));
+    /* `alvos` = todas as palavras da trilha. Em japonês/chinês/tailandês é o que permite achar a
+       palavra dentro da frase sem tokenizador — ver `tokensSemEspaco`. */
+    const alvos = new Set(NIVEIS.flatMap((n) => [...vocabularioDe(porNivel[n])]));
+    const indice = indexar(await frasesDe(lang), { alvos });
     const traducoes = await traducoesDasFrases(lang, nativo);
     const idsTraduzidos = traducoes.size ? new Set(traducoes.keys()) : undefined;
     const acumulado = new Set();

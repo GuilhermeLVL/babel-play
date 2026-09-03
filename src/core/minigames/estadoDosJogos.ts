@@ -25,6 +25,9 @@ import type { FalaComAudio } from './escuta';
  * desenha a carta junta isso com a apresentação.
  */
 
+/** Japonês, chinês e tailandês não marcam onde cada palavra começa. Coreano usa espaço. */
+const ESCRITA_SEM_ESPACO = /[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Thai}]/u;
+
 /** Por que o jogo está bloqueado, quando o número de itens não conta a história toda. */
 export type MotivoBloqueio =
   /** Conector e ordem de palavras só existem dentro de uma frase — e a trilha não tem frases. */
@@ -51,7 +54,17 @@ export type MotivoBloqueio =
    * O gate declarativo por jogo (que faixas de idioma cada um aceita) vem noutra onda; aqui é só o
    * caso extremo: pool suficiente por CONTAGEM, zero digitável/na-grade de fato.
    */
-  | 'alfabeto-nao-suportado';
+  | 'alfabeto-nao-suportado'
+  /**
+   * A ESCRITA NÃO SEPARA PALAVRAS — japonês, chinês, tailandês.
+   *
+   * "Montar a frase" pede para ordenar as palavras de uma frase, e para isso é preciso saber onde
+   * cada uma começa. Nessas escritas não há espaço, e sem um tokenizador não há como cortar.
+   * Precisa de nome próprio porque o estado é indistinguível de "sem frase" por contagem — e era
+   * assim que a tela dizia "precisa de uma gravação com legenda" para a trilha japonesa, que tem
+   * 5.181 frases. Nada a consertar: é uma limitação do jogo naquela escrita, dita como tal.
+   */
+  | 'escrita-sem-separacao';
 
 /**
  * RÓTULO HUMANO de cada motivo — título curto + o que resolve.
@@ -77,6 +90,10 @@ export const ROTULO_DO_MOTIVO: Record<MotivoBloqueio, { titulo: string; conserto
   'alfabeto-nao-suportado': {
     titulo: 'alfabeto não suportado',
     conserto: 'o acervo tem material de sobra, mas em um alfabeto que este jogo não escreve',
+  },
+  'escrita-sem-separacao': {
+    titulo: 'escrita sem separação de palavras',
+    conserto: 'a trilha tem frases, mas esta escrita não marca onde cada palavra começa',
   },
 };
 
@@ -298,6 +315,13 @@ export function estadoDoJogo(id: MinigameId, e: EntradaDoEstado, pools?: PoolPor
           : id === 'ditado' ? (e.temAudio ? buildRodadasDitado(e.frases, { quantidade: TETO_DE_FALAS }).length : 0)
             : id === 'conectores' ? (temConectores(e.lang) ? buildRodadasConectores(e.frases, { lang: e.lang, quantidade: TETO_DE_FALAS }).length : 0)
               : (e.temAudio ? e.frases.filter(f => f.endMs > f.startMs && f.text.trim()).length : 0);
+
+    /* Frases existem e nenhuma rodada sai: em escrita sem espaço o motivo é a escrita, não a
+       falta de material — e dizer "precisa de gravação" mandaria a pessoa procurar o que ela já
+       tem. */
+    if (id === 'scramble' && n === 0 && falas.length > 0 && ESCRITA_SEM_ESPACO.test(falas[0].text ?? '')) {
+      return { id, ok: false, disponiveis: 0, faltam: def.minItems, fonte: 'falas', motivo: 'escrita-sem-separacao', tamanhoDaRodada: 0 };
+    }
 
     return { id, ok: n >= def.minItems, disponiveis: n, faltam: Math.max(0, def.minItems - n), fonte: 'falas', tamanhoDaRodada: tamanhoDaRodadaDe(id, n) };
   }

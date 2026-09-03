@@ -72,3 +72,14 @@ pela dificuldade de escrita e passa a ser decidida por **onde há dado bom**:
 - [x] 6.3 Ter tradução vira o critério mais pesado da escolha da frase (20% -> 72% em es-pt)
 - [x] 6.4 `glosas/<par>.json` passa a trazer `frases`, e o join do carregador já as consumia
 - [x] 6.5 `tests/trilha-frases-jogaveis.test.ts` trava o caminho até `buildScrambleRounds`
+
+## Fase 7 — japonês e russo (feita)
+
+- [x] 7.1 `ru`: 5.786 palavras, 95% com frase, 33% glosas, 41% frases traduzidas
+- [x] 7.2 `ja`: 5.947 palavras, 87% com frase, 26% glosas, 18% frases traduzidas
+- [x] 7.3 `contarPalavras` mede por caractere em escrita sem espaço (ja/zh/th) — a régua reprovava
+      o japonês inteiro, na trilha E na captura: 5 frases de 5.947 passavam, agora 5.181
+- [x] 7.4 `tokensSemEspaco` acha a palavra na frase por n-grama contra a lista da trilha, sem
+      embutir tokenizador
+- [x] 7.5 Motivo `escrita-sem-separacao`: "Montar a frase" dizia "precisa de gravação com legenda"
+      para uma trilha com 5.181 frases

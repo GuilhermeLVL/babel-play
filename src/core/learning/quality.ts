@@ -228,6 +228,28 @@ function minimoDeCaracteres(palavra: string): number {
   return ESCRITA_DE_UM_CARACTERE.test(palavra) ? 1 : 2;
 }
 
+/**
+ * Escritas que NÃO separam palavras por espaço. Hangul fica fora de propósito: o coreano moderno
+ * usa espaços entre palavras, ao contrário do japonês, do chinês e do tailandês.
+ */
+const ESCRITA_SEM_ESPACO = /[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Thai}]/u;
+
+/**
+ * Quantas PALAVRAS uma frase tem — a pergunta que a régua faz, respondida em qualquer escrita.
+ *
+ * `split(/\s+/)` responde 1 para qualquer frase japonesa, e com isso a régua reprovava o idioma
+ * inteiro: no dump do Tatoeba, 5 frases de 5.947 passavam. Onde não há espaço, a conta é por
+ * caractere: medido na lista de frequência japonesa, 73% das palavras têm 2 caracteres, então
+ * `chars / 2` é a equivalência honesta — uma aproximação declarada, não um tokenizador.
+ */
+export function contarPalavras(texto: string): number {
+  const t = (texto ?? '').trim();
+  if (!t) return 0;
+  if (!ESCRITA_SEM_ESPACO.test(t)) return t.split(/\s+/).filter(Boolean).length;
+  const chars = [...t.replace(/[\s\p{P}]/gu, '')].length;
+  return Math.max(1, Math.round(chars / 2));
+}
+
 export function avaliarCartao(card: VocabCard, opts: OpcoesAvaliacao = {}): Veredito {
   /* O CARTÃO SABE DE ONDE VEIO, e quem tria uma lista mista não teria como dizer a origem item a
      item. `opts.origem` continua vencendo (é uma decisão explícita de quem chama); na ausência
@@ -275,9 +297,9 @@ export function avaliarFrase(
   const max = opts.maxPalavras ?? 24;
   if (!t) return REPROVADO('sem-pista');
 
-  const palavras = t.split(/\s+/).filter(Boolean);
-  if (palavras.length < min) return REPROVADO('palavra-curta');
-  if (palavras.length > max) return REPROVADO('pista-ruim');
+  const quantas = contarPalavras(t);
+  if (quantas < min) return REPROVADO('palavra-curta');
+  if (quantas > max) return REPROVADO('pista-ruim');
   // Fala cortada pelo reconhecedor: começa em minúscula E termina sem pontuação final.
   const comecaNoMeio = /^\p{Ll}/u.test(t);
   const terminaNoMeio = !/[.!?…]$/.test(t);
@@ -286,7 +308,7 @@ export function avaliarFrase(
 
   let p = 0.6;
   if (opts.traducao && opts.traducao.trim()) p += 0.25;
-  if (palavras.length >= 5 && palavras.length <= 14) p += 0.15;
+  if (quantas >= 5 && quantas <= 14) p += 0.15;
   return APROVADO(Math.min(1, p));
 }
 

@@ -66,5 +66,39 @@
     "glosas": [
       "pt"
     ]
+  },
+  "ja": {
+    "escala": "frequencia",
+    "versao": 2,
+    "total": 5947,
+    "comFrase": 5181,
+    "porNivel": {
+      "A1": 992,
+      "A2": 992,
+      "B1": 992,
+      "B2": 992,
+      "C1": 992,
+      "C2": 987
+    },
+    "glosas": [
+      "pt"
+    ]
+  },
+  "ru": {
+    "escala": "frequencia",
+    "versao": 2,
+    "total": 5786,
+    "comFrase": 5521,
+    "porNivel": {
+      "A1": 965,
+      "A2": 965,
+      "B1": 965,
+      "B2": 965,
+      "C1": 965,
+      "C2": 961
+    },
+    "glosas": [
+      "pt"
+    ]
   }
 }

@@ -1,0 +1,479 @@
+{
+  "geradoEm": "2026-08-30T23:25:38.443Z",
+  "juiz": "qwen2.5:14b-instruct",
+  "entrada": "docs/auditoria/eval/resultados-traducao-llm.json",
+  "resultados": [
+    {
+      "modelo": "z-ai/glm-5.3-flash",
+      "julgados": 16,
+      "semJulgamento": 0,
+      "juizGeral": 4.770833333333334,
+      "adequacao": 4.75,
+      "naturalidade": 4.6875,
+      "registro": 4.875,
+      "chrfMedio": 86.72678523294172,
+      "casos": [
+        {
+          "id": "pron-01",
+          "categoria": "pronome",
+          "origem": "I bought a new table. I put it in the kitchen.",
+          "referencia": "Comprei uma mesa nova. Coloquei ela na cozinha.",
+          "hipotese": "Comprei uma mesa nova. Coloquei na cozinha.",
+          "juiz": {
+            "adequacao": 5,
+            "naturalidade": 5,
+            "registro": 5,
+            "porque": "Preserva sentido, natural em português, registro adequado."
+          },
+          "chrf": 0.8527586440146729
+        },
+        {
+          "id": "pron-02",
+          "categoria": "pronome",
+          "origem": "The book was on the shelf. I read it yesterday.",
+          "referencia": "O livro estava na estante. Eu o li ontem.",
+          "hipotese": "O livro estava na prateleira. Eu li ontem.",
+          "juiz": {
+            "adequacao": 2,
+            "naturalidade": 1,
+            "registro": 3,
+            "porque": "Informação omitida, estrutura gramatical errada."
+          },
+          "chrf": 0.6152473077353472
+        },
+        {
+          "id": "pron-03",
+          "categoria": "pronome",
+          "origem": "She left the door open. Please close it.",
+          "referencia": "Ela deixou a porta aberta. Por favor, feche-a.",
+          "hipotese": "Ela deixou a porta aberta. Por favor, fecha.",
+          "juiz": {
+            "adequacao": 5,
+            "naturalidade": 5,
+            "registro": 5,
+            "porque": "mantém sentido e é natural em conversa informal."
+          },
+          "chrf": 0.9014411684933644
+        },
+        {
+          "id": "gen-01",
+          "categoria": "genero",
+          "origem": "My doctor said I am fine. She was very kind.",
+          "referencia": "Minha médica disse que estou bem. Ela foi muito gentil.",
+          "hipotese": "A médica disse que estou bem. Ela foi muito gentil.",
+          "juiz": {
+            "adequacao": 5,
+            "naturalidade": 5,
+            "registro": 5,
+            "porque": "mantém sentido e naturalidade."
+          },
+          "chrf": 0.899964002560971
+        },
+        {
+          "id": "gen-02",
+          "categoria": "genero",
+          "origem": "The teacher arrived late. He apologized.",
+          "referencia": "O professor chegou atrasado. Ele pediu desculpas.",
+          "hipotese": "O professor chegou atrasado. Ele pediu desculpas.",
+          "juiz": {
+            "adequacao": 5,
+            "naturalidade": 5,
+            "registro": 5,
+            "porque": "Igual à referência, mantendo sentido e formalidade."
+          },
+          "chrf": 1
+        },
+        {
+          "id": "idiom-01",
+          "categoria": "idiomatico",
+          "origem": "Break a leg!",
+          "referencia": "Boa sorte!",
+          "hipotese": "Boa sorte!",
+          "juiz": {
+            "adequacao": 4,
+            "naturalidade": 5,
+            "registro": 5,
+            "porque": "Igual à referência, mas perde nuances da origem."
+          },
+          "chrf": 1
+        },
+        {
+          "id": "idiom-02",
+          "categoria": "idiomatico",
+          "origem": "It's raining cats and dogs.",
+          "referencia": "Está chovendo canivete.",
+          "hipotese": "Está chovendo canivetes!",
+          "juiz": {
+            "adequacao": 5,
+            "naturalidade": 4,
+            "registro": 5,
+            "porque": "Preserva o sentido, mas exclamação é desnecessária."
+          },
+          "chrf": 0.8473561330919996
+        },
+        {
+          "id": "idiom-03",
+          "categoria": "idiomatico",
+          "origem": "That costs an arm and a leg.",
+          "referencia": "Isso custa os olhos da cara.",
+          "hipotese": "Isso custa os olhos da cara.",
+          "juiz": {
+            "adequacao": 5,
+            "naturalidade": 5,
+            "registro": 5,
+            "porque": "Idioma adaptado corretamente e usado comummente."
+          },
+          "chrf": 1
+        },
+        {
+          "id": "idiom-04",
+          "categoria": "idiomatico",
+          "origem": "Let's call it a day.",
+          "referencia": "Vamos encerrar por hoje.",
+          "hipotese": "Vamos encerrar por hoje.",
+          "juiz": {
+            "adequacao": 5,
+            "naturalidade": 5,
+            "registro": 5,
+            "porque": "Igual à referência, adequada e natural."
+          },
+          "chrf": 1
+        },
+        {
+          "id": "reg-01",
+          "categoria": "registro",
+          "origem": "Hey, what's up?",
+          "referencia": "E aí, tudo bem?",
+          "hipotese": "E aí, tudo bem?",
+          "juiz": {
+            "adequacao": 5,
+            "naturalidade": 5,
+            "registro": 5,
+            "porque": "Igual à referência, perfeito."
+          },
+          "chrf": 1
+        },
+        {
+          "id": "reg-02",
+          "categoria": "registro",
+          "origem": "I'd appreciate it if you could send the report.",
+          "referencia": "Eu agradeceria se você pudesse enviar o relatório.",
+          "hipotese": "Se você puder mandar o relatório, eu agradeço.",
+          "juiz": {
+            "adequacao": 5,
+            "naturalidade": 5,
+            "registro": 5,
+            "porque": "Preserva sentido, natural em conversa informal, registro adequado."
+          },
+          "chrf": 0.43599747977522774
+        },
+        {
+          "id": "lit-01",
+          "categoria": "literal",
+          "origem": "The meeting starts at three.",
+          "referencia": "A reunião começa às três.",
+          "hipotese": "A reunião começa às três.",
+          "juiz": {
+            "adequacao": 5,
+            "naturalidade": 5,
+            "registro": 5,
+            "porque": "Igual à referência, adequada e natural."
+          },
+          "chrf": 1
+        },
+        {
+          "id": "lit-02",
+          "categoria": "literal",
+          "origem": "I live in a small house near the river.",
+          "referencia": "Eu moro numa casa pequena perto do rio.",
+          "hipotese": "Eu moro numa casa pequena perto do rio.",
+          "juiz": {
+            "adequacao": 5,
+            "naturalidade": 5,
+            "registro": 5,
+            "porque": "Igual à referência, perfeitamente adequada."
+          },
+          "chrf": 1
+        },
+        {
+          "id": "lit-03",
+          "categoria": "literal",
+          "origem": "She works at a hospital downtown.",
+          "referencia": "Ela trabalha num hospital no centro.",
+          "hipotese": "Ela trabalha num hospital no centro.",
+          "juiz": {
+            "adequacao": 5,
+            "naturalidade": 5,
+            "registro": 5,
+            "porque": "Igual à referência, adequada e natural."
+          },
+          "chrf": 1
+        },
+        {
+          "id": "fala-01",
+          "categoria": "fala-espontanea",
+          "origem": "So, like, I was gonna go, but then I didn't.",
+          "referencia": "Então, tipo, eu ia ir, mas aí não fui.",
+          "hipotese": "Então, tipo, eu ia ir, mas acabei não indo.",
+          "juiz": {
+            "adequacao": 5,
+            "naturalidade": 5,
+            "registro": 5,
+            "porque": "Preserva o sentido e soa natural em português."
+          },
+          "chrf": 0.7210980552068788
+        },
+        {
+          "id": "fala-02",
+          "categoria": "fala-espontanea",
+          "origem": "Yeah, no, I mean, it's fine, whatever.",
+          "referencia": "É, não, quer dizer, tá tudo bem, tanto faz.",
+          "hipotese": "É, tipo, tá tudo bem, tanto faz.",
+          "juiz": {
+            "adequacao": 5,
+            "naturalidade": 5,
+            "registro": 5,
+            "porque": "mantém sentido e é natural em conversa informal."
+          },
+          "chrf": 0.6024228463922147
+        }
+      ]
+    },
+    {
+      "modelo": "openai/gpt-oss-120b",
+      "julgados": 16,
+      "semJulgamento": 0,
+      "juizGeral": 4.729166666666666,
+      "adequacao": 4.6875,
+      "naturalidade": 4.875,
+      "registro": 4.625,
+      "chrfMedio": 80.23747464192932,
+      "casos": [
+        {
+          "id": "pron-01",
+          "categoria": "pronome",
+          "origem": "I bought a new table. I put it in the kitchen.",
+          "referencia": "Comprei uma mesa nova. Coloquei ela na cozinha.",
+          "hipotese": "Comprei uma mesa nova e coloquei na cozinha.",
+          "juiz": {
+            "adequacao": 5,
+            "naturalidade": 5,
+            "registro": 5,
+            "porque": "Preserva sentido, natural em fala informal, registro adequado."
+          },
+          "chrf": 0.6902902737964481
+        },
+        {
+          "id": "pron-02",
+          "categoria": "pronome",
+          "origem": "The book was on the shelf. I read it yesterday.",
+          "referencia": "O livro estava na estante. Eu o li ontem.",
+          "hipotese": "O livro tava na estante. Eu li ontem.",
+          "juiz": {
+            "adequacao": 2,
+            "naturalidade": 3,
+            "registro": 1,
+            "porque": "omite pronome, confusão sintática."
+          },
+          "chrf": 0.7223980323790529
+        },
+        {
+          "id": "pron-03",
+          "categoria": "pronome",
+          "origem": "She left the door open. Please close it.",
+          "referencia": "Ela deixou a porta aberta. Por favor, feche-a.",
+          "hipotese": "Ela deixou a porta aberta. Fecha, por favor.",
+          "juiz": {
+            "adequacao": 5,
+            "naturalidade": 5,
+            "registro": 4,
+            "porque": "informal, mas não tão coloquial quanto o inglês"
+          },
+          "chrf": 0.6754705581217475
+        },
+        {
+          "id": "gen-01",
+          "categoria": "genero",
+          "origem": "My doctor said I am fine. She was very kind.",
+          "referencia": "Minha médica disse que estou bem. Ela foi muito gentil.",
+          "hipotese": "Minha médica disse que estou bem. Ela foi muito gentil.",
+          "juiz": {
+            "adequacao": 5,
+            "naturalidade": 5,
+            "registro": 5,
+            "porque": "Igual à referência, correta e natural."
+          },
+          "chrf": 1
+        },
+        {
+          "id": "gen-02",
+          "categoria": "genero",
+          "origem": "The teacher arrived late. He apologized.",
+          "referencia": "O professor chegou atrasado. Ele pediu desculpas.",
+          "hipotese": "O professor chegou atrasado. Ele pediu desculpas.",
+          "juiz": {
+            "adequacao": 5,
+            "naturalidade": 5,
+            "registro": 5,
+            "porque": "Igual à referência, mantendo sentido e formalidade."
+          },
+          "chrf": 1
+        },
+        {
+          "id": "idiom-01",
+          "categoria": "idiomatico",
+          "origem": "Break a leg!",
+          "referencia": "Boa sorte!",
+          "hipotese": "Boa sorte!",
+          "juiz": {
+            "adequacao": 4,
+            "naturalidade": 5,
+            "registro": 5,
+            "porque": "Igual à referência, mas perde nuances da origem."
+          },
+          "chrf": 1
+        },
+        {
+          "id": "idiom-02",
+          "categoria": "idiomatico",
+          "origem": "It's raining cats and dogs.",
+          "referencia": "Está chovendo canivete.",
+          "hipotese": "Tá chovendo pra caramba.",
+          "juiz": {
+            "adequacao": 4,
+            "naturalidade": 5,
+            "registro": 5,
+            "porque": "preserva sentido, natural e informal."
+          },
+          "chrf": 0.32294109804425747
+        },
+        {
+          "id": "idiom-03",
+          "categoria": "idiomatico",
+          "origem": "That costs an arm and a leg.",
+          "referencia": "Isso custa os olhos da cara.",
+          "hipotese": "Isso custa os olhos da cara.",
+          "juiz": {
+            "adequacao": 5,
+            "naturalidade": 5,
+            "registro": 5,
+            "porque": "Idioma adaptado corretamente e usado comummente."
+          },
+          "chrf": 1
+        },
+        {
+          "id": "idiom-04",
+          "categoria": "idiomatico",
+          "origem": "Let's call it a day.",
+          "referencia": "Vamos encerrar por hoje.",
+          "hipotese": "Vamos encerrar por hoje.",
+          "juiz": {
+            "adequacao": 5,
+            "naturalidade": 5,
+            "registro": 5,
+            "porque": "Igual à referência, adequada e natural."
+          },
+          "chrf": 1
+        },
+        {
+          "id": "reg-01",
+          "categoria": "registro",
+          "origem": "Hey, what's up?",
+          "referencia": "E aí, tudo bem?",
+          "hipotese": "E aí, tudo bem?",
+          "juiz": {
+            "adequacao": 5,
+            "naturalidade": 5,
+            "registro": 5,
+            "porque": "Igual à referência, perfeito."
+          },
+          "chrf": 1
+        },
+        {
+          "id": "reg-02",
+          "categoria": "registro",
+          "origem": "I'd appreciate it if you could send the report.",
+          "referencia": "Eu agradeceria se você pudesse enviar o relatório.",
+          "hipotese": "Eu ficaria agradecido se você mandar o relatório.",
+          "juiz": {
+            "adequacao": 5,
+            "naturalidade": 5,
+            "registro": 4,
+            "porque": "Mandar é mais coloquial, mas menos formal."
+          },
+          "chrf": 0.49010699152826187
+        },
+        {
+          "id": "lit-01",
+          "categoria": "literal",
+          "origem": "The meeting starts at three.",
+          "referencia": "A reunião começa às três.",
+          "hipotese": "A reunião começa às três.",
+          "juiz": {
+            "adequacao": 5,
+            "naturalidade": 5,
+            "registro": 5,
+            "porque": "Igual à referência, adequada e natural."
+          },
+          "chrf": 1
+        },
+        {
+          "id": "lit-02",
+          "categoria": "literal",
+          "origem": "I live in a small house near the river.",
+          "referencia": "Eu moro numa casa pequena perto do rio.",
+          "hipotese": "Moro numa casinha perto do rio.",
+          "juiz": {
+            "adequacao": 5,
+            "naturalidade": 5,
+            "registro": 5,
+            "porque": "Preserva o sentido, natural em conversa informal."
+          },
+          "chrf": 0.55450469206743
+        },
+        {
+          "id": "lit-03",
+          "categoria": "literal",
+          "origem": "She works at a hospital downtown.",
+          "referencia": "Ela trabalha num hospital no centro.",
+          "hipotese": "Ela trabalha num hospital no centro.",
+          "juiz": {
+            "adequacao": 5,
+            "naturalidade": 5,
+            "registro": 5,
+            "porque": "Igual à referência, adequada e natural."
+          },
+          "chrf": 1
+        },
+        {
+          "id": "fala-01",
+          "categoria": "fala-espontanea",
+          "origem": "So, like, I was gonna go, but then I didn't.",
+          "referencia": "Então, tipo, eu ia ir, mas aí não fui.",
+          "hipotese": "Então, eu ia sair, mas não fui.",
+          "juiz": {
+            "adequacao": 5,
+            "naturalidade": 5,
+            "registro": 5,
+            "porque": "Preserva o sentido e soa natural em português."
+          },
+          "chrf": 0.5583561920273055
+        },
+        {
+          "id": "fala-02",
+          "categoria": "fala-espontanea",
+          "origem": "Yeah, no, I mean, it's fine, whatever.",
+          "referencia": "É, não, quer dizer, tá tudo bem, tanto faz.",
+          "hipotese": "Ah, não, quer dizer, tudo bem, tanto faz.",
+          "juiz": {
+            "adequacao": 5,
+            "naturalidade": 5,
+            "registro": 5,
+            "porque": "Preserva sentido e soa natural em português."
+          },
+          "chrf": 0.8239281047441877
+        }
+      ]
+    }
+  ]
+}

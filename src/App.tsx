@@ -143,7 +143,7 @@ export default function App() {
       // Entrou vindo do modo sem conta, ou entrou com coisas de uma visita anterior neste
       // navegador: oferece subir. Visível, nunca em silêncio.
       if (antes === 'anonimo') setMigracao(true);
-      else void temDadosLocais().then((tem) => { if (tem) setMigracao(true); }).catch(() => {});
+      else void temDadosLocais().then((tem) => { if (tem) setMigracao(true); }).catch(() => { });
     }
   }), []);
   // O servidor em memória avisa quando, sem conta, algo pediu uma rota que só existe com conta.
@@ -583,7 +583,7 @@ export default function App() {
   const selectedRecording = recordings.find(r => r.id === selectedRecordingId) || recordings[0];
 
   // Map sub tabs like reading and study to distinct views for precise iChat context matching
-  const mappedActiveViewForChat = activeView === 'analysis' 
+  const mappedActiveViewForChat = activeView === 'analysis'
     ? (analysisSubTab === 'study' ? 'study' : analysisSubTab === 'reading' ? 'reading' : 'analysis') as ViewType
     : activeView;
 
@@ -705,146 +705,146 @@ export default function App() {
           {/* Os números que sobem ("+10", "×3") — camada própria, no topo da árvore, para não
               serem cortados pelo `overflow` de nenhum container de jogo. */}
           <FloatingScoreLayer />
-        <LayoutEditorToolbar />
-        <Suspense fallback={<div className="flex-1 flex items-center justify-center text-ink-muted text-sm">Carregando…</div>}>
-          {!EDICAO_LEVE && anonimo && exigeConta(activeView) && (
-            <CartaoDeConvite view={activeView} onEntrar={() => setPedindoLogin(true)} onVoltar={() => setActiveView('hub')} />
-          )}
-          {activeView === 'hub' && (
-            <Hub onChangeView={navigateTo} recordings={recordings} ageProfile={ageProfile} progress={progress} metrics={metrics} />
-          )}
-          {activeView === 'capture' && (
-            <LiveCapture
-              onSave={handleSaveRecording}
-              onTranscriptChange={setLiveTranscription}
-              resumingRecordingId={resumingRecordingId}
-              recordings={recordings}
-              onChangeView={navigateTo}
-              ageProfile={ageProfile}
-            />
-          )}
-          {activeView === 'library' && (EDICAO_LEVE || !anonimo) && (
-            <Library onChangeView={navigateTo} recordings={recordings} onRecordingsChange={setRecordings} ageProfile={ageProfile} />
-          )}
-          {/* `selectedRecordingId` e NÃO `selectedRecording`: este último cai na gravação mais
+          <LayoutEditorToolbar />
+          <Suspense fallback={<div className="flex-1 flex items-center justify-center text-ink-muted text-sm">Carregando…</div>}>
+            {!EDICAO_LEVE && anonimo && exigeConta(activeView) && (
+              <CartaoDeConvite view={activeView} onEntrar={() => setPedindoLogin(true)} onVoltar={() => setActiveView('hub')} />
+            )}
+            {activeView === 'hub' && (
+              <Hub onChangeView={navigateTo} recordings={recordings} ageProfile={ageProfile} progress={progress} metrics={metrics} />
+            )}
+            {activeView === 'capture' && (
+              <LiveCapture
+                onSave={handleSaveRecording}
+                onTranscriptChange={setLiveTranscription}
+                resumingRecordingId={resumingRecordingId}
+                recordings={recordings}
+                onChangeView={navigateTo}
+                ageProfile={ageProfile}
+              />
+            )}
+            {activeView === 'library' && (EDICAO_LEVE || !anonimo) && (
+              <Library onChangeView={navigateTo} recordings={recordings} onRecordingsChange={setRecordings} ageProfile={ageProfile} />
+            )}
+            {/* `selectedRecordingId` e NÃO `selectedRecording`: este último cai na gravação mais
               recente quando não há id, e o filtro de sessão ligaria sozinho sem ninguém pedir. */}
-          {activeView === 'play' && (
-            <Play
-              onChangeView={navigateTo}
-              ageProfile={ageProfile}
-              progress={progress}
-              metrics={metrics}
-              recording={selectedRecordingId ? selectedRecording : null}
-              seed={practiceSeed}
-            />
-          )}
-          {activeView === 'analysis' && (EDICAO_LEVE || !anonimo) && (
-            <Analysis
-              onChangeView={navigateTo}
-              recording={selectedRecording}
-              allRecordings={recordings}
-              subTab={analysisSubTab}
-              onSubTabChange={setAnalysisSubTab}
-              practiceSeed={practiceSeed}
-              onSeedConsumed={() => setPracticeSeed(null)}
-              ageProfile={ageProfile}
-              /* A aba "Jogos" da sessão monta o mesmo lobby do `<Play>` acima; os números têm de vir
-                 da MESMA fonte, senão nível/ofensiva apareceriam diferentes nas duas telas. */
-              progress={progress}
-              metrics={metrics}
-            />
-          )}
-          {activeView === 'metrics' && (EDICAO_LEVE || !anonimo) && <Metrics recordings={recordings} onChangeView={navigateTo} ageProfile={ageProfile} />}
+            {activeView === 'play' && (
+              <Play
+                onChangeView={navigateTo}
+                ageProfile={ageProfile}
+                progress={progress}
+                metrics={metrics}
+                recording={selectedRecordingId ? selectedRecording : null}
+                seed={practiceSeed}
+              />
+            )}
+            {activeView === 'analysis' && (EDICAO_LEVE || !anonimo) && (
+              <Analysis
+                onChangeView={navigateTo}
+                recording={selectedRecording}
+                allRecordings={recordings}
+                subTab={analysisSubTab}
+                onSubTabChange={setAnalysisSubTab}
+                practiceSeed={practiceSeed}
+                onSeedConsumed={() => setPracticeSeed(null)}
+                ageProfile={ageProfile}
+                /* A aba "Jogos" da sessão monta o mesmo lobby do `<Play>` acima; os números têm de vir
+                   da MESMA fonte, senão nível/ofensiva apareceriam diferentes nas duas telas. */
+                progress={progress}
+                metrics={metrics}
+              />
+            )}
+            {activeView === 'metrics' && (EDICAO_LEVE || !anonimo) && <Metrics recordings={recordings} onChangeView={navigateTo} ageProfile={ageProfile} />}
 
-          {activeView === 'profile' && !anonimo && <Perfil progress={progress} ageProfile={ageProfile} />}
-          {activeView === 'sobre' && <Sobre />}
-          {activeView === 'loja' && (
-            <Loja
-              progress={progress}
-              theme={theme}
-              setTheme={setTheme}
-              fonte={fonte}
-              setFonte={setFonte}
-              menuPosition={menuPosition}
-              setMenuPosition={setMenuPosition}
-              onOpenStudio={() => setIsStudioOpen(true)}
-            />
-          )}
-          {activeView === 'settings' && (
-            <Settings
-              theme={theme}
-              darkMode={darkMode}
-              onOpenStudio={() => setIsStudioOpen(true)}
-              onReplayTour={() => setOnboarded(false)}
-              onAbrirSobre={() => setActiveView('sobre')}
-              nivel={progress.available ? progress.level : 99}
-              ageProfile={ageProfile}
-              setAgeProfile={setAgeProfile}
-              menuPosition={menuPosition}
-              setMenuPosition={setMenuPosition}
-              fontScale={fontScale}
-              setFontScale={setFontScale}
-              soundEnabled={soundEnabled}
-              toggleSound={toggleSound}
-              animationsEnabled={animationsEnabled}
-              toggleAnimations={toggleAnimations}
-              performanceMode={performanceMode}
-              togglePerformanceMode={togglePerformanceMode}
-            />
-          )}
-        </Suspense>
-      </main>
+            {activeView === 'profile' && !anonimo && <Perfil progress={progress} ageProfile={ageProfile} />}
+            {activeView === 'sobre' && <Sobre />}
+            {activeView === 'loja' && (
+              <Loja
+                progress={progress}
+                theme={theme}
+                setTheme={setTheme}
+                fonte={fonte}
+                setFonte={setFonte}
+                menuPosition={menuPosition}
+                setMenuPosition={setMenuPosition}
+                onOpenStudio={() => setIsStudioOpen(true)}
+              />
+            )}
+            {activeView === 'settings' && (
+              <Settings
+                theme={theme}
+                darkMode={darkMode}
+                onOpenStudio={() => setIsStudioOpen(true)}
+                onReplayTour={() => setOnboarded(false)}
+                onAbrirSobre={() => setActiveView('sobre')}
+                nivel={progress.available ? progress.level : 99}
+                ageProfile={ageProfile}
+                setAgeProfile={setAgeProfile}
+                menuPosition={menuPosition}
+                setMenuPosition={setMenuPosition}
+                fontScale={fontScale}
+                setFontScale={setFontScale}
+                soundEnabled={soundEnabled}
+                toggleSound={toggleSound}
+                animationsEnabled={animationsEnabled}
+                toggleAnimations={toggleAnimations}
+                performanceMode={performanceMode}
+                togglePerformanceMode={togglePerformanceMode}
+              />
+            )}
+          </Suspense>
+        </main>
 
-      {/* Menu de prática GLOBAL: selecione texto em qualquer tela → botão direito → praticar.
+        {/* Menu de prática GLOBAL: selecione texto em qualquer tela → botão direito → praticar.
           É o que elimina o maior atrito da app, antes, para praticar um trecho, o usuário tinha de
           sair da tela, achar a Central de Exercícios (que nem view de primeiro nível era) e ainda
           assim o exercício rodava num texto fixo, não no dele. Agora o conteúdo vai até o exercício. */}
-      {!EDICAO_LEVE && <GateDeConta aberto={gate !== null} motivo={gate ?? ''} onFechar={fecharGate} onEntrar={() => { fecharGate(); setPedindoLogin(true); }} />}
-      {!EDICAO_LEVE && <ModalDeMigracao
-        aberto={migracao}
-        onFechar={() => setMigracao(false)}
-        onMigrou={() => { fetchSessions().then(setRecordings).catch(() => {}); void carregarEntitlements(); }}
-      />}
-
-      <PracticeMenu
-        onChangeView={navigateTo}
-        sessionId={selectedRecording?.id}
-      />
-
-      {/* Overlays globais (chat + estúdio de layout) — lazy: não pesam no primeiro paint. */}
-      <Suspense fallback={null}>
-        {/* Global iChat assistant with layout capabilities */}
-        {/* Tutor iChat depende de /api/gemini/chat: fora da edição leve. */}
-        {!EDICAO_LEVE && <IChat
-          activeView={mappedActiveViewForChat}
-          selectedRecording={selectedRecording}
-          liveTranscription={liveTranscription}
-          onChangeView={navigateTo}
-          isOpen={isChatOpen}
-          setIsOpen={setIsChatOpen}
-          isDocked={isChatDocked}
-          setIsDocked={(docked) => {
-            setIsChatDocked(docked);
-            localStorage.setItem('ichat_docked', docked ? 'true' : 'false');
-          }}
-          isMaximized={isChatMaximized}
-          setIsMaximized={setIsChatMaximized}
-          practiceSeed={practiceSeed?.text}
-          recordings={recordings}
-          ageProfile={ageProfile}
+        {!EDICAO_LEVE && <GateDeConta aberto={gate !== null} motivo={gate ?? ''} onFechar={fecharGate} onEntrar={() => { fecharGate(); setPedindoLogin(true); }} />}
+        {!EDICAO_LEVE && <ModalDeMigracao
+          aberto={migracao}
+          onFechar={() => setMigracao(false)}
+          onMigrou={() => { fetchSessions().then(setRecordings).catch(() => { }); void carregarEntitlements(); }}
         />}
 
-        {isStudioOpen && (
-          <LayoutStudio
-            isOpen={isStudioOpen}
-            onClose={() => setIsStudioOpen(false)}
-            theme={theme}
-            setTheme={setTheme}
-            darkMode={darkMode}
-            toggleDarkMode={toggleDarkMode}
-          />
-        )}
-      </Suspense>
+        <PracticeMenu
+          onChangeView={navigateTo}
+          sessionId={selectedRecording?.id}
+        />
+
+        {/* Overlays globais (chat + estúdio de layout) — lazy: não pesam no primeiro paint. */}
+        <Suspense fallback={null}>
+          {/* Global iChat assistant with layout capabilities */}
+          {/* Tutor iChat depende de /api/gemini/chat: fora da edição leve. */}
+          {!EDICAO_LEVE && <IChat
+            activeView={mappedActiveViewForChat}
+            selectedRecording={selectedRecording}
+            liveTranscription={liveTranscription}
+            onChangeView={navigateTo}
+            isOpen={isChatOpen}
+            setIsOpen={setIsChatOpen}
+            isDocked={isChatDocked}
+            setIsDocked={(docked) => {
+              setIsChatDocked(docked);
+              localStorage.setItem('ichat_docked', docked ? 'true' : 'false');
+            }}
+            isMaximized={isChatMaximized}
+            setIsMaximized={setIsChatMaximized}
+            practiceSeed={practiceSeed?.text}
+            recordings={recordings}
+            ageProfile={ageProfile}
+          />}
+
+          {isStudioOpen && (
+            <LayoutStudio
+              isOpen={isStudioOpen}
+              onClose={() => setIsStudioOpen(false)}
+              theme={theme}
+              setTheme={setTheme}
+              darkMode={darkMode}
+              toggleDarkMode={toggleDarkMode}
+            />
+          )}
+        </Suspense>
 
         {/* O rail da direita fica DEPOIS do chat acoplado, para encostar de fato na borda da tela. */}
         {menuPosition === 'right' && shell}

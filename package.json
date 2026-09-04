@@ -51,6 +51,8 @@
     "@ricky0123/vad-web": "^0.0.30",
     "@supabase/supabase-js": "^2.112.0",
     "@tailwindcss/vite": "^4.1.14",
+    "@types/canvas-confetti": "^1.9.0",
+    "canvas-confetti": "^1.9.4",
     "compression": "1.8.1",
     "country-flag-icons": "^1.6.20",
     "dotenv": "^17.2.3",

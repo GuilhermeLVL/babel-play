@@ -1,0 +1,972 @@
+{
+  "geradoEm": "2026-08-30T23:31:45.405Z",
+  "provedor": "openrouter",
+  "corpus": "fala",
+  "totalDeCasos": 60,
+  "interrompida": null,
+  "raciocinio": "padrão do modelo",
+  "esforco": "padrão",
+  "semContexto": false,
+  "repeticoes": 1,
+  "precos": {
+    "consultadoEm": "2026-08-30T23:29:55.490Z",
+    "usados": {
+      "minimax/minimax-m3:free": {
+        "entrada": 0,
+        "saida": 0
+      }
+    }
+  },
+  "execucoes": [
+    {
+      "modelo": "minimax/minimax-m3:free",
+      "formatoDePrompt": "comunicativo",
+      "casos": [
+        {
+          "id": "pron-01",
+          "categoria": "pronome",
+          "origem": "I bought a new table. I put it in the kitchen.",
+          "referencia": "Comprei uma mesa nova. Coloquei ela na cozinha.",
+          "contexto": [
+            "I bought a new table."
+          ],
+          "nota": "'it' refere-se a 'table' (feminino em pt). Sem a frase anterior, o tradutor não tem como saber o gênero.",
+          "hipotese": "Eu comprei uma mesa nova. Coloquei na cozinha.",
+          "tokens": {
+            "entrada": 392,
+            "saida": 13,
+            "raciocinio": 0
+          }
+        },
+        {
+          "id": "pron-02",
+          "categoria": "pronome",
+          "origem": "The book was on the shelf. I read it yesterday.",
+          "referencia": "O livro estava na estante. Eu o li ontem.",
+          "contexto": [
+            "The book was on the shelf."
+          ],
+          "nota": "'it' = livro, masculino.",
+          "hipotese": "O livro estava na prateleira. Eu li ontem.",
+          "tokens": {
+            "entrada": 392,
+            "saida": 13,
+            "raciocinio": 0
+          }
+        },
+        {
+          "id": "pron-03",
+          "categoria": "pronome",
+          "origem": "She left the door open. Please close it.",
+          "referencia": "Ela deixou a porta aberta. Por favor, feche-a.",
+          "contexto": [
+            "She left the door open."
+          ],
+          "nota": "antecedente feminino na frase anterior.",
+          "hipotese": "Ela deixou a porta aberta. Fecha ela, por favor.",
+          "tokens": {
+            "entrada": 389,
+            "saida": 13,
+            "raciocinio": 0
+          }
+        },
+        {
+          "id": "gen-01",
+          "categoria": "genero",
+          "origem": "My doctor said I am fine. She was very kind.",
+          "referencia": "Minha médica disse que estou bem. Ela foi muito gentil.",
+          "contexto": [
+            "My doctor said I am fine."
+          ],
+          "nota": "'doctor' só se resolve como 'médica' pela frase seguinte com 'she'.",
+          "hipotese": "Meu médico disse que eu estou bem. Ela foi muito gentil.",
+          "tokens": {
+            "entrada": 392,
+            "saida": 15,
+            "raciocinio": 0
+          }
+        },
+        {
+          "id": "gen-02",
+          "categoria": "genero",
+          "origem": "The teacher arrived late. He apologized.",
+          "referencia": "O professor chegou atrasado. Ele pediu desculpas.",
+          "contexto": [
+            "The teacher arrived late."
+          ],
+          "nota": "'teacher' é ambíguo em gênero; 'he' desfaz.",
+          "hipotese": "O professor chegou atrasado. Ele pediu desculpas.",
+          "tokens": {
+            "entrada": 386,
+            "saida": 12,
+            "raciocinio": 0
+          }
+        },
+        {
+          "id": "idiom-01",
+          "categoria": "idiomatico",
+          "origem": "Break a leg!",
+          "referencia": "Boa sorte!",
+          "contexto": [],
+          "nota": "tradução literal ('quebre uma perna') é o erro clássico.",
+          "hipotese": "Boa sorte! / Vai com tudo!",
+          "tokens": {
+            "entrada": 366,
+            "saida": 10,
+            "raciocinio": 0
+          }
+        },
+        {
+          "id": "idiom-02",
+          "categoria": "idiomatico",
+          "origem": "It's raining cats and dogs.",
+          "referencia": "Está chovendo canivete.",
+          "contexto": [],
+          "nota": "expressão idiomática sem equivalente literal.",
+          "hipotese": "Tá caindo o mundo lá fora.",
+          "tokens": {
+            "entrada": 368,
+            "saida": 11,
+            "raciocinio": 0
+          }
+        },
+        {
+          "id": "idiom-03",
+          "categoria": "idiomatico",
+          "origem": "That costs an arm and a leg.",
+          "referencia": "Isso custa os olhos da cara.",
+          "contexto": [],
+          "nota": "idiomático com equivalente pt diferente.",
+          "hipotese": "Isso custa os olhos da cara.",
+          "tokens": {
+            "entrada": 370,
+            "saida": 8,
+            "raciocinio": 0
+          }
+        },
+        {
+          "id": "idiom-04",
+          "categoria": "idiomatico",
+          "origem": "Let's call it a day.",
+          "referencia": "Vamos encerrar por hoje.",
+          "contexto": [],
+          "nota": "literal seria 'vamos chamar isso de um dia'.",
+          "hipotese": "Vamos encerrar por hoje.",
+          "tokens": {
+            "entrada": 368,
+            "saida": 7,
+            "raciocinio": 0
+          }
+        },
+        {
+          "id": "reg-01",
+          "categoria": "registro",
+          "origem": "Hey, what's up?",
+          "referencia": "E aí, tudo bem?",
+          "contexto": [],
+          "nota": "registro coloquial; a versão formal soaria errada numa conversa.",
+          "hipotese": "E aí, tudo bem?",
+          "tokens": {
+            "entrada": 367,
+            "saida": 7,
+            "raciocinio": 0
+          }
+        },
+        {
+          "id": "reg-02",
+          "categoria": "registro",
+          "origem": "I'd appreciate it if you could send the report.",
+          "referencia": "Eu agradeceria se você pudesse enviar o relatório.",
+          "contexto": [],
+          "nota": "registro formal preservado.",
+          "hipotese": "Eu agradeceria se você pudesse enviar o relatório.",
+          "tokens": {
+            "entrada": 372,
+            "saida": 12,
+            "raciocinio": 0
+          }
+        },
+        {
+          "id": "lit-01",
+          "categoria": "literal",
+          "origem": "The meeting starts at three.",
+          "referencia": "A reunião começa às três.",
+          "contexto": [],
+          "nota": "caso de controle: frase simples que qualquer tradutor deve acertar.",
+          "hipotese": "A reunião começa às três.",
+          "tokens": {
+            "entrada": 368,
+            "saida": 7,
+            "raciocinio": 0
+          }
+        },
+        {
+          "id": "lit-02",
+          "categoria": "literal",
+          "origem": "I live in a small house near the river.",
+          "referencia": "Eu moro numa casa pequena perto do rio.",
+          "contexto": [],
+          "nota": "controle: sem ambiguidade nem idiomatismo.",
+          "hipotese": "Eu moro numa casinha perto do rio.",
+          "tokens": {
+            "entrada": 372,
+            "saida": 11,
+            "raciocinio": 0
+          }
+        },
+        {
+          "id": "lit-03",
+          "categoria": "literal",
+          "origem": "She works at a hospital downtown.",
+          "referencia": "Ela trabalha num hospital no centro.",
+          "contexto": [],
+          "nota": "controle.",
+          "hipotese": "Ela trabalha num hospital lá no centro.",
+          "tokens": {
+            "entrada": 369,
+            "saida": 9,
+            "raciocinio": 0
+          }
+        },
+        {
+          "id": "fala-01",
+          "categoria": "fala-espontanea",
+          "origem": "So, like, I was gonna go, but then I didn't.",
+          "referencia": "Então, tipo, eu ia ir, mas aí não fui.",
+          "contexto": [],
+          "nota": "marcadores de fala espontânea — o que a captura ao vivo realmente produz.",
+          "hipotese": "Então, tipo, eu ia ir, mas aí não fui.",
+          "tokens": {
+            "entrada": 376,
+            "saida": 14,
+            "raciocinio": 0
+          }
+        },
+        {
+          "id": "fala-02",
+          "categoria": "fala-espontanea",
+          "origem": "Yeah, no, I mean, it's fine, whatever.",
+          "referencia": "É, não, quer dizer, tá tudo bem, tanto faz.",
+          "contexto": [],
+          "nota": "encadeamento coloquial típico de conversa.",
+          "hipotese": "Beleza, não, tô de boa, tanto faz.",
+          "tokens": {
+            "entrada": 374,
+            "saida": 15,
+            "raciocinio": 0
+          }
+        },
+        {
+          "id": "pron-04",
+          "categoria": "pronome",
+          "origem": "The keys were on the table. I took them with me.",
+          "referencia": "As chaves estavam na mesa. Peguei elas comigo.",
+          "contexto": [
+            "The keys were on the table."
+          ],
+          "nota": "'them' refere-se a 'keys' (feminino plural em pt).",
+          "hipotese": "As chaves estavam na mesa. Eu levei elas comigo.",
+          "tokens": {
+            "entrada": 393,
+            "saida": 14,
+            "raciocinio": 0
+          }
+        },
+        {
+          "id": "pron-05",
+          "categoria": "pronome",
+          "origem": "My sister called. I told her about the party.",
+          "referencia": "Minha irmã ligou. Contei pra ela sobre a festa.",
+          "contexto": [
+            "My sister called."
+          ],
+          "nota": "'her' precisa da frase anterior.",
+          "hipotese": "Minha irmã ligou. Eu contei pra ela sobre a festa.",
+          "tokens": {
+            "entrada": 388,
+            "saida": 16,
+            "raciocinio": 0
+          }
+        },
+        {
+          "id": "pron-06",
+          "categoria": "pronome",
+          "origem": "The car broke down. We had to push it uphill.",
+          "referencia": "O carro quebrou. A gente teve que empurrar ele ladeira acima.",
+          "contexto": [
+            "The car broke down."
+          ],
+          "nota": "'it' = carro, masculino em pt.",
+          "hipotese": "O carro quebrou. Tivemos que empurrar ladeira acima.",
+          "tokens": {
+            "entrada": 390,
+            "saida": 16,
+            "raciocinio": 0
+          }
+        },
+        {
+          "id": "pron-07",
+          "categoria": "pronome",
+          "origem": "I met your parents. They were very welcoming.",
+          "referencia": "Conheci seus pais. Eles foram muito acolhedores.",
+          "contexto": [
+            "I met your parents."
+          ],
+          "nota": "'they' plural masculino.",
+          "hipotese": "Conheci teus pais. Eles foram super acolhedores.",
+          "tokens": {
+            "entrada": 388,
+            "saida": 14,
+            "raciocinio": 0
+          }
+        },
+        {
+          "id": "pron-08",
+          "categoria": "pronome",
+          "origem": "The soup is ready. Try it before it gets cold.",
+          "referencia": "A sopa está pronta. Prova ela antes que esfrie.",
+          "contexto": [
+            "The soup is ready."
+          ],
+          "nota": "'it' = sopa, feminino.",
+          "hipotese": "A sopa ficou pronta. Prova antes que esfrie.",
+          "tokens": {
+            "entrada": 390,
+            "saida": 13,
+            "raciocinio": 0
+          }
+        },
+        {
+          "id": "pron-09",
+          "categoria": "pronome",
+          "origem": "Take the documents. Give them to the manager.",
+          "referencia": "Pega os documentos. Entrega eles pro gerente.",
+          "contexto": [
+            "Take the documents."
+          ],
+          "nota": "'them' = documentos, masculino plural.",
+          "hipotese": "Pega os documentos. Entrega pro gerente.",
+          "tokens": {
+            "entrada": 387,
+            "saida": 11,
+            "raciocinio": 0
+          }
+        },
+        {
+          "id": "pron-10",
+          "categoria": "pronome",
+          "origem": "That was my idea. I had it last night.",
+          "referencia": "Essa foi ideia minha. Tive ela ontem à noite.",
+          "contexto": [
+            "That was my idea."
+          ],
+          "nota": "'it' = ideia, feminino.",
+          "hipotese": "Foi ideia minha. Eu tive essa ideia ontem à noite.",
+          "tokens": {
+            "entrada": 389,
+            "saida": 13,
+            "raciocinio": 0
+          }
+        },
+        {
+          "id": "gen-03",
+          "categoria": "genero",
+          "origem": "The nurse helped me a lot. He was very patient.",
+          "referencia": "O enfermeiro me ajudou muito. Ele foi muito paciente.",
+          "contexto": [
+            "The nurse helped me a lot."
+          ],
+          "nota": "'nurse' é neutro em inglês; 'he' fixa masculino.",
+          "hipotese": "A enfermeira me ajudou muito. Ela foi muito paciente.",
+          "tokens": {
+            "entrada": 392,
+            "saida": 13,
+            "raciocinio": 0
+          }
+        },
+        {
+          "id": "gen-04",
+          "categoria": "genero",
+          "origem": "I talked to the manager. She approved the request.",
+          "referencia": "Falei com a gerente. Ela aprovou o pedido.",
+          "contexto": [
+            "I talked to the manager."
+          ],
+          "nota": "'she' fixa feminino.",
+          "hipotese": "Eu conversei com a gerente. Ela aprovou o pedido.",
+          "tokens": {
+            "entrada": 390,
+            "saida": 13,
+            "raciocinio": 0
+          }
+        },
+        {
+          "id": "gen-05",
+          "categoria": "genero",
+          "origem": "Our guide was amazing. She knew every street.",
+          "referencia": "Nossa guia foi incrível. Ela conhecia cada rua.",
+          "contexto": [
+            "Our guide was amazing."
+          ],
+          "nota": "'guide' neutro; 'she' decide.",
+          "hipotese": "A nossa guia era incrível. Ela conhecia cada rua.",
+          "tokens": {
+            "entrada": 388,
+            "saida": 12,
+            "raciocinio": 0
+          }
+        },
+        {
+          "id": "gen-06",
+          "categoria": "genero",
+          "origem": "The artist finished the mural. He worked for weeks.",
+          "referencia": "O artista terminou o mural. Ele trabalhou por semanas.",
+          "contexto": [
+            "The artist finished the mural."
+          ],
+          "nota": "",
+          "hipotese": "O artista terminou o mural. Ele trabalhou por semanas.",
+          "tokens": {
+            "entrada": 390,
+            "saida": 12,
+            "raciocinio": 0
+          }
+        },
+        {
+          "id": "gen-07",
+          "categoria": "genero",
+          "origem": "My colleague is late again. She always apologizes.",
+          "referencia": "Minha colega está atrasada de novo. Ela sempre pede desculpas.",
+          "contexto": [
+            "My colleague is late again."
+          ],
+          "nota": "'colleague' neutro.",
+          "hipotese": "Minha colega tá atrasada de novo. Ela sempre pede desculpa.",
+          "tokens": {
+            "entrada": 390,
+            "saida": 16,
+            "raciocinio": 0
+          }
+        },
+        {
+          "id": "gen-08",
+          "categoria": "genero",
+          "origem": "The journalist asked good questions. He was well prepared.",
+          "referencia": "O jornalista fez boas perguntas. Ele estava bem preparado.",
+          "contexto": [
+            "The journalist asked good questions."
+          ],
+          "nota": "",
+          "hipotese": "O jornalista fez boas perguntas. Ele estava bem preparado.",
+          "tokens": {
+            "entrada": 390,
+            "saida": 12,
+            "raciocinio": 0
+          }
+        },
+        {
+          "id": "gen-09",
+          "categoria": "genero",
+          "origem": "A student came by. She left this note.",
+          "referencia": "Uma estudante passou aqui. Ela deixou este bilhete.",
+          "contexto": [
+            "A student came by."
+          ],
+          "nota": "'student' neutro; concordância do artigo depende do 'she'.",
+          "hipotese": "Passou uma aluna aqui. Ela deixou esse bilhete.",
+          "tokens": {
+            "entrada": 388,
+            "saida": 14,
+            "raciocinio": 0
+          }
+        },
+        {
+          "id": "gen-10",
+          "categoria": "genero",
+          "origem": "The driver was careful. She avoided the pothole.",
+          "referencia": "A motorista foi cuidadosa. Ela desviou do buraco.",
+          "contexto": [
+            "The driver was careful."
+          ],
+          "nota": "'careful' também concorda em pt.",
+          "hipotese": "A motorista foi cuidadosa. Ela desviou do buraco.",
+          "tokens": {
+            "entrada": 389,
+            "saida": 14,
+            "raciocinio": 0
+          }
+        },
+        {
+          "id": "idiom-05",
+          "categoria": "idiomatico",
+          "origem": "He kicked the bucket last year.",
+          "referencia": "Ele bateu as botas ano passado.",
+          "contexto": [],
+          "nota": "morrer, registro informal.",
+          "hipotese": "Ele bateu as botas ano passado.",
+          "tokens": {
+            "entrada": 369,
+            "saida": 9,
+            "raciocinio": 0
+          }
+        },
+        {
+          "id": "idiom-06",
+          "categoria": "idiomatico",
+          "origem": "Don't beat around the bush.",
+          "referencia": "Não enrola, vai direto ao ponto.",
+          "contexto": [],
+          "nota": "",
+          "hipotese": "Não fique enrolando.",
+          "tokens": {
+            "entrada": 368,
+            "saida": 6,
+            "raciocinio": 0
+          }
+        },
+        {
+          "id": "idiom-07",
+          "categoria": "idiomatico",
+          "origem": "It's a piece of cake.",
+          "referencia": "É moleza.",
+          "contexto": [],
+          "nota": "",
+          "hipotese": "É mamão com açúcar.",
+          "tokens": {
+            "entrada": 368,
+            "saida": 7,
+            "raciocinio": 0
+          }
+        },
+        {
+          "id": "idiom-08",
+          "categoria": "idiomatico",
+          "origem": "I'm all ears.",
+          "referencia": "Sou todo ouvidos.",
+          "contexto": [],
+          "nota": "tem equivalente quase literal em pt — controle contra idiomático que NÃO precisa adaptação.",
+          "hipotese": "Tô toda ouvidos.",
+          "tokens": {
+            "entrada": 366,
+            "saida": 6,
+            "raciocinio": 0
+          }
+        },
+        {
+          "id": "idiom-09",
+          "categoria": "idiomatico",
+          "origem": "She spilled the beans.",
+          "referencia": "Ela abriu o bico.",
+          "contexto": [],
+          "nota": "",
+          "hipotese": "Ela entregou o jogo.",
+          "tokens": {
+            "entrada": 367,
+            "saida": 7,
+            "raciocinio": 0
+          }
+        },
+        {
+          "id": "idiom-10",
+          "categoria": "idiomatico",
+          "origem": "We're back to square one.",
+          "referencia": "Voltamos à estaca zero.",
+          "contexto": [],
+          "nota": "",
+          "hipotese": "Voltamos à estaca zero.",
+          "tokens": {
+            "entrada": 368,
+            "saida": 8,
+            "raciocinio": 0
+          }
+        },
+        {
+          "id": "reg-03",
+          "categoria": "registro",
+          "origem": "Could you possibly spare a moment of your time?",
+          "referencia": "Você teria um minutinho?",
+          "contexto": [],
+          "nota": "formal em inglês; a fala natural em pt é mais curta.",
+          "hipotese": "Você poderia me dar um minutinho da sua atenção?",
+          "tokens": {
+            "entrada": 372,
+            "saida": 11,
+            "raciocinio": 0
+          }
+        },
+        {
+          "id": "reg-04",
+          "categoria": "registro",
+          "origem": "Dude, that's insane!",
+          "referencia": "Cara, isso é maluquice!",
+          "contexto": [],
+          "nota": "",
+          "hipotese": "Cara, isso é loucura!",
+          "tokens": {
+            "entrada": 367,
+            "saida": 8,
+            "raciocinio": 0
+          }
+        },
+        {
+          "id": "reg-05",
+          "categoria": "registro",
+          "origem": "We regret to inform you that your application was unsuccessful.",
+          "referencia": "Lamentamos informar que sua candidatura não foi aprovada.",
+          "contexto": [],
+          "nota": "registro formal deve PERMANECER formal.",
+          "hipotese": "Lamentamos informar que a sua candidatura não foi aceite.",
+          "tokens": {
+            "entrada": 373,
+            "saida": 12,
+            "raciocinio": 0
+          }
+        },
+        {
+          "id": "reg-06",
+          "categoria": "registro",
+          "origem": "Nah, I'm good, thanks.",
+          "referencia": "Nah, tô de boa, valeu.",
+          "contexto": [],
+          "nota": "",
+          "hipotese": "Não, tô de boa, valeu.",
+          "tokens": {
+            "entrada": 369,
+            "saida": 11,
+            "raciocinio": 0
+          }
+        },
+        {
+          "id": "reg-07",
+          "categoria": "registro",
+          "origem": "Please be advised that the office will close early.",
+          "referencia": "Informamos que o escritório fechará mais cedo.",
+          "contexto": [],
+          "nota": "",
+          "hipotese": "Informamos que o escritório fechará mais cedo hoje.",
+          "tokens": {
+            "entrada": 372,
+            "saida": 12,
+            "raciocinio": 0
+          }
+        },
+        {
+          "id": "reg-08",
+          "categoria": "registro",
+          "origem": "Man, I'm beat.",
+          "referencia": "Cara, tô morto de cansado.",
+          "contexto": [],
+          "nota": "",
+          "hipotese": "Cara, tô exausto.",
+          "tokens": {
+            "entrada": 367,
+            "saida": 9,
+            "raciocinio": 0
+          }
+        },
+        {
+          "id": "reg-09",
+          "categoria": "registro",
+          "origem": "Would you be so kind as to repeat that?",
+          "referencia": "Você poderia repetir, por favor?",
+          "contexto": [],
+          "nota": "",
+          "hipotese": "Você poderia repetir, por gentileza?",
+          "tokens": {
+            "entrada": 372,
+            "saida": 10,
+            "raciocinio": 0
+          }
+        },
+        {
+          "id": "reg-10",
+          "categoria": "registro",
+          "origem": "Whatever, do your thing.",
+          "referencia": "Tanto faz, faz do teu jeito.",
+          "contexto": [],
+          "nota": "",
+          "hipotese": "Tanto faz, faz o que quiser.",
+          "tokens": {
+            "entrada": 368,
+            "saida": 8,
+            "raciocinio": 0
+          }
+        },
+        {
+          "id": "lit-04",
+          "categoria": "literal",
+          "origem": "The train leaves from platform two.",
+          "referencia": "O trem sai da plataforma dois.",
+          "contexto": [],
+          "nota": "controle.",
+          "hipotese": "O trem sai da plataforma dois.",
+          "tokens": {
+            "entrada": 369,
+            "saida": 8,
+            "raciocinio": 0
+          }
+        },
+        {
+          "id": "lit-05",
+          "categoria": "literal",
+          "origem": "I bought bread and milk this morning.",
+          "referencia": "Comprei pão e leite hoje de manhã.",
+          "contexto": [],
+          "nota": "controle.",
+          "hipotese": "Comprei pão e leite hoje de manhã.",
+          "tokens": {
+            "entrada": 370,
+            "saida": 11,
+            "raciocinio": 0
+          }
+        },
+        {
+          "id": "lit-06",
+          "categoria": "literal",
+          "origem": "There are twelve people in the room.",
+          "referencia": "Tem doze pessoas na sala.",
+          "contexto": [],
+          "nota": "controle.",
+          "hipotese": "Tem doze pessoas na sala.",
+          "tokens": {
+            "entrada": 370,
+            "saida": 7,
+            "raciocinio": 0
+          }
+        },
+        {
+          "id": "lit-07",
+          "categoria": "literal",
+          "origem": "He studies engineering at the university.",
+          "referencia": "Ele estuda engenharia na universidade.",
+          "contexto": [],
+          "nota": "controle.",
+          "hipotese": "Ele estuda engenharia na universidade.",
+          "tokens": {
+            "entrada": 369,
+            "saida": 8,
+            "raciocinio": 0
+          }
+        },
+        {
+          "id": "lit-08",
+          "categoria": "literal",
+          "origem": "The window is open and it's cold.",
+          "referencia": "A janela está aberta e está frio.",
+          "contexto": [],
+          "nota": "controle.",
+          "hipotese": "A janela está aberta e está frio.",
+          "tokens": {
+            "entrada": 370,
+            "saida": 9,
+            "raciocinio": 0
+          }
+        },
+        {
+          "id": "lit-09",
+          "categoria": "literal",
+          "origem": "We arrived before the rain started.",
+          "referencia": "Chegamos antes da chuva começar.",
+          "contexto": [],
+          "nota": "controle.",
+          "hipotese": "A gente chegou antes de começar a chover.",
+          "tokens": {
+            "entrada": 369,
+            "saida": 11,
+            "raciocinio": 0
+          }
+        },
+        {
+          "id": "lit-10",
+          "categoria": "literal",
+          "origem": "My phone battery is almost dead.",
+          "referencia": "A bateria do meu celular está quase acabando.",
+          "contexto": [],
+          "nota": "controle.",
+          "hipotese": "A bateria do meu celular tá quase acabando.",
+          "tokens": {
+            "entrada": 369,
+            "saida": 11,
+            "raciocinio": 0
+          }
+        },
+        {
+          "id": "fala-03",
+          "categoria": "fala-espontanea",
+          "origem": "I was like, uh, I dunno, maybe we should just go?",
+          "referencia": "Eu fiquei tipo, ahn, sei lá, talvez a gente devesse só ir?",
+          "contexto": [],
+          "nota": "hesitação e marcador de fala.",
+          "hipotese": "Tipo, sei lá, será que a gente não devia ir logo?",
+          "tokens": {
+            "entrada": 377,
+            "saida": 16,
+            "raciocinio": 0
+          }
+        },
+        {
+          "id": "fala-04",
+          "categoria": "fala-espontanea",
+          "origem": "And then he, he said something and I was just, like, wow.",
+          "referencia": "E aí ele, ele falou uma coisa e eu fiquei tipo, nossa.",
+          "contexto": [],
+          "nota": "repetição de palavra é típica de transcrição de fala.",
+          "hipotese": "E aí ele falou uma coisa e eu fiquei tipo, nossa.",
+          "tokens": {
+            "entrada": 378,
+            "saida": 14,
+            "raciocinio": 0
+          }
+        },
+        {
+          "id": "fala-05",
+          "categoria": "fala-espontanea",
+          "origem": "It's, you know, kind of complicated, right?",
+          "referencia": "É, sabe, meio complicado, né?",
+          "contexto": [],
+          "nota": "'right?' vira 'né?'.",
+          "hipotese": "É meio complicado, sabe?",
+          "tokens": {
+            "entrada": 373,
+            "saida": 6,
+            "raciocinio": 0
+          }
+        },
+        {
+          "id": "fala-06",
+          "categoria": "fala-espontanea",
+          "origem": "Okay so, basically, we just wait.",
+          "referencia": "Tá, então, basicamente a gente só espera.",
+          "contexto": [],
+          "nota": "",
+          "hipotese": "Beleza, então, basicamente, a gente só espera.",
+          "tokens": {
+            "entrada": 371,
+            "saida": 14,
+            "raciocinio": 0
+          }
+        },
+        {
+          "id": "fala-07",
+          "categoria": "fala-espontanea",
+          "origem": "I mean, honestly, who even cares?",
+          "referencia": "Quer dizer, sinceramente, quem liga?",
+          "contexto": [],
+          "nota": "",
+          "hipotese": "Quer saber, sinceramente, quem é que se importa com isso?",
+          "tokens": {
+            "entrada": 371,
+            "saida": 15,
+            "raciocinio": 0
+          }
+        },
+        {
+          "id": "fala-08",
+          "categoria": "fala-espontanea",
+          "origem": "Wait, wait, hold on, say that again?",
+          "referencia": "Peraí, peraí, calma, fala de novo?",
+          "contexto": [],
+          "nota": "",
+          "hipotese": "Espera, espera, calma aí, fala isso de novo?",
+          "tokens": {
+            "entrada": 373,
+            "saida": 14,
+            "raciocinio": 0
+          }
+        },
+        {
+          "id": "fala-09",
+          "categoria": "fala-espontanea",
+          "origem": "Yeah so anyway, that's pretty much it.",
+          "referencia": "É, enfim, é isso aí basicamente.",
+          "contexto": [],
+          "nota": "",
+          "hipotese": "É isso aí, basicamente isso.",
+          "tokens": {
+            "entrada": 371,
+            "saida": 8,
+            "raciocinio": 0
+          }
+        },
+        {
+          "id": "fala-10",
+          "categoria": "fala-espontanea",
+          "origem": "Um, yeah, no, totally, I get it.",
+          "referencia": "Ahn, é, não, total, eu entendo.",
+          "contexto": [],
+          "nota": "",
+          "hipotese": "Hmm, é, não, totalmente, te entendo.",
+          "tokens": {
+            "entrada": 374,
+            "saida": 13,
+            "raciocinio": 0
+          }
+        }
+      ],
+      "falhas": [],
+      "taxaDeFalha": 0,
+      "valido": true,
+      "geral": {
+        "casos": 60,
+        "chrf": 0.7188925344223968,
+        "precisao": 0.7107344503216513,
+        "recall": 0.7269602226238743
+      },
+      "porCategoria": {
+        "fala-espontanea": {
+          "casos": 10,
+          "chrf": 0.585773716329238,
+          "precisao": 0.582478368168226,
+          "recall": 0.591595671167718
+        },
+        "genero": {
+          "casos": 10,
+          "chrf": 0.852619441048532,
+          "precisao": 0.84521208797479,
+          "recall": 0.8550625276196382
+        },
+        "idiomatico": {
+          "casos": 10,
+          "chrf": 0.5731140508178367,
+          "precisao": 0.5400640371625279,
+          "recall": 0.6034343423230722
+        },
+        "literal": {
+          "casos": 10,
+          "chrf": 0.8757470983820289,
+          "precisao": 0.8762496519386034,
+          "recall": 0.8764089567073784
+        },
+        "pronome": {
+          "casos": 10,
+          "chrf": 0.7182441456414825,
+          "precisao": 0.7267959481518078,
+          "recall": 0.7171519304898968
+        },
+        "registro": {
+          "casos": 10,
+          "chrf": 0.7078567543152616,
+          "precisao": 0.6936066085339526,
+          "recall": 0.7181079074355401
+        }
+      },
+      "tokens": {
+        "entrada": 22603,
+        "saida": 669,
+        "raciocinio": 0
+      },
+      "volta": 1,
+      "custoPorMilFalas": 0
+    }
+  ],
+  "resumo": [
+    {
+      "modelo": "minimax/minimax-m3:free",
+      "formatoDePrompt": "comunicativo",
+      "media": 71.88925344223968,
+      "amplitude": null,
+      "execucoes": 1,
+      "custo": 0
+    }
+  ]
+}

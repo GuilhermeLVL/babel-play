@@ -144,227 +144,224 @@ export default function Loja({ progress, theme, setTheme, fonte, setFonte, menuP
 
   return (
     <div className="flex-1 h-full min-h-0 overflow-y-auto custom-scrollbar" aria-label="Loja">
-    <div className="max-w-5xl mx-auto px-4 sm:px-6 py-8 space-y-8 animate-in fade-in duration-300">
-      {/* ── TOPO: saldo, nível, e a promessa da tela ── */}
-      <section className="relative overflow-hidden rounded-3xl border border-border-subtle bg-surface px-6 py-8 sm:px-8">
-        <div aria-hidden className="pointer-events-none absolute inset-0">
-          <span className="sobre-blob absolute -top-14 right-8 w-56 h-56 rounded-full bg-warn/20 blur-3xl" />
-          <span className="sobre-blob sobre-blob-2 absolute -bottom-16 -left-8 w-64 h-64 rounded-full bg-accent/15 blur-3xl" />
-        </div>
-        <div className="relative flex flex-col sm:flex-row sm:items-center gap-5 justify-between">
-          <div>
-            <p className="label-mono mb-1.5">Loja & desbloqueios</p>
-            <h1 className="font-marca font-bold text-2xl sm:text-3xl text-ink tracking-tight flex items-center gap-2.5">
-              <ShoppingBag className="w-7 h-7 text-accent" /> Tudo que dá para conquistar
-            </h1>
-            <p className="text-[13.5px] text-ink-muted mt-1.5 max-w-xl">
-              Cada nível libera itens de graça. As <b className="text-ink">Seeds</b> que você ganha
-              estudando compram o atalho de quem não quer esperar.
-            </p>
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 py-8 space-y-8 animate-in fade-in duration-300">
+        {/* ── TOPO: saldo, nível, e a promessa da tela ── */}
+        <section className="relative overflow-hidden rounded-3xl border border-border-subtle bg-surface px-6 py-8 sm:px-8">
+          <div aria-hidden className="pointer-events-none absolute inset-0">
+            <span className="sobre-blob absolute -top-14 right-8 w-56 h-56 rounded-full bg-warn/20 blur-3xl" />
+            <span className="sobre-blob sobre-blob-2 absolute -bottom-16 -left-8 w-64 h-64 rounded-full bg-accent/15 blur-3xl" />
           </div>
-          <div className="flex items-center gap-3 shrink-0">
-            <div className="card-panel bg-canvas px-4 py-3 text-center min-w-[92px]">
-              <p className="font-display font-black text-2xl text-ink tabular-nums">{nivel}</p>
-              <p className="text-[10px] uppercase tracking-wider text-ink-muted font-bold">nível</p>
-            </div>
-            <div className="card-panel bg-canvas px-4 py-3 text-center min-w-[92px]">
-              <p className="flex items-center justify-center gap-1 font-display font-black text-2xl text-good tabular-nums">
-                <Sprout className="w-5 h-5" aria-hidden /> {saldo}
+          <div className="relative flex flex-col sm:flex-row sm:items-center gap-5 justify-between">
+            <div>
+              <p className="label-mono mb-1.5">Loja & desbloqueios</p>
+              <h1 className="font-marca font-bold text-2xl sm:text-3xl text-ink tracking-tight flex items-center gap-2.5">
+                <ShoppingBag className="w-7 h-7 text-accent" /> Tudo que dá para conquistar
+              </h1>
+              <p className="text-[13.5px] text-ink-muted mt-1.5 max-w-xl">
+                Cada nível libera itens de graça. As <b className="text-ink">Seeds</b> que você ganha
+                estudando compram o atalho de quem não quer esperar.
               </p>
-              <p className="text-[10px] uppercase tracking-wider text-ink-muted font-bold">seeds</p>
             </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ── NO PRÓXIMO NÍVEL: o motivo de continuar ── */}
-      {vitrine.length > 0 && (
-        <section className="card-panel bg-canvas border-accent/30 p-4 sm:p-5">
-          <p className="flex items-center gap-2 text-[12px] font-black uppercase tracking-wider text-accent-ink mb-3">
-            <Sparkles className="w-4 h-4" /> No nível {vitrine[0].nivel} você libera
-          </p>
-          <div className="flex flex-wrap gap-2">
-            {vitrine.map((i) => (
-              <span key={i.id} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-[12.5px] font-bold text-ink ${COR_DA_RARIDADE[i.raridade].borda} ${COR_DA_RARIDADE[i.raridade].fundo}`}>
-                {ICONE_DO_TIPO[i.tipo]} {i.nome}
-              </span>
-            ))}
+            <div className="flex items-center gap-3 shrink-0">
+              <div className="card-panel bg-canvas px-4 py-3 text-center min-w-[92px]">
+                <p className="font-display font-black text-2xl text-ink tabular-nums">{nivel}</p>
+                <p className="text-[10px] uppercase tracking-wider text-ink-muted font-bold">nível</p>
+              </div>
+              <div className="card-panel bg-canvas px-4 py-3 text-center min-w-[92px]">
+                <p className="flex items-center justify-center gap-1 font-display font-black text-2xl text-good tabular-nums">
+                  <Sprout className="w-5 h-5" aria-hidden /> {saldo}
+                </p>
+                <p className="text-[10px] uppercase tracking-wider text-ink-muted font-bold">seeds</p>
+              </div>
+            </div>
           </div>
         </section>
-      )}
 
-      {/* ── FILTROS ── */}
-      <div className="flex flex-wrap gap-1.5">
-        {FILTROS.map((f) => (
-          <button
-            key={f.id}
-            onClick={() => setFiltro(f.id)}
-            aria-pressed={filtro === f.id}
-            className={`px-4 py-2 rounded-xl text-[12.5px] font-bold cursor-pointer border transition-colors ${
-              filtro === f.id ? 'bg-accent text-accent-contrast border-accent' : 'bg-surface border-border-subtle text-ink-muted hover:text-ink hover:border-accent'
-            }`}
-          >
-            {f.nome}
-          </button>
-        ))}
-      </div>
+        {/* ── NO PRÓXIMO NÍVEL: o motivo de continuar ── */}
+        {vitrine.length > 0 && (
+          <section className="card-panel bg-canvas border-accent/30 p-4 sm:p-5">
+            <p className="flex items-center gap-2 text-[12px] font-black uppercase tracking-wider text-accent-ink mb-3">
+              <Sparkles className="w-4 h-4" /> No nível {vitrine[0].nivel} você libera
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {vitrine.map((i) => (
+                <span key={i.id} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-[12.5px] font-bold text-ink ${COR_DA_RARIDADE[i.raridade].borda} ${COR_DA_RARIDADE[i.raridade].fundo}`}>
+                  {ICONE_DO_TIPO[i.tipo]} {i.nome}
+                </span>
+              ))}
+            </div>
+          </section>
+        )}
 
-      {/* ── PRATELEIRAS ── */}
-      <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        {itens.map((item) => {
-          const { estado, motivo } = estadoDoItem(item, nivel, saldo);
-          const raridade = COR_DA_RARIDADE[item.raridade];
-          const equipado = estado === 'equipavel' && equipadoAtual(item);
-          return (
-            <div
-              key={item.id}
-              className={`card-panel overflow-hidden flex flex-col transition-all hover:-translate-y-1 hover:shadow-card border-2 ${raridade.borda} ${estado === 'bloqueado' ? 'opacity-80' : ''}`}
-              onMouseEnter={(e) => {
-                // Prévia VIVA: partículas soltam uma amostra ao passar o mouse no card delas.
-                if (item.tipo === 'particulas' && estado !== 'bloqueado') {
-                  const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
-                  emitBurst(r.left + r.width / 2, r.top + r.height / 3, 'xp');
-                }
-              }}
+        {/* ── FILTROS ── */}
+        <div className="flex flex-wrap gap-1.5">
+          {FILTROS.map((f) => (
+            <button
+              key={f.id}
+              onClick={() => setFiltro(f.id)}
+              aria-pressed={filtro === f.id}
+              className={`px-4 py-2 rounded-xl text-[12.5px] font-bold cursor-pointer border transition-colors ${filtro === f.id ? 'bg-accent text-accent-contrast border-accent' : 'bg-surface border-border-subtle text-ink-muted hover:text-ink hover:border-accent'
+                }`}
             >
-              {/* Prévia */}
-              <div className={`h-24 flex items-center justify-center gap-2 ${raridade.fundo} border-b ${raridade.borda}`}>
-                {item.previa ? (
-                  <span className="flex -space-x-1.5">
-                    {item.previa.map((c, i) => (
-                      <span key={i} className="w-9 h-9 rounded-full border-2 border-surface shadow-sm shrink-0" style={{ backgroundColor: c }} />
-                    ))}
-                  </span>
-                ) : item.tipo === 'particulas' ? (
-                  <span className="font-display font-black text-3xl select-none" aria-hidden>
-                    {item.alvo === 'coracoes' ? '💛🧡❤️' : item.alvo === 'estrelas' ? '⭐✨🌟' : item.alvo === 'confete' ? '🎊🎉' : item.alvo === 'emoji' ? PACKS_DE_EMOJI.find((pk) => pk.id === readPack())?.emojis.slice(0, 3).join('') : '🟧🟨🟩'}
-                  </span>
-                ) : item.tipo === 'pack' ? (
-                  <span className="font-display font-black text-2xl select-none tracking-wider" aria-hidden>
-                    {PACKS_DE_EMOJI.find((pk) => pk.id === item.alvo)?.emojis.slice(0, 4).join(' ')}
-                  </span>
-                ) : item.tipo === 'cursor' ? (
-                  <span className="font-display font-black text-4xl select-none" aria-hidden>
-                    {CURSORES.find((c) => c.id === item.alvo)?.emoji}
-                  </span>
-                ) : item.tipo === 'rastro' ? (
-                  <span className="font-display font-black text-3xl select-none" aria-hidden>
-                    {item.alvo === 'off' ? '🚫' : item.alvo === 'coracoes' ? '🖱️💨❤️' : item.alvo === 'estrelas' ? '🖱️💨⭐' : item.alvo === 'emoji' ? '🖱️💨🦆' : '🖱️💨✨'}
-                  </span>
-                ) : item.tipo === 'aprimoramento' ? (
-                  <span className="font-display font-black text-4xl select-none" aria-hidden>
-                    {item.alvo === 'sorte' ? '🎲' : '💥'}
-                  </span>
-                ) : item.tipo === 'estudio' ? (
-                  <Wand2 className="w-10 h-10 text-warn" aria-hidden />
-                ) : (
-                  <Gamepad2 className="w-10 h-10 text-ink-muted" aria-hidden />
-                )}
-              </div>
+              {f.nome}
+            </button>
+          ))}
+        </div>
 
-              <div className="p-4 flex flex-col gap-2 flex-1">
-                <div className="flex items-center justify-between gap-2">
-                  <h3 className="font-bold text-[14px] text-ink leading-tight">{item.nome}</h3>
-                  <span className={`shrink-0 text-[9.5px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full border ${raridade.borda} ${raridade.fundo} text-ink`}>{raridade.rotulo}</span>
+        {/* ── PRATELEIRAS ── */}
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {itens.map((item) => {
+            const { estado, motivo } = estadoDoItem(item, nivel, saldo);
+            const raridade = COR_DA_RARIDADE[item.raridade];
+            const equipado = estado === 'equipavel' && equipadoAtual(item);
+            return (
+              <div
+                key={item.id}
+                className={`card-panel overflow-hidden flex flex-col transition-all hover:-translate-y-1 hover:shadow-card border-2 ${raridade.borda} ${estado === 'bloqueado' ? 'opacity-80' : ''}`}
+                onMouseEnter={(e) => {
+                  // Prévia VIVA: partículas soltam uma amostra ao passar o mouse no card delas.
+                  if (item.tipo === 'particulas' && estado !== 'bloqueado') {
+                    const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
+                    emitBurst(r.left + r.width / 2, r.top + r.height / 3, 'xp');
+                  }
+                }}
+              >
+                {/* Prévia */}
+                <div className={`h-24 flex items-center justify-center gap-2 ${raridade.fundo} border-b ${raridade.borda}`}>
+                  {item.previa ? (
+                    <span className="flex -space-x-1.5">
+                      {item.previa.map((c, i) => (
+                        <span key={i} className="w-9 h-9 rounded-full border-2 border-surface shadow-sm shrink-0" style={{ backgroundColor: c }} />
+                      ))}
+                    </span>
+                  ) : item.tipo === 'particulas' ? (
+                    <span className="font-display font-black text-3xl select-none" aria-hidden>
+                      {item.alvo === 'coracoes' ? '💛🧡❤️' : item.alvo === 'estrelas' ? '⭐✨🌟' : item.alvo === 'confete' ? '🎊🎉' : item.alvo === 'emoji' ? PACKS_DE_EMOJI.find((pk) => pk.id === readPack())?.emojis.slice(0, 3).join('') : '🟧🟨🟩'}
+                    </span>
+                  ) : item.tipo === 'pack' ? (
+                    <span className="font-display font-black text-2xl select-none tracking-wider" aria-hidden>
+                      {PACKS_DE_EMOJI.find((pk) => pk.id === item.alvo)?.emojis.slice(0, 4).join(' ')}
+                    </span>
+                  ) : item.tipo === 'cursor' ? (
+                    <span className="font-display font-black text-4xl select-none" aria-hidden>
+                      {CURSORES.find((c) => c.id === item.alvo)?.emoji}
+                    </span>
+                  ) : item.tipo === 'rastro' ? (
+                    <span className="font-display font-black text-3xl select-none" aria-hidden>
+                      {item.alvo === 'off' ? '🚫' : item.alvo === 'coracoes' ? '🖱️💨❤️' : item.alvo === 'estrelas' ? '🖱️💨⭐' : item.alvo === 'emoji' ? '🖱️💨🦆' : '🖱️💨✨'}
+                    </span>
+                  ) : item.tipo === 'aprimoramento' ? (
+                    <span className="font-display font-black text-4xl select-none" aria-hidden>
+                      {item.alvo === 'sorte' ? '🎲' : '💥'}
+                    </span>
+                  ) : item.tipo === 'estudio' ? (
+                    <Wand2 className="w-10 h-10 text-warn" aria-hidden />
+                  ) : (
+                    <Gamepad2 className="w-10 h-10 text-ink-muted" aria-hidden />
+                  )}
                 </div>
-                <p className="text-[12px] text-ink-muted leading-snug flex-1">{item.desc}</p>
 
-                {item.tipo === 'aprimoramento' ? (
-                  (() => {
-                    const nv = nivelDoAprimoramento(item.alvo);
-                    const custo = custoDoProximoNivel(item.alvo);
-                    const pct = progressoDoAprimoramento(item.alvo);
-                    return (
-                      <div className="space-y-2">
-                        {/* A barra de progressão do upgrade — o "battle pass" do item. */}
-                        <div>
-                          <div className="flex items-center justify-between text-[11px] font-black mb-1">
-                            <span className="text-ink">Nv. {nv} / {NIVEL_MAXIMO}</span>
-                            <span className="text-ink-muted tabular-nums">{pct}%</span>
-                          </div>
-                          <div className="h-2 rounded-full bg-canvas border border-border-subtle overflow-hidden">
-                            <div className="h-full rounded-full bg-warn transition-all duration-500" style={{ width: `${pct}%` }} />
-                          </div>
-                        </div>
-                        {custo === null ? (
-                          <div className="w-full py-2 rounded-xl bg-warn/15 border border-warn text-center text-[12.5px] font-black text-warn-ink">★ Dominado</div>
-                        ) : (
-                          <button
-                            onClick={(e) => void aprimorar(item, e.currentTarget)}
-                            disabled={comprando === item.id || saldo < custo}
-                            className="w-full py-2.5 rounded-xl bg-warn hover:brightness-110 text-white font-bold text-[13px] shadow-btn transition-all cursor-pointer disabled:opacity-50"
-                          >
-                            <span className="inline-flex items-center gap-1.5"><Sprout className="w-4 h-4" /> {comprando === item.id ? 'Aprimorando…' : `Aprimorar · ${custo} Seeds`}</span>
-                          </button>
-                        )}
-                        {item.alvo === 'particulas' && nv > 0 && (
+                <div className="p-4 flex flex-col gap-2 flex-1">
+                  <div className="flex items-center justify-between gap-2">
+                    <h3 className="font-bold text-[14px] text-ink leading-tight">{item.nome}</h3>
+                    <span className={`shrink-0 text-[9.5px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full border ${raridade.borda} ${raridade.fundo} text-ink`}>{raridade.rotulo}</span>
+                  </div>
+                  <p className="text-[12px] text-ink-muted leading-snug flex-1">{item.desc}</p>
+
+                  {item.tipo === 'aprimoramento' ? (
+                    (() => {
+                      const nv = nivelDoAprimoramento(item.alvo);
+                      const custo = custoDoProximoNivel(item.alvo);
+                      const pct = progressoDoAprimoramento(item.alvo);
+                      return (
+                        <div className="space-y-2">
+                          {/* A barra de progressão do upgrade — o "battle pass" do item. */}
                           <div>
-                            <p className="text-[10.5px] uppercase tracking-wider font-black text-ink-faint mb-1">Intensidade (sua escolha)</p>
-                            <div className="grid grid-cols-3 gap-1 p-1 bg-canvas border border-border-subtle rounded-xl">
-                              {(['pequena', 'media', 'grande'] as Intensidade[]).map((intz) => {
-                                const teto = intensidadeMaxima(nv);
-                                const permitida = ['pequena', 'media', 'grande'].indexOf(intz) <= ['pequena', 'media', 'grande'].indexOf(teto);
-                                return (
-                                  <button
-                                    key={intz}
-                                    disabled={!permitida}
-                                    onClick={(e) => {
-                                      setIntensidade(intz);
-                                      force((n) => n + 1);
-                                      const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
-                                      emitBurst(r.left + r.width / 2, r.top, 'xp');
-                                    }}
-                                    aria-pressed={lerIntensidade() === intz}
-                                    className={`py-1.5 rounded-lg text-[11px] font-bold cursor-pointer transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${
-                                      lerIntensidade() === intz ? 'bg-accent text-accent-contrast' : 'text-ink-muted hover:text-ink'
-                                    }`}
-                                    title={permitida ? undefined : `Requer Nv. ${intz === 'grande' ? 2 : 1}`}
-                                  >
-                                    {intz === 'pequena' ? 'Pequena' : intz === 'media' ? 'Média' : 'Grande'}
-                                  </button>
-                                );
-                              })}
+                            <div className="flex items-center justify-between text-[11px] font-black mb-1">
+                              <span className="text-ink">Nv. {nv} / {NIVEL_MAXIMO}</span>
+                              <span className="text-ink-muted tabular-nums">{pct}%</span>
+                            </div>
+                            <div className="h-2 rounded-full bg-canvas border border-border-subtle overflow-hidden">
+                              <div className="h-full rounded-full bg-warn transition-all duration-500" style={{ width: `${pct}%` }} />
                             </div>
                           </div>
-                        )}
-                      </div>
-                    );
-                  })()
-                ) : estado === 'equipavel' ? (
-                  <button
-                    onClick={(e) => equipar(item, e.currentTarget)}
-                    disabled={equipado}
-                    className={`w-full py-2.5 rounded-xl font-bold text-[13px] transition-all cursor-pointer ${
-                      equipado ? 'bg-good-soft text-good-ink cursor-default' : 'bg-accent hover:bg-accent-ink text-white shadow-btn'
-                    }`}
-                  >
-                    {equipado ? <span className="inline-flex items-center gap-1.5"><Check className="w-4 h-4" /> Equipado</span> : item.tipo === 'estudio' ? 'Abrir o Estúdio' : 'Equipar'}
-                  </button>
-                ) : estado === 'compravel' ? (
-                  <button
-                    onClick={(e) => void comprar(item, e.currentTarget)}
-                    disabled={comprando === item.id}
-                    className="w-full py-2.5 rounded-xl bg-good hover:brightness-110 text-white font-bold text-[13px] shadow-btn transition-all cursor-pointer disabled:opacity-60"
-                  >
-                    <span className="inline-flex items-center gap-1.5">
-                      <Sprout className="w-4 h-4" /> {comprando === item.id ? 'Comprando…' : `Obter por ${item.precoSeeds} Seeds`}
-                    </span>
-                  </button>
-                ) : (
-                  <div className="w-full py-2.5 rounded-xl bg-canvas border border-border-subtle text-center text-[12.5px] font-bold text-ink-muted">
-                    <span className="inline-flex items-center gap-1.5"><Lock className="w-3.5 h-3.5" /> {motivo}</span>
-                  </div>
-                )}
+                          {custo === null ? (
+                            <div className="w-full py-2 rounded-xl bg-warn/15 border border-warn text-center text-[12.5px] font-black text-warn-ink">★ Dominado</div>
+                          ) : (
+                            <button
+                              onClick={(e) => void aprimorar(item, e.currentTarget)}
+                              disabled={comprando === item.id || saldo < custo}
+                              className="w-full py-2.5 rounded-xl bg-warn hover:brightness-110 text-white font-bold text-[13px] shadow-btn transition-all cursor-pointer disabled:opacity-50"
+                            >
+                              <span className="inline-flex items-center gap-1.5"><Sprout className="w-4 h-4" /> {comprando === item.id ? 'Aprimorando…' : `Aprimorar · ${custo} Seeds`}</span>
+                            </button>
+                          )}
+                          {item.alvo === 'particulas' && nv > 0 && (
+                            <div>
+                              <p className="text-[10.5px] uppercase tracking-wider font-black text-ink-faint mb-1">Intensidade (sua escolha)</p>
+                              <div className="grid grid-cols-3 gap-1 p-1 bg-canvas border border-border-subtle rounded-xl">
+                                {(['pequena', 'media', 'grande'] as Intensidade[]).map((intz) => {
+                                  const teto = intensidadeMaxima(nv);
+                                  const permitida = ['pequena', 'media', 'grande'].indexOf(intz) <= ['pequena', 'media', 'grande'].indexOf(teto);
+                                  return (
+                                    <button
+                                      key={intz}
+                                      disabled={!permitida}
+                                      onClick={(e) => {
+                                        setIntensidade(intz);
+                                        force((n) => n + 1);
+                                        const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
+                                        emitBurst(r.left + r.width / 2, r.top, 'xp');
+                                      }}
+                                      aria-pressed={lerIntensidade() === intz}
+                                      className={`py-1.5 rounded-lg text-[11px] font-bold cursor-pointer transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${lerIntensidade() === intz ? 'bg-accent text-accent-contrast' : 'text-ink-muted hover:text-ink'
+                                        }`}
+                                      title={permitida ? undefined : `Requer Nv. ${intz === 'grande' ? 2 : 1}`}
+                                    >
+                                      {intz === 'pequena' ? 'Pequena' : intz === 'media' ? 'Média' : 'Grande'}
+                                    </button>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })()
+                  ) : estado === 'equipavel' ? (
+                    <button
+                      onClick={(e) => equipar(item, e.currentTarget)}
+                      disabled={equipado}
+                      className={`w-full py-2.5 rounded-xl font-bold text-[13px] transition-all cursor-pointer ${equipado ? 'bg-good-soft text-good-ink cursor-default' : 'bg-accent hover:bg-accent-ink text-white shadow-btn'
+                        }`}
+                    >
+                      {equipado ? <span className="inline-flex items-center gap-1.5"><Check className="w-4 h-4" /> Equipado</span> : item.tipo === 'estudio' ? 'Abrir o Estúdio' : 'Equipar'}
+                    </button>
+                  ) : estado === 'compravel' ? (
+                    <button
+                      onClick={(e) => void comprar(item, e.currentTarget)}
+                      disabled={comprando === item.id}
+                      className="w-full py-2.5 rounded-xl bg-good hover:brightness-110 text-white font-bold text-[13px] shadow-btn transition-all cursor-pointer disabled:opacity-60"
+                    >
+                      <span className="inline-flex items-center gap-1.5">
+                        <Sprout className="w-4 h-4" /> {comprando === item.id ? 'Comprando…' : `Obter por ${item.precoSeeds} Seeds`}
+                      </span>
+                    </button>
+                  ) : (
+                    <div className="w-full py-2.5 rounded-xl bg-canvas border border-border-subtle text-center text-[12.5px] font-bold text-ink-muted">
+                      <span className="inline-flex items-center gap-1.5"><Lock className="w-3.5 h-3.5" /> {motivo}</span>
+                    </div>
+                  )}
+                </div>
               </div>
-            </div>
-          );
-        })}
-      </div>
+            );
+          })}
+        </div>
 
-      <p className="text-center text-[11.5px] text-ink-faint pb-4">
-        Seeds se ganham estudando: 1 por palavra capturada, 4 por revisão certa. Nada aqui custa dinheiro.
-      </p>
-    </div>
+        <p className="text-center text-[11.5px] text-ink-faint pb-4">
+          Seeds se ganham estudando: 1 por palavra capturada, 4 por revisão certa. Nada aqui custa dinheiro.
+        </p>
+      </div>
     </div>
   );
 }

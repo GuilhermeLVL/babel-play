@@ -1,4 +1,5 @@
 import { useEffect, useRef, type ReactNode } from 'react';
+import { ChevronRight, SlidersHorizontal as SlidersIcon } from 'lucide-react';
 import Segmentado from '../ui/Segmentado';
 import { numero, t, tp } from '../../lib/i18n';
 
@@ -58,12 +59,12 @@ export interface SeletorDeConteudoProps {
   avisoDeVazio?: string;
   /**
    * Ações que TRAZEM ou GERENCIAM material (importar do Anki, abrir os baralhos), no rodapé.
-   *
-   * Ficavam soltas acima do seletor, como três botões sem rótulo de grupo — pareciam navegação da
-   * tela quando na verdade pertencem a esta decisão: de onde vem o que eu jogo. Não são facetas
-   * porque não recortam nada; abrem outra tela. Daí ficarem separadas por uma linha, no rodapé.
    */
   acoes?: ReactNode;
+  /**
+   * Ações rápidas exibidas na barra de resumo (Recordes, Mapa, Curadoria, Diagnóstico).
+   */
+  acoesBarra?: ReactNode;
 }
 
 const ID_DA_GAVETA = 'seletor-de-conteudo-gaveta';
@@ -78,6 +79,7 @@ export function SeletorDeConteudo({
   aoLimpar,
   avisoDeVazio,
   acoes,
+  acoesBarra,
 }: SeletorDeConteudoProps) {
   // Escape fecha, mas só enquanto a gaveta está aberta — do contrário este seletor roubaria o Esc
   // de outras camadas da tela (diálogos, tour) mesmo fechado.
@@ -98,13 +100,13 @@ export function SeletorDeConteudo({
     <div>
       {/* ── Linha de resumo ──────────────────────────────────────────────────────────────── */}
       <div
-        className={`flex items-center gap-3 flex-wrap card-panel bg-surface px-3.5 py-2.5 transition-colors ${
-          aberta ? 'border-2 border-ink rounded-b-none' : 'border border-border-subtle'
+        className={`flex items-center gap-3 flex-wrap card-panel bg-surface px-4 py-2.5 transition-colors ${
+          aberta ? 'border border-accent rounded-b-none' : 'border border-border-subtle'
         }`}
       >
-        <div className="flex items-baseline gap-2 flex-wrap flex-1 min-w-[240px] text-[13.5px]">
-          <span className="label-mono">{t('jogando com')}</span>
-          <span className="font-display font-extrabold text-lg tabular-nums text-ink">
+        <div className="flex items-center gap-2.5 flex-wrap flex-1 min-w-[240px] text-[13px]">
+          <span className="label-mono text-[10.5px] uppercase tracking-wider">{t('jogando com')}</span>
+          <span className="font-display font-extrabold text-base tabular-nums text-ink">
             {numero(total)}
           </span>
           <span className="text-ink-muted">{tp(total, 'palavra', 'palavras')}</span>
@@ -125,24 +127,24 @@ export function SeletorDeConteudo({
           )}
         </div>
 
-        {/* O RÓTULO NÃO MUDA COM O ESTADO. Trocar o texto para "Fechar" ao abrir renomeia o
-            controle para quem usa leitor de tela — o mesmo botão vira outro botão a cada clique —
-            e é `aria-expanded` que existe para dizer aberto/fechado. Quem enxerga tem o triângulo
-            girando; quem não enxerga tem o estado anunciado. */}
-        <button
-          type="button"
-          onClick={aoAlternar}
-          aria-expanded={aberta}
-          aria-controls={ID_DA_GAVETA}
-          className={`shrink-0 flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-[13px] font-semibold border-2 cursor-pointer transition-colors ${
-            aberta
-              ? 'bg-ink text-ink-contrast border-ink'
-              : 'bg-surface border-border-subtle hover:bg-surface-hover text-ink'
-          }`}
-        >
-          {t('Trocar')}
-          <span aria-hidden="true" className={`inline-block text-[9px] transition-transform ${aberta ? 'rotate-90' : ''}`}>▶</span>
-        </button>
+        <div className="flex items-center gap-2 shrink-0 flex-wrap sm:flex-nowrap">
+          {acoesBarra}
+          <button
+            type="button"
+            onClick={aoAlternar}
+            aria-expanded={aberta}
+            aria-controls={ID_DA_GAVETA}
+            className={`shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[12px] font-bold border cursor-pointer transition-all ${
+              aberta
+                ? 'bg-accent text-white border-accent shadow-xs'
+                : 'bg-surface border-border-subtle hover:bg-surface-hover hover:border-accent/40 text-ink'
+            }`}
+          >
+            <SlidersIcon className={`w-3.5 h-3.5 ${aberta ? 'text-white' : 'text-accent'}`} />
+            <span>{t('Fonte')}</span>
+            <ChevronRight className={`w-3.5 h-3.5 transition-transform ${aberta ? 'rotate-90' : ''}`} />
+          </button>
+        </div>
       </div>
 
       {/* ── Gaveta ───────────────────────────────────────────────────────────────────────────

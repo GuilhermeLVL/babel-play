@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState, useRef, useDeferredValue } from 'react';
 import { createPortal } from 'react-dom';
-import { Check, Timer, Mic, ChevronRight, ChevronLeft, Pin, ListChecks, Map as MapIcon, Sprout, Flame, GraduationCap, Lock, HelpCircle, Package, Trophy, SlidersHorizontal as SlidersIcon, Trophy as TrophyIcon, Layers, Globe, BookOpen, CalendarClock, Sparkles, Languages, MessageSquareText, Gamepad2, Dices, Search, X as XIcon, Compass, Zap, Play as PlayIcon } from 'lucide-react';
+import { Check, Timer, Mic, ChevronRight, ChevronLeft, Pin, ListChecks, Map as MapIcon, Sprout, Flame, GraduationCap, Lock, HelpCircle, Package, Trophy, SlidersHorizontal as SlidersIcon, Trophy as TrophyIcon, Layers, Globe, BookOpen, CalendarClock, Sparkles, Languages, MessageSquareText, Gamepad2, Dices, Search, X as XIcon, Compass, Zap, Play as PlayIcon, Headphones, Puzzle, BarChart2 } from 'lucide-react';
 import KarutaGame from '../minigames/KarutaGame';
 import KofferGame from '../minigames/KofferGame';
 import ChoseongGame from '../minigames/ChoseongGame';
@@ -2227,12 +2227,12 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
     const sorteio = Math.floor(Math.random() * totalOpcoes);
     if (sorteio < classicosLiberados.length) {
       const escolhido = classicosLiberados[sorteio];
-      toast.ok(`🎲 ${t('Partida rápida:')} ${tituloDoJogo(escolhido, ageProfile)}!`);
+      toast.ok(`${t('Partida rápida:')} ${tituloDoJogo(escolhido, ageProfile)}!`);
       pedirParaJogar(escolhido);
     } else {
       const cultIndex = sorteio - classicosLiberados.length;
       const escolhido = JOGOS_CULTURAIS[cultIndex];
-      toast.ok(`🎲 ${t('Partida cultural rápida:')} ${escolhido.nome}!`);
+      toast.ok(`${t('Partida cultural rápida:')} ${escolhido.nome}!`);
       setJogoCulturalAtivo(escolhido.id);
     }
   }, [listaDeJogos, ageProfile]);
@@ -2729,111 +2729,107 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
           segundo `<h1>` na mesma página quebra a navegação por cabeçalho do leitor de tela, a
           pessoa passa a ter dois "títulos da página" e nenhum diz onde ela está. */}
       {!embutido && (
-        <header className="mb-6 flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
+        <header className="mb-5 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div>
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2.5 flex-wrap">
+              <span className="w-8 h-8 rounded-xl bg-accent text-white flex items-center justify-center shadow-xs shrink-0" aria-hidden>
+                <Gamepad2 className="w-4 h-4" />
+              </span>
               <h1 className="font-display font-black text-2xl text-ink tracking-tight">
-                {ageProfile === 'senior' ? t('Praticar jogando') : t('Jogar')}
+                {ageProfile === 'senior' ? t('Praticar jogando') : t('Jogar & Praticar')}
               </h1>
+              <span className="kpi-pill text-[10.5px] font-extrabold uppercase tracking-wider text-accent border-accent/30 bg-accent-soft/60">
+                {jogosProntos.length + JOGOS_CULTURAIS.length} {t('Jogos')}
+              </span>
             </div>
-            <p className="text-[13px] text-ink-muted mt-1 max-w-[70ch]">
+            <p className="text-[13px] text-ink-muted mt-1 max-w-[65ch]">
               {ageProfile === 'senior'
                 ? t('Jogos curtos com as palavras que você já salvou. Cada acerto conta para a sua memória.')
-                : t('Rodadas curtas com as SUAS palavras. O que você acerta aqui conta na revisão.')}
+                : t('Rodadas curtas e dinâmicas com as suas palavras. O que você acerta aqui conta na revisão.')}
             </p>
           </div>
-          {/* PROGRESSO no cabeçalho, compacto: nível com a barra até o próximo, ofensiva e seeds.
-              Mesma fonte do Início (`deriveProgress(metrics)`), e cada número explica no `title`
-              de onde saiu, XP vem de sessões, palavras e revisões medidas; seeds são ganhas menos
-              gastas. Sem métrica, esqueleto: nunca um zero que parece dado. */}
-          {progress.available ? (
-            <section
-              aria-label={t('Seu progresso')}
-              /* O CRACHÁ INTEIRO É O ALVO, mesmo com a seta ao lado sendo o botão de verdade.
-                 O protótipo pedia a pílula toda clicável; o elemento não pode virar `<button>`
-                 porque a barra de XP é um `progressbar` e isso daria um controle dentro de outro.
-                 A saída é a mesma da carta de jogo: o botão estende a área de clique dele sobre
-                 a seção (`after:inset-0`), então o gesto é o da pílula inteira e a árvore
-                 continua válida. */
-              className="card-panel bg-surface px-4 py-2.5 flex items-center gap-5 shrink-0 self-start sm:self-auto relative hover:border-accent transition-colors"
+
+          <div className="flex items-center gap-3 shrink-0 self-start md:self-auto flex-wrap sm:flex-nowrap">
+            {/* BOTÃO DE DESTAQUE: PARTIDA RÁPIDA NO TOPO */}
+            <button
+              type="button"
+              onClick={partidaRapida}
+              className="py-2.5 px-4 bg-accent hover:bg-accent-ink text-white rounded-xl font-black text-[13px] shadow-sm hover:shadow-md transition-all flex items-center gap-2 active:scale-95 cursor-pointer shrink-0"
+              title={t('Sorteia um jogo aleatório dentre os disponíveis e inicia imediatamente')}
             >
-              <div
-                className="min-w-[8.5rem]"
-                title={t('{xp} XP no total, {detalhe}. Faltam {faltam} XP para o próximo.', {
-                  xp: progress.xp,
-                  detalhe: metrics
-                    ? t('{sessoes} {unidade}, {palavras} palavras capturadas, {revisoes} revisões, {itens} itens de jogo', {
-                        sessoes: metrics.sessions,
-                        unidade: tp(metrics.sessions, 'sessão', 'sessões'),
-                        palavras: metrics.wordsCaptured,
-                        revisoes: metrics.reviews,
-                        itens: metrics.drillItems ?? 0,
+              <Dices className="w-4 h-4" />
+              <span>{t('Partida Rápida')}</span>
+            </button>
+
+            {/* PROGRESSO no cabeçalho */}
+            {progress.available ? (
+              <section
+                aria-label={t('Seu progresso')}
+                className="card-panel bg-surface px-4 py-2.5 flex items-center gap-4 shrink-0 self-start sm:self-auto relative hover:border-accent transition-colors"
+              >
+                <div
+                  className="min-w-[8rem]"
+                  title={t('{xp} XP no total, {detalhe}. Faltam {faltam} XP para o próximo.', {
+                    xp: progress.xp,
+                    detalhe: metrics
+                      ? t('{sessoes} {unidade}, {palavras} palavras capturadas, {revisoes} revisões, {itens} itens de jogo', {
+                          sessoes: metrics.sessions,
+                          unidade: tp(metrics.sessions, 'sessão', 'sessões'),
+                          palavras: metrics.wordsCaptured,
+                          revisoes: metrics.reviews,
+                          itens: metrics.drillItems ?? 0,
+                        })
+                      : t('calculado das suas métricas'),
+                    faltam: progress.xpForLevel - progress.xpIntoLevel,
+                  })}
+                >
+                  <div className="flex items-baseline justify-between gap-3">
+                    <span className="label-mono">{ageProfile === 'senior' ? t('Etapa') : t('Nível')} {progress.level}</span>
+                    <span className="text-[11px] text-ink-muted tabular-nums">{progress.xpIntoLevel}/{progress.xpForLevel} XP</span>
+                  </div>
+                  <div className="h-1.5 bg-canvas rounded-full mt-1.5 overflow-hidden" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={progress.levelPct} aria-label={t('Progresso para {escala} {n}', { escala: ageProfile === 'senior' ? t('etapa') : t('nível'), n: progress.level + 1 })}>
+                    <div className="h-full bg-accent rounded-full transition-all duration-500" style={{ width: `${progress.levelPct}%` }} />
+                  </div>
+                </div>
+                <span
+                  className="flex items-center gap-1 text-[13px] font-bold text-ink"
+                  title={progress.practicedToday
+                    ? t('Você já apareceu hoje: {n} {dias}. Abrir o app amanhã mantém a contagem.', {
+                        n: progress.streakDays, dias: tp(progress.streakDays, 'dia seguido', 'dias seguidos'),
                       })
-                    : t('calculado das suas métricas'),
-                  faltam: progress.xpForLevel - progress.xpIntoLevel,
-                })}
-              >
-                <div className="flex items-baseline justify-between gap-3">
-                  <span className="label-mono">{ageProfile === 'senior' ? t('Etapa') : t('Nível')} {progress.level}</span>
-                  <span className="text-[11px] text-ink-muted tabular-nums">{progress.xpIntoLevel}/{progress.xpForLevel} XP</span>
-                </div>
-                <div className="h-1.5 bg-canvas rounded-full mt-1.5 overflow-hidden" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={progress.levelPct} aria-label={t('Progresso para {escala} {n}', { escala: ageProfile === 'senior' ? t('etapa') : t('nível'), n: progress.level + 1 })}>
-                  <div className="h-full bg-accent rounded-full transition-all duration-500" style={{ width: `${progress.levelPct}%` }} />
-                </div>
-              </div>
-              <span
-                className="flex items-center gap-1.5 text-[13px] font-bold text-ink"
-                /* A ofensiva é `max(dias com revisão, dias de presença)` (metrics.ts:279), e a
-                   presença é creditada ao ABRIR o app (App.tsx:424). O texto antigo pedia uma
-                   revisão para manter a chama — cobrava o que o app não cobra. E jogar uma rodada
-                   NÃO move este número: por isso a frase não promete que move. */
-                title={progress.practicedToday
-                  ? t('Você já apareceu hoje: {n} {dias}. Abrir o app amanhã mantém a contagem.', {
-                      n: progress.streakDays, dias: tp(progress.streakDays, 'dia seguido', 'dias seguidos'),
-                    })
-                  : t('Dias seguidos em que você abriu o app ou revisou. Não há penalidade por quebrar.')}
-              >
-                <Flame className={`w-4 h-4 ${progress.practicedToday ? 'text-warn-ink' : 'text-ink-faint'}`} aria-hidden /> {progress.streakDays}
-                <span className="text-ink-muted font-medium">{tp(progress.streakDays, 'dia', 'dias')}</span>
-              </span>
-              <span
-                className="flex items-center gap-1.5 text-[13px] font-bold text-ink"
-                /* LÊ A TABELA VIVA, não um texto fixo. Esta string ensinava "1 por palavra
-                   capturada, 4 por revisão certa": a captura SAIU das Seeds na economia v2 e a
-                   revisão certa vale 2. `economia.ts` existe justamente para que o que a tela
-                   promete seja, por construção, o que o app credita — e esta era a única frase
-                   do subsistema que não o consultava. Mostra primeiro o que ESTA tela move. */
-                title={(() => {
-                  const seeds = (id: string) => REGRAS.find(r => r.id === id)?.seeds ?? 0;
-                  return t('Saldo: {ganhas} ganhas − {gastas} gastas. Jogando: {acerto} por acerto e {perfeita} por rodada sem erro.', {
-                    ganhas: progress.seedsGanhas,
-                    gastas: metrics?.seedsGastas ?? 0,
-                    acerto: seeds('jogoCerto'),
-                    perfeita: seeds('rodadaPerfeita'),
-                  });
-                })()}
-              >
-                <Sprout className="w-4 h-4 text-good-ink" aria-hidden /> {progress.seeds}
-                <span className="text-ink-muted font-medium">{t('seeds')}</span>
-              </span>
-              {/* A SAÍDA PARA A ECONOMIA QUE ESTA TELA ALIMENTA.
-                  Jogar rende XP, seeds e conquistas — e daqui não saía nenhum caminho para o
-                  lugar onde isso vira alguma coisa. Ficava tudo num painel que só informa, ao
-                  lado de três números que a pessoa não podia gastar sem procurar o menu.
-                  É um botão à parte, e não a pílula inteira, porque a barra de XP é um
-                  `progressbar` e embrulhá-la num botão daria um controle dentro de outro. */}
-              <button
-                onClick={() => onChangeView('loja')}
-                className="ms-1 shrink-0 min-w-6 min-h-6 inline-flex items-center justify-center rounded-lg text-ink-faint hover:text-accent cursor-pointer after:absolute after:inset-0 after:content-[''] after:rounded-[inherit]"
-                title={t('Ver o passe, a loja e os desafios')}
-                aria-label={t('Ver o passe, a loja e os desafios')}
-              >
-                <ChevronRight className="w-4 h-4" aria-hidden />
-              </button>
-            </section>
-          ) : (
-            <div className="card-panel bg-surface px-4 py-2.5 h-[54px] w-[22rem] max-w-full animate-pulse shrink-0" aria-hidden />
-          )}
+                    : t('Dias seguidos em que você abriu o app ou revisou. Não há penalidade por quebrar.')}
+                >
+                  <Flame className={`w-4 h-4 ${progress.practicedToday ? 'text-warn-ink' : 'text-ink-faint'}`} aria-hidden /> {progress.streakDays}
+                  <span className="text-ink-muted font-medium text-[12px]">{tp(progress.streakDays, 'dia', 'dias')}</span>
+                </span>
+                <span
+                  className="flex items-center gap-1 text-[13px] font-bold text-ink"
+                  title={(() => {
+                    const seeds = (id: string) => REGRAS.find(r => r.id === id)?.seeds ?? 0;
+                    return t('Saldo: {ganhas} ganhas − {gastas} gastas. Jogando: {acerto} por acerto e {perfeita} por rodada sem erro.', {
+                      ganhas: progress.seedsGanhas,
+                      gastas: metrics?.seedsGastas ?? 0,
+                      acerto: seeds('jogoCerto'),
+                      perfeita: seeds('rodadaPerfeita'),
+                    });
+                  })()}
+                >
+                  <Sprout className="w-4 h-4 text-good-ink" aria-hidden /> {progress.seeds}
+                  <span className="text-ink-muted font-medium text-[12px]">{t('seeds')}</span>
+                </span>
+                <button
+                  onClick={() => onChangeView('loja')}
+                  className="ms-0.5 shrink-0 min-w-6 min-h-6 inline-flex items-center justify-center rounded-lg text-ink-faint hover:text-accent cursor-pointer after:absolute after:inset-0 after:content-[''] after:rounded-[inherit]"
+                  title={t('Ver o passe, a loja e os desafios')}
+                  aria-label={t('Ver o passe, a loja e os desafios')}
+                >
+                  <ChevronRight className="w-4 h-4" aria-hidden />
+                </button>
+              </section>
+            ) : (
+              <div className="card-panel bg-surface px-4 py-2.5 h-[54px] w-[22rem] max-w-full animate-pulse shrink-0" aria-hidden />
+            )}
+          </div>
         </header>
       )}
 
@@ -2914,10 +2910,59 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
                 ? t('nenhum item passa; desligue um recorte para voltar a ter material')
                 : undefined
             }
-            /* AS AÇÕES DESCERAM PARA DENTRO. Anki, Baralhos e o seletor de idioma ficavam soltos
-               acima da linha, três botões sem rótulo de grupo que pareciam navegação da tela.
-               Pertencem a esta decisão — de onde vem o que eu jogo —, mas não são facetas: não
-               recortam nada, abrem outra tela. Daí ficarem no rodapé, atrás de uma separação. */
+            acoesBarra={
+              <>
+                <button
+                  type="button"
+                  onClick={() => setVerRecordes(true)}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-border-subtle bg-surface hover:bg-surface-hover hover:border-warn text-[12px] font-bold text-ink transition-colors cursor-pointer"
+                  title={t('Ver recordes e ranking')}
+                >
+                  <TrophyIcon className="w-3.5 h-3.5 text-warn" />
+                  <span className="hidden sm:inline">{t('Recordes')}</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setVendoMapa(true)}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-border-subtle bg-surface hover:bg-surface-hover hover:border-accent text-[12px] font-bold text-ink transition-colors cursor-pointer"
+                  title={t('Mapa do conteúdo')}
+                >
+                  <MapIcon className="w-3.5 h-3.5 text-accent" />
+                  <span className="hidden sm:inline">{t('Mapa')}</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setCurando(true)}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-border-subtle bg-surface hover:bg-surface-hover hover:border-warn text-[12px] font-bold text-ink transition-colors cursor-pointer"
+                  title={resumoDosPulados(triagem.fora) || t('Ver itens fora do recorte')}
+                >
+                  <SlidersIcon className="w-3.5 h-3.5 text-ink-muted" />
+                  <span className="hidden sm:inline">{t('Curadoria')}</span>
+                  {triagem.fora.length > 0 && (
+                    <span className="px-1.5 py-0.2 rounded-full bg-warn-soft text-warn-ink text-[11px] font-mono font-bold">
+                      {triagem.fora.length}
+                    </span>
+                  )}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={alternarDetalhes}
+                  aria-expanded={detalhes}
+                  className={`flex items-center gap-1 px-2.5 py-1.5 rounded-xl border text-[12px] font-medium transition-colors cursor-pointer ${
+                    detalhes
+                      ? 'bg-canvas border-border-subtle text-ink font-bold'
+                      : 'border-border-subtle bg-surface hover:bg-surface-hover text-ink-muted hover:text-ink'
+                  }`}
+                  title={detalhes ? t('Ocultar estatísticas do baralho') : t('Ver estatísticas do baralho')}
+                >
+                  <BarChart2 className="w-3.5 h-3.5" />
+                  <ChevronRight className={`w-3 h-3 transition-transform ${detalhes ? 'rotate-90' : ''}`} />
+                </button>
+              </>
+            }
             acoes={
               <>
                 <button
@@ -3144,124 +3189,41 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
       )}
 
       {verRecordes && <Recordes ageProfile={ageProfile} onFechar={() => setVerRecordes(false)} />}
-      {/* ── STATUS ── Só números, na MESMA base do baralho, e nada aqui é clicável.
-          Ficavam na mesma linha das ações, em texto cinza idêntico: "988 em outro idioma" (que
-          não faz nada) ao lado de "19 para revisar" (que abre uma tela cheia), distinguidos
-          apenas por um sublinhado. */}
-      {/* O NÚMERO ÚNICO SOMAVA DUAS POPULAÇÕES DIFERENTES, e era isso que fazia a queda parecer
-          defeito. "921 prontas" contava junto o cartão com tradução e o cartão que só tem frase,
-          medido no baralho real, 56% do acervo não tem tradução nenhuma. Os oito jogos de par
-          precisam de tradução; só o duelo relâmpago joga com a lacuna da frase. Daí a Memória
-          abrir com 8 de 246 e não de 921, e daí a conta parecer errada quando era só incompleta. */}
-      {/* `min-h`: os números chegam em duas levas (a triagem local e depois a composição servida) e
-          cada leva acrescenta um pedaço nesta linha, que, embrulhada em 412px, ganhava mais uma
-          linha e empurrava a grade inteira. 84px são as três linhas que o estado cheio ocupa nesse
-          viewport (medido). A partir de `sm` tudo cabe numa linha só e não há o que reservar. */}
-      <div className="mb-2 flex items-center gap-4">
-      <button
-        type="button"
-        onClick={alternarDetalhes}
-        aria-expanded={detalhes}
-        className="flex items-center gap-1.5 text-[12px] font-bold text-ink-muted hover:text-ink transition-colors cursor-pointer min-h-[24px]"
-      >
-        <ChevronRight className={`w-3.5 h-3.5 transition-transform ${detalhes ? 'rotate-90' : ''}`} aria-hidden />
-        {detalhes ? t('Esconder os números do baralho') : t('Ver os números do baralho ({n} palavras)', { n: contagem.total })}
-      </button>
-      <button
-        type="button"
-        onClick={() => setVerRecordes(true)}
-        className="flex items-center gap-1.5 text-[12px] font-bold text-warn-ink hover:text-warn transition-colors cursor-pointer min-h-[24px]"
-      >
-        <TrophyIcon className="w-3.5 h-3.5" aria-hidden /> {t('Recordes e ranking')}
-      </button>
-      </div>
-      <section aria-label={t('Seu baralho')} className={`card-panel bg-surface px-3 py-2.5 mb-2 min-h-[84px] sm:min-h-0 flex flex-wrap items-center gap-x-3 gap-y-1 text-[12px] text-ink-muted ${detalhes ? '' : 'hidden'}`}>
-        <span className="label-mono">{t('Seu baralho')}</span>
-        <span className="font-bold text-good-ink" title={t('{n} palavras do idioma escolhido passaram na régua de qualidade.', { n: contagem.total })}>
-          {t('{n} no idioma', { n: contagem.total })}
-        </span>
-        <span title={t('Jogos de par (memória, caça-palavras, soletrar) precisam de tradução de verdade.')}>
-          · {t('{n} com tradução', { n: pistas.comTraducao.length })}
-        </span>
-        {pistas.soComFrase.length > 0 && (
-          <span title={t('Sem tradução, mas com frase real, o duelo relâmpago joga com a lacuna.')}>
-            · {t('{n} só com frase', { n: pistas.soComFrase.length })}
-          </span>
-        )}
-        {!coreOnly(ageProfile) && triagem.outroIdioma.length > 0 && (
-          <span title={t('Existem e prestam, mas são de outro idioma')}>
-            · {t('{n} em outro idioma', { n: triagem.outroIdioma.length })}
-          </span>
-        )}
-        {triagem.fora.length > 0 && <span>· {t('{n} fora do recorte', { n: triagem.fora.length })}</span>}
-      </section>
 
-      {/* ── AGIR ── Dois CARDS, e não dois links de texto.
-          Eram `<button>` com sublinhado pontilhado, do mesmo tamanho e cor da linha de números
-          logo acima, passavam batido, embora sejam as duas respostas para "por que tão pouco?".
-          Ficam colados nos números que provocam a pergunta, e cada um traz o SEU número: um total
-          sem conteúdo não convence ninguém a clicar. */}
-      <section aria-label={t('Explorar o baralho')} className={`grid gap-3 sm:grid-cols-2 mb-4 ${detalhes ? '' : 'hidden'}`}>
-        {/* Os dois cards têm a MESMA altura reservada porque o texto de cada um muda de número de
-            linhas quando as contagens chegam, e eles ficam logo acima da grade de nove jogos, que
-            era o que descia. 100px é a altura do estado mais alto em 412px (medido). */}
-        <button
-          onClick={() => setVendoMapa(true)}
-          className="card-panel bg-surface p-4 min-h-[100px] sm:min-h-0 text-start hover:border-accent transition-colors cursor-pointer flex items-start gap-3"
+      {/* ── DIAGNÓSTICO TÉCNICO EXPANSÍVEL (ativado pelo botão de gráfico da barra de acervo) ── */}
+      {detalhes && (
+        <section
+          aria-label={t('Diagnóstico do baralho')}
+          className="card-panel bg-surface border border-border-subtle px-4 py-2.5 mb-4 text-[12px] text-ink-muted flex flex-wrap items-center gap-x-4 gap-y-1.5 rounded-xl animate-in fade-in duration-200"
         >
-          <span className="w-9 h-9 rounded-xl bg-accent-soft text-accent-ink flex items-center justify-center shrink-0" aria-hidden>
-            <MapIcon className="w-4 h-4" />
+          <span className="label-mono flex items-center gap-1.5 text-ink font-bold">
+            <BarChart2 className="w-3.5 h-3.5 text-accent" />
+            {t('Diagnóstico')}
           </span>
-          <span className="min-w-0">
-            <span className="block font-bold text-[13.5px] text-ink">{t('Mapa do conteúdo')}</span>
-            <span className="block text-[12px] text-ink-muted leading-snug">
-              {numero(acervoDaFonte.length)}{' '}
-              {fonte.id === 'sessao'
-                ? tp(acervoDaFonte.length, 'fala', 'falas')
-                : tp(acervoDaFonte.length, 'palavra', 'palavras')}
-              {nuncaCairam > 0 && <> · <T txt="<b>{n}</b> nunca caíram" tags={{ b: <b className="text-ink" /> }} val={{ n: numero(nuncaCairam) }} /></>}
-            </span>
+          <span className="font-bold text-good-ink" title={t('{n} palavras do idioma escolhido passaram na régua de qualidade.', { n: contagem.total })}>
+            ✓ {t('{n} no idioma', { n: contagem.total })}
           </span>
-        </button>
-
-        {/* Com zero, o card FICA — neutro e não-clicável. Zero é boa notícia e vale ser dita uma
-            vez; sumir deixaria a pessoa sem saber que a régua existe e aprovou tudo. */}
-        {triagem.fora.length > 0 ? (
-          <button
-            onClick={() => setCurando(true)}
-            className="card-panel bg-surface p-4 min-h-[100px] sm:min-h-0 text-start hover:border-warn transition-colors cursor-pointer flex items-start gap-3"
-          >
-            <span className="w-9 h-9 rounded-xl bg-warn-soft text-warn-ink flex items-center justify-center shrink-0" aria-hidden>
-              <SlidersIcon className="w-4 h-4" />
+          <span title={t('Jogos de par precisam de tradução.')}>
+            · {t('{n} com tradução', { n: pistas.comTraducao.length })}
+          </span>
+          {pistas.soComFrase.length > 0 && (
+            <span title={t('Sem tradução, mas com frase real.')}>
+              · {t('{n} só com frase', { n: pistas.soComFrase.length })}
             </span>
-            <span className="min-w-0">
-              <span className="block font-bold text-[13.5px] text-ink">
-                {t('{n} ficaram de fora', { n: triagem.fora.length })}
-              </span>
-              {/* `resumoDosPulados` existia e nunca tinha sido usado aqui — é a diferença entre
-                  "22 fora do recorte" (que não aciona ninguém) e "13 sem tradução" (que é tarefa). */}
-              <span className="block text-[12px] text-ink-muted leading-snug">
-                {resumoDosPulados(triagem.fora) || t('ver o motivo de cada uma')}
-              </span>
+          )}
+          {!coreOnly(ageProfile) && triagem.outroIdioma.length > 0 && (
+            <span title={t('Existem e prestam, mas são de outro idioma')}>
+              · {t('{n} em outro idioma', { n: triagem.outroIdioma.length })}
             </span>
-          </button>
-        ) : (
-          /* Sem `opacity-70` no cartão inteiro. Ele apagava junto o texto secundário, que já é
-             `text-ink-muted`: o par caía de 5,57:1 para 3,25:1 no tema vercel escuro, abaixo dos
-             4,5:1. Medido em axe color-contrast. Este é o estado "nada pendente", ele deve ficar
-             discreto, e fica: sem borda de destaque, com o ícone em tom suave. Apagar o texto não
-             era o que produzia a discrição, era só o efeito colateral que quebrava a leitura. */
-          <div className="card-panel bg-surface p-4 min-h-[100px] sm:min-h-0 flex items-start gap-3">
-            <span className="w-9 h-9 rounded-xl bg-good-soft text-good-ink flex items-center justify-center shrink-0" aria-hidden>
-              <Check className="w-4 h-4" />
-            </span>
-            <span className="min-w-0">
-              <span className="block font-bold text-[13.5px] text-ink">{t('Nada ficou de fora')}</span>
-              <span className="block text-[12px] text-ink-muted leading-snug">{t('todas passaram na régua')}</span>
-            </span>
-          </div>
-        )}
-      </section>
+          )}
+          {triagem.fora.length > 0 && (
+            <span className="text-warn-ink font-semibold">· {t('{n} fora do recorte', { n: triagem.fora.length })}</span>
+          )}
+          {nuncaCairam > 0 && (
+            <span>· {t('{n} nunca caíram', { n: numero(nuncaCairam) })}</span>
+          )}
+        </section>
+      )}
 
       {fonte.id === 'trilha' && trilha && (
         <PainelTrilha
@@ -3300,55 +3262,6 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
         </section>
       ) : (
         <>
-          {/* ── ARENA & QUICK PLAY BANNER ── */}
-          <div className="card-panel bg-gradient-to-r from-accent-soft/40 via-surface to-accent-soft/20 border-accent/30 p-4 sm:p-5 mb-5 rounded-2xl flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-sm">
-            <div className="flex items-center gap-3.5">
-              <span className="w-12 h-12 rounded-2xl bg-accent text-white flex items-center justify-center shrink-0 shadow-sm" aria-hidden>
-                <Gamepad2 className="w-6 h-6" />
-              </span>
-              <div>
-                <div className="flex items-center gap-2">
-                  <span className="kpi-pill text-[10.5px] font-extrabold tracking-wider uppercase text-accent border-accent/30 bg-accent-soft/60">
-                    Babel Arcade · {jogosProntos.length + JOGOS_CULTURAIS.length} {t('Jogos')}
-                  </span>
-                  <span className="text-[11px] text-ink-muted">· {t('Feedback Háptico & Game Feel')}</span>
-                </div>
-                <h2 className="font-display font-black text-lg text-ink tracking-tight mt-0.5">
-                  {t('Arena de Jogos & Laboratório Cultural')}
-                </h2>
-                <p className="text-[12.5px] text-ink-muted leading-tight mt-0.5 max-w-xl">
-                  {t('Treine vocabulário, audição, sintaxe e pronúncia através de minigames dinâmicos e dopamínicos.')}
-                </p>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-2.5 shrink-0 self-start md:self-auto">
-              <button
-                type="button"
-                onClick={partidaRapida}
-                className="py-2.5 px-4 bg-accent hover:bg-accent-ink text-white rounded-xl font-black text-[13px] shadow-btn transition-all flex items-center gap-2 active:scale-95 cursor-pointer"
-                title={t('Sorteia um jogo aleatório dentre os disponíveis e inicia imediatamente')}
-              >
-                <Dices className="w-4 h-4" />
-                <span>{t('Partida Rápida')}</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setCategoriaAtiva('culturais');
-                  triggerHaptic('soft');
-                  playJuicedHit(1);
-                }}
-                className="py-2.5 px-3.5 bg-surface border border-border-subtle hover:border-accent text-ink rounded-xl font-bold text-[13px] transition-all flex items-center gap-1.5 active:scale-95 cursor-pointer"
-                title={t('Explorar os 9 minigames tradicionais do mundo')}
-              >
-                <Globe className="w-4 h-4 text-accent" />
-                <span>{t('Culturais')}</span>
-                <span className="w-5 h-5 rounded-full bg-accent-soft text-accent-ink text-[11px] font-bold flex items-center justify-center">9</span>
-              </button>
-            </div>
-          </div>
-
           {/* ── NAVEGAÇÃO DE CATEGORIAS ── */}
           <div className="flex items-center justify-between gap-3 mb-3 flex-wrap">
             <div className="flex items-center gap-1.5 p-1 bg-surface border border-border-subtle rounded-xl overflow-x-auto custom-scrollbar" role="tablist" aria-label={t('Categorias de jogos')}>
@@ -3423,10 +3336,10 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
 
             <div className="flex items-center gap-1.5 overflow-x-auto custom-scrollbar pb-1 md:pb-0">
               {[
-                { id: 'todas' as const, label: t('Todas') },
-                { id: 'vocab' as const, label: `🧠 ${t('Vocabulário')}` },
-                { id: 'escuta_fala' as const, label: `🎧 ${t('Escuta & Fala')}` },
-                { id: 'frase_gramatica' as const, label: `🧩 ${t('Sintaxe & Frases')}` },
+                { id: 'todas' as const, label: t('Todas'), icon: null },
+                { id: 'vocab' as const, label: t('Vocabulário'), icon: <BookOpen className="w-3.5 h-3.5" /> },
+                { id: 'escuta_fala' as const, label: t('Escuta & Fala'), icon: <Headphones className="w-3.5 h-3.5" /> },
+                { id: 'frase_gramatica' as const, label: t('Sintaxe & Frases'), icon: <Puzzle className="w-3.5 h-3.5" /> },
               ].map(h => {
                 const ativo = filtroHabilidade === h.id;
                 return (
@@ -3438,13 +3351,14 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
                       triggerHaptic('soft');
                       playJuicedHit(1);
                     }}
-                    className={`px-2.5 py-1.5 rounded-lg text-[11.5px] font-bold shrink-0 transition-colors cursor-pointer border ${
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11.5px] font-bold shrink-0 transition-colors cursor-pointer border ${
                       ativo
                         ? 'bg-accent-soft text-accent-ink border-accent/40 font-black'
                         : 'bg-surface border-border-subtle text-ink-muted hover:text-ink hover:border-ink-faint'
                     }`}
                   >
-                    {h.label}
+                    {h.icon}
+                    <span>{h.label}</span>
                   </button>
                 );
               })}

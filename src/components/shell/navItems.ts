@@ -7,11 +7,13 @@ import {
   BookOpen,
   Settings as SettingsIcon,
   Heart,
-  ShoppingBag,
+  Shirt,
+  CreditCard,
   type LucideIcon
 } from 'lucide-react';
 import { EDICAO_LEVE } from '../../lib/edicao';
 import type { ViewType } from '../../types';
+import { t } from '../../lib/i18n';
 
 // O tipo mora em `lib/profile` (junto do dicionário de linguagem); aqui só reexportamos para não
 // quebrar os ~15 imports que já apontam para este módulo.
@@ -66,12 +68,9 @@ const TODOS_OS_ITENS: NavItemDef[] = [
     short: 'Biblioteca',
     labels: { kids: 'Biblioteca', pro: 'Biblioteca', senior: 'Minhas Mídias' }
   },
-  {
-    id: 'analysis',
-    icon: BarChart2,
-    short: 'Sessão',
-    labels: { kids: 'Praticar', pro: 'Sessão', senior: 'Minhas Aulas' }
-  },
+  /* 'analysis' SAIU do menu de topo (decisão do dono, 31/08): uma aula/sessão sempre vive
+     DENTRO de uma mídia capturada — o caminho é Biblioteca → mídia → aula. A rota continua
+     existindo; só a porta redundante no topo foi removida. */
   {
     id: 'metrics',
     icon: BookOpen,
@@ -79,18 +78,14 @@ const TODOS_OS_ITENS: NavItemDef[] = [
     labels: { kids: 'Palavras', pro: 'Vocabulário', senior: 'Minhas Palavras' }
   },
   {
-    id: 'settings',
-    icon: SettingsIcon,
-    short: 'Ajustes',
-    labels: { kids: 'Ajustes', pro: 'Ajustes', senior: 'Configurações' },
-    secondary: true
-  },
-  {
     // A vitrine da progressão: desbloqueios por nível e compras com Seeds.
     id: 'loja',
-    icon: ShoppingBag,
-    short: 'Loja',
-    labels: { kids: 'Loja', pro: 'Loja', senior: 'Loja de Prêmios' },
+    // Camiseta, não sacola (ux-v2 §1.3): a tela é primeiro o guarda-roupa ("Meu visual" é a aba
+    // default); a sacola sugeria loja e a Loja é só uma das quatro áreas.
+    icon: Shirt,
+    short: 'Personalizar',
+    /* A tela ÚNICA de personalização (2026-08-28): visual, loja e conquistas num lugar só. */
+    labels: { kids: 'Meu visual', pro: 'Personalizar', senior: 'Personalizar' },
     secondary: true
   },
   {
@@ -100,19 +95,48 @@ const TODOS_OS_ITENS: NavItemDef[] = [
     short: 'Sobre',
     labels: { kids: 'Sobre', pro: 'Sobre', senior: 'Sobre o App' },
     secondary: true
+  },
+  {
+    /* PLANOS ENTRA NA NAVEGAÇÃO (mudança vender-onde-se-ve). Existia só por três atalhos —
+       menu do avatar, um card no Hub e um botão em Ajustes — e o próprio dono não o achou. O que
+       está à venda precisa estar onde se procura, não onde quem escreveu sabe que está.
+       Fica ao lado de Sobre porque as duas respondem à mesma pergunta: "o que é isto, e como se
+       sustenta?". Fora da edição leve, que não tem cobrança. */
+    id: 'planos',
+    icon: CreditCard,
+    short: 'Planos',
+    labels: { kids: 'Planos', pro: 'Planos', senior: 'Planos e preços' },
+    secondary: true
+  },
+  {
+    // POR ÚLTIMO de propósito (pedido do dono, 2026-08-28): configuração é o que menos se abre;
+    // no meio da lista ela separava as telas de uso das telas de descoberta (Loja, Sobre).
+    id: 'settings',
+    icon: SettingsIcon,
+    short: 'Ajustes',
+    labels: { kids: 'Ajustes', pro: 'Ajustes', senior: 'Configurações' },
+    secondary: true
   }
 ];
 
+/**
+ * O rótulo, já no idioma da interface.
+ *
+ * A tradução entra AQUI, e não nas tabelas acima, porque este é o único ponto por onde os rótulos
+ * saem — o menu inteiro passa a falar outro idioma sem que a definição de navegação mude de forma.
+ * As variantes por perfil continuam sendo escolhidas antes de traduzir: "Minhas Aulas" e "Sessão"
+ * são frases diferentes, e cada uma tem a sua tradução.
+ */
 export function navLabel(item: NavItemDef, profile: AgeProfileType, compact = false): string {
   // No modo compacto (barra horizontal estreita) o rótulo curto evita quebra de linha —
   // exceto no perfil sênior, onde a clareza vale mais que a economia de pixels.
-  if (compact && profile !== 'senior') return item.short;
-  return item.labels[profile];
+  if (compact && profile !== 'senior') return t(item.short);
+  return t(item.labels[profile]);
 }
 
 /**
  * EDIÇÃO LEVE: só o que funciona inteiro sem conta e sem servidor — Início, Capturar, Jogar e
- * Ajustes. Biblioteca entra (as sessões vivem no IndexedDB deste navegador — provisório, sem conta). Sessão e Vocabulário voltam com a edição completa.
+ * Ajustes. Biblioteca entra (as sessões vivem no IndexedDB deste navegador — provisório, sem conta). Sessão e Vocabulário voltam com a edição completa; a tela de Vocabulário saiu do menu da leve a pedido do dono (2026-08-28): o caderno vive dentro de cada sessão e nos jogos.
  */
-const LEVE: ReadonlySet<ViewType> = new Set<ViewType>(['hub', 'capture', 'library', 'metrics', 'play', 'settings', 'sobre', 'loja']);
+const LEVE: ReadonlySet<ViewType> = new Set<ViewType>(['hub', 'capture', 'library', 'play', 'loja', 'sobre', 'settings']);
 export const NAV_ITEMS: NavItemDef[] = EDICAO_LEVE ? TODOS_OS_ITENS.filter((i) => LEVE.has(i.id)) : TODOS_OS_ITENS;

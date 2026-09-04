@@ -191,7 +191,7 @@ export default function EscutaGame({ rodadas, audioUrl, ageProfile, onFinish, on
                 key={op.id}
                 onClick={(e) => responder(op.id, e.currentTarget)}
                 disabled={revelando}
-                className={`py-3.5 px-4 rounded-xl border text-left font-medium text-[14px] leading-snug transition-all ${
+                className={`py-3.5 px-4 rounded-xl border text-start font-medium text-[14px] leading-snug transition-all ${
                   revelando
                     ? certa
                       ? 'bg-good-soft border-good text-good-ink font-bold'

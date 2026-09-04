@@ -8,6 +8,19 @@ export interface AudioCapture {
   /** Encerra a captura e devolve o áudio GRAVADO da sessão — ou null se indisponível. */
   stop(): Promise<Blob | null>;
   /**
+   * MUDO/ATIVO sem encerrar a captura — o interruptor de microfone do Espaço de Gravação.
+   *
+   * POR QUE NÃO É `stop()` + `start()`. Cada `stop()` fecha o MediaRecorder e devolve UM blob.
+   * Alternar a fonte três vezes numa sessão produziria três blobs, e o `handleStopRecording` só
+   * sabe misturar um — o áudio das partes anteriores sumiria do que é salvo, e cada reinício
+   * moveria o `startedAtMs`, descolando as legendas do áudio.
+   *
+   * Desabilitar a FAIXA resolve os dois: o navegador entrega silêncio, então o recorder segue
+   * gravando (um blob só, com a linha do tempo intacta) e o VAD não vê fala nenhuma. É o mesmo
+   * gesto que qualquer app de chamada chama de "mutar".
+   */
+  setMuted(muted: boolean): void;
+  /**
    * Instante (Date.now(), epoch-ms) em que o MediaRecorder REALMENTE começou a gravar — a
    * ORIGEM (t=0) do áudio salvo. A UI ancora o relógio das legendas a este valor: sem isso, o
    * t0 do clique em START fica ADIANTADO do t0 do recorder por todo o tempo da caixa de
@@ -150,6 +163,9 @@ async function startCaptureFromStream(
   // SONDA DE NÍVEL (RMS via AnalyserNode): alimenta o waveform em tempo real E é o DIAGNÓSTICO
   // chave — distingue "faixa presente mas SILENCIOSA" (loopback do sistema não está fluindo) de
   // "faixa com sinal". Usa setInterval (não rAF) p/ continuar medindo mesmo com a aba em segundo plano.
+  // MUDO: faixa desabilitada, captura viva. Ver `AudioCapture.setMuted`.
+  let muted = false;
+
   let levelCtx: AudioContext | null = null;
   let levelTimer: any = null;
   try {
@@ -168,8 +184,12 @@ async function startCaptureFromStream(
       const rms = Math.sqrt(sum / buf.length);
       peak = Math.max(peak, rms);
       cb.onLevel?.(Math.min(1, rms * 4)); // 0..1 aprox. p/ o waveform
-      // Diagnóstico único após ~2,5s: chegou algum sinal na faixa?
-      if (!reported && performance.now() - t0 > 2500) {
+      /* Diagnóstico único após ~2,5s: chegou algum sinal na faixa?
+         MUDO não conta como defeito. Sem esta guarda, mutar o microfone nos primeiros
+         segundos dispararia "⚠ O microfone está SILENCIOSO" — culpando o dispositivo por
+         um silêncio que a própria pessoa pediu. Adiado, não cancelado: o teste roda quando
+         a faixa voltar a valer. */
+      if (!reported && !muted && performance.now() - t0 > 2500) {
         reported = true;
         vlog(label, 'pico RMS em 2,5s:', peak.toFixed(4));
         if (peak < 0.0015) {
@@ -291,6 +311,23 @@ async function startCaptureFromStream(
 
   return {
     startedAtMs,
+    setMuted(next: boolean): void {
+      if (next === muted) return;
+      muted = next;
+      // A faixa para de entregar áudio: o recorder grava silêncio e o VAD não vê fala.
+      audioTracks.forEach((t) => { t.enabled = !next; });
+      if (next) {
+        /* Descarta o enunciado EM CURSO. Mutar no meio de uma frase deixaria um parcial
+           pendurado na tela para sempre — o VAD nunca fecharia um segmento que agora só
+           recebe silêncio. */
+        speaking = false;
+        speechStartTs = 0;
+        resetUtterance();
+        cb.onMisfire?.(currentSeq);
+        cb.onLevel?.(0);
+      }
+      vlog(label, next ? 'MUDO (faixa desabilitada, gravação segue)' : 'ATIVO');
+    },
     async stop(): Promise<Blob | null> {
       clearInterval(partialTimer);
       speaking = false;
@@ -384,6 +421,7 @@ export async function startSystemAudioCapture(cb: SystemAudioCallbacks): Promise
     // para que uma nova aquisição respeite o respiro do WASAPI.
     return {
       startedAtMs: capture.startedAtMs,
+      setMuted: (m) => capture.setMuted(m),
       async stop(): Promise<Blob | null> {
         const blob = await capture.stop();
         if (activeDisplayStream === stream) { activeDisplayStream = null; lastDisplayReleaseTs = performance.now(); }
@@ -549,6 +587,7 @@ export async function startServerLoopbackCapture(cb: SystemAudioCallbacks): Prom
     const capture = await startCaptureFromStream(dest.stream, dest.stream, cb, 'system');
     return {
       startedAtMs: capture.startedAtMs,
+      setMuted: (m) => capture.setMuted(m),
       async stop(): Promise<Blob | null> {
         stopped = true;
         try { await reader.cancel(); } catch { /* já cancelado */ }

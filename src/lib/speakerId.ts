@@ -8,12 +8,31 @@
 /**
  * Enunciado mais curto que isto não tem voz suficiente para identificar (herda o falante anterior).
  *
- * Era 0.8s e foi elevado depois de uma conversa de DUAS pessoas ser dividida em seis: trechos de
- * ~1s ("ou se fosse feito") produzem embeddings instáveis, e cada instabilidade virava uma pessoa
- * nova. Herdar a voz anterior num trecho curto erra menos do que inventar gente — na fala real,
- * um fragmento curto quase sempre é a mesma pessoa terminando a frase.
+ * Era 0.8s e foi elevado para 1.2s depois de uma conversa de DUAS pessoas ser dividida em seis:
+ * trechos de ~1s produzem embeddings instáveis, e cada instabilidade virava uma pessoa nova.
+ *
+ * MEDIDO EM 2026-08-30, e o piso de 1,2s tem a falha OPOSTA, que é pior. No cenário
+ * `turnos-curtos` (réplicas curtas alternando entre duas pessoas — a conversa real, com "sim",
+ * "não", "entendi"), herdar o falante anterior funde as DUAS PESSOAS NUMA SÓ: DER 49%, pureza
+ * 50%, um único cluster para dois falantes. Varredura do piso, mesmos cenários:
+ *
+ *   1,2s → DER 49%  pureza  50%  1 cluster p/ 2 pessoas   (FUNDE — o pior para o usuário)
+ *   0,8s → DER 44%  pureza  50%  2 clusters
+ *   0,5s → DER 19%  pureza 100%  3 clusters p/ 2 pessoas  (fragmenta de leve)
+ *   0,3s → idêntico a 0,5s
+ *
+ * A ESCOLHA DE 0,5s É UMA TROCA CONSCIENTE: fusão por fragmentação. Fundir dá o mesmo nome a duas
+ * pessoas e o usuário não tem como desfazer; fragmentar aparece como uma pessoa a mais, que o
+ * `mergeThreshold` do agrupador reconcilia sozinho quando chega uma fala melhor, e que o painel
+ * Falantes permite renomear. DER médio nos sete cenários: 16,5% → 12,2%.
+ *
+ * Tentativa que NÃO funcionou, registrada para ninguém repetir: deixar a fala curta ser embedada
+ * mas sem poder criar falante novo. Resultado idêntico ao de herdar — se todas as falas são
+ * curtas, nenhuma cria ninguém e todas caem na primeira pessoa. O mesmo colapso por outro caminho.
+ *
+ * Ver docs/auditoria/eval-diarizacao-baseline-v1.md.
  */
-const MIN_EMBED_SECONDS = 1.2
+const MIN_EMBED_SECONDS = 0.5
 
 let worker: Worker | null = null
 let broken = false // modelo falhou nesta sessão → não insiste (evita spam de erro)

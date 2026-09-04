@@ -75,6 +75,36 @@ describe('Qual foi? — escuta', () => {
   it('sem falas suficientes, não monta rodada meia-boca', () => {
     expect(buildRodadasEscuta([FALAS[0]], { alternativas: 4 })).toEqual([]);
   });
+
+  /* S12: `normalizarPalavra` só mantém A–Z, então em escrita não-latina TODAS as falas normalizam
+     para '' — o filtro de duplicata as via como "iguais entre si" e eliminava as alternativas,
+     sobrando 1. A chave de dedupe precisa reconhecer texto DIFERENTE mesmo fora de A–Z. */
+  it('quatro falas japonesas distintas viram quatro opções — não-latino não é tudo "igual"', () => {
+    // Espaços entre os "tokens": `avaliarFrase` exige >= 3 palavras por split de espaço, e uma
+    // frase japonesa corrida (sem espaço nenhum) seria descartada por 'palavra-curta' — ruído do
+    // filtro de qualidade, não do que este teste verifica (dedupe).
+    const japonesas = [
+      fala({ id: 'j1', text: 'これ は 日本語 の 文章 です。', lang: 'ja' }),
+      fala({ id: 'j2', text: '猫 は 窓 の 外 を 見ています。', lang: 'ja' }),
+      fala({ id: 'j3', text: '今日 は 天気 が いいですね。', lang: 'ja' }),
+      fala({ id: 'j4', text: '彼 は 毎日 日本語 を 勉強する。', lang: 'ja' }),
+    ];
+    const [r] = buildRodadasEscuta(japonesas, { quantidade: 1, alternativas: 4, shuffle: semSorte });
+    expect(r.opcoes).toHaveLength(4);
+  });
+
+  it('duas falas japonesas iguais a menos de caixa/acento são deduplicadas', () => {
+    const comDuplicata = [
+      fala({ id: 'j1', text: 'これ は 日本語 の 文章 です。', lang: 'ja' }),
+      fala({ id: 'j2', text: 'これ は 日本語 の 文章 です。', lang: 'ja' }),   // idêntica a j1
+      fala({ id: 'j3', text: '今日 は 天気 が いいですね。', lang: 'ja' }),
+      fala({ id: 'j4', text: '彼 は 毎日 日本語 を 勉強する。', lang: 'ja' }),
+    ];
+    const [r] = buildRodadasEscuta(comDuplicata, { quantidade: 1, alternativas: 4, shuffle: semSorte });
+    const ids = r.opcoes.map(o => o.id);
+    expect(ids).not.toContain('j2');
+    expect(new Set(r.opcoes.map(o => o.text)).size).toBe(r.opcoes.length);
+  });
 });
 
 describe('Ditado', () => {

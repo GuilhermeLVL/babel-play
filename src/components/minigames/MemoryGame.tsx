@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { X, Eye } from 'lucide-react';
 import type { MinigameItem, ItemOutcome, RoundReport } from '@core';
 import { scoreRound } from '@core';
+import { direcaoDoTexto } from '../../lib/languages';
 import type { AgeProfileType } from '../../lib/profile';
 import { play } from '../../lib/soundFx';
 import { comemorar, pontosDoElemento, multiplicador } from '../../lib/juice';
@@ -35,6 +36,7 @@ interface Carta {
   itemIndex: number;
   texto: string;
   lado: 'palavra' | 'traducao';
+  lang: string;
 }
 
 /** Cores das duplas — a mesma paleta categórica usada para as pessoas na captura. */
@@ -47,8 +49,9 @@ export default function MemoryGame({ items, ageProfile, onFinish, onExit }: Memo
   const cartas = useMemo<Carta[]>(() => {
     const baralho: Carta[] = [];
     items.forEach((it, i) => {
-      baralho.push({ id: `p${i}`, itemIndex: i, texto: it.answer, lado: 'palavra' });
-      baralho.push({ id: `t${i}`, itemIndex: i, texto: it.prompt, lado: 'traducao' });
+      // A palavra está no idioma praticado; a pista, no nativo. As direções podem diferir.
+      baralho.push({ id: `p${i}`, itemIndex: i, texto: it.answer, lado: 'palavra', lang: it.lang });
+      baralho.push({ id: `t${i}`, itemIndex: i, texto: it.prompt, lado: 'traducao', lang: '' });
     });
     for (let i = baralho.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
@@ -198,7 +201,7 @@ export default function MemoryGame({ items, ageProfile, onFinish, onExit }: Memo
               onClick={(e) => virar(carta, e.currentTarget)}
               disabled={fechada}
               aria-label={aberta ? carta.texto : 'Carta virada para baixo'}
-              className={`carta3d ${aberta ? 'aberta' : ''} ${folgado ? 'min-h-[5.5rem]' : 'min-h-[4.5rem]'} rounded-2xl ${
+              className={`carta3d ${aberta ? 'aberta' : ''} ${folgado ? 'min-h-[6rem]' : 'min-h-[5rem]'} rounded-2xl ${
                 fechada ? 'opacity-70' : 'cursor-pointer'
               } ${!aberta ? 'hover:-translate-y-0.5 transition-transform' : ''}`}
             >
@@ -209,12 +212,16 @@ export default function MemoryGame({ items, ageProfile, onFinish, onExit }: Memo
                   <span className="w-6 h-6 rounded-lg bg-border-subtle/60" />
                 </span>
                 <span
-                  className="carta3d-verso bg-surface shadow-card rounded-2xl px-2.5 py-2 text-center"
+                  className="carta3d-verso bg-surface shadow-card rounded-2xl px-2.5 py-2 text-center overflow-hidden"
                   style={{ borderColor: cor, borderWidth: 2, borderStyle: 'solid' }}
                 >
+                  {/* O limiar era 80 chars e foi medido errado: numa carta de ~55px, 65 chars já
+                      dão 4 linhas e o texto vazava por cima e por baixo. */}
                   <span
-                    className={`${folgado ? 'text-[14px]' : 'text-[13px]'} font-bold leading-tight break-words`}
+                    className={`${carta.texto.length > 45 ? (folgado ? 'text-[11px]' : 'text-[10px]') : folgado ? 'text-[14px]' : 'text-[13px]'} font-bold leading-tight break-words ${folgado ? 'line-clamp-4' : 'line-clamp-3'}`}
                     style={{ color: carta.lado === 'palavra' ? cor : undefined }}
+                    dir={direcaoDoTexto(carta.lang)}
+                    title={carta.texto}
                   >
                     {carta.texto}
                   </span>

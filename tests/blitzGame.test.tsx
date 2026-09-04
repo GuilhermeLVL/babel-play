@@ -213,4 +213,24 @@ describe('BlitzGame — a rodada congela quando acaba', () => {
     expect(pergunta).not.toBe('casa')
     responderCerto(items)
   })
+
+  /* S7: pista curada pode chegar com até 160 caracteres. Sem clamp num palco sem rolagem, o
+     enunciado empurrava as alternativas para fora da tela. O teste fixa o MECANISMO (jsdom não
+     mede overflow visual): a classe de clamp está no enunciado, e a fonte desce quando o texto
+     passa de ~80 caracteres. */
+  it('enunciado de 160 caracteres ganha classe de clamp e fonte reduzida', () => {
+    const longo = 'a'.repeat(159) + 'b' // 160 chars, > 80 → dispara o downscale
+    const items: MinigameItem[] = [
+      { cardId: 'c1', prompt: longo, answer: 'house', lang: 'en' },
+      { cardId: 'c2', prompt: 'cachorro', answer: 'dog', lang: 'en' },
+      { cardId: 'c3', prompt: 'gato', answer: 'cat', lang: 'en' },
+    ]
+    render(<BlitzGame items={items} ageProfile="pro" onFinish={() => {}} onExit={() => {}} />)
+
+    const pergunta = document.querySelector('[data-tour="pergunta"]') as HTMLElement
+    expect(pergunta.textContent).toBe(longo)
+    expect(pergunta.className).toContain('line-clamp-4')
+    expect(pergunta.getAttribute('title')).toBe(longo)
+    expect(pergunta.className).toContain('text-xl')
+  })
 })

@@ -191,7 +191,7 @@ export default function EditablePanel({
               updatePanel(viewKey, panelKey, { theme: selectedTheme });
             }}
             onClick={(e) => e.stopPropagation()} // Prevent selecting parent card click
-            className="ml-2 bg-canvas text-ink text-[9px] font-bold px-1.5 py-0.5 rounded outline-none border border-border-subtle cursor-pointer focus:border-accent"
+            className="ms-2 bg-canvas text-ink text-[9px] font-bold px-1.5 py-0.5 rounded outline-none border border-border-subtle cursor-pointer focus:border-accent"
             title="Mesclar Tema do Painel"
           >
             <option value="">Tema Padrão</option>
@@ -205,7 +205,7 @@ export default function EditablePanel({
 
           <button
             onClick={toggleVisibility}
-            className="ml-2 flex items-center gap-1 text-[9px] font-bold text-error-ink hover:brightness-110 transition-colors cursor-pointer border-none bg-transparent"
+            className="ms-2 flex items-center gap-1 text-[9px] font-bold text-error-ink hover:brightness-110 transition-colors cursor-pointer border-none bg-transparent"
             title="Ocultar do Layout"
           >
             <EyeOff className="w-3.5 h-3.5" />
@@ -216,7 +216,7 @@ export default function EditablePanel({
       {/* Resize Handles */}
       {editMode && canResizeWidth && (
         <div 
-          className={`absolute ${resizeHandlePosition === 'left' ? '-left-2 rounded-l-3xl' : '-right-2 rounded-r-3xl'} top-0 bottom-0 w-4 cursor-col-resize z-50 hover:bg-rare/20 flex flex-col justify-center items-center group`}
+          className={`absolute ${resizeHandlePosition === 'left' ? '-left-2 rounded-s-3xl' : '-right-2 rounded-e-3xl'} top-0 bottom-0 w-4 cursor-col-resize z-50 hover:bg-rare/20 flex flex-col justify-center items-center group`}
           onPointerDown={handlePointerDownRight}
         >
           <div className="h-8 w-1 bg-rare/40 rounded-full group-hover:bg-rare transition-colors" />

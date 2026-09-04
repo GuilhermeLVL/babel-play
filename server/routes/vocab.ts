@@ -33,6 +33,7 @@ vocabRouter.get('/para-jogo', async (req, res) => {
       limite: q.limite,
       evitar: q.evitar,
       lang: q.lang ?? null,
+      filtro: q.filtro,
     }))
   } catch (err) {
     res.status(400).json({ error: erroDeRota(err, { event: 'vocab_route_error', route: req.path, requestId: req.requestId }) })

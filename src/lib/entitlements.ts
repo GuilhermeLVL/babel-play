@@ -17,8 +17,11 @@
  */
 import { apiFetch } from '../data/api';
 import { authRequired } from './supabase';
+import { PLAN_MATRIX, PLANOS_DE_ASSINATURA, ehPlanoDeAssinatura, type PlanoDeAssinatura } from '../core/planos';
 
-export type Plan = 'free' | 'pro' | 'selfhost' | 'anonimo';
+/** Plano de assinatura (da MATRIZ) + `anonimo`, que é identidade do cliente sem conta — o
+ *  servidor nunca o atribui, por isso ele fica fora da matriz. */
+export type Plan = PlanoDeAssinatura | 'anonimo';
 
 export interface Entitlements {
   plan: Plan;
@@ -44,13 +47,21 @@ const SELFHOST: Entitlements = Object.freeze({
   plan: 'selfhost', youtubeImport: true, managedCloudStt: true, managedCloudLlm: true, largerModels: true, armazenamento: null,
 });
 
-const PLANOS: readonly string[] = ['free', 'pro', 'selfhost', 'anonimo'];
+const PLANOS: readonly string[] = [...PLANOS_DE_ASSINATURA, 'anonimo'];
 
-/** Aceita só o que tem a forma do servidor; qualquer coisa fora vira `null` (e o default conservador vale). */
+/**
+ * Aceita só o que tem a forma do servidor; forma inválida vira `null` (e o default conservador vale).
+ *
+ * PLANO DESCONHECIDO NÃO DESCARTA MAIS A RESPOSTA. A versão anterior devolvia `null` se `plan` não
+ * estivesse na lista local — ou seja, um cliente antigo diante de um plano novo do servidor jogava
+ * fora as FLAGS verdadeiras que vieram junto e fechava tudo. Agora o plano vira `free` (só o
+ * rótulo degrada) e as flags do servidor valem — a UI mostra o que o servidor de fato concedeu.
+ */
 function normalizar(v: unknown): Entitlements | null {
   if (!v || typeof v !== 'object') return null;
   const o = v as Record<string, unknown>;
-  if (typeof o.plan !== 'string' || !PLANOS.includes(o.plan)) return null;
+  if (typeof o.plan !== 'string') return null;
+  const plan: Plan = PLANOS.includes(o.plan) ? (o.plan as Plan) : 'free';
   const bool = (k: string) => o[k] === true;
   let armazenamento: Entitlements['armazenamento'] = null;
   if (o.armazenamento && typeof o.armazenamento === 'object') {
@@ -58,7 +69,7 @@ function normalizar(v: unknown): Entitlements | null {
     if (typeof a.usados === 'number') armazenamento = { usados: a.usados, teto: typeof a.teto === 'number' ? a.teto : null };
   }
   return {
-    plan: o.plan as Plan,
+    plan,
     youtubeImport: bool('youtubeImport'),
     managedCloudStt: bool('managedCloudStt'),
     managedCloudLlm: bool('managedCloudLlm'),
@@ -114,10 +125,13 @@ export function onPlanChange(cb: () => void): () => void {
   return () => window.removeEventListener(CHANGED, cb);
 }
 
-/** Rótulos p/ UI. */
+/** Rótulos p/ UI — os de assinatura vêm da matriz; `anonimo` é o único local. */
 export const PLAN_LABELS: Record<Plan, string> = {
   anonimo: 'Sem conta',
-  free: 'Grátis',
-  pro: 'Pro',
-  selfhost: 'Self-host (tudo liberado)',
+  ...(Object.fromEntries(
+    PLANOS_DE_ASSINATURA.map((p) => [p, PLAN_MATRIX[p].rotulo])
+  ) as Record<PlanoDeAssinatura, string>),
 };
+
+// Guarda de sanidade importada pelos testes de paridade.
+export { ehPlanoDeAssinatura };

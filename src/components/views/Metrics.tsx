@@ -1,14 +1,15 @@
 import React, { useState, useMemo, useEffect } from 'react';
+import { baixarRelatorio } from '../../lib/relatorioDeProgresso';
 import { useExameDePalavra } from '../../lib/useExameDePalavra';
 import { ficharPalavraDoAnalista } from '../../lib/adicionarAoDeck';
 import { fetchMetrics, fetchDeck, fetchAllUtterances, type AppMetrics, type UtteranceRow } from '../../data/api';
 import { Recording, VocabCard, VocabWord } from '../../types';
 import EditablePanel from '../EditablePanel';
-import { t, coreOnly } from '../../lib/profile';
+import { copyDoPerfil, coreOnly } from '../../lib/profile';
 import {
   BookOpen, Clock, Activity, Zap, ArrowUpRight, AlertCircle,
   Download, LayoutGrid, Brain, Mic, Info, PieChart as PieChartIcon,
-  Sprout, Eye, MoreHorizontal, BarChart2, MessageSquareWarning, Target} from 'lucide-react';
+  Sprout, Eye, MoreHorizontal, BarChart2, MessageSquareWarning, Target, Headphones} from 'lucide-react';
 import {
   ResponsiveContainer, XAxis, YAxis, Tooltip, CartesianGrid,
   AreaChart, Area, PieChart, Pie, Cell
@@ -23,6 +24,7 @@ import VocabularyPanel from '../VocabularyPanel';
 import { Confianca, SemDado, ehBaixaConfianca } from '../Honestidade';
 import { Abas, Barra, PainelDeAba } from '../ui';
 import EvolucaoSemanal from '../metrics/EvolucaoSemanal';
+import { numero } from '../../lib/i18n';
 
 // --- HELPERS ---
 
@@ -170,6 +172,8 @@ export default function Metrics({ recordings, onChangeView, ageProfile = 'pro' }
     [levelDist]
   );
   const niveisSemBase = !levelDist.length || ehBaixaConfianca(metrics?.levelConfidence ?? 0);
+  /** Há distribuição para desenhar? Só "N/D" é ausência de dado, não uma fatia. */
+  const temNivelReal = niveisComCefr > 0;
 
   // --- ANALISTA DE VOCABULÁRIO (painel compartilhado) ---
   // Fonte REAL da lista de vocábulos desta tela: o deck do backend (mesmo do Estudo/FSRS).
@@ -195,6 +199,14 @@ export default function Metrics({ recordings, onChangeView, ageProfile = 'pro' }
   const selectedExamWord = exame.palavraExaminada;
   const setSelectedExamWord = exame.setPalavraExaminada;
   const examineWord = exame.examinar;
+  /* Cartão sem verso não é detalhe: é o acervo inteiro perdendo serventia. Acontece quando os
+     dois idiomas configurados são o mesmo — o app avisa em Ajustes e mesmo assim ficha. Contamos
+     aqui para a tela poder dizer, e apontar onde se conserta a causa. */
+  const minutosDoIdioma = Math.round(((metrics?.listeningMs ?? 0) + (metrics?.speakingMs ?? 0)) / 60000);
+  const semVerso = useMemo(
+    () => vocabCards.filter((c) => !(c.translation ?? '').trim()).length,
+    [vocabCards],
+  );
   const speakWord = exame.falar;
   const ttsSpeed = exame.velocidade;
   const setTtsSpeed = exame.setVelocidade;
@@ -262,8 +274,12 @@ export default function Metrics({ recordings, onChangeView, ageProfile = 'pro' }
     for (const c of vocabCards) {
       const estabilidade = Number(c.fsrsStability ?? c.stability ?? 0);
       const ultima = Number(c.lastReview ?? 0);
-      if (!(estabilidade > 0)) { semEstabilidade++; continue; }
+      /* A ORDEM decide o balde, e a antiga mentia: cartão NOVO (sem revisão E sem estabilidade)
+         caía em "sem estabilidade", forçando a frase "0 nunca foram revisados" num deck de 201
+         novos — visto em produção em 31/08. "Nunca revisado" é a causa raiz e vem primeiro;
+         "sem estabilidade" fica para o caso raro de cartão revisado sem FSRS (legado Leitner). */
       if (!(ultima > 0)) { semRevisao++; continue; }
+      if (!(estabilidade > 0)) { semEstabilidade++; continue; }
       const dias = Math.max(0, (now - ultima) / 86_400_000);
       comRetencao.push({ card: c, retencaoPct: Math.round(retrievability(dias, estabilidade) * 100) });
     }
@@ -348,7 +364,13 @@ export default function Metrics({ recordings, onChangeView, ageProfile = 'pro' }
                 )}
               </p>
             </div>
-            <button className="flex items-center gap-2 px-4 py-2 bg-surface border border-border-subtle rounded-lg text-xs md:text-sm font-bold text-ink hover:bg-surface-hover hover:border-ink transition-colors shadow-sm cursor-pointer">
+            {/* Este botão existia SEM onClick — controle falso (achado da spec
+                progresso-de-idioma). Agora exporta de verdade: um .txt gerado dos dados reais
+                (palavras difíceis, tempo ativo × passivo, ritmo), pensado para sair do app. */}
+            <button
+              onClick={() => { if (metrics) { baixarRelatorio(metrics, vocabCards); } }}
+              disabled={!metrics}
+              className="flex items-center gap-2 px-4 py-2 bg-surface border border-border-subtle rounded-lg text-xs md:text-sm font-bold text-ink hover:bg-surface-hover hover:border-ink transition-colors shadow-sm cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">
               <Download className="w-4 h-4" /> {ageProfile === 'kids' ? 'Baixar Palavras' : ageProfile === 'senior' ? 'Exportar Meu Caderno' : 'Exportar Relatório'}
             </button>
           </div>
@@ -366,11 +388,11 @@ export default function Metrics({ recordings, onChangeView, ageProfile = 'pro' }
               aoTrocar={(id) => setMainTab(id as typeof mainTab)}
               className="border-b-0"
               itens={[
-                { id: 'dashboard', rotulo: t('metricsTab.dashboard', ageProfile), icone: <LayoutGrid className="w-4 h-4" /> },
+                { id: 'dashboard', rotulo: copyDoPerfil('metricsTab.dashboard', ageProfile), icone: <LayoutGrid className="w-4 h-4" /> },
                 ...((!coreOnly(ageProfile) || showAllTabs || mainTab !== 'dashboard')
                   ? [
-                    { id: 'lexical', rotulo: t('metricsTab.lexical', ageProfile), icone: <Brain className="w-4 h-4" /> },
-                    { id: 'fluency', rotulo: t('metricsTab.fluency', ageProfile), icone: <Mic className="w-4 h-4" /> },
+                    { id: 'lexical', rotulo: copyDoPerfil('metricsTab.lexical', ageProfile), icone: <Brain className="w-4 h-4" /> },
+                    { id: 'fluency', rotulo: copyDoPerfil('metricsTab.fluency', ageProfile), icone: <Mic className="w-4 h-4" /> },
                   ]
                   : []),
               ]}
@@ -404,9 +426,9 @@ export default function Metrics({ recordings, onChangeView, ageProfile = 'pro' }
               >
                 <div className="flex items-center gap-2 mb-3 text-ink-muted group-hover:text-ink transition-colors">
                   <BookOpen className="w-4 h-4 text-accent" />
-                  <span className="text-[11px] font-bold uppercase tracking-wider font-mono">{t('metric.deckSize', ageProfile)}</span>
+                  <span className="text-[11px] font-bold uppercase tracking-wider font-mono">{copyDoPerfil('metric.deckSize', ageProfile)}</span>
                 </div>
-                <div className="font-display font-black text-4xl tracking-tight text-ink mb-1">{(metrics?.deckSize ?? 0).toLocaleString('pt-BR')}</div>
+                <div className="font-display font-black text-4xl tracking-tight text-ink mb-1">{numero(metrics?.deckSize ?? 0)}</div>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-1 text-[12px] text-ink-muted font-bold">
                     {metrics?.newCards ?? 0} novos • {metrics?.dueToday ?? 0} p/ revisar
@@ -425,7 +447,7 @@ export default function Metrics({ recordings, onChangeView, ageProfile = 'pro' }
               >
                 <div className="flex items-center gap-2 mb-3 text-ink-muted group-hover:text-ink transition-colors">
                   <Activity className="w-4 h-4 text-good" />
-                  <span className="text-[11px] font-bold uppercase tracking-wider font-mono">{t('metric.retention', ageProfile)}</span>
+                  <span className="text-[11px] font-bold uppercase tracking-wider font-mono">{copyDoPerfil('metric.retention', ageProfile)}</span>
                 </div>
                 <div className="font-display font-black text-4xl tracking-tight text-ink mb-1">{metrics && metrics.avgRetentionConfidence > 0 ? Math.round(metrics.avgRetention * 100) + '%' : '-'}</div>
                 <div className="flex items-center justify-between">
@@ -448,12 +470,29 @@ export default function Metrics({ recordings, onChangeView, ageProfile = 'pro' }
               >
                 <div className="flex items-center gap-2 mb-3 text-ink-muted group-hover:text-ink transition-colors">
                   <Clock className="w-4 h-4 text-rare" />
-                  <span className="text-[11px] font-bold uppercase tracking-wider font-mono">{t('metric.reviews', ageProfile)}</span>
+                  <span className="text-[11px] font-bold uppercase tracking-wider font-mono">{copyDoPerfil('metric.reviews', ageProfile)}</span>
                 </div>
                 <div className="font-display font-black text-4xl tracking-tight text-ink mb-1">{metrics?.reviews ?? 0}</div>
                 <div className="flex items-center justify-between mt-1">
                   <div className="text-[12px] text-ink-muted">{metrics?.sessions ?? 0} sessões • {metrics?.streakDays ?? 0} dias seguidos</div>
                   <ArrowUpRight className="w-4 h-4 text-ink-muted opacity-0 group-hover:opacity-100 transition-opacity" />
+                </div>
+              </div>
+
+              {/* TEMPO COM O IDIOMA — `listeningMs` e `speakingMs` eram computados pelo servidor e
+                  não tinham lugar em tela nenhuma (só no .txt exportado). É o número que cresce
+                  desde o primeiro dia, mesmo antes da primeira revisão. */}
+              <div className="card-panel p-6 relative overflow-hidden">
+                <div className="flex items-center gap-2 mb-3 text-ink-muted">
+                  <Headphones className="w-4 h-4 text-rare" />
+                  <span className="text-[11px] font-bold uppercase tracking-wider font-mono">Tempo com o idioma</span>
+                </div>
+                <div className="font-display font-black text-4xl tracking-tight text-ink mb-1">
+                  {minutosDoIdioma}<span className="text-2xl"> min</span>
+                </div>
+                <div className="text-[12px] text-ink-muted font-bold">
+                  {numero(metrics?.wordsCaptured ?? 0)} palavras ouvidas
+                  {(metrics?.speakingMs ?? 0) > 0 && ` • ${Math.round((metrics!.speakingMs ?? 0) / 60000)} min falando`}
                 </div>
               </div>
 
@@ -507,12 +546,12 @@ export default function Metrics({ recordings, onChangeView, ageProfile = 'pro' }
                       Calculado sobre <strong className="text-ink-muted">{lowRetentionAnalysis.totalCalculavel}</strong> de{' '}
                       <strong className="text-ink-muted">{lowRetentionAnalysis.totalDeck}</strong> cartões.
                     </p>
-                    <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar space-y-1.5 pr-1">
+                    <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar space-y-1.5 pe-1">
                       {lowRetentionAnalysis.piores.map(({ card, retencaoPct }) => (
                         <button
                           key={card.id}
                           onClick={() => void examineWord(card.word, card.sentence)}
-                          className="w-full text-left p-2.5 rounded-lg border border-border-subtle bg-surface hover:bg-surface-hover transition-colors cursor-pointer flex items-center justify-between gap-3"
+                          className="w-full text-start p-2.5 rounded-lg border border-border-subtle bg-surface hover:bg-surface-hover transition-colors cursor-pointer flex items-center justify-between gap-3"
                           title="Analisar termo no Analista de Vocabulário"
                         >
                           <span className="min-w-0">
@@ -538,13 +577,13 @@ export default function Metrics({ recordings, onChangeView, ageProfile = 'pro' }
                             />
                             {/* C9 — `-ink` e não a cor cheia: `--error`/`--warn` são de
                                 PREENCHIMENTO e como texto sobre o card davam 2,54:1. */}
-                            <span className={`text-[12px] font-bold font-mono w-9 text-right ${retencaoPct < 50 ? 'text-error-ink' : 'text-warn-ink'}`}>
+                            <span className={`text-[12px] font-bold font-mono w-9 text-end ${retencaoPct < 50 ? 'text-error-ink' : 'text-warn-ink'}`}>
                               {retencaoPct}%
                             </span>
                             {/* "há 21 dias" responde a pergunta seguinte — por que esta caiu tanto
                                , e vem de `lastReview`, que o banco sempre gravou. Só aparece
                                 quando existe: um traço em branco não informa nada. */}
-                            <span className="hidden md:block text-[11px] text-ink-faint font-mono w-20 text-right">
+                            <span className="hidden md:block text-[11px] text-ink-faint font-mono w-20 text-end">
                               {desdeAUltimaRevisao(card.lastReview)}
                             </span>
                           </span>
@@ -577,11 +616,81 @@ export default function Metrics({ recordings, onChangeView, ageProfile = 'pro' }
                       compacto
                       motivo={lowRetentionAnalysis.totalDeck === 0
                         ? 'Seu deck ainda está vazio, sem cartões, não há retenção para ranquear.'
-                        : `Nenhum dos ${lowRetentionAnalysis.totalDeck} cartões tem retenção calculável ainda: ${lowRetentionAnalysis.semRevisao} nunca foram revisados e ${lowRetentionAnalysis.semEstabilidade} não têm estabilidade FSRS. Revise alguns cartões no Estudo para começar a ver este ranqueamento.`}
+                        : `Nenhum dos ${lowRetentionAnalysis.totalDeck} cartões tem retenção calculável ainda${
+                            lowRetentionAnalysis.semRevisao > 0
+                              ? ` — ${lowRetentionAnalysis.semRevisao === lowRetentionAnalysis.totalDeck ? 'nenhum' : `${lowRetentionAnalysis.totalDeck - lowRetentionAnalysis.semRevisao} de ${lowRetentionAnalysis.totalDeck}`} foi revisado`
+                              : ''
+                          }. Revise alguns cartões no Estudo para começar a ver este ranqueamento.`}
                     />
                   </div>
                 )}
               </div>
+            </div>
+
+            {/* SUAS PALAVRAS DIFÍCEIS (spec progresso-de-idioma): o schema gravava lapses,
+                dificuldade FSRS e o grade de cada revisão — e nada mostrava. O ranking vem
+                pronto do servidor (>= 2 revisões por cartão; base fraca fica de fora e o vazio
+                diz isso). Diferente do "Requer Atenção" (retenção decaindo AGORA), este é o
+                histórico do que o usuário mais ERRA. */}
+            {(metrics?.palavrasDificeis?.length ?? 0) > 0 && (
+              <div className="card-panel p-6">
+                <div className="flex justify-between items-center mb-1 flex-wrap gap-2">
+                  <h3 className="font-display font-extrabold text-[16px] text-ink flex items-center gap-2">
+                    <Target className="w-5 h-5 text-error-ink" /> Suas palavras difíceis
+                  </h3>
+                  <button onClick={() => onChangeView?.('study')} className="btn-outline">
+                    Praticar estas agora
+                  </button>
+                </div>
+                <p className="text-[12px] text-ink-muted mb-4">
+                  As que você mais esquece e erra, pelo histórico real de revisões (só entram
+                  cartões com 2+ revisões).
+                </p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                  {metrics!.palavrasDificeis!.map((p) => (
+                    <div key={p.cardId} className="flex items-center justify-between gap-2 bg-canvas border border-border-subtle rounded-lg px-3 py-2">
+                      <span className="font-bold text-[13.5px] text-ink truncate">{p.word}</span>
+                      <span className="text-[11px] text-ink-muted font-mono shrink-0">
+                        {p.lapses > 0 ? `${p.lapses}× esquecida · ` : ''}{Math.round(p.fracaoDeErro * 100)}% erro
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* O ACERVO, na tela que leva o nome dele (spec entrega-honesta).
+                Esta lista morava na aba "Detalhes das palavras", que a revelação progressiva
+                esconde atrás do botão "Mais" — então a tela chamada Minhas Palavras abria na
+                única aba sem palavras. Esconder ANÁLISE é revelação progressiva; esconder o
+                ACERVO é a tela não cumprir o próprio nome. As análises ficam nas abas. */}
+            <div className="card-panel p-6 flex flex-col">
+              <div className="flex justify-between items-center mb-1 flex-wrap gap-2">
+                <h3 className="font-display font-extrabold text-[16px] text-ink flex items-center gap-2">
+                  <BookOpen className="w-5 h-5 text-accent" /> Suas palavras
+                </h3>
+                <span className="text-[12px] text-ink-muted font-bold tabular-nums">
+                  {numero(metrics?.deckSize ?? 0)} no caderno
+                </span>
+              </div>
+              <p className="text-[12px] text-ink-muted mb-4">
+                Busque, filtre por nível e origem, ordene. Clique num termo para ouvir a pronúncia
+                e ver a explicação.
+              </p>
+              <CatalogoDePalavras aoAbrirPalavra={(id) => {
+                const c = vocabCards.find((x) => x.id === id)
+                if (c) void examineWord(c.word, c.sentence)
+              }} />
+              {semVerso > 0 && (
+                <p className="text-[12px] text-warn-ink mt-3 leading-relaxed">
+                  <b>{numero(semVerso)} {semVerso === 1 ? 'palavra está' : 'palavras estão'} sem tradução.</b>{' '}
+                  Isso acontece quando o idioma que você aprende e o seu idioma são o mesmo — não há
+                  o que traduzir, e o cartão fica sem verso.{' '}
+                  <button onClick={() => onChangeView?.('settings')} className="underline font-bold hover:text-ink cursor-pointer">
+                    Conferir os dois idiomas
+                  </button>
+                </p>
+              )}
             </div>
         </PainelDeAba>
 
@@ -592,15 +701,15 @@ export default function Metrics({ recordings, onChangeView, ageProfile = 'pro' }
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div className="card-panel p-6">
                 <div className="text-[11px] font-bold uppercase tracking-wider font-mono text-ink-muted mb-2">Palavras Distintas</div>
-                <div className="font-display font-black text-3xl text-ink">{(metrics?.uniqueWords ?? 0).toLocaleString('pt-BR')}</div>
+                <div className="font-display font-black text-3xl text-ink">{numero(metrics?.uniqueWords ?? 0)}</div>
               </div>
               <div className="card-panel p-6">
                 <div className="text-[11px] font-bold uppercase tracking-wider font-mono text-ink-muted mb-2">Cartões no Deck</div>
-                <div className="font-display font-black text-3xl text-ink">{(metrics?.deckSize ?? 0).toLocaleString('pt-BR')}</div>
+                <div className="font-display font-black text-3xl text-ink">{numero(metrics?.deckSize ?? 0)}</div>
               </div>
               <div className="card-panel p-6">
                 <div className="text-[11px] font-bold uppercase tracking-wider font-mono text-ink-muted mb-2">Palavras Capturadas</div>
-                <div className="font-display font-black text-3xl text-ink">{(metrics?.wordsCaptured ?? 0).toLocaleString('pt-BR')}</div>
+                <div className="font-display font-black text-3xl text-ink">{numero(metrics?.wordsCaptured ?? 0)}</div>
               </div>
             </div>
 
@@ -615,7 +724,11 @@ export default function Metrics({ recordings, onChangeView, ageProfile = 'pro' }
                 </div>
                 <p className="text-[12px] text-ink-muted mb-6">Estimativa aproximada de nível, não represente como classificação exata.</p>
 
-                {levelDist.length > 0 ? (
+                {/* "N/D" NÃO É UMA DISTRIBUIÇÃO. Com todo o acervo fora da wordlist, o donut
+                    desenhava uma fatia única de 100% "N/D" — um gráfico que não informa nada,
+                    ao lado de um Resumo que já declara "não há base". `temNivelReal` faz o
+                    componente cair no estado vazio, que explica em vez de desenhar. */}
+                {temNivelReal ? (
                   <>
                     <div className="w-full" style={{ height: 240 }}>
                       <ResponsiveContainer width="100%" height="100%">
@@ -648,22 +761,6 @@ export default function Metrics({ recordings, onChangeView, ageProfile = 'pro' }
                 )}
               </div>
 
-              {/* Per-word deep dive — lista REAL do deck; o clique abre o Analista de Vocabulário */}
-              <div className="card-panel p-6 flex flex-col">
-                <h3 className="font-display font-extrabold text-[16px] text-ink mb-1 flex items-center gap-2">
-                  <Brain className="w-5 h-5 text-accent" /> Análise Lexical por Palavra
-                </h3>
-                <p className="text-[12px] text-ink-muted mb-4">
-                  Busque, filtre por nível e origem, ordene. Clique num termo para abrir o Analista de Vocabulário.
-                </p>
-                {/* F5: a lista antiga era `vocabCards.map()` sobre os 2.116 cartões medidos, num
-                    scroller de 320px, sem busca, filtro, ordenação, paginação, loading nem erro.
-                    O catálogo resolve tudo isso no servidor e virtualiza a lista. */}
-                <CatalogoDePalavras aoAbrirPalavra={(id) => {
-                  const c = vocabCards.find((x) => x.id === id)
-                  if (c) void examineWord(c.word, c.sentence)
-                }} />
-              </div>
             </div>
         </PainelDeAba>
 
@@ -780,9 +877,11 @@ export default function Metrics({ recordings, onChangeView, ageProfile = 'pro' }
                     </div>
                   </div>
                 ) : (
-                  <SemDado compacto motivo={`{englishCorpus.totalFalas === 0
+                  // Era uma template string com o ternário DENTRO das crases — o usuário lia
+                  // código-fonte na tela (visto em 31/08).
+                  <SemDado compacto motivo={englishCorpus.totalFalas === 0
                       ? 'Nenhuma fala capturada ainda, grave ou importe uma sessão para medir complexidade.'
-                      : 'Nenhuma das falas capturadas está em inglês, a heurística de complexidade só vale para inglês.'}`} />
+                      : 'Nenhuma das falas capturadas está em inglês, a heurística de complexidade só vale para inglês.'} />
                 )}
               </div>
 

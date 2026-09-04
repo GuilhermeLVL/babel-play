@@ -45,6 +45,14 @@ describe('estadoParaUrl', () => {
   it('sessão sem id não inventa caminho de sessão', () => {
     expect(estadoParaUrl({ view: 'analysis' })).toBe('/sessao')
   })
+
+  it('a área de Personalizar entra no caminho, na língua do rótulo (ux-v2 §1.6)', () => {
+    expect(estadoParaUrl({ view: 'loja', lojaTab: 'passe' })).toBe('/loja/passe')
+    expect(estadoParaUrl({ view: 'loja', lojaTab: 'personalizar' })).toBe('/loja/meu-visual')
+    expect(estadoParaUrl({ view: 'loja', lojaTab: 'loja' })).toBe('/loja/itens')
+    expect(estadoParaUrl({ view: 'loja', lojaTab: 'conquistas' })).toBe('/loja/desafios')
+    expect(estadoParaUrl({ view: 'loja' })).toBe('/loja')
+  })
 })
 
 describe('urlParaEstado', () => {
@@ -73,6 +81,11 @@ describe('urlParaEstado', () => {
   it('ignora o callback de auth — ele tem dono e não é rota de tela', () => {
     expect(urlParaEstado('/auth/callback')).toEqual({ view: 'hub' })
   })
+
+  it('sub-aba de Personalizar desconhecida degrada para a tela, não para o Hub', () => {
+    expect(urlParaEstado('/loja/meu-visual')).toEqual({ view: 'loja', lojaTab: 'personalizar' })
+    expect(urlParaEstado('/loja/nao-existe')).toEqual({ view: 'loja' })
+  })
 })
 
 describe('ida e volta — o estado sobrevive ao recarregamento', () => {
@@ -87,10 +100,69 @@ describe('ida e volta — o estado sobrevive ao recarregamento', () => {
     { view: 'analysis', sessionId: 's1', subTab: 'practice' },
     { view: 'analysis', sessionId: 's1', subTab: 'study' },
     { view: 'analysis', subTab: 'study' },
+    { view: 'loja', lojaTab: 'passe' },
+    { view: 'loja', lojaTab: 'personalizar' },
+    { view: 'loja', lojaTab: 'loja' },
+    { view: 'loja', lojaTab: 'conquistas' },
   ]
   for (const c of casos) {
     it(`preserva ${JSON.stringify(c)}`, () => {
       expect(ida(c)).toEqual(c)
     })
   }
+})
+
+/**
+ * OS ENDEREÇOS DO QUE ESTÁ À VENDA (mudança vender-onde-se-ve).
+ *
+ * `ComprarCreditos` não tinha URL nenhuma: vivia dentro de uma aba que a DESMONTA quando inativa,
+ * e não havia link que levasse a ela. E `/planos`, no plural — que é o que qualquer pessoa digita
+ * — caía no Hub em silêncio, porque o mapa só conhecia o singular.
+ */
+describe('as rotas do que está à venda', () => {
+  it('/creditos abre a compra de Créditos', () => {
+    expect(urlParaEstado('/creditos')).toEqual({ view: 'loja', lojaTab: 'loja' })
+  })
+
+  it('/planos vale como /plano — o plural é o que se digita', () => {
+    expect(urlParaEstado('/planos')).toEqual({ view: 'planos' })
+    expect(urlParaEstado('/plano')).toEqual({ view: 'planos' })
+  })
+
+  it('mas a URL publicada continua sendo a canônica — uma tela, um endereço na barra', () => {
+    expect(estadoParaUrl({ view: 'planos' })).toBe('/plano')
+  })
+})
+
+/**
+ * O FILTRO DA PRÁTICA NA URL (programa do seletor facetado).
+ *
+ * A query era DESCARTADA no parse — um link com filtro abria a tela certa e jogava o filtro fora.
+ * Ela sobrevive apenas em `/jogar`: a rota transporta a string OPACA (`jogarQuery`); quem sabe o
+ * formato é `lib/filtroDaPratica`. Aqui trava-se só o transporte.
+ */
+describe('a query do /jogar', () => {
+  it('sobrevive à ida-e-volta — era descartada no parse', () => {
+    expect(urlParaEstado('/jogar?fonte=baralho&baralho=Deck-A')).toEqual({
+      view: 'play',
+      jogarQuery: 'fonte=baralho&baralho=Deck-A',
+    })
+    expect(estadoParaUrl({ view: 'play', jogarQuery: 'fonte=baralho&baralho=Deck-A' }))
+      .toBe('/jogar?fonte=baralho&baralho=Deck-A')
+  })
+
+  it('preserva a CAIXA da query — ids de baralho e códigos de idioma são sensíveis a caixa', () => {
+    expect(urlParaEstado('/JOGAR?baralho=MixedCase').view).toBe('play')
+    expect(urlParaEstado('/jogar?fonte=baralho&baralho=MixedCase').jogarQuery).toBe('fonte=baralho&baralho=MixedCase')
+  })
+
+  it('em qualquer outra rota a query segue ignorada — o filtro não manda fora do /jogar', () => {
+    expect(urlParaEstado('/biblioteca?fonte=baralho')).toEqual({ view: 'library' })
+    expect(urlParaEstado('/?fonte=baralho')).toEqual({ view: 'hub' })
+  })
+
+  it('sem query, /jogar continua idêntico ao que sempre foi', () => {
+    expect(urlParaEstado('/jogar')).toEqual({ view: 'play' })
+    expect(estadoParaUrl({ view: 'play' })).toBe('/jogar')
+  })
 })

@@ -21,6 +21,7 @@ import { describe, it, expect, vi, afterEach } from 'vitest'
 import { render, screen, cleanup, fireEvent } from '@testing-library/react'
 import SalaDeEscolha from '../src/components/minigames/SalaDeEscolha'
 import type { EscolhaDaPratica } from '../src/core/minigames/source'
+import type { AgeProfileType } from '../src/lib/profile'
 
 afterEach(cleanup)
 
@@ -36,16 +37,17 @@ const GRAVACOES = [
 const trilhaDe = (lang: string) =>
   lang === 'en' ? { niveis: ['A1', 'A2', 'B1'] as never[], total: 2784 } : { niveis: [], total: 0 }
 
-function montar(escolha: Partial<EscolhaDaPratica> = {}) {
+function montar(escolha: Partial<EscolhaDaPratica> = {}, ageProfile: AgeProfileType = 'pro') {
   const aoConfirmar = vi.fn()
   const aoFechar = vi.fn()
   render(
     <SalaDeEscolha
       escolhaAtual={{ origem: 'gravacoes', escopo: 'todas', lang: 'en', ...escolha }}
       idiomas={IDIOMAS}
+      dificeis={0}
       gravacoes={GRAVACOES}
       trilhaDe={trilhaDe}
-      ageProfile="pro"
+      ageProfile={ageProfile}
       aoConfirmar={aoConfirmar}
       aoFechar={aoFechar}
     />,
@@ -61,13 +63,13 @@ describe('a sala é um clique', () => {
     expect(d.getAttribute('aria-labelledby')).toBeTruthy()
   })
 
-  it('abre com o foco no botão de jogar — Enter resolve sem tocar em mais nada', () => {
+  it('abre com o foco no botão de confirmar — Enter resolve sem tocar em mais nada', () => {
     const { aoConfirmar } = montar({ lang: 'en', origem: 'gravacoes', escopo: 'todas' })
     /* O foco no botão é o que faz `Enter` bastar. Em jsdom o `Enter` nativo não vira clique
        (é comportamento do navegador, não do DOM), então o que dá para provar aqui é o foco —
        e que acionar o elemento focado confirma. */
-    const jogar = screen.getByRole('button', { name: /^jogar/i })
-    expect(document.activeElement).toBe(jogar)
+    const confirmar = screen.getByRole('button', { name: /usar estas/i })
+    expect(document.activeElement).toBe(confirmar)
     fireEvent.click(document.activeElement!)
     expect(aoConfirmar).toHaveBeenCalledWith(
       expect.objectContaining({ lang: 'en', origem: 'gravacoes', escopo: 'todas' }),
@@ -76,7 +78,7 @@ describe('a sala é um clique', () => {
 
   it('confirma a escolha GUARDADA, e não um padrão — é o que faz dela um clique só', () => {
     const { aoConfirmar } = montar({ origem: 'gravacoes', escopo: 'uma', sessionId: 's2' })
-    fireEvent.click(screen.getByRole('button', { name: /^jogar/i }))
+    fireEvent.click(screen.getByRole('button', { name: /usar estas/i }))
     expect(aoConfirmar).toHaveBeenCalledWith(expect.objectContaining({ escopo: 'uma', sessionId: 's2' }))
   })
 })
@@ -145,6 +147,7 @@ describe('os números são de material JOGÁVEL', () => {
       <SalaDeEscolha
         escolhaAtual={{ origem: 'gravacoes', escopo: 'todas', lang: 'en' }}
         idiomas={IDIOMAS}
+        dificeis={0}
         gravacoes={[]}
         trilhaDe={trilhaDe}
         ageProfile="pro"
@@ -165,10 +168,79 @@ describe('escolher uma gravação específica', () => {
 
     fireEvent.click(screen.getByRole('radio', { name: /uma gravação/i }))
     fireEvent.click(screen.getByRole('button', { name: /podcast de terça/i }))
-    fireEvent.click(screen.getByRole('button', { name: /^jogar/i }))
+    fireEvent.click(screen.getByRole('button', { name: /usar estas/i }))
 
     expect(aoConfirmar).toHaveBeenCalledWith(
       expect.objectContaining({ origem: 'gravacoes', escopo: 'uma', sessionId: 's2' }),
     )
+  })
+})
+
+describe('o botão primário diz o que faz', () => {
+  /**
+   * Ele se chamava "Jogar" e trazia um ícone de play, mas `confirmar` só emite `aoConfirmar`:
+   * do outro lado, `aplicarEscolha` troca idioma e fonte e devolve a pessoa ao lobby, com nove
+   * cartas para escolher. Prometer play e entregar troca de fonte era a quebra de promessa mais
+   * cara da tela, porque acontecia no único gesto forte dela (achado F02).
+   *
+   * Não vira play de verdade porque a rodada é montada de `jogaveis`, derivado da fonte NOVA —
+   * que só existe no render seguinte. Quem quer um clique até a partida usa o lobby.
+   */
+  it('não promete jogar, já que só aplica a escolha', () => {
+    montar()
+    expect(screen.queryByRole('button', { name: /^jogar$/i })).toBeNull()
+    expect(screen.getByRole('button', { name: /usar estas/i })).toBeTruthy()
+  })
+
+  it('o perfil kids também não promete play', () => {
+    montar({}, 'kids')
+    // A asserção positiva importa: sem ela o teste passaria mesmo que a sala nem tivesse
+    // renderizado o botão, que é como a primeira versão dele passou por acidente.
+    expect(screen.getByRole('button', { name: /usar estas!/i })).toBeTruthy()
+    expect(screen.queryByRole('button', { name: /^bora!?$/i })).toBeNull()
+  })
+})
+
+describe('o rótulo da etapa segue a escala da trilha', () => {
+  const porFrequencia = () => ({
+    niveis: ['A1', 'A2'] as never[],
+    total: 5727,
+    porNivel: { A1: 955, A2: 955 },
+    escala: 'frequencia' as const,
+  })
+
+  it('trilha por frequência não escreve A1 na tela', () => {
+    render(
+      <SalaDeEscolha
+        escolhaAtual={{ origem: 'trilha', escopo: 'todas', lang: 'es' }}
+        idiomas={[{ lang: 'es', total: 10, jogaveis: 10 }]}
+        dificeis={0}
+        gravacoes={[]}
+        trilhaDe={porFrequencia}
+        ageProfile="pro"
+        aoConfirmar={vi.fn()}
+        aoFechar={vi.fn()}
+      />,
+    )
+    expect(screen.getByText(/Faixa de frequência da trilha/)).toBeTruthy()
+    expect(screen.getByText(/não níveis do CEFR/)).toBeTruthy()
+    expect(screen.queryByRole('radio', { name: /^A1/ })).toBeNull()
+  })
+
+  it('trilha CEFR continua dizendo Nível e A1', () => {
+    montar({ origem: 'trilha' })
+    expect(screen.getByText(/Nível da trilha/)).toBeTruthy()
+    expect(screen.queryByText(/não níveis do CEFR/)).toBeNull()
+  })
+})
+
+describe('a tabela de cobertura por idioma', () => {
+  it('vem recolhida e diz o que cada idioma tem', () => {
+    montar()
+    const resumo = screen.getByText('O que cada idioma tem hoje')
+    expect(resumo.closest('details')?.open).toBe(false)
+    fireEvent.click(resumo)
+    expect(screen.getByText('Trilha por nível')).toBeTruthy()
+    expect(screen.getAllByText('Só o seu conteúdo').length).toBeGreaterThan(0)
   })
 })

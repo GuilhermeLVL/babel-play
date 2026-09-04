@@ -1,33 +1,14 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React from 'react';
 import { EDICAO_LEVE } from '../../lib/edicao';
 import {
-  Bot,
-  Sliders,
-  Palette,
   Sun,
   Moon,
-  Plus,
-  Minus,
-  Volume2,
-  VolumeX,
   Search,
-  Gauge,
-  Sparkles,
-  Eye,
-  Gamepad2,
-  Zap,
-  PanelLeft,
-  PanelRight,
-  PanelTop,
-  PanelBottom,
-  Check, Type, Lock } from 'lucide-react';
-import { THEME_OPTIONS, type ThemeType, FONTE_OPTIONS, type FonteType } from '../../lib/appearance';
-import { desbloqueado, nivelNecessario } from '../../lib/desbloqueios';
-import { PARTICULAS_OPTIONS, readParticulas, setParticulas, type ParticulasType } from '../../lib/particulas';
-import { emitBurst } from '../../lib/effects';
-import { toast } from '../Toast';
+  Sparkles } from 'lucide-react';
+import type { ThemeType, FonteType } from '../../lib/appearance';
 import type { AgeProfileType, MenuPositionType } from './navItems';
 import MenuDaConta from './MenuDaConta';
+import MenuDeConforto from './MenuDeConforto';
 
 export type FontScale = 'sm' | 'md' | 'lg' | 'xl';
 
@@ -39,10 +20,8 @@ export interface ControlClusterProps {
   onOpenStudio: () => void;
   ageProfile: AgeProfileType;
   setAgeProfile: (profile: AgeProfileType) => void;
-  onToggleChat: () => void;
   fontScale: FontScale;
-  increaseFontScale: () => void;
-  decreaseFontScale: () => void;
+  cycleFontScale: () => void;
   menuPosition: MenuPositionType;
   setMenuPosition: (pos: MenuPositionType) => void;
   fonte: FonteType;
@@ -67,7 +46,13 @@ export interface ControlClusterProps {
   onChangeView: (view: string) => void;
 }
 
-const FONT_SCALE_LABEL: Record<FontScale, string> = { sm: 'A', md: 'A', lg: 'A', xl: 'A' };
+/* O rótulo diz o estado E a ação — inclusive o salto do máximo para o mínimo. */
+const ROTULO_DO_CICLO: Record<FontScale, string> = {
+  sm: 'Tamanho do texto: pequeno — clique para aumentar',
+  md: 'Tamanho do texto: médio — clique para aumentar',
+  lg: 'Tamanho do texto: grande — clique para aumentar',
+  xl: 'Tamanho do texto: máximo — clique para voltar ao pequeno',
+};
 const FONT_SCALE_ORDER: FontScale[] = ['sm', 'md', 'lg', 'xl'];
 
 /**
@@ -109,30 +94,20 @@ function IconButton({
   );
 }
 
-/** O popover de Aparência saiu da barra (2026-08-27): tema/fonte/partículas agora se equipam na
- *  LOJA e o básico (perfil, posição, tamanho) vive nos Ajustes — dois donos para a mesma
- *  preferência era a confusão que o dono pediu para remover. O código fica para a volta atrás. */
-const MOSTRAR_PAINEL_APARENCIA = false as boolean;
-
+/**
+ * CENTRALIZAÇÃO (2026-08-28): o popover de Aparência que vivia aqui (tema, fonte, partículas,
+ * perfil, posição, atalho do Estúdio) foi REMOVIDO de vez — estava atrás de uma flag morta e
+ * duplicava o que a tela Personalizar faz. O cluster ficou só com os ATALHOS de acessibilidade
+ * que precisam estar a um toque em qualquer tela: busca, tamanho do texto, som, animações,
+ * desempenho e claro/escuro. Nenhum deles tem um segundo controle em outra tela.
+ * As props de aparência continuam no contrato para não quebrar quem monta o cluster.
+ */
 export default function ControlCluster(props: ControlClusterProps) {
-  const [particulasEscolhida, setParticulasEscolhida] = React.useState<ParticulasType>(readParticulas);
   const {
-    theme,
-    setTheme,
     darkMode,
     toggleDarkMode,
-    onOpenStudio,
-    ageProfile,
-    setAgeProfile,
-    onToggleChat,
     fontScale,
-    increaseFontScale,
-    decreaseFontScale,
-    menuPosition,
-    setMenuPosition,
-  fonte,
-  setFonte,
-  nivel,
+    cycleFontScale,
     soundEnabled,
     toggleSound,
     animationsEnabled,
@@ -143,70 +118,6 @@ export default function ControlCluster(props: ControlClusterProps) {
     onOpenSearch,
     onChangeView
   } = props;
-
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const triggerRef = useRef<HTMLButtonElement | null>(null);
-  const panelRef = useRef<HTMLDivElement | null>(null);
-  const [coords, setCoords] = useState<{ top: number; left: number } | null>(null);
-
-  /**
-   * O painel é `position: fixed` com coordenadas calculadas, NÃO `absolute`.
-   *
-   * A raiz da app é `overflow-hidden` e o rail vertical é um flex de altura total dentro dela:
-   * um popover absoluto ali era recortado. E o `top-11` fixo da versão anterior abria o painel
-   * PARA BAIXO mesmo com o menu no rodapé — ou seja, fora da viewport. Aqui a posição é medida
-   * a partir do gatilho e depois grampeada dentro da janela, então funciona nas quatro posições.
-   */
-  const place = useCallback(() => {
-    const trigger = triggerRef.current;
-    if (!trigger) return;
-    const rect = trigger.getBoundingClientRect();
-    const PANEL_W = 288; // w-72
-    const PANEL_MAX_H = Math.min(window.innerHeight * 0.8, 620);
-    const GAP = 8;
-    const MARGIN = 8;
-
-    // Abre para baixo se couber; senão, para cima.
-    const spaceBelow = window.innerHeight - rect.bottom;
-    const top =
-      spaceBelow >= PANEL_MAX_H + GAP
-        ? rect.bottom + GAP
-        : Math.max(MARGIN, rect.top - PANEL_MAX_H - GAP);
-
-    // Alinha pela direita do gatilho e grampeia nas bordas da janela.
-    let left = rect.right - PANEL_W;
-    left = Math.min(left, window.innerWidth - PANEL_W - MARGIN);
-    left = Math.max(MARGIN, left);
-
-    setCoords({ top, left });
-  }, []);
-
-  useEffect(() => {
-    if (!isMenuOpen) return;
-    place();
-
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setIsMenuOpen(false);
-    };
-    const onPointerDown = (e: MouseEvent) => {
-      const target = e.target as Node;
-      if (panelRef.current?.contains(target)) return;
-      if (triggerRef.current?.contains(target)) return;
-      setIsMenuOpen(false);
-    };
-    const onReflow = () => place();
-
-    window.addEventListener('keydown', onKey);
-    window.addEventListener('mousedown', onPointerDown);
-    window.addEventListener('resize', onReflow);
-    window.addEventListener('scroll', onReflow, true);
-    return () => {
-      window.removeEventListener('keydown', onKey);
-      window.removeEventListener('mousedown', onPointerDown);
-      window.removeEventListener('resize', onReflow);
-      window.removeEventListener('scroll', onReflow, true);
-    };
-  }, [isMenuOpen, place]);
 
   /* O som saiu daqui: o listener delegado (lib/sfxDelegate) já toca `click` em qualquer <button>,
      e `toggleOn`/`toggleOff` nos que declaram `aria-pressed`, que é o caso destes. Manter a
@@ -234,7 +145,7 @@ export default function ControlCluster(props: ControlClusterProps) {
         className={`flex items-center gap-2 rounded-lg text-ink-muted hover:text-ink hover:bg-surface-hover transition-colors cursor-pointer shrink-0 ${
           orientation === 'column'
             ? 'w-9 h-9 justify-center'
-            : 'h-9 pl-2.5 pr-2 border border-border-subtle/60 bg-surface'
+            : 'h-9 ps-2.5 pe-2 border border-border-subtle/60 bg-surface'
         }`}
       >
         <Search className="w-4 h-4 shrink-0" />
@@ -251,92 +162,49 @@ export default function ControlCluster(props: ControlClusterProps) {
       <div className={orientation === 'column' ? 'hidden' : 'w-px h-5 bg-border-subtle/70 mx-1'} />
 
       {/* Escala de fonte — o indicador é o próprio "A" mudando de tamanho, não uma sigla a decifrar */}
-      <div className="flex items-center gap-0.5 shrink-0">
-        <IconButton onClick={click(decreaseFontScale)} title="Diminuir o tamanho do texto">
-          <Minus className="w-4 h-4" />
-        </IconButton>
+      {/* UM botão que cicla (spec controle-de-fonte-ciclico): eram três alvos (menos / indicador
+          passivo / mais); agora o "A" é o botão E o indicador — cresce com a escala, e no máximo
+          o clique volta ao mínimo, dito pelo aria-label. */}
+      <button
+        type="button"
+        onClick={click(cycleFontScale)}
+        title={ROTULO_DO_CICLO[fontScale]}
+        aria-label={ROTULO_DO_CICLO[fontScale]}
+        className="w-9 h-9 rounded-lg text-ink-muted hover:bg-surface-hover hover:text-ink flex items-center justify-center transition-colors cursor-pointer shrink-0"
+      >
         <span
-          className="w-6 text-center font-display font-black text-ink select-none leading-none"
+          className="font-display font-black select-none leading-none"
           style={{ fontSize: `${11 + scaleIndex * 2}px` }}
           aria-hidden
         >
-          {FONT_SCALE_LABEL[fontScale]}
+          A
         </span>
-        <IconButton onClick={click(increaseFontScale)} title="Aumentar o tamanho do texto">
-          <Plus className="w-4 h-4" />
-        </IconButton>
-      </div>
+      </button>
 
       <div className={orientation === 'column' ? 'hidden' : 'w-px h-5 bg-border-subtle/70 mx-1'} />
 
-      {/* Som de interface */}
-      <IconButton
-        onClick={() => toggleSound()}
-        title={soundEnabled ? 'Silenciar os sons da interface' : 'Ativar os sons da interface'}
-        active={soundEnabled}
-        tone="good"
-      >
-        {soundEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
-      </IconButton>
+      {/* Som, animações e desempenho — preferências raras, agrupadas num popover COM RÓTULOS
+          (auditoria de UX, 31/08): oito ícones soltos no cabeçalho exigiam decifração; três deles
+          a maioria toca uma vez. Ver MenuDeConforto. */}
+      <MenuDeConforto
+        soundEnabled={soundEnabled}
+        toggleSound={toggleSound}
+        animationsEnabled={animationsEnabled}
+        toggleAnimations={click(toggleAnimations)}
+        performanceMode={performanceMode}
+        togglePerformanceMode={click(togglePerformanceMode)}
+        orientation={orientation}
+      />
 
-      {/* Animações e efeitos */}
-      <IconButton
-        onClick={click(toggleAnimations)}
-        title={animationsEnabled ? 'Parar as animações e os efeitos' : 'Ativar as animações e os efeitos'}
-        active={animationsEnabled}
-        tone="accent"
-      >
-        <Sparkles className={`w-4 h-4 ${animationsEnabled ? '' : 'opacity-50'}`} />
-      </IconButton>
-
-      {/* Modo desempenho */}
-      <IconButton
-        onClick={click(togglePerformanceMode)}
-        title={
-          performanceMode
-            ? 'Modo desempenho ligado, visual simplificado para PCs modestos'
-            : 'Ligar o modo desempenho (visual simplificado, app mais leve)'
-        }
-        active={performanceMode}
-        tone="warn"
-      >
-        <Gauge className="w-4 h-4" />
-      </IconButton>
-
-      <div className={orientation === 'column' ? 'hidden' : 'w-px h-5 bg-border-subtle/70 mx-1'} />
-
-      {/* Tutor — depende de /api/gemini/chat; na edição leve não há API. */}
-      {!EDICAO_LEVE && <button
-        type="button"
-        onClick={click(onToggleChat)}
-        title="Abrir o tutor BabelBot"
-        aria-label="Abrir o tutor BabelBot"
-        className="w-9 h-9 rounded-lg text-accent-ink hover:bg-surface-hover flex items-center justify-center transition-colors relative cursor-pointer shrink-0"
-      >
-        <Bot className="w-4 h-4" />
-        <span aria-hidden className="absolute top-1.5 right-1.5 w-1.5 h-1.5 bg-good rounded-full" />
-      </button>}
+      {/* O botão do tutor SAIU daqui (auditoria de UX, 31/08): ele e o balão flutuante do iChat
+          abriam o MESMO painel com dois nomes diferentes ("BabelBot" aqui, "iChat" lá) — duas
+          portas com placas distintas para a mesma sala é atrito puro. O balão flutuante fica,
+          porque carrega contexto ("sintonizado com…") e está sempre visível. */}
 
       {/* Claro / escuro */}
       <IconButton onClick={click(toggleDarkMode)} title={darkMode ? 'Mudar para o modo claro' : 'Mudar para o modo escuro'}>
         {darkMode ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
       </IconButton>
-
-      {/* Aparência */}
-      {MOSTRAR_PAINEL_APARENCIA && <button
-        ref={triggerRef}
-        type="button"
-        onClick={() => setIsMenuOpen((v) => !v)}
-        title="Aparência: tema, perfil e posição do menu"
-        aria-label="Aparência: tema, perfil e posição do menu"
-        aria-haspopup="dialog"
-        aria-expanded={isMenuOpen}
-        className={`w-9 h-9 rounded-lg flex items-center justify-center transition-colors cursor-pointer shrink-0 ${
-          isMenuOpen ? 'bg-accent-soft text-accent-ink' : 'text-ink-muted hover:text-ink hover:bg-surface-hover'
-        }`}
-      >
-        <Palette className="w-4 h-4" />
-      </button>}
 
       {/* ── A CONTA ────────────────────────────────────────────────────────────────────────────
           Último da fileira porque é o item de MAIS ALTO nível: os outros ajustam a tela, este
@@ -346,173 +214,6 @@ export default function ControlCluster(props: ControlClusterProps) {
       {!EDICAO_LEVE && <div className={orientation === 'column' ? 'hidden' : 'w-px h-5 bg-border-subtle/70 mx-1'} />}
       {!EDICAO_LEVE && <MenuDaConta onIr={onChangeView} orientation={orientation} />}
 
-      {isMenuOpen && coords && (
-        <div
-          ref={panelRef}
-          role="dialog"
-          aria-label="Aparência"
-          className="fixed w-72 bg-surface border border-border-subtle rounded-2xl shadow-2xl z-50 overflow-y-auto custom-scrollbar"
-          style={{ top: coords.top, left: coords.left, maxHeight: 'min(80vh, 620px)' }}
-        >
-          <div className="p-3 space-y-4">
-            {/* Posição do menu */}
-            <section>
-              <h3 className="label-mono mb-2 px-1">Posição do menu</h3>
-              <div className="grid grid-cols-4 gap-1 p-1 bg-surface-hover/70 border border-border-subtle rounded-xl">
-                {(
-                  [
-                    { id: 'top', icon: PanelTop, label: 'Topo' },
-                    { id: 'left', icon: PanelLeft, label: 'Esquerda' },
-                    { id: 'right', icon: PanelRight, label: 'Direita' },
-                    { id: 'bottom', icon: PanelBottom, label: 'Baixo' }
-                  ] as const
-                ).map((opt) => (
-                  <button
-                    key={opt.id}
-                    type="button"
-                    onClick={click(() => {
-                      if (!desbloqueado(nivel, 'posicao', opt.id, menuPosition)) {
-                        toast.info(`Alcance o nível ${nivelNecessario('posicao', opt.id)} para liberar esta posição.`);
-                        return;
-                      }
-                      setMenuPosition(opt.id);
-                    })}
-                    aria-pressed={menuPosition === opt.id}
-                    className={`py-2 px-1 rounded-lg font-bold text-[10px] flex flex-col items-center gap-1 cursor-pointer transition-colors ${
-                      menuPosition === opt.id ? 'bg-accent text-accent-contrast' : desbloqueado(nivel, 'posicao', opt.id, menuPosition) ? 'text-ink-muted hover:text-ink hover:bg-surface' : 'text-ink-faint opacity-60'
-                    }`}
-                  >
-                    {desbloqueado(nivel, 'posicao', opt.id, menuPosition) ? <opt.icon className="w-4 h-4" /> : <Lock className="w-4 h-4" />}
-                    {desbloqueado(nivel, 'posicao', opt.id, menuPosition) ? opt.label : `Nv. ${nivelNecessario('posicao', opt.id)}`}
-                  </button>
-                ))}
-              </div>
-            </section>
-
-            {/* Perfil de exibição */}
-            <section>
-              <h3 className="label-mono mb-2 px-1">Perfil de exibição</h3>
-              <div className="grid grid-cols-3 gap-1 p-1 bg-surface-hover/70 border border-border-subtle rounded-xl">
-                {(
-                  [
-                    { id: 'kids', icon: Gamepad2, label: 'Kids' },
-                    { id: 'pro', icon: Zap, label: 'Pro' },
-                    { id: 'senior', icon: Eye, label: 'Sênior' }
-                  ] as const
-                ).map((opt) => (
-                  <button
-                    key={opt.id}
-                    type="button"
-                    onClick={click(() => setAgeProfile(opt.id))}
-                    aria-pressed={ageProfile === opt.id}
-                    className={`py-2 px-2 rounded-lg font-bold text-[11px] flex items-center justify-center gap-1.5 cursor-pointer transition-colors ${
-                      ageProfile === opt.id ? 'bg-accent text-accent-contrast' : 'text-ink-muted hover:text-ink hover:bg-surface'
-                    }`}
-                  >
-                    <opt.icon className="w-3.5 h-3.5" />
-                    {opt.label}
-                  </button>
-                ))}
-              </div>
-            </section>
-
-            {/* Fonte da interface */}
-            <section>
-              <h3 className="label-mono mb-2 px-1">Fonte</h3>
-              <div className="grid grid-cols-2 gap-1 p-1 bg-surface-hover/70 border border-border-subtle rounded-xl">
-                {FONTE_OPTIONS.map((opt) => (
-                  <button
-                    key={opt.id}
-                    type="button"
-                    onClick={click(() => {
-                      if (!desbloqueado(nivel, 'fonte', opt.id, fonte)) {
-                        toast.info(`A fonte ${opt.name} destrava no nível ${nivelNecessario('fonte', opt.id)} — continue jogando!`);
-                        return;
-                      }
-                      setFonte(opt.id);
-                    })}
-                    aria-pressed={fonte === opt.id}
-                    title={opt.desc}
-                    className={`py-2 px-2 rounded-lg font-bold text-[11px] flex items-center justify-center gap-1.5 cursor-pointer transition-colors ${
-                      fonte === opt.id ? 'bg-accent text-accent-contrast' : 'text-ink-muted hover:text-ink hover:bg-surface'
-                    }`}
-                  >
-                    {!desbloqueado(nivel, 'fonte', opt.id, fonte) ? <Lock className="w-3.5 h-3.5" /> : opt.id === 'pixel' ? <Gamepad2 className="w-3.5 h-3.5" /> : <Type className="w-3.5 h-3.5" />}
-                    {desbloqueado(nivel, 'fonte', opt.id, fonte) ? opt.name : `${opt.name} · Nv. ${nivelNecessario('fonte', opt.id)}`}
-                  </button>
-                ))}
-              </div>
-            </section>
-
-            {/* Particulas: a skin das comemoracoes comuns. Escolher dispara uma amostra na hora. */}
-            <section>
-              <h3 className="label-mono mb-2 px-1">Partículas</h3>
-              <div className="grid grid-cols-3 gap-1 p-1 bg-surface-hover/70 border border-border-subtle rounded-xl">
-                {PARTICULAS_OPTIONS.map((opt) => (
-                  <button
-                    key={opt.id}
-                    type="button"
-                    title={opt.desc}
-                    onClick={(e) => {
-                      setParticulasEscolhida(setParticulas(opt.id));
-                      const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
-                      emitBurst(r.left + r.width / 2, r.top, 'xp');
-                    }}
-                    aria-pressed={particulasEscolhida === opt.id}
-                    className={`py-2 px-1 rounded-lg font-bold text-[10.5px] cursor-pointer transition-colors ${
-                      particulasEscolhida === opt.id ? 'bg-accent text-accent-contrast' : 'text-ink-muted hover:text-ink hover:bg-surface'
-                    }`}
-                  >
-                    {opt.name}
-                  </button>
-                ))}
-              </div>
-            </section>
-
-            {/* Temas */}
-            <section>
-              <h3 className="label-mono mb-2 px-1">Tema</h3>
-              <div className="space-y-0.5">
-                {THEME_OPTIONS.map((opt) => (
-                  <button
-                    key={opt.id}
-                    type="button"
-                    onClick={click(() => {
-                      if (!desbloqueado(nivel, 'tema', opt.id, theme)) {
-                        toast.info(`O tema ${opt.name} destrava no nível ${nivelNecessario('tema', opt.id)} — continue jogando!`);
-                        return;
-                      }
-                      setTheme(opt.id);
-                    })}
-                    className={`w-full text-left px-3 py-2 rounded-xl flex items-center justify-between font-bold text-xs cursor-pointer transition-colors ${
-                      theme === opt.id ? 'bg-accent-soft text-accent-ink' : desbloqueado(nivel, 'tema', opt.id, theme) ? 'hover:bg-surface-hover text-ink-muted hover:text-ink' : 'text-ink-faint opacity-60'
-                    }`}
-                  >
-                    <span>{opt.name}</span>
-                    {theme === opt.id ? <Check className="w-3.5 h-3.5 shrink-0" />
-                      : !desbloqueado(nivel, 'tema', opt.id, theme) ? <span className="flex items-center gap-1 text-[10px]"><Lock className="w-3 h-3" /> Nv. {nivelNecessario('tema', opt.id)}</span>
-                      : null}
-                  </button>
-                ))}
-              </div>
-              <button
-                type="button"
-                onClick={() => {
-                  if (!desbloqueado(nivel, 'estudio', 'abrir')) {
-                    toast.info(`O estúdio de cores destrava no nível ${nivelNecessario('estudio', 'abrir')} — a personalização total é o prêmio final.`);
-                    return;
-                  }
-                  onOpenStudio();
-                  setIsMenuOpen(false);
-                }}
-                className="w-full text-left px-3 py-2 mt-2 rounded-xl flex items-center gap-2 font-bold text-xs text-accent-ink hover:bg-accent-soft transition-colors border-t border-border-subtle pt-3"
-              >
-                <Sliders className="w-3.5 h-3.5" /> Customizar cores e layout
-              </button>
-            </section>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

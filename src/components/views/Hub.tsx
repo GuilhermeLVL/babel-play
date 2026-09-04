@@ -1,5 +1,7 @@
-import { Mic, Upload, ArrowRight, Sparkles, TrendingUp, AlertTriangle, Video, FileText, Headphones, ChevronDown, ChevronUp, Gamepad2, Target, Sprout, Rocket, Eye, Zap, Check } from 'lucide-react';
+import { Mic, Upload, ArrowRight, Sparkles, TrendingUp, Video, FileText, Headphones, ChevronDown, ChevronUp, Gamepad2, Target, Sprout, Rocket, Eye, Zap, Check } from 'lucide-react';
 import { EDICAO_LEVE } from '../../lib/edicao';
+import CardDePlanos from '../CardDePlanos';
+import AvisoDeConta from '../conta/AvisoDeConta';
 import React, { useState, useEffect, useRef } from 'react';
 import { Recording } from '../../types';
 import { fetchSettings, patchUiSettings, fetchExerciseResults, type AppMetrics } from '../../data/api';
@@ -9,6 +11,7 @@ import { ehBaixaConfianca } from '../Honestidade';
 import { Vazio } from '../ui';
 import { estimativaDeMinutos, rotuloDeDuracao } from '@core';
 import FaixaDeProgresso from '../progress/FaixaDeProgresso';
+import { numero, t, tp } from '../../lib/i18n';
 
 // Metas de ritmo DECLARADAS por nível (benchmark, não medição). O valor MEDIDO
 // vem sempre de metrics.wpm; aqui só guardamos o alvo com que comparar.
@@ -131,22 +134,24 @@ export default function Hub({ onChangeView, recordings, ageProfile = 'pro', prog
         <span className="label-mono text-accent flex items-center gap-1.5">
           {ageProfile === 'kids' ? <Gamepad2 className="w-3.5 h-3.5" aria-hidden /> : ageProfile === 'senior' ? <Eye className="w-3.5 h-3.5" aria-hidden /> : <Zap className="w-3.5 h-3.5" aria-hidden />}
           <span>
-            {ageProfile === 'kids' ? 'Central do jogador' : ageProfile === 'senior' ? 'Aprendizado fácil' : 'Painel de performance'}
+            {/* "Painel de performance" era jargão corporativo na tela de boas-vindas (auditoria de UX,
+              31/08): o registro de produto pede que a ferramenta desapareça na tarefa. */}
+          {ageProfile === 'kids' ? t('Central do jogador') : ageProfile === 'senior' ? t('Aprendizado fácil') : t('Seu estudo')}
           </span>
         </span>
         <h1 className="font-display font-black text-3xl md:text-4xl text-ink tracking-tight mt-1 mb-1 text-balance">
           {ageProfile === 'kids'
-            ? 'Pronto para os desafios?'
+            ? t('Pronto para os desafios?')
             : ageProfile === 'senior'
-            ? 'Bem-vindo ao Babel Play'
-            : 'O que você quer fazer agora?'}
+            ? t('Bem-vindo ao Babel Play')
+            : t('O que você quer fazer agora?')}
         </h1>
         <p className="text-ink-muted text-sm max-w-[62ch]">
           {ageProfile === 'kids'
-            ? 'Três frentes para evoluir: gravar, praticar e cultivar palavras.'
+            ? t('Três frentes para evoluir: gravar, praticar e cultivar palavras.')
             : ageProfile === 'senior'
-            ? 'Escolha um dos três passos abaixo. Cada um leva a uma tela só, com o que precisa.'
-            : 'Captura, prática e vocabulário, com o estado real de cada frente.'}
+            ? t('Escolha um dos três passos abaixo. Cada um leva a uma tela só, com o que precisa.')
+            : t('Captura, prática e vocabulário, com o estado real de cada frente.')}
         </p>
       </header>
 
@@ -154,7 +159,7 @@ export default function Hub({ onChangeView, recordings, ageProfile = 'pro', prog
       <EditablePanel
         viewKey="hub"
         panelKey="quickActions"
-        title="Ações Rápidas"
+        title={t('Ações Rápidas')}
         canResizeWidth={false}
         canResizeHeight={false}
         defaultHeight={0}
@@ -167,7 +172,8 @@ export default function Hub({ onChangeView, recordings, ageProfile = 'pro', prog
             sobreviveram só em duas delas. Aqui a estrutura é uma; o que varia é a LINGUAGEM, a
             densidade e se as recompensas aparecem. */}
         <div className={ageProfile === 'senior' ? 'space-y-4' : 'grid grid-cols-1 md:grid-cols-3 gap-5'}>
-          {PILLARS.map((pillar, idx) => (
+          {/* Na edição leve o caderno de palavras não é uma tela própria (pedido do dono, 2026-08-28). */}
+            {PILLARS.filter((p) => !(EDICAO_LEVE && p.id === 'vocabulary')).map((pillar, idx) => (
             <PillarCard
               key={pillar.id}
               pillar={pillar}
@@ -231,33 +237,34 @@ export default function Hub({ onChangeView, recordings, ageProfile = 'pro', prog
               {agora}
             </span>
             <span className="text-[10px] text-accent-ink mt-0.5">
-              {agora === 1 ? 'palavra' : 'palavras'}
+              {tp(agora, 'palavra', 'palavras')}
             </span>
           </div>
 
-          <div className="min-w-0 flex-1 text-center sm:text-left">
+          <div className="min-w-0 flex-1 text-center sm:text-start">
             <h2 className="font-display font-black text-xl md:text-2xl text-ink tracking-tight text-balance">
               {ageProfile === 'kids'
-                ? `Estas ${agora} você está prestes a esquecer`
+                ? t('Você está quase esquecendo estas {n}', { n: agora })
                 : ageProfile === 'senior'
-                  ? `${agora} palavras estão na hora de rever`
-                  : `${agora} palavras venceram no agendador`}
+                  ? tp(agora, '{n} palavra está na hora de rever', '{n} palavras estão na hora de rever')
+                  : tp(agora, '{n} palavra pronta para revisar', '{n} palavras prontas para revisar')}
             </h2>
             <p className="text-[13px] text-ink-muted mt-1.5">
               {rotuloDeDuracao(estimativaDeMinutos(agora, temposMedidos))}
+              {'. '}
               {ageProfile === 'kids'
-                ? '. O que você acertar volta só daqui a semanas.'
-                : '. Acertar agora empurra a próxima revisão para semanas à frente.'}
+                ? t('O que você acertar volta só daqui a semanas.')
+                : t('Acertar agora empurra a próxima revisão para semanas à frente.')}
               {/* A FILA INTEIRA continua dita, só perde o palco. Escondê-la seria mentir por
                   omissão para quem tem 2.000 vencidas; anunciá-la como a tarefa de agora seria
                   pedir duas horas e meia de alguém que abriu o app para começar. */}
               {metrics.dueToday > agora && (
-                <span className="text-ink-faint"> São {metrics.dueToday.toLocaleString('pt-BR')} no total.</span>
+                <span className="text-ink-faint"> {t('São {n} no total.', { n: numero(metrics.dueToday) })}</span>
               )}
             </p>
             <div className="flex flex-wrap items-center justify-center sm:justify-start gap-3 mt-4">
               <button onClick={() => ir('study')} className="btn-solid py-3 px-6">
-                {ageProfile === 'kids' ? 'Bora!' : ageProfile === 'senior' ? 'Começar a revisão' : 'Revisar agora'}
+                {ageProfile === 'kids' ? t('Bora!') : ageProfile === 'senior' ? t('Começar a revisão') : t('Revisar agora')}
               </button>
               {/* Quem não quer revisar agora tem uma saída DECLARADA, em vez de precisar adivinhar
                   que a mesma coisa também mora em Jogar. */}
@@ -265,7 +272,7 @@ export default function Hub({ onChangeView, recordings, ageProfile = 'pro', prog
                 onClick={() => onChangeView('play')}
                 className="text-[12.5px] font-bold text-ink-muted hover:text-accent-ink underline decoration-dotted underline-offset-4 cursor-pointer min-h-6 inline-flex items-center"
               >
-                escolher outro jogo
+                {t('escolher outro jogo')}
               </button>
             </div>
           </div>
@@ -284,71 +291,84 @@ export default function Hub({ onChangeView, recordings, ageProfile = 'pro', prog
             <div className="w-8 h-8 flex items-center justify-center transition-transform group-hover:scale-105 shrink-0 rounded-lg bg-accent/10 border border-accent/20 text-accent">
               <TrendingUp className="w-4 h-4" />
             </div>
-            <div className="text-left">
-              <span className="text-[10px] font-mono uppercase tracking-wider font-bold text-ink-muted">Relatório Executivo</span>
-              <h4 className="font-display font-black text-xs md:text-sm mt-0.5 tracking-tight uppercase text-ink">
-                {showDetailedStats ? 'Colapsar Relatório de Performance' : 'Visualizar Relatório de Performance Detalhada'}
-              </h4>
+            <div className="text-start">
+              {/* Era um triplo rótulo gritado ("RELATÓRIO EXECUTIVO" + "VISUALIZAR RELATÓRIO DE
+                  PERFORMANCE DETALHADA" + "Expandir") — o leitor de tela anunciava os três de uma
+                  vez. Um botão de expandir precisa de UM nome; o chevron e o "Expandir" já dizem o
+                  estado. */}
+              <h4 className="font-display font-bold text-sm text-ink">{t('Estatísticas detalhadas')}</h4>
+              <span className="text-[11.5px] text-ink-muted">{t('Retenção, tempo de estudo e evolução semanal')}</span>
             </div>
           </div>
           <div className="flex items-center gap-1.5 text-xs font-mono font-bold text-ink-muted">
             {showDetailedStats ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-            <span>{showDetailedStats ? 'Ocultar' : 'Expandir'}</span>
+            <span>{showDetailedStats ? t('Ocultar') : t('Expandir')}</span>
           </div>
         </button>
       </div>
+
+      {/* DESCOBRIBILIDADE DO PLANO, segunda rodada (spec planos-visiveis): a linha discreta da
+          auditoria anterior informava mas não tinha o peso de card que o dono pediu. O componente
+          carrega TODAS as regras (só Grátis/anônimo, nunca na leve, dispensável, preço da
+          matriz) — aqui só se diz onde ele fica. */}
+      {/* O AVISO POR MARCO DE USO (mudança porta-de-entrada). Vem ANTES do card de planos porque
+          é mais urgente: um fala de guardar o que já existe, o outro de comprar mais. Só aparece
+          sem conta, com motivo concreto, e some para sempre quando dispensado. */}
+      <AvisoDeConta metrics={metrics} onEntrar={() => onChangeView('login')} />
+
+      <CardDePlanos onVerPlanos={() => onChangeView('planos')} />
 
       {/* Progress Dashboard & Metrics — só quando expandido */}
       {showDetailedStats && (
       <EditablePanel
         viewKey="hub"
         panelKey="statsDashboard"
-        title="Dashboard de Estatísticas"
+        title={t('Dashboard de Estatísticas')}
         canResizeWidth={false}
         canResizeHeight={false}
         defaultHeight={0}
       >
       <section className="mb-8 animate-in slide-in-from-top-2 duration-300">
-        <h2 className="font-display font-extrabold text-lg text-ink mb-4">Métricas do Perfil</h2>
+        <h2 className="font-display font-extrabold text-lg text-ink mb-4">{t('Métricas do Perfil')}</h2>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-          <button className="card-panel p-5 text-left hover:border-accent hover:shadow-card transition-all group" onClick={() => ir('metrics')}>
-            <span className="label-mono block mb-1 text-ink-muted group-hover:text-accent transition-colors">Palavras Produzidas</span>
+          <button className="card-panel p-5 text-start hover:border-accent hover:shadow-card transition-all group" onClick={() => ir('metrics')}>
+            <span className="label-mono block mb-1 text-ink-muted group-hover:text-accent transition-colors">{t('Palavras Produzidas')}</span>
             <div className="font-display font-black text-2xl tracking-tight text-ink mb-1">
               {metrics ? fmtNum(metrics.wordsCaptured) : '-'}
             </div>
             <div className="text-[11.5px] font-semibold text-ink-muted flex items-center gap-1">
-              <TrendingUp className="w-3.5 h-3.5" /> {metrics?.sessions ?? 0} sessão(ões) capturada(s)
+              <TrendingUp className="w-3.5 h-3.5" /> {tp(metrics?.sessions ?? 0, '{n} sessão capturada', '{n} sessões capturadas')}
             </div>
           </button>
 
-          <button className="card-panel p-5 text-left hover:border-accent hover:shadow-card transition-all group" onClick={() => ir('metrics')}>
-            <span className="label-mono block mb-1 text-ink-muted group-hover:text-accent transition-colors">Vocabulário no Deck</span>
+          <button className="card-panel p-5 text-start hover:border-accent hover:shadow-card transition-all group" onClick={() => ir('metrics')}>
+            <span className="label-mono block mb-1 text-ink-muted group-hover:text-accent transition-colors">{t('Vocabulário no Deck')}</span>
             <div className="font-display font-black text-2xl tracking-tight text-ink mb-1">
               {metrics ? fmtNum(metrics.deckSize) : '-'}
             </div>
-            <div className="text-[11.5px] font-medium text-ink-muted">{metrics?.dueToday ?? 0} para revisar hoje • {metrics?.newCards ?? 0} novos</div>
+            <div className="text-[11.5px] font-medium text-ink-muted">{t('{revisar} para revisar hoje • {novos} novos', { revisar: metrics?.dueToday ?? 0, novos: metrics?.newCards ?? 0 })}</div>
           </button>
 
-          <div className="card-panel p-5 text-left relative overflow-hidden flex flex-col justify-between border-dashed border-accent-soft/60 hover:border-accent transition-colors bg-surface">
+          <div className="card-panel p-5 text-start relative overflow-hidden flex flex-col justify-between border-dashed border-accent-soft/60 hover:border-accent transition-colors bg-surface">
             <div>
               <div className="flex justify-between items-start">
-                <span className="label-mono block mb-1 text-ink-muted">Ritmo de Fala</span>
+                <span className="label-mono block mb-1 text-ink-muted">{t('Ritmo de Fala')}</span>
                 <span className="text-[9px] bg-accent-soft text-accent-ink px-1.5 py-0.5 rounded font-mono font-bold uppercase">WPM</span>
               </div>
               {metrics && metrics.speakingMs > 0 ? (
                 <>
                   <div className="font-display font-bold text-sm text-ink mt-2 mb-1">
-                    {Math.round(metrics.wpm)} palavras/min{wpmLowConf ? ' (estimativa)' : ''}
+                    {t('{n} palavras/min', { n: Math.round(metrics.wpm) })}{wpmLowConf ? ` ${t('(estimativa)')}` : ''}
                   </div>
-                  <p className="text-[11px] leading-snug text-ink-muted">Baseado em {(metrics.speakingMs / 60000).toFixed(1)} min de fala capturada.</p>
+                  <p className="text-[11px] leading-snug text-ink-muted">{t('Baseado em {n} min de fala capturada.', { n: (metrics.speakingMs / 60000).toFixed(1) })}</p>
                 </>
               ) : (
                 <>
                   <div className="font-display font-bold text-sm text-ink mt-2 mb-1">
-                    Sem medição recente
+                    {t('Sem medição recente')}
                   </div>
-                  <p className="text-[11px] leading-snug text-ink-muted">Grave ou faça Shadowing para medir seu ritmo de fala.</p>
+                  <p className="text-[11px] leading-snug text-ink-muted">{t('Grave ou faça Shadowing para medir seu ritmo de fala.')}</p>
                 </>
               )}
             </div>
@@ -356,12 +376,12 @@ export default function Hub({ onChangeView, recordings, ageProfile = 'pro', prog
               onClick={() => ir('study')}
               className="mt-3 text-xs font-bold text-accent hover:text-accent-ink flex items-center gap-1 transition-colors group/btn self-start"
             >
-              Medir agora <ArrowRight className="w-3.5 h-3.5 transform group-hover/btn:translate-x-1 transition-transform" />
+              {t('Medir agora')} <ArrowRight className="w-3.5 h-3.5 transform group-hover/btn:translate-x-1 transition-transform" />
             </button>
           </div>
 
-          <div className="card-panel p-5 text-left group bg-surface">
-            <span className="label-mono block mb-1 text-ink-muted">Vícios de Linguagem</span>
+          <div className="card-panel p-5 text-start group bg-surface">
+            <span className="label-mono block mb-1 text-ink-muted">{t('Vícios de Linguagem')}</span>
             {/* A contagem de vícios (marcadores de hesitação) é REAL desde src/core/learning/fillers.ts
                , não requer processamento de linguagem, é busca de token por idioma. Ela já aparece
                 por sessão na tela de Análise (aba "Desempenho & Fluência"). O que falta é só o
@@ -369,10 +389,10 @@ export default function Hub({ onChangeView, recordings, ageProfile = 'pro', prog
                 mais agregação no servidor, fora do escopo desta correção, por isso o card mostra
                 onde o número já existe em vez de fingir que a contagem em si está pendente. */}
             <div className="font-display font-bold text-sm text-ink mt-2 mb-1 flex items-center gap-2">
-              Por sessão
-              <span className="kpi-pill opacity-60 cursor-default text-[11px]">Sem agregado</span>
+              {t('Por sessão')}
+              <span className="kpi-pill opacity-60 cursor-default text-[11px]">{t('Sem agregado')}</span>
             </div>
-            <div className="text-[11.5px] font-medium text-ink-muted leading-snug">Contagem real por sessão, na aba "Desempenho &amp; Fluência" da tela de Análise. O somatório entre todas as sessões ainda não existe.</div>
+            <div className="text-[11.5px] font-medium text-ink-muted leading-snug">{t('Contagem real por sessão, na aba "Desempenho & Fluência" da tela de Análise. O somatório entre todas as sessões ainda não existe.')}</div>
           </div>
         </div>
 
@@ -380,15 +400,15 @@ export default function Hub({ onChangeView, recordings, ageProfile = 'pro', prog
         <div className="card-panel p-6 mb-8 bg-surface">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
             <div>
-              <h3 className="font-display font-extrabold text-[15px] text-ink">Nível Estimado do Vocabulário (CEFR)</h3>
-              <p className="text-[12px] text-ink-muted mt-1">Estimativa derivada da distribuição de níveis das palavras do seu deck. Não é uma avaliação oficial.</p>
+              <h3 className="font-display font-extrabold text-[15px] text-ink">{t('Nível Estimado do Vocabulário (CEFR)')}</h3>
+              <p className="text-[12px] text-ink-muted mt-1">{t('Estimativa derivada da distribuição de níveis das palavras do seu deck. Não é uma avaliação oficial.')}</p>
             </div>
             {topLevel && (
               <div className="flex items-center gap-2 bg-canvas border border-border-subtle rounded-xl px-3 py-1.5 self-start sm:self-auto">
-                <span className="text-[10px] font-mono uppercase tracking-wider text-ink-muted">Estimativa</span>
+                <span className="text-[10px] font-mono uppercase tracking-wider text-ink-muted">{t('Estimativa')}</span>
                 <span className="text-sm font-extrabold text-accent">{topLevel}</span>
                 {metrics && metrics.levelConfidence > 0 && (
-                  <span className="text-[10px] text-ink-muted">· conf. {Math.round(metrics.levelConfidence * 100)}%</span>
+                  <span className="text-[10px] text-ink-muted">{t('· conf. {n}%', { n: Math.round(metrics.levelConfidence * 100) })}</span>
                 )}
               </div>
             )}
@@ -396,7 +416,7 @@ export default function Hub({ onChangeView, recordings, ageProfile = 'pro', prog
 
           {levelBars.length === 0 ? (
             <p className="text-[12px] text-ink-muted leading-snug">
-              Sem palavras suficientes para estimar o nível. Capture sessões e adicione palavras ao deck para gerar a estimativa.
+              {t('Sem palavras suficientes para estimar o nível. Capture sessões e adicione palavras ao deck para gerar a estimativa.')}
             </p>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -404,7 +424,7 @@ export default function Hub({ onChangeView, recordings, ageProfile = 'pro', prog
                 <div key={b.level}>
                   <div className="flex justify-between items-center text-[12px] mb-2">
                     <span className="font-bold text-ink-muted">{b.level}</span>
-                    <span className="font-extrabold text-accent">{b.count} palavra(s)</span>
+                    <span className="font-extrabold text-accent">{tp(b.count, '{n} palavra', '{n} palavras')}</span>
                   </div>
                   <div className="w-full h-2 bg-canvas rounded-full overflow-hidden border border-border-subtle">
                     <div
@@ -413,7 +433,7 @@ export default function Hub({ onChangeView, recordings, ageProfile = 'pro', prog
                     ></div>
                   </div>
                   <span className="text-[11px] text-ink-muted mt-2 block leading-snug">
-                    {b.pct}% do vocabulário classificado neste nível.
+                    {t('{n}% do vocabulário classificado neste nível.', { n: b.pct })}
                   </span>
                 </div>
               ))}
@@ -425,8 +445,8 @@ export default function Hub({ onChangeView, recordings, ageProfile = 'pro', prog
         <div className="card-panel p-6 mb-8 bg-surface">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
             <div>
-              <h3 className="font-display font-extrabold text-[15px] text-ink">Nível de Comunicação Corporativa &amp; Alinhamento</h3>
-              <p className="text-[12px] text-ink-muted mt-1">Escolha um nível-alvo. Comparamos o alvo declarado com o que foi medido nas suas sessões.</p>
+              <h3 className="font-display font-extrabold text-[15px] text-ink">{t('Nível de Comunicação Corporativa & Alinhamento')}</h3>
+              <p className="text-[12px] text-ink-muted mt-1">{t('Escolha um nível-alvo. Comparamos o alvo declarado com o que foi medido nas suas sessões.')}</p>
             </div>
             <div className="flex gap-1 bg-canvas border border-border-subtle/50 rounded-xl p-0.5 self-start sm:self-auto shadow-inner">
               {(['B2', 'C1', 'C2'] as const).map((lvl) => (
@@ -439,7 +459,7 @@ export default function Hub({ onChangeView, recordings, ageProfile = 'pro', prog
                       : 'text-ink-muted hover:text-ink hover:bg-surface-hover/30'
                   }`}
                 >
-                  {lvl === 'B2' ? 'B2 - Gerente' : lvl === 'C1' ? 'C1 - Executivo' : 'C2 - Conselheiro'}
+                  {lvl === 'B2' ? t('B2 - Gerente') : lvl === 'C1' ? t('C1 - Executivo') : t('C2 - Conselheiro')}
                 </button>
               ))}
             </div>
@@ -449,9 +469,9 @@ export default function Hub({ onChangeView, recordings, ageProfile = 'pro', prog
             {/* Ritmo: alvo declarado × wpm medido (real) */}
             <div>
               <div className="flex justify-between items-center text-[12px] mb-2">
-                <span className="font-bold text-ink-muted">Ritmo de Fala</span>
+                <span className="font-bold text-ink-muted">{t('Ritmo de Fala')}</span>
                 <span className="font-mono font-extrabold text-accent">
-                  {wpmMeasured != null ? `${wpmMeasured}` : '-'} <span className="text-ink-faint font-normal">/ {targetWpm} ppm</span>
+                  {wpmMeasured != null ? `${wpmMeasured}` : '-'} <span className="text-ink-faint font-normal">{t('/ {n} ppm', { n: targetWpm })}</span>
                 </span>
               </div>
               <div className="w-full h-2.5 bg-canvas overflow-hidden border border-border-subtle/40 rounded-full">
@@ -459,15 +479,15 @@ export default function Hub({ onChangeView, recordings, ageProfile = 'pro', prog
               </div>
               <span className="text-[11px] text-ink-muted mt-2 block leading-snug">
                 {wpmMeasured != null
-                  ? <>Medido: {wpmMeasured} ppm{wpmLowConf ? ' (estimativa, poucas sessões)' : ''} · alvo declarado {targetWpm} ppm.</>
-                  : <>Alvo declarado {targetWpm} ppm. Sem fala capturada suficiente para medir seu ritmo.</>}
+                  ? <>{t('Medido: {n} ppm', { n: wpmMeasured })}{wpmLowConf ? ` ${t('(estimativa, poucas sessões)')}` : ''}{' · '}{t('alvo declarado {n} ppm.', { n: targetWpm })}</>
+                  : <>{t('Alvo declarado {n} ppm. Sem fala capturada suficiente para medir seu ritmo.', { n: targetWpm })}</>}
               </span>
             </div>
 
             {/* Vocabulário: aderência real ao nível-alvo (derivada da distribuição) */}
             <div>
               <div className="flex justify-between items-center text-[12px] mb-2">
-                <span className="font-bold text-ink-muted">Vocabulário no Nível-Alvo</span>
+                <span className="font-bold text-ink-muted">{t('Vocabulário no Nível-Alvo')}</span>
                 <span className="font-mono font-extrabold text-good">
                   {vocabAdherence != null ? `${vocabAdherence}%` : '-'}
                 </span>
@@ -477,8 +497,8 @@ export default function Hub({ onChangeView, recordings, ageProfile = 'pro', prog
               </div>
               <span className="text-[11px] text-ink-muted mt-2 block leading-snug">
                 {vocabAdherence != null
-                  ? <>{vocabAdherence}% do seu vocabulário está classificado em {selectedLevel} ou acima{topLevel ? <> · nível estimado {topLevel}</> : null}.</>
-                  : <>Sem palavras suficientes no deck para medir a aderência ao nível {selectedLevel}.</>}
+                  ? <>{t('{pct}% do seu vocabulário está classificado em {nivel} ou acima', { pct: vocabAdherence, nivel: selectedLevel })}{topLevel ? <>{' · '}{t('nível estimado {n}', { n: topLevel })}</> : null}.</>
+                  : <>{t('Sem palavras suficientes no deck para medir a aderência ao nível {n}.', { n: selectedLevel })}</>}
               </span>
             </div>
 
@@ -490,37 +510,37 @@ export default function Hub({ onChangeView, recordings, ageProfile = 'pro', prog
                 não diz "Em breve": não é uma feature no roadmap, são dois dados que faltam. */}
             <div>
               <div className="flex justify-between items-center text-[12px] mb-2">
-                <span className="font-bold text-ink-muted">Clareza &amp; Concisão</span>
-                <span className="kpi-pill opacity-60 cursor-default text-[11px]">Sem agregado</span>
+                <span className="font-bold text-ink-muted">{t('Clareza & Concisão')}</span>
+                <span className="kpi-pill opacity-60 cursor-default text-[11px]">{t('Sem agregado')}</span>
               </div>
               <div className="w-full h-2.5 bg-canvas overflow-hidden border border-border-subtle/40 rounded-full opacity-50">
                 <div className="h-full bg-border-subtle" style={{ width: '0%' }}></div>
               </div>
               <span className="text-[11px] text-ink-muted mt-2 block leading-snug">
-                A contagem de vícios já existe por sessão (aba "Desempenho &amp; Fluência" na tela de Análise). Faltam aqui o somatório entre sessões e a medição de pausas preenchidas, que ainda não existe.
+                {t('A contagem de vícios já existe por sessão (aba "Desempenho & Fluência" na tela de Análise). Faltam aqui o somatório entre sessões e a medição de pausas preenchidas, que ainda não existe.')}
               </span>
             </div>
           </div>
         </div>
 
         {/* Recomendações e Próximos Passos — CTAs com dado real, sem números fabricados */}
-        <h3 className="font-display font-extrabold text-[15px] text-ink mb-4">Recomendações e Próximos Passos</h3>
+        <h3 className="font-display font-extrabold text-[15px] text-ink mb-4">{t('Recomendações e Próximos Passos')}</h3>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
           {/* Shadowing — CTA genérico honesto (sem alegar que você "não treinou hoje") */}
           <div className="card-panel p-5 flex flex-col justify-between min-h-[160px] bg-rare-soft/10 border-rare/20 hover:border-rare/40">
             <div>
               <div className="flex items-center justify-between mb-2">
-                <span className="text-[9px] px-1.5 py-0.5 rounded font-mono font-bold uppercase tracking-wider bg-rare-soft text-rare">Precisão Acústica</span>
+                <span className="text-[9px] px-1.5 py-0.5 rounded font-mono font-bold uppercase tracking-wider bg-rare-soft text-rare">{t('Precisão Acústica')}</span>
                 <Sparkles className="w-4 h-4 text-rare" />
               </div>
-              <h4 className="font-display font-bold text-[13.5px] text-ink mb-1">Exercício de Shadowing</h4>
-              <p className="text-[12px] text-ink-muted leading-relaxed">Pratique Shadowing para medir e elevar a fidelidade da sua pronúncia.</p>
+              <h4 className="font-display font-bold text-[13.5px] text-ink mb-1">{t('Exercício de Shadowing')}</h4>
+              <p className="text-[12px] text-ink-muted leading-relaxed">{t('Pratique Shadowing para medir e elevar a fidelidade da sua pronúncia.')}</p>
             </div>
             <button
               onClick={() => ir('study')}
               className="mt-4 w-full py-2 text-[11.5px] font-bold rounded-xl bg-surface transition-all duration-200 cursor-pointer text-center border border-rare/30 text-rare hover:bg-rare-soft hover:text-rare-ink"
             >
-              Medir precisão
+              {t('Medir precisão')}
             </button>
           </div>
 
@@ -528,44 +548,26 @@ export default function Hub({ onChangeView, recordings, ageProfile = 'pro', prog
           <div className="card-panel p-5 flex flex-col justify-between min-h-[160px] bg-rare-soft/10 border-rare/20 hover:border-rare/40">
             <div>
               <div className="flex items-center justify-between mb-2">
-                <span className="text-[9px] px-1.5 py-0.5 rounded font-mono font-bold uppercase tracking-wider bg-rare-soft text-rare">Vocabulário</span>
+                <span className="text-[9px] px-1.5 py-0.5 rounded font-mono font-bold uppercase tracking-wider bg-rare-soft text-rare">{t('Vocabulário')}</span>
                 <TrendingUp className="w-4 h-4 text-rare" />
               </div>
-              <h4 className="font-display font-bold text-[13.5px] text-ink mb-1">Seu Vocabulário</h4>
+              <h4 className="font-display font-bold text-[13.5px] text-ink mb-1">{t('Seu Vocabulário')}</h4>
               <p className="text-[12px] text-ink-muted leading-relaxed">
-                Seu deck tem {metrics ? fmtNum(metrics.deckSize) : '0'} cartas, com {metrics ? fmtNum(metrics.uniqueWords) : '0'} palavras únicas capturadas
-                {topLevel ? <> · nível estimado {topLevel}</> : null}.
+                {t('Seu deck tem {cartas} cartas, com {unicas} palavras únicas capturadas', { cartas: metrics ? fmtNum(metrics.deckSize) : '0', unicas: metrics ? fmtNum(metrics.uniqueWords) : '0' })}
+                {topLevel ? <>{' · '}{t('nível estimado {n}', { n: topLevel })}</> : null}.
               </p>
             </div>
             <button
               onClick={() => ir('study')}
               className="mt-4 w-full py-2 text-[11.5px] font-bold rounded-xl bg-surface transition-all duration-200 cursor-pointer text-center border border-rare/30 text-rare hover:bg-rare-soft hover:text-rare-ink"
             >
-              Estudar deck
+              {t('Estudar deck')}
             </button>
           </div>
 
-          {/* Revisão de hoje — copy ligada a dado real (dueToday / streakDays) */}
-          <div className="card-panel p-5 flex flex-col justify-between min-h-[160px] bg-warn-soft/10 border-warn/20 hover:border-warn/40">
-            <div>
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-[9px] px-1.5 py-0.5 rounded font-mono font-bold uppercase tracking-wider bg-warn-soft text-warn">Revisão</span>
-                <AlertTriangle className="w-4 h-4 text-warn" />
-              </div>
-              <h4 className="font-display font-bold text-[13.5px] text-ink mb-1">Revisão de Hoje</h4>
-              <p className="text-[12px] text-ink-muted leading-relaxed">
-                {metrics && metrics.dueToday > 0
-                  ? <>Você tem {metrics.dueToday} carta(s) para revisar hoje. Ofensiva atual de {metrics.streakDays} dia(s).</>
-                  : <>Nenhuma carta vencida no momento. Ofensiva atual de {metrics?.streakDays ?? 0} dia(s), continue capturando para manter o ritmo.</>}
-              </p>
-            </div>
-            <button
-              onClick={() => ir('study')}
-              className="mt-4 w-full py-2 text-[11.5px] font-bold rounded-xl bg-surface transition-all duration-200 cursor-pointer text-center border border-warn/30 text-warn hover:bg-warn-soft hover:text-warn-ink"
-            >
-              Revisar agora
-            </button>
-          </div>
+          {/* O cartão "Revisão de Hoje" SAIU daqui (auditoria de UX, 31/08): era o TERCEIRO lugar
+              da mesma tela com um botão "Revisar agora" para o mesmo destino — o cartão-herói e o
+              pilar já cobrem a revisão. Painel de estatísticas mostra estatística. */}
         </div>
       </section>
       </EditablePanel>
@@ -575,7 +577,7 @@ export default function Hub({ onChangeView, recordings, ageProfile = 'pro', prog
       <EditablePanel
         viewKey="hub"
         panelKey="recentRecordings"
-        title="Sessões Recentes"
+        title={t('Sessões Recentes')}
         canResizeWidth={false}
         canResizeHeight={false}
         defaultHeight={0}
@@ -583,14 +585,14 @@ export default function Hub({ onChangeView, recordings, ageProfile = 'pro', prog
       <section>
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
           <div>
-            <h3 className="font-display font-extrabold text-lg text-ink">Sessões Recentes</h3>
-            <p className="text-[12px] text-ink-muted">Estudos e mídias salvos organizados por tipo de arquivo.</p>
+            <h3 className="font-display font-extrabold text-lg text-ink">{t('Sessões Recentes')}</h3>
+            <p className="text-[12px] text-ink-muted">{t('Estudos e mídias salvos organizados por tipo de arquivo.')}</p>
           </div>
           <button
             className="text-[12.5px] font-bold text-accent-ink hover:text-accent flex items-center gap-1 py-1 transition-colors self-start sm:self-auto"
             onClick={() => onChangeView('library')}
           >
-            Ver biblioteca completa &rarr;
+            {t('Ver biblioteca completa')} &rarr;
           </button>
         </div>
 
@@ -604,7 +606,7 @@ export default function Hub({ onChangeView, recordings, ageProfile = 'pro', prog
                 : 'bg-surface hover:bg-surface-hover text-ink-muted border-border-subtle'
             }`}
           >
-            <span>Tudo ({recordings.length})</span>
+            <span>{t('Tudo ({n})', { n: recordings.length })}</span>
           </button>
           <button
             onClick={() => setFilterCategory('video')}
@@ -626,7 +628,7 @@ export default function Hub({ onChangeView, recordings, ageProfile = 'pro', prog
             }`}
           >
             <Headphones className="w-3.5 h-3.5 text-rare" />
-            <span>Áudio ({recordings.filter(r => r.type === 'audio').length})</span>
+            <span>{t('Áudio ({n})', { n: recordings.filter(r => r.type === 'audio').length })}</span>
           </button>
           <button
             onClick={() => setFilterCategory('document')}
@@ -637,24 +639,24 @@ export default function Hub({ onChangeView, recordings, ageProfile = 'pro', prog
             }`}
           >
             <FileText className="w-3.5 h-3.5 text-good" />
-            <span>Documentos ({recordings.filter(r => r.type === 'document').length})</span>
+            <span>{t('Documentos ({n})', { n: recordings.filter(r => r.type === 'document').length })}</span>
           </button>
         </div>
 
         {filteredRecs.length === 0 ? (
           <Vazio
             icone={<Headphones className="w-7 h-7" />}
-            titulo={recordings.length === 0 ? 'Nenhuma sessão ainda' : 'Nada nesta categoria'}
+            titulo={recordings.length === 0 ? t('Nenhuma sessão ainda') : t('Nada nesta categoria')}
             explicacao={recordings.length === 0
-              ? 'Capture sua primeira sessão ou importe uma mídia pela Biblioteca, ela aparecerá aqui.'
-              : 'Nenhuma sessão salva com este tipo de arquivo. Escolha outra categoria ou capture uma nova sessão.'}
+              ? t('Capture sua primeira sessão ou importe uma mídia pela Biblioteca, ela aparecerá aqui.')
+              : t('Nenhuma sessão salva com este tipo de arquivo. Escolha outra categoria ou capture uma nova sessão.')}
             acao={{
-              rotulo: <><Mic className="w-4 h-4" /> Nova captura</>,
+              rotulo: <><Mic className="w-4 h-4" /> {t('Nova captura')}</>,
               aoClicar: () => onChangeView('capture'),
             }}
             acaoSecundaria={recordings.length === 0
-              ? { rotulo: <><Upload className="w-4 h-4" /> Importar mídia</>, aoClicar: () => onChangeView('library') }
-              : { rotulo: 'Ver todas as categorias', aoClicar: () => setFilterCategory('all') }}
+              ? { rotulo: <><Upload className="w-4 h-4" /> {t('Importar mídia')}</>, aoClicar: () => onChangeView('library') }
+              : { rotulo: t('Ver todas as categorias'), aoClicar: () => setFilterCategory('all') }}
           />
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -693,7 +695,7 @@ export default function Hub({ onChangeView, recordings, ageProfile = 'pro', prog
                     <div className="flex items-center gap-2 text-[11px] text-ink-muted font-mono">
                       <span>{rec.date}</span>
                       <span>·</span>
-                      <span className="uppercase">{rec.type === 'video' ? 'YouTube' : rec.type === 'document' ? 'PDF' : 'ÁUDIO'}</span>
+                      <span className="uppercase">{rec.type === 'video' ? 'YouTube' : rec.type === 'document' ? 'PDF' : t('ÁUDIO')}</span>
                       {/* O ESTADO, quando ele muda o que dá para fazer.
                           Uma sessão ainda em processamento não tem transcrição, então clicar nela
                           leva a uma tela pela metade, e a lista não dizia isso em lugar nenhum.
@@ -701,7 +703,7 @@ export default function Hub({ onChangeView, recordings, ageProfile = 'pro', prog
                           tudo faz o selo que importa desaparecer no meio dos outros. */}
                       {rec.status !== 'Processado' && (
                         <span className="badge-tag warn">
-                          {ageProfile === 'kids' ? 'lendo ainda' : 'processando'}
+                          {ageProfile === 'kids' ? t('lendo ainda') : t('processando')}
                         </span>
                       )}
                     </div>
@@ -813,14 +815,19 @@ function pillarStatus(mission: Mission | undefined, profile: AgeProfile): string
       return mission.done
         ? null
         : profile === 'senior'
-        ? 'Você ainda não gravou nada. Comece por aqui.'
-        : 'Nenhuma gravação ainda, este é o ponto de partida.';
+        ? t('Você ainda não gravou nada. Comece por aqui.')
+        : t('Nenhuma gravação ainda, este é o ponto de partida.');
     case 'practice':
-      if (mission.pending === 0) return profile === 'senior' ? 'Nada para revisar agora. Tudo em dia.' : 'Revisão em dia.';
-      return `${mission.pending} ${mission.pending === 1 ? 'palavra pronta' : 'palavras prontas'} para revisar`;
+      if (mission.pending === 0) return profile === 'senior' ? t('Nada para revisar agora. Tudo em dia.') : t('Revisão em dia.');
+      /* UM NÚMERO, UM DONO (auditoria de UX, 31/08). Quando há vencidas, o cartão-herói da revisão
+         está VISÍVEL logo acima dizendo "N prontas para revisar" — e este pilar repetia a mesma
+         frase com OUTRO número (o total, contra a rodada curta do herói): dois valores para "a
+         mesma coisa" lado a lado confundem em vez de informar. Com vencidas, o pilar cala; a
+         contagem vive no herói, que só existe exatamente nesses dias. */
+      return null;
     case 'vocabulary':
-      if (mission.pending === 0) return profile === 'senior' ? 'Nenhuma palavra nova esperando.' : 'Sem palavras novas na fila.';
-      return `${mission.pending} ${mission.pending === 1 ? 'palavra nova' : 'palavras novas'} esperando`;
+      if (mission.pending === 0) return profile === 'senior' ? t('Nenhuma palavra nova esperando.') : t('Sem palavras novas na fila.');
+      return tp(mission.pending, '{n} palavra nova esperando', '{n} palavras novas esperando');
   }
 }
 
@@ -870,27 +877,27 @@ const PillarCard: React.FC<PillarCardProps> = ({
         <div className="min-w-0">
           <div className={`flex items-center gap-2 flex-wrap ${isSenior ? '' : 'mb-1'}`}>
             <h2 className={`font-display font-black text-ink ${isSenior ? 'text-xl' : 'text-base'}`}>
-              {isSenior ? `Passo ${index + 1}. ` : ''}
-              {pillar.title[ageProfile]}
+              {isSenior ? `${t('Passo {n}.', { n: index + 1 })} ` : ''}
+              {t(pillar.title[ageProfile])}
             </h2>
             {/* Recompensa só no perfil Kids, e vinda da tabela de pesos de lib/progress. */}
             {isKids && mission && !complete && (
               <span
                 className={`badge-tag ${pillar.tone === 'warn' ? 'warn' : pillar.tone === 'good' ? 'ok' : 'acc'}`}
-                title={`Você ganha ${mission.rewardXp} XP e ${mission.rewardSeeds} Seeds ${mission.rewardUnit}`}
+                title={t('Você ganha {xp} XP e {seeds} Seeds {unidade}', { xp: mission.rewardXp, seeds: mission.rewardSeeds, unidade: t(mission.rewardUnit) })}
               >
                 +{mission.rewardXp} XP · {mission.rewardSeeds} <Sprout className="w-3 h-3" aria-hidden />
-                <span className="normal-case tracking-normal font-sans font-bold ml-0.5">{mission.rewardUnit}</span>
+                <span className="normal-case tracking-normal font-sans font-bold ms-0.5">{t(mission.rewardUnit)}</span>
               </span>
             )}
             {complete && (
               <span className="badge-tag ok">
-                <Check className="w-3 h-3" aria-hidden /> Em dia
+                <Check className="w-3 h-3" aria-hidden /> {t('Em dia')}
               </span>
             )}
           </div>
           <p className={`text-ink-muted leading-relaxed ${isSenior ? 'text-sm mt-1' : 'text-xs md:text-[13px]'}`}>
-            {pillar.body[ageProfile]}
+            {t(pillar.body[ageProfile])}
           </p>
           {status && (
             <p className={`mt-2 font-bold ${isSenior ? 'text-sm' : 'text-xs'} ${complete ? 'text-good-ink' : 'text-ink'}`}>
@@ -907,7 +914,7 @@ const PillarCard: React.FC<PillarCardProps> = ({
           pillar.tone === 'warn' ? 'bg-warn' : pillar.tone === 'good' ? 'bg-good' : ''
         } ${isSenior ? 'w-full md:w-auto text-base px-6' : 'w-full mt-4'}`}
       >
-        <span>{pillar.cta[ageProfile]}</span>
+        <span>{t(pillar.cta[ageProfile])}</span>
         {isKids ? <Rocket className="w-4 h-4" aria-hidden /> : <ArrowRight className="w-4 h-4" aria-hidden />}
       </button>
     </div>

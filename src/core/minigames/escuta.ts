@@ -1,4 +1,4 @@
-import { avaliarFrase } from '../learning/quality';
+import { avaliarFrase, chaveComparavel } from '../learning/quality';
 import { normalizarPalavra } from './wordsearch';
 
 /**
@@ -40,6 +40,29 @@ export interface RodadaEscuta {
   correta: FalaComAudio;
   /** As opções mostradas, JÁ embaralhadas — a certa está entre elas. */
   opcoes: FalaComAudio[];
+}
+
+/**
+ * Chave de deduplicação que funciona em QUALQUER escrita, não só A–Z.
+ *
+ * `normalizarPalavra` (de `wordsearch.ts`) descarta tudo que não é A–Z — em japonês, coreano,
+ * árabe etc. o resultado é sempre `''`, e DUAS falas totalmente diferentes viram "iguais". O
+ * filtro de duplicata então elimina TODAS as alternativas, sobrando só a resposta certa (o jogo
+ * fica impossível de errar, e antes disso, impossível de montar — `opcoes.length < 2`).
+ *
+ * Aqui a chave não perde nenhuma escrita: minúsculas, espaços colapsados e sem os acentos que
+ * `NFD` consegue separar (o que não separa — a maioria dos alfabetos não-latinos — permanece
+ * intacto, que é exatamente o comportamento certo: caracteres diferentes continuam diferentes).
+ * Local e não importado de `wordsearch.ts` de propósito: aquele módulo está mudando por outro
+ * agente nesta mesma auditoria.
+ */
+function chaveDeTexto(s: string): string {
+  return s
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, ' ');
 }
 
 function embaralhar<T>(xs: T[]): T[] {
@@ -84,7 +107,7 @@ export function buildRodadasEscuta(
   return shuffle(uteis).slice(0, quantidade).map(correta => {
     const tamanho = correta.text.split(/\s+/).length;
     const outras = uteis
-      .filter(f => f.id !== correta.id && normalizarPalavra(f.text) !== normalizarPalavra(correta.text))
+      .filter(f => f.id !== correta.id && chaveDeTexto(f.text) !== chaveDeTexto(correta.text))
       .sort((a, b) =>
         Math.abs(a.text.split(/\s+/).length - tamanho) - Math.abs(b.text.split(/\s+/).length - tamanho));
     return { correta, opcoes: shuffle([correta, ...outras.slice(0, nAlt - 1)]) };
@@ -240,8 +263,10 @@ export function buildRodadasConectores(
   frases: FalaComAudio[],
   opts: { lang: string; quantidade?: number; shuffle?: <T>(xs: T[]) => T[] } = { lang: '' },
 ): RodadaConectores[] {
-  const lista = CONECTORES[(opts.lang || '').toLowerCase().split('-')[0]];
-  if (!lista) return [];
+  const bruta = CONECTORES[(opts.lang || '').toLowerCase().split('-')[0]];
+  if (!bruta) return [];
+  // Os dois lados pela MESMA chave: a lista guarda "porém" e o token normalizava para "porem".
+  const lista = new Set(Array.from(bruta, (c) => chaveComparavel(c)));
   const shuffle = opts.shuffle ?? embaralhar;
 
   const candidatas = (frases ?? [])
@@ -249,7 +274,7 @@ export function buildRodadasConectores(
     .map(fala => {
       const tokens = fala.text.split(/\s+/).filter(Boolean);
       const alvos = tokens
-        .map((t, i) => (lista.has(normalizarPalavra(t).toLowerCase()) ? i : -1))
+        .map((t, i) => (lista.has(chaveComparavel(t)) ? i : -1))
         .filter(i => i >= 0);
       return { fala, tokens, alvos };
     })

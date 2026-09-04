@@ -33,6 +33,12 @@ export interface SttRouteInput {
   cloudAvailable: boolean
   /** Perfil de IA ativo — 'local-private' proíbe nuvem. */
   profileId: string
+  /**
+   * Idioma que VOCÊ fala ao MICROFONE, quando o mic está ligado (cenários conversa/mic). Um só
+   * modelo decodifica as duas fontes — se você fala PT enquanto ouve EN, o tiny "de inglês" é
+   * quem transcreve o seu português, e erra feio. Vazio/undefined = mic desligado.
+   */
+  micLang?: string
 }
 
 export interface SttRoute {
@@ -80,8 +86,10 @@ export const MODEL_DOWNLOAD_MEDIDO: Record<string, boolean> = {
 export function routeStt(input: SttRouteInput): SttRoute {
   const { autoDetect, quality, hasWebGpu, cloudAvailable, profileId } = input
   const lang = (input.contentLang || '').toLowerCase().split('-')[0]
+  const micLang = (input.micLang || '').toLowerCase().split('-')[0]
   const cloudAllowed = cloudAvailable && profileId !== 'local-private'
-  const isEnglish = !autoDetect && lang === 'en'
+  // "Inglês" só quando TODAS as fontes ativas são inglês: o modelo é um só para sistema e mic.
+  const isEnglish = !autoDetect && lang === 'en' && (!micLang || micLang === 'en')
   /** Melhor modelo LOCAL viável para conteúdo não-EN neste dispositivo. */
   const bestLocal = hasWebGpu ? WHISPER_MODELS.small : WHISPER_MODELS.base
   /*
@@ -91,9 +99,9 @@ export function routeStt(input: SttRouteInput): SttRoute {
    * por escolha explícita em Ajustes.
    */
   if (EDICAO_LEVE && (quality === 'auto' || quality === 'cloud')) {
-    return isEnglish
-      ? { localModel: WHISPER_MODELS.tiny, preferCloud: false, label: 'local · inglês (tiny)' }
-      : { localModel: WHISPER_MODELS.base, preferCloud: false, label: 'local · rápido (base)' }
+    if (isEnglish) return { localModel: WHISPER_MODELS.tiny, preferCloud: false, label: 'local · inglês (tiny)' }
+    const micNaoIngles = !!micLang && micLang !== 'en' && lang === 'en'
+    return { localModel: WHISPER_MODELS.base, preferCloud: false, label: micNaoIngles ? `local · base (você fala ${micLang})` : 'local · rápido (base)' }
   }
 
   switch (quality) {

@@ -9,6 +9,7 @@ import { authHeaders } from '../lib/authHeaders'
 import { supabase, authRequired } from '../lib/supabase'
 import { aguardarIdentidade } from '../lib/identidade'
 import { servidorEfemero } from './efemero/servidor'
+import { data } from '../lib/i18n';
 
 // ───────────────────────────── fetch com teto de tempo (A-05) ─────────────────────────────
 // Toda a camada de dados usava `fetch` SEM timeout: uma resposta que nunca chega deixava a UI presa
@@ -81,10 +82,13 @@ function fmtDate(ts: number): string {
   const d = new Date(ts)
   const now = new Date()
   if (d.toDateString() === now.toDateString()) return 'Hoje'
-  const diffDays = Math.floor((now.getTime() - ts) / 86_400_000)
-  if (diffDays === 1) return 'Ontem'
+  // Diferença por dia de CALENDÁRIO, não por 24h corridas: gravado ontem à noite e visto de
+  // manhã dava floor(0.6)=0 → "Há 0 dias" (ux-v2 §1.9).
+  const meiaNoite = (x: Date) => new Date(x.getFullYear(), x.getMonth(), x.getDate()).getTime()
+  const diffDays = Math.round((meiaNoite(now) - meiaNoite(d)) / 86_400_000)
+  if (diffDays <= 1) return 'Ontem'
   if (diffDays < 7) return `Há ${diffDays} dias`
-  return d.toLocaleDateString('pt-BR')
+  return data(d)
 }
 
 function toRecordingType(kind: string | null): Recording['type'] {
@@ -381,6 +385,11 @@ export function rowToVocabCard(row: VocabRow): VocabCard {
     cefrConfidence: row.cefrConfidence ?? undefined,
     sourceSessionId: row.sessionId ?? undefined,
     daTrilha: !!(row as { daTrilha?: boolean }).daTrilha,
+    /* Sem esta linha o cartão de baralho chega ao cliente sem procedência, e a régua o mede pelo
+       teto de fala capturada — 299 cartões importados vira "8 palavras prontas" na tela. */
+    daAnki: !!(row as { daAnki?: boolean }).daAnki,
+    /** Tarefa 1.3 de motor-anki-jogos: ver docblock de `VocabCard.baralhosAnki`. */
+    baralhosAnki: (row as { baralhosAnki?: string[] }).baralhosAnki ?? [],
     frequency: 'medium',
     leitnerBox: row.box ?? 1,
     leitnerDueAt: dueIso,
@@ -389,6 +398,8 @@ export function rowToVocabCard(row: VocabRow): VocabCard {
     fsrsDifficulty: row.difficulty ?? 5,
     fsrsPredictedRetention: 0,
     fsrsDueAt: dueIso,
+    // O cru em ms, para o filtro facetado — a string acima é exibição (ver docblock no tipo).
+    dueAtMs: row.dueAt ?? null,
     /* LIDO DO BANCO, não mais fixo em `true`.
        Enquanto era constante, TODO `filter(c => c.inDeck)` do app era um no-op, inclusive o da
        tela de jogos, e arquivar um cartão não tinha efeito nenhum. A coluna sempre existiu
@@ -524,7 +535,20 @@ export async function bulkAddCards(cards: NewCardPayload[]): Promise<BulkAddResu
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ cards }),
   })
-  if (!res.ok) return { cards: [], skipped: [] }
+  /**
+   * FALHA TEM DE DOER — devolver vazio aqui era indistinguível de "nada tinha para entrar".
+   *
+   * MEDIDO importando um baralho de 39 notas: uma delas era a palavra `a`, de uma letra, que a
+   * fronteira de formato do servidor recusa (`word: min(2)`). A validação é do LOTE INTEIRO, então
+   * o 400 derrubou as 39 — e este `return` transformou a mensagem exata do servidor
+   * ("cards.34.word — Too small") em "0 entraram no seu baralho", sem causa e sem culpado.
+   *
+   * Quem chama já tem `try/catch` e já sabe mostrar erro; o que faltava era o erro existir.
+   */
+  if (!res.ok) {
+    const corpo = await res.json().catch(() => null) as { error?: string } | null
+    throw new Error(corpo?.error ?? `não consegui salvar as palavras (HTTP ${res.status})`)
+  }
   const body = (await res.json()) as { cards: VocabRow[]; skipped?: CartaoPulado[] }
   const criados = (body.cards ?? []).map(rowToVocabCard)
   /* Som de "guardei" no ponto onde a palavra ENTRA no deck, e so quando entrou de verdade —
@@ -742,6 +766,15 @@ export interface HistoricoDeItem {
   erros: number
   ultimaEm: number
   ultimoAcerto: boolean
+  /**
+   * A régua de retorno do erro (`core/learning/memoriaDeItens`) lê estes dois. Os DOIS servidores
+   * os calculam — o efêmero desde sempre, o real desde que a ausência foi rastreada até o efeito:
+   * sem eles `estadoDoItem` trava em 1 erro seguido (nenhum leech) e `prontoParaVoltar` devolve
+   * sempre `true` (nenhum espaçamento). Continuam opcionais no tipo só para uma resposta antiga
+   * em cache não quebrar a tela.
+   */
+  errosSeguidos?: number
+  rodadasDesdeUltimoErro?: number
 }
 
 /**
@@ -785,6 +818,75 @@ export async function gastarSeeds(input: {
 }): Promise<{ jaExistia: boolean; gasto: number; seedsGastas: number } | null> {
   try {
     const res = await apiFetch('/api/metrics/seeds/gastar', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(input),
+    })
+    if (!res.ok) return null
+    return await res.json()
+  } catch {
+    return null
+  }
+}
+
+/* ── ECONOMIA v2 (2026-08-28) ── */
+
+/** Registra a presença do dia. Idempotente por dia; `null` em falha (a tela não credita nada). */
+export async function registrarPresenca(dia: number): Promise<{ jaExistia: boolean; dia: number; streakPresenca: number } | null> {
+  try {
+    const res = await apiFetch('/api/metrics/presenca', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ dia }),
+    })
+    if (!res.ok) return null
+    return await res.json()
+  } catch {
+    return null
+  }
+}
+
+/**
+ * Credita Seeds/XP avulsos (conquistas). Idempotente por `creditoId`, como `gastarSeeds`.
+ * `null` em falha: quem chamou NÃO marca a conquista — senão seria "conquistada sem as Seeds".
+ */
+/**
+ * GASTA CRÉDITOS — a moeda comprada com dinheiro.
+ *
+ * Gêmeo de `gastarSeeds`, e o contrato é o mesmo: `spendId` é a chave de idempotência, e o
+ * servidor recusa quando o `amount` não bate com o catálogo, em vez de cobrar em silêncio um
+ * valor que a tela não mostrou.
+ */
+/**
+ * OS CRÉDITOS DA TRILHA PAGA. O servidor decide QUAIS casas foram alcançadas (do nível que ele
+ * mesmo calcula) e credita cada uma uma vez. Sem o passe devolve `creditado: 0` — não é erro,
+ * é a resposta honesta de quem não comprou.
+ */
+export async function creditarPasse(): Promise<{ creditado: number; temPasse: boolean; saldo?: number } | null> {
+  const r = await apiFetch('/api/billing/creditar-passe', { method: 'POST' });
+  if (!r.ok) return null;
+  return (await r.json()) as { creditado: number; temPasse: boolean; saldo?: number };
+}
+
+export async function gastarCreditos(payload: { spendId: string; amount: number; reason: string; ref?: string }):
+  Promise<{ jaExistia: boolean; gasto: number; saldo: number } | null> {
+  const r = await apiFetch('/api/billing/gastar', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+  if (!r.ok) return null;
+  return (await r.json()) as { jaExistia: boolean; gasto: number; saldo: number };
+}
+
+export async function creditarSeeds(input: {
+  creditoId: string
+  amount: number
+  xp?: number
+  reason: string
+}): Promise<{ jaExistia: boolean; seedsCreditadas: number; xpCreditado: number } | null> {
+  try {
+    const res = await apiFetch('/api/metrics/seeds/creditar', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(input),
@@ -974,5 +1076,67 @@ export async function searchImages(q: string): Promise<ImageResult[]> {
       .map((x, i) => ({ id: `ov-${i}`, url: x.url ?? x.thumbnail ?? '', thumbnail: x.thumbnail ?? x.url ?? '', title: x.title ?? q }))
   } catch {
     return []
+  }
+}
+
+/* ── LGPD (portado da cópia de engenharia, E5) ── */
+
+// O backend destas duas rotas existia desde a auditoria, com rate-limit dedicado em `server.ts`,
+// e NENHUMA tela o chamava — a obrigação legal estava implementada e inalcançável. Estas funções
+// são a ponte que faltava; a interface vive em `views/perfil/AbaDados.tsx`.
+
+/** O que o servidor devolve ao excluir a conta: o relatório por tabela e o que NÃO deu certo. */
+export interface ResultadoDaExclusao {
+  ok: boolean
+  linhasPorTabela?: Record<string, number>
+  totalDeLinhas?: number
+  arquivos?: { apagados: number; falhas: { arquivo: string; erro: string }[] }
+  /**
+   * O vínculo de login pode sobreviver às linhas (sem SUPABASE_SERVICE_ROLE_KEY, por exemplo).
+   * Quando isso acontece o servidor DIZ, em vez de confirmar o que não aconteceu — e a tela
+   * precisa repassar esse aviso ao titular, senão ele acha que sumiu tudo.
+   */
+  login?: { desvinculado: boolean; motivo?: string; aviso?: string }
+  error?: string
+}
+
+/**
+ * Portabilidade: baixa tudo o que o sistema guarda sobre o titular, em JSON.
+ *
+ * O binário do áudio NÃO vem aqui (só os nomes dos arquivos) e os segredos saem como metadado —
+ * decisões do servidor, documentadas em `db/repositories/conta.ts`. Como a rota exige o header de
+ * autenticação, não dá para apontar um `<a href>` para ela: é preciso buscar e materializar o
+ * blob no cliente.
+ */
+export async function exportarConta(): Promise<Blob | null> {
+  try {
+    const res = await apiFetch('/api/me/exportar', { timeoutMs: 60_000 })
+    if (!res.ok) return null
+    return await res.blob()
+  } catch {
+    return null
+  }
+}
+
+/**
+ * Exclusão. O `confirmar: true` é exigido pelo schema do servidor (`excluirContaSchema`) — é a
+ * trava que impede um DELETE acidental com corpo vazio.
+ *
+ * Diferente do resto deste arquivo, o erro NÃO vira `null`: quando a exclusão falha pela metade
+ * (arquivo que não saiu, vínculo de login que sobreviveu) o corpo da resposta é justamente o que
+ * o titular precisa ler. Engolir isso seria esconder o que não aconteceu.
+ */
+export async function excluirConta(): Promise<ResultadoDaExclusao> {
+  try {
+    const res = await apiFetch('/api/me', {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ confirmar: true }),
+      timeoutMs: 60_000,
+    })
+    const corpo = (await res.json().catch(() => ({}))) as Partial<ResultadoDaExclusao>
+    return { ...corpo, ok: res.ok && corpo.ok !== false }
+  } catch (err) {
+    return { ok: false, error: String((err as Error)?.message || err) }
   }
 }

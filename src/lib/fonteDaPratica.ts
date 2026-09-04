@@ -33,7 +33,9 @@ export interface FonteGuardada {
 
 const PADRAO: FonteGuardada = { origem: 'gravacoes', escopo: 'todas' };
 
-const ORIGENS: OrigemDaPratica[] = ['gravacoes', 'trilha'];
+// 'dificeis' guarda SÓ a origem — o ranking em si é lido vivo do servidor a cada visita
+// (congelar ids aqui seria praticar a foto de um dia; ver FonteDeItens.cardIds no core).
+const ORIGENS: OrigemDaPratica[] = ['gravacoes', 'trilha', 'dificeis'];
 const ESCOPOS: EscopoDeGravacoes[] = ['todas', 'uma'];
 const NIVEIS = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2'];
 
@@ -74,4 +76,16 @@ export function gravarFonteGuardada(f: FonteGuardada): void {
       origem: f.origem, escopo: f.escopo, sessionId: f.sessionId, nivel: f.nivel,
     }));
   } catch { /* storage bloqueado */ }
+}
+
+/**
+ * A PESSOA JÁ ESCOLHEU ALGUMA VEZ?
+ *
+ * `lerFonteGuardada` devolve o PADRÃO quando não há nada gravado, e isso é o certo para montar a
+ * fonte — mas apaga a diferença entre "nunca escolheu" e "escolheu justamente o padrão". A tela
+ * precisa dessa diferença: a Sala de Escolha abria a CADA entrada, para todo mundo, inclusive para
+ * quem já tinha decidido e só queria jogar. Agora ela abre para quem ainda não decidiu.
+ */
+export function temFonteGuardada(): boolean {
+  try { return localStorage.getItem(CHAVE) !== null; } catch { return false; }
 }

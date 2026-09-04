@@ -12,6 +12,8 @@
 import type { UserId } from './authContext'
 import { authRequired } from './auth'
 import { subscriptionsRepo, type Plan, type Subscription } from '../db/repositories/subscriptions'
+import { PLAN_MATRIX, ehPlanoDeAssinatura } from '../../src/core/planos'
+import { log } from './logger'
 
 export interface Entitlements {
   plan: Plan
@@ -21,8 +23,10 @@ export interface Entitlements {
   largerModels: boolean
 }
 
-const PLANS: readonly string[] = ['free', 'pro', 'selfhost']
-const isPlan = (v: unknown): v is Plan => typeof v === 'string' && PLANS.includes(v)
+/* O guard deriva da matriz. A lista duplicada que vivia aqui era o pior dos cinco pontos: uma
+   assinatura `essencial` VÁLIDA teria caído para `free` em silêncio se alguém esquecesse esta
+   linha ao adicionar o plano. */
+const isPlan = ehPlanoDeAssinatura
 
 /** A assinatura CONCEDE o plano? active/trialing sempre; past_due só na graça (até o fim do período). */
 function subConcede(sub: Subscription): boolean {
@@ -40,7 +44,17 @@ export async function getPlanForUser(userId: UserId): Promise<Plan> {
   // 1) Assinatura é a ÚNICA fonte autoritativa do plano em modo público: concede o plano dela, ou
   //    'free' se não concede mais.
   const sub = await subscriptionsRepo.getActive(userId)
-  if (sub) return subConcede(sub) && isPlan(sub.plan) ? (sub.plan as Plan) : 'free'
+  if (sub) {
+    if (subConcede(sub) && isPlan(sub.plan)) return sub.plan
+    /* Plano fora da matriz degrada para `free` — o seguro — mas agora DEIXA RASTRO. Antes a
+       degradação era silenciosa: uma linha corrompida no banco viraria "usuário free" sem que
+       ninguém jamais soubesse o porquê. */
+    if (!isPlan(sub.plan)) {
+      log('warn', { event: 'plano_desconhecido', error: String(sub.plan).slice(0, 40) })
+      return 'free'
+    }
+    return 'free' // assinatura não concede mais (cancelada / graça expirada)
+  }
 
   // 2) Público sem assinatura → free. NÃO honramos settings.ui.plan: é gravável pelo cliente
   //    (PUT /api/settings) e concedê-lo seria escalada de privilégio/gasto (OWASP A01). Para conceder
@@ -48,16 +62,16 @@ export async function getPlanForUser(userId: UserId): Promise<Plan> {
   return 'free'
 }
 
-/** Deriva os entitlements de um plano. `paid` = pro || selfhost (tiering "por custo de IA"). */
+/**
+ * Deriva os entitlements de um plano — LENDO A MATRIZ, não um booleano.
+ *
+ * A versão anterior era `const paid = pro || selfhost` ligando as 4 flags de uma vez. O plano
+ * Essencial quebra essa simetria de propósito: tradução de nuvem SIM, STT de nuvem NÃO — é o que
+ * o torna barato. Um booleano único não consegue expressar isso.
+ */
 export function getEntitlements(plan: Plan): Entitlements {
-  const paid = plan === 'pro' || plan === 'selfhost'
-  return {
-    plan,
-    youtubeImport: paid,
-    managedCloudStt: paid,
-    managedCloudLlm: paid,
-    largerModels: paid,
-  }
+  const def = PLAN_MATRIX[plan]
+  return { plan, ...def.entitlements }
 }
 
 /** Os entitlements EFETIVOS do usuário (plano resolvido no servidor). */

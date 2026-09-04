@@ -1,6 +1,7 @@
 import type { VocabCard } from '../../types';
 import type { CefrLevel } from '../learning/contract';
 import { triarCartoes, baseLangDe, pistasDaTriagem, type Triagem } from '../learning/quality';
+import { passaNoFiltro, type FiltroDaPratica, type CartaoFiltravel, type ExtrasDoFiltro } from './filtro';
 
 /**
  * DE ONDE VÊM OS ITENS DESTA RODADA.
@@ -20,7 +21,7 @@ import { triarCartoes, baseLangDe, pistasDaTriagem, type Triagem } from '../lear
  * ser distrator.
  */
 
-export type FonteId = 'baralho' | 'sessao' | 'trilha';
+export type FonteId = 'baralho' | 'sessao' | 'trilha' | 'dificeis';
 
 export interface FonteDeItens {
   id: FonteId;
@@ -30,6 +31,13 @@ export interface FonteDeItens {
   sessionId?: string;
   /** Só para `trilha`: até que nível do vocabulário curado. */
   nivel?: CefrLevel;
+  /**
+   * Só para `dificeis`: os cartões do ranking de palavras difíceis, NA ORDEM do ranking.
+   * É injetado NA HORA DO USO (a tela lê `metrics.palavrasDificeis` do servidor a cada render)
+   * e nunca persistido — guardar os ids congelaria o ranking na foto do dia em que se escolheu
+   * a fonte, e "difícil" é exatamente o que muda conforme se pratica.
+   */
+  cardIds?: string[];
 }
 
 export const FONTE_PADRAO: FonteDeItens = { id: 'baralho', lang: '' };
@@ -53,6 +61,7 @@ export const SESSAO_DA_TRILHA = (lang: string) => `trilha:${(lang || 'en').split
 export function rotuloDaFonte(fonte: FonteDeItens, nomeDaSessao?: string): string {
   if (fonte.id === 'sessao') return nomeDaSessao ? `Sessão: ${nomeDaSessao}` : 'Esta sessão';
   if (fonte.id === 'trilha') return fonte.nivel ? `Trilha ${fonte.nivel}` : 'Trilha';
+  if (fonte.id === 'dificeis') return 'Palavras difíceis';
   return 'Minhas palavras';
 }
 
@@ -80,7 +89,11 @@ export function cartoesDaFonte(cards: VocabCard[], fonte: FonteDeItens): Triagem
       ? (fonte.sessionId ? todos.filter(c => c.sourceSessionId === fonte.sessionId) : [])
       : fonte.id === 'trilha'
         ? todos.filter(c => c.daTrilha && doNivel(c, fonte.nivel))
-        : todos.filter(c => !c.daTrilha);
+        : fonte.id === 'dificeis'
+          // Difícil ATRAVESSA a partição gravações/trilha: o ranking mede erro onde ele
+          // aconteceu. Sem cardIds injetados, a resposta é VAZIO (mesma regra da sessão sem id).
+          ? doRanking(todos, fonte.cardIds)
+          : todos.filter(c => !c.daTrilha);
 
   return triarCartoes(doEscopo, { lang: fonte.lang });
 }
@@ -98,6 +111,15 @@ export function cartoesDaFonte(cards: VocabCard[], fonte: FonteDeItens): Triagem
  * cliente mandar `cefrLevel`, e recusá-los agora esvaziaria a rodada de quem já usa a trilha —
  * castigo por um erro nosso. Eles aparecem em todo nível até serem corrigidos.
  */
+/** Recorta pelo ranking e DEVOLVE NA ORDEM DELE — a rodada começa pelo que mais dói. */
+function doRanking(todos: VocabCard[], cardIds?: string[]): VocabCard[] {
+  if (!cardIds?.length) return [];
+  const posicao = new Map(cardIds.map((id, i) => [id, i]));
+  return todos
+    .filter(c => posicao.has(c.id))
+    .sort((a, b) => (posicao.get(a.id) ?? 0) - (posicao.get(b.id) ?? 0));
+}
+
 function doNivel(card: VocabCard, nivel?: string): boolean {
   if (!nivel) return true;
   return !card.cefrLevel || card.cefrLevel === nivel;
@@ -147,7 +169,7 @@ export function idiomasDisponiveis(cards: VocabCard[]): Array<{ lang: string; to
  * Este par de funções é a tradução, testada nos dois sentidos. A tela fala o idioma de quem usa; o
  * core continua falando o dele.
  */
-export type OrigemDaPratica = 'gravacoes' | 'trilha';
+export type OrigemDaPratica = 'gravacoes' | 'trilha' | 'dificeis';
 export type EscopoDeGravacoes = 'todas' | 'uma';
 
 export interface EscolhaDaPratica {
@@ -161,6 +183,8 @@ export interface EscolhaDaPratica {
 
 export function fonteDaEscolha(e: EscolhaDaPratica): FonteDeItens {
   if (e.origem === 'trilha') return { id: 'trilha', lang: e.lang, nivel: e.nivel };
+  // `cardIds` NÃO entra aqui: quem usa a fonte injeta o ranking vivo (ver FonteDeItens.cardIds).
+  if (e.origem === 'dificeis') return { id: 'dificeis', lang: e.lang };
   // "uma gravação" sem gravação escolhida ainda é "todas" — melhor que uma fonte vazia por engano.
   if (e.escopo === 'uma' && e.sessionId) return { id: 'sessao', lang: e.lang, sessionId: e.sessionId };
   return { id: 'baralho', lang: e.lang };
@@ -191,6 +215,7 @@ export function mesmaFonte(a: FonteDeItens, b: FonteDeItens): boolean {
 
 export function escolhaDaFonte(f: FonteDeItens): EscolhaDaPratica {
   if (f.id === 'trilha') return { origem: 'trilha', escopo: 'todas', lang: f.lang, nivel: f.nivel };
+  if (f.id === 'dificeis') return { origem: 'dificeis', escopo: 'todas', lang: f.lang };
   if (f.id === 'sessao') return { origem: 'gravacoes', escopo: 'uma', lang: f.lang, sessionId: f.sessionId };
   return { origem: 'gravacoes', escopo: 'todas', lang: f.lang };
 }
@@ -243,6 +268,8 @@ export interface ContextoDeFonte {
   temTrilha: boolean
   /** Quantas gravações existem para escolher. */
   sessoesDisponiveis?: number
+  /** O ranking de palavras difíceis tem material para uma rodada? */
+  temDificeis?: boolean
 }
 
 /**
@@ -254,9 +281,10 @@ export interface ContextoDeFonte {
 export function fontesDisponiveis(ctx: ContextoDeFonte): FonteId[] {
   if (ctx.embutido) return ['sessao']
   const fontes: FonteId[] = ['baralho']
-  // Botão que não faz nada é pior que ausente — as duas só entram quando existem de fato.
+  // Botão que não faz nada é pior que ausente — as demais só entram quando existem de fato.
   if (ctx.temSessao) fontes.push('sessao')
   if (ctx.temTrilha) fontes.push('trilha')
+  if (ctx.temDificeis) fontes.push('dificeis')
   return fontes
 }
 
@@ -269,4 +297,48 @@ export function fontesDisponiveis(ctx: ContextoDeFonte): FonteId[] {
 export function podeTrocarDeGravacao(ctx: { embutido: boolean; sessoesDisponiveis: number }): boolean {
   if (ctx.embutido) return false
   return ctx.sessoesDisponiveis > 1
+}
+
+/**
+ * Triagem por FILTRO — o caminho multi-fonte. `cartoesDaFonte` particiona de forma exclusiva
+ * (uma casa por cartão); aqui a união é o predicado, que já sabe somar fontes.
+ */
+export function cartoesDoFiltro(
+  cards: VocabCard[],
+  filtro: FiltroDaPratica,
+  extras?: ExtrasDoFiltro,
+): Triagem {
+  const doEscopo = (cards ?? []).filter(c =>
+    passaNoFiltro(c as unknown as CartaoFiltravel, filtro, { ...extras, idDoCartao: c.id }));
+  return triarCartoes(doEscopo, { lang: filtro.idiomas[0] ?? '' });
+}
+
+/**
+ * Frases de exemplo do acervo no formato que os jogos de frase consomem.
+ * `startMs`/`endMs` zerados = sem clipe a recortar, a voz sintetizada fala (mesmo contrato da trilha).
+ */
+export function frasesDoAcervo(
+  cards: VocabCard[],
+  lang: string,
+): Array<{ id: string; text: string; translation: string; lang: string; startMs: number; endMs: number }> {
+  const base = baseLangDe(lang) || '';
+  const vistas = new Set<string>();
+  const saida = [];
+  for (const c of cards ?? []) {
+    const frase = (c.sentence ?? '').trim();
+    if (!frase || frase.split(/\s+/).length < 4) continue;
+    if (base && baseLangDe(c.srcLang ?? '') !== base) continue;
+    const chave = frase.toLowerCase();
+    if (vistas.has(chave)) continue;
+    vistas.add(chave);
+    saida.push({
+      id: `acervo:${c.id || frase.slice(0, 24)}`,
+      text: frase,
+      translation: '',
+      lang: base || (c.srcLang ?? ''),
+      startMs: 0,
+      endMs: 0,
+    });
+  }
+  return saida;
 }

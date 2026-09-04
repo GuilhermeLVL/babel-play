@@ -8,10 +8,16 @@
  * gastarSeeds `apr-<id>-n<k>`); intensidade é preferência (grátis, reversível).
  */
 
+import { CUSTOS_DE_NIVEL } from '@core';
+
 export const NIVEL_MAXIMO = 3;
 
 /** Custo do PRÓXIMO nível (índice = nível atual). */
-export const CUSTOS_DE_NIVEL = [30, 60, 120] as const;
+/* Economia v2 (2026-08-28): subiu de 30/60/120 junto com a Loja — dominar um aprimoramento
+   custa ~4-5 dias de uso ativo, não uma captura. */
+/* A escada de custos mudou para `core/economiaAutoridade.ts`: o SERVIDOR precisa dela para
+   conferir quanto custa o próximo degrau antes de debitar. Reexportada para nenhuma tela mudar. */
+export { CUSTOS_DE_NIVEL };
 
 export type Intensidade = 'pequena' | 'media' | 'grande';
 
@@ -25,6 +31,30 @@ function lerNiveis(): Record<string, number> {
 export function nivelDoAprimoramento(id: string): number {
   const n = lerNiveis()[id] ?? 0;
   return Math.max(0, Math.min(NIVEL_MAXIMO, n));
+}
+
+/**
+ * O NÍVEL VINDO DO SERVIDOR (mudança servidor-e-autoridade).
+ *
+ * Até 01/09 o nível vivia SÓ aqui, em `localStorage`: o gasto ia para o log com
+ * `reason = 'aprimoramento:<alvo>:<n>'` e nada lia de volta. Editar a chave dava Nv.3 em tudo,
+ * invisível ao servidor — e o inverso também doía: trocar de navegador perdia o que foi pago de
+ * verdade. Agora o servidor deriva o nível do log, e com conta ele SUBSTITUI o espelho, pela
+ * mesma razão que vale para a posse da Loja.
+ */
+export function hidratarAprimoramentos(doServidor: Record<string, number> | undefined, autoritativo = false): void {
+  if (!doServidor) return;
+  try {
+    if (autoritativo) {
+      localStorage.setItem(CHAVE_NIVEIS, JSON.stringify(doServidor));
+      return;
+    }
+    const niveis = lerNiveis();
+    for (const [alvo, n] of Object.entries(doServidor)) {
+      niveis[alvo] = Math.max(niveis[alvo] ?? 0, n);
+    }
+    localStorage.setItem(CHAVE_NIVEIS, JSON.stringify(niveis));
+  } catch { /* sem storage: o nível volta na próxima carga */ }
 }
 
 export function custoDoProximoNivel(id: string): number | null {

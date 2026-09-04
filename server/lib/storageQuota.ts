@@ -14,6 +14,7 @@
  * reescreve o contador a partir do disco quando se quiser conferir.
  */
 import { randomUUID } from 'node:crypto'
+import { PLAN_MATRIX } from '../../src/core/planos'
 import { statSync } from 'node:fs'
 import path from 'node:path'
 import { and, eq, sql } from 'drizzle-orm'
@@ -36,11 +37,11 @@ function envMb(nome: string, padrao: number): number {
   return Number.isFinite(n) && n > 0 ? n : padrao
 }
 
-/** Teto em BYTES por plano. selfhost ∞ (mesma regra da quota de IA); pro e free do env. */
+/** Teto em BYTES por plano — default da MATRIZ, override por env (`PRO_STORAGE_MB`, `ESSENCIAL_STORAGE_MB`…). */
 export function capDeArmazenamento(plan: Plan): number {
-  if (plan === 'selfhost') return Infinity
-  const mb = plan === 'pro' ? envMb('PRO_STORAGE_MB', 5_000) : envMb('FREE_STORAGE_MB', 500)
-  return Math.floor(mb * MB)
+  const padraoMb = PLAN_MATRIX[plan].quotas.armazenamentoMb
+  if (padraoMb === null) return Infinity
+  return Math.floor(envMb(`${plan.toUpperCase()}_STORAGE_MB`, padraoMb) * MB)
 }
 
 export interface ResultadoDeCota {

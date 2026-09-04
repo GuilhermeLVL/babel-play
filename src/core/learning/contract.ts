@@ -63,6 +63,48 @@ export interface AppMetrics {
   streakDays: number
   /** Total de seeds JÁ GASTAS. O servidor sempre computa; `deriveProgress` faz ganhas − gastas. */
   seedsGastas: number
+  /**
+   * Ids dos itens da Loja comprados, derivados do log de gastos (`reason: 'loja:<id>'`).
+   * B4 fechada (economia-de-creditos 1.2): o servidor é a fonte da posse; o localStorage vira
+   * espelho hidratado. Opcional pela mesma regra da economia v2: ausência = lista vazia, não erro.
+   */
+  itensComprados?: string[]
+  /**
+   * Cromas comprados (`croma:<item>:<matiz>`), derivados do mesmo razão. Opcional pela regra da
+   * economia v2: ausência é lista vazia, nunca erro.
+   */
+  cromasComprados?: string[]
+
+  /**
+   * NÍVEL DE CADA APRIMORAMENTO, derivado do mesmo log (`aprimoramento:<alvo>:<n>`).
+   *
+   * Vivia só em `localStorage`: o gasto era gravado e nada lia de volta, então editar a chave
+   * dava Nv.3 em tudo — e trocar de navegador perdia o que foi pago de verdade.
+   */
+  aprimoramentos?: Record<string, number>
+
+  /* ── ECONOMIA v2 (2026-08-28). OPCIONAIS de propósito: o servidor efêmero (IndexedDB) já os
+     calcula; a edição completa (Postgres) passa a calculá-los numa entrega própria, e até lá
+     `deriveProgress` trata ausência como zero — nunca como erro. ── */
+  /** Dias distintos com presença registrada. */
+  presencas?: number
+  /** Sequência ATUAL de dias de presença (termina hoje). */
+  streakPresenca?: number
+  /** Maior sequência de presença já feita. */
+  maiorSequenciaPresenca?: number
+  /** Marcos de 7 dias seguidos já alcançados (histórico, nunca diminui). */
+  sequencias7?: number
+  /** Minutos totais de sessão gravada. */
+  capturaMinutos?: number
+  /** Minutos de captura PREMIADOS (teto diário aplicado). */
+  capturaMinutosPremiados?: number
+  /** Rodadas de jogo 100% certas (com o mínimo de itens do jogo). */
+  rodadasPerfeitas?: number
+  /** Créditos avulsos (conquistas) já somados. */
+  seedsCreditadas?: number
+  xpCreditado?: number
+  /** Idiomas distintos das sessões gravadas (conquista "Poliglota"). */
+  idiomas?: number
   /** média de estabilidade FSRS (dias) das cartas revisadas. */
   avgStability: number
   /** retenção prevista média (0..1) — PROBABILÍSTICA. */
@@ -72,6 +114,14 @@ export interface AppMetrics {
   vocabByWeek: Array<{ weekStart: number; count: number }>
   /** tempo total de fala (ms) somado dos enunciados com timing — determinístico. */
   speakingMs: number
+  /** Tempo de áudio OUVIDO ('tab') — o par passivo de speakingMs, que agora é só o mic
+      (spec progresso-de-idioma). Opcional: servidores antigos e o efêmero podem não mandar. */
+  listeningMs?: number
+  /** Ranking das palavras que o usuário mais erra (lapses + dificuldade FSRS + notas ruins);
+      só cartões com >= 2 revisões entram — a base fraca fica declarada pela ausência. */
+  palavrasDificeis?: Array<{ cardId: string; word: string; lapses: number; revisoes: number; fracaoDeErro: number; pontuacao: number }>
+  /** Taxa de acerto por tipo de exercício (mínimo 3 itens por tipo), pior primeiro. */
+  acertoPorExercicio?: Array<{ kind: string; total: number; acerto: number }>
   /** palavras por minuto (fala) — determinístico, mas confiança cai com amostra curta. */
   wpm: number
   wpmConfidence: number

@@ -64,3 +64,16 @@ describe('routeStt — a régua de qualidade por idioma', () => {
     expect(routeStt({ ...base, contentLang: 'en-US' }).preferCloud).toBe(false);
   });
 });
+
+describe('routeStt — o mesmo modelo decodifica o MICROFONE', () => {
+  it('ouvindo inglês mas falando português ao mic → nunca tiny', () => {
+    const r = routeStt({ ...base, contentLang: 'en', micLang: 'pt', cloudAvailable: false });
+    expect(r.localModel).not.toBe(WHISPER_MODELS.tiny);
+  });
+  it('inglês nas duas fontes continua tiny', () => {
+    expect(routeStt({ ...base, contentLang: 'en', micLang: 'en-US' }).localModel).toBe(WHISPER_MODELS.tiny);
+  });
+  it('mic desligado (micLang vazio) não muda a rota do inglês', () => {
+    expect(routeStt({ ...base, contentLang: 'en', micLang: '' }).localModel).toBe(WHISPER_MODELS.tiny);
+  });
+});

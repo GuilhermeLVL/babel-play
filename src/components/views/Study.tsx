@@ -12,7 +12,7 @@ import type { Sentence, PracticeSeed, ExerciseId } from '../../lib/sentences';
 import { seedFromSelection, telaDoExercicio } from '../../lib/sentences';
 import VocabularyPanel from '../VocabularyPanel';
 import CommandPalette, { useCommandPalette } from '../CommandPalette';
-import { t, showsPowerUserAffordances, type AgeProfileType } from '../../lib/profile';
+import { copyDoPerfil, showsPowerUserAffordances, type AgeProfileType } from '../../lib/profile';
 
 // Exercícios — cada um é um componente próprio, com o contrato `ExerciseProps`.
 
@@ -465,23 +465,23 @@ export default function Study({
   const EXERCISES = useMemo(() => ([
     {
       id: 'review',
-      label: t('ex.review', ageProfile),
+      label: copyDoPerfil('ex.review', ageProfile),
       hint: dueCount > 0
-        ? t('ex.review.hint.due', ageProfile, { n: dueCount })
-        : t('ex.review.hint.deck', ageProfile, { n: deckSize }),
+        ? copyDoPerfil('ex.review.hint.due', ageProfile, { n: dueCount })
+        : copyDoPerfil('ex.review.hint.deck', ageProfile, { n: deckSize }),
       keywords: 'srs fsrs leitner flashcard revisar memorizar treino memoria',
       icon: <Zap className="w-4 h-4" />,
-      disabledReason: deckSize === 0 ? t('block.emptyDeck', ageProfile) : undefined,
+      disabledReason: deckSize === 0 ? copyDoPerfil('block.emptyDeck', ageProfile) : undefined,
       run: startReviewSession,
     },
     {
       id: 'active_production',
-      label: t('ex.active_production', ageProfile),
-      hint: t('ex.active_production.hint', ageProfile, { n: producibleCount }),
+      label: copyDoPerfil('ex.active_production', ageProfile),
+      hint: copyDoPerfil('ex.active_production.hint', ageProfile, { n: producibleCount }),
       keywords: 'producao ativa escrever recall',
       icon: <Brain className="w-4 h-4" />,
       disabledReason: producibleCount === 0
-        ? t('block.notMature', ageProfile, { n: stabilityThreshold() })
+        ? copyDoPerfil('block.notMature', ageProfile, { n: stabilityThreshold() })
         : undefined,
       run: startActiveProductionSession,
     },
@@ -504,7 +504,7 @@ export default function Study({
         key={ex.id}
         onClick={() => !blocked && ex.run()}
         disabled={!!blocked}
-        className={`w-full flex items-center gap-3.5 px-4 py-3.5 text-left transition-colors ${
+        className={`w-full flex items-center gap-3.5 px-4 py-3.5 text-start transition-colors ${
           blocked ? 'opacity-50 cursor-not-allowed' : 'hover:bg-surface-hover cursor-pointer group'
         }`}
       >
@@ -585,7 +585,7 @@ export default function Study({
             >
               <Search className="w-3.5 h-3.5" />
               <span>Buscar exercício</span>
-              <kbd className="text-[10px] font-mono border border-border-subtle rounded px-1 py-0.5 ml-1">⌘K</kbd>
+              <kbd className="text-[10px] font-mono border border-border-subtle rounded px-1 py-0.5 ms-1">⌘K</kbd>
             </button>
           )}
         </div>
@@ -599,24 +599,24 @@ export default function Study({
           <div className="card-panel p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div className="min-w-0">
               <p className="font-display font-black text-lg text-ink">
-                {t('now.due.title', ageProfile, { n: dueCount })}
+                {copyDoPerfil('now.due.title', ageProfile, { n: dueCount })}
               </p>
               <p className="text-[12.5px] text-ink-muted">
-                {t('now.due.sub', ageProfile, { sched: scheduler === 'fsrs' ? 'FSRS-5' : 'Leitner' })}
+                {copyDoPerfil('now.due.sub', ageProfile, { sched: scheduler === 'fsrs' ? 'FSRS-5' : 'Leitner' })}
               </p>
             </div>
             <button onClick={startReviewSession} className="btn-solid flex items-center gap-2 shrink-0">
-              <Zap className="w-4 h-4" /> {t('now.due.cta', ageProfile)}
+              <Zap className="w-4 h-4" /> {copyDoPerfil('now.due.cta', ageProfile)}
             </button>
           </div>
         ) : deckSize > 0 ? (
           <div className="card-panel p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div className="min-w-0">
-              <p className="font-display font-black text-lg text-ink">{t('now.clear.title', ageProfile)} ✓</p>
+              <p className="font-display font-black text-lg text-ink">{copyDoPerfil('now.clear.title', ageProfile)} ✓</p>
               <p className="text-[12.5px] text-ink-muted">
                 {sentences.length > 0
-                  ? t('now.clear.sub', ageProfile, { n: sentences.length })
-                  : t('now.empty.sub', ageProfile)}
+                  ? copyDoPerfil('now.clear.sub', ageProfile, { n: sentences.length })
+                  : copyDoPerfil('now.empty.sub', ageProfile)}
               </p>
             </div>
             {sentences.length > 0 && (
@@ -626,7 +626,7 @@ export default function Study({
                 onClick={() => onChangeView?.('play', { seed: { exercise: 'karaoke', lang: studyLang }, id: recording?.id })}
                 className="btn-outline flex items-center gap-2 shrink-0 text-xs font-bold px-4 py-2.5 rounded-xl"
               >
-                <Mic className="w-4 h-4" /> {t('now.clear.cta', ageProfile)}
+                <Mic className="w-4 h-4" /> {copyDoPerfil('now.clear.cta', ageProfile)}
               </button>
             )}
           </div>
@@ -714,7 +714,7 @@ export default function Study({
               <div key={card.id} className="flex items-center gap-3 px-4 py-2.5 hover:bg-surface-hover transition-colors">
                 <button
                   onClick={() => void examineWord(card.word)}
-                  className="min-w-0 flex-1 text-left cursor-pointer group"
+                  className="min-w-0 flex-1 text-start cursor-pointer group"
                   title="Abrir no Analista de Vocabulário"
                 >
                   <span className="block text-[13px] font-bold text-ink group-hover:text-accent transition-colors truncate">
@@ -1032,7 +1032,7 @@ export default function Study({
                           </div>
 
                           {currentCard?.sentence && (
-                            <div className="bg-canvas border border-border-subtle p-3 rounded-xl max-w-lg mx-auto text-left">
+                            <div className="bg-canvas border border-border-subtle p-3 rounded-xl max-w-lg mx-auto text-start">
                               <span className="text-[10px] uppercase font-mono text-ink-muted block mb-1">Frase Contexto</span>
                               <p className="text-[13px] text-ink italic leading-relaxed">
                                 {currentCard.sentence!.split(new RegExp(`(${currentCard.word})`, 'gi')).map((chunk, index) => {

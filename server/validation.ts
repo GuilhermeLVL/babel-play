@@ -191,6 +191,28 @@ export const seedSpendSchema = z.object({
   ref: shortStr(120),
 }).strip()
 
+/**
+ * Crédito avulso (conquista) — economia v2, endurecido em 01/09.
+ *
+ * `amount` e `xp` SAÍRAM do contrato: a rota resolve o `creditoId` no catálogo de conquistas e
+ * credita a recompensa DA REGRA. Enquanto vinham do corpo, com teto de 10.000 cada, um laço de
+ * requisições cunhava 1,2 milhão de Seeds e de XP por minuto — e XP vira nível, que destrava o
+ * catálogo. Continuam ACEITOS e ignorados (`.strip()` os descarta) para o cliente antigo não
+ * quebrar no meio de um deploy; o `reason` idem, porque quem o escreve agora é o servidor.
+ */
+export const seedCreditSchema = z.object({
+  creditoId: z.string().min(8).max(80),
+}).strip()
+
+/**
+ * Presença do dia — economia v2. O `dia` vem do CLIENTE porque o fuso é o dele; a janela de ±2
+ * dias em torno do relógio do servidor aceita qualquer fuso real e barra um dia inventado (que
+ * fabricaria sequência retroativa).
+ */
+export const presencaSchema = z.object({
+  dia: z.number().int().optional(),
+}).strip()
+
 /* ────────────────────────────────────────────────────────────────────────────
  * P2-1 — rotas que liam `req.body`/`req.query` cru, agora com fronteira de formato.
  * ──────────────────────────────────────────────────────────────────────────── */
@@ -280,13 +302,21 @@ export const patchUtteranceSchema = z.object({
   speakerName: shortStr(120),
 }).strip()
 
-/** PATCH de sessão: `kind`/`status` sem teto e números negativos passavam. */
+/**
+ * PATCH de sessão: `kind`/`status` sem teto e números negativos passavam.
+ *
+ * O TETO SUPERIOR entrou em 01/09. `wordCount` só tinha piso, e cada palavra capturada vale 2 XP
+ * (`core/learning/xp.ts`) — um `wordCount: 1e9` eram dois bilhões de XP, gravados e permanentes,
+ * pela porta de uma rota que ninguém associava a economia. Os tetos são generosos de propósito:
+ * 200 mil palavras e 24 horas não recusam nenhuma sessão real, e barram a ordem de grandeza que
+ * só aparece em adulteração.
+ */
 export const patchSessionSchema = z.object({
   title: shortStr(200),
   kind: shortStr(30),
   status: shortStr(30),
-  durationMs: z.number().int().min(0).optional(),
-  wordCount: z.number().int().min(0).optional(),
+  durationMs: z.number().int().min(0).max(24 * 60 * 60 * 1000).optional(),
+  wordCount: z.number().int().min(0).max(200_000).optional(),
 }).strip()
 
 /** Busca de imagem: `q` sem teto virava chave do cache em memória (200 entradas). */
@@ -316,6 +346,57 @@ const csv = (maxItens: number, maxCada = 64) =>
 
 const FAIXAS = ['facil', 'medio', 'dificil'] as const
 
+/**
+ * O FILTRO FACETADO (openspec/changes/seletor-facetado) — fio FIXADO pelo agente do núcleo
+ * cliente; nomes não mudam. Tetos ("sensatos"): baralhos/sessões/idiomas/níveis não passam de
+ * dezenas na prática de qualquer conta real; `dificeisIds` é o único que pode ser grande porque
+ * vem de uma seleção manual na tela.
+ */
+const filtroFonteSchema = z.enum(['baralho', 'sessao', 'trilha'])
+export const filtroFacetadoSchema = z.object({
+  fontes: z.array(filtroFonteSchema).min(1).max(3),
+  baralhos: z.array(z.string().max(128)).max(50).optional(),
+  sessoes: z.array(z.string().max(128)).max(50).optional(),
+  idiomas: z.array(z.string().max(16)).max(20).optional(),
+  recorte: z.object({
+    nuncaVistas: z.boolean().optional(),
+    pedindoRevisao: z.boolean().optional(),
+    niveis: z.array(z.string().max(16)).max(20).optional(),
+    dificeisIds: z.array(z.string().max(128)).max(200).optional(),
+  }).strip().optional(),
+  midia: z.object({
+    comTraducao: z.boolean().optional(),
+    comFrase: z.boolean().optional(),
+  }).strip().optional(),
+}).strip()
+export type FiltroFacetadoInput = z.infer<typeof filtroFacetadoSchema>
+
+/**
+ * `filtro` chega como JSON serializado num query param — a rota já é GET (o corpo semântico é
+ * uma leitura, não uma escrita) e `vocabParaJogoQuerySchema` já é toda `req.query`; um objeto
+ * aninhado não cabe em `csv()`. Teto de 20 KB é generoso para os tetos acima (~200 ids de 128
+ * chars cada já cabe em ~26 KB no pior caso isolado, mas o filtro real nunca combina os tetos
+ * máximos de TODOS os campos ao mesmo tempo — 20 KB cobre o uso real com folga sem abrir a porta
+ * para um payload absurdo dentro da URL).
+ */
+const filtroQuerySchema = z.string().max(20_000).optional()
+  .transform((v, ctx) => {
+    if (!v) return undefined
+    let parsed: unknown
+    try {
+      parsed = JSON.parse(v)
+    } catch {
+      ctx.addIssue({ code: 'custom', message: 'filtro: JSON inválido' })
+      return z.NEVER
+    }
+    const r = filtroFacetadoSchema.safeParse(parsed)
+    if (!r.success) {
+      ctx.addIssue({ code: 'custom', message: `filtro: ${r.error.issues[0]?.path.join('.') || '?'} — ${r.error.issues[0]?.message ?? 'inválido'}` })
+      return z.NEVER
+    }
+    return r.data
+  })
+
 export const vocabParaJogoQuerySchema = z.object({
   fonte: z.enum(['baralho', 'sessao', 'trilha']).optional(),
   fonteRef: z.string().max(128).optional(),
@@ -326,6 +407,8 @@ export const vocabParaJogoQuerySchema = z.object({
   limite: z.coerce.number().int().min(1).max(200).optional(),
   evitar: csv(200),
   lang: z.string().max(16).optional(),
+  // Presente => tem PRECEDÊNCIA sobre fonte/fonteRef/lang, no repositório (não aqui).
+  filtro: filtroQuerySchema,
 }).strip()
 
 export const vocabPaginaQuerySchema = z.object({
@@ -394,6 +477,41 @@ export const importUrlSchema = z.object({
 export const uploadHeadersSchema = z.object({
   'x-filename': z.string().max(400).optional(),
   'content-type': z.string().max(200).optional(),
+  /* O IDIOMA DO BARALHO vem por cabeçalho porque o `.apkg` não o declara de forma confiável — quem
+     sabe é a tela, que já tem o idioma praticado e o nativo. Sem isto o cartão importado nasce sem
+     `srcLang`, a triagem o marca `idioma-incerto` e o baralho inteiro fica fora das rodadas. */
+  'x-src-lang': z.string().regex(/^[A-Za-z-]{2,20}$/).optional(),
+  'x-tgt-lang': z.string().regex(/^[A-Za-z-]{2,20}$/).optional(),
+}).strip()
+
+/* ══════════════════ motor-anki-acervo — schemas das rotas do acervo (`/api/anki`) ══════════════════
+ *
+ * Diferença deliberada do `bulkAddCardsSchema` (achado citado no brief): ali a validação é do LOTE
+ * INTEIRO — uma palavra ruim derruba a rodada com 500. Aqui os schemas validam só os PARÂMETROS da
+ * rota (query/params/body de ação); o CONTEÚDO de cada nota é tratado item a item no repositório e
+ * no `avaliarCartao`, que devolve motivo por nota em vez de recusar o lote.
+ */
+
+/** Query de `GET /api/anki/decks/:id/notas` — cursor + filtros, mesmo padrão de `vocabPaginaQuerySchema`. */
+export const ankiNotasQuerySchema = z.object({
+  cursor: z.string().max(128).optional(),
+  cursorId: z.string().max(128).optional(),
+  estado: z.enum(['arquivada', 'ativa', 'ausente_no_arquivo']).optional(),
+  busca: z.string().max(200).optional(),
+  limite: z.coerce.number().int().min(1).max(500).optional(),
+}).strip()
+
+/** Body de `POST /api/anki/decks/:id/ativar` — `limite` é opcional; o repositório aplica o teto default. */
+export const ankiAtivarSchema = z.object({
+  limite: z.coerce.number().int().min(1).max(1000).optional(),
+}).strip()
+
+/**
+ * `DELETE /api/anki/decks/:id` — purga física (notas + import + deck). `confirmar: true` é
+ * OBRIGATÓRIO, mesmo contrato de `excluirContaSchema`: sem confirmação explícita a rota nunca apaga.
+ */
+export const ankiPurgarSchema = z.object({
+  confirmar: z.literal(true),
 }).strip()
 
 /**

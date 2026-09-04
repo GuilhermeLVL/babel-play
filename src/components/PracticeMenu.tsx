@@ -119,7 +119,7 @@ export default function PracticeMenu({ onChangeView, sessionId, studyLang = '' }
   }: { icon: React.ReactNode; label: string; hint: string; onClick: () => void }) => (
     <button
       onClick={onClick}
-      className="w-full flex items-center gap-2.5 px-3 py-2 text-left hover:bg-surface-hover transition-colors cursor-pointer group"
+      className="w-full flex items-center gap-2.5 px-3 py-2 text-start hover:bg-surface-hover transition-colors cursor-pointer group"
     >
       <span className="text-ink-muted group-hover:text-accent transition-colors shrink-0">{icon}</span>
       <span className="min-w-0 flex-1">

@@ -1,3 +1,4 @@
+import { assinarIdioma, ehRTL, idiomaDaInterface, usarIdioma } from './i18n';
 import React from 'react';
 /**
  * CONFIGURAÇÃO DE IDIOMA — leitor único, com nomes que não admitem inversão.
@@ -38,6 +39,11 @@ export interface LangConfig {
  * permanente no banco.
  */
 export const DEFAULT_LANG_CONFIG: LangConfig = { mine: 'pt-BR', studying: 'en-US' };
+
+/** `?ui=<idioma>` da URL de entrada — ver `useIdiomaDaInterfaceSeguindoOPerfil`. */
+const OVERRIDE_DA_URL = typeof window !== 'undefined'
+  ? new URLSearchParams(window.location.search).get('ui')
+  : null;
 
 /** Evento de mudança — as telas abertas se atualizam sozinhas (mesmo padrão do `tts.ts`). */
 const CHANGED = 'babel_lang_config_changed';
@@ -118,4 +124,51 @@ export function useLangConfig(): LangConfig {
     return () => { vivo = false; off(); };
   }, []);
   return cfg;
+}
+
+/**
+ * A INTERFACE SEGUE O IDIOMA DA PESSOA, e não uma preferência à parte.
+ *
+ * `mine` já é "o idioma que você já fala, o do seu microfone e o das traduções que você lê" — pedir
+ * de novo, num campo separado, seria fazer a mesma pergunta duas vezes e criar o estado incoerente
+ * de quem diz falar alemão e lê a tela em português. Quem quiser divergir dos dois troca em
+ * Ajustes; até lá, dizer "meu idioma é inglês" basta para a interface virar inglês.
+ *
+ * Roda uma vez no topo do app e a cada troca em Ajustes. Idioma sem catálogo fica em português —
+ * ver `usarIdioma`.
+ */
+export function useIdiomaDaInterfaceSeguindoOPerfil(): string {
+  const cfg = useLangConfig();
+
+  /* `?ui=<idioma>` VENCE o perfil. Existe por duas razoes praticas:
+     
+     · o pseudo-idioma (`xx`) nao esta na lista de idiomas oferecidos — e nao deve estar, e uma
+       ferramenta de teste, nao uma opcao de produto. Sem este override, o teste de layout nao teria
+       como entrar nele;
+     · ver a tela num idioma sem trocar a preferencia da conta e o que permite conferir uma
+       traducao em segundos, em vez de mexer em Ajustes e lembrar de desfazer.
+     
+     LIDO UMA VEZ, na carga. A tela de jogos reescreve a query string para guardar fonte e idioma
+     (`?fonte=trilha&idioma=en`) e nesse caminho o `ui` some — medido: o override valia so ate a
+     primeira navegacao interna, e a tela voltava ao portugues no meio do teste. Capturar na
+     entrada torna o override estavel por toda a sessao, que e como uma ferramenta de depuracao
+     deve se comportar. */
+  const escolhido = OVERRIDE_DA_URL || cfg.mine;
+
+  React.useEffect(() => { void usarIdioma(escolhido); }, [escolhido]);
+
+  /* O DOCUMENTO INTEIRO acompanha o idioma: `lang` para leitores de tela e para a quebra de linha
+     do navegador, `dir` para árabe e hebraico, que se leem da direita para a esquerda. Sem `dir` a
+     interface ficaria espelhada ao contrário do texto — e nenhuma tradução conserta isso. */
+  const idioma = React.useSyncExternalStore(assinarIdioma, idiomaDaInterface, () => 'pt');
+  React.useEffect(() => {
+    document.documentElement.lang = idioma;
+    document.documentElement.dir = ehRTL(idioma) ? 'rtl' : 'ltr';
+  }, [idioma]);
+
+  /* ASSINA, além de definir. Sem isto o catálogo chegava e a tela continuava em português: `t()` é
+     função pura sobre estado de módulo, e quem chama (`navLabel`, `tituloDoJogo`) não é componente
+     — ninguém tinha por que renderizar de novo. Aqui na raiz, um re-render cobre a árvore toda, e
+     a troca de idioma é rara o bastante para isso não ser custo. */
+  return idioma;
 }

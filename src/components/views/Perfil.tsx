@@ -1,11 +1,12 @@
 import { useState } from 'react';
-import { User, TrendingUp } from 'lucide-react';
+import { User, TrendingUp, ShieldCheck } from 'lucide-react';
 import { Abas, PainelDeAba } from '../ui';
 import { usePerfil } from '../../lib/usePerfil';
 import type { DerivedProgress } from '../../lib/progress';
 import type { AgeProfileType } from '../../lib/profile';
 import AbaVoce from './perfil/AbaVoce';
 import AbaProgresso from './perfil/AbaProgresso';
+import AbaDados from './perfil/AbaDados';
 
 /**
  * PERFIL — quem você é e onde você está.
@@ -59,6 +60,11 @@ export default function Perfil({ progress, ageProfile }: PerfilProps) {
           itens={[
             { id: 'voce', rotulo: 'Você', icone: <User className="w-4 h-4" /> },
             { id: 'progresso', rotulo: 'Progresso', icone: <TrendingUp className="w-4 h-4" /> },
+            /* 'Conquistas' saiu do Perfil (v4, 31/08): a MESMA tela vivia aqui e em
+               Personalizar → Desafios — duplicidade que a auditoria do dono pediu para matar.
+               Um lugar só: Desafios. */
+            // LGPD art. 18: exportar e excluir existiam no servidor e NENHUMA tela chamava (E5).
+            { id: 'dados', rotulo: 'Seus dados', icone: <ShieldCheck className="w-4 h-4" /> },
           ]}
         />
 
@@ -68,6 +74,10 @@ export default function Perfil({ progress, ageProfile }: PerfilProps) {
 
         <PainelDeAba id="progresso" ativo={aba}>
           <AbaProgresso progress={progress} ageProfile={ageProfile} />
+        </PainelDeAba>
+
+        <PainelDeAba id="dados" ativo={aba}>
+          <AbaDados />
         </PainelDeAba>
       </div>
     </div>

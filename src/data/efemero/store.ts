@@ -121,6 +121,23 @@ interface BabelLocalDB extends DBSchema {
   revisoes: { key: string; value: RevisaoLocal; indexes: { porCartao: string } };
   exercicios: { key: string; value: ExercicioLocal; indexes: { porSessao: string } };
   gastos: { key: string; value: GastoLocal };
+  /* Economia v2 (2026-08-28): presença diária e créditos avulsos (conquistas). */
+  presencas: { key: number; value: PresencaLocal };
+  creditos: { key: string; value: CreditoLocal };
+}
+
+export interface PresencaLocal {
+  /** Número do dia local (ver `diaLocal` no core). Uma linha por dia. */
+  dia: number;
+  createdAt: number;
+}
+
+export interface CreditoLocal {
+  creditoId: string;
+  amount: number;
+  xp: number;
+  reason: string;
+  createdAt: number;
 }
 
 export const NOME_DO_BANCO = 'babel-local';
@@ -128,15 +145,21 @@ export const NOME_DO_BANCO = 'babel-local';
 let aberto: Promise<IDBPDatabase<BabelLocalDB>> | null = null;
 
 export function abrirStore(): Promise<IDBPDatabase<BabelLocalDB>> {
-  aberto ??= openDB<BabelLocalDB>(NOME_DO_BANCO, 1, {
+  aberto ??= openDB<BabelLocalDB>(NOME_DO_BANCO, 2, {
+    /* `upgrade` roda para QUALQUER salto de versão: cria só o que falta, para um banco da v1 (já
+       com dados) ganhar os stores novos sem perder nada. */
     upgrade(db) {
-      db.createObjectStore('sessoes', { keyPath: 'id' }).createIndex('porCriacao', 'createdAt');
-      db.createObjectStore('falas', { keyPath: 'id' }).createIndex('porSessao', 'sessionId');
-      db.createObjectStore('audios', { keyPath: 'sessionId' });
-      db.createObjectStore('cartoes', { keyPath: 'id' }).createIndex('porNormKey', 'normKey');
-      db.createObjectStore('revisoes', { keyPath: 'id' }).createIndex('porCartao', 'cardId');
-      db.createObjectStore('exercicios', { keyPath: 'id' }).createIndex('porSessao', 'sessionId');
-      db.createObjectStore('gastos', { keyPath: 'spendId' });
+      const tem = (n: string) => db.objectStoreNames.contains(n as never);
+      if (!tem('sessoes')) db.createObjectStore('sessoes', { keyPath: 'id' }).createIndex('porCriacao', 'createdAt');
+      if (!tem('falas')) db.createObjectStore('falas', { keyPath: 'id' }).createIndex('porSessao', 'sessionId');
+      if (!tem('audios')) db.createObjectStore('audios', { keyPath: 'sessionId' });
+      if (!tem('cartoes')) db.createObjectStore('cartoes', { keyPath: 'id' }).createIndex('porNormKey', 'normKey');
+      if (!tem('revisoes')) db.createObjectStore('revisoes', { keyPath: 'id' }).createIndex('porCartao', 'cardId');
+      if (!tem('exercicios')) db.createObjectStore('exercicios', { keyPath: 'id' }).createIndex('porSessao', 'sessionId');
+      if (!tem('gastos')) db.createObjectStore('gastos', { keyPath: 'spendId' });
+      // v2 — economia: presença diária e créditos de conquista.
+      if (!tem('presencas')) db.createObjectStore('presencas', { keyPath: 'dia' });
+      if (!tem('creditos')) db.createObjectStore('creditos', { keyPath: 'creditoId' });
     },
   });
   return aberto;
@@ -145,11 +168,11 @@ export function abrirStore(): Promise<IDBPDatabase<BabelLocalDB>> {
 /** Apaga tudo (fim da migração, ou "esquecer este navegador"). */
 export async function limparTudo(): Promise<void> {
   const db = await abrirStore();
-  const tx = db.transaction(['sessoes', 'falas', 'audios', 'cartoes', 'revisoes', 'exercicios', 'gastos'], 'readwrite');
+  const tx = db.transaction(['sessoes', 'falas', 'audios', 'cartoes', 'revisoes', 'exercicios', 'gastos', 'presencas', 'creditos'], 'readwrite');
   await Promise.all([
     tx.objectStore('sessoes').clear(), tx.objectStore('falas').clear(), tx.objectStore('audios').clear(),
     tx.objectStore('cartoes').clear(), tx.objectStore('revisoes').clear(), tx.objectStore('exercicios').clear(),
-    tx.objectStore('gastos').clear(), tx.done,
+    tx.objectStore('gastos').clear(), tx.objectStore('presencas').clear(), tx.objectStore('creditos').clear(), tx.done,
   ]);
 }
 

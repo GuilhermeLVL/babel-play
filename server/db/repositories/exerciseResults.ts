@@ -45,6 +45,83 @@ export interface HistoricoDeItem {
   erros: number
   ultimaEm: number
   ultimoAcerto: boolean
+  /** Erros consecutivos contados do fim (0 se a última foi acerto). */
+  errosSeguidos: number
+  /** Rodadas distintas do MESMO jogo já jogadas depois da última linha errada. */
+  rodadasDesdeUltimoErro: number
+}
+
+/** A linha crua que a agregação consome — só as colunas que ela precisa. */
+export interface LinhaDeResultado {
+  itemRef: string | null
+  correct: number | null
+  createdAt: number
+  roundId: string | null
+  exerciseKind: string | null
+}
+
+/**
+ * AGREGA O HISTÓRICO POR ITEM — e os dois últimos campos são o que fazia falta.
+ *
+ * `core/learning/memoriaDeItens.ts` define a régua de retorno do erro (1º → 2 rodadas; 2º → 4;
+ * 3º → amanhã; 4º → leech, que sai do sorteio comum). Ela lê `errosSeguidos` e
+ * `rodadasDesdeUltimoErro`. O servidor efêmero (modo sem conta) sempre os calculou; ESTE, que
+ * atende quem tem conta, nunca — e a ausência não degradava para "sem informação", degradava para
+ * o pior caso possível:
+ *
+ *   · `estadoDoItem` cai no fallback `min(erros, 1)`, que trava em 1. Com `LEECH_APOS = 4`,
+ *     nenhuma palavra virava leech: a rodada de resgate era inalcançável.
+ *   · `prontoParaVoltar` lê `rodadasDesdeUltimoErro ?? Infinity`, e `Infinity >= 2` é sempre
+ *     verdadeiro. A palavra errada voltava na PRIMEIRA camada da rodada seguinte, para sempre.
+ *
+ * Pura e exportada de propósito: é a regra que merece teste, e testá-la não deve exigir um banco.
+ *
+ * `linhas` precisa vir em ordem ASCENDENTE de `createdAt` — é o que torna `ultimoAcerto` e a
+ * contagem de seguidos uma simples varredura.
+ */
+export function agregarHistorico(linhas: LinhaDeResultado[]): HistoricoDeItem[] {
+  interface Acc extends HistoricoDeItem { ultimoErroEm: number; jogoDoUltimoErro: string | null }
+  const porItem = new Map<string, Acc>()
+  for (const r of linhas) {
+    const chave = r.itemRef
+    if (!chave) continue
+    const acertou = r.correct === 1
+    const acc = porItem.get(chave) ?? {
+      itemRef: chave, vezes: 0, erros: 0, ultimaEm: 0, ultimoAcerto: false,
+      errosSeguidos: 0, rodadasDesdeUltimoErro: 0, ultimoErroEm: 0, jogoDoUltimoErro: null,
+    }
+    acc.vezes += 1
+    if (acertou) {
+      // Um acerto ZERA a escada: a régua é sobre erros SEGUIDOS, não sobre erros na vida.
+      acc.errosSeguidos = 0
+    } else {
+      acc.erros += 1
+      acc.errosSeguidos += 1
+      acc.ultimoErroEm = r.createdAt
+      acc.jogoDoUltimoErro = r.exerciseKind
+    }
+    acc.ultimaEm = r.createdAt
+    acc.ultimoAcerto = acertou
+    porItem.set(chave, acc)
+  }
+
+  /* Rodadas depois do erro: `roundId` DISTINTO do mesmo jogo. Distinto porque uma rodada grava uma
+     linha por item — sem deduplicar, uma única rodada de 8 itens contaria como oito e a janela de
+     2 venceria na hora. Por jogo porque a régua é por jogo: jogar Memória não devolve ao Termo a
+     palavra que se errou nele. */
+  for (const acc of porItem.values()) {
+    if (!acc.ultimoErroEm) continue
+    const rodadas = new Set<string>()
+    for (const r of linhas) {
+      if (r.roundId && r.exerciseKind === acc.jogoDoUltimoErro && r.createdAt > acc.ultimoErroEm) rodadas.add(r.roundId)
+    }
+    acc.rodadasDesdeUltimoErro = rodadas.size
+  }
+
+  // Mais recentes primeiro — mesma convenção das outras leituras deste repositório.
+  return [...porItem.values()]
+    .sort((a, b) => b.ultimaEm - a.ultimaEm)
+    .map(({ ultimoErroEm: _a, jogoDoUltimoErro: _b, ...h }) => h)
 }
 
 /** Resultados de exercícios (persistidos). Adapter de SERVIDOR. */
@@ -122,6 +199,9 @@ export const exerciseResultsRepo = {
         itemRef: exerciseResults.itemRef,
         correct: exerciseResults.correct,
         createdAt: exerciseResults.createdAt,
+        // As duas colunas que a régua de retorno do erro precisa — ver `agregarHistorico`.
+        roundId: exerciseResults.roundId,
+        exerciseKind: exerciseResults.exerciseKind,
       })
       .from(exerciseResults)
       .where(and(...filtros))
@@ -135,20 +215,7 @@ export const exerciseResultsRepo = {
       // portabilidade a Postgres que o schema mantém.
       .orderBy(asc(exerciseResults.createdAt))
 
-    const porItem = new Map<string, HistoricoDeItem>()
-    for (const r of rows) {
-      const chave = r.itemRef
-      if (!chave) continue
-      const acertou = r.correct === 1
-      const acc = porItem.get(chave) ?? { itemRef: chave, vezes: 0, erros: 0, ultimaEm: 0, ultimoAcerto: false }
-      acc.vezes += 1
-      if (!acertou) acc.erros += 1
-      acc.ultimaEm = r.createdAt
-      acc.ultimoAcerto = acertou
-      porItem.set(chave, acc)
-    }
-    // Mais recentes primeiro — mesma convenção das outras leituras deste repositório.
-    return [...porItem.values()].sort((a, b) => b.ultimaEm - a.ultimaEm)
+    return agregarHistorico(rows)
   },
 
   /**

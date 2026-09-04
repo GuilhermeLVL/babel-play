@@ -13,6 +13,7 @@
  */
 import { describe, it, expect } from 'vitest'
 import { nivelCefr, PROCEDENCIAS, coberturaDaWordlist } from '../src/core/learning/cefrWordlist'
+import { precarregarNiveis } from '../src/data/trilha/carregar'
 
 describe('nivelCefr — lookup em wordlist real', () => {
   it('palavra A1 conhecida devolve A1 com procedência de wordlist', () => {
@@ -52,8 +53,21 @@ describe('nivelCefr — lookup em wordlist real', () => {
     expect(r.confidence).toBe(1)
   })
 
-  it('as três procedências são exaustivas e explícitas', () => {
-    expect(PROCEDENCIAS).toEqual(['curado', 'wordlist', 'ausente'])
+  it('as procedências são exaustivas e explícitas', () => {
+    expect(PROCEDENCIAS).toEqual(['curado', 'wordlist', 'frequencia', 'ausente'])
+  })
+
+  it('idioma não pré-carregado responde ausente, nunca um nível chutado', () => {
+    expect(nivelCefr('qué', 'es').source).toBe('ausente')
+  })
+
+  it('trilha por frequência não vira CEFR: level nulo, faixa preenchida', async () => {
+    await precarregarNiveis('es')
+    const r = nivelCefr('qué', 'es')
+    expect(r.source).toBe('frequencia')
+    expect(r.level).toBeNull()
+    expect(r.faixa).toBe('A1')
+    expect(r.confidence).toBe(0)
   })
 })
 

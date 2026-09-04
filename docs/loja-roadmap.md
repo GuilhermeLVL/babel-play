@@ -39,7 +39,74 @@ Partículas com intensidade editável, Sorte de Eventos) · **Packs de emoji (12
 
 ## Princípios que valem para tudo
 
-1. Nada custa dinheiro; a moeda é estudo (Seeds) ou constância (nível).
+1. **Aprender nunca custa dinheiro.** Seeds e nível saem de estudo e constância, e não estão à
+   venda — nenhuma quantia compra XP, Seeds, conquista ou posição na trilha grátis.
+   *(Revisado em 31/08: o princípio original dizia "nada custa dinheiro". Deixou de valer para o
+   cosmético premium — Passe de Temporada e Créditos, decisão do dono. O que a regra protege é o
+   que sempre importou: a progressão não se compra.)*
 2. Todo item tem prévia REAL antes de comprar (o mouse, uma amostra de partícula, o mockup).
 3. Reversível sempre: equipar nunca tranca (a lição das posições do menu).
 4. Guardas de acessibilidade vencem cosmético: animações desligadas silenciam tudo.
+
+## Galeria & perfis (2026-08-28) — FEITO
+
+- **Paletas**: 30 matizes × 6 estilos (claro, pastel, papel, escuro, néon, meia-noite) + 20 curadas =
+  200 paletas geradas em tempo de execução (`lib/galeria/paletas.ts`), aplicadas pelo tema `custom`
+  (quatro variáveis CSS). Zero CSS novo; teste trava contraste ink×fundo ≥ 7:1 em todas.
+- **Emojis**: catálogo de ~380 em 14 categorias (`lib/galeria/emojis.ts`); pack PERSONALIZADO
+  (`babel.pack_custom`): escolher um a um, categoria inteira, excluir. Alimenta partículas e rastro.
+- **Rastros**: forma (faíscas/estrelas/corações/pixel/bolinhas) × qualquer paleta = 1.000+ combinações
+  (`gen:<forma>:<paleta>`), ou lista de emojis escolhidos (`emojis:<lista>`). Resolvidos em tempo de
+  execução para `kind` + `sobrescrever` da spec — nenhuma spec nova.
+- **Cursores**: qualquer emoji do catálogo (`emoji:<char>`); a regra CSS é injetada só para o equipado.
+- **Perfis**: 16 presets completos ("Tudo de pato", "Tudo de coração", Arcade, Espaço, Pizzaria…) +
+  perfis próprios salvos com nome. Tela: Loja → "Perfis & criar o seu".
+- Custo: ~12 KB de dados; nenhum asset baixado. Itens da galeria são livres (a Loja continua vendendo os
+  temas nativos, packs e cursores curados por Seeds/nível).
+
+### Acesso à galeria (2026-08-28, v2) — a mesma régua da Loja
+
+Cada capacidade virou item `tipo: 'galeria'` no catálogo e abre por nível OU Seeds (conquista onde
+for exclusivo). Mapa em `lib/galeria/acesso.ts`:
+
+| Nível | Abre |
+| --- | --- |
+| 1 | paletas Claro e Papel · 5 categorias de emoji (animais, comidas, natureza, rostos, símbolos) · packs prontos · 5 perfis livres |
+| 2 | paletas Pastel (50) · editor de pack (50) · emojis Patos & aves (40), Esportes (40) |
+| 3 | paletas Escuro (60) · cursor de qualquer emoji (100) · Festa (50), Música (50) |
+| 4 | Espaço (100), Transporte (100) · rastro forma × paleta por forma (= o rastro da Loja) |
+| 5 | paletas Néon (120) · Objetos (110), Bebidas (60) |
+| 7 | paletas Meia-noite (220) |
+| conquista | Corações (pack) · Bolinhas do rastro (Colecionador) · tema Aurora (Constante) |
+
+O editor nunca esconde: mostra o cadeado, o motivo e "Obter · N Seeds". Presets trancados listam o
+que falta. Tela reorganizada: "Seu visual agora" + perfis + acordeão (uma peça por vez) com um
+seletor de emojis único.
+
+### Centralização (2026-08-28) — uma tela, um dono por preferência
+
+Mapeado antes de mexer: tema editável em 4 lugares (Estúdio, cluster morto, Loja, Personalizar),
+paleta em 3 galerias que discordavam, som/animações/desempenho em 2, perfil/posição em 3, e dois
+furos de gate (Estúdio e galeria de paletas contornavam o nível). Depois:
+
+| Preferência | Único dono |
+| --- | --- |
+| tema, paleta, fonte, partículas, emojis, cursor, rastro, perfil de exibição, posição do menu, perfis | **Personalizar › Visual** |
+| cores livres e layout dos painéis | Estúdio (aberto SÓ pelo Visual, com o gate do nível/Loja) |
+| comprar/liberar | Personalizar › Loja (não equipa mais; "Liberado · usar no Visual") |
+| tamanho do texto, som, animações, desempenho, claro/escuro | barra de controles (sempre à vista) |
+| idioma, captura, motores, conta, dados | Ajustes (sem aparência) |
+
+Removidos: popover de Aparência do cluster (170 linhas atrás de flag falsa), seções Aparência e
+Desempenho dos Ajustes, Modo/Tema/galeria do Estúdio, "Equipar" da Loja. Segurança: o atalho
+`window.babel.liberarTudo()` / `?liberar=1` só existe em desenvolvimento, e o Ajustes deixou de
+assumir nível 99 enquanto as métricas carregam.
+
+## Personalizar v3 — quatro áreas, progressão visível, recompensa na hora (2026-08-28)
+
+- **Áreas**: `Meu visual` (só o que é seu; cadeado vira dica "ver na Loja") · `Loja` (só o que ainda se compra/libera; possuídos somem, exclusivos não entram; recém-comprado ganha "Equipar agora") · `Conquistas` (os 4 exclusivos em destaque com a conquista e o progresso, + grade + "como ganhar") · `Progressão` (linha por nível com ✓/▶/🔒 e preço do atalho; seção "só por conquista").
+- **Topo**: barra de XP do nível, "faltam N XP", saldo, e a **próxima recompensa** (`proximaRecompensa` — o mais raro do menor nível acima) com "ver tudo que vem".
+- **Núcleo puro** `lib/galeria/progressao.ts` (`itensPorNivel`, `proximaRecompensa`, `estadoDaColecao`, `recompensasDoNivelCompleto`, `itemDaConquista`, `emojiDoItem`), `lib/galeria/equipar.ts` (`equiparItem` — o ÚNICO caminho que equipa), `lib/galeria/textos.ts` (glossário: Liberado / Em uso / Equipar agora / Obter · N Seeds / Nível N / Conquista: X).
+- **Modal de resgate** `components/RecompensaDesbloqueada.tsx`: em level-up lista TUDO que o nível abriu (Loja + galeria) com "Equipar agora"; em conquista mostra Seeds/XP e o exclusivo. Fila (um por vez), `babel.recompensas_vistas`, e **não interrompe rodada**: Play marca `body[data-jogo-ativo]` e dispara `babel:rodada-fechou`. Os toasts de nível/conquista saíram.
+- **No jogo**: fim de rodada (`ScratchReward`) mostra "Nível N · faltam X XP · próximo: 🎁 Nome · ver"; a antessala mostra "no nível N você libera …"; a faixa do Início idem. `onChangeView('loja', { aba })` abre a aba certa.
+- Testes: `progressao`, `equipar`, `recompensa` (+ suíte).

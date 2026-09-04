@@ -79,6 +79,25 @@ export interface VocabCard {
    * "minhas gravações OU trilha" ser exclusiva de verdade.
    */
   daTrilha?: boolean;
+  /**
+   * Veio de um baralho Anki importado. MESMA razão de `daTrilha`: a procedência real mora em
+   * `vocab_occurrences.origin_kind` e não é derivável do cartão.
+   *
+   * O QUE ISTO DECIDE, e por que sem ele o baralho entra e não joga: a régua de qualidade tem dois
+   * perfis (fala capturada × material curado), e o CLIENTE reavalia todo cartão antes da rodada.
+   * Sem saber a origem, ele aplicava a régua de captura — teto de 42 caracteres — a definições de
+   * dicionário. Medido no baralho real: 299 cartões importados, e o lobby anunciava 8.
+   */
+  daAnki?: boolean;
+  /**
+   * Ids dos baralhos Anki de origem (fecha a tarefa 1.3 de motor-anki-jogos). MESMA razão de
+   * `daAnki`: a procedência real mora em `vocab_occurrences.origin_ref` e não é derivável do
+   * cartão. Ausente ou vazio quando o cartão não é anki (ou é anki sem `origin_ref` legado).
+   *
+   * É o que permite ao filtro facetado OFFLINE (recorte local sem ida ao servidor) não mentir
+   * sobre "quais baralhos este cartão pertence" — sem isto ele só sabia dizer "é anki", nunca QUAL.
+   */
+  baralhosAnki?: string[];
   frequency: 'high' | 'medium' | 'low';
   leitnerBox: number; // 1 to 5
   leitnerDueAt: string; // ISO date or descriptive
@@ -87,6 +106,10 @@ export interface VocabCard {
   fsrsDifficulty: number; // 1 to 10
   fsrsPredictedRetention: number; // 0.0 to 1.0 (probabilistic)
   fsrsDueAt: string; // ISO date or descriptive
+  /** O `dueAt` CRU do banco, em ms — a verdade que o filtro facetado consome ("pedindo revisão",
+   *  "nunca vistas"). `fsrsDueAt` acima é string de EXIBIÇÃO; filtrar por ela exigiria parse de
+   *  rótulo, que é como contadores passam a mentir. `null` = nunca agendado. */
+  dueAtMs?: number | null;
   inDeck: boolean;
   stability?: number; // mapped or alternative for fsrsStability
   /**
@@ -108,5 +131,5 @@ export type SchedulerType = 'fsrs' | 'leitner';
  * porque minigame vive do BARALHO, que é global — sob a Análise ele herdaria a exigência de uma
  * sessão gravada e, sem nenhuma, a tela renderizava em branco.
  */
-export type ViewType = 'hub' | 'capture' | 'study' | 'play' | 'library' | 'analysis' | 'settings' | 'reading' | 'metrics' | 'profile' | 'sobre' | 'loja';
+export type ViewType = 'hub' | 'capture' | 'study' | 'play' | 'library' | 'analysis' | 'settings' | 'reading' | 'metrics' | 'profile' | 'sobre' | 'loja' | 'planos';
 

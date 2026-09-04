@@ -130,6 +130,21 @@ export const vocabCards = sqliteTable('vocab_cards', {
   /** Dificuldade calculada (0..1) — materializada, nunca no caminho de leitura. Ver F4. */
   difficultyScore: real('difficulty_score'),
   difficultyAt: integer('difficulty_at'),
+
+  /**
+   * Base ISO-639-1 de `src_lang` ('en-US' → 'en'), SARGÁVEL — a mesma normalização que
+   * `selecionarParaJogo` já fazia em SQL (`LOWER(SUBSTR(src_lang,1,2))`), agora como coluna.
+   *
+   * VIRTUAL, não STORED: SQLite só aceita coluna gerada em `ALTER TABLE ADD COLUMN` quando ela é
+   * VIRTUAL (STORED exige reconstruir a tabela, o que violaria a política aditivo-somente desta
+   * migração). Uma coluna virtual não ocupa disco por linha, mas o ÍNDICE sobre ela é uma
+   * estrutura real e sargável — confirmado com `EXPLAIN QUERY PLAN` (ver relato da migração):
+   * `SEARCH vocab_cards USING INDEX idx_vocab_src_lang_base (src_lang_base=?)`. Zero backfill:
+   * o valor é recalculado a cada leitura, então não há linha "desatualizada" possível.
+   */
+  srcLangBase: text('src_lang_base').generatedAlwaysAs(
+    sql`(lower(substr(coalesce(src_lang,''),1,2)))`, { mode: 'virtual' },
+  ),
 }, (t) => [
   /* UNIQUE que destrava o upsert atômico. Parcial (`deleted_at is null`) porque um cartão
      removido não pode bloquear o recadastro da mesma palavra. Sem ele, a dedup ficava 100% em
@@ -143,6 +158,12 @@ export const vocabCards = sqliteTable('vocab_cards', {
   index('idx_vocab_user_due').on(t.userId, t.dueAt),
   index('idx_vocab_session').on(t.userId, t.sessionId),
   index('idx_vocab_user_dificuldade').on(t.userId, t.difficultyScore),
+  /**
+   * O eixo idioma do filtro facetado (tarefa 1). Antes o predicado era uma EXPRESSÃO
+   * (`LOWER(SUBSTR(src_lang,1,2))=?`) e não podia usar índice — full scan a cada filtro por
+   * idioma. `src_lang_base` é gerada (virtual) e este índice é sobre ela: sargável.
+   */
+  index('idx_vocab_src_lang_base').on(t.srcLangBase),
 ])
 
 /**
@@ -175,6 +196,11 @@ export const vocabOccurrences = sqliteTable('vocab_occurrences', {
   index('idx_occ_user_card').on(t.userId, t.cardId),
   index('idx_occ_user_time').on(t.userId, t.occurredAt),
   index('idx_occ_origem').on(t.userId, t.originKind, t.originRef),
+  /* A SONDA DO FILTRO FACETADO (migração 0020): os EXISTS de `selecionarParaJogo` correlacionam
+     por (user_id, card_id) e ainda filtram origin_kind/origin_ref. Sem as quatro colunas em UM
+     índice, o planner escolhia `idx_occ_origem` e visitava milhares de ocorrências POR candidato
+     — medido em 20k cartões: 2,7–46 s por seleção (docs/pesquisa/medicao-filtro-20k.md). */
+  index('idx_occ_probe').on(t.userId, t.cardId, t.originKind, t.originRef),
 ])
 
 export const reviewLogs = sqliteTable('review_logs', {
@@ -296,6 +322,87 @@ export const seedSpends = sqliteTable('seed_spends', {
   // soft-deletado ocupava o slot para sempre — o INSERT conflitava, o SELECT (que filtra
   // deletedAt) não achava, e o débito estourava sem caminho de recuperação (P2-N2).
   uniqueIndex('uq_seed_spends_user_spend').on(t.userId, t.spendId).where(sql`${t.deletedAt} is null`),
+])
+
+/**
+ * ECONOMIA v2 — a metade servidor que faltava (A7, 2026-08-30/31).
+ *
+ * O cliente foi escrito em 2026-08-28 chamando `POST /api/metrics/presenca` e
+ * `POST /api/metrics/seeds/creditar` — e as rotas só existiam no servidor EFÊMERO (modo sem
+ * conta), então na conta logada as conquistas nunca desbloqueavam: a falha era 404 permanente,
+ * não rede. O desenho aqui ESPELHA o efêmero, que é a implementação de referência já em produção:
+ * crédito é evento idempotente por (user_id, credito_id) — mesmo argumento de `seed_spends`, um
+ * crédito que se recalcula não é crédito — e presença é uma linha por (user_id, dia local).
+ */
+export const seedCredits = sqliteTable('seed_credits', {
+  id: text('id').primaryKey(),
+  ...meta,
+  /** Id gerado pelo CLIENTE (ex.: 'conquista:primeira-captura'). Reenvio = mesmo crédito. */
+  creditoId: text('credito_id').notNull(),
+  /** Seeds creditadas. Zero é válido: há conquistas que só dão XP. */
+  amount: integer('amount').notNull(),
+  /** XP creditado junto (conquistas dão os dois). */
+  xp: integer('xp').notNull().default(0),
+  /** De onde veio: 'conquista:<id>' | … Diagnóstico e auditoria do saldo. */
+  reason: text('reason').notNull(),
+}, (t) => [
+  index('idx_seed_credits_credito_id').on(t.creditoId),
+  // Parcial pelo mesmo motivo de uq_seed_spends_user_spend (P2-N2): unicidade só entre vivas.
+  uniqueIndex('uq_seed_credits_user_credito').on(t.userId, t.creditoId).where(sql`${t.deletedAt} is null`),
+])
+
+/**
+ * CRÉDITOS — a moeda COMPRADA (spec economia-de-creditos + economia-legivel-e-moedas).
+ *
+ * A regra que separa isto de `seed_credits`: Seeds são GANHAS e o cliente pode calculá-las;
+ * Créditos são comprados com dinheiro e por isso vivem SÓ aqui — "nada comprado com dinheiro
+ * pode viver em localStorage". O saldo nunca é campo mutável: é `compras pagas − gastos`, do
+ * mesmo jeito que o saldo de Seeds, para que reembolso seja um evento inverso e não um UPDATE.
+ *
+ * `provider_payment_id` é único porque é a chave de idempotência do webhook: o Asaas reentrega
+ * o mesmo evento quando não recebe 200, e crédito duplicado é dinheiro de graça.
+ */
+export const creditPurchases = sqliteTable('credit_purchases', {
+  id: text('id').primaryKey(),
+  ...meta,
+  /** O pacote comprado ('c100' | 'c300' | 'c700' | 'passe-t1'). */
+  sku: text('sku').notNull(),
+  /** Quantos créditos a compra concede quando confirmar. */
+  creditos: integer('creditos').notNull(),
+  /** Em CENTAVOS: dinheiro em ponto flutuante é como se perde um centavo por transação. */
+  valorCentavos: integer('valor_centavos').notNull(),
+  provider: text('provider').notNull().default('asaas'),
+  /** Id da cobrança no provedor. É por ele que o webhook encontra esta linha. */
+  providerPaymentId: text('provider_payment_id'),
+  /** 'pendente' até o webhook confirmar; 'pago' concede; 'cancelado' não concede nada. */
+  status: text('status').notNull().default('pendente'),
+  paidAt: integer('paid_at'),
+}, (t) => [
+  index('idx_credit_purchases_user').on(t.userId),
+  uniqueIndex('uq_credit_purchases_payment').on(t.providerPaymentId).where(sql`${t.deletedAt} is null`),
+])
+
+/** O outro lado: gasto de créditos. Mesmo desenho de `seed_spends` — evento, idempotente por id. */
+export const creditSpends = sqliteTable('credit_spends', {
+  id: text('id').primaryKey(),
+  ...meta,
+  /** Id gerado pelo cliente; reenvio do mesmo id pelo mesmo dono não cobra de novo. */
+  spendId: text('spend_id').notNull(),
+  amount: integer('amount').notNull(),
+  reason: text('reason').notNull(),
+  ref: text('ref'),
+}, (t) => [
+  index('idx_credit_spends_spend_id').on(t.spendId),
+  uniqueIndex('uq_credit_spends_user_spend').on(t.userId, t.spendId).where(sql`${t.deletedAt} is null`),
+])
+
+export const presencas = sqliteTable('presencas', {
+  id: text('id').primaryKey(),
+  ...meta,
+  /** Dia LOCAL do usuário (inteiro de `diaLocal`) — o fuso é o dele, não o do servidor. */
+  dia: integer('dia').notNull(),
+}, (t) => [
+  uniqueIndex('uq_presencas_user_dia').on(t.userId, t.dia).where(sql`${t.deletedAt} is null`),
 ])
 
 export const analyses = sqliteTable('analyses', {
@@ -448,6 +555,23 @@ export const subscriptions = sqliteTable('subscriptions', {
  * (bloquear+avisar no teto) entra na Fatia 1b/3; aqui só a estrutura. `unique(user_id, metric, window)`
  * torna o upsert idempotente.
  */
+/**
+ * E3 — EVENTOS DE BILLING recebidos por webhook. A entrega do provedor é *at-least-once* (a doc do
+ * Asaas manda implementar idempotência pelo id do evento): o INSERT nesta tabela é o teste-e-marca
+ * atômico — evento repetido conflita na PK e vira 200 sem efeito, nunca uma segunda promoção.
+ * `userId` fica NULL quando o evento não aponta usuário (é registro de auditoria mesmo assim).
+ */
+export const billingEvents = sqliteTable('billing_events', {
+  /** O id do EVENTO no provedor (`evt_…` no Asaas) — a chave da idempotência. */
+  id: text('id').primaryKey(),
+  createdAt: integer('created_at').notNull(),
+  provider: text('provider').notNull(), // 'asaas'
+  event: text('event').notNull(), // 'PAYMENT_CONFIRMED' | 'PAYMENT_OVERDUE' | …
+  userId: text('user_id'),
+  /** Id da cobrança/assinatura no provedor, para auditoria cruzada. */
+  providerRef: text('provider_ref'),
+})
+
 export const usageCounters = sqliteTable('usage_counters', {
   id: text('id').primaryKey(),
   ...meta,
@@ -456,4 +580,155 @@ export const usageCounters = sqliteTable('usage_counters', {
   count: integer('count').notNull().default(0),
 }, (t) => [
   unique('uq_usage_user_metric_window').on(t.userId, t.metric, t.window),
+])
+
+/**
+ * MOTOR ANKI — ACERVO (`openspec/changes/motor-anki-acervo`).
+ *
+ * Decisão 1 do design: acervo PRÓPRIO, não uma quinta `FonteId`. `vocab_cards` não muda uma
+ * vírgula — o vínculo mora em `anki_notes.projected_card_id`, e se a projeção inteira for
+ * revertida o app continua de pé. As três tabelas abaixo são ADITIVAS: nenhuma tabela existente
+ * é alterada por esta migração.
+ *
+ * Política de rollback (Decisão 7): o repositório não tem rollback automático (zero `down`
+ * existentes). Para tabela nova, reverter é seguro — `down.sql` manual em
+ * `openspec/changes/motor-anki-acervo/down.sql` faz só `DROP TABLE`, antes de haver adoção.
+ */
+
+/** Um baralho `.apkg` importado. `arquivoOrigem` + `nome` é a chave de idempotência de reimport. */
+export const ankiDecks = sqliteTable('anki_decks', {
+  id: text('id').primaryKey(),
+  ...meta,
+  /** Nome exibido no app — pode ser editado pelo usuário. */
+  nome: text('nome').notNull(),
+  /** Nome do baralho tal como veio de dentro do `.apkg` (auditoria/diagnóstico). */
+  nomeNoArquivo: text('nome_no_arquivo'),
+  /** Nome do arquivo `.apkg` enviado. Junto com `nome` forma a chave de `criarOuAcharDeck`. */
+  arquivoOrigem: text('arquivo_origem').notNull(),
+  /** 'ativo' | 'desativado'. Desativado não deleta — as notas viram 'arquivada'. */
+  estado: text('estado').notNull().default('ativo'),
+  idiomaOrigem: text('idioma_origem'),
+  idiomaAlvo: text('idioma_alvo'),
+}, (t) => [
+  index('idx_anki_decks_user').on(t.userId, t.deletedAt),
+])
+
+/**
+ * Uma nota Anki — o registro CANÔNICO, sobrevive independente de virar cartão jogável ou não.
+ *
+ * `guid` é o identificador estável do Anki (sobrevive a reexport); o par `(deck_id, guid)` é
+ * ÚNICO e é a chave do upsert de `gravarNotas` — reimportar o mesmo baralho não duplica.
+ *
+ * `campos_brutos` guarda TODOS os campos da nota como JSON (`{nome: valor}`), íntegros, mesmo os
+ * que o app não usa hoje — é o que permite a Decisão 4 (fusão de duas notas no mesmo cartão) não
+ * perder nada: a nota original continua inspecionável.
+ */
+export const ankiNotes = sqliteTable('anki_notes', {
+  id: text('id').primaryKey(),
+  ...meta,
+  deckId: text('deck_id').notNull().references(() => ankiDecks.id),
+  /** Id estável do Anki — sobrevive a reexport do mesmo baralho. */
+  guid: text('guid').notNull(),
+  /** Nome do notetype no Anki ('Basic', 'Cloze', …) — diagnóstico do mapeamento de campos. */
+  notetype: text('notetype'),
+  /** Hash da ESTRUTURA de campos (nomes+ordem) — detecta notetype que mudou de forma entre imports. */
+  estruturaHash: text('estrutura_hash'),
+  /** JSON `{nomeDoCampo: valor}` — todos os campos, íntegros. Ver comentário da tabela. */
+  camposBrutos: text('campos_brutos'),
+  /** Campos mapeados para o jogo (podem ser derivados de `campos_brutos` por heurística/config). */
+  frente: text('frente'),
+  verso: text('verso'),
+  exemplo: text('exemplo'),
+  tags: text('tags'),
+  /** 'arquivada' (fora da fila) | 'ativa' (projetada em vocab_cards) | 'ausente_no_arquivo'. */
+  estado: text('estado').notNull().default('arquivada'),
+  /** FK anulável: só existe enquanto a nota está projetada como cartão jogável. */
+  projectedCardId: text('projected_card_id').references(() => vocabCards.id),
+  /** 'desativacao' | 'manual' | null — decide se um reimport REATIVA o cartão soft-deletado ou
+   *  cria um novo (Decisão 4: a aresta perigosa do índice parcial). */
+  motivoDaBaixa: text('motivo_da_baixa'),
+  /** Por que a nota não é jogável (lixo detectado por `avaliarCartao`), quando aplicável. */
+  motivoDescarte: text('motivo_descarte'),
+  importId: text('import_id'),
+}, (t) => [
+  index('idx_anki_notes_user_deck').on(t.userId, t.deckId),
+  uniqueIndex('uq_anki_notes_deck_guid').on(t.deckId, t.guid),
+  index('idx_anki_notes_deck_estado').on(t.deckId, t.estado),
+])
+
+/**
+ * LEDGER de importação (Decisão 5): não há scheduler no servidor, então "job" é uma sequência de
+ * requisições pequenas dirigidas pelo cliente, e o progresso precisa ser consultável entre elas.
+ * `porMotivo` é JSON com a contagem de descarte por `motivoDescarte`, para a tela explicar o total.
+ */
+export const ankiImports = sqliteTable('anki_imports', {
+  id: text('id').primaryKey(),
+  ...meta,
+  deckId: text('deck_id').notNull().references(() => ankiDecks.id),
+  arquivo: text('arquivo'),
+  bytes: integer('bytes'),
+  hashDoArquivo: text('hash_do_arquivo'),
+  /** 'lendo' | 'gravando' | 'concluido' | 'parcial' | 'falhou'. */
+  estado: text('estado').notNull().default('lendo'),
+  notasLidas: integer('notas_lidas').notNull().default(0),
+  notasNovas: integer('notas_novas').notNull().default(0),
+  notasAtualizadas: integer('notas_atualizadas').notNull().default(0),
+  notasDescartadas: integer('notas_descartadas').notNull().default(0),
+  /** JSON `{motivo: contagem}`. */
+  porMotivo: text('por_motivo'),
+  erro: text('erro'),
+}, (t) => [
+  index('idx_anki_imports_user_deck').on(t.userId, t.deckId),
+])
+
+/**
+ * MOTOR ANKI — MÍDIA (`openspec/changes/motor-anki-midia`).
+ *
+ * `anki_media` é o ARQUIVO físico (gravado pelo seam `armazenamentoDoAmbiente`, nome derivado do
+ * hash em `anki-media/<userId>/<sha256>`); `anki_note_media` é a REFERÊNCIA de uma nota a ele.
+ * As duas tabelas são separadas porque N notas podem citar o MESMO arquivo (mesma pronúncia
+ * reaproveitada entre baralhos, ou entre frente/frase de exemplo da mesma nota) — sem a separação,
+ * dedupe por conteúdo não teria onde morar.
+ *
+ * Índice único `(user_id, sha256)`, NÃO GLOBAL — decisão jurídica, não técnica (ver design.md,
+ * Decisão 2): mídia enviada pelo usuário é cópia privada análoga a cloud storage; um arquivo
+ * único servido a MUITOS usuários descaracteriza essa cópia privada e se aproxima de distribuição,
+ * que é a fronteira que o programa decidiu não cruzar. Dedupe global economizaria mais disco, mas
+ * também tornaria arbitrária a atribuição de cota por plano (de quem é o byte de um arquivo
+ * compartilhado?) — então cada usuário paga (e dedupe) só a própria cópia.
+ */
+export const ankiMedia = sqliteTable('anki_media', {
+  id: text('id').primaryKey(),
+  ...meta,
+  /** sha256 CALCULADO NO SERVIDOR (nunca o do cliente) — é o nome do objeto no storage. */
+  sha256: text('sha256').notNull(),
+  bytes: integer('bytes').notNull(),
+  /** Detectado por magic bytes (`tipoDeArquivo.ts`), não pelo Content-Type declarado no upload. */
+  contentType: text('content_type').notNull(),
+}, (t) => [
+  index('idx_anki_media_user').on(t.userId, t.deletedAt),
+  uniqueIndex('uq_anki_media_user_sha256').on(t.userId, t.sha256),
+])
+
+/**
+ * Referência de UMA nota a UM arquivo de mídia. `mediaId` é ANULÁVEL de propósito: a nota (com
+ * `frente`/`verso` já preenchidos por `extrairMidia`) pode existir, e a referência ser conhecida
+ * pelo `nomeOriginal`, ANTES de o arquivo em si ter sido enviado (Decisão 1: extração/negociação
+ * de mídia acontece na ATIVAÇÃO, não no upload da coleção) — uma linha aqui com `mediaId` nulo é
+ * "referenciado, mas ainda faltando", exatamente o que a auditoria de baralho (tasks.md §5.2)
+ * precisa mostrar.
+ */
+export const ankiNoteMedia = sqliteTable('anki_note_media', {
+  id: text('id').primaryKey(),
+  ...meta,
+  noteId: text('note_id').notNull().references(() => ankiNotes.id),
+  /** Anulável: a referência pode existir sem o arquivo ter chegado (ver comentário da tabela). */
+  mediaId: text('media_id').references(() => ankiMedia.id),
+  /** 'audio_palavra' | 'audio_frase' | 'imagem'. */
+  papel: text('papel').notNull(),
+  /** Nome tal como veio de dentro do `.apkg` (`palavra.mp3`) — resolve a referência no render. */
+  nomeOriginal: text('nome_original').notNull(),
+}, (t) => [
+  index('idx_anki_note_media_note').on(t.noteId),
+  index('idx_anki_note_media_media').on(t.mediaId),
 ])

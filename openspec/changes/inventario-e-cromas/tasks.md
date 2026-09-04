@@ -1,0 +1,79 @@
+## 1. Cromas — a variação de cor que se desbloqueia
+
+- [x] 1.1 `galeria/cromas.ts`: catálogo de matizes, preço por raridade, posse e as 4 vias
+- [x] 1.2 Compra idempotente com `gastarSeeds` (spendId `croma:<item>:<matiz>`)
+- [x] 1.3 Posse derivada do servidor (`reason LIKE 'croma:%'`), como a da Loja — sem tabela nova
+- [x] 1.4 Aplicação: partículas (`ParticleCanvas`), rastro (`croma:<forma>:<matiz>`, forma nova de
+      id em `rastroDoMouse.ts`) e tema (acento do tema trocado pelo matiz)
+- [x] 1.5 Testes: croma nunca tira acesso que já existia; compra não duplica; o croma do rastro
+      resolve sem passar por uma paleta da galeria (12 testes em `tests/cromas.test.ts`)
+
+## 2. Editor contextual dentro do inventário
+
+- [x] 2.1 Controles por tipo: partículas abrem intensidade (com o teto do aprimoramento), rastro
+      abre a forma. Cursor e pack não abrem editor — não têm parâmetro.
+- [x] 2.2 `temPersonalizacao(item)` decide se o botão aparece. É por TIPO, e não uma etiqueta
+      E0–E3 por item: hoje só três tipos têm parâmetro, e um campo novo no catálogo repetiria
+      em 84 itens o que o tipo já diz. Vira etiqueta no item quando o quarto tipo aparecer.
+- [x] 2.3 A mudança é AO VIVO no app inteiro, e não numa prévia dentro do modal: trocar o croma
+      de um tema repinta a tela, o do rastro muda o rastro no próximo movimento do mouse. Prévia
+      seria uma segunda verdade para manter em sincronia com a primeira.
+- [x] 2.4 "Aplicar e equipar" num gesto só
+
+## 3. As telas
+
+- [x] 3.1 Passe: uma década por página, cartões de 168px, estado no cartão (✓/cadeado/anel),
+      marco mais largo com estrela, rolagem automática até a casa atual
+- [x] 3.2 Inventário: loadout + categorias + grade + prévia com origem, equipar e personalizar
+- [x] 3.3 Loja: duas prateleiras — "dá para levar agora" (o que o SALDO paga) e "ainda não",
+      ordenada pelo que falta menos
+- [x] 3.4 Cabeçalho de temporada com a carteira (Seeds sempre; Créditos quando há billing)
+- [x] 3.5 Verificação no navegador das quatro abas + o editor de croma aberto
+
+## 4. A limpeza do legado (pedido do dono, 01/09)
+
+- [x] 4.1 O acordeão "Monte o seu, peça por peça" sai de `Personalizar.tsx` (519 → 245 linhas):
+      sete das oito seções repetiam, em chips, o que a grade do inventário já faz
+- [x] 4.2 O que era profundidade e não repetição muda de lugar em vez de sumir — paletas, editor
+      de pack, cursor de qualquer emoji e rastro de emojis abrem pelo "Personalizar" da peça
+- [x] 4.3 `SeletorDeEmojis` e `SeletorDePaletas` viram arquivos próprios (eram funções declaradas
+      no corpo do componente, remontadas a cada render e inalcançáveis de fora)
+- [x] 4.4 "Meus perfis salvos" e "Perfis prontos" viram uma seção só — a diferença entre os dois
+      grupos já está no cartão, que só nos seus tem renomear e apagar
+- [x] 4.5 Perfil de exibição sai do acordeão e fica aberto: é acessibilidade, e direito não se
+      esconde atrás de um clique
+- [x] 4.6 `lerPaletaAtiva`/`gravarPaletaAtiva` em `paletas.ts` — a chave era lida e escrita por
+      três caminhos diferentes (a tela, o restaurador, o editor)
+- [x] 4.7 PERFIS viram uma CATEGORIA do inventário (segunda rodada, 01/09): a grade de 19 cartões
+      com layout próprio some da tela; o campo "salvar este visual" vai junto, para a categoria a
+      que pertence. "Liberar mais na Loja" sai porque o "Ir à Loja" do inventário já leva ao mesmo
+      lugar, e leva dizendo quantas peças faltam
+
+## 5. Miniaturas reais (pedido do dono, 01/09)
+
+- [x] 5.1 `components/MiniaturaDoItem.tsx`: a miniatura mostra o que a peça DESENHA, lendo as
+      mesmas fontes que o app lê para desenhar de verdade (`estiloDeRastro`, a forma do `alvo`,
+      os emojis do pack, as cores do tema, a família da fonte, a paleta do estilo)
+- [x] 5.2 Usada nas QUATRO telas que listam itens lado a lado — inventário, passe, conquistas e
+      o modal de "subiu de nível". `emojiDoItem` (um ícone por tipo) some dessas quatro
+- [x] 5.3 A cadeia de nove `if` que a Loja tinha para desenhar prévia sai: era a segunda versão
+      da mesma verdade, e já tinha divergido da grade
+- [x] 5.4 Defeito achado PELA miniatura: `ras-oceano` prometia "estrelas nas cores do oceano
+      profundo", mas a forma `estrelas` desenha ⭐/✨ por `fillText` e emoji ignora cor — era
+      idêntico ao Rastro Estrelas. Passa a usar `gen:faisca:oceano-profundo`, que aceita a paleta
+
+## 6. A Loja vira vitrine (pedido do dono, 01/09)
+
+- [x] 6.1 AS DUAS MOEDAS DECLARADAS: dois cartões dizendo o que cada uma é, de onde vem e o que
+      compra. A carteira do cabeçalho mostrava só os saldos — em lugar nenhum a loja dizia a
+      diferença, que é justamente a linha entre este app e um pay-to-win
+- [x] 6.2 Cartão compacto: arte, nome, e uma linha de preço com OS DOIS CAMINHOS iconados
+      (🌱 550 · 🔒 nv. 9). Antes o preço vivia dentro da frase "Nível 9 ou 550 Seeds", num botão
+      cinza de cadeado — cinza sobre a informação que mais importa numa loja
+- [x] 6.3 Destaque por regra: o mais caro que o saldo paga hoje; sem nada ao alcance, o que falta
+      menos. Sai das prateleiras, para o mesmo cartão não aparecer duas vezes seguidas
+- [x] 6.4 Grade de 4 colunas no lugar de 3 cartões altos; ação concreta ("Faltam 341 Seeds")
+- [x] 6.5 A parede de 8 chips do "no nível N você libera de graça" vira uma linha com atalho para
+      o Passe, que mostra a mesma coisa inteira
+- [x] 6.6 As fichas de intensidade das partículas saem da Loja: são ajuste da peça e já moram no
+      editor da peça — eram a mesma escolha em dois lugares com dois desenhos

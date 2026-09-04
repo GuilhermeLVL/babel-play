@@ -8,7 +8,8 @@
 import type { Request, Response } from 'express'
 import { credentialsRepo } from '../db/repositories/credentials'
 import { hasEntitlement } from '../lib/entitlements'
-import { reserveManagedCall, refundManagedCall } from '../lib/usageQuota'
+import { reserveManagedCall, refundManagedCall, reservarSegundosDeStt, estornarSegundosDeStt } from '../lib/usageQuota'
+import { segundosFaturaveis } from '../lib/duracaoDeAudio'
 import { assertPublicUrl } from './ssrf'
 import { erroDeRota } from '../lib/erroDeRota'
 import { normalizarIdiomaDoWhisper } from '../lib/idiomaDoWhisper'
@@ -17,6 +18,8 @@ import { normalizarIdiomaDoWhisper } from '../lib/idiomaDoWhisper'
 export async function sttTranscribeProxy(req: Request, res: Response): Promise<void> {
   // Reserva pendente de quota gerenciada. Só o ramo da chave do DONO reserva; BYOK não.
   let reservaPendente = false
+  /** Segundos reservados nesta requisição (0 = nenhum). Precisa ser estornado junto da chamada. */
+  let segundosReservados = 0
   try {
     const audioBuffer = req.body as Buffer | undefined
     if (!audioBuffer || !audioBuffer.length) {
@@ -50,6 +53,16 @@ export async function sttTranscribeProxy(req: Request, res: Response): Promise<v
         return
       }
       reservaPendente = true
+      /* TETO DE DINHEIRO, ao lado do de fair-use. O provedor cobra por DURAÇÃO de áudio, então
+         contar chamadas não limita gasto: uma chamada pode ser 1 segundo ou 25 MB. `segundosFaturaveis`
+         já eleva ao mínimo de 10 s que a Groq cobra por requisição — os enunciados do VAD têm ~6 s,
+         e debitar a duração real subestimaria a conta em ~70%. */
+      segundosReservados = segundosFaturaveis(audioBuffer)
+      if (!(await reservarSegundosDeStt(req.userId, segundosReservados))) {
+        segundosReservados = 0
+        res.status(402).json({ error: 'limite mensal de áudio do plano atingido', code: 'quota_exceeded' })
+        return
+      }
       secret = process.env.GROQ_API_KEY ?? process.env.STT_API_KEY ?? null
       baseUrl = process.env.GROQ_BASE_URL ?? process.env.STT_BASE_URL ?? 'https://api.groq.com/openai/v1'
       defaultModel = process.env.STT_MODEL ?? 'whisper-large-v3-turbo'
@@ -115,12 +128,16 @@ export async function sttTranscribeProxy(req: Request, res: Response): Promise<v
     // Consumada. Antes daqui havia um `recordManagedCall` incondicional, que contabilizava
     // TAMBÉM o caminho BYOK — uso da chave do próprio usuário descontava da quota gerenciada.
     reservaPendente = false
+    segundosReservados = 0 // consumados junto com a chamada: nada a estornar
     // `language` vazio = o provedor não informou (ou caímos no `json`): o cliente volta ao
     // detector de texto. Nunca inventamos um código aqui.
     res.json({ text: j.text ?? '', language: normalizarIdiomaDoWhisper(j.language) })
   } catch (err) {
     if (!res.headersSent) res.status(502).json({ error: erroDeRota(err, { event: 'stt_route_error' }) })
   } finally {
+    // As duas reservas caem juntas: cobrar segundos por uma transcrição que não aconteceu é o
+    // mesmo defeito que cobrar a chamada.
     if (reservaPendente) await refundManagedCall(req.userId)
+    if (segundosReservados > 0) await estornarSegundosDeStt(req.userId, segundosReservados)
   }
 }

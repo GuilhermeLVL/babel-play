@@ -1,7 +1,131 @@
 import type { VocabCard } from '../../types';
 import { isDueNow } from '../learning/due';
-import { normalizarPalavra } from './wordsearch';
 import { pistaUtil, chaveComparavel } from '../learning/quality';
+import { pistaDeJogo } from '../learning/pistaDeJogo';
+import { ordenarPorMemoria, type HistoricoDoItem } from '../learning/memoriaDeItens';
+import type { FaixaDificuldade } from './composicao';
+
+/**
+ * TERMO JUSTO (seleção v2, 2026-08-28) — três defeitos medidos e consertados aqui:
+ *
+ *  1. `normalizarPalavra` apaga tudo que não é A–Z DEPOIS de tirar acentos: `œuvre` virava `UVRE`,
+ *     `well-being` virava `WELLBEING` (9 letras, fora do teto) e a grade mostrava a forma mutilada.
+ *     Agora a chave do Termo preserva letras Unicode e palavras com hífen/espaço ficam FORA com
+ *     motivo dito (`diagnosticoTermo`), em vez de entrar coladas.
+ *  2. SINÔNIMOS: a pista é uma tradução, e "morto" descreve `dead` e `deceased`. Quem escrevia o
+ *     sinônimo certo perdia a tentativa. Agora cada rodada carrega `alternativas` (outras palavras
+ *     do MESMO acervo com a mesma tradução) e `julgarPalpite` reconhece o sinônimo: não gasta
+ *     tentativa, orienta ("a desta rodada tem 6 letras e começa com S") e revela a 1ª letra.
+ *  3. "QUASE": a uma letra da resposta (`distanciaDeEdicao` = 1) na última tentativa, o jogo avisa
+ *     sem gastar a tentativa — uma vez por tabuleiro. Erro de digitação não é erro de vocabulário.
+ */
+
+/** Chave de comparação do Termo: sem acento, maiúscula, só LETRAS (Unicode). Hífen/espaço somem
+ *  aqui só para COMPARAR; a elegibilidade os trata antes (ver `diagnosticoTermo`). */
+export function chaveDoTermo(texto: string): string {
+  return (texto ?? '').normalize('NFD').replace(/[̀-ͯ]/g, '').toUpperCase().replace(/[^\p{L}]/gu, '');
+}
+
+export type MotivoForaDoTermo = 'hifen-ou-espaco' | 'curta' | 'longa' | 'sem-pista';
+
+/**
+ * A PALAVRA DÁ PARA DIGITAR NO TECLADO QWERTY FIXO da tela? — gate mínimo de alfabeto (S2/S3).
+ *
+ * `chaveDoTermo` aceita `\p{L}` (qualquer letra Unicode) de propósito: é a chave de COMPARAÇÃO,
+ * e `œuvre`/`café` precisam sobreviver nela. Mas o teclado do Termo é QWERTY fixo, e `食べる`
+ * passa pela régua de comprimento (3 letras Unicode) e pela pista sem jamais poder ser DIGITADA —
+ * a rodada nasce insolúvel, em silêncio. Este predicado é MAIS ESTRITO que a chave: exige que,
+ * depois de remover acentos, sobrem só letras A–Z. NÃO substitui `chaveDoTermo` — as duas
+ * continuam servindo perguntas diferentes ("é a mesma palavra?" vs. "dá para escrever?").
+ */
+export function digitavelNoTermo(palavra: string): boolean {
+  return /^[A-Z]+$/.test(chaveDoTermo(palavra));
+}
+
+/**
+ * Por que uma palavra não joga o Termo — para a antessala dizer em vez de sumir com ela.
+ *
+ * A FAIXA governa o comprimento aceito (ver `LETRAS_POR_FAIXA`). Sem faixa, vale o médio, que é
+ * a régua histórica: quem não passa faixa não vê mudança nenhuma.
+ */
+export function motivoForaDoTermo(
+  c: Pick<VocabCard, 'word' | 'translation' | 'inDeck' | 'daAnki'>,
+  faixa: ReguaDeLetras = 'medio',
+): MotivoForaDoTermo | null {
+  const bruto = (c.word ?? '').trim();
+  if (/[\s-]/.test(bruto)) return 'hifen-ou-espaco';
+  const n = chaveDoTermo(bruto).length;
+  const regua = faixa === 'livre' ? SEM_REGUA : (LETRAS_POR_FAIXA[faixa] ?? LETRAS_POR_FAIXA.medio);
+  if (n < regua.min) return 'curta';
+  if (n > regua.max) return 'longa';
+  /* A ASSINATURA NEM TRANSPORTAVA `daAnki`, e o efeito era o mesmo de `pistasDaTriagem`
+   * (`core/learning/quality.ts`): `pistaUtil` sem origem usa sempre a régua de captura (42
+   * chars/5 palavras), reprovando como `sem-pista` a definição de dicionário que `avaliarCartao`
+   * já aprovou com o perfil `curado` (160/30). O Termo reprovava o grosso de um baralho Anki que
+   * Memória e Duelo aceitavam, e o gate (`contarJogaveisMulti` → `estadoDosJogos`) concordava com
+   * a régua errada. */
+  if (!pistaUtil(c.translation ?? '', c.daAnki ? 'curado' : 'captura')) return 'sem-pista';
+  return null;
+}
+
+export function diagnosticoTermo(cards: VocabCard[]): { jogaveis: number; foraPor: Record<MotivoForaDoTermo, number> } {
+  const foraPor: Record<MotivoForaDoTermo, number> = { 'hifen-ou-espaco': 0, curta: 0, longa: 0, 'sem-pista': 0 };
+  let jogaveis = 0;
+  for (const c of cards) {
+    if (!c.inDeck) continue;
+    const m = motivoForaDoTermo(c);
+    if (m) foraPor[m] += 1; else jogaveis += 1;
+  }
+  return { jogaveis, foraPor };
+}
+
+/** Levenshtein pequeno, só para o "quase". */
+export function distanciaDeEdicao(a: string, b: string): number {
+  const m = a.length, n = b.length;
+  if (!m) return n; if (!n) return m;
+  let prev = Array.from({ length: n + 1 }, (_, j) => j);
+  for (let i = 1; i <= m; i++) {
+    const cur = [i];
+    for (let j = 1; j <= n; j++) {
+      cur[j] = Math.min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+    }
+    prev = cur;
+  }
+  return prev[n];
+}
+
+export interface Julgamento {
+  palpite: Palpite;
+  acertou: boolean;
+  /** O palpite é OUTRA palavra válida para a mesma pista (não gasta tentativa). */
+  sinonimo?: string;
+  /** A uma letra da resposta (não gasta tentativa; uma vez por tabuleiro). */
+  quase?: boolean;
+  /** Orientação para a tela. */
+  dica?: string;
+}
+
+/**
+ * Julga um palpite CONTRA A RODADA (resposta + alternativas), não só contra a resposta.
+ * `quaseJaUsado`: o aviso de "quase" só vale uma vez por tabuleiro.
+ */
+export function julgarPalpite(palpiteBruto: string, rodada: RodadaTermo, opts: { ultimaTentativa?: boolean; quaseJaUsado?: boolean } = {}): Julgamento {
+  const palpite = avaliarPalpite(palpiteBruto, rodada.resposta);
+  if (acertou(palpite)) return { palpite, acertou: true };
+  const chave = chaveDoTermo(palpiteBruto);
+  const sinonimo = (rodada.alternativas ?? []).find((a) => chaveDoTermo(a) === chave);
+  if (sinonimo) {
+    const alvo = rodada.resposta;
+    return {
+      palpite, acertou: false, sinonimo,
+      dica: `"${sinonimo}" também significa isso — mas a desta rodada tem ${alvo.length} letras e começa com ${alvo[0]}.`,
+    };
+  }
+  if (opts.ultimaTentativa && !opts.quaseJaUsado && distanciaDeEdicao(chave, rodada.resposta) === 1) {
+    return { palpite, acertou: false, quase: true, dica: 'Quase: uma letra de diferença. Esta não conta como tentativa.' };
+  }
+  return { palpite, acertou: false };
+}
 
 /**
  * TERMO — soletrar a palavra a partir do significado.
@@ -25,9 +149,56 @@ export interface Palpite {
   estados: EstadoLetra[];
 }
 
-/** Tamanhos aceitos: abaixo de 4 é trivial, acima de 8 vira sopa de letras. */
+/**
+ * Tamanhos aceitos. Abaixo de 4 é trivial; acima de 6 vira PAREDE.
+ *
+ * O teto era 8, e a faixa difícil o esticava até 10. Na tela isso deixou de ser dificuldade e
+ * virou defeito: um dueto de 10 letras são vinte quadrados numa linha atravessando o monitor
+ * inteiro, e o quarteto seriam quarenta. Ninguém lê uma palavra assim como palavra — lê como
+ * grade —, e o teclado desce para fora da dobra.
+ *
+ * O 6 foi MEDIDO na trilha inteira, contando o maior grupo de mesmo comprimento por etapa (que é
+ * o que o Termo de fato consome). Descer de 8 para 6 praticamente não custa material — B1 vai de
+ * 27 para 27 etapas jogáveis em 28, B2 de 20 para 19 em 21 —, enquanto descer para 5 quebraria
+ * um quinto do B1 (27 → 22 de 28) e deixaria C1/C2 na mediana de 3, o mínimo absoluto da escada.
+ * Difícil passa a ser quantos tabuleiros ao mesmo tempo, não quantos quadrados por linha.
+ */
 export const MIN_LETRAS = 4;
-export const MAX_LETRAS = 8;
+export const MAX_LETRAS = 6;
+
+/**
+ * O COMPRIMENTO DA PALAVRA É DIFICULDADE — e era a alavanca que a faixa não alcançava.
+ *
+ * O Termo tinha régua única (4–8 letras) para todo mundo. A faixa (`facil`/`medio`/`dificil`) já
+ * existia e já recortava o material da rodada; faltava ela chegar às duas coisas que decidem o
+ * custo real deste jogo: quantas letras a palavra tem e até quantos tabuleiros a escada sobe.
+ *
+ * NENHUMA FAIXA PASSA DE `MAX_LETRAS`. O comprimento serve para separar o começo do resto —
+ * fácil fica em palavras curtas (4–5), difícil tira as curtas da mesa (5–6) —, mas o teto é o
+ * mesmo para todo mundo, porque acima dele o problema deixa de ser dificuldade e vira parede.
+ * Quem escala a dificuldade de verdade é `ESCADA_POR_FAIXA`: quantos tabuleiros de uma vez.
+ */
+/**
+ * `'livre'` = REFAZENDO UMA RODADA QUE JÁ ACONTECEU, e ela desliga só a régua de comprimento.
+ *
+ * O DEFEITO QUE ISTO CONSERTA: "jogar esta fase de novo" reaplicava a régua de HOJE sobre palavras
+ * escolhidas ONTEM. Medido no banco real — `find, ball, left` (4 letras) ficava impossível no
+ * difícil, `legend, sponge, empire` (6) no fácil, e `sadness, geology, mystery` (7) em TODAS as
+ * faixas, porque foram jogadas quando o teto ainda era 8. Como `rodadasDaEscada` devolve `[]`
+ * quando não dá escada, e quem chamava engolia o `null`, o clique simplesmente não fazia nada.
+ *
+ * As outras recusas continuam valendo: hífen/espaço e pista inutilizável impedem o jogo de ser
+ * jogado, e não são questão de dificuldade. Só o comprimento é escolha de faixa, e refazer uma
+ * fase não é escolher dificuldade — é pedir aquelas palavras.
+ */
+export type ReguaDeLetras = FaixaDificuldade | 'livre';
+const SEM_REGUA = { min: 1, max: Number.POSITIVE_INFINITY };
+
+export const LETRAS_POR_FAIXA: Record<FaixaDificuldade, { min: number; max: number }> = {
+  facil: { min: 4, max: 5 },
+  medio: { min: MIN_LETRAS, max: MAX_LETRAS },
+  dificil: { min: 5, max: MAX_LETRAS },
+};
 /**
  * Tentativas por MODO, como no jogo original: quanto mais tabuleiros simultâneos, mais chances.
  * A conta do original é boa e não vale reinventar — com 4 palavras e 6 tentativas o jogo é
@@ -51,6 +222,21 @@ export const TABULEIROS_POR_MODO: Record<ModoTermo, number> = { termo: 1, dueto:
  * quem não acerta parou no degrau que era o dele.
  */
 export const ESCADA_PADRAO: number[] = [1, 2, 4];
+
+/**
+ * ATÉ ONDE A ESCADA SOBE, por faixa. Cada degrau é o número de tabuleiros simultâneos.
+ *
+ * O quarteto deixa de ser o destino de todo mundo. Na tela ele é uma parede — quatro grades lado
+ * a lado, nove linhas de tentativa cada, e um teclado embaixo —, e quem estava começando recebia
+ * exatamente o mesmo jogo de quem já domina. No fácil a escada não sobe: um tabuleiro por vez,
+ * três vezes; a repetição é o que ensina, e dividir a atenção em quatro no começo só ensina a
+ * desistir. O difícil mantém o 1→2→4 original.
+ */
+export const ESCADA_POR_FAIXA: Record<FaixaDificuldade, number[]> = {
+  facil: [1, 1, 1],
+  medio: [1, 2, 2],
+  dificil: [1, 2, 4],
+};
 
 /** O modo correspondente a um número de tabuleiros (é o que decide as tentativas do degrau). */
 export function modoDeTabuleiros(n: number): ModoTermo {
@@ -124,14 +310,21 @@ export const DEGRAUS_MINIMOS = 2;
  */
 export function rodadasDaEscada(
   cards: VocabCard[],
-  opts: { dificil?: boolean; now?: number; shuffle?: <T>(xs: T[]) => T[]; evitar?: ReadonlySet<string> } = {},
+  opts: { dificil?: boolean; now?: number; shuffle?: <T>(xs: T[]) => T[]; evitar?: ReadonlySet<string>; memoria?: ReadonlyMap<string, HistoricoDoItem>; semente?: string; diaDe?: (ts: number) => number; faixa?: ReguaDeLetras } = {},
 ): RodadaTermo[] {
-  const disponiveis = contarJogaveisMulti(cards);
-  if (planoDaEscada(disponiveis).length < DEGRAUS_MINIMOS) return [];
+  /* A FAIXA GOVERNA AS DUAS ALAVANCAS que decidem o custo do Termo: quantas letras a palavra pode
+     ter e até quantos tabuleiros a escada sobe. Sem ela, todo mundo recebia 4–8 letras e o
+     quarteto no fim — o mesmo jogo para quem começou hoje e para quem já domina. */
+  const faixa = opts.faixa ?? 'medio';
+  /* Refazendo, a escada é a mais generosa que existe: o objetivo é gastar as palavras DAQUELA
+     fase, e a escada da faixa de hoje entregaria um pedaço dela. */
+  const escada = faixa === 'livre' ? ESCADA_PADRAO : (ESCADA_POR_FAIXA[faixa] ?? ESCADA_PADRAO);
+  const disponiveis = contarJogaveisMulti(cards, faixa);
+  if (planoDaEscada(disponiveis, escada).length < DEGRAUS_MINIMOS) return [];
 
-  const rodadas = buildTermoRounds(cards, { ...opts, quantidade: consumoDaEscada(disponiveis), mesmoTamanho: true });
-  if (planoDaEscada(rodadas.length).length < DEGRAUS_MINIMOS) return [];
-  return rodadas.slice(0, consumoDaEscada(rodadas.length));
+  const rodadas = buildTermoRounds(cards, { ...opts, faixa, quantidade: consumoDaEscada(disponiveis, escada), mesmoTamanho: true });
+  if (planoDaEscada(rodadas.length, escada).length < DEGRAUS_MINIMOS) return [];
+  return rodadas.slice(0, consumoDaEscada(rodadas.length, escada));
 }
 
 /** Fatia as palavras nos degraus do plano (1, depois 2, depois 4). */
@@ -156,8 +349,8 @@ export function montarEscada(rodadas: RodadaTermo[], plano: number[]): RodadaTer
  * Uma passada só produziria quatro amarelas e mentiria para o jogador.
  */
 export function avaliarPalpite(palpite: string, resposta: string): Palpite {
-  const p = normalizarPalavra(palpite).split('');
-  const r = normalizarPalavra(resposta).split('');
+  const p = chaveDoTermo(palpite).split('');
+  const r = chaveDoTermo(resposta).split('');
   const estados: EstadoLetra[] = new Array(p.length).fill('ausente');
 
   // Estoque de letras da resposta ainda "disponíveis" para casar.
@@ -221,6 +414,10 @@ export interface RodadaTermo {
   /** A pista (tradução). Vazia no modo difícil. */
   pista: string;
   lang: string;
+  /** Outras palavras do acervo com a MESMA tradução (sinônimos aceitos por `julgarPalpite`). */
+  alternativas?: string[];
+  /** Frase de contexto, quando a pista é ambígua (tem alternativas). */
+  contexto?: string;
 }
 
 /**
@@ -249,18 +446,29 @@ function embaralhar<T>(xs: T[]): T[] {
 export function buildTermoRounds(
   cards: VocabCard[],
   opts: { quantidade?: number; dificil?: boolean; now?: number; mesmoTamanho?: boolean;
-          shuffle?: <T>(xs: T[]) => T[]; evitar?: ReadonlySet<string> } = {},
+          shuffle?: <T>(xs: T[]) => T[]; evitar?: ReadonlySet<string>;
+          memoria?: ReadonlyMap<string, HistoricoDoItem>; semente?: string; diaDe?: (ts: number) => number;
+          faixa?: ReguaDeLetras } = {},
 ): RodadaTermo[] {
   const now = opts.now ?? Date.now();
   const quantidade = opts.quantidade ?? 5;
-  let candidatos = cards.filter(c => {
-    if (!c.inDeck) return false;
-    const palavra = normalizarPalavra(c.word ?? '');
-    if (palavra.length < MIN_LETRAS || palavra.length > MAX_LETRAS) return false;
-    // Sem tradução não há pista honesta; no modo difícil a pista some, mas ainda queremos
-    // poder mostrá-la ao revelar a resposta no fim.
-    return pistaUtil(c.translation ?? '');
-  });
+  // Elegibilidade pela chave Unicode (ver `motivoForaDoTermo`): hífen/espaço fora, acentos ok.
+  // A FAIXA entra aqui: é ela que decide o comprimento aceito (ver `LETRAS_POR_FAIXA`).
+  // O teclado é QWERTY fixo: palavra que ele não escreve vira rodada insolúvel.
+  let candidatos = cards.filter(c => c.inDeck && digitavelNoTermo(c.word ?? '')
+    && motivoForaDoTermo(c, opts.faixa ?? 'medio') === null);
+  /* SINÔNIMOS DO ACERVO: para cada tradução, quais palavras (do acervo INTEIRO recebido) a
+     carregam. É o que permite aceitar "deceased" quando a rodada pediu "dead". */
+  const porPista = new Map<string, string[]>();
+  for (const c of cards) {
+    if (!c.inDeck) continue;
+    const chave = chaveComparavel(c.translation ?? '');
+    if (!chave) continue;
+    const lista = porPista.get(chave) ?? [];
+    const w = (c.word ?? '').trim();
+    if (w && !lista.includes(w)) lista.push(w);
+    porPista.set(chave, lista);
+  }
 
   // NO DUETO/QUARTETO as palavras PRECISAM ter o mesmo tamanho: o palpite é um só e é avaliado
   // em todos os tabuleiros ao mesmo tempo — com tamanhos diferentes não existe palpite válido.
@@ -283,11 +491,22 @@ export function buildTermoRounds(
   const shuffle = opts.shuffle ?? embaralhar;
   const evitar = opts.evitar;
   const semPenalidade = (c: VocabCard) => !evitar?.has(c.word);
-  const grupo = (vencido: boolean) => shuffle(candidatos.filter(c => isDueNow(c, 'fsrs', now) === vencido));
-  const porUrgencia = [...grupo(true), ...grupo(false)];
-  const ordenados = !evitar?.size
-    ? porUrgencia
-    : [...porUrgencia.filter(semPenalidade), ...porUrgencia.filter(c => !semPenalidade(c))];
+  let ordenados: VocabCard[];
+  if (opts.memoria && opts.semente) {
+    // Seleção v2: régua de memória + semente própria do Termo (rotação distinta dos outros jogos).
+    const { ordenados: porMemoria } = ordenarPorMemoria(candidatos, c => c.word, {
+      memoria: opts.memoria, semente: `termo:${opts.semente}`, agora: now,
+      diaDe: opts.diaDe ?? ((ts) => Math.floor(ts / 86_400_000)),
+      urgente: c => isDueNow(c, 'fsrs', now), cotaDeNovas: 0.3, limite: quantidade,
+    });
+    ordenados = !evitar?.size ? porMemoria : [...porMemoria.filter(semPenalidade), ...porMemoria.filter(c => !semPenalidade(c))];
+  } else {
+    const grupo = (vencido: boolean) => shuffle(candidatos.filter(c => isDueNow(c, 'fsrs', now) === vencido));
+    const porUrgencia = [...grupo(true), ...grupo(false)];
+    ordenados = !evitar?.size
+      ? porUrgencia
+      : [...porUrgencia.filter(semPenalidade), ...porUrgencia.filter(c => !semPenalidade(c))];
+  }
 
   /**
    * PISTA REPETIDA NÃO ENTRA DUAS VEZES — e aqui isso é mais grave que em qualquer outro jogo.
@@ -312,26 +531,39 @@ export function buildTermoRounds(
     escolhidos.push(c);
   }
 
-  return escolhidos.map(c => ({
-    cardId: c.id,
-    resposta: normalizarPalavra(c.word),
-    palavra: (c.word ?? '').trim(),
-    pista: opts.dificil ? '' : (c.translation ?? '').trim(),
-    lang: c.srcLang || '',
-  }));
+  return escolhidos.map(c => {
+    const palavra = (c.word ?? '').trim();
+    const alternativas = (porPista.get(chaveComparavel(c.translation ?? '')) ?? []).filter(w => chaveDoTermo(w) !== chaveDoTermo(palavra));
+    return {
+      cardId: c.id,
+      resposta: chaveDoTermo(palavra),
+      palavra,
+      /* A DICA NÃO PODE CONTER A PALAVRA QUE SE DIGITA. Era o defeito mais visível do Termo com
+         baralho importado: a dica de `abandon` era "To abandon something is to leave it forever"
+         — a resposta impressa acima do teclado. `pistaDeJogo` mascara alvo e flexões; a frase de
+         contexto passa pela mesma régua, pelo mesmo motivo. */
+      pista: opts.dificil ? '' : pistaDeJogo(palavra, c.translation).texto,
+      lang: c.srcLang || '',
+      ...(alternativas.length ? { alternativas } : {}),
+      // Pista ambígua nasce com a frase de contexto (quando existe): é o desempate honesto.
+      ...(alternativas.length && (c.sentence ?? '').trim()
+        ? { contexto: pistaDeJogo(palavra, c.sentence).texto }
+        : {}),
+    };
+  });
 }
 
 /** O maior conjunto de cartões que compartilham o mesmo número de letras (desempate: mais curto). */
 function maiorGrupoPorTamanho(cards: VocabCard[]): VocabCard[] {
   const porTamanho = new Map<number, VocabCard[]>();
   for (const c of cards) {
-    const n = normalizarPalavra(c.word ?? '').length;
+    const n = chaveDoTermo(c.word ?? '').length;
     const lista = porTamanho.get(n);
     if (lista) lista.push(c); else porTamanho.set(n, [c]);
   }
   let melhor: VocabCard[] = [];
   for (const [tamanho, lista] of porTamanho) {
-    const tamanhoMelhor = melhor.length ? normalizarPalavra(melhor[0].word ?? '').length : Infinity;
+    const tamanhoMelhor = melhor.length ? chaveDoTermo(melhor[0].word ?? '').length : Infinity;
     if (lista.length > melhor.length || (lista.length === melhor.length && tamanho < tamanhoMelhor)) melhor = lista;
   }
   return melhor;
@@ -342,12 +574,8 @@ function maiorGrupoPorTamanho(cards: VocabCard[]): VocabCard[] {
  * jogáveis, e sim o tamanho do maior grupo de mesmo comprimento. Um baralho com 20 palavras
  * todas de comprimentos diferentes não joga Dueto, e a tela precisa dizer isso com número.
  */
-export function contarJogaveisMulti(cards: VocabCard[]): number {
-  const jogaveis = cards.filter(c => {
-    if (!c.inDeck) return false;
-    const p = normalizarPalavra(c.word ?? '');
-    return p.length >= MIN_LETRAS && p.length <= MAX_LETRAS && pistaUtil(c.translation ?? '');
-  });
+export function contarJogaveisMulti(cards: VocabCard[], faixa: ReguaDeLetras = 'medio'): number {
+  const jogaveis = cards.filter(c => c.inDeck && motivoForaDoTermo(c, faixa) === null);
   return maiorGrupoPorTamanho(jogaveis).length;
 }
 
@@ -406,9 +634,5 @@ export function dicaDeLetra(
 
 /** Quantas palavras do baralho servem para o Termo (a tela usa para gatear com número). */
 export function contarJogaveisTermo(cards: VocabCard[]): number {
-  return cards.filter(c => {
-    if (!c.inDeck) return false;
-    const p = normalizarPalavra(c.word ?? '');
-    return p.length >= MIN_LETRAS && p.length <= MAX_LETRAS && pistaUtil(c.translation ?? '');
-  }).length;
+  return diagnosticoTermo(cards).jogaveis;
 }

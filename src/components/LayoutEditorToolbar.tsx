@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useLayout } from '../hooks/useLayout';
 import { Sparkles, RotateCcw, Check, Eye, EyeOff } from 'lucide-react';
 import { PANEL_TITLES } from '../lib/panelMeta';
+import { t } from '../lib/i18n';
 
 export default function LayoutEditorToolbar() {
   const { 
@@ -28,7 +29,7 @@ export default function LayoutEditorToolbar() {
   Object.entries(layout).forEach(([viewKey, viewConfig]) => {
     Object.entries(viewConfig).forEach(([panelKey, panelConfig]) => {
       if (!(panelConfig as any).show) {
-        hiddenItems.push({ view: viewKey, panel: panelKey, title: PANEL_TITLES[panelKey] || panelKey });
+        hiddenItems.push({ view: viewKey, panel: panelKey, title: t(PANEL_TITLES[panelKey] || panelKey) });
       }
     });
   });
@@ -74,10 +75,10 @@ export default function LayoutEditorToolbar() {
                             <button
                               key={idx}
                               onClick={() => updatePanel(item.view as any, item.panel, { show: true })}
-                              className="w-full text-left px-3 py-2 text-xs font-semibold text-ink hover:bg-surface-hover flex items-center justify-between transition-colors cursor-pointer"
+                              className="w-full text-start px-3 py-2 text-xs font-semibold text-ink hover:bg-surface-hover flex items-center justify-between transition-colors cursor-pointer"
                             >
                               {item.title}
-                              <Eye className="w-3.5 h-3.5 text-rare shrink-0 ml-2" />
+                              <Eye className="w-3.5 h-3.5 text-rare shrink-0 ms-2" />
                             </button>
                           ))}
                         </div>

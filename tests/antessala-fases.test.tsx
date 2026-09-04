@@ -64,16 +64,127 @@ describe('antessala redesenhada', () => {
     expect(onJogarFase).toHaveBeenCalledWith(['a', 'b'])
   })
 
-  it('os chips de dificuldade ficam RECOLHIDOS atrás de "Ajustar a rodada"', () => {
-    montar({
-      filtroDificuldade: {
-        faixas: [], estrategia: 'equilibrado', aoTrocarFaixa: () => {}, aoTrocarEstrategia: () => {},
-        disponivelPorFaixa: { facil: 5, medio: 5, dificil: 5 }, minimoDoJogo: 3, origemDaComposicao: 'servidor',
-      },
-    })
-    const detalhes = screen.getByText(/Ajustar a rodada/).closest('details') as HTMLDetailsElement
+  const filtro = {
+    faixas: [] as [], estrategia: 'equilibrado' as const, aoTrocarFaixa: () => {}, aoTrocarEstrategia: () => {},
+    disponivelPorFaixa: { facil: 5, medio: 5, dificil: 5 }, minimoDoJogo: 3, origemDaComposicao: 'servidor' as const,
+  }
+
+  it('os chips de dificuldade ficam RECOLHIDOS', () => {
+    montar({ filtroDificuldade: filtro })
+    const detalhes = screen.getByText(/foco:/).closest('details') as HTMLDetailsElement
     expect(detalhes).toBeTruthy()
     expect(detalhes.open).toBe(false) // fechado por padrão: configuração não cobre o progresso
+  })
+
+  /**
+   * O CONTROLE PRECISA DIZER O QUE ESTÁ VALENDO.
+   *
+   * Recolhido ele estava certo; MUDO ele não estava. O resumo dizia só "Ajustar a rodada (nível e
+   * foco)" em texto apagado, e o nível vigente ("Difícil mantido") era reportado quatro faixas
+   * abaixo, dentro de "Por que estas?". Quem queria trocar a dificuldade não achava o controle, e
+   * quem achava não sabia de onde estava saindo.
+   */
+  it('o resumo anuncia o nível vigente sem precisar abrir', () => {
+    montar({ filtroDificuldade: filtro, auto: { faixa: 'dificil', motivo: 'Difícil mantido: 100% nas últimas 3.' } })
+    expect(screen.getByText(/Nível: difícil \(automático\)/i)).toBeTruthy()
+    expect(screen.getByText(/foco: equilibrado/i)).toBeTruthy()
+  })
+
+  it('com escolha manual, o resumo mostra as faixas escolhidas em vez do automático', () => {
+    montar({
+      filtroDificuldade: { ...filtro, faixas: ['facil'] },
+      auto: { faixa: 'dificil', motivo: 'Difícil mantido.' },
+    })
+    expect(screen.getByText(/Nível: fácil/i)).toBeTruthy()
+    expect(screen.queryByText(/\(automático\)/i)).toBeNull()
+  })
+})
+
+/**
+ * AS FASES PASSADAS VIRARAM TABELA PAGINADA — e cada regra abaixo custou um defeito.
+ *
+ * Eram cartões numa grade cortada nas 6 mais recentes: quem jogou vinte rodadas via seis e não
+ * tinha como chegar nas outras. Tabela porque os campos se repetem em toda linha e comparar entre
+ * rodadas é o que se faz aqui.
+ */
+describe('a tabela de fases', () => {
+  const fase = (n: number, extra: Partial<FaseJogada> = {}): FaseJogada => ({
+    roundId: `r${n}`, quando: Date.now() - n * 3_600_000, pontos: n * 10, combo: 2,
+    acertos: 3, total: 4, precisao: 75, estrelas: 2, refs: [`w${n}a`, `w${n}b`], ...extra,
+  })
+
+  it('mostra fase, pontos, estrelas e quando — os quatro campos que se comparam', () => {
+    montar({ fases: [fase(1)], onJogarFase: () => {} })
+    const cabecalhos = screen.getAllByRole('columnheader').map((c) => c.textContent)
+    expect(cabecalhos).toEqual(['Fase', 'Pontos', 'Estrelas', 'Quando', 'O que caiu'])
+    expect(screen.getByText('10')).toBeTruthy()
+    expect(screen.getByLabelText('2 de 3 estrelas')).toBeTruthy()
+  })
+
+  it('sem passar de uma página, o paginador não aparece', () => {
+    montar({ fases: [fase(1), fase(2)], onJogarFase: () => {} })
+    expect(screen.queryByLabelText('Páginas das fases')).toBeNull()
+  })
+
+  /**
+   * O CORTE EM 6 ERA UM TETO, NÃO UMA PÁGINA — e as rodadas além dele eram inalcançáveis.
+   */
+  it('passando de 6 fases, o paginador aparece e a segunda página traz as MAIS ANTIGAS', () => {
+    const fases = Array.from({ length: 8 }, (_, i) => fase(i + 1))
+    montar({ fases, onJogarFase: () => {} })
+    expect(screen.getByLabelText('Páginas das fases')).toBeTruthy()
+    expect(screen.getByText('1/2')).toBeTruthy()
+    // A primeira página numera de cima para baixo a partir do total.
+    expect(screen.getByText('Fase 8')).toBeTruthy()
+    expect(screen.queryByText('Fase 2')).toBeNull()
+
+    fireEvent.click(screen.getByLabelText('Próxima página'))
+    expect(screen.getByText('2/2')).toBeTruthy()
+    expect(screen.getByText('Fase 2')).toBeTruthy()
+    expect(screen.getByText('Fase 1')).toBeTruthy()
+    expect(screen.queryByText('Fase 8')).toBeNull()
+  })
+
+  it('clicar numa linha rejoga AQUELA fase, com os refs dela', () => {
+    const onJogarFase = vi.fn()
+    const fases = [fase(1), fase(2)]
+    montar({ fases, onJogarFase })
+    fireEvent.click(screen.getByText('Fase 1'))
+    // `Fase 1` é a MAIS ANTIGA: numeração cresce para baixo, então é o último item da lista.
+    expect(onJogarFase).toHaveBeenCalledWith(fases[1].refs)
+  })
+
+  it('a rodada antiga que não guardou palavras não finge que dá para rejogar', () => {
+    const onJogarFase = vi.fn()
+    montar({ fases: [fase(1, { refs: [] })], onJogarFase })
+    const botao = screen.getByText('Fase 1').closest('button') as HTMLButtonElement
+    expect(botao.disabled).toBe(true)
+    fireEvent.click(botao)
+    expect(onJogarFase).not.toHaveBeenCalled()
+  })
+
+  /**
+   * A AMOSTRA NÃO PODE ENTREGAR A RESPOSTA — e é por isso que ela vem de fora, já filtrada.
+   *
+   * A linha oferece "jogar esta fase de novo". Se a amostra imprimisse a palavra que o Termo vai
+   * pedir para soletrar, a linha estragaria o próprio convite. Quem decide o que pode aparecer é
+   * `previaSegura`, no chamador — aqui só se garante que a tabela mostra o que recebeu e nada
+   * além, e que ela diz quantas ficaram de fora em vez de sugerir que aquilo é a rodada inteira.
+   */
+  it('mostra a amostra recebida e ANUNCIA o que não coube', () => {
+    montar({
+      fases: [fase(1)],
+      onJogarFase: () => {},
+      amostraDaFase: () => ({ textos: ['abrigo', 'cozinha'], total: 7 }),
+    })
+    expect(screen.getByText('abrigo')).toBeTruthy()
+    expect(screen.getByText('cozinha')).toBeTruthy()
+    expect(screen.getByText('+5')).toBeTruthy()
+  })
+
+  it('sem amostra, cai no placar da fase — nunca inventa conteúdo', () => {
+    montar({ fases: [fase(1)], onJogarFase: () => {} })
+    expect(screen.getByText(/3 de 4 nesta fase/)).toBeTruthy()
   })
 })
 

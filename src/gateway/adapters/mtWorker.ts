@@ -8,6 +8,7 @@ import { pipeline, Tensor } from '@huggingface/transformers'
 import { configureModelDelivery } from './transformersEnv'
 import { criarRastreadorDeProgresso, rotuloDeBytes } from './modelProgress'
 import { registrarModeloBaixado } from '../modelManifest'
+import { separarEmFrases, juntarFrases } from '../../core/texto/frases'
 
 // Entrega dos pesos: cache do navegador (padrão) ou self-host same-origin (VITE_SELF_HOST_MODELS).
 configureModelDelivery()
@@ -89,6 +90,10 @@ const MT_DTYPES = ['q8', 'int8', 'q4'] as const
 // MEDIDO (2026-08-26): com a otimização de grafo padrão o ORT nem cria a sessão (o erro qdq acima);
 // em 'basic' carrega e traduz. Não é preferência, é o único nível que funciona hoje.
 const ORT_GRAPH_OPT = 'basic'
+/* DECODE: antes ia sem opção nenhuma (greedy, sem teto) — o candidato mais literal e, em frase
+   longa, sem freio. Beam 2 é o menor que já melhora a escolha de expressão sem dobrar o tempo no
+   WASM; `no_repeat_ngram_size` mata o "the the" do greedy; `max_length` é o freio. */
+const GERACAO = { num_beams: 2, max_length: 256, no_repeat_ngram_size: 3, early_stopping: true } as const
 // `diag` (só diagnóstico, via mensagem): força a lista de dtypes e o nível de otimização do ORT.
 let diag: { dtypes?: string[]; graphOpt?: string } = {}
 async function getPipe(model: string): Promise<any> {
@@ -142,7 +147,6 @@ self.onmessage = async (e: MessageEvent) => {
       return
     }
     const pipe = await getPipe(cfg.model)
-    let translated: string | undefined
     let tokenId: number | undefined
     if (cfg.langToken) {
       const tm = pipe.tokenizer?.model
@@ -152,19 +156,34 @@ self.onmessage = async (e: MessageEvent) => {
       tokenId = cand !== undefined && cand !== tm?.unk_token_id ? cand : cfg.langTokenId
       if (tokenId === undefined) console.warn('[mt:worker] token de alvo', cfg.langToken, 'não resolvido pelo tokenizer; caindo para o prefixo em texto')
     }
-    if (cfg.langToken && typeof tokenId === 'number') {
-      // Token de idioma-alvo pelo ID (o texto seria partido pelo pré-tokenizador — ver dirConfig).
-      const enc = pipe.tokenizer(text)
-      const ids = [BigInt(tokenId), ...Array.from(enc.input_ids.data as BigInt64Array)]
-      const input_ids = new Tensor('int64', BigInt64Array.from(ids), [1, ids.length])
-      const attention_mask = new Tensor('int64', BigInt64Array.from(ids.map(() => BigInt(1))), [1, ids.length])
-      const gen = await pipe.model.generate({ input_ids, attention_mask })
-      translated = pipe.tokenizer.batch_decode(gen, { skip_special_tokens: true })[0]
-    } else {
-      const out = await pipe(cfg.langToken ? `${cfg.langToken} ${text}` : text)
-      translated = Array.isArray(out) ? out[0]?.translation_text : out?.translation_text
+    /** Traduz UMA frase. Extraído do laço porque o opus-mt só sabe traduzir uma (ver abaixo). */
+    const traduzirFrase = async (trecho: string): Promise<string> => {
+      if (cfg.langToken && typeof tokenId === 'number') {
+        // Token de idioma-alvo pelo ID (o texto seria partido pelo pré-tokenizador — ver dirConfig).
+        const enc = pipe.tokenizer(trecho)
+        const ids = [BigInt(tokenId), ...Array.from(enc.input_ids.data as BigInt64Array)]
+        const input_ids = new Tensor('int64', BigInt64Array.from(ids), [1, ids.length])
+        const attention_mask = new Tensor('int64', BigInt64Array.from(ids.map(() => BigInt(1))), [1, ids.length])
+        const gen = await pipe.model.generate({ input_ids, attention_mask, ...GERACAO })
+        return pipe.tokenizer.batch_decode(gen, { skip_special_tokens: true })[0] ?? ''
+      }
+      const out = await pipe(cfg.langToken ? `${cfg.langToken} ${trecho}` : trecho, GERACAO)
+      return (Array.isArray(out) ? out[0]?.translation_text : out?.translation_text) ?? ''
     }
-    self.postMessage({ type: 'result', id, text: (translated ?? '').trim() })
+
+    /**
+     * UMA CHAMADA POR FRASE. O opus-mt é treinado em pares de uma sentença: diante de duas ele
+     * emite o token de fim depois da primeira e a segunda SOME. Medido em
+     * `docs/auditoria/eval-traducao-baseline-v1.md`: segmentar levou o chrF++ de 51,4% para 56,6%,
+     * com +17,6 em pronome e +15,5 em gênero — e zero movimento nas categorias de frase única,
+     * que é a assinatura de uma correção causal e não de ruído.
+     *
+     * Não é teto de tokens: com `max_length` 128 e 256 a saída é idêntica, em 9 tokens. O `GERACAO`
+     * acima (beam 2) melhora cada frase, mas não faz a segunda existir — as duas coisas somam.
+     */
+    const partes: string[] = []
+    for (const frase of separarEmFrases(text)) partes.push(await traduzirFrase(frase))
+    self.postMessage({ type: 'result', id, text: juntarFrases(partes) })
   } catch (err) {
     console.error('[mt:worker] ERRO:', err instanceof Error ? (err.stack || err.message) : String(err))
     self.postMessage({ type: 'error', id, message: err instanceof Error ? err.message : String(err) })

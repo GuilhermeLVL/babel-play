@@ -10,12 +10,15 @@ import { aiRouter } from "./server/routes/ai";
 import { sessionsRouter } from "./server/routes/sessions";
 import { importRouter } from "./server/routes/import";
 import { vocabRouter } from "./server/routes/vocab";
+import { ankiRouter } from "./server/routes/anki";
 import { metricsRouter } from "./server/routes/metrics";
 import { exercisesRouter } from "./server/routes/exercises";
 import { settingsRouter } from "./server/routes/settings";
 import { imagesRouter } from "./server/routes/images";
 import { meRouter } from "./server/routes/me";
 import { adminRouter } from "./server/routes/admin";
+import { errosRouter } from "./server/routes/erros";
+import { billingRouter, asaasWebhookRouter } from "./server/routes/billing";
 import { audioRouter } from "./server/audio/loopback";
 import { prepareLlmRequest } from "./server/ai/llmRequest";
 import { seedIfEmpty } from "./server/db/seed";
@@ -136,6 +139,17 @@ app.get("/api/health", healthHandler);
 // Auth (Marco 1) — montada UMA vez, após o health e antes de todo router. Cobre todos os
 // routers /api E o /api/gemini/chat inline (registrado mais abaixo). Modo aberto (self-host):
 // injeta LOCAL_OWNER sem token nem tela. Modo público (AUTH_REQUIRED=1): exige JWT do Supabase.
+/* E3 — o WEBHOOK de billing vem ANTES do auth de usuário: o Asaas não tem JWT de ninguém. A
+   autenticação dele é própria (header asaas-access-token, comparação em tempo constante) e sem o
+   segredo configurado ele recusa tudo. */
+/* E o webhook ganha TETO (01/09). Ele fica fora do `writeLimiter` de baixo por estar antes do
+   auth, e ficava sem limite nenhum: cada POST faz consulta e escrita no banco, e a autenticação
+   dele é um bearer estático — segredo vazado virava escrita ilimitada. A chave cai no IP
+   (`chaveDoRequest` só usa o usuário quando existe), e um 429 aqui é seguro: o Asaas reentrega o
+   evento que não recebeu 200, e a idempotência por id garante que a reentrega não duplica. */
+if (authRequired()) app.use("/api/billing/webhook/asaas", writeLimiter);
+app.use("/api/billing/webhook/asaas", capturarAssincrono(asaasWebhookRouter));
+
 app.use("/api", authMiddleware);
 
 // Rate-limit por tenant — DEPOIS do auth, para a chave ser o usuário e não o IP.
@@ -147,7 +161,7 @@ if (authRequired()) {
     // `/api/me` entrou junto com a exclusão de conta: `DELETE /api/me` apaga 17 tabelas e
     // `GET /api/me/exportar` lê a conta inteira em memória. As duas sem teto seriam o mesmo
     // vetor de F4-02 por outra porta.
-    ["/api/sessions", "/api/vocab", "/api/settings", "/api/exercises", "/api/metrics", "/api/images", "/api/me"],
+    ["/api/sessions", "/api/vocab", "/api/settings", "/api/exercises", "/api/metrics", "/api/images", "/api/me", "/api/erros-do-cliente", "/api/billing", "/api/anki"],
     writeLimiter,
   );
 }
@@ -167,6 +181,8 @@ if (authRequired()) {
 }
 app.use("/api/import", capturarAssincrono(importRouter));
 app.use("/api/vocab", capturarAssincrono(vocabRouter));
+// Acervo Anki (motor-anki-acervo) — decks/notas/ativação, escopado por userId (auth já resolvido acima).
+app.use("/api/anki", capturarAssincrono(ankiRouter));
 app.use("/api/metrics", capturarAssincrono(metricsRouter));
 app.use("/api/exercises", capturarAssincrono(exercisesRouter));
 app.use("/api/settings", capturarAssincrono(settingsRouter));
@@ -175,6 +191,10 @@ app.use("/api/images", capturarAssincrono(imagesRouter));
 app.use("/api/me", capturarAssincrono(meRouter));
 // SaaS Fatia 2 — RBAC: endpoints admin cross-tenant (cada rota gateada por requireRole internamente).
 app.use("/api/admin", capturarAssincrono(adminRouter));
+// E4 — erros do NAVEGADOR entram no mesmo funil do diário; teto por usuário dentro da rota.
+app.use("/api/erros-do-cliente", capturarAssincrono(errosRouter));
+// E3 — assinar/cancelar (atrás do auth; a PROMOÇÃO do plano é só do webhook acima).
+app.use("/api/billing", capturarAssincrono(billingRouter));
 // Áudio do sistema via WASAPI loopback do PRÓPRIO servidor local (Windows) — a rota sem
 // fricção para capturar o que o computador toca; o navegador só consome o PCM.
 // Capacidade local: no modo público (AUTH_REQUIRED) ela some (403), mesmo autenticado.
@@ -260,10 +280,11 @@ async function tryOllamaChat(
 // Groq (nuvem, OpenAI-compatible) — rápido e não depende de GPU local.
 // Preferido para o iChat/tutor quando há GROQ_API_KEY no .env.
 const GROQ_CHAT_URL =
-  (process.env.GROQ_BASE_URL || "https://api.groq.com/openai/v1").replace(/\/+$/, "") +
+  (process.env.LLM_BASE_URL || process.env.GROQ_BASE_URL || "https://api.groq.com/openai/v1").replace(/\/+$/, "") +
   "/chat/completions";
 const GROQ_LLM_MODEL =
-  process.env.GROQ_LLM_MODEL || process.env.GROQ_MODEL || "llama-3.3-70b-versatile";
+  // Ver server/ai/mtProxy.ts: o llama-3.3-70b virou enterprise e responde model_not_found.
+  process.env.LLM_MODEL || process.env.GROQ_LLM_MODEL || process.env.GROQ_MODEL || "openai/gpt-oss-120b";
 
 async function tryGroqChat(
   messages: Array<{ role: string; content: string }>,

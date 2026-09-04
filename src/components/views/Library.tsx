@@ -19,6 +19,7 @@ import { toast, askConfirm } from '../Toast';
 import { fetchLangConfig } from '../../lib/langConfig';
 import { buildDocumentSession, transcribeImportedAudio } from '../../lib/import/buildSession';
 import { getEntitlements, onPlanChange } from '../../lib/entitlements';
+import { numero } from '../../lib/i18n';
 
 type LibraryTab = 'collections' | 'vault';
 
@@ -453,7 +454,7 @@ export default function Library({ onChangeView, recordings, onRecordingsChange, 
                 type="text"
                 placeholder="Buscar por título ou tag…"
                 aria-label="Buscar na biblioteca"
-                className="w-full bg-surface border border-border-subtle rounded-xl py-2 pl-9 pr-4 text-[13px] outline-none focus:border-accent transition-colors"
+                className="w-full bg-surface border border-border-subtle rounded-xl py-2 ps-9 pe-4 text-[13px] outline-none focus:border-accent transition-colors"
                 value={searchQuery}
                 onChange={e => setSearchQuery(e.target.value)}
               />
@@ -763,7 +764,7 @@ export default function Library({ onChangeView, recordings, onRecordingsChange, 
                 </div>
                 <div className="p-4 flex flex-col flex-1">
                   <div className="flex justify-between items-start mb-2">
-                    <h3 className="font-display font-bold text-[14px] leading-tight line-clamp-2 pr-2">{rec.title}</h3>
+                    <h3 className="font-display font-bold text-[14px] leading-tight line-clamp-2 pe-2">{rec.title}</h3>
                     <div className="relative">
                       <button
                         ref={el => { if (activeMenuId === rec.id) ancoraDoMenu.current = el; }}
@@ -796,7 +797,7 @@ export default function Library({ onChangeView, recordings, onRecordingsChange, 
                     <Clock className="w-3.5 h-3.5 shrink-0" />
                     <span>{rec.date}</span>
                     <span>·</span>
-                    <span>{rec.wordCount.toLocaleString('pt-BR')} palavras</span>
+                    <span>{numero(rec.wordCount)} palavras</span>
                   </div>
                   <div className="flex gap-2 flex-wrap mt-auto">
                     {rec.type === 'document' ? (
@@ -1030,7 +1031,7 @@ function MenuDaMidia({
   const caixa = usePosicaoFlutuante(true, ancora, { largura: 192, alturaEstimada: 190 });
   if (!caixa) return null;
 
-  const item = 'w-full text-left px-3.5 py-2 text-xs font-semibold hover:bg-surface-hover text-ink flex items-center gap-2 cursor-pointer border-none bg-transparent';
+  const item = 'w-full text-start px-3.5 py-2 text-xs font-semibold hover:bg-surface-hover text-ink flex items-center gap-2 cursor-pointer border-none bg-transparent';
   const agir = (fn: () => void) => (e: React.MouseEvent) => { e.stopPropagation(); onFechar(); fn(); };
 
   return createPortal(
@@ -1064,7 +1065,7 @@ function MenuDaMidia({
         <div className="border-t border-border-subtle my-1" />
         <button
           onClick={agir(onExcluir)}
-          className="w-full text-left px-3.5 py-2 text-xs font-semibold hover:bg-error-soft text-error flex items-center gap-2 cursor-pointer border-none bg-transparent"
+          className="w-full text-start px-3.5 py-2 text-xs font-semibold hover:bg-error-soft text-error flex items-center gap-2 cursor-pointer border-none bg-transparent"
         >
           <Trash2 className="w-3.5 h-3.5" />
           <span>Excluir</span>

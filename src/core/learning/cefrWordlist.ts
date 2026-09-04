@@ -8,7 +8,8 @@
  *
  * ESCOLHA DA FONTE (Ajuste 1 pedia Kelly, EFLLex ou SUBTLEX; escolhi outra e registro o porquê):
  *  - **CEFR-J Vocabulary Profile 1.5** (Tono Laboratory, TUFS) + **Octanove Vocabulary Profile
- *    C1/C2 1.0** — já vendorizados em `src/data/trilha/en.json`, com atribuição em
+ *    C1/C2 1.0** — já vendorizados em `src/data/trilha/en.json`; aqui se lê o derivado
+ *    `niveis/en.json` (só palavra→nível, gerado por `scripts/trilha/derivar.mjs`), com atribuição em
  *    `src/data/trilha/FONTES.md`.
  *  - Por que não SUBTLEX: dá FREQUÊNCIA, não banda CEFR. Converter frequência em A1..C2 exige
  *    cortes arbitrários — trocaria um chute por outro, mais bem vestido.
@@ -20,19 +21,28 @@
  * NÃO recebe nível — recebe `null` com procedência `ausente`. Nível ausente pesa ZERO no modelo de
  * dificuldade (F4); é a diferença entre "não sei" e "chutei".
  */
-import trilhaEn from '../../data/trilha/en.json'
+import niveisEn from '../../data/trilha/niveis/en.json'
+import { indiceDaTrilha } from '../../data/trilha/indice'
 
 export type CefrLevel = 'A1' | 'A2' | 'B1' | 'B2' | 'C1' | 'C2'
-export type ProcedenciaCefr = 'curado' | 'wordlist' | 'ausente'
+export type ProcedenciaCefr = 'curado' | 'wordlist' | 'frequencia' | 'ausente'
 
 /** Ordem fixa e exaustiva — a UI usa isto para rotular a procedência do nível. */
-export const PROCEDENCIAS: readonly ProcedenciaCefr[] = ['curado', 'wordlist', 'ausente'] as const
+export const PROCEDENCIAS: readonly ProcedenciaCefr[] = [
+  'curado', 'wordlist', 'frequencia', 'ausente',
+] as const
 
 export interface NivelCefr {
   level: CefrLevel | null
   source: ProcedenciaCefr
-  /** 1 = curado pelo usuário/importação · 0,95 = wordlist medida · 0 = ausente. */
+  /** 1 = curado · 0,95 = wordlist medida · 0 = ausente ou faixa de frequência. */
   confidence: number
+  /**
+   * Faixa de frequência, quando a trilha do idioma é ordenada por corpus e não por CEFR. Usa os
+   * mesmos seis rótulos para ordenar, mas `level` fica nulo de propósito: quem grava CEFR não pode
+   * gravar isto, e quem rotula na tela precisa dizer "mais comuns", não "A1".
+   */
+  faixa?: CefrLevel
 }
 
 const NIVEIS: CefrLevel[] = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2']
@@ -42,30 +52,38 @@ function chave(palavra: string): string {
   return palavra.normalize('NFD').replace(/[̀-ͯ]/g, '').trim().toLowerCase()
 }
 
-type Trilha = { lang: string; niveis: Record<string, Array<[string, string, string?, string?]>> }
+/** `niveis/<lang>.json`: nível → palavras já normalizadas e unidas por `|`. */
+type Niveis = Partial<Record<CefrLevel, string>>
 
 /** Índice palavra → nível, montado uma vez por idioma. */
 const indices = new Map<string, Map<string, CefrLevel>>()
 
-function indiceDe(lang: string): Map<string, CefrLevel> {
-  const idioma = (lang || '').toLowerCase().split('-')[0]
-  const existente = indices.get(idioma)
-  if (existente) return existente
+const base = (lang: string) => (lang || '').toLowerCase().split('-')[0]
 
+function montar(n: Niveis): Map<string, CefrLevel> {
   const mapa = new Map<string, CefrLevel>()
-  if (idioma === 'en') {
-    const t = trilhaEn as unknown as Trilha
-    for (const nivel of NIVEIS) {
-      for (const item of t.niveis[nivel] ?? []) {
-        const k = chave(item[0])
-        // Primeiro nível vence: a lista vai de A1 para C2, e a banda mais baixa é a correta
-        // para uma palavra que aparece em mais de uma.
-        if (k && !mapa.has(k)) mapa.set(k, nivel)
-      }
+  for (const nivel of NIVEIS) {
+    for (const palavra of (n[nivel] ?? '').split('|')) {
+      // Primeiro nível vence — a derivação já aplicou a regra, mas o guard mantém o invariante.
+      if (palavra && !mapa.has(palavra)) mapa.set(palavra, nivel)
     }
   }
-  indices.set(idioma, mapa)
   return mapa
+}
+
+/* Inglês entra estático porque é o caminho quente e já estava medido em 20,4 KB; os demais são
+   injetados por `precarregarNiveis` (camada de dados), para que abrir /jogar em inglês não baixe a
+   lista de mais nenhum idioma — e para o núcleo não depender do Vite. */
+indices.set('en', montar(niveisEn as Niveis))
+
+/** Registra a lista de um idioma. Antes disso `nivelCefr` responde `ausente`, que é honesto. */
+export function registrarNiveis(lang: string, niveis: Niveis): void {
+  const idioma = base(lang)
+  if (!indices.has(idioma)) indices.set(idioma, montar(niveis))
+}
+
+function indiceDe(lang: string): Map<string, CefrLevel> {
+  return indices.get(base(lang)) ?? new Map()
 }
 
 /**
@@ -83,21 +101,21 @@ export function nivelCefr(
     return { level: opts.curado as CefrLevel, source: 'curado', confidence: 1 }
   }
   const nivel = indiceDe(lang).get(chave(palavra))
-  if (nivel) return { level: nivel, source: 'wordlist', confidence: 0.95 }
-  return { level: null, source: 'ausente', confidence: 0 }
+  if (!nivel) return { level: null, source: 'ausente', confidence: 0 }
+  if (escalaDe(lang) === 'frequencia') {
+    return { level: null, source: 'frequencia', confidence: 0, faixa: nivel }
+  }
+  return { level: nivel, source: 'wordlist', confidence: 0.95 }
+}
+
+/** `cefr` quando o nível foi medido por linguista; `frequencia` quando saiu da contagem do corpus. */
+export function escalaDe(lang = 'en'): 'cefr' | 'frequencia' | null {
+  return indiceDaTrilha()[base(lang)]?.escala ?? null
 }
 
 /** Cobertura da wordlist — para a limitação ser mensurável, e não presumida. */
 export function coberturaDaWordlist(lang = 'en'): { total: number; porNivel: Record<string, number> } {
-  const porNivel: Record<string, number> = {}
-  const idioma = (lang || '').toLowerCase().split('-')[0]
-  if (idioma !== 'en') return { total: 0, porNivel }
-  const t = trilhaEn as unknown as Trilha
-  let total = 0
-  for (const nivel of NIVEIS) {
-    const n = (t.niveis[nivel] ?? []).length
-    porNivel[nivel] = n
-    total += n
-  }
-  return { total, porNivel }
+  const entrada = indiceDaTrilha()[base(lang)]
+  if (!entrada) return { total: 0, porNivel: {} }
+  return { total: entrada.total, porNivel: { ...entrada.porNivel } }
 }

@@ -1,0 +1,59 @@
+# Deploy da edição LEVE para o Cloudflare Pages (babel-play.pages.dev) — item A3.
+#
+# DESARMADO POR PADRÃO, como o uptime.yml: sem os dois secrets o job termina em sucesso
+# explicando o que falta, para o workflow poder ser commitado antes das credenciais existirem.
+#
+# Para armar (uma vez, no repositório do GitHub):
+#   Settings → Secrets and variables → Actions → New repository secret
+#   - CLOUDFLARE_API_TOKEN   (token com permissão "Cloudflare Pages — Edit")
+#   - CLOUDFLARE_ACCOUNT_ID  (Dashboard → Workers & Pages → Account ID)
+#
+# Dispara só MANUALMENTE (workflow_dispatch): publicar é decisão, não efeito colateral de push —
+# o CI continua sendo quem valida cada commit. Quando a rotina amadurecer, mudar para
+# `push: branches: [main]` é uma linha.
+name: Deploy (Pages, edição leve)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Verificar credenciais (desarmado sem elas)
+        id: credenciais
+        run: |
+          if [ -z "${{ secrets.CLOUDFLARE_API_TOKEN }}" ] || [ -z "${{ secrets.CLOUDFLARE_ACCOUNT_ID }}" ]; then
+            echo "armado=nao" >> "$GITHUB_OUTPUT"
+            echo "::notice::Deploy DESARMADO: configure os secrets CLOUDFLARE_API_TOKEN e CLOUDFLARE_ACCOUNT_ID (instruções no topo deste arquivo)."
+          else
+            echo "armado=sim" >> "$GITHUB_OUTPUT"
+          fi
+
+      # O deploy publica o que o CI teria validado: os mesmos gates, no mesmo commit.
+      - name: Validar antes de publicar
+        if: steps.credenciais.outputs.armado == 'sim'
+        run: |
+          npm ci
+          npm run typecheck
+          npm test
+          npm run audit:gate
+
+      - name: Build da edição leve
+        if: steps.credenciais.outputs.armado == 'sim'
+        run: npm run build:leve
+
+      # `wrangler pages deploy` lê o wrangler.toml do repositório — é ele que liga o D1 do
+      # ranking à Function; deploy por outra via perderia o binding e degradaria o ranking.
+      - name: Publicar no Cloudflare Pages
+        if: steps.credenciais.outputs.armado == 'sim'
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: npx wrangler pages deploy dist

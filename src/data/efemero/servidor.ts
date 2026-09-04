@@ -18,6 +18,9 @@ import { EDICAO_LEVE } from '../../lib/edicao';
 import { abrirStore, type CartaoLocal, type ExercicioLocal, type FalaLocal, type SessaoLocal } from './store';
 import { Fsrs5Strategy, type Grade, type SchedulingState } from '../../core/learning/scheduler';
 import type { AppMetrics } from '../../core/learning/contract';
+import { diaLocal, marcosDeSequencia, minutosPremiados, sequencias } from '../../core/learning/economia';
+import { MINIGAMES } from '../../core/minigames/types';
+import { estadoDoTeto, motivoDoTeto } from '../../core/tetoAnonimo';
 
 export const CODIGO_EXIGE_CONTA = 'EXIGE_CONTA';
 export const EVENTO_EXIGE_CONTA = 'babel_exige_conta';
@@ -114,6 +117,16 @@ async function listarSessoes(): Promise<Response> {
 async function criarSessao(_m: RegExpMatchArray, _u: URL, init: RequestInit): Promise<Response> {
   const p = lerJson(init);
   const db = await abrirStore();
+
+  /* O TETO DO MODO SEM CONTA (mudança porta-de-entrada). Sem conta o acervo mora num só navegador
+     e some com ele; deixar acumular é deixar preparada uma perda grande. O 507 é o mesmo código
+     que a cota de armazenamento do servidor real usa — a tela já sabe tratá-lo. */
+  const jaGuardadas = await db.count('sessoes');
+  const teto = estadoDoTeto('sessoes', jaGuardadas);
+  if (!teto.cabe) {
+    return json({ error: motivoDoTeto('sessoes'), codigo: 'TETO_ANONIMO', recurso: 'sessoes', ...teto }, 507);
+  }
+
   const agora = Date.now();
   const id = uuid();
   const brutas = Array.isArray(p.utterances) ? (p.utterances as Json[]) : [];
@@ -243,6 +256,15 @@ async function adicionarCartoes(_m: RegExpMatchArray, _u: URL, init: RequestInit
   const p = lerJson(init);
   const entrada = Array.isArray(p.cards) ? (p.cards as Json[]) : [];
   const db = await abrirStore();
+
+  /* Mesmo teto, outro recurso. A recusa é do LOTE inteiro e não parcial de propósito: fichar
+     metade das palavras que a pessoa marcou, em silêncio, seria pior do que recusar e explicar. */
+  const jaFichadas = await db.count('cartoes');
+  const tetoP = estadoDoTeto('palavras', jaFichadas);
+  if (!tetoP.cabe) {
+    return json({ error: motivoDoTeto('palavras'), codigo: 'TETO_ANONIMO', recurso: 'palavras', ...tetoP }, 507);
+  }
+
   const agora = Date.now();
   const skipped: Array<{ word: string; motivo: string }> = [];
   const resultado = new Map<string, CartaoLocal>();
@@ -369,16 +391,26 @@ async function historicoPorItem(_m: RegExpMatchArray, url: URL): Promise<Respons
   const linhas = (await db.getAll('exercicios'))
     .filter((l) => l.itemRef && (!origem || l.origem === origem) && l.createdAt >= desde)
     .sort((a, b) => a.createdAt - b.createdAt);
-  const agregado = new Map<string, { itemRef: string; vezes: number; erros: number; ultimaEm: number; ultimoAcerto: boolean }>();
+  /* SELEÇÃO v2: além de vezes/erros, a régua de retorno precisa de ERROS SEGUIDOS (contados do
+     fim) e de quantas RODADAS do mesmo jogo já passaram desde o último erro. As rodadas são
+     contadas por `roundId` distinto do mesmo `exerciseKind` depois da linha errada. */
+  const agregado = new Map<string, { itemRef: string; vezes: number; erros: number; ultimaEm: number; ultimoAcerto: boolean; errosSeguidos: number; rodadasDesdeUltimoErro: number; _ultimoErroEm: number; _jogo: string | null }>();
   for (const l of linhas) {
-    const h = agregado.get(l.itemRef!) ?? { itemRef: l.itemRef!, vezes: 0, erros: 0, ultimaEm: 0, ultimoAcerto: false };
+    const h = agregado.get(l.itemRef!) ?? { itemRef: l.itemRef!, vezes: 0, erros: 0, ultimaEm: 0, ultimoAcerto: false, errosSeguidos: 0, rodadasDesdeUltimoErro: 0, _ultimoErroEm: 0, _jogo: null };
     h.vezes += 1;
-    if (l.correct !== 1) h.erros += 1;
+    if (l.correct !== 1) { h.erros += 1; h.errosSeguidos += 1; h._ultimoErroEm = l.createdAt; h._jogo = l.exerciseKind; }
+    else h.errosSeguidos = 0;
     h.ultimaEm = l.createdAt;
     h.ultimoAcerto = l.correct === 1;
     agregado.set(l.itemRef!, h);
   }
-  return json([...agregado.values()]);
+  for (const h of agregado.values()) {
+    if (!h._ultimoErroEm) continue;
+    const rodadas = new Set<string>();
+    for (const l of linhas) if (l.roundId && l.exerciseKind === h._jogo && l.createdAt > h._ultimoErroEm) rodadas.add(l.roundId);
+    h.rodadasDesdeUltimoErro = rodadas.size;
+  }
+  return json([...agregado.values()].map(({ _ultimoErroEm: _a, _jogo: _b, ...h }) => h));
 }
 
 async function recordes(_m: RegExpMatchArray, url: URL): Promise<Response> {
@@ -415,14 +447,43 @@ async function gastarSeeds(_m: RegExpMatchArray, _u: URL, init: RequestInit): Pr
   return json({ jaExistia, gasto: existente?.amount ?? amount, seedsGastas: total });
 }
 
+/* ── ECONOMIA v2 (2026-08-28) ── */
+
+/** Presença do dia: idempotente por dia local. O cliente manda o `dia` que calculou (fuso dele). */
+async function registrarPresenca(_m: RegExpMatchArray, _u: URL, init: RequestInit): Promise<Response> {
+  const p = lerJson(init);
+  const dia = num(p.dia) ?? diaLocal(Date.now());
+  const db = await abrirStore();
+  const jaExistia = !!(await db.get('presencas', dia));
+  if (!jaExistia) await db.put('presencas', { dia, createdAt: Date.now() });
+  const dias = (await db.getAll('presencas')).map((x) => x.dia);
+  const { atual } = sequencias(dias, dia);
+  return json({ jaExistia, dia, streakPresenca: atual });
+}
+
+/** Crédito avulso (conquista): idempotente por `creditoId`, mesmo padrão de `gastarSeeds`. */
+async function creditarSeeds(_m: RegExpMatchArray, _u: URL, init: RequestInit): Promise<Response> {
+  const p = lerJson(init);
+  const creditoId = str(p.creditoId);
+  const amount = num(p.amount);
+  if (!creditoId || amount === null || amount < 0) return json({ error: 'creditoId e amount são obrigatórios' }, 400);
+  const db = await abrirStore();
+  const existente = await db.get('creditos', creditoId);
+  const jaExistia = !!existente;
+  if (!jaExistia) await db.put('creditos', { creditoId, amount, xp: num(p.xp) ?? 0, reason: str(p.reason) ?? '', createdAt: Date.now() });
+  const todos = await db.getAll('creditos');
+  return json({ jaExistia, seedsCreditadas: todos.reduce((n, c) => n + c.amount, 0), xpCreditado: todos.reduce((n, c) => n + c.xp, 0) });
+}
+
 // ───────────────────────────── Métricas ─────────────────────────────
 
 async function metricas(_m: RegExpMatchArray, url: URL): Promise<Response> {
   const db = await abrirStore();
   const agora = Date.now();
   const sessionId = url.searchParams.get('sessao');
-  const [sessoesTodas, cartoesTodos, revisoes, falasTodas, exercicios, gastos] = await Promise.all([
+  const [sessoesTodas, cartoesTodos, revisoes, falasTodas, exercicios, gastos, presencas, creditos] = await Promise.all([
     db.getAll('sessoes'), db.getAll('cartoes'), db.getAll('revisoes'), db.getAll('falas'), db.getAll('exercicios'), db.getAll('gastos'),
+    db.getAll('presencas'), db.getAll('creditos'),
   ]);
   const sessoes = sessionId ? sessoesTodas.filter((s) => s.id === sessionId) : sessoesTodas;
   const cartoes = sessionId ? cartoesTodos.filter((c) => c.sessionId === sessionId) : cartoesTodos;
@@ -439,6 +500,41 @@ async function metricas(_m: RegExpMatchArray, url: URL): Promise<Response> {
   const dias = new Set(revs.map((r) => Math.floor(r.reviewedAt / DIA)));
   let streakDays = 0;
   for (let d = Math.floor(agora / DIA); dias.has(d); d -= 1) streakDays += 1;
+
+  /* ── ECONOMIA v2: presença, tempo de captura premiado, rodadas perfeitas, créditos. ── */
+  const diasDePresenca = presencas.map((x) => x.dia);
+  const seq = sequencias(diasDePresenca, diaLocal(agora));
+  const sequencias7 = marcosDeSequencia(diasDePresenca, 7);
+  // Minutos de captura por dia local; o teto diário vive no core (`minutosPremiados`).
+  const minutosPorDia = new Map<number, number>();
+  let capturaMinutos = 0;
+  for (const s of sessoes) {
+    const min = (s.durationMs ?? 0) / 60_000;
+    if (min <= 0) continue;
+    capturaMinutos += min;
+    const d = diaLocal(s.createdAt);
+    minutosPorDia.set(d, (minutosPorDia.get(d) ?? 0) + min);
+  }
+  const capturaMinutosPremiados = Math.floor(minutosPremiados(minutosPorDia.values()));
+  // Rodada perfeita = todos os itens certos E tamanho ≥ mínimo do jogo (senão uma rodada de 1
+  // item viraria fábrica de "perfeitas").
+  const porRodada = new Map<string, { kind: string | null; total: number; certos: number }>();
+  for (const e of drills) {
+    if (!e.roundId) continue;
+    const r = porRodada.get(e.roundId) ?? { kind: e.exerciseKind, total: 0, certos: 0 };
+    r.total += 1;
+    if (e.correct === 1) r.certos += 1;
+    porRodada.set(e.roundId, r);
+  }
+  let rodadasPerfeitas = 0;
+  for (const r of porRodada.values()) {
+    const minimo = (r.kind && (MINIGAMES as Record<string, { minItems?: number } | undefined>)[r.kind]?.minItems) ?? 3;
+    if (r.total >= minimo && r.certos === r.total) rodadasPerfeitas += 1;
+  }
+  const seedsCreditadas = creditos.reduce((n, c) => n + c.amount, 0);
+  const xpCreditado = creditos.reduce((n, c) => n + c.xp, 0);
+  // A ofensiva que a tela mostra é a MAIOR entre revisar e aparecer: aparecer todo dia também conta.
+  streakDays = Math.max(streakDays, seq.atual);
 
   const revisados = noDeck.filter((c) => c.stability != null);
   const avgStability = revisados.length ? revisados.reduce((n, c) => n + (c.stability ?? 0), 0) / revisados.length : 0;
@@ -467,6 +563,18 @@ async function metricas(_m: RegExpMatchArray, url: URL): Promise<Response> {
     accuracyConfidence: Math.min(1, totalAvaliado / 20),
     streakDays,
     seedsGastas: gastos.reduce((n, g) => n + g.amount, 0),
+    // Paridade com o servidor real (B4): posse derivada do log de compras da Loja.
+    itensComprados: [...new Set(gastos.map((g) => g.reason).filter((r) => r.startsWith('loja:')).map((r) => r.slice('loja:'.length)))],
+    presencas: presencas.length,
+    streakPresenca: seq.atual,
+    maiorSequenciaPresenca: seq.maior,
+    sequencias7,
+    capturaMinutos: Math.round(capturaMinutos),
+    capturaMinutosPremiados,
+    rodadasPerfeitas,
+    seedsCreditadas,
+    xpCreditado,
+    idiomas: new Set(sessoes.map((s) => s.sourceLang).filter((l): l is string => !!l)).size,
     avgStability,
     avgRetention,
     avgRetentionConfidence: Math.min(1, retencoes.length / 20),
@@ -537,6 +645,8 @@ const ROTAS: Array<{ metodo: string; padrao: RegExp; handler: Handler }> = [
   { metodo: 'POST', padrao: /^\/api\/vocab\/([^/]+)\/review$/, handler: revisarCartao },
   { metodo: 'GET', padrao: /^\/api\/metrics\/profile$/, handler: metricas },
   { metodo: 'POST', padrao: /^\/api\/metrics\/seeds\/gastar$/, handler: gastarSeeds },
+  { metodo: 'POST', padrao: /^\/api\/metrics\/seeds\/creditar$/, handler: creditarSeeds },
+  { metodo: 'POST', padrao: /^\/api\/metrics\/presenca$/, handler: registrarPresenca },
   { metodo: 'POST', padrao: /^\/api\/exercises\/rodada$/, handler: gravarRodada },
   { metodo: 'POST', padrao: /^\/api\/exercises\/results$/, handler: gravarResultado },
   { metodo: 'GET', padrao: /^\/api\/exercises\/results$/, handler: listarResultados },

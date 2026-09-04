@@ -1,0 +1,17 @@
+id: locale-cravado
+valid:
+  # Os helpers que seguem o idioma da interface.
+  - 'const s = numero(total)'
+  - 'const s = data(quando)'
+  - 'const s = moeda(centavos / 100, "BRL")'
+  # Locale do runtime (não cravado) é decisão diferente, e legítima.
+  - 'const s = n.toLocaleString()'
+  - 'const s = d.toLocaleDateString(idiomaDaInterface())'
+invalid:
+  # O caso que fazia o americano ler 2.733 como 2,733.
+  - 'const s = total.toLocaleString("pt-BR")'
+  # Com opções — a primeira versão da migração esqueceu esta forma.
+  - 'const s = n.toLocaleString("pt-BR", { minimumFractionDigits: 1 })'
+  # Datas: 03/09 e 09/03 são dias diferentes e ambos parecem certos.
+  - 'const s = d.toLocaleDateString("pt-BR")'
+  - 'const s = d.toLocaleTimeString("pt-BR")'

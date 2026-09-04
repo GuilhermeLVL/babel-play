@@ -229,7 +229,7 @@ export default function Onboarding({ onComplete }: { onComplete: () => void }) {
                 />
               );
             })}
-            <span className="ml-2 text-[11px] font-mono text-ink-faint tabular-nums">
+            <span className="ms-2 text-[11px] font-mono text-ink-faint tabular-nums">
               {PROGRESS_STEPS.indexOf(step) + 1} de {PROGRESS_STEPS.length}
             </span>
           </div>
@@ -281,7 +281,7 @@ export default function Onboarding({ onComplete }: { onComplete: () => void }) {
                     type="button"
                     onClick={() => chooseProfile(opt.id)}
                     aria-pressed={active}
-                    className={`w-full flex items-start gap-3.5 p-4 rounded-xl border-2 text-left cursor-pointer transition-colors ${
+                    className={`w-full flex items-start gap-3.5 p-4 rounded-xl border-2 text-start cursor-pointer transition-colors ${
                       active
                         ? 'border-accent bg-accent-soft'
                         : 'border-border-subtle bg-canvas hover:border-accent'
@@ -370,7 +370,7 @@ export default function Onboarding({ onComplete }: { onComplete: () => void }) {
               <button
                 onClick={chooseLocal}
                 disabled={busyLocal}
-                className="text-left p-6 rounded-2xl border-2 border-border-subtle bg-surface hover:border-accent transition-all disabled:opacity-60 cursor-pointer"
+                className="text-start p-6 rounded-2xl border-2 border-border-subtle bg-surface hover:border-accent transition-all disabled:opacity-60 cursor-pointer"
               >
                 <div className="flex items-center gap-2 mb-2 text-accent"><HardDrive className="w-5 h-5" /><span className="font-bold">Rodar local</span></div>
                 <p className="text-[13px] text-ink-muted leading-relaxed">
@@ -382,7 +382,7 @@ export default function Onboarding({ onComplete }: { onComplete: () => void }) {
 
               <button
                 onClick={() => setStep('cloud')}
-                className="text-left p-6 rounded-2xl border-2 border-border-subtle bg-surface hover:border-accent transition-all cursor-pointer"
+                className="text-start p-6 rounded-2xl border-2 border-border-subtle bg-surface hover:border-accent transition-all cursor-pointer"
               >
                 <div className="flex items-center gap-2 mb-2 text-accent"><Cloud className="w-5 h-5" /><span className="font-bold">Usar minha chave (nuvem)</span></div>
                 <p className="text-[13px] text-ink-muted leading-relaxed">

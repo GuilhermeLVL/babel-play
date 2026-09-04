@@ -64,8 +64,14 @@ describe('entitlements do cliente', () => {
     vi.stubGlobal('fetch', vi.fn(async () => { throw new Error('rede') }))
     expect((await carregarEntitlements()).youtubeImport).toBe(true)
 
+    /* CONTRATO NOVO (mudança planos-essencial): plano desconhecido NÃO descarta mais a resposta.
+       O comportamento antigo jogava fora as flags VERDADEIRAS que vieram junto — um cliente antigo
+       diante do plano `essencial` recém-lançado fecharia tudo. Agora só o rótulo degrada
+       (`free`); as flags do servidor valem, porque a autoridade é ele. */
     vi.stubGlobal('fetch', vi.fn(async () => resposta({ plan: 'deus', youtubeImport: true })))
-    expect((await carregarEntitlements()).plan).toBe('pro')
+    const comPlanoDesconhecido = await carregarEntitlements()
+    expect(comPlanoDesconhecido.plan).toBe('free')
+    expect(comPlanoDesconhecido.youtubeImport).toBe(true)
   })
 
   it('cache durável sobrevive ao recarregar o módulo, mas só se tiver a forma certa', async () => {

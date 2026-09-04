@@ -7,9 +7,11 @@ import { fluenciaDoBaralho, rotuloDeFluencia, RETENCAO_DE_DOMINIO, MIN_CARTOES_P
 import type { VocabCard } from '../../../types';
 import type { DerivedProgress } from '../../../lib/progress';
 import type { AgeProfileType } from '../../../lib/profile';
+import { palavraDeNivel } from '../../../lib/galeria/textos';
 import FaixaDeProgresso from '../../progress/FaixaDeProgresso';
 import { Barra, Ladrilho } from '../../ui';
 import { Confianca, rotuloDaBase } from '../../Honestidade';
+import { data, numero } from '../../../lib/i18n';
 
 /**
  * O PROGRESSO — nível, a curva no tempo, e a fluência estimada.
@@ -50,7 +52,7 @@ export default function AbaProgresso({ progress, ageProfile }: AbaProgressoProps
 
   const serie = useMemo(() => (historico?.pontos ?? []).map(p => ({
     ...p,
-    rotulo: new Date(p.em).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }),
+    rotulo: data(new Date(p.em), { day: '2-digit', month: 'short' }),
   })), [historico]);
 
   return (
@@ -116,7 +118,7 @@ export default function AbaProgresso({ progress, ageProfile }: AbaProgressoProps
                   {historico!.marcos.slice(-6).map(m => (
                     <li key={`${m.em}-${m.nivel}`} className="kpi-pill cursor-default">
                       <Trophy className="w-3 h-3 text-good" aria-hidden />
-                      nível {m.nivel} · {new Date(m.em).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: '2-digit' })}
+                      {palavraDeNivel().toLowerCase()} {m.nivel} · {data(new Date(m.em), { day: '2-digit', month: 'short', year: '2-digit' })}
                     </li>
                   ))}
                 </ul>
@@ -174,10 +176,10 @@ export default function AbaProgresso({ progress, ageProfile }: AbaProgressoProps
                         rotuloAcessivel={`Retenção do ${f.nivel}`}
                         className="flex-1"
                       />
-                      <span className="text-[12px] font-mono tabular-nums w-12 text-right text-ink">
+                      <span className="text-[12px] font-mono tabular-nums w-12 text-end text-ink">
                         {f.retencao === null ? '-' : `${Math.round(f.retencao * 100)}%`}
                       </span>
-                      <span className="text-[11px] text-ink-faint w-32 text-right hidden sm:block">
+                      <span className="text-[11px] text-ink-faint w-32 text-end hidden sm:block">
                         {/* Sem evidência, diz o que falta — não deixa o traço sem explicação. */}
                         {f.retencao === null
                           ? `${f.medidos} de ${MIN_CARTOES_POR_FAIXA} revisadas`
@@ -194,7 +196,7 @@ export default function AbaProgresso({ progress, ageProfile }: AbaProgressoProps
                 </p>
                 {fluencia.semNivel > 0 && (
                   <p className="text-[11px] text-ink-faint">
-                    {fluencia.semNivel.toLocaleString('pt-BR')} palavras ficaram de fora porque não
+                    {numero(fluencia.semNivel)} palavras ficaram de fora porque não
                     estão na lista de níveis conferidos, elas não foram chutadas para faixa nenhuma.
                   </p>
                 )}
@@ -208,7 +210,7 @@ export default function AbaProgresso({ progress, ageProfile }: AbaProgressoProps
       <section>
         <h2 className="font-display font-bold text-lg text-ink mb-4">O que você acumulou</h2>
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-          <Ladrilho valor={progress.available ? progress.level : null} rotulo="nível atual" tom="accent" />
+          <Ladrilho valor={progress.available ? progress.level : null} rotulo={`${palavraDeNivel().toLowerCase()} atual`} tom="accent" />
           <Ladrilho valor={progress.available ? historico?.xpTotal ?? null : null} rotulo="XP no total" />
           <Ladrilho valor={progress.available ? progress.streakDays : null} rotulo="dias seguidos" tom={progress.streakDays > 0 ? 'warn' : 'ink'} />
           <Ladrilho valor={progress.available ? progress.seeds : null} rotulo="seeds" tom="good" nota={`${progress.seedsGanhas} ganhas no total`} />

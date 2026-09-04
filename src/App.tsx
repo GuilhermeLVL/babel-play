@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef, Suspense, lazy } from 'react';
+import React, { useState, useEffect, useMemo, useRef, Suspense } from 'react';
 import { EDICAO_LEVE } from './lib/edicao';
 import OnboardingLeve from './components/OnboardingLeve';
 import LayoutEditorToolbar from './components/LayoutEditorToolbar';
@@ -9,38 +9,44 @@ import Hub from './components/views/Hub'; // tela inicial, eager p/ primeiro pai
 // bundle de arranque (~1,9 MB) — incluindo o onnxruntime-web/VAD (Captura), o recharts (Métricas) e o
 // gateway/offlineTranscribe (Análise/Biblioteca), pesos que só importam quando você abre aquela tela.
 // Agora cada view puxa o seu chunk quando aberta → app leve e dinâmica.
-const LiveCapture = lazy(() => import('./components/views/LiveCapture'));
-const Library = lazy(() => import('./components/views/Library'));
-const Analysis = lazy(() => import('./components/views/Analysis'));
-const Settings = lazy(() => import('./components/views/Settings'));
-const Metrics = lazy(() => import('./components/views/Metrics'));
-const Play = lazy(() => import('./components/views/Play'));
-const IChat = lazy(() => import('./components/IChat'));
-const LayoutStudio = lazy(() => import('./components/LayoutStudio'));
-const Perfil = lazy(() => import('./components/views/Perfil'));
-const Sobre = lazy(() => import('./components/views/Sobre'));
-const Loja = lazy(() => import('./components/views/Loja'));
-const Login = lazy(() => import('./components/Login'));
-const ResetPassword = lazy(() => import('./components/auth/ResetPassword'));
+import { lazyComRecarga } from './lib/lazyComRecarga';
+const LiveCapture = lazyComRecarga(() => import('./components/views/LiveCapture'));
+const Library = lazyComRecarga(() => import('./components/views/Library'));
+const Analysis = lazyComRecarga(() => import('./components/views/Analysis'));
+const Settings = lazyComRecarga(() => import('./components/views/Settings'));
+const Metrics = lazyComRecarga(() => import('./components/views/Metrics'));
+const Play = lazyComRecarga(() => import('./components/views/Play'));
+const IChat = lazyComRecarga(() => import('./components/IChat'));
+const LayoutStudio = lazyComRecarga(() => import('./components/LayoutStudio'));
+const Perfil = lazyComRecarga(() => import('./components/views/Perfil'));
+const Planos = lazyComRecarga(() => import('./components/views/Planos'));
+const Sobre = lazyComRecarga(() => import('./components/views/Sobre'));
+const Loja = lazyComRecarga(() => import('./components/views/Loja'));
+const Login = lazyComRecarga(() => import('./components/Login'));
+const ResetPassword = lazyComRecarga(() => import('./components/auth/ResetPassword'));
 // O tour de boas-vindas só existe para quem AINDA não passou por ele (`onboarded === false`) —
 // para todo mundo mais era peso morto no arranque (25 kB de fonte no chunk de entrada). Enquanto
 // `onboarded` é `null` a tela já mostrava "Carregando…", então o fallback do Suspense abaixo é a
 // mesma pintura que o usuário via antes: nada muda na tela, só o momento do download.
-const Onboarding = lazy(() => import('./components/Onboarding'));
+const Onboarding = lazyComRecarga(() => import('./components/Onboarding'));
 import { ViewType, Recording } from './types';
 import { askNavGuard } from './lib/navGuard';
+import { desbloqueado } from './lib/desbloqueios';
 import FloatingScoreLayer from './components/FloatingScoreLayer';
 import BuscaGlobal from './components/BuscaGlobal';
 import { useCommandPalette } from './components/CommandPalette';
 import type { PracticeSeed } from './lib/sentences';
-import { fetchSessions, fetchSettings, fetchMetrics, patchUiSettings, type AppMetrics } from './data/api';
+import { fetchSessions, fetchSettings, fetchMetrics, fetchRecordes, patchUiSettings, type AppMetrics, type RecordeDoJogo } from './data/api';
+import { registrarPresencaHoje } from './lib/presenca';
+import { montarContextoDeConquistas, verificarConquistas } from './lib/conquistas';
+import type { ContextoDeConquistas } from '@core';
 import Toaster, { toast } from './components/Toast';
 import { PROFILE_KEY, CREDENTIAL_KEY, MODE_KEY } from './gateway/activeProfile';
 import type { ThemeType, FonteType } from './lib/appearance';
 import { readTheme, readDarkMode, readFonte, hydrateTheme, persistTheme } from './lib/theme';
 import { carregarSupabase, authRequired } from './lib/supabase';
 import { carregarEntitlements, limparEntitlements } from './lib/entitlements';
-import { armarIdentidade, definirIdentidade, estaAnonimo, aoMudarIdentidade } from './lib/identidade';
+import { armarIdentidade, definirIdentidade, estaAnonimo, aoMudarIdentidade, estadoDeIdentidade } from './lib/identidade';
 import { EVENTO_EXIGE_CONTA } from './data/efemero/servidor';
 import { aceitarAnonimo, anonimoAceito, exigeConta, motivoDoGate, porta } from './components/conta/exigeConta';
 import CartaoDeConvite from './components/conta/CartaoDeConvite';
@@ -52,13 +58,20 @@ import StudioHeader, { type AgeProfileType, type MenuPositionType, type FontScal
 import MobileNav from './components/shell/MobileNav';
 import MobileTopBar from './components/shell/MobileTopBar';
 import ParticleCanvas from './components/ParticleCanvas';
+import { useIdiomaDaInterfaceSeguindoOPerfil } from './lib/langConfig';
 import { setSoundMuted, play } from './lib/soundFx';
 import { installSfxDelegate } from './lib/sfxDelegate';
 import { instalarRastroDoMouse } from './lib/rastroDoMouse';
 import { deriveProgress } from './lib/progress';
-import { recompensasDoNivel, rotuloDaRecompensa, ativarLiberacaoTotal, liberadoTudo } from './lib/desbloqueios';
+import { ativarLiberacaoTotal, liberadoTudo } from './lib/desbloqueios';
+import { recompensasDoNivelCompleto, itemDaConquista } from './lib/galeria/progressao';
+import { equiparItem, type ContextoDeEquipar } from './lib/galeria/equipar';
+import RecompensaDesbloqueada, { recompensasVistas, chaveDaRecompensa, type Recompensa } from './components/RecompensaDesbloqueada';
 import { comemorar } from './lib/juice';
 import { isAgeProfile, readAgeProfile, readStoredEnum, readStoredValue } from './lib/profile';
+import { hidratarPosse } from './lib/loja';
+import { hidratarCromas } from './lib/galeria/cromas';
+import { hidratarAprimoramentos } from './lib/aprimoramentos';
 import { emitBurst } from './lib/effects';
 import { isOnAuthCallback, clearAuthCallbackUrl } from './lib/authCallback';
 import { lerUrlAtual, publicarUrl, type ViewDeRota, type EstadoDeRota } from './lib/rotas';
@@ -67,6 +80,10 @@ const MENU_POSITION_KEY = 'babel.menu_position';
 const MENU_POSITIONS: readonly MenuPositionType[] = ['top', 'bottom', 'left', 'right'];
 
 export default function App() {
+  /* A interface acompanha "meu idioma" do perfil — um lugar só, no topo, para não haver tela que
+     troque e tela que não. Ver `useIdiomaDaInterfaceSeguindoOPerfil`. */
+  useIdiomaDaInterfaceSeguindoOPerfil();
+
   const [activeView, setActiveView] = useState<ViewType>('hub');
   const [recordings, setRecordings] = useState<Recording[]>([]);
   const [selectedRecordingId, setSelectedRecordingId] = useState<string | null>(null);
@@ -143,7 +160,7 @@ export default function App() {
       // Entrou vindo do modo sem conta, ou entrou com coisas de uma visita anterior neste
       // navegador: oferece subir. Visível, nunca em silêncio.
       if (antes === 'anonimo') setMigracao(true);
-      else void temDadosLocais().then((tem) => { if (tem) setMigracao(true); }).catch(() => { });
+      else void temDadosLocais().then((tem) => { if (tem) setMigracao(true); }).catch(() => {});
     }
   }), []);
   // O servidor em memória avisa quando, sem conta, algo pediu uma rota que só existe com conta.
@@ -200,7 +217,10 @@ export default function App() {
 
   const FONT_SCALE_ORDER: FontScale[] = ['sm', 'md', 'lg', 'xl'];
   const [fontScale, setFontScaleState] = useState<FontScale>(
-    () => readStoredEnum('babel.font_scale', FONT_SCALE_ORDER, 'md')
+    /* O default acompanha o perfil padrão (sênior / Leitura ampliada): 'lg'. O boot direto em
+       senior não passa por `setAgeProfile`, então a sugestão de fonte de lá não roda — o padrão
+       precisa nascer certo aqui. Preferência gravada continua vencendo. */
+    () => readStoredEnum('babel.font_scale', FONT_SCALE_ORDER, 'lg')
   );
 
   /**
@@ -224,6 +244,19 @@ export default function App() {
     };
     document.documentElement.style.fontSize = '100%';
     (document.body.style as unknown as { zoom: string }).zoom = scaleMap[fontScale];
+    /**
+     * O ZOOM PRECISA SER LEGÍVEL PELO CSS — e sem isto o A± estourava a altura do app inteiro.
+     *
+     * `zoom` no `body` escala o pixel CSS, mas as unidades de VIEWPORT (`dvh`/`vh`/`vw`) continuam
+     * resolvendo contra a janela real e só DEPOIS são multiplicadas pelo zoom. A casca usava
+     * `h-dvh`: a 1,3 ela virava 130% da janela. Medido no Termo, a 1,5 numa janela de 893px, o
+     * painel tinha 1250px — e o teclado, que é o último filho, simplesmente ficava fora da tela.
+     *
+     * Publicar a escala como variável deixa o CSS dividir de volta (ver `.h-tela` em index.css).
+     * Fica no `documentElement`, que está FORA do subarvore com zoom: assim o valor lido é o
+     * número puro, e não um número já escalado.
+     */
+    document.documentElement.style.setProperty('--zoom-a', scaleMap[fontScale]);
   }, [fontScale]);
 
   const setFontScale = (next: FontScale) => {
@@ -231,14 +264,15 @@ export default function App() {
     localStorage.setItem('babel.font_scale', next);
   };
 
-  const stepFontScale = (delta: 1 | -1) => {
+  /**
+   * UM botão que CICLA (pedido do dono, 31/08): clique avança a escala e, na máxima, volta à
+   * mínima. Substitui o trio (menos / indicador / mais) — menos alvos no cabeçalho, e o próprio
+   * "A" crescendo mostra onde se está. O salto xl->sm é anunciado pelo aria-label do botão.
+   */
+  const cycleFontScale = () => {
     const idx = FONT_SCALE_ORDER.indexOf(fontScale);
-    const next = FONT_SCALE_ORDER[Math.min(FONT_SCALE_ORDER.length - 1, Math.max(0, idx + delta))];
-    if (next !== fontScale) setFontScale(next);
+    setFontScale(FONT_SCALE_ORDER[(idx + 1) % FONT_SCALE_ORDER.length]);
   };
-
-  const increaseFontScale = () => stepFontScale(1);
-  const decreaseFontScale = () => stepFontScale(-1);
 
   const setAgeProfile = (profile: AgeProfileType) => {
     setAgeProfileState(profile);
@@ -323,6 +357,10 @@ export default function App() {
   /* LIBERACAO TOTAL para demonstracao: `window.babel.liberarTudo()` (ou `.travarTudo()`) no
      console, ou abrir com `?liberar=1`. So destrava cosmeticos (temas/posicoes/estudio). */
   useEffect(() => {
+    /* SÓ EM DESENVOLVIMENTO (2026-08-28): na versão publicada este atalho era um jeito de burlar
+       níveis, Seeds e conquistas. Em produção o objeto e o parâmetro `?liberar` não existem. */
+    const env = (import.meta as unknown as { env?: { DEV?: boolean } }).env;
+    if (!env?.DEV) return;
     (window as unknown as { babel?: unknown }).babel = {
       liberarTudo: () => { ativarLiberacaoTotal(true); location.reload(); },
       travarTudo: () => { ativarLiberacaoTotal(false); location.reload(); },
@@ -368,15 +406,87 @@ export default function App() {
    * Recarrega quando a lista de sessões muda, que é quando o dado de fato envelhece.
    */
   const [metrics, setMetrics] = useState<AppMetrics | null>(null);
+  const [recordes, setRecordes] = useState<RecordeDoJogo[]>([]);
+  /* ECONOMIA v2: além da lista de sessões, uma rodada gravada, uma presença ou um crédito de
+     conquista também envelhecem as métricas — quem faz isso dispara `babel:metricas-mudaram`. */
+  const [versaoDasMetricas, setVersaoDasMetricas] = useState(0);
+  useEffect(() => {
+    const bump = () => setVersaoDasMetricas((v) => v + 1);
+    window.addEventListener('babel:metricas-mudaram', bump);
+    window.addEventListener('babel:conquista', bump);
+    return () => { window.removeEventListener('babel:metricas-mudaram', bump); window.removeEventListener('babel:conquista', bump); };
+  }, []);
   useEffect(() => {
     let alive = true;
-    fetchMetrics()
-      .then((m) => { if (alive) setMetrics(m); })
+    Promise.all([fetchMetrics(), fetchRecordes()])
+      .then(([m, rs]) => {
+        if (!alive) return;
+        setMetrics(m);
+        setRecordes(rs);
+        /* B4: o servidor é a fonte da posse da Loja. COM CONTA ele SUBSTITUI o espelho local
+           (01/09): a união de antes preservava a compra offline e, junto com ela, qualquer id
+           injetado à mão no localStorage — que nunca mais saía. Sem conta a união continua,
+           porque ali o espelho local é a única fonte que existe. */
+        const comConta = estadoDeIdentidade() === 'conta';
+        hidratarPosse(m?.itensComprados, comConta);
+        hidratarCromas(m?.cromasComprados, comConta);
+        hidratarAprimoramentos(m?.aprimoramentos, comConta);
+      })
       .catch(() => { if (alive) setMetrics(null); });
     return () => { alive = false; };
-  }, [recordings.length]);
+  }, [recordings.length, versaoDasMetricas]);
 
   const progress = useMemo(() => deriveProgress(metrics), [metrics]);
+
+  /* PRESENÇA DO DIA — uma vez por dia, no boot. O toast só aparece quando creditou de verdade. */
+  useEffect(() => {
+    void registrarPresencaHoje().then((r) => {
+      if (!r?.creditou) return;
+      toast.ok(r.streak > 1 ? `+${r.seeds} Seeds pela presença · ${r.streak} dias seguidos!` : `+${r.seeds} Seeds pela presença de hoje.`);
+      setVersaoDasMetricas((v) => v + 1);
+    });
+  }, []);
+
+  /* CONQUISTAS — avaliadas a cada métrica nova; o crédito é idempotente no servidor. */
+  const ctxConquistas = useMemo<ContextoDeConquistas | null>(
+    () => (metrics ? montarContextoDeConquistas({ metricas: metrics, nivel: progress.level, recordes }) : null),
+    [metrics, progress.level, recordes],
+  );
+  useEffect(() => {
+    if (!ctxConquistas) return;
+    void verificarConquistas(ctxConquistas).then((novas) => {
+      /* v3: a conquista é ENTREGUE no modal de resgate (com "Equipar agora" no exclusivo), não
+         num toast que some. A fila mostra uma por vez e espera a rodada fechar. */
+      const vistas = recompensasVistas();
+      const entradas: Recompensa[] = novas
+        .map((c): Recompensa => ({ tipo: 'conquista', id: c.id, nome: c.nome, emoji: c.emoji, seeds: c.recompensa.seeds, xp: c.recompensa.xp, item: itemDaConquista(c.id) }))
+        .filter((r) => !vistas.has(chaveDaRecompensa(r)));
+      if (entradas.length) setFilaDeRecompensas((f) => [...f, ...entradas]);
+    });
+  }, [ctxConquistas]);
+
+  /** v3: fila do modal de resgate (nível/conquista) e o contexto único de equipar. */
+  const [filaDeRecompensas, setFilaDeRecompensas] = useState<Recompensa[]>([]);
+  const [lojaAba, setLojaAba] = useState<string | null>(null);
+  /**
+   * PORTA ÚNICA do Estúdio de Layout (brecha B2, spec galeria-gating-fechado): eram cinco
+   * callsites passando `abrirEstudio` cru — a proteção morava só em QUEM
+   * renderizava o botão, e o Estúdio de nível 10 abria por qualquer entrada nova. Agora o gate
+   * mora na porta: fora do nível, diz o que falta em vez de abrir.
+   */
+  const abrirEstudio = () => {
+    const nivelAtual = progress.available ? progress.level : 1;
+    if (!desbloqueado(nivelAtual, 'estudio', 'abrir')) {
+      toast.warn(`O Estúdio de Layout abre no nível 10 — você está no ${nivelAtual}. Ele também está na Loja.`);
+      return;
+    }
+    setIsStudioOpen(true);
+  };
+  // Sem useMemo: os setters são redefinidos a cada render (não são useCallback) e o objeto é barato.
+  const equiparCtx: ContextoDeEquipar = {
+    setTheme, setFonte, setMenuPosition, onOpenStudio: abrirEstudio,
+    nivel: progress.available ? progress.level : 1, saldo: progress.available ? progress.seeds : 0,
+  };
 
   /* SUBIU DE NÍVEL → festa + o que destravou. O último nível visto fica no navegador; na primeira
      visita só registra (ninguém "sobe" para o nível atual). Aparência é recompensa (desbloqueios). */
@@ -387,12 +497,16 @@ export default function App() {
     if (visto === 0) { try { localStorage.setItem('babel.nivel_visto', String(progress.level)); } catch { /* idem */ } return; }
     if (progress.level > visto) {
       try { localStorage.setItem('babel.nivel_visto', String(progress.level)); } catch { /* idem */ }
-      comemorar('subiuNivel', null, { tremer: true });
-      const novidades: string[] = [];
-      for (let n = visto + 1; n <= progress.level; n++) for (const r of recompensasDoNivel(n)) novidades.push(rotuloDaRecompensa(r));
-      toast.ok(novidades.length > 0
-        ? `Nível ${progress.level}! Você destravou: ${novidades.join(', ')}.`
-        : `Nível ${progress.level}! Continue jogando — o próximo desbloqueio vem aí.`);
+      /* v3: cada nível subido vira UMA entrada no modal de resgate, com TUDO que abriu (Loja +
+         galeria — `recompensasDoNivelCompleto`), e "Equipar agora" por item. O toast saiu. */
+      const vistas = recompensasVistas();
+      const entradas: Recompensa[] = [];
+      for (let n = visto + 1; n <= progress.level; n++) {
+        const r: Recompensa = { tipo: 'nivel', nivel: n, itens: recompensasDoNivelCompleto(n) };
+        if (!vistas.has(chaveDaRecompensa(r))) entradas.push(r);
+      }
+      if (entradas.length) setFilaDeRecompensas((f) => [...f, ...entradas]);
+      else comemorar('subiuNivel', null, { tremer: true });
     }
   }, [progress.available, progress.level]);
 
@@ -484,6 +598,8 @@ export default function App() {
       setAnalysisSubTab('reading');
     } else {
       setActiveView(view as ViewType);
+      // v3: Personalizar aceita a aba de destino ("progressao" do fim de rodada, "loja" do cadeado).
+      if (view === 'loja') setLojaAba(typeof data?.aba === 'string' ? data.aba : null);
       // `capture` com `resumeId` retoma uma sessão existente (Biblioteca → "Retomar
       // Captura"). Sem o id, é uma captura nova — limpar, senão a próxima gravação
       // sobrescreveria a sessão retomada anteriormente.
@@ -533,7 +649,7 @@ export default function App() {
     if (isOnAuthCallback()) return; // o callback tem dono; não é rota de tela
     const e = lerUrlAtual();
     if (e.view === 'hub' && window.location.pathname === '/') return;
-    doNavigate(e.subTab === 'study' ? 'study' : e.view, { id: e.sessionId, subTab: e.subTab });
+    doNavigate(e.subTab === 'study' ? 'study' : e.view, { id: e.sessionId, subTab: e.subTab, aba: e.lojaTab });
   }, []);
 
   /* 2) NAVEGAÇÃO → URL. Espelha o estado corrente sempre que ele muda. */
@@ -543,15 +659,16 @@ export default function App() {
       view: (activeView === 'study' || activeView === 'reading' ? 'analysis' : activeView) as ViewDeRota,
       sessionId: activeView === 'analysis' ? (selectedRecordingId ?? recordings[0]?.id ?? undefined) : undefined,
       subTab: activeView === 'analysis' ? (analysisSubTab as EstadoDeRota['subTab']) : undefined,
+      lojaTab: activeView === 'loja' ? ((lojaAba ?? undefined) as EstadoDeRota['lojaTab']) : undefined,
     });
-  }, [activeView, selectedRecordingId, recordings, analysisSubTab]);
+  }, [activeView, selectedRecordingId, recordings, analysisSubTab, lojaAba]);
 
   /* 3) BOTÃO VOLTAR. Sem isto, "voltar" saía do app — era o beco relatado na auditoria.
         Passa pelo `navGuard`: uma captura em andamento ainda pode pedir confirmação. */
   useEffect(() => {
     const aoVoltar = () => {
       const e = lerUrlAtual();
-      navigateTo(e.subTab === 'study' ? 'study' : e.view, { id: e.sessionId, subTab: e.subTab });
+      navigateTo(e.subTab === 'study' ? 'study' : e.view, { id: e.sessionId, subTab: e.subTab, aba: e.lojaTab });
     };
     window.addEventListener('popstate', aoVoltar);
     return () => window.removeEventListener('popstate', aoVoltar);
@@ -583,21 +700,21 @@ export default function App() {
   const selectedRecording = recordings.find(r => r.id === selectedRecordingId) || recordings[0];
 
   // Map sub tabs like reading and study to distinct views for precise iChat context matching
-  const mappedActiveViewForChat = activeView === 'analysis'
+  const mappedActiveViewForChat = activeView === 'analysis' 
     ? (analysisSubTab === 'study' ? 'study' : analysisSubTab === 'reading' ? 'reading' : 'analysis') as ViewType
     : activeView;
 
   // Marco 1: OAuth/recuperação voltando em /auth/callback — aguarda o supabase-js processar a URL.
   if (authRequired && processingCallback) {
-    return <div className="flex h-screen w-full items-center justify-center bg-canvas text-ink-muted text-sm">Concluindo login…</div>;
+    return <div className="flex h-tela w-full items-center justify-center bg-canvas text-ink-muted text-sm">Concluindo login…</div>;
   }
   // Marco 1: porta de login. Só no modo público (authRequired); no local é pulada inteira.
   if (authRequired && session === undefined) {
-    return <div className="flex h-screen w-full items-center justify-center bg-canvas text-ink-muted text-sm">Carregando…</div>;
+    return <div className="flex h-tela w-full items-center justify-center bg-canvas text-ink-muted text-sm">Carregando…</div>;
   }
   if (authRequired && recovery) {
     return (
-      <Suspense fallback={<div className="flex h-screen w-full items-center justify-center bg-canvas text-ink-muted text-sm">Carregando…</div>}>
+      <Suspense fallback={<div className="flex h-tela w-full items-center justify-center bg-canvas text-ink-muted text-sm">Carregando…</div>}>
         <ResetPassword onDone={() => setRecovery(false)} />
         <Toaster />
       </Suspense>
@@ -605,7 +722,7 @@ export default function App() {
   }
   if (porta({ authRequired, temSessao: !!session, anonimoAceito: semContaAceito, pedindoLogin }) === 'login') {
     return (
-      <Suspense fallback={<div className="flex h-screen w-full items-center justify-center bg-canvas text-ink-muted text-sm">Carregando…</div>}>
+      <Suspense fallback={<div className="flex h-tela w-full items-center justify-center bg-canvas text-ink-muted text-sm">Carregando…</div>}>
         <Login onContinuarSemConta={() => { aceitarAnonimo(); setSemContaAceito(true); setPedindoLogin(false); }} />
         <Toaster />
       </Suspense>
@@ -613,11 +730,11 @@ export default function App() {
   }
 
   if (onboarded === null) {
-    return <div className="flex h-screen w-full items-center justify-center bg-canvas text-ink-muted text-sm">Carregando…</div>;
+    return <div className="flex h-tela w-full items-center justify-center bg-canvas text-ink-muted text-sm">Carregando…</div>;
   }
   if (onboarded === false) {
     return (
-      <Suspense fallback={<div className="flex h-screen w-full items-center justify-center bg-canvas text-ink-muted text-sm">Carregando…</div>}>
+      <Suspense fallback={<div className="flex h-tela w-full items-center justify-center bg-canvas text-ink-muted text-sm">Carregando…</div>}>
         {EDICAO_LEVE ? <OnboardingLeve onComplete={() => setOnboarded(true)} /> : <Onboarding onComplete={() => setOnboarded(true)} />}
         <Toaster />
       </Suspense>
@@ -633,13 +750,11 @@ export default function App() {
       nivel={progress.available ? progress.level : 99}
       darkMode={darkMode}
       toggleDarkMode={toggleDarkMode}
-      onOpenStudio={() => setIsStudioOpen(true)}
+      onOpenStudio={abrirEstudio}
       ageProfile={ageProfile}
       setAgeProfile={setAgeProfile}
-      onToggleChat={() => setIsChatOpen((prev) => !prev)}
       fontScale={fontScale}
-      increaseFontScale={increaseFontScale}
-      decreaseFontScale={decreaseFontScale}
+      cycleFontScale={cycleFontScale}
       activeView={activeView}
       onChangeView={navigateTo}
       menuPosition={menuPosition}
@@ -657,10 +772,9 @@ export default function App() {
 
   const mobileControls = {
     theme, setTheme, darkMode, toggleDarkMode,
-    onOpenStudio: () => setIsStudioOpen(true),
+    onOpenStudio: abrirEstudio,
     ageProfile, setAgeProfile,
-    onToggleChat: () => setIsChatOpen((prev) => !prev),
-    fontScale, increaseFontScale, decreaseFontScale,
+    fontScale, cycleFontScale,
     menuPosition, setMenuPosition,
     fonte, setFonte,
     nivel: progress.available ? progress.level : 99,
@@ -681,7 +795,7 @@ export default function App() {
   return (
     // `h-dvh`: com 100vh a raiz cinza (bg-surface) ficava maior que a viewport dinamica e o
     // overflow-hidden cortava o rodape, a "faixa cinza" que escondia conteudo na Captura.
-    <div className="flex flex-col h-dvh w-full bg-surface overflow-hidden relative">
+    <div className="flex flex-col h-tela w-full bg-surface overflow-hidden relative">
       {/* Barra do topo: a de desktop quando a preferência é "topo"; senão, só a do celular. */}
       {menuPosition === 'top' ? shell : <MobileTopBar progress={progress} controls={mobileControls} />}
 
@@ -705,146 +819,168 @@ export default function App() {
           {/* Os números que sobem ("+10", "×3") — camada própria, no topo da árvore, para não
               serem cortados pelo `overflow` de nenhum container de jogo. */}
           <FloatingScoreLayer />
-          <LayoutEditorToolbar />
-          <Suspense fallback={<div className="flex-1 flex items-center justify-center text-ink-muted text-sm">Carregando…</div>}>
-            {!EDICAO_LEVE && anonimo && exigeConta(activeView) && (
-              <CartaoDeConvite view={activeView} onEntrar={() => setPedindoLogin(true)} onVoltar={() => setActiveView('hub')} />
-            )}
-            {activeView === 'hub' && (
-              <Hub onChangeView={navigateTo} recordings={recordings} ageProfile={ageProfile} progress={progress} metrics={metrics} />
-            )}
-            {activeView === 'capture' && (
-              <LiveCapture
-                onSave={handleSaveRecording}
-                onTranscriptChange={setLiveTranscription}
-                resumingRecordingId={resumingRecordingId}
-                recordings={recordings}
-                onChangeView={navigateTo}
-                ageProfile={ageProfile}
-              />
-            )}
-            {activeView === 'library' && (EDICAO_LEVE || !anonimo) && (
-              <Library onChangeView={navigateTo} recordings={recordings} onRecordingsChange={setRecordings} ageProfile={ageProfile} />
-            )}
-            {/* `selectedRecordingId` e NÃO `selectedRecording`: este último cai na gravação mais
+        <LayoutEditorToolbar />
+        <Suspense fallback={<div className="flex-1 flex items-center justify-center text-ink-muted text-sm">Carregando…</div>}>
+          {!EDICAO_LEVE && anonimo && exigeConta(activeView) && (
+            <CartaoDeConvite view={activeView} onEntrar={() => setPedindoLogin(true)} onVoltar={() => setActiveView('hub')} />
+          )}
+          {activeView === 'hub' && (
+            <Hub onChangeView={navigateTo} recordings={recordings} ageProfile={ageProfile} progress={progress} metrics={metrics} />
+          )}
+          {activeView === 'capture' && (
+            <LiveCapture
+              onSave={handleSaveRecording}
+              onTranscriptChange={setLiveTranscription}
+              resumingRecordingId={resumingRecordingId}
+              recordings={recordings}
+              onChangeView={navigateTo}
+              ageProfile={ageProfile}
+            />
+          )}
+          {activeView === 'library' && (EDICAO_LEVE || !anonimo) && (
+            <Library onChangeView={navigateTo} recordings={recordings} onRecordingsChange={setRecordings} ageProfile={ageProfile} />
+          )}
+          {/* `selectedRecordingId` e NÃO `selectedRecording`: este último cai na gravação mais
               recente quando não há id, e o filtro de sessão ligaria sozinho sem ninguém pedir. */}
-            {activeView === 'play' && (
-              <Play
-                onChangeView={navigateTo}
-                ageProfile={ageProfile}
-                progress={progress}
-                metrics={metrics}
-                recording={selectedRecordingId ? selectedRecording : null}
-                seed={practiceSeed}
-              />
-            )}
-            {activeView === 'analysis' && (EDICAO_LEVE || !anonimo) && (
-              <Analysis
-                onChangeView={navigateTo}
-                recording={selectedRecording}
-                allRecordings={recordings}
-                subTab={analysisSubTab}
-                onSubTabChange={setAnalysisSubTab}
-                practiceSeed={practiceSeed}
-                onSeedConsumed={() => setPracticeSeed(null)}
-                ageProfile={ageProfile}
-                /* A aba "Jogos" da sessão monta o mesmo lobby do `<Play>` acima; os números têm de vir
-                   da MESMA fonte, senão nível/ofensiva apareceriam diferentes nas duas telas. */
-                progress={progress}
-                metrics={metrics}
-              />
-            )}
-            {activeView === 'metrics' && (EDICAO_LEVE || !anonimo) && <Metrics recordings={recordings} onChangeView={navigateTo} ageProfile={ageProfile} />}
+          {activeView === 'play' && (
+            <Play
+              onChangeView={navigateTo}
+              ageProfile={ageProfile}
+              progress={progress}
+              metrics={metrics}
+              recording={selectedRecordingId ? selectedRecording : null}
+              seed={practiceSeed}
+            />
+          )}
+          {activeView === 'analysis' && (EDICAO_LEVE || !anonimo) && (
+            <Analysis
+              onChangeView={navigateTo}
+              recording={selectedRecording}
+              allRecordings={recordings}
+              subTab={analysisSubTab}
+              onSubTabChange={setAnalysisSubTab}
+              practiceSeed={practiceSeed}
+              onSeedConsumed={() => setPracticeSeed(null)}
+              ageProfile={ageProfile}
+              /* A aba "Jogos" da sessão monta o mesmo lobby do `<Play>` acima; os números têm de vir
+                 da MESMA fonte, senão nível/ofensiva apareceriam diferentes nas duas telas. */
+              progress={progress}
+              metrics={metrics}
+            />
+          )}
+          {activeView === 'metrics' && (EDICAO_LEVE || !anonimo) && <Metrics recordings={recordings} onChangeView={navigateTo} ageProfile={ageProfile} />}
 
-            {activeView === 'profile' && !anonimo && <Perfil progress={progress} ageProfile={ageProfile} />}
-            {activeView === 'sobre' && <Sobre />}
-            {activeView === 'loja' && (
-              <Loja
-                progress={progress}
-                theme={theme}
-                setTheme={setTheme}
-                fonte={fonte}
-                setFonte={setFonte}
-                menuPosition={menuPosition}
-                setMenuPosition={setMenuPosition}
-                onOpenStudio={() => setIsStudioOpen(true)}
-              />
-            )}
-            {activeView === 'settings' && (
-              <Settings
-                theme={theme}
-                darkMode={darkMode}
-                onOpenStudio={() => setIsStudioOpen(true)}
-                onReplayTour={() => setOnboarded(false)}
-                onAbrirSobre={() => setActiveView('sobre')}
-                nivel={progress.available ? progress.level : 99}
-                ageProfile={ageProfile}
-                setAgeProfile={setAgeProfile}
-                menuPosition={menuPosition}
-                setMenuPosition={setMenuPosition}
-                fontScale={fontScale}
-                setFontScale={setFontScale}
-                soundEnabled={soundEnabled}
-                toggleSound={toggleSound}
-                animationsEnabled={animationsEnabled}
-                toggleAnimations={toggleAnimations}
-                performanceMode={performanceMode}
-                togglePerformanceMode={togglePerformanceMode}
-              />
-            )}
-          </Suspense>
-        </main>
-
-        {/* Menu de prática GLOBAL: selecione texto em qualquer tela → botão direito → praticar.
-          É o que elimina o maior atrito da app, antes, para praticar um trecho, o usuário tinha de
-          sair da tela, achar a Central de Exercícios (que nem view de primeiro nível era) e ainda
-          assim o exercício rodava num texto fixo, não no dele. Agora o conteúdo vai até o exercício. */}
-        {!EDICAO_LEVE && <GateDeConta aberto={gate !== null} motivo={gate ?? ''} onFechar={fecharGate} onEntrar={() => { fecharGate(); setPedindoLogin(true); }} />}
-        {!EDICAO_LEVE && <ModalDeMigracao
-          aberto={migracao}
-          onFechar={() => setMigracao(false)}
-          onMigrou={() => { fetchSessions().then(setRecordings).catch(() => { }); void carregarEntitlements(); }}
-        />}
-
-        <PracticeMenu
-          onChangeView={navigateTo}
-          sessionId={selectedRecording?.id}
-        />
-
-        {/* Overlays globais (chat + estúdio de layout) — lazy: não pesam no primeiro paint. */}
-        <Suspense fallback={null}>
-          {/* Global iChat assistant with layout capabilities */}
-          {/* Tutor iChat depende de /api/gemini/chat: fora da edição leve. */}
-          {!EDICAO_LEVE && <IChat
-            activeView={mappedActiveViewForChat}
-            selectedRecording={selectedRecording}
-            liveTranscription={liveTranscription}
-            onChangeView={navigateTo}
-            isOpen={isChatOpen}
-            setIsOpen={setIsChatOpen}
-            isDocked={isChatDocked}
-            setIsDocked={(docked) => {
-              setIsChatDocked(docked);
-              localStorage.setItem('ichat_docked', docked ? 'true' : 'false');
-            }}
-            isMaximized={isChatMaximized}
-            setIsMaximized={setIsChatMaximized}
-            practiceSeed={practiceSeed?.text}
-            recordings={recordings}
-            ageProfile={ageProfile}
-          />}
-
-          {isStudioOpen && (
-            <LayoutStudio
-              isOpen={isStudioOpen}
-              onClose={() => setIsStudioOpen(false)}
+          {activeView === 'profile' && !anonimo && <Perfil progress={progress} ageProfile={ageProfile} />}
+          {/* Plano e consumo. Diferente do Perfil, aparece TAMBÉM sem conta: é justamente
+              quem não tem conta que precisa saber o que um plano daria. */}
+          {activeView === 'planos' && <Planos />}
+          {activeView === 'sobre' && <Sobre onVerPlanos={(v) => navigateTo(v)} />}
+          {activeView === 'loja' && (
+            <Loja
+              ctxConquistas={ctxConquistas}
+              progress={progress}
               theme={theme}
               setTheme={setTheme}
+              fonte={fonte}
+              setFonte={setFonte}
+              menuPosition={menuPosition}
+              setMenuPosition={setMenuPosition}
+              onOpenStudio={abrirEstudio}
+              ageProfile={ageProfile}
+              setAgeProfile={setAgeProfile}
+              abaInicial={lojaAba}
+              onEntrar={() => setPedindoLogin(true)}
+              aoTrocarDeAba={setLojaAba}
+              equiparCtx={equiparCtx}
+            />
+          )}
+          {/* v3: recompensa entregue na hora — em qualquer tela, esperando a rodada fechar. */}
+          <RecompensaDesbloqueada
+            fila={filaDeRecompensas}
+            onEquipar={(item) => equiparItem(item, equiparCtx)}
+            onFechar={() => setFilaDeRecompensas((f) => f.slice(1))}
+            onVerPersonalizar={() => navigateTo('loja', { aba: 'personalizar' })}
+          />
+          {activeView === 'settings' && (
+            <Settings
+              theme={theme}
               darkMode={darkMode}
-              toggleDarkMode={toggleDarkMode}
+              onOpenStudio={abrirEstudio}
+              onReplayTour={() => setOnboarded(false)}
+              onAbrirSobre={() => setActiveView('sobre')}
+              onChangeView={navigateTo}
+              /* Era 99 enquanto as métricas não chegavam: um clique rápido nos Ajustes abria tudo
+                 como nível 99. Sem métrica, nível 1 — a régua nunca é generosa por engano. */
+              nivel={progress.available ? progress.level : 1}
+              ageProfile={ageProfile}
+              setAgeProfile={setAgeProfile}
+              menuPosition={menuPosition}
+              setMenuPosition={setMenuPosition}
+              fontScale={fontScale}
+              setFontScale={setFontScale}
+              soundEnabled={soundEnabled}
+              toggleSound={toggleSound}
+              animationsEnabled={animationsEnabled}
+              toggleAnimations={toggleAnimations}
+              performanceMode={performanceMode}
+              togglePerformanceMode={togglePerformanceMode}
             />
           )}
         </Suspense>
+      </main>
+
+      {/* Menu de prática GLOBAL: selecione texto em qualquer tela → botão direito → praticar.
+          É o que elimina o maior atrito da app, antes, para praticar um trecho, o usuário tinha de
+          sair da tela, achar a Central de Exercícios (que nem view de primeiro nível era) e ainda
+          assim o exercício rodava num texto fixo, não no dele. Agora o conteúdo vai até o exercício. */}
+      {!EDICAO_LEVE && <GateDeConta aberto={gate !== null} motivo={gate ?? ''} onFechar={fecharGate} onEntrar={() => { fecharGate(); setPedindoLogin(true); }} />}
+      {!EDICAO_LEVE && <ModalDeMigracao
+        aberto={migracao}
+        onFechar={() => setMigracao(false)}
+        onMigrou={() => { fetchSessions().then(setRecordings).catch(() => {}); void carregarEntitlements(); }}
+      />}
+
+      <PracticeMenu
+        onChangeView={navigateTo}
+        sessionId={selectedRecording?.id}
+      />
+
+      {/* Overlays globais (chat + estúdio de layout) — lazy: não pesam no primeiro paint. */}
+      <Suspense fallback={null}>
+        {/* Global iChat assistant with layout capabilities */}
+        {/* Tutor iChat depende de /api/gemini/chat: fora da edição leve. */}
+        {!EDICAO_LEVE && <IChat
+          activeView={mappedActiveViewForChat}
+          selectedRecording={selectedRecording}
+          liveTranscription={liveTranscription}
+          onChangeView={navigateTo}
+          isOpen={isChatOpen}
+          setIsOpen={setIsChatOpen}
+          isDocked={isChatDocked}
+          setIsDocked={(docked) => {
+            setIsChatDocked(docked);
+            localStorage.setItem('ichat_docked', docked ? 'true' : 'false');
+          }}
+          isMaximized={isChatMaximized}
+          setIsMaximized={setIsChatMaximized}
+          practiceSeed={practiceSeed?.text}
+          recordings={recordings}
+          ageProfile={ageProfile}
+        />}
+
+        {isStudioOpen && (
+          <LayoutStudio
+            isOpen={isStudioOpen}
+            onClose={() => setIsStudioOpen(false)}
+            theme={theme}
+            setTheme={setTheme}
+            darkMode={darkMode}
+            toggleDarkMode={toggleDarkMode}
+            nivel={progress.available ? progress.level : 1}
+            saldo={progress.available ? progress.seeds : 0}
+          />
+        )}
+      </Suspense>
 
         {/* O rail da direita fica DEPOIS do chat acoplado, para encostar de fato na borda da tela. */}
         {menuPosition === 'right' && shell}

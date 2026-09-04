@@ -2,7 +2,14 @@
 import { Router } from 'express'
 import { computeProfile, computeXpHistory } from '../db/repositories/metrics'
 import { seedSpendsRepo } from '../db/repositories/seedSpends'
-import { seedSpendSchema, parseOr400, metricsProfileQuerySchema, metricsXpQuerySchema } from '../validation'
+import { economiaRepo } from '../db/repositories/economia'
+import { economiaDoUsuario } from '../db/repositories/metrics'
+import {
+  autorizarGasto, ehRecusa, conquistaDoCreditoId, CONQUISTAS_CONFERIVEIS,
+} from '../../src/core/economiaAutoridade'
+import type { ContextoDeConquistas } from '../../src/core/learning/conquistas'
+import { diaLocal, sequencias } from '../../src/core/learning/economia'
+import { seedSpendSchema, seedCreditSchema, presencaSchema, parseOr400, metricsProfileQuerySchema, metricsXpQuerySchema } from '../validation'
 import { erroDeRota } from '../lib/erroDeRota'
 
 export const metricsRouter = Router()
@@ -46,24 +53,142 @@ metricsRouter.get('/xp', async (req, res) => {
 })
 
 /**
- * Gasta seeds. Fica em `/api/metrics` porque é aqui que o saldo é calculado — separar o débito
- * do lugar que soma daria dois donos para o mesmo número.
+ * GASTA SEEDS — e é aqui que o servidor passou a ser a autoridade sobre o preço.
  *
- * IDEMPOTENTE por `spendId`: reenviar a mesma compra devolve 200 com `jaExistia: true` em vez de
- * cobrar de novo. O cliente não precisa distinguir "deu certo" de "já tinha dado certo" — nos dois
- * casos a compra está paga uma vez só.
+ * O QUE ESTA ROTA FAZIA ATÉ 01/09: gravava o `amount` e o `reason` que o cliente mandasse. Como a
+ * POSSE é derivada do razão (`seed_spends.reason LIKE 'loja:%'`), um POST
+ * `{amount: 1, reason: 'loja:tema-custom'}` entregava o lendário de 600 Seeds por 1 — e o servidor
+ * passava a ATESTAR essa posse em `itensComprados`. Não havia, também, nenhuma conferência de
+ * saldo: dava para gastar o que não se tinha, porque o único guarda era o botão desabilitado na
+ * tela, e um cliente adulterado não tem botão.
  *
- * A resposta traz o saldo recalculado para a tela não ter de pedir as métricas inteiras de volta
- * só para atualizar um número.
+ * AGORA SÃO TRÊS PORTAS, nesta ordem:
+ *   1. o `reason` tem de AUTORIZAR alguma coisa (formato fechado + item existente no catálogo +
+ *      exclusivo de conquista nunca à venda) — `autorizarGasto`, em `core/economiaAutoridade`;
+ *   2. o `amount` tem de ser o preço do catálogo. Divergência é 400 com o preço certo no corpo,
+ *      em vez de cobrar em silêncio um valor diferente do que a tela mostrou;
+ *   3. o saldo tem de pagar — 402 dizendo quanto falta.
+ *
+ * IDEMPOTENTE por `spendId`, como sempre: reenviar a mesma compra devolve 200 com
+ * `jaExistia: true` em vez de cobrar de novo. Por isso a conferência de saldo só roda quando a
+ * compra ainda NÃO foi cobrada: sem essa guarda, quem gastou as últimas 40 Seeds veria o retry da
+ * própria compra ser recusado por saldo insuficiente.
+ *
+ * CORRIDA CONHECIDA: duas compras DIFERENTES em voo ao mesmo tempo podem passar as duas pela
+ * conferência e estourar o saldo em uma delas. Fechar isso exigiria rodar `computeProfile` inteiro
+ * dentro de transação — conexão nova, `synchronous=FULL`, fsync por commit (ver `emTransacao` em
+ * `db.ts`) — e o ganho seria impedir um item além da conta, contra o que a rota permitia antes:
+ * qualquer item por 1 Seed. O ledger continua íntegro e auditável nos dois casos.
  */
 metricsRouter.post('/seeds/gastar', async (req, res) => {
   const payload = parseOr400(seedSpendSchema, req.body, res)
   if (!payload) return
   try {
-    const { linha, jaExistia } = await seedSpendsRepo.debitar(req.userId, payload)
+    const autorizacao = autorizarGasto(payload.reason)
+    if (ehRecusa(autorizacao)) {
+      res.status(400).json({ error: autorizacao.erro })
+      return
+    }
+    if (payload.amount !== autorizacao.preco) {
+      // Preço divergente é sinal de adulteração OU de tela desatualizada depois de uma mudança de
+      // preço. Nos dois casos, recusar e devolver o preço certo é melhor do que cobrar um valor
+      // que a pessoa não viu.
+      res.status(400).json({ error: 'preço divergente do catálogo', preco: autorizacao.preco })
+      return
+    }
+    const jaCobrado = await seedSpendsRepo.jaGastou(req.userId, payload.spendId)
+    if (!jaCobrado) {
+      const { saldo } = await economiaDoUsuario(req.userId)
+      if (saldo < autorizacao.preco) {
+        res.status(402).json({ error: 'saldo insuficiente', falta: autorizacao.preco - saldo, saldo })
+        return
+      }
+    }
+    const { linha, jaExistia } = await seedSpendsRepo.debitar(req.userId, { ...payload, amount: autorizacao.preco })
     const perfil = await computeProfile(req.userId)
     res.json({ jaExistia, gasto: linha.amount, seedsGastas: perfil.seedsGastas })
   } catch (err) {
     res.status(400).json({ error: erroDeRota(err, { event: 'metrics_route_error', route: req.path, requestId: req.requestId }) })
+  }
+})
+
+/**
+ * ECONOMIA v2 (A7) — as duas rotas que o cliente chamava desde 2026-08-28 e que só existiam no
+ * servidor efêmero: na conta logada, TODA conquista falhava com 404 permanente e nunca
+ * desbloqueava. O contrato (payload e resposta) espelha o efêmero, que é a referência em uso.
+ */
+
+/** Presença do dia: idempotente por (usuário, dia local). O `dia` vem do fuso do CLIENTE. */
+metricsRouter.post('/presenca', async (req, res) => {
+  const payload = parseOr400(presencaSchema, req.body, res)
+  if (!payload) return
+  try {
+    const hojeDoServidor = diaLocal(Date.now())
+    const dia = payload.dia ?? hojeDoServidor
+    // Fuso real fica a no máximo 1 dia do servidor; 2 de folga barra dia inventado sem
+    // rejeitar nenhum fuso legítimo. Dia fora da janela = 400, não presença retroativa.
+    if (Math.abs(dia - hojeDoServidor) > 2) {
+      res.status(400).json({ error: 'dia fora da janela aceitável' })
+      return
+    }
+    const { jaExistia } = await economiaRepo.registrarPresenca(req.userId, dia)
+    const { atual } = sequencias(await economiaRepo.diasDePresenca(req.userId), dia)
+    res.json({ jaExistia, dia, streakPresenca: atual })
+  } catch (err) {
+    res.status(500).json({ error: erroDeRota(err, { event: 'metrics_route_error', route: req.path, requestId: req.requestId }) })
+  }
+})
+
+/**
+ * CRÉDITO DE CONQUISTA — o valor vem da REGRA, nunca do corpo.
+ *
+ * O QUE ESTA ROTA FAZIA ATÉ 01/09: creditava o `amount` e o `xp` que o cliente mandasse, com um
+ * `creditoId` que era qualquer string de 8 a 80 caracteres. O Zod só conferia formato, com teto de
+ * 10.000 em cada campo — e o `xp` entra direto no cálculo de nível (`core/learning/xp.ts`), que
+ * destrava o catálogo. Com o teto de escrita de 120 requisições por minuto, isso eram 1,2 milhão
+ * de Seeds e 1,2 milhão de XP por minuto.
+ *
+ * AGORA: o `creditoId` tem de resolver para uma conquista do catálogo, e o que se credita é a
+ * recompensa DELA. E, para as onze conquistas cuja condição o servidor sabe conferir
+ * (`CONQUISTAS_CONFERIVEIS`), a condição é conferida contra os contadores do servidor antes de
+ * creditar — conquista não cumprida é 400.
+ */
+metricsRouter.post('/seeds/creditar', async (req, res) => {
+  const payload = parseOr400(seedCreditSchema, req.body, res)
+  if (!payload) return
+  try {
+    const conquista = conquistaDoCreditoId(payload.creditoId)
+    if (!conquista) {
+      res.status(400).json({ error: 'crédito desconhecido' })
+      return
+    }
+
+    if (CONQUISTAS_CONFERIVEIS.has(conquista.id)) {
+      const { metricas, nivel } = await economiaDoUsuario(req.userId)
+      /* As três chaves que o servidor não sabe preencher (eventos raros, idiomas, recordes) só
+         importam para as conquistas de fora da lista — por isso entram como zero aqui sem falsear
+         nenhuma decisão. */
+      const ctx: ContextoDeConquistas = {
+        metricas, nivel,
+        melhorComboPorJogo: {}, eventosVistos: 0, totalDeEventos: 0, idiomas: 0,
+        compras: metricas.itensComprados?.length ?? 0,
+      }
+      const { atual, meta } = conquista.progresso(ctx)
+      if (atual < meta) {
+        res.status(400).json({ error: 'conquista ainda não cumprida', atual, meta })
+        return
+      }
+    }
+
+    const { jaExistia } = await economiaRepo.creditar(req.userId, {
+      creditoId: payload.creditoId,
+      amount: conquista.recompensa.seeds,
+      xp: conquista.recompensa.xp,
+      reason: `conquista:${conquista.id}`,
+    })
+    const totais = await economiaRepo.totaisCreditados(req.userId)
+    res.json({ jaExistia, ...totais })
+  } catch (err) {
+    res.status(500).json({ error: erroDeRota(err, { event: 'metrics_route_error', route: req.path, requestId: req.requestId }) })
   }
 })

@@ -19,9 +19,16 @@ const SUB: Record<Mode, string> = {
   forgot: 'Enviamos um link de redefinição por e-mail.',
 };
 
-// Social desligado até Google/Facebook estarem configurados no Supabase. Flip p/ true quando ligar
-// (os handlers e o serviço já estão prontos — é só mostrar os botões).
-const SOCIAL_ENABLED = false;
+/**
+ * ENTRAR COM GOOGLE (mudança porta-de-entrada, decisão do dono: e-mail+senha e Google).
+ *
+ * Era uma constante `false` com os handlers já escritos — pronto e desligado. Agora deriva do
+ * ambiente: existe quando existe Supabase configurado, que é a mesma condição que faz a tela
+ * inteira funcionar. Um botão que aparece sem provedor por trás seria pior do que não aparecer.
+ *
+ * FACEBOOK saiu do lançamento por decisão do dono (`src/lib/auth.ts` continua aceitando os dois —
+ * é um botão de voltar, não um retrabalho).
+ */
 
 interface LoginProps {
   /**
@@ -44,7 +51,7 @@ export default function Login({ onContinuarSemConta }: LoginProps = {}) {
 
   function trocaModo(m: Mode) { setModo(m); setErro(null); setAviso(null); }
 
-  async function social(provider: 'google' | 'facebook') {
+  async function social(provider: 'google') {
     setErro(null); setCarregando(true);
     const r = await auth.signInWithProvider(provider, redirectTo);
     if (!r.ok) { setErro(r.message ?? 'Falha no login social.'); setCarregando(false); }
@@ -84,13 +91,11 @@ export default function Login({ onContinuarSemConta }: LoginProps = {}) {
         </p>
       )}
 
-      {SOCIAL_ENABLED && modo !== 'forgot' && (
+      {configurado && modo !== 'forgot' && (
         <>
           <div className="grid gap-2">
-            <button type="button" onClick={() => social('google')} disabled={carregando || !configurado}
+            <button type="button" onClick={() => social('google')} disabled={carregando}
               className="btn-outline w-full justify-center disabled:opacity-50">Continuar com Google</button>
-            <button type="button" onClick={() => social('facebook')} disabled={carregando || !configurado}
-              className="btn-outline w-full justify-center disabled:opacity-50">Continuar com Facebook</button>
           </div>
           <div className="my-5 flex items-center gap-3 text-xs text-ink-faint">
             <span className="h-px flex-1 bg-border-subtle" />ou<span className="h-px flex-1 bg-border-subtle" />
@@ -136,6 +141,12 @@ export default function Login({ onContinuarSemConta }: LoginProps = {}) {
       {onContinuarSemConta && modo !== 'forgot' && (
         <div className="mt-4 text-center">
           <button type="button" onClick={onContinuarSemConta} className="btn-outline w-full justify-center">Continuar sem conta</button>
+          {/* E5 — quem cria conta precisa conseguir LER o que está aceitando, antes de aceitar. */}
+          <p className="text-[11px] text-ink-faint text-center mt-3">
+            Ao criar uma conta você concorda com os{' '}
+            <a href="/termos.html" target="_blank" rel="noopener" className="underline">termos de uso</a> e a{' '}
+            <a href="/privacidade.html" target="_blank" rel="noopener" className="underline">política de privacidade</a>.
+          </p>
           <p className="mt-2 text-[11px] text-ink-faint">Transcreva, traduza e jogue com a sessão atual. Nada sai deste navegador até você criar uma conta.</p>
         </div>
       )}

@@ -19,6 +19,12 @@
   --color-warn: var(--warn);
   --color-warn-soft: var(--warn-soft);
   --color-warn-ink: var(--warn-ink);
+  /* Origem e raridade da economia — ver o bloco :root que os define. */
+  --color-epic: var(--epic);
+  --color-epic-soft: var(--epic-soft);
+  --color-premium: var(--premium);
+  --color-premium-soft: var(--premium-soft);
+  --color-premium-ink: var(--premium-ink);
   --color-rare: var(--rare);
   --color-rare-soft: var(--rare-soft);
   --color-rare-ink: var(--rare-ink);
@@ -529,6 +535,50 @@
     --border-width-card: 1px;
 
     --shadow-card-val: 0 0 0 1px #333333, 0 8px 30px rgba(0,0,0,0.8);
+  }
+
+  /* Theme: Aurora — EXCLUSIVO de conquista ("Constante", 30 dias seguidos). Sempre escuro:
+     noite polar, verde-aurora de acento, violeta de raro. As duas variantes são iguais de
+     propósito — o tema é a noite; não existe "Aurora clara". */
+  [data-theme="aurora"], [data-theme="aurora"].dark, .dark [data-theme="aurora"] {
+    color-scheme: dark;
+    --canvas: #070B14;
+    --surface: #0E1626;
+    --surface-hover: #15203A;
+    --ink: #E6EDF7;
+    --ink-muted: #A7B4C9;
+    --ink-faint: #7C8AA3;
+    --accent: #4ADE80;
+    --accent-soft: rgba(74, 222, 128, 0.14);
+    --accent-ink: #86EFAC;
+    --good: #34D399;
+    --good-soft: rgba(52, 211, 153, 0.12);
+    --warn: #F5D06F;
+    --warn-soft: rgba(245, 208, 111, 0.12);
+    --rare: #A78BFA;
+    --rare-soft: rgba(167, 139, 250, 0.14);
+    --error: #FB7185;
+    --error-soft: rgba(251, 113, 133, 0.14);
+    --border-subtle: #22304A;
+    --accent-contrast: #05240F;
+
+    --ink-contrast: var(--canvas);
+    --good-ink: color-mix(in srgb, var(--good) 55%, var(--ink));
+    --warn-ink: color-mix(in srgb, var(--warn) 55%, var(--ink));
+    --rare-ink: color-mix(in srgb, var(--rare) 60%, var(--ink));
+    --error-ink: color-mix(in srgb, var(--error) 60%, var(--ink));
+    --good-contrast: #062A1B;
+    --warn-contrast: #2A2005;
+    --error-contrast: #2A0810;
+
+    --font-display-val: "Archivo", sans-serif;
+    --font-body-val: "Inter", sans-serif;
+    --font-mono-val: "IBM Plex Mono", monospace;
+    --radius-card: 20px;
+    --radius-btn: 14px;
+    --border-width-card: 1px;
+
+    --shadow-card-val: 0 0 0 1px rgba(74, 222, 128, 0.08), 0 12px 30px rgba(0, 0, 0, 0.45);
   }
 
   /* Theme: Mochi (Parchment & Everforest) */
@@ -1279,6 +1329,22 @@ select optgroup {
   --shell-inset-right: 0px;
   --shell-inset-bottom: 0px;
 }
+
+/* ─────────────── ORIGEM E RARIDADE (economia-legivel-e-moedas) ───────────────
+   Duas cores que os cartões da economia precisavam e não existiam como token — e é por isso que
+   `COR_DA_RARIDADE` carregava hex crus (#4C9AFF, #A66CFF) que brigavam com os 7 temas.
+
+   Estas NÃO variam por tema, de propósito: raridade e moeda comprada são constantes de marca
+   (o "épico roxo" e o "premium dourado-violeta" precisam significar a mesma coisa em qualquer
+   tema, como em todo jogo que usa raridade). As outras origens reusam os tokens semânticos que
+   já existem e JÁ significam isso no app: accent = progressão, good = Seeds, warn = conquista. */
+:root {
+  --epic: #A66CFF;
+  --epic-soft: rgba(166, 108, 255, 0.14);
+  --premium: #8B5CF6;
+  --premium-soft: rgba(139, 92, 246, 0.14);
+  --premium-ink: color-mix(in srgb, var(--premium) 55%, var(--ink));
+}
 /* Abaixo de `md` a dock inferior existe sempre, qualquer que seja a posição escolhida. */
 @media (max-width: 767.98px) {
   :root { --shell-inset-bottom: 60px; }
@@ -1615,3 +1681,27 @@ body.animations-off .hover\:-translate-y-1:hover {
    medido nos screenshots do dono (2026-08-27): FAB da Leitura virando pílula, bolinhas de cor
    viradas ovais. Regra única em vez de caçar shrink-0 em 300 botões. */
 svg.lucide { flex-shrink: 0; }
+
+/* ─────────────── EQUALIZADOR DE GRAVAÇÃO ───────────────
+   Medidor respira por scaleY com ease-in-out — o `animate-bounce` (translateY saltitante)
+   fazia as barras PULAREM, o tique de easing que a auditoria de design aponta (ux-v2 §1.13). */
+@keyframes eq-bar-kf {
+  0%, 100% { transform: scaleY(0.35); }
+  50% { transform: scaleY(1); }
+}
+.eq-bar { transform-origin: bottom; animation: eq-bar-kf 0.9s ease-in-out infinite; }
+.animations-off .eq-bar, .performance-mode .eq-bar { animation: none; transform: scaleY(0.7); }
+
+/*
+ * ALTURA DA JANELA, CORRIGIDA PELO ZOOM DO A±.
+ *
+ * `h-dvh` (= `height: 100dvh`) parece a resposta certa e não é quando existe `body { zoom: N }`:
+ * as unidades de viewport resolvem contra a janela REAL e o resultado é multiplicado pelo zoom
+ * depois. A 1,3 a casca do app ficava 30% mais alta que a tela; a 1,5, medido no Termo numa
+ * janela de 893px, o painel tinha 1250px e o teclado — último filho da coluna — ficava fora da
+ * tela, sem rolagem que o alcançasse (a casca é `overflow-hidden`).
+ *
+ * `--zoom-a` é publicado por `App.tsx` junto com o próprio zoom, no `documentElement`, que está
+ * fora do subarvore escalado. O `1` de reserva mantém isto correto se a variável faltar.
+ */
+.h-tela { height: calc(100dvh / var(--zoom-a, 1)); }

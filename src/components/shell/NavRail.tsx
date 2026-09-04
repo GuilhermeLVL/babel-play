@@ -21,7 +21,7 @@ interface NavRailProps {
  * Rail vertical — a "barra lateral" de verdade.
  *
  * A versão anterior era a barra horizontal torcida com ternários: sem recolher, sem rolagem
- * própria, com `border-r` mesmo quando o menu estava à DIREITA, e sem o `hidden md:` que o
+ * própria, com `border-e` mesmo quando o menu estava à DIREITA, e sem o `hidden md:` que o
  * layout antigo tinha — no celular ela tomava a tela inteira. Cada um desses pontos está
  * resolvido aqui, e a largura é em `px` para não inflar junto com a escala de fonte.
  */
@@ -37,7 +37,7 @@ export default function NavRail({ activeView, onChangeView, ageProfile, side, co
   };
 
   const width = collapsed ? 'w-[68px]' : 'w-[232px]';
-  const border = side === 'right' ? 'border-l' : 'border-r';
+  const border = side === 'right' ? 'border-s' : 'border-e';
 
   // Publica o recuo para os elementos `fixed` (botão flutuante do iChat) — ver index.css.
   useEffect(() => {
@@ -63,7 +63,7 @@ export default function NavRail({ activeView, onChangeView, ageProfile, side, co
             title="Recolher o menu lateral"
             aria-label="Recolher o menu lateral"
             aria-expanded
-            className="ml-auto w-8 h-8 rounded-lg flex items-center justify-center text-ink-muted hover:text-ink hover:bg-surface-hover transition-colors cursor-pointer shrink-0"
+            className="ms-auto w-8 h-8 rounded-lg flex items-center justify-center text-ink-muted hover:text-ink hover:bg-surface-hover transition-colors cursor-pointer shrink-0"
           >
             <PanelLeftClose className={`w-4 h-4 ${side === 'right' ? 'rotate-180' : ''}`} aria-hidden />
           </button>
@@ -92,7 +92,7 @@ export default function NavRail({ activeView, onChangeView, ageProfile, side, co
                 <span
                   aria-hidden
                   className={`absolute top-2 bottom-2 w-1 bg-accent ${
-                    side === 'right' ? 'right-0 rounded-l-full' : 'left-0 rounded-r-full'
+                    side === 'right' ? 'right-0 rounded-s-full' : 'left-0 rounded-e-full'
                   }`}
                 />
               )}

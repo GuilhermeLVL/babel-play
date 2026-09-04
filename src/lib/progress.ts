@@ -73,15 +73,17 @@ export const EMPTY_PROGRESS: DerivedProgress = {
   streakDays: 0,
   practicedToday: false,
   missions: [
-    { id: 'capture', view: 'capture', pending: 0, done: false, rewardXp: PESOS_XP.sessao, rewardSeeds: 0, rewardUnit: 'por gravação' },
+    { id: 'capture', view: 'capture', pending: 0, done: false, rewardXp: PESOS_XP.sessao, rewardSeeds: PESOS_SEEDS.capturaPor5Min, rewardUnit: 'a cada 5 min gravados' },
     { id: 'practice', view: 'study', pending: 0, done: false, rewardXp: PESOS_XP.revisao, rewardSeeds: PESOS_SEEDS.revisaoCerta, rewardUnit: 'por revisão' },
-    { id: 'vocabulary', view: 'metrics', pending: 0, done: false, rewardXp: PESOS_XP.palavraCapturada, rewardSeeds: PESOS_SEEDS.palavraCapturada, rewardUnit: 'por palavra' }
+    { id: 'vocabulary', view: 'metrics', pending: 0, done: false, rewardXp: PESOS_XP.cartao, rewardSeeds: PESOS_SEEDS.cartao, rewardUnit: 'por palavra fichada' }
   ]
 };
 
 export function deriveProgress(metrics: AppMetrics | null | undefined): DerivedProgress {
   if (!metrics) return EMPTY_PROGRESS;
 
+  /* ECONOMIA v2: os campos novos são OPCIONAIS no contrato (a edição completa ainda não os
+     calcula) e entram como zero quando faltam — o número na tela nunca vira NaN. */
   const eventos = {
     sessoes: metrics.sessions,
     palavrasCapturadas: metrics.wordsCaptured,
@@ -89,6 +91,13 @@ export function deriveProgress(metrics: AppMetrics | null | undefined): DerivedP
     revisoesCertas: metrics.correctReviews,
     itensDeJogo: metrics.drillItems ?? 0,
     itensDeJogoCertos: metrics.drillCorrect ?? 0,
+    presencas: metrics.presencas ?? 0,
+    sequencias7: metrics.sequencias7 ?? 0,
+    capturaMinutosPremiados: metrics.capturaMinutosPremiados ?? 0,
+    cartoesCriados: metrics.deckSize ?? 0,
+    rodadasPerfeitas: metrics.rodadasPerfeitas ?? 0,
+    xpCreditado: metrics.xpCreditado ?? 0,
+    seedsCreditadas: metrics.seedsCreditadas ?? 0,
   };
   const xp = xpDeEventos(eventos);
 
@@ -111,12 +120,10 @@ export function deriveProgress(metrics: AppMetrics | null | undefined): DerivedP
       pending: metrics.sessions === 0 ? 1 : 0,
       done: metrics.sessions > 0,
       rewardXp: PESOS_XP.sessao,
-      /* ERA 20, E ERA MENTIRA. Nenhuma regra de ganho dá seeds por gravar: `seedsGanhasDeEventos`
-         só conta palavra capturada (1) e revisão certa (4). O "+20 Seeds" era um número solto que
-         prometia uma recompensa que o sistema nunca creditou. As seeds de uma gravação vêm das
-         PALAVRAS que ela produz, e essa é a missão de vocabulário, aqui a recompensa é o XP. */
-      rewardSeeds: 0,
-      rewardUnit: 'por gravação'
+      /* Economia v2: gravar passou a render Seeds pelo TEMPO (1 a cada 5 min, teto diário) — é o
+         que o sistema de fato credita, então é o que a missão promete. */
+      rewardSeeds: PESOS_SEEDS.capturaPor5Min,
+      rewardUnit: 'a cada 5 min gravados'
     },
     {
       id: 'practice',
@@ -132,9 +139,9 @@ export function deriveProgress(metrics: AppMetrics | null | undefined): DerivedP
       view: 'metrics',
       pending: metrics.newCards,
       done: metrics.newCards === 0,
-      rewardXp: PESOS_XP.palavraCapturada,
-      rewardSeeds: PESOS_SEEDS.palavraCapturada,
-      rewardUnit: 'por palavra'
+      rewardXp: PESOS_XP.cartao,
+      rewardSeeds: PESOS_SEEDS.cartao,
+      rewardUnit: 'por palavra fichada'
     }
   ];
 

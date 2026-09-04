@@ -44,19 +44,29 @@ export const usageCountersRepo = {
    * DENTRO do upsert, então quem perde a corrida simplesmente não afeta linha nenhuma.
    *
    * `cap` deve ser um inteiro finito ≥ 0; não-finito significa ilimitado (não conta).
-   * @returns true se a reserva coube; false se o teto já estava cheio.
+   *
+   * `by` permite reservar VÁRIAS unidades de uma vez — é o que torna possível um teto em segundos
+   * de áudio em vez de em chamadas. Contar chamadas não protege de nada: uma chamada de STT pode
+   * ser 1 segundo ou 25 MB, e o provedor cobra por duração. A reserva continua sendo UMA instrução,
+   * então o teto segue valendo sob concorrência.
+   *
+   * @returns true se a reserva coube INTEIRA; false se não cabia (não reserva parcial — meia
+   * transcrição não serve para ninguém, e cobrar por ela seria pior).
    */
-  async reserve(userId: UserId, metric: string, window: string, cap: number): Promise<boolean> {
+  async reserve(userId: UserId, metric: string, window: string, cap: number, by = 1): Promise<boolean> {
     if (!Number.isFinite(cap)) return true // ilimitado (selfhost) — nem contabiliza
-    if (cap < 1) return false
+    if (by < 1) return true // nada a reservar
+    if (cap < by) return false
     const now = Date.now()
     const r = await db
       .insert(usageCounters)
-      .values({ id: randomUUID(), userId, createdAt: now, updatedAt: now, metric, window, count: 1 })
+      .values({ id: randomUUID(), userId, createdAt: now, updatedAt: now, metric, window, count: by })
       .onConflictDoUpdate({
         target: [usageCounters.userId, usageCounters.metric, usageCounters.window],
-        set: { count: sql`${usageCounters.count} + 1`, updatedAt: now },
-        setWhere: sql`${usageCounters.count} < ${cap}`,
+        set: { count: sql`${usageCounters.count} + ${by}`, updatedAt: now },
+        // `<= cap - by`, e não `< cap`: com by > 1 a segunda forma deixaria a reserva ESTOURAR o
+        // teto (count 99 + 60 segundos passaria por 99 < 100).
+        setWhere: sql`${usageCounters.count} <= ${cap - by}`,
       })
     return r.rowsAffected > 0
   },
@@ -97,10 +107,10 @@ export const usageCountersRepo = {
    * ESTORNA uma reserva que não virou chamada (o provedor falhou depois de reservarmos).
    * Piso em zero: um estorno sem reserva correspondente não pode virar crédito.
    */
-  async refund(userId: UserId, metric: string, window: string): Promise<void> {
+  async refund(userId: UserId, metric: string, window: string, by = 1): Promise<void> {
     await db
       .update(usageCounters)
-      .set({ count: sql`max(0, ${usageCounters.count} - 1)`, updatedAt: Date.now() })
+      .set({ count: sql`max(0, ${usageCounters.count} - ${by})`, updatedAt: Date.now() })
       .where(and(eq(usageCounters.userId, userId), eq(usageCounters.metric, metric), eq(usageCounters.window, window)))
   },
 }

@@ -1,5 +1,5 @@
 import type { CefrLevel } from './contract';
-import { chaveDaPalavra, NIVEIS_CEFR, type DadoTrilha } from './trilha';
+import { chaveDaPalavra, rotuloDaEtapa, NIVEIS_CEFR, type DadoTrilha } from './trilha';
 
 /**
  * ETAPAS DA TRILHA — um caminho com começo, meio e fim, em vez de um nível de 807 palavras.
@@ -116,7 +116,7 @@ export function etapasDoNivel(
       id: `${dado.lang}:${nivel}:${String(ordem).padStart(2, '0')}`,
       nivel,
       ordem,
-      nome: `${nivel} · etapa ${ordem}`,
+      nome: `${rotuloDaEtapa(nivel, dado.escala)} · etapa ${ordem}`,
       subtitulo: rotuloDaFatia(palavras),
       palavras,
     });

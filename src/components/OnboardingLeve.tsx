@@ -18,6 +18,7 @@ import LangPicker from './LangPicker';
 import { DEFAULT_LANG_CONFIG, saveLangConfig } from '../lib/langConfig';
 import { patchUiSettings } from '../data/api';
 import { CRIADOR, preenchido } from '../lib/criador';
+import { t } from '../lib/i18n';
 
 export type ObjetivoLeve = 'jogos' | 'estudos' | 'trabalho';
 
@@ -96,7 +97,7 @@ export default function OnboardingLeve({ onComplete }: { onComplete: () => void 
               Depois, em Ajustes → Ajuda e recomeço, tem a tela "Sobre" com contato e como apoiar o projeto.
             </p>
             <button type="button" onClick={() => setPasso(2)} className="btn-ink w-full justify-center mt-6">
-              Vamos lá <ArrowRight className="w-4 h-4 ml-1" />
+              Vamos lá <ArrowRight className="w-4 h-4 ms-1" />
             </button>
           </div>
         ) : (
@@ -119,13 +120,13 @@ export default function OnboardingLeve({ onComplete }: { onComplete: () => void 
                     role="radio"
                     aria-checked={objetivo === o.id}
                     onClick={() => setObjetivo(o.id)}
-                    className={`flex items-center gap-3 rounded-xl border p-3 text-left transition-colors cursor-pointer ${
+                    className={`flex items-center gap-3 rounded-xl border p-3 text-start transition-colors cursor-pointer ${
                       objetivo === o.id ? 'border-accent bg-accent-soft' : 'border-border-subtle bg-canvas hover:border-accent'
                     }`}
                   >
                     <span className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${objetivo === o.id ? 'bg-accent text-white' : 'bg-surface text-ink-muted'}`}>{o.icone}</span>
                     <span className="min-w-0">
-                      <span className="block font-bold text-[13.5px] text-ink">{o.titulo}</span>
+                      <span className="block font-bold text-[13.5px] text-ink">{t(o.titulo)}</span>
                       <span className="block text-[12px] text-ink-muted leading-snug">{o.sub}</span>
                     </span>
                   </button>
@@ -134,7 +135,7 @@ export default function OnboardingLeve({ onComplete }: { onComplete: () => void 
             </section>
 
             <button type="button" onClick={concluir} disabled={salvando} className="btn-ink w-full justify-center mt-7 disabled:opacity-60">
-              {salvando ? 'Salvando…' : 'Começar'} <ArrowRight className="w-4 h-4 ml-1" />
+              {salvando ? 'Salvando…' : 'Começar'} <ArrowRight className="w-4 h-4 ms-1" />
             </button>
           </div>
         )}

@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Ticket, RefreshCw, X } from 'lucide-react';
+import { LayoutGrid, RefreshCw, X } from 'lucide-react';
 import { buildCartela, marcarFala, linhasCompletas, cartelaCheia, LADO_CARTELA, type CasaBingo } from '@core';
 import { fetchDeck } from '../../data/api';
 import type { AgeProfileType } from '../../lib/profile';
@@ -78,7 +78,7 @@ export default function BingoPanel({ falas, ageProfile, onClose }: BingoPanelPro
     <section ref={painelRef} className="bg-surface border border-border-subtle rounded-2xl p-4 shadow-card">
       <header className="flex items-center justify-between mb-3">
         <span className="text-xs font-bold tracking-wider text-ink-muted uppercase flex items-center gap-2">
-          <Ticket className="w-4 h-4 text-accent" aria-hidden />
+          <LayoutGrid className="w-4 h-4 text-accent" aria-hidden />
           {ageProfile === 'kids' ? 'Bingo das palavras' : 'Bingo da escuta'}
         </span>
         <span className="flex items-center gap-1">

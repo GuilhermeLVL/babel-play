@@ -16,9 +16,12 @@ afterAll(async () => { await h.cleanup() })
 afterEach(() => { delete process.env.AUTH_REQUIRED; delete process.env.PRO_MONTHLY_MANAGED_CALLS })
 
 describe('usageQuota', () => {
-  it('capForPlan: selfhost ∞, pro do env (default 1000), free 0', () => {
+  it('capForPlan: selfhost ∞, pro do env (default 12.000), free 0', () => {
     expect(quota.capForPlan('selfhost')).toBe(Infinity)
-    expect(quota.capForPlan('pro')).toBe(1000)
+    /* Era 1.000, e isso entregava ~50 MINUTOS de conversa por mês: três rotas dividem este contador
+       e cada fala ao microfone gasta DUAS chamadas (transcrever + traduzir). 12.000 ≈ 6.000 falas
+       ≈ 10 h — o perfil do usuário pesado, ~US$ 0,64/mês ao preço medido. */
+    expect(quota.capForPlan('pro')).toBe(12_000)
     process.env.PRO_MONTHLY_MANAGED_CALLS = '3'
     expect(quota.capForPlan('pro')).toBe(3)
     expect(quota.capForPlan('free')).toBe(0)

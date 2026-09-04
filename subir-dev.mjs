@@ -32,6 +32,10 @@ const filho = spawn(process.execPath, ['node_modules/tsx/dist/cli.mjs', 'server.
   env: {
     ...process.env,
     // Sem isto a app renderiza <Login/> e mais nada (App.tsx), e não há conta para entrar.
+    /* A PORTA PRECISA IR JUNTO. A mensagem acima anuncia a PORTA, mas ela não era repassada ao
+       filho: o servidor caía no padrão 3000 e quem seguisse o texto abriria uma porta vazia. E o
+       cache dos modelos no navegador é POR PORTA — trocar de porta faz baixar o Whisper de novo. */
+    PORT: PORTA,
     VITE_AUTH_REQUIRED: '0',
     VITE_SUPABASE_URL: '',
     VITE_SUPABASE_ANON_KEY: '',

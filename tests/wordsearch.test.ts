@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { buildGrid, matchSelection, cellsBetween, normalizarPalavra } from '../src/core/minigames/wordsearch';
+import { buildGrid, matchSelection, cellsBetween, normalizarPalavra, entraNaGrade } from '../src/core/minigames/wordsearch';
 import type { MinigameItem } from '../src/core/minigames/types';
 
 const item = (answer: string, prompt = 'pista'): MinigameItem => ({ answer, prompt, lang: 'en' });
@@ -69,6 +69,30 @@ describe('buildGrid', () => {
   it('ignora palavras de uma letra só', () => {
     const g = buildGrid([item('a'), item('house')], { seed: 1 });
     expect(g.colocadas.every(p => p.palavra.length >= 2)).toBe(true);
+  });
+
+  /**
+   * S2/S3 — palavra descartada pelo alfabeto NÃO SOME EM SILÊNCIO: entra em `naoCouberam`, que é
+   * o contrato que `WordSearchGame.tsx:38` já espera (`jogaveis` = quem não está lá). Antes, o
+   * `filter` descartava ANTES de `naoCouberam` existir, e a pista ficava listada sem palavra
+   * nenhuma na grade — a única saída era Revelar tudo, nota 1 no FSRS inteiro, em silêncio.
+   */
+  it('palavra de alfabeto não-latino (japonês) é REPORTADA em naoCouberam, não some', () => {
+    const g = buildGrid([item('house'), item('食べる'), item('water')], { seed: 4 });
+    expect(g.naoCouberam).toContain(1);
+    expect(g.colocadas.map(p => p.itemIndex).sort()).toEqual([0, 2]);
+  });
+});
+
+describe('entraNaGrade — a MESMA verdade que o filter de buildGrid usava só internamente', () => {
+  it('palavra latina de 2+ letras entra', () => {
+    expect(entraNaGrade('casa')).toBe(true);
+  });
+  it('palavra japonesa não entra — normalizarPalavra a reduz a string vazia', () => {
+    expect(entraNaGrade('食べる')).toBe(false);
+  });
+  it('uma letra só não entra', () => {
+    expect(entraNaGrade('a')).toBe(false);
   });
 });
 

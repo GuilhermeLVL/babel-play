@@ -1,0 +1,43 @@
+
+===== 12 — normalização e idioma das frases =====
+(a) NORMALIZAÇÃO — a chave do verificar.mjs sobre o vocabulário real:
+lang  palavras  mudam na chave  colisões  glosas  glosas sem palavra correspondente
+----  --------  --------------  --------  ------  ---------------------------------
+ar        5148     987 (19.2%)         0     514                                  0
+de        5758    2971 (51.6%)         0    2817                                  0
+en        2784        0 (0.0%)         0       0                                  0
+es        5727     958 (16.7%)         0    2099                                  0
+fr        5752    1187 (20.6%)         0    3361                                  0
+he        5712        0 (0.0%)         0     769                                  0
+hi        3010       13 (0.4%)         0     321                                  0
+it        5780      138 (2.4%)         0    2404                                  0
+ja        5947      412 (6.9%)         0    1521                                  0
+ko        5973   5972 (100.0%)         0     418                                  0
+nl        5834       68 (1.2%)         0    2058                                  0
+pl        5747    2062 (35.9%)         0    1004                                  0
+ru        5761      504 (8.7%)         0    1931                                  0
+sv        5727    1666 (29.1%)         0    1305                                  0
+tr        5787    1704 (29.4%)         0     748                                  0
+zh        5221        0 (0.0%)         0    1026                                  0
+
+Colisões (duas palavras distintas viram a mesma chave): nenhuma em nenhum idioma.
+
+(b) FRASES DE EXEMPLO FORA DA ESCRITA DO IDIOMA:
+lang  frases  fora da escrita  taxa
+----  ------  ---------------  ----
+ar      4276                0  0.0%
+de      5370                0  0.0%
+en      2552                0  0.0%
+es      5163                0  0.0%
+fr      5340                0  0.0%
+he      4967                0  0.0%
+hi       246                0  0.0%
+it      5302                0  0.0%
+ja      5181                0  0.0%
+ko      3234                0  0.0%
+nl      4968                0  0.0%
+pl      5208                0  0.0%
+ru      5513                0  0.0%
+sv      4484                0  0.0%
+tr      5184                0  0.0%
+zh      4859                0  0.0%

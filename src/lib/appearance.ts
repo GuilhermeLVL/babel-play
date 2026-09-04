@@ -5,7 +5,9 @@
  * tipo não dependa de um componente — `lib/theme.ts`, `EditablePanel` e o
  * `LayoutStudio` precisam dele sem arrastar a sidebar junto.
  */
-export type ThemeType = 'babel' | 'linear' | 'vercel' | 'mochi' | 'notion' | 'premium' | 'custom';
+/* `aurora` é o tema EXCLUSIVO de conquista (economia v2): não está no catálogo de níveis nem tem
+   preço; só quem fez a conquista "Constante" (30 dias seguidos) consegue equipar. */
+export type ThemeType = 'babel' | 'linear' | 'vercel' | 'mochi' | 'notion' | 'premium' | 'aurora' | 'custom';
 
 /** Temas que um PAINEL isolado pode assumir (sem `custom`, que é global). */
 export type PanelThemeType = Exclude<ThemeType, 'custom'>;
@@ -79,6 +81,12 @@ export const THEME_OPTIONS: ThemeOption[] = [
     name: 'Instrument Premium',
     desc: 'Dark premium: camadas profundas teal→navy, brilho e metal sutis.',
     swatches: { canvas: '#05090D', surface: '#0D1720', accent: '#2DD4BF', ink: '#E9F2F0' }
+  },
+  {
+    id: 'aurora',
+    name: 'Aurora',
+    desc: 'Exclusivo de conquista: noite polar com verde-aurora e violeta.',
+    swatches: { canvas: '#070B14', surface: '#0E1626', accent: '#4ADE80', ink: '#E6EDF7' }
   },
   {
     id: 'custom',

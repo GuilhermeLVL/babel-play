@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Política de Privacidade — Babel Play</title>
+  <meta name="description" content="O que o Babel Play processa no seu navegador, o que vai para o servidor em cada plano, e como exportar ou excluir tudo." />
+  <style>
+    :root { color-scheme: light dark; --ink: #1a1a1a; --muted: #555; --bg: #fafaf8; --panel: #fff; --border: #e4e2dd; --accent: #7c5cff; }
+    @media (prefers-color-scheme: dark) { :root { --ink: #ececec; --muted: #a8a8a8; --bg: #131313; --panel: #1c1c1c; --border: #2c2c2c; } }
+    body { margin: 0; background: var(--bg); color: var(--ink); font: 15px/1.65 system-ui, -apple-system, "Segoe UI", sans-serif; }
+    main { max-width: 720px; margin: 0 auto; padding: 40px 20px 80px; }
+    h1 { font-size: 1.6rem; } h2 { font-size: 1.15rem; margin-top: 2.2em; }
+    .kicker { font: 600 11px/1 ui-monospace, monospace; letter-spacing: .12em; text-transform: uppercase; color: var(--accent); }
+    .muted { color: var(--muted); font-size: 13px; }
+    table { border-collapse: collapse; width: 100%; font-size: 14px; }
+    th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--border); vertical-align: top; }
+    code { background: var(--panel); border: 1px solid var(--border); border-radius: 4px; padding: 1px 5px; font-size: 13px; }
+    a { color: var(--accent); }
+  </style>
+</head>
+<body>
+<main>
+  <p class="kicker">Babel Play</p>
+  <h1>Política de Privacidade</h1>
+  <p class="muted">Última atualização: 31 de agosto de 2026.</p>
+
+  <p>O Babel Play foi desenhado para processar o máximo possível <strong>no seu próprio
+  navegador</strong>. Esta página diz, plano a plano, o que sai do seu dispositivo, para onde vai e
+  por quê — e como você exporta ou apaga tudo.</p>
+
+  <h2>O que fica só no seu navegador</h2>
+  <p>No plano <strong>Grátis</strong>, a transcrição da sua fala e a tradução rodam em modelos
+  locais, dentro do navegador. O áudio capturado do microfone ou do sistema <strong>não é enviado a
+  servidor nenhum</strong>. No modo sem conta, nem os seus dados de estudo saem do navegador — tudo
+  vive no armazenamento local do dispositivo.</p>
+
+  <h2>O que vai para o servidor, por plano</h2>
+  <table>
+    <tr><th>Plano</th><th>Áudio (voz)</th><th>Texto transcrito</th></tr>
+    <tr><td>Grátis / sem conta</td><td>não sai do navegador</td><td>não sai do navegador*</td></tr>
+    <tr><td>Essencial</td><td>não sai do navegador</td><td>enviado para tradução na nuvem</td></tr>
+    <tr><td>Pro</td><td>enviado para transcrição na nuvem</td><td>enviado para tradução na nuvem</td></tr>
+  </table>
+  <p class="muted">* Com conta, as sessões que você salva (transcrições, vocabulário, progresso)
+  ficam no nosso banco de dados, para você acessá-las de qualquer dispositivo.</p>
+
+  <h2>Quem processa o quê</h2>
+  <ul>
+    <li><strong>Identidade e login</strong>: Supabase (autenticação). Guardamos o identificador da
+      conta; o e-mail fica com o provedor de login.</li>
+    <li><strong>IA de nuvem (planos pagos)</strong>: os trechos enviados (texto no Essencial; áudio
+      e texto no Pro) são processados por provedores de inferência contratados por nós, apenas para
+      gerar a transcrição/tradução daquela chamada. O provedor em uso está sempre declarado no selo
+      de procedência dentro do app.</li>
+    <li><strong>Pagamento</strong>: Asaas. Seu nome e CPF vão <strong>direto ao processador de
+      pagamento</strong> no ato da assinatura — <strong>não guardamos CPF</strong> no nosso banco.</li>
+  </ul>
+
+  <h2>O que NÃO fazemos</h2>
+  <ul>
+    <li><strong>Não há analytics nem telemetria de uso.</strong> Nenhum rastreador, nenhum pixel,
+      nenhuma estatística de comportamento é coletada ou enviada.</li>
+    <li><strong>Não vendemos nem compartilhamos dados</strong> com terceiros para publicidade.</li>
+    <li>Relatórios automáticos de <em>erro</em> (falha do app) contêm apenas a mensagem técnica do
+      erro e a tela onde ocorreu — nunca o que você falou ou digitou.</li>
+  </ul>
+
+  <h2>Seus direitos (LGPD, art. 18)</h2>
+  <p>Dentro do app, em <strong>Perfil → Seus dados</strong>, você pode:</p>
+  <ul>
+    <li><strong>Exportar</strong> tudo o que guardamos sobre você, em um arquivo JSON;</li>
+    <li><strong>Excluir a conta</strong> — exclusão física, imediata, de todas as suas linhas e
+      arquivos de mídia, incluindo o desvínculo do login. Se qualquer parte falhar, o app mostra
+      exatamente o que não foi apagado, em vez de confirmar o que não aconteceu.</li>
+  </ul>
+  <p>Cópias de segurança do banco são rotacionadas (as mais antigas são apagadas automaticamente);
+  dados excluídos desaparecem das cópias no ciclo de rotação.</p>
+
+  <h2>Contato</h2>
+  <p>Dúvidas ou solicitações: <a href="mailto:guigui.cruzeiro@gmail.com">guigui.cruzeiro@gmail.com</a>.</p>
+
+  <p class="muted"><a href="/">← voltar ao Babel Play</a> · <a href="/termos.html">Termos de uso</a></p>
+</main>
+</body>
+</html>

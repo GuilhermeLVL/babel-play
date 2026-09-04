@@ -1,10 +1,13 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Sparkles, Play, RotateCcw, Flame, Trophy, Sprout, Star, Target, Timer } from 'lucide-react';
+import { Sparkles, Play, RotateCcw, Zap, Medal, Sprout, Star, Target, Timer } from 'lucide-react';
 import type { RoundReport, ResumoDaSequencia } from '@core';
 import { summarize, estrelasDaRodada } from '@core';
 import type { AgeProfileType } from '../../lib/profile';
 import { comemorar, pontosDoElemento } from '../../lib/juice';
 import { burstFromElement } from '../../lib/effects';
+import type { DerivedProgress } from '../../lib/progress';
+import { proximaRecompensa, emojiDoItem } from '../../lib/galeria/progressao';
+import { TEXTOS } from '../../lib/galeria/textos';
 
 /**
  * RASPADINHA — e, agora, a EMENDA para a próxima rodada.
@@ -35,6 +38,18 @@ interface ScratchRewardProps {
   onContinuar: () => void;
   /** Estas mesmas de novo. `null` quando a rodada não deixou `itemRef` para remontar. */
   onRepetir: (() => void) | null;
+  /**
+   * VER O QUE ESCAPOU — leva ao resumo da rodada. `null` quando não houve erro.
+   *
+   * Existe porque o resumo estava ROUBANDO o lugar desta tela: `verResumo` era ligado junto com
+   * o resultado, e a cascata testa `resultado && verResumo` ANTES de `resultado` — então a
+   * raspadinha, que é o único clímax de recompensa do app, nunca era alcançada. O comentário do
+   * próprio ramo já dizia "passo 2, DEPOIS da raspadinha"; faltava o caminho entre as duas.
+   *
+   * É uma ação NOVA e não o `onDone` sequestrado: aquele botão diz "Voltar aos jogos", e mandá-lo
+   * para outra tela seria a mesma quebra de promessa que o resto deste trabalho está desfazendo.
+   */
+  onVerErros?: (() => void) | null;
   onDone: () => void;
   /** Acabou o material elegível: não há "mais uma" honesta a oferecer. */
   semMaterial?: boolean;
@@ -48,15 +63,20 @@ interface ScratchRewardProps {
   onPularVez: (() => void) | null;
   custoPular: number;
   saldoSeeds: number;
+  /** v3: onde estou e o que vem — "Nível N · faltam X XP · próximo: 🎁 Nome". */
+  progress?: DerivedProgress;
+  /** Abre Personalizar › Progressão. */
+  onVerProgressao?: () => void;
 }
 
 /** Fração da área raspada a partir da qual revelamos o resto automaticamente. */
 const LIMIAR_REVELACAO = 0.45;
 
 export default function ScratchReward({
-  report, ageProfile, sequencia, recorde, onContinuar, onRepetir, onDone, semMaterial,
-  onPularVez, custoPular, saldoSeeds,
+  report, ageProfile, sequencia, recorde, onContinuar, onRepetir, onVerErros, onDone, semMaterial,
+  onPularVez, custoPular, saldoSeeds, progress, onVerProgressao,
 }: ScratchRewardProps) {
+  const proxima = progress?.available ? proximaRecompensa(progress.level) : null;
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const placarRef = useRef<HTMLDivElement | null>(null);
   const [revelado, setRevelado] = useState(false);
@@ -184,7 +204,7 @@ export default function ScratchReward({
         {/* Estatísticas com ícone, uma linha: pontos, precisão, tempo. É o "detalhezinho de
             imersão" pedido — números que a rodada já tinha e não mostrava. */}
         <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 mt-2.5 text-[13px] text-ink-muted tabular-nums">
-          <span className="flex items-center gap-1.5" title="Pontos desta rodada"><Trophy className="w-3.5 h-3.5 text-warn" aria-hidden /> <b className="text-ink font-display">{report.score}</b> pts</span>
+          <span className="flex items-center gap-1.5" title="Pontos desta rodada"><Medal className="w-3.5 h-3.5 text-warn" aria-hidden /> <b className="text-ink font-display">{report.score}</b> pts</span>
           <span className="flex items-center gap-1.5" title="Precisão"><Target className="w-3.5 h-3.5 text-good" aria-hidden /> {resumo.precisao}%</span>
           {segundos > 0 && <span className="flex items-center gap-1.5" title="Duração da rodada"><Timer className="w-3.5 h-3.5" aria-hidden /> {segundos}s</span>}
         </div>
@@ -238,7 +258,7 @@ export default function ScratchReward({
               <span className="text-ink-muted">{sequencia.precisao}% no total</span>
               {bateuRecorde ? (
                 <span className="badge-tag acc shrink-0 flex items-center gap-1">
-                  <Trophy className="w-3 h-3" aria-hidden /> RECORDE
+                  <Medal className="w-3 h-3" aria-hidden /> RECORDE
                 </span>
               ) : recorde !== null && recorde > 0 && (
                 <span className="text-[11px] text-ink-faint">seu recorde: {recorde}</span>
@@ -250,7 +270,7 @@ export default function ScratchReward({
               nesta tela que fala sobre a próxima rodada em vez da que acabou. */}
           {sequencia && sequencia.combo >= 3 && (
             <p className="flex items-center gap-1.5 text-[13px] font-bold text-accent-ink">
-              <Flame className="w-4 h-4" aria-hidden />
+              <Zap className="w-4 h-4" aria-hidden />
               combo ×{sequencia.combo} continua na próxima
             </p>
           )}
@@ -260,7 +280,7 @@ export default function ScratchReward({
               "faltam 4.000" não motiva ninguém, "faltam 40" sim. */}
           {!bateuRecorde && sequencia && recorde !== null && recorde > sequencia.pontos && recorde - sequencia.pontos <= Math.max(30, recorde * 0.5) && (
             <p className="flex items-center gap-1.5 text-[13px] font-bold text-warn-ink">
-              <Trophy className="w-4 h-4" aria-hidden />
+              <Medal className="w-4 h-4" aria-hidden />
               faltam {recorde - sequencia.pontos} pts para o seu recorde
             </p>
           )}
@@ -291,6 +311,14 @@ export default function ScratchReward({
                   {estrelas < 3
                     ? (ageProfile === 'senior' ? 'Repetir e melhorar as estrelas' : 'De novo, pelas 3 estrelas')
                     : (ageProfile === 'senior' ? 'Repetir as mesmas palavras' : 'De novo, estas')}
+                </button>
+              )}
+              {/* Só aparece quando há o que mostrar: sem erro, "ver o que errei" é um convite a
+                  uma tela vazia. As palavras erradas já eram gravadas item a item em
+                  `exercise_results` e nunca tinham sido mostradas a ninguém. */}
+              {onVerErros && (
+                <button onClick={onVerErros} className="btn-outline" title="As palavras que escaparam nesta rodada">
+                  {ageProfile === 'kids' ? 'O que eu errei' : 'Ver o que escapou'}
                 </button>
               )}
               <button
@@ -329,6 +357,15 @@ export default function ScratchReward({
             <p className="text-[12px] text-ink-muted text-center max-w-[42ch] leading-snug">
               Acabaram as palavras elegíveis desta fonte por agora. Volte aos jogos para trocar de
               fonte, ou repita estas mesmas.
+            </p>
+          )}
+
+          {/* v3: onde estou e o que vem — a razão de mais uma rodada além do placar. */}
+          {progress?.available && (
+            <p className="flex flex-wrap items-center justify-center gap-x-1.5 text-[12px] text-ink-muted tabular-nums">
+              <b className="text-ink">{TEXTOS.nivel(progress.level)}</b> · {TEXTOS.faltamXp(progress.xpForLevel - progress.xpIntoLevel)}
+              {proxima && <> · próximo: <span aria-hidden>{emojiDoItem(proxima.destaque)}</span> <b className="text-ink">{proxima.destaque.nome}</b></>}
+              {onVerProgressao && <button onClick={onVerProgressao} className="underline hover:text-accent cursor-pointer">ver</button>}
             </p>
           )}
         </div>

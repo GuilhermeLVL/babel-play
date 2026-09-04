@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { describe, expect, it } from 'vitest'
 import { CURSORES, applyCursor, setCursor, readCursor } from '../src/lib/cursores'
-import { RASTROS, setRastro, readRastro } from '../src/lib/rastroDoMouse'
+import { estiloDeRastro, RASTROS, setRastro, readRastro } from '../src/lib/rastroDoMouse'
 import { PACKS_DE_EMOJI, setPack, readPack, emojisDoPack } from '../src/lib/particulas'
 import { CATALOGO_DA_LOJA } from '../src/lib/loja'
 
@@ -31,7 +31,14 @@ describe('cosméticos (cursor, rastro, packs)', () => {
     for (const item of CATALOGO_DA_LOJA) {
       if (item.tipo === 'pack') expect(PACKS_DE_EMOJI.some((p) => p.id === item.alvo), item.id).toBe(true)
       if (item.tipo === 'cursor') expect(CURSORES.some((c) => c.id === item.alvo), item.id).toBe(true)
-      if (item.tipo === 'rastro') expect(RASTROS.some((r) => r.id === item.alvo), item.id).toBe(true)
+      /* Rastro tem DUAS formas de alvo: o id fixo de `RASTROS` (off, faisca…) e o gerado
+         `gen:<forma>:<paleta>`, que a temporada 1 usa para dar combinações nomeadas sem
+         código novo. A régua real é `estiloDeRastro`, que resolve as duas — é ela que o
+         equipar consulta, então é ela que este teste precisa usar. */
+      if (item.tipo === 'rastro') {
+        const valido = RASTROS.some((r) => r.id === item.alvo) || estiloDeRastro(item.alvo) !== null
+        expect(valido, item.id).toBe(true)
+      }
     }
   })
 

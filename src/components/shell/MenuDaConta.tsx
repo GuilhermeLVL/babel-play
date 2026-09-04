@@ -1,6 +1,8 @@
+import { menorPrecoDeAssinatura } from '../../core/planos';
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { User, Settings as SettingsIcon, LogOut, LogIn } from 'lucide-react';
+import { User, Settings as SettingsIcon, LogOut, LogIn, CreditCard } from 'lucide-react';
+import { planoAnunciavel } from '../CardDePlanos';
 import { usePerfil } from '../../lib/usePerfil';
 import { authRequired } from '../../lib/supabase';
 import { aoMudarIdentidade, estaAnonimo } from '../../lib/identidade';
@@ -134,6 +136,15 @@ export default function MenuDaConta({ onIr, orientation }: MenuDaContaProps) {
               <User className="w-4 h-4 text-ink-muted" aria-hidden /> Meu perfil
             </button>
           )}
+          {/* Plano e consumo entram AQUI, e não na navegação principal: são assunto de conta, e
+              monetização no menu de uso diário pediria atenção que o produto não precisa pedir. */}
+          <button role="menuitem" onClick={() => ir('planos')} className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-[13px] text-ink hover:bg-surface-hover cursor-pointer">
+            <CreditCard className="w-4 h-4 text-ink-muted" aria-hidden />
+            <span className="flex-1 text-start">Plano e consumo</span>
+            {/* O preço só aparece para quem TEM o que comprar (spec planos-visiveis); para o
+                assinante o item volta a ser neutro. */}
+            {planoAnunciavel() && <span className="text-[11px] text-accent-ink font-semibold">R$ {menorPrecoDeAssinatura()}+</span>}
+          </button>
           <button role="menuitem" onClick={() => ir('settings')} className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-[13px] text-ink hover:bg-surface-hover cursor-pointer">
             <SettingsIcon className="w-4 h-4 text-ink-muted" aria-hidden /> Ajustes
           </button>

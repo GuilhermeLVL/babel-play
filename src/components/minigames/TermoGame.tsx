@@ -1,9 +1,10 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { X, Delete, CornerDownLeft, Lightbulb, Volume2, WandSparkles, ChevronsUp } from 'lucide-react';
 import type { ItemOutcome, RoundReport, RodadaTermo, Palpite } from '@core';
 import {
-  avaliarPalpite, acertou, estadoDoTecladoMulti, dicaDeLetra, letrasCertas,
+  julgarPalpite, acertou, estadoDoTecladoMulti, dicaDeLetra, letrasCertas,
   TENTATIVAS_POR_MODO, modoDeTabuleiros, montarEscada, planoDaEscada, scoreRound,
+  layoutDoTermo, GAP_TABULEIRO, type LayoutDoTermo,
 } from '@core';
 import type { AgeProfileType } from '../../lib/profile';
 import { comemorar, pontosDoElemento, multiplicador } from '../../lib/juice';
@@ -49,6 +50,40 @@ export default function TermoGame({ rodadas, ageProfile, onFinish, onExit }: Ter
   const grupo = grupos[grupoIdx];
   const nTabuleiros = grupo?.length ?? 1;
   const maxTentativas = TENTATIVAS_POR_MODO[modoDeTabuleiros(nTabuleiros)];
+
+  const colunas = grupo?.[0]?.resposta.length ?? 5;
+  const temContexto = !!grupo?.some(r => !!r.contexto);
+  const [layout, setLayout] = useState<LayoutDoTermo>({ celula: 44, porFileira: nTabuleiros, moldura: 0, apertado: false });
+
+  useLayoutEffect(() => {
+    const raiz = raizRef.current;
+    const grade = gradeRef.current;
+    if (!raiz || !grade) return;
+    const medir = () => {
+      setLayout(layoutDoTermo({
+        largura: grade.clientWidth,
+        /* MEDIDO, NÃO DEDUZIDO. Antes era `raiz.clientHeight - cabeçalho - teclado - 24`, e a
+           dedução esquecia tudo que mora entre eles (mensagens de acerto, avisos, margens): a
+           grade começava 88px abaixo do que a conta supunha. A área rolável É o orçamento. */
+        altura: areaRef.current?.clientHeight ?? 0,
+        tabuleiros: nTabuleiros,
+        colunas,
+        linhas: maxTentativas,
+        // A pista mora acima de cada tabuleiro; com frase de contexto ela ocupa duas vezes mais.
+        cabecalho: temContexto ? 88 : 44,
+      }));
+      /* A MOLDURA VEM DA CONTA, não de uma classe. Se o padding vivesse só no CSS, ele cobraria
+         uma largura que o cálculo não conhece — que é precisamente como os quatro tabuleiros se
+         colaram da primeira vez. Aqui quem desenha aplica o número que quem calcula usou. */
+    };
+    medir();
+    const ro = new ResizeObserver(medir);
+    ro.observe(raiz);
+    if (areaRef.current) ro.observe(areaRef.current);
+    window.addEventListener('resize', medir);
+    return () => { ro.disconnect(); window.removeEventListener('resize', medir); };
+  }, [nTabuleiros, colunas, maxTentativas, temContexto]);
+
   const tamanho = grupo?.[0]?.resposta.length ?? 5;
 
   const [palpitesPorTab, setPalpitesPorTab] = useState<Palpite[][]>([[]]);
@@ -60,6 +95,12 @@ export default function TermoGame({ rodadas, ageProfile, onFinish, onExit }: Ter
   const [fimDoGrupo, setFimDoGrupo] = useState(false);
   const [reveladas, setReveladas] = useState<Record<number, Record<number, string>>>({});
   const [usouDica, setUsouDica] = useState(false);
+  /* TERMO JUSTO: a dica é POR TABULEIRO (uma lâmpada no 1º não rebaixa os outros três), o "quase"
+     vale uma vez por tabuleiro, e o aviso de sinônimo/quase aparece acima da grade. */
+  const [dicaPorTab, setDicaPorTab] = useState<boolean[]>([false]);
+  const [quaseUsado, setQuaseUsado] = useState<boolean[]>([false]);
+  const [aviso, setAviso] = useState<string | null>(null);
+  const resolvidoEmTsRef = useRef<(number | null)[]>([null]);
   const [sequencia, setSequencia] = useState(0);
   const [pontos, setPontos] = useState(0);
   const [subiuDegrau, setSubiuDegrau] = useState(false);
@@ -82,6 +123,10 @@ export default function TermoGame({ rodadas, ageProfile, onFinish, onExit }: Ter
   const cursorEscolhidoRef = useRef(false);
   const encerradoRef = useRef(false);
   const gradeRef = useRef<HTMLDivElement | null>(null);
+  /** A tela do jogo inteira — é dela que sai o orçamento de altura (ver `medirLayout`). */
+  const raizRef = useRef<HTMLDivElement | null>(null);
+  /** A área que rola — a altura DELA é o orçamento do tabuleiro, sem dedução nenhuma. */
+  const areaRef = useRef<HTMLDivElement | null>(null);
 
   const teclado = useMemo(() => estadoDoTecladoMulti(palpitesPorTab, resolvidos), [palpitesPorTab, resolvidos]);
   const preenchido = atual.every(l => l !== '');
@@ -121,8 +166,12 @@ export default function TermoGame({ rodadas, ageProfile, onFinish, onExit }: Ter
     setTentativas(0);
     setReveladas({});
     setUsouDica(false);
+    setDicaPorTab(Array(n).fill(false));
+    setQuaseUsado(Array(n).fill(false));
+    setAviso(null);
     setFimDoGrupo(false);
     resolvidoEmRef.current = Array(n).fill(null);
+    resolvidoEmTsRef.current = Array(n).fill(null);
     inicioGrupoRef.current = Date.now();
   };
 
@@ -155,9 +204,15 @@ export default function TermoGame({ rodadas, ageProfile, onFinish, onExit }: Ter
       // A jogada em que ESTE tabuleiro fechou — não a do fim do degrau. Sem isso, quem acerta na
       // 2ª jogada seria agendado como se tivesse levado sete só porque o vizinho demorou.
       attempts: resolvidoEmRef.current[i] ?? tentativasUsadas,
-      ms: agora - inicioGrupoRef.current,
-      hinted: usouDica,
-      revealed: !resolvidosFinais[i],
+      // Tempo DESTE tabuleiro (até fechar), não do degrau inteiro: senão o quarteto nunca ganha
+      // o bônus de velocidade e um tabuleiro rápido paga pelo vizinho lento.
+      ms: (resolvidoEmTsRef.current[i] ?? agora) - inicioGrupoRef.current,
+      // Dica POR tabuleiro: só quem recebeu letra revelada tem a nota limitada.
+      hinted: dicaPorTab[i] ?? false,
+      /* Acabar as tentativas NÃO é "revelou": `revealed` é o gesto voluntário de desistir. Antes
+         os dois eram iguais e a derrota honesta era gravada como entrega — nota 1 dos dois jeitos,
+         mas o histórico mentia sobre o que aconteceu. */
+      revealed: false,
     }));
     resultadosRef.current = [...resultadosRef.current, ...doGrupo];
 
@@ -183,13 +238,37 @@ export default function TermoGame({ rodadas, ageProfile, onFinish, onExit }: Ter
     if (fimDoGrupo || !grupo || !preenchido) return;
     const palpite = atual.join('');
 
+    /* JULGAMENTO CONTRA A RODADA (sinônimos e "quase"), não só contra a resposta. Se algum
+       tabuleiro aberto reconhece o palpite como sinônimo válido, ou como "quase" na última
+       tentativa, a jogada é DE GRAÇA: avisa, orienta, revela a 1ª letra (no sinônimo) e não
+       gasta tentativa. Errar de vocabulário é diferente de errar de digitação ou de acertar
+       outra palavra com o mesmo sentido. */
+    const ultima = tentativas + 1 >= maxTentativas;
+    const julgamentos = grupo.map((r, i) => (resolvidos[i] ? null : julgarPalpite(palpite, r, { ultimaTentativa: ultima, quaseJaUsado: quaseUsado[i] })));
+    const gratis = julgamentos.find(j => j && !j.acertou && (j.sinonimo || j.quase));
+    if (gratis) {
+      const i = julgamentos.indexOf(gratis);
+      setAviso(gratis.dica ?? null);
+      if (gratis.sinonimo) {
+        const primeira = grupo[i].resposta[0];
+        setReveladas(prev => ({ ...prev, [i]: { ...(prev[i] ?? {}), 0: primeira } }));
+      }
+      if (gratis.quase) setQuaseUsado(q => q.map((v, k) => (k === i ? true : v)));
+      comemorar('acerto', gradeRef.current, { texto: gratis.sinonimo ? 'sinônimo!' : 'quase!' });
+      const proxima = linhaInicial(tamanho, palpitesPorTab, resolvidos, gratis.sinonimo ? { ...reveladas, [i]: { ...(reveladas[i] ?? {}), 0: grupo[i].resposta[0] } } : reveladas);
+      cursorEscolhidoRef.current = false;
+      escrever(proxima, proximaVaga(proxima, 0));
+      return;
+    }
+    setAviso(null);
+
     const novosPalpites = palpitesPorTab.map((lista, i) =>
-      resolvidos[i] ? lista : [...lista, avaliarPalpite(palpite, grupo[i].resposta)]
+      resolvidos[i] ? lista : [...lista, julgamentos[i]!.palpite]
     );
     const novosResolvidos = resolvidos.map((r, i) => r || acertou(novosPalpites[i][novosPalpites[i].length - 1]));
     const fechouAgora = novosResolvidos.filter((r, i) => r && !resolvidos[i]).length;
     const tentativasUsadas = tentativas + 1;
-    novosResolvidos.forEach((r, i) => { if (r && !resolvidos[i]) resolvidoEmRef.current[i] = tentativasUsadas; });
+    novosResolvidos.forEach((r, i) => { if (r && !resolvidos[i]) { resolvidoEmRef.current[i] = tentativasUsadas; resolvidoEmTsRef.current[i] = Date.now(); } });
 
     setPalpitesPorTab(novosPalpites);
     setResolvidos(novosResolvidos);
@@ -306,6 +385,7 @@ export default function TermoGame({ rodadas, ageProfile, onFinish, onExit }: Ter
     if (!d) return;
     const letra = d.letra.toUpperCase();
     setUsouDica(true);
+    setDicaPorTab(v => v.map((x, k) => (k === alvo ? true : x)));
     setSequencia(0); // a sequência é mérito; com ajuda ela recomeça
     setReveladas(prev => ({ ...prev, [alvo]: { ...(prev[alvo] ?? {}), [d.posicao]: letra } }));
     // Entra no palpite de verdade: é o que faz o Enter confirmar e a dica sobreviver ao envio.
@@ -320,8 +400,8 @@ export default function TermoGame({ rodadas, ageProfile, onFinish, onExit }: Ter
     if (!grupo) return;
     const alvo = resolvidos.findIndex(r => !r);
     if (alvo < 0) return;
-    setUsouDica(true);
-    speak(grupo[alvo].resposta, { lang: toBcp47(grupo[alvo].lang || 'en') });
+    // Ouvir NÃO é dica: não revela letra nenhuma, e ligar grafia ao som é o objetivo do jogo.
+    speak(grupo[alvo].palavra || grupo[alvo].resposta, { lang: toBcp47(grupo[alvo].lang || 'en') });
   };
 
   // Sem lista de dependências de propósito: o ouvinte é reinstalado a cada render para que
@@ -371,15 +451,38 @@ export default function TermoGame({ rodadas, ageProfile, onFinish, onExit }: Ter
       ? (ageProfile === 'pro' ? 'Dueto' : 'Duas de uma vez')
       : (ageProfile === 'pro' ? 'Quarteto' : 'Quatro de uma vez');
 
-  // A célula encolhe conforme o número de tabuleiros: quatro grades de 48px não cabem num celular.
-  const cel = nTabuleiros === 1 ? 'w-11 h-11 sm:w-12 sm:h-12 text-lg'
-    : nTabuleiros === 2 ? 'w-9 h-9 sm:w-10 sm:h-10 text-sm'
-    : 'w-7 h-7 sm:w-8 sm:h-8 text-xs';
+  /**
+   * A CÉLULA É MEDIDA, NÃO ESTIMADA — e a diferença é o Quarteto parar de se colar.
+   *
+   * A versão anterior era CSS puro: `min(clamp(1.75rem, 4.8vh, 3rem), calc((100vw - 8rem) / 38))`.
+   * Media (zoom 1.15, viewport 1920, container `max-w-6xl` = 1152): célula de 49,3px, quatro
+   * tabuleiros de seis letras somando 1447px, estouro de 151px. Na tela, os quatro colados — as
+   * folgas são a primeira coisa que o navegador come quando o conteúdo não cabe.
+   *
+   * Duas causas, independentes:
+   *  1. o orçamento vinha de `100vw` (1920) enquanto a grade é limitada a `max-w-6xl` (1152) —
+   *     quanto maior o monitor, pior, que é o contrário do esperado;
+   *  2. `vw`/`vh` dentro de `body{zoom}` (o A±) resolvem contra a viewport SEM zoom e só depois
+   *     são multiplicados por ele: a 1,15, saem 15% maiores que a viewport de verdade. (`rem`
+   *     escala junto com o zoom e não tem esse problema — o que quebra é misturar as duas
+   *     famílias na mesma conta, que é o que `min(clamp(rem, vh, rem), calc(vw...))` fazia.)
+   *
+   * `clientWidth`/`offsetHeight` já vêm no espaço de layout zoomado, então a conta feita com eles
+   * é invariante ao zoom por construção — não há fator a corrigir em lugar nenhum. A regra mora
+   * em `@core/minigames/termoLayout`, pura, com varredura de 7 telas × 5 zooms em teste.
+   *
+   * O observador olha a RAIZ, nunca a grade: a altura da grade depende da célula, e observar
+   * quem se mede seria um laço. A raiz é dimensionada pela janela, e muda quando o A± muda —
+   * que é exatamente quando esta conta precisa rodar de novo.
+   */
+  const estiloCel: React.CSSProperties = {
+    width: layout.celula, height: layout.celula, fontSize: Math.round(layout.celula * 0.46),
+  };
 
   const mult = multiplicador(sequencia);
 
   return (
-    <div className="flex-1 relative flex flex-col items-center p-3 sm:p-4 animate-in fade-in duration-200 overflow-y-auto custom-scrollbar">
+    <div ref={raizRef} className="flex-1 relative flex flex-col items-center p-3 sm:p-4 animate-in fade-in duration-200 overflow-hidden">
       {/* AS FERRAMENTAS moram no canto da TELA, não numa faixa junto ao título.
           Num cabeçalho de largura fixa, o título ficava colado à esquerda enquanto o tabuleiro
           (bem mais estreito) ficava no meio, dois blocos desalinhados sem motivo. Soltas no
@@ -399,10 +502,21 @@ export default function TermoGame({ rodadas, ageProfile, onFinish, onExit }: Ter
         </button>
       </span>
 
-      {/* `m-auto` e não `justify-center`: num container rolável, centralizar por `justify`
-          impede a rolagem para o começo quando o conteúdo passa da altura da janela. */}
-      <div className="m-auto w-full flex flex-col items-center">
-      <header className="flex flex-col items-center mb-3 shrink-0 text-center">
+      {/* UM BLOCO SÓ (título + tabuleiros + teclado), centrado com `my-auto`: antes o teclado
+          ficava grudado no pé da tela e os tabuleiros centrados sozinhos no meio — dois blocos
+          com um vazio entre eles. `my-auto` e não `justify-center`: num container rolável,
+          centralizar por `justify` impede a rolagem para o começo quando o conteúdo passa da
+          altura da janela. */}
+      {/* COLUNA DE TRÊS PARTES: cabeçalho, área do tabuleiro (a única que rola) e teclado.
+          Era `my-auto` numa raiz que rolava inteira, com o teclado `sticky bottom-0` — e sticky,
+          por definição, SOBREPÕE quando o conteúdo passa da altura. Medido: grade terminando em
+          606px e teclado começando em 536px, 70px de teclas por cima das últimas tentativas.
+          Nenhuma aritmética conserta isso, porque o problema não era o tamanho da grade e sim o
+          teclado não reservar o próprio espaço. Aqui ele é irmão de um `flex-1`: sobrepor virou
+          impossível, e o orçamento de altura passa a ser medido do container onde o tabuleiro
+          realmente mora, em vez de deduzido dos vizinhos. */}
+      <div className="w-full flex-1 min-h-0 flex flex-col items-center gap-1 py-2">
+      <header className="flex flex-col items-center mb-2 shrink-0 text-center">
         <h2 className="font-display font-black text-lg text-ink flex items-center gap-2">
           {nomeDoDegrau}
           {/* A escada precisa ser VISÍVEL, senão subir de degrau parece o jogo mudando sozinho. */}
@@ -440,13 +554,38 @@ export default function TermoGame({ rodadas, ageProfile, onFinish, onExit }: Ter
           correspondência não precisa ser explicada.
           No Quarteto, quatro colunas quando a tela permite, empilhado 2×2 metade das grades fica
           fora da tela, e num jogo em que o palpite vale para todas, não ver metade é perder a jogada. */}
-      <div ref={gradeRef} data-tour="tabuleiro" className={`grid w-full max-w-6xl gap-x-4 sm:gap-x-10 xl:gap-x-16 gap-y-4 mb-4 justify-items-center ${
-        nTabuleiros === 4 ? 'grid-cols-2 xl:grid-cols-4' : nTabuleiros === 2 ? 'grid-cols-2' : 'grid-cols-1'
-      }`}>
+      <div ref={areaRef} className="w-full flex-1 min-h-0 overflow-y-auto custom-scrollbar flex">
+      <div
+        ref={gradeRef}
+        data-tour="tabuleiro"
+        /* `overflow-x-auto` SÓ quando a conta declarou aperto (celular + zoom alto + quarteto).
+           Rolar de lado é degradação honesta; colar os tabuleiros é defeito. */
+        /* `m-auto`: centraliza quando cabe e NÃO corta o topo quando não cabe — que é o que
+           `items-center` faria num container que rola. */
+        className={`w-full max-w-6xl m-auto ${layout.apertado ? 'overflow-x-auto custom-scrollbar' : ''}`}
+      >
+        <div
+          className="grid mx-auto w-max justify-items-center"
+          style={{
+            gridTemplateColumns: `repeat(${layout.porFileira}, max-content)`,
+            columnGap: GAP_TABULEIRO,
+            rowGap: GAP_TABULEIRO,
+          }}
+        >
         {grupo.map((r, tIdx) => {
           const certas = letrasCertas(palpitesPorTab[tIdx] ?? [], r.resposta.length);
           return (
-            <div key={tIdx} className={`flex flex-col gap-1 transition-opacity ${resolvidos[tIdx] ? 'opacity-45' : ''}`}>
+            /* CADA TABULEIRO NUM CARTÃO quando há mais de um. A folga sozinha é ambígua: entre
+               quadrados da mesma palavra há 6px, entre tabuleiros 28px, e a olho nu 28px ainda
+               pode ser lido como "espaço um pouco maior" em vez de "outra palavra". A borda
+               resolve a ambiguidade sem depender de o olho comparar distâncias. */
+            <div
+              key={tIdx}
+              className={`flex flex-col gap-1.5 transition-opacity ${resolvidos[tIdx] ? 'opacity-45' : ''} ${
+                layout.moldura ? 'rounded-2xl border border-border-subtle bg-canvas/40' : ''
+              }`}
+              style={layout.moldura ? { padding: layout.moldura / 2 - 1 } : undefined}
+            >
               <p
                 data-tour={tIdx === 0 ? 'pista' : undefined}
                 className={`text-center text-[13px] leading-tight px-2 py-1.5 mb-1 rounded-lg transition-colors ${
@@ -455,13 +594,20 @@ export default function TermoGame({ rodadas, ageProfile, onFinish, onExit }: Ter
                   : 'text-accent-ink font-extrabold'
                 }`}
               >
-                {resolvidos[tIdx] || fimDoGrupo ? r.resposta : r.pista || '?'}
+                {resolvidos[tIdx] || fimDoGrupo ? (r.palavra || r.resposta).toUpperCase() : r.pista || '?'}
               </p>
+              {/* Pista AMBÍGUA (há sinônimos no acervo): a frase de contexto desempata. */}
+              {!resolvidos[tIdx] && !fimDoGrupo && r.contexto && (
+                <p className="text-center text-[11.5px] italic text-ink-muted px-2 -mt-1 mb-1 max-w-[36ch] mx-auto leading-snug">“{r.contexto}”</p>
+              )}
+              {tIdx === 0 && aviso && !fimDoGrupo && (
+                <p role="status" className="text-center text-[12px] font-semibold text-warn-ink bg-warn-soft border border-warn/30 rounded-lg px-2 py-1 mb-1 max-w-[40ch] mx-auto leading-snug">{aviso}</p>
+              )}
               {Array.from({ length: maxTentativas }).map((_, linha) => {
                 const p = (palpitesPorTab[tIdx] ?? [])[linha];
                 const digitando = !resolvidos[tIdx] && !fimDoGrupo && linha === (palpitesPorTab[tIdx] ?? []).length;
                 return (
-                  <div key={linha} className="flex gap-1 justify-center">
+                  <div key={linha} className="flex gap-1.5 justify-center">
                     {Array.from({ length: r.resposta.length }).map((_, col) => {
                       const revelada = reveladas[tIdx]?.[col];
                       const letra = p ? p.letras[col] : digitando ? atual[col] : '';
@@ -477,7 +623,8 @@ export default function TermoGame({ rodadas, ageProfile, onFinish, onExit }: Ter
                           disabled={!digitando}
                           onClick={() => irPara(col)}
                           aria-label={digitando ? `Posição ${col + 1}${atual[col] ? `, letra ${atual[col]}` : ', vazia'}` : undefined}
-                          className={`${cel} rounded-lg border-2 flex items-center justify-center font-display font-black transition-all ${cor(estado)} ${
+                          style={estiloCel}
+                          className={`rounded-lg border-2 flex items-center justify-center font-display font-black transition-all ${cor(estado)} ${
                             digitando ? 'cursor-pointer' : ''
                           } ${noCursor ? 'border-accent ring-2 ring-accent/40 scale-105' : ''} ${
                             ehFantasma ? (revelada ? 'text-warn-ink' : 'text-ink-muted') : ''
@@ -493,31 +640,33 @@ export default function TermoGame({ rodadas, ageProfile, onFinish, onExit }: Ter
             </div>
           );
         })}
+        </div>
       </div>
       </div>
 
       {/* TECLADO — o estado vem só dos tabuleiros ainda abertos (ver `estadoDoTecladoMulti`).
-          GRUDADO NO PÉ DA TELA: com quatro tabuleiros de nove linhas o conteúdo passa da altura
-          da janela, e um teclado que rola para fora deixa o jogo sem entrada. */}
-      <div data-tour="teclado" className="flex flex-col gap-1.5 w-full max-w-xl sticky bottom-0 pt-2 pb-1 bg-canvas/95 backdrop-blur-sm z-10">
+          `shrink-0` e irmão do `flex-1` acima: ele RESERVA a própria altura, então nunca rola para
+          fora (que era o objetivo do `sticky bottom-0`) e nunca cobre o tabuleiro (que era o
+          efeito colateral dele). Teclas maiores: o alvo era 44px num monitor onde cabiam 56. */}
+      <div data-tour="teclado" className="flex flex-col gap-1.5 w-full max-w-2xl shrink-0 pt-3 pb-1 bg-canvas/95 z-10">
         {LINHAS_TECLADO.map((linha, i) => (
-          <div key={linha} className="flex gap-1 justify-center">
+          <div key={linha} className="flex gap-1 sm:gap-1.5 justify-center">
             {i === 2 && (
-              <button onClick={enviar} disabled={!preenchido || fimDoGrupo} className="px-2.5 h-11 rounded-lg bg-accent text-white font-bold text-[11px] flex items-center gap-1 disabled:opacity-40 cursor-pointer" aria-label="Enviar palpite">
-                <CornerDownLeft className="w-3.5 h-3.5" />
+              <button onClick={enviar} disabled={!preenchido || fimDoGrupo} className="px-3 sm:px-4 h-11 sm:h-14 rounded-lg bg-accent text-white font-bold text-[11px] flex items-center gap-1 disabled:opacity-40 cursor-pointer" aria-label="Enviar palpite">
+                <CornerDownLeft className="w-4 h-4" />
               </button>
             )}
             {linha.split('').map(letra => (
               <button
                 key={letra}
                 onClick={() => digitar(letra)}
-                className={`flex-1 min-w-0 h-11 rounded-lg border font-bold text-[13px] transition-colors cursor-pointer ${cor(teclado[letra])}`}
+                className={`flex-1 min-w-0 h-11 sm:h-14 rounded-lg border font-bold text-sm sm:text-base transition-colors cursor-pointer ${cor(teclado[letra])}`}
               >
                 {letra}
               </button>
             ))}
             {i === 2 && (
-              <button onClick={apagar} className="px-2.5 h-11 rounded-lg bg-canvas border border-border-subtle text-ink cursor-pointer" aria-label="Apagar letra">
+              <button onClick={apagar} className="px-3 sm:px-4 h-11 sm:h-14 rounded-lg bg-canvas border border-border-subtle text-ink cursor-pointer" aria-label="Apagar letra">
                 <Delete className="w-4 h-4" />
               </button>
             )}
@@ -528,6 +677,7 @@ export default function TermoGame({ rodadas, ageProfile, onFinish, onExit }: Ter
             ? 'Toque num quadrado para escrever nele.'
             : 'Clique num quadrado (ou use ← →) para escrever fora de ordem.'}
         </p>
+      </div>
       </div>
     </div>
   );

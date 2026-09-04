@@ -26,9 +26,15 @@ describe('a regra da porta', () => {
   it('com sessão, app — mesmo pedindo login (o pedido caduca ao entrar)', () => {
     expect(porta({ authRequired: true, temSessao: true, anonimoAceito: false, pedindoLogin: true })).toBe('app')
   })
-  it('sem sessão: login na 1ª visita; app depois de aceitar seguir sem conta; login de novo se pedir', () => {
-    expect(porta({ authRequired: true, temSessao: false, anonimoAceito: false, pedindoLogin: false })).toBe('login')
+  /**
+   * A PORTA SE INVERTEU (mudança porta-de-entrada, 01/09). Este teste travava o comportamento
+   * antigo — primeira visita mostra o LOGIN — que era o oposto da decisão de produto: o primeiro
+   * acesso é sem conta, e a conta é pedida quando a pessoa tem algo a perder.
+   */
+  it('sem sessão: a 1ª visita abre no APP; só vai para o login quem pede', () => {
+    expect(porta({ authRequired: true, temSessao: false, anonimoAceito: false, pedindoLogin: false })).toBe('app')
     expect(porta({ authRequired: true, temSessao: false, anonimoAceito: true, pedindoLogin: false })).toBe('app')
+    expect(porta({ authRequired: true, temSessao: false, anonimoAceito: false, pedindoLogin: true })).toBe('login')
     expect(porta({ authRequired: true, temSessao: false, anonimoAceito: true, pedindoLogin: true })).toBe('login')
   })
   it('o que exige conta é o que persiste; capturar, jogar, início e ajustes ficam livres', () => {

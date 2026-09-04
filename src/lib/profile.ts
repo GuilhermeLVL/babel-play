@@ -1,3 +1,4 @@
+import { idiomaDaInterface, t } from './i18n';
 /**
  * PERFIL DE EXIBIÇÃO — a única fonte da linguagem e da densidade por público.
  *
@@ -19,7 +20,7 @@
  * eixo do idioma entra por fora deste (chave → idioma → perfil), sem reescrever os consumidores.
  */
 
-import { EDICAO_LEVE } from './edicao';
+
 export type AgeProfileType = 'kids' | 'pro' | 'senior';
 
 export function isAgeProfile(v: unknown): v is AgeProfileType {
@@ -38,9 +39,11 @@ const AGE_PROFILE_KEY = 'babel.age_profile';
  * aberto não reflete ali até reabrir — limite aceito conscientemente.
  */
 export function readAgeProfile(): AgeProfileType {
-  // Edição leve: o padrão é o perfil SÊNIOR (linguagem simples, passos numerados) — decisão do
-  // dono (2026-08-27): a primeira visita deve ser a mais guiada; quem quiser troca em Aparência.
-  return readStoredEnum(AGE_PROFILE_KEY, ['kids', 'pro', 'senior'], EDICAO_LEVE ? 'senior' : 'pro');
+  // O padrão é SEMPRE o perfil sênior / "Leitura ampliada" — decisão do dono estendida ao build
+  // completo em 2026-08-31 (spec leitura-ampliada-padrao): a primeira visita deve ser a mais
+  // confortável e guiada; quem quiser densidade troca em Personalizar → Tela. A preferência
+  // gravada (local ou do servidor) continua vencendo.
+  return readStoredEnum(AGE_PROFILE_KEY, ['kids', 'pro', 'senior'], 'senior');
 }
 
 /**
@@ -344,6 +347,17 @@ export const COPY = {
     senior: 'Resumo desta aula'
   },
 
+  // ── Vocabulário de progressão ────────────────────────────────────────────
+  // A PALAVRA do nível de gamificação, num lugar só (auditoria ux-v2 §1.7: o mesmo número era
+  // "ETAPA" no Hub, "NÍVEL" em Personalizar e "nível" nos marcos do Perfil — dentro do MESMO
+  // perfil de exibição). "Etapa" fica reservada ao sênior; a trilha CEFR ("A2 · etapa 7") é
+  // outro conceito e continua com a palavra dela.
+  'word.level': {
+    kids: 'Nível',
+    pro: 'Nível',
+    senior: 'Etapa'
+  },
+
   // ── Revelação progressiva ────────────────────────────────────────────────
   'reveal.more': {
     kids: 'Ver tudo ({n})',
@@ -363,15 +377,22 @@ export type CopyKey = keyof typeof COPY;
  * Traduz uma chave para o perfil em vigor. `vars` substitui `{nome}` no texto — é o que permite
  * "{n} cartas esperando você" e "{n} vencidos agora" serem a MESMA chave com contagens reais.
  */
-export function t(key: CopyKey, profile: AgeProfileType, vars?: Record<string, string | number>): string {
+export function copyDoPerfil(key: CopyKey, profile: AgeProfileType, vars?: Record<string, string | number>): string {
   const entry = COPY[key] as Variants;
-  let out: string = entry[profile] ?? entry.pro;
-  if (vars) {
-    for (const [k, v] of Object.entries(vars)) {
-      out = out.replaceAll(`{${k}}`, String(v));
-    }
-  }
-  return out;
+
+  /* OS TRES REGISTROS SAO DE PORTUGUES; fora dele, traduz-se um so.
+     
+     As tres redacoes existem porque "Seu baralho esta vazio" e "Voce ainda nao guardou palavras"
+     falam com publicos diferentes — e essa precisao depende de sensibilidade nativa. Traduzida por
+     maquina, ou por tradutor sem contexto do produto, a nuance nao sobrevive: pagam-se tres
+     traducoes para obter tres variacoes aleatorias da mesma frase. Medido: 6.000 strings em vez de
+     2.000, por idioma, e a diferenca entre US$ 56 mil e US$ 19 mil no volume de quinze idiomas.
+     
+     Entao o portugues mantem os tres, e os demais idiomas recebem a voz `pro`. As chaves das
+     outras variantes continuam no catalogo: o dia em que um idioma justificar os tres registros,
+     basta traduzi-las. */
+  const registro = idiomaDaInterface() === 'pt' ? (entry[profile] ?? entry.pro) : entry.pro;
+  return t(registro, vars);
 }
 
 /**

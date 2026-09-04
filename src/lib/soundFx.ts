@@ -111,6 +111,8 @@ const THEME_VOICES: Record<ThemeType, ThemeVoice> = {
   vercel: { wave: 'square',   root: 12,  decay: 0.3,  gain: 0.75, errorWave: 'square' },
   // Everforest orgânico, arredondado: triangular grave, ressoando.
   mochi:  { wave: 'triangle', root: -7,  decay: 1.7,  gain: 1.05, errorWave: 'triangle' },
+  // Aurora (exclusivo de conquista): senoide etérea, grave, cauda longa — o som de uma noite polar.
+  aurora: { wave: 'sine',     root: -5,  decay: 2.1,  gain: 0.9,  errorWave: 'triangle' },
   // Carvão sóbrio, tipográfico: senoide grave e discreta. Presente, nunca chamativa.
   notion: { wave: 'sine',     root: -14, decay: 0.9,  gain: 0.7,  errorWave: 'sine' },
   // Escolha do usuário: neutro, para não brigar com paleta nenhuma.

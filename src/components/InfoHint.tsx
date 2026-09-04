@@ -63,7 +63,7 @@ export default function InfoHint({
           role="tooltip"
           style={{ top: caixa.top, left: caixa.left, width: caixa.largura }}
           className="fixed z-[75] pointer-events-none rounded-lg bg-surface border border-border-subtle shadow-2xl p-2.5
-                     text-left text-[11px] font-normal leading-snug text-ink-muted normal-case
+                     text-start text-[11px] font-normal leading-snug text-ink-muted normal-case
                      animate-in fade-in slide-in-from-top-1 duration-150"
         >
           {text}

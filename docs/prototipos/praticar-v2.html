@@ -1,0 +1,635 @@
+<title>Praticar Jogando v2</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;700;800&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+
+<style>
+/* ══════════════════════════════════════════════════════════════════════════
+   Tokens: os MESMOS do produto (src/index.css). Um protótipo que inventa
+   paleta própria não prova nada sobre a tela que vai ser construída.
+   ══════════════════════════════════════════════════════════════════════════ */
+:root {
+  color-scheme: light;
+  --canvas:#E6E2D6; --surface:#F5F2EA; --surface-hover:#EBE7DB;
+  --ink:#26241F; --ink-muted:#5E5A50; --ink-faint:#7A7568;
+  --accent:#F04E23; --accent-soft:#FBDDD3; --accent-ink:#C93A15; --accent-contrast:#fff;
+  --good:#3E6B44; --good-soft:#DCE7DB;
+  --warn:#C98A12; --warn-soft:#F4E7CB;
+  --rare:#5B5EA6; --rare-soft:#E1E1F2;
+  --error:#C92A2A; --error-soft:#FFE3E3;
+  --border:#C6BFAC; --border-strong:#26241F;
+  --shadow-card: inset 0 1px 0 rgba(255,255,255,.6), 0 2px 5px rgba(38,36,31,.08);
+  --shadow-btn: inset 0 1px 0 rgba(255,255,255,.25), 0 2px 0 rgba(0,0,0,.18);
+  --r-card:16px; --r-btn:12px;
+  --f-display:"Archivo", system-ui, sans-serif;
+  --f-body:"Inter", system-ui, sans-serif;
+  --f-mono:"IBM Plex Mono", ui-monospace, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --canvas:#0B0E14; --surface:#151922; --surface-hover:#1F2430;
+    --ink:#F0F6FC; --ink-muted:#8B949E; --ink-faint:#79828C;
+    --accent:#FF5A36; --accent-soft:rgba(255,90,54,.15); --accent-ink:#FF7B5C;
+    --good:#3FB950; --good-soft:rgba(63,185,80,.15);
+    --warn:#D29922; --warn-soft:rgba(210,153,34,.15);
+    --rare:#58A6FF; --rare-soft:rgba(88,166,255,.15);
+    --error:#F85149; --error-soft:rgba(248,81,73,.15);
+    --border:#333B48; --border-strong:#48525F;
+    --shadow-card: 0 2px 5px rgba(0,0,0,.35);
+    --shadow-btn: inset 0 1px 0 rgba(255,255,255,.12), 0 2px 0 rgba(0,0,0,.5);
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --canvas:#0B0E14; --surface:#151922; --surface-hover:#1F2430;
+  --ink:#F0F6FC; --ink-muted:#8B949E; --ink-faint:#79828C;
+  --accent:#FF5A36; --accent-soft:rgba(255,90,54,.15); --accent-ink:#FF7B5C;
+  --good:#3FB950; --good-soft:rgba(63,185,80,.15);
+  --warn:#D29922; --warn-soft:rgba(210,153,34,.15);
+  --rare:#58A6FF; --rare-soft:rgba(88,166,255,.15);
+  --error:#F85149; --error-soft:rgba(248,81,73,.15);
+  --border:#333B48; --border-strong:#48525F;
+  --shadow-card: 0 2px 5px rgba(0,0,0,.35);
+  --shadow-btn: inset 0 1px 0 rgba(255,255,255,.12), 0 2px 0 rgba(0,0,0,.5);
+}
+
+* { box-sizing: border-box; }
+body {
+  margin:0; background: var(--canvas); color: var(--ink);
+  font-family: var(--f-body); font-size:15px; line-height:1.5;
+  -webkit-font-smoothing: antialiased;
+}
+h1,h2,h3 { font-family: var(--f-display); text-wrap: balance; margin:0; letter-spacing:-.015em; }
+button { font: inherit; color: inherit; cursor: pointer; }
+:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration:.01ms !important; transition-duration:.01ms !important; } }
+
+.wrap { max-width: 1080px; margin: 0 auto; padding: 0 20px 80px; }
+.mono { font-family: var(--f-mono); }
+.lab {
+  font-family: var(--f-mono); font-size:10.5px; font-weight:600;
+  letter-spacing:.14em; text-transform: uppercase; color: var(--ink-faint);
+}
+.num { font-variant-numeric: tabular-nums; }
+
+/* ── A régua: faixa fina de estado. Antes era um bloco alto com 8 números. ── */
+.regua {
+  display:flex; align-items:center; gap:18px; flex-wrap:wrap;
+  padding:10px 0; border-bottom:1px solid var(--border);
+  font-size:12.5px; color: var(--ink-muted);
+}
+.regua b { color: var(--ink); font-weight:700; }
+.regua .marca {
+  font-family: var(--f-display); font-weight:800; font-size:15px;
+  color: var(--ink); letter-spacing:-.02em; margin-right:auto;
+}
+.regua .marca span { color: var(--accent); }
+.tema {
+  background: none; border:1px solid var(--border); border-radius:99px;
+  padding:3px 10px; font-size:11px; color: var(--ink-muted);
+}
+.tema:hover { background: var(--surface-hover); }
+
+/* ── FICHA DE HOJE: a única decisão que 80% das visitas precisa tomar. ── */
+.ficha {
+  margin-top:22px; background: var(--surface); border:2px solid var(--border-strong);
+  border-radius: var(--r-card); box-shadow: var(--shadow-card);
+  padding:24px; display:grid; grid-template-columns: 1fr auto; gap:24px; align-items:center;
+}
+@media (max-width: 720px) { .ficha { grid-template-columns:1fr; } }
+.ficha .eyebrow { display:flex; align-items:center; gap:8px; margin-bottom:10px; }
+.ficha h1 { font-size: clamp(22px, 3.4vw, 30px); font-weight:800; line-height:1.15; }
+.ficha h1 .lacuna { color: var(--accent); letter-spacing:-.06em; }
+.ficha .porque { margin-top:10px; color: var(--ink-muted); font-size:13.5px; max-width:52ch; }
+.ficha .porque b { color: var(--ink); }
+.acao { display:flex; flex-direction:column; gap:8px; align-items:stretch; min-width:200px; }
+.btn-grande {
+  background: var(--accent); color: var(--accent-contrast); border:none;
+  border-radius: var(--r-btn); padding:15px 26px;
+  font-family: var(--f-display); font-weight:800; font-size:17px; letter-spacing:-.01em;
+  box-shadow: var(--shadow-btn); transition: transform .12s, filter .12s;
+}
+.btn-grande:hover { filter:brightness(1.06); transform: translateY(-1px); }
+.btn-grande:active { transform: translateY(1px); box-shadow: inset 0 1px 0 rgba(255,255,255,.25), 0 0 0 rgba(0,0,0,.18); }
+.btn-txt {
+  background:none; border:none; color: var(--ink-muted); font-size:12.5px;
+  text-decoration: underline; text-underline-offset:3px; padding:4px;
+}
+.btn-txt:hover { color: var(--accent-ink); }
+
+/* ── JOGANDO COM: o seletor inteiro reduzido a UMA linha + gaveta. ── */
+.fonte-linha {
+  margin-top:14px; display:flex; align-items:center; gap:12px; flex-wrap:wrap;
+  background: var(--surface); border:1px solid var(--border); border-radius: var(--r-btn);
+  padding:11px 14px; transition: border-color .12s;
+}
+/* Aberta, linha e gaveta são UMA peça: a emenda entre as duas bordas denunciava dois blocos. */
+.fonte-linha.aberta {
+  border:2px solid var(--border-strong); border-bottom:none;
+  border-radius: var(--r-card) var(--r-card) 0 0; padding:12px 18px 14px;
+}
+.fonte-resumo { display:flex; align-items:baseline; gap:8px; flex-wrap:wrap; flex:1; min-width:240px; font-size:13.5px; }
+.fonte-resumo .qtd { font-family: var(--f-display); font-weight:800; font-size:18px; }
+.fonte-resumo .sep { color: var(--ink-faint); }
+.fonte-resumo .item { color: var(--ink-muted); }
+.fonte-resumo .item b { color: var(--ink); font-weight:600; }
+.btn-linha {
+  background: var(--surface); border:1.5px solid var(--border-strong);
+  border-radius: 9px; padding:7px 14px; font-size:13px; font-weight:600;
+  box-shadow: var(--shadow-btn);
+}
+.btn-linha:hover { background: var(--surface-hover); }
+.btn-linha[aria-expanded="true"] { background: var(--ink); color: var(--canvas); }
+
+/* ── Gaveta de facetas ── */
+.gaveta {
+  border:2px solid var(--border-strong); border-top:none;
+  border-radius: 0 0 var(--r-card) var(--r-card);
+  background: var(--surface); padding:4px 18px 18px;
+}
+.gaveta[hidden] { display:none; }
+.faceta { padding:14px 0; border-bottom:1px dashed var(--border); }
+.faceta:last-child { border-bottom:none; padding-bottom:0; }
+.faceta-topo { display:flex; align-items:baseline; gap:10px; margin-bottom:10px; }
+.faceta-topo .ajuda { font-size:12px; color: var(--ink-faint); }
+.chips { display:flex; gap:8px; flex-wrap:wrap; }
+.chip {
+  display:inline-flex; align-items:center; gap:7px;
+  background: var(--surface); border:1.5px solid var(--border); border-radius:99px;
+  padding:6px 13px; font-size:13px; font-weight:500; transition: all .12s;
+}
+.chip:hover:not(:disabled) { border-color: var(--ink-muted); background: var(--surface-hover); }
+.chip[aria-pressed="true"] {
+  background: var(--accent); border-color: var(--accent); color: var(--accent-contrast); font-weight:600;
+}
+.chip[aria-pressed="true"] .c-num { background: rgba(255,255,255,.25); color: inherit; }
+.chip:disabled { opacity:.45; cursor: not-allowed; }
+.c-num {
+  font-family: var(--f-mono); font-size:11px; font-variant-numeric: tabular-nums;
+  background: var(--canvas); border-radius:99px; padding:1px 7px; color: var(--ink-muted);
+}
+.chip-radio[aria-pressed="true"] { background: var(--ink); border-color: var(--ink); color: var(--canvas); }
+.chip-radio[aria-pressed="true"] .c-num { background: rgba(255,255,255,.2); }
+.gaveta-pe { display:flex; justify-content:space-between; align-items:center; gap:12px; margin-top:16px; padding-top:14px; border-top:1px solid var(--border); flex-wrap:wrap; }
+.vazio-util { color: var(--warn); font-size:13px; font-weight:600; }
+
+/* ── JOGOS ── */
+.secao-titulo { display:flex; align-items:baseline; gap:12px; margin:34px 0 4px; }
+.secao-titulo h2 { font-size:17px; font-weight:700; }
+.secao-titulo .conta { font-family: var(--f-mono); font-size:12px; color: var(--ink-faint); }
+.secao-sub { color: var(--ink-muted); font-size:13px; margin:0 0 14px; max-width:64ch; }
+.grade { display:grid; grid-template-columns: repeat(auto-fill, minmax(232px,1fr)); gap:12px; }
+.jogo {
+  text-align:left; background: var(--surface); border:2px solid var(--border);
+  border-radius: var(--r-card); padding:15px; display:flex; flex-direction:column; gap:6px;
+  min-height:132px; transition: all .13s; position:relative;
+}
+.jogo:hover:not(:disabled) { border-color: var(--border-strong); transform: translateY(-2px); box-shadow: var(--shadow-card); }
+.jogo .nome { font-family: var(--f-display); font-weight:700; font-size:15.5px; }
+.jogo .treina { font-size:12.5px; color: var(--ink-muted); flex:1; }
+.jogo .rodape { display:flex; align-items:center; gap:6px; font-size:11.5px; }
+.pill {
+  font-family: var(--f-mono); font-size:10.5px; font-weight:600; letter-spacing:.04em;
+  padding:2px 8px; border-radius:99px; text-transform:uppercase;
+}
+.pill.ok { background: var(--good-soft); color: var(--good); }
+.pill.deg { background: var(--warn-soft); color: var(--warn); }
+.pill.no { background: var(--canvas); color: var(--ink-faint); }
+.jogo.bloqueado { opacity:.72; background: transparent; border-style: dashed; cursor: default; }
+.jogo.bloqueado .nome { color: var(--ink-muted); }
+.jogo .motivo { font-size:12px; color: var(--ink-faint); }
+.jogo .porta {
+  margin-top:6px; align-self:flex-start; background: var(--surface); border:1.5px solid var(--border-strong);
+  border-radius:8px; padding:5px 11px; font-size:12px; font-weight:600; box-shadow: var(--shadow-btn);
+}
+.jogo .porta:hover { background: var(--accent); border-color: var(--accent); color: var(--accent-contrast); }
+
+/* ── Acervo (gaveta secundária) ── */
+details.acervo { margin-top:30px; border-top:1px solid var(--border); padding-top:14px; }
+details.acervo summary { cursor:pointer; font-size:13.5px; font-weight:600; color: var(--ink-muted); list-style:none; display:flex; align-items:center; gap:8px; }
+details.acervo summary::-webkit-details-marker { display:none; }
+details.acervo summary::before { content:"▸"; color: var(--accent); transition: transform .15s; display:inline-block; }
+details.acervo[open] summary::before { transform: rotate(90deg); }
+.acervo-grade { display:grid; grid-template-columns: repeat(auto-fit, minmax(150px,1fr)); gap:10px; margin-top:14px; }
+.metrica { background: var(--surface); border:1px solid var(--border); border-radius:10px; padding:12px 14px; }
+.metrica .v { font-family: var(--f-display); font-weight:800; font-size:21px; }
+.metrica .k { font-size:11.5px; color: var(--ink-muted); margin-top:1px; }
+
+/* ── Modal (importação e "outro jogo") ── */
+.modal-fundo {
+  position:fixed; inset:0; background: rgba(11,14,20,.55); backdrop-filter: blur(3px);
+  display:grid; place-items:center; padding:20px; z-index:50;
+}
+.modal-fundo[hidden] { display:none; }
+.modal {
+  background: var(--surface); border:2px solid var(--border-strong); border-radius: var(--r-card);
+  max-width:560px; width:100%; max-height:88vh; overflow-y:auto; padding:26px;
+  box-shadow: 0 20px 50px rgba(0,0,0,.3);
+}
+.modal h2 { font-size:20px; font-weight:800; margin-bottom:6px; }
+.modal p.sub { color: var(--ink-muted); font-size:13.5px; margin:0 0 18px; }
+.passo { display:flex; gap:13px; padding:13px 0; border-bottom:1px dashed var(--border); }
+.passo:last-of-type { border-bottom:none; }
+.passo .n {
+  flex:0 0 26px; height:26px; border-radius:99px; background: var(--ink); color: var(--canvas);
+  display:grid; place-items:center; font-family: var(--f-mono); font-size:12px; font-weight:600;
+}
+.passo .t { font-weight:600; font-size:14px; }
+.passo .d { font-size:12.5px; color: var(--ink-muted); margin-top:2px; }
+.alvo-arquivo {
+  border:2px dashed var(--border); border-radius: var(--r-btn); padding:22px; text-align:center;
+  background: var(--canvas); margin:16px 0 6px; transition: all .15s;
+}
+.alvo-arquivo:hover { border-color: var(--accent); background: var(--accent-soft); }
+.alvo-arquivo .big { font-family: var(--f-display); font-weight:700; font-size:15px; }
+.alvo-arquivo .small { font-size:12px; color: var(--ink-muted); margin-top:3px; }
+.modal-pe { display:flex; gap:10px; justify-content:flex-end; margin-top:20px; }
+
+/* ── Nota de rodapé do protótipo ── */
+.nota {
+  margin-top:44px; padding:18px 20px; border-left:3px solid var(--accent);
+  background: var(--surface); border-radius:0 10px 10px 0; font-size:13px; color: var(--ink-muted);
+}
+.nota b { color: var(--ink); }
+.nota ul { margin:8px 0 0; padding-left:18px; }
+.nota li { margin:4px 0; }
+.antes-depois { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:12px; }
+@media (max-width:640px){ .antes-depois { grid-template-columns:1fr; } }
+.ad { border:1px solid var(--border); border-radius:10px; padding:12px 14px; background: var(--canvas); }
+.ad .t { font-family: var(--f-mono); font-size:10.5px; letter-spacing:.12em; text-transform:uppercase; color: var(--ink-faint); }
+.ad .v { font-family: var(--f-display); font-size:19px; font-weight:800; margin-top:3px; }
+.ad.ruim .v { color: var(--error); }
+.ad.bom .v { color: var(--good); }
+.dica-pista { font-family: var(--f-mono); font-size:12.5px; background: var(--canvas); border:1px solid var(--border); border-radius:8px; padding:9px 12px; margin-top:8px; }
+.dica-pista .lac { color: var(--accent); font-weight:600; }
+del { color: var(--ink-faint); text-decoration-color: var(--error); }
+</style>
+
+<div class="wrap">
+
+  <div class="regua">
+    <div class="marca">Babel<span>Play</span></div>
+    <span>Ofensiva <b class="num">7 dias</b></span>
+    <span>Nível <b class="num">12</b> · <span class="num">340/500</span> XP</span>
+    <span>Seeds <b class="num">1.284</b></span>
+    <button class="tema" id="btn-tema" type="button">tema</button>
+  </div>
+
+  <!-- ═══ A FICHA DE HOJE ═══ -->
+  <section class="ficha">
+    <div>
+      <div class="eyebrow"><span class="lab">Sua próxima rodada</span></div>
+      <h1 id="ficha-titulo">Revisar <span class="num" id="ficha-n">2.225</span> palavras que <span class="lacuna">———</span> voltaram a vencer</h1>
+      <p class="porque" id="ficha-porque">
+        Sugerimos o <b>Desafio rápido</b>: com este volume, é o jogo que mais palavras cobre por minuto.
+        Vem tudo de <b>4000 Essential English Words</b>, em inglês.
+      </p>
+    </div>
+    <div class="acao">
+      <button class="btn-grande" type="button" id="btn-jogar">Começar</button>
+      <button class="btn-txt" type="button" id="btn-outro">escolher outro jogo</button>
+    </div>
+  </section>
+
+  <!-- ═══ JOGANDO COM (uma linha + gaveta) ═══ -->
+  <div class="fonte-linha">
+    <div class="fonte-resumo">
+      <span class="lab">jogando com</span>
+      <span class="qtd num" id="res-qtd">2.228</span>
+      <span class="item">palavras</span>
+      <span class="sep">·</span>
+      <span class="item" id="res-fonte"><b>4000 Essential English Words</b></span>
+      <span class="sep">·</span>
+      <span class="item"><b>inglês</b></span>
+      <span class="vazio-util" id="res-vazio" hidden>— nada passa neste recorte</span>
+    </div>
+    <button class="btn-linha" type="button" id="btn-gaveta" aria-expanded="false" aria-controls="gaveta">Trocar</button>
+  </div>
+
+  <div class="gaveta" id="gaveta" hidden>
+    <div class="faceta">
+      <div class="faceta-topo"><span class="lab">de onde vêm</span><span class="ajuda">escolha uma ou várias — elas se somam</span></div>
+      <div class="chips" id="chips-fonte"></div>
+    </div>
+    <div class="faceta" id="faceta-baralhos">
+      <div class="faceta-topo"><span class="lab">quais baralhos</span><span class="ajuda">vazio = todos</span></div>
+      <div class="chips" id="chips-baralho"></div>
+    </div>
+    <div class="faceta">
+      <div class="faceta-topo"><span class="lab">recorte</span><span class="ajuda">filtra dentro do que você escolheu acima</span></div>
+      <div class="chips" id="chips-recorte"></div>
+    </div>
+    <div class="gaveta-pe">
+      <span class="lab" id="pe-resumo"></span>
+      <div style="display:flex; gap:8px;">
+        <button class="btn-txt" type="button" id="btn-limpar">limpar tudo</button>
+        <button class="btn-linha" type="button" id="btn-fechar-gaveta">Pronto</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ JOGOS ═══ -->
+  <div class="secao-titulo">
+    <h2>Prontos para jogar</h2>
+    <span class="conta num" id="conta-prontos"></span>
+  </div>
+  <p class="secao-sub">Ordenados pelo que rende mais com o material que você tem agora.</p>
+  <div class="grade" id="grade-prontos"></div>
+
+  <div class="secao-titulo" id="tit-bloqueados">
+    <h2>Precisam de outro material</h2>
+    <span class="conta num" id="conta-bloqueados"></span>
+  </div>
+  <p class="secao-sub" id="sub-bloqueados">
+    Não estão quebrados — pedem algo que este recorte não tem. Cada um diz o que falta e leva ao lugar que resolve.
+  </p>
+  <div class="grade" id="grade-bloqueados"></div>
+
+  <!-- ═══ ACERVO ═══ -->
+  <details class="acervo">
+    <summary>Ver os números do acervo</summary>
+    <div class="acervo-grade" id="acervo-grade"></div>
+  </details>
+
+  <!-- ═══ NOTA ═══ -->
+  <div class="nota">
+    <b>O que mudou, e por quê.</b> A tela de hoje tem <b>53 controles e 64 contadores</b> (contados no
+    código, não no olho). Este desenho não some com nada — reordena por decisão:
+    <ul>
+      <li><b>Uma pergunta em cima.</b> 80% das visitas são "quero praticar agora": a ficha responde num clique, e diz de onde vem o material antes de você clicar.</li>
+      <li><b>Três linhas de controle viraram uma.</b> Abas, chips e faixa eram estados que não se conheciam — o chip acendia e não fazia nada. Aqui é um resumo só, e a gaveta guarda o resto.</li>
+      <li><b>Jogo bloqueado explica e resolve.</b> Em vez de nove cartas cinzentas sem motivo, dois grupos: o que roda agora e o que pede áudio ou frases, com o botão que traz aquilo.</li>
+      <li><b>Números competindo viraram uma régua fina.</b> XP, ofensiva e Seeds não disputam com a decisão da rodada.</li>
+    </ul>
+    <div class="antes-depois">
+      <div class="ad ruim"><div class="t">Antes — dica do Termo</div><div class="v"><del>To beg is to ask…</del></div><div style="font-size:12px;margin-top:4px">a resposta vinha impressa na dica</div></div>
+      <div class="ad bom"><div class="t">Depois — mesma dica</div><div class="v">To <span style="color:var(--accent)">———</span> is to ask…</div><div style="font-size:12px;margin-top:4px">virou exercício de verdade</div></div>
+    </div>
+    <div class="dica-pista">
+      Medido no seu acervo: <b>2.225 de 2.225 cartões</b> do baralho importado traziam a palavra dentro da
+      própria dica. Agora: <b>0</b>. <span class="lac">———</span> é a lacuna que entrou no lugar dela.
+    </div>
+  </div>
+</div>
+
+<!-- ═══ MODAL: importar ═══ -->
+<div class="modal-fundo" id="modal-import" hidden>
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="mi-tit">
+    <h2 id="mi-tit">Trazer um baralho do Anki</h2>
+    <p class="sub">Um arquivo <span class="mono">.apkg</span> ou <span class="mono">.colpkg</span> exportado do Anki. Fica tudo no seu aparelho.</p>
+    <div class="alvo-arquivo" id="alvo-arquivo" role="button" tabindex="0">
+      <div class="big">Solte o arquivo aqui</div>
+      <div class="small">ou clique para escolher — até 200 MB</div>
+    </div>
+    <div id="import-passos">
+      <div class="passo"><div class="n">1</div><div><div class="t">A gente lê e mostra o que achou</div><div class="d">quantas notas, quais campos viraram palavra, significado e frase — antes de gravar qualquer coisa</div></div></div>
+      <div class="passo"><div class="n">2</div><div><div class="t">Você confere o mapeamento</div><div class="d">se a frente for a definição e não a palavra, dá para trocar antes de importar</div></div></div>
+      <div class="passo"><div class="n">3</div><div><div class="t">As palavras entram na sua prática</div><div class="d">e o baralho vira um recorte que você liga e desliga quando quiser</div></div></div>
+    </div>
+    <div class="modal-pe">
+      <button class="btn-txt" type="button" data-fechar="modal-import">Cancelar</button>
+      <button class="btn-linha" type="button" id="btn-simular-import">Simular importação</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ MODAL: escolher jogo ═══ -->
+<div class="modal-fundo" id="modal-jogo" hidden>
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="mj-tit">
+    <h2 id="mj-tit">Jogar com outro jogo</h2>
+    <p class="sub">Mesmo material, outra forma de treinar. O que não aparece aqui está mais abaixo, com o motivo.</p>
+    <div class="grade" id="grade-modal"></div>
+    <div class="modal-pe"><button class="btn-linha" type="button" data-fechar="modal-jogo">Fechar</button></div>
+  </div>
+</div>
+
+<script>
+/* ══════════════════════════════════════════════════════════════════════════
+   MODELO — proporções REAIS do acervo do dono (SELECT no banco de 02/09):
+   2.228 palavras do baralho "4000 Essential English Words", 2.225 vencidas,
+   0 nunca vistas, 2.228 com tradução, 3 com frase. Curso: 2.784. Gravações: 61.
+   Os filtros calculam de verdade sobre este conjunto — nada é número fixo.
+   ══════════════════════════════════════════════════════════════════════════ */
+const BARALHOS = [
+  { id: 'ess1', nome: '4000 Essential English Words', n: 2228, comFrase: 3, vencidas: 2225 },
+  { id: 'phr',  nome: 'Phrasal Verbs em contexto',    n: 412,  comFrase: 380, vencidas: 96 },
+];
+const acervo = [];
+let seq = 0;
+for (const b of BARALHOS) {
+  for (let i = 0; i < b.n; i++) {
+    acervo.push({ id: 'c' + (seq++), fonte: 'baralho', baralho: b.id,
+      comTraducao: true, comFrase: i < b.comFrase, vencida: i < b.vencidas,
+      nuncaVista: false, temAudio: false, latino: true });
+  }
+}
+for (let i = 0; i < 2784; i++) {
+  acervo.push({ id: 'c' + (seq++), fonte: 'curso', baralho: null,
+    comTraducao: true, comFrase: i % 3 === 0, vencida: i < 120, nuncaVista: i >= 900,
+    temAudio: false, latino: true });
+}
+for (let i = 0; i < 61; i++) {
+  acervo.push({ id: 'c' + (seq++), fonte: 'gravacao', baralho: null,
+    comTraducao: i % 4 !== 0, comFrase: true, vencida: i < 18, nuncaVista: i > 40,
+    temAudio: true, latino: true });
+}
+
+const FONTES = [
+  { id: 'baralho',  rotulo: 'Baralhos importados' },
+  { id: 'curso',    rotulo: 'Curso de palavras' },
+  { id: 'gravacao', rotulo: 'Minhas gravações' },
+];
+const RECORTES = [
+  { id: 'vencida',     rotulo: 'Pedindo revisão' },
+  { id: 'nuncaVista',  rotulo: 'Nunca vistas' },
+  { id: 'comTraducao', rotulo: 'Com significado' },
+  { id: 'comFrase',    rotulo: 'Com frase' },
+];
+/* Requisitos declarativos por jogo — a mesma ideia de MINIGAMES.requisitos no core. */
+const JOGOS = [
+  { id:'blitz',    nome:'Desafio rápido',      treina:'reconhecer rápido',        min:4,  precisa:['comTraducao'] },
+  { id:'memoria',  nome:'Jogo da memória',     treina:'fixar pares',              min:4,  precisa:['comTraducao'] },
+  { id:'termo',    nome:'Escrever a palavra',  treina:'escrever de cabeça',       min:7,  precisa:['comTraducao','latino'] },
+  { id:'caca',     nome:'Caça-palavras',       treina:'reconhecer a forma',       min:4,  precisa:['comTraducao','latino'] },
+  { id:'escuta',   nome:'Reconhecer a fala',   treina:'ouvido',                   min:4,  precisa:['temAudio'],  falta:'áudio de uma gravação sua' },
+  { id:'ditado',   nome:'Escrever o que ouviu',treina:'ouvido e escrita',         min:4,  precisa:['temAudio'],  falta:'áudio de uma gravação sua' },
+  { id:'karaoke',  nome:'Repetir em voz alta', treina:'pronúncia',                min:3,  precisa:['temAudio'],  falta:'áudio de uma gravação sua' },
+  { id:'scramble', nome:'Montar a frase',      treina:'ordem das palavras',       min:4,  precisa:['comFrase'],  falta:'frases de exemplo' },
+  { id:'conect',   nome:'Palavras de ligação', treina:'conectar ideias',          min:5,  precisa:['comFrase'],  falta:'frases de exemplo' },
+];
+
+let filtro = { fontes:['baralho'], baralhos:['ess1'], recortes:[] };
+
+const passa = (c, f) => {
+  if (f.fontes.length && !f.fontes.includes(c.fonte)) return false;
+  if (c.fonte === 'baralho' && f.baralhos.length && !f.baralhos.includes(c.baralho)) return false;
+  return f.recortes.every(r => c[r]);
+};
+const fmt = n => n.toLocaleString('pt-BR');
+
+function render() {
+  const sel = acervo.filter(c => passa(c, filtro));
+
+  /* Resumo-verdade: TODO número da tela sai daqui. */
+  document.getElementById('res-qtd').textContent = fmt(sel.length);
+  const nomeFonte = filtro.baralhos.length === 1 && filtro.fontes.includes('baralho')
+    ? BARALHOS.find(b => b.id === filtro.baralhos[0]).nome
+    : filtro.fontes.length === 1
+      ? FONTES.find(f => f.id === filtro.fontes[0]).rotulo
+      : filtro.fontes.length + ' fontes';
+  document.getElementById('res-fonte').innerHTML = '<b>' + nomeFonte + '</b>';
+  document.getElementById('res-vazio').hidden = sel.length > 0;
+
+  /* Chips: cada faceta conta o que ELA renderia dentro do resto do filtro. */
+  const chipsHTML = (lista, ativos, chave, tipo) => lista.map(o => {
+    const teste = tipo === 'recorte'
+      ? { ...filtro, recortes: [o.id] }
+      : tipo === 'fonte'
+        ? { ...filtro, fontes: [o.id], baralhos: o.id === 'baralho' ? filtro.baralhos : [] }
+        : { ...filtro, baralhos: [o.id] };
+    const n = acervo.filter(c => passa(c, teste)).length;
+    const on = ativos.includes(o.id);
+    return '<button class="chip' + (tipo === 'fonte' ? '' : '') + '" type="button" role="button"' +
+      ' aria-pressed="' + on + '"' + (n === 0 && !on ? ' disabled title="nada aqui neste recorte"' : '') +
+      ' data-tipo="' + tipo + '" data-id="' + o.id + '">' +
+      o.rotulo + '<span class="c-num">' + fmt(n) + '</span></button>';
+  }).join('');
+
+  document.getElementById('chips-fonte').innerHTML = chipsHTML(FONTES, filtro.fontes, 'fontes', 'fonte');
+  document.getElementById('chips-baralho').innerHTML = chipsHTML(
+    BARALHOS.map(b => ({ id:b.id, rotulo:b.nome })), filtro.baralhos, 'baralhos', 'baralho');
+  document.getElementById('chips-recorte').innerHTML = chipsHTML(RECORTES, filtro.recortes, 'recortes', 'recorte');
+  document.getElementById('faceta-baralhos').hidden = !filtro.fontes.includes('baralho');
+  document.getElementById('pe-resumo').textContent = fmt(sel.length) + ' no recorte';
+
+  /* Elegibilidade por jogo: aptos = quantos cartões atendem TODOS os requisitos. */
+  const avaliados = JOGOS.map(j => {
+    const aptos = sel.filter(c => j.precisa.every(p => c[p])).length;
+    return { ...j, aptos, estado: aptos >= j.min ? (aptos < sel.length ? 'degradado' : 'ok') : 'bloqueado' };
+  });
+  const prontos = avaliados.filter(j => j.estado !== 'bloqueado').sort((a,b) => b.aptos - a.aptos);
+  const presos  = avaliados.filter(j => j.estado === 'bloqueado');
+
+  const cartaJogo = j => '<button class="jogo" type="button" data-jogo="' + j.id + '">' +
+    '<div class="nome">' + j.nome + '</div>' +
+    '<div class="treina">' + j.treina + '</div>' +
+    '<div class="rodape"><span class="pill ' + (j.estado === 'ok' ? 'ok' : 'deg') + '">' +
+      (j.estado === 'ok' ? 'tudo serve' : 'parte serve') + '</span>' +
+      '<span class="num" style="color:var(--ink-muted)">' + fmt(j.aptos) + ' palavras</span></div></button>';
+
+  const cartaPresa = j => '<div class="jogo bloqueado">' +
+    '<div class="nome">' + j.nome + '</div>' +
+    '<div class="motivo">Precisa de <b>' + (j.falta || 'mais palavras') + '</b>. ' +
+      (j.aptos ? 'Você tem ' + fmt(j.aptos) + ', são precisas ' + j.min + '.' : 'Não há nenhuma neste recorte.') + '</div>' +
+    '<button class="porta" type="button" data-porta="' + j.id + '">' +
+      (j.falta && j.falta.indexOf('áudio') === 0 ? 'Gravar áudio' : j.falta ? 'Ver quem tem frase' : 'Trazer mais palavras') +
+    '</button></div>';
+
+  document.getElementById('grade-prontos').innerHTML = prontos.map(cartaJogo).join('') ||
+    '<p class="secao-sub">Nenhum jogo roda com este recorte. Desligue um filtro acima.</p>';
+  document.getElementById('grade-bloqueados').innerHTML = presos.map(cartaPresa).join('');
+  document.getElementById('conta-prontos').textContent = prontos.length + '/9';
+  document.getElementById('conta-bloqueados').textContent = presos.length + '/9';
+  const semPresos = presos.length === 0;
+  document.getElementById('tit-bloqueados').hidden = semPresos;
+  document.getElementById('sub-bloqueados').hidden = semPresos;
+
+  /* Ficha de hoje: a sugestão muda com o material. */
+  const vencidas = sel.filter(c => c.vencida).length;
+  const melhor = prontos[0];
+  const tit = document.getElementById('ficha-titulo');
+  if (!melhor) {
+    tit.innerHTML = 'Nada para jogar <span class="lacuna">———</span> ainda';
+    document.getElementById('ficha-porque').innerHTML = 'Este recorte não tem material suficiente para nenhum jogo. Desligue um filtro, ou <b>traga um baralho</b>.';
+    document.getElementById('btn-jogar').textContent = 'Trazer material';
+  } else if (vencidas >= melhor.min) {
+    tit.innerHTML = 'Revisar <span class="num">' + fmt(vencidas) + '</span> palavras que <span class="lacuna">———</span> voltaram a vencer';
+    document.getElementById('ficha-porque').innerHTML =
+      'Sugerimos o <b>' + melhor.nome + '</b>: com este volume, é o jogo que mais palavras cobre por minuto. Vem de <b>' + nomeFonte + '</b>, em inglês.';
+    document.getElementById('btn-jogar').textContent = 'Começar';
+  } else {
+    tit.innerHTML = 'Aprender <span class="num">' + fmt(sel.length) + '</span> palavras <span class="lacuna">———</span> nada vencido hoje';
+    document.getElementById('ficha-porque').innerHTML =
+      'Nada está pedindo revisão agora, então vale avançar em material novo com o <b>' + melhor.nome + '</b>. Vem de <b>' + nomeFonte + '</b>.';
+    document.getElementById('btn-jogar').textContent = 'Começar';
+  }
+
+  /* Acervo */
+  document.getElementById('acervo-grade').innerHTML = [
+    ['no recorte', sel.length], ['pedindo revisão', vencidas],
+    ['com frase', sel.filter(c => c.comFrase).length],
+    ['nunca vistas', sel.filter(c => c.nuncaVista).length],
+    ['acervo inteiro', acervo.length],
+  ].map(([k, v]) => '<div class="metrica"><div class="v num">' + fmt(v) + '</div><div class="k">' + k + '</div></div>').join('');
+
+  document.getElementById('grade-modal').innerHTML = prontos.map(cartaJogo).join('');
+}
+
+/* ── Interação ── */
+document.addEventListener('click', e => {
+  const chip = e.target.closest('.chip');
+  if (chip && !chip.disabled) {
+    const { tipo, id } = chip.dataset;
+    const chave = tipo === 'fonte' ? 'fontes' : tipo === 'baralho' ? 'baralhos' : 'recortes';
+    const lista = filtro[chave];
+    filtro[chave] = lista.includes(id) ? lista.filter(x => x !== id) : [...lista, id];
+    if (chave === 'fontes' && !filtro.fontes.includes('baralho')) filtro.baralhos = [];
+    render(); return;
+  }
+  const fechar = e.target.closest('[data-fechar]');
+  if (fechar) { document.getElementById(fechar.dataset.fechar).hidden = true; return; }
+  const jogo = e.target.closest('[data-jogo]');
+  if (jogo) { document.getElementById('modal-jogo').hidden = true;
+    alert('Protótipo: aqui começaria a rodada de "' + jogo.querySelector('.nome').textContent + '".'); return; }
+  const porta = e.target.closest('[data-porta]');
+  if (porta) { document.getElementById('modal-import').hidden = false; return; }
+  if (e.target.closest('.modal-fundo') && !e.target.closest('.modal')) {
+    e.target.closest('.modal-fundo').hidden = true;
+  }
+});
+
+function gaveta(abrir) {
+  const g = document.getElementById('gaveta');
+  const b = document.getElementById('btn-gaveta');
+  g.hidden = !abrir;
+  document.querySelector('.fonte-linha').classList.toggle('aberta', abrir);
+  b.setAttribute('aria-expanded', String(abrir));
+  b.textContent = abrir ? 'Fechar' : 'Trocar';
+}
+document.getElementById('btn-gaveta').addEventListener('click', () => gaveta(document.getElementById('gaveta').hidden));
+document.getElementById('btn-fechar-gaveta').addEventListener('click', () => gaveta(false));
+document.getElementById('btn-limpar').addEventListener('click', () => {
+  filtro = { fontes: ['baralho'], baralhos: [], recortes: [] }; render();
+});
+document.getElementById('btn-outro').addEventListener('click', () => {
+  document.getElementById('modal-jogo').hidden = false;
+});
+document.getElementById('btn-jogar').addEventListener('click', () => {
+  const t = document.getElementById('btn-jogar').textContent;
+  if (t === 'Trazer material') document.getElementById('modal-import').hidden = false;
+  else alert('Protótipo: a rodada começaria aqui, com o material do resumo acima.');
+});
+document.getElementById('alvo-arquivo').addEventListener('click', () => {
+  document.getElementById('import-passos').innerHTML =
+    '<div class="passo"><div class="n">✓</div><div><div class="t">Encontramos 2.640 notas em 2 baralhos</div>' +
+    '<div class="d">frente → palavra · verso → significado · 3 notas com frase de exemplo</div></div></div>' +
+    '<div class="passo"><div class="n">!</div><div><div class="t">412 notas ficam de fora</div>' +
+    '<div class="d">a frente é uma frase inteira, não uma palavra — dá para revisar depois na curadoria</div></div></div>';
+});
+document.getElementById('btn-simular-import').addEventListener('click', () => {
+  document.getElementById('modal-import').hidden = true;
+  filtro = { fontes:['baralho'], baralhos:['ess1','phr'], recortes:[] }; render();
+});
+document.getElementById('btn-tema').addEventListener('click', () => {
+  const r = document.documentElement;
+  const atual = r.getAttribute('data-theme');
+  const escuroAgora = atual === 'dark' || (!atual && matchMedia('(prefers-color-scheme: dark)').matches);
+  r.setAttribute('data-theme', escuroAgora ? 'light' : 'dark');
+});
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') document.querySelectorAll('.modal-fundo').forEach(m => m.hidden = true);
+});
+
+render();
+</script>

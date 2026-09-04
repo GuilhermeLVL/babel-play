@@ -16,3 +16,15 @@ describe('filtro de alucinação do Whisper', () => {
     expect(filtrarAlucinacao('Sí.', 1)).toBe('Sí.')
   })
 })
+
+describe('filtro por idioma da dica', () => {
+  it('"Ah." e "Hum." em português são respostas legítimas, não silêncio', () => {
+    expect(filtrarAlucinacao('Ah.', 1, 'pt')).toBe('Ah.')
+    expect(filtrarAlucinacao('ah', 1, 'en')).toBe('')
+  })
+  it('português falado rápido (7 palavras/s) passa; em inglês o teto segue 6/s', () => {
+    const sete = 'eu acho que a gente vai lá'
+    expect(filtrarAlucinacao(sete, 1, 'pt')).toBe(sete)
+    expect(filtrarAlucinacao('I think that we will go there', 1, 'en')).toBe('')
+  })
+})

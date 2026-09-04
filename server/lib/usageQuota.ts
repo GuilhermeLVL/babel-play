@@ -7,23 +7,51 @@ import type { UserId } from './authContext'
 import { getPlanForUser } from './entitlements'
 import type { Plan } from '../db/repositories/subscriptions'
 import { usageCountersRepo } from '../db/repositories/usageCounters'
+import { PLAN_MATRIX } from '../../src/core/planos'
 import { log } from './logger'
 
 export const METRIC_MANAGED = 'managed_calls'
+/** Segundos de áudio FATURÁVEIS enviados ao STT de nuvem. A unidade em que o provedor cobra. */
+export const METRIC_STT_SEGUNDOS = 'stt_seconds'
+/** Tokens (entrada + saída) gastos no LLM gerenciado. Só contabiliza; não é teto. */
+export const METRIC_LLM_TOKENS = 'llm_tokens'
 
 /** Janela mensal 'YYYY-MM' (Date é permitido — módulo Node normal). */
 function currentWindow(): string {
   return new Date().toISOString().slice(0, 7)
 }
 
-/** Teto mensal por plano. selfhost ∞; pro do env (default 1000); demais 0 (free já barrado por entitlement). */
+/**
+ * Override numérico por env, com o default vindo da MATRIZ. `null` na matriz = sem teto
+ * (Infinity). A semântica antiga não muda: env definida e válida vence o default.
+ */
+function tetoComEnv(padrao: number | null, envNome: string): number {
+  const n = Number(process.env[envNome])
+  if (Number.isFinite(n) && n > 0) return n
+  return padrao === null ? Infinity : padrao
+}
+
+/** Env de quota por plano: `PRO_MONTHLY_MANAGED_CALLS`, `ESSENCIAL_MONTHLY_MANAGED_CALLS`… */
+const envDoPlano = (plan: Plan, sufixo: string): string => `${plan.toUpperCase()}_${sufixo}`
+
+/**
+ * Teto mensal de CHAMADAS gerenciadas. selfhost ∞; pro do env; demais 0 (o free já é barrado antes,
+ * pelo entitlement).
+ *
+ * O DEFAULT ERA 1.000, E ISSO ENTREGAVA ~50 MINUTOS DE CONVERSA POR MÊS. Três rotas dividem este
+ * mesmo contador — STT (`sttProxy.ts`), tradução (`mtProxy.ts`) e tutor (`server.ts`) — e cada fala
+ * ao microfone consome DUAS: uma para transcrever, outra para traduzir. Mil chamadas eram, na
+ * prática, quinhentas falas: pouco demais para sustentar uma assinatura.
+ *
+ * 12.000 vem de orçamento explícito, não de gosto: ~6.000 falas ≈ 10 h de conversa, o perfil do
+ * "usuário pesado" de `docs/auditoria/viabilidade-producao-v1.md`. Ao preço medido de US$ 0,107 por
+ * mil falas traduzidas, esse teto custa ~US$ 0,64/mês.
+ *
+ * Este teto é de FAIR-USE, não de dinheiro: uma chamada pode ser de um segundo ou de vinte e cinco
+ * megabytes. O teto de gasto real é o de segundos, em `capSegundosParaPlano`.
+ */
 export function capForPlan(plan: Plan): number {
-  if (plan === 'selfhost') return Infinity
-  if (plan === 'pro') {
-    const n = Number(process.env.PRO_MONTHLY_MANAGED_CALLS)
-    return Number.isFinite(n) && n > 0 ? n : 1000
-  }
-  return 0
+  return tetoComEnv(PLAN_MATRIX[plan].quotas.chamadasMes, envDoPlano(plan, 'MONTHLY_MANAGED_CALLS'))
 }
 
 /**
@@ -70,5 +98,69 @@ export async function refundManagedCall(userId: UserId): Promise<void> {
      * chega a qualquer sink externo registrado.
      */
     log('warn', { event: 'quota_refund_failed', error: String(err).slice(0, 120) })
+  }
+}
+
+/**
+ * Teto MENSAL DE SEGUNDOS de áudio no STT gerenciado. selfhost ∞; pro do env (default 36.000 s =
+ * 10 horas); demais 0 (o free já é barrado antes, pelo entitlement).
+ *
+ * POR QUE ESTE TETO EXISTE, ao lado do de chamadas. O de chamadas é fair-use; este é o de DINHEIRO.
+ * A Groq cobra STT por hora de áudio, então o gasto de um usuário depende de quanto tempo ele fala,
+ * não de quantas vezes. Sem um teto nesta unidade, alguém com a captura aberta 24 h/dia custa duas
+ * ordens de grandeza mais que o assinante típico — e o contador de chamadas nem pisca.
+ *
+ * 10 h/mês foi escolhido por medição, não por gosto: é o perfil do "usuário pesado" da conta em
+ * docs/auditoria/eval-producao-v1.md, e a US$ 0,04/hora custa ~US$ 0,67/mês com o mínimo faturado.
+ */
+export function capSegundosParaPlano(plan: Plan): number {
+  return tetoComEnv(PLAN_MATRIX[plan].quotas.sttSegundosMes, envDoPlano(plan, 'MONTHLY_STT_SECONDS'))
+}
+
+/**
+ * RESERVA `segundos` de áudio ANTES de mandar ao provedor — mesma disciplina de
+ * `reserveManagedCall`: decidir e contabilizar na MESMA instrução, senão o teto não vale sob
+ * concorrência.
+ *
+ * Degrada ABERTO como o resto do fair-use: falha de infra não bloqueia pagante, mas deixa rastro.
+ */
+export async function reservarSegundosDeStt(userId: UserId, segundos: number): Promise<boolean> {
+  try {
+    const cap = capSegundosParaPlano(await getPlanForUser(userId))
+    return await usageCountersRepo.reserve(userId, METRIC_STT_SEGUNDOS, currentWindow(), cap, segundos)
+  } catch (err) {
+    log('error', {
+      event: 'quota_seconds_failed_open',
+      error: String((err as Error)?.message || err).slice(0, 120),
+    })
+    return true
+  }
+}
+
+/** Estorna segundos reservados que não viraram transcrição (o provedor recusou ou caiu). */
+export async function estornarSegundosDeStt(userId: UserId, segundos: number): Promise<void> {
+  try {
+    await usageCountersRepo.refund(userId, METRIC_STT_SEGUNDOS, currentWindow(), segundos)
+  } catch (err) {
+    log('warn', { event: 'quota_seconds_refund_failed', error: String(err).slice(0, 120) })
+  }
+}
+
+/**
+ * Registra tokens gastos no LLM gerenciado. É CONTABILIDADE, não teto: os tokens só se conhecem
+ * DEPOIS da resposta, então não há como reservá-los antes — e recusar depois de já ter pago ao
+ * provedor não devolveria dinheiro nenhum. O teto de custo do LLM é o de chamadas.
+ *
+ * Sem este número não existe preço: os `gpt-oss` são modelos de raciocínio e os tokens de
+ * pensamento contam como SAÍDA, a parte cara. Medido no gold set: 96 tokens de saída por fala no
+ * esforço padrão contra 31 no `low` — uma diferença de 3× na conta que o campo `usage` já
+ * informava e que era descartado.
+ */
+export async function registrarTokensDeLlm(userId: UserId, tokens: number): Promise<void> {
+  if (!Number.isFinite(tokens) || tokens <= 0) return
+  try {
+    await usageCountersRepo.increment(userId, METRIC_LLM_TOKENS, currentWindow(), Math.round(tokens))
+  } catch (err) {
+    log('warn', { event: 'llm_tokens_record_failed', error: String(err).slice(0, 120) })
   }
 }

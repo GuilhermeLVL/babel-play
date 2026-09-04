@@ -3,6 +3,7 @@ import { Zap, Check, AlertTriangle, Loader2, ShieldCheck, Cloud, HardDrive, Lang
 import { buildGateway } from '../gateway';
 import { BUILTIN_PROFILES, DEFAULT_PROFILE_ID, getBuiltinProfile } from '../gateway/profiles';
 import type { Capability } from '@core';
+import { t } from '../lib/i18n';
 
 const PROFILE_STORAGE_KEY = 'babel.activeProfileId';
 
@@ -45,10 +46,26 @@ const CAPACIDADE: Record<Capability, { titulo: string; onde: string }> = {
   vlm: { titulo: 'Ler imagens', onde: 'texto dentro de foto ou print' },
 };
 
-export default function AiEnginePanel() {
-  const [activeId, setActiveId] = useState<string>(
+/**
+ * UM SELETOR, UM DONO (auditoria de UX, 31/08). A aba de Ajustes tinha DOIS controles para a mesma
+ * escolha: um <select> que persistia no servidor e respeitava o gate Pro, e estes três cartões,
+ * que só escreviam localStorage. Duas portas com fidelidades diferentes para o mesmo estado. Agora
+ * o painel aceita ser CONTROLADO (`activeId`/`onSelect`/`bloqueados`) — o Settings injeta a
+ * persistência e o gate — e o modo interno fica só como fallback para uso avulso.
+ */
+export default function AiEnginePanel({
+  activeId: controladoId,
+  onSelect,
+  bloqueados = [],
+}: {
+  activeId?: string;
+  onSelect?: (id: string) => void;
+  bloqueados?: string[];
+} = {}) {
+  const [internoId, setInternoId] = useState<string>(
     () => localStorage.getItem(PROFILE_STORAGE_KEY) ?? DEFAULT_PROFILE_ID
   );
+  const activeId = controladoId ?? internoId;
   const [text, setText] = useState('Good morning, my friend. How are you today?');
   const [result, setResult] = useState<{ text: string; engine: string } | null>(null);
   const [status, setStatus] = useState<'idle' | 'loading' | 'error'>('idle');
@@ -61,8 +78,13 @@ export default function AiEnginePanel() {
   );
 
   const selectProfile = (id: string) => {
-    setActiveId(id);
-    localStorage.setItem(PROFILE_STORAGE_KEY, id);
+    if (bloqueados.includes(id)) return;
+    if (onSelect) {
+      onSelect(id);
+    } else {
+      setInternoId(id);
+      localStorage.setItem(PROFILE_STORAGE_KEY, id);
+    }
     setResult(null);
     setStatus('idle');
     setError('');
@@ -92,12 +114,14 @@ export default function AiEnginePanel() {
   return (
     <div className="card-panel">
       <div className="p-5 bg-surface-hover border-b border-border-subtle flex items-center justify-between gap-3">
+        {/* "Provider-agnóstico" e "sem lock-in" eram jargão de vendedor numa tela que todos os
+            perfis leem; a promessa que importa cabe em português. */}
         <p className="text-[12.5px] text-ink-muted">
-          Escolha o <strong className="text-ink">perfil</strong> que alimenta cada capacidade. Provider-agnóstico:
-          troque de motor sem perder nada.
+          Escolha o <strong className="text-ink">perfil</strong> que alimenta cada capacidade. Trocar
+          não apaga nada: suas gravações e palavras ficam.
         </p>
         <span className="badge-tag acc shrink-0">
-          <ShieldCheck className="w-3 h-3" /> Sem lock-in
+          <ShieldCheck className="w-3 h-3" /> Reversível
         </span>
       </div>
 
@@ -106,20 +130,23 @@ export default function AiEnginePanel() {
         {BUILTIN_PROFILES.map((p) => {
           const meta = PROFILE_META[p.id];
           const active = p.id === activeId;
+          const bloqueado = bloqueados.includes(p.id);
           return (
             <button
               key={p.id}
               onClick={() => selectProfile(p.id)}
-              className={`p-4 border-2 rounded-xl text-left transition-colors ${
-                active ? 'border-accent bg-accent-soft' : 'border-border-subtle bg-surface hover:border-accent'
-              }`}
+              disabled={bloqueado}
+              aria-disabled={bloqueado}
+              className={`p-4 border-2 rounded-xl text-start transition-colors ${
+                active ? 'border-accent bg-accent-soft' : 'border-border-subtle bg-surface'
+              } ${bloqueado ? 'opacity-60 cursor-not-allowed' : 'hover:border-accent'}`}
             >
               <div className="flex items-center justify-between mb-1.5">
                 <span className="flex items-center gap-2 font-bold text-[13.5px] text-ink">
                   {meta?.icon}
                   {p.name}
                 </span>
-                <span className={`badge-tag ${meta?.badgeClass ?? 'ok'}`}>{meta?.badge}</span>
+                <span className={`badge-tag ${meta?.badgeClass ?? 'ok'}`}>{bloqueado ? 'Pro' : meta?.badge}</span>
               </div>
               <p className="text-[12px] text-ink-muted">{meta?.desc}</p>
             </button>
@@ -157,11 +184,11 @@ export default function AiEnginePanel() {
                     aria-hidden
                   />
                   <span className="min-w-0">
-                    <span className="block font-bold text-[13px] text-ink">{meta.titulo}</span>
-                    <span className="block text-[11.5px] text-ink-muted leading-snug">{meta.onde}</span>
+                    <span className="block font-bold text-[13px] text-ink">{t(meta.titulo)}</span>
+                    <span className="block text-[11.5px] text-ink-muted leading-snug">{t(meta.onde)}</span>
                   </span>
                 </span>
-                <span className="shrink-0 text-right">
+                <span className="shrink-0 text-end">
                   <span className={`block text-[12px] font-bold ${atende ? 'text-good-ink' : 'text-warn-ink'}`}>
                     {atende ? 'funciona aqui' : 'não dá neste jeito'}
                   </span>
@@ -206,7 +233,7 @@ export default function AiEnginePanel() {
         </div>
 
         {result && (
-          <div className="mt-4 ap-result-correct text-left">
+          <div className="mt-4 ap-result-correct text-start">
             <div className="ap-validation-label text-good mb-1.5">
               <Check className="w-3.5 h-3.5" /> Resultado · engine: {result.engine}
             </div>
@@ -214,7 +241,7 @@ export default function AiEnginePanel() {
           </div>
         )}
         {status === 'error' && (
-          <div className="mt-4 ap-result-error text-left">
+          <div className="mt-4 ap-result-error text-start">
             <div className="ap-validation-label text-error mb-1.5">
               <AlertTriangle className="w-3.5 h-3.5" /> Falhou
             </div>

@@ -34,6 +34,14 @@ export interface DadoTrilha {
   fonte: string;
   versao: string;
   /**
+   * `cefr` = nível medido por linguista. `frequencia` = faixa derivada de quantas vezes a palavra
+   * aparece num corpus. As duas usam os mesmos seis rótulos por conveniência de ordenação, e é
+   * exatamente por isso que a distinção precisa viajar com o dado: chamar faixa de frequência de
+   * "A1" na tela, ou gravá-la como CEFR no cartão, seria mentir num lugar novo.
+   */
+  escala?: 'cefr' | 'frequencia';
+  procedencia?: string;
+  /**
    * `[palavra, traducao]` e, quando existe, `[palavra, traducao, frase, fraseTraduzida]`.
    *
    * O par não é conveniência: é a única forma de a trilha ser jogável sem tradutor externo — ver o
@@ -49,6 +57,20 @@ export interface DadoTrilha {
 
 /** A ordem dos níveis — usada para "até este nível" e para o próximo degrau. */
 export const NIVEIS_CEFR: CefrLevel[] = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2'];
+
+export type EscalaDaTrilha = 'cefr' | 'frequencia';
+
+/**
+ * Como chamar a etapa na tela. Numa trilha por frequência os seis rótulos são fatias do corpus,
+ * e escrever "A1" ali seria afirmar um nível que ninguém mediu.
+ */
+export function rotuloDaEtapa(nivel: CefrLevel, escala?: EscalaDaTrilha | null): string {
+  return escala === 'frequencia' ? String(NIVEIS_CEFR.indexOf(nivel) + 1) : nivel;
+}
+
+export function nomeDaEscala(escala?: EscalaDaTrilha | null): string {
+  return escala === 'frequencia' ? 'Faixa de frequência' : 'Nível';
+}
 
 /** Confiança do nível vindo da trilha. 1 = medido por linguista, não estimado. */
 export const CONFIANCA_CURADA = 1;
@@ -198,6 +220,15 @@ export interface CartoesOpts {
  * está adicionando vocabulário novo, e sim praticando um nível. Repetir uma palavra conhecida numa
  * partida é prática; gravá-la de novo no baralho é lixo.
  */
+/** Escore 0..1 de partida: nível CEFR (0.7 do peso) + comprimento da palavra (0.3). Espalha
+ *  dentro do nível para os cortes fixos (0.34/0.67) produzirem as três faixas. */
+const ESCALA_DO_NIVEL: Record<string, number> = { A1: 0.12, A2: 0.3, B1: 0.48, B2: 0.64, C1: 0.8, C2: 0.92 };
+export function escoreDaTrilha(nivel: CefrLevel, palavra: string): number {
+  const base = ESCALA_DO_NIVEL[nivel] ?? 0.5;
+  const forma = Math.min(1, Math.max(0, (palavra.trim().length - 3) / 9));
+  return Math.round((base * 0.7 + forma * 0.3) * 100) / 100;
+}
+
 export function cartoesDaTrilha(
   dado: DadoTrilha,
   nivel: CefrLevel,
@@ -217,6 +248,11 @@ export function cartoesDaTrilha(
     srcLang: lang,
     cefrLevel: nivel,
     cefrConfidence: CONFIANCA_CURADA,
+    /* SELEÇÃO v2: a camada de dificuldade era INERTE na trilha (cartão em memória, sem
+       `difficultyScore`), então os chips e o modo Auto não tinham efeito. O nível CEFR curado é
+       procedência real (`lexical` em `dificuldade.ts`), e dentro de um nível a palavra mais longa
+       tende a ser mais difícil (`forma`). É um escore de partida: o histórico vai por cima. */
+    difficultyScore: escoreDaTrilha(nivel, palavra ?? ''),
     /* `sourceSessionId` continua sendo escrito porque é o que `bulkAdd` decompõe para gravar
        `origin_kind='trilha'` na ocorrência. Mas ele NÃO sobrevive na coluna do cartão (o servidor
        o sanea para NULL), então quem filtra é `daTrilha`. Os dois juntos: um para escrever, outro
@@ -264,7 +300,13 @@ export function frasesDaTrilha(
   const shuffle = opts.shuffle ?? embaralhar;
   const lang = baseLangDe(dado.lang) || 'en';
   /* Só pares COM frase. Filtra antes de cortar pelo teto, senão uma rodada de 6 podia sair com 2
-     porque quatro sorteados não tinham exemplo. */
+     porque quatro sorteados não tinham exemplo.
+
+     A TRADUÇÃO DA FRASE CONTINUA OBRIGATÓRIA, e isso é decisão, não esquecimento: sem ela quem
+     joga "Montar a frase" não sabe QUAL frase montar, e `fraseJogavel` a exige rio abaixo. As
+     trilhas por frequência (es, fr, de) já trazem o exemplo em ~90% das palavras, mas ainda não a
+     tradução dele — enquanto ela não vier (Tatoeba `links.csv`), esses idiomas não abrem os jogos
+     de frase, e a tela diz isso. */
   const comFrase = doNivel.filter((par): par is [string, string, string, string] => !!par[2] && !!par[3]);
   const teto = opts.quantidade === undefined ? comFrase.length : Math.max(0, opts.quantidade);
   return shuffle(comFrase).slice(0, teto).map(([palavra, , frase, fraseTraduzida]) => ({
@@ -301,6 +343,24 @@ export function progressoDaTrilha(dado: DadoTrilha, jaTem: ReadonlySet<string>):
       const tem = lista.reduce((n, par) => n + (jaTem.has(chaveDaPalavra(par[0])) ? 1 : 0), 0);
       return { nivel, total: lista.length, jaTem: tem, pct: lista.length ? Math.round((tem / lista.length) * 100) : 0 };
     });
+}
+
+/**
+ * QUAIS NÍVEIS ENTRAM NA RODADA — um, quando escolhido; todos, quando não.
+ *
+ * DEFEITO QUE ISTO CONSERTA. A Sala de Escolha diz, por escrito, "Sem escolher, a trilha joga com
+ * todos os níveis de uma vez". A tela fazia o oposto: sem `nivel`, caía no baralho triado, que
+ * para quem nunca jogou a trilha é VAZIO (nenhuma palavra foi promovida a cartão ainda). A pessoa
+ * lia "2.784 palavras prontas", confirmava, e a rodada não montava. Escolher um nível resolvia —
+ * o que fazia o defeito parecer preferência de uso.
+ *
+ * Devolve só os níveis que EXISTEM no arquivo: as listas C1 e C2 do inglês são magras (114 e 64),
+ * e um dia um idioma novo pode chegar sem elas.
+ */
+export function niveisEmJogo(dado: DadoTrilha, nivel?: CefrLevel): CefrLevel[] {
+  const existentes = NIVEIS_CEFR.filter(n => (dado.niveis[n] ?? []).length > 0)
+  if (!nivel) return existentes
+  return existentes.includes(nivel) ? [nivel] : []
 }
 
 /**

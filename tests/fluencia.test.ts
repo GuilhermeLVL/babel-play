@@ -23,7 +23,7 @@ import {
 } from '../src/core/learning/fluencia'
 import { nivelCefr } from '../src/core/learning/cefrWordlist'
 import { CORTE_DE_FEITA } from '../src/core/learning/etapas'
-import trilhaEn from '../src/data/trilha/en.json'
+import trilhaEn from '../public/trilha/en.json'
 import type { VocabCard } from '../src/types'
 import type { CefrLevel } from '../src/core/learning/contract'
 

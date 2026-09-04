@@ -126,19 +126,59 @@ export function idiomasComRegua(): string[] {
 /* ─────────────────────────── A PISTA ─────────────────────────── */
 
 /**
+ * A ORIGEM do cartão muda o que conta como "pista boa" — não o que conta como LIXO.
+ *
+ * 'captura' (default): vocabulário nasce de fala transcrita ao vivo. Aqui pontuação de frase
+ * cortada, dígito solto e pronome desgarrado SÃO sinal de ruído — é o caso descrito no docblock
+ * do arquivo ("Isso é", "rápida!!").
+ *
+ * 'curado': vocabulário importado de um baralho já pronto (ex.: Anki), cujo verso é definição de
+ * dicionário, não fala. Medido no baralho real "4000 Essential English Words" (3.600 notas):
+ * mediana do verso 57 chars/11 palavras, p90 76/15, p99 96/18, MÁXIMO 125 chars/24 palavras. Com
+ * o limite de captura (42/5) só 61 de 3.600 notas (1,7%) passavam — a régua certa para fala
+ * transcrita reprovava quase todo material curado.
+ */
+export type OrigemCartao = 'captura' | 'curado';
+
+/** captura: inalterado (42/5) — é o funil de fala para o qual a régua nasceu.
+ *  curado: 160/30 cobre 100% do baralho medido (máx 125/24) com folga e ainda barra parágrafo. */
+const LIMITES_DA_PISTA: Record<OrigemCartao, { chars: number; palavras: number }> = {
+  captura: { chars: 42, palavras: 5 },
+  curado: { chars: 160, palavras: 30 },
+};
+
+/**
  * A tradução serve de PISTA?
  *
  * Nasceu dentro do Termo (`pistaUtil`) e subiu para cá porque o defeito nunca foi do Termo: era do
  * funil que alimenta TODOS os jogos. Cada regra abaixo veio de um caso real que apareceu jogando.
  */
-export function pistaUtil(traducao: string): boolean {
+export function pistaUtil(traducao: string, origem: OrigemCartao = 'captura'): boolean {
   const t = (traducao ?? '').trim();
-  if (t.length < 2 || t.length > 42) return false;   // fragmento longo não é definição
-  if (/\d/.test(t)) return false;                    // número no meio é ruído da captura
-  if (/[!?]/.test(t)) return false;                  // "rápida!!" é fala, não significado
-  if (/\.\.\.|…/.test(t)) return false;              // reticências = frase cortada
-  if (t.split(/\s+/).length > 5) return false;       // pista boa é curta
-  /* Pronome/demonstrativo sozinho ("Isso é", "Tu") não define coisa nenhuma.
+  const limite = LIMITES_DA_PISTA[origem];
+  if (t.length < 2 || t.length > limite.chars) return false; // fragmento longo não é definição
+  if (t.split(/\s+/).length > limite.palavras) return false; // pista boa é curta
+
+  // Dígito, pontuação de frase cortada e reticências são ruído SÓ na fala transcrita: "a period
+  // of 100 years" é definição legítima de "century" num baralho curado, não fala capturada.
+  if (origem === 'captura') {
+    if (/\d/.test(t)) return false;         // número no meio é ruído da captura
+    if (/[!?]/.test(t)) return false;       // "rápida!!" é fala, não significado
+    if (/\.\.\.|…/.test(t)) return false;   // reticências = frase cortada
+  }
+
+  /* Pontuação REPETIDA ("rápida!!", "quê??") é ênfase de fala, e nenhum dicionário escreve assim.
+     Vale nos dois perfis: no curado, um `!` isolado pode aparecer numa definição legítima ("an
+     expression of surprise, like 'wow!'"), mas dois seguidos não — é o único sinal que separa
+     "rápida!!" de uma tradução curta e boa depois que o limite de tamanho deixa de barrá-la. */
+  if (/([!?])\1/.test(t)) return false;
+
+  /* Pronome/demonstrativo sozinho ("Isso é", "Tu") não define coisa nenhuma — e vale nos DOIS
+     perfis, ao contrário das regras acima. Chegou a ficar restrita à captura enquanto o perfil
+     curado era desenhado, e um teste mostrou o buraco: sem ela, "Isso é" passava como pista
+     legítima de baralho, porque tem 6 caracteres e 2 palavras e não cai em nenhum limite de
+     tamanho. Manter custa nada — nenhuma tradução de verdade tem a forma "pronome + no máximo
+     mais uma palavra" — e é a única regra que separa fragmento curto de tradução curta.
      `(?!\p{L})` e NÃO `\b`: o `\b` do JavaScript é definido por `[A-Za-z0-9_]`, então um acento
      conta como fronteira de palavra e `/^esta\b/` casava com **"estação"**. Medido: as pistas
      "estação" (de `station` e de `season`) eram reprovadas como pronome solto, e qualquer cartão
@@ -170,6 +210,9 @@ export interface OpcoesAvaliacao {
   lang?: string;
   /** Exige idioma marcado no cartão. A tela de curadoria liga; o jogo, não. */
   exigirIdioma?: boolean;
+  /** Default 'captura': nenhum chamador existente muda de comportamento — a régua de captura
+   *  continua guardando o funil de fala para o qual foi calibrada. Veja `OrigemCartao`. */
+  origem?: OrigemCartao;
 }
 
 /**
@@ -179,18 +222,54 @@ export interface OpcoesAvaliacao {
  * O motivo devolvido é o PRIMEIRO encontrado, porque é ele que a pessoa precisa consertar
  * primeiro — dizer "sem tradução" para uma palavra que também é um artigo não ajudaria.
  */
+/** Em Han, kana e hangul um caractere é uma palavra inteira (窓 = janela); alfabeto precisa de 2. */
+const ESCRITA_DE_UM_CARACTERE = /[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Hangul}]/u;
+function minimoDeCaracteres(palavra: string): number {
+  return ESCRITA_DE_UM_CARACTERE.test(palavra) ? 1 : 2;
+}
+
+/**
+ * Escritas que NÃO separam palavras por espaço. Hangul fica fora de propósito: o coreano moderno
+ * usa espaços entre palavras, ao contrário do japonês, do chinês e do tailandês.
+ */
+const ESCRITA_SEM_ESPACO = /[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Thai}]/u;
+
+/**
+ * Quantas PALAVRAS uma frase tem — a pergunta que a régua faz, respondida em qualquer escrita.
+ *
+ * `split(/\s+/)` responde 1 para qualquer frase japonesa, e com isso a régua reprovava o idioma
+ * inteiro: no dump do Tatoeba, 5 frases de 5.947 passavam. Onde não há espaço, a conta é por
+ * caractere: medido na lista de frequência japonesa, 73% das palavras têm 2 caracteres, então
+ * `chars / 2` é a equivalência honesta — uma aproximação declarada, não um tokenizador.
+ */
+export function contarPalavras(texto: string): number {
+  const t = (texto ?? '').trim();
+  if (!t) return 0;
+  if (!ESCRITA_SEM_ESPACO.test(t)) return t.split(/\s+/).filter(Boolean).length;
+  const chars = [...t.replace(/[\s\p{P}]/gu, '')].length;
+  return Math.max(1, Math.round(chars / 2));
+}
+
 export function avaliarCartao(card: VocabCard, opts: OpcoesAvaliacao = {}): Veredito {
+  /* O CARTÃO SABE DE ONDE VEIO, e quem tria uma lista mista não teria como dizer a origem item a
+     item. `opts.origem` continua vencendo (é uma decisão explícita de quem chama); na ausência
+     dela, um cartão de baralho é avaliado como material curado, que é o que ele é. */
+  const origem: OrigemCartao = opts.origem ?? (card.daAnki ? 'curado' : 'captura');
   const palavra = (card.word ?? '').trim();
   const traducao = (card.translation ?? '').trim();
   const frase = (card.sentence ?? '').trim();
 
-  if (palavra.length < 2) return REPROVADO('palavra-curta');
+  if (palavra.length < minimoDeCaracteres(palavra)) return REPROVADO('palavra-curta');
 
   // Ruído de captura: dígito, símbolo no meio, ou a mesma letra três vezes seguidas ("aaah").
   if (/\d/.test(palavra)) return REPROVADO('palavra-ruido');
   if (/(\p{L})\1{2,}/u.test(palavra)) return REPROVADO('palavra-ruido');
-  // Precisa ser majoritariamente letras: "T-Lisa" passa, ">>>" não.
-  const letras = (palavra.match(/\p{L}/gu) ?? []).length;
+  /* Precisa ser majoritariamente letras: "T-Lisa" passa, ">>>" não.
+     `\p{M}` CONTA COMO LETRA aqui, e sem isso a régua reprovava a grafia inteira de vários
+     idiomas: em devanágari a vogal é uma marca combinante, então `तुम्हें` ("você") tem 4 letras e
+     3 marcas e caía como ruído — 744 palavras de 3.010 no híndi, 29 no árabe. A marca é parte da
+     palavra escrita; o que a regra quer barrar é pontuação e símbolo. */
+  const letras = (palavra.match(/[\p{L}\p{M}]/gu) ?? []).length;
   if (letras < palavra.length * 0.6) return REPROVADO('palavra-ruido');
 
   if (opts.exigirIdioma && !baseLangDe(card.srcLang)) return REPROVADO('idioma-incerto');
@@ -201,7 +280,7 @@ export function avaliarCartao(card: VocabCard, opts: OpcoesAvaliacao = {}): Vere
   if (!traducao) return frase ? APROVADO(0.5) : REPROVADO('sem-pista');
 
   if (chaveComparavel(traducao) === chaveComparavel(palavra)) return REPROVADO('traducao-igual');
-  if (!pistaUtil(traducao)) return REPROVADO('pista-ruim');
+  if (!pistaUtil(traducao, origem)) return REPROVADO('pista-ruim');
 
   /* PONTUAÇÃO — só ordena os aprovados. Uma pista curta e de uma palavra é a melhor: define sem
      contar a resposta. Ter frase de origem soma, porque permite o modo lacuna. */
@@ -222,9 +301,9 @@ export function avaliarFrase(
   const max = opts.maxPalavras ?? 24;
   if (!t) return REPROVADO('sem-pista');
 
-  const palavras = t.split(/\s+/).filter(Boolean);
-  if (palavras.length < min) return REPROVADO('palavra-curta');
-  if (palavras.length > max) return REPROVADO('pista-ruim');
+  const quantas = contarPalavras(t);
+  if (quantas < min) return REPROVADO('palavra-curta');
+  if (quantas > max) return REPROVADO('pista-ruim');
   // Fala cortada pelo reconhecedor: começa em minúscula E termina sem pontuação final.
   const comecaNoMeio = /^\p{Ll}/u.test(t);
   const terminaNoMeio = !/[.!?…]$/.test(t);
@@ -233,7 +312,7 @@ export function avaliarFrase(
 
   let p = 0.6;
   if (opts.traducao && opts.traducao.trim()) p += 0.25;
-  if (palavras.length >= 5 && palavras.length <= 14) p += 0.15;
+  if (quantas >= 5 && quantas <= 14) p += 0.15;
   return APROVADO(Math.min(1, p));
 }
 
@@ -419,9 +498,43 @@ export function pistasDaTriagem(t: Triagem): { comTraducao: VocabCard[]; soComFr
   const comTraducao: VocabCard[] = [];
   const soComFrase: VocabCard[] = [];
   for (const c of t.usaveis) {
-    // A mesma pergunta que `avaliarCartao` faz para decidir entre pista real e lacuna.
-    if (pistaUtil(c.translation ?? '')) comTraducao.push(c);
+    /* A MESMA DIVERGÊNCIA QUE JÁ CUSTOU CARO EM `motivoForaDoTermo`: esta função chamava
+     * `pistaUtil` SEM origem — sempre régua de captura (42 chars/5 palavras) — enquanto
+     * `avaliarCartao`, que decidiu que este cartão era `usavel`, já usava `curado` (160/30)
+     * quando `card.daAnki` era verdadeiro. Medido num baralho Anki de 847 cartões, todos com
+     * tradução: a tela mostrava "20 com tradução · 827 só com frase" bem ao lado de outra que
+     * dizia "todas passaram na régua" — o mesmo cartão avaliado duas vezes com duas réguas
+     * diferentes. `idiomasDisponiveis` (`minigames/source.ts`) herda o conserto de graça, porque
+     * consome esta função para contar `jogaveis`.
+     */
+    if (pistaUtil(c.translation ?? '', c.daAnki ? 'curado' : 'captura')) comTraducao.push(c);
     else soComFrase.push(c);
   }
   return { comTraducao, soComFrase };
+}
+
+/**
+ * A FRONTEIRA DE FORMATO DO `bulk-add`, do lado do cliente — espelho de `bulkAddCardsSchema`.
+ *
+ * O DEFEITO QUE ISTO CONSERTA: a validação do servidor é do LOTE INTEIRO. Uma nota fora do
+ * formato faz a rota devolver 400 e NENHUM cartão entra. Medido importando um baralho Anki de 39
+ * notas com a palavra `a` no meio: 39 lidas, **zero gravadas**, e a tela dizia só "0 entraram no
+ * seu baralho" — sem causa, sem culpado, sem o que fazer a respeito.
+ *
+ * Não é caso raro: todo baralho de idioma carrega artigo ou pronome de uma letra ("a", "I", "o"),
+ * e baralhos de japonês e chinês têm palavras de um caractere às centenas. Quem importasse um
+ * baralho grande veria o import falhar inteiro por causa de uma linha.
+ *
+ * Aplicar a mesma régua ANTES de enviar não contorna a validação: faz o lote que chega ser
+ * aceitável, e o que não passa ser RELATADO (com `MotivoDescarte`, que a tela já sabe exibir) em
+ * vez de derrubar as outras. A régua de CONTEÚDO (tradução vazia, ruído, gramatical, duplicata)
+ * continua morando no servidor — aqui é só o formato, e só porque ele é tudo-ou-nada.
+ */
+export const LIMITES_DO_BULK_ADD = { min: 2, max: 200 } as const;
+
+export function foraDoBulkAdd(palavra: string): Extract<MotivoDescarte, 'palavra-curta'> | 'palavra-longa' | null {
+  const n = (palavra ?? '').trim().length;
+  if (n < Math.min(LIMITES_DO_BULK_ADD.min, minimoDeCaracteres(palavra))) return 'palavra-curta';
+  if (n > LIMITES_DO_BULK_ADD.max) return 'palavra-longa';
+  return null;
 }

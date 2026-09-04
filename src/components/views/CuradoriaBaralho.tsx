@@ -162,7 +162,7 @@ export default function CuradoriaBaralho({ triagem, idioma, ageProfile, onVoltar
           </span>
         )}
         {total > 0 && (
-          <span className="text-ink-faint ml-auto">
+          <span className="text-ink-faint ms-auto">
             {Math.round((triagem.usaveis.length / total) * 100)}% do baralho joga
           </span>
         )}
@@ -194,7 +194,7 @@ export default function CuradoriaBaralho({ triagem, idioma, ageProfile, onVoltar
                   <button
                     onClick={() => void arquivarGrupo(motivo, itens)}
                     disabled={ocupado === `grupo:${motivo}`}
-                    className="ml-auto flex items-center gap-1.5 text-[12px] text-ink-muted hover:text-warn-ink underline py-1 disabled:opacity-40 cursor-pointer"
+                    className="ms-auto flex items-center gap-1.5 text-[12px] text-ink-muted hover:text-warn-ink underline py-1 disabled:opacity-40 cursor-pointer"
                     title={`Tirar das rodadas as ${itens.length} palavras deste grupo (não apaga)`}
                   >
                     {ocupado === `grupo:${motivo}`
@@ -242,7 +242,7 @@ export default function CuradoriaBaralho({ triagem, idioma, ageProfile, onVoltar
                         </button>
                       </span>
                     ) : (
-                      <span className="flex items-center gap-1 ml-auto">
+                      <span className="flex items-center gap-1 ms-auto">
                         <button
                           onClick={() => { setEditando(card.id); setRascunho(card.translation || ''); }}
                           className="p-2 rounded-lg text-ink-muted hover:text-accent hover:bg-surface-hover cursor-pointer"

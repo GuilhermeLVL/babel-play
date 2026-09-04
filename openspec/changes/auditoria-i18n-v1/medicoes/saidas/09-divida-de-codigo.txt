@@ -1,0 +1,33 @@
+
+===== 09 — dívida de código quantificada =====
+medida                                     medido      alegado                             origem
+-----------------------------------------  ------  -----------  ---------------------------------
+plural por sufixo (`${n>1?"s":""}`)            18            —          i18n.md:131 cita o padrão
+plural por ternário sobre número               62     78 / ~60   i18n-lacunas.md:58 / i18n.md:130
+plural total decidido no código                80           78                 i18n-lacunas.md:58
+template literal com `${}`                   1196  1.053 / 540  i18n-lacunas.md:117 / i18n.md:129
+tag inline de ênfase em JSX                  1181          688                        i18n.md:127
+arquivos com tag inline                       101            —                                  —
+chaves `babel.*` distintas                     70          ~55                        i18n.md:143
+dessas, usadas com (local|session)Storage      14          ~55                        i18n.md:143
+
+Os 12 arquivos com mais dívida somada:
+arquivo                                          plural suf.  plural tern.  templates  tag inline
+-----------------------------------------------  -----------  ------------  ---------  ----------
+src/components/views/Analysis.tsx                          1             1         76          93
+src/components/views/LiveCapture.tsx                       0             0         75          75
+src/components/views/Reading.tsx                           0             0         58          66
+src/components/views/Play.tsx                              0             0         34          48
+src/components/minigames/AntessalaDaRodada.tsx             0             3         19          51
+src/components/views/Library.tsx                           2             4         25          38
+src/components/views/Hub.tsx                               0             0         23          44
+src/components/IChat.tsx                                   0             1         31          22
+src/components/views/Loja.tsx                              0             1         27          24
+src/components/views/Metrics.tsx                           0             5         14          30
+src/components/views/Study.tsx                             0             0          8          38
+src/components/views/passe/PasseDeTemporada.tsx            0             0         26          19
+
+Ressalva: "template literal com ${}" e "tag inline" são censos de PADRÃO, não de
+string de tela. Um template literal pode montar uma classe CSS ou uma URL; uma tag
+inline pode envolver um ícone. O número alto não é dívida de tradução por inteiro —
+é o teto dela. É por isso que os próprios documentos dão dois valores diferentes.

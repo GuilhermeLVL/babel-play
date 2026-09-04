@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { SlidersHorizontal, Volume2, Plus, Check, X, Zap, Sparkles, ExternalLink, Loader2 } from 'lucide-react';
 import EditablePanel from './EditablePanel';
 import Provenance from './Provenance';
@@ -7,10 +7,13 @@ import type { AppLayoutConfig } from '../lib/layoutStore';
 import type { ExerciseId } from '../lib/sentences';
 import { lookup, forvoUrl, wiktionaryUrl, type DictionaryResult } from '../lib/dictionary';
 import { langLabel } from '../lib/languages';
+import { t } from '../lib/i18n';
 
 /** Rótulos amigáveis dos motores de tradução — o usuário não deve ler ids técnicos crus. */
 const MT_ENGINE_LABELS: Record<string, string> = {
+  // As duas chaves de propósito: sessões antigas gravaram 'groq-llm'; as novas gravam o id neutro.
   'groq-llm': 'Tradutor IA (servidor)',
+  'server-llm-mt': 'Tradutor IA (servidor)',
   'mymemory': 'MyMemory (web)',
   'opus-mt-local': 'Tradutor local (opus-mt)',
   'chrome-translator': 'Tradutor do navegador',
@@ -93,6 +96,19 @@ export default function VocabularyPanel({
   const term = word?.word;
   const lang = word?.lang;
 
+  /* A CADA PALAVRA NOVA, O CABEÇALHO À VISTA. Clicar numa palavra no pé da transcrição abria o
+     painel com a rolagem interna onde estava (no "Velocidade" ou no dicionário da palavra
+     anterior) e, na coluna lateral, com o topo fora do viewport — a pessoa via detalhes sem o
+     título nem a imagem (relato do dono, 2026-08-28). */
+  const rolagemRef = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    const el = rolagemRef.current;
+    if (!el || !term) return;
+    el.scrollTop = 0;
+    const r = el.getBoundingClientRect();
+    if (r.top < 0 || r.top > window.innerHeight * 0.6) el.scrollIntoView({ block: 'start', behavior: 'smooth' });
+  }, [term]);
+
   useEffect(() => {
     if (!term || !lang) { setEntry(null); return; }
     let alive = true;
@@ -132,7 +148,7 @@ export default function VocabularyPanel({
         // (Captura/Leitura/Estudo/Métricas), e `max-h-dvh` é o que segura o caso da Análise,
         // onde a linha cresce com o conteúdo e a rolagem é da tela inteira.
         'lg:sticky lg:inset-x-auto lg:bottom-auto lg:top-0 lg:z-auto',
-        'lg:h-full lg:max-h-dvh lg:border-t-0 lg:border-l lg:shadow-none',
+        'lg:h-full lg:max-h-dvh lg:border-t-0 lg:border-s lg:shadow-none',
 
         // Entrada (classes preservadas como estavam).
         'animate-in slide-in-from-right duration-300',
@@ -167,7 +183,7 @@ export default function VocabularyPanel({
           </div>
         </div>
 
-        <div className="flex-1 min-h-0 p-5 overflow-y-auto custom-scrollbar space-y-4 bg-surface flex flex-col">
+        <div ref={rolagemRef} className="flex-1 min-h-0 p-5 overflow-y-auto custom-scrollbar space-y-4 bg-surface flex flex-col">
           <span className="text-[10px] font-mono text-ink-muted font-bold uppercase tracking-wider">
             Análise Linguística de Termos
           </span>
@@ -210,7 +226,7 @@ export default function VocabularyPanel({
                 </div>
                 <button
                   onClick={() => onSpeak(word.word)}
-                  className="p-2 rounded-lg bg-surface border border-border-subtle text-accent hover:text-accent-ink transition-all hover:scale-105 cursor-pointer shrink-0 ml-2"
+                  className="p-2 rounded-lg bg-surface border border-border-subtle text-accent hover:text-accent-ink transition-all hover:scale-105 cursor-pointer shrink-0 ms-2"
                   title="Ouça a pronúncia nativa"
                 >
                   <Volume2 className="w-4 h-4" />
@@ -255,7 +271,7 @@ export default function VocabularyPanel({
                 {word.translation && (
                   <Provenance
                     kind="computed"
-                    origin={MT_ENGINE_LABELS[word.mtEngine ?? ''] ?? word.mtEngine ?? 'motor não identificado'}
+                    origin={t(MT_ENGINE_LABELS[word.mtEngine ?? ''] ?? word.mtEngine ?? 'guardada no seu caderno')}
                     method="tradução automática"
                     limits="Tradução de máquina, palavra fora de contexto. Ela erra em gírias, termos técnicos e palavras com vários sentidos. Para a acepção exata, use o verbete abaixo."
                   />

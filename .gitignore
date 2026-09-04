@@ -69,3 +69,18 @@ desktop.ini
 .idea/
 hub-leve.png
 .playwright-mcp/
+
+# Áudio do corpus de avaliação (baixado por scripts/eval-fala/baixar-corpus.py) e cenários gerados.
+# Os MANIFESTOS são versionados; o áudio, não.
+tests/fixtures/audio/
+tests/fixtures/cenarios-diarizacao/*.wav
+docs/auditoria/eval/resultados-*.json
+
+# Corpus FLORES-200 (baixado por scripts/eval-fala/baixar-flores.mjs; manifesto versionado)
+tests/fixtures/flores/*.jsonl
+
+# Saída do grafo (graphify) — reconstruível, não versionar
+graphify-out/
+
+# Cópias de segurança geradas por scripts/backup.mjs
+backups/

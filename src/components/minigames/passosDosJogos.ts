@@ -29,7 +29,7 @@ export const PASSOS_DOS_JOGOS: Record<MinigameId, PassoTour[]> = {
     { alvo: '[data-tour="radar"]', texto: 'O radar acende as duas pontas de uma palavra no quadro. Não custa nota nenhuma.', gesto: 'clique' },
   ],
   termo: [
-    { alvo: '[data-tour="pista"]', texto: 'A pista é o significado. Escreva a palavra que ele descreve.' },
+    { alvo: '[data-tour="pista"]', texto: 'A pista é o significado: escreva a palavra que ele descreve (sinônimo do seu caderno não gasta tentativa).' },
     { alvo: '[data-tour="tabuleiro"]', texto: 'Toque num quadrado para escrever nele, dá para preencher fora de ordem.', gesto: 'clique' },
     { alvo: '[data-tour="varinha"]', texto: 'A varinha preenche as letras que você já descobriu. Essa é de graça.', gesto: 'clique' },
     { alvo: '[data-tour="teclado"]', texto: 'Verde é letra no lugar certo; amarelo existe na palavra, mas em outra posição.', gesto: 'digite' },

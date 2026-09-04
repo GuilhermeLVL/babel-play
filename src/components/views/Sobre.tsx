@@ -9,6 +9,9 @@
  * hierarquia agora vem do layout, não só deles. Dados do autor: `lib/criador.ts` (placeholders
  * `*_AQUI` ficam ocultos).
  */
+import { planoAnunciavel } from '../CardDePlanos';
+import { precoEmReais, PRECO_DO_PASSE_CENTAVOS } from '../../core/creditos';
+import { menorPrecoDeAssinatura } from '../../core/planos';
 import { useState } from 'react';
 import {
   Github, Globe, Linkedin, Mail, Copy, Check, Heart, MessageSquare, Headphones,
@@ -49,20 +52,25 @@ const PILARES = [
   },
   {
     icone: <ShieldCheck className="w-5 h-5" />,
-    titulo: 'Privado de verdade',
-    texto: 'Transcrição e tradução rodam no seu computador. Sem conta, sem envio de áudio, sem rastreio. É verificável: o código é aberto.',
+    titulo: 'Privado por padrão',
+    texto: 'No plano grátis, transcrição e tradução rodam no seu computador: sem conta, sem envio de áudio, sem rastreio. Quem escolhe a qualidade de nuvem sabe o que está mandando, e por quê. É verificável: o código é aberto.',
   },
 ];
 
+/* PROMESSA CORRIGIDA (31/08). Esta lista dizia "Grátis e sem conta", "Roda inteiro no navegador" e
+   "Seu áudio nunca sai do PC" — verdades do plano grátis apresentadas como verdades do app. Com o
+   Essencial mandando a tradução e o Pro mandando o áudio para o servidor, virou promessa que o
+   próprio produto desmente. A régua nova: dizer o que é grátis PARA SEMPRE, e não fingir que não
+   existe o que é pago. */
 const FATOS = [
-  'Grátis e sem conta',
+  'Aprender é grátis, sem conta',
   'Código 100% aberto',
-  'Roda inteiro no navegador',
-  'Seu áudio nunca sai do PC',
+  'O grátis roda no seu navegador',
+  'Seu áudio só sai se você pedir',
   'Feito por uma pessoa só',
 ];
 
-export default function Sobre() {
+export default function Sobre({ onVerPlanos }: { onVerPlanos?: (view: string) => void } = {}) {
   const [copiado, setCopiado] = useState(false);
   const copiarPix = async () => {
     try {
@@ -92,7 +100,7 @@ export default function Sobre() {
                 loading="lazy"
               />
             </span>
-            <div className="md:text-left">
+            <div className="md:text-start">
               <p className="font-marca font-bold text-xl md:text-2xl text-ink leading-tight">{CRIADOR.nome}</p>
               <p className="text-[13px] text-ink-muted mt-1">{CRIADOR.papel}</p>
             </div>
@@ -124,11 +132,15 @@ export default function Sobre() {
             <Sparkles className="w-6 h-6 text-accent" /> Por que isso existe
           </h2>
           <div className="space-y-4 text-[15px] text-ink-muted leading-relaxed">
+            {/* Este parágrafo acusava "ferramentas que pediam assinatura e mandavam seu áudio para
+                um servidor" — que é a descrição do plano Pro do próprio app. A queixa real nunca foi
+                a cobrança: era ter de pagar ANTES de saber se serve, e não funcionar com o conteúdo
+                que a pessoa já assiste. É isso que o texto diz agora. */}
             <p>
               Tudo começou com uma frustração minha: eu passava horas assistindo a vídeos, lives e
               jogando com gente do mundo inteiro, e <b className="text-ink">entendia metade</b>. As
-              ferramentas que existiam pediam assinatura, pediam conta, mandavam meu áudio para um
-              servidor de alguém, ou simplesmente não funcionavam com o que EU queria assistir.
+              ferramentas que existiam cobravam antes de eu saber se serviam, exigiam conta para
+              qualquer coisa, ou simplesmente não funcionavam com o que EU queria assistir.
             </p>
             <p>
               Então resolvi construir a ferramenta que eu queria usar: aperta o play em qualquer
@@ -137,12 +149,33 @@ export default function Sobre() {
               <b className="text-ink"> material de estudo seu</b>, para revisar e jogar depois.
             </p>
             <p>
-              E uma decisão que eu não abro mão: <b className="text-ink">tudo roda no seu
-              navegador</b>. Os modelos de transcrição e tradução são baixados uma vez e trabalham
-              no seu computador. Por isso o app é grátis, funciona sem conta, e o seu áudio nunca
-              sai da sua máquina. Não é promessa de marketing: o código é aberto e qualquer pessoa
-              pode conferir.
+              E uma decisão que eu não abro mão: <b className="text-ink">aprender aqui é grátis, e
+              vai continuar</b>. Gravar, traduzir, jogar e revisar funcionam sem conta e sem pagar
+              nada — os modelos são baixados uma vez e trabalham no seu computador, então o seu
+              áudio não sai da sua máquina. Não é promessa de marketing: o código é aberto e
+              qualquer pessoa pode conferir.
             </p>
+            <p>
+              O que custa dinheiro é o que custa dinheiro para mim. Se você quiser a{' '}
+              <b className="text-ink">tradução da nuvem</b>, que é bem melhor que a local, ela roda
+              num servidor que eu pago — e aí sim o que você manda para lá sai do seu computador,
+              com a sua permissão e sabendo o motivo. E tem o <b className="text-ink">enfeite</b>:
+              temas, efeitos, o Passe de Temporada. Nada disso ensina nada. É só bonito, e é o que
+              ajuda a manter o resto de pé.
+            </p>
+            {/* O PREÇO E O CAMINHO (mudança vender-onde-se-ve). O parágrafo acima citava o Passe
+                e os planos como coisas à venda, sem dizer quanto custam e sem levar a lugar
+                nenhum — anunciar sem preço e sem porta é a versão educada de não anunciar. */}
+            {planoAnunciavel() && onVerPlanos && (
+              <p className="flex flex-wrap items-center gap-2 text-[13px]">
+                <button onClick={() => onVerPlanos('planos')} className="btn-outline !py-2 !text-[12.5px]">
+                  Planos a partir de R$ {menorPrecoDeAssinatura()}/mês
+                </button>
+                <button onClick={() => onVerPlanos('loja')} className="btn-outline !py-2 !text-[12.5px]">
+                  Passe de Temporada · {precoEmReais(PRECO_DO_PASSE_CENTAVOS)}
+                </button>
+              </p>
+            )}
           </div>
         </div>
         <aside className="lg:pt-14">
@@ -230,9 +263,10 @@ export default function Sobre() {
             </h2>
             <div className="space-y-4 text-[15px] text-ink-muted leading-relaxed mt-4">
               <p>
-                O Babel Play não tem empresa, investidor nem anúncio. O que ele tem é uma pessoa
-                pagando domínio e ferramentas do próprio bolso e investindo as horas livres para
-                cada versão ficar melhor que a anterior.
+                O Babel Play não tem empresa, investidor nem publicidade de terceiros. O que ele tem é uma
+                pessoa pagando domínio e servidor do próprio bolso e investindo as horas livres para
+                cada versão ficar melhor que a anterior — e, agora, uns planos e enfeites à venda
+                para essa conta fechar.
               </p>
               <p>
                 Se ele te ajudou a entender um vídeo, a ganhar uma partida, ou a aprender uma
@@ -263,8 +297,14 @@ export default function Sobre() {
         </div>
       </section>
 
-      <p className="flex items-center justify-center gap-1.5 text-[12px] text-ink-faint pb-6">
+      <p className="flex items-center justify-center gap-1.5 text-[12px] text-ink-faint">
         <Rocket className="w-3.5 h-3.5" aria-hidden /> Babel Play · feito com teimosia por um dev independente 🇧🇷
+      </p>
+      {/* E5 — os documentos legais existem e precisam ser ENCONTRÁVEIS, não só existir. */}
+      <p className="flex items-center justify-center gap-3 text-[12px] text-ink-faint pb-6">
+        <a href="/privacidade.html" className="underline hover:text-ink">Política de privacidade</a>
+        <span aria-hidden>·</span>
+        <a href="/termos.html" className="underline hover:text-ink">Termos de uso</a>
       </p>
     </div>
     </div>

@@ -5,8 +5,10 @@ import {
   etapasDoNivel, progressoDasEtapas, etapaAtual, posicaoNaTrilha,
   type DadoTrilha, type CefrLevel,
 } from '@core';
+import { rotuloDaEtapa } from '../../core/learning/trilha';
 import type { VocabCard } from '../../types';
 import type { AgeProfileType } from '../../lib/profile';
+import { langLabelNaUI } from '../../lib/languages';
 
 /**
  * A TRILHA — trazer vocabulário curado para o baralho, por nível.
@@ -32,10 +34,14 @@ interface PainelTrilhaProps {
   ageProfile: AgeProfileType;
   nivel: CefrLevel | undefined;
   onEscolherNivel: (n: CefrLevel) => void;
+  /** Idioma nativo de quem joga — decide se existe tradução para esta trilha. */
+  nativo: string;
+  /** Idiomas nativos para os quais esta trilha tem tradução (vem do índice). */
+  paresDeGlosa: string[];
 }
 
 export default function PainelTrilha({
-  dado, deck, ageProfile, nivel, onEscolherNivel,
+  dado, deck, ageProfile, nivel, onEscolherNivel, nativo, paresDeGlosa,
 }: PainelTrilhaProps) {
 
   /**
@@ -60,6 +66,18 @@ export default function PainelTrilha({
   const nivelAtivo = nivel ?? sugerido;
 
   const doNivel = progresso.find(p => p.nivel === nivelAtivo);
+  const porFrequencia = dado.escala === 'frequencia';
+  const rotulo = (n: CefrLevel) => rotuloDaEtapa(n, dado.escala);
+
+  /* A cobertura de tradução é medida no dado, não prometida: numa trilha por frequência ela é
+     parcial, e o rodapé precisa dizer o número real. */
+  const temTraducao = paresDeGlosa.includes((nativo || '').toLowerCase().split('-')[0]);
+
+  const pctComTraducao = useMemo(() => {
+    const pares = Object.values(dado.niveis).flat();
+    const com = pares.filter(p => !!p?.[1]).length;
+    return pares.length ? Math.round((com / pares.length) * 100) : 0;
+  }, [dado]);
 
   /* As etapas do nível ativo. Derivadas do MESMO dado embutido — nenhuma ida à rede, e o mesmo
      conjunto `jogaveisDaTrilha` que já responde "o que deste nível está no meu caderno". */
@@ -78,9 +96,11 @@ export default function PainelTrilha({
           {ageProfile === 'kids' ? 'Palavras para aprender' : 'Trilha de vocabulário'}
         </span>
         <span className="text-[12px] text-ink-muted">
-          {ageProfile === 'senior'
-            ? 'Palavras escolhidas por nível, para você não depender só do que gravou.'
-            : 'Vocabulário curado por nível, o que falta no que você captura.'}
+          {porFrequencia
+            ? 'Palavras ordenadas por frequência de uso, das mais comuns às mais raras.'
+            : ageProfile === 'senior'
+              ? 'Palavras escolhidas por nível, para você não depender só do que gravou.'
+              : 'Vocabulário curado por nível, o que falta no que você captura.'}
         </span>
       </div>
 
@@ -94,13 +114,13 @@ export default function PainelTrilha({
             <button
               key={p.nivel}
               onClick={() => onEscolherNivel(p.nivel)}
-              className={`px-3 py-2 rounded-xl border text-left transition-all cursor-pointer ${
+              className={`px-3 py-2 rounded-xl border text-start transition-all cursor-pointer ${
                 ativo ? 'border-accent bg-accent-soft' : 'border-border-subtle hover:border-accent'
               }`}
-              title={`${p.jaTem} de ${p.total} palavras do ${p.nivel} prontas para jogar na trilha`}
+              title={`${p.jaTem} de ${p.total} palavras ${porFrequencia ? `da faixa ${rotulo(p.nivel)}` : `do ${p.nivel}`} prontas para jogar na trilha`}
             >
               <span className="flex items-center gap-1.5 font-display font-black text-[13px] text-ink">
-                {p.nivel}
+                {rotulo(p.nivel)}
                 {completo && <Check className="w-3.5 h-3.5 text-good-ink" aria-hidden />}
                 {p.nivel === sugerido && !ativo && (
                   <span className="text-[9px] font-mono font-bold text-accent-ink">AQUI</span>
@@ -117,7 +137,7 @@ export default function PainelTrilha({
 
       {doNivel && (
         <p className="text-[12.5px] text-ink">
-          <b className="text-accent">{doNivel.total}</b> palavras do {nivelAtivo} prontas para jogar
+          <b className="text-accent">{doNivel.total}</b> palavras {porFrequencia ? `da faixa ${rotulo(nivelAtivo!)}` : `do ${nivelAtivo}`} prontas para jogar
           {doNivel.jaTem > 0 && <span className="text-ink-muted"> · {doNivel.jaTem} já na sua revisão</span>}
         </p>
       )}
@@ -141,7 +161,7 @@ export default function PainelTrilha({
 
           {/* Um traço por etapa: feitas em verde, a atual em destaque, as futuras apagadas. A
               contagem exata está escrita acima, a régua serve para ver a distância de relance. */}
-          <ol className="flex flex-wrap gap-1" aria-label={`Progresso do ${nivelAtivo}: etapa ${posicao.atual} de ${posicao.total}`}>
+          <ol className="flex flex-wrap gap-1" aria-label={`Progresso ${porFrequencia ? `da faixa ${rotulo(nivelAtivo!)}` : `do ${nivelAtivo}`}: etapa ${posicao.atual} de ${posicao.total}`}>
             {etapas.map(p => (
               <li
                 key={p.etapa.id}
@@ -165,9 +185,26 @@ export default function PainelTrilha({
           nada depende de rede, e a trilha funciona no perfil Privado/Local. O que continua honesto
           dizer é que a cobertura NÃO é total, as palavras sem tradução conferida ficaram de fora
           em vez de entrarem adivinhadas, e por isso os níveis altos têm menos. */}
+      {/* O SILÊNCIO ERA O DEFEITO. Sem tradução para o idioma da pessoa, a trilha joga só a
+          grafia, os jogos de par não abrem e nada é promovido ao caderno — e antes a tela não
+          dizia nenhuma dessas três coisas: parecia quebrada. */}
+      {!temTraducao && (
+        <p className="text-[12px] text-ink bg-warn-soft border border-warn/30 rounded-xl px-3 py-2">
+          Esta trilha ainda não tem tradução para <b>{langLabelNaUI(nativo)}</b>
+          {paresDeGlosa.length > 0 && <> — só para {paresDeGlosa.map(langLabelNaUI).join(', ')}</>}.
+          Você pode praticar a escrita das palavras, mas os jogos de par ficam de fora e nada entra
+          na sua revisão.
+        </p>
+      )}
+
       <p className="text-[11px] text-ink-faint leading-relaxed">
-        Nível e tradução vêm de listas públicas curadas, embutidas no app, nada é traduzido na
-        hora. Palavra sem tradução conferida ficou de fora, então os níveis avançados têm menos.
+        {porFrequencia
+          ? <>As faixas vêm da frequência das palavras num corpus público, não de níveis do CEFR:
+              a faixa 1 traz as mais comuns. As traduções vêm de dicionários abertos e cobrem
+              {' '}<b className="text-ink-muted">{pctComTraducao}%</b> desta trilha — sem tradução,
+              a palavra aparece nos jogos de escrita, mas não nos de par.</>
+          : <>Nível e tradução vêm de listas públicas curadas, embutidas no app, nada é traduzido na
+              hora. Palavra sem tradução conferida ficou de fora, então os níveis avançados têm menos.</>}
       </p>
 
     </section>

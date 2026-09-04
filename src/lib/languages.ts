@@ -1,3 +1,4 @@
+import { ehRTL, idiomaDaInterface } from './i18n';
 /**
  * Lista única de idiomas usada pelos seletores (captura, configurações). `code` é
  * o BCP-47 (para a captura/Whisper e o TTS); `short` é o ISO-639-1 (para o MT).
@@ -172,12 +173,27 @@ export function mtIsLocal(src: string, tgt: string): boolean {
  * API (e o `?? label` cobre um código que ela não conheça), caindo no nome nativo — pior de ler,
  * nunca vazio.
  */
-export function langLabelPt(code: string): string {
+export function langLabelNaUI(code: string): string {
   const b = baseLang(code);
   try {
-    const nome = new Intl.DisplayNames(['pt-BR'], { type: 'language' }).of(b);
+    /* NO IDIOMA DA INTERFACE, não em português fixo: quem lê a tela em inglês precisa de "German"
+       no meio da frase, não de "Alemão". O nome NATIVO (`langLabel`) continua sendo o certo para a
+       LISTA de escolha — lá a pessoa procura o próprio idioma e o reconhece escrito como ele é. */
+    const nome = new Intl.DisplayNames([idiomaDaInterface()], { type: 'language' }).of(b);
     // A API devolve o próprio código quando não conhece o idioma; aí o nome nativo informa mais.
     if (nome && nome.toLowerCase() !== b) return nome.toLowerCase();
   } catch { /* runtime sem Intl.DisplayNames */ }
   return langLabel(code);
+}
+
+/**
+ * Direcao do texto DESTE idioma — para `dir` em quem exibe conteudo do usuario.
+ *
+ * A LISTA VIVE EM `i18n.ts`, e existe uma so. Havia duas — uma aqui, para o conteudo, outra la,
+ * para a interface — e sao perguntas diferentes ("em que direcao se le esta frase do usuario?" e
+ * "em que direcao a tela deve ser montada?") sobre o MESMO fato. Duas copias divergem no dia em
+ * que alguem acrescentar um idioma numa e esquecer a outra.
+ */
+export function direcaoDoTexto(code: string | null | undefined): 'rtl' | 'ltr' {
+  return ehRTL(code ?? '') ? 'rtl' : 'ltr';
 }

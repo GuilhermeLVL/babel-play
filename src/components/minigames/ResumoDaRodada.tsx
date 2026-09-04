@@ -84,7 +84,7 @@ export default function ResumoDaRodada({
           <span>
             vs. sua última rodada deste jogo: {anterior.acertos}/{anterior.total} · {tempo(anterior.ms)}
             {delta != null && Math.abs(delta) > 0.01 && (
-              <strong className={`ml-1.5 ${delta > 0 ? 'text-good' : 'text-error'}`}>
+              <strong className={`ms-1.5 ${delta > 0 ? 'text-good' : 'text-error'}`}>
                 {delta > 0 ? 'melhorou' : 'caiu'}
               </strong>
             )}

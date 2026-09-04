@@ -1,0 +1,33 @@
+
+===== 04 — palavras da trilha, recontadas =====
+lang   v      escala  bruto  únicas  dup.lit  dup.caixa  em NFD  colisão NFC      c/ frase  fora da escrita
+----  --  ----------  -----  ------  -------  ---------  ------  -----------  ------------  ---------------
+ar    v2  frequencia   5148    5148        0          0       0            0  4276 (83.1%)         0 (0.0%)
+de    v2  frequencia   5758    5758        0          0       0            0  5370 (93.3%)         0 (0.0%)
+en    v1           —   2784    2784        0          0       0            0  2552 (91.7%)         0 (0.0%)
+es    v2  frequencia   5727    5727        0          0       0            0  5163 (90.2%)         0 (0.0%)
+fr    v2  frequencia   5752    5752        0          0       0            0  5340 (92.8%)         0 (0.0%)
+he    v2  frequencia   5712    5712        0          0       0            0  4967 (87.0%)         0 (0.0%)
+hi    v2  frequencia   3010    3010        0          0      13            0    246 (8.2%)         0 (0.0%)
+it    v2  frequencia   5780    5780        0          0       0            0  5302 (91.7%)         0 (0.0%)
+ja    v2  frequencia   5947    5947        0          0       0            0  5181 (87.1%)         0 (0.0%)
+ko    v2  frequencia   5973    5973        0          0       0            0  3234 (54.1%)         0 (0.0%)
+nl    v2  frequencia   5834    5834        0          0       0            0  4968 (85.2%)         0 (0.0%)
+pl    v2  frequencia   5747    5747        0          0       0            0  5208 (90.6%)         0 (0.0%)
+ru    v2  frequencia   5761    5761        0          0       0            0  5513 (95.7%)         0 (0.0%)
+sv    v2  frequencia   5727    5727        0          0       0            0  4484 (78.3%)         0 (0.0%)
+tr    v2  frequencia   5787    5787        0          0       0            0  5184 (89.6%)       455 (7.9%)
+zh    v2  frequencia   5221    5221        0          0       0            0  4859 (93.1%)         0 (0.0%)
+
+TOTAL bruto: 85668
+TOTAL de únicas por idioma (soma): 85668
+TOTAL de únicas ignorando caixa (soma): 85668
+Entradas vazias/sem letra: 0
+Entradas gravadas em NFD: 13
+Colisões NFC (mesma palavra em duas formas): 0
+
+Exemplos de duplicata por caixa: nenhuma em nenhum idioma.
+
+O que está fora da escrita esperada, e em que faixa:
+  [tr] 455 entradas · por faixa: A1 171/965  A2 81/965  B1 57/965  B2 52/965  C1 54/965  C2 40/962
+         amostra: "چوق" "آما" "أوت" "وار" "دگل" "خایر"

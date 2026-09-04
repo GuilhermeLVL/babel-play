@@ -19,10 +19,11 @@ import React from 'react'
 import { TrendingUp } from 'lucide-react'
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, CartesianGrid } from 'recharts'
 import type { AppMetrics } from '../../core/learning/contract'
+import { data } from '../../lib/i18n';
 
 /** Rótulo curto da semana. Único formato — antes eram dois (`fmtWeek` e um `toLocaleDateString` solto). */
 function rotuloDaSemana(ts: number): string {
-  return new Date(ts).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })
+  return data(new Date(ts), { day: '2-digit', month: '2-digit' })
 }
 
 export function EvolucaoSemanal({
@@ -76,7 +77,15 @@ export function EvolucaoSemanal({
                   formatter={(v: number) => [`${v} palavras`, 'Capturadas']}
                   labelFormatter={(l: string) => `Semana de ${l}`}
                 />
-                <Area type="monotone" dataKey="palavras" name="Palavras" stroke="var(--accent)" fill="url(#gradEvolucaoSemanal)" />
+                {/* `dot` explícito com UMA semana: o recharts não desenha ponto por padrão, então
+                    uma série de um item virava um gráfico literalmente em branco — grade, eixos e
+                    nada dentro. O texto abaixo já diz que um ponto não é tendência; o ponto
+                    precisa ao menos existir. */}
+                <Area
+                  type="monotone" dataKey="palavras" name="Palavras"
+                  stroke="var(--accent)" fill="url(#gradEvolucaoSemanal)"
+                  dot={dados.length === 1 ? { r: 4, fill: 'var(--accent)', stroke: 'var(--accent)' } : false}
+                />
               </AreaChart>
             </ResponsiveContainer>
           </div>

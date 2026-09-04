@@ -8,7 +8,10 @@ import { and, eq, isNull } from 'drizzle-orm'
 import { db } from '../db'
 import { sessions, vocabCards, reviewLogs, utterances, exerciseResults } from '../schema'
 import { retrievability } from '../../../src/core/learning/scheduler'
-import { xpDeEventos, nivelDoXp, type EventosDeXp } from '../../../src/core/learning/xp'
+import { diaLocal, sequencias, marcosDeSequencia, minutosPremiados } from '../../../src/core/learning/economia'
+import { MINIGAMES } from '../../../src/core/minigames/types'
+import { economiaRepo } from './economia'
+import { xpDeEventos, nivelDoXp, seedsGanhasDeEventos, type EventosDeXp } from '../../../src/core/learning/xp'
 import type { AppMetrics } from '../../../src/core/learning/contract'
 import { seedSpendsRepo } from './seedSpends'
 import type { UserId } from '../../lib/authContext'
@@ -70,17 +73,24 @@ export async function computeProfile(userId: UserId, opts: OpcoesDePerfil = {}):
   const inDeck = cards.filter((c) => c.inDeck !== 0)
   const wordsCaptured = sess.reduce((n, s) => n + (s.wordCount ?? 0), 0)
 
-  // Tempo de fala real: soma das durações dos enunciados com timing válido.
+  /**
+   * ATIVO × PASSIVO (spec progresso-de-idioma): `utterances.source` distingue a VOZ do usuário
+   * ('mic') do áudio que ele ouviu ('tab') — e a soma antiga misturava os dois, então o "tempo de
+   * fala" incluía o YouTube. Agora os dois tempos existem separados, `speakingMs` é SÓ o mic, e o
+   * WPM (ritmo da fala do usuário) só conta palavras que ELE disse. Falas antigas sem `source`
+   * caem em passivo: inflar o tempo ativo seria o erro pior.
+   */
   let speakingMs = 0
-  for (const u of utts) {
-    const a = u.tStartMs, b = u.tEndMs
-    if (a != null && b != null && b > a) speakingMs += b - a
-  }
-  // Palavras faladas nos enunciados com timing (para um WPM coerente com o tempo medido).
+  let listeningMs = 0
   let timedWords = 0
   for (const u of utts) {
-    if (u.tStartMs != null && u.tEndMs != null && u.tEndMs > u.tStartMs) {
+    const a = u.tStartMs, b = u.tEndMs
+    if (a == null || b == null || b <= a) continue
+    if (u.source === 'mic') {
+      speakingMs += b - a
       timedWords += (u.sourceText ?? '').trim().split(/\s+/).filter(Boolean).length
+    } else {
+      listeningMs += b - a
     }
   }
   const speakingMin = speakingMs / 60_000
@@ -103,7 +113,13 @@ export async function computeProfile(userId: UserId, opts: OpcoesDePerfil = {}):
   const lvlConfs = inDeck.map((c) => c.cefrConfidence).filter((x): x is number => x != null)
   const levelConfidence = lvlConfs.length ? lvlConfs.reduce((a, b) => a + b, 0) / lvlConfs.length : 0
   const newCards = inDeck.filter((c) => c.stability == null).length
-  const dueToday = inDeck.filter((c) => (c.dueAt ?? 0) <= now).length
+  /* "Nunca agendado" (dueAt null) NÃO é "vencido" — são coisas diferentes. Antes,
+     `(c.dueAt ?? 0) <= now` tratava um cartão que nunca foi revisado nem uma vez como se
+     estivesse atrasado desde epoch, inflando `dueToday`. Esse número vai para um banner global da
+     tela de jogos ("N pedindo revisão") que já mente por ESCOPO (conta fora do deck selecionado,
+     achado de outra auditoria) — mas ao menos a SEMÂNTICA para de mentir aqui: só conta quem tem
+     data marcada E essa data já passou. */
+  const dueToday = inDeck.filter((c) => c.dueAt != null && c.dueAt <= now).length
 
   /**
    * Itens de exercício/minigame que NÃO viraram revisão de SRS. O discriminador `kind` evita a
@@ -116,6 +132,53 @@ export async function computeProfile(userId: UserId, opts: OpcoesDePerfil = {}):
 
   const reviews = logsNoEscopo.length
   const correctReviews = logsNoEscopo.filter((l) => (l.grade ?? 0) >= 3).length
+
+  /**
+   * PALAVRAS DIFÍCEIS (spec progresso-de-idioma): o schema grava lapses, difficulty (FSRS) e o
+   * grade de cada revisão há meses — e nada agregava. O ranking pesa o que o usuário ERRA:
+   * lapses (esquecimentos, o sinal mais forte), dificuldade FSRS e a fração de notas ruins.
+   * Só entra cartão com >= 2 revisões: com menos, "difícil" seria chute — a base vai junto.
+   */
+  const logsPorCartao = new Map<string, { total: number; ruins: number }>()
+  for (const l of logsNoEscopo) {
+    const r = logsPorCartao.get(l.cardId) ?? { total: 0, ruins: 0 }
+    r.total += 1
+    if ((l.grade ?? 0) < 3) r.ruins += 1
+    logsPorCartao.set(l.cardId, r)
+  }
+  const palavrasDificeis = inDeck
+    .map((c) => {
+      const logs = logsPorCartao.get(c.id) ?? { total: 0, ruins: 0 }
+      const lapses = c.lapses ?? 0
+      const fsrsDif = c.difficulty ?? 0 // FSRS: 1..10
+      const fracRuim = logs.total > 0 ? logs.ruins / logs.total : 0
+      return {
+        cardId: c.id,
+        word: c.word ?? '',
+        lapses,
+        revisoes: logs.total,
+        fracaoDeErro: Math.round(fracRuim * 100) / 100,
+        // Peso: cada lapse vale muito; erro recente e dificuldade FSRS desempatam.
+        pontuacao: lapses * 3 + fracRuim * 2 + fsrsDif / 10,
+      }
+    })
+    .filter((x) => x.word && x.revisoes >= 2 && x.pontuacao > 0.5)
+    .sort((a, b) => b.pontuacao - a.pontuacao)
+    .slice(0, 12)
+
+  // Acerto por TIPO de exercício — o dado existia linha a linha em exercise_results.
+  const porTipo = new Map<string, { total: number; certos: number }>()
+  for (const d of drillsNoEscopo) {
+    if (d.correct == null || !d.exerciseKind) continue
+    const r = porTipo.get(d.exerciseKind) ?? { total: 0, certos: 0 }
+    r.total += 1
+    if (d.correct > 0) r.certos += 1
+    porTipo.set(d.exerciseKind, r)
+  }
+  const acertoPorExercicio = [...porTipo.entries()]
+    .map(([kind, r]) => ({ kind, total: r.total, acerto: Math.round((r.certos / r.total) * 100) }))
+    .filter((x) => x.total >= 3) // menos que isso é anedota, não taxa
+    .sort((a, b) => a.acerto - b.acerto)
   const accuracy = reviews > 0 ? correctReviews / reviews : 0
 
   const stabilities = inDeck.map((c) => c.stability).filter((s): s is number => s != null)
@@ -142,6 +205,59 @@ export async function computeProfile(userId: UserId, opts: OpcoesDePerfil = {}):
   /* O outro lado da moeda. Vem de uma tabela de eventos, e não de contagem derivada: gasto que
      se recalcula não é gasto — voltaria ao valor cheio no próximo carregamento. */
   const seedsGastas = await seedSpendsRepo.totalGasto(userId)
+  const cromasComprados = await seedSpendsRepo.cromasComprados(userId)
+  const aprimoramentos = await seedSpendsRepo.aprimoramentosComprados(userId)
+  /* B4 fechada (economia-de-creditos 1.2): a posse da Loja viaja no perfil, derivada do log de
+     compras — o cliente hidrata o espelho local a partir daqui em vez de confiar só nele. */
+  const itensComprados = await seedSpendsRepo.itensComprados(userId)
+
+  /* ECONOMIA v2 (A7): os créditos avulsos e a presença agora existem no servidor real. O cliente
+     (`deriveProgress`) já lia estes campos com `?? 0` — a paridade é com o servidor efêmero. */
+  const { seedsCreditadas, xpCreditado } = await economiaRepo.totaisCreditados(userId)
+  const diasDePresenca = await economiaRepo.diasDePresenca(userId)
+  const seqPresenca = sequencias(diasDePresenca, diaLocal(now))
+
+  /**
+   * OS TRÊS CONTADORES QUE FALTAVAM — e por que eles passaram a importar.
+   *
+   * `docs/economia-v2.md` registrou como follow-up "os mesmos agregados em
+   * server/db/repositories/metrics.ts", e ficou. Enquanto o saldo era calculado só no navegador
+   * (`src/lib/progress.ts`), a ausência custava pouco: o cliente tratava como `?? 0` e a conta
+   * fechava com um ganho subestimado. A partir do momento em que o SERVIDOR passa a recusar um
+   * gasto por saldo insuficiente, subestimar o ganho vira recusar compra legítima — a ausência
+   * deixa de ser imprecisão e passa a ser defeito.
+   *
+   * O cálculo é o do servidor efêmero (`src/data/efemero/servidor.ts`), que é a implementação de
+   * referência em uso: os mesmos ajudantes puros do core, sobre as mesmas linhas.
+   */
+  const sequencias7 = marcosDeSequencia(diasDePresenca, 7)
+
+  // Minutos de captura por DIA LOCAL — o teto diário vive no core (`minutosPremiados`), e é ele
+  // que impede uma gravação de oito horas de virar Seeds de oito horas.
+  const minutosPorDia = new Map<number, number>()
+  for (const x of sess) {
+    const min = (x.durationMs ?? 0) / 60_000
+    if (min <= 0) continue
+    const d = diaLocal(x.createdAt)
+    minutosPorDia.set(d, (minutosPorDia.get(d) ?? 0) + min)
+  }
+  const capturaMinutosPremiados = Math.floor(minutosPremiados(minutosPorDia.values()))
+
+  /* Rodada perfeita = todos os itens certos E tamanho ≥ mínimo do jogo. Sem o piso, uma rodada de
+     um item só viraria fábrica de "perfeitas" — e cada uma vale 5 Seeds e 15 XP. */
+  const porRodada = new Map<string, { kind: string | null; total: number; certos: number }>()
+  for (const e of drillsNoEscopo) {
+    if (!e.roundId) continue
+    const r = porRodada.get(e.roundId) ?? { kind: e.exerciseKind, total: 0, certos: 0 }
+    r.total += 1
+    if ((e.correct ?? 0) > 0) r.certos += 1
+    porRodada.set(e.roundId, r)
+  }
+  let rodadasPerfeitas = 0
+  for (const r of porRodada.values()) {
+    const minimo = (r.kind && (MINIGAMES as Record<string, { minItems?: number } | undefined>)[r.kind]?.minItems) ?? 3
+    if (r.total >= minimo && r.certos === r.total) rodadasPerfeitas += 1
+  }
 
   const byWeek = new Map<number, number>()
   for (const c of inDeck) {
@@ -165,13 +281,28 @@ export async function computeProfile(userId: UserId, opts: OpcoesDePerfil = {}):
     drillCorrect,
     accuracy,
     accuracyConfidence: reviews >= 4 ? 0.9 : reviews > 0 ? 0.4 : 0,
-    streakDays,
+    // A ofensiva exibida é a MAIOR entre revisar e aparecer — mesma regra do efêmero.
+    streakDays: Math.max(streakDays, seqPresenca.atual),
     seedsGastas,
+    itensComprados,
+    cromasComprados,
+    aprimoramentos,
+    seedsCreditadas,
+    xpCreditado,
+    presencas: diasDePresenca.length,
+    sequencias7,
+    capturaMinutosPremiados,
+    rodadasPerfeitas,
+    streakPresenca: seqPresenca.atual,
+    maiorSequenciaPresenca: seqPresenca.maior,
     avgStability,
     avgRetention,
     avgRetentionConfidence: retentions.length >= 4 ? 0.7 : retentions.length > 0 ? 0.3 : 0,
     vocabByWeek,
     speakingMs,
+    listeningMs,
+    palavrasDificeis,
+    acertoPorExercicio,
     wpm,
     wpmConfidence: speakingMs >= 60_000 ? 0.7 : speakingMs > 0 ? 0.4 : 0,
     uniqueWords,
@@ -202,10 +333,19 @@ export async function computeProfile(userId: UserId, opts: OpcoesDePerfil = {}):
  * com `grade >= 3`, o acerto) e `exercise_results.createdAt` (os itens de jogo). Somar os eventos
  * em ordem reproduz a curva inteira.
  *
- * A INVARIANTE QUE SUSTENTA ISSO: no último balde, `xpAcumulado` é EXATAMENTE o `xp` que
- * `deriveProgress` calcula sobre `computeProfile`. Os dois usam `xpDeEventos`, do mesmo módulo.
- * Se divergirem, o gráfico e o distintivo passam a contar histórias diferentes sobre a mesma
- * pessoa — e é essa igualdade que o teste trava.
+ * O QUE ELA COBRE, E O QUE NÃO (corrigido em 01/09 — o texto abaixo afirmava uma igualdade que o
+ * código não cumpre, e afirmar invariante que não existe é pior do que não ter invariante):
+ *
+ *   · ENTRA, porque cada evento tem carimbo próprio: sessões e as palavras delas, revisões e
+ *     acertos (`review_logs.reviewedAt`), itens de jogo (`exercise_results.createdAt`).
+ *   · NÃO ENTRA: o XP de conquista (`seed_credits.xp`), presença, marcos de sequência e rodadas
+ *     perfeitas. Os dois primeiros TÊM carimbo e caberiam; os dois últimos são agregados
+ *     derivados, e situá-los no tempo exige decidir em que dia um marco "acontece".
+ *
+ * A CONSEQUÊNCIA HONESTA: o último ponto do gráfico fica ABAIXO do XP que o distintivo mostra,
+ * pela soma dos termos de fora. O gráfico responde "quando eu subi de nível?", que é a pergunta
+ * dele; o número do distintivo continua sendo `deriveProgress` sobre `computeProfile`. Igualar os
+ * dois é trabalho de uma mudança própria — e enquanto não for feito, isto fica escrito.
  *
  * A RESSALVA, que a tela deve repetir: isto é reconstrução SOB A FÓRMULA ATUAL, não um livro-razão.
  * Mudar os pesos reescreve o passado. É aceitável porque é a mesma propriedade que o número de hoje
@@ -314,4 +454,42 @@ export async function computeXpHistory(
   }
 
   return { pontos, marcos, xpTotal: acumulado }
+}
+
+/**
+ * A ECONOMIA DO USUÁRIO, no servidor — a metade que faltava para o gasto poder ser recusado e o
+ * crédito poder ser conferido.
+ *
+ * Até 01/09 saldo e nível só existiam no navegador (`src/lib/progress.ts`), e as duas rotas de
+ * moeda gravavam o que o cliente mandasse: dava para gastar o que não se tinha e para creditar
+ * uma conquista que não aconteceu. Um cliente adulterado não tem botão desabilitado.
+ *
+ * A fórmula é a MESMA do cliente — `xpDeEventos` e `seedsGanhasDeEventos`, do core, sobre as
+ * mesmas métricas. Duas fórmulas para o mesmo número é como o saldo do servidor e o da tela
+ * passariam a discordar.
+ */
+export async function economiaDoUsuario(userId: UserId): Promise<{
+  metricas: AppMetrics; nivel: number; ganhas: number; gastas: number; saldo: number
+}> {
+  const m = await computeProfile(userId)
+  const eventos: EventosDeXp = {
+    sessoes: m.sessions,
+    palavrasCapturadas: m.wordsCaptured,
+    revisoes: m.reviews,
+    revisoesCertas: m.correctReviews,
+    itensDeJogo: m.drillItems ?? 0,
+    itensDeJogoCertos: m.drillCorrect ?? 0,
+    presencas: m.presencas ?? 0,
+    sequencias7: m.sequencias7 ?? 0,
+    capturaMinutosPremiados: m.capturaMinutosPremiados ?? 0,
+    cartoesCriados: m.deckSize ?? 0,
+    rodadasPerfeitas: m.rodadasPerfeitas ?? 0,
+    xpCreditado: m.xpCreditado ?? 0,
+    seedsCreditadas: m.seedsCreditadas ?? 0,
+  }
+  const ganhas = seedsGanhasDeEventos(eventos)
+  const gastas = m.seedsGastas ?? 0
+  /* Piso em zero pelo mesmo motivo do cliente: um gasto gravado antes de a fórmula mudar poderia,
+     em tese, passar do ganho — e aí o piso é o que impede um saldo negativo de travar a conta. */
+  return { metricas: m, nivel: nivelDoXp(xpDeEventos(eventos)), ganhas, gastas, saldo: Math.max(0, ganhas - gastas) }
 }

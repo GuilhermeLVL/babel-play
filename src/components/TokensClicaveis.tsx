@@ -39,7 +39,7 @@ export default function TokensClicaveis({
         // Toda palavra de conteúdo (>=3 letras, alfabética) é interativa:
         // hover carrega imagem/tradução/contexto reais. Termos já no deck
         // ficam realçados em verde.
-        const isContentWord = token.clean.length >= 3 && /^[a-z]+$/.test(token.clean);
+        const isContentWord = token.clean.length >= 3 && /^\p{L}+$/u.test(token.clean);
         const isWordInDeck = estaNoDeck(token.clean);
 
         if (isContentWord) {

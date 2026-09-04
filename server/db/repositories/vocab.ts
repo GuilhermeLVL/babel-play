@@ -1,10 +1,10 @@
 import { randomUUID } from 'node:crypto'
 import { and, desc, eq, inArray, isNull, sql } from 'drizzle-orm'
 import { db } from '../db'
-import { vocabCards, vocabOccurrences, reviewLogs, sessions } from '../schema'
+import { vocabCards, vocabOccurrences, reviewLogs, sessions, ankiNotes, ankiDecks } from '../schema'
 import { makeFsrs5, type Grade, type SchedulingState } from '../../../src/core/learning/scheduler'
 import { nivelCefr } from '../../../src/core/learning/cefrWordlist'
-import { avaliarCartao, type MotivoDescarte } from '../../../src/core/learning/quality'
+import { avaliarCartao, foraDoBulkAdd, type MotivoDescarte } from '../../../src/core/learning/quality'
 import { calcularDificuldade, faixaDe, cortesDoDeck, type CortesDeFaixa, type FaixaDificuldade } from '../../../src/core/learning/dificuldade'
 import { exerciseResultsRepo } from './exerciseResults'
 import type { UserId } from '../../lib/authContext'
@@ -32,6 +32,28 @@ function balancear<T extends { difficultyScore: number | null }>(cartoes: T[], l
 }
 
 export type VocabCard = typeof vocabCards.$inferSelect
+
+/**
+ * O FILTRO FACETADO da tela de jogos (openspec/changes/seletor-facetado) — UNIÃO dentro de cada
+ * faceta, INTERSEÇÃO entre facetas. Nomes e forma FIXADOS pelo agente do núcleo cliente; não mude.
+ */
+export interface FiltroFacetado {
+  fontes: Array<'baralho' | 'sessao' | 'trilha'>
+  baralhos?: string[]
+  sessoes?: string[]
+  /** Bases ISO-639-1 ('en'). */
+  idiomas?: string[]
+  recorte?: {
+    nuncaVistas?: boolean
+    pedindoRevisao?: boolean
+    niveis?: string[]
+    dificeisIds?: string[]
+  }
+  midia?: {
+    comTraducao?: boolean
+    comFrase?: boolean
+  }
+}
 
 /** Um cartão recusado na entrada, com o motivo — a tela mostra, não engole. */
 export interface SkippedCard {
@@ -87,6 +109,28 @@ export function toState(card: VocabCard): SchedulingState {
   }
 }
 
+/** Uma nota do acervo Anki, tal como `projetarDoAnki` a recebe — já sem os detalhes do parser. */
+export interface NotaParaProjetar {
+  id: string
+  frente: string | null
+  verso: string | null
+  exemplo: string | null
+  /** 'desativacao' | 'manual' | null — decide reativar o cartão soft-deletado ou criar um novo. */
+  motivoDaBaixa?: string | null
+}
+
+export interface ResultadoProjecao {
+  /** Cartões NOVOS criados por esta chamada. */
+  criados: number
+  /** Notas que casaram com um cartão VIVO já existente (mesma normKey) — ganharam ocorrência. */
+  reaproveitados: number
+  /** Cartões soft-deletados RESSUSCITADOS (mesmo id, histórico preservado) — a armadilha da Decisão 4. */
+  reativados: number
+}
+
+/** Teto por chamada de `ativarLote` — o mesmo número que o cliente já pratica (Decisão 3). */
+export const LOTE_DE_ATIVACAO = 300
+
 // Marco 1: userId obrigatório (branded) em TODA função deste repositório, sem exceção.
 // P3-1: a migração de boot (que atravessa tenants) mudou para server/db/manutencao.ts.
 export const vocabRepo = {
@@ -105,8 +149,13 @@ export const vocabRepo = {
    * `(user_id, origin_kind)`, então a segunda é um lookup indexado único, em vez de um EXISTS por
    * linha sobre um baralho de milhares. `list()` roda depois de cada rodada — o custo importa.
    */
-  async list(userId: UserId): Promise<Array<VocabCard & { daTrilha: boolean }>> {
-    const [cartoes, daTrilha] = await Promise.all([
+  async list(userId: UserId): Promise<Array<VocabCard & { daTrilha: boolean; daAnki: boolean; baralhosAnki: string[] }>> {
+    /* `daAnki` VIAJA PELA MESMA RAZÃO QUE `daTrilha`, e a falta dele custava o baralho inteiro: a
+       régua de qualidade tem dois perfis (fala capturada × material curado) e o CLIENTE reavalia
+       cada cartão antes da rodada. Sem a marca, ele aplicava o teto de 42 caracteres da captura a
+       definições de dicionário — medido no baralho real: 299 cartões importados e jogáveis, e o
+       lobby anunciando 8. A procedência já estava no banco; só não chegava a quem decide. */
+    const [cartoes, daTrilha, daAnki] = await Promise.all([
       db.select().from(vocabCards)
         .where(and(eq(vocabCards.userId, userId), isNull(vocabCards.deletedAt)))
         .orderBy(desc(vocabCards.addedAt)),
@@ -116,9 +165,34 @@ export const vocabRepo = {
           isNull(vocabOccurrences.deletedAt),
           eq(vocabOccurrences.originKind, 'trilha'),
         )),
+      /* Tarefa 3 (seletor-facetado): `origin_ref` viaja junto — é o id do baralho Anki de origem.
+         `selectDistinct` porque a MESMA nota pode gerar mais de uma ocorrência 'anki' para o
+         mesmo cartão (reimport, `ativarLote`), e um cartão pode ter vindo de dois baralhos
+         diferentes (mesma palavra projetada de dois decks). Continua UMA consulta agregada — não
+         N+1: o custo desta chamada não cresce com o número de cartões, só com o de linhas
+         distintas (cardId, deckId), que `idx_occ_origem` já cobre. */
+      db.selectDistinct({ cardId: vocabOccurrences.cardId, deckId: vocabOccurrences.originRef }).from(vocabOccurrences)
+        .where(and(
+          eq(vocabOccurrences.userId, userId),
+          isNull(vocabOccurrences.deletedAt),
+          eq(vocabOccurrences.originKind, 'anki'),
+        )),
     ])
     const daTrilhaIds = new Set(daTrilha.map((r) => r.cardId))
-    return cartoes.map((c) => ({ ...c, daTrilha: daTrilhaIds.has(c.id) }))
+    const daAnkiIds = new Set(daAnki.map((r) => r.cardId))
+    const baralhosPorCartao = new Map<string, string[]>()
+    for (const r of daAnki) {
+      if (!r.deckId) continue
+      const lista = baralhosPorCartao.get(r.cardId)
+      if (lista) lista.push(r.deckId)
+      else baralhosPorCartao.set(r.cardId, [r.deckId])
+    }
+    return cartoes.map((c) => ({
+      ...c,
+      daTrilha: daTrilhaIds.has(c.id),
+      daAnki: daAnkiIds.has(c.id),
+      baralhosAnki: baralhosPorCartao.get(c.id) ?? [],
+    }))
   },
 
   async get(userId: UserId, id: string): Promise<VocabCard | undefined> {
@@ -181,11 +255,19 @@ export const vocabRepo = {
 
     /* ORIGEM da ocorrência. `trilha:en` era enviado pelo cliente e virava NULL aqui, porque o
        código só aceitava id de sessão existente — e o filtro que depois procurava 'trilha:en'
-       nunca casava. Agora a origem é decomposta em (tipo, referência) e sobrevive. */
+       nunca casava. Agora a origem é decomposta em (tipo, referência) e sobrevive.
+
+       `anki:` caiu na MESMA armadilha, um degrau depois: a tela de importação manda
+       `anki:<arquivo>` desde que existe (`BaralhoAnki.tsx`), o schema documenta 'anki' como valor
+       de `origin_kind` — e nenhuma linha jamais o escrevia: tudo virava 'manual'/NULL, e depois
+       não havia como distinguir cartão importado de cartão digitado. Perda irrecuperável, a cada
+       import. O filtro "jogar só com este baralho" (EXISTS por origin_kind/origin_ref) só tem
+       dado para casar porque este ramo grava o valor. */
     const origemDe = (c: NewVocabCard): { kind: string; ref: string | null } => {
       const s = c.sessionId
       if (!s) return { kind: 'manual', ref: null }
       if (s.startsWith('trilha:')) return { kind: 'trilha', ref: s.slice('trilha:'.length) }
+      if (s.startsWith('anki:')) return { kind: 'anki', ref: s.slice('anki:'.length) }
       return dosDono.has(s) ? { kind: 'sessao', ref: s } : { kind: 'manual', ref: null }
     }
 
@@ -310,7 +392,7 @@ export const vocabRepo = {
     if (opts.ate) cond.push(sql`${vocabCards.lastSeenAt} <= ${opts.ate}`)
     if (opts.origens?.length) {
       cond.push(sql`EXISTS (SELECT 1 FROM ${vocabOccurrences} o
-        WHERE o.card_id = ${vocabCards.id} AND o.origin_kind IN ${opts.origens})`)
+        WHERE o.user_id = ${userId} AND o.card_id = ${vocabCards.id} AND o.origin_kind IN ${opts.origens})`)
     }
 
     const colunaDe = {
@@ -446,6 +528,12 @@ export const vocabRepo = {
     evitar?: string[]
     /** Base ISO-639-1 ('en', 'pt'). Vazio/ausente = sem filtro, o comportamento antigo. */
     lang?: string | null
+    /**
+     * O SELETOR FACETADO (openspec/changes/seletor-facetado). Quando presente, TEM PRECEDÊNCIA
+     * sobre `fonte`/`fonteRef`/`lang` — os chamadores de hoje (que não enviam `filtro`) continuam
+     * caindo nos ramos antigos, byte a byte.
+     */
+    filtro?: FiltroFacetado
   } = {}) {
     const limite = Math.min(Math.max(opts.limite ?? 20, 1), 200)
     const estrategia = opts.estrategia ?? 'equilibrado'
@@ -466,22 +554,89 @@ export const vocabRepo = {
      * voltamos ao mesmo lugar por outro caminho. É o que o teste de idioma trava.
      */
     const lang = (opts.lang ?? '').toLowerCase().split('-')[0].trim()
-    if (lang) {
-      cond.push(sql`LOWER(SUBSTR(COALESCE(${vocabCards.srcLang}, ''), 1, 2)) = ${lang}`)
+    if (lang && !opts.filtro) {
+      // `filtro` (quando presente) faz sua PRÓPRIA interseção de idiomas mais abaixo — este ramo
+      // é só para os chamadores ANTIGOS, que continuam intocados.
+      cond.push(eq(vocabCards.srcLangBase, lang))
     }
 
-    if (opts.fonte === 'sessao' && opts.fonteRef) {
-      cond.push(sql`EXISTS (SELECT 1 FROM ${vocabOccurrences} o WHERE o.card_id = ${vocabCards.id}
+    if (opts.filtro) {
+      /**
+       * O FILTRO FACETADO (tarefa 2): união DENTRO de cada faceta, interseção ENTRE facetas.
+       *
+       * `fontes` é a única faceta que é união DE FATO entre membros heterogêneos — os outros
+       * campos (`idiomas`, `recorte.niveis`, etc.) já eram "OR dentro do campo" por serem listas
+       * passadas a `IN (...)`. Aqui a união vira `OR` entre sub-EXISTS/NOT EXISTS, um por fonte
+       * presente em `fontes`; o resultado inteiro entra como UMA condição na interseção do WHERE.
+       *
+       * TODO EXISTS sobre `vocab_occurrences` carrega `o.user_id = ?` mesmo sendo redundante
+       * (card_id já é do usuário): os três índices da tabela começam por `user_id`, e a sonda
+       * correlacionada só por `card_id` vira SCAN — medido em 20k cartões, era a diferença entre
+       * 4,2 s e milissegundos no filtro padrão (docs/pesquisa/medicao-filtro-20k.md).
+       */
+      const f = opts.filtro
+      const membros: ReturnType<typeof sql>[] = []
+      if (f.fontes.includes('trilha')) {
+        membros.push(sql`EXISTS (SELECT 1 FROM ${vocabOccurrences} o WHERE o.user_id = ${userId} AND o.card_id = ${vocabCards.id}
+          AND o.origin_kind = 'trilha')`)
+      }
+      if (f.fontes.includes('sessao')) {
+        membros.push(f.sessoes?.length
+          ? sql`EXISTS (SELECT 1 FROM ${vocabOccurrences} o WHERE o.user_id = ${userId} AND o.card_id = ${vocabCards.id}
+              AND o.origin_kind = 'sessao' AND o.origin_ref IN ${f.sessoes})`
+          : sql`EXISTS (SELECT 1 FROM ${vocabOccurrences} o WHERE o.user_id = ${userId} AND o.card_id = ${vocabCards.id}
+              AND o.origin_kind = 'sessao')`)
+      }
+      if (f.fontes.includes('baralho')) {
+        membros.push(f.baralhos?.length
+          ? sql`EXISTS (SELECT 1 FROM ${vocabOccurrences} o WHERE o.user_id = ${userId} AND o.card_id = ${vocabCards.id}
+              AND o.origin_kind = 'anki' AND o.origin_ref IN ${f.baralhos})`
+          // Sem baralhos específicos: "baralho" sozinho significa "não é trilha" — mesma
+          // semântica do ramo `else` dos chamadores antigos (o EXISTS de 'anki' exigiria que
+          // TODO cartão manual também tivesse ocorrência 'anki', o que nunca foi verdade).
+          : sql`NOT EXISTS (SELECT 1 FROM ${vocabOccurrences} o WHERE o.user_id = ${userId} AND o.card_id = ${vocabCards.id}
+              AND o.origin_kind = 'trilha')`)
+      }
+      /* `fontes` é obrigatório e não-vazio no schema Zod da rota — na prática sempre há ao menos
+         um membro aqui. Mas o REPOSITÓRIO é chamado direto por testes/outros callers sem passar
+         pelo Zod, e `sql.join` de uma lista vazia produz SQL inválido (`()`); `1=0` é o WHERE
+         "nunca casa", a resposta segura para "nenhuma fonte pedida" em vez de um erro de sintaxe. */
+      cond.push(membros.length ? sql`(${sql.join(membros, sql` OR `)})` : sql`1=0`)
+
+      // Interseção: cada faceta abaixo é uma condição A MAIS, sobre índices já existentes
+      // (idx_vocab_src_lang_base, idx_vocab_user_due, idx_vocab_user_cefr) — ver relato da migração.
+      if (f.idiomas?.length) {
+        const bases = f.idiomas.map((l) => l.toLowerCase().split('-')[0].trim()).filter(Boolean)
+        if (bases.length) cond.push(inArray(vocabCards.srcLangBase, bases))
+      }
+      if (f.recorte?.nuncaVistas) cond.push(isNull(vocabCards.dueAt))
+      if (f.recorte?.pedindoRevisao) {
+        cond.push(sql`(${vocabCards.dueAt} IS NOT NULL AND ${vocabCards.dueAt} <= ${Date.now()})`)
+      }
+      if (f.recorte?.niveis?.length) cond.push(inArray(vocabCards.cefrLevel, f.recorte.niveis))
+      if (f.recorte?.dificeisIds?.length) cond.push(inArray(vocabCards.id, f.recorte.dificeisIds))
+      if (f.midia?.comTraducao) cond.push(sql`(${vocabCards.back} IS NOT NULL AND ${vocabCards.back} != '')`)
+      if (f.midia?.comFrase) cond.push(sql`(${vocabCards.sentence} IS NOT NULL AND ${vocabCards.sentence} != '')`)
+    } else if (opts.fonte === 'sessao' && opts.fonteRef) {
+      cond.push(sql`EXISTS (SELECT 1 FROM ${vocabOccurrences} o WHERE o.user_id = ${userId} AND o.card_id = ${vocabCards.id}
         AND o.origin_kind = 'sessao' AND o.origin_ref = ${opts.fonteRef})`)
     } else if (opts.fonte === 'trilha') {
-      cond.push(sql`EXISTS (SELECT 1 FROM ${vocabOccurrences} o WHERE o.card_id = ${vocabCards.id}
+      cond.push(sql`EXISTS (SELECT 1 FROM ${vocabOccurrences} o WHERE o.user_id = ${userId} AND o.card_id = ${vocabCards.id}
         AND o.origin_kind = 'trilha'${opts.fonteRef ? sql` AND o.origin_ref = ${opts.fonteRef}` : sql``})`)
+    } else if (opts.fonte === 'baralho' && opts.fonteRef?.startsWith('anki:')) {
+      /* "Jogar só com este baralho" (Decisão 2 do design motor-anki-acervo): um ramo NOVO na
+         cláusula que já existe, não um mecanismo novo. `fonte='baralho'` SEM ref continua caindo
+         no ramo `else` de baixo — comportamento antigo intocado, de propósito (é o acervo inteiro
+         do usuário). Só com `fonteRef='anki:<deckId>'` é que recorta por baralho. */
+      const deckId = opts.fonteRef.slice('anki:'.length)
+      cond.push(sql`EXISTS (SELECT 1 FROM ${vocabOccurrences} o WHERE o.user_id = ${userId} AND o.card_id = ${vocabCards.id}
+        AND o.origin_kind = 'anki' AND o.origin_ref = ${deckId})`)
     } else {
       /* "Minhas gravações" EXCLUI a trilha — o mesmo `!daTrilha` que `cartoesDaFonte` aplica no
          cliente. Sem esta linha o servidor priorizaria palavras da trilha que o cliente descarta
          logo em seguida, gastando slots da rodada com material que nunca chega aos jogos. As duas
          pontas têm de concordar sobre o que é "gravações", senão o recorte fica torto de novo. */
-      cond.push(sql`NOT EXISTS (SELECT 1 FROM ${vocabOccurrences} o WHERE o.card_id = ${vocabCards.id}
+      cond.push(sql`NOT EXISTS (SELECT 1 FROM ${vocabOccurrences} o WHERE o.user_id = ${userId} AND o.card_id = ${vocabCards.id}
         AND o.origin_kind = 'trilha')`)
     }
     if (opts.evitar?.length) cond.push(sql`${vocabCards.id} NOT IN ${opts.evitar}`)
@@ -541,7 +696,7 @@ export const vocabRepo = {
       .where(and(eq(vocabCards.userId, userId), isNull(vocabCards.deletedAt)))
     const [{ n: legado }] = await db.select({ n: sql<number>`count(*)` }).from(vocabCards)
       .where(and(eq(vocabCards.userId, userId), isNull(vocabCards.deletedAt),
-        sql`NOT EXISTS (SELECT 1 FROM ${vocabOccurrences} o WHERE o.card_id = ${vocabCards.id} AND o.origin_kind <> 'legado')`))
+        sql`NOT EXISTS (SELECT 1 FROM ${vocabOccurrences} o WHERE o.user_id = ${userId} AND o.card_id = ${vocabCards.id} AND o.origin_kind <> 'legado')`))
     return { inicioEm: inicio ?? null, totalLegado: Number(legado), total: Number(total) }
   },
 
@@ -648,5 +803,207 @@ export const vocabRepo = {
         .where(and(eq(reviewLogs.cardId, id), eq(reviewLogs.userId, userId), isNull(reviewLogs.deletedAt))),
     ])
     return true
+  },
+
+  /**
+   * PROJEÇÃO (motor-anki-acervo, Fase 3) — transforma nota do acervo em cartão jogável.
+   *
+   * Reusa o MESMO upsert por `(userId, normKey)` de `bulkAdd` — mesmo `targetWhere`/`setWhere`,
+   * porque o índice `uq_vocab_user_norm` é PARCIAL (`deleted_at IS NULL`) e o SQLite só reconhece
+   * o índice se o `ON CONFLICT` repetir o predicado (ver comentário de `bulkAdd` acima).
+   *
+   * Perfil de qualidade `'curado'`: o verso de um baralho pronto é definição de dicionário, não
+   * fala transcrita — a régua de `avaliarCartao` calibrada para "Isso é" e "rápida!!" reprovaria
+   * quase todo material legítimo (Decisão 6 do design). Nota que não serve fica com
+   * `motivo_descarte` gravado e NÃO é projetada — nem cartão, nem ocorrência.
+   */
+  async projetarDoAnki(
+    userId: UserId,
+    deckId: string,
+    notas: NotaParaProjetar[],
+    deckLang: { srcLang?: string | null; tgtLang?: string | null } = {},
+  ): Promise<ResultadoProjecao> {
+    if (!notas.length) return { criados: 0, reaproveitados: 0, reativados: 0 }
+    const now = Date.now()
+    let criados = 0
+    let reaproveitados = 0
+    let reativados = 0
+
+    for (const nota of notas) {
+      const palavra = (nota.frente ?? '').trim()
+      if (!palavra) continue // sem frente não há palavra — nada para projetar
+
+      /* S8 (auditoria): `avaliarCartao` não tem teto SUPERIOR de tamanho de `word` — a régua de
+         qualidade foi calibrada para reprovar ruído (frase curta demais, sem pista), não frase
+         LONGA demais. Um deck onde "Front" é a frase inteira (em vez da palavra) passava
+         `avaliarCartao` sem problema e virava um botão-parágrafo no Duelo. `foraDoBulkAdd` é a
+         MESMA régua que `bulk-add` já aplica no caminho manual (`quality.ts`); rodá-la aqui fecha
+         o mesmo buraco no caminho do import. */
+      const motivoDeTamanho = foraDoBulkAdd(palavra)
+      if (motivoDeTamanho) {
+        await db.update(ankiNotes).set({ motivoDescarte: motivoDeTamanho, updatedAt: now })
+          .where(and(eq(ankiNotes.id, nota.id), eq(ankiNotes.userId, userId)))
+        continue
+      }
+
+      const veredito = avaliarCartao(
+        { word: palavra, translation: nota.verso ?? '', sentence: nota.exemplo ?? '', srcLang: deckLang.srcLang } as never,
+        { origem: 'curado' },
+      )
+      if (!veredito.serve) {
+        await db.update(ankiNotes).set({ motivoDescarte: veredito.motivo ?? null, updatedAt: now })
+          .where(and(eq(ankiNotes.id, nota.id), eq(ankiNotes.userId, userId)))
+        continue
+      }
+
+      const normKey = chaveDedup(palavra, deckLang.srcLang ?? null)
+
+      /* A ARMADILHA (Decisão 4 do design): o índice único é PARCIAL, então o upsert abaixo NUNCA
+         vê um cartão soft-deletado — ele criaria uma linha PARALELA e o histórico FSRS (review_logs)
+         racharia em dois cartões para a mesma palavra. Por isso, ANTES do upsert, procuramos o
+         cartão morto desta normKey. Só ressuscitamos (limpa `deleted_at`, preserva id e histórico)
+         quando a NOTA que estamos projetando registra que a baixa veio de DESATIVAR o baralho —
+         nunca quando o usuário apagou o cartão manualmente uma vez; aí respeitamos a vontade dele
+         e deixamos o upsert criar um cartão novo. */
+      let card: VocabCard | undefined
+      if (nota.motivoDaBaixa === 'desativacao') {
+        const mortos = await db.select().from(vocabCards)
+          .where(and(eq(vocabCards.userId, userId), eq(vocabCards.normKey, normKey), sql`${vocabCards.deletedAt} IS NOT NULL`))
+          .orderBy(desc(vocabCards.deletedAt))
+          .limit(1)
+        if (mortos[0]) {
+          await db.update(vocabCards)
+            .set({ deletedAt: null, updatedAt: now, occurrences: sql`${vocabCards.occurrences} + 1`, lastSeenAt: now })
+            .where(eq(vocabCards.id, mortos[0].id))
+          const relidos = await db.select().from(vocabCards).where(eq(vocabCards.id, mortos[0].id)).limit(1)
+          card = relidos[0]
+          reativados++
+        }
+      }
+
+      if (!card) {
+        const cefr = nivelCefr(palavra, deckLang.srcLang ?? 'en', { curado: null })
+        const row: typeof vocabCards.$inferInsert = {
+          id: randomUUID(),
+          createdAt: now,
+          updatedAt: now,
+          userId,
+          word: palavra,
+          back: nota.verso ?? null,
+          sentence: nota.exemplo ?? null,
+          srcLang: deckLang.srcLang ?? null,
+          tgtLang: deckLang.tgtLang ?? null,
+          sessionId: null,
+          clozePrompt: null,
+          clozeAnswer: null,
+          cefrLevel: cefr.level,
+          cefrConfidence: cefr.confidence,
+          cefrSource: cefr.source,
+          box: 1,
+          /* PALAVRA IMPORTADA NASCE SEM AGENDA, e não "vencida agora".
+             Medido no acervo do dono: 2.222 dos 2.225 cartões do baralho tinham `reps = 0` (nunca
+             respondidos) e mesmo assim contavam como vencidos, porque o import carimbava
+             `dueAt = now`. A tela então dizia "2.225 palavras pedindo revisão" sobre material que
+             a pessoa nunca tinha visto, a faceta "Nunca vistas" mostrava ZERO, e o FSRS tratava
+             material novo como material esquecido — todos empatados no mesmo instante, o que
+             apaga qualquer ordenação por urgência.
+             `dueAt = null` é a definição de "nunca vista" no app inteiro (ver `passaRecorte` em
+             `core/minigames/filtro.ts` e `isDueNow`), e `dueAt ASC` põe NULL na frente, então
+             material novo continua tendo prioridade na fila — sem mentir sobre o que ele é. */
+          dueAt: null,
+          inDeck: 1,
+          addedAt: now,
+          normKey,
+          occurrences: 1,
+          firstSeenAt: now,
+          lastSeenAt: now,
+        }
+        await db.insert(vocabCards).values(row).onConflictDoUpdate({
+          target: [vocabCards.userId, vocabCards.normKey],
+          // Mesmo predicado do índice parcial — ver comentário de `bulkAdd`.
+          targetWhere: sql`${vocabCards.deletedAt} IS NULL`,
+          set: {
+            occurrences: sql`${vocabCards.occurrences} + 1`,
+            lastSeenAt: now,
+            updatedAt: now,
+            back: sql`COALESCE(NULLIF(${vocabCards.back}, ''), ${row.back ?? null})`,
+            sentence: sql`COALESCE(NULLIF(${vocabCards.sentence}, ''), ${row.sentence ?? null})`,
+          },
+          setWhere: sql`${vocabCards.deletedAt} IS NULL`,
+        })
+
+        const finais = await db.select().from(vocabCards)
+          .where(and(eq(vocabCards.userId, userId), isNull(vocabCards.deletedAt), eq(vocabCards.normKey, normKey)))
+          .limit(1)
+        card = finais[0]
+        if (!card) throw new Error('falha ao reler cartão projetado')
+        // Nasceu agora nesta chamada (occurrences=1 e addedAt=now) => criado; senão, já existia => reaproveitado.
+        if (card.occurrences === 1 && card.addedAt === now) criados++
+        else reaproveitados++
+      }
+
+      await db.insert(vocabOccurrences).values({
+        id: randomUUID(),
+        createdAt: now,
+        updatedAt: now,
+        userId,
+        cardId: card.id,
+        occurredAt: now,
+        originKind: 'anki',
+        originRef: deckId,
+        sentence: nota.exemplo ?? null,
+        utteranceId: null,
+      })
+
+      await db.update(ankiNotes).set({
+        projectedCardId: card.id,
+        estado: 'ativa',
+        motivoDaBaixa: null,
+        motivoDescarte: null,
+        updatedAt: now,
+      }).where(and(eq(ankiNotes.id, nota.id), eq(ankiNotes.userId, userId)))
+    }
+
+    return { criados, reaproveitados, reativados }
+  },
+
+  /**
+   * ATIVAÇÃO EM LOTE (Decisão 3 do design) — a resposta a "3.000 vencidos de uma vez": nota nasce
+   * `'arquivada'` (fora da fila) e só entra no jogo quando alguém pede, no máximo
+   * `LOTE_DE_ATIVACAO` por chamada.
+   *
+   * IDEMPOTENTE por construção: `projetarDoAnki` marca a nota `estado='ativa'`, e a consulta abaixo
+   * só pega `estado='arquivada'` — chamar duas vezes não pega a mesma nota de novo, mesmo sem
+   * nenhum controle explícito de "já processei este id".
+   */
+  async ativarLote(userId: UserId, deckId: string, limite: number = LOTE_DE_ATIVACAO): Promise<{ ativadas: number; restantes: number }> {
+    const decks = await db.select().from(ankiDecks)
+      .where(and(eq(ankiDecks.id, deckId), eq(ankiDecks.userId, userId)))
+      .limit(1)
+    const deckLang = { srcLang: decks[0]?.idiomaOrigem ?? null, tgtLang: decks[0]?.idiomaAlvo ?? null }
+
+    // Só notas sem motivo de descarte já conhecido: uma nota barrada numa chamada anterior não
+    // volta a ser tentada a cada lote (ela só sai de `motivo_descarte` se o conteúdo mudar num
+    // reimport, que é `gravarNotas` quem decide).
+    const condBase = [
+      eq(ankiNotes.deckId, deckId),
+      eq(ankiNotes.userId, userId),
+      isNull(ankiNotes.deletedAt),
+      eq(ankiNotes.estado, 'arquivada'),
+      isNull(ankiNotes.motivoDescarte),
+    ]
+    const proximas = await db.select().from(ankiNotes).where(and(...condBase))
+      .orderBy(ankiNotes.createdAt, ankiNotes.id)
+      .limit(Math.max(1, limite))
+
+    const resultado = proximas.length
+      ? await this.projetarDoAnki(userId, deckId, proximas.map((n) => ({
+        id: n.id, frente: n.frente, verso: n.verso, exemplo: n.exemplo, motivoDaBaixa: n.motivoDaBaixa,
+      })), deckLang)
+      : { criados: 0, reaproveitados: 0, reativados: 0 }
+
+    const [{ n: restantes }] = await db.select({ n: sql<number>`count(*)` }).from(ankiNotes).where(and(...condBase))
+
+    return { ativadas: resultado.criados + resultado.reaproveitados + resultado.reativados, restantes: Number(restantes) }
   },
 }

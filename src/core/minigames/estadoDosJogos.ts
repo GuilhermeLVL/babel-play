@@ -1,7 +1,9 @@
 import { MINIGAMES, type MinigameId } from './types';
 import { canPlay, promptFor } from './itemSource';
 import { chaveComparavel } from '../learning/quality';
-import { contarJogaveisMulti, consumoDaEscada } from './termo';
+import { contarJogaveisMulti, consumoDaEscada, ESCADA_POR_FAIXA, digitavelNoTermo } from './termo';
+import { entraNaGrade } from './wordsearch';
+import type { FaixaDificuldade } from './composicao';
 import { buildScrambleRounds } from './scramble';
 import { buildRodadasEscuta, buildRodadasDitado, buildRodadasConectores, temConectores } from './escuta';
 import type { VocabCard } from '../../types';
@@ -23,6 +25,9 @@ import type { FalaComAudio } from './escuta';
  * desenha a carta junta isso com a apresentação.
  */
 
+/** Japonês, chinês e tailandês não marcam onde cada palavra começa. Coreano usa espaço. */
+const ESCRITA_SEM_ESPACO = /[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Thai}]/u;
+
 /** Por que o jogo está bloqueado, quando o número de itens não conta a história toda. */
 export type MotivoBloqueio =
   /** Conector e ordem de palavras só existem dentro de uma frase — e a trilha não tem frases. */
@@ -37,7 +42,60 @@ export type MotivoBloqueio =
    * "o som está pronto". Sem este motivo, a carta cairia no texto de acervo vazio e diria "precisa
    * de uma gravação com legenda" para uma gravação que tem exatamente isso.
    */
-  | 'audio-carregando';
+  | 'audio-carregando'
+  /**
+   * O ACERVO TEM PALAVRAS DE SOBRA, MAS NENHUMA CABE NO JOGO — gate mínimo de alfabeto (S2/S3).
+   *
+   * Hoje: um deck 100% japonês passa na régua de qualidade (tem tradução, não é ruído) e o
+   * caça-palavras listava as pistas com a grade vazia — `normalizarPalavra` reduz `食べる` a
+   * string vazia, e a única saída era Revelar tudo, nota 1 no FSRS, em silêncio. O Termo aceitava
+   * a mesma palavra (`chaveDoTermo` é `\p{L}`) com um teclado QWERTY que não a escreve. Isto NÃO é
+   * "faltam N itens" — o acervo tem material de sobra, só que em alfabeto que o jogo não suporta.
+   * O gate declarativo por jogo (que faixas de idioma cada um aceita) vem noutra onda; aqui é só o
+   * caso extremo: pool suficiente por CONTAGEM, zero digitável/na-grade de fato.
+   */
+  | 'alfabeto-nao-suportado'
+  /**
+   * A ESCRITA NÃO SEPARA PALAVRAS — japonês, chinês, tailandês.
+   *
+   * "Montar a frase" pede para ordenar as palavras de uma frase, e para isso é preciso saber onde
+   * cada uma começa. Nessas escritas não há espaço, e sem um tokenizador não há como cortar.
+   * Precisa de nome próprio porque o estado é indistinguível de "sem frase" por contagem — e era
+   * assim que a tela dizia "precisa de uma gravação com legenda" para a trilha japonesa, que tem
+   * 5.181 frases. Nada a consertar: é uma limitação do jogo naquela escrita, dita como tal.
+   */
+  | 'escrita-sem-separacao';
+
+/**
+ * RÓTULO HUMANO de cada motivo — título curto + o que resolve.
+ *
+ * Os rótulos de hoje moram dentro de `Play.tsx`, como uma cadeia de `if (motivo === …)` espalhada
+ * pelo componente (fora do escopo desta pasta). Esta tabela é a versão declarativa, ao lado do
+ * tipo que ela rotula, para a UI facetada (e o próprio `Play.tsx`, numa onda futura de migração)
+ * consumirem uma verdade só em vez de reescrever a mesma frase em dois lugares.
+ */
+export const ROTULO_DO_MOTIVO: Record<MotivoBloqueio, { titulo: string; conserto: string }> = {
+  'trilha-sem-frase': {
+    titulo: 'precisa de frase',
+    conserto: 'a trilha tem palavras soltas; escolha uma gravação para liberar este jogo',
+  },
+  'sem-voz': {
+    titulo: 'sem voz sintetizada',
+    conserto: 'este navegador não oferece voz no idioma do baralho',
+  },
+  'audio-carregando': {
+    titulo: 'baixando o áudio',
+    conserto: 'a gravação tem som; ele ainda está a caminho',
+  },
+  'alfabeto-nao-suportado': {
+    titulo: 'alfabeto não suportado',
+    conserto: 'o acervo tem material de sobra, mas em um alfabeto que este jogo não escreve',
+  },
+  'escrita-sem-separacao': {
+    titulo: 'escrita sem separação de palavras',
+    conserto: 'a trilha tem frases, mas esta escrita não marca onde cada palavra começa',
+  },
+};
 
 export interface EstadoDoJogo {
   id: MinigameId;
@@ -83,8 +141,21 @@ export interface EntradaDoEstado {
   audioPronto?: boolean;
   /** O navegador oferece síntese de voz? É o que permite a trilha rodar os jogos de áudio. */
   temVoz: boolean;
-  fonteId: 'baralho' | 'sessao' | 'trilha';
+  /**
+   * SELEÇÃO v2: as FRASES DA TRILHA (Tatoeba, `frasesDaTrilha`), separadas de `frases` de
+   * propósito — `frases` continua sendo a gravação, e na trilha os jogos de frase NÃO podem contar
+   * falas de uma gravação qualquer (era o defeito antigo). Só a Frase embaralhada as consome.
+   */
+  frasesDaTrilha?: FalaComAudio[];
+  fonteId: 'baralho' | 'sessao' | 'trilha' | 'dificeis';
   lang: string;
+  /**
+   * A FAIXA VIGENTE. O Termo é o único jogo cujo TAMANHO depende dela: a escada sobe até 1, 2
+   * ou 4 tabuleiros conforme a faixa, e o gate anuncia esse tamanho. Sem isto o gate prometia
+   * 7 palavras e o montador entregava 5 — a divergência gate×montador que já sumiu com o jogo
+   * uma vez, e que um teste desta pasta existe para impedir. Omitida = `medio`.
+   */
+  faixa?: FaixaDificuldade;
 }
 
 /** Teto alto para MEDIR o acervo — não é o tamanho da rodada. */
@@ -98,8 +169,8 @@ const TETO_DE_FALAS = 99;
  * Para oito dos nove jogos é o teto do jogo, ou o acervo quando ele é menor. O Termo é a exceção
  * declarada: a escada consome 3 ou 7, e é `consumoDaEscada` que sabe disso.
  */
-function tamanhoDaRodadaDe(id: MinigameId, disponiveis: number): number {
-  if (id === 'termo') return consumoDaEscada(disponiveis);
+function tamanhoDaRodadaDe(id: MinigameId, disponiveis: number, faixa: FaixaDificuldade = 'medio'): number {
+  if (id === 'termo') return consumoDaEscada(disponiveis, ESCADA_POR_FAIXA[faixa]);
   return Math.min(disponiveis, MINIGAMES[id].maxItems);
 }
 
@@ -153,6 +224,33 @@ export function poolDosJogosDePalavra(cartas: VocabCard[]): PoolPorJogo {
 }
 
 /**
+ * QUANTO O ACERVO SERVE, COM E SEM O FILTRO DE ALFABETO — fonte única para o gate imperativo
+ * (`estadoDoJogo`) e o avaliador declarativo (`elegibilidadeDoJogo`).
+ *
+ * Só existe para termo e wordsearch, os dois jogos que declaram `requisitos.alfabeto: 'latino'`
+ * em `MINIGAMES`. `semFiltro` é a contagem sobre o acervo inteiro (o que separa "pouco material"
+ * de "material de sobra, alfabeto não suportado"); `apto` é a mesma conta depois de excluir o que
+ * o requisito recusa — `entraNaGrade` para a grade do caça-palavras, `digitavelNoTermo` para o
+ * teclado QWERTY fixo do Termo.
+ */
+function contagemComAlfabeto(
+  id: 'termo' | 'wordsearch',
+  cartas: VocabCard[],
+  faixa: FaixaDificuldade = 'medio',
+): { semFiltro: number; apto: number } {
+  if (id === 'termo') {
+    return {
+      semFiltro: contarJogaveisMulti(cartas, faixa),
+      apto: contarJogaveisMulti(cartas.filter(c => digitavelNoTermo(c.word ?? '')), faixa),
+    };
+  }
+  return {
+    semFiltro: canPlay(id, cartas, { ignorarRequisitos: true }).disponiveis,
+    apto: canPlay(id, cartas.filter(c => entraNaGrade(c.word ?? ''))).disponiveis,
+  };
+}
+
+/**
  * `pools` vem de fora quando os nove estados são calculados juntos — é o que evita repetir a
  * varredura do acervo em cada jogo de palavra.
  */
@@ -166,12 +264,27 @@ export function estadoDoJogo(id: MinigameId, e: EntradaDoEstado, pools?: PoolPor
    * com número, em vez de falhar no clique.
    */
   if (id === 'termo') {
-    const n = contarJogaveisMulti(e.cartas);
-    return { id, ok: n >= def.minItems, disponiveis: n, faltam: Math.max(0, def.minItems - n), fonte: 'baralho', tamanhoDaRodada: tamanhoDaRodadaDe(id, n) };
+    const faixa = e.faixa ?? 'medio';
+    /* `contagemComAlfabeto` é a MESMA verdade que `elegibilidadeDoJogo` usa para o estado
+     * `degradado` — contar sobre o acervo INTEIRO (`semFiltroDeAlfabeto`) e não só sobre o
+     * subconjunto digitável é o que separa "acervo pequeno demais" de "acervo tem material, mas em
+     * alfabeto que o Termo não suporta". */
+    const { semFiltro: semFiltroDeAlfabeto, apto: n } = contagemComAlfabeto('termo', e.cartas, faixa);
+    if (n === 0 && semFiltroDeAlfabeto >= def.minItems) {
+      return { id, ok: false, disponiveis: 0, faltam: def.minItems, fonte: 'baralho', motivo: 'alfabeto-nao-suportado', tamanhoDaRodada: 0 };
+    }
+    return { id, ok: n >= def.minItems, disponiveis: n, faltam: Math.max(0, def.minItems - n), fonte: 'baralho', tamanhoDaRodada: tamanhoDaRodadaDe(id, n, e.faixa) };
   }
 
   if (def.modalidade !== 'palavra') {
-    const semFrase = e.fonteId === 'trilha';
+    /* Seleção v2: a trilha passou a entregar FRASES (Tatoeba, `e.frasesDaTrilha`) — e SÓ a Frase
+       embaralhada as consome. Os de áudio seguem no caminho "palavra falada por TTS"; o Caça-
+       conectores continua bloqueado (4,5% das frases têm conector); e `e.frases` (a gravação)
+       nunca conta na trilha, que era o defeito antigo. */
+    const daTrilha = e.fonteId === 'trilha';
+    const frasesDaTrilha = daTrilha && id === 'scramble' ? (e.frasesDaTrilha ?? []) : [];
+    const semFrase = daTrilha && !frasesDaTrilha.length;
+    const falas = daTrilha ? frasesDaTrilha : e.frases;
 
     if (semFrase && !def.aceitaPalavraFalada) {
       return { id, ok: false, disponiveis: 0, faltam: def.minItems, fonte: 'falas', motivo: 'trilha-sem-frase', tamanhoDaRodada: 0 };
@@ -197,13 +310,33 @@ export function estadoDoJogo(id: MinigameId, e: EntradaDoEstado, pools?: PoolPor
     }
 
     const n =
-      id === 'scramble' ? buildScrambleRounds(e.frases, { quantidade: TETO_DE_FALAS }).length
+      id === 'scramble' ? buildScrambleRounds(falas, { quantidade: TETO_DE_FALAS }).length
         : id === 'escuta' ? (e.temAudio ? buildRodadasEscuta(e.frases, { quantidade: TETO_DE_FALAS }).length : 0)
           : id === 'ditado' ? (e.temAudio ? buildRodadasDitado(e.frases, { quantidade: TETO_DE_FALAS }).length : 0)
             : id === 'conectores' ? (temConectores(e.lang) ? buildRodadasConectores(e.frases, { lang: e.lang, quantidade: TETO_DE_FALAS }).length : 0)
               : (e.temAudio ? e.frases.filter(f => f.endMs > f.startMs && f.text.trim()).length : 0);
 
+    /* Frases existem e nenhuma rodada sai: em escrita sem espaço o motivo é a escrita, não a
+       falta de material — e dizer "precisa de gravação" mandaria a pessoa procurar o que ela já
+       tem. */
+    if (id === 'scramble' && n === 0 && falas.length > 0 && ESCRITA_SEM_ESPACO.test(falas[0].text ?? '')) {
+      return { id, ok: false, disponiveis: 0, faltam: def.minItems, fonte: 'falas', motivo: 'escrita-sem-separacao', tamanhoDaRodada: 0 };
+    }
+
     return { id, ok: n >= def.minItems, disponiveis: n, faltam: Math.max(0, def.minItems - n), fonte: 'falas', tamanhoDaRodada: tamanhoDaRodadaDe(id, n) };
+  }
+
+  if (id === 'wordsearch') {
+    /* Igual ao Termo: medir sobre o acervo inteiro (`semFiltroDeAlfabeto`) é o que distingue
+     * "pouco material" de "material de sobra, alfabeto não suportado" — ver `contagemComAlfabeto`. */
+    const { semFiltro: semFiltroDeAlfabeto } = contagemComAlfabeto('wordsearch', e.cartas);
+    const pronto = canPlay(id, e.cartas.filter(c => entraNaGrade(c.word ?? '')));
+    const medidos = pools ?? poolDosJogosDePalavra(e.cartas);
+    const pool = medidos.get(id) ?? pronto.disponiveis;
+    if (pronto.disponiveis === 0 && semFiltroDeAlfabeto >= def.minItems) {
+      return { id, ok: false, disponiveis: 0, faltam: def.minItems, fonte: 'baralho', pool, motivo: 'alfabeto-nao-suportado', tamanhoDaRodada: 0 };
+    }
+    return { id, ...pronto, pool, fonte: 'baralho', tamanhoDaRodada: tamanhoDaRodadaDe(id, pronto.disponiveis) };
   }
 
   const pronto = canPlay(id, e.cartas);
@@ -224,4 +357,62 @@ export function estadoDeCadaJogo(e: EntradaDoEstado): Record<MinigameId, EstadoD
   const fora = {} as Record<MinigameId, EstadoDoJogo>;
   for (const id of Object.keys(MINIGAMES) as MinigameId[]) fora[id] = estadoDoJogo(id, e, pools);
   return fora;
+}
+
+/**
+ * TRÊS ESTADOS EM VEZ DE DOIS — é o que a futura UI facetada (disponível/degradado/indisponível)
+ * precisa e que `EstadoDoJogo.ok` (booleano) não consegue expressar. `estadoDoJogo` continua a
+ * MESMA verdade e o MESMO formato — nada aqui a substitui — mas `ok: true` esconde o caso em que o
+ * pool passa no piso só depois de descontar quem o alfabeto exclui; a pessoa clica achando que vai
+ * jogar com o baralho inteiro e a rodada usa uma fração dele, em silêncio.
+ */
+export type EstadoDeElegibilidade =
+  | { estado: 'disponivel' }
+  | { estado: 'degradado'; aptos: number; total: number; inaptosPor: MotivoBloqueio }
+  | { estado: 'indisponivel'; motivo: MotivoBloqueio | 'sem-material'; faltam?: number };
+
+/**
+ * O AVALIADOR ÚNICO — declarativo, puro (sem React, sem DOM), a MESMA verdade que `estadoDoJogo`
+ * usa para termo e wordsearch (`contagemComAlfabeto`), só que devolvendo os três estados que a UI
+ * facetada precisa em vez do par `ok`/`motivo`.
+ *
+ * NÃO conhece jogo por NOME — conhece `requisitos` (`MINIGAMES[jogo].requisitos.alfabeto`). É o
+ * que o torna extensível: um 10º jogo com grade ou teclado próprio só precisa DECLARAR
+ * `requisitos.alfabeto: 'latino'` na tabela para herdar o gate — sem editar este arquivo. Um jogo
+ * que não declara nada (a memória, por exemplo) nunca degrada por alfabeto, porque o requisito
+ * ausente É a prova de que ele aceita qualquer letra Unicode.
+ *
+ * `pool` é o acervo já triado (`cartoesDaFonte` + `triarCartoes`), como em `EntradaDoEstado.cartas`
+ * — este avaliador não filtra por tradução nem por fonte, isso já aconteceu antes dele.
+ */
+export function elegibilidadeDoJogo(
+  jogo: MinigameId,
+  pool: VocabCard[],
+  opts: { temVoz?: boolean; frases?: number } = {},
+): EstadoDeElegibilidade {
+  const def = MINIGAMES[jogo];
+
+  // O ÚNICO requisito declarado hoje é alfabeto, e só termo/wordsearch o carregam.
+  if (def.requisitos?.alfabeto === 'latino' && (jogo === 'termo' || jogo === 'wordsearch')) {
+    const { semFiltro: total, apto: aptos } = contagemComAlfabeto(jogo, pool);
+
+    if (aptos >= def.minItems) {
+      return aptos < total
+        ? { estado: 'degradado', aptos, total, inaptosPor: 'alfabeto-nao-suportado' }
+        : { estado: 'disponivel' };
+    }
+    if (total >= def.minItems) return { estado: 'indisponivel', motivo: 'alfabeto-nao-suportado' };
+    return { estado: 'indisponivel', motivo: 'sem-material', faltam: def.minItems - total };
+  }
+
+  /* Jogos sem requisito declarado: a mesma conta que `estadoDoJogo` faz para o resto da tabela —
+   * `canPlay` para os de palavra, a contagem de frases prontas (`opts.frases`) para os de frase.
+   * `opts.temVoz` cobre o caminho "palavra falada" (escuta/ditado/karaokê na trilha), que troca
+   * FRASE por CARTÃO+voz quando não há frase — ver `estadoDoJogo`. */
+  const disponiveis = def.modalidade === 'palavra'
+    ? canPlay(jogo, pool).disponiveis
+    : (opts.frases ?? (def.aceitaPalavraFalada && opts.temVoz ? pool.length : 0));
+
+  if (disponiveis >= def.minItems) return { estado: 'disponivel' };
+  return { estado: 'indisponivel', motivo: 'sem-material', faltam: def.minItems - disponiveis };
 }

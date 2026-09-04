@@ -1,4 +1,4 @@
-import { Moon, Sun, User, Shield, Sparkles, Server, Target, Globe, Mic, Layers, Video, PenTool, BarChart2, Languages, Palette, PlayCircle, AlertTriangle, Gamepad2, Zap, Eye, PanelTop, PanelBottom, PanelLeft, PanelRight, Volume2, Gauge, Type } from 'lucide-react';
+import { User, Shield, Sparkles, Server, Target, Languages, Palette, PlayCircle, AlertTriangle, Gamepad2, Zap, Eye } from 'lucide-react';
 import { EDICAO_LEVE } from '../../lib/edicao';
 import TranscricaoLeve from '../TranscricaoLeve';
 import React, { useEffect, useRef, useState } from 'react';
@@ -7,11 +7,9 @@ import GuidePanel from '../GuidePanel';
 import AccountSecuritySection from '../auth/AccountSecuritySection';
 import LangAudit from './LangAudit';
 import LangPicker from '../LangPicker';
-import { BUILTIN_PROFILES, DEFAULT_PROFILE_ID } from '../../gateway/profiles';
+import { DEFAULT_PROFILE_ID } from '../../gateway/profiles';
 import { fetchSettings, saveSettings, patchUiSettings, fetchMetrics, type AppMetrics } from '../../data/api';
-import { THEME_OPTIONS, type ThemeType } from '../../lib/appearance';
-import { desbloqueado, nivelNecessario } from '../../lib/desbloqueios';
-import { toast } from '../Toast';
+import type { ThemeType } from '../../lib/appearance';
 import { baseLang } from '../../lib/languages';
 import {
   langConfigFrom,
@@ -24,6 +22,8 @@ import { getEntitlements, onPlanChange, PLAN_LABELS } from '../../lib/entitlemen
 import type { AgeProfileType, MenuPositionType } from '../shell/navItems';
 import type { FontScale } from '../shell/ControlCluster';
 import { Abas, PainelDeAba } from '../ui';
+import { t } from '../../lib/i18n';
+import { T } from '../../lib/T';
 
 /**
  * AS QUATRO ABAS, e por que esta tela deixou de ser uma rolagem só.
@@ -100,76 +100,18 @@ interface SettingsProps {
   toggleAnimations: () => void;
   performanceMode: boolean;
   togglePerformanceMode: () => void;
+  /** Navegar para outra tela (o atalho "Abrir Personalizar"). */
+  onChangeView: (view: string) => void;
 }
 
-/** Interruptor com rótulo e explicação — o padrão desta tela para preferências booleanas. */
-function PrefToggle({
-  icon: Icon,
-  title,
-  description,
-  checked,
-  onChange,
-  onLabel = 'Ligado',
-  offLabel = 'Desligado'
-}: {
-  icon: React.ComponentType<{ className?: string }>;
-  title: string;
-  description: string;
-  checked: boolean;
-  onChange: () => void;
-  onLabel?: string;
-  offLabel?: string;
-}) {
-  return (
-    <button
-      type="button"
-      role="switch"
-      aria-checked={checked}
-      onClick={onChange}
-      className="w-full p-5 flex items-start gap-4 text-left cursor-pointer hover:bg-surface-hover/50 transition-colors"
-    >
-      <span
-        className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${
-          checked ? 'bg-accent-soft text-accent-ink' : 'bg-surface-hover text-ink-muted'
-        }`}
-        aria-hidden
-      >
-        <Icon className="w-4 h-4" />
-      </span>
-      <span className="min-w-0 flex-1">
-        <span className="block font-bold text-[14px] text-ink">{title}</span>
-        <span className="block text-[12px] text-ink-muted mt-0.5">{description}</span>
-      </span>
-      <span
-        className={`shrink-0 mt-1 text-[11px] font-mono font-bold px-2.5 py-1 rounded-full border ${
-          checked ? 'bg-good-soft text-good-ink border-good/30' : 'bg-surface-hover text-ink-muted border-border-subtle'
-        }`}
-      >
-        {checked ? onLabel : offLabel}
-      </span>
-    </button>
-  );
-}
 
+/* As props de aparência/efeitos continuam no contrato (o App as passa), mas esta tela NÃO as
+   edita mais — ver o bloco "Aparência" abaixo. Só o que é usado é desestruturado. */
 export default function Settings({
-  theme,
-  darkMode,
-  onOpenStudio,
   onReplayTour,
   onAbrirSobre,
-  nivel = 1,
   ageProfile = 'pro',
-  setAgeProfile,
-  menuPosition,
-  setMenuPosition,
-  fontScale,
-  setFontScale,
-  soundEnabled,
-  toggleSound,
-  animationsEnabled,
-  toggleAnimations,
-  performanceMode,
-  togglePerformanceMode
+  onChangeView
 }: SettingsProps) {
   /**
    * Idiomas do usuário — a configuração REAL, lida e escrita por `lib/langConfig`.
@@ -266,7 +208,7 @@ export default function Settings({
       setLangCfg(saved);
     } catch {
       setLangCfg(previous); // volta ao que o SERVIDOR realmente tem
-      setSaveError('Não foi possível salvar o idioma. Verifique a conexão com o servidor e tente de novo.');
+      setSaveError(t('Não foi possível salvar o idioma. Verifique a conexão com o servidor e tente de novo.'));
     }
   };
 
@@ -280,7 +222,7 @@ export default function Settings({
     if (!saved) {
       setActiveProfileId(previous);
       localStorage.setItem(PROFILE_STORAGE_KEY, previous);
-      setSaveError('Não foi possível salvar o perfil de IA. Verifique a conexão com o servidor e tente de novo.');
+      setSaveError(t('Não foi possível salvar o perfil de IA. Verifique a conexão com o servidor e tente de novo.'));
     }
   };
 
@@ -294,7 +236,7 @@ export default function Settings({
     const saved = await patchUiSettings({ ...next });
     if (!saved) {
       setUi(previous);
-      setSaveError('Não foi possível salvar sua preferência. Verifique a conexão com o servidor e tente de novo.');
+      setSaveError(t('Não foi possível salvar sua preferência. Verifique a conexão com o servidor e tente de novo.'));
     }
   };
 
@@ -303,10 +245,8 @@ export default function Settings({
     await patchUiSettings({ onboarded: false });
     window.location.reload();
   };
-  const activeTheme = THEME_OPTIONS.find(t => t.id === theme) ?? THEME_OPTIONS[0];
 
   const setGoal = (goal: string) => { void persistUi({ ...ui, goal }); };
-  const setPersona = (persona: string) => { void persistUi({ ...ui, persona }); };
 
   return (
     <div className="flex-1 overflow-y-auto w-full bg-canvas">
@@ -314,17 +254,19 @@ export default function Settings({
       <header className="mb-10">
         <span className="label-mono text-accent flex items-center gap-1.5">
           {ageProfile === 'kids' ? <Gamepad2 className="w-3.5 h-3.5" aria-hidden /> : ageProfile === 'senior' ? <Eye className="w-3.5 h-3.5" aria-hidden /> : <Zap className="w-3.5 h-3.5" aria-hidden />}
-          <span>{ageProfile === 'kids' ? 'Ajustes do jogador' : ageProfile === 'senior' ? 'Painel de opções' : 'Preferências do app'}</span>
+          <span>{ageProfile === 'kids' ? t('Ajustes do jogador') : ageProfile === 'senior' ? t('Painel de opções') : t('Preferências do app')}</span>
         </span>
         <h1 className="font-display font-black text-2xl md:text-3xl text-ink tracking-tight mt-1 mb-2">
-          {ageProfile === 'kids' ? 'Configurações & Ajustes' : ageProfile === 'senior' ? 'Ajustes Simples do Aplicativo' : 'Configurações'}
+          {/* A tela tinha TRÊS nomes — "Ajustes" no menu, "Configurações" no título, "Preferências
+              do app" no kicker (auditoria de UX, 31/08). Um vocabulário: ela se chama Ajustes. */}
+          {ageProfile === 'kids' ? t('Ajustes do jogo') : ageProfile === 'senior' ? t('Ajustes do aplicativo') : t('Ajustes')}
         </h1>
         <p className="text-ink-muted text-xs md:text-sm">
           {ageProfile === 'kids'
-            ? 'Escolha os idiomas que você quer praticar e personalize o visual do seu jogo.'
+            ? t('Escolha os idiomas que você quer praticar e personalize o visual do seu jogo.')
             : ageProfile === 'senior'
-            ? 'Configure o idioma que você deseja aprender e altere opções de leitura de forma simples.'
-            : 'Preferências de interface, processamento e integrações.'}
+            ? t('Configure o idioma que você deseja aprender e altere opções de leitura de forma simples.')
+            : t('Preferências de interface, processamento e integrações.')}
         </p>
       </header>
 
@@ -340,10 +282,10 @@ export default function Settings({
       )}
 
       <Abas
-        itens={ABAS}
+        itens={ABAS.map((a) => ({ ...a, rotulo: t(a.rotulo) }))}
         ativo={aba}
         aoTrocar={setAba}
-        rotuloDoGrupo="Seções dos ajustes"
+        rotuloDoGrupo={t('Seções dos ajustes')}
         className="mb-8"
       />
 
@@ -353,34 +295,34 @@ export default function Settings({
         <section>
           <div className="flex items-center gap-2 mb-4 text-ink">
             <Languages className="w-5 h-5" />
-            <h2 className="font-display font-bold text-lg">Os dois idiomas</h2>
+            <h2 className="font-display font-bold text-lg">{t('Os dois idiomas')}</h2>
           </div>
           <div className="card-panel">
             {/* Os DOIS idiomas, com nomes que não admitem inversão: o que você fala e o que estuda.
                 O "meu idioma" deixou de ser um detalhe escondido na tela de Captura, ele decide a
                 DIREÇÃO da tradução de todo cartão de vocabulário. */}
             <div className="p-5 border-b border-border-subtle">
-              <div className="font-bold text-[14px] mb-1">Idioma que estou aprendendo</div>
+              <div className="font-bold text-[14px] mb-1">{t('Idioma que estou aprendendo')}</div>
               <p className="text-[12px] text-ink-muted mb-3">
-                O idioma do áudio/texto estrangeiro. É o idioma das palavras que vão para o seu deck.
+                {t('O idioma do áudio/texto estrangeiro. É o idioma das palavras que vão para o seu deck.')}
               </p>
               {/* Lista ÚNICA (`lib/languages`, 32 idiomas) com bandeira e busca — ver LangPicker. */}
               <LangPicker
                 id="settings-studying-lang"
-                ariaLabel="Idioma que estou aprendendo"
+                ariaLabel={t('Idioma que estou aprendendo')}
                 block
                 value={langCfg.studying}
                 onPick={({ code }) => { if (code) void changeLang({ studying: code }); }}
               />
             </div>
             <div className="p-5">
-              <div className="font-bold text-[14px] mb-1">Meu idioma</div>
+              <div className="font-bold text-[14px] mb-1">{t('Meu idioma')}</div>
               <p className="text-[12px] text-ink-muted mb-3">
-                O idioma que você já fala, o do seu microfone e o das traduções que você lê.
+                {t('O idioma que você já fala, o do seu microfone e o das traduções que você lê.')}
               </p>
               <LangPicker
                 id="settings-mine-lang"
-                ariaLabel="Meu idioma"
+                ariaLabel={t('Meu idioma')}
                 block
                 value={langCfg.mine}
                 onPick={({ code }) => { if (code) void changeLang({ mine: code }); }}
@@ -388,7 +330,7 @@ export default function Settings({
               {/* Aviso honesto: com os dois iguais não há o que traduzir (`mtCoverage` = 'same'). */}
               {baseLang(langCfg.mine) === baseLang(langCfg.studying) && (
                 <p className="text-[12px] text-warn-ink mt-2">
-                  Os dois idiomas são o mesmo, não há tradução a fazer, e os cartões ficarão sem verso.
+                  {t('Os dois idiomas são o mesmo, não há tradução a fazer, e os cartões ficarão sem verso.')}
                 </p>
               )}
             </div>
@@ -405,41 +347,41 @@ export default function Settings({
         <section>
           <div className="flex items-center gap-2 mb-4 text-ink">
             <Target className="w-5 h-5" />
-            <h2 className="font-display font-bold text-lg">Meta de Comunicação</h2>
+            <h2 className="font-display font-bold text-lg">{t('Meta de Comunicação')}</h2>
           </div>
           <div className="card-panel p-5">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <button
                 onClick={() => setGoal('executivo')}
-                className={`p-4 border-2 rounded-xl text-left transition-colors ${ui.goal === 'executivo' ? 'border-accent bg-accent-soft' : 'border-border-subtle bg-surface hover:border-accent'}`}
+                className={`p-4 border-2 rounded-xl text-start transition-colors ${ui.goal === 'executivo' ? 'border-accent bg-accent-soft' : 'border-border-subtle bg-surface hover:border-accent'}`}
               >
-                <div className="font-bold text-[14px] text-ink mb-1">Comunicação Executiva</div>
-                <p className="text-[12px] text-ink-muted mb-2">Foco em concisão, clareza e ritmo pausado.</p>
-                <span className={`badge-tag ${GOAL_TARGETS.executivo.badgeClass}`}>{GOAL_TARGETS.executivo.badge}</span>
+                <div className="font-bold text-[14px] text-ink mb-1">{t('Comunicação Executiva')}</div>
+                <p className="text-[12px] text-ink-muted mb-2">{t('Foco em concisão, clareza e ritmo pausado.')}</p>
+                <span className={`badge-tag ${GOAL_TARGETS.executivo.badgeClass}`}>{t(GOAL_TARGETS.executivo.badge)}</span>
               </button>
               <button
                 onClick={() => setGoal('creator')}
-                className={`p-4 border-2 rounded-xl text-left transition-colors ${ui.goal === 'creator' ? 'border-accent bg-accent-soft' : 'border-border-subtle bg-surface hover:border-accent'}`}
+                className={`p-4 border-2 rounded-xl text-start transition-colors ${ui.goal === 'creator' ? 'border-accent bg-accent-soft' : 'border-border-subtle bg-surface hover:border-accent'}`}
               >
-                <div className="font-bold text-[14px] text-ink mb-1">Criador / YouTuber</div>
-                <p className="text-[12px] text-ink-muted mb-2">Foco em energia, retenção e vocabulário acessível.</p>
-                <span className={`badge-tag ${GOAL_TARGETS.creator.badgeClass}`}>{GOAL_TARGETS.creator.badge}</span>
+                <div className="font-bold text-[14px] text-ink mb-1">{t('Criador / YouTuber')}</div>
+                <p className="text-[12px] text-ink-muted mb-2">{t('Foco em energia, retenção e vocabulário acessível.')}</p>
+                <span className={`badge-tag ${GOAL_TARGETS.creator.badgeClass}`}>{t(GOAL_TARGETS.creator.badge)}</span>
               </button>
               <button
                 onClick={() => setGoal('tedx')}
-                className={`p-4 border-2 rounded-xl text-left transition-colors ${ui.goal === 'tedx' ? 'border-accent bg-accent-soft' : 'border-border-subtle bg-surface hover:border-accent'}`}
+                className={`p-4 border-2 rounded-xl text-start transition-colors ${ui.goal === 'tedx' ? 'border-accent bg-accent-soft' : 'border-border-subtle bg-surface hover:border-accent'}`}
               >
-                <div className="font-bold text-[14px] text-ink mb-1">Estilo Palestrante (TED)</div>
-                <p className="text-[12px] text-ink-muted mb-2">Pausas, vocabulário raro e storytelling.</p>
-                <span className={`badge-tag ${GOAL_TARGETS.tedx.badgeClass}`}>{GOAL_TARGETS.tedx.badge}</span>
+                <div className="font-bold text-[14px] text-ink mb-1">{t('Estilo Palestrante (TED)')}</div>
+                <p className="text-[12px] text-ink-muted mb-2">{t('Pausas, vocabulário raro e storytelling.')}</p>
+                <span className={`badge-tag ${GOAL_TARGETS.tedx.badgeClass}`}>{t(GOAL_TARGETS.tedx.badge)}</span>
               </button>
               <button
                 onClick={() => setGoal('tech')}
-                className={`p-4 border-2 rounded-xl text-left transition-colors ${ui.goal === 'tech' ? 'border-accent bg-accent-soft' : 'border-border-subtle bg-surface hover:border-accent'}`}
+                className={`p-4 border-2 rounded-xl text-start transition-colors ${ui.goal === 'tech' ? 'border-accent bg-accent-soft' : 'border-border-subtle bg-surface hover:border-accent'}`}
               >
-                <div className="font-bold text-[14px] text-ink mb-1">Tech / Developer</div>
-                <p className="text-[12px] text-ink-muted mb-2">Inglês/Português misto, termos técnicos sem tradução.</p>
-                <span className={`badge-tag ${GOAL_TARGETS.tech.badgeClass}`}>{GOAL_TARGETS.tech.badge}</span>
+                <div className="font-bold text-[14px] text-ink mb-1">{t('Tech / Developer')}</div>
+                <p className="text-[12px] text-ink-muted mb-2">{t('Inglês/Português misto, termos técnicos sem tradução.')}</p>
+                <span className={`badge-tag ${GOAL_TARGETS.tech.badgeClass}`}>{t(GOAL_TARGETS.tech.badge)}</span>
               </button>
             </div>
 
@@ -447,22 +389,22 @@ export default function Settings({
             <div className="mt-5 pt-4 border-t border-border-subtle flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div>
                 <div className="text-[12px] font-bold text-ink flex items-center gap-2">
-                  Seu ritmo medido
+                  {t('Seu ritmo medido')}
                   {wpmMeasured != null && wpmLowConf && (
-                    <span className="kpi-pill opacity-60 cursor-default text-[11px]">estimativa</span>
+                    <span className="kpi-pill opacity-60 cursor-default text-[11px]">{t('estimativa')}</span>
                   )}
                 </div>
                 <p className="text-[11.5px] text-ink-muted mt-0.5">
                   {wpmMeasured != null
-                    ? <>Comparado ao alvo da meta selecionada ({GOAL_TARGETS[ui.goal]?.badge ?? 'sem alvo de ppm'}).</>
-                    : <>Grave ou faça Shadowing para medir seu ritmo, ainda sem dados suficientes.</>}
+                    ? t('Comparado ao alvo da meta selecionada ({alvo}).', { alvo: t(GOAL_TARGETS[ui.goal]?.badge ?? 'sem alvo de ppm') })
+                    : t('Grave ou faça Shadowing para medir seu ritmo, ainda sem dados suficientes.')}
                 </p>
               </div>
               <div className="flex items-baseline gap-1.5 shrink-0">
                 <span className="font-mono font-black text-2xl text-accent">{wpmMeasured != null ? wpmMeasured : '-'}</span>
-                <span className="text-[11px] font-bold text-ink-muted">ppm</span>
+                <span className="text-[11px] font-bold text-ink-muted">{t('ppm')}</span>
                 {wpmMeasured != null && GOAL_TARGETS[ui.goal]?.ppm != null && (
-                  <span className="text-[11px] text-ink-faint font-mono ml-1">/ {GOAL_TARGETS[ui.goal]?.ppm} alvo</span>
+                  <span className="text-[11px] text-ink-faint font-mono ms-1">{t('/ {n} alvo', { n: GOAL_TARGETS[ui.goal]?.ppm })}</span>
                 )}
               </div>
             </div>
@@ -474,182 +416,27 @@ export default function Settings({
       {/* ═════════════ COMO O APP SE PARECE ═════════════ */}
       <PainelDeAba id="aparencia" ativo={aba} className="space-y-8">
 
-        {/* Aparência — o seletor completo vive no Studio (tema, paleta, layout).
-            Aqui mostramos só o estado atual e o atalho, para não manter dois
-            controles concorrentes escrevendo a mesma preferência. */}
+        {/* CENTRALIZAÇÃO (2026-08-28): tema, perfil de exibição, posição do menu, tamanho do texto,
+            som, animações e desempenho SAÍRAM daqui. Cada um tem agora UM dono: o visual inteiro
+            vive em Personalizar; os interruptores de acessibilidade (texto, som, animações,
+            desempenho, claro/escuro) vivem só na barra de controles, visíveis em toda tela. Dois
+            controles para a mesma preferência era a confusão (e a brecha) que o dono pediu para
+            remover. */}
         <section>
           <div className="flex items-center gap-2 mb-4 text-ink">
             <Palette className="w-5 h-5" />
-            <h2 className="font-display font-bold text-lg">Aparência</h2>
+            <h2 className="font-display font-bold text-lg">{t('Aparência')}</h2>
           </div>
-          <div className="card-panel p-5 flex flex-col md:flex-row md:items-center justify-between gap-4">
-            <div className="flex items-center gap-4 min-w-0">
-              <div className="flex -space-x-1.5 shrink-0">
-                {[activeTheme.swatches.canvas, activeTheme.swatches.surface, activeTheme.swatches.accent, activeTheme.swatches.ink].map((c, i) => (
-                  <span key={i} className="w-7 h-7 rounded-full border-2 border-surface shadow-sm" style={{ backgroundColor: c }} />
-                ))}
-              </div>
-              <div className="min-w-0">
-                <div className="font-bold text-[14px] text-ink flex items-center gap-2">
-                  {activeTheme.name}
-                  <span className="kpi-pill cursor-default text-[11px] gap-1">
-                    {darkMode ? <Moon className="w-3 h-3" /> : <Sun className="w-3 h-3" />}
-                    {darkMode ? 'Escuro' : 'Claro'}
-                  </span>
-                </div>
-                <p className="text-[12px] text-ink-muted mt-0.5">{activeTheme.desc}</p>
-              </div>
-            </div>
-            <button
-              onClick={() => {
-                if (!desbloqueado(nivel, 'estudio', 'abrir')) {
-                  toast.info(`O estúdio de cores destrava no nível ${nivelNecessario('estudio', 'abrir')} — continue jogando!`);
-                  return;
-                }
-                onOpenStudio();
-              }}
-              className="btn-solid shrink-0"
-            >
-              <Sparkles className="w-4 h-4" /> {desbloqueado(nivel, 'estudio', 'abrir') ? 'Abrir Studio' : `Studio · Nv. ${nivelNecessario('estudio', 'abrir')}`}
+          <div className="card-panel p-5 space-y-3">
+            <p className="text-[13px] text-ink">
+              <T txt="Tudo que muda a cara do app mora numa tela só: <b>Personalizar</b> (no menu). Tema e paletas, fonte, partículas, emojis, cursor, rastro, perfil de exibição, posição do menu, perfis prontos, a Loja e as conquistas." />
+            </p>
+            <p className="text-[12.5px] text-ink-muted">
+              {t('Tamanho do texto, som, animações, modo desempenho e claro/escuro ficam nos botões da barra de controles, sempre à vista.')}
+            </p>
+            <button onClick={() => onChangeView('loja')} className="btn-solid">
+              <Sparkles className="w-4 h-4" /> {t('Abrir Personalizar')}
             </button>
-          </div>
-
-          {/* Perfil de exibição — a MESMA preferência do popover da paleta, escrita aqui com
-              espaço para explicar o que cada uma faz. O atalho continua no topo; o lugar de
-              entender a escolha é este. */}
-          <div className="card-panel mt-4">
-            <div className="p-5 border-b border-border-subtle">
-              <div className="font-bold text-[14px] mb-1">Perfil de exibição</div>
-              <p className="text-[12px] text-ink-muted mb-3">
-                Muda a linguagem e a densidade das telas. Não muda o tema nem esconde recurso nenhum.
-              </p>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                {([
-                  { id: 'kids' as const, icon: Gamepad2, label: 'Kids / Gamer', desc: 'Missões, recompensas e linguagem de jogo.' },
-                  { id: 'pro' as const, icon: Zap, label: 'Produtividade', desc: 'Densidade alta e vocabulário técnico.' },
-                  { id: 'senior' as const, icon: Eye, label: 'Leitura ampliada', desc: 'Passo a passo, alvos de 48px e mais respiro.' }
-                ]).map((opt) => (
-                  <button
-                    key={opt.id}
-                    type="button"
-                    onClick={() => setAgeProfile(opt.id)}
-                    aria-pressed={ageProfile === opt.id}
-                    className={`p-3 rounded-xl border text-left cursor-pointer transition-colors ${
-                      ageProfile === opt.id
-                        ? 'border-accent bg-accent-soft text-accent-ink'
-                        : 'border-border-subtle bg-surface hover:border-accent text-ink-muted'
-                    }`}
-                  >
-                    <span className="flex items-center gap-2 font-bold text-[13px]">
-                      <opt.icon className="w-4 h-4 shrink-0" aria-hidden /> {opt.label}
-                    </span>
-                    <span className="block text-[11.5px] mt-1 opacity-80">{opt.desc}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Posição do menu — o pedido explícito: dar liberdade de escolher onde a navegação fica. */}
-            <div className="p-5 border-b border-border-subtle">
-              <div className="font-bold text-[14px] mb-1">Posição do menu de navegação</div>
-              <p className="text-[12px] text-ink-muted mb-3">
-                Vale para telas grandes. No celular a app é sempre controles em cima e destinos embaixo,
-                que é o que a mão alcança.
-              </p>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                {([
-                  { id: 'top' as const, icon: PanelTop, label: 'No topo' },
-                  { id: 'left' as const, icon: PanelLeft, label: 'À esquerda' },
-                  { id: 'right' as const, icon: PanelRight, label: 'À direita' },
-                  { id: 'bottom' as const, icon: PanelBottom, label: 'Embaixo' }
-                ]).map((opt) => (
-                  <button
-                    key={opt.id}
-                    type="button"
-                    onClick={() => {
-                      if (!desbloqueado(nivel, 'posicao', opt.id, menuPosition)) {
-                        toast.info(`Alcance o nível ${nivelNecessario('posicao', opt.id)} para liberar esta posição.`);
-                        return;
-                      }
-                      setMenuPosition(opt.id);
-                    }}
-                    aria-pressed={menuPosition === opt.id}
-                    className={`p-3 rounded-xl border flex flex-col items-center gap-1.5 font-bold text-[12px] cursor-pointer transition-colors ${
-                      menuPosition === opt.id
-                        ? 'border-accent bg-accent-soft text-accent-ink'
-                        : 'border-border-subtle bg-surface hover:border-accent text-ink-muted'
-                    }`}
-                  >
-                    <opt.icon className="w-5 h-5" aria-hidden /> {opt.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Escala de texto — o MESMO estado do A-/A+ do topo, uma fonte só de verdade. */}
-            <div className="p-5">
-              <div className="font-bold text-[14px] mb-1">Tamanho do texto</div>
-              <p className="text-[12px] text-ink-muted mb-3">
-                Escala tudo de uma vez, mantendo as proporções entre título, texto e rótulo.
-              </p>
-              <div className="flex flex-wrap gap-2">
-                {([
-                  { id: 'sm' as const, label: 'Compacto', px: 13 },
-                  { id: 'md' as const, label: 'Padrão', px: 15 },
-                  { id: 'lg' as const, label: 'Grande', px: 17 },
-                  { id: 'xl' as const, label: 'Muito grande', px: 19 }
-                ]).map((opt) => (
-                  <button
-                    key={opt.id}
-                    type="button"
-                    onClick={() => setFontScale(opt.id)}
-                    aria-pressed={fontScale === opt.id}
-                    className={`px-4 py-2.5 rounded-xl border font-bold cursor-pointer transition-colors flex items-center gap-2 ${
-                      fontScale === opt.id
-                        ? 'border-accent bg-accent-soft text-accent-ink'
-                        : 'border-border-subtle bg-surface hover:border-accent text-ink-muted'
-                    }`}
-                    style={{ fontSize: opt.px }}
-                  >
-                    <Type className="w-4 h-4 shrink-0" aria-hidden /> {opt.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* Desempenho e efeitos — o modo ultra leve pedido para PCs modestos, e os interruptores
-            de som e de movimento. Antes só existiam como ícones no topo, sem explicação. */}
-        <section>
-          <div className="flex items-center gap-2 mb-4 text-ink">
-            <Gauge className="w-5 h-5" />
-            <h2 className="font-display font-bold text-lg">Desempenho e efeitos</h2>
-          </div>
-          <div className="card-panel divide-y divide-border-subtle">
-            <PrefToggle
-              icon={Gauge}
-              title="Modo ultra desempenho"
-              description="Desliga desfoques, sombras compostas e gradientes. Para PCs modestos, o app fica mais simples e bem mais leve."
-              checked={performanceMode}
-              onChange={togglePerformanceMode}
-              onLabel="Ativo"
-              offLabel="Inativo"
-            />
-            <PrefToggle
-              icon={Sparkles}
-              title="Animações e partículas"
-              description="Transições, brilhos e a poeira luminosa de fundo. Se o sistema já pede menos movimento, o app respeita isso sozinho."
-              checked={animationsEnabled}
-              onChange={toggleAnimations}
-            />
-            <PrefToggle
-              icon={Volume2}
-              title="Sons da interface"
-              description="Cliques curtos ao navegar e ao concluir uma ação. Não afeta o áudio das gravações nem a pronúncia."
-              checked={soundEnabled}
-              onChange={toggleSound}
-            />
           </div>
         </section>
 
@@ -663,47 +450,34 @@ export default function Settings({
         <section>
           <div className="flex items-center gap-2 mb-4 text-ink">
             <Server className="w-5 h-5" />
-            <h2 className="font-display font-bold text-lg">Onde as contas rodam</h2>
+            <h2 className="font-display font-bold text-lg">{t('Onde as contas rodam')}</h2>
           </div>
           <div className="card-panel">
-            <div className="p-5 border-b border-border-subtle">
-              <div className="font-bold text-[14px] mb-1">Perfil de IA ativo</div>
-              <p className="text-[12px] text-ink-muted mb-3">Define quais motores alimentam cada capacidade. É o mesmo perfil testado no painel abaixo.</p>
-              {/* C2 — o título é um `div`, não um `<label for>`. Sem `aria-label` o leitor de
-                  tela anuncia "caixa de combinação" e nada mais (axe: `select-name`, WCAG 4.1.2). */}
-              <select
-                aria-label="Perfil de IA ativo"
-                id="settings-ai-profile"
-                name="aiProfile"
-                value={activeProfileId}
-                onChange={(e) => void changeProfile(e.target.value)}
-                className="w-full bg-surface border border-border-subtle rounded-xl p-3 text-[13px] outline-none focus:border-accent transition-colors"
-              >
-                {BUILTIN_PROFILES.map((p) => (
-                  <option key={p.id} value={p.id} disabled={p.id === 'cloud-quality' && !entitlements.managedCloudStt}>
-                    {p.name}{p.id === 'cloud-quality' && !entitlements.managedCloudStt ? ', Pro' : ''}
-                  </option>
-                ))}
-              </select>
-              {!entitlements.managedCloudStt && (
-                <p className="text-[11px] text-ink-faint mt-2">O perfil de nuvem gerenciada é Pro. Com a SUA chave de API (BYOK, abaixo) a nuvem é liberada em qualquer plano.</p>
-              )}
-            </div>
+            {/* UM SELETOR, UM DONO (auditoria de UX, 31/08): aqui vivia um <select> "Perfil de IA
+                ativo" que escolhia A MESMA coisa que os três cartões do painel logo abaixo — dois
+                controles para um estado. O painel assumiu a persistência e o gate Pro via props. */}
             {/* Plano do usuário — leitura: quem decide é o servidor (GET /api/me/entitlements). */}
             <div className="p-5" data-testid="settings-plano">
-              <div className="font-bold text-[14px] mb-1">Plano</div>
+              <div className="font-bold text-[14px] mb-1">{t('Plano')}</div>
               <p className="text-[13px] mb-1">
-                Seu plano: <strong>{PLAN_LABELS[entitlements.plan]}</strong>
+                <T txt="Seu plano: <b>{plano}</b>" val={{ plano: t(PLAN_LABELS[entitlements.plan]) }} />
               </p>
               {entitlements.armazenamento && (
                 <p className="text-[12px] text-ink-muted mb-2">
-                  Armazenamento: {Math.round(entitlements.armazenamento.usados / 1_048_576)} MB
-                  {entitlements.armazenamento.teto === null ? ' (sem teto)' : ` de ${Math.round(entitlements.armazenamento.teto / 1_048_576)} MB`}
+                  {t('Armazenamento: {n} MB', { n: Math.round(entitlements.armazenamento.usados / 1_048_576) })}
+                  {entitlements.armazenamento.teto === null
+                    ? ` ${t('(sem teto)')}`
+                    : ` ${t('de {n} MB', { n: Math.round(entitlements.armazenamento.teto / 1_048_576) })}`}
                 </p>
               )}
+              {/* DESCOBRIBILIDADE (auditoria de UX, 31/08): a tela de Planos existia e o próprio
+                  dono do produto não a encontrou — ela só vivia atrás do menu do avatar. Este é o
+                  primeiro dos dois caminhos visíveis (o outro está no Hub). */}
+              <button onClick={() => onChangeView('planos')} className="btn-outline mt-1 mb-2">
+                {t('Ver planos e preços')}
+              </button>
               <p className="text-[11px] text-ink-faint mt-2">
-                Gates do plano Grátis: importação do YouTube e nuvem gerenciada viram “Pro” (com selo e explicação, nada some).
-                Rodando no seu computador (self-host), tudo é liberado.
+                {t('No plano Grátis, a importação do YouTube e a nuvem gerenciada aparecem com o selo “Pro” — nada some, e com a SUA chave de API (BYOK, abaixo) a nuvem é liberada em qualquer plano. Rodando no seu computador (self-host), tudo é liberado.')}
               </p>
             </div>
           </div>
@@ -713,31 +487,35 @@ export default function Settings({
         <section>
           <div className="flex items-center gap-2 mb-4 text-ink">
             <Server className="w-5 h-5" />
-            <h2 className="font-display font-bold text-lg">Motores de Inteligência Artificial</h2>
+            <h2 className="font-display font-bold text-lg">{t('Motores de Inteligência Artificial')}</h2>
           </div>
-          <AiEnginePanel />
+          <AiEnginePanel
+            activeId={activeProfileId}
+            onSelect={(id) => void changeProfile(id)}
+            bloqueados={entitlements.managedCloudStt ? [] : ['cloud-quality']}
+          />
         </section>
 
         {/* Privacy & Processing */}
         <section>
           <div className="flex items-center gap-2 mb-4 text-ink">
             <Shield className="w-5 h-5" />
-            <h2 className="font-display font-bold text-lg">Privacidade e Processamento</h2>
+            <h2 className="font-display font-bold text-lg">{t('Privacidade e Processamento')}</h2>
           </div>
           <div className="card-panel">
             <div className="p-5 border-b border-border-subtle flex justify-between items-center">
               <div>
-                <div className="font-bold text-[14px]">Processamento local por padrão</div>
-                <div className="text-[12px] text-ink-muted mt-1">O perfil "Grátis/Web" e "Privado/Local" transcrevem e traduzem no dispositivo sempre que possível.</div>
+                <div className="font-bold text-[14px]">{t('Processamento local por padrão')}</div>
+                <div className="text-[12px] text-ink-muted mt-1">{t('O perfil "Grátis/Web" e "Privado/Local" transcrevem e traduzem no dispositivo sempre que possível.')}</div>
               </div>
-              <span className="badge-tag ok shrink-0">Ativo</span>
+              <span className="badge-tag ok shrink-0">{t('Ativo')}</span>
             </div>
             <div className="p-5 border-b border-border-subtle flex justify-between items-center">
               <div>
-                <div className="font-bold text-[14px]">Sessões salvas na Biblioteca</div>
-                <div className="text-[12px] text-ink-muted mt-1">As capturas ficam gravadas localmente e aparecem na sua Biblioteca.</div>
+                <div className="font-bold text-[14px]">{t('Sessões salvas na Biblioteca')}</div>
+                <div className="text-[12px] text-ink-muted mt-1">{t('As capturas ficam gravadas localmente e aparecem na sua Biblioteca.')}</div>
               </div>
-              <span className="badge-tag ok shrink-0">Ativo</span>
+              <span className="badge-tag ok shrink-0">{t('Ativo')}</span>
             </div>
             {/* A linha "Estatísticas anônimas de uso" saiu: não existe nenhuma telemetria implementada
                 no projeto (nem coleta, nem envio, nem opt-in), e "Em breve" é uma promessa de data que
@@ -758,36 +536,10 @@ export default function Settings({
         {/* Conta e Segurança — só no modo com login (authRequired); no self-host não renderiza */}
         {!EDICAO_LEVE && <AccountSecuritySection />}
 
-        {/* Persona — preferência salva (persistida como JSON) */}
-        <section>
-          <div className="flex items-center gap-2 mb-4 text-ink">
-            <User className="w-5 h-5" />
-            <h2 className="font-display font-bold text-lg">Seu Perfil de Uso</h2>
-          </div>
-          <div className="card-panel p-5">
-            <p className="text-[13px] text-ink-muted mb-4">Ajuda a organizar o foco principal do seu uso.</p>
-            <div className="flex flex-wrap gap-2">
-              <button onClick={() => setPersona('idiomas')} className={`kpi-pill flex items-center gap-1.5 ${ui.persona === 'idiomas' ? 'active' : ''}`}>
-                <Globe className="w-3.5 h-3.5" /> Idiomas
-              </button>
-              <button onClick={() => setPersona('fala')} className={`kpi-pill flex items-center gap-1.5 ${ui.persona === 'fala' ? 'active' : ''}`}>
-                <Mic className="w-3.5 h-3.5" /> Fala
-              </button>
-              <button onClick={() => setPersona('tudo')} className={`kpi-pill flex items-center gap-1.5 ${ui.persona === 'tudo' ? 'active' : ''}`}>
-                <Layers className="w-3.5 h-3.5" /> Tudo
-              </button>
-              <button onClick={() => setPersona('conteudo')} className={`kpi-pill flex items-center gap-1.5 ${ui.persona === 'conteudo' ? 'active' : ''}`}>
-                <Video className="w-3.5 h-3.5" /> Conteúdo
-              </button>
-              <button onClick={() => setPersona('escrita')} className={`kpi-pill flex items-center gap-1.5 ${ui.persona === 'escrita' ? 'active' : ''}`}>
-                <PenTool className="w-3.5 h-3.5" /> Escrita
-              </button>
-              <button onClick={() => setPersona('dados')} className={`kpi-pill flex items-center gap-1.5 ${ui.persona === 'dados' ? 'active' : ''}`}>
-                <BarChart2 className="w-3.5 h-3.5" /> Dados
-              </button>
-            </div>
-          </div>
-        </section>
+        {/* A seção "Seu Perfil de Uso" (6 botões de persona) saiu inteira: `ui.persona` não é
+            lido por NENHUM outro código — era um controle que prometia "organizar o foco do seu
+            uso" e não fazia nada. Mesmo critério das seções de clonagem de voz e integrações:
+            controle falso não fica. O campo persistido antigo é ignorado sem erro. */}
 
         {/* A seção "Sua Voz & Clonagem" saiu inteira: não existe nenhuma infraestrutura de clonagem de
             voz no projeto (nem modelo, nem pipeline de treino), e "Em breve" é uma promessa de data
@@ -798,59 +550,59 @@ export default function Settings({
         <section>
           <div className="flex items-center gap-2 mb-4 text-ink">
             <PlayCircle className="w-5 h-5" />
-            <h2 className="font-display font-bold text-lg">Ajuda e recomeço</h2>
+            <h2 className="font-display font-bold text-lg">{t('Ajuda e recomeço')}</h2>
           </div>
           <div className="card-panel">
             <div className="p-5 flex items-center justify-between gap-3 border-b border-border-subtle">
               <div>
-                <div className="font-bold text-[14px] mb-1">Guia rápido</div>
-                <p className="text-[12px] text-ink-muted">Os fluxos principais do app em uma página: capturar, importar, overlay, tutor e estudo.</p>
+                <div className="font-bold text-[14px] mb-1">{t('Guia rápido')}</div>
+                <p className="text-[12px] text-ink-muted">{t('Os fluxos principais do app em uma página: capturar, importar, overlay, tutor e estudo.')}</p>
               </div>
               <button
                 onClick={() => setShowGuide(true)}
                 className="shrink-0 px-4 py-2 rounded-xl border border-border-subtle bg-surface hover:border-accent text-[13px] font-bold cursor-pointer"
               >
-                Abrir guia
+                {t('Abrir guia')}
               </button>
             </div>
             {onAbrirSobre && (
               <div className="p-5 flex items-center justify-between gap-3 border-b border-border-subtle">
                 <div>
-                  <div className="font-bold text-[14px] mb-1">Sobre o Babel Play</div>
-                  <p className="text-[12px] text-ink-muted">Quem fez o app, como entrar em contato e como apoiar o projeto.</p>
+                  <div className="font-bold text-[14px] mb-1">{t('Sobre o Babel Play')}</div>
+                  <p className="text-[12px] text-ink-muted">{t('Quem fez o app, como entrar em contato e como apoiar o projeto.')}</p>
                 </div>
                 <button
                   onClick={onAbrirSobre}
                   className="shrink-0 px-4 py-2 rounded-xl border border-border-subtle bg-surface hover:border-accent text-[13px] font-bold cursor-pointer"
                 >
-                  Abrir
+                  {t('Abrir')}
                 </button>
               </div>
             )}
             <div className="p-5 flex items-center justify-between gap-3 border-b border-border-subtle">
               <div>
-                <div className="font-bold text-[14px] mb-1">Rever apresentação</div>
+                <div className="font-bold text-[14px] mb-1">{t('Rever apresentação')}</div>
                 {/* Só reabre o tour nesta sessão — não apaga a escolha local/nuvem já salva. */}
-                <p className="text-[12px] text-ink-muted">Reveja a introdução do app. Não altera sua configuração atual.</p>
+                <p className="text-[12px] text-ink-muted">{t('Reveja a introdução do app. Não altera sua configuração atual.')}</p>
               </div>
               <button
                 onClick={onReplayTour}
                 className="shrink-0 flex items-center gap-1.5 px-4 py-2 rounded-xl border border-border-subtle bg-surface hover:border-accent text-[13px] font-bold cursor-pointer"
               >
-                <PlayCircle className="w-4 h-4" /> Rever apresentação
+                <PlayCircle className="w-4 h-4" /> {t('Rever apresentação')}
               </button>
             </div>
             <div className="p-5 flex items-center justify-between gap-3">
               <div>
-                <div className="font-bold text-[14px] mb-1">Configuração inicial (local vs nuvem)</div>
+                <div className="font-bold text-[14px] mb-1">{t('Configuração inicial (local vs nuvem)')}</div>
                 {/* "Reconfigurar" APAGA a escolha (onboarded:false no servidor) e recarrega. */}
-                <p className="text-[12px] text-ink-muted">Refaça a escolha de rodar local ou usar sua chave de API. Apaga a configuração atual.</p>
+                <p className="text-[12px] text-ink-muted">{t('Refaça a escolha de rodar local ou usar sua chave de API. Apaga a configuração atual.')}</p>
               </div>
               <button
                 onClick={reconfigureAi}
                 className="shrink-0 px-4 py-2 rounded-xl border border-border-subtle bg-surface hover:border-accent text-[13px] font-bold cursor-pointer"
               >
-                Reconfigurar
+                {t('Reconfigurar')}
               </button>
             </div>
           </div>

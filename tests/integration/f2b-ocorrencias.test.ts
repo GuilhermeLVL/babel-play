@@ -68,6 +68,21 @@ describe('bulkAdd — repetição vira contagem, não descarte', () => {
     expect(occ[0].originRef).toBe('en')
   })
 
+  it('a origem do ANKI sobrevive ao round-trip (antes virava manual/NULL)', async () => {
+    // `BaralhoAnki.tsx` manda sessionId='anki:<arquivo>' desde que a tela existe; o schema
+    // documenta 'anki' em `origin_kind` — e nada o escrevia. Cartão importado ficava
+    // indistinguível de cartão digitado, para sempre, e o futuro filtro por baralho
+    // (EXISTS por origin_kind/origin_ref) não teria dado para casar.
+    const u = asUserId('rep-8')
+    await vocabRepo.bulkAdd(u, [{ word: 'ledger', srcLang: 'en', back: 'livro-razão', sessionId: 'anki:core2k.apkg' }])
+    const card = (await vocabRepo.list(u)).find((c: any) => c.word === 'ledger')
+    const occ = await vocabRepo.ocorrencias(u, card.id)
+    expect(occ[0].originKind).toBe('anki')
+    expect(occ[0].originRef).toBe('core2k.apkg')
+    // E a FK continua saneada: 'anki:…' não é sessão do dono, então session_id fica NULL.
+    expect(card.sessionId).toBeNull()
+  })
+
   it('normaliza acento e caixa: "Ação" e "acao" são a MESMA palavra', async () => {
     const u = asUserId('rep-5')
     await vocabRepo.bulkAdd(u, [{ word: 'Ação', srcLang: 'pt', back: 'action' }])

@@ -1,13 +1,15 @@
 import { useEffect, useMemo, useState } from 'react';
-import { X, Play, Shuffle, RotateCcw, Trophy, Flame, Target, Sparkles, Star, SlidersHorizontal, ChevronDown } from 'lucide-react';
+import { X, Play, Shuffle, RotateCcw, Medal, Zap, Target, Sparkles, Star, SlidersHorizontal, ChevronDown, LifeBuoy, HelpCircle, ListChecks , ChevronLeft, ChevronRight} from 'lucide-react';
 import { fetchRecordes, type RecordeDoJogo } from '../../data/api';
 import { eventosVistos, todosOsEventos } from '../../lib/eventosDeJogo';
 import { IconePixel } from '../views/play/IconesPixel';
-import type { MinigameId, FaseJogada } from '@core';
-import { nivelNoJogo } from '@core';
+import type { MinigameId, FaseJogada, EstadoDoItem } from '@core';
+import type { FaixaDificuldade, EstrategiaDaUI } from '../../core/minigames/composicao';
+import { nivelNoJogo, LEECH_APOS, JANELAS_DE_RETORNO, ALVO_MIN, ALVO_MAX, JANELA_DE_RODADAS } from '@core';
 import type { AgeProfileType } from '../../lib/profile';
 import type { ItemDaAntessala } from '@core';
 import { Segmentado, Ladrilho } from '../ui';
+import { proximaRecompensa, emojiDoItem } from '../../lib/galeria/progressao';
 
 /**
  * ANTESSALA DA RODADA — o que vai cair, dito ANTES de a partida começar.
@@ -49,8 +51,8 @@ export interface HistoricoDoItem {
  * têm dificuldade por palavra. Chip inerte ensina que a tela mente; ausência de chip, não.
  */
 /** Nomeadas porque agora atravessam a fronteira do `Segmentado`, que devolve `string`. */
-type FaixaDeDificuldade = 'facil' | 'medio' | 'dificil';
-type Estrategia = 'equilibrado' | 'recentes' | 'frequentes' | 'em-dificuldade';
+type FaixaDeDificuldade = FaixaDificuldade;
+type Estrategia = EstrategiaDaUI;
 
 interface FiltroDificuldade {
   faixas: FaixaDeDificuldade[];
@@ -103,10 +105,36 @@ interface AntessalaProps {
   fases?: FaseJogada[];
   /** Remonta a rodada com os itens exatos de uma fase passada. */
   onJogarFase?: (refs: string[]) => void;
+  /**
+   * Uma AMOSTRA do que caiu numa fase, para a linha da tabela mostrar ao passar o mouse.
+   *
+   * Vem de fora porque montar a amostra exige o baralho (para achar a tradução de cada `ref`) e
+   * exige passar pelo funil `previaSegura` — a mesma cerca anti-spoiler da prévia. Num jogo em
+   * que a palavra É a resposta (Termo, Caça-palavras), o que aparece é a PISTA; imprimir a
+   * resposta aqui estragaria justamente o "jogar de novo" que a linha oferece.
+   *
+   * `total` vem separado porque a amostra é recortada de propósito: a linha mostra alguma coisa,
+   * não a rodada inteira.
+   */
+  amostraDaFase?: (refs: string[]) => { textos: string[]; total: number };
   /** Tamanho do acervo da fonte — é o denominador do "% do vocabulário já jogado". */
   acervoTotal?: number;
   /** Quantos itens distintos do acervo a pessoa já jogou (o numerador). */
   itensJogados?: number;
+  /* ── SELEÇÃO v2 (2026-08-28) ── */
+  /** Estado de memória de cada item da rodada (tag + motivo) — o "por que estas?". */
+  estados?: ReadonlyMap<string, EstadoDoItem>;
+  /** v3: nível GERAL do app (não o do jogo), para mostrar a próxima recompensa ao lado do herói. */
+  nivelGeral?: number;
+  /** Itens do acervo marcados como difíceis para você (fora da rotação) e a rodada de resgate. */
+  leeches?: string[];
+  onResgate?: (() => void) | null;
+  /** Decisão do modo Auto (faixa + motivo), ou null quando o filtro é manual/não se aplica. */
+  auto?: { faixa: FaixaDificuldade; motivo: string } | null;
+  /** Termo: quantas palavras ficaram fora e por quê. */
+  diagnosticoTermo?: { jogaveis: number; foraPor: Record<string, number> } | null;
+  /** Etapa da trilha que recorta esta rodada. */
+  etapa?: string | null;
   /** `null` quando não há rodada anterior deste jogo nesta fonte. */
   onRepetir: (() => void) | null;
   onTrocar: () => void;
@@ -177,8 +205,16 @@ export default function AntessalaDaRodada({
   duracao,
   fases,
   onJogarFase,
+  amostraDaFase,
   acervoTotal,
   itensJogados,
+  estados,
+  leeches,
+  nivelGeral,
+  onResgate,
+  auto,
+  diagnosticoTermo,
+  etapa,
   onRepetir,
   onTrocar,
   onJogar,
@@ -189,6 +225,9 @@ export default function AntessalaDaRodada({
   /* Recordes DESTE jogo: transforma a antessala em tela pré-jogo — a pessoa vê o que tem a bater
      antes de apertar Jogar. Best-effort: sem histórico, a faixa simplesmente não aparece. */
   const [recorde, setRecorde] = useState<RecordeDoJogo | null>(null);
+  /** Página do histórico de fases. Zera ao trocar de jogo: página 3 de outro jogo não existe. */
+  const [paginaDeFases, setPaginaDeFases] = useState(0);
+  useEffect(() => { setPaginaDeFases(0); }, [gameId]);
   useEffect(() => {
     if (!gameId) return;
     void fetchRecordes().then((rs) => setRecorde(rs.find((r) => r.exerciseKind === gameId) ?? null));
@@ -215,6 +254,7 @@ export default function AntessalaDaRodada({
     { id: 'dificil' as const, rotulo: 'Difícil' },
   ];
   const ESTRATEGIAS = [
+    { id: 'auto' as const, rotulo: 'Auto' },
     { id: 'equilibrado' as const, rotulo: 'Equilibrado' },
     { id: 'recentes' as const, rotulo: 'Recentes' },
     { id: 'frequentes' as const, rotulo: 'Mais vistas' },
@@ -223,6 +263,24 @@ export default function AntessalaDaRodada({
 
   const visiveis = itens.slice(0, MAX_VISIVEL);
   const vazia = itens.length === 0;
+
+  /* "POR QUE ESTAS?" — contagem por motivo, da memória de itens. E a lista só nasce ABERTA quando
+     há algo que pede atenção (erro voltando / difícil para você); senão fica colapsada, para não
+     empurrar os botões para fora da dobra (pedido do dono, 2026-08-28). */
+  const porMotivo = useMemo(() => {
+    const c = { errando: 0, novas: 0, aprendendo: 0, firmes: 0, leech: 0 };
+    for (const it of itens) {
+      const e = estados?.get(it.ref);
+      if (!e) continue;
+      if (e.tag === 'errando') c.errando++;
+      else if (e.tag === 'nova') c.novas++;
+      else if (e.tag === 'aprendendo') c.aprendendo++;
+      else if (e.tag === 'firme') c.firmes++;
+      else if (e.tag === 'leech') c.leech++;
+    }
+    return c;
+  }, [itens, estados]);
+  const listaAbertaPorPadrao = porMotivo.errando > 0 || porMotivo.leech > 0;
 
   /**
    * A LISTA SÓ SE PAGA QUANDO AS LINHAS DIFEREM.
@@ -341,13 +399,37 @@ export default function AntessalaDaRodada({
             {/* RECOLHIDOS por pedido do dono (2026-08-27): as duas fileiras de chips vinham ANTES
                 do progresso e da lista — configuração raramente mexida cobrindo a informação que
                 decide "jogo ou não". Continuam a um clique, mas agora pedem o clique. */}
+            {/* O RESUMO DIZ O ESTADO — era só um convite mudo.
+                Ele dizia "Ajustar a rodada (nível e foco)" em 12px apagados, e o que a rodada
+                estava valendo ("Difícil mantido") aparecia QUATRO faixas abaixo, dentro do cartão
+                "Por que estas?". Quem queria trocar a dificuldade não achava o controle, e quem
+                achava não sabia de onde estava saindo.
+                Continua RECOLHIDO de propósito (decisão de 27/08: os chips abertos cobriam a
+                informação que decide jogar ou não). O que muda é que agora ele se anuncia. */}
             {filtroDificuldade && (
               <details className="mt-3 group">
-                <summary className="flex items-center gap-1.5 text-[12px] font-semibold text-ink-muted hover:text-ink cursor-pointer select-none w-fit list-none [&::-webkit-details-marker]:hidden">
-                  <SlidersHorizontal className="w-3.5 h-3.5" aria-hidden />
-                  Ajustar a rodada (nível e foco)
-                  <ChevronDown className="w-3.5 h-3.5 transition-transform group-open:rotate-180" aria-hidden />
+                <summary className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[12.5px] text-ink-muted hover:text-ink cursor-pointer select-none w-fit list-none [&::-webkit-details-marker]:hidden">
+                  <SlidersHorizontal className="w-3.5 h-3.5 shrink-0" aria-hidden />
+                  <span className="font-semibold text-ink">
+                    {(() => {
+                      const escolhidas = FAIXAS.filter(f => filtroDificuldade.faixas.includes(f.id));
+                      if (escolhidas.length && escolhidas.length < FAIXAS.length) {
+                        return `Nível: ${escolhidas.map(f => f.rotulo.toLowerCase()).join(' e ')}`;
+                      }
+                      /* Sem escolha explícita quem manda é o automático — e aí o nível que ele
+                         decidiu é o que a pessoa precisa ver, não a palavra "automático" sozinha. */
+                      return auto ? `Nível: ${FAIXAS.find(f => f.id === auto.faixa)?.rotulo.toLowerCase() ?? auto.faixa} (automático)` : 'Nível: todos';
+                    })()}
+                  </span>
+                  <span aria-hidden>·</span>
+                  <span>foco: {ESTRATEGIAS.find(e => e.id === filtroDificuldade.estrategia)?.rotulo.toLowerCase() ?? filtroDificuldade.estrategia}</span>
+                  <span className="font-semibold text-accent-ink group-open:hidden">trocar</span>
+                  <ChevronDown className="w-3.5 h-3.5 shrink-0 transition-transform group-open:rotate-180" aria-hidden />
                 </summary>
+                {/* O PORQUÊ DO AUTOMÁTICO mora COM o controle, não a quatro faixas dele. */}
+                {auto && !filtroDificuldade.faixas.length && (
+                  <p className="mt-1.5 text-[12px] text-ink-faint">{auto.motivo}</p>
+                )}
                 <div className="mt-2 space-y-1.5">
                 <Segmentado
                   rotulo="nível"
@@ -428,12 +510,21 @@ export default function AntessalaDaRodada({
                     </div>
                   </div>
                 </div>
-                <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-[12.5px] ml-auto">
-                  <span className="flex items-center gap-1.5 text-warn-ink font-black tabular-nums" title="Sua melhor pontuação neste jogo"><Trophy className="w-3.5 h-3.5" aria-hidden /> {recorde.melhorPontos}</span>
-                  {(recorde.melhorCombo ?? 0) > 0 && <span className="flex items-center gap-1.5 text-ink tabular-nums" title="Seu maior combo"><Flame className="w-3.5 h-3.5 text-warn" aria-hidden /> ×{recorde.melhorCombo}</span>}
+                <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-[12.5px] ms-auto">
+                  <span className="flex items-center gap-1.5 text-warn-ink font-black tabular-nums" title="Sua melhor pontuação neste jogo"><Medal className="w-3.5 h-3.5" aria-hidden /> {recorde.melhorPontos}</span>
+                  {(recorde.melhorCombo ?? 0) > 0 && <span className="flex items-center gap-1.5 text-ink tabular-nums" title="Seu maior combo"><Zap className="w-3.5 h-3.5 text-warn" aria-hidden /> ×{recorde.melhorCombo}</span>}
                   {recorde.precisao != null && <span className="flex items-center gap-1.5 text-ink tabular-nums" title="Precisão histórica"><Target className="w-3.5 h-3.5 text-good" aria-hidden /> {recorde.precisao}%</span>}
                 </div>
               </div>
+              {/* v3: a próxima recompensa do NÍVEL GERAL — jogar constrói algo além deste jogo. */}
+              {nivelGeral != null && (() => {
+                const prox = proximaRecompensa(nivelGeral);
+                return prox ? (
+                  <p className="mt-2 text-[12px] text-ink-muted">
+                    Nível geral {nivelGeral} · no {prox.nivel} você libera <span aria-hidden>{emojiDoItem(prox.destaque)}</span> <b className="text-ink">{prox.destaque.nome}</b>{prox.itens.length > 1 ? ` e mais ${prox.itens.length - 1}` : ''}
+                  </p>
+                ) : null;
+              })()}
               <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-3 pt-3 border-t border-border-subtle text-[12px] text-ink-muted">
                 <span><b className="text-ink tabular-nums">{recorde.rodadas}</b> {recorde.rodadas === 1 ? 'rodada jogada' : 'rodadas jogadas'}</span>
                 {pctVocab != null && (
@@ -441,7 +532,7 @@ export default function AntessalaDaRodada({
                     <b className="text-ink tabular-nums">{pctVocab}%</b> do vocabulário enfrentado
                   </span>
                 )}
-                <span className="flex items-center gap-1.5 ml-auto"><Sparkles className="w-3.5 h-3.5 text-accent" aria-hidden /> eventos raros: {vistos}/{totalEventos}</span>
+                <span className="flex items-center gap-1.5 ms-auto"><Sparkles className="w-3.5 h-3.5 text-accent" aria-hidden /> eventos raros: {vistos}/{totalEventos}</span>
               </div>
             </section>
           );
@@ -454,11 +545,17 @@ export default function AntessalaDaRodada({
             zero ali é a denúncia de sorteio repetido que esta tela existe para dar.
 
             "Vencidos" continua sendo o único com cor: é o único que fala de PRAZO. */}
+        {/* ZERO NEM SEMPRE É AUSÊNCIA — e é por isso que a regra aqui não é "esconda todo zero".
+            Numa rodada só de itens novos, três dos quatro ladrilhos mostravam "0": números que
+            não decidem nada ocupando a mesma tela que a decisão de jogar ou trocar.
+            Mas `novos = 0` é DIFERENTE: é a denúncia de sorteio repetido que esta tela existe
+            para dar, e escondê-la apagaria justamente o sinal mais útil dela. Então os dois
+            primeiros ficam sempre, e os dois que só falam de ausência aparecem quando existem. */}
         <section className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-5">
           <Ladrilho valor={saldo.total} rotulo={rotuloTotal[ageProfile]} />
           <Ladrilho valor={saldo.novos} rotulo={rotuloNovos[ageProfile]} tom={saldo.novos > 0 ? 'good' : 'ink'} />
-          <Ladrilho valor={saldo.vistos} rotulo={rotuloVistos[ageProfile]} />
-          <Ladrilho valor={saldo.devidos} rotulo={rotuloVencidos[ageProfile]} tom={saldo.devidos > 0 ? 'warn' : 'ink'} />
+          {saldo.vistos > 0 && <Ladrilho valor={saldo.vistos} rotulo={rotuloVistos[ageProfile]} />}
+          {saldo.devidos > 0 && <Ladrilho valor={saldo.devidos} rotulo={rotuloVencidos[ageProfile]} tom="warn" />}
         </section>
 
         {/* A DENÚNCIA DA REPETIÇÃO, em número.
@@ -476,6 +573,62 @@ export default function AntessalaDaRodada({
               {' '}de {saldo.total} {repetidos === 1 ? 'já caiu' : 'já caíram'} na sua última rodada deste jogo
               {repetidos === saldo.total ? ', é a mesma rodada.' : '.'}
             </p>
+          </section>
+        )}
+
+        {/* ── POR QUE ESTAS? + AUTO + ETAPA + LEECHES ── */}
+        {!vazia && (estados || auto || etapa || (leeches && leeches.length > 0) || diagnosticoTermo) && (
+          <section className="card-panel bg-surface p-4 mb-5 space-y-2.5">
+            <p className="label-mono flex items-center gap-1.5"><ListChecks className="w-3.5 h-3.5" aria-hidden /> Por que estas?</p>
+            <div className="flex flex-wrap items-center gap-1.5 text-[12px]">
+              {porMotivo.errando > 0 && <span className="badge-tag err">{porMotivo.errando} voltando porque você errou</span>}
+              {saldo.devidos > 0 && <span className="badge-tag warn">{saldo.devidos} vencidas no agendador</span>}
+              {porMotivo.novas > 0 && <span className="badge-tag ok">{porMotivo.novas} novas</span>}
+              {porMotivo.aprendendo > 0 && <span className="badge-tag">{porMotivo.aprendendo} em aprendizado</span>}
+              {porMotivo.firmes > 0 && <span className="badge-tag">{porMotivo.firmes} firmes (completando)</span>}
+              {etapa && <span className="badge-tag acc">{etapa}</span>}
+            </div>
+            {/* O motivo do automático subiu para JUNTO do controle de nível (ver o `<details>`
+                lá em cima). Ele ficava aqui, quatro faixas abaixo do botão que o muda: a pessoa
+                lia "Difícil mantido" sem ter como ligar isso a nada que pudesse tocar.
+                Fica repetido aqui só quando a escolha é MANUAL, porque aí o de cima mostra os
+                chips escolhidos e este texto explica o que o automático faria. */}
+            {auto && filtroDificuldade && filtroDificuldade.faixas.length > 0 && (
+              <p className="text-[12.5px] text-ink-muted">
+                <b className="text-ink">No automático seria:</b> {auto.motivo}
+              </p>
+            )}
+            {diagnosticoTermo && Object.values(diagnosticoTermo.foraPor).some((n) => n > 0) && (
+              <p className="text-[12px] text-ink-faint">
+                Fora do Termo: {Object.entries(diagnosticoTermo.foraPor).filter(([, n]) => n > 0).map(([k, n]) =>
+                  `${n} ${k === 'hifen-ou-espaco' ? 'com hífen/espaço' : k === 'curta' ? 'curtas demais' : k === 'longa' ? 'longas demais' : 'sem pista útil'}`).join(' · ')}.
+              </p>
+            )}
+            {leeches && leeches.length > 0 && (
+              <div className="flex flex-wrap items-center gap-2 pt-1">
+                <span className="badge-tag err flex items-center gap-1"><LifeBuoy className="w-3 h-3" aria-hidden /> {leeches.length} {leeches.length === 1 ? 'palavra difícil para você' : 'palavras difíceis para você'}</span>
+                <span className="text-[12px] text-ink-muted">Saíram da rotação depois de {LEECH_APOS} erros seguidos. Voltam numa rodada só delas, com ajuda liberada.</span>
+                {onResgate && (
+                  <button onClick={onResgate} className="btn-outline text-[12px] py-1.5">
+                    <LifeBuoy className="w-3.5 h-3.5" aria-hidden /> Rodada de resgate
+                  </button>
+                )}
+              </div>
+            )}
+            <details className="group">
+              <summary className="flex items-center gap-1.5 text-[12px] font-semibold text-ink-muted hover:text-ink cursor-pointer select-none w-fit list-none [&::-webkit-details-marker]:hidden">
+                <HelpCircle className="w-3.5 h-3.5" aria-hidden /> Como funciona a repetição e a dificuldade
+                <ChevronDown className="w-3.5 h-3.5 transition-transform group-open:rotate-180" aria-hidden />
+              </summary>
+              <ul className="mt-2 text-[12px] text-ink-muted leading-snug space-y-1 max-w-[70ch] list-disc ps-4">
+                <li>Cada palavra ou frase tem uma memória única em todos os jogos: nova → em aprendizado → firme.</li>
+                <li>Errou? Ela volta espaçada: 1º erro em {JANELAS_DE_RETORNO[0]} rodadas, 2º seguido em {JANELAS_DE_RETORNO[1]}, 3º só no dia seguinte. Um acerto zera a contagem.</li>
+                <li>{LEECH_APOS} erros seguidos marcam a palavra como difícil para você: ela sai do sorteio comum e volta na rodada de resgate.</li>
+                <li>Cada rodada garante pelo menos 30% de itens novos, para o vocabulário crescer; vencidas no agendador vêm antes.</li>
+                <li>Cada jogo tem a própria rotação: o mesmo acervo não rende as mesmas palavras em todos os jogos no mesmo dia.</li>
+                <li>Dificuldade automática mira {ALVO_MIN}-{ALVO_MAX}% de acerto: sobe ou desce um degrau a cada {JANELA_DE_RODADAS} rodadas. Os chips em "Ajustar a rodada" assumem o controle quando você quiser.</li>
+              </ul>
+            </details>
           </section>
         )}
 
@@ -500,10 +653,18 @@ export default function AntessalaDaRodada({
             </p>
           </section>
         ) : (
-          <ul className="flex flex-col gap-1.5 mb-3">
+          /* COLAPSADA por padrão (pedido do dono): a lista ocupava a tela e empurrava os botões.
+             Abre sozinha quando há erro voltando ou palavra difícil, que é quando vale olhar. */
+          <details className="mb-3 group" open={listaAbertaPorPadrao}>
+            <summary className="flex items-center gap-1.5 text-[12.5px] font-semibold text-ink hover:text-accent cursor-pointer select-none w-fit list-none [&::-webkit-details-marker]:hidden mb-2">
+              Ver {itens.length === 1 ? 'o item' : `os ${itens.length} itens`} desta rodada
+              <ChevronDown className="w-3.5 h-3.5 transition-transform group-open:rotate-180" aria-hidden />
+            </summary>
+          <ul className="flex flex-col gap-1.5">
             {visiveis.map((item) => {
               const selo = seloDoItem(item.ref, historico, vencidos);
               const quando = quandoCaiu(historico.get(item.ref)?.ultimaEm);
+              const motivoMemoria = estados?.get(item.ref)?.motivo;
               return (
                 <li
                   key={item.ref}
@@ -530,9 +691,12 @@ export default function AntessalaDaRodada({
                   {item.cefr && <span className="badge-tag acc shrink-0" title="Nível curado desta palavra">{item.cefr}</span>}
                   {/* Distância da última vez: é o que diferencia "já viu" de "acabou de cair". */}
                   {quando && <span className="text-[11px] text-ink-faint shrink-0">{quando}</span>}
+                  {motivoMemoria && motivoMemoria !== 'já viu' && motivoMemoria !== 'nova para você' && (
+                    <span className="text-[11px] text-ink-faint shrink-0 italic">{motivoMemoria}</span>
+                  )}
                   {/* O selo tem TEXTO, não só cor — daltônico e tema de alto contraste leem igual. */}
                   <span
-                    className={`badge-tag ${selo.variante} ml-auto shrink-0`}
+                    className={`badge-tag ${selo.variante} ms-auto shrink-0`}
                     title={selo.title}
                   >
                     {selo.texto}
@@ -541,6 +705,7 @@ export default function AntessalaDaRodada({
               );
             })}
           </ul>
+          </details>
         )}
 
         {/* Excedente ANUNCIADO: sem esta linha a pessoa acharia que a rodada tem 24 itens. */}
@@ -550,48 +715,138 @@ export default function AntessalaDaRodada({
           </p>
         )}
 
-        {/* ── SUAS FASES: as rodadas passadas viram um mapa de fases com estrelas — e cada uma
-            pode ser REJOGADA com o conteúdo exato, para caçar as 3 estrelas ou bater os pontos.
-            Limitado às 6 mais recentes: é uma prateleira de retorno rápido, não um arquivo. ── */}
-        {fases && fases.length > 0 && onJogarFase && (
-          <section className="mt-5">
-            <p className="label-mono mb-2">Suas fases neste jogo</p>
-            <ul className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
-              {fases.slice(0, 6).map((f, idx) => (
-                <li key={f.roundId}>
-                  <button
-                    onClick={() => onJogarFase(f.refs)}
-                    disabled={f.refs.length === 0}
-                    className="w-full text-left card-panel bg-surface hover:border-accent transition-colors p-3 cursor-pointer disabled:opacity-50 disabled:cursor-default group"
-                    title={f.refs.length ? 'Jogar esta fase de novo com as mesmas palavras' : 'Esta rodada antiga não guardou as palavras'}
-                  >
-                    <span className="flex items-center justify-between gap-2">
-                      <span className="text-[12px] font-bold text-ink">Fase {fases.length - idx}</span>
-                      {/* Estrela TEXTUALMENTE preenchida ou vazia — cor sozinha não passa no
-                          alto contraste; o title diz a régua. */}
-                      <span className="flex items-center gap-0.5" title={`${f.estrelas} de 3 estrelas (${f.precisao}% de acerto)`} aria-label={`${f.estrelas} de 3 estrelas`}>
-                        {[1, 2, 3].map((n) => (
-                          <Star key={n} className={`w-3.5 h-3.5 ${n <= f.estrelas ? 'text-warn fill-warn' : 'text-border-subtle'}`} aria-hidden />
-                        ))}
-                      </span>
-                    </span>
-                    <span className="flex flex-wrap items-center gap-x-3 gap-y-0.5 mt-1.5 text-[11.5px] text-ink-muted tabular-nums">
-                      {f.pontos > 0 && <span className="flex items-center gap-1"><Trophy className="w-3 h-3" aria-hidden /> {f.pontos}</span>}
-                      <span className="flex items-center gap-1"><Target className="w-3 h-3" aria-hidden /> {f.acertos}/{f.total}</span>
-                      {f.combo > 1 && <span className="flex items-center gap-1"><Flame className="w-3 h-3" aria-hidden /> ×{f.combo}</span>}
-                      {quandoCaiu(f.quando) && <span className="ml-auto text-ink-faint">{quandoCaiu(f.quando)}</span>}
-                    </span>
-                    {f.refs.length > 0 && (
-                      <span className="flex items-center gap-1 mt-1.5 text-[11px] font-semibold text-accent-ink opacity-0 group-hover:opacity-100 transition-opacity">
-                        <RotateCcw className="w-3 h-3" aria-hidden /> jogar de novo{f.estrelas < 3 ? ' e melhorar' : ''}
-                      </span>
-                    )}
-                  </button>
-                </li>
-              ))}
-            </ul>
-          </section>
-        )}
+        {/* ── SUAS FASES — TABELA PAGINADA.
+            Eram cartões numa grade cortada nas 6 mais recentes: quem jogou vinte rodadas via seis
+            e não tinha como chegar nas outras, e as seis já ocupavam meia tela. Tabela porque os
+            campos se repetem em toda linha (fase, pontos, estrelas, quando) e comparar entre
+            rodadas é o que se faz aqui — comparar é justamente o que uma grade de cartões atrapalha.
+
+            A AMOSTRA DE PALAVRAS aparece ao passar o mouse (ou ao focar pelo teclado) e passa pelo
+            funil `previaSegura`: num jogo onde a palavra É a resposta, o que sai é a pista. A
+            coluna reserva a largura sempre, então revelar não empurra a tabela. ── */}
+        {fases && fases.length > 0 && onJogarFase && (() => {
+          const POR_PAGINA = 6;
+          const paginas = Math.ceil(fases.length / POR_PAGINA);
+          const pagina = Math.min(paginaDeFases, paginas - 1);
+          const daPagina = fases.slice(pagina * POR_PAGINA, pagina * POR_PAGINA + POR_PAGINA);
+          return (
+            <section className="mt-5">
+              <div className="flex items-center justify-between gap-3 mb-2">
+                <p className="label-mono">Suas fases neste jogo</p>
+                {paginas > 1 && (
+                  <nav className="flex items-center gap-1 text-[11px] text-ink-muted" aria-label="Páginas das fases">
+                    <button
+                      type="button"
+                      onClick={() => setPaginaDeFases((p) => Math.max(0, p - 1))}
+                      disabled={pagina === 0}
+                      className="p-1 rounded-lg border border-border-subtle disabled:opacity-35 disabled:cursor-default hover:border-accent cursor-pointer"
+                      aria-label="Página anterior"
+                    >
+                      <ChevronLeft className="w-3.5 h-3.5" aria-hidden />
+                    </button>
+                    <span className="tabular-nums px-1" aria-live="polite">{pagina + 1}/{paginas}</span>
+                    <button
+                      type="button"
+                      onClick={() => setPaginaDeFases((p) => Math.min(paginas - 1, p + 1))}
+                      disabled={pagina >= paginas - 1}
+                      className="p-1 rounded-lg border border-border-subtle disabled:opacity-35 disabled:cursor-default hover:border-accent cursor-pointer"
+                      aria-label="Próxima página"
+                    >
+                      <ChevronRight className="w-3.5 h-3.5" aria-hidden />
+                    </button>
+                  </nav>
+                )}
+              </div>
+
+              <div className="card-panel bg-surface overflow-x-auto">
+                <table className="w-full text-[12px] border-collapse">
+                  <caption className="sr-only">
+                    Rodadas passadas deste jogo. Cada linha rejoga a fase com as mesmas palavras.
+                  </caption>
+                  <thead>
+                    <tr className="text-ink-faint">
+                      <th scope="col" className="text-start font-bold uppercase tracking-wider text-[9px] px-3 py-2">Fase</th>
+                      <th scope="col" className="text-end font-bold uppercase tracking-wider text-[9px] px-3 py-2">Pontos</th>
+                      <th scope="col" className="text-start font-bold uppercase tracking-wider text-[9px] px-3 py-2">Estrelas</th>
+                      <th scope="col" className="text-start font-bold uppercase tracking-wider text-[9px] px-3 py-2">Quando</th>
+                      <th scope="col" className="text-start font-bold uppercase tracking-wider text-[9px] px-3 py-2 w-[40%]">O que caiu</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {daPagina.map((f, idx) => {
+                      const numero = fases.length - (pagina * POR_PAGINA + idx);
+                      const amostra = amostraDaFase?.(f.refs);
+                      const podeRejogar = f.refs.length > 0;
+                      return (
+                        <tr
+                          key={f.roundId}
+                          className="border-t border-border-subtle group hover:bg-canvas/50 focus-within:bg-canvas/50 transition-colors"
+                        >
+                          <th scope="row" className="text-start px-3 py-2">
+                            <button
+                              type="button"
+                              onClick={() => onJogarFase(f.refs)}
+                              disabled={!podeRejogar}
+                              title={podeRejogar
+                                ? 'Jogar esta fase de novo com as mesmas palavras'
+                                : 'Esta rodada antiga não guardou as palavras'}
+                              className="font-bold text-ink hover:text-accent-ink disabled:opacity-50 disabled:cursor-default cursor-pointer flex items-center gap-1.5"
+                            >
+                              {podeRejogar && (
+                                <RotateCcw
+                                  className="w-3 h-3 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity"
+                                  aria-hidden
+                                />
+                              )}
+                              Fase {numero}
+                            </button>
+                          </th>
+                          <td className="px-3 py-2 text-end tabular-nums text-ink-muted">{f.pontos || '—'}</td>
+                          <td className="px-3 py-2">
+                            {/* Preenchida ou vazia por FORMA, não por cor: o app tem 7 temas e o
+                                alto contraste apaga a diferença de matiz. */}
+                            <span
+                              className="flex items-center gap-0.5"
+                              aria-label={`${f.estrelas} de 3 estrelas`}
+                              title={`${f.estrelas} de 3 (${f.precisao}% de acerto)`}
+                            >
+                              {[1, 2, 3].map((n) => (
+                                <Star key={n} className={`w-3 h-3 ${n <= f.estrelas ? 'text-warn fill-warn' : 'text-border-subtle'}`} aria-hidden />
+                              ))}
+                            </span>
+                          </td>
+                          <td className="px-3 py-2 text-ink-faint whitespace-nowrap">{quandoCaiu(f.quando) || '—'}</td>
+                          <td className="px-3 py-2">
+                            <span className="flex flex-wrap items-center gap-1 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity">
+                              {amostra && amostra.textos.length > 0 ? (
+                                <>
+                                  {amostra.textos.map((t) => (
+                                    <span
+                                      key={t}
+                                      title={t}
+                                      className="px-1.5 py-0.5 rounded-md bg-canvas border border-border-subtle text-[11px] text-ink-muted max-w-[14ch] truncate"
+                                    >
+                                      {t}
+                                    </span>
+                                  ))}
+                                  {amostra.total > amostra.textos.length && (
+                                    <span className="text-[11px] text-ink-faint">+{amostra.total - amostra.textos.length}</span>
+                                  )}
+                                </>
+                              ) : (
+                                <span className="text-[11px] text-ink-faint">{f.acertos} de {f.total} nesta fase</span>
+                              )}
+                            </span>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </section>
+          );
+        })()}
 
         <div className="flex flex-wrap items-center gap-2.5 mt-5">
           <button onClick={onJogar} disabled={vazia} className="btn-solid disabled:opacity-40">

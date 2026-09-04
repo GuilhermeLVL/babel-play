@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto'
-import { and, desc, eq, isNull, sql, sum } from 'drizzle-orm'
+import { and, desc, eq, isNull, like, sql, sum } from 'drizzle-orm'
 import { db } from '../db'
 import { seedSpends } from '../schema'
 import type { UserId } from '../../lib/authContext'
@@ -71,6 +71,44 @@ export const seedSpendsRepo = {
     return { linha: rows[0], jaExistia }
   },
 
+  /**
+   * ESTE GASTO JÁ FOI COBRADO? A conferência de saldo (`/seeds/gastar`) precisa saber, porque o
+   * reenvio de uma compra já paga NÃO pode ser recusado por saldo: quem gastou as últimas 40
+   * Seeds veria o retry da própria compra virar 402, e a idempotência deixaria de ser idempotente.
+   */
+  async jaGastou(userId: UserId, spendId: string): Promise<boolean> {
+    const r = await db
+      .select({ id: seedSpends.id })
+      .from(seedSpends)
+      .where(and(eq(seedSpends.spendId, spendId), eq(seedSpends.userId, userId), isNull(seedSpends.deletedAt)))
+      .limit(1)
+    return r.length > 0
+  },
+
+  /**
+   * OS APRIMORAMENTOS COMPRADOS, derivados do log — como a posse da Loja já era.
+   *
+   * O nível de cada aprimoramento vivia só em `localStorage` (`babel.aprimoramentos`): o gasto
+   * era gravado com `reason = 'aprimoramento:<alvo>:<n>'` e NADA lia de volta. Um usuário que
+   * editasse a chave ficava com Nv.3 em tudo, invisível ao servidor, e trocar de navegador
+   * perdia o que foi pago de verdade. Contar os degraus pagos resolve os dois.
+   */
+  async aprimoramentosComprados(userId: UserId): Promise<Record<string, number>> {
+    const linhas = await db
+      .select({ reason: seedSpends.reason })
+      .from(seedSpends)
+      .where(and(eq(seedSpends.userId, userId), isNull(seedSpends.deletedAt), like(seedSpends.reason, 'aprimoramento:%')))
+    const porAlvo: Record<string, number> = {}
+    for (const l of linhas) {
+      const [, alvo, n] = l.reason.split(':')
+      const nivel = Number(n)
+      if (!alvo || !Number.isInteger(nivel)) continue
+      // O NÍVEL é o maior degrau pago, não a contagem: um degrau reenviado é o mesmo degrau.
+      porAlvo[alvo] = Math.max(porAlvo[alvo] ?? 0, nivel)
+    }
+    return porAlvo
+  },
+
   /** O total gasto. É o que `deriveProgress` subtrai do ganho para chegar ao saldo. */
   async totalGasto(userId: UserId): Promise<number> {
     const r = await db
@@ -78,6 +116,37 @@ export const seedSpendsRepo = {
       .from(seedSpends)
       .where(and(eq(seedSpends.userId, userId), isNull(seedSpends.deletedAt)))
     return Number(r[0]?.total ?? 0)
+  },
+
+  /**
+   * A POSSE DA LOJA, derivada do razão de gastos (economia-de-creditos 1.2 / brecha B4).
+   *
+   * A compra sempre foi evento no servidor (`reason: 'loja:<itemId>'`); o que faltava era o
+   * caminho de VOLTA — o cliente confiava só no `localStorage`, que some com o navegador e
+   * se edita no DevTools. Não há tabela nova: inventário É o log de compras, a mesma regra
+   * "saldo por eventos, nunca saldo mutável" da spec.
+   */
+  async itensComprados(userId: UserId): Promise<string[]> {
+    const rows = await db
+      .select({ reason: seedSpends.reason })
+      .from(seedSpends)
+      .where(and(eq(seedSpends.userId, userId), isNull(seedSpends.deletedAt), like(seedSpends.reason, 'loja:%')))
+    return [...new Set(rows.map((r) => r.reason.slice('loja:'.length)).filter(Boolean))]
+  },
+
+  /**
+   * OS CROMAS COMPRADOS — mesma derivação de `itensComprados`, outro prefixo.
+   *
+   * Croma é cor comprada com a moeda de estudo, e por isso segue a regra que a brecha B4
+   * estabeleceu: quem guarda a posse é o razão de eventos, não o navegador. O id devolvido é o
+   * mesmo que o cliente usa (`croma:<item>:<matiz>`), então a hidratação é uma união direta.
+   */
+  async cromasComprados(userId: UserId): Promise<string[]> {
+    const rows = await db
+      .select({ reason: seedSpends.reason })
+      .from(seedSpends)
+      .where(and(eq(seedSpends.userId, userId), isNull(seedSpends.deletedAt), like(seedSpends.reason, 'croma:%')))
+    return [...new Set(rows.map((r) => r.reason).filter(Boolean))]
   },
 
   async listar(userId: UserId, limite = 50): Promise<SeedSpend[]> {

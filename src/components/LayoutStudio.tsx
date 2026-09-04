@@ -1,19 +1,20 @@
-import { comemorar } from '../lib/juice';
 import React, { useEffect, useState } from 'react';
 import {
-  X, Palette, LayoutGrid, Sun, Moon, Sparkles, RotateCcw, Move,
-  Eye, EyeOff, Check, SlidersHorizontal, ChevronDown,
+  X, Palette, LayoutGrid, Sparkles, RotateCcw, Move,
+  Eye, EyeOff, Check, SlidersHorizontal, ChevronDown, Lock,
   Home, Mic, Library as LibraryIcon, BarChart2, BookOpen, LineChart
 } from 'lucide-react';
 import { useLayout } from '../hooks/useLayout';
 import { AppLayoutConfig, PanelConfig } from '../lib/layoutStore';
 import { VIEWS_LABELS, PANEL_TITLES } from '../lib/panelMeta';
 import {
-  THEME_OPTIONS, PRESET_PALETTES, SIZE_PRESETS,
+  SIZE_PRESETS,
   type CustomColors, type ThemeType, readCustomColors
 } from '../lib/appearance';
 import { persistTheme } from '../lib/theme';
+import { acessoAoItem } from '../lib/galeria/acesso';
 import { askConfirm } from './Toast';
+import { t } from '../lib/i18n';
 
 interface LayoutStudioProps {
   isOpen: boolean;
@@ -22,6 +23,9 @@ interface LayoutStudioProps {
   setTheme: (theme: ThemeType) => void;
   darkMode: boolean;
   toggleDarkMode: () => void;
+  /** Para o gate interno (ux-v2 §4.2): a régua vale DENTRO do Estúdio, não só na porta. */
+  nivel: number;
+  saldo: number;
 }
 
 const SCREEN_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
@@ -48,8 +52,15 @@ const nearestSizeLabel = (heightPx: number): string => {
   return best.label;
 };
 
-export default function LayoutStudio({ isOpen, onClose, theme, setTheme, darkMode, toggleDarkMode }: LayoutStudioProps) {
+/* `darkMode`/`toggleDarkMode` seguem no contrato (o App as passa) mas o Estúdio não edita mais o
+   modo — o interruptor único é o da barra de controles (centralização, 2026-08-28). */
+export default function LayoutStudio({ isOpen, onClose, theme, setTheme, nivel, saldo }: LayoutStudioProps) {
   const { layout, updatePanel, applyIntelligentLayout, resetToDefault, toggleEditMode, editMode } = useLayout();
+
+  /* TODO CAMINHO PASSA PELA RÉGUA (spec galeria-gating-fechado; ux-v2 §4.2): o Estúdio confiava
+     só no botão de entrada — qualquer render direto entregava o editor E3 completo. A checagem
+     aqui dentro fecha a classe, com estado honesto no lugar de tela escondida. */
+  const acessoEstudio = acessoAoItem('estudio', nivel, saldo);
 
   const [tab, setTab] = useState<'aparencia' | 'layout'>('aparencia');
   const [activeScreen, setActiveScreen] = useState<keyof AppLayoutConfig>('hub');
@@ -70,6 +81,19 @@ export default function LayoutStudio({ isOpen, onClose, theme, setTheme, darkMod
   }, [isOpen, onClose]);
 
   if (!isOpen) return null;
+
+  if (!acessoEstudio.liberado) {
+    return (
+      <div className="fixed inset-0 z-[110] bg-canvas/95 backdrop-blur-sm flex items-center justify-center p-6" role="dialog" aria-label="Estúdio ainda trancado">
+        <div className="card-panel bg-surface max-w-md w-full p-6 text-center space-y-3">
+          <Lock className="w-8 h-8 mx-auto text-ink-faint" aria-hidden />
+          <h2 className="font-bold text-lg text-ink">O Estúdio ainda está trancado</h2>
+          <p className="text-[13px] text-ink-muted">{acessoEstudio.motivo ?? 'Continue estudando para liberar.'} O caminho para obter é a Loja, em Personalizar.</p>
+          <button onClick={onClose} className="btn-solid mx-auto">Voltar</button>
+        </div>
+      </div>
+    );
+  }
 
   // `persistTheme` aplica no DOM, grava no localStorage e MESCLA em settings.ui
   // (servidor). O `setTheme` do App faz o mesmo para o tema — daí a paleta ir
@@ -160,49 +184,12 @@ export default function LayoutStudio({ isOpen, onClose, theme, setTheme, darkMod
         <div className="max-w-5xl mx-auto w-full px-5 md:px-8 py-6 md:py-8">
           {tab === 'aparencia' ? (
             <div className="space-y-8">
-              {/* Mode */}
-              <section>
-                <h2 className="text-[13px] font-bold uppercase tracking-wider text-ink-muted mb-3">Modo</h2>
-                <div className="inline-flex items-center gap-1 p-1 bg-surface border border-border-subtle rounded-xl">
-                  <button onClick={() => { if (darkMode) toggleDarkMode(); }} className={`flex items-center gap-1.5 ${seg(!darkMode)}`}>
-                    <Sun className="w-4 h-4" /> Claro
-                  </button>
-                  <button onClick={() => { if (!darkMode) toggleDarkMode(); }} className={`flex items-center gap-1.5 ${seg(darkMode)}`}>
-                    <Moon className="w-4 h-4" /> Escuro
-                  </button>
-                </div>
-              </section>
-
-              {/* Theme */}
-              <section>
-                <h2 className="text-[13px] font-bold uppercase tracking-wider text-ink-muted mb-3">Tema</h2>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                  {THEME_OPTIONS.map((opt) => {
-                    const sw = opt.id === 'custom' ? customColors : opt.swatches;
-                    const selected = theme === opt.id;
-                    return (
-                      <button
-                        key={opt.id}
-                        onClick={() => setTheme(opt.id)}
-                        className={`p-4 rounded-2xl border-2 text-left transition-all cursor-pointer ${
-                          selected ? 'border-accent bg-accent-soft/20 shadow-sm' : 'border-border-subtle bg-surface hover:border-accent/60'
-                        }`}
-                      >
-                        <div className="flex items-center justify-between mb-3">
-                          <div className="flex -space-x-1.5">
-                            {[sw.canvas, sw.surface, sw.accent, sw.ink].map((c, i) => (
-                              <span key={i} className="w-6 h-6 rounded-full border-2 border-surface shadow-sm" style={{ backgroundColor: c }} />
-                            ))}
-                          </div>
-                          {selected && <Check className="w-4 h-4 text-accent" />}
-                        </div>
-                        <div className="font-bold text-[13.5px] text-ink">{opt.name}</div>
-                        <p className="text-[11.5px] text-ink-muted mt-0.5 leading-snug">{opt.desc}</p>
-                      </button>
-                    );
-                  })}
-                </div>
-              </section>
+              {/* CENTRALIZAÇÃO (2026-08-28): o Modo claro/escuro, a grade de Temas e a galeria de
+                  paletas SAÍRAM daqui — viviam também em Personalizar e no cluster, três donos para
+                  a mesma preferência. O Estúdio ficou com o que só ele faz: cores livres e layout. */}
+              <p className="text-[12.5px] text-ink-muted -mt-2">
+                Temas prontos, paletas da galeria, modo claro/escuro e o resto do visual ficam em <b className="text-ink">Personalizar</b>. Aqui você edita as cores <b className="text-ink">livremente</b> e o layout das telas.
+              </p>
 
               {/* Custom palette */}
               <section>
@@ -243,46 +230,6 @@ export default function LayoutStudio({ isOpen, onClose, theme, setTheme, darkMod
                     ))}
                   </div>
 
-                  <div className="mt-5">
-                    <div className="text-[11px] font-bold uppercase tracking-wider text-ink-muted mb-2">Galeria de paletas</div>
-                    {/* Cards-mockup em vez de pílulas: cada paleta mostra COMO a interface fica
-                        (barra, card, botão pintados com as cores dela) e marca a equipada. */}
-                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-                      {PRESET_PALETTES.map((p) => {
-                        const equipada = theme === 'custom'
-                          && customColors.accent.toLowerCase() === p.accent.toLowerCase()
-                          && customColors.canvas.toLowerCase() === p.canvas.toLowerCase();
-                        return (
-                          <button
-                            key={p.name}
-                            onClick={(e) => {
-                              applyPreset(p);
-                              comemorar('acerto', e.currentTarget, { texto: p.name + '!' });
-                            }}
-                            aria-pressed={equipada}
-                            className={`text-left rounded-xl border-2 overflow-hidden transition-all hover:-translate-y-0.5 hover:shadow-card cursor-pointer ${
-                              equipada ? 'border-accent' : 'border-border-subtle hover:border-accent/60'
-                            }`}
-                            title={p.name}
-                          >
-                            {/* O mini-mockup: título + card + botão, pintados com a paleta. */}
-                            <span className="block p-2.5" style={{ backgroundColor: p.canvas }}>
-                              <span className="block h-1.5 w-2/3 rounded-full mb-1.5" style={{ backgroundColor: p.ink, opacity: 0.85 }} />
-                              <span className="block rounded-lg p-1.5 mb-1.5" style={{ backgroundColor: p.surface, border: `1px solid ${p.ink}22` }}>
-                                <span className="block h-1 w-3/4 rounded-full mb-1" style={{ backgroundColor: p.ink, opacity: 0.55 }} />
-                                <span className="block h-1 w-1/2 rounded-full" style={{ backgroundColor: p.ink, opacity: 0.35 }} />
-                              </span>
-                              <span className="inline-block h-3.5 px-3 rounded-md" style={{ backgroundColor: p.accent }} />
-                            </span>
-                            <span className="flex items-center justify-between px-2.5 py-1.5 bg-surface">
-                              <span className="text-[11.5px] font-bold text-ink truncate">{p.name}</span>
-                              {equipada && <Check className="w-3.5 h-3.5 text-accent shrink-0" />}
-                            </span>
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
                 </div>
               </section>
 
@@ -328,7 +275,7 @@ export default function LayoutStudio({ isOpen, onClose, theme, setTheme, darkMod
                           active ? 'bg-accent-soft/30 border-accent text-accent-ink' : 'bg-surface border-border-subtle text-ink-muted hover:text-ink hover:border-accent/60'
                         }`}
                       >
-                        <Icon className="w-4 h-4" /> {VIEWS_LABELS[s] || s}
+                        <Icon className="w-4 h-4" /> {t(VIEWS_LABELS[s] || s)}
                       </button>
                     );
                   })}
@@ -350,7 +297,7 @@ export default function LayoutStudio({ isOpen, onClose, theme, setTheme, darkMod
                     return (
                       <div key={panelKey} className={`rounded-2xl border bg-surface p-4 transition-colors ${cfg.show ? 'border-border-subtle' : 'border-border-subtle/60 opacity-70'}`}>
                         <div className="flex items-center justify-between gap-3 flex-wrap">
-                          <div className="font-bold text-[13.5px] text-ink">{PANEL_TITLES[panelKey] || panelKey}</div>
+                          <div className="font-bold text-[13.5px] text-ink">{t(PANEL_TITLES[panelKey] || panelKey)}</div>
                           <button
                             onClick={() => updatePanel(activeScreen, panelKey, { show: !cfg.show })}
                             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-bold transition-colors cursor-pointer border ${
@@ -365,7 +312,7 @@ export default function LayoutStudio({ isOpen, onClose, theme, setTheme, darkMod
                         {cfg.show && (
                           <>
                             <div className="flex items-center gap-2 mt-3">
-                              <span className="text-[11px] font-bold uppercase tracking-wider text-ink-muted mr-1">Tamanho</span>
+                              <span className="text-[11px] font-bold uppercase tracking-wider text-ink-muted me-1">Tamanho</span>
                               <div className="inline-flex items-center gap-1 p-1 bg-canvas border border-border-subtle rounded-lg">
                                 {SIZE_PRESETS.map((p) => (
                                   <button

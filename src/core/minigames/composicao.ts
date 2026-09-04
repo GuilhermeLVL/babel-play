@@ -20,17 +20,52 @@
  */
 import { MINIGAMES, type MinigameId } from './types'
 import { baseLangDe } from '../learning/quality'
+import {
+  passaNoFiltro, type FiltroDaPratica, type CartaoFiltravel, type ExtrasDoFiltro,
+} from './filtro'
+import type { CefrLevel } from '../learning/contract'
 
 export type FaixaDificuldade = 'facil' | 'medio' | 'dificil'
 export type EstrategiaDeDistribuicao = 'equilibrado' | 'recentes' | 'frequentes' | 'em-dificuldade'
+/** O que a UI escolhe: as quatro do servidor OU 'auto' (faixa decidida pela precisão recente,
+ *  ver `autoDificuldade.ts`). 'auto' viaja ao servidor como 'equilibrado' + faixa calculada. */
+export type EstrategiaDaUI = EstrategiaDeDistribuicao | 'auto'
 
 /** Mesmos cortes do servidor (`core/learning/dificuldade.ts`). Divergir seria ter duas verdades. */
 export const CORTE_FACIL = 0.34
 export const CORTE_DIFICIL = 0.67
 
-export function faixaDe(score: number | null | undefined): FaixaDificuldade | null {
+export interface CortesDeFaixa { corte1: number; corte2: number }
+
+/** `cortes` opcional: os do SERVIDOR (por quantil do deck) quando ele os mandou — sem isso o
+ *  rótulo da faixa aqui divergia do rótulo com que o servidor selecionou. */
+export function faixaDe(score: number | null | undefined, cortes?: CortesDeFaixa | null): FaixaDificuldade | null {
   if (score == null) return null
-  return score < CORTE_FACIL ? 'facil' : score < CORTE_DIFICIL ? 'medio' : 'dificil'
+  const c1 = cortes?.corte1 ?? CORTE_FACIL
+  const c2 = cortes?.corte2 ?? CORTE_DIFICIL
+  return score < c1 ? 'facil' : score < c2 ? 'medio' : 'dificil'
+}
+
+/**
+ * BALANCEAMENTO 50% médio / 25% fácil / 25% difícil — a MESMA regra do servidor
+ * (`server/db/repositories/vocab.ts balancear`). Existia só lá: offline, a rodada "equilibrada"
+ * saía com uma mistura diferente sob o mesmo rótulo. Completa em ordem quando falta uma faixa.
+ */
+export function balancear<T extends { difficultyScore: number | null }>(pool: T[], limite: number, cortes?: CortesDeFaixa | null): T[] {
+  const por: Record<FaixaDificuldade | 'semFaixa', T[]> = { facil: [], medio: [], dificil: [], semFaixa: [] }
+  for (const c of pool) por[faixaDe(c.difficultyScore, cortes) ?? 'semFaixa'].push(c)
+  const querMedio = Math.round(limite * 0.5)
+  const querFacil = Math.round(limite * 0.25)
+  const escolhidos: T[] = [
+    ...por.medio.slice(0, querMedio),
+    ...por.facil.slice(0, querFacil),
+    ...por.dificil.slice(0, limite - querMedio - querFacil),
+  ]
+  if (escolhidos.length < limite) {
+    const ja = new Set(escolhidos)
+    for (const c of pool) { if (escolhidos.length >= limite) break; if (!ja.has(c)) { escolhidos.push(c); ja.add(c) } }
+  }
+  return escolhidos
 }
 
 /** O filtro de dificuldade só faz sentido onde o item É um cartão de vocabulário. */
@@ -83,6 +118,8 @@ export interface Composicao {
   origemDaComposicao: 'servidor' | 'fallback-local'
   /** Preenchido quando caiu para local, para o relatório e para a UI poderem dizer por quê. */
   motivoDoFallback?: string
+  /** Os cortes de faixa que o servidor usou (quantis do deck). Guardados para a UI rotular igual. */
+  cortes?: CortesDeFaixa | null
 }
 
 /** O que a TELA precisa saber sobre o tamanho da fonte. Ver `contagemDaFonte`. */
@@ -136,6 +173,93 @@ export interface PedidoDeComposicao {
   estrategia?: EstrategiaDeDistribuicao
   limite: number
   evitar?: string[]
+  /**
+   * O FILTRO FACETADO, NA FORMA DE FIO. Campo OPCIONAL: sem ele, nada muda — é o mesmo pedido de
+   * sempre. `compor`/`composicaoLocal` TRANSPORTAM o campo sem interpretá-lo pesadamente: o
+   * servidor (dono de outra frente) decide o que fazer dele na rota; o fallback LOCAL usa
+   * `passaNoFiltro` quando ele vier — é a paridade de graça entre as duas metades.
+   */
+  filtro?: FiltroDeComposicao
+}
+
+/**
+ * A FORMA DE FIO do filtro facetado — o que viaja no pedido de composição.
+ *
+ * Não é `FiltroDaPratica` batizado de novo: aquele tipo é a ESCOLHA DA PESSOA (inclui
+ * `recorte.dificeis: boolean`, que só faz sentido ao lado do `rankingDificeis` vivo, que o
+ * servidor nunca viu). Esta forma já resolveu isso — `dificeisIds` é a lista concreta de ids —
+ * porque o servidor não tem como reconstruir o ranking sozinho.
+ */
+export interface FiltroDeComposicao {
+  fontes: Array<'baralho' | 'sessao' | 'trilha'>
+  baralhos?: string[]
+  sessoes?: string[]
+  idiomas?: string[]
+  recorte?: { nuncaVistas?: boolean; pedindoRevisao?: boolean; niveis?: string[]; dificeisIds?: string[] }
+  midia?: { comTraducao?: boolean; comFrase?: boolean }
+}
+
+/**
+ * `FiltroDaPratica` (a escolha) → `FiltroDeComposicao` (o fio).
+ *
+ * `dificeis` vira LISTA DE IDS aqui, e só aqui: o servidor não conhece o ranking de palavras
+ * difíceis (ele é injetado na hora do uso, do lado do cliente — ver `FonteDeItens.cardIds` em
+ * `source.ts`), então a única forma de o servidor aplicar esse recorte é receber os ids prontos.
+ */
+export function filtroParaComposicao(f: FiltroDaPratica, rankingDificeis?: string[]): FiltroDeComposicao {
+  const recorte: FiltroDeComposicao['recorte'] = {
+    nuncaVistas: f.recorte.nuncaVistas || undefined,
+    pedindoRevisao: f.recorte.pedindoRevisao || undefined,
+    niveis: f.recorte.niveis?.length ? f.recorte.niveis : undefined,
+    dificeisIds: f.recorte.dificeis ? (rankingDificeis ?? []) : undefined,
+  }
+  const midia = (f.midia.comTraducao || f.midia.comFrase) ? f.midia : undefined
+  return {
+    fontes: f.fontes,
+    baralhos: f.baralhos.length ? f.baralhos : undefined,
+    sessoes: f.sessoes.length ? f.sessoes : undefined,
+    idiomas: f.idiomas.length ? f.idiomas : undefined,
+    recorte: Object.values(recorte).some((v) => v !== undefined) ? recorte : undefined,
+    midia,
+  }
+}
+
+/**
+ * A forma de fio (`FiltroDeComposicao`) de volta a algo que `passaNoFiltro` entende, para o
+ * fallback LOCAL. `dificeisIds` vira o `ReadonlySet` que `passaNoFiltro` espera em `extras` — o
+ * fio já resolveu o ranking em ids concretos, então aqui não sobra ranking nenhum para injetar,
+ * só o conjunto.
+ */
+function filtroLocalDoFio(fc: FiltroDeComposicao): { filtro: FiltroDaPratica; ranking: ReadonlySet<string> } {
+  const ranking = new Set(fc.recorte?.dificeisIds ?? [])
+  const filtro: FiltroDaPratica = {
+    versao: 1,
+    fontes: fc.fontes,
+    baralhos: fc.baralhos ?? [],
+    sessoes: fc.sessoes ?? [],
+    idiomas: fc.idiomas ?? [],
+    recorte: {
+      dificeis: !!fc.recorte?.dificeisIds?.length,
+      nuncaVistas: fc.recorte?.nuncaVistas,
+      pedindoRevisao: fc.recorte?.pedindoRevisao,
+      niveis: fc.recorte?.niveis as CefrLevel[] | undefined,
+    },
+    midia: fc.midia ?? {},
+  }
+  return { filtro, ranking }
+}
+
+/** `CartaoParaCompor` → `CartaoFiltravel`. Sem `daTrilha`/`sourceSessionId`/`baralhosAnki`: este
+ *  tipo não os carrega (a fonte já escopou o pool antes de chegar aqui) — só idioma, nível,
+ *  mídia e vencimento se beneficiam do filtro no fallback local. */
+function paraFiltravel(c: CartaoParaCompor): CartaoFiltravel {
+  return {
+    srcLang: c.srcLang ?? undefined,
+    cefrLevel: c.cefrLevel ?? undefined,
+    translation: c.back ?? undefined,
+    sentence: c.sentence ?? undefined,
+    dueAtMs: c.dueAt,
+  }
 }
 
 function proveniencia(c: CartaoParaCompor, p: PedidoDeComposicao, de: 'servidor' | 'fallback-local'): Proveniencia {
@@ -179,6 +303,13 @@ export function composicaoLocal(cartoes: CartaoParaCompor[], p: PedidoDeComposic
       return f == null ? false : querido.has(f)
     })
   }
+  // A PARIDADE DE GRAÇA: o filtro facetado vale também quando a rede cai — sem isto, um recorte
+  // pedido ("só o que está pedindo revisão") desapareceria em silêncio justamente na hora em que
+  // o app precisa estar certo offline.
+  if (p.filtro) {
+    const { filtro, ranking } = filtroLocalDoFio(p.filtro)
+    pool = pool.filter((c) => passaNoFiltro(paraFiltravel(c), filtro, { rankingDificeis: ranking, idDoCartao: c.id }))
+  }
 
   const ordenado = [...pool].sort((a, b) => {
     switch (p.estrategia) {
@@ -190,7 +321,9 @@ export function composicaoLocal(cartoes: CartaoParaCompor[], p: PedidoDeComposic
     }
   })
 
-  const escolhidos = ordenado.slice(0, p.limite)
+  // Paridade com o servidor: só o equilibrado balanceia 50/25/25 (os outros já são um recorte).
+  const equilibrado = !p.estrategia || p.estrategia === 'equilibrado'
+  const escolhidos = equilibrado ? balancear(ordenado, p.limite) : ordenado.slice(0, p.limite)
   return {
     total: pool.length,
     origemDaComposicao: 'fallback-local',
@@ -263,11 +396,15 @@ export async function compor(
   buscar: BuscarComposicao = buscarPadrao,
 ): Promise<Composicao> {
   try {
-    const dados = await buscar(caminhoDaComposicao(p)) as { itens?: Array<Record<string, unknown>>; total?: number } | null
+    const dados = await buscar(caminhoDaComposicao(p)) as { itens?: Array<Record<string, unknown>>; total?: number; cortes?: { corte1?: number; corte2?: number } | null } | null
     if (!dados || !Array.isArray(dados.itens)) return composicaoLocal(cartoesLocais, p, 'corpo malformado')
+    const cortes = dados.cortes && typeof dados.cortes.corte1 === 'number' && typeof dados.cortes.corte2 === 'number'
+      ? { corte1: dados.cortes.corte1, corte2: dados.cortes.corte2 }
+      : null
     return {
       total: Number(dados.total ?? dados.itens.length),
       origemDaComposicao: 'servidor',
+      cortes,
       itens: dados.itens.map((i: Record<string, unknown>) => ({
         cardId: (i.cardId as string) ?? null,
         word: String(i.word ?? ''),
@@ -309,11 +446,33 @@ export async function compor(
  * A INVARIANTE, e é ela que vale o arquivo: **todo cartão devolvido está em `usaveis`.** A
  * composição ORDENA e PRIORIZA; ela nunca ADICIONA. Enquanto isso valer, o bypass não tem como
  * voltar sem quebrar o teste.
+ *
+ * A FLAG `completar` GANHOU UMA ALTERNATIVA, e é o que fecha o defeito por construção: em vez de
+ * um booleano solto que cada chamador interpretava do jeito dele, `{ filtro }` diz exatamente o
+ * que deve entrar no complemento — SEMPRE completa (nunca corta no que o servidor serviu), mas
+ * só admite no complemento local o que `passaNoFiltro` aprova. `{ filtro: FILTRO_PADRAO }`
+ * equivale a `{ completar: true }` porque o filtro padrão não reprova ninguém; um filtro
+ * restritivo equivale a `{ completar: false }` SEM capar injustamente nos itens já servidos
+ * quando o acervo local tem mais elegíveis que o teto do servidor — o mesmo "jogo cinza" que o
+ * comentário acima descreve, só que agora resolvido por um recorte EXPLÍCITO em vez de um
+ * booleano que confundia "não completar" com "não filtrar".
+ *
+ * A FORMA ANTIGA `{ completar }` CONTINUA IGUAL — zero quebra nos chamadores de hoje.
  */
 export function recortarPelaComposicao<T extends { id: string }>(
   usaveis: T[],
   composicao: Composicao | null | undefined,
   opts: { completar: boolean },
+): T[]
+export function recortarPelaComposicao<T extends { id: string } & CartaoFiltravel>(
+  usaveis: T[],
+  composicao: Composicao | null | undefined,
+  opts: { filtro: FiltroDaPratica; extras?: ExtrasDoFiltro },
+): T[]
+export function recortarPelaComposicao<T extends { id: string }>(
+  usaveis: T[],
+  composicao: Composicao | null | undefined,
+  opts: { completar: boolean } | { filtro: FiltroDaPratica; extras?: ExtrasDoFiltro },
 ): T[] {
   if (!composicao?.itens?.length) return usaveis
 
@@ -345,10 +504,20 @@ export function recortarPelaComposicao<T extends { id: string }>(
    * `completar: false` quando há filtro de dificuldade: ali o recorte VEIO do servidor, e completar
    * encheria a rodada com cartões fora da faixa, apagando em silêncio o que a pessoa escolheu.
    */
-  if (!opts.completar) return escolhidos
+  if ('completar' in opts) {
+    if (!opts.completar) return escolhidos
+    for (const carta of usaveis) {
+      if (jaEntrou.has(carta.id)) continue
+      escolhidos.push(carta)
+      jaEntrou.add(carta.id)
+    }
+    return escolhidos
+  }
 
+  // `{ filtro }`: SEMPRE completa, mas o complemento só admite quem passa no filtro facetado.
   for (const carta of usaveis) {
     if (jaEntrou.has(carta.id)) continue
+    if (!passaNoFiltro(carta as unknown as CartaoFiltravel, opts.filtro, opts.extras)) continue
     escolhidos.push(carta)
     jaEntrou.add(carta.id)
   }

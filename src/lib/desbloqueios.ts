@@ -10,7 +10,11 @@
  *      (o cadeado vale para TROCAR para algo ainda não conquistado, nunca para expulsar).
  */
 
-export type TipoDesbloqueavel = 'tema' | 'fonte' | 'posicao' | 'estudio';
+import { conquistasDesbloqueadas } from './conquistasPosse';
+import type { TipoDesbloqueavel } from '@core';
+
+// O tipo mudou para `core/loja.ts` (o catálogo é quem o consome); a REGRA de nível continua aqui.
+export type { TipoDesbloqueavel };
 
 /** nível mínimo por item; o que não está aqui é livre desde o início. */
 const CATALOGO: Record<TipoDesbloqueavel, Record<string, number>> = {
@@ -38,10 +42,19 @@ const CATALOGO: Record<TipoDesbloqueavel, Record<string, number>> = {
 const CHAVE_LIBERADO = 'babel.liberado';
 
 /**
- * LIBERACAO TOTAL (dono/testes): `window.babel.liberarTudo()` no console, ou `?liberar=1` na URL.
- * Nao e segredo de seguranca — e cosmetico; existe para demonstracao e validacao.
+ * LIBERAÇÃO TOTAL (dono/testes): `window.babel.liberarTudo()` no console, ou `?liberar=1` na URL.
+ *
+ * SÓ EM DESENVOLVIMENTO, desde 01/09. Ela é avaliada ANTES de tudo em `estadoDoItem`
+ * (`lib/loja.ts`), então uma chave de localStorage destravava o catálogo inteiro — e o comentário
+ * antigo ("não é segredo de segurança, é cosmético") deixou de valer quando a mesma tela passou a
+ * vender item com dinheiro. Continua existindo para demonstração e validação; deixa de existir no
+ * build que vai ao ar.
  */
 export function liberadoTudo(): boolean {
+  /* `import.meta as unknown as ...` é o padrão da casa (ver `lib/edicao.ts`): o tsconfig do
+     servidor não carrega os tipos do Vite, e `import.meta.env` existe em runtime. */
+  const env = (import.meta as unknown as { env?: Record<string, unknown> }).env;
+  if (!env?.DEV) return false;
   try { return localStorage.getItem(CHAVE_LIBERADO) === '1'; } catch { return false; }
 }
 
@@ -59,9 +72,19 @@ export function nivelNecessario(tipo: TipoDesbloqueavel, id: string): number {
 /**
  * `escolhaAtual`: o que a pessoa JÁ usa — nunca é rebaixado (regra 2).
  */
+/**
+ * EXCLUSIVOS DE CONQUISTA (economia v2): não têm nível nem preço; só a conquista abre.
+ * Chave `tipo:id` → id da conquista (catálogo em `@core/learning/conquistas`).
+ */
+export const EXCLUSIVOS_DE_CONQUISTA: Record<string, string> = {
+  'tema:aurora': 'constante',
+};
+
 export function desbloqueado(nivel: number, tipo: TipoDesbloqueavel, id: string, escolhaAtual?: string): boolean {
   if (liberadoTudo()) return true;
   if (escolhaAtual !== undefined && escolhaAtual === id) return true;
+  const conquista = EXCLUSIVOS_DE_CONQUISTA[`${tipo}:${id}`];
+  if (conquista) return conquistasDesbloqueadas().has(conquista);
   return nivel >= nivelNecessario(tipo, id);
 }
 

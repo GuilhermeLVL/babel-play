@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import {
-  REVELAVEL, MINIGAME_IDS, previaSegura, esqueleto, repetidosDaUltima,
+  REVELAVEL, MINIGAME_IDS, previaSegura, esqueleto, repetidosDaUltima, origemDoMaterial,
   type ItemCru,
 } from '../src/core';
 import { chaveComparavel } from '../src/core/learning/quality';
@@ -240,3 +240,23 @@ describe('esqueleto emitido como título também vem como forma', () => {
     }
   });
 })
+
+describe('origemDoMaterial — a prévia diz de onde o material VEM, não de onde a aba diz (S4)', () => {
+  it('jogo de frase com fonte "baralho" rotula "sessao": o material é da gravação', () => {
+    for (const jogo of ['scramble', 'escuta', 'ditado', 'conectores', 'karaoke'] as const) {
+      expect(origemDoMaterial(jogo, 'baralho')).toBe('sessao');
+      expect(origemDoMaterial(jogo, 'dificeis')).toBe('sessao');
+    }
+  });
+
+  it('na trilha nada muda — lá o material É da trilha (Tatoeba/TTS)', () => {
+    expect(origemDoMaterial('escuta', 'trilha')).toBe('trilha');
+    expect(origemDoMaterial('scramble', 'trilha')).toBe('trilha');
+  });
+
+  it('jogo de PALAVRA mantém a fonte da aba, e origem declarada vence sempre', () => {
+    expect(origemDoMaterial('memory', 'baralho')).toBe('baralho');
+    expect(origemDoMaterial('termo', 'dificeis')).toBe('dificeis');
+    expect(origemDoMaterial('escuta', 'baralho', 'trilha')).toBe('trilha');
+  });
+});

@@ -1,7 +1,9 @@
 import { Bot, Flame, Sprout } from 'lucide-react';
 import { compactNumber, type DerivedProgress } from '../../lib/progress';
-import type { AgeProfileType } from '../../lib/profile';
+import { copyDoPerfil, type AgeProfileType } from '../../lib/profile';
 import { Barra } from '../ui';
+import { proximaRecompensa, emojiDoItem } from '../../lib/galeria/progressao';
+import { TEXTOS } from '../../lib/galeria/textos';
 
 /**
  * A FAIXA DE PROGRESSO — nível, XP, ofensiva e seeds.
@@ -41,7 +43,16 @@ export default function FaixaDeProgresso({ progress, ageProfile }: { progress: D
     );
   }
 
-  const levelWord = ageProfile === 'senior' ? 'Etapa' : 'Nível';
+  const levelWord = copyDoPerfil('word.level', ageProfile);
+  /**
+   * PERFIL SÊNIOR: um conceito, não quatro (auditoria de UX, 31/08). NÍVEL + XP + OFENSIVA +
+   * SEEDS de uma vez é exatamente a carga que esse perfil pede para não ter. Fica a etapa com a
+   * barra — a frase abaixo já narra a ofensiva em português corrente quando ela existe — e saem
+   * os contadores gêmeos e o teaser de recompensa da galeria.
+   */
+  const simples = ageProfile === 'senior';
+  // v3: a faixa diz para ONDE se vai — o 1º item do próximo nível que libera algo.
+  const proxima = simples ? null : proximaRecompensa(progress.level);
 
   return (
     <section
@@ -69,10 +80,16 @@ export default function FaixaDeProgresso({ progress, ageProfile }: { progress: D
           {progress.practicedToday
             ? `Você já revisou hoje, ofensiva de ${progress.streakDays} ${progress.streakDays === 1 ? 'dia' : 'dias'}.`
             : 'Uma revisão hoje mantém a sua ofensiva viva.'}
+          {proxima && (
+            <span className="block mt-0.5">
+              {TEXTOS.faltamXp(progress.xpForLevel - progress.xpIntoLevel)} · próximo: <span aria-hidden>{emojiDoItem(proxima.destaque)}</span> <b className="text-ink">{proxima.destaque.nome}</b>
+              {proxima.itens.length > 1 && <span className="text-ink-faint"> +{proxima.itens.length - 1}</span>}
+            </span>
+          )}
         </p>
       </div>
 
-      <div className="flex items-center gap-4 shrink-0">
+      {!simples && <div className="flex items-center gap-4 shrink-0">
         <div className="text-center">
           <div className="flex items-center gap-1.5 font-display font-black text-ink text-lg leading-none">
             <Flame className="w-4 h-4 text-warn" aria-hidden /> {progress.streakDays}
@@ -85,7 +102,7 @@ export default function FaixaDeProgresso({ progress, ageProfile }: { progress: D
           </div>
           <div className="label-mono mt-1">Seeds</div>
         </div>
-      </div>
+      </div>}
     </section>
   );
 }

@@ -1,0 +1,11 @@
+{
+  "fonte": "https://dl.fbaipublicfiles.com/nllb/flores200_dataset.tar.gz",
+  "licenca": "CC BY-SA 4.0",
+  "split": "devtest",
+  "par": "eng_Latn → por_Latn",
+  "totalNoSplit": 1012,
+  "amostrados": 200,
+  "amostragem": "espaçada, passo 5",
+  "sha256": "fdc0d2b22fa0df92e94a67a64c7d7765d9560be589c13ff4fb522af0f75d0b65",
+  "geradoEm": "2026-08-30T22:20:22.992Z"
+}

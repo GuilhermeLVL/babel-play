@@ -89,12 +89,16 @@ export const VARIAVEIS: readonly VariavelDeclarada[] = [
   { nome: 'GROQ_LLM_MODEL', exigencia: 'opcional', criticidade: 'degrada-capacidade', paraQue: 'modelo de LLM na Groq' },
   { nome: 'GROQ_MODEL', exigencia: 'opcional', criticidade: 'degrada-capacidade', paraQue: 'modelo de STT na Groq' },
   { nome: 'HOST', exigencia: 'opcional', criticidade: 'degrada-capacidade', paraQue: 'interface de escuta' },
+  { nome: 'LLM_API_KEY', exigencia: 'opcional', criticidade: 'degrada-capacidade', paraQue: 'chave do provedor de LLM (qualquer um OpenAI-compatible). Substitui GROQ_API_KEY, que segue válida' },
+  { nome: 'LLM_BASE_URL', exigencia: 'opcional', criticidade: 'degrada-capacidade', paraQue: 'endpoint do provedor de LLM; trocar de provedor é só mudar isto' },
+  { nome: 'LLM_MODEL', exigencia: 'opcional', criticidade: 'degrada-capacidade', paraQue: 'modelo de tradução/tutor no provedor escolhido' },
   { nome: 'LOCAL_OWNER_ID', exigencia: 'opcional', criticidade: 'degrada-capacidade', paraQue: 'id do dono no modo self-host' },
   { nome: 'MIGRATIONS_DIR', exigencia: 'opcional', criticidade: 'degrada-capacidade', paraQue: 'diretório das migrações do Drizzle' },
   { nome: 'NODE_ENV', exigencia: 'opcional', criticidade: 'degrada-capacidade', paraQue: 'production liga CSP, exige auth por padrão e muda o pipeline do Vite' },
   { nome: 'OLLAMA_MODEL', exigencia: 'opcional', criticidade: 'degrada-capacidade', paraQue: 'modelo do Ollama local' },
   { nome: 'PORT', exigencia: 'opcional', criticidade: 'degrada-capacidade', paraQue: 'porta de escuta' },
-  { nome: 'PRO_MONTHLY_MANAGED_CALLS', exigencia: 'opcional', criticidade: 'degrada-capacidade', paraQue: 'cota mensal de chamadas gerenciadas do plano Pro' },
+  { nome: 'PRO_MONTHLY_MANAGED_CALLS', exigencia: 'opcional', criticidade: 'degrada-capacidade', paraQue: 'cota mensal de chamadas gerenciadas do plano Pro (default 12.000)' },
+  { nome: 'PRO_MONTHLY_STT_SECONDS', exigencia: 'opcional', criticidade: 'degrada-capacidade', paraQue: 'teto mensal de SEGUNDOS de áudio no STT de nuvem — o teto de gasto real (default 36.000)' },
   { nome: 'SECRET_KEY', exigencia: 'producao', criticidade: 'impede-servico', paraQue: 'cifra os segredos de credencial de IA guardados no banco (server/crypto.ts)' },
   { nome: 'STORAGE_RECONCILE_HOURS', exigencia: 'opcional', criticidade: 'degrada-capacidade', paraQue: 'intervalo da reconciliação oportunista de armazenamento' },
   { nome: 'STT_API_KEY', exigencia: 'opcional', criticidade: 'degrada-capacidade', paraQue: 'STT de nuvem alternativo ao Groq' },
@@ -165,7 +169,10 @@ export function verificarConfiguracaoNoBoot(): ResultadoDaConferencia {
  * roteador decidir sem gastar chamada de API.
  */
 export function sttDeNuvemConfigurado(env: NodeJS.ProcessEnv = process.env): boolean {
-  return Boolean(env.GROQ_API_KEY || env.STT_API_KEY)
+  // `LLM_API_KEY` entra aqui também: sem isto, quem configurasse só o nome novo veria a rota
+  // `/api/ai/stt/available` responder "não configurado" com a chave presente — e a UI esconderia
+  // uma capacidade que existe.
+  return Boolean(env.LLM_API_KEY || env.GROQ_API_KEY || env.STT_API_KEY)
 }
 
 /**

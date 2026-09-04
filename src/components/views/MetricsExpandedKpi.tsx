@@ -5,6 +5,7 @@ import { X, Target, Clock, Activity, BookOpen, Mic } from 'lucide-react';
 import type { AppMetrics } from '../../data/api';
 import { Confianca, SemDado } from '../Honestidade';
 import EvolucaoSemanal from '../metrics/EvolucaoSemanal';
+import { numero } from '../../lib/i18n';
 
 export type KpiType = 'volume' | 'retention' | 'time' | 'level' | null;
 
@@ -46,7 +47,7 @@ export default function MetricsExpandedKpi({ kpi, onClose, metrics }: MetricsExp
 
   return (
     <div className="fixed inset-0 z-50 bg-ink/80 backdrop-blur-sm flex justify-end">
-      <div className="w-full max-w-2xl bg-canvas h-full shadow-2xl flex flex-col animate-in slide-in-from-right duration-300 border-l border-border-subtle overflow-hidden">
+      <div className="w-full max-w-2xl bg-canvas h-full shadow-2xl flex flex-col animate-in slide-in-from-right duration-300 border-s border-border-subtle overflow-hidden">
 
         {/* Header */}
         <div className="p-6 border-b border-border-subtle bg-surface flex justify-between items-center shrink-0">
@@ -81,12 +82,12 @@ export default function MetricsExpandedKpi({ kpi, onClose, metrics }: MetricsExp
               <div className="grid grid-cols-2 gap-4">
                 <div className="card-panel p-5 bg-surface border-border-subtle">
                   <div className="text-[11px] font-bold text-ink-muted uppercase mb-1">Palavras Únicas</div>
-                  <div className="font-display font-black text-3xl text-ink">{(metrics!.uniqueWords ?? 0).toLocaleString('pt-BR')}</div>
+                  <div className="font-display font-black text-3xl text-ink">{numero(metrics!.uniqueWords ?? 0)}</div>
                   <div className="text-[11px] text-ink-muted font-bold mt-1">Formas distintas capturadas</div>
                 </div>
                 <div className="card-panel p-5 bg-surface border-border-subtle">
                   <div className="text-[11px] font-bold text-ink-muted uppercase mb-1">Cards no Deck</div>
-                  <div className="font-display font-black text-3xl text-ink">{(metrics!.deckSize ?? 0).toLocaleString('pt-BR')}</div>
+                  <div className="font-display font-black text-3xl text-ink">{numero(metrics!.deckSize ?? 0)}</div>
                   <div className="text-[11px] text-ink-muted font-bold mt-1">{metrics!.newCards ?? 0} novos • {metrics!.dueToday ?? 0} p/ revisar</div>
                 </div>
               </div>
@@ -197,8 +198,8 @@ export default function MetricsExpandedKpi({ kpi, onClose, metrics }: MetricsExp
                       <div key={lvl.level} className="card-panel p-5 bg-surface border-border-subtle">
                         <div className="flex justify-between items-end mb-3">
                           <div className="font-bold text-[14px] text-ink">{lvl.level}</div>
-                          <div className="text-right shrink-0 ml-4">
-                            <div className="font-display font-bold text-xl text-ink">{lvl.count.toLocaleString('pt-BR')}</div>
+                          <div className="text-end shrink-0 ms-4">
+                            <div className="font-display font-bold text-xl text-ink">{numero(lvl.count)}</div>
                             <div className="text-[11px] font-mono text-ink-muted uppercase">termos · {percent}%</div>
                           </div>
                         </div>

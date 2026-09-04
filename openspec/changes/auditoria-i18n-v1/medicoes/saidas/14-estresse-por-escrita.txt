@@ -1,0 +1,55 @@
+
+===== 14 — estresse por escrita =====
+1. TURCO — o `i` sem ponto
+caso                                          invariante  com locale 'tr'   igual?
+-------------------------------------------  -----------  ---------------  -------
+'I'.toLowerCase() × toLocaleLowerCase('tr')          "i"              "ı"  **NÃO**
+'i'.toUpperCase() × toLocaleUpperCase('tr')          "I"              "İ"  **NÃO**
+'İSTANBUL' minúsculo                         "i̇stanbul"       "istanbul"  **NÃO**
+'ışık' maiúsculo                                  "IŞIK"           "IŞIK"      sim
+  palavras da trilha turca (5787) que mudam de identidade:
+    com toLowerCase() invariante: 17 (0.3%)
+    com toUpperCase() invariante: 1996 (34.5%)
+    exemplos: için→IÇIN (certo: İÇİN) · seni→SENI (certo: SENİ) · senin→SENIN (certo: SENİN) · misin→MISIN (certo: MİSİN) · biraz→BIRAZ (certo: BİRAZ) · hadi→HADI (certo: HADİ)
+
+2. ORDENAÇÃO — `Intl.Collator` por idioma × ordenação binária
+idioma                                              entrada  binária (sort padrão)       Intl.Collator  diferem?
+---------------------------------------  ------------------  ---------------------  ------------------  --------
+is — þ vem depois de z em islandês       zebra þór ær öl að     að zebra ær öl þór  að zebra þór ær öl   **sim**
+sv — å/ä/ö vêm depois de z em sueco               ö z å ä a              a z ä å ö           a z å ä ö   **sim**
+tr — ç/ş/ı têm posição própria em turco           z ç ş i ı              i z ç ı ş           ç ı i ş z   **sim**
+de — ß ordena como ss em alemão                    ß ss z ä               ss z ß ä            ä ss ß z   **sim**
+  arquivos que usam Intl.Collator ou localeCompare: 5 → CoberturaDosIdiomas.tsx, MapaDoConteudo.tsx, fillers.ts, painelDaPratica.ts
+  chamadas de .sort() sem comparador (ordenação binária): 4
+
+3. CLUSTER DE GRAFEMA — `.length` × `Intl.Segmenter(grapheme)`
+lang                           palavra  .length  [...spread]  grafemas (ICU)  slice(0,3) corta?
+----------------------------  --------  -------  -----------  --------------  -----------------
+hi (você)                      तुम्हें        7            7               2                não
+hi (guerreiro)                क्षत्रिय        8            8               3                não
+ar (nome próprio com marcas)  مُحَمَّد        8            8               4                não
+ko (coreano)                       한국어        3            3               3                não
+th (tailandês)                      กำ        2            2               1                não
+  .slice(0,N) sobre string no código: 58 · .substring/.substr: 4
+  (censo: cada um desses trunca por unidade UTF-16, não por grafema)
+
+4. CHINÊS — simplificado × tradicional
+medida                                                          valor
+--------------------------------------  -----------------------------
+variantes no seletor de idioma                     zh-CN→zh, zh-TW→zh
+arquivos de trilha para chinês          public/trilha/zh.json (um só)
+palavras da trilha zh                                            5221
+com caractere exclusivo de tradicional                      75 (1.4%)
+  As duas variantes do seletor colapsam para o mesmo `short` e portanto para a MESMA trilha.
+
+5. FONTES
+medida                                                                                                             valor
+------------------------------------------  ----------------------------------------------------------------------------
+arquivos de fonte no repositório                                                                                       0
+famílias importadas do Google Fonts                                                                                    8
+quais                                       Inter, Archivo, IBM Plex Mono, Geist, Geist Mono, Baloo 2, Silkscreen, VT323
+@font-face próprio                                                                                                     0
+declaração de unicode-range própria                                                                                    0
+fallback declarado para escrita não latina                                                                           NÃO
+  Nenhuma das famílias importadas cobre CJK, árabe, hebraico, devanágari ou tailandês:
+  essas escritas caem no fallback do sistema operacional de quem lê.

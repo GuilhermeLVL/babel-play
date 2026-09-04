@@ -37,6 +37,13 @@ describe('fontesDisponiveis — na tela Jogar (não embutida)', () => {
     expect(f).toEqual(['baralho', 'sessao', 'trilha'])
   })
 
+  it('as palavras difíceis entram quando o ranking sustenta uma rodada — e nunca embutido', () => {
+    expect(fontesDisponiveis({ embutido: false, temSessao: false, temTrilha: false, temDificeis: true }))
+      .toEqual(['baralho', 'dificeis'])
+    expect(fontesDisponiveis({ embutido: true, temSessao: true, temTrilha: false, temDificeis: true }))
+      .toEqual(['sessao'])
+  })
+
   it('omite a sessão quando não há gravação — botão que não faz nada é pior que ausente', () => {
     expect(fontesDisponiveis({ embutido: false, temSessao: false, temTrilha: true }))
       .toEqual(['baralho', 'trilha'])

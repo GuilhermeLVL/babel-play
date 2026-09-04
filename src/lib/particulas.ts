@@ -6,7 +6,10 @@
  * a forma da skin. Rajadas com forma propria (confete de rodada perfeita, patos, raios dos
  * eventos) NAO mudam — evento raro tem identidade propria.
  */
-export type ParticulasType = 'tema' | 'pixel' | 'confete' | 'coracoes' | 'estrelas' | 'emoji';
+/* `cometa` é EXCLUSIVA de conquista ("Ouvinte"): círculo com cauda, nunca à venda. */
+import { sanearListaDeEmojis } from './galeria/emojis';
+
+export type ParticulasType = 'tema' | 'pixel' | 'confete' | 'coracoes' | 'estrelas' | 'emoji' | 'cometa';
 
 export interface ParticulasOption { id: ParticulasType; name: string; desc: string }
 
@@ -17,6 +20,7 @@ export const PARTICULAS_OPTIONS: ParticulasOption[] = [
   { id: 'coracoes', name: 'Coracoes', desc: 'Coracoes subindo a cada acerto.' },
   { id: 'estrelas', name: 'Estrelas', desc: 'Estrelinhas brilhantes.' },
   { id: 'emoji', name: 'Chuva de Emojis', desc: 'Os emojis do PACK equipado em cada acerto.' },
+  { id: 'cometa', name: 'Cometa', desc: 'Exclusiva de conquista: bolas de luz com cauda.' },
 ];
 
 const CHAVE = 'app_particulas';
@@ -57,23 +61,56 @@ export const PACKS_DE_EMOJI: PackDeEmoji[] = [
   { id: 'esportes', nome: 'Esportes', emojis: ['⚽', '🏀', '🏐', '🏆', '🎮', '🥇', '🏁'] },
   { id: 'brasil', nome: 'Brasil', emojis: ['🇧🇷', '⚽', '🏖️', '🦜', '☕', '🌴', '🎭'] },
   { id: 'tesouros', nome: 'Tesouros', emojis: ['💎', '👑', '🪙', '💰', '🔮', '🏆', '✨'] },
+  /* PACKS DA TEMPORADA 1 (mudança economia-legivel-e-moedas). O passe tinha 59 itens para 100
+     casas e 33 delas ficavam vazias — inclusive 8 dos 10 marcos de dezena. Estes packs são
+     conteúdo REAL e sem arte nova: listas curadas do mesmo catálogo de emojis que o editor já
+     usa, no mesmo formato dos 12 acima. Cada um vira um item do catálogo, nas décadas pobres. */
+  { id: 'oceano', nome: 'Oceano', emojis: ['🐬', '🐳', '🐙', '🐠', '🦈', '🌊', '🐟'] },
+  { id: 'doces', nome: 'Doces', emojis: ['🍩', '🍪', '🧁', '🍰', '🍫', '🍬', '🍭'] },
+  { id: 'gatos', nome: 'Gatos', emojis: ['🐱', '🐈', '😺', '😻', '🐯', '🦁', '🐅'] },
+  { id: 'jardim', nome: 'Jardim', emojis: ['🌷', '🌻', '🌹', '🌵', '🍀', '🌿', '🌱'] },
+  { id: 'noite', nome: 'Noite', emojis: ['🌙', '⭐', '✨', '🌌', '🦉', '🌠', '💤'] },
+  { id: 'viagem', nome: 'Viagem', emojis: ['✈️', '🚂', '⛵', '🗺️', '🏝️', '🚢', '🚁'] },
+  { id: 'clima', nome: 'Clima', emojis: ['☀️', '🌧️', '⛈️', '🌈', '❄️', '🌪️', '⚡'] },
+  { id: 'medieval', nome: 'Medieval', emojis: ['⚔️', '🛡️', '👑', '🐉', '🗝️', '🏹', '💎'] },
+  { id: 'circo', nome: 'Circo', emojis: ['🎪', '🎈', '🍿', '🎭', '🎩', '🎊', '🎁'] },
+  { id: 'gala', nome: 'Gala', emojis: ['🎩', '🥂', '🎭', '💫', '🕯️', '🪩', '🎼'] },
+  { id: 'lendas', nome: 'Lendas', emojis: ['🐉', '🦄', '🔱', '⚡', '🔥', '👑', '💫'] },
 ];
 
 const CHAVE_PACK = 'app_particulas_pack';
+const CHAVE_PACK_CUSTOM = 'babel.pack_custom';
+/** O pack PERSONALIZADO (galeria, 2026-08-28): a lista que a pessoa montou no editor. */
+export const PACK_CUSTOM = 'custom';
 
 export function readPack(): string {
   try {
     const v = localStorage.getItem(CHAVE_PACK) ?? 'classico';
+    if (v === PACK_CUSTOM) return lerPackCustom().length ? PACK_CUSTOM : 'classico';
     return PACKS_DE_EMOJI.some((p) => p.id === v) ? v : 'classico';
   } catch { return 'classico'; }
 }
 
 export function setPack(id: string): string {
-  const valido = PACKS_DE_EMOJI.some((p) => p.id === id) ? id : 'classico';
+  const valido = id === PACK_CUSTOM ? PACK_CUSTOM : PACKS_DE_EMOJI.some((p) => p.id === id) ? id : 'classico';
   try { localStorage.setItem(CHAVE_PACK, valido); } catch { /* sem storage */ }
   return valido;
 }
 
+export function lerPackCustom(): string[] {
+  try { return sanearListaDeEmojis(JSON.parse(localStorage.getItem(CHAVE_PACK_CUSTOM) || '[]')); } catch { return []; }
+}
+
+/** Grava a lista personalizada (só emojis do catálogo) e a equipa. Lista vazia volta ao clássico. */
+export function setPackCustom(lista: string[]): string[] {
+  const limpa = sanearListaDeEmojis(lista);
+  try { localStorage.setItem(CHAVE_PACK_CUSTOM, JSON.stringify(limpa)); } catch { /* sem storage */ }
+  setPack(limpa.length ? PACK_CUSTOM : 'classico');
+  return limpa;
+}
+
 export function emojisDoPack(): string[] {
-  return PACKS_DE_EMOJI.find((p) => p.id === readPack())?.emojis ?? ['⭐', '✨'];
+  const id = readPack();
+  if (id === PACK_CUSTOM) { const c = lerPackCustom(); if (c.length) return c; }
+  return PACKS_DE_EMOJI.find((p) => p.id === id)?.emojis ?? ['⭐', '✨'];
 }

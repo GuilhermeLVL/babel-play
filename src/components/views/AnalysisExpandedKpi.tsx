@@ -3,6 +3,7 @@ import { X, Activity, MessageSquareWarning, Crosshair, TrendingUp, AlertTriangle
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid, AreaChart, Area } from 'recharts';
 import { extractKeywords } from '@core';
 import { SemDado } from '../Honestidade';
+import { numero } from '../../lib/i18n';
 
 export type AnalysisKpiType = 'ppm' | 'fillers' | 'lexical_richness' | 'dominant_tone' | 'long_pauses' | 'words_read' | 'study_time' | 'flesch' | 'density' | 'jargons' | 'articulatory_pauses' | 'topics' | null;
 
@@ -92,7 +93,7 @@ export default function AnalysisExpandedKpi({ kpi, onClose, utterances, vicios }
               <>
                 <div className="bg-surface border border-border-subtle p-4 rounded-xl flex items-center justify-between">
                   <span className="text-[11px] font-semibold text-ink-muted uppercase tracking-wider">Ritmo médio (real)</span>
-                  <div className="font-display text-2xl font-black text-accent">{avgWpm}<span className="text-[14px] text-ink-faint ml-1">PPM</span></div>
+                  <div className="font-display text-2xl font-black text-accent">{avgWpm}<span className="text-[14px] text-ink-faint ms-1">PPM</span></div>
                 </div>
                 <div className="h-[250px] w-full bg-surface/30 p-3 rounded-2xl border border-border-subtle/50">
                   <ResponsiveContainer width="100%" height="100%">
@@ -142,7 +143,7 @@ export default function AnalysisExpandedKpi({ kpi, onClose, utterances, vicios }
                     <div className="flex-1 h-4 bg-canvas rounded-full overflow-hidden border border-border-subtle">
                       <div className="h-full bg-accent rounded-full" style={{ width: `${Math.round((d.vezes / maior) * 100)}%` }} />
                     </div>
-                    <span className="text-[13px] font-bold text-ink-muted w-10 text-right shrink-0">{d.vezes}</span>
+                    <span className="text-[13px] font-bold text-ink-muted w-10 text-end shrink-0">{d.vezes}</span>
                   </div>
                 ))}
               </div>
@@ -269,7 +270,7 @@ export default function AnalysisExpandedKpi({ kpi, onClose, utterances, vicios }
               <>
                 <div className="bg-surface border border-border-subtle p-4 rounded-xl flex items-center justify-between">
                   <span className="text-[11px] font-semibold text-ink-muted uppercase tracking-wider">Palavras transcritas (real)</span>
-                  <div className="font-display text-2xl font-black text-good">{totalWords.toLocaleString('pt-BR')}</div>
+                  <div className="font-display text-2xl font-black text-good">{numero(totalWords)}</div>
                 </div>
                 {series.length > 0 && (
                   <div className="h-[240px] w-full bg-surface/30 p-3 rounded-2xl border border-border-subtle/50">

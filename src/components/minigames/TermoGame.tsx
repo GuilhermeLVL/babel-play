@@ -10,6 +10,7 @@ import type { AgeProfileType } from '../../lib/profile';
 import { comemorar, pontosDoElemento, multiplicador } from '../../lib/juice';
 import { speak } from '../../lib/tts';
 import { toBcp47 } from '../../lib/languages';
+import { playJuicedHit, playJuicedError, playJuicedVictory, triggerHaptic } from '../../lib/gameFeel';
 
 /**
  * SOLETRAR — o jogo de escrever a palavra a partir do significado, em degraus.
@@ -220,9 +221,14 @@ export default function TermoGame({ rodadas, ageProfile, onFinish, onExit }: Ter
     const temProximo = tudoCerto && grupoIdx + 1 < grupos.length;
 
     // A escada só sobe com acerto — é a regra inteira do jogo, e a comemoração precisa dizer isso.
-    if (temProximo) { setSubiuDegrau(true); comemorar('subiuNivel', gradeRef.current, { tremer: true }); }
-    else if (tudoCerto) comemorar('rodadaPerfeita', gradeRef.current, { tremer: true });
-    else comemorar('erro', gradeRef.current);
+    if (temProximo) {
+      setSubiuDegrau(true);
+      playJuicedVictory();
+    } else if (tudoCerto) {
+      playJuicedVictory();
+    } else {
+      playJuicedError(gradeRef.current, undefined);
+    }
 
     // Pausa para LER o resultado antes de a tela trocar; maior quando errou, porque há o que ver.
     setTimeout(() => {
@@ -238,11 +244,7 @@ export default function TermoGame({ rodadas, ageProfile, onFinish, onExit }: Ter
     if (fimDoGrupo || !grupo || !preenchido) return;
     const palpite = atual.join('');
 
-    /* JULGAMENTO CONTRA A RODADA (sinônimos e "quase"), não só contra a resposta. Se algum
-       tabuleiro aberto reconhece o palpite como sinônimo válido, ou como "quase" na última
-       tentativa, a jogada é DE GRAÇA: avisa, orienta, revela a 1ª letra (no sinônimo) e não
-       gasta tentativa. Errar de vocabulário é diferente de errar de digitação ou de acertar
-       outra palavra com o mesmo sentido. */
+    /* JULGAMENTO CONTRA A RODADA (sinônimos e "quase"), não só contra a resposta. */
     const ultima = tentativas + 1 >= maxTentativas;
     const julgamentos = grupo.map((r, i) => (resolvidos[i] ? null : julgarPalpite(palpite, r, { ultimaTentativa: ultima, quaseJaUsado: quaseUsado[i] })));
     const gratis = julgamentos.find(j => j && !j.acertou && (j.sinonimo || j.quase));
@@ -254,7 +256,7 @@ export default function TermoGame({ rodadas, ageProfile, onFinish, onExit }: Ter
         setReveladas(prev => ({ ...prev, [i]: { ...(prev[i] ?? {}), 0: primeira } }));
       }
       if (gratis.quase) setQuaseUsado(q => q.map((v, k) => (k === i ? true : v)));
-      comemorar('acerto', gradeRef.current, { texto: gratis.sinonimo ? 'sinônimo!' : 'quase!' });
+      playJuicedHit(1, undefined, gratis.sinonimo ? 'sinônimo!' : 'quase!');
       const proxima = linhaInicial(tamanho, palpitesPorTab, resolvidos, gratis.sinonimo ? { ...reveladas, [i]: { ...(reveladas[i] ?? {}), 0: grupo[i].resposta[0] } } : reveladas);
       cursorEscolhidoRef.current = false;
       escrever(proxima, proximaVaga(proxima, 0));
@@ -268,30 +270,37 @@ export default function TermoGame({ rodadas, ageProfile, onFinish, onExit }: Ter
     const novosResolvidos = resolvidos.map((r, i) => r || acertou(novosPalpites[i][novosPalpites[i].length - 1]));
     const fechouAgora = novosResolvidos.filter((r, i) => r && !resolvidos[i]).length;
     const tentativasUsadas = tentativas + 1;
-    novosResolvidos.forEach((r, i) => { if (r && !resolvidos[i]) { resolvidoEmRef.current[i] = tentativasUsadas; resolvidoEmTsRef.current[i] = Date.now(); } });
+    novosResolvidos.forEach((r, i) => {
+      if (r && !resolvidos[i]) {
+        resolvidoEmRef.current[i] = tentativasUsadas;
+        resolvidoEmTsRef.current[i] = Date.now();
+        const rod = grupo[i];
+        if (rod) {
+          const w = rod.palavra || rod.resposta;
+          if (w) speak(w, { lang: toBcp47(rod.lang || 'en') });
+        }
+      }
+    });
 
     setPalpitesPorTab(novosPalpites);
     setResolvidos(novosResolvidos);
     setTentativas(tentativasUsadas);
-    // A próxima tentativa já nasce com o que se sabe — inclusive a dica paga, que antes sumia.
     const proxima = linhaInicial(tamanho, novosPalpites, novosResolvidos, reveladas);
-    cursorEscolhidoRef.current = false;   // linha nova, ninguém escolheu nada ainda
+    cursorEscolhidoRef.current = false;
     escrever(proxima, proximaVaga(proxima, 0));
 
     if (fechouAgora > 0) {
       const nova = sequencia + fechouAgora;
       const mult = multiplicador(nova);
-      // A dica cobra: os pontos vêm, mas sem o multiplicador em cima.
       const ganho = 10 * fechouAgora * (usouDica ? 1 : mult);
       setSequencia(nova);
       setPontos(p => p + ganho);
-      comemorar(mult > 1 && !usouDica ? 'sequencia' : 'acerto', gradeRef.current, {
-        texto: `+${ganho}${mult > 1 && !usouDica ? ` ×${mult}` : ''}`,
-        tremer: mult >= 3,
-      });
+      triggerHaptic('success');
+      playJuicedHit(nova, undefined, `+${ganho}${mult > 1 && !usouDica ? ` ×${mult}` : ''}`);
     } else {
       setSequencia(0);
-      comemorar('erro', gradeRef.current);
+      triggerHaptic('error');
+      playJuicedError(gradeRef.current, undefined);
     }
 
     if (novosResolvidos.every(Boolean) || tentativasUsadas >= maxTentativas) fecharGrupo(novosResolvidos, tentativasUsadas);
@@ -334,13 +343,10 @@ export default function TermoGame({ rodadas, ageProfile, onFinish, onExit }: Ter
 
   const digitar = (letra: string) => {
     if (fimDoGrupo) return;
+    triggerHaptic('soft');
     const n = [...atualRef.current];
-    // Segunda trava, no lugar onde o dano acontecia: escrever fora da linha é o que a fazia
-    // crescer. Uma posição válida sempre existe — a linha nunca tem tamanho zero.
     const pos = Math.min(cursorRef.current, n.length - 1);
     if (pos < 0) return;
-    // Linha cheia e cursor parado por conta própria: a tecla é sobra. Ignorar não perde nada —
-    // para trocar uma letra, basta clicar nela ou apagar.
     if (n.every(l => l !== '') && !cursorEscolhidoRef.current) return;
     n[pos] = letra;
     escrever(n, proximaVaga(n, pos + 1));
@@ -348,6 +354,7 @@ export default function TermoGame({ rodadas, ageProfile, onFinish, onExit }: Ter
 
   const apagar = () => {
     if (fimDoGrupo) return;
+    triggerHaptic('soft');
     const n = [...atualRef.current];
     const pos = Math.max(0, Math.min(cursorRef.current, n.length - 1));
     if (n[pos]) { escrever(n.map((l, i) => (i === pos ? '' : l)), pos); return; }

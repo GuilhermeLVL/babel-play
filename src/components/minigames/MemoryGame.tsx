@@ -6,22 +6,11 @@ import { direcaoDoTexto } from '../../lib/languages';
 import type { AgeProfileType } from '../../lib/profile';
 import { play } from '../../lib/soundFx';
 import { comemorar, pontosDoElemento, multiplicador } from '../../lib/juice';
+import { playJuicedHit, playJuicedError, playJuicedVictory, triggerHaptic } from '../../lib/gameFeel';
 
-/**
- * JOGO DA MEMÓRIA — palavra ↔ tradução.
- *
- * Por que este é o primeiro dos quatro: é o que tem a mecânica mais simples (sem grade, sem
- * relógio) e ao mesmo tempo o ciclo completo — item → nota no agendador → resultado gravado →
- * XP no perfil. Validar o ciclo aqui, antes de multiplicar por quatro, é barato.
- *
- * O que o torna EXERCÍCIO e não passatempo: para fechar um par a pessoa precisa lembrar o que a
- * palavra quer dizer (recuperação ativa). E a mecânica traz repetição espaçada de graça — o par
- * que ela erra volta para a mesa e reaparece até ser fechado.
- *
- * A VIRADA É 3D porque aqui ela É a mecânica: a carta gira no eixo Y e o verso aparece do outro
- * lado, como um objeto de verdade. É o único lugar do app onde o 3D carrega significado em vez
- * de enfeitar — em qualquer outro seria só barulho visual.
- */
+import { speak } from '../../lib/tts';
+import { emitBurst } from '../../lib/effects';
+import { Sparkles, Flame } from 'lucide-react';
 
 interface MemoryGameProps {
   items: MinigameItem[];
@@ -79,7 +68,7 @@ export default function MemoryGame({ items, ageProfile, onFinish, onExit }: Memo
   const total = items.length;
   const ESPIADAS = 2; // duas por rodada: ajuda quem travou, sem virar o jogo inteiro
 
-  // Rodada terminada: monta o relatório uma única vez.
+  // Rodada terminada: celebra com confetes 3D e monta o relatório uma única vez.
   const jaFinalizouRef = useRef(false);
   useEffect(() => {
     if (fechados.size !== total || total === 0 || jaFinalizouRef.current) return;
@@ -99,27 +88,36 @@ export default function MemoryGame({ items, ageProfile, onFinish, onExit }: Memo
       score: scoreRound('memory', outcomes),
       durationMs: agora - inicioRef.current,
     };
-    // Mesa limpa SEM nenhum erro é raro: só esse caso ganha a chuva de confete.
-    const semErro = outcomes.every(o => o.attempts <= 1) && !comDicaRef.current;
-    comemorar(semErro ? 'rodadaPerfeita' : 'rodadaBoa', mesaRef.current, { tremer: semErro });
-    setTimeout(() => onFinish(report), 900);
+    // Vitória sensorial completa
+    playJuicedVictory();
+    setTimeout(() => onFinish(report), 1100);
   }, [fechados, total, items, onFinish]);
 
   const virar = (carta: Carta, el: HTMLElement | null) => {
     if (travado || espiando || viradas.includes(carta.id) || fechados.has(carta.itemIndex)) return;
     if (!inicioItemRef.current.has(carta.itemIndex)) inicioItemRef.current.set(carta.itemIndex, Date.now());
+    
+    triggerHaptic('soft');
     play('select');
+
+    // Fala a palavra no idioma original para imersão auditiva instantânea
+    if (carta.lado === 'palavra' && carta.lang) {
+      speak(carta.texto, { lang: carta.lang });
+    }
+
     const novas = [...viradas, carta.id];
     setViradas(novas);
     if (novas.length < 2) return;
 
     const [a, b] = novas.map(id => cartas.find(c => c.id === id)!);
     const par = a.itemIndex === b.itemIndex && a.lado !== b.lado;
-    // Conta a tentativa nos DOIS itens envolvidos: virar a carta errada custa para o par a que
-    // ela pertence também — é a informação de que a pessoa ainda não sabe onde ele está.
+    // Conta a tentativa nos DOIS itens envolvidos
     for (const idx of new Set([a.itemIndex, b.itemIndex])) {
       tentativasRef.current.set(idx, (tentativasRef.current.get(idx) ?? 0) + 1);
     }
+
+    const rect = el?.getBoundingClientRect();
+    const coords = rect ? { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 } : undefined;
 
     if (par) {
       const nova = sequencia + 1;
@@ -127,14 +125,16 @@ export default function MemoryGame({ items, ageProfile, onFinish, onExit }: Memo
       const ganho = 10 * mult;
       setSequencia(nova);
       setPontos(p => p + ganho);
-      comemorar(mult > 1 ? 'sequencia' : 'acerto', el, { texto: `+${ganho}${mult > 1 ? ` ×${mult}` : ''}`, tremer: mult >= 3 });
+      triggerHaptic('success');
+      if (coords) emitBurst(coords.x, coords.y, 'confete');
+      playJuicedHit(nova, coords, `+${ganho}${mult > 1 ? ` ×${mult}` : ''}`);
       setFechados(prev => new Set([...prev, a.itemIndex]));
       setViradas([]);
       return;
     }
-    // Erro: as cartas voltam e a sequência zera. A re-exposição é a repetição espaçada da mecânica.
+    // Erro: feedback sensorial com tremor e buzzer
     setSequencia(0);
-    comemorar('erro', el);
+    playJuicedError(mesaRef.current, coords, 'Quase!');
     setTravado(true);
     setTimeout(() => { setViradas([]); setTravado(false); }, 850);
   };
@@ -147,50 +147,66 @@ export default function MemoryGame({ items, ageProfile, onFinish, onExit }: Memo
     setSequencia(0); // a sequência é mérito; com ajuda ela recomeça
     setEspiando(true);
     play('select');
+    triggerHaptic('soft');
     pontosDoElemento(`${ESPIADAS - espiadasRef.current} espiadas`, el, 'neutro');
     setTimeout(() => setEspiando(false), 1200);
   };
 
   const mult = multiplicador(sequencia);
+  const progressoPct = total > 0 ? Math.round((fechados.size / total) * 100) : 0;
 
   return (
     <div className="flex-1 flex flex-col p-4 lg:p-8 animate-in fade-in duration-200 overflow-y-auto custom-scrollbar">
-      <header className="flex items-center justify-between mb-5 shrink-0">
-        <div className="min-w-0">
-          <h2 className="font-display font-black text-lg text-ink">
-            {ageProfile === 'kids' ? 'Ache os pares' : 'Jogo da memória'}
-          </h2>
-          <p data-tour="placar" className="text-[12px] text-ink-muted">
-            {fechados.size} de {total} {total === 1 ? 'par fechado' : 'pares fechados'}
-            {pontos > 0 && <span className="text-accent-ink font-bold"> · {pontos} pts</span>}
-            {mult > 1 && <span className="text-warn-ink font-bold"> · ×{mult}</span>}
-          </p>
+      <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5 shrink-0 max-w-3xl w-full mx-auto">
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-2">
+            <h2 className="font-display font-black text-lg text-ink">
+              {ageProfile === 'kids' ? 'Ache os pares' : 'Jogo da memória'}
+            </h2>
+            {mult > 1 && (
+              <span className="flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-warn/20 text-warn-ink font-black text-xs border border-warn/40 animate-pulse">
+                <Flame className="w-3.5 h-3.5 text-warn fill-current" /> ×{mult}
+              </span>
+            )}
+          </div>
+          <div className="flex items-center gap-3 mt-1.5">
+            <div className="flex-1 max-w-[200px] h-2 rounded-full bg-border-subtle/60 overflow-hidden">
+              <div
+                className="h-full bg-accent transition-all duration-300 rounded-full"
+                style={{ width: `${progressoPct}%` }}
+              />
+            </div>
+            <p data-tour="placar" className="text-[12px] text-ink-muted tabular-nums">
+              {fechados.size} de {total} {total === 1 ? 'par' : 'pares'} ({progressoPct}%)
+              {pontos > 0 && <span className="text-accent-ink font-bold"> · {pontos} pts</span>}
+            </p>
+          </div>
         </div>
-        <span className="flex items-center gap-0.5 shrink-0">
+        <span className="flex items-center gap-1.5 shrink-0 self-end sm:self-auto">
           <button
             onClick={(e) => espiar(e.currentTarget)}
             disabled={espiadasRef.current >= ESPIADAS || espiando}
-            className="p-2 rounded-lg text-ink-muted hover:text-warn-ink hover:bg-surface-hover disabled:opacity-40 transition-colors cursor-pointer"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-border-subtle bg-surface text-ink-muted hover:text-warn-ink hover:border-warn/40 disabled:opacity-40 transition-all cursor-pointer font-bold text-xs shadow-sm"
             data-tour="espiar"
             aria-label="Espiar a mesa"
             title={`Espiar todas as cartas (${ESPIADAS - espiadasRef.current} restantes, conta como dica)`}
           >
-            <Eye className="w-4 h-4" />
+            <Eye className="w-4 h-4 text-warn" />
+            <span>Espiar ({ESPIADAS - espiadasRef.current})</span>
           </button>
           <button
             onClick={onExit}
-            className="p-2 rounded-lg text-ink-muted hover:bg-surface-hover hover:text-ink transition-colors cursor-pointer"
+            className="p-2 rounded-xl text-ink-muted hover:bg-surface-hover hover:text-ink transition-colors cursor-pointer border border-border-subtle"
             aria-label="Sair do jogo"
             title="Sair do jogo"
           >
-            <X className="w-5 h-5" />
+            <X className="w-4 h-4" />
           </button>
         </span>
       </header>
 
-      {/* A mesa fica no MEIO da área livre: encostada no topo, ela deixava metade da tela vazia
-          e o olho tinha de subir a cada jogada. */}
-      <div ref={mesaRef} data-tour="mesa" className={`grid gap-2.5 ${total <= 4 ? 'grid-cols-2 sm:grid-cols-4' : 'grid-cols-3 sm:grid-cols-4'} max-w-3xl w-full mx-auto my-auto`}>
+      {/* A mesa fica no MEIO da área livre */}
+      <div ref={mesaRef} data-tour="mesa" className={`grid gap-3 ${total <= 4 ? 'grid-cols-2 sm:grid-cols-4' : 'grid-cols-3 sm:grid-cols-4'} max-w-3xl w-full mx-auto my-auto`}>
         {cartas.map(carta => {
           const aberta = espiando || viradas.includes(carta.id) || fechados.has(carta.itemIndex);
           const fechada = fechados.has(carta.itemIndex);
@@ -201,22 +217,24 @@ export default function MemoryGame({ items, ageProfile, onFinish, onExit }: Memo
               onClick={(e) => virar(carta, e.currentTarget)}
               disabled={fechada}
               aria-label={aberta ? carta.texto : 'Carta virada para baixo'}
-              className={`carta3d ${aberta ? 'aberta' : ''} ${folgado ? 'min-h-[6rem]' : 'min-h-[5rem]'} rounded-2xl ${
-                fechada ? 'opacity-70' : 'cursor-pointer'
-              } ${!aberta ? 'hover:-translate-y-0.5 transition-transform' : ''}`}
+              className={`carta3d ${aberta ? 'aberta' : ''} ${folgado ? 'min-h-[6.5rem]' : 'min-h-[5.5rem]'} rounded-2xl ${
+                fechada ? 'opacity-80 scale-95 ring-2 ring-emerald-500/40' : 'cursor-pointer active:scale-95'
+              } ${!aberta ? 'hover:-translate-y-1 hover:shadow-lg transition-all' : ''}`}
             >
               <span className="carta3d-giro block">
-                {/* O VERSO (o que se vê antes de virar) fica na FRENTE do elemento 3D — a carta
-                    começa com a face de trás voltada para a pessoa, como na mesa de verdade. */}
-                <span className="carta3d-frente bg-canvas border border-border-subtle rounded-2xl" aria-hidden>
-                  <span className="w-6 h-6 rounded-lg bg-border-subtle/60" />
+                {/* O VERSO (face para baixo) com textura geométrica elegante do Babel Play */}
+                <span className="carta3d-frente bg-surface border-2 border-border-subtle hover:border-accent/40 rounded-2xl flex items-center justify-center shadow-sm relative overflow-hidden group" aria-hidden>
+                  <div className="absolute inset-0 bg-gradient-to-br from-accent-soft/20 to-transparent opacity-40 group-hover:opacity-100 transition-opacity" />
+                  <span className="w-8 h-8 rounded-xl border border-border-subtle bg-canvas/80 flex items-center justify-center font-display font-black text-xs text-ink-muted/50 group-hover:text-accent transition-colors">
+                    ✦
+                  </span>
                 </span>
                 <span
-                  className="carta3d-verso bg-surface shadow-card rounded-2xl px-2.5 py-2 text-center overflow-hidden"
+                  className={`carta3d-verso bg-surface shadow-md rounded-2xl px-3 py-2 text-center overflow-hidden flex flex-col items-center justify-center transition-all ${
+                    fechada ? 'bg-emerald-500/5' : ''
+                  }`}
                   style={{ borderColor: cor, borderWidth: 2, borderStyle: 'solid' }}
                 >
-                  {/* O limiar era 80 chars e foi medido errado: numa carta de ~55px, 65 chars já
-                      dão 4 linhas e o texto vazava por cima e por baixo. */}
                   <span
                     className={`${carta.texto.length > 45 ? (folgado ? 'text-[11px]' : 'text-[10px]') : folgado ? 'text-[14px]' : 'text-[13px]'} font-bold leading-tight break-words ${folgado ? 'line-clamp-4' : 'line-clamp-3'}`}
                     style={{ color: carta.lado === 'palavra' ? cor : undefined }}
@@ -225,6 +243,11 @@ export default function MemoryGame({ items, ageProfile, onFinish, onExit }: Memo
                   >
                     {carta.texto}
                   </span>
+                  {fechada && (
+                    <span className="text-[10px] font-bold text-emerald-600 mt-1 flex items-center gap-1 animate-scaleIn">
+                      <Sparkles className="w-3 h-3" /> Par
+                    </span>
+                  )}
                 </span>
               </span>
             </button>

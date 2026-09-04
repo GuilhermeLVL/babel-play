@@ -7,18 +7,11 @@ import { comemorar } from '../../lib/juice';
 import { speechErrorMessage } from '../../lib/mediaErrors';
 import { toast } from '../Toast';
 import { criarFalante } from '../../lib/falante';
+import { playJuicedHit, playJuicedError, playJuicedVictory, triggerHaptic, triggerConfetti } from '../../lib/gameFeel';
 
 /**
  * KARAOKÊ DA FALA — a frase real toca com as palavras acendendo em sincronia; você fala junto e
  * recebe uma nota de pronúncia.
- *
- * Tudo que ele precisa JÁ EXISTIA e estava separado: o áudio salvo da sessão, os `startMs`/`endMs`
- * de cada fala (gravados desde a captura), o motor `scorePronunciation` e o reconhecimento do
- * navegador. O trabalho aqui foi juntar as peças numa mecânica.
- *
- * HONESTIDADE (a regra do projeto): se o reconhecimento de voz não existir ou não devolver texto,
- * NÃO inventamos nota — a rodada diz que não deu para avaliar. Uma nota fabricada de pronúncia é
- * pior que nota nenhuma, porque a pessoa acredita nela.
  */
 
 export interface FalaKaraoke {
@@ -32,13 +25,6 @@ export interface FalaKaraoke {
 
 interface KaraokeGameProps {
   falas: FalaKaraoke[];
-  /**
-   * URL do áudio REAL da sessão, ou string VAZIA quando não há gravação (é o caso da trilha).
-   *
-   * Já não é verdade que "sem ele o jogo não abre": desde que a trilha passou a ter Karaokê, o
-   * material pode ser palavra curada sem áudio nenhum, e `criarFalante` decide por item entre o
-   * clipe da gravação e a voz sintetizada. `''` é o sinal de "não há clipe, fale o texto".
-   */
   audioUrl: string;
   ageProfile: AgeProfileType;
   onFinish: (report: RoundReport) => void;
@@ -51,14 +37,6 @@ export default function KaraokeGame({ falas, audioUrl, ageProfile, onFinish, onE
   const [indice, setIndice] = useState(0);
   const [fase, setFase] = useState<Fase>('parado');
   const [palavraAtiva, setPalavraAtiva] = useState(-1);
-  /**
-   * A nota traz o ALINHAMENTO junto, não só o número.
-   *
-   * Era o que faltava para o Karaokê substituir o Estúdio de Shadowing, que tinha 1.390 linhas e
-   * uma coisa boa: mostrar palavra a palavra onde a fala escapou. "85%" sozinho não ensina — a
-   * pessoa não sabe se errou uma palavra difícil ou engoliu três fáceis, e portanto não sabe o
-   * que repetir.
-   */
   const [nota, setNota] = useState<{ accuracy: number; transcript: string; diff: ResultadoDitado } | null>(null);
   const [semReconhecimento, setSemReconhecimento] = useState(false);
 
@@ -72,29 +50,10 @@ export default function KaraokeGame({ falas, audioUrl, ageProfile, onFinish, onE
   const fala = falas[indice];
   const palavras = fala ? fala.texto.split(/\s+/).filter(Boolean) : [];
 
-  /**
-   * Toca só o trecho desta fala e acende as palavras proporcionalmente à duração real.
-   *
-   * A VELOCIDADE é a ajuda deste jogo, e é a única que faz sentido aqui: o que trava quem tenta
-   * repetir uma fala real não é falta de memória, é a fala vir rápida e emendada demais para o
-   * ouvido distinguir onde uma palavra acaba e a outra começa. A 0,6× o áudio continua sendo a
-   * pessoa de verdade — `preservesPitch` mantém o timbre, então não vira voz de desenho — e a
-   * pronúncia fica audível. Por isso ela NÃO custa nota: nada aqui é recuperação de memória.
-   */
-  /**
-   * Clipe da gravação quando ela existe; voz sintetizada quando não — a decisão mora em
-   * `lib/falante.ts`. Antes o `<audio>` estava cravado aqui, e por isso o Karaokê não existia na
-   * TRILHA (palavras curadas, zero áudio): ele anunciava falas prontas e tocava a gravação de
-   * outra fonte. Na trilha o exercício vira ouvir e repetir a PALAVRA.
-   *
-   * A ILUMINAÇÃO DAS PALAVRAS depende de saber a duração, e é aí que os dois caminhos diferem: na
-   * gravação ela é medida (`endMs - startMs`); na voz sintetizada não há como saber de antemão,
-   * então estimamos por comprimento. Estimativa serve para o efeito visual; se ela errar, acende
-   * fora de compasso — o que é diferente de dar nota errada, e por isso é aceitável aqui.
-   */
   const falante = useMemo(() => criarFalante(audioRef, audioUrl), [audioUrl]);
   const ouvir = (velocidade = 1) => {
     if (!fala || !falante.disponivel) return;
+    triggerHaptic('soft');
     setFase('ouvindo');
     setPalavraAtiva(-1);
     falante.ouvir({ texto: fala.texto, lang: fala.lang, startMs: fala.startMs, endMs: fala.endMs }, velocidade);
@@ -120,6 +79,7 @@ export default function KaraokeGame({ falas, audioUrl, ageProfile, onFinish, onE
   const gravar = () => {
     const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     if (!SR) { setSemReconhecimento(true); return; }
+    triggerHaptic('soft');
     const rec = new SR();
     rec.lang = fala.lang || 'en-US';
     rec.interimResults = false;
@@ -133,24 +93,19 @@ export default function KaraokeGame({ falas, audioUrl, ageProfile, onFinish, onE
       const dito = e.results?.[0]?.[0]?.transcript ?? '';
       const duracao = Date.now() - inicioFalaRef.current;
       const s = scorePronunciation(fala.texto, dito, { durationMs: duracao });
-      /* O alinhamento vem de `conferirDitado`, o MESMO que o jogo de Ditado usa: janela de ±2
-         para reencontrar o compasso quando se pula ou repete uma palavra, e comparação sem acento
-         nem pontuação, o STT não entrega pontuação confiável, e punir por ela ensinaria a coisa
-         errada. Escrever um segundo alinhador aqui seria duas verdades sobre o mesmo erro. */
       setNota({ accuracy: s.accuracy, transcript: dito, diff: conferirDitado(fala.texto, dito) });
       setFase('avaliado');
-      // A nota de pronúncia JÁ é o retorno principal aqui; a comemoração só a acompanha, e por
-      // isso escala com ela: quase perfeito ganha faísca, aprovado ganha o efeito comum.
-      comemorar(s.accuracy >= 90 ? 'sequencia' : s.accuracy >= 60 ? 'acerto' : 'erro', null, {
-        texto: s.accuracy + '%',
-      });
-      /* SUBSTITUI em vez de empilhar. Cada "Falar agora" cria um reconhecimento novo, então falar
-         três vezes na mesma fala gerava TRÊS outcomes com o mesmo `itemRef`, e o histórico passava
-         a achar que a fala caiu três vezes. Vale a última nota, e `attempts` conta as tentativas,
-         que é exatamente o campo que existe para isso. */
+
+      if (s.accuracy >= 60) {
+        triggerHaptic('success');
+        if (s.accuracy >= 80) triggerConfetti();
+        playJuicedHit(s.accuracy >= 90 ? 4 : 2, undefined, `${s.accuracy}%`);
+      } else {
+        triggerHaptic('error');
+        playJuicedError(null, undefined, `${s.accuracy}%`);
+      }
+
       registrarFala({
-        // A nota só é reaproveitável se disser DE QUAL fala ela é: sem o id, o histórico não sabe
-        // o que já foi cantado, e não dá para repetir a fala nem evitar cair nela de novo.
         ...(fala.id ? { itemRef: fala.id } : {}),
         correct: s.accuracy >= 60,
         attempts: 1,
@@ -243,15 +198,23 @@ export default function KaraokeGame({ falas, audioUrl, ageProfile, onFinish, onE
     <div className="flex-1 flex flex-col items-center justify-center p-4 lg:p-8 animate-in fade-in duration-200 overflow-y-auto custom-scrollbar">
       <audio ref={audioRef} src={audioUrl} preload="auto" className="hidden" />
 
-      <header className="w-full max-w-2xl flex items-center justify-between mb-6 shrink-0">
-        <div>
+      <header className="w-full max-w-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6 shrink-0">
+        <div className="min-w-0 flex-1">
           <h2 className="font-display font-black text-lg text-ink">
             {ageProfile === 'kids' ? 'Cante junto' : 'Karaokê da fala'}
           </h2>
-          <p className="text-[12px] text-ink-muted">fala {indice + 1} de {falas.length}</p>
+          <div className="flex items-center gap-3 mt-1.5">
+            <div className="flex-1 max-w-[200px] h-2 rounded-full bg-border-subtle/60 overflow-hidden">
+              <div
+                className="h-full bg-accent transition-all duration-300 rounded-full"
+                style={{ width: `${Math.round((indice / falas.length) * 100)}%` }}
+              />
+            </div>
+            <p className="text-[12px] text-ink-muted tabular-nums">fala {indice + 1} de {falas.length}</p>
+          </div>
         </div>
-        <button onClick={onExit} className="p-2 rounded-lg text-ink-muted hover:bg-surface-hover hover:text-ink cursor-pointer" aria-label="Sair do jogo">
-          <X className="w-5 h-5" />
+        <button onClick={onExit} className="p-2 rounded-xl text-ink-muted hover:bg-surface-hover hover:text-ink cursor-pointer border border-border-subtle transition-colors self-end sm:self-auto" aria-label="Sair do jogo">
+          <X className="w-4 h-4" />
         </button>
       </header>
 

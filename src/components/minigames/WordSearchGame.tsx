@@ -1,26 +1,15 @@
 import React, { useMemo, useRef, useState } from 'react';
-import { X, Eye, Check, Lightbulb, Radar, Highlighter, Eraser } from 'lucide-react';
+import { X, Eye, Check, Lightbulb, Radar, Highlighter, Eraser, Flame } from 'lucide-react';
 import type { MinigameItem, ItemOutcome, RoundReport } from '@core';
 import { buildGrid, matchSelection, cellsBetween, scoreRound, shortPrompt, normalizarPalavra } from '@core';
 import type { AgeProfileType } from '../../lib/profile';
 import { comemorar, pontosDoElemento, multiplicador } from '../../lib/juice';
+import { playJuicedHit, playJuicedError, playJuicedVictory, triggerHaptic } from '../../lib/gameFeel';
+import { speak } from '../../lib/tts';
+import { emitBurst } from '../../lib/effects';
 
 /**
  * CAÇA-PALAVRAS POR DEFINIÇÃO.
- *
- * A lista lateral mostra as TRADUÇÕES, não as palavras — quem joga precisa lembrar a palavra
- * antes de procurar. É o que separa este de um caça-palavras comum, onde a resposta está à vista
- * e o exercício vira varredura visual.
- *
- * TRÊS AJUDAS, com preços diferentes, porque são problemas diferentes:
- *   · o RADAR faz as duas PONTAS da palavra pulsarem na grade. Não custa nota nenhuma, e é de
- *     propósito: quem lembrou a palavra e não a acha no meio de 144 letras tem falha de BUSCA
- *     VISUAL, não de memória — cobrar por isso registraria no agendador um esquecimento que não
- *     aconteceu, e é assim que se estraga a curva de revisão;
- *   · a DICA revela a primeira letra e diz a DIREÇÃO do traço. Aí já é sobre a palavra, então
- *     custa nota 2 (`hinted`);
- *   · REVELAR é dizer "não lembrei", e vira nota 1 (`revealed`).
- * Errar o traço não custa nenhuma das três: isso é mira, não esquecimento.
  */
 
 interface WordSearchGameProps {
@@ -75,9 +64,7 @@ export default function WordSearchGame({ items, ageProfile, onFinish, onExit }: 
       hinted: comDica.has(i),
       revealed: reveladosFinais.has(i),
     }));
-    // Achar TODAS sem revelar nem pedir dica é o caso raro — só ele ganha a chuva de confete.
-    const impecavel = outcomes.every(o => o.correct && !o.hinted);
-    comemorar(impecavel ? 'rodadaPerfeita' : 'rodadaBoa', gradeRef.current, { tremer: impecavel });
+    playJuicedVictory();
     setTimeout(() => onFinish({
       gameId: 'wordsearch',
       items: outcomes,
@@ -91,23 +78,35 @@ export default function WordSearchGame({ items, ageProfile, onFinish, onExit }: 
     const achado = matchSelection(grade, inicio, fim);
     setInicio(null);
     setHover(null);
+    const rect = el?.getBoundingClientRect();
+    const coords = rect ? { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 } : undefined;
+
     if (achado && !achados.has(achado.itemIndex) && !revelados.has(achado.itemIndex)) {
       const nova = sequencia + 1;
       const mult = multiplicador(nova);
-      // Quem pediu a primeira letra ganha os pontos, mas sem o multiplicador em cima.
       const ganho = 10 * (comDica.has(achado.itemIndex) ? 1 : mult);
       setSequencia(nova);
       setPontos(pt => pt + ganho);
-      comemorar(mult > 1 ? 'sequencia' : 'acerto', el, { texto: '+' + ganho + (mult > 1 ? ' \u00d7' + mult : ''), tremer: mult >= 3 });
+      triggerHaptic('success');
+      if (coords) emitBurst(coords.x, coords.y, 'confete');
+      playJuicedHit(nova, coords, '+' + ganho + (mult > 1 ? ' ×' + mult : ''));
+
+      // Pronuncia a palavra achada no idioma original
+      const it = items[achado.itemIndex];
+      if (it?.answer && it?.lang) {
+        speak(it.answer, { lang: it.lang });
+      }
+
       const novos = new Set([...achados, achado.itemIndex]);
       setAchados(novos);
       if (novos.size + revelados.size === jogaveis.length) finalizar(novos, revelados);
       return;
     }
-    // Traço errado é MIRA, não esquecimento: a sequência para, mas nenhuma nota é afetada.
+    // Traço errado
     if (!achado) {
       setSequencia(0);
-      comemorar('erro', el);
+      triggerHaptic('error');
+      playJuicedError(gradeRef.current, coords, 'Tente de novo');
     }
   };
 
@@ -195,32 +194,54 @@ export default function WordSearchGame({ items, ageProfile, onFinish, onExit }: 
   );
   const destacada = (letra: string) => letrasDestacadas.size > 0 && letrasDestacadas.has(letra);
 
+  const mult = multiplicador(sequencia);
+  const progressoPct = jogaveis.length > 0 ? Math.round((resolvidos / jogaveis.length) * 100) : 0;
+
   return (
     <div className="flex-1 flex flex-col p-4 lg:p-6 animate-in fade-in duration-200 overflow-y-auto custom-scrollbar">
-      <header className="flex items-center justify-between mb-4 shrink-0">
-        <div>
-          <h2 className="font-display font-black text-lg text-ink">
-            {ageProfile === 'kids' ? 'Ache as palavras' : 'Caça-palavras'}
-          </h2>
-          <p className="text-[12px] text-ink-muted">
-            {resolvidos} de {jogaveis.length} encontradas
-            {pontos > 0 && <span className="text-accent-ink font-bold"> · {pontos} pts</span>}
-            {multiplicador(sequencia) > 1 && <span className="text-warn-ink font-bold"> · ×{multiplicador(sequencia)}</span>}
-          </p>
+      <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 shrink-0 max-w-4xl w-full mx-auto">
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-2">
+            <h2 className="font-display font-black text-lg text-ink">
+              {ageProfile === 'kids' ? 'Ache as palavras' : 'Caça-palavras'}
+            </h2>
+            {mult > 1 && (
+              <span className="flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-warn/20 text-warn-ink font-black text-xs border border-warn/40 animate-pulse">
+                <Flame className="w-3.5 h-3.5 text-warn fill-current" /> ×{mult}
+              </span>
+            )}
+          </div>
+          <div className="flex items-center gap-3 mt-1.5">
+            <div className="flex-1 max-w-[200px] h-2 rounded-full bg-border-subtle/60 overflow-hidden">
+              <div
+                className="h-full bg-accent transition-all duration-300 rounded-full"
+                style={{ width: `${progressoPct}%` }}
+              />
+            </div>
+            <p className="text-[12px] text-ink-muted tabular-nums">
+              {resolvidos} de {jogaveis.length} encontradas ({progressoPct}%)
+              {pontos > 0 && <span className="text-accent-ink font-bold"> · {pontos} pts</span>}
+            </p>
+          </div>
         </div>
-        <span className="flex items-center gap-0.5">
+        <span className="flex items-center gap-1.5 shrink-0 self-end sm:self-auto">
           <button
             onClick={(e) => acionarRadar(null, e.currentTarget)}
             disabled={radaresRestantes <= 0}
-            className="flex items-center gap-1.5 py-1.5 px-2.5 rounded-lg text-[12px] font-bold text-ink-muted hover:text-accent hover:bg-surface-hover disabled:opacity-40 cursor-pointer"
+            className="flex items-center gap-1.5 py-1.5 px-3 rounded-xl border border-border-subtle bg-surface text-[12px] font-bold text-ink-muted hover:text-accent hover:border-accent/40 disabled:opacity-40 cursor-pointer shadow-sm transition-all"
             title="Faz as pontas de uma palavra pulsarem na grade (não conta como dica)"
             data-tour="radar"
             aria-label="Acionar o radar"
           >
-            <Radar className="w-4 h-4" /> {radaresRestantes}
+            <Radar className="w-4 h-4 text-accent" />
+            <span>Radar ({radaresRestantes})</span>
           </button>
-          <button onClick={onExit} className="p-2 rounded-lg text-ink-muted hover:bg-surface-hover hover:text-ink cursor-pointer" aria-label="Sair do jogo">
-            <X className="w-5 h-5" />
+          <button
+            onClick={onExit}
+            className="p-2 rounded-xl text-ink-muted hover:bg-surface-hover hover:text-ink cursor-pointer border border-border-subtle transition-colors"
+            aria-label="Sair do jogo"
+          >
+            <X className="w-4 h-4" />
           </button>
         </span>
       </header>

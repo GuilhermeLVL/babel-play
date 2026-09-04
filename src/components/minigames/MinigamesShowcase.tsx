@@ -28,20 +28,22 @@ import type { AgeProfileType } from '../../lib/profile';
  * 9. 🔥 Vitendawili Enigmas (Metáforas Culturais Swahili) — Quênia / Tanzânia (Fase 5 - C2)
  */
 
-interface MinigamesShowcaseProps {
+export type JogoAtivo = 'karuta' | 'koffer' | 'choseong' | 'taboo' | 'shiritori' | 'cadavre' | 'bao' | 'tennis' | 'vitendawili' | null;
+
+export interface MinigamesShowcaseProps {
   ageProfile?: AgeProfileType;
   items?: MinigameItem[];
+  initialGame?: JogoAtivo;
   onBack?: () => void;
 }
-
-type JogoAtivo = 'karuta' | 'koffer' | 'choseong' | 'taboo' | 'shiritori' | 'cadavre' | 'bao' | 'tennis' | 'vitendawili' | null;
 
 export default function MinigamesShowcase({
   ageProfile = 'pro',
   items,
+  initialGame = null,
   onBack,
 }: MinigamesShowcaseProps) {
-  const [jogoAtivo, setJogoAtivo] = useState<JogoAtivo>(null);
+  const [jogoAtivo, setJogoAtivo] = useState<JogoAtivo>(initialGame);
   const [filtroRegiao, setFiltroRegiao] = useState<'todas' | 'asia' | 'europa' | 'africa' | 'global'>('todas');
   const [ultimoRelatorio, setUltimoRelatorio] = useState<RoundReport | null>(null);
 

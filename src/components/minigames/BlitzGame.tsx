@@ -9,6 +9,8 @@ import { emitBurst } from '../../lib/effects';
 import { play } from '../../lib/soundFx';
 import { eventosCondicionais } from '../../lib/eventosDeJogo';
 import { enviarParaRanking, lerApelido, salvarApelido, apelidoValido } from '../../lib/ranking';
+import { playJuicedHit, playJuicedError, playJuicedVictory, triggerConfetti, triggerHaptic } from '../../lib/gameFeel';
+import { speak } from '../../lib/tts';
 import {
   bonusDeTempo, pontosDoAcerto, emFever, ehMarco, rotuloDaSequencia, estrelasDaRodada,
   PENALIDADE_ERRO_S, SEQUENCIA_FEVER,
@@ -188,6 +190,7 @@ export default function BlitzGame({ items, ageProfile, onFinish, onExit }: Blitz
     // Fanfarra: um arpejo por estrela, subindo; recorde ganha a festa grande.
     for (let i = 0; i < estrelas; i++) setTimeout(() => play('fanfarra', { transpose: i * 4 }), 200 + i * 380);
     if (recorde) {
+      playJuicedVictory();
       setTimeout(() => {
         flashDeTela();
         pulsoDeZoom();
@@ -195,8 +198,8 @@ export default function BlitzGame({ items, ageProfile, onFinish, onExit }: Blitz
         for (const ev of eventosCondicionais({ combo: 0, fever: false, recorde: true })) executarEfeito(ev);
         play('levelUp'); explodirBordas(10, 'confete');
       }, 200 + estrelas * 380);
-    } else if (estrelas === 3) {
-      setTimeout(() => explodirBordas(8, 'confete'), 900);
+    } else if (estrelas >= 2) {
+      playJuicedVictory();
     }
   };
 
@@ -227,6 +230,10 @@ export default function BlitzGame({ items, ageProfile, onFinish, onExit }: Blitz
       ms,
       hinted: cortadas.length > 0,
     });
+
+    const rect = el?.getBoundingClientRect();
+    const coords = rect ? { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 } : undefined;
+
     if (certo) {
       const nova = sequencia + 1;
       const mult = multiplicador(nova);
@@ -236,14 +243,13 @@ export default function BlitzGame({ items, ageProfile, onFinish, onExit }: Blitz
       melhorSeqRef.current = Math.max(melhorSeqRef.current, nova);
       setPontos(p => { pontosRef.current = p + ganho.total; return p + ganho.total; });
 
-      // 1. O acerto em si: partícula + número no botão. O som do combo sobe com a sequência.
+      // 1. O acerto sensorial completo: áudio escalonado por semitom, haptics e número flutuante
       const texto = '+' + ganho.total + (mult > 1 && !comDica ? ' ×' + mult : '') + (ganho.fever ? ' FEVER' : '');
-      if (mult > 1 && !comDica) {
-        comemorar('sequencia', el, { texto, tremer: mult >= 3 });
-        play('combo', { transpose: Math.min(12, nova) });
-      } else {
-        comemorar('acerto', el, { texto });
+      playJuicedHit(nova, coords, texto);
+      if (item.answer && item.lang) {
+        speak(item.answer, { lang: item.lang });
       }
+
       // 2. Velocidade: um segundo número, defasado, para não colidir com o primeiro.
       if (ganho.velocidade > 0 && el) {
         const r = el.getBoundingClientRect();
@@ -257,15 +263,14 @@ export default function BlitzGame({ items, ageProfile, onFinish, onExit }: Blitz
         play('timeBonus');
         setTimeout(() => pontosDoElemento('+' + segundos + 's', relogioRef.current, 'bom'), 80);
       }
-      // 4. Eventos CONDICIONAIS nos limiares (combo 5/10/15). O sorteio dos RAROS mora no
-      //    próprio `comemorar` (vale para os nove jogos) — nada de rolar o dado duas vezes aqui.
+      // 4. Eventos CONDICIONAIS nos limiares (combo 5/10/15).
       for (const ev of eventosCondicionais({ combo: nova, fever: emFever(nova) })) executarEfeito(ev);
       // 5. Marcos e fever: onda de choque + festa nas bordas, reservada ao que é raro.
       if (nova === SEQUENCIA_FEVER && !comDica) {
         play('fever');
         explodirBordas(8, 'levelUp');
         pulsoDeZoom();
-        vibrar([20, 40, 20]);
+        triggerHaptic('combo');
         tremor(palcoRef.current, 6);
         setOndas(o => [...o, nova]);
         setMarco({ id: nova, texto: 'FEVER ×2' });
@@ -273,7 +278,7 @@ export default function BlitzGame({ items, ageProfile, onFinish, onExit }: Blitz
         play('levelUp');
         explodirBordas(nova >= 20 ? 12 : 6, nova >= 10 ? 'levelUp' : 'combo');
         tremorDeTela(4);
-        vibrar([30]);
+        triggerHaptic('combo');
         tremor(palcoRef.current, 4);
         setOndas(o => [...o, nova]);
         setMarco({ id: nova, texto: nova + ' seguidas!' });
@@ -282,8 +287,7 @@ export default function BlitzGame({ items, ageProfile, onFinish, onExit }: Blitz
       setSequencia(0);
       setErroPulso(n => n + 1);
       setRestante(s => Math.max(0, s - PENALIDADE_ERRO_S));
-      comemorar('erro', el, { tremer: true });
-      setTimeout(() => pontosDoElemento('−' + PENALIDADE_ERRO_S + 's', relogioRef.current, 'ruim'), 60);
+      playJuicedError(palcoRef.current, coords, '−' + PENALIDADE_ERRO_S + 's');
     }
     setTimeout(() => {
       /* No último item nada é limpo — a tela fica no estado revelado e congelada; só há reset

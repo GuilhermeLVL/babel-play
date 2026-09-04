@@ -1,7 +1,8 @@
 import React, { useCallback, useEffect, useMemo, useState, useRef, useDeferredValue } from 'react';
 import { createPortal } from 'react-dom';
-import { Check, Timer, Mic, ChevronRight, ChevronLeft, Pin, ListChecks, Map as MapIcon, Sprout, Flame, GraduationCap, Lock, HelpCircle, Package, Trophy, SlidersHorizontal as SlidersIcon, Trophy as TrophyIcon, Layers, Globe, BookOpen, CalendarClock, Sparkles, Languages, MessageSquareText, Gamepad2 } from 'lucide-react';
-import MinigamesShowcase from '../minigames/MinigamesShowcase';
+import { Check, Timer, Mic, ChevronRight, ChevronLeft, Pin, ListChecks, Map as MapIcon, Sprout, Flame, GraduationCap, Lock, HelpCircle, Package, Trophy, SlidersHorizontal as SlidersIcon, Trophy as TrophyIcon, Layers, Globe, BookOpen, CalendarClock, Sparkles, Languages, MessageSquareText, Gamepad2, Dices, Search, X as XIcon, Compass, Zap, Play as PlayIcon } from 'lucide-react';
+import MinigamesShowcase, { type JogoAtivo } from '../minigames/MinigamesShowcase';
+import { playJuicedHit, triggerHaptic, triggerConfetti } from '../../lib/gameFeel';
 import { apiFetch, fetchDeck, reviewCard, salvarRodada, fetchSessions, fetchSessionTranscript, patchUiSettings, fetchSettings, bulkAddCards, fetchHistoricoDeItens, fetchExerciseResults, fetchRecordes, gastarSeeds, type AppMetrics, type HistoricoDeItem } from '../../data/api';
 import { toSentences, type Sentence, type PracticeSeed } from '../../lib/sentences';
 import type { VocabCard, Recording } from '../../types';
@@ -197,6 +198,125 @@ const ABAS_DE_FONTE: Array<{
   },
 ];
 
+export interface JogoCulturalMeta {
+  id: NonNullable<JogoAtivo>;
+  nome: string;
+  origemCultural: string;
+  bandeira: string;
+  descricao: string;
+  habilidade: 'vocab' | 'escuta_fala' | 'frase_gramatica';
+  habilidadeLabel: string;
+  nivelCefr: string;
+  tom: string;
+}
+
+export const JOGOS_CULTURAIS: readonly JogoCulturalMeta[] = [
+  {
+    id: 'karuta',
+    nome: 'Karuta Reflexes',
+    origemCultural: 'Japão',
+    bandeira: '🇯🇵',
+    descricao: 'Reaja instantaneamente e bata na carta certa ao ouvir a pista, no tradicional jogo japonês.',
+    habilidade: 'vocab',
+    habilidadeLabel: 'Vocabulário & Escuta',
+    nivelCefr: 'B1 - B2',
+    tom: '#e11d48',
+  },
+  {
+    id: 'shiritori',
+    nome: 'Shiritori Express',
+    origemCultural: 'Japão',
+    bandeira: '🇯🇵',
+    descricao: 'Encadeie o vocabulário em tempo recorde ligando a última letra da palavra anterior.',
+    habilidade: 'vocab',
+    habilidadeLabel: 'Vocabulário & Conexões',
+    nivelCefr: 'A2 - B1',
+    tom: '#0284c7',
+  },
+  {
+    id: 'bao',
+    nome: 'Bao Mancala',
+    origemCultural: 'África Oriental (Swahili)',
+    bandeira: '🇹🇿',
+    descricao: 'Semeie sementes de palavras nas covas certas e capture pontos ao traduzir os itens.',
+    habilidade: 'vocab',
+    habilidadeLabel: 'Ritmo & Vocabulário',
+    nivelCefr: 'A1 - B2',
+    tom: '#d97706',
+  },
+  {
+    id: 'cadavre',
+    nome: 'Cadavre Exquis',
+    origemCultural: 'França (Surrealismo)',
+    bandeira: '🇫🇷',
+    descricao: 'Crie frases criativas e gramaticalmente perfeitas unindo sujeito, verbo e complementos.',
+    habilidade: 'frase_gramatica',
+    habilidadeLabel: 'Sintaxe & Criatividade',
+    nivelCefr: 'B1 - C1',
+    tom: '#7c3aed',
+  },
+  {
+    id: 'taboo',
+    nome: 'Taboo Arena',
+    origemCultural: 'Mundial',
+    bandeira: '🌍',
+    descricao: 'Adivinhe a palavra secreta usando pistas inteligentes sem pronunciar os termos proibidos.',
+    habilidade: 'escuta_fala',
+    habilidadeLabel: 'Produção Ativa & Fluência',
+    nivelCefr: 'B2 - C2',
+    tom: '#db2777',
+  },
+  {
+    id: 'vitendawili',
+    nome: 'Vitendawili Enigmas',
+    origemCultural: 'África Oriental',
+    bandeira: '🇰🇪',
+    descricao: 'Decifre charadas e metáforas ancestrais da tradição oral em desafios lógicos dinâmicos.',
+    habilidade: 'escuta_fala',
+    habilidadeLabel: 'Dedução & Expressões',
+    nivelCefr: 'A2 - B2',
+    tom: '#059669',
+  },
+  {
+    id: 'tennis',
+    nome: 'Tense Tennis',
+    origemCultural: 'Reino Unido / LatAm',
+    bandeira: '🎾',
+    descricao: 'Rebata saques velozes conjugando verbos no tempo gramatical correto com reflexos afiados.',
+    habilidade: 'frase_gramatica',
+    habilidadeLabel: 'Gramática & Conjugação',
+    nivelCefr: 'A2 - B2',
+    tom: '#2563eb',
+  },
+  {
+    id: 'koffer',
+    nome: 'Koffer Packen',
+    origemCultural: 'Alemanha',
+    bandeira: '🇩🇪',
+    descricao: '"Ich packe meinen Koffer...": retenha a bagagem inteira na memória de trabalho e adicione itens.',
+    habilidade: 'vocab',
+    habilidadeLabel: 'Memória Operacional & Acúmulo',
+    nivelCefr: 'A1 - B1',
+    tom: '#ea580c',
+  },
+  {
+    id: 'choseong',
+    nome: 'Choseong Quiz',
+    origemCultural: 'Coreia do Sul',
+    bandeira: '🇰🇷',
+    descricao: 'Decodifique o enigma linguístico descobrindo a palavra oculta a partir de suas consoantes iniciais.',
+    habilidade: 'vocab',
+    habilidadeLabel: 'Ortografia & Fonética',
+    nivelCefr: 'A2 - B2',
+    tom: '#4f46e5',
+  },
+];
+
+const habilidadeDoJogoClassico = (id: MinigameId): 'vocab' | 'escuta_fala' | 'frase_gramatica' => {
+  if (id === 'memory' || id === 'wordsearch' || id === 'termo') return 'vocab';
+  if (id === 'escuta' || id === 'ditado' || id === 'karaoke') return 'escuta_fala';
+  return 'frase_gramatica'; // scramble, blitz, conectores
+};
 
 /**
  * Uma rodada JÁ MONTADA, esperando a pessoa decidir. É o que a antessala mostra.
@@ -371,6 +491,10 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
   const [curando, setCurando] = useState(false);
   const [importando, setImportando] = useState(false);
   const [vendoPrototipos, setVendoPrototipos] = useState(false);
+  const [jogoCulturalInicial, setJogoCulturalInicial] = useState<JogoAtivo>(null);
+  const [categoriaAtiva, setCategoriaAtiva] = useState<'todos' | 'classicos' | 'culturais' | 'favoritos'>('todos');
+  const [buscaJogos, setBuscaJogos] = useState('');
+  const [filtroHabilidade, setFiltroHabilidade] = useState<'todas' | 'vocab' | 'escuta_fala' | 'frase_gramatica'>('todas');
   const [vendoBaralhos, setVendoBaralhos] = useState(false);
   /**
    * O BARALHO ESCOLHIDO como recorte da rodada — "hoje só o japonês".
@@ -2074,6 +2198,71 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
     [jogosProntos, jogosPresos],
   );
 
+  const abrirJogoCultural = useCallback((id: NonNullable<JogoAtivo>) => {
+    triggerHaptic('soft');
+    playJuicedHit(1);
+    setJogoCulturalInicial(id);
+    setVendoPrototipos(true);
+  }, []);
+
+  const partidaRapida = useCallback(() => {
+    triggerHaptic('combo');
+    playJuicedHit(2);
+
+    const classicosLiberados = listaDeJogos.filter(j => j.estado.ok);
+    const totalOpcoes = classicosLiberados.length + JOGOS_CULTURAIS.length;
+    if (totalOpcoes === 0) {
+      toast.warn(t('Nenhum jogo disponível no momento'));
+      return;
+    }
+
+    const sorteio = Math.floor(Math.random() * totalOpcoes);
+    if (sorteio < classicosLiberados.length) {
+      const escolhido = classicosLiberados[sorteio];
+      toast.ok(`🎲 ${t('Partida rápida:')} ${tituloDoJogo(escolhido, ageProfile)}!`);
+      pedirParaJogar(escolhido);
+    } else {
+      const cultIndex = sorteio - classicosLiberados.length;
+      const escolhido = JOGOS_CULTURAIS[cultIndex];
+      toast.ok(`🎲 ${t('Partida cultural rápida:')} ${escolhido.nome}!`);
+      setJogoCulturalInicial(escolhido.id);
+      setVendoPrototipos(true);
+    }
+  }, [listaDeJogos, ageProfile]);
+
+  const buscaNormalizada = buscaJogos.trim().toLowerCase();
+
+  const jogosClassicosFiltrados = useMemo(() => {
+    if (categoriaAtiva === 'culturais') return [];
+    return listaDeJogos.filter(j => {
+      if (categoriaAtiva === 'favoritos' && !ordem.fixados.includes(j.id)) return false;
+      if (filtroHabilidade !== 'todas' && habilidadeDoJogoClassico(j.id) !== filtroHabilidade) return false;
+      if (buscaNormalizada) {
+        const titulo = tituloDoJogo(j, ageProfile).toLowerCase();
+        const desc = descricaoDoJogo(j, ageProfile, fonte.id === 'trilha').toLowerCase();
+        if (!titulo.includes(buscaNormalizada) && !desc.includes(buscaNormalizada)) return false;
+      }
+      return true;
+    });
+  }, [listaDeJogos, categoriaAtiva, ordem.fixados, filtroHabilidade, buscaNormalizada, ageProfile, fonte.id]);
+
+  const jogosCulturaisFiltrados = useMemo(() => {
+    if (categoriaAtiva === 'classicos' || categoriaAtiva === 'favoritos') return [];
+    return JOGOS_CULTURAIS.filter(c => {
+      if (filtroHabilidade !== 'todas' && c.habilidade !== filtroHabilidade) return false;
+      if (buscaNormalizada) {
+        const nome = c.nome.toLowerCase();
+        const desc = c.descricao.toLowerCase();
+        const origem = c.origemCultural.toLowerCase();
+        const hab = c.habilidadeLabel.toLowerCase();
+        if (!nome.includes(buscaNormalizada) && !desc.includes(buscaNormalizada) && !origem.includes(buscaNormalizada) && !hab.includes(buscaNormalizada)) {
+          return false;
+        }
+      }
+      return true;
+    });
+  }, [categoriaAtiva, filtroHabilidade, buscaNormalizada]);
+
 
   /**
    * O TOUR vive ao lado da tela do jogo, não no lugar dela: ele precisa apontar para os elementos
@@ -2384,13 +2573,17 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
     return telaCheia(
       <MinigamesShowcase
         ageProfile={ageProfile}
+        initialGame={jogoCulturalInicial}
         items={acervoDaFonte.map((c) => ({
           cardId: c.id,
           prompt: c.translation || '',
           answer: c.word,
           lang: fonte.lang || 'en-US',
         }))}
-        onBack={() => setVendoPrototipos(false)}
+        onBack={() => {
+          setVendoPrototipos(false);
+          setJogoCulturalInicial(null);
+        }}
       />
     );
   }
@@ -3070,8 +3263,6 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
         />
       )}
 
-      {/* BARALHO VAZIO — o caso que antes dava tela em branco. Diz o que falta, com número.
-          Na trilha ele não aparece: ali o caminho para sair do zero é o próprio painel acima. */}
       {tamanhoDoBaralho < menorMinimo && fonte.id !== 'trilha' ? (
         <section className="card-panel bg-surface p-8 text-center flex flex-col items-center gap-4">
           <span className="w-14 h-14 rounded-2xl bg-accent-soft flex items-center justify-center">
@@ -3097,40 +3288,95 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
         </section>
       ) : (
         <>
-          {/* AGORA — só aparece quando há vencidos DE VERDADE (o contador estava sempre 0).
-              Enquanto as métricas não chegaram, o espaço fica reservado: o card nascia da resposta
-              da rede e empurrava para baixo tudo o que já estava pintado (0,05 do CLS medido no
-              Jogar). 78px = p-4 + o bloco de 44 do ícone + a borda do `card-panel`. */}
-          {detalhes && vencidos === 0 && !metrics && (
-            <div className="w-full h-[78px] mb-4 rounded-2xl bg-surface border border-border-subtle animate-pulse" aria-hidden />
-          )}
-          {detalhes && vencidos > 0 && (
-            <button
-              onClick={() => pedirParaJogar({ id: 'blitz' })}
-              className="w-full card-panel bg-accent-soft/40 border-accent/30 p-4 mb-4 flex items-center gap-4 text-start hover:border-accent transition-colors cursor-pointer"
-            >
-              <span className="w-11 h-11 rounded-xl bg-accent text-white flex items-center justify-center shrink-0" aria-hidden>
-                <Timer className="w-5 h-5" />
+          {/* ── ARENA & QUICK PLAY BANNER ── */}
+          <div className="card-panel bg-gradient-to-r from-accent-soft/40 via-surface to-accent-soft/20 border-accent/30 p-4 sm:p-5 mb-5 rounded-2xl flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-sm">
+            <div className="flex items-center gap-3.5">
+              <span className="w-12 h-12 rounded-2xl bg-accent text-white flex items-center justify-center shrink-0 shadow-sm" aria-hidden>
+                <Gamepad2 className="w-6 h-6" />
               </span>
-              <span className="flex-1 min-w-0">
-                <span className="block font-display font-extrabold text-[15px] text-ink">
-                  {vencidos} {tp(vencidos, 'palavra pedindo revisão', 'palavras pedindo revisão')}
-                </span>
-                <span className="block text-[12px] text-ink-muted">
-                  {ageProfile === 'senior' ? t('Um desafio rápido resolve.') : t('Um duelo relâmpago resolve.')}
-                </span>
-              </span>
-              <ChevronRight className="w-5 h-5 text-ink-faint shrink-0" aria-hidden />
-            </button>
-          )}
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="kpi-pill text-[10.5px] font-extrabold tracking-wider uppercase text-accent border-accent/30 bg-accent-soft/60">
+                    Babel Arcade · {jogosProntos.length + JOGOS_CULTURAIS.length} {t('Jogos')}
+                  </span>
+                  <span className="text-[11px] text-ink-muted">· {t('Feedback Háptico & Game Feel')}</span>
+                </div>
+                <h2 className="font-display font-black text-lg text-ink tracking-tight mt-0.5">
+                  {t('Arena de Jogos & Laboratório Cultural')}
+                </h2>
+                <p className="text-[12.5px] text-ink-muted leading-tight mt-0.5 max-w-xl">
+                  {t('Treine vocabulário, audição, sintaxe e pronúncia através de minigames dinâmicos e dopamínicos.')}
+                </p>
+              </div>
+            </div>
 
-          <div className="flex items-baseline justify-between gap-3 mb-2">
-            <h2 className="label-mono">{t('Escolha um jogo')}</h2>
-            {/* A LEGENDA DAS TRÊS CORES. Sem ela o véu da faixa seria decoração; com ela, a cor
-                vira informação — e é a única linha de texto que a grade precisa para agrupar
-                nove jogos. Escondida no celular: lá as cartas empilham e o agrupamento por cor
-                não se lê de relance, então seria texto sem serventia. */}
-            <ul className="hidden sm:flex items-center gap-3 list-none m-0 p-0 text-[11.5px] text-ink-muted" aria-label={t('A cor diz o que o jogo treina')}>
+            <div className="flex items-center gap-2.5 shrink-0 self-start md:self-auto">
+              <button
+                type="button"
+                onClick={partidaRapida}
+                className="py-2.5 px-4 bg-accent hover:bg-accent-ink text-white rounded-xl font-black text-[13px] shadow-btn transition-all flex items-center gap-2 active:scale-95 cursor-pointer"
+                title={t('Sorteia um jogo aleatório dentre os disponíveis e inicia imediatamente')}
+              >
+                <Dices className="w-4 h-4" />
+                <span>{t('Partida Rápida')}</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setCategoriaAtiva('culturais');
+                  triggerHaptic('soft');
+                  playJuicedHit(1);
+                }}
+                className="py-2.5 px-3.5 bg-surface border border-border-subtle hover:border-accent text-ink rounded-xl font-bold text-[13px] transition-all flex items-center gap-1.5 active:scale-95 cursor-pointer"
+                title={t('Explorar os 9 minigames tradicionais do mundo')}
+              >
+                <Globe className="w-4 h-4 text-accent" />
+                <span>{t('Culturais')}</span>
+                <span className="w-5 h-5 rounded-full bg-accent-soft text-accent-ink text-[11px] font-bold flex items-center justify-center">9</span>
+              </button>
+            </div>
+          </div>
+
+          {/* ── NAVEGAÇÃO DE CATEGORIAS ── */}
+          <div className="flex items-center justify-between gap-3 mb-3 flex-wrap">
+            <div className="flex items-center gap-1.5 p-1 bg-surface border border-border-subtle rounded-xl overflow-x-auto custom-scrollbar" role="tablist" aria-label={t('Categorias de jogos')}>
+              {[
+                { id: 'todos' as const, label: t('Todos'), icon: <Sparkles className="w-3.5 h-3.5" />, total: jogosProntos.length + JOGOS_CULTURAIS.length },
+                { id: 'classicos' as const, label: t('Clássicos'), icon: <Zap className="w-3.5 h-3.5" />, total: jogosProntos.length },
+                { id: 'culturais' as const, label: t('Jogos do Mundo'), icon: <Globe className="w-3.5 h-3.5" />, total: JOGOS_CULTURAIS.length },
+                { id: 'favoritos' as const, label: t('Favoritos'), icon: <Pin className="w-3.5 h-3.5" />, total: ordem.fixados.length },
+              ].map(cat => {
+                const ativo = categoriaAtiva === cat.id;
+                return (
+                  <button
+                    key={cat.id}
+                    type="button"
+                    role="tab"
+                    aria-selected={ativo}
+                    onClick={() => {
+                      setCategoriaAtiva(cat.id);
+                      triggerHaptic('soft');
+                      playJuicedHit(1);
+                    }}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12.5px] font-bold transition-all cursor-pointer ${
+                      ativo
+                        ? 'bg-accent text-white shadow-xs'
+                        : 'text-ink-muted hover:text-ink hover:bg-surface-hover'
+                    }`}
+                  >
+                    {cat.icon}
+                    <span>{cat.label}</span>
+                    <span className={`text-[11px] px-1.5 py-0.2 rounded-full font-mono ${
+                      ativo ? 'bg-white/25 text-white' : 'bg-canvas text-ink-muted'
+                    }`}>
+                      {cat.total}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+
+            <ul className="hidden lg:flex items-center gap-3 list-none m-0 p-0 text-[11.5px] text-ink-muted" aria-label={t('A cor diz o que o jogo treina')}>
               {FAMILIAS.map(f => (
                 <li key={f.rotulo} className="flex items-center gap-1.5">
                   <span className="w-2.5 h-2.5 rounded-[3px] shrink-0" style={{ background: f.tom }} aria-hidden />
@@ -3138,64 +3384,95 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
                 </li>
               ))}
             </ul>
-
-            {/* ── O CONTROLE QUE FALTAVA ─────────────────────────────────────────────────────
-                A prévia da rodada tem um "começar direto da próxima vez", e ele fica DENTRO da
-                própria prévia. Quem marcava perdia o único jeito de desmarcar: a tela do checkbox
-                era justamente a que o checkbox impedia de abrir. Beco sem saída, e foi assim que
-                a antessala sumiu para quem a desligou uma vez.
-
-                O controle mora AQUI, e não em Ajustes, porque o lobby já é o dono das preferências
-                de jogo, a ordem das cartas e os favoritos também são decididos e guardados nesta
-                tela. E porque enterrá-lo em Ajustes → aba → seção repetiria o defeito original:
-                um controle a três cliques do lugar onde ele faz efeito. */}
-            <label className="flex items-center gap-2 text-[12px] text-ink-muted cursor-pointer select-none ms-auto">
-              <input
-                type="checkbox"
-                checked={!pularSempre}
-                onChange={e => mudarPularSempre(!e.target.checked)}
-                className="w-6 h-6 accent-accent cursor-pointer"
-              />
-              {ageProfile === 'kids' ? t('Ver o que vem antes de jogar') : t('Mostrar a prévia antes de começar')}
-            </label>
-
-            {/* O INTERRUPTOR DO MODO. Ele existe para que a grade em repouso seja só jogos:
-                as setas e o alfinete de cada carta aparecem aqui dentro, e não o tempo todo. */}
-            <button
-              onClick={() => setModoOrganizar(v => !v)}
-              aria-pressed={modoOrganizar}
-              title={t('Mudar a ordem das cartas e fixar as favoritas no topo')}
-              className={`shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-[12px] font-bold cursor-pointer transition-colors ${
-                modoOrganizar ? 'bg-accent text-accent-contrast border-accent' : 'bg-surface border-border-subtle text-ink-muted hover:text-ink hover:border-ink-faint'
-              }`}
-            >
-              <Pin className="w-3.5 h-3.5" aria-hidden />
-              {modoOrganizar ? t('Pronto') : t('Organizar')}
-            </button>
           </div>
-          {/* `<ul>/<li>` e não `<div>`: nove cartas sem semântica de lista chegam ao leitor de
-              tela como um monte de coisas soltas, sem "1 de 9" nem como pular o bloco. */}
-          <ul id="grade-de-jogos" className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 list-none m-0 p-0">
-            {listaDeJogos.map((j, i) => {
-              const liberado = j.estado.ok;
-              /* A FRONTEIRA ENTRE OS DOIS GRUPOS. Antes as nove cartas vinham misturadas, e uma
-                 carta bloqueada parecia defeito do app em vez de material que falta. O cabeçalho
-                 entra como item da própria grade (`col-span-full`) para não quebrar a semântica
-                 de lista que o leitor de tela usa para dizer "3 de 9". */
-              const abreOSegundoGrupo = i === jogosProntos.length && jogosPresos.length > 0;
-              /* C6 — A CARTA DEIXOU DE SER UM `<button>`.
-                 Ela era um botão contendo quatro controles focáveis (o "?", as duas setas, o
-                 alfinete). O comentário mais abaixo já registrava a intenção de evitar botão
-                 dentro de botão usando `<span role="button">`, a intenção estava certa, o
-                 mecanismo não: para a norma o que conta é DESCENDENTE FOCÁVEL, e `role="button"`
-                 com `tabIndex={0}` é exatamente isso. O axe media 36 nós em `nested-interactive`.
 
-                 O padrão aqui é o de carta com ação primária: o container não é interativo, o
-                 TÍTULO é o botão de verdade e um pseudoelemento estende sua área de clique sobre
-                 a carta inteira; os controles secundários sobem para `z-10` e continuam
-                 alcançáveis. O comportamento visível não muda, clicar em qualquer lugar da carta
-                 ainda começa a rodada, mas a árvore passa a ser válida e cada controle vira uma
-                 parada de tabulação legítima. */
+          {/* ── BARRA DE BUSCA, HABILIDADES E OPÇÕES ── */}
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-4">
+            <div className="relative flex-1 max-w-md">
+              <Search className="w-4 h-4 text-ink-faint absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <input
+                type="text"
+                value={buscaJogos}
+                onChange={e => setBuscaJogos(e.target.value)}
+                placeholder={t('Buscar por nome, mecânica, país...')}
+                className="w-full pl-9 pr-8 py-2 rounded-xl bg-surface border border-border-subtle text-ink placeholder:text-ink-faint text-[12.5px] focus:outline-none focus:border-accent transition-colors"
+              />
+              {buscaJogos && (
+                <button
+                  type="button"
+                  onClick={() => setBuscaJogos('')}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-ink-faint hover:text-ink p-0.5 cursor-pointer"
+                  title={t('Limpar busca')}
+                >
+                  <XIcon className="w-3.5 h-3.5" />
+                </button>
+              )}
+            </div>
+
+            <div className="flex items-center gap-1.5 overflow-x-auto custom-scrollbar pb-1 md:pb-0">
+              {[
+                { id: 'todas' as const, label: t('Todas') },
+                { id: 'vocab' as const, label: `🧠 ${t('Vocabulário')}` },
+                { id: 'escuta_fala' as const, label: `🎧 ${t('Escuta & Fala')}` },
+                { id: 'frase_gramatica' as const, label: `🧩 ${t('Sintaxe & Frases')}` },
+              ].map(h => {
+                const ativo = filtroHabilidade === h.id;
+                return (
+                  <button
+                    key={h.id}
+                    type="button"
+                    onClick={() => {
+                      setFiltroHabilidade(h.id);
+                      triggerHaptic('soft');
+                      playJuicedHit(1);
+                    }}
+                    className={`px-2.5 py-1.5 rounded-lg text-[11.5px] font-bold shrink-0 transition-colors cursor-pointer border ${
+                      ativo
+                        ? 'bg-accent-soft text-accent-ink border-accent/40 font-black'
+                        : 'bg-surface border-border-subtle text-ink-muted hover:text-ink hover:border-ink-faint'
+                    }`}
+                  >
+                    {h.label}
+                  </button>
+                );
+              })}
+            </div>
+
+            <div className="flex items-center gap-3 shrink-0 ms-auto">
+              <label className="flex items-center gap-1.5 text-[12px] text-ink-muted cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={!pularSempre}
+                  onChange={e => mudarPularSempre(!e.target.checked)}
+                  className="w-5 h-5 accent-accent cursor-pointer"
+                />
+                <span className="hidden sm:inline">{ageProfile === 'kids' ? t('Ver antes de jogar') : t('Prévia antes de começar')}</span>
+              </label>
+
+              <button
+                type="button"
+                onClick={() => setModoOrganizar(v => !v)}
+                aria-pressed={modoOrganizar}
+                title={t('Mudar a ordem das cartas e fixar as favoritas no topo')}
+                className={`shrink-0 flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-[12px] font-bold cursor-pointer transition-colors ${
+                  modoOrganizar ? 'bg-accent text-accent-contrast border-accent' : 'bg-surface border-border-subtle text-ink-muted hover:text-ink hover:border-ink-faint'
+                }`}
+              >
+                <Pin className="w-3.5 h-3.5" aria-hidden />
+                {modoOrganizar ? t('Pronto') : t('Organizar')}
+              </button>
+            </div>
+          </div>
+
+          {/* ── GRADE DINÂMICA DE JOGOS ── */}
+          <ul id="grade-de-jogos" className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 list-none m-0 p-0">
+            {/* Clássicos Filtrados */}
+            {jogosClassicosFiltrados.map((j, i) => {
+              const liberado = j.estado.ok;
+              const prontosNestaLista = jogosClassicosFiltrados.filter(item => item.estado.ok);
+              const presosNestaLista = jogosClassicosFiltrados.filter(item => !item.estado.ok);
+              const abreOSegundoGrupo = i === prontosNestaLista.length && presosNestaLista.length > 0;
+
               return (
                 <React.Fragment key={j.chave}>
                 {abreOSegundoGrupo && (
@@ -3208,102 +3485,60 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
                 )}
                 <li className="contents">
                 <div
-                  /* C9 — `opacity-60` saiu do estado bloqueado. Ela apagava o CARTÃO INTEIRO,
-                     inclusive o texto que explica POR QUE está bloqueado, medido em 2,26:1 e
-                     2,28:1, contra o mínimo de 4,5:1. Justo a frase que a pessoa precisa ler
-                     ("falta 1 palavra") era a mais difícil de ler.
-
-                     A WCAG 1.4.3 isenta componente inativo, então dava para declarar exceção.
-                     Não é o caso: bloqueio aqui não é um controle desligado e mudo, é um
-                     estado que CARREGA a informação de como sair dele. Apagar essa informação
-                     é o oposto do que a tela precisa fazer.
-
-                     O bloqueio continua evidente sem custar legibilidade: o cadeado no lugar do
-                     ícone, a arte em `grayscale`, o fundo recuado e a frase do motivo. */
                   className={`card-panel text-start flex flex-col overflow-hidden transition-all relative group ${
                     liberado ? 'bg-surface hover:border-accent hover:-translate-y-1 hover:shadow-card' : 'bg-canvas border-dashed'
                   }`}
                 >
-                  {/* A MINIATURA mostra a MECÂNICA antes de a pessoa ler o título — é a diferença
-                      entre "Frase embaralhada" (o quê?) e ver as peças caindo na linha.
-                      Desenhada com tokens de tema, então repinta junto com o tema. */}
-                  {/* Faixa 16:5 e não 16:7: a 132px de altura a arte ocupava mais espaço que o
-                      texto da carta e levava a página a 1.800px de rolagem com nove jogos. Menor,
-                      ela continua dizendo o que o jogo é e cabe mais jogo na tela. */}
-                  {/* Dois detalhes que não são decorativos:
-                      · `w-full`, a carta é um flex com `align-items: flex-start` (vem do
-                        `.card-panel`), então a faixa não esticava sozinha: derivava a largura do
-                        próprio SVG e deixava um vão preto de ~180px à direita, em TODA carta.
-                      · `16/7` é exatamente a proporção do `viewBox` do desenho. Qualquer outra
-                        faz o SVG encaixar por dentro e sobrar fundo nas laterais, o mesmo vão,
-                        por outro caminho. O tamanho da arte é controlado pela largura máxima do
-                        conteúdo, não por achatar a faixa. */}
-                  {/* A faixa recebe um véu do TOM DA FAMÍLIA (9%), o que agrupa a grade em três
-                      blocos legíveis de longe sem cor literal nenhuma — o tom vem de
-                      `MINIGAMES[id].modalidade`. O `grayscale` do bloqueio saiu: ele apagava
-                      justamente a única coisa que diferenciava as artes umas das outras, e o
-                      bloqueio já é dito pelo cadeado, pela borda tracejada e pelo motivo escrito. */}
                   <span
                     className="block w-full aspect-[16/7] border-b border-border-subtle overflow-hidden"
                     style={{ background: `color-mix(in srgb, ${tomDoJogo(j.id)} ${liberado ? 9 : 4}%, var(--canvas))` }}
                     aria-hidden
                   >
-                    <span className={`block w-full h-full transition-transform duration-300 group-hover:scale-[1.04] ${liberado ? '' : 'opacity-70'}`}><ArteDoJogo jogo={j.id} /></span>
+                    <ArteDoJogo jogo={j.id} />
                   </span>
-                  {/* O SEU recorde na carta: motivo de voltar ("dá para bater?") sem abrir nada. */}
-                  {liberado && (recordesMapa.get(j.id) ?? 0) > 0 && (
-                    <span className="absolute top-2 right-2 flex items-center gap-1 px-2 py-0.5 rounded-full bg-ink/70 text-white text-[10.5px] font-black tabular-nums backdrop-blur-sm" aria-label={t('Seu recorde: {n} pontos', { n: recordesMapa.get(j.id) ?? 0 })}>
-                      <TrophyIcon className="w-3 h-3 text-warn" aria-hidden /> {recordesMapa.get(j.id)}
-                    </span>
-                  )}
 
-                  <span className="w-full p-4 flex flex-col gap-2 flex-1">
-                  <span className="flex items-center gap-2.5">
-                    {/* UMA METÁFORA POR CARTA. Aqui vinha o ícone pixel do jogo, a 10px da arte:
-                        duas imagens diferentes da mesma coisa, competindo. Ficou a arte, que é
-                        maior e mostra a mecânica. O quadrado só sobrevive quando tem o que dizer
-                        que a arte não diz — o cadeado do bloqueio. */}
-                    {!liberado && (
-                      <span className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 bg-canvas text-ink-faint" aria-hidden>
-                        <Lock className="w-4 h-4" />
+                  <span className="p-4 flex flex-col flex-1 gap-1">
+                  <span className="flex items-start justify-between gap-2">
+                    <span className="flex items-center gap-2">
+                      <span
+                        className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${
+                          liberado ? 'bg-surface text-ink' : 'bg-surface-hover text-ink-muted'
+                        }`}
+                        aria-hidden
+                      >
+                        {liberado ? j.icone : <Lock className="w-3.5 h-3.5" />}
                       </span>
-                    )}
-                    {/* A AÇÃO PRIMÁRIA. `after:absolute after:inset-0` estende a área de clique
-                        deste botão sobre a carta inteira, preservando o comportamento anterior
-                        sem precisar de um botão envolvendo tudo. */}
-                    <button
-                      disabled={!liberado}
-                      onClick={() => pedirParaJogar(j)}
-                      // `min-h-6`: a área de clique REAL é a carta inteira (via `after:inset-0`),
-                      // mas a caixa própria do botão media 17,5px — e é a caixa que a WCAG 2.5.8
-                      // mede, não o pseudoelemento. Garantir os 24px no próprio elemento evita
-                      // depender de uma expansão que a norma não enxerga.
-                      className={`font-display font-extrabold text-[14px] text-ink leading-tight flex-1 text-start min-h-6 flex items-center after:absolute after:inset-0 after:content-[''] rounded-lg ${liberado ? 'cursor-pointer' : 'cursor-not-allowed'}`}
-                    >
-                      {tituloDoJogo(j, ageProfile)}
-                    </button>
-                    {/* Instrução que não some é instrução que atrapalha: depois da primeira vez,
-                        ela fica aqui, a um clique, em vez de voltar sozinha.
-                        C5, `min-w-6 min-h-6` são os 24px de WCAG 2.2 AA 2.5.8; antes era `p-1.5`
-                        sobre um ícone de 14px, o que dava 22px. */}
-                    {/* VER O QUE VEM — a volta para quem desligou a prévia, e SÓ para essa pessoa.
-                        Mora aqui, ao lado do "?", porque é da mesma família: espiar antes de
-                        entrar. Saiu da fileira de organizar, que é sobre a ORDEM da grade. */}
-                    {pularSempre && liberado && (
+                      <h3 className="font-display font-bold text-[14.5px] text-ink leading-tight">
+                        <button
+                          type="button"
+                          disabled={!liberado}
+                          onClick={() => {
+                            triggerHaptic('soft');
+                            playJuicedHit(1);
+                            pedirParaJogar(j);
+                          }}
+                          className={`text-start font-bold ${
+                            liberado
+                              ? 'cursor-pointer text-ink hover:text-accent after:absolute after:inset-0 focus-visible:outline-2 focus-visible:outline-accent'
+                              : 'cursor-not-allowed text-ink-muted'
+                          }`}
+                        >
+                          {tituloDoJogo(j, ageProfile)}
+                        </button>
+                      </h3>
+                    </span>
+
+                    {liberado && pularSempre && (
                       <button
                         onClick={() => pedirParaJogar(j, true)}
-                        className="relative z-10 min-w-6 min-h-6 inline-flex items-center justify-center rounded-lg text-ink-faint hover:text-accent hover:bg-surface-hover cursor-pointer shrink-0"
-                        title={t('Ver o que vem nesta rodada, sem começar')}
-                        aria-label={`${t('Ver o que vem')}: ${tituloDoJogo(j, ageProfile)}`}
+                        className="relative z-10 min-w-6 min-h-6 inline-flex items-center justify-center rounded-lg text-ink-faint hover:text-accent hover:bg-surface-hover cursor-pointer shrink-0 opacity-0 group-hover:opacity-100 focus:opacity-100 focus-visible:opacity-100 [@media(hover:none)]:opacity-100 transition-opacity"
+                        title={t('Ver a prévia desta rodada antes de começar')}
+                        aria-label={`${t('Prévia da rodada')}: ${tituloDoJogo(j, ageProfile)}`}
                       >
                         <ListChecks className="w-4 h-4" />
                       </button>
                     )}
-                    {/* O "?" SAI DA LEITURA EM REPOUSO e volta quando a pessoa se aproxima.
-                        `opacity` e não `hidden`: assim ele continua na ordem de tabulação e
-                        `focus-visible` o traz de volta para quem navega por teclado — esconder de
-                        verdade tiraria a ficha de quem mais depende dela. No toque não há hover,
-                        então lá ele fica visível o tempo todo (`@media (hover: none)`). */}
+
                     <button
                       onClick={() => setExplicando(j.id)}
                       className="relative z-10 min-w-6 min-h-6 inline-flex items-center justify-center rounded-lg text-ink-faint hover:text-accent hover:bg-surface-hover cursor-pointer shrink-0 opacity-0 group-hover:opacity-100 focus:opacity-100 focus-visible:opacity-100 [@media(hover:none)]:opacity-100 transition-opacity"
@@ -3314,21 +3549,6 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
                     </button>
                   </span>
 
-                  {/* ORGANIZAR A GRADE — alfinete e setas.
-                      C6, agora são `<button>` de verdade. Eram `<span role="button">` porque a
-                      carta inteira era um botão e botão dentro de botão é HTML inválido; com a
-                      carta virando `<div>`, a razão do contorno deixou de existir e o elemento
-                      certo voltou a ser possível. O `z-10` os mantém acima da área de clique
-                      estendida do título, e é o que substitui o `stopPropagation` de antes.
-                      Setas e não arrastar: arraste não existe em lugar nenhum deste projeto, quebra
-                      no toque e não funciona por teclado sem trabalho extra. Seta funciona nos três
-                      desde o primeiro dia. */}
-                  {/* ORGANIZAR É UM MODO, NÃO MOBILIÁRIO PERMANENTE.
-                      Estes três controles ficavam em TODA carta, o tempo todo: 27 dos 57 botões
-                      da tela — 47% — existiam só para reordenar cartas, e ficavam entre o título
-                      e a descrição, cortando a leitura de quem só queria jogar. O recurso continua
-                      inteiro (a ordem é preferência da pessoa, guardada em `babel.jogos_ordem`);
-                      o que muda é que ele aparece quando se pede. */}
                   {modoOrganizar && (
                     <span className="relative z-10 flex items-center gap-1 pt-1">
                       {([
@@ -3356,19 +3576,11 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
                       </button>
                     </span>
                   )}
-                  {/* Na trilha, três jogos MUDAM DE NATUREZA (ouvem palavra falada, não frase
-                      gravada) — ver `descricaoNaTrilha` em `play/jogos.tsx`. A carta dizia
-                      "a fala real toca" e "outras falas da mesma gravação" sobre um material que
-                      não tem gravação nenhuma. */}
+
                   <span className="text-[12px] text-ink-muted leading-snug">
                     {descricaoDoJogo(j, ageProfile, fonte.id === 'trilha')}
                   </span>
-                  {/* A PORTA DE SAÍDA — uma ação, a mais barata que resolve.
-                      `z-10` porque o título estende a área de clique dele sobre a carta inteira
-                      (`after:inset-0`); sem isso o clique aqui viraria "começar a rodada", que
-                      está desabilitada, ou seja, um botão que não faz nada.
-                      Quando `comoDesbloquear` devolve `null` (sem voz, áudio a caminho) NÃO
-                      aparece botão: não existe ação, e inventar uma seria mentir. */}
+
                   {!liberado && (() => {
                     const porta = comoDesbloquear(j.estado, contextoDoDesbloqueio);
                     if (!porta) return null;
@@ -3381,11 +3593,7 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
                       </button>
                     );
                   })()}
-                  {/* Estado REAL, com número — nada de card habilitado que falha ao clicar.
-                      DUAS CONTAS, e não uma. O gate mede o pool inteiro (`quantidade: 99`) mas a
-                      rodada joga `maxItems`: dizer só "47 palavras prontas" fazia a carta prometer
-                      uma partida de 47 e entregar 8, sem contar quais. Agora a primeira conta é a
-                      da RODADA, que é o que vai acontecer ao clicar, e o pool vem em seguida. */}
+
                   <span className={`text-[11px] pt-1 ${liberado ? 'font-bold mt-auto text-good-ink' : 'text-ink-muted'}`}>
                     {(() => {
                       const unidade = (n: number) => (j.estado.fonte === 'falas'
@@ -3393,16 +3601,11 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
                         : tp(n, 'palavra', 'palavras'));
                       if (liberado) {
                         const total = ('pool' in j.estado ? j.estado.pool : undefined) ?? j.estado.disponiveis;
-                        /* O tamanho vem do ESTADO, não de um `min(total, maxItems)` refeito aqui.
-                           A conta local mentia para o Termo, cuja escada consome 3 ou 7 e nunca 5. */
                         const naRodada = j.estado.tamanhoDaRodada;
                         return naRodada < total
                           ? t('{n} nesta rodada · {total} disponíveis', { n: naRodada, total })
                           : t('{n} {unidade} nesta rodada', { n: naRodada, unidade: unidade(naRodada) });
                       }
-                      /* O MOTIVO REAL, e não "faltam N falas". Na trilha esses jogos ficavam
-                         bloqueados por um número que não explicava nada, a pessoa não tem como
-                         adivinhar que a trilha não tem frase nem áudio. */
                       const motivo = 'motivo' in j.estado ? j.estado.motivo : undefined;
                       if (motivo === 'trilha-sem-frase') {
                         return ageProfile === 'kids'
@@ -3451,6 +3654,107 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
                 </React.Fragment>
               );
             })}
+
+            {/* Separador dos Jogos Culturais na visualização "Todos" */}
+            {categoriaAtiva === 'todos' && jogosClassicosFiltrados.length > 0 && jogosCulturaisFiltrados.length > 0 && (
+              <li className="col-span-full list-none mt-6 mb-2 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 border-t border-border-subtle pt-6">
+                <div>
+                  <h3 className="font-display font-black text-[16px] text-ink flex items-center gap-2">
+                    <Globe className="w-4 h-4 text-accent" /> {t('Jogos do Mundo & Inovações Culturais')}
+                  </h3>
+                  <p className="text-[12.5px] text-ink-muted mt-0.5 max-w-[65ch]">
+                    {t('Minigames baseados em ricas tradições mundiais (Karuta, Mancala, Shiritori, Cadavre Exquis e mais), 100% integrados com Game Feel.')}
+                  </p>
+                </div>
+                <span className="kpi-pill text-[11px] font-bold self-start sm:self-auto">{jogosCulturaisFiltrados.length} {t('jogos')}</span>
+              </li>
+            )}
+
+            {/* Cards dos Jogos Culturais */}
+            {jogosCulturaisFiltrados.map((cult) => (
+              <li key={cult.id} className="contents">
+                <div
+                  className="card-panel bg-surface text-start flex flex-col overflow-hidden transition-all relative group hover:border-accent hover:-translate-y-1 hover:shadow-card"
+                >
+                  <div
+                    className="w-full aspect-[16/7] border-b border-border-subtle overflow-hidden relative p-3 flex flex-col justify-between"
+                    style={{ background: `color-mix(in srgb, ${cult.tom} 12%, var(--canvas))` }}
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-surface/90 text-ink text-[11px] font-bold shadow-xs backdrop-blur-xs">
+                        <span>{cult.bandeira}</span>
+                        <span>{cult.origemCultural}</span>
+                      </span>
+                      <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-accent text-white text-[10.5px] font-mono font-bold tracking-tight shadow-xs">
+                        {cult.nivelCefr}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-surface/80 text-ink-muted text-[10.5px] font-medium backdrop-blur-xs">
+                        <Sparkles className="w-3 h-3 text-accent" />
+                        {cult.habilidadeLabel}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="p-4 flex flex-col flex-1 gap-2">
+                    <div className="flex items-start justify-between gap-2">
+                      <h3 className="font-display font-black text-[15px] text-ink leading-tight">
+                        <button
+                          type="button"
+                          onClick={() => abrirJogoCultural(cult.id)}
+                          className="text-start font-bold cursor-pointer text-ink group-hover:text-accent transition-colors after:absolute after:inset-0 focus-visible:outline-2 focus-visible:outline-accent"
+                        >
+                          {cult.nome}
+                        </button>
+                      </h3>
+                      <span className="relative z-10 w-7 h-7 rounded-lg bg-surface border border-border-subtle flex items-center justify-center text-ink-muted group-hover:text-accent group-hover:border-accent/40 transition-colors">
+                        <Gamepad2 className="w-4 h-4" />
+                      </span>
+                    </div>
+
+                    <p className="text-[12.5px] text-ink-muted leading-snug flex-1">
+                      {cult.descricao}
+                    </p>
+
+                    <div className="pt-2 border-t border-border-subtle/60 flex items-center justify-between text-[11.5px] mt-auto">
+                      <span className="text-good-ink font-semibold flex items-center gap-1">
+                        <Check className="w-3.5 h-3.5" /> {t('100% Funcional')}
+                      </span>
+                      <span className="relative z-10 font-bold text-accent group-hover:underline flex items-center gap-1">
+                        {t('Jogar')} <ChevronRight className="w-3.5 h-3.5" />
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </li>
+            ))}
+
+            {/* Estado Vazio de Busca */}
+            {jogosClassicosFiltrados.length === 0 && jogosCulturaisFiltrados.length === 0 && (
+              <li className="col-span-full list-none py-12 text-center flex flex-col items-center gap-3">
+                <div className="w-12 h-12 rounded-2xl bg-surface border border-border-subtle flex items-center justify-center text-ink-faint">
+                  <Search className="w-6 h-6" />
+                </div>
+                <p className="font-bold text-ink text-[15px]">{t('Nenhum jogo encontrado')}</p>
+                <p className="text-[12.5px] text-ink-muted max-w-sm">
+                  {t('Tente buscar por outro termo ou ajuste os filtros de categoria e habilidade.')}
+                </p>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setBuscaJogos('');
+                    setFiltroHabilidade('todas');
+                    setCategoriaAtiva('todos');
+                    triggerHaptic('soft');
+                    playJuicedHit(1);
+                  }}
+                  className="px-4 py-2 rounded-xl bg-surface border border-border-subtle hover:border-accent text-[12px] font-bold text-ink cursor-pointer transition-colors"
+                >
+                  {t('Limpar filtros e busca')}
+                </button>
+              </li>
+            )}
           </ul>
         </>
       )}

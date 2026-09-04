@@ -1,23 +1,15 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { X, Play, RotateCcw, Turtle } from 'lucide-react';
+import { X, Play, RotateCcw, Turtle, Flame } from 'lucide-react';
 import type { ItemOutcome, RoundReport, RodadaEscuta } from '@core';
 import { scoreRound } from '@core';
 import type { AgeProfileType } from '../../lib/profile';
 import { comemorar, multiplicador } from '../../lib/juice';
 import { criarFalante } from '../../lib/falante';
+import { playJuicedHit, playJuicedError, playJuicedVictory, triggerHaptic } from '../../lib/gameFeel';
+import { emitBurst } from '../../lib/effects';
 
 /**
  * QUAL FOI? — ouvir um trecho real e escolher a legenda certa.
- *
- * SUBSTITUI o `CaptionSync` legado, e existe porque ESCUTA era a habilidade sem jogo nenhum: dos
- * seis atuais, cinco são de leitura/escrita e o karaokê é de produção. Nenhum treinava só ouvir.
- *
- * O QUE FAZ ELE FUNCIONAR são as alternativas: outras falas DA MESMA gravação, com comprimento
- * parecido. Mesmo assunto, mesmo sotaque, mesmo vocabulário — não dá para eliminar por dedução,
- * é preciso ouvir. Alternativa inventada denunciaria a certa pela cara.
- *
- * O ÁUDIO PODE SER OUVIDO QUANTAS VEZES QUISER, e isso não é frouxidão: o exercício é
- * discriminação auditiva, não memória de curto prazo. Cobrar por reouvir treinaria a coisa errada.
  */
 
 interface EscutaGameProps {
@@ -45,20 +37,10 @@ export default function EscutaGame({ rodadas, audioUrl, ageProfile, onFinish, on
 
   const rodada = rodadas[indice];
 
-  /**
-   * Faz o item soar — clipe da gravação quando ela existe, voz sintetizada quando não.
-   *
-   * Antes isto era `<audio>` + `currentTime` + `setTimeout` direto aqui, e por isso o jogo só
-   * existia com uma gravação carregada: na trilha, que tem palavras curadas e nenhum áudio, ele
-   * anunciava falas prontas e tocava a gravação de outra fonte. Agora a decisão de COMO soar mora
-   * em `lib/falante.ts` e o jogo não sabe qual dos dois caminhos foi usado.
-   *
-   * Tocar só o trecho continua sendo obrigatório na gravação: sem o corte, o áudio seguinte
-   * entregaria a resposta.
-   */
   const falante = useMemo(() => criarFalante(audioRef, audioUrl), [audioUrl]);
   const ouvir = (velocidade = 1) => {
     if (!rodada || !falante.disponivel) return;
+    triggerHaptic('soft');
     falante.ouvir({
       texto: rodada.correta.text,
       lang: rodada.correta.lang,
@@ -67,15 +49,13 @@ export default function EscutaGame({ rodadas, audioUrl, ageProfile, onFinish, on
     }, velocidade);
     setTocando(true);
     if (pararRef.current) window.clearTimeout(pararRef.current);
-    /* O indicador de "tocando" tem de apagar sozinho: a voz sintetizada não avisa quando termina
-       por este caminho, e um botão preso em "tocando" parece travado. */
     const duracao = rodada.correta.endMs > rodada.correta.startMs
       ? Math.max(300, rodada.correta.endMs - rodada.correta.startMs) / velocidade
       : Math.max(900, rodada.correta.text.length * 90) / velocidade;
     pararRef.current = window.setTimeout(() => setTocando(false), duracao);
   };
 
-  // Toca sozinho ao entrar em cada rodada: o jogo é de escuta, e fazer clicar antes é atrito puro.
+  // Toca sozinho ao entrar em cada rodada
   useEffect(() => {
     if (rodada) ouvir(1);
     return () => { if (pararRef.current) window.clearTimeout(pararRef.current); };
@@ -90,9 +70,10 @@ export default function EscutaGame({ rodadas, audioUrl, ageProfile, onFinish, on
     setEscolhido(id ?? '');
     audioRef.current?.pause();
 
+    const rect = el?.getBoundingClientRect();
+    const coords = rect ? { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 } : undefined;
+
     resultadosRef.current.push({
-      // Sem o id da fala o outcome é anônimo e o histórico não sabe QUAL trecho tocou — é o que
-      // impede saber o que já veio, repetir uma rodada ou evitar a repetição.
       ...(rodada.correta.id ? { itemRef: rodada.correta.id } : {}),
       correct: certo,
       attempts: 1,
@@ -105,20 +86,23 @@ export default function EscutaGame({ rodadas, audioUrl, ageProfile, onFinish, on
       const ganho = 10 * mult;
       setSequencia(nova);
       setPontos(p => p + ganho);
-      comemorar(mult > 1 ? 'sequencia' : 'acerto', el, { texto: `+${ganho}${mult > 1 ? ` ×${mult}` : ''}`, tremer: mult >= 3 });
+      triggerHaptic('success');
+      if (coords) emitBurst(coords.x, coords.y, 'confete');
+      playJuicedHit(nova, coords, `+${ganho}${mult > 1 ? ` ×${mult}` : ''}`);
     } else {
       setSequencia(0);
-      comemorar('erro', el);
+      triggerHaptic('error');
+      playJuicedError(palcoRef.current, coords, 'Ouça novamente');
     }
 
-    // Pausa para LER a resposta certa antes de trocar — errar sem ver o certo não ensina nada.
+    // Pausa para LER a resposta certa antes de trocar
     setTimeout(() => {
       if (indice + 1 >= rodadas.length) {
         if (encerradoRef.current) return;
         encerradoRef.current = true;
         const todos = resultadosRef.current;
         const impecavel = todos.every(o => o.correct);
-        comemorar(impecavel ? 'rodadaPerfeita' : todos.some(o => o.correct) ? 'rodadaBoa' : 'erro', palcoRef.current, { tremer: impecavel });
+        if (impecavel) playJuicedVictory();
         setTimeout(() => onFinish({
           gameId: 'escuta',
           items: todos,
@@ -135,24 +119,43 @@ export default function EscutaGame({ rodadas, audioUrl, ageProfile, onFinish, on
 
   if (!rodada) return null;
   const mult = multiplicador(sequencia);
+  const progressoPct = rodadas.length > 0 ? Math.round((indice / rodadas.length) * 100) : 0;
 
   return (
     <div className="flex-1 flex flex-col items-center p-4 lg:p-8 animate-in fade-in duration-200 overflow-y-auto custom-scrollbar">
       <audio ref={audioRef} src={audioUrl} preload="auto" className="hidden" />
 
-      <header className="w-full max-w-2xl flex items-center justify-between mb-6 shrink-0">
-        <div>
-          <h2 className="font-display font-black text-lg text-ink">
-            {ageProfile === 'kids' ? 'Qual foi?' : 'Qual foi a fala?'}
-          </h2>
-          <p className="text-[12px] text-ink-muted">
-            {indice + 1} de {rodadas.length}
-            {pontos > 0 && <span className="text-accent-ink font-bold"> · {pontos} pts</span>}
-            {mult > 1 && <span className="text-warn-ink font-bold"> · ×{mult}</span>}
-          </p>
+      <header className="w-full max-w-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6 shrink-0">
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-2">
+            <h2 className="font-display font-black text-lg text-ink">
+              {ageProfile === 'kids' ? 'Qual foi?' : 'Qual foi a fala?'}
+            </h2>
+            {mult > 1 && (
+              <span className="flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-warn/20 text-warn-ink font-black text-xs border border-warn/40 animate-pulse">
+                <Flame className="w-3.5 h-3.5 text-warn fill-current" /> ×{mult}
+              </span>
+            )}
+          </div>
+          <div className="flex items-center gap-3 mt-1.5">
+            <div className="flex-1 max-w-[200px] h-2 rounded-full bg-border-subtle/60 overflow-hidden">
+              <div
+                className="h-full bg-accent transition-all duration-300 rounded-full"
+                style={{ width: `${progressoPct}%` }}
+              />
+            </div>
+            <p className="text-[12px] text-ink-muted tabular-nums">
+              {indice + 1} de {rodadas.length}
+              {pontos > 0 && <span className="text-accent-ink font-bold"> · {pontos} pts</span>}
+            </p>
+          </div>
         </div>
-        <button onClick={onExit} className="p-2 rounded-lg text-ink-muted hover:bg-surface-hover hover:text-ink cursor-pointer" aria-label="Sair do jogo">
-          <X className="w-5 h-5" />
+        <button
+          onClick={onExit}
+          className="p-2 rounded-xl text-ink-muted hover:bg-surface-hover hover:text-ink cursor-pointer border border-border-subtle transition-colors self-end sm:self-auto"
+          aria-label="Sair do jogo"
+        >
+          <X className="w-4 h-4" />
         </button>
       </header>
 

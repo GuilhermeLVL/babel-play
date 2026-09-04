@@ -5,6 +5,7 @@ import { conferirDitado, scoreRound } from '@core';
 import type { AgeProfileType } from '../../lib/profile';
 import { comemorar, pontosDoElemento, multiplicador } from '../../lib/juice';
 import { criarFalante } from '../../lib/falante';
+import { playJuicedHit, playJuicedError, playJuicedVictory, triggerHaptic } from '../../lib/gameFeel';
 
 /**
  * DITADO — ouvir e escrever o que foi dito.
@@ -60,6 +61,7 @@ export default function DitadoGame({ rodadas, audioUrl, ageProfile, onFinish, on
   const falante = useMemo(() => criarFalante(audioRef, audioUrl), [audioUrl]);
   const ouvir = (velocidade = 1) => {
     if (!rodada || !falante.disponivel) return;
+    triggerHaptic('soft');
     falante.ouvir({
       texto: rodada.fala.text, lang: rodada.fala.lang,
       startMs: rodada.fala.startMs, endMs: rodada.fala.endMs,
@@ -100,12 +102,12 @@ export default function DitadoGame({ rodadas, audioUrl, ageProfile, onFinish, on
       const ganho = 10 * (dicas ? 1 : mult);
       setSequencia(nova);
       setPontos(p => p + ganho);
-      comemorar(mult > 1 && !dicas ? 'sequencia' : 'acerto', palcoRef.current, {
-        texto: `+${ganho}`, tremer: mult >= 3,
-      });
+      triggerHaptic('success');
+      playJuicedHit(nova, undefined, `+${ganho}${mult > 1 && !dicas ? ` ×${mult}` : ''}`);
     } else {
       setSequencia(0);
-      comemorar('erro', palcoRef.current);
+      triggerHaptic('error');
+      playJuicedError(palcoRef.current, undefined, 'Abaixo de 80%');
     }
 
     // Pausa maior quando errou: é onde a correção palavra a palavra é lida.
@@ -115,7 +117,8 @@ export default function DitadoGame({ rodadas, audioUrl, ageProfile, onFinish, on
         encerradoRef.current = true;
         const todos = resultadosRef.current;
         const impecavel = todos.every(o => o.correct && !o.hinted);
-        comemorar(impecavel ? 'rodadaPerfeita' : todos.some(o => o.correct) ? 'rodadaBoa' : 'erro', palcoRef.current, { tremer: impecavel });
+        if (impecavel) playJuicedVictory();
+        else comemorar(todos.some(o => o.correct) ? 'rodadaBoa' : 'erro', palcoRef.current, { tremer: impecavel });
         setTimeout(() => onFinish({
           gameId: 'ditado',
           items: todos,
@@ -147,6 +150,7 @@ export default function DitadoGame({ rodadas, audioUrl, ageProfile, onFinish, on
     if (jaEscritas >= alvo.length) return;
     setDicas(d => d + 1);
     setSequencia(0);
+    triggerHaptic('soft');
     setTexto(t => (t.trim() ? `${t.trim()} ` : '') + alvo[jaEscritas]);
     pontosDoElemento(`palavra ${jaEscritas + 1}`, el, 'neutro');
     entradaRef.current?.focus();
@@ -154,28 +158,55 @@ export default function DitadoGame({ rodadas, audioUrl, ageProfile, onFinish, on
 
   if (!rodada) return null;
   const mult = multiplicador(sequencia);
+  const progressoPct = rodadas.length > 0 ? Math.round((indice / rodadas.length) * 100) : 0;
 
   return (
     <div className="flex-1 flex flex-col items-center p-4 lg:p-8 animate-in fade-in duration-200 overflow-y-auto custom-scrollbar">
       <audio ref={audioRef} src={audioUrl} preload="auto" className="hidden" />
 
-      <header className="w-full max-w-2xl flex items-center justify-between mb-6 shrink-0">
-        <div>
-          <h2 className="font-display font-black text-lg text-ink">
-            {ageProfile === 'kids' ? 'Escreva o que ouviu' : 'Ditado'}
-          </h2>
-          <p className="text-[12px] text-ink-muted">
-            {indice + 1} de {rodadas.length} · {rodada.palavras} palavras
-            {pontos > 0 && <span className="text-accent-ink font-bold"> · {pontos} pts</span>}
-            {mult > 1 && <span className="text-warn-ink font-bold"> · ×{mult}</span>}
-          </p>
+      <header className="w-full max-w-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6 shrink-0">
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-2">
+            <h2 className="font-display font-black text-lg text-ink">
+              {ageProfile === 'kids' ? 'Escreva o que ouviu' : 'Ditado'}
+            </h2>
+            {mult > 1 && (
+              <span className="flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-warn/20 text-warn-ink font-black text-xs border border-warn/40 animate-pulse">
+                ×{mult}
+              </span>
+            )}
+          </div>
+          <div className="flex items-center gap-3 mt-1.5">
+            <div className="flex-1 max-w-[200px] h-2 rounded-full bg-border-subtle/60 overflow-hidden">
+              <div
+                className="h-full bg-accent transition-all duration-300 rounded-full"
+                style={{ width: `${progressoPct}%` }}
+              />
+            </div>
+            <p className="text-[12px] text-ink-muted tabular-nums">
+              {indice + 1} de {rodadas.length} · {rodada.palavras} palavras
+              {pontos > 0 && <span className="text-accent-ink font-bold"> · {pontos} pts</span>}
+            </p>
+          </div>
         </div>
-        <span className="flex items-center gap-0.5">
-          <button data-tour="dica-ditado" onClick={(e) => pedirDica(e.currentTarget)} disabled={!!conferido} className="p-2 rounded-lg text-ink-muted hover:text-warn-ink hover:bg-surface-hover disabled:opacity-40 cursor-pointer" title="Revelar a próxima palavra (conta como dica)" aria-label="Pedir dica">
-            <Lightbulb className="w-4 h-4" />
+        <span className="flex items-center gap-1.5 shrink-0 self-end sm:self-auto">
+          <button
+            data-tour="dica-ditado"
+            onClick={(e) => pedirDica(e.currentTarget)}
+            disabled={!!conferido}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-border-subtle bg-surface text-ink-muted hover:text-warn-ink hover:border-warn/40 disabled:opacity-40 cursor-pointer font-bold text-xs shadow-sm transition-all"
+            title="Revelar a próxima palavra (conta como dica)"
+            aria-label="Pedir dica"
+          >
+            <Lightbulb className="w-4 h-4 text-warn" />
+            <span>Dica</span>
           </button>
-          <button onClick={onExit} className="p-2 rounded-lg text-ink-muted hover:bg-surface-hover hover:text-ink cursor-pointer" aria-label="Sair do jogo">
-            <X className="w-5 h-5" />
+          <button
+            onClick={onExit}
+            className="p-2 rounded-xl text-ink-muted hover:bg-surface-hover hover:text-ink cursor-pointer border border-border-subtle transition-colors"
+            aria-label="Sair do jogo"
+          >
+            <X className="w-4 h-4" />
           </button>
         </span>
       </header>
@@ -185,13 +216,13 @@ export default function DitadoGame({ rodadas, audioUrl, ageProfile, onFinish, on
           <button
             data-tour="ouvir"
             onClick={() => ouvir(1)}
-            className={`py-3.5 px-7 rounded-2xl bg-accent hover:bg-accent-ink text-white font-bold text-[15px] shadow-btn cursor-pointer flex items-center gap-2.5 transition-transform ${tocando ? 'scale-105' : ''}`}
+            className={`py-3.5 px-7 rounded-2xl bg-accent hover:bg-accent-ink text-white font-bold text-[15px] shadow-btn cursor-pointer flex items-center gap-2.5 transition-all ${tocando ? 'scale-105 ring-4 ring-accent/30' : 'hover:-translate-y-0.5'}`}
           >
-            <Play className="w-5 h-5" /> {tocando ? 'tocando…' : 'Ouvir'}
+            <Play className={`w-5 h-5 ${tocando ? 'animate-pulse' : ''}`} /> {tocando ? 'Tocando áudio…' : 'Ouvir fala'}
           </button>
           <button
             onClick={() => ouvir(0.6)}
-            className="py-3.5 px-4 rounded-2xl bg-canvas border border-border-subtle text-ink-muted hover:text-ink hover:border-accent font-bold text-[13px] cursor-pointer flex items-center gap-1.5"
+            className="py-3.5 px-4 rounded-2xl bg-canvas border border-border-subtle text-ink-muted hover:text-ink hover:border-accent font-bold text-[13px] cursor-pointer flex items-center gap-1.5 transition-colors"
             title="Toca mais devagar, sem mudar o tom da voz"
           >
             <Turtle className="w-4 h-4" /> devagar
@@ -209,13 +240,13 @@ export default function DitadoGame({ rodadas, audioUrl, ageProfile, onFinish, on
             onKeyDown={e => { if (e.key === 'Enter') conferir(); }}
             disabled={!!conferido}
             placeholder={ageProfile === 'senior' ? 'Escreva aqui o que você ouviu' : 'escreva o que ouviu…'}
-            className="flex-1 px-4 py-3.5 rounded-xl bg-surface border border-border-subtle text-ink text-[15px] focus:border-accent outline-none disabled:opacity-60"
+            className="flex-1 px-4 py-3.5 rounded-xl bg-surface border border-border-subtle text-ink text-[15px] focus:border-accent outline-none disabled:opacity-60 shadow-sm"
           />
           <button
             data-tour="conferir"
             onClick={conferir}
             disabled={!texto.trim() || !!conferido}
-            className="py-3.5 px-5 rounded-xl bg-accent hover:bg-accent-ink text-white font-bold text-[13px] shadow-btn disabled:opacity-40 cursor-pointer flex items-center gap-1.5"
+            className="py-3.5 px-5 rounded-xl bg-accent hover:bg-accent-ink text-white font-bold text-[13px] shadow-btn disabled:opacity-40 cursor-pointer flex items-center gap-1.5 active:scale-95 transition-all"
           >
             <CornerDownLeft className="w-4 h-4" /> Conferir
           </button>

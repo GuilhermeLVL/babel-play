@@ -1,23 +1,14 @@
 import React, { useRef, useState } from 'react';
-import { X, Check, Link2 } from 'lucide-react';
+import { X, Check, Link2, Flame } from 'lucide-react';
 import type { ItemOutcome, RoundReport, RodadaConectores } from '@core';
 import { notaConectores, scoreRound } from '@core';
 import type { AgeProfileType } from '../../lib/profile';
 import { comemorar, multiplicador } from '../../lib/juice';
+import { playJuicedHit, playJuicedError, playJuicedVictory, triggerHaptic } from '../../lib/gameFeel';
+import { emitBurst } from '../../lib/effects';
 
 /**
  * CAÇA-CONECTORES — marcar as palavras que amarram as ideias da frase.
- *
- * SUBSTITUI o `ContextMining` legado. O núcleo dele era bom e único no app: conectores
- * ("however", "no entanto", "porém") são o que separa quem entende PALAVRAS de quem entende o
- * TEXTO. Dá para conhecer todo o vocabulário de uma frase e ainda perder o sentido dela por não
- * notar um "although" — porque ele inverte tudo o que vem depois.
- *
- * A NOTA É F1, e não "quantos acertou", porque o jogo tem dois jeitos de errar que precisam
- * pesar: deixar conector passar e marcar palavra que não é. Contar só acertos premiaria quem
- * clica em tudo — e clicar em tudo é exatamente o oposto de perceber a estrutura.
- *
- * ERRAR AQUI NÃO MEXE NO AGENDADOR: as frases vêm de fala capturada, não de cartões do baralho.
  */
 
 interface ConectoresGameProps {
@@ -41,11 +32,11 @@ export default function ConectoresGame({ rodadas, ageProfile, onFinish, onExit }
   const palcoRef = useRef<HTMLDivElement | null>(null);
 
   const rodada = rodadas[indice];
-  /** Acerto a partir de 70 de F1: exige pegar a maioria sem sair clicando. */
   const LIMIAR = 70;
 
   const alternar = (i: number) => {
     if (conferido) return;
+    triggerHaptic('soft');
     setMarcados(prev => {
       const n = new Set(prev);
       if (n.has(i)) n.delete(i); else n.add(i);
@@ -60,8 +51,6 @@ export default function ConectoresGame({ rodadas, ageProfile, onFinish, onExit }
     const certo = n.f1 >= LIMIAR;
 
     resultadosRef.current.push({
-      // O id da frase acompanha o resultado: anônimo, ele não permite dizer QUAL frase já foi
-      // caçada — e é esse histórico que sustenta repetir ou não repetir uma rodada.
       ...(rodada.fala.id ? { itemRef: rodada.fala.id } : {}),
       correct: certo,
       attempts: 1,
@@ -74,10 +63,15 @@ export default function ConectoresGame({ rodadas, ageProfile, onFinish, onExit }
       const ganho = 10 * mult;
       setSequencia(nova);
       setPontos(p => p + ganho);
-      comemorar(mult > 1 ? 'sequencia' : 'acerto', palcoRef.current, { texto: `+${ganho}`, tremer: mult >= 3 });
+      triggerHaptic('success');
+      if (typeof window !== 'undefined') {
+        emitBurst(window.innerWidth / 2, window.innerHeight * 0.4, 'confete');
+      }
+      playJuicedHit(nova, undefined, `+${ganho}${mult > 1 ? ` ×${mult}` : ''}`);
     } else {
       setSequencia(0);
-      comemorar('erro', palcoRef.current);
+      triggerHaptic('error');
+      playJuicedError(palcoRef.current, undefined, 'Revise os conectores');
     }
 
     setTimeout(() => {
@@ -86,7 +80,7 @@ export default function ConectoresGame({ rodadas, ageProfile, onFinish, onExit }
         encerradoRef.current = true;
         const todos = resultadosRef.current;
         const impecavel = todos.every(o => o.correct);
-        comemorar(impecavel ? 'rodadaPerfeita' : todos.some(o => o.correct) ? 'rodadaBoa' : 'erro', palcoRef.current, { tremer: impecavel });
+        if (impecavel) playJuicedVictory();
         setTimeout(() => onFinish({
           gameId: 'conectores',
           items: todos,
@@ -104,22 +98,41 @@ export default function ConectoresGame({ rodadas, ageProfile, onFinish, onExit }
 
   if (!rodada) return null;
   const mult = multiplicador(sequencia);
+  const progressoPct = rodadas.length > 0 ? Math.round((indice / rodadas.length) * 100) : 0;
 
   return (
     <div className="flex-1 flex flex-col items-center p-4 lg:p-8 animate-in fade-in duration-200 overflow-y-auto custom-scrollbar">
-      <header className="w-full max-w-2xl flex items-center justify-between mb-6 shrink-0">
-        <div>
-          <h2 className="font-display font-black text-lg text-ink">
-            {ageProfile === 'kids' ? 'Ache as palavras que ligam' : 'Caça-conectores'}
-          </h2>
-          <p className="text-[12px] text-ink-muted">
-            frase {indice + 1} de {rodadas.length}
-            {pontos > 0 && <span className="text-accent-ink font-bold"> · {pontos} pts</span>}
-            {mult > 1 && <span className="text-warn-ink font-bold"> · ×{mult}</span>}
-          </p>
+      <header className="w-full max-w-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6 shrink-0">
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-2">
+            <h2 className="font-display font-black text-lg text-ink">
+              {ageProfile === 'kids' ? 'Ache as palavras que ligam' : 'Caça-conectores'}
+            </h2>
+            {mult > 1 && (
+              <span className="flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-warn/20 text-warn-ink font-black text-xs border border-warn/40 animate-pulse">
+                <Flame className="w-3.5 h-3.5 text-warn fill-current" /> ×{mult}
+              </span>
+            )}
+          </div>
+          <div className="flex items-center gap-3 mt-1.5">
+            <div className="flex-1 max-w-[200px] h-2 rounded-full bg-border-subtle/60 overflow-hidden">
+              <div
+                className="h-full bg-accent transition-all duration-300 rounded-full"
+                style={{ width: `${progressoPct}%` }}
+              />
+            </div>
+            <p className="text-[12px] text-ink-muted tabular-nums">
+              frase {indice + 1} de {rodadas.length}
+              {pontos > 0 && <span className="text-accent-ink font-bold"> · {pontos} pts</span>}
+            </p>
+          </div>
         </div>
-        <button onClick={onExit} className="p-2 rounded-lg text-ink-muted hover:bg-surface-hover hover:text-ink cursor-pointer" aria-label="Sair do jogo">
-          <X className="w-5 h-5" />
+        <button
+          onClick={onExit}
+          className="p-2 rounded-xl text-ink-muted hover:bg-surface-hover hover:text-ink cursor-pointer border border-border-subtle transition-colors self-end sm:self-auto"
+          aria-label="Sair do jogo"
+        >
+          <X className="w-4 h-4" />
         </button>
       </header>
 

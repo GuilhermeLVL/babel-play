@@ -1,0 +1,56 @@
+
+===== 11 — desenclítico e a amostra de 60 =====
+CASOS NOMEADOS (a regra literal de lexemes.mjs:214-232):
+lang    palavra      esperado        obtido  veredito                                                         por quê
+----  ---------  ------------  ------------  --------  --------------------------------------------------------------
+es        darme           dar           dar        OK      verdadeiro positivo — o caso que a regra existe para pegar
+es     llamarla        llamar        llamar        OK                                             verdadeiro positivo
+es    hablarnos        hablar        hablar        OK                                             verdadeiro positivo
+es    enterarse       enterar       enterar        OK                                             verdadeiro positivo
+es        carme  (não cortar)  (não cortou)        OK              FALSO POSITIVO se cortar — raiz "car" tem 3 letras
+es        firme  (não cortar)  (não cortou)        OK                   FALSO POSITIVO se cortar — "firme" é adjetivo
+es      informe  (não cortar)  (não cortou)        OK              FALSO POSITIVO se cortar — "informe" é substantivo
+es        parte  (não cortar)  (não cortou)        OK  FALSO POSITIVO se cortar — o próprio comentário do código cita
+es       suerte  (não cortar)          suer      ERRO          FALSO POSITIVO se cortar — o comentário do código cita
+es        menos  (não cortar)  (não cortou)        OK                     FALSO POSITIVO se cortar — termina em "nos"
+es      alumnos  (não cortar)  (não cortou)        OK                                        FALSO POSITIVO se cortar
+es     hermanos  (não cortar)  (não cortou)        OK                                        FALSO POSITIVO se cortar
+it     parlarne        parlar        parlar        OK                                             verdadeiro positivo
+it        dormi  (não cortar)  (não cortou)        OK                 FALSO POSITIVO se cortar — 2ª pessoa de dormire
+it        figli  (não cortar)  (não cortou)        OK                     FALSO POSITIVO se cortar — termina em "gli"
+pt        dá-lo  (não cortar)  (não cortou)        OK                com hífen: a regra não vê (o hífen fica na raiz)
+
+15 de 16 casos corretos · 1 erro(s)
+
+VARREDURA SOBRE O VOCABULÁRIO REAL DA TRILHA:
+lang  palavras  que a regra cortaria   taxa
+----  --------  --------------------  -----
+es        5727                     0  0.00%
+it        5780                     0  0.00%
+  [es] nenhuma
+  [it] nenhuma
+
+A AMOSTRA DE 60 (docs/auditoria/trilha-multi-idioma-v1.md:81-82):
+medida                       proporção  IC 95% (Wilson)  meia-largura
+---------------------------  ---------  ---------------  ------------
+antes das correções (42/60)      70.0%    57.5% – 80.1%      ±11.3 pp
+depois (54/60)                   90.0%    79.9% – 95.3%       ±7.7 pp
+
+A melhora 70% → 90%, testada como PAREADA (mesma amostra antes e depois):
+cenário (b→erro, c→acerto)  discordantes  p (McNemar exato)  significativa a 5%?
+--------------------------  ------------  -----------------  -------------------
+b=0, c=12                             12             0.0005                  sim
+b=2, c=14                             16             0.0042                  sim
+b=4, c=16                             20             0.0118                  sim
+b=6, c=18                             24             0.0227                  sim
+  Em todos os cenários compatíveis com o saldo de +12, a melhora É significativa.
+  (Comparar os dois IC acima e ver sobreposição daria "não significativa" — e seria
+   o teste errado, porque trata como independentes duas medidas sobre os mesmos itens.)
+
+Tamanho de amostra necessário (proporção esperada 90%, 95% de confiança):
+precisão desejada  n necessário
+-----------------  ------------
+±10 pp                       35
+±5 pp                       139
+±3 pp                       385
+±2 pp                       865

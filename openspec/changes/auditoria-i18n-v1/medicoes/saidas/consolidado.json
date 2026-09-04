@@ -1,0 +1,6056 @@
+{
+  "quando": "2026-09-04T00:20:23.961Z",
+  "node": "v24.18.0",
+  "icu": "78.3",
+  "medicoes": {
+    "01 — inventário": {
+      "estado": {
+        "branch": "multi-idioma",
+        "head": "173fcde",
+        "baseComum": "2f11380cf4bec141a6a7da6d57f3997ea9ccdb55",
+        "commitsDesdeABase": "191",
+        "sujo": 1
+      },
+      "deps": {
+        "react": "^19.0.1",
+        "vite": "^6.2.3",
+        "typescript": "~5.8.2",
+        "tailwindcss": "^4.1.14",
+        "vitest": "^4.1.10",
+        "@playwright/test": "^1.62.1",
+        "eslint": "^10.7.0",
+        "@ast-grep/cli": "0.45.1",
+        "express": "^4.21.2",
+        "drizzle-orm": "^0.45.2"
+      },
+      "superficie": [
+        [
+          "src/**/*.ts,tsx",
+          317
+        ],
+        [
+          "src/components/views/*.tsx (telas de topo)",
+          23
+        ],
+        [
+          "tests/**/*.test.ts,tsx",
+          273
+        ],
+        [
+          "tests/e2e/*.e2e.ts",
+          5
+        ],
+        [
+          "scripts/i18n/*.mjs",
+          2
+        ],
+        [
+          "scripts/trilha/*.mjs",
+          9
+        ],
+        [
+          "audit/rules/ast-grep/*.yml",
+          6
+        ],
+        [
+          "public/i18n/*.json",
+          4
+        ],
+        [
+          "public/trilha/*.json",
+          16
+        ],
+        [
+          "public/glosas/*.json",
+          15
+        ],
+        [
+          ".github/workflows/*",
+          4
+        ],
+        [
+          "openspec/changes/*",
+          26
+        ]
+      ],
+      "semBibliotecaI18n": true
+    },
+    "02 — chaves por catálogo": {
+      "universo": 693,
+      "porIdioma": [
+        {
+          "lang": "ar",
+          "arquivo": "public/i18n/ar.json",
+          "bytes": 798,
+          "chaves": 21,
+          "preenchida": 21,
+          "vazia": 0,
+          "identica": 0,
+          "ausente": 0,
+          "objetosDePlural": 0,
+          "categoriasCLDR": [
+            "zero",
+            "one",
+            "two",
+            "few",
+            "many",
+            "other"
+          ],
+          "pluraisIncompletos": [],
+          "identicasExemplos": [],
+          "pseudo": false,
+          "doUniverso": "3.0%"
+        },
+        {
+          "lang": "en",
+          "arquivo": "public/i18n/en.json",
+          "bytes": 52676,
+          "chaves": 693,
+          "preenchida": 689,
+          "vazia": 0,
+          "identica": 4,
+          "ausente": 0,
+          "objetosDePlural": 14,
+          "categoriasCLDR": [
+            "one",
+            "other"
+          ],
+          "pluraisIncompletos": [],
+          "identicasExemplos": [
+            "MyMemory (web)",
+            "seeds",
+            "· conf. {n}%",
+            "Tech / Developer"
+          ],
+          "pseudo": false,
+          "doUniverso": "99.4%"
+        },
+        {
+          "lang": "es",
+          "arquivo": "public/i18n/es.json",
+          "bytes": 631,
+          "chaves": 20,
+          "preenchida": 16,
+          "vazia": 0,
+          "identica": 4,
+          "ausente": 0,
+          "objetosDePlural": 0,
+          "categoriasCLDR": [
+            "one",
+            "many",
+            "other"
+          ],
+          "pluraisIncompletos": [],
+          "identicasExemplos": [
+            "Capturar",
+            "Biblioteca",
+            "Personalizar",
+            "Ajustes"
+          ],
+          "pseudo": false,
+          "doUniverso": "2.3%"
+        },
+        {
+          "lang": "xx",
+          "arquivo": "public/i18n/xx.json",
+          "bytes": 83825,
+          "chaves": 693,
+          "preenchida": 693,
+          "vazia": 0,
+          "identica": 0,
+          "ausente": 0,
+          "objetosDePlural": 14,
+          "categoriasCLDR": [
+            "one",
+            "many",
+            "other"
+          ],
+          "pluraisIncompletos": [
+            {
+              "chave": "{n} palavras",
+              "faltando": [
+                "many"
+              ]
+            },
+            {
+              "chave": "{n} palavras estão na hora de rever",
+              "faltando": [
+                "many"
+              ]
+            },
+            {
+              "chave": "{n} palavras novas esperando",
+              "faltando": [
+                "many"
+              ]
+            },
+            {
+              "chave": "{n} palavras prontas para revisar",
+              "faltando": [
+                "many"
+              ]
+            },
+            {
+              "chave": "{n} sessões capturadas",
+              "faltando": [
+                "many"
+              ]
+            },
+            {
+              "chave": "cartões",
+              "faltando": [
+                "many"
+              ]
+            },
+            {
+              "chave": "dias",
+              "faltando": [
+                "many"
+              ]
+            },
+            {
+              "chave": "dias seguidos",
+              "faltando": [
+                "many"
+              ]
+            },
+            {
+              "chave": "falas",
+              "faltando": [
+                "many"
+              ]
+            },
+            {
+              "chave": "faltam {n} {unidade}",
+              "faltando": [
+                "many"
+              ]
+            },
+            {
+              "chave": "palavras",
+              "faltando": [
+                "many"
+              ]
+            },
+            {
+              "chave": "palavras pedindo revisão",
+              "faltando": [
+                "many"
+              ]
+            },
+            {
+              "chave": "palavras prontas",
+              "faltando": [
+                "many"
+              ]
+            },
+            {
+              "chave": "sessões",
+              "faltando": [
+                "many"
+              ]
+            }
+          ],
+          "identicasExemplos": [],
+          "pseudo": true,
+          "doUniverso": "100.0%"
+        }
+      ]
+    },
+    "03 — chamadas de t() e cobertura": {
+      "arquivosVarridos": 317,
+      "totalT": 367,
+      "totalTp": 20,
+      "totalCompT": 8,
+      "totalVisivel": 2150,
+      "arquivosComT": 22,
+      "comoORepoConta": {
+        "chamadas": 373,
+        "literaisComAcento": 3145
+      },
+      "porArquivo": [
+        {
+          "arquivo": "src/App.tsx",
+          "t": 0,
+          "tp": 0,
+          "componenteT": 0,
+          "bruto": 0,
+          "textoVisivel": 23
+        },
+        {
+          "arquivo": "src/components/AiEnginePanel.tsx",
+          "t": 2,
+          "tp": 0,
+          "componenteT": 0,
+          "bruto": 0,
+          "textoVisivel": 12
+        },
+        {
+          "arquivo": "src/components/BuscaDeCapa.tsx",
+          "t": 0,
+          "tp": 0,
+          "componenteT": 0,
+          "bruto": 0,
+          "textoVisivel": 3
+        },
+        {
+          "arquivo": "src/components/BuscaGlobal.tsx",
+          "t": 0,
+          "tp": 0,
+          "componenteT": 0,
+          "bruto": 0,
+          "textoVisivel": 3
+        },
+        {
+          "arquivo": "src/components/CardDePlanos.tsx",
+          "t": 0,
+          "tp": 0,
+          "componenteT": 0,
+          "bruto": 0,
+          "textoVisivel": 7
+        },
+        {
+          "arquivo": "src/components/ChatTranscript.tsx",
+          "t": 0,
+          "tp": 0,
+          "componenteT": 0,
+          "bruto": 0,
+          "textoVisivel": 9
+        },
+        {
+          "arquivo": "src/components/CommandPalette.tsx",
+          "t": 0,
+          "tp": 0,
+          "componenteT": 0,
+          "bruto": 0,
+          "textoVisivel": 4
+        },
+        {
+          "arquivo": "src/components/DocumentPiP.tsx",
+          "t": 0,
+          "tp": 0,
+          "componenteT": 0,
+          "bruto": 0,
+          "textoVisivel": 1
+        },
+        {
+          "arquivo": "src/components/EditablePanel.tsx",
+          "t": 0,
+          "tp": 0,
+          "componenteT": 0,
+          "bruto": 0,
+          "textoVisivel": 11
+        },
+        {
+          "arquivo": "src/components/ErroDaTela.tsx",
+          "t": 0,
+          "tp": 0,
+          "componenteT": 0,
+          "bruto": 0,
+          "textoVisivel": 6
+        },
+        {
+          "arquivo": "src/components/GuidePanel.tsx",
+          "t": 2,
+          "tp": 0,
+          "componenteT": 0,
+          "bruto": 0,
+          "textoVisivel": 5
+        },
+        {
+          "arquivo": "src/components/Honestidade.tsx",
+          "t": 0,
+          "tp": 0,
+          "componenteT": 0,
+          "bruto": 0,
+          "textoVisivel": 1
+        },
+        {
+          "arquivo": "src/components/IChat.tsx",
+          "t": 0,
+          "tp": 0,
+          "componenteT": 0,
+          "bruto": 0,
+          "textoVisivel": 24
+        },
+        {
+          "arquivo": "src/components/LangPicker.tsx",
+          "t": 0,
+          "tp": 0,
+          "componenteT": 0,
+          "bruto": 0,
+          "textoVisivel": 6
+        },
+        {
+          "arquivo": "src/components/LayoutEditorToolbar.tsx",
+          "t": 1,
+          "tp": 0,
+          "componenteT": 0,
+          "bruto": 0,
+          "textoVisivel": 5
+        },
+        {
+          "arquivo": "src/components/LayoutStudio.tsx",
+          "t": 2,
+          "tp": 0,
+          "componenteT": 0,
+          "bruto": 0,
+          "textoVisivel": 39
+        },
+        {
+          "arquivo": "src/components/Login.tsx",
+          "t": 0,
+          "tp": 0,
+          "componenteT": 0,
+          "bruto": 0,
+          "textoVisivel": 24
+        },
+        {
+          "arquivo": "src/components/MiniaturaDoItem.tsx",
+          "t": 0,
+          "tp": 0,
+          "componenteT": 0,
+          "bruto": 0,
+          "textoVisivel": 12
+        },
+        {
+          "arquivo": "src/components/ModelPrepPanel.tsx",
+          "t": 0,
+          "tp": 0,
+          "componenteT": 0,
+          "bruto": 0,
+          "textoVisivel": 5
+        },
+        {
+          "arquivo": "src/components/Onboarding.tsx",
+          "t": 0,
+          "tp": 0,
+          "componenteT": 0,
+          "bruto": 0,
+          "textoVisivel": 63
+        },
+        {
+          "arquivo": "src/components/OnboardingLeve.tsx",
+          "t": 1,
+          "tp": 0,
+          "componenteT": 0,
+          "bruto": 0,
+          "textoVisivel": 12
+        },
+        {
+          "arquivo": "src/components/Overlay.tsx",
+          "t": 0,
+          "tp": 0,
+          "componenteT": 0,
+          "bruto": 0,
+          "textoVisivel": 47
+        },
+        {
+          "arquivo": "src/components/ParticleCanvas.tsx",
+          "t": 0,
+          "tp": 0,
+          "componenteT": 0,
+          "bruto": 0,
+          "textoVisivel": 4
+        },
+        {
+          "arquivo": "src/components/PracticeMenu.tsx",
+          "t": 0,
+          "tp": 0,
+          "componenteT": 0,
+          "bruto": 0,
+          "textoVisivel": 7
+        },
+        {
+          "arquivo": "src/components/Provenance.tsx",
+          "t": 0,
+          "tp": 0,
+          "componenteT": 0,
+          "bruto": 0,
+          "textoVisivel": 3
+        },
+        {
+          "arquivo": "src/components/RecompensaDesbloqueada.tsx",
+          "t": 0,
+          "tp": 0,
+          "componenteT": 0,
+          "bruto": 0,
+          "textoVisivel": 3
+        },
+        {
+          "arquivo": "src/components/Toast.tsx",
+          "t": 0,
+          "tp": 0,
+          "componenteT": 0,
+          "bruto": 0,
+          "textoVisivel": 4
+        },
+        {
+          "arquivo": "src/components/TokensClicaveis.tsx",
+          "t": 0,
+          "tp": 0,
+          "componenteT": 0,
+          "bruto": 0,
+          "textoVisivel": 1
+        },
+        {
+          "arquivo": "src/components/TranscricaoLeve.tsx",
+          "t": 1,
+          "tp": 0,
+          "componenteT": 0,
+          "bruto": 0,
+          "textoVisivel": 4
+        },
+        {
+          "arquivo": "src/components/VocabularyPanel.tsx",
+          "t": 1,
+          "tp": 0,
+          "componenteT": 0,
+          "bruto": 0,
+          "textoVisivel": 25
+        },
+        {
+          "arquivo": "src/components/auth/AccountSecuritySection.tsx",
+          "t": 0,
+          "tp": 0,
+          "componenteT": 0,
+          "bruto": 0,
+          "textoVisivel": 1
+        },
+        {
+          "arquivo": "src/components/auth/AuthShell.tsx",
+          "t": 0,
+          "tp": 0,
+          "componenteT": 0,
+          "bruto": 0,
+          "textoVisivel": 6
+        },
+        {
+          "arquivo": "src/components/auth/ResetPassword.tsx",
+          "t": 0,
+          "tp": 0,
+          "componenteT": 0,
+          "bruto": 0,
+          "textoVisivel": 9
+        },
+        {
+          "arquivo": "src/components/auth/SecurityPanel.tsx",
+          "t": 0,
+          "tp": 0,
+          "componenteT": 0,
+          "bruto": 0,
+          "textoVisivel": 25
+        },
+        {
+          "arquivo": "src/components/conta/AvisoDeConta.tsx",
+          "t": 4,
+          "tp": 0,
+          "componenteT": 0,
+          "bruto": 0,
+          "textoVisivel": 1
+        },
+        {
+          "arquivo": "src/components/conta/CartaoDeConvite.tsx",
+          "t": 0,
+          "tp": 0,
+          "componenteT": 0,
+          "bruto": 0,
+          "textoVisivel": 1
+        },
+        {
+          "arquivo": "src/components/conta/GateDeConta.tsx",
+          "t": 0,
+          "tp": 0,
+          "componenteT": 0,
+          "bruto": 0,
+          "textoVisivel": 5
+        },
+        {
+          "arquivo": "src/components/conta/ModalDeMigracao.tsx",
+          "t": 1,
+          "tp": 2,
+          "componenteT": 2,
+          "bruto": 0,
+          "textoVisivel": 11
+        },
+        {
+          "arquivo": "src/components/conta/exigeConta.ts",
+          "t": 0,
+          "tp": 0,
+          "componenteT": 0,
+          "bruto": 0,
+          "textoVisivel": 1
+        },
+        {
+          "arquivo": "src/components/metrics/EvolucaoSemanal.tsx",
+          "t": 0,
+          "tp": 0,
+          "componenteT": 0,
+          "bruto": 0,
+          "textoVisivel": 1
+        },
+        {
+          "arquivo": "src/components/metrics/NiveisDoConjunto.tsx",
+          "t": 0,
+          "tp": 0,
+          "componenteT": 0,
+          "bruto": 0,
+          "textoVisivel": 2
+        },
+        {
+          "arquivo": "src/components/minigames/AntessalaDaRodada.tsx",
+          "t": 0,
+          "tp": 0,
+          "componenteT": 0,
+          "bruto": 0,
+          "textoVisivel": 40
+        },
+        {
+          "arquivo": "src/components/minigames/ArteDosJogos.tsx",
+          "t": 0,
+          "tp": 0,
+          "componenteT": 0,
+          "bruto": 0,
+          "textoVisivel": 3
+        },
+        {
+          "arquivo": "src/components/minigames/BingoPanel.tsx",
+          "t": 0,
+          "tp": 0,
+          "componenteT": 0,
+          "bruto": 0,
+          "textoVisivel": 8
+        },
+        {
+          "arquivo": "src/components/minigames/BlitzGame.tsx",
+          "t": 0,
+          "tp": 0,
+          "componenteT": 0,
+          "bruto": 0,
+          "textoVisivel": 24
+        },
+        {
+          "arquivo": "src/components/minigames/CoberturaDosIdiomas.tsx",
+          "t": 1,
+          "tp": 0,
+          "componenteT": 0,
+          "bruto": 0,
+          "textoVisivel": 7
+        },
+        {
+          "arquivo": "src/components/minigames/ComoSeJoga.tsx",
+          "t": 0,
+          "tp": 0,
+          "componenteT": 0,
+          "bruto": 0,
+          "textoVisivel": 4
+        },
+        {
+          "arquivo": "src/components/minigames/ConectoresGame.tsx",
+          "t": 0,
+          "tp": 0,
+          "componenteT": 0,
+          "bruto": 0,
+          "textoVisivel": 5
+        },
+        {
+          "arquivo": "src/components/minigames/DitadoGame.tsx",
+          "t": 0,
+          "tp": 0,
+          "componenteT": 0,
+          "bruto": 0,
+          "textoVisivel": 12
+        },
+        {
+          "arquivo": "src/components/minigames/EscutaGame.tsx",
+          "t": 0,
+          "tp": 0,
+          "componenteT": 0,
+          "bruto": 0,
+          "textoVisivel": 8
+        },
+        {
+          "arquivo": "src/components/minigames/KaraokeGame.tsx",
+          "t": 0,
+          "tp": 0,
+          "componenteT": 0,
+          "bruto": 0,
+          "textoVisivel": 11
+        },
+        {
+          "arquivo": "src/components/minigames/MemoryGame.tsx",
+          "t": 0,
+          "tp": 0,
+          "componenteT": 0,
+          "bruto": 0,
+          "textoVisivel": 9
+        },
+        {
+          "arquivo": "src/components/minigames/ResumoDaRodada.tsx",
+          "t": 0,
+          "tp": 0,
+          "componenteT": 0,
+          "bruto": 0,
+          "textoVisivel": 9
+        },
+        {
+          "arquivo": "src/components/minigames/SalaDeEscolha.tsx",
+          "t": 40,
+          "tp": 1,
+          "componenteT": 1,
+          "bruto": 0,
+          "textoVisivel": 5
+        },
+        {
+          "arquivo": "src/components/minigames/ScrambleGame.tsx",
+          "t": 0,
+          "tp": 0,
+          "componenteT": 0,
+          "bruto": 0,
+          "textoVisivel": 14
+        },
+        {
+          "arquivo": "src/components/minigames/ScratchReward.tsx",
+          "t": 0,
+          "tp": 0,
+          "componenteT": 0,
+          "bruto": 0,
+          "textoVisivel": 18
+        },
+        {
+          "arquivo": "src/components/minigames/SeletorDeConteudo.tsx",
+          "t": 6,
+          "tp": 1,
+          "componenteT": 0,
+          "bruto": 0,
+          "textoVisivel": 1
+        },
+        {
+          "arquivo": "src/components/minigames/TermoGame.tsx",
+          "t": 0,
+          "tp": 0,
+          "componenteT": 0,
+          "bruto": 0,
+          "textoVisivel": 26
+        },
+        {
+          "arquivo": "src/components/minigames/TourGuiado.tsx",
+          "t": 0,
+          "tp": 0,
+          "componenteT": 0,
+          "bruto": 0,
+          "textoVisivel": 3
+        },
+        {
+          "arquivo": "src/components/minigames/WordSearchGame.tsx",
+          "t": 0,
+          "tp": 0,
+          "componenteT": 0,
+          "bruto": 0,
+          "textoVisivel": 28
+        },
+        {
+          "arquivo": "src/components/progress/FaixaDeProgresso.tsx",
+          "t": 0,
+          "tp": 0,
+          "componenteT": 0,
+          "bruto": 0,
+          "textoVisivel": 3
+        },
+        {
+          "arquivo": "src/components/shell/ControlCluster.tsx",
+          "t": 0,
+          "tp": 0,
+          "componenteT": 0,
+          "bruto": 0,
+          "textoVisivel": 4
+        },
+        {
+          "arquivo": "src/components/shell/MenuDaConta.tsx",
+          "t": 0,
+          "tp": 0,
+          "componenteT": 0,
+          "bruto": 0,
+          "textoVisivel": 8
+        },
+        {
+          "arquivo": "src/components/shell/MenuDeConforto.tsx",
+          "t": 0,
+          "tp": 0,
+          "componenteT": 0,
+          "bruto": 0,
+          "textoVisivel": 5
+        },
+        {
+          "arquivo": "src/components/shell/MobileNav.tsx",
+          "t": 0,
+          "tp": 0,
+          "componenteT": 0,
+          "bruto": 0,
+          "textoVisivel": 1
+        },
+        {
+          "arquivo": "src/components/shell/NavBar.tsx",
+          "t": 0,
+          "tp": 0,
+          "componenteT": 0,
+          "bruto": 0,
+          "textoVisivel": 2
+        },
+        {
+          "arquivo": "src/components/shell/NavRail.tsx",
+          "t": 0,
+          "tp": 0,
+          "componenteT": 0,
+          "bruto": 0,
+          "textoVisivel": 6
+        },
+        {
+          "arquivo": "src/components/shell/ShellBits.tsx",
+          "t": 0,
+          "tp": 0,
+          "componenteT": 0,
+          "bruto": 0,
+          "textoVisivel": 3
+        },
+        {
+          "arquivo": "src/components/shell/navItems.ts",
+          "t": 2,
+          "tp": 0,
+          "componenteT": 0,
+          "bruto": 0,
+          "textoVisivel": 1
+        },
+        {
+          "arquivo": "src/components/views/Analysis.tsx",
+          "t": 0,
+          "tp": 0,
+          "componenteT": 0,
+          "bruto": 0,
+          "textoVisivel": 188
+        },
+        {
+          "arquivo": "src/components/views/AnalysisExpandedKpi.tsx",
+          "t": 0,
+          "tp": 0,
+          "componenteT": 0,
+          "bruto": 0,
+          "textoVisivel": 42
+        },
+        {
+          "arquivo": "src/components/views/BaralhoAnki.tsx",
+          "t": 1,
+          "tp": 0,
+          "componenteT": 0,
+          "bruto": 0,
+          "textoVisivel": 36
+        },
+        {
+          "arquivo": "src/components/views/BaralhosAnki.tsx",
+          "t": 0,
+          "tp": 0,
+          "componenteT": 0,
+          "bruto": 0,
+          "textoVisivel": 40
+        },
+        {
+          "arquivo": "src/components/views/Conquistas.tsx",
+          "t": 0,
+          "tp": 0,
+          "componenteT": 0,
+          "bruto": 0,
+          "textoVisivel": 15
+        },
+        {
+          "arquivo": "src/components/views/CuradoriaBaralho.tsx",
+          "t": 0,
+          "tp": 0,
+          "componenteT": 0,
+          "bruto": 0,
+          "textoVisivel": 16
+        },
+        {
+          "arquivo": "src/components/views/Hub.tsx",
+          "t": 103,
+          "tp": 6,
+          "componenteT": 0,
+          "bruto": 0,
+          "textoVisivel": 11
+        },
+        {
+          "arquivo": "src/components/views/LangAudit.tsx",
+          "t": 0,
+          "tp": 0,
+          "componenteT": 0,
+          "bruto": 0,
+          "textoVisivel": 11
+        },
+        {
+          "arquivo": "src/components/views/Library.tsx",
+          "t": 0,
+          "tp": 0,
+          "componenteT": 0,
+          "bruto": 0,
+          "textoVisivel": 64
+        },
+        {
+          "arquivo": "src/components/views/LiveCapture.tsx",
+          "t": 0,
+          "tp": 0,
+          "componenteT": 0,
+          "bruto": 0,
+          "textoVisivel": 193
+        },
+        {
+          "arquivo": "src/components/views/Loja.tsx",
+          "t": 0,
+          "tp": 0,
+          "componenteT": 0,
+          "bruto": 0,
+          "textoVisivel": 32
+        },
+        {
+          "arquivo": "src/components/views/MapaDoConteudo.tsx",
+          "t": 1,
+          "tp": 0,
+          "componenteT": 0,
+          "bruto": 0,
+          "textoVisivel": 6
+        },
+        {
+          "arquivo": "src/components/views/Metrics.tsx",
+          "t": 0,
+          "tp": 0,
+          "componenteT": 0,
+          "bruto": 0,
+          "textoVisivel": 53
+        },
+        {
+          "arquivo": "src/components/views/MetricsExpandedKpi.tsx",
+          "t": 0,
+          "tp": 0,
+          "componenteT": 0,
+          "bruto": 0,
+          "textoVisivel": 24
+        },
+        {
+          "arquivo": "src/components/views/PainelTrilha.tsx",
+          "t": 0,
+          "tp": 0,
+          "componenteT": 0,
+          "bruto": 0,
+          "textoVisivel": 6
+        },
+        {
+          "arquivo": "src/components/views/Perfil.tsx",
+          "t": 0,
+          "tp": 0,
+          "componenteT": 0,
+          "bruto": 0,
+          "textoVisivel": 2
+        },
+        {
+          "arquivo": "src/components/views/Personalizar.tsx",
+          "t": 0,
+          "tp": 0,
+          "componenteT": 0,
+          "bruto": 0,
+          "textoVisivel": 6
+        },
+        {
+          "arquivo": "src/components/views/Planos.tsx",
+          "t": 1,
+          "tp": 0,
+          "componenteT": 0,
+          "bruto": 0,
+          "textoVisivel": 21
+        },
+        {
+          "arquivo": "src/components/views/Play.tsx",
+          "t": 119,
+          "tp": 9,
+          "componenteT": 3,
+          "bruto": 0,
+          "textoVisivel": 57
+        },
+        {
+          "arquivo": "src/components/views/Reading.tsx",
+          "t": 0,
+          "tp": 0,
+          "componenteT": 0,
+          "bruto": 0,
+          "textoVisivel": 111
+        },
+        {
+          "arquivo": "src/components/views/Settings.tsx",
+          "t": 74,
+          "tp": 0,
+          "componenteT": 2,
+          "bruto": 0,
+          "textoVisivel": 7
+        },
+        {
+          "arquivo": "src/components/views/Sobre.tsx",
+          "t": 0,
+          "tp": 0,
+          "componenteT": 0,
+          "bruto": 0,
+          "textoVisivel": 33
+        },
+        {
+          "arquivo": "src/components/views/Study.tsx",
+          "t": 0,
+          "tp": 0,
+          "componenteT": 0,
+          "bruto": 0,
+          "textoVisivel": 56
+        },
+        {
+          "arquivo": "src/components/views/loja/CabecalhoDeTemporada.tsx",
+          "t": 0,
+          "tp": 0,
+          "componenteT": 0,
+          "bruto": 0,
+          "textoVisivel": 4
+        },
+        {
+          "arquivo": "src/components/views/loja/ComprarCreditos.tsx",
+          "t": 0,
+          "tp": 0,
+          "componenteT": 0,
+          "bruto": 0,
+          "textoVisivel": 22
+        },
+        {
+          "arquivo": "src/components/views/passe/PasseDeTemporada.tsx",
+          "t": 0,
+          "tp": 0,
+          "componenteT": 0,
+          "bruto": 0,
+          "textoVisivel": 17
+        },
+        {
+          "arquivo": "src/components/views/perfil/AbaDados.tsx",
+          "t": 0,
+          "tp": 0,
+          "componenteT": 0,
+          "bruto": 0,
+          "textoVisivel": 18
+        },
+        {
+          "arquivo": "src/components/views/perfil/AbaProgresso.tsx",
+          "t": 0,
+          "tp": 0,
+          "componenteT": 0,
+          "bruto": 0,
+          "textoVisivel": 15
+        },
+        {
+          "arquivo": "src/components/views/perfil/AbaVoce.tsx",
+          "t": 0,
+          "tp": 0,
+          "componenteT": 0,
+          "bruto": 0,
+          "textoVisivel": 13
+        },
+        {
+          "arquivo": "src/components/views/personalizar/EditorDoItem.tsx",
+          "t": 0,
+          "tp": 0,
+          "componenteT": 0,
+          "bruto": 0,
+          "textoVisivel": 21
+        },
+        {
+          "arquivo": "src/components/views/personalizar/Inventario.tsx",
+          "t": 0,
+          "tp": 0,
+          "componenteT": 0,
+          "bruto": 0,
+          "textoVisivel": 23
+        },
+        {
+          "arquivo": "src/components/views/personalizar/SeletorDeEmojis.tsx",
+          "t": 0,
+          "tp": 0,
+          "componenteT": 0,
+          "bruto": 0,
+          "textoVisivel": 5
+        },
+        {
+          "arquivo": "src/components/views/personalizar/SeletorDePaletas.tsx",
+          "t": 0,
+          "tp": 0,
+          "componenteT": 0,
+          "bruto": 0,
+          "textoVisivel": 5
+        },
+        {
+          "arquivo": "src/components/views/planos/Assinar.tsx",
+          "t": 0,
+          "tp": 0,
+          "componenteT": 0,
+          "bruto": 0,
+          "textoVisivel": 16
+        },
+        {
+          "arquivo": "src/components/views/play/Recordes.tsx",
+          "t": 0,
+          "tp": 0,
+          "componenteT": 0,
+          "bruto": 0,
+          "textoVisivel": 24
+        },
+        {
+          "arquivo": "src/components/views/play/jogos.tsx",
+          "t": 2,
+          "tp": 0,
+          "componenteT": 0,
+          "bruto": 0,
+          "textoVisivel": 2
+        },
+        {
+          "arquivo": "src/components/views/vocab/CatalogoDePalavras.tsx",
+          "t": 0,
+          "tp": 0,
+          "componenteT": 0,
+          "bruto": 0,
+          "textoVisivel": 21
+        },
+        {
+          "arquivo": "src/components/views/vocab/NotaDeContagem.tsx",
+          "t": 0,
+          "tp": 0,
+          "componenteT": 0,
+          "bruto": 0,
+          "textoVisivel": 7
+        },
+        {
+          "arquivo": "src/core/eval/chrf.ts",
+          "t": 0,
+          "tp": 0,
+          "componenteT": 0,
+          "bruto": 0,
+          "textoVisivel": 1
+        },
+        {
+          "arquivo": "src/core/eval/der.ts",
+          "t": 0,
+          "tp": 0,
+          "componenteT": 0,
+          "bruto": 0,
+          "textoVisivel": 6
+        },
+        {
+          "arquivo": "src/core/eval/wer.ts",
+          "t": 0,
+          "tp": 0,
+          "componenteT": 0,
+          "bruto": 0,
+          "textoVisivel": 4
+        },
+        {
+          "arquivo": "src/core/gateway/gateway.ts",
+          "t": 0,
+          "tp": 0,
+          "componenteT": 0,
+          "bruto": 0,
+          "textoVisivel": 1
+        },
+        {
+          "arquivo": "src/core/learning/cefrWordlist.ts",
+          "t": 0,
+          "tp": 0,
+          "componenteT": 0,
+          "bruto": 0,
+          "textoVisivel": 2
+        },
+        {
+          "arquivo": "src/core/learning/contract.ts",
+          "t": 0,
+          "tp": 0,
+          "componenteT": 0,
+          "bruto": 0,
+          "textoVisivel": 8
+        },
+        {
+          "arquivo": "src/core/learning/dificuldade.ts",
+          "t": 0,
+          "tp": 0,
+          "componenteT": 0,
+          "bruto": 0,
+          "textoVisivel": 4
+        },
+        {
+          "arquivo": "src/core/learning/etapas.ts",
+          "t": 0,
+          "tp": 0,
+          "componenteT": 0,
+          "bruto": 0,
+          "textoVisivel": 2
+        },
+        {
+          "arquivo": "src/core/learning/fillers.ts",
+          "t": 0,
+          "tp": 0,
+          "componenteT": 0,
+          "bruto": 0,
+          "textoVisivel": 1
+        },
+        {
+          "arquivo": "src/core/learning/fluencia.ts",
+          "t": 0,
+          "tp": 0,
+          "componenteT": 0,
+          "bruto": 0,
+          "textoVisivel": 1
+        },
+        {
+          "arquivo": "src/core/learning/memoriaDeItens.ts",
+          "t": 0,
+          "tp": 0,
+          "componenteT": 0,
+          "bruto": 0,
+          "textoVisivel": 1
+        },
+        {
+          "arquivo": "src/core/learning/quality.ts",
+          "t": 0,
+          "tp": 0,
+          "componenteT": 0,
+          "bruto": 0,
+          "textoVisivel": 4
+        },
+        {
+          "arquivo": "src/core/learning/scheduler.ts",
+          "t": 0,
+          "tp": 0,
+          "componenteT": 0,
+          "bruto": 0,
+          "textoVisivel": 2
+        },
+        {
+          "arquivo": "src/core/learning/sobreposicao.ts",
+          "t": 0,
+          "tp": 0,
+          "componenteT": 0,
+          "bruto": 0,
+          "textoVisivel": 3
+        },
+        {
+          "arquivo": "src/core/learning/trilha.ts",
+          "t": 0,
+          "tp": 0,
+          "componenteT": 0,
+          "bruto": 0,
+          "textoVisivel": 2
+        },
+        {
+          "arquivo": "src/core/minigames/bingo.ts",
+          "t": 0,
+          "tp": 0,
+          "componenteT": 0,
+          "bruto": 0,
+          "textoVisivel": 1
+        },
+        {
+          "arquivo": "src/core/minigames/composicao.ts",
+          "t": 0,
+          "tp": 0,
+          "componenteT": 0,
+          "bruto": 0,
+          "textoVisivel": 4
+        },
+        {
+          "arquivo": "src/core/minigames/distribuicao.ts",
+          "t": 0,
+          "tp": 0,
+          "componenteT": 0,
+          "bruto": 0,
+          "textoVisivel": 6
+        },
+        {
+          "arquivo": "src/core/minigames/escuta.ts",
+          "t": 0,
+          "tp": 0,
+          "componenteT": 0,
+          "bruto": 0,
+          "textoVisivel": 1
+        },
+        {
+          "arquivo": "src/core/minigames/estadoDosJogos.ts",
+          "t": 0,
+          "tp": 0,
+          "componenteT": 0,
+          "bruto": 0,
+          "textoVisivel": 1
+        },
+        {
+          "arquivo": "src/core/minigames/itemSource.ts",
+          "t": 0,
+          "tp": 0,
+          "componenteT": 0,
+          "bruto": 0,
+          "textoVisivel": 3
+        },
+        {
+          "arquivo": "src/core/minigames/revelavel.ts",
+          "t": 0,
+          "tp": 0,
+          "componenteT": 0,
+          "bruto": 0,
+          "textoVisivel": 8
+        },
+        {
+          "arquivo": "src/core/minigames/sequencia.ts",
+          "t": 0,
+          "tp": 0,
+          "componenteT": 0,
+          "bruto": 0,
+          "textoVisivel": 1
+        },
+        {
+          "arquivo": "src/core/minigames/source.ts",
+          "t": 0,
+          "tp": 0,
+          "componenteT": 0,
+          "bruto": 0,
+          "textoVisivel": 1
+        },
+        {
+          "arquivo": "src/core/minigames/termo.ts",
+          "t": 0,
+          "tp": 0,
+          "componenteT": 0,
+          "bruto": 0,
+          "textoVisivel": 8
+        },
+        {
+          "arquivo": "src/core/minigames/wordsearch.ts",
+          "t": 0,
+          "tp": 0,
+          "componenteT": 0,
+          "bruto": 0,
+          "textoVisivel": 3
+        },
+        {
+          "arquivo": "src/core/passe.ts",
+          "t": 0,
+          "tp": 0,
+          "componenteT": 0,
+          "bruto": 0,
+          "textoVisivel": 1
+        },
+        {
+          "arquivo": "src/core/robustness.ts",
+          "t": 0,
+          "tp": 0,
+          "componenteT": 0,
+          "bruto": 0,
+          "textoVisivel": 6
+        },
+        {
+          "arquivo": "src/data/api.ts",
+          "t": 0,
+          "tp": 0,
+          "componenteT": 0,
+          "bruto": 0,
+          "textoVisivel": 5
+        },
+        {
+          "arquivo": "src/data/efemero/servidor.ts",
+          "t": 0,
+          "tp": 0,
+          "componenteT": 0,
+          "bruto": 0,
+          "textoVisivel": 10
+        },
+        {
+          "arquivo": "src/data/efemero/store.ts",
+          "t": 0,
+          "tp": 0,
+          "componenteT": 0,
+          "bruto": 0,
+          "textoVisivel": 1
+        },
+        {
+          "arquivo": "src/data/migracao.ts",
+          "t": 0,
+          "tp": 0,
+          "componenteT": 0,
+          "bruto": 0,
+          "textoVisivel": 1
+        },
+        {
+          "arquivo": "src/data/trilha/carregar.ts",
+          "t": 0,
+          "tp": 0,
+          "componenteT": 0,
+          "bruto": 0,
+          "textoVisivel": 2
+        },
+        {
+          "arquivo": "src/gateway/adapters/chromeTranslator.ts",
+          "t": 0,
+          "tp": 0,
+          "componenteT": 0,
+          "bruto": 0,
+          "textoVisivel": 2
+        },
+        {
+          "arquivo": "src/gateway/adapters/groqWhisper.ts",
+          "t": 0,
+          "tp": 0,
+          "componenteT": 0,
+          "bruto": 0,
+          "textoVisivel": 1
+        },
+        {
+          "arquivo": "src/gateway/adapters/mtWorker.ts",
+          "t": 0,
+          "tp": 0,
+          "componenteT": 0,
+          "bruto": 0,
+          "textoVisivel": 2
+        },
+        {
+          "arquivo": "src/gateway/adapters/mymemory.ts",
+          "t": 0,
+          "tp": 0,
+          "componenteT": 0,
+          "bruto": 0,
+          "textoVisivel": 1
+        },
+        {
+          "arquivo": "src/gateway/adapters/openaiCompatible.ts",
+          "t": 0,
+          "tp": 0,
+          "componenteT": 0,
+          "bruto": 0,
+          "textoVisivel": 1
+        },
+        {
+          "arquivo": "src/gateway/adapters/opusMtLocal.ts",
+          "t": 0,
+          "tp": 0,
+          "componenteT": 0,
+          "bruto": 0,
+          "textoVisivel": 4
+        },
+        {
+          "arquivo": "src/gateway/adapters/serverLlmMt.ts",
+          "t": 0,
+          "tp": 0,
+          "componenteT": 0,
+          "bruto": 0,
+          "textoVisivel": 1
+        },
+        {
+          "arquivo": "src/gateway/adapters/whisperLocal.ts",
+          "t": 0,
+          "tp": 0,
+          "componenteT": 0,
+          "bruto": 0,
+          "textoVisivel": 3
+        },
+        {
+          "arquivo": "src/gateway/capabilities.ts",
+          "t": 0,
+          "tp": 0,
+          "componenteT": 0,
+          "bruto": 0,
+          "textoVisivel": 2
+        },
+        {
+          "arquivo": "src/gateway/capture/systemAudio.ts",
+          "t": 0,
+          "tp": 0,
+          "componenteT": 0,
+          "bruto": 0,
+          "textoVisivel": 5
+        },
+        {
+          "arquivo": "src/gateway/index.ts",
+          "t": 0,
+          "tp": 0,
+          "componenteT": 0,
+          "bruto": 0,
+          "textoVisivel": 4
+        },
+        {
+          "arquivo": "src/gateway/ocr.ts",
+          "t": 0,
+          "tp": 0,
+          "componenteT": 0,
+          "bruto": 0,
+          "textoVisivel": 1
+        },
+        {
+          "arquivo": "src/hooks/useLayout.ts",
+          "t": 0,
+          "tp": 0,
+          "componenteT": 0,
+          "bruto": 0,
+          "textoVisivel": 1
+        },
+        {
+          "arquivo": "src/lib/T.tsx",
+          "t": 0,
+          "tp": 0,
+          "componenteT": 0,
+          "bruto": 1,
+          "textoVisivel": 4
+        },
+        {
+          "arquivo": "src/lib/audioDaSessao.ts",
+          "t": 0,
+          "tp": 0,
+          "componenteT": 0,
+          "bruto": 0,
+          "textoVisivel": 1
+        },
+        {
+          "arquivo": "src/lib/dictionary.ts",
+          "t": 0,
+          "tp": 0,
+          "componenteT": 0,
+          "bruto": 0,
+          "textoVisivel": 1
+        },
+        {
+          "arquivo": "src/lib/effects.ts",
+          "t": 0,
+          "tp": 0,
+          "componenteT": 0,
+          "bruto": 0,
+          "textoVisivel": 1
+        },
+        {
+          "arquivo": "src/lib/entitlements.ts",
+          "t": 0,
+          "tp": 0,
+          "componenteT": 0,
+          "bruto": 0,
+          "textoVisivel": 1
+        },
+        {
+          "arquivo": "src/lib/exercicios/activeProduction.tsx",
+          "t": 0,
+          "tp": 0,
+          "componenteT": 0,
+          "bruto": 0,
+          "textoVisivel": 21
+        },
+        {
+          "arquivo": "src/lib/galeria/acesso.ts",
+          "t": 0,
+          "tp": 0,
+          "componenteT": 0,
+          "bruto": 0,
+          "textoVisivel": 2
+        },
+        {
+          "arquivo": "src/lib/galeria/progressao.ts",
+          "t": 0,
+          "tp": 0,
+          "componenteT": 0,
+          "bruto": 0,
+          "textoVisivel": 1
+        },
+        {
+          "arquivo": "src/lib/i18n.ts",
+          "t": 1,
+          "tp": 1,
+          "componenteT": 0,
+          "bruto": 2,
+          "textoVisivel": 3
+        },
+        {
+          "arquivo": "src/lib/ichatContext.ts",
+          "t": 0,
+          "tp": 0,
+          "componenteT": 0,
+          "bruto": 0,
+          "textoVisivel": 1
+        },
+        {
+          "arquivo": "src/lib/identidade.ts",
+          "t": 0,
+          "tp": 0,
+          "componenteT": 0,
+          "bruto": 0,
+          "textoVisivel": 1
+        },
+        {
+          "arquivo": "src/lib/import/buildSession.ts",
+          "t": 0,
+          "tp": 0,
+          "componenteT": 0,
+          "bruto": 0,
+          "textoVisivel": 1
+        },
+        {
+          "arquivo": "src/lib/juice.ts",
+          "t": 0,
+          "tp": 0,
+          "componenteT": 0,
+          "bruto": 0,
+          "textoVisivel": 1
+        },
+        {
+          "arquivo": "src/lib/langConfig.ts",
+          "t": 0,
+          "tp": 0,
+          "componenteT": 0,
+          "bruto": 0,
+          "textoVisivel": 1
+        },
+        {
+          "arquivo": "src/lib/langDetect.ts",
+          "t": 0,
+          "tp": 0,
+          "componenteT": 0,
+          "bruto": 0,
+          "textoVisivel": 2
+        },
+        {
+          "arquivo": "src/lib/lazyComRecarga.ts",
+          "t": 0,
+          "tp": 0,
+          "componenteT": 0,
+          "bruto": 0,
+          "textoVisivel": 1
+        },
+        {
+          "arquivo": "src/lib/misturarAudios.ts",
+          "t": 0,
+          "tp": 0,
+          "componenteT": 0,
+          "bruto": 0,
+          "textoVisivel": 1
+        },
+        {
+          "arquivo": "src/lib/ordemDaTraducao.ts",
+          "t": 0,
+          "tp": 0,
+          "componenteT": 0,
+          "bruto": 0,
+          "textoVisivel": 1
+        },
+        {
+          "arquivo": "src/lib/ordemDosJogos.ts",
+          "t": 0,
+          "tp": 0,
+          "componenteT": 0,
+          "bruto": 0,
+          "textoVisivel": 2
+        },
+        {
+          "arquivo": "src/lib/posicaoFlutuante.ts",
+          "t": 0,
+          "tp": 0,
+          "componenteT": 0,
+          "bruto": 0,
+          "textoVisivel": 1
+        },
+        {
+          "arquivo": "src/lib/profile.ts",
+          "t": 1,
+          "tp": 0,
+          "componenteT": 0,
+          "bruto": 0,
+          "textoVisivel": 1
+        },
+        {
+          "arquivo": "src/lib/ranking.ts",
+          "t": 0,
+          "tp": 0,
+          "componenteT": 0,
+          "bruto": 0,
+          "textoVisivel": 1
+        },
+        {
+          "arquivo": "src/lib/relatorioDeProgresso.ts",
+          "t": 0,
+          "tp": 0,
+          "componenteT": 0,
+          "bruto": 0,
+          "textoVisivel": 1
+        },
+        {
+          "arquivo": "src/lib/rotas.ts",
+          "t": 0,
+          "tp": 0,
+          "componenteT": 0,
+          "bruto": 0,
+          "textoVisivel": 4
+        },
+        {
+          "arquivo": "src/lib/sfxDelegate.ts",
+          "t": 0,
+          "tp": 0,
+          "componenteT": 0,
+          "bruto": 0,
+          "textoVisivel": 1
+        },
+        {
+          "arquivo": "src/lib/soundFx.ts",
+          "t": 0,
+          "tp": 0,
+          "componenteT": 0,
+          "bruto": 0,
+          "textoVisivel": 1
+        },
+        {
+          "arquivo": "src/lib/speakerIdWorker.ts",
+          "t": 0,
+          "tp": 0,
+          "componenteT": 0,
+          "bruto": 0,
+          "textoVisivel": 1
+        },
+        {
+          "arquivo": "src/lib/supabase.ts",
+          "t": 0,
+          "tp": 0,
+          "componenteT": 0,
+          "bruto": 0,
+          "textoVisivel": 1
+        },
+        {
+          "arquivo": "src/lib/theme.ts",
+          "t": 0,
+          "tp": 0,
+          "componenteT": 0,
+          "bruto": 0,
+          "textoVisivel": 2
+        },
+        {
+          "arquivo": "src/lib/traducao/expressoes.ts",
+          "t": 0,
+          "tp": 0,
+          "componenteT": 0,
+          "bruto": 0,
+          "textoVisivel": 1
+        },
+        {
+          "arquivo": "src/lib/traducao/promptComunicativo.ts",
+          "t": 0,
+          "tp": 0,
+          "componenteT": 0,
+          "bruto": 0,
+          "textoVisivel": 1
+        },
+        {
+          "arquivo": "src/lib/tts.ts",
+          "t": 0,
+          "tp": 0,
+          "componenteT": 0,
+          "bruto": 0,
+          "textoVisivel": 1
+        },
+        {
+          "arquivo": "src/lib/useExameDePalavra.ts",
+          "t": 0,
+          "tp": 0,
+          "componenteT": 0,
+          "bruto": 0,
+          "textoVisivel": 3
+        },
+        {
+          "arquivo": "src/lib/usePerfil.ts",
+          "t": 0,
+          "tp": 0,
+          "componenteT": 0,
+          "bruto": 0,
+          "textoVisivel": 1
+        },
+        {
+          "arquivo": "src/lib/vazamento.ts",
+          "t": 0,
+          "tp": 0,
+          "componenteT": 0,
+          "bruto": 0,
+          "textoVisivel": 1
+        },
+        {
+          "arquivo": "src/lib/versosDoVocabulario.ts",
+          "t": 0,
+          "tp": 0,
+          "componenteT": 0,
+          "bruto": 0,
+          "textoVisivel": 1
+        }
+      ]
+    },
+    "04 — palavras da trilha, recontadas": {
+      "totalBruto": 85668,
+      "totalUnicas": 85668,
+      "porIdioma": [
+        {
+          "lang": "ar",
+          "arquivo": "public/trilha/ar.json",
+          "bytes": 323047,
+          "versao": "v2",
+          "versaoDeclarada": 2,
+          "escala": "frequencia",
+          "bruto": 5148,
+          "vazias": 0,
+          "unicasLiteral": 5148,
+          "unicasNFC": 5148,
+          "unicasCaixa": 5148,
+          "duplicataLiteral": 0,
+          "emNFD": 0,
+          "colisoesNFC": 0,
+          "colisoesCaixa": 0,
+          "exemplosCaixa": [],
+          "comFrase": 4276,
+          "foraDaEscrita": 0,
+          "foraPorNivel": {},
+          "exemplosForaDaEscrita": []
+        },
+        {
+          "lang": "de",
+          "arquivo": "public/trilha/de.json",
+          "bytes": 302358,
+          "versao": "v2",
+          "versaoDeclarada": 2,
+          "escala": "frequencia",
+          "bruto": 5758,
+          "vazias": 0,
+          "unicasLiteral": 5758,
+          "unicasNFC": 5758,
+          "unicasCaixa": 5758,
+          "duplicataLiteral": 0,
+          "emNFD": 0,
+          "colisoesNFC": 0,
+          "colisoesCaixa": 0,
+          "exemplosCaixa": [],
+          "comFrase": 5370,
+          "foraDaEscrita": 0,
+          "foraPorNivel": {},
+          "exemplosForaDaEscrita": []
+        },
+        {
+          "lang": "en",
+          "arquivo": "public/trilha/en.json",
+          "bytes": 238626,
+          "versao": "v1",
+          "versaoDeclarada": "1.5+1.0+trad.2+frases.1",
+          "escala": "—",
+          "bruto": 2784,
+          "vazias": 0,
+          "unicasLiteral": 2784,
+          "unicasNFC": 2784,
+          "unicasCaixa": 2784,
+          "duplicataLiteral": 0,
+          "emNFD": 0,
+          "colisoesNFC": 0,
+          "colisoesCaixa": 0,
+          "exemplosCaixa": [],
+          "comFrase": 2552,
+          "foraDaEscrita": 0,
+          "foraPorNivel": {},
+          "exemplosForaDaEscrita": []
+        },
+        {
+          "lang": "es",
+          "arquivo": "public/trilha/es.json",
+          "bytes": 276786,
+          "versao": "v2",
+          "versaoDeclarada": 2,
+          "escala": "frequencia",
+          "bruto": 5727,
+          "vazias": 0,
+          "unicasLiteral": 5727,
+          "unicasNFC": 5727,
+          "unicasCaixa": 5727,
+          "duplicataLiteral": 0,
+          "emNFD": 0,
+          "colisoesNFC": 0,
+          "colisoesCaixa": 0,
+          "exemplosCaixa": [],
+          "comFrase": 5163,
+          "foraDaEscrita": 0,
+          "foraPorNivel": {},
+          "exemplosForaDaEscrita": []
+        },
+        {
+          "lang": "fr",
+          "arquivo": "public/trilha/fr.json",
+          "bytes": 292237,
+          "versao": "v2",
+          "versaoDeclarada": 2,
+          "escala": "frequencia",
+          "bruto": 5752,
+          "vazias": 0,
+          "unicasLiteral": 5752,
+          "unicasNFC": 5752,
+          "unicasCaixa": 5752,
+          "duplicataLiteral": 0,
+          "emNFD": 0,
+          "colisoesNFC": 0,
+          "colisoesCaixa": 0,
+          "exemplosCaixa": [],
+          "comFrase": 5340,
+          "foraDaEscrita": 0,
+          "foraPorNivel": {},
+          "exemplosForaDaEscrita": []
+        },
+        {
+          "lang": "he",
+          "arquivo": "public/trilha/he.json",
+          "bytes": 351747,
+          "versao": "v2",
+          "versaoDeclarada": 2,
+          "escala": "frequencia",
+          "bruto": 5712,
+          "vazias": 0,
+          "unicasLiteral": 5712,
+          "unicasNFC": 5712,
+          "unicasCaixa": 5712,
+          "duplicataLiteral": 0,
+          "emNFD": 0,
+          "colisoesNFC": 0,
+          "colisoesCaixa": 0,
+          "exemplosCaixa": [],
+          "comFrase": 4967,
+          "foraDaEscrita": 0,
+          "foraPorNivel": {},
+          "exemplosForaDaEscrita": []
+        },
+        {
+          "lang": "hi",
+          "arquivo": "public/trilha/hi.json",
+          "bytes": 88863,
+          "versao": "v2",
+          "versaoDeclarada": 2,
+          "escala": "frequencia",
+          "bruto": 3010,
+          "vazias": 0,
+          "unicasLiteral": 3010,
+          "unicasNFC": 3010,
+          "unicasCaixa": 3010,
+          "duplicataLiteral": 0,
+          "emNFD": 13,
+          "colisoesNFC": 0,
+          "colisoesCaixa": 0,
+          "exemplosCaixa": [],
+          "comFrase": 246,
+          "foraDaEscrita": 0,
+          "foraPorNivel": {},
+          "exemplosForaDaEscrita": []
+        },
+        {
+          "lang": "it",
+          "arquivo": "public/trilha/it.json",
+          "bytes": 281726,
+          "versao": "v2",
+          "versaoDeclarada": 2,
+          "escala": "frequencia",
+          "bruto": 5780,
+          "vazias": 0,
+          "unicasLiteral": 5780,
+          "unicasNFC": 5780,
+          "unicasCaixa": 5780,
+          "duplicataLiteral": 0,
+          "emNFD": 0,
+          "colisoesNFC": 0,
+          "colisoesCaixa": 0,
+          "exemplosCaixa": [],
+          "comFrase": 5302,
+          "foraDaEscrita": 0,
+          "foraPorNivel": {},
+          "exemplosForaDaEscrita": []
+        },
+        {
+          "lang": "ja",
+          "arquivo": "public/trilha/ja.json",
+          "bytes": 320232,
+          "versao": "v2",
+          "versaoDeclarada": 2,
+          "escala": "frequencia",
+          "bruto": 5947,
+          "vazias": 0,
+          "unicasLiteral": 5947,
+          "unicasNFC": 5947,
+          "unicasCaixa": 5947,
+          "duplicataLiteral": 0,
+          "emNFD": 0,
+          "colisoesNFC": 0,
+          "colisoesCaixa": 0,
+          "exemplosCaixa": [],
+          "comFrase": 5181,
+          "foraDaEscrita": 0,
+          "foraPorNivel": {},
+          "exemplosForaDaEscrita": []
+        },
+        {
+          "lang": "ko",
+          "arquivo": "public/trilha/ko.json",
+          "bytes": 258962,
+          "versao": "v2",
+          "versaoDeclarada": 2,
+          "escala": "frequencia",
+          "bruto": 5973,
+          "vazias": 0,
+          "unicasLiteral": 5973,
+          "unicasNFC": 5973,
+          "unicasCaixa": 5973,
+          "duplicataLiteral": 0,
+          "emNFD": 0,
+          "colisoesNFC": 0,
+          "colisoesCaixa": 0,
+          "exemplosCaixa": [],
+          "comFrase": 3234,
+          "foraDaEscrita": 0,
+          "foraPorNivel": {},
+          "exemplosForaDaEscrita": []
+        },
+        {
+          "lang": "nl",
+          "arquivo": "public/trilha/nl.json",
+          "bytes": 266291,
+          "versao": "v2",
+          "versaoDeclarada": 2,
+          "escala": "frequencia",
+          "bruto": 5834,
+          "vazias": 0,
+          "unicasLiteral": 5834,
+          "unicasNFC": 5834,
+          "unicasCaixa": 5834,
+          "duplicataLiteral": 0,
+          "emNFD": 0,
+          "colisoesNFC": 0,
+          "colisoesCaixa": 0,
+          "exemplosCaixa": [],
+          "comFrase": 4968,
+          "foraDaEscrita": 0,
+          "foraPorNivel": {},
+          "exemplosForaDaEscrita": []
+        },
+        {
+          "lang": "pl",
+          "arquivo": "public/trilha/pl.json",
+          "bytes": 297223,
+          "versao": "v2",
+          "versaoDeclarada": 2,
+          "escala": "frequencia",
+          "bruto": 5747,
+          "vazias": 0,
+          "unicasLiteral": 5747,
+          "unicasNFC": 5747,
+          "unicasCaixa": 5747,
+          "duplicataLiteral": 0,
+          "emNFD": 0,
+          "colisoesNFC": 0,
+          "colisoesCaixa": 0,
+          "exemplosCaixa": [],
+          "comFrase": 5208,
+          "foraDaEscrita": 0,
+          "foraPorNivel": {},
+          "exemplosForaDaEscrita": []
+        },
+        {
+          "lang": "ru",
+          "arquivo": "public/trilha/ru.json",
+          "bytes": 492652,
+          "versao": "v2",
+          "versaoDeclarada": 2,
+          "escala": "frequencia",
+          "bruto": 5761,
+          "vazias": 0,
+          "unicasLiteral": 5761,
+          "unicasNFC": 5761,
+          "unicasCaixa": 5761,
+          "duplicataLiteral": 0,
+          "emNFD": 0,
+          "colisoesNFC": 0,
+          "colisoesCaixa": 0,
+          "exemplosCaixa": [],
+          "comFrase": 5513,
+          "foraDaEscrita": 0,
+          "foraPorNivel": {},
+          "exemplosForaDaEscrita": []
+        },
+        {
+          "lang": "sv",
+          "arquivo": "public/trilha/sv.json",
+          "bytes": 236278,
+          "versao": "v2",
+          "versaoDeclarada": 2,
+          "escala": "frequencia",
+          "bruto": 5727,
+          "vazias": 0,
+          "unicasLiteral": 5727,
+          "unicasNFC": 5727,
+          "unicasCaixa": 5727,
+          "duplicataLiteral": 0,
+          "emNFD": 0,
+          "colisoesNFC": 0,
+          "colisoesCaixa": 0,
+          "exemplosCaixa": [],
+          "comFrase": 4484,
+          "foraDaEscrita": 0,
+          "foraPorNivel": {},
+          "exemplosForaDaEscrita": []
+        },
+        {
+          "lang": "tr",
+          "arquivo": "public/trilha/tr.json",
+          "bytes": 300523,
+          "versao": "v2",
+          "versaoDeclarada": 2,
+          "escala": "frequencia",
+          "bruto": 5787,
+          "vazias": 0,
+          "unicasLiteral": 5787,
+          "unicasNFC": 5787,
+          "unicasCaixa": 5787,
+          "duplicataLiteral": 0,
+          "emNFD": 0,
+          "colisoesNFC": 0,
+          "colisoesCaixa": 0,
+          "exemplosCaixa": [],
+          "comFrase": 5184,
+          "foraDaEscrita": 455,
+          "foraPorNivel": {
+            "A1": "171/965",
+            "A2": "81/965",
+            "B1": "57/965",
+            "B2": "52/965",
+            "C1": "54/965",
+            "C2": "40/962"
+          },
+          "exemplosForaDaEscrita": [
+            "چوق",
+            "آما",
+            "أوت",
+            "وار",
+            "دگل",
+            "خایر"
+          ]
+        },
+        {
+          "lang": "zh",
+          "arquivo": "public/trilha/zh.json",
+          "bytes": 248395,
+          "versao": "v2",
+          "versaoDeclarada": 2,
+          "escala": "frequencia",
+          "bruto": 5221,
+          "vazias": 0,
+          "unicasLiteral": 5221,
+          "unicasNFC": 5221,
+          "unicasCaixa": 5221,
+          "duplicataLiteral": 0,
+          "emNFD": 0,
+          "colisoesNFC": 0,
+          "colisoesCaixa": 0,
+          "exemplosCaixa": [],
+          "comFrase": 4859,
+          "foraDaEscrita": 0,
+          "foraPorNivel": {},
+          "exemplosForaDaEscrita": []
+        }
+      ]
+    },
+    "05 — glosas e frases, por par": {
+      "pares": 15,
+      "somaGlosas": 22296,
+      "somaUteis": 22296,
+      "somaFrases": 17871,
+      "nativos": [
+        "pt"
+      ],
+      "resultados": [
+        {
+          "par": "ar-pt",
+          "arquivo": "public/glosas/ar-pt.json",
+          "bytes": 18737,
+          "praticado": "ar",
+          "nativo": "pt",
+          "totalTrilha": 5148,
+          "glosas": 514,
+          "glosasUteis": 514,
+          "identicas": 0,
+          "vazias": 0,
+          "orfas": 0,
+          "exemplosIdenticas": [],
+          "exemplosOrfas": [],
+          "frases": 69,
+          "coberturaDeclarada": {
+            "palavras": 514,
+            "doWikidata": 316,
+            "doWikcionario": 4479
+          }
+        },
+        {
+          "par": "de-pt",
+          "arquivo": "public/glosas/de-pt.json",
+          "bytes": 269989,
+          "praticado": "de",
+          "nativo": "pt",
+          "totalTrilha": 5758,
+          "glosas": 2817,
+          "glosasUteis": 2817,
+          "identicas": 0,
+          "vazias": 0,
+          "orfas": 0,
+          "exemplosIdenticas": [],
+          "exemplosOrfas": [],
+          "frases": 2373,
+          "coberturaDeclarada": {
+            "palavras": 2817,
+            "doWikidata": 2151,
+            "doWikcionario": 12969
+          }
+        },
+        {
+          "par": "es-pt",
+          "arquivo": "public/glosas/es-pt.json",
+          "bytes": 336872,
+          "praticado": "es",
+          "nativo": "pt",
+          "totalTrilha": 5727,
+          "glosas": 2099,
+          "glosasUteis": 2099,
+          "identicas": 0,
+          "vazias": 0,
+          "orfas": 0,
+          "exemplosIdenticas": [],
+          "exemplosOrfas": [],
+          "frases": 3696,
+          "coberturaDeclarada": {
+            "palavras": 2099,
+            "doWikidata": 732,
+            "doWikcionario": 11450
+          }
+        },
+        {
+          "par": "fr-pt",
+          "arquivo": "public/glosas/fr-pt.json",
+          "bytes": 295262,
+          "praticado": "fr",
+          "nativo": "pt",
+          "totalTrilha": 5752,
+          "glosas": 3361,
+          "glosasUteis": 3361,
+          "identicas": 0,
+          "vazias": 0,
+          "orfas": 0,
+          "exemplosIdenticas": [],
+          "exemplosOrfas": [],
+          "frases": 2721,
+          "coberturaDeclarada": {
+            "palavras": 3361,
+            "doWikidata": 1755,
+            "doWikcionario": 16008
+          }
+        },
+        {
+          "par": "he-pt",
+          "arquivo": "public/glosas/he-pt.json",
+          "bytes": 44184,
+          "praticado": "he",
+          "nativo": "pt",
+          "totalTrilha": 5712,
+          "glosas": 769,
+          "glosasUteis": 769,
+          "identicas": 0,
+          "vazias": 0,
+          "orfas": 0,
+          "exemplosIdenticas": [],
+          "exemplosOrfas": [],
+          "frases": 259,
+          "coberturaDeclarada": {
+            "palavras": 769,
+            "doWikidata": 2224,
+            "doWikcionario": 3725
+          }
+        },
+        {
+          "par": "hi-pt",
+          "arquivo": "public/glosas/hi-pt.json",
+          "bytes": 10166,
+          "praticado": "hi",
+          "nativo": "pt",
+          "totalTrilha": 3010,
+          "glosas": 321,
+          "glosasUteis": 321,
+          "identicas": 0,
+          "vazias": 0,
+          "orfas": 0,
+          "exemplosIdenticas": [],
+          "exemplosOrfas": [],
+          "frases": 2,
+          "coberturaDeclarada": {
+            "palavras": 321,
+            "doWikidata": 0,
+            "doWikcionario": 2428
+          }
+        },
+        {
+          "par": "it-pt",
+          "arquivo": "public/glosas/it-pt.json",
+          "bytes": 192401,
+          "praticado": "it",
+          "nativo": "pt",
+          "totalTrilha": 5780,
+          "glosas": 2404,
+          "glosasUteis": 2404,
+          "identicas": 0,
+          "vazias": 0,
+          "orfas": 0,
+          "exemplosIdenticas": [],
+          "exemplosOrfas": [],
+          "frases": 1640,
+          "coberturaDeclarada": {
+            "palavras": 2404,
+            "doWikidata": 1883,
+            "doWikcionario": 10753
+          }
+        },
+        {
+          "par": "ja-pt",
+          "arquivo": "public/glosas/ja-pt.json",
+          "bytes": 122915,
+          "praticado": "ja",
+          "nativo": "pt",
+          "totalTrilha": 5947,
+          "glosas": 1521,
+          "glosasUteis": 1521,
+          "identicas": 0,
+          "vazias": 0,
+          "orfas": 0,
+          "exemplosIdenticas": [],
+          "exemplosOrfas": [],
+          "frases": 939,
+          "coberturaDeclarada": {
+            "palavras": 1521,
+            "doWikidata": 2794,
+            "doWikcionario": 11472
+          }
+        },
+        {
+          "par": "ko-pt",
+          "arquivo": "public/glosas/ko-pt.json",
+          "bytes": 13328,
+          "praticado": "ko",
+          "nativo": "pt",
+          "totalTrilha": 5973,
+          "glosas": 418,
+          "glosasUteis": 418,
+          "identicas": 0,
+          "vazias": 0,
+          "orfas": 0,
+          "exemplosIdenticas": [],
+          "exemplosOrfas": [],
+          "frases": 52,
+          "coberturaDeclarada": {
+            "palavras": 418,
+            "doWikidata": 334,
+            "doWikcionario": 3817
+          }
+        },
+        {
+          "par": "nl-pt",
+          "arquivo": "public/glosas/nl-pt.json",
+          "bytes": 222980,
+          "praticado": "nl",
+          "nativo": "pt",
+          "totalTrilha": 5834,
+          "glosas": 2058,
+          "glosasUteis": 2058,
+          "identicas": 0,
+          "vazias": 0,
+          "orfas": 0,
+          "exemplosIdenticas": [],
+          "exemplosOrfas": [],
+          "frases": 2278,
+          "coberturaDeclarada": {
+            "palavras": 2058,
+            "doWikidata": 421,
+            "doWikcionario": 8205
+          }
+        },
+        {
+          "par": "pl-pt",
+          "arquivo": "public/glosas/pl-pt.json",
+          "bytes": 74616,
+          "praticado": "pl",
+          "nativo": "pt",
+          "totalTrilha": 5747,
+          "glosas": 1004,
+          "glosasUteis": 1004,
+          "identicas": 0,
+          "vazias": 0,
+          "orfas": 0,
+          "exemplosIdenticas": [],
+          "exemplosOrfas": [],
+          "frases": 505,
+          "coberturaDeclarada": {
+            "palavras": 1004,
+            "doWikidata": 257,
+            "doWikcionario": 7619
+          }
+        },
+        {
+          "par": "ru-pt",
+          "arquivo": "public/glosas/ru-pt.json",
+          "bytes": 326490,
+          "praticado": "ru",
+          "nativo": "pt",
+          "totalTrilha": 5761,
+          "glosas": 1931,
+          "glosasUteis": 1931,
+          "identicas": 0,
+          "vazias": 0,
+          "orfas": 0,
+          "exemplosIdenticas": [],
+          "exemplosOrfas": [],
+          "frases": 2277,
+          "coberturaDeclarada": {
+            "palavras": 1931,
+            "doWikidata": 1891,
+            "doWikcionario": 8515
+          }
+        },
+        {
+          "par": "sv-pt",
+          "arquivo": "public/glosas/sv-pt.json",
+          "bytes": 50423,
+          "praticado": "sv",
+          "nativo": "pt",
+          "totalTrilha": 5727,
+          "glosas": 1305,
+          "glosasUteis": 1305,
+          "identicas": 0,
+          "vazias": 0,
+          "orfas": 0,
+          "exemplosIdenticas": [],
+          "exemplosOrfas": [],
+          "frases": 324,
+          "coberturaDeclarada": {
+            "palavras": 1305,
+            "doWikidata": 0,
+            "doWikcionario": 7736
+          }
+        },
+        {
+          "par": "tr-pt",
+          "arquivo": "public/glosas/tr-pt.json",
+          "bytes": 50948,
+          "praticado": "tr",
+          "nativo": "pt",
+          "totalTrilha": 5787,
+          "glosas": 748,
+          "glosasUteis": 748,
+          "identicas": 0,
+          "vazias": 0,
+          "orfas": 0,
+          "exemplosIdenticas": [],
+          "exemplosOrfas": [],
+          "frases": 354,
+          "coberturaDeclarada": {
+            "palavras": 748,
+            "doWikidata": 903,
+            "doWikcionario": 4610
+          }
+        },
+        {
+          "par": "zh-pt",
+          "arquivo": "public/glosas/zh-pt.json",
+          "bytes": 53539,
+          "praticado": "zh",
+          "nativo": "pt",
+          "totalTrilha": 5221,
+          "glosas": 1026,
+          "glosasUteis": 1026,
+          "identicas": 0,
+          "vazias": 0,
+          "orfas": 0,
+          "exemplosIdenticas": [],
+          "exemplosOrfas": [],
+          "frases": 382,
+          "coberturaDeclarada": {
+            "palavras": 1026,
+            "doWikidata": 7,
+            "doWikcionario": 6494
+          }
+        }
+      ]
+    },
+    "06 — telas, rotas e cobertura do e2e": {
+      "telas": 23,
+      "comT": 6,
+      "semT": [
+        "Analysis",
+        "AnalysisExpandedKpi",
+        "BaralhosAnki",
+        "Conquistas",
+        "CuradoriaBaralho",
+        "LangAudit",
+        "Library",
+        "LiveCapture",
+        "Loja",
+        "Metrics",
+        "MetricsExpandedKpi",
+        "PainelTrilha",
+        "Perfil",
+        "Personalizar",
+        "Reading",
+        "Sobre",
+        "Study"
+      ],
+      "rotas": [
+        "/",
+        "/ajustes",
+        "/biblioteca",
+        "/capturar",
+        "/jogar",
+        "/loja",
+        "/perfil",
+        "/plano",
+        "/sobre",
+        "/vocabulario"
+      ],
+      "visitadasPeloE2E": [
+        "/ajustes",
+        "/biblioteca",
+        "/jogar",
+        "/planos",
+        "/vocabulario"
+      ],
+      "detalhe": [
+        {
+          "arquivo": "src/components/views/Play.tsx",
+          "nome": "Play",
+          "t": 119,
+          "compT": 3,
+          "importados": [
+            "numero",
+            "t",
+            "tp"
+          ],
+          "soFormatador": false
+        },
+        {
+          "arquivo": "src/components/views/Hub.tsx",
+          "nome": "Hub",
+          "t": 103,
+          "compT": 0,
+          "importados": [
+            "numero",
+            "t",
+            "tp"
+          ],
+          "soFormatador": false
+        },
+        {
+          "arquivo": "src/components/views/Settings.tsx",
+          "nome": "Settings",
+          "t": 74,
+          "compT": 2,
+          "importados": [
+            "t"
+          ],
+          "soFormatador": false
+        },
+        {
+          "arquivo": "src/components/views/BaralhoAnki.tsx",
+          "nome": "BaralhoAnki",
+          "t": 1,
+          "compT": 0,
+          "importados": [
+            "t"
+          ],
+          "soFormatador": false
+        },
+        {
+          "arquivo": "src/components/views/MapaDoConteudo.tsx",
+          "nome": "MapaDoConteudo",
+          "t": 1,
+          "compT": 0,
+          "importados": [
+            "data",
+            "t"
+          ],
+          "soFormatador": false
+        },
+        {
+          "arquivo": "src/components/views/Planos.tsx",
+          "nome": "Planos",
+          "t": 1,
+          "compT": 0,
+          "importados": [
+            "numero",
+            "t"
+          ],
+          "soFormatador": false
+        },
+        {
+          "arquivo": "src/components/views/Analysis.tsx",
+          "nome": "Analysis",
+          "t": 0,
+          "compT": 0,
+          "importados": [
+            "data",
+            "numero"
+          ],
+          "soFormatador": true
+        },
+        {
+          "arquivo": "src/components/views/AnalysisExpandedKpi.tsx",
+          "nome": "AnalysisExpandedKpi",
+          "t": 0,
+          "compT": 0,
+          "importados": [
+            "numero"
+          ],
+          "soFormatador": true
+        },
+        {
+          "arquivo": "src/components/views/BaralhosAnki.tsx",
+          "nome": "BaralhosAnki",
+          "t": 0,
+          "compT": 0,
+          "importados": [
+            "data"
+          ],
+          "soFormatador": true
+        },
+        {
+          "arquivo": "src/components/views/Conquistas.tsx",
+          "nome": "Conquistas",
+          "t": 0,
+          "compT": 0,
+          "importados": [
+            "data"
+          ],
+          "soFormatador": true
+        },
+        {
+          "arquivo": "src/components/views/CuradoriaBaralho.tsx",
+          "nome": "CuradoriaBaralho",
+          "t": 0,
+          "compT": 0,
+          "importados": [],
+          "soFormatador": false
+        },
+        {
+          "arquivo": "src/components/views/LangAudit.tsx",
+          "nome": "LangAudit",
+          "t": 0,
+          "compT": 0,
+          "importados": [],
+          "soFormatador": false
+        },
+        {
+          "arquivo": "src/components/views/Library.tsx",
+          "nome": "Library",
+          "t": 0,
+          "compT": 0,
+          "importados": [
+            "numero"
+          ],
+          "soFormatador": true
+        },
+        {
+          "arquivo": "src/components/views/LiveCapture.tsx",
+          "nome": "LiveCapture",
+          "t": 0,
+          "compT": 0,
+          "importados": [
+            "dataHora",
+            "numero"
+          ],
+          "soFormatador": true
+        },
+        {
+          "arquivo": "src/components/views/Loja.tsx",
+          "nome": "Loja",
+          "t": 0,
+          "compT": 0,
+          "importados": [],
+          "soFormatador": false
+        },
+        {
+          "arquivo": "src/components/views/Metrics.tsx",
+          "nome": "Metrics",
+          "t": 0,
+          "compT": 0,
+          "importados": [
+            "numero"
+          ],
+          "soFormatador": true
+        },
+        {
+          "arquivo": "src/components/views/MetricsExpandedKpi.tsx",
+          "nome": "MetricsExpandedKpi",
+          "t": 0,
+          "compT": 0,
+          "importados": [
+            "numero"
+          ],
+          "soFormatador": true
+        },
+        {
+          "arquivo": "src/components/views/PainelTrilha.tsx",
+          "nome": "PainelTrilha",
+          "t": 0,
+          "compT": 0,
+          "importados": [],
+          "soFormatador": false
+        },
+        {
+          "arquivo": "src/components/views/Perfil.tsx",
+          "nome": "Perfil",
+          "t": 0,
+          "compT": 0,
+          "importados": [],
+          "soFormatador": false
+        },
+        {
+          "arquivo": "src/components/views/Personalizar.tsx",
+          "nome": "Personalizar",
+          "t": 0,
+          "compT": 0,
+          "importados": [],
+          "soFormatador": false
+        },
+        {
+          "arquivo": "src/components/views/Reading.tsx",
+          "nome": "Reading",
+          "t": 0,
+          "compT": 0,
+          "importados": [],
+          "soFormatador": false
+        },
+        {
+          "arquivo": "src/components/views/Sobre.tsx",
+          "nome": "Sobre",
+          "t": 0,
+          "compT": 0,
+          "importados": [],
+          "soFormatador": false
+        },
+        {
+          "arquivo": "src/components/views/Study.tsx",
+          "nome": "Study",
+          "t": 0,
+          "compT": 0,
+          "importados": [],
+          "soFormatador": false
+        }
+      ]
+    },
+    "07 — locale cravado, caixa sem locale e classes direcionais": {
+      "totalToLocale": 0,
+      "totalIntl": 2,
+      "totalCaixa": 239,
+      "totalCaixaOk": 0,
+      "totalLog": 253,
+      "totalFis": 80,
+      "localeCravado": [
+        {
+          "arquivo": "src/components/Honestidade.tsx",
+          "toLocale": [],
+          "intl": [
+            "new Intl.NumberFormat('pt-BR'"
+          ]
+        },
+        {
+          "arquivo": "src/lib/i18n.ts",
+          "toLocale": [],
+          "intl": [
+            "new Intl.PluralRules('pt'"
+          ]
+        }
+      ],
+      "caixaSemLocale": [
+        {
+          "arquivo": "src/components/ChatTranscript.tsx",
+          "semLocale": 5,
+          "comLocale": 0
+        },
+        {
+          "arquivo": "src/components/CommandPalette.tsx",
+          "semLocale": 5,
+          "comLocale": 0
+        },
+        {
+          "arquivo": "src/components/FraseComLacuna.tsx",
+          "semLocale": 2,
+          "comLocale": 0
+        },
+        {
+          "arquivo": "src/components/LangPicker.tsx",
+          "semLocale": 2,
+          "comLocale": 0
+        },
+        {
+          "arquivo": "src/components/minigames/AntessalaDaRodada.tsx",
+          "semLocale": 6,
+          "comLocale": 0
+        },
+        {
+          "arquivo": "src/components/minigames/CoberturaDosIdiomas.tsx",
+          "semLocale": 1,
+          "comLocale": 0
+        },
+        {
+          "arquivo": "src/components/minigames/TermoGame.tsx",
+          "semLocale": 4,
+          "comLocale": 0
+        },
+        {
+          "arquivo": "src/components/progress/FaixaDeProgresso.tsx",
+          "semLocale": 1,
+          "comLocale": 0
+        },
+        {
+          "arquivo": "src/components/views/Analysis.tsx",
+          "semLocale": 16,
+          "comLocale": 0
+        },
+        {
+          "arquivo": "src/components/views/AnalysisExpandedKpi.tsx",
+          "semLocale": 2,
+          "comLocale": 0
+        },
+        {
+          "arquivo": "src/components/views/BaralhoAnki.tsx",
+          "semLocale": 1,
+          "comLocale": 0
+        },
+        {
+          "arquivo": "src/components/views/CuradoriaBaralho.tsx",
+          "semLocale": 1,
+          "comLocale": 0
+        },
+        {
+          "arquivo": "src/components/views/Library.tsx",
+          "semLocale": 4,
+          "comLocale": 0
+        },
+        {
+          "arquivo": "src/components/views/LiveCapture.tsx",
+          "semLocale": 4,
+          "comLocale": 0
+        },
+        {
+          "arquivo": "src/components/views/Metrics.tsx",
+          "semLocale": 4,
+          "comLocale": 0
+        },
+        {
+          "arquivo": "src/components/views/PainelTrilha.tsx",
+          "semLocale": 1,
+          "comLocale": 0
+        },
+        {
+          "arquivo": "src/components/views/Personalizar.tsx",
+          "semLocale": 1,
+          "comLocale": 0
+        },
+        {
+          "arquivo": "src/components/views/Play.tsx",
+          "semLocale": 10,
+          "comLocale": 0
+        },
+        {
+          "arquivo": "src/components/views/Reading.tsx",
+          "semLocale": 15,
+          "comLocale": 0
+        },
+        {
+          "arquivo": "src/components/views/Study.tsx",
+          "semLocale": 17,
+          "comLocale": 0
+        },
+        {
+          "arquivo": "src/components/views/loja/CabecalhoDeTemporada.tsx",
+          "semLocale": 1,
+          "comLocale": 0
+        },
+        {
+          "arquivo": "src/components/views/perfil/AbaDados.tsx",
+          "semLocale": 1,
+          "comLocale": 0
+        },
+        {
+          "arquivo": "src/components/views/perfil/AbaProgresso.tsx",
+          "semLocale": 2,
+          "comLocale": 0
+        },
+        {
+          "arquivo": "src/components/views/personalizar/Inventario.tsx",
+          "semLocale": 1,
+          "comLocale": 0
+        },
+        {
+          "arquivo": "src/core/eval/wer.ts",
+          "semLocale": 1,
+          "comLocale": 0
+        },
+        {
+          "arquivo": "src/core/learning/cefr.ts",
+          "semLocale": 1,
+          "comLocale": 0
+        },
+        {
+          "arquivo": "src/core/learning/cefrWordlist.ts",
+          "semLocale": 2,
+          "comLocale": 0
+        },
+        {
+          "arquivo": "src/core/learning/due.ts",
+          "semLocale": 2,
+          "comLocale": 0
+        },
+        {
+          "arquivo": "src/core/learning/fillers.ts",
+          "semLocale": 3,
+          "comLocale": 0
+        },
+        {
+          "arquivo": "src/core/learning/keywords.ts",
+          "semLocale": 1,
+          "comLocale": 0
+        },
+        {
+          "arquivo": "src/core/learning/passive-voice.ts",
+          "semLocale": 1,
+          "comLocale": 0
+        },
+        {
+          "arquivo": "src/core/learning/pistaDeJogo.ts",
+          "semLocale": 1,
+          "comLocale": 0
+        },
+        {
+          "arquivo": "src/core/learning/pronunciation.ts",
+          "semLocale": 1,
+          "comLocale": 0
+        },
+        {
+          "arquivo": "src/core/learning/quality.ts",
+          "semLocale": 4,
+          "comLocale": 0
+        },
+        {
+          "arquivo": "src/core/learning/text-stats.ts",
+          "semLocale": 3,
+          "comLocale": 0
+        },
+        {
+          "arquivo": "src/core/learning/trilha.ts",
+          "semLocale": 1,
+          "comLocale": 0
+        },
+        {
+          "arquivo": "src/core/minigames/escuta.ts",
+          "semLocale": 4,
+          "comLocale": 0
+        },
+        {
+          "arquivo": "src/core/minigames/itemSource.ts",
+          "semLocale": 2,
+          "comLocale": 0
+        },
+        {
+          "arquivo": "src/core/minigames/scramble.ts",
+          "semLocale": 2,
+          "comLocale": 0
+        },
+        {
+          "arquivo": "src/core/minigames/source.ts",
+          "semLocale": 4,
+          "comLocale": 0
+        },
+        {
+          "arquivo": "src/core/minigames/termo.ts",
+          "semLocale": 1,
+          "comLocale": 0
+        },
+        {
+          "arquivo": "src/core/minigames/wordsearch.ts",
+          "semLocale": 1,
+          "comLocale": 0
+        },
+        {
+          "arquivo": "src/core/texto/frases.ts",
+          "semLocale": 1,
+          "comLocale": 0
+        },
+        {
+          "arquivo": "src/data/efemero/servidor.ts",
+          "semLocale": 3,
+          "comLocale": 0
+        },
+        {
+          "arquivo": "src/data/trilha/indice.ts",
+          "semLocale": 1,
+          "comLocale": 0
+        },
+        {
+          "arquivo": "src/gateway/adapters/mtWorker.ts",
+          "semLocale": 2,
+          "comLocale": 0
+        },
+        {
+          "arquivo": "src/gateway/adapters/opusMtLocal.ts",
+          "semLocale": 2,
+          "comLocale": 0
+        },
+        {
+          "arquivo": "src/gateway/alucinacao.ts",
+          "semLocale": 2,
+          "comLocale": 0
+        },
+        {
+          "arquivo": "src/gateway/modelCache.ts",
+          "semLocale": 2,
+          "comLocale": 0
+        },
+        {
+          "arquivo": "src/gateway/ocr.ts",
+          "semLocale": 1,
+          "comLocale": 0
+        },
+        {
+          "arquivo": "src/gateway/sttRouter.ts",
+          "semLocale": 2,
+          "comLocale": 0
+        },
+        {
+          "arquivo": "src/lib/convoLang.ts",
+          "semLocale": 1,
+          "comLocale": 0
+        },
+        {
+          "arquivo": "src/lib/dictionary.ts",
+          "semLocale": 2,
+          "comLocale": 0
+        },
+        {
+          "arquivo": "src/lib/exercicios/activeProduction.tsx",
+          "semLocale": 6,
+          "comLocale": 0
+        },
+        {
+          "arquivo": "src/lib/exercicios/diff.ts",
+          "semLocale": 7,
+          "comLocale": 0
+        },
+        {
+          "arquivo": "src/lib/galeria/paletas.ts",
+          "semLocale": 4,
+          "comLocale": 0
+        },
+        {
+          "arquivo": "src/lib/i18n.ts",
+          "semLocale": 1,
+          "comLocale": 0
+        },
+        {
+          "arquivo": "src/lib/langDetect.ts",
+          "semLocale": 1,
+          "comLocale": 0
+        },
+        {
+          "arquivo": "src/lib/langFlag.ts",
+          "semLocale": 2,
+          "comLocale": 0
+        },
+        {
+          "arquivo": "src/lib/languages.ts",
+          "semLocale": 5,
+          "comLocale": 0
+        },
+        {
+          "arquivo": "src/lib/perfilDeIdioma.ts",
+          "semLocale": 1,
+          "comLocale": 0
+        },
+        {
+          "arquivo": "src/lib/rotas.ts",
+          "semLocale": 1,
+          "comLocale": 0
+        },
+        {
+          "arquivo": "src/lib/traducao/prepararFala.ts",
+          "semLocale": 10,
+          "comLocale": 0
+        },
+        {
+          "arquivo": "src/lib/traducao/promptComunicativo.ts",
+          "semLocale": 1,
+          "comLocale": 0
+        },
+        {
+          "arquivo": "src/lib/tts.ts",
+          "semLocale": 6,
+          "comLocale": 0
+        },
+        {
+          "arquivo": "src/lib/useExameDePalavra.ts",
+          "semLocale": 2,
+          "comLocale": 0
+        },
+        {
+          "arquivo": "src/lib/usePerfil.ts",
+          "semLocale": 2,
+          "comLocale": 0
+        },
+        {
+          "arquivo": "src/lib/validaTraducao.ts",
+          "semLocale": 2,
+          "comLocale": 0
+        },
+        {
+          "arquivo": "src/lib/vazamento.ts",
+          "semLocale": 1,
+          "comLocale": 0
+        },
+        {
+          "arquivo": "src/lib/versosDoVocabulario.ts",
+          "semLocale": 1,
+          "comLocale": 0
+        },
+        {
+          "arquivo": "src/lib/vocabWord.ts",
+          "semLocale": 1,
+          "comLocale": 0
+        },
+        {
+          "arquivo": "server/ai/ssrf.ts",
+          "semLocale": 2,
+          "comLocale": 0
+        },
+        {
+          "arquivo": "server/db/db.ts",
+          "semLocale": 1,
+          "comLocale": 0
+        },
+        {
+          "arquivo": "server/db/repositories/anki.ts",
+          "semLocale": 1,
+          "comLocale": 0
+        },
+        {
+          "arquivo": "server/db/repositories/metrics.ts",
+          "semLocale": 1,
+          "comLocale": 0
+        },
+        {
+          "arquivo": "server/db/repositories/vocab.ts",
+          "semLocale": 5,
+          "comLocale": 0
+        },
+        {
+          "arquivo": "server/import/anki.ts",
+          "semLocale": 2,
+          "comLocale": 0
+        },
+        {
+          "arquivo": "server/import/document.ts",
+          "semLocale": 2,
+          "comLocale": 0
+        },
+        {
+          "arquivo": "server/import/youtube.ts",
+          "semLocale": 2,
+          "comLocale": 0
+        },
+        {
+          "arquivo": "server/lib/capaDeSessao.ts",
+          "semLocale": 2,
+          "comLocale": 0
+        },
+        {
+          "arquivo": "server/lib/idiomaDoWhisper.ts",
+          "semLocale": 1,
+          "comLocale": 0
+        },
+        {
+          "arquivo": "server/lib/storageQuota.ts",
+          "semLocale": 1,
+          "comLocale": 0
+        },
+        {
+          "arquivo": "server/lib/usageQuota.ts",
+          "semLocale": 1,
+          "comLocale": 0
+        },
+        {
+          "arquivo": "server/routes/images.ts",
+          "semLocale": 1,
+          "comLocale": 0
+        },
+        {
+          "arquivo": "server/routes/import.ts",
+          "semLocale": 1,
+          "comLocale": 0
+        },
+        {
+          "arquivo": "server/validation.ts",
+          "semLocale": 1,
+          "comLocale": 0
+        }
+      ],
+      "direcionais": [
+        {
+          "arquivo": "src/components/AiEnginePanel.tsx",
+          "logicas": 4,
+          "fisicas": 0
+        },
+        {
+          "arquivo": "src/components/ChatTranscript.tsx",
+          "logicas": 2,
+          "fisicas": 2
+        },
+        {
+          "arquivo": "src/components/CommandPalette.tsx",
+          "logicas": 1,
+          "fisicas": 0
+        },
+        {
+          "arquivo": "src/components/EditablePanel.tsx",
+          "logicas": 4,
+          "fisicas": 5
+        },
+        {
+          "arquivo": "src/components/IChat.tsx",
+          "logicas": 11,
+          "fisicas": 4
+        },
+        {
+          "arquivo": "src/components/InfoHint.tsx",
+          "logicas": 1,
+          "fisicas": 0
+        },
+        {
+          "arquivo": "src/components/LayoutEditorToolbar.tsx",
+          "logicas": 2,
+          "fisicas": 2
+        },
+        {
+          "arquivo": "src/components/LayoutStudio.tsx",
+          "logicas": 1,
+          "fisicas": 0
+        },
+        {
+          "arquivo": "src/components/ModelPrepPanel.tsx",
+          "logicas": 1,
+          "fisicas": 0
+        },
+        {
+          "arquivo": "src/components/Onboarding.tsx",
+          "logicas": 4,
+          "fisicas": 0
+        },
+        {
+          "arquivo": "src/components/OnboardingLeve.tsx",
+          "logicas": 3,
+          "fisicas": 0
+        },
+        {
+          "arquivo": "src/components/Overlay.tsx",
+          "logicas": 16,
+          "fisicas": 6
+        },
+        {
+          "arquivo": "src/components/PracticeMenu.tsx",
+          "logicas": 1,
+          "fisicas": 0
+        },
+        {
+          "arquivo": "src/components/Toast.tsx",
+          "logicas": 0,
+          "fisicas": 1
+        },
+        {
+          "arquivo": "src/components/TranscricaoLeve.tsx",
+          "logicas": 1,
+          "fisicas": 0
+        },
+        {
+          "arquivo": "src/components/VocabularyPanel.tsx",
+          "logicas": 2,
+          "fisicas": 0
+        },
+        {
+          "arquivo": "src/components/auth/AuthShell.tsx",
+          "logicas": 0,
+          "fisicas": 2
+        },
+        {
+          "arquivo": "src/components/auth/PasswordField.tsx",
+          "logicas": 2,
+          "fisicas": 1
+        },
+        {
+          "arquivo": "src/components/minigames/AntessalaDaRodada.tsx",
+          "logicas": 11,
+          "fisicas": 0
+        },
+        {
+          "arquivo": "src/components/minigames/BlitzGame.tsx",
+          "logicas": 1,
+          "fisicas": 1
+        },
+        {
+          "arquivo": "src/components/minigames/CoberturaDosIdiomas.tsx",
+          "logicas": 13,
+          "fisicas": 0
+        },
+        {
+          "arquivo": "src/components/minigames/ComoSeJoga.tsx",
+          "logicas": 1,
+          "fisicas": 0
+        },
+        {
+          "arquivo": "src/components/minigames/EscutaGame.tsx",
+          "logicas": 1,
+          "fisicas": 0
+        },
+        {
+          "arquivo": "src/components/minigames/ResumoDaRodada.tsx",
+          "logicas": 1,
+          "fisicas": 0
+        },
+        {
+          "arquivo": "src/components/minigames/SalaDeEscolha.tsx",
+          "logicas": 1,
+          "fisicas": 0
+        },
+        {
+          "arquivo": "src/components/minigames/SeletorDeConteudo.tsx",
+          "logicas": 1,
+          "fisicas": 0
+        },
+        {
+          "arquivo": "src/components/minigames/TermoGame.tsx",
+          "logicas": 0,
+          "fisicas": 1
+        },
+        {
+          "arquivo": "src/components/minigames/WordSearchGame.tsx",
+          "logicas": 1,
+          "fisicas": 0
+        },
+        {
+          "arquivo": "src/components/shell/ControlCluster.tsx",
+          "logicas": 2,
+          "fisicas": 0
+        },
+        {
+          "arquivo": "src/components/shell/MenuDaConta.tsx",
+          "logicas": 1,
+          "fisicas": 0
+        },
+        {
+          "arquivo": "src/components/shell/MenuDeConforto.tsx",
+          "logicas": 1,
+          "fisicas": 0
+        },
+        {
+          "arquivo": "src/components/shell/NavRail.tsx",
+          "logicas": 5,
+          "fisicas": 2
+        },
+        {
+          "arquivo": "src/components/views/Analysis.tsx",
+          "logicas": 22,
+          "fisicas": 11
+        },
+        {
+          "arquivo": "src/components/views/AnalysisExpandedKpi.tsx",
+          "logicas": 2,
+          "fisicas": 0
+        },
+        {
+          "arquivo": "src/components/views/BaralhosAnki.tsx",
+          "logicas": 6,
+          "fisicas": 1
+        },
+        {
+          "arquivo": "src/components/views/Conquistas.tsx",
+          "logicas": 7,
+          "fisicas": 0
+        },
+        {
+          "arquivo": "src/components/views/CuradoriaBaralho.tsx",
+          "logicas": 3,
+          "fisicas": 0
+        },
+        {
+          "arquivo": "src/components/views/Hub.tsx",
+          "logicas": 7,
+          "fisicas": 0
+        },
+        {
+          "arquivo": "src/components/views/Library.tsx",
+          "logicas": 4,
+          "fisicas": 3
+        },
+        {
+          "arquivo": "src/components/views/LiveCapture.tsx",
+          "logicas": 12,
+          "fisicas": 3
+        },
+        {
+          "arquivo": "src/components/views/Loja.tsx",
+          "logicas": 0,
+          "fisicas": 1
+        },
+        {
+          "arquivo": "src/components/views/MapaDoConteudo.tsx",
+          "logicas": 3,
+          "fisicas": 0
+        },
+        {
+          "arquivo": "src/components/views/Metrics.tsx",
+          "logicas": 4,
+          "fisicas": 3
+        },
+        {
+          "arquivo": "src/components/views/MetricsExpandedKpi.tsx",
+          "logicas": 3,
+          "fisicas": 0
+        },
+        {
+          "arquivo": "src/components/views/PainelTrilha.tsx",
+          "logicas": 1,
+          "fisicas": 0
+        },
+        {
+          "arquivo": "src/components/views/Personalizar.tsx",
+          "logicas": 1,
+          "fisicas": 0
+        },
+        {
+          "arquivo": "src/components/views/Planos.tsx",
+          "logicas": 5,
+          "fisicas": 0
+        },
+        {
+          "arquivo": "src/components/views/Play.tsx",
+          "logicas": 7,
+          "fisicas": 1
+        },
+        {
+          "arquivo": "src/components/views/Reading.tsx",
+          "logicas": 24,
+          "fisicas": 6
+        },
+        {
+          "arquivo": "src/components/views/Settings.tsx",
+          "logicas": 5,
+          "fisicas": 0
+        },
+        {
+          "arquivo": "src/components/views/Sobre.tsx",
+          "logicas": 1,
+          "fisicas": 5
+        },
+        {
+          "arquivo": "src/components/views/Study.tsx",
+          "logicas": 4,
+          "fisicas": 1
+        },
+        {
+          "arquivo": "src/components/views/loja/ComprarCreditos.tsx",
+          "logicas": 2,
+          "fisicas": 0
+        },
+        {
+          "arquivo": "src/components/views/passe/PasseDeTemporada.tsx",
+          "logicas": 1,
+          "fisicas": 3
+        },
+        {
+          "arquivo": "src/components/views/perfil/AbaProgresso.tsx",
+          "logicas": 2,
+          "fisicas": 0
+        },
+        {
+          "arquivo": "src/components/views/personalizar/EditorDoItem.tsx",
+          "logicas": 1,
+          "fisicas": 0
+        },
+        {
+          "arquivo": "src/components/views/personalizar/Inventario.tsx",
+          "logicas": 1,
+          "fisicas": 4
+        },
+        {
+          "arquivo": "src/components/views/personalizar/SeletorDePaletas.tsx",
+          "logicas": 4,
+          "fisicas": 1
+        },
+        {
+          "arquivo": "src/components/views/planos/Assinar.tsx",
+          "logicas": 1,
+          "fisicas": 0
+        },
+        {
+          "arquivo": "src/components/views/play/Recordes.tsx",
+          "logicas": 17,
+          "fisicas": 0
+        },
+        {
+          "arquivo": "src/components/views/vocab/CatalogoDePalavras.tsx",
+          "logicas": 4,
+          "fisicas": 1
+        },
+        {
+          "arquivo": "src/lib/exercicios/activeProduction.tsx",
+          "logicas": 3,
+          "fisicas": 2
+        },
+        {
+          "arquivo": "src/lib/languages.ts",
+          "logicas": 0,
+          "fisicas": 1
+        },
+        {
+          "arquivo": "src/index.css",
+          "logicas": 0,
+          "fisicas": 6
+        }
+      ]
+    },
+    "08 — peso do build": {
+      "totalBytes": 35893601,
+      "assetsBytes": 29002075,
+      "arquivos": 134,
+      "categorias": {
+        "WASM (ONNX Runtime, Whisper, tradução local)": {
+          "n": 1,
+          "bytes": 23567050
+        },
+        "workers .js soltos": {
+          "n": 3,
+          "bytes": 1582652
+        },
+        "dados de trilha servidos (dist/trilha)": {
+          "n": 16,
+          "bytes": 4575946
+        },
+        "glosas servidas (dist/glosas)": {
+          "n": 15,
+          "bytes": 2082850
+        },
+        "catálogos de i18n (dist/i18n)": {
+          "n": 4,
+          "bytes": 137930
+        },
+        "CSS": {
+          "n": 1,
+          "bytes": 178144
+        },
+        "JS em assets": {
+          "n": 88,
+          "bytes": 5256881
+        }
+      },
+      "entradaBytes": 763700
+    },
+    "09 — dívida de código quantificada": {
+      "pluralSufixo": 18,
+      "pluralTernario": 62,
+      "templates": 1196,
+      "tagsInline": 1181,
+      "arquivosComTagInline": 101,
+      "chavesStorage": 70,
+      "chavesReais": 14,
+      "porArquivo": [
+        {
+          "arquivo": "src/App.tsx",
+          "pluralSufixo": 0,
+          "pluralTernario": 0,
+          "templates": 4,
+          "tagsInline": 0
+        },
+        {
+          "arquivo": "src/components/AiEnginePanel.tsx",
+          "pluralSufixo": 0,
+          "pluralTernario": 0,
+          "templates": 4,
+          "tagsInline": 13
+        },
+        {
+          "arquivo": "src/components/BuscaDeCapa.tsx",
+          "pluralSufixo": 0,
+          "pluralTernario": 0,
+          "templates": 2,
+          "tagsInline": 0
+        },
+        {
+          "arquivo": "src/components/BuscaGlobal.tsx",
+          "pluralSufixo": 0,
+          "pluralTernario": 0,
+          "templates": 4,
+          "tagsInline": 0
+        },
+        {
+          "arquivo": "src/components/CardDePlanos.tsx",
+          "pluralSufixo": 0,
+          "pluralTernario": 0,
+          "templates": 0,
+          "tagsInline": 2
+        },
+        {
+          "arquivo": "src/components/ChatTranscript.tsx",
+          "pluralSufixo": 0,
+          "pluralTernario": 0,
+          "templates": 10,
+          "tagsInline": 10
+        },
+        {
+          "arquivo": "src/components/CommandPalette.tsx",
+          "pluralSufixo": 0,
+          "pluralTernario": 0,
+          "templates": 4,
+          "tagsInline": 5
+        },
+        {
+          "arquivo": "src/components/EditablePanel.tsx",
+          "pluralSufixo": 0,
+          "pluralTernario": 0,
+          "templates": 5,
+          "tagsInline": 1
+        },
+        {
+          "arquivo": "src/components/ErroDaTela.tsx",
+          "pluralSufixo": 0,
+          "pluralTernario": 0,
+          "templates": 0,
+          "tagsInline": 1
+        },
+        {
+          "arquivo": "src/components/FloatingScoreLayer.tsx",
+          "pluralSufixo": 0,
+          "pluralTernario": 0,
+          "templates": 1,
+          "tagsInline": 1
+        },
+        {
+          "arquivo": "src/components/FraseComLacuna.tsx",
+          "pluralSufixo": 0,
+          "pluralTernario": 0,
+          "templates": 1,
+          "tagsInline": 3
+        },
+        {
+          "arquivo": "src/components/GuidePanel.tsx",
+          "pluralSufixo": 0,
+          "pluralTernario": 0,
+          "templates": 0,
+          "tagsInline": 2
+        },
+        {
+          "arquivo": "src/components/Honestidade.tsx",
+          "pluralSufixo": 0,
+          "pluralTernario": 0,
+          "templates": 4,
+          "tagsInline": 1
+        },
+        {
+          "arquivo": "src/components/IChat.tsx",
+          "pluralSufixo": 0,
+          "pluralTernario": 1,
+          "templates": 31,
+          "tagsInline": 22
+        },
+        {
+          "arquivo": "src/components/InfoHint.tsx",
+          "pluralSufixo": 0,
+          "pluralTernario": 0,
+          "templates": 1,
+          "tagsInline": 2
+        },
+        {
+          "arquivo": "src/components/LangFlag.tsx",
+          "pluralSufixo": 0,
+          "pluralTernario": 0,
+          "templates": 4,
+          "tagsInline": 2
+        },
+        {
+          "arquivo": "src/components/LangPicker.tsx",
+          "pluralSufixo": 0,
+          "pluralTernario": 0,
+          "templates": 8,
+          "tagsInline": 3
+        },
+        {
+          "arquivo": "src/components/LayoutEditorToolbar.tsx",
+          "pluralSufixo": 0,
+          "pluralTernario": 0,
+          "templates": 1,
+          "tagsInline": 4
+        },
+        {
+          "arquivo": "src/components/LayoutStudio.tsx",
+          "pluralSufixo": 0,
+          "pluralTernario": 0,
+          "templates": 10,
+          "tagsInline": 13
+        },
+        {
+          "arquivo": "src/components/Login.tsx",
+          "pluralSufixo": 0,
+          "pluralTernario": 0,
+          "templates": 1,
+          "tagsInline": 4
+        },
+        {
+          "arquivo": "src/components/MiniaturaDoItem.tsx",
+          "pluralSufixo": 0,
+          "pluralTernario": 0,
+          "templates": 6,
+          "tagsInline": 16
+        },
+        {
+          "arquivo": "src/components/ModelPrepPanel.tsx",
+          "pluralSufixo": 0,
+          "pluralTernario": 0,
+          "templates": 7,
+          "tagsInline": 3
+        },
+        {
+          "arquivo": "src/components/Onboarding.tsx",
+          "pluralSufixo": 0,
+          "pluralTernario": 0,
+          "templates": 5,
+          "tagsInline": 23
+        },
+        {
+          "arquivo": "src/components/OnboardingLeve.tsx",
+          "pluralSufixo": 2,
+          "pluralTernario": 2,
+          "templates": 6,
+          "tagsInline": 8
+        },
+        {
+          "arquivo": "src/components/Overlay.tsx",
+          "pluralSufixo": 0,
+          "pluralTernario": 0,
+          "templates": 24,
+          "tagsInline": 16
+        },
+        {
+          "arquivo": "src/components/ParticleCanvas.tsx",
+          "pluralSufixo": 0,
+          "pluralTernario": 0,
+          "templates": 2,
+          "tagsInline": 0
+        },
+        {
+          "arquivo": "src/components/PopoverFlutuante.tsx",
+          "pluralSufixo": 0,
+          "pluralTernario": 0,
+          "templates": 2,
+          "tagsInline": 0
+        },
+        {
+          "arquivo": "src/components/PracticeMenu.tsx",
+          "pluralSufixo": 0,
+          "pluralTernario": 0,
+          "templates": 0,
+          "tagsInline": 4
+        },
+        {
+          "arquivo": "src/components/Provenance.tsx",
+          "pluralSufixo": 0,
+          "pluralTernario": 0,
+          "templates": 4,
+          "tagsInline": 5
+        },
+        {
+          "arquivo": "src/components/RecompensaDesbloqueada.tsx",
+          "pluralSufixo": 0,
+          "pluralTernario": 0,
+          "templates": 5,
+          "tagsInline": 6
+        },
+        {
+          "arquivo": "src/components/Toast.tsx",
+          "pluralSufixo": 0,
+          "pluralTernario": 0,
+          "templates": 2,
+          "tagsInline": 1
+        },
+        {
+          "arquivo": "src/components/TokensClicaveis.tsx",
+          "pluralSufixo": 0,
+          "pluralTernario": 0,
+          "templates": 1,
+          "tagsInline": 2
+        },
+        {
+          "arquivo": "src/components/TranscricaoLeve.tsx",
+          "pluralSufixo": 0,
+          "pluralTernario": 0,
+          "templates": 5,
+          "tagsInline": 4
+        },
+        {
+          "arquivo": "src/components/VocabularyPanel.tsx",
+          "pluralSufixo": 0,
+          "pluralTernario": 0,
+          "templates": 5,
+          "tagsInline": 13
+        },
+        {
+          "arquivo": "src/components/auth/PasswordField.tsx",
+          "pluralSufixo": 0,
+          "pluralTernario": 0,
+          "templates": 1,
+          "tagsInline": 0
+        },
+        {
+          "arquivo": "src/components/auth/SecurityPanel.tsx",
+          "pluralSufixo": 0,
+          "pluralTernario": 0,
+          "templates": 0,
+          "tagsInline": 2
+        },
+        {
+          "arquivo": "src/components/conta/CartaoDeConvite.tsx",
+          "pluralSufixo": 0,
+          "pluralTernario": 0,
+          "templates": 0,
+          "tagsInline": 1
+        },
+        {
+          "arquivo": "src/components/conta/GateDeConta.tsx",
+          "pluralSufixo": 0,
+          "pluralTernario": 0,
+          "templates": 0,
+          "tagsInline": 1
+        },
+        {
+          "arquivo": "src/components/conta/ModalDeMigracao.tsx",
+          "pluralSufixo": 0,
+          "pluralTernario": 0,
+          "templates": 2,
+          "tagsInline": 5
+        },
+        {
+          "arquivo": "src/components/metrics/EvolucaoSemanal.tsx",
+          "pluralSufixo": 0,
+          "pluralTernario": 0,
+          "templates": 4,
+          "tagsInline": 1
+        },
+        {
+          "arquivo": "src/components/metrics/NiveisDoConjunto.tsx",
+          "pluralSufixo": 0,
+          "pluralTernario": 0,
+          "templates": 4,
+          "tagsInline": 4
+        },
+        {
+          "arquivo": "src/components/minigames/AntessalaDaRodada.tsx",
+          "pluralSufixo": 0,
+          "pluralTernario": 3,
+          "templates": 19,
+          "tagsInline": 51
+        },
+        {
+          "arquivo": "src/components/minigames/ArteDosJogos.tsx",
+          "pluralSufixo": 0,
+          "pluralTernario": 2,
+          "templates": 5,
+          "tagsInline": 0
+        },
+        {
+          "arquivo": "src/components/minigames/BingoPanel.tsx",
+          "pluralSufixo": 0,
+          "pluralTernario": 1,
+          "templates": 3,
+          "tagsInline": 4
+        },
+        {
+          "arquivo": "src/components/minigames/BlitzGame.tsx",
+          "pluralSufixo": 0,
+          "pluralTernario": 5,
+          "templates": 12,
+          "tagsInline": 13
+        },
+        {
+          "arquivo": "src/components/minigames/CoberturaDosIdiomas.tsx",
+          "pluralSufixo": 0,
+          "pluralTernario": 0,
+          "templates": 1,
+          "tagsInline": 0
+        },
+        {
+          "arquivo": "src/components/minigames/ComoSeJoga.tsx",
+          "pluralSufixo": 0,
+          "pluralTernario": 0,
+          "templates": 2,
+          "tagsInline": 7
+        },
+        {
+          "arquivo": "src/components/minigames/ConectoresGame.tsx",
+          "pluralSufixo": 0,
+          "pluralTernario": 1,
+          "templates": 4,
+          "tagsInline": 2
+        },
+        {
+          "arquivo": "src/components/minigames/DitadoGame.tsx",
+          "pluralSufixo": 0,
+          "pluralTernario": 0,
+          "templates": 5,
+          "tagsInline": 7
+        },
+        {
+          "arquivo": "src/components/minigames/EscutaGame.tsx",
+          "pluralSufixo": 0,
+          "pluralTernario": 2,
+          "templates": 3,
+          "tagsInline": 2
+        },
+        {
+          "arquivo": "src/components/minigames/KaraokeGame.tsx",
+          "pluralSufixo": 0,
+          "pluralTernario": 0,
+          "templates": 2,
+          "tagsInline": 4
+        },
+        {
+          "arquivo": "src/components/minigames/MemoryGame.tsx",
+          "pluralSufixo": 1,
+          "pluralTernario": 4,
+          "templates": 8,
+          "tagsInline": 8
+        },
+        {
+          "arquivo": "src/components/minigames/ResumoDaRodada.tsx",
+          "pluralSufixo": 0,
+          "pluralTernario": 3,
+          "templates": 7,
+          "tagsInline": 10
+        },
+        {
+          "arquivo": "src/components/minigames/SalaDeEscolha.tsx",
+          "pluralSufixo": 0,
+          "pluralTernario": 0,
+          "templates": 1,
+          "tagsInline": 8
+        },
+        {
+          "arquivo": "src/components/minigames/ScrambleGame.tsx",
+          "pluralSufixo": 1,
+          "pluralTernario": 1,
+          "templates": 3,
+          "tagsInline": 4
+        },
+        {
+          "arquivo": "src/components/minigames/ScratchReward.tsx",
+          "pluralSufixo": 0,
+          "pluralTernario": 1,
+          "templates": 4,
+          "tagsInline": 17
+        },
+        {
+          "arquivo": "src/components/minigames/SeletorDeConteudo.tsx",
+          "pluralSufixo": 0,
+          "pluralTernario": 0,
+          "templates": 4,
+          "tagsInline": 15
+        },
+        {
+          "arquivo": "src/components/minigames/TermoGame.tsx",
+          "pluralSufixo": 0,
+          "pluralTernario": 0,
+          "templates": 12,
+          "tagsInline": 5
+        },
+        {
+          "arquivo": "src/components/minigames/TourGuiado.tsx",
+          "pluralSufixo": 0,
+          "pluralTernario": 0,
+          "templates": 2,
+          "tagsInline": 5
+        },
+        {
+          "arquivo": "src/components/minigames/WordSearchGame.tsx",
+          "pluralSufixo": 0,
+          "pluralTernario": 3,
+          "templates": 10,
+          "tagsInline": 6
+        },
+        {
+          "arquivo": "src/components/minigames/passosDosJogos.ts",
+          "pluralSufixo": 0,
+          "pluralTernario": 0,
+          "templates": 1,
+          "tagsInline": 0
+        },
+        {
+          "arquivo": "src/components/progress/FaixaDeProgresso.tsx",
+          "pluralSufixo": 0,
+          "pluralTernario": 0,
+          "templates": 2,
+          "tagsInline": 5
+        },
+        {
+          "arquivo": "src/components/shell/ControlCluster.tsx",
+          "pluralSufixo": 0,
+          "pluralTernario": 0,
+          "templates": 4,
+          "tagsInline": 2
+        },
+        {
+          "arquivo": "src/components/shell/MenuDaConta.tsx",
+          "pluralSufixo": 0,
+          "pluralTernario": 0,
+          "templates": 1,
+          "tagsInline": 2
+        },
+        {
+          "arquivo": "src/components/shell/MenuDeConforto.tsx",
+          "pluralSufixo": 0,
+          "pluralTernario": 0,
+          "templates": 1,
+          "tagsInline": 3
+        },
+        {
+          "arquivo": "src/components/shell/MobileNav.tsx",
+          "pluralSufixo": 0,
+          "pluralTernario": 0,
+          "templates": 1,
+          "tagsInline": 3
+        },
+        {
+          "arquivo": "src/components/shell/NavBar.tsx",
+          "pluralSufixo": 0,
+          "pluralTernario": 0,
+          "templates": 2,
+          "tagsInline": 1
+        },
+        {
+          "arquivo": "src/components/shell/NavRail.tsx",
+          "pluralSufixo": 0,
+          "pluralTernario": 0,
+          "templates": 7,
+          "tagsInline": 2
+        },
+        {
+          "arquivo": "src/components/shell/ShellBits.tsx",
+          "pluralSufixo": 0,
+          "pluralTernario": 0,
+          "templates": 5,
+          "tagsInline": 9
+        },
+        {
+          "arquivo": "src/components/ui/Abas.tsx",
+          "pluralSufixo": 0,
+          "pluralTernario": 0,
+          "templates": 8,
+          "tagsInline": 1
+        },
+        {
+          "arquivo": "src/components/ui/Barra.tsx",
+          "pluralSufixo": 0,
+          "pluralTernario": 0,
+          "templates": 3,
+          "tagsInline": 0
+        },
+        {
+          "arquivo": "src/components/ui/Ladrilho.tsx",
+          "pluralSufixo": 0,
+          "pluralTernario": 0,
+          "templates": 2,
+          "tagsInline": 0
+        },
+        {
+          "arquivo": "src/components/ui/Segmentado.tsx",
+          "pluralSufixo": 0,
+          "pluralTernario": 0,
+          "templates": 4,
+          "tagsInline": 3
+        },
+        {
+          "arquivo": "src/components/ui/Vazio.tsx",
+          "pluralSufixo": 0,
+          "pluralTernario": 0,
+          "templates": 1,
+          "tagsInline": 0
+        },
+        {
+          "arquivo": "src/components/views/Analysis.tsx",
+          "pluralSufixo": 1,
+          "pluralTernario": 1,
+          "templates": 76,
+          "tagsInline": 93
+        },
+        {
+          "arquivo": "src/components/views/AnalysisExpandedKpi.tsx",
+          "pluralSufixo": 0,
+          "pluralTernario": 0,
+          "templates": 4,
+          "tagsInline": 13
+        },
+        {
+          "arquivo": "src/components/views/BaralhoAnki.tsx",
+          "pluralSufixo": 0,
+          "pluralTernario": 0,
+          "templates": 8,
+          "tagsInline": 22
+        },
+        {
+          "arquivo": "src/components/views/BaralhosAnki.tsx",
+          "pluralSufixo": 0,
+          "pluralTernario": 0,
+          "templates": 6,
+          "tagsInline": 14
+        },
+        {
+          "arquivo": "src/components/views/Conquistas.tsx",
+          "pluralSufixo": 0,
+          "pluralTernario": 0,
+          "templates": 9,
+          "tagsInline": 20
+        },
+        {
+          "arquivo": "src/components/views/CuradoriaBaralho.tsx",
+          "pluralSufixo": 0,
+          "pluralTernario": 0,
+          "templates": 15,
+          "tagsInline": 13
+        },
+        {
+          "arquivo": "src/components/views/Hub.tsx",
+          "pluralSufixo": 0,
+          "pluralTernario": 0,
+          "templates": 23,
+          "tagsInline": 44
+        },
+        {
+          "arquivo": "src/components/views/LangAudit.tsx",
+          "pluralSufixo": 10,
+          "pluralTernario": 10,
+          "templates": 14,
+          "tagsInline": 8
+        },
+        {
+          "arquivo": "src/components/views/Library.tsx",
+          "pluralSufixo": 2,
+          "pluralTernario": 4,
+          "templates": 25,
+          "tagsInline": 38
+        },
+        {
+          "arquivo": "src/components/views/LiveCapture.tsx",
+          "pluralSufixo": 0,
+          "pluralTernario": 0,
+          "templates": 75,
+          "tagsInline": 75
+        },
+        {
+          "arquivo": "src/components/views/Loja.tsx",
+          "pluralSufixo": 0,
+          "pluralTernario": 1,
+          "templates": 27,
+          "tagsInline": 24
+        },
+        {
+          "arquivo": "src/components/views/MapaDoConteudo.tsx",
+          "pluralSufixo": 0,
+          "pluralTernario": 0,
+          "templates": 8,
+          "tagsInline": 19
+        },
+        {
+          "arquivo": "src/components/views/Metrics.tsx",
+          "pluralSufixo": 0,
+          "pluralTernario": 5,
+          "templates": 14,
+          "tagsInline": 30
+        },
+        {
+          "arquivo": "src/components/views/MetricsExpandedKpi.tsx",
+          "pluralSufixo": 0,
+          "pluralTernario": 0,
+          "templates": 8,
+          "tagsInline": 1
+        },
+        {
+          "arquivo": "src/components/views/PainelTrilha.tsx",
+          "pluralSufixo": 0,
+          "pluralTernario": 0,
+          "templates": 11,
+          "tagsInline": 13
+        },
+        {
+          "arquivo": "src/components/views/Perfil.tsx",
+          "pluralSufixo": 0,
+          "pluralTernario": 0,
+          "templates": 1,
+          "tagsInline": 1
+        },
+        {
+          "arquivo": "src/components/views/Personalizar.tsx",
+          "pluralSufixo": 0,
+          "pluralTernario": 0,
+          "templates": 10,
+          "tagsInline": 4
+        },
+        {
+          "arquivo": "src/components/views/Planos.tsx",
+          "pluralSufixo": 0,
+          "pluralTernario": 0,
+          "templates": 2,
+          "tagsInline": 11
+        },
+        {
+          "arquivo": "src/components/views/Play.tsx",
+          "pluralSufixo": 0,
+          "pluralTernario": 0,
+          "templates": 34,
+          "tagsInline": 48
+        },
+        {
+          "arquivo": "src/components/views/Reading.tsx",
+          "pluralSufixo": 0,
+          "pluralTernario": 0,
+          "templates": 58,
+          "tagsInline": 66
+        },
+        {
+          "arquivo": "src/components/views/Settings.tsx",
+          "pluralSufixo": 0,
+          "pluralTernario": 0,
+          "templates": 10,
+          "tagsInline": 15
+        },
+        {
+          "arquivo": "src/components/views/Sobre.tsx",
+          "pluralSufixo": 0,
+          "pluralTernario": 0,
+          "templates": 3,
+          "tagsInline": 17
+        },
+        {
+          "arquivo": "src/components/views/Study.tsx",
+          "pluralSufixo": 0,
+          "pluralTernario": 0,
+          "templates": 8,
+          "tagsInline": 38
+        },
+        {
+          "arquivo": "src/components/views/loja/CabecalhoDeTemporada.tsx",
+          "pluralSufixo": 0,
+          "pluralTernario": 0,
+          "templates": 3,
+          "tagsInline": 12
+        },
+        {
+          "arquivo": "src/components/views/loja/ComprarCreditos.tsx",
+          "pluralSufixo": 0,
+          "pluralTernario": 0,
+          "templates": 4,
+          "tagsInline": 14
+        },
+        {
+          "arquivo": "src/components/views/passe/PasseDeTemporada.tsx",
+          "pluralSufixo": 0,
+          "pluralTernario": 0,
+          "templates": 26,
+          "tagsInline": 19
+        },
+        {
+          "arquivo": "src/components/views/perfil/AbaDados.tsx",
+          "pluralSufixo": 0,
+          "pluralTernario": 0,
+          "templates": 1,
+          "tagsInline": 5
+        },
+        {
+          "arquivo": "src/components/views/perfil/AbaProgresso.tsx",
+          "pluralSufixo": 0,
+          "pluralTernario": 0,
+          "templates": 11,
+          "tagsInline": 5
+        },
+        {
+          "arquivo": "src/components/views/perfil/AbaVoce.tsx",
+          "pluralSufixo": 0,
+          "pluralTernario": 0,
+          "templates": 2,
+          "tagsInline": 3
+        },
+        {
+          "arquivo": "src/components/views/personalizar/EditorDoItem.tsx",
+          "pluralSufixo": 0,
+          "pluralTernario": 0,
+          "templates": 16,
+          "tagsInline": 7
+        },
+        {
+          "arquivo": "src/components/views/personalizar/Inventario.tsx",
+          "pluralSufixo": 0,
+          "pluralTernario": 1,
+          "templates": 13,
+          "tagsInline": 21
+        },
+        {
+          "arquivo": "src/components/views/personalizar/SeletorDeEmojis.tsx",
+          "pluralSufixo": 0,
+          "pluralTernario": 0,
+          "templates": 2,
+          "tagsInline": 4
+        },
+        {
+          "arquivo": "src/components/views/personalizar/SeletorDePaletas.tsx",
+          "pluralSufixo": 0,
+          "pluralTernario": 0,
+          "templates": 4,
+          "tagsInline": 9
+        },
+        {
+          "arquivo": "src/components/views/planos/Assinar.tsx",
+          "pluralSufixo": 0,
+          "pluralTernario": 0,
+          "templates": 2,
+          "tagsInline": 2
+        },
+        {
+          "arquivo": "src/components/views/play/Recordes.tsx",
+          "pluralSufixo": 0,
+          "pluralTernario": 2,
+          "templates": 6,
+          "tagsInline": 7
+        },
+        {
+          "arquivo": "src/components/views/vocab/CatalogoDePalavras.tsx",
+          "pluralSufixo": 0,
+          "pluralTernario": 0,
+          "templates": 8,
+          "tagsInline": 11
+        },
+        {
+          "arquivo": "src/components/views/vocab/NotaDeContagem.tsx",
+          "pluralSufixo": 0,
+          "pluralTernario": 2,
+          "templates": 2,
+          "tagsInline": 4
+        },
+        {
+          "arquivo": "src/core/economiaAutoridade.ts",
+          "pluralSufixo": 0,
+          "pluralTernario": 0,
+          "templates": 10,
+          "tagsInline": 0
+        },
+        {
+          "arquivo": "src/core/eval/der.ts",
+          "pluralSufixo": 0,
+          "pluralTernario": 0,
+          "templates": 2,
+          "tagsInline": 0
+        },
+        {
+          "arquivo": "src/core/gateway/gateway.ts",
+          "pluralSufixo": 0,
+          "pluralTernario": 0,
+          "templates": 2,
+          "tagsInline": 0
+        },
+        {
+          "arquivo": "src/core/learning/cloze.ts",
+          "pluralSufixo": 0,
+          "pluralTernario": 0,
+          "templates": 1,
+          "tagsInline": 0
+        },
+        {
+          "arquivo": "src/core/learning/economia.ts",
+          "pluralSufixo": 0,
+          "pluralTernario": 0,
+          "templates": 1,
+          "tagsInline": 0
+        },
+        {
+          "arquivo": "src/core/learning/etapas.ts",
+          "pluralSufixo": 1,
+          "pluralTernario": 1,
+          "templates": 5,
+          "tagsInline": 0
+        },
+        {
+          "arquivo": "src/core/learning/fluencia.ts",
+          "pluralSufixo": 0,
+          "pluralTernario": 0,
+          "templates": 6,
+          "tagsInline": 0
+        },
+        {
+          "arquivo": "src/core/learning/memoriaDeItens.ts",
+          "pluralSufixo": 0,
+          "pluralTernario": 1,
+          "templates": 5,
+          "tagsInline": 0
+        },
+        {
+          "arquivo": "src/core/learning/quality.ts",
+          "pluralSufixo": 0,
+          "pluralTernario": 0,
+          "templates": 2,
+          "tagsInline": 0
+        },
+        {
+          "arquivo": "src/core/learning/trilha.ts",
+          "pluralSufixo": 0,
+          "pluralTernario": 0,
+          "templates": 1,
+          "tagsInline": 0
+        },
+        {
+          "arquivo": "src/core/minigames/autoDificuldade.ts",
+          "pluralSufixo": 0,
+          "pluralTernario": 0,
+          "templates": 4,
+          "tagsInline": 0
+        },
+        {
+          "arquivo": "src/core/minigames/composicao.ts",
+          "pluralSufixo": 0,
+          "pluralTernario": 0,
+          "templates": 4,
+          "tagsInline": 0
+        },
+        {
+          "arquivo": "src/core/minigames/desbloqueio.ts",
+          "pluralSufixo": 0,
+          "pluralTernario": 0,
+          "templates": 2,
+          "tagsInline": 0
+        },
+        {
+          "arquivo": "src/core/minigames/duracao.ts",
+          "pluralSufixo": 0,
+          "pluralTernario": 0,
+          "templates": 1,
+          "tagsInline": 0
+        },
+        {
+          "arquivo": "src/core/minigames/itemSource.ts",
+          "pluralSufixo": 0,
+          "pluralTernario": 1,
+          "templates": 1,
+          "tagsInline": 0
+        },
+        {
+          "arquivo": "src/core/minigames/painelDaPratica.ts",
+          "pluralSufixo": 0,
+          "pluralTernario": 0,
+          "templates": 3,
+          "tagsInline": 0
+        },
+        {
+          "arquivo": "src/core/minigames/revelavel.ts",
+          "pluralSufixo": 0,
+          "pluralTernario": 1,
+          "templates": 3,
+          "tagsInline": 0
+        },
+        {
+          "arquivo": "src/core/minigames/source.ts",
+          "pluralSufixo": 0,
+          "pluralTernario": 0,
+          "templates": 4,
+          "tagsInline": 0
+        },
+        {
+          "arquivo": "src/core/minigames/termo.ts",
+          "pluralSufixo": 0,
+          "pluralTernario": 1,
+          "templates": 2,
+          "tagsInline": 0
+        },
+        {
+          "arquivo": "src/core/passe.ts",
+          "pluralSufixo": 0,
+          "pluralTernario": 0,
+          "templates": 2,
+          "tagsInline": 0
+        },
+        {
+          "arquivo": "src/core/planos.ts",
+          "pluralSufixo": 0,
+          "pluralTernario": 1,
+          "templates": 2,
+          "tagsInline": 0
+        },
+        {
+          "arquivo": "src/core/robustness.ts",
+          "pluralSufixo": 0,
+          "pluralTernario": 0,
+          "templates": 4,
+          "tagsInline": 0
+        },
+        {
+          "arquivo": "src/core/tetoAnonimo.ts",
+          "pluralSufixo": 0,
+          "pluralTernario": 0,
+          "templates": 2,
+          "tagsInline": 0
+        },
+        {
+          "arquivo": "src/core/texto/frases.ts",
+          "pluralSufixo": 0,
+          "pluralTernario": 0,
+          "templates": 1,
+          "tagsInline": 0
+        },
+        {
+          "arquivo": "src/data/api.ts",
+          "pluralSufixo": 0,
+          "pluralTernario": 0,
+          "templates": 24,
+          "tagsInline": 0
+        },
+        {
+          "arquivo": "src/data/apiAnki.ts",
+          "pluralSufixo": 0,
+          "pluralTernario": 0,
+          "templates": 11,
+          "tagsInline": 0
+        },
+        {
+          "arquivo": "src/data/efemero/servidor.ts",
+          "pluralSufixo": 0,
+          "pluralTernario": 0,
+          "templates": 4,
+          "tagsInline": 0
+        },
+        {
+          "arquivo": "src/data/me.ts",
+          "pluralSufixo": 0,
+          "pluralTernario": 0,
+          "templates": 1,
+          "tagsInline": 0
+        },
+        {
+          "arquivo": "src/data/migracao.ts",
+          "pluralSufixo": 0,
+          "pluralTernario": 0,
+          "templates": 2,
+          "tagsInline": 0
+        },
+        {
+          "arquivo": "src/data/trilha/carregar.ts",
+          "pluralSufixo": 0,
+          "pluralTernario": 0,
+          "templates": 5,
+          "tagsInline": 0
+        },
+        {
+          "arquivo": "src/gateway/adapters/chromeTranslator.ts",
+          "pluralSufixo": 0,
+          "pluralTernario": 0,
+          "templates": 5,
+          "tagsInline": 0
+        },
+        {
+          "arquivo": "src/gateway/adapters/groqWhisper.ts",
+          "pluralSufixo": 0,
+          "pluralTernario": 0,
+          "templates": 1,
+          "tagsInline": 0
+        },
+        {
+          "arquivo": "src/gateway/adapters/modelProgress.ts",
+          "pluralSufixo": 0,
+          "pluralTernario": 0,
+          "templates": 1,
+          "tagsInline": 0
+        },
+        {
+          "arquivo": "src/gateway/adapters/mtWorker.ts",
+          "pluralSufixo": 0,
+          "pluralTernario": 0,
+          "templates": 9,
+          "tagsInline": 0
+        },
+        {
+          "arquivo": "src/gateway/adapters/mymemory.ts",
+          "pluralSufixo": 0,
+          "pluralTernario": 0,
+          "templates": 5,
+          "tagsInline": 0
+        },
+        {
+          "arquivo": "src/gateway/adapters/openaiCompatible.ts",
+          "pluralSufixo": 0,
+          "pluralTernario": 0,
+          "templates": 5,
+          "tagsInline": 0
+        },
+        {
+          "arquivo": "src/gateway/adapters/opusMtLocal.ts",
+          "pluralSufixo": 0,
+          "pluralTernario": 0,
+          "templates": 3,
+          "tagsInline": 0
+        },
+        {
+          "arquivo": "src/gateway/adapters/serverLlmMt.ts",
+          "pluralSufixo": 0,
+          "pluralTernario": 0,
+          "templates": 3,
+          "tagsInline": 0
+        },
+        {
+          "arquivo": "src/gateway/capture/systemAudio.ts",
+          "pluralSufixo": 0,
+          "pluralTernario": 0,
+          "templates": 2,
+          "tagsInline": 0
+        },
+        {
+          "arquivo": "src/gateway/index.ts",
+          "pluralSufixo": 0,
+          "pluralTernario": 0,
+          "templates": 5,
+          "tagsInline": 0
+        },
+        {
+          "arquivo": "src/gateway/modelManifest.ts",
+          "pluralSufixo": 0,
+          "pluralTernario": 0,
+          "templates": 1,
+          "tagsInline": 0
+        },
+        {
+          "arquivo": "src/gateway/offlineTranscribe.ts",
+          "pluralSufixo": 0,
+          "pluralTernario": 0,
+          "templates": 1,
+          "tagsInline": 0
+        },
+        {
+          "arquivo": "src/gateway/sttRouter.ts",
+          "pluralSufixo": 0,
+          "pluralTernario": 0,
+          "templates": 4,
+          "tagsInline": 0
+        },
+        {
+          "arquivo": "src/lib/T.tsx",
+          "pluralSufixo": 0,
+          "pluralTernario": 0,
+          "templates": 3,
+          "tagsInline": 4
+        },
+        {
+          "arquivo": "src/lib/adicionarAoDeck.ts",
+          "pluralSufixo": 0,
+          "pluralTernario": 0,
+          "templates": 1,
+          "tagsInline": 0
+        },
+        {
+          "arquivo": "src/lib/appearance.ts",
+          "pluralSufixo": 0,
+          "pluralTernario": 0,
+          "templates": 1,
+          "tagsInline": 0
+        },
+        {
+          "arquivo": "src/lib/aprimoramentos.ts",
+          "pluralSufixo": 0,
+          "pluralTernario": 1,
+          "templates": 0,
+          "tagsInline": 0
+        },
+        {
+          "arquivo": "src/lib/audioDaSessao.ts",
+          "pluralSufixo": 0,
+          "pluralTernario": 0,
+          "templates": 2,
+          "tagsInline": 0
+        },
+        {
+          "arquivo": "src/lib/auth.ts",
+          "pluralSufixo": 0,
+          "pluralTernario": 0,
+          "templates": 1,
+          "tagsInline": 0
+        },
+        {
+          "arquivo": "src/lib/authHeaders.ts",
+          "pluralSufixo": 0,
+          "pluralTernario": 0,
+          "templates": 1,
+          "tagsInline": 0
+        },
+        {
+          "arquivo": "src/lib/conquistas.ts",
+          "pluralSufixo": 0,
+          "pluralTernario": 0,
+          "templates": 2,
+          "tagsInline": 0
+        },
+        {
+          "arquivo": "src/lib/cursores.ts",
+          "pluralSufixo": 0,
+          "pluralTernario": 0,
+          "templates": 5,
+          "tagsInline": 0
+        },
+        {
+          "arquivo": "src/lib/desbloqueios.ts",
+          "pluralSufixo": 0,
+          "pluralTernario": 0,
+          "templates": 1,
+          "tagsInline": 0
+        },
+        {
+          "arquivo": "src/lib/dictionary.ts",
+          "pluralSufixo": 0,
+          "pluralTernario": 0,
+          "templates": 9,
+          "tagsInline": 0
+        },
+        {
+          "arquivo": "src/lib/exercicios/activeProduction.tsx",
+          "pluralSufixo": 0,
+          "pluralTernario": 0,
+          "templates": 3,
+          "tagsInline": 24
+        },
+        {
+          "arquivo": "src/lib/exercicios/corretorPrompt.ts",
+          "pluralSufixo": 0,
+          "pluralTernario": 0,
+          "templates": 4,
+          "tagsInline": 0
+        },
+        {
+          "arquivo": "src/lib/falante.ts",
+          "pluralSufixo": 0,
+          "pluralTernario": 0,
+          "templates": 1,
+          "tagsInline": 0
+        },
+        {
+          "arquivo": "src/lib/galeria/acesso.ts",
+          "pluralSufixo": 0,
+          "pluralTernario": 0,
+          "templates": 3,
+          "tagsInline": 0
+        },
+        {
+          "arquivo": "src/lib/galeria/cromas.ts",
+          "pluralSufixo": 0,
+          "pluralTernario": 0,
+          "templates": 2,
+          "tagsInline": 0
+        },
+        {
+          "arquivo": "src/lib/galeria/paletas.ts",
+          "pluralSufixo": 0,
+          "pluralTernario": 0,
+          "templates": 13,
+          "tagsInline": 0
+        },
+        {
+          "arquivo": "src/lib/galeria/perfis.ts",
+          "pluralSufixo": 0,
+          "pluralTernario": 0,
+          "templates": 1,
+          "tagsInline": 0
+        },
+        {
+          "arquivo": "src/lib/galeria/textos.ts",
+          "pluralSufixo": 0,
+          "pluralTernario": 0,
+          "templates": 5,
+          "tagsInline": 0
+        },
+        {
+          "arquivo": "src/lib/i18n.ts",
+          "pluralSufixo": 0,
+          "pluralTernario": 0,
+          "templates": 1,
+          "tagsInline": 0
+        },
+        {
+          "arquivo": "src/lib/ichatContext.ts",
+          "pluralSufixo": 0,
+          "pluralTernario": 0,
+          "templates": 22,
+          "tagsInline": 0
+        },
+        {
+          "arquivo": "src/lib/import/buildSession.ts",
+          "pluralSufixo": 0,
+          "pluralTernario": 0,
+          "templates": 1,
+          "tagsInline": 0
+        },
+        {
+          "arquivo": "src/lib/juice.ts",
+          "pluralSufixo": 0,
+          "pluralTernario": 0,
+          "templates": 1,
+          "tagsInline": 0
+        },
+        {
+          "arquivo": "src/lib/langAudit.ts",
+          "pluralSufixo": 0,
+          "pluralTernario": 0,
+          "templates": 10,
+          "tagsInline": 0
+        },
+        {
+          "arquivo": "src/lib/loja.ts",
+          "pluralSufixo": 0,
+          "pluralTernario": 0,
+          "templates": 4,
+          "tagsInline": 0
+        },
+        {
+          "arquivo": "src/lib/marcosDeConta.ts",
+          "pluralSufixo": 0,
+          "pluralTernario": 0,
+          "templates": 2,
+          "tagsInline": 0
+        },
+        {
+          "arquivo": "src/lib/memoriaLocal.ts",
+          "pluralSufixo": 0,
+          "pluralTernario": 0,
+          "templates": 2,
+          "tagsInline": 0
+        },
+        {
+          "arquivo": "src/lib/progress.ts",
+          "pluralSufixo": 0,
+          "pluralTernario": 0,
+          "templates": 2,
+          "tagsInline": 0
+        },
+        {
+          "arquivo": "src/lib/ranking.ts",
+          "pluralSufixo": 0,
+          "pluralTernario": 0,
+          "templates": 2,
+          "tagsInline": 0
+        },
+        {
+          "arquivo": "src/lib/rastroDoMouse.ts",
+          "pluralSufixo": 0,
+          "pluralTernario": 0,
+          "templates": 8,
+          "tagsInline": 0
+        },
+        {
+          "arquivo": "src/lib/relatorioDeErros.ts",
+          "pluralSufixo": 0,
+          "pluralTernario": 0,
+          "templates": 3,
+          "tagsInline": 0
+        },
+        {
+          "arquivo": "src/lib/relatorioDeProgresso.ts",
+          "pluralSufixo": 0,
+          "pluralTernario": 0,
+          "templates": 14,
+          "tagsInline": 0
+        },
+        {
+          "arquivo": "src/lib/rotas.ts",
+          "pluralSufixo": 0,
+          "pluralTernario": 0,
+          "templates": 9,
+          "tagsInline": 0
+        },
+        {
+          "arquivo": "src/lib/theme.ts",
+          "pluralSufixo": 0,
+          "pluralTernario": 0,
+          "templates": 1,
+          "tagsInline": 0
+        },
+        {
+          "arquivo": "src/lib/traducao/promptComunicativo.ts",
+          "pluralSufixo": 0,
+          "pluralTernario": 0,
+          "templates": 5,
+          "tagsInline": 0
+        },
+        {
+          "arquivo": "src/lib/useExameDePalavra.ts",
+          "pluralSufixo": 0,
+          "pluralTernario": 0,
+          "templates": 1,
+          "tagsInline": 0
+        },
+        {
+          "arquivo": "src/lib/uso.ts",
+          "pluralSufixo": 0,
+          "pluralTernario": 0,
+          "templates": 4,
+          "tagsInline": 0
+        },
+        {
+          "arquivo": "src/lib/validaTraducao.ts",
+          "pluralSufixo": 0,
+          "pluralTernario": 0,
+          "templates": 2,
+          "tagsInline": 0
+        },
+        {
+          "arquivo": "src/lib/versosDoVocabulario.ts",
+          "pluralSufixo": 0,
+          "pluralTernario": 0,
+          "templates": 2,
+          "tagsInline": 0
+        },
+        {
+          "arquivo": "src/lib/vocabWord.ts",
+          "pluralSufixo": 0,
+          "pluralTernario": 0,
+          "templates": 2,
+          "tagsInline": 0
+        }
+      ]
+    },
+    "10 — segmentação: régua caseira × Intl.Segmenter": {
+      "linhas": [
+        {
+          "lang": "ja",
+          "n": 400,
+          "semEspaco": "sim",
+          "mediaRegua": "7.35",
+          "mediaICU": "8.87",
+          "erroMedio": "1.72",
+          "vies": "-1.52",
+          "erroRelativo": "-17.2%",
+          "aceitaRegua": 400,
+          "aceitaICU": 360,
+          "discordam": 40,
+          "discordanciaPct": "10.0%"
+        },
+        {
+          "lang": "zh",
+          "n": 400,
+          "semEspaco": "sim",
+          "mediaRegua": "5.82",
+          "mediaICU": "6.71",
+          "erroMedio": "1.04",
+          "vies": "-0.90",
+          "erroRelativo": "-13.4%",
+          "aceitaRegua": 400,
+          "aceitaICU": 377,
+          "discordam": 23,
+          "discordanciaPct": "5.8%"
+        },
+        {
+          "lang": "ko",
+          "n": 400,
+          "semEspaco": "não",
+          "mediaRegua": "6.27",
+          "mediaICU": "6.29",
+          "erroMedio": "0.03",
+          "vies": "-0.02",
+          "erroRelativo": "-0.4%",
+          "aceitaRegua": 400,
+          "aceitaICU": 400,
+          "discordam": 0,
+          "discordanciaPct": "0.0%"
+        },
+        {
+          "lang": "ru",
+          "n": 400,
+          "semEspaco": "não",
+          "mediaRegua": "6.03",
+          "mediaICU": "5.91",
+          "erroMedio": "0.20",
+          "vies": "0.12",
+          "erroRelativo": "2.0%",
+          "aceitaRegua": 400,
+          "aceitaICU": 366,
+          "discordam": 34,
+          "discordanciaPct": "8.5%"
+        },
+        {
+          "lang": "ar",
+          "n": 400,
+          "semEspaco": "não",
+          "mediaRegua": "5.77",
+          "mediaICU": "5.72",
+          "erroMedio": "0.06",
+          "vies": "0.05",
+          "erroRelativo": "0.9%",
+          "aceitaRegua": 400,
+          "aceitaICU": 391,
+          "discordam": 9,
+          "discordanciaPct": "2.3%"
+        }
+      ]
+    },
+    "11 — desenclítico e a amostra de 60": {
+      "casos": [
+        [
+          "es",
+          "darme",
+          "dar",
+          "dar",
+          "OK",
+          "verdadeiro positivo — o caso que a regra existe para pegar"
+        ],
+        [
+          "es",
+          "llamarla",
+          "llamar",
+          "llamar",
+          "OK",
+          "verdadeiro positivo"
+        ],
+        [
+          "es",
+          "hablarnos",
+          "hablar",
+          "hablar",
+          "OK",
+          "verdadeiro positivo"
+        ],
+        [
+          "es",
+          "enterarse",
+          "enterar",
+          "enterar",
+          "OK",
+          "verdadeiro positivo"
+        ],
+        [
+          "es",
+          "carme",
+          "(não cortar)",
+          "(não cortou)",
+          "OK",
+          "FALSO POSITIVO se cortar — raiz \"car\" tem 3 letras"
+        ],
+        [
+          "es",
+          "firme",
+          "(não cortar)",
+          "(não cortou)",
+          "OK",
+          "FALSO POSITIVO se cortar — \"firme\" é adjetivo"
+        ],
+        [
+          "es",
+          "informe",
+          "(não cortar)",
+          "(não cortou)",
+          "OK",
+          "FALSO POSITIVO se cortar — \"informe\" é substantivo"
+        ],
+        [
+          "es",
+          "parte",
+          "(não cortar)",
+          "(não cortou)",
+          "OK",
+          "FALSO POSITIVO se cortar — o próprio comentário do código cita"
+        ],
+        [
+          "es",
+          "suerte",
+          "(não cortar)",
+          "suer",
+          "ERRO",
+          "FALSO POSITIVO se cortar — o comentário do código cita"
+        ],
+        [
+          "es",
+          "menos",
+          "(não cortar)",
+          "(não cortou)",
+          "OK",
+          "FALSO POSITIVO se cortar — termina em \"nos\""
+        ],
+        [
+          "es",
+          "alumnos",
+          "(não cortar)",
+          "(não cortou)",
+          "OK",
+          "FALSO POSITIVO se cortar"
+        ],
+        [
+          "es",
+          "hermanos",
+          "(não cortar)",
+          "(não cortou)",
+          "OK",
+          "FALSO POSITIVO se cortar"
+        ],
+        [
+          "it",
+          "parlarne",
+          "parlar",
+          "parlar",
+          "OK",
+          "verdadeiro positivo"
+        ],
+        [
+          "it",
+          "dormi",
+          "(não cortar)",
+          "(não cortou)",
+          "OK",
+          "FALSO POSITIVO se cortar — 2ª pessoa de dormire"
+        ],
+        [
+          "it",
+          "figli",
+          "(não cortar)",
+          "(não cortou)",
+          "OK",
+          "FALSO POSITIVO se cortar — termina em \"gli\""
+        ],
+        [
+          "pt",
+          "dá-lo",
+          "(não cortar)",
+          "(não cortou)",
+          "OK",
+          "com hífen: a regra não vê (o hífen fica na raiz)"
+        ]
+      ],
+      "erros": 1,
+      "varredura": [
+        {
+          "lang": "es",
+          "total": 5727,
+          "cortadas": []
+        },
+        {
+          "lang": "it",
+          "total": 5780,
+          "cortadas": []
+        }
+      ],
+      "amostra": {
+        "antes": {
+          "p": 0.7,
+          "baixo": 0.5749105303360957,
+          "alto": 0.801019897472731
+        },
+        "depois": {
+          "p": 0.9,
+          "baixo": 0.7985030550748896,
+          "alto": 0.9533578005427642
+        },
+        "nPara3pp": 385
+      }
+    },
+    "12 — normalização e idioma das frases": {
+      "normalizacao": [
+        {
+          "lang": "ar",
+          "palavras": 5148,
+          "mudamNaChave": 987,
+          "colisoes": 0,
+          "exemplos": [],
+          "totalGlosas": 514,
+          "glosasQueNaoBatem": 0
+        },
+        {
+          "lang": "de",
+          "palavras": 5758,
+          "mudamNaChave": 2971,
+          "colisoes": 0,
+          "exemplos": [],
+          "totalGlosas": 2817,
+          "glosasQueNaoBatem": 0
+        },
+        {
+          "lang": "en",
+          "palavras": 2784,
+          "mudamNaChave": 0,
+          "colisoes": 0,
+          "exemplos": [],
+          "totalGlosas": 0,
+          "glosasQueNaoBatem": 0
+        },
+        {
+          "lang": "es",
+          "palavras": 5727,
+          "mudamNaChave": 958,
+          "colisoes": 0,
+          "exemplos": [],
+          "totalGlosas": 2099,
+          "glosasQueNaoBatem": 0
+        },
+        {
+          "lang": "fr",
+          "palavras": 5752,
+          "mudamNaChave": 1187,
+          "colisoes": 0,
+          "exemplos": [],
+          "totalGlosas": 3361,
+          "glosasQueNaoBatem": 0
+        },
+        {
+          "lang": "he",
+          "palavras": 5712,
+          "mudamNaChave": 0,
+          "colisoes": 0,
+          "exemplos": [],
+          "totalGlosas": 769,
+          "glosasQueNaoBatem": 0
+        },
+        {
+          "lang": "hi",
+          "palavras": 3010,
+          "mudamNaChave": 13,
+          "colisoes": 0,
+          "exemplos": [],
+          "totalGlosas": 321,
+          "glosasQueNaoBatem": 0
+        },
+        {
+          "lang": "it",
+          "palavras": 5780,
+          "mudamNaChave": 138,
+          "colisoes": 0,
+          "exemplos": [],
+          "totalGlosas": 2404,
+          "glosasQueNaoBatem": 0
+        },
+        {
+          "lang": "ja",
+          "palavras": 5947,
+          "mudamNaChave": 412,
+          "colisoes": 0,
+          "exemplos": [],
+          "totalGlosas": 1521,
+          "glosasQueNaoBatem": 0
+        },
+        {
+          "lang": "ko",
+          "palavras": 5973,
+          "mudamNaChave": 5972,
+          "colisoes": 0,
+          "exemplos": [],
+          "totalGlosas": 418,
+          "glosasQueNaoBatem": 0
+        },
+        {
+          "lang": "nl",
+          "palavras": 5834,
+          "mudamNaChave": 68,
+          "colisoes": 0,
+          "exemplos": [],
+          "totalGlosas": 2058,
+          "glosasQueNaoBatem": 0
+        },
+        {
+          "lang": "pl",
+          "palavras": 5747,
+          "mudamNaChave": 2062,
+          "colisoes": 0,
+          "exemplos": [],
+          "totalGlosas": 1004,
+          "glosasQueNaoBatem": 0
+        },
+        {
+          "lang": "ru",
+          "palavras": 5761,
+          "mudamNaChave": 504,
+          "colisoes": 0,
+          "exemplos": [],
+          "totalGlosas": 1931,
+          "glosasQueNaoBatem": 0
+        },
+        {
+          "lang": "sv",
+          "palavras": 5727,
+          "mudamNaChave": 1666,
+          "colisoes": 0,
+          "exemplos": [],
+          "totalGlosas": 1305,
+          "glosasQueNaoBatem": 0
+        },
+        {
+          "lang": "tr",
+          "palavras": 5787,
+          "mudamNaChave": 1704,
+          "colisoes": 0,
+          "exemplos": [],
+          "totalGlosas": 748,
+          "glosasQueNaoBatem": 0
+        },
+        {
+          "lang": "zh",
+          "palavras": 5221,
+          "mudamNaChave": 0,
+          "colisoes": 0,
+          "exemplos": [],
+          "totalGlosas": 1026,
+          "glosasQueNaoBatem": 0
+        }
+      ],
+      "frases": [
+        {
+          "lang": "ar",
+          "comFrase": 4276,
+          "foraDaEscrita": 0,
+          "exemplos": []
+        },
+        {
+          "lang": "de",
+          "comFrase": 5370,
+          "foraDaEscrita": 0,
+          "exemplos": []
+        },
+        {
+          "lang": "en",
+          "comFrase": 2552,
+          "foraDaEscrita": 0,
+          "exemplos": []
+        },
+        {
+          "lang": "es",
+          "comFrase": 5163,
+          "foraDaEscrita": 0,
+          "exemplos": []
+        },
+        {
+          "lang": "fr",
+          "comFrase": 5340,
+          "foraDaEscrita": 0,
+          "exemplos": []
+        },
+        {
+          "lang": "he",
+          "comFrase": 4967,
+          "foraDaEscrita": 0,
+          "exemplos": []
+        },
+        {
+          "lang": "hi",
+          "comFrase": 246,
+          "foraDaEscrita": 0,
+          "exemplos": []
+        },
+        {
+          "lang": "it",
+          "comFrase": 5302,
+          "foraDaEscrita": 0,
+          "exemplos": []
+        },
+        {
+          "lang": "ja",
+          "comFrase": 5181,
+          "foraDaEscrita": 0,
+          "exemplos": []
+        },
+        {
+          "lang": "ko",
+          "comFrase": 3234,
+          "foraDaEscrita": 0,
+          "exemplos": []
+        },
+        {
+          "lang": "nl",
+          "comFrase": 4968,
+          "foraDaEscrita": 0,
+          "exemplos": []
+        },
+        {
+          "lang": "pl",
+          "comFrase": 5208,
+          "foraDaEscrita": 0,
+          "exemplos": []
+        },
+        {
+          "lang": "ru",
+          "comFrase": 5513,
+          "foraDaEscrita": 0,
+          "exemplos": []
+        },
+        {
+          "lang": "sv",
+          "comFrase": 4484,
+          "foraDaEscrita": 0,
+          "exemplos": []
+        },
+        {
+          "lang": "tr",
+          "comFrase": 5184,
+          "foraDaEscrita": 0,
+          "exemplos": []
+        },
+        {
+          "lang": "zh",
+          "comFrase": 4859,
+          "foraDaEscrita": 0,
+          "exemplos": []
+        }
+      ]
+    },
+    "13 — censo de cobertura por superfície e por área": {
+      "porSuperficie": [
+        {
+          "nome": "aria-label",
+          "re": {},
+          "risco": "acessibilidade",
+          "literais": 118,
+          "comT": 8,
+          "exemplos": [
+            "AiEnginePanel.tsx: \"Texto em inglês para testar a tradução ao vivo\"",
+            "CardDePlanos.tsx: \"Dispensar este aviso de planos\"",
+            "GuidePanel.tsx: \"Guia do Babel Play\"",
+            "GuidePanel.tsx: \"Fechar guia\""
+          ]
+        },
+        {
+          "nome": "title= (tooltip)",
+          "re": {},
+          "risco": "descoberta",
+          "literais": 136,
+          "comT": 0,
+          "exemplos": [
+            "ChatTranscript.tsx: \"Clique para pronúncia nativa e detalhes\"",
+            "ChatTranscript.tsx: \"Clique para ouvir\"",
+            "EditablePanel.tsx: \"Mesclar Tema do Painel\"",
+            "EditablePanel.tsx: \"Ocultar do Layout\""
+          ]
+        },
+        {
+          "nome": "placeholder",
+          "re": {},
+          "risco": "formulário",
+          "literais": 34,
+          "comT": 0,
+          "exemplos": [
+            "BuscaDeCapa.tsx: \"Ex.: reunião, arquitetura, oceano...\"",
+            "BuscaGlobal.tsx: \"Buscar gravação, palavra ou tela…\"",
+            "CommandPalette.tsx: \"Buscar exercício…\"",
+            "IChat.tsx: \"Sussurre uma dúvida sobre ${getFriendlyViewNam\""
+          ]
+        },
+        {
+          "nome": "alt",
+          "re": {},
+          "risco": "acessibilidade",
+          "literais": 4,
+          "comT": 0,
+          "exemplos": [
+            "OnboardingLeve.tsx: \"Foto de ${CRIADOR.nome}\"",
+            "Library.tsx: \"Prévia da capa\"",
+            "LiveCapture.tsx: \"Prévia da capa\"",
+            "Sobre.tsx: \"Foto de ${CRIADOR.nome}\""
+          ]
+        }
+      ],
+      "errosServidor": 98,
+      "servidorImportaI18n": false,
+      "usosDeHonestidade": 12,
+      "motivosLiterais": 23,
+      "titulo": "Babel Play — Ouça, entenda e fale outro idioma",
+      "metas": [
+        [
+          "viewport",
+          "width=device-width, initial-scale=1.0"
+        ],
+        [
+          "description",
+          "Capture qualquer áudio — vídeos, reuniões, podcasts — veja"
+        ],
+        [
+          "og:site_name",
+          "Babel Play"
+        ],
+        [
+          "og:title",
+          "Babel Play — Ouça, entenda e fale outro idioma"
+        ],
+        [
+          "og:description",
+          "Vídeos, reuniões, podcasts: cada conversa vira prática de "
+        ],
+        [
+          "og:image",
+          "https://babel-play.pages.dev/og.png"
+        ],
+        [
+          "og:url",
+          "https://babel-play.pages.dev/"
+        ],
+        [
+          "twitter:card",
+          "summary_large_image"
+        ],
+        [
+          "twitter:title",
+          "Babel Play — Ouça, entenda e fale outro idioma"
+        ],
+        [
+          "twitter:description",
+          "Vídeos, reuniões, podcasts: cada conversa vira prática de "
+        ],
+        [
+          "twitter:image",
+          "https://babel-play.pages.dev/og.png"
+        ]
+      ],
+      "porArea": [
+        {
+          "area": "src/components/views",
+          "arquivos": 39,
+          "t": 301,
+          "visivel": 974
+        },
+        {
+          "area": "src/components/minigames",
+          "arquivos": 20,
+          "t": 47,
+          "visivel": 145
+        },
+        {
+          "area": "src/components/Onboarding.tsx",
+          "arquivos": 1,
+          "t": 0,
+          "visivel": 45
+        },
+        {
+          "area": "src/components/Overlay.tsx",
+          "arquivos": 1,
+          "t": 0,
+          "visivel": 33
+        },
+        {
+          "area": "src/core/minigames",
+          "arquivos": 22,
+          "t": 0,
+          "visivel": 33
+        },
+        {
+          "area": "src/core/learning",
+          "arquivos": 23,
+          "t": 0,
+          "visivel": 28
+        },
+        {
+          "area": "src/components/LayoutStudio.tsx",
+          "arquivos": 1,
+          "t": 2,
+          "visivel": 25
+        },
+        {
+          "area": "src/components/auth",
+          "arquivos": 5,
+          "t": 0,
+          "visivel": 25
+        },
+        {
+          "area": "src/lib/exercicios",
+          "arquivos": 5,
+          "t": 0,
+          "visivel": 19
+        },
+        {
+          "area": "src/App.tsx",
+          "arquivos": 1,
+          "t": 0,
+          "visivel": 17
+        },
+        {
+          "area": "src/components/VocabularyPanel.tsx",
+          "arquivos": 1,
+          "t": 1,
+          "visivel": 17
+        },
+        {
+          "area": "src/components/conta",
+          "arquivos": 5,
+          "t": 5,
+          "visivel": 14
+        },
+        {
+          "area": "src/components/shell",
+          "arquivos": 9,
+          "t": 2,
+          "visivel": 13
+        },
+        {
+          "area": "src/components/Login.tsx",
+          "arquivos": 1,
+          "t": 0,
+          "visivel": 12
+        },
+        {
+          "area": "src/components/IChat.tsx",
+          "arquivos": 1,
+          "t": 0,
+          "visivel": 11
+        },
+        {
+          "area": "src/components/MiniaturaDoItem.tsx",
+          "arquivos": 1,
+          "t": 0,
+          "visivel": 11
+        },
+        {
+          "area": "src/components/OnboardingLeve.tsx",
+          "arquivos": 1,
+          "t": 1,
+          "visivel": 11
+        },
+        {
+          "area": "src/core/eval",
+          "arquivos": 3,
+          "t": 0,
+          "visivel": 11
+        },
+        {
+          "area": "src/data/efemero",
+          "arquivos": 2,
+          "t": 0,
+          "visivel": 10
+        },
+        {
+          "area": "src/components/AiEnginePanel.tsx",
+          "arquivos": 1,
+          "t": 2,
+          "visivel": 9
+        },
+        {
+          "area": "src/gateway/adapters",
+          "arquivos": 12,
+          "t": 0,
+          "visivel": 8
+        },
+        {
+          "area": "src/components/CardDePlanos.tsx",
+          "arquivos": 1,
+          "t": 0,
+          "visivel": 5
+        },
+        {
+          "area": "src/components/ChatTranscript.tsx",
+          "arquivos": 1,
+          "t": 0,
+          "visivel": 5
+        },
+        {
+          "area": "src/components/ErroDaTela.tsx",
+          "arquivos": 1,
+          "t": 0,
+          "visivel": 5
+        },
+        {
+          "area": "src/data/api.ts",
+          "arquivos": 1,
+          "t": 0,
+          "visivel": 5
+        },
+        {
+          "area": "src/gateway/capture",
+          "arquivos": 2,
+          "t": 0,
+          "visivel": 5
+        },
+        {
+          "area": "src/components/LangPicker.tsx",
+          "arquivos": 1,
+          "t": 0,
+          "visivel": 4
+        },
+        {
+          "area": "src/components/ParticleCanvas.tsx",
+          "arquivos": 1,
+          "t": 0,
+          "visivel": 4
+        },
+        {
+          "area": "src/core/robustness.ts",
+          "arquivos": 1,
+          "t": 0,
+          "visivel": 4
+        },
+        {
+          "area": "src/gateway/index.ts",
+          "arquivos": 1,
+          "t": 0,
+          "visivel": 4
+        },
+        {
+          "area": "src/lib/T.tsx",
+          "arquivos": 1,
+          "t": 0,
+          "visivel": 4
+        },
+        {
+          "area": "src/lib/rotas.ts",
+          "arquivos": 1,
+          "t": 0,
+          "visivel": 4
+        },
+        {
+          "area": "src/components/EditablePanel.tsx",
+          "arquivos": 1,
+          "t": 0,
+          "visivel": 3
+        },
+        {
+          "area": "src/components/ModelPrepPanel.tsx",
+          "arquivos": 1,
+          "t": 0,
+          "visivel": 3
+        },
+        {
+          "area": "src/components/Toast.tsx",
+          "arquivos": 1,
+          "t": 0,
+          "visivel": 3
+        },
+        {
+          "area": "src/components/TranscricaoLeve.tsx",
+          "arquivos": 1,
+          "t": 1,
+          "visivel": 3
+        },
+        {
+          "area": "src/components/metrics",
+          "arquivos": 2,
+          "t": 0,
+          "visivel": 3
+        },
+        {
+          "area": "src/lib/galeria",
+          "arquivos": 10,
+          "t": 0,
+          "visivel": 3
+        },
+        {
+          "area": "src/lib/i18n.ts",
+          "arquivos": 1,
+          "t": 1,
+          "visivel": 3
+        },
+        {
+          "area": "src/components/BuscaDeCapa.tsx",
+          "arquivos": 1,
+          "t": 0,
+          "visivel": 2
+        },
+        {
+          "area": "src/components/BuscaGlobal.tsx",
+          "arquivos": 1,
+          "t": 0,
+          "visivel": 2
+        },
+        {
+          "area": "src/components/CommandPalette.tsx",
+          "arquivos": 1,
+          "t": 0,
+          "visivel": 2
+        },
+        {
+          "area": "src/components/GuidePanel.tsx",
+          "arquivos": 1,
+          "t": 2,
+          "visivel": 2
+        },
+        {
+          "area": "src/components/LayoutEditorToolbar.tsx",
+          "arquivos": 1,
+          "t": 1,
+          "visivel": 2
+        },
+        {
+          "area": "src/components/PracticeMenu.tsx",
+          "arquivos": 1,
+          "t": 0,
+          "visivel": 2
+        },
+        {
+          "area": "src/components/RecompensaDesbloqueada.tsx",
+          "arquivos": 1,
+          "t": 0,
+          "visivel": 2
+        },
+        {
+          "area": "src/data/trilha",
+          "arquivos": 2,
+          "t": 0,
+          "visivel": 2
+        },
+        {
+          "area": "src/gateway/capabilities.ts",
+          "arquivos": 1,
+          "t": 0,
+          "visivel": 2
+        },
+        {
+          "area": "src/lib/langDetect.ts",
+          "arquivos": 1,
+          "t": 0,
+          "visivel": 2
+        },
+        {
+          "area": "src/lib/ordemDosJogos.ts",
+          "arquivos": 1,
+          "t": 0,
+          "visivel": 2
+        },
+        {
+          "area": "src/lib/theme.ts",
+          "arquivos": 1,
+          "t": 0,
+          "visivel": 2
+        },
+        {
+          "area": "src/lib/traducao",
+          "arquivos": 3,
+          "t": 0,
+          "visivel": 2
+        },
+        {
+          "area": "src/lib/useExameDePalavra.ts",
+          "arquivos": 1,
+          "t": 0,
+          "visivel": 2
+        },
+        {
+          "area": "src/components/DocumentPiP.tsx",
+          "arquivos": 1,
+          "t": 0,
+          "visivel": 1
+        },
+        {
+          "area": "src/components/Honestidade.tsx",
+          "arquivos": 1,
+          "t": 0,
+          "visivel": 1
+        },
+        {
+          "area": "src/components/Provenance.tsx",
+          "arquivos": 1,
+          "t": 0,
+          "visivel": 1
+        },
+        {
+          "area": "src/components/TokensClicaveis.tsx",
+          "arquivos": 1,
+          "t": 0,
+          "visivel": 1
+        },
+        {
+          "area": "src/core/passe.ts",
+          "arquivos": 1,
+          "t": 0,
+          "visivel": 1
+        },
+        {
+          "area": "src/data/migracao.ts",
+          "arquivos": 1,
+          "t": 0,
+          "visivel": 1
+        },
+        {
+          "area": "src/gateway/ocr.ts",
+          "arquivos": 1,
+          "t": 0,
+          "visivel": 1
+        },
+        {
+          "area": "src/hooks/useLayout.ts",
+          "arquivos": 1,
+          "t": 0,
+          "visivel": 1
+        },
+        {
+          "area": "src/lib/audioDaSessao.ts",
+          "arquivos": 1,
+          "t": 0,
+          "visivel": 1
+        },
+        {
+          "area": "src/lib/dictionary.ts",
+          "arquivos": 1,
+          "t": 0,
+          "visivel": 1
+        },
+        {
+          "area": "src/lib/effects.ts",
+          "arquivos": 1,
+          "t": 0,
+          "visivel": 1
+        },
+        {
+          "area": "src/lib/entitlements.ts",
+          "arquivos": 1,
+          "t": 0,
+          "visivel": 1
+        },
+        {
+          "area": "src/lib/ichatContext.ts",
+          "arquivos": 1,
+          "t": 0,
+          "visivel": 1
+        },
+        {
+          "area": "src/lib/identidade.ts",
+          "arquivos": 1,
+          "t": 0,
+          "visivel": 1
+        },
+        {
+          "area": "src/lib/import",
+          "arquivos": 1,
+          "t": 0,
+          "visivel": 1
+        },
+        {
+          "area": "src/lib/juice.ts",
+          "arquivos": 1,
+          "t": 0,
+          "visivel": 1
+        },
+        {
+          "area": "src/lib/langConfig.ts",
+          "arquivos": 1,
+          "t": 0,
+          "visivel": 1
+        },
+        {
+          "area": "src/lib/misturarAudios.ts",
+          "arquivos": 1,
+          "t": 0,
+          "visivel": 1
+        },
+        {
+          "area": "src/lib/ordemDaTraducao.ts",
+          "arquivos": 1,
+          "t": 0,
+          "visivel": 1
+        },
+        {
+          "area": "src/lib/posicaoFlutuante.ts",
+          "arquivos": 1,
+          "t": 0,
+          "visivel": 1
+        },
+        {
+          "area": "src/lib/profile.ts",
+          "arquivos": 1,
+          "t": 1,
+          "visivel": 1
+        },
+        {
+          "area": "src/lib/ranking.ts",
+          "arquivos": 1,
+          "t": 0,
+          "visivel": 1
+        },
+        {
+          "area": "src/lib/relatorioDeProgresso.ts",
+          "arquivos": 1,
+          "t": 0,
+          "visivel": 1
+        },
+        {
+          "area": "src/lib/sfxDelegate.ts",
+          "arquivos": 1,
+          "t": 0,
+          "visivel": 1
+        },
+        {
+          "area": "src/lib/soundFx.ts",
+          "arquivos": 1,
+          "t": 0,
+          "visivel": 1
+        },
+        {
+          "area": "src/lib/speakerIdWorker.ts",
+          "arquivos": 1,
+          "t": 0,
+          "visivel": 1
+        },
+        {
+          "area": "src/lib/supabase.ts",
+          "arquivos": 1,
+          "t": 0,
+          "visivel": 1
+        },
+        {
+          "area": "src/lib/tts.ts",
+          "arquivos": 1,
+          "t": 0,
+          "visivel": 1
+        },
+        {
+          "area": "src/lib/usePerfil.ts",
+          "arquivos": 1,
+          "t": 0,
+          "visivel": 1
+        },
+        {
+          "area": "src/lib/vazamento.ts",
+          "arquivos": 1,
+          "t": 0,
+          "visivel": 1
+        }
+      ],
+      "somaVis": 1599,
+      "somaT": 367
+    },
+    "14 — estresse por escrita": {
+      "turco": {
+        "divergemLower": 17,
+        "divergemUpper": 1996,
+        "total": 5787
+      },
+      "ordenacao": {
+        "usaCollator": 5,
+        "sortCru": 4
+      },
+      "grafemas": {
+        "slices": 58,
+        "substrings": 4
+      },
+      "zh": {
+        "variantes": [
+          "zh-CN→zh",
+          "zh-TW→zh"
+        ],
+        "comTrad": 75,
+        "total": 5221
+      },
+      "fontes": {
+        "arquivos": 0,
+        "familias": [
+          "Inter",
+          "Archivo",
+          "IBM Plex Mono",
+          "Geist",
+          "Geist Mono",
+          "Baloo 2",
+          "Silkscreen",
+          "VT323"
+        ],
+        "unicodeRange": 0
+      }
+    }
+  }
+}

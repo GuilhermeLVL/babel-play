@@ -1,0 +1,20 @@
+
+===== 10 — segmentação: régua caseira × Intl.Segmenter =====
+lang    n  sem espaço  média régua  média ICU  erro médio   viés  erro rel.  aceita régua  aceita ICU  decisão diverge
+----  ---  ----------  -----------  ---------  ----------  -----  ---------  ------------  ----------  ---------------
+ja    400         sim         7.35       8.87        1.72  -1.52     -17.2%           400         360       40 (10.0%)
+zh    400         sim         5.82       6.71        1.04  -0.90     -13.4%           400         377        23 (5.8%)
+ko    400         não         6.27       6.29        0.03  -0.02      -0.4%           400         400         0 (0.0%)
+ru    400         não         6.03       5.91        0.20   0.12       2.0%           400         366        34 (8.5%)
+ar    400         não         5.77       5.72        0.06   0.05       0.9%           400         391         9 (2.3%)
+
+Escritas sem espaço fora de ESCRITA_SEM_ESPACO (quality.ts:235):
+idioma    bcp47  régua  ICU  erro
+--------  -----  -----  ---  ----
+khmer        km      1    7    -6
+lao          lo      1    6    -5
+birmanês     my      1    9    -8
+tibetano     bo      1    9    -8
+
+Tailandês: está em ESCRITA_SEM_ESPACO mas foi retirado da publicação (tasks.md:97).
+  frase de teste: régua 21 · ICU 11

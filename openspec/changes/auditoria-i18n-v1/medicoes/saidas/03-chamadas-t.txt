@@ -1,0 +1,34 @@
+
+===== 03 — chamadas de t() e cobertura =====
+medida                                          valor
+----------------------------------------------  -----
+arquivos .ts/.tsx varridos                        317
+chamadas t( (sem comentários)                     367
+chamadas tp(                                       20
+usos do componente <T                               8
+chamadas bruto(                                     3
+arquivos que chamam t(                             22
+texto visível em JSX (denominador próprio)       2150
+cobertura t()/texto visível                     17.1%
+— repo: chamadas t( (com comentários)             373
+— repo: literais com acento (denominador dele)   3145
+— repo: cobertura pelo método dele              11.9%
+
+Os 15 arquivos com mais texto visível ainda fora do sistema:
+arquivo                                         texto visível   t(  tp(  <T
+----------------------------------------------  -------------  ---  ---  --
+src/components/views/LiveCapture.tsx                      193    0    0   0
+src/components/views/Analysis.tsx                         188    0    0   0
+src/components/views/Reading.tsx                          111    0    0   0
+src/components/views/Library.tsx                           64    0    0   0
+src/components/Onboarding.tsx                              63    0    0   0
+src/components/views/Play.tsx                              57  119    9   3
+src/components/views/Study.tsx                             56    0    0   0
+src/components/views/Metrics.tsx                           53    0    0   0
+src/components/Overlay.tsx                                 47    0    0   0
+src/components/views/AnalysisExpandedKpi.tsx               42    0    0   0
+src/components/minigames/AntessalaDaRodada.tsx             40    0    0   0
+src/components/views/BaralhosAnki.tsx                      40    0    0   0
+src/components/LayoutStudio.tsx                            39    2    0   0
+src/components/views/BaralhoAnki.tsx                       36    1    0   0
+src/components/views/Sobre.tsx                             33    0    0   0

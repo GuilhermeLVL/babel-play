@@ -1,0 +1,31 @@
+
+===== 05 — glosas e frases, por par =====
+par    palavras  glosas  % bruta  glosas úteis  % útil  iguais à palavra  vazias  órfãs  frases trad.  tamanho
+-----  --------  ------  -------  ------------  ------  ----------------  ------  -----  ------------  -------
+ar-pt      5148     514    10.0%           514   10.0%                 0       0      0            69    18 kB
+de-pt      5758    2817    48.9%          2817   48.9%                 0       0      0          2373   264 kB
+es-pt      5727    2099    36.7%          2099   36.7%                 0       0      0          3696   329 kB
+fr-pt      5752    3361    58.4%          3361   58.4%                 0       0      0          2721   288 kB
+he-pt      5712     769    13.5%           769   13.5%                 0       0      0           259    43 kB
+hi-pt      3010     321    10.7%           321   10.7%                 0       0      0             2    10 kB
+it-pt      5780    2404    41.6%          2404   41.6%                 0       0      0          1640   188 kB
+ja-pt      5947    1521    25.6%          1521   25.6%                 0       0      0           939   120 kB
+ko-pt      5973     418     7.0%           418    7.0%                 0       0      0            52    13 kB
+nl-pt      5834    2058    35.3%          2058   35.3%                 0       0      0          2278   218 kB
+pl-pt      5747    1004    17.5%          1004   17.5%                 0       0      0           505    73 kB
+ru-pt      5761    1931    33.5%          1931   33.5%                 0       0      0          2277   319 kB
+sv-pt      5727    1305    22.8%          1305   22.8%                 0       0      0           324    49 kB
+tr-pt      5787     748    12.9%           748   12.9%                 0       0      0           354    50 kB
+zh-pt      5221    1026    19.7%          1026   19.7%                 0       0      0           382    52 kB
+
+Pares de glosa existentes: 15
+Nativos atendidos: pt  → todo par é *-pt; nenhum outro nativo tem glosa.
+TOTAL de glosas: 22296 (úteis: 22296)
+TOTAL de frases traduzidas: 17871
+Cobertura global bruta: 26.9% · útil: 26.9%
+
+Idiomas com trilha e SEM arquivo de glosa: en (glosa embutida na trilha v1).
+
+Exemplos de glosa idêntica à palavra (não ensina nada): nenhuma.
+
+Exemplos de glosa órfã (palavra fora da trilha daquele idioma): nenhuma.

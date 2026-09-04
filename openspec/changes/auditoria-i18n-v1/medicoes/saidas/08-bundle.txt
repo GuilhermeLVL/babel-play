@@ -1,0 +1,48 @@
+
+===== 08 — peso do build =====
+medida                            valor
+------------  -------------------------
+dist/ total   34.23 MiB em 134 arquivos
+dist/assets/   27.66 MiB em 90 arquivos
+
+Por categoria:
+categoria                                     arquivos       peso  % do dist
+--------------------------------------------  --------  ---------  ---------
+WASM (ONNX Runtime, Whisper, tradução local)         1  22.48 MiB      65.7%
+workers .js soltos                                   3   1.51 MiB       4.4%
+dados de trilha servidos (dist/trilha)              16   4.36 MiB      12.7%
+glosas servidas (dist/glosas)                       15   1.99 MiB       5.8%
+catálogos de i18n (dist/i18n)                        4   0.13 MiB       0.4%
+CSS                                                  1   0.17 MiB       0.5%
+JS em assets                                        88   5.01 MiB      14.6%
+
+Os 15 maiores arquivos do build:
+arquivo                                                        peso
+---------------------------------------------------------  --------
+dist/assets/ort-wasm-simd-threaded.asyncify-DMmc6YqF.wasm  23015 kB
+dist/assets/whisperWorker-DMY2FxTQ.js                        527 kB
+dist/assets/mtWorker-BWEwJHPx.js                             526 kB
+dist/assets/speakerIdWorker-Bk-OMv8R.js                      493 kB
+dist/trilha/ru.json                                          481 kB
+dist/assets/index-D2TKUech.js                                424 kB
+dist/assets/index-D0_aqGeS.js                                382 kB
+dist/assets/Play-CfGNNgVD.js                                 373 kB
+dist/assets/AreaChart-C2tZrc6G.js                            349 kB
+dist/trilha/he.json                                          344 kB
+dist/glosas/es-pt.json                                       329 kB
+dist/glosas/ru-pt.json                                       319 kB
+dist/trilha/ar.json                                          315 kB
+dist/trilha/ja.json                                          313 kB
+dist/trilha/de.json                                          295 kB
+
+Candidatos a "entrada do app" (index + vendor-react + css de entrada): 746 kB
+arquivo                                 peso
+------------------------------------  ------
+dist/assets/index-D0_aqGeS.js         382 kB
+dist/assets/vendor-react-DS6WwmKU.js  190 kB
+dist/assets/index-D4GFCSQ8.css        174 kB
+
+Projeção de catálogos de UI (base: en.json medido, 76 B/chave):
+  3 idiomas × 693 chaves ≈ 154 kB servidos (fora do bundle de entrada)
+  16 idiomas × 693 chaves ≈ 823 kB servidos (fora do bundle de entrada)
+  16 idiomas × 2000 chaves ≈ 2375 kB servidos (fora do bundle de entrada)

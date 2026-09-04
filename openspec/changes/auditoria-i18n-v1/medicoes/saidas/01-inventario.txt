@@ -1,0 +1,74 @@
+
+===== 01 — inventário =====
+ambiente                                                                                                                valor
+------------------------------------  ---------------------------------------------------------------------------------------
+raiz auditada                         C:\Users\Guilh\OneDrive\Área de Trabalho\babel-play-lab\.claude\worktrees\multi-idioma\
+branch                                                                                                           multi-idioma
+HEAD                                                                                                                  173fcde
+commits à frente de main                                                                                                  191
+arquivos modificados no working tree                                                                                        1
+node                                                                                                                 v24.18.0
+ICU                                                                                                                      78.3
+Intl.Segmenter                                                                                                       function
+Intl.PluralRules                                                                                                     function
+Intl.Collator                                                                                                        function
+Intl.DisplayNames                                                                                                    function
+
+Versões da stack:
+pacote             versão
+----------------  -------
+react             ^19.0.1
+vite               ^6.2.3
+typescript         ~5.8.2
+tailwindcss       ^4.1.14
+vitest            ^4.1.10
+@playwright/test  ^1.62.1
+eslint            ^10.7.0
+@ast-grep/cli      0.45.1
+express           ^4.21.2
+drizzle-orm       ^0.45.2
+
+Bibliotecas de i18n de terceiros:
+pacote              presente
+------------------  --------
+i18next                  NÃO
+react-i18next            NÃO
+react-intl               NÃO
+@formatjs/intl           NÃO
+@lingui/core             NÃO
+intl-messageformat       NÃO
+globalize                NÃO
+
+Superfície de arquivos:
+categoria                                     n
+------------------------------------------  ---
+src/**/*.ts,tsx                             317
+src/components/views/*.tsx (telas de topo)   23
+tests/**/*.test.ts,tsx                      273
+tests/e2e/*.e2e.ts                            5
+scripts/i18n/*.mjs                            2
+scripts/trilha/*.mjs                          9
+audit/rules/ast-grep/*.yml                    6
+public/i18n/*.json                            4
+public/trilha/*.json                         16
+public/glosas/*.json                         15
+.github/workflows/*                           4
+openspec/changes/*                           26
+
+Scripts do package.json relevantes:
+script                                                                                                                               comando
+----------------  --------------------------------------------------------------------------------------------------------------------------
+build             vite build && esbuild server.ts --bundle --platform=node --format=cjs --packages=external --outfile=dist-server/server.cjs
+typecheck                                                                                                                       tsc --noEmit
+typecheck:core                                                                                                 tsc -p src/core/tsconfig.json
+test                                                                                                                              vitest run
+test:unit                                                                                                                         vitest run
+test:e2e                                                                                                                     playwright test
+test:e2e:ui                                                                                                             playwright test --ui
+lint                                                                                                       eslint src server server.ts tests
+audit:gate                                                                                                       node scripts/audit-gate.mjs
+i18n:pseudo                                                                                                     node scripts/i18n/pseudo.mjs
+i18n:orfas                                                                                                       node scripts/i18n/orfas.mjs
+trilha:derivar                                                                                               node scripts/trilha/derivar.mjs
+trilha:verificar                                                                                           node scripts/trilha/verificar.mjs
+build:leve                                                                                                            vite build --mode leve

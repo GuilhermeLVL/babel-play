@@ -1,0 +1,139 @@
+
+===== 13 — censo de cobertura por superfície e por área =====
+1. SUPERFÍCIES QUE COSTUMAM SER ESQUECIDAS
+superfície        literal cravado  via t()  cobertura           risco
+----------------  ---------------  -------  ---------  --------------
+aria-label                    118        8       6.3%  acessibilidade
+title= (tooltip)              136        0       0.0%      descoberta
+placeholder                    34        0       0.0%      formulário
+alt                             4        0       0.0%  acessibilidade
+  [aria-label] AiEnginePanel.tsx: "Texto em inglês para testar a tradução ao vivo" · CardDePlanos.tsx: "Dispensar este aviso de planos" · GuidePanel.tsx: "Guia do Babel Play" · GuidePanel.tsx: "Fechar guia"
+  [title= (tooltip)] ChatTranscript.tsx: "Clique para pronúncia nativa e detalhes" · ChatTranscript.tsx: "Clique para ouvir" · EditablePanel.tsx: "Mesclar Tema do Painel" · EditablePanel.tsx: "Ocultar do Layout"
+  [placeholder] BuscaDeCapa.tsx: "Ex.: reunião, arquitetura, oceano..." · BuscaGlobal.tsx: "Buscar gravação, palavra ou tela…" · CommandPalette.tsx: "Buscar exercício…" · IChat.tsx: "Sussurre uma dúvida sobre ${getFriendlyViewNam"
+  [alt] OnboardingLeve.tsx: "Foto de ${CRIADOR.nome}" · Library.tsx: "Prévia da capa" · LiveCapture.tsx: "Prévia da capa" · Sobre.tsx: "Foto de ${CRIADOR.nome}"
+
+2. STRINGS DO SERVIDOR QUE CHEGAM AO USUÁRIO
+medida                                                                   valor
+--------------------------------------------  --------------------------------
+mensagens de erro/motivo literais em server/                                98
+o servidor importa lib/i18n?                  NÃO — não há caminho de tradução
+arquivos .ts em server/                                                     75
+  server/ai/mtProxy.ts: "payload inválido: text/tgt obrigatórios"
+  server/ai/mtProxy.ts: "tradução por IA gerenciada requer plano Pro"
+  server/ai/mtProxy.ts: "falha ao checar o plano: ${erroDeRota(err, { event: "
+  server/ai/mtProxy.ts: "tradução por LLM não configurada no servidor (defina L"
+  server/ai/mtProxy.ts: "limite mensal do plano atingido"
+  server/ai/mtProxy.ts: "tradução indisponível: ${ultimaFalha}"
+  server/ai/mtProxy.ts: "falha na tradução por LLM: ${erroDeRota(err, { event: "
+  server/ai/proxy.ts: "header x-credential-id ausente"
+
+3. ESTADOS VAZIOS
+medida                                 valor
+-------------------------------------  -----
+arquivos que usam Honestidade/SemDado     12
+prop `motivo` com literal cravado         23
+
+4. HTML DE ENTRADA (index.html)
+tag                                                                    conteúdo
+-------------------  ----------------------------------------------------------
+<title>                          Babel Play — Ouça, entenda e fale outro idioma
+viewport                                  width=device-width, initial-scale=1.0
+description          Capture qualquer áudio — vídeos, reuniões, podcasts — veja
+og:site_name                                                         Babel Play
+og:title                         Babel Play — Ouça, entenda e fale outro idioma
+og:description       Vídeos, reuniões, podcasts: cada conversa vira prática de 
+og:image                                    https://babel-play.pages.dev/og.png
+og:url                                            https://babel-play.pages.dev/
+twitter:card                                                summary_large_image
+twitter:title                    Babel Play — Ouça, entenda e fale outro idioma
+twitter:description  Vídeos, reuniões, podcasts: cada conversa vira prática de 
+twitter:image                               https://babel-play.pages.dev/og.png
+  Nenhuma dessas passa por t(): são estáticas no HTML, servidas iguais para todo idioma.
+
+5. CENSO POR ÁREA
+área                                       arquivos  texto visível  t()  cobertura
+-----------------------------------------  --------  -------------  ---  ---------
+src/components/views                             39            974  301      30.9%
+src/components/minigames                         20            145   47      32.4%
+src/components/Onboarding.tsx                     1             45    0       0.0%
+src/components/Overlay.tsx                        1             33    0       0.0%
+src/core/minigames                               22             33    0       0.0%
+src/core/learning                                23             28    0       0.0%
+src/components/LayoutStudio.tsx                   1             25    2       8.0%
+src/components/auth                               5             25    0       0.0%
+src/lib/exercicios                                5             19    0       0.0%
+src/App.tsx                                       1             17    0       0.0%
+src/components/VocabularyPanel.tsx                1             17    1       5.9%
+src/components/conta                              5             14    5      35.7%
+src/components/shell                              9             13    2      15.4%
+src/components/Login.tsx                          1             12    0       0.0%
+src/components/IChat.tsx                          1             11    0       0.0%
+src/components/MiniaturaDoItem.tsx                1             11    0       0.0%
+src/components/OnboardingLeve.tsx                 1             11    1       9.1%
+src/core/eval                                     3             11    0       0.0%
+src/data/efemero                                  2             10    0       0.0%
+src/components/AiEnginePanel.tsx                  1              9    2      22.2%
+src/gateway/adapters                             12              8    0       0.0%
+src/components/CardDePlanos.tsx                   1              5    0       0.0%
+src/components/ChatTranscript.tsx                 1              5    0       0.0%
+src/components/ErroDaTela.tsx                     1              5    0       0.0%
+src/data/api.ts                                   1              5    0       0.0%
+src/gateway/capture                               2              5    0       0.0%
+src/components/LangPicker.tsx                     1              4    0       0.0%
+src/components/ParticleCanvas.tsx                 1              4    0       0.0%
+src/core/robustness.ts                            1              4    0       0.0%
+src/gateway/index.ts                              1              4    0       0.0%
+src/lib/T.tsx                                     1              4    0       0.0%
+src/lib/rotas.ts                                  1              4    0       0.0%
+src/components/EditablePanel.tsx                  1              3    0       0.0%
+src/components/ModelPrepPanel.tsx                 1              3    0       0.0%
+src/components/Toast.tsx                          1              3    0       0.0%
+src/components/TranscricaoLeve.tsx                1              3    1      33.3%
+src/components/metrics                            2              3    0       0.0%
+src/lib/galeria                                  10              3    0       0.0%
+src/lib/i18n.ts                                   1              3    1      33.3%
+src/components/BuscaDeCapa.tsx                    1              2    0       0.0%
+src/components/BuscaGlobal.tsx                    1              2    0       0.0%
+src/components/CommandPalette.tsx                 1              2    0       0.0%
+src/components/GuidePanel.tsx                     1              2    2     100.0%
+src/components/LayoutEditorToolbar.tsx            1              2    1      50.0%
+src/components/PracticeMenu.tsx                   1              2    0       0.0%
+src/components/RecompensaDesbloqueada.tsx         1              2    0       0.0%
+src/data/trilha                                   2              2    0       0.0%
+src/gateway/capabilities.ts                       1              2    0       0.0%
+src/lib/langDetect.ts                             1              2    0       0.0%
+src/lib/ordemDosJogos.ts                          1              2    0       0.0%
+src/lib/theme.ts                                  1              2    0       0.0%
+src/lib/traducao                                  3              2    0       0.0%
+src/lib/useExameDePalavra.ts                      1              2    0       0.0%
+src/components/DocumentPiP.tsx                    1              1    0       0.0%
+src/components/Honestidade.tsx                    1              1    0       0.0%
+src/components/Provenance.tsx                     1              1    0       0.0%
+src/components/TokensClicaveis.tsx                1              1    0       0.0%
+src/core/passe.ts                                 1              1    0       0.0%
+src/data/migracao.ts                              1              1    0       0.0%
+src/gateway/ocr.ts                                1              1    0       0.0%
+src/hooks/useLayout.ts                            1              1    0       0.0%
+src/lib/audioDaSessao.ts                          1              1    0       0.0%
+src/lib/dictionary.ts                             1              1    0       0.0%
+src/lib/effects.ts                                1              1    0       0.0%
+src/lib/entitlements.ts                           1              1    0       0.0%
+src/lib/ichatContext.ts                           1              1    0       0.0%
+src/lib/identidade.ts                             1              1    0       0.0%
+src/lib/import                                    1              1    0       0.0%
+src/lib/juice.ts                                  1              1    0       0.0%
+src/lib/langConfig.ts                             1              1    0       0.0%
+src/lib/misturarAudios.ts                         1              1    0       0.0%
+src/lib/ordemDaTraducao.ts                        1              1    0       0.0%
+src/lib/posicaoFlutuante.ts                       1              1    0       0.0%
+src/lib/profile.ts                                1              1    1     100.0%
+src/lib/ranking.ts                                1              1    0       0.0%
+src/lib/relatorioDeProgresso.ts                   1              1    0       0.0%
+src/lib/sfxDelegate.ts                            1              1    0       0.0%
+src/lib/soundFx.ts                                1              1    0       0.0%
+src/lib/speakerIdWorker.ts                        1              1    0       0.0%
+src/lib/supabase.ts                               1              1    0       0.0%
+src/lib/tts.ts                                    1              1    0       0.0%
+src/lib/usePerfil.ts                              1              1    0       0.0%
+src/lib/vazamento.ts                              1              1    0       0.0%
+  TOTAL: 367 t() sobre 1599 de texto visível = 23.0%

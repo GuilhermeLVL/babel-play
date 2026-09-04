@@ -1,0 +1,38 @@
+
+===== 06 — telas, rotas e cobertura do e2e =====
+tela                  t(  <T  importa de lib/i18n                  estado
+-------------------  ---  --  -------------------  ----------------------
+Play                 119   3          numero t tp                  traduz
+Hub                  103   0          numero t tp                  traduz
+Settings              74   2                    t                  traduz
+BaralhoAnki            1   0                    t                  traduz
+MapaDoConteudo         1   0               data t                  traduz
+Planos                 1   0             numero t                  traduz
+Analysis               0   0          data numero  só formata número/data
+AnalysisExpandedKpi    0   0               numero  só formata número/data
+BaralhosAnki           0   0                 data  só formata número/data
+Conquistas             0   0                 data  só formata número/data
+CuradoriaBaralho       0   0                    —                    nada
+LangAudit              0   0                    —                    nada
+Library                0   0               numero  só formata número/data
+LiveCapture            0   0      dataHora numero  só formata número/data
+Loja                   0   0                    —                    nada
+Metrics                0   0               numero  só formata número/data
+MetricsExpandedKpi     0   0               numero  só formata número/data
+PainelTrilha           0   0                    —                    nada
+Perfil                 0   0                    —                    nada
+Personalizar           0   0                    —                    nada
+Reading                0   0                    —                    nada
+Sobre                  0   0                    —                    nada
+Study                  0   0                    —                    nada
+
+Telas de topo em src/components/views/: 23
+  com ao menos uma chamada de t(): 6 (26.1%)
+  que importam de lib/i18n mas SÓ formatadores (numero/data/dataHora): 8 → Analysis, AnalysisExpandedKpi, BaralhosAnki, Conquistas, Library, LiveCapture, Metrics, MetricsExpandedKpi
+  sem nenhuma chamada de t(): 17 (73.9%)
+
+Rotas declaradas em src/lib/rotas.ts: 10 → / /ajustes /biblioteca /capturar /jogar /loja /perfil /plano /sobre /vocabulario
+
+Telas visitadas pelo e2e de pseudo-localização: 5 → /ajustes /biblioteca /jogar /planos /vocabulario
+  cobertura sobre as telas de topo: 21.7%
+  cobertura sobre as rotas declaradas: 50.0%

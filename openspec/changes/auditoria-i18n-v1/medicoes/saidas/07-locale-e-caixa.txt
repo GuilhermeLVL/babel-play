@@ -1,0 +1,48 @@
+
+===== 07 — locale cravado, caixa sem locale e classes direcionais =====
+censo                                             total
+------------------------------------------------  -----
+1. .toLocale*() com locale literal                    0
+1. new Intl.*() com locale literal                    2
+2. toLowerCase/toUpperCase() sem locale             239
+2. toLocaleLowerCase/UpperCase() (a forma certa)      0
+3. classes lógicas (espelham em RTL)                253
+3. classes físicas (NÃO espelham)                    80
+
+[1] Onde ainda há locale literal:
+  src/components/Honestidade.tsx
+      new Intl.NumberFormat('pt-BR'
+  src/lib/i18n.ts
+      new Intl.PluralRules('pt'
+
+[2] Os 12 arquivos com mais caixa sem locale:
+arquivo                                         sem locale  com locale
+----------------------------------------------  ----------  ----------
+src/components/views/Study.tsx                          17           0
+src/components/views/Analysis.tsx                       16           0
+src/components/views/Reading.tsx                        15           0
+src/components/views/Play.tsx                           10           0
+src/lib/traducao/prepararFala.ts                        10           0
+src/lib/exercicios/diff.ts                               7           0
+src/components/minigames/AntessalaDaRodada.tsx           6           0
+src/lib/exercicios/activeProduction.tsx                  6           0
+src/lib/tts.ts                                           6           0
+src/components/ChatTranscript.tsx                        5           0
+src/components/CommandPalette.tsx                        5           0
+src/lib/languages.ts                                     5           0
+
+[3] Os 12 arquivos com mais classe física remanescente:
+arquivo                                           físicas  lógicas
+------------------------------------------------  -------  -------
+src/components/views/Analysis.tsx                      11       22
+src/components/Overlay.tsx                              6       16
+src/components/views/Reading.tsx                        6       24
+src/index.css                                           6        0
+src/components/EditablePanel.tsx                        5        4
+src/components/views/Sobre.tsx                          5        1
+src/components/IChat.tsx                                4       11
+src/components/views/personalizar/Inventario.tsx        4        1
+src/components/views/Library.tsx                        3        4
+src/components/views/LiveCapture.tsx                    3       12
+src/components/views/Metrics.tsx                        3        4
+src/components/views/passe/PasseDeTemporada.tsx         3        1

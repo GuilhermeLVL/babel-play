@@ -1,0 +1,30 @@
+
+===== 02 — chaves por catálogo =====
+idioma       chaves  preench.  iguais à chave  vazias  ausentes  plurais  % do universo  tamanho
+-----------  ------  --------  --------------  ------  --------  -------  -------------  -------
+ar               21        21               0       0       672        0           3.0%   0.8 kB
+en              693       689               4       0         0       14          99.4%  51.4 kB
+es               20        16               4       0       673        0           2.3%   0.6 kB
+xx (pseudo)     693       693               0       0         0       14         100.0%  81.9 kB
+
+Universo de chaves (união de todos os catálogos): 693
+Português não tem arquivo — a chave É o texto português (src/lib/i18n.ts:3-22).
+
+[ar] categorias CLDR exigidas: zero, one, two, few, many, other  → nenhum objeto de plural neste catálogo
+
+[en] categorias CLDR exigidas: one, other  → todos os objetos de plural cobrem todas elas
+
+[es] categorias CLDR exigidas: one, many, other  → nenhum objeto de plural neste catálogo
+
+[xx] categorias CLDR exigidas: one, many, other  → 14 de 14 objetos de plural com categoria faltando:
+    "{n} palavras" falta: many
+    "{n} palavras estão na hora de rever" falta: many
+    "{n} palavras novas esperando" falta: many
+    "{n} palavras prontas para revisar" falta: many
+    "{n} sessões capturadas" falta: many
+    "cartões" falta: many
+    "dias" falta: many
+    "dias seguidos" falta: many
+    "falas" falta: many
+    "faltam {n} {unidade}" falta: many
+    … e mais 4

@@ -1,7 +1,15 @@
 import React, { useCallback, useEffect, useMemo, useState, useRef, useDeferredValue } from 'react';
 import { createPortal } from 'react-dom';
 import { Check, Timer, Mic, ChevronRight, ChevronLeft, Pin, ListChecks, Map as MapIcon, Sprout, Flame, GraduationCap, Lock, HelpCircle, Package, Trophy, SlidersHorizontal as SlidersIcon, Trophy as TrophyIcon, Layers, Globe, BookOpen, CalendarClock, Sparkles, Languages, MessageSquareText, Gamepad2, Dices, Search, X as XIcon, Compass, Zap, Play as PlayIcon } from 'lucide-react';
-import MinigamesShowcase, { type JogoAtivo } from '../minigames/MinigamesShowcase';
+import KarutaGame from '../minigames/KarutaGame';
+import KofferGame from '../minigames/KofferGame';
+import ChoseongGame from '../minigames/ChoseongGame';
+import TabooGame from '../minigames/TabooGame';
+import ShiritoriGame from '../minigames/ShiritoriGame';
+import CadavreExquisGame from '../minigames/CadavreExquisGame';
+import BaoGame from '../minigames/BaoGame';
+import TenseTennisGame from '../minigames/TenseTennisGame';
+import VitendawiliGame from '../minigames/VitendawiliGame';
 import { playJuicedHit, triggerHaptic, triggerConfetti } from '../../lib/gameFeel';
 import { apiFetch, fetchDeck, reviewCard, salvarRodada, fetchSessions, fetchSessionTranscript, patchUiSettings, fetchSettings, bulkAddCards, fetchHistoricoDeItens, fetchExerciseResults, fetchRecordes, gastarSeeds, type AppMetrics, type HistoricoDeItem } from '../../data/api';
 import { toSentences, type Sentence, type PracticeSeed } from '../../lib/sentences';
@@ -197,6 +205,8 @@ const ABAS_DE_FONTE: Array<{
     semMaterial: 'Revise mais um pouco — ainda não há material para uma rodada.',
   },
 ];
+
+export type JogoAtivo = 'karuta' | 'koffer' | 'choseong' | 'taboo' | 'shiritori' | 'cadavre' | 'bao' | 'tennis' | 'vitendawili' | null;
 
 export interface JogoCulturalMeta {
   id: NonNullable<JogoAtivo>;
@@ -490,8 +500,7 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
   const alternarDetalhes = () => setDetalhes((v) => { try { localStorage.setItem('babel.play.detalhes', v ? '0' : '1'); } catch { /* sem storage */ } return !v; });
   const [curando, setCurando] = useState(false);
   const [importando, setImportando] = useState(false);
-  const [vendoPrototipos, setVendoPrototipos] = useState(false);
-  const [jogoCulturalInicial, setJogoCulturalInicial] = useState<JogoAtivo>(null);
+  const [jogoCulturalAtivo, setJogoCulturalAtivo] = useState<JogoAtivo>(null);
   const [categoriaAtiva, setCategoriaAtiva] = useState<'todos' | 'classicos' | 'culturais' | 'favoritos'>('todos');
   const [buscaJogos, setBuscaJogos] = useState('');
   const [filtroHabilidade, setFiltroHabilidade] = useState<'todas' | 'vocab' | 'escuta_fala' | 'frase_gramatica'>('todas');
@@ -2201,8 +2210,7 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
   const abrirJogoCultural = useCallback((id: NonNullable<JogoAtivo>) => {
     triggerHaptic('soft');
     playJuicedHit(1);
-    setJogoCulturalInicial(id);
-    setVendoPrototipos(true);
+    setJogoCulturalAtivo(id);
   }, []);
 
   const partidaRapida = useCallback(() => {
@@ -2225,8 +2233,7 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
       const cultIndex = sorteio - classicosLiberados.length;
       const escolhido = JOGOS_CULTURAIS[cultIndex];
       toast.ok(`🎲 ${t('Partida cultural rápida:')} ${escolhido.nome}!`);
-      setJogoCulturalInicial(escolhido.id);
-      setVendoPrototipos(true);
+      setJogoCulturalAtivo(escolhido.id);
     }
   }, [listaDeJogos, ageProfile]);
 
@@ -2569,23 +2576,37 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
       />
     );
   }
-  if (vendoPrototipos) {
-    return telaCheia(
-      <MinigamesShowcase
-        ageProfile={ageProfile}
-        initialGame={jogoCulturalInicial}
-        items={acervoDaFonte.map((c) => ({
-          cardId: c.id,
-          prompt: c.translation || '',
-          answer: c.word,
-          lang: fonte.lang || 'en-US',
-        }))}
-        onBack={() => {
-          setVendoPrototipos(false);
-          setJogoCulturalInicial(null);
-        }}
-      />
-    );
+  if (jogoCulturalAtivo) {
+    const itensCulturais = acervoDaFonte.map((c) => ({
+      cardId: c.id,
+      prompt: c.translation || '',
+      answer: c.word,
+      lang: fonte.lang || 'en-US',
+    }));
+    const fecharJogoCultural = () => {
+      setJogoCulturalAtivo(null);
+    };
+    const propsComuns = {
+      items: itensCulturais,
+      ageProfile,
+      onFinish: fecharJogoCultural,
+      onExit: fecharJogoCultural,
+    };
+
+    let conteudoCultural: React.ReactNode = null;
+    if (jogoCulturalAtivo === 'karuta') conteudoCultural = <KarutaGame {...propsComuns} />;
+    else if (jogoCulturalAtivo === 'koffer') conteudoCultural = <KofferGame {...propsComuns} />;
+    else if (jogoCulturalAtivo === 'choseong') conteudoCultural = <ChoseongGame {...propsComuns} />;
+    else if (jogoCulturalAtivo === 'taboo') conteudoCultural = <TabooGame {...propsComuns} />;
+    else if (jogoCulturalAtivo === 'shiritori') conteudoCultural = <ShiritoriGame {...propsComuns} />;
+    else if (jogoCulturalAtivo === 'cadavre') conteudoCultural = <CadavreExquisGame {...propsComuns} />;
+    else if (jogoCulturalAtivo === 'bao') conteudoCultural = <BaoGame {...propsComuns} />;
+    else if (jogoCulturalAtivo === 'tennis') conteudoCultural = <TenseTennisGame {...propsComuns} />;
+    else if (jogoCulturalAtivo === 'vitendawili') conteudoCultural = <VitendawiliGame {...propsComuns} />;
+
+    if (conteudoCultural) {
+      return telaCheia(conteudoCultural);
+    }
   }
   if (vendoMapa) {
     /* Os itens do mapa saem da MESMA fonte que alimenta a rodada — se saíssem de outro lugar, o
@@ -2714,15 +2735,6 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
               <h1 className="font-display font-black text-2xl text-ink tracking-tight">
                 {ageProfile === 'senior' ? t('Praticar jogando') : t('Jogar')}
               </h1>
-              <button
-                type="button"
-                onClick={() => setVendoPrototipos(true)}
-                className="flex items-center gap-1.5 px-3 py-1 rounded-xl border border-accent/40 bg-accent-soft text-accent-ink font-bold text-xs shadow-sm hover:bg-accent-soft/80 transition-all active:scale-95 cursor-pointer"
-                title={t('Abrir Laboratório de Novos Minigames (Protótipos Culturais)')}
-              >
-                <Gamepad2 className="w-3.5 h-3.5 text-accent" />
-                <span>{t('Novos Jogos (BETA)')}</span>
-              </button>
             </div>
             <p className="text-[13px] text-ink-muted mt-1 max-w-[70ch]">
               {ageProfile === 'senior'

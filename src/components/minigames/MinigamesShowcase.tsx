@@ -49,11 +49,19 @@ export default function MinigamesShowcase({
 
   const handleFinalizarJogo = (report: RoundReport) => {
     setUltimoRelatorio(report);
-    setJogoAtivo(null);
+    if (onBack) {
+      onBack();
+    } else {
+      setJogoAtivo(null);
+    }
   };
 
   const handleSairDoJogo = () => {
-    setJogoAtivo(null);
+    if (onBack) {
+      onBack();
+    } else {
+      setJogoAtivo(null);
+    }
   };
 
   // Renderização isolada em tela cheia do jogo selecionado

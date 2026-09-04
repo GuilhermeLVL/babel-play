@@ -200,3 +200,16 @@ export function dataHora(d: Date | string | number, opcoes?: Intl.DateTimeFormat
 export function moeda(valor: number, codigo = 'BRL'): string {
   return valor.toLocaleString(atual, { style: 'currency', currency: codigo })
 }
+
+/**
+ * "R$ 24,90" — uma formatação só, para o preço não divergir entre telas.
+ *
+ * Vive AQUI e não em `core/creditos.ts`, onde nasceu: o catálogo de preços é regra de negócio e
+ * pertence ao núcleo, mas escrever o preço depende do idioma da interface. O núcleo é isomórfico
+ * (`src/core/tsconfig.json`: sem DOM, sem Node), e importar este módulo lá dentro arrastava o
+ * `fetch` do carregador de catálogo para dentro da fronteira — `npm run typecheck:core` reprovava.
+ * O core entrega os centavos; quem os escreve é a camada que sabe em que idioma a tela está.
+ */
+export function precoEmReais(centavos: number): string {
+  return moeda(Math.round(centavos) / 100, 'BRL')
+}

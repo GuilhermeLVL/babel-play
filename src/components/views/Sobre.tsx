@@ -10,7 +10,8 @@
  * `*_AQUI` ficam ocultos).
  */
 import { planoAnunciavel } from '../CardDePlanos';
-import { precoEmReais, PRECO_DO_PASSE_CENTAVOS } from '../../core/creditos';
+import { PRECO_DO_PASSE_CENTAVOS } from '../../core/creditos';
+import { precoEmReais } from '../../lib/i18n';
 import { menorPrecoDeAssinatura } from '../../core/planos';
 import { useState } from 'react';
 import {

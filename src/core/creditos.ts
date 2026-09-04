@@ -1,4 +1,3 @@
-import { moeda } from '../lib/i18n';
 /**
  * O CATÁLOGO DO QUE SE COMPRA COM DINHEIRO — fonte única, cliente e servidor.
  *
@@ -55,7 +54,9 @@ export function centavosParaReais(centavos: number): number {
   return Math.round(centavos) / 100
 }
 
-/** "R$ 24,90" — uma formatação só, para o preço não divergir entre telas. */
-export function precoEmReais(centavos: number): string {
-  return moeda(centavosParaReais(centavos), 'BRL')
-}
+/* `precoEmReais` MORA EM `lib/i18n.ts`, não aqui.
+   O preço é regra de negócio e fica no core; FORMATAR o preço depende do idioma da interface,
+   e o núcleo é isomórfico — sem DOM, sem Node (ver `src/core/tsconfig.json`). Importar
+   `lib/i18n` daqui arrastava o `fetch` do carregador de catálogo para dentro da fronteira e
+   quebrava `npm run typecheck:core`, que é o gate que existe justamente para impedir isso.
+   O core entrega o número; a UI o escreve no idioma de quem lê. */

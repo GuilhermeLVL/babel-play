@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import { Coins, ExternalLink, Ticket, Check } from 'lucide-react';
 import { apiFetch } from '../../../data/api';
-import { CATALOGO_DE_CREDITOS, precoEmReais, type PacoteDeCredito } from '../../../core/creditos';
+import { CATALOGO_DE_CREDITOS, type PacoteDeCredito } from '../../../core/creditos';
+import { precoEmReais } from '../../../lib/i18n';
 import { authRequired } from '../../../lib/supabase';
 
 /**

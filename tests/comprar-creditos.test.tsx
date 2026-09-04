@@ -9,7 +9,8 @@
  */
 import { it, expect, afterEach, vi } from 'vitest'
 import { render, screen, cleanup, fireEvent, waitFor } from '@testing-library/react'
-import { CATALOGO_DE_CREDITOS, PRECO_DO_PASSE_CENTAVOS, precoEmReais } from '../src/core/creditos'
+import { CATALOGO_DE_CREDITOS, PRECO_DO_PASSE_CENTAVOS } from '../src/core/creditos'
+import { precoEmReais } from '../src/lib/i18n'
 
 afterEach(() => { cleanup(); vi.resetModules(); vi.restoreAllMocks() })
 

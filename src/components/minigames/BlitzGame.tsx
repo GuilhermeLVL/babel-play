@@ -413,31 +413,67 @@ export default function BlitzGame({ items, ageProfile, onFinish, onExit }: Blitz
        um item cresce e o pai não segura). Com enunciado de 160 caracteres em viewport curta, o
        palco crescia além da tela e as alternativas saíam sem nenhuma rolagem. `min-h-0` deixa o
        flex encolher de verdade; `overflow-y-auto` dá para onde o excesso ir. */
-    <div className="flex-1 flex flex-col p-4 lg:p-8 animate-in fade-in duration-200 relative min-h-0 overflow-y-auto">
-      <header className="flex items-center justify-between mb-2 shrink-0">
-        <span ref={relogioRef}>
-          <AnelDoTempo restante={restante} duracao={duracao} apertado={apertado} fever={fever} pulso={anelPulso} />
-        </span>
-        <span key={'p' + pontos} className={`font-display font-black text-3xl tabular-nums ${pontos > 0 ? 'blitz-pop' : ''} ${fever ? 'text-warn-ink' : 'text-ink'}`}>
-          {placar}
-        </span>
-        <span className="flex items-center gap-0.5">
+    <div className="fixed inset-0 z-50 flex flex-col bg-canvas text-ink select-none overflow-hidden animate-in fade-in duration-200">
+      <header className="flex items-center justify-between px-6 py-4 border-b border-border-subtle bg-surface/85 backdrop-blur-md shrink-0">
+        <div className="flex items-center gap-3">
+          <button
+            onClick={onExit}
+            className="p-2 rounded-xl border border-border-subtle bg-surface-hover hover:bg-border-subtle transition-colors cursor-pointer"
+            title="Sair do Duelo Relâmpago"
+            aria-label="Sair do jogo"
+          >
+            <X className="w-5 h-5 text-ink" />
+          </button>
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="font-display font-black text-lg tracking-wide uppercase text-accent">Duelo Relâmpago</span>
+              <span className="text-xs px-2 py-0.5 rounded-full bg-accent-soft text-accent-ink font-semibold">Arcade Blitz ⚡</span>
+            </div>
+            <p className="text-xs text-ink-muted">Responda o máximo de palavras antes que o cronômetro chegue ao fim!</p>
+          </div>
+        </div>
+
+        {/* Status de Ações, Fever, Pontos e Timer */}
+        <div className="flex items-center gap-2.5 sm:gap-3">
           <button
             onClick={(e) => cortarDuas(e.currentTarget)}
             disabled={cortesRestantes <= 0 || cortadas.length > 0 || !!escolhido || acabou}
-            className="p-2 rounded-lg text-ink-muted hover:text-warn-ink hover:bg-surface-hover disabled:opacity-40 cursor-pointer"
-            title={'Cortar duas alternativas erradas (' + cortesRestantes + ' restantes, conta como dica)'}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-2xl border border-border-subtle bg-surface hover:bg-surface-hover text-xs font-bold text-ink transition-all disabled:opacity-40 disabled:cursor-not-allowed shadow-sm cursor-pointer"
+            title={`Cortar duas alternativas erradas (${cortesRestantes} restantes)`}
             data-tour="tesoura"
-            aria-label="Cortar duas alternativas"
           >
-            <Scissors className="w-4 h-4" />
+            <Scissors className="w-3.5 h-3.5 text-warn" />
+            <span>Cortar 2 ({cortesRestantes})</span>
           </button>
-          <button onClick={onExit} className="p-2 rounded-lg text-ink-muted hover:bg-surface-hover hover:text-ink cursor-pointer" aria-label="Sair do jogo">
-            <X className="w-5 h-5" />
-          </button>
-        </span>
+
+          {fever && (
+            <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-gradient-to-r from-orange-500 to-amber-500 text-white font-black text-xs shadow-md animate-bounce">
+              <Zap className="w-4 h-4 fill-current" />
+              <span>FEVER ×2</span>
+            </div>
+          )}
+
+          {rotulo && !fever && sequencia >= 3 && (
+            <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-accent-soft text-accent-ink font-bold text-xs border border-accent/30">
+              <span>{rotulo}</span>
+            </div>
+          )}
+
+          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-border-subtle bg-surface">
+            <span className="text-accent font-bold">✨</span>
+            <span className="font-mono font-bold text-base">{placar} pts</span>
+          </div>
+
+          <span ref={relogioRef} className="flex items-center gap-2 px-3 py-1.5 rounded-xl border border-border-subtle bg-surface">
+            <AnelDoTempo restante={restante} duracao={duracao} apertado={apertado} fever={fever} pulso={anelPulso} />
+            <span className={`font-mono font-black text-base ${apertado ? 'text-error animate-pulse' : 'text-ink'}`}>
+              {restante}s
+            </span>
+          </span>
+        </div>
       </header>
 
+      <main className="flex-1 flex flex-col p-4 lg:p-8 relative min-h-0 overflow-y-auto">
       <div
         ref={palcoRef}
         key={'e' + erroPulso}
@@ -521,6 +557,7 @@ export default function BlitzGame({ items, ageProfile, onFinish, onExit }: Blitz
           })}
         </div>
       </div>
+      </main>
     </div>
   );
 }

@@ -155,63 +155,72 @@ export default function ScrambleGame({ rodadas, ageProfile, onFinish, onExit }: 
   const progressoPct = rodadas.length > 0 ? Math.round(((indice) / rodadas.length) * 100) : 0;
 
   return (
-    <div className="flex-1 flex flex-col items-center p-4 lg:p-8 animate-in fade-in duration-200 overflow-y-auto custom-scrollbar">
-      <header className="w-full max-w-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5 shrink-0">
-        <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-2">
-            <h2 className="font-display font-black text-lg text-ink">
-              {ageProfile === 'kids' ? 'Monte a frase' : 'Frase embaralhada'}
-            </h2>
-            {mult > 1 && (
-              <span className="flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-warn/20 text-warn-ink font-black text-xs border border-warn/40 animate-pulse">
-                <Flame className="w-3.5 h-3.5 text-warn fill-current" /> ×{mult}
-              </span>
-            )}
-          </div>
-          <div className="flex items-center gap-3 mt-1.5">
-            <div className="flex-1 max-w-[200px] h-2 rounded-full bg-border-subtle/60 overflow-hidden">
-              <div
-                className="h-full bg-accent transition-all duration-300 rounded-full"
-                style={{ width: `${progressoPct}%` }}
-              />
+    <div className="fixed inset-0 z-50 flex flex-col bg-canvas text-ink select-none overflow-hidden animate-in fade-in duration-200">
+      {/* Topo unificado */}
+      <header className="flex items-center justify-between px-6 py-4 border-b border-border-subtle bg-surface/85 backdrop-blur-md shrink-0">
+        <div className="flex items-center gap-3">
+          <button
+            onClick={onExit}
+            className="p-2 rounded-xl border border-border-subtle bg-surface-hover hover:bg-border-subtle transition-colors cursor-pointer"
+            title="Sair do Scramble"
+            aria-label="Sair do jogo"
+          >
+            <X className="w-5 h-5 text-ink" />
+          </button>
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="font-display font-black text-lg tracking-wide uppercase text-accent">Scramble Arena</span>
+              <span className="text-xs px-2 py-0.5 rounded-full bg-accent-soft text-accent-ink font-semibold">Ordem Sintática 🧩</span>
             </div>
-            <p className="text-[12px] text-ink-muted tabular-nums">
-              frase {indice + 1} de {rodadas.length}
-              {pontos > 0 && <span className="text-accent-ink font-bold"> · {pontos} pts</span>}
-            </p>
+            <p className="text-xs text-ink-muted">Reorganize os blocos e construa a frase com a sintaxe correta!</p>
           </div>
         </div>
-        <span className="flex items-center gap-1.5 shrink-0 self-end sm:self-auto">
+
+        {/* Ações, Dica, Áudio, Combo e Status */}
+        <div className="flex items-center gap-2.5 sm:gap-3">
           {rodada.lang && (
             <button
               onClick={() => speak(rodada.correta.join(' '), { lang: rodada.lang })}
-              className="p-2 rounded-xl border border-border-subtle bg-surface text-ink-muted hover:text-accent hover:border-accent/40 cursor-pointer shadow-sm transition-all"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-2xl border border-border-subtle bg-surface hover:bg-surface-hover text-xs font-bold text-ink transition-all shadow-sm cursor-pointer"
               title="Ouvir a frase completa"
-              aria-label="Ouvir a frase completa"
             >
-              <Volume2 className="w-4 h-4 text-accent" />
+              <Volume2 className="w-3.5 h-3.5 text-accent" />
+              <span className="hidden sm:inline">Ouvir</span>
             </button>
           )}
+
           <button
             onClick={(e) => pedirDica(e.currentTarget)}
             disabled={conferido === 'certo'}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-border-subtle bg-surface text-ink-muted hover:text-warn-ink hover:border-warn/40 disabled:opacity-40 cursor-pointer font-bold text-xs shadow-sm transition-all"
-            title="Dica: encaixar a próxima palavra (conta como dica)"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-2xl border border-border-subtle bg-surface hover:bg-surface-hover text-xs font-bold text-ink transition-all disabled:opacity-40 disabled:cursor-not-allowed shadow-sm cursor-pointer"
+            title="Dica: encaixar a próxima palavra"
             data-tour="dica-scramble"
-            aria-label="Pedir dica"
           >
-            <Lightbulb className="w-4 h-4 text-warn" />
+            <Lightbulb className="w-3.5 h-3.5 text-warn" />
             <span>Dica</span>
           </button>
-          <button
-            onClick={onExit}
-            className="p-2 rounded-xl text-ink-muted hover:bg-surface-hover hover:text-ink cursor-pointer border border-border-subtle transition-colors"
-            aria-label="Sair do jogo"
-          >
-            <X className="w-4 h-4" />
-          </button>
-        </span>
+
+          {mult > 1 && (
+            <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-gradient-to-r from-orange-500 to-amber-500 text-white font-black text-xs shadow-md animate-bounce">
+              <Flame className="w-4 h-4 fill-current" />
+              <span>×{mult}</span>
+            </div>
+          )}
+
+          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-border-subtle bg-surface">
+            <Sparkles className="w-4 h-4 text-accent" />
+            <span className="font-mono font-bold text-base">{pontos} pts</span>
+          </div>
+
+          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-border-subtle bg-surface">
+            <span className="font-mono font-bold text-base text-ink">
+              {indice + 1}/{rodadas.length}
+            </span>
+          </div>
+        </div>
       </header>
+
+      <main className="flex-1 flex flex-col items-center justify-center p-4 lg:p-8 overflow-y-auto custom-scrollbar">
 
       <div ref={palcoRef} className="w-full max-w-2xl flex flex-col gap-5 my-auto">
         {/* O SIGNIFICADO guia a ordem — sem ele o jogo vira tentativa e erro. */}
@@ -306,6 +315,7 @@ export default function ScrambleGame({ rodadas, ageProfile, onFinish, onExit }: 
           pular esta frase
         </button>
       </div>
+      </main>
     </div>
   );
 }

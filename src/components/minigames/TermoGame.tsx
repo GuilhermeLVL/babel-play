@@ -1,5 +1,5 @@
 import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { X, Delete, CornerDownLeft, Lightbulb, Volume2, WandSparkles, ChevronsUp } from 'lucide-react';
+import { X, Delete, CornerDownLeft, Lightbulb, Volume2, WandSparkles, ChevronsUp, Sparkles, Flame } from 'lucide-react';
 import type { ItemOutcome, RoundReport, RodadaTermo, Palpite } from '@core';
 import {
   julgarPalpite, acertou, estadoDoTecladoMulti, dicaDeLetra, letrasCertas,
@@ -489,64 +489,94 @@ export default function TermoGame({ rodadas, ageProfile, onFinish, onExit }: Ter
   const mult = multiplicador(sequencia);
 
   return (
-    <div ref={raizRef} className="flex-1 relative flex flex-col items-center p-3 sm:p-4 animate-in fade-in duration-200 overflow-hidden">
-      {/* AS FERRAMENTAS moram no canto da TELA, não numa faixa junto ao título.
-          Num cabeçalho de largura fixa, o título ficava colado à esquerda enquanto o tabuleiro
-          (bem mais estreito) ficava no meio, dois blocos desalinhados sem motivo. Soltas no
-          canto, elas ficam sempre no mesmo lugar, com 1, 2 ou 4 tabuleiros. */}
-      <span className="absolute top-3 right-3 z-20 flex items-center gap-0.5">
-        <button data-tour="varinha" onClick={(e) => usarLetrasCertas(e.currentTarget)} disabled={fimDoGrupo} className="p-2 rounded-lg text-ink-muted hover:text-good-ink hover:bg-surface-hover disabled:opacity-40 cursor-pointer" title="Preencher as letras que você já descobriu (não conta como dica)" aria-label="Preencher letras já descobertas">
-          <WandSparkles className="w-4 h-4" />
-        </button>
-        <button onClick={ouvirPalavra} disabled={fimDoGrupo} className="p-2 rounded-lg text-ink-muted hover:text-accent hover:bg-surface-hover disabled:opacity-40 cursor-pointer" title="Ouvir a palavra (conta como dica)" aria-label="Ouvir a palavra">
-          <Volume2 className="w-4 h-4" />
-        </button>
-        <button onClick={(e) => pedirDica(e.currentTarget)} disabled={fimDoGrupo} className="p-2 rounded-lg text-ink-muted hover:text-warn-ink hover:bg-surface-hover disabled:opacity-40 cursor-pointer" title="Revelar uma letra (conta como dica)" aria-label="Pedir dica">
-          <Lightbulb className="w-4 h-4" />
-        </button>
-        <button onClick={onExit} className="p-2 rounded-lg text-ink-muted hover:bg-surface-hover hover:text-ink cursor-pointer" aria-label="Sair do jogo">
-          <X className="w-5 h-5" />
-        </button>
-      </span>
+    <div ref={raizRef} className="fixed inset-0 z-50 flex flex-col bg-canvas text-ink select-none overflow-hidden animate-in fade-in duration-200">
+      {/* Topo unificado */}
+      <header className="flex items-center justify-between px-6 py-4 border-b border-border-subtle bg-surface/85 backdrop-blur-md shrink-0">
+        <div className="flex items-center gap-3">
+          <button
+            onClick={onExit}
+            className="p-2 rounded-xl border border-border-subtle bg-surface-hover hover:bg-border-subtle transition-colors cursor-pointer"
+            title="Sair do Termo"
+            aria-label="Sair do jogo"
+          >
+            <X className="w-5 h-5 text-ink" />
+          </button>
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="font-display font-black text-lg tracking-wide uppercase text-accent">Termo Arena</span>
+              <span className="text-xs px-2 py-0.5 rounded-full bg-accent-soft text-accent-ink font-semibold">{nomeDoDegrau}</span>
+              {grupos.length > 1 && (
+                <span className="flex items-end gap-1 ml-1" aria-label={`degrau ${grupoIdx + 1} de ${grupos.length}`}>
+                  {grupos.map((g, i) => (
+                    <span
+                      key={i}
+                      title={`${g.length} ${g.length === 1 ? 'palavra' : 'palavras'}`}
+                      className={`w-1.5 rounded-full transition-all ${
+                        i < grupoIdx ? 'h-3 bg-good' : i === grupoIdx ? 'h-4 bg-accent' : 'h-2 bg-border-subtle'
+                      }`}
+                    />
+                  ))}
+                </span>
+              )}
+            </div>
+            <p className="text-xs text-ink-muted">Adivinhe a palavra secreta em 6 tentativas usando as cores das letras!</p>
+          </div>
+        </div>
 
-      {/* UM BLOCO SÓ (título + tabuleiros + teclado), centrado com `my-auto`: antes o teclado
-          ficava grudado no pé da tela e os tabuleiros centrados sozinhos no meio — dois blocos
-          com um vazio entre eles. `my-auto` e não `justify-center`: num container rolável,
-          centralizar por `justify` impede a rolagem para o começo quando o conteúdo passa da
-          altura da janela. */}
-      {/* COLUNA DE TRÊS PARTES: cabeçalho, área do tabuleiro (a única que rola) e teclado.
-          Era `my-auto` numa raiz que rolava inteira, com o teclado `sticky bottom-0` — e sticky,
-          por definição, SOBREPÕE quando o conteúdo passa da altura. Medido: grade terminando em
-          606px e teclado começando em 536px, 70px de teclas por cima das últimas tentativas.
-          Nenhuma aritmética conserta isso, porque o problema não era o tamanho da grade e sim o
-          teclado não reservar o próprio espaço. Aqui ele é irmão de um `flex-1`: sobrepor virou
-          impossível, e o orçamento de altura passa a ser medido do container onde o tabuleiro
-          realmente mora, em vez de deduzido dos vizinhos. */}
-      <div className="w-full flex-1 min-h-0 flex flex-col items-center gap-1 py-2">
-      <header className="flex flex-col items-center mb-2 shrink-0 text-center">
-        <h2 className="font-display font-black text-lg text-ink flex items-center gap-2">
-          {nomeDoDegrau}
-          {/* A escada precisa ser VISÍVEL, senão subir de degrau parece o jogo mudando sozinho. */}
-          {grupos.length > 1 && (
-            <span className="flex items-end gap-1" aria-label={`degrau ${grupoIdx + 1} de ${grupos.length}`}>
-              {grupos.map((g, i) => (
-                <span
-                  key={i}
-                  title={`${g.length} ${g.length === 1 ? 'palavra' : 'palavras'}`}
-                  className={`w-1.5 rounded-full transition-all ${
-                    i < grupoIdx ? 'h-3 bg-good' : i === grupoIdx ? 'h-4 bg-accent' : 'h-2 bg-border-subtle'
-                  }`}
-                />
-              ))}
-            </span>
+        {/* Ferramentas e Status */}
+        <div className="flex items-center gap-2.5 sm:gap-3">
+          <button
+            data-tour="varinha"
+            onClick={(e) => usarLetrasCertas(e.currentTarget)}
+            disabled={fimDoGrupo}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-2xl border border-border-subtle bg-surface hover:bg-surface-hover text-xs font-bold text-ink transition-all disabled:opacity-40 disabled:cursor-not-allowed shadow-sm cursor-pointer"
+            title="Preencher as letras que você já descobriu"
+          >
+            <WandSparkles className="w-3.5 h-3.5 text-good" />
+            <span className="hidden sm:inline">Auto-preencher</span>
+          </button>
+
+          <button
+            onClick={ouvirPalavra}
+            disabled={fimDoGrupo}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-2xl border border-border-subtle bg-surface hover:bg-surface-hover text-xs font-bold text-ink transition-all disabled:opacity-40 disabled:cursor-not-allowed shadow-sm cursor-pointer"
+            title="Ouvir pronúncia nativa"
+          >
+            <Volume2 className="w-3.5 h-3.5 text-accent" />
+            <span className="hidden sm:inline">Ouvir</span>
+          </button>
+
+          <button
+            onClick={(e) => pedirDica(e.currentTarget)}
+            disabled={fimDoGrupo}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-2xl border border-border-subtle bg-surface hover:bg-surface-hover text-xs font-bold text-ink transition-all disabled:opacity-40 disabled:cursor-not-allowed shadow-sm cursor-pointer"
+            title="Revelar uma letra da palavra"
+          >
+            <Lightbulb className="w-3.5 h-3.5 text-warn" />
+            <span>Dica</span>
+          </button>
+
+          {mult > 1 && (
+            <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-gradient-to-r from-orange-500 to-amber-500 text-white font-black text-xs shadow-md animate-bounce">
+              <Flame className="w-4 h-4 fill-current" />
+              <span>×{mult}</span>
+            </div>
           )}
-        </h2>
-        <p className="text-[12px] text-ink-muted">
-          tentativa {Math.min(tentativas + 1, maxTentativas)}/{maxTentativas}
-          {pontos > 0 && <span className="text-accent-ink font-bold"> · {pontos} pts</span>}
-          {mult > 1 && <span className="text-warn-ink font-bold"> · ×{mult}</span>}
-        </p>
+
+          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-border-subtle bg-surface">
+            <Sparkles className="w-4 h-4 text-accent" />
+            <span className="font-mono font-bold text-base">{pontos} pts</span>
+          </div>
+
+          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-border-subtle bg-surface">
+            <span className="font-mono font-bold text-base text-ink">
+              {Math.min(tentativas + 1, maxTentativas)}/{maxTentativas}
+            </span>
+          </div>
+        </div>
       </header>
+
+      <main className="w-full flex-1 min-h-0 flex flex-col items-center gap-1 py-2 overflow-y-auto">
 
       {subiuDegrau && (
         <p className="flex items-center gap-1.5 text-[13px] font-black text-good-ink mb-2 animate-in fade-in zoom-in">
@@ -685,7 +715,7 @@ export default function TermoGame({ rodadas, ageProfile, onFinish, onExit }: Ter
             : 'Clique num quadrado (ou use ← →) para escrever fora de ordem.'}
         </p>
       </div>
-      </div>
+      </main>
     </div>
   );
 }

@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { X, Play, Mic, Square, SkipForward, Turtle } from 'lucide-react';
+import { X, Play, Mic, Square, SkipForward, Turtle, Sparkles, Volume2 } from 'lucide-react';
 import type { ItemOutcome, RoundReport, ResultadoDitado } from '@core';
 import { scorePronunciation, scoreRound, conferirDitado } from '@core';
 import type { AgeProfileType } from '../../lib/profile';
@@ -195,28 +195,47 @@ export default function KaraokeGame({ falas, audioUrl, ageProfile, onFinish, onE
   if (!fala) return null;
 
   return (
-    <div className="flex-1 flex flex-col items-center justify-center p-4 lg:p-8 animate-in fade-in duration-200 overflow-y-auto custom-scrollbar">
+    <div className="fixed inset-0 z-50 flex flex-col bg-canvas text-ink select-none overflow-hidden animate-in fade-in duration-200">
       <audio ref={audioRef} src={audioUrl} preload="auto" className="hidden" />
 
-      <header className="w-full max-w-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6 shrink-0">
-        <div className="min-w-0 flex-1">
-          <h2 className="font-display font-black text-lg text-ink">
-            {ageProfile === 'kids' ? 'Cante junto' : 'Karaokê da fala'}
-          </h2>
-          <div className="flex items-center gap-3 mt-1.5">
-            <div className="flex-1 max-w-[200px] h-2 rounded-full bg-border-subtle/60 overflow-hidden">
-              <div
-                className="h-full bg-accent transition-all duration-300 rounded-full"
-                style={{ width: `${Math.round((indice / falas.length) * 100)}%` }}
-              />
+      {/* Topo unificado */}
+      <header className="flex items-center justify-between px-6 py-4 border-b border-border-subtle bg-surface/85 backdrop-blur-md shrink-0">
+        <div className="flex items-center gap-3">
+          <button
+            onClick={onExit}
+            className="p-2 rounded-xl border border-border-subtle bg-surface-hover hover:bg-border-subtle transition-colors cursor-pointer"
+            title="Sair do Karaokê"
+            aria-label="Sair do jogo"
+          >
+            <X className="w-5 h-5 text-ink" />
+          </button>
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="font-display font-black text-lg tracking-wide uppercase text-accent">Karaokê da Fala</span>
+              <span className="text-xs px-2 py-0.5 rounded-full bg-accent-soft text-accent-ink font-semibold">Pronúncia & Ritmo 🎤</span>
             </div>
-            <p className="text-[12px] text-ink-muted tabular-nums">fala {indice + 1} de {falas.length}</p>
+            <p className="text-xs text-ink-muted">Treine sua pronúncia e ritmo vocal sincronizado com o áudio nativo!</p>
           </div>
         </div>
-        <button onClick={onExit} className="p-2 rounded-xl text-ink-muted hover:bg-surface-hover hover:text-ink cursor-pointer border border-border-subtle transition-colors self-end sm:self-auto" aria-label="Sair do jogo">
-          <X className="w-4 h-4" />
-        </button>
+
+        {/* Status de Gravação e Progresso */}
+        <div className="flex items-center gap-2.5 sm:gap-3">
+          {fase === 'gravando' && (
+            <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-error text-white font-black text-xs shadow-md animate-pulse">
+              <span className="w-2 h-2 rounded-full bg-white animate-ping" />
+              <span>GRAVANDO</span>
+            </div>
+          )}
+
+          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-border-subtle bg-surface">
+            <span className="font-mono font-bold text-base text-ink">
+              fala {indice + 1}/{falas.length}
+            </span>
+          </div>
+        </div>
       </header>
+
+      <main className="flex-1 flex flex-col items-center justify-center p-4 lg:p-8 overflow-y-auto custom-scrollbar">
 
       <div className="w-full max-w-2xl flex flex-col items-center gap-6">
         {/* A FRASE: acende em sincronia com o áudio enquanto se ouve e, DEPOIS de falar, vira o
@@ -323,6 +342,7 @@ export default function KaraokeGame({ falas, audioUrl, ageProfile, onFinish, onE
           {indice + 1 >= falas.length ? 'Terminar' : 'Próxima'} <SkipForward className="w-3.5 h-3.5" />
         </button>
       </div>
+      </main>
     </div>
   );
 }

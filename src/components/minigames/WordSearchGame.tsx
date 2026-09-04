@@ -1,5 +1,5 @@
 import React, { useMemo, useRef, useState } from 'react';
-import { X, Eye, Check, Lightbulb, Radar, Highlighter, Eraser, Flame } from 'lucide-react';
+import { X, Eye, Check, Lightbulb, Radar, Highlighter, Eraser, Flame, Sparkles } from 'lucide-react';
 import type { MinigameItem, ItemOutcome, RoundReport } from '@core';
 import { buildGrid, matchSelection, cellsBetween, scoreRound, shortPrompt, normalizarPalavra } from '@core';
 import type { AgeProfileType } from '../../lib/profile';
@@ -198,53 +198,61 @@ export default function WordSearchGame({ items, ageProfile, onFinish, onExit }: 
   const progressoPct = jogaveis.length > 0 ? Math.round((resolvidos / jogaveis.length) * 100) : 0;
 
   return (
-    <div className="flex-1 flex flex-col p-4 lg:p-6 animate-in fade-in duration-200 overflow-y-auto custom-scrollbar">
-      <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 shrink-0 max-w-4xl w-full mx-auto">
-        <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-2">
-            <h2 className="font-display font-black text-lg text-ink">
-              {ageProfile === 'kids' ? 'Ache as palavras' : 'Caça-palavras'}
-            </h2>
-            {mult > 1 && (
-              <span className="flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-warn/20 text-warn-ink font-black text-xs border border-warn/40 animate-pulse">
-                <Flame className="w-3.5 h-3.5 text-warn fill-current" /> ×{mult}
-              </span>
-            )}
-          </div>
-          <div className="flex items-center gap-3 mt-1.5">
-            <div className="flex-1 max-w-[200px] h-2 rounded-full bg-border-subtle/60 overflow-hidden">
-              <div
-                className="h-full bg-accent transition-all duration-300 rounded-full"
-                style={{ width: `${progressoPct}%` }}
-              />
+    <div className="fixed inset-0 z-50 flex flex-col bg-canvas text-ink select-none overflow-hidden animate-in fade-in duration-200">
+      {/* Topo unificado */}
+      <header className="flex items-center justify-between px-6 py-4 border-b border-border-subtle bg-surface/85 backdrop-blur-md shrink-0">
+        <div className="flex items-center gap-3">
+          <button
+            onClick={onExit}
+            className="p-2 rounded-xl border border-border-subtle bg-surface-hover hover:bg-border-subtle transition-colors cursor-pointer"
+            title="Sair do Caça-Palavras"
+            aria-label="Sair do jogo"
+          >
+            <X className="w-5 h-5 text-ink" />
+          </button>
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="font-display font-black text-lg tracking-wide uppercase text-accent">Caça-Palavras</span>
+              <span className="text-xs px-2 py-0.5 rounded-full bg-accent-soft text-accent-ink font-semibold">Varredura Visual 🔍</span>
             </div>
-            <p className="text-[12px] text-ink-muted tabular-nums">
-              {resolvidos} de {jogaveis.length} encontradas ({progressoPct}%)
-              {pontos > 0 && <span className="text-accent-ink font-bold"> · {pontos} pts</span>}
-            </p>
+            <p className="text-xs text-ink-muted">Encontre os termos escondidos na grade horizontal, vertical ou diagonal!</p>
           </div>
         </div>
-        <span className="flex items-center gap-1.5 shrink-0 self-end sm:self-auto">
+
+        {/* Radar, Combo, Pontos e Status */}
+        <div className="flex items-center gap-2.5 sm:gap-3">
           <button
             onClick={(e) => acionarRadar(null, e.currentTarget)}
             disabled={radaresRestantes <= 0}
-            className="flex items-center gap-1.5 py-1.5 px-3 rounded-xl border border-border-subtle bg-surface text-[12px] font-bold text-ink-muted hover:text-accent hover:border-accent/40 disabled:opacity-40 cursor-pointer shadow-sm transition-all"
-            title="Faz as pontas de uma palavra pulsarem na grade (não conta como dica)"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-2xl border border-border-subtle bg-surface hover:bg-surface-hover text-xs font-bold text-ink transition-all disabled:opacity-40 disabled:cursor-not-allowed shadow-sm cursor-pointer"
+            title="Faz as pontas de uma palavra pulsarem na grade"
             data-tour="radar"
-            aria-label="Acionar o radar"
           >
-            <Radar className="w-4 h-4 text-accent" />
+            <Radar className="w-3.5 h-3.5 text-accent" />
             <span>Radar ({radaresRestantes})</span>
           </button>
-          <button
-            onClick={onExit}
-            className="p-2 rounded-xl text-ink-muted hover:bg-surface-hover hover:text-ink cursor-pointer border border-border-subtle transition-colors"
-            aria-label="Sair do jogo"
-          >
-            <X className="w-4 h-4" />
-          </button>
-        </span>
+
+          {mult > 1 && (
+            <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-gradient-to-r from-orange-500 to-amber-500 text-white font-black text-xs shadow-md animate-bounce">
+              <Flame className="w-4 h-4 fill-current" />
+              <span>×{mult}</span>
+            </div>
+          )}
+
+          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-border-subtle bg-surface">
+            <Sparkles className="w-4 h-4 text-accent" />
+            <span className="font-mono font-bold text-base">{pontos} pts</span>
+          </div>
+
+          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-border-subtle bg-surface">
+            <span className="font-mono font-bold text-base text-ink">
+              {resolvidos}/{jogaveis.length}
+            </span>
+          </div>
+        </div>
       </header>
+
+      <main className="flex-1 flex flex-col items-center p-4 lg:p-6 overflow-y-auto custom-scrollbar">
 
       {direcaoDica && (
         <p className="text-center text-[12px] font-bold text-warn-ink mb-2 animate-in fade-in">
@@ -411,6 +419,7 @@ export default function WordSearchGame({ items, ageProfile, onFinish, onExit }: 
           </ul>
         </aside>
       </div>
+      </main>
     </div>
   );
 }

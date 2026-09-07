@@ -120,7 +120,7 @@ billingRouter.get('/creditos', async (req, res) => {
       compras: compras.map((c) => ({ sku: c.sku, status: c.status, creditos: c.creditos, em: c.createdAt })),
     })
   } catch (err) {
-    res.status(500).json({ error: erroDeRota(err, { event: 'billing_error' }) })
+    res.status(500).json({ error: erroDeRota(err, { status: 500, event: 'billing_error' }) })
   }
 })
 
@@ -159,7 +159,7 @@ billingRouter.post('/gastar', async (req, res) => {
     const { jaExistia } = await creditsRepo.debitar(req.userId, { ...payload, amount: autorizacao.preco })
     res.json({ jaExistia, gasto: autorizacao.preco, saldo: await creditsRepo.saldo(req.userId) })
   } catch (err) {
-    res.status(400).json({ error: erroDeRota(err, { event: 'billing_error', route: req.path, requestId: req.requestId }) })
+    res.status(400).json({ error: erroDeRota(err, { status: 400, event: 'billing_error', route: req.path, requestId: req.requestId }) })
   }
 })
 
@@ -200,7 +200,7 @@ billingRouter.post('/creditar-passe', async (req, res) => {
     }
     res.json({ creditado, temPasse: true, saldo: await creditsRepo.saldo(req.userId) })
   } catch (err) {
-    res.status(500).json({ error: erroDeRota(err, { event: 'billing_error', route: req.path, requestId: req.requestId }) })
+    res.status(500).json({ error: erroDeRota(err, { status: 500, event: 'billing_error', route: req.path, requestId: req.requestId }) })
   }
 })
 
@@ -346,6 +346,6 @@ asaasWebhookRouter.post('/', async (req, res) => {
     } catch {
       log('error', { event: 'billing_webhook_marca_presa', provider: 'asaas', error: ev.id })
     }
-    res.status(500).json({ error: erroDeRota(err, { event: 'billing_webhook_error' }) })
+    res.status(500).json({ error: erroDeRota(err, { status: 500, event: 'billing_webhook_error' }) })
   }
 })

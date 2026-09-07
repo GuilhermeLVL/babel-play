@@ -44,7 +44,21 @@ describe('F4-02 — rate limit cobre as rotas de escrita', () => {
     const decl = /const writeLimiter = rateLimit\(\{([\s\S]*?)\}\)/.exec(servidor)
     expect(decl, 'writeLimiter não declarado').not.toBeNull()
     expect(decl![1]).toContain('keyGenerator: chaveDoRequest')
-    expect(decl![1]).toContain('store: createDbRateLimitStore()')
+    expect(decl![1]).toMatch(/store: createDbRateLimitStore\(/)
+  })
+
+  /**
+   * UM BALDE POR LIMITADOR (auditoria de 2026-09-07, achado A27).
+   *
+   * Os dois `rateLimit` criavam o store com a MESMA métrica, então contavam no mesmo balde: 60
+   * salvamentos de transcrição esgotavam a cota de IA da pessoa, e o `RateLimit-Remaining` do
+   * cabeçalho não correspondia a nenhum dos dois tetos.
+   */
+  it('cada limitador conta no próprio balde', () => {
+    const caro = /const expensiveLimiter = rateLimit\(\{([\s\S]*?)\n\}\)/.exec(servidor)
+    const escrita = /const writeLimiter = rateLimit\(\{([\s\S]*?)\n\}\)/.exec(servidor)
+    expect(caro![1]).toContain('METRIC_RATELIMIT_CARO')
+    expect(escrita![1]).toContain('METRIC_RATELIMIT_ESCRITA')
   })
 
   it('não penaliza leitura — GET e HEAD são pulados', () => {

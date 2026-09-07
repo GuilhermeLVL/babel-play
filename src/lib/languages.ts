@@ -100,10 +100,9 @@ export function toBcp47(short: string): string {
   return LANGUAGES.find(l => l.short === b)?.code ?? b;
 }
 
-/** Base ISO-639-1 de um código BCP-47 ('pt-BR' → 'pt'). */
-export function baseLang(code: string): string {
-  return (code || '').toLowerCase().split('-')[0];
-}
+/** Base ISO-639-1 de um código BCP-47 ('pt-BR' → 'pt'). Implementacao em `core/texto/idioma.ts`. */
+import { baseLang } from '@core/texto/idioma';
+export { baseLang };
 
 /** Rótulo amigável de um código (aceita BCP-47 ou short); cai para o próprio código. */
 export function langLabel(code: string): string {

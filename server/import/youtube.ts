@@ -11,6 +11,7 @@
  *
  * Nenhum dado é fabricado: sem legenda, retornamos `null` e deixamos o cliente decidir.
  */
+import { baseLang as baseLangDoCodigo } from '../../src/core/texto/idioma'
 import { spawn } from 'node:child_process'
 import { mkdir, readdir } from 'node:fs/promises'
 import path from 'node:path'
@@ -73,7 +74,9 @@ export async function resolveYouTube(url: string): Promise<YtInfo> {
   }
 }
 
-const baseLang = (code: string) => code.toLowerCase().replace(/^a\./, '').split('-')[0]
+/* O `a.` das legendas AUTOMATICAS do YouTube e especifico daqui; o resto da normalizacao e a
+   mesma de todo mundo e mora em `core/texto/idioma.ts` (achado A55). */
+const baseLang = (code: string) => baseLangDoCodigo(code.replace(/^a\./i, ''))
 
 /** Escolhe a chave de idioma mais próxima da desejada (senão a 1ª disponível). */
 function pickLangKey(langs: string[], wanted?: string): string | undefined {

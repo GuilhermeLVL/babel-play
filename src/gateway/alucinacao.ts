@@ -23,7 +23,7 @@ const FRASES_ALUCINADAS: RegExp[] = [
    português "Ah." e "Hum." são respostas legítimas curtas, e um "so" isolado não aparece. */
 const TOKEN_SOLTO_EN = /^(you|so|hmm|uh|um|ah)\W*$/i
 
-const baseLang = (lang?: string) => (lang ?? '').split('-')[0].toLowerCase()
+import { baseLang } from '@core/texto/idioma'
 
 /** Palavras por segundo acima do qual não é fala humana, por idioma da dica. */
 export function tetoDePalavrasPorSegundo(lang?: string): number {

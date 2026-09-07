@@ -183,7 +183,7 @@ importRouter.post('/anki/export', async (req, res) => {
     res.setHeader('Content-Disposition', `attachment; filename="${nome.replace(/[^\w.-]/g, '_')}.apkg"`)
     res.send(apkg)
   } catch (err) {
-    res.status(400).json({ error: erroDeRota(err, { event: 'import_route_error' }) })
+    res.status(400).json({ error: erroDeRota(err, { status: 400, event: 'import_route_error' }) })
   }
 })
 
@@ -223,7 +223,7 @@ importRouter.post('/anki', raw({ type: () => true, limit: '200mb' }), erroDeTama
     const ehTexto = /\.(txt|csv|tsv)$/i.test(nome)
     r = ehTexto ? lerTextoAnki(buf.toString('utf8')) : await lerApkg(buf)
   } catch (err) {
-    res.status(400).json({ error: erroDeRota(err, { event: 'import_route_error' }) })
+    res.status(400).json({ error: erroDeRota(err, { status: 400, event: 'import_route_error' }) })
     return
   }
 
@@ -309,7 +309,21 @@ importRouter.post('/anki', raw({ type: () => true, limit: '200mb' }), erroDeTama
     /* Importar tem de ENTREGAR algo jogável. Antes toda nota nascia arquivada e a tela de jogar
        continuava igual: quem importou concluía que o app não fez nada (G0, defeito 2). Um lote
        entra na hora; o resto continua atrás de "Ativar mais", que é o controle de volume. */
-    const ativadasNoImport = await vocabRepo.ativarLote(req.userId, deck.id).catch(() => ({ ativadas: 0 }))
+    /**
+     * FALHA NA ATIVACAO NAO VIRA "ZERO ATIVADAS" (auditoria de 2026-09-07, achado A29).
+     *
+     * O `.catch(() => ({ ativadas: 0 }))` transformava um erro de banco no MESMO resultado de um
+     * baralho que legitimamente nao tinha nada a ativar: a resposta era 200 com `ativadas: 0` e a
+     * pessoa concluia que o arquivo dela nao servia. Sao duas coisas diferentes, e agora a
+     * resposta diz qual foi — o import em si nao e desfeito, porque as notas ja entraram.
+     */
+    let ativadasNoImport: { ativadas: number } = { ativadas: 0 }
+    let erroDeAtivacao: string | null = null
+    try {
+      ativadasNoImport = await vocabRepo.ativarLote(req.userId, deck.id)
+    } catch (err) {
+      erroDeAtivacao = erroDeRota(err, { event: 'import_ativacao_error', route: req.path, requestId: req.requestId })
+    }
 
     const trunc = (s: string | null | undefined) => (s ?? '').slice(0, 80)
     const amostra = r.notas.slice(0, 4).map((n) => ({
@@ -339,6 +353,10 @@ importRouter.post('/anki', raw({ type: () => true, limit: '200mb' }), erroDeTama
       // S11: presente só quando o cabeçalho e a escrita real do baralho se contradisseram — a
       // tela mostra, e o cartão sem idioma cai em 'idioma-incerto' na triagem (honesto).
       avisoIdioma: idioma.avisoIdioma,
+      /* Presente SO quando a ativacao falhou. O import entrou; o que nao aconteceu foi a primeira
+         leva virar cartao jogavel — e "ativadas: 0" sozinho nao distingue isso de um baralho sem
+         nada a ativar. */
+      ...(erroDeAtivacao ? { erroDeAtivacao, code: 'ativacao_falhou' } : {}),
     })
   } catch (err) {
     // O que já entrou no acervo PERMANECE — só o ledger registra que esta fatia falhou.
@@ -375,7 +393,7 @@ importRouter.post('/youtube', async (req, res) => {
       return
     }
   } catch (err) {
-    res.status(502).json({ error: erroDeRota(err, { event: 'import_entitlement_error', route: req.path, requestId: req.requestId }) })
+    res.status(502).json({ error: erroDeRota(err, { status: 502, event: 'import_entitlement_error', route: req.path, requestId: req.requestId }) })
     return
   }
 
@@ -463,7 +481,7 @@ importRouter.post('/youtube', async (req, res) => {
     })
   } catch (err) {
     if (reservaPendente) await liberarArmazenamento(req.userId, reservaPendente)
-    res.status(500).json({ error: erroDeRota(err, { event: 'import_route_error' }) })
+    res.status(500).json({ error: erroDeRota(err, { status: 500, event: 'import_route_error' }) })
   }
 })
 
@@ -476,7 +494,7 @@ importRouter.post('/web', async (req, res) => {
     if (!url) { res.status(400).json({ error: 'Informe uma URL.' }); return }
     res.json(await extractArticle(url))
   } catch (err) {
-    res.status(400).json({ error: erroDeRota(err, { event: 'import_route_error' }) })
+    res.status(400).json({ error: erroDeRota(err, { status: 400, event: 'import_route_error' }) })
   }
 })
 
@@ -491,6 +509,6 @@ importRouter.post('/document', raw({ type: () => true, limit: '30mb' }), async (
     const mime = cab['content-type'] || ''
     res.json(await extractDocument(buf, filename, mime))
   } catch (err) {
-    res.status(400).json({ error: erroDeRota(err, { event: 'import_route_error' }) })
+    res.status(400).json({ error: erroDeRota(err, { status: 400, event: 'import_route_error' }) })
   }
 })

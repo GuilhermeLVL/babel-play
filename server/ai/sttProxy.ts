@@ -133,7 +133,7 @@ export async function sttTranscribeProxy(req: Request, res: Response): Promise<v
     // detector de texto. Nunca inventamos um código aqui.
     res.json({ text: j.text ?? '', language: normalizarIdiomaDoWhisper(j.language) })
   } catch (err) {
-    if (!res.headersSent) res.status(502).json({ error: erroDeRota(err, { event: 'stt_route_error' }) })
+    if (!res.headersSent) res.status(502).json({ error: erroDeRota(err, { status: 502, event: 'stt_route_error' }) })
   } finally {
     // As duas reservas caem juntas: cobrar segundos por uma transcrição que não aconteceu é o
     // mesmo defeito que cobrar a chamada.

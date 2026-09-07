@@ -60,7 +60,7 @@ export async function llmChatProxy(req: Request, res: Response): Promise<void> {
     await pipeline(Readable.fromWeb(upstream.body as unknown as import('node:stream/web').ReadableStream), res)
   } catch (err) {
     log('error', { event: 'llm_proxy_error', route: '/api/ai/llm/chat/completions', error: erroDeRota(err, { event: 'ai_proxy_route_error' }) })
-    if (!res.headersSent) res.status(502).json({ error: erroDeRota(err, { event: 'ai_proxy_route_error' }) })
+    if (!res.headersSent) res.status(502).json({ error: erroDeRota(err, { status: 502, event: 'ai_proxy_route_error' }) })
     else res.end()
   }
 }

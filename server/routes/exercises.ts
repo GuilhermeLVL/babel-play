@@ -1,7 +1,7 @@
 /** Rotas de exercícios (montadas em `/api/exercises`). */
 import { Router } from 'express'
 import { exerciseResultsRepo } from '../db/repositories/exerciseResults'
-import { exerciseResultSchema, rodadaSchema, historicoQuerySchema, recordesQuerySchema, parseOr400, exerciseResultsQuerySchema } from '../validation'
+import { rodadaSchema, historicoQuerySchema, recordesQuerySchema, parseOr400, exerciseResultsQuerySchema } from '../validation'
 import { erroDeRota } from '../lib/erroDeRota'
 
 export const exercisesRouter = Router()
@@ -55,16 +55,11 @@ exercisesRouter.post('/rodada', async (req, res) => {
   try {
     res.json(await exerciseResultsRepo.addRodada(req.userId, payload))
   } catch (err) {
-    res.status(400).json({ error: erroDeRota(err, { event: 'exercises_route_error', route: req.path, requestId: req.requestId }) })
+    res.status(400).json({ error: erroDeRota(err, { status: 400, event: 'exercises_route_error', route: req.path, requestId: req.requestId }) })
   }
 })
 
-exercisesRouter.post('/results', async (req, res) => {
-  const payload = parseOr400(exerciseResultSchema, req.body, res)
-  if (!payload) return
-  try {
-    res.json(await exerciseResultsRepo.add(req.userId, payload))
-  } catch (err) {
-    res.status(400).json({ error: erroDeRota(err, { event: 'exercises_route_error', route: req.path, requestId: req.requestId }) })
-  }
-})
+/* `POST /exercises/results` SAIU (auditoria de 2026-09-07, achado A53).
+   Era o gravador POR ITEM, anterior a `/rodada`, e continuava roteado so para o Estudo: schema
+   proprio (sem `cardId`), sem `roundId` para agrupar, e as metricas liam as duas formas do mesmo
+   dado. O Estudo passou a gravar por `/rodada`, como os nove jogos. */

@@ -23,9 +23,11 @@ import { audioRouter } from "./server/audio/loopback";
 import { prepareLlmRequest } from "./server/ai/llmRequest";
 import { seedIfEmpty } from "./server/db/seed";
 import { dbReady } from "./server/db/db";
-import { createDbRateLimitStore, chaveDoRequest } from "./server/lib/rateLimitStore";
+import { createDbRateLimitStore, chaveDoRequest, METRIC_RATELIMIT_CARO, METRIC_RATELIMIT_ESCRITA } from "./server/lib/rateLimitStore";
 import { erroGlobal, capturarAssincrono } from "./server/lib/erroGlobal";
 import { registrarFalhaDeBoot, registrarSucessoDeBoot } from "./server/lib/bootStatus";
+import { chamarChat, type MensagemDeChat } from "./server/ai/llmClient";
+import { llmDeNuvem, llmLocal, MODELO_GEMINI_PADRAO } from "./server/ai/provedores";
 /* `diretorioGravavel` morava aqui e o `crypto.ts` tinha a sua propria versao divergente — a chave
    de segredos ia parar no disco efemero do conteiner enquanto o diario ia para o volume. Uma
    resposta so, em `server/lib/diretorios.ts` (auditoria de 2026-09-07, achado A34). */
@@ -94,7 +96,9 @@ const expensiveLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   keyGenerator: chaveDoRequest,
-  store: createDbRateLimitStore(),
+  /* BALDE PROPRIO. Os dois limitadores compartilhavam a metrica, entao compartilhavam o contador:
+     60 salvamentos de transcricao esgotavam a cota de IA da pessoa (achado A27). */
+  store: createDbRateLimitStore(METRIC_RATELIMIT_CARO),
 });
 
 /**
@@ -119,7 +123,7 @@ const writeLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   keyGenerator: chaveDoRequest,
-  store: createDbRateLimitStore(),
+  store: createDbRateLimitStore(METRIC_RATELIMIT_ESCRITA),
   // GET e HEAD não alocam corpo; limitá-los penalizaria a navegação sem fechar o vetor.
   skip: (req) => req.method === "GET" || req.method === "HEAD",
 });
@@ -238,105 +242,63 @@ if (apiKey && apiKey !== "MY_GEMINI_API_KEY") {
   console.log("Nenhuma chave de LLM em nuvem — usando LLM local (Ollama) quando disponível.");
 }
 
-// Local LLM via Ollama (endpoint compatível com a API da OpenAI).
-// Honesto: se o Ollama não estiver acessível, avisamos o cliente em vez de
-// fabricar conteúdo canned.
-/* CRAVADA EM DOIS LUGARES ate 07/09 (aqui e em `src/gateway/profiles.ts`), e em nenhum deles
-   configuravel: quem roda o Ollama em outra maquina ou em outra porta nao tinha como dizer, e o
-   inventario de configuracao nao mencionava a variavel porque ela nao existia (achados A31, A60).
-   O default segue sendo o endereco local, que e onde o Ollama roda em 99% dos casos. */
-const OLLAMA_URL = `${(process.env.OLLAMA_URL || "http://localhost:11434/v1").replace(/\/+$/, "")}/chat/completions`;
+/**
+ * AS DUAS TENTATIVAS DE LLM — agora sobre o cliente unico (`server/ai/llmClient.ts`).
+ *
+ * Havia aqui duas copias completas da mesma chamada HTTP, com politicas diferentes: 60 s e sem
+ * teto de saida no local, 30 s e temperatura 0.7 na nuvem, cada uma com o seu tratamento de erro e
+ * a sua cadeia de env para descobrir modelo e endereco (auditoria de 2026-09-07, achado A31). O
+ * que sobra aqui e o que e ESPECIFICO deste endpoint: montar as mensagens no formato do chat e
+ * devolver `null` quando nao deu, porque quem chama e uma cascata.
+ */
+function mensagensDeChat(
+  messages: Array<{ role: string; content: string }>,
+  systemInstruction?: string,
+): MensagemDeChat[] {
+  return [
+    { role: "system" as const, content: systemInstruction || "" },
+    ...messages.map((m) => ({
+      role: (m.role === "assistant" ? "assistant" : "user") as "assistant" | "user",
+      content: m.content,
+    })),
+  ];
+}
 
 async function tryOllamaChat(
   messages: Array<{ role: string; content: string }>,
   systemInstruction?: string
 ): Promise<string | null> {
-  const chatMessages = [
-    { role: "system", content: systemInstruction || "" },
-    ...messages.map((m) => ({
-      role: m.role === "assistant" ? "assistant" : "user",
-      content: m.content,
-    })),
-  ];
-
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 60000);
-  try {
-    const response = await fetch(OLLAMA_URL, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        model: process.env.OLLAMA_MODEL || "llama3.2",
-        messages: chatMessages,
-        stream: false,
-      }),
-      signal: controller.signal,
-    });
-
-    if (!response.ok) return null;
-    const data: any = await response.json();
-    const content = data?.choices?.[0]?.message?.content;
-    return typeof content === "string" && content.trim() ? content : null;
-  } catch (err) {
-    console.warn("LLM local (Ollama) indisponível:", (err as Error)?.message || err);
+  const prov = llmLocal();
+  // 60 s: o modelo local roda na CPU de quem esta usando o app, e ali a espera e o preco de nao
+  // depender de nuvem. E a unica politica que continua diferente do padrao, e por isso explicita.
+  const r = await chamarChat({ ...prov, messages: mensagensDeChat(messages, systemInstruction), timeoutMs: 60_000 });
+  if (!r.ok) {
+    console.warn("LLM local (Ollama) indisponível:", r.causa);
     return null;
-  } finally {
-    clearTimeout(timeout);
   }
+  return r.texto ?? null;
 }
-
-// Groq (nuvem, OpenAI-compatible) — rápido e não depende de GPU local.
-// Preferido para o iChat/tutor quando há GROQ_API_KEY no .env.
-const GROQ_CHAT_URL =
-  (process.env.LLM_BASE_URL || process.env.GROQ_BASE_URL || "https://api.groq.com/openai/v1").replace(/\/+$/, "") +
-  "/chat/completions";
-const GROQ_LLM_MODEL =
-  // Ver server/ai/mtProxy.ts: o llama-3.3-70b virou enterprise e responde model_not_found.
-  process.env.LLM_MODEL || process.env.GROQ_LLM_MODEL || process.env.GROQ_MODEL || "openai/gpt-oss-120b";
 
 async function tryGroqChat(
   messages: Array<{ role: string; content: string }>,
   systemInstruction?: string,
   opts?: { temperature?: number; maxTokens?: number }
 ): Promise<string | null> {
-  const key = process.env.GROQ_API_KEY;
-  if (!key) return null;
-  const chatMessages = [
-    { role: "system", content: systemInstruction || "" },
-    ...messages.map((m) => ({
-      role: m.role === "assistant" ? "assistant" : "user",
-      content: m.content,
-    })),
-  ];
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 30000);
-  try {
-    const response = await fetch(GROQ_CHAT_URL, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Authorization: "Bearer " + key },
-      body: JSON.stringify({
-        model: GROQ_LLM_MODEL,
-        messages: chatMessages,
-        stream: false,
-        temperature: typeof opts?.temperature === "number" ? opts.temperature : 0.7,
-        ...(opts?.maxTokens ? { max_tokens: opts.maxTokens } : {}),
-      }),
-      signal: controller.signal,
-    });
-    if (!response.ok) {
-      console.warn("Groq HTTP", response.status, (await response.text()).slice(0, 160));
-      return null;
-    }
-    const data: any = await response.json();
-    const content = data?.choices?.[0]?.message?.content;
-    return typeof content === "string" && content.trim() ? content : null;
-  } catch (err) {
-    console.warn("LLM Groq indisponível:", (err as Error)?.message || err);
+  const prov = llmDeNuvem();
+  if (!prov) return null;
+  const r = await chamarChat({
+    ...prov,
+    messages: mensagensDeChat(messages, systemInstruction),
+    temperature: typeof opts?.temperature === "number" ? opts.temperature : 0.7,
+    maxTokens: opts?.maxTokens,
+  });
+  if (!r.ok) {
+    console.warn("LLM de nuvem indisponível:", r.causa);
     return null;
-  } finally {
-    clearTimeout(timeout);
   }
+  return r.texto ?? null;
 }
+
 
 // Full-Stack API Route for LLM Interactions (Groq em nuvem → Gemini → Ollama local)
 app.post("/api/gemini/chat", async (req, res) => {
@@ -385,7 +347,7 @@ app.post("/api/gemini/chat", async (req, res) => {
 
     const response = await ai.models.generateContent({
       // Modelo cravado ate 07/09 (achado A31): trocar de modelo exigia editar e reconstruir a imagem.
-      model: process.env.GEMINI_MODEL || "gemini-2.0-flash",
+      model: process.env.GEMINI_MODEL || MODELO_GEMINI_PADRAO,
       contents,
       config: {
         systemInstruction,

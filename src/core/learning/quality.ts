@@ -55,9 +55,9 @@ const REPROVADO = (motivo: MotivoDescarte): Veredito => ({ serve: false, motivo,
 
 /** Base ISO-639-1 de um BCP-47 ('pt-BR' → 'pt'). Duplicado de `lib/languages` de propósito:
  *  `core` é isomórfico e não pode depender de `lib`, que é código de aplicação. */
-export function baseLangDe(code: string | undefined | null): string {
-  return (code || '').toLowerCase().split('-')[0];
-}
+/* Quarta copia de `baseLang` (achado A55). O nome fica; a implementacao e uma so. */
+import { baseLang as baseLangDe } from '../texto/idioma';
+export { baseLangDe };
 
 /* ─────────────────────────── PALAVRAS GRAMATICAIS ───────────────────────────
    Por IDIOMA, e não uma lista só. A lista única de `keywords.ts` mistura inglês e português, o
@@ -195,13 +195,10 @@ export function pistaUtil(traducao: string, origem: OrigemCartao = 'captura'): b
  * da mesma régua para outra pergunta: "esta pista já está na rodada?". Duas normalizações
  * diferentes para a mesma comparação seria a receita de "Conta" e "conta" passarem por distintas.
  */
-export function chaveComparavel(s: string): string {
-  return (s ?? '')
-    .normalize('NFD')
-    .replace(/[̀-ͯ]/g, '') // marcas de acento, já separadas pelo NFD
-    .toLowerCase()
-    .replace(/[^\p{L}\p{N}]/gu, '');
-}
+/* Era byte a byte igual a `chaveDaPalavra` de `trilha.ts` — a implementacao mora agora em
+   `core/texto/palavra.ts` e este nome continua valendo para quem ja o usa (achado A55). */
+import { chaveDaPalavra as chaveComparavel } from '../texto/palavra';
+export { chaveComparavel };
 
 /* ─────────────────────────── O VEREDITO ─────────────────────────── */
 

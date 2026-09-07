@@ -34,7 +34,7 @@ meRouter.get('/', async (req, res) => {
   try {
     res.json(await perfilRepo.ler(req.userId))
   } catch (err) {
-    res.status(500).json({ error: erroDeRota(err, { event: 'me_perfil_get_error' }) })
+    res.status(500).json({ error: erroDeRota(err, { status: 500, event: 'me_perfil_get_error' }) })
   }
 })
 
@@ -50,7 +50,7 @@ meRouter.patch('/', async (req, res) => {
     if (!patch) return
     res.json(await perfilRepo.atualizar(req.userId, patch))
   } catch (err) {
-    res.status(500).json({ error: erroDeRota(err, { event: 'me_perfil_patch_error' }) })
+    res.status(500).json({ error: erroDeRota(err, { status: 500, event: 'me_perfil_patch_error' }) })
   }
 })
 
@@ -70,7 +70,7 @@ meRouter.get('/exportar', async (req, res) => {
     res.setHeader('Cache-Control', 'no-store')
     res.json(dados)
   } catch (err) {
-    res.status(500).json({ error: erroDeRota(err, { event: 'me_exportar_error', route: req.path, requestId: req.requestId }) })
+    res.status(500).json({ error: erroDeRota(err, { status: 500, event: 'me_exportar_error', route: req.path, requestId: req.requestId }) })
   }
 })
 
@@ -178,7 +178,7 @@ meRouter.delete('/', async (req, res) => {
     }
     res.json({ ok: true, ...relatorio, arquivos: { apagados, falhas: [] }, login })
   } catch (err) {
-    res.status(500).json({ error: erroDeRota(err, { event: 'me_excluir_conta_error', route: req.path, requestId: req.requestId }) })
+    res.status(500).json({ error: erroDeRota(err, { status: 500, event: 'me_excluir_conta_error', route: req.path, requestId: req.requestId }) })
   }
 })
 
@@ -220,7 +220,7 @@ meRouter.get('/uso', async (req, res) => {
       tokensDeLlm: { usado: tokens, teto: null },
     })
   } catch (err) {
-    res.status(500).json({ error: erroDeRota(err, { event: 'me_route_error' }) })
+    res.status(500).json({ error: erroDeRota(err, { status: 500, event: 'me_route_error' }) })
   }
 })
 
@@ -245,6 +245,6 @@ meRouter.get('/entitlements', async (req, res) => {
     // `Infinity` não sobrevive ao JSON (vira null); `null` diz "sem teto" de forma explícita.
     res.json({ ...entitlements, armazenamento: { usados, teto: Number.isFinite(teto) ? teto : null } })
   } catch (err) {
-    res.status(500).json({ error: erroDeRota(err, { event: 'me_route_error' }) })
+    res.status(500).json({ error: erroDeRota(err, { status: 500, event: 'me_route_error' }) })
   }
 })

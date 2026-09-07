@@ -19,7 +19,20 @@ import { ipKeyGenerator } from 'express-rate-limit'
 import { usageCountersRepo } from '../db/repositories/usageCounters'
 import { asUserId } from './authContext'
 
+/**
+ * UMA METRICA POR LIMITADOR, e nao uma so para todos (auditoria de 2026-09-07, achado A27).
+ *
+ * Os dois limitadores do `server.ts` criavam stores com a MESMA metrica, a mesma chave e a mesma
+ * janela: o contador era um so. Na pratica o teto de escrita (120/min) e o de rotas caras (60/min)
+ * se canibalizavam — 60 salvamentos de transcricao esgotavam a cota de IA da pessoa, e o limite
+ * anunciado no cabecalho `RateLimit-*` nao correspondia a nenhum dos dois.
+ *
+ * Metricas distintas separam os baldes. `METRIC_RATELIMIT` continua exportada como o PREFIXO, para
+ * a poda e os testes falarem da familia inteira.
+ */
 export const METRIC_RATELIMIT = 'ratelimit'
+export const METRIC_RATELIMIT_CARO = 'ratelimit:caro'
+export const METRIC_RATELIMIT_ESCRITA = 'ratelimit:escrita'
 
 /**
  * A chave do balde: o TENANT, não o IP. Cai no IP só onde não há usuário resolvido
@@ -37,7 +50,7 @@ interface StoreOptions { windowMs: number }
  * Store do express-rate-limit sobre o banco. `localKeys: false` avisa a lib que o contador
  * NÃO é local ao processo — é o que desliga o aviso de dupla contagem e documenta a intenção.
  */
-export function createDbRateLimitStore() {
+export function createDbRateLimitStore(metric: string = METRIC_RATELIMIT) {
   let windowMs = 60_000
   let podarEm = 0
 
@@ -50,7 +63,7 @@ export function createDbRateLimitStore() {
     if (agora < podarEm) return
     podarEm = agora + 5 * windowMs
     // Mantém o balde atual e o anterior; apaga o resto.
-    try { await usageCountersRepo.prune(METRIC_RATELIMIT, balde(agora - windowMs)) } catch { /* poda é best-effort */ }
+    try { await usageCountersRepo.prune(metric, balde(agora - windowMs)) } catch { /* poda é best-effort */ }
   }
 
   return {
@@ -62,7 +75,7 @@ export function createDbRateLimitStore() {
 
     async increment(key: string) {
       const w = balde()
-      const totalHits = await usageCountersRepo.incrementAndGet(asUserId(key), METRIC_RATELIMIT, w)
+      const totalHits = await usageCountersRepo.incrementAndGet(asUserId(key), metric, w)
       void podarSePreciso()
       // Fim do balde atual = início do próximo.
       const resetTime = new Date((Math.floor(Date.now() / windowMs) + 1) * windowMs)
@@ -71,11 +84,11 @@ export function createDbRateLimitStore() {
 
     async decrement(key: string) {
       // Só faz sentido dentro do balde corrente; `refund` já tem piso em zero.
-      await usageCountersRepo.refund(asUserId(key), METRIC_RATELIMIT, balde())
+      await usageCountersRepo.refund(asUserId(key), metric, balde())
     },
 
     async resetKey(key: string) {
-      await usageCountersRepo.reset(asUserId(key), METRIC_RATELIMIT, balde())
+      await usageCountersRepo.reset(asUserId(key), metric, balde())
     },
   }
 }

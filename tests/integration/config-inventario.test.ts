@@ -53,7 +53,7 @@ function variaveisLidas(): Map<string, string[]> {
     for (const m of fonte.matchAll(/process\.env\.([A-Z][A-Z0-9_]*)/g)) anota(m[1], arquivo)
     for (const m of fonte.matchAll(/process\.env\[['"]([A-Z][A-Z0-9_]*)['"]\]/g)) anota(m[1], arquivo)
     for (const m of fonte.matchAll(/(?<![\w.])env\.([A-Z][A-Z0-9_]*)/g)) anota(m[1], arquivo)
-    for (const m of fonte.matchAll(/const\s*\{([^}]+)\}\s*=\s*env\b/g)) {
+    for (const m of fonte.matchAll(/const\s*\{([^}]+)\}\s*=\s*(?:process\.)?env\b/g)) {
       for (const bruto of m[1].split(',')) {
         const nome = bruto.split(':')[0].trim()
         if (/^[A-Z][A-Z0-9_]*$/.test(nome)) anota(nome, arquivo)

@@ -11,7 +11,7 @@
  */
 import { mkdirSync } from 'node:fs'
 import { dirname, join } from 'node:path'
-import { and, eq, isNull } from 'drizzle-orm'
+import { and, eq, gt, isNull } from 'drizzle-orm'
 import { migrate } from 'drizzle-orm/libsql/migrator'
 import { client, db } from './db'
 import { vocabCards } from './schema'
@@ -73,13 +73,27 @@ export async function schemaPresente(): Promise<boolean> {
  * NÃO-destrutivo: preserva `box`/`dueAt` e só ADICIONA stability/difficulty/reps/lapses/
  * lastReview. `box <= 1` (cartas novas) ficam intactas — o FSRS define o estado na 1ª nota.
  * @returns quantos cartões migraram.
+ *
+ * O TETO DE 5.000 é o que impede a varredura de crescer sem fim (auditoria de 2026-09-07, achado
+ * A53). Ela roda a CADA boot e lê toda linha de `vocab_cards` sem estado FSRS — o que inclui
+ * permanentemente as cartas novas (`box <= 1`), que nunca migram por desenho. Num acervo grande e
+ * com o cluster, isso é a mesma leitura repetida por processo, a cada restart, para migrar zero.
+ *
+ * Migração idempotente é para acabar: quando restar um lote, ele migra e a consulta seguinte não
+ * acha mais nada. O teto só garante que o boot não fique refém do tamanho do acervo; o que sobrar
+ * entra no próximo restart, e o log diz que sobrou.
  */
+const TETO_DA_MIGRACAO_LEITNER = 5_000
+
 export async function migrarLeitnerParaFsrs(): Promise<number> {
   const now = Date.now()
   const candidatos = await db
     .select()
     .from(vocabCards)
-    .where(and(isNull(vocabCards.deletedAt), isNull(vocabCards.stability)))
+    /* `box > 1` na CONSULTA, e não só no laço: as cartas novas são a maioria de um acervo em
+       crescimento e eram lidas inteiras a cada boot para serem descartadas linha a linha. */
+    .where(and(isNull(vocabCards.deletedAt), isNull(vocabCards.stability), gt(vocabCards.box, 1)))
+    .limit(TETO_DA_MIGRACAO_LEITNER)
   let migrados = 0
   for (const card of candidatos) {
     const antes = toState(card)

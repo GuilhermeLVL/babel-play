@@ -101,7 +101,7 @@ sessionsRouter.get('/:id/capa', async (req, res) => {
     res.setHeader('Cache-Control', 'private, max-age=86400')
     return res.send(capa.bytes)
   } catch (err) {
-    return res.status(500).json({ error: erroDeRota(err, { event: 'session_cover_error', route: req.path, requestId: req.requestId }) })
+    return res.status(500).json({ error: erroDeRota(err, { status: 500, event: 'session_cover_error', route: req.path, requestId: req.requestId }) })
   }
 })
 
@@ -121,7 +121,7 @@ sessionsRouter.post('/utterances/relabel', async (req, res) => {
   try {
     res.json({ changed: await utterancesRepo.relabel(req.userId, payload.items) })
   } catch (err) {
-    res.status(400).json({ error: erroDeRota(err, { event: 'sessions_route_error', route: req.path, requestId: req.requestId }) })
+    res.status(400).json({ error: erroDeRota(err, { status: 400, event: 'sessions_route_error', route: req.path, requestId: req.requestId }) })
   }
 })
 
@@ -149,7 +149,7 @@ sessionsRouter.post('/', async (req, res) => {
     const { session: created, jaExistia } = await sessionsRepo.criarOuReusar(req.userId, session, utterances)
     res.json(jaExistia ? { ...created, jaExistia: true } : created)
   } catch (err) {
-    res.status(400).json({ error: erroDeRota(err, { event: 'sessions_route_error', route: req.path, requestId: req.requestId }) })
+    res.status(400).json({ error: erroDeRota(err, { status: 400, event: 'sessions_route_error', route: req.path, requestId: req.requestId }) })
   }
 })
 
@@ -205,14 +205,31 @@ sessionsRouter.post(
         await liberarArmazenamento(req.userId, delta) // reserva sem arquivo é cota perdida
         throw err
       }
-      // Outra extensão que a anterior: sem isto o arquivo antigo fica órfão e o delta mente.
+      /**
+       * O ARQUIVO ANTIGO QUE NAO SAIU E DITO, nao engolido (auditoria de 2026-09-07, achado A29).
+       *
+       * O `catch` vazio dizia "orfao; a reconciliacao corrige" — e a reconciliacao de fato
+       * corrige a COTA. O que ela nao faz e avisar: o upload respondia `{ok:true}` e o byte
+       * continuava no disco, ocupando espaco que a pessoa acha que liberou. O upload nao falha
+       * por causa disso (o audio novo esta gravado e e o que importa), mas a resposta conta.
+       */
+      let orfaoNaoRemovido: string | null = null
       if (anterior && anterior !== file) {
-        try { await armazenamentoDeMidia.remover(anterior) } catch { /* órfão; a reconciliação corrige */ }
+        try {
+          await armazenamentoDeMidia.remover(anterior)
+        } catch (err) {
+          orfaoNaoRemovido = String((err as Error)?.message ?? err).slice(0, 160)
+          log('warn', { event: 'audio_anterior_nao_removido', route: req.path, error: orfaoNaoRemovido })
+        }
       }
       await sessionsRepo.setAudio(req.userId, p.id, file, contentType)
-      res.json({ ok: true, audioUrl: `/api/sessions/${p.id}/audio` })
+      res.json({
+        ok: true,
+        audioUrl: `/api/sessions/${p.id}/audio`,
+        ...(orfaoNaoRemovido ? { aviso: 'o áudio anterior não pôde ser removido e ainda ocupa espaço', code: 'orfao_nao_removido' } : {}),
+      })
     } catch (err) {
-      res.status(500).json({ error: erroDeRota(err, { event: 'sessions_route_error', route: req.path, requestId: req.requestId }) })
+      res.status(500).json({ error: erroDeRota(err, { status: 500, event: 'sessions_route_error', route: req.path, requestId: req.requestId }) })
     }
   }
 )
@@ -263,6 +280,10 @@ sessionsRouter.get('/:id/audio', async (req, res) => {
 
 // Atualiza campos escalares da sessão (renomear, ajustar duração/contagem).
 sessionsRouter.patch('/:id', async (req, res) => {
+  /* PARAMETRO VALIDADO como em toda rota que le `:id` — era leitura crua de `req.params`
+     (auditoria de 2026-09-07, achado A28). */
+  const alvo = parseOr400(idParamSchema, req.params, res)
+  if (!alvo) return
   // P2-1: `kind`/`status` sem teto e números negativos passavam direto para o banco.
   const b = parseOr400(patchSessionSchema, req.body, res)
   if (!b) return
@@ -273,28 +294,32 @@ sessionsRouter.patch('/:id', async (req, res) => {
     if (typeof b.status === 'string') patch.status = b.status
     if (typeof b.durationMs === 'number') patch.durationMs = b.durationMs
     if (typeof b.wordCount === 'number') patch.wordCount = b.wordCount
-    const updated = await sessionsRepo.update(req.userId, req.params.id, patch)
+    const updated = await sessionsRepo.update(req.userId, alvo.id, patch)
     if (!updated) { res.status(404).json({ error: 'sessão não encontrada' }); return }
     // Mesma razão do GET: a capa embutida não volta inteira a cada edição (achado A62).
-    res.json({ ...updated, meta: aliviarMeta(updated.meta, req.params.id) })
+    res.json({ ...updated, meta: aliviarMeta(updated.meta, alvo.id) })
   } catch (err) {
-    res.status(400).json({ error: erroDeRota(err, { event: 'sessions_route_error', route: req.path, requestId: req.requestId }) })
+    res.status(400).json({ error: erroDeRota(err, { status: 400, event: 'sessions_route_error', route: req.path, requestId: req.requestId }) })
   }
 })
 
 // Substitui TODAS as falas da sessão (fluxo "retomar captura"). Recalcula `wordCount`.
 sessionsRouter.put('/:id/utterances', async (req, res) => {
+  /* PARAMETRO VALIDADO como em toda rota que le `:id` — era leitura crua de `req.params`
+     (auditoria de 2026-09-07, achado A28). */
+  const alvo = parseOr400(idParamSchema, req.params, res)
+  if (!alvo) return
   // Aceita tanto `{ utterances: [...] }` (contrato do cliente) quanto um array cru (legado).
   const normalized = Array.isArray(req.body) ? { utterances: req.body } : req.body
   const payload = parseOr400(replaceUtterancesSchema, normalized, res)
   if (!payload) return
   try {
-    const updated = await sessionsRepo.replaceUtterances(req.userId, req.params.id, payload.utterances)
+    const updated = await sessionsRepo.replaceUtterances(req.userId, alvo.id, payload.utterances)
     if (!updated) { res.status(404).json({ error: 'sessão não encontrada' }); return }
     // Mesma razão do GET: a capa embutida não volta inteira a cada edição (achado A62).
-    res.json({ ...updated, meta: aliviarMeta(updated.meta, req.params.id) })
+    res.json({ ...updated, meta: aliviarMeta(updated.meta, alvo.id) })
   } catch (err) {
-    res.status(400).json({ error: erroDeRota(err, { event: 'sessions_route_error', route: req.path, requestId: req.requestId }) })
+    res.status(400).json({ error: erroDeRota(err, { status: 400, event: 'sessions_route_error', route: req.path, requestId: req.requestId }) })
   }
 })
 
@@ -313,13 +338,17 @@ sessionsRouter.patch('/utterances/:uid', async (req, res) => {
     if (!updated) { res.status(404).json({ error: 'fala não encontrada' }); return }
     res.json(updated)
   } catch (err) {
-    res.status(400).json({ error: erroDeRota(err, { event: 'sessions_route_error', route: req.path, requestId: req.requestId }) })
+    res.status(400).json({ error: erroDeRota(err, { status: 400, event: 'sessions_route_error', route: req.path, requestId: req.requestId }) })
   }
 })
 
 // Mescla campos no `meta` da sessão (pin/capa da Biblioteca). Só aceita chaves conhecidas.
 // `imageUrl: null` ou string vazia limpa a capa; `pinned` vira booleano.
 sessionsRouter.patch('/:id/meta', async (req, res) => {
+  /* PARAMETRO VALIDADO como em toda rota que le `:id` — era leitura crua de `req.params`
+     (auditoria de 2026-09-07, achado A28). */
+  const alvo = parseOr400(idParamSchema, req.params, res)
+  if (!alvo) return
   // P2-N5 / resto do P2-1: era `req.body` cru. `isSafeImageUrl` aceitava `data:image/` de
   // qualquer tamanho, então até ~5mb de base64 iam para a coluna `meta` de cada sessão.
   const body = parseOr400(patchMetaSchema, req.body, res)
@@ -335,12 +364,12 @@ sessionsRouter.patch('/:id/meta', async (req, res) => {
       }
       patch.imageUrl = raw
     }
-    const updated = await sessionsRepo.patchMeta(req.userId, req.params.id, patch)
+    const updated = await sessionsRepo.patchMeta(req.userId, alvo.id, patch)
     if (!updated) { res.status(404).json({ error: 'sessão não encontrada' }); return }
     // Mesma razão do GET: a capa embutida não volta inteira a cada edição (achado A62).
-    res.json({ ...updated, meta: aliviarMeta(updated.meta, req.params.id) })
+    res.json({ ...updated, meta: aliviarMeta(updated.meta, alvo.id) })
   } catch (err) {
-    res.status(400).json({ error: erroDeRota(err, { event: 'sessions_route_error', route: req.path, requestId: req.requestId }) })
+    res.status(400).json({ error: erroDeRota(err, { status: 400, event: 'sessions_route_error', route: req.path, requestId: req.requestId }) })
   }
 })
 

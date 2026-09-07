@@ -762,27 +762,6 @@ export async function salvarRodada(payload: {
   }
 }
 
-/** Persiste o resultado de um exercício. Best-effort: NUNCA lança — quem chama decide o que fazer. */
-export async function saveExerciseResult(
-  payload: ExerciseResultPayload,
-): Promise<GravacaoDeExercicio> {
-  try {
-    const res = await apiFetch('/api/exercises/results', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
-    })
-    if (!res.ok) {
-      // O corpo do 400 diz QUAL campo o zod barrou — é a diferença entre "some sem explicação"
-      // e "score: teto excedido". Ler o corpo pode falhar por si só; não deixa isso derrubar.
-      const motivo = await res.text().catch(() => '')
-      return { ok: false, status: res.status, motivo: motivo.slice(0, 300) || res.statusText }
-    }
-    return { ok: true, row: (await res.json()) as ExerciseResultRow }
-  } catch (erro) {
-    return { ok: false, status: null, motivo: erro instanceof Error ? erro.message : 'rede' }
-  }
-}
 
 /**
  * `origem` recorta no SERVIDOR. Quem lê isto (a tela de jogos, para remontar a última rodada de

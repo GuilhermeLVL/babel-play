@@ -36,7 +36,7 @@ async function paraJogo(req: Parameters<Parameters<typeof vocabRouter.get>[1]>[0
       filtro: q.filtro,
     }))
   } catch (err) {
-    res.status(400).json({ error: erroDeRota(err, { event: 'vocab_route_error', route: req.path, requestId: req.requestId }) })
+    res.status(400).json({ error: erroDeRota(err, { status: 400, event: 'vocab_route_error', route: req.path, requestId: req.requestId }) })
   }
 }
 
@@ -65,7 +65,7 @@ vocabRouter.get('/pagina', async (req, res) => {
       ordem: q.ordem ?? 'recentes',
     }))
   } catch (err) {
-    res.status(400).json({ error: erroDeRota(err, { event: 'vocab_route_error', route: req.path, requestId: req.requestId }) })
+    res.status(400).json({ error: erroDeRota(err, { status: 400, event: 'vocab_route_error', route: req.path, requestId: req.requestId }) })
   }
 })
 
@@ -77,7 +77,7 @@ vocabRouter.get('/distribuicao-dificuldade', async (req, res) => {
     log('info', { event: 'dificuldade_distribuicao', requestId: req.requestId, maiorFaixaPct: d.maiorFaixaPct, tipoDeCorte: d.cortes.tipo, total: d.total })
     res.json(d)
   } catch (err) {
-    res.status(400).json({ error: erroDeRota(err, { event: 'vocab_route_error', route: req.path, requestId: req.requestId }) })
+    res.status(400).json({ error: erroDeRota(err, { status: 400, event: 'vocab_route_error', route: req.path, requestId: req.requestId }) })
   }
 })
 
@@ -86,7 +86,7 @@ vocabRouter.get('/inicio-da-contagem', async (req, res) => {
   try {
     res.json(await vocabRepo.inicioDaContagem(req.userId))
   } catch (err) {
-    res.status(400).json({ error: erroDeRota(err, { event: 'vocab_route_error', route: req.path, requestId: req.requestId }) })
+    res.status(400).json({ error: erroDeRota(err, { status: 400, event: 'vocab_route_error', route: req.path, requestId: req.requestId }) })
   }
 })
 
@@ -97,7 +97,7 @@ vocabRouter.get('/:id/ocorrencias', async (req, res) => {
   try {
     res.json(await vocabRepo.ocorrencias(req.userId, p.id))
   } catch (err) {
-    res.status(400).json({ error: erroDeRota(err, { event: 'vocab_route_error', route: req.path, requestId: req.requestId }) })
+    res.status(400).json({ error: erroDeRota(err, { status: 400, event: 'vocab_route_error', route: req.path, requestId: req.requestId }) })
   }
 })
 
@@ -107,7 +107,7 @@ vocabRouter.post('/bulk-add', async (req, res) => {
   try {
     res.json(await vocabRepo.bulkAdd(req.userId, payload.cards))
   } catch (err) {
-    res.status(400).json({ error: erroDeRota(err, { event: 'vocab_route_error', route: req.path, requestId: req.requestId }) })
+    res.status(400).json({ error: erroDeRota(err, { status: 400, event: 'vocab_route_error', route: req.path, requestId: req.requestId }) })
   }
 })
 
@@ -122,7 +122,7 @@ vocabRouter.post('/relabel', async (req, res) => {
   try {
     res.json({ changed: await vocabRepo.relabel(req.userId, payload.items) })
   } catch (err) {
-    res.status(400).json({ error: erroDeRota(err, { event: 'vocab_route_error', route: req.path, requestId: req.requestId }) })
+    res.status(400).json({ error: erroDeRota(err, { status: 400, event: 'vocab_route_error', route: req.path, requestId: req.requestId }) })
   }
 })
 
@@ -146,7 +146,7 @@ vocabRouter.patch('/:id', async (req, res) => {
        na tela assim que alguém editasse a tradução (achado A20). */
     res.json({ ...card, ...(await vocabRepo.procedenciaDe(req.userId, p.id)) })
   } catch (err) {
-    res.status(400).json({ error: erroDeRota(err, { event: 'vocab_route_error', route: req.path, requestId: req.requestId }) })
+    res.status(400).json({ error: erroDeRota(err, { status: 400, event: 'vocab_route_error', route: req.path, requestId: req.requestId }) })
   }
 })
 
@@ -159,7 +159,7 @@ vocabRouter.post('/:id/review', async (req, res) => {
     const atualizado = await vocabRepo.review(req.userId, req.params.id, payload.grade as Grade)
     res.json({ ...atualizado, ...(await vocabRepo.procedenciaDe(req.userId, req.params.id)) })
   } catch (err) {
-    res.status(400).json({ error: erroDeRota(err, { event: 'vocab_route_error', route: req.path, requestId: req.requestId }) })
+    res.status(400).json({ error: erroDeRota(err, { status: 400, event: 'vocab_route_error', route: req.path, requestId: req.requestId }) })
   }
 })
 

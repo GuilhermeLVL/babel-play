@@ -111,13 +111,11 @@ function embaralhar<T>(xs: T[]): T[] {
 }
 
 /** Normalização usada para casar com o baralho: sem acento, sem caixa, só letras e números. */
-export function chaveDaPalavra(s: string): string {
-  return (s ?? '')
-    .normalize('NFD')
-    .replace(/[̀-ͯ]/g, '')
-    .toLowerCase()
-    .replace(/[^\p{L}\p{N}]/gu, '');
-}
+/* A implementacao mudou para `core/texto/palavra.ts`: era byte a byte igual a `chaveComparavel`
+   de `quality.ts`, dois nomes para a mesma funcao (achado A55). O reexporte mantem o nome que os
+   chamadores deste modulo ja usam. */
+import { chaveDaPalavra } from '../texto/palavra';
+export { chaveDaPalavra };
 
 /**
  * Escolhe as próximas palavras de um nível, pulando o que a pessoa já tem.

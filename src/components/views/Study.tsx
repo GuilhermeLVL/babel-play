@@ -3,7 +3,7 @@ import { useExameDePalavra } from '../../lib/useExameDePalavra';
 import { ficharPalavraDoAnalista } from '../../lib/adicionarAoDeck';
 import FraseComLacuna from '../FraseComLacuna';
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { fetchDeck, reviewCard, saveExerciseResult } from '../../data/api';
+import { fetchDeck, reviewCard, salvarRodada } from '../../data/api';
 import { VocabCard, SchedulerType, Recording, ExerciseKind, VocabWord } from '../../types';
 import { stabilityThreshold, formatForCard, ActiveProductionExercise, similarityPercentage } from '../../lib/exercicios';
 import { countDue, isDueNow } from '@core';
@@ -177,12 +177,18 @@ export default function Study({
     }
 
 
-    // Persiste o resultado do exercício (alimenta métricas e streak).
-    saveExerciseResult({
-      sessionId: recording?.id,
+    /* PELO MESMO FUNIL DOS JOGOS (auditoria de 2026-09-07, achado A53).
+       `POST /exercises/results` era a rota por item, anterior a `/rodada`, e continuava viva SO
+       para o Estudo: um gravador legado ao lado do atual, com schema proprio (sem `cardId`) e sem
+       o `roundId` que agrupa a rodada. Duas portas para o mesmo dado significam duas formas do
+       mesmo dado no banco, e as metricas leem as duas. Uma revisao vira uma rodada de um item. */
+    void salvarRodada({
+      roundId: `study-${cardId}-${Date.now()}`,
       exerciseKind,
-      correct: effectiveRating > 1 ? 1 : 0,
-    }).catch(() => {});
+      origem: recording?.id ? `sessao:${recording.id}` : 'estudo',
+      sessionId: recording?.id,
+      itens: [{ cardId, correct: effectiveRating > 1 ? 1 : 0, kind: 'srs' }],
+    });
 
     triggerNextCard();
   };
@@ -879,12 +885,13 @@ export default function Study({
                                 setTypingAttempt(option);
                                 setTypingVerified(true);
                                 // Persiste o resultado do exercício (best-effort) → alimenta métricas.
-                                void saveExerciseResult({
-                                  kind: 'study',
+                                void salvarRodada({
+                                  roundId: `study-mc-${currentCard.id}-${Date.now()}`,
                                   exerciseKind: 'multiple-choice',
-                                  correct: isCorrect ? 1 : 0,
+                                  origem: 'estudo',
+                                  sessionId: currentCard.sourceSessionId,
                                   score: isCorrect ? 1 : 0,
-                                  sessionId: (currentCard as any).sourceSessionId,
+                                  itens: [{ cardId: currentCard.id, correct: isCorrect ? 1 : 0, kind: 'drill' }],
                                 });
                               }}
                               className="p-3 border border-border-subtle rounded-xl font-bold bg-canvas hover:border-accent text-sm hover:bg-surface-hover transition-colors cursor-pointer text-ink"

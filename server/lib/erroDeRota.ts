@@ -49,10 +49,22 @@ export function erroDeRota(err: unknown, ctx: ContextoDeErro): string {
     ? `${cadeiaDeCausas(err)}${err.stack ? `\n${err.stack}` : ''}`
     : String(err)
 
+  /**
+   * NIVEL PELO STATUS: 4xx e `warn`, 5xx e `error` (auditoria de 2026-09-07, achado A29).
+   *
+   * Tudo virava `error`, inclusive um 400 de corpo malformado — que e o cliente errando, nao o
+   * servidor quebrando. Um diario onde a entrada mais comum e "alguem mandou JSON invalido" e um
+   * diario que se aprende a ignorar, e foi assim que os 5xx de verdade ficaram invisiveis.
+   *
+   * Sem `status` declarado, continua `error`: quem nao disse o codigo pode estar respondendo 500,
+   * e errar para o lado do ruido e melhor que errar para o lado do silencio.
+   */
+  const nivel = ctx.status !== undefined && ctx.status >= 400 && ctx.status < 500 ? 'warn' : 'error'
   // `log()` corta o campo `error` para manter a linha JSON legível; o texto integral vai
   // no console.error ao lado, que é o que um operador realmente lê ao investigar.
-  log('error', { ...ctx, error: String(err).slice(0, 300) })
-  console.error(`[${ctx.event}]`, completa)
+  log(nivel, { ...ctx, error: String(err).slice(0, 300) })
+  if (nivel === 'error') console.error(`[${ctx.event}]`, completa)
+  else console.warn(`[${ctx.event}]`, String(err).slice(0, 300))
 
   return ctx.requestId ? `${MENSAGEM_PARA_O_CLIENTE} (req: ${ctx.requestId})` : MENSAGEM_PARA_O_CLIENTE
 }

@@ -5,7 +5,15 @@ import {
   MINIGAME_IDS,
   type ItemOutcome,
 } from '../src/core';
-import { exerciseResultSchema } from '../server/validation';
+/* `exerciseResultSchema` (o gravador POR ITEM, anterior a `/rodada`) foi removido em 07/09 junto
+   com a rota que o usava — eram duas portas para o mesmo dado, com formas diferentes no banco
+   (achado A53). O teto de pontuacao que este arquivo protege continua existindo, agora em
+   `rodadaSchema.score`, que e por onde os nove jogos e o Estudo gravam. */
+import { rodadaSchema } from '../server/validation';
+
+/** O corpo minimo de uma rodada, para o teste falar so do que lhe interessa: o teto do `score`. */
+const rodadaCom = (exerciseKind: string, score: number) =>
+  rodadaSchema.safeParse({ roundId: 'r1', exerciseKind, score, itens: [{ correct: 1 }] });
 
 /**
  * Estes testes travam a ORDENAÇÃO, não os números. Base 10, rápido +5 e sem-dica +3 são
@@ -124,7 +132,7 @@ describe('o teto do servidor aguenta a pontuação real', () => {
       const max = MINIGAMES[id].maxItems;
       const perfeita = Array.from({ length: max }, () => acerto({ ms: 1 }));
       const pior = pontuarRodada(id, perfeita, { sequenciaInicial: 15 }).total;
-      const r = exerciseResultSchema.safeParse({ exerciseKind: id, score: pior });
+      const r = rodadaCom(id, pior);
       expect(r.success, `${id}: score ${pior} recusado pelo servidor`).toBe(true);
     }
   });
@@ -133,6 +141,6 @@ describe('o teto do servidor aguenta a pontuação real', () => {
     const perfeita = Array.from({ length: MINIGAMES.blitz.maxItems }, () => acerto({ ms: 1 }));
     const pontos = pontuarRodada('blitz', perfeita, { sequenciaInicial: 15 }).total;
     expect(pontos).toBeGreaterThan(100);            // continua estourando o teto ANTIGO
-    expect(exerciseResultSchema.safeParse({ exerciseKind: 'blitz', score: pontos }).success).toBe(true);
+    expect(rodadaCom('blitz', pontos).success).toBe(true);
   });
 });

@@ -140,32 +140,10 @@ export const rodadaSchema = z.object({
   })).min(1).max(200),
 })
 
-export const exerciseResultSchema = z.object({
-  sessionId: shortStr(64),
-  kind: shortStr(60),
-  correct: z.number().int().min(0).max(1).optional(),
-  /**
-   * O teto era 100, e isso REJEITAVA rodada boa em silêncio. `scoreRound` do duelo relâmpago
-   * multiplica a sequência (`core/minigames/grade.ts`): 5 acertos seguidos já dão 150, e 20 dão
-   * 900. Como `saveExerciseResult` engolia o `!res.ok`, a rodada inteira sumia — sem histórico,
-   * sem "repetir a última", sem XP de drill. Medido no banco: 53 linhas de blitz, `max(score)`
-   * exatamente 90 (o teto do que passou), só 21 com `item_ref` e UM `round_id` distinto.
-   *
-   * 100.000 é folga deliberada: o pior caso real (duelo, 20 itens, tudo perfeito e rápido) fica
-   * na casa do milhar. O teto continua existindo para barrar valor absurdo, não pontuação boa —
-   * e `tests/pontuacao.test.ts` amarra os dois lados para não divergirem de novo.
-   */
-  score: z.number().min(0).max(100_000).optional(),
-  exerciseKind: shortStr(60),
-  roundId: shortStr(64),
-  /* `item_ref` guarda a palavra ou o id da fala; 400 cobre frase de ditado sem virar campo livre. */
-  itemRef: shortStr(400),
-  attempts: z.number().int().min(0).max(1_000).optional(),
-  /* Teto de 1h por item: acima disso é aba esquecida aberta, não tempo de resposta. */
-  ms: z.number().int().min(0).max(3_600_000).optional(),
-  hinted: z.number().int().min(0).max(1).optional(),
-  origem: shortStr(80),
-}).strip()
+/* `exerciseResultSchema` SAIU com a rota `POST /exercises/results` (achado A53): era o gravador
+   por item, anterior a `/rodada`, e sobreviveu roteado so para o Estudo. O teto de `score` que ele
+   documentava — 100.000, folga deliberada porque o duelo relampago perfeito passa de 900 — vive em
+   `rodadaSchema` acima, e `tests/pontuacao.test.ts` amarra os dois lados. */
 
 /** Filtros do histórico agregado (`GET /api/exercises/historico`), ambos opcionais. */
 export const historicoQuerySchema = z.object({

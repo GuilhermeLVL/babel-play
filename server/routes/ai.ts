@@ -60,7 +60,7 @@ aiRouter.post('/credentials', async (req, res) => {
   try {
     res.json(await credentialsRepo.create(req.userId, payload))
   } catch (err) {
-    res.status(400).json({ error: erroDeRota(err, { event: 'ai_route_error', route: req.path, requestId: req.requestId }) })
+    res.status(400).json({ error: erroDeRota(err, { status: 400, event: 'ai_route_error', route: req.path, requestId: req.requestId }) })
   }
 })
 

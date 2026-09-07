@@ -29,7 +29,7 @@ import type { VocabCard } from '../src/types'
 function carta(id: string, word: string, translation: string, srcLang: string | undefined): VocabCard {
   return {
     id, word, phonetics: '', translation, explanation: '',
-    srcLang, tgtLang: 'pt', frequency: 'medium',
+    srcLang, tgtLang: 'pt', 
     leitnerBox: 1, leitnerDueAt: new Date(0).toISOString(),
     fsrsState: 'New', fsrsStability: 0, fsrsDifficulty: 5,
     fsrsPredictedRetention: 0, fsrsDueAt: new Date(0).toISOString(), inDeck: true,

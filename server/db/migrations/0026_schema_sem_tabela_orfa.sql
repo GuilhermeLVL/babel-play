@@ -1,0 +1,63 @@
+-- SCHEMA SEM TABELA ORFA (auditoria de 2026-09-07, achados A35 e A53).
+--
+-- Quatro tabelas e uma coluna declaradas e nunca usadas. Nao "pouco usadas": ZERO operacoes de
+-- leitura ou escrita em `server/`, e ZERO linhas no banco real. Elas so apareciam nas listas de
+-- exclusao de conta (`conta.ts`) e de tenancy — ou seja, o unico codigo que as conhecia era o que
+-- garantia que elas seriam apagadas junto com o usuario.
+--
+-- O QUE UMA TABELA ORFA CUSTA, e por isso ela sai em vez de ficar "por precaucao":
+--
+--  1. Ela MENTE sobre o produto. `analyses` diz que a analise de sessao e persistida no servidor;
+--     `CachedAnalysis` em `contract.ts` chegava a explicar que "na web vai para `analyses`". Nao
+--     vai, e nunca foi: a analise vive no cliente. Quem le o schema para entender o sistema
+--     entende errado.
+--  2. Ela entra em toda varredura de manutencao. Exclusao de conta, backfill de tenancy, checagem
+--     de drift do drizzle — tres lugares que precisavam saber dela para nada.
+--  3. Ela cria a impressao de que a funcionalidade existe pela metade, quando ela nao existe.
+--
+-- A REGRA JA ERA ESSA: `memory_embeddings` foi removida por este mesmo motivo (o comentario que
+-- ficou em `schema.ts` diz "schema nao e lugar de intencao"). O que faltava era aplica-la.
+--
+-- ── PROFILES ──────────────────────────────────────────────────────────────────────────────────
+-- `settings.active_profile_id` CONTINUA, e nao ha FK: os perfis de IA sao codigo
+-- (`src/gateway/profiles.ts`, `BUILTIN_PROFILES`), e a coluna guarda o id do perfil escolhido.
+-- A tabela `profiles` era a promessa de perfis definidos pelo usuario, que nao existe.
+--
+-- ── ANKI_MEDIA / ANKI_NOTE_MEDIA ──────────────────────────────────────────────────────────────
+-- A change `motor-anki-midia` esta 9/23 e a negociacao de upload nunca foi escrita. `lerApkg` LE a
+-- midia do pacote (`extrairMidia`, com teste), e o importador deliberadamente NAO a grava
+-- (`import.ts` diz isso em comentario). As duas tabelas e `server/lib/ankiMidia.ts` (165 linhas,
+-- zero importadores, nem em teste) sao o andaime de uma entrega que nao aconteceu. Sai o andaime;
+-- a change continua aberta, e quando ela for feita as tabelas voltam num `CREATE TABLE` que
+-- descreve o desenho da epoca em vez do de 2026-08.
+--
+-- ── VOCAB_CARDS.FREQUENCY ─────────────────────────────────────────────────────────────────────
+-- @deprecated no schema desde a F2b, 0 de 2.818 linhas escritas. Quem conta encontro de palavra e
+-- `occurrences`. `ALTER TABLE ... DROP COLUMN` funciona desde o SQLite 3.35 e esta base roda 3.45
+-- (verificado antes de escrever esta migracao).
+--
+-- ── REVERSAO ──────────────────────────────────────────────────────────────────────────────────
+-- Nao ha `down` automatico neste projeto. O `down` manual desta migracao e recriar as quatro
+-- tabelas a partir de `0002`/`0018` e `ALTER TABLE vocab_cards ADD COLUMN frequency integer` —
+-- todas vazias, que e como elas estavam. Nenhum dado e perdido porque nenhum dado existe: as
+-- contagens foram conferidas no banco real (0, 0, 0, 0) no dia desta migracao.
+
+-- ── SEPARADORES ───────────────────────────────────────────────────────────────────────────────
+-- Os marcadores de quebra entre as instrucoes abaixo sao OBRIGATORIOS, e nao decoracao: o migrador
+-- do drizzle divide o arquivo por eles e manda um `execute` por pedaco. Sem eles, a primeira
+-- versao desta migracao foi gravada como aplicada tendo executado SO o primeiro DROP — o banco
+-- ficou com quatro dos cinco objetos de pe e o journal dizendo que estava tudo feito. Migracao que
+-- mente sobre o que aplicou e pior que migracao que falha.
+--
+-- E o marcador nao pode ser CITADO dentro de um comentario: o divisor e uma busca de texto, entao
+-- a mencao dele parte o comentario ao meio e o resto vira SQL invalido. Foi o que aconteceu na
+-- segunda tentativa desta mesma migracao.
+DROP TABLE IF EXISTS anki_note_media;
+--> statement-breakpoint
+DROP TABLE IF EXISTS anki_media;
+--> statement-breakpoint
+DROP TABLE IF EXISTS analyses;
+--> statement-breakpoint
+DROP TABLE IF EXISTS profiles;
+--> statement-breakpoint
+ALTER TABLE vocab_cards DROP COLUMN frequency;

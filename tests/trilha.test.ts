@@ -38,7 +38,7 @@ const FALSA: DadoTrilha = {
 function card(over: Partial<VocabCard> = {}): VocabCard {
   return {
     id: 'c', word: 'house', phonetics: '', translation: 'casa', explanation: '',
-    frequency: 'medium', leitnerBox: 1, leitnerDueAt: '', fsrsState: 'New',
+    leitnerBox: 1, leitnerDueAt: '', fsrsState: 'New',
     fsrsStability: 0, fsrsDifficulty: 5, fsrsPredictedRetention: 0, fsrsDueAt: '',
     inDeck: true, srcLang: 'en', ...over,
   };

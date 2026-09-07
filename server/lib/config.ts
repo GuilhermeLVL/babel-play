@@ -75,7 +75,6 @@ export interface VariavelDeclarada {
  * saudável e falha no primeiro request que precisa delas.
  */
 export const VARIAVEIS: readonly VariavelDeclarada[] = [
-  { nome: 'ANKI_MEDIA_DIR', exigencia: 'opcional', criticidade: 'degrada-capacidade', paraQue: 'diretório da mídia importada do Anki; sem ela, `data/anki-media` local' },
   { nome: 'ARMAZENAMENTO_COMPARTILHADO', exigencia: 'opcional', criticidade: 'degrada-capacidade', paraQue: '1 declara que as réplicas montam o MESMO volume; sem isso, REPLICAS>1 exige S3 (ver server/lib/diretorios.ts)' },
   { nome: 'ASAAS_API_KEY', exigencia: 'opcional', criticidade: 'degrada-capacidade', paraQue: 'cobrança no Asaas; ausente, as rotas de compra e assinatura respondem indisponível' },
   { nome: 'ASAAS_BASE_URL', exigencia: 'opcional', criticidade: 'degrada-capacidade', paraQue: 'endpoint do Asaas (sandbox ou produção)' },

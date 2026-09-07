@@ -4,7 +4,7 @@ import type { VocabCard } from '../src/types';
 
 const card = (word: string, id = word): VocabCard => ({
   id, word, phonetics: '', translation: 't', explanation: '',
-  frequency: 'medium', leitnerBox: 1, leitnerDueAt: '', fsrsState: 'New',
+  leitnerBox: 1, leitnerDueAt: '', fsrsState: 'New',
   fsrsStability: 0, fsrsDifficulty: 5, fsrsPredictedRetention: 0, fsrsDueAt: '', inDeck: true,
 });
 const semSorte = <T,>(xs: T[]) => [...xs];

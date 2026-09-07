@@ -183,6 +183,13 @@
       "when": 1788818000000,
       "tag": "0025_combo_da_rodada",
       "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "6",
+      "when": 1788820000000,
+      "tag": "0026_schema_sem_tabela_orfa",
+      "breakpoints": true
     }
   ]
 }

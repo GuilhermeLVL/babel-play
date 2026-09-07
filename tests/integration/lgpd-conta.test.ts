@@ -26,14 +26,14 @@ const SEGREDO = (id: string) => `sk-CHAVE-DO-${id}-nunca-real-00000`
 const TABELAS: [string, string][] = [
   ['sessions', 'userId'], ['utterances', 'userId'], ['vocabCards', 'userId'],
   ['vocabOccurrences', 'userId'], ['reviewLogs', 'userId'], ['exerciseResults', 'userId'],
-  ['analyses', 'userId'], ['settings', 'userId'],
-  ['profiles', 'userId'], ['userInterests', 'userId'], ['providerCredentials', 'userId'],
+  ['settings', 'userId'],
+  ['userInterests', 'userId'], ['providerCredentials', 'userId'],
   ['seedSpends', 'userId'], ['subscriptions', 'userId'], ['usageCounters', 'userId'],
   ['ankiDecks', 'userId'], ['ankiImports', 'userId'], ['ankiNotes', 'userId'],
   /* As seis que a auditoria de 2026-09-07 (A06) achou fora da exclusão: dado do titular que
      sobrevivia a DELETE /api/me e não aparecia na exportação. */
   ['seedCredits', 'userId'], ['creditPurchases', 'userId'], ['creditSpends', 'userId'],
-  ['presencas', 'userId'], ['ankiMedia', 'userId'], ['ankiNoteMedia', 'userId'],
+  ['presencas', 'userId'],
   ['billingEvents', 'userId'],
 ]
 
@@ -68,11 +68,6 @@ beforeAll(async () => {
   ;({ subscriptionsRepo } = await h.load('../../server/db/repositories/subscriptions'))
   ;({ usersRepo } = await h.load('../../server/db/repositories/users'))
 
-  // Perfil BUILTIN (user_id NULL, compartilhado): a exclusão de um titular não pode levá-lo junto.
-  await db.insert(schema.profiles).values({
-    id: 'perfil-builtin', createdAt: 1, updatedAt: 1, userId: null, name: 'global', builtin: 1,
-  })
-
   for (const id of ['A', 'B', 'C']) semeados[id] = await semear(id)
 })
 
@@ -104,8 +99,6 @@ async function semear(id: string): Promise<Semeado> {
   await db.insert(schema.vocabOccurrences).values({ id: `occ-${id}`, ...meta, cardId: `card-${id}`, occurredAt: now, originKind: 'sessao', originRef: sessao.id })
   await db.insert(schema.reviewLogs).values({ id: `rev-${id}`, ...meta, cardId: `card-${id}`, reviewedAt: now, grade: 3 })
   await db.insert(schema.exerciseResults).values({ id: `ex-${id}`, ...meta, kind: 'quiz', correct: 1, exerciseKind: 'blitz' })
-  await db.insert(schema.analyses).values({ id: `an-${id}`, ...meta, sessionId: sessao.id, analysis: '{}' })
-  await db.insert(schema.profiles).values({ id: `prof-${id}`, ...meta, name: `perfil-${id}` })
   /* Acervo Anki: o baralho vem ANTES da nota (FK), e a nota aponta para o cartão de vocabulário —
      é essa aresta que faz a exclusão falhar se `anki_notes` for apagada depois de `vocab_cards`. */
   await db.insert(schema.ankiDecks).values({ id: `deck-${id}`, ...meta, nome: `baralho-${id}`, arquivoOrigem: `${id}.apkg` })
@@ -123,8 +116,6 @@ async function semear(id: string): Promise<Semeado> {
   await db.insert(schema.creditPurchases).values({ id: `cp-${id}`, ...meta, sku: 'c100', creditos: 100, valorCentavos: 990, status: 'pago' })
   await db.insert(schema.creditSpends).values({ id: `cs-${id}`, ...meta, spendId: `cs-${id}`, amount: 10, reason: 'premium:dourada-1' })
   await db.insert(schema.presencas).values({ id: `pr-${id}`, ...meta, dia: 20700 })
-  await db.insert(schema.ankiMedia).values({ id: `am-${id}`, ...meta, sha256: `sha-${id}`, bytes: 8, contentType: 'audio/mpeg' })
-  await db.insert(schema.ankiNoteMedia).values({ id: `anm-${id}`, ...meta, noteId: `nota-${id}`, mediaId: `am-${id}`, papel: 'audio_palavra', nomeOriginal: `${id}.mp3` })
   await db.insert(schema.billingEvents).values({ id: `evt-${id}`, createdAt: now, provider: 'asaas', event: 'PAYMENT_CONFIRMED', userId: `user-${id}`, providerRef: `pay-${id}` })
 
   return { u, sessaoId: sessao.id, arquivo, credId: cred.id }
@@ -228,8 +219,10 @@ describe('F5-03 — DELETE /api/me', () => {
     expect(res.body.linhasPorTabela.vocabOccurrences).toBe(1)
     expect(res.body.linhasPorTabela.secrets).toBe(1)
     expect(res.body.linhasPorTabela.users).toBe(1)
-    // E as seis do A06 + a linha de rate limit (contada em usageCounters junto com a de quota).
-    for (const nome of ['seedCredits', 'creditPurchases', 'creditSpends', 'presencas', 'ankiMedia', 'ankiNoteMedia']) {
+    /* E as do A06 que ainda existem + a linha de rate limit (contada em usageCounters junto com a
+       de quota). `ankiMedia` e `ankiNoteMedia` saíram do achado porque saíram do banco: a migração
+       0026 removeu as duas, órfãs e vazias. */
+    for (const nome of ['seedCredits', 'creditPurchases', 'creditSpends', 'presencas']) {
       expect(res.body.linhasPorTabela[nome], nome).toBe(1)
     }
     expect(res.body.linhasPorTabela.usageCounters).toBe(2)
@@ -253,10 +246,11 @@ describe('F5-03 — DELETE /api/me', () => {
     expect(await sessionsRepo.get(semeados.B.u, semeados.B.sessaoId)).toBeDefined()
   })
 
-  it('nem no perfil builtin, que é compartilhado (user_id NULL)', async () => {
-    const globais = await db.select().from(schema.profiles).where(eq(schema.profiles.id, 'perfil-builtin'))
-    expect(globais).toHaveLength(1)
-  })
+  /* O caso "perfil builtin compartilhado (user_id NULL) sobrevive à exclusão" SAIU: a tabela
+     `profiles` foi removida pela migração 0026, órfã e vazia. Os perfis de IA são código
+     (`src/gateway/profiles.ts`), e `settings.active_profile_id` guarda o id do escolhido sem FK
+     nenhuma — não há mais linha global que uma exclusão possa levar junto. */
+
 
   /**
    * Falha REAL, sem mock: `rm` sem `recursive` sobre um DIRETÓRIO lança ERR_FS_EISDIR — o mesmo

@@ -18,7 +18,8 @@ let sessionsRepo: any
 let vocabRepo: any
 let contaRepo: any
 
-/** As 9 relações do schema (a 10ª, `memory_embeddings.session_id`, saiu com a tabela — F1-05). */
+/* As 8 relações do schema. Duas saíram com as tabelas que as declaravam: `memory_embeddings`
+   na F1-05 e `analyses` na migração 0026 — as duas por não terem leitor nem escritor. */
 const RELACOES: Array<[filho: string, fk: string, pai: string]> = [
   ['utterances', 'session_id', 'sessions'],
   ['vocab_cards', 'session_id', 'sessions'],
@@ -27,7 +28,6 @@ const RELACOES: Array<[filho: string, fk: string, pai: string]> = [
   ['review_logs', 'card_id', 'vocab_cards'],
   ['exercise_results', 'session_id', 'sessions'],
   ['exercise_results', 'card_id', 'vocab_cards'],
-  ['analyses', 'session_id', 'sessions'],
   ['provider_credentials', 'secret_ref', 'secrets'],
 ]
 
@@ -81,7 +81,6 @@ describe('F0-04 — a FK REJEITA de verdade', () => {
     },
     review_logs: { cols: ['created_at', 'updated_at'], vals: [agora(), agora()] },
     exercise_results: { cols: ['created_at', 'updated_at'], vals: [agora(), agora()] },
-    analyses: { cols: ['created_at', 'updated_at'], vals: [agora(), agora()] },
     provider_credentials: { cols: ['created_at', 'updated_at'], vals: [agora(), agora()] },
   }
 
@@ -175,13 +174,11 @@ describe('F3-04 — as colunas que faltavam para o apagamento em cascata', () =>
     const s = await sessionsRepo.createWithUtterances(u, { title: 'tudo' }, [{ idx: 0, sourceText: 'fala' }])
     const { cards } = await vocabRepo.bulkAdd(u, [{ word: 'threshold', back: 'limiar', srcLang: 'en', sessionId: s.id }])
     await vocabRepo.review(u, cards[0].id, 3)
-    await db.insert(schema.analyses).values({
-      id: `an-${u}`, createdAt: agora(), updatedAt: agora(), userId: u, sessionId: s.id, analysis: '{}',
-    })
+
 
     const relatorio = await contaRepo.excluir(u)
     expect(relatorio.totalDeLinhas).toBeGreaterThan(0)
-    for (const t of ['sessions', 'utterances', 'vocab_cards', 'vocab_occurrences', 'review_logs', 'analyses']) {
+    for (const t of ['sessions', 'utterances', 'vocab_cards', 'vocab_occurrences', 'review_logs']) {
       expect(await linhas(`SELECT id FROM ${t} WHERE user_id = ?`, [u]), t).toEqual([])
     }
     expect(await linhas('PRAGMA foreign_key_check')).toEqual([])

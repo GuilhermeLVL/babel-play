@@ -24,7 +24,7 @@ const JOGOS: MinigameId[] = ['memory', 'wordsearch', 'blitz']
 function carta(p: Partial<VocabCard> & { id: string; word: string }): VocabCard {
   return {
     phonetics: '', translation: '', explanation: '',
-    srcLang: 'en', tgtLang: 'pt', frequency: 'medium',
+    srcLang: 'en', tgtLang: 'pt', 
     leitnerBox: 1, leitnerDueAt: new Date(0).toISOString(),
     fsrsState: 'New', fsrsStability: 0, fsrsDifficulty: 5,
     fsrsPredictedRetention: 0, fsrsDueAt: new Date(0).toISOString(),

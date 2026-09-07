@@ -102,8 +102,6 @@ export const vocabCards = sqliteTable('vocab_cards', {
   sentence: text('sentence'),
   srcLang: text('src_lang'),
   tgtLang: text('tgt_lang'),
-  /** @deprecated nunca foi escrito (0 de 2.126 linhas). Substituído por `occurrences`. */
-  frequency: integer('frequency'),
   inDeck: integer('in_deck'), // 0/1
   box: integer('box'),
   dueAt: integer('due_at'),
@@ -413,32 +411,26 @@ export const presencas = sqliteTable('presencas', {
   uniqueIndex('uq_presencas_user_dia').on(t.userId, t.dia).where(sql`${t.deletedAt} is null`),
 ])
 
-export const analyses = sqliteTable('analyses', {
-  id: text('id').primaryKey(),
-  ...meta,
-  sessionId: text('session_id').notNull().references(() => sessions.id),
-  analyzedAt: integer('analyzed_at'),
-  providerId: text('provider_id'),
-  analysis: text('analysis'), // JSON (SessionAnalysis)
-})
-
 /*
- * F1-05: `memory_embeddings` foi REMOVIDA. Estava em 4 migrations com 0 linhas e nenhum leitor ou
- * escritor — provisionada para `openspec/changes/assistant-agent-rag`, que não foi implementada.
- * Schema não é lugar de intenção: a tabela guardaria TEXTO do usuário + vetor e já entrava na
- * exportação/exclusão da conta (LGPD) sem nunca ter tido dado. Quando o RAG existir, ela volta com
- * a change que a define.
+ * F1-05 / auditoria 2026-09-07: CINCO TABELAS FORAM REMOVIDAS AQUI, todas pelo mesmo motivo, e a
+ * regra vale para a próxima.
+ *
+ * `memory_embeddings` saiu primeiro: estava em 4 migrações com 0 linhas e nenhum leitor ou
+ * escritor, provisionada para uma change que não foi implementada. `analyses`, `profiles`,
+ * `anki_media` e `anki_note_media` saíram pela migração 0026, com a mesma medição: 0 operações em
+ * `server/`, 0 linhas no banco real.
+ *
+ * SCHEMA NÃO É LUGAR DE INTENÇÃO. Uma tabela vazia não é neutra: ela afirma que o produto guarda
+ * aquilo (`analyses` dizia que a análise de sessão é persistida — ela vive no cliente), entra em
+ * toda varredura de exclusão de conta e de tenancy, e faz quem lê o schema entender errado o
+ * sistema. Quando a funcionalidade existir, a tabela volta com a change que a define — e com o
+ * desenho daquele dia, não com o de dois meses antes.
+ *
+ * `settings.active_profile_id` continua e nunca teve FK: os perfis de IA são código
+ * (`src/gateway/profiles.ts`).
+ *
+ * O invariante que impede a próxima: `tests/integration/schema-usado.test.ts`.
  */
-
-export const profiles = sqliteTable('profiles', {
-  id: text('id').primaryKey(),
-  ...meta,
-  name: text('name').notNull(),
-  builtin: integer('builtin'), // 0/1
-  bindings: text('bindings'), // JSON (capacidade → cadeia de bindings)
-  budget: text('budget'), // JSON
-  economyMode: integer('economy_mode'), // 0/1
-})
 
 export const providerCredentials = sqliteTable('provider_credentials', {
   id: text('id').primaryKey(),
@@ -719,54 +711,20 @@ export const ankiImports = sqliteTable('anki_imports', {
   index('idx_anki_imports_user_deck').on(t.userId, t.deckId),
 ])
 
-/**
- * MOTOR ANKI — MÍDIA (`openspec/changes/motor-anki-midia`).
+/*
+ * MOTOR ANKI — MÍDIA: `anki_media` e `anki_note_media` foram REMOVIDAS pela migração 0026.
  *
- * `anki_media` é o ARQUIVO físico (gravado pelo seam `armazenamentoDoAmbiente`, nome derivado do
- * hash em `anki-media/<userId>/<sha256>`); `anki_note_media` é a REFERÊNCIA de uma nota a ele.
- * As duas tabelas são separadas porque N notas podem citar o MESMO arquivo (mesma pronúncia
- * reaproveitada entre baralhos, ou entre frente/frase de exemplo da mesma nota) — sem a separação,
- * dedupe por conteúdo não teria onde morar.
+ * Elas descreviam um desenho cuidadoso (dedupe por usuário e não global, por decisão jurídica
+ * registrada em `motor-anki-midia/design.md`; referência anulável para "citado mas ainda não
+ * enviado") de uma entrega que não aconteceu: a change está 9/23, a negociação de upload nunca
+ * foi escrita, e `server/lib/ankiMidia.ts` — 165 linhas com o storage e a detecção por magic
+ * bytes — não tinha um único importador, nem em teste.
  *
- * Índice único `(user_id, sha256)`, NÃO GLOBAL — decisão jurídica, não técnica (ver design.md,
- * Decisão 2): mídia enviada pelo usuário é cópia privada análoga a cloud storage; um arquivo
- * único servido a MUITOS usuários descaracteriza essa cópia privada e se aproxima de distribuição,
- * que é a fronteira que o programa decidiu não cruzar. Dedupe global economizaria mais disco, mas
- * também tornaria arbitrária a atribuição de cota por plano (de quem é o byte de um arquivo
- * compartilhado?) — então cada usuário paga (e dedupe) só a própria cópia.
+ * O que existe e continua: `lerApkg`/`extrairMidia` LEEM a mídia de dentro do pacote e o
+ * importador deliberadamente não a grava (`server/routes/import.ts` diz isso em comentário).
+ *
+ * As decisões não se perdem — elas estão na change, que continua aberta. O que sai é o andaime no
+ * banco, porque tabela vazia afirma que o produto guarda algo que ele não guarda. Quando a mídia
+ * for entregue, as tabelas voltam com o desenho daquele dia.
  */
-export const ankiMedia = sqliteTable('anki_media', {
-  id: text('id').primaryKey(),
-  ...meta,
-  /** sha256 CALCULADO NO SERVIDOR (nunca o do cliente) — é o nome do objeto no storage. */
-  sha256: text('sha256').notNull(),
-  bytes: integer('bytes').notNull(),
-  /** Detectado por magic bytes (`tipoDeArquivo.ts`), não pelo Content-Type declarado no upload. */
-  contentType: text('content_type').notNull(),
-}, (t) => [
-  index('idx_anki_media_user').on(t.userId, t.deletedAt),
-  uniqueIndex('uq_anki_media_user_sha256').on(t.userId, t.sha256),
-])
 
-/**
- * Referência de UMA nota a UM arquivo de mídia. `mediaId` é ANULÁVEL de propósito: a nota (com
- * `frente`/`verso` já preenchidos por `extrairMidia`) pode existir, e a referência ser conhecida
- * pelo `nomeOriginal`, ANTES de o arquivo em si ter sido enviado (Decisão 1: extração/negociação
- * de mídia acontece na ATIVAÇÃO, não no upload da coleção) — uma linha aqui com `mediaId` nulo é
- * "referenciado, mas ainda faltando", exatamente o que a auditoria de baralho (tasks.md §5.2)
- * precisa mostrar.
- */
-export const ankiNoteMedia = sqliteTable('anki_note_media', {
-  id: text('id').primaryKey(),
-  ...meta,
-  noteId: text('note_id').notNull().references(() => ankiNotes.id),
-  /** Anulável: a referência pode existir sem o arquivo ter chegado (ver comentário da tabela). */
-  mediaId: text('media_id').references(() => ankiMedia.id),
-  /** 'audio_palavra' | 'audio_frase' | 'imagem'. */
-  papel: text('papel').notNull(),
-  /** Nome tal como veio de dentro do `.apkg` (`palavra.mp3`) — resolve a referência no render. */
-  nomeOriginal: text('nome_original').notNull(),
-}, (t) => [
-  index('idx_anki_note_media_note').on(t.noteId),
-  index('idx_anki_note_media_media').on(t.mediaId),
-])

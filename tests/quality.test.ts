@@ -18,7 +18,7 @@ import type { VocabCard } from '../src/types';
 function card(over: Partial<VocabCard> = {}): VocabCard {
   return {
     id: 'c', word: 'house', phonetics: '', translation: 'casa', explanation: '',
-    frequency: 'medium', leitnerBox: 1, leitnerDueAt: '2026-08-01T00:00:00.000Z',
+    leitnerBox: 1, leitnerDueAt: '2026-08-01T00:00:00.000Z',
     fsrsState: 'Review', fsrsStability: 5, fsrsDifficulty: 5, fsrsPredictedRetention: 0,
     fsrsDueAt: '2026-08-01T00:00:00.000Z', inDeck: true, srcLang: 'en', ...over,
   };

@@ -29,7 +29,7 @@ function carta(word: string, i: number, vencida: boolean): VocabCard {
   const quando = vencida ? agora - 86_400_000 : agora + 86_400_000;
   return {
     id: `c${i}`, word, translation: `t-${word}`, phonetics: '', explanation: '', inDeck: true,
-    frequency: 'medium', leitnerBox: 1, leitnerDueAt: '', srcLang: 'en',
+    leitnerBox: 1, leitnerDueAt: '', srcLang: 'en',
     fsrsState: vencida ? 'Review' : 'New', fsrsStability: vencida ? 2 : 0, fsrsDifficulty: 5,
     fsrsPredictedRetention: 0.9, fsrsDueAt: new Date(quando).toISOString(),
     stability: vencida ? 2 : undefined, dueAt: quando,

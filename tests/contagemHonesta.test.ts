@@ -99,7 +99,7 @@ describe('contagemDaFonte — decide qual número vai para a tela', () => {
 describe('a aritmética sobre um baralho sujo, como o real', () => {
   const carta = (p: Partial<VocabCard> & { id: string; word: string }): VocabCard => ({
     phonetics: '', translation: '', explanation: '', srcLang: 'en', tgtLang: 'pt',
-    frequency: 'medium', leitnerBox: 1, leitnerDueAt: new Date(0).toISOString(),
+    leitnerBox: 1, leitnerDueAt: new Date(0).toISOString(),
     fsrsState: 'New', fsrsStability: 0, fsrsDifficulty: 5, fsrsPredictedRetention: 0,
     fsrsDueAt: new Date(0).toISOString(), inDeck: true, ...p,
   } as VocabCard)

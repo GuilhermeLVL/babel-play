@@ -66,7 +66,7 @@ describe('Termo — teclado acumulado', () => {
 
 const card = (over: Partial<VocabCard> = {}): VocabCard => ({
   id: 'c', word: 'house', phonetics: '', translation: 'casa', explanation: '',
-  frequency: 'medium', leitnerBox: 1, leitnerDueAt: '', fsrsState: 'Review',
+  leitnerBox: 1, leitnerDueAt: '', fsrsState: 'Review',
   fsrsStability: 5, fsrsDifficulty: 5, fsrsPredictedRetention: 0,
   fsrsDueAt: new Date(Date.now() + 86400000).toISOString(), inDeck: true, ...over,
 });

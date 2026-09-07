@@ -9,7 +9,7 @@ const DIA = 86_400_000;
 function card(over: Partial<VocabCard> = {}): VocabCard {
   return {
     id: 'c1', word: 'w', phonetics: '', translation: 't', explanation: '',
-    frequency: 'medium', leitnerBox: 1, leitnerDueAt: iso(-DIA),
+    leitnerBox: 1, leitnerDueAt: iso(-DIA),
     fsrsState: 'Review', fsrsStability: 5, fsrsDifficulty: 5, fsrsPredictedRetention: 0,
     fsrsDueAt: iso(-DIA), inDeck: true, ...over,
   };

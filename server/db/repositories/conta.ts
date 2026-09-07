@@ -13,8 +13,8 @@ import { SQLiteTable } from 'drizzle-orm/sqlite-core'
 import { db } from '../db'
 import * as schema from '../schema'
 import {
-  analyses, ankiDecks, ankiImports, ankiMedia, ankiNoteMedia, ankiNotes, billingEvents, creditPurchases,
-  creditSpends, exerciseResults, presencas, profiles, providerCredentials, reviewLogs, secrets, seedCredits, seedSpends,
+  ankiDecks, ankiImports, ankiNotes, billingEvents, creditPurchases,
+  creditSpends, exerciseResults, presencas, providerCredentials, reviewLogs, secrets, seedCredits, seedSpends,
   sessions, settings, subscriptions, usageCounters, userInterests, users, utterances, vocabCards,
   vocabOccurrences,
 } from '../schema'
@@ -25,7 +25,8 @@ import type { UserId } from '../../lib/authContext'
  *
  * A ORDEM É FILHO ANTES DE PAI, e agora ela é obrigatória: com as FOREIGN KEY declaradas (F0-04),
  * o DELETE de `sessions` antes do de `utterances` viola a constraint e o `batch` inteiro sobe erro.
- * `memoryEmbeddings` saiu da lista junto com a tabela (F1-05).
+ * `memoryEmbeddings` saiu da lista junto com a tabela (F1-05), e `analyses`, `profiles`,
+ * `ankiMedia` e `ankiNoteMedia` saíram pelo mesmo motivo na 0026.
  *
  * A LISTA CONTINUA ESCRITA À MÃO — a ordem de FK não se deduz do schema sem um grafo — mas deixou
  * de ser a única fonte: `conferirCobertura()` abaixo compara com o schema no carregamento do
@@ -39,7 +40,6 @@ const TABELAS_DO_TITULAR: ReadonlyArray<readonly [string, any]> = [
   ['vocabOccurrences', vocabOccurrences],
   ['reviewLogs', reviewLogs],
   ['exerciseResults', exerciseResults],
-  ['analyses', analyses],
   ['utterances', utterances],
   /* O ACERVO ANKI ENTRA AQUI, E ANTES DE `vocabCards` — não é ordem alfabética, é a FOREIGN KEY.
      `anki_notes.projected_card_id` referencia `vocab_cards`, e com `foreign_keys = ON` apagar o
@@ -47,16 +47,12 @@ const TABELAS_DO_TITULAR: ReadonlyArray<readonly [string, any]> = [
      constraint, e a promessa da LGPD viraria a mesma promessa não cumprida que este arquivo
      existe para consertar. Esquecer as três tabelas seria pior ainda em silêncio — o baralho
      importado (com o conteúdo que a pessoa escolheu trazer) sobreviveria ao pedido de eliminação. */
-  // A referência de mídia aponta para a nota E para o arquivo: sai antes das duas.
-  ['ankiNoteMedia', ankiNoteMedia],
-  ['ankiMedia', ankiMedia],
   ['ankiNotes', ankiNotes],
   ['ankiImports', ankiImports],
   ['ankiDecks', ankiDecks],
   ['vocabCards', vocabCards],
   ['sessions', sessions],
   ['settings', settings],
-  ['profiles', profiles],
   ['userInterests', userInterests],
   // Antes de `secrets` (apagada fora do laço): é a filha de `secret_ref`.
   ['providerCredentials', providerCredentials],

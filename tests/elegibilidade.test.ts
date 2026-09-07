@@ -25,7 +25,6 @@ function carta(word: string, translation: string): VocabCard {
     explanation: '',
     srcLang: 'en',
     tgtLang: 'pt',
-    frequency: 'medium',
     leitnerBox: 1,
     leitnerDueAt: new Date(0).toISOString(),
     fsrsState: 'New',

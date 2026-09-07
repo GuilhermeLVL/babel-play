@@ -4,9 +4,14 @@
  *
  * `server/lib/config.ts` se apresenta como "o contrato": é ele que `/api/health` e o boot usam para
  * dizer o que falta. Só que ele era mantido à mão, e o código foi crescendo por fora: `S3_*`,
- * `ASAAS_*`, `LLM_RESERVA_*`, `*_STORAGE_MB` e `ANKI_MEDIA_DIR` eram lidas em produção e não
- * apareciam no inventário — um operador que seguisse o contrato subia um SaaS sem cobrança, sem
- * armazenamento de objetos e sem provedor de reserva, e nada avisava.
+ * `ASAAS_*`, `LLM_RESERVA_*` e `*_STORAGE_MB` eram lidas em produção e não apareciam no
+ * inventário — um operador que seguisse o contrato subia um SaaS sem cobrança, sem armazenamento
+ * de objetos e sem provedor de reserva, e nada avisava.
+ *
+ * O teste corta nos DOIS sentidos, e o segundo já apareceu: `ANKI_MEDIA_DIR` entrou no inventário
+ * naquela mesma correção e saiu em 07/09, quando `server/lib/ankiMidia.ts` — seu único leitor, e
+ * um módulo sem nenhum importador — foi removido junto com as tabelas de mídia. Variável declarada
+ * que ninguém lê é a mesma mentira do outro lado.
  *
  * Um documento que precisa de disciplina para não mentir mente. Este teste varre o código e falha
  * quando alguém lê uma variável que o inventário não declara, ou declara uma que ninguém lê.

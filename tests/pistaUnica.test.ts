@@ -22,7 +22,7 @@ function carta(id: string, word: string, translation: string, sentence = ''): Vo
   const agora = Date.now();
   return {
     id, word, translation, sentence, phonetics: '', explanation: '', inDeck: true,
-    frequency: 'medium', leitnerBox: 1, leitnerDueAt: '', srcLang: 'en',
+    leitnerBox: 1, leitnerDueAt: '', srcLang: 'en',
     fsrsState: 'New', fsrsStability: 0, fsrsDifficulty: 5, fsrsPredictedRetention: 0.9,
     fsrsDueAt: new Date(agora + 86_400_000).toISOString(), dueAt: agora + 86_400_000,
   } as never;

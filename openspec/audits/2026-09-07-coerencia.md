@@ -31,6 +31,7 @@ A primeira change foi executada com a saida (b): a camada nao rastreada foi comm
 | A57, A58 (performance) | `arranque-leve-e-payloads-enxutos` (`75b0aa2`) | `/profile` 95 ms para 43 ms p50; refetch de 2,17 MB por rodada eliminado |
 | A24 (dedup) | `modo-anonimo-em-paridade` (parcial, `f794a39`) | Uma `chaveDedup` para as duas pontas; 501 deixa de virar erro de tela |
 | A03, A14, A18, A26 (economia) | `seeds-e-creditos-fonte-unica` | `valorDoCredito` decide TODO credito nas duas pontas; gasto atomico dentro do INSERT; coluna `combo`; `capturaMinutos` e `idiomas` no perfil; 22 linhas historicas reconciliadas (2.923 para 2.004 Seeds) |
+| A35, A53 (schema) | `schema-sem-tabela-orfa` | Quatro tabelas orfas, a coluna `frequency` e `ankiMidia.ts` removidos (migracao 0026); `recalcularDificuldade` ganha gatilho na rodada; invariante que barra a proxima tabela sem uso |
 
 Os numeros do relatorio abaixo sao os da medicao original (07/09), preservados: o valor de uma auditoria e o retrato do dia em que foi feita.
 

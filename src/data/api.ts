@@ -433,7 +433,6 @@ export function rowToVocabCard(row: VocabRow): VocabCard {
     daAnki: !!(row as { daAnki?: boolean }).daAnki,
     /** Tarefa 1.3 de motor-anki-jogos: ver docblock de `VocabCard.baralhosAnki`. */
     baralhosAnki: (row as { baralhosAnki?: string[] }).baralhosAnki ?? [],
-    frequency: 'medium',
     leitnerBox: row.box ?? 1,
     leitnerDueAt: dueIso,
     fsrsState: fsrsStateOf(row),

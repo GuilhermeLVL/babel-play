@@ -40,8 +40,12 @@ describe('tabelas do titular', () => {
     expect(sobrando, `na lista sem user_id no schema: ${sobrando.join(', ')}`).toEqual([])
   })
 
-  it('as seis tabelas do achado A06 estão cobertas', () => {
-    for (const nome of ['seedCredits', 'creditPurchases', 'creditSpends', 'presencas', 'ankiMedia', 'ankiNoteMedia']) {
+  /* O achado A06 listava SEIS tabelas do titular fora da lista de exclusão. Duas delas
+     (`anki_media`, `anki_note_media`) deixaram de existir na migração 0026: eram órfãs, sem
+     leitor nem escritor e sem uma linha. Cobrir uma tabela que não existe não protege ninguém —
+     quem impede que elas voltem sem uso é `tests/integration/schema-usado.test.ts`. */
+  it('as quatro tabelas do achado A06 que ainda existem estão cobertas', () => {
+    for (const nome of ['seedCredits', 'creditPurchases', 'creditSpends', 'presencas']) {
       expect(NOMES_DAS_TABELAS_DO_TITULAR, nome).toContain(nome)
     }
   })
@@ -56,14 +60,11 @@ describe('tabelas do titular', () => {
     antes('reviewLogs', 'vocabCards')
     antes('exerciseResults', 'vocabCards')
     antes('exerciseResults', 'sessions')
-    antes('analyses', 'sessions')
-    antes('ankiNoteMedia', 'ankiNotes')
-    antes('ankiNoteMedia', 'ankiMedia')
     antes('ankiNotes', 'ankiDecks')
     antes('ankiNotes', 'vocabCards')
     antes('ankiImports', 'ankiDecks')
     antes('vocabCards', 'sessions')
     // Nome real no banco, para o relatório de exclusão bater com o que o titular vê.
-    expect(getTableName(schema.ankiNoteMedia)).toBe('anki_note_media')
+    expect(getTableName(schema.ankiNotes)).toBe('anki_notes')
   })
 })

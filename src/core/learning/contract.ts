@@ -31,13 +31,12 @@ export interface SessionAnalysis {
   progressNote: string
 }
 
-/** Análise cacheada (no desktop era cifrada em disco; na web vai para `analyses`). */
-export interface CachedAnalysis {
-  sessionId: string
-  analyzedAt: number
-  providerId: string
-  analysis: SessionAnalysis
-}
+/* `CachedAnalysis` FOI REMOVIDO daqui junto com a tabela `analyses` (migração 0026).
+ *
+ * O tipo era um resquício do lift do app desktop, e o próprio comentário dizia "no desktop era
+ * cifrada em disco; na web vai para `analyses`". Não ia: nunca houve rota, nunca houve escrita,
+ * e a tabela fechou com zero linhas. A análise de sessão é do CLIENTE — quem a quiser persistir
+ * escreve a rota e o tipo no mesmo dia, com o formato que a rota realmente aceitar. */
 
 /**
  * Métricas agregadas de DADOS REAIS (metrics-pipeline). Contrato ÚNICO entre o servidor

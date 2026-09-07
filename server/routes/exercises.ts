@@ -1,6 +1,7 @@
 /** Rotas de exercícios (montadas em `/api/exercises`). */
 import { Router } from 'express'
 import { exerciseResultsRepo } from '../db/repositories/exerciseResults'
+import { vocabRepo } from '../db/repositories/vocab'
 import { rodadaSchema, historicoQuerySchema, recordesQuerySchema, parseOr400, exerciseResultsQuerySchema } from '../validation'
 import { erroDeRota } from '../lib/erroDeRota'
 
@@ -53,7 +54,32 @@ exercisesRouter.post('/rodada', async (req, res) => {
   const payload = parseOr400(rodadaSchema, req.body, res)
   if (!payload) return
   try {
-    res.json(await exerciseResultsRepo.addRodada(req.userId, payload))
+    const gravacao = await exerciseResultsRepo.addRodada(req.userId, payload)
+    res.json(gravacao)
+
+    /**
+     * A DIFICULDADE PASSA A TER GATILHO — este era o chamador que faltava.
+     *
+     * `recalcularDificuldade` estava escrita, testada em dois arquivos de integração, e sem um
+     * único chamador de produção. O efeito medido na auditoria de 07/09: `difficulty_score` NULL
+     * em 2.818 de 2.818 cartões, `palavrasDificeis` sempre `[]`, o recorte "difíceis" do filtro
+     * facetado e a estratégia `em-dificuldade` selecionando nada. Uma função correta que ninguém
+     * chama entrega o mesmo que uma função que não existe.
+     *
+     * SÓ OS CARTÕES DA RODADA, e não a varredura de 7 dias: é o desempenho DESTES itens que
+     * acabou de mudar. A varredura larga continua disponível pela mesma função (sem `cardIds`)
+     * para quando houver um job.
+     *
+     * DEPOIS do `res.json`, e é deliberado: quem jogou já recebeu a confirmação da rodada. O
+     * recálculo alimenta uma tela que ele vai abrir depois, e não vale segurar a resposta por ele.
+     * Falha aqui é `warn`, nunca 500 — a rodada está gravada, e é isso que a pessoa fez.
+     */
+    const cardIds = [...new Set(payload.itens.map((i) => i.cardId).filter((x): x is string => !!x))]
+    if (cardIds.length) {
+      void vocabRepo.recalcularDificuldade(req.userId, cardIds).catch((err) => {
+        erroDeRota(err, { status: 200, event: 'dificuldade_pos_rodada', route: req.path, requestId: req.requestId })
+      })
+    }
   } catch (err) {
     res.status(400).json({ error: erroDeRota(err, { status: 400, event: 'exercises_route_error', route: req.path, requestId: req.requestId }) })
   }

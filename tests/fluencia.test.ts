@@ -56,7 +56,7 @@ function carta(word: string, opts: { estabilidade?: number | null; diasAtras?: n
   const { estabilidade = 100, diasAtras = 0 } = opts
   return {
     id: `c-${word}`, word, phonetics: '', translation: `t-${word}`, explanation: '',
-    srcLang: 'en', tgtLang: 'pt', frequency: 'medium',
+    srcLang: 'en', tgtLang: 'pt', 
     leitnerBox: 1, leitnerDueAt: new Date(0).toISOString(),
     fsrsState: 'Review',
     fsrsStability: estabilidade ?? 0,

@@ -18,7 +18,7 @@ const semSorte = <T,>(xs: T[]) => [...xs];
 function card(over: Partial<VocabCard> = {}): VocabCard {
   return {
     id: 'c', word: 'house', phonetics: '', translation: 'casa', explanation: '',
-    frequency: 'medium', leitnerBox: 1, leitnerDueAt: iso(+DIA),
+    leitnerBox: 1, leitnerDueAt: iso(+DIA),
     fsrsState: 'Review', fsrsStability: 5, fsrsDifficulty: 5, fsrsPredictedRetention: 0,
     fsrsDueAt: iso(+DIA), inDeck: true, srcLang: 'en', ...over,
   } as VocabCard;

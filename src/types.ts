@@ -98,7 +98,11 @@ export interface VocabCard {
    * sobre "quais baralhos este cartão pertence" — sem isto ele só sabia dizer "é anki", nunca QUAL.
    */
   baralhosAnki?: string[];
-  frequency: 'high' | 'medium' | 'low';
+  /* `frequency: 'high' | 'medium' | 'low'` FOI REMOVIDO (auditoria 2026-09-07).
+     Era um campo OBRIGATÓRIO que ninguém lia e que `rowToVocabCard` preenchia com `'medium'`
+     cravado — um rótulo de frequência que não media frequência nenhuma, custando uma linha em
+     cada uma das 15 fixtures de teste. Quem conta encontro de palavra é `occurrences`, que vem
+     do banco. A coluna `vocab_cards.frequency`, também nunca escrita, saiu na migração 0026. */
   leitnerBox: number; // 1 to 5
   leitnerDueAt: string; // ISO date or descriptive
   fsrsState: 'New' | 'Learning' | 'Review' | 'Relearning';

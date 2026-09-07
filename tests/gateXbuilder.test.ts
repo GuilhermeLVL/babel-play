@@ -31,7 +31,7 @@ import type { VocabCard } from '../src/types'
 function carta(word: string, translation: string): VocabCard {
   return {
     id: `c-${word}`, word, phonetics: '', translation, explanation: '',
-    srcLang: 'en', tgtLang: 'pt', frequency: 'medium',
+    srcLang: 'en', tgtLang: 'pt', 
     leitnerBox: 1, leitnerDueAt: new Date(0).toISOString(),
     fsrsState: 'New', fsrsStability: 0, fsrsDifficulty: 5,
     fsrsPredictedRetention: 0, fsrsDueAt: new Date(0).toISOString(), inDeck: true,

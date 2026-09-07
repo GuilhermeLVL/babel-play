@@ -57,8 +57,7 @@ interface LojaProps {
   menuPosition: MenuPositionType;
   setMenuPosition: (p: MenuPositionType) => void;
   onOpenStudio: () => void;
-  /** Contexto das conquistas (montado no App). A aba "Conquistas" mora aqui na edição leve,
-   *  onde o Perfil não existe. */
+  /** Contexto das conquistas (montado no App), para a aba "Conquistas" desta tela. */
   ctxConquistas: ContextoDeConquistas | null;
   /** Perfil de exibição — editado na aba Meu visual (único dono desde 2026-08-28). */
   ageProfile: AgeProfileType;
@@ -69,7 +68,7 @@ interface LojaProps {
   aoTrocarDeAba?: (aba: string) => void;
   /** v3: o contexto único de equipar (App). Opcional só para os testes de tela. */
   equiparCtx?: ContextoDeEquipar;
-  /** Leva à porta de entrada. Ausente = self-host/edição leve, onde não há conta. */
+  /** Leva à porta de entrada. Ausente = self-host, onde não há conta. */
   onEntrar?: () => void;
 }
 

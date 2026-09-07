@@ -4,7 +4,6 @@ import { PerfilAdaptativoDeIdioma, destinoDaTraducao } from '../../lib/perfilDeI
 import { OrdemDasTraducoes } from '../../lib/ordemDaTraducao';
 import { traduzirVersos, explicarParada } from '../../lib/versosDoVocabulario';
 import { apiFetch } from '../../data/api';
-import { EDICAO_LEVE } from '../../lib/edicao';
 import { cenarioDasFontes } from '../../lib/cenarioDeCaptura';
 import { getEntitlements } from '../../lib/entitlements';
 import BuscaDeCapa from '../BuscaDeCapa';
@@ -357,9 +356,7 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
   const [deviceLabelsReady, setDeviceLabelsReady] = useState(false);
   // Motor de transcrição do MICROFONE: 'browser' = Web Speech (rápido, leve, ótimo p/ PT — PADRÃO)
   // ou 'whisper' = getUserMedia+VAD+Whisper local (offline, escolhe dispositivo). Persistido.
-  // EDIÇÃO LEVE: padrão Whisper — a Web Speech ignora a dica de idioma por fala, o filtro de
-  // vazamento e a preparação da fala, e no cenário conversa transcreve a caixa de som como "você".
-  const [micEngine, setMicEngine] = useState<'browser' | 'whisper'>(EDICAO_LEVE ? 'whisper' : 'browser');
+  const [micEngine, setMicEngine] = useState<'browser' | 'whisper'>('browser');
   const webSpeechSupported = typeof window !== 'undefined' && ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window);
   // Velocidade do TTS (escutar tradução/palavra). Persistida em settings.ui.
   const [ttsSpeed, setTtsSpeed] = useState(1.0);
@@ -859,10 +856,7 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
       try { ui = s?.ui ? JSON.parse(s.ui) : {}; } catch { ui = {}; }
       if (ui.audioInputId) setInputDeviceId(ui.audioInputId);
       if (ui.audioOutputId) setOutputDeviceId(ui.audioOutputId);
-      // Leve: só existe "aba/tela". Uma escolha antiga salva ('loopback'/'server') ficava ativa sem
-      // aparecer no seletor e bloqueava a captura (medido no teste do dono, 2026-08-26).
-      if (EDICAO_LEVE) setSystemSource('display');
-      else if (ui.systemSource === 'display' || ui.systemSource === 'loopback' || ui.systemSource === 'server') setSystemSource(ui.systemSource);
+      if (ui.systemSource === 'display' || ui.systemSource === 'loopback' || ui.systemSource === 'server') setSystemSource(ui.systemSource);
       if (ui.loopbackDeviceId) setLoopbackDeviceId(ui.loopbackDeviceId);
       if (typeof ui.ttsSpeed === 'number') setTtsSpeed(ui.ttsSpeed);
       if (ui.micEngine === 'browser' || ui.micEngine === 'whisper') setMicEngine(ui.micEngine);
@@ -1625,7 +1619,7 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
     // conteúdo (tiny erra feio fora do EN) — nuvem-primeiro quando disponível, senão o
     // melhor modelo local viável no dispositivo. O selo da UI reflete a rota.
     // Pelo funil: sem conta responde 501 → `cloudAvailable=false` → rota local, que é o correto.
-    const cloudAvailable = EDICAO_LEVE ? false : await apiFetch('/api/ai/stt/available').then(r => r.ok).catch(() => false);
+    const cloudAvailable = await apiFetch('/api/ai/stt/available').then(r => r.ok).catch(() => false);
     const route = routeStt({
       contentLang: listenLang,
       // O mesmo modelo decodifica o MIC: se você fala PT enquanto ouve EN, "tiny de inglês" não serve.
@@ -3470,8 +3464,8 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
                         <span>Foco Cheio</span>
                       </button>
 
-                      {/* BINGO — transforma assistir em jogo sem atrapalhar a captura. Fora da leve: Jogar já é uma tela. */}
-                      {!EDICAO_LEVE && <button
+                      {/* BINGO — transforma assistir em jogo sem atrapalhar a captura. */}
+                      <button
                         onClick={() => setShowBingo(v => !v)}
                         aria-pressed={showBingo}
                         title="Cartela de palavras que acende quando você as ouve"
@@ -3481,7 +3475,7 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
                       >
                         <LayoutGrid className="w-3.5 h-3.5" />
                         <span>Bingo</span>
-                      </button>}
+                      </button>
 
                       {/* O botão "Visual" saiu daqui: eram três botões disputando a mesma linha, e
                           o ajuste de fontes/tamanhos da transcrição pertence ao mesmo lugar que os

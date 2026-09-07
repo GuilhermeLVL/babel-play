@@ -1,4 +1,3 @@
-import { EDICAO_LEVE } from '../lib/edicao'
 /**
  * ROTEADOR DE MODELO STT — a camada inteligente que escolhe o motor de transcrição
  * conforme o IDIOMA da sessão, o dispositivo e a política do usuário.
@@ -92,18 +91,6 @@ export function routeStt(input: SttRouteInput): SttRoute {
   const isEnglish = !autoDetect && lang === 'en' && (!micLang || micLang === 'en')
   /** Melhor modelo LOCAL viável para conteúdo não-EN neste dispositivo. */
   const bestLocal = hasWebGpu ? WHISPER_MODELS.small : WHISPER_MODELS.base
-  /*
-   * EDIÇÃO LEVE (hospedada): rápido por PADRÃO. O `auto` escolhia o `small` (880 MB) em quem tem
-   * WebGPU e o `base` em WASM de 1 thread em quem não tem — era a "lentidão" relatada. Aqui `auto`
-   * é tiny (inglês) / base (resto), independente de GPU; `accurate` continua existindo, mas só
-   * por escolha explícita em Ajustes.
-   */
-  if (EDICAO_LEVE && (quality === 'auto' || quality === 'cloud')) {
-    if (isEnglish) return { localModel: WHISPER_MODELS.tiny, preferCloud: false, label: 'local · inglês (tiny)' }
-    const micNaoIngles = !!micLang && micLang !== 'en' && lang === 'en'
-    return { localModel: WHISPER_MODELS.base, preferCloud: false, label: micNaoIngles ? `local · base (você fala ${micLang})` : 'local · rápido (base)' }
-  }
-
   switch (quality) {
     case 'fast':
       return { localModel: WHISPER_MODELS.tiny, preferCloud: false, label: 'local · modelo rápido (tiny)' }

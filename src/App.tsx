@@ -1,6 +1,4 @@
 import React, { useState, useEffect, useMemo, useRef, Suspense } from 'react';
-import { EDICAO_LEVE } from './lib/edicao';
-import OnboardingLeve from './components/OnboardingLeve';
 import LayoutEditorToolbar from './components/LayoutEditorToolbar';
 import PracticeMenu from './components/PracticeMenu';
 import Hub from './components/views/Hub'; // tela inicial, eager p/ primeiro paint instantâneo
@@ -172,7 +170,6 @@ export default function App() {
       const rota = (ev as CustomEvent<{ rota: string }>).detail?.rota ?? '';
       setGate(motivoDoGate(rota));
     };
-    if (EDICAO_LEVE) return;
     window.addEventListener(EVENTO_EXIGE_CONTA, h);
     return () => window.removeEventListener(EVENTO_EXIGE_CONTA, h);
   }, []);
@@ -191,7 +188,7 @@ export default function App() {
   const [ageProfile, setAgeProfileState] = useState<AgeProfileType>(readAgeProfile);
 
   const [menuPosition, setMenuPositionState] = useState<MenuPositionType>(
-    () => readStoredEnum(MENU_POSITION_KEY, MENU_POSITIONS, EDICAO_LEVE ? 'left' : 'top')
+    () => readStoredEnum(MENU_POSITION_KEY, MENU_POSITIONS, 'top')
   );
   const [soundEnabled, setSoundEnabledState] = useState<boolean>(() => {
     return readStoredValue('babel.sound_enabled') !== 'false';
@@ -388,7 +385,7 @@ export default function App() {
   // Entitlements: o servidor decide o plano; o cliente só cacheia para pintar. Recarrega quando a
   // sessão muda (login/logout), que é quando a resposta pode mudar.
   useEffect(() => {
-    if (EDICAO_LEVE || (authRequired && !session)) return;
+    if (authRequired && !session) return;
     void carregarEntitlements();
   }, [session]);
 
@@ -551,7 +548,7 @@ export default function App() {
         setDarkMode(applied.darkMode);
         setFonteState(applied.fonte);
         // Sem conta não há onboarding: ele configura credenciais e perfil, que são da conta.
-        setOnboarded(EDICAO_LEVE ? !!ui?.onboarded : estaAnonimo() ? true : !!ui?.onboarded);
+        setOnboarded(estaAnonimo() ? true : !!ui?.onboarded);
       })
       .catch(() => setOnboarded(true)); // se settings falhar, não trava o app
   }, []);
@@ -735,7 +732,7 @@ export default function App() {
   if (onboarded === false) {
     return (
       <Suspense fallback={<div className="flex h-tela w-full items-center justify-center bg-canvas text-ink-muted text-sm">Carregando…</div>}>
-        {EDICAO_LEVE ? <OnboardingLeve onComplete={() => setOnboarded(true)} /> : <Onboarding onComplete={() => setOnboarded(true)} />}
+        <Onboarding onComplete={() => setOnboarded(true)} />
         <Toaster />
       </Suspense>
     );
@@ -821,7 +818,7 @@ export default function App() {
           <FloatingScoreLayer />
         <LayoutEditorToolbar />
         <Suspense fallback={<div className="flex-1 flex items-center justify-center text-ink-muted text-sm">Carregando…</div>}>
-          {!EDICAO_LEVE && anonimo && exigeConta(activeView) && (
+          {anonimo && exigeConta(activeView) && (
             <CartaoDeConvite view={activeView} onEntrar={() => setPedindoLogin(true)} onVoltar={() => setActiveView('hub')} />
           )}
           {activeView === 'hub' && (
@@ -837,7 +834,7 @@ export default function App() {
               ageProfile={ageProfile}
             />
           )}
-          {activeView === 'library' && (EDICAO_LEVE || !anonimo) && (
+          {activeView === 'library' && !anonimo && (
             <Library onChangeView={navigateTo} recordings={recordings} onRecordingsChange={setRecordings} ageProfile={ageProfile} />
           )}
           {/* `selectedRecordingId` e NÃO `selectedRecording`: este último cai na gravação mais
@@ -852,7 +849,7 @@ export default function App() {
               seed={practiceSeed}
             />
           )}
-          {activeView === 'analysis' && (EDICAO_LEVE || !anonimo) && (
+          {activeView === 'analysis' && !anonimo && (
             <Analysis
               onChangeView={navigateTo}
               recording={selectedRecording}
@@ -868,7 +865,7 @@ export default function App() {
               metrics={metrics}
             />
           )}
-          {activeView === 'metrics' && (EDICAO_LEVE || !anonimo) && <Metrics recordings={recordings} onChangeView={navigateTo} ageProfile={ageProfile} metrics={metrics} />}
+          {activeView === 'metrics' && !anonimo && <Metrics recordings={recordings} onChangeView={navigateTo} ageProfile={ageProfile} metrics={metrics} />}
 
           {activeView === 'profile' && !anonimo && <Perfil progress={progress} ageProfile={ageProfile} />}
           {/* Plano e consumo. Diferente do Perfil, aparece TAMBÉM sem conta: é justamente
@@ -933,12 +930,12 @@ export default function App() {
           É o que elimina o maior atrito da app, antes, para praticar um trecho, o usuário tinha de
           sair da tela, achar a Central de Exercícios (que nem view de primeiro nível era) e ainda
           assim o exercício rodava num texto fixo, não no dele. Agora o conteúdo vai até o exercício. */}
-      {!EDICAO_LEVE && <GateDeConta aberto={gate !== null} motivo={gate ?? ''} onFechar={fecharGate} onEntrar={() => { fecharGate(); setPedindoLogin(true); }} />}
-      {!EDICAO_LEVE && <ModalDeMigracao
+      <GateDeConta aberto={gate !== null} motivo={gate ?? ''} onFechar={fecharGate} onEntrar={() => { fecharGate(); setPedindoLogin(true); }} />
+      <ModalDeMigracao
         aberto={migracao}
         onFechar={() => setMigracao(false)}
         onMigrou={() => { fetchSessions().then(setRecordings).catch(() => {}); void carregarEntitlements(); }}
-      />}
+      />
 
       <PracticeMenu
         onChangeView={navigateTo}
@@ -948,8 +945,7 @@ export default function App() {
       {/* Overlays globais (chat + estúdio de layout) — lazy: não pesam no primeiro paint. */}
       <Suspense fallback={null}>
         {/* Global iChat assistant with layout capabilities */}
-        {/* Tutor iChat depende de /api/gemini/chat: fora da edição leve. */}
-        {!EDICAO_LEVE && <IChat
+        <IChat
           activeView={mappedActiveViewForChat}
           selectedRecording={selectedRecording}
           liveTranscription={liveTranscription}
@@ -966,7 +962,7 @@ export default function App() {
           practiceSeed={practiceSeed?.text}
           recordings={recordings}
           ageProfile={ageProfile}
-        />}
+        />
 
         {isStudioOpen && (
           <LayoutStudio

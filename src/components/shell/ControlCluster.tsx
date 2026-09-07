@@ -1,5 +1,4 @@
 import React from 'react';
-import { EDICAO_LEVE } from '../../lib/edicao';
 import {
   Sun,
   Moon,
@@ -211,8 +210,8 @@ export default function ControlCluster(props: ControlClusterProps) {
           responde "quem sou eu e como saio". Mora aqui, e não em `NAV_ITEMS`, porque este cluster
           é a única peça que as quatro posições de menu e a barra do celular compartilham,
           `MobileNav` renderiza a lista de navegação INTEIRA e já está no limite de largura. */}
-      {!EDICAO_LEVE && <div className={orientation === 'column' ? 'hidden' : 'w-px h-5 bg-border-subtle/70 mx-1'} />}
-      {!EDICAO_LEVE && <MenuDaConta onIr={onChangeView} orientation={orientation} />}
+      <div className={orientation === 'column' ? 'hidden' : 'w-px h-5 bg-border-subtle/70 mx-1'} />
+      <MenuDaConta onIr={onChangeView} orientation={orientation} />
 
     </div>
   );

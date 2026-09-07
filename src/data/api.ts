@@ -1102,7 +1102,7 @@ export async function searchImages(q: string): Promise<ImageResult[]> {
       if (data.results?.length) return data.results
     }
   } catch { /* cai no direto */ }
-  /* Sem servidor (edição leve / API fora): busca DIRETO no Openverse — API pública, sem chave e
+  /* Com a API fora do ar: busca DIRETO no Openverse — API pública, sem chave e
      com CORS, o mesmo provedor que o proxy do servidor usa. Só a PALAVRA pesquisada sai daqui,
      num gesto explícito do usuário (hover/clique); nada da sessão. */
   try {

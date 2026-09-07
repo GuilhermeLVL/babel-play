@@ -14,12 +14,12 @@
  * recursos do servidor (régua CEFR, wordlist, reconciliação) ficam para a migração — o servidor
  * reaplica tudo quando os dados sobem.
  */
-import { EDICAO_LEVE } from '../../lib/edicao';
 import { abrirStore, type CartaoLocal, type ExercicioLocal, type FalaLocal, type SessaoLocal } from './store';
 import { Fsrs5Strategy, type Grade, type SchedulingState } from '../../core/learning/scheduler';
 import type { AppMetrics } from '../../core/learning/contract';
 import { diaLocal, marcosDeSequencia, minutosPremiados, sequencias } from '../../core/learning/economia';
 import { economiaDeMetricas } from '../../core/learning/xp';
+import { historicoDeXp } from '../../core/learning/historicoDeXp';
 import { valorDoCredito, autorizarGasto, ehRecusa } from '../../core/economiaAutoridade';
 import { MINIGAMES } from '../../core/minigames/types';
 import { estadoDoTeto, motivoDoTeto } from '../../core/tetoAnonimo';
@@ -43,8 +43,7 @@ const uuid = (): string =>
  * do áudio do sistema), sem banco, sem custo e sem dado de usuário. O próprio servidor decide se
  * existem (no modo público responde 403) — o cliente só pergunta. É a única exceção ao "nada sai".
  */
-// Na edição leve não há servidor nenhum: nem essa sonda sai (era um 503 no console a cada abertura).
-const PASSAM_DIRETO: RegExp[] = EDICAO_LEVE ? [] : [/^\/api\/audio\/loopback\//];
+const PASSAM_DIRETO: RegExp[] = [/^\/api\/audio\/loopback\//];
 
 /**
  * Só AÇÕES da pessoa avisam o App para oferecer a conta. Sondas automáticas (disponibilidade de
@@ -59,7 +58,7 @@ const ACOES_QUE_CONVIDAM: RegExp[] = [
 
 /** Resposta padronizada para o que não existe sem conta. Em ação da pessoa, avisa o App. */
 export function naoDisponivelSemConta(rota: string): Response {
-  if (!EDICAO_LEVE && typeof window !== 'undefined' && ACOES_QUE_CONVIDAM.some((r) => r.test(rota))) {
+  if (typeof window !== 'undefined' && ACOES_QUE_CONVIDAM.some((r) => r.test(rota))) {
     window.dispatchEvent(new CustomEvent(EVENTO_EXIGE_CONTA, { detail: { rota } }));
   }
   /* `code` além de `codigo`: o envelope de erro do servidor real é `{ error, code?, detalhes? }`
@@ -423,12 +422,129 @@ async function gravarRodada(_m: RegExpMatchArray, _u: URL, init: RequestInit): P
   return json({ ok: true, gravados: itens.length });
 }
 
-async function gravarResultado(_m: RegExpMatchArray, _u: URL, init: RequestInit): Promise<Response> {
-  const p = lerJson(init);
+/* `POST /api/exercises/results` SAIU (07/09). Ela era o gravador POR ITEM, anterior a `/rodada`,
+   e o Express a removeu na mudanca `servicos-sem-duplicata` — o cliente passou a gravar tudo por
+   `/rodada`. Manter o espelho de uma rota que o servidor real nao tem e o mesmo tipo de
+   divergencia que esta change existe para fechar, so que na direcao contraria: sem conta
+   funcionaria algo que com conta responde 404. */
+
+/**
+ * A CURVA DE XP — a mesma funcao do servidor real (`historicoDeXp`, do core).
+ *
+ * Esta rota nao existia aqui: a aba de Progresso levava um 501 e o grafico ficava vazio para quem
+ * estuda sem conta. O que faltava nao era o dado — as tres colecoes estao no IndexedDB — era
+ * alguem soma-las. Copiar a agregacao do servidor resolveria a tela e criaria a segunda verdade;
+ * a formula foi para o core e as duas pontas passaram a chama-la.
+ */
+async function historicoDeXpLocal(_m: RegExpMatchArray, url: URL): Promise<Response> {
   const db = await abrirStore();
-  const linha = exercicioDe(p, p, Date.now());
-  await db.put('exercicios', linha);
-  return json(linha);
+  const [sessoes, revisoes, exercicios] = await Promise.all([
+    db.getAll('sessoes'), db.getAll('revisoes'), db.getAll('exercicios'),
+  ]);
+  const balde = url.searchParams.get('balde') === 'semana' ? 'semana' : 'dia';
+  const desde = Number(url.searchParams.get('desde') ?? 0) || undefined;
+  return json(historicoDeXp({
+    sessoes: sessoes.map((s) => ({ em: s.createdAt, palavras: s.wordCount ?? 0 })),
+    revisoes: revisoes.map((r) => ({ em: r.reviewedAt ?? 0, certa: (r.grade ?? 0) >= 3 })),
+    /* `kind === 'drill'` e o mesmo discriminador das duas pontas: um item que gravou nota no
+       agendador JA esta em `revisoes`, e conta-lo de novo inflaria a curva. */
+    itensDeJogo: exercicios.filter((e) => e.kind === 'drill').map((e) => ({ em: e.createdAt, certo: e.correct === 1 })),
+  }, { balde, desde }));
+}
+
+/**
+ * O CATALOGO DE PALAVRAS paginado — busca, filtros e ordenacao.
+ *
+ * No servidor real isto e SQL com cursor composto; aqui e o mesmo contrato sobre um array. A ordem
+ * de aplicacao e a dele (filtra, conta o total, ordena, corta a pagina) porque o `total` que a tela
+ * mostra e o do FILTRO, nao o do acervo — mostrar o acervo inteiro acima de uma lista de doze seria
+ * a mesma contagem desonesta que o resto do app ja corrigiu.
+ */
+async function paginaDeCartoes(_m: RegExpMatchArray, url: URL): Promise<Response> {
+  const db = await abrirStore();
+  const q = url.searchParams;
+  const limite = Math.min(Math.max(Number(q.get('limite') ?? 200) || 200, 1), 500);
+  const ordem = (q.get('ordem') ?? 'recentes') as 'recentes' | 'frequentes' | 'dificuldade' | 'alfabetica';
+  const busca = (q.get('q') ?? '').trim().toLowerCase();
+  const niveis = (q.get('niveis') ?? '').split(',').filter(Boolean);
+  const cursorId = q.get('cursorId');
+
+  let cartoes = (await db.getAll('cartoes')).filter((c) => c.inDeck !== 0);
+  if (busca) {
+    // Palavra E traducao: procurar "alavanc" tem de achar tanto "leverage" quanto o verso.
+    cartoes = cartoes.filter((c) => c.word.toLowerCase().includes(busca) || (c.back ?? '').toLowerCase().includes(busca));
+  }
+  if (niveis.length) {
+    // 'ausente' e um filtro legitimo: "o que eu tenho sem nivel" e uma pergunta real.
+    const querAusente = niveis.includes('ausente');
+    const reais = niveis.filter((n) => n !== 'ausente');
+    cartoes = cartoes.filter((c) => (c.cefrLevel ? reais.includes(c.cefrLevel) : querAusente));
+  }
+  /* `origens` NAO e aplicado aqui, e isto e uma ausencia declarada: a procedencia mora em
+     `vocab_occurrences`, que o modo sem conta nao tem — ele guarda a contagem no cartao, nao a
+     linha do tempo. Filtrar por origem devolveria uma lista vazia em vez de dizer que nao sabe. */
+
+  const total = cartoes.length;
+  const valorDe = (c: CartaoLocal): number | string | null =>
+    ordem === 'recentes' ? c.createdAt
+      : ordem === 'frequentes' ? c.occurrences
+        : ordem === 'dificuldade' ? (c.difficulty ?? null)
+          : c.word;
+
+  cartoes.sort((a, b) => {
+    const va = valorDe(a); const vb = valorDe(b);
+    if (ordem === 'alfabetica') return String(va).localeCompare(String(vb)) || a.id.localeCompare(b.id);
+    return (Number(vb ?? 0) - Number(va ?? 0)) || a.id.localeCompare(b.id);
+  });
+
+  /* O cursor e por ID e nao por valor: a lista ja esta ordenada em memoria, entao "continue depois
+     daquele item" e uma posicao, nao um predicado. No servidor o cursor precisa ser composto
+     porque a ordenacao acontece no SQL. */
+  if (cursorId) {
+    const i = cartoes.findIndex((c) => c.id === cursorId);
+    if (i >= 0) cartoes = cartoes.slice(i + 1);
+  }
+
+  const temMais = cartoes.length > limite;
+  const pagina = cartoes.slice(0, limite);
+  const ultimo = pagina[pagina.length - 1];
+  return json({
+    itens: pagina,
+    total,
+    proximoCursor: temMais && ultimo ? { valor: valorDe(ultimo), id: ultimo.id } : null,
+  });
+}
+
+/**
+ * QUANDO A CONTAGEM DE ENCONTROS COMECOU A VALER.
+ *
+ * A tela usa isto para nao afirmar "visto 1 vez" sobre um cartao anterior a contagem. Sem conta
+ * NAO HA acervo legado: o IndexedDB nasceu depois da contagem, entao todo cartao daqui tem
+ * `occurrences` de verdade. `totalLegado` e zero porque e verdade, nao porque nao sabemos contar.
+ */
+async function inicioDaContagemLocal(): Promise<Response> {
+  const db = await abrirStore();
+  const cartoes = await db.getAll('cartoes');
+  const inicioEm = cartoes.length ? Math.min(...cartoes.map((c) => c.createdAt)) : null;
+  return json({ inicioEm, totalLegado: 0, total: cartoes.length });
+}
+
+/** Apaga um cartao. Sem `deleted_at`: no navegador o apagar e apagar. */
+async function apagarCartao(m: RegExpMatchArray): Promise<Response> {
+  const db = await abrirStore();
+  const c = await db.get('cartoes', m[1]);
+  if (!c) return json({ error: 'cartao nao encontrado' }, 404);
+  await db.delete('cartoes', m[1]);
+  /* As revisoes dele vao junto: uma revisao orfa contaria para as metricas de um cartao que nao
+     existe mais, e o servidor real derruba as duas coisas com a mesma FOREIGN KEY. */
+  for (const r of await db.getAll('revisoes')) if (r.cardId === m[1]) await db.delete('revisoes', r.id);
+  return json({ ok: true });
+}
+
+/** Todas as falas de todas as sessoes — a lista que a busca do acervo le. */
+async function todasAsFalas(): Promise<Response> {
+  const db = await abrirStore();
+  return json(await db.getAll('falas'));
 }
 
 async function listarResultados(_m: RegExpMatchArray, url: URL): Promise<Response> {
@@ -747,6 +863,7 @@ async function entitlementsAnonimos(): Promise<Response> {
 
 const ROTAS: Array<{ metodo: string; padrao: RegExp; handler: Handler }> = [
   { metodo: 'GET', padrao: /^\/api\/sessions$/, handler: listarSessoes },
+  { metodo: 'GET', padrao: /^\/api\/sessions\/utterances\/all$/, handler: todasAsFalas },
   { metodo: 'POST', padrao: /^\/api\/sessions$/, handler: criarSessao },
   { metodo: 'PATCH', padrao: /^\/api\/sessions\/utterances\/([^/]+)$/, handler: atualizarFala },
   { metodo: 'GET', padrao: /^\/api\/sessions\/([^/]+)$/, handler: obterSessao },
@@ -757,15 +874,18 @@ const ROTAS: Array<{ metodo: string; padrao: RegExp; handler: Handler }> = [
   { metodo: 'POST', padrao: /^\/api\/sessions\/([^/]+)\/audio$/, handler: guardarAudio },
   { metodo: 'GET', padrao: /^\/api\/sessions\/([^/]+)\/audio$/, handler: lerAudio },
   { metodo: 'GET', padrao: /^\/api\/vocab$/, handler: listarCartoes },
+  { metodo: 'GET', padrao: /^\/api\/vocab\/pagina$/, handler: paginaDeCartoes },
+  { metodo: 'GET', padrao: /^\/api\/vocab\/inicio-da-contagem$/, handler: inicioDaContagemLocal },
   { metodo: 'POST', padrao: /^\/api\/vocab\/bulk-add$/, handler: adicionarCartoes },
   { metodo: 'PATCH', padrao: /^\/api\/vocab\/([^/]+)$/, handler: editarCartao },
+  { metodo: 'DELETE', padrao: /^\/api\/vocab\/([^/]+)$/, handler: apagarCartao },
   { metodo: 'POST', padrao: /^\/api\/vocab\/([^/]+)\/review$/, handler: revisarCartao },
   { metodo: 'GET', padrao: /^\/api\/metrics\/profile$/, handler: metricas },
+  { metodo: 'GET', padrao: /^\/api\/metrics\/xp$/, handler: historicoDeXpLocal },
   { metodo: 'POST', padrao: /^\/api\/metrics\/seeds\/gastar$/, handler: gastarSeeds },
   { metodo: 'POST', padrao: /^\/api\/metrics\/seeds\/creditar$/, handler: creditarSeeds },
   { metodo: 'POST', padrao: /^\/api\/metrics\/presenca$/, handler: registrarPresenca },
   { metodo: 'POST', padrao: /^\/api\/exercises\/rodada$/, handler: gravarRodada },
-  { metodo: 'POST', padrao: /^\/api\/exercises\/results$/, handler: gravarResultado },
   { metodo: 'GET', padrao: /^\/api\/exercises\/results$/, handler: listarResultados },
   { metodo: 'GET', padrao: /^\/api\/exercises\/historico$/, handler: historicoPorItem },
   { metodo: 'GET', padrao: /^\/api\/exercises\/recordes$/, handler: recordes },

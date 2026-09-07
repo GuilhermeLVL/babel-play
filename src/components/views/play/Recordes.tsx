@@ -4,8 +4,12 @@
  * Pontos, combos e bônus só valem alguma coisa se puderem ser REVISITADOS: esta tela mostra, por
  * jogo, o melhor placar, o combo máximo, a precisão e o volume de rodadas (do IndexedDB, via o
  * mesmo `/api/exercises/recordes` que a tela de fim de rodada usa) — e a aba de ranking global
- * (Pages Function + D1) com o top da comunidade. No ambiente local, sem Functions, o ranking
- * mostra o estado explicativo em vez de dados falsos.
+ * (`/api/rank`) com o top da comunidade.
+ *
+ * O ranking morava numa Pages Function do Cloudflare contra um banco D1, e esta tela dizia "vive
+ * na versão publicada" — uma versão que nunca foi publicada. Ele veio para o servidor do app em
+ * 07/09, com a edição leve. O estado vazio continua existindo, mas agora ele significa o que
+ * qualquer estado vazio significa: não deu para falar com o servidor agora.
  */
 import { useEffect, useState } from 'react';
 import { X, Zap, Target, Globe2, Medal } from 'lucide-react';
@@ -118,8 +122,8 @@ export default function Recordes({ ageProfile, onFechar }: { ageProfile: AgeProf
             ) : ranking === null ? (
               <div className="text-center py-10 px-6">
                 <Globe2 className="w-10 h-10 text-ink-faint mx-auto mb-3" aria-hidden />
-                <p className="font-bold text-[14px] text-ink">O ranking global vive na versão publicada.</p>
-                <p className="text-[12.5px] text-ink-muted mt-1.5">Neste ambiente local ele fica desligado. Na versão do site, o top 20 de cada jogo aparece aqui, com o seu apelido.</p>
+                <p className="font-bold text-[14px] text-ink">Não deu para carregar o ranking agora.</p>
+                <p className="text-[12.5px] text-ink-muted mt-1.5">O top 20 de cada jogo aparece aqui, com o seu apelido. Tente de novo em instantes.</p>
               </div>
             ) : ranking.length === 0 ? (
               <p className="text-[13px] text-ink-muted text-center py-8">Ninguém enviou pontuação neste jogo ainda. Seja a primeira pessoa do placar!</p>

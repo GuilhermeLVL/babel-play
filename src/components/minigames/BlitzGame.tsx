@@ -367,7 +367,7 @@ export default function BlitzGame({ items, ageProfile, onFinish, onExit }: Blitz
               {envio === 'ok' ? (
                 <p className="text-[13px] font-bold text-good-ink">Pontuação enviada! Veja a tabela em "Recordes e ranking".</p>
               ) : envio === 'indisponivel' ? (
-                <p className="text-[12.5px] text-ink-muted">O ranking vive na versão publicada do app — neste ambiente ele fica desligado.</p>
+                <p className="text-[12.5px] text-ink-muted">Não deu para enviar agora. A pontuação fica guardada aqui; tente de novo depois.</p>
               ) : (
                 <div className="flex items-center gap-2">
                   <input

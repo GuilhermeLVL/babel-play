@@ -11,7 +11,8 @@ import { retrievability } from '../../../src/core/learning/scheduler'
 import { diaLocal, sequencias, marcosDeSequencia, minutosPremiados } from '../../../src/core/learning/economia'
 import { MINIGAMES } from '../../../src/core/minigames/types'
 import { economiaRepo } from './economia'
-import { xpDeEventos, nivelDoXp, economiaDeMetricas, type EventosDeXp } from '../../../src/core/learning/xp'
+import { economiaDeMetricas } from '../../../src/core/learning/xp'
+import { historicoDeXp, type BaldeDeXp, type HistoricoDeXp } from '../../../src/core/learning/historicoDeXp'
 import type { AppMetrics } from '../../../src/core/learning/contract'
 import { seedSpendsRepo } from './seedSpends'
 import type { UserId } from '../../lib/authContext'
@@ -416,105 +417,36 @@ export async function computeProfile(userId: UserId, opts: OpcoesDePerfil = {}):
  * a cada mudança de `recordings.length` e a cada gasto de seeds. O custo desta aqui tem de ser
  * opt-in da tela que desenha o gráfico.
  */
-export type BaldeDeXp = 'dia' | 'semana'
-
-export interface PontoDeXp {
-  /** Início do balde, epoch ms (meia-noite local do dia, ou do domingo da semana). */
-  em: number
-  xpNoPeriodo: number
-  xpAcumulado: number
-  nivel: number
-}
-
-export interface MarcoDeNivel {
-  em: number
-  nivel: number
-}
-
-export interface HistoricoDeXp {
-  pontos: PontoDeXp[]
-  /** "Saiu do 1 para o 2 em tal dia" — o que a pessoa pediu para ver. */
-  marcos: MarcoDeNivel[]
-  /** O total de hoje. Igual ao `xp` de `deriveProgress` — é a invariante desta função. */
-  xpTotal: number
-}
-
-/** Meia-noite local do dia, ou o domingo da semana. Local, e não UTC: o dia é o do usuário. */
-function inicioDoBalde(ts: number, balde: BaldeDeXp): number {
-  const d = new Date(ts)
-  d.setHours(0, 0, 0, 0)
-  if (balde === 'semana') d.setDate(d.getDate() - d.getDay())
-  return d.getTime()
-}
+/* A CURVA E OS TIPOS DELA VIVEM NO CORE desde 07/09 (`src/core/learning/historicoDeXp.ts`).
+ *
+ * A agregação era daqui, e o modo sem conta não tinha `/api/metrics/xp`: a aba de Progresso levava
+ * um 501 e o gráfico ficava vazio para quem estuda sem conta. Copiá-la para o servidor efêmero
+ * resolveria a tela e criaria a segunda verdade — setenta linhas de "some evento por balde" que
+ * concordariam só enquanto ninguém mexesse numa delas.
+ *
+ * O que ficou aqui é o que só o servidor sabe fazer: LER as três tabelas. A fórmula é do core. */
+export type { BaldeDeXp, PontoDeXp, MarcoDeNivel, HistoricoDeXp } from '../../../src/core/learning/historicoDeXp'
 
 export async function computeXpHistory(
   userId: UserId,
   opts: { balde?: BaldeDeXp; desde?: number } = {},
 ): Promise<HistoricoDeXp> {
-  const balde = opts.balde ?? 'dia'
-
   const [sess, logs, drills] = await Promise.all([
-    db.select().from(sessions).where(and(eq(sessions.userId, userId), isNull(sessions.deletedAt))),
-    db.select().from(reviewLogs).where(and(eq(reviewLogs.userId, userId), isNull(reviewLogs.deletedAt))),
-    db.select().from(exerciseResults).where(and(eq(exerciseResults.userId, userId), isNull(exerciseResults.deletedAt))),
+    db.select({ createdAt: sessions.createdAt, wordCount: sessions.wordCount })
+      .from(sessions).where(and(eq(sessions.userId, userId), isNull(sessions.deletedAt))),
+    db.select({ createdAt: reviewLogs.createdAt, reviewedAt: reviewLogs.reviewedAt, grade: reviewLogs.grade })
+      .from(reviewLogs).where(and(eq(reviewLogs.userId, userId), isNull(reviewLogs.deletedAt))),
+    db.select({ createdAt: exerciseResults.createdAt, kind: exerciseResults.kind, correct: exerciseResults.correct })
+      .from(exerciseResults).where(and(eq(exerciseResults.userId, userId), isNull(exerciseResults.deletedAt))),
   ])
 
-  /* Um acumulador por balde. Guardamos os EVENTOS, não o XP: assim `xpDeEventos` é aplicada uma vez
-     só, no fim, e continua sendo a única definição da fórmula. */
-  const porBalde = new Map<number, EventosDeXp>()
-  const somar = (ts: number, patch: Partial<EventosDeXp>) => {
-    const chave = inicioDoBalde(ts, balde)
-    const atual = porBalde.get(chave) ?? { sessoes: 0, palavrasCapturadas: 0, revisoes: 0, revisoesCertas: 0, itensDeJogo: 0, itensDeJogoCertos: 0 }
-    porBalde.set(chave, {
-      sessoes: atual.sessoes + (patch.sessoes ?? 0),
-      palavrasCapturadas: atual.palavrasCapturadas + (patch.palavrasCapturadas ?? 0),
-      revisoes: atual.revisoes + (patch.revisoes ?? 0),
-      revisoesCertas: atual.revisoesCertas + (patch.revisoesCertas ?? 0),
-      itensDeJogo: (atual.itensDeJogo ?? 0) + (patch.itensDeJogo ?? 0),
-      itensDeJogoCertos: (atual.itensDeJogoCertos ?? 0) + (patch.itensDeJogoCertos ?? 0),
-    })
-  }
-
-  /* A sessão e as palavras dela caem no MESMO instante: `wordCount` mora na linha da sessão, não
-     numa tabela de palavras com data própria. É a aproximação certa — as palavras foram capturadas
-     naquela gravação. */
-  for (const s of sess) somar(s.createdAt, { sessoes: 1, palavrasCapturadas: s.wordCount ?? 0 })
-
-  for (const l of logs) {
-    somar(l.reviewedAt ?? l.createdAt, { revisoes: 1, revisoesCertas: (l.grade ?? 0) >= 3 ? 1 : 0 })
-  }
-
-  /* `kind === 'drill'` é o mesmo discriminador de `computeProfile`, e pelo mesmo motivo: um item que
-     gravou nota no agendador JÁ está em `reviews`; contá-lo de novo aqui inflaria a curva. */
-  for (const d of drills) {
-    if (d.kind !== 'drill') continue
-    somar(d.createdAt, { itensDeJogo: 1, itensDeJogoCertos: (d.correct ?? 0) > 0 ? 1 : 0 })
-  }
-
-  const chaves = [...porBalde.keys()].sort((a, b) => a - b)
-
-  let acumulado = 0
-  let nivelAnterior = 1
-  const pontos: PontoDeXp[] = []
-  const marcos: MarcoDeNivel[] = []
-
-  for (const em of chaves) {
-    const xpNoPeriodo = xpDeEventos(porBalde.get(em)!)
-    acumulado += xpNoPeriodo
-    const nivel = nivelDoXp(acumulado)
-
-    /* Um balde pode cruzar MAIS DE UM nível (uma maratona de estudo). Cada travessia vira um marco,
-       senão a tela mostraria "subiu para o 5" sem nunca ter mencionado o 3 e o 4. */
-    for (let n = nivelAnterior + 1; n <= nivel; n++) marcos.push({ em, nivel: n })
-    nivelAnterior = nivel
-
-    // O recorte por data é aplicado DEPOIS do acúmulo: o "desde" corta a visão, não a história.
-    if (!opts.desde || em >= inicioDoBalde(opts.desde, balde)) {
-      pontos.push({ em, xpNoPeriodo, xpAcumulado: acumulado, nivel })
-    }
-  }
-
-  return { pontos, marcos, xpTotal: acumulado }
+  return historicoDeXp({
+    sessoes: sess.map((s) => ({ em: s.createdAt, palavras: s.wordCount ?? 0 })),
+    revisoes: logs.map((l) => ({ em: l.reviewedAt ?? l.createdAt, certa: (l.grade ?? 0) >= 3 })),
+    /* `kind === 'drill'` é o mesmo discriminador de `computeProfile`, e pelo mesmo motivo: um item
+       que gravou nota no agendador JÁ está em `revisoes`; contá-lo de novo inflaria a curva. */
+    itensDeJogo: drills.filter((d) => d.kind === 'drill').map((d) => ({ em: d.createdAt, certo: (d.correct ?? 0) > 0 })),
+  }, opts)
 }
 
 /**

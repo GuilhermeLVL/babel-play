@@ -1,5 +1,4 @@
 import { Mic, Upload, ArrowRight, Sparkles, TrendingUp, Video, FileText, Headphones, ChevronDown, ChevronUp, Gamepad2, Target, Sprout, Rocket, Eye, Zap, Check } from 'lucide-react';
-import { EDICAO_LEVE } from '../../lib/edicao';
 import CardDePlanos from '../CardDePlanos';
 import AvisoDeConta from '../conta/AvisoDeConta';
 import React, { useState, useEffect, useRef } from 'react';
@@ -31,8 +30,7 @@ interface HubProps {
 }
 
 export default function Hub({ onChangeView, recordings, ageProfile = 'pro', progress, metrics }: HubProps) {
-  // Edição leve: a Revisão (study) não existe como tela; o caminho é Jogar. Vocabulário existe.
-  const ir = (view: string, data?: unknown) => onChangeView(EDICAO_LEVE && view === 'study' ? 'play' : view, data as never);
+  const ir = (view: string, data?: unknown) => onChangeView(view, data as never);
   const [filterCategory, setFilterCategory] = useState<'all' | 'video' | 'audio' | 'document'>('all');
 
   /**
@@ -172,8 +170,7 @@ export default function Hub({ onChangeView, recordings, ageProfile = 'pro', prog
             sobreviveram só em duas delas. Aqui a estrutura é uma; o que varia é a LINGUAGEM, a
             densidade e se as recompensas aparecem. */}
         <div className={ageProfile === 'senior' ? 'space-y-4' : 'grid grid-cols-1 md:grid-cols-3 gap-5'}>
-          {/* Na edição leve o caderno de palavras não é uma tela própria (pedido do dono, 2026-08-28). */}
-            {PILLARS.filter((p) => !(EDICAO_LEVE && p.id === 'vocabulary')).map((pillar, idx) => (
+            {PILLARS.map((pillar, idx) => (
             <PillarCard
               key={pillar.id}
               pillar={pillar}
@@ -282,7 +279,7 @@ export default function Hub({ onChangeView, recordings, ageProfile = 'pro', prog
 
 
       {/* Colapsável: Relatório de Performance Detalhada */}
-      <div className={EDICAO_LEVE ? 'hidden' : 'mb-8'}>
+      <div className="mb-8">
         <button
           onClick={() => setShowDetailedStats(!showDetailedStats)}
           className="w-full p-4 flex items-center justify-between transition-all duration-300 group cursor-pointer border border-border-subtle bg-surface hover:bg-surface-hover shadow-sm rounded-2xl"

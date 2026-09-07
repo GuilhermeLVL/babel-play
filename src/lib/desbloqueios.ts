@@ -38,7 +38,7 @@ const CHAVE_LIBERADO = 'babel.liberado';
  * build que vai ao ar.
  */
 export function liberadoTudo(): boolean {
-  /* `import.meta as unknown as ...` é o padrão da casa (ver `lib/edicao.ts`): o tsconfig do
+  /* `import.meta as unknown as ...` é o padrão da casa (ver `lib/supabase.ts`): o tsconfig do
      servidor não carrega os tipos do Vite, e `import.meta.env` existe em runtime. */
   const env = (import.meta as unknown as { env?: Record<string, unknown> }).env;
   if (!env?.DEV) return false;

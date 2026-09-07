@@ -18,8 +18,8 @@ import { data } from '../../lib/i18n';
  * ganhar, como subir de nível". Então a tabela "Como ganhar" NÃO é redigida aqui: ela é gerada
  * de `REGRAS` (core), a mesma fonte que o cálculo usa. O que está escrito é o que é creditado.
  *
- * UM componente, dois lugares: aba do Perfil (edição completa) e aba da Loja (edição leve, onde
- * o Perfil não existe). Recebe o contexto pronto do App para não montar rede aqui.
+ * UM componente, dois lugares: a aba do Perfil e a aba da Loja. Recebe o contexto pronto do App
+ * para não montar rede aqui.
  */
 interface ConquistasProps {
   progress: DerivedProgress;

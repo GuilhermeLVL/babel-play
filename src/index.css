@@ -1367,12 +1367,14 @@ select optgroup {
    O botão fica; quem passa a ceder espaço é o fim do scroll. ~104px = altura do FAB (~72px)
    mais o respiro de 1,5rem que ele já usa.
    ─────────────────────────────────────────────────────────────────────────── */
-/* Duas correcoes medidas em 2026-08-27 (a "faixa cinza" no rodape da Captura):
-   1. na EDICAO LEVE o iChat nem existe — reserva zero (o <html> leva data-edicao="leve");
-   2. o casamento por substring pegava containers que NAO rolam no desktop
-      (`overflow-y-auto lg:overflow-hidden`) e o padding empilhava por aninhamento. */
-html:not([data-edicao="leve"]) main [class*="overflow-y-auto"]:not([class*="lg:overflow-hidden"]),
-html:not([data-edicao="leve"]) main [class*="overflow-auto"]:not([class*="lg:overflow-hidden"]) {
+/* Correcao medida em 2026-08-27 (a "faixa cinza" no rodape da Captura): o casamento por
+   substring pegava containers que NAO rolam no desktop (`overflow-y-auto lg:overflow-hidden`) e o
+   padding empilhava por aninhamento.
+
+   A guarda `html:not([data-edicao="leve"])` saiu em 07/09 com a edicao leve: ela existia porque
+   naquela edicao o iChat nao existia e a reserva tinha de ser zero. Agora o iChat existe sempre. */
+main [class*="overflow-y-auto"]:not([class*="lg:overflow-hidden"]),
+main [class*="overflow-auto"]:not([class*="lg:overflow-hidden"]) {
   padding-bottom: var(--ichat-reserva, 104px);
 }
 

@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { Sparkles, X } from 'lucide-react';
 import { menorPrecoDeAssinatura } from '../core/planos';
 import { getEntitlements } from '../lib/entitlements';
-import { EDICAO_LEVE } from '../lib/edicao';
 import { readStoredValue } from '../lib/profile';
 
 /**
@@ -14,7 +13,6 @@ import { readStoredValue } from '../lib/profile';
  *
  * AS REGRAS, todas aqui dentro para nenhum chamador esquecer uma:
  *  - Só para quem está no Grátis ou sem conta. Assinante e self-host NUNCA veem anúncio.
- *  - Nunca na edição leve (não há o que vender lá).
  *  - Dispensável: o X grava em localStorage e o card não volta — anúncio que reaparece depois
  *    de dispensado é exatamente o padrão hostil que o registro de produto proíbe.
  *  - O preço vem da PLAN_MATRIX (menor plano de assinatura), nunca escrito à mão.
@@ -25,9 +23,8 @@ const CHAVE_DISPENSA = 'babel.card_planos_dispensado';
 /* `menorPreco` mudou para `core/planos.ts` (mudança vender-onde-se-ve): três telas o
    calculavam, e preço calculado em três lugares é preço que diverge em três lugares. */
 
-/** `true` quando o usuário atual deve ver material de planos (Grátis/anônimo, fora da leve). */
+/** `true` quando o usuário atual deve ver material de planos (Grátis ou anônimo). */
 export function planoAnunciavel(): boolean {
-  if (EDICAO_LEVE) return false;
   const plan = getEntitlements().plan;
   return plan === 'free' || plan === 'anonimo';
 }

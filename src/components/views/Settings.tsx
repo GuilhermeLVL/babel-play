@@ -1,6 +1,4 @@
 import { User, Shield, Sparkles, Server, Target, Languages, Palette, PlayCircle, AlertTriangle, Gamepad2, Zap, Eye } from 'lucide-react';
-import { EDICAO_LEVE } from '../../lib/edicao';
-import TranscricaoLeve from '../TranscricaoLeve';
 import React, { useEffect, useRef, useState } from 'react';
 import AiEnginePanel from '../AiEnginePanel';
 import GuidePanel from '../GuidePanel';
@@ -45,10 +43,8 @@ import { T } from '../../lib/T';
 const ABAS = [
   { id: 'idiomas', rotulo: 'Idiomas', icone: <Languages className="w-4 h-4" /> },
   { id: 'aparencia', rotulo: 'Como o app se parece', icone: <Palette className="w-4 h-4" /> },
-  // Na edição leve não há servidor nem conta: motores viram um card em Idiomas; a aba de conta
-  // sobrevive só pelo "refazer apresentação", renomeada.
-  ...(EDICAO_LEVE ? [] : [{ id: 'motores', rotulo: 'Onde as contas rodam', icone: <Server className="w-4 h-4" /> }]),
-  { id: 'conta', rotulo: EDICAO_LEVE ? 'Ajuda e recomeço' : 'Conta e recomeço', icone: <User className="w-4 h-4" /> },
+  { id: 'motores', rotulo: 'Onde as contas rodam', icone: <Server className="w-4 h-4" /> },
+  { id: 'conta', rotulo: 'Conta e recomeço', icone: <User className="w-4 h-4" /> },
 ];
 
 const PROFILE_STORAGE_KEY = 'babel.activeProfileId';
@@ -372,8 +368,7 @@ export default function Settings({
         {/* Auditoria de idioma — conserta o passivo de cartões rotulados pelo código antigo.
             Fica logo abaixo dos seletores porque depende deles: o par proposto é derivado
             de `mine`/`studying`. */}
-        {!EDICAO_LEVE && <LangAudit />}
-        {EDICAO_LEVE && <TranscricaoLeve />}
+        <LangAudit />
 
         {/* Goals — preferência salva (persistida como JSON) */}
         <section>
@@ -566,7 +561,7 @@ export default function Settings({
       <PainelDeAba id="conta" ativo={aba} className="space-y-8">
 
         {/* Conta e Segurança — só no modo com login (authRequired); no self-host não renderiza */}
-        {!EDICAO_LEVE && <AccountSecuritySection />}
+        <AccountSecuritySection />
 
         {/* A seção "Seu Perfil de Uso" (6 botões de persona) saiu inteira: `ui.persona` não é
             lido por NENHUM outro código — era um controle que prometia "organizar o foco do seu

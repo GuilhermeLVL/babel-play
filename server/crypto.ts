@@ -76,6 +76,16 @@ function resolveRawKey(): string {
 
 const KEY = scryptSync(resolveRawKey(), 'babel-play-web:secrets', 32)
 
+/**
+ * CHAVE DERIVADA PARA HASH — não para cifra.
+ *
+ * Sal diferente do da `KEY` de propósito: quem obtiver este valor não obtém a chave que decifra
+ * os segredos guardados. Existe para dar a um hash de uso interno algo que não esteja no
+ * código-fonte — hoje, o hash da origem de um envio ao ranking (`repositories/rank.ts`), que
+ * substituiu o IP em claro que a versão Cloudflare gravava.
+ */
+export const CHAVE_DE_HASH: string = scryptSync(resolveRawKey(), 'babel-play-web:hash', 32).toString('hex')
+
 export function encryptSecret(plain: string): string {
   const iv = randomBytes(12)
   const cipher = createCipheriv('aes-256-gcm', KEY, iv)

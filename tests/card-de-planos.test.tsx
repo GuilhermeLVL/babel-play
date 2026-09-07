@@ -12,7 +12,6 @@ afterEach(() => { cleanup(); vi.resetModules(); localStorage.clear() })
 
 async function montar(plan: string) {
   vi.doMock('../src/lib/entitlements', () => ({ getEntitlements: () => ({ plan }) }))
-  vi.doMock('../src/lib/edicao', () => ({ EDICAO_LEVE: false }))
   const { default: CardDePlanos } = await import('../src/components/CardDePlanos')
   return render(<CardDePlanos onVerPlanos={vi.fn()} />)
 }
@@ -44,10 +43,7 @@ it('dispensar grava e o card não volta', async () => {
   expect(screen.queryByTestId('card-de-planos')).toBeNull()
 })
 
-it('na edição leve não há o que vender', async () => {
-  vi.doMock('../src/lib/entitlements', () => ({ getEntitlements: () => ({ plan: 'free' }) }))
-  vi.doMock('../src/lib/edicao', () => ({ EDICAO_LEVE: true }))
-  const { default: CardDePlanos } = await import('../src/components/CardDePlanos')
-  const { container } = render(<CardDePlanos onVerPlanos={vi.fn()} />)
-  expect(container.querySelector('[data-testid="card-de-planos"]')).toBeNull()
-})
+/* O caso "na edição leve não há o que vender" SAIU em 07/09 com a própria edição leve. Ele
+   provava que `planoAnunciavel()` devolvia `false` quando o build era o hospedado sem conta —
+   uma condição que não existe mais. O que decide hoje é só o plano, e os casos acima já cobrem
+   as quatro respostas dele. */

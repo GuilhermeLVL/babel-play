@@ -21,7 +21,10 @@ const ACOES: Array<[string, string]> = [
 ]
 const SONDAS: Array<[string, string]> = [
   ['GET', '/api/ai/stt/available'], ['POST', '/api/ai/stt'], ['POST', '/api/ai/mt'], ['POST', '/api/ai/llm/chat/completions'],
-  ['GET', '/api/ai/credentials'], ['GET', '/api/images/search?q=x'], ['GET', '/api/sessions/utterances/all'],
+  /* `GET /api/sessions/utterances/all` SAIU desta lista em 07/09: ele passou a ser ESPELHADO.
+     As falas vivem no IndexedDB, então "quais são as suas falas guardadas?" tem resposta sem
+     conta — e devolvê-la é melhor que devolver 501 e obrigar o cliente a tratar o vazio. */
+  ['GET', '/api/ai/credentials'], ['GET', '/api/images/search?q=x'],
   ['GET', '/api/me'], ['GET', '/api/admin/users'], ['GET', '/api/inventada'],
 ]
 

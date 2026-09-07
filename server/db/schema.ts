@@ -728,3 +728,38 @@ export const ankiImports = sqliteTable('anki_imports', {
  * for entregue, as tabelas voltam com o desenho daquele dia.
  */
 
+/**
+ * RANKING GLOBAL — o placar público dos minijogos.
+ *
+ * ELA VEIO DO CLOUDFLARE D1 (07/09), quando a edição leve foi encerrada. O ranking era servido por
+ * uma Pages Function contra um banco D1 separado, e essa era a única funcionalidade que só existia
+ * na versão hospedada no Pages — que nunca chegou a ser publicada (o workflow de deploy nunca foi
+ * armado). Encerrar a edição leve sem trazer o ranking teria apagado uma tela que o app já mostra.
+ *
+ * SEM `...meta`, e é deliberado: esta tabela NÃO TEM DONO. O placar é público e anônimo por
+ * desenho — sai o apelido que a pessoa escolheu, os pontos e o combo, e nada mais. Ela não entra
+ * em `TABELAS_DO_TITULAR` porque não há titular: não existe coluna que ligue uma linha a uma
+ * conta, e `conferirCobertura()` só cobra as tabelas que têm `user_id`.
+ *
+ * `ipHash` E NÃO O IP. A versão D1 guardava o endereço em claro para a trava de um envio por
+ * minuto. Um identificador de rede, guardado sem prazo e sem caminho de exclusão, é dado pessoal
+ * atrás de uma tabela que se apresenta como anônima. O hash (do IP com a chave do servidor)
+ * serve exatamente à mesma trava — comparar dois envios do mesmo lugar em 60 segundos — sem
+ * guardar de quem eles são.
+ */
+export const rank = sqliteTable('rank', {
+  id: text('id').primaryKey(),
+  criadoEm: integer('criado_em').notNull(),
+  jogo: text('jogo').notNull(),
+  apelido: text('apelido').notNull(),
+  pontos: integer('pontos').notNull(),
+  combo: integer('combo').notNull(),
+  /** SHA-256 de (ip + SECRET_KEY), truncado. Só existe para a trava de flood. */
+  ipHash: text('ip_hash'),
+}, (t) => [
+  // A leitura é sempre "o topo de UM jogo": índice pela chave da ordenação.
+  index('idx_rank_jogo_pontos').on(t.jogo, t.pontos),
+  // Uma linha por (jogo, apelido): o placar é de RECORDES, não de tentativas.
+  uniqueIndex('uq_rank_jogo_apelido').on(t.jogo, t.apelido),
+  index('idx_rank_ip').on(t.ipHash, t.criadoEm),
+])

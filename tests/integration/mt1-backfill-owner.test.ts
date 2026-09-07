@@ -1,8 +1,12 @@
 /**
  * Marco 1 — Commit 2: backfill de tenancy no boot.
  *
- * Carimba as linhas legadas (user_id NULL) com o dono local, exceto profiles (fica global).
- * Idempotente. Usa o harness efêmero (DB temporário migrado, isolado).
+ * Carimba as linhas legadas (user_id NULL) com o dono local. Idempotente. Usa o harness efêmero
+ * (DB temporário migrado, isolado).
+ *
+ * `profiles` era a EXCEÇÃO deste backfill — tabela global, com linhas builtin sem dono, que não
+ * podiam ser carimbadas. Ela foi removida na migração 0026 (órfã, zero linhas, zero operações), e
+ * com ela a exceção: hoje toda tabela desta varredura tem dono.
  */
 import { describe, it, expect, beforeAll, afterAll } from 'vitest'
 import { setupEphemeralDb, type EphemeralDb } from '../harness/ephemeralDb'
@@ -27,23 +31,17 @@ beforeAll(async () => {
   await db.insert(schema.vocabCards).values({ id: 'v1', createdAt: now, updatedAt: now, word: 'w' })
   await db.insert(schema.settings).values({ id: 'app', createdAt: now, updatedAt: now })
   await db.insert(schema.providerCredentials).values({ id: 'c1', createdAt: now, updatedAt: now })
-  // perfil builtin/compartilhado — DEVE ficar global (NULL)
-  await db.insert(schema.profiles).values({ id: 'p-builtin', createdAt: now, updatedAt: now, name: 'Padrão', builtin: 1 })
 })
 afterAll(async () => { await h.cleanup() })
 
 describe('Marco 1 — backfill de tenancy', () => {
   it('carimba as linhas NULL com o dono e conta quantas tocou', async () => {
     const n = await backfillNullOwner(OWNER)
-    expect(n).toBe(4) // sessions, vocab, settings, credentials (NÃO profiles)
+    expect(n).toBe(4) // sessions, vocab, settings, credentials
     expect((await db.select().from(schema.sessions))[0].userId).toBe('local-owner')
     expect((await db.select().from(schema.vocabCards))[0].userId).toBe('local-owner')
     expect((await db.select().from(schema.settings))[0].userId).toBe('local-owner')
     expect((await db.select().from(schema.providerCredentials))[0].userId).toBe('local-owner')
-  })
-
-  it('NÃO toca profiles (o builtin fica global = NULL)', async () => {
-    expect((await db.select().from(schema.profiles))[0].userId).toBeNull()
   })
 
   it('idempotente: uma segunda passada afeta 0 linhas', async () => {

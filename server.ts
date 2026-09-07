@@ -12,6 +12,7 @@ import { importRouter } from "./server/routes/import";
 import { vocabRouter } from "./server/routes/vocab";
 import { ankiRouter } from "./server/routes/anki";
 import { metricsRouter } from "./server/routes/metrics";
+import { rankRouter } from "./server/routes/rank";
 import { exercisesRouter } from "./server/routes/exercises";
 import { settingsRouter } from "./server/routes/settings";
 import { imagesRouter } from "./server/routes/images";
@@ -157,6 +158,15 @@ app.get("/api/health", healthHandler);
    evento que não recebeu 200, e a idempotência por id garante que a reentrega não duplica. */
 if (authRequired()) app.use("/api/billing/webhook/asaas", writeLimiter);
 app.use("/api/billing/webhook/asaas", capturarAssincrono(asaasWebhookRouter));
+
+/* RANKING GLOBAL — público, e por isso ANTES do auth, como o health e o webhook.
+   Ele veio do Cloudflare quando a edição leve foi encerrada (07/09). O placar é anônimo por
+   desenho e precisa funcionar igual com e sem conta; exigir token aqui o quebraria justamente no
+   modo para o qual ele foi feito. Ganha o `writeLimiter` no modo público pela mesma razão do
+   webhook: estando antes do auth, ele ficaria sem teto nenhum, e o POST escreve no banco. A trava
+   de um envio por minuto por origem, dentro da rota, é sobre o placar; esta é sobre o servidor. */
+if (authRequired()) app.use("/api/rank", writeLimiter);
+app.use("/api/rank", capturarAssincrono(rankRouter));
 
 app.use("/api", authMiddleware);
 

@@ -91,8 +91,8 @@ export default function Onboarding({ onComplete }: { onComplete: () => void }) {
    *
    * A onboarding completa não perguntava idioma nenhum: quem não abrisse Ajustes ficava com o
    * palpite de `DEFAULT_LANG_CONFIG` para sempre — interface em português e estudo em inglês,
-   * independentemente de quem fosse a pessoa (auditoria de 2026-09-07, achado A38). A edição leve
-   * já perguntava; esta passa a perguntar o mesmo, mais o idioma da tela.
+   * independentemente de quem fosse a pessoa (auditoria de 2026-09-07, achado A38). Agora ela
+   * pergunta os dois eixos na porta: o que se estuda e o idioma da tela.
    */
   const [estudando, setEstudando] = useState(DEFAULT_LANG_CONFIG.studying);
   const [idiomaDaTela, setIdiomaDaTela] = useState(DEFAULT_LANG_CONFIG.daInterface);

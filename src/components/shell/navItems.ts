@@ -11,7 +11,6 @@ import {
   CreditCard,
   type LucideIcon
 } from 'lucide-react';
-import { EDICAO_LEVE } from '../../lib/edicao';
 import type { ViewType } from '../../types';
 import { t } from '../../lib/i18n';
 
@@ -101,7 +100,7 @@ const TODOS_OS_ITENS: NavItemDef[] = [
        menu do avatar, um card no Hub e um botão em Ajustes — e o próprio dono não o achou. O que
        está à venda precisa estar onde se procura, não onde quem escreveu sabe que está.
        Fica ao lado de Sobre porque as duas respondem à mesma pergunta: "o que é isto, e como se
-       sustenta?". Fora da edição leve, que não tem cobrança. */
+       sustenta?". */
     id: 'planos',
     icon: CreditCard,
     short: 'Planos',
@@ -134,9 +133,13 @@ export function navLabel(item: NavItemDef, profile: AgeProfileType, compact = fa
   return t(item.labels[profile]);
 }
 
-/**
- * EDIÇÃO LEVE: só o que funciona inteiro sem conta e sem servidor — Início, Capturar, Jogar e
- * Ajustes. Biblioteca entra (as sessões vivem no IndexedDB deste navegador — provisório, sem conta). Sessão e Vocabulário voltam com a edição completa; a tela de Vocabulário saiu do menu da leve a pedido do dono (2026-08-28): o caderno vive dentro de cada sessão e nos jogos.
+/*
+ * O MENU É UM SÓ desde 07/09, quando a edição leve foi encerrada.
+ *
+ * Havia uma segunda lista aqui — sete itens, o subconjunto que funcionava sem conta e sem
+ * servidor — escolhida em tempo de build. Quem entra sem conta continua entrando; o que some é a
+ * SEGUNDA lista, que precisava ser mantida em dia toda vez que uma tela nascia. O gate de conta
+ * por tela (`exigeConta`) já resolve, por tela e em tempo de execução, a pergunta que ela
+ * respondia em bloco e em tempo de build.
  */
-const LEVE: ReadonlySet<ViewType> = new Set<ViewType>(['hub', 'capture', 'library', 'play', 'loja', 'sobre', 'settings']);
-export const NAV_ITEMS: NavItemDef[] = EDICAO_LEVE ? TODOS_OS_ITENS.filter((i) => LEVE.has(i.id)) : TODOS_OS_ITENS;
+export const NAV_ITEMS: NavItemDef[] = TODOS_OS_ITENS;

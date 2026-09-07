@@ -47,8 +47,7 @@
     "db:generate": "drizzle-kit generate",
     "db:migrate": "tsx server/db/migrate.ts",
     "dev:local": "node subir-dev.mjs",
-    "backup": "node scripts/backup.mjs",
-    "build:leve": "vite build --mode leve"
+    "backup": "node scripts/backup.mjs"
   },
   "dependencies": {
     "@google/genai": "^2.4.0",

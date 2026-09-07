@@ -868,7 +868,7 @@ export default function App() {
               metrics={metrics}
             />
           )}
-          {activeView === 'metrics' && (EDICAO_LEVE || !anonimo) && <Metrics recordings={recordings} onChangeView={navigateTo} ageProfile={ageProfile} />}
+          {activeView === 'metrics' && (EDICAO_LEVE || !anonimo) && <Metrics recordings={recordings} onChangeView={navigateTo} ageProfile={ageProfile} metrics={metrics} />}
 
           {activeView === 'profile' && !anonimo && <Perfil progress={progress} ageProfile={ageProfile} />}
           {/* Plano e consumo. Diferente do Perfil, aparece TAMBÉM sem conta: é justamente

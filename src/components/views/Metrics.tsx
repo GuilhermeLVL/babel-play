@@ -120,11 +120,21 @@ function desdeAUltimaRevisao(lastReview?: number): string {
   return meses === 1 ? 'há 1 mês' : `há ${meses} meses`;
 }
 
-export default function Metrics({ recordings, onChangeView, ageProfile = 'pro' }: {
+export default function Metrics({ recordings, onChangeView, ageProfile = 'pro', metrics: metricsDoApp }: {
   recordings: Recording[];
   /** Navegação entre telas (ex.: abrir um exercício a partir de uma métrica). */
   onChangeView?: (view: string, data?: any) => void;
   ageProfile?: 'kids' | 'pro' | 'senior';
+  /**
+   * O PERFIL JÁ CARREGADO PELO APP.
+   *
+   * Esta tela chamava `fetchMetrics()` por conta própria, e o `App` já tinha chamado: duas
+   * execuções de `computeProfile` — 100 ms cada, 11 consultas cada, carregando todas as falas,
+   * cartões, revisões e resultados do usuário para agregar em JS — na mesma abertura de tela
+   * (auditoria de 2026-09-07, achado A37). Receber por prop é a correção que o próprio arquivo já
+   * documentava ter feito com o `StudioHeader`, e que ficou pela metade.
+   */
+  metrics?: AppMetrics | null;
 }) {
   const [mainTab, setMainTab] = useState<'dashboard' | 'lexical' | 'fluency'>('dashboard');
   const [expandedKpi, setExpandedKpi] = useState<KpiType>(null);
@@ -138,11 +148,15 @@ export default function Metrics({ recordings, onChangeView, ageProfile = 'pro' }
     [chartTheme]
   );
 
-  // Métricas REAIS computadas no backend (sem dados fabricados).
-  const [metrics, setMetrics] = useState<AppMetrics | null>(null);
+  /* Métricas REAIS computadas no backend (sem dados fabricados) — vindas do App, que já as
+     carregou. O fallback local existe para o caso de a tela ser montada sem a prop (teste, ou uma
+     rota futura): melhor uma segunda chamada que uma tela vazia. */
+  const [metricsLocais, setMetricsLocais] = useState<AppMetrics | null>(null);
   useEffect(() => {
-    fetchMetrics().then(setMetrics).catch(() => setMetrics(null));
-  }, [recordings]);
+    if (metricsDoApp !== undefined) return;
+    fetchMetrics().then(setMetricsLocais).catch(() => setMetricsLocais(null));
+  }, [recordings, metricsDoApp]);
+  const metrics = metricsDoApp !== undefined ? metricsDoApp : metricsLocais;
 
   // --- Dados derivados reais ---
 

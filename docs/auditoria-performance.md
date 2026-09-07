@@ -57,3 +57,53 @@ navegador estrangulado (antes: rajada nunca pintava; depois: pinta).
 
 `tsc` limpo, ESLint limpo, suíte completa 1856 ✔ (0 falhas), smoke no navegador em
 http://localhost:5199 (rajada pinta, ambiente segue vivo, rastro funciona).
+
+---
+
+# Medicao de 2026-09-07 (change `arranque-leve-e-payloads-enxutos`)
+
+Reprodutivel: `npm run build && node scripts/perf/medir-rotas.mjs --api=http://127.0.0.1:<porta>`,
+com o servidor de dev sobre COPIA do banco real (2.818 cartoes), 15 repeticoes por rota, via
+`127.0.0.1` — nao `localhost`, que no Windows custa ~200 ms de fallback IPv6 e mascara tudo.
+
+## Antes e depois
+
+| Medida | Antes | Depois | O que mudou |
+| --- | --- | --- | --- |
+| `GET /api/metrics/profile` | 95 ms p50 | **43 ms p50** | as cinco consultas do perfil pararam de fazer `SELECT *` |
+| Perfil por abertura da tela de Metricas | 2 chamadas (~190 ms) | **1 chamada (~43 ms)** | `Metrics` recebe o perfil do `App` em vez de buscar de novo |
+| `GET /api/vocab` por rodada | 1 por rodada (2,17 MB) | **0** | o baralho e costurado com o que `reviewCard`/`bulkAddCards` ja devolvem |
+| Aviso de import misto no build | 1 | **0** | `eventosDeJogo` importado de uma forma so |
+| Arranque (o que o `index.html` pede) | 211,9 KB gz | 211,8 KB gz | ver abaixo |
+
+## O arranque: por que o alvo de 120 KB nao se aplica mais
+
+A proposta pedia arranque < 120 KB gzip, e o numero fazia sentido quando foi escrito: o chunk de
+entrada continha o catalogo mestre de cosmeticos (129 KB de fonte), arrastado por
+`export * from './catalogoMestre'` no barril do nucleo. Essa camada saiu de `main` na change
+`linha-de-base-verde` (foi para a branch `gamificacao-v2-wip`), e com ela o motivo do alvo.
+
+O arranque medido hoje sao tres arquivos, e nenhum deles e gordura evidente:
+
+```
+   125,8 KB gz  index-*.js      (o app)
+    59,3 KB gz  vendor-react    (react + react-dom + scheduler)
+    26,8 KB gz  index-*.css
+```
+
+O `vendor-supabase` (56 KB gz) NAO conta: `src/lib/supabase.ts` o carrega por `import()` e so
+quando ha URL e chave. A primeira versao do script de medicao somava tudo que se chamasse
+`vendor-*` e anunciava 392 KB — um numero inflado que teria mandado otimizar o lugar errado.
+
+Cortar os 125,8 KB restantes exige decidir o que sai da primeira pintura, e isso e trabalho de
+produto (que tela abre primeiro), nao de bundler. Fica registrado com o numero, para a proxima
+conversa comecar de um fato.
+
+## O que continua grande, e por que nao foi mexido agora
+
+`GET /api/vocab` responde **2,17 MB** em 134 ms. Ele deixou de ser chamado a cada rodada, mas
+continua sendo o que o lobby baixa ao abrir. Trocar por um `resumo` agregado exige decidir o que
+acontece com o FALLBACK LOCAL: `composicaoLocal` monta a rodada no cliente quando o servidor nao
+responde — e e o unico caminho no modo anonimo. Sem o baralho em maos, esse fallback deixa de
+existir, e a promessa "local-first" cai junto. A decisao pertence a `modo-anonimo-em-paridade`,
+que e a change dona da paridade entre as duas pontas.

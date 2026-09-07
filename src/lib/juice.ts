@@ -1,5 +1,5 @@
 import { emitBurst, type BurstKind } from './effects';
-import { sortearEventoRaro } from './eventosDeJogo';
+import { sortearEventoRaro, marcarEventoVisto, type EfeitoComposto } from './eventosDeJogo';
 import { sorteDeEventos } from './aprimoramentos';
 import { play } from './soundFx';
 
@@ -228,7 +228,7 @@ export function explodirAleatorio(vezes: number, kind: BurstKind): void {
  * Encena um `EfeitoComposto` de `lib/eventosDeJogo`: rajadas espalhadas + som + tela + vibracao.
  * Tambem registra o evento como "visto" (colecionavel da antessala).
  */
-export function executarEfeito(ev: import('./eventosDeJogo').EfeitoComposto): void {
+export function executarEfeito(ev: EfeitoComposto): void {
   for (const r of ev.rajadas) explodirAleatorio(r.vezes ?? 1, r.kind);
   if (ev.som) play(ev.som);
   if (ev.tela === 'tremor') tremorDeTela(5);
@@ -236,8 +236,13 @@ export function executarEfeito(ev: import('./eventosDeJogo').EfeitoComposto): vo
   else if (ev.tela === 'glitch') glitchDeTela();
   else if (ev.tela === 'flash') flashDeTela();
   if (ev.vibracao) vibrar(ev.vibracao);
-  // import tardio para nao criar ciclo estatico juice ↔ eventosDeJogo
-  void import('./eventosDeJogo').then((m) => m.marcarEventoVisto(ev.id));
+  /* IMPORT ESTATICO, como o resto do arquivo. O `import()` tardio dizia evitar um ciclo
+     `juice ↔ eventosDeJogo` que NAO existe — `eventosDeJogo` so importa TIPOS de `effects` e
+     `soundFx`, e a linha 2 deste arquivo ja o importa estaticamente. O efeito real era o aviso do
+     build ("dynamically imported but also statically imported") e um modulo que o bundler nao
+     conseguia mover para chunk nenhum, porque as duas formas se anulam (achado da secao 5 da
+     auditoria de 2026-09-07). Verificado com `madge --circular`: sem ciclo. */
+  marcarEventoVisto(ev.id);
 }
 
 export { multiplicador } from '../core/minigames/grade';

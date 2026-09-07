@@ -5,7 +5,10 @@ import { Check, Coins, Crown, Lock, Sprout, Star } from 'lucide-react';
 import { COR_DA_RARIDADE, estadoDoItem, type ItemDaLoja } from '../../../lib/loja';
 import MiniaturaDoItem from '../../MiniaturaDoItem';
 import { equiparItem, equipavel, type ContextoDeEquipar } from '../../../lib/galeria/equipar';
-import { passeNivel, premiumDoNivel, slotsDoPasse, slotDestravado, totalPremiumEmCreditos, TEMPORADA_ATUAL, type SlotDoPasse } from '../../../lib/galeria/passe';
+/* DO MODULO, e nao do barril. `lib/galeria/passe.ts` era um `export * from '@core'`: importar a
+   curva do passe arrastava o nucleo INTEIRO para o grafo desta tela (auditoria de 2026-09-07,
+   achado A43). O que esta tela precisa mora em `core/passe.ts`. */
+import { passeNivel, premiumDoNivel, slotsDoPasse, slotDestravado, totalPremiumEmCreditos, TEMPORADA_ATUAL, type SlotDoPasse } from '@core/passe';
 import { creditarSeeds, creditarPasse } from '../../../data/api';
 import { toast } from '../../Toast';
 import type { DerivedProgress } from '../../../lib/progress';

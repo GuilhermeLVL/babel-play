@@ -51,13 +51,58 @@ export async function computeProfile(userId: UserId, opts: OpcoesDePerfil = {}):
   // Marco 1: todo scan é escopado por userId. reviewLogs, que não tinha filtro nenhum, passa a
   // filtrar por user_id (o review() carimba o dono no log).
   const [sessTodas, cardsTodos, logs, uttsTodas, drills] = await Promise.all([
-    db.select().from(sessions).where(and(eq(sessions.userId, userId), isNull(sessions.deletedAt))),
-    db.select().from(vocabCards).where(and(eq(vocabCards.userId, userId), isNull(vocabCards.deletedAt))),
-    db.select().from(reviewLogs).where(eq(reviewLogs.userId, userId)),
-    db.select().from(utterances).where(and(eq(utterances.userId, userId), isNull(utterances.deletedAt))),
+    db.select({
+      id: sessions.id,
+      createdAt: sessions.createdAt,
+      wordCount: sessions.wordCount,
+      durationMs: sessions.durationMs,
+    }).from(sessions).where(and(eq(sessions.userId, userId), isNull(sessions.deletedAt))),
+    /* `vocab_cards` tem 34 colunas e o perfil lê treze. As que ficam de fora incluem `sentence`,
+       `cloze_prompt` e `cloze_answer` — frases inteiras, por cartão, em todo o acervo. */
+    db.select({
+      id: vocabCards.id,
+      word: vocabCards.word,
+      sessionId: vocabCards.sessionId,
+      createdAt: vocabCards.createdAt,
+      addedAt: vocabCards.addedAt,
+      inDeck: vocabCards.inDeck,
+      dueAt: vocabCards.dueAt,
+      stability: vocabCards.stability,
+      difficulty: vocabCards.difficulty,
+      lapses: vocabCards.lapses,
+      lastReview: vocabCards.lastReview,
+      cefrLevel: vocabCards.cefrLevel,
+      cefrConfidence: vocabCards.cefrConfidence,
+    }).from(vocabCards).where(and(eq(vocabCards.userId, userId), isNull(vocabCards.deletedAt))),
+    /* SÓ AS COLUNAS QUE ESTA FUNÇÃO LÊ (auditoria de 2026-09-07, seção 5).
+       Era `select()`, ou seja, `SELECT *`. Em `utterances` isso traz `source_text` e
+       `translated_text` — o transcrito INTEIRO de todas as sessões da pessoa — para contar
+       palavras e somar duração de fala. Num acervo de tamanho real são megabytes lidos do disco,
+       serializados pelo driver e descartados depois de um `split(/\s+/)`. As cinco colunas abaixo
+       são exatamente as que o laço usa. */
+    db.select({
+      cardId: reviewLogs.cardId,
+      createdAt: reviewLogs.createdAt,
+      reviewedAt: reviewLogs.reviewedAt,
+      grade: reviewLogs.grade,
+    }).from(reviewLogs).where(eq(reviewLogs.userId, userId)),
+    db.select({
+      sessionId: utterances.sessionId,
+      source: utterances.source,
+      sourceText: utterances.sourceText,
+      tStartMs: utterances.tStartMs,
+      tEndMs: utterances.tEndMs,
+    }).from(utterances).where(and(eq(utterances.userId, userId), isNull(utterances.deletedAt))),
     // `exercise_results` existia e NINGUÉM lia — por isso o XP dos exercícios nunca chegava
     // ao perfil. É a tabela que fecha a ponte, sem precisar de nenhuma nova.
-    db.select().from(exerciseResults).where(and(eq(exerciseResults.userId, userId), isNull(exerciseResults.deletedAt))),
+    db.select({
+      createdAt: exerciseResults.createdAt,
+      correct: exerciseResults.correct,
+      kind: exerciseResults.kind,
+      exerciseKind: exerciseResults.exerciseKind,
+      origem: exerciseResults.origem,
+      roundId: exerciseResults.roundId,
+    }).from(exerciseResults).where(and(eq(exerciseResults.userId, userId), isNull(exerciseResults.deletedAt))),
   ])
 
   const sess = sessionId ? sessTodas.filter((s) => s.id === sessionId) : sessTodas

@@ -1104,9 +1104,15 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
 
     // O FSRS continua item a item: é ele que reagenda cada cartão, e a nota depende do item.
     const falhas: string[] = [];
+    /* A RESPOSTA DO `reviewCard` É O CARTÃO ATUALIZADO — e ela era jogada fora.
+       Guardá-la é o que permite não rebaixar o baralho inteiro no fim da rodada (ver o final
+       desta função). O servidor já devolve a linha completa, com procedência. */
+    const atualizados: VocabCard[] = [];
+    /** Cartas CRIADAS pela promoção da trilha, que também precisam entrar no baralho local. */
+    const promovidos: VocabCard[] = [];
     for (const o of report.items) {
       if (!o.cardId || !def.writesSrs) continue;
-      try { await reviewCard(o.cardId, gradeFor(report.gameId, o)); }
+      try { atualizados.push(await reviewCard(o.cardId, gradeFor(report.gameId, o))); }
       catch (e) { falhas.push(`srs ${o.itemRef}: ${String((e as Error)?.message ?? e).slice(0, 80)}`); }
     }
 
@@ -1183,14 +1189,32 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
         }));
       if (novos.length) {
         try {
-          await bulkAddCards(novos);
+          const criados = await bulkAddCards(novos);
+          promovidos.push(...criados.cards);
           setSequencia(s => (s ? marcarPromovidas(s, novos.map(n => n.word.toLowerCase())) : s));
         } catch { /* a promoção é um bônus, não a partida */ }
       }
     }
 
-    // O baralho mudou (datas de revisão novas) — recarrega para o próximo jogo já usar o estado real.
-    try { setDeck((await fetchDeck()).filter(c => c.inDeck)); } catch { /* mantém o anterior */ }
+    /**
+     * O BARALHO SE ATUALIZA COM O QUE VOLTOU, e não baixando tudo de novo.
+     *
+     * Aqui havia `setDeck(await fetchDeck())` — o baralho INTEIRO, a cada rodada. Medido na
+     * auditoria de 2026-09-07 (seção 5): `GET /api/vocab` são 2,27 MB (189 KB gzip) e 152 ms
+     * neste acervo de 2.818 cartões. Uma sequência de dez rodadas baixava 22 MB para atualizar a
+     * data de revisão de algumas dezenas de cartas.
+     *
+     * As cartas que mudaram já vieram na resposta de cada `reviewCard` e do `bulkAddCards` — o
+     * servidor devolve a linha atualizada, e essa resposta estava sendo descartada. O que sobra é
+     * costurar: substituir as tocadas, acrescentar as novas.
+     */
+    if (atualizados.length || promovidos.length) {
+      setDeck(anterior => {
+        const porId = new Map(anterior.map(c => [c.id, c]));
+        for (const c of [...atualizados, ...promovidos]) porId.set(c.id, c);
+        return [...porId.values()].filter(c => c.inDeck);
+      });
+    }
   };
 
   /**

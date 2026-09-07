@@ -10,11 +10,12 @@ import LangPicker from '../LangPicker';
 import { DEFAULT_PROFILE_ID } from '../../gateway/profiles';
 import { fetchSettings, saveSettings, patchUiSettings, fetchMetrics, type AppMetrics } from '../../data/api';
 import type { ThemeType } from '../../lib/appearance';
-import { baseLang } from '../../lib/languages';
+import { baseLang, langLabelNaUI } from '../../lib/languages';
 import {
   langConfigFrom,
   saveLangConfig,
   fetchLangConfig,
+  idiomasDaInterfaceOferecidos,
   DEFAULT_LANG_CONFIG,
   type LangConfig,
 } from '../../lib/langConfig';
@@ -22,7 +23,7 @@ import { getEntitlements, onPlanChange, PLAN_LABELS } from '../../lib/entitlemen
 import type { AgeProfileType, MenuPositionType } from '../shell/navItems';
 import type { FontScale } from '../shell/ControlCluster';
 import { Abas, PainelDeAba } from '../ui';
-import { t } from '../../lib/i18n';
+import { t, idiomasAbaixoDoPiso } from '../../lib/i18n';
 import { T } from '../../lib/T';
 
 /**
@@ -203,7 +204,8 @@ export default function Settings({
       const saved = await fetchLangConfig();
       const landed =
         (!patch.studying || saved.studying === patch.studying) &&
-        (!patch.mine || saved.mine === patch.mine);
+        (!patch.mine || saved.mine === patch.mine) &&
+        (!patch.daInterface || saved.daInterface === patch.daInterface);
       if (!landed) throw new Error('o servidor não confirmou a gravação');
       setLangCfg(saved);
     } catch {
@@ -331,6 +333,36 @@ export default function Settings({
               {baseLang(langCfg.mine) === baseLang(langCfg.studying) && (
                 <p className="text-[12px] text-warn-ink mt-2">
                   {t('Os dois idiomas são o mesmo, não há tradução a fazer, e os cartões ficarão sem verso.')}
+                </p>
+              )}
+            </div>
+
+            {/* O TERCEIRO EIXO — a tela, que até 2026-09-07 seguia "Meu idioma" sem alternativa.
+                Quem fala português e quer a interface em inglês precisava dizer que fala inglês, e
+                com isso invertia a direção do microfone e da tradução de todo cartão. A lista é
+                curta de propósito: só entra idioma cujo catálogo passou do piso de cobertura. */}
+            <div className="p-5 border-t border-border-subtle">
+              <div className="font-bold text-[14px] mb-1">{t('Idioma da interface')}</div>
+              <p className="text-[12px] text-ink-muted mb-3">
+                {t('O idioma dos textos do app. Não muda o microfone nem a direção da tradução.')}
+              </p>
+              <LangPicker
+                id="settings-ui-lang"
+                ariaLabel={t('Idioma da interface')}
+                block
+                somente={idiomasDaInterfaceOferecidos()}
+                value={langCfg.daInterface}
+                onPick={({ code }) => { if (code) void changeLang({ daInterface: code }); }}
+              />
+              {/* Dizer o que NÃO está na lista, e por quê — um seletor de dois itens sem explicação
+                  parece o catálogo inteiro do produto. */}
+              {idiomasAbaixoDoPiso().length > 0 && (
+                <p className="text-[11.5px] text-ink-faint mt-2">
+                  {t('Traduções em andamento, ainda fora da lista: {langs}.', {
+                    langs: idiomasAbaixoDoPiso()
+                      .map((i) => `${langLabelNaUI(i.lang)} (${Math.round(i.cobertura * 100)}%)`)
+                      .join(', '),
+                  })}
                 </p>
               )}
             </div>

@@ -36,6 +36,17 @@ jobs:
       - name: Chaves de traducao orfas
         run: npm run i18n:orfas
 
+      # A lista de idiomas que a interface OFERECE sai da cobertura medida de cada catalogo
+      # (`src/data/i18n/cobertura.json`, versionado). Desatualizado, o seletor volta a oferecer um
+      # idioma com 3% traduzido — que foi o achado A38 da auditoria de 2026-09-07.
+      - name: Cobertura dos catalogos em dia
+        run: node scripts/i18n/cobertura.mjs --check
+
+      # A catraca: cobertura de i18n nao se perde por decisao, se perde por descuido, e o fallback
+      # legivel esconde a perda. O piso so sobe; abaixa-lo exige justificativa no mesmo commit.
+      - name: Piso de cobertura da interface
+        run: node scripts/i18n/orfas.mjs --progresso --piso=427
+
       # Falha em HIGH/CRITICAL, exceto a allowlist NOMEADA das sem fix upstream.
       - name: Auditoria de dependências
         run: npm run audit:gate

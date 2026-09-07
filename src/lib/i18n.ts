@@ -32,8 +32,44 @@
 export type Plural = Partial<Record<Intl.LDMLPluralRule, string>>
 export type Catalogo = Record<string, string | Plural>
 
-/** Idiomas com catálogo em `public/i18n/`. Português é a origem: não tem arquivo nem precisa. */
-export const IDIOMAS_DA_INTERFACE = ['pt', 'en', 'es'] as const
+/* Gerado por `scripts/i18n/cobertura.mjs` e versionado, no mesmo molde do índice da trilha: medir
+   em tempo de execução exigiria baixar todos os catálogos só para montar um seletor. */
+import COBERTURA from '../data/i18n/cobertura.json'
+
+/**
+ * OS IDIOMAS QUE A INTERFACE OFERECE — derivados da COBERTURA MEDIDA, não escritos à mão.
+ *
+ * A lista era `['pt', 'en', 'es']` fixa, e `es` tinha 20 de 675 chaves: quem escolhesse espanhol
+ * via 3% da tela em espanhol e o resto em português, sem aviso nenhum, porque o fallback por
+ * chave-texto é sempre legível (auditoria de 2026-09-07, achado A38). Agora a lista sai de
+ * `scripts/i18n/cobertura.mjs`, que mede cada catálogo contra a união das chaves extraídas; um
+ * idioma abaixo do piso continua no repositório (dá para traduzir e medir) e fora do seletor.
+ */
+export const IDIOMAS_DA_INTERFACE: readonly string[] = Object.entries(COBERTURA.idiomas)
+  .filter(([, m]) => m.cobertura >= COBERTURA.piso)
+  .map(([lang]) => lang)
+  .sort((a, b) => (a === 'pt' ? -1 : b === 'pt' ? 1 : a.localeCompare(b)))
+
+/** A cobertura medida de um idioma (0..1). A tela usa para explicar por que um idioma não está lá. */
+export function coberturaDaInterface(lang: string): number {
+  return COBERTURA.idiomas[base(lang) as keyof typeof COBERTURA.idiomas]?.cobertura ?? 0
+}
+
+/**
+ * Os idiomas que TÊM catálogo e ainda não chegaram ao piso, com a cobertura de cada um.
+ *
+ * A tela de Ajustes mostra esta lista em vez de esconder o assunto: "espanhol existe, está em 3%,
+ * por isso não está no seletor" é uma resposta; um seletor com dois itens e nenhuma explicação
+ * parece a lista inteira do produto.
+ */
+export function idiomasAbaixoDoPiso(): Array<{ lang: string; cobertura: number }> {
+  return Object.entries(COBERTURA.idiomas)
+    .filter(([, m]) => m.cobertura < COBERTURA.piso)
+    .map(([lang, m]) => ({ lang, cobertura: m.cobertura }))
+}
+
+/** O piso de cobertura para um idioma ser oferecido. */
+export const PISO_DE_COBERTURA = COBERTURA.piso
 
 const catalogos = new Map<string, Catalogo>()
 let atual = 'pt'
@@ -123,6 +159,19 @@ function regraDePlural(lang: string): Intl.PluralRules {
     regras.set(lang, r)
   }
   return r
+}
+
+/**
+ * Existe tradução DESTA frase no idioma corrente?
+ *
+ * `t()` devolve a chave portuguesa quando falta tradução, e isso é proposital — mas há um caso em
+ * que quem chama precisa saber a diferença: quando existem VÁRIAS redações da mesma frase (as três
+ * vozes de `profile.ts`) e só faz sentido escolher entre elas se a redação escolhida estiver de
+ * fato traduzida. Sem isto, a escolha era feita por `idiomaDaInterface() === 'pt'` cravado.
+ */
+export function temTraducao(texto: string): boolean {
+  if (atual === 'pt') return true // o português É a chave
+  return catalogos.get(atual)?.[texto] !== undefined
 }
 
 /** O idioma em que a interface está agora. */

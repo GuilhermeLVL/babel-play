@@ -1,24 +1,24 @@
 ## 1. Um store por eixo
 
-- [ ] 1.1 `settings.targetLanguage` unica fonte do alvo; `saveLangConfig` grava so ela; `praticaLang` e derivado; migracao de dados para linhas divergentes
-- [ ] 1.2 `users.locale` (conta) / `settings.ui.uiLang` (self-host, anonimo) escritos por seletor em Ajustes; `usarIdioma` le dali
-- [ ] 1.3 Onboarding completa pergunta alvo e interface
+- [x] 1.1 `settings.targetLanguage` unica fonte do alvo. `saveLangConfig` grava so ela (parou de escrever `ui.captureTargetLang`); `Play.tsx` parou de escrever `ui.praticaLang` e passou a ler e escrever o mesmo campo que Ajustes. Migracao de dados: `server/db/migrations/0023_um_idioma_alvo_so.sql` — preenche o alvo a partir do espelho quando esta nulo, desempata a favor do idioma ESTRANGEIRO quando o alvo era o proprio idioma da pessoa (o caso medido no banco real: `target_language='pt-BR'` com `ui.praticaLang='fr'` para quem fala pt-BR), e apaga os dois espelhos do blob. `langConfigFrom` continua LENDO os espelhos como fallback, de proposito: o modo anonimo guarda settings no IndexedDB, onde migracao SQL nenhuma chega.
+- [x] 1.2 Seletor de idioma da interface em Ajustes, gravando `settings.ui.uiLang`; `useIdiomaDaInterfaceEscolhido` (era `...SeguindoOPerfil`) le dali, com `mine` como padrao. **Desvio da proposta:** ela previa `users.locale` para conta e `ui.uiLang` para self-host/anonimo. Dois stores para o mesmo eixo e exatamente o defeito que esta change conserta, e `settings` funciona nos tres modos (servidor, self-host e efemero). `users.locale` segue sem escritor e sem leitor; a decisao de remover a coluna ou dar uso a ela fica com `schema-sem-tabela-orfa` (pergunta Q5).
+- [x] 1.3 Onboarding completa ganha o passo `idioma` (entre a boas-vindas e o perfil de exibicao), com os dois seletores; cada escolha grava na hora, como o perfil de exibicao ja fazia.
 
 ## 2. Cobertura de UI
 
-- [ ] 2.1 Lista de idiomas oferecidos derivada da cobertura do catalogo (>= 90%)
-- [ ] 2.2 `relatorioDeProgresso.ts` por `t()`; `profile.ts:394` sem `=== 'pt'`
-- [ ] 2.3 `locale-cravado.yml` cobre `Intl.*Format` com locale literal; `Honestidade.tsx:80` corrigido
+- [x] 2.1 `scripts/i18n/cobertura.mjs` mede cada catalogo contra a uniao das chaves extraidas e gera `src/data/i18n/cobertura.json` (versionado, no molde do indice da trilha). `IDIOMAS_DA_INTERFACE` passa a ser derivado dele com piso de 90%. Resultado medido: `pt` e `en` a 100%; `es` (20/705) e `ar` (21/705) ficam fora do seletor e continuam no repositorio para serem traduzidos. A tela nomeia quem ficou de fora e a cobertura de cada um.
+- [x] 2.2 `relatorioDeProgresso.ts` inteiro por `t()`/`tp()` (30 chaves novas, com traducao inglesa em `en.json`); `profile.ts` troca `idiomaDaInterface() === 'pt'` por `temTraducao(variante)` — a escolha entre as tres vozes passa a depender de a redacao existir no catalogo, nao do idioma cravado.
+- [x] 2.3 `locale-cravado.yml` cobre `new Intl.{Number,DateTime,RelativeTime,List}Format` e `Intl.Collator` com locale literal, com fixture e snapshot; `Honestidade.tsx` usa `numero()` + `t()`.
 
 ## 3. Conteudo por idioma
 
-- [ ] 3.1 `server/lib/niveisDaTrilha.ts` carrega `niveis/*.json` no boot; `registrarNiveis` para os 16; `nivelCefr(word, lang)` sem default
-- [ ] 3.2 `fluencia`, `AbaProgresso`, `Metrics.tsx:307` recebem o idioma-alvo; painel diz "sem regua para X" quando nao ha
-- [ ] 3.3 `tts.ts:261`: `lang` obrigatorio (erro em dev, fallback por item em prod)
-- [ ] 3.4 `dictionary.ts:124`: ordem da cadeia a partir do idioma da UI
-- [ ] 3.5 `fillers`, `keywords`, `passive-voice`, `prepararFala`: assinatura com `lang`; tabela vazia = declarado
+- [x] 3.1 `server/lib/niveisDaTrilha.ts` traz as 16 listas por import estatico (o servidor e empacotado por esbuild; ler do disco exigiria caminho valido em dev, teste e Docker) e `garantirNiveis(lang)` registra sob demanda, chamado nos dois pontos de gravacao de cartao. `nivelCefr`, `escalaDe` e `coberturaDaWordlist` perderam o default `'en'`. Efeito observavel: cartao espanhol passa de procedencia `ausente` para `frequencia`. Nota honesta: so o ingles tem escala `cefr`, entao os outros 15 continuam sem nivel CEFR — o que muda e a procedencia deixar de mentir.
+- [x] 3.2 `Metrics.tsx` monta o corpus pelo IDIOMA-ALVO (era `=== 'en'` cravado) e cada painel declara "sem regua para <idioma>"; `AbaProgresso` pre-carrega as listas dos idiomas do baralho antes de medir fluencia e nomeia os idiomas sem lista; `Analysis.tsx` passa o idioma da sessao a `computeTextStats`. `fluenciaDoBaralho` nao mudou de assinatura: ja usava o `srcLang` de cada cartao, que e mais correto para baralho multi-idioma do que forcar um idioma so.
+- [x] 3.3 `SpeakOptions.lang` passou de opcional a OBRIGATORIO (o erro sai do ouvido da pessoa e vai para o compilador); as 31 chamadas ja passavam idioma. Rede de seguranca no motor: sem `lang` lanca em dev e cai no idioma da interface em producao, com erro no console — nunca mais `'en-US'` cravado.
+- [x] 3.4 `dictionary.ts`: a cadeia de wikis comeca pelo idioma da interface lido em tempo de execucao (era a constante `'pt'`). `VocabularyPanel` compara a lingua do verbete com a da interface, tambem por `t()`.
+- [x] 3.5 `keywords` e `text-stats` passam a ter stopwords POR IDIOMA (eram um balde en+pt, que para japones filtrava nada e devolvia como se tivesse filtrado); `passive-voice` recebe `lang` e devolve `null` fora do ingles; `prepararFala` enderecca as tabelas por idioma e expoe `idiomasComPreparacaoDeFala()`. `fillers` ja fazia isto desde antes e ficou como esta. Toda ausencia e consultavel: `temStopwords`, `temStopwordsDeTexto`, `temReguaDeLegibilidade`, `temReguaDeVozPassiva`.
 
 ## 4. Gates
 
-- [ ] 4.1 `orfas --progresso` no CI com piso
-- [ ] 4.2 `npm test`, e2e de onboarding e seletor verdes
+- [x] 4.1 `orfas.mjs --progresso --piso=N` falha abaixo do piso (a catraca so sobe); CI ganha esse passo com piso 427 e o passo `cobertura.mjs --check`.
+- [x] 4.2 `npm test` verde (2.816 testes, 25 novos entre `langConfig`, `i18n`, `reguaPorIdioma` e `integration/idioma-no-servidor`); typecheck, typecheck:core, lint, build, ast-grep, i18n:orfas, pseudo --check, cobertura --check, piso e audit:gate verdes; e2e com o novo `idioma-da-interface.e2e.ts`. **Nao feito:** e2e da onboarding — ela so aparece para perfil novo, e o servidor de e2e roda sobre copia do banco com `onboarded: true`; forcar o passo exigiria uma porta de teste para reescrever settings, que e superficie nova por causa de um teste. O passo esta coberto por typecheck e pelo caminho de gravacao (`saveLangConfig`), ja testado em `tests/langConfig.test.ts`.

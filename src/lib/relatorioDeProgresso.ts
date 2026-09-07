@@ -1,7 +1,7 @@
 import type { AppMetrics } from '@core';
 import type { VocabCard } from '../types';
 // `as dataDaUI` porque este arquivo ja tem uma variavel local `data`.
-import { data as dataDaUI } from './i18n';
+import { data as dataDaUI, numero, t, tp } from './i18n';
 
 /**
  * RELATÓRIO DE PROGRESSO EM TEXTO (spec progresso-de-idioma).
@@ -25,58 +25,75 @@ const min = (ms: number) => Math.round(ms / 60_000);
 export function gerarRelatorioDeProgresso(m: AppMetrics, cartoes: ReadonlyArray<VocabCard> = []): string {
   const linhas: string[] = [];
   const data = dataDaUI(new Date());
-  linhas.push(`RELATÓRIO DE ESTUDO — Babel Play · ${data}`);
+  linhas.push(t('RELATÓRIO DE ESTUDO — Babel Play · {data}', { data }));
   linhas.push('');
 
-  linhas.push('== Vocabulário ==');
-  linhas.push(`Palavras no deck: ${m.deckSize} (${m.newCards} novas, ${m.dueToday} prontas para revisar)`);
-  linhas.push(`Revisões feitas: ${m.reviews}${m.reviews > 0 ? ` · acerto ${Math.round((m.correctReviews / m.reviews) * 100)}%` : ''}`);
+  linhas.push(t('== Vocabulário =='));
+  linhas.push(t('Palavras no deck: {total} ({novas} novas, {prontas} prontas para revisar)', {
+    total: numero(m.deckSize), novas: numero(m.newCards), prontas: numero(m.dueToday),
+  }));
+  linhas.push(m.reviews > 0
+    ? t('Revisões feitas: {n} · acerto {pct}%', { n: numero(m.reviews), pct: Math.round((m.correctReviews / m.reviews) * 100) })
+    : t('Revisões feitas: {n}', { n: numero(m.reviews) }));
   if (m.avgRetentionConfidence > 0) {
-    linhas.push(`Retenção média estimada: ${Math.round(m.avgRetention * 100)}% (confiança ${Math.round(m.avgRetentionConfidence * 100)}%)`);
+    linhas.push(t('Retenção média estimada: {pct}% (confiança {conf}%)', {
+      pct: Math.round(m.avgRetention * 100), conf: Math.round(m.avgRetentionConfidence * 100),
+    }));
   } else {
-    linhas.push('Retenção: sem base ainda — nenhum cartão revisado o bastante.');
+    linhas.push(t('Retenção: sem base ainda — nenhum cartão revisado o bastante.'));
   }
   linhas.push('');
 
-  linhas.push('== Tempo com o idioma ==');
+  linhas.push(t('== Tempo com o idioma =='));
   const ativo = min(m.speakingMs);
   const passivo = min(m.listeningMs ?? 0);
-  linhas.push(`Falando (sua voz): ${ativo} min${m.wpm > 0 ? ` · ritmo ${m.wpm} palavras/min` : ''}`);
-  linhas.push(`Ouvindo (áudio de terceiros): ${passivo} min`);
+  linhas.push(m.wpm > 0
+    ? t('Falando (sua voz): {min} min · ritmo {wpm} palavras/min', { min: numero(ativo), wpm: numero(m.wpm) })
+    : t('Falando (sua voz): {min} min', { min: numero(ativo) }));
+  linhas.push(t('Ouvindo (áudio de terceiros): {min} min', { min: numero(passivo) }));
   if (ativo + passivo > 0) {
-    linhas.push(`Proporção ativa: ${Math.round((ativo / Math.max(1, ativo + passivo)) * 100)}% do tempo total`);
+    linhas.push(t('Proporção ativa: {pct}% do tempo total', {
+      pct: Math.round((ativo / Math.max(1, ativo + passivo)) * 100),
+    }));
   }
   linhas.push('');
 
   const dificeis = m.palavrasDificeis ?? [];
-  linhas.push('== Palavras que mais custam ==');
+  linhas.push(t('== Palavras que mais custam =='));
   if (dificeis.length === 0) {
-    linhas.push('Nenhuma com base suficiente (entra no ranking quem tem 2+ revisões e erros).');
+    linhas.push(t('Nenhuma com base suficiente (entra no ranking quem tem 2+ revisões e erros).'));
   } else {
     for (const p of dificeis.slice(0, 8)) {
-      linhas.push(`- ${p.word}: ${p.lapses} esquecimento${p.lapses === 1 ? '' : 's'}, ${Math.round(p.fracaoDeErro * 100)}% de erro em ${p.revisoes} revisões`);
+      linhas.push(`- ${p.word}: ` + t('{lapsos}, {pct}% de erro em {revisoes} revisões', {
+        lapsos: tp(p.lapses, '{n} esquecimento', '{n} esquecimentos'),
+        pct: Math.round(p.fracaoDeErro * 100),
+        revisoes: numero(p.revisoes),
+      }));
     }
   }
   linhas.push('');
 
   const porEx = m.acertoPorExercicio ?? [];
   if (porEx.length > 0) {
-    linhas.push('== Acerto por tipo de exercício (pior primeiro) ==');
-    for (const e of porEx) linhas.push(`- ${e.kind}: ${e.acerto}% em ${e.total} itens`);
+    linhas.push(t('== Acerto por tipo de exercício (pior primeiro) =='));
+    for (const e of porEx) linhas.push(`- ${e.kind}: ` + t('{pct}% em {n} itens', { pct: e.acerto, n: numero(e.total) }));
     linhas.push('');
   }
 
   if (cartoes.length > 0) {
-    linhas.push(`== Meu caderno (${cartoes.length} palavra${cartoes.length === 1 ? '' : 's'}) ==`);
+    linhas.push('== ' + tp(cartoes.length, 'Meu caderno ({n} palavra)', 'Meu caderno ({n} palavras)') + ' ==');
     for (const c of cartoes) {
       const verso = (c.translation ?? '').trim();
       // Sem verso é informação, não linha faltando: é o que o usuário precisa consertar.
-      linhas.push(verso ? `- ${c.word} — ${verso}` : `- ${c.word} — (sem tradução)`);
+      linhas.push(verso ? `- ${c.word} — ${verso}` : `- ${c.word} — ` + t('(sem tradução)'));
     }
     linhas.push('');
   }
 
-  linhas.push(`Ofensiva: ${m.streakDays} dia${m.streakDays === 1 ? '' : 's'} · gerado pelo Babel Play a partir dos seus dados reais (nada estimado por IA).`);
+  linhas.push(
+    tp(m.streakDays, 'Ofensiva: {n} dia', 'Ofensiva: {n} dias')
+    + ' · ' + t('gerado pelo Babel Play a partir dos seus dados reais (nada estimado por IA).'),
+  );
   return linhas.join('\n');
 }
 

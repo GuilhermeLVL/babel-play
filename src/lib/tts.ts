@@ -6,10 +6,19 @@
  * ser plugada depois, atrás de consentimento — sem nada fabricado agora.
  */
 import { play } from './soundFx';
+import { idiomaDaInterface } from './i18n';
 
 export interface SpeakOptions {
-  /** BCP-47 do texto (ex.: 'en-US'). Determina a voz e a pronúncia. */
-  lang?: string;
+  /**
+   * BCP-47 do texto (ex.: 'en-US'). Determina a voz e a pronuncia. OBRIGATORIO.
+   *
+   * Era opcional, com `opts.lang || 'en-US'` no motor: toda chamada que esquecesse o idioma falava
+   * em ingles — uma palavra japonesa lida com voz americana, e nada na tela dizia que aquilo tinha
+   * acontecido (auditoria de 2026-09-07, achado A39). Exigir o campo move o erro do ouvido da
+   * pessoa para o compilador: quem chama sempre sabe de que idioma e o texto que esta mandando
+   * falar, e agora precisa dizer.
+   */
+  lang: string;
   rate?: number;
   pitch?: number;
   /** Nome exato de uma voz instalada (sobrepõe a escolha automática). */
@@ -250,7 +259,7 @@ export function onVoicePrefsChange(cb: (prefs: Record<string, string>) => void):
 }
 
 class NativeTts implements TtsEngine {
-  speak(text: string, opts: SpeakOptions = {}): void {
+  speak(text: string, opts: SpeakOptions): void {
     if (!text || !text.trim() || !isTtsSupported()) return;
     const synth = window.speechSynthesis;
     synth.cancel(); // interrompe a fala anterior (não sobrepõe)
@@ -258,7 +267,16 @@ class NativeTts implements TtsEngine {
     // fala nova, ela nasceria muda. Destrava a fila antes de enfileirar a próxima.
     if (synth.paused) synth.resume();
     const u = new SpeechSynthesisUtterance(text);
-    const lang = opts.lang || 'en-US';
+    /* REDE DE SEGURANCA, nao default. O tipo exige `lang`, entao chegar aqui sem idioma so
+       acontece por chamada de JavaScript sem tipos (teste, console). Em desenvolvimento isso
+       precisa DOER; em producao, falar com o idioma da interface e menos errado que falar em
+       ingles com todo mundo, e o aviso fica no console para quem investigar. */
+    if (!opts.lang) {
+      const recado = 'speak() sem `lang`: o idioma do texto e obrigatorio (ver src/lib/tts.ts).';
+      if (import.meta.env?.DEV) throw new Error(recado);
+      console.error(recado);
+    }
+    const lang = opts.lang || idiomaDaInterface();
     u.lang = lang;
     if (opts.rate) u.rate = opts.rate;
     if (opts.pitch) u.pitch = opts.pitch;
@@ -306,7 +324,7 @@ export function setTtsEngine(e: TtsEngine): void {
   engine = e;
 }
 
-export function speak(text: string, opts?: SpeakOptions): void {
+export function speak(text: string, opts: SpeakOptions): void {
   /* Um blip curto ANTES da fala, para o usuario perceber que o pedido foi aceito — a sintese
      costuma levar alguns centenas de ms para comecar, e nesse silencio o clique parece perdido.
      Fica aqui, no unico ponto por onde toda fala passa, e nao nos ~12 botoes que a chamam. */

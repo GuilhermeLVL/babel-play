@@ -15,6 +15,19 @@
  */
 import { PARAFRASES, FRASES_INTEIRAS } from './expressoes'
 
+/**
+ * OS IDIOMAS COM PREPARACAO — hoje um so, e a lista existe para dizer isso em voz alta.
+ *
+ * A funcao ja so agia em portugues (`origem !== 'pt' → return`), mas isso era um `if` cravado no
+ * meio do fluxo: quem lia o codigo nao tinha como saber se as outras linguas estavam esquecidas ou
+ * deliberadamente de fora, e quem chamava nao tinha como perguntar (auditoria de 2026-09-07, A39).
+ * Agora as tabelas sao endereçadas por idioma e a ausencia e consultavel: acrescentar alemao e
+ * acrescentar uma entrada neste mapa, nao mexer no fluxo.
+ */
+export function idiomasComPreparacaoDeFala(): string[] {
+  return Object.keys(TABELAS_POR_IDIOMA)
+}
+
 /** Marcadores só de hesitação — só caem quando isolados por pontuação/bordas. */
 const VICIOS_PT = ['ah', 'ahn', 'ahm', 'hum', 'hmm', 'uhm', 'eh', 'ehh', 'né', 'tipo assim', 'aham', 'uhum']
 
@@ -26,6 +39,16 @@ const CONTRACOES: ReadonlyArray<readonly [string, string]> = [
   ['cê', 'você'], ['ocê', 'você'], ['cês', 'vocês'],
   ['a gente', 'nós'],
 ]
+
+interface TabelaDeFala {
+  vicios: readonly string[]
+  contracoes: ReadonlyArray<readonly [string, string]>
+}
+
+/** As tabelas por idioma. Idioma ausente = sem preparacao, e o texto sai intacto. */
+const TABELAS_POR_IDIOMA: Record<string, TabelaDeFala> = {
+  pt: { vicios: VICIOS_PT, contracoes: CONTRACOES },
+}
 
 export interface FalaPreparada {
   /** Texto pronto para o motor de tradução (pode ser igual ao original). */
@@ -98,11 +121,13 @@ export function traducaoDeFraseInteira(texto: string, alvo: string): string | un
 }
 
 /**
- * Pipeline completo. `origem` é o idioma da fala; só age em `pt`. Qualquer outro idioma sai intacto.
+ * Pipeline completo. `origem` é o idioma da fala; age apenas nos idiomas que têm tabela
+ * (`idiomasComPreparacaoDeFala`). Qualquer outro sai intacto — ausência de régua, não erro.
  */
 export function prepararFala(texto: string, origem: string | null | undefined, alvo: string): FalaPreparada {
   const t0 = (texto ?? '').trim()
-  if (!t0 || (origem ?? '').split('-')[0].toLowerCase() !== 'pt') return { texto: t0, mudou: false }
+  const idioma = (origem ?? '').split('-')[0].toLowerCase()
+  if (!t0 || !TABELAS_POR_IDIOMA[idioma]) return { texto: t0, mudou: false }
   const pronta = traducaoDeFraseInteira(t0, alvo)
   if (pronta) return { texto: t0, traducaoPronta: pronta, mudou: true }
   let t = limparVicios(t0)

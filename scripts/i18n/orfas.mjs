@@ -51,6 +51,29 @@ if (process.argv.includes('--progresso')) {
      JSDoc), então serve para acompanhar a tendência, não para prometer um número exato. */
   const comAcento = (codigo.match(/['"`][^'"`\n]*[áàâãéêíóôõúçÁÉÍÓÚÂÊÔÃÕÇ][^'"`\n]*['"`]/g) ?? []).length;
   console.log(`\nprogresso: ${chamadas} chamadas de t() · ~${comAcento} literais em português no código`);
+  /**
+   * O PISO — a catraca que impede a migracao de andar para tras.
+   *
+   * Cobertura de i18n nao se perde por decisao: ela se perde por descuido, uma tela de cada vez, e
+   * ninguem percebe porque o fallback e sempre legivel (a chave E o proprio portugues). Um piso no
+   * CI transforma isso num erro de build: quem remover chamadas de `t()` precisa dizer por que e
+   * baixar o numero a mao, no mesmo commit. O piso so sobe.
+   */
+  const arg = process.argv.find((a) => a.startsWith('--piso='));
+  if (arg) {
+    const piso = Number(arg.slice('--piso='.length));
+    if (chamadas < piso) {
+      console.error(
+        `
+ERRO: ${chamadas} chamadas de t(), abaixo do piso de ${piso}.
+` +
+        'A interface perdeu cobertura de traducao. Se a remocao foi deliberada (codigo morto, tela ' +
+        'excluida), baixe o piso em .github/workflows/ci.yml no mesmo commit, dizendo por que.'
+      );
+      process.exit(1);
+    }
+    console.log(`piso de ${piso} chamadas: ok`);
+  }
 }
 
 process.exit(houveOrfa ? 1 : 0);

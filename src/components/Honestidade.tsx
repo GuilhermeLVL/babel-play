@@ -24,6 +24,7 @@
  */
 import React from 'react'
 import { Info } from 'lucide-react'
+import { numero, t } from '../lib/i18n'
 
 /**
  * Abaixo disto, o número é frágil o bastante para a UI avisar.
@@ -77,8 +78,14 @@ export type BaseDeCalculo = { considerados: number; total: number }
 
 /** Formata a base para leitura humana. `1.753 de 1.902 ficaram de fora` é o que o usuário precisa saber. */
 export function rotuloDaBase(base: BaseDeCalculo): string {
-  const n = new Intl.NumberFormat('pt-BR')
-  return `calculado sobre ${n.format(base.considerados)} de ${n.format(base.total)}`
+  /* `new Intl.NumberFormat('pt-BR')` cravado escapava da regra `locale-cravado` (que so cobria
+     `toLocale*`) e fazia um leitor em ingles ler "2.733" como 2,733 — tres ordens de grandeza de
+     erro numa contagem de palavras, dita com toda a confianca. `numero` segue o idioma da
+     interface, e a regra do ast-grep passou a cobrir `Intl.*Format` (achado A65). */
+  return t('calculado sobre {considerados} de {total}', {
+    considerados: numero(base.considerados),
+    total: numero(base.total),
+  })
 }
 
 /**

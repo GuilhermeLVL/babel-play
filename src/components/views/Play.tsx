@@ -11,7 +11,7 @@ import BaoGame from '../minigames/BaoGame';
 import TenseTennisGame from '../minigames/TenseTennisGame';
 import VitendawiliGame from '../minigames/VitendawiliGame';
 import { playJuicedHit, triggerHaptic, triggerConfetti } from '../../lib/gameFeel';
-import { apiFetch, fetchDeck, reviewCard, salvarRodada, fetchSessions, fetchSessionTranscript, patchUiSettings, fetchSettings, bulkAddCards, fetchHistoricoDeItens, fetchExerciseResults, fetchRecordes, gastarSeeds, type AppMetrics, type HistoricoDeItem } from '../../data/api';
+import { apiFetch, fetchDeck, reviewCard, salvarRodada, fetchSessions, fetchSessionTranscript, fetchSettings, bulkAddCards, fetchHistoricoDeItens, fetchExerciseResults, fetchRecordes, gastarSeeds, type AppMetrics, type HistoricoDeItem } from '../../data/api';
 import { toSentences, type Sentence, type PracticeSeed } from '../../lib/sentences';
 import type { VocabCard, Recording } from '../../types';
 import { coreOnly, type AgeProfileType } from '../../lib/profile';
@@ -39,7 +39,7 @@ import {
   type EscolhaDaPratica, type OrigemDaPratica, type FonteId,
 } from '@core';
 import { baseLang, langLabelNaUI } from '../../lib/languages';
-import { langConfigFrom } from '../../lib/langConfig';
+import { langConfigFrom, saveLangConfig } from '../../lib/langConfig';
 import { temFonteGuardada } from '../../lib/fonteDaPratica';
 import { contarPassada } from '../../lib/passadasDoPipeline';
 import { faixaDe as faixaDaComposicao, type EstrategiaDaUI } from '../../core/minigames/composicao';
@@ -1331,11 +1331,15 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
       ]);
       if (cancelado) return;
 
-      let ui: Record<string, unknown> = {};
+      let ui: Record<string, unknown>;
       try { ui = ajustes?.ui ? JSON.parse(ajustes.ui) as Record<string, unknown> : {}; } catch { ui = {}; }
       const cfg = langConfigFrom(ui, ajustes?.targetLanguage);
-      const escolhido = typeof ui.praticaLang === 'string' ? ui.praticaLang : '';
-      const lang = escolhido || baseLang(cfg.studying);
+      /* UMA FONTE PARA O ALVO. Havia `ui.praticaLang` aqui, gravado por esta tela, ao lado de
+         `settings.targetLanguage`, gravado por Ajustes — dois campos respondendo "que idioma você
+         estuda", e no banco real eles divergiam ('pt-BR' contra 'en'). Quem trocasse o idioma aqui
+         não via a troca em Ajustes, e vice-versa. Agora esta tela lê e escreve o mesmo campo que
+         todas as outras (auditoria de 2026-09-07, achado A38). */
+      const lang = baseLang(cfg.studying);
 
       /* React 19 agrupa estes `setState` num render só (batching automático também fora de
          eventos), e é disso que depende o ganho: separados, voltariam a ser duas passadas. */
@@ -1538,14 +1542,15 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
 
   const trocarIdioma = (lang: string) => {
     setFonte(f => ({ ...f, lang }));
-    void patchUiSettings({ praticaLang: lang }).catch(() => { /* preferência é conveniência */ });
+    // Trocar o idioma da prática É trocar o idioma que se estuda — mesmo campo, uma escrita só.
+    void saveLangConfig({ studying: lang }).catch(() => { /* preferência é conveniência */ });
   };
 
   /**
    * A escolha da sala vira fonte — e fica GUARDADA.
    *
    * Duas persistências distintas de propósito: o idioma é preferência de perfil e vai para o
-   * servidor (`settings.ui.praticaLang`, atravessa dispositivos); a fonte é contexto de trabalho
+   * servidor (`settings.targetLanguage`, atravessa dispositivos); a fonte é contexto de trabalho
    * local e vai para o `localStorage`. Antes, NADA da fonte sobrevivia a um F5 — quem escolhia
    * "Trilha B1" voltava para "Minhas palavras" sem aviso.
    */

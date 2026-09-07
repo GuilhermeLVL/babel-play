@@ -90,11 +90,25 @@ function round1(n: number): number {
   return Math.round(n * 10) / 10
 }
 
+/** Os idiomas para os quais existe régua de voz passiva. Hoje um só, e dizê-lo é o ponto. */
+const IDIOMAS_COM_REGUA = new Set(['en'])
+
+/** Há régua de voz passiva para este idioma? A tela usa para declarar a ausência. */
+export function temReguaDeVozPassiva(lang: string): boolean {
+  return IDIOMAS_COM_REGUA.has((lang || '').toLowerCase().split('-')[0])
+}
+
 /**
- * Varre `texto` (inglês) por construções de voz passiva. Puro/determinístico — mesma entrada,
- * mesma saída, sem IA/rede/DOM. Ver ressalvas de precisão no cabeçalho do arquivo.
+ * Varre `texto` por construções de voz passiva, usando a régua de `lang`. Puro/determinístico —
+ * mesma entrada, mesma saída, sem IA/rede/DOM. Ver ressalvas de precisão no cabeçalho do arquivo.
+ *
+ * Devolve `null` quando não há régua para o idioma — ausência de resposta, não zero. Um zero aqui
+ * significaria "você não usa voz passiva"; `null` significa "não sei medir isto neste idioma". É a
+ * mesma regra de `contarVicios`, e existe pelo mesmo motivo: o padrão "be + particípio" não
+ * descreve o alemão nem o japonês, e aplicá-lo devolveria zero com cara de medição.
  */
-export function detectarVozPassiva(texto: string): VozPassivaResultado {
+export function detectarVozPassiva(texto: string, lang: string): VozPassivaResultado | null {
+  if (!temReguaDeVozPassiva(lang)) return null
   const raw = texto ?? ''
   const tokens = raw.match(/[\p{L}']+/gu) ?? []
   const lower = tokens.map((t) => t.toLowerCase())

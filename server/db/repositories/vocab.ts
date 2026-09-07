@@ -4,6 +4,7 @@ import { db } from '../db'
 import { vocabCards, vocabOccurrences, reviewLogs, sessions, ankiNotes, ankiDecks } from '../schema'
 import { makeFsrs5, type Grade, type SchedulingState } from '../../../src/core/learning/scheduler'
 import { nivelCefr } from '../../../src/core/learning/cefrWordlist'
+import { garantirNiveis } from '../../lib/niveisDaTrilha'
 import { avaliarCartao, foraDoBulkAdd, type MotivoDescarte } from '../../../src/core/learning/quality'
 import { calcularDificuldade, faixaDe, cortesDoDeck, type CortesDeFaixa, type FaixaDificuldade } from '../../../src/core/learning/dificuldade'
 import { exerciseResultsRepo } from './exerciseResults'
@@ -277,7 +278,11 @@ export const vocabRepo = {
          2.087 de 2.126 cartões com confiança < 0,5, com a escala invertida. Palavra fora da
          wordlist agora fica com nível `null` e confiança 0 — "não sei" em vez de um chute que
          a UI e o modelo de dificuldade tratariam como dado. Ver src/core/learning/cefrWordlist.ts */
-      const cefr = nivelCefr(c.word, c.srcLang ?? 'en', { curado: c.cefrLevel ?? null })
+      /* O IDIOMA DO CARTÃO, e não `?? 'en'`: medir uma palavra espanhola contra a lista inglesa
+         produz nível errado com cara de certo. `garantirNiveis` registra a lista do idioma no
+         servidor (o navegador tem `precarregarNiveis`; o servidor não tinha nada — achado A39). */
+      garantirNiveis(c.srcLang)
+      const cefr = nivelCefr(c.word, c.srcLang ?? '', { curado: c.cefrLevel ?? null })
       return {
         id: randomUUID(),
         createdAt: now,
@@ -882,7 +887,8 @@ export const vocabRepo = {
       }
 
       if (!card) {
-        const cefr = nivelCefr(palavra, deckLang.srcLang ?? 'en', { curado: null })
+        garantirNiveis(deckLang.srcLang)
+        const cefr = nivelCefr(palavra, deckLang.srcLang ?? '', { curado: null })
         const row: typeof vocabCards.$inferInsert = {
           id: randomUUID(),
           createdAt: now,

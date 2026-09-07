@@ -91,10 +91,15 @@ function indiceDe(lang: string): Map<string, CefrLevel> {
  *
  * `opts.curado` é o nível que veio de fonte confiável (importação com nível, curadoria manual) e
  * vence a wordlist — é o dado mais forte que existe sobre aquela palavra.
+ *
+ * `lang` É OBRIGATÓRIO, e o default `'en'` que existia aqui era a origem de um dado errado: quem
+ * chamava sem idioma (ou com `srcLang ?? 'en'`, que é a mesma coisa escrita por extenso) media uma
+ * palavra espanhola contra a lista inglesa. Sem nível não é problema — `ausente` é uma resposta;
+ * nível medido contra o idioma errado é um número falso (auditoria de 2026-09-07, achado A39).
  */
 export function nivelCefr(
   palavra: string,
-  lang = 'en',
+  lang: string,
   opts: { curado?: string | null } = {},
 ): NivelCefr {
   if (opts.curado && (NIVEIS as string[]).includes(opts.curado)) {
@@ -109,12 +114,12 @@ export function nivelCefr(
 }
 
 /** `cefr` quando o nível foi medido por linguista; `frequencia` quando saiu da contagem do corpus. */
-export function escalaDe(lang = 'en'): 'cefr' | 'frequencia' | null {
+export function escalaDe(lang: string): 'cefr' | 'frequencia' | null {
   return indiceDaTrilha()[base(lang)]?.escala ?? null
 }
 
 /** Cobertura da wordlist — para a limitação ser mensurável, e não presumida. */
-export function coberturaDaWordlist(lang = 'en'): { total: number; porNivel: Record<string, number> } {
+export function coberturaDaWordlist(lang: string): { total: number; porNivel: Record<string, number> } {
   const entrada = indiceDaTrilha()[base(lang)]
   if (!entrada) return { total: 0, porNivel: {} }
   return { total: entrada.total, porNivel: { ...entrada.porNivel } }

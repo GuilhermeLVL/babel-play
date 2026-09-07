@@ -1,4 +1,4 @@
-import { idiomaDaInterface, t } from './i18n';
+import { t, temTraducao } from './i18n';
 /**
  * PERFIL DE EXIBIÇÃO — a única fonte da linguagem e da densidade por público.
  *
@@ -391,7 +391,13 @@ export function copyDoPerfil(key: CopyKey, profile: AgeProfileType, vars?: Recor
      Entao o portugues mantem os tres, e os demais idiomas recebem a voz `pro`. As chaves das
      outras variantes continuam no catalogo: o dia em que um idioma justificar os tres registros,
      basta traduzi-las. */
-  const registro = idiomaDaInterface() === 'pt' ? (entry[profile] ?? entry.pro) : entry.pro;
+  /* A ESCOLHA PASSA A SER PELO CATALOGO, nao pelo idioma cravado. `idiomaDaInterface() === 'pt'`
+     dizia "so o portugues tem as tres vozes" — verdade no dia em que foi escrito e mentira no dia
+     em que alguem traduzir uma delas, sem nada no codigo para perceber. `temTraducao` responde a
+     pergunta real: esta redacao existe no idioma corrente? Se nao existe, cai na voz `pro`, que e
+     a que todo catalogo traduz primeiro. Em portugues nada muda: a chave E o portugues. */
+  const variante = entry[profile];
+  const registro = variante && temTraducao(variante) ? variante : entry.pro;
   return t(registro, vars);
 }
 

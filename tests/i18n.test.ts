@@ -1,5 +1,8 @@
 import { describe, expect, it, beforeEach } from 'vitest';
-import { t, tp, registrarCatalogo, usarIdioma, idiomaDaInterface, ehRTL, numero } from '../src/lib/i18n';
+import {
+  t, tp, registrarCatalogo, usarIdioma, idiomaDaInterface, ehRTL, numero,
+  temTraducao, IDIOMAS_DA_INTERFACE, coberturaDaInterface, idiomasAbaixoDoPiso,
+} from '../src/lib/i18n';
 
 /**
  * A chave é o texto português, e é isso que este arquivo trava: uma tradução ausente devolve a
@@ -127,5 +130,60 @@ describe('o que muda junto com o idioma', () => {
     expect(numero(2733)).toBe('2.733');
     await usarIdioma('en');
     expect(numero(2733)).toBe('2,733');
+  });
+});
+
+/**
+ * A LISTA DE IDIOMAS OFERECIDOS sai da cobertura MEDIDA, e não de uma constante escrita à mão.
+ *
+ * Era `['pt', 'en', 'es']` fixa, com `es` traduzido em 3%: quem escolhesse espanhol via a tela em
+ * português com um punhado de frases em espanhol no meio, e nada avisava, porque a chave é a
+ * própria frase portuguesa e o fallback é sempre legível (auditoria de 2026-09-07, achado A38).
+ */
+describe('idiomas oferecidos pela interface', () => {
+  it('só entra idioma acima do piso de cobertura', () => {
+    expect(IDIOMAS_DA_INTERFACE).toContain('pt');
+    expect(IDIOMAS_DA_INTERFACE).toContain('en');
+    expect(IDIOMAS_DA_INTERFACE).not.toContain('es');
+  });
+
+  it('o português é a origem e vem primeiro', () => {
+    expect(IDIOMAS_DA_INTERFACE[0]).toBe('pt');
+    expect(coberturaDaInterface('pt')).toBe(1);
+  });
+
+  it('quem ficou de fora é nomeado com a cobertura, para a tela poder explicar', () => {
+    const fora = idiomasAbaixoDoPiso();
+    expect(fora.map((f) => f.lang)).toContain('es');
+    const es = fora.find((f) => f.lang === 'es')!;
+    expect(es.cobertura).toBeGreaterThan(0);
+    expect(es.cobertura).toBeLessThan(0.5);
+  });
+
+  it('idioma sem catálogo nenhum tem cobertura zero', () => {
+    expect(coberturaDaInterface('ja')).toBe(0);
+  });
+});
+
+/**
+ * `temTraducao` responde a pergunta que `idiomaDaInterface() === 'pt'` cravado respondia por
+ * aproximação: existe ESTA redação no idioma corrente? É o que permite às três vozes de
+ * `profile.ts` (criança/idoso/pro) caírem na voz `pro` só quando a variante não foi traduzida —
+ * em vez de nunca sair de `pro` fora do português, mesmo depois de alguém traduzir.
+ */
+describe('temTraducao', () => {
+  beforeEach(async () => {
+    registrarCatalogo('en', { 'Jogo da memória': 'Memory game' });
+    await usarIdioma('pt');
+  });
+
+  it('em português é sempre verdadeiro — o português É a chave', async () => {
+    expect(temTraducao('Qualquer frase que nunca foi traduzida')).toBe(true);
+  });
+
+  it('em outro idioma, distingue traduzido de ausente', async () => {
+    await usarIdioma('en');
+    expect(temTraducao('Jogo da memória')).toBe(true);
+    expect(temTraducao('Caça-palavras')).toBe(false);
   });
 });

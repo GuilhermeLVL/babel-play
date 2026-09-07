@@ -5,6 +5,9 @@ import {
   ChevronLeft, ChevronRight, Mic, Gamepad2, Zap, Eye, UserRound,
 } from 'lucide-react';
 import { createCredential, testProvider, saveSettings, patchUiSettings } from '../data/api';
+import LangPicker from './LangPicker';
+import { DEFAULT_LANG_CONFIG, saveLangConfig, idiomasDaInterfaceOferecidos } from '../lib/langConfig';
+import { t } from '../lib/i18n';
 import type { AgeProfileType } from '../lib/profile';
 import { setProviderChoice, getActiveProfile } from '../gateway/activeProfile';
 import { routeStt, getSttQuality, MODEL_DOWNLOAD_MB, MODEL_DOWNLOAD_MEDIDO } from '../gateway/sttRouter';
@@ -39,11 +42,11 @@ async function persistChoice(mode: 'local' | 'cloud', profileId: string, credent
 // O download em si acontece na captura, já com o idioma real escolhido pelo usuário.
 const DEFAULT_LISTEN = 'en';
 
-type Step = 'welcome' | 'profile' | 'how' | 'privacy' | 'choose' | 'cloud' | 'download';
+type Step = 'welcome' | 'idioma' | 'profile' | 'how' | 'privacy' | 'choose' | 'cloud' | 'download';
 
 // Ordem dos passos que compõem a barra de progresso (a apresentação + a decisão).
 // `cloud`/`download` são sub-fluxos e não aparecem na barra.
-const PROGRESS_STEPS: Step[] = ['welcome', 'profile', 'how', 'privacy', 'choose'];
+const PROGRESS_STEPS: Step[] = ['welcome', 'idioma', 'profile', 'how', 'privacy', 'choose'];
 
 /**
  * PERFIL DE EXIBIÇÃO — perguntado aqui, e não escondido num popover.
@@ -83,6 +86,16 @@ const PROFILE_CHOICES: Array<{
 
 export default function Onboarding({ onComplete }: { onComplete: () => void }) {
   const [step, setStep] = useState<Step>('welcome');
+  /**
+   * OS DOIS IDIOMAS, PERGUNTADOS NA PORTA.
+   *
+   * A onboarding completa não perguntava idioma nenhum: quem não abrisse Ajustes ficava com o
+   * palpite de `DEFAULT_LANG_CONFIG` para sempre — interface em português e estudo em inglês,
+   * independentemente de quem fosse a pessoa (auditoria de 2026-09-07, achado A38). A edição leve
+   * já perguntava; esta passa a perguntar o mesmo, mais o idioma da tela.
+   */
+  const [estudando, setEstudando] = useState(DEFAULT_LANG_CONFIG.studying);
+  const [idiomaDaTela, setIdiomaDaTela] = useState(DEFAULT_LANG_CONFIG.daInterface);
   const [ageProfile, setAgeProfile] = useState<AgeProfileType>('pro');
   const [kind, setKind] = useState<keyof typeof PROVIDERS>('openai');
   const [baseUrl, setBaseUrl] = useState(PROVIDERS.openai.baseUrl);
@@ -101,15 +114,17 @@ export default function Onboarding({ onComplete }: { onComplete: () => void }) {
   // Navegação da apresentação. Nenhuma destas funções persiste nada: percorrer o
   // tour (inclusive ao "Rever apresentação") só troca de tela — a escolha
   // local/nuvem já feita só é sobrescrita se o usuário clicar de novo em chooseLocal/saveCloud.
-  const inTour = step === 'welcome' || step === 'profile' || step === 'how' || step === 'privacy';
+  const inTour = step === 'welcome' || step === 'idioma' || step === 'profile' || step === 'how' || step === 'privacy';
   const goNext = () => {
-    if (step === 'welcome') setStep('profile');
+    if (step === 'welcome') setStep('idioma');
+    else if (step === 'idioma') setStep('profile');
     else if (step === 'profile') setStep('how');
     else if (step === 'how') setStep('privacy');
     else if (step === 'privacy') setStep('choose');
   };
   const goBack = () => {
-    if (step === 'profile') setStep('welcome');
+    if (step === 'idioma') setStep('welcome');
+    else if (step === 'profile') setStep('idioma');
     else if (step === 'how') setStep('profile');
     else if (step === 'privacy') setStep('how');
     else if (step === 'choose') setStep('privacy');
@@ -122,6 +137,20 @@ export default function Onboarding({ onComplete }: { onComplete: () => void }) {
    * App lê no arranque e o blob `settings.ui` no servidor — sem o servidor, a preferência se
    * perderia ao trocar de máquina, que é justamente o caso de quem configura o app para outra pessoa.
    */
+  /**
+   * Escolher o idioma GRAVA NA HORA, no mesmo espírito de `chooseProfile`: a interface muda sob os
+   * pés de quem escolheu, que é a confirmação mais direta de que a escolha valeu. `saveLangConfig`
+   * escreve um campo por eixo (`settings.targetLanguage` e `ui.uiLang`).
+   */
+  const escolherEstudando = (code: string) => {
+    setEstudando(code);
+    void saveLangConfig({ studying: code });
+  };
+  const escolherIdiomaDaTela = (code: string) => {
+    setIdiomaDaTela(code);
+    void saveLangConfig({ daInterface: code });
+  };
+
   const chooseProfile = (id: AgeProfileType) => {
     setAgeProfile(id);
     localStorage.setItem('babel.age_profile', id);
@@ -255,6 +284,45 @@ export default function Onboarding({ onComplete }: { onComplete: () => void }) {
               tudo vira uma sessão com vocabulário, exercícios e leitura narrada. E as legendas ao vivo podem flutuar
               numa <strong className="text-ink">janelinha sempre-no-topo</strong> por cima do jogo ou da chamada.
             </p>
+          </TourSlide>
+        )}
+
+        {step === 'idioma' && (
+          <TourSlide
+            icon={<Languages className="w-6 h-6" />}
+            kicker={t('Idiomas')}
+            title={t('Que idioma você quer aprender?')}
+            onBack={goBack}
+            onNext={goNext}
+            onSkip={skipTour}
+          >
+            <p className="text-[13.5px] text-ink-muted leading-relaxed mb-4">
+              {t('Dá para trocar quando quiser, em Ajustes. O idioma que você aprende decide as palavras que vão para o seu baralho; o da interface decide só os textos da tela.')}
+            </p>
+            <div className="space-y-4">
+              <div>
+                <div className="font-bold text-[13.5px] mb-1.5">{t('Estou aprendendo')}</div>
+                <LangPicker
+                  id="onboarding-studying-lang"
+                  ariaLabel={t('Estou aprendendo')}
+                  block
+                  accent
+                  value={estudando}
+                  onPick={({ code }) => { if (code) escolherEstudando(code); }}
+                />
+              </div>
+              <div>
+                <div className="font-bold text-[13.5px] mb-1.5">{t('Idioma da interface')}</div>
+                <LangPicker
+                  id="onboarding-ui-lang"
+                  ariaLabel={t('Idioma da interface')}
+                  block
+                  somente={idiomasDaInterfaceOferecidos()}
+                  value={idiomaDaTela}
+                  onPick={({ code }) => { if (code) escolherIdiomaDaTela(code); }}
+                />
+              </div>
+            </div>
           </TourSlide>
         )}
 

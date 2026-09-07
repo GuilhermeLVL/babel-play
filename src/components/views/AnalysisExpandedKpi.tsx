@@ -10,6 +10,8 @@ export type AnalysisKpiType = 'ppm' | 'fillers' | 'lexical_richness' | 'dominant
 /** Subconjunto real de um enunciado da sessão (ver UtteranceRow em data/api.ts). */
 interface KpiUtterance {
   sourceText?: string | null;
+  /** Idioma da fala — decide a lista de stopwords da extracao de topicos. */
+  sourceLang?: string | null;
   tStartMs?: number | null;
   tEndMs?: number | null;
 }
@@ -349,7 +351,11 @@ export default function AnalysisExpandedKpi({ kpi, onClose, utterances, vicios }
         // Palavras-chave REAIS por frequência: extrai termos salientes do transcrito
         // (determinístico, sem IA) e conta quantas vezes cada um aparece no texto real.
         const fullText = rows.map(u => u.sourceText ?? '').join(' ');
-        const keywords = extractKeywords(fullText, { max: 12 });
+        /* O IDIOMA DAS FALAS decide qual lista de stopwords filtra o ruido gramatical. Sem ele,
+           um transcrito japones vinha "limpo" de artigos ingleses — ou seja, de nada — e as
+           particulas viravam topico (auditoria de 2026-09-07, achado A39). */
+        const idiomaDasFalas = rows[0]?.sourceLang ?? '';
+        const keywords = extractKeywords(fullText, { max: 12, lang: idiomaDasFalas });
         const normalized = fullText.toLowerCase();
         const freq: { name: string; count: number }[] = keywords
           .map(kw => {

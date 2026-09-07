@@ -47,7 +47,12 @@ export interface WordOrigin {
   /** Idioma que os dados AFIRMAM para essa frase (`Sentence.lang`, `utterance.sourceLang`). Pode mentir. */
   declaredLang?: string;
   /** Configuração do usuário — último recurso, quando não há contexto nem rótulo. */
-  config: LangConfig;
+  /**
+   * SÓ OS DOIS EIXOS QUE ESTA FUNÇÃO USA. `LangConfig` ganhou um terceiro (`daInterface`), e pedir
+   * o objeto inteiro obrigaria quem monta uma configuração sintética — a Captura monta uma a
+   * partir dos seletores da tela — a inventar um valor para um campo que ninguém lê aqui.
+   */
+  config: Pick<LangConfig, 'mine' | 'studying'>;
 }
 
 export interface ResolvedWord {

@@ -14,6 +14,18 @@ A primeira change foi executada com a saida (b): a camada nao rastreada foi comm
 - Os tres gates vermelhos ficaram verdes na mesma arvore: `npm test` 2.775/2.775 (`canvas-confetti` atras de `podeDesenhar()` em `src/lib/gameFeel.ts`; teste do Termo segue o rotulo "Dica"), `test:e2e` 14/14 (`_helpers.ts`/`facetas.e2e.ts` usam o botao "Fonte"), `i18n:orfas` 0 orfas (675 chaves). `uptime.yml` voltou a ser YAML valido e `scripts/validar-workflows.mjs` entrou como primeiro passo do CI; `deploy-pages.yml` roda os mesmos gates do `ci.yml`; `ci.yml` instala o Chromium antes do e2e (nao instalava). `audit:gate` verde apos `browserslist` no lock.
 - Continuam valendo, para as proximas changes: A02-A06 e todo o P1/P2; A43 e A56 deixaram de existir na arvore (voltaram com a camada para a branch).
 
+## 0.1 Achados fechados pelas changes ja aplicadas (main local, sem push)
+
+| Achado | Change | O que passou a valer |
+|---|---|---|
+| A06 (LGPD) | `exclusao-de-conta-completa` (`c07c634`) | `DELETE`/exportacao alcancam toda tabela com `user_id`; invariante que quebra o boot se uma tabela nova ficar de fora |
+| A05 (billing) | `webhook-asaas-sem-pagamento-perdido` (`a00d3f7`) | Todo evento tem `estado`/`motivo`; fila de pendentes e reprocessamento no admin |
+| A17 (filtro) | `filtro-facetado-chega-ao-servidor` (`ce36b2e`) | O filtro facetado viaja na query (POST acima de 6 KB) e o servidor o aplica |
+| A64 (spec) | `spec-vigente-do-codigo` (`4ec1b29`) | `openspec/specs/` descreve o produto como ele e; 17 changes arquivadas |
+| A38, A39, A65 (i18n) | `idioma-alvo-e-ui-respeitados` | Um campo por eixo (migracao `0023`), seletor de interface com lista derivada da cobertura medida, niveis CEFR por idioma no servidor, reguas de texto declarando o que nao sabem medir, `lang` obrigatorio no TTS, piso de cobertura no CI |
+
+Os numeros do relatorio abaixo sao os da medicao original (07/09), preservados: o valor de uma auditoria e o retrato do dia em que foi feita.
+
 ## 1. Resumo executivo
 
 1. A arvore de trabalho **desliga o comercio inteiro**: `Loja.tsx:151` fixa `modoVisual='pro'` e nada de loja, passe, creditos, conquistas ou Personalizar e alcancavel (EXEC: `/loja` e `/loja/passe` mostram so Cofre/Vestiario). `HEAD` nao tem essa linha.

@@ -6,7 +6,7 @@ message: >-
   ler "2.733" como 2,733 — três ordens de grandeza de erro numa contagem de palavras, dita com
   toda a confiança. Datas são piores: 03/09 e 09/03 são dias diferentes e os dois parecem certos.
   Use `numero`, `numeroCom`, `data`, `dataHora` ou `moeda` de `src/lib/i18n.ts`, que seguem o
-  idioma da interface. Se o locale precisa mesmo ser fixo (um dado que É brasileiro, não a leitura
+  idioma da interface. Vale igual para `new Intl.NumberFormat('pt-BR')` e irmaos. Se o locale precisa mesmo ser fixo (um dado que É brasileiro, não a leitura
   dele), diga isso num comentário na linha de cima.
 files:
   - 'src/**/*.ts'
@@ -25,6 +25,19 @@ rule:
     - pattern: $X.toLocaleDateString($LOCALE, $$$ARGS)
     - pattern: $X.toLocaleTimeString($LOCALE)
     - pattern: $X.toLocaleTimeString($LOCALE, $$$ARGS)
+    # `new Intl.NumberFormat('pt-BR')` fazia o MESMO estrago e passava batido: a regra so conhecia
+    # os metodos `toLocale*`, e foi por essa porta que `Honestidade.tsx` formatou "calculado sobre
+    # 1.753 de 1.902" em portugues para todo mundo (auditoria de 2026-09-07, achado A65).
+    - pattern: new Intl.NumberFormat($LOCALE)
+    - pattern: new Intl.NumberFormat($LOCALE, $$$ARGS)
+    - pattern: new Intl.DateTimeFormat($LOCALE)
+    - pattern: new Intl.DateTimeFormat($LOCALE, $$$ARGS)
+    - pattern: new Intl.RelativeTimeFormat($LOCALE)
+    - pattern: new Intl.RelativeTimeFormat($LOCALE, $$$ARGS)
+    - pattern: new Intl.ListFormat($LOCALE)
+    - pattern: new Intl.ListFormat($LOCALE, $$$ARGS)
+    - pattern: new Intl.Collator($LOCALE)
+    - pattern: new Intl.Collator($LOCALE, $$$ARGS)
 constraints:
   # Só locale CRAVADO. `toLocaleString()` sem argumento e `toLocaleDateString(idiomaDaInterface())`
   # são decisões diferentes, e legítimas.

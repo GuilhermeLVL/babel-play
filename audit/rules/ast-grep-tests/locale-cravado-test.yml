@@ -7,6 +7,9 @@ valid:
   # Locale do runtime (não cravado) é decisão diferente, e legítima.
   - 'const s = n.toLocaleString()'
   - 'const s = d.toLocaleDateString(idiomaDaInterface())'
+  # `Intl` com locale do runtime tambem e legitimo.
+  - 'const f = new Intl.NumberFormat(idiomaDaInterface())'
+  - 'const r = new Intl.PluralRules(lang)'
 invalid:
   # O caso que fazia o americano ler 2.733 como 2,733.
   - 'const s = total.toLocaleString("pt-BR")'
@@ -15,3 +18,8 @@ invalid:
   # Datas: 03/09 e 09/03 são dias diferentes e ambos parecem certos.
   - 'const s = d.toLocaleDateString("pt-BR")'
   - 'const s = d.toLocaleTimeString("pt-BR")'
+  # A porta pela qual `Honestidade.tsx` escapava: a regra so conhecia `toLocale*`.
+  - 'const n = new Intl.NumberFormat("pt-BR")'
+  - "const n = new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 1 })"
+  - 'const d = new Intl.DateTimeFormat("pt-BR")'
+  - 'const r = new Intl.RelativeTimeFormat("pt-BR")'

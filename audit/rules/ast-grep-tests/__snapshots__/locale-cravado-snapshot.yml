@@ -1,5 +1,29 @@
 id: locale-cravado
 snapshots:
+  const d = new Intl.DateTimeFormat("pt-BR"):
+    labels:
+    - source: new Intl.DateTimeFormat("pt-BR")
+      style: primary
+      start: 10
+      end: 42
+  const n = new Intl.NumberFormat("pt-BR"):
+    labels:
+    - source: new Intl.NumberFormat("pt-BR")
+      style: primary
+      start: 10
+      end: 40
+  'const n = new Intl.NumberFormat(''pt-BR'', { minimumFractionDigits: 1 })':
+    labels:
+    - source: 'new Intl.NumberFormat(''pt-BR'', { minimumFractionDigits: 1 })'
+      style: primary
+      start: 10
+      end: 70
+  const r = new Intl.RelativeTimeFormat("pt-BR"):
+    labels:
+    - source: new Intl.RelativeTimeFormat("pt-BR")
+      style: primary
+      start: 10
+      end: 46
   const s = d.toLocaleDateString("pt-BR"):
     labels:
     - source: d.toLocaleDateString("pt-BR")

@@ -9,10 +9,10 @@ Os tres eixos de idioma existem e nao sao respeitados de ponta a ponta (achados 
 
 ## What Changes
 
-- **Um store por eixo.** Alvo: `settings.targetLanguage` e a unica fonte; `ui.captureTargetLang` e `ui.praticaLang` viram derivados (migracao de dados para quem tem os tres divergentes). UI: `users.locale` (conta) ou `settings.ui.uiLang` (self-host/anonimo) escrita por um seletor em Ajustes; `mine` deixa de decidir a interface.
+- **Um store por eixo.** Alvo: `settings.targetLanguage` e a unica fonte escrita; `ui.captureTargetLang` e `ui.praticaLang` deixam de ser gravados e sao apagados pela migracao `0023` (continuam sendo LIDOS como fallback, porque o modo anonimo guarda settings no IndexedDB, onde migracao SQL nao chega). UI: `settings.ui.uiLang`, escrita por um seletor em Ajustes; `mine` deixa de decidir a interface e vira apenas o padrao. **Decidido na implementacao:** um store so para a interface, e nao `users.locale` para conta mais `ui.uiLang` para o resto — dois stores para o mesmo eixo e o defeito que esta change conserta, e `settings` ja funciona nos tres modos. `users.locale` fica para `schema-sem-tabela-orfa`.
 - Onboarding completa pergunta idioma-alvo e idioma da interface (reaproveita os passos de `OnboardingLeve`).
 - Idiomas de UI oferecidos = catalogos com cobertura >= 90% (`es` sai ate cumprir); `ar` entra quando cumprir.
-- Servidor le `niveis/*.json` no boot (fora do Vite) e `registrarNiveis` para os 16 idiomas; `nivelCefr(word, lang)` sem default `en`.
+- Servidor le `niveis/*.json` (import estatico, empacotado por esbuild) e registra a lista SOB DEMANDA por idioma (`server/lib/niveisDaTrilha.ts`); `nivelCefr(word, lang)`, `escalaDe(lang)` e `coberturaDaWordlist(lang)` sem default `en`.
 - Os 10 pontos cravados listados acima passam a receber o idioma do item ou do eixo correto; `relatorioDeProgresso` passa por `t()`; regra ast-grep `locale-cravado` cobre `Intl.*Format('xx-YY')` e `new Intl.NumberFormat('pt-BR')`.
 - Regua gramatical/vicios/stopwords/prepararFala: por idioma, com tabela vazia = "sem regua" declarado na tela (nunca aplicar a regua inglesa a outro idioma).
 - Gate de progresso: `orfas --progresso` no CI com piso que so sobe.

@@ -131,8 +131,10 @@ interface SpeechSegment {
  * Palavras de vocabulário derivadas de uma fala REAL (determinístico, sem IA nem
  * lista fixa). A tradução do verso é preenchida depois pelo gateway de MT.
  */
-function wordsFromText(text: string): VocabWord[] {
-  return extractKeywords(text, { max: 6 }).map((w) => ({ word: w, translation: '' }));
+function wordsFromText(text: string, lang: string): VocabWord[] {
+  // O idioma da FALA escolhe a lista de stopwords; sem lista a extracao roda sem filtro
+  // gramatical, e `temStopwords` deixa a tela declarar isso quando for o caso.
+  return extractKeywords(text, { max: 6, lang }).map((w) => ({ word: w, translation: '' }));
 }
 
 // Speaker definition
@@ -792,7 +794,7 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
   const targetLangRef = useRef(targetLang);
   // A config no formato que `vocabWord.ts` consome. Espelhada em ref porque os caminhos que resolvem
   // idioma de palavra são assíncronos (clique → detecção → MT) e não podem ler estado obsoleto.
-  const langConfigRef = useRef<LangConfig>({ mine: sourceLang, studying: targetLang });
+  const langConfigRef = useRef<Pick<LangConfig, 'mine' | 'studying'>>({ mine: sourceLang, studying: targetLang });
 
   useEffect(() => {
     timerRef.current = timer;
@@ -1465,7 +1467,7 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
           micInicioRef.current.delete(seq);
           capMetrics.final(seq, { decodeMs, queueDepth, text: clean, audioMs });
           setSpeechSegments(prev => prev.map(s => s.id === uttId
-            ? { ...s, originalText: clean, translatedText: '…', words: wordsFromText(clean), isPartial: false, tEndMs: nowRel(), lang: (from || idiomaDoMotor) || undefined, engine }
+            ? { ...s, originalText: clean, translatedText: '…', words: wordsFromText(clean, (from || idiomaDoMotor) || sourceLang), isPartial: false, tEndMs: nowRel(), lang: (from || idiomaDoMotor) || undefined, engine }
             : s));
 
           /** Alimenta o perfil da sessão e devolve o idioma desta fala ('' = não descobrimos). */
@@ -1850,7 +1852,7 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
             const existing = prev.find(s => s.id === uttId);
             const committed: SpeechSegment = {
               id: uttId, speakerId, source: 'mic', timestamp: formatTime(timerRef.current),
-              originalText: clean, translatedText: '…', words: wordsFromText(clean), isPartial: false,
+              originalText: clean, translatedText: '…', words: wordsFromText(clean, sourceLang), isPartial: false,
               tStartMs: existing?.tStartMs ?? nowRel(), tEndMs: nowRel(),
             };
             const idx = prev.findIndex(s => s.id === uttId);
@@ -2444,7 +2446,7 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
           timestamp: formatTime(Math.round((u.tStartMs ?? 0) / 1000)),
           originalText: u.sourceText ?? '',
           translatedText: u.translatedText ?? '',
-          words: wordsFromText(u.sourceText ?? ''),
+          words: wordsFromText(u.sourceText ?? '', u.sourceLang ?? (u.source === 'system' ? targetLang : sourceLang)),
           isPartial: false,
           tStartMs: u.tStartMs ?? undefined,
           tEndMs: u.tEndMs ?? undefined,
@@ -2579,7 +2581,7 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
           timestamp: timestampStr,
           originalText: inputText,
           translatedText: cleanTranslated,
-          words: wordsFromText(inputText),
+          words: wordsFromText(inputText, sourceLang),
           tStartMs: nowRel(),
           tEndMs: nowRel(),
         }

@@ -514,7 +514,13 @@ export default function Analysis({
     () => parsedSentences.map(s => s.original).join(' '),
     [parsedSentences]
   );
-  const stats = React.useMemo(() => computeTextStats(fullTranscriptText), [fullTranscriptText]);
+  /* AS ESTATISTICAS SAO DO IDIOMA DA SESSAO, nao do ingles por omissao: silabas e Flesch sao
+     heuristicas inglesas e a densidade lexical depende de haver lista de stopwords. Passando o
+     idioma, o que nao se aplica volta `null` e a tela mostra um traco em vez de numero inventado. */
+  const stats = React.useMemo(
+    () => computeTextStats(fullTranscriptText, ttsLang),
+    [fullTranscriptText, ttsLang]
+  );
 
   // WPM REAL da sessão: palavras / tempo falado (do primeiro tStartMs ao último tEndMs).
   // Sem timing confiável → null (a UI mostra "—", nunca um número inventado).
@@ -685,8 +691,8 @@ export default function Analysis({
 
   // Tópicos REAIS = palavras-chave extraídas deterministicamente do transcrito (não rótulos inventados).
   const topKeywords = React.useMemo(
-    () => extractKeywords(fullTranscriptText, { max: 6 }),
-    [fullTranscriptText]
+    () => extractKeywords(fullTranscriptText, { max: 6, lang: ttsLang }),
+    [fullTranscriptText, ttsLang]
   );
 
   // Dados reais do hover: imagem (Openverse), tradução (gateway) e frase de contexto.
@@ -1726,12 +1732,12 @@ export default function Analysis({
                   <div className="card-panel p-4 cursor-pointer hover:border-accent hover:shadow-md transition-all" onClick={() => setExpandedAnalysisKpi('flesch')}>
                     <span className="label-mono block mb-1 font-semibold text-ink-muted flex items-center gap-1.5"><Crosshair className="w-3.5 h-3.5" /> Complexidade (Flesch)</span>
                     <div className="font-display font-black text-2xl tracking-tight text-accent-ink">{stats.readingEase != null ? stats.readingEase : '-'}{stats.readingEase != null && <span className="text-[14px] text-ink-faint ms-0.5">pts</span>}</div>
-                    <div className="text-[11.5px] text-ink-muted mt-1 font-medium">{stats.readingEase != null ? 'Flesch Reading Ease (maior = mais fácil)' : 'requer +texto'}</div>
+                    <div className="text-[11.5px] text-ink-muted mt-1 font-medium">{stats.readingEase != null ? 'Flesch Reading Ease (maior = mais fácil)' : stats.syllableCount == null ? `sem régua de legibilidade para ${langLabel(stats.idioma)}` : 'requer +texto'}</div>
                   </div>
                   <div className="card-panel p-4 cursor-pointer hover:border-accent hover:shadow-md transition-all" onClick={() => setExpandedAnalysisKpi('density')}>
                     <span className="label-mono block mb-1 font-semibold text-ink-muted flex items-center gap-1.5"><BarChart2 className="w-3.5 h-3.5" /> Densidade Lexical</span>
-                    <div className="font-display font-black text-2xl tracking-tight">{stats.wordCount > 0 ? stats.lexicalDensityPct : '-'}{stats.wordCount > 0 && <span className="text-[14px] text-ink-faint ms-0.5">%</span>}</div>
-                    <div className="text-[11.5px] text-ink-muted mt-1 font-medium">Palavras de conteúdo</div>
+                    <div className="font-display font-black text-2xl tracking-tight">{stats.lexicalDensityPct != null ? stats.lexicalDensityPct : '-'}{stats.lexicalDensityPct != null && <span className="text-[14px] text-ink-faint ms-0.5">%</span>}</div>
+                    <div className="text-[11.5px] text-ink-muted mt-1 font-medium">{stats.lexicalDensityPct != null ? 'Palavras de conteúdo' : `sem lista de stopwords para ${langLabel(stats.idioma)}`}</div>
                   </div>
                   <div className="card-panel p-4 cursor-pointer hover:border-accent hover:shadow-md transition-all" onClick={() => setExpandedAnalysisKpi('jargons')}>
                     <span className="label-mono block mb-1 font-semibold text-ink-muted flex items-center gap-1.5"><Zap className="w-3.5 h-3.5" /> Vocábulos Únicos</span>
@@ -2732,7 +2738,8 @@ export default function Analysis({
                     `- Palavras: ${stats.wordCount}\n` +
                     `- Vocábulos únicos: ${stats.uniqueWords}\n` +
                     `- Frases: ${stats.sentenceCount}\n` +
-                    `- Densidade lexical: ${stats.lexicalDensityPct}%\n` +
+                    `- Densidade lexical: ${stats.lexicalDensityPct != null ? `${stats.lexicalDensityPct}%` : 'sem régua para este idioma'}
+` +
                     `- Razão tipo/token: ${Math.round(stats.typeTokenRatio * 100)}/100\n` +
                     `- Facilidade de leitura (Flesch): ${stats.readingEase != null ? stats.readingEase : '-'}\n\n` +
                     `Gerado em ${data(new Date())}`;

@@ -6,8 +6,8 @@ import type { VocabWord } from '../types';
 import type { AppLayoutConfig } from '../lib/layoutStore';
 import type { ExerciseId } from '../lib/sentences';
 import { lookup, forvoUrl, wiktionaryUrl, type DictionaryResult } from '../lib/dictionary';
-import { langLabel } from '../lib/languages';
-import { t } from '../lib/i18n';
+import { baseLang, langLabel, langLabelNaUI } from '../lib/languages';
+import { t, idiomaDaInterface } from '../lib/i18n';
 
 /** Rótulos amigáveis dos motores de tradução — o usuário não deve ler ids técnicos crus. */
 const MT_ENGINE_LABELS: Record<string, string> = {
@@ -296,15 +296,17 @@ export default function VocabularyPanel({
 
                 {found && (
                   <>
-                    {/* A definição NÃO está em português. Antes isto era invisível: o painel consultava
-                        só o Wiktionary inglês, então uma palavra francesa vinha explicada em inglês num
-                        bloco rotulado apenas "Dicionário", e o usuário não tinha como saber. Agora
-                        tentamos primeiro o wiki em português; quando não há verbete lá, dizemos em que
-                        língua ele está escrito. */}
-                    {found.glossLang !== 'pt' && (
+                    {/* A definicao NAO esta no idioma de quem le. O painel consulta primeiro o
+                        Wikcionario do idioma da INTERFACE; quando nao ha verbete la, dizemos em que
+                        lingua o verbete esta. Isto comparava com `'pt'` cravado, entao quem lia a
+                        tela em ingles recebia um aviso de que a definicao "nao esta em portugues"
+                        sobre um verbete que estava, sim, no idioma dele (achado A39). */}
+                    {found.glossLang !== baseLang(idiomaDaInterface()) && (
                       <p className="text-[10.5px] text-warn-ink bg-warn-soft border border-warn/20 rounded-lg px-2.5 py-1.5 leading-relaxed">
-                        Não há verbete em português para esta palavra. A definição abaixo está escrita em{' '}
-                        <strong>{langLabel(found.glossLang)}</strong>.
+                        {t('Não há verbete em {idioma} para esta palavra. A definição abaixo está escrita em {outro}.', {
+                          idioma: langLabelNaUI(idiomaDaInterface()),
+                          outro: langLabelNaUI(found.glossLang),
+                        })}
                       </p>
                     )}
                     <ul className="space-y-2">

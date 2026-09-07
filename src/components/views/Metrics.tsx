@@ -17,7 +17,7 @@ import {
 import MetricsExpandedKpi, { KpiType } from './MetricsExpandedKpi';
 import { retrievability, computeTextStats, detectarVozPassiva } from '@core';
 import CatalogoDePalavras from './vocab/CatalogoDePalavras';
-import { baseLang } from '../../lib/languages';
+import { baseLang, langLabelNaUI } from '../../lib/languages';
 import { seedFromSelection, telaDoExercicio } from '../../lib/sentences';
 import type { PracticeSeed, ExerciseId } from '../../lib/sentences';
 import VocabularyPanel from '../VocabularyPanel';
@@ -294,27 +294,39 @@ export default function Metrics({ recordings, onChangeView, ageProfile = 'pro' }
   }, [vocabCards]);
 
   /**
-   * CORPUS DE FALA REAL EM INGLÊS — insumo dos dois painéis de "Complexidade Estrutural" abaixo.
+   * CORPUS DE FALA NO IDIOMA QUE A PESSOA ESTUDA — insumo dos dois paineis de "Complexidade
+   * Estrutural" abaixo.
    *
-   * `computeTextStats` e `detectarVozPassiva` (`@core`) são heurísticas AJUSTADAS PARA INGLÊS (a
-   * contagem de sílabas, o Flesch Reading Ease e o padrão "be + particípio" — ver os comentários nos
-   * próprios módulos). Por isso o corpus filtra só falas cujo `sourceLang` normaliza para 'en';
-   * falas em outros idiomas ficam de fora e `emOutrosIdiomas` conta quantas, para a tela ser honesta
-   * sobre a fatia do que foi de fato analisado.
+   * O corpus era filtrado por `sourceLang === 'en'`, cravado. Quem estuda japones via os dois
+   * paineis vazios com a explicacao "nenhuma das falas esta em ingles" — verdadeira e inutil, e a
+   * pergunta que ela nao respondia e "entao o que voce mede para mim?" (auditoria de 2026-09-07,
+   * achado A39). Agora o corpus segue o idioma-alvo, e sao as REGUAS que declaram o que sabem
+   * medir: `computeTextStats` devolve `null` no que nao vale para o idioma, `detectarVozPassiva`
+   * devolve `null` inteiro quando nao ha regua. Sem regua a tela diz isso, com o nome do idioma.
    */
-  const englishCorpus = useMemo(() => {
+  /* `langCfg` ja vem de `useExameDePalavra` (mesmo leitor unico de idioma) — nao ha segunda
+     assinatura aqui, so o uso do que a tela ja tinha em maos. */
+  const idiomaEstudado = baseLang(langCfg.studying);
+  const corpusDoAlvo = useMemo(() => {
     const comTexto = allUtterances.filter((u) => (u.sourceText ?? '').trim().length > 0);
-    const emIngles = comTexto.filter((u) => baseLang(u.sourceLang ?? '') === 'en');
+    const noAlvo = comTexto.filter((u) => baseLang(u.sourceLang ?? '') === idiomaEstudado);
     return {
-      texto: emIngles.map((u) => u.sourceText).join('. '),
-      emIngles: emIngles.length,
-      emOutrosIdiomas: comTexto.length - emIngles.length,
+      texto: noAlvo.map((u) => u.sourceText).join('. '),
+      noAlvo: noAlvo.length,
+      emOutrosIdiomas: comTexto.length - noAlvo.length,
       totalFalas: comTexto.length,
     };
-  }, [allUtterances]);
+  }, [allUtterances, idiomaEstudado]);
 
-  const textStats = useMemo(() => computeTextStats(englishCorpus.texto), [englishCorpus.texto]);
-  const vozPassiva = useMemo(() => detectarVozPassiva(englishCorpus.texto), [englishCorpus.texto]);
+  const textStats = useMemo(
+    () => computeTextStats(corpusDoAlvo.texto, idiomaEstudado),
+    [corpusDoAlvo.texto, idiomaEstudado]
+  );
+  const vozPassiva = useMemo(
+    () => detectarVozPassiva(corpusDoAlvo.texto, idiomaEstudado),
+    [corpusDoAlvo.texto, idiomaEstudado]
+  );
+  const nomeDoIdiomaEstudado = langLabelNaUI(idiomaEstudado);
 
   return (
     <div className="flex-1 flex flex-col lg:flex-row h-full min-h-0 bg-surface">
@@ -837,11 +849,12 @@ export default function Metrics({ recordings, onChangeView, ageProfile = 'pro' }
             </div>
 
             {/*
-              Complexidade Estrutural & Tom. Antes era UM aviso culpando "IA generativa" por três
-              coisas, só o TOM depende disso. Complexidade gramatical (`computeTextStats`) e voz
-              passiva (`detectarVozPassiva`) são determinísticas, sem IA, e vêm de baixo. As duas são
-              heurísticas AJUSTADAS PARA INGLÊS (ver os módulos em `@core`), por isso só falas cujo
-              `sourceLang` normaliza para 'en' entram no corpus, a tela diz quantas ficaram fora.
+              Complexidade Estrutural & Tom. Complexidade gramatical (`computeTextStats`) e voz
+              passiva (`detectarVozPassiva`) sao deterministicas, sem IA. O corpus segue o IDIOMA
+              QUE A PESSOA ESTUDA, e cada regua declara o que sabe medir naquele idioma: silabas e
+              Flesch so valem em ingles, a densidade lexical precisa de lista de stopwords, a voz
+              passiva precisa do padrao "be + participio". O que nao se aplica aparece como "sem
+              regua para <idioma>" — e nao como zero, que era o que a tela mostrava antes.
             */}
             <div className="card-panel p-6 space-y-6">
               <div>
@@ -849,11 +862,11 @@ export default function Metrics({ recordings, onChangeView, ageProfile = 'pro' }
                   <BarChart2 className="w-5 h-5 text-accent" /> Complexidade Gramatical
                 </h3>
                 <p className="text-[11.5px] text-ink-muted mb-4">
-                  Estatísticas determinísticas do texto (sem IA), heurística ajustada para INGLÊS
-                  (sílabas e Flesch Reading Ease não valem para outros idiomas).
-                  {englishCorpus.totalFalas > 0 && (
-                    <> {englishCorpus.emIngles} de {englishCorpus.totalFalas} falas capturadas são em inglês
-                    {englishCorpus.emOutrosIdiomas > 0 && ` (${englishCorpus.emOutrosIdiomas} em outros idiomas ficaram fora)`}.</>
+                  Estatísticas determinísticas do texto (sem IA), calculadas sobre as falas em{' '}
+                  <b>{nomeDoIdiomaEstudado}</b>, o idioma que você estuda.
+                  {corpusDoAlvo.totalFalas > 0 && (
+                    <> {corpusDoAlvo.noAlvo} de {corpusDoAlvo.totalFalas} falas capturadas estão nele
+                    {corpusDoAlvo.emOutrosIdiomas > 0 && ` (${corpusDoAlvo.emOutrosIdiomas} em outros idiomas ficaram fora)`}.</>
                   )}
                 </p>
                 {textStats.wordCount > 0 ? (
@@ -865,11 +878,18 @@ export default function Metrics({ recordings, onChangeView, ageProfile = 'pro' }
                     <div className="bg-surface border border-border-subtle rounded-xl p-3">
                       <div className="text-[10px] font-bold uppercase tracking-wider text-ink-muted mb-1">Flesch Reading Ease</div>
                       <div className="font-display font-black text-xl text-ink">{textStats.readingEase != null ? textStats.readingEase : '-'}</div>
-                      {textStats.readingEase == null && <div className="text-[10px] text-ink-muted mt-0.5">precisa de 10+ palavras</div>}
+                      {textStats.readingEase == null && (
+                        <div className="text-[10px] text-ink-muted mt-0.5">
+                          {textStats.syllableCount == null ? `sem régua para ${nomeDoIdiomaEstudado}` : 'precisa de 10+ palavras'}
+                        </div>
+                      )}
                     </div>
                     <div className="bg-surface border border-border-subtle rounded-xl p-3">
                       <div className="text-[10px] font-bold uppercase tracking-wider text-ink-muted mb-1">Densidade Lexical</div>
-                      <div className="font-display font-black text-xl text-ink">{textStats.lexicalDensityPct}%</div>
+                      <div className="font-display font-black text-xl text-ink">{textStats.lexicalDensityPct != null ? `${textStats.lexicalDensityPct}%` : '-'}</div>
+                      {textStats.lexicalDensityPct == null && (
+                        <div className="text-[10px] text-ink-muted mt-0.5">sem lista de stopwords para {nomeDoIdiomaEstudado}</div>
+                      )}
                     </div>
                     <div className="bg-surface border border-border-subtle rounded-xl p-3">
                       <div className="text-[10px] font-bold uppercase tracking-wider text-ink-muted mb-1">Riqueza Lexical (TTR)</div>
@@ -877,11 +897,11 @@ export default function Metrics({ recordings, onChangeView, ageProfile = 'pro' }
                     </div>
                   </div>
                 ) : (
-                  // Era uma template string com o ternário DENTRO das crases — o usuário lia
-                  // código-fonte na tela (visto em 31/08).
-                  <SemDado compacto motivo={englishCorpus.totalFalas === 0
+                  // Era uma template string com o ternario DENTRO das crases — o usuario lia
+                  // codigo-fonte na tela (visto em 31/08).
+                  <SemDado compacto motivo={corpusDoAlvo.totalFalas === 0
                       ? 'Nenhuma fala capturada ainda, grave ou importe uma sessão para medir complexidade.'
-                      : 'Nenhuma das falas capturadas está em inglês, a heurística de complexidade só vale para inglês.'} />
+                      : `Nenhuma das falas capturadas está em ${nomeDoIdiomaEstudado}, que é o idioma que você estuda.`} />
                 )}
               </div>
 
@@ -890,11 +910,16 @@ export default function Metrics({ recordings, onChangeView, ageProfile = 'pro' }
                   <MessageSquareWarning className="w-5 h-5 text-warn" /> Uso de Voz Passiva
                 </h3>
                 <p className="text-[11.5px] text-ink-muted mb-4">
-                  Detecção por padrão "be + particípio" (inglês), sem IA. É HEURÍSTICA, não um parser
+                  Detecção por padrão "be + particípio", sem IA. É HEURÍSTICA, não um parser
                   gramatical: perde particípios irregulares fora da lista curada e pode confundir um
                   punhado de adjetivos em "-ed" com voz passiva, os números são um indício, não um veredito.
                 </p>
-                {textStats.wordCount > 0 ? (
+                {vozPassiva == null ? (
+                  /* AUSENCIA DECLARADA. O padrao "be + participio" e do ingles; para os outros
+                     idiomas nao existe regua aqui, e zero ocorrencias seria uma afirmacao falsa
+                     sobre a fala da pessoa. */
+                  <SemDado compacto motivo={`Não há régua de voz passiva para ${nomeDoIdiomaEstudado}. O padrão "be + particípio" é do inglês, e aplicá-lo a outro idioma devolveria zero como se fosse medida.`} />
+                ) : textStats.wordCount > 0 ? (
                   <>
                     <div className="flex items-end gap-4 flex-wrap mb-3">
                       <div className="font-display font-black text-3xl text-ink">{vozPassiva.ocorrencias}</div>
@@ -911,7 +936,7 @@ export default function Metrics({ recordings, onChangeView, ageProfile = 'pro' }
                     )}
                   </>
                 ) : (
-                  <p className="text-[12px] text-ink-muted">Sem texto em inglês suficiente para detectar.</p>
+                  <p className="text-[12px] text-ink-muted">Sem texto suficiente em {nomeDoIdiomaEstudado} para detectar.</p>
                 )}
               </div>
 

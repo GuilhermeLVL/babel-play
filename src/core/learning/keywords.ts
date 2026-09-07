@@ -10,11 +10,17 @@
  * vem depois do gateway de MT — este módulo só decide QUAIS palavras estudar.
  */
 
-// Stopwords de alta frequência (EN + PT). Não é exaustivo de propósito: cobre o
-// "ruído" gramatical (artigos, pronomes, preposições, auxiliares) que nunca vira
-// carta de vocabulário. Palavras de conteúdo passam.
-const STOPWORDS = new Set<string>([
-  // Inglês
+/**
+ * Stopwords POR IDIOMA — o ruído gramatical (artigos, pronomes, preposições, auxiliares) que nunca
+ * vira carta de vocabulário. Não é exaustivo de propósito; palavras de conteúdo passam.
+ *
+ * Eram um balde único com inglês e português juntos. Para um texto em japonês ou alemão isso
+ * significava filtrar NADA e devolver a lista como se a régua tivesse sido aplicada: as partículas
+ * e os artigos daquele idioma viravam sugestão de cartão. Separadas por idioma, quem chama sabe
+ * quando não há lista (`temStopwords`) e a tela pode dizer isso (auditoria de 2026-09-07, A39).
+ */
+const STOPWORDS_POR_IDIOMA: Record<string, ReadonlySet<string>> = {
+  en: new Set<string>([
   'the', 'a', 'an', 'and', 'or', 'but', 'if', 'then', 'else', 'when', 'while',
   'of', 'to', 'in', 'on', 'at', 'by', 'for', 'with', 'about', 'as', 'into',
   'from', 'up', 'down', 'out', 'off', 'over', 'under', 'again', 'this', 'that',
@@ -27,7 +33,8 @@ const STOPWORDS = new Set<string>([
   'what', 'which', 'who', 'whom', 'whose', 'how', 'why', 'where', 'all', 'any',
   'some', 'each', 'few', 'more', 'most', 'other', 'such', 'own', 'same', 'get',
   'got', 'going', 'gonna', 'wanna', 'okay', 'yeah', 'well', 'like', 'really',
-  // Português
+  ]),
+  pt: new Set<string>([
   'o', 'a', 'os', 'as', 'um', 'uma', 'uns', 'umas', 'e', 'ou', 'mas', 'se',
   'que', 'porque', 'quando', 'enquanto', 'de', 'do', 'da', 'dos', 'das', 'em',
   'no', 'na', 'nos', 'nas', 'por', 'para', 'pra', 'com', 'sem', 'sobre', 'como',
@@ -41,13 +48,26 @@ const STOPWORDS = new Set<string>([
   'minha', 'seu', 'sua', 'nosso', 'nossa', 'dele', 'dela', 'qual', 'quais',
   'quem', 'onde', 'todo', 'toda', 'todos', 'todas', 'algum', 'alguma', 'nada',
   'tudo', 'bem', 'então', 'assim', 'ok',
-])
+  ]),
+}
+
+const baseDoIdioma = (lang: string) => (lang || '').toLowerCase().split('-')[0]
+
+/** Há lista de stopwords para este idioma? Sem ela a extração acontece SEM filtro gramatical. */
+export function temStopwords(lang: string): boolean {
+  return STOPWORDS_POR_IDIOMA[baseDoIdioma(lang)] !== undefined
+}
 
 export interface KeywordOptions {
   /** Máximo de palavras retornadas por frase (default 6). */
   max?: number
   /** Comprimento mínimo do token para ser candidato (default 4). */
   minLength?: number
+  /**
+   * Idioma do texto — decide qual lista de stopwords filtra o ruído gramatical. Sem ele (ou sem
+   * lista para o idioma) a extração roda sem filtro, e `temStopwords` diz isso a quem exibe.
+   */
+  lang?: string
 }
 
 /** Token → forma de exibição (primeira ocorrência) + chave normalizada. */
@@ -64,6 +84,9 @@ interface Candidate {
 export function extractKeywords(text: string, opts: KeywordOptions = {}): string[] {
   const max = opts.max ?? 6
   const minLength = opts.minLength ?? 4
+  /* Sem lista para o idioma, a extração continua (a alternativa seria devolver vazio e sumir com
+     um recurso inteiro) mas sem filtro gramatical — e `temStopwords` deixa a tela declarar isso. */
+  const stopwords = STOPWORDS_POR_IDIOMA[baseDoIdioma(opts.lang ?? '')] ?? new Set<string>()
   const raw = (text ?? '').normalize('NFC')
 
   // Tokeniza por sequências de letras (inclui acentuadas e apóstrofo interno).
@@ -74,7 +97,7 @@ export function extractKeywords(text: string, opts: KeywordOptions = {}): string
     const display = tok.replace(/^['-]+|['-]+$/g, '')
     const key = display.toLowerCase()
     if (key.length < minLength) continue
-    if (STOPWORDS.has(key)) continue
+    if (stopwords.has(key)) continue
     if (/^\d+$/.test(key)) continue
     if (byKey.has(key)) continue // 1ª ocorrência define a exibição
     // Saliência: comprimento é um proxy barato de raridade/informação. Palavras

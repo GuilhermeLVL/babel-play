@@ -1,4 +1,4 @@
-import { assinarIdioma, ehRTL, idiomaDaInterface, usarIdioma } from './i18n';
+import { IDIOMAS_DA_INTERFACE, assinarIdioma, ehRTL, idiomaDaInterface, usarIdioma } from './i18n';
 import React from 'react';
 /**
  * CONFIGURAÇÃO DE IDIOMA — leitor único, com nomes que não admitem inversão.
@@ -31,6 +31,16 @@ export interface LangConfig {
   mine: string;
   /** Idioma que você ESTUDA — o do áudio/texto estrangeiro. BCP-47, ex.: 'en-US'. */
   studying: string;
+  /**
+   * Idioma em que a INTERFACE é escrita. BCP-47, ex.: 'en-US'.
+   *
+   * TERCEIRO EIXO, e não um detalhe de `mine`. Até 2026-09-07 a interface era derivada de "Meu
+   * idioma" e não havia como divergir: quem fala português e quer a tela em inglês tinha de dizer
+   * que fala inglês — e com isso invertia a direção do microfone e das traduções (achado A38 da
+   * auditoria). Agora é escolha própria, guardada em `settings.ui.uiLang`; sem escolha, segue
+   * `mine`, que é o comportamento de sempre para quem nunca abriu o seletor.
+   */
+  daInterface: string;
 }
 
 /**
@@ -38,9 +48,9 @@ export interface LangConfig {
  * é um palpite em UM lugar só, e a detecção por texto o corrige a jusante — em vez de virar rótulo
  * permanente no banco.
  */
-export const DEFAULT_LANG_CONFIG: LangConfig = { mine: 'pt-BR', studying: 'en-US' };
+export const DEFAULT_LANG_CONFIG: LangConfig = { mine: 'pt-BR', studying: 'en-US', daInterface: 'pt-BR' };
 
-/** `?ui=<idioma>` da URL de entrada — ver `useIdiomaDaInterfaceSeguindoOPerfil`. */
+/** `?ui=<idioma>` da URL de entrada — ver `useIdiomaDaInterfaceEscolhido`. */
 const OVERRIDE_DA_URL = typeof window !== 'undefined'
   ? new URLSearchParams(window.location.search).get('ui')
   : null;
@@ -61,13 +71,21 @@ export function langConfigFrom(
   targetLanguage?: string | null,
 ): LangConfig {
   const mine = normalize(ui?.captureSourceLang as string, DEFAULT_LANG_CONFIG.mine);
-  // `settings.targetLanguage` manda: é o seletor explícito da tela de Configurações. A Captura é o
-  // fallback (foi lá que o usuário escolheu, ainda que implicitamente).
+  /**
+   * `settings.targetLanguage` é a ÚNICA fonte do alvo. `ui.captureTargetLang` e `ui.praticaLang`
+   * eram gravados em paralelo e divergiam — no banco real, `target_language = 'pt-BR'` ao lado de
+   * `ui.praticaLang = 'en'` (auditoria de 2026-09-07, achado A38): dois campos respondendo à mesma
+   * pergunta, e cada tela lia um. A migração `0023` consolidou as linhas do servidor; a leitura
+   * dos espelhos continua aqui como FALLBACK porque o modo anônimo guarda settings no IndexedDB,
+   * onde migração SQL nenhuma chega. Ninguém mais os ESCREVE.
+   */
   const studying = normalize(
-    targetLanguage || (ui?.captureTargetLang as string),
+    targetLanguage || (ui?.captureTargetLang as string) || (ui?.praticaLang as string),
     DEFAULT_LANG_CONFIG.studying,
   );
-  return { mine, studying };
+  // Sem escolha própria, a interface segue o idioma da pessoa — o comportamento de sempre.
+  const daInterface = normalize(ui?.uiLang as string, mine);
+  return { mine, studying, daInterface };
 }
 
 export async function fetchLangConfig(): Promise<LangConfig> {
@@ -82,14 +100,17 @@ export async function fetchLangConfig(): Promise<LangConfig> {
 }
 
 /**
- * Persiste a configuração. Escreve nos DOIS lugares de propósito: `settings.targetLanguage` (a fonte
- * autoritativa, que a tela de Configurações lê) e o blob `ui` (que a Captura reidrata nos seletores).
- * Manter os dois em sincronia é o que evita a próxima geração deste mesmo bug.
+ * Persiste a configuração — UM CAMPO POR EIXO.
+ *
+ * Antes o alvo era escrito em dois lugares "para manter em sincronia": `settings.targetLanguage` e
+ * `ui.captureTargetLang`. Duas escritas não atômicas do mesmo fato divergem, e divergiram (achado
+ * A38). Agora cada eixo tem um destino só: alvo em `settings.targetLanguage`, idioma da pessoa em
+ * `ui.captureSourceLang`, idioma da interface em `ui.uiLang`.
  */
 export async function saveLangConfig(patch: Partial<LangConfig>): Promise<void> {
   const uiPatch: Record<string, unknown> = {};
   if (patch.mine) uiPatch.captureSourceLang = patch.mine;
-  if (patch.studying) uiPatch.captureTargetLang = patch.studying;
+  if (patch.daInterface) uiPatch.uiLang = patch.daInterface;
   if (Object.keys(uiPatch).length) await patchUiSettings(uiPatch);
   if (patch.studying) await saveSettings({ targetLanguage: patch.studying });
 
@@ -127,17 +148,17 @@ export function useLangConfig(): LangConfig {
 }
 
 /**
- * A INTERFACE SEGUE O IDIOMA DA PESSOA, e não uma preferência à parte.
+ * A INTERFACE NO IDIOMA ESCOLHIDO, com "Meu idioma" como padrão.
  *
- * `mine` já é "o idioma que você já fala, o do seu microfone e o das traduções que você lê" — pedir
- * de novo, num campo separado, seria fazer a mesma pergunta duas vezes e criar o estado incoerente
- * de quem diz falar alemão e lê a tela em português. Quem quiser divergir dos dois troca em
- * Ajustes; até lá, dizer "meu idioma é inglês" basta para a interface virar inglês.
+ * Era derivada de `mine` sem alternativa: quem fala português e quer a tela em inglês precisava
+ * declarar que fala inglês, e isso inverte a direção do microfone e da tradução de todo cartão
+ * (achado A38). O seletor de Ajustes agora grava `ui.uiLang`; sem escolha, `daInterface` cai em
+ * `mine` e nada muda para quem nunca abriu o seletor.
  *
  * Roda uma vez no topo do app e a cada troca em Ajustes. Idioma sem catálogo fica em português —
  * ver `usarIdioma`.
  */
-export function useIdiomaDaInterfaceSeguindoOPerfil(): string {
+export function useIdiomaDaInterfaceEscolhido(): string {
   const cfg = useLangConfig();
 
   /* `?ui=<idioma>` VENCE o perfil. Existe por duas razoes praticas:
@@ -153,7 +174,7 @@ export function useIdiomaDaInterfaceSeguindoOPerfil(): string {
      primeira navegacao interna, e a tela voltava ao portugues no meio do teste. Capturar na
      entrada torna o override estavel por toda a sessao, que e como uma ferramenta de depuracao
      deve se comportar. */
-  const escolhido = OVERRIDE_DA_URL || cfg.mine;
+  const escolhido = OVERRIDE_DA_URL || cfg.daInterface;
 
   React.useEffect(() => { void usarIdioma(escolhido); }, [escolhido]);
 
@@ -171,4 +192,14 @@ export function useIdiomaDaInterfaceSeguindoOPerfil(): string {
      — ninguém tinha por que renderizar de novo. Aqui na raiz, um re-render cobre a árvore toda, e
      a troca de idioma é rara o bastante para isso não ser custo. */
   return idioma;
+}
+
+/**
+ * Os idiomas que o seletor de interface oferece, em BCP-47, prontos para o `LangPicker`.
+ *
+ * A lista vem da COBERTURA MEDIDA de cada catálogo (`scripts/i18n/cobertura.mjs`), não de uma
+ * constante escrita à mão: oferecer um idioma com 3% traduzido é prometer uma tela que não existe.
+ */
+export function idiomasDaInterfaceOferecidos(): string[] {
+  return IDIOMAS_DA_INTERFACE.map((l) => toBcp47(l) || l);
 }

@@ -10,23 +10,47 @@
  * aproximações reproduzíveis, não medições linguísticas exatas.
  */
 
-// Stopwords de alta frequência (EN + PT) para densidade lexical. Pequeno de
-// propósito: cobre o "ruído" gramatical (artigos, preposições, auxiliares,
-// pronomes) que não conta como palavra de conteúdo. keywords.ts mantém sua
-// própria lista privada (não exportada), então aqui há um conjunto enxuto local.
-const STOPWORDS = new Set<string>([
-  // Inglês
-  'a', 'an', 'the', 'and', 'or', 'but', 'if', 'of', 'to', 'in', 'on', 'at',
-  'by', 'for', 'with', 'as', 'is', 'are', 'was', 'were', 'be', 'been', 'am',
-  'do', 'does', 'did', 'have', 'has', 'had', 'will', 'would', 'can', 'could',
-  'not', 'no', 'so', 'i', 'you', 'he', 'she', 'it', 'we', 'they', 'this',
-  'that', 'these', 'those', 'my', 'your', 'his', 'her', 'its', 'our', 'their',
-  // Português
-  'o', 'a', 'os', 'as', 'um', 'uma', 'uns', 'umas', 'e', 'ou', 'mas', 'se',
-  'que', 'de', 'do', 'da', 'dos', 'das', 'em', 'no', 'na', 'nos', 'nas', 'por',
-  'para', 'com', 'sem', 'não', 'ao', 'à', 'às', 'é', 'são', 'foi', 'era',
-  'meu', 'minha', 'seu', 'sua', 'dele', 'dela',
-])
+/**
+ * Stopwords POR IDIOMA, para a densidade lexical.
+ *
+ * Era um balde único com inglês e português juntos, e isso não é detalhe de organização: a
+ * densidade lexical de um texto japonês era calculada descontando "the" e "que", ou seja,
+ * descontando nada — e o número saía como se a régua tivesse sido aplicada. Separadas, a ausência
+ * de lista para um idioma é uma resposta (`null`), não um número que finge medir.
+ */
+const STOPWORDS_POR_IDIOMA: Record<string, ReadonlySet<string>> = {
+  en: new Set([
+    'a', 'an', 'the', 'and', 'or', 'but', 'if', 'of', 'to', 'in', 'on', 'at',
+    'by', 'for', 'with', 'as', 'is', 'are', 'was', 'were', 'be', 'been', 'am',
+    'do', 'does', 'did', 'have', 'has', 'had', 'will', 'would', 'can', 'could',
+    'not', 'no', 'so', 'i', 'you', 'he', 'she', 'it', 'we', 'they', 'this',
+    'that', 'these', 'those', 'my', 'your', 'his', 'her', 'its', 'our', 'their',
+  ]),
+  pt: new Set([
+    'o', 'a', 'os', 'as', 'um', 'uma', 'uns', 'umas', 'e', 'ou', 'mas', 'se',
+    'que', 'de', 'do', 'da', 'dos', 'das', 'em', 'no', 'na', 'nos', 'nas', 'por',
+    'para', 'com', 'sem', 'não', 'ao', 'à', 'às', 'é', 'são', 'foi', 'era',
+    'meu', 'minha', 'seu', 'sua', 'dele', 'dela',
+  ]),
+}
+
+/**
+ * A heurística de sílabas (e portanto o Flesch Reading Ease) é DE INGLÊS: conta grupos de vogais e
+ * desconta o 'e' final mudo. Aplicá-la a outro idioma devolve um número, e o número é ficção.
+ */
+const IDIOMAS_COM_SILABAS = new Set(['en'])
+
+const base = (lang: string) => (lang || '').toLowerCase().split('-')[0]
+
+/** Há lista de stopwords para este idioma? A tela usa para explicar um campo vazio. */
+export function temStopwordsDeTexto(lang: string): boolean {
+  return STOPWORDS_POR_IDIOMA[base(lang)] !== undefined
+}
+
+/** A régua de legibilidade vale neste idioma? Só inglês, e dizê-lo é o ponto. */
+export function temReguaDeLegibilidade(lang: string): boolean {
+  return IDIOMAS_COM_SILABAS.has(base(lang))
+}
 
 export interface TextStats {
   charCount: number
@@ -39,12 +63,14 @@ export interface TextStats {
   avgWordLength: number
   /** Média de palavras por frase. */
   avgSentenceLength: number
-  /** % de palavras de conteúdo (tokens fora do conjunto de stopwords). */
-  lexicalDensityPct: number
-  /** Flesch Reading Ease (fórmula EN). `null` quando wordCount<10 — nunca um número falso. */
+  /** % de palavras de conteúdo. `null` quando não há lista de stopwords para o idioma. */
+  lexicalDensityPct: number | null
+  /** Flesch Reading Ease. `null` com menos de 10 palavras OU fora do inglês — nunca um número falso. */
   readingEase: number | null
-  /** Total estimado de sílabas (heurística EN). */
-  syllableCount: number
+  /** Total estimado de sílabas (heurística EN). `null` fora do inglês. */
+  syllableCount: number | null
+  /** O idioma em que o texto foi medido — a procedência do número, para a tela poder declarar. */
+  idioma: string
 }
 
 /**
@@ -81,8 +107,10 @@ function round1(n: number): number {
  * do próprio texto; toda razão protege divisão por zero e `readingEase` é `null`
  * quando não há palavras suficientes para um sinal confiável.
  */
-export function computeTextStats(text: string): TextStats {
+export function computeTextStats(text: string, lang: string): TextStats {
   const raw = text ?? ''
+  const idioma = base(lang)
+  const stopwords = STOPWORDS_POR_IDIOMA[idioma]
   const charCount = raw.length
 
   const words: string[] = raw.toLowerCase().match(/[\p{L}\p{N}']+/gu) ?? []
@@ -103,14 +131,18 @@ export function computeTextStats(text: string): TextStats {
 
   const avgSentenceLength = sentenceCount > 0 ? round1(wordCount / sentenceCount) : 0
 
-  const contentWords = words.filter((w) => !STOPWORDS.has(w)).length
-  const lexicalDensityPct = wordCount > 0 ? round1((contentWords / wordCount) * 100) : 0
+  const lexicalDensityPct = stopwords && wordCount > 0
+    ? round1((words.filter((w) => !stopwords.has(w)).length / wordCount) * 100)
+    : null
 
-  const syllableCount = words.reduce((sum, w) => sum + estimateSyllables(w), 0)
+  const syllableCount = IDIOMAS_COM_SILABAS.has(idioma)
+    ? words.reduce((sum, w) => sum + estimateSyllables(w), 0)
+    : null
 
-  // Flesch Reading Ease: exige amostra mínima; sem ela devolve null (honesto).
+  // Flesch Reading Ease: exige amostra mínima E a régua de sílabas do idioma; sem uma das duas,
+  // devolve null. Um número de legibilidade para texto japonês seria ficção com casa decimal.
   let readingEase: number | null = null
-  if (wordCount >= 10 && sentenceCount > 0) {
+  if (syllableCount !== null && wordCount >= 10 && sentenceCount > 0) {
     const ease = 206.835 - 1.015 * (wordCount / sentenceCount) - 84.6 * (syllableCount / wordCount)
     readingEase = round1(ease)
   }
@@ -126,5 +158,6 @@ export function computeTextStats(text: string): TextStats {
     lexicalDensityPct,
     readingEase,
     syllableCount,
+    idioma,
   }
 }

@@ -162,6 +162,13 @@
       "when": 1788791725127,
       "tag": "0022_eventos_de_billing_com_estado",
       "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "6",
+      "when": 1788800000000,
+      "tag": "0023_um_idioma_alvo_so",
+      "breakpoints": true
     }
   ]
 }

@@ -37,6 +37,12 @@ export interface LangPickerProps {
   accent?: boolean;
   /** Ocupa toda a largura (telas de configuração) em vez de encolher ao conteúdo. */
   block?: boolean;
+  /**
+   * Restringe a lista a estes códigos (BCP-47 ou base). Usado pelo seletor de idioma DA INTERFACE:
+   * lá a lista não é "todo idioma que existe" e sim "todo idioma cuja tradução está pronta" — ver
+   * `IDIOMAS_DA_INTERFACE` em `lib/i18n.ts`, que sai da cobertura medida de cada catálogo.
+   */
+  somente?: readonly string[];
   /** id do gatilho — para `<label htmlFor>`. */
   id?: string;
   ariaLabel?: string;
@@ -47,7 +53,7 @@ const AUTO_KEY = '__auto__';
 
 export default function LangPicker({
   value, auto = false, allowAuto = false, autoLabel = 'Detectar automaticamente',
-  onPick, accent = false, block = false, id, ariaLabel, className = '',
+  onPick, accent = false, block = false, somente, id, ariaLabel, className = '',
 }: LangPickerProps) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
@@ -87,13 +93,17 @@ export default function LangPicker({
     if (allowAuto && (!q || `${autoLabel.toLowerCase()} automatico auto`.includes(q))) {
       base.push({ key: AUTO_KEY, label: autoLabel, isAuto: true });
     }
+    const permitido = somente
+      ? new Set(somente.map((c) => c.toLowerCase().split('-')[0]))
+      : null;
     for (const l of LANGUAGES) {
+      if (permitido && !permitido.has(l.code.toLowerCase().split('-')[0])) continue;
       // `langMatches` casa pelo rótulo nativo, pelo NOME EM PORTUGUÊS e pelo código, tudo sem
       // acento: sem isso, buscar "japonês" não achava 日本語 (o rótulo está no idioma nativo).
       if (langMatches(l, q)) base.push({ key: l.code, label: l.label, code: l.code });
     }
     return base;
-  }, [query, allowAuto, autoLabel]);
+  }, [query, allowAuto, autoLabel, somente]);
 
   const selectedKey = auto ? AUTO_KEY : value;
   const selectedLabel = auto

@@ -3,7 +3,9 @@ import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, ReferenceD
 import { Loader2, Trophy } from 'lucide-react';
 import { fetchDeck } from '../../../data/api';
 import { fetchHistoricoDeXp, type HistoricoDeXp } from '../../../data/me';
-import { fluenciaDoBaralho, rotuloDeFluencia, RETENCAO_DE_DOMINIO, MIN_CARTOES_POR_FAIXA, type Fluencia } from '@core';
+import { fluenciaDoBaralho, rotuloDeFluencia, escalaDe, RETENCAO_DE_DOMINIO, MIN_CARTOES_POR_FAIXA, type Fluencia } from '@core';
+import { precarregarNiveis } from '../../../data/trilha/carregar';
+import { baseLang, langLabelNaUI } from '../../../lib/languages';
 import type { VocabCard } from '../../../types';
 import type { DerivedProgress } from '../../../lib/progress';
 import type { AgeProfileType } from '../../../lib/profile';
@@ -45,9 +47,43 @@ export default function AbaProgresso({ progress, ageProfile }: AbaProgressoProps
     return () => { vivo = false; };
   }, []);
 
+  /**
+   * AS LISTAS DE NIVEL DOS IDIOMAS DO BARALHO, carregadas antes de medir.
+   *
+   * `nivelCefr` so responde por idioma cuja lista foi registrada, e quem registra e
+   * `precarregarNiveis`. Esta tela nunca chamava: o baralho de quem estuda japones era medido com
+   * a unica lista carregada por padrao (a inglesa), TODA palavra caia em "sem nivel", e a tela
+   * dizia "ficaram de fora porque nao estao na lista de niveis conferidos" — verdadeiro por um
+   * motivo que a pessoa nao tinha como adivinhar (auditoria de 2026-09-07, achado A39).
+   */
+  const [niveisProntos, setNiveisProntos] = useState(0);
+  const idiomasDoBaralho = useMemo(
+    () => [...new Set((baralho ?? []).map(c => baseLang(c.srcLang ?? '')).filter(Boolean))],
+    [baralho],
+  );
+  useEffect(() => {
+    if (!idiomasDoBaralho.length) return;
+    let vivo = true;
+    void Promise.all(idiomasDoBaralho.map(precarregarNiveis))
+      .then(() => { if (vivo) setNiveisProntos(n => n + 1); })
+      .catch(() => { /* sem lista, `nivelCefr` responde ausente — que e a resposta honesta */ });
+    return () => { vivo = false; };
+  }, [idiomasDoBaralho]);
+
   const fluencia: Fluencia | null = useMemo(
     () => (baralho ? fluenciaDoBaralho(baralho) : null),
-    [baralho],
+    // `niveisProntos` entra de proposito: a fluencia precisa ser recalculada depois que as listas
+    // chegam, senao a tela guarda para sempre a medicao feita sem elas.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [baralho, niveisProntos],
+  );
+
+  /** Idiomas do baralho para os quais NAO existe lista de niveis — a tela nomeia quais. */
+  const idiomasSemRegua = useMemo(
+    () => idiomasDoBaralho.filter(l => escalaDe(l) === null),
+    // Depende das listas carregadas pelo mesmo motivo acima.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [idiomasDoBaralho, niveisProntos],
   );
 
   const serie = useMemo(() => (historico?.pontos ?? []).map(p => ({
@@ -198,6 +234,13 @@ export default function AbaProgresso({ progress, ageProfile }: AbaProgressoProps
                   <p className="text-[11px] text-ink-faint">
                     {numero(fluencia.semNivel)} palavras ficaram de fora porque não
                     estão na lista de níveis conferidos, elas não foram chutadas para faixa nenhuma.
+                  </p>
+                )}
+                {/* NOMEAR O IDIOMA sem régua, em vez de deixar a ausência parecer culpa do acervo. */}
+                {idiomasSemRegua.length > 0 && (
+                  <p className="text-[11px] text-ink-faint">
+                    Não há lista de níveis para {idiomasSemRegua.map(langLabelNaUI).join(', ')}, então
+                    as palavras desse acervo não entram na estimativa de fluência.
                   </p>
                 )}
               </div>

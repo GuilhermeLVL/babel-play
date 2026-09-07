@@ -1,3 +1,4 @@
+import { idiomaDaInterface } from './i18n';
 import { baseLang } from './languages';
 
 /**
@@ -120,8 +121,16 @@ export type DictionaryResult =
 const cache = new Map<string, DictionaryResult>();
 const inflight = new Map<string, Promise<DictionaryResult>>();
 
-/** Idioma da interface. Hoje a app é pt-BR; fica isolado aqui para não virar literal espalhado. */
-const UI_LANG = 'pt';
+/**
+ * O IDIOMA DA INTERFACE, lido de verdade.
+ *
+ * Era a constante `'pt'`. A cadeia de wikis abaixo tenta primeiro o verbete no idioma de quem le,
+ * entao para um leitor com a interface em ingles a app pedia o Wikcionario PORTUGUES primeiro e
+ * mostrava a definicao em portugues para alguem que escolheu ler em ingles (auditoria de
+ * 2026-09-07, achado A39). Funcao e nao constante porque o idioma muda em tempo de execucao,
+ * quando a pessoa troca em Ajustes.
+ */
+const uiLang = (): string => idiomaDaInterface();
 
 function wikiHost(lang: string): string {
   return `${lang}.wiktionary.org`;
@@ -253,7 +262,7 @@ async function fetchSection(
  *   3. `en.wiktionary`             → a maior cobertura do mundo, mas define em inglês.
  */
 function wikiChain(wordLang: string): Array<{ host: string; lang: string }> {
-  const langs = [UI_LANG, wordLang, 'en'].filter((l, i, a) => l && a.indexOf(l) === i);
+  const langs = [uiLang(), wordLang, 'en'].filter((l, i, a) => l && a.indexOf(l) === i);
   return langs.map(l => ({ host: wikiHost(l), lang: l }));
 }
 

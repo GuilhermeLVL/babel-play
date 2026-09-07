@@ -12,6 +12,24 @@ O `playwright.config.ts` sobe o app sozinho (`npm run dev:local`, porta 3100, se
 terminal, o Playwright reaproveita esse servidor (`reuseExistingServer`, fora de CI) em vez de
 subir um segundo — não precisa parar o seu.
 
+**Banco.** O servidor que o Playwright sobe usa o `DATABASE_URL` do ambiente e, sem ele, o
+padrão `file:./data/babel.db` — o SEU banco. Os testes de facetas e baralhos gravam filtro e
+recorte no servidor, então rode contra uma cópia:
+
+```bash
+cp data/babel.db /tmp/e2e.db          # (e os -wal/-shm, se existirem)
+DATABASE_URL=file:/tmp/e2e.db AUDIO_DIR=/tmp/e2e-audio npm run test:e2e
+```
+
+No CI não existe `data/babel.db`: o servidor nasce com banco vazio, e os testes condicionais a
+haver baralho importado pulam com a razão (`test.skip`), como descrito abaixo.
+
+**Rótulos.** Os seletores seguem os rótulos acessíveis atuais do lobby: a gaveta de fonte abre
+pelo botão **"Fonte"** (`SeletorDeConteudo.tsx`; era "Trocar" até o redesenho de 2026-09-03), a
+importação pelo botão **"Trazer do Anki"** e a tela de baralhos por **"Gerenciar baralhos"**.
+Quando um rótulo muda na tela, o teste falha no mesmo commit e é atualizado junto — nunca
+desligado.
+
 ## Por que esta suíte é mínima
 
 Esta é a **primeira** suíte e2e do projeto. As dependências (`@playwright/test`, `playwright`,

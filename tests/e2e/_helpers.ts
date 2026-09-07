@@ -69,7 +69,7 @@ export async function irParaPraticar(page: Page) {
   /* O MARCO DE "LOBBY PRONTO" MUDOU: o botão do Anki desceu para dentro da gaveta do seletor
      (redesenho de 02/09), então esperar por ele aqui esperaria por algo que não está mais na
      tela de partida. O «Trocar» do seletor é o que sempre existe no lobby, e é o novo marco. */
-  const botaoAnki = page.getByRole('button', { name: 'Trocar' });
+  const botaoAnki = page.getByRole('button', { name: 'Fonte' });
   for (let i = 0; i < 20; i++) {
     await fecharSobreposicoes(page);
     if (await botaoAnki.isVisible().catch(() => false)) break;
@@ -106,7 +106,7 @@ export async function baralhosNoServidor(page: Page): Promise<{ quantos: number;
  * soltas acima da tela parecendo navegação.
  */
 export async function abrirSeletor(page: Page): Promise<void> {
-  const trocar = page.getByRole('button', { name: 'Trocar' });
+  const trocar = page.getByRole('button', { name: 'Fonte' });
   await trocar.waitFor({ state: 'visible', timeout: 15_000 });
   if ((await trocar.getAttribute('aria-expanded')) !== 'true') {
     await clicarRobusto(page, trocar);

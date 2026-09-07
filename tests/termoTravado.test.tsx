@@ -135,7 +135,11 @@ describe('a dica não pode empurrar o cursor para fora da linha', () => {
     montar()
     'CASA'.split('').forEach(teclar)
     // A dica sobre a linha já cheia: `proximaVaga` não acha vaga e devolve um índice fora dela.
-    fireEvent.click(screen.getByRole('button', { name: /pedir dica/i }))
+    /* O controle existe (`TermoGame.tsx`, botão com texto "Dica" e título "Revelar uma letra da
+       palavra"); o que mudou no redesenho foi o RÓTULO, de "pedir dica" para "Dica". Decisão
+       registrada aqui (auditoria de 2026-09-07, tarefa 2.3 de `linha-de-base-verde`): o teste
+       segue o rótulo atual, porque a mecânica que ele prende é a mesma. */
+    fireEvent.click(screen.getByRole('button', { name: /^dica$/i }))
 
     fireEvent.keyDown(window, { key: 'Backspace' })
     teclar('A')

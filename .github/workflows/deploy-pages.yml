@@ -36,14 +36,25 @@ jobs:
             echo "armado=sim" >> "$GITHUB_OUTPUT"
           fi
 
-      # O deploy publica o que o CI teria validado: os mesmos gates, no mesmo commit.
+      # O deploy publica o que o CI teria validado: os MESMOS gates do ci.yml, no mesmo commit.
+      # A versao anterior rodava so typecheck+test+audit e pulava lint, i18n, e2e e ast-grep —
+      # a edicao leve podia ser publicada com o que o CI recusaria (auditoria de 2026-09-07, A40).
       - name: Validar antes de publicar
         if: steps.credenciais.outputs.armado == 'sim'
         run: |
           npm ci
+          npm run workflows:validar
           npm run typecheck
+          npm run typecheck:core
+          npm run lint
           npm test
+          node scripts/i18n/pseudo.mjs --check
+          npm run i18n:orfas
           npm run audit:gate
+          npx playwright install --with-deps chromium
+          npm run test:e2e
+          ./node_modules/.bin/ast-grep test -c sgconfig.yml
+          ./node_modules/.bin/ast-grep scan -c sgconfig.yml src server server.ts
 
       - name: Build da edição leve
         if: steps.credenciais.outputs.armado == 'sim'

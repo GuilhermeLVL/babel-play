@@ -44,8 +44,32 @@ export function triggerHaptic(type: HapticType = 'soft'): void {
   }
 }
 
+/**
+ * Há um canvas onde desenhar?
+ *
+ * `canvas-confetti` cria o próprio canvas e chama `getContext('2d')` dentro do frame de animação.
+ * No jsdom (a suíte de componentes) o contexto é `null` e a biblioteca lança `clearRect` de null
+ * — não no disparo, mas no PRIMEIRO tique do `setTimeout`/`requestAnimationFrame`, fora do
+ * `try/catch` abaixo. Os testes do Duelo e do Termo quebravam por isso, não por lógica de jogo
+ * (auditoria de 2026-09-07, achado A44). Decidir uma vez e nunca agendar o frame é o único
+ * ponto em que o efeito pode ser um no-op limpo.
+ */
+let canvasDesenhavel: boolean | null = null;
+export function podeDesenhar(): boolean {
+  if (canvasDesenhavel !== null) return canvasDesenhavel;
+  if (typeof document === 'undefined') return (canvasDesenhavel = false);
+  try {
+    const ctx = document.createElement('canvas').getContext('2d');
+    canvasDesenhavel = ctx !== null && typeof ctx.clearRect === 'function';
+  } catch {
+    canvasDesenhavel = false;
+  }
+  return canvasDesenhavel;
+}
+
 /** Dispara chuva de confetes 3D com a paleta harmonizada do Babel Play */
 export function triggerConfetti(options?: confetti.Options): void {
+  if (!podeDesenhar()) return;
   try {
     // Paleta elegante do Babel Play: terracota, índigo, esmeralda, dourado, violeta
     const colors = ['#f59e0b', '#10b981', '#6366f1', '#ec4899', '#3b82f6', '#14b8a6'];
@@ -64,6 +88,7 @@ export function triggerConfetti(options?: confetti.Options): void {
 
 /** Explosão de vitória dupla pelos canhões laterais da tela */
 export function triggerVictoryConfetti(): void {
+  if (!podeDesenhar()) return;
   try {
     const end = Date.now() + 1.2 * 1000;
     const colors = ['#f59e0b', '#10b981', '#6366f1', '#f43f5e'];

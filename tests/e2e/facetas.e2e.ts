@@ -35,7 +35,7 @@ test.describe('Facetas do acervo: fileira RECORTE', () => {
        pelo «Trocar», e é esse caminho que o teste precisa exercitar agora. O botão só existe com
        mais de uma fonte oferecida, e a trilha chega de uma chamada assíncrona: daí o prazo maior,
        não por instabilidade do elemento. */
-    const abrirSeletor = page.getByRole('button', { name: 'Trocar' });
+    const abrirSeletor = page.getByRole('button', { name: 'Fonte' });
     await expect(abrirSeletor, 'o seletor de conteúdo deveria estar no lobby').toBeVisible({ timeout: 15_000 });
     await clicarRobusto(page, abrirSeletor);
     await expect(abrirSeletor).toHaveAttribute('aria-expanded', 'true');
@@ -119,7 +119,7 @@ test.describe('Facetas do acervo: fileira RECORTE', () => {
     test.skip(!nomeBaralho, 'Não deu para ler o nome do baralho no cartão para comparar depois — caso não alcançável sem dado legível.');
 
     await clicarRobusto(page, jogarSoComEste);
-    await expect(page.getByRole('button', { name: 'Trocar' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Fonte' })).toBeVisible();
 
     /* O RESUMO MUDOU DE FORMA no redesenho: o nome do baralho agora vive na linha «jogando com»,
        e o rodapé da gaveta guarda só o total. O que o teste garante continua o mesmo — o recorte
@@ -152,7 +152,7 @@ test.describe('Facetas do acervo: fileira RECORTE', () => {
        tudo o que vem depois, e a gaveta aberta lista os baralhos do idioma vigente — o nome
        casaria ali mesmo com o recorte já desligado, e o teste falharia pelo motivo errado. */
     const resumo = page.locator('div')
-      .filter({ has: page.getByRole('button', { name: 'Trocar' }) })
+      .filter({ has: page.getByRole('button', { name: 'Fonte' }) })
       .last();
     await expect(
       resumo,

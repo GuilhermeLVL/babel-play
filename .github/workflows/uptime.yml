@@ -64,16 +64,21 @@ jobs:
             exit 0
           fi
           gh label create producao-caiu --color B60205 --description "aberta pelo vigia de uptime" 2>/dev/null || true
+          # O corpo vai por arquivo, uma linha por argumento: a versão anterior tinha o markdown
+          # inline com as linhas na coluna 0, o que quebrava o bloco `run: |` — o YAML do workflow
+          # era inválido e o vigia nunca chegou a rodar (auditoria de 2026-09-07, achado A42).
+          printf '%s\n' \
+            "O vigia bateu 3 vezes em \`/api/health\` e falhou." \
+            "" \
+            "- **HTTP**: ${{ steps.sonda.outputs.code }}" \
+            "- **Corpo**: \`${{ steps.sonda.outputs.corpo }}\`" \
+            "- **Run**: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" \
+            "" \
+            "Esta issue fecha sozinha quando a sonda voltar a responder 200." > corpo.md
           gh issue create \
             --title "🔴 Produção fora do ar ($(date -u +%Y-%m-%dT%H:%MZ))" \
             --label producao-caiu \
-            --body "O vigia bateu 3 vezes em \`/api/health\` e falhou.
-
-- **HTTP**: ${{ steps.sonda.outputs.code }}
-- **Corpo**: \`${{ steps.sonda.outputs.corpo }}\`
-- **Run**: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-
-Esta issue fecha sozinha quando a sonda voltar a responder 200."
+            --body-file corpo.md
 
       - name: Fechar a issue quando recuperar
         if: steps.sonda.outputs.desarmado == 'false' && steps.sonda.outputs.ok == 'true'

@@ -117,22 +117,10 @@ export default function Study({
   const [sessionCompleted, setSessionCompleted] = useState(false);
   const [reviewType] = useState<'cloze' | 'qa'>('cloze');
 
-  // Active Production and Review Log states
-  const [reviewLogs, setReviewLogs] = useState<any[]>(() => {
-    const saved = localStorage.getItem('reviewLogs');
-    if (saved) {
-      try {
-        return JSON.parse(saved);
-      } catch (e) {
-        console.error(e);
-      }
-    }
-    return [];
-  });
-
-  useEffect(() => {
-    localStorage.setItem('reviewLogs', JSON.stringify(reviewLogs));
-  }, [reviewLogs]);
+  /* O histórico de revisão vivia TAMBÉM aqui, num `reviewLogs` em `localStorage` que crescia sem
+     teto (cartão, palavra, nota, data) e não entrava em nenhuma exportação nem exclusão de conta.
+     O registro de verdade é `review_logs` no servidor (`POST /api/vocab/:id/review`) — e, sem
+     conta, o efêmero. Auditoria de 2026-09-07, achado A36. Nenhuma tela lia a cópia local. */
 
   const [llmValidation] = useState<boolean>(() => {
     return localStorage.getItem('practice.activeProduction.llmValidation') === 'true';
@@ -180,8 +168,6 @@ export default function Study({
       effectiveRating = 4; // produção ativa é mais difícil: um acerto vale Easy
     }
 
-    const cardObj = vocabCards.find(c => c.id === cardId);
-
     try {
       const updated = await reviewCard(cardId, effectiveRating);
       setVocabCards(prev => prev.map(c => (c.id === cardId ? updated : c)));
@@ -190,17 +176,6 @@ export default function Study({
       // segue revisando — a próxima sincronização com o servidor corrige.
     }
 
-    if (cardObj) {
-      setReviewLogs(prev => [...prev, {
-        id: Math.random().toString(36).slice(2, 11),
-        cardId,
-        word: cardObj.word,
-        rating: effectiveRating,
-        correct: effectiveRating > 1,
-        timestamp: new Date().toISOString(),
-        exerciseKind,
-      }]);
-    }
 
     // Persiste o resultado do exercício (alimenta métricas e streak).
     saveExerciseResult({
@@ -213,7 +188,7 @@ export default function Study({
   };
 
   // Leitner feedback algorithm
-  const handleLeitnerFeedback = (cardId: string, success: boolean, exerciseKind?: ExerciseKind) => {
+  const handleLeitnerFeedback = (cardId: string, success: boolean, _exerciseKind?: ExerciseKind) => {
     setVocabCards(prev => prev.map(card => {
       if (card.id !== cardId) return card;
       
@@ -240,21 +215,6 @@ export default function Study({
 
     // Fase 2: persiste a revisão no backend (mapeia sucesso→grade FSRS).
     reviewCard(cardId, success ? 3 : 1).catch(() => {});
-
-    // Record ReviewLog (histórico local para stats da UI)
-    const cardObj = vocabCards.find(c => c.id === cardId);
-    if (cardObj) {
-      const logEntry = {
-        id: Math.random().toString(36).substr(2, 9),
-        cardId,
-        word: cardObj.word,
-        rating: success ? 3 : 1,
-        correct: success,
-        timestamp: new Date().toISOString(),
-        exerciseKind,
-      };
-      setReviewLogs(prev => [...prev, logEntry]);
-    }
 
     triggerNextCard();
   };

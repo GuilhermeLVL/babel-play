@@ -29,6 +29,12 @@ const TABELAS: [string, string][] = [
   ['analyses', 'userId'], ['settings', 'userId'],
   ['profiles', 'userId'], ['userInterests', 'userId'], ['providerCredentials', 'userId'],
   ['seedSpends', 'userId'], ['subscriptions', 'userId'], ['usageCounters', 'userId'],
+  ['ankiDecks', 'userId'], ['ankiImports', 'userId'], ['ankiNotes', 'userId'],
+  /* As seis que a auditoria de 2026-09-07 (A06) achou fora da exclusão: dado do titular que
+     sobrevivia a DELETE /api/me e não aparecia na exportação. */
+  ['seedCredits', 'userId'], ['creditPurchases', 'userId'], ['creditSpends', 'userId'],
+  ['presencas', 'userId'], ['ankiMedia', 'userId'], ['ankiNoteMedia', 'userId'],
+  ['billingEvents', 'userId'],
 ]
 
 let h: EphemeralDb
@@ -110,6 +116,16 @@ async function semear(id: string): Promise<Semeado> {
   })
   await db.insert(schema.seedSpends).values({ id: `sp-${id}`, ...meta, spendId: `sp-${id}`, amount: 5, reason: 'pular-rodada' })
   await db.insert(schema.usageCounters).values({ id: `uc-${id}`, ...meta, metric: 'llm_tokens', window: '2026-08', count: 10 })
+  /* O rate limit grava com `user_id = 'u:<id>'` (rateLimitStore.ts) — fora do `WHERE user_id = ?`
+     comum. É a sétima forma de dado do titular que ficava para trás. */
+  await db.insert(schema.usageCounters).values({ id: `rl-${id}`, ...meta, userId: `u:user-${id}`, metric: 'ratelimit', window: 'rl:1', count: 3 })
+  await db.insert(schema.seedCredits).values({ id: `sc-${id}`, ...meta, creditoId: `conquista-${id}`, amount: 25, xp: 30, reason: `conquista:${id}` })
+  await db.insert(schema.creditPurchases).values({ id: `cp-${id}`, ...meta, sku: 'c100', creditos: 100, valorCentavos: 990, status: 'pago' })
+  await db.insert(schema.creditSpends).values({ id: `cs-${id}`, ...meta, spendId: `cs-${id}`, amount: 10, reason: 'premium:dourada-1' })
+  await db.insert(schema.presencas).values({ id: `pr-${id}`, ...meta, dia: 20700 })
+  await db.insert(schema.ankiMedia).values({ id: `am-${id}`, ...meta, sha256: `sha-${id}`, bytes: 8, contentType: 'audio/mpeg' })
+  await db.insert(schema.ankiNoteMedia).values({ id: `anm-${id}`, ...meta, noteId: `nota-${id}`, mediaId: `am-${id}`, papel: 'audio_palavra', nomeOriginal: `${id}.mp3` })
+  await db.insert(schema.billingEvents).values({ id: `evt-${id}`, createdAt: now, provider: 'asaas', event: 'PAYMENT_CONFIRMED', userId: `user-${id}`, providerRef: `pay-${id}` })
 
   return { u, sessaoId: sessao.id, arquivo, credId: cred.id }
 }
@@ -141,6 +157,9 @@ async function linhasDe(userId: UserId): Promise<Record<string, number>> {
     out[nome] = (await db.select({ id: t.id }).from(t).where(eq(t.userId, userId))).length
   }
   out.users = (await db.select({ id: schema.users.id }).from(schema.users).where(eq(schema.users.id, userId))).length
+  // As linhas de rate limit (`u:<id>`) contam como dado do titular.
+  out.rateLimit = (await db.select({ id: schema.usageCounters.id }).from(schema.usageCounters)
+    .where(eq(schema.usageCounters.userId, `u:${userId}`))).length
   return out
 }
 
@@ -209,6 +228,11 @@ describe('F5-03 — DELETE /api/me', () => {
     expect(res.body.linhasPorTabela.vocabOccurrences).toBe(1)
     expect(res.body.linhasPorTabela.secrets).toBe(1)
     expect(res.body.linhasPorTabela.users).toBe(1)
+    // E as seis do A06 + a linha de rate limit (contada em usageCounters junto com a de quota).
+    for (const nome of ['seedCredits', 'creditPurchases', 'creditSpends', 'presencas', 'ankiMedia', 'ankiNoteMedia']) {
+      expect(res.body.linhasPorTabela[nome], nome).toBe(1)
+    }
+    expect(res.body.linhasPorTabela.usageCounters).toBe(2)
     expect(res.body.totalDeLinhas).toBeGreaterThan(15)
   })
 

@@ -8,12 +8,15 @@
  * `profiles` entra apenas pelas linhas do usuário — as builtin têm `user_id` NULL e são globais
  * (mesma exceção documentada em `tenancy.ts`); um filtro por `user_id` já as preserva.
  */
-import { eq, inArray } from 'drizzle-orm'
+import { eq, inArray, is, getTableColumns } from 'drizzle-orm'
+import { SQLiteTable } from 'drizzle-orm/sqlite-core'
 import { db } from '../db'
+import * as schema from '../schema'
 import {
-  analyses, ankiDecks, ankiImports, ankiNotes, exerciseResults, profiles, providerCredentials,
-  reviewLogs, secrets, seedSpends, sessions, settings, subscriptions,
-  usageCounters, userInterests, users, utterances, vocabCards, vocabOccurrences,
+  analyses, ankiDecks, ankiImports, ankiMedia, ankiNoteMedia, ankiNotes, billingEvents, creditPurchases,
+  creditSpends, exerciseResults, presencas, profiles, providerCredentials, reviewLogs, secrets, seedCredits, seedSpends,
+  sessions, settings, subscriptions, usageCounters, userInterests, users, utterances, vocabCards,
+  vocabOccurrences,
 } from '../schema'
 import type { UserId } from '../../lib/authContext'
 
@@ -23,6 +26,14 @@ import type { UserId } from '../../lib/authContext'
  * A ORDEM É FILHO ANTES DE PAI, e agora ela é obrigatória: com as FOREIGN KEY declaradas (F0-04),
  * o DELETE de `sessions` antes do de `utterances` viola a constraint e o `batch` inteiro sobe erro.
  * `memoryEmbeddings` saiu da lista junto com a tabela (F1-05).
+ *
+ * A LISTA CONTINUA ESCRITA À MÃO — a ordem de FK não se deduz do schema sem um grafo — mas deixou
+ * de ser a única fonte: `conferirCobertura()` abaixo compara com o schema no carregamento do
+ * módulo e `tests/integration/tabelas-do-titular.test.ts` faz o mesmo no CI. A auditoria de
+ * 2026-09-07 (achado A06) encontrou SEIS tabelas com `user_id` fora daqui (`seed_credits`,
+ * `credit_purchases`, `credit_spends`, `presencas`, `anki_media`, `anki_note_media`): créditos,
+ * presenças e mídia do baralho sobreviviam a `DELETE /api/me`, e a exportação não os mostrava.
+ * Uma lista à mão sem conferência é exatamente como isso acontece de novo.
  */
 const TABELAS_DO_TITULAR: ReadonlyArray<readonly [string, any]> = [
   ['vocabOccurrences', vocabOccurrences],
@@ -36,6 +47,9 @@ const TABELAS_DO_TITULAR: ReadonlyArray<readonly [string, any]> = [
      constraint, e a promessa da LGPD viraria a mesma promessa não cumprida que este arquivo
      existe para consertar. Esquecer as três tabelas seria pior ainda em silêncio — o baralho
      importado (com o conteúdo que a pessoa escolheu trazer) sobreviveria ao pedido de eliminação. */
+  // A referência de mídia aponta para a nota E para o arquivo: sai antes das duas.
+  ['ankiNoteMedia', ankiNoteMedia],
+  ['ankiMedia', ankiMedia],
   ['ankiNotes', ankiNotes],
   ['ankiImports', ankiImports],
   ['ankiDecks', ankiDecks],
@@ -46,10 +60,54 @@ const TABELAS_DO_TITULAR: ReadonlyArray<readonly [string, any]> = [
   ['userInterests', userInterests],
   // Antes de `secrets` (apagada fora do laço): é a filha de `secret_ref`.
   ['providerCredentials', providerCredentials],
+  // Os dois lados de cada moeda: sem FK entre si, mas são dado do titular como qualquer outro.
   ['seedSpends', seedSpends],
+  ['seedCredits', seedCredits],
+  ['creditPurchases', creditPurchases],
+  ['creditSpends', creditSpends],
+  ['presencas', presencas],
   ['subscriptions', subscriptions],
+  /* Eventos de cobrança apontam para o titular quando o provedor identifica o pagador. São
+     auditoria, mas auditoria COM o id da pessoa — e o pedido de eliminação alcança isso também. A
+     idempotência do webhook não sofre: o evento de uma conta apagada não tem mais a quem promover. */
+  ['billingEvents', billingEvents],
   ['usageCounters', usageCounters],
 ]
+
+/** Os nomes, para o teste de invariante e para quem precise listar sem tocar nas tabelas. */
+export const NOMES_DAS_TABELAS_DO_TITULAR: readonly string[] = TABELAS_DO_TITULAR.map(([n]) => n)
+
+/**
+ * Tabelas com `user_id` que a exclusão trata FORA do laço, com chave própria: `secrets` é
+ * alcançada pela `secret_ref` das credenciais E pelo `user_id` (ver `refsDeSegredo`), e apagada
+ * depois de `providerCredentials` por causa da FOREIGN KEY.
+ */
+export const TABELAS_TRATADAS_A_PARTE: readonly string[] = ['secrets']
+
+/**
+ * Falha ALTO no carregamento se o schema tiver tabela com `user_id` fora da lista. Melhor um
+ * servidor que não sobe com o nome da tabela no erro do que uma exclusão que "funciona" e deixa
+ * a tabela nova para trás.
+ */
+function conferirCobertura(): void {
+  const noSchema = Object.entries(schema)
+    .filter(([, v]) => is(v, SQLiteTable))
+    .filter(([, t]) => 'userId' in getTableColumns(t as SQLiteTable))
+    .map(([nome]) => nome)
+  const faltando = noSchema.filter((n) => !NOMES_DAS_TABELAS_DO_TITULAR.includes(n) && !TABELAS_TRATADAS_A_PARTE.includes(n))
+  if (faltando.length) {
+    throw new Error(`conta.ts: tabelas com user_id fora de TABELAS_DO_TITULAR: ${faltando.join(', ')}`)
+  }
+}
+conferirCobertura()
+
+/**
+ * O rate limit grava em `usage_counters` com o prefixo `u:` (`server/lib/rateLimitStore.ts`),
+ * fora do `WHERE user_id = ?` comum. É pouco dado, mas é dado do titular — e ficava para trás.
+ */
+function chavesDoTitular(nome: string, userId: UserId): string[] {
+  return nome === 'usageCounters' ? [userId, `u:${userId}`] : [userId]
+}
 
 type Instrucao = Parameters<typeof db.batch>[0][number]
 
@@ -135,7 +193,7 @@ export const contaRepo = {
   async exportar(userId: UserId): Promise<ExportacaoDaConta> {
     const dados: Record<string, unknown[]> = {}
     for (const [nome, tabela] of TABELAS_DO_TITULAR) {
-      const linhas = await db.select().from(tabela).where(eq(tabela.userId, userId))
+      const linhas = await db.select().from(tabela).where(inArray(tabela.userId, chavesDoTitular(nome, userId)))
       dados[nome] = nome === 'providerCredentials' ? linhas.map(credencialSemSegredo) : linhas
     }
 
@@ -179,9 +237,10 @@ export const contaRepo = {
     const instrucoes: Instrucao[] = []
 
     for (const [nome, tabela] of TABELAS_DO_TITULAR) {
-      const linhas = await db.select({ id: tabela.id }).from(tabela).where(eq(tabela.userId, userId))
+      const chaves = chavesDoTitular(nome, userId)
+      const linhas = await db.select({ id: tabela.id }).from(tabela).where(inArray(tabela.userId, chaves))
       linhasPorTabela[nome] = linhas.length
-      if (linhas.length) instrucoes.push(db.delete(tabela).where(eq(tabela.userId, userId)))
+      if (linhas.length) instrucoes.push(db.delete(tabela).where(inArray(tabela.userId, chaves)))
     }
 
     const segredos = refs.length

@@ -85,7 +85,11 @@ describe('o preço é o do catálogo', () => {
     await darSaldo('u-a4')
     const r = await gastar({ spendId: 'sp-barato-01', amount: 1, reason: `loja:${CARO.id}` }, 'u-a4')
     expect(r.statusCode).toBe(400)
-    expect(r.body).toMatchObject({ preco: CARO.precoSeeds })
+    /* O PREÇO CERTO CHEGA À TELA, e agora por um lugar só: `detalhes` no envelope
+       `{ error, code?, detalhes? }`. Antes viajava solto no topo, e nenhuma tela o lia — o
+       servidor dizia o preço e a pessoa via "erro" (achado A30). */
+    expect(r.body.code).toBe('preco_divergente')
+    expect(r.body.detalhes).toMatchObject({ preco: CARO.precoSeeds })
   })
 })
 
@@ -93,7 +97,8 @@ describe('o saldo precisa pagar', () => {
   it('sem saldo nenhum, a compra é recusada com 402 e o quanto falta', async () => {
     const r = await gastar({ spendId: 'sp-sem-saldo1', amount: BARATO.precoSeeds!, reason: `loja:${BARATO.id}` }, 'u-a5')
     expect(r.statusCode).toBe(402)
-    expect(r.body.falta).toBe(BARATO.precoSeeds)
+    expect(r.body.code).toBe('saldo_insuficiente')
+    expect(r.body.detalhes?.falta).toBe(BARATO.precoSeeds)
   })
 
   it('com saldo, a compra passa — e o reenvio continua idempotente mesmo com o saldo zerado', async () => {

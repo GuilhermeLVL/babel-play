@@ -196,6 +196,38 @@ export const vocabRepo = {
     }))
   },
 
+  /**
+   * A PROCEDÊNCIA DE UM CARTÃO SÓ — a mesma forma que `list` devolve, para UM id.
+   *
+   * `PATCH /vocab/:id` e `POST /vocab/:id/review` devolviam a linha CRUA do banco: sem `daTrilha`,
+   * sem `daAnki`, sem `baralhosAnki` (auditoria de 2026-09-07, achado A20). O cliente atualiza o
+   * cartão da tela com a resposta, então editar a tradução de um cartão importado do Anki fazia a
+   * procedência dele SUMIR na hora — e a régua de qualidade voltava a medi-lo pelo teto da fala
+   * capturada, que é o defeito de "299 cartões importados viram 8 palavras prontas".
+   */
+  async procedenciaDe(userId: UserId, cardId: string): Promise<{ daTrilha: boolean; daAnki: boolean; baralhosAnki: string[] }> {
+    const ocorrencias = await db
+      .selectDistinct({ kind: vocabOccurrences.originKind, ref: vocabOccurrences.originRef })
+      .from(vocabOccurrences)
+      .where(and(
+        eq(vocabOccurrences.userId, userId),
+        eq(vocabOccurrences.cardId, cardId),
+        isNull(vocabOccurrences.deletedAt),
+      ))
+    return {
+      daTrilha: ocorrencias.some((o) => o.kind === 'trilha'),
+      daAnki: ocorrencias.some((o) => o.kind === 'anki'),
+      baralhosAnki: ocorrencias.filter((o) => o.kind === 'anki' && o.ref).map((o) => o.ref as string),
+    }
+  },
+
+  /** `get` + procedência: a MESMA forma de `list`, que é o que o cliente sabe consumir. */
+  async getComProcedencia(userId: UserId, id: string): Promise<(VocabCard & { daTrilha: boolean; daAnki: boolean; baralhosAnki: string[] }) | undefined> {
+    const card = await this.get(userId, id)
+    if (!card) return undefined
+    return { ...card, ...(await this.procedenciaDe(userId, id)) }
+  },
+
   async get(userId: UserId, id: string): Promise<VocabCard | undefined> {
     const rows = await db
       .select()

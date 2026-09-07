@@ -5,7 +5,7 @@ import { sessionsRepo } from '../db/repositories/sessions'
 import { utterancesRepo } from '../db/repositories/utterances'
 import { createSessionSchema, replaceUtterancesSchema, parseOr400, isSafeImageUrl, patchUtteranceSchema, patchSessionSchema, relabelUtterancesSchema, patchMetaSchema, idParamSchema } from '../validation'
 import { erroDeRota } from '../lib/erroDeRota'
-import { aliviarListagem, lerCapaEmbutida } from '../lib/capaDeSessao'
+import { aliviarListagem, aliviarMeta, lerCapaEmbutida } from '../lib/capaDeSessao'
 import { reservarArmazenamento, liberarArmazenamento, corpoDeRecusa } from '../lib/storageQuota'
 import { armazenamentoDoAmbiente } from '../lib/armazenamento'
 import { detectarAudio, FORMATOS_DE_AUDIO_ACEITOS } from '../lib/tipoDeArquivo'
@@ -133,7 +133,11 @@ sessionsRouter.get('/:id', async (req, res) => {
     res.status(404).json({ error: 'sessão não encontrada' })
     return
   }
-  res.json(result)
+  /* A CAPA `data:` INTEIRA NÃO VIAJA (auditoria de 2026-09-07, achado A62). A listagem já
+     substituía a imagem embutida por uma URL servida, e esta rota não: abrir UMA sessão baixava
+     de novo a capa em base64 dentro do JSON, e os PATCH devolviam o mesmo peso a cada edição de
+     título. `aliviarMeta` troca por `/api/sessions/:id/capa`, que o navegador cacheia. */
+  res.json({ ...result, session: { ...result.session, meta: aliviarMeta(result.session.meta, p.id) } })
 })
 
 sessionsRouter.post('/', async (req, res) => {
@@ -271,7 +275,8 @@ sessionsRouter.patch('/:id', async (req, res) => {
     if (typeof b.wordCount === 'number') patch.wordCount = b.wordCount
     const updated = await sessionsRepo.update(req.userId, req.params.id, patch)
     if (!updated) { res.status(404).json({ error: 'sessão não encontrada' }); return }
-    res.json(updated)
+    // Mesma razão do GET: a capa embutida não volta inteira a cada edição (achado A62).
+    res.json({ ...updated, meta: aliviarMeta(updated.meta, req.params.id) })
   } catch (err) {
     res.status(400).json({ error: erroDeRota(err, { event: 'sessions_route_error', route: req.path, requestId: req.requestId }) })
   }
@@ -286,7 +291,8 @@ sessionsRouter.put('/:id/utterances', async (req, res) => {
   try {
     const updated = await sessionsRepo.replaceUtterances(req.userId, req.params.id, payload.utterances)
     if (!updated) { res.status(404).json({ error: 'sessão não encontrada' }); return }
-    res.json(updated)
+    // Mesma razão do GET: a capa embutida não volta inteira a cada edição (achado A62).
+    res.json({ ...updated, meta: aliviarMeta(updated.meta, req.params.id) })
   } catch (err) {
     res.status(400).json({ error: erroDeRota(err, { event: 'sessions_route_error', route: req.path, requestId: req.requestId }) })
   }
@@ -331,7 +337,8 @@ sessionsRouter.patch('/:id/meta', async (req, res) => {
     }
     const updated = await sessionsRepo.patchMeta(req.userId, req.params.id, patch)
     if (!updated) { res.status(404).json({ error: 'sessão não encontrada' }); return }
-    res.json(updated)
+    // Mesma razão do GET: a capa embutida não volta inteira a cada edição (achado A62).
+    res.json({ ...updated, meta: aliviarMeta(updated.meta, req.params.id) })
   } catch (err) {
     res.status(400).json({ error: erroDeRota(err, { event: 'sessions_route_error', route: req.path, requestId: req.requestId }) })
   }

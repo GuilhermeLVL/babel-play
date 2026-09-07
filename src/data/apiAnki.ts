@@ -10,6 +10,7 @@
  * As rotas em si são de outro agente (`server/routes/anki.ts` e afins); este arquivo só fala o
  * contrato combinado, sem tocar nelas.
  */
+import type { EstadoDeNotaAnki, FiltroDeNotaAnki } from '@core'
 import { apiFetch } from './api'
 
 // ───────────────────────────── tipos do contrato ─────────────────────────────
@@ -40,7 +41,17 @@ export interface BaralhoAnkiResumo {
   ausentes: number
 }
 
-export type EstadoNota = 'ativa' | 'arquivada' | 'descartada'
+/**
+ * O ESTADO VEM DO CONTRATO, nao de uma copia local (auditoria de 2026-09-07, achado A21).
+ *
+ * Esta linha declarava `'ativa' | 'arquivada' | 'descartada'` enquanto o servidor guardava
+ * `'ativa' | 'arquivada' | 'ausente_no_arquivo'`: filtrar por "Descartadas" respondia 400 e
+ * "ausente no arquivo" nao existia para a tela. `descartada` continua sendo oferecida como
+ * FILTRO — ela e o recorte de quem tem motivo de descarte, e a distincao entre "a regua recusou"
+ * e "sumiu do arquivo" e a que a tela precisa mostrar.
+ */
+export type EstadoNota = EstadoDeNotaAnki
+export type FiltroDeEstado = FiltroDeNotaAnki
 
 export interface NotaAnkiDetalhe {
   id: string
@@ -86,7 +97,7 @@ export async function listarBaralhosAnki(): Promise<BaralhoAnkiResumo[]> {
 
 export interface FiltroNotas {
   cursor?: string | null
-  estado?: EstadoNota
+  estado?: FiltroDeEstado
   busca?: string
   limite?: number
 }

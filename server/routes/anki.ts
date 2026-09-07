@@ -48,7 +48,7 @@ ankiRouter.get('/decks/:id/notas', async (req, res) => {
     if (!(await deckDoUsuario(req.userId, p.id))) { res.status(404).json({ error: 'baralho não encontrado' }); return }
     const r = await ankiRepo.listarNotas(req.userId, p.id, {
       limite: q.limite,
-      cursor: q.cursor !== undefined && q.cursorId ? { valor: Number(q.cursor), id: q.cursorId } : null,
+      cursor: q.cursor ?? null,
       estado: q.estado,
       busca: q.busca,
     })

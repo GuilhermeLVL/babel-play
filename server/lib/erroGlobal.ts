@@ -20,6 +20,7 @@
  * porque sabem devolver 400/404 com mensagem específica. Isto é o que sobra quando eles falham ou
  * não existem.
  */
+import { envelopeDeErro } from './respostaDeErro'
 import type { NextFunction, Request, Response, Router } from 'express'
 import { log } from './logger'
 import { cadeiaDeCausas } from './cadeiaDeCausas'
@@ -75,13 +76,20 @@ export function erroGlobal(err: unknown, req: Request, res: Response, _next: Nex
   // trocaria um erro por outro.
   if (res.headersSent) { res.end(); return }
 
-  res.status(500).json({
-    error: {
-      code: 'erro_interno',
-      // Nunca a causa: ela carrega nome de coluna, caminho de arquivo e às vezes o valor que
-      // falhou. Quem investiga usa o `requestId` para achar a linha no log.
-      message: 'erro interno',
-      requestId: (req as Request & { requestId?: string }).requestId ?? null,
-    },
-  })
+  /**
+   * O MESMO ENVELOPE DE TODO MUNDO (auditoria de 2026-09-07, achado A30).
+   *
+   * Aqui o erro vinha ANINHADO — `{ error: { code, message, requestId } }` — enquanto todas as
+   * outras rotas respondem `{ error: string }`. Quem lia `body.error` esperando texto recebia um
+   * objeto e mostrava `[object Object]`, ou nada. Era o único handler que o cliente não sabia ler,
+   * e justamente o que responde quando algo inesperado acontece.
+   *
+   * Nunca a causa no `error`: ela carrega nome de coluna, caminho de arquivo e às vezes o valor
+   * que falhou. Quem investiga usa o `requestId` para achar a linha no log.
+   */
+  res.status(500).json(envelopeDeErro(
+    'erro interno',
+    'erro_interno',
+    { requestId: (req as Request & { requestId?: string }).requestId ?? null },
+  ))
 }

@@ -57,6 +57,40 @@ interface IChatProps {
   ageProfile?: AgeProfileType;
 }
 
+/**
+ * A frase que explica o que aconteceu, ou `null` quando a resposta é uma resposta de verdade.
+ *
+ * Cada motivo tem a sua saída: quem não tem plano precisa saber que é plano, quem mandou texto
+ * demais precisa saber que é tamanho, e só quem realmente não tem modelo local ouve falar do
+ * Ollama. Uma frase só para tudo é o mesmo que não responder.
+ */
+function motivoDaResposta(res: Response, data: Record<string, unknown>): string | null {
+  const code = typeof data.code === 'string' ? data.code : undefined;
+  const reason = typeof data.reason === 'string' ? data.reason : undefined;
+  const erro = typeof data.error === 'string' ? data.error : undefined;
+
+  if (reason === 'managed_requires_pro' || res.status === 402 || code === 'plano_insuficiente') {
+    return '**A IA de nuvem faz parte do plano Pro.** Você pode assinar em Ajustes → Plano, ou instalar o Ollama em [ollama.com](https://ollama.com) para rodar o tutor localmente, de graça.';
+  }
+  if (res.status === 413 || code === 'payload_grande') {
+    return '**O texto ficou grande demais para uma pergunta só.** Selecione um trecho menor da tela e tente de novo.';
+  }
+  if (res.status === 429 || code === 'rate_limit') {
+    return '**Muitas perguntas em pouco tempo.** Espere alguns segundos e tente de novo.';
+  }
+  if (data.unavailable || reason === 'no_local_model') {
+    return '**IA local indisponível.** Instale o Ollama em [ollama.com](https://ollama.com) e rode `ollama run llama3.2` no terminal para ativar o tutor. Depois disso, é só me perguntar de novo!';
+  }
+  if (!res.ok) {
+    // Erro que a tela não conhece: mostrar o que o servidor disse é melhor que inventar um motivo.
+    return `**Não consegui responder agora.** ${erro ?? `O servidor respondeu ${res.status}.`}`;
+  }
+  if (!data.text) {
+    return '**Não veio resposta do modelo.** Tente perguntar de novo.';
+  }
+  return null;
+}
+
 export default function IChat({
   activeView,
   selectedRecording,
@@ -465,14 +499,18 @@ ${TUTOR_REGISTER[ageProfile]}`;
         })
       });
 
-      const data = await res.json();
+      const data = await res.json().catch(() => ({} as Record<string, unknown>));
       const aiTimestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
-      // Honesto: se a IA local não estiver disponível, mostramos uma dica de
-      // configuração em vez de fingir uma resposta.
-      const replyContent = (data.unavailable || !data.text)
-        ? "**IA local indisponível.** Instale o Ollama em [ollama.com](https://ollama.com) e rode `ollama run llama3.2` no terminal para ativar o tutor. Depois disso, é só me perguntar de novo!"
-        : data.text;
+      /**
+       * O MOTIVO REAL, e não "instale o Ollama" para tudo (auditoria de 2026-09-07, achado A22).
+       *
+       * Este bloco não olhava `res.ok`: um 402 (cota de plano), um 413 (prompt grande demais) ou
+       * um 501 caíam todos na mesma frase, mandando a pessoa instalar um programa que não tem
+       * nada a ver com o problema dela. E o servidor JÁ mandava o motivo — em `reason`, no caso
+       * do indisponível, e no envelope de erro nos demais. A informação existia e morria aqui.
+       */
+      const replyContent = motivoDaResposta(res, data as Record<string, unknown>) ?? (data as { text?: string }).text;
 
       const finalSessions = sessions.map(s => {
         if (s.id === currentSession.id) {

@@ -14,6 +14,7 @@ import { db } from '../db'
 import { ankiDecks, ankiImports, ankiNotes } from '../schema'
 
 import type { UserId } from '../../lib/authContext'
+import { cursorDeNotas, lerCursorDeNotas, type FiltroDeNotaAnki } from '../../../src/core/learning/contract'
 
 export type AnkiDeck = typeof ankiDecks.$inferSelect
 export type AnkiNote = typeof ankiNotes.$inferSelect
@@ -408,20 +409,28 @@ export const ankiRepo = {
    */
   async listarNotas(userId: UserId, deckId: string, opts: {
     limite?: number
-    cursor?: { valor: number; id: string } | null
-    estado?: string
+    /* O MESMO valor que a pagina anterior devolveu, opaco. Era `{ valor, id }` e o cliente
+       tipava string: quem paginava devolvia `[object Object]` e a segunda pagina repetia a
+       primeira para sempre (achado A21). Devolver o que se recebeu tem de bastar. */
+    cursor?: string | null
+    estado?: FiltroDeNotaAnki
     busca?: string
-  } = {}): Promise<{ itens: AnkiNote[]; proximoCursor: { valor: number; id: string } | null; total: number }> {
+  } = {}): Promise<{ itens: AnkiNote[]; proximoCursor: string | null; total: number }> {
     const limite = Math.min(Math.max(opts.limite ?? 200, 1), 500)
     const cond = [eq(ankiNotes.deckId, deckId), eq(ankiNotes.userId, userId), isNull(ankiNotes.deletedAt)]
 
-    if (opts.estado) cond.push(eq(ankiNotes.estado, opts.estado))
+    /* `descartada` nao e valor da coluna: e o recorte de quem tem `motivo_descarte`. Filtrar por
+       ele respondia 400 antes de o schema conhecer o nome, e a tela oferecia o filtro assim mesmo
+       (achado A21). Ver o vocabulario em `contract.ts`. */
+    if (opts.estado === 'descartada') cond.push(sql`${ankiNotes.motivoDescarte} IS NOT NULL`)
+    else if (opts.estado) cond.push(eq(ankiNotes.estado, opts.estado))
     if (opts.busca?.trim()) {
       const q = `%${opts.busca.trim().toLowerCase()}%`
       cond.push(sql`(lower(COALESCE(${ankiNotes.frente},'')) LIKE ${q} OR lower(COALESCE(${ankiNotes.verso},'')) LIKE ${q})`)
     }
-    if (opts.cursor) {
-      const { valor, id } = opts.cursor
+    const cursor = lerCursorDeNotas(opts.cursor)
+    if (cursor) {
+      const { valor, id } = cursor
       cond.push(sql`(${ankiNotes.createdAt} < ${valor} OR (${ankiNotes.createdAt} = ${valor} AND ${ankiNotes.id} > ${id}))`)
     }
 
@@ -437,7 +446,7 @@ export const ankiRepo = {
     return {
       itens: pagina,
       total: Number(n),
-      proximoCursor: temMais && ultimo ? { valor: ultimo.createdAt, id: ultimo.id } : null,
+      proximoCursor: temMais && ultimo ? cursorDeNotas(ultimo.createdAt, ultimo.id) : null,
     }
   },
 }

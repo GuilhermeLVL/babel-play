@@ -24,6 +24,15 @@ export interface SessaoLocal {
   targetLang: string | null;
   status: string | null;
   meta: string | null;
+  /**
+   * O id que o CHAMADOR deu à sessão, quando deu — a chave de idempotência.
+   *
+   * O Express tem `sessions.origem_local_id` com índice único, e é por ele que reenviar a mesma
+   * sessão devolve `jaExistia: true` em vez de duplicar. O efêmero ignorava o campo (auditoria de
+   * 2026-09-07, achado A23): as duas pontas da MESMA operação tinham garantias diferentes, e uma
+   * migração interrompida e repetida duplicava tudo do lado de cá.
+   */
+  origemLocalId?: string | null;
   /** Preenchidos pela migração (data/migracao.ts). */
   migradaEm?: number;
   idServidor?: string;

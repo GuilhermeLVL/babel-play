@@ -19,6 +19,13 @@ export * from './learning/fluencia'
    já vêm de `contract` e de `trilha`. Um `export *` criaria ambiguidade no barril e o TypeScript
    recusaria, melhor escolher aqui do que renomear tipos que meia dúzia de arquivos já importa. */
 export { nivelCefr, coberturaDaWordlist, escalaDe, type NivelCefr, type ProcedenciaCefr } from './learning/cefrWordlist'
+
+/* Vocabulario compartilhado das notas de Anki (estado, filtro, cursor de paginacao): cliente,
+   schema Zod e repositorio passam a ler a MESMA definicao — os tres discordavam (achado A21). */
+export {
+  ESTADOS_DE_NOTA_ANKI, FILTROS_DE_NOTA_ANKI, cursorDeNotas, lerCursorDeNotas,
+  type EstadoDeNotaAnki, type FiltroDeNotaAnki,
+} from './learning/contract'
 export * from './minigames/types'
 export * from './minigames/revelavel'
 export * from './minigames/sequencia'

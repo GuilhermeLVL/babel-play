@@ -5,6 +5,7 @@
  * (`src/data/api.ts` é a fonte dos shapes; campos continuam opcionais onde lá são opcionais).
  */
 import { z } from 'zod'
+import { FILTROS_DE_NOTA_ANKI } from '../src/core/learning/contract'
 import type { Response } from 'express'
 import { subtipoDeCapaAceito } from './lib/capaDeSessao'
 
@@ -494,9 +495,11 @@ export const uploadHeadersSchema = z.object({
 
 /** Query de `GET /api/anki/decks/:id/notas` — cursor + filtros, mesmo padrão de `vocabPaginaQuerySchema`. */
 export const ankiNotasQuerySchema = z.object({
-  cursor: z.string().max(128).optional(),
-  cursorId: z.string().max(128).optional(),
-  estado: z.enum(['arquivada', 'ativa', 'ausente_no_arquivo']).optional(),
+  /* CURSOR OPACO, um parametro so (`valor:id`). Eram dois — `cursor` e `cursorId` — e o cliente
+     mandava so o primeiro, com o objeto serializado como `[object Object]`: a segunda pagina
+     repetia a primeira para sempre (achado A21). Ver `cursorDeNotas` em `contract.ts`. */
+  cursor: z.string().max(256).optional(),
+  estado: z.enum(FILTROS_DE_NOTA_ANKI).optional(),
   busca: z.string().max(200).optional(),
   limite: z.coerce.number().int().min(1).max(500).optional(),
 }).strip()

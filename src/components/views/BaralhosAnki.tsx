@@ -5,7 +5,7 @@ import {
 } from 'lucide-react'
 import {
   listarBaralhosAnki, listarNotasDoBaralho, ativarNotasDoBaralho, desativarBaralho, purgarBaralho,
-  type BaralhoAnkiResumo, type NotaAnkiDetalhe, type EstadoNota,
+  type BaralhoAnkiResumo, type NotaAnkiDetalhe, type FiltroDeEstado,
 } from '../../data/apiAnki'
 import { data } from '../../lib/i18n';
 
@@ -46,11 +46,16 @@ export interface BaralhosAnkiProps {
   onAtivou?: () => void
 }
 
-const FILTROS_ESTADO: Array<{ id: EstadoNota | 'todas'; rotulo: string }> = [
+/* `descartada` e `ausente_no_arquivo` sao coisas diferentes e as duas precisam ser filtraveis:
+   descartada = a regua recusou (acionavel, da para remapear e reimportar); ausente = a nota sumiu
+   do arquivo desde o ultimo import (historico). Filtrar por "Descartadas" respondia 400 ate
+   07/09, porque o cliente e o servidor discordavam do vocabulario (achado A21). */
+const FILTROS_ESTADO: Array<{ id: FiltroDeEstado | 'todas'; rotulo: string }> = [
   { id: 'todas', rotulo: 'Todas' },
   { id: 'ativa', rotulo: 'Ativas' },
   { id: 'arquivada', rotulo: 'Arquivadas' },
   { id: 'descartada', rotulo: 'Descartadas' },
+  { id: 'ausente_no_arquivo', rotulo: 'Ausentes no arquivo' },
 ]
 
 function fmtData(ts: number): string {
@@ -328,7 +333,7 @@ function CartaoDeBaralho({
 function DetalheDoBaralho({ deck, onFechar }: { deck: BaralhoAnkiResumo; onFechar: () => void }) {
   const [busca, setBusca] = useState('')
   const [buscaAplicada, setBuscaAplicada] = useState('')
-  const [estado, setEstado] = useState<EstadoNota | 'todas'>('todas')
+  const [estado, setEstado] = useState<FiltroDeEstado | 'todas'>('todas')
   const [itens, setItens] = useState<NotaAnkiDetalhe[]>([])
   const [total, setTotal] = useState(0)
   const [cursor, setCursor] = useState<string | null>(null)
@@ -456,11 +461,16 @@ function DetalheDoBaralho({ deck, onFechar }: { deck: BaralhoAnkiResumo; onFecha
 }
 
 function LinhaDeNota({ nota }: { nota: NotaAnkiDetalhe }) {
-  const selo = nota.estado === 'descartada'
-    ? <span className="badge-tag err" title={nota.motivoDescarte ?? undefined}>descartada</span>
-    : nota.estado === 'arquivada'
-      ? <span className="badge-tag warn">arquivada</span>
-      : <span className="badge-tag ok">ativa</span>
+  /* O SELO SEGUE O MOTIVO, nao um estado que a coluna nunca guardou: `estado === 'descartada'`
+     era sempre falso, entao a nota recusada aparecia como "arquivada" e o motivo — que existe e
+     esta ali — nunca era mostrado (achado A21). */
+  const selo = nota.motivoDescarte
+    ? <span className="badge-tag err" title={nota.motivoDescarte}>descartada</span>
+    : nota.estado === 'ausente_no_arquivo'
+      ? <span className="badge-tag warn" title="a nota sumiu do arquivo desde o último import">ausente no arquivo</span>
+      : nota.estado === 'arquivada'
+        ? <span className="badge-tag warn">arquivada</span>
+        : <span className="badge-tag ok">ativa</span>
   return (
     <li className="px-3 py-2 flex items-center gap-3 text-start border-b border-border-subtle last:border-0">
       <span className="font-semibold text-[13px] text-ink truncate w-[26%]">{nota.frente}</span>

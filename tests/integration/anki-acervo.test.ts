@@ -242,7 +242,9 @@ describe('listarNotas — paginação por cursor não repete item', () => {
     }
 
     const vistos = new Set<string>()
-    let cursor: { valor: number; id: string } | null = null
+    /* O cursor e OPACO desde 07/09: quem pagina devolve exatamente o que recebeu, sem conhecer
+       a forma interna. Era `{ valor, id }` no servidor e `string` no cliente (achado A21). */
+    let cursor: string | null = null
     let paginas = 0
     do {
       const pagina = await ankiRepo.listarNotas(U, deck.id, { limite: 5, cursor })

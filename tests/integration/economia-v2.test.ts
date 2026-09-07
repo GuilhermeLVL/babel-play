@@ -89,7 +89,10 @@ describe('POST /api/metrics/seeds/creditar', () => {
     const r = mockRes()
     await handler('/seeds/creditar')(req({ creditoId: 'conquista-primeira-captura', reason: 'x' }, 'u-c6'), r)
     expect(r.statusCode).toBe(400)
-    expect(r.body).toMatchObject({ atual: 0, meta: 1 })
+    /* O QUE FALTA vai em `detalhes`, no envelope único (`{ error, code?, detalhes? }`) — antes
+       eram campos avulsos no topo, e cada rota batizava os seus do próprio jeito (achado A30). */
+    expect(r.body.code).toBe('conquista_nao_cumprida')
+    expect(r.body.detalhes).toMatchObject({ atual: 0, meta: 1 })
   })
 })
 

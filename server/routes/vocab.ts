@@ -142,7 +142,9 @@ vocabRouter.patch('/:id', async (req, res) => {
     if (!Object.keys(patch).length) return res.status(400).json({ error: 'nada a alterar' })
     const card = await vocabRepo.patch(req.userId, p.id, patch)
     if (!card) return res.status(404).json({ error: 'card não encontrado' })
-    res.json(card)
+    /* MESMA FORMA DE `GET /api/vocab`. Devolver a linha crua fazia a procedência do cartão sumir
+       na tela assim que alguém editasse a tradução (achado A20). */
+    res.json({ ...card, ...(await vocabRepo.procedenciaDe(req.userId, p.id)) })
   } catch (err) {
     res.status(400).json({ error: erroDeRota(err, { event: 'vocab_route_error', route: req.path, requestId: req.requestId }) })
   }
@@ -154,7 +156,8 @@ vocabRouter.post('/:id/review', async (req, res) => {
   const payload = parseOr400(reviewGradeSchema, req.body, res)
   if (!payload) return
   try {
-    res.json(await vocabRepo.review(req.userId, req.params.id, payload.grade as Grade))
+    const atualizado = await vocabRepo.review(req.userId, req.params.id, payload.grade as Grade)
+    res.json({ ...atualizado, ...(await vocabRepo.procedenciaDe(req.userId, req.params.id)) })
   } catch (err) {
     res.status(400).json({ error: erroDeRota(err, { event: 'vocab_route_error', route: req.path, requestId: req.requestId }) })
   }

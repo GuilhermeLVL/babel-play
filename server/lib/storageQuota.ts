@@ -26,6 +26,7 @@ import type { UserId } from './authContext'
 import { getPlanForUser } from './entitlements'
 import type { Plan } from '../db/repositories/subscriptions'
 import { log } from './logger'
+import { envelopeDeErro, type EnvelopeDeErro } from './respostaDeErro'
 
 export const METRIC_STORAGE = 'storage_bytes'
 export const WINDOW_STORAGE = 'total'
@@ -313,18 +314,19 @@ export function estimarBytesDeAudio(durationMs?: number | null): number {
 }
 
 /** Resposta HTTP da recusa, igual nas duas rotas que gravam arquivo. */
-export function corpoDeRecusa(r: ResultadoDeCota): { status: number; body: Record<string, unknown> } {
+export function corpoDeRecusa(r: ResultadoDeCota): { status: number; body: EnvelopeDeErro } {
   if (r.motivo === 'indisponivel') {
-    return { status: 503, body: { error: 'não foi possível verificar a cota de armazenamento agora', code: 'storage_quota_unavailable' } }
+    return { status: 503, body: envelopeDeErro('não foi possível verificar a cota de armazenamento agora', 'storage_quota_unavailable') }
   }
   const mb = (b: number) => Math.round((b / MB) * 10) / 10
+  /* `usedBytes`/`capBytes` em `detalhes`, e não soltos no topo: é o envelope único (achado A30).
+     Eles existem para a tela dizer "1,8 GB de 2 GB" em vez de "armazenamento cheio". */
   return {
     status: 507,
-    body: {
-      error: `armazenamento cheio: ${mb(r.usadoBytes)} MB de ${mb(r.capBytes)} MB usados. Apague sessões antigas ou mude de plano.`,
-      code: 'storage_quota_exceeded',
-      usedBytes: r.usadoBytes,
-      capBytes: r.capBytes,
-    },
+    body: envelopeDeErro(
+      `armazenamento cheio: ${mb(r.usadoBytes)} MB de ${mb(r.capBytes)} MB usados. Apague sessões antigas ou mude de plano.`,
+      'storage_quota_exceeded',
+      { usedBytes: r.usadoBytes, capBytes: r.capBytes },
+    ),
   }
 }

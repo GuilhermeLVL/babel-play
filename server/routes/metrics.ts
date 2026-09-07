@@ -11,6 +11,7 @@ import type { ContextoDeConquistas } from '../../src/core/learning/conquistas'
 import { diaLocal, sequencias } from '../../src/core/learning/economia'
 import { seedSpendSchema, seedCreditSchema, presencaSchema, parseOr400, metricsProfileQuerySchema, metricsXpQuerySchema } from '../validation'
 import { erroDeRota } from '../lib/erroDeRota'
+import { responderErro } from '../lib/respostaDeErro'
 
 export const metricsRouter = Router()
 
@@ -93,14 +94,16 @@ metricsRouter.post('/seeds/gastar', async (req, res) => {
       // Preço divergente é sinal de adulteração OU de tela desatualizada depois de uma mudança de
       // preço. Nos dois casos, recusar e devolver o preço certo é melhor do que cobrar um valor
       // que a pessoa não viu.
-      res.status(400).json({ error: 'preço divergente do catálogo', preco: autorizacao.preco })
+      /* `detalhes`, e nao campo avulso no topo: o cliente le UM lugar. Antes o `preco` viajava
+         solto e nenhuma tela o lia — o servidor dizia o preco certo e a pessoa via so "erro". */
+      responderErro(res, 400, 'preço divergente do catálogo', 'preco_divergente', { preco: autorizacao.preco })
       return
     }
     const jaCobrado = await seedSpendsRepo.jaGastou(req.userId, payload.spendId)
     if (!jaCobrado) {
       const { saldo } = await economiaDoUsuario(req.userId)
       if (saldo < autorizacao.preco) {
-        res.status(402).json({ error: 'saldo insuficiente', falta: autorizacao.preco - saldo, saldo })
+        responderErro(res, 402, 'saldo insuficiente', 'saldo_insuficiente', { falta: autorizacao.preco - saldo, saldo, preco: autorizacao.preco })
         return
       }
     }
@@ -175,7 +178,7 @@ metricsRouter.post('/seeds/creditar', async (req, res) => {
       }
       const { atual, meta } = conquista.progresso(ctx)
       if (atual < meta) {
-        res.status(400).json({ error: 'conquista ainda não cumprida', atual, meta })
+        responderErro(res, 400, 'conquista ainda não cumprida', 'conquista_nao_cumprida', { atual, meta })
         return
       }
     }

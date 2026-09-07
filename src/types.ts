@@ -121,6 +121,24 @@ export interface VocabCard {
   lastReview?: number;
   /** nº de revisões FSRS já aplicadas ao cartão. Ausente/0 = ainda não revisado. */
   reps?: number;
+  /**
+   * CAMPOS QUE O SERVIDOR SEMPRE MANDOU E O CLIENTE DESCARTAVA (auditoria de 2026-09-07, achado
+   * A19). `rowToVocabCard` listava campo a campo o que copiar, e estes quatro ficaram de fora
+   * quando as colunas nasceram. `Play.tsx` os lia por `cast` — `(c as { difficultyScore?: number })`
+   * — e recebia `undefined` para todo mundo: o recorte "as que mais escapam" mostrava zero
+   * palavras num baralho de 2.818, e a distribuição por faixa colapsava tudo em "médio".
+   *
+   * O `cast` no ponto de uso é o sintoma: quando o tipo não descreve o dado, quem precisa dele
+   * mente para o compilador em vez de corrigir o contrato.
+   */
+  /** Quantas vezes a palavra apareceu (`vocab_cards.occurrences`). */
+  occurrences?: number | null;
+  /** Escore de dificuldade derivado (0..1), base do recorte por faixa. */
+  difficultyScore?: number | null;
+  /** De onde veio o nível CEFR: `curado` | `wordlist` | `frequencia` | `ausente`. */
+  cefrSource?: string | null;
+  /** Epoch ms da última vez que a palavra foi vista numa captura. */
+  lastSeenAt?: number | null;
   exerciseFormat?: ExerciseFormat;
 }
 

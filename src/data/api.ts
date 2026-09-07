@@ -40,6 +40,31 @@ export async function apiFetch(input: string, init?: ApiInit): Promise<Response>
   return res
 }
 
+/**
+ * O ENVELOPE DE ERRO DO SERVIDOR, do lado de cá (auditoria de 2026-09-07, achado A30).
+ *
+ * O servidor responde `{ error, code?, detalhes? }`. Antes, cada rota inventava a sua forma e o
+ * cliente respondia a todas com `return null`: "saldo insuficiente, faltam 12 Seeds" e "preço
+ * divergente do catálogo" viravam a mesma tela muda. O dado existia e não atravessava.
+ */
+export interface ErroDaApi {
+  status: number
+  error: string
+  code?: string
+  detalhes?: Record<string, unknown>
+}
+
+/** Lê o envelope de uma resposta que já se sabe ser de erro. Nunca lança. */
+export async function lerErro(res: Response): Promise<ErroDaApi> {
+  try {
+    const corpo = await res.json() as Partial<ErroDaApi> & { error?: unknown }
+    const texto = typeof corpo?.error === 'string' ? corpo.error : `o servidor respondeu ${res.status}`
+    return { status: res.status, error: texto, code: corpo?.code, detalhes: corpo?.detalhes }
+  } catch {
+    return { status: res.status, error: `o servidor respondeu ${res.status}` }
+  }
+}
+
 // ───────────────────────────── Sessões ─────────────────────────────
 
 interface SessionRow {
@@ -360,6 +385,10 @@ interface VocabRow {
   inDeck: number | null
   cefrLevel: string | null
   cefrConfidence: number | null
+  occurrences?: number | null
+  difficultyScore?: number | null
+  cefrSource?: string | null
+  lastSeenAt?: number | null
 }
 
 function fsrsStateOf(row: VocabRow): VocabCard['fsrsState'] {
@@ -367,9 +396,23 @@ function fsrsStateOf(row: VocabRow): VocabCard['fsrsState'] {
   return (row.reps ?? 0) < 2 ? 'Learning' : 'Review'
 }
 
+/**
+ * A LINHA DO SERVIDOR VIRA CARTÃO — espalhando primeiro, listando depois.
+ *
+ * A versão anterior enumerava campo a campo o que copiar, e essa é a forma de perder dado em
+ * silêncio: `occurrences`, `difficultyScore`, `cefrSource` e `lastSeenAt` foram adicionados no
+ * servidor e nunca na lista, então chegavam ao cliente e eram jogados fora aqui (auditoria de
+ * 2026-09-07, achado A19). Quem precisava deles lia por `cast` no ponto de uso e recebia
+ * `undefined` — o recorte "as que mais escapam" mostrava zero palavras num baralho de 2.818.
+ *
+ * `...row` primeiro: campo novo do servidor passa a chegar por padrão. As atribuições abaixo
+ * continuam sendo a tradução explícita do que MUDA de nome ou de forma (`back` → `translation`,
+ * `dueAt` → ISO, `inDeck` 0/1 → boolean).
+ */
 export function rowToVocabCard(row: VocabRow): VocabCard {
   const dueIso = row.dueAt ? new Date(row.dueAt).toISOString() : ''
   return {
+    ...row,
     id: row.id,
     word: row.word,
     phonetics: '',
@@ -816,16 +859,33 @@ export async function gastarSeeds(input: {
   reason: string
   ref?: string
 }): Promise<{ jaExistia: boolean; gasto: number; seedsGastas: number } | null> {
+  return (await gastarSeedsEx(input)).resultado
+}
+
+/**
+ * O mesmo gasto, com o MOTIVO da recusa quando ela acontece.
+ *
+ * `gastarSeeds` devolvia `null` para tudo — rede fora, preço divergente, saldo insuficiente — e a
+ * tela não tinha como dizer "faltam 12 Seeds", que é a única informação útil naquele momento. O
+ * servidor manda `code` e `detalhes`; esta função os entrega a quem chama, e a versão antiga
+ * continua existindo para quem só precisa saber se deu certo.
+ */
+export async function gastarSeedsEx(input: {
+  spendId: string
+  amount: number
+  reason: string
+  ref?: string
+}): Promise<{ resultado: { jaExistia: boolean; gasto: number; seedsGastas: number } | null; erro?: ErroDaApi }> {
   try {
     const res = await apiFetch('/api/metrics/seeds/gastar', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(input),
     })
-    if (!res.ok) return null
-    return await res.json()
-  } catch {
-    return null
+    if (!res.ok) return { resultado: null, erro: await lerErro(res) }
+    return { resultado: await res.json() }
+  } catch (e) {
+    return { resultado: null, erro: { status: 0, error: String((e as Error)?.message ?? e), code: 'rede' } }
   }
 }
 

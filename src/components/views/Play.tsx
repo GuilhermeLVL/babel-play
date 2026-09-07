@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState, useRef, useDeferredVa
 import { createPortal } from 'react-dom';
 import { Timer, Mic, ChevronRight, ChevronLeft, Pin, ListChecks, Map as MapIcon, Sprout, Flame, GraduationCap, Lock, HelpCircle, Package, Trophy, SlidersHorizontal as SlidersIcon, Trophy as TrophyIcon, Layers, Globe, BookOpen, CalendarClock, Sparkles, Languages, MessageSquareText, Gamepad2, Dices, Search, X as XIcon, Compass, Zap, Play as PlayIcon, Headphones, Puzzle, BarChart2 } from 'lucide-react';
 import { playJuicedHit, triggerHaptic, triggerConfetti } from '../../lib/gameFeel';
-import { apiFetch, fetchDeck, reviewCard, salvarRodada, fetchSessions, fetchSessionTranscript, fetchSettings, bulkAddCards, fetchHistoricoDeItens, fetchExerciseResults, fetchRecordes, gastarSeeds, type AppMetrics, type HistoricoDeItem } from '../../data/api';
+import { apiFetch, fetchDeck, reviewCard, salvarRodada, fetchSessions, fetchSessionTranscript, fetchSettings, bulkAddCards, fetchHistoricoDeItens, fetchExerciseResults, fetchRecordes, gastarSeedsEx, type AppMetrics, type HistoricoDeItem } from '../../data/api';
 import { toSentences, type Sentence, type PracticeSeed } from '../../lib/sentences';
 import type { VocabCard, Recording } from '../../types';
 import { coreOnly, type AgeProfileType } from '../../lib/profile';
@@ -634,7 +634,7 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
     if (!apenas?.size && estrategia === 'auto' && aceitaFiltroDeDificuldade(jogo)) {
       const { faixa } = decisaoAuto(jogo);
       const naFaixa = base.filter((c) => {
-        const f = faixaDaComposicao((c as { difficultyScore?: number | null }).difficultyScore ?? null, composicao?.cortes);
+        const f = faixaDaComposicao(c.difficultyScore ?? null, composicao?.cortes);
         return f == null || f === faixa;
       });
       if (naFaixa.length >= MINIGAMES[jogo].minItems) base = naFaixa;
@@ -986,8 +986,17 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
     setGastando(true);
     try {
       const spendId = `pular-${resultado.gameId}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-      const r = await gastarSeeds({ spendId, amount: CUSTO_PULAR, reason: 'pular-rodada', ref: resultado.gameId });
-      if (!r) { toast.error('Não consegui gastar as seeds agora, nada foi cobrado.'); return; }
+      const { resultado: r, erro } = await gastarSeedsEx({ spendId, amount: CUSTO_PULAR, reason: 'pular-rodada', ref: resultado.gameId });
+      if (!r) {
+        /* O MOTIVO, quando o servidor manda um (achado A30). "Não consegui gastar as seeds agora"
+           era a mesma frase para rede fora, saldo insuficiente e preço divergente — e no caso do
+           saldo o servidor diz exatamente quantas faltam. */
+        const falta = erro?.code === 'saldo_insuficiente' ? Number(erro.detalhes?.falta ?? 0) : 0;
+        toast.error(falta > 0
+          ? t('Faltam {n} seeds para pular esta rodada. Nada foi cobrado.', { n: numero(falta) })
+          : t('Não consegui gastar as seeds agora, nada foi cobrado.'));
+        return;
+      }
       /* O servidor é a autoridade sobre o saldo, mas `progress` só se atualiza quando as métricas
          forem recarregadas pelo App. Este desconto local existe para o número na tela não mentir
          no instante seguinte ao clique, e para não deixar gastar duas vezes o que já não há. */
@@ -1504,9 +1513,11 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
       clozePrompt: (c as { clozePrompt?: string | null }).clozePrompt ?? null,
       clozeAnswer: (c as { clozeAnswer?: string | null }).clozeAnswer ?? null,
       cefrLevel: (c as { cefrLevel?: string | null }).cefrLevel ?? null,
-      cefrSource: (c as { cefrSource?: string | null }).cefrSource ?? null,
-      occurrences: (c as { occurrences?: number | null }).occurrences ?? null,
-      difficultyScore: (c as { difficultyScore?: number | null }).difficultyScore ?? null,
+      /* Sem `cast`: o tipo do cartão descreve estes campos desde que `rowToVocabCard` parou de
+         descartá-los (achado A19). O `cast` aqui era o sintoma de um contrato incompleto. */
+      cefrSource: c.cefrSource ?? null,
+      occurrences: c.occurrences ?? null,
+      difficultyScore: c.difficultyScore ?? null,
       dueAt: (c as { dueAt?: number | null; due?: number | null }).dueAt ?? (c as { due?: number | null }).due ?? null,
     }));
     void compor({
@@ -1846,7 +1857,7 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
   const contagemPorFaixa = useMemo(() => {
     const conta = { facil: 0, medio: 0, dificil: 0 };
     for (const c of triagem.usaveis) {
-      const f = faixaDeScore((c as { difficultyScore?: number | null }).difficultyScore ?? null);
+      const f = faixaDeScore(c.difficultyScore ?? null);
       if (f) conta[f] += 1;
     }
     return conta;
@@ -2339,7 +2350,7 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
         itemRef: o.itemRef, cardId: o.cardId ?? null, correct: !!o.correct, attempts: o.attempts ?? 1,
         hinted: !!o.hinted, back: (c as { translation?: string | null } | undefined)?.translation ?? null,
         cefrLevel: (c as { cefrLevel?: string | null } | undefined)?.cefrLevel ?? null,
-        cefrSource: (c as { cefrSource?: string | null } | undefined)?.cefrSource ?? null,
+        cefrSource: c?.cefrSource ?? null,
         occurrences: (c as { occurrences?: number | null } | undefined)?.occurrences ?? null,
       };
     });

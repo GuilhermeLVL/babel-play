@@ -127,6 +127,22 @@ async function criarSessao(_m: RegExpMatchArray, _u: URL, init: RequestInit): Pr
     return json({ error: motivoDoTeto('sessoes'), codigo: 'TETO_ANONIMO', recurso: 'sessoes', ...teto }, 507);
   }
 
+  /**
+   * IDEMPOTÊNCIA PELO `origemLocalId`, como no Express (achado A23).
+   *
+   * Lá a coluna tem índice único e reenviar devolve `jaExistia: true`. Aqui o campo era ignorado,
+   * então a mesma operação tinha garantias diferentes conforme onde rodava — e uma migração
+   * interrompida no meio, repetida, duplicava as sessões deste lado. Varredura simples porque o
+   * modo sem conta tem teto de 5 sessões (`TETO_ANONIMO`): índice novo no IndexedDB custaria uma
+   * migração de schema para percorrer, no máximo, cinco registros.
+   */
+  const origemLocalId = str(p.origemLocalId);
+  if (origemLocalId) {
+    const existentes = await db.getAll('sessoes');
+    const ja = existentes.find((s) => s.origemLocalId === origemLocalId);
+    if (ja) return json({ ...ja, jaExistia: true });
+  }
+
   const agora = Date.now();
   const id = uuid();
   const brutas = Array.isArray(p.utterances) ? (p.utterances as Json[]) : [];
@@ -136,6 +152,7 @@ async function criarSessao(_m: RegExpMatchArray, _u: URL, init: RequestInit): Pr
     title: str(p.title), kind: str(p.kind), sourceLang: str(p.sourceLang), targetLang: str(p.targetLang),
     status: str(p.status) ?? 'draft', durationMs: num(p.durationMs),
     wordCount: num(p.wordCount) ?? contarPalavras(falas), meta: null,
+    origemLocalId: origemLocalId ?? null,
   };
   const tx = db.transaction(['sessoes', 'falas'], 'readwrite');
   await tx.objectStore('sessoes').put(sessao);

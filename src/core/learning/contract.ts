@@ -360,3 +360,47 @@ export interface DeckBulkAddResult {
 
 /** Intervalos Leitner (dias) por box 1..5. */
 export const LEITNER_DAYS = [1, 2, 4, 8, 16]
+
+/* ─────────────────────────── NOTAS DE ANKI: UM VOCABULARIO SO ───────────────────────────
+ *
+ * O ESTADO DA NOTA era declarado em tres lugares que discordavam (auditoria de 2026-09-07,
+ * achado A21): o cliente tipava `'ativa' | 'arquivada' | 'descartada'`, o schema Zod aceitava
+ * `'arquivada' | 'ativa' | 'ausente_no_arquivo'`, e a coluna do banco guarda os tres do schema.
+ * Resultado medido: filtrar por "Descartadas" na tela respondia 400, e o selo "descartada" da
+ * lista nunca aparecia — a nota descartada era exibida como "arquivada", sem o motivo.
+ *
+ * `descartada` NAO e um estado da coluna: e um RECORTE derivado (`motivo_descarte` preenchido).
+ * A distincao importa e esta escrita na tela: descartada = a regua de qualidade recusou, da para
+ * corrigir o mapeamento e reimportar; ausente_no_arquivo = a nota sumiu do arquivo desde o ultimo
+ * import, que e historico, nao defeito. Por isso sao dois tipos: o que a coluna guarda, e o que a
+ * lista aceita filtrar.
+ */
+
+/** O que a coluna `anki_notes.estado` guarda. */
+export const ESTADOS_DE_NOTA_ANKI = ['ativa', 'arquivada', 'ausente_no_arquivo'] as const
+export type EstadoDeNotaAnki = typeof ESTADOS_DE_NOTA_ANKI[number]
+
+/** O que a lista aceita filtrar: os estados mais o recorte derivado `descartada`. */
+export const FILTROS_DE_NOTA_ANKI = [...ESTADOS_DE_NOTA_ANKI, 'descartada'] as const
+export type FiltroDeNotaAnki = typeof FILTROS_DE_NOTA_ANKI[number]
+
+/**
+ * O CURSOR DE PAGINACAO, OPACO.
+ *
+ * O repositorio devolvia `{ valor, id }` e o cliente tipava `string`: a tela mandava de volta
+ * `[object Object]` e nunca o `cursorId`, entao a segunda pagina repetia a primeira para sempre
+ * (achado A21, medido). Cursor e detalhe de implementacao do servidor — quem pagina so precisa
+ * devolver o que recebeu, e por isso ele viaja como UMA string opaca.
+ */
+export function cursorDeNotas(valor: number, id: string): string {
+  return `${valor}:${id}`
+}
+
+export function lerCursorDeNotas(bruto: string | undefined | null): { valor: number; id: string } | null {
+  if (!bruto) return null
+  const corte = bruto.indexOf(':')
+  if (corte <= 0) return null
+  const valor = Number(bruto.slice(0, corte))
+  const id = bruto.slice(corte + 1)
+  return Number.isFinite(valor) && id ? { valor, id } : null
+}

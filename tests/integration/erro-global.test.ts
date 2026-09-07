@@ -101,7 +101,13 @@ describe('D7 — error handler global', () => {
       const r = await comPrazo(`${base}/api/explode`, 5000)
       expect(r.status).toBe(500)
       const corpo = JSON.parse(r.corpo!)
-      expect(corpo.error.code).toBe('erro_interno')
+      /* O ENVELOPE É O MESMO DE TODAS AS ROTAS: `error` é TEXTO, `code` fica ao lado. Aqui era
+         `{ error: { code, message, requestId } }` — aninhado, e portanto o único handler que o
+         cliente não sabia ler, justamente o que responde quando algo inesperado acontece
+         (achado A30). */
+      expect(typeof corpo.error).toBe('string')
+      expect(corpo.code).toBe('erro_interno')
+      expect(corpo.detalhes).toHaveProperty('requestId')
       // A causa NUNCA vai na resposta: carrega nome de coluna, caminho e às vezes o valor.
       expect(r.corpo).not.toMatch(/SQLITE_BUSY|falhou a consulta/)
     } finally { await fechar() }

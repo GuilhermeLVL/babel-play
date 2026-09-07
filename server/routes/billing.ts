@@ -15,7 +15,7 @@
 import { Router, json } from 'express'
 import { timingSafeEqual } from 'node:crypto'
 import { z } from 'zod'
-import { PLAN_MATRIX, ehPlanoDeAssinatura, planoPeloPreco, type PlanoDeAssinatura } from '../../src/core/planos'
+import { PLAN_MATRIX, ehPlanoDeAssinatura } from '../../src/core/planos'
 import { creditsRepo } from '../db/repositories/credits'
 import { pacotePorSku, centavosParaReais } from '../../src/core/creditos'
 import { autorizarGastoDeCredito, ehRecusa } from '../../src/core/economiaAutoridade'
@@ -23,7 +23,7 @@ import { premiumDoNivel, passeNivel, TEMPORADA_ATUAL } from '../../src/core/pass
 import { economiaDoUsuario } from '../db/repositories/metrics'
 import { subscriptionsRepo } from '../db/repositories/subscriptions'
 import { billingEventsRepo } from '../db/repositories/billingEvents'
-import { asUserId } from '../lib/authContext'
+import { aplicarEvento, eventoSchema, providerRefDoEvento, referenciaDoEvento } from '../lib/billingEventos'
 import { asaasConfigurado, cancelarAssinatura, criarAssinatura,
   criarCobrancaAvulsa, criarCliente, primeiraCobranca, webhookToken } from '../lib/asaas'
 import { parseOr400 } from '../validation'
@@ -274,23 +274,8 @@ billingRouter.post('/cancelar', async (req, res) => {
 
 /* ------------------------------------------------------------------ webhook (FORA do auth) */
 
-const eventoSchema = z.object({
-  id: z.string().min(4).max(80),
-  event: z.string().min(3).max(60),
-  payment: z.object({
-    id: z.string().optional(),
-    subscription: z.string().optional(),
-    externalReference: z.string().optional(),
-    dueDate: z.string().optional(),
-    /* O VALOR PAGO. Entrou em 01/09: sem ele, o webhook não tinha como saber se a parcela que
-       confirmou era a do plano que ele estava prestes a conceder. */
-    value: z.number().optional(),
-  }).optional(),
-  subscription: z.object({
-    id: z.string().optional(),
-    externalReference: z.string().optional(),
-  }).optional(),
-}).passthrough()
+/* O schema do evento e o EFEITO dele vivem em `server/lib/billingEventos.ts`, porque a rota
+   administrativa de reprocessamento aplica o mesmo efeito ao payload guardado (A05). */
 
 /** Comparação em tempo constante — igualdade de string vaza o tamanho do prefixo certo. */
 function tokenConfere(recebido: string | undefined, esperado: string): boolean {
@@ -324,129 +309,34 @@ asaasWebhookRouter.post('/', async (req, res) => {
     return
   }
   const ev = parsed.data
-  const referencia = ev.payment?.externalReference ?? ev.subscription?.externalReference ?? null
-  const providerRef = ev.payment?.id ?? ev.subscription?.id ?? null
+  const referencia = referenciaDoEvento(ev)
+  const providerRef = providerRefDoEvento(ev)
 
-  // Idempotência ANTES de qualquer efeito: decidir e marcar são a mesma instrução.
-  const novo = await billingEventsRepo.marcarSeNovo(ev.id, 'asaas', ev.event, referencia, providerRef)
+  // Idempotência ANTES de qualquer efeito: decidir e marcar são a mesma instrução. O payload
+  // bruto vai junto: é ele que um administrador reaplica se o evento terminar `nao-aplicado`.
+  const novo = await billingEventsRepo.marcarSeNovo(ev.id, 'asaas', ev.event, referencia, providerRef, req.body)
   if (!novo) {
     res.status(200).json({ ok: true, repetido: true })
     return
   }
 
-  if (!referencia) {
-    // Evento sem usuário (ex.: cobrança avulsa criada no painel) — auditado, sem efeito.
-    log('warn', { event: 'billing_webhook_sem_referencia', error: ev.event })
-    res.status(200).json({ ok: true, semUsuario: true })
-    return
-  }
-  const userId = asUserId(referencia)
-
   try {
-    switch (ev.event) {
-      /* CONFIRMED = pagamento compensou; RECEIVED = dinheiro disponível. Qualquer um dos dois
-         concede o plano — a distinção é de caixa, não de direito do assinante. O plano concedido é
-         a INTENÇÃO gravada por `/assinar`; +35 dias cobre o ciclo mensal com folga de vencimento,
-         e o próximo pagamento re-estica a janela. */
-      case 'PAYMENT_CONFIRMED':
-      case 'PAYMENT_RECEIVED': {
-        /**
-         * ASSINATURA OU COMPRA AVULSA? A pergunta que faltava.
-         *
-         * Este `case` tratava TODO pagamento confirmado como mensalidade e promovia o pagador a
-         * 'essencial' (o fallback logo abaixo). Enquanto só existiam assinaturas, funcionava. Com
-         * a venda de créditos, uma compra de R$ 9,90 em moeda daria um plano de R$ 9,90/mês de
-         * graça — e o Asaas manda os dois tipos de evento pelo mesmo webhook.
-         *
-         * `payment.subscription` é o discriminador do próprio provedor: presente = parcela de uma
-         * assinatura; ausente = cobrança avulsa. Não inventamos convenção nova para isso.
-         */
-        if (!ev.payment?.subscription && ev.payment?.id) {
-          const compra = await creditsRepo.confirmarPagamento(ev.payment.id)
-          if (compra) {
-            log('info', { event: 'billing_credito_confirmado', requestId: req.requestId })
-            break
-          }
-          // Avulso que não é compra nossa: audita e NÃO promove plano nenhum.
-          log('warn', { event: 'billing_avulso_desconhecido', error: ev.payment.id })
-          break
-        }
-        const atual = await subscriptionsRepo.getActive(userId)
-
-        /**
-         * A ASSINATURA QUE PAGOU TEM DE SER A QUE ESTÁ REGISTRADA.
-         *
-         * `POST /api/billing/assinar` grava a intenção e é DE GRAÇA — dá para criar quantas
-         * assinaturas quiser no provedor. Sem esta conferência, a parcela de uma assinatura antiga
-         * confirmava a intenção mais recente.
-         */
-        if (atual?.providerSubscriptionId && ev.payment?.subscription
-            && atual.providerSubscriptionId !== ev.payment.subscription) {
-          log('warn', {
-            event: 'billing_assinatura_divergente',
-            error: `pago ${ev.payment.subscription}, registrado ${atual.providerSubscriptionId}`,
-            requestId: req.requestId,
-          })
-          break
-        }
-
-        /**
-         * O PLANO SAI DO VALOR PAGO, não da intenção.
-         *
-         * A escalada que isto fecha: assinar `essencial`, assinar `pro` (a intenção vira `pro`),
-         * pagar só a cobrança do essencial — e receber Pro por R$ 9,90. Enquanto quem decidia era
-         * `atual.plan`, reescrever a intenção era de graça e o pagamento não era conferido.
-         *
-         * Sem valor no evento (provedor que não o mande), cai na intenção: é o comportamento
-         * anterior, e recusar toda promoção por falta de um campo opcional trocaria uma escalada
-         * por uma negação de serviço a quem pagou.
-         */
-        const planoPago = planoPeloPreco(ev.payment?.value)
-        const planoDaIntencao: PlanoDeAssinatura =
-          atual && ehPlanoDeAssinatura(atual.plan) && PLAN_MATRIX[atual.plan].precoMensalBrl !== null
-            ? atual.plan
-            : 'essencial'
-        const plano: PlanoDeAssinatura = planoPago ?? planoDaIntencao
-        if (planoPago && planoPago !== planoDaIntencao) {
-          log('warn', {
-            event: 'billing_plano_divergente',
-            error: `pago ${planoPago} (R$ ${ev.payment?.value}), intenção ${planoDaIntencao} — vale o pago`,
-            requestId: req.requestId,
-          })
-        }
-
-        /* A validade sai do VENCIMENTO da parcela paga quando ele vem, com cinco dias de folga
-           para a próxima cobrança compensar. Sem `dueDate`, o mês redondo de antes. */
-        const vencimento = ev.payment?.dueDate ? Date.parse(`${ev.payment.dueDate}T12:00:00Z`) : NaN
-        const base = Number.isFinite(vencimento) ? vencimento : Date.now()
-        await subscriptionsRepo.upsert(userId, {
-          plan: plano,
-          status: 'active',
-          currentPeriodEnd: base + 35 * 86_400_000,
-          cancelAtPeriodEnd: 0,
-        })
-        break
-      }
-      case 'PAYMENT_OVERDUE':
-        // A graça de `subConcede` mantém o acesso até `currentPeriodEnd`; o Asaas cobra o pagador.
-        await subscriptionsRepo.upsert(userId, { status: 'past_due' })
-        break
-      case 'PAYMENT_REFUNDED':
-        // Estorno de compra avulsa: a compra deixa de conceder crédito (evento inverso).
-        if (!ev.payment?.subscription && ev.payment?.id) {
-          await creditsRepo.cancelarCompra(ev.payment.id)
-          break
-        }
-        // fallthrough: estorno de assinatura cancela o plano, como antes.
-      case 'SUBSCRIPTION_DELETED':
-        await subscriptionsRepo.upsert(userId, { status: 'canceled' })
-        break
-      default:
-        // Evento que não tratamos: auditado pela tabela, sem efeito — e 200, para não reentregar.
-        break
+    /* O efeito e o estado vivem em `aplicarEvento`. Antes, dois caminhos caíam num `break` e
+       respondiam 200 — assinatura divergente e avulso desconhecido — e o Asaas não reentrega um
+       200: o pagante ficava sem o plano e ninguém tinha como reprocessar (A05). Agora todo evento
+       termina com estado gravado; `nao-aplicado` vira log de erro e entra na fila do admin. */
+    const r = await aplicarEvento(ev, req.requestId)
+    await billingEventsRepo.registrarResultado(ev.id, r.estado, r.motivo)
+    if (r.estado === 'nao-aplicado') {
+      log('error', { event: 'billing_evento_nao_aplicado', provider: 'asaas', error: `${ev.id}: ${r.motivo}`, requestId: req.requestId })
     }
-    log('info', { event: 'billing_webhook_ok', provider: 'asaas', error: ev.event })
-    res.status(200).json({ ok: true })
+    log('info', { event: 'billing_webhook_ok', provider: 'asaas', error: `${ev.event} → ${r.estado}` })
+    res.status(200).json({
+      ok: true,
+      estado: r.estado,
+      ...(r.motivo ? { motivo: r.motivo } : {}),
+      ...(r.semUsuario ? { semUsuario: true } : {}),
+    })
   } catch (err) {
     /* FALHA NOSSA depois da marca: desmarca e responde 500, para o Asaas REENTREGAR — senão a
        promoção do assinante se perderia para sempre (o evento repetido seria "já processado").

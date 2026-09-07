@@ -11,6 +11,8 @@ import { subscriptionsRepo } from '../db/repositories/subscriptions'
 import { requireRole } from '../lib/rbac'
 import { lerUltimosErros } from '../lib/diarioDeErros'
 import { resumoDoDono } from '../db/repositories/resumo'
+import { billingEventsRepo } from '../db/repositories/billingEvents'
+import { aplicarEvento, eventoSchema } from '../lib/billingEventos'
 import { asUserId } from '../lib/authContext'
 import { idParamSchema, parseOr400 } from '../validation'
 
@@ -83,4 +85,34 @@ adminRouter.get('/erros', requireRole('admin'), (req, res) => {
 /** Os números agregados do dono — contagens das tabelas existentes, sem telemetria nova. */
 adminRouter.get('/resumo', requireRole('admin'), async (_req, res) => {
   res.json(await resumoDoDono())
+})
+
+/**
+ * EVENTOS DE COBRANÇA QUE NÃO TIVERAM EFEITO (auditoria de 2026-09-07, A05).
+ *
+ * O webhook responde 200 mesmo quando não consegue aplicar um pagamento — o Asaas não reentrega
+ * um 200, e antes o evento simplesmente sumia num `break`. Agora ele fica `nao-aplicado` com o
+ * motivo e o payload guardado, e é daqui que um administrador o vê e o reaplica com a lógica
+ * ATUAL (por exemplo, depois de registrar a compra que faltava). Reaplicar é idempotente: evento
+ * já `aplicado` responde `repetido` sem efeito.
+ */
+adminRouter.get('/billing/pendentes', requireRole('admin', 'support'), async (_req, res) => {
+  res.json(await billingEventsRepo.listarPendentes())
+})
+
+adminRouter.post('/billing/reprocessar/:id', requireRole('admin'), async (req, res) => {
+  const p = parseOr400(idParamSchema, req.params, res)
+  if (!p) return
+  const linha = await billingEventsRepo.ler(p.id)
+  if (!linha) { res.status(404).json({ error: 'evento não encontrado' }); return }
+  if (linha.estado === 'aplicado') { res.json({ ok: true, repetido: true, estado: 'aplicado' }); return }
+  if (!linha.payload) { res.status(409).json({ error: 'evento sem payload guardado — anterior ao registro de estado' }); return }
+
+  let ev
+  try { ev = eventoSchema.parse(JSON.parse(linha.payload)) } catch {
+    res.status(409).json({ error: 'payload guardado fora da forma esperada' }); return
+  }
+  const r = await aplicarEvento(ev, req.requestId)
+  await billingEventsRepo.registrarResultado(linha.id, r.estado, r.motivo)
+  res.json({ ok: r.estado === 'aplicado', estado: r.estado, motivo: r.motivo })
 })

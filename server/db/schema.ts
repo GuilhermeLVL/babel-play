@@ -570,6 +570,16 @@ export const billingEvents = sqliteTable('billing_events', {
   userId: text('user_id'),
   /** Id da cobrança/assinatura no provedor, para auditoria cruzada. */
   providerRef: text('provider_ref'),
+  /**
+   * O QUE ACONTECEU com o evento (auditoria de 2026-09-07, achado A05). Antes, um pagamento
+   * confirmado cuja assinatura divergia da registrada, ou um avulso que não casava com compra
+   * nenhuma, caía num `break` e respondia 200: o Asaas não reentrega e o pagante ficava sem o
+   * plano, sem trilha para reprocessar. Agora todo evento termina `aplicado` ou `nao-aplicado`
+   * com `motivo`, e o payload bruto fica guardado para um administrador reaplicar.
+   */
+  estado: text('estado').notNull().default('aplicado'), // 'aplicado' | 'nao-aplicado'
+  motivo: text('motivo'),
+  payload: text('payload'), // JSON do evento como chegou
 })
 
 export const usageCounters = sqliteTable('usage_counters', {

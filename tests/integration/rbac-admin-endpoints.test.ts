@@ -93,3 +93,47 @@ describe('SaaS Fatia 2 — endpoints admin cross-tenant', () => {
     expect((await call(ADMIN, 'GET', '/api/admin/users/fantasma')).status).toBe(404)
   })
 })
+
+/**
+ * EVENTOS DE COBRANÇA PENDENTES (auditoria de 2026-09-07, A05): a fila do que o webhook não
+ * conseguiu aplicar e a acao de reaplicar com a logica atual. Leitura para admin e support;
+ * reprocessar so admin. Idempotente: evento ja aplicado responde `repetido`.
+ */
+describe('eventos de cobrança pendentes', () => {
+  it('a fila e o reprocessamento respeitam os papéis e aplicam uma vez só', async () => {
+    const { billingEventsRepo } = (await h.load('../../server/db/repositories/billingEvents')) as any
+    const { creditsRepo } = (await h.load('../../server/db/repositories/credits')) as any
+
+    // Um avulso que chegou antes de a compra existir: pendente, com payload guardado.
+    const payload = { id: 'evt_pend', event: 'PAYMENT_CONFIRMED', payment: { id: 'pay_pend', externalReference: 'alice' } }
+    await billingEventsRepo.marcarSeNovo('evt_pend', 'asaas', 'PAYMENT_CONFIRMED', 'alice', 'pay_pend', payload)
+    await billingEventsRepo.registrarResultado('evt_pend', 'nao-aplicado', 'avulso-desconhecido: teste')
+
+    expect((await call(USER, 'GET', '/api/admin/billing/pendentes')).status).toBe(403)
+    const lista = await call(SUPPORT, 'GET', '/api/admin/billing/pendentes')
+    expect(lista.status).toBe(200)
+    expect(lista.body.map((e: any) => e.id)).toContain('evt_pend')
+
+    // Support lê, não reprocessa.
+    expect((await call(SUPPORT, 'POST', '/api/admin/billing/reprocessar/evt_pend')).status).toBe(403)
+    expect((await call(ADMIN, 'POST', '/api/admin/billing/reprocessar/nao_existe')).status).toBe(404)
+
+    // Ainda sem compra registrada: reaplicar continua pendente (e diz por quê).
+    const ainda = await call(ADMIN, 'POST', '/api/admin/billing/reprocessar/evt_pend')
+    expect(ainda.status).toBe(200)
+    expect(ainda.body.estado).toBe('nao-aplicado')
+
+    // Compra registrada: reaplicar credita e o evento sai da fila.
+    await creditsRepo.registrarCompra(asUserId('alice'), { sku: 'c100', creditos: 100, valorCentavos: 990, providerPaymentId: 'pay_pend' })
+    const ok = await call(ADMIN, 'POST', '/api/admin/billing/reprocessar/evt_pend')
+    expect(ok.status).toBe(200)
+    expect(ok.body.estado).toBe('aplicado')
+    expect(await creditsRepo.saldo(asUserId('alice'))).toBe(100)
+    expect((await call(SUPPORT, 'GET', '/api/admin/billing/pendentes')).body.map((e: any) => e.id)).not.toContain('evt_pend')
+
+    // Segunda vez: repetido, sem segundo crédito.
+    const de_novo = await call(ADMIN, 'POST', '/api/admin/billing/reprocessar/evt_pend')
+    expect(de_novo.body.repetido).toBe(true)
+    expect(await creditsRepo.saldo(asUserId('alice'))).toBe(100)
+  })
+})

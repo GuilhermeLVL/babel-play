@@ -18,6 +18,7 @@ let h: EphemeralDb
 let asaasWebhookRouter: any
 let subs: any
 let entitlements: any
+let eventos: any
 
 const SEGREDO = 'segredo-webhook-teste'
 
@@ -56,6 +57,7 @@ beforeAll(async () => {
   process.env.ASAAS_WEBHOOK_TOKEN = SEGREDO
   ;({ asaasWebhookRouter } = (await h.load('../../server/routes/billing')) as any)
   ;({ subscriptionsRepo: subs } = (await h.load('../../server/db/repositories/subscriptions')) as any)
+  ;({ billingEventsRepo: eventos } = (await h.load('../../server/db/repositories/billingEvents')) as any)
   entitlements = (await h.load('../../server/lib/entitlements')) as any
 })
 afterAll(async () => {
@@ -99,6 +101,37 @@ describe('compra avulsa não vira assinatura', () => {
     expect(res.statusCode).toBe(200)
     // Antes desta correção, aqui havia uma assinatura 'essencial' ativa que ninguém contratou.
     expect(await subs.getActive(u)).toBeNull()
+    // A05: e o pagamento nao some num `break` — fica pendente, com motivo e payload guardados.
+    expect(res.body.estado).toBe('nao-aplicado')
+    const linha = await eventos.ler('evt_av1')
+    expect(linha.estado).toBe('nao-aplicado')
+    expect(linha.motivo).toMatch(/avulso-desconhecido/)
+    expect(JSON.parse(linha.payload).payment.id).toBe('pay_desconhecido')
+  })
+
+  it('um avulso pendente é reaplicado depois de a compra ser registrada — uma vez só', async () => {
+    const { creditsRepo } = (await h.load('../../server/db/repositories/credits')) as any
+    const { aplicarEvento, eventoSchema } = (await h.load('../../server/lib/billingEventos')) as any
+    const u = asUserId('u-tardio')
+    const res = mockRes()
+    await handler()(req(eventoAvulso('evt_av3', 'PAYMENT_CONFIRMED', 'u-tardio', 'pay_tardio')), res)
+    expect(res.body.estado).toBe('nao-aplicado')
+
+    // A compra e registrada DEPOIS (ex.: o checkout gravou tarde). Reaplicar o payload guardado
+    // com a logica atual credita o pacote — e o estado muda, para nao creditar duas vezes.
+    await creditsRepo.registrarCompra(u, { sku: 'c100', creditos: 100, valorCentavos: 990, providerPaymentId: 'pay_tardio' })
+    const linha = await eventos.ler('evt_av3')
+    const r = await aplicarEvento(eventoSchema.parse(JSON.parse(linha.payload)))
+    expect(r.estado).toBe('aplicado')
+    await eventos.registrarResultado('evt_av3', r.estado, r.motivo)
+    expect(await creditsRepo.saldo(u)).toBe(100)
+    expect((await eventos.listarPendentes()).map((e: any) => e.id)).not.toContain('evt_av3')
+
+    // Reentrega do mesmo id pelo provedor continua 200 e sem efeito duplo.
+    const res2 = mockRes()
+    await handler()(req(eventoAvulso('evt_av3', 'PAYMENT_CONFIRMED', 'u-tardio', 'pay_tardio')), res2)
+    expect(res2.body.repetido).toBe(true)
+    expect(await creditsRepo.saldo(u)).toBe(100)
   })
 
   it('e a compra registrada é confirmada, creditando o pacote', async () => {
@@ -131,7 +164,13 @@ describe('compra avulsa não vira assinatura', () => {
  * As duas defesas: a assinatura que pagou tem de ser a registrada, e o PLANO SAI DO VALOR PAGO.
  */
 describe('a assinatura concedida é a que foi paga', () => {
-  it('parcela de OUTRA assinatura não confirma a intenção gravada', async () => {
+  /**
+   * A05 (auditoria de 2026-09-07): este caso caía num `break` e respondia 200 — o pagante tinha
+   * pago e ficava sem plano, sem reentrega e sem trilha. Agora o plano sai do VALOR PAGO (a
+   * intenção `pro` não vale nada: pagou 9,90, recebe essencial) e a divergência fica escrita no
+   * evento. Só quando não há valor para deduzir o plano é que o evento fica pendente.
+   */
+  it('parcela de OUTRA assinatura concede o plano do valor pago e registra a divergência', async () => {
     const u = asUserId('u-esc1')
     await subs.upsert(u, { plan: 'pro', status: 'trialing', provider: 'asaas', providerSubscriptionId: 'sub_S2' })
     const res = mockRes()
@@ -139,8 +178,28 @@ describe('a assinatura concedida é a que foi paga', () => {
       id: 'evt_esc1', event: 'PAYMENT_CONFIRMED',
       payment: { id: 'pay_esc1', subscription: 'sub_S1', externalReference: 'u-esc1', value: 9.9 },
     }), res)
-    expect(res.statusCode).toBe(200) // 200 para o provedor não reentregar; o efeito é que não houve
+    expect(res.statusCode).toBe(200)
+    expect(res.body.estado).toBe('aplicado')
+    expect(res.body.motivo).toMatch(/assinatura-divergente/)
+    const sub = await subs.getActive(u)
+    expect(sub.status).toBe('active')
+    expect(sub.plan, 'pagou 9,90 pela outra assinatura — recebe o que pagou, nunca o pro da intenção').toBe('essencial')
+    expect((await eventos.ler('evt_esc1')).estado).toBe('aplicado')
+  })
+
+  it('parcela de OUTRA assinatura SEM valor fica pendente, não some', async () => {
+    const u = asUserId('u-esc4')
+    await subs.upsert(u, { plan: 'pro', status: 'trialing', provider: 'asaas', providerSubscriptionId: 'sub_S9' })
+    const res = mockRes()
+    await handler()(req({
+      id: 'evt_esc4', event: 'PAYMENT_CONFIRMED',
+      payment: { id: 'pay_esc4', subscription: 'sub_S8', externalReference: 'u-esc4' },
+    }), res)
+    expect(res.statusCode).toBe(200) // 200 para o provedor não reentregar; o efeito é a fila
+    expect(res.body.estado).toBe('nao-aplicado')
     expect((await subs.getActive(u))?.status).not.toBe('active')
+    const pendentes = await eventos.listarPendentes()
+    expect(pendentes.map((e: any) => e.id)).toContain('evt_esc4')
   })
 
   it('pagar o preço do essencial concede ESSENCIAL, mesmo com a intenção em pro', async () => {

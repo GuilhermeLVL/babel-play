@@ -1,4 +1,4 @@
-## MODIFIED Requirements
+## ADDED Requirements
 
 ### Requirement: Procedência do nível CEFR
 O sistema SHALL registrar de onde veio o nível de cada palavra, e SHALL tratar "não sei" como

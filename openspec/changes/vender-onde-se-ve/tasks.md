@@ -1,3 +1,5 @@
+> **Estado em 2026-09-07** (auditoria `openspec/audits/2026-09-07-coerencia.md`): 1 tarefa aberta (6.2, conferencia no navegador). Achado A16: `/creditos` e aliasado para o Cofre em `Loja.tsx` e `/loja/undefined` aparece por abas fora de `ABA_DA_LOJA`; tratado em `contratos-alinhados-nas-tres-pontas`. Ate la, 6.2 nao passa.
+
 ## 1. Endereço para o que está à venda
 
 - [x] 1.1 `/creditos` vira rota própria, abrindo a compra de Créditos

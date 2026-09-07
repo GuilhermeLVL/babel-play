@@ -41,8 +41,9 @@
 
 ## 2. Mapa de Migrações Propostas
 
-| Ordem | Arquivo de Migração | Finalidade | Rollback Disponível |
-|---|---|---|---|
+> **Corrigido em 2026-09-07.** A tabela que estava aqui listava `0002_user_entitlements.sql`, `0003_economy_ledgers.sql` e `0004_season_pass_and_quests.sql` com rollbacks. Nenhum desses arquivos existe nem existiu em `server/db/migrations/`; os arquivos reais `0002`-`0004` tem outros nomes e nao ha migrations `down` no projeto. A branch `auditoria/ponta-a-ponta-ux-economia` citada no cabecalho tambem nao existe. Este documento e historico; o estado vigente esta em `openspec/specs/` e em `openspec/audits/2026-09-07-coerencia.md`.
+
+---|---|---|---|
 | `0002` | `0002_user_entitlements.sql` | Criação de tabela de posse de temas e cosméticos com validação no backend | Sim (`0002_user_entitlements_down.sql`) |
 | `0003` | `0003_economy_ledgers.sql` | Livro-razão de transações de seeds com saldo rastreável e tetos diários | Sim (`0003_economy_ledgers_down.sql`) |
 | `0004` | `0004_season_pass_and_quests.sql` | Tabelas de Passe de Batalha em 30 níveis e Missões Diárias de estudo | Sim (`0004_season_pass_and_quests_down.sql`) |

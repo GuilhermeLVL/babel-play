@@ -1,3 +1,5 @@
+> **Estado em 2026-09-07** (auditoria `openspec/audits/2026-09-07-coerencia.md`): 2 tarefas abertas (3.5 fileira Premium, 3.6 vitrine), ambas atras de `economia-de-creditos`. Achados relacionados: A13 (47/128 itens do Cofre sem canal de obtencao), A04 (colisao de 31 ids entre Loja e Catalogo Mestre) — a camada do Cofre esta na branch `gamificacao-v2-wip`, fora de `main`, desde `linha-de-base-verde`.
+
 ## 1. Protótipos
 
 - [x] 1.1 Página HTML com as 3 direções (impeccable + artifact-design)

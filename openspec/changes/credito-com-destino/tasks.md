@@ -1,3 +1,5 @@
+> **Estado em 2026-09-07** (auditoria `openspec/audits/2026-09-07-coerencia.md`): 2 tarefas abertas (5.3 gate 402 do YouTube ja esta no codigo, falta o teste; 6.3 conferencia visual). Achados relacionados: A03 (creditos de passe/drop respondem 400) em `seeds-e-creditos-fonte-unica`; A16 (`/loja/undefined`, `/creditos` aliasado) em `contratos-alinhados-nas-tres-pontas`.
+
 ## 1. O Crédito ganha destino
 
 - [x] 1.1 `precoCreditos?: number` em `ItemDaLoja` (`src/core/loja.ts`) e a autorização de gasto em

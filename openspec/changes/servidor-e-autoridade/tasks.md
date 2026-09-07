@@ -1,3 +1,5 @@
+> **Estado em 2026-09-07** (auditoria `openspec/audits/2026-09-07-coerencia.md`): 1 tarefa aberta (5.2, decisao do dono sobre `/api/exercises/rodada`). Achado A18 (`melhorSequencia` descartado pelo servidor, `RecordeDoJogo.melhorCombo` so no efemero) e tratado em `contratos-alinhados-nas-tres-pontas`; a spec de autoridade do servidor esta em `openspec/specs/economia/spec.md` e `rodada-e-fsrs/spec.md`.
+
 ## 1. O catálogo passa a ser do core (pré-requisito de tudo)
 
 - [x] 1.1 `CATALOGO_DA_LOJA` e os tipos (`ItemDaLoja`, `Raridade`) saem de `src/lib/loja.ts` para

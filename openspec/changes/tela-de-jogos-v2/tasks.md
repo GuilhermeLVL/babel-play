@@ -1,3 +1,5 @@
+> **Estado em 2026-09-07** (auditoria `openspec/audits/2026-09-07-coerencia.md`): 20 tarefas abertas. Achados que decidem parte delas: A02 (9 jogos culturais fora do funil, anunciados como funcionais) em `jogos-culturais-dentro-do-sistema`; A14 (conquista Colecionador inalcancavel, item 1.7) em `seeds-e-creditos-fonte-unica`; A63 (`ResumoDaRodada` com nivel fixo, drop so via ver erros). A montagem da rodada esta descrita em `openspec/specs/rodada-e-fsrs/spec.md`.
+
 ## 1. Promessas quebradas (independentes entre si e do redesenho)
 
 - [x] 1.1 F02 — o botão da Sala virou "Usar estas palavras", sem ícone de play: ele APLICA a

@@ -1,6 +1,6 @@
 # Arquitetura — Babel Play (TradutorWeb)
 
-> Mapa vivo da aplicação. Atualizado em 2026-07-24 a partir de auditoria completa do código + testes interativos.
+> **Documento historico (2026-07-24).** A descricao vigente do produto, escrita a partir do codigo com `arquivo:linha`, esta em `openspec/specs/` (`ciclo-do-usuario`, `conteudo-e-trilha`, `rodada-e-fsrs`, `economia`, `i18n`, `modo-anonimo`, `planos-e-billing`) e nas specs arquivadas de cada change. O que segue abaixo nao conhece economia, planos, Anki nem trilha multi-idioma e lista "8 exercicios"; nao use como fonte para decidir o que existe. Ver `openspec/audits/2026-09-07-coerencia.md`, secao 2, para o mapa atual.
 > Legenda de estado: ✅ funciona · ⚠️ frágil/degrada · ❌ quebrado/stub · 🔜 planejado
 
 ## 1. Visão geral (camadas)

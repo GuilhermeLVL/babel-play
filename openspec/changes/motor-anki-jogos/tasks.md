@@ -1,3 +1,5 @@
+> **Estado em 2026-09-07** (auditoria `openspec/audits/2026-09-07-coerencia.md`): 8 tarefas abertas. O filtro por baralho (secao 1) agora chega ao servidor (`filtro-facetado-chega-ao-servidor`, achado A17). Achados que afetam o resto: A21 (paginacao de notas quebrada, `cursorId` ausente) e A19 (`rowToVocabCard` descarta campos) em `contratos-alinhados-nas-tres-pontas`; elegibilidade por jogo ja existe em `src/core/minigames/estadoDosJogos.ts`.
+
 ## 1. Filtro por baralho (o mecanismo já existe)
 
 - [x] 1.1 `selecionarParaJogo`: ramo `origin_kind='anki' AND origin_ref=<deckId>` na cláusula

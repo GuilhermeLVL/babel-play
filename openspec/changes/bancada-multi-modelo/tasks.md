@@ -1,3 +1,5 @@
+> **Estado em 2026-09-07** (auditoria `openspec/audits/2026-09-07-coerencia.md`): 2 tarefas abertas: 3.4 bloqueada por conta/creditos de provedor, 5.3 e pesquisa. Achado A31 (7 clientes LLM, `OLLAMA_URL` e `gemini-2.0-flash` cravados) e tratado em `servicos-sem-duplicata`; nada aqui depende dele.
+
 ## 1. Bancada multi-modelo
 
 - [x] 1.1 Extrair `BASE`/`chaveDaGroq()` de `medir-traducao-llm.mjs:49-61` para uma resolução por

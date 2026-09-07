@@ -1,3 +1,5 @@
+> **Estado em 2026-09-07** (auditoria `openspec/audits/2026-09-07-coerencia.md`): 3 tarefas abertas (2.4 testes da recusa no efemero, 3.3 teste do gate por aba, 6.2 navegador com login). Achado A15: `ABAS_QUE_EXIGEM_CONTA`/`abaExigeConta` nao tem chamador, entao o gate por aba nao esta ligado; `codigo-morto-removido` decide ligar ou remover. A40 (`/perfil` vazio e `/plano` sem backend na edicao leve) em `modo-anonimo-em-paridade`.
+
 ## 1. A porta se inverte
 
 - [x] 1.1 `porta()` devolve `app` quando não há sessão e o anônimo ainda não escolheu

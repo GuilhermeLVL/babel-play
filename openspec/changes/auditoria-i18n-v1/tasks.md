@@ -1,3 +1,5 @@
+> **Estado em 2026-09-07** (auditoria `openspec/audits/2026-09-07-coerencia.md`): Fases 4-7 nunca executadas; 11 tarefas abertas sao gates de aceite e decisoes do dono. Achados da auditoria de coerencia que tocam esta frente: A38 (sem seletor de UI, `users.locale` nunca escrito), A39 (`en`/`pt` cravados), A41 (`i18n:orfas`, ja verde por `linha-de-base-verde`), A65 (`ar.json`, `Intl.NumberFormat`). A change nao tinha `specs/`; um delta minimo foi adicionado em 2026-09-07 para validar. O tratamento de codigo esta em `idioma-alvo-e-ui-respeitados`.
+
 # Tarefas
 
 ## Fase 0 — baseline reproduzível (feita)

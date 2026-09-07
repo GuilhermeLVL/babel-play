@@ -1,3 +1,5 @@
+> **Estado em 2026-09-07** (auditoria `openspec/audits/2026-09-07-coerencia.md`): 14 tarefas abertas. Achado A35: `anki_media`/`anki_note_media` existem no schema sem leitor nem escritor e `server/import/ankiMidia.ts` nao tem importador. `schema-sem-tabela-orfa` (pergunta Q5) decide se esta change continua ou se as tabelas saem; ate la, nao iniciar 3.x.
+
 ## 1. Parser lê a mídia (pré-requisito do resto)
 
 - [x] 1.1 Extrair as referências `[sound:]`/`<img>` ANTES de limpar o texto (hoje são apagadas e a

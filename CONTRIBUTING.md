@@ -39,6 +39,9 @@ anything that sends user data off the device by default.
 - No `fetch('/api/…')` outside `src/data/api.ts` — an ast-grep rule enforces the single funnel
   (it is what makes the no-account mode work).
 - Honesty as a type: never fabricate a value the server does not know; show a skeleton instead.
+- OpenSpec: `openspec/specs/` describes the product as it is. A change whose last task is checked is
+  archived in the same PR (`npx openspec archive <name> -y`), so its delta lands in the main specs and
+  `openspec list` only shows open work. Every requirement cites the `file:line` that implements it.
 
 ## Code of conduct
 

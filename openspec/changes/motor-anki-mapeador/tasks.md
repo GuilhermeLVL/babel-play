@@ -1,3 +1,5 @@
+> **Estado em 2026-09-07** (auditoria `openspec/audits/2026-09-07-coerencia.md`): 19 tarefas abertas; a tabela `anki_perfis_de_mapeamento` (3.1) nao existe no schema. Nenhum achado da auditoria de coerencia toca esta change; ela e trabalho novo, nao correcao.
+
 ## 1. Parser expõe o que a decisão precisa
 
 - [x] 1.1 `estruturaHash` — sha256 dos nomes normalizados + ordem (16 hex). Normalizar: minúsculas,

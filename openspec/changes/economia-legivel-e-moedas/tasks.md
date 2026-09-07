@@ -1,3 +1,5 @@
+> **Estado em 2026-09-07** (auditoria `openspec/audits/2026-09-07-coerencia.md`): 1 tarefa aberta (2.5, cartao unico nas 4 abas). A change nao tinha delta em `specs/economia-legivel/`; um delta com os invariantes testados (`tests/passe.test.ts`) foi adicionado em 2026-09-07. Achado A10 (tres reguas de posse) e tratado em `posse-de-cosmeticos-uma-regua`, que deve absorver 2.5.
+
 ## 1. Conteúdo: nenhuma casa vazia
 
 - [x] 1.1 25 itens novos nas décadas 5–10 (packs, cursores e rastros do que já existe)

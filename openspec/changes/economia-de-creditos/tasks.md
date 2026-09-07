@@ -1,3 +1,5 @@
+> **Estado em 2026-09-07** (auditoria `openspec/audits/2026-09-07-coerencia.md`): 5 tarefas abertas. A compra avulsa + webhook (2.2) hoje existe em `server/routes/billing.ts:71` e no webhook com estado (`webhook-asaas-sem-pagamento-perdido`, achado A05). Mesada mensal (2.3) e catalogo premium (2.4) dependem da pergunta Q8 da auditoria (Cofre/drops dentro ou fora da economia). 1.1 (sandbox Asaas) e do dono.
+
 ## 1. Pré-requisitos (outras mudanças)
 
 - [ ] 1.1 Asaas validado em sandbox (dependência do dono)

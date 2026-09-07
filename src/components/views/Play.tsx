@@ -368,8 +368,11 @@ const gravarPularAntessala = (v: boolean): void => {
  * (os cartões do banco do servidor) ao lado de um baralho vazio (o do navegador). Pelo `apiFetch`,
  * sem conta a rota responde 501 e `compor` cai no fallback local — o mesmo baralho, um número só.
  */
-const buscarComposicaoPeloFunil = async (caminho: string): Promise<unknown> => {
-  const res = await apiFetch(caminho, { headers: { accept: 'application/json' } });
+const buscarComposicaoPeloFunil = async (caminho: string, init?: { method: 'POST'; body: string }): Promise<unknown> => {
+  // `init` só vem quando o filtro facetado não cabe na URL — mesmos campos, no corpo.
+  const res = await apiFetch(caminho, init
+    ? { method: init.method, body: init.body, headers: { accept: 'application/json', 'content-type': 'application/json' } }
+    : { headers: { accept: 'application/json' } });
   if (!res.ok) throw new Error(`http ${res.status}`);
   return res.json();
 };

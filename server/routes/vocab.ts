@@ -19,10 +19,10 @@ vocabRouter.get('/', async (req, res) => {
  * SELEÇÃO PARA JOGO (F4) — no servidor, onde os índices trabalham.
  * Antes o cliente baixava o baralho inteiro a cada fim de rodada e filtrava em JS.
  */
-vocabRouter.get('/para-jogo', async (req, res) => {
+async function paraJogo(req: Parameters<Parameters<typeof vocabRouter.get>[1]>[0], res: Parameters<Parameters<typeof vocabRouter.get>[1]>[1], entrada: unknown) {
   // F11-04: o `as never` saiu daqui. Os enums são validados no schema, então o que chega ao
   // repositório já tem o tipo que ele declara — em vez de o compilador acreditar no cliente.
-  const q = parseOr400(vocabParaJogoQuerySchema, req.query, res)
+  const q = parseOr400(vocabParaJogoQuerySchema, entrada, res)
   if (!q) return
   try {
     res.json(await vocabRepo.selecionarParaJogo(req.userId, {
@@ -38,7 +38,16 @@ vocabRouter.get('/para-jogo', async (req, res) => {
   } catch (err) {
     res.status(400).json({ error: erroDeRota(err, { event: 'vocab_route_error', route: req.path, requestId: req.requestId }) })
   }
-})
+}
+
+vocabRouter.get('/para-jogo', (req, res) => paraJogo(req, res, req.query))
+
+/**
+ * O MESMO pedido pelo CORPO. O filtro facetado vai como JSON num parâmetro; quando ele não cabe
+ * numa URL (lista de ids de "difíceis"), o cliente manda os mesmos campos — as mesmas strings —
+ * em JSON no corpo. Um schema só (`vocabParaJogoQuerySchema`) valida os dois caminhos.
+ */
+vocabRouter.post('/para-jogo', (req, res) => paraJogo(req, res, req.body ?? {}))
 
 /** Página do catálogo (F5): busca, filtros e ordenação resolvidos no servidor. */
 vocabRouter.get('/pagina', async (req, res) => {

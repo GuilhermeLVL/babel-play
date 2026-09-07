@@ -4,7 +4,8 @@ O seletor facetado foi implementado nas duas pontas e nao se falam: `Play.tsx:16
 
 ## What Changes
 
-- `caminhoDaComposicao` serializa `filtro` (JSON compacto na query, com teto de tamanho; acima do teto, POST) e remove `fonte/fonteRef/lang` quando `filtro` esta presente (o servidor ja da precedencia).
+- `caminhoDaComposicao` serializa `filtro` (JSON compacto na query, com teto de tamanho; acima do teto, POST com os mesmos campos no corpo). `fonte/fonteRef/lang` continuam no pedido: o servidor ja da precedencia ao filtro e usa os tres como proveniencia da resposta, entao omiti-los nao muda o recorte e perderia informacao.
+- `POST /api/vocab/para-jogo` passa a existir, com o mesmo handler e o mesmo schema do GET.
 - Teste de integracao que chama `compor` com `filtro` contra o Express (harness efemero de banco) e prova que o ramo facetado do repositorio foi executado (contagem menor e `proveniencia.origem` coerente).
 - O fallback local continua existindo para o modo anonimo (ate `modo-anonimo-em-paridade` espelhar `para-jogo`), mas passa a ser registrado como fallback, nao como caminho normal.
 

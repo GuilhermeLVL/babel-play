@@ -94,6 +94,95 @@ beforeAll(async () => {
 })
 afterAll(async () => { await h?.cleanup?.() })
 
+/**
+ * O FILTRO CHEGA AO SERVIDOR (change `filtro-facetado-chega-ao-servidor`, auditoria A17).
+ *
+ * As duas pontas existiam e não se falavam: `compor` montava o pedido e `caminhoDaComposicao`
+ * nunca serializava `filtro`, então o ramo facetado abaixo só rodava quando chamado direto no
+ * repositório — como nos testes desta suíte — e nunca a partir da tela. Aqui o transporte é a
+ * própria rota Express em processo: `compor` → `GET|POST /api/vocab/para-jogo` → repositório.
+ */
+describe('compor → rota → selecionarParaJogo — o filtro viaja de ponta a ponta', () => {
+  let compor: any
+  let handlers: { get: any; post: any }
+
+  function fakeRes() {
+    const r: any = { statusCode: 200, body: undefined }
+    r.status = (c: number) => { r.statusCode = c; return r }
+    r.json = (b: any) => { r.body = b; return r }
+    return r
+  }
+
+  /** Transporte que invoca o handler registrado no router, sem subir servidor. */
+  const transporte = async (caminho: string, init?: { method: 'POST'; body: string }) => {
+    const url = new URL(`http://x${caminho}`)
+    const query: Record<string, string> = {}
+    url.searchParams.forEach((v, k) => { query[k] = v })
+    const req: any = { userId: U, path: url.pathname, query, body: init ? JSON.parse(init.body) : {} }
+    const res = fakeRes()
+    await (init ? handlers.post : handlers.get)(req, res)
+    if (res.statusCode !== 200) throw new Error(`http ${res.statusCode}: ${JSON.stringify(res.body)}`)
+    return res.body
+  }
+
+  beforeAll(async () => {
+    ;({ compor } = await h.load('../../src/core/minigames/composicao'))
+    const { vocabRouter } = (await h.load('../../server/routes/vocab')) as any
+    const camada = (metodo: 'get' | 'post') =>
+      vocabRouter.stack.find((l: any) => l.route?.path === '/para-jogo' && l.route?.methods?.[metodo]).route.stack[0].handle
+    handlers = { get: camada('get'), post: camada('post') }
+  })
+
+  it('GET: o filtro por baralho recorta no servidor, não só no fallback local', async () => {
+    const r = await compor(
+      { jogo: 'memory', fonte: { id: 'baralho' }, limite: 50, filtro: { fontes: ['baralho'], baralhos: [DECK_A] } },
+      [], transporte,
+    )
+    expect(r.origemDaComposicao).toBe('servidor')
+    expect(porNomes(r.itens)).toEqual(['banana', 'ringo'])
+  })
+
+  it('GET: fontes:[trilha] + idiomas:[ja] — interseção calculada no servidor', async () => {
+    const r = await compor(
+      { jogo: 'memory', fonte: { id: 'baralho' }, limite: 50, filtro: { fontes: ['trilha'], idiomas: ['ja'] } },
+      [], transporte,
+    )
+    expect(r.origemDaComposicao).toBe('servidor')
+    expect(porNomes(r.itens)).toEqual(['budou'])
+  })
+
+  it('GET: fontes:[sessao] com a sessão pedida — e `fonte: baralho` no pedido NÃO manda', async () => {
+    // Precedência: `fonte/fonteRef/lang` viajam como proveniência; com `filtro`, o recorte é dele.
+    const r = await compor(
+      { jogo: 'memory', fonte: { id: 'baralho', lang: 'en' }, limite: 50, filtro: { fontes: ['sessao'], sessoes: [sessaoId] } },
+      [], transporte,
+    )
+    expect(r.origemDaComposicao).toBe('servidor')
+    expect(porNomes(r.itens)).toEqual(['maçã'])
+  })
+
+  it('GET: recorte.pedindoRevisao — o servidor devolve só os vencidos', async () => {
+    const r = await compor(
+      { jogo: 'memory', fonte: { id: 'baralho' }, limite: 50, filtro: { fontes: ['trilha', 'sessao', 'baralho'], recorte: { pedindoRevisao: true } } },
+      [], transporte,
+    )
+    expect(r.origemDaComposicao).toBe('servidor')
+    expect(porNomes(r.itens)).toEqual(['banana', 'ringo'])
+  })
+
+  it('POST: um filtro grande demais para a URL vai no corpo e o servidor responde igual', async () => {
+    // 200 ids de "difíceis" com 40 chars cada passam do teto da query: o pedido vira POST.
+    const dificeisIds = Array.from({ length: 200 }, (_, i) => `id-${String(i).padStart(36, '0')}`)
+    dificeisIds[0] = palavras.get('banana')!
+    const r = await compor(
+      { jogo: 'memory', fonte: { id: 'baralho' }, limite: 50, filtro: { fontes: ['baralho'], baralhos: [DECK_A], recorte: { dificeisIds } } },
+      [], transporte,
+    )
+    expect(r.origemDaComposicao).toBe('servidor')
+    expect(porNomes(r.itens)).toEqual(['banana'])
+  })
+})
+
 describe('selecionarParaJogo(filtro) — o invariante de paridade', () => {
   it('fontes:[trilha] sozinha — só trilha, os dois idiomas', async () => {
     const r = await vocabRepo.selecionarParaJogo(U, { limite: 50, filtro: { fontes: ['trilha'] } })

@@ -345,7 +345,7 @@ export function composicaoLocal(cartoes: CartaoParaCompor[], p: PedidoDeComposic
  * VERMELHO desde `078a865` (achado F0-01 da auditoria). `encodeURIComponent` é built-in do ES e
  * faz o mesmo trabalho.
  */
-function caminhoDaComposicao(p: PedidoDeComposicao): string {
+function parametrosDaComposicao(p: PedidoDeComposicao): Array<[string, string]> {
   const partes: Array<[string, string]> = [
     ['fonte', p.fonte.id],
     ['limite', String(p.limite)],
@@ -353,15 +353,56 @@ function caminhoDaComposicao(p: PedidoDeComposicao): string {
   ]
   if (p.fonte.ref) partes.push(['fonteRef', p.fonte.ref])
   if (p.fonte.lang) partes.push(['lang', p.fonte.lang])
-  // Só manda o filtro onde ele significa algo — ver `aceitaFiltroDeDificuldade`.
+  // Só manda o filtro de dificuldade onde ele significa algo — ver `aceitaFiltroDeDificuldade`.
   if (p.dificuldade?.length && aceitaFiltroDeDificuldade(p.jogo)) partes.push(['dificuldade', p.dificuldade.join(',')])
   if (p.evitar?.length) partes.push(['evitar', p.evitar.join(',')])
-  const query = partes.map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(v)}`).join('&')
-  return `/api/vocab/para-jogo?${query}`
+  /**
+   * O FILTRO FACETADO VIAJA. Ele era montado (`Play.tsx`), tipado (`PedidoDeComposicao.filtro`),
+   * validado (`filtroQuerySchema`) e aplicado (`selecionarParaJogo`) — e nunca serializado aqui:
+   * o servidor recebia sempre o pedido antigo e o filtro só valia no fallback local (auditoria
+   * de 2026-09-07, achado A17). `fonte`/`fonteRef`/`lang` continuam no pedido de propósito: o
+   * servidor dá precedência ao filtro e usa os três só como PROVENIÊNCIA da resposta.
+   */
+  if (p.filtro) partes.push(['filtro', JSON.stringify(p.filtro)])
+  return partes
 }
 
-/** O transporte, injetado. Devolve o corpo já decodificado, ou lança. */
-export type BuscarComposicao = (caminho: string) => Promise<unknown>
+/**
+ * Acima disto o filtro vai no CORPO (`POST`), não na URL. O teto do servidor para `filtro` é
+ * 20 KB (`filtroQuerySchema`), mas URLs longas morrem antes em proxies e no próprio navegador;
+ * 6 KB deixa folga para os pedidos reais (uma lista de ids de "difíceis" com 200 entradas de 36
+ * chars já passa de 7 KB) sem inventar um segundo contrato — o corpo tem os MESMOS campos.
+ */
+export const TETO_DA_QUERY_DA_COMPOSICAO = 6_000
+
+export interface PedidoHttpDaComposicao {
+  caminho: string
+  /** Presente = `POST` com este corpo JSON (os mesmos campos da query, como strings). */
+  corpo?: string
+}
+
+/**
+ * A URL (ou o pedido POST) da composição servida — construída à mão, de propósito.
+ *
+ * `URLSearchParams` é global do WHATWG, não do ES2022, e `src/core/tsconfig.json` declara
+ * `lib: ["ES2022"]` e `types: []` justamente para o núcleo não depender de DOM nem de Node.
+ * `encodeURIComponent` é built-in do ES e faz o mesmo trabalho.
+ */
+export function pedidoHttpDaComposicao(p: PedidoDeComposicao): PedidoHttpDaComposicao {
+  const partes = parametrosDaComposicao(p)
+  const query = partes.map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(v)}`).join('&')
+  if (query.length <= TETO_DA_QUERY_DA_COMPOSICAO) return { caminho: `/api/vocab/para-jogo?${query}` }
+  const corpo: Record<string, string> = {}
+  for (const [k, v] of partes) corpo[k] = v
+  return { caminho: '/api/vocab/para-jogo', corpo: JSON.stringify(corpo) }
+}
+
+function caminhoDaComposicao(p: PedidoDeComposicao): string {
+  return pedidoHttpDaComposicao(p).caminho
+}
+
+/** O transporte, injetado. Devolve o corpo já decodificado, ou lança. `init` só vem no POST. */
+export type BuscarComposicao = (caminho: string, init?: { method: 'POST'; body: string }) => Promise<unknown>
 
 /**
  * Transporte padrão: resolve `fetch` pelo objeto global EM TEMPO DE EXECUÇÃO.
@@ -371,10 +412,12 @@ export type BuscarComposicao = (caminho: string) => Promise<unknown>
  * a API — devolve erro e `compor` cai no fallback local, que é o comportamento já definido e
  * testado para falha de rede.
  */
-const buscarPadrao: BuscarComposicao = async (caminho) => {
+const buscarPadrao: BuscarComposicao = async (caminho, init) => {
   const g = globalThis as { fetch?: (url: string, init?: unknown) => Promise<{ ok: boolean; status: number; json: () => Promise<unknown> }> }
   if (typeof g.fetch !== 'function') throw new Error('sem fetch neste ambiente')
-  const res = await g.fetch(caminho, { headers: { accept: 'application/json' } })
+  const res = await g.fetch(caminho, init
+    ? { method: init.method, body: init.body, headers: { accept: 'application/json', 'content-type': 'application/json' } }
+    : { headers: { accept: 'application/json' } })
   if (!res.ok) throw new Error(`http ${res.status}`)
   return res.json()
 }
@@ -396,7 +439,8 @@ export async function compor(
   buscar: BuscarComposicao = buscarPadrao,
 ): Promise<Composicao> {
   try {
-    const dados = await buscar(caminhoDaComposicao(p)) as { itens?: Array<Record<string, unknown>>; total?: number; cortes?: { corte1?: number; corte2?: number } | null } | null
+    const pedido = pedidoHttpDaComposicao(p)
+    const dados = await buscar(pedido.caminho, pedido.corpo ? { method: 'POST', body: pedido.corpo } : undefined) as { itens?: Array<Record<string, unknown>>; total?: number; cortes?: { corte1?: number; corte2?: number } | null } | null
     if (!dados || !Array.isArray(dados.itens)) return composicaoLocal(cartoesLocais, p, 'corpo malformado')
     const cortes = dados.cortes && typeof dados.cortes.corte1 === 'number' && typeof dados.cortes.corte2 === 'number'
       ? { corte1: dados.cortes.corte1, corte2: dados.cortes.corte2 }

@@ -1,4 +1,4 @@
-## MODIFIED Requirements
+## ADDED Requirements
 
 ### Requirement: O filtro escolhido e o filtro aplicado pelo servidor
 Quando o cliente compoe uma rodada com um filtro facetado, o pedido ao servidor SHALL carregar o filtro inteiro, e o servidor SHALL aplica-lo com precedencia sobre `fonte`, `fonteRef` e `lang`.

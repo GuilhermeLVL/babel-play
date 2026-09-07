@@ -15,6 +15,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import {
   compor, aceitaFiltroDeDificuldade, composicaoLocal, recortarPelaComposicao, filtroParaComposicao,
+  pedidoHttpDaComposicao, TETO_DA_QUERY_DA_COMPOSICAO,
   type PedidoDeComposicao, type CartaoParaCompor, type Composicao,
 } from '../src/core/minigames/composicao'
 import { FILTRO_PADRAO, type FiltroDaPratica, type CartaoFiltravel } from '../src/core/minigames/filtro'
@@ -100,6 +101,56 @@ describe('compor — servidor com fallback', () => {
     vi.stubGlobal('fetch', vi.fn(async () => new Response('{"itens":"nao é array"}', { status: 200, headers: { 'content-type': 'application/json' } })))
     const r = await compor(PEDIDO, CARTOES)
     expect(r.origemDaComposicao).toBe('fallback-local')
+  })
+
+  /**
+   * O FILTRO FACETADO VIAJA (auditoria de 2026-09-07, A17). Antes o campo era montado, tipado e
+   * validado nas duas pontas e nunca serializado aqui — o servidor recebia o pedido antigo.
+   */
+  it('com `filtro` no pedido, a URL leva o filtro em JSON e mantém fonte/lang como proveniência', async () => {
+    const espia = vi.fn(async () => new Response(JSON.stringify({ total: 0, itens: [] }), { status: 200, headers: { 'content-type': 'application/json' } }))
+    vi.stubGlobal('fetch', espia)
+    const filtro = { fontes: ['baralho' as const], baralhos: ['deckA'], recorte: { pedindoRevisao: true } }
+    await compor({ ...PEDIDO, fonte: { id: 'baralho', lang: 'en' }, filtro }, CARTOES)
+    const [url, init] = (espia.mock.calls as unknown as Array<[string, RequestInit]>)[0]
+    expect(init.method).toBeUndefined()
+    const query = new URL(url, 'http://x').searchParams
+    expect(JSON.parse(query.get('filtro')!)).toEqual(filtro)
+    expect(query.get('fonte')).toBe('baralho')
+    expect(query.get('lang')).toBe('en')
+  })
+
+  it('sem `filtro` no pedido, a URL não ganha o parâmetro', async () => {
+    const espia = vi.fn(async () => new Response(JSON.stringify({ total: 0, itens: [] }), { status: 200, headers: { 'content-type': 'application/json' } }))
+    vi.stubGlobal('fetch', espia)
+    await compor(PEDIDO, CARTOES)
+    expect(String((espia.mock.calls as unknown as Array<[unknown]>)[0][0])).not.toContain('filtro')
+  })
+
+  it('acima do teto da query, o MESMO pedido vai por POST com os mesmos campos no corpo', async () => {
+    const espia = vi.fn(async () => new Response(JSON.stringify({ total: 0, itens: [] }), { status: 200, headers: { 'content-type': 'application/json' } }))
+    vi.stubGlobal('fetch', espia)
+    const dificeisIds = Array.from({ length: 200 }, (_, i) => `id-${String(i).padStart(36, '0')}`)
+    const filtro = { fontes: ['baralho' as const], recorte: { dificeisIds } }
+    const pedido = pedidoHttpDaComposicao({ ...PEDIDO, filtro })
+    expect(pedido.corpo).toBeDefined()
+    expect(pedido.caminho).toBe('/api/vocab/para-jogo')
+    const r = await compor({ ...PEDIDO, filtro }, CARTOES)
+    expect(r.origemDaComposicao).toBe('servidor')
+    const [url, init] = (espia.mock.calls as unknown as Array<[string, RequestInit]>)[0]
+    expect(url).toBe('/api/vocab/para-jogo')
+    expect(init.method).toBe('POST')
+    const corpo = JSON.parse(String(init.body))
+    expect(JSON.parse(corpo.filtro)).toEqual(filtro)
+    expect(corpo.fonte).toBe('baralho')
+    expect(corpo.limite).toBe(String(PEDIDO.limite))
+  })
+
+  it('abaixo do teto, o pedido continua GET — o teto é o único critério', () => {
+    const pequeno = pedidoHttpDaComposicao({ ...PEDIDO, filtro: { fontes: ['baralho'], baralhos: ['a'] } })
+    expect(pequeno.corpo).toBeUndefined()
+    expect(pequeno.caminho.startsWith('/api/vocab/para-jogo?')).toBe(true)
+    expect(pequeno.caminho.length).toBeLessThanOrEqual(TETO_DA_QUERY_DA_COMPOSICAO + '/api/vocab/para-jogo?'.length)
   })
 
   it('jogo de FRASE não manda filtro de dificuldade ao servidor', async () => {

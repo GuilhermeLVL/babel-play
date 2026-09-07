@@ -44,8 +44,13 @@ jobs:
 
       # A catraca: cobertura de i18n nao se perde por decisao, se perde por descuido, e o fallback
       # legivel esconde a perda. O piso so sobe; abaixa-lo exige justificativa no mesmo commit.
+      #
+      # 427 -> 420 em 07/09: os nove jogos culturais sairam da grade (change
+      # `jogos-culturais-dentro-do-sistema`) e levaram junto 7 chamadas de `t()` — os rotulos dos
+      # cards, a aba "Jogos do Mundo" e o selo "100% Funcional". Remocao deliberada de tela, nao
+      # perda de cobertura: as chaves nem estavam traduzidas em `en.json`.
       - name: Piso de cobertura da interface
-        run: node scripts/i18n/orfas.mjs --progresso --piso=427
+        run: node scripts/i18n/orfas.mjs --progresso --piso=420
 
       # Falha em HIGH/CRITICAL, exceto a allowlist NOMEADA das sem fix upstream.
       - name: Auditoria de dependências

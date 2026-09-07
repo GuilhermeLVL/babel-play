@@ -1,12 +1,12 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { X, Briefcase, Heart, Check, Sparkles, AlertCircle, ArrowRight, Lock, Unlock, Eye, EyeOff, ShieldAlert, Plane, Compass, Volume2, Lightbulb } from 'lucide-react';
 import type { MinigameItem, ItemOutcome, RoundReport } from '@core';
-import type { AgeProfileType } from '../../lib/profile';
-import { play } from '../../lib/soundFx';
-import { comemorar, tremor, flashDeTela, pulsoDeZoom } from '../../lib/juice';
-import { emitBurst } from '../../lib/effects';
-import { speak } from '../../lib/tts';
-import { playJuicedHit, playJuicedError, playJuicedVictory, calculateMultiplier } from '../../lib/gameFeel';
+import type { AgeProfileType } from '../../../lib/profile';
+import { play } from '../../../lib/soundFx';
+import { comemorar, tremor, flashDeTela, pulsoDeZoom } from '../../../lib/juice';
+import { emitBurst } from '../../../lib/effects';
+import { speak } from '../../../lib/tts';
+import { playJuicedHit, playJuicedError, playJuicedVictory, calculateMultiplier } from '../../../lib/gameFeel';
 
 /**
  * KOFFER GAME — "Ich packe meinen Koffer" (O Jogo da Mala Infinita).

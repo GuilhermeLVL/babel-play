@@ -11,7 +11,7 @@ Nove jogos (Karuta, Shiritori, Choseong, Koffer, Taboo, Cadavre Exquis, Bao, Ten
 
 ## What Changes
 
-A pergunta 6 do relatorio decide entre duas entregas; `design.md` registra a escolha antes do codigo.
+A pergunta 6 do relatorio decide entre duas entregas; `design.md` registra a escolha antes do codigo. **Escolhida a entrega B** (retirar da grade ate integrar): sem resposta do dono, e a unica que nao aposta semanas de trabalho na resposta. A entrega A continua descrita abaixo e nas tarefas, e a spec desta change e o contrato que ela tera de cumprir.
 
 **Entrega A — integrar.** Cada jogo vira um `MinigameDef` real: id em `MinigameId`, `minItems/maxItems/modalidade/writesSrs/requisitos.alfabeto` e `idiomas` (lista ou `qualquer`); a rodada nasce em `montarRodada` a partir de `jogaveis`; conteudo fixo so como fallback declarado (`requisitos.material: 'proprio'`) e o card diz de onde vem; `onFinish` entra em `aoTerminar` (FSRS se baseado em cartao); voz por `item.lang`; gating por `estadoDeCadaJogo` como os classicos; ranking D1 aceita os ids novos; um teste de componente por jogo + entrada em `matriz-dos-jogos`.
 

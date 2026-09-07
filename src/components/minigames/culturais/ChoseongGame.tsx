@@ -1,11 +1,11 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { X, Sparkles, Zap, Flame, Check, HelpCircle, ArrowRight, Lightbulb, RotateCcw } from 'lucide-react';
 import type { MinigameItem, ItemOutcome, RoundReport } from '@core';
-import type { AgeProfileType } from '../../lib/profile';
-import { play } from '../../lib/soundFx';
-import { comemorar, tremor, pulsoDeZoom } from '../../lib/juice';
-import { emitBurst } from '../../lib/effects';
-import { playJuicedHit, playJuicedError, playJuicedVictory, calculateMultiplier } from '../../lib/gameFeel';
+import type { AgeProfileType } from '../../../lib/profile';
+import { play } from '../../../lib/soundFx';
+import { comemorar, tremor, pulsoDeZoom } from '../../../lib/juice';
+import { emitBurst } from '../../../lib/effects';
+import { playJuicedHit, playJuicedError, playJuicedVictory, calculateMultiplier } from '../../../lib/gameFeel';
 
 /**
  * CHOSEONG GAME — Decifrador de Consoantes Iniciais (초성게임).

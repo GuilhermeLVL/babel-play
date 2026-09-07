@@ -1,12 +1,12 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { X, Sparkles, Flame, Train, ArrowRight, Timer as TimerIcon, Volume2, Send, Zap, HelpCircle } from 'lucide-react';
 import type { MinigameItem, ItemOutcome, RoundReport } from '@core';
-import type { AgeProfileType } from '../../lib/profile';
-import { play } from '../../lib/soundFx';
-import { comemorar, tremor, flashDeTela, pulsoDeZoom } from '../../lib/juice';
-import { emitBurst } from '../../lib/effects';
-import { speak } from '../../lib/tts';
-import { playJuicedHit, playJuicedError, playJuicedVictory, calculateMultiplier } from '../../lib/gameFeel';
+import type { AgeProfileType } from '../../../lib/profile';
+import { play } from '../../../lib/soundFx';
+import { comemorar, tremor, flashDeTela, pulsoDeZoom } from '../../../lib/juice';
+import { emitBurst } from '../../../lib/effects';
+import { speak } from '../../../lib/tts';
+import { playJuicedHit, playJuicedError, playJuicedVictory, calculateMultiplier } from '../../../lib/gameFeel';
 
 /**
  * SHIRITORI EXPRESS — Cadeia Fonológica de Alta Velocidade (しりとり / 끝말잇기).

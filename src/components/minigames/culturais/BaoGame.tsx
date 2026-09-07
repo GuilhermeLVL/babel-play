@@ -1,12 +1,12 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { X, Sparkles, Gem, ArrowRight, RotateCcw, Check, Flame, Sprout, Trees, Volume2, Lightbulb } from 'lucide-react';
 import type { MinigameItem, ItemOutcome, RoundReport } from '@core';
-import type { AgeProfileType } from '../../lib/profile';
-import { play } from '../../lib/soundFx';
-import { comemorar, tremor, pulsoDeZoom, flashDeTela } from '../../lib/juice';
-import { emitBurst } from '../../lib/effects';
-import { speak } from '../../lib/tts';
-import { playJuicedHit, playJuicedError, playJuicedVictory, calculateMultiplier } from '../../lib/gameFeel';
+import type { AgeProfileType } from '../../../lib/profile';
+import { play } from '../../../lib/soundFx';
+import { comemorar, tremor, pulsoDeZoom, flashDeTela } from '../../../lib/juice';
+import { emitBurst } from '../../../lib/effects';
+import { speak } from '../../../lib/tts';
+import { playJuicedHit, playJuicedError, playJuicedVictory, calculateMultiplier } from '../../../lib/gameFeel';
 
 /**
  * BAO / MANCALA DOS MORFEMAS — Semeadura & Colheita Morfológica (Bao 🌍).

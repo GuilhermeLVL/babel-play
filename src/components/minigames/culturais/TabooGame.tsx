@@ -1,12 +1,12 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { X, ShieldAlert, Sparkles, AlertTriangle, Flame, ArrowRight, Volume2, Bomb, Clock, Lightbulb, Send, Check, Zap } from 'lucide-react';
 import type { MinigameItem, ItemOutcome, RoundReport } from '@core';
-import type { AgeProfileType } from '../../lib/profile';
-import { play } from '../../lib/soundFx';
-import { comemorar, tremor, glitchDeTela, flashDeTela, pulsoDeZoom } from '../../lib/juice';
-import { emitBurst } from '../../lib/effects';
-import { speak } from '../../lib/tts';
-import { playJuicedHit, playJuicedError, playJuicedVictory, calculateMultiplier, triggerShake } from '../../lib/gameFeel';
+import type { AgeProfileType } from '../../../lib/profile';
+import { play } from '../../../lib/soundFx';
+import { comemorar, tremor, glitchDeTela, flashDeTela, pulsoDeZoom } from '../../../lib/juice';
+import { emitBurst } from '../../../lib/effects';
+import { speak } from '../../../lib/tts';
+import { playJuicedHit, playJuicedError, playJuicedVictory, calculateMultiplier, triggerShake } from '../../../lib/gameFeel';
 
 /**
  * TABOO ARENA — Forja da Circunlocução e Paráfrase de Alta Tensão.

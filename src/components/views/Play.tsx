@@ -1,15 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState, useRef, useDeferredValue } from 'react';
 import { createPortal } from 'react-dom';
-import { Check, Timer, Mic, ChevronRight, ChevronLeft, Pin, ListChecks, Map as MapIcon, Sprout, Flame, GraduationCap, Lock, HelpCircle, Package, Trophy, SlidersHorizontal as SlidersIcon, Trophy as TrophyIcon, Layers, Globe, BookOpen, CalendarClock, Sparkles, Languages, MessageSquareText, Gamepad2, Dices, Search, X as XIcon, Compass, Zap, Play as PlayIcon, Headphones, Puzzle, BarChart2 } from 'lucide-react';
-import KarutaGame from '../minigames/KarutaGame';
-import KofferGame from '../minigames/KofferGame';
-import ChoseongGame from '../minigames/ChoseongGame';
-import TabooGame from '../minigames/TabooGame';
-import ShiritoriGame from '../minigames/ShiritoriGame';
-import CadavreExquisGame from '../minigames/CadavreExquisGame';
-import BaoGame from '../minigames/BaoGame';
-import TenseTennisGame from '../minigames/TenseTennisGame';
-import VitendawiliGame from '../minigames/VitendawiliGame';
+import { Timer, Mic, ChevronRight, ChevronLeft, Pin, ListChecks, Map as MapIcon, Sprout, Flame, GraduationCap, Lock, HelpCircle, Package, Trophy, SlidersHorizontal as SlidersIcon, Trophy as TrophyIcon, Layers, Globe, BookOpen, CalendarClock, Sparkles, Languages, MessageSquareText, Gamepad2, Dices, Search, X as XIcon, Compass, Zap, Play as PlayIcon, Headphones, Puzzle, BarChart2 } from 'lucide-react';
 import { playJuicedHit, triggerHaptic, triggerConfetti } from '../../lib/gameFeel';
 import { apiFetch, fetchDeck, reviewCard, salvarRodada, fetchSessions, fetchSessionTranscript, fetchSettings, bulkAddCards, fetchHistoricoDeItens, fetchExerciseResults, fetchRecordes, gastarSeeds, type AppMetrics, type HistoricoDeItem } from '../../data/api';
 import { toSentences, type Sentence, type PracticeSeed } from '../../lib/sentences';
@@ -206,121 +197,19 @@ const ABAS_DE_FONTE: Array<{
   },
 ];
 
-export type JogoAtivo = 'karuta' | 'koffer' | 'choseong' | 'taboo' | 'shiritori' | 'cadavre' | 'bao' | 'tennis' | 'vitendawili' | null;
-
-export interface JogoCulturalMeta {
-  id: NonNullable<JogoAtivo>;
-  nome: string;
-  origemCultural: string;
-  bandeira: string;
-  descricao: string;
-  habilidade: 'vocab' | 'escuta_fala' | 'frase_gramatica';
-  habilidadeLabel: string;
-  nivelCefr: string;
-  tom: string;
-}
-
-export const JOGOS_CULTURAIS: readonly JogoCulturalMeta[] = [
-  {
-    id: 'karuta',
-    nome: 'Karuta Reflexes',
-    origemCultural: 'Japão',
-    bandeira: '🇯🇵',
-    descricao: 'Reaja instantaneamente e bata na carta certa ao ouvir a pista, no tradicional jogo japonês.',
-    habilidade: 'vocab',
-    habilidadeLabel: 'Vocabulário & Escuta',
-    nivelCefr: 'B1 - B2',
-    tom: '#e11d48',
-  },
-  {
-    id: 'shiritori',
-    nome: 'Shiritori Express',
-    origemCultural: 'Japão',
-    bandeira: '🇯🇵',
-    descricao: 'Encadeie o vocabulário em tempo recorde ligando a última letra da palavra anterior.',
-    habilidade: 'vocab',
-    habilidadeLabel: 'Vocabulário & Conexões',
-    nivelCefr: 'A2 - B1',
-    tom: '#0284c7',
-  },
-  {
-    id: 'bao',
-    nome: 'Bao Mancala',
-    origemCultural: 'África Oriental (Swahili)',
-    bandeira: '🇹🇿',
-    descricao: 'Semeie sementes de palavras nas covas certas e capture pontos ao traduzir os itens.',
-    habilidade: 'vocab',
-    habilidadeLabel: 'Ritmo & Vocabulário',
-    nivelCefr: 'A1 - B2',
-    tom: '#d97706',
-  },
-  {
-    id: 'cadavre',
-    nome: 'Cadavre Exquis',
-    origemCultural: 'França (Surrealismo)',
-    bandeira: '🇫🇷',
-    descricao: 'Crie frases criativas e gramaticalmente perfeitas unindo sujeito, verbo e complementos.',
-    habilidade: 'frase_gramatica',
-    habilidadeLabel: 'Sintaxe & Criatividade',
-    nivelCefr: 'B1 - C1',
-    tom: '#7c3aed',
-  },
-  {
-    id: 'taboo',
-    nome: 'Taboo Arena',
-    origemCultural: 'Mundial',
-    bandeira: '🌍',
-    descricao: 'Adivinhe a palavra secreta usando pistas inteligentes sem pronunciar os termos proibidos.',
-    habilidade: 'escuta_fala',
-    habilidadeLabel: 'Produção Ativa & Fluência',
-    nivelCefr: 'B2 - C2',
-    tom: '#db2777',
-  },
-  {
-    id: 'vitendawili',
-    nome: 'Vitendawili Enigmas',
-    origemCultural: 'África Oriental',
-    bandeira: '🇰🇪',
-    descricao: 'Decifre charadas e metáforas ancestrais da tradição oral em desafios lógicos dinâmicos.',
-    habilidade: 'escuta_fala',
-    habilidadeLabel: 'Dedução & Expressões',
-    nivelCefr: 'A2 - B2',
-    tom: '#059669',
-  },
-  {
-    id: 'tennis',
-    nome: 'Tense Tennis',
-    origemCultural: 'Reino Unido / LatAm',
-    bandeira: '🎾',
-    descricao: 'Rebata saques velozes conjugando verbos no tempo gramatical correto com reflexos afiados.',
-    habilidade: 'frase_gramatica',
-    habilidadeLabel: 'Gramática & Conjugação',
-    nivelCefr: 'A2 - B2',
-    tom: '#2563eb',
-  },
-  {
-    id: 'koffer',
-    nome: 'Koffer Packen',
-    origemCultural: 'Alemanha',
-    bandeira: '🇩🇪',
-    descricao: '"Ich packe meinen Koffer...": retenha a bagagem inteira na memória de trabalho e adicione itens.',
-    habilidade: 'vocab',
-    habilidadeLabel: 'Memória Operacional & Acúmulo',
-    nivelCefr: 'A1 - B1',
-    tom: '#ea580c',
-  },
-  {
-    id: 'choseong',
-    nome: 'Choseong Quiz',
-    origemCultural: 'Coreia do Sul',
-    bandeira: '🇰🇷',
-    descricao: 'Decodifique o enigma linguístico descobrindo a palavra oculta a partir de suas consoantes iniciais.',
-    habilidade: 'vocab',
-    habilidadeLabel: 'Ortografia & Fonética',
-    nivelCefr: 'A2 - B2',
-    tom: '#4f46e5',
-  },
-];
+/**
+ * OS NOVE JOGOS CULTURAIS SAIRAM DA GRADE (auditoria de 2026-09-07, achado A02).
+ *
+ * `JogoAtivo`, `JogoCulturalMeta` e `JOGOS_CULTURAIS` viviam aqui: um registro paralelo de jogos,
+ * fora de `MinigameId` e de `MINIGAMES`. A consequencia nao era organizacional, era uma afirmacao
+ * falsa na tela — cada card anunciava "100% Funcional" e a rodada nao passava por `montarRodada`,
+ * o `RoundReport` era descartado por um `onFinish` sem argumentos, e o banco real nao tinha uma
+ * unica rodada registrada dos nove. Seis deles nem usavam o acervo da pessoa.
+ *
+ * Os componentes continuam no repositorio, em `src/components/minigames/culturais/`, com o
+ * contrato de volta escrito em `openspec/changes/jogos-culturais-dentro-do-sistema/`: um jogo so
+ * volta a grade quando tem def em `MINIGAMES`, nasce em `montarRodada` e termina em `aoTerminar`.
+ */
 
 const habilidadeDoJogoClassico = (id: MinigameId): 'vocab' | 'escuta_fala' | 'frase_gramatica' => {
   if (id === 'memory' || id === 'wordsearch' || id === 'termo') return 'vocab';
@@ -503,8 +392,7 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
   const alternarDetalhes = () => setDetalhes((v) => { try { localStorage.setItem('babel.play.detalhes', v ? '0' : '1'); } catch { /* sem storage */ } return !v; });
   const [curando, setCurando] = useState(false);
   const [importando, setImportando] = useState(false);
-  const [jogoCulturalAtivo, setJogoCulturalAtivo] = useState<JogoAtivo>(null);
-  const [categoriaAtiva, setCategoriaAtiva] = useState<'todos' | 'classicos' | 'culturais' | 'favoritos'>('todos');
+  const [categoriaAtiva, setCategoriaAtiva] = useState<'todos' | 'classicos' | 'favoritos'>('todos');
   const [buscaJogos, setBuscaJogos] = useState('');
   const [filtroHabilidade, setFiltroHabilidade] = useState<'todas' | 'vocab' | 'escuta_fala' | 'frase_gramatica'>('todas');
   const [vendoBaralhos, setVendoBaralhos] = useState(false);
@@ -2215,40 +2103,27 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
     [jogosProntos, jogosPresos],
   );
 
-  const abrirJogoCultural = useCallback((id: NonNullable<JogoAtivo>) => {
-    triggerHaptic('soft');
-    playJuicedHit(1);
-    setJogoCulturalAtivo(id);
-  }, []);
-
   const partidaRapida = useCallback(() => {
     triggerHaptic('combo');
     playJuicedHit(2);
 
-    const classicosLiberados = listaDeJogos.filter(j => j.estado.ok);
-    const totalOpcoes = classicosLiberados.length + JOGOS_CULTURAIS.length;
-    if (totalOpcoes === 0) {
+    /* SORTEIO SO ENTRE JOGOS QUE REGISTRAM. Os nove culturais entravam aqui, entao metade das
+       partidas rapidas caia numa rodada que nao gravava nada — e a pessoa que apertou "Partida
+       Rapida" duas vezes seguidas podia jogar dez minutos sem um item no historico. */
+    const liberados = listaDeJogos.filter(j => j.estado.ok);
+    if (liberados.length === 0) {
       toast.warn(t('Nenhum jogo disponível no momento'));
       return;
     }
 
-    const sorteio = Math.floor(Math.random() * totalOpcoes);
-    if (sorteio < classicosLiberados.length) {
-      const escolhido = classicosLiberados[sorteio];
-      toast.ok(`${t('Partida rápida:')} ${tituloDoJogo(escolhido, ageProfile)}!`);
-      pedirParaJogar(escolhido);
-    } else {
-      const cultIndex = sorteio - classicosLiberados.length;
-      const escolhido = JOGOS_CULTURAIS[cultIndex];
-      toast.ok(`${t('Partida cultural rápida:')} ${escolhido.nome}!`);
-      setJogoCulturalAtivo(escolhido.id);
-    }
+    const escolhido = liberados[Math.floor(Math.random() * liberados.length)];
+    toast.ok(`${t('Partida rápida:')} ${tituloDoJogo(escolhido, ageProfile)}!`);
+    pedirParaJogar(escolhido);
   }, [listaDeJogos, ageProfile]);
 
   const buscaNormalizada = buscaJogos.trim().toLowerCase();
 
   const jogosClassicosFiltrados = useMemo(() => {
-    if (categoriaAtiva === 'culturais') return [];
     return listaDeJogos.filter(j => {
       if (categoriaAtiva === 'favoritos' && !ordem.fixados.includes(j.id)) return false;
       if (filtroHabilidade !== 'todas' && habilidadeDoJogoClassico(j.id) !== filtroHabilidade) return false;
@@ -2261,22 +2136,6 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
     });
   }, [listaDeJogos, categoriaAtiva, ordem.fixados, filtroHabilidade, buscaNormalizada, ageProfile, fonte.id]);
 
-  const jogosCulturaisFiltrados = useMemo(() => {
-    if (categoriaAtiva === 'classicos' || categoriaAtiva === 'favoritos') return [];
-    return JOGOS_CULTURAIS.filter(c => {
-      if (filtroHabilidade !== 'todas' && c.habilidade !== filtroHabilidade) return false;
-      if (buscaNormalizada) {
-        const nome = c.nome.toLowerCase();
-        const desc = c.descricao.toLowerCase();
-        const origem = c.origemCultural.toLowerCase();
-        const hab = c.habilidadeLabel.toLowerCase();
-        if (!nome.includes(buscaNormalizada) && !desc.includes(buscaNormalizada) && !origem.includes(buscaNormalizada) && !hab.includes(buscaNormalizada)) {
-          return false;
-        }
-      }
-      return true;
-    });
-  }, [categoriaAtiva, filtroHabilidade, buscaNormalizada]);
 
 
   /**
@@ -2584,38 +2443,6 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
       />
     );
   }
-  if (jogoCulturalAtivo) {
-    const itensCulturais = acervoDaFonte.map((c) => ({
-      cardId: c.id,
-      prompt: c.translation || '',
-      answer: c.word,
-      lang: fonte.lang || 'en-US',
-    }));
-    const fecharJogoCultural = () => {
-      setJogoCulturalAtivo(null);
-    };
-    const propsComuns = {
-      items: itensCulturais,
-      ageProfile,
-      onFinish: fecharJogoCultural,
-      onExit: fecharJogoCultural,
-    };
-
-    let conteudoCultural: React.ReactNode = null;
-    if (jogoCulturalAtivo === 'karuta') conteudoCultural = <KarutaGame {...propsComuns} />;
-    else if (jogoCulturalAtivo === 'koffer') conteudoCultural = <KofferGame {...propsComuns} />;
-    else if (jogoCulturalAtivo === 'choseong') conteudoCultural = <ChoseongGame {...propsComuns} />;
-    else if (jogoCulturalAtivo === 'taboo') conteudoCultural = <TabooGame {...propsComuns} />;
-    else if (jogoCulturalAtivo === 'shiritori') conteudoCultural = <ShiritoriGame {...propsComuns} />;
-    else if (jogoCulturalAtivo === 'cadavre') conteudoCultural = <CadavreExquisGame {...propsComuns} />;
-    else if (jogoCulturalAtivo === 'bao') conteudoCultural = <BaoGame {...propsComuns} />;
-    else if (jogoCulturalAtivo === 'tennis') conteudoCultural = <TenseTennisGame {...propsComuns} />;
-    else if (jogoCulturalAtivo === 'vitendawili') conteudoCultural = <VitendawiliGame {...propsComuns} />;
-
-    if (conteudoCultural) {
-      return telaCheia(conteudoCultural);
-    }
-  }
   if (vendoMapa) {
     /* Os itens do mapa saem da MESMA fonte que alimenta a rodada — se saíssem de outro lugar, o
        mapa e o jogo falariam de conjuntos diferentes, que é exatamente o defeito que a barra da
@@ -2747,7 +2574,7 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
                 {ageProfile === 'senior' ? t('Praticar jogando') : t('Jogar & Praticar')}
               </h1>
               <span className="kpi-pill text-[10.5px] font-extrabold uppercase tracking-wider text-accent border-accent/30 bg-accent-soft/60">
-                {jogosProntos.length + JOGOS_CULTURAIS.length} {t('Jogos')}
+                {jogosProntos.length} {t('Jogos')}
               </span>
             </div>
             <p className="text-[13px] text-ink-muted mt-1 max-w-[65ch]">
@@ -3274,9 +3101,8 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
           <div className="flex items-center justify-between gap-3 mb-3 flex-wrap">
             <div className="flex items-center gap-1.5 p-1 bg-surface border border-border-subtle rounded-xl overflow-x-auto custom-scrollbar" role="tablist" aria-label={t('Categorias de jogos')}>
               {[
-                { id: 'todos' as const, label: t('Todos'), icon: <Sparkles className="w-3.5 h-3.5" />, total: jogosProntos.length + JOGOS_CULTURAIS.length },
+                { id: 'todos' as const, label: t('Todos'), icon: <Sparkles className="w-3.5 h-3.5" />, total: jogosProntos.length },
                 { id: 'classicos' as const, label: t('Clássicos'), icon: <Zap className="w-3.5 h-3.5" />, total: jogosProntos.length },
-                { id: 'culturais' as const, label: t('Jogos do Mundo'), icon: <Globe className="w-3.5 h-3.5" />, total: JOGOS_CULTURAIS.length },
                 { id: 'favoritos' as const, label: t('Favoritos'), icon: <Pin className="w-3.5 h-3.5" />, total: ordem.fixados.length },
               ].map(cat => {
                 const ativo = categoriaAtiva === cat.id;
@@ -3589,83 +3415,8 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
               );
             })}
 
-            {/* Separador dos Jogos Culturais na visualização "Todos" */}
-            {categoriaAtiva === 'todos' && jogosClassicosFiltrados.length > 0 && jogosCulturaisFiltrados.length > 0 && (
-              <li className="col-span-full list-none mt-6 mb-2 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 border-t border-border-subtle pt-6">
-                <div>
-                  <h3 className="font-display font-black text-[16px] text-ink flex items-center gap-2">
-                    <Globe className="w-4 h-4 text-accent" /> {t('Jogos do Mundo & Inovações Culturais')}
-                  </h3>
-                  <p className="text-[12.5px] text-ink-muted mt-0.5 max-w-[65ch]">
-                    {t('Minigames baseados em ricas tradições mundiais (Karuta, Mancala, Shiritori, Cadavre Exquis e mais), 100% integrados com Game Feel.')}
-                  </p>
-                </div>
-                <span className="kpi-pill text-[11px] font-bold self-start sm:self-auto">{jogosCulturaisFiltrados.length} {t('jogos')}</span>
-              </li>
-            )}
-
-            {/* Cards dos Jogos Culturais */}
-            {jogosCulturaisFiltrados.map((cult) => (
-              <li key={cult.id} className="contents">
-                <div
-                  className="card-panel bg-surface text-start flex flex-col overflow-hidden transition-all relative group hover:border-accent hover:-translate-y-1 hover:shadow-card"
-                >
-                  <div
-                    className="w-full aspect-[16/7] border-b border-border-subtle overflow-hidden relative p-3 flex flex-col justify-between"
-                    style={{ background: `color-mix(in srgb, ${cult.tom} 12%, var(--canvas))` }}
-                  >
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-surface/90 text-ink text-[11px] font-bold shadow-xs backdrop-blur-xs">
-                        <span>{cult.bandeira}</span>
-                        <span>{cult.origemCultural}</span>
-                      </span>
-                      <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-accent text-white text-[10.5px] font-mono font-bold tracking-tight shadow-xs">
-                        {cult.nivelCefr}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-surface/80 text-ink-muted text-[10.5px] font-medium backdrop-blur-xs">
-                        <Sparkles className="w-3 h-3 text-accent" />
-                        {cult.habilidadeLabel}
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className="p-4 flex flex-col flex-1 gap-2">
-                    <div className="flex items-start justify-between gap-2">
-                      <h3 className="font-display font-black text-[15px] text-ink leading-tight">
-                        <button
-                          type="button"
-                          onClick={() => abrirJogoCultural(cult.id)}
-                          className="text-start font-bold cursor-pointer text-ink group-hover:text-accent transition-colors after:absolute after:inset-0 focus-visible:outline-2 focus-visible:outline-accent"
-                        >
-                          {cult.nome}
-                        </button>
-                      </h3>
-                      <span className="relative z-10 w-7 h-7 rounded-lg bg-surface border border-border-subtle flex items-center justify-center text-ink-muted group-hover:text-accent group-hover:border-accent/40 transition-colors">
-                        <Gamepad2 className="w-4 h-4" />
-                      </span>
-                    </div>
-
-                    <p className="text-[12.5px] text-ink-muted leading-snug flex-1">
-                      {cult.descricao}
-                    </p>
-
-                    <div className="pt-2 border-t border-border-subtle/60 flex items-center justify-between text-[11.5px] mt-auto">
-                      <span className="text-good-ink font-semibold flex items-center gap-1">
-                        <Check className="w-3.5 h-3.5" /> {t('100% Funcional')}
-                      </span>
-                      <span className="relative z-10 font-bold text-accent group-hover:underline flex items-center gap-1">
-                        {t('Jogar')} <ChevronRight className="w-3.5 h-3.5" />
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              </li>
-            ))}
-
             {/* Estado Vazio de Busca */}
-            {jogosClassicosFiltrados.length === 0 && jogosCulturaisFiltrados.length === 0 && (
+            {jogosClassicosFiltrados.length === 0 && (
               <li className="col-span-full list-none py-12 text-center flex flex-col items-center gap-3">
                 <div className="w-12 h-12 rounded-2xl bg-surface border border-border-subtle flex items-center justify-center text-ink-faint">
                   <Search className="w-6 h-6" />

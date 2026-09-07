@@ -1,12 +1,12 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { X, Sparkles, Wand2, Volume2, BookOpen, Shuffle, Check, ArrowRight, Theater, Plus, Palette, RotateCcw, Lightbulb } from 'lucide-react';
 import type { MinigameItem, ItemOutcome, RoundReport } from '@core';
-import type { AgeProfileType } from '../../lib/profile';
-import { play } from '../../lib/soundFx';
-import { comemorar, tremor, flashDeTela, pulsoDeZoom } from '../../lib/juice';
-import { emitBurst } from '../../lib/effects';
-import { speak } from '../../lib/tts';
-import { playJuicedHit, playJuicedVictory, triggerConfetti, calculateMultiplier } from '../../lib/gameFeel';
+import type { AgeProfileType } from '../../../lib/profile';
+import { play } from '../../../lib/soundFx';
+import { comemorar, tremor, flashDeTela, pulsoDeZoom } from '../../../lib/juice';
+import { emitBurst } from '../../../lib/effects';
+import { speak } from '../../../lib/tts';
+import { playJuicedHit, playJuicedVictory, triggerConfetti, calculateMultiplier } from '../../../lib/gameFeel';
 
 /**
  * CADAVRE EXQUIS — Laboratório Surrealista de Frases e Sintaxe (Cadavre Exquis 🇫🇷).

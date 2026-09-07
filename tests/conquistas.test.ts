@@ -77,7 +77,10 @@ describe('cliente: crédito antes da posse', () => {
     const { verificarConquistas } = await import('../src/lib/conquistas')
     const feitas = await verificarConquistas(ctx({ sessions: 1 }))
     expect(feitas.map((c) => c.id)).toEqual(['primeira-captura'])
-    expect(creditar).toHaveBeenCalledWith(expect.objectContaining({ creditoId: 'conquista-primeira-captura', amount: 25 }))
+    /* O CORPO É SÓ O `creditoId`. `amount` e `xp` saíram da chamada em 07/09: quem decide quanto
+       vale é `valorDoCredito`, no servidor. Enquanto o valor viajava daqui, este teste provava
+       que o cliente mandava o número certo — e o que importava era ele não mandar número nenhum. */
+    expect(creditar).toHaveBeenCalledWith({ creditoId: 'conquista-primeira-captura' })
     expect(conquistasDesbloqueadas().has('primeira-captura')).toBe(true)
     // segunda avaliação: nada novo, nada creditado de novo
     expect(await verificarConquistas(ctx({ sessions: 1 }))).toEqual([])

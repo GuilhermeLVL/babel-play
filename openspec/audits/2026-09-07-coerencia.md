@@ -23,6 +23,14 @@ A primeira change foi executada com a saida (b): a camada nao rastreada foi comm
 | A17 (filtro) | `filtro-facetado-chega-ao-servidor` (`ce36b2e`) | O filtro facetado viaja na query (POST acima de 6 KB) e o servidor o aplica |
 | A64 (spec) | `spec-vigente-do-codigo` (`4ec1b29`) | `openspec/specs/` descreve o produto como ele e; 17 changes arquivadas |
 | A38, A39, A65 (i18n) | `idioma-alvo-e-ui-respeitados` | Um campo por eixo (migracao `0023`), seletor de interface com lista derivada da cobertura medida, niveis CEFR por idioma no servidor, reguas de texto declarando o que nao sabem medir, `lang` obrigatorio no TTS, piso de cobertura no CI |
+| A22, A44, A47 (jogos culturais) | `jogos-culturais-dentro-do-sistema` (`21c52ce`) | Os 9 saem da grade ate serem integrados; `MinigamesShowcase` removido |
+| A08, A09, A10 (replica) | `replica-sem-estado-local-e-config-completa` (`8d65ecf`) | Chave e diario fora do cwd, falhas de boot no banco, 55 variaveis declaradas |
+| A23, A25 (contratos) | `contratos-alinhados-nas-tres-pontas` (`cf5e01b`) | Envelope de erro unico, procedencia preservada, teste de forma nas tres pontas |
+| A12, A13 (posse) | `posse-de-cosmeticos-uma-regua` (`bc59b36`) | Uma regua de posse; `PUT /api/settings` recusa item nao possuido |
+| A45, A53 (duplicatas) | `servicos-sem-duplicata` (`9189772`) | Cliente LLM unico, limitadores separados, rota de resultado por item removida |
+| A57, A58 (performance) | `arranque-leve-e-payloads-enxutos` (`75b0aa2`) | `/profile` 95 ms para 43 ms p50; refetch de 2,17 MB por rodada eliminado |
+| A24 (dedup) | `modo-anonimo-em-paridade` (parcial, `f794a39`) | Uma `chaveDedup` para as duas pontas; 501 deixa de virar erro de tela |
+| A03, A14, A18, A26 (economia) | `seeds-e-creditos-fonte-unica` | `valorDoCredito` decide TODO credito nas duas pontas; gasto atomico dentro do INSERT; coluna `combo`; `capturaMinutos` e `idiomas` no perfil; 22 linhas historicas reconciliadas (2.923 para 2.004 Seeds) |
 
 Os numeros do relatorio abaixo sao os da medicao original (07/09), preservados: o valor de uma auditoria e o retrato do dia em que foi feita.
 

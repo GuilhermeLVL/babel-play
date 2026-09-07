@@ -128,11 +128,33 @@ describe('anônimo sem rede', () => {
     expect(hist.find((h) => h.itemRef === 'hello')).toMatchObject({ vezes: 1, erros: 1, ultimoAcerto: false })
     const rec = await api.fetchRecordes({ origem: 'baralho' })
     expect(rec).toEqual([{ exerciseKind: 'termo', melhorPontos: 80, melhorEm: expect.any(Number), rodadas: 1, melhorCombo: expect.any(Number), precisao: expect.any(Number), ultimaEm: expect.any(Number) }])
-    const a = await api.gastarSeeds({ spendId: 'compra-0001', amount: 5, reason: 'dica' })
-    const b = await api.gastarSeeds({ spendId: 'compra-0001', amount: 5, reason: 'dica' })
-    expect(a).toMatchObject({ jaExistia: false, seedsGastas: 5 })
-    expect(b).toMatchObject({ jaExistia: true, seedsGastas: 5 })
-    expect((await api.fetchMetrics())!.seedsGastas).toBe(5)
+    /**
+     * O GASTO SEM CONTA PASSOU A TER A MESMA RÉGUA DA CONTA LOGADA (07/09).
+     *
+     * Este trecho gastava 5 Seeds com `reason: 'dica'` — um motivo que não existe em catálogo
+     * nenhum — e o modo sem conta gravava. Como a POSSE é derivada do razão, era por aí que
+     * `{amount: 1, reason: 'loja:tema-custom'}` entregava o lendário de 600 Seeds por 1. O Express
+     * tinha fechado isso em 01/09; aqui ficou aberto, e este acervo MIGRA para a conta.
+     */
+    expect(await api.gastarSeeds({ spendId: 'compra-0001', amount: 5, reason: 'dica' })).toBeNull()
+
+    /* Para gastar é preciso ter. Duas rodadas perfeitas de 20 itens = 50 Seeds (20 acertos + 5 de
+       rodada perfeita, cada uma), que é o que paga um "pular rodada" de 40. */
+    for (const r of ['r2', 'r3']) {
+      await api.salvarRodada({
+        roundId: r, exerciseKind: 'termo', origem: 'baralho', score: 100,
+        itens: Array.from({ length: 20 }, (_, i) => ({ itemRef: `w${i}`, correct: 1, attempts: 1, ms: 500 })),
+      })
+    }
+    const a = await api.gastarSeeds({ spendId: 'compra-0001', amount: 40, reason: 'pular-rodada' })
+    const b = await api.gastarSeeds({ spendId: 'compra-0001', amount: 40, reason: 'pular-rodada' })
+    expect(a).toMatchObject({ jaExistia: false, seedsGastas: 40 })
+    /* O REENVIO NÃO COBRA DE NOVO nem pede saldo — depois do primeiro gasto não sobram 40. */
+    expect(b).toMatchObject({ jaExistia: true, seedsGastas: 40 })
+    expect((await api.fetchMetrics())!.seedsGastas).toBe(40)
+
+    /* E o que não cabe no saldo é recusado, como no servidor real. */
+    expect(await api.gastarSeeds({ spendId: 'compra-0002', amount: 40, reason: 'pular-rodada' })).toBeNull()
   })
 
   it('o plano do anônimo é "sem conta", tudo fechado', async () => {

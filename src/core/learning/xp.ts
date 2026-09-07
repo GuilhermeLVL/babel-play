@@ -16,6 +16,8 @@
  * um livro-razão quando não existe.
  */
 
+import type { AppMetrics } from './contract';
+
 /** Peso de cada esforço real em XP. Explícito de propósito: a regra tem de ser auditável. */
 export const PESOS_XP = {
   sessao: 25,
@@ -160,4 +162,65 @@ export function posicaoNoNivel(xp: number): PosicaoNoNivel {
     xpForLevel,
     levelPct: xpForLevel > 0 ? Math.min(100, Math.round((xpIntoLevel / xpForLevel) * 100)) : 0,
   };
+}
+
+/* ────────────────────────────────────────────────────────────────────────────
+ * A DERIVAÇÃO ÚNICA: métricas → eventos → XP, nível e saldo.
+ * ──────────────────────────────────────────────────────────────────────────── */
+
+/**
+ * O MESMO MAPEAMENTO, ESCRITO UMA VEZ.
+ *
+ * Ele existia três vezes, campo a campo, com os mesmos treze `?? 0`: no cliente
+ * (`src/lib/progress.ts`), no servidor (`economiaDoUsuario`) e implicitamente na cabeça de quem
+ * fosse escrever o terceiro. Enquanto ninguém acrescentava evento, as três cópias concordavam —
+ * o dia em que alguém acrescentar é o dia em que o saldo da tela deixa de bater com o saldo que
+ * o servidor cobra, e o sintoma aparece longe da causa.
+ *
+ * Não é economia de linhas: é o que permite ao MODO SEM CONTA (`src/data/efemero/servidor.ts`)
+ * decidir um crédito com a mesma régua da conta logada, sem uma quarta cópia.
+ */
+export function eventosDeMetricas(m: AppMetrics): EventosDeXp {
+  return {
+    sessoes: m.sessions,
+    palavrasCapturadas: m.wordsCaptured,
+    revisoes: m.reviews,
+    revisoesCertas: m.correctReviews,
+    itensDeJogo: m.drillItems ?? 0,
+    itensDeJogoCertos: m.drillCorrect ?? 0,
+    presencas: m.presencas ?? 0,
+    sequencias7: m.sequencias7 ?? 0,
+    capturaMinutosPremiados: m.capturaMinutosPremiados ?? 0,
+    cartoesCriados: m.deckSize ?? 0,
+    rodadasPerfeitas: m.rodadasPerfeitas ?? 0,
+    xpCreditado: m.xpCreditado ?? 0,
+    seedsCreditadas: m.seedsCreditadas ?? 0,
+  };
+}
+
+/** O que se pode dizer sobre a economia de alguém a partir só das métricas dele. */
+export interface EconomiaDerivada {
+  xp: number;
+  nivel: number;
+  /** Seeds já ganhas (só cresce). */
+  ganhas: number;
+  /** Seeds já gastas — vem do LOG de gastos, não de métrica: gasto é evento. */
+  gastas: number;
+  /** `ganhas - gastas`, com piso em zero. */
+  saldo: number;
+}
+
+/**
+ * XP, NÍVEL E SALDO a partir das métricas. As três pontas chamam esta função.
+ *
+ * O piso em zero do saldo não é cosmético: um gasto gravado antes de a fórmula mudar poderia, em
+ * tese, passar do ganho, e um saldo negativo travaria a conta inteira em vez de apenas mostrar um
+ * número feio.
+ */
+export function economiaDeMetricas(m: AppMetrics): EconomiaDerivada {
+  const eventos = eventosDeMetricas(m);
+  const xp = xpDeEventos(eventos);
+  const ganhas = seedsGanhasDeEventos(eventos);
+  const gastas = m.seedsGastas ?? 0;
+  return { xp, nivel: nivelDoXp(xp), ganhas, gastas, saldo: Math.max(0, ganhas - gastas) };
 }

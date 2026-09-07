@@ -1,5 +1,6 @@
 import { CATALOGO_DA_LOJA, type ItemDaLoja, type Raridade } from './loja'
 import { CONQUISTAS, type Conquista } from './learning/conquistas'
+import { slotsDoPasse, type SlotDoPasse } from './passe'
 
 /**
  * A TABELA DE PREÇOS QUE O SERVIDOR CONSULTA.
@@ -130,30 +131,96 @@ export function conquistaDoCreditoId(creditoId: string): Conquista | null {
   return CONQUISTAS.find((c) => c.id === id) ?? null
 }
 
-/** O cofre do passe: `passe:<temporada>:cofre-d<N>-<K>`, com a quantia vindo da curva. */
-export function seedsDoCofreDoPasse(creditoId: string, quantiaPorDecada: readonly number[]): number | null {
-  const m = /^passe:[a-z0-9]+:cofre-d(\d{1,2})-\d+$/.exec(creditoId)
-  if (!m) return null
-  const decada = Number(m[1])
-  const q = quantiaPorDecada[decada]
-  return typeof q === 'number' && q > 0 ? q : null
+/**
+ * O QUE UM `creditoId` VALE — a metade que faltava da autoridade.
+ *
+ * O GASTO já era decidido aqui desde 01/09 (`autorizarGasto`); o CRÉDITO só conhecia uma família,
+ * a de conquista. As outras — os cofres do passe — chegavam ao servidor e levavam 400 "crédito
+ * desconhecido" (`server/routes/metrics.ts`), com dois efeitos medidos na auditoria de 07/09:
+ * a tela do passe repetia o pedido a cada montagem e nunca marcava o baú, e as 36 linhas
+ * `passe:t1:*` que existiam no banco tinham entrado ANTES do endurecimento, com o valor que o
+ * cliente mandou (10 a 172 Seeds, 2.472 no total).
+ *
+ * `seedsDoCofreDoPasse` foi escrita para isto e nunca teve chamador. Ela também pedia a curva
+ * (`quantiaPorDecada`) por parâmetro, o que reabria a mesma porta pelo lado de dentro: quem
+ * chamasse com outra curva creditava outro valor. Aqui a curva não se passa — ela se LÊ, de
+ * `slotsDoPasse()`, que é a mesma função que desenha o trilho na tela. Um cofre vale o que a tela
+ * mostra porque é literalmente o mesmo número.
+ */
+
+/** O que um crédito autorizado entrega, e o que ele exige para valer. */
+export interface CreditoAutorizado {
+  creditoId: string
+  seeds: number
+  xp: number
+  /** O que vai para `seed_credits.reason` — a coluna de onde a posse é derivada. */
+  reason: string
+  /** Nível do app exigido. 0 = sem exigência (a conquista traz a sua própria condição). */
+  nivelMinimo: number
+  /** Presente só na família de conquista: quem confere a condição precisa dela. */
+  conquista?: Conquista
+}
+
+/* Índice dos cofres por `creditoId`, montado uma vez. `slotsDoPasse()` percorre o catálogo
+   inteiro e é determinística — chamá-la a cada crédito seria trabalho repetido para o mesmo
+   resultado. */
+let cofresPorId: Map<string, Extract<SlotDoPasse, { tipo: 'seeds' }>> | null = null
+function cofreDoPasse(creditoId: string) {
+  if (!cofresPorId) {
+    cofresPorId = new Map()
+    for (const s of slotsDoPasse()) if (s.tipo === 'seeds') cofresPorId.set(s.creditoId, s)
+  }
+  return cofresPorId.get(creditoId)
 }
 
 /**
- * AS CONQUISTAS QUE O SERVIDOR SABE CONFERIR HOJE.
+ * O VALOR DE UM CRÉDITO, decidido pela regra — nunca pelo corpo do pedido.
  *
- * Onze das catorze dependem só de `metricas`, do nível ou do número de compras — tudo que
- * `computeProfile` já devolve. As três de fora dependem de estado que só o navegador tem:
- * `colecionador` (eventos raros vistos), `poliglota` (idiomas distintos) e `duelista` (melhor
- * combo por jogo).
+ * Devolve a recusa em vez de lançar, pelo mesmo motivo de `autorizarGasto`: quem chama precisa
+ * responder 400 com um motivo legível, e não engolir uma exceção.
  *
- * Para essas três o servidor credita o valor CORRETO da regra sem conferir a condição. A exposição
- * é limitada e mensurável: as catorze conquistas somam 860 Seeds e 930 XP, uma vez cada
- * (idempotente por `creditoId`) — cerca de dez dias de jogo legítimo. Antes desta mudança o mesmo
- * endpoint cunhava 1,2 milhão de Seeds por minuto. Fechá-las de vez exige levar recordes e eventos
- * raros para o servidor, que é trabalho de outra mudança.
+ * A conferência de NÍVEL fica com o chamador (é ele que sabe o nível: o servidor calcula de
+ * `computeProfile`, o modo sem conta de `economiaDeMetricas`). O que esta função garante é que
+ * ninguém precise adivinhar QUAL nível exigir.
+ */
+export function valorDoCredito(creditoId: string): CreditoAutorizado | RecusaDeGasto {
+  const conquista = conquistaDoCreditoId(creditoId)
+  if (conquista) {
+    return {
+      creditoId,
+      seeds: conquista.recompensa.seeds,
+      xp: conquista.recompensa.xp,
+      reason: `conquista:${conquista.id}`,
+      nivelMinimo: 0,
+      conquista,
+    }
+  }
+
+  const cofre = cofreDoPasse(creditoId)
+  if (cofre) {
+    /* A década N do passe é o nível N do app (`slotDestravado`). Sem esta linha, o crédito do
+       cofre da década 10 sairia no nível 1 — e ele vale 172 Seeds. */
+    return { creditoId, seeds: cofre.quantidade, xp: 0, reason: `passe:${creditoId.split(':')[1]}`, nivelMinimo: cofre.decada }
+  }
+
+  return { erro: `crédito desconhecido: ${creditoId.slice(0, 40)}` }
+}
+
+/**
+ * AS CONQUISTAS QUE O SERVIDOR SABE CONFERIR.
+ *
+ * Treze das catorze dependem só de `metricas`, do nível, dos recordes ou do número de compras —
+ * tudo que o servidor mede. `poliglota` e `duelista` entraram nesta lista em 07/09, quando
+ * `computeProfile` passou a emitir `idiomas` e `exercise_results` passou a guardar o combo da
+ * rodada; até então elas não podiam ser conferidas porque o dado não existia no banco, e não
+ * porque a condição fosse subjetiva.
+ *
+ * A que sobra é `colecionador`, que conta eventos raros vistos — estado que só o navegador tem.
+ * Para ela o servidor credita o valor CORRETO da regra sem conferir a condição. A exposição é de
+ * 100 Seeds e 120 XP, uma vez (idempotente por `creditoId`); antes desta família de mudanças o
+ * mesmo endpoint cunhava 1,2 milhão de Seeds por minuto.
  */
 export const CONQUISTAS_CONFERIVEIS: ReadonlySet<string> = new Set([
   'primeira-captura', 'ouvinte', 'caderno-cheio', 'revisor', 'sem-erro', 'perfeccionista',
-  'maratonista', 'constante', 'cliente', 'nivel-5', 'nivel-10',
+  'maratonista', 'constante', 'cliente', 'nivel-5', 'nivel-10', 'poliglota', 'duelista',
 ])

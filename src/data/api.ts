@@ -895,10 +895,6 @@ export async function registrarPresenca(dia: number): Promise<{ jaExistia: boole
 }
 
 /**
- * Credita Seeds/XP avulsos (conquistas). Idempotente por `creditoId`, como `gastarSeeds`.
- * `null` em falha: quem chamou NÃO marca a conquista — senão seria "conquistada sem as Seeds".
- */
-/**
  * GASTA CRÉDITOS — a moeda comprada com dinheiro.
  *
  * Gêmeo de `gastarSeeds`, e o contrato é o mesmo: `spendId` é a chave de idempotência, e o
@@ -927,11 +923,17 @@ export async function gastarCreditos(payload: { spendId: string; amount: number;
   return (await r.json()) as { jaExistia: boolean; gasto: number; saldo: number };
 }
 
+/**
+ * Credita Seeds/XP de um evento — conquista ou cofre do passe. Idempotente por `creditoId`.
+ *
+ * O CORPO É SÓ O `creditoId`. `amount`, `xp` e `reason` saíram: quem decide quanto vale é
+ * `valorDoCredito`, no servidor (e, sem conta, no servidor efêmero, com a mesma função). Enquanto
+ * o valor vinha daqui, o cliente era a autoridade sobre a própria moeda.
+ *
+ * `null` em falha — quem chamou NÃO marca a conquista, senão seria "conquistada sem as Seeds".
+ */
 export async function creditarSeeds(input: {
   creditoId: string
-  amount: number
-  xp?: number
-  reason: string
 }): Promise<{ jaExistia: boolean; seedsCreditadas: number; xpCreditado: number } | null> {
   try {
     const res = await apiFetch('/api/metrics/seeds/creditar', {
@@ -946,19 +948,11 @@ export async function creditarSeeds(input: {
   }
 }
 
-/** O melhor placar já feito num jogo, numa fonte. Chave = `exerciseKind`. */
-export interface RecordeDoJogo {
-  exerciseKind: string
-  melhorPontos: number
-  melhorEm: number
-  /** Rodadas DISTINTAS já jogadas — `score` é gravado por item, então contar linhas mentiria. */
-  rodadas: number
-  /** Combo máximo já alcançado no jogo (0 quando as rodadas antigas não gravavam isso). */
-  melhorCombo?: number
-  /** % de acerto entre todos os itens respondidos, ou null sem itens. */
-  precisao?: number | null
-  ultimaEm?: number
-}
+/* `RecordeDoJogo` era declarado AQUI e outra vez em `server/db/repositories/exerciseResults.ts`,
+   com campos diferentes: esta cópia tinha `melhorCombo`, a do servidor não — e o servidor era quem
+   respondia. Agora o tipo é um só, no core, e as duas pontas o importam. */
+export type { RecordeDoJogo } from '../core/learning/contract'
+import type { RecordeDoJogo } from '../core/learning/contract'
 
 /**
  * Os recordes por jogo. Mesma postura defensiva de `fetchHistoricoDeItens`: `[]` em qualquer

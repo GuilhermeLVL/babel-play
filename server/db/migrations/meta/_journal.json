@@ -176,6 +176,13 @@
       "when": 1788808605527,
       "tag": "0024_falhas_de_boot_no_banco",
       "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "6",
+      "when": 1788818000000,
+      "tag": "0025_combo_da_rodada",
+      "breakpoints": true
     }
   ]
 }

@@ -11,7 +11,7 @@ import { retrievability } from '../../../src/core/learning/scheduler'
 import { diaLocal, sequencias, marcosDeSequencia, minutosPremiados } from '../../../src/core/learning/economia'
 import { MINIGAMES } from '../../../src/core/minigames/types'
 import { economiaRepo } from './economia'
-import { xpDeEventos, nivelDoXp, seedsGanhasDeEventos, type EventosDeXp } from '../../../src/core/learning/xp'
+import { xpDeEventos, nivelDoXp, economiaDeMetricas, type EventosDeXp } from '../../../src/core/learning/xp'
 import type { AppMetrics } from '../../../src/core/learning/contract'
 import { seedSpendsRepo } from './seedSpends'
 import type { UserId } from '../../lib/authContext'
@@ -56,6 +56,9 @@ export async function computeProfile(userId: UserId, opts: OpcoesDePerfil = {}):
       createdAt: sessions.createdAt,
       wordCount: sessions.wordCount,
       durationMs: sessions.durationMs,
+      /* Uma coluna a mais na varredura que já acontecia — é o que a conquista "Poliglota"
+         precisava, e ela nunca disparava na conta logada por falta deste dado. */
+      sourceLang: sessions.sourceLang,
     }).from(sessions).where(and(eq(sessions.userId, userId), isNull(sessions.deletedAt))),
     /* `vocab_cards` tem 34 colunas e o perfil lê treze. As que ficam de fora incluem `sentence`,
        `cloze_prompt` e `cloze_answer` — frases inteiras, por cartão, em todo o acervo. */
@@ -280,13 +283,24 @@ export async function computeProfile(userId: UserId, opts: OpcoesDePerfil = {}):
   // Minutos de captura por DIA LOCAL — o teto diário vive no core (`minutosPremiados`), e é ele
   // que impede uma gravação de oito horas de virar Seeds de oito horas.
   const minutosPorDia = new Map<number, number>()
+  /* DOIS números, e não um: o PREMIADO paga Seeds (com teto diário) e o TOTAL é o que a conquista
+     "Ouvinte" conta ("some 60 minutos de sessão gravada"). O servidor emitia só o premiado, então
+     `m.capturaMinutos` chegava indefinido a `progresso()` e a conquista ficava presa em zero para
+     sempre — quem gravasse 60 minutos num dia só via o teto diário engolir a diferença. */
+  let capturaMinutos = 0
   for (const x of sess) {
     const min = (x.durationMs ?? 0) / 60_000
     if (min <= 0) continue
+    capturaMinutos += min
     const d = diaLocal(x.createdAt)
     minutosPorDia.set(d, (minutosPorDia.get(d) ?? 0) + min)
   }
   const capturaMinutosPremiados = Math.floor(minutosPremiados(minutosPorDia.values()))
+
+  /* Idiomas distintos das sessões — a conquista "Poliglota". Mesma conta do modo sem conta
+     (`src/data/efemero/servidor.ts`): `sourceLang` não nulo, contado uma vez. `sess` já está
+     escopado, então dentro de uma sessão o número é 1, que é a resposta certa. */
+  const idiomas = new Set(sess.map((x) => x.sourceLang).filter((l): l is string => !!l)).size
 
   /* Rodada perfeita = todos os itens certos E tamanho ≥ mínimo do jogo. Sem o piso, uma rodada de
      um item só viraria fábrica de "perfeitas" — e cada uma vale 5 Seeds e 15 XP. */
@@ -336,7 +350,9 @@ export async function computeProfile(userId: UserId, opts: OpcoesDePerfil = {}):
     xpCreditado,
     presencas: diasDePresenca.length,
     sequencias7,
+    capturaMinutos: Math.round(capturaMinutos),
     capturaMinutosPremiados,
+    idiomas,
     rodadasPerfeitas,
     streakPresenca: seqPresenca.atual,
     maiorSequenciaPresenca: seqPresenca.maior,
@@ -517,24 +533,9 @@ export async function economiaDoUsuario(userId: UserId): Promise<{
   metricas: AppMetrics; nivel: number; ganhas: number; gastas: number; saldo: number
 }> {
   const m = await computeProfile(userId)
-  const eventos: EventosDeXp = {
-    sessoes: m.sessions,
-    palavrasCapturadas: m.wordsCaptured,
-    revisoes: m.reviews,
-    revisoesCertas: m.correctReviews,
-    itensDeJogo: m.drillItems ?? 0,
-    itensDeJogoCertos: m.drillCorrect ?? 0,
-    presencas: m.presencas ?? 0,
-    sequencias7: m.sequencias7 ?? 0,
-    capturaMinutosPremiados: m.capturaMinutosPremiados ?? 0,
-    cartoesCriados: m.deckSize ?? 0,
-    rodadasPerfeitas: m.rodadasPerfeitas ?? 0,
-    xpCreditado: m.xpCreditado ?? 0,
-    seedsCreditadas: m.seedsCreditadas ?? 0,
-  }
-  const ganhas = seedsGanhasDeEventos(eventos)
-  const gastas = m.seedsGastas ?? 0
-  /* Piso em zero pelo mesmo motivo do cliente: um gasto gravado antes de a fórmula mudar poderia,
-     em tese, passar do ganho — e aí o piso é o que impede um saldo negativo de travar a conta. */
-  return { metricas: m, nivel: nivelDoXp(xpDeEventos(eventos)), ganhas, gastas, saldo: Math.max(0, ganhas - gastas) }
+  /* O mapeamento métrica → evento vive no core (`economiaDeMetricas`). Ele estava escrito aqui e
+     de novo em `src/lib/progress.ts`, campo a campo — duas cópias que concordavam só enquanto
+     ninguém acrescentasse um evento. */
+  const { nivel, ganhas, gastas, saldo } = economiaDeMetricas(m)
+  return { metricas: m, nivel, ganhas, gastas, saldo }
 }

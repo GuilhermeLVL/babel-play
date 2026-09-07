@@ -19,6 +19,8 @@ import { abrirStore, type CartaoLocal, type ExercicioLocal, type FalaLocal, type
 import { Fsrs5Strategy, type Grade, type SchedulingState } from '../../core/learning/scheduler';
 import type { AppMetrics } from '../../core/learning/contract';
 import { diaLocal, marcosDeSequencia, minutosPremiados, sequencias } from '../../core/learning/economia';
+import { economiaDeMetricas } from '../../core/learning/xp';
+import { valorDoCredito, autorizarGasto, ehRecusa } from '../../core/economiaAutoridade';
 import { MINIGAMES } from '../../core/minigames/types';
 import { estadoDoTeto, motivoDoTeto } from '../../core/tetoAnonimo';
 
@@ -489,17 +491,42 @@ async function recordes(_m: RegExpMatchArray, url: URL): Promise<Response> {
   })));
 }
 
+/**
+ * GASTA SEEDS — com o preço do catálogo, como no Express.
+ *
+ * O `amount` do corpo era gravado como veio, e a POSSE é derivada do razão (`reason LIKE
+ * 'loja:%'`, ver `itensComprados` logo acima): `{amount: 1, reason: 'loja:tema-custom'}` entregava
+ * o lendário de 600 Seeds por 1. O Express fechou isso em 01/09 com `autorizarGasto`; aqui ficou
+ * aberto, e o acervo do modo sem conta MIGRA para a conta.
+ *
+ * O saldo também é conferido, pelo mesmo motivo do servidor real: o único guarda era o botão
+ * desabilitado na tela, e um cliente adulterado não tem botão.
+ */
 async function gastarSeeds(_m: RegExpMatchArray, _u: URL, init: RequestInit): Promise<Response> {
   const p = lerJson(init);
   const spendId = str(p.spendId);
+  if (!spendId) return json({ error: 'spendId é obrigatório' }, 400);
+
+  const autorizacao = autorizarGasto(str(p.reason) ?? '');
+  if (ehRecusa(autorizacao)) return json({ error: autorizacao.erro, code: 'motivo_desconhecido' }, 400);
+
   const amount = num(p.amount);
-  if (!spendId || amount === null || amount <= 0) return json({ error: 'spendId e amount são obrigatórios' }, 400);
+  if (amount !== null && amount !== autorizacao.preco) {
+    return json({ error: 'preço divergente do catálogo', code: 'preco_divergente', codigo: 'preco_divergente', detalhes: { preco: autorizacao.preco } }, 400);
+  }
+
   const db = await abrirStore();
   const existente = await db.get('gastos', spendId);
   const jaExistia = !!existente;
-  if (!jaExistia) await db.put('gastos', { spendId, amount, reason: str(p.reason) ?? '', ref: str(p.ref), createdAt: Date.now() });
+  if (!jaExistia) {
+    const { saldo } = economiaDeMetricas(await perfilEfemero(null));
+    if (saldo < autorizacao.preco) {
+      return json({ error: 'saldo insuficiente', code: 'saldo_insuficiente', codigo: 'saldo_insuficiente', detalhes: { falta: autorizacao.preco - saldo, saldo, preco: autorizacao.preco } }, 402);
+    }
+    await db.put('gastos', { spendId, amount: autorizacao.preco, reason: str(p.reason) ?? '', ref: str(p.ref), createdAt: Date.now() });
+  }
   const total = (await db.getAll('gastos')).reduce((n, g) => n + g.amount, 0);
-  return json({ jaExistia, gasto: existente?.amount ?? amount, seedsGastas: total });
+  return json({ jaExistia, gasto: existente?.amount ?? autorizacao.preco, seedsGastas: total });
 }
 
 /* ── ECONOMIA v2 (2026-08-28) ── */
@@ -516,26 +543,57 @@ async function registrarPresenca(_m: RegExpMatchArray, _u: URL, init: RequestIni
   return json({ jaExistia, dia, streakPresenca: atual });
 }
 
-/** Crédito avulso (conquista): idempotente por `creditoId`, mesmo padrão de `gastarSeeds`. */
+/**
+ * CRÉDITO AVULSO — idempotente por `creditoId`, e com o VALOR decidido pela regra.
+ *
+ * ATÉ 07/09 ESTA FUNÇÃO CUNHAVA MOEDA. Ela gravava o `amount` e o `xp` que viessem no corpo, sem
+ * teto e sem catálogo: `{creditoId: 'x'.repeat(8), amount: 999999}` entrava. O Express tinha
+ * fechado esse mesmo furo em 01/09 e este lado ficou aberto — o que é pior do que nunca ter
+ * fechado, porque a economia passou a valer duas coisas diferentes conforme a pessoa tivesse
+ * conta ou não, e o acervo do modo sem conta MIGRA para a conta.
+ *
+ * Agora as duas pontas chamam `valorDoCredito`, do core, e nenhuma das duas lê `amount`.
+ */
 async function creditarSeeds(_m: RegExpMatchArray, _u: URL, init: RequestInit): Promise<Response> {
   const p = lerJson(init);
   const creditoId = str(p.creditoId);
-  const amount = num(p.amount);
-  if (!creditoId || amount === null || amount < 0) return json({ error: 'creditoId e amount são obrigatórios' }, 400);
+  if (!creditoId) return json({ error: 'creditoId é obrigatório', code: 'credito_desconhecido' }, 400);
+
+  const credito = valorDoCredito(creditoId);
+  if (ehRecusa(credito)) return json({ error: credito.erro, code: 'credito_desconhecido' }, 400);
+
   const db = await abrirStore();
   const existente = await db.get('creditos', creditoId);
   const jaExistia = !!existente;
-  if (!jaExistia) await db.put('creditos', { creditoId, amount, xp: num(p.xp) ?? 0, reason: str(p.reason) ?? '', createdAt: Date.now() });
+  if (!jaExistia) {
+    /* O NÍVEL É CONFERIDO AQUI TAMBÉM, e do mesmo jeito: `economiaDeMetricas` sobre o perfil que
+       este servidor calcula. Sem isto o cofre da década 10 sairia no nível 1 para quem joga sem
+       conta — e depois migraria para a conta com as Seeds já lançadas. A conferência só roda no
+       crédito NOVO: o reenvio de um crédito já lançado não pode ser recusado por nível. */
+    if (credito.nivelMinimo > 0) {
+      const { nivel } = economiaDeMetricas(await perfilEfemero(null));
+      if (nivel < credito.nivelMinimo) {
+        return json({ error: 'nível insuficiente para este crédito', code: 'nivel_insuficiente', codigo: 'nivel_insuficiente', detalhes: { nivel, exigido: credito.nivelMinimo } }, 400);
+      }
+    }
+    await db.put('creditos', { creditoId, amount: credito.seeds, xp: credito.xp, reason: credito.reason, createdAt: Date.now() });
+  }
   const todos = await db.getAll('creditos');
   return json({ jaExistia, seedsCreditadas: todos.reduce((n, c) => n + c.amount, 0), xpCreditado: todos.reduce((n, c) => n + c.xp, 0) });
 }
 
 // ───────────────────────────── Métricas ─────────────────────────────
 
-async function metricas(_m: RegExpMatchArray, url: URL): Promise<Response> {
+/**
+ * O PERFIL, como OBJETO — e a rota como casca dele.
+ *
+ * Era só uma rota, e por isso o próprio modo sem conta não conseguia consultar o que ele mesmo
+ * calcula: para decidir um crédito é preciso saber o nível, e o nível vem daqui. Devolver
+ * `Response` era o formato certo para o cliente e o errado para o código ao lado.
+ */
+async function perfilEfemero(sessionId: string | null): Promise<AppMetrics> {
   const db = await abrirStore();
   const agora = Date.now();
-  const sessionId = url.searchParams.get('sessao');
   const [sessoesTodas, cartoesTodos, revisoes, falasTodas, exercicios, gastos, presencas, creditos] = await Promise.all([
     db.getAll('sessoes'), db.getAll('cartoes'), db.getAll('revisoes'), db.getAll('falas'), db.getAll('exercicios'), db.getAll('gastos'),
     db.getAll('presencas'), db.getAll('creditos'),
@@ -644,7 +702,11 @@ async function metricas(_m: RegExpMatchArray, url: URL): Promise<Response> {
     escopo: sessionId ? 'sessao' : 'global',
     base: { considerados: revisados.length, total: noDeck.length },
   };
-  return json(m);
+  return m;
+}
+
+async function metricas(_m: RegExpMatchArray, url: URL): Promise<Response> {
+  return json(await perfilEfemero(url.searchParams.get('sessao')));
 }
 
 // ───────────────────────────── Configurações / conta ─────────────────────────────

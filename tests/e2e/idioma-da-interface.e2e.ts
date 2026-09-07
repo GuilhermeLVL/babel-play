@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { fecharSobreposicoes } from './_helpers';
+import { clicarRobusto, fecharSobreposicoes } from './_helpers';
 
 /**
  * O SELETOR DE IDIOMA DA INTERFACE, de ponta a ponta (auditoria de 2026-09-07, achado A38).
@@ -25,7 +25,12 @@ test.describe('Idioma da interface', () => {
     await expect(page.getByRole('combobox', { name: 'Idioma que estou aprendendo' })).toBeVisible();
     await expect(page.getByRole('combobox', { name: 'Meu idioma' })).toBeVisible();
 
-    await gatilho.click();
+    /* `clicarRobusto` e nao `click()`: o diálogo de recompensa entra DEPOIS do primeiro `main`
+       visível (as métricas carregam, as conquistas são avaliadas, a fila anima uma por vez), então
+       fechar as sobreposições antes não basta — quando o crédito de conquista passou a funcionar
+       de verdade, este clique começou a ser interceptado por um overlay que ainda não existia no
+       momento em que o teste o procurou. */
+    await clicarRobusto(page, gatilho);
     const lista = page.getByRole('listbox');
     await expect(lista).toBeVisible();
 

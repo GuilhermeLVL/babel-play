@@ -38,12 +38,7 @@ export async function verificarConquistas(ctx: ContextoDeConquistas): Promise<Co
   const novas = avaliarConquistas(ctx, conquistasDesbloqueadas());
   const feitas: Conquista[] = [];
   for (const c of novas) {
-    const r = await creditarSeeds({
-      creditoId: `conquista-${c.id}`,
-      amount: c.recompensa.seeds,
-      xp: c.recompensa.xp,
-      reason: `conquista:${c.id}`,
-    });
+    const r = await creditarSeeds({ creditoId: `conquista-${c.id}` });
     if (!r) continue; // sem rede: fica para a próxima avaliação
     marcarConquista(c.id);
     registrarDataDaConquista(c.id);

@@ -97,7 +97,7 @@ export default function PasseDeTemporada({
     void (async () => {
       let total = 0;
       for (const s of pendentes) {
-        const r = await creditarSeeds({ creditoId: s.creditoId, amount: s.quantidade, reason: `passe:${TEMPORADA_ATUAL}` });
+        const r = await creditarSeeds({ creditoId: s.creditoId });
         if (!r) return; // falha de rede: NÃO marca — tenta de novo na próxima visita
         marcarCreditado(s.creditoId);
         if (!r.jaExistia) total += s.quantidade;

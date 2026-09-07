@@ -28,7 +28,11 @@ export const seedSpendsRepo = {
    * de UNIQUE: assim o reenvio devolve 200 com a linha original, e quem chamou não precisa
    * distinguir "já debitei" de "falhou".
    */
-  async debitar(userId: UserId, input: NewSeedSpend): Promise<{ linha: SeedSpend; jaExistia: boolean }> {
+  async debitar(
+    userId: UserId,
+    input: NewSeedSpend,
+    opts: { tetoDeGasto?: number } = {},
+  ): Promise<{ linha: SeedSpend | null; jaExistia: boolean; recusadoPorSaldo: boolean }> {
     // Idempotência POR usuário: a mesma (userId, spendId) é o mesmo débito, não uma segunda
     // cobrança. O INSERT é a própria checagem — `uq_seed_spends_user_spend` (migração 0005)
     // arbitra quem venceu. Antes era select-then-insert contra um unique GLOBAL de spend_id,
@@ -51,14 +55,43 @@ export const seedSpendsRepo = {
     // vivas) e o SQLite exige que o alvo do ON CONFLICT repita o predicado. O builder do
     // drizzle 0.45 emite `... do nothing where …`, com o predicado DEPOIS do `do nothing` —
     // SQL inválido. Uma instrução, mesma atomicidade, alvo correto.
-    const r = await db.run(sql`
-      INSERT INTO ${seedSpends} (id, created_at, updated_at, user_id, spend_id, amount, reason, ref)
-      VALUES (${row.id}, ${row.createdAt}, ${row.updatedAt}, ${row.userId}, ${row.spendId}, ${row.amount}, ${row.reason}, ${row.ref})
-      ON CONFLICT (user_id, spend_id) WHERE deleted_at IS NULL DO NOTHING
-    `)
+    /**
+     * O TETO ENTRA NO PRÓPRIO INSERT — é assim que a corrida se fecha.
+     *
+     * A rota conferia o saldo com um SELECT e inseria depois. Entre as duas coisas cabe outra
+     * requisição: duas compras diferentes em voo passavam as duas pela conferência e o saldo
+     * estourava (o furo estava documentado em `routes/metrics.ts` e agora está fechado).
+     *
+     * A alternativa óbvia — rodar `computeProfile` dentro de uma transação — custaria caro e
+     * serializaria o banco inteiro: são cinco varreduras de tabela seguradas por uma transação de
+     * escrita. Aqui o `teto` (as Seeds GANHAS) é calculado FORA e o INSERT só acontece se o
+     * gasto já lançado mais este couberem nele. Ganho só cresce, então um teto calculado há
+     * milissegundos é conservador: no pior caso recusa uma compra que teria passado, e o retry
+     * seguinte passa. O oposto — cobrar além do saldo — não pode acontecer.
+     *
+     * `INSERT ... SELECT ... WHERE` e não `INSERT ... VALUES`: a condição precisa ser avaliada
+     * pelo SQLite no momento da escrita, dentro da mesma instrução.
+     */
+    const teto = opts.tetoDeGasto
+    const r = teto === undefined
+      ? await db.run(sql`
+        INSERT INTO ${seedSpends} (id, created_at, updated_at, user_id, spend_id, amount, reason, ref)
+        VALUES (${row.id}, ${row.createdAt}, ${row.updatedAt}, ${row.userId}, ${row.spendId}, ${row.amount}, ${row.reason}, ${row.ref})
+        ON CONFLICT (user_id, spend_id) WHERE deleted_at IS NULL DO NOTHING
+      `)
+      : await db.run(sql`
+        INSERT INTO ${seedSpends} (id, created_at, updated_at, user_id, spend_id, amount, reason, ref)
+        SELECT ${row.id}, ${row.createdAt}, ${row.updatedAt}, ${row.userId}, ${row.spendId}, ${row.amount}, ${row.reason}, ${row.ref}
+        WHERE (
+          SELECT COALESCE(SUM(amount), 0) FROM ${seedSpends}
+          WHERE user_id = ${row.userId} AND deleted_at IS NULL
+        ) + ${row.amount} <= ${Math.floor(teto)}
+        ON CONFLICT (user_id, spend_id) WHERE deleted_at IS NULL DO NOTHING
+      `)
 
-    // 0 linhas afetadas = já existia (viva): devolve a original, sem cobrar de novo.
-    const jaExistia = Number((r as { rowsAffected?: number }).rowsAffected ?? 0) === 0
+    /* 0 linhas afetadas agora tem DUAS causas: já existia (viva), ou o teto barrou. Quem
+       distingue é a releitura abaixo — a linha existe no primeiro caso e não no segundo. */
+    const naoInseriu = Number((r as { rowsAffected?: number }).rowsAffected ?? 0) === 0
     // P2-N2: este SELECT não filtrava `deletedAt` enquanto `totalGasto()` filtrava. Um gasto
     // soft-deletado devolvia `jaExistia: true` (não cobrava de novo) E não contava no saldo —
     // ou seja, a compra saía de graça. As duas queries precisam concordar sobre o que existe.
@@ -67,8 +100,13 @@ export const seedSpendsRepo = {
       .from(seedSpends)
       .where(and(eq(seedSpends.spendId, input.spendId), eq(seedSpends.userId, userId), isNull(seedSpends.deletedAt)))
       .limit(1)
-    if (!rows[0]) throw new Error('falha ao gravar gasto de seeds')
-    return { linha: rows[0], jaExistia }
+    if (!rows[0]) {
+      /* Sem linha e sem inserção: o teto recusou. Não é erro de gravação — é saldo insuficiente,
+         e quem chamou responde 402 com o mesmo corpo da conferência antecipada. */
+      if (naoInseriu && teto !== undefined) return { linha: null, jaExistia: false, recusadoPorSaldo: true }
+      throw new Error('falha ao gravar gasto de seeds')
+    }
+    return { linha: rows[0], jaExistia: naoInseriu, recusadoPorSaldo: false }
   },
 
   /**

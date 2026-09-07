@@ -129,6 +129,11 @@ export const rodadaSchema = z.object({
   origem: shortStr(80),
   sessionId: shortStr(64),
   score: z.number().min(0).max(100_000).optional(),
+  /* O combo da rodada. O cliente já o enviava desde a economia v2 e este schema o descartava por
+     não declará-lo (`.strip()` do Zod): a conquista "Duelista" media o combo, mandava o combo, e
+     o servidor nunca via combo nenhum. O teto acompanha o de `itens` — não há combo maior que o
+     número de itens da rodada. */
+  melhorSequencia: z.number().int().min(0).max(200).optional(),
   itens: z.array(z.object({
     cardId: shortStr(64),
     itemRef: shortStr(400),

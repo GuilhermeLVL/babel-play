@@ -156,7 +156,18 @@ billingRouter.post('/gastar', async (req, res) => {
         return
       }
     }
-    const { jaExistia } = await creditsRepo.debitar(req.userId, { ...payload, amount: autorizacao.preco })
+    /* `conferirSaldo` faz o SQLite avaliar `compras pagas - gastos >= amount` DENTRO do INSERT.
+       A conferência acima continua, e não é redundante: ela é quem sabe dizer quanto falta. Esta
+       é quem garante que duas compras simultâneas não passem as duas. */
+    const { jaExistia, linha, recusadoPorSaldo } = await creditsRepo.debitar(
+      req.userId,
+      { ...payload, amount: autorizacao.preco },
+      { conferirSaldo: true },
+    )
+    if (recusadoPorSaldo || !linha) {
+      res.status(402).json({ error: 'saldo de Créditos insuficiente', falta: autorizacao.preco, saldo: await creditsRepo.saldo(req.userId) })
+      return
+    }
     res.json({ jaExistia, gasto: autorizacao.preco, saldo: await creditsRepo.saldo(req.userId) })
   } catch (err) {
     res.status(400).json({ error: erroDeRota(err, { status: 400, event: 'billing_error', route: req.path, requestId: req.requestId }) })

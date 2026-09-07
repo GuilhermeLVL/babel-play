@@ -1,0 +1,15 @@
+-- COMBO DA RODADA em `exercise_results` (auditoria de 2026-09-07, achado A18).
+--
+-- A conquista "Duelista" pede combo x15 no duelo relampago. O cliente MEDIA o combo
+-- (`pontuarRodada` devolve `melhorSequencia`) e o enviava em `POST /api/exercises/rodada`;
+-- `rodadaSchema` o descartava por nao declarar o campo, e nao havia coluna para receber. O
+-- resultado media na conta logada: a conquista nunca disparava, e `melhorComboPorJogo` chegava
+-- vazio a `avaliarConquistas` — nao por falta de combo, por falta de coluna.
+--
+-- ADITIVA e ANULAVEL, como as outras colunas de rodada: as linhas ja gravadas nao tem o dado e
+-- continuam validas. `NULL` significa "rodada anterior a esta coluna", nao "combo zero" — e por
+-- isso `listarRecordes` usa `MAX`, que ignora NULL, em vez de `COALESCE(..., 0)`.
+--
+-- Repete o valor em cada item da rodada, pela mesma razao que `score`: a linha e o item, e o
+-- recorde e da RODADA. Ver o comentario de `score` em `schema.ts`.
+ALTER TABLE exercise_results ADD COLUMN combo integer;

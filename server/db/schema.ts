@@ -258,6 +258,14 @@ export const exerciseResults = sqliteTable('exercise_results', {
   /** Amarra os itens de UMA rodada. Sem isto, 8 linhas simultâneas não se reagrupam. */
   roundId: text('round_id'),
   /**
+   * COMBO MÁXIMO DA RODADA — repetido em cada item dela, como `score`, e pelo mesmo motivo: a
+   * linha é o item e o recorde é da rodada.
+   *
+   * NULL = rodada gravada antes da migração 0025, não combo zero. `listarRecordes` usa `MAX`,
+   * que ignora NULL; um `COALESCE(..., 0)` diria que aquelas rodadas tiveram combo zero.
+   */
+  combo: integer('combo'),
+  /**
    * O item jogado: a palavra (jogos de baralho) ou o id da fala (jogos de frase). É a coluna que
    * responde "o que eu já vi". Guardamos a palavra, e não só um `card_id`, porque os cartões da
    * TRILHA nascem em memória e não têm id no banco (ver `ItemOutcome.palavra`).

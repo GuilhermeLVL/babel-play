@@ -30,14 +30,20 @@ describe('presença e créditos', () => {
     expect(m.maiorSequenciaPresenca).toBe(2)
   })
 
-  it('crédito por conquista: o mesmo creditoId não soma duas vezes', async () => {
-    const a = await (await post('/api/metrics/seeds/creditar', { creditoId: 'conquista-x', amount: 25, xp: 30, reason: 'conquista:x' })).json()
-    const b = await (await post('/api/metrics/seeds/creditar', { creditoId: 'conquista-x', amount: 25, xp: 30, reason: 'conquista:x' })).json()
-    expect(a).toMatchObject({ jaExistia: false, seedsCreditadas: 25, xpCreditado: 30 })
-    expect(b).toMatchObject({ jaExistia: true, seedsCreditadas: 25, xpCreditado: 30 })
+  /* `conquista-x` NÃO EXISTE, e por isso este teste passava dizendo pouco: ele provava que o
+     servidor gravava 25 Seeds porque o corpo pedia 25 Seeds. Desde 07/09 o `creditoId` tem de
+     resolver no catálogo e o valor vem DELE — `colecionador` (100 Seeds, 120 XP) é o escolhido
+     por ser a única conquista cuja condição o servidor não confere, o que mantém este teste sobre
+     a IDEMPOTÊNCIA e não sobre a condição. */
+  it('crédito por conquista: o mesmo creditoId não soma duas vezes, e o valor é o da regra', async () => {
+    const a = await (await post('/api/metrics/seeds/creditar', { creditoId: 'conquista-colecionador', amount: 9_999, xp: 9_999 })).json()
+    const b = await (await post('/api/metrics/seeds/creditar', { creditoId: 'conquista-colecionador' })).json()
+    expect(a).toMatchObject({ jaExistia: false, seedsCreditadas: 100, xpCreditado: 120 })
+    expect(b).toMatchObject({ jaExistia: true, seedsCreditadas: 100, xpCreditado: 120 })
     const m = await metricas()
-    expect(m.seedsCreditadas).toBe(25)
-    expect(m.xpCreditado).toBe(30)
+    /* O `amount: 9.999` do primeiro pedido foi IGNORADO — é o ponto do teste. */
+    expect(m.seedsCreditadas).toBe(100)
+    expect(m.xpCreditado).toBe(120)
   })
 
   it('sem creditoId ou com valor negativo, recusa', async () => {

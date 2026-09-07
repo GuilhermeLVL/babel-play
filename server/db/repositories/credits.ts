@@ -30,6 +30,8 @@ export interface NovaCompra {
   providerPaymentId: string
 }
 
+export type CreditSpend = typeof creditSpends.$inferSelect
+
 export const creditsRepo = {
   /** Registra a INTENÇÃO de compra. Não concede nada — quem concede é `confirmarPagamento`. */
   async registrarCompra(userId: UserId, input: NovaCompra) {
@@ -102,24 +104,52 @@ export const creditsRepo = {
     return Math.max(0, comprado - gasto)
   },
 
-  /** Gasto idempotente por (usuário, spendId) — o gêmeo exato de `seedSpendsRepo.debitar`. */
-  async debitar(userId: UserId, input: { spendId: string; amount: number; reason: string; ref?: string | null }) {
+  /**
+   * Gasto idempotente por (usuário, spendId) — o gêmeo exato de `seedSpendsRepo.debitar`,
+   * inclusive na trava de saldo.
+   *
+   * Aqui a trava é ainda mais direta que a das Seeds: o saldo de Créditos é `compras pagas −
+   * gastos`, e as DUAS metades são tabelas. O SQLite calcula a subtração dentro do próprio INSERT,
+   * sem precisar de um teto vindo de fora. É a moeda que custou dinheiro: ela não pode ficar
+   * negativa nem por um instante entre duas requisições.
+   */
+  async debitar(
+    userId: UserId,
+    input: { spendId: string; amount: number; reason: string; ref?: string | null },
+    opts: { conferirSaldo?: boolean } = {},
+  ): Promise<{ linha: CreditSpend | null; jaExistia: boolean; recusadoPorSaldo: boolean }> {
     const agora = Date.now()
     const row = {
       id: randomUUID(), createdAt: agora, updatedAt: agora, userId, deletedAt: null,
       spendId: input.spendId, amount: input.amount, reason: input.reason, ref: input.ref ?? null,
     }
-    const r = await db.run(sql`
-      INSERT INTO ${creditSpends} (id, created_at, updated_at, user_id, spend_id, amount, reason, ref)
-      VALUES (${row.id}, ${row.createdAt}, ${row.updatedAt}, ${row.userId}, ${row.spendId}, ${row.amount}, ${row.reason}, ${row.ref})
-      ON CONFLICT (user_id, spend_id) WHERE deleted_at IS NULL DO NOTHING
-    `)
-    const jaExistia = Number((r as { rowsAffected?: number }).rowsAffected ?? 0) === 0
+    const r = opts.conferirSaldo !== true
+      ? await db.run(sql`
+        INSERT INTO ${creditSpends} (id, created_at, updated_at, user_id, spend_id, amount, reason, ref)
+        VALUES (${row.id}, ${row.createdAt}, ${row.updatedAt}, ${row.userId}, ${row.spendId}, ${row.amount}, ${row.reason}, ${row.ref})
+        ON CONFLICT (user_id, spend_id) WHERE deleted_at IS NULL DO NOTHING
+      `)
+      : await db.run(sql`
+        INSERT INTO ${creditSpends} (id, created_at, updated_at, user_id, spend_id, amount, reason, ref)
+        SELECT ${row.id}, ${row.createdAt}, ${row.updatedAt}, ${row.userId}, ${row.spendId}, ${row.amount}, ${row.reason}, ${row.ref}
+        WHERE (
+          SELECT COALESCE(SUM(creditos), 0) FROM ${creditPurchases}
+          WHERE user_id = ${row.userId} AND status = 'pago' AND deleted_at IS NULL
+        ) - (
+          SELECT COALESCE(SUM(amount), 0) FROM ${creditSpends}
+          WHERE user_id = ${row.userId} AND deleted_at IS NULL
+        ) >= ${row.amount}
+        ON CONFLICT (user_id, spend_id) WHERE deleted_at IS NULL DO NOTHING
+      `)
+    const naoInseriu = Number((r as { rowsAffected?: number }).rowsAffected ?? 0) === 0
     const rows = await db.select().from(creditSpends)
       .where(and(eq(creditSpends.spendId, input.spendId), eq(creditSpends.userId, userId), isNull(creditSpends.deletedAt)))
       .limit(1)
-    if (!rows[0]) throw new Error('falha ao gravar gasto de créditos')
-    return { linha: rows[0], jaExistia }
+    if (!rows[0]) {
+      if (naoInseriu && opts.conferirSaldo === true) return { linha: null, jaExistia: false, recusadoPorSaldo: true }
+      throw new Error('falha ao gravar gasto de créditos')
+    }
+    return { linha: rows[0], jaExistia: naoInseriu, recusadoPorSaldo: false }
   },
 
   /**

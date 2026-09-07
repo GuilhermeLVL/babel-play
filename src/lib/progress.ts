@@ -1,5 +1,5 @@
 import type { AppMetrics } from '../data/api';
-import { xpDeEventos, seedsGanhasDeEventos, posicaoNoNivel, PESOS_XP, PESOS_SEEDS } from '@core';
+import { economiaDeMetricas, posicaoNoNivel, PESOS_XP, PESOS_SEEDS } from '@core';
 
 /**
  * PROGRESSO DERIVADO — a camada de gamificação, e nada além disso.
@@ -82,31 +82,14 @@ export const EMPTY_PROGRESS: DerivedProgress = {
 export function deriveProgress(metrics: AppMetrics | null | undefined): DerivedProgress {
   if (!metrics) return EMPTY_PROGRESS;
 
-  /* ECONOMIA v2: os campos novos são OPCIONAIS no contrato (a edição completa ainda não os
-     calcula) e entram como zero quando faltam — o número na tela nunca vira NaN. */
-  const eventos = {
-    sessoes: metrics.sessions,
-    palavrasCapturadas: metrics.wordsCaptured,
-    revisoes: metrics.reviews,
-    revisoesCertas: metrics.correctReviews,
-    itensDeJogo: metrics.drillItems ?? 0,
-    itensDeJogoCertos: metrics.drillCorrect ?? 0,
-    presencas: metrics.presencas ?? 0,
-    sequencias7: metrics.sequencias7 ?? 0,
-    capturaMinutosPremiados: metrics.capturaMinutosPremiados ?? 0,
-    cartoesCriados: metrics.deckSize ?? 0,
-    rodadasPerfeitas: metrics.rodadasPerfeitas ?? 0,
-    xpCreditado: metrics.xpCreditado ?? 0,
-    seedsCreditadas: metrics.seedsCreditadas ?? 0,
-  };
-  const xp = xpDeEventos(eventos);
+  /* A DERIVAÇÃO É DO CORE (`economiaDeMetricas`), e não uma cópia local dos treze campos.
+     Ela era escrita aqui e outra vez em `economiaDoUsuario`, no servidor: a tela e a cobrança
+     somavam os mesmos eventos por duas listas diferentes, que concordavam só enquanto ninguém
+     acrescentasse um evento novo.
 
-  /* GANHAS: só cresce. É a metade de cima do saldo — a de baixo (`seedsGastas`) vem do servidor,
-     de uma tabela de gastos, porque gasto é evento e não pode ser recalculado a partir de métrica. */
-  const seedsGanhas = seedsGanhasDeEventos(eventos);
-  /* Piso em zero: um gasto gravado antes de a fórmula mudar poderia, em tese, passar do ganho.
-     Saldo negativo na tela seria pior do que a perda de precisão de mostrar 0. */
-  const seeds = Math.max(0, seedsGanhas - (metrics.seedsGastas ?? 0));
+     Os campos da economia v2 são OPCIONAIS no contrato e entram como zero quando faltam — o
+     número na tela nunca vira NaN. */
+  const { xp, ganhas: seedsGanhas, saldo: seeds } = economiaDeMetricas(metrics);
 
   const { level, xpForLevel, xpIntoLevel, levelPct } = posicaoNoNivel(xp);
 

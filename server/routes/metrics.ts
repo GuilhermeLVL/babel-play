@@ -3,9 +3,10 @@ import { Router } from 'express'
 import { computeProfile, computeXpHistory } from '../db/repositories/metrics'
 import { seedSpendsRepo } from '../db/repositories/seedSpends'
 import { economiaRepo } from '../db/repositories/economia'
+import { exerciseResultsRepo } from '../db/repositories/exerciseResults'
 import { economiaDoUsuario } from '../db/repositories/metrics'
 import {
-  autorizarGasto, ehRecusa, conquistaDoCreditoId, CONQUISTAS_CONFERIVEIS,
+  autorizarGasto, ehRecusa, valorDoCredito, CONQUISTAS_CONFERIVEIS,
 } from '../../src/core/economiaAutoridade'
 import type { ContextoDeConquistas } from '../../src/core/learning/conquistas'
 import { diaLocal, sequencias } from '../../src/core/learning/economia'
@@ -99,15 +100,33 @@ metricsRouter.post('/seeds/gastar', async (req, res) => {
       responderErro(res, 400, 'preço divergente do catálogo', 'preco_divergente', { preco: autorizacao.preco })
       return
     }
+    /* O REENVIO DE UMA COMPRA JÁ PAGA NÃO PEDE SALDO. Quem gastou as últimas 40 Seeds veria o
+       retry da própria compra virar 402, e a idempotência deixaria de ser idempotente. */
     const jaCobrado = await seedSpendsRepo.jaGastou(req.userId, payload.spendId)
+    let ganhas: number | undefined
+    let saldo = 0
     if (!jaCobrado) {
-      const { saldo } = await economiaDoUsuario(req.userId)
+      const economia = await economiaDoUsuario(req.userId)
+      ganhas = economia.ganhas
+      saldo = economia.saldo
+      /* Recusa ANTECIPADA, para o 402 poder dizer quanto falta: o teto dentro do INSERT sabe
+         barrar, mas não sabe explicar. As duas conferências usam o mesmo número. */
       if (saldo < autorizacao.preco) {
         responderErro(res, 402, 'saldo insuficiente', 'saldo_insuficiente', { falta: autorizacao.preco - saldo, saldo, preco: autorizacao.preco })
         return
       }
     }
-    const { linha, jaExistia } = await seedSpendsRepo.debitar(req.userId, { ...payload, amount: autorizacao.preco })
+    const { linha, jaExistia, recusadoPorSaldo } = await seedSpendsRepo.debitar(
+      req.userId,
+      { ...payload, amount: autorizacao.preco },
+      { tetoDeGasto: ganhas },
+    )
+    if (recusadoPorSaldo || !linha) {
+      /* Chegou aqui quem passou na conferência e perdeu a corrida para outra compra simultânea.
+         O 402 é o mesmo: a diferença é que agora o saldo não estoura. */
+      responderErro(res, 402, 'saldo insuficiente', 'saldo_insuficiente', { falta: autorizacao.preco, saldo, preco: autorizacao.preco })
+      return
+    }
     const perfil = await computeProfile(req.userId)
     res.json({ jaExistia, gasto: linha.amount, seedsGastas: perfil.seedsGastas })
   } catch (err) {
@@ -160,34 +179,52 @@ metricsRouter.post('/seeds/creditar', async (req, res) => {
   const payload = parseOr400(seedCreditSchema, req.body, res)
   if (!payload) return
   try {
-    const conquista = conquistaDoCreditoId(payload.creditoId)
-    if (!conquista) {
-      res.status(400).json({ error: 'crédito desconhecido' })
+    const credito = valorDoCredito(payload.creditoId)
+    if (ehRecusa(credito)) {
+      responderErro(res, 400, credito.erro, 'credito_desconhecido')
       return
     }
 
-    if (CONQUISTAS_CONFERIVEIS.has(conquista.id)) {
+    /* Uma leitura de economia serve às DUAS conferências abaixo, e nenhuma das duas roda quando o
+       crédito não exige nada — `computeProfile` varre cinco tabelas e não vale pagá-lo à toa. */
+    const precisaDeEconomia = credito.nivelMinimo > 0
+      || (credito.conquista != null && CONQUISTAS_CONFERIVEIS.has(credito.conquista.id))
+    if (precisaDeEconomia) {
       const { metricas, nivel } = await economiaDoUsuario(req.userId)
-      /* As três chaves que o servidor não sabe preencher (eventos raros, idiomas, recordes) só
-         importam para as conquistas de fora da lista — por isso entram como zero aqui sem falsear
-         nenhuma decisão. */
-      const ctx: ContextoDeConquistas = {
-        metricas, nivel,
-        melhorComboPorJogo: {}, eventosVistos: 0, totalDeEventos: 0, idiomas: 0,
-        compras: metricas.itensComprados?.length ?? 0,
-      }
-      const { atual, meta } = conquista.progresso(ctx)
-      if (atual < meta) {
-        responderErro(res, 400, 'conquista ainda não cumprida', 'conquista_nao_cumprida', { atual, meta })
+
+      /* O NÍVEL É DO SERVIDOR. A tela do passe já esconde a década trancada, mas esconder é
+         desenho, não regra: sem esta linha o cofre de 172 Seeds da década 10 sairia no nível 1
+         para quem pedisse a rota direto. */
+      if (nivel < credito.nivelMinimo) {
+        responderErro(res, 400, 'nível insuficiente para este crédito', 'nivel_insuficiente', { nivel, exigido: credito.nivelMinimo })
         return
+      }
+
+      if (credito.conquista && CONQUISTAS_CONFERIVEIS.has(credito.conquista.id)) {
+        /* As duas chaves que o servidor não sabe preencher (eventos raros e compras da Loja) só
+           importam para as conquistas de fora da lista — por isso entram como zero aqui sem
+           falsear nenhuma decisão. `idiomas` e `melhorComboPorJogo` SAÍRAM dessa lista: o perfil
+           passou a emitir `idiomas` e os recordes passaram a devolver o combo. */
+        const ctx: ContextoDeConquistas = {
+          metricas, nivel,
+          melhorComboPorJogo: await exerciseResultsRepo.melhorComboPorJogo(req.userId),
+          eventosVistos: 0, totalDeEventos: 0,
+          idiomas: metricas.idiomas ?? 0,
+          compras: metricas.itensComprados?.length ?? 0,
+        }
+        const { atual, meta } = credito.conquista.progresso(ctx)
+        if (atual < meta) {
+          responderErro(res, 400, 'conquista ainda não cumprida', 'conquista_nao_cumprida', { atual, meta })
+          return
+        }
       }
     }
 
     const { jaExistia } = await economiaRepo.creditar(req.userId, {
-      creditoId: payload.creditoId,
-      amount: conquista.recompensa.seeds,
-      xp: conquista.recompensa.xp,
-      reason: `conquista:${conquista.id}`,
+      creditoId: credito.creditoId,
+      amount: credito.seeds,
+      xp: credito.xp,
+      reason: credito.reason,
     })
     const totais = await economiaRepo.totaisCreditados(req.userId)
     res.json({ jaExistia, ...totais })

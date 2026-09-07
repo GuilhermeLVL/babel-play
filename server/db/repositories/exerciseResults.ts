@@ -28,15 +28,16 @@ export interface NewExerciseResult {
   origem?: string
 }
 
-/** O melhor placar já feito num jogo, numa fonte. Chave = `exerciseKind`. */
-export interface RecordeDoJogo {
-  exerciseKind: string
-  melhorPontos: number
-  /** Quando a melhor rodada aconteceu (epoch-ms). */
-  melhorEm: number
-  /** Rodadas DISTINTAS já jogadas — `score` é por item, então contar linhas mentiria. */
-  rodadas: number
-}
+/**
+ * O melhor placar já feito num jogo, numa fonte. Chave = `exerciseKind`.
+ *
+ * O TIPO É UM SÓ, importado do core: o cliente (`src/data/api.ts`) declarava a sua própria cópia
+ * com três campos a mais (`melhorCombo`, `precisao`, `ultimaEm`) que o servidor não devolvia — e
+ * `montarContextoDeConquistas` lia `r.melhorCombo ?? 0` de um campo que nunca vinha. Duas cópias
+ * de um contrato são duas oportunidades de discordar sobre ele.
+ */
+export type { RecordeDoJogo } from '../../../src/core/learning/contract'
+import type { RecordeDoJogo } from '../../../src/core/learning/contract'
 
 /** Uma linha do histórico agregado por item. Chave = `itemRef`. */
 export interface HistoricoDeItem {
@@ -132,6 +133,8 @@ export interface NovaRodada {
   origem?: string | null
   sessionId?: string | null
   score?: number | null
+  /** Combo máximo da rodada. Vira `exercise_results.combo` em todas as linhas dela. */
+  melhorSequencia?: number | null
   itens: Array<{
     cardId?: string | null
     itemRef?: string | null
@@ -255,6 +258,15 @@ export const exerciseResultsRepo = {
         /* Rodadas DISTINTAS: `score` é gravado uma vez por ITEM com o valor da rodada, então
            contar linhas diria "20 rodadas" para uma única partida de duelo relâmpago. */
         rodadas: sql<number>`count(distinct ${exerciseResults.roundId})`,
+        /* `max` ignora NULL: as rodadas anteriores à migração 0025 não empurram o recorde para
+           zero, elas simplesmente não participam dele. */
+        melhorCombo: max(exerciseResults.combo),
+        /* Precisão sobre os itens que TÊM resposta. `correct` é anulável (jogos de frase não
+           respondem certo/errado por item) e contar essas linhas rebaixaria a precisão de quem
+           joga karaokê. */
+        certos: sql<number>`sum(case when ${exerciseResults.correct} = 1 then 1 else 0 end)`,
+        respondidos: sql<number>`sum(case when ${exerciseResults.correct} is null then 0 else 1 end)`,
+        ultimaEm: max(exerciseResults.createdAt),
       })
       .from(exerciseResults)
       .where(and(...filtros))
@@ -262,12 +274,45 @@ export const exerciseResultsRepo = {
 
     return rows
       .filter(r => !!r.exerciseKind)
-      .map(r => ({
-        exerciseKind: r.exerciseKind as string,
-        melhorPontos: Number(r.melhorPontos ?? 0),
-        melhorEm: Number(r.melhorEm ?? 0),
-        rodadas: Number(r.rodadas ?? 0),
-      }))
+      .map(r => {
+        const respondidos = Number(r.respondidos ?? 0)
+        return {
+          exerciseKind: r.exerciseKind as string,
+          melhorPontos: Number(r.melhorPontos ?? 0),
+          melhorEm: Number(r.melhorEm ?? 0),
+          rodadas: Number(r.rodadas ?? 0),
+          melhorCombo: Number(r.melhorCombo ?? 0),
+          precisao: respondidos > 0 ? Math.round((Number(r.certos ?? 0) / respondidos) * 100) : null,
+          ultimaEm: Number(r.ultimaEm ?? 0),
+        }
+      })
+  },
+
+  /**
+   * O COMBO MÁXIMO POR JOGO — a leitura que a conquista "Duelista" pedia.
+   *
+   * Separada de `listarRecordes` de propósito: aquela é a resposta de uma ROTA, com filtro de
+   * origem e o corte por `score` não nulo; esta é a entrada de uma REGRA, e um combo feito numa
+   * rodada sem placar continua sendo um combo. Reaproveitar a outra faria a conquista depender de
+   * um filtro escrito para outra pergunta.
+   */
+  async melhorComboPorJogo(userId: UserId): Promise<Record<string, number>> {
+    const rows = await db
+      .select({
+        exerciseKind: exerciseResults.exerciseKind,
+        melhorCombo: max(exerciseResults.combo),
+      })
+      .from(exerciseResults)
+      .where(and(
+        eq(exerciseResults.userId, userId),
+        isNull(exerciseResults.deletedAt),
+        isNotNull(exerciseResults.combo),
+      ))
+      .groupBy(exerciseResults.exerciseKind)
+
+    const out: Record<string, number> = {}
+    for (const r of rows) if (r.exerciseKind) out[r.exerciseKind] = Number(r.melhorCombo ?? 0)
+    return out
   },
 
   /**
@@ -308,6 +353,7 @@ export const exerciseResultsRepo = {
       return {
         id: randomUUID(), createdAt: now, updatedAt: now, userId, sessionId,
         kind: i.kind ?? null, correct: i.correct ?? null, score: rodada.score ?? null,
+        combo: rodada.melhorSequencia ?? null,
         exerciseKind: rodada.exerciseKind ?? null, roundId: rodada.roundId,
         itemRef: i.itemRef ?? null, attempts: i.attempts ?? null, ms: i.ms ?? null,
         hinted: i.hinted ?? null, origem: rodada.origem ?? null,

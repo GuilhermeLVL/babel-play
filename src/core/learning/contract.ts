@@ -404,3 +404,30 @@ export function lerCursorDeNotas(bruto: string | undefined | null): { valor: num
   const id = bruto.slice(corte + 1)
   return Number.isFinite(valor) && id ? { valor, id } : null
 }
+
+/**
+ * O MELHOR PLACAR já feito num jogo, numa fonte. Chave = `exerciseKind`.
+ *
+ * MORA NO CORE porque as três pontas precisam concordar sobre ele: o Express
+ * (`server/db/repositories/exerciseResults.ts`), o modo sem conta (`src/data/efemero/servidor.ts`)
+ * e o cliente (`src/data/api.ts`), que o consome para decidir a conquista "Duelista".
+ *
+ * Antes de 07/09 havia duas declarações: a do cliente tinha `melhorCombo`, `precisao` e
+ * `ultimaEm`; a do servidor não — e o servidor era quem respondia. `melhorCombo ?? 0` lia um campo
+ * que nunca chegava, e a conquista nunca disparava na conta logada. Os três campos são opcionais
+ * porque uma base sem rodadas novas não tem combo gravado; ausente é ausente, não zero.
+ */
+export interface RecordeDoJogo {
+  exerciseKind: string
+  melhorPontos: number
+  /** Quando a melhor rodada aconteceu (epoch-ms). */
+  melhorEm: number
+  /** Rodadas DISTINTAS já jogadas — `score` é por item, então contar linhas mentiria. */
+  rodadas: number
+  /** Combo máximo já alcançado no jogo. Ausente quando nenhuma rodada gravou combo. */
+  melhorCombo?: number
+  /** % de acerto entre todos os itens respondidos; `null` quando não há item respondido. */
+  precisao?: number | null
+  /** Quando o jogo foi jogado pela última vez (epoch-ms). */
+  ultimaEm?: number
+}

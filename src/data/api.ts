@@ -619,9 +619,18 @@ export async function relabelCards(
   return ((await res.json()) as { changed: number }).changed
 }
 
-/** TODAS as falas do banco — usado só pela Auditoria de idioma para varrer o passivo das transcrições. */
+/**
+ * TODAS as falas do banco — usado pela Auditoria de idioma e pelas Métricas.
+ *
+ * SEM CONTA NÃO É FALHA (auditoria de 2026-09-07, achado A25). O servidor efêmero não espelha esta
+ * rota e responde 501 `EXIGE_CONTA`; aqui isso virava `throw`, e a tela mostrava um erro onde
+ * deveria mostrar o estado vazio de quem simplesmente não tem conta. Lista vazia é a resposta
+ * correta para "quais são as suas falas guardadas?" quando não há onde guardá-las — e o convite
+ * para criar conta já é feito pelo caminho próprio (`EVENTO_EXIGE_CONTA`), não por uma exceção.
+ */
 export async function fetchAllUtterances(): Promise<UtteranceRow[]> {
   const res = await apiFetch('/api/sessions/utterances/all')
+  if (res.status === 501) return []
   if (!res.ok) throw new Error('falha ao carregar as falas')
   return (await res.json()) as UtteranceRow[]
 }

@@ -60,7 +60,10 @@ export function naoDisponivelSemConta(rota: string): Response {
   if (!EDICAO_LEVE && typeof window !== 'undefined' && ACOES_QUE_CONVIDAM.some((r) => r.test(rota))) {
     window.dispatchEvent(new CustomEvent(EVENTO_EXIGE_CONTA, { detail: { rota } }));
   }
-  return json({ error: 'conta necessária', codigo: CODIGO_EXIGE_CONTA, rota }, 501);
+  /* `code` além de `codigo`: o envelope de erro do servidor real é `{ error, code?, detalhes? }`
+     (change `contratos-alinhados-nas-tres-pontas`), e o cliente que lê `code` precisa achar o
+     mesmo campo nas duas pontas. `codigo` fica porque já há tela lendo dele. */
+  return json({ error: 'conta necessária', code: CODIGO_EXIGE_CONTA, codigo: CODIGO_EXIGE_CONTA, rota, detalhes: { rota } }, 501);
 }
 
 function lerJson(init: RequestInit): Json {
@@ -86,10 +89,39 @@ function contarPalavras(falas: Array<{ sourceText: string | null }>): number {
   return falas.reduce((n, f) => n + (f.sourceText ? f.sourceText.trim().split(/\s+/).filter(Boolean).length : 0), 0);
 }
 
-/** Mesma chave do servidor: palavra sem acento/caixa + idioma. */
-export function chaveDedup(word: string, srcLang: string | null): string {
-  const w = word.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim();
+/**
+ * A MESMA CHAVE DO SERVIDOR — agora de verdade (auditoria de 2026-09-07, achado A24).
+ *
+ * O comentário aqui dizia "mesma chave do servidor" e a implementação diferia em TRÊS pontos: a
+ * ordem dos campos era invertida (`palavra|lang` contra `lang|palavra`), a pontuação não era
+ * removida, e o idioma entrava como locale inteiro em vez da base. "Água!" em `pt-BR` era uma
+ * carta aqui e outra lá — e a conta só era feita na MIGRAÇÃO, onde o estrago aparece: quem estudou
+ * sem conta e depois criou uma via o acervo duplicar palavras que já tinha.
+ *
+ * Comentário que afirma paridade sem teste que a prove envelhece para mentira. A implementação
+ * agora é uma só (`core/texto/palavra.ts`) e `tests/paridade-anonima.test.ts` a trava.
+ */
+import { chaveDedup } from '@core/texto/palavra';
+export { chaveDedup };
+
+/**
+ * A chave que ESTA VERSÃO gravava, para reconhecer cartas antigas uma última vez.
+ *
+ * Some quando não houver mais base anônima anterior a 2026-09-07 — e some sozinha: cada carta
+ * encontrada por aqui é regravada com a chave nova no mesmo fluxo que a encontrou.
+ */
+function chaveDedupLegada(word: string, srcLang: string | null | undefined): string {
+  const w = (word ?? '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim();
   return `${w}|${(srcLang ?? '').toLowerCase()}`;
+}
+
+async function acharPelaChaveAntiga(
+  store: { index: (nome: string) => { get: (k: string) => Promise<CartaoLocal | undefined> } },
+  word: string,
+  srcLang: string | null | undefined,
+): Promise<CartaoLocal | undefined> {
+  const legada = chaveDedupLegada(word, srcLang);
+  return legada ? store.index('porNormKey').get(legada) : undefined;
 }
 
 function lerMeta(meta: string | null): Json {
@@ -291,7 +323,13 @@ async function adicionarCartoes(_m: RegExpMatchArray, _u: URL, init: RequestInit
     if (!word) { skipped.push({ word: String(c.word ?? ''), motivo: 'palavra vazia' }); continue; }
     const srcLang = str(c.srcLang);
     const normKey = chaveDedup(word, srcLang);
-    const existente = resultado.get(normKey) ?? (await tx.store.index('porNormKey').get(normKey));
+    const existente = resultado.get(normKey)
+      ?? (await tx.store.index('porNormKey').get(normKey))
+      /* CARTA GRAVADA COM A CHAVE ANTIGA. A forma da chave mudou (ver `chaveDedup`), então uma
+         carta guardada antes desta versão não é encontrada pelo índice — e sem esta busca ela
+         duplicaria uma vez, justamente para quem já usava o modo sem conta. A varredura é barata:
+         o modo anônimo tem teto de 80 palavras (`TETO_ANONIMO`). */
+      ?? (await acharPelaChaveAntiga(tx.store, word, srcLang));
     if (existente) {
       const atualizado: CartaoLocal = {
         ...existente, occurrences: existente.occurrences + 1,

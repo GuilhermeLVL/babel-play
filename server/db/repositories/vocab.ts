@@ -5,6 +5,7 @@ import { vocabCards, vocabOccurrences, reviewLogs, sessions, ankiNotes, ankiDeck
 import { makeFsrs5, type Grade, type SchedulingState } from '../../../src/core/learning/scheduler'
 import { nivelCefr } from '../../../src/core/learning/cefrWordlist'
 import { garantirNiveis } from '../../lib/niveisDaTrilha'
+import { chaveDedup as chaveDedupDoNucleo } from '../../../src/core/texto/palavra'
 import { avaliarCartao, foraDoBulkAdd, type MotivoDescarte } from '../../../src/core/learning/quality'
 import { calcularDificuldade, faixaDe, cortesDoDeck, type CortesDeFaixa, type FaixaDificuldade } from '../../../src/core/learning/dificuldade'
 import { exerciseResultsRepo } from './exerciseResults'
@@ -71,16 +72,11 @@ export interface BulkAddResult {
   repetidas: string[]
 }
 
-/** Chave de deduplicação: palavra sem acento/caixa + idioma base. */
-function chaveDedup(word: string, srcLang: string | null | undefined): string {
-  const palavra = (word ?? '')
-    .normalize('NFD')
-    .replace(/[̀-ͯ]/g, '')
-    .toLowerCase()
-    .replace(/[^\p{L}\p{N}]/gu, '')
-  const lang = (srcLang ?? '').toLowerCase().split('-')[0]
-  return `${lang}|${palavra}`
-}
+/* Chave de deduplicação: palavra sem acento/caixa/pontuação + idioma base. A implementação mudou
+   para `src/core/texto/palavra.ts` — o modo anônimo tinha a SUA, diferente em três pontos apesar
+   do comentário dizer "mesma chave do servidor", e a divergência aparecia na migração (achado
+   A24). O comportamento aqui não muda: a canônica é esta. */
+const chaveDedup = (word: string, srcLang: string | null | undefined) => chaveDedupDoNucleo(word, srcLang)
 
 export interface NewVocabCard {
   word: string

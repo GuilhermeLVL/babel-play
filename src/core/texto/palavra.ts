@@ -18,3 +18,24 @@ export function chaveDaPalavra(s: string | undefined | null): string {
     .toLowerCase()
     .replace(/[^\p{L}\p{N}]/gu, '')
 }
+
+/**
+ * A CHAVE DE DEDUPLICAÇÃO DO ACERVO — a mesma nas duas pontas (auditoria de 2026-09-07, achado A24).
+ *
+ * Existiam duas, e o comentário de uma delas dizia "mesma chave do servidor". Não era, em três
+ * pontos: o servidor monta `lang|palavra` e o modo anônimo montava `palavra|lang`; o servidor tira
+ * pontuação e o anônimo só aparava espaços; o servidor usa o idioma BASE (`pt` de `pt-BR`) e o
+ * anônimo o locale inteiro.
+ *
+ * O efeito aparece na migração, que é o pior lugar: "Água!" em `pt-BR` era uma carta no anônimo e
+ * outra no servidor, então quem estudou sem conta e depois criou uma via o acervo duplicar
+ * palavras que já tinha. Dedup é uma decisão sobre IGUALDADE — duas respostas para "estas duas
+ * palavras são a mesma?" não é duplicação de código, é duas verdades.
+ *
+ * A ordem `lang|palavra` é a do servidor porque é a que já está gravada em `vocab_cards.norm_key`:
+ * mudar do lado do banco custaria uma migração de dados para ganhar nada.
+ */
+export function chaveDedup(palavra: string | undefined | null, lang: string | undefined | null): string {
+  const idioma = (lang ?? '').toLowerCase().split('-')[0]
+  return `${idioma}|${chaveDaPalavra(palavra)}`
+}

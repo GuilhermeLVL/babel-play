@@ -10,6 +10,7 @@
  * Comprar aqui e equipar ali passam pelo mesmo `equiparItem` (lib/galeria/equipar) — o único
  * caminho que equipa no app. Os textos dos estados vêm de `lib/galeria/textos`.
  */
+import { normalizarAbaDaLoja } from '../../lib/rotas';
 import { useEffect, useMemo, useState } from 'react';
 import { ShoppingBag, Sprout, Lock, Check, Sparkles, Coins, Crown, Trophy, Shirt, Ticket } from 'lucide-react';
 import { Abas, PainelDeAba } from '../ui';
@@ -88,15 +89,13 @@ const FILTROS = [
 /* v4 (spec personalizar-v4, protótipo aprovado 31/08): 'progressao' virou o PASSE — a mesma
    informação (o que cada nível libera) na lente de 100 posições aprovada pelo dono. O id antigo
    segue aceito como alias para navegação gravada/links não quebrarem. */
-const ABAS_VALIDAS = ['passe', 'personalizar', 'loja', 'conquistas'] as const;
-const ALIAS_DE_ABA: Record<string, string> = { progressao: 'passe' };
+/* A tabela de abas validas e a de apelidos mudaram para `lib/rotas.ts`: sao do vocabulario de
+   ROTAS, e mante-las aqui fazia a Loja abrir na aba certa enquanto a URL mostrava
+   `/loja/undefined` (achado A16). `normalizarAbaDaLoja` responde pelas duas. */
 
 export default function Loja({ progress, theme, setTheme, fonte, setFonte, menuPosition, setMenuPosition, onOpenStudio, ctxConquistas, ageProfile, setAgeProfile, abaInicial, aoTrocarDeAba, equiparCtx, onEntrar }: LojaProps) {
   // A tela ÚNICA abre no Meu visual: personalizar é o uso; comprar e conquistar são os caminhos.
-  const normalizarAba = (a: string | undefined | null): string | null => {
-    const alvo = a ? (ALIAS_DE_ABA[a] ?? a) : null;
-    return alvo && ABAS_VALIDAS.includes(alvo as never) ? alvo : null;
-  };
+  const normalizarAba = (a: string | undefined | null): string | null => normalizarAbaDaLoja(a);
   const [aba, setAbaInterna] = useState<string>(normalizarAba(abaInicial) ?? 'personalizar');
   useEffect(() => { const alvo = normalizarAba(abaInicial); if (alvo) setAbaInterna(alvo); }, [abaInicial]);
   // Toda troca (clique na aba OU atalho interno como "Ver no Passe") avisa o App, que espelha

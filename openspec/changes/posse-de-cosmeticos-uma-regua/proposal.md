@@ -9,6 +9,16 @@ Hoje ha tres reguas de posse que discordam entre si e nenhum portao nos setters 
 - 47/128 itens do Cofre nao tem canal de obtencao (`desafio` 23, `tempo` 20, 4 `conquistaId` inexistentes) e a UI mostra "Como obter" (`GaleriaDoCofre.tsx:655-659`).
 - `GamificacaoHub.tsx:22-42` recebe `comprar`/`comprarComCreditos` e nao usa; `ABAS_QUE_EXIGEM_CONTA` (`exigeConta.ts:20-30`) sem chamador; abas `progressao`/`recompensas` fora de `ABA_DA_LOJA` geram `/loja/undefined` (`rotas.ts:88-108`, `Play.tsx:2528`, `Loja.tsx:503`); `/creditos` cai no Cofre.
 
+## Estado em `main` (nota da implementacao, 2026-09-07)
+
+Metade do que esta escrito abaixo foi observado na ARVORE SUJA de 07/09, que tinha
+`src/core/catalogoMestre.ts`, `src/lib/{suitesTematicas,drops}.ts` e `views/gamificacao/**`. A
+change `linha-de-base-verde` guardou essa camada na branch `gamificacao-v2-wip` (decisao (b) do
+dono), entao o Cofre, o Catalogo Mestre, as suites, os drops e o `GamificacaoHub` NAO tem alvo em
+`main`. O que foi implementado e a parte que existe e estava quebrada: as duas reguas do cliente
+que discordavam, a rota que gravava sem conferir posse, a posse de conquista que so vivia no
+navegador, e a URL `/loja/undefined`. O `tasks.md` diz item a item o que ficou e por que.
+
 ## What Changes
 
 - **Um catalogo, ids unicos.** `CATALOGO_DA_LOJA` e `CATALOGO_MESTRE` viram um unico catalogo em `src/core/catalogo/` com namespace por origem (`loja:`, `cofre:`), um tipo e uma funcao de acesso. Itens sem canal de obtencao saem ou ganham canal implementado (pergunta 8 do relatorio decide; sem decisao, saem).

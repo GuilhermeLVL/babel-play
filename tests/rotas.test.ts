@@ -11,7 +11,7 @@
  * comportamento inteiro sem montar o app, e a ida-e-volta é verificável.
  */
 import { describe, it, expect } from 'vitest'
-import { estadoParaUrl, urlParaEstado, type EstadoDeRota } from '../src/lib/rotas'
+import { estadoParaUrl, urlParaEstado, normalizarAbaDaLoja, type EstadoDeRota } from '../src/lib/rotas'
 
 const ida = (e: EstadoDeRota) => urlParaEstado(estadoParaUrl(e))
 
@@ -166,3 +166,34 @@ describe('a query do /jogar', () => {
     expect(estadoParaUrl({ view: 'play' })).toBe('/jogar')
   })
 })
+
+/**
+ * `/loja/undefined` NÃO EXISTE MAIS (auditoria de 2026-09-07, achado A16).
+ *
+ * A tabela de apelidos de aba morava dentro de `Loja.tsx`, que a usava para escolher a aba a
+ * mostrar. Quem escreve a URL é `estadoParaUrl`, e ela não conhecia os apelidos: `Play.tsx`
+ * navegava com `aba: 'progressao'`, a Loja abria certo e a barra de endereço mostrava
+ * `/loja/undefined` — que não recarrega e não se compartilha.
+ */
+describe('abas da loja na URL', () => {
+  it('apelido antigo vira a aba canônica, não `undefined`', () => {
+    expect(estadoParaUrl({ view: 'loja', lojaTab: 'progressao' as never })).toBe('/loja/passe');
+    expect(normalizarAbaDaLoja('progressao')).toBe('passe');
+  });
+
+  it('aba desconhecida cai em `/loja`, e nunca numa URL quebrada', () => {
+    expect(estadoParaUrl({ view: 'loja', lojaTab: 'inventada' as never })).toBe('/loja');
+    expect(normalizarAbaDaLoja('inventada')).toBeNull();
+  });
+
+  it('as quatro abas canônicas continuam com endereço próprio', () => {
+    for (const aba of ['passe', 'personalizar', 'loja', 'conquistas'] as const) {
+      const url = estadoParaUrl({ view: 'loja', lojaTab: aba });
+      expect(url.startsWith('/loja/'), aba).toBe(true);
+      expect(url, aba).not.toContain('undefined');
+      // E o caminho volta para a MESMA aba: URL que não fecha o ciclo é link quebrado.
+      expect(urlParaEstado(url).lojaTab, aba).toBe(aba);
+    }
+  });
+});
+

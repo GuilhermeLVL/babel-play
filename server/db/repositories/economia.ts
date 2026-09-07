@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto'
-import { and, eq, isNull, sql, sum } from 'drizzle-orm'
+import { and, eq, isNull, like, sql, sum } from 'drizzle-orm'
 import { db } from '../db'
 import { presencas, seedCredits } from '../schema'
 import type { UserId } from '../../lib/authContext'
@@ -49,6 +49,22 @@ export const economiaRepo = {
   },
 
   /** Marca o dia como presente — UMA linha por (usuário, dia local). */
+  /**
+   * AS CONQUISTAS QUE O SERVIDOR RECONHECE — derivadas de `seed_credits`, nao do navegador.
+   *
+   * A posse de conquista morava so em `localStorage['babel.conquistas']`, editavel por quem
+   * quisesse, e nunca era reconciliada com o razao (auditoria de 2026-09-07, achado A12). O
+   * credito ja e gravado com `reason = 'conquista:<id>'` desde a economia v2: a informacao existe
+   * no banco e faltava alguem perguntar por ela.
+   */
+  async conquistasCreditadas(userId: UserId): Promise<string[]> {
+    const rows = await db
+      .select({ reason: seedCredits.reason })
+      .from(seedCredits)
+      .where(and(eq(seedCredits.userId, userId), like(seedCredits.reason, 'conquista:%')))
+    return [...new Set(rows.map((r) => (r.reason ?? '').slice('conquista:'.length)).filter(Boolean))]
+  },
+
   async registrarPresenca(userId: UserId, dia: number): Promise<{ jaExistia: boolean }> {
     const now = Date.now()
     const r = await db.run(sql`

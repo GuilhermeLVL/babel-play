@@ -10,33 +10,20 @@
  *      (o cadeado vale para TROCAR para algo ainda não conquistado, nunca para expulsar).
  */
 
-import { conquistasDesbloqueadas } from './conquistasPosse';
+import { CATALOGO_DA_LOJA, estadoPorAlvo } from './loja';
 import type { TipoDesbloqueavel } from '@core';
 
 // O tipo mudou para `core/loja.ts` (o catálogo é quem o consome); a REGRA de nível continua aqui.
 export type { TipoDesbloqueavel };
 
-/** nível mínimo por item; o que não está aqui é livre desde o início. */
-const CATALOGO: Record<TipoDesbloqueavel, Record<string, number>> = {
-  tema: {
-    linear: 2,
-    vercel: 4,
-    mochi: 6,
-    notion: 7,
-    premium: 8,
-    custom: 10,
-  },
-  // Fonte: LIVRE desde o inicio (decisao do dono, 2026-08-27: a troca padrao/arcade e vitrine
-  // da identidade do app, nao premio). O registro fica vazio de proposito.
-  fonte: {},
-  posicao: {
-    right: 3,
-    bottom: 3,
-  },
-  estudio: {
-    abrir: 10,
-  },
-};
+/**
+ * O NÍVEL VEM DO CATÁLOGO, não de uma segunda tabela.
+ *
+ * Havia aqui um `CATALOGO` próprio com o nível de cada tema, posição e do estúdio — os MESMOS
+ * itens que `src/core/loja.ts` já descreve, com o mesmo número escrito de novo. Os dois
+ * concordavam por coincidência, e nada os prendia: mudar o preço ou o nível de um tema na Loja
+ * deixava o seletor de aparência com o valor antigo (auditoria de 2026-09-07, achado A10).
+ */
 
 /** Nível necessário para usar o item (1 = livre desde o início). */
 const CHAVE_LIBERADO = 'babel.liberado';
@@ -66,37 +53,43 @@ export function ativarLiberacaoTotal(ligar = true): void {
 }
 
 export function nivelNecessario(tipo: TipoDesbloqueavel, id: string): number {
-  return CATALOGO[tipo]?.[id] ?? 1;
+  return CATALOGO_DA_LOJA.find((i) => i.tipo === tipo && i.alvo === id)?.nivel ?? 1;
 }
 
 /**
  * `escolhaAtual`: o que a pessoa JÁ usa — nunca é rebaixado (regra 2).
  */
 /**
- * EXCLUSIVOS DE CONQUISTA (economia v2): não têm nível nem preço; só a conquista abre.
- * Chave `tipo:id` → id da conquista (catálogo em `@core/learning/conquistas`).
+ * UMA RÉGUA SÓ (achado A10).
+ *
+ * Esta função decidia por conta própria — nível, mais um mapa local de exclusivos de conquista — e
+ * não sabia nada de compra com Seeds nem de posse premium. Quem comprasse o tema Linear por 60
+ * Seeds no nível 1 continuava vendo o cadeado aqui: pagou e não pôde equipar.
+ *
+ * Agora ela delega a `estadoPorAlvo`, que é a MESMA função que a Loja, o Inventário, o Passe e o
+ * `equiparItem` usam. O saldo entra como zero de propósito: quem pergunta "está desbloqueado?"
+ * quer saber se PODE USAR agora, não se poderia comprar — "compravel" é resposta da Loja, e aqui
+ * seria um cadeado disfarçado de permissão.
  */
-export const EXCLUSIVOS_DE_CONQUISTA: Record<string, string> = {
-  'tema:aurora': 'constante',
-};
-
 export function desbloqueado(nivel: number, tipo: TipoDesbloqueavel, id: string, escolhaAtual?: string): boolean {
   if (liberadoTudo()) return true;
-  if (escolhaAtual !== undefined && escolhaAtual === id) return true;
-  const conquista = EXCLUSIVOS_DE_CONQUISTA[`${tipo}:${id}`];
-  if (conquista) return conquistasDesbloqueadas().has(conquista);
-  return nivel >= nivelNecessario(tipo, id);
+  return estadoPorAlvo(tipo, id, nivel, 0, escolhaAtual).estado === 'equipavel';
 }
 
 export interface Recompensa { tipo: TipoDesbloqueavel; id: string }
 
-/** O que o nível `n` libera (para o toast de "subiu de nível"). */
+/**
+ * O que o nível `n` libera (para o toast de "subiu de nível") — lido do catálogo.
+ *
+ * Vinha da tabela local, que só conhecia tema, posição e estúdio: subir de nível liberava um
+ * cursor ou um pacote de partículas e o toast não dizia nada. Agora o toast fala de tudo que o
+ * nível abre, porque pergunta a quem sabe.
+ */
 export function recompensasDoNivel(n: number): Recompensa[] {
-  const lista: Recompensa[] = [];
-  for (const [tipo, itens] of Object.entries(CATALOGO) as Array<[TipoDesbloqueavel, Record<string, number>]>) {
-    for (const [id, nivel] of Object.entries(itens)) if (nivel === n) lista.push({ tipo, id });
-  }
-  return lista;
+  const TIPOS_DE_APARENCIA: TipoDesbloqueavel[] = ['tema', 'fonte', 'posicao', 'estudio'];
+  return CATALOGO_DA_LOJA
+    .filter((i) => i.nivel === n && !i.exclusivoDe && TIPOS_DE_APARENCIA.includes(i.tipo as TipoDesbloqueavel))
+    .map((i) => ({ tipo: i.tipo as TipoDesbloqueavel, id: i.alvo }));
 }
 
 /** Rótulo humano das recompensas (para o toast). */

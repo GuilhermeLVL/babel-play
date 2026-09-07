@@ -95,6 +95,31 @@ const ABA_DA_LOJA_DE_SEGMENTO = Object.fromEntries(
   Object.entries(ABA_DA_LOJA).map(([k, v]) => [v, k]),
 ) as Record<string, NonNullable<EstadoDeRota['lojaTab']>>
 
+/**
+ * NOMES ANTIGOS DE ABA, resolvidos ANTES de virar URL (auditoria de 2026-09-07, achado A16).
+ *
+ * A tabela vivia dentro de `Loja.tsx`, que a usava para escolher a aba a mostrar. Só que quem
+ * escreve a URL é `estadoParaUrl`, aqui, e ela não conhecia os apelidos: `Play.tsx` navegava com
+ * `aba: 'progressao'`, a Loja abria certo (o apelido resolve para `passe`) e a barra de endereço
+ * mostrava `/loja/undefined`. Recarregar aquela página caía na aba padrão.
+ *
+ * O apelido é do VOCABULÁRIO DE ROTAS, então mora com as rotas. `Loja.tsx` passa a perguntar aqui.
+ */
+const APELIDO_DE_ABA: Record<string, NonNullable<EstadoDeRota['lojaTab']>> = {
+  progressao: 'passe',
+  recompensas: 'conquistas',
+  cofre: 'personalizar',
+  itens: 'loja',
+  desafios: 'conquistas',
+}
+
+/** A aba canônica para um nome qualquer (id atual, apelido antigo ou lixo). `null` = desconhecida. */
+export function normalizarAbaDaLoja(bruta: string | null | undefined): NonNullable<EstadoDeRota['lojaTab']> | null {
+  if (!bruta) return null
+  if (bruta in ABA_DA_LOJA) return bruta as NonNullable<EstadoDeRota['lojaTab']>
+  return APELIDO_DE_ABA[bruta] ?? null
+}
+
 export function estadoParaUrl(e: EstadoDeRota): string {
   if (e.view === 'analysis') {
     // `/revisar` primeiro: é a porta da revisão espaçada, e ela vence a aba genérica.
@@ -105,7 +130,12 @@ export function estadoParaUrl(e: EstadoDeRota): string {
     const aba = e.subTab ? ABA[e.subTab] : ''
     return aba ? `/sessao/${e.sessionId}/${aba}` : `/sessao/${e.sessionId}`
   }
-  if (e.view === 'loja' && e.lojaTab) return `/loja/${ABA_DA_LOJA[e.lojaTab]}`
+  if (e.view === 'loja' && e.lojaTab) {
+    /* Aba desconhecida vira `/loja`, e nunca `/loja/undefined`: uma URL quebrada na barra de
+       endereço é pior que uma URL menos específica — ela não recarrega e não se compartilha. */
+    const canonica = normalizarAbaDaLoja(e.lojaTab)
+    return canonica ? `/loja/${ABA_DA_LOJA[canonica]}` : '/loja'
+  }
   if (e.view === 'play' && e.jogarQuery) return `/jogar?${e.jogarQuery}`
   const seg = SEGMENTO[e.view]
   return seg ? `/${seg}` : '/'

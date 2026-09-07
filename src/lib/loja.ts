@@ -125,6 +125,33 @@ export function estadoDoItem(item: ItemDaLoja, nivel: number, saldoSeeds: number
   return { estado: 'bloqueado', motivo: `Nível ${item.nivel}` };
 }
 
+/**
+ * A MESMA RÉGUA, ENDEREÇADA POR (tipo, alvo) — para quem não tem o item do catálogo em mãos.
+ *
+ * `desbloqueios.desbloqueado(nivel, tipo, id)` era uma SEGUNDA régua, com a sua própria tabela de
+ * níveis, e as duas discordavam sobre o mesmo item (auditoria de 2026-09-07, achado A10): esta
+ * conhece compra com Seeds, posse premium e exclusivo de conquista; aquela só conhecia nível.
+ * Efeito prático medido no catálogo: quem comprasse o tema Linear (60 Seeds) no nível 1 via o item
+ * como "seu" na Loja e continuava com o cadeado no seletor de aparência — pagou e não pôde usar.
+ *
+ * `escolhaAtual` preserva a regra 2 de `desbloqueios`: quem já está usando um item nunca é
+ * expulso dele. O cadeado vale para TROCAR, nunca para rebaixar o que já está aplicado.
+ */
+export function estadoPorAlvo(
+  tipo: ItemDaLoja['tipo'],
+  alvo: string,
+  nivel: number,
+  saldoSeeds: number,
+  escolhaAtual?: string,
+): { estado: EstadoDoItem; motivo?: string } {
+  if (escolhaAtual !== undefined && escolhaAtual === alvo) return { estado: 'equipavel' }
+  const item = CATALOGO_DA_LOJA.find((i) => i.tipo === tipo && i.alvo === alvo)
+  // Fora do catálogo = livre. É o comportamento antigo (`nivelNecessario` devolvia 1) e o certo:
+  // item que ninguém vende nem premia não tem por que estar trancado.
+  if (!item) return { estado: 'equipavel' }
+  return estadoDoItem(item, nivel, saldoSeeds)
+}
+
 /** Itens que o nível N (próximo) vai liberar — a vitrine de "continue jogando". */
 export function vitrineDoProximoNivel(nivelAtual: number): ItemDaLoja[] {
   const proximos = CATALOGO_DA_LOJA.filter((i) => !i.exclusivoDe && i.nivel > nivelAtual);

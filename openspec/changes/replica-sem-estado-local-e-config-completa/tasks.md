@@ -1,23 +1,23 @@
 ## 1. Segredo e boot
 
-- [ ] 1.1 `crypto.ts`: chave em `diretorioGravavel()`; producao exige `SECRET_KEY` (ja); teste de dois processos com o mesmo `DATA_DIR`
-- [ ] 1.2 `bootStatus` persistido e lido por `/api/health` em qualquer processo; teste com worker (`prepararDados:false`)
+- [x] 1.1 `server/lib/diretorios.ts` (novo) passa a ser a UNICA resposta para "onde este servidor pode escrever": a regra vivia dentro de `server.ts` e o `crypto.ts` tinha a sua propria, divergente. A chave agora nasce em `diretorioGravavel()/secret.key`. **Migracao do caminho antigo:** se `<cwd>/data/secret.key` existir e o novo nao, a chave ANTIGA e adotada e copiada — corrigir o caminho nao pode tornar ilegivel toda credencial ja cifrada de quem ja usava. Testes: duas instancias com o mesmo `DATA_DIR` leem os segredos uma da outra; com volumes diferentes, nao leem; instalacao existente preserva a chave.
+- [x] 1.2 `bootStatus` persistido em `boot_falhas` (migration `0024`) e lido por qualquer processo. Passo que volta a dar certo APAGA a linha (`registrarSucessoDeBoot`), senao uma falha transitoria deixaria a instancia em 503 para sempre. Teste com `esquecerEmMemoria()` simulando o worker que sobe depois do primario.
 
 ## 2. Reconciliacao
 
-- [ ] 2.1 Reivindicar janela antes de varrer (update condicional em `updatedAt`); uma varredura em voo por usuario
-- [ ] 2.2 `STORAGE_RECONCILE_MODE=job` tira a varredura do caminho de `entitlements`
-- [ ] 2.3 Teste de concorrencia: duas chamadas simultaneas varrem uma vez
+- [x] 2.1 `reivindicarJanela` carimba `updated_at` com `UPDATE ... WHERE updated_at <= limite` (ou cria a linha com `onConflictDoNothing`) ANTES de varrer: quem consegue mudar a linha varre, os outros devolvem o contador. Dez chamadas simultaneas, uma varredura.
+- [x] 2.2 `STORAGE_RECONCILE_MODE=job` tira a varredura do caminho de `entitlements`. **Alem do previsto:** o modo veio com o runner, `POST /api/admin/armazenamento/reconciliar` (admin) — sem ele o modo seria um interruptor que desliga a reconciliacao em silencio, trocando um problema por outro mais quieto.
+- [x] 2.3 `tests/integration/reconciliacao-concorrente.test.ts`. Nota de metodo: a primeira versao espionava `reconciliarArmazenamento` e passava verde sem provar nada — `reconciliarSeVencido` chama por referencia interna ao modulo e o espiao fica de fora. O teste afirma sobre o MECANISMO (dez reivindicacoes, uma vencedora), e `reivindicarJanela` foi exportada para isso, com o porque escrito no proprio docblock.
 
 ## 3. Multi-processo declarado
 
-- [ ] 3.1 `CLUSTER_WORKERS>1` sem `S3_*`/volume declarado: recusa no boot com mensagem; loopback recusa cluster
-- [ ] 3.2 Diario de erros com sufixo de PID; poda so no primario
-- [ ] 3.3 `seedIfEmpty` so em `!authRequired()`
+- [x] 3.1 **Desvio deliberado da tarefa escrita.** Ela dizia "`CLUSTER_WORKERS>1` sem `S3_*` recusa no boot", e isso estaria errado: `CLUSTER_WORKERS` sao processos do MESMO host, com o MESMO disco — exigir S3 ali quebraria uma configuracao legitima que ja funciona. O que precisa de armazenamento alcancavel e MAIS DE UMA MAQUINA, e isso o processo nao tem como descobrir. Entao entrou `REPLICAS` (declarado por quem opera): acima de 1 sem S3 completo nem `ARMAZENAMENTO_COMPARTILHADO=1`, o boot recusa com a mensagem explicando o 404 intermitente que evitaria. O loopback WASAPI, esse sim, recusa em `CLUSTER_WORKERS>1` — nas duas rotas, nao so no log.
+- [x] 3.2 Diario com um arquivo por processo em cluster (`AAAA-MM-DD.<pid>.jsonl`); fora do cluster o nome nao muda. Poda so no primario (`podarAqui: prepararDados`). `lerUltimosErros` junta todos os arquivos do dia — ler so o do proprio processo devolveria um recorte arbitrario.
+- [x] 3.3 `seedIfEmpty` so em `!authRequired()`: os dados de demonstracao ficavam pendurados no `LOCAL_OWNER` inclusive num deploy publico, onde nao existe dono local.
 
 ## 4. Inventario de configuracao
 
-- [ ] 4.1 `VARIAVEIS` completo (S3_*, ASAAS_*, LLM_RESERVA_*, ESSENCIAL_*, *_STORAGE_MB, ANKI_MEDIA_DIR, OLLAMA_URL, GEMINI_MODEL, DATA_DIR, ERROS_DIR, MIGRATIONS_DIR, OLLAMA_MODEL)
-- [ ] 4.2 `tests/integration/config-inventario.test.ts`: varre `server/**` por `process.env.X` e por `env[...]` dinamico com prefixo conhecido
-- [ ] 4.3 `.env.example` e `.env.docker.example` verificados contra `VARIAVEIS`
-- [ ] 4.4 `npm test` verde; `docs/deploy.md` atualizado
+- [x] 4.1 `VARIAVEIS` completo: 55 declaradas (eram 33). Entraram `S3_*` (5), `ASAAS_*` (3), `LLM_RESERVA_*` (3), `ESSENCIAL_*` (3), `PRO_STORAGE_MB`, `ANKI_MEDIA_DIR`, `OLLAMA_URL`, `GEMINI_MODEL`, `REPLICAS`, `ARMAZENAMENTO_COMPARTILHADO`, `STORAGE_RECONCILE_MODE`, `HOSTNAME`. `OLLAMA_URL` e `GEMINI_MODEL` eram literais no codigo e viraram variaveis (a do Ollama estava cravada em DOIS lugares; o cliente le `VITE_OLLAMA_URL`, com o mesmo default).
+- [x] 4.2 `tests/integration/config-inventario.test.ts`: varre `server/**` + `server.ts` por `process.env.X`, `env.X` e desestruturacao de `env`, com comentarios removidos (o proprio `config.ts` escreve `process.env.X` na documentacao, e sem isso o teste "descobriria" uma variavel chamada X). Falha nos dois sentidos — lida e nao declarada, declarada e nao lida. Os nomes montados em runtime (`${plano}_STORAGE_MB`) ficam listados por extenso no teste, porque varredura nenhuma os acha e a alternativa e o inventario mentir por omissao.
+- [x] 4.3 `.env.example` verificado contra o inventario: toda variavel `impede-servico` precisa aparecer la, e nenhuma variavel do exemplo pode ser desconhecida do servidor. Entraram as secoes de armazenamento de objetos, topologia e LLM local. `.env.docker.example` nao foi tocado: ele e um recorte para o compose, e o teste que vale e sobre `.env.example`, que e o arquivo que a pessoa copia.
+- [x] 4.4 `npm test` verde (2.837); `docs/deploy.md` ganhou a secao "Mais de uma instancia (`REPLICAS`)" e a nota do que muda em cluster (loopback recusado, diario por processo).

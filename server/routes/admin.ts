@@ -15,6 +15,8 @@ import { billingEventsRepo } from '../db/repositories/billingEvents'
 import { aplicarEvento, eventoSchema } from '../lib/billingEventos'
 import { asUserId } from '../lib/authContext'
 import { idParamSchema, parseOr400 } from '../validation'
+import { reconciliarArmazenamento, modoDeReconciliacao } from '../lib/storageQuota'
+import { log } from '../lib/logger'
 
 export const adminRouter = Router()
 
@@ -72,6 +74,31 @@ adminRouter.patch('/users/:id/plan', requireRole('admin'), async (req, res) => {
  * grep manual via SSH — "ninguém é acordado" (diarioDeErros.ts). Inclui os erros do CLIENTE, que
  * entram pelo mesmo funil (`POST /api/erros-do-cliente`).
  */
+/**
+ * RECONCILIAR ARMAZENAMENTO DE TODO MUNDO — o runner do `STORAGE_RECONCILE_MODE=job`.
+ *
+ * A varredura (O(n sessões), com `stat`/`HEAD` por arquivo) morava dentro de
+ * `GET /api/me/entitlements`, ou seja, era paga pela latência de quem estava usando o app
+ * (auditoria de 2026-09-07, achado A33). Com o modo `job` ela sai desse caminho — e precisa de
+ * alguém que a chame, senão o modo vira um interruptor de desligar em silêncio. Este é o alguém:
+ * um cron do deploy bate aqui.
+ *
+ * Sequencial de propósito: é trabalho de limpeza, e paralelizar `stat` sobre o mesmo disco só
+ * antecipa a contenção que a mudança existe para evitar.
+ */
+adminRouter.post('/armazenamento/reconciliar', requireRole('admin'), async (_req, res) => {
+  const usuarios = await usersRepo.list()
+  const porUsuario: Array<{ userId: string; bytes: number }> = []
+  for (const u of usuarios) {
+    try {
+      porUsuario.push({ userId: u.id, bytes: await reconciliarArmazenamento(asUserId(u.id)) })
+    } catch (err) {
+      log('warn', { event: 'storage_reconcile_job_failed', error: `${u.id}: ${String(err).slice(0, 120)}` })
+    }
+  }
+  res.json({ modo: modoDeReconciliacao(), reconciliados: porUsuario.length, total: usuarios.length, porUsuario })
+})
+
 adminRouter.get('/erros', requireRole('admin'), (req, res) => {
   const limite = Math.min(500, Math.max(1, Number(req.query.limite) || 100))
   const { dir, erros } = lerUltimosErros(limite)

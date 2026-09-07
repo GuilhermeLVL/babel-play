@@ -169,6 +169,13 @@
       "when": 1788800000000,
       "tag": "0023_um_idioma_alvo_so",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "6",
+      "when": 1788808605527,
+      "tag": "0024_falhas_de_boot_no_banco",
+      "breakpoints": true
     }
   ]
 }

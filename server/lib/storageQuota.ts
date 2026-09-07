@@ -17,7 +17,7 @@ import { randomUUID } from 'node:crypto'
 import { PLAN_MATRIX } from '../../src/core/planos'
 import { statSync } from 'node:fs'
 import path from 'node:path'
-import { and, eq, sql } from 'drizzle-orm'
+import { and, eq, lte, sql } from 'drizzle-orm'
 import { db } from '../db/db'
 import { usageCounters } from '../db/schema'
 import { sessionsRepo } from '../db/repositories/sessions'
@@ -208,12 +208,62 @@ export async function reconciliarArmazenamento(userId: UserId, audioDir = direto
   return disco
 }
 
+/**
+ * MODO DA RECONCILIAÇÃO. `oportunista` (padrão) varre no caminho do `GET /api/me/entitlements`;
+ * `job` tira a varredura desse caminho e deixa quem opera chamar
+ * `POST /api/admin/armazenamento/reconciliar` por cron.
+ *
+ * O modo existe porque a varredura é O(n sessões) com `stat`/`HEAD` por arquivo, e ela acontecia
+ * dentro de uma rota que TODO usuário ativo atravessa. Num deploy grande isso é trabalho de
+ * limpeza pago pela latência de quem está usando o app.
+ */
+export function modoDeReconciliacao(): 'oportunista' | 'job' {
+  return process.env.STORAGE_RECONCILE_MODE === 'job' ? 'job' : 'oportunista'
+}
+
 /** Janela de frescor do contador. `STORAGE_RECONCILE_HOURS=0` desliga a reconciliação oportunista. */
 function horasDeReconciliacao(): number {
   const bruto = process.env.STORAGE_RECONCILE_HOURS
   if (bruto === undefined || bruto === '') return 24
   const n = Number(bruto)
   return Number.isFinite(n) && n >= 0 ? n : 24
+}
+
+/**
+ * Reivindica a janela de varredura. Devolve `true` para NO MÁXIMO um chamador por janela.
+ *
+ * O carimbo de `updatedAt` é a própria reserva: um `UPDATE ... WHERE updated_at <= limite` só
+ * afeta linha se ninguém tiver carimbado antes, e o SQLite serializa as escritas. Quando a linha
+ * ainda não existe, o INSERT com `onConflictDoNothing` faz o mesmo papel: quem consegue criar,
+ * varre.
+ *
+ * Efeito colateral aceito e declarado: se a varredura falhar depois da reivindicação, o contador
+ * fica com o valor antigo até a próxima janela. Era assim antes também — o que muda é não pagar a
+ * varredura duas vezes.
+ *
+ * EXPORTADA PARA O TESTE, e isso é deliberado: espionar a chamada interna de `reconciliarSeVencido`
+ * não funciona (a referência é interna ao módulo, o espião fica do lado de fora), então o teste de
+ * concorrência afirma sobre o MECANISMO — dez reivindicações simultâneas, uma verdadeira.
+ */
+export async function reivindicarJanela(userId: UserId, horas: number): Promise<boolean> {
+  const agora = Date.now()
+  const limite = agora - horas * 3_600_000
+  const criado = await db
+    .insert(usageCounters)
+    .values({ id: randomUUID(), userId, createdAt: agora, updatedAt: agora, metric: METRIC_STORAGE, window: WINDOW_STORAGE, count: 0 })
+    .onConflictDoNothing({ target: [usageCounters.userId, usageCounters.metric, usageCounters.window] })
+  if (Number((criado as { rowsAffected?: number })?.rowsAffected ?? 0) > 0) return true
+
+  const marcado = await db
+    .update(usageCounters)
+    .set({ updatedAt: agora })
+    .where(and(
+      eq(usageCounters.userId, userId),
+      eq(usageCounters.metric, METRIC_STORAGE),
+      eq(usageCounters.window, WINDOW_STORAGE),
+      lte(usageCounters.updatedAt, limite),
+    ))
+  return Number((marcado as { rowsAffected?: number })?.rowsAffected ?? 0) > 0
 }
 
 /**
@@ -241,7 +291,14 @@ export async function reconciliarSeVencido(userId: UserId, audioDir = diretorioD
       .limit(1)
     const linha = rows[0]
     if (horas === 0) return linha?.count ?? 0
+    // Modo job: a varredura sai do caminho de quem está usando o app (ver `modoDeReconciliacao`).
+    if (modoDeReconciliacao() === 'job') return linha?.count ?? 0
     if (linha && Number(linha.updatedAt) > Date.now() - horas * 3_600_000) return linha.count
+    /* A JANELA É REIVINDICADA ANTES DE VARRER. Ler-decidir-varrer é uma corrida clássica: duas
+       requisições simultâneas do mesmo usuário liam o mesmo `updatedAt` vencido e varriam as duas,
+       dobrando o `stat` por arquivo (achado A33). A reivindicação é um UPDATE condicional — quem
+       consegue mudar a linha varre, quem não consegue devolve o número que já existe. */
+    if (!(await reivindicarJanela(userId, horas))) return linha?.count ?? (await lerUso(userId)) ?? 0
     return await reconciliarArmazenamento(userId, audioDir)
   } catch (err) {
     log('warn', { event: 'storage_reconcile_failed', error: String((err as Error)?.message || err).slice(0, 120) })

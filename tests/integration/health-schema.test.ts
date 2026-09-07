@@ -34,7 +34,7 @@ const chamar = async () => { const res = fakeRes(); await health({} as any, res)
 
 describe('/api/health — detecção de schema', () => {
   it('banco íntegro: 200 e status ok', async () => {
-    boot.resetBootStatus()
+    await boot.resetBootStatus()
     const res = await chamar()
     expect(res.statusCode).toBe(200)
     expect(res.body.status).toBe('ok')
@@ -42,7 +42,7 @@ describe('/api/health — detecção de schema', () => {
   })
 
   it('SCHEMA QUEBRADO: 503, não 200', async () => {
-    boot.resetBootStatus()
+    await boot.resetBootStatus()
     await client.execute('ALTER TABLE sessions RENAME TO sessions_sumiu')
     try {
       const res = await chamar()
@@ -55,13 +55,13 @@ describe('/api/health — detecção de schema', () => {
   })
 
   it('recupera sozinho quando o schema volta', async () => {
-    boot.resetBootStatus()
+    await boot.resetBootStatus()
     const res = await chamar()
     expect(res.statusCode).toBe(200)
   })
 
   it('não vaza detalhe do banco na resposta', async () => {
-    boot.resetBootStatus()
+    await boot.resetBootStatus()
     await client.execute('ALTER TABLE sessions RENAME TO sessions_sumiu')
     try {
       const res = await chamar()

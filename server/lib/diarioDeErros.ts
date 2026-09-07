@@ -30,7 +30,36 @@ import type { SinkDeErro } from './logger'
 /** Dias de diário mantidos. Além disso o arquivo é apagado na primeira escrita do dia seguinte. */
 const DIAS_PADRAO = 14
 
-const doDia = (agora: Date) => `${agora.toISOString().slice(0, 10)}.jsonl`
+const diaDe = (agora: Date) => agora.toISOString().slice(0, 10)
+const doDia = (agora: Date) => `${diaDe(agora)}.jsonl`
+
+/**
+ * O ARQUIVO QUE ESTE PROCESSO ESCREVE.
+ *
+ * Em cluster, N processos abriam o MESMO `.jsonl` e cada um mantinha o seu contador de poda: N
+ * escritores no mesmo arquivo e N varreduras do diretorio por dia (auditoria de 2026-09-07, achado
+ * A61). `appendFileSync` e atomico o bastante para linhas curtas, mas nao ha por que apostar nisso
+ * — um arquivo por processo remove a aposta e ainda diz qual worker registrou o que.
+ *
+ * Fora do cluster o nome nao muda: quem ja tem diario continua com os mesmos arquivos.
+ */
+function arquivoDoProcesso(agora: Date): string {
+  const emCluster = Number(process.env.CLUSTER_WORKERS || 0) > 1
+  return emCluster ? `${diaDe(agora)}.${process.pid}.jsonl` : doDia(agora)
+}
+
+/** Todos os arquivos de um dia, de todos os processos. */
+function arquivosDoDia(dir: string, agora: Date): string[] {
+  const prefixo = diaDe(agora)
+  try {
+    return readdirSync(dir)
+      .filter((n) => n.startsWith(prefixo) && n.endsWith('.jsonl'))
+      .sort()
+      .map((n) => path.join(dir, n))
+  } catch {
+    return []
+  }
+}
 
 /**
  * Apaga diários mais velhos que `manter` dias.
@@ -46,7 +75,7 @@ function podar(dir: string, manter: number, agoraMs: number): void {
   const limite = agoraMs - manter * 86_400_000
   try {
     for (const nome of readdirSync(dir)) {
-      if (!/^\d{4}-\d{2}-\d{2}\.jsonl$/.test(nome)) continue
+      if (!/^\d{4}-\d{2}-\d{2}(\.\d+)?\.jsonl$/.test(nome)) continue
       const alvo = path.join(dir, nome)
       if (statSync(alvo).mtimeMs < limite) unlinkSync(alvo)
     }
@@ -60,12 +89,19 @@ export interface OpcoesDoDiario {
   manter?: number
   /** Injeta o relógio nos testes — sem isto a rotação só seria observável esperando um dia. */
   agora?: () => Date
+  /**
+   * Este processo poda o diretório?
+   *
+   * Em cluster, todos podavam: N varreduras do mesmo diretório por dia, com N-1 delas sem nada a
+   * fazer. Poda é manutenção do volume, e volume tem um dono — o primário.
+   */
+  podarAqui?: boolean
 }
 
 /** O diretório do sink ATIVO — preenchido por `diarioEmArquivo`, lido por `lerUltimosErros`. */
 let dirAtivo: string | null = null
 
-export function diarioEmArquivo({ dir, manter = DIAS_PADRAO, agora = () => new Date() }: OpcoesDoDiario): SinkDeErro {
+export function diarioEmArquivo({ dir, manter = DIAS_PADRAO, agora = () => new Date(), podarAqui = true }: OpcoesDoDiario): SinkDeErro {
   mkdirSync(dir, { recursive: true })
   dirAtivo = dir // registrado = legível: é o que permite GET /api/admin/erros sem re-resolver o caminho
   let ultimaPodaEm = ''
@@ -73,13 +109,12 @@ export function diarioEmArquivo({ dir, manter = DIAS_PADRAO, agora = () => new D
   return (evento) => {
     try {
       const hoje = agora()
-      const arquivo = doDia(hoje)
-      const marca = arquivo.slice(0, 10)
-      if (marca !== ultimaPodaEm) {
+      const marca = diaDe(hoje)
+      if (podarAqui && marca !== ultimaPodaEm) {
         ultimaPodaEm = marca
         podar(dir, manter, hoje.getTime())
       }
-      appendFileSync(path.join(dir, arquivo), `${JSON.stringify(evento)}\n`, 'utf8')
+      appendFileSync(path.join(dir, arquivoDoProcesso(hoje)), `${JSON.stringify(evento)}\n`, 'utf8')
     } catch {
       /*
        * Engolido pelo mesmo motivo que o logger engole sink que lança: um diário que não consegue
@@ -106,13 +141,17 @@ export function lerUltimosErros(limite = 100, agora: () => Date = () => new Date
   const ontem = new Date(hoje.getTime() - 86_400_000)
   const linhas: unknown[] = []
   for (const dia of [ontem, hoje]) {
-    try {
-      const texto = readFileSync(path.join(dirAtivo, doDia(dia)), 'utf8')
-      for (const l of texto.split('\n')) {
-        if (!l.trim()) continue
-        try { linhas.push(JSON.parse(l)) } catch { linhas.push({ bruto: l.slice(0, 300) }) }
-      }
-    } catch { /* dia sem arquivo é normal */ }
+    // TODOS os arquivos do dia: em cluster há um por processo, e ler só o do próprio processo
+    // devolveria um recorte arbitrário do que aconteceu.
+    for (const arquivo of arquivosDoDia(dirAtivo, dia)) {
+      try {
+        const texto = readFileSync(arquivo, 'utf8')
+        for (const l of texto.split('\n')) {
+          if (!l.trim()) continue
+          try { linhas.push(JSON.parse(l)) } catch { linhas.push({ bruto: l.slice(0, 300) }) }
+        }
+      } catch { /* arquivo pode ter sido podado entre a listagem e a leitura */ }
+    }
   }
   return { dir: dirAtivo, erros: linhas.slice(-limite).reverse() }
 }

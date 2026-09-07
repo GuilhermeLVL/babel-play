@@ -7,7 +7,15 @@ import type { Profile } from '@core'
  * mais adapters (WebLLM, Chrome AI, Transformers.js Whisper) entram depois SEM mudar telas.
  */
 
-const OLLAMA_LOCAL = 'http://localhost:11434/v1'
+/**
+ * O ENDERECO DO OLLAMA, com o mesmo default do servidor.
+ *
+ * Estava cravado aqui E em `server.ts`, e as duas copias podiam divergir sem ninguem notar
+ * (auditoria de 2026-09-07, achado A31). Este modulo roda no NAVEGADOR, entao le a variavel pela
+ * ponte do Vite (`VITE_OLLAMA_URL`); o servidor le `OLLAMA_URL`. Sao duas superficies diferentes
+ * do mesmo endereco — o que nao pode e o valor ser invisivel nas duas.
+ */
+const OLLAMA_LOCAL = (import.meta.env?.VITE_OLLAMA_URL as string | undefined)?.replace(/\/+$/, '') || 'http://localhost:11434/v1'
 
 export const BUILTIN_PROFILES: Profile[] = [
   {

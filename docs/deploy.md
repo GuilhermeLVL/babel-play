@@ -194,10 +194,53 @@ poda dependências de cliente e um SDK de 20 MB no runtime iria contra isso.
 erro contra um transporte falso. A primeira subida com credenciais de verdade precisa ser
 verificada à mão.
 
+## Mais de uma instancia (`REPLICAS`)
+
+Duas maquinas atras de um balanceador nao sao dois processos na mesma maquina, e a diferenca
+importa: o audio gravado por uma **nao existe no disco da outra**. O mesmo pedido responde 200 ou
+404 conforme quem atendeu — medido, com a mensagem "arquivo ausente".
+
+O servidor nao tem como descobrir quantas instancias existem, entao quem opera declara e o boot
+verifica:
+
+```bash
+REPLICAS=2                      # instancias independentes (nao processos: veja CLUSTER_WORKERS)
+# e uma das duas coisas abaixo:
+#  a) as quatro S3_* da secao acima, ou
+#  b) ARMAZENAMENTO_COMPARTILHADO=1   # as replicas montam o MESMO volume
+```
+
+Com `REPLICAS>1` e nenhuma das duas, **o boot recusa subir**, com a mensagem dizendo o porque.
+E de proposito: servir dado que some conforme o balanceador e pior que nao servir.
+
+O que mais atravessa as instancias, e ja resolvido:
+
+- **A chave dos segredos** (`secret.key`) vive em `DATA_DIR` (ou no diretorio do banco), nao no
+  `cwd` do processo. Em producao, defina `SECRET_KEY` no ambiente — e obrigatorio la, e e o unico
+  jeito de duas maquinas com discos separados lerem as mesmas credenciais cifradas.
+- **O estado do boot** e uma linha em `boot_falhas`, no banco. Antes ficava na memoria do processo
+  e `/api/health` alternava entre `ok` e `degraded` conforme a replica sorteada.
+- **A reconciliacao de armazenamento** reivindica a janela antes de varrer, entao duas requisicoes
+  simultaneas nao varrem duas vezes. Em deploy grande, prefira tirar a varredura do caminho de
+  quem usa o app:
+
+```bash
+STORAGE_RECONCILE_MODE=job
+# e um cron chamando, com um token de admin:
+#   curl -X POST https://<host>/api/admin/armazenamento/reconciliar
+```
+
 ## Modo cluster
 
 `CLUSTER_WORKERS=N` sobe N processos compartilhando a mesma porta. Vazio ou `1` = um processo,
-que é o comportamento de sempre.
+que é o comportamento de sempre. Sao processos do MESMO host, com o MESMO disco — para maquinas
+diferentes, veja `REPLICAS` acima.
+
+Duas coisas mudam em cluster: a **captura de loopback do servidor** (`/api/audio/loopback/*`)
+recusa, porque o mutex do dispositivo WASAPI e por processo e N processos teriam N mutexes
+independentes brigando pelo mesmo hardware; e o **diario de erros** passa a ter um arquivo por
+processo (`AAAA-MM-DD.<pid>.jsonl`), com a poda a cargo so do primario. A leitura em
+`GET /api/admin/erros` junta todos os arquivos do dia.
 
 **Por que existe (F6-01).** A carga contra o container mediu vazão **plana** (~100 req/s) com a
 latência crescendo linear a partir de 2 VUs — saturação de processo único, não consulta lenta: sem

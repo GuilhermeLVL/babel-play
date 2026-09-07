@@ -13,8 +13,25 @@
 import { createCipheriv, createDecipheriv, randomBytes, scryptSync } from 'node:crypto'
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
+import { diretorioGravavel } from './lib/diretorios'
 
-const KEY_FILE = path.join(process.cwd(), 'data', 'secret.key')
+/**
+ * ONDE A CHAVE MORA — no diretorio gravavel do deploy, nao no `cwd` do processo.
+ *
+ * `path.join(process.cwd(), 'data', 'secret.key')` era o caminho antigo, e ele so coincide com o
+ * volume por acaso. No `docker-compose.yml` deste projeto o processo roda em `/app` e o volume
+ * esta em `/data`: a chave nascia no sistema de arquivos EFEMERO do conteiner e sumia no primeiro
+ * restart, levando junto a leitura de toda credencial de IA ja cifrada (achado A34). Com duas
+ * replicas o estrago e imediato: cada uma gera a sua e nenhuma le os segredos da outra.
+ */
+function arquivoDaChave(): string {
+  return path.join(diretorioGravavel(), 'secret.key')
+}
+
+/** O caminho ANTIGO, so para ler. Ver `resolveRawKey`. */
+function arquivoLegadoDaChave(): string {
+  return path.join(process.cwd(), 'data', 'secret.key')
+}
 
 function resolveRawKey(): string {
   const fromEnv = process.env.SECRET_KEY?.trim()
@@ -25,15 +42,35 @@ function resolveRawKey(): string {
       'sem ela os segredos cifrados não podem ser protegidos.',
     )
   }
+  const arquivo = arquivoDaChave()
   try {
-    if (existsSync(KEY_FILE)) return readFileSync(KEY_FILE, 'utf8').trim()
-    mkdirSync(path.dirname(KEY_FILE), { recursive: true })
+    if (existsSync(arquivo)) return readFileSync(arquivo, 'utf8').trim()
+
+    /* MIGRACAO SILENCIOSA DO CAMINHO ANTIGO. Uma instalacao existente ja tem a chave em
+       `<cwd>/data/secret.key` e segredos cifrados com ela. Gerar uma nova aqui tornaria esses
+       segredos ilegiveis para sempre — a correcao do caminho nao pode custar os dados de quem ja
+       usava. Le a antiga, copia para o lugar certo, e segue com a MESMA chave. */
+    const legado = arquivoLegadoDaChave()
+    if (legado !== arquivo && existsSync(legado)) {
+      const anterior = readFileSync(legado, 'utf8').trim()
+      try {
+        mkdirSync(path.dirname(arquivo), { recursive: true })
+        writeFileSync(arquivo, anterior, { encoding: 'utf8' })
+        console.log(`[crypto] chave de segredos movida de ${legado} para ${arquivo} (mesma chave, segredos preservados)`)
+      } catch {
+        // Sem permissao no destino: seguir com a chave antiga e melhor que abortar o boot.
+        console.warn(`[crypto] não consegui copiar a chave para ${arquivo}; seguindo com ${legado}`)
+      }
+      return anterior
+    }
+
+    mkdirSync(path.dirname(arquivo), { recursive: true })
     const fresh = randomBytes(32).toString('hex')
-    writeFileSync(KEY_FILE, fresh, { encoding: 'utf8' })
-    console.log('[crypto] chave local de segredos gerada em data/secret.key (1ª execução)')
+    writeFileSync(arquivo, fresh, { encoding: 'utf8' })
+    console.log(`[crypto] chave local de segredos gerada em ${arquivo} (1ª execução)`)
     return fresh
   } catch (err) {
-    throw new Error(`não consegui criar/ler data/secret.key: ${String((err as Error)?.message || err)}`)
+    throw new Error(`não consegui criar/ler ${arquivo}: ${String((err as Error)?.message || err)}`)
   }
 }
 

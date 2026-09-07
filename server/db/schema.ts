@@ -561,6 +561,26 @@ export const subscriptions = sqliteTable('subscriptions', {
  * atômico — evento repetido conflita na PK e vira 200 sem efeito, nunca uma segunda promoção.
  * `userId` fica NULL quando o evento não aponta usuário (é registro de auditoria mesmo assim).
  */
+/**
+ * FALHAS DO BOOT — no banco, e nao na memoria do processo (auditoria de 2026-09-07, achado A34).
+ *
+ * `bootStatus` era um array de modulo. Em cluster, so o primario roda migracao e backfill, entao
+ * uma falha ficava registrada NELE e invisivel nos workers: `/api/health` respondia `degraded` ou
+ * `ok` conforme o processo que o balanceador escolhesse. Um orquestrador vendo saude alternada nao
+ * consegue decidir nada — e a falha que a probe existe para denunciar (linhas com `user_id` NULL,
+ * cartoes Leitner nao migrados) e exatamente uma que atravessa os processos, porque esta no dado.
+ *
+ * Uma linha por passo: gravar de novo atualiza, e o passo que passa a dar certo APAGA a linha. Sem
+ * isso a saude ficaria degradada para sempre depois de uma falha transitoria.
+ */
+export const bootFalhas = sqliteTable('boot_falhas', {
+  /** Identificador curto do passo: 'migracao-fsrs' | 'backfill-tenancy'. */
+  passo: text('passo').primaryKey(),
+  em: integer('em').notNull(),
+  /** Qual instancia registrou — hostname:pid. So para diagnostico; a saude nao depende disto. */
+  instancia: text('instancia'),
+})
+
 export const billingEvents = sqliteTable('billing_events', {
   /** O id do EVENTO no provedor (`evt_…` no Asaas) — a chave da idempotência. */
   id: text('id').primaryKey(),

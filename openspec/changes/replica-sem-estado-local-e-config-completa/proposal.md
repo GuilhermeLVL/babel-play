@@ -13,8 +13,8 @@ O servidor assume um processo e um disco em pontos que o modo cluster e o deploy
 
 - `secret.key` vive em `diretorioGravavel()` (mesma regra do diario); em `NODE_ENV=production` continua obrigatoria por env; teste que prova que dois processos com o mesmo `DATA_DIR` decifram o mesmo segredo.
 - `bootStatus` persistido (tabela `manutencao` ou arquivo em `DATA_DIR`) e lido por `/api/health` em qualquer processo; teste com `prepararDados:false` responde o mesmo que o primario.
-- Reconciliacao: reivindica a janela (`updatedAt` otimista) ANTES de varrer; no maximo uma varredura em voo por usuario; fora do caminho de `entitlements` quando `STORAGE_RECONCILE_MODE=job`.
-- Multi-replica declarada: `CLUSTER_WORKERS>1` ou `REPLICAS>1` exige `S3_*` (ou volume compartilhado declarado) e recusa loopback WASAPI; diario com sufixo de PID; `seedIfEmpty` so em `!authRequired()`.
+- Reconciliacao: reivindica a janela (`updatedAt` otimista) ANTES de varrer; no maximo uma varredura em voo por usuario; fora do caminho de `entitlements` quando `STORAGE_RECONCILE_MODE=job`, que vem acompanhado do runner `POST /api/admin/armazenamento/reconciliar` — um modo sem runner seria um interruptor de desligar em silencio.
+- Multi-replica declarada: **`REPLICAS>1`** exige `S3_*` completo (ou `ARMAZENAMENTO_COMPARTILHADO=1`) e o boot recusa a combinacao incoerente. `CLUSTER_WORKERS` NAO entra nessa exigencia — sao processos do mesmo host, com o mesmo disco, e exigir S3 ali quebraria uma configuracao legitima; o que o cluster recusa e a captura de loopback WASAPI, cujo mutex e por processo. Diario com sufixo de PID em cluster e poda so no primario; `seedIfEmpty` so em `!authRequired()`.
 - `config.ts` completo e testado: um teste varre `server/**` por `process.env.X` e falha se `X` nao esta em `VARIAVEIS`; `.env.example` gerado de `VARIAVEIS` (ou verificado contra ele); `OLLAMA_URL` e `GEMINI_MODEL` viram variaveis.
 
 ## Capabilities

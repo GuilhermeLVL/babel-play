@@ -45,8 +45,27 @@ const exclusion = new LoopbackExclusion();
 
 export const audioRouter = Router();
 
+/**
+ * A CAPTURA DE LOOPBACK NAO SOBREVIVE AO CLUSTER (auditoria de 2026-09-07, achado A61).
+ *
+ * O dispositivo WASAPI e um recurso unico do SISTEMA, e o mutex que o protege (`LoopbackExclusion`)
+ * e um contador em MEMORIA — por processo. Com `CLUSTER_WORKERS>1`, N processos tem N mutexes
+ * independentes, cada um convencido de que tem o dispositivo: duas capturas simultaneas passam
+ * pelos dois e brigam pelo hardware, e o takeover de uma nao alcanca a outra.
+ *
+ * Recusar e a resposta honesta. O contrario seria oferecer uma funcao que falha de um jeito que a
+ * pessoa nao consegue nem descrever ("as vezes o audio corta").
+ */
+function motivoDeIndisponibilidadeNoCluster(): string | null {
+  const workers = Number(process.env.CLUSTER_WORKERS || 0);
+  if (!Number.isFinite(workers) || workers <= 1) return null;
+  return "captura de loopback do servidor nao funciona com CLUSTER_WORKERS>1: o mutex do dispositivo e por processo";
+}
+
 // A UI usa isto para decidir se mostra a fonte "Áudio do computador (servidor local)".
 audioRouter.get("/loopback/support", async (_req, res) => {
+  const noCluster = motivoDeIndisponibilidadeNoCluster();
+  if (noCluster) { res.json({ supported: false, reason: noCluster }); return; }
   const mod = await loadLoopback();
   res.json({
     supported: !!mod,
@@ -59,6 +78,8 @@ audioRouter.get("/loopback/support", async (_req, res) => {
 
 // Stream contínuo de PCM (chunked). Encerra quando o cliente aborta a requisição.
 audioRouter.get("/loopback/stream", async (req, res) => {
+  const noCluster = motivoDeIndisponibilidadeNoCluster();
+  if (noCluster) { res.status(501).json({ error: noCluster }); return; }
   const mod = await loadLoopback();
   if (!mod) { res.status(501).json({ error: "Loopback do servidor indisponível nesta plataforma." }); return; }
   // TAKEOVER em vez de 409 (bug real: uma conexão fantasma — página recarregada no meio da

@@ -25,7 +25,11 @@ import { seedIfEmpty } from "./server/db/seed";
 import { dbReady } from "./server/db/db";
 import { createDbRateLimitStore, chaveDoRequest } from "./server/lib/rateLimitStore";
 import { erroGlobal, capturarAssincrono } from "./server/lib/erroGlobal";
-import { registrarFalhaDeBoot } from "./server/lib/bootStatus";
+import { registrarFalhaDeBoot, registrarSucessoDeBoot } from "./server/lib/bootStatus";
+/* `diretorioGravavel` morava aqui e o `crypto.ts` tinha a sua propria versao divergente — a chave
+   de segredos ia parar no disco efemero do conteiner enquanto o diario ia para o volume. Uma
+   resposta so, em `server/lib/diretorios.ts` (auditoria de 2026-09-07, achado A34). */
+import { diretorioGravavel, erroDeMultiReplica, replicasDeclaradas } from "./server/lib/diretorios";
 import { verificarConfiguracaoNoBoot } from "./server/lib/config";
 import { mecanismoDe } from "./server/lib/auth";
 import { authMiddleware, authRequired } from "./server/lib/auth";
@@ -237,7 +241,11 @@ if (apiKey && apiKey !== "MY_GEMINI_API_KEY") {
 // Local LLM via Ollama (endpoint compatível com a API da OpenAI).
 // Honesto: se o Ollama não estiver acessível, avisamos o cliente em vez de
 // fabricar conteúdo canned.
-const OLLAMA_URL = "http://localhost:11434/v1/chat/completions";
+/* CRAVADA EM DOIS LUGARES ate 07/09 (aqui e em `src/gateway/profiles.ts`), e em nenhum deles
+   configuravel: quem roda o Ollama em outra maquina ou em outra porta nao tinha como dizer, e o
+   inventario de configuracao nao mencionava a variavel porque ela nao existia (achados A31, A60).
+   O default segue sendo o endereco local, que e onde o Ollama roda em 99% dos casos. */
+const OLLAMA_URL = `${(process.env.OLLAMA_URL || "http://localhost:11434/v1").replace(/\/+$/, "")}/chat/completions`;
 
 async function tryOllamaChat(
   messages: Array<{ role: string; content: string }>,
@@ -376,7 +384,8 @@ app.post("/api/gemini/chat", async (req, res) => {
     }));
 
     const response = await ai.models.generateContent({
-      model: "gemini-2.0-flash",
+      // Modelo cravado ate 07/09 (achado A31): trocar de modelo exigia editar e reconstruir a imagem.
+      model: process.env.GEMINI_MODEL || "gemini-2.0-flash",
       contents,
       config: {
         systemInstruction,
@@ -419,23 +428,23 @@ app.post("/api/gemini/chat", async (req, res) => {
  * pelo primário antes de forkar. Repetir não seria só desperdício — seria exatamente a contenção
  * de lock no boot que o modo cluster existe para eliminar.
  */
-/**
- * Onde é seguro escrever — a mesma pasta em que o banco já vive.
- *
- * `DATA_DIR` não existe neste deploy: o compose passa `DATABASE_URL=file:/data/babel.db` e
- * `AUDIO_DIR=/data/audio`, e é `/data` que está montado como volume gravável. Deduzir o diretório
- * do próprio banco é o sinal mais confiável disponível — se o banco consegue escrever ali, o
- * diário também consegue, e os dois viajam juntos quando alguém move o volume.
- */
-function diretorioGravavel(): string {
-  if (process.env.DATA_DIR) return process.env.DATA_DIR;
-  const url = process.env.DATABASE_URL ?? "";
-  if (url.startsWith("file:")) return path.dirname(url.slice("file:".length));
-  if (process.env.AUDIO_DIR) return path.dirname(process.env.AUDIO_DIR);
-  return "data";
-}
 
 async function startServer({ prepararDados = true } = {}) {
+  /*
+   * MULTI-REPLICA PRECISA SER DECLARADA, E COERENTE (auditoria de 2026-09-07, achado A34).
+   *
+   * O servidor guarda arquivo de audio no disco local. Com duas instancias atras de um balanceador
+   * e sem armazenamento compartilhado, o audio gravado por uma NAO existe na outra: o mesmo pedido
+   * responde 200 ou 404 conforme quem atendeu — medido, com a mensagem "arquivo ausente". Isso nao
+   * da para descobrir sozinho (o processo nao sabe quantas replicas existem), entao quem opera
+   * declara `REPLICAS` e o boot verifica a coerencia. Falha DURA: subir assim e servir dados que
+   * somem de forma intermitente, que e pior que nao subir.
+   */
+  const incoerencia = erroDeMultiReplica();
+  if (incoerencia) {
+    console.error(`[boot] ABORTADO: ${incoerencia}`);
+    process.exit(1);
+  }
   /*
    * DIÁRIO DE ERROS — achado F5-04, a parte que não depende de escolher fornecedor.
    *
@@ -452,7 +461,11 @@ async function startServer({ prepararDados = true } = {}) {
     try {
       const { diarioEmArquivo } = await import("./server/lib/diarioDeErros");
       const { registrarSinkDeErro } = await import("./server/lib/logger");
-      registrarSinkDeErro(diarioEmArquivo({ dir: dirDeErros }));
+      /* PODA SO NO PRIMARIO. `prepararDados` e o que ja distingue os dois papeis do cluster: o
+         primario migra, faz seed e agora tambem cuida do volume. Antes, N workers varriam o mesmo
+         diretorio uma vez por dia cada um (achado A61). Cada processo escreve no proprio arquivo,
+         e a leitura junta todos. */
+      registrarSinkDeErro(diarioEmArquivo({ dir: dirDeErros, podarAqui: prepararDados }));
       console.log(`[erros] diário em ${dirDeErros}`);
     } catch (err) {
       /*
@@ -518,7 +531,17 @@ async function startServer({ prepararDados = true } = {}) {
       process.exit(1);
     }
 
-    await seedIfEmpty();
+    /*
+     * SEED DE DEMONSTRACAO SO EM SELF-HOST (achado A61).
+     *
+     * `seedIfEmpty` cria uma sessao e cartoes de exemplo para o LOCAL_OWNER em toda base vazia —
+     * inclusive num deploy PUBLICO, onde nao existe "dono local": os dados de demonstracao ficavam
+     * pendurados num usuario que ninguem usa, e apareceriam para quem quer que recebesse aquele id.
+     * Em modo publico a base nova esta certa vazia.
+     */
+    if (!authRequired()) {
+      await seedIfEmpty();
+    }
   }
   if (prepararDados) {
     // M-04: migra cartões Leitner → FSRS no boot (idempotente; nas próximas execuções migra 0).
@@ -527,6 +550,10 @@ async function startServer({ prepararDados = true } = {}) {
       const { migrarLeitnerParaFsrs } = await import("./server/db/manutencao");
       const migrados = await migrarLeitnerParaFsrs();
       if (migrados > 0) console.log(`[db] ${migrados} cartão(ões) Leitner migrado(s) para FSRS (M-04)`);
+      // Passo que deu certo APAGA a falha anterior: sem isto, uma falha transitória deixaria a
+      // instância em 503 para sempre — e uma probe que mente para baixo é ignorada como a que
+      // mente para cima.
+      registrarSucessoDeBoot("migracao-fsrs");
     } catch (err) {
       // P2-5: seguir subindo é a escolha certa (a migração é idempotente e roda de novo no
       // próximo boot), mas o /api/health precisa DENUNCIAR que os dados estão incompletos.
@@ -540,6 +567,7 @@ async function startServer({ prepararDados = true } = {}) {
       const { LOCAL_OWNER } = await import("./server/lib/authContext");
       const carimbados = await backfillNullOwner(LOCAL_OWNER);
       if (carimbados > 0) console.log(`[db] ${carimbados} linha(s) legada(s) atribuída(s) ao dono local (Marco 1)`);
+      registrarSucessoDeBoot("backfill-tenancy");
     } catch (err) {
       // P2-5: linhas com user_id NULL continuam invisíveis ao dono — isso PRECISA aparecer.
       console.warn("[db] backfill de tenancy falhou (segue sem carimbar):", (err as Error)?.message || err);
@@ -637,6 +665,20 @@ async function iniciar() {
   if (!Number.isFinite(pedidos) || pedidos <= 1) {
     await startServer();
     return;
+  }
+
+  /*
+   * CAPTURA DE LOOPBACK NAO SOBREVIVE AO CLUSTER (achado A61).
+   *
+   * O dispositivo WASAPI e um recurso unico do SISTEMA, e a exclusao que protege ele
+   * (`LoopbackExclusion`, em `server/audio/loopback.ts`) e um contador em memoria de UM processo.
+   * Com N processos, N exclusoes independentes acham que tem o dispositivo: duas capturas
+   * simultaneas passam pelo mutex e brigam pelo hardware. Declarar a incompatibilidade e melhor
+   * que descobri-la como audio cortado em producao.
+   */
+  if (process.platform === "win32") {
+    console.warn("[cluster] captura de loopback do servidor desligada: o mutex do dispositivo");
+    console.warn("   WASAPI e por processo, e /api/audio/loopback/* recusa neste modo.");
   }
 
   const { default: cluster } = await import("node:cluster");

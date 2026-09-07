@@ -13,7 +13,7 @@ import { log } from '../lib/logger'
  * erro fica no log (não vaza caminho nem detalhe de infra).
  */
 export async function healthHandler(_req: Request, res: Response): Promise<void> {
-  const boot = bootStatus()
+  const boot = await bootStatus()
   const bootPayload = boot.ok
     ? { boot: 'ok' as const }
     : { boot: 'degraded' as const, bootErros: boot.erros.map((e) => e.passo) }

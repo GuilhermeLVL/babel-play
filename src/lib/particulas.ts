@@ -76,6 +76,23 @@ export const PACKS_DE_EMOJI: PackDeEmoji[] = [
   { id: 'circo', nome: 'Circo', emojis: ['🎪', '🎈', '🍿', '🎭', '🎩', '🎊', '🎁'] },
   { id: 'gala', nome: 'Gala', emojis: ['🎩', '🥂', '🎭', '💫', '🕯️', '🪩', '🎼'] },
   { id: 'lendas', nome: 'Lendas', emojis: ['🐉', '🦄', '🔱', '⚡', '🔥', '👑', '💫'] },
+  /* PACKS VINDOS DO CATÁLOGO MESTRE (gamificacao-sob-autoridade). O mestre descreve cada pack em
+     PROSA ("frascos de poção, pergaminhos selados e velas escuras") e guarda só um `icone` — ele
+     nunca teve a lista de caracteres. Estas listas foram derivadas dessa prosa, e é por isso que
+     elas nascem AQUI e não de um import: o mestre não é executável neste app, é um documento de
+     intenção. O que faz um pack existir de verdade é a linha desta lista — sem ela, `emojisDoPack`
+     cai no fallback ⭐✨ e o item da Loja vira promessa vazia. */
+  { id: 'cafe', nome: 'Café', emojis: ['☕', '🥐', '🥞', '🫖', '🍪', '🧋', '🍮'] },
+  { id: 'pixel', nome: 'Pixel', emojis: ['👾', '🕹️', '🎮', '🪙', '🍄', '⚔️', '💾'] },
+  { id: 'anime', nome: 'Anime', emojis: ['⚡', '👊', '💥', '👺', '🍜', '🗡️', '🌟'] },
+  { id: 'fogo', nome: 'Fogo', emojis: ['🔥', '🌋', '☄️', '💥', '🐉', '🧨', '♨️'] },
+  { id: 'mineracao', nome: 'Mineração', emojis: ['⛏️', '💎', '🪨', '🪙', '🏮', '🗿', '⚒️'] },
+  { id: 'gelo', nome: 'Gelo', emojis: ['❄️', '🧊', '🏔️', '⛄', '🌨️', '💠', '🐧'] },
+  { id: 'zen', nome: 'Zen', emojis: ['🪴', '🍵', '🪷', '🎋', '🧘', '🌿', '🎐'] },
+  { id: 'alquimia', nome: 'Alquimia', emojis: ['🔮', '⚗️', '🧪', '📜', '🕯️', '🧙', '🗝️'] },
+  { id: 'cyberpunk', nome: 'Cyberpunk', emojis: ['🌆', '💾', '🕶️', '🤖', '🌃', '💿', '📡'] },
+  /* Exclusivo de conquista ("Poliglota"): não está à venda. */
+  { id: 'astrologia', nome: 'Astrologia', emojis: ['🌙', '☀️', '🪐', '🌌', '🔭', '✨', '☄️'] },
 ];
 
 const CHAVE_PACK = 'app_particulas_pack';

@@ -1,5 +1,5 @@
 /** Rota de métricas (montada em `/api/metrics`). */
-import { Router } from 'express'
+import { Router, type Request, type Response } from 'express'
 import { computeProfile, computeXpHistory } from '../db/repositories/metrics'
 import { seedSpendsRepo } from '../db/repositories/seedSpends'
 import { economiaRepo } from '../db/repositories/economia'
@@ -7,6 +7,7 @@ import { exerciseResultsRepo } from '../db/repositories/exerciseResults'
 import { economiaDoUsuario } from '../db/repositories/metrics'
 import {
   autorizarGasto, ehRecusa, valorDoCredito, CONQUISTAS_CONFERIVEIS,
+  roundIdDoDrop, itensSorteaveisNoDrop, sortearItemDoDrop, valorDoDrop,
 } from '../../src/core/economiaAutoridade'
 import type { ContextoDeConquistas } from '../../src/core/learning/conquistas'
 import { diaLocal, sequencias } from '../../src/core/learning/economia'
@@ -175,10 +176,87 @@ metricsRouter.post('/presenca', async (req, res) => {
  * (`CONQUISTAS_CONFERIVEIS`), a condição é conferida contra os contadores do servidor antes de
  * creditar — conquista não cumprida é 400.
  */
+/**
+ * O DROP DE FIM DE RODADA — o único crédito em que o servidor também decide O QUÊ, não só quanto.
+ *
+ * Toda a família passa por aqui porque `valorDoCredito` não consegue resolvê-la: o valor de um
+ * baú depende do ITEM SORTEADO, e o item não está — nem pode estar — no `creditoId`. Se estivesse,
+ * escolher o `creditoId` seria escolher o prêmio, e o cliente escolheria o lendário. É a mesma
+ * lição do `amount` de 01/09, aplicada ao objeto em vez de ao preço.
+ *
+ * QUATRO GUARDAS, nesta ordem:
+ *
+ *  1. A RODADA TEM DE EXISTIR E SER DESTA CONTA. É a âncora do baú. Sem ela, um `roundId`
+ *     inventado — e `creditoId` é uma string livre de 8 a 80 caracteres no Zod — viraria um item
+ *     por request, em loop, que é literalmente o furo que a auditoria de 01/09 fechou do lado das
+ *     Seeds. `listarPorRodada` já filtra por `user_id`, então a rodada de outra pessoa não conta.
+ *  2. IDEMPOTÊNCIA POR RODADA, e ela é mais forte que o `ON CONFLICT`: um baú já aberto devolve o
+ *     MESMO item, lido do razão da linha gravada, sem sortear de novo. Sem esta leitura, o retry
+ *     do cliente (ou a remontagem da tela) mostraria um item diferente do que foi creditado —
+ *     o banco continuaria certo e a tela mentiria.
+ *  3. O SORTEIO É DO SERVIDOR, sobre o que a pessoa ainda NÃO tem (compras da Loja + baús
+ *     anteriores). Coleção completa devolve `item: null` e não grava nada: um baú de duplicata é
+ *     pior do que baú nenhum, e gravar um crédito vazio consumiria a rodada à toa.
+ *  4. `valorDoDrop` confere o item de novo antes de gravar, porque `reason` é a coluna de onde a
+ *     posse é derivada.
+ *
+ * `Math.random()` basta: o baú está preso a um `roundId` que só se gasta uma vez e não tem
+ * reroll, então adivinhar o próximo item não compra nada — não há decisão que a pessoa possa
+ * tomar com essa informação.
+ */
+async function creditarDrop(req: Request, res: Response, creditoId: string, roundId: string): Promise<void> {
+  const linhas = await exerciseResultsRepo.listarPorRodada(req.userId, roundId)
+  if (!linhas.length) {
+    responderErro(res, 400, 'rodada inexistente para este drop', 'rodada_inexistente', { roundId })
+    return
+  }
+
+  const drops = await economiaRepo.dropsSorteados(req.userId)
+  const jaAberto = drops.find((d) => d.creditoId === creditoId)
+  if (jaAberto) {
+    const totais = await economiaRepo.totaisCreditados(req.userId)
+    res.json({ jaExistia: true, item: jaAberto.itemId, ...totais })
+    return
+  }
+
+  const jaPossui = new Set([
+    ...await seedSpendsRepo.itensComprados(req.userId),
+    ...drops.map((d) => d.itemId),
+  ])
+  const sorteado = sortearItemDoDrop(Math.random(), itensSorteaveisNoDrop(jaPossui))
+  if (!sorteado) {
+    const totais = await economiaRepo.totaisCreditados(req.userId)
+    res.json({ jaExistia: false, item: null, ...totais })
+    return
+  }
+
+  const credito = valorDoDrop(creditoId, sorteado.id)
+  if (ehRecusa(credito)) {
+    /* Inalcançável enquanto `itensSorteaveisNoDrop` e `valorDoDrop` concordarem — e é exatamente
+       por isso que a guarda fica: o dia em que elas divergirem, o certo é 400, não gravar posse. */
+    responderErro(res, 400, credito.erro, 'drop_invalido')
+    return
+  }
+
+  const { jaExistia } = await economiaRepo.creditar(req.userId, {
+    creditoId: credito.creditoId, amount: credito.seeds, xp: credito.xp, reason: credito.reason,
+  })
+  const totais = await economiaRepo.totaisCreditados(req.userId)
+  res.json({ jaExistia, item: sorteado.id, ...totais })
+}
+
 metricsRouter.post('/seeds/creditar', async (req, res) => {
   const payload = parseOr400(seedCreditSchema, req.body, res)
   if (!payload) return
   try {
+    /* A família de drop desvia ANTES de `valorDoCredito` — ela não sabe o item, e recusa de
+       propósito (ver o comentário lá). Qualquer outro `creditoId` segue o fluxo de sempre. */
+    const roundId = roundIdDoDrop(payload.creditoId)
+    if (roundId) {
+      await creditarDrop(req, res, payload.creditoId, roundId)
+      return
+    }
+
     const credito = valorDoCredito(payload.creditoId)
     if (ehRecusa(credito)) {
       responderErro(res, 400, credito.erro, 'credito_desconhecido')

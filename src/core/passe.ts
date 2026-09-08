@@ -45,8 +45,29 @@ export type SlotDoPasse =
  */
 const RARIDADE_ORDEM = { comum: 0, raro: 1, epico: 2, lendario: 3 } as const
 
-/** Seeds de UM cofre da década. O total (≈1.614) é o mesmo da curva anterior: muda a forma. */
+/** Seeds de UM cofre da década. */
 const SEEDS_POR_COFRE = [0, 30, 60, 0, 50, 70, 95, 105, 120, 135, 172]
+
+/**
+ * QUANTOS COFRES CADA DÉCADA TEM — desenhado, e não mais sobra de divisão.
+ *
+ * Até 08/09 o número de cofres era `10 - itens da década`: o cofre preenchia o que sobrasse.
+ * Lido como arrumacão de tela, faz sentido; lido como ECONOMIA, quer dizer que **a quantidade de
+ * Seeds que a temporada paga era um efeito colateral de quantos cosméticos o catálogo tinha**.
+ *
+ * A onda 3 provou o estrago com números: 24 itens novos entraram no catálogo, as décadas
+ * encheram, e o total da temporada caiu de **1.554 para 235 Seeds** — 85% da moeda da trilha
+ * evaporou porque a Loja ganhou produto. Ninguém tomou essa decisão; ela aconteceu. E teria
+ * acontecido de novo, no mesmo silêncio, a cada item futuro.
+ *
+ * Os números abaixo são exatamente os que a divisão antiga produzia com o catálogo de antes da
+ * onda — nada mudou de valor para quem joga. O que mudou é que agora está ESCRITO: mexer na
+ * moeda da temporada passa a exigir editar esta linha, que é o único jeito de a mudança ser uma
+ * decisão. `tests/passe.test.ts` trava o total.
+ *
+ * Índice = década (o 0 não é usado), igual a `SEEDS_POR_COFRE`.
+ */
+const COFRES_POR_DECADA = [0, 0, 1, 0, 2, 2, 2, 2, 2, 2, 2]
 
 /**
  * Os slots, determinísticos a partir do catálogo. Exclusivos de conquista ficam FORA — o passe
@@ -69,26 +90,37 @@ export function slotsDoPasse(): SlotDoPasse[] {
     const maisRaro = [...todos].sort((a, b) => RARIDADE_ORDEM[b.raridade] - RARIDADE_ORDEM[a.raridade])[0]
     const demais = todos.filter((i) => i !== maisRaro)
 
-    const cofres = Math.max(0, 10 - todos.length)
+    /* O COFRE É RESERVADO, e os itens preenchem o resto — o inverso de antes. Os cofres ficam no
+       fim da década, logo antes do marco: a década abre mostrando o que ela entrega de nomeavel e
+       fecha com a moeda, que é o desenho que a auditoria de 31/08 pediu ("conteúdo antes de
+       moeda") e que a divisão antiga cumpria por acaso. */
+    const cofres = SEEDS_POR_COFRE[d] > 0 ? COFRES_POR_DECADA[d] : 0
     const quantia = SEEDS_POR_COFRE[d]
     let usados = 0
+    let cursor = 0
 
     for (let pos = 0; pos < 9; pos++) {
       const slot = base + pos + 1
-      const item = demais[pos]
-      if (item) { slots.push({ tipo: 'item', slot, decada: d, item }); continue }
-      if (usados < cofres && quantia > 0) {
+      const cofresQueFaltam = cofres - usados
+      // O cofre entra quando as vagas que sobram são exatamente os cofres que faltam, ou quando
+      // acabaram os itens. Assim ele nunca rouba a vaga de um item que caberia antes dele.
+      const vagaDeCofre = cofresQueFaltam > 0 && (9 - pos <= cofresQueFaltam || cursor >= demais.length)
+      if (!vagaDeCofre && cursor < demais.length) {
+        slots.push({ tipo: 'item', slot, decada: d, item: demais[cursor++] })
+      } else if (cofresQueFaltam > 0) {
         usados++
         // creditoId por POSIÇÃO: mais de um cofre por década, cada um creditado uma vez só.
         slots.push({ tipo: 'seeds', slot, decada: d, quantidade: quantia, creditoId: `passe:${TEMPORADA_ATUAL}:cofre-d${d}-${usados}` })
+      } else if (cursor < demais.length) {
+        slots.push({ tipo: 'item', slot, decada: d, item: demais[cursor++] })
       }
     }
 
     // A casa 10 é o MARCO: sempre o item mais raro da década.
     if (maisRaro) slots.push({ tipo: 'item', slot: base + 10, decada: d, item: maisRaro })
 
-    // Década com mais de 10 itens: o excedente divide a coluna do marco em vez de ficar fora.
-    for (let pos = 9; pos < demais.length; pos++) {
+    // Década com mais itens que vagas: o excedente divide a coluna do marco em vez de ficar fora.
+    for (let pos = cursor; pos < demais.length; pos++) {
       slots.push({ tipo: 'item', slot: base + 10, decada: d, item: demais[pos] })
     }
   }

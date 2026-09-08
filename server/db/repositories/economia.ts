@@ -65,6 +65,26 @@ export const economiaRepo = {
     return [...new Set(rows.map((r) => (r.reason ?? '').slice('conquista:'.length)).filter(Boolean))]
   },
 
+  /**
+   * OS DROPS JÁ SORTEADOS — o par (creditoId, itemId) de cada baú de fim de rodada desta conta.
+   *
+   * MESMA DERIVAÇÃO de `conquistasCreditadas` e de `seedSpendsRepo.itensComprados`, outro prefixo:
+   * a posse mora no razão do evento, não no navegador. O drop grava `reason = 'drop:<itemId>'` e
+   * `credito_id = 'drop:<roundId>'`, e a rota precisa dos DOIS campos por motivos diferentes —
+   * o `creditoId` para reconhecer o baú que já foi aberto e devolver o MESMO item (idempotência
+   * por rodada, sem sortear de novo), e o `itemId` para subtrair da lista de sorteáveis o que a
+   * pessoa já ganhou. Uma consulta só, porque é a mesma linha que responde as duas perguntas.
+   */
+  async dropsSorteados(userId: UserId): Promise<{ creditoId: string; itemId: string }[]> {
+    const rows = await db
+      .select({ creditoId: seedCredits.creditoId, reason: seedCredits.reason })
+      .from(seedCredits)
+      .where(and(eq(seedCredits.userId, userId), isNull(seedCredits.deletedAt), like(seedCredits.reason, 'drop:%')))
+    return rows
+      .map((r) => ({ creditoId: r.creditoId, itemId: (r.reason ?? '').slice('drop:'.length) }))
+      .filter((d) => !!d.itemId)
+  },
+
   async registrarPresenca(userId: UserId, dia: number): Promise<{ jaExistia: boolean }> {
     const now = Date.now()
     const r = await db.run(sql`

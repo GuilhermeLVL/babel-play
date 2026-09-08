@@ -36,6 +36,25 @@ export const CURSORES: CursorTematico[] = [
   { id: 'raio', nome: 'Raio', emoji: '⚡' },
   /* Exclusivo de conquista ("Perfeccionista"): não está à venda. */
   { id: 'coroa', nome: 'Coroa', emoji: '👑' },
+  /* CURSORES VINDOS DO CATÁLOGO MESTRE (gamificacao-sob-autoridade). Mesma razão do bloco da
+     Temporada 1 logo acima: entram como itens PRÓPRIOS desta lista, e não como `emoji:<char>`.
+     Um `emoji:<char>` depende de a pessoa ter comprado a capacidade `gal-cursor-emoji` E de o
+     caractere estar no catálogo da galeria — dois cadeados que nada têm a ver com o preço do
+     item. Curado aqui, `cursorValido` aprova pelo id e o CSS já sai injetado por
+     `instalarCursores`, que percorre exatamente esta lista. */
+  { id: 'pata', nome: 'Patinha Ninja', emoji: '🐾' },
+  { id: 'tinteiro', nome: 'Tinteiro de Pena', emoji: '🖋️' },
+  /* LANTERNA, e não o laser do mestre. Lá este item é `cur-laser` com 🔫 — a pistola. Este app
+     tem perfil infantil e a régua da casa não põe arma no ponteiro de quem está estudando; a
+     função visual pretendida (apontar um facho, achar o alvo no escuro) sobrevive inteira na
+     lanterna, então a troca não custa nada ao item e evita o que não queremos entregar. */
+  { id: 'lanterna', nome: 'Lanterna', emoji: '🔦' },
+  { id: 'trevo', nome: 'Trevo da Sorte', emoji: '🍀' },
+  { id: 'cristal', nome: 'Cristal Rúnico', emoji: '💎' },
+  { id: 'cafe', nome: 'Café Espresso', emoji: '☕' },
+  { id: 'robot', nome: 'Autômato Retro', emoji: '🤖' },
+  /* Exclusivo de conquista ("Sem erro"): não está à venda. */
+  { id: 'katana', nome: 'Katana Samurai', emoji: '🗡️' },
 ];
 
 const CHAVE = 'babel.cursor';

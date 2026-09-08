@@ -20,7 +20,10 @@ import type { AppMetrics } from '../../core/learning/contract';
 import { diaLocal, marcosDeSequencia, minutosPremiados, sequencias } from '../../core/learning/economia';
 import { economiaDeMetricas } from '../../core/learning/xp';
 import { historicoDeXp } from '../../core/learning/historicoDeXp';
-import { valorDoCredito, autorizarGasto, ehRecusa } from '../../core/economiaAutoridade';
+import {
+  valorDoCredito, autorizarGasto, ehRecusa,
+  roundIdDoDrop, itensSorteaveisNoDrop, sortearItemDoDrop, valorDoDrop,
+} from '../../core/economiaAutoridade';
 import { MINIGAMES } from '../../core/minigames/types';
 import { estadoDoTeto, motivoDoTeto } from '../../core/tetoAnonimo';
 
@@ -670,10 +673,66 @@ async function registrarPresenca(_m: RegExpMatchArray, _u: URL, init: RequestIni
  *
  * Agora as duas pontas chamam `valorDoCredito`, do core, e nenhuma das duas lê `amount`.
  */
+/**
+ * O DROP DE FIM DE RODADA, sem conta — o ESPELHO exato do caminho do Express.
+ *
+ * As MESMAS funções do core, na MESMA ordem de guardas: rodada existente, idempotência por
+ * `creditoId` lendo o item do razão gravado, sorteio do servidor sobre o que ainda falta, e
+ * `valorDoDrop` como última régua antes de gravar. O contrato entre as duas pontas é testado
+ * (`tests/contratos/economia.test.ts`), e a razão de existir desse teste vale aqui em cheio: o
+ * acervo do modo sem conta MIGRA para a conta, então um baú mais generoso deste lado seria um
+ * cosmético cunhado de graça atravessando para o outro.
+ *
+ * A diferença de mecânica, e só ela: aqui não há `user_id` (o banco inteiro é de uma pessoa só) e
+ * a posse da Loja sai de `gastos` com razão `loja:` em vez de `seed_spends`.
+ */
+async function creditarDrop(creditoId: string, roundId: string): Promise<Response> {
+  const db = await abrirStore();
+  const exercicios = await db.getAll('exercicios');
+  if (!exercicios.some((e) => e.roundId === roundId)) {
+    return json({ error: 'rodada inexistente para este drop', code: 'rodada_inexistente', codigo: 'rodada_inexistente', detalhes: { roundId } }, 400);
+  }
+
+  const creditos = await db.getAll('creditos');
+  const totais = (linhas: typeof creditos) => ({
+    seedsCreditadas: linhas.reduce((n, c) => n + c.amount, 0),
+    xpCreditado: linhas.reduce((n, c) => n + c.xp, 0),
+  });
+
+  const jaAberto = creditos.find((c) => c.creditoId === creditoId);
+  if (jaAberto) {
+    return json({ jaExistia: true, item: jaAberto.reason.slice('drop:'.length), ...totais(creditos) });
+  }
+
+  const jaPossui = new Set<string>();
+  for (const g of await db.getAll('gastos')) {
+    if (g.reason.startsWith('loja:')) jaPossui.add(g.reason.slice('loja:'.length));
+  }
+  for (const c of creditos) {
+    if (c.reason.startsWith('drop:')) jaPossui.add(c.reason.slice('drop:'.length));
+  }
+
+  const sorteado = sortearItemDoDrop(Math.random(), itensSorteaveisNoDrop(jaPossui));
+  if (!sorteado) return json({ jaExistia: false, item: null, ...totais(creditos) });
+
+  const credito = valorDoDrop(creditoId, sorteado.id);
+  if (ehRecusa(credito)) return json({ error: credito.erro, code: 'drop_invalido', codigo: 'drop_invalido' }, 400);
+
+  await db.put('creditos', {
+    creditoId: credito.creditoId, amount: credito.seeds, xp: credito.xp, reason: credito.reason, createdAt: Date.now(),
+  });
+  return json({ jaExistia: false, item: sorteado.id, ...totais(await db.getAll('creditos')) });
+}
+
 async function creditarSeeds(_m: RegExpMatchArray, _u: URL, init: RequestInit): Promise<Response> {
   const p = lerJson(init);
   const creditoId = str(p.creditoId);
   if (!creditoId) return json({ error: 'creditoId é obrigatório', code: 'credito_desconhecido' }, 400);
+
+  /* A família de drop desvia antes de `valorDoCredito`, exatamente como no Express: o valor de um
+     baú depende do item sorteado, que não está no id. */
+  const roundIdDeDrop = roundIdDoDrop(creditoId);
+  if (roundIdDeDrop) return creditarDrop(creditoId, roundIdDeDrop);
 
   const credito = valorDoCredito(creditoId);
   if (ehRecusa(credito)) return json({ error: credito.erro, code: 'credito_desconhecido' }, 400);

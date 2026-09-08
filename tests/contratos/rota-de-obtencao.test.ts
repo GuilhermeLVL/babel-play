@@ -153,3 +153,58 @@ describe('as oito fontes do catálogo batem com as do seletor', () => {
     }
   });
 });
+
+/**
+ * UMA CONQUISTA COMUM NAO PAGA UM COSMETICO EPICO.
+ *
+ * A regra saiu de uma medicao que corrigiu a minha primeira leitura, e as duas ficam registradas
+ * porque a diferenca entre elas e o conteudo do teste.
+ *
+ * A volta do catalogo mestre poe `cur-katana` (epico) em `sem-erro` — a conquista mais barata que
+ * existe: raridade comum, meta de UMA rodada perfeita, 20 Seeds. Escrevi entao a regra "a
+ * recompensa nunca fica duas faixas acima da conquista"... e o teste reprovou um par que ja estava
+ * la e e deliberado: `ouvinte` (raro) entrega `part-cometa` (lendario), duas faixas. Sessenta
+ * minutos de gravacao nao sao um feito barato, e o premio dele e proporcional.
+ *
+ * Ou seja: a distancia em faixas sozinha nao e a regra. O que separa `sem-erro` de `ouvinte` e o
+ * PISO — uma conquista COMUM e, por definicao, a que qualquer pessoa tropeca em fazer, e pagar
+ * epico ou lendario por ela apaga o significado da raridade em todo o resto do catalogo. Acima de
+ * comum, o autor calibra; em comum, nao ha o que calibrar.
+ *
+ * `cur-katana` foi para `nivel-10` (epico), onde a faixa casa exatamente e que ate aqui so pagava
+ * Seeds.
+ */
+describe('a raridade do exclusivo acompanha a da conquista', () => {
+  const FAIXA = { comum: 0, raro: 1, epico: 2, lendario: 3 } as const;
+  const comCosmetico = CONQUISTAS.filter((c) => c.recompensa.cosmetico);
+
+  it('há exclusivos para medir', () => {
+    expect(comCosmetico.length).toBeGreaterThan(4);
+  });
+
+  it.each(comCosmetico.map((c) => [c.id, c] as const))(
+    '%s paga um cosmético proporcional ao feito',
+    (_id, conquista) => {
+      const item = CATALOGO_DA_LOJA.find((i) => i.id === conquista.recompensa.cosmetico);
+      expect(item, `${conquista.id} promete "${conquista.recompensa.cosmetico}", que não existe no catálogo`).toBeTruthy();
+      const distancia = FAIXA[item!.raridade] - FAIXA[conquista.raridade as keyof typeof FAIXA];
+      /* O premio nunca vale MENOS que a conquista: seria a conquista desvalorizando a si mesma. */
+      expect(distancia, `${conquista.id} (${conquista.raridade}) entrega ${item!.id} (${item!.raridade}), que e de faixa mais baixa`).toBeGreaterThanOrEqual(0);
+      /* E o piso: conquista comum nao paga epico nem lendario. */
+      if (conquista.raridade === 'comum') {
+        expect(FAIXA[item!.raridade], `${conquista.id} e comum e entrega ${item!.id} (${item!.raridade})`).toBeLessThanOrEqual(FAIXA.raro);
+      }
+    },
+  );
+
+  /* E o item que a conquista promete tem de ser EXCLUSIVO dela: um cosmético anunciado como prêmio
+     e vendido na Loja ao lado seria a promessa e a sua própria quebra na mesma tela. */
+  it('o cosmético prometido é exclusivo daquela conquista', () => {
+    for (const c of comCosmetico) {
+      const item = CATALOGO_DA_LOJA.find((i) => i.id === c.recompensa.cosmetico)!;
+      expect(item.exclusivoDe, `${item.id} é prêmio de ${c.id} e não está marcado como exclusivo dela`).toBe(c.id);
+      expect(item.precoSeeds, `${item.id} é prêmio de ${c.id} e também é vendido`).toBeUndefined();
+      expect(item.precoCreditos, `${item.id} é prêmio de ${c.id} e também é vendido`).toBeUndefined();
+    }
+  });
+});

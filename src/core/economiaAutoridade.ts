@@ -203,6 +203,15 @@ export function valorDoCredito(creditoId: string): CreditoAutorizado | RecusaDeG
     return { creditoId, seeds: cofre.quantidade, xp: 0, reason: `passe:${creditoId.split(':')[1]}`, nivelMinimo: cofre.decada }
   }
 
+  /* A FAMÍLIA DE DROP NÃO SE RESOLVE AQUI, e a recusa é explícita para não ser confundida com um
+     id inventado. Esta função traduz id -> valor, e o valor de um drop depende do ITEM SORTEADO —
+     que não está no id e nem poderia estar: se estivesse, o cliente escolheria o item ao escolher
+     o `creditoId`, que é exatamente o furo que o desenho do drop existe para fechar. Quem credita
+     um drop é `valorDoDrop(creditoId, itemId)`, chamada pela rota DEPOIS de o servidor sortear. */
+  if (roundIdDoDrop(creditoId)) {
+    return { erro: 'crédito de drop não se resolve pelo id: o item é sorteado pelo servidor' }
+  }
+
   return { erro: `crédito desconhecido: ${creditoId.slice(0, 40)}` }
 }
 
@@ -224,3 +233,167 @@ export const CONQUISTAS_CONFERIVEIS: ReadonlySet<string> = new Set([
   'primeira-captura', 'ouvinte', 'caderno-cheio', 'revisor', 'sem-erro', 'perfeccionista',
   'maratonista', 'constante', 'cliente', 'nivel-5', 'nivel-10', 'poliglota', 'duelista',
 ])
+
+/* ── DROP: o cosmético que cai no fim da rodada ─────────────────────────────────────────────── */
+
+/**
+ * O CANAL DE DROP, e por que ele NÃO é uma quinta porta da Loja.
+ *
+ * A versão que existia no ramo de trabalho (`src/lib/drops.ts`) estava errada de três jeitos, e os
+ * três são o mesmo erro: o cliente decidindo. (1) chamava `creditarSeeds({creditoId, amount,
+ * reason})` — `amount` e `reason` já tinham SAÍDO do contrato justamente porque eram a cunhagem de
+ * moeda pelo corpo do pedido; (2) o `creditoId` era `drop-partida-bau-${Date.now()}`, e o relógio
+ * dentro do id destrói a única idempotência que existe aqui, que é POR `creditoId` (índice único
+ * em `seed_credits`) — cada montagem da tela viraria um baú novo; (3) `drop-partida-bau-*` não
+ * casava nenhuma família de `valorDoCredito`, então levava 400 de qualquer maneira.
+ *
+ * O DESENHO QUE VALE:
+ *
+ * · `ItemDaLoja` não tem campo `canal`. As quatro portas de obtenção (nível, Seeds, conquista,
+ *   Créditos) são DERIVADAS dos campos que o item já tem. Um campo `canal: 'drop'` faria o item
+ *   existir num quinto lugar e obrigaria toda régua a crescer um caso. Então o drop não é uma
+ *   porta: ele SORTEIA entre itens que já têm porta. Uma régua só continua valendo.
+ *
+ * · `creditoId` = `drop:<roundId>`. Um drop por RODADA. A rodada é um fato gravado
+ *   (`exercise_results.round_id`, via `POST /api/exercises/rodada`), com dono e com carimbo de
+ *   tempo: ancorar o baú nela é o que impede tanto o baú repetido quanto o baú sem partida.
+ *
+ * · QUEM SORTEIA É O SERVIDOR. Se o cliente escolhesse o item, escolheria o lendário — é a mesma
+ *   lição do `amount` que a auditoria de 01/09 cobrou. O cliente diz "terminei a rodada R"; o
+ *   servidor diz o que caiu.
+ */
+
+/**
+ * AS SEEDS QUE ACOMPANHAM O DROP.
+ *
+ * Cinco, que é exatamente `PESOS_SEEDS.rodadaPerfeita` — o maior bônus POR RODADA que a economia
+ * já tinha. O número não é estético: ele fixa o teto do que o drop pode fazer com a moeda. Uma
+ * rodada perfeita de 20 itens rende 25 Seeds (20 acertos + 5 da rodada limpa); o drop soma no
+ * máximo mais 5, ou seja +20% no melhor caso, e nunca mais do que jogar sem errar já paga.
+ *
+ * A RECOMPENSA DE VERDADE É O ITEM, e ela é grande: um comum vale 40-60 Seeds de catálogo, um raro
+ * 100-140. Pôr Seeds altas aqui somaria uma segunda renda por rodada em cima de um prêmio que já
+ * vale de 8 a 28 rodadas perfeitas — e a economia v2 foi calibrada para o lendário sair em ≈ 1
+ * semana de uso diário. Cinco é o valor que faz o baú parecer um bônus sem reescrever essa
+ * calibragem. Zero também fecharia a conta, mas deixaria a linha do ledger sem nada além do razão.
+ */
+export const SEEDS_DO_DROP = 5
+
+/**
+ * O PESO DE CADA RARIDADE NO SORTEIO.
+ *
+ * Só comum e raro entram (ver `itensSorteaveisNoDrop`), e a proporção é 3 para 1. Épico e lendário
+ * ficam de fora porque são o TOPO da escada de preço (200-260 e 380-600 Seeds): entregá-los de
+ * graça no fim de uma rodada apagaria o motivo de poupar, que é a única mecânica de longo prazo
+ * que esta economia tem. O drop existe para dar um empurrão, não para substituir a Loja.
+ */
+export const PESOS_DO_DROP: Readonly<Record<'comum' | 'raro', number>> = { comum: 75, raro: 25 }
+
+/**
+ * `drop:<roundId>` -> roundId, ou null se o crédito não for desta família.
+ *
+ * Recusa `roundId` com `:` porque o dois-pontos é o separador que todas as outras famílias usam, e
+ * um roundId com `:` tornaria `drop:a:b` ambíguo. O gerador real não produz isso (`Play.tsx`:
+ * `${gameId}-${Date.now()}-${aleatorio}`), então a regra não custa nada e fecha a ambiguidade
+ * antes de ela existir.
+ */
+export function roundIdDoDrop(creditoId: string): string | null {
+  if (!creditoId.startsWith('drop:')) return null
+  const roundId = creditoId.slice('drop:'.length)
+  if (!roundId || roundId.includes(':')) return null
+  return roundId
+}
+
+/**
+ * O item pode cair num baú? Quatro perguntas, todas respondidas por campos que o item JÁ tem —
+ * nenhuma delas precisa de um `canal` novo no catálogo.
+ *
+ *  1. `exclusivoDe` fora. Conquista não se sorteia: o que separa o tema Aurora de qualquer outro
+ *     lendário é EXATAMENTE ter sido conquistado. Um baú que o entrega apaga a conquista inteira.
+ *  2. `precoCreditos` fora. Créditos é a moeda que custou dinheiro; sortear de graça o que outra
+ *     pessoa pagou é o furo mais caro que este arquivo pode abrir.
+ *  3. Só comum e raro (ver `PESOS_DO_DROP`).
+ *  4. `precoSeeds` obrigatório. ESTA É A LINHA QUE NÃO ESTAVA NO DESENHO ORIGINAL e que foi
+ *     acrescentada aqui: sem ela o baú sorteia `fonte-padrao`, `pos-topo`, `cur-padrao`, `ras-off`
+ *     e `pack-classico` — itens de nível 1 e sem preço, que TODA pessoa já tem desde o primeiro
+ *     minuto e que a posse (derivada de compras) nunca vai listar como possuídos. O baú entregaria
+ *     o nada, repetidamente, e ainda gastaria a rodada. "Ter porta", aqui, quer dizer ter a porta
+ *     das Seeds: só é prêmio o que custaria alguma coisa.
+ */
+function ehSorteavelNoDrop(item: ItemDaLoja): boolean {
+  if (item.exclusivoDe) return false
+  if (item.precoCreditos !== undefined) return false
+  if (item.raridade !== 'comum' && item.raridade !== 'raro') return false
+  return item.precoSeeds !== undefined
+}
+
+/**
+ * Os itens que um drop pode entregar AGORA: os sorteáveis menos o que a pessoa já tem.
+ *
+ * `jaPossui` vem do razão dos eventos (`seed_spends.reason LIKE 'loja:%'` mais
+ * `seed_credits.reason LIKE 'drop:%'`), nunca do navegador — é a mesma fonte de onde
+ * `itensComprados` já deriva a posse. Item repetido não é prêmio: sem esta subtração, quem já
+ * comprou tudo o que é comum abriria baús de duplicata sem nunca saber por quê.
+ *
+ * A ordem é a do catálogo, que é estável — é o que torna `sortearItemDoDrop` reprodutível dado o
+ * mesmo float.
+ */
+export function itensSorteaveisNoDrop(jaPossui: ReadonlySet<string>): ItemDaLoja[] {
+  return CATALOGO_DA_LOJA.filter((i) => ehSorteavelNoDrop(i) && !jaPossui.has(i.id))
+}
+
+/**
+ * O SORTEIO, puro e determinístico: mesmo float, mesma lista, mesmo item.
+ *
+ * O float entra por parâmetro em vez de sair de um `Math.random()` aqui dentro por um motivo de
+ * teste: uma função que sorteia sozinha só pode ser verificada por amostragem, e o que se quer
+ * provar é a REGRA (o corte em 75%, qual item sai de cada faixa), não uma média.
+ *
+ * DUAS ETAPAS, e não uma roleta item a item. A roleta simples (peso do item = peso da raridade)
+ * faria a chance de um raro depender de QUANTOS raros ainda faltam: com 20 comuns e 10 raros o
+ * raro sairia em ~14% das vezes, e essa porcentagem mudaria sozinha à medida que a coleção enche —
+ * a pessoa veria a taxa variar sem nenhuma regra ter mudado. Aqui o corte é sempre 75/25: primeiro
+ * a faixa, depois um item uniforme dentro dela. Faixa vazia devolve toda a probabilidade à outra,
+ * que é o comportamento óbvio para quem já colecionou metade.
+ */
+export function sortearItemDoDrop(sorteio: number, elegiveis: ItemDaLoja[]): ItemDaLoja | null {
+  const comuns = elegiveis.filter((i) => i.raridade === 'comum')
+  const raros = elegiveis.filter((i) => i.raridade === 'raro')
+  if (!comuns.length && !raros.length) return null
+
+  /* Float defeituoso (NaN, negativo, >= 1) vira 0 em vez de derrubar a rota: um baú é bônus, e um
+     bônus não pode ser capaz de transformar o fim de rodada em erro. */
+  const f = Number.isFinite(sorteio) ? Math.min(0.999999999, Math.max(0, sorteio)) : 0
+
+  const pesoComum = comuns.length ? PESOS_DO_DROP.comum : 0
+  const pesoRaro = raros.length ? PESOS_DO_DROP.raro : 0
+  const corte = pesoComum / (pesoComum + pesoRaro)
+
+  const balde = f < corte ? comuns : raros
+  const dentro = f < corte
+    ? (corte > 0 ? f / corte : 0)
+    : (corte < 1 ? (f - corte) / (1 - corte) : 0)
+
+  return balde[Math.min(balde.length - 1, Math.floor(dentro * balde.length))]
+}
+
+/**
+ * O CRÉDITO DE UM DROP JÁ SORTEADO — a régua que a rota atravessa antes de gravar.
+ *
+ * Sem esta função a rota gravaria o `reason` que tivesse em mãos, e `drop:<itemId>` é a coluna de
+ * onde a posse é derivada: seria o furo de 01/09 outra vez, agora pela porta do baú. Por isso ela
+ * confere DUAS coisas — que o item existe no catálogo e que ele seria sorteável — mesmo sabendo
+ * que quem chama acabou de sortear de uma lista que já passou por `itensSorteaveisNoDrop`. A
+ * conferência dupla custa uma busca em array e é o que impede a próxima rota, escrita por outra
+ * pessoa daqui a seis meses, de entregar `tema-custom` num baú.
+ *
+ * O que NÃO se confere aqui é a POSSE: esta função não sabe quem é a pessoa. Quem subtrai o que já
+ * se tem é `itensSorteaveisNoDrop`, com o conjunto lido do banco.
+ */
+export function valorDoDrop(creditoId: string, itemId: string): CreditoAutorizado | RecusaDeGasto {
+  if (!roundIdDoDrop(creditoId)) return { erro: `crédito de drop malformado: ${creditoId.slice(0, 40)}` }
+  const item = itemPorId(itemId)
+  if (!item) return { erro: `item inexistente: ${itemId}` }
+  if (!ehSorteavelNoDrop(item)) return { erro: `${itemId} não sai em drop` }
+  return { creditoId, seeds: SEEDS_DO_DROP, xp: 0, reason: `drop:${itemId}`, nivelMinimo: 0 }
+}

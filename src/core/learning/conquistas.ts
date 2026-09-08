@@ -14,8 +14,23 @@ import type { AppMetrics } from './contract';
 
 export type RaridadeDaConquista = 'comum' | 'raro' | 'epico' | 'lendario';
 
-/** Ids dos cosméticos exclusivos: batem com `alvo` dos itens `exclusivoDe` em `lib/loja`. */
-export type CosmeticoExclusivo = 'tema-aurora' | 'part-cometa' | 'cur-coroa' | 'ras-arcoiris';
+/**
+ * Ids dos cosméticos exclusivos: batem com o `id` dos itens `exclusivoDe` do catálogo — é assim
+ * que `Conquistas.tsx` e `progressao.ts` acham a peça (`find((i) => i.id === cosmetico)`).
+ *
+ * A UNIÃO É FECHADA DE PROPÓSITO, e é ela que impede a promessa vazia: escrever aqui um id que o
+ * catálogo não tem quebra a compilação, em vez de render um `find` que devolve `undefined` e uma
+ * conquista que anuncia um prêmio inexistente. Alargá-la, portanto, é o ÚLTIMO passo — só depois
+ * de o item existir no catálogo com um leitor que o desenhe.
+ *
+ * Os três novos (mudança gamificacao-sob-autoridade) fecham um buraco velho: das catorze
+ * conquistas, dez pagavam só Seeds e XP, então o épico e o lendário do fim da lista rendiam o
+ * mesmo TIPO de coisa que a primeira captura. Poliglota, Sem erro e Duelista passam a entregar
+ * uma peça que a Loja não vende a preço nenhum — que é o que separa "conquista" de "meta".
+ */
+export type CosmeticoExclusivo =
+  | 'tema-aurora' | 'part-cometa' | 'cur-coroa' | 'ras-arcoiris'
+  | 'pack-astrologia' | 'cur-katana' | 'ras-matrix';
 
 export interface ContextoDeConquistas {
   metricas: AppMetrics;
@@ -64,15 +79,15 @@ export const CONQUISTAS: Conquista[] = [
   { id: 'colecionador', nome: 'Colecionador', desc: 'Veja todos os eventos raros dos jogos.', raridade: 'epico', emoji: '🌈',
     recompensa: { seeds: 100, xp: 120, cosmetico: 'ras-arcoiris' }, progresso: (c) => ({ atual: c.eventosVistos, meta: Math.max(1, c.totalDeEventos) }) },
   { id: 'poliglota', nome: 'Poliglota', desc: 'Grave sessões em dois idiomas diferentes.', raridade: 'raro', emoji: '🌍',
-    recompensa: { seeds: 40, xp: 60 }, progresso: (c) => ({ atual: c.idiomas, meta: 2 }) },
+    recompensa: { seeds: 40, xp: 60, cosmetico: 'pack-astrologia' }, progresso: (c) => ({ atual: c.idiomas, meta: 2 }) },
   { id: 'duelista', nome: 'Duelista', desc: 'Combo ×15 no Duelo relâmpago.', raridade: 'epico', emoji: '⚡',
-    recompensa: { seeds: 50, xp: 80 }, progresso: (c) => ({ atual: c.melhorComboPorJogo['blitz'] ?? 0, meta: 15 }) },
+    recompensa: { seeds: 50, xp: 80, cosmetico: 'ras-matrix' }, progresso: (c) => ({ atual: c.melhorComboPorJogo['blitz'] ?? 0, meta: 15 }) },
   { id: 'cliente', nome: 'Cliente', desc: 'Faça a primeira compra na Loja.', raridade: 'comum', emoji: '🛍️',
     recompensa: { seeds: 15, xp: 20 }, progresso: (c) => ({ atual: c.compras, meta: 1 }) },
   { id: 'nivel-5', nome: 'Nível 5', desc: 'Chegue ao nível 5.', raridade: 'comum', emoji: '🎯',
     recompensa: { seeds: 50, xp: 0 }, progresso: (c) => ({ atual: c.nivel, meta: 5 }) },
   { id: 'nivel-10', nome: 'Nível 10', desc: 'Chegue ao nível 10.', raridade: 'epico', emoji: '🏆',
-    recompensa: { seeds: 120, xp: 0 }, progresso: (c) => ({ atual: c.nivel, meta: 10 }) },
+    recompensa: { seeds: 120, xp: 0, cosmetico: 'cur-katana' }, progresso: (c) => ({ atual: c.nivel, meta: 10 }) },
 ];
 
 export interface ProgressoDeConquista {

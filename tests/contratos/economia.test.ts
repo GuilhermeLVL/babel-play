@@ -21,6 +21,7 @@ import { setupEphemeralDb, type EphemeralDb } from '../harness/ephemeralDb'
 import { servidorEfemero } from '../../src/data/efemero/servidor'
 import { fecharStore, limparTudo } from '../../src/data/efemero/store'
 import { asUserId } from '../../server/lib/authContext'
+import { SEEDS_DO_DROP, itensSorteaveisNoDrop } from '../../src/core/economiaAutoridade'
 
 let h: EphemeralDb
 let metricsRouter: any
@@ -143,5 +144,65 @@ describe('gasto: o preço é o do catálogo, nas duas pontas', () => {
     expect(express.status).toBe(402)
     expect(efemero.status).toBe(402)
     expect(express.body.detalhes.saldo).toBe(efemero.body.detalhes.saldo)
+  })
+})
+
+describe('drop: o baú vale o mesmo nas duas pontas', () => {
+  const permitidos = new Set(itensSorteaveisNoDrop(new Set()).map((i) => i.id))
+
+  /* O item SORTEADO não pode ser igual dos dois lados — é sorteio. O que tem de bater é a REGRA:
+     mesma exigência de rodada, mesmas Seeds, mesma idempotência, e o item saindo sempre do mesmo
+     conjunto de sorteáveis. É essa a paridade que importa, porque o acervo do modo sem conta
+     migra para a conta: um baú mais generoso de um lado seria cosmético cunhado de graça. */
+  it('sem rodada gravada, as duas recusam com o mesmo código', async () => {
+    const pedido = { creditoId: 'drop:rodada-que-nao-existe' }
+    const express = await noExpress('/seeds/creditar', pedido)
+    const efemero = await noEfemero('/seeds/creditar', pedido)
+    expect(express.status).toBe(400)
+    expect(efemero.status).toBe(400)
+    expect(express.body.code).toBe('rodada_inexistente')
+    expect(efemero.body.code).toBe('rodada_inexistente')
+  })
+
+  it('com a rodada gravada, as duas entregam um item sorteável e as mesmas Seeds', async () => {
+    const roundId = 'termo-contrato-1'
+    const itens = Array.from({ length: 5 }, (_, i) => ({ itemRef: `w${i}`, correct: 1, kind: 'drill' }))
+    const rodada = { roundId, exerciseKind: 'termo', origem: 'baralho', score: 100, melhorSequencia: 5, itens }
+
+    const { exerciseResultsRepo } = (await h.load('../../server/db/repositories/exerciseResults')) as any
+    await exerciseResultsRepo.addRodada(U, rodada)
+    await servidorEfemero('/api/exercises/rodada', { method: 'POST', body: JSON.stringify(rodada) })
+
+    const antesExpress = (await noExpress('/seeds/creditar', { creditoId: 'conquista-colecionador' })).body.seedsCreditadas
+    const antesEfemero = (await noEfemero('/seeds/creditar', { creditoId: 'conquista-colecionador' })).body.seedsCreditadas
+
+    const pedido = { creditoId: `drop:${roundId}` }
+    const express = await noExpress('/seeds/creditar', pedido)
+    const efemero = await noEfemero('/seeds/creditar', pedido)
+
+    expect(express.status).toBe(200)
+    expect(efemero.status).toBe(200)
+    expect(express.body.jaExistia).toBe(false)
+    expect(efemero.body.jaExistia).toBe(false)
+    expect(permitidos.has(express.body.item), `express entregou ${express.body.item}`).toBe(true)
+    expect(permitidos.has(efemero.body.item), `efêmero entregou ${efemero.body.item}`).toBe(true)
+    expect(express.body.seedsCreditadas - antesExpress).toBe(SEEDS_DO_DROP)
+    expect(efemero.body.seedsCreditadas - antesEfemero).toBe(SEEDS_DO_DROP)
+  })
+
+  it('o reenvio devolve o MESMO item nas duas, sem creditar de novo', async () => {
+    const pedido = { creditoId: 'drop:termo-contrato-1' }
+    const primeiroExpress = (await noExpress('/seeds/creditar', pedido)).body
+    const primeiroEfemero = (await noEfemero('/seeds/creditar', pedido)).body
+    const segundoExpress = (await noExpress('/seeds/creditar', pedido)).body
+    const segundoEfemero = (await noEfemero('/seeds/creditar', pedido)).body
+
+    for (const b of [primeiroExpress, primeiroEfemero, segundoExpress, segundoEfemero]) {
+      expect(b.jaExistia).toBe(true)
+    }
+    expect(segundoExpress.item).toBe(primeiroExpress.item)
+    expect(segundoEfemero.item).toBe(primeiroEfemero.item)
+    expect(segundoExpress.seedsCreditadas).toBe(primeiroExpress.seedsCreditadas)
+    expect(segundoEfemero.seedsCreditadas).toBe(primeiroEfemero.seedsCreditadas)
   })
 })

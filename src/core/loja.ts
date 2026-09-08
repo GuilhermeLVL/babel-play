@@ -240,4 +240,73 @@ export const CATALOGO_DA_LOJA: ItemDaLoja[] = [
   { id: 'dourada-8', tipo: 'rastro', alvo: 'gen:coracoes:ouro-pastel', nome: 'Corações de Ouro', desc: 'Corações dourados, discretos.', raridade: 'lendario', nivel: 1, precoCreditos: 150, exclusivoDoPasse: 80 },
   { id: 'dourada-9', tipo: 'particulas', alvo: 'confete', nome: 'Confete Dourado', desc: 'Papel picado de ouro em cada acerto.', raridade: 'lendario', nivel: 1, precoCreditos: 150, exclusivoDoPasse: 90 },
   { id: 'dourada-10', tipo: 'rastro', alvo: 'gen:arcoiris:sunset-gold', nome: 'Aurora Dourada', desc: 'O último marco da temporada — bolinhas de ouro.', raridade: 'lendario', nivel: 1, precoCreditos: 150, exclusivoDoPasse: 100 },
+
+  /* ── O QUE VEIO DO CATÁLOGO MESTRE (mudança gamificacao-sob-autoridade) ────────────────────
+   *
+   * `catalogoMestre.ts` (branch `gamificacao-v2-wip`) desenhou uma economia inteira em prosa —
+   * lore, autor, citação, `especificacaoSonora`, shaders — e NADA daquilo é executável neste
+   * app: nenhum módulo importa aquele arquivo, e a categoria `shader`/`carimbo`/`moldura` não
+   * tem um leitor sequer. Trazer o mestre inteiro seria repetir o defeito que a temporada 1 já
+   * pagou caro (`galeria/passe.ts` prometia "Variante Dourada N" e o marco coroava o nada).
+   *
+   * A REGRA QUE FILTROU ESTES 24: item novo só entra se um LEITOR EXISTENTE já souber desenhá-lo.
+   * Pack precisa de linha em `PACKS_DE_EMOJI`, cursor precisa de linha em `CURSORES`, rastro
+   * precisa de um `alvo` que `estiloDeRastro()` resolva. Os packs e cursores ganharam a linha
+   * (arquivos irmãos, mesma mudança); os rastros não custaram UMA linha de código — são
+   * `gen:`/`croma:` que o motor de rastro já resolvia desde 2026-08-28.
+   *
+   * OS QUATRO MOTORES DE PARTÍCULA DO MESTRE (Plasma, Folhas, Cristal, Fogo) FICARAM DE FORA, e
+   * essa é a decisão mais importante deste bloco. A skin de partícula só vira forma no ternário
+   * `formaDaSkin` do ParticleCanvas; uma skin que ele não conhece cai em `null` e é desenhada
+   * como círculo — exatamente igual à skin "Do tema", que é grátis. Seriam quatro itens de até
+   * 400 Seeds entregando o padrão de fábrica. É o mesmo defeito que o comentário do Rastro Maré
+   * documenta logo acima, e o preço aqui seria maior.
+   */
+
+  // ── PACKS DE EMOJI (as listas vivem em lib/particulas) ──
+  { id: 'pack-cafe', tipo: 'pack', alvo: 'cafe', nome: 'Rota do Barista', desc: '☕ 🥐 🥞 🫖 🍪 🧋 🍮', raridade: 'comum', nivel: 2, precoSeeds: 50 },
+  { id: 'pack-pixel', tipo: 'pack', alvo: 'pixel', nome: 'Pixel Nostalgia', desc: '👾 🕹️ 🎮 🪙 🍄 ⚔️ 💾', raridade: 'raro', nivel: 3, precoSeeds: 100 },
+  { id: 'pack-gelo', tipo: 'pack', alvo: 'gelo', nome: 'Glaciar Ártico', desc: '❄️ 🧊 🏔️ ⛄ 🌨️ 💠 🐧', raridade: 'raro', nivel: 5, precoSeeds: 120 },
+  { id: 'pack-anime', tipo: 'pack', alvo: 'anime', nome: 'Shonen Rush', desc: '⚡ 👊 💥 👺 🍜 🗡️ 🌟', raridade: 'raro', nivel: 6, precoSeeds: 120 },
+  { id: 'pack-zen', tipo: 'pack', alvo: 'zen', nome: 'Jardim Bonsai', desc: '🪴 🍵 🪷 🎋 🧘 🌿 🎐', raridade: 'raro', nivel: 7, precoSeeds: 130 },
+  { id: 'pack-fogo', tipo: 'pack', alvo: 'fogo', nome: 'Fúria Dracônica', desc: '🔥 🌋 ☄️ 💥 🐉 🧨 ♨️', raridade: 'epico', nivel: 7, precoSeeds: 240 },
+  { id: 'pack-alquimia', tipo: 'pack', alvo: 'alquimia', nome: 'Grimório do Alquimista', desc: '🔮 ⚗️ 🧪 📜 🕯️ 🧙 🗝️', raridade: 'epico', nivel: 8, precoSeeds: 240 },
+  { id: 'pack-mineracao', tipo: 'pack', alvo: 'mineracao', nome: 'Cavernas Profundas', desc: '⛏️ 💎 🪨 🪙 🏮 🗿 ⚒️', raridade: 'epico', nivel: 9, precoSeeds: 240 },
+  { id: 'pack-cyberpunk', tipo: 'pack', alvo: 'cyberpunk', nome: 'Neo Tóquio 2099', desc: '🌆 💾 🕶️ 🤖 🌃 💿 📡', raridade: 'lendario', nivel: 10, precoSeeds: 450 },
+  /* `nivel: 1` nos exclusivos é o que o tipo exige, e não uma exigência de progresso: quem manda
+     é `exclusivoDe`, e todo consumidor da régua (`estadoDoItem`, `progressao`, `passe`) descarta
+     o nível assim que vê o campo. Mesmo padrão de tema-aurora e cur-coroa. */
+  { id: 'pack-astrologia', tipo: 'pack', alvo: 'astrologia', nome: 'Zodíaco Celestial', desc: '🌙 ☀️ 🪐 🌌 🔭 ✨ ☄️ — só para quem gravou em dois idiomas.', raridade: 'epico', nivel: 1, exclusivoDe: 'poliglota' },
+
+  // ── CURSORES (os emojis vivem em lib/cursores) ──
+  { id: 'cur-pata', tipo: 'cursor', alvo: 'pata', nome: 'Patinha Ninja', desc: 'Uma patinha silenciosa aponta por você. 🐾', raridade: 'comum', nivel: 2, precoSeeds: 45 },
+  { id: 'cur-tinteiro', tipo: 'cursor', alvo: 'tinteiro', nome: 'Cursor Tinteiro', desc: 'Bico de tinta para revisar com calma. 🖋️', raridade: 'comum', nivel: 2, precoSeeds: 50 },
+  { id: 'cur-cafe', tipo: 'cursor', alvo: 'cafe', nome: 'Café Espresso', desc: 'A xícara que acompanha a manhã de estudo. ☕', raridade: 'comum', nivel: 3, precoSeeds: 50 },
+  /* O mestre chama este item de `cur-laser` e o entrega com 🔫. Aqui ele é LANTERNA: ver a nota
+     em `lib/cursores`, que é onde a arma seria de fato desenhada no ponteiro. */
+  { id: 'cur-lanterna', tipo: 'cursor', alvo: 'lanterna', nome: 'Cursor Lanterna', desc: 'Um facho para achar a resposta no escuro. 🔦', raridade: 'raro', nivel: 5, precoSeeds: 120 },
+  { id: 'cur-trevo', tipo: 'cursor', alvo: 'trevo', nome: 'Trevo da Sorte', desc: 'Quatro folhas de sorte no ponteiro. 🍀', raridade: 'raro', nivel: 6, precoSeeds: 130 },
+  { id: 'cur-cristal', tipo: 'cursor', alvo: 'cristal', nome: 'Cristal Rúnico', desc: 'Lapidado, brilha sobre o que dá para clicar. 💎', raridade: 'epico', nivel: 8, precoSeeds: 240 },
+  { id: 'cur-robot', tipo: 'cursor', alvo: 'robot', nome: 'Autômato Retro', desc: 'Mecatrônica vintage apontando a resposta. 🤖', raridade: 'epico', nivel: 8, precoSeeds: 240 },
+  { id: 'cur-katana', tipo: 'cursor', alvo: 'katana', nome: 'Katana Samurai', desc: 'A lâmina que corta a hesitação. Só para quem fechou uma rodada com 3 estrelas. 🗡️', raridade: 'epico', nivel: 1, exclusivoDe: 'nivel-10' },
+
+  /* ── RASTROS: ZERO CÓDIGO NOVO ──
+   *
+   * Cada um é só um `alvo` que `estiloDeRastro()` já sabia resolver. `gen:<forma>:<paleta>` puxa
+   * as cores de uma paleta da galeria; `croma:<forma>:<matiz>` puxa de um matiz cru. O `croma:`
+   * é o preferido quando a cor pedida pelo mestre é UM tom (celeste, rosa, violeta, verde): a
+   * paleta equivalente arrastaria junto o `accent` de um produto de 380 Seeds que a pessoa não
+   * comprou, e `gen:` só é usado onde a IDENTIDADE da paleta é o ponto (Arcade, Halloween).
+   *
+   * AS DESCRIÇÕES DIZEM A FORMA QUE SAI, não a que o mestre sonhou. O mestre pediu pétalas de
+   * sakura, fita cibernética e glifos caindo; o motor tem cinco formas (faísca, estrela, coração,
+   * pixel, bolinha) e nenhuma delas é pétala, fita ou glifo. Vender "pétalas" e entregar coração
+   * rosa é o defeito que o Rastro Maré já custou; então aqui a cor vem do mestre e o substantivo
+   * vem do motor. */
+  { id: 'ras-bolhas', tipo: 'rastro', alvo: 'croma:arcoiris:celeste', nome: 'Esteira de Bolhas', desc: 'Bolinhas celestes flutuando atrás do cursor.', raridade: 'raro', nivel: 3, precoSeeds: 100 },
+  { id: 'ras-chamas', tipo: 'rastro', alvo: 'gen:faisca:halloween', nome: 'Trilha de Chamas', desc: 'Faíscas em laranja-brasa por onde o mouse passa.', raridade: 'epico', nivel: 6, precoSeeds: 220 },
+  { id: 'ras-sakura', tipo: 'rastro', alvo: 'croma:coracoes:rosa', nome: 'Voo de Pétalas Zen', desc: 'Corações cor-de-rosa planando na cadência da mão.', raridade: 'epico', nivel: 7, precoSeeds: 230 },
+  { id: 'ras-neon-ribbon', tipo: 'rastro', alvo: 'gen:arcoiris:arcade', nome: 'Fita Cibernética', desc: 'Bolinhas de néon magenta pulsando na esteira do cursor.', raridade: 'lendario', nivel: 8, precoSeeds: 380 },
+  { id: 'ras-stardust', tipo: 'rastro', alvo: 'croma:estrelas:violeta', nome: 'Poeira Estelar', desc: 'Estrelas violeta com brilho demorado.', raridade: 'lendario', nivel: 10, precoSeeds: 400 },
+  { id: 'ras-matrix', tipo: 'rastro', alvo: 'croma:pixel:verde', nome: 'Fluxo Matrix 84', desc: 'Pixels de fósforo verde caindo do cursor. Só para quem fez combo ×15 no Duelo.', raridade: 'epico', nivel: 1, exclusivoDe: 'duelista' },
 ];

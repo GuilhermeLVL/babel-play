@@ -36,7 +36,7 @@ COPIA do banco real (`sqlite3 .backup`: 1 usuario, 2.818 cartoes, 58 `seed_credi
 | 24 | Lighthouse desktop (perf / a11y / boas praticas) | `/` 93/98/92; `/jogar` **70**/95/92 (CLS 0,51, TBT 146 ms); `/capturar` 97; `/vocabulario` 97; `/loja` 88; `/perfil` 98 | `npx lighthouse --preset=desktop` | `lighthouse.md`, `lighthouse/*.json` | EXEC |
 | 25 | Lighthouse mobile | `/` 82; `/jogar` **26** (LCP 6,7 s, TBT 1.518 ms, CLS 0,53); `/capturar` 78; `/vocabulario` 66; `/loja` 75; `/perfil` 73 | `npx lighthouse` (mobile padrao) | idem | EXEC |
 | 26 | CI em `origin/main` @ 47ecf10 | **vermelha** em `npm test` (run 34278328814); `seguranca` e `uptime` verdes | API publica do GitHub | secao 3 | EXEC |
-| 27 | CI na branch `saneamento/2026-09-08` | ver secao 3 | idem | `ci.md` | EXEC |
+| 27 | CI na branch `saneamento/2026-09-08` | **verde** em d58f538 apos 3.1-3.3 e o conserto do e2e em banco vazio (663ea27) | idem | `ci.md` | EXEC |
 
 ## 2. E2E (Playwright 1.62, 1 projeto chromium desktop, 1 worker, dev:local na 3100 sobre COPIA do banco)
 

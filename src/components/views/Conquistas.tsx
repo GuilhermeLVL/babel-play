@@ -104,35 +104,48 @@ export default function Conquistas({ progress, ctx }: ConquistasProps) {
         </section>
       )}
 
-      {/* ── COMO GANHAR: gerado das REGRAS, nunca redigido à mão ── */}
+      {/*
+        COMO GANHAR: gerado das REGRAS, nunca redigido à mão — a tela não tem como discordar da
+        economia, porque lê a mesma constante que credita.
+
+        CARTÕES, E NÃO A TABELA (08/09). A tabela tinha quatro colunas e escondia a quarta abaixo de
+        `sm:` — justamente a do LIMITE, que é a única que responde "até quando isso rende". Quem
+        abria a tela no celular via os ganhos sem os tetos, o que é metade da regra. No cartão o
+        teto cabe ao lado dos ganhos em qualquer largura.
+      */}
       <section>
-        <p className="label-mono mb-2">Como ganhar Seeds e XP</p>
-        <div className="card-panel bg-surface overflow-hidden">
-          <table className="w-full text-[12.5px]">
-            <thead>
-              <tr className="text-start text-[10.5px] uppercase tracking-wider text-ink-faint border-b border-border-subtle">
-                <th className="px-4 py-2.5 font-black">Ação</th>
-                <th className="px-3 py-2.5 font-black text-end">XP</th>
-                <th className="px-3 py-2.5 font-black text-end">Seeds</th>
-                <th className="px-4 py-2.5 font-black hidden sm:table-cell">Limite</th>
-              </tr>
-            </thead>
-            <tbody>
-              {REGRAS.map((r) => (
-                <tr key={r.id} className="border-b border-border-subtle/60 last:border-0">
-                  <td className="px-4 py-2.5 text-ink">
-                    <span className="font-semibold">{r.como}</span>
-                    <span className="text-ink-faint"> · {r.unidade}</span>
-                  </td>
-                  <td className="px-3 py-2.5 text-end tabular-nums text-ink">{r.id === 'conquista' ? 'varia' : `+${r.xp}`}</td>
-                  <td className="px-3 py-2.5 text-end tabular-nums font-bold text-good-ink">{r.id === 'conquista' ? 'varia' : r.seeds > 0 ? `+${r.seeds}` : '—'}</td>
-                  <td className="px-4 py-2.5 text-ink-faint hidden sm:table-cell">{r.teto ?? ''}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        <p className="label-mono mb-2 flex items-center gap-1.5">
+          <Star className="w-3.5 h-3.5 text-accent" aria-hidden /> Como ganhar Seeds e XP
+        </p>
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
+          {REGRAS.map((r) => {
+            const varia = r.id === 'conquista';
+            return (
+              <div key={r.id} className="rounded-2xl border border-border-subtle bg-surface p-3.5 flex flex-col justify-between">
+                <div>
+                  <p className="font-bold text-[13px] text-ink leading-snug">{r.como}</p>
+                  <p className="text-[11px] text-ink-muted mt-0.5">{r.unidade}</p>
+                </div>
+                <div className="flex items-center justify-between gap-2 pt-2.5 mt-2.5 border-t border-border-subtle">
+                  <span className="flex items-center gap-1.5 flex-wrap">
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-accent-soft text-accent-ink font-mono text-[11px] font-bold tabular-nums">
+                      {varia ? 'XP varia' : `+${r.xp} XP`}
+                    </span>
+                    {/* A regra que dá XP e não dá Seeds não ganha ficha vazia: a ausência é a
+                        informação, e um "—" verde parecia um ganho de zero. */}
+                    {(varia || r.seeds > 0) && (
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-good-soft text-good-ink font-mono text-[11px] font-bold tabular-nums">
+                        <Sprout className="w-3 h-3 text-good" aria-hidden /> {varia ? 'varia' : `+${r.seeds}`}
+                      </span>
+                    )}
+                  </span>
+                  {r.teto && <span className="font-mono text-[10px] text-ink-faint shrink-0">{r.teto}</span>}
+                </div>
+              </div>
+            );
+          })}
         </div>
-        <p className="flex items-start gap-1.5 text-[11.5px] text-ink-faint mt-2 leading-snug">
+        <p className="flex items-start gap-1.5 text-[11.5px] text-ink-faint mt-2.5 leading-snug">
           <Info className="w-3.5 h-3.5 shrink-0 mt-0.5" aria-hidden />
           Palavras capturadas dão XP, não Seeds: Seeds vêm do que você FAZ com elas. Marcos de sequência e conquistas nunca são cobrados de volta.
         </p>

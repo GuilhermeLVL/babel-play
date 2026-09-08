@@ -33,14 +33,31 @@ export interface ThemeOption {
 }
 
 // Swatch values mirror the light-mode theme tokens defined in src/index.css.
-/** Fonte global da interface. 'pixel' e a linguagem da marca (Silkscreen/VT323, jogos classicos). */
-export type FonteType = 'padrao' | 'pixel';
+/**
+ * FONTE GLOBAL DA INTERFACE. Oito famílias, e cada uma existe porque muda a SENSAÇÃO de estudar.
+ *
+ * A DESCRIÇÃO CITA AS FAMÍLIAS REAIS, e isso é uma regra e não um estilo de escrita: as pilhas
+ * estão em `index.css` (`[data-fonte=…]`), e a cópia tem de dizer o que de fato vai desenhar a
+ * tela. A versão que veio da bancada citava Garamond, Kalam e Bebas Neue — três fontes que nenhum
+ * `@import` carrega. Prometer uma tipografia que não chega é pior que não descrever nenhuma: quem
+ * escolhe pelo nome recebe outra coisa e não sabe por quê.
+ *
+ * `previewText` é uma amostra que se LÊ, não um "Aa Bb Cc": a diferença entre Merriweather e
+ * Caveat aparece numa frase, não em duas letras.
+ */
+export type FonteType = 'padrao' | 'pixel' | 'serif' | 'mono' | 'cyber' | 'rounded' | 'handwriting' | 'display';
 
-export interface FonteOption { id: FonteType; name: string; desc: string }
+export interface FonteOption { id: FonteType; name: string; desc: string; previewText: string }
 
 export const FONTE_OPTIONS: FonteOption[] = [
-  { id: 'padrao', name: 'Padrão', desc: 'A tipografia normal do app (Inter/Archivo).' },
-  { id: 'pixel', name: 'Arcade (pixel)', desc: 'Estilo jogos clássicos: tudo pixelado, partículas quadradas e som 8-bits.' },
+  { id: 'padrao', name: 'Padrão (Inter)', desc: 'A tipografia normal do app: Inter no corpo, Archivo nos títulos.', previewText: 'Aprender todo dia' },
+  { id: 'pixel', name: 'Arcade (8-bit)', desc: 'Fliperama: títulos em Silkscreen, partículas quadradas e som chiptune.', previewText: '8-BIT RETRO' },
+  { id: 'serif', name: 'Literária (serifada)', desc: 'Clima de livro e jornal: Merriweather, com Georgia de reserva.', previewText: 'Estudo & Livros' },
+  { id: 'mono', name: 'Técnica (monoespaçada)', desc: 'Tudo alinhado, como código: JetBrains Mono, com IBM Plex Mono de reserva.', previewText: 'fn(idioma) => 100%' },
+  { id: 'cyber', name: 'Cyberpunk (futurista)', desc: 'Display de ficção científica: Orbitron nos títulos, Rajdhani no corpo.', previewText: 'NEO TÓQUIO 2099' },
+  { id: 'rounded', name: 'Acolhedora (arredondada)', desc: 'Curvas suaves, sem canto duro: Baloo 2 nos títulos, Nunito no corpo.', previewText: 'Aprenda sorrindo' },
+  { id: 'handwriting', name: 'Manuscrita (caderno)', desc: 'Anotação à mão: Caveat, com a cursiva do sistema de reserva.', previewText: 'Minhas notas de hoje' },
+  { id: 'display', name: 'Impacto (display)', desc: 'Títulos em caixa alta, no peso máximo — cara de pôster. O corpo do texto continua Inter.', previewText: 'MAESTRIA MÁXIMA' },
 ];
 
 export const THEME_OPTIONS: ThemeOption[] = [

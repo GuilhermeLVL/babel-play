@@ -471,6 +471,8 @@ export default function Loja({ progress, theme, setTheme, fonte, setFonte, menuP
           menuPosition={menuPosition} setMenuPosition={setMenuPosition}
           onOpenStudio={onOpenStudio}
           onIrParaLoja={() => { setAba('loja'); setFiltro('galeria'); }}
+          onIrParaPasse={() => setAba('passe')}
+          onIrParaConquistas={() => setAba('conquistas')}
         />
       </PainelDeAba>
 

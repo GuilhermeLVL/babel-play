@@ -45,6 +45,11 @@ interface PersonalizarProps {
   nivel: number;
   saldo: number;
   onIrParaLoja: () => void;
+  /* Os outros dois destinos que uma rota de aquisição do inventário pode ter. Opcionais: a tela
+     de Personalizar pode ser montada fora da Loja, e sem callback o cartão explica a rota sem
+     oferecer um botão que não levaria a lugar nenhum. */
+  onIrParaPasse?: () => void;
+  onIrParaConquistas?: () => void;
   ageProfile: AgeProfileType;
   setAgeProfile: (p: AgeProfileType) => void;
   menuPosition: MenuPositionType;
@@ -52,7 +57,11 @@ interface PersonalizarProps {
   onOpenStudio: () => void;
 }
 
-export default function Personalizar({ theme, setTheme, fonte, setFonte, nivel, saldo, onIrParaLoja, ageProfile, setAgeProfile, menuPosition, setMenuPosition, onOpenStudio }: PersonalizarProps) {
+export default function Personalizar({
+  theme, setTheme, fonte, setFonte, nivel, saldo,
+  onIrParaLoja, onIrParaPasse, onIrParaConquistas,
+  ageProfile, setAgeProfile, menuPosition, setMenuPosition, onOpenStudio,
+}: PersonalizarProps) {
   const [, force] = useState(0);
   const rerender = () => force((n) => n + 1);
   const saldoAgora = saldo;
@@ -152,6 +161,8 @@ export default function Personalizar({ theme, setTheme, fonte, setFonte, nivel, 
           { chave: 'fonte', rotulo: 'Fonte', valor: FONTE_OPTIONS.find((f) => f.id === fonte)?.name ?? fonte, icone: '🔤', categoria: 'fonte' },
         ]}
         onIrParaLoja={onIrParaLoja}
+        onIrParaPasse={onIrParaPasse}
+        onIrParaConquistas={onIrParaConquistas}
         aoMudar={rerender}
         perfis={perfis}
         faltaDoPerfil={(p) => faltaParaOPerfil(p, ctxAcesso)}

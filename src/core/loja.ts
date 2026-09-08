@@ -84,6 +84,31 @@ export const CATALOGO_DA_LOJA: ItemDaLoja[] = [
   { id: 'pos-esquerda', tipo: 'posicao', alvo: 'left', nome: 'Menu à esquerda', desc: 'O padrão da casa.', raridade: 'comum', nivel: 1 },
   { id: 'pos-direita', tipo: 'posicao', alvo: 'right', nome: 'Menu à direita', desc: 'Navegação no lado direito.', raridade: 'comum', nivel: 3, precoSeeds: 45 },
   { id: 'pos-baixo', tipo: 'posicao', alvo: 'bottom', nome: 'Menu embaixo', desc: 'Estilo dock, embaixo.', raridade: 'comum', nivel: 3, precoSeeds: 45 },
+  /* ── FONTES (equipam via setFonte) ──
+   *
+   * ELAS NÃO EXISTIAM AQUI, e por isso NENHUMA fonte era escolhível — nem a Arcade, que tem CSS,
+   * tem som próprio e aparece no loadout do Inventário desde sempre. O tipo `'fonte'` estava
+   * declarado em `TipoDaLoja` e em `TIPOS_DE_APARENCIA`, o `equipadoAtual` da tela sabia compará-la,
+   * e a linha "Fonte" do loadout apontava para uma categoria vazia. Uma porta desenhada sem sala
+   * atrás (auditoria de 2026-09-07, achado sobre `FonteType`).
+   *
+   * TODAS DE NÍVEL 1 E SEM PREÇO, e a decisão é deliberada: tipografia é LEGIBILIDADE, não enfeite.
+   * Quem lê melhor em serifada, ou precisa de traço arredondado, não deve ter de pagar nem subir de
+   * nível por isso — é o mesmo raciocínio que já vale para o perfil de exibição e para o tamanho do
+   * texto, que este app declara como direito e não como recompensa.
+   *
+   * A prévia (`previa`) fica vazia de propósito: a amostra de uma fonte é o TEXTO dela, e quem a
+   * desenha é `FONTE_OPTIONS.previewText` — pôr cor aqui seria inventar um swatch que não diz nada
+   * sobre a família. */
+  { id: 'fonte-padrao', tipo: 'fonte', alvo: 'padrao', nome: 'Padrão (Inter)', desc: 'A tipografia normal do app: Inter no corpo, Archivo nos títulos.', raridade: 'comum', nivel: 1 },
+  { id: 'fonte-pixel', tipo: 'fonte', alvo: 'pixel', nome: 'Arcade (8-bit)', desc: 'Fliperama: títulos em Silkscreen, partículas quadradas e som chiptune.', raridade: 'comum', nivel: 1 },
+  { id: 'fonte-serif', tipo: 'fonte', alvo: 'serif', nome: 'Literária (serifada)', desc: 'Clima de livro e jornal: Merriweather, com Georgia de reserva.', raridade: 'comum', nivel: 1 },
+  { id: 'fonte-mono', tipo: 'fonte', alvo: 'mono', nome: 'Técnica (monoespaçada)', desc: 'Tudo alinhado, como código: JetBrains Mono, com IBM Plex Mono de reserva.', raridade: 'comum', nivel: 1 },
+  { id: 'fonte-cyber', tipo: 'fonte', alvo: 'cyber', nome: 'Cyberpunk (futurista)', desc: 'Display de ficção científica: Orbitron nos títulos, Rajdhani no corpo.', raridade: 'comum', nivel: 1 },
+  { id: 'fonte-rounded', tipo: 'fonte', alvo: 'rounded', nome: 'Acolhedora (arredondada)', desc: 'Curvas suaves, sem canto duro: Baloo 2 nos títulos, Nunito no corpo.', raridade: 'comum', nivel: 1 },
+  { id: 'fonte-handwriting', tipo: 'fonte', alvo: 'handwriting', nome: 'Manuscrita (caderno)', desc: 'Anotação à mão: Caveat, com a cursiva do sistema de reserva.', raridade: 'comum', nivel: 1 },
+  { id: 'fonte-display', tipo: 'fonte', alvo: 'display', nome: 'Impacto (display)', desc: 'Títulos em caixa alta, no peso máximo — cara de pôster. O corpo do texto continua Inter.', raridade: 'comum', nivel: 1 },
+
   // ── PARTÍCULAS (equipam via setParticulas) ──
   { id: 'part-pixel', tipo: 'particulas', alvo: 'pixel', nome: 'Partículas Pixel', desc: 'Quadradinhos 8-bits em cada acerto.', raridade: 'comum', nivel: 2, precoSeeds: 45 },
   { id: 'part-confete', tipo: 'particulas', alvo: 'confete', nome: 'Partículas Confete', desc: 'Papel picado girando.', raridade: 'comum', nivel: 3, precoSeeds: 55 },

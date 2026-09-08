@@ -15,6 +15,7 @@ import {
   applyCustomColors,
   readCustomColors,
   DEFAULT_CUSTOM_COLORS,
+  FONTE_OPTIONS,
   type CustomColors,
   type ThemeType,
   type FonteType,
@@ -30,8 +31,18 @@ export const DARK_KEY = 'theme';
 export const DEFAULT_THEME: ThemeType = 'babel';
 export const DEFAULT_FONTE: FonteType = 'padrao';
 
+/**
+ * VALIDA CONTRA A LISTA, e não contra um valor.
+ *
+ * A versão anterior era `value === 'pixel' ? 'pixel' : DEFAULT_FONTE`, e funcionava enquanto
+ * existiam duas fontes. Com oito, ela zeraria seis: quem escolhesse "Literária" veria a escolha
+ * gravada e o app voltando ao padrão no próximo carregamento, sem erro nenhum na tela.
+ *
+ * A lista vem de `FONTE_OPTIONS`, que é a mesma que a tela de Ajustes desenha — acrescentar uma
+ * família passa a bastar num lugar só.
+ */
 export function coerceFonte(value: unknown): FonteType {
-  return value === 'pixel' ? 'pixel' : DEFAULT_FONTE;
+  return FONTE_OPTIONS.some((f) => f.id === value) ? (value as FonteType) : DEFAULT_FONTE;
 }
 
 export function readFonte(): FonteType {

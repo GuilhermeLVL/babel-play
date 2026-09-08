@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Archivo:wght@500;600;700;800;900&family=IBM+Plex+Mono:wght@400;500;600&family=Geist:wght@400;500;600;700;800;900&family=Geist+Mono:wght@400;500;600&family=Baloo+2:wght@700;800&family=Silkscreen:wght@400;700&family=VT323&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Archivo:wght@500;600;700;800;900&family=IBM+Plex+Mono:wght@400;500;600&family=Geist:wght@400;500;600;700;800;900&family=Geist+Mono:wght@400;500;600&family=Baloo+2:wght@700;800&family=Silkscreen:wght@400;700&family=VT323&family=Merriweather:ital,wght@0,400;0,700;1,400&family=JetBrains+Mono:wght@400;600&family=Orbitron:wght@600;800&family=Rajdhani:wght@600;700&family=Nunito:wght@600;700&family=Caveat:wght@600;700&display=swap');
 @import "tailwindcss";
 
 @theme {
@@ -1620,6 +1620,72 @@ body.animations-off .hover\:-translate-y-1:hover {
 [data-fonte="pixel"] .font-display, [data-fonte="pixel"] .font-marca { letter-spacing: 0.02em; }
 [data-fonte="pixel"] :is(.font-display, .font-marca):is([class*="text-[9"], [class*="text-[10"], [class*="text-[11"], [class*="text-[12"], .text-xs) {
   font-size: 13px !important;
+}
+
+/* ─────────────── AS OUTRAS SEIS FAMÍLIAS ───────────────
+   Mesmo mecanismo do pixel: `data-fonte` no <html>, e a troca acontece em duas variáveis. A
+   escolha de qual família entra é do usuário (Ajustes → Como o app se parece), e cada uma existe
+   porque muda a SENSAÇÃO de estudar — não porque havia espaço na lista.
+
+   Toda pilha termina numa fonte de sistema, e isso não é enfeite: enquanto a família do Google não
+   chega (rede lenta, primeira visita), é a de reserva que está desenhando a tela. Uma pilha que
+   termina em `sans-serif` genérica entrega uma tela diferente da prometida; uma que termina em
+   Georgia ou Impact entrega quase a mesma.
+
+   A DESCRIÇÃO DE CADA UMA (`lib/appearance.ts`) CITA ESTAS PILHAS, e é por isso que elas ficam
+   escritas aqui em vez de espalhadas: quando a pilha muda, a promessa da tela muda junto. */
+[data-fonte="serif"] {
+  --font-display-val: 'Merriweather', 'Georgia', 'Times New Roman', serif;
+  --font-body-val: 'Merriweather', 'Georgia', serif;
+}
+
+[data-fonte="mono"] {
+  --font-display-val: 'JetBrains Mono', 'IBM Plex Mono', monospace;
+  --font-body-val: 'JetBrains Mono', 'IBM Plex Mono', monospace;
+}
+
+[data-fonte="cyber"] {
+  --font-display-val: 'Orbitron', 'Rajdhani', 'Geist', sans-serif;
+  --font-body-val: 'Rajdhani', 'Geist', sans-serif;
+}
+/* Orbitron é larga e fecha demais em caixa alta: o mesmo respiro que o Silkscreen pede. */
+[data-fonte="cyber"] .font-display, [data-fonte="cyber"] .font-marca { letter-spacing: 0.04em; }
+
+[data-fonte="rounded"] {
+  --font-display-val: 'Baloo 2', 'Nunito', sans-serif;
+  --font-body-val: 'Nunito', 'Baloo 2', sans-serif;
+}
+
+[data-fonte="handwriting"] {
+  --font-display-val: 'Caveat', 'Segoe Print', cursive;
+  --font-body-val: 'Caveat', 'Segoe Print', cursive;
+}
+/* Caveat tem altura-x baixa: no mesmo tamanho nominal ela LÊ menor que as outras. O bump de 12%
+   iguala a percepção, e é o mesmo cuidado que o piso de 13px faz pelo Silkscreen. */
+[data-fonte="handwriting"] .font-display { font-size: 1.12em; }
+
+/* IMPACTO é a única das oito que NÃO troca a família do título: ela troca o PESO. Archivo já é a
+   família dos títulos da casa, e o import dela vai até 900 — a diferença que o usuário vê é o
+   título cravado no peso máximo, com o tracking fechado que letra pesada pede.
+
+   Sem estas linhas a opção era um NO-OP: declarava exatamente a mesma pilha do padrão ('Archivo'
+   + 'Inter') e escolher "Impacto" não mudava um pixel. Medido no navegador em 08/09 — e medido
+   DUAS vezes, porque a primeira tentativa (peso 900 + tracking fechado) também não mudava nada:
+   os títulos da casa JÁ são `font-black`, então cravar 900 neles é repetir o que já estava lá, e
+   sobrava uma diferença de 0,2px de tracking. O que faz a opção existir é a CAIXA ALTA — que é
+   o que "Impacto" quer dizer, e o que o `previewText` dela ('MAESTRIA MÁXIMA') já anunciava.
+   Caixa alta pede tracking POSITIVO: letra maiúscula colada fecha o contraforma e piora a
+   leitura, que é o contrário do que uma família de título existe para fazer.
+   A reserva também encolheu: a pilha citava 'Bebas Neue', que não está no `@import` e não é fonte
+   de sistema em lugar nenhum — um nome inerte na pilha. Impact está no Windows e no macOS. */
+[data-fonte="display"] {
+  --font-display-val: 'Archivo', 'Impact', sans-serif;
+  --font-body-val: 'Inter', sans-serif;
+}
+[data-fonte="display"] .font-display, [data-fonte="display"] .font-marca {
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.035em;
 }
 
 /* ─────────────── TELA SOBRE — blobs flutuantes e anel do avatar ───────────────

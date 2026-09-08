@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { Check, Lock, Palette, Pencil, Save, ShoppingBag, Sparkles, Sprout, Trash2, Trophy, TrendingUp, Crown, Wand2 } from 'lucide-react';
 import { toast } from '../../Toast';
 import { comemorar } from '../../../lib/juice';
-import { CATALOGO_DA_LOJA, COR_DA_RARIDADE, ORIGEM, estadoDoItem, type ItemDaLoja, type OrigemDoItem } from '../../../lib/loja';
+import { CATALOGO_DA_LOJA, COR_DA_RARIDADE, ORIGEM, estadoDoItem, rotaDeObtencao, type DestinoDeObtencao, type ItemDaLoja, type OrigemDoItem } from '../../../lib/loja';
 import { estadoDaColecao } from '../../../lib/galeria/progressao';
 import { equiparItem, equipavel, type ContextoDeEquipar } from '../../../lib/galeria/equipar';
 import { possuidos } from '../../../lib/loja';
@@ -31,6 +31,15 @@ import EditorDoItem, { temPersonalizacao, temCroma } from './EditorDoItem';
  *   inventário. Perfil é um loadout inteiro em vez de uma peça, e é exatamente assim que jogo
  *   trata: uma aba ao lado das peças, não uma seção à parte.
  *
+ * O ACERVO INTEIRO E A ROTA DE AQUISIÇÃO (08/09). O inventário respondia "o que é meu" e parava
+ * ali: uma peça que ainda não fosse sua não existia nesta tela, e as de conquista e de nível não
+ * existiam em tela nenhuma antes de serem obtidas — a Loja só mostra o que se compra. Agora a
+ * grade tem dois estados ("meu acervo" e "tudo que existe"), a peça trancada aparece com cadeado,
+ * e o cartão dela responde **como se consegue**, com o botão para a tela que entrega. O texto sai
+ * de `rotaDeObtencao` e a cor de `ORIGEM`, os dois em `lib/loja.ts`, pelo mesmo motivo de sempre:
+ * uma régua só. A versão anterior desta tela escrevia os quatro caminhos à mão e mostrava o ID da
+ * conquista onde devia mostrar o nome.
+ *
  * O BOTÃO "PERSONALIZAR" SÓ APARECE ONDE HÁ O QUE PERSONALIZAR (`temPersonalizacao`): oferecer o
  * editor num item sem parâmetro seria abrir uma janela vazia — a versão do controle falso que a
  * casa proíbe.
@@ -58,6 +67,13 @@ const ICONE_DA_ORIGEM: Record<OrigemDoItem, React.ReactNode> = {
   creditos: <Crown className="w-3.5 h-3.5" aria-hidden />,
 };
 
+/** O ícone da tela para onde a rota manda — o mesmo desenho que a tela de destino usa no menu. */
+const DESTINO: Record<DestinoDeObtencao, React.ReactNode> = {
+  conquistas: <Trophy className="w-3.5 h-3.5" aria-hidden />,
+  loja: <ShoppingBag className="w-3.5 h-3.5" aria-hidden />,
+  passe: <Sparkles className="w-3.5 h-3.5" aria-hidden />,
+};
+
 /** As quatro cores de um perfil, quando ele aponta para uma paleta. */
 function coresDoPerfil(p: Perfil): string[] | null {
   const pal = p.paleta ? paletaPorId(p.paleta) : null;
@@ -65,7 +81,7 @@ function coresDoPerfil(p: Perfil): string[] | null {
 }
 
 export default function Inventario({
-  nivel, saldo, ctx, equipadoAtual, loadout, onIrParaLoja, aoMudar,
+  nivel, saldo, ctx, equipadoAtual, loadout, onIrParaLoja, onIrParaPasse, onIrParaConquistas, aoMudar,
   perfis, faltaDoPerfil, aoAplicarPerfil, aoRenomearPerfil, aoApagarPerfil, aoSalvarPerfil,
 }: {
   nivel: number;
@@ -75,6 +91,11 @@ export default function Inventario({
   /** As peças vestidas agora, na ordem em que a pessoa pensa nelas. */
   loadout: Array<{ chave: string; rotulo: string; valor: string; icone: string; categoria: string }>;
   onIrParaLoja: () => void;
+  /* Os outros dois destinos de uma rota de obtenção. Opcionais porque nem toda tela que monta o
+     inventário tem para onde mandar — sem o callback, o cartão explica a rota e não oferece o
+     botão, que é melhor do que um botão que não leva a lugar nenhum. */
+  onIrParaPasse?: () => void;
+  onIrParaConquistas?: () => void;
   /** Avisa a tela de fora que algo foi equipado/comprado — ela relê posse e saldo. */
   aoMudar: () => void;
   /** Os perfis, na ordem em que aparecem (os seus primeiro). */
@@ -87,6 +108,13 @@ export default function Inventario({
   aoSalvarPerfil: (nome: string) => void;
 }) {
   const [categoria, setCategoria] = useState('tudo');
+  /* O ACERVO INTEIRO, e não só o meu. O inventário respondia "o que é seu" muito bem e não
+     respondia "o que existe" de jeito nenhum: para ver o resto era preciso ir à Loja, que só
+     mostra o que se compra — os itens de conquista e os de nível não aparecem em lugar nenhum
+     antes de serem seus. Com o segundo botão ligado, a grade mostra o catálogo todo, os seus
+     primeiro, e o cartão de cada trancado diz a rota. `false` é o padrão porque a pergunta mais
+     frequente na tela de Personalizar continua sendo "o que eu tenho". */
+  const [verTudo, setVerTudo] = useState(false);
   const [escolhido, setEscolhido] = useState<string | null>(null);
   const [editando, setEditando] = useState<ItemDaLoja | null>(null);
   const [nomeNovo, setNomeNovo] = useState('');
@@ -102,7 +130,15 @@ export default function Inventario({
 
   const emPerfis = categoria === 'perfis';
   const meus = colecao.possuidos;
-  const lista = categoria === 'tudo' ? meus : meus.filter((i) => i.tipo === categoria);
+  const meusIds = useMemo(() => new Set(meus.map((m) => m.id)), [meus]);
+  const acervo = verTudo ? CATALOGO_DA_LOJA : meus;
+  const lista = useMemo(() => {
+    const filtrados = categoria === 'tudo' ? acervo : acervo.filter((i) => i.tipo === categoria);
+    if (!verTudo) return filtrados;
+    /* Os meus na frente: quem liga o catálogo completo quer ver o que falta SEM perder de vista o
+       que já tem, e uma grade em ordem de arquivo enterraria as peças próprias no meio. */
+    return [...filtrados].sort((a, b) => Number(meusIds.has(b.id)) - Number(meusIds.has(a.id)));
+  }, [acervo, categoria, verTudo, meusIds]);
   const item = escolhido ? CATALOGO_DA_LOJA.find((i) => i.id === escolhido) ?? null : lista[0] ?? null;
   const perfil = emPerfis ? (perfis.find((p) => p.id === escolhido) ?? perfis[0] ?? null) : null;
 
@@ -145,9 +181,12 @@ export default function Inventario({
         {/* ── CATEGORIAS ──────────────────────────────────────────────────── */}
         <div className="flex lg:flex-col gap-1 overflow-x-auto lg:overflow-visible pb-1 lg:pb-0">
           {CATEGORIAS.map((c) => {
-            const n = c.id === 'tudo' ? meus.length
+            /* A contagem segue o ACERVO em exibição, não a posse: contando só o que é meu, ligar
+               "catálogo completo" deixava sumidas justamente as categorias em que ainda não tenho
+               nada — que são as únicas que o catálogo completo existe para mostrar. */
+            const n = c.id === 'tudo' ? acervo.length
               : c.id === 'perfis' ? perfis.length
-              : meus.filter((i) => i.tipo === c.id).length;
+              : acervo.filter((i) => i.tipo === c.id).length;
             if (n === 0 && c.id !== 'tudo') return null;
             return (
               <button
@@ -169,6 +208,34 @@ export default function Inventario({
 
         {/* ── A GRADE ─────────────────────────────────────────────────────── */}
         <div>
+          {!emPerfis && (
+            <div className="flex items-center justify-between gap-2 mb-3 flex-wrap">
+              <div className="inline-flex p-1 rounded-xl bg-canvas border border-border-subtle">
+                <button
+                  onClick={() => { setVerTudo(false); setEscolhido(null); }}
+                  aria-pressed={!verTudo}
+                  className={`px-3 py-1 rounded-lg text-[11.5px] font-bold cursor-pointer ${
+                    !verTudo ? 'bg-surface text-ink' : 'text-ink-muted hover:text-ink'
+                  }`}
+                >
+                  Meu acervo ({meus.length})
+                </button>
+                <button
+                  onClick={() => { setVerTudo(true); setEscolhido(null); }}
+                  aria-pressed={verTudo}
+                  className={`px-3 py-1 rounded-lg text-[11.5px] font-bold cursor-pointer ${
+                    verTudo ? 'bg-surface text-ink' : 'text-ink-muted hover:text-ink'
+                  }`}
+                >
+                  Tudo que existe ({CATALOGO_DA_LOJA.length})
+                </button>
+              </div>
+              {verTudo && (
+                <span className="text-[11px] text-ink-faint">Clique numa peça trancada para ver como se consegue.</span>
+              )}
+            </div>
+          )}
+
           {emPerfis ? (
             <>
               {/* Salvar mora AQUI, e não numa barra global: guardar o visual atual é uma ação
@@ -216,14 +283,24 @@ export default function Inventario({
               </div>
             </>
           ) : lista.length === 0 ? (
+            /* O "SEU" É A PALAVRA QUE IMPORTA quando os dois acervos convivem na mesma grade:
+               sem ela, a mesma frase serviria para "você não tem nada aqui" e para "não existe
+               nada aqui", que são notícias opostas. */
             <p className="text-[13px] text-ink-muted py-8 text-center">
-              Nada seu nesta categoria ainda.{' '}
-              <button onClick={onIrParaLoja} className="underline text-accent-ink cursor-pointer">Ver o que dá para liberar</button>.
+              {verTudo ? 'Esta categoria ainda não tem peça nenhuma no catálogo.' : (
+                <>
+                  Nada seu nesta categoria ainda.{' '}
+                  <button onClick={() => setVerTudo(true)} className="underline text-accent-ink cursor-pointer">Ver o que existe</button>.
+                </>
+              )}
             </p>
           ) : (
             <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 gap-2.5">
               {lista.map((i) => {
-                const eq = equipadoAtual(i);
+                // A MESMA RÉGUA de sempre decide o cadeado: a grade não tem opinião própria sobre
+                // o que está liberado. No acervo próprio ela responde 'equipavel' para todos.
+                const liberado = estadoDoItem(i, nivel, saldo).estado === 'equipavel';
+                const eq = liberado && equipadoAtual(i);
                 const sel = item?.id === i.id;
                 const cor = COR_DA_RARIDADE[i.raridade];
                 // O croma equipado aparece na grade: sem isso a peça personalizada some no meio
@@ -233,12 +310,13 @@ export default function Inventario({
                   <button
                     key={i.id}
                     onClick={() => setEscolhido(i.id)}
-                    onDoubleClick={(e) => equipar(i, e.currentTarget)}
+                    onDoubleClick={(e) => { if (liberado) equipar(i, e.currentTarget); }}
                     aria-pressed={sel}
-                    title={i.desc}
-                    className={`aspect-square rounded-xl border-2 ${sel ? 'border-accent shadow-btn' : cor.borda} bg-surface p-2 flex flex-col items-center justify-center gap-1.5 cursor-pointer relative transition-transform hover:-translate-y-0.5`}
+                    title={liberado ? i.desc : `${i.nome} — trancado; clique para ver como se consegue`}
+                    className={`aspect-square rounded-xl border-2 ${sel ? 'border-accent shadow-btn' : cor.borda} bg-surface p-2 flex flex-col items-center justify-center gap-1.5 cursor-pointer relative transition-transform hover:-translate-y-0.5 ${liberado ? '' : 'opacity-60'}`}
                   >
                     {eq && <Check className="absolute top-1.5 right-1.5 w-3.5 h-3.5 text-good" aria-hidden />}
+                    {!liberado && <Lock className="absolute top-1.5 right-1.5 w-3.5 h-3.5 text-ink-faint" aria-hidden />}
                     {croma && <Palette className="absolute top-1.5 left-1.5 w-3 h-3 text-rare" aria-hidden />}
                     <MiniaturaDoItem item={i} />
                     <span className="text-[9.5px] font-bold text-ink-muted leading-tight text-center line-clamp-2">{i.nome}</span>
@@ -318,61 +396,97 @@ export default function Inventario({
           ) : (() => {
             const cor = COR_DA_RARIDADE[item.raridade];
             const org = ORIGEM[origemDe(item)];
-            const eq = equipadoAtual(item);
+            const liberado = estadoDoItem(item, nivel, saldo).estado === 'equipavel';
+            const eq = liberado && equipadoAtual(item);
             // Pack e cursor entram no editor pelo conteúdo (os emojis), não pela cor: contar
             // cromas neles seria anunciar um produto que a peça não tem.
             const cromas = temCroma(item) ? cromasDaPeca(item.id, item.raridade) : [];
             const meusCromas = cromas.filter(temOCroma).length;
             return (
               <>
-                <div className={`h-28 rounded-xl border ${cor.borda} ${cor.fundo} flex items-center justify-center mb-3`} aria-hidden>
+                <div className={`relative h-28 rounded-xl border ${cor.borda} ${cor.fundo} flex items-center justify-center mb-3`} aria-hidden>
+                  {!liberado && (
+                    <span className="absolute top-2 right-2 px-2 py-0.5 rounded-md bg-canvas border border-border-subtle text-ink-faint text-[10px] font-bold inline-flex items-center gap-1">
+                      <Lock className="w-3 h-3" /> Trancado
+                    </span>
+                  )}
                   <MiniaturaDoItem item={item} tam="grande" />
                 </div>
                 <h4 className="font-display font-black text-[16px] text-ink leading-tight">{item.nome}</h4>
                 <p className="font-mono text-[10px] uppercase tracking-wider font-bold text-ink-faint mt-1">{cor.rotulo}</p>
                 <p className="text-[12.5px] text-ink-muted mt-2 leading-relaxed">{item.desc}</p>
 
-                {/* A ETIQUETA DE ORIGEM — "como isto chegou até mim" é a pergunta que a coleção
-                    antiga não respondia depois que o item entrava no balde único. */}
-                <p className={`mt-3 pt-3 border-t border-border-subtle flex items-center gap-2 text-[11.5px] font-bold ${org.texto}`}>
-                  {ICONE_DA_ORIGEM[origemDe(item)]} {org.rotulo} · <span className="font-normal text-ink-muted">{org.comoSeGanha}</span>
-                </p>
-
-                <button
-                  onClick={(e) => equipar(item, e.currentTarget)}
-                  disabled={eq}
-                  className={`w-full mt-3 py-3 rounded-xl font-display font-black text-[13px] cursor-pointer ${
-                    eq ? 'bg-good-soft text-good-ink cursor-default' : 'bg-accent text-accent-contrast hover:brightness-110'
-                  }`}
-                >
-                  {eq ? <span className="inline-flex items-center gap-1.5"><Check className="w-4 h-4" aria-hidden /> Em uso</span>
-                      : equipavel(item) ? 'Equipar' : 'Capacidade ativa'}
-                </button>
-
-                {temPersonalizacao(item) && (
+                {liberado ? (
                   <>
-                    <button
-                      onClick={() => setEditando(item)}
-                      className="w-full mt-2 py-2.5 rounded-xl border-2 border-border-subtle bg-canvas text-ink font-bold text-[12.5px] cursor-pointer hover:border-accent hover:text-accent-ink"
-                    >
-                      <span className="inline-flex items-center gap-1.5"><Pencil className="w-3.5 h-3.5" aria-hidden /> Personalizar</span>
-                    </button>
-                    {cromas.length > 0 && <p className="text-[11px] text-ink-faint mt-2 leading-snug">
-                      {meusCromas === 1
-                        ? `1 das ${cromas.length} cores desta peça é sua.`
-                        : `${meusCromas} das ${cromas.length} cores desta peça são suas.`}{' '}
-                      As outras se desbloqueiam com Seeds — a peça é a mesma, muda a cor.
-                    </p>}
-                  </>
-                )}
+                    {/* A ETIQUETA DE ORIGEM — "como isto chegou até mim" é a pergunta que a coleção
+                        antiga não respondia depois que o item entrava no balde único. */}
+                    <p className={`mt-3 pt-3 border-t border-border-subtle flex items-center gap-2 text-[11.5px] font-bold ${org.texto}`}>
+                      {ICONE_DA_ORIGEM[origemDe(item)]} {org.rotulo} · <span className="font-normal text-ink-muted">{org.comoSeGanha}</span>
+                    </p>
 
-                {!equipavel(item) && (
-                  <p className="text-[11px] text-ink-faint mt-2 leading-snug flex items-start gap-1.5">
-                    <Sparkles className="w-3 h-3 mt-0.5 shrink-0" aria-hidden />
-                    Capacidade: não se veste — ela abre opções no botão Personalizar da peça que
-                    ela destrava.
-                  </p>
-                )}
+                    <button
+                      onClick={(e) => equipar(item, e.currentTarget)}
+                      disabled={eq}
+                      className={`w-full mt-3 py-3 rounded-xl font-display font-black text-[13px] cursor-pointer ${
+                        eq ? 'bg-good-soft text-good-ink cursor-default' : 'bg-accent text-accent-contrast hover:brightness-110'
+                      }`}
+                    >
+                      {eq ? <span className="inline-flex items-center gap-1.5"><Check className="w-4 h-4" aria-hidden /> Em uso</span>
+                          : equipavel(item) ? 'Equipar' : 'Capacidade ativa'}
+                    </button>
+
+                    {temPersonalizacao(item) && (
+                      <>
+                        <button
+                          onClick={() => setEditando(item)}
+                          className="w-full mt-2 py-2.5 rounded-xl border-2 border-border-subtle bg-canvas text-ink font-bold text-[12.5px] cursor-pointer hover:border-accent hover:text-accent-ink"
+                        >
+                          <span className="inline-flex items-center gap-1.5"><Pencil className="w-3.5 h-3.5" aria-hidden /> Personalizar</span>
+                        </button>
+                        {cromas.length > 0 && <p className="text-[11px] text-ink-faint mt-2 leading-snug">
+                          {meusCromas === 1
+                            ? `1 das ${cromas.length} cores desta peça é sua.`
+                            : `${meusCromas} das ${cromas.length} cores desta peça são suas.`}{' '}
+                          As outras se desbloqueiam com Seeds — a peça é a mesma, muda a cor.
+                        </p>}
+                      </>
+                    )}
+
+                    {!equipavel(item) && (
+                      <p className="text-[11px] text-ink-faint mt-2 leading-snug flex items-start gap-1.5">
+                        <Sparkles className="w-3 h-3 mt-0.5 shrink-0" aria-hidden />
+                        Capacidade: não se veste — ela abre opções no botão Personalizar da peça que
+                        ela destrava.
+                      </p>
+                    )}
+                  </>
+                ) : (() => {
+                  /* A ROTA DE AQUISIÇÃO — a pergunta que a tela nunca respondia. Até aqui, uma peça
+                     que não era sua simplesmente não aparecia no inventário; agora aparece, e o
+                     cartão diz o canal, o que falta e para onde ir. O texto e a cor saem de
+                     `rotaDeObtencao`/`ORIGEM` (lib/loja.ts): a tela não tem régua própria. */
+                  const rota = rotaDeObtencao(item, saldo);
+                  const cores = ORIGEM[rota.origem];
+                  const irPara = rota.destino === 'conquistas' ? onIrParaConquistas
+                    : rota.destino === 'passe' ? onIrParaPasse
+                    : onIrParaLoja;
+                  return (
+                    <div className={`mt-3 rounded-xl border ${cores.borda} ${cores.fundo} p-3`}>
+                      <p className={`text-[11px] font-bold flex items-center gap-1.5 mb-1 ${cores.texto}`}>
+                        {ICONE_DA_ORIGEM[rota.origem]} {rota.titulo}
+                      </p>
+                      <p className="text-[11.5px] text-ink-muted leading-relaxed">{rota.texto}</p>
+                      {irPara && (
+                        <button
+                          onClick={irPara}
+                          className="w-full mt-2.5 py-2 rounded-lg border border-border-subtle bg-canvas text-ink font-bold text-[12px] cursor-pointer hover:border-accent hover:text-accent-ink inline-flex items-center justify-center gap-1.5"
+                        >
+                          {DESTINO[rota.destino]} {rota.rotuloDoBotao}
+                        </button>
+                      )}
+                    </div>
+                  );
+                })()}
               </>
             );
           })()}

@@ -214,6 +214,86 @@ export function origemDoItem(item: ItemDaLoja, possuido = false): OrigemDoItem {
 }
 
 /**
+ * A ROTA DE OBTENÇÃO — "como eu consigo isto?", em frase inteira e com um destino.
+ *
+ * `estadoDoItem` responde SE dá para usar, e o `motivo` dele é um resumo de cadeado ("Nível 5 ou
+ * 140 Seeds"). Isso serve para a etiqueta na grade e não serve para a tela do item, que precisa
+ * dizer o que a pessoa tem de FAZER e para onde ir fazer.
+ *
+ * POR QUE MORA AQUI, e não na tela. A versão que veio da branch de gamificação escrevia estes
+ * quatro caminhos à mão dentro do Inventário, e as duas réguas discordavam em dois pontos
+ * mensuráveis:
+ *   · a conquista aparecia pelo ID (`foco_impecavel`), enquanto `estadoDoItem:113` já resolve o
+ *     nome em `CONQUISTAS` — a tela mostrava a chave do banco para o usuário;
+ *   · o item com nível E preço dizia só "Custa N Seeds", enquanto o cadeado do mesmo item dizia
+ *     "Nível 5 ou 140 Seeds" — a rota escondia o caminho de graça.
+ * Aqui a ORDEM DOS RAMOS é literalmente a de `estadoDoItem` (exclusivo → créditos → nível/Seeds),
+ * e `tests/contratos/rota-de-obtencao.test.ts` trava as duas juntas: se alguém acrescentar um
+ * quinto canal ao cadeado sem acrescentar a rota, o teste cai.
+ *
+ * A COR SAI DE `ORIGEM`, nunca de literal: é a régua que declara que "ORIGEM é a pergunta que a
+ * COR responde, em qualquer tela".
+ */
+export type DestinoDeObtencao = 'conquistas' | 'loja' | 'passe';
+
+export interface RotaDeObtencao {
+  origem: OrigemDoItem;
+  /** O canal, em três palavras — o título do cartão. */
+  titulo: string;
+  /** O que a pessoa tem de fazer, em frase inteira. */
+  texto: string;
+  destino: DestinoDeObtencao;
+  rotuloDoBotao: string;
+}
+
+export function rotaDeObtencao(item: ItemDaLoja, saldoSeeds = 0): RotaDeObtencao {
+  if (item.exclusivoDe) {
+    const c = CONQUISTAS.find((x) => x.id === item.exclusivoDe);
+    return {
+      origem: 'conquista',
+      titulo: 'Só por conquista',
+      texto: `Recompensa da conquista "${c?.nome ?? item.exclusivoDe}". Não entra na Loja nem no Passe: só fazendo.`,
+      destino: 'conquistas',
+      rotuloDoBotao: 'Ver em Conquistas',
+    };
+  }
+  if (item.precoCreditos !== undefined) {
+    /* O item do Passe premium tem as DUAS portas — a casa da trilha e a prateleira avulsa — e
+       dizer só uma delas é esconder metade do preço. */
+    const naTrilha = item.exclusivoDoPasse !== undefined
+      ? ` Vem de graça na casa ${item.exclusivoDoPasse} do Passe, para quem tem o Passe Premium.`
+      : '';
+    return {
+      origem: 'creditos',
+      titulo: 'Prateleira paga',
+      texto: `Custa ${item.precoCreditos} Créditos na Loja.${naTrilha}`,
+      destino: item.exclusivoDoPasse !== undefined ? 'passe' : 'loja',
+      rotuloDoBotao: item.exclusivoDoPasse !== undefined ? 'Ver no Passe' : 'Ver na Loja',
+    };
+  }
+  if (item.precoSeeds !== undefined) {
+    const falta = item.precoSeeds - saldoSeeds;
+    const bolso = falta <= 0
+      ? `Você já tem as ${item.precoSeeds} Seeds.`
+      : `Faltam ${falta} Seeds para o atalho.`;
+    return {
+      origem: 'seeds',
+      titulo: 'Nível ou atalho',
+      texto: `Chega de graça no nível ${item.nivel}, ou agora por ${item.precoSeeds} Seeds. ${bolso}`,
+      destino: 'loja',
+      rotuloDoBotao: 'Ver na Loja',
+    };
+  }
+  return {
+    origem: 'nivel',
+    titulo: 'Recompensa de estudo',
+    texto: `Chega sozinho ao alcançar o nível ${item.nivel} — não se compra, e o Passe mostra em que casa ele cai.`,
+    destino: 'passe',
+    rotuloDoBotao: 'Ver no Passe',
+  };
+}
+
+/**
  * Nível necessário para usar um item (1 = livre desde o início).
  *
  * MORA AQUI desde 08/09, e não em `desbloqueios.ts`: o dado que ela lê é o CATÁLOGO, que é deste

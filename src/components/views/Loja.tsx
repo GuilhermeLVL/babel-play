@@ -184,6 +184,17 @@ export default function Loja({ progress, theme, setTheme, fonte, setFonte, menuP
     return false;
   };
 
+  /* O CONTEÚDO DAS DUAS SUPERFÍCIES DE RECOMPENSA, montado uma vez só. As organizações discordam
+     sobre quantas PORTAS elas têm; o que está atrás da porta é idêntico, e escrever duas vezes
+     seria abrir espaço para as duas divergirem enquanto a comparação está no ar. */
+  const conteudoDoPasse = semConta
+    ? <CartaoDeConvite view="passe" onEntrar={() => onEntrar?.()} onVoltar={() => setAba('personalizar')} />
+    : <PasseDeTemporada progress={progress} ctxEquipar={ctxEquipar} equipadoAtual={equipadoAtual} temPasse={carteira.temPasse}
+        aoComprarPasse={carteira.disponivel ? () => { setAba('loja'); setFiltro('tudo'); } : undefined} />;
+  const conteudoDosDesafios = semConta
+    ? <CartaoDeConvite view="conquistas" onEntrar={() => onEntrar?.()} onVoltar={() => setAba('personalizar')} />
+    : <Conquistas progress={progress} ctx={ctxConquistas} />;
+
   /** "Equipar agora" depois da compra — pelo único caminho que equipa. */
   const equiparAgora = (item: ItemDaLoja, el: HTMLElement | null) => {
     if (!equipavel(item)) { setAba('personalizar'); return; }
@@ -441,27 +452,40 @@ export default function Loja({ progress, theme, setTheme, fonte, setFonte, menuP
         aoComprarCreditos={() => setAba('loja')}
       />
 
+      {/*
+        A ORDEM DAS QUATRO PORTAS diz o que a tela é (decisão de 08/09, onda 2).
+
+        As duas organizações foram montadas e vistas em tela: estas quatro abas, e os três pilares
+        da branch de gamificação (Recompensas · Loja · Meu visual, com Passe e Desafios como
+        sub-abas de Recompensas). Ficaram as quatro, e o motivo é o mesmo achado que abriu esta
+        rodada: os três pilares tiram Desafios da barra de cima e o põem a dois cliques, atrás de
+        uma SEGUNDA fita de abas empilhada sob a primeira. Trocar largura por profundidade só
+        compensa quando a barra está cheia, e quatro não enche barra nenhuma. (A terceira
+        organização da branch, o `GamificacaoHub`, nem entrou na comparação: ela tinha duas abas e
+        deixava o Passe e a Loja sem porta — medido, não suposto.)
+
+        O QUE OS PILARES ACERTARAM veio junto, e é esta ordem. Eles agrupavam por VERBO: o que se
+        ganha, o que se compra, o que se usa. A barra antiga misturava os três (Passe · Meu visual
+        · Loja · Desafios). Agora ela lê: **uso · compra · ganho · ganho** — o padrão (Meu visual)
+        é a primeira aba, que é onde se espera achar a aba em que a tela abre, e as duas
+        superfícies de recompensa ficam vizinhas sem perder a porta própria.
+      */}
       <Abas
         rotuloDoGrupo="Áreas de Personalizar"
         ativo={aba}
         aoTrocar={setAba}
         itens={[
-          { id: 'passe', rotulo: 'Passe', icone: <Ticket className="w-4 h-4" /> },
           // "Meu visual", não "Biblioteca": biblioteca já é a tela de mídias (rota /biblioteca)
           // — mesmo nome para dois lugares confundia (ux-v2 §1.2); o cabeçalho desta tela já
           // chama o que é seu de "Meu visual".
           { id: 'personalizar', rotulo: `Meu visual · ${colecao.possuidos.length}`, icone: <Shirt className="w-4 h-4" /> },
           { id: 'loja', rotulo: `Loja · ${colecao.compraveis.length + colecao.porNivel.length}`, icone: <ShoppingBag className="w-4 h-4" /> },
+          { id: 'passe', rotulo: 'Passe', icone: <Ticket className="w-4 h-4" /> },
           { id: 'conquistas', rotulo: `Desafios · ${colecao.porConquista.length}`, icone: <Trophy className="w-4 h-4" /> },
         ]}
       />
 
-      <PainelDeAba id="passe" ativo={aba}>
-      {semConta ? <CartaoDeConvite view="passe" onEntrar={() => onEntrar?.()} onVoltar={() => setAba('personalizar')} /> : (
-        <PasseDeTemporada progress={progress} ctxEquipar={ctxEquipar} equipadoAtual={equipadoAtual} temPasse={carteira.temPasse}
-          aoComprarPasse={carteira.disponivel ? () => { setAba('loja'); setFiltro('tudo'); } : undefined} />
-      )}
-      </PainelDeAba>
+      <PainelDeAba id="passe" ativo={aba}>{conteudoDoPasse}</PainelDeAba>
 
       <PainelDeAba id="personalizar" ativo={aba}>
         <Personalizar
@@ -476,11 +500,7 @@ export default function Loja({ progress, theme, setTheme, fonte, setFonte, menuP
         />
       </PainelDeAba>
 
-      <PainelDeAba id="conquistas" ativo={aba}>
-      {semConta ? <CartaoDeConvite view="conquistas" onEntrar={() => onEntrar?.()} onVoltar={() => setAba('personalizar')} /> : (
-        <Conquistas progress={progress} ctx={ctxConquistas} />
-      )}
-      </PainelDeAba>
+      <PainelDeAba id="conquistas" ativo={aba}>{conteudoDosDesafios}</PainelDeAba>
 
       {/* A antiga aba Progressão (grade nível-a-nível) foi absorvida pelo Passe: mesma
           informação, na apresentação aprovada do protótipo. */}

@@ -1,0 +1,1 @@
+Nao se mexe no teste ate saber qual e. Se a reproducao local nao falhar, a change fica aberta ate o dono rodar `gh auth login` ou a proxima run subir o artefato JSON — e o portao 0 registra a CI como "vermelha, causa nao identificada nesta sessao".

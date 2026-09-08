@@ -1,0 +1,3 @@
+- [x] 1.1 `latencia.md` + `latencia.json` (12 rotas; profile p50 354 ms sob 10 conexoes; `GET /api/vocab` p50 991 ms)
+- [x] 1.2 `arranque.md` (producao mediana 1.334 ms; dev:local 3.197 ms)
+- [x] 1.3 `recuperacao.md` (1.405 ms ate health 200; 0 perdas em 27.398 2xx; integrity ok; cluster 1.556 ms)

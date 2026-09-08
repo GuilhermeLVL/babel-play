@@ -1,0 +1,1 @@
+`include` cobre o que roda em producao; `tests/` e `scripts/` ficam fora (cobertura de teste sobre teste e ruido). `src/data/trilha/niveis/**` e `server/db/migrations/**` sao dados. Os `thresholds` nao entram aqui: entram na Fase 1 com o valor medido como piso.

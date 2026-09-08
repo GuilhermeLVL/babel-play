@@ -1,0 +1,41 @@
+# arquivos e linhas rastreados — 2026-09-08T21:56:22Z — 47ecf10 — v24.18.0
+# comando: git ls-files | xargs wc -l, agrupado por dir de 1o nivel e por extensao
+
+## por diretorio
+    352 src
+    335 tests
+    309 openspec
+    136 server
+     64 docs
+     42 public
+     33 scripts
+     33 (raiz)
+     18 audit
+     10 .claude
+      7 .github
+
+## linhas por diretorio
+src	80025
+server	64303
+tests	36396
+scripts	4681
+openspec	21964
+docs	18756
+public	2002
+audit	329
+.github	308
+server.ts	0
+
+## por extensao (arquivos, linhas)
+ts	585	77094
+tsx	161	50500
+mjs	43	5045
+js	2	135
+json	98	81508
+md	296	21688
+css	1	1775
+yml	26	699
+sql	33	912
+
+## total
+1339

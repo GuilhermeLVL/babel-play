@@ -1,0 +1,1446 @@
+{
+  "config": {
+    "argv": [
+      "C:\\Program Files\\nodejs\\node.exe",
+      "C:\\Users\\Guilh\\OneDrive\\Área de Trabalho\\babel-play-lab\\node_modules\\@playwright\\test\\cli.js",
+      "test",
+      "--reporter=json"
+    ],
+    "configFile": "C:\\Users\\Guilh\\OneDrive\\Área de Trabalho\\babel-play-lab\\playwright.config.ts",
+    "rootDir": "C:/Users/Guilh/OneDrive/Área de Trabalho/babel-play-lab/tests/e2e",
+    "failOnFlakyTests": false,
+    "forbidOnly": false,
+    "fullyParallel": false,
+    "globalSetup": null,
+    "globalTeardown": null,
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {
+      "actualWorkers": 1
+    },
+    "preserveOutput": "always",
+    "projects": [
+      {
+        "outputDir": "C:/Users/Guilh/OneDrive/Área de Trabalho/babel-play-lab/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "chromium",
+        "name": "chromium",
+        "testDir": "C:/Users/Guilh/OneDrive/Área de Trabalho/babel-play-lab/tests/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.e2e.ts"
+        ],
+        "timeout": 30000
+      }
+    ],
+    "quiet": false,
+    "reporter": [
+      [
+        "json"
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "shard": null,
+    "tags": [],
+    "updateSnapshots": "missing",
+    "updateSourceMethod": "patch",
+    "version": "1.62.1",
+    "workers": 1,
+    "webServer": {
+      "command": "npm run dev:local",
+      "url": "http://localhost:3100",
+      "reuseExistingServer": true,
+      "timeout": 120000
+    }
+  },
+  "suites": [
+    {
+      "title": "baralhos.e2e.ts",
+      "file": "baralhos.e2e.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "Anki: importar",
+          "file": "baralhos.e2e.ts",
+          "line": 16,
+          "column": 6,
+          "specs": [
+            {
+              "title": "o botão Anki abre a importação, e \"Voltar aos jogos\" retorna ao lobby",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 90000,
+                  "annotations": [
+                    {
+                      "type": "slow",
+                      "location": {
+                        "file": "C:\\Users\\Guilh\\OneDrive\\Área de Trabalho\\babel-play-lab\\tests\\e2e\\baralhos.e2e.ts",
+                        "line": 18,
+                        "column": 10
+                      }
+                    }
+                  ],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 32730,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-09-08T22:24:24.803Z",
+                      "annotations": [
+                        {
+                          "type": "slow",
+                          "location": {
+                            "file": "C:\\Users\\Guilh\\OneDrive\\Área de Trabalho\\babel-play-lab\\tests\\e2e\\baralhos.e2e.ts",
+                            "line": 18,
+                            "column": 10
+                          }
+                        }
+                      ],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "8b243b5b2282a10dfb1a-46888240030a76e6cac3",
+              "file": "baralhos.e2e.ts",
+              "line": 17,
+              "column": 3
+            }
+          ]
+        },
+        {
+          "title": "Baralhos do Anki (condicional a haver baralho já importado)",
+          "file": "baralhos.e2e.ts",
+          "line": 38,
+          "column": 6,
+          "specs": [
+            {
+              "title": "abre a tela, mostra o saldo, e \"Jogar só com este\" volta ao lobby com o baralho na faixa",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 90000,
+                  "annotations": [
+                    {
+                      "type": "slow",
+                      "location": {
+                        "file": "C:\\Users\\Guilh\\OneDrive\\Área de Trabalho\\babel-play-lab\\tests\\e2e\\baralhos.e2e.ts",
+                        "line": 48,
+                        "column": 10
+                      }
+                    }
+                  ],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 33133,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-09-08T22:24:57.721Z",
+                      "annotations": [
+                        {
+                          "type": "slow",
+                          "location": {
+                            "file": "C:\\Users\\Guilh\\OneDrive\\Área de Trabalho\\babel-play-lab\\tests\\e2e\\baralhos.e2e.ts",
+                            "line": 48,
+                            "column": 10
+                          }
+                        }
+                      ],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "8b243b5b2282a10dfb1a-8baeab60d6588f2ed86a",
+              "file": "baralhos.e2e.ts",
+              "line": 47,
+              "column": 3
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "facetas.e2e.ts",
+      "file": "facetas.e2e.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "Facetas do acervo: fileira RECORTE",
+          "file": "facetas.e2e.ts",
+          "line": 28,
+          "column": 6,
+          "specs": [
+            {
+              "title": "a fileira RECORTE existe no lobby, a pílula \"Pedindo revisão\" alterna aria-pressed e persiste, e \"no recorte\" mostra um número",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 90000,
+                  "annotations": [
+                    {
+                      "type": "slow",
+                      "location": {
+                        "file": "C:\\Users\\Guilh\\OneDrive\\Área de Trabalho\\babel-play-lab\\tests\\e2e\\facetas.e2e.ts",
+                        "line": 30,
+                        "column": 10
+                      }
+                    }
+                  ],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 29287,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-09-08T22:25:30.876Z",
+                      "annotations": [
+                        {
+                          "type": "slow",
+                          "location": {
+                            "file": "C:\\Users\\Guilh\\OneDrive\\Área de Trabalho\\babel-play-lab\\tests\\e2e\\facetas.e2e.ts",
+                            "line": 30,
+                            "column": 10
+                          }
+                        }
+                      ],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "eca9aca5dafd62e1cb6c-f9d95d29f9c8ffaf0892",
+              "file": "facetas.e2e.ts",
+              "line": 29,
+              "column": 3
+            },
+            {
+              "title": "o recorte por baralho persiste através de F5, e o chip que o ligou também o desliga (condicional a haver baralho no servidor)",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 90000,
+                  "annotations": [
+                    {
+                      "type": "slow",
+                      "location": {
+                        "file": "C:\\Users\\Guilh\\OneDrive\\Área de Trabalho\\babel-play-lab\\tests\\e2e\\facetas.e2e.ts",
+                        "line": 88,
+                        "column": 10
+                      }
+                    }
+                  ],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 36850,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-09-08T22:26:00.172Z",
+                      "annotations": [
+                        {
+                          "type": "slow",
+                          "location": {
+                            "file": "C:\\Users\\Guilh\\OneDrive\\Área de Trabalho\\babel-play-lab\\tests\\e2e\\facetas.e2e.ts",
+                            "line": 88,
+                            "column": 10
+                          }
+                        }
+                      ],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "eca9aca5dafd62e1cb6c-dda6fb590d0c50665588",
+              "file": "facetas.e2e.ts",
+              "line": 87,
+              "column": 3
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "fumaca.e2e.ts",
+      "file": "fumaca.e2e.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "a casca do app carrega e a navegação principal aparece",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1661,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-09-08T22:26:37.039Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "e2e05556570dd95cae36-867fd42f64243d4405e7",
+          "file": "fumaca.e2e.ts",
+          "line": 10,
+          "column": 1
+        },
+        {
+          "title": "a navegação leva até a tela de jogos (Praticar) e ela renderiza",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2245,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-09-08T22:26:38.710Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "e2e05556570dd95cae36-2ab522efec0b8c5b9b67",
+          "file": "fumaca.e2e.ts",
+          "line": 18,
+          "column": 1
+        }
+      ]
+    },
+    {
+      "title": "grade-so-com-jogos-do-sistema.e2e.ts",
+      "file": "grade-so-com-jogos-do-sistema.e2e.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "Grade de jogos",
+          "file": "grade-so-com-jogos-do-sistema.e2e.ts",
+          "line": 19,
+          "column": 6,
+          "specs": [
+            {
+              "title": "nao anuncia jogo que nao registra progresso",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 90000,
+                  "annotations": [
+                    {
+                      "type": "slow",
+                      "location": {
+                        "file": "C:\\Users\\Guilh\\OneDrive\\Área de Trabalho\\babel-play-lab\\tests\\e2e\\grade-so-com-jogos-do-sistema.e2e.ts",
+                        "line": 21,
+                        "column": 10
+                      }
+                    }
+                  ],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 3096,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-09-08T22:26:40.968Z",
+                      "annotations": [
+                        {
+                          "type": "slow",
+                          "location": {
+                            "file": "C:\\Users\\Guilh\\OneDrive\\Área de Trabalho\\babel-play-lab\\tests\\e2e\\grade-so-com-jogos-do-sistema.e2e.ts",
+                            "line": 21,
+                            "column": 10
+                          }
+                        }
+                      ],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "f63b3346794972637c23-cc0dd299dde359d78fde",
+              "file": "grade-so-com-jogos-do-sistema.e2e.ts",
+              "line": 20,
+              "column": 3
+            },
+            {
+              "title": "os nove culturais estao na grade",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 90000,
+                  "annotations": [
+                    {
+                      "type": "slow",
+                      "location": {
+                        "file": "C:\\Users\\Guilh\\OneDrive\\Área de Trabalho\\babel-play-lab\\tests\\e2e\\grade-so-com-jogos-do-sistema.e2e.ts",
+                        "line": 30,
+                        "column": 10
+                      }
+                    }
+                  ],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 6262,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-09-08T22:26:44.073Z",
+                      "annotations": [
+                        {
+                          "type": "slow",
+                          "location": {
+                            "file": "C:\\Users\\Guilh\\OneDrive\\Área de Trabalho\\babel-play-lab\\tests\\e2e\\grade-so-com-jogos-do-sistema.e2e.ts",
+                            "line": 30,
+                            "column": 10
+                          }
+                        }
+                      ],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "f63b3346794972637c23-fd0b24ecd4eb8c9ce70d",
+              "file": "grade-so-com-jogos-do-sistema.e2e.ts",
+              "line": 29,
+              "column": 3
+            },
+            {
+              "title": "as categorias que sobraram sao as dos jogos que registram",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 5518,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-09-08T22:26:50.344Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "f63b3346794972637c23-bffaa51723ef02d8eb9f",
+              "file": "grade-so-com-jogos-do-sistema.e2e.ts",
+              "line": 41,
+              "column": 3
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "idioma-da-interface.e2e.ts",
+      "file": "idioma-da-interface.e2e.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "Idioma da interface",
+          "file": "idioma-da-interface.e2e.ts",
+          "line": 16,
+          "column": 6,
+          "specs": [
+            {
+              "title": "o seletor existe, não mexe nos outros eixos e só oferece idioma com tradução pronta",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 5461,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-09-08T22:26:55.875Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "7424821b61a6689aef14-9de0c6b3fe8c8f507f6c",
+              "file": "idioma-da-interface.e2e.ts",
+              "line": 17,
+              "column": 3
+            },
+            {
+              "title": "a explicação diz o que ficou de fora, em vez de fingir que a lista é o produto inteiro",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 1977,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-09-08T22:27:01.345Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "7424821b61a6689aef14-61439067efd0e851008d",
+              "file": "idioma-da-interface.e2e.ts",
+              "line": 49,
+              "column": 3
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "pseudo-localizacao.e2e.ts",
+      "file": "pseudo-localizacao.e2e.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "Pseudo-localização",
+          "file": "pseudo-localizacao.e2e.ts",
+          "line": 100,
+          "column": 6,
+          "specs": [
+            {
+              "title": "jogar: nada corta com texto 40% mais longo",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 90000,
+                  "annotations": [
+                    {
+                      "type": "slow",
+                      "location": {
+                        "file": "C:\\Users\\Guilh\\OneDrive\\Área de Trabalho\\babel-play-lab\\tests\\e2e\\pseudo-localizacao.e2e.ts",
+                        "line": 103,
+                        "column": 12
+                      }
+                    }
+                  ],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 6019,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-09-08T22:27:03.337Z",
+                      "annotations": [
+                        {
+                          "type": "slow",
+                          "location": {
+                            "file": "C:\\Users\\Guilh\\OneDrive\\Área de Trabalho\\babel-play-lab\\tests\\e2e\\pseudo-localizacao.e2e.ts",
+                            "line": 103,
+                            "column": 12
+                          }
+                        }
+                      ],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "cbaa37fdde1f23b3d0ce-0d1270a4ae291dc9de02",
+              "file": "pseudo-localizacao.e2e.ts",
+              "line": 102,
+              "column": 5
+            },
+            {
+              "title": "vocabulario: nada corta com texto 40% mais longo",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 90000,
+                  "annotations": [
+                    {
+                      "type": "slow",
+                      "location": {
+                        "file": "C:\\Users\\Guilh\\OneDrive\\Área de Trabalho\\babel-play-lab\\tests\\e2e\\pseudo-localizacao.e2e.ts",
+                        "line": 103,
+                        "column": 12
+                      }
+                    }
+                  ],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 5590,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-09-08T22:27:09.365Z",
+                      "annotations": [
+                        {
+                          "type": "slow",
+                          "location": {
+                            "file": "C:\\Users\\Guilh\\OneDrive\\Área de Trabalho\\babel-play-lab\\tests\\e2e\\pseudo-localizacao.e2e.ts",
+                            "line": 103,
+                            "column": 12
+                          }
+                        }
+                      ],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "cbaa37fdde1f23b3d0ce-beed0834032b72c6b2d0",
+              "file": "pseudo-localizacao.e2e.ts",
+              "line": 102,
+              "column": 5
+            },
+            {
+              "title": "biblioteca: nada corta com texto 40% mais longo",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 90000,
+                  "annotations": [
+                    {
+                      "type": "slow",
+                      "location": {
+                        "file": "C:\\Users\\Guilh\\OneDrive\\Área de Trabalho\\babel-play-lab\\tests\\e2e\\pseudo-localizacao.e2e.ts",
+                        "line": 103,
+                        "column": 12
+                      }
+                    }
+                  ],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 5401,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-09-08T22:27:14.964Z",
+                      "annotations": [
+                        {
+                          "type": "slow",
+                          "location": {
+                            "file": "C:\\Users\\Guilh\\OneDrive\\Área de Trabalho\\babel-play-lab\\tests\\e2e\\pseudo-localizacao.e2e.ts",
+                            "line": 103,
+                            "column": 12
+                          }
+                        }
+                      ],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "cbaa37fdde1f23b3d0ce-f21733dab583dc5e09bc",
+              "file": "pseudo-localizacao.e2e.ts",
+              "line": 102,
+              "column": 5
+            },
+            {
+              "title": "ajustes: nada corta com texto 40% mais longo",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 90000,
+                  "annotations": [
+                    {
+                      "type": "slow",
+                      "location": {
+                        "file": "C:\\Users\\Guilh\\OneDrive\\Área de Trabalho\\babel-play-lab\\tests\\e2e\\pseudo-localizacao.e2e.ts",
+                        "line": 103,
+                        "column": 12
+                      }
+                    }
+                  ],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 5439,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-09-08T22:27:20.373Z",
+                      "annotations": [
+                        {
+                          "type": "slow",
+                          "location": {
+                            "file": "C:\\Users\\Guilh\\OneDrive\\Área de Trabalho\\babel-play-lab\\tests\\e2e\\pseudo-localizacao.e2e.ts",
+                            "line": 103,
+                            "column": 12
+                          }
+                        }
+                      ],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "cbaa37fdde1f23b3d0ce-248f149d798abf7c52f9",
+              "file": "pseudo-localizacao.e2e.ts",
+              "line": 102,
+              "column": 5
+            },
+            {
+              "title": "planos: nada corta com texto 40% mais longo",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 90000,
+                  "annotations": [
+                    {
+                      "type": "slow",
+                      "location": {
+                        "file": "C:\\Users\\Guilh\\OneDrive\\Área de Trabalho\\babel-play-lab\\tests\\e2e\\pseudo-localizacao.e2e.ts",
+                        "line": 103,
+                        "column": 12
+                      }
+                    }
+                  ],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 5363,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-09-08T22:27:25.821Z",
+                      "annotations": [
+                        {
+                          "type": "slow",
+                          "location": {
+                            "file": "C:\\Users\\Guilh\\OneDrive\\Área de Trabalho\\babel-play-lab\\tests\\e2e\\pseudo-localizacao.e2e.ts",
+                            "line": 103,
+                            "column": 12
+                          }
+                        }
+                      ],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "cbaa37fdde1f23b3d0ce-86d6f48a4a419e50a42c",
+              "file": "pseudo-localizacao.e2e.ts",
+              "line": 102,
+              "column": 5
+            },
+            {
+              "title": "relata as strings que ainda não passam por t()",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [
+                    {
+                      "type": "strings sem t()",
+                      "description": "14 nesta tela:\nVocabulário pronto\nSem trilha, o idioma joga com o que você gravou ou importou. A voz dep\nPartida Rápida\nClássicos\nPrévia antes de começar\nOuça a dica e toque na carta com a palavra certa\nDescubra a palavra pela definição\nEscolher uma gravação\nJunte os pedaços para formar a palavra\nAs consoantes aparecem e você completa as vogais\nCada palavra começa com a última letra da anterior\nTênis de palavras\nOlá! Sou seu Babel iChat, o assistente inteligente onipresente que te \nNada novo para equipar neste nível — o próximo desbloqueio vem aí."
+                    }
+                  ],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 5938,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-09-08T22:27:31.193Z",
+                      "annotations": [
+                        {
+                          "type": "strings sem t()",
+                          "description": "14 nesta tela:\nVocabulário pronto\nSem trilha, o idioma joga com o que você gravou ou importou. A voz dep\nPartida Rápida\nClássicos\nPrévia antes de começar\nOuça a dica e toque na carta com a palavra certa\nDescubra a palavra pela definição\nEscolher uma gravação\nJunte os pedaços para formar a palavra\nAs consoantes aparecem e você completa as vogais\nCada palavra começa com a última letra da anterior\nTênis de palavras\nOlá! Sou seu Babel iChat, o assistente inteligente onipresente que te \nNada novo para equipar neste nível — o próximo desbloqueio vem aí."
+                        }
+                      ],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "cbaa37fdde1f23b3d0ce-b1eeb5efaf07a86d3f4f",
+              "file": "pseudo-localizacao.e2e.ts",
+              "line": 119,
+              "column": 3
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "quatro-superficies-alcancaveis.e2e.ts",
+      "file": "quatro-superficies-alcancaveis.e2e.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "As quatro superfícies de Personalizar",
+          "file": "quatro-superficies-alcancaveis.e2e.ts",
+          "line": 26,
+          "column": 6,
+          "specs": [
+            {
+              "title": "cada URL abre a sua superfície",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 90000,
+                  "annotations": [
+                    {
+                      "type": "slow",
+                      "location": {
+                        "file": "C:\\Users\\Guilh\\OneDrive\\Área de Trabalho\\babel-play-lab\\tests\\e2e\\quatro-superficies-alcancaveis.e2e.ts",
+                        "line": 28,
+                        "column": 10
+                      }
+                    }
+                  ],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 7169,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-09-08T22:27:37.150Z",
+                      "annotations": [
+                        {
+                          "type": "slow",
+                          "location": {
+                            "file": "C:\\Users\\Guilh\\OneDrive\\Área de Trabalho\\babel-play-lab\\tests\\e2e\\quatro-superficies-alcancaveis.e2e.ts",
+                            "line": 28,
+                            "column": 10
+                          }
+                        }
+                      ],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "872b2e5d8ef0eedfffc2-113252283f695e2933b8",
+              "file": "quatro-superficies-alcancaveis.e2e.ts",
+              "line": 27,
+              "column": 3
+            },
+            {
+              "title": "cada superfície tem a sua própria aba na barra de cima",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 90000,
+                  "annotations": [
+                    {
+                      "type": "slow",
+                      "location": {
+                        "file": "C:\\Users\\Guilh\\OneDrive\\Área de Trabalho\\babel-play-lab\\tests\\e2e\\quatro-superficies-alcancaveis.e2e.ts",
+                        "line": 43,
+                        "column": 10
+                      }
+                    }
+                  ],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 2333,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-09-08T22:27:44.328Z",
+                      "annotations": [
+                        {
+                          "type": "slow",
+                          "location": {
+                            "file": "C:\\Users\\Guilh\\OneDrive\\Área de Trabalho\\babel-play-lab\\tests\\e2e\\quatro-superficies-alcancaveis.e2e.ts",
+                            "line": 43,
+                            "column": 10
+                          }
+                        }
+                      ],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "872b2e5d8ef0eedfffc2-395676c5bd517bec86bf",
+              "file": "quatro-superficies-alcancaveis.e2e.ts",
+              "line": 42,
+              "column": 3
+            },
+            {
+              "title": "a ordem agrupa por verbo, com o padrão na frente",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 2471,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-09-08T22:27:46.668Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "872b2e5d8ef0eedfffc2-fb96c5d27313d3c2ff81",
+              "file": "quatro-superficies-alcancaveis.e2e.ts",
+              "line": 58,
+              "column": 3
+            },
+            {
+              "title": "dá para ir de uma à outra sem sair da tela",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 90000,
+                  "annotations": [
+                    {
+                      "type": "slow",
+                      "location": {
+                        "file": "C:\\Users\\Guilh\\OneDrive\\Área de Trabalho\\babel-play-lab\\tests\\e2e\\quatro-superficies-alcancaveis.e2e.ts",
+                        "line": 73,
+                        "column": 10
+                      }
+                    }
+                  ],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 28080,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-09-08T22:27:49.148Z",
+                      "annotations": [
+                        {
+                          "type": "slow",
+                          "location": {
+                            "file": "C:\\Users\\Guilh\\OneDrive\\Área de Trabalho\\babel-play-lab\\tests\\e2e\\quatro-superficies-alcancaveis.e2e.ts",
+                            "line": 73,
+                            "column": 10
+                          }
+                        }
+                      ],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "872b2e5d8ef0eedfffc2-459ebdfa24214d97ff38",
+              "file": "quatro-superficies-alcancaveis.e2e.ts",
+              "line": 72,
+              "column": 3
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "rota-de-aquisicao.e2e.ts",
+      "file": "rota-de-aquisicao.e2e.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "Rota de aquisição no Inventário",
+          "file": "rota-de-aquisicao.e2e.ts",
+          "line": 15,
+          "column": 6,
+          "specs": [
+            {
+              "title": "o catálogo completo mostra o que ainda não é meu, com cadeado",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 90000,
+                  "annotations": [
+                    {
+                      "type": "slow",
+                      "location": {
+                        "file": "C:\\Users\\Guilh\\OneDrive\\Área de Trabalho\\babel-play-lab\\tests\\e2e\\rota-de-aquisicao.e2e.ts",
+                        "line": 17,
+                        "column": 10
+                      }
+                    }
+                  ],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 5418,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-09-08T22:28:17.240Z",
+                      "annotations": [
+                        {
+                          "type": "slow",
+                          "location": {
+                            "file": "C:\\Users\\Guilh\\OneDrive\\Área de Trabalho\\babel-play-lab\\tests\\e2e\\rota-de-aquisicao.e2e.ts",
+                            "line": 17,
+                            "column": 10
+                          }
+                        }
+                      ],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "ff86ac2bdb5f55634f12-e6fd6321c4c1708e9149",
+              "file": "rota-de-aquisicao.e2e.ts",
+              "line": 16,
+              "column": 3
+            },
+            {
+              "title": "a peça trancada diz o canal e leva à tela que entrega",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 90000,
+                  "annotations": [
+                    {
+                      "type": "slow",
+                      "location": {
+                        "file": "C:\\Users\\Guilh\\OneDrive\\Área de Trabalho\\babel-play-lab\\tests\\e2e\\rota-de-aquisicao.e2e.ts",
+                        "line": 40,
+                        "column": 10
+                      }
+                    }
+                  ],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 30419,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-09-08T22:28:22.666Z",
+                      "annotations": [
+                        {
+                          "type": "slow",
+                          "location": {
+                            "file": "C:\\Users\\Guilh\\OneDrive\\Área de Trabalho\\babel-play-lab\\tests\\e2e\\rota-de-aquisicao.e2e.ts",
+                            "line": 40,
+                            "column": 10
+                          }
+                        }
+                      ],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "ff86ac2bdb5f55634f12-4ac1be20edd5e23a93b2",
+              "file": "rota-de-aquisicao.e2e.ts",
+              "line": 39,
+              "column": 3
+            },
+            {
+              "title": "o cabeçalho de temporada escreve o nome da moeda e o custo do nível",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 2243,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-09-08T22:28:53.094Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "ff86ac2bdb5f55634f12-b28912974999653903e7",
+              "file": "rota-de-aquisicao.e2e.ts",
+              "line": 65,
+              "column": 3
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "trilha-carregamento.e2e.ts",
+      "file": "trilha-carregamento.e2e.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "Trilha carregada sob demanda",
+          "file": "trilha-carregamento.e2e.ts",
+          "line": 25,
+          "column": 6,
+          "specs": [
+            {
+              "title": "a contagem do curso nunca passa por zero ao escolher a fonte",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 90000,
+                  "annotations": [
+                    {
+                      "type": "slow",
+                      "location": {
+                        "file": "C:\\Users\\Guilh\\OneDrive\\Área de Trabalho\\babel-play-lab\\tests\\e2e\\trilha-carregamento.e2e.ts",
+                        "line": 27,
+                        "column": 10
+                      }
+                    }
+                  ],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 34417,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-09-08T22:28:55.350Z",
+                      "annotations": [
+                        {
+                          "type": "slow",
+                          "location": {
+                            "file": "C:\\Users\\Guilh\\OneDrive\\Área de Trabalho\\babel-play-lab\\tests\\e2e\\trilha-carregamento.e2e.ts",
+                            "line": 27,
+                            "column": 10
+                          }
+                        }
+                      ],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "cf71dcc4eda407793c12-a441cafcbf8ff4512c5b",
+              "file": "trilha-carregamento.e2e.ts",
+              "line": 26,
+              "column": 3
+            },
+            {
+              "title": "nenhum jogo anuncia \"sem material\" enquanto a trilha carrega",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 90000,
+                  "annotations": [
+                    {
+                      "type": "slow",
+                      "location": {
+                        "file": "C:\\Users\\Guilh\\OneDrive\\Área de Trabalho\\babel-play-lab\\tests\\e2e\\trilha-carregamento.e2e.ts",
+                        "line": 57,
+                        "column": 10
+                      }
+                    }
+                  ],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 32318,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-09-08T22:29:29.775Z",
+                      "annotations": [
+                        {
+                          "type": "slow",
+                          "location": {
+                            "file": "C:\\Users\\Guilh\\OneDrive\\Área de Trabalho\\babel-play-lab\\tests\\e2e\\trilha-carregamento.e2e.ts",
+                            "line": 57,
+                            "column": 10
+                          }
+                        }
+                      ],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "cf71dcc4eda407793c12-9f7e3f194b3e1a1a26e3",
+              "file": "trilha-carregamento.e2e.ts",
+              "line": 56,
+              "column": 3
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2026-09-08T22:24:19.339Z",
+    "duration": 342918.334,
+    "expected": 26,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  }
+}

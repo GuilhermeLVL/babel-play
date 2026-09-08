@@ -1,0 +1,6249 @@
+{
+  "duplicates": [
+    {
+      "firstFile": {
+        "end": 11,
+        "endLoc": {
+          "column": 1,
+          "line": 11,
+          "position": 255
+        },
+        "name": "db\\migrations\\0000_slim_edwin_jarvis.sql",
+        "start": 1,
+        "startLoc": {
+          "column": 22,
+          "line": 1,
+          "position": 22
+        }
+      },
+      "format": "sql",
+      "fragment": "",
+      "lines": 11,
+      "secondFile": {
+        "end": 41,
+        "endLoc": {
+          "column": 17,
+          "line": 41,
+          "position": 2339
+        },
+        "name": "db\\migrations\\0011_fk_e_cascata.sql",
+        "start": 32,
+        "startLoc": {
+          "column": 28,
+          "line": 32,
+          "position": 2107
+        }
+      },
+      "tokens": 56
+    },
+    {
+      "firstFile": {
+        "end": 23,
+        "endLoc": {
+          "column": 21,
+          "line": 23,
+          "position": 543
+        },
+        "name": "db\\migrations\\0000_slim_edwin_jarvis.sql",
+        "start": 13,
+        "startLoc": {
+          "column": 30,
+          "line": 13,
+          "position": 312
+        }
+      },
+      "format": "sql",
+      "fragment": "",
+      "lines": 11,
+      "secondFile": {
+        "end": 58,
+        "endLoc": {
+          "column": 21,
+          "line": 58,
+          "position": 3159
+        },
+        "name": "db\\migrations\\0011_fk_e_cascata.sql",
+        "start": 48,
+        "startLoc": {
+          "column": 36,
+          "line": 48,
+          "position": 2928
+        }
+      },
+      "tokens": 59
+    },
+    {
+      "firstFile": {
+        "end": 63,
+        "endLoc": {
+          "column": 18,
+          "line": 63,
+          "position": 1429
+        },
+        "name": "db\\migrations\\0000_slim_edwin_jarvis.sql",
+        "start": 53,
+        "startLoc": {
+          "column": 34,
+          "line": 53,
+          "position": 1200
+        }
+      },
+      "format": "sql",
+      "fragment": "",
+      "lines": 11,
+      "secondFile": {
+        "end": 87,
+        "endLoc": {
+          "column": 18,
+          "line": 87,
+          "position": 4851
+        },
+        "name": "db\\migrations\\0011_fk_e_cascata.sql",
+        "start": 77,
+        "startLoc": {
+          "column": 40,
+          "line": 77,
+          "position": 4622
+        }
+      },
+      "tokens": 59
+    },
+    {
+      "firstFile": {
+        "end": 79,
+        "endLoc": {
+          "column": 20,
+          "line": 79,
+          "position": 1800
+        },
+        "name": "db\\migrations\\0000_slim_edwin_jarvis.sql",
+        "start": 66,
+        "startLoc": {
+          "column": 25,
+          "line": 66,
+          "position": 1483
+        }
+      },
+      "format": "sql",
+      "fragment": "",
+      "lines": 14,
+      "secondFile": {
+        "end": 107,
+        "endLoc": {
+          "column": 20,
+          "line": 107,
+          "position": 5821
+        },
+        "name": "db\\migrations\\0011_fk_e_cascata.sql",
+        "start": 94,
+        "startLoc": {
+          "column": 31,
+          "line": 94,
+          "position": 5504
+        }
+      },
+      "tokens": 76
+    },
+    {
+      "firstFile": {
+        "end": 137,
+        "endLoc": {
+          "column": 18,
+          "line": 137,
+          "position": 3099
+        },
+        "name": "db\\migrations\\0000_slim_edwin_jarvis.sql",
+        "start": 118,
+        "startLoc": {
+          "column": 24,
+          "line": 118,
+          "position": 2673
+        }
+      },
+      "format": "sql",
+      "fragment": "",
+      "lines": 20,
+      "secondFile": {
+        "end": 135,
+        "endLoc": {
+          "column": 18,
+          "line": 135,
+          "position": 7150
+        },
+        "name": "db\\migrations\\0011_fk_e_cascata.sql",
+        "start": 116,
+        "startLoc": {
+          "column": 30,
+          "line": 116,
+          "position": 6724
+        }
+      },
+      "tokens": 106
+    },
+    {
+      "firstFile": {
+        "end": 166,
+        "endLoc": {
+          "column": 19,
+          "line": 166,
+          "position": 3708
+        },
+        "name": "db\\migrations\\0000_slim_edwin_jarvis.sql",
+        "start": 140,
+        "startLoc": {
+          "column": 25,
+          "line": 140,
+          "position": 3153
+        }
+      },
+      "format": "sql",
+      "fragment": "",
+      "lines": 27,
+      "secondFile": {
+        "end": 170,
+        "endLoc": {
+          "column": 19,
+          "line": 170,
+          "position": 8745
+        },
+        "name": "db\\migrations\\0011_fk_e_cascata.sql",
+        "start": 144,
+        "startLoc": {
+          "column": 31,
+          "line": 144,
+          "position": 8190
+        }
+      },
+      "tokens": 141
+    },
+    {
+      "firstFile": {
+        "end": 13,
+        "endLoc": {
+          "column": 6,
+          "line": 13,
+          "position": 292
+        },
+        "name": "db\\migrations\\0003_milky_rick_jones.sql",
+        "start": 1,
+        "startLoc": {
+          "column": 25,
+          "line": 1,
+          "position": 25
+        }
+      },
+      "format": "sql",
+      "fragment": "",
+      "lines": 13,
+      "secondFile": {
+        "end": 30,
+        "endLoc": {
+          "column": 6,
+          "line": 30,
+          "position": 983
+        },
+        "name": "db\\migrations\\0016_charming_prima.sql",
+        "start": 18,
+        "startLoc": {
+          "column": 27,
+          "line": 18,
+          "position": 716
+        }
+      },
+      "tokens": 64
+    },
+    {
+      "firstFile": {
+        "end": 152,
+        "endLoc": {
+          "column": 9,
+          "line": 152,
+          "position": 3916
+        },
+        "name": "db\\migrations\\meta\\0000_snapshot.json",
+        "start": 5,
+        "startLoc": {
+          "column": 50,
+          "line": 5,
+          "position": 141
+        }
+      },
+      "format": "json",
+      "fragment": "",
+      "lines": 148,
+      "secondFile": {
+        "end": 152,
+        "endLoc": {
+          "column": 9,
+          "line": 152,
+          "position": 3916
+        },
+        "name": "db\\migrations\\meta\\0001_snapshot.json",
+        "start": 5,
+        "startLoc": {
+          "column": 50,
+          "line": 5,
+          "position": 141
+        }
+      },
+      "tokens": 506
+    },
+    {
+      "firstFile": {
+        "end": 205,
+        "endLoc": {
+          "column": 21,
+          "line": 205,
+          "position": 5272
+        },
+        "name": "db\\migrations\\meta\\0000_snapshot.json",
+        "start": 5,
+        "startLoc": {
+          "column": 50,
+          "line": 5,
+          "position": 141
+        }
+      },
+      "format": "json",
+      "fragment": "",
+      "lines": 201,
+      "secondFile": {
+        "end": 210,
+        "endLoc": {
+          "column": 9,
+          "line": 210,
+          "position": 5402
+        },
+        "name": "db\\migrations\\meta\\0002_snapshot.json",
+        "start": 5,
+        "startLoc": {
+          "column": 50,
+          "line": 5,
+          "position": 141
+        }
+      },
+      "tokens": 690
+    },
+    {
+      "firstFile": {
+        "end": 603,
+        "endLoc": {
+          "column": 26,
+          "line": 603,
+          "position": 15434
+        },
+        "name": "db\\migrations\\meta\\0000_snapshot.json",
+        "start": 5,
+        "startLoc": {
+          "column": 50,
+          "line": 5,
+          "position": 141
+        }
+      },
+      "format": "json",
+      "fragment": "",
+      "lines": 599,
+      "secondFile": {
+        "end": 610,
+        "endLoc": {
+          "column": 6,
+          "line": 610,
+          "position": 15634
+        },
+        "name": "db\\migrations\\meta\\0003_snapshot.json",
+        "start": 5,
+        "startLoc": {
+          "column": 50,
+          "line": 5,
+          "position": 141
+        }
+      },
+      "tokens": 2070
+    },
+    {
+      "firstFile": {
+        "end": 867,
+        "endLoc": {
+          "column": 30,
+          "line": 867,
+          "position": 22251
+        },
+        "name": "db\\migrations\\meta\\0000_snapshot.json",
+        "start": 5,
+        "startLoc": {
+          "column": 50,
+          "line": 5,
+          "position": 141
+        }
+      },
+      "format": "json",
+      "fragment": "",
+      "lines": 863,
+      "secondFile": {
+        "end": 879,
+        "endLoc": {
+          "column": 6,
+          "line": 879,
+          "position": 22484
+        },
+        "name": "db\\migrations\\meta\\0004_snapshot.json",
+        "start": 5,
+        "startLoc": {
+          "column": 50,
+          "line": 5,
+          "position": 141
+        }
+      },
+      "tokens": 2984
+    },
+    {
+      "firstFile": {
+        "end": 669,
+        "endLoc": {
+          "column": 32,
+          "line": 669,
+          "position": 17111
+        },
+        "name": "db\\migrations\\meta\\0000_snapshot.json",
+        "start": 5,
+        "startLoc": {
+          "column": 50,
+          "line": 5,
+          "position": 141
+        }
+      },
+      "format": "json",
+      "fragment": "",
+      "lines": 665,
+      "secondFile": {
+        "end": 678,
+        "endLoc": {
+          "column": 18,
+          "line": 678,
+          "position": 17344
+        },
+        "name": "db\\migrations\\meta\\0005_snapshot.json",
+        "start": 5,
+        "startLoc": {
+          "column": 50,
+          "line": 5,
+          "position": 141
+        }
+      },
+      "tokens": 2300
+    },
+    {
+      "firstFile": {
+        "end": 680,
+        "endLoc": {
+          "column": 27,
+          "line": 680,
+          "position": 17393
+        },
+        "name": "db\\migrations\\meta\\0000_snapshot.json",
+        "start": 5,
+        "startLoc": {
+          "column": 50,
+          "line": 5,
+          "position": 141
+        }
+      },
+      "format": "json",
+      "fragment": "",
+      "lines": 676,
+      "secondFile": {
+        "end": 692,
+        "endLoc": {
+          "column": 26,
+          "line": 692,
+          "position": 17721
+        },
+        "name": "db\\migrations\\meta\\0006_snapshot.json",
+        "start": 5,
+        "startLoc": {
+          "column": 50,
+          "line": 5,
+          "position": 141
+        }
+      },
+      "tokens": 2336
+    },
+    {
+      "firstFile": {
+        "end": 193,
+        "endLoc": {
+          "column": 27,
+          "line": 193,
+          "position": 4957
+        },
+        "name": "db\\migrations\\meta\\0000_snapshot.json",
+        "start": 5,
+        "startLoc": {
+          "column": 50,
+          "line": 5,
+          "position": 141
+        }
+      },
+      "format": "json",
+      "fragment": "",
+      "lines": 189,
+      "secondFile": {
+        "end": 194,
+        "endLoc": {
+          "column": 9,
+          "line": 194,
+          "position": 4991
+        },
+        "name": "db\\migrations\\meta\\0007_snapshot.json",
+        "start": 5,
+        "startLoc": {
+          "column": 50,
+          "line": 5,
+          "position": 141
+        }
+      },
+      "tokens": 650
+    },
+    {
+      "firstFile": {
+        "end": 1069,
+        "endLoc": {
+          "column": 3,
+          "line": 1069,
+          "position": 27359
+        },
+        "name": "db\\migrations\\meta\\0000_snapshot.json",
+        "start": 5,
+        "startLoc": {
+          "column": 50,
+          "line": 5,
+          "position": 141
+        }
+      },
+      "format": "json",
+      "fragment": "",
+      "lines": 1065,
+      "secondFile": {
+        "end": 1096,
+        "endLoc": {
+          "column": 6,
+          "line": 1096,
+          "position": 28065
+        },
+        "name": "db\\migrations\\meta\\0008_snapshot.json",
+        "start": 5,
+        "startLoc": {
+          "column": 50,
+          "line": 5,
+          "position": 141
+        }
+      },
+      "tokens": 3680
+    },
+    {
+      "firstFile": {
+        "end": 577,
+        "endLoc": {
+          "column": 21,
+          "line": 577,
+          "position": 14749
+        },
+        "name": "db\\migrations\\meta\\0000_snapshot.json",
+        "start": 5,
+        "startLoc": {
+          "column": 50,
+          "line": 5,
+          "position": 141
+        }
+      },
+      "format": "json",
+      "fragment": "",
+      "lines": 573,
+      "secondFile": {
+        "end": 591,
+        "endLoc": {
+          "column": 9,
+          "line": 591,
+          "position": 15153
+        },
+        "name": "db\\migrations\\meta\\0009_snapshot.json",
+        "start": 5,
+        "startLoc": {
+          "column": 50,
+          "line": 5,
+          "position": 141
+        }
+      },
+      "tokens": 1979
+    },
+    {
+      "firstFile": {
+        "end": 704,
+        "endLoc": {
+          "column": 25,
+          "line": 704,
+          "position": 18044
+        },
+        "name": "db\\migrations\\meta\\0000_snapshot.json",
+        "start": 5,
+        "startLoc": {
+          "column": 50,
+          "line": 5,
+          "position": 141
+        }
+      },
+      "format": "json",
+      "fragment": "",
+      "lines": 700,
+      "secondFile": {
+        "end": 724,
+        "endLoc": {
+          "column": 12,
+          "line": 724,
+          "position": 18491
+        },
+        "name": "db\\migrations\\meta\\0010_snapshot.json",
+        "start": 5,
+        "startLoc": {
+          "column": 21,
+          "line": 5,
+          "position": 141
+        }
+      },
+      "tokens": 2418
+    },
+    {
+      "firstFile": {
+        "end": 75,
+        "endLoc": {
+          "column": 22,
+          "line": 75,
+          "position": 1921
+        },
+        "name": "db\\migrations\\meta\\0000_snapshot.json",
+        "start": 5,
+        "startLoc": {
+          "column": 50,
+          "line": 5,
+          "position": 141
+        }
+      },
+      "format": "json",
+      "fragment": "",
+      "lines": 71,
+      "secondFile": {
+        "end": 75,
+        "endLoc": {
+          "column": 22,
+          "line": 75,
+          "position": 1921
+        },
+        "name": "db\\migrations\\meta\\0011_snapshot.json",
+        "start": 5,
+        "startLoc": {
+          "column": 50,
+          "line": 5,
+          "position": 141
+        }
+      },
+      "tokens": 239
+    },
+    {
+      "firstFile": {
+        "end": 797,
+        "endLoc": {
+          "column": 26,
+          "line": 797,
+          "position": 20426
+        },
+        "name": "db\\migrations\\meta\\0000_snapshot.json",
+        "start": 5,
+        "startLoc": {
+          "column": 50,
+          "line": 5,
+          "position": 141
+        }
+      },
+      "format": "json",
+      "fragment": "",
+      "lines": 793,
+      "secondFile": {
+        "end": 837,
+        "endLoc": {
+          "column": 9,
+          "line": 837,
+          "position": 21643
+        },
+        "name": "db\\migrations\\meta\\0013_snapshot.json",
+        "start": 5,
+        "startLoc": {
+          "column": 50,
+          "line": 5,
+          "position": 141
+        }
+      },
+      "tokens": 2741
+    },
+    {
+      "firstFile": {
+        "end": 90,
+        "endLoc": {
+          "column": 20,
+          "line": 90,
+          "position": 2291
+        },
+        "name": "db\\migrations\\meta\\0000_snapshot.json",
+        "start": 5,
+        "startLoc": {
+          "column": 50,
+          "line": 5,
+          "position": 141
+        }
+      },
+      "format": "json",
+      "fragment": "",
+      "lines": 86,
+      "secondFile": {
+        "end": 93,
+        "endLoc": {
+          "column": 6,
+          "line": 93,
+          "position": 2402
+        },
+        "name": "db\\migrations\\meta\\0014_snapshot.json",
+        "start": 5,
+        "startLoc": {
+          "column": 50,
+          "line": 5,
+          "position": 141
+        }
+      },
+      "tokens": 292
+    },
+    {
+      "firstFile": {
+        "end": 314,
+        "endLoc": {
+          "column": 17,
+          "line": 314,
+          "position": 8016
+        },
+        "name": "db\\migrations\\meta\\0000_snapshot.json",
+        "start": 5,
+        "startLoc": {
+          "column": 50,
+          "line": 5,
+          "position": 141
+        }
+      },
+      "format": "json",
+      "fragment": "",
+      "lines": 310,
+      "secondFile": {
+        "end": 333,
+        "endLoc": {
+          "column": 6,
+          "line": 333,
+          "position": 8655
+        },
+        "name": "db\\migrations\\meta\\0015_snapshot.json",
+        "start": 5,
+        "startLoc": {
+          "column": 50,
+          "line": 5,
+          "position": 141
+        }
+      },
+      "tokens": 1066
+    },
+    {
+      "firstFile": {
+        "end": 142,
+        "endLoc": {
+          "column": 29,
+          "line": 142,
+          "position": 3653
+        },
+        "name": "db\\migrations\\meta\\0000_snapshot.json",
+        "start": 5,
+        "startLoc": {
+          "column": 50,
+          "line": 5,
+          "position": 141
+        }
+      },
+      "format": "json",
+      "fragment": "",
+      "lines": 138,
+      "secondFile": {
+        "end": 145,
+        "endLoc": {
+          "column": 6,
+          "line": 145,
+          "position": 3708
+        },
+        "name": "db\\migrations\\meta\\0016_snapshot.json",
+        "start": 5,
+        "startLoc": {
+          "column": 50,
+          "line": 5,
+          "position": 141
+        }
+      },
+      "tokens": 473
+    },
+    {
+      "firstFile": {
+        "end": 90,
+        "endLoc": {
+          "column": 20,
+          "line": 90,
+          "position": 2291
+        },
+        "name": "db\\migrations\\meta\\0000_snapshot.json",
+        "start": 5,
+        "startLoc": {
+          "column": 50,
+          "line": 5,
+          "position": 141
+        }
+      },
+      "format": "json",
+      "fragment": "",
+      "lines": 86,
+      "secondFile": {
+        "end": 93,
+        "endLoc": {
+          "column": 6,
+          "line": 93,
+          "position": 2402
+        },
+        "name": "db\\migrations\\meta\\0017_snapshot.json",
+        "start": 5,
+        "startLoc": {
+          "column": 50,
+          "line": 5,
+          "position": 141
+        }
+      },
+      "tokens": 292
+    },
+    {
+      "firstFile": {
+        "end": 326,
+        "endLoc": {
+          "column": 5,
+          "line": 326,
+          "position": 8318
+        },
+        "name": "db\\migrations\\meta\\0000_snapshot.json",
+        "start": 5,
+        "startLoc": {
+          "column": 50,
+          "line": 5,
+          "position": 141
+        }
+      },
+      "format": "json",
+      "fragment": "",
+      "lines": 322,
+      "secondFile": {
+        "end": 340,
+        "endLoc": {
+          "column": 6,
+          "line": 340,
+          "position": 8787
+        },
+        "name": "db\\migrations\\meta\\0018_snapshot.json",
+        "start": 5,
+        "startLoc": {
+          "column": 50,
+          "line": 5,
+          "position": 141
+        }
+      },
+      "tokens": 1111
+    },
+    {
+      "firstFile": {
+        "end": 732,
+        "endLoc": {
+          "column": 25,
+          "line": 732,
+          "position": 18714
+        },
+        "name": "db\\migrations\\meta\\0000_snapshot.json",
+        "start": 5,
+        "startLoc": {
+          "column": 50,
+          "line": 5,
+          "position": 141
+        }
+      },
+      "format": "json",
+      "fragment": "",
+      "lines": 728,
+      "secondFile": {
+        "end": 779,
+        "endLoc": {
+          "column": 9,
+          "line": 779,
+          "position": 20175
+        },
+        "name": "db\\migrations\\meta\\0022_snapshot.json",
+        "start": 5,
+        "startLoc": {
+          "column": 50,
+          "line": 5,
+          "position": 141
+        }
+      },
+      "tokens": 2518
+    },
+    {
+      "firstFile": {
+        "end": 762,
+        "endLoc": {
+          "column": 27,
+          "line": 762,
+          "position": 19512
+        },
+        "name": "db\\migrations\\meta\\0000_snapshot.json",
+        "start": 5,
+        "startLoc": {
+          "column": 50,
+          "line": 5,
+          "position": 141
+        }
+      },
+      "format": "json",
+      "fragment": "",
+      "lines": 758,
+      "secondFile": {
+        "end": 808,
+        "endLoc": {
+          "column": 6,
+          "line": 808,
+          "position": 20898
+        },
+        "name": "db\\migrations\\meta\\0024_snapshot.json",
+        "start": 5,
+        "startLoc": {
+          "column": 50,
+          "line": 5,
+          "position": 141
+        }
+      },
+      "tokens": 2622
+    },
+    {
+      "firstFile": {
+        "end": 49,
+        "endLoc": {
+          "column": 20,
+          "line": 49,
+          "position": 1261
+        },
+        "name": "db\\migrations\\meta\\0000_snapshot.json",
+        "start": 8,
+        "startLoc": {
+          "column": 24,
+          "line": 8,
+          "position": 199
+        }
+      },
+      "format": "json",
+      "fragment": "",
+      "lines": 42,
+      "secondFile": {
+        "end": 122,
+        "endLoc": {
+          "column": 20,
+          "line": 122,
+          "position": 3145
+        },
+        "name": "db\\migrations\\meta\\0000_snapshot.json",
+        "start": 81,
+        "startLoc": {
+          "column": 32,
+          "line": 81,
+          "position": 2083
+        }
+      },
+      "tokens": 141
+    },
+    {
+      "firstFile": {
+        "end": 44,
+        "endLoc": {
+          "column": 10,
+          "line": 44,
+          "position": 1127
+        },
+        "name": "db\\migrations\\meta\\0000_snapshot.json",
+        "start": 8,
+        "startLoc": {
+          "column": 24,
+          "line": 8,
+          "position": 199
+        }
+      },
+      "format": "json",
+      "fragment": "",
+      "lines": 37,
+      "secondFile": {
+        "end": 197,
+        "endLoc": {
+          "column": 10,
+          "line": 197,
+          "position": 5061
+        },
+        "name": "db\\migrations\\meta\\0000_snapshot.json",
+        "start": 161,
+        "startLoc": {
+          "column": 33,
+          "line": 161,
+          "position": 4133
+        }
+      },
+      "tokens": 124
+    },
+    {
+      "firstFile": {
+        "end": 44,
+        "endLoc": {
+          "column": 10,
+          "line": 44,
+          "position": 1127
+        },
+        "name": "db\\migrations\\meta\\0000_snapshot.json",
+        "start": 8,
+        "startLoc": {
+          "column": 24,
+          "line": 8,
+          "position": 199
+        }
+      },
+      "format": "json",
+      "fragment": "",
+      "lines": 37,
+      "secondFile": {
+        "end": 284,
+        "endLoc": {
+          "column": 10,
+          "line": 284,
+          "position": 7260
+        },
+        "name": "db\\migrations\\meta\\0000_snapshot.json",
+        "start": 248,
+        "startLoc": {
+          "column": 24,
+          "line": 248,
+          "position": 6332
+        }
+      },
+      "tokens": 124
+    },
+    {
+      "firstFile": {
+        "end": 44,
+        "endLoc": {
+          "column": 10,
+          "line": 44,
+          "position": 1127
+        },
+        "name": "db\\migrations\\meta\\0000_snapshot.json",
+        "start": 8,
+        "startLoc": {
+          "column": 24,
+          "line": 8,
+          "position": 199
+        }
+      },
+      "format": "json",
+      "fragment": "",
+      "lines": 37,
+      "secondFile": {
+        "end": 364,
+        "endLoc": {
+          "column": 10,
+          "line": 364,
+          "position": 9314
+        },
+        "name": "db\\migrations\\meta\\0000_snapshot.json",
+        "start": 328,
+        "startLoc": {
+          "column": 36,
+          "line": 328,
+          "position": 8386
+        }
+      },
+      "tokens": 124
+    },
+    {
+      "firstFile": {
+        "end": 44,
+        "endLoc": {
+          "column": 10,
+          "line": 44,
+          "position": 1127
+        },
+        "name": "db\\migrations\\meta\\0000_snapshot.json",
+        "start": 8,
+        "startLoc": {
+          "column": 24,
+          "line": 8,
+          "position": 199
+        }
+      },
+      "format": "json",
+      "fragment": "",
+      "lines": 37,
+      "secondFile": {
+        "end": 444,
+        "endLoc": {
+          "column": 10,
+          "line": 444,
+          "position": 11351
+        },
+        "name": "db\\migrations\\meta\\0000_snapshot.json",
+        "start": 408,
+        "startLoc": {
+          "column": 27,
+          "line": 408,
+          "position": 10423
+        }
+      },
+      "tokens": 124
+    },
+    {
+      "firstFile": {
+        "end": 44,
+        "endLoc": {
+          "column": 10,
+          "line": 44,
+          "position": 1127
+        },
+        "name": "db\\migrations\\meta\\0000_snapshot.json",
+        "start": 8,
+        "startLoc": {
+          "column": 24,
+          "line": 8,
+          "position": 199
+        }
+      },
+      "format": "json",
+      "fragment": "",
+      "lines": 37,
+      "secondFile": {
+        "end": 583,
+        "endLoc": {
+          "column": 10,
+          "line": 583,
+          "position": 14915
+        },
+        "name": "db\\migrations\\meta\\0000_snapshot.json",
+        "start": 547,
+        "startLoc": {
+          "column": 24,
+          "line": 547,
+          "position": 13987
+        }
+      },
+      "tokens": 124
+    },
+    {
+      "firstFile": {
+        "end": 44,
+        "endLoc": {
+          "column": 10,
+          "line": 44,
+          "position": 1127
+        },
+        "name": "db\\migrations\\meta\\0000_snapshot.json",
+        "start": 8,
+        "startLoc": {
+          "column": 24,
+          "line": 8,
+          "position": 199
+        }
+      },
+      "format": "json",
+      "fragment": "",
+      "lines": 37,
+      "secondFile": {
+        "end": 698,
+        "endLoc": {
+          "column": 10,
+          "line": 698,
+          "position": 17863
+        },
+        "name": "db\\migrations\\meta\\0000_snapshot.json",
+        "start": 662,
+        "startLoc": {
+          "column": 24,
+          "line": 662,
+          "position": 16935
+        }
+      },
+      "tokens": 124
+    },
+    {
+      "firstFile": {
+        "end": 51,
+        "endLoc": {
+          "column": 10,
+          "line": 51,
+          "position": 1311
+        },
+        "name": "db\\migrations\\meta\\0000_snapshot.json",
+        "start": 8,
+        "startLoc": {
+          "column": 24,
+          "line": 8,
+          "position": 199
+        }
+      },
+      "format": "json",
+      "fragment": "",
+      "lines": 44,
+      "secondFile": {
+        "end": 771,
+        "endLoc": {
+          "column": 10,
+          "line": 771,
+          "position": 19740
+        },
+        "name": "db\\migrations\\meta\\0000_snapshot.json",
+        "start": 728,
+        "startLoc": {
+          "column": 26,
+          "line": 728,
+          "position": 18628
+        }
+      },
+      "tokens": 148
+    },
+    {
+      "firstFile": {
+        "end": 51,
+        "endLoc": {
+          "column": 10,
+          "line": 51,
+          "position": 1311
+        },
+        "name": "db\\migrations\\meta\\0000_snapshot.json",
+        "start": 8,
+        "startLoc": {
+          "column": 24,
+          "line": 8,
+          "position": 199
+        }
+      },
+      "format": "json",
+      "fragment": "",
+      "lines": 44,
+      "secondFile": {
+        "end": 914,
+        "endLoc": {
+          "column": 10,
+          "line": 914,
+          "position": 23449
+        },
+        "name": "db\\migrations\\meta\\0000_snapshot.json",
+        "start": 871,
+        "startLoc": {
+          "column": 27,
+          "line": 871,
+          "position": 22336
+        }
+      },
+      "tokens": 148
+    },
+    {
+      "firstFile": {
+        "end": 44,
+        "endLoc": {
+          "column": 10,
+          "line": 44,
+          "position": 1127
+        },
+        "name": "db\\migrations\\meta\\0000_snapshot.json",
+        "start": 8,
+        "startLoc": {
+          "column": 24,
+          "line": 8,
+          "position": 199
+        }
+      },
+      "format": "json",
+      "fragment": "",
+      "lines": 37,
+      "secondFile": {
+        "end": 648,
+        "endLoc": {
+          "column": 10,
+          "line": 648,
+          "position": 16611
+        },
+        "name": "db\\migrations\\meta\\0003_snapshot.json",
+        "start": 612,
+        "startLoc": {
+          "column": 27,
+          "line": 612,
+          "position": 15683
+        }
+      },
+      "tokens": 124
+    },
+    {
+      "firstFile": {
+        "end": 44,
+        "endLoc": {
+          "column": 10,
+          "line": 44,
+          "position": 1127
+        },
+        "name": "db\\migrations\\meta\\0000_snapshot.json",
+        "start": 8,
+        "startLoc": {
+          "column": 24,
+          "line": 8,
+          "position": 199
+        }
+      },
+      "format": "json",
+      "fragment": "",
+      "lines": 37,
+      "secondFile": {
+        "end": 917,
+        "endLoc": {
+          "column": 10,
+          "line": 917,
+          "position": 23465
+        },
+        "name": "db\\migrations\\meta\\0004_snapshot.json",
+        "start": 881,
+        "startLoc": {
+          "column": 29,
+          "line": 881,
+          "position": 22537
+        }
+      },
+      "tokens": 124
+    },
+    {
+      "firstFile": {
+        "end": 44,
+        "endLoc": {
+          "column": 10,
+          "line": 44,
+          "position": 1127
+        },
+        "name": "db\\migrations\\meta\\0000_snapshot.json",
+        "start": 8,
+        "startLoc": {
+          "column": 24,
+          "line": 8,
+          "position": 199
+        }
+      },
+      "format": "json",
+      "fragment": "",
+      "lines": 37,
+      "secondFile": {
+        "end": 1021,
+        "endLoc": {
+          "column": 10,
+          "line": 1021,
+          "position": 26206
+        },
+        "name": "db\\migrations\\meta\\0004_snapshot.json",
+        "start": 985,
+        "startLoc": {
+          "column": 30,
+          "line": 985,
+          "position": 25278
+        }
+      },
+      "tokens": 124
+    },
+    {
+      "firstFile": {
+        "end": 30,
+        "endLoc": {
+          "column": 10,
+          "line": 30,
+          "position": 760
+        },
+        "name": "db\\migrations\\meta\\0000_snapshot.json",
+        "start": 8,
+        "startLoc": {
+          "column": 24,
+          "line": 8,
+          "position": 199
+        }
+      },
+      "format": "json",
+      "fragment": "",
+      "lines": 23,
+      "secondFile": {
+        "end": 1084,
+        "endLoc": {
+          "column": 10,
+          "line": 1084,
+          "position": 27748
+        },
+        "name": "db\\migrations\\meta\\0004_snapshot.json",
+        "start": 1062,
+        "startLoc": {
+          "column": 21,
+          "line": 1062,
+          "position": 27187
+        }
+      },
+      "tokens": 76
+    },
+    {
+      "firstFile": {
+        "end": 44,
+        "endLoc": {
+          "column": 10,
+          "line": 44,
+          "position": 1127
+        },
+        "name": "db\\migrations\\meta\\0000_snapshot.json",
+        "start": 8,
+        "startLoc": {
+          "column": 24,
+          "line": 8,
+          "position": 199
+        }
+      },
+      "format": "json",
+      "fragment": "",
+      "lines": 37,
+      "secondFile": {
+        "end": 1134,
+        "endLoc": {
+          "column": 10,
+          "line": 1134,
+          "position": 29048
+        },
+        "name": "db\\migrations\\meta\\0008_snapshot.json",
+        "start": 1098,
+        "startLoc": {
+          "column": 30,
+          "line": 1098,
+          "position": 28120
+        }
+      },
+      "tokens": 124
+    },
+    {
+      "firstFile": {
+        "end": 35,
+        "endLoc": {
+          "column": 20,
+          "line": 35,
+          "position": 888
+        },
+        "name": "db\\migrations\\meta\\0000_snapshot.json",
+        "start": 8,
+        "startLoc": {
+          "column": 24,
+          "line": 8,
+          "position": 199
+        }
+      },
+      "format": "json",
+      "fragment": "",
+      "lines": 28,
+      "secondFile": {
+        "end": 1777,
+        "endLoc": {
+          "column": 20,
+          "line": 1777,
+          "position": 45742
+        },
+        "name": "db\\migrations\\meta\\0011_snapshot.json",
+        "start": 1750,
+        "startLoc": {
+          "column": 33,
+          "line": 1750,
+          "position": 45053
+        }
+      },
+      "tokens": 93
+    },
+    {
+      "firstFile": {
+        "end": 23,
+        "endLoc": {
+          "column": 10,
+          "line": 23,
+          "position": 573
+        },
+        "name": "db\\migrations\\meta\\0000_snapshot.json",
+        "start": 8,
+        "startLoc": {
+          "column": 24,
+          "line": 8,
+          "position": 199
+        }
+      },
+      "format": "json",
+      "fragment": "",
+      "lines": 16,
+      "secondFile": {
+        "end": 110,
+        "endLoc": {
+          "column": 10,
+          "line": 110,
+          "position": 2831
+        },
+        "name": "db\\migrations\\meta\\0014_snapshot.json",
+        "start": 95,
+        "startLoc": {
+          "column": 30,
+          "line": 95,
+          "position": 2457
+        }
+      },
+      "tokens": 52
+    },
+    {
+      "firstFile": {
+        "end": 44,
+        "endLoc": {
+          "column": 10,
+          "line": 44,
+          "position": 1127
+        },
+        "name": "db\\migrations\\meta\\0000_snapshot.json",
+        "start": 8,
+        "startLoc": {
+          "column": 24,
+          "line": 8,
+          "position": 199
+        }
+      },
+      "format": "json",
+      "fragment": "",
+      "lines": 37,
+      "secondFile": {
+        "end": 371,
+        "endLoc": {
+          "column": 10,
+          "line": 371,
+          "position": 9628
+        },
+        "name": "db\\migrations\\meta\\0015_snapshot.json",
+        "start": 335,
+        "startLoc": {
+          "column": 25,
+          "line": 335,
+          "position": 8700
+        }
+      },
+      "tokens": 124
+    },
+    {
+      "firstFile": {
+        "end": 44,
+        "endLoc": {
+          "column": 10,
+          "line": 44,
+          "position": 1127
+        },
+        "name": "db\\migrations\\meta\\0000_snapshot.json",
+        "start": 8,
+        "startLoc": {
+          "column": 24,
+          "line": 8,
+          "position": 199
+        }
+      },
+      "format": "json",
+      "fragment": "",
+      "lines": 37,
+      "secondFile": {
+        "end": 791,
+        "endLoc": {
+          "column": 10,
+          "line": 791,
+          "position": 20402
+        },
+        "name": "db\\migrations\\meta\\0015_snapshot.json",
+        "start": 755,
+        "startLoc": {
+          "column": 28,
+          "line": 755,
+          "position": 19474
+        }
+      },
+      "tokens": 124
+    },
+    {
+      "firstFile": {
+        "end": 44,
+        "endLoc": {
+          "column": 10,
+          "line": 44,
+          "position": 1127
+        },
+        "name": "db\\migrations\\meta\\0000_snapshot.json",
+        "start": 8,
+        "startLoc": {
+          "column": 24,
+          "line": 8,
+          "position": 199
+        }
+      },
+      "format": "json",
+      "fragment": "",
+      "lines": 37,
+      "secondFile": {
+        "end": 183,
+        "endLoc": {
+          "column": 10,
+          "line": 183,
+          "position": 4695
+        },
+        "name": "db\\migrations\\meta\\0016_snapshot.json",
+        "start": 147,
+        "startLoc": {
+          "column": 32,
+          "line": 147,
+          "position": 3767
+        }
+      },
+      "tokens": 124
+    },
+    {
+      "firstFile": {
+        "end": 74,
+        "endLoc": {
+          "column": 18,
+          "line": 74,
+          "position": 1896
+        },
+        "name": "db\\migrations\\meta\\0000_snapshot.json",
+        "start": 8,
+        "startLoc": {
+          "column": 24,
+          "line": 8,
+          "position": 199
+        }
+      },
+      "format": "json",
+      "fragment": "",
+      "lines": 67,
+      "secondFile": {
+        "end": 325,
+        "endLoc": {
+          "column": 18,
+          "line": 325,
+          "position": 8373
+        },
+        "name": "db\\migrations\\meta\\0016_snapshot.json",
+        "start": 259,
+        "startLoc": {
+          "column": 29,
+          "line": 259,
+          "position": 6712
+        }
+      },
+      "tokens": 224
+    },
+    {
+      "firstFile": {
+        "end": 44,
+        "endLoc": {
+          "column": 10,
+          "line": 44,
+          "position": 1127
+        },
+        "name": "db\\migrations\\meta\\0000_snapshot.json",
+        "start": 8,
+        "startLoc": {
+          "column": 24,
+          "line": 8,
+          "position": 199
+        }
+      },
+      "format": "json",
+      "fragment": "",
+      "lines": 37,
+      "secondFile": {
+        "end": 131,
+        "endLoc": {
+          "column": 10,
+          "line": 131,
+          "position": 3377
+        },
+        "name": "db\\migrations\\meta\\0017_snapshot.json",
+        "start": 95,
+        "startLoc": {
+          "column": 26,
+          "line": 95,
+          "position": 2449
+        }
+      },
+      "tokens": 124
+    },
+    {
+      "firstFile": {
+        "end": 44,
+        "endLoc": {
+          "column": 10,
+          "line": 44,
+          "position": 1127
+        },
+        "name": "db\\migrations\\meta\\0000_snapshot.json",
+        "start": 8,
+        "startLoc": {
+          "column": 24,
+          "line": 8,
+          "position": 199
+        }
+      },
+      "format": "json",
+      "fragment": "",
+      "lines": 37,
+      "secondFile": {
+        "end": 228,
+        "endLoc": {
+          "column": 10,
+          "line": 228,
+          "position": 5859
+        },
+        "name": "db\\migrations\\meta\\0017_snapshot.json",
+        "start": 192,
+        "startLoc": {
+          "column": 28,
+          "line": 192,
+          "position": 4931
+        }
+      },
+      "tokens": 124
+    },
+    {
+      "firstFile": {
+        "end": 51,
+        "endLoc": {
+          "column": 10,
+          "line": 51,
+          "position": 1311
+        },
+        "name": "db\\migrations\\meta\\0000_snapshot.json",
+        "start": 8,
+        "startLoc": {
+          "column": 24,
+          "line": 8,
+          "position": 199
+        }
+      },
+      "format": "json",
+      "fragment": "",
+      "lines": 44,
+      "secondFile": {
+        "end": 385,
+        "endLoc": {
+          "column": 10,
+          "line": 385,
+          "position": 9940
+        },
+        "name": "db\\migrations\\meta\\0017_snapshot.json",
+        "start": 342,
+        "startLoc": {
+          "column": 26,
+          "line": 342,
+          "position": 8834
+        }
+      },
+      "tokens": 148
+    },
+    {
+      "firstFile": {
+        "end": 44,
+        "endLoc": {
+          "column": 10,
+          "line": 44,
+          "position": 1127
+        },
+        "name": "db\\migrations\\meta\\0000_snapshot.json",
+        "start": 8,
+        "startLoc": {
+          "column": 24,
+          "line": 8,
+          "position": 199
+        }
+      },
+      "format": "json",
+      "fragment": "",
+      "lines": 37,
+      "secondFile": {
+        "end": 378,
+        "endLoc": {
+          "column": 10,
+          "line": 378,
+          "position": 9762
+        },
+        "name": "db\\migrations\\meta\\0018_snapshot.json",
+        "start": 342,
+        "startLoc": {
+          "column": 26,
+          "line": 342,
+          "position": 8834
+        }
+      },
+      "tokens": 124
+    },
+    {
+      "firstFile": {
+        "end": 44,
+        "endLoc": {
+          "column": 10,
+          "line": 44,
+          "position": 1127
+        },
+        "name": "db\\migrations\\meta\\0000_snapshot.json",
+        "start": 8,
+        "startLoc": {
+          "column": 24,
+          "line": 8,
+          "position": 199
+        }
+      },
+      "format": "json",
+      "fragment": "",
+      "lines": 37,
+      "secondFile": {
+        "end": 461,
+        "endLoc": {
+          "column": 10,
+          "line": 461,
+          "position": 11850
+        },
+        "name": "db\\migrations\\meta\\0018_snapshot.json",
+        "start": 425,
+        "startLoc": {
+          "column": 31,
+          "line": 425,
+          "position": 10922
+        }
+      },
+      "tokens": 124
+    },
+    {
+      "firstFile": {
+        "end": 30,
+        "endLoc": {
+          "column": 9,
+          "line": 30,
+          "position": 759
+        },
+        "name": "db\\migrations\\meta\\0000_snapshot.json",
+        "start": 13,
+        "startLoc": {
+          "column": 28,
+          "line": 13,
+          "position": 314
+        }
+      },
+      "format": "json",
+      "fragment": "",
+      "lines": 18,
+      "secondFile": {
+        "end": 538,
+        "endLoc": {
+          "column": 9,
+          "line": 538,
+          "position": 13788
+        },
+        "name": "db\\migrations\\meta\\0000_snapshot.json",
+        "start": 521,
+        "startLoc": {
+          "column": 29,
+          "line": 521,
+          "position": 13343
+        }
+      },
+      "tokens": 57
+    },
+    {
+      "firstFile": {
+        "end": 226,
+        "endLoc": {
+          "column": 13,
+          "line": 226,
+          "position": 5799
+        },
+        "name": "db\\migrations\\meta\\0000_snapshot.json",
+        "start": 75,
+        "startLoc": {
+          "column": 22,
+          "line": 75,
+          "position": 1921
+        }
+      },
+      "format": "json",
+      "fragment": "",
+      "lines": 152,
+      "secondFile": {
+        "end": 250,
+        "endLoc": {
+          "column": 22,
+          "line": 250,
+          "position": 6448
+        },
+        "name": "db\\migrations\\meta\\0011_snapshot.json",
+        "start": 89,
+        "startLoc": {
+          "column": 6,
+          "line": 89,
+          "position": 2299
+        }
+      },
+      "tokens": 522
+    },
+    {
+      "firstFile": {
+        "end": 1073,
+        "endLoc": {
+          "column": 1,
+          "line": 1073,
+          "position": 27400
+        },
+        "name": "db\\migrations\\meta\\0000_snapshot.json",
+        "start": 154,
+        "startLoc": {
+          "column": 18,
+          "line": 154,
+          "position": 3944
+        }
+      },
+      "format": "json",
+      "fragment": "",
+      "lines": 920,
+      "secondFile": {
+        "end": 1130,
+        "endLoc": {
+          "column": 1,
+          "line": 1130,
+          "position": 28865
+        },
+        "name": "db\\migrations\\meta\\0001_snapshot.json",
+        "start": 211,
+        "startLoc": {
+          "column": 6,
+          "line": 211,
+          "position": 5409
+        }
+      },
+      "tokens": 3179
+    },
+    {
+      "firstFile": {
+        "end": 591,
+        "endLoc": {
+          "column": 17,
+          "line": 591,
+          "position": 15108
+        },
+        "name": "db\\migrations\\meta\\0000_snapshot.json",
+        "start": 241,
+        "startLoc": {
+          "column": 18,
+          "line": 241,
+          "position": 6161
+        }
+      },
+      "format": "json",
+      "fragment": "",
+      "lines": 351,
+      "secondFile": {
+        "end": 753,
+        "endLoc": {
+          "column": 6,
+          "line": 753,
+          "position": 19423
+        },
+        "name": "db\\migrations\\meta\\0015_snapshot.json",
+        "start": 390,
+        "startLoc": {
+          "column": 6,
+          "line": 390,
+          "position": 10086
+        }
+      },
+      "tokens": 1216
+    },
+    {
+      "firstFile": {
+        "end": 402,
+        "endLoc": {
+          "column": 22,
+          "line": 402,
+          "position": 10271
+        },
+        "name": "db\\migrations\\meta\\0000_snapshot.json",
+        "start": 242,
+        "startLoc": {
+          "column": 22,
+          "line": 242,
+          "position": 6186
+        }
+      },
+      "format": "json",
+      "fragment": "",
+      "lines": 161,
+      "secondFile": {
+        "end": 437,
+        "endLoc": {
+          "column": 22,
+          "line": 437,
+          "position": 11331
+        },
+        "name": "db\\migrations\\meta\\0011_snapshot.json",
+        "start": 277,
+        "startLoc": {
+          "column": 6,
+          "line": 277,
+          "position": 7246
+        }
+      },
+      "tokens": 554
+    },
+    {
+      "firstFile": {
+        "end": 513,
+        "endLoc": {
+          "column": 25,
+          "line": 513,
+          "position": 13120
+        },
+        "name": "db\\migrations\\meta\\0000_snapshot.json",
+        "start": 402,
+        "startLoc": {
+          "column": 22,
+          "line": 402,
+          "position": 10271
+        }
+      },
+      "format": "json",
+      "fragment": "",
+      "lines": 112,
+      "secondFile": {
+        "end": 569,
+        "endLoc": {
+          "column": 22,
+          "line": 569,
+          "position": 14748
+        },
+        "name": "db\\migrations\\meta\\0011_snapshot.json",
+        "start": 451,
+        "startLoc": {
+          "column": 6,
+          "line": 451,
+          "position": 11745
+        }
+      },
+      "tokens": 388
+    },
+    {
+      "firstFile": {
+        "end": 451,
+        "endLoc": {
+          "column": 10,
+          "line": 451,
+          "position": 11529
+        },
+        "name": "db\\migrations\\meta\\0000_snapshot.json",
+        "start": 435,
+        "startLoc": {
+          "column": 26,
+          "line": 435,
+          "position": 11118
+        }
+      },
+      "format": "json",
+      "fragment": "",
+      "lines": 17,
+      "secondFile": {
+        "end": 1793,
+        "endLoc": {
+          "column": 10,
+          "line": 1793,
+          "position": 46158
+        },
+        "name": "db\\migrations\\meta\\0011_snapshot.json",
+        "start": 1777,
+        "startLoc": {
+          "column": 25,
+          "line": 1777,
+          "position": 45747
+        }
+      },
+      "tokens": 54
+    },
+    {
+      "firstFile": {
+        "end": 551,
+        "endLoc": {
+          "column": 24,
+          "line": 551,
+          "position": 14072
+        },
+        "name": "db\\migrations\\meta\\0000_snapshot.json",
+        "start": 503,
+        "startLoc": {
+          "column": 22,
+          "line": 503,
+          "position": 12888
+        }
+      },
+      "format": "json",
+      "fragment": "",
+      "lines": 49,
+      "secondFile": {
+        "end": 632,
+        "endLoc": {
+          "column": 9,
+          "line": 632,
+          "position": 16402
+        },
+        "name": "db\\migrations\\meta\\0011_snapshot.json",
+        "start": 583,
+        "startLoc": {
+          "column": 6,
+          "line": 583,
+          "position": 15135
+        }
+      },
+      "tokens": 171
+    },
+    {
+      "firstFile": {
+        "end": 1073,
+        "endLoc": {
+          "column": 1,
+          "line": 1073,
+          "position": 27400
+        },
+        "name": "db\\migrations\\meta\\0000_snapshot.json",
+        "start": 540,
+        "startLoc": {
+          "column": 18,
+          "line": 540,
+          "position": 13816
+        }
+      },
+      "format": "json",
+      "fragment": "",
+      "lines": 534,
+      "secondFile": {
+        "end": 1226,
+        "endLoc": {
+          "column": 1,
+          "line": 1226,
+          "position": 31303
+        },
+        "name": "db\\migrations\\meta\\0003_snapshot.json",
+        "start": 693,
+        "startLoc": {
+          "column": 6,
+          "line": 693,
+          "position": 17719
+        }
+      },
+      "tokens": 1842
+    },
+    {
+      "firstFile": {
+        "end": 1073,
+        "endLoc": {
+          "column": 1,
+          "line": 1073,
+          "position": 27400
+        },
+        "name": "db\\migrations\\meta\\0000_snapshot.json",
+        "start": 719,
+        "startLoc": {
+          "column": 8,
+          "line": 719,
+          "position": 18424
+        }
+      },
+      "format": "json",
+      "fragment": "",
+      "lines": 355,
+      "secondFile": {
+        "end": 1461,
+        "endLoc": {
+          "column": 1,
+          "line": 1461,
+          "position": 37309
+        },
+        "name": "db\\migrations\\meta\\0004_snapshot.json",
+        "start": 1107,
+        "startLoc": {
+          "column": 8,
+          "line": 1107,
+          "position": 28333
+        }
+      },
+      "tokens": 1222
+    },
+    {
+      "firstFile": {
+        "end": 1054,
+        "endLoc": {
+          "column": 9,
+          "line": 1054,
+          "position": 27097
+        },
+        "name": "db\\migrations\\meta\\0000_snapshot.json",
+        "start": 864,
+        "startLoc": {
+          "column": 18,
+          "line": 864,
+          "position": 22159
+        }
+      },
+      "format": "json",
+      "fragment": "",
+      "lines": 191,
+      "secondFile": {
+        "end": 1487,
+        "endLoc": {
+          "column": 9,
+          "line": 1487,
+          "position": 38112
+        },
+        "name": "db\\migrations\\meta\\0007_snapshot.json",
+        "start": 1297,
+        "startLoc": {
+          "column": 6,
+          "line": 1297,
+          "position": 33174
+        }
+      },
+      "tokens": 656
+    },
+    {
+      "firstFile": {
+        "end": 1073,
+        "endLoc": {
+          "column": 1,
+          "line": 1073,
+          "position": 27400
+        },
+        "name": "db\\migrations\\meta\\0000_snapshot.json",
+        "start": 1056,
+        "startLoc": {
+          "column": 18,
+          "line": 1056,
+          "position": 27125
+        }
+      },
+      "format": "json",
+      "fragment": "",
+      "lines": 18,
+      "secondFile": {
+        "end": 1706,
+        "endLoc": {
+          "column": 1,
+          "line": 1706,
+          "position": 43496
+        },
+        "name": "db\\migrations\\meta\\0007_snapshot.json",
+        "start": 1689,
+        "startLoc": {
+          "column": 6,
+          "line": 1689,
+          "position": 43221
+        }
+      },
+      "tokens": 62
+    },
+    {
+      "firstFile": {
+        "end": 1073,
+        "endLoc": {
+          "column": 1,
+          "line": 1073,
+          "position": 27400
+        },
+        "name": "db\\migrations\\meta\\0000_snapshot.json",
+        "start": 1057,
+        "startLoc": {
+          "column": 22,
+          "line": 1057,
+          "position": 27150
+        }
+      },
+      "format": "json",
+      "fragment": "",
+      "lines": 17,
+      "secondFile": {
+        "end": 1900,
+        "endLoc": {
+          "column": 1,
+          "line": 1900,
+          "position": 48810
+        },
+        "name": "db\\migrations\\meta\\0011_snapshot.json",
+        "start": 1884,
+        "startLoc": {
+          "column": 6,
+          "line": 1884,
+          "position": 48560
+        }
+      },
+      "tokens": 57
+    },
+    {
+      "firstFile": {
+        "end": 215,
+        "endLoc": {
+          "column": 27,
+          "line": 215,
+          "position": 5529
+        },
+        "name": "db\\migrations\\meta\\0001_snapshot.json",
+        "start": 189,
+        "startLoc": {
+          "column": 26,
+          "line": 189,
+          "position": 4862
+        }
+      },
+      "format": "json",
+      "fragment": "",
+      "lines": 27,
+      "secondFile": {
+        "end": 225,
+        "endLoc": {
+          "column": 9,
+          "line": 225,
+          "position": 5806
+        },
+        "name": "db\\migrations\\meta\\0007_snapshot.json",
+        "start": 196,
+        "startLoc": {
+          "column": 27,
+          "line": 196,
+          "position": 5041
+        }
+      },
+      "tokens": 77
+    },
+    {
+      "firstFile": {
+        "end": 1130,
+        "endLoc": {
+          "column": 1,
+          "line": 1130,
+          "position": 28865
+        },
+        "name": "db\\migrations\\meta\\0001_snapshot.json",
+        "start": 207,
+        "startLoc": {
+          "column": 12,
+          "line": 207,
+          "position": 5341
+        }
+      },
+      "format": "json",
+      "fragment": "",
+      "lines": 924,
+      "secondFile": {
+        "end": 1138,
+        "endLoc": {
+          "column": 1,
+          "line": 1138,
+          "position": 29090
+        },
+        "name": "db\\migrations\\meta\\0002_snapshot.json",
+        "start": 215,
+        "startLoc": {
+          "column": 12,
+          "line": 215,
+          "position": 5566
+        }
+      },
+      "tokens": 3186
+    },
+    {
+      "firstFile": {
+        "end": 559,
+        "endLoc": {
+          "column": 18,
+          "line": 559,
+          "position": 14328
+        },
+        "name": "db\\migrations\\meta\\0001_snapshot.json",
+        "start": 208,
+        "startLoc": {
+          "column": 10,
+          "line": 208,
+          "position": 5362
+        }
+      },
+      "format": "json",
+      "fragment": "",
+      "lines": 352,
+      "secondFile": {
+        "end": 583,
+        "endLoc": {
+          "column": 18,
+          "line": 583,
+          "position": 14964
+        },
+        "name": "db\\migrations\\meta\\0007_snapshot.json",
+        "start": 232,
+        "startLoc": {
+          "column": 10,
+          "line": 232,
+          "position": 5998
+        }
+      },
+      "tokens": 1210
+    },
+    {
+      "firstFile": {
+        "end": 874,
+        "endLoc": {
+          "column": 18,
+          "line": 874,
+          "position": 22356
+        },
+        "name": "db\\migrations\\meta\\0003_snapshot.json",
+        "start": 692,
+        "startLoc": {
+          "column": 8,
+          "line": 692,
+          "position": 17711
+        }
+      },
+      "format": "json",
+      "fragment": "",
+      "lines": 183,
+      "secondFile": {
+        "end": 875,
+        "endLoc": {
+          "column": 18,
+          "line": 875,
+          "position": 22375
+        },
+        "name": "db\\migrations\\meta\\0005_snapshot.json",
+        "start": 693,
+        "startLoc": {
+          "column": 8,
+          "line": 693,
+          "position": 17730
+        }
+      },
+      "tokens": 627
+    },
+    {
+      "firstFile": {
+        "end": 877,
+        "endLoc": {
+          "column": 29,
+          "line": 877,
+          "position": 22447
+        },
+        "name": "db\\migrations\\meta\\0003_snapshot.json",
+        "start": 692,
+        "startLoc": {
+          "column": 8,
+          "line": 692,
+          "position": 17711
+        }
+      },
+      "format": "json",
+      "fragment": "",
+      "lines": 186,
+      "secondFile": {
+        "end": 882,
+        "endLoc": {
+          "column": 26,
+          "line": 882,
+          "position": 22589
+        },
+        "name": "db\\migrations\\meta\\0006_snapshot.json",
+        "start": 694,
+        "startLoc": {
+          "column": 8,
+          "line": 694,
+          "position": 17791
+        }
+      },
+      "tokens": 643
+    },
+    {
+      "firstFile": {
+        "end": 1461,
+        "endLoc": {
+          "column": 1,
+          "line": 1461,
+          "position": 37309
+        },
+        "name": "db\\migrations\\meta\\0004_snapshot.json",
+        "start": 874,
+        "startLoc": {
+          "column": 18,
+          "line": 874,
+          "position": 22356
+        }
+      },
+      "format": "json",
+      "fragment": "",
+      "lines": 588,
+      "secondFile": {
+        "end": 1470,
+        "endLoc": {
+          "column": 1,
+          "line": 1470,
+          "position": 37498
+        },
+        "name": "db\\migrations\\meta\\0005_snapshot.json",
+        "start": 883,
+        "startLoc": {
+          "column": 6,
+          "line": 883,
+          "position": 22545
+        }
+      },
+      "tokens": 2009
+    },
+    {
+      "firstFile": {
+        "end": 1107,
+        "endLoc": {
+          "column": 9,
+          "line": 1107,
+          "position": 28334
+        },
+        "name": "db\\migrations\\meta\\0004_snapshot.json",
+        "start": 1054,
+        "startLoc": {
+          "column": 8,
+          "line": 1054,
+          "position": 27014
+        }
+      },
+      "format": "json",
+      "fragment": "",
+      "lines": 54,
+      "secondFile": {
+        "end": 1205,
+        "endLoc": {
+          "column": 9,
+          "line": 1205,
+          "position": 30813
+        },
+        "name": "db\\migrations\\meta\\0008_snapshot.json",
+        "start": 1152,
+        "startLoc": {
+          "column": 8,
+          "line": 1152,
+          "position": 29493
+        }
+      },
+      "tokens": 185
+    },
+    {
+      "firstFile": {
+        "end": 886,
+        "endLoc": {
+          "column": 28,
+          "line": 886,
+          "position": 22635
+        },
+        "name": "db\\migrations\\meta\\0005_snapshot.json",
+        "start": 691,
+        "startLoc": {
+          "column": 11,
+          "line": 691,
+          "position": 17693
+        }
+      },
+      "format": "json",
+      "fragment": "",
+      "lines": 196,
+      "secondFile": {
+        "end": 923,
+        "endLoc": {
+          "column": 12,
+          "line": 923,
+          "position": 23558
+        },
+        "name": "db\\migrations\\meta\\0010_snapshot.json",
+        "start": 725,
+        "startLoc": {
+          "column": 59,
+          "line": 725,
+          "position": 18551
+        }
+      },
+      "tokens": 663
+    },
+    {
+      "firstFile": {
+        "end": 1119,
+        "endLoc": {
+          "column": 24,
+          "line": 1119,
+          "position": 28578
+        },
+        "name": "db\\migrations\\meta\\0005_snapshot.json",
+        "start": 880,
+        "startLoc": {
+          "column": 11,
+          "line": 880,
+          "position": 22500
+        }
+      },
+      "format": "json",
+      "fragment": "",
+      "lines": 240,
+      "secondFile": {
+        "end": 1166,
+        "endLoc": {
+          "column": 12,
+          "line": 1166,
+          "position": 29782
+        },
+        "name": "db\\migrations\\meta\\0010_snapshot.json",
+        "start": 924,
+        "startLoc": {
+          "column": 56,
+          "line": 924,
+          "position": 23615
+        }
+      },
+      "tokens": 805
+    },
+    {
+      "firstFile": {
+        "end": 1470,
+        "endLoc": {
+          "column": 1,
+          "line": 1470,
+          "position": 37498
+        },
+        "name": "db\\migrations\\meta\\0005_snapshot.json",
+        "start": 882,
+        "startLoc": {
+          "column": 8,
+          "line": 882,
+          "position": 22537
+        }
+      },
+      "format": "json",
+      "fragment": "",
+      "lines": 589,
+      "secondFile": {
+        "end": 1472,
+        "endLoc": {
+          "column": 1,
+          "line": 1472,
+          "position": 37617
+        },
+        "name": "db\\migrations\\meta\\0006_snapshot.json",
+        "start": 884,
+        "startLoc": {
+          "column": 8,
+          "line": 884,
+          "position": 22656
+        }
+      },
+      "tokens": 2010
+    },
+    {
+      "firstFile": {
+        "end": 898,
+        "endLoc": {
+          "column": 19,
+          "line": 898,
+          "position": 22981
+        },
+        "name": "db\\migrations\\meta\\0006_snapshot.json",
+        "start": 866,
+        "startLoc": {
+          "column": 10,
+          "line": 866,
+          "position": 22207
+        }
+      },
+      "format": "json",
+      "fragment": "",
+      "lines": 33,
+      "secondFile": {
+        "end": 923,
+        "endLoc": {
+          "column": 19,
+          "line": 923,
+          "position": 23588
+        },
+        "name": "db\\migrations\\meta\\0007_snapshot.json",
+        "start": 891,
+        "startLoc": {
+          "column": 10,
+          "line": 891,
+          "position": 22814
+        }
+      },
+      "tokens": 102
+    },
+    {
+      "firstFile": {
+        "end": 835,
+        "endLoc": {
+          "column": 18,
+          "line": 835,
+          "position": 21354
+        },
+        "name": "db\\migrations\\meta\\0007_snapshot.json",
+        "start": 587,
+        "startLoc": {
+          "column": 21,
+          "line": 587,
+          "position": 15075
+        }
+      },
+      "format": "json",
+      "fragment": "",
+      "lines": 249,
+      "secondFile": {
+        "end": 843,
+        "endLoc": {
+          "column": 18,
+          "line": 843,
+          "position": 21544
+        },
+        "name": "db\\migrations\\meta\\0009_snapshot.json",
+        "start": 595,
+        "startLoc": {
+          "column": 21,
+          "line": 595,
+          "position": 15265
+        }
+      },
+      "tokens": 832
+    },
+    {
+      "firstFile": {
+        "end": 1310,
+        "endLoc": {
+          "column": 20,
+          "line": 1310,
+          "position": 33488
+        },
+        "name": "db\\migrations\\meta\\0007_snapshot.json",
+        "start": 1274,
+        "startLoc": {
+          "column": 10,
+          "line": 1274,
+          "position": 32625
+        }
+      },
+      "format": "json",
+      "fragment": "",
+      "lines": 37,
+      "secondFile": {
+        "end": 1407,
+        "endLoc": {
+          "column": 20,
+          "line": 1407,
+          "position": 35954
+        },
+        "name": "db\\migrations\\meta\\0008_snapshot.json",
+        "start": 1371,
+        "startLoc": {
+          "column": 10,
+          "line": 1371,
+          "position": 35091
+        }
+      },
+      "tokens": 117
+    },
+    {
+      "firstFile": {
+        "end": 1706,
+        "endLoc": {
+          "column": 1,
+          "line": 1706,
+          "position": 43496
+        },
+        "name": "db\\migrations\\meta\\0007_snapshot.json",
+        "start": 1294,
+        "startLoc": {
+          "column": 10,
+          "line": 1294,
+          "position": 33127
+        }
+      },
+      "format": "json",
+      "fragment": "",
+      "lines": 413,
+      "secondFile": {
+        "end": 1828,
+        "endLoc": {
+          "column": 1,
+          "line": 1828,
+          "position": 46534
+        },
+        "name": "db\\migrations\\meta\\0009_snapshot.json",
+        "start": 1416,
+        "startLoc": {
+          "column": 10,
+          "line": 1416,
+          "position": 36165
+        }
+      },
+      "tokens": 1334
+    },
+    {
+      "firstFile": {
+        "end": 1596,
+        "endLoc": {
+          "column": 9,
+          "line": 1596,
+          "position": 40921
+        },
+        "name": "db\\migrations\\meta\\0007_snapshot.json",
+        "start": 1537,
+        "startLoc": {
+          "column": 8,
+          "line": 1537,
+          "position": 39469
+        }
+      },
+      "format": "json",
+      "fragment": "",
+      "lines": 60,
+      "secondFile": {
+        "end": 2803,
+        "endLoc": {
+          "column": 9,
+          "line": 2803,
+          "position": 72404
+        },
+        "name": "db\\migrations\\meta\\0019_snapshot.json",
+        "start": 2744,
+        "startLoc": {
+          "column": 8,
+          "line": 2744,
+          "position": 70952
+        }
+      },
+      "tokens": 149
+    },
+    {
+      "firstFile": {
+        "end": 1698,
+        "endLoc": {
+          "column": 12,
+          "line": 1698,
+          "position": 43396
+        },
+        "name": "db\\migrations\\meta\\0007_snapshot.json",
+        "start": 1548,
+        "startLoc": {
+          "column": 8,
+          "line": 1548,
+          "position": 39729
+        }
+      },
+      "format": "json",
+      "fragment": "",
+      "lines": 151,
+      "secondFile": {
+        "end": 1820,
+        "endLoc": {
+          "column": 12,
+          "line": 1820,
+          "position": 46434
+        },
+        "name": "db\\migrations\\meta\\0010_snapshot.json",
+        "start": 1670,
+        "startLoc": {
+          "column": 8,
+          "line": 1670,
+          "position": 42767
+        }
+      },
+      "tokens": 448
+    },
+    {
+      "firstFile": {
+        "end": 1612,
+        "endLoc": {
+          "column": 10,
+          "line": 1612,
+          "position": 41304
+        },
+        "name": "db\\migrations\\meta\\0007_snapshot.json",
+        "start": 1598,
+        "startLoc": {
+          "column": 22,
+          "line": 1598,
+          "position": 40953
+        }
+      },
+      "format": "json",
+      "fragment": "",
+      "lines": 15,
+      "secondFile": {
+        "end": 1758,
+        "endLoc": {
+          "column": 10,
+          "line": 1758,
+          "position": 45240
+        },
+        "name": "db\\migrations\\meta\\0011_snapshot.json",
+        "start": 1744,
+        "startLoc": {
+          "column": 6,
+          "line": 1744,
+          "position": 44889
+        }
+      },
+      "tokens": 52
+    },
+    {
+      "firstFile": {
+        "end": 1690,
+        "endLoc": {
+          "column": 22,
+          "line": 1690,
+          "position": 43246
+        },
+        "name": "db\\migrations\\meta\\0007_snapshot.json",
+        "start": 1617,
+        "startLoc": {
+          "column": 25,
+          "line": 1617,
+          "position": 41437
+        }
+      },
+      "format": "json",
+      "fragment": "",
+      "lines": 74,
+      "secondFile": {
+        "end": 1857,
+        "endLoc": {
+          "column": 22,
+          "line": 1857,
+          "position": 47744
+        },
+        "name": "db\\migrations\\meta\\0011_snapshot.json",
+        "start": 1784,
+        "startLoc": {
+          "column": 26,
+          "line": 1784,
+          "position": 45935
+        }
+      },
+      "tokens": 220
+    },
+    {
+      "firstFile": {
+        "end": 1112,
+        "endLoc": {
+          "column": 32,
+          "line": 1112,
+          "position": 28483
+        },
+        "name": "db\\migrations\\meta\\0008_snapshot.json",
+        "start": 1080,
+        "startLoc": {
+          "column": 6,
+          "line": 1080,
+          "position": 27680
+        }
+      },
+      "format": "json",
+      "fragment": "",
+      "lines": 33,
+      "secondFile": {
+        "end": 1129,
+        "endLoc": {
+          "column": 32,
+          "line": 1129,
+          "position": 28872
+        },
+        "name": "db\\migrations\\meta\\0009_snapshot.json",
+        "start": 1097,
+        "startLoc": {
+          "column": 6,
+          "line": 1097,
+          "position": 28069
+        }
+      },
+      "tokens": 104
+    },
+    {
+      "firstFile": {
+        "end": 1166,
+        "endLoc": {
+          "column": 19,
+          "line": 1166,
+          "position": 29802
+        },
+        "name": "db\\migrations\\meta\\0008_snapshot.json",
+        "start": 1120,
+        "startLoc": {
+          "column": 9,
+          "line": 1120,
+          "position": 28680
+        }
+      },
+      "format": "json",
+      "fragment": "",
+      "lines": 47,
+      "secondFile": {
+        "end": 1183,
+        "endLoc": {
+          "column": 19,
+          "line": 1183,
+          "position": 30191
+        },
+        "name": "db\\migrations\\meta\\0009_snapshot.json",
+        "start": 1137,
+        "startLoc": {
+          "column": 9,
+          "line": 1137,
+          "position": 29069
+        }
+      },
+      "tokens": 148
+    },
+    {
+      "firstFile": {
+        "end": 1250,
+        "endLoc": {
+          "column": 16,
+          "line": 1250,
+          "position": 31936
+        },
+        "name": "db\\migrations\\meta\\0008_snapshot.json",
+        "start": 1191,
+        "startLoc": {
+          "column": 24,
+          "line": 1191,
+          "position": 30445
+        }
+      },
+      "format": "json",
+      "fragment": "",
+      "lines": 60,
+      "secondFile": {
+        "end": 1267,
+        "endLoc": {
+          "column": 16,
+          "line": 1267,
+          "position": 32325
+        },
+        "name": "db\\migrations\\meta\\0009_snapshot.json",
+        "start": 1208,
+        "startLoc": {
+          "column": 24,
+          "line": 1208,
+          "position": 30834
+        }
+      },
+      "tokens": 205
+    },
+    {
+      "firstFile": {
+        "end": 1430,
+        "endLoc": {
+          "column": 25,
+          "line": 1430,
+          "position": 36475
+        },
+        "name": "db\\migrations\\meta\\0009_snapshot.json",
+        "start": 1393,
+        "startLoc": {
+          "column": 8,
+          "line": 1393,
+          "position": 35624
+        }
+      },
+      "format": "json",
+      "fragment": "",
+      "lines": 38,
+      "secondFile": {
+        "end": 1430,
+        "endLoc": {
+          "column": 25,
+          "line": 1430,
+          "position": 36475
+        },
+        "name": "db\\migrations\\meta\\0010_snapshot.json",
+        "start": 1393,
+        "startLoc": {
+          "column": 8,
+          "line": 1393,
+          "position": 35624
+        }
+      },
+      "tokens": 112
+    },
+    {
+      "firstFile": {
+        "end": 77,
+        "endLoc": {
+          "column": 29,
+          "line": 77,
+          "position": 1987
+        },
+        "name": "db\\migrations\\meta\\0010_snapshot.json",
+        "start": 3,
+        "startLoc": {
+          "column": 50,
+          "line": 3,
+          "position": 100
+        }
+      },
+      "format": "json",
+      "fragment": "",
+      "lines": 75,
+      "secondFile": {
+        "end": 78,
+        "endLoc": {
+          "column": 34,
+          "line": 78,
+          "position": 2060
+        },
+        "name": "db\\migrations\\meta\\0012_snapshot.json",
+        "start": 3,
+        "startLoc": {
+          "column": 50,
+          "line": 3,
+          "position": 100
+        }
+      },
+      "tokens": 258
+    },
+    {
+      "firstFile": {
+        "end": 1828,
+        "endLoc": {
+          "column": 1,
+          "line": 1828,
+          "position": 46534
+        },
+        "name": "db\\migrations\\meta\\0010_snapshot.json",
+        "start": 1812,
+        "startLoc": {
+          "column": 22,
+          "line": 1812,
+          "position": 46284
+        }
+      },
+      "format": "json",
+      "fragment": "",
+      "lines": 17,
+      "secondFile": {
+        "end": 1900,
+        "endLoc": {
+          "column": 1,
+          "line": 1900,
+          "position": 48810
+        },
+        "name": "db\\migrations\\meta\\0012_snapshot.json",
+        "start": 1884,
+        "startLoc": {
+          "column": 6,
+          "line": 1884,
+          "position": 48560
+        }
+      },
+      "tokens": 57
+    },
+    {
+      "firstFile": {
+        "end": 79,
+        "endLoc": {
+          "column": 19,
+          "line": 79,
+          "position": 2080
+        },
+        "name": "db\\migrations\\meta\\0011_snapshot.json",
+        "start": 61,
+        "startLoc": {
+          "column": 16,
+          "line": 61,
+          "position": 1576
+        }
+      },
+      "format": "json",
+      "fragment": "",
+      "lines": 19,
+      "secondFile": {
+        "end": 79,
+        "endLoc": {
+          "column": 23,
+          "line": 79,
+          "position": 2084
+        },
+        "name": "db\\migrations\\meta\\0012_snapshot.json",
+        "start": 61,
+        "startLoc": {
+          "column": 16,
+          "line": 61,
+          "position": 1576
+        }
+      },
+      "tokens": 60
+    },
+    {
+      "firstFile": {
+        "end": 253,
+        "endLoc": {
+          "column": 42,
+          "line": 253,
+          "position": 6611
+        },
+        "name": "db\\migrations\\meta\\0011_snapshot.json",
+        "start": 87,
+        "startLoc": {
+          "column": 20,
+          "line": 87,
+          "position": 2269
+        }
+      },
+      "format": "json",
+      "fragment": "",
+      "lines": 167,
+      "secondFile": {
+        "end": 253,
+        "endLoc": {
+          "column": 42,
+          "line": 253,
+          "position": 6611
+        },
+        "name": "db\\migrations\\meta\\0012_snapshot.json",
+        "start": 87,
+        "startLoc": {
+          "column": 20,
+          "line": 87,
+          "position": 2269
+        }
+      },
+      "tokens": 536
+    },
+    {
+      "firstFile": {
+        "end": 254,
+        "endLoc": {
+          "column": 19,
+          "line": 254,
+          "position": 6631
+        },
+        "name": "db\\migrations\\meta\\0011_snapshot.json",
+        "start": 230,
+        "startLoc": {
+          "column": 22,
+          "line": 230,
+          "position": 5944
+        }
+      },
+      "format": "json",
+      "fragment": "",
+      "lines": 25,
+      "secondFile": {
+        "end": 254,
+        "endLoc": {
+          "column": 23,
+          "line": 254,
+          "position": 6635
+        },
+        "name": "db\\migrations\\meta\\0012_snapshot.json",
+        "start": 230,
+        "startLoc": {
+          "column": 22,
+          "line": 230,
+          "position": 5944
+        }
+      },
+      "tokens": 60
+    },
+    {
+      "firstFile": {
+        "end": 440,
+        "endLoc": {
+          "column": 46,
+          "line": 440,
+          "position": 11506
+        },
+        "name": "db\\migrations\\meta\\0011_snapshot.json",
+        "start": 275,
+        "startLoc": {
+          "column": 20,
+          "line": 275,
+          "position": 7216
+        }
+      },
+      "format": "json",
+      "fragment": "",
+      "lines": 166,
+      "secondFile": {
+        "end": 440,
+        "endLoc": {
+          "column": 46,
+          "line": 440,
+          "position": 11506
+        },
+        "name": "db\\migrations\\meta\\0012_snapshot.json",
+        "start": 275,
+        "startLoc": {
+          "column": 20,
+          "line": 275,
+          "position": 7216
+        }
+      },
+      "tokens": 568
+    },
+    {
+      "firstFile": {
+        "end": 441,
+        "endLoc": {
+          "column": 19,
+          "line": 441,
+          "position": 11526
+        },
+        "name": "db\\migrations\\meta\\0011_snapshot.json",
+        "start": 423,
+        "startLoc": {
+          "column": 16,
+          "line": 423,
+          "position": 10982
+        }
+      },
+      "format": "json",
+      "fragment": "",
+      "lines": 19,
+      "secondFile": {
+        "end": 441,
+        "endLoc": {
+          "column": 23,
+          "line": 441,
+          "position": 11530
+        },
+        "name": "db\\migrations\\meta\\0012_snapshot.json",
+        "start": 423,
+        "startLoc": {
+          "column": 16,
+          "line": 423,
+          "position": 10982
+        }
+      },
+      "tokens": 60
+    },
+    {
+      "firstFile": {
+        "end": 572,
+        "endLoc": {
+          "column": 37,
+          "line": 572,
+          "position": 14896
+        },
+        "name": "db\\migrations\\meta\\0011_snapshot.json",
+        "start": 449,
+        "startLoc": {
+          "column": 20,
+          "line": 449,
+          "position": 11715
+        }
+      },
+      "format": "json",
+      "fragment": "",
+      "lines": 124,
+      "secondFile": {
+        "end": 572,
+        "endLoc": {
+          "column": 37,
+          "line": 572,
+          "position": 14896
+        },
+        "name": "db\\migrations\\meta\\0012_snapshot.json",
+        "start": 449,
+        "startLoc": {
+          "column": 20,
+          "line": 449,
+          "position": 11715
+        }
+      },
+      "tokens": 402
+    },
+    {
+      "firstFile": {
+        "end": 573,
+        "endLoc": {
+          "column": 19,
+          "line": 573,
+          "position": 14916
+        },
+        "name": "db\\migrations\\meta\\0011_snapshot.json",
+        "start": 550,
+        "startLoc": {
+          "column": 6,
+          "line": 550,
+          "position": 14316
+        }
+      },
+      "format": "json",
+      "fragment": "",
+      "lines": 24,
+      "secondFile": {
+        "end": 573,
+        "endLoc": {
+          "column": 23,
+          "line": 573,
+          "position": 14920
+        },
+        "name": "db\\migrations\\meta\\0012_snapshot.json",
+        "start": 550,
+        "startLoc": {
+          "column": 6,
+          "line": 550,
+          "position": 14316
+        }
+      },
+      "tokens": 60
+    },
+    {
+      "firstFile": {
+        "end": 1419,
+        "endLoc": {
+          "column": 36,
+          "line": 1419,
+          "position": 36509
+        },
+        "name": "db\\migrations\\meta\\0011_snapshot.json",
+        "start": 581,
+        "startLoc": {
+          "column": 20,
+          "line": 581,
+          "position": 15105
+        }
+      },
+      "format": "json",
+      "fragment": "",
+      "lines": 839,
+      "secondFile": {
+        "end": 1419,
+        "endLoc": {
+          "column": 36,
+          "line": 1419,
+          "position": 36509
+        },
+        "name": "db\\migrations\\meta\\0012_snapshot.json",
+        "start": 581,
+        "startLoc": {
+          "column": 20,
+          "line": 581,
+          "position": 15105
+        }
+      },
+      "tokens": 2804
+    },
+    {
+      "firstFile": {
+        "end": 1420,
+        "endLoc": {
+          "column": 19,
+          "line": 1420,
+          "position": 36529
+        },
+        "name": "db\\migrations\\meta\\0011_snapshot.json",
+        "start": 1397,
+        "startLoc": {
+          "column": 6,
+          "line": 1397,
+          "position": 35944
+        }
+      },
+      "format": "json",
+      "fragment": "",
+      "lines": 24,
+      "secondFile": {
+        "end": 1420,
+        "endLoc": {
+          "column": 23,
+          "line": 1420,
+          "position": 36533
+        },
+        "name": "db\\migrations\\meta\\0012_snapshot.json",
+        "start": 1397,
+        "startLoc": {
+          "column": 6,
+          "line": 1397,
+          "position": 35944
+        }
+      },
+      "tokens": 60
+    },
+    {
+      "firstFile": {
+        "end": 1442,
+        "endLoc": {
+          "column": 26,
+          "line": 1442,
+          "position": 37043
+        },
+        "name": "db\\migrations\\meta\\0011_snapshot.json",
+        "start": 1400,
+        "startLoc": {
+          "column": 35,
+          "line": 1400,
+          "position": 36030
+        }
+      },
+      "format": "json",
+      "fragment": "",
+      "lines": 43,
+      "secondFile": {
+        "end": 1458,
+        "endLoc": {
+          "column": 26,
+          "line": 1458,
+          "position": 37566
+        },
+        "name": "db\\migrations\\meta\\0013_snapshot.json",
+        "start": 1416,
+        "startLoc": {
+          "column": 35,
+          "line": 1416,
+          "position": 36553
+        }
+      },
+      "tokens": 119
+    },
+    {
+      "firstFile": {
+        "end": 1733,
+        "endLoc": {
+          "column": 37,
+          "line": 1733,
+          "position": 44650
+        },
+        "name": "db\\migrations\\meta\\0011_snapshot.json",
+        "start": 1428,
+        "startLoc": {
+          "column": 20,
+          "line": 1428,
+          "position": 36718
+        }
+      },
+      "format": "json",
+      "fragment": "",
+      "lines": 306,
+      "secondFile": {
+        "end": 1733,
+        "endLoc": {
+          "column": 37,
+          "line": 1733,
+          "position": 44650
+        },
+        "name": "db\\migrations\\meta\\0012_snapshot.json",
+        "start": 1428,
+        "startLoc": {
+          "column": 20,
+          "line": 1428,
+          "position": 36718
+        }
+      },
+      "tokens": 990
+    },
+    {
+      "firstFile": {
+        "end": 1900,
+        "endLoc": {
+          "column": 1,
+          "line": 1900,
+          "position": 48810
+        },
+        "name": "db\\migrations\\meta\\0011_snapshot.json",
+        "start": 1726,
+        "startLoc": {
+          "column": 10,
+          "line": 1726,
+          "position": 44430
+        }
+      },
+      "format": "json",
+      "fragment": "",
+      "lines": 175,
+      "secondFile": {
+        "end": 2982,
+        "endLoc": {
+          "column": 1,
+          "line": 2982,
+          "position": 76929
+        },
+        "name": "db\\migrations\\meta\\0019_snapshot.json",
+        "start": 2808,
+        "startLoc": {
+          "column": 10,
+          "line": 2808,
+          "position": 72549
+        }
+      },
+      "tokens": 536
+    },
+    {
+      "firstFile": {
+        "end": 1860,
+        "endLoc": {
+          "column": 43,
+          "line": 1860,
+          "position": 47910
+        },
+        "name": "db\\migrations\\meta\\0011_snapshot.json",
+        "start": 1742,
+        "startLoc": {
+          "column": 20,
+          "line": 1742,
+          "position": 44859
+        }
+      },
+      "format": "json",
+      "fragment": "",
+      "lines": 119,
+      "secondFile": {
+        "end": 1860,
+        "endLoc": {
+          "column": 43,
+          "line": 1860,
+          "position": 47910
+        },
+        "name": "db\\migrations\\meta\\0012_snapshot.json",
+        "start": 1742,
+        "startLoc": {
+          "column": 20,
+          "line": 1742,
+          "position": 44859
+        }
+      },
+      "tokens": 376
+    },
+    {
+      "firstFile": {
+        "end": 1900,
+        "endLoc": {
+          "column": 1,
+          "line": 1900,
+          "position": 48810
+        },
+        "name": "db\\migrations\\meta\\0011_snapshot.json",
+        "start": 1850,
+        "startLoc": {
+          "column": 21,
+          "line": 1850,
+          "position": 47608
+        }
+      },
+      "format": "json",
+      "fragment": "",
+      "lines": 51,
+      "secondFile": {
+        "end": 2992,
+        "endLoc": {
+          "column": 1,
+          "line": 2992,
+          "position": 77164
+        },
+        "name": "db\\migrations\\meta\\0020_snapshot.json",
+        "start": 2942,
+        "startLoc": {
+          "column": 21,
+          "line": 2942,
+          "position": 75962
+        }
+      },
+      "tokens": 143
+    },
+    {
+      "firstFile": {
+        "end": 872,
+        "endLoc": {
+          "column": 15,
+          "line": 872,
+          "position": 22581
+        },
+        "name": "db\\migrations\\meta\\0013_snapshot.json",
+        "start": 823,
+        "startLoc": {
+          "column": 8,
+          "line": 823,
+          "position": 21292
+        }
+      },
+      "format": "json",
+      "fragment": "",
+      "lines": 50,
+      "secondFile": {
+        "end": 924,
+        "endLoc": {
+          "column": 15,
+          "line": 924,
+          "position": 23887
+        },
+        "name": "db\\migrations\\meta\\0014_snapshot.json",
+        "start": 875,
+        "startLoc": {
+          "column": 8,
+          "line": 875,
+          "position": 22598
+        }
+      },
+      "tokens": 151
+    },
+    {
+      "firstFile": {
+        "end": 349,
+        "endLoc": {
+          "column": 32,
+          "line": 349,
+          "position": 9063
+        },
+        "name": "db\\migrations\\meta\\0015_snapshot.json",
+        "start": 317,
+        "startLoc": {
+          "column": 16,
+          "line": 317,
+          "position": 8223
+        }
+      },
+      "format": "json",
+      "fragment": "",
+      "lines": 33,
+      "secondFile": {
+        "end": 551,
+        "endLoc": {
+          "column": 32,
+          "line": 551,
+          "position": 14321
+        },
+        "name": "db\\migrations\\meta\\0016_snapshot.json",
+        "start": 519,
+        "startLoc": {
+          "column": 16,
+          "line": 519,
+          "position": 13481
+        }
+      },
+      "tokens": 104
+    },
+    {
+      "firstFile": {
+        "end": 403,
+        "endLoc": {
+          "column": 20,
+          "line": 403,
+          "position": 10394
+        },
+        "name": "db\\migrations\\meta\\0015_snapshot.json",
+        "start": 357,
+        "startLoc": {
+          "column": 9,
+          "line": 357,
+          "position": 9260
+        }
+      },
+      "format": "json",
+      "fragment": "",
+      "lines": 47,
+      "secondFile": {
+        "end": 605,
+        "endLoc": {
+          "column": 20,
+          "line": 605,
+          "position": 15652
+        },
+        "name": "db\\migrations\\meta\\0016_snapshot.json",
+        "start": 559,
+        "startLoc": {
+          "column": 9,
+          "line": 559,
+          "position": 14518
+        }
+      },
+      "tokens": 149
+    },
+    {
+      "firstFile": {
+        "end": 769,
+        "endLoc": {
+          "column": 32,
+          "line": 769,
+          "position": 19837
+        },
+        "name": "db\\migrations\\meta\\0015_snapshot.json",
+        "start": 740,
+        "startLoc": {
+          "column": 22,
+          "line": 740,
+          "position": 19103
+        }
+      },
+      "format": "json",
+      "fragment": "",
+      "lines": 30,
+      "secondFile": {
+        "end": 971,
+        "endLoc": {
+          "column": 32,
+          "line": 971,
+          "position": 25095
+        },
+        "name": "db\\migrations\\meta\\0016_snapshot.json",
+        "start": 942,
+        "startLoc": {
+          "column": 22,
+          "line": 942,
+          "position": 24361
+        }
+      },
+      "tokens": 104
+    },
+    {
+      "firstFile": {
+        "end": 852,
+        "endLoc": {
+          "column": 20,
+          "line": 852,
+          "position": 21949
+        },
+        "name": "db\\migrations\\meta\\0015_snapshot.json",
+        "start": 777,
+        "startLoc": {
+          "column": 9,
+          "line": 777,
+          "position": 20034
+        }
+      },
+      "format": "json",
+      "fragment": "",
+      "lines": 76,
+      "secondFile": {
+        "end": 1054,
+        "endLoc": {
+          "column": 20,
+          "line": 1054,
+          "position": 27207
+        },
+        "name": "db\\migrations\\meta\\0016_snapshot.json",
+        "start": 979,
+        "startLoc": {
+          "column": 9,
+          "line": 979,
+          "position": 25292
+        }
+      },
+      "tokens": 243
+    },
+    {
+      "firstFile": {
+        "end": 341,
+        "endLoc": {
+          "column": 16,
+          "line": 341,
+          "position": 8804
+        },
+        "name": "db\\migrations\\meta\\0017_snapshot.json",
+        "start": 221,
+        "startLoc": {
+          "column": 9,
+          "line": 221,
+          "position": 5670
+        }
+      },
+      "format": "json",
+      "fragment": "",
+      "lines": 121,
+      "secondFile": {
+        "end": 341,
+        "endLoc": {
+          "column": 16,
+          "line": 341,
+          "position": 8804
+        },
+        "name": "db\\migrations\\meta\\0018_snapshot.json",
+        "start": 221,
+        "startLoc": {
+          "column": 9,
+          "line": 221,
+          "position": 5670
+        }
+      },
+      "tokens": 390
+    },
+    {
+      "firstFile": {
+        "end": 2766,
+        "endLoc": {
+          "column": 1,
+          "line": 2766,
+          "position": 71318
+        },
+        "name": "db\\migrations\\meta\\0017_snapshot.json",
+        "start": 329,
+        "startLoc": {
+          "column": 10,
+          "line": 329,
+          "position": 8541
+        }
+      },
+      "format": "json",
+      "fragment": "",
+      "lines": 2438,
+      "secondFile": {
+        "end": 2964,
+        "endLoc": {
+          "column": 1,
+          "line": 2964,
+          "position": 76419
+        },
+        "name": "db\\migrations\\meta\\0018_snapshot.json",
+        "start": 527,
+        "startLoc": {
+          "column": 10,
+          "line": 527,
+          "position": 13642
+        }
+      },
+      "tokens": 7971
+    },
+    {
+      "firstFile": {
+        "end": 439,
+        "endLoc": {
+          "column": 32,
+          "line": 439,
+          "position": 11285
+        },
+        "name": "db\\migrations\\meta\\0018_snapshot.json",
+        "start": 364,
+        "startLoc": {
+          "column": 9,
+          "line": 364,
+          "position": 9394
+        }
+      },
+      "format": "json",
+      "fragment": "",
+      "lines": 76,
+      "secondFile": {
+        "end": 439,
+        "endLoc": {
+          "column": 32,
+          "line": 439,
+          "position": 11285
+        },
+        "name": "db\\migrations\\meta\\0019_snapshot.json",
+        "start": 364,
+        "startLoc": {
+          "column": 9,
+          "line": 364,
+          "position": 9394
+        }
+      },
+      "tokens": 242
+    },
+    {
+      "firstFile": {
+        "end": 543,
+        "endLoc": {
+          "column": 22,
+          "line": 543,
+          "position": 13994
+        },
+        "name": "db\\migrations\\meta\\0018_snapshot.json",
+        "start": 447,
+        "startLoc": {
+          "column": 9,
+          "line": 447,
+          "position": 11482
+        }
+      },
+      "format": "json",
+      "fragment": "",
+      "lines": 97,
+      "secondFile": {
+        "end": 543,
+        "endLoc": {
+          "column": 22,
+          "line": 543,
+          "position": 13994
+        },
+        "name": "db\\migrations\\meta\\0019_snapshot.json",
+        "start": 447,
+        "startLoc": {
+          "column": 9,
+          "line": 447,
+          "position": 11482
+        }
+      },
+      "tokens": 293
+    },
+    {
+      "firstFile": {
+        "end": 2763,
+        "endLoc": {
+          "column": 10,
+          "line": 2763,
+          "position": 71411
+        },
+        "name": "db\\migrations\\meta\\0019_snapshot.json",
+        "start": 2719,
+        "startLoc": {
+          "column": 8,
+          "line": 2719,
+          "position": 70236
+        }
+      },
+      "format": "json",
+      "fragment": "",
+      "lines": 45,
+      "secondFile": {
+        "end": 2763,
+        "endLoc": {
+          "column": 10,
+          "line": 2763,
+          "position": 71411
+        },
+        "name": "db\\migrations\\meta\\0020_snapshot.json",
+        "start": 2719,
+        "startLoc": {
+          "column": 8,
+          "line": 2719,
+          "position": 70236
+        }
+      },
+      "tokens": 133
+    },
+    {
+      "firstFile": {
+        "end": 2827,
+        "endLoc": {
+          "column": 29,
+          "line": 2827,
+          "position": 73040
+        },
+        "name": "db\\migrations\\meta\\0019_snapshot.json",
+        "start": 2783,
+        "startLoc": {
+          "column": 12,
+          "line": 2783,
+          "position": 71912
+        }
+      },
+      "format": "json",
+      "fragment": "",
+      "lines": 45,
+      "secondFile": {
+        "end": 2827,
+        "endLoc": {
+          "column": 29,
+          "line": 2827,
+          "position": 73040
+        },
+        "name": "db\\migrations\\meta\\0020_snapshot.json",
+        "start": 2783,
+        "startLoc": {
+          "column": 12,
+          "line": 2783,
+          "position": 71912
+        }
+      },
+      "tokens": 110
+    },
+    {
+      "firstFile": {
+        "end": 2962,
+        "endLoc": {
+          "column": 9,
+          "line": 2962,
+          "position": 76496
+        },
+        "name": "db\\migrations\\meta\\0020_snapshot.json",
+        "start": 2917,
+        "startLoc": {
+          "column": 12,
+          "line": 2917,
+          "position": 75363
+        }
+      },
+      "format": "json",
+      "fragment": "",
+      "lines": 46,
+      "secondFile": {
+        "end": 2962,
+        "endLoc": {
+          "column": 9,
+          "line": 2962,
+          "position": 76496
+        },
+        "name": "db\\migrations\\meta\\0021_snapshot.json",
+        "start": 2917,
+        "startLoc": {
+          "column": 12,
+          "line": 2917,
+          "position": 75363
+        }
+      },
+      "tokens": 112
+    },
+    {
+      "firstFile": {
+        "end": 809,
+        "endLoc": {
+          "column": 22,
+          "line": 809,
+          "position": 20921
+        },
+        "name": "db\\migrations\\meta\\0022_snapshot.json",
+        "start": 765,
+        "startLoc": {
+          "column": 8,
+          "line": 765,
+          "position": 19806
+        }
+      },
+      "format": "json",
+      "fragment": "",
+      "lines": 45,
+      "secondFile": {
+        "end": 809,
+        "endLoc": {
+          "column": 17,
+          "line": 809,
+          "position": 20916
+        },
+        "name": "db\\migrations\\meta\\0024_snapshot.json",
+        "start": 765,
+        "startLoc": {
+          "column": 8,
+          "line": 765,
+          "position": 19806
+        }
+      },
+      "tokens": 153
+    },
+    {
+      "firstFile": {
+        "end": 76,
+        "endLoc": {
+          "column": 15,
+          "line": 76,
+          "position": 2841
+        },
+        "name": "db\\repositories\\sessions.ts",
+        "start": 65,
+        "startLoc": {
+          "column": 22,
+          "line": 65,
+          "position": 2496
+        }
+      },
+      "format": "typescript",
+      "fragment": "",
+      "lines": 12,
+      "secondFile": {
+        "end": 114,
+        "endLoc": {
+          "column": 15,
+          "line": 114,
+          "position": 4513
+        },
+        "name": "db\\repositories\\sessions.ts",
+        "start": 103,
+        "startLoc": {
+          "column": 8,
+          "line": 103,
+          "position": 4168
+        }
+      },
+      "tokens": 64
+    },
+    {
+      "firstFile": {
+        "end": 51,
+        "endLoc": {
+          "column": 7,
+          "line": 51,
+          "position": 1683
+        },
+        "name": "db\\repositories\\utterances.ts",
+        "start": 32,
+        "startLoc": {
+          "column": 4,
+          "line": 32,
+          "position": 1016
+        }
+      },
+      "format": "typescript",
+      "fragment": "",
+      "lines": 20,
+      "secondFile": {
+        "end": 91,
+        "endLoc": {
+          "column": 7,
+          "line": 91,
+          "position": 3391
+        },
+        "name": "db\\repositories\\utterances.ts",
+        "start": 72,
+        "startLoc": {
+          "column": 4,
+          "line": 72,
+          "position": 2724
+        }
+      },
+      "tokens": 149
+    },
+    {
+      "firstFile": {
+        "end": 361,
+        "endLoc": {
+          "column": 8,
+          "line": 361,
+          "position": 17889
+        },
+        "name": "db\\repositories\\vocab.ts",
+        "start": 346,
+        "startLoc": {
+          "column": 6,
+          "line": 346,
+          "position": 16942
+        }
+      },
+      "format": "typescript",
+      "fragment": "",
+      "lines": 16,
+      "secondFile": {
+        "end": 967,
+        "endLoc": {
+          "column": 10,
+          "line": 967,
+          "position": 49433
+        },
+        "name": "db\\repositories\\vocab.ts",
+        "start": 955,
+        "startLoc": {
+          "column": 8,
+          "line": 955,
+          "position": 48770
+        }
+      },
+      "tokens": 100
+    },
+    {
+      "firstFile": {
+        "end": 326,
+        "endLoc": {
+          "column": 8,
+          "line": 326,
+          "position": 17071
+        },
+        "name": "db\\schema.ts",
+        "start": 314,
+        "startLoc": {
+          "column": 51,
+          "line": 314,
+          "position": 16506
+        }
+      },
+      "format": "typescript",
+      "fragment": "",
+      "lines": 13,
+      "secondFile": {
+        "end": 401,
+        "endLoc": {
+          "column": 8,
+          "line": 401,
+          "position": 21128
+        },
+        "name": "db\\schema.ts",
+        "start": 392,
+        "startLoc": {
+          "column": 55,
+          "line": 392,
+          "position": 20839
+        }
+      },
+      "tokens": 65
+    },
+    {
+      "firstFile": {
+        "end": 96,
+        "endLoc": {
+          "column": 18,
+          "line": 96,
+          "position": 4556
+        },
+        "name": "routes\\anki.ts",
+        "start": 85,
+        "startLoc": {
+          "column": 24,
+          "line": 85,
+          "position": 4062
+        }
+      },
+      "format": "typescript",
+      "fragment": "",
+      "lines": 12,
+      "secondFile": {
+        "end": 112,
+        "endLoc": {
+          "column": 15,
+          "line": 112,
+          "position": 5262
+        },
+        "name": "routes\\anki.ts",
+        "start": 106,
+        "startLoc": {
+          "column": 39,
+          "line": 106,
+          "position": 5078
+        }
+      },
+      "tokens": 55
+    },
+    {
+      "firstFile": {
+        "end": 307,
+        "endLoc": {
+          "column": 15,
+          "line": 307,
+          "position": 15332
+        },
+        "name": "routes\\sessions.ts",
+        "start": 297,
+        "startLoc": {
+          "column": 72,
+          "line": 297,
+          "position": 14803
+        }
+      },
+      "format": "typescript",
+      "fragment": "",
+      "lines": 11,
+      "secondFile": {
+        "end": 327,
+        "endLoc": {
+          "column": 15,
+          "line": 327,
+          "position": 16493
+        },
+        "name": "routes\\sessions.ts",
+        "start": 317,
+        "startLoc": {
+          "column": 96,
+          "line": 317,
+          "position": 15969
+        }
+      },
+      "tokens": 98
+    },
+    {
+      "firstFile": {
+        "end": 307,
+        "endLoc": {
+          "column": 15,
+          "line": 307,
+          "position": 15332
+        },
+        "name": "routes\\sessions.ts",
+        "start": 297,
+        "startLoc": {
+          "column": 45,
+          "line": 297,
+          "position": 14776
+        }
+      },
+      "format": "typescript",
+      "fragment": "",
+      "lines": 11,
+      "secondFile": {
+        "end": 386,
+        "endLoc": {
+          "column": 15,
+          "line": 386,
+          "position": 19634
+        },
+        "name": "routes\\sessions.ts",
+        "start": 367,
+        "startLoc": {
+          "column": 48,
+          "line": 367,
+          "position": 18623
+        }
+      },
+      "tokens": 108
+    },
+    {
+      "firstFile": {
+        "end": 133,
+        "endLoc": {
+          "column": 18,
+          "line": 133,
+          "position": 5618
+        },
+        "name": "routes\\vocab.ts",
+        "start": 123,
+        "startLoc": {
+          "column": 73,
+          "line": 123,
+          "position": 5245
+        }
+      },
+      "format": "typescript",
+      "fragment": "",
+      "lines": 11,
+      "secondFile": {
+        "end": 153,
+        "endLoc": {
+          "column": 17,
+          "line": 153,
+          "position": 6654
+        },
+        "name": "routes\\vocab.ts",
+        "start": 147,
+        "startLoc": {
+          "column": 75,
+          "line": 147,
+          "position": 6465
+        }
+      },
+      "tokens": 56
+    },
+    {
+      "firstFile": {
+        "end": 67,
+        "endLoc": {
+          "column": 10,
+          "line": 67,
+          "position": 2321
+        },
+        "name": "components\\minigames\\ConectoresGame.tsx",
+        "start": 54,
+        "startLoc": {
+          "column": 49,
+          "line": 54,
+          "position": 1976
+        }
+      },
+      "format": "tsx",
+      "fragment": "",
+      "lines": 14,
+      "secondFile": {
+        "end": 90,
+        "endLoc": {
+          "column": 10,
+          "line": 90,
+          "position": 3411
+        },
+        "name": "components\\minigames\\EscutaGame.tsx",
+        "start": 77,
+        "startLoc": {
+          "column": 55,
+          "line": 77,
+          "position": 3079
+        }
+      },
+      "tokens": 79
+    },
+    {
+      "firstFile": {
+        "end": 85,
+        "endLoc": {
+          "column": 17,
+          "line": 85,
+          "position": 3031
+        },
+        "name": "components\\minigames\\ConectoresGame.tsx",
+        "start": 74,
+        "startLoc": {
+          "column": 73,
+          "line": 74,
+          "position": 2669
+        }
+      },
+      "format": "tsx",
+      "fragment": "",
+      "lines": 12,
+      "secondFile": {
+        "end": 107,
+        "endLoc": {
+          "column": 17,
+          "line": 107,
+          "position": 4077
+        },
+        "name": "components\\minigames\\EscutaGame.tsx",
+        "start": 95,
+        "startLoc": {
+          "column": 65,
+          "line": 95,
+          "position": 3671
+        }
+      },
+      "tokens": 73
+    },
+    {
+      "firstFile": {
+        "end": 149,
+        "endLoc": {
+          "column": 9,
+          "line": 149,
+          "position": 5953
+        },
+        "name": "components\\minigames\\ConectoresGame.tsx",
+        "start": 126,
+        "startLoc": {
+          "column": 10,
+          "line": 126,
+          "position": 4814
+        }
+      },
+      "format": "tsx",
+      "fragment": "",
+      "lines": 24,
+      "secondFile": {
+        "end": 224,
+        "endLoc": {
+          "column": 9,
+          "line": 224,
+          "position": 10246
+        },
+        "name": "components\\minigames\\DitadoGame.tsx",
+        "start": 201,
+        "startLoc": {
+          "column": 10,
+          "line": 201,
+          "position": 9107
+        }
+      },
+      "tokens": 141
+    },
+    {
+      "firstFile": {
+        "end": 66,
+        "endLoc": {
+          "column": 20,
+          "line": 66,
+          "position": 3243
+        },
+        "name": "components\\minigames\\DitadoGame.tsx",
+        "start": 53,
+        "startLoc": {
+          "column": 19,
+          "line": 53,
+          "position": 2593
+        }
+      },
+      "format": "tsx",
+      "fragment": "",
+      "lines": 14,
+      "secondFile": {
+        "end": 45,
+        "endLoc": {
+          "column": 20,
+          "line": 45,
+          "position": 1786
+        },
+        "name": "components\\minigames\\EscutaGame.tsx",
+        "start": 38,
+        "startLoc": {
+          "column": 32,
+          "line": 38,
+          "position": 1551
+        }
+      },
+      "tokens": 57
+    },
+    {
+      "firstFile": {
+        "end": 172,
+        "endLoc": {
+          "column": 18,
+          "line": 172,
+          "position": 7651
+        },
+        "name": "components\\minigames\\DitadoGame.tsx",
+        "start": 160,
+        "startLoc": {
+          "column": 39,
+          "line": 160,
+          "position": 6985
+        }
+      },
+      "format": "tsx",
+      "fragment": "",
+      "lines": 13,
+      "secondFile": {
+        "end": 207,
+        "endLoc": {
+          "column": 18,
+          "line": 207,
+          "position": 8702
+        },
+        "name": "components\\minigames\\KaraokeGame.tsx",
+        "start": 195,
+        "startLoc": {
+          "column": 24,
+          "line": 195,
+          "position": 8036
+        }
+      },
+      "tokens": 60
+    },
+    {
+      "firstFile": {
+        "end": 223,
+        "endLoc": {
+          "column": 36,
+          "line": 223,
+          "position": 10175
+        },
+        "name": "components\\minigames\\DitadoGame.tsx",
+        "start": 196,
+        "startLoc": {
+          "column": 10,
+          "line": 196,
+          "position": 8979
+        }
+      },
+      "format": "tsx",
+      "fragment": "",
+      "lines": 28,
+      "secondFile": {
+        "end": 224,
+        "endLoc": {
+          "column": 36,
+          "line": 224,
+          "position": 9758
+        },
+        "name": "components\\minigames\\ScrambleGame.tsx",
+        "start": 197,
+        "startLoc": {
+          "column": 10,
+          "line": 197,
+          "position": 8562
+        }
+      },
+      "tokens": 161
+    },
+    {
+      "firstFile": {
+        "end": 161,
+        "endLoc": {
+          "column": 114,
+          "line": 161,
+          "position": 6577
+        },
+        "name": "components\\minigames\\EscutaGame.tsx",
+        "start": 149,
+        "startLoc": {
+          "column": 10,
+          "line": 149,
+          "position": 5871
+        }
+      },
+      "format": "tsx",
+      "fragment": "",
+      "lines": 13,
+      "secondFile": {
+        "end": 207,
+        "endLoc": {
+          "column": 114,
+          "line": 207,
+          "position": 9267
+        },
+        "name": "components\\minigames\\MemoryGame.tsx",
+        "start": 195,
+        "startLoc": {
+          "column": 10,
+          "line": 195,
+          "position": 8561
+        }
+      },
+      "tokens": 80
+    },
+    {
+      "firstFile": {
+        "end": 208,
+        "endLoc": {
+          "column": 68,
+          "line": 208,
+          "position": 9356
+        },
+        "name": "components\\minigames\\MemoryGame.tsx",
+        "start": 192,
+        "startLoc": {
+          "column": 59,
+          "line": 192,
+          "position": 8522
+        }
+      },
+      "format": "tsx",
+      "fragment": "",
+      "lines": 17,
+      "secondFile": {
+        "end": 573,
+        "endLoc": {
+          "column": 15,
+          "line": 573,
+          "position": 28026
+        },
+        "name": "components\\minigames\\TermoGame.tsx",
+        "start": 556,
+        "startLoc": {
+          "column": 22,
+          "line": 556,
+          "position": 27194
+        }
+      },
+      "tokens": 100
+    },
+    {
+      "firstFile": {
+        "end": 208,
+        "endLoc": {
+          "column": 68,
+          "line": 208,
+          "position": 9356
+        },
+        "name": "components\\minigames\\MemoryGame.tsx",
+        "start": 192,
+        "startLoc": {
+          "column": 57,
+          "line": 192,
+          "position": 8520
+        }
+      },
+      "format": "tsx",
+      "fragment": "",
+      "lines": 17,
+      "secondFile": {
+        "end": 250,
+        "endLoc": {
+          "column": 15,
+          "line": 250,
+          "position": 11933
+        },
+        "name": "components\\minigames\\WordSearchGame.tsx",
+        "start": 233,
+        "startLoc": {
+          "column": 42,
+          "line": 233,
+          "position": 11099
+        }
+      },
+      "tokens": 102
+    },
+    {
+      "firstFile": {
+        "end": 23,
+        "endLoc": {
+          "column": 9,
+          "line": 23,
+          "position": 1228
+        },
+        "name": "components\\minigames\\culturais\\BaoGame.tsx",
+        "start": 2,
+        "startLoc": {
+          "column": 29,
+          "line": 2,
+          "position": 99
+        }
+      },
+      "format": "tsx",
+      "fragment": "",
+      "lines": 22,
+      "secondFile": {
+        "end": 22,
+        "endLoc": {
+          "column": 9,
+          "line": 22,
+          "position": 1147
+        },
+        "name": "components\\minigames\\culturais\\KofferGame.tsx",
+        "start": 2,
+        "startLoc": {
+          "column": 47,
+          "line": 2,
+          "position": 117
+        }
+      },
+      "tokens": 57
+    },
+    {
+      "firstFile": {
+        "end": 195,
+        "endLoc": {
+          "column": 18,
+          "line": 195,
+          "position": 8098
+        },
+        "name": "components\\minigames\\culturais\\BaoGame.tsx",
+        "start": 184,
+        "startLoc": {
+          "column": 54,
+          "line": 184,
+          "position": 7466
+        }
+      },
+      "format": "tsx",
+      "fragment": "",
+      "lines": 12,
+      "secondFile": {
+        "end": 200,
+        "endLoc": {
+          "column": 18,
+          "line": 200,
+          "position": 7424
+        },
+        "name": "components\\minigames\\culturais\\KofferGame.tsx",
+        "start": 189,
+        "startLoc": {
+          "column": 52,
+          "line": 189,
+          "position": 6792
+        }
+      },
+      "tokens": 50
+    },
+    {
+      "firstFile": {
+        "end": 16,
+        "endLoc": {
+          "column": 9,
+          "line": 16,
+          "position": 793
+        },
+        "name": "components\\minigames\\culturais\\ChoseongGame.tsx",
+        "start": 2,
+        "startLoc": {
+          "column": 36,
+          "line": 2,
+          "position": 118
+        }
+      },
+      "format": "tsx",
+      "fragment": "",
+      "lines": 15,
+      "secondFile": {
+        "end": 19,
+        "endLoc": {
+          "column": 9,
+          "line": 19,
+          "position": 953
+        },
+        "name": "components\\minigames\\culturais\\TenseTennisGame.tsx",
+        "start": 2,
+        "startLoc": {
+          "column": 35,
+          "line": 2,
+          "position": 108
+        }
+      },
+      "tokens": 63
+    },
+    {
+      "firstFile": {
+        "end": 75,
+        "endLoc": {
+          "column": 13,
+          "line": 75,
+          "position": 3173
+        },
+        "name": "components\\minigames\\culturais\\ChoseongGame.tsx",
+        "start": 63,
+        "startLoc": {
+          "column": 52,
+          "line": 63,
+          "position": 2865
+        }
+      },
+      "format": "tsx",
+      "fragment": "",
+      "lines": 13,
+      "secondFile": {
+        "end": 97,
+        "endLoc": {
+          "column": 13,
+          "line": 97,
+          "position": 4094
+        },
+        "name": "components\\minigames\\culturais\\KarutaGame.tsx",
+        "start": 85,
+        "startLoc": {
+          "column": 26,
+          "line": 85,
+          "position": 3786
+        }
+      },
+      "tokens": 68
+    },
+    {
+      "firstFile": {
+        "end": 75,
+        "endLoc": {
+          "column": 13,
+          "line": 75,
+          "position": 3173
+        },
+        "name": "components\\minigames\\culturais\\ChoseongGame.tsx",
+        "start": 63,
+        "startLoc": {
+          "column": 44,
+          "line": 63,
+          "position": 2857
+        }
+      },
+      "format": "tsx",
+      "fragment": "",
+      "lines": 13,
+      "secondFile": {
+        "end": 70,
+        "endLoc": {
+          "column": 13,
+          "line": 70,
+          "position": 3065
+        },
+        "name": "components\\minigames\\culturais\\TenseTennisGame.tsx",
+        "start": 58,
+        "startLoc": {
+          "column": 46,
+          "line": 58,
+          "position": 2749
+        }
+      },
+      "tokens": 71
+    },
+    {
+      "firstFile": {
+        "end": 218,
+        "endLoc": {
+          "column": 18,
+          "line": 218,
+          "position": 8869
+        },
+        "name": "components\\minigames\\culturais\\ChoseongGame.tsx",
+        "start": 207,
+        "startLoc": {
+          "column": 103,
+          "line": 207,
+          "position": 8354
+        }
+      },
+      "format": "tsx",
+      "fragment": "",
+      "lines": 12,
+      "secondFile": {
+        "end": 186,
+        "endLoc": {
+          "column": 18,
+          "line": 186,
+          "position": 7559
+        },
+        "name": "components\\minigames\\culturais\\TenseTennisGame.tsx",
+        "start": 175,
+        "startLoc": {
+          "column": 100,
+          "line": 175,
+          "position": 7044
+        }
+      },
+      "tokens": 52
+    },
+    {
+      "firstFile": {
+        "end": 231,
+        "endLoc": {
+          "column": 7,
+          "line": 231,
+          "position": 9591
+        },
+        "name": "components\\minigames\\culturais\\ChoseongGame.tsx",
+        "start": 218,
+        "startLoc": {
+          "column": 52,
+          "line": 218,
+          "position": 8903
+        }
+      },
+      "format": "tsx",
+      "fragment": "",
+      "lines": 14,
+      "secondFile": {
+        "end": 212,
+        "endLoc": {
+          "column": 7,
+          "line": 212,
+          "position": 8708
+        },
+        "name": "components\\minigames\\culturais\\KarutaGame.tsx",
+        "start": 199,
+        "startLoc": {
+          "column": 31,
+          "line": 199,
+          "position": 8020
+        }
+      },
+      "tokens": 110
+    },
+    {
+      "firstFile": {
+        "end": 113,
+        "endLoc": {
+          "column": 15,
+          "line": 113,
+          "position": 4682
+        },
+        "name": "components\\minigames\\culturais\\KarutaGame.tsx",
+        "start": 103,
+        "startLoc": {
+          "column": 64,
+          "line": 103,
+          "position": 4391
+        }
+      },
+      "format": "tsx",
+      "fragment": "",
+      "lines": 11,
+      "secondFile": {
+        "end": 86,
+        "endLoc": {
+          "column": 15,
+          "line": 86,
+          "position": 3653
+        },
+        "name": "components\\minigames\\culturais\\TenseTennisGame.tsx",
+        "start": 76,
+        "startLoc": {
+          "column": 66,
+          "line": 76,
+          "position": 3362
+        }
+      },
+      "tokens": 71
+    },
+    {
+      "firstFile": {
+        "end": 127,
+        "endLoc": {
+          "column": 48,
+          "line": 127,
+          "position": 5206
+        },
+        "name": "components\\minigames\\culturais\\KarutaGame.tsx",
+        "start": 117,
+        "startLoc": {
+          "column": 33,
+          "line": 117,
+          "position": 4853
+        }
+      },
+      "format": "tsx",
+      "fragment": "",
+      "lines": 11,
+      "secondFile": {
+        "end": 101,
+        "endLoc": {
+          "column": 48,
+          "line": 101,
+          "position": 4162
+        },
+        "name": "components\\minigames\\culturais\\TenseTennisGame.tsx",
+        "start": 91,
+        "startLoc": {
+          "column": 32,
+          "line": 91,
+          "position": 3826
+        }
+      },
+      "tokens": 77
+    },
+    {
+      "firstFile": {
+        "end": 51,
+        "endLoc": {
+          "column": 23,
+          "line": 51,
+          "position": 2022
+        },
+        "name": "components\\minigames\\culturais\\KofferGame.tsx",
+        "start": 39,
+        "startLoc": {
+          "column": 17,
+          "line": 39,
+          "position": 1776
+        }
+      },
+      "format": "tsx",
+      "fragment": "",
+      "lines": 13,
+      "secondFile": {
+        "end": 64,
+        "endLoc": {
+          "column": 23,
+          "line": 64,
+          "position": 2326
+        },
+        "name": "components\\minigames\\culturais\\VitendawiliGame.tsx",
+        "start": 52,
+        "startLoc": {
+          "column": 4,
+          "line": 52,
+          "position": 2092
+        }
+      },
+      "tokens": 98
+    },
+    {
+      "firstFile": {
+        "end": 121,
+        "endLoc": {
+          "column": 7,
+          "line": 121,
+          "position": 4779
+        },
+        "name": "components\\minigames\\culturais\\ShiritoriGame.tsx",
+        "start": 111,
+        "startLoc": {
+          "column": 29,
+          "line": 111,
+          "position": 4495
+        }
+      },
+      "format": "tsx",
+      "fragment": "",
+      "lines": 11,
+      "secondFile": {
+        "end": 151,
+        "endLoc": {
+          "column": 7,
+          "line": 151,
+          "position": 5757
+        },
+        "name": "components\\minigames\\culturais\\TabooGame.tsx",
+        "start": 141,
+        "startLoc": {
+          "column": 21,
+          "line": 141,
+          "position": 5473
+        }
+      },
+      "tokens": 63
+    },
+    {
+      "firstFile": {
+        "end": 163,
+        "endLoc": {
+          "column": 37,
+          "line": 163,
+          "position": 6951
+        },
+        "name": "components\\minigames\\culturais\\ShiritoriGame.tsx",
+        "start": 151,
+        "startLoc": {
+          "column": 29,
+          "line": 151,
+          "position": 6474
+        }
+      },
+      "format": "tsx",
+      "fragment": "",
+      "lines": 13,
+      "secondFile": {
+        "end": 209,
+        "endLoc": {
+          "column": 37,
+          "line": 209,
+          "position": 8483
+        },
+        "name": "components\\minigames\\culturais\\TabooGame.tsx",
+        "start": 197,
+        "startLoc": {
+          "column": 27,
+          "line": 197,
+          "position": 8006
+        }
+      },
+      "tokens": 75
+    },
+    {
+      "firstFile": {
+        "end": 61,
+        "endLoc": {
+          "column": 21,
+          "line": 61,
+          "position": 3270
+        },
+        "name": "components\\shell\\MenuDaConta.tsx",
+        "start": 47,
+        "startLoc": {
+          "column": 72,
+          "line": 47,
+          "position": 2516
+        }
+      },
+      "format": "tsx",
+      "fragment": "",
+      "lines": 15,
+      "secondFile": {
+        "end": 68,
+        "endLoc": {
+          "column": 21,
+          "line": 68,
+          "position": 2503
+        },
+        "name": "components\\shell\\MenuDeConforto.tsx",
+        "start": 58,
+        "startLoc": {
+          "column": 44,
+          "line": 58,
+          "position": 2131
+        }
+      },
+      "tokens": 94
+    },
+    {
+      "firstFile": {
+        "end": 77,
+        "endLoc": {
+          "column": 13,
+          "line": 77,
+          "position": 3978
+        },
+        "name": "components\\shell\\MenuDaConta.tsx",
+        "start": 61,
+        "startLoc": {
+          "column": 39,
+          "line": 61,
+          "position": 3288
+        }
+      },
+      "format": "tsx",
+      "fragment": "",
+      "lines": 17,
+      "secondFile": {
+        "end": 80,
+        "endLoc": {
+          "column": 13,
+          "line": 80,
+          "position": 3133
+        },
+        "name": "components\\shell\\MenuDeConforto.tsx",
+        "start": 68,
+        "startLoc": {
+          "column": 39,
+          "line": 68,
+          "position": 2521
+        }
+      },
+      "tokens": 154
+    },
+    {
+      "firstFile": {
+        "end": 53,
+        "endLoc": {
+          "column": 51,
+          "line": 53,
+          "position": 2590
+        },
+        "name": "components\\shell\\NavBar.tsx",
+        "start": 41,
+        "startLoc": {
+          "column": 8,
+          "line": 41,
+          "position": 1872
+        }
+      },
+      "format": "tsx",
+      "fragment": "",
+      "lines": 13,
+      "secondFile": {
+        "end": 83,
+        "endLoc": {
+          "column": 51,
+          "line": 83,
+          "position": 3589
+        },
+        "name": "components\\shell\\NavRail.tsx",
+        "start": 75,
+        "startLoc": {
+          "column": 8,
+          "line": 75,
+          "position": 3279
+        }
+      },
+      "tokens": 63
+    },
+    {
+      "firstFile": {
+        "end": 787,
+        "endLoc": {
+          "column": 9,
+          "line": 787,
+          "position": 40055
+        },
+        "name": "components\\views\\Analysis.tsx",
+        "start": 777,
+        "startLoc": {
+          "column": 20,
+          "line": 777,
+          "position": 39799
+        }
+      },
+      "format": "tsx",
+      "fragment": "",
+      "lines": 11,
+      "secondFile": {
+        "end": 238,
+        "endLoc": {
+          "column": 9,
+          "line": 238,
+          "position": 10754
+        },
+        "name": "components\\views\\Reading.tsx",
+        "start": 225,
+        "startLoc": {
+          "column": 32,
+          "line": 225,
+          "position": 10162
+        }
+      },
+      "tokens": 51
+    },
+    {
+      "firstFile": {
+        "end": 341,
+        "endLoc": {
+          "column": 7,
+          "line": 341,
+          "position": 15121
+        },
+        "name": "components\\views\\Library.tsx",
+        "start": 328,
+        "startLoc": {
+          "column": 3,
+          "line": 328,
+          "position": 14888
+        }
+      },
+      "format": "tsx",
+      "fragment": "",
+      "lines": 14,
+      "secondFile": {
+        "end": 2523,
+        "endLoc": {
+          "column": 7,
+          "line": 2523,
+          "position": 138517
+        },
+        "name": "components\\views\\LiveCapture.tsx",
+        "start": 2509,
+        "startLoc": {
+          "column": 21,
+          "line": 2509,
+          "position": 138197
+        }
+      },
+      "tokens": 53
+    },
+    {
+      "firstFile": {
+        "end": 252,
+        "endLoc": {
+          "column": 11,
+          "line": 252,
+          "position": 12401
+        },
+        "name": "components\\views\\Metrics.tsx",
+        "start": 237,
+        "startLoc": {
+          "column": 24,
+          "line": 237,
+          "position": 11577
+        }
+      },
+      "format": "tsx",
+      "fragment": "",
+      "lines": 16,
+      "secondFile": {
+        "end": 319,
+        "endLoc": {
+          "column": 11,
+          "line": 319,
+          "position": 14967
+        },
+        "name": "components\\views\\Reading.tsx",
+        "start": 306,
+        "startLoc": {
+          "column": 22,
+          "line": 306,
+          "position": 14227
+        }
+      },
+      "tokens": 54
+    },
+    {
+      "firstFile": {
+        "end": 1786,
+        "endLoc": {
+          "column": 10,
+          "line": 1786,
+          "position": 104097
+        },
+        "name": "components\\views\\Play.tsx",
+        "start": 1758,
+        "startLoc": {
+          "column": 6,
+          "line": 1758,
+          "position": 102214
+        }
+      },
+      "format": "tsx",
+      "fragment": "",
+      "lines": 29,
+      "secondFile": {
+        "end": 1835,
+        "endLoc": {
+          "column": 4,
+          "line": 1835,
+          "position": 107035
+        },
+        "name": "components\\views\\Play.tsx",
+        "start": 1830,
+        "startLoc": {
+          "column": 4,
+          "line": 1830,
+          "position": 106735
+        }
+      },
+      "tokens": 80
+    },
+    {
+      "firstFile": {
+        "end": 1740,
+        "endLoc": {
+          "column": 96,
+          "line": 1740,
+          "position": 83311
+        },
+        "name": "components\\views\\Reading.tsx",
+        "start": 1728,
+        "startLoc": {
+          "column": 24,
+          "line": 1728,
+          "position": 82406
+        }
+      },
+      "format": "tsx",
+      "fragment": "",
+      "lines": 13,
+      "secondFile": {
+        "end": 1842,
+        "endLoc": {
+          "column": 94,
+          "line": 1842,
+          "position": 89033
+        },
+        "name": "components\\views\\Reading.tsx",
+        "start": 1830,
+        "startLoc": {
+          "column": 22,
+          "line": 1830,
+          "position": 88150
+        }
+      },
+      "tokens": 148
+    },
+    {
+      "firstFile": {
+        "end": 1795,
+        "endLoc": {
+          "column": 24,
+          "line": 1795,
+          "position": 86647
+        },
+        "name": "components\\views\\Reading.tsx",
+        "start": 1784,
+        "startLoc": {
+          "column": 88,
+          "line": 1784,
+          "position": 86057
+        }
+      },
+      "format": "tsx",
+      "fragment": "",
+      "lines": 12,
+      "secondFile": {
+        "end": 1882,
+        "endLoc": {
+          "column": 24,
+          "line": 1882,
+          "position": 91547
+        },
+        "name": "components\\views\\Reading.tsx",
+        "start": 1871,
+        "startLoc": {
+          "column": 118,
+          "line": 1871,
+          "position": 90957
+        }
+      },
+      "tokens": 73
+    },
+    {
+      "firstFile": {
+        "end": 43,
+        "endLoc": {
+          "column": 53,
+          "line": 43,
+          "position": 2018
+        },
+        "name": "components\\views\\loja\\ComprarCreditos.tsx",
+        "start": 33,
+        "startLoc": {
+          "column": 73,
+          "line": 33,
+          "position": 1657
+        }
+      },
+      "format": "tsx",
+      "fragment": "",
+      "lines": 11,
+      "secondFile": {
+        "end": 42,
+        "endLoc": {
+          "column": 53,
+          "line": 42,
+          "position": 1865
+        },
+        "name": "components\\views\\planos\\Assinar.tsx",
+        "start": 32,
+        "startLoc": {
+          "column": 67,
+          "line": 32,
+          "position": 1504
+        }
+      },
+      "tokens": 101
+    },
+    {
+      "firstFile": {
+        "end": 34,
+        "endLoc": {
+          "column": 72,
+          "line": 34,
+          "position": 2218
+        },
+        "name": "core\\learning\\keywords.ts",
+        "start": 23,
+        "startLoc": {
+          "column": 21,
+          "line": 23,
+          "position": 1357
+        }
+      },
+      "format": "typescript",
+      "fragment": "",
+      "lines": 12,
+      "secondFile": {
+        "end": 84,
+        "endLoc": {
+          "column": 74,
+          "line": 84,
+          "position": 4786
+        },
+        "name": "core\\learning\\quality.ts",
+        "start": 73,
+        "startLoc": {
+          "column": 13,
+          "line": 73,
+          "position": 3903
+        }
+      },
+      "tokens": 226
+    },
+    {
+      "firstFile": {
+        "end": 47,
+        "endLoc": {
+          "column": 55,
+          "line": 47,
+          "position": 3097
+        },
+        "name": "core\\learning\\keywords.ts",
+        "start": 37,
+        "startLoc": {
+          "column": 21,
+          "line": 37,
+          "position": 2331
+        }
+      },
+      "format": "typescript",
+      "fragment": "",
+      "lines": 11,
+      "secondFile": {
+        "end": 97,
+        "endLoc": {
+          "column": 57,
+          "line": 97,
+          "position": 5644
+        },
+        "name": "core\\learning\\quality.ts",
+        "start": 87,
+        "startLoc": {
+          "column": 13,
+          "line": 87,
+          "position": 4858
+        }
+      },
+      "tokens": 198
+    },
+    {
+      "firstFile": {
+        "end": 111,
+        "endLoc": {
+          "column": 1,
+          "line": 111,
+          "position": 5222
+        },
+        "name": "core\\learning\\trilha.ts",
+        "start": 101,
+        "startLoc": {
+          "column": 31,
+          "line": 101,
+          "position": 5013
+        }
+      },
+      "format": "typescript",
+      "fragment": "",
+      "lines": 11,
+      "secondFile": {
+        "end": 75,
+        "endLoc": {
+          "column": 1,
+          "line": 75,
+          "position": 3302
+        },
+        "name": "core\\minigames\\escuta.ts",
+        "start": 65,
+        "startLoc": {
+          "column": 25,
+          "line": 65,
+          "position": 3093
+        }
+      },
+      "tokens": 95
+    },
+    {
+      "firstFile": {
+        "end": 117,
+        "endLoc": {
+          "column": 8,
+          "line": 117,
+          "position": 5566
+        },
+        "name": "core\\learning\\trilha.ts",
+        "start": 101,
+        "startLoc": {
+          "column": 31,
+          "line": 101,
+          "position": 5013
+        }
+      },
+      "format": "typescript",
+      "fragment": "",
+      "lines": 17,
+      "secondFile": {
+        "end": 84,
+        "endLoc": {
+          "column": 15,
+          "line": 84,
+          "position": 4062
+        },
+        "name": "core\\minigames\\itemSource.ts",
+        "start": 64,
+        "startLoc": {
+          "column": 29,
+          "line": 64,
+          "position": 3385
+        }
+      },
+      "tokens": 97
+    },
+    {
+      "firstFile": {
+        "end": 117,
+        "endLoc": {
+          "column": 8,
+          "line": 117,
+          "position": 5566
+        },
+        "name": "core\\learning\\trilha.ts",
+        "start": 101,
+        "startLoc": {
+          "column": 31,
+          "line": 101,
+          "position": 5013
+        }
+      },
+      "format": "typescript",
+      "fragment": "",
+      "lines": 17,
+      "secondFile": {
+        "end": 60,
+        "endLoc": {
+          "column": 15,
+          "line": 60,
+          "position": 2116
+        },
+        "name": "core\\minigames\\shiritori.ts",
+        "start": 40,
+        "startLoc": {
+          "column": 30,
+          "line": 40,
+          "position": 1534
+        }
+      },
+      "tokens": 97
+    },
+    {
+      "firstFile": {
+        "end": 117,
+        "endLoc": {
+          "column": 8,
+          "line": 117,
+          "position": 5566
+        },
+        "name": "core\\learning\\trilha.ts",
+        "start": 104,
+        "startLoc": {
+          "column": 0,
+          "line": 104,
+          "position": 5018
+        }
+      },
+      "format": "typescript",
+      "fragment": "",
+      "lines": 14,
+      "secondFile": {
+        "end": 445,
+        "endLoc": {
+          "column": 15,
+          "line": 445,
+          "position": 21710
+        },
+        "name": "core\\minigames\\termo.ts",
+        "start": 436,
+        "startLoc": {
+          "column": 0,
+          "line": 436,
+          "position": 21489
+        }
+      },
+      "tokens": 95
+    },
+    {
+      "firstFile": {
+        "end": 40,
+        "endLoc": {
+          "column": 1,
+          "line": 40,
+          "position": 2392
+        },
+        "name": "core\\minigames\\filtro.ts",
+        "start": 25,
+        "startLoc": {
+          "column": 33,
+          "line": 25,
+          "position": 1562
+        }
+      },
+      "format": "typescript",
+      "fragment": "",
+      "lines": 16,
+      "secondFile": {
+        "end": 34,
+        "endLoc": {
+          "column": 1,
+          "line": 34,
+          "position": 1726
+        },
+        "name": "lib\\filtroDaPratica.ts",
+        "start": 25,
+        "startLoc": {
+          "column": 27,
+          "line": 25,
+          "position": 1407
+        }
+      },
+      "tokens": 80
+    },
+    {
+      "firstFile": {
+        "end": 288,
+        "endLoc": {
+          "column": 21,
+          "line": 288,
+          "position": 11138
+        },
+        "name": "data\\api.ts",
+        "start": 274,
+        "startLoc": {
+          "column": 57,
+          "line": 274,
+          "position": 10688
+        }
+      },
+      "format": "typescript",
+      "fragment": "",
+      "lines": 15,
+      "secondFile": {
+        "end": 310,
+        "endLoc": {
+          "column": 21,
+          "line": 310,
+          "position": 11882
+        },
+        "name": "data\\api.ts",
+        "start": 293,
+        "startLoc": {
+          "column": 52,
+          "line": 293,
+          "position": 11361
+        }
+      },
+      "tokens": 58
+    },
+    {
+      "firstFile": {
+        "end": 40,
+        "endLoc": {
+          "column": 1,
+          "line": 40,
+          "position": 1850
+        },
+        "name": "gateway\\adapters\\mtWorker.ts",
+        "start": 26,
+        "startLoc": {
+          "column": 0,
+          "line": 26,
+          "position": 1330
+        }
+      },
+      "format": "typescript",
+      "fragment": "",
+      "lines": 15,
+      "secondFile": {
+        "end": 98,
+        "endLoc": {
+          "column": 1,
+          "line": 98,
+          "position": 4993
+        },
+        "name": "gateway\\adapters\\whisperWorker.ts",
+        "start": 82,
+        "startLoc": {
+          "column": 0,
+          "line": 82,
+          "position": 4293
+        }
+      },
+      "tokens": 100
+    },
+    {
+      "firstFile": {
+        "end": 101,
+        "endLoc": {
+          "column": 24,
+          "line": 101,
+          "position": 5179
+        },
+        "name": "index.css",
+        "start": 91,
+        "startLoc": {
+          "column": 25,
+          "line": 91,
+          "position": 4933
+        }
+      },
+      "format": "css",
+      "fragment": "",
+      "lines": 11,
+      "secondFile": {
+        "end": 217,
+        "endLoc": {
+          "column": 24,
+          "line": 217,
+          "position": 9989
+        },
+        "name": "index.css",
+        "start": 207,
+        "startLoc": {
+          "column": 25,
+          "line": 207,
+          "position": 9743
+        }
+      },
+      "tokens": 83
+    },
+    {
+      "firstFile": {
+        "end": 119,
+        "endLoc": {
+          "column": 90,
+          "line": 119,
+          "position": 5962
+        },
+        "name": "index.css",
+        "start": 101,
+        "startLoc": {
+          "column": 30,
+          "line": 101,
+          "position": 5185
+        }
+      },
+      "format": "css",
+      "fragment": "",
+      "lines": 19,
+      "secondFile": {
+        "end": 235,
+        "endLoc": {
+          "column": 90,
+          "line": 235,
+          "position": 10772
+        },
+        "name": "index.css",
+        "start": 217,
+        "startLoc": {
+          "column": 30,
+          "line": 217,
+          "position": 9995
+        }
+      },
+      "tokens": 330
+    },
+    {
+      "firstFile": {
+        "end": 112,
+        "endLoc": {
+          "column": 6,
+          "line": 112,
+          "position": 5660
+        },
+        "name": "index.css",
+        "start": 101,
+        "startLoc": {
+          "column": 30,
+          "line": 101,
+          "position": 5185
+        }
+      },
+      "format": "css",
+      "fragment": "",
+      "lines": 12,
+      "secondFile": {
+        "end": 267,
+        "endLoc": {
+          "column": 6,
+          "line": 267,
+          "position": 11907
+        },
+        "name": "index.css",
+        "start": 256,
+        "startLoc": {
+          "column": 30,
+          "line": 256,
+          "position": 11432
+        }
+      },
+      "tokens": 223
+    },
+    {
+      "firstFile": {
+        "end": 120,
+        "endLoc": {
+          "column": 5,
+          "line": 120,
+          "position": 5968
+        },
+        "name": "index.css",
+        "start": 101,
+        "startLoc": {
+          "column": 30,
+          "line": 101,
+          "position": 5185
+        }
+      },
+      "format": "css",
+      "fragment": "",
+      "lines": 20,
+      "secondFile": {
+        "end": 786,
+        "endLoc": {
+          "column": 3,
+          "line": 786,
+          "position": 32583
+        },
+        "name": "index.css",
+        "start": 767,
+        "startLoc": {
+          "column": 70,
+          "line": 767,
+          "position": 31802
+        }
+      },
+      "tokens": 331
+    },
+    {
+      "firstFile": {
+        "end": 171,
+        "endLoc": {
+          "column": 24,
+          "line": 171,
+          "position": 8362
+        },
+        "name": "index.css",
+        "start": 158,
+        "startLoc": {
+          "column": 24,
+          "line": 158,
+          "position": 7956
+        }
+      },
+      "format": "css",
+      "fragment": "",
+      "lines": 14,
+      "secondFile": {
+        "end": 256,
+        "endLoc": {
+          "column": 24,
+          "line": 256,
+          "position": 11426
+        },
+        "name": "index.css",
+        "start": 243,
+        "startLoc": {
+          "column": 24,
+          "line": 243,
+          "position": 11020
+        }
+      },
+      "tokens": 149
+    },
+    {
+      "firstFile": {
+        "end": 622,
+        "endLoc": {
+          "column": 54,
+          "line": 622,
+          "position": 26187
+        },
+        "name": "index.css",
+        "start": 611,
+        "startLoc": {
+          "column": 51,
+          "line": 611,
+          "position": 25797
+        }
+      },
+      "format": "css",
+      "fragment": "",
+      "lines": 12,
+      "secondFile": {
+        "end": 661,
+        "endLoc": {
+          "column": 54,
+          "line": 661,
+          "position": 27631
+        },
+        "name": "index.css",
+        "start": 650,
+        "startLoc": {
+          "column": 50,
+          "line": 650,
+          "position": 27241
+        }
+      },
+      "tokens": 153
+    },
+    {
+      "firstFile": {
+        "end": 781,
+        "endLoc": {
+          "column": 5,
+          "line": 781,
+          "position": 32414
+        },
+        "name": "index.css",
+        "start": 767,
+        "startLoc": {
+          "column": 69,
+          "line": 767,
+          "position": 31801
+        }
+      },
+      "format": "css",
+      "fragment": "",
+      "lines": 15,
+      "secondFile": {
+        "end": 825,
+        "endLoc": {
+          "column": 3,
+          "line": 825,
+          "position": 34604
+        },
+        "name": "index.css",
+        "start": 813,
+        "startLoc": {
+          "column": 66,
+          "line": 813,
+          "position": 34043
+        }
+      },
+      "tokens": 263
+    },
+    {
+      "firstFile": {
+        "end": 1611,
+        "endLoc": {
+          "column": 49,
+          "line": 1611,
+          "position": 73450
+        },
+        "name": "index.css",
+        "start": 1583,
+        "startLoc": {
+          "column": 84,
+          "line": 1583,
+          "position": 72092
+        }
+      },
+      "format": "css",
+      "fragment": "",
+      "lines": 29,
+      "secondFile": {
+        "end": 1718,
+        "endLoc": {
+          "column": 49,
+          "line": 1718,
+          "position": 79369
+        },
+        "name": "index.css",
+        "start": 1688,
+        "startLoc": {
+          "column": 25,
+          "line": 1688,
+          "position": 78010
+        }
+      },
+      "tokens": 594
+    }
+  ],
+  "statistics": {
+    "detectionDate": "2026-09-08T21:57:33.232Z",
+    "formats": {
+      "css": {
+        "clones": 8,
+        "duplicatedLines": 124,
+        "duplicatedTokens": 2126,
+        "lines": 1775,
+        "newClones": 0,
+        "newDuplicatedLines": 0,
+        "percentage": 6.985915492957746,
+        "percentageTokens": 4.695125991033767,
+        "sources": 1,
+        "tokens": 45281
+      },
+      "json": {
+        "clones": 108,
+        "duplicatedLines": 22586,
+        "duplicatedTokens": 76567,
+        "lines": 49532,
+        "newClones": 0,
+        "newDuplicatedLines": 0,
+        "percentage": 45.59880481305015,
+        "percentageTokens": 46.752192071904844,
+        "sources": 28,
+        "tokens": 163772
+      },
+      "markdown": {
+        "clones": 0,
+        "duplicatedLines": 0,
+        "duplicatedTokens": 0,
+        "lines": 230,
+        "newClones": 0,
+        "newDuplicatedLines": 0,
+        "percentage": 0.0,
+        "percentageTokens": 0.0,
+        "sources": 2,
+        "tokens": 3043
+      },
+      "sql": {
+        "clones": 7,
+        "duplicatedLines": 100,
+        "duplicatedTokens": 561,
+        "lines": 817,
+        "newClones": 0,
+        "newDuplicatedLines": 0,
+        "percentage": 12.239902080783354,
+        "percentageTokens": 9.428571428571429,
+        "sources": 16,
+        "tokens": 5950
+      },
+      "tsx": {
+        "clones": 31,
+        "duplicatedLines": 432,
+        "duplicatedTokens": 2579,
+        "lines": 46948,
+        "newClones": 0,
+        "newDuplicatedLines": 0,
+        "percentage": 0.920166993269149,
+        "percentageTokens": 0.8840032768791497,
+        "sources": 129,
+        "tokens": 291741
+      },
+      "typescript": {
+        "clones": 17,
+        "duplicatedLines": 217,
+        "duplicatedTokens": 1741,
+        "lines": 45613,
+        "newClones": 0,
+        "newDuplicatedLines": 0,
+        "percentage": 0.47574156490474206,
+        "percentageTokens": 0.689592344376317,
+        "sources": 281,
+        "tokens": 252468
+      }
+    },
+    "total": {
+      "clones": 171,
+      "duplicatedLines": 23459,
+      "duplicatedTokens": 83574,
+      "lines": 144915,
+      "newClones": 0,
+      "newDuplicatedLines": 0,
+      "percentage": 16.188110271538488,
+      "percentageTokens": 10.964047464431195,
+      "sources": 457,
+      "tokens": 762255
+    }
+  }
+}

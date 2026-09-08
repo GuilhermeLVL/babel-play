@@ -1,0 +1,1 @@
+Cada arquivo de evidencia leva cabecalho com comando, data, SHA e `node -v`. Node local e v24; a CI e o Docker fixam 22 — as medicoes registram a versao e a comparacao final usa a mesma. `rollup-plugin-visualizer` foi instalado e removido na mesma change: o `manifest.json` do Vite responde bundle por rota sem plugin.

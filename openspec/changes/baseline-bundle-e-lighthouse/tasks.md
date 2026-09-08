@@ -1,0 +1,3 @@
+- [x] 1.1 `bundle-medir-rotas.txt` (94 chunks; arranque 210 KB gz; total 1.660 KB gz)
+- [x] 1.2 `bundle-por-rota.md` (32 entradas lazy; LiveCapture 204 KB gz, Analysis 201, Play 155, Metrics 149)
+- [x] 1.3 `lighthouse/*.json` + `lighthouse.md` (mediana; /jogar mobile perf 26, CLS 0,53; desktop 70, CLS 0,51)

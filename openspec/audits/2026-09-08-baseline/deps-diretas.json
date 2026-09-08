@@ -1,0 +1,311 @@
+{
+  "version": "0.1.0",
+  "name": "babel-play-web",
+  "dependencies": {
+    "@ast-grep/cli": {
+      "version": "0.45.1",
+      "resolved": "https://registry.npmjs.org/@ast-grep/cli/-/cli-0.45.1.tgz",
+      "overridden": false
+    },
+    "@eslint/js": {
+      "version": "10.0.1",
+      "resolved": "https://registry.npmjs.org/@eslint/js/-/js-10.0.1.tgz",
+      "overridden": false
+    },
+    "@google/genai": {
+      "version": "2.10.0",
+      "resolved": "https://registry.npmjs.org/@google/genai/-/genai-2.10.0.tgz",
+      "overridden": false
+    },
+    "@huggingface/transformers": {
+      "version": "4.2.0",
+      "resolved": "https://registry.npmjs.org/@huggingface/transformers/-/transformers-4.2.0.tgz",
+      "overridden": false
+    },
+    "@libsql/client": {
+      "version": "0.17.4",
+      "resolved": "https://registry.npmjs.org/@libsql/client/-/client-0.17.4.tgz",
+      "overridden": false
+    },
+    "@mozilla/readability": {
+      "version": "0.6.0",
+      "resolved": "https://registry.npmjs.org/@mozilla/readability/-/readability-0.6.0.tgz",
+      "overridden": false
+    },
+    "@playwright/test": {
+      "version": "1.62.1",
+      "resolved": "https://registry.npmjs.org/@playwright/test/-/test-1.62.1.tgz",
+      "overridden": false
+    },
+    "@ricky0123/vad-web": {
+      "version": "0.0.30",
+      "resolved": "https://registry.npmjs.org/@ricky0123/vad-web/-/vad-web-0.0.30.tgz",
+      "overridden": false
+    },
+    "@supabase/supabase-js": {
+      "version": "2.112.0",
+      "resolved": "https://registry.npmjs.org/@supabase/supabase-js/-/supabase-js-2.112.0.tgz",
+      "overridden": false
+    },
+    "@tailwindcss/vite": {
+      "version": "4.3.2",
+      "resolved": "https://registry.npmjs.org/@tailwindcss/vite/-/vite-4.3.2.tgz",
+      "overridden": false
+    },
+    "@testing-library/dom": {
+      "version": "10.4.1",
+      "resolved": "https://registry.npmjs.org/@testing-library/dom/-/dom-10.4.1.tgz",
+      "overridden": false
+    },
+    "@testing-library/react": {
+      "version": "16.3.2",
+      "resolved": "https://registry.npmjs.org/@testing-library/react/-/react-16.3.2.tgz",
+      "overridden": false
+    },
+    "@types/canvas-confetti": {
+      "version": "1.9.0",
+      "resolved": "https://registry.npmjs.org/@types/canvas-confetti/-/canvas-confetti-1.9.0.tgz",
+      "overridden": false
+    },
+    "@types/compression": {
+      "version": "1.8.1",
+      "resolved": "https://registry.npmjs.org/@types/compression/-/compression-1.8.1.tgz",
+      "overridden": false
+    },
+    "@types/express": {
+      "version": "4.17.25",
+      "resolved": "https://registry.npmjs.org/@types/express/-/express-4.17.25.tgz",
+      "overridden": false
+    },
+    "@types/jsdom": {
+      "version": "28.0.3",
+      "resolved": "https://registry.npmjs.org/@types/jsdom/-/jsdom-28.0.3.tgz",
+      "overridden": false
+    },
+    "@types/node": {
+      "version": "22.20.0",
+      "resolved": "https://registry.npmjs.org/@types/node/-/node-22.20.0.tgz",
+      "overridden": false
+    },
+    "@types/react-dom": {
+      "version": "19.2.3",
+      "resolved": "https://registry.npmjs.org/@types/react-dom/-/react-dom-19.2.3.tgz",
+      "overridden": false
+    },
+    "@types/react": {
+      "version": "19.2.17",
+      "resolved": "https://registry.npmjs.org/@types/react/-/react-19.2.17.tgz",
+      "overridden": false
+    },
+    "@vitejs/plugin-react": {
+      "version": "5.2.0",
+      "resolved": "https://registry.npmjs.org/@vitejs/plugin-react/-/plugin-react-5.2.0.tgz",
+      "overridden": false
+    },
+    "@vitest/coverage-v8": {
+      "version": "4.1.10",
+      "resolved": "https://registry.npmjs.org/@vitest/coverage-v8/-/coverage-v8-4.1.10.tgz",
+      "overridden": false
+    },
+    "autocannon": {
+      "version": "8.0.0",
+      "resolved": "https://registry.npmjs.org/autocannon/-/autocannon-8.0.0.tgz",
+      "overridden": false
+    },
+    "canvas-confetti": {
+      "version": "1.9.4",
+      "resolved": "https://registry.npmjs.org/canvas-confetti/-/canvas-confetti-1.9.4.tgz",
+      "overridden": false
+    },
+    "compression": {
+      "version": "1.8.1",
+      "resolved": "https://registry.npmjs.org/compression/-/compression-1.8.1.tgz",
+      "overridden": false
+    },
+    "country-flag-icons": {
+      "version": "1.6.20",
+      "resolved": "https://registry.npmjs.org/country-flag-icons/-/country-flag-icons-1.6.20.tgz",
+      "overridden": false
+    },
+    "depcheck": {
+      "version": "1.4.7",
+      "resolved": "https://registry.npmjs.org/depcheck/-/depcheck-1.4.7.tgz",
+      "overridden": false
+    },
+    "dotenv": {
+      "version": "17.4.2",
+      "resolved": "https://registry.npmjs.org/dotenv/-/dotenv-17.4.2.tgz",
+      "overridden": false
+    },
+    "drizzle-kit": {
+      "version": "0.31.10",
+      "resolved": "https://registry.npmjs.org/drizzle-kit/-/drizzle-kit-0.31.10.tgz",
+      "overridden": false
+    },
+    "drizzle-orm": {
+      "version": "0.45.2",
+      "resolved": "https://registry.npmjs.org/drizzle-orm/-/drizzle-orm-0.45.2.tgz",
+      "overridden": false
+    },
+    "esbuild": {
+      "version": "0.25.12",
+      "resolved": "https://registry.npmjs.org/esbuild/-/esbuild-0.25.12.tgz",
+      "overridden": false
+    },
+    "eslint-plugin-react-hooks": {
+      "version": "7.1.1",
+      "resolved": "https://registry.npmjs.org/eslint-plugin-react-hooks/-/eslint-plugin-react-hooks-7.1.1.tgz",
+      "overridden": false
+    },
+    "eslint": {
+      "version": "10.7.0",
+      "resolved": "https://registry.npmjs.org/eslint/-/eslint-10.7.0.tgz",
+      "overridden": false
+    },
+    "express-rate-limit": {
+      "version": "8.6.0",
+      "resolved": "https://registry.npmjs.org/express-rate-limit/-/express-rate-limit-8.6.0.tgz",
+      "overridden": false
+    },
+    "express": {
+      "version": "4.22.2",
+      "resolved": "https://registry.npmjs.org/express/-/express-4.22.2.tgz",
+      "overridden": false
+    },
+    "fake-indexeddb": {
+      "version": "6.2.5",
+      "resolved": "https://registry.npmjs.org/fake-indexeddb/-/fake-indexeddb-6.2.5.tgz",
+      "overridden": false
+    },
+    "helmet": {
+      "version": "8.3.0",
+      "resolved": "https://registry.npmjs.org/helmet/-/helmet-8.3.0.tgz",
+      "overridden": false
+    },
+    "idb": {
+      "version": "8.0.3",
+      "resolved": "https://registry.npmjs.org/idb/-/idb-8.0.3.tgz",
+      "overridden": false
+    },
+    "jose": {
+      "version": "6.2.8",
+      "resolved": "https://registry.npmjs.org/jose/-/jose-6.2.8.tgz",
+      "overridden": false
+    },
+    "js-yaml": {
+      "version": "4.3.2",
+      "resolved": "https://registry.npmjs.org/js-yaml/-/js-yaml-4.3.2.tgz",
+      "overridden": false
+    },
+    "jscpd": {
+      "version": "5.0.14",
+      "resolved": "https://registry.npmjs.org/jscpd/-/jscpd-5.0.14.tgz",
+      "overridden": false
+    },
+    "jsdom": {
+      "version": "29.1.1",
+      "resolved": "https://registry.npmjs.org/jsdom/-/jsdom-29.1.1.tgz",
+      "overridden": false
+    },
+    "jszip": {
+      "version": "3.10.1",
+      "resolved": "https://registry.npmjs.org/jszip/-/jszip-3.10.1.tgz",
+      "overridden": false
+    },
+    "knip": {
+      "version": "6.32.1",
+      "resolved": "https://registry.npmjs.org/knip/-/knip-6.32.1.tgz",
+      "overridden": false
+    },
+    "lighthouse": {
+      "version": "13.4.1",
+      "resolved": "https://registry.npmjs.org/lighthouse/-/lighthouse-13.4.1.tgz",
+      "overridden": false
+    },
+    "loopback-capture": {
+      "version": "2.0.0",
+      "resolved": "https://registry.npmjs.org/loopback-capture/-/loopback-capture-2.0.0.tgz",
+      "overridden": false
+    },
+    "lucide-react": {
+      "version": "0.546.0",
+      "resolved": "https://registry.npmjs.org/lucide-react/-/lucide-react-0.546.0.tgz",
+      "overridden": false
+    },
+    "madge": {
+      "version": "8.0.0",
+      "resolved": "https://registry.npmjs.org/madge/-/madge-8.0.0.tgz",
+      "overridden": false
+    },
+    "mammoth": {
+      "version": "1.12.0",
+      "resolved": "https://registry.npmjs.org/mammoth/-/mammoth-1.12.0.tgz",
+      "overridden": false
+    },
+    "pdfjs-dist": {
+      "version": "6.2.108",
+      "resolved": "https://registry.npmjs.org/pdfjs-dist/-/pdfjs-dist-6.2.108.tgz",
+      "overridden": false
+    },
+    "playwright": {
+      "version": "1.62.1",
+      "resolved": "https://registry.npmjs.org/playwright/-/playwright-1.62.1.tgz",
+      "overridden": false
+    },
+    "react-dom": {
+      "version": "19.2.7",
+      "resolved": "https://registry.npmjs.org/react-dom/-/react-dom-19.2.7.tgz",
+      "overridden": false
+    },
+    "react": {
+      "version": "19.2.7",
+      "resolved": "https://registry.npmjs.org/react/-/react-19.2.7.tgz",
+      "overridden": false
+    },
+    "recharts": {
+      "version": "3.9.2",
+      "resolved": "https://registry.npmjs.org/recharts/-/recharts-3.9.2.tgz",
+      "overridden": false
+    },
+    "rollup-plugin-visualizer": {
+      "version": "7.1.1",
+      "resolved": "https://registry.npmjs.org/rollup-plugin-visualizer/-/rollup-plugin-visualizer-7.1.1.tgz",
+      "overridden": false
+    },
+    "tailwindcss": {
+      "version": "4.3.2",
+      "resolved": "https://registry.npmjs.org/tailwindcss/-/tailwindcss-4.3.2.tgz",
+      "overridden": false
+    },
+    "tsx": {
+      "version": "4.23.0",
+      "resolved": "https://registry.npmjs.org/tsx/-/tsx-4.23.0.tgz",
+      "overridden": false
+    },
+    "typescript-eslint": {
+      "version": "8.65.0",
+      "resolved": "https://registry.npmjs.org/typescript-eslint/-/typescript-eslint-8.65.0.tgz",
+      "overridden": false
+    },
+    "typescript": {
+      "version": "5.8.3",
+      "resolved": "https://registry.npmjs.org/typescript/-/typescript-5.8.3.tgz",
+      "overridden": false
+    },
+    "vite": {
+      "version": "6.4.3",
+      "resolved": "https://registry.npmjs.org/vite/-/vite-6.4.3.tgz",
+      "overridden": false
+    },
+    "vitest": {
+      "version": "4.1.10",
+      "resolved": "https://registry.npmjs.org/vitest/-/vitest-4.1.10.tgz",
+      "overridden": false
+    },
+    "zod": {
+      "version": "4.4.3",
+      "resolved": "https://registry.npmjs.org/zod/-/zod-4.4.3.tgz",
+      "overridden": false
+    }
+  }
+}

@@ -1,0 +1,117 @@
+{
+  "base": "http://127.0.0.1:3101",
+  "conexoes": 10,
+  "duracao": 15,
+  "node": "v24.18.0",
+  "em": "2026-09-08T22:05:56.933Z",
+  "resultados": [
+    {
+      "rota": "GET /api/health",
+      "p50": 2,
+      "p95": 2,
+      "p99": 4,
+      "reqPorSegundo": 4399,
+      "nao2xx": 0,
+      "erros": 0
+    },
+    {
+      "rota": "GET /api/me",
+      "p50": 4,
+      "p95": 7,
+      "p99": 8,
+      "reqPorSegundo": 1986,
+      "nao2xx": 0,
+      "erros": 0
+    },
+    {
+      "rota": "GET /api/metrics/profile",
+      "p50": 354,
+      "p95": 372,
+      "p99": 549,
+      "reqPorSegundo": 28,
+      "nao2xx": 0,
+      "erros": 0
+    },
+    {
+      "rota": "GET /api/metrics/xp",
+      "p50": 14,
+      "p95": 15,
+      "p99": 16,
+      "reqPorSegundo": 691,
+      "nao2xx": 0,
+      "erros": 0
+    },
+    {
+      "rota": "GET /api/exercises/recordes",
+      "p50": 7,
+      "p95": 8,
+      "p99": 9,
+      "reqPorSegundo": 1382,
+      "nao2xx": 0,
+      "erros": 0
+    },
+    {
+      "rota": "GET /api/vocab/para-jogo",
+      "p50": 40,
+      "p95": 41,
+      "p99": 45,
+      "reqPorSegundo": 247,
+      "nao2xx": 0,
+      "erros": 0
+    },
+    {
+      "rota": "GET /api/vocab (deck inteiro)",
+      "p50": 991,
+      "p95": 1576,
+      "p99": 1779,
+      "reqPorSegundo": 9,
+      "nao2xx": 0,
+      "erros": 0
+    },
+    {
+      "rota": "GET /api/sessions",
+      "p50": 4,
+      "p95": 6,
+      "p99": 6,
+      "reqPorSegundo": 2241,
+      "nao2xx": 0,
+      "erros": 0
+    },
+    {
+      "rota": "GET /api/exercises/results",
+      "p50": 37,
+      "p95": 39,
+      "p99": 39,
+      "reqPorSegundo": 266,
+      "nao2xx": 0,
+      "erros": 0
+    },
+    {
+      "rota": "GET /api/rank/termo",
+      "p50": 2,
+      "p95": 3,
+      "p99": 4,
+      "reqPorSegundo": 4141,
+      "nao2xx": 0,
+      "erros": 0
+    },
+    {
+      "rota": "POST /api/exercises/rodada",
+      "p50": 27,
+      "p95": 38,
+      "p99": 39,
+      "reqPorSegundo": 364,
+      "nao2xx": 0,
+      "erros": 0
+    },
+    {
+      "rota": "POST /api/vocab/:id/review (FSRS)",
+      "p50": 14,
+      "p95": 20,
+      "p99": 23,
+      "reqPorSegundo": 669,
+      "nao2xx": 0,
+      "erros": 0
+    }
+  ]
+}

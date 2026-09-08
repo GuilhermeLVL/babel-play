@@ -1,0 +1,5 @@
+- [x] 1.1 branch `saneamento/2026-09-08`
+- [x] 1.2 `@xmldom/xmldom` atualizado; `audit:gate` verde
+- [x] 1.3 artefatos no `ci.yml` (vitest JSON, playwright); `workflows:validar` OK
+- [x] 1.4 causa identificada e corrigida: erro nao tratado `speak() sem lang` (`src/lib/falante.ts:83` x `src/lib/tts.ts:276`) via `tests/errosDeMidia.test.ts`; commit 8ec99cd
+- [ ] 1.5 `ci.md` com a URL da run verde na branch

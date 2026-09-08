@@ -1,0 +1,269 @@
+[
+{
+  "text": "res.send(capa.bytes)",
+  "range": {
+    "byteOffset": {
+      "start": 5381,
+      "end": 5401
+    },
+    "start": {
+      "line": 101,
+      "column": 11
+    },
+    "end": {
+      "line": 101,
+      "column": 31
+    }
+  },
+  "file": "server\\routes\\sessions.ts",
+  "lines": "    return res.send(capa.bytes)",
+  "charCount": {
+    "leading": 11,
+    "trailing": 0
+  },
+  "language": "TypeScript",
+  "metaVariables": {
+    "single": {
+      "RES": {
+        "text": "res",
+        "range": {
+          "byteOffset": {
+            "start": 5381,
+            "end": 5384
+          },
+          "start": {
+            "line": 101,
+            "column": 11
+          },
+          "end": {
+            "line": 101,
+            "column": 14
+          }
+        }
+      },
+      "ARG": {
+        "text": "capa.bytes",
+        "range": {
+          "byteOffset": {
+            "start": 5390,
+            "end": 5400
+          },
+          "start": {
+            "line": 101,
+            "column": 20
+          },
+          "end": {
+            "line": 101,
+            "column": 30
+          }
+        }
+      }
+    },
+    "multi": {},
+    "transformed": {}
+  },
+  "ruleId": "resposta-crua",
+  "severity": "warning",
+  "note": null,
+  "message": "`res.send()` com valor dinâmico escreve no corpo sem escape nem contrato de tipo. O Semgrep flagou exatamente este padrão em server/routes/sessions.ts:87 (CWE-79). Aqui o objetivo é o CENSO do padrão, não um vetor: quantos handlers respondem por fora do `.json()`.",
+  "labels": [
+    {
+      "text": "res.send(capa.bytes)",
+      "range": {
+        "byteOffset": {
+          "start": 5381,
+          "end": 5401
+        },
+        "start": {
+          "line": 101,
+          "column": 11
+        },
+        "end": {
+          "line": 101,
+          "column": 31
+        }
+      },
+      "style": "primary"
+    }
+  ]
+},
+{
+  "text": "db.run(sql`SELECT 1 FROM sessions LIMIT 1`)",
+  "range": {
+    "byteOffset": {
+      "start": 1240,
+      "end": 1283
+    },
+    "start": {
+      "line": 25,
+      "column": 10
+    },
+    "end": {
+      "line": 25,
+      "column": 53
+    }
+  },
+  "file": "server\\routes\\health.ts",
+  "lines": "    await db.run(sql`SELECT 1 FROM sessions LIMIT 1`)",
+  "charCount": {
+    "leading": 10,
+    "trailing": 0
+  },
+  "language": "TypeScript",
+  "metaVariables": {
+    "single": {
+      "METODO": {
+        "text": "run",
+        "range": {
+          "byteOffset": {
+            "start": 1243,
+            "end": 1246
+          },
+          "start": {
+            "line": 25,
+            "column": 13
+          },
+          "end": {
+            "line": 25,
+            "column": 16
+          }
+        }
+      }
+    },
+    "multi": {
+      "ARGS": [
+        {
+          "text": "sql`SELECT 1 FROM sessions LIMIT 1`",
+          "range": {
+            "byteOffset": {
+              "start": 1247,
+              "end": 1282
+            },
+            "start": {
+              "line": 25,
+              "column": 17
+            },
+            "end": {
+              "line": 25,
+              "column": 52
+            }
+          }
+        }
+      ]
+    },
+    "transformed": {}
+  },
+  "ruleId": "rota-fala-com-o-banco",
+  "severity": "warning",
+  "note": null,
+  "message": "Rota chamando o Drizzle direto. `server/db/repositories/` existe para concentrar a aplicação do `userId`; contornar esse ponto é a classe de falha que F3-06 mediu (vazamento entre contas). Se a chamada é legítima (health probe, por exemplo), ela precisa de motivo escrito.",
+  "labels": [
+    {
+      "text": "db.run(sql`SELECT 1 FROM sessions LIMIT 1`)",
+      "range": {
+        "byteOffset": {
+          "start": 1240,
+          "end": 1283
+        },
+        "start": {
+          "line": 25,
+          "column": 10
+        },
+        "end": {
+          "line": 25,
+          "column": 53
+        }
+      },
+      "style": "primary"
+    }
+  ]
+},
+{
+  "text": "res.send(apkg)",
+  "range": {
+    "byteOffset": {
+      "start": 9885,
+      "end": 9899
+    },
+    "start": {
+      "line": 183,
+      "column": 4
+    },
+    "end": {
+      "line": 183,
+      "column": 18
+    }
+  },
+  "file": "server\\routes\\import.ts",
+  "lines": "    res.send(apkg)",
+  "charCount": {
+    "leading": 4,
+    "trailing": 0
+  },
+  "language": "TypeScript",
+  "metaVariables": {
+    "single": {
+      "ARG": {
+        "text": "apkg",
+        "range": {
+          "byteOffset": {
+            "start": 9894,
+            "end": 9898
+          },
+          "start": {
+            "line": 183,
+            "column": 13
+          },
+          "end": {
+            "line": 183,
+            "column": 17
+          }
+        }
+      },
+      "RES": {
+        "text": "res",
+        "range": {
+          "byteOffset": {
+            "start": 9885,
+            "end": 9888
+          },
+          "start": {
+            "line": 183,
+            "column": 4
+          },
+          "end": {
+            "line": 183,
+            "column": 7
+          }
+        }
+      }
+    },
+    "multi": {},
+    "transformed": {}
+  },
+  "ruleId": "resposta-crua",
+  "severity": "warning",
+  "note": null,
+  "message": "`res.send()` com valor dinâmico escreve no corpo sem escape nem contrato de tipo. O Semgrep flagou exatamente este padrão em server/routes/sessions.ts:87 (CWE-79). Aqui o objetivo é o CENSO do padrão, não um vetor: quantos handlers respondem por fora do `.json()`.",
+  "labels": [
+    {
+      "text": "res.send(apkg)",
+      "range": {
+        "byteOffset": {
+          "start": 9885,
+          "end": 9899
+        },
+        "start": {
+          "line": 183,
+          "column": 4
+        },
+        "end": {
+          "line": 183,
+          "column": 18
+        }
+      },
+      "style": "primary"
+    }
+  ]
+}
+]

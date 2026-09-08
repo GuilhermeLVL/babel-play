@@ -1,0 +1,1 @@
+O Lighthouse roda contra `node dist-server/server.cjs` (producao-equivalente) com build `VITE_AUTH_REQUIRED=0`, porque o build real abre em `<Login/>` e mediria a tela de login. A diferenca entre os dois builds e o chunk de login; os tamanhos do build real ficam em `bundle-medir-rotas.txt`. CPU quieta durante as execucoes: nenhuma suite ou build em paralelo.

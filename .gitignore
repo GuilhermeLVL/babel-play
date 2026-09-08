@@ -92,3 +92,4 @@ backups/
 # Sobras de bancada: nao versionadas, e sem isto apareciam como untracked a cada `git status`.
 scratch_test/
 .wrangler/
+vitest-resultado.json

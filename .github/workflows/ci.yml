@@ -35,7 +35,18 @@ jobs:
         run: npm run morto:arquivos
       - name: Sem ciclo de importacao
         run: npm run morto:ciclos
-      - run: npm test
+      # O JSON da suite vai como artefato SEMPRE (`if: always()`): a run 34278328814 (08/09) falhou
+      # em `npm test` e o log do job so e legivel por quem tem admin no repositorio — quem nao tem
+      # ficava sem saber QUAL teste caiu. O artefato e publico para quem ve o repositorio.
+      - name: Testes de unidade e integracao
+        run: npx vitest run --reporter=default --reporter=json --outputFile=vitest-resultado.json
+      - name: Artefato da suite (vitest)
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: vitest-resultado
+          path: vitest-resultado.json
+          if-no-files-found: ignore
       - run: npm run build
       # O catalogo pseudo tem que estar em dia, senao o teste de layout roda sobre um mapa velho
       # e deixa de ver as strings novas — falha silenciosa, do tipo que este repo ja documenta.
@@ -75,6 +86,17 @@ jobs:
         run: npx playwright install --with-deps chromium
       - name: Testes de ponta a ponta
         run: npm run test:e2e
+      # Trace e screenshot de falha ja eram configurados no playwright.config.ts e nunca saiam do
+      # runner: a configuracao existia, a evidencia nao.
+      - name: Artefato do e2e (trace, screenshot)
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: playwright-resultado
+          path: |
+            test-results/
+            playwright-report/
+          if-no-files-found: ignore
 
       # Invariantes arquiteturais deste repositório (não SAST genérico): as regras têm fixture,
       # porque uma regra errada devolve zero achados e isso tem a cara de "código limpo".

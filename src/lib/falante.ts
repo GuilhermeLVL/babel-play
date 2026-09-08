@@ -25,7 +25,11 @@ import { toast } from '../components/Toast';
 /** O que se pede para ouvir. `startMs`/`endMs` só existem quando o item veio de uma gravação. */
 interface ItemAudivel {
   texto: string;
-  lang?: string;
+  /* OBRIGATORIO desde que `speak()` exige idioma (change `idioma-alvo-e-ui-respeitados`): em
+     modo DEV o TTS lanca sem `lang`, e foi assim que a CI ficou vermelha em 08/09 — o teste de
+     midia montava o item sem idioma e o erro nao tratado derrubava `npm test` sem falhar teste
+     nenhum. Os tres jogos ja passam o idioma da fala; o tipo agora cobra dos proximos. */
+  lang: string;
   startMs?: number;
   endMs?: number;
 }
@@ -80,7 +84,7 @@ export function criarFalante(
         && item.endMs > item.startMs;
 
       const porVoz = () => {
-        if (temVoz) speak(item.texto, { lang: toBcp47(item.lang || '') || undefined, rate: velocidade });
+        if (temVoz) speak(item.texto, { lang: toBcp47(item.lang) || item.lang, rate: velocidade });
       };
 
       if (recortavel && audioEl.current && !audioEl.current.error) {

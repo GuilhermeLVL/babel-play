@@ -64,7 +64,7 @@ describe('MediaError do <audio> — o clipe da gravação que não carrega', () 
   it('sem voz sintetizada, a falha vira erro visível com a causa traduzida', () => {
     const el = audioNaoCarregado();
     const falante = criarFalante({ current: el }, 'blob:gravacao');
-    falante.ouvir({ texto: 'hello', startMs: 0, endMs: 1000 });
+    falante.ouvir({ texto: 'hello', lang: 'en', startMs: 0, endMs: 1000 });
 
     falharCarga(el, 3); // decodificação
 
@@ -76,7 +76,7 @@ describe('MediaError do <audio> — o clipe da gravação que não carrega', () 
     dublarSinteseDeVoz();
     const el = audioNaoCarregado();
     const falante = criarFalante({ current: el }, 'blob:gravacao');
-    falante.ouvir({ texto: 'hello', startMs: 0, endMs: 1000 });
+    falante.ouvir({ texto: 'hello', lang: 'en', startMs: 0, endMs: 1000 });
 
     falharCarga(el, 2); // rede
 
@@ -87,9 +87,9 @@ describe('MediaError do <audio> — o clipe da gravação que não carrega', () 
   it('avisa UMA vez por falante — o <audio> reemite `error` a cada load()', () => {
     const el = audioNaoCarregado();
     const falante = criarFalante({ current: el }, 'blob:gravacao');
-    falante.ouvir({ texto: 'a', startMs: 0, endMs: 500 });
+    falante.ouvir({ texto: 'a', lang: 'en', startMs: 0, endMs: 500 });
     falharCarga(el, 4);
-    falante.ouvir({ texto: 'b', startMs: 500, endMs: 900 });
+    falante.ouvir({ texto: 'b', lang: 'en', startMs: 500, endMs: 900 });
     el.dispatchEvent(new Event('error'));
 
     expect(toast.error).toHaveBeenCalledTimes(1);

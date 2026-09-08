@@ -167,7 +167,10 @@ export const MINIGAMES: Record<MinigameId, MinigameDef> = {
      em `requisitos`, e nao por nome espalhado no codigo. */
   karuta: { id: 'karuta', minItems: 4, maxItems: 8, requiresTranslation: true, writesSrs: true, modalidade: 'palavra' },
   choseong: { id: 'choseong', minItems: 4, maxItems: 8, requiresTranslation: true, writesSrs: true, modalidade: 'palavra', requisitos: { alfabeto: 'latino', escrita: 'teclado' } },
-  tenis: { id: 'tenis', minItems: 4, maxItems: 10, requiresTranslation: true, writesSrs: true, modalidade: 'palavra' },
+  /* O tenis DIGITA a palavra inteira, como o Termo — e por isso carrega o mesmo requisito. Sem
+     ele, o jogo aparecia jogavel em japones e arabe, e a comparacao dava acerto a quem errou:
+     `chaveDoTermo` remove o dakuten (nao e `\p{L}`), entao `食べる` e `食へる` viram a mesma chave. */
+  tenis: { id: 'tenis', minItems: 4, maxItems: 10, requiresTranslation: true, writesSrs: true, modalidade: 'palavra', requisitos: { alfabeto: 'latino', escrita: 'teclado' } },
   koffer: { id: 'koffer', minItems: 4, maxItems: 8, requiresTranslation: true, writesSrs: true, modalidade: 'palavra' },
   bao: { id: 'bao', minItems: 4, maxItems: 6, requiresTranslation: true, writesSrs: true, modalidade: 'palavra', requisitos: { alfabeto: 'latino', escrita: 'grade' } },
   vitendawili: { id: 'vitendawili', minItems: 4, maxItems: 8, requiresTranslation: true, writesSrs: true, modalidade: 'palavra' },

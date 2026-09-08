@@ -60,12 +60,9 @@ import { toast } from '../Toast';
 import TourGuiado from '../minigames/TourGuiado';
 import { PASSOS_DOS_JOGOS, jaFezTour, marcarTourFeito } from '../minigames/passosDosJogos';
 import { aplicarOrdem, mover, alternarFixado, lerOrdem, gravarOrdem, ORDEM_VAZIA, type OrdemDosJogos } from '../../lib/ordemDosJogos';
-import MemoryGame from '../minigames/MemoryGame';
 import TermoGame from '../minigames/TermoGame';
 import ScrambleGame from '../minigames/ScrambleGame';
 import KaraokeGame, { type FalaKaraoke } from '../minigames/KaraokeGame';
-import WordSearchGame from '../minigames/WordSearchGame';
-import BlitzGame from '../minigames/BlitzGame';
 import ScratchReward from '../minigames/ScratchReward';
 import ResumoDaRodada, { type ItemDaRodada } from '../minigames/ResumoDaRodada';
 import {
@@ -80,6 +77,7 @@ import { lerUrlAtual, publicarQueryDoJogar, consumirQueryDoBoot } from '../../li
 import EscutaGame from '../minigames/EscutaGame';
 import DitadoGame from '../minigames/DitadoGame';
 import ConectoresGame from '../minigames/ConectoresGame';
+import { TELA_DO_JOGO } from './play/telaDoJogo';
 
 /**
  * JOGAR — a porta de entrada para praticar.
@@ -2360,9 +2358,8 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
   }
   if (rodada) {
     const comuns = { items: rodada.itens, ageProfile, onFinish: aoTerminar, onExit: sairDaRodada(() => setRodada(null)) };
-    if (rodada.jogo === 'memory') return comTour(<MemoryGame {...comuns} />, 'memory');
-    if (rodada.jogo === 'wordsearch') return comTour(<WordSearchGame {...comuns} />, 'wordsearch');
-    if (rodada.jogo === 'blitz') return comTour(<BlitzGame {...comuns} />, 'blitz');
+    const Tela = TELA_DO_JOGO[rodada.jogo];
+    if (Tela) return comTour(<Tela {...comuns} />, rodada.jogo);
   }
   /* F6 — PASSO 2, depois da raspadinha.
      A raspadinha funciona como recompensa e continua onde estava; o defeito era ser o FIM DA

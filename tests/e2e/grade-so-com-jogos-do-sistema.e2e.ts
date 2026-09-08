@@ -2,46 +2,43 @@ import { test, expect } from '@playwright/test';
 import { irParaPraticar } from './_helpers';
 
 /**
- * A GRADE SÓ MOSTRA O QUE O SISTEMA GARANTE (auditoria de 2026-09-07, achado A02).
+ * A GRADE MOSTRA TODO JOGO QUE O SISTEMA CONHECE, E SO ELE.
  *
- * Nove jogos "culturais" ocupavam metade da grade de `/jogar` com o selo "100% Funcional" e não
- * passavam por sistema nenhum: a rodada não nascia em `montarRodada`, o `RoundReport` era
- * descartado por um `onFinish` sem argumentos, e o banco real não tinha uma única rodada deles
- * registrada. Meia hora de Karuta não virava um item de XP, um cartão revisado ou um recorde.
- *
- * Eles saíram da grade até entrarem no sistema (a decisão e o contrato de volta estão em
- * `openspec/changes/jogos-culturais-dentro-do-sistema/design.md`). Este teste é a catraca: quem
- * religar um deles à tela sem passar pelo pipeline vê o gate vermelho, não um card novo em
- * produção.
+ * Em 07/09 os nove culturais sairam da grade porque nao passavam por sistema nenhum: a rodada nao
+ * nascia em `montarRodada` e o `RoundReport` era descartado. Em 08/09 eles voltaram reescritos,
+ * rodando sobre o baralho e reportando o proprio `gameId`. A catraca inverteu de lado: antes
+ * provava que eles NAO estavam na tela; agora prova que estao, e que a grade nao perdeu ninguem.
  */
+/* Termo que aparece no titulo do jogo nos TRES perfis (kids/pro/senior): o rotulo muda por
+   perfil, entao procurar o nome proprio falharia dependendo de quem esta jogando. */
 const CULTURAIS = [
-  'Karuta', 'Koffer', 'Choseong', 'Taboo', 'Shiritori',
-  'Cadavre', 'Bao', 'Tense Tennis', 'Vitendawili',
+  'Karuta', 'vogais', 'nis de palavras', 'mala', 'Bao',
+  'Charada', 'Corrente de palavras', 'Frase maluca', 'proibida',
 ];
 
 test.describe('Grade de jogos', () => {
-  test('não anuncia jogo que não registra progresso', async ({ page }) => {
+  test('nao anuncia jogo que nao registra progresso', async ({ page }) => {
     test.slow();
     await irParaPraticar(page);
-
-    const corpo = page.getByRole('main');
-    await expect(corpo).toBeVisible();
-
-    // O selo era a afirmação falsa mais direta da tela.
+    await expect(page.getByRole('main')).toBeVisible();
+    // O selo era a afirmacao falsa mais direta da tela, e nao volta.
     await expect(page.getByText('100% Funcional')).toHaveCount(0);
-
-    // A aba que existia só para eles.
     await expect(page.getByRole('tab', { name: /Jogos do Mundo/i })).toHaveCount(0);
+  });
 
+  test('os nove culturais estao na grade', async ({ page }) => {
+    test.slow();
+    await irParaPraticar(page);
+    const corpo = page.getByRole('main');
     for (const nome of CULTURAIS) {
       await expect(
-        corpo.getByText(nome, { exact: false }),
-        `"${nome}" voltou à grade sem passar por montarRodada/aoTerminar`,
-      ).toHaveCount(0);
+        corpo.getByText(nome, { exact: false }).first(),
+        `"${nome}" nao aparece na grade`,
+      ).toBeVisible();
     }
   });
 
-  test('as categorias que sobraram são as dos jogos que registram', async ({ page }) => {
+  test('as categorias que sobraram sao as dos jogos que registram', async ({ page }) => {
     await irParaPraticar(page);
     await expect(page.getByRole('tab', { name: 'Todos' })).toBeVisible();
     await expect(page.getByRole('tab', { name: 'Clássicos' })).toBeVisible();

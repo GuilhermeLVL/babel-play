@@ -1,438 +1,247 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { X, Volume2, Award, Timer as TimerIcon, Zap, Flame, Lightbulb } from 'lucide-react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { X, Volume2, Award, Timer as TimerIcon } from 'lucide-react';
 import type { MinigameItem, ItemOutcome, RoundReport } from '@core';
+import { MINIGAMES, distractorsFor, scoreRound } from '@core';
+import { direcaoDoTexto } from '../../../lib/languages';
+import { idiomaDaInterface } from '../../../lib/i18n';
 import type { AgeProfileType } from '../../../lib/profile';
 import { play } from '../../../lib/soundFx';
-import { tremor } from '../../../lib/juice';
-import { speak } from '../../../lib/tts';
-import { playJuicedHit, playJuicedError, playJuicedVictory, calculateMultiplier } from '../../../lib/gameFeel';
+import { comemorar, tremor } from '../../../lib/juice';
+import { speak, isTtsSupported } from '../../../lib/tts';
 
 /**
- * KARUTA GAME — Reflexo auditivo, varredura visual e pareamento áudio-espacial.
+ * KARUTA — o narrador declama a PISTA e as cartas na mesa trazem as palavras candidatas.
  *
- * Inspirado no Kyōgi Karuta tradicional japonês.
- * As cartas são espalhadas e embaralhadas no tatame com cartas distratoras (decoys).
- * O narrador vocaliza a palavra-alvo. O jogador deve varrer a mesa visualmente
- * e golpear a carta certa antes que o tempo esgote.
- *
- * Bônus Kimariji: ao bater nas primeiras sílabas (primeiros 1.8s), ganha combo 3x e fanfarra!
+ * A inversão é o jogo inteiro. Declamar a RESPOSTA e espalhar respostas escritas casava som com
+ * grafia: a pessoa achava a carta sem lembrar de nada. Ouvindo o SIGNIFICADO e tocando na palavra,
+ * a rodada volta a ser recuperação — a mesma pergunta do Duelo, feita pelo ouvido.
  */
 
-interface TatamiCard {
-  id: string;
-  itemRef: string;
-  text: string;
-  prompt: string;
-  lang: string;
-  isTarget: boolean;
-  rotation: number;
-  offsetY: number;
-  offsetX: number;
-  status: 'idle' | 'slapped' | 'wrong' | 'collected';
-}
-
 interface KarutaGameProps {
-  items?: MinigameItem[];
+  items: MinigameItem[];
   ageProfile: AgeProfileType;
   onFinish: (report: RoundReport) => void;
   onExit: () => void;
 }
 
-const DECOY_POOL: MinigameItem[] = [
-  { prompt: 'Vento', answer: 'Wind', lang: 'en-US' },
-  { prompt: 'Estrela', answer: 'Star', lang: 'en-US' },
-  { prompt: 'Rio', answer: 'River', lang: 'en-US' },
-  { prompt: 'Chuva', answer: 'Rain', lang: 'en-US' },
-  { prompt: 'Montanha', answer: 'Mountain', lang: 'en-US' },
-  { prompt: 'Céu', answer: 'Sky', lang: 'en-US' },
-  { prompt: 'Flor', answer: 'Flower', lang: 'en-US' },
-  { prompt: 'Pássaro', answer: 'Bird', lang: 'en-US' },
-];
+/** Segundos para varrer a mesa, por perfil. */
+const SEGUNDOS: Record<AgeProfileType, number> = { kids: 12, pro: 8, senior: 14 };
+/** Teto de cartas na mesa: acima disso a varredura vira sorte. */
+const CARTAS_NA_MESA = 6;
 
-const MOCK_TARGETS: MinigameItem[] = [
-  { prompt: 'Água', answer: 'Water', lang: 'en-US' },
-  { prompt: 'Fogo', answer: 'Fire', lang: 'en-US' },
-  { prompt: 'Noite', answer: 'Night', lang: 'en-US' },
-  { prompt: 'Sol', answer: 'Sun', lang: 'en-US' },
-  { prompt: 'Livro', answer: 'Book', lang: 'en-US' },
-  { prompt: 'Coração', answer: 'Heart', lang: 'en-US' },
-];
-
-function shuffleArray<T>(array: T[]): T[] {
-  const arr = [...array];
-  for (let i = arr.length - 1; i > 0; i--) {
+function embaralhar<T>(xs: T[]): T[] {
+  const a = [...xs];
+  for (let i = a.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
-    [arr[i], arr[j]] = [arr[j], arr[i]];
+    [a[i], a[j]] = [a[j], a[i]];
   }
-  return arr;
+  return a;
 }
 
-export default function KarutaGame({ items: itemsProp, ageProfile, onFinish, onExit }: KarutaGameProps) {
-  // Itens alvo da partida
-  const targetItems = useMemo<MinigameItem[]>(() => {
-    if (itemsProp && itemsProp.length >= 4) {
-      return shuffleArray(itemsProp).slice(0, 8);
-    }
-    return MOCK_TARGETS;
-  }, [itemsProp]);
+export default function KarutaGame({ items, ageProfile, onFinish, onExit }: KarutaGameProps) {
+  const suficiente = items.length >= MINIGAMES.karuta.minItems;
 
-  // Pool expandido com distratores para o tatame
-  const allPool = useMemo<MinigameItem[]>(() => {
-    const combined = [...targetItems, ...DECOY_POOL];
-    const uniqueMap = new Map<string, MinigameItem>();
-    combined.forEach((item) => uniqueMap.set(item.answer.toLowerCase(), item));
-    return Array.from(uniqueMap.values());
-  }, [targetItems]);
-
-  const tempoLimite = ageProfile === 'senior' ? 12 : ageProfile === 'kids' ? 10 : 8;
-  const [indiceAlvo, setIndiceAlvo] = useState(0);
+  const [indice, setIndice] = useState(0);
+  /**
+   * O relógio DECLARA de que carta ele é.
+   *
+   * Com `tempo` solto, o zero da carta anterior sobrevivia um render à troca: o efeito de reset
+   * zera a guarda de "já respondeu" antes do efeito do relógio rodar, e o relógio — ainda em 0,
+   * porque o `setTempo` do reset só chega no render seguinte — dava a carta NOVA por perdida na
+   * hora, com um outcome de ms zero. Amarrar o relógio ao índice fecha a janela.
+   */
+  const [relogio, setRelogio] = useState({ carta: 0, segundos: SEGUNDOS[ageProfile] });
+  const tempo = relogio.carta === indice ? relogio.segundos : SEGUNDOS[ageProfile];
   const [pontos, setPontos] = useState(0);
-  const [combo, setCombo] = useState(0);
-  const [tempo, setTempo] = useState(tempoLimite);
-  const [cartasMesa, setCartasMesa] = useState<TatamiCard[]>([]);
-  const [kimarijiAtivo, setKimarijiAtivo] = useState(true);
-  const [estaNarrando, setEstaNarrando] = useState(false);
-  const [finalizado, setFinalizado] = useState(false);
-
-  // Dicas & Ajuda
-  const [dicasRestantes, setDicasRestantes] = useState(3);
-  const [dicaAberta, setDicaAberta] = useState(false);
-  const [dicaTexto, setDicaTexto] = useState<string | null>(null);
+  const [acertada, setAcertada] = useState<string | null>(null);
+  const [errada, setErrada] = useState<string | null>(null);
+  const [acabou, setAcabou] = useState(false);
 
   const outcomesRef = useRef<ItemOutcome[]>([]);
-  const inicioPartidaRef = useRef(Date.now());
   const inicioRodadaRef = useRef(Date.now());
-  const tentativasRodadaRef = useRef(0);
-  const tatamiRef = useRef<HTMLDivElement>(null);
+  const inicioItemRef = useRef(Date.now());
+  const tentativasRef = useRef(0);
+  const respondidoRef = useRef(false);
+  const jaFinalizouRef = useRef(false);
+  const mesaRef = useRef<HTMLDivElement | null>(null);
 
-  const itemAlvo = targetItems[indiceAlvo];
+  const item: MinigameItem | undefined = items[indice];
 
-  const usarDica = () => {
-    if (dicasRestantes <= 0 || dicaAberta || !itemAlvo) return;
-    play('click');
-    setDicasRestantes((prev) => prev - 1);
-    setDicaAberta(true);
+  /* A pista é a TRADUÇÃO, e tradução está no idioma de quem joga — não no de `item.lang`. Falar a
+     pista com a voz da língua praticada leria "casa" com sotaque inglês. A exceção é a pista
+     `clozed`, que é a frase real: essa sim está em `item.lang`. */
+  const idiomaDaFala = item?.clozed ? item.lang : idiomaDaInterface();
 
-    // Elimina 2 distratores incorretos da mesa
-    const decoys = cartasMesa.filter((c) => !c.isTarget && c.status === 'idle');
-    const toEliminate = shuffleArray(decoys).slice(0, 2).map((c) => c.id);
+  /** A mesa: a carta certa mais os distratores que os OUTROS itens da rodada derem. */
+  const mesa = useMemo(() => {
+    if (!item) return [];
+    const quantos = Math.min(CARTAS_NA_MESA, items.length) - 1;
+    return embaralhar([item.answer, ...distractorsFor(item, items, quantos)]);
+  }, [item, items]);
 
-    setCartasMesa((prev) =>
-      prev.map((c) => (toEliminate.includes(c.id) ? { ...c, status: 'wrong' } : c))
-    );
-
-    const primeiraLetra = itemAlvo.answer.charAt(0).toUpperCase();
-    setDicaTexto(`Pista: A palavra correta em inglês começa com a letra "${primeiraLetra}"!`);
-    play('levelUp');
-  };
-
-  // Monta a mesa de cartas espalhadas aleatoriamente a cada rodada
-  const montarTatame = (alvo: MinigameItem) => {
-    if (!alvo) return;
-    
-    // Pega o alvo + 7 distratores
-    const distratores = shuffleArray(allPool.filter((i) => i.answer.toLowerCase() !== alvo.answer.toLowerCase())).slice(0, 7);
-    const mesaItens = shuffleArray([alvo, ...distratores]);
-
-    const novasCartas: TatamiCard[] = mesaItens.map((item, idx) => ({
-      id: `tatami-${item.answer}-${idx}-${Date.now()}`,
-      itemRef: item.answer,
-      text: item.answer,
-      prompt: item.prompt,
-      lang: item.lang || 'en-US',
-      isTarget: item.answer.toLowerCase() === alvo.answer.toLowerCase(),
-      rotation: (Math.random() * 14) - 7, // leve rotação realista de mesa de cartas japonesa
-      offsetX: (Math.random() * 8) - 4,
-      offsetY: (Math.random() * 8) - 4,
-      status: 'idle',
-    }));
-
-    setCartasMesa(novasCartas);
-  };
-
-  const narrarAlvo = (item: MinigameItem) => {
+  const narrar = useCallback(() => {
     if (!item) return;
-    setEstaNarrando(true);
-    setKimarijiAtivo(true);
-    play('speak');
+    speak(item.prompt, { lang: idiomaDaFala });
+  }, [item, idiomaDaFala]);
 
-    try {
-      speak(item.answer, { lang: item.lang || 'en-US' });
-    } catch {
-      // Degradação graciosa
-    }
-
-    // Janela do Kimariji: nos primeiros 1.8 segundos o reflexo pontua 3x!
-    setTimeout(() => {
-      setKimarijiAtivo(false);
-      setEstaNarrando(false);
-    }, 1800);
-  };
-
-  // Início de rodada / troca de alvo
   useEffect(() => {
-    if (!itemAlvo || finalizado) return;
-    inicioRodadaRef.current = Date.now();
-    tentativasRodadaRef.current = 0;
-    setTempo(tempoLimite);
-    setDicaAberta(false);
-    setDicaTexto(null);
+    if (!suficiente) onExit();
+  }, [suficiente, onExit]);
 
-    montarTatame(itemAlvo);
-    narrarAlvo(itemAlvo);
-  }, [indiceAlvo, itemAlvo, finalizado, tempoLimite]);
-
-  // Cronômetro da rodada
-  useEffect(() => {
-    if (finalizado) return;
-    const timer = setInterval(() => {
-      setTempo((prev) => {
-        if (prev <= 1) {
-          tratarTimeout();
-          return tempoLimite;
-        }
-        if (prev <= 3) play('tick');
-        return prev - 1;
-      });
-    }, 1000);
-    return () => clearInterval(timer);
-  }, [indiceAlvo, finalizado, tempoLimite]);
-
-  const tratarTimeout = () => {
-    tentativasRodadaRef.current += 1;
-    play('error');
-    if (tatamiRef.current) tremor(tatamiRef.current);
-    setCombo(0);
-
-    outcomesRef.current.push({
-      itemRef: itemAlvo.answer,
-      correct: false,
-      attempts: tentativasRodadaRef.current,
-      ms: Date.now() - inicioRodadaRef.current,
-      revealed: true,
-    });
-
-    avancarProximoAlvo();
-  };
-
-  const avancarProximoAlvo = () => {
-    if (indiceAlvo + 1 >= targetItems.length) {
-      concluirJogo();
-    } else {
-      setIndiceAlvo((prev) => prev + 1);
-    }
-  };
-
-  const concluirJogo = () => {
-    setFinalizado(true);
-    playJuicedVictory();
-    const duracaoTotal = Date.now() - inicioPartidaRef.current;
+  const finalizar = useCallback(() => {
+    if (jaFinalizouRef.current) return;
+    jaFinalizouRef.current = true;
+    setAcabou(true);
+    const outcomes = outcomesRef.current;
     const report: RoundReport = {
-      gameId: 'blitz' as any,
-      items: outcomesRef.current,
-      score: pontos,
-      durationMs: duracaoTotal,
+      gameId: 'karuta',
+      items: outcomes,
+      score: scoreRound('karuta', outcomes),
+      durationMs: Date.now() - inicioRodadaRef.current,
     };
-    setTimeout(() => {
-      onFinish(report);
-    }, 1800);
-  };
+    const perfeita = outcomes.length > 0 && outcomes.every(o => o.correct && !o.revealed);
+    comemorar(perfeita ? 'rodadaPerfeita' : 'rodadaBoa', mesaRef.current);
+    setTimeout(() => onFinish(report), 1100);
+  }, [onFinish]);
 
-  // Disparo do "Slap" / Golpe na carta
-  const handleSlap = (carta: TatamiCard, event: React.MouseEvent) => {
-    if (finalizado || carta.status !== 'idle') return;
+  const registrar = useCallback((correct: boolean, revealed?: boolean) => {
+    if (!item) return;
+    outcomesRef.current.push({
+      cardId: item.cardId,
+      itemRef: item.answer,
+      correct,
+      attempts: Math.max(1, tentativasRef.current),
+      ms: Date.now() - inicioItemRef.current,
+      ...(revealed ? { revealed: true } : {}),
+    });
+    setPontos(scoreRound('karuta', outcomesRef.current));
+  }, [item]);
 
-    tentativasRodadaRef.current += 1;
-    const tempoGasto = Date.now() - inicioRodadaRef.current;
+  const avancar = useCallback(() => {
+    if (indice + 1 >= items.length) finalizar();
+    else setIndice(i => i + 1);
+  }, [indice, items.length, finalizar]);
 
-    if (carta.isTarget) {
-      // ACERTOU! GOLPE CERTEIRO NO TATAME
-      const kimarijiHit = kimarijiAtivo;
-      const novoCombo = combo + 1;
-      const multiplicadorPontos = kimarijiHit ? 3 : calculateMultiplier(novoCombo);
-      const pts = (120 + (combo * 25)) * multiplicadorPontos;
+  // Troca de carta: zera o relógio e as tentativas, e o narrador declama de novo.
+  useEffect(() => {
+    if (!item || jaFinalizouRef.current) return;
+    inicioItemRef.current = Date.now();
+    tentativasRef.current = 0;
+    respondidoRef.current = false;
+    setAcertada(null);
+    setErrada(null);
+    setRelogio({ carta: indice, segundos: SEGUNDOS[ageProfile] });
+    narrar();
+  }, [indice, item, ageProfile, narrar]);
 
-      setPontos((p) => p + pts);
-      setCombo(novoCombo);
-
-      // Efeito de partícula de impacto e pitch progressivo
-      const rect = event.currentTarget.getBoundingClientRect();
-      playJuicedHit(
-        novoCombo,
-        { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 },
-        kimarijiHit ? 'KIMARIJI 3x!' : `SLAP! +${pts}`
-      );
-
-      // Animação de Slap: carta voa com rotação e deslize
-      setCartasMesa((prev) =>
-        prev.map((c) => (c.id === carta.id ? { ...c, status: 'slapped' } : c))
-      );
-
-      outcomesRef.current.push({
-        itemRef: itemAlvo.answer,
-        correct: true,
-        attempts: tentativasRodadaRef.current,
-        ms: tempoGasto,
-        hinted: !kimarijiHit,
-      });
-
-      setTimeout(() => {
-        avancarProximoAlvo();
-      }, 500);
-    } else {
-      // ERROU! Golpes em cartas erradas geram penalidade e tremor
-      setCombo(0);
-      playJuicedError(tatamiRef.current, undefined, 'OTETSURI! (FALTA)');
-
-      setCartasMesa((prev) =>
-        prev.map((c) => (c.id === carta.id ? { ...c, status: 'wrong' } : c))
-      );
-
-      setTimeout(() => {
-        setCartasMesa((prev) =>
-          prev.map((c) => (c.id === carta.id ? { ...c, status: 'idle' } : c))
-        );
-      }, 500);
+  // O relógio da carta. Um `setTimeout` por segundo, como no Duelo.
+  useEffect(() => {
+    if (acabou || !item || respondidoRef.current) return;
+    if (relogio.carta !== indice) return;
+    if (tempo <= 0) {
+      respondidoRef.current = true;
+      registrar(false, true);
+      comemorar('erro', mesaRef.current);
+      avancar();
+      return;
     }
+    if (tempo <= 3) play('tick');
+    const t = setTimeout(() => setRelogio(r => (r.carta === indice ? { ...r, segundos: r.segundos - 1 } : r)), 1000);
+    return () => clearTimeout(t);
+  }, [relogio, tempo, indice, acabou, item, registrar, avancar]);
+
+  const golpear = (carta: string, el: HTMLElement | null) => {
+    if (acabou || !item || respondidoRef.current) return;
+    tentativasRef.current += 1;
+
+    if (carta !== item.answer) {
+      // "Otetsuki": a carta errada volta para a mesa e a rodada continua — só a nota cai.
+      setErrada(carta);
+      setTimeout(() => setErrada(null), 420);
+      comemorar('erro', el);
+      tremor(mesaRef.current);
+      return;
+    }
+
+    respondidoRef.current = true;
+    setAcertada(carta);
+    registrar(true);
+    comemorar('acerto', el);
+    speak(item.answer, { lang: item.lang });
+    setTimeout(avancar, 700);
   };
+
+  if (!suficiente) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col bg-canvas text-ink select-none overflow-hidden" ref={tatamiRef}>
-      {/* Header Superior com Status de Jogo */}
-      <header className="flex items-center justify-between px-6 py-4 border-b border-border-subtle bg-surface/85 backdrop-blur-md">
+    <div className="fixed inset-0 z-50 flex flex-col bg-canvas text-ink select-none overflow-hidden">
+      <header className="flex items-center justify-between gap-3 px-6 py-4 border-b border-border-subtle bg-surface/85 backdrop-blur-md">
         <div className="flex items-center gap-3">
           <button
             onClick={onExit}
             className="p-2 rounded-xl border border-border-subtle bg-surface-hover hover:bg-border-subtle transition-colors cursor-pointer"
-            title="Sair do Karuta"
+            aria-label="Sair do Karuta"
           >
             <X className="w-5 h-5 text-ink" />
           </button>
           <div>
-            <div className="flex items-center gap-2">
-              <span className="font-display font-black text-lg tracking-wide uppercase text-accent">Karuta Arena</span>
-              <span className="text-xs px-2 py-0.5 rounded-full bg-accent-soft text-accent-ink font-semibold">Audio-Slap 競技かるた</span>
-            </div>
-            <p className="text-xs text-ink-muted">Varra o tatame visualmente e golpeie a carta correta antes do tempo zerar!</p>
+            <span className="font-display font-black text-lg tracking-wide uppercase text-accent">Karuta</span>
+            <p className="text-xs text-ink-muted">Ouça o significado e toque na palavra que ele descreve.</p>
           </div>
         </div>
 
-        {/* Indicadores de Pontuação, Combo, Dica e Tempo */}
-        <div className="flex items-center gap-3 sm:gap-4">
+        <div data-tour="placar" className="flex items-center gap-3">
           <button
-            onClick={usarDica}
-            disabled={dicasRestantes <= 0 || dicaAberta}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-2xl border border-border-subtle bg-surface hover:bg-surface-hover text-xs font-bold text-ink transition-all disabled:opacity-40 disabled:cursor-not-allowed shadow-sm cursor-pointer"
-            title="Eliminar 2 cartas incorretas e revelar letra inicial"
+            onClick={narrar}
+            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-accent text-accent-contrast font-bold text-sm shadow-card hover:opacity-95 active:scale-95 transition-all cursor-pointer"
           >
-            <Lightbulb className="w-3.5 h-3.5 text-accent" />
-            <span>Dica ({dicasRestantes})</span>
+            <Volume2 className="w-4 h-4" />
+            <span>Ouvir de novo</span>
           </button>
-
-          {kimarijiAtivo && (
-            <div className="hidden md:flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/20 text-amber-500 border border-amber-500/30 text-xs font-black animate-pulse">
-              <Zap className="w-3.5 h-3.5 fill-current" />
-              <span>KIMARIJI (3x)</span>
-            </div>
-          )}
-
-          {combo > 1 && (
-            <div className="flex items-center gap-1 px-3 py-1 rounded-xl bg-accent text-accent-contrast font-black text-sm shadow-sm">
-              <Flame className="w-3.5 h-3.5 fill-current" />
-              <span>{combo}x COMBO</span>
-            </div>
-          )}
-
           <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl border border-border-subtle bg-surface">
             <Award className="w-4 h-4 text-accent" />
-            <span className="font-mono font-bold text-base">{pontos}</span>
+            <span className="font-mono font-bold tabular-nums">{pontos}</span>
           </div>
-
           <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-border-subtle bg-surface">
-            <TimerIcon className={`w-4 h-4 ${tempo <= 3 ? 'text-error animate-spin' : 'text-ink-muted'}`} />
-            <span className={`font-mono font-black ${tempo <= 3 ? 'text-error text-lg' : 'text-ink'}`}>
-              {tempo}s
-            </span>
+            <TimerIcon className={`w-4 h-4 ${tempo <= 3 ? 'text-error' : 'text-ink-muted'}`} />
+            <span className={`font-mono font-black tabular-nums ${tempo <= 3 ? 'text-error-ink' : 'text-ink'}`}>{tempo}s</span>
           </div>
         </div>
       </header>
 
-      {/* Faixa de Leitura: O "Chamador" do Tatame */}
-      <div className="px-6 py-4 bg-surface/80 border-b border-border-subtle flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-        <div className="flex items-center gap-4 flex-wrap">
-          <button
-            onClick={() => itemAlvo && narrarAlvo(itemAlvo)}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-accent text-accent-contrast font-bold text-sm shadow-card hover:opacity-95 active:scale-95 transition-all cursor-pointer"
-            aria-label="Repetir áudio do chamado"
-          >
-            <Volume2 className={`w-5 h-5 ${estaNarrando ? 'animate-bounce text-white' : ''}`} />
-            <span>Ouvir Chamado</span>
-          </button>
-          
-          <div className="flex items-center gap-2">
-            <span className="text-xl animate-bounce">🎴</span>
-            <div className="text-sm">
-              <span className="text-ink-muted">Significado em português: </span>
-              <span className="font-black text-ink text-base underline decoration-accent decoration-2 underline-offset-4">
-                {itemAlvo?.prompt}
-              </span>
-            </div>
-          </div>
-        </div>
-
-        {dicaTexto && (
-          <div className="px-3.5 py-1.5 rounded-xl bg-accent-soft text-accent-ink text-xs font-bold flex items-center gap-2 animate-fadeIn border border-accent/30">
-            <Lightbulb className="w-3.5 h-3.5 text-accent animate-bounce" />
-            <span>{dicaTexto}</span>
-          </div>
+      <div className="px-6 py-3 border-b border-border-subtle bg-surface/60 flex items-center justify-between gap-3">
+        {/* Sem voz no aparelho o jogo seria insolúvel: aí, e só aí, a pista aparece escrita. */}
+        {isTtsSupported() ? (
+          <p className="text-sm text-ink-muted">O narrador já declamou a pista. Repita quando quiser.</p>
+        ) : (
+          <p data-tour="pista" className="text-sm font-bold text-ink">{item?.prompt}</p>
         )}
-
-        <div className="text-xs font-mono text-ink-muted">
-          Carta {indiceAlvo + 1} de {targetItems.length}
-        </div>
+        <span className="text-xs font-mono text-ink-muted">Carta {indice + 1} de {items.length}</span>
       </div>
 
-      {/* Arena do Tatame: Cartas Espalhadas com Física Orgânica */}
-      <main className="flex-1 p-6 sm:p-10 overflow-y-auto flex items-center justify-center bg-radial from-surface/20 to-canvas">
-        <div className="w-full max-w-5xl grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 sm:gap-6 justify-items-center">
-          {cartasMesa.map((carta) => {
-            const ehSlap = carta.status === 'slapped';
-            const ehErro = carta.status === 'wrong';
-
+      <main ref={mesaRef} className="flex-1 p-6 sm:p-10 overflow-y-auto flex items-start justify-center">
+        <div
+          data-tour="cartas"
+          className="w-full max-w-4xl grid grid-cols-2 sm:grid-cols-3 gap-4 sm:gap-5"
+        >
+          {mesa.map(carta => {
+            const certa = carta === acertada;
+            const furada = carta === errada;
             return (
               <button
-                key={carta.id}
-                onClick={(e) => handleSlap(carta, e)}
-                disabled={ehSlap || finalizado}
-                style={{
-                  transform: `rotate(${carta.rotation}deg) translate(${carta.offsetX}px, ${carta.offsetY}px) ${
-                    ehSlap ? 'scale(1.25) translateY(-30px)' : ''
-                  }`,
-                }}
-                className={`group relative w-full aspect-[4/3] max-w-[210px] rounded-2xl p-4 flex flex-col justify-between items-center text-center transition-all duration-200 border-2 shadow-card select-none cursor-pointer
-                  ${
-                    ehSlap
-                      ? 'border-good bg-good text-white opacity-0 transition-all duration-500 pointer-events-none'
-                      : ehErro
-                      ? 'border-error bg-error-soft text-error-ink animate-shake'
-                      : 'border-border-subtle bg-surface hover:border-accent hover:-translate-y-1.5 active:scale-90 hover:shadow-lg'
-                  }`}
+                key={carta}
+                onClick={e => golpear(carta, e.currentTarget)}
+                disabled={acabou || certa}
+                dir={direcaoDoTexto(item?.lang)}
+                lang={item?.lang}
+                className={`aspect-[4/3] rounded-2xl border-2 px-4 py-3 flex items-center justify-center text-center font-display font-black text-xl sm:text-2xl shadow-card transition-all cursor-pointer
+                  ${certa
+                    ? 'border-good bg-good-soft text-good-ink'
+                    : furada
+                    ? 'border-error bg-error-soft text-error-ink'
+                    : 'border-border-subtle bg-surface text-ink hover:border-accent hover:text-accent hover:-translate-y-1'}`}
               >
-                {/* Detalhe de estilo japonês tradicional */}
-                <div className="w-full flex justify-between items-center text-[10px] text-ink-muted uppercase font-mono tracking-widest">
-                  <span>百人一首</span>
-                  <span className="w-2 h-2 rounded-full bg-accent/40 group-hover:bg-accent transition-colors" />
-                </div>
-
-                {/* Texto da Carta (Alvo ou Decoy) */}
-                <div className="font-display font-black text-xl sm:text-2xl text-ink group-hover:text-accent transition-colors">
-                  {carta.text}
-                </div>
-
-                {/* Rótulo inferior */}
-                <div className="text-[10px] text-ink-faint font-mono">
-                  {carta.lang}
-                </div>
+                {carta}
               </button>
             );
           })}

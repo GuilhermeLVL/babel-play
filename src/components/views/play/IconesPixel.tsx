@@ -98,6 +98,65 @@ const ICONES: Record<MinigameId, (className?: string) => React.ReactNode> = {
       <path d="M13 2 5 13h5l-2 9 9-12h-5l1-8z" fill="var(--warn)" />
     </Px>
   ),
+  karuta: (c) => (
+    <Px className={c}>
+      <rect x="2" y="6" width="8" height="12" fill="var(--accent)" />
+      <rect x="12" y="6" width="8" height="12" fill="var(--warn)" />
+      <rect x="4" y="9" width="4" height="2" fill="#fff" />
+    </Px>
+  ),
+  choseong: (c) => (
+    <Px className={c}>
+      <rect x="3" y="5" width="5" height="14" fill="var(--accent)" />
+      <rect x="10" y="5" width="5" height="14" fill="var(--ink-faint)" />
+      <rect x="17" y="5" width="4" height="14" fill="var(--accent)" />
+    </Px>
+  ),
+  tenis: (c) => (
+    <Px className={c}>
+      <circle cx="12" cy="12" r="7" fill="var(--good)" />
+      <path d="M5 12h14" stroke="#fff" strokeWidth="2" />
+    </Px>
+  ),
+  koffer: (c) => (
+    <Px className={c}>
+      <rect x="3" y="8" width="18" height="11" fill="var(--warn)" />
+      <rect x="9" y="4" width="6" height="4" fill="var(--ink-faint)" />
+    </Px>
+  ),
+  bao: (c) => (
+    <Px className={c}>
+      <rect x="2" y="9" width="20" height="7" fill="var(--accent)" />
+      <circle cx="7" cy="12" r="2" fill="#fff" />
+      <circle cx="13" cy="12" r="2" fill="#fff" />
+      <circle cx="18" cy="12" r="2" fill="#fff" />
+    </Px>
+  ),
+  vitendawili: (c) => (
+    <Px className={c}>
+      <path d="M8 8a4 4 0 116 3v3h-3v-2a3 3 0 10-3-4z" fill="var(--accent)" />
+      <rect x="11" y="17" width="3" height="3" fill="var(--accent)" />
+    </Px>
+  ),
+  shiritori: (c) => (
+    <Px className={c}>
+      <circle cx="7" cy="12" r="4" fill="none" stroke="var(--accent)" strokeWidth="2" />
+      <circle cx="15" cy="12" r="4" fill="none" stroke="var(--warn)" strokeWidth="2" />
+    </Px>
+  ),
+  cadavre: (c) => (
+    <Px className={c}>
+      <rect x="3" y="6" width="18" height="3" fill="var(--accent)" />
+      <rect x="3" y="11" width="12" height="3" fill="var(--ink-faint)" />
+      <rect x="3" y="16" width="15" height="3" fill="var(--warn)" />
+    </Px>
+  ),
+  taboo: (c) => (
+    <Px className={c}>
+      <circle cx="12" cy="12" r="8" fill="none" stroke="var(--warn)" strokeWidth="2" />
+      <path d="M6 18 18 6" stroke="var(--warn)" strokeWidth="2" />
+    </Px>
+  ),
 };
 
 export function IconePixel({ id, className }: { id: MinigameId; className?: string }) {

@@ -1,7 +1,7 @@
 import { MINIGAMES, type MinigameId } from './types';
-import { canPlay, promptFor } from './itemSource';
+import { canPlay, promptFor, cabeNaEscrita } from './itemSource';
 import { chaveComparavel } from '../learning/quality';
-import { contarJogaveisMulti, consumoDaEscada, ESCADA_POR_FAIXA, digitavelNoTermo } from './termo';
+import { contarJogaveisMulti, consumoDaEscada, ESCADA_POR_FAIXA } from './termo';
 import { entraNaGrade } from './wordsearch';
 import type { FaixaDificuldade } from './composicao';
 import { buildScrambleRounds } from './scramble';
@@ -234,19 +234,21 @@ export function poolDosJogosDePalavra(cartas: VocabCard[]): PoolPorJogo {
  * teclado QWERTY fixo do Termo.
  */
 function contagemComAlfabeto(
-  id: 'termo' | 'wordsearch',
+  id: MinigameId,
   cartas: VocabCard[],
   faixa: FaixaDificuldade = 'medio',
 ): { semFiltro: number; apto: number } {
+  const cabe = cabeNaEscrita(id);
+  /* O Termo conta pela escada (multi-palavra); o resto conta pelo `canPlay` do proprio jogo. */
   if (id === 'termo') {
     return {
       semFiltro: contarJogaveisMulti(cartas, faixa),
-      apto: contarJogaveisMulti(cartas.filter(c => digitavelNoTermo(c.word ?? '')), faixa),
+      apto: contarJogaveisMulti(cartas.filter(c => cabe(c.word ?? '')), faixa),
     };
   }
   return {
     semFiltro: canPlay(id, cartas, { ignorarRequisitos: true }).disponiveis,
-    apto: canPlay(id, cartas.filter(c => entraNaGrade(c.word ?? ''))).disponiveis,
+    apto: canPlay(id, cartas.filter(c => cabe(c.word ?? ''))).disponiveis,
   };
 }
 
@@ -392,8 +394,7 @@ export function elegibilidadeDoJogo(
 ): EstadoDeElegibilidade {
   const def = MINIGAMES[jogo];
 
-  // O ÚNICO requisito declarado hoje é alfabeto, e só termo/wordsearch o carregam.
-  if (def.requisitos?.alfabeto === 'latino' && (jogo === 'termo' || jogo === 'wordsearch')) {
+  if (def.requisitos?.alfabeto === 'latino') {
     const { semFiltro: total, apto: aptos } = contagemComAlfabeto(jogo, pool);
 
     if (aptos >= def.minItems) {

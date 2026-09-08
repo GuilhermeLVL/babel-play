@@ -160,6 +160,105 @@ export const JOGOS: JogoUI[] = [
       senior: 'Responda no seu ritmo, com um tempo folgado',
     },
   },
+  {
+    chave: 'karuta',
+    id: 'karuta',
+    icone: <IconePixel id="karuta" className="w-5 h-5" />,
+    titulo: { kids: 'Karuta', pro: 'Karuta: ouça e pegue a carta', senior: 'Karuta' },
+    descricao: {
+      kids: 'Ouça a dica e toque na carta certa',
+      pro: 'O narrador diz o significado; toque na palavra que ele descreve',
+      senior: 'Ouça a dica e toque na carta com a palavra certa',
+    },
+  },
+  {
+    chave: 'choseong',
+    id: 'choseong',
+    icone: <IconePixel id="choseong" className="w-5 h-5" />,
+    titulo: { kids: 'Complete as vogais', pro: 'Choseong: consoantes à vista', senior: 'Complete as vogais' },
+    descricao: {
+      kids: 'As consoantes aparecem, você põe as vogais',
+      pro: 'Só as consoantes aparecem: complete a palavra',
+      senior: 'As consoantes aparecem e você completa as vogais',
+    },
+  },
+  {
+    chave: 'tenis',
+    id: 'tenis',
+    icone: <IconePixel id="tenis" className="w-5 h-5" />,
+    titulo: { kids: 'Tênis de palavras', pro: 'Rali cronometrado', senior: 'Tênis de palavras' },
+    descricao: {
+      kids: 'Devolva a bola escrevendo a palavra',
+      pro: 'Rali: devolva escrevendo a palavra antes de a bola cair',
+      senior: 'Devolva a bola escrevendo a palavra a tempo',
+    },
+  },
+  {
+    chave: 'koffer',
+    id: 'koffer',
+    icone: <IconePixel id="koffer" className="w-5 h-5" />,
+    titulo: { kids: 'A mala', pro: 'Mala cumulativa de memória', senior: 'A mala' },
+    descricao: {
+      kids: 'Guarde tudo que entra na mala, na ordem',
+      pro: 'A cada nível entra uma palavra: reconstrua a mala de memória',
+      senior: 'Guarde as palavras que entram na mala, na ordem',
+    },
+  },
+  {
+    chave: 'bao',
+    id: 'bao',
+    icone: <IconePixel id="bao" className="w-5 h-5" />,
+    titulo: { kids: 'Bao: monte a palavra', pro: 'Bao: semeie os pedaços', senior: 'Bao: monte a palavra' },
+    descricao: {
+      kids: 'Junte os pedaços na ordem certa',
+      pro: 'Semeie os pedaços da palavra na ordem',
+      senior: 'Junte os pedaços para formar a palavra',
+    },
+  },
+  {
+    chave: 'vitendawili',
+    id: 'vitendawili',
+    icone: <IconePixel id="vitendawili" className="w-5 h-5" />,
+    titulo: { kids: 'Charada', pro: 'Vitendawili: a frase com lacuna', senior: 'Charada' },
+    descricao: {
+      kids: 'Descubra a palavra que sumiu da frase',
+      pro: 'O enigma é a sua própria frase com a palavra apagada',
+      senior: 'Descubra qual palavra sumiu da frase',
+    },
+  },
+  {
+    chave: 'shiritori',
+    id: 'shiritori',
+    icone: <IconePixel id="shiritori" className="w-5 h-5" />,
+    titulo: { kids: 'Corrente de palavras', pro: 'Shiritori: encadeie pela última letra', senior: 'Corrente de palavras' },
+    descricao: {
+      kids: 'Cada palavra começa com a última letra da anterior',
+      pro: 'Encadeie: a próxima começa com a última letra da anterior',
+      senior: 'Cada palavra começa com a última letra da anterior',
+    },
+  },
+  {
+    chave: 'cadavre',
+    id: 'cadavre',
+    icone: <IconePixel id="cadavre" className="w-5 h-5" />,
+    titulo: { kids: 'Frase maluca', pro: 'Cadavre exquis: produção livre', senior: 'Frase maluca' },
+    descricao: {
+      kids: 'Escreva uma frase usando as quatro palavras',
+      pro: 'Quatro palavras da leva, uma frase sua. Não conta para a revisão',
+      senior: 'Escreva uma frase que use as quatro palavras',
+    },
+  },
+  {
+    chave: 'taboo',
+    id: 'taboo',
+    icone: <IconePixel id="taboo" className="w-5 h-5" />,
+    titulo: { kids: 'Palavra proibida', pro: 'Tabu: a definição sem os termos óbvios', senior: 'Palavra proibida' },
+    descricao: {
+      kids: 'Descubra a palavra sem as pistas óbvias',
+      pro: 'A definição vem sem os termos mais óbvios: descubra a palavra',
+      senior: 'Descubra a palavra pela definição',
+    },
+  },
 ];
 
 /**

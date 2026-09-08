@@ -1,389 +1,256 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { X, Sparkles, Flame, Target, Lightbulb } from 'lucide-react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { X, Award, Lightbulb, Flame, Timer as TimerIcon } from 'lucide-react';
 import type { MinigameItem, ItemOutcome, RoundReport } from '@core';
+import { MINIGAMES, chaveDoTermo, scoreRound } from '@core';
+import { direcaoDoTexto } from '../../../lib/languages';
 import type { AgeProfileType } from '../../../lib/profile';
 import { play } from '../../../lib/soundFx';
-import { speak } from '../../../lib/tts';
-import { playJuicedHit, playJuicedError, playJuicedVictory, calculateMultiplier } from '../../../lib/gameFeel';
+import { comemorar, tremor } from '../../../lib/juice';
 
 /**
- * TENSE TENNIS / PELOTA GRAMATICAL — O Tênis dos Tempos Verbais (🇪🇸/🇲🇽).
+ * TÊNIS — o rali cronometrado. A bola traz a PISTA, você devolve escrevendo a palavra, e cada
+ * devolução certa encurta o tempo da próxima.
  *
- * Mapeado na Fase 3 do currículo de SLA (DeKeyser & Long - Focus on Form).
- * Automatiza o reflexo de flexão verbal sob pressão de tempo (Pretérito, Futuro, Subjuntivo).
- *
- * Design 100% harmonizado com os tokens Babel Play, animação de bola saltitante e botão de dica.
+ * Não é mais um jogo de conjugação: os seis desafios de espanhol escritos à mão não vinham do
+ * baralho de ninguém e não davam nota a cartão nenhum. O que sobrou é a única coisa que o `gradeFor`
+ * enxerga aqui — velocidade de recuperação, o mesmo sinal do Duelo.
  */
 
-interface TennisChallenge {
-  id: string;
-  verb: string;
-  pronoun: string;
-  tense: string;
-  tenseLabel: string;
-  correctAnswer: string;
-  options: string[];
-  translation: string;
-  grammarHint: string;
-}
-
 interface TenseTennisGameProps {
-  items?: MinigameItem[];
+  items: MinigameItem[];
   ageProfile: AgeProfileType;
   onFinish: (report: RoundReport) => void;
   onExit: () => void;
 }
 
-const DESAFIOS_TENNIS: TennisChallenge[] = [
-  {
-    id: 'tt1',
-    verb: 'HABLAR',
-    pronoun: 'Yo',
-    tense: 'pret_indefinido',
-    tenseLabel: 'Pretérito Indefinido (Passado)',
-    correctAnswer: 'Hablé',
-    options: ['Hablé', 'Hablaba', 'Hablaré'],
-    translation: 'Eu falei',
-    grammarHint: 'No pretérito indefinido regular (-AR), a 1ª pessoa (Yo) termina em "-é" com acento!',
-  },
-  {
-    id: 'tt2',
-    verb: 'COMER',
-    pronoun: 'Nosotros',
-    tense: 'pret_indefinido',
-    tenseLabel: 'Pretérito Indefinido (Passado)',
-    correctAnswer: 'Comimos',
-    options: ['Comemos', 'Comimos', 'Comeremos'],
-    translation: 'Nós comemos (ontem)',
-    grammarHint: 'No pretérito indefinido de verbos em -ER e -IR com "Nosotros", a terminação é "-imos"!',
-  },
-  {
-    id: 'tt3',
-    verb: 'VIVIR',
-    pronoun: 'Ellos',
-    tense: 'futuro',
-    tenseLabel: 'Futuro Simple',
-    correctAnswer: 'Vivirán',
-    options: ['Vivieron', 'Vivían', 'Vivirán'],
-    translation: 'Eles viverão',
-    grammarHint: 'No futuro em espanhol, conserva-se o infinitivo "vivir-" e adiciona-se "-án"!',
-  },
-  {
-    id: 'tt4',
-    verb: 'HACER',
-    pronoun: 'Tú',
-    tense: 'pret_indefinido',
-    tenseLabel: 'Pretérito Indefinido (Irregular)',
-    correctAnswer: 'Hiciste',
-    options: ['Hiciste', 'Hacías', 'Harás'],
-    translation: 'Tu fizeste',
-    grammarHint: 'O verbo "Hacer" tem raiz irregular "hic-" no pretérito indefinido: tú hic-iste!',
-  },
-  {
-    id: 'tt5',
-    verb: 'SER / ESTAR',
-    pronoun: 'Él',
-    tense: 'subjuntivo',
-    tenseLabel: 'Presente de Subjuntivo (Desejo)',
-    correctAnswer: 'Sea',
-    options: ['Fue', 'Sea', 'Será'],
-    translation: 'Que ele seja',
-    grammarHint: 'O subjuntivo expressa dúvida ou desejo: "Ojalá que él sea feliz"!',
-  },
-  {
-    id: 'tt6',
-    verb: 'IR',
-    pronoun: 'Yo',
-    tense: 'pret_indefinido',
-    tenseLabel: 'Pretérito Indefinido (Irregular)',
-    correctAnswer: 'Fui',
-    options: ['Iba', 'Fui', 'Iré'],
-    translation: 'Eu fui',
-    grammarHint: 'No pretérito indefinido, "Ir" e "Ser" compartilham as formas: Yo fui, tú fuiste!',
-  },
-];
+/** Segundos da PRIMEIRA devolução, por perfil. */
+const SAQUE: Record<AgeProfileType, number> = { kids: 8, pro: 6, senior: 9 };
+/** O rali encurta um segundo por devolução certa, mas nunca abaixo da metade do saque. */
+function segundosDaJogada(base: number, rali: number): number {
+  return Math.max(Math.ceil(base / 2), base - rali);
+}
 
-export default function TenseTennisGame({ items: _itemsProp, ageProfile, onFinish, onExit }: TenseTennisGameProps) {
+export default function TenseTennisGame({ items, ageProfile, onFinish, onExit }: TenseTennisGameProps) {
+  const suficiente = items.length >= MINIGAMES.tenis.minItems;
+  const base = SAQUE[ageProfile];
+
   const [indice, setIndice] = useState(0);
+  const [rali, setRali] = useState(0);
+  /* O relógio declara de que bola ele é: sem isso o zero da jogada anterior sobrevive um render à
+     troca e dá a bola seguinte por caída na hora, com um outcome de ms zero. */
+  const [relogio, setRelogio] = useState({ bola: 0, segundos: base });
+  const tempo = relogio.bola === indice ? relogio.segundos : segundosDaJogada(base, rali);
+  const [escrito, setEscrito] = useState('');
   const [pontos, setPontos] = useState(0);
-  const [rallies, setRallies] = useState(0);
-  const [tempo, setTempo] = useState(7);
-  const [finalizado, setFinalizado] = useState(false);
-  const [erroMsg, setErroMsg] = useState<string | null>(null);
-  
-  // Dicas
-  const [dicasRestantes, setDicasRestantes] = useState(3);
-  const [dicaAberta, setDicaAberta] = useState(false);
-  const [opcoesEliminadas, setOpcoesEliminadas] = useState<string[]>([]);
+  const [dicasRestantes, setDicasRestantes] = useState(2);
+  const [fora, setFora] = useState<string | null>(null);
+  const [acabou, setAcabou] = useState(false);
 
   const outcomesRef = useRef<ItemOutcome[]>([]);
-  const inicioPartidaRef = useRef(Date.now());
+  const inicioRodadaRef = useRef(Date.now());
   const inicioJogadaRef = useRef(Date.now());
-  const quadraRef = useRef<HTMLDivElement>(null);
+  const comDicaRef = useRef(false);
+  const respondidoRef = useRef(false);
+  const jaFinalizouRef = useRef(false);
+  const quadraRef = useRef<HTMLDivElement | null>(null);
+  const entradaRef = useRef<HTMLInputElement | null>(null);
 
-  const desafioAtual = DESAFIOS_TENNIS[indice % DESAFIOS_TENNIS.length];
+  const item: MinigameItem | undefined = items[indice];
 
   useEffect(() => {
+    if (!suficiente) onExit();
+  }, [suficiente, onExit]);
+
+  const finalizar = useCallback(() => {
+    if (jaFinalizouRef.current) return;
+    jaFinalizouRef.current = true;
+    setAcabou(true);
+    const outcomes = outcomesRef.current;
+    const report: RoundReport = {
+      gameId: 'tenis',
+      items: outcomes,
+      score: scoreRound('tenis', outcomes),
+      durationMs: Date.now() - inicioRodadaRef.current,
+    };
+    const perfeita = outcomes.length > 0 && outcomes.every(o => o.correct && !o.revealed);
+    comemorar(perfeita ? 'rodadaPerfeita' : 'rodadaBoa', quadraRef.current);
+    setTimeout(() => onFinish(report), 1100);
+  }, [onFinish]);
+
+  const registrar = useCallback((correct: boolean, revealed?: boolean) => {
+    if (!item) return;
+    outcomesRef.current.push({
+      cardId: item.cardId,
+      itemRef: item.answer,
+      correct,
+      attempts: 1,
+      ms: Date.now() - inicioJogadaRef.current,
+      hinted: comDicaRef.current,
+      ...(revealed ? { revealed: true } : {}),
+    });
+    setPontos(scoreRound('tenis', outcomesRef.current));
+  }, [item]);
+
+  const avancar = useCallback(() => {
+    if (indice + 1 >= items.length) finalizar();
+    else setIndice(i => i + 1);
+  }, [indice, items.length, finalizar]);
+
+  // Nova bola: o relógio já entra encurtado pelo rali em curso.
+  useEffect(() => {
+    if (!item || jaFinalizouRef.current) return;
     inicioJogadaRef.current = Date.now();
-    setTempo(ageProfile === 'senior' ? 9 : ageProfile === 'kids' ? 8 : 6);
-    setErroMsg(null);
-    setDicaAberta(false);
-    setOpcoesEliminadas([]);
-  }, [indice, ageProfile]);
+    comDicaRef.current = false;
+    respondidoRef.current = false;
+    setEscrito('');
+    setFora(null);
+    setRelogio({ bola: indice, segundos: segundosDaJogada(base, rali) });
+    entradaRef.current?.focus();
+    // `rali` fora das dependências de propósito: quem abre a jogada é a TROCA de bola, e relê o
+    // rali no valor em que ele estava. Incluí-lo reiniciaria o relógio no meio da jogada.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [indice, item, base]);
 
-  // Cronômetro da bola voando
   useEffect(() => {
-    if (finalizado) return;
-    const timer = setInterval(() => {
-      setTempo((prev) => {
-        if (prev <= 1) {
-          tratarBolaFora('Bola cruzou a linha de fundo! Tempo esgotado.');
-          return 6;
-        }
-        if (prev <= 2) play('tick');
-        return prev - 1;
-      });
-    }, 1000);
-    return () => clearInterval(timer);
-  }, [indice, finalizado]);
+    if (acabou || !item || respondidoRef.current) return;
+    if (relogio.bola !== indice) return;
+    if (tempo <= 0) {
+      respondidoRef.current = true;
+      registrar(false, true);
+      setRali(0);
+      setFora('A bola caiu na quadra. Era: ' + item.answer);
+      comemorar('erro', quadraRef.current);
+      tremor(quadraRef.current);
+      setTimeout(avancar, 1200);
+      return;
+    }
+    if (tempo <= 2) play('tick');
+    const t = setTimeout(() => setRelogio(r => (r.bola === indice ? { ...r, segundos: r.segundos - 1 } : r)), 1000);
+    return () => clearTimeout(t);
+  }, [relogio, tempo, indice, acabou, item, registrar, avancar]);
+
+  const devolver = () => {
+    if (acabou || !item || respondidoRef.current || !escrito.trim()) return;
+    respondidoRef.current = true;
+    const certo = chaveDoTermo(escrito) === chaveDoTermo(item.answer);
+    registrar(certo);
+
+    if (certo) {
+      setRali(r => r + 1);
+      comemorar('acerto', quadraRef.current);
+      setTimeout(avancar, 600);
+      return;
+    }
+    setRali(0);
+    setFora('Fora! Era: ' + item.answer);
+    comemorar('erro', quadraRef.current);
+    tremor(quadraRef.current);
+    setTimeout(avancar, 1200);
+  };
 
   const usarDica = () => {
-    if (dicasRestantes <= 0 || dicaAberta) return;
-    play('click');
-    play('select');
-    setDicasRestantes((d) => d - 1);
-    setDicaAberta(true);
-
-    const incorreta = desafioAtual.options.find((opc) => opc !== desafioAtual.correctAnswer && !opcoesEliminadas.includes(opc));
-    if (incorreta) {
-      setOpcoesEliminadas((prev) => [...prev, incorreta]);
-    }
+    if (acabou || !item || respondidoRef.current || dicasRestantes <= 0) return;
+    setDicasRestantes(d => d - 1);
+    comDicaRef.current = true;
+    play('timeBonus');
+    setEscrito(item.answer.slice(0, 1));
+    entradaRef.current?.focus();
   };
 
-  const tratarRebatida = (opcao: string, event: React.MouseEvent) => {
-    const correto = opcao === desafioAtual.correctAnswer;
-    const duracao = Date.now() - inicioJogadaRef.current;
-
-    outcomesRef.current.push({
-      itemRef: `${desafioAtual.verb} (${desafioAtual.pronoun})`,
-      correct: correto,
-      attempts: 1,
-      ms: duracao,
-    });
-
-    if (correto) {
-      // ACE / REBATIDA PERFEITA!
-      const novoRally = rallies + 1;
-      setRallies(novoRally);
-      const mult = calculateMultiplier(novoRally);
-      const pts = (180 + (novoRally * 40)) * mult;
-      setPontos((p) => p + pts);
-
-      const rect = event.currentTarget.getBoundingClientRect();
-      playJuicedHit(novoRally, { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 }, `ACE! ${mult}x`);
-
-      // Fala a conjugação em espanhol
-      try {
-        speak(`${desafioAtual.pronoun} ${desafioAtual.correctAnswer}`, { lang: 'es-ES' });
-      } catch {
-        // Ignora
-      }
-
-      if (indice + 1 >= 5) {
-        concluirPartida(true);
-      } else {
-        setIndice((i) => i + 1);
-      }
-    } else {
-      tratarBolaFora(`Out! "${opcao}" não é a forma exigida para ${desafioAtual.tenseLabel}.`);
-    }
-  };
-
-  const tratarBolaFora = (motivo: string) => {
-    setRallies(0);
-    setErroMsg(motivo);
-    playJuicedError(quadraRef.current, undefined, 'FORA DA QUADRA!');
-
-    setTimeout(() => {
-      if (indice + 1 >= 5) {
-        concluirPartida(false);
-      } else {
-        setIndice((i) => i + 1);
-      }
-    }, 1200);
-  };
-
-  const concluirPartida = (venceu: boolean) => {
-    setFinalizado(true);
-    if (venceu) {
-      playJuicedVictory();
-    } else {
-      play('error');
-    }
-
-    const duracaoTotal = Date.now() - inicioPartidaRef.current;
-    const report: RoundReport = {
-      gameId: 'blitz' as any,
-      items: outcomesRef.current,
-      score: pontos,
-      durationMs: duracaoTotal,
-    };
-
-    setTimeout(() => {
-      onFinish(report);
-    }, 1800);
-  };
+  if (!suficiente) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col bg-canvas/95 backdrop-blur-md text-ink select-none overflow-y-auto">
-      {/* Header Limpo do Babel Play */}
-      <header className="flex items-center justify-between px-6 py-4 border-b border-border-subtle bg-surface/90 backdrop-blur-lg sticky top-0 z-20 shadow-sm">
+    <div className="fixed inset-0 z-50 flex flex-col bg-canvas text-ink overflow-y-auto">
+      <header className="flex items-center justify-between gap-3 px-6 py-4 border-b border-border-subtle bg-surface/85 backdrop-blur-md">
         <div className="flex items-center gap-3">
           <button
             onClick={onExit}
-            className="p-2.5 rounded-2xl border border-border-subtle bg-surface-hover hover:bg-border-subtle transition-all cursor-pointer shadow-sm hover:scale-105 active:scale-95"
-            title="Sair do Tense Tennis"
+            className="p-2 rounded-xl border border-border-subtle bg-surface-hover hover:bg-border-subtle transition-colors cursor-pointer"
+            aria-label="Sair do Tênis"
           >
             <X className="w-5 h-5 text-ink" />
           </button>
           <div>
-            <div className="flex items-center gap-2">
-              <span className="font-display font-black text-xl tracking-wide uppercase text-accent">
-                Tense Tennis
-              </span>
-              <span className="text-xs px-2.5 py-0.5 rounded-full bg-accent-soft text-accent-ink font-bold border border-accent/20">
-                🎾 🇪🇸 Pelota Gramatical
-              </span>
-            </div>
-            <p className="text-xs text-ink-muted hidden sm:block">
-              Rebata o verbo no tempo correto antes da bola cruzar a linha de fundo!
-            </p>
+            <span className="font-display font-black text-lg tracking-wide uppercase text-accent">Tênis</span>
+            <p className="text-xs text-ink-muted">Devolva escrevendo a palavra antes de a bola cair.</p>
           </div>
         </div>
 
-        {/* Status & Dica */}
-        <div className="flex items-center gap-3 sm:gap-4">
+        <div className="flex items-center gap-3">
           <button
             onClick={usarDica}
-            disabled={dicasRestantes <= 0 || dicaAberta}
-            className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-2xl border border-border-subtle bg-surface hover:bg-surface-hover font-bold text-xs text-ink transition-all disabled:opacity-40 disabled:cursor-not-allowed shadow-sm cursor-pointer"
-            title="Receber dica de conjugação"
+            disabled={dicasRestantes <= 0}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-border-subtle bg-surface hover:bg-surface-hover text-xs font-bold text-ink transition-colors disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
           >
-            <Lightbulb className="w-4 h-4 text-accent" />
-            <span>Dica ({dicasRestantes})</span>
+            <Lightbulb className="w-3.5 h-3.5 text-accent" />
+            <span>Primeira letra ({dicasRestantes})</span>
           </button>
 
-          {rallies > 1 && (
-            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-accent text-accent-contrast font-black text-xs shadow-md animate-bounce">
-              <Flame className="w-4 h-4 fill-current" />
-              <span>{rallies}x RALLY</span>
+          {rali > 1 && (
+            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-accent text-accent-contrast font-black text-xs">
+              <Flame className="w-3.5 h-3.5 fill-current" />
+              <span>{rali} no rali</span>
             </div>
           )}
 
-          <div className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-2xl border border-border-subtle bg-surface shadow-sm">
-            <Sparkles className="w-4 h-4 text-accent" />
-            <span className="font-mono font-black text-base">{pontos} pts</span>
+          <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl border border-border-subtle bg-surface">
+            <Award className="w-4 h-4 text-accent" />
+            <span className="font-mono font-bold tabular-nums">{pontos}</span>
           </div>
 
-          <div className={`flex items-center gap-2 px-3.5 py-1.5 rounded-2xl border transition-colors shadow-sm ${
-            tempo <= 2 ? 'border-error bg-error/10 text-error animate-pulse' : 'border-border-subtle bg-surface'
-          }`}>
-            <span className="font-mono font-black text-base">{tempo}s</span>
+          <div
+            data-tour="relogio"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-border-subtle bg-surface"
+          >
+            <TimerIcon className={`w-4 h-4 ${tempo <= 2 ? 'text-error' : 'text-ink-muted'}`} />
+            <span className={`font-mono font-black tabular-nums ${tempo <= 2 ? 'text-error-ink' : 'text-ink'}`}>{tempo}s</span>
           </div>
         </div>
       </header>
 
-      {/* A Quadra de Tênis */}
-      <main className="flex-1 p-4 sm:p-8 flex flex-col items-center justify-center max-w-4xl mx-auto w-full">
-        <div className="w-full bg-surface border-2 border-border-subtle rounded-3xl p-6 sm:p-10 shadow-card flex flex-col items-center space-y-6" ref={quadraRef}>
-          
-          {/* PLACAR ELETRÔNICO LIMPO */}
-          <div className="w-full max-w-xl bg-surface-hover/80 border-2 border-border-subtle rounded-3xl p-6 shadow-sm text-center space-y-3">
-            <div className="flex items-center justify-between pb-3 border-b border-border-subtle text-xs font-mono">
-              <span className="text-accent font-bold uppercase tracking-wider">Quadra Central · Madrid</span>
-              <span className="text-ink-muted">Jogada {indice + 1} de 5</span>
-            </div>
-
-            {/* O SAQUE DA BOLA COM ANIMAÇÃO SALTITANTE */}
-            <div className="py-4 flex flex-col items-center">
-              <span className="text-xs font-mono uppercase tracking-widest text-ink-muted font-bold mb-2">
-                BOLA EM JOGO (SAQUE)
-              </span>
-              <div className="flex items-center gap-3">
-                <span className="text-4xl animate-bounce">🎾</span>
-                <span className="font-display font-black text-4xl sm:text-6xl tracking-wider text-ink">
-                  {desafioAtual.verb}
-                </span>
-                <span className="text-xl sm:text-2xl px-3.5 py-1 rounded-xl bg-accent text-accent-contrast font-black shadow-sm animate-pulse">
-                  {desafioAtual.pronoun}
-                </span>
-              </div>
-              <span className="text-sm text-ink-muted mt-2 font-bold">({desafioAtual.translation})</span>
-            </div>
-
-            {/* TEMPO VERBAL EXIGIDO */}
-            <div className="pt-3 border-t border-border-subtle flex items-center justify-center gap-2">
-              <Target className="w-4 h-4 text-accent" />
-              <span className="text-sm font-bold text-ink">
-                Rebata no tempo: <strong className="text-accent underline decoration-2">{desafioAtual.tenseLabel}</strong>
-              </span>
-            </div>
-          </div>
-
-          {/* DICA GRAMATICAL SE ATIVADA */}
-          {dicaAberta && (
-            <div className="w-full max-w-xl p-4 rounded-2xl bg-accent-soft/40 border border-accent/30 text-ink text-xs sm:text-sm font-medium flex items-center gap-3 animate-fadeIn">
-              <Lightbulb className="w-5 h-5 text-accent shrink-0" />
-              <div>
-                <strong className="text-accent-ink block font-bold">Dica de Conjugação:</strong>
-                <span>{desafioAtual.grammarHint}</span>
-              </div>
-            </div>
-          )}
-
-          {erroMsg && (
-            <div className="w-full max-w-xl p-3 rounded-xl bg-error/15 border border-error/30 text-error font-bold text-center text-xs animate-shake">
-              {erroMsg}
-            </div>
-          )}
-
-          {/* AS 3 OPÇÕES DE REBATIDA */}
-          <div className="w-full max-w-xl space-y-3">
-            <p className="text-xs font-mono uppercase text-ink-muted font-bold text-center">
-              Selecione o alvo correto na quadra para rebater o Ace:
-            </p>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              {desafioAtual.options.map((opc, idx) => {
-                const eliminada = opcoesEliminadas.includes(opc);
-                if (eliminada) {
-                  return (
-                    <div
-                      key={idx}
-                      className="p-5 rounded-2xl border-2 border-border-subtle bg-surface-hover/30 opacity-40 text-center flex flex-col items-center justify-center cursor-not-allowed"
-                    >
-                      <span className="text-xl line-through text-ink-muted font-bold">{opc}</span>
-                      <span className="text-[10px] text-error font-mono mt-1">Eliminada ❌</span>
-                    </div>
-                  );
-                }
-
-                return (
-                  <button
-                    key={idx}
-                    onClick={(e) => tratarRebatida(opc, e)}
-                    className="p-5 rounded-2xl border-2 border-border-subtle bg-surface hover:border-accent hover:bg-accent-soft/20 transition-all shadow-card active:scale-95 text-center flex flex-col items-center justify-center cursor-pointer group"
-                  >
-                    <span className="font-display font-black text-2xl sm:text-3xl text-ink group-hover:text-accent group-hover:scale-110 transition-all">
-                      {opc}
-                    </span>
-                    <span className="text-xs text-ink-muted font-mono mt-1 group-hover:text-accent">Rebater 🎾</span>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
+      <main ref={quadraRef} className="flex-1 p-6 flex flex-col items-center justify-center gap-6 w-full max-w-2xl mx-auto">
+        <div
+          data-tour="bola"
+          className="w-full rounded-3xl border-2 border-border-subtle bg-surface shadow-card px-6 py-8 text-center"
+        >
+          <span className="text-xs font-mono uppercase tracking-widest text-ink-muted">Bola em jogo</span>
+          <p className="mt-3 font-display font-black text-2xl sm:text-3xl text-ink">{item?.prompt}</p>
         </div>
+
+        <div className="w-full flex flex-col sm:flex-row gap-3">
+          <input
+            ref={entradaRef}
+            value={escrito}
+            onChange={e => setEscrito(e.target.value)}
+            onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); devolver(); } }}
+            disabled={acabou || respondidoRef.current}
+            dir={direcaoDoTexto(item?.lang)}
+            lang={item?.lang}
+            autoComplete="off"
+            spellCheck={false}
+            aria-label="Sua devolução"
+            placeholder="escreva a palavra"
+            className="flex-1 px-4 py-3 rounded-2xl border-2 border-border-subtle bg-surface text-ink text-lg font-display font-bold placeholder:text-ink-faint focus:border-accent focus:outline-none"
+          />
+          <button
+            onClick={devolver}
+            disabled={acabou || !escrito.trim()}
+            className="px-6 py-3 rounded-2xl bg-accent text-accent-contrast font-black shadow-card hover:opacity-95 active:scale-95 transition-all disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+          >
+            Devolver
+          </button>
+        </div>
+
+        {fora && (
+          <p
+            dir={direcaoDoTexto(item?.lang)}
+            className="w-full text-center px-4 py-3 rounded-2xl border border-error bg-error-soft text-error-ink font-bold text-sm"
+          >
+            {fora}
+          </p>
+        )}
+
+        <span className="text-xs font-mono text-ink-muted">Bola {indice + 1} de {items.length}</span>
       </main>
     </div>
   );

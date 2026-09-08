@@ -65,6 +65,42 @@ export const PASSOS_DOS_JOGOS: Record<MinigameId, PassoTour[]> = {
     { alvo: '[data-tour="frase-conectores"]', texto: 'Toque nas palavras que ligam uma ideia à outra, "porque", "porém", "however".', gesto: 'clique' },
     { alvo: '[data-tour="conferir"]', texto: 'Marcar demais atrapalha: deixar passar e marcar à toa pesam igual na nota.', gesto: 'clique' },
   ],
+  karuta: [
+    { alvo: '[data-tour="cartas"]', texto: 'O narrador declama a PISTA. Toque na carta com a palavra que ela descreve.' },
+    { alvo: '[data-tour="placar"]', texto: 'A dica repete a fala do narrador quando voce nao pegou.' },
+  ],
+  choseong: [
+    { alvo: '[data-tour="pista"]', texto: 'A pista e o significado. As consoantes ficam a vista e as vogais escondidas.' },
+    { alvo: '[data-tour="teclado"]', texto: 'Complete as vogais. A dica abre uma delas e limita a nota.' },
+  ],
+  tenis: [
+    { alvo: '[data-tour="bola"]', texto: 'A bola traz a pista. Devolva escrevendo a palavra antes que ela caia.' },
+    { alvo: '[data-tour="relogio"]', texto: 'Cada devolucao certa encurta o tempo. A dica acende a primeira letra.' },
+  ],
+  koffer: [
+    { alvo: '[data-tour="mala"]', texto: 'A cada nivel entra uma palavra na mala. Guarde a ordem.' },
+    { alvo: '[data-tour="entrada"]', texto: 'Reconstrua de memoria, na ordem. Espiar a mala custa nota.' },
+  ],
+  bao: [
+    { alvo: '[data-tour="tabuleiro"]', texto: 'As sementes trazem os pedacos da palavra, fora de ordem.' },
+    { alvo: '[data-tour="cova"]', texto: 'Semeie na ordem certa. A dica semeia a primeira peca por voce.' },
+  ],
+  vitendawili: [
+    { alvo: '[data-tour="enigma"]', texto: 'O enigma e uma frase sua com a palavra apagada.' },
+    { alvo: '[data-tour="alternativas"]', texto: 'Escolha a palavra que preenche a lacuna. A dica toca a frase de novo, de graca.' },
+  ],
+  shiritori: [
+    { alvo: '[data-tour="corrente"]', texto: 'Cada palavra comeca com a ultima letra da anterior.' },
+    { alvo: '[data-tour="opcoes"]', texto: 'Escolha a palavra que continua a corrente; a dica mostra a letra exigida.' },
+  ],
+  cadavre: [
+    { alvo: '[data-tour="palavras"]', texto: 'Quatro palavras da leva. Todas precisam entrar na frase.' },
+    { alvo: '[data-tour="frase"]', texto: 'Escreva uma frase com as quatro. A dica troca uma palavra da leva, de graca.' },
+  ],
+  taboo: [
+    { alvo: '[data-tour="alvo"]', texto: 'A palavra-alvo aparece com as proibidas riscadas.' },
+    { alvo: '[data-tour="alternativas"]', texto: 'Escolha a certa; a dica libera uma palavra proibida e limita a nota.' },
+  ],
 };
 
 const CHAVE = (jogo: string) => `babel_tour_${jogo}`;

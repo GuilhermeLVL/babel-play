@@ -1,384 +1,281 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { X, Sparkles, Flame, Lightbulb, RotateCcw } from 'lucide-react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { X, Award, Lightbulb, Delete, Timer as TimerIcon } from 'lucide-react';
 import type { MinigameItem, ItemOutcome, RoundReport } from '@core';
+import { MINIGAMES, chaveDoTermo, scoreRound } from '@core';
+import { direcaoDoTexto } from '../../../lib/languages';
 import type { AgeProfileType } from '../../../lib/profile';
 import { play } from '../../../lib/soundFx';
-import { tremor } from '../../../lib/juice';
-import { playJuicedHit, playJuicedError, playJuicedVictory, calculateMultiplier } from '../../../lib/gameFeel';
+import { comemorar, tremor } from '../../../lib/juice';
 
 /**
- * CHOSEONG GAME — Decifrador de Consoantes Iniciais (초성게임).
- *
- * Inspirado no fenômeno da televisão e escolas coreanas.
- * O jogador recebe a estrutura de ataque consonantal e categoria, e preenche
- * os blocos 3D de letras sob pressão de cronômetro regressivo.
- * Inclui Modo Febre (Fever Mode) em sequências e ajuda de revelação de letra.
+ * CHOSEONG — as consoantes ficam à vista, as vogais somem, e a pessoa escreve a palavra a partir
+ * do significado. É o 초성게임 transposto para o alfabeto latino, que é o que o gate garante
+ * (`requisitos: { alfabeto: 'latino', escrita: 'teclado' }`).
  */
 
-interface ChoseongPuzzle {
-  id: string;
-  itemRef: string;
-  targetWord: string;
-  prompt: string;
-  category: string;
-  initialLetters: (string | null)[];
-}
-
 interface ChoseongGameProps {
-  items?: MinigameItem[];
+  items: MinigameItem[];
   ageProfile: AgeProfileType;
   onFinish: (report: RoundReport) => void;
   onExit: () => void;
 }
 
-const MOCK_PUZZLES_CHOSEONG: ChoseongPuzzle[] = [
-  { id: 'c1', itemRef: 'Coffee', targetWord: 'COFFEE', prompt: 'Bebida matinal quente ou fria', category: 'Bebidas', initialLetters: ['C', null, 'F', 'F', null, null] },
-  { id: 'c2', itemRef: 'Friend', targetWord: 'FRIEND', prompt: 'Companheiro leal e confidente', category: 'Pessoas', initialLetters: ['F', 'R', null, null, 'N', 'D'] },
-  { id: 'c3', itemRef: 'Garden', targetWord: 'GARDEN', prompt: 'Espaço com flores, plantas e árvores', category: 'Natureza', initialLetters: ['G', null, 'R', 'D', null, 'N'] },
-  { id: 'c4', itemRef: 'Summer', targetWord: 'SUMMER', prompt: 'Estação mais ensolarada e quente', category: 'Estações', initialLetters: ['S', null, 'M', 'M', null, 'R'] },
-  { id: 'c5', itemRef: 'Window', targetWord: 'WINDOW', prompt: 'Abertura na parede para luz e ar', category: 'Casa', initialLetters: ['W', null, 'N', 'D', null, 'W'] },
-];
+const VOGAIS = ['A', 'E', 'I', 'O', 'U'];
+/** Segundos por palavra, por perfil. */
+const SEGUNDOS: Record<AgeProfileType, number> = { kids: 18, pro: 15, senior: 22 };
 
-export default function ChoseongGame({ items: itemsProp, ageProfile, onFinish, onExit }: ChoseongGameProps) {
-  const puzzles = useMemo<ChoseongPuzzle[]>(() => {
-    if (itemsProp && itemsProp.length >= 4) {
-      return itemsProp.map((it, idx) => {
-        const word = it.answer.trim().toUpperCase();
-        const vowels = new Set(['A', 'E', 'I', 'O', 'U', 'Á', 'É', 'Í', 'Ó', 'Ú', ' ']);
-        const letters = word.split('').map((char) => (vowels.has(char) ? null : char));
+interface Enigma {
+  item: MinigameItem;
+  /** A palavra sem acento e em maiúsculas — é nela que os slots e a comparação vivem. */
+  alvo: string;
+  ocultas: Set<number>;
+}
 
-        return {
-          id: it.cardId || `choseong-${idx}`,
-          itemRef: it.answer,
-          targetWord: word,
-          prompt: it.prompt,
-          category: 'Vocabulário',
-          initialLetters: letters,
-        };
-      });
-    }
-    return MOCK_PUZZLES_CHOSEONG;
-  }, [itemsProp]);
+export default function ChoseongGame({ items, ageProfile, onFinish, onExit }: ChoseongGameProps) {
+  /* Palavra sem nenhuma vogal não tem o que esconder: sai da rodada em vez de nascer resolvida. */
+  const enigmas = useMemo<Enigma[]>(() => items.flatMap(item => {
+    const alvo = chaveDoTermo(item.answer);
+    const ocultas = new Set(alvo.split('').flatMap((c, i) => (VOGAIS.includes(c) ? [i] : [])));
+    return alvo.length >= 2 && ocultas.size > 0 ? [{ item, alvo, ocultas }] : [];
+  }), [items]);
 
-  const tempoLimite = ageProfile === 'senior' ? 22 : ageProfile === 'kids' ? 18 : 15;
+  const suficiente = enigmas.length >= MINIGAMES.choseong.minItems;
+
   const [indice, setIndice] = useState(0);
+  const [letras, setLetras] = useState<string[]>([]);
+  /* O relógio declara de que palavra ele é: sem isso o zero da palavra anterior sobrevive um
+     render à troca e dá a seguinte por perdida na hora, com um outcome de ms zero. */
+  const [relogio, setRelogio] = useState({ palavra: 0, segundos: SEGUNDOS[ageProfile] });
+  const tempo = relogio.palavra === indice ? relogio.segundos : SEGUNDOS[ageProfile];
   const [pontos, setPontos] = useState(0);
-  const [combo, setCombo] = useState(0);
-  const [tempo, setTempo] = useState(tempoLimite);
-  const [letrasUsuario, setLetrasUsuario] = useState<string[]>([]);
-  const [finalizado, setFinalizado] = useState(false);
-  const [dicasRestantes, setDicasRestantes] = useState(3);
+  const [dicasRestantes, setDicasRestantes] = useState(2);
+  const [acabou, setAcabou] = useState(false);
 
   const outcomesRef = useRef<ItemOutcome[]>([]);
-  const inicioPartidaRef = useRef(Date.now());
-  const inicioPuzzleRef = useRef(Date.now());
-  const containerRef = useRef<HTMLDivElement>(null);
+  const inicioRodadaRef = useRef(Date.now());
+  const inicioItemRef = useRef(Date.now());
+  const tentativasRef = useRef(1);
+  const comDicaRef = useRef(false);
+  const respondidoRef = useRef(false);
+  const jaFinalizouRef = useRef(false);
+  const palcoRef = useRef<HTMLDivElement | null>(null);
 
-  const puzzleAtual = puzzles[indice];
+  const enigma: Enigma | undefined = enigmas[indice];
 
-  // Letras disponíveis para clicar na bandeja
-  const letrasTeclado = useMemo(() => {
-    if (!puzzleAtual) return [];
-    const targetLetters = puzzleAtual.targetWord.split('');
-    const decoys = ['A', 'E', 'I', 'O', 'U', 'S', 'T', 'R', 'N', 'L'];
-    const pool = Array.from(new Set([...targetLetters, ...decoys]));
-    return pool.sort();
-  }, [puzzleAtual]);
-
-  // Inicializa o puzzle atual
   useEffect(() => {
-    if (!puzzleAtual) return;
-    inicioPuzzleRef.current = Date.now();
-    setTempo(tempoLimite);
+    if (!suficiente) onExit();
+  }, [suficiente, onExit]);
 
-    // Pré-preenche os slots que já têm consoante revelada
-    const inicial = puzzleAtual.initialLetters.map((char) => char || '');
-    setLetrasUsuario(inicial);
-  }, [indice, puzzleAtual, tempoLimite]);
-
-  // Cronômetro
-  useEffect(() => {
-    if (finalizado) return;
-    const timer = setInterval(() => {
-      setTempo((prev) => {
-        if (prev <= 1) {
-          tratarTentativa(false);
-          return tempoLimite;
-        }
-        if (prev <= 3) play('tick');
-        return prev - 1;
-      });
-    }, 1000);
-    return () => clearInterval(timer);
-  }, [indice, finalizado, tempoLimite]);
-
-  // Escuta teclado físico para preenchimento imediato
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (finalizado || !puzzleAtual) return;
-
-      if (e.key === 'Backspace') {
-        e.preventDefault();
-        apagarUltimaLetra();
-      } else if (e.key === 'Enter') {
-        e.preventDefault();
-        verificarResposta();
-      } else if (/^[a-zA-ZáéíóúÁÉÍÓÚ]$/.test(e.key)) {
-        e.preventDefault();
-        inserirLetra(e.key.toUpperCase());
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [letrasUsuario, puzzleAtual, finalizado]);
-
-  const inserirLetra = (char: string) => {
-    if (!puzzleAtual) return;
-    // Encontra o primeiro slot vazio
-    const indexVazio = letrasUsuario.findIndex((l) => !l);
-    if (indexVazio !== -1) {
-      play('click');
-      const novas = [...letrasUsuario];
-      novas[indexVazio] = char;
-      setLetrasUsuario(novas);
-
-      // Se preencheu todos os slots, verifica automaticamente
-      if (!novas.some((l) => !l)) {
-        checarSolucao(novas.join(''));
-      }
-    }
-  };
-
-  const apagarUltimaLetra = () => {
-    // Procura a última letra mutável inserida pelo usuário
-    for (let i = letrasUsuario.length - 1; i >= 0; i--) {
-      // Se não era fixa originalmente
-      if (puzzleAtual.initialLetters[i] === null && letrasUsuario[i]) {
-        play('click');
-        const novas = [...letrasUsuario];
-        novas[i] = '';
-        setLetrasUsuario(novas);
-        break;
-      }
-    }
-  };
-
-  const checarSolucao = (palavraMontada: string) => {
-    const correta = palavraMontada.toUpperCase() === puzzleAtual.targetWord.toUpperCase();
-    if (correta) {
-      tratarTentativa(true);
-    } else {
-      play('error');
-      if (containerRef.current) tremor(containerRef.current);
-      // Limpa os slots preenchidos pelo usuário
-      const reset = puzzleAtual.initialLetters.map((c) => c || '');
-      setLetrasUsuario(reset);
-    }
-  };
-
-  const verificarResposta = () => {
-    checarSolucao(letrasUsuario.join(''));
-  };
-
-  const usarDicaRevelarUmaLetra = () => {
-    if (!puzzleAtual || dicasRestantes <= 0) return;
-    const indexOculto = letrasUsuario.findIndex((l, i) => !l && puzzleAtual.initialLetters[i] === null);
-    if (indexOculto !== -1) {
-      setDicasRestantes((d) => d - 1);
-      play('timeBonus');
-      const novas = [...letrasUsuario];
-      novas[indexOculto] = puzzleAtual.targetWord[indexOculto];
-      setLetrasUsuario(novas);
-
-      if (!novas.some((l) => !l)) {
-        checarSolucao(novas.join(''));
-      }
-    }
-  };
-
-  const tratarTentativa = (sucesso: boolean) => {
-    const duracaoMs = Date.now() - inicioPuzzleRef.current;
-    outcomesRef.current.push({
-      itemRef: puzzleAtual.targetWord,
-      correct: sucesso,
-      attempts: 1,
-      ms: duracaoMs,
-    });
-
-    if (sucesso) {
-      const novoCombo = combo + 1;
-      setCombo(novoCombo);
-      const mult = calculateMultiplier(novoCombo);
-      const pts = (140 + (novoCombo * 30)) * mult;
-      setPontos((p) => p + pts);
-
-      playJuicedHit(
-        novoCombo,
-        { x: window.innerWidth / 2, y: window.innerHeight * 0.45 },
-        `초성 DECIFRADO! ${mult}x`
-      );
-    } else {
-      setCombo(0);
-      playJuicedError(containerRef.current, undefined, 'INCORRETO');
-    }
-
-    if (indice + 1 >= puzzles.length) {
-      concluirPartida();
-    } else {
-      setIndice((prev) => prev + 1);
-    }
-  };
-
-  const concluirPartida = () => {
-    setFinalizado(true);
-    playJuicedVictory();
-    const duracaoTotal = Date.now() - inicioPartidaRef.current;
+  const finalizar = useCallback(() => {
+    if (jaFinalizouRef.current) return;
+    jaFinalizouRef.current = true;
+    setAcabou(true);
+    const outcomes = outcomesRef.current;
     const report: RoundReport = {
-      gameId: 'blitz' as any,
-      items: outcomesRef.current,
-      score: pontos,
-      durationMs: duracaoTotal,
+      gameId: 'choseong',
+      items: outcomes,
+      score: scoreRound('choseong', outcomes),
+      durationMs: Date.now() - inicioRodadaRef.current,
     };
-    setTimeout(() => {
-      onFinish(report);
-    }, 1800);
+    const perfeita = outcomes.length > 0 && outcomes.every(o => o.correct && !o.revealed);
+    comemorar(perfeita ? 'rodadaPerfeita' : 'rodadaBoa', palcoRef.current);
+    setTimeout(() => onFinish(report), 1100);
+  }, [onFinish]);
+
+  const registrar = useCallback((correct: boolean, revealed?: boolean) => {
+    if (!enigma) return;
+    outcomesRef.current.push({
+      cardId: enigma.item.cardId,
+      itemRef: enigma.item.answer,
+      correct,
+      attempts: tentativasRef.current,
+      ms: Date.now() - inicioItemRef.current,
+      hinted: comDicaRef.current,
+      ...(revealed ? { revealed: true } : {}),
+    });
+    setPontos(scoreRound('choseong', outcomesRef.current));
+  }, [enigma]);
+
+  const avancar = useCallback(() => {
+    if (indice + 1 >= enigmas.length) finalizar();
+    else setIndice(i => i + 1);
+  }, [indice, enigmas.length, finalizar]);
+
+  // Troca de palavra: as consoantes entram já preenchidas, as vogais nascem vazias.
+  useEffect(() => {
+    if (!enigma || jaFinalizouRef.current) return;
+    inicioItemRef.current = Date.now();
+    tentativasRef.current = 1;
+    comDicaRef.current = false;
+    respondidoRef.current = false;
+    setLetras(enigma.alvo.split('').map((c, i) => (enigma.ocultas.has(i) ? '' : c)));
+    setRelogio({ palavra: indice, segundos: SEGUNDOS[ageProfile] });
+  }, [indice, enigma, ageProfile]);
+
+  useEffect(() => {
+    if (acabou || !enigma || respondidoRef.current) return;
+    if (relogio.palavra !== indice) return;
+    if (tempo <= 0) {
+      respondidoRef.current = true;
+      registrar(false, true);
+      comemorar('erro', palcoRef.current);
+      avancar();
+      return;
+    }
+    if (tempo <= 3) play('tick');
+    const t = setTimeout(() => setRelogio(r => (r.palavra === indice ? { ...r, segundos: r.segundos - 1 } : r)), 1000);
+    return () => clearTimeout(t);
+  }, [relogio, tempo, indice, acabou, enigma, registrar, avancar]);
+
+  const conferir = useCallback((montada: string[]) => {
+    if (!enigma) return;
+    if (montada.join('') === enigma.alvo) {
+      respondidoRef.current = true;
+      registrar(true);
+      comemorar('acerto', palcoRef.current);
+      setTimeout(avancar, 700);
+      return;
+    }
+    tentativasRef.current += 1;
+    comemorar('erro', palcoRef.current);
+    tremor(palcoRef.current);
+    setLetras(enigma.alvo.split('').map((c, i) => (enigma.ocultas.has(i) ? '' : c)));
+  }, [enigma, registrar, avancar]);
+
+  const escrever = useCallback((char: string) => {
+    if (acabou || !enigma || respondidoRef.current) return;
+    const vazio = letras.findIndex((l, i) => !l && enigma.ocultas.has(i));
+    if (vazio === -1) return;
+    const novas = [...letras];
+    novas[vazio] = char;
+    play('click');
+    setLetras(novas);
+    if (!novas.some((l, i) => !l && enigma.ocultas.has(i))) conferir(novas);
+  }, [acabou, enigma, letras, conferir]);
+
+  const apagar = useCallback(() => {
+    if (acabou || !enigma || respondidoRef.current) return;
+    for (let i = letras.length - 1; i >= 0; i--) {
+      if (enigma.ocultas.has(i) && letras[i]) {
+        const novas = [...letras];
+        novas[i] = '';
+        setLetras(novas);
+        return;
+      }
+    }
+  }, [acabou, enigma, letras]);
+
+  // Teclado físico: quem sabe a palavra escreve direto, sem caçar botão.
+  useEffect(() => {
+    const aoTeclar = (e: KeyboardEvent) => {
+      if (e.key === 'Backspace') { e.preventDefault(); apagar(); return; }
+      const letra = e.key.toUpperCase();
+      if (VOGAIS.includes(letra)) { e.preventDefault(); escrever(letra); }
+    };
+    window.addEventListener('keydown', aoTeclar);
+    return () => window.removeEventListener('keydown', aoTeclar);
+  }, [escrever, apagar]);
+
+  const usarDica = () => {
+    if (acabou || !enigma || respondidoRef.current || dicasRestantes <= 0) return;
+    const vazio = letras.findIndex((l, i) => !l && enigma.ocultas.has(i));
+    if (vazio === -1) return;
+    setDicasRestantes(d => d - 1);
+    comDicaRef.current = true;
+    play('timeBonus');
+    const novas = [...letras];
+    novas[vazio] = enigma.alvo[vazio];
+    setLetras(novas);
+    if (!novas.some((l, i) => !l && enigma.ocultas.has(i))) conferir(novas);
   };
 
-  const ehModoFebre = combo >= 3;
+  if (!suficiente) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col bg-canvas text-ink select-none overflow-hidden" ref={containerRef}>
-      {/* Topo */}
-      <header className="flex items-center justify-between px-6 py-4 border-b border-border-subtle bg-surface/85 backdrop-blur-md">
+    <div ref={palcoRef} className="fixed inset-0 z-50 flex flex-col bg-canvas text-ink select-none overflow-hidden">
+      <header className="flex items-center justify-between gap-3 px-6 py-4 border-b border-border-subtle bg-surface/85 backdrop-blur-md">
         <div className="flex items-center gap-3">
           <button
             onClick={onExit}
             className="p-2 rounded-xl border border-border-subtle bg-surface-hover hover:bg-border-subtle transition-colors cursor-pointer"
-            title="Sair do Choseong"
+            aria-label="Sair do Choseong"
           >
             <X className="w-5 h-5 text-ink" />
           </button>
           <div>
-            <div className="flex items-center gap-2">
-              <span className="font-display font-black text-lg tracking-wide uppercase text-accent">Choseong Arena</span>
-              <span className="text-xs px-2 py-0.5 rounded-full bg-accent-soft text-accent-ink font-semibold">초성 퀴즈 🇰🇷</span>
-            </div>
-            <p className="text-xs text-ink-muted">Decifre as palavras completas preenchendo os blocos 3D de letras!</p>
+            <span className="font-display font-black text-lg tracking-wide uppercase text-accent">Choseong</span>
+            <p className="text-xs text-ink-muted">As consoantes já estão na mesa. Complete as vogais.</p>
           </div>
         </div>
 
-        {/* Status de Pontos, Streak / Fever, Dica e Timer */}
-        <div className="flex items-center gap-3 sm:gap-4">
+        <div className="flex items-center gap-3">
           <button
-            onClick={usarDicaRevelarUmaLetra}
+            onClick={usarDica}
             disabled={dicasRestantes <= 0}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-2xl border border-border-subtle bg-surface hover:bg-surface-hover text-xs font-bold text-ink transition-all disabled:opacity-40 disabled:cursor-not-allowed shadow-sm cursor-pointer"
-            title="Revelar uma letra oculta"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-border-subtle bg-surface hover:bg-surface-hover text-xs font-bold text-ink transition-colors disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
           >
             <Lightbulb className="w-3.5 h-3.5 text-accent" />
-            <span>Dica ({dicasRestantes})</span>
+            <span>Abrir uma vogal ({dicasRestantes})</span>
           </button>
-
-          {ehModoFebre && (
-            <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-gradient-to-r from-orange-500 to-amber-500 text-white font-black text-xs shadow-md animate-bounce">
-              <Flame className="w-4 h-4 fill-current" />
-              <span>FEVER MODE ({combo}x)</span>
-            </div>
-          )}
-
-          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-border-subtle bg-surface">
-            <Sparkles className="w-4 h-4 text-accent" />
-            <span className="font-mono font-bold text-base">{pontos} pts</span>
+          <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl border border-border-subtle bg-surface">
+            <Award className="w-4 h-4 text-accent" />
+            <span className="font-mono font-bold tabular-nums">{pontos}</span>
           </div>
-
           <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-border-subtle bg-surface">
-            <span className={`font-mono font-black text-base ${tempo <= 3 ? 'text-error animate-pulse' : 'text-ink'}`}>
-              {tempo}s
-            </span>
+            <TimerIcon className={`w-4 h-4 ${tempo <= 3 ? 'text-error' : 'text-ink-muted'}`} />
+            <span className={`font-mono font-black tabular-nums ${tempo <= 3 ? 'text-error-ink' : 'text-ink'}`}>{tempo}s</span>
           </div>
         </div>
       </header>
 
-      {/* Conteúdo Principal */}
-      <main className="flex-1 p-6 flex flex-col items-center justify-center max-w-2xl mx-auto w-full">
-        {puzzleAtual && (
-          <div className="w-full bg-surface border-2 border-border-subtle rounded-3xl p-6 sm:p-8 shadow-card flex flex-col items-center text-center">
-            {/* Mascote Saltitante e Categoria */}
-            <div className="flex items-center gap-2 mb-2">
-              <span className="text-3xl animate-bounce">🧩</span>
-              <div className="px-3.5 py-1 rounded-full bg-surface-hover border border-border-subtle text-xs font-mono uppercase tracking-wider text-ink-muted">
-                Categoria: <strong className="text-accent">{puzzleAtual.category}</strong>
-              </div>
-            </div>
+      <main className="flex-1 p-6 flex flex-col items-center justify-center gap-6 w-full max-w-2xl mx-auto">
+        <p data-tour="pista" className="text-base sm:text-lg font-bold text-ink text-center">
+          {enigma?.item.prompt}
+        </p>
 
-            {/* Pista Semântica */}
-            <p className="text-sm sm:text-base text-ink font-bold mb-4">
-              "{puzzleAtual.prompt}"
-            </p>
-
-            {/* SLOTS 3D DE LETRAS (ESTILO GAME SHOW / WORDLE) */}
-            <div className="flex flex-wrap justify-center gap-2 sm:gap-3 my-4">
-              {puzzleAtual.targetWord.split('').map((_, idx) => {
-                const letra = letrasUsuario[idx] || '';
-                const eraFixa = puzzleAtual.initialLetters[idx] !== null;
-
-                return (
-                  <div
-                    key={idx}
-                    className={`w-12 h-14 sm:w-14 sm:h-16 rounded-2xl flex items-center justify-center font-display font-black text-2xl sm:text-3xl transition-all duration-200 border-2 shadow-card ${
-                      letra
-                        ? eraFixa
-                          ? 'border-accent bg-accent-soft text-accent-ink'
-                          : 'border-good bg-surface text-ink scale-105 shadow-md animate-fadeIn'
-                        : 'border-dashed border-border-subtle bg-surface-hover/50 text-ink-muted'
-                    }`}
-                  >
-                    {letra}
-                  </div>
-                );
-              })}
-            </div>
-
-            {/* Ações e Botões de Apoio */}
-            <div className="flex gap-3 my-3">
-              <button
-                onClick={usarDicaRevelarUmaLetra}
-                disabled={dicasRestantes <= 0}
-                className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-border-subtle bg-surface-hover hover:bg-border-subtle text-xs font-bold text-ink transition-colors cursor-pointer disabled:opacity-40"
+        <div
+          dir={direcaoDoTexto(enigma?.item.lang)}
+          lang={enigma?.item.lang}
+          className="flex flex-wrap justify-center gap-2 sm:gap-3"
+        >
+          {letras.map((letra, i) => {
+            const oculta = enigma?.ocultas.has(i) ?? false;
+            return (
+              <span
+                key={i}
+                className={`w-12 h-14 sm:w-14 sm:h-16 rounded-2xl flex items-center justify-center font-display font-black text-2xl sm:text-3xl border-2 shadow-card
+                  ${!oculta
+                    ? 'border-border-subtle bg-surface-hover text-ink-muted'
+                    : letra
+                    ? 'border-accent bg-accent-soft text-accent-ink'
+                    : 'border-dashed border-border-subtle bg-surface text-ink-faint'}`}
               >
-                <Lightbulb className="w-4 h-4 text-amber-500 animate-bounce" />
-                <span>Revelar uma letra ({dicasRestantes})</span>
-              </button>
+                {letra}
+              </span>
+            );
+          })}
+        </div>
 
-              <button
-                onClick={apagarUltimaLetra}
-                className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-border-subtle bg-surface-hover hover:bg-border-subtle text-xs font-bold text-ink-muted hover:text-ink transition-colors cursor-pointer"
-              >
-                <RotateCcw className="w-4 h-4 text-rose-500" />
-                <span>Apagar letra</span>
-              </button>
-            </div>
+        <div data-tour="teclado" className="flex flex-wrap justify-center gap-2">
+          {VOGAIS.map(v => (
+            <button
+              key={v}
+              onClick={() => escrever(v)}
+              className="px-4 py-3 rounded-xl border border-border-subtle bg-surface hover:border-accent hover:bg-accent-soft hover:text-accent-ink font-display font-black text-lg shadow-card active:scale-95 transition-all cursor-pointer"
+            >
+              {v}
+            </button>
+          ))}
+          <button
+            onClick={apagar}
+            aria-label="Apagar a última vogal"
+            className="px-4 py-3 rounded-xl border border-border-subtle bg-surface-hover hover:bg-border-subtle text-ink-muted hover:text-ink shadow-card active:scale-95 transition-all cursor-pointer"
+          >
+            <Delete className="w-5 h-5" />
+          </button>
+        </div>
 
-            {/* Teclado Virtual de Letras Clicáveis */}
-            <div className="w-full mt-4 pt-4 border-t border-border-subtle">
-              <p className="text-xs font-mono uppercase tracking-wider text-ink-muted mb-2">
-                Clique nas letras ou digite diretamente pelo teclado:
-              </p>
-              <div className="flex flex-wrap justify-center gap-1.5 sm:gap-2">
-                {letrasTeclado.map((letra) => (
-                  <button
-                    key={letra}
-                    onClick={() => inserirLetra(letra)}
-                    className="w-10 h-11 sm:w-11 sm:h-12 rounded-xl border border-border-subtle bg-surface hover:border-accent hover:bg-accent-soft hover:text-accent-ink font-display font-black text-lg shadow-sm active:scale-95 transition-all cursor-pointer"
-                  >
-                    {letra}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-        )}
+        <span className="text-xs font-mono text-ink-muted">Palavra {indice + 1} de {enigmas.length}</span>
       </main>
     </div>
   );

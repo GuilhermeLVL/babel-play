@@ -182,6 +182,123 @@ export const COMO_SE_JOGA: Record<MinigameId, ConteudoComoSeJoga> = {
       { o_que: 'A tesoura corta duas alternativas erradas (duas por rodada).', custo: 'limita a nota a "difícil"' },
     ],
   },
+  karuta: {
+    treina: 'Casar o som da pista com a palavra escrita.',
+    passos: [
+      'O narrador declama a pista (o significado).',
+      'Toque na carta com a palavra que ela descreve.',
+      'Errou? A carta volta para a mesa.',
+    ],
+    avaliacao: 'Acertar de primeira vale "bom"; com tentativas, "dificil".',
+    limites: 'A pista e falada: sem audio, o jogo perde a metade que o distingue do Duelo.',
+    ajudas: [
+      { o_que: 'Repetir a fala da pista.', custo: 'nao custa nota' },
+    ],
+  },
+  choseong: {
+    treina: 'Escrever a palavra a partir do significado, com as consoantes a vista.',
+    passos: [
+      'A pista e o significado.',
+      'As consoantes aparecem; as vogais ficam escondidas.',
+      'Complete as vogais.',
+    ],
+    avaliacao: 'Completar sem erro vale "facil"; com erro, "dificil".',
+    limites: 'So funciona com alfabeto latino: a mecanica separa consoante de vogal.',
+    ajudas: [
+      { o_que: 'Revelar uma vogal.', custo: 'limita a nota a "dificil"' },
+    ],
+  },
+  tenis: {
+    treina: 'Recuperar a palavra sob pressao de tempo, em rali.',
+    passos: [
+      'A bola traz a pista.',
+      'Devolva escrevendo a palavra antes que ela caia.',
+      'Cada devolucao certa encurta o tempo da proxima.',
+    ],
+    avaliacao: 'Devolver dentro do tempo vale "facil"; no limite, "bom".',
+    limites: 'O relogio favorece quem digita rapido, e digitar rapido nao e saber mais.',
+    ajudas: [
+      { o_que: 'Uma dica revela a primeira letra da palavra.', custo: 'limita a nota a "bom"' },
+    ],
+  },
+  koffer: {
+    treina: 'Guardar uma sequencia crescente de palavras na ordem.',
+    passos: [
+      'A cada nivel entra uma palavra na mala.',
+      'Reconstrua de memoria tudo que ja esta la.',
+      'A ordem conta.',
+    ],
+    avaliacao: 'Reconstruir a mala inteira sem erro vale "facil".',
+    limites: 'Testa memoria de sequencia, que nao e a mesma coisa que saber usar a palavra.',
+    ajudas: [
+      { o_que: 'Ver a mala por um instante.', custo: 'limita a nota a "dificil"' },
+    ],
+  },
+  bao: {
+    treina: 'Montar a palavra a partir dos pedacos dela.',
+    passos: [
+      'As sementes trazem os pedacos, fora de ordem.',
+      'Semeie na ordem certa.',
+      'A palavra fecha quando a ordem bate.',
+    ],
+    avaliacao: 'Montar de primeira vale "bom".',
+    limites: 'Partir a palavra em pedacos so faz sentido em alfabeto latino.',
+    ajudas: [
+      { o_que: 'Semear a primeira peca.', custo: 'limita a nota a "dificil"' },
+    ],
+  },
+  vitendawili: {
+    treina: 'Reconhecer a palavra pelo contexto da sua propria frase.',
+    passos: [
+      'O enigma e uma frase sua com a palavra apagada.',
+      'Ouca a frase com pausa na lacuna.',
+      'Escolha a palavra que a preenche.',
+    ],
+    avaliacao: 'Acertar de primeira vale "bom".',
+    limites: 'Sem frase gravada o enigma nao existe: o item cai fora da rodada.',
+    ajudas: [
+      { o_que: 'Ouvir a frase de novo.', custo: 'nao custa nota' },
+    ],
+  },
+  shiritori: {
+    treina: 'Recuperar palavras encadeadas pela ultima letra.',
+    passos: [
+      'Cada palavra comeca com a ultima letra da anterior.',
+      'Escolha a que continua a corrente.',
+      'A corrente quebra se nao houver continuacao.',
+    ],
+    avaliacao: 'Acertar de primeira vale "bom".',
+    limites: 'Precisa de uma corrente valida no seu baralho; sem ela a rodada nao nasce.',
+    ajudas: [
+      { o_que: 'Ver a letra inicial exigida.', custo: 'nao custa nota' },
+    ],
+  },
+  cadavre: {
+    treina: 'Usar as palavras da leva numa frase sua.',
+    passos: [
+      'Quatro palavras aparecem.',
+      'Escreva uma frase que use as quatro.',
+      'A frase e sua; nao ha resposta certa.',
+    ],
+    avaliacao: 'Nao ha nota: escrever uma frase nao e evidencia de que voce recuperou a palavra.',
+    limites: 'NAO agenda revisao. Vale como producao livre, nao como memoria.',
+    ajudas: [
+      { o_que: 'Trocar uma palavra da leva.', custo: 'nao custa nota' },
+    ],
+  },
+  taboo: {
+    treina: 'Reconhecer a palavra por uma definicao que evita os termos obvios.',
+    passos: [
+      'A palavra-alvo aparece com as proibidas riscadas.',
+      'Leia a definicao que sobrou.',
+      'Escolha a palavra certa.',
+    ],
+    avaliacao: 'Acertar de primeira vale "bom".',
+    limites: 'As proibidas sao derivadas do texto: em item curto pode sobrar pouca definicao.',
+    ajudas: [
+      { o_que: 'Liberar uma palavra proibida.', custo: 'limita a nota a "dificil"' },
+    ],
+  },
 };
 
 interface ComoSeJogaProps {

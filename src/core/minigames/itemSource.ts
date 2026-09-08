@@ -5,6 +5,7 @@ import { avaliarCartao, chaveComparavel } from '../learning/quality';
 import { pistaDeJogo } from '../learning/pistaDeJogo';
 import { digitavelNoTermo } from './termo';
 import { entraNaGrade } from './wordsearch';
+import { itensDaCorrente } from './shiritori';
 import type { MinigameItem, MinigameId } from './types';
 import { MINIGAMES } from './types';
 import { ordenarPorMemoria, type HistoricoDoItem } from '../learning/memoriaDeItens';
@@ -113,17 +114,28 @@ export function promptFor(card: VocabCard): { prompt: string; clozed: boolean } 
  * Monta os itens de uma rodada. O blitz puxa os VENCIDOS por urgência (é o jogo da revisão);
  * os demais puxam do baralho embaralhado, priorizando quem está vencido.
  */
+/* O teste de escrita sai do REQUISITO declarado, nao do nome do jogo. */
+export function cabeNaEscrita(id: MinigameId): (palavra: string) => boolean {
+  const escrita = MINIGAMES[id].requisitos?.escrita;
+  if (escrita === 'teclado') return digitavelNoTermo;
+  if (escrita === 'grade') return entraNaGrade;
+  return () => true;
+}
+
 export function buildItems(gameId: MinigameId, cards: VocabCard[], opts: BuildItemsOptions = {}): MinigameItem[] {
   const def = MINIGAMES[gameId];
   const scheduler = opts.scheduler ?? 'fsrs';
   const now = opts.now ?? Date.now();
   const shuffle = opts.shuffle ?? embaralhar;
-  const limite = opts.limit ?? def.maxItems;
+  /* Shiritori monta um pool maior porque a corrente e escolhida DEPOIS: pedir 8 itens e perguntar
+     se eles encadeiam quase nunca da corrente. */
+  const limite = opts.limit ?? (gameId === 'shiritori' ? 60 : def.maxItems);
 
   // O gate já recusa alfabeto que o jogo não escreve; o builder recusa junto, para uma chamada
   // direta não montar rodada impossível (grade vazia, teclado que não digita a palavra).
+  const cabe = cabeNaEscrita(gameId);
   const cabeNoJogo = !opts.ignorarRequisitos && MINIGAMES[gameId].requisitos?.alfabeto === 'latino'
-    ? (c: VocabCard) => (gameId === 'termo' ? digitavelNoTermo(c.word ?? '') : entraNaGrade(c.word ?? ''))
+    ? (c: VocabCard) => cabe(c.word ?? '')
     : () => true;
   const noBaralho = cards.filter(c => c.inDeck && (c.word ?? '').trim() && cabeNoJogo(c));
   const vencidos = byUrgency(noBaralho, scheduler, now);
@@ -204,6 +216,9 @@ export function buildItems(gameId: MinigameId, cards: VocabCard[], opts: BuildIt
        numa coluna estreita: vira parede de texto para um jogo cuja tarefa é achar uma palavra na
        grade. Sem tradução curta, o cartão sai da rodada em vez de virar atrito. */
     if (pista.clozed && gameId === 'wordsearch') continue;
+    /* Charada joga sobre a FRASE do proprio usuario: item sem frase nao produz enigma, e um item
+       que o jogo descarta nao pode ser contado pelo gate. */
+    if (gameId === 'vitendawili' && !pista.clozed && !(card.sentence ?? '').trim()) continue;
     const chaveDaPista = chaveComparavel(pista.prompt);
     if (chaveDaPista && pistasUsadas.has(chaveDaPista)) continue;
     pistasUsadas.add(chaveDaPista);
@@ -216,13 +231,19 @@ export function buildItems(gameId: MinigameId, cards: VocabCard[], opts: BuildIt
       clozed: pista.clozed,
     });
   }
+  /* CORRENTE E RESTRICAO DE CONJUNTO, nao de item: nao adianta filtrar um a um. O gate contava
+     todos os itens elegiveis e o jogo depois nao achava corrente nenhuma, entao a carta prometia
+     material e voltava para a grade ao ser clicada. Aqui a rodada JA nasce sendo a corrente. */
+  if (gameId === 'shiritori') return itensDaCorrente(itens);
   return itens;
 }
 
 /** Há itens suficientes para este jogo? A tela usa isto para habilitar (ou explicar o que falta). */
 export function canPlay(gameId: MinigameId, cards: VocabCard[], opts: BuildItemsOptions = {}): { ok: boolean; disponiveis: number; faltam: number } {
   const def = MINIGAMES[gameId];
-  const disponiveis = buildItems(gameId, cards, { ...opts, limit: def.maxItems }).length;
+  /* O limite fica com o builder quando ele tem regra propria de pool (shiritori procura a
+     corrente num pool maior); forcar `maxItems` aqui fazia o gate perguntar outra coisa. */
+  const disponiveis = buildItems(gameId, cards, { ...opts, ...(gameId === 'shiritori' ? {} : { limit: def.maxItems }) }).length;
   return { ok: disponiveis >= def.minItems, disponiveis, faltam: Math.max(0, def.minItems - disponiveis) };
 }
 

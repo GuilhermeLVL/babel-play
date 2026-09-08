@@ -16,7 +16,9 @@ import type { CefrLevel } from '../learning/contract';
 
 /** Os jogos existentes. A tela lê esta lista — nenhuma tela repete a regra de cada um. */
 export type MinigameId = 'memory' | 'wordsearch' | 'blitz' | 'termo' | 'scramble' | 'karaoke'
-  | 'escuta' | 'ditado' | 'conectores';
+  | 'escuta' | 'ditado' | 'conectores'
+  | 'karuta' | 'choseong' | 'tenis' | 'koffer' | 'bao' | 'vitendawili' | 'shiritori'
+  | 'cadavre' | 'taboo';
 
 /**
  * Um item jogável: a pergunta que a pessoa precisa responder de cabeça.
@@ -137,18 +139,20 @@ export interface MinigameDef {
    * Só `wordsearch` (grade) e `termo` (teclado QWERTY fixo) declaram `alfabeto: 'latino'` hoje —
    * são os dois jogos com componente visual latino embutido (grade de letras, teclado físico).
    */
-  requisitos?: { alfabeto?: 'latino' };
+  /* `escrita` diz QUAL teste aplicar, para o gate nao precisar conhecer o jogo pelo nome:
+     'teclado' = a pessoa digita a palavra inteira; 'grade' = a palavra vira letras numa grade. */
+  requisitos?: { alfabeto?: 'latino'; escrita?: 'teclado' | 'grade' };
 }
 
 export const MINIGAMES: Record<MinigameId, MinigameDef> = {
   memory: { id: 'memory', minItems: 4, maxItems: 8, requiresTranslation: true, writesSrs: true, modalidade: 'palavra' },
-  wordsearch: { id: 'wordsearch', minItems: 4, maxItems: 8, requiresTranslation: false, writesSrs: true, modalidade: 'palavra', requisitos: { alfabeto: 'latino' } },
+  wordsearch: { id: 'wordsearch', minItems: 4, maxItems: 8, requiresTranslation: false, writesSrs: true, modalidade: 'palavra', requisitos: { alfabeto: 'latino', escrita: 'grade' } },
   blitz: { id: 'blitz', minItems: 4, maxItems: 20, requiresTranslation: false, writesSrs: true, modalidade: 'palavra' },
   // Termo: exige tradução (é a pista) e palavras de 4 a 6 letras — ver `LETRAS_POR_FAIXA`.
   /* `maxItems: 7` = 1+2+4, a escada completa. Estava em 5 e a carta chegava a anunciar "5 prontas"
      para uma rodada que consome 7, o rótulo e o jogo discordavam. Quem manda no tamanho real é
      `consumoDaEscada` (`minigames/termo.ts`); este teto existe para o rótulo não prometer menos. */
-  termo: { id: 'termo', minItems: 3, maxItems: 7, requiresTranslation: true, writesSrs: true, modalidade: 'palavra', requisitos: { alfabeto: 'latino' } },
+  termo: { id: 'termo', minItems: 3, maxItems: 7, requiresTranslation: true, writesSrs: true, modalidade: 'palavra', requisitos: { alfabeto: 'latino', escrita: 'teclado' } },
   // Frase embaralhada e karaokê vivem de FALAS, não de cartões: não há nota de SRS a dar.
   scramble: { id: 'scramble', minItems: 3, maxItems: 5, requiresTranslation: true, writesSrs: false, modalidade: 'frase' },
   karaoke: { id: 'karaoke', minItems: 3, maxItems: 6, requiresTranslation: false, writesSrs: false, modalidade: 'frase-audio', aceitaPalavraFalada: true },
@@ -158,6 +162,19 @@ export const MINIGAMES: Record<MinigameId, MinigameDef> = {
   escuta: { id: 'escuta', minItems: 4, maxItems: 6, requiresTranslation: false, writesSrs: false, modalidade: 'frase-audio', aceitaPalavraFalada: true },
   ditado: { id: 'ditado', minItems: 3, maxItems: 5, requiresTranslation: false, writesSrs: false, modalidade: 'frase-audio', aceitaPalavraFalada: true },
   conectores: { id: 'conectores', minItems: 3, maxItems: 5, requiresTranslation: false, writesSrs: false, modalidade: 'frase' },
+
+  /* Os nove culturais. Todos rodam sobre o baralho; os que precisam de alfabeto latino declaram
+     em `requisitos`, e nao por nome espalhado no codigo. */
+  karuta: { id: 'karuta', minItems: 4, maxItems: 8, requiresTranslation: true, writesSrs: true, modalidade: 'palavra' },
+  choseong: { id: 'choseong', minItems: 4, maxItems: 8, requiresTranslation: true, writesSrs: true, modalidade: 'palavra', requisitos: { alfabeto: 'latino', escrita: 'teclado' } },
+  tenis: { id: 'tenis', minItems: 4, maxItems: 10, requiresTranslation: true, writesSrs: true, modalidade: 'palavra' },
+  koffer: { id: 'koffer', minItems: 4, maxItems: 8, requiresTranslation: true, writesSrs: true, modalidade: 'palavra' },
+  bao: { id: 'bao', minItems: 4, maxItems: 6, requiresTranslation: true, writesSrs: true, modalidade: 'palavra', requisitos: { alfabeto: 'latino', escrita: 'grade' } },
+  vitendawili: { id: 'vitendawili', minItems: 4, maxItems: 8, requiresTranslation: true, writesSrs: true, modalidade: 'palavra' },
+  shiritori: { id: 'shiritori', minItems: 4, maxItems: 8, requiresTranslation: true, writesSrs: true, modalidade: 'palavra', requisitos: { alfabeto: 'latino', escrita: 'grade' } },
+  /* Escrever uma frase usando a palavra nao e evidencia de recuperacao: nao agenda revisao. */
+  cadavre: { id: 'cadavre', minItems: 4, maxItems: 4, requiresTranslation: true, writesSrs: false, modalidade: 'palavra' },
+  taboo: { id: 'taboo', minItems: 4, maxItems: 8, requiresTranslation: true, writesSrs: true, modalidade: 'palavra' },
 };
 
 /* ── DE ONDE VÊM OS ITENS DE UMA RODADA ──────────────────────────────────────────────────────

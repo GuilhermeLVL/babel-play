@@ -60,8 +60,23 @@ export function gradeFor(gameId: MinigameId, outcome: ItemOutcome): Grade {
     case 'escuta':
     case 'ditado':
     case 'conectores':
-      // Vivem de FALAS: não há cartão para agendar. A nota existe só por completude do tipo.
+    case 'cadavre':
+      // Vivem de FALAS ou de produção livre: não há cartão para agendar.
       return outcome.correct ? 3 : 1;
+    case 'tenis':
+      // Cronometrado como o duelo: velocidade é o sinal.
+      return outcome.ms <= LIMITE_RESPOSTA_RAPIDA_MS ? 4 : 3;
+    case 'choseong':
+    case 'koffer':
+      // Produção escrita completa, sem alternativa para reconhecer.
+      return outcome.attempts <= 1 ? 4 : 3;
+    case 'karuta':
+    case 'bao':
+    case 'vitendawili':
+    case 'shiritori':
+    case 'taboo':
+      // Escolha entre alternativas reais: acertar de primeira é bom, nunca fácil.
+      return outcome.attempts <= 1 ? 3 : 2;
   }
 }
 

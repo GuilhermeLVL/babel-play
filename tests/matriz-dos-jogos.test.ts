@@ -146,9 +146,19 @@ describe('invariante 3 — buildItems respeita maxItems e minItems do gate', () 
     expect(itens.length).toBeLessThanOrEqual(MINIGAMES[jogo].maxItems);
   });
 
-  it.each(JOGOS_DE_PALAVRA)('%s: material de sobra produz ao menos minItems', (jogo) => {
+  /* "Material de sobra basta" vale para todo jogo cuja exigencia e por ITEM. O shiritori exige do
+     CONJUNTO — as palavras tem de encadear — e mil palavras que nao encadeiam continuam nao dando
+     rodada. Para ele a invariante certa e a de baixo: ou entrega o minimo, ou entrega nada. */
+  const POR_ITEM = JOGOS_DE_PALAVRA.filter((j) => j !== 'shiritori');
+
+  it.each(POR_ITEM)('%s: material de sobra produz ao menos minItems', (jogo) => {
     const itens = buildItems(jogo, POOL_GRANDE, { shuffle: semSorte, now: AGORA });
     expect(itens.length).toBeGreaterThanOrEqual(MINIGAMES[jogo].minItems);
+  });
+
+  it('shiritori: entrega o minimo ou nada — nunca uma rodada impossivel', () => {
+    const itens = buildItems('shiritori', POOL_GRANDE, { shuffle: semSorte, now: AGORA });
+    expect(itens.length === 0 || itens.length >= MINIGAMES.shiritori.minItems).toBe(true);
   });
 });
 

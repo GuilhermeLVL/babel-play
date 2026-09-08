@@ -17,9 +17,6 @@
     "server/**/*.ts",
     "scripts/**/*.mjs"
   ],
-  "ignore": [
-    "src/components/minigames/culturais/**"
-  ],
   "ignoreDependencies": [
     "depcheck",
     "jscpd",

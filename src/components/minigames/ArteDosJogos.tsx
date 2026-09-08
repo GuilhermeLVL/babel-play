@@ -287,6 +287,15 @@ const ARTE: Record<MinigameId, (p: { tom: string }) => React.JSX.Element> = {
   karaoke: ArteKaraoke,
   escuta: ArteEscuta,
   ditado: ArteDitado,
+  karuta: ArteDuelo,
+  choseong: ArteTermo,
+  tenis: ArteDuelo,
+  koffer: ArteMemoria,
+  bao: ArteEmbaralhada,
+  vitendawili: ArteDuelo,
+  shiritori: ArteEmbaralhada,
+  cadavre: ArteConectores,
+  taboo: ArteDuelo,
 };
 
 /** A miniatura de um jogo. Cai em `null` se algum jogo novo ainda não tiver arte. */

@@ -6,14 +6,7 @@ import tseslint from 'typescript-eslint';
 import reactHooks from 'eslint-plugin-react-hooks';
 
 export default tseslint.config(
-  /* `minigames/culturais/**` fica FORA do lint desde 08/09, e o motivo está no README daquela
-     pasta: os nove jogos estão ESTACIONADOS — nenhuma rota os importa, e eles ficam ali como
-     matéria-prima até serem integrados ao sistema de rodada. Lintar código que ninguém executa
-     produz aviso que ninguém pode agir sobre: consertar as dependências de efeito deles seria
-     trabalho sobre um comportamento que não roda, e o dia em que eles voltarem é o dia em que
-     tudo neles muda de qualquer jeito. O `tsc` continua cobrindo a pasta: eles têm de compilar. */
-  { ignores: ['dist/**', 'dist-server/**', 'node_modules/**', 'public/**', 'data/**', '*.cjs',
-              'src/components/minigames/culturais/**'] },
+  { ignores: ['dist/**', 'dist-server/**', 'node_modules/**', 'public/**', 'data/**', '*.cjs'] },
   js.configs.recommended,
   ...tseslint.configs.recommended,
   {

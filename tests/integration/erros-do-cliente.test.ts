@@ -9,7 +9,6 @@ import { describe, it, expect, beforeAll, afterEach, vi } from 'vitest'
 import { asUserId } from '../../server/lib/authContext'
 
 let errosRouter: any
-let logger: typeof import('../../server/lib/logger')
 
 function handler(): (req: any, res: any) => void {
   const camada = errosRouter.stack.find((l: any) => l.route?.path === '/' && l.route?.methods?.post)
@@ -25,7 +24,6 @@ const req = (body: unknown, u = 'u-erros') => ({ userId: asUserId(u), body, requ
 
 beforeAll(async () => {
   ;({ errosRouter } = await import('../../server/routes/erros'))
-  logger = await import('../../server/lib/logger')
 })
 afterEach(() => vi.restoreAllMocks())
 

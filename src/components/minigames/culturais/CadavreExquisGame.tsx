@@ -1,10 +1,8 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { X, Sparkles, Wand2, Volume2, BookOpen, Shuffle, Check, ArrowRight, Theater, Plus, Palette, RotateCcw, Lightbulb } from 'lucide-react';
+import React, { useRef, useState } from 'react';
+import { X, Sparkles, Volume2, BookOpen, ArrowRight, Theater, Plus, Palette, Lightbulb } from 'lucide-react';
 import type { MinigameItem, ItemOutcome, RoundReport } from '@core';
 import type { AgeProfileType } from '../../../lib/profile';
-import { play } from '../../../lib/soundFx';
-import { comemorar, tremor, flashDeTela, pulsoDeZoom } from '../../../lib/juice';
-import { emitBurst } from '../../../lib/effects';
+import { comemorar } from '../../../lib/juice';
 import { speak } from '../../../lib/tts';
 import { playJuicedHit, playJuicedVictory, triggerConfetti, calculateMultiplier } from '../../../lib/gameFeel';
 
@@ -110,7 +108,7 @@ const TEMAS_SURREALISTAS: SurrealTheme[] = [
 
 const ETAPAS: ('subject' | 'verb' | 'object' | 'adverb')[] = ['subject', 'verb', 'object', 'adverb'];
 
-export default function CadavreExquisGame({ items: _itemsProp, ageProfile, onFinish, onExit }: CadavreExquisGameProps) {
+export default function CadavreExquisGame({ items: _itemsProp, ageProfile: _ageProfile, onFinish, onExit }: CadavreExquisGameProps) {
   const [temaIdx, setTemaIdx] = useState(0);
   const temaAtual = TEMAS_SURREALISTAS[temaIdx];
 

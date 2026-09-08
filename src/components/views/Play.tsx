@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState, useRef, useDeferredValue } from 'react';
 import { createPortal } from 'react-dom';
-import { Timer, Mic, ChevronRight, ChevronLeft, Pin, ListChecks, Map as MapIcon, Sprout, Flame, GraduationCap, Lock, HelpCircle, Package, Trophy, SlidersHorizontal as SlidersIcon, Trophy as TrophyIcon, Layers, Globe, BookOpen, CalendarClock, Sparkles, Languages, MessageSquareText, Gamepad2, Dices, Search, X as XIcon, Compass, Zap, Play as PlayIcon, Headphones, Puzzle, BarChart2 } from 'lucide-react';
-import { playJuicedHit, triggerHaptic, triggerConfetti } from '../../lib/gameFeel';
+import { Mic, ChevronRight, ChevronLeft, Pin, ListChecks, Map as MapIcon, Sprout, Flame, GraduationCap, Lock, HelpCircle, Package, Trophy, SlidersHorizontal as SlidersIcon, Trophy as TrophyIcon, Layers, Globe, BookOpen, CalendarClock, Sparkles, Languages, MessageSquareText, Gamepad2, Dices, Search, X as XIcon, Zap, Play as Headphones, Puzzle, BarChart2 } from 'lucide-react';
+import { playJuicedHit, triggerHaptic } from '../../lib/gameFeel';
 import { apiFetch, fetchDeck, reviewCard, salvarRodada, fetchSessions, fetchSessionTranscript, fetchSettings, bulkAddCards, fetchHistoricoDeItens, fetchExerciseResults, fetchRecordes, gastarSeedsEx, type AppMetrics, type HistoricoDeItem } from '../../data/api';
 import { toSentences, type Sentence, type PracticeSeed } from '../../lib/sentences';
 import type { VocabCard, Recording } from '../../types';
@@ -382,12 +382,10 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
   /* Números do baralho (contagens, mapa, recorte, revisão) COLAPSADOS por padrão: quem chega quer
      jogar, não auditar o acervo, pedido do dono (2026-08-26). A escolha persiste no navegador. */
   const [verRecordes, setVerRecordes] = useState(false);
-  /* Recorde por jogo, para o selo das cartas. Relê ao abrir o painel de recordes e na montagem
-     (o selo da carta pode ficar uma rodada atrás; o painel é sempre atual). */
-  const [recordesMapa, setRecordesMapa] = useState<Map<string, number>>(new Map());
-  useEffect(() => {
-    void fetchRecordes().then((rs) => setRecordesMapa(new Map(rs.map((r) => [r.exerciseKind, r.melhorPontos]))));
-  }, [verRecordes]);
+  /* O MAPA DE RECORDES POR JOGO saiu em 08/09. Ele existia "para o selo das cartas", e o selo
+     nunca foi desenhado: o estado era escrito e nunca lido. O custo não era só a memória — o
+     efeito ia à rede a cada toque no painel de recordes para jogar a resposta fora. Quem mostra
+     recorde hoje é a tela de Recordes, que busca os seus. */
   const [detalhes, setDetalhes] = useState<boolean>(() => { try { return localStorage.getItem('babel.play.detalhes') === '1'; } catch { return false; } });
   const alternarDetalhes = () => setDetalhes((v) => { try { localStorage.setItem('babel.play.detalhes', v ? '0' : '1'); } catch { /* sem storage */ } return !v; });
   const [curando, setCurando] = useState(false);
@@ -2102,7 +2100,6 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
      estrito, sem aviso ("1041 pedindo revisão" sobre um recorte de 847). `vencidosAgora` já
      existia e é a verdade CERTA: os vencidos DENTRO do que a rodada pode usar — o mesmo conjunto
      de todos os outros números da tela, e o mesmo que o botão do banner de fato joga. */
-  const vencidos = vencidosAgora.size;
   const tamanhoDoBaralho = deck?.length ?? 0;
   const menorMinimo = Math.min(...JOGOS.map(j => MINIGAMES[j.id].minItems));
 
@@ -2154,6 +2151,11 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
     const escolhido = liberados[Math.floor(Math.random() * liberados.length)];
     toast.ok(`${t('Partida rápida:')} ${tituloDoJogo(escolhido, ageProfile)}!`);
     pedirParaJogar(escolhido);
+    /* `pedirParaJogar` fica de fora: é uma função comum, recriada a cada render, e incluí-la faria
+       este `useCallback` devolver uma referência nova sempre — ou seja, desligaria a memorização
+       que é a razão de ele existir. Ela é chamada no momento do clique e lê o estado daquele
+       momento; não há captura antiga a corrigir. */
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [listaDeJogos, ageProfile]);
 
   const buscaNormalizada = buscaJogos.trim().toLowerCase();

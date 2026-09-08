@@ -2,8 +2,7 @@ import React from 'react';
 import {
   Sun,
   Moon,
-  Search,
-  Sparkles } from 'lucide-react';
+  Search } from 'lucide-react';
 import type { ThemeType, FonteType } from '../../lib/appearance';
 import type { AgeProfileType, MenuPositionType } from './navItems';
 import MenuDaConta from './MenuDaConta';

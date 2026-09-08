@@ -397,10 +397,6 @@ export function pedidoHttpDaComposicao(p: PedidoDeComposicao): PedidoHttpDaCompo
   return { caminho: '/api/vocab/para-jogo', corpo: JSON.stringify(corpo) }
 }
 
-function caminhoDaComposicao(p: PedidoDeComposicao): string {
-  return pedidoHttpDaComposicao(p).caminho
-}
-
 /** O transporte, injetado. Devolve o corpo já decodificado, ou lança. `init` só vem no POST. */
 export type BuscarComposicao = (caminho: string, init?: { method: 'POST'; body: string }) => Promise<unknown>
 

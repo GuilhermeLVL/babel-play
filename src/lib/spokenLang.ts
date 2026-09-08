@@ -30,7 +30,6 @@
  * divergência nunca é silenciosa: `mismatch` existe para a UI dizer, na cara, qual idioma está sendo
  * usado e por quê — o usuário precisa poder auditar a decisão que gerou a nota dele.
  */
-import { useEffect, useState } from 'react';
 import { detectLanguage, type LangDetection } from './langDetect';
 import { baseLang, toBcp47 } from './languages';
 
@@ -92,25 +91,3 @@ export async function resolveSpokenLang(text: string, declared: string): Promise
   return settle(declared, detected, true);
 }
 
-/**
- * Versão React. Devolve imediatamente o idioma DECLARADO (`ready: false`) para a tela não piscar, e
- * reconcilia com o texto assim que a detecção volta.
- *
- * Quem for iniciar reconhecimento de fala deve esperar `ready` — pontuar a pronúncia com o idioma
- * errado produz um número sem significado, e é exatamente o bug que este módulo existe para matar.
- */
-export function useSpokenLang(text: string, declared: string): SpokenLang {
-  const [state, setState] = useState<SpokenLang>(() => settle(declared, null, false));
-
-  useEffect(() => {
-    let alive = true;
-    // Volta ao provisório ao trocar de frase: nunca reaproveitar a detecção da frase anterior.
-    setState(settle(declared, null, false));
-    void detectLanguage(text || '').then(detected => {
-      if (alive) setState(settle(declared, detected, true));
-    });
-    return () => { alive = false; };
-  }, [text, declared]);
-
-  return state;
-}

@@ -5,31 +5,6 @@
  * contratos viram rotas HTTP). Ver `docs/estrategia-reuso-web.md`.
  */
 
-/** Resultado da análise IA de uma sessão (JSON estrito pedido ao LLM). */
-export interface SessionAnalysis {
-  /** Nível estimado do usuário no idioma alvo (ex.: "A2–B1"). */
-  levelEstimate: string
-  /** Resumo da conversa em 2–3 frases (pt-BR). */
-  summary: string
-  /** Palavras/expressões recorrentes do OUTRO idioma, com tradução. */
-  recurringWords: Array<{ word: string; count: number; translation: string }>
-  /** Erros/vícios do usuário com correção e explicação. */
-  mistakes: Array<{ original: string; better: string; why: string }>
-  /** Dicas práticas de comunicação p/ as próximas partidas. */
-  tips: string[]
-  /** Frases-chave úteis da conversa (original → tradução). */
-  keyPhrases: Array<{ source: string; target: string }>
-  /** Temas abordados na conversa, com frases representativas (debrief por temas). */
-  topics: Array<{ topic: string; phrases: string[] }>
-  /** Gírias/expressões/ditados detectados (learning-hub). */
-  slang: Array<{ text: string; meaning: string; literal?: string; usage: string }>
-  /** Notas 0–10 por habilidade (learning-agent: análise profunda). */
-  skillScores: { vocabulary: number; grammar: number; fluency: number; comprehension: number }
-  /** Plano de prática concreto (3–5 exercícios p/ os próximos dias). */
-  practicePlan: string[]
-  /** Comparação com as análises anteriores (evolução/regressão). */
-  progressNote: string
-}
 
 /* `CachedAnalysis` FOI REMOVIDO daqui junto com a tabela `analyses` (migração 0026).
  *
@@ -158,16 +133,6 @@ export interface BaseDeCalculo {
   total: number
 }
 
-/** Tooltip de palavra. */
-export interface WordInfo {
-  word: string
-  srcLang: string
-  tgtLang: string
-  /** Tradução isolada (cacheada). */
-  translation: string
-  /** Explicação opcional do LLM (significado/exemplo) — null até pedir. */
-  explanation: string | null
-}
 
 /**
  * Carta de flashcard. Agendamento plugável (srs-fsrs): `box`(1..5)+`dueAt` são o
@@ -228,30 +193,8 @@ export interface CefrBadge {
   range?: [CefrLevel, CefrLevel]
 }
 
-/** Anotação do usuário numa palavra. */
-export interface WordNote {
-  note: string
-  at: number
-}
 
-/** Metadados de sessão dados pelo usuário. */
-export interface SessionMeta {
-  name?: string
-  pinned?: boolean
-  /** Imagem de capa do card. */
-  coverImage?: string
-}
 
-/** Acerto por tipo de exercício + geral (practice-stats). */
-export interface ExerciseTypeStat {
-  kind: string
-  accuracy: number
-  sample: number
-}
-export interface ExerciseStats {
-  byType: ExerciseTypeStat[]
-  overall: { accuracy: number; sample: number }
-}
 
 /** Resultado de uma rodada de exercício (practice-hub). */
 export interface ExerciseResult {
@@ -283,79 +226,14 @@ export interface LearningMetric {
   asOf: number
 }
 
-/** Ponto de série temporal (ex.: palavras numa semana). `n=0` = buraco honesto. */
-export interface TrendPoint {
-  /** epoch ms do início da semana (ISO, segunda). */
-  weekStart: number
-  value: number
-  n: number
-}
 
-/** Regressão linear com confiabilidade explícita (`reliable=false` se `n<4`). */
-export interface Slope {
-  value: number
-  n: number
-  reliable: boolean
-}
 
-/** Tópico fraco — SEMPRE probabilístico (sugestão, não fato). */
-export interface WeakTopic {
-  topic: string
-  source: 'probabilistic'
-  confidence: number
-  sampleSize: number
-}
 
-/** Rollup determinístico de exercícios. */
-export interface ExerciseRollup {
-  accuracy: LearningMetric
-  precision: LearningMetric
-  recall: LearningMetric
-  f1: LearningMetric
-  pif: LearningMetric
-  constructValidated: boolean
-}
 
-/** Granularidade/janela do gráfico de evolução. */
-export type BucketUnit = 'day' | 'week' | 'month'
-export type TimeWindow = '7d' | '30d' | '90d' | 'all'
-export interface ProfileQuery {
-  unit?: BucketUnit
-  window?: TimeWindow
-}
 
-/** Read-model do perfil de performance. SEM nível psicológico, SEM emoção como traço. */
-export interface PerformanceProfile {
-  wordsPerWeek: TrendPoint[]
-  wordsSlope: Slope
-  exercise: ExerciseRollup
-  weakTopics: WeakTopic[]
-  asOf: number
-  /** Série de evolução na granularidade/janela pedidas. */
-  trend?: TrendPoint[]
-  /** Unidade do `trend` (eco do pedido p/ a UI rotular). */
-  trendUnit?: BucketUnit
-}
 
-/** "Como um nativo diria": variantes casual/formal. */
-export interface ReformulateResult {
-  casual: string
-  formal: string
-}
 
-/** Turno persistido do chat do professor. */
-export interface ChatTurn {
-  role: 'user' | 'assistant'
-  content: string
-  at: number
-}
 
-/** Resultado do deckBulkAdd (card-quality): itens insanos são PULADOS. */
-export interface DeckBulkAddResult {
-  cards: Flashcard[]
-  /** Quantos itens foram pulados por tradução não confiável. */
-  skipped: number
-}
 
 /** Intervalos Leitner (dias) por box 1..5. */
 export const LEITNER_DAYS = [1, 2, 4, 8, 16]

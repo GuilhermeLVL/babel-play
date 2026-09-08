@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { fecharSobreposicoes, clicarRobusto, irParaPraticar, apareceEmAte, baralhosNoServidor, abrirSeletor } from './_helpers';
+import { clicarRobusto, irParaPraticar, apareceEmAte, baralhosNoServidor, abrirSeletor } from './_helpers';
 
 /**
  * Baralhos do Anki: cobre o caminho novo (ingestão de baralhos) além da casca já coberta por

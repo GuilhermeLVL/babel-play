@@ -23,6 +23,18 @@ jobs:
       - run: npm run typecheck
       - run: npm run typecheck:core
       - run: npm run lint
+      # CODIGO MORTO (auditoria de 2026-09-07, achados A50-A56): 15 arquivos sem importador,
+      # dependencias sem uso e dois ciclos de importacao entraram porque nada os cobrava. Os dois
+      # passos abaixo cobram, no dia em que o proximo entrar.
+      #
+      # A cobranca e sobre ARQUIVO, DEPENDENCIA e CICLO — nao sobre export sem uso. Um export sem
+      # chamador e ruido de barril (`index.ts` reexporta o que cada tela importa da origem) e
+      # produziria falha por algo que nao e defeito; arquivo orfao, dependencia que ninguem instala
+      # por um motivo e ciclo de importacao nao tem leitura ambigua.
+      - name: Sem arquivo, dependencia ou import nao declarado sobrando
+        run: npm run morto:arquivos
+      - name: Sem ciclo de importacao
+        run: npm run morto:ciclos
       - run: npm test
       - run: npm run build
       # O catalogo pseudo tem que estar em dia, senao o teste de layout roda sobre um mapa velho

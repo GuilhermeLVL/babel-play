@@ -3,7 +3,6 @@ import {
   LayoutDashboard,
   Mic,
   Library,
-  BarChart2,
   BookOpen,
   Settings as SettingsIcon,
   Heart,

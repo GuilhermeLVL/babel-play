@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { X, Play, Mic, Square, SkipForward, Turtle, Sparkles, Volume2 } from 'lucide-react';
+import { X, Play, Mic, Square, SkipForward, Turtle } from 'lucide-react';
 import type { ItemOutcome, RoundReport, ResultadoDitado } from '@core';
 import { scorePronunciation, scoreRound, conferirDitado } from '@core';
 import type { AgeProfileType } from '../../lib/profile';
@@ -7,7 +7,7 @@ import { comemorar } from '../../lib/juice';
 import { speechErrorMessage } from '../../lib/mediaErrors';
 import { toast } from '../Toast';
 import { criarFalante } from '../../lib/falante';
-import { playJuicedHit, playJuicedError, playJuicedVictory, triggerHaptic, triggerConfetti } from '../../lib/gameFeel';
+import { playJuicedHit, playJuicedError, triggerHaptic, triggerConfetti } from '../../lib/gameFeel';
 
 /**
  * KARAOKÊ DA FALA — a frase real toca com as palavras acendendo em sincronia; você fala junto e

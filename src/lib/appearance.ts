@@ -9,8 +9,6 @@
    preço; só quem fez a conquista "Constante" (30 dias seguidos) consegue equipar. */
 export type ThemeType = 'babel' | 'linear' | 'vercel' | 'mochi' | 'notion' | 'premium' | 'aurora' | 'custom';
 
-/** Temas que um PAINEL isolado pode assumir (sem `custom`, que é global). */
-export type PanelThemeType = Exclude<ThemeType, 'custom'>;
 
 export interface CustomColors {
   canvas: string;
@@ -96,18 +94,7 @@ export const THEME_OPTIONS: ThemeOption[] = [
   }
 ];
 
-export interface PresetPalette extends CustomColors {
-  name: string;
-}
 
-export const PRESET_PALETTES: PresetPalette[] = [
-  { name: 'Babel Atelier', canvas: '#E6E2D6', surface: '#F5F2EA', ink: '#26241F', accent: '#F04E23' },
-  { name: 'Linear Indigo', canvas: '#08080a', surface: '#121216', ink: '#f7f8f8', accent: '#5e6ad2' },
-  { name: 'Deep Emerald', canvas: '#0A120D', surface: '#112217', ink: '#ECFDF5', accent: '#10B981' },
-  { name: 'Sunset Gold', canvas: '#FAF6EE', surface: '#FFFDF9', ink: '#332A15', accent: '#D97706' },
-  { name: 'Nordic Frost', canvas: '#EBF1F5', surface: '#F4F8FA', ink: '#1E293B', accent: '#0EA5E9' },
-  { name: 'Amethyst Night', canvas: '#0C0A14', surface: '#151122', ink: '#FAF5FF', accent: '#A855F7' }
-];
 
 // Friendly height presets for the Layout tab; power users can still set exact px.
 export const SIZE_PRESETS: { label: string; value: number }[] = [

@@ -56,9 +56,6 @@ export function setSoundMuted(muted: boolean) {
   soundMuted = muted;
 }
 
-export function isSoundMuted(): boolean {
-  return soundMuted;
-}
 
 /** Chamado de onde o tema é aplicado (lib/theme.ts). Sem isto o kit fica no padrão. */
 /** Voz do modo ARCADE: onda quadrada curta e aguda, o timbre 8-bits, independente do tema. */
@@ -294,7 +291,7 @@ export function play(event: SoundEvent, opts: { transpose?: number } = {}): void
   }
 }
 
-/* ── Compatibilidade com chamadores antigos. Preferir `play()` no código novo. ── */
-export const playClickSound = () => play('click');
-export const playTabSound = () => play('nav');
-export const playSuccessSound = () => play('success');
+/* Os três atalhos de compatibilidade (`playClickSound`, `playTabSound`, `playSuccessSound`)
+   saíram em 08/09: "preferir `play()` no código novo" já era verdade em todo o código, novo e
+   velho — nenhum deles tinha chamador. Um alias sem chamador não é compatibilidade, é uma segunda
+   forma de escrever a mesma coisa esperando alguém usá-la. */

@@ -68,8 +68,6 @@ export function idiomasAbaixoDoPiso(): Array<{ lang: string; cobertura: number }
     .map(([lang, m]) => ({ lang, cobertura: m.cobertura }))
 }
 
-/** O piso de cobertura para um idioma ser oferecido. */
-export const PISO_DE_COBERTURA = COBERTURA.piso
 
 const catalogos = new Map<string, Catalogo>()
 let atual = 'pt'

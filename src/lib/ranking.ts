@@ -45,9 +45,6 @@ export function apelidoValido(apelido: string): boolean {
   return a.length >= 3 && a.length <= 20;
 }
 
-export function melhorEnviado(jogo: string): number {
-  try { return (JSON.parse(localStorage.getItem(CHAVE_ENVIADO) || '{}') as Record<string, number>)[jogo] ?? 0; } catch { return 0; }
-}
 
 function marcarEnviado(jogo: string, pontos: number): void {
   try {

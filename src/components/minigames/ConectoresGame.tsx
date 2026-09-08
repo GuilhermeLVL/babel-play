@@ -3,7 +3,7 @@ import { X, Check, Link2, Flame, Sparkles } from 'lucide-react';
 import type { ItemOutcome, RoundReport, RodadaConectores } from '@core';
 import { notaConectores, scoreRound } from '@core';
 import type { AgeProfileType } from '../../lib/profile';
-import { comemorar, multiplicador } from '../../lib/juice';
+import { multiplicador } from '../../lib/juice';
 import { playJuicedHit, playJuicedError, playJuicedVictory, triggerHaptic } from '../../lib/gameFeel';
 import { emitBurst } from '../../lib/effects';
 
@@ -98,7 +98,6 @@ export default function ConectoresGame({ rodadas, ageProfile, onFinish, onExit }
 
   if (!rodada) return null;
   const mult = multiplicador(sequencia);
-  const progressoPct = rodadas.length > 0 ? Math.round((indice / rodadas.length) * 100) : 0;
 
   return (
     <div className="fixed inset-0 z-50 flex flex-col bg-canvas text-ink select-none overflow-hidden animate-in fade-in duration-200">

@@ -7,7 +7,7 @@ import {
   layoutDoTermo, GAP_TABULEIRO, type LayoutDoTermo,
 } from '@core';
 import type { AgeProfileType } from '../../lib/profile';
-import { comemorar, pontosDoElemento, multiplicador } from '../../lib/juice';
+import { pontosDoElemento, multiplicador } from '../../lib/juice';
 import { speak } from '../../lib/tts';
 import { toBcp47 } from '../../lib/languages';
 import { playJuicedHit, playJuicedError, playJuicedVictory, triggerHaptic } from '../../lib/gameFeel';

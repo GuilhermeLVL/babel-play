@@ -15,8 +15,6 @@
 
 /** O default do LLM de nuvem. Medido no gold set (docs/auditoria/eval-producao-v1.md). */
 export const MODELO_LLM_PADRAO = 'openai/gpt-oss-120b'
-/** O default do STT de nuvem. */
-export const MODELO_STT_PADRAO = 'whisper-large-v3-turbo'
 /** O default do LLM local. */
 export const MODELO_OLLAMA_PADRAO = 'llama3.2'
 /** O default do Gemini. */

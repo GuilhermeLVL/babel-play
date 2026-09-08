@@ -19,7 +19,7 @@
  */
 import type { CefrLevel } from '../learning/contract';
 import { baseLangDe } from '../learning/quality';
-import type { FonteDeItens } from './source';
+import type { FonteDeItens } from './types';
 
 /** A escolha de prática inteira, persistível e serializável (ver `lib/filtroDaPratica.ts`). */
 export interface FiltroDaPratica {

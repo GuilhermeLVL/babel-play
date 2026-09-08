@@ -195,7 +195,6 @@ export default function WordSearchGame({ items, ageProfile, onFinish, onExit }: 
   const destacada = (letra: string) => letrasDestacadas.size > 0 && letrasDestacadas.has(letra);
 
   const mult = multiplicador(sequencia);
-  const progressoPct = jogaveis.length > 0 ? Math.round((resolvidos / jogaveis.length) * 100) : 0;
 
   return (
     <div className="fixed inset-0 z-50 flex flex-col bg-canvas text-ink select-none overflow-hidden animate-in fade-in duration-200">

@@ -118,10 +118,6 @@ export function ehGramatical(palavra: string, lang: string): boolean {
   return lista.has((palavra ?? '').trim().toLowerCase());
 }
 
-/** Idiomas para os quais existe lista gramatical — a tela usa para avisar quando não filtra. */
-export function idiomasComRegua(): string[] {
-  return Object.keys(GRAMATICAIS);
-}
 
 /* ─────────────────────────── A PISTA ─────────────────────────── */
 

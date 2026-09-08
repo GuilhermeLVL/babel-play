@@ -12,7 +12,6 @@ import { asUserId } from '../../server/lib/authContext'
 
 let h: EphemeralDb
 let client: any
-let db: any
 let schema: any
 let sessionsRepo: any
 let vocabRepo: any
@@ -37,7 +36,6 @@ beforeAll(async () => {
   h = await setupEphemeralDb()
   const mod = await h.load('../../server/db/db') as any
   await mod.dbReady
-  db = mod.db
   client = mod.client
   schema = await h.load('../../server/db/schema')
   ;({ sessionsRepo } = await h.load('../../server/db/repositories/sessions'))

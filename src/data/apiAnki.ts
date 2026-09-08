@@ -76,15 +76,6 @@ export interface ResultadoAtivar {
   restantes: number
 }
 
-export interface ImportAnkiStatus {
-  estado: string
-  notasLidas: number
-  notasNovas: number
-  notasAtualizadas: number
-  notasDescartadas: number
-  porMotivo: Record<string, number>
-  erro: string | null
-}
 
 // ───────────────────────────── leitura ─────────────────────────────
 
@@ -115,12 +106,6 @@ export async function listarNotasDoBaralho(deckId: string, filtro: FiltroNotas =
   return (await res.json()) as PaginaDeNotas
 }
 
-/** Progresso de um import em andamento (ou concluído). */
-export async function statusDoImport(importId: string): Promise<ImportAnkiStatus> {
-  const res = await apiFetch(`/api/anki/imports/${importId}`)
-  if (!res.ok) throw new Error(`não consegui consultar o import (HTTP ${res.status})`)
-  return (await res.json()) as ImportAnkiStatus
-}
 
 // ───────────────────────────── ações ─────────────────────────────
 

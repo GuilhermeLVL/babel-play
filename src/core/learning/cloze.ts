@@ -37,7 +37,3 @@ export function makeCloze(sentence: string, word: string): Cloze | null {
   return { prompt, answer }
 }
 
-/** Há contexto suficiente p/ uma carta cloze? (heurística do tipo de carta) */
-export function hasClozeContext(sentence: string, word: string): boolean {
-  return makeCloze(sentence, word) !== null
-}

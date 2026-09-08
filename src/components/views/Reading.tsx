@@ -11,8 +11,7 @@ import { usePopoverDePalavra } from '../../lib/popoverDePalavra';
 import { detectLanguage, hasNativeDetector, type LangDetection } from '../../lib/langDetect';
 import { baseLang, langLabel, toBcp47 } from '../../lib/languages';
 import LangPicker from '../LangPicker';
-import { DEFAULT_LANG_CONFIG, useLangConfig } from '../../lib/langConfig';
-import type { LangConfig } from '../../lib/langConfig';
+import { useLangConfig } from '../../lib/langConfig';
 import { buildVocabWord, mtNoteFor, resolveWord, tokenizarTexto } from '../../lib/vocabWord';
 import { ficharCartao } from '../../lib/adicionarAoDeck';
 import PopoverFlutuante from '../PopoverFlutuante';
@@ -331,7 +330,9 @@ export default function Reading({ recording, onChangeView }: ReadingProps = {}) 
   // RENDERIZA esta tela dentro de si e declarava as mesmas quatro peças.
   const popover = usePopoverDePalavra();
   const hoveredWord = popover.palavra;
-  const [fontSize, setFontSize] = useState<number>(18);
+  /* Constante, e não estado: o controle de tamanho saiu da tela e `setFontSize` nunca era
+     chamado — um `useState` cujo setter ninguém chama é um número com passos a mais. */
+  const fontSize = 18;
   /* Espelho síncrono da pausa: o `onend` da utterance dispara no PAUSE em vários Chromes e
      encadeava a próxima frase — era o "cliquei em pausar e ele recomeçou". */
   const narrationPausedRef = useRef(false);
@@ -1001,11 +1002,15 @@ export default function Reading({ recording, onChangeView }: ReadingProps = {}) 
 
     // (`showTutor` foi removido junto com o botão legado "Estudos & Notas" — a sidebar de notas é
   //  controlada só pelo layoutStore/LayoutStudio agora.)
-  const [chatInput, setChatInput] = useState('');
-  const [messages, setMessages] = useState<{role: 'user' | 'tutor', text: string}[]>([
-    { role: 'tutor', text: 'Olá! Faça uma pergunta sobre o texto, gramática, vocabulário ou uma frase específica.' }
-  ]);
-  const [tutorThinking, setTutorThinking] = useState(false);
+  /* O TUTOR DESTA TELA FOI REMOVIDO em 08/09, e ele nunca chegou a existir para quem usa.
+   *
+   * Havia aqui o estado de um chat (`chatInput`, `messages`, `tutorThinking`) e um
+   * `handleSendMessage` completo — histórico, prompt de sistema, chamada ao gateway de LLM,
+   * tratamento de erro. Nada renderizava esse chat e nada chamava o handler: nenhum botão, nenhum
+   * formulário. Eram ~50 linhas, incluindo uma chamada de modelo, esperando uma tela que não veio.
+   *
+   * O tutor que existe é o iChat global (`components/IChat.tsx`), montado no App e disponível em
+   * qualquer tela, esta inclusive. */
 
   const handleMouseEnter = (e: React.MouseEvent<HTMLSpanElement>, cleanWord: string) => {
     // O cancelamento vem ANTES do filtro, como sempre veio: passar o cursor por uma palavra curta
@@ -1020,36 +1025,6 @@ export default function Reading({ recording, onChangeView }: ReadingProps = {}) 
 
   const handleMouseLeave = popover.agendarFechamento;
   
-  const handleSendMessage = async () => {
-    const question = chatInput.trim();
-    if (!question || tutorThinking) return;
-    const history = [...messages, { role: 'user' as const, text: question }];
-    setMessages(history);
-    setChatInput('');
-    setTutorThinking(true);
-
-    const systemPrompt = 'Você é um tutor de idiomas conciso. Responda em português, de forma direta e objetiva.';
-    // Envia o histórico da conversa como contexto (tutor = assistant).
-    const chatMessages = history.map(m => ({
-      role: (m.role === 'user' ? 'user' : 'assistant') as 'user' | 'assistant',
-      content: m.text,
-    }));
-
-    try {
-      const res = await gateway.llm.chat(systemPrompt, chatMessages);
-      const reply = (res?.text || '').trim();
-      if (reply) {
-        setMessages(prev => [...prev, { role: 'tutor', text: reply }]);
-      } else {
-        setMessages(prev => [...prev, { role: 'tutor', text: 'Tutor de IA indisponível, configure um modelo local (Ollama) ou uma chave em Configurações.' }]);
-      }
-    } catch {
-      setMessages(prev => [...prev, { role: 'tutor', text: 'Tutor de IA indisponível, configure um modelo local (Ollama) ou uma chave em Configurações.' }]);
-    } finally {
-      setTutorThinking(false);
-    }
-  };
-
   /**
    * Pronúncia de UMA palavra (clique/hover).
    *

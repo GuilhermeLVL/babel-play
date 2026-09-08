@@ -2,6 +2,7 @@ import type { VocabCard } from '../../types';
 import type { CefrLevel } from '../learning/contract';
 import { triarCartoes, baseLangDe, pistasDaTriagem, type Triagem } from '../learning/quality';
 import { passaNoFiltro, type FiltroDaPratica, type CartaoFiltravel, type ExtrasDoFiltro } from './filtro';
+import type { FonteId, FonteDeItens } from './types';
 
 /**
  * DE ONDE VÊM OS ITENS DESTA RODADA.
@@ -21,26 +22,16 @@ import { passaNoFiltro, type FiltroDaPratica, type CartaoFiltravel, type ExtrasD
  * ser distrator.
  */
 
-export type FonteId = 'baralho' | 'sessao' | 'trilha' | 'dificeis';
-
-export interface FonteDeItens {
-  id: FonteId;
-  /** Idioma que se pratica (base ISO-639-1: 'en', 'pt'). Vazio = sem filtro (compatibilidade). */
-  lang: string;
-  /** Só para `sessao`: de qual gravação vêm as palavras e as falas. */
-  sessionId?: string;
-  /** Só para `trilha`: até que nível do vocabulário curado. */
-  nivel?: CefrLevel;
-  /**
-   * Só para `dificeis`: os cartões do ranking de palavras difíceis, NA ORDEM do ranking.
-   * É injetado NA HORA DO USO (a tela lê `metrics.palavrasDificeis` do servidor a cada render)
-   * e nunca persistido — guardar os ids congelaria o ranking na foto do dia em que se escolheu
-   * a fonte, e "difícil" é exatamente o que muda conforme se pratica.
-   */
-  cardIds?: string[];
-}
-
-export const FONTE_PADRAO: FonteDeItens = { id: 'baralho', lang: '' };
+/* `FonteId` e `FonteDeItens` mudaram para `./types` em 08/09.
+ *
+ * Não é organização: eles estavam AQUI e `filtro.ts` os importava daqui, enquanto este arquivo
+ * importa `passaNoFiltro` de `filtro.ts` — um ciclo de importação. Ele era só de TIPO, e por isso
+ * some no build; mas o grafo continua cíclico para qualquer ferramenta que o leia, e um ciclo que
+ * "não incomoda hoje" é o que passa a incomodar quando alguém acrescenta um valor à volta.
+ *
+ * `types.ts` é o contrato dos minigames e não importa nenhum dos dois — é o lugar certo para um
+ * tipo que os dois lados precisam. Reexportados abaixo para nenhum chamador mudar de import. */
+export type { FonteId, FonteDeItens } from './types';
 
 /**
  * O id sintético com que a trilha ESCREVE — e só isso.

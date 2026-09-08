@@ -1,6 +1,6 @@
 import confetti from 'canvas-confetti';
-import { play, SoundEvent } from './soundFx';
-import { emitBurst, type BurstKind } from './effects';
+import { play } from './soundFx';
+import { emitBurst } from './effects';
 import { tremor, flashDeTela, pulsoDeZoom, pontosFlutuantes } from './juice';
 
 /**

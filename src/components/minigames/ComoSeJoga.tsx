@@ -46,16 +46,8 @@ export interface ConteudoComoSeJoga {
   ajudas: AjudaDoJogo[];
 }
 
-const CHAVE = (jogo: string) => `babel_comosejoga_${jogo}`;
 
-/** Já viu a explicação deste jogo? */
-export function jaViuComoSeJoga(jogo: MinigameId): boolean {
-  try { return localStorage.getItem(CHAVE(jogo)) === '1'; } catch { return false; }
-}
 
-export function marcarComoVisto(jogo: MinigameId): void {
-  try { localStorage.setItem(CHAVE(jogo), '1'); } catch { /* storage bloqueado: mostra de novo */ }
-}
 
 /* ─────────────────────────── O CONTEÚDO ───────────────────────────
    Escrito jogo a jogo, e não gerado: cada um tem uma razão de existir diferente, e é isso que a

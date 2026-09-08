@@ -1,5 +1,5 @@
 import React from 'react';
-import { X, Activity, MessageSquareWarning, Crosshair, TrendingUp, AlertTriangle, BookOpen, Clock, BarChart2, Zap, Sparkles, Tags } from 'lucide-react';
+import { X, Activity, MessageSquareWarning, Crosshair, TrendingUp, AlertTriangle, BookOpen, Clock, BarChart2, Zap, Tags } from 'lucide-react';
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid, AreaChart, Area } from 'recharts';
 import { extractKeywords } from '@core';
 import { SemDado } from '../Honestidade';

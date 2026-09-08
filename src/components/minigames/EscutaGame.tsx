@@ -1,9 +1,9 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { X, Play, RotateCcw, Turtle, Flame, Sparkles, Volume2 } from 'lucide-react';
+import { X, Play, RotateCcw, Turtle, Flame, Sparkles } from 'lucide-react';
 import type { ItemOutcome, RoundReport, RodadaEscuta } from '@core';
 import { scoreRound } from '@core';
 import type { AgeProfileType } from '../../lib/profile';
-import { comemorar, multiplicador } from '../../lib/juice';
+import { multiplicador } from '../../lib/juice';
 import { criarFalante } from '../../lib/falante';
 import { playJuicedHit, playJuicedError, playJuicedVictory, triggerHaptic } from '../../lib/gameFeel';
 import { emitBurst } from '../../lib/effects';
@@ -20,7 +20,7 @@ interface EscutaGameProps {
   onExit: () => void;
 }
 
-export default function EscutaGame({ rodadas, audioUrl, ageProfile, onFinish, onExit }: EscutaGameProps) {
+export default function EscutaGame({ rodadas, audioUrl, ageProfile: _ageProfile, onFinish, onExit }: EscutaGameProps) {
   const [indice, setIndice] = useState(0);
   const [escolhido, setEscolhido] = useState<string | null>(null);
   const [tocando, setTocando] = useState(false);
@@ -119,7 +119,6 @@ export default function EscutaGame({ rodadas, audioUrl, ageProfile, onFinish, on
 
   if (!rodada) return null;
   const mult = multiplicador(sequencia);
-  const progressoPct = rodadas.length > 0 ? Math.round((indice / rodadas.length) * 100) : 0;
 
   return (
     <div className="fixed inset-0 z-50 flex flex-col bg-canvas text-ink select-none overflow-hidden animate-in fade-in duration-200">

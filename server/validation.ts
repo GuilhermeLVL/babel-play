@@ -353,7 +353,6 @@ export const filtroFacetadoSchema = z.object({
     comFrase: z.boolean().optional(),
   }).strip().optional(),
 }).strip()
-export type FiltroFacetadoInput = z.infer<typeof filtroFacetadoSchema>
 
 /**
  * `filtro` chega como JSON serializado num query param — a rota já é GET (o corpo semântico é

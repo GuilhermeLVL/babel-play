@@ -1,10 +1,9 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { X, Volume2, Sparkles, Award, Timer as TimerIcon, Zap, RotateCcw, Flame, Lightbulb } from 'lucide-react';
+import { X, Volume2, Award, Timer as TimerIcon, Zap, Flame, Lightbulb } from 'lucide-react';
 import type { MinigameItem, ItemOutcome, RoundReport } from '@core';
 import type { AgeProfileType } from '../../../lib/profile';
 import { play } from '../../../lib/soundFx';
-import { comemorar, tremor, flashDeTela, multiplicador } from '../../../lib/juice';
-import { emitBurst } from '../../../lib/effects';
+import { tremor } from '../../../lib/juice';
 import { speak } from '../../../lib/tts';
 import { playJuicedHit, playJuicedError, playJuicedVictory, calculateMultiplier } from '../../../lib/gameFeel';
 

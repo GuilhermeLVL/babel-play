@@ -11,7 +11,8 @@
  * (spendId = 'loja-<id>': comprar duas vezes não cobra duas vezes). Equipar delega aos módulos
  * que já mandam na aparência (persistTheme/setParticulas) — a loja não inventa um segundo dono.
  */
-import { nivelNecessario, liberadoTudo } from './desbloqueios';
+import { liberadoTudo } from './liberacaoDev';
+import type { TipoDesbloqueavel } from '@core';
 import { conquistasDesbloqueadas } from './conquistasPosse';
 import { CONQUISTAS, CATALOGO_DA_LOJA, type ItemDaLoja, type Raridade } from '@core';
 
@@ -212,7 +213,19 @@ export function origemDoItem(item: ItemDaLoja, possuido = false): OrigemDoItem {
   return 'nivel';
 }
 
-/** Consistência com o catálogo de níveis do `desbloqueios` (teste trava). */
+/**
+ * Nível necessário para usar um item (1 = livre desde o início).
+ *
+ * MORA AQUI desde 08/09, e não em `desbloqueios.ts`: o dado que ela lê é o CATÁLOGO, que é deste
+ * arquivo. Enquanto ela morava lá, `desbloqueios` importava o catálogo daqui e este arquivo
+ * importava a função de lá — um ciclo de importação que só funcionava pela ordem em que o bundler
+ * resolvia avaliar os dois.
+ */
+export function nivelNecessario(tipo: TipoDesbloqueavel, id: string): number {
+  return CATALOGO_DA_LOJA.find((i) => i.tipo === tipo && i.alvo === id)?.nivel ?? 1;
+}
+
+/** Consistência entre o nível declarado no item e o que `nivelNecessario` responde (teste trava). */
 export function nivelCoerente(item: ItemDaLoja): boolean {
   if (item.exclusivoDe) return true; // exclusivos não têm nível: só a conquista abre
   if (item.tipo !== 'tema' && item.tipo !== 'fonte' && item.tipo !== 'posicao' && item.tipo !== 'estudio') return true; // vivem só na loja

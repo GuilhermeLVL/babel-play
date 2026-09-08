@@ -94,7 +94,7 @@ export async function baralhosNoServidor(page: Page): Promise<{ quantos: number;
   if (!('ok' in r)) return { quantos: 0, porque: `a chamada a /api/anki/decks falhou: ${(r as { erro: string }).erro}` };
   if (!r.ok()) return { quantos: 0, porque: `/api/anki/decks respondeu HTTP ${r.status()}` };
   const corpo = await r.text().catch(() => '');
-  let decks: unknown = null;
+  let decks: unknown;
   try { decks = JSON.parse(corpo); } catch { return { quantos: 0, porque: `/api/anki/decks devolveu algo que não é JSON: ${corpo.slice(0, 120)}` }; }
   if (!Array.isArray(decks)) return { quantos: 0, porque: `/api/anki/decks devolveu ${typeof decks}, não uma lista` };
   return { quantos: decks.length, porque: decks.length ? '' : 'o servidor não tem nenhum baralho importado' };

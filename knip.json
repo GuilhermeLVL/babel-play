@@ -1,0 +1,30 @@
+{
+  "$schema": "https://unpkg.com/knip@5/schema.json",
+  "entry": [
+    "index.html",
+    "src/gateway/adapters/mtWorker.ts",
+    "src/gateway/adapters/whisperWorker.ts",
+    "src/lib/speakerIdWorker.ts",
+    "tests/**/*.{test,spec}.{ts,tsx}",
+    "tests/e2e/**/*.e2e.ts",
+    "tests/harness/**/*.ts",
+    "tests/setup*.ts",
+    "scripts/**/*.mjs",
+    "*.config.{ts,js}"
+  ],
+  "project": [
+    "src/**/*.{ts,tsx}",
+    "server/**/*.ts",
+    "scripts/**/*.mjs"
+  ],
+  "ignore": [
+    "src/components/minigames/culturais/**"
+  ],
+  "ignoreDependencies": [
+    "depcheck",
+    "jscpd",
+    "lighthouse",
+    "tailwindcss"
+  ],
+  "ignoreExportsUsedInFile": true
+}

@@ -77,7 +77,7 @@ import { setNavGuard } from '../../lib/navGuard';
 // Um componente só serve a tela embutida E o Modo Foco — antes eram dois blocos que divergiam.
 import ChatTranscript from '../ChatTranscript';
 import BingoPanel from '../minigames/BingoPanel';
-import { dataHora, numero } from '../../lib/i18n';
+import { dataHora } from '../../lib/i18n';
 // Identificação automática de voz (diarização leve): embedding WeSpeaker por enunciado
 // (worker WASM, 6,7MB) + agrupamento online → "Pessoa 1/2/3" com cor própria.
 import { SpeakerClusterer } from '../../lib/speakerCluster';
@@ -2463,10 +2463,14 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
       }
     })();
     return () => { cancelled = true; };
-    /* Sem supressão aqui: as dependências deste efeito estão completas, e a diretiva
-       `eslint-disable-next-line` que existia neste ponto era MORTA, o próprio lint a reportava
-       como inútil. Supressão que não suprime nada é pior que nenhuma: quem lê presume que há uma
-       regra sendo dobrada e vai procurar o motivo. */
+    /* `sourceLang` e `targetLang` ficam FORA das dependências, e não por esquecimento.
+    
+       Este efeito RETOMA uma gravação: ele lê o par de idiomas para rotular as falas que vêm sem
+       idioma próprio, e logo abaixo ESCREVE o par com o que veio da sessão. Incluí-los faria o
+       efeito disparar de novo por causa da própria escrita — recarregando a transcrição inteira a
+       cada troca de idioma, inclusive a que ele mesmo acabou de fazer. O gatilho certo é um só:
+       qual gravação se está retomando. */
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [resumingRecordingId]);
 
   // Modal aberto: trava o scroll do body e liga Esc = "continuar gravando".
@@ -2524,11 +2528,14 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
     reader.readAsDataURL(file);
   };
 
-  // REMOVIDO — modo "Visão OCR" (Tesseract.js): estava INALCANÇÁVEL desde que o seletor
-  // voz|visão saiu da tela (nenhum botão abria o painel). ~200 linhas de estado/handlers/JSX
-  // dormentes deletadas em 2026-07-24 (decisão do usuário). A intenção do recurso segue
-  // especificada em openspec/changes/vision-ocr-web para uma reimplementação madura;
-  // o motor (src/gateway/ocr.ts) continua no repositório para esse futuro uso.
+  /* REMOVIDO — modo "Visão OCR" (Tesseract.js). O painel saiu em 2026-07-24, por decisão do
+     usuário, quando ficou INALCANÇÁVEL: nenhum botão o abria. O comentário que ficou aqui dizia
+     que o motor (`src/gateway/ocr.ts`) continuava no repositório "para esse futuro uso", e que a
+     intenção estava especificada em `openspec/changes/vision-ocr-web`.
+     
+     Essa change NUNCA EXISTIU — nem aberta nem arquivada. Em 07/09 o motor saiu junto com a
+     dependência `tesseract.js`: 128 linhas e 1,7 MB guardados por um futuro que ninguém escreveu.
+     Quando o OCR voltar, ele volta com a mudança que o define, e com a biblioteca da época. */
 
   /**
    * REMOVIDO — "INTERACTIVE ACTIVE TRANSLATION & DRILL STATE".

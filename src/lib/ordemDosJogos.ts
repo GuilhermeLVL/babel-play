@@ -14,7 +14,6 @@
  * A ordenação em si é pura e mora aqui separada da leitura/escrita, porque é onde o engano passa
  * despercebido: a grade continua aparecendo, só que na ordem errada.
  */
-import type { MinigameId } from '@core';
 
 const CHAVE = 'babel.jogos_ordem';
 
@@ -113,5 +112,3 @@ export function gravarOrdem(pref: OrdemDosJogos): void {
   try { localStorage.setItem(CHAVE, JSON.stringify(pref)); } catch { /* storage bloqueado: vale só nesta sessão */ }
 }
 
-/** Só para o tipo casar com `MinigameId` sem o chamador precisar converter. */
-export const idDoJogo = (j: { id: MinigameId }): string => j.id;

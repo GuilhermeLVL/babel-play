@@ -67,9 +67,6 @@ export function lerManifesto(modelId: string, dtype: string, device: string): Ma
   }
 }
 
-export function apagarManifesto(modelId: string, dtype: string, device: string): void {
-  try { localStorage.removeItem(chaveDoManifesto(modelId, dtype, device)) } catch { /* ignora */ }
-}
 
 export interface EstadoDoCache {
   completo: boolean

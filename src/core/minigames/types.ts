@@ -1,3 +1,5 @@
+import type { CefrLevel } from '../learning/contract';
+
 /**
  * CONTRATO DOS MINIGAMES — TypeScript puro, sem React e sem DOM (roda e é testado em node).
  *
@@ -157,3 +159,32 @@ export const MINIGAMES: Record<MinigameId, MinigameDef> = {
   ditado: { id: 'ditado', minItems: 3, maxItems: 5, requiresTranslation: false, writesSrs: false, modalidade: 'frase-audio', aceitaPalavraFalada: true },
   conectores: { id: 'conectores', minItems: 3, maxItems: 5, requiresTranslation: false, writesSrs: false, modalidade: 'frase' },
 };
+
+/* ── DE ONDE VÊM OS ITENS DE UMA RODADA ──────────────────────────────────────────────────────
+ *
+ * Estes dois tipos moravam em `minigames/source.ts`, que é quem os USA — mas `filtro.ts` também
+ * precisava deles, e `source.ts` importa `filtro.ts`: um ciclo. Aqui, no contrato, os dois lados
+ * podem depender sem depender um do outro.
+ */
+export type FonteId = 'baralho' | 'sessao' | 'trilha' | 'dificeis';
+
+export interface FonteDeItens {
+  id: FonteId;
+  /** Idioma que se pratica (base ISO-639-1: 'en', 'pt'). Vazio = sem filtro (compatibilidade). */
+  lang: string;
+  /** Só para `sessao`: de qual gravação vêm as palavras e as falas. */
+  sessionId?: string;
+  /** Só para `trilha`: até que nível do vocabulário curado. */
+  nivel?: CefrLevel;
+  /**
+   * Só para `dificeis`: os cartões do ranking de palavras difíceis, NA ORDEM do ranking.
+   * É injetado NA HORA DO USO (a tela lê `metrics.palavrasDificeis` do servidor a cada render)
+   * e nunca persistido — guardar os ids congelaria o ranking na foto do dia em que se escolheu
+   * a fonte, e "difícil" é exatamente o que muda conforme se pratica.
+   */
+  cardIds?: string[];
+}
+
+
+
+/** Rótulo da fonte para a tela — em UM lugar, para as telas não inventarem cada uma o seu. */

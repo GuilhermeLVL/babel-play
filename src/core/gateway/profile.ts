@@ -8,7 +8,6 @@
 
 export type Capability = 'stt' | 'mt' | 'tts' | 'embed' | 'vlm' | 'llm'
 
-export const CAPABILITIES: readonly Capability[] = ['stt', 'mt', 'tts', 'embed', 'vlm', 'llm']
 
 /** Onde o adapter roda e quanto custa (herdado do `isLocalProvider` do desktop). */
 export type AdapterRuntime = 'browser' | 'proxy'

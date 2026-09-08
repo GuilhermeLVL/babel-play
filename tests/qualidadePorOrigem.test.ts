@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { avaliarCartao, pistaUtil, pistasDaTriagem, type MotivoDescarte, type Triagem } from '../src/core/learning/quality';
+import { avaliarCartao, pistasDaTriagem, type Triagem } from '../src/core/learning/quality';
 import type { VocabCard } from '../src/types';
 
 /**

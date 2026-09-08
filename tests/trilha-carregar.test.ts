@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest'
-import { carregarTrilha, trilhaEmCache, indiceDaTrilha } from '../src/data/trilha/carregar'
+import { carregarTrilha, indiceDaTrilha } from '../src/data/trilha/carregar'
 
 describe('trilhaEmCache antes de carregar', () => {
   it('devolve null antes de qualquer carregarTrilha', async () => {

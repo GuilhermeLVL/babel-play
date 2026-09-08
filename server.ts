@@ -32,7 +32,7 @@ import { llmDeNuvem, llmLocal, MODELO_GEMINI_PADRAO } from "./server/ai/provedor
 /* `diretorioGravavel` morava aqui e o `crypto.ts` tinha a sua propria versao divergente — a chave
    de segredos ia parar no disco efemero do conteiner enquanto o diario ia para o volume. Uma
    resposta so, em `server/lib/diretorios.ts` (auditoria de 2026-09-07, achado A34). */
-import { diretorioGravavel, erroDeMultiReplica, replicasDeclaradas } from "./server/lib/diretorios";
+import { diretorioGravavel, erroDeMultiReplica } from "./server/lib/diretorios";
 import { verificarConfiguracaoNoBoot } from "./server/lib/config";
 import { mecanismoDe } from "./server/lib/auth";
 import { authMiddleware, authRequired } from "./server/lib/auth";

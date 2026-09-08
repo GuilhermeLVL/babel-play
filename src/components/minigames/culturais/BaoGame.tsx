@@ -1,10 +1,8 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { X, Sparkles, Gem, ArrowRight, RotateCcw, Check, Flame, Sprout, Trees, Volume2, Lightbulb } from 'lucide-react';
+import React, { useEffect, useRef, useState } from 'react';
+import { X, Sparkles, Gem, Check, Flame, Sprout, Lightbulb } from 'lucide-react';
 import type { MinigameItem, ItemOutcome, RoundReport } from '@core';
 import type { AgeProfileType } from '../../../lib/profile';
 import { play } from '../../../lib/soundFx';
-import { comemorar, tremor, pulsoDeZoom, flashDeTela } from '../../../lib/juice';
-import { emitBurst } from '../../../lib/effects';
 import { speak } from '../../../lib/tts';
 import { playJuicedHit, playJuicedError, playJuicedVictory, calculateMultiplier } from '../../../lib/gameFeel';
 
@@ -119,7 +117,7 @@ const RODADAS_BAO: BaoRound[] = [
   },
 ];
 
-export default function BaoGame({ items: _itemsProp, ageProfile, onFinish, onExit }: BaoGameProps) {
+export default function BaoGame({ items: _itemsProp, ageProfile: _ageProfile, onFinish, onExit }: BaoGameProps) {
   const [indiceRodada, setIndiceRodada] = useState(0);
   const [pontos, setPontos] = useState(0);
   const [combo, setCombo] = useState(0);
@@ -167,7 +165,6 @@ export default function BaoGame({ items: _itemsProp, ageProfile, onFinish, onExi
     if (finalizado || covaSelecionada || covasEliminadas.includes(pit.id)) return;
 
     setCovaSelecionada(pit.id);
-    const correta = pit.id === rodadaAtual.targetAffixId;
     const acertou = pit.id === rodadaAtual.targetAffixId;
     const duracao = Date.now() - inicioRodadaRef.current;
 

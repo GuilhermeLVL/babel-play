@@ -4,12 +4,12 @@ import type { MinigameItem, ItemOutcome, RoundReport } from '@core';
 import { distractorsFor, scoreRound } from '@core';
 import { direcaoDoTexto } from '../../lib/languages';
 import type { AgeProfileType } from '../../lib/profile';
-import { comemorar, pontosDoElemento, pontosFlutuantes, multiplicador, tremor, tremorDeTela, pulsoDeZoom, flashDeTela, vibrar, executarEfeito } from '../../lib/juice';
+import { pontosDoElemento, pontosFlutuantes, multiplicador, tremor, tremorDeTela, pulsoDeZoom, flashDeTela, vibrar, executarEfeito } from '../../lib/juice';
 import { emitBurst } from '../../lib/effects';
 import { play } from '../../lib/soundFx';
 import { eventosCondicionais } from '../../lib/eventosDeJogo';
 import { enviarParaRanking, lerApelido, salvarApelido, apelidoValido } from '../../lib/ranking';
-import { playJuicedHit, playJuicedError, playJuicedVictory, triggerConfetti, triggerHaptic } from '../../lib/gameFeel';
+import { playJuicedHit, playJuicedError, playJuicedVictory, triggerHaptic } from '../../lib/gameFeel';
 import { speak } from '../../lib/tts';
 import {
   bonusDeTempo, pontosDoAcerto, emFever, ehMarco, rotuloDaSequencia, estrelasDaRodada,
@@ -210,7 +210,6 @@ export default function BlitzGame({ items, ageProfile, onFinish, onExit }: Blitz
     if (restante <= CONTAGEM_FINAL_S) play('tick');
     const t = setTimeout(() => setRestante(s => s - 1), 1000);
     return () => clearTimeout(t);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [restante]);
 
   const responder = (alternativa: string, el: HTMLElement | null) => {

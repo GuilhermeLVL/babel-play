@@ -25,12 +25,6 @@ function publicar(p: Perfil | null): void {
   for (const avisar of inscritos) avisar(p);
 }
 
-/** Força uma releitura do servidor. Usado depois de trocar de conta. */
-export function invalidarPerfil(): void {
-  cache = null;
-  carregando = null;
-  publicar(null);
-}
 
 /** Grava e propaga para todos os inscritos. Devolve `false` quando o servidor recusou. */
 export async function salvarPerfil(patch: PatchDePerfil): Promise<boolean> {

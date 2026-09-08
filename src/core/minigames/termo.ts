@@ -205,8 +205,6 @@ export const LETRAS_POR_FAIXA: Record<FaixaDificuldade, { min: number; max: numb
  * matematicamente quase impossível, e um jogo injusto não ensina, só frustra.
  */
 export const TENTATIVAS_POR_MODO: Record<ModoTermo, number> = { termo: 6, dueto: 7, quarteto: 9 };
-/** Compatibilidade: o modo simples. */
-export const MAX_TENTATIVAS = 6;
 
 /** Quantos tabuleiros são resolvidos ao mesmo tempo. */
 export type ModoTermo = 'termo' | 'dueto' | 'quarteto';

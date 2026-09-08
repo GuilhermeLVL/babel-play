@@ -669,6 +669,12 @@ export default function App() {
     };
     window.addEventListener('popstate', aoVoltar);
     return () => window.removeEventListener('popstate', aoVoltar);
+    /* `navigateTo` FICA DE FORA das dependências, de propósito. Ela é recriada a cada render (é
+       uma função comum, não um `useCallback`), então incluí-la faria este efeito remover e
+       registrar de novo o ouvinte de `popstate` a CADA render — e o que ele precisa é existir uma
+       vez, do primeiro render ao último. O que ela lê (`lerUrlAtual`) vem da URL no momento do
+       evento, não de uma captura antiga, então não há estado velho para vazar aqui. */
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   /**

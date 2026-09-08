@@ -43,7 +43,6 @@ export const REGRAS: RegraDeGanho[] = [
 /** Minutos de captura premiados por dia. Acima disso a gravação continua contando para o resto
  *  (palavras, sessão), mas não rende mais Seeds: é o que impede "deixar gravando" virar renda. */
 export function TETO_CAPTURA_MIN_POR_DIA(): number { return 30; }
-export const MINUTOS_POR_SEED_DE_CAPTURA = 5;
 
 /**
  * Minutos PREMIADOS de um conjunto de sessões: por dia, min(teto, minutos do dia).

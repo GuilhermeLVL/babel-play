@@ -148,16 +148,6 @@ export function mtCoverage(src: string, tgt: string): MtCoverage {
   return 'online';
 }
 
-/**
- * O par dispensa internet? `true` para 'local' E para 'same' (mesmo idioma não precisa de motor
- * nenhum). Note que isto NÃO é "o par é local": era essa confusão que fazia `mtIsLocal('pt','pt')`
- * devolver `true` como se houvesse um modelo local envolvido. Para decidir por capacidade, use
- * `mtCoverage`; use este aqui só para o aviso de "exige internet".
- */
-export function mtIsLocal(src: string, tgt: string): boolean {
-  const c = mtCoverage(src, tgt);
-  return c === 'local' || c === 'same';
-}
 
 /**
  * O nome do idioma EM PORTUGUÊS, para caber numa frase — "8 palavras do inglês".

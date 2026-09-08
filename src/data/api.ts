@@ -499,26 +499,6 @@ export interface LeituraAnki {
   temMidia: boolean
 }
 
-/**
- * Lê um baralho do Anki (`.apkg`, `.txt`, `.csv`) SEM gravar nada.
- *
- * A gravação é um segundo passo, por `bulkAddCards`, para o baralho importado passar pela mesma
- * régua de qualidade e pela mesma deduplicação de todo o resto — e para a tela poder mostrar o
- * que entrou e o que foi pulado antes de mexer no vocabulário de alguém.
- */
-export async function lerBaralhoAnki(arquivo: File): Promise<LeituraAnki> {
-  const res = await apiFetch('/api/import/anki', {
-    timeoutMs: IMPORT_TIMEOUT_MS, // .apkg até 200MB
-    method: 'POST',
-    headers: { 'X-Filename': encodeURIComponent(arquivo.name) },
-    body: arquivo,
-  })
-  if (!res.ok) {
-    const e = await res.json().catch(() => ({ error: 'falha ao ler o baralho' }))
-    throw new Error(e.error ?? 'falha ao ler o baralho')
-  }
-  return (await res.json()) as LeituraAnki
-}
 
 /**
  * Gera um `.apkg` no servidor e devolve o arquivo para download.
@@ -1063,9 +1043,6 @@ export async function createCredential(payload: NewCredentialPayload): Promise<C
   }
 }
 
-export async function deleteCredential(id: string): Promise<void> {
-  try { await apiFetch(`/api/ai/credentials/${id}`, { method: 'DELETE' }) } catch { /* ignore */ }
-}
 
 /** Testa um provider por credentialId (ou baseUrl+apiKey cru). Chave nunca no cliente. */
 export async function testProvider(payload: { credentialId?: string; baseUrl?: string; model?: string; apiKey?: string }): Promise<{ ok: boolean; latencyMs?: number; message?: string }> {

@@ -5,7 +5,7 @@ import { scoreRound } from '@core';
 import { direcaoDoTexto } from '../../lib/languages';
 import type { AgeProfileType } from '../../lib/profile';
 import { play } from '../../lib/soundFx';
-import { comemorar, pontosDoElemento, multiplicador } from '../../lib/juice';
+import { pontosDoElemento, multiplicador } from '../../lib/juice';
 import { playJuicedHit, playJuicedError, playJuicedVictory, triggerHaptic } from '../../lib/gameFeel';
 
 import { speak } from '../../lib/tts';
@@ -153,7 +153,6 @@ export default function MemoryGame({ items, ageProfile, onFinish, onExit }: Memo
   };
 
   const mult = multiplicador(sequencia);
-  const progressoPct = total > 0 ? Math.round((fechados.size / total) * 100) : 0;
 
   return (
     <div className="fixed inset-0 z-50 flex flex-col bg-canvas text-ink select-none overflow-hidden animate-in fade-in duration-200">

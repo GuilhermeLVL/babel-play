@@ -49,10 +49,6 @@ const LISTAS: Record<string, Niveis> = {
   ar, de, en, es, fr, he, hi, it, ja, ko, nl, pl, ru, sv, tr, zh,
 }
 
-/** Os idiomas para os quais o servidor tem lista. A ausência é resposta, não falha. */
-export function idiomasComNiveis(): string[] {
-  return Object.keys(LISTAS).sort()
-}
 
 /**
  * Garante que a lista do idioma esteja registrada antes de perguntar o nível de uma palavra.

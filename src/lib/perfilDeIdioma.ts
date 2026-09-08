@@ -112,7 +112,7 @@ export class PerfilAdaptativoDeIdioma {
   }
 
   ler(): LeituraDoPerfil {
-    const { lider, fracao } = this.lider()
+    const { fracao } = this.lider()
     return {
       idioma: this.convergido,
       // A confiança reportada é a do IDIOMA CONVERGIDO, não a do líder do momento: enquanto a

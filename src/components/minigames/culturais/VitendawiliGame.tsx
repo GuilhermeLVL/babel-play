@@ -1,10 +1,8 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { X, Sparkles, Flame, HelpCircle, ArrowRight, Check, Volume2, Lightbulb, Compass } from 'lucide-react';
+import { X, Sparkles, Flame, ArrowRight, Volume2, Lightbulb } from 'lucide-react';
 import type { MinigameItem, ItemOutcome, RoundReport } from '@core';
 import type { AgeProfileType } from '../../../lib/profile';
 import { play } from '../../../lib/soundFx';
-import { comemorar, tremor, pulsoDeZoom } from '../../../lib/juice';
-import { emitBurst } from '../../../lib/effects';
 import { speak } from '../../../lib/tts';
 import { playJuicedHit, playJuicedError, playJuicedVictory, calculateMultiplier, triggerConfetti } from '../../../lib/gameFeel';
 
@@ -117,7 +115,7 @@ const ENIGMAS_CULTURAIS: CulturalRiddle[] = [
   },
 ];
 
-export default function VitendawiliGame({ items: _itemsProp, ageProfile, onFinish, onExit }: VitendawiliGameProps) {
+export default function VitendawiliGame({ items: _itemsProp, ageProfile: _ageProfile, onFinish, onExit }: VitendawiliGameProps) {
   const [indice, setIndice] = useState(0);
   const [pontos, setPontos] = useState(0);
   const [combo, setCombo] = useState(0);
@@ -125,7 +123,6 @@ export default function VitendawiliGame({ items: _itemsProp, ageProfile, onFinis
   const [dicaAberta, setDicaAberta] = useState(false);
   const [opcoesEliminadas, setOpcoesEliminadas] = useState<string[]>([]);
   const [dicasRestantes, setDicasRestantes] = useState(3);
-  const [finalizado, setFinalizado] = useState(false);
 
   const outcomesRef = useRef<ItemOutcome[]>([]);
   const inicioPartidaRef = useRef(Date.now());
@@ -214,7 +211,6 @@ export default function VitendawiliGame({ items: _itemsProp, ageProfile, onFinis
   };
 
   const concluirPartida = (venceu: boolean) => {
-    setFinalizado(true);
     if (venceu) {
       playJuicedVictory();
     } else {

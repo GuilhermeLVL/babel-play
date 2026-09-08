@@ -91,8 +91,6 @@ export async function confirmTotp(factorId: string, code: string): Promise<AuthR
   return error ? { ok: false, message: 'Código inválido. Tente de novo.' } : { ok: true }
 }
 
-/** Responde ao desafio de 2FA no login (mesma mecânica do confirm). */
-export const verifyTotpChallenge = confirmTotp
 
 /** Remove um fator (desabilitar 2FA). */
 export async function unenrollTotp(factorId: string): Promise<AuthResult> {

@@ -13,23 +13,20 @@ export function exigeConta(view: string): boolean {
   return EXIGE_CONTA.has(view as ViewType);
 }
 
-/**
- * AS ABAS DA TELA PERSONALIZAR QUE EXIGEM CONTA (mudança porta-de-entrada, decisão do dono).
+/* AS ABAS QUE EXIGEM CONTA (`ABAS_QUE_EXIGEM_CONTA` + `abaExigeConta`) FORAM REMOVIDAS em 08/09.
  *
- * O recorte é por ABA, e não por view, e a razão é uma só: a tela Personalizar guarda a ECONOMIA
- * (Loja, Passe, Desafios) e a ACESSIBILIDADE (o perfil de exibição, e equipar o que já é seu).
- * Gatear a view inteira trancaria "Leitura ampliada" atrás de um cadastro — e o perfil de exibição
- * é um direito declarado no código, não um cosmético (ux-v2 §4.4).
+ * Elas declaravam que Loja, Passe e Conquistas só valem com conta — e a razão escrita era boa:
+ * saldo, posse e passe só são confiáveis quando o servidor arbitra, e uma economia que vive só no
+ * navegador é uma economia que se edita.
  *
- * Por que a economia precisa de conta: saldo, posse e passe só são confiáveis quando o servidor
- * arbitra (mudança servidor-e-autoridade). Sem conta não há servidor com quem concordar, e uma
- * economia que vive só no navegador é uma economia que se edita.
- */
-export const ABAS_QUE_EXIGEM_CONTA: ReadonlySet<string> = new Set(['loja', 'passe', 'conquistas']);
-
-export function abaExigeConta(aba: string): boolean {
-  return ABAS_QUE_EXIGEM_CONTA.has(aba);
-}
+ * MAS NADA AS CHAMAVA. Zero chamadores desde que foram escritas (auditoria de 07/09), e o gate por
+ * view (`EXIGE_CONTA`, acima) não inclui `loja`: as três abas estão abertas a quem não tem conta,
+ * hoje, na prática. Um par de funções que descreve uma trava inexistente é pior que nenhum — quem
+ * lê o arquivo conclui que a trava existe.
+ *
+ * A regra continua valendo como DECISÃO de produto, e está registrada em
+ * `openspec/changes/archive/2026-09-08-codigo-morto-removido/design.md`. Quando ela for ligada,
+ * volta como código que alguém chama. */
 
 /** Lembra que a pessoa escolheu seguir sem conta — para não perguntar de novo a cada visita. */
 export const CHAVE_ANONIMO_ACEITO = 'babel.anonimo_aceito';

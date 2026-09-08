@@ -34,6 +34,7 @@ A primeira change foi executada com a saida (b): a camada nao rastreada foi comm
 | A35, A53 (schema) | `schema-sem-tabela-orfa` | Quatro tabelas orfas, a coluna `frequency` e `ankiMidia.ts` removidos (migracao 0026); `recalcularDificuldade` ganha gatilho na rodada; invariante que barra a proxima tabela sem uso |
 | A25, A62 (edicao leve) | `edicao-leve-encerrada` | A edicao leve encerrada como build (47 ramos em 12 arquivos, 4 arquivos exclusivos, a infra do Cloudflare); o ranking global migra do D1 para `/api/rank` no Express, com `ip_hash` no lugar do IP |
 | A24, A25 (modo anonimo) | `modo-anonimo-em-paridade` | Cinco rotas espelhadas (`metrics/xp`, `vocab/pagina`, `inicio-da-contagem`, `DELETE vocab/:id`, `sessions/utterances/all`); a curva de XP vai para o core; a tabela de paridade vira teste que cobra nos dois sentidos |
+| A50-A59 (codigo morto) | `codigo-morto-removido` | Inventario refeito (o de 07/09 estava vencido): `ocr.ts`, `cefr.ts`, 54 exports e 2 dependencias fora; os DOIS ciclos de importacao quebrados; 155 avisos de lint para 0; gates de arquivo/dependencia/ciclo no CI |
 
 Os numeros do relatorio abaixo sao os da medicao original (07/09), preservados: o valor de uma auditoria e o retrato do dia em que foi feita.
 

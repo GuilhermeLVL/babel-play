@@ -99,10 +99,6 @@ export function itemDaConquista(conquistaId: string, catalogo: ReadonlyArray<Ite
   return (id ? catalogo.find((i) => i.id === id) : undefined) ?? catalogo.find((i) => i.exclusivoDe === conquistaId)
 }
 
-/** Um item já foi COMPRADO (posse explícita), distinto de "liberado por nível". */
-export function foiComprado(item: ItemDaLoja): boolean {
-  return possuidos().has(item.id)
-}
 
 /** Emoji/ícone textual de um item, para linhas compactas ("🎁 Nome"). */
 export function emojiDoItem(item: ItemDaLoja): string {

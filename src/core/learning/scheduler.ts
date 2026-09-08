@@ -15,10 +15,6 @@ const DAY = 86_400_000
 /** Nota de revisão FSRS: 1=Again(errou) · 2=Hard · 3=Good · 4=Easy. */
 export type Grade = 1 | 2 | 3 | 4
 
-/** Mapeia o `correct` binário da UI atual p/ grade FSRS (errou→Again, acertou→Good). */
-export function gradeFromCorrect(correct: boolean): Grade {
-  return correct ? 3 : 1
-}
 
 /** Estado de agendamento embutido na carta (compatível com Leitner). */
 export interface SchedulingState {
@@ -50,17 +46,6 @@ export interface SchedulerStrategy {
 
 // ───────────────────────────── Leitner ─────────────────────────────
 
-/** Leitner 5-box (comportamento atual, extraído): erra→box1 vence agora; acerta→sobe e agenda. */
-export const LeitnerStrategy: SchedulerStrategy = {
-  id: 'leitner',
-  init: (now) => ({ box: 1, dueAt: now }),
-  review: (state, grade, now) => {
-    const box = grade === 1 ? 1 : Math.min(5, state.box + 1)
-    const dueAt = grade === 1 ? now : now + LEITNER_DAYS[box - 1] * DAY
-    return { ...state, box, dueAt }
-  },
-  predictedRetention: () => undefined // Leitner não modela retrievability
-}
 
 // ───────────────────────────── FSRS-5 ─────────────────────────────
 
@@ -156,36 +141,11 @@ export function makeFsrs5(weights: readonly number[] = FSRS5_DEFAULT_WEIGHTS): S
 /** FSRS-5 com os pesos default. */
 export const Fsrs5Strategy: SchedulerStrategy = makeFsrs5()
 
-/** Seleciona a estratégia pelo id do config. */
-export function getScheduler(id: 'fsrs' | 'leitner'): SchedulerStrategy {
-  return id === 'leitner' ? LeitnerStrategy : Fsrs5Strategy
-}
 
-// ─────────────────────────── Gate de novos itens ───────────────────────────
-
-/** Carta nova = nunca revisada pelo FSRS (stability não definida). */
-export function isNewCard(card: Pick<SchedulingState, 'stability'>): boolean {
-  return card.stability === undefined
-}
-
-/**
- * Seleciona a próxima carta a revisar, respeitando o gate de novos itens por dia.
- * Prioridade: revisões devidas primeiro; novas cartas só se `newSeenToday < newPerDay`.
- */
-export function getNextCard<T extends SchedulingState>(
-  deck: T[],
-  now: number,
-  newSeenToday: number,
-  newPerDay: number
-): T | undefined {
-  const due = deck.filter((c) => c.dueAt <= now)
-  const reviews = due.filter((c) => !isNewCard(c))
-  if (reviews.length > 0) return reviews[0]
-  if (newSeenToday < newPerDay) {
-    return due.find((c) => isNewCard(c))
-  }
-  return undefined
-}
+/* O CABEÇALHO "Gate de novos itens" saiu daqui em 08/09 junto com o que ele cobria
+   (`isNewCard`, `getNextCard`) — funções do desenho Leitner, sem chamador desde que o FSRS
+   passou a agendar. Quem decide o que entra numa rodada hoje é `core/minigames/composicao.ts`,
+   com o pool que o servidor ordena. */
 
 // ─────────────────────────── Migração ───────────────────────────
 

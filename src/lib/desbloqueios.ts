@@ -11,6 +11,7 @@
  */
 
 import { CATALOGO_DA_LOJA, estadoPorAlvo } from './loja';
+import { liberadoTudo } from './liberacaoDev';
 import type { TipoDesbloqueavel } from '@core';
 
 // O tipo mudou para `core/loja.ts` (o catálogo é quem o consome); a REGRA de nível continua aqui.
@@ -25,36 +26,18 @@ export type { TipoDesbloqueavel };
  * deixava o seletor de aparência com o valor antigo (auditoria de 2026-09-07, achado A10).
  */
 
-/** Nível necessário para usar o item (1 = livre desde o início). */
-const CHAVE_LIBERADO = 'babel.liberado';
-
-/**
- * LIBERAÇÃO TOTAL (dono/testes): `window.babel.liberarTudo()` no console, ou `?liberar=1` na URL.
- *
- * SÓ EM DESENVOLVIMENTO, desde 01/09. Ela é avaliada ANTES de tudo em `estadoDoItem`
- * (`lib/loja.ts`), então uma chave de localStorage destravava o catálogo inteiro — e o comentário
- * antigo ("não é segredo de segurança, é cosmético") deixou de valer quando a mesma tela passou a
- * vender item com dinheiro. Continua existindo para demonstração e validação; deixa de existir no
- * build que vai ao ar.
- */
-export function liberadoTudo(): boolean {
-  /* `import.meta as unknown as ...` é o padrão da casa (ver `lib/supabase.ts`): o tsconfig do
-     servidor não carrega os tipos do Vite, e `import.meta.env` existe em runtime. */
-  const env = (import.meta as unknown as { env?: Record<string, unknown> }).env;
-  if (!env?.DEV) return false;
-  try { return localStorage.getItem(CHAVE_LIBERADO) === '1'; } catch { return false; }
-}
-
-export function ativarLiberacaoTotal(ligar = true): void {
-  try {
-    if (ligar) localStorage.setItem(CHAVE_LIBERADO, '1');
-    else localStorage.removeItem(CHAVE_LIBERADO);
-  } catch { /* sem storage */ }
-}
-
-export function nivelNecessario(tipo: TipoDesbloqueavel, id: string): number {
-  return CATALOGO_DA_LOJA.find((i) => i.tipo === tipo && i.alvo === id)?.nivel ?? 1;
-}
+/* A LIBERAÇÃO DE DESENVOLVIMENTO (`liberadoTudo`, `ativarLiberacaoTotal`) mudou para
+   `lib/liberacaoDev.ts`, e `nivelNecessario` mudou para `lib/loja.ts`, em 08/09.
+   
+   Não foi arrumação: as duas mudanças quebram um CICLO de importação. Este arquivo importava o
+   catálogo de `loja.ts` enquanto `loja.ts` importava estas duas funções daqui, e dois módulos que
+   só carregam se o outro já tiver carregado funcionam por ordem de avaliação do bundler — o que é
+   a definição de uma falha que aparece quando alguém mexe em outra coisa.
+   
+   `nivelNecessario` foi para onde o dado dela está (o catálogo); a liberação foi para um módulo
+   que não importa nada. Os dois lados passam a depender dele, e ele não depende de ninguém. */
+export { liberadoTudo, ativarLiberacaoTotal } from './liberacaoDev';
+export { nivelNecessario } from './loja';
 
 /**
  * `escolhaAtual`: o que a pessoa JÁ usa — nunca é rebaixado (regra 2).

@@ -7,12 +7,12 @@ import { Recording, VocabCard, VocabWord } from '../../types';
 import EditablePanel from '../EditablePanel';
 import { copyDoPerfil, coreOnly } from '../../lib/profile';
 import {
-  BookOpen, Clock, Activity, Zap, ArrowUpRight, AlertCircle,
-  Download, LayoutGrid, Brain, Mic, Info, PieChart as PieChartIcon,
+  BookOpen, Clock, Activity, ArrowUpRight, AlertCircle,
+  Download, LayoutGrid, Brain, Mic, PieChart as PieChartIcon,
   Sprout, Eye, MoreHorizontal, BarChart2, MessageSquareWarning, Target, Headphones} from 'lucide-react';
 import {
-  ResponsiveContainer, XAxis, YAxis, Tooltip, CartesianGrid,
-  AreaChart, Area, PieChart, Pie, Cell
+  ResponsiveContainer, Tooltip, 
+  PieChart, Pie, Cell
 } from 'recharts';
 import MetricsExpandedKpi, { KpiType } from './MetricsExpandedKpi';
 import { retrievability, computeTextStats, detectarVozPassiva } from '@core';
@@ -169,11 +169,6 @@ export default function Metrics({ recordings, onChangeView, ageProfile = 'pro', 
      o `useMemo` do `topLevel` logo abaixo recalculava a cada render por causa da identidade. */
   const levelDist = useMemo(() => metrics?.levelDistribution ?? [], [metrics]);
   const levelTotal = levelDist.reduce((sum, l) => sum + l.count, 0);
-  const topLevel = useMemo(() => {
-    if (!levelDist.length) return '-';
-    return [...levelDist].sort((a, b) => b.count - a.count)[0].level;
-  }, [levelDist]);
-
   const pieData = levelDist.map((l) => ({ name: l.level, value: l.count }));
 
   /* C1 — quando o nível não tem base, ele não ocupa posição de herói (ver a faixa abaixo dos KPIs).

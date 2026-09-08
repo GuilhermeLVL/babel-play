@@ -24,6 +24,22 @@ export default defineConfig({
      * foi aplicada ao banco do desenvolvedor por esse caminho).
      */
     setupFiles: ['tests/setup-db-isolada.ts', 'tests/setup-fetch-publico.ts'],
+    /*
+     * COBERTURA (rodada de saneamento, 2026-09-08). `@vitest/coverage-v8` estava instalado desde
+     * sempre e nunca foi configurado: 313 arquivos de teste e nenhum numero de cobertura. Sem o
+     * numero, a rede de seguranca da Fase 1 nao teria baseline para a catraca do CI.
+     *
+     * `include` cobre o que roda em producao (cliente, servidor, bootstrap); `tests/` e `scripts/`
+     * ficam de fora porque cobertura de teste sobre teste e ruido. Os `thresholds` entram na
+     * Fase 1, com o valor medido aqui como piso.
+     */
+    coverage: {
+      provider: 'v8',
+      include: ['src/**', 'server/**', 'server.ts'],
+      exclude: ['src/**/*.d.ts', 'src/data/trilha/niveis/**', 'server/db/migrations/**'],
+      reporter: ['text-summary', 'json', 'json-summary', 'lcov'],
+      reportsDirectory: 'coverage',
+    },
   },
   resolve: {
     alias: {

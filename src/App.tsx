@@ -64,10 +64,10 @@ import { deriveProgress } from './lib/progress';
 import { ativarLiberacaoTotal, liberadoTudo } from './lib/desbloqueios';
 import { recompensasDoNivelCompleto, itemDaConquista } from './lib/galeria/progressao';
 import { equiparItem, type ContextoDeEquipar } from './lib/galeria/equipar';
-import RecompensaDesbloqueada, { recompensasVistas, chaveDaRecompensa, type Recompensa } from './components/RecompensaDesbloqueada';
+import RecompensaDesbloqueada, { recompensasVistas, chaveDaRecompensa, EVENTO_DROP_GANHO, type Recompensa, type DetalheDoDrop } from './components/RecompensaDesbloqueada';
 import { comemorar } from './lib/juice';
 import { isAgeProfile, readAgeProfile, readStoredEnum, readStoredValue } from './lib/profile';
-import { hidratarPosse } from './lib/loja';
+import { hidratarPosse, CATALOGO_DA_LOJA } from './lib/loja';
 import { hidratarCromas } from './lib/galeria/cromas';
 import { hidratarAprimoramentos } from './lib/aprimoramentos';
 import { emitBurst } from './lib/effects';
@@ -462,8 +462,24 @@ export default function App() {
     });
   }, [ctxConquistas]);
 
-  /** v3: fila do modal de resgate (nível/conquista) e o contexto único de equipar. */
+  /** v3: fila do modal de resgate (nível/conquista/bau) e o contexto único de equipar. */
   const [filaDeRecompensas, setFilaDeRecompensas] = useState<Recompensa[]>([]);
+
+  /* O BAU DA RODADA entra na mesma fila do nivel e da conquista: o `Play` anuncia o que o servidor
+     sorteou e aqui o id vira item do catalogo. Sem isto o drop creditava e ninguem via. */
+  useEffect(() => {
+    const ouvir = (e: Event) => {
+      const d = (e as CustomEvent<DetalheDoDrop>).detail;
+      const item = CATALOGO_DA_LOJA.find((i) => i.id === d?.itemId);
+      if (!item) return;
+      const r: Recompensa = { tipo: 'drop', roundId: d.roundId, seeds: d.seeds, item };
+      if (recompensasVistas().has(chaveDaRecompensa(r))) return;
+      setFilaDeRecompensas((f) => [...f, r]);
+      setVersaoDasMetricas((v) => v + 1);
+    };
+    window.addEventListener(EVENTO_DROP_GANHO, ouvir);
+    return () => window.removeEventListener(EVENTO_DROP_GANHO, ouvir);
+  }, []);
   const [lojaAba, setLojaAba] = useState<string | null>(null);
   /**
    * PORTA ÚNICA do Estúdio de Layout (brecha B2, spec galeria-gating-fechado): eram cinco

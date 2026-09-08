@@ -2,6 +2,7 @@ import type { VocabCard, SchedulerType } from '../../types';
 import { byUrgency, isDueNow } from '../learning/due';
 import { makeCloze } from '../learning/cloze';
 import { avaliarCartao, chaveComparavel } from '../learning/quality';
+import { baseLang } from '../texto/idioma';
 import { pistaDeJogo } from '../learning/pistaDeJogo';
 import { digitavelNoTermo } from './termo';
 import { entraNaGrade } from './wordsearch';
@@ -274,8 +275,14 @@ export function shortPrompt(prompt: string, max = 64): string {
  */
 export function distractorsFor(item: MinigameItem, itens: MinigameItem[], quantidade = 3, shuffle = embaralhar): string[] {
   const alvo = item.answer.toLowerCase();
+  /* MESMO IDIOMA, sempre. Sem isto a alternativa em outro alfabeto denuncia a certa por
+     eliminacao — e o pool CHEGA misto: com `fonte.lang` vazio (o estado inicial de `Play`), o
+     filtro de idioma do servidor e pulado (`quality.ts:338`). Preferir menos alternativas a
+     alternativas de outra lingua: a rodada curta e honesta, a rodada com pista nao. */
+  const doAlvo = baseLang(item.lang);
+  const mesmoIdioma = (i: MinigameItem) => !doAlvo || !i.lang || baseLang(i.lang) === doAlvo;
   const candidatos = itens
-    .filter(i => i.answer.toLowerCase() !== alvo)
+    .filter(i => i.answer.toLowerCase() !== alvo && mesmoIdioma(i))
     .map(i => i.answer);
   return shuffle([...new Set(candidatos)]).slice(0, quantidade);
 }

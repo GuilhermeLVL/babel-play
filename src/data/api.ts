@@ -909,11 +909,14 @@ export async function gastarCreditos(payload: { spendId: string; amount: number;
  * `valorDoCredito`, no servidor (e, sem conta, no servidor efêmero, com a mesma função). Enquanto
  * o valor vinha daqui, o cliente era a autoridade sobre a própria moeda.
  *
+ * `item` só vem na família `drop:<roundId>`: é o id do cosmético que o SERVIDOR sorteou. Ele
+ * estava sendo devolvido e descartado aqui — o bau concedia e ninguem via.
+ *
  * `null` em falha — quem chamou NÃO marca a conquista, senão seria "conquistada sem as Seeds".
  */
 export async function creditarSeeds(input: {
   creditoId: string
-}): Promise<{ jaExistia: boolean; seedsCreditadas: number; xpCreditado: number } | null> {
+}): Promise<{ jaExistia: boolean; seedsCreditadas: number; xpCreditado: number; item?: string | null } | null> {
   try {
     const res = await apiFetch('/api/metrics/seeds/creditar', {
       method: 'POST',

@@ -2,13 +2,13 @@ import React, { useCallback, useEffect, useMemo, useState, useRef, useDeferredVa
 import { createPortal } from 'react-dom';
 import { Mic, ChevronRight, ChevronLeft, Pin, ListChecks, Map as MapIcon, Sprout, Flame, GraduationCap, Lock, HelpCircle, Package, Trophy, SlidersHorizontal as SlidersIcon, Trophy as TrophyIcon, Layers, Globe, BookOpen, CalendarClock, Sparkles, Languages, MessageSquareText, Gamepad2, Dices, Search, X as XIcon, Zap, Play as Headphones, Puzzle, BarChart2 } from 'lucide-react';
 import { playJuicedHit, triggerHaptic } from '../../lib/gameFeel';
-import { apiFetch, fetchDeck, reviewCard, salvarRodada, fetchSessions, fetchSessionTranscript, fetchSettings, bulkAddCards, fetchHistoricoDeItens, fetchExerciseResults, fetchRecordes, gastarSeedsEx, type AppMetrics, type HistoricoDeItem } from '../../data/api';
+import { apiFetch, creditarSeeds, fetchDeck, reviewCard, salvarRodada, fetchSessions, fetchSessionTranscript, fetchSettings, bulkAddCards, fetchHistoricoDeItens, fetchExerciseResults, fetchRecordes, gastarSeedsEx, type AppMetrics, type HistoricoDeItem } from '../../data/api';
 import { toSentences, type Sentence, type PracticeSeed } from '../../lib/sentences';
 import type { VocabCard, Recording } from '../../types';
 import { coreOnly, type AgeProfileType } from '../../lib/profile';
 import type { DerivedProgress } from '../../lib/progress';
 import {
-  buildItems, gradeFor, MINIGAMES, rodadasDaEscada,
+  buildItems, gradeFor, MINIGAMES, rodadasDaEscada, SEEDS_DO_DROP,
   buildScrambleRounds, cartoesDaFonte, priorizar, cartoesDaTrilha, chaveDaPalavra, rotuloDaFonte,
   fontesDisponiveis, idiomasDisponiveis, fonteDaEscolha, escolhaDaFonte, mesmaFonte,
   progressoDaTrilha,
@@ -65,6 +65,7 @@ import ScrambleGame from '../minigames/ScrambleGame';
 import KaraokeGame, { type FalaKaraoke } from '../minigames/KaraokeGame';
 import ScratchReward from '../minigames/ScratchReward';
 import ResumoDaRodada, { type ItemDaRodada } from '../minigames/ResumoDaRodada';
+import { EVENTO_DROP_GANHO, type DetalheDoDrop } from '../RecompensaDesbloqueada';
 import {
   compor, aceitaFiltroDeDificuldade, faixaDe as faixaDeScore, contagemDaFonte, recortarPelaComposicao,
   filtroParaComposicao,
@@ -1121,6 +1122,20 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
        conquista. O App recarrega as métricas ao ouvir isto — antes só recarregava quando a lista
        de sessões mudava, e o saldo ficava uma rodada atrás. */
     if (gravacao.ok) window.dispatchEvent(new CustomEvent('babel:metricas-mudaram'));
+
+    /* O BAU DA RODADA. Pedido so depois de a rodada existir no servidor: e a pre-condicao que a
+       rota confere (`rodada_inexistente`). Quem sorteia e o servidor; aqui so se anuncia. Falha
+       fica em silencio de proposito — perder o bau nao pode custar a rodada. */
+    if (gravacao.ok) {
+      void creditarSeeds({ creditoId: `drop:${roundId}` }).then((r) => {
+        if (!r || r.jaExistia || !r.item) return;
+        /* `seedsCreditadas` e o TOTAL acumulado da conta, nao o que ESTE credito valeu — a tela
+           anunciava "+2049 Seeds" pelo bau. Quanto o bau paga e regra, e a regra mora no core. */
+        window.dispatchEvent(new CustomEvent<DetalheDoDrop>(EVENTO_DROP_GANHO, {
+          detail: { roundId, itemId: r.item, seeds: SEEDS_DO_DROP },
+        }));
+      });
+    }
 
     if (falhas.length) {
       /* ANTES ISTO ERA SÓ UM console.warn: a rodada sumia e o usuário nunca sabia. Um erro que o

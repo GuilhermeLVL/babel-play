@@ -11,7 +11,7 @@
  */
 import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { Sparkles, Trophy, Check, X, Sprout } from 'lucide-react';
+import { Sparkles, Trophy, Check, X, Sprout, Gift } from 'lucide-react';
 import { COR_DA_RARIDADE, type ItemDaLoja } from '../lib/loja';
 import MiniaturaDoItem from './MiniaturaDoItem';
 import { TEXTOS } from '../lib/galeria/textos';
@@ -19,13 +19,29 @@ import { comemorar, explodirAleatorio } from '../lib/juice';
 
 export type Recompensa =
   | { tipo: 'nivel'; nivel: number; itens: ItemDaLoja[] }
-  | { tipo: 'conquista'; id: string; nome: string; emoji: string; seeds: number; xp: number; item?: ItemDaLoja };
+  | { tipo: 'conquista'; id: string; nome: string; emoji: string; seeds: number; xp: number; item?: ItemDaLoja }
+  /* O bau de fim de rodada. A chave e o `roundId` porque o drop e idempotente POR rodada no
+     servidor: repetir o mesmo id devolve o mesmo item, entao repetir a tela seria mostrar duas
+     vezes o mesmo premio. */
+  | { tipo: 'drop'; roundId: string; seeds: number; item: ItemDaLoja };
+
+/** Rotulo e frase de cada tipo, para o JSX parar de ramificar em quatro lugares. */
+const CABECALHO: Record<Recompensa['tipo'], { rotulo: string; frase: string }> = {
+  nivel: { rotulo: 'Subiu de nivel', frase: 'Voce liberou:' },
+  conquista: { rotulo: 'Conquista feita', frase: 'Item exclusivo liberado:' },
+  drop: { rotulo: 'Bau da rodada', frase: 'O bau abriu:' },
+};
 
 export const EVENTO_RODADA_FECHOU = 'babel:rodada-fechou';
+/** O bau da rodada saiu. `detail` traz o que o SERVIDOR sorteou; o App resolve o id no catalogo. */
+export const EVENTO_DROP_GANHO = 'babel:drop-ganho';
+export interface DetalheDoDrop { roundId: string; itemId: string; seeds: number }
 const CHAVE_VISTAS = 'babel.recompensas_vistas';
 
 export function chaveDaRecompensa(r: Recompensa): string {
-  return r.tipo === 'nivel' ? `nivel:${r.nivel}` : `conquista:${r.id}`;
+  if (r.tipo === 'nivel') return `nivel:${r.nivel}`;
+  if (r.tipo === 'drop') return `drop:${r.roundId}`;
+  return `conquista:${r.id}`;
 }
 export function recompensasVistas(): Set<string> {
   try { return new Set(JSON.parse(localStorage.getItem(CHAVE_VISTAS) || '[]') as string[]); } catch { return new Set(); }
@@ -72,6 +88,7 @@ export default function RecompensaDesbloqueada({ fila, onEquipar, onFechar, onVe
   if (!atual || !pronta) return null;
 
   const itens: ItemDaLoja[] = atual.tipo === 'nivel' ? atual.itens : (atual.item ? [atual.item] : []);
+  const cabecalho = CABECALHO[atual.tipo];
   const fechar = () => { marcarVista(atual); onFechar(atual); };
   const equipar = (i: ItemDaLoja, el: HTMLElement | null) => {
     if (!onEquipar(i)) return;
@@ -84,17 +101,17 @@ export default function RecompensaDesbloqueada({ fila, onEquipar, onFechar, onVe
       <div className="card-panel bg-surface w-full max-w-lg max-h-[90vh] overflow-y-auto custom-scrollbar p-6 sm:p-7 space-y-5 animate-in zoom-in-95 duration-200">
         <div className="flex items-start gap-3">
           <span className="w-12 h-12 rounded-2xl bg-warn/15 border border-warn text-warn-ink flex items-center justify-center text-2xl shrink-0" aria-hidden>
-            {atual.tipo === 'nivel' ? <Sparkles className="w-6 h-6" /> : atual.emoji}
+            {atual.tipo === 'conquista' ? atual.emoji : atual.tipo === 'drop' ? <Gift className="w-6 h-6" /> : <Sparkles className="w-6 h-6" />}
           </span>
           <div className="min-w-0 flex-1">
-            <p className="label-mono">{atual.tipo === 'nivel' ? 'Subiu de nível' : 'Conquista feita'}</p>
+            <p className="label-mono">{cabecalho.rotulo}</p>
             <h2 id="recompensa-titulo" className="font-display font-black text-2xl text-ink leading-tight">
-              {atual.tipo === 'nivel' ? `Nível ${atual.nivel}!` : atual.nome}
+              {atual.tipo === 'nivel' ? `Nível ${atual.nivel}!` : atual.tipo === 'drop' ? atual.item.nome : atual.nome}
             </h2>
-            {atual.tipo === 'conquista' && (
+            {atual.tipo !== 'nivel' && (
               <p className="flex items-center gap-2 text-[12.5px] mt-1 tabular-nums">
                 <span className="flex items-center gap-1 font-bold text-good-ink"><Sprout className="w-3.5 h-3.5" aria-hidden /> +{atual.seeds} Seeds</span>
-                {atual.xp > 0 && <span className="text-ink-muted">+{atual.xp} XP</span>}
+                {atual.tipo === 'conquista' && atual.xp > 0 && <span className="text-ink-muted">+{atual.xp} XP</span>}
               </p>
             )}
           </div>
@@ -103,7 +120,7 @@ export default function RecompensaDesbloqueada({ fila, onEquipar, onFechar, onVe
 
         {itens.length > 0 ? (
           <div>
-            <p className="text-[12.5px] text-ink-muted mb-2">{atual.tipo === 'nivel' ? 'Você liberou:' : 'Item exclusivo liberado:'}</p>
+            <p className="text-[12.5px] text-ink-muted mb-2">{cabecalho.frase}</p>
             <ul className="space-y-2">
               {itens.map((i) => {
                 const cor = COR_DA_RARIDADE[i.raridade];

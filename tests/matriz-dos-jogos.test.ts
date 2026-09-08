@@ -1,5 +1,5 @@
 /**
- * Matriz: os 9 minijogos × 5 perfis de conteúdo. Alvo: pista que entrega a resposta, pool que
+ * Matriz: TODO minijogo de `MINIGAMES` × 5 perfis de conteúdo. Alvo: pista que entrega a resposta, pool que
  * despenca sem aviso, jogo que aceita material que não sabe renderizar.
  */
 import { describe, it, expect } from 'vitest';
@@ -24,8 +24,21 @@ function card(over: Partial<VocabCard> = {}): VocabCard {
   } as VocabCard;
 }
 
-const JOGOS_DE_PALAVRA: MinigameId[] = ['memory', 'wordsearch', 'blitz', 'termo'];
-const JOGOS_DE_FRASE: MinigameId[] = ['scramble', 'karaoke', 'escuta', 'ditado', 'conectores'];
+/*
+ * AS DUAS LISTAS SÃO DERIVADAS, e a razão é o único jeito de este arquivo não mentir.
+ *
+ * Elas eram escritas à mão: `['memory','wordsearch','blitz','termo']` e as cinco de frase. O
+ * cabeçalho aqui em cima promete "os 9 minijogos", e a promessa era verdadeira por coincidência
+ * — enquanto o número fosse 9. No instante em que um jogo novo entra em `MINIGAMES`, cinco
+ * invariantes deste arquivo param de cobri-lo e **a suíte continua verde**. É a pior forma de
+ * falha que existe: o gate diz "passou" sobre um código que ele nem olhou.
+ *
+ * `tests/estadoDosJogos.test.ts:71` já derivava de `Object.keys(MINIGAMES)` e por isso falha na
+ * hora quando um jogo entra sem estado — que é o comportamento certo. Aqui passa a ser igual.
+ */
+const IDS = Object.keys(MINIGAMES) as MinigameId[];
+const JOGOS_DE_PALAVRA: MinigameId[] = IDS.filter((id) => MINIGAMES[id].modalidade === 'palavra');
+const JOGOS_DE_FRASE: MinigameId[] = IDS.filter((id) => MINIGAMES[id].modalidade !== 'palavra');
 
 /** Baralho do perfil: cada cartão com sua PRÓPRIA pista — pistas iguais colidem de propósito
  *  (`buildItems` recusa a segunda), então repetir a mesma tradução mediria o dedup, não o perfil. */
@@ -69,6 +82,20 @@ function baralhosDosPerfis(): Record<string, VocabCard[]> {
   for (const [nome, pares] of Object.entries(PERFIS)) saida[nome] = baralhoDoPerfil(pares);
   return saida;
 }
+
+describe('invariante 0 — a matriz cobre a tabela inteira', () => {
+  /* As duas listas são uma PARTIÇÃO de `MINIGAMES`: se um jogo cair fora das duas, ele deixa de
+     ser testado e nada acusa. Esta é a única invariante que protege as outras cinco. */
+  it('todo jogo de MINIGAMES está em exatamente uma das duas listas', () => {
+    expect([...JOGOS_DE_PALAVRA, ...JOGOS_DE_FRASE].sort()).toEqual([...IDS].sort());
+    expect(JOGOS_DE_PALAVRA.filter((id) => JOGOS_DE_FRASE.includes(id))).toEqual([]);
+  });
+
+  it('as duas listas têm conteúdo — uma lista vazia passaria em tudo sem testar nada', () => {
+    expect(JOGOS_DE_PALAVRA.length).toBeGreaterThan(0);
+    expect(JOGOS_DE_FRASE.length).toBeGreaterThan(0);
+  });
+});
 
 describe('invariante 1 — nenhum enunciado entrega a resposta', () => {
   const baralhos = baralhosDosPerfis();

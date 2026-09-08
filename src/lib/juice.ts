@@ -1,5 +1,5 @@
 import { emitBurst, type BurstKind } from './effects';
-import { sortearEventoRaro, marcarEventoVisto, type EfeitoComposto } from './eventosDeJogo';
+import { sortearEventoRaro, eventosCondicionais, marcarEventoVisto, type EfeitoComposto } from './eventosDeJogo';
 import { sorteDeEventos } from './aprimoramentos';
 import { play } from './soundFx';
 
@@ -89,6 +89,23 @@ export function comemorar(
       executarEfeito(raro);
       pontosFlutuantes(raro.nome + '!', window.innerWidth / 2, window.innerHeight * 0.22, 'bom');
     }
+  }
+  /*
+   * O EVENTO 'perfeita' PASSA A EXISTIR (08/09).
+   *
+   * `eventosDeJogo.ts:82` declarava `if (ctx.perfeita)` e `todosOsEventos()` contava o id na meta
+   * da conquista Colecionador — mas NENHUMA chamada de `eventosCondicionais` jamais passava
+   * `perfeita`. Efeito medido: `eventosVistos()` saturava em 10 de 11, e a conquista, o rastro
+   * `ras-arcoiris` que ela entrega e o cadeado "Conquista: Colecionador" eram inalcançáveis por
+   * jogo real. O teste `tests/conquistas.test.ts` não pegava porque injeta `eventosVistos: 11` —
+   * ele prova a aritmética, não a alcançabilidade.
+   *
+   * A rodada perfeita já era conhecida em `ScratchReward.tsx` e virava só o tipo de festa. Aqui
+   * ela vira também o evento, no mesmo lugar em que o evento raro é sorteado — porque `comemorar`
+   * é o único vocabulário que todos os jogos falam.
+   */
+  if (tipo === 'rodadaPerfeita') {
+    for (const ev of eventosCondicionais({ combo: 0, fever: false, perfeita: true })) executarEfeito(ev);
   }
   if (opts.texto) pontosFlutuantes(opts.texto, x, y, tipo === 'erro' ? 'ruim' : 'bom');
   if (opts.tremer) tremor(alvo ?? null, tipo === 'rodadaPerfeita' ? 6 : 3);

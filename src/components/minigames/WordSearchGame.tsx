@@ -1,7 +1,7 @@
 import React, { useMemo, useRef, useState } from 'react';
 import { X, Eye, Check, Lightbulb, Radar, Highlighter, Eraser, Flame, Sparkles } from 'lucide-react';
 import type { MinigameItem, ItemOutcome, RoundReport } from '@core';
-import { buildGrid, matchSelection, cellsBetween, scoreRound, shortPrompt, normalizarPalavra } from '@core';
+import { buildGrid, matchSelection, cellsBetween, scoreRound, shortPrompt, letrasNaGrade } from '@core';
 import type { AgeProfileType } from '../../lib/profile';
 import { comemorar, pontosDoElemento, multiplicador } from '../../lib/juice';
 import { playJuicedHit, playJuicedError, playJuicedVictory, triggerHaptic } from '../../lib/gameFeel';
@@ -188,8 +188,10 @@ export default function WordSearchGame({ items, ageProfile, onFinish, onExit }: 
    *
    * Aceita mais de uma letra: quem procura "TH" acende as duas e vê onde elas se encontram.
    */
+  /* A MESMA regua da grade: com `normalizarPalavra` quem digitasse "ç" acendia "C" e o Ç da
+     grade ficava apagado. */
   const letrasDestacadas = useMemo(
-    () => new Set(normalizarPalavra(destaque).split('')),
+    () => new Set(letrasNaGrade(destaque).split('')),
     [destaque],
   );
   const destacada = (letra: string) => letrasDestacadas.size > 0 && letrasDestacadas.has(letra);

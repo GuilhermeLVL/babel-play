@@ -1,4 +1,5 @@
 import type { VocabCard } from '../../types';
+import { comBaseLatina } from '../texto/palavra';
 import { isDueNow } from '../learning/due';
 import { pistaUtil, chaveComparavel } from '../learning/quality';
 import { pistaDeJogo } from '../learning/pistaDeJogo';
@@ -23,7 +24,7 @@ import type { FaixaDificuldade } from './composicao';
 /** Chave de comparação do Termo: sem acento, maiúscula, só LETRAS (Unicode). Hífen/espaço somem
  *  aqui só para COMPARAR; a elegibilidade os trata antes (ver `diagnosticoTermo`). */
 export function chaveDoTermo(texto: string): string {
-  return (texto ?? '').normalize('NFD').replace(/[̀-ͯ]/g, '').toUpperCase().replace(/[^\p{L}]/gu, '');
+  return comBaseLatina(texto ?? '').normalize('NFD').replace(/[̀-ͯ]/g, '').toUpperCase().replace(/[^\p{L}]/gu, '');
 }
 
 export type MotivoForaDoTermo = 'hifen-ou-espaco' | 'curta' | 'longa' | 'sem-pista';

@@ -1,4 +1,5 @@
 import type { MinigameItem } from './types';
+import { comBaseLatina } from '../texto/palavra';
 
 /**
  * CAÇA-PALAVRAS — a grade e onde cada palavra ficou.
@@ -51,9 +52,29 @@ const DELTAS: Record<Direcao, { dl: number; dc: number }> = {
   diagonal: { dl: 1, dc: 1 },
 };
 
-/** Só letras, sem acento e em maiúsculas — a grade não pode pedir acentuação para "achar". */
+/**
+ * Chave de COMPARAÇÃO: sem acento, em maiúsculas. Quem digita "cabeca" no Ditado não errou.
+ * NÃO é o que vai para a grade — ver `letrasNaGrade`.
+ */
 export function normalizarPalavra(p: string): string {
-  return p.normalize('NFD').replace(/[̀-ͯ]/g, '').toUpperCase().replace(/[^A-Z]/g, '');
+  return comBaseLatina(p).normalize('NFD').replace(/[̀-ͯ]/g, '').toUpperCase().replace(/[^A-Z]/g, '');
+}
+
+/**
+ * As letras que a palavra OCUPA na grade, com o acento preservado.
+ *
+ * A grade usava `normalizarPalavra` e por isso desenhava `CABECA` para "cabeça" e `PRODUCAO` para
+ * "produção": medido no baralho real, 55 palavras entravam com forma diferente da real. Nenhuma
+ * era perdida — o dano era ensinar a grafia errada, que é pior que não jogar.
+ *
+ * Continua fora tudo que não é letra latina: um alfabeto não-latino inteiro vira string vazia, e
+ * o gate recusa o jogo por `alfabeto`, como já fazia.
+ */
+export function letrasNaGrade(p: string): string {
+  /* Script latino INTEIRO, e nao um intervalo escrito a mao: `Ł` e `Đ` ficam fora do Latin-1 e
+     sumiam da grade (`latwy` desenhava ATWY). Cirilico, arabe e kana continuam fora, que e o que
+     o gate de alfabeto ja decide. */
+  return (p ?? '').toUpperCase().replace(/[^\p{Script=Latin}]/gu, '');
 }
 
 /**
@@ -62,6 +83,8 @@ export function normalizarPalavra(p: string): string {
  * (japonês, por exemplo) vira string vazia, e uma letra sozinha não faz caça-palavras.
  */
 export function entraNaGrade(palavra: string): boolean {
+  /* Continua medindo pela chave SEM acento: é ela que decide se sobra alfabeto latino suficiente.
+     Trocar por `letrasNaGrade` faria uma palavra de dois acentos "caber" sem letra base nenhuma. */
   return normalizarPalavra(palavra ?? '').length >= 2;
 }
 
@@ -70,7 +93,7 @@ export function entraNaGrade(palavra: string): boolean {
  * o que não couber sai da rodada em vez de ser truncado.
  */
 export function buildGrid(items: MinigameItem[], opts: { tamanho?: number; seed?: number } = {}): Tabuleiro {
-  const todas = items.map((it, i) => ({ i, texto: normalizarPalavra(it.answer) }));
+  const todas = items.map((it, i) => ({ i, texto: letrasNaGrade(it.answer) }));
   /* PALAVRA DESCARTADA AQUI TAMBÉM É `naoCouberam` — não some da rodada em silêncio.
    * `WordSearchGame.tsx:38` já tem o contrato certo: `jogaveis` é quem NÃO está em `naoCouberam`,
    * e a pista era listada sem a palavra ter entrado na grade porque o `filter` de antes descartava
@@ -123,8 +146,11 @@ export function buildGrid(items: MinigameItem[], opts: { tamanho?: number; seed?
     if (!colocou) naoCouberam.push(i);
   }
 
-  // Preenche o resto com letras aleatórias — só depois de todas as palavras estarem no lugar.
-  const ALFABETO = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+  /* Preenche o resto com letras aleatórias — só depois de todas as palavras estarem no lugar.
+     O alfabeto inclui as letras ACENTUADAS que entraram: com preenchimento só A-Z, um Ç seria a
+     única ocorrência na grade e entregaria a palavra que o contém. */
+  const acentos = [...new Set(colocadas.flatMap(p => [...p.palavra]).filter(l => !/[A-Z]/.test(l)))];
+  const ALFABETO = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ' + acentos.join('');
   for (let l = 0; l < tamanho; l++) {
     for (let c = 0; c < tamanho; c++) {
       if (!letras[l][c]) letras[l][c] = ALFABETO[Math.floor(rand() * ALFABETO.length)];

@@ -109,6 +109,91 @@ const GRAMATICAIS: Record<string, ReadonlySet<string>> = {
     'usted', 'me', 'te', 'le', 'nos', 'mi', 'su', 'nuestro', 'quién', 'dónde',
     'todo', 'toda', 'todos', 'todas', 'algo', 'nada', 'bien', 'entonces', 'así',
   ]),
+  /* Alemão, francês, italiano e holandês entram porque têm trilha publicada em `public/trilha/`,
+     que é onde dá para MEDIR o estrago antes de ligar o filtro. Medido: a lista tira 1,2%–1,6%
+     das palavras de cada trilha (en tira 1,1%), tudo concentrado no A1, onde as gramaticais são.
+     Os outros dez idiomas ofertados continuam sem lista de propósito — a regra do bloco acima.
+
+     A comparação de `ehGramatical` é só por minúscula, NÃO tira acento: por isso a lista italiana
+     precisa de `già` e `gia`, `più` e `piu` — as duas grafias aparecem na fonte de frequência.
+
+     FICARAM DE FORA, e o motivo é sempre o mesmo (a palavra tem uso de conteúdo e o filtro não
+     sabe distinguir): 'bon' e 'été' no francês (bom / verão), 'ora' e 'ancora' no italiano (hora /
+     âncora), 'weer', 'echt', 'erg' e 'gewoon' no holandês (tempo, verdadeiro, grave, comum). Pelo
+     mesmo motivo nenhuma lista tem "sempre"/"nunca": `en` e `pt` também não têm.
+
+     Os verbos "ir" e "querer" seguem `es`/`pt`, que listam só a forma conjugada auxiliar
+     ('vai', 'va') e deixam o infinitivo como vocabulário. Modal alemão e holandês fica: ali a
+     classe é fechada e gramatical, como os 'can'/'must' do inglês. */
+  de: new Set([
+    'der', 'die', 'das', 'den', 'dem', 'des', 'ein', 'eine', 'einen', 'einem',
+    'einer', 'eines', 'ich', 'du', 'er', 'sie', 'es', 'wir', 'ihr', 'mich',
+    'dich', 'uns', 'euch', 'mir', 'dir', 'ihm', 'ihnen', 'man', 'sich',
+    'mein', 'meine', 'dein', 'deine', 'sein', 'seine', 'ihre', 'unser', 'unsere',
+    'dieser', 'diese', 'dieses', 'und', 'oder', 'aber', 'dass', 'daß', 'wenn',
+    'weil', 'denn', 'als', 'ob', 'sondern', 'in', 'an', 'auf', 'aus', 'bei',
+    'mit', 'nach', 'seit', 'von', 'zu', 'zur', 'zum', 'für', 'um', 'durch',
+    'gegen', 'ohne', 'über', 'unter', 'vor', 'beim', 'vom', 'ins',
+    'ist', 'sind', 'war', 'waren', 'bin', 'bist', 'haben', 'habe', 'hat',
+    'hatte', 'werden', 'wird', 'wurde', 'kann', 'können', 'muss', 'müssen',
+    'soll', 'sollen', 'will', 'wollen', 'darf', 'dürfen',
+    'nicht', 'nein', 'ja', 'kein', 'keine', 'nichts', 'auch', 'nur', 'noch',
+    'schon', 'sehr', 'mehr', 'so', 'doch', 'dann', 'hier', 'da', 'dort',
+    'jetzt', 'wieder', 'etwas', 'was', 'wer', 'wie', 'wo', 'warum', 'wann',
+    'welche', 'okay',
+  ]),
+  fr: new Set([
+    'le', 'la', 'les', 'un', 'une', 'des', 'du', 'au', 'aux',
+    'je', 'tu', 'il', 'elle', 'on', 'nous', 'vous', 'ils', 'elles', 'me', 'te',
+    'se', 'lui', 'leur', 'moi', 'toi', 'eux',
+    'ce', 'cet', 'cette', 'ces', 'ça', 'cela', 'celui', 'qui', 'que', 'quoi', 'dont',
+    'mon', 'ma', 'mes', 'ton', 'ta', 'tes', 'son', 'sa', 'ses', 'notre', 'nos',
+    'votre', 'vos', 'leurs',
+    'et', 'ou', 'mais', 'si', 'car', 'donc', 'ni', 'quand', 'comme',
+    'à', 'de', 'dans', 'sur', 'sous', 'pour', 'par', 'avec', 'sans', 'chez',
+    'vers', 'entre', 'depuis', 'contre',
+    'être', 'est', 'sont', 'était', 'étaient', 'suis', 'avoir', 'ai', 'ont', 'avait',
+    'va', 'vais', 'vont', 'peut', 'doit', 'faut',
+    'ne', 'pas', 'non', 'oui', 'plus', 'moins', 'très', 'aussi', 'encore', 'déjà',
+    'rien', 'tout', 'tous', 'toute', 'bien', 'ici', 'là', 'maintenant', 'juste',
+    'trop', 'peu', 'pourquoi', 'comment', 'où', 'quel', 'quelle', 'combien',
+    'ouais', 'voilà', 'hein',
+  ]),
+  it: new Set([
+    'il', 'lo', 'la', 'i', 'gli', 'le', 'un', 'uno', 'una',
+    'del', 'della', 'dei', 'delle', 'dello', 'degli', 'al', 'alla', 'ai', 'alle',
+    'nel', 'nella', 'nello', 'dal', 'dalla', 'dallo', 'sul', 'sulla',
+    'io', 'tu', 'lui', 'lei', 'noi', 'voi', 'loro', 'egli', 'ella', 'essi',
+    'mi', 'ti', 'si', 'ci', 'vi', 'ne', 'me', 'te',
+    'questo', 'questa', 'quello', 'quella', 'che', 'chi', 'cui',
+    'mio', 'mia', 'tuo', 'tua', 'suo', 'sua', 'nostro', 'vostro',
+    'e', 'ed', 'o', 'ma', 'se', 'perché', 'perche', 'quando', 'come', 'mentre',
+    'però', 'quindi', 'allora', 'anche',
+    'di', 'a', 'da', 'in', 'con', 'su', 'per', 'tra', 'fra', 'senza', 'sotto',
+    'dopo', 'prima',
+    'essere', 'sono', 'è', 'era', 'erano', 'sia', 'stare', 'sto', 'avere', 'ho',
+    'ha', 'hai', 'hanno', 'aveva', 'può', 'puo', 'deve',
+    'non', 'no', 'sì', 'già', 'gia', 'molto', 'più', 'piu', 'meno', 'troppo',
+    'tutto', 'tutti', 'tutta', 'bene', 'così', 'cosi', 'qui', 'qua', 'adesso',
+    'solo', 'poi', 'dove', 'quanto', 'quale', 'beh', 'ehi', 'okay',
+  ]),
+  nl: new Set([
+    'de', 'het', 'een', 'ik', 'jij', 'je', 'u', 'hij', 'zij', 'ze', 'wij', 'we',
+    'jullie', 'hem', 'hen', 'hun', 'mij', 'me', 'jou', 'ons', 'zich', 'men',
+    'die', 'dat', 'dit', 'deze', 'wat', 'wie', 'welke',
+    'mijn', 'jouw', 'zijn', 'onze', 'uw',
+    'en', 'of', 'maar', 'want', 'omdat', 'als', 'toen', 'dus',
+    'van', 'voor', 'met', 'aan', 'op', 'in', 'uit', 'bij', 'naar', 'over',
+    'door', 'tot', 'tegen', 'onder', 'tussen', 'zonder', 'na', 'om',
+    'ben', 'bent', 'is', 'was', 'waren', 'hebben', 'heb', 'heeft', 'had',
+    'hadden', 'worden', 'wordt', 'werd',
+    'zullen', 'zal', 'zou', 'zouden', 'kunnen', 'kan', 'kon', 'moeten', 'moet',
+    'moest', 'mogen', 'mag', 'willen', 'wil', 'gaat', 'ga',
+    'niet', 'nee', 'ja', 'geen', 'niets', 'niks', 'ook', 'nog', 'al', 'wel',
+    'heel', 'meer', 'minder', 'veel', 'zo', 'dan', 'hier', 'daar', 'er', 'nu',
+    'alleen', 'toch', 'eens', 'waarom', 'hoe', 'waar', 'wanneer', 'welk',
+    'oké', 'nou',
+  ]),
 };
 
 /** A palavra é ruído gramatical no idioma dela? Idioma sem lista: sempre `false`. */

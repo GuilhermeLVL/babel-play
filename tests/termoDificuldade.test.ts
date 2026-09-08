@@ -183,10 +183,15 @@ describe('digitavelNoTermo — o predicado do gate de alfabeto', () => {
     expect(digitavelNoTermo('café')).toBe(true)
   })
 
-  it('ligadura sem decomposição NFD (œ) não vira A-Z — não é digitável', () => {
-    // `œ` (U+0153) não se decompõe em "o"+"e" via NFD (só NFKD faria isso); `chaveDoTermo` a
-    // preserva como está, e ela não é uma tecla do QWERTY.
-    expect(digitavelNoTermo('œuvre')).toBe(false)
+  it('ligadura e letra sem decomposicao viram a base latina — e ai sao digitaveis', () => {
+    /* Era `false`, e por um motivo que virou defeito: o NFD nao decompoe `œ`/`ł`/`ø`, e a chave
+       removia tudo que nao fosse A-Z DEPOIS dele, entao a letra SUMIA em vez de virar a base.
+       `œuvre` comparava como `UVRE` e `łatwy` como `ATWY` — quem escrevia certo errava, e 17% da
+       trilha polonesa ficava de fora. Com `comBaseLatina` a palavra vira `OEUVRE`/`LATWY`, que se
+       digita no QWERTY. */
+    expect(digitavelNoTermo('œuvre')).toBe(true)
+    expect(digitavelNoTermo('łatwy')).toBe(true)
+    expect(digitavelNoTermo('øre')).toBe(true)
   })
 
   it('alfabeto não-latino não é digitável no QWERTY fixo', () => {

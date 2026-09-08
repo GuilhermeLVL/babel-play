@@ -2,6 +2,7 @@ import { useEffect, useRef, type ReactNode } from 'react';
 import { ChevronRight, SlidersHorizontal as SlidersIcon } from 'lucide-react';
 import Segmentado from '../ui/Segmentado';
 import { numero, t, tp } from '../../lib/i18n';
+import { empilharCamada } from '../../lib/camadasDeEscape';
 
 /**
  * O SELETOR DE CONTEÚDO — três linhas de controle viradas uma, com uma gaveta atrás do «Trocar».
@@ -87,11 +88,7 @@ export function SeletorDeConteudo({
   aoAlternarRef.current = aoAlternar;
   useEffect(() => {
     if (!aberta) return;
-    const aoTeclar = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') aoAlternarRef.current();
-    };
-    window.addEventListener('keydown', aoTeclar);
-    return () => window.removeEventListener('keydown', aoTeclar);
+    return empilharCamada(() => aoAlternarRef.current());
   }, [aberta]);
 
   const facetasVisiveis = facetas.filter((f) => f.opcoes.length > 0);

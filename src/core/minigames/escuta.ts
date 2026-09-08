@@ -235,14 +235,58 @@ const CONECTORES: Record<string, ReadonlySet<string>> = {
   pt: new Set([
     'porém', 'contudo', 'todavia', 'entretanto', 'embora', 'apesar', 'portanto',
     'porque', 'pois', 'enquanto', 'além', 'ademais', 'inclusive', 'aliás',
-    'entanto', 'contrário', 'assim', 'logo', 'então', 'ainda', 'mas', 'porque',
+    'entanto', 'contrário', 'assim', 'logo', 'então', 'ainda', 'mas',
     'contanto', 'caso', 'salvo', 'exceto', 'primeiro', 'finalmente', 'depois',
     'antes', 'também', 'ou', 'se', 'como', 'quando',
   ]),
+  /* O espanhol tinha 'sin', 'embargo', 'por' e 'tanto': metades soltas de "sin embargo" e "por
+     tanto". O casamento é por TOKEN, então o jogo mandava marcar a preposição "sin" de "café sin
+     azúcar" como marcador de discurso. Saíram, e entraram quatro que valem sozinhas. Medido nas
+     frases da trilha espanhola: 11,3% delas tinham conector antes, 6,4% agora — a queda é toda
+     de falso positivo, e 6,4% fica na faixa do inglês (4,4%) e do italiano (6,0%). */
   es: new Set([
-    'sin', 'embargo', 'aunque', 'porque', 'pues', 'mientras', 'además', 'asimismo',
-    'entonces', 'luego', 'así', 'por', 'tanto', 'pero', 'sino', 'aún', 'todavía',
+    'aunque', 'porque', 'pues', 'mientras', 'además', 'asimismo', 'incluso',
+    'entonces', 'luego', 'así', 'igualmente', 'obstante', 'pero', 'sino',
+    'aún', 'todavía', 'salvo', 'excepto',
     'primero', 'finalmente', 'después', 'antes', 'también', 'cuando', 'si',
+  ]),
+  /* Os quatro idiomas com trilha publicada e alfabeto latino. A régua é a mesma do espanhol
+     acima: só entra token que é conector SOZINHO. Por isso 'd'abord' e 'parce' entram (nunca
+     aparecem fora da locução, então não há falso positivo) e nada de 'no obstante' partido.
+
+     DUAS AUSÊNCIAS QUE NÃO SE LEEM NA LISTA, e ambas vêm da chave: `chaveComparavel` tira o
+     acento dos DOIS lados, então o 'e' italiano casaria com 'è' ("é") — medido, 831 dos 947
+     casamentos eram a cópula, não a conjunção — e o 'ou' francês casaria com 'où' ("onde"),
+     31 de 46. Ficam de fora; 'ed' e 'et' cobrem o que sobra sem colidir.
+
+     Medido nas frases das trilhas: 11,0% (de), 8,5% (fr), 6,0% (it), 11,0% (nl) têm conector. */
+  de: new Set([
+    'aber', 'jedoch', 'allerdings', 'trotzdem', 'dennoch', 'obwohl', 'obgleich',
+    'weil', 'denn', 'deshalb', 'deswegen', 'daher', 'darum', 'also', 'außerdem',
+    'zudem', 'stattdessen', 'sonst', 'folglich', 'somit', 'falls', 'solange',
+    'während', 'zwar', 'schließlich', 'zuerst', 'zunächst', 'danach', 'dann',
+    'auch', 'und', 'oder', 'wenn',
+  ]),
+  fr: new Set([
+    'cependant', 'pourtant', 'néanmoins', 'toutefois', 'quoique', 'malgré',
+    'donc', 'ainsi', 'alors', 'parce', 'car', 'puisque', 'lorsque', 'tandis',
+    'ensuite', 'enfin', "d'abord", 'puis', 'également', 'aussi', 'sinon',
+    'autrement', 'finalement', 'premièrement',
+    'mais', 'et', 'si', 'comme', 'quand', 'après', 'avant',
+  ]),
+  it: new Set([
+    'però', 'tuttavia', 'comunque', 'invece', 'anzi', 'benché', 'sebbene',
+    'nonostante', 'malgrado', 'poiché', 'perché', 'siccome', 'dunque', 'quindi',
+    'pertanto', 'perciò', 'allora', 'inoltre', 'altrimenti', 'mentre', 'finché',
+    'purché', 'insomma', 'cioè', 'infine', 'prima', 'dopo', 'poi', 'anche',
+    'oppure', 'ma', 'ed', 'o', 'se',
+  ]),
+  nl: new Set([
+    'echter', 'maar', 'toch', 'hoewel', 'ofschoon', 'ondanks', 'omdat', 'want',
+    'doordat', 'daarom', 'dus', 'daardoor', 'bovendien', 'tevens', 'daarentegen',
+    'integendeel', 'anders', 'ondertussen', 'terwijl', 'tenzij', 'zodat',
+    'indien', 'tenslotte', 'uiteindelijk', 'vervolgens', 'trouwens', 'namelijk',
+    'immers', 'als', 'en', 'of', 'ook', 'dan', 'eerst',
   ]),
 };
 

@@ -11,7 +11,11 @@ const carta = (word: string, translation: string, extra: Partial<VocabCard> = {}
 
 describe('Termo justo — normalização', () => {
   it('preserva letras Unicode e ignora acentos; hífen/espaço ficam fora com motivo', () => {
-    expect(chaveDoTermo('œuvre')).toBe('ŒUVRE')
+    /* `œ` vira `OE` desde 08/09: o NFD nao a decompoe, e a chave removia tudo que nao era A-Z
+       DEPOIS do NFD — a ligadura SUMIA (`œuvre` comparava como `UVRE`) e quem escrevia a palavra
+       certa errava. O mesmo valia para `ł`, `ø`, `đ`: 17% da trilha polonesa. Ver `comBaseLatina`. */
+    expect(chaveDoTermo('œuvre')).toBe('OEUVRE')
+    expect(chaveDoTermo('łatwy')).toBe('LATWY')
     expect(chaveDoTermo('café')).toBe('CAFE')
     expect(motivoForaDoTermo(carta('well-being', 'bem-estar'))).toBe('hifen-ou-espaco')
     expect(motivoForaDoTermo(carta('ice cream', 'sorvete'))).toBe('hifen-ou-espaco')

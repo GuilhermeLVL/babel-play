@@ -9,6 +9,7 @@ import type { EscolhaDaPratica, OrigemDaPratica, EscopoDeGravacoes, CefrLevel } 
 import { nomeDaEscala, rotuloDaEtapa, type EscalaDaTrilha } from '../../core/learning/trilha';
 import { numero, t, tp } from '../../lib/i18n';
 import { T } from '../../lib/T';
+import { empilharCamada } from '../../lib/camadasDeEscape';
 
 /**
  * A SALA DE ESCOLHA — o que você vai jogar, decidido antes de a tela encher de cartas.
@@ -131,11 +132,7 @@ export default function SalaDeEscolha({
   }, []);
 
   // Esc fecha. Sem isto, um diálogo que aparece a cada entrada vira armadilha para quem usa teclado.
-  useEffect(() => {
-    const aoTeclar = (e: KeyboardEvent) => { if (e.key === 'Escape') aoFechar(); };
-    window.addEventListener('keydown', aoTeclar);
-    return () => window.removeEventListener('keydown', aoTeclar);
-  }, [aoFechar]);
+  useEffect(() => empilharCamada(aoFechar), [aoFechar]);
 
   /**
    * Armadilha de foco. `ComoSeJoga` não tem, e passa — é uma ficha de leitura. Esta sala tem seis

@@ -39,3 +39,23 @@ export function chaveDedup(palavra: string | undefined | null, lang: string | un
   const idioma = (lang ?? '').toLowerCase().split('-')[0]
   return `${idioma}|${chaveDaPalavra(palavra)}`
 }
+
+/**
+ * LETRAS LATINAS QUE O NFD NAO DECOMPOE, e a base de cada uma.
+ *
+ * `normalize('NFD')` separa `á` em `a` + acento, mas nao mexe em `ł`, `ø`, `đ`, `ı`, `æ` nem `œ`:
+ * o traco faz parte do glifo. Como as chaves de comparacao removem tudo que nao e A-Z DEPOIS do
+ * NFD, essas letras nao viravam a base — elas SUMIAM. Medido: `łatwy` virava `ATWY` (sem o L),
+ * `øre` virava `RE`, `oeuvre` escrito `œuvre` virava `UVRE`. Quem digitava a palavra certa errava.
+ *
+ * Efeito no material: 17% da trilha polonesa e 8% da turca eram recusadas ou comparadas erradas.
+ */
+const BASE_LATINA: Record<string, string> = {
+  'ł': 'l', 'Ł': 'L', 'ø': 'o', 'Ø': 'O', 'đ': 'd', 'Đ': 'D', 'ð': 'd', 'Ð': 'D',
+  'ı': 'i', 'İ': 'I', 'ß': 'ss', 'æ': 'ae', 'Æ': 'AE', 'œ': 'oe', 'Œ': 'OE', 'þ': 'th', 'Þ': 'TH',
+};
+
+/** Troca as letras acima pela base antes de qualquer remocao de nao-A-Z. */
+export function comBaseLatina(texto: string): string {
+  return (texto ?? '').replace(/[łŁøØđĐðÐıİßæÆœŒþÞ]/g, (c) => BASE_LATINA[c] ?? c);
+}

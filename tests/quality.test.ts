@@ -76,9 +76,10 @@ describe('a régua gramatical é POR IDIOMA', () => {
   });
 
   it('idioma sem lista não filtra NADA — filtro que erra é pior que filtro nenhum', () => {
-    expect(ehGramatical('le', 'fr')).toBe(false);
-    expect(ehGramatical('der', 'de')).toBe(false);
-    // Palavra de conteúdo em idioma sem lista passa inteira, sem a régua inglesa opinar.
+    // Russo e japonês não têm lista: sem certeza dela, o fallback honesto é não filtrar.
+    expect(ehGramatical('и', 'ru')).toBe(false);
+    expect(ehGramatical('の', 'ja')).toBe(false);
+    // Palavra de conteúdo em idioma COM lista passa inteira: a lista é de gramaticais, só.
     expect(avaliarCartao(card({ word: 'fenêtre', translation: 'janela', srcLang: 'fr' })).serve).toBe(true);
     expect(avaliarCartao(card({ word: 'Fenster', translation: 'janela', srcLang: 'de' })).serve).toBe(true);
   });

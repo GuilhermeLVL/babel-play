@@ -176,11 +176,12 @@ describe('Ditado', () => {
 });
 
 describe('Caça-conectores', () => {
-  it('só oferece o jogo em idioma com lista — não aplica a régua inglesa ao francês', () => {
+  it('só oferece o jogo em idioma com lista — não aplica a régua inglesa ao japonês', () => {
     expect(temConectores('en')).toBe(true);
     expect(temConectores('pt-BR')).toBe(true);
-    expect(temConectores('fr')).toBe(false);
-    expect(buildRodadasConectores(FALAS, { lang: 'fr' })).toEqual([]);
+    expect(temConectores('fr')).toBe(true);
+    expect(temConectores('ja')).toBe(false);
+    expect(buildRodadasConectores(FALAS, { lang: 'ja' })).toEqual([]);
   });
 
   it('acha os conectores na fala real', () => {

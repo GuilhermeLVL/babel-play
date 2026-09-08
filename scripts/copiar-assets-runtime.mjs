@@ -34,7 +34,9 @@ const vadDir = primeiroExistente([join(RAIZ, 'node_modules', '@ricky0123', 'vad-
 const ALVOS = [
   ...['ort-wasm-simd-threaded.wasm', 'ort-wasm-simd-threaded.mjs', 'ort-wasm-simd-threaded.jsep.wasm', 'ort-wasm-simd-threaded.jsep.mjs']
     .map((f) => ({ de: ortDir && join(ortDir, 'dist', f), para: join(PUBLIC, f), pacote: 'onnxruntime-web' })),
-  ...['silero_vad_v5.onnx', 'silero_vad_legacy.onnx', 'vad.worklet.bundle.min.js']
+  /* So o `legacy`: os dois consumidores o pedem por nome (`systemAudio.ts:245` e
+     `offlineTranscribe.ts:70`). O `v5` eram 2,3 MB copiados para o `dist` que ninguem carregava. */
+  ...['silero_vad_legacy.onnx', 'vad.worklet.bundle.min.js']
     .map((f) => ({ de: vadDir && join(vadDir, 'dist', f), para: join(PUBLIC, f), pacote: '@ricky0123/vad-web' })),
 ]
 

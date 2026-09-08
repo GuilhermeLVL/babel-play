@@ -88,3 +88,7 @@ backups/
 # Worktrees do git criados sob .claude/ — são cópias de trabalho, não conteúdo do repositório.
 # Versioná-los duplicaria a árvore inteira dentro dela mesma.
 .claude/worktrees/
+
+# Sobras de bancada: nao versionadas, e sem isto apareciam como untracked a cada `git status`.
+scratch_test/
+.wrangler/

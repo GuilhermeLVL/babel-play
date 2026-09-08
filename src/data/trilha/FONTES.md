@@ -177,8 +177,9 @@ qualquer uma dessas falhas.
 
 ## Regenerar
 
-O script de conversão não é código de produção e não é versionado — o que se versiona é a
-**saída**. Para refazer:
+Os scripts de conversão **são versionados** (`scripts/trilha/`, 9 arquivos), e dois deles têm
+entrada em `package.json` (`trilha:derivar`, `trilha:verificar`). A saída também é versionada: o
+JSON é o artefato que o app carrega, e regerar não é parte do build. Para refazer:
 
 1. Baixe os dois CSVs do repositório CEFR-J/Octanove e aplique as regras de palavras e níveis.
 2. Traduza: consulte o SPARQL do Wikidata pelos pares en↔pt ligados por `P5137` e, para o que

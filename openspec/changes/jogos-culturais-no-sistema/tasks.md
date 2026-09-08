@@ -1,0 +1,23 @@
+# Tarefas
+
+- [x] 1.1 Os nove ids em `MinigameId` e `MINIGAMES`
+- [x] 1.2 As cinco tabelas que a compilação apontou (`REVELAVEL`, `ARTE`, `ICONES`, `PASSOS_DOS_JOGOS`, `COMO_SE_JOGA`)
+- [x] 1.3 `gradeFor` — pego só pelo `typecheck:core`, que é strict
+- [x] 1.4 Grade (`play/jogos.tsx`) + teste contra `MINIGAMES`
+- [x] 1.5 Cascata de render vira `Record` exaustivo (`play/telaDoJogo.ts`)
+- [x] 1.6 Gate de alfabeto por `requisitos.escrita`, não por nome do jogo
+- [x] 2.1 Karuta: narra a PISTA, cartas trazem as respostas
+- [x] 2.2 Choseong: sem a lista fixa
+- [x] 2.3 Tênis: rali cronometrado, sem a conjugação espanhola
+- [x] 2.4 Koffer: mala cumulativa, sem o Akkusativ
+- [x] 2.5 Bao: montagem por blocos contíguos (não sílabas — a única régua do repo é heurística de inglês)
+- [x] 2.6 Vitendawili: a frase do próprio usuário com a palavra apagada
+- [x] 2.7 Shiritori: corrente pelo baralho, módulo puro com teste próprio
+- [x] 2.8 Cadavre: produção livre, `writesSrs: false`
+- [x] 2.9 Taboo: proibidas derivadas do texto, resposta entre distratores reais
+- [x] 3.1 Recorte da Charada e da Corrente dentro de `buildItems`
+- [x] 3.2 Corrente: corte por profundidade, não por pool
+- [x] 3.3 `tests/gate-e-jogo-concordam.test.ts` (verificado: falha sem os filtros)
+- [x] 4.1 `culturais/**` fora do ignore do ESLint e do knip
+- [x] 4.2 e2e invertido: provava que não estavam na tela, agora prova que estão
+- [x] 5.1 Portões e verificação no navegador até o banco

@@ -79,7 +79,12 @@ test.describe('Rota de aquisição no Inventário', () => {
        deste e2e está no nível 15, acima do topo da curva — então aqui a ausência é o esperado, e
        a presença da linha para um nível abaixo do topo fica coberta por `progressao.test.ts`. */
     const linha = page.getByText(/peças? de graça no nv\. \d+/);
-    const nivel = Number((await page.getByText(/^\d+$/).first().textContent()) ?? '1');
+    /* O nível sai do rótulo mono "nv. N" da barra (`CabecalhoDeTemporada.tsx`), que é único e
+       explícito. O primeiro número solto da página não é o nível: numa conta recém-nascida (o
+       runner da CI) ele era outro contador, o teste lia ">= 10" e cobrava a ausência da linha
+       num nível 1 — que a tem, e deve ter. */
+    const rotulo = (await page.getByText(/^nv\. \d+$/).first().textContent()) ?? 'nv. 1';
+    const nivel = Number(rotulo.replace(/\D/g, '')) || 1;
     if (nivel < 10) await expect(linha).toBeVisible();
     else await expect(linha).toHaveCount(0);
   });

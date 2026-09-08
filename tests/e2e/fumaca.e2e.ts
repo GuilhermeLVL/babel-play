@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { clicarRobusto } from './_helpers';
 
 /**
  * Fumaça: só o que existe hoje, comprovado de verdade (sem login — `npm run dev:local` desliga
@@ -19,7 +20,10 @@ test('a navegação leva até a tela de jogos (Praticar) e ela renderiza', async
   await page.goto('/');
 
   const praticar = page.getByRole('link', { name: 'Praticar' }).or(page.getByRole('button', { name: 'Praticar' }));
-  await praticar.click();
+  /* Numa conta que acabou de nascer (o caso do runner da CI), a primeira visita abre o diálogo
+     de conquista por cima da navegação e o clique cru fica 30 s esperando o overlay sumir.
+     `clicarRobusto` fecha as sobreposições e tenta de novo — o mesmo laço das outras suítes. */
+  await clicarRobusto(page, praticar);
 
   // Prova de renderização: a URL espelha o estado (`src/lib/rotas.ts`) — a view `play` publica
   // `/jogar`, não `/play` — e algo do conteúdo da tela aparece.

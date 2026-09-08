@@ -12,6 +12,8 @@ import { defineConfig, devices } from '@playwright/test';
 export default defineConfig({
   testDir: './tests/e2e',
   testMatch: '**/*.e2e.ts',
+  /* Banco vazio abre no Onboarding e nenhum teste encontra `<main>`. Ver `_global-setup.ts`. */
+  globalSetup: './tests/e2e/_global-setup.ts',
   /**
    * UM WORKER, SEMPRE — e a razão não é lentidão de máquina.
    *

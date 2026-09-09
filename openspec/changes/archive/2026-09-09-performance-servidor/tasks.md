@@ -1,0 +1,4 @@
+- [x] 7.1 `EXPLAIN QUERY PLAN` das cinco consultas do perfil e da listagem
+- [x] 7.2 colunas sem leitor fora de `GET /api/vocab` e de `get`
+- [x] 7.3 teto na listagem de resultados, no servidor e no espelho
+- [x] 7.4 medicao antes e depois com o mesmo comando

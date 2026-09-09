@@ -1,0 +1,4 @@
+- [x] 4.1 handler de sinal com dreno, checkpoint e codigo de saida
+- [x] 4.2 primario repassando o sinal e parando de refazer worker
+- [x] 4.3 teste provando pela PORTA que ninguem atende depois
+- [x] 4.4 `integrity_check` ok apos o desligamento

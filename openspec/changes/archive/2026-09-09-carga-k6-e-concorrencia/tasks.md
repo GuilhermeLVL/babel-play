@@ -1,0 +1,4 @@
+- [x] 8.1 roteiro de jornada com limiares por rota
+- [x] 8.2 teste de gasto concorrente pelo HTTP, com conferencia no banco
+- [x] 8.3 guarda contra passagem por vacuidade
+- [x] 8.4 corrida antes e depois, com copia limpa nas duas

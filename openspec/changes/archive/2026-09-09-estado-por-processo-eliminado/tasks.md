@@ -1,0 +1,3 @@
+- [x] 6.1 teto de erros contado no banco
+- [x] 6.2 teste com dois processos sobre o mesmo banco
+- [x] 6.3 medicao da taxa de acerto do cache antes de decidir

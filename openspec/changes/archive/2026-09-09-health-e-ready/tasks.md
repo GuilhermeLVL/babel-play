@@ -1,0 +1,4 @@
+- [x] 3.1 `/api/ready` publico, ao lado do health
+- [x] 3.2 conferencia de migracoes, banco e armazenamento
+- [x] 3.3 Dockerfile e compose no ready
+- [x] 3.4 `/api/health` intocado, com o snapshot original

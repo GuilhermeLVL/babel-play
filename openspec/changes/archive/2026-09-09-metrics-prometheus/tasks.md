@@ -1,0 +1,4 @@
+- [x] 2.1 `prom-client` em dependencies
+- [x] 2.2 rota montada so quando habilitada, com token opcional
+- [x] 2.3 label por padrao de rota, com balde unico para o que nao casou
+- [x] 2.4 os dois portoes de rota passando a enxergar rotas registradas no app

@@ -1,0 +1,3 @@
+- [x] 5.1 disjuntor por provedor, com meio-aberto
+- [x] 5.2 retry so onde nao ha cascata, so em 429 e 5xx
+- [x] 5.3 limpeza do estado entre testes, com o porque escrito

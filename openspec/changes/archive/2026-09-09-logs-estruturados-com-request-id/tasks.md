@@ -1,0 +1,4 @@
+- [x] 1.1 contexto por request em `requestId.ts`
+- [x] 1.2 leitura implicita no chokepoint de `log()`
+- [x] 1.3 teste com dois requests em voo ao mesmo tempo
+- [x] 1.4 fora de request nao inventa id

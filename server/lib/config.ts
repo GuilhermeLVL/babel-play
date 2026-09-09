@@ -21,6 +21,7 @@
  * O que ele faz é o que faltava: DECLARAR o contrato, CONFERIR no boot, e servir as duas leituras
  * que estavam dentro de handler.
  */
+import { PLAN_MATRIX } from '../../src/core/planos'
 import { registrarFalhaDeBoot } from './bootStatus'
 import { log } from './logger'
 import { authRequired } from './auth'
@@ -74,7 +75,33 @@ export interface VariavelDeclarada {
  * `modo-publico` é o grupo que importa: são as variáveis sem as quais o SaaS sobe parecendo
  * saudável e falha no primeiro request que precisa delas.
  */
+/**
+ * AS VARIAVEIS POR PLANO SAO GERADAS, e nao escritas a mao (ADR 0005).
+ *
+ * `storageQuota.ts` e `usageQuota.ts` montam o nome em tempo de execucao
+ * (`${plan.toUpperCase()}_STORAGE_MB`), e leitura montada e invisivel ao grep, ao inventario e a
+ * regra `env-fora-de-config`. A lista trazia so `ESSENCIAL_*` e `PRO_*` escritas a mao — mas o
+ * codigo aceita os QUATRO planos, entao quem definisse `FREE_STORAGE_MB` teria o valor honrado
+ * sem que ele constasse em lugar nenhum. Gerando a partir de `PLAN_MATRIX`, um plano novo declara
+ * as suas tres variaveis no mesmo commit em que nasce.
+ */
+const SUFIXOS_POR_PLANO: ReadonlyArray<{ sufixo: string; paraQue: string }> = [
+  { sufixo: 'STORAGE_MB', paraQue: 'teto de armazenamento do plano, em MB (override da PLAN_MATRIX)' },
+  { sufixo: 'MONTHLY_MANAGED_CALLS', paraQue: 'cota mensal de chamadas gerenciadas do plano (default da PLAN_MATRIX)' },
+  { sufixo: 'MONTHLY_STT_SECONDS', paraQue: 'teto mensal de segundos de STT do plano' },
+]
+
+export const VARIAVEIS_POR_PLANO: readonly VariavelDeclarada[] = Object.keys(PLAN_MATRIX).flatMap((plano) =>
+  SUFIXOS_POR_PLANO.map(({ sufixo, paraQue }) => ({
+    nome: `${plano.toUpperCase()}_${sufixo}`,
+    exigencia: 'opcional' as const,
+    criticidade: 'degrada-capacidade' as const,
+    paraQue: `${paraQue} — plano ${plano}`,
+  })),
+)
+
 export const VARIAVEIS: readonly VariavelDeclarada[] = [
+  ...VARIAVEIS_POR_PLANO,
   { nome: 'ARMAZENAMENTO_COMPARTILHADO', exigencia: 'opcional', criticidade: 'degrada-capacidade', paraQue: '1 declara que as réplicas montam o MESMO volume; sem isso, REPLICAS>1 exige S3 (ver server/lib/diretorios.ts)' },
   { nome: 'ASAAS_API_KEY', exigencia: 'opcional', criticidade: 'degrada-capacidade', paraQue: 'cobrança no Asaas; ausente, as rotas de compra e assinatura respondem indisponível' },
   { nome: 'ASAAS_BASE_URL', exigencia: 'opcional', criticidade: 'degrada-capacidade', paraQue: 'endpoint do Asaas (sandbox ou produção)' },
@@ -87,9 +114,6 @@ export const VARIAVEIS: readonly VariavelDeclarada[] = [
   { nome: 'DATABASE_URL', exigencia: 'opcional', criticidade: 'degrada-capacidade', paraQue: 'URL do libsql; sem ela, arquivo local em DATA_DIR' },
   { nome: 'DATA_DIR', exigencia: 'opcional', criticidade: 'degrada-capacidade', paraQue: 'raiz dos dados persistentes' },
   { nome: 'ERROS_DIR', exigencia: 'opcional', criticidade: 'degrada-capacidade', paraQue: 'diário de erros em disco (F5-04)' },
-  { nome: 'ESSENCIAL_MONTHLY_MANAGED_CALLS', exigencia: 'opcional', criticidade: 'degrada-capacidade', paraQue: 'cota mensal de chamadas gerenciadas do plano Essencial (default da PLAN_MATRIX)' },
-  { nome: 'ESSENCIAL_MONTHLY_STT_SECONDS', exigencia: 'opcional', criticidade: 'degrada-capacidade', paraQue: 'teto mensal de segundos de STT do plano Essencial' },
-  { nome: 'ESSENCIAL_STORAGE_MB', exigencia: 'opcional', criticidade: 'degrada-capacidade', paraQue: 'teto de armazenamento do plano Essencial, em MB (override da PLAN_MATRIX)' },
   { nome: 'GEMINI_API_KEY', exigencia: 'opcional', criticidade: 'degrada-capacidade', paraQue: 'LLM de nuvem via Google; ausente, a cadeia cai para o próximo binding' },
   { nome: 'GEMINI_MODEL', exigencia: 'opcional', criticidade: 'degrada-capacidade', paraQue: 'modelo do Gemini; sem ela, gemini-2.0-flash' },
   { nome: 'GROQ_API_KEY', exigencia: 'opcional', criticidade: 'degrada-capacidade', paraQue: 'STT e MT de nuvem via Groq; ausente, as rotas respondem 501' },
@@ -110,9 +134,6 @@ export const VARIAVEIS: readonly VariavelDeclarada[] = [
   { nome: 'OLLAMA_MODEL', exigencia: 'opcional', criticidade: 'degrada-capacidade', paraQue: 'modelo do Ollama local' },
   { nome: 'OLLAMA_URL', exigencia: 'opcional', criticidade: 'degrada-capacidade', paraQue: 'endereço do Ollama local; sem ela, http://localhost:11434/v1' },
   { nome: 'PORT', exigencia: 'opcional', criticidade: 'degrada-capacidade', paraQue: 'porta de escuta' },
-  { nome: 'PRO_MONTHLY_MANAGED_CALLS', exigencia: 'opcional', criticidade: 'degrada-capacidade', paraQue: 'cota mensal de chamadas gerenciadas do plano Pro (default 12.000)' },
-  { nome: 'PRO_MONTHLY_STT_SECONDS', exigencia: 'opcional', criticidade: 'degrada-capacidade', paraQue: 'teto mensal de SEGUNDOS de áudio no STT de nuvem — o teto de gasto real (default 36.000)' },
-  { nome: 'PRO_STORAGE_MB', exigencia: 'opcional', criticidade: 'degrada-capacidade', paraQue: 'teto de armazenamento do plano Pro, em MB (override da PLAN_MATRIX)' },
   { nome: 'REPLICAS', exigencia: 'opcional', criticidade: 'impede-servico', paraQue: 'nº de instâncias independentes. Acima de 1 o boot EXIGE armazenamento compartilhado, senão o áudio some conforme a réplica' },
   { nome: 'S3_ACCESS_KEY_ID', exigencia: 'opcional', criticidade: 'degrada-capacidade', paraQue: 'credencial do armazenamento de objetos' },
   { nome: 'S3_BUCKET', exigencia: 'opcional', criticidade: 'degrada-capacidade', paraQue: 'bucket do áudio; é o que torna o áudio alcançável por mais de uma réplica' },

@@ -12,4 +12,9 @@ files:
   - 'server/routes/**/*.ts'
   - 'server/**/rotas/**/*.ts'
 rule:
-  pattern: process.env.$NOME
+  any:
+    - pattern: process.env.$NOME
+    # A leitura MONTADA (`process.env[nome]`) escapava desta regra e do inventario ao mesmo tempo:
+    # ela nao aparece no grep por nome nenhum. `storageQuota` e `usageQuota` a usam legitimamente,
+    # fora de rota; dentro de rota ela e o pior caso, porque nem o inventario a alcanca (ADR 0005).
+    - pattern: process.env[$EXPR]

@@ -19,7 +19,7 @@
 import { describe, it, expect } from 'vitest'
 import { readdirSync, readFileSync, statSync } from 'node:fs'
 import { join } from 'node:path'
-import { VARIAVEIS } from '../../server/lib/config'
+import { VARIAVEIS_POR_PLANO, VARIAVEIS } from '../../server/lib/config'
 
 /** Arquivos de servidor. `server.ts` entra porque é onde metade das leituras acontece. */
 function arquivosDeServidor(dir = 'server', fora: string[] = []): string[] {
@@ -70,14 +70,14 @@ function variaveisLidas(): Map<string, string[]> {
 
 /**
  * Nomes montados em tempo de execução, que varredura nenhuma acha: `capDeArmazenamento` lê
- * `${plano.toUpperCase()}_STORAGE_MB` e `usageQuota` faz o mesmo com as cotas mensais. Ficam aqui,
- * por extenso, porque a alternativa é o inventário mentir por omissão — que é o defeito original.
+ * `${plano.toUpperCase()}_STORAGE_MB` e `usageQuota` faz o mesmo com as cotas mensais.
+ *
+ * A lista era escrita à mão com SEIS nomes (`PRO_*` e `ESSENCIAL_*`) — e o código aceita os QUATRO
+ * planos, então `FREE_STORAGE_MB` e `SELFHOST_MONTHLY_STT_SECONDS` eram honrados sem constar em
+ * lugar nenhum. Agora ela vem de `VARIAVEIS_POR_PLANO`, gerada da `PLAN_MATRIX` (ADR 0005): um
+ * plano novo declara as suas três variáveis no mesmo commit em que nasce.
  */
-const MONTADAS_EM_RUNTIME = [
-  'PRO_STORAGE_MB', 'ESSENCIAL_STORAGE_MB',
-  'PRO_MONTHLY_MANAGED_CALLS', 'ESSENCIAL_MONTHLY_MANAGED_CALLS',
-  'PRO_MONTHLY_STT_SECONDS', 'ESSENCIAL_MONTHLY_STT_SECONDS',
-]
+const MONTADAS_EM_RUNTIME = VARIAVEIS_POR_PLANO.map((v) => v.nome)
 
 const declaradas = new Set(VARIAVEIS.map((v) => v.nome))
 
@@ -98,8 +98,18 @@ describe('inventário de configuração', () => {
   })
 
   it('está em ordem alfabética — o diff de um contrato precisa ser legível', () => {
-    const nomes = VARIAVEIS.map((v) => v.nome)
+    /* As geradas por plano entram no topo (elas não têm ordem própria: saem da `PLAN_MATRIX`), e
+       a ordem que importa é a da lista escrita à mão, que é onde o diff acontece. */
+    const geradas = new Set(VARIAVEIS_POR_PLANO.map((v) => v.nome))
+    const nomes = VARIAVEIS.map((v) => v.nome).filter((n) => !geradas.has(n))
     expect(nomes).toEqual([...nomes].sort())
+  })
+
+  it('as variáveis por plano cobrem TODOS os planos, não só os pagos', () => {
+    // O defeito que isto fecha: `FREE_STORAGE_MB` era lido e não declarado.
+    for (const plano of ['free', 'essencial', 'pro', 'selfhost']) {
+      expect(declaradas.has(`${plano.toUpperCase()}_STORAGE_MB`), `${plano} sem teto de armazenamento declarado`).toBe(true)
+    }
   })
 
   it('nenhuma declaração sem explicação de PARA QUÊ', () => {

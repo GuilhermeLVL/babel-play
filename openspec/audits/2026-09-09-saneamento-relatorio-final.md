@@ -37,6 +37,7 @@ do banco real.
 | 20 | arranque até health 200 | 1.334 ms | **1.742 ms** (piorou) | EXEC |
 | 21 | recuperação após `kill -9` | 1.405 ms, 0 perdidos, integrity ok | 1.649 ms, **0 perdidos**, integrity ok | EXEC |
 | 22 | CI em `main` | **vermelha** | verde na branch, com 5 portões novos | EXEC |
+| 23 | `docker build` | **falhava** (defeito anterior a esta rodada, ver §7) | ok, 865 MB, `/api/ready` 200, `docker stop` em 563 ms com saída 0 | EXEC |
 
 ### Latência por rota (10 conexões, 15 s, mesma cópia do banco)
 
@@ -186,7 +187,37 @@ numa cópia limpa contra 59 req/s no banco engordado pela corrida anterior.
 
 ---
 
-## 7. Estado da entrega
+## 7. Validação da imagem — e o defeito que ela revelou
+
+`docker build` **falhava em `main` desde o primeiro commit público**, e ninguém sabia: o
+`postinstall` do `package.json` chama `scripts/copiar-assets-runtime.mjs`, e o estágio de runtime
+copia só `package.json` e `package-lock.json`. O `npm ci --omit=dev` morria com
+`Cannot find module '/app/scripts/copiar-assets-runtime.mjs'`.
+
+O número "847 MB (medido)" em `docs/deploy.md` é de um estado anterior do arquivo. **A validação
+final é o primeiro `docker build` desta árvore.**
+
+A correção é uma flag, e é a certa e não um remendo: aquele script copia binários de runtime **do
+cliente** (ORT wasm + Silero VAD) para `public/`, e o estágio de build já o executa explicitamente
+antes do `vite build` — eles chegam ao runtime dentro de `dist/`. O estágio de build usa
+`--ignore-scripts` pela mesma razão.
+
+Com a correção, verificado por execução:
+
+| verificação | resultado |
+|---|---|
+| `docker build` | **ok**, imagem de 865 MB |
+| `GET /api/health` | 200 |
+| `GET /api/ready` | 200 — `{"status":"pronto","db":"up","migracoes":"aplicadas","boot":"ok","armazenamento":"nao-configurado"}` |
+| `GET /metrics` com `METRICS_ENABLED=1` | 200 |
+| `HEALTHCHECK` do Docker | `healthy` (apontando para `/api/ready`) |
+| `docker stop` | **563 ms**, código de saída **0**, log: `[desligamento] SIGTERM: conexões drenadas em 0 ms; saindo com 0` |
+
+O `docker stop` é a prova de ponta a ponta do desligamento gracioso: o container saiu em meio
+segundo com código 0, e não nos 10 s do `SIGKILL` que o Docker aplicaria a um processo que ignora o
+sinal — que era o comportamento antes desta rodada.
+
+## 8. Estado da entrega
 
 - **Branch**: `saneamento/2026-09-08`, 50 commits à frente de `main`.
 - **Bateria local, com a árvore quieta**: 3.901 testes vitest · 99 e2e em 3 viewports · `tsc` ·
@@ -201,7 +232,7 @@ numa cópia limpa contra 59 req/s no banco engordado pela corrida anterior.
   decisão do dono, mais as de produto anteriores a esta rodada). `openspec validate --all` limpo, 91
   itens.
 
-## 8. Para abrir as PRs
+## 9. Para abrir as PRs
 
 Uma por fase, como decidido:
 

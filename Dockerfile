@@ -64,7 +64,17 @@ COPY package.json package-lock.json ./
 # dotenv drizzle-orm express express-rate-limit helmet jose jsdom jszip mammoth zod
 # (estáticos) + pdfjs-dist (dinâmico, import de documento). Nenhum dos removidos aparece
 # nessa lista — e o boot do container é o teste: sem eles, ele sobe saudável.
-RUN npm ci --omit=dev \
+# `--ignore-scripts`, e SEM ele a imagem NAO CONSTROI. Achado da validacao final da rodada de
+# saneamento (2026-09-09), e o defeito e ANTERIOR a ela — esta em `main` desde o primeiro commit
+# publico: o `postinstall` do `package.json` chama `scripts/copiar-assets-runtime.mjs`, e este
+# estagio copia so `package.json` e `package-lock.json`. O `npm ci` falhava com
+# "Cannot find module '/app/scripts/copiar-assets-runtime.mjs'".
+#
+# Ignorar e o certo, e nao um remendo: aquele script copia os binarios de RUNTIME DO CLIENTE (ORT
+# wasm + Silero VAD) para `public/`, e o estagio de build ja o executa explicitamente antes do
+# `vite build` — eles chegam aqui dentro de `dist/`, que e copiado logo abaixo. O estagio de build
+# usa `--ignore-scripts` pela mesma razao e chama o script a mao.
+RUN npm ci --omit=dev --ignore-scripts \
  && rm -rf \
       node_modules/onnxruntime-node \
       node_modules/onnxruntime-web \

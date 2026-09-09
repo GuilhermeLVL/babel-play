@@ -30,6 +30,33 @@ export interface CartaoParaExportar {
   exemplo?: string
 }
 
+/**
+ * CAMPO DO ANKI E HTML — e por isso ele sai escapado daqui.
+ *
+ * `limparCampo` (server/import/anki.ts) tira as tags do campo na IMPORTACAO, mas decodifica as
+ * entidades DEPOIS, de proposito: `&lt;div&gt;` numa nota e texto que o autor quis mostrar, e
+ * decodificar antes o faria ser confundido com uma tag e apagado. A consequencia, medida em
+ * 2026-09-09: `&lt;script&gt;alert(1)&lt;/script&gt;` entra como entidade e sai de `limparCampo`
+ * como marcacao viva — o mesmo valendo para as numericas (`&#60;`, `&#x3c;`).
+ *
+ * Dentro do produto isso e inerte: nada do baralho vira HTML (o unico `dangerouslySetInnerHTML`
+ * do cliente e o QR do 2FA, e o React escapa todo o resto). O sink e AQUI: `notes.flds` e
+ * renderizado como HTML pelo Anki. Sem esta funcao, um baralho hostil importado e depois
+ * exportado levava a carga para dentro do webview do Anki da pessoa — um caminho que sai do nosso
+ * dominio, onde a nossa politica de escape nao vale mais.
+ *
+ * Escapar aqui nao muda cartao legitimo nenhum: o conteudo que chega ja passou por `limparCampo`
+ * e so tem `<`, `>` ou `&` quando o autor os escreveu como TEXTO — e ai escapar e exatamente o
+ * que os preserva como texto.
+ *
+ * `csum` continua calculado sobre o valor NAO escapado: o Anki faz o dele sobre o campo com o
+ * HTML removido, que e justamente este valor. Escapar antes do checksum quebraria a deteccao de
+ * duplicata na reimportacao.
+ */
+function escaparHtml(s: string): string {
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+}
+
 /** Separador de campos de uma nota do Anki. */
 const SEP = '\x1f'
 
@@ -58,20 +85,31 @@ function modeloJson(nome: string) {
       usn: -1,
       sortf: 0,
       did: ID_BARALHO,
-      tmpls: [{
-        name: 'Cartão 1',
-        ord: 0,
-        qfmt: '{{Frente}}',
-        afmt: '{{FrontSide}}<hr id=answer>{{Verso}}<br><i>{{Frase}}</i>',
-        bqfmt: '', bafmt: '', did: null, bfont: '', bsize: 0,
-      }],
+      tmpls: [
+        {
+          name: 'Cartão 1',
+          ord: 0,
+          qfmt: '{{Frente}}',
+          afmt: '{{FrontSide}}<hr id=answer>{{Verso}}<br><i>{{Frase}}</i>',
+          bqfmt: '',
+          bafmt: '',
+          did: null,
+          bfont: '',
+          bsize: 0,
+        },
+      ],
       flds: [
         { name: 'Frente', ord: 0, sticky: false, rtl: false, font: 'Arial', size: 20, media: [] },
         { name: 'Verso', ord: 1, sticky: false, rtl: false, font: 'Arial', size: 20, media: [] },
         { name: 'Frase', ord: 2, sticky: false, rtl: false, font: 'Arial', size: 16, media: [] },
       ],
       css: '.card { font-family: arial; font-size: 20px; text-align: center; color: black; background-color: white; }',
-      latexPre: '', latexPost: '', latexsvg: false, req: [[0, 'any', [0]]], vers: [], tags: [],
+      latexPre: '',
+      latexPost: '',
+      latexsvg: false,
+      req: [[0, 'any', [0]]],
+      vers: [],
+      tags: [],
     },
   }
 }
@@ -87,21 +125,43 @@ function baralhoJson(nome: string) {
       dyn: 0,
       collapsed: false,
       browserCollapsed: false,
-      newToday: [0, 0], revToday: [0, 0], lrnToday: [0, 0], timeToday: [0, 0],
-      conf: 1, extendNew: 10, extendRev: 50,
+      newToday: [0, 0],
+      revToday: [0, 0],
+      lrnToday: [0, 0],
+      timeToday: [0, 0],
+      conf: 1,
+      extendNew: 10,
+      extendRev: 50,
     },
   }
 }
 
 const CONF_PADRAO = {
-  nextPos: 1, estTimes: true, activeDecks: [1], sortType: 'noteFld', timeLim: 0,
-  sortBackwards: false, addToCur: true, curDeck: ID_BARALHO, newBury: true,
-  newSpread: 0, dueCounts: true, curModel: String(ID_MODELO), collapseTime: 1200,
+  nextPos: 1,
+  estTimes: true,
+  activeDecks: [1],
+  sortType: 'noteFld',
+  timeLim: 0,
+  sortBackwards: false,
+  addToCur: true,
+  curDeck: ID_BARALHO,
+  newBury: true,
+  newSpread: 0,
+  dueCounts: true,
+  curModel: String(ID_MODELO),
+  collapseTime: 1200,
 }
 
 const DCONF_PADRAO = {
   '1': {
-    id: 1, name: 'Default', mod: 0, usn: 0, maxTaken: 60, autoplay: true, timer: 0, replayq: true,
+    id: 1,
+    name: 'Default',
+    mod: 0,
+    usn: 0,
+    maxTaken: 60,
+    autoplay: true,
+    timer: 0,
+    replayq: true,
     new: { bury: true, delays: [1, 10], initialFactor: 2500, ints: [1, 4, 7], order: 1, perDay: 20, separate: true },
     rev: { bury: true, ease4: 1.3, fuzz: 0.05, ivlFct: 1, maxIvl: 36500, minSpace: 1, perDay: 200 },
     lapse: { delays: [10], leechAction: 0, leechFails: 8, minInt: 1, mult: 0 },
@@ -156,7 +216,9 @@ export async function montarApkg(cartoes: CartaoParaExportar[], nomeDoBaralho: s
     await cliente.execute({
       sql: 'INSERT INTO col VALUES (1,?,?,?,11,0,-1,0,?,?,?,?,?)',
       args: [
-        criacao, agora, agora,
+        criacao,
+        agora,
+        agora,
         JSON.stringify(CONF_PADRAO),
         JSON.stringify(modeloJson(nomeDoBaralho)),
         JSON.stringify(baralhoJson(nomeDoBaralho)),
@@ -169,10 +231,20 @@ export async function montarApkg(cartoes: CartaoParaExportar[], nomeDoBaralho: s
     let id = agora
     for (const c of cartoes) {
       const idNota = id++
-      const campos = [c.frente, c.verso, c.exemplo ?? ''].join(SEP)
+      const campos = [c.frente, c.verso, c.exemplo ?? ''].map(escaparHtml).join(SEP)
       await cliente.execute({
         sql: 'INSERT INTO notes VALUES (?,?,?,?,-1,?,?,?,?,0,?)',
-        args: [idNota, randomUUID().slice(0, 10), ID_MODELO, agoraSeg, '', campos, c.frente, checksum(c.frente), ''],
+        args: [
+          idNota,
+          randomUUID().slice(0, 10),
+          ID_MODELO,
+          agoraSeg,
+          '',
+          campos,
+          escaparHtml(c.frente),
+          checksum(c.frente),
+          '',
+        ],
       })
       // type 0 / queue 0 = cartão NOVO. Sem histórico, como explicado no cabeçalho.
       await cliente.execute({
@@ -189,7 +261,13 @@ export async function montarApkg(cartoes: CartaoParaExportar[], nomeDoBaralho: s
     zip.file('media', '{}') // sem mídia — o mapa vazio é obrigatório mesmo assim
     return await zip.generateAsync({ type: 'nodebuffer', compression: 'DEFLATE' })
   } finally {
-    try { cliente.close() } catch { /* já fechado */ }
-    await rm(dir, { recursive: true, force: true }).catch(() => { /* temporário */ })
+    try {
+      cliente.close()
+    } catch {
+      /* já fechado */
+    }
+    await rm(dir, { recursive: true, force: true }).catch(() => {
+      /* temporário */
+    })
   }
 }

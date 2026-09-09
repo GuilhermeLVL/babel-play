@@ -121,7 +121,20 @@ export default tseslint.config(
         __dirname: 'readonly',
         setTimeout: 'readonly',
         clearTimeout: 'readonly',
+        // `performance.now()` e o relogio monotonico dos scripts de medicao (`arranque.mjs`,
+        // `recuperacao.mjs`, `concorrencia.mjs`) — `Date.now()` nao serve la, ele salta com o
+        // ajuste de relogio do sistema no meio de uma medicao de milissegundos.
+        performance: 'readonly',
       },
+    },
+  },
+  {
+    // Roteiros do k6 (`scripts/perf/*.k6.js`). Eles NAO rodam no Node: rodam dentro do container
+    // `grafana/k6`, que injeta `__ENV`, `__VU` e `__ITER` como globais. Sem esta declaracao o
+    // eslint acusa `no-undef` no que e justamente a interface da ferramenta.
+    files: ['scripts/perf/*.k6.js'],
+    languageOptions: {
+      globals: { __ENV: 'readonly', __VU: 'readonly', __ITER: 'readonly' },
     },
   },
   {

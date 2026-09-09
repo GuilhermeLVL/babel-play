@@ -23,6 +23,7 @@
  */
 import niveisEn from '../../data/trilha/niveis/en.json'
 import { indiceDaTrilha } from '../../data/trilha/indice'
+import { dobrarTexto } from '../texto/palavra'
 
 export type CefrLevel = 'A1' | 'A2' | 'B1' | 'B2' | 'C1' | 'C2'
 export type ProcedenciaCefr = 'curado' | 'wordlist' | 'frequencia' | 'ausente'
@@ -47,10 +48,9 @@ export interface NivelCefr {
 
 const NIVEIS: CefrLevel[] = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2']
 
-/** Normalização mínima e estável: sem caixa, sem espaços de borda, sem diacríticos. */
-function chave(palavra: string): string {
-  return palavra.normalize('NFD').replace(/[̀-ͯ]/g, '').trim().toLowerCase()
-}
+/** Normalização mínima e estável: sem caixa, sem espaços de borda, sem diacríticos (ADR 0004:
+ *  `aparar` e não `colapsar`, porque uma entrada de wordlist é uma palavra só). */
+const chave = (palavra: string) => dobrarTexto(palavra, { espacos: 'aparar' })
 
 /** `niveis/<lang>.json`: nível → palavras já normalizadas e unidas por `|`. */
 type Niveis = Partial<Record<CefrLevel, string>>

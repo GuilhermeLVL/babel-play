@@ -1,4 +1,5 @@
 import { ehRTL, idiomaDaInterface } from './i18n';
+import { dobrarTexto } from '../core/texto/palavra';
 /**
  * Lista única de idiomas usada pelos seletores (captura, configurações). `code` é
  * o BCP-47 (para a captura/Whisper e o TTS); `short` é o ISO-639-1 (para o MT).
@@ -74,10 +75,9 @@ const PT_NAMES: Record<string, string> = {
   vi: 'vietnamita', th: 'tailandês tailandes',
 };
 
-/** Remove acentos e caixa — "japones" precisa achar "japonês". */
-function fold(s: string): string {
-  return s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
-}
+/** Remove acentos e caixa — "japones" precisa achar "japonês". Espaço intacto: nomes de idioma
+ *  compostos ("chinês tradicional") precisam continuar comparáveis (ADR 0004). */
+const fold = (s: string) => dobrarTexto(s, { espacos: 'preservar' });
 
 /**
  * O idioma casa com o termo buscado? Procura no rótulo nativo, no nome em português e nos

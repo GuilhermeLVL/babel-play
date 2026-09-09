@@ -1,4 +1,5 @@
 import { avaliarFrase, chaveComparavel } from '../learning/quality';
+import { dobrarTexto } from '../texto/palavra';
 import { normalizarPalavra } from './wordsearch';
 
 /**
@@ -56,14 +57,7 @@ export interface RodadaEscuta {
  * Local e não importado de `wordsearch.ts` de propósito: aquele módulo está mudando por outro
  * agente nesta mesma auditoria.
  */
-function chaveDeTexto(s: string): string {
-  return s
-    .normalize('NFD')
-    .replace(/[̀-ͯ]/g, '')
-    .trim()
-    .toLowerCase()
-    .replace(/\s+/g, ' ');
-}
+const chaveDeTexto = (s: string) => dobrarTexto(s, { espacos: 'colapsar' });
 
 function embaralhar<T>(xs: T[]): T[] {
   const a = [...xs];

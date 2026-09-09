@@ -20,6 +20,34 @@ export function chaveDaPalavra(s: string | undefined | null): string {
 }
 
 /**
+ * DOBRAR TEXTO PARA COMPARAR — a segunda das três normalizações (ADR 0004).
+ *
+ * `chaveDaPalavra` acima responde "estas duas PALAVRAS são a mesma?" e por isso remove tudo que
+ * não é letra ou número, inclusive espaço. Esta responde "estes dois TEXTOS são o mesmo?", e
+ * preserva o espaço — sem ele, `água doce` e `águadoce` deixariam de ser distinguíveis, e a
+ * comparação de frase do Escuta e a busca de idioma parariam de funcionar.
+ *
+ * O QUE FAZER COM O ESPAÇO É DO CHAMADOR, e é explícito de propósito. Havia quatro cópias desta
+ * função que diferiam SÓ nisso, escondido em quatro regexes:
+ *   - `languages.ts` comparava nomes de idioma sem tocar no espaço;
+ *   - `cefrWordlist.ts` aparava as bordas de uma entrada de lista;
+ *   - `escuta.ts` aparava e colapsava, porque compara frase ditada;
+ *   - `dictionary.ts` colapsava e aparava, para casar títulos de verbete.
+ * Um argumento que se lê no ponto de chamada vale mais que quatro regexes que não se citam.
+ */
+export type TratamentoDeEspaco = 'preservar' | 'aparar' | 'colapsar'
+
+export function dobrarTexto(s: string | undefined | null, opcoes: { espacos: TratamentoDeEspaco }): string {
+  const semAcento = (s ?? '')
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '') // as marcas de acento, ja separadas pelo NFD
+    .toLowerCase()
+  if (opcoes.espacos === 'preservar') return semAcento
+  if (opcoes.espacos === 'aparar') return semAcento.trim()
+  return semAcento.replace(/\s+/g, ' ').trim()
+}
+
+/**
  * A CHAVE DE DEDUPLICAÇÃO DO ACERVO — a mesma nas duas pontas (auditoria de 2026-09-07, achado A24).
  *
  * Existiam duas, e o comentário de uma delas dizia "mesma chave do servidor". Não era, em três

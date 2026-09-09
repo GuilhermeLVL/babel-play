@@ -1,5 +1,6 @@
 import { idiomaDaInterface } from './i18n';
 import { baseLang } from './languages';
+import { dobrarTexto } from '../core/texto/palavra';
 
 /**
  * DICIONÁRIO REAL — cliente do Wiktionary (Wikimedia), multi-wiki.
@@ -144,8 +145,8 @@ function pageUrl(host: string, word: string, anchor?: string): string {
 
 /** Comparação de títulos tolerante a acento/caixa/espaço — os títulos vêm do HTML, não de nós. */
 function sameHeading(a: string, b: string): boolean {
-  const norm = (s: string) =>
-    s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/\s+/g, ' ').trim();
+  // ADR 0004: `colapsar` — títulos de verbete vêm com espaçamento irregular da fonte.
+  const norm = (s: string) => dobrarTexto(s, { espacos: 'colapsar' });
   return norm(a) === norm(b);
 }
 

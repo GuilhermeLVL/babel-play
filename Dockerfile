@@ -101,10 +101,24 @@ ENV HOST=0.0.0.0 \
     PORT=3000
 EXPOSE 3000
 
-# /api/health é público (registrado antes do authMiddleware) e reporta banco E boot:
-# um passo de migração que falhou deixa a probe em 503 em vez de subir mudo.
+# A PROBE PASSOU A SER /api/ready (Fase 5), e a troca é sobre o que o Docker faz com a resposta.
+#
+# O `HEALTHCHECK` não reinicia nada: ele marca o container como `unhealthy`, e quem LÊ esse estado
+# são as coisas que decidem ROTEAR — `depends_on: service_healthy` no compose, o reagendamento do
+# Swarm, os proxies reversos que descartam alvo doente. Isso é readiness, não liveness, e é por
+# isso que apontar para o `/api/health` estava errado por acidente: o health responde "o processo
+# está vivo", e ele devolve 200 numa instância que subiu com o banco na versão anterior — que é
+# exatamente a instância que não pode receber tráfego.
+#
+# `/api/ready` acrescenta ao que o health já cobria (banco por tabela REAL + passos de boot) as
+# duas perguntas que faltavam: migrações aplicadas (journal x banco) e o armazenamento externo,
+# quando há S3/R2 configurado. As duas rotas são públicas — registradas antes do authMiddleware.
+#
+# `--timeout=5s`: com S3 o `ready` faz um HEAD no bucket, e 5 s é folgado para isso na mesma
+# região. `--start-period=40s` continua cobrindo migração + seed do primeiro boot, em que 503 é a
+# resposta certa e não deve contar como falha.
 HEALTHCHECK --interval=30s --timeout=5s --start-period=40s --retries=3 \
-  CMD node -e "fetch('http://127.0.0.1:'+(process.env.PORT||3000)+'/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
+  CMD node -e "fetch('http://127.0.0.1:'+(process.env.PORT||3000)+'/api/ready').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
 
 USER node
 CMD ["node", "dist-server/server.cjs"]

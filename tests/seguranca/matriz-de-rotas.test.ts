@@ -29,6 +29,8 @@ import { imprimirSePedido, lerMatriz, type Matriz } from './_matriz'
 const PUBLICAS_POR_DESENHO: Record<string, string> = {
   'GET /api/health':
     'probe de deploy. Precisa responder antes de existir identidade — e responde só status do processo e conectividade do banco, sem dado de ninguém.',
+  'GET /api/ready':
+    'probe de PRONTIDÃO (Fase 5), pública pelo mesmo motivo do health: um orquestrador não tem token de ninguém. Responde se o processo consegue ATENDER — banco, migrações e armazenamento externo — e nomeia só a dependência, nunca o erro: nem caminho, nem driver, nem endpoint.',
   'POST /api/billing/webhook/asaas':
     'o Asaas não tem JWT de usuário nenhum. A autenticação é própria (header `asaas-access-token`, comparação em tempo constante) e sem o segredo configurado ela recusa tudo.',
   'GET /api/rank/:jogo':

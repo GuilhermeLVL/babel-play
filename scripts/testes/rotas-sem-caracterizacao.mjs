@@ -17,6 +17,8 @@ import { join } from 'node:path'
 
 /** Rotas deliberadamente fora: cada uma com o motivo. Uma entrada aqui é decisão, não pendência. */
 const SEM_CARACTERIZACAO = {
+  'GET /metrics':
+    'coberta por `tests/integration/metricas-prometheus.test.ts` (11 casos sobre o `criarApp()` real: formato de exposicao, ordem de montagem, cardinalidade da label de rota) e `metricas-token.test.ts`. Nao aparece aqui como "com teste" por limite deste script: ele so reconhece chamada de teste que comece por `/api/`, e a rota de operacao mora na RAIZ por convencao do Prometheus',
   'POST /api/import/web':
     'busca de página externa (SSRF); coberto por `tests/integration/audit-s13-image-url.test.ts` e `server/import/web.ts` tem teste próprio de redirecionamento',
   'POST /api/import/document':
@@ -59,6 +61,16 @@ const SEM_CARACTERIZACAO = {
 }
 
 const PREFIXOS = {
+  /*
+   * `server/http/app.ts` ENTROU NA LISTA na Fase 5, e o motivo e um furo medido.
+   *
+   * A lista so conhecia `server/routes/*.ts` e `server/audio/loopback.ts`. Rota registrada DIRETO
+   * no app — `app.get('/api/health', ...)`, e agora `/api/ready` e `/metrics` — era invisivel ao
+   * portao: ele contava 85 rotas e passava, com tres delas fora do censo. `/api/health` so nao
+   * sumia porque estava empurrada a mao no fim de `rotasDoServidor()`, o que e a mesma coisa que
+   * nao ter portao para ela. O prefixo e vazio porque em `app.ts` o caminho ja e absoluto.
+   */
+  'server/http/app.ts': '',
   'server/routes/ai.ts': '/api/ai',
   'server/routes/sessions.ts': '/api/sessions',
   'server/routes/import.ts': '/api/import',

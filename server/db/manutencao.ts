@@ -9,7 +9,7 @@
  * Aqui o contrato fica explícito no nome do arquivo: NADA daqui é chamável por rota.
  * Chamado apenas por `startServer()` (server.ts).
  */
-import { mkdirSync } from 'node:fs'
+import { mkdirSync, readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 
 import { and, eq, gt, isNull } from 'drizzle-orm'
@@ -50,7 +50,7 @@ export async function aplicarMigrations(): Promise<void> {
     if (await schemaPresente()) {
       console.warn(
         `[db] migrations não aplicadas (${String((err as Error)?.message || err).slice(0, 120)}), ` +
-        'mas o schema já está presente — seguindo. Defina MIGRATIONS_DIR se esta instância deve migrar.',
+          'mas o schema já está presente — seguindo. Defina MIGRATIONS_DIR se esta instância deve migrar.',
       )
       return
     }
@@ -58,12 +58,57 @@ export async function aplicarMigrations(): Promise<void> {
   }
 }
 
+/**
+ * AS MIGRAÇÕES ESTÃO TODAS APLICADAS? (Fase 5, para o `/api/ready`.)
+ *
+ * `schemaPresente()` responde a pergunta fraca — "existe a tabela `sessions`?" —, e ela era
+ * suficiente para o que ela decide (falha de migração é fatal ou não). Readiness precisa da
+ * pergunta forte: um deploy que sobe com o CÓDIGO novo e o BANCO na versão anterior tem
+ * `sessions` de sobra e ainda assim não consegue atender — a coluna que o código novo lê não
+ * existe. Esse é o modo de falha real de um deploy contínuo, e `SELECT 1` não o vê.
+ *
+ * A CONTA É JOURNAL x APLICADAS. O drizzle guarda em `__drizzle_migrations` uma linha por
+ * migração já rodada, e `migrations/meta/_journal.json` lista as que o código traz. Iguais em
+ * número, o banco está na versão deste binário.
+ *
+ * O CASO EM QUE ELA NÃO SABE, e por que isso NÃO reprova a instância: `aplicarMigrations()` já
+ * documenta (achado P1-N1) a topologia legítima em que um nó migra e os outros só servem, SEM a
+ * pasta de migrações no disco. Ali o journal não é legível e afirmar "não está pronto" tiraria do
+ * balanceador uma réplica que atende perfeitamente. O veredicto vira `'desconhecida'`, o `ready`
+ * o repassa ao operador, e quem decide é ele — mentir para qualquer um dos dois lados é pior.
+ */
+export type VeredictoDasMigracoes = 'aplicadas' | 'atrasadas' | 'desconhecida'
+
+export async function migracoesAplicadas(): Promise<VeredictoDasMigracoes> {
+  let esperadas: number
+  try {
+    const pasta = process.env.MIGRATIONS_DIR ?? join(process.cwd(), 'server', 'db', 'migrations')
+    const journal = JSON.parse(readFileSync(join(pasta, 'meta', '_journal.json'), 'utf8')) as {
+      entries?: unknown[]
+    }
+    if (!Array.isArray(journal.entries)) return 'desconhecida'
+    esperadas = journal.entries.length
+  } catch {
+    // Pasta ausente ou ilegível: a réplica que não migra. Ver o bloco acima.
+    return 'desconhecida'
+  }
+
+  try {
+    const r = await client.execute('SELECT count(*) AS n FROM __drizzle_migrations')
+    const n = Number(r.rows[0]?.n ?? -1)
+    return n >= esperadas ? 'aplicadas' : 'atrasadas'
+  } catch {
+    /* A tabela só não existe em banco NUNCA migrado — e aí o journal tem entradas e o banco tem
+       zero, que é exatamente `atrasadas`. Distinguir "tabela ausente" de "banco fora do ar" não é
+       trabalho desta função: o `ready` já sonda o banco separadamente e responde 503 por ali. */
+    return 'atrasadas'
+  }
+}
+
 /** O schema já existe neste banco? Usado para decidir se a falha de migração é fatal. */
 export async function schemaPresente(): Promise<boolean> {
   try {
-    const r = await client.execute(
-      "SELECT name FROM sqlite_master WHERE type='table' AND name='sessions' LIMIT 1",
-    )
+    const r = await client.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='sessions' LIMIT 1")
     return r.rows.length > 0
   } catch {
     return false // banco inacessível: não dá para afirmar que está pronto

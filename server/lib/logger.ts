@@ -8,6 +8,7 @@
  * de rede/adapter que hoje engolem a exceção em silêncio (parte dos 171 `catch` do M-01).
  */
 import { redigirErro } from './redacao'
+import { requestIdAtual } from './requestId'
 
 export interface LogFields {
   event: string
@@ -86,6 +87,25 @@ export function registrarSinkDeErro(sink: SinkDeErro): () => void {
 
 export function log(level: 'info' | 'warn' | 'error', fields: LogFields): void {
   const out: Record<string, unknown> = { ts: Date.now(), level }
+  /**
+   * O `requestId` IMPLÍCITO — achado da Fase 5, medido em 2026-09-09.
+   *
+   * Das 45 chamadas de `log()` em `server/**` + `server.ts` (comentários descontados), 23 não
+   * passavam `requestId`: metade do diário era evento solto, impossível de amarrar à requisição
+   * que o produziu. E a lista de quem não passava explica o porquê — `storageQuota.ts` (4),
+   * `usageQuota.ts` (5), `bootStatus.ts` (3), `entitlements.ts`, `repositories/credentials.ts`:
+   * são funções de domínio, sem `Request` nenhum em mãos. Cobrar o parâmetro delas significaria
+   * atravessar a assinatura de toda a camada com um argumento de telemetria.
+   *
+   * O id vem do `AsyncLocalStorage` aberto por `requestIdMiddleware` (server/lib/requestId.ts),
+   * então a leitura acontece AQUI, no chokepoint — pelo mesmo motivo que a allowlist e a redação
+   * moram aqui: um `log()` novo nasce correlacionado.
+   *
+   * O EXPLÍCITO GANHA. `fields.requestId` só é substituído quando ausente — quem carimba um id
+   * próprio (reprocessamento, tarefa de fundo) continua mandando no que escreve.
+   */
+  const implicito = requestIdAtual()
+  if (implicito !== undefined && fields.requestId === undefined) out.requestId = implicito
   for (const [k, v] of Object.entries(fields)) {
     if (!ALLOWED.has(k) || v === undefined) continue
     /**

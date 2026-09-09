@@ -1,17 +1,26 @@
-import { existsSync,mkdtempSync, rmSync } from 'node:fs'
+import { existsSync, mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 
-import { afterEach,beforeEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 
 import {
-  armazenamentoDeArquivos, armazenamentoDoAmbiente,
-armazenamentoS3,   assinarSigV4, type ConfigS3,
-resolverDentroDe, } from '../../server/lib/armazenamento'
+  armazenamentoDeArquivos,
+  armazenamentoDoAmbiente,
+  armazenamentoS3,
+  assinarSigV4,
+  configDoS3,
+  type ConfigS3,
+  resolverDentroDe,
+} from '../../server/lib/armazenamento'
 
 let dir: string
-beforeEach(() => { dir = mkdtempSync(path.join(tmpdir(), 'armz-')) })
-afterEach(() => { rmSync(dir, { recursive: true, force: true }) })
+beforeEach(() => {
+  dir = mkdtempSync(path.join(tmpdir(), 'armz-'))
+})
+afterEach(() => {
+  rmSync(dir, { recursive: true, force: true })
+})
 
 /** Um `Readable` inteiro como Buffer — as duas pontas devolvem stream em `lerFaixa`. */
 async function drenar(s: NodeJS.ReadableStream): Promise<Buffer> {
@@ -87,7 +96,10 @@ describe('assinatura SigV4', () => {
 describe('armazenamento S3 contra um transporte falso', () => {
   const cfg: ConfigS3 = {
     endpoint: 'https://exemplo.r2.cloudflarestorage.com',
-    bucket: 'midia', regiao: 'auto', accessKeyId: 'k', secretAccessKey: 's',
+    bucket: 'midia',
+    regiao: 'auto',
+    accessKeyId: 'k',
+    secretAccessKey: 's',
   }
 
   it('monta PUT no caminho do bucket, com corpo e assinatura', async () => {
@@ -108,13 +120,16 @@ describe('armazenamento S3 contra um transporte falso', () => {
 
   it('PUT com erro lança, e DELETE de objeto ausente não lança', async () => {
     const status = (n: number) => (async () => new Response(null, { status: n })) as unknown as typeof fetch
-    await expect(armazenamentoS3(cfg, status(500)).gravar('x', Buffer.from('a'), 'audio/webm')).rejects.toThrow(/s3 PUT 500/)
+    await expect(armazenamentoS3(cfg, status(500)).gravar('x', Buffer.from('a'), 'audio/webm')).rejects.toThrow(
+      /s3 PUT 500/,
+    )
     await expect(armazenamentoS3(cfg, status(404)).remover('x')).resolves.toBeUndefined()
     await expect(armazenamentoS3(cfg, status(500)).remover('x')).rejects.toThrow(/s3 DELETE 500/)
   })
 
   it('tamanho lê content-length e devolve null quando o objeto não existe', async () => {
-    const ok = (async () => new Response(null, { status: 200, headers: { 'content-length': '42' } })) as unknown as typeof fetch
+    const ok = (async () =>
+      new Response(null, { status: 200, headers: { 'content-length': '42' } })) as unknown as typeof fetch
     const ausente = (async () => new Response(null, { status: 404 })) as unknown as typeof fetch
     expect(await armazenamentoS3(cfg, ok).tamanho('x')).toBe(42)
     expect(await armazenamentoS3(cfg, ausente).tamanho('x')).toBeNull()
@@ -157,7 +172,79 @@ describe('armazenamento S3 contra um transporte falso', () => {
   })
 })
 
+/**
+ * `sondar()` — a pergunta de PRONTIDÃO, e por que ela não é `tamanho()` com outro nome.
+ *
+ * `tamanho()` devolve `null` para QUALQUER resposta não-ok do S3: 404 (objeto não existe, o caso
+ * normal) e 403 (credencial errada ou sem permissão, a instância que não consegue gravar mídia
+ * nenhuma) chegam ao chamador indistinguíveis. Um `GET /api/ready` construído sobre ele diria
+ * "pronto" para a segunda. `sondar()` separa os dois, e é por isso que ele existe.
+ */
+describe('sondar(): prontidao do armazenamento', () => {
+  it('filesystem: cria o diretorio que faltar em vez de reprovar', async () => {
+    const novo = path.join(dir, 'ainda-nao-existe')
+    await armazenamentoDeArquivos(novo).sondar()
+    expect(existsSync(novo)).toBe(true)
+  })
+
+  it('s3: 404 na sonda e SUCESSO — prova que o bucket respondeu com credencial valida', async () => {
+    const cfg: ConfigS3 = {
+      endpoint: 'https://s3.exemplo',
+      bucket: 'b',
+      regiao: 'auto',
+      accessKeyId: 'k',
+      secretAccessKey: 's',
+    }
+    const ausente = (async () => new Response(null, { status: 404 })) as unknown as typeof fetch
+    await expect(armazenamentoS3(cfg, ausente).sondar()).resolves.toBeUndefined()
+  })
+
+  it('s3: 403 LANCA — e o caso que `tamanho()` engolia como se fosse objeto ausente', async () => {
+    const cfg: ConfigS3 = {
+      endpoint: 'https://s3.exemplo',
+      bucket: 'b',
+      regiao: 'auto',
+      accessKeyId: 'k',
+      secretAccessKey: 's',
+    }
+    const negado = (async () => new Response(null, { status: 403 })) as unknown as typeof fetch
+    await expect(armazenamentoS3(cfg, negado).sondar()).rejects.toThrow(/s3 HEAD 403/)
+    // A prova de que a distincao e real: o mesmo 403, por `tamanho()`, e indistinguivel de ausencia.
+    expect(await armazenamentoS3(cfg, negado).tamanho('x')).toBeNull()
+  })
+
+  it('s3: falha de rede lanca — a instancia nao pode servir midia', async () => {
+    const cfg: ConfigS3 = {
+      endpoint: 'https://s3.exemplo',
+      bucket: 'b',
+      regiao: 'auto',
+      accessKeyId: 'k',
+      secretAccessKey: 's',
+    }
+    const caiu = (async () => {
+      throw new Error('ECONNREFUSED')
+    }) as unknown as typeof fetch
+    await expect(armazenamentoS3(cfg, caiu).sondar()).rejects.toThrow(/ECONNREFUSED/)
+  })
+})
+
 describe('escolha pelo ambiente', () => {
+  /* `configDoS3` nasceu de `armazenamentoDoAmbiente` na Fase 5: o `GET /api/ready` precisa da
+     mesma pergunta ("existe armazenamento EXTERNO configurado?") sem receber um diretorio de
+     fallback que ele nao tem. Duas copias da regra das quatro variaveis divergiriam no dia em que
+     a quinta aparecesse — entao ela e testada no mesmo lugar que a escolha. */
+  it('configDoS3 devolve null sem as quatro variaveis, e a config com elas', () => {
+    expect(configDoS3({})).toBeNull()
+    expect(configDoS3({ S3_ENDPOINT: 'https://x', S3_BUCKET: 'b' } as NodeJS.ProcessEnv)).toBeNull()
+    const completo = {
+      S3_ENDPOINT: 'https://x',
+      S3_BUCKET: 'b',
+      S3_ACCESS_KEY_ID: 'k',
+      S3_SECRET_ACCESS_KEY: 's',
+    } as NodeJS.ProcessEnv
+    expect(configDoS3(completo)).toMatchObject({ bucket: 'b', regiao: 'auto' })
+  })
+
   it('sem as quatro variáveis, usa arquivos', () => {
     expect(armazenamentoDoAmbiente(dir, {}).tipo).toBe('arquivos')
   })
@@ -169,8 +256,10 @@ describe('escolha pelo ambiente', () => {
 
   it('com as quatro, usa s3', () => {
     const completo = {
-      S3_ENDPOINT: 'https://x', S3_BUCKET: 'b',
-      S3_ACCESS_KEY_ID: 'k', S3_SECRET_ACCESS_KEY: 's',
+      S3_ENDPOINT: 'https://x',
+      S3_BUCKET: 'b',
+      S3_ACCESS_KEY_ID: 'k',
+      S3_SECRET_ACCESS_KEY: 's',
     } as NodeJS.ProcessEnv
     expect(armazenamentoDoAmbiente(dir, completo).tipo).toBe('s3')
   })
@@ -182,8 +271,14 @@ describe('as duas implementações têm o mesmo contrato', () => {
     const falso = (async (u: string, init: RequestInit) => {
       const nome = decodeURIComponent(new URL(u).pathname.split('/').pop()!)
       const m = init.method
-      if (m === 'PUT') { memoria.set(nome, Buffer.from(init.body as Buffer)); return new Response(null, { status: 200 }) }
-      if (m === 'DELETE') { memoria.delete(nome); return new Response(null, { status: 204 }) }
+      if (m === 'PUT') {
+        memoria.set(nome, Buffer.from(init.body as Buffer))
+        return new Response(null, { status: 200 })
+      }
+      if (m === 'DELETE') {
+        memoria.delete(nome)
+        return new Response(null, { status: 204 })
+      }
       const b = memoria.get(nome)
       if (!b) return new Response(null, { status: 404 })
       if (m === 'HEAD') return new Response(null, { status: 200, headers: { 'content-length': String(b.length) } })
@@ -200,9 +295,19 @@ describe('as duas implementações têm o mesmo contrato', () => {
       return new Response(b, { status: 200 })
     }) as unknown as typeof fetch
 
-    for (const a of [armazenamentoDeArquivos(dir), armazenamentoS3({
-      endpoint: 'https://x', bucket: 'b', regiao: 'auto', accessKeyId: 'k', secretAccessKey: 's',
-    }, falso)]) {
+    for (const a of [
+      armazenamentoDeArquivos(dir),
+      armazenamentoS3(
+        {
+          endpoint: 'https://x',
+          bucket: 'b',
+          regiao: 'auto',
+          accessKeyId: 'k',
+          secretAccessKey: 's',
+        },
+        falso,
+      ),
+    ]) {
       await a.gravar('y.webm', Buffer.from('conteudo'), 'audio/webm')
       expect((await a.ler('y.webm')).toString(), a.tipo).toBe('conteudo')
       expect(await a.tamanho('y.webm'), a.tipo).toBe(8)

@@ -1,0 +1,11 @@
+{
+  "status": 200,
+  "forma": {
+    "armazenamento": "string",
+    "at": "number",
+    "boot": "string",
+    "db": "string",
+    "migracoes": "string",
+    "status": "string"
+  }
+}

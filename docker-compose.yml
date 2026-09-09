@@ -20,7 +20,7 @@ services:
       args:
         VITE_SUPABASE_URL: ${VITE_SUPABASE_URL:?defina no .env.docker}
         VITE_SUPABASE_ANON_KEY: ${VITE_SUPABASE_ANON_KEY:?defina no .env.docker}
-        VITE_AUTH_REQUIRED: "1"
+        VITE_AUTH_REQUIRED: '1'
     restart: unless-stopped
     env_file: .env.docker
     environment:
@@ -28,15 +28,15 @@ services:
       # Também DESLIGA por design as capacidades locais — POST /api/import/youtube
       # e /api/audio/* respondem 403 mesmo autenticado (rodam yt-dlp e WASAPI no
       # servidor; não existem num deploy hospedado).
-      AUTH_REQUIRED: "1"
+      AUTH_REQUIRED: '1'
       NODE_ENV: production
       # F6-01 — modo cluster. A carga mediu vazão PLANA (~100 req/s) com a latência crescendo
       # linear a partir de 2 VUs: saturação de processo único. Vazio ou 1 = um processo só.
       # Suba junto o `memory` abaixo: cada worker é um heap Node inteiro.
-      CLUSTER_WORKERS: "${CLUSTER_WORKERS:-1}"
+      CLUSTER_WORKERS: '${CLUSTER_WORKERS:-1}'
     ports:
       # Só no loopback do host: quem publica na internet é o proxy reverso.
-      - "127.0.0.1:3000:3000"
+      - '127.0.0.1:3000:3000'
     volumes:
       # SQLite + áudios das sessões. SEM isto o dado morre a cada `docker compose up`.
       #
@@ -44,8 +44,17 @@ services:
       # múltiplos processos na mesma máquina, mas NÃO funciona sobre NFS/SMB —
       # réplicas em hosts distintos exigem Postgres (ver docs/audit/04-scalability.md).
       - babel-data:/data
+    # /api/ready, e nao /api/health — ver o bloco do HEALTHCHECK no Dockerfile. Quem le este
+    # estado (depends_on: service_healthy, Swarm, proxy reverso) decide ROTEAR, nao reiniciar: e
+    # readiness. O health responde 200 numa instancia que subiu com o banco na versao anterior.
     healthcheck:
-      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      test:
+        [
+          'CMD',
+          'node',
+          '-e',
+          "fetch('http://127.0.0.1:3000/api/ready').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+        ]
       interval: 30s
       timeout: 5s
       start_period: 40s

@@ -22,6 +22,20 @@ export interface Armazenamento {
    * arquivo já posicionado, S3 pede a faixa ao servidor. Sem isto, ligar o seam custaria o seek.
    */
   lerFaixa(nome: string, inicio: number, fim: number): Promise<Readable>
+  /**
+   * O armazenamento ATENDE agora? (Fase 5, para o `GET /api/ready`.)
+   *
+   * Não é `tamanho()` com outro nome, e a diferença é o que motivou o método existir: `tamanho()`
+   * devolve `null` para QUALQUER resposta não-ok do S3 — inclusive `403`, que é credencial errada,
+   * e `404`, que é o objeto não existir. Uma readiness construída sobre ele daria "pronto" para
+   * uma instância que não consegue gravar mídia nenhuma. `sondar()` separa os dois: objeto ausente
+   * é o caso NORMAL (é uma chave que ninguém grava) e passa; recusa de autorização e falha de rede
+   * lançam.
+   *
+   * Lança em vez de devolver booleano porque a CAUSA é o que o operador precisa ver no log — um
+   * `false` mandaria ele adivinhar entre credencial, rede, bucket e permissão.
+   */
+  sondar(): Promise<void>
 }
 
 /* ─────────────────────────── filesystem ─────────────────────────── */
@@ -48,8 +62,20 @@ export function armazenamentoDeArquivos(dir: string): Armazenamento {
       return createReadStream(resolverDentroDe(dir, nome), { start: inicio, end: fim })
     },
     remover: (nome) => rm(resolverDentroDe(dir, nome), { force: true }),
+    /* No filesystem a pergunta é se o diretório é GRAVÁVEL, e não se existe: no container o
+       `/data` é um volume montado e o processo roda como `node` — o modo de falha real medido
+       nesta base é EACCES, não ENOENT (ver o diário de erros em `server.ts`). `mkdir` recursivo
+       cria o que faltar e falha alto no que não pode. */
+    async sondar() {
+      await mkdir(dir, { recursive: true })
+      await stat(dir)
+    },
     async tamanho(nome) {
-      try { return (await stat(resolverDentroDe(dir, nome))).size } catch { return null }
+      try {
+        return (await stat(resolverDentroDe(dir, nome))).size
+      } catch {
+        return null
+      }
     },
   }
 }
@@ -77,7 +103,10 @@ export function assinarSigV4(opts: {
   agora: Date
 }): Record<string, string> {
   const { metodo, url, corpo, contentType, cfg, agora } = opts
-  const carimbo = agora.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '')
+  const carimbo = agora
+    .toISOString()
+    .replace(/[-:]/g, '')
+    .replace(/\.\d{3}/, '')
   const dia = carimbo.slice(0, 8)
   const hashDoCorpo = sha256(typeof corpo === 'string' ? corpo : corpo)
 
@@ -159,6 +188,14 @@ export function armazenamentoS3(cfg: ConfigS3, buscar: typeof fetch = fetch): Ar
       const buf = Buffer.from(await r.arrayBuffer())
       return Readable.from(r.status === 206 ? buf : buf.subarray(inicio, fim + 1))
     },
+    /* HEAD numa chave que ninguém grava: `404` é a resposta ESPERADA e prova que o bucket
+       respondeu com credencial válida. `403` (assinatura ou permissão) e falha de rede lançam —
+       são exatamente os dois casos em que a instância não consegue servir mídia e precisa sair do
+       balanceador. */
+    async sondar() {
+      const r = await chamar('HEAD', '__sonda-de-prontidao__')
+      if (!r.ok && r.status !== 404) throw new Error(`s3 HEAD ${r.status}`)
+    },
     async remover(nome) {
       const r = await chamar('DELETE', nome)
       // 404 ao remover não é erro: o objetivo é que ele não exista.
@@ -179,16 +216,23 @@ export function armazenamentoS3(cfg: ConfigS3, buscar: typeof fetch = fetch): Ar
  * S3 só entra com as QUATRO variáveis presentes. Configuração pela metade cai para
  * filesystem em vez de falhar no primeiro upload em produção.
  */
-export function armazenamentoDoAmbiente(dirPadrao: string, env: NodeJS.ProcessEnv = process.env): Armazenamento {
+export function configDoS3(env: NodeJS.ProcessEnv = process.env): ConfigS3 | null {
   const { S3_ENDPOINT, S3_BUCKET, S3_ACCESS_KEY_ID, S3_SECRET_ACCESS_KEY, S3_REGION } = env
-  if (S3_ENDPOINT && S3_BUCKET && S3_ACCESS_KEY_ID && S3_SECRET_ACCESS_KEY) {
-    return armazenamentoS3({
-      endpoint: S3_ENDPOINT,
-      bucket: S3_BUCKET,
-      regiao: S3_REGION || 'auto',
-      accessKeyId: S3_ACCESS_KEY_ID,
-      secretAccessKey: S3_SECRET_ACCESS_KEY,
-    })
+  if (!S3_ENDPOINT || !S3_BUCKET || !S3_ACCESS_KEY_ID || !S3_SECRET_ACCESS_KEY) return null
+  return {
+    endpoint: S3_ENDPOINT,
+    bucket: S3_BUCKET,
+    regiao: S3_REGION || 'auto',
+    accessKeyId: S3_ACCESS_KEY_ID,
+    secretAccessKey: S3_SECRET_ACCESS_KEY,
   }
-  return armazenamentoDeArquivos(dirPadrao)
+}
+
+export function armazenamentoDoAmbiente(dirPadrao: string, env: NodeJS.ProcessEnv = process.env): Armazenamento {
+  const cfg = configDoS3(env)
+  /* A DECISÃO saiu daqui para `configDoS3` porque o `GET /api/ready` precisa da mesma pergunta —
+     "existe armazenamento EXTERNO configurado?" — sem receber um diretório de fallback que ele não
+     tem e não usaria. Duas cópias da regra das quatro variáveis divergiriam no dia em que a quinta
+     aparecesse. */
+  return cfg ? armazenamentoS3(cfg) : armazenamentoDeArquivos(dirPadrao)
 }

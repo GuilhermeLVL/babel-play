@@ -31,6 +31,7 @@ import helmet from 'helmet'
 
 import { audioRouter } from '../audio/loopback'
 import { authMiddleware, authRequired } from '../lib/auth'
+import { metricasHabilitadas } from '../lib/config'
 import { capturarAssincrono } from '../lib/erroGlobal'
 import {
   chaveDoRequest,
@@ -47,7 +48,7 @@ import { asaasWebhookRouter, billingRouter } from '../routes/billing'
 import { errosRouter } from '../routes/erros'
 import { exercisesRouter } from '../routes/exercises'
 import { geminiRouter, iniciarClienteGemini } from '../routes/gemini'
-import { healthHandler } from '../routes/health'
+import { healthHandler, readyHandler } from '../routes/health'
 import { imagesRouter } from '../routes/images'
 import { importRouter } from '../routes/import'
 import { meRouter } from '../routes/me'
@@ -56,6 +57,7 @@ import { rankRouter } from '../routes/rank'
 import { sessionsRouter } from '../routes/sessions'
 import { settingsRouter } from '../routes/settings'
 import { vocabRouter } from '../routes/vocab'
+import { handlerDeMetricas, middlewareDeMetricas } from './metricas'
 
 /**
  * A ÚNICA COSTURA da montagem, e ela existe para os testes: o `authMiddleware` de produção resolve
@@ -118,6 +120,35 @@ export function criarApp(opcoes: OpcoesDoApp = {}): express.Express {
   // qualquer log emitido no ciclo do request pode ser amarrado a ele, inclusive falhas de
   // parsing do corpo. Volta ao cliente no header `x-request-id`.
   app.use(requestIdMiddleware)
+
+  /**
+   * MÉTRICAS PROMETHEUS (Fase 5) — o middleware ANTES de tudo, a rota ANTES do auth.
+   *
+   * A POSIÇÃO DO MIDDLEWARE é o ponto: montado aqui, ele observa TODA resposta, inclusive as que
+   * nunca chegam a um router — o 401 do `authMiddleware`, o 429 dos limitadores, o 413 do teto de
+   * corpo. Montado junto dos routers, ele mediria só o caminho feliz, que é o caminho que ninguém
+   * precisa observar. Fica depois do `requestIdMiddleware` porque este é o contrato de
+   * rastreabilidade da casa e não custa nada.
+   *
+   * O `if` é sobre EXISTIR, não sobre responder: com `METRICS_ENABLED` desligado (o default) nem a
+   * rota nem o histograma existem, e `/metrics` responde o 404 de qualquer caminho desconhecido.
+   * Uma rota sempre montada respondendo 403 confirmaria a um estranho que o servidor é
+   * instrumentado — e o corpo de um scrape descreve rota, volume e taxa de erro do servidor todo.
+   *
+   * `/metrics` NA RAIZ, e não `/api/metrics`: essa já existe e é rota de NEGÓCIO (perfil, seeds,
+   * presença — `server/routes/metrics.ts`, montada bem mais abaixo, atrás do auth). Além da
+   * convenção do Prometheus, a raiz é o que mantém o scrape fora do `authMiddleware`, do balde
+   * anti-força-bruta e do `writeLimiter` de `/api/*`: um scraper não tem JWT de ninguém, e um
+   * scrape a cada 15 s consumindo cota de rate limit derrubaria a própria observabilidade.
+   */
+  if (metricasHabilitadas()) {
+    app.use(middlewareDeMetricas())
+    /* Sem `capturarAssincrono`: ele embrulha um ROUTER (`server/lib/erroGlobal.ts:35`), e isto é um
+       handler solto no app — o mesmo caso de `/api/health` logo abaixo. O handler trata a própria
+       falha e devolve 500; telemetria que derruba o request que observa é pior que telemetria
+       nenhuma. */
+    app.get('/metrics', handlerDeMetricas())
+  }
 
   app.use(express.json({ limit: '5mb' }))
 
@@ -229,6 +260,13 @@ export function criarApp(opcoes: OpcoesDoApp = {}): express.Express {
   // Health check (Fase 0) — status do servidor + conectividade do banco. Fica PÚBLICO:
   // registrado ANTES do authMiddleware, então nunca exige token (útil para probes de deploy).
   app.get('/api/health', healthHandler)
+
+  /* PRONTIDÃO, separada da vivacidade (Fase 5). `health` responde "estou vivo" e quem lê decide
+     REINICIAR; `ready` responde "consigo atender" e quem lê decide TIRAR DO BALANCEADOR. As duas
+     ficam públicas pelo mesmo motivo — uma probe de orquestrador não tem token —, e o `ready` fica
+     ao lado do `health` para as duas estarem, sempre, do mesmo lado do `authMiddleware`. O porquê
+     de serem duas rotas está escrito em `server/routes/health.ts`. */
+  app.get('/api/ready', readyHandler)
 
   // Auth (Marco 1) — montada UMA vez, após o health e antes de todo router. Cobre todos os
   // routers /api E o /api/gemini/chat (registrado mais abaixo). Modo aberto (self-host):

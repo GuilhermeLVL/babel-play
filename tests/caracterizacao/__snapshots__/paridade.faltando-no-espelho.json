@@ -55,15 +55,10 @@
       "[].cefrSource",
       "[].daAnki",
       "[].daTrilha",
-      "[].deletedAt",
-      "[].difficultyAt",
       "[].difficultyScore",
       "[].firstSeenAt",
       "[].lastSeenAt",
-      "[].phonetics",
-      "[].srcLangBase",
-      "[].updatedAt",
-      "[].userId"
+      "[].phonetics"
     ]
   },
   "GET /api/vocab/pagina?limite=10": {

@@ -53,7 +53,14 @@ async function acharPelaChaveAntiga(
 
 export async function listarCartoes(): Promise<Response> {
   const db = await abrirStore();
-  return json(await db.getAll('cartoes'));
+  /* `normKey` FICA NO INDEXEDDB e não sai na resposta. Ela é a chave de dedup deste espelho — o
+     índice `porNormKey` depende dela — mas o servidor parou de devolvê-la em `GET /api/vocab`
+     (ver `COLUNAS_DO_CARTAO` em server/db/repositories/vocab.ts: 18,3% do corpo eram seis colunas
+     que nenhum cliente lê). Sem esta linha o espelho passaria a devolver uma chave que o servidor
+     não devolve — que é exatamente o que `paridade-de-forma.test.ts` existe para impedir, e foi
+     ele quem pegou. */
+  const cartoes = await db.getAll('cartoes');
+  return json(cartoes.map(({ normKey: _normKey, ...resto }) => resto));
 }
 
 export async function adicionarCartoes(_m: RegExpMatchArray, _u: URL, init: RequestInit): Promise<Response> {

@@ -3,14 +3,20 @@ import { randomUUID } from 'node:crypto'
 import { and, desc, eq, inArray, isNull, sql } from 'drizzle-orm'
 
 import { nivelCefr } from '../../../src/core/learning/cefrWordlist'
-import { calcularDificuldade, type CortesDeFaixa, cortesDoDeck, faixaDe, type FaixaDificuldade } from '../../../src/core/learning/dificuldade'
+import {
+  calcularDificuldade,
+  type CortesDeFaixa,
+  cortesDoDeck,
+  faixaDe,
+  type FaixaDificuldade,
+} from '../../../src/core/learning/dificuldade'
 import { avaliarCartao, foraDoBulkAdd, type MotivoDescarte } from '../../../src/core/learning/quality'
 import { type Grade, makeFsrs5, type SchedulingState } from '../../../src/core/learning/scheduler'
 import { chaveDedup as chaveDedupDoNucleo } from '../../../src/core/texto/palavra'
 import type { UserId } from '../../lib/authContext'
 import { garantirNiveis } from '../../lib/niveisDaTrilha'
 import { db } from '../db'
-import { ankiDecks,ankiNotes, reviewLogs, sessions, vocabCards, vocabOccurrences } from '../schema'
+import { ankiDecks, ankiNotes, reviewLogs, sessions, vocabCards, vocabOccurrences } from '../schema'
 import { exerciseResultsRepo } from './exerciseResults'
 
 // FSRS-5 lift do desktop (núcleo isomórfico) — o agendamento roda no servidor.
@@ -21,16 +27,27 @@ const fsrs = makeFsrs5()
  * Um recorte que só tem 2 difíceis não pode devolver 2 itens numa rodada de 8 — completa e a UI
  * declara que completou (ver spec da F6).
  */
-function balancear<T extends { difficultyScore: number | null }>(cartoes: T[], limite: number, cortes?: CortesDeFaixa): T[] {
+function balancear<T extends { difficultyScore: number | null }>(
+  cartoes: T[],
+  limite: number,
+  cortes?: CortesDeFaixa,
+): T[] {
   const faixa = (c: T) => (c.difficultyScore == null ? 'medio' : faixaDe(c.difficultyScore, cortes))
   const por = { facil: [] as T[], medio: [] as T[], dificil: [] as T[] }
   for (const c of cartoes) por[faixa(c) as 'facil' | 'medio' | 'dificil'].push(c)
-  const alvo = { medio: Math.round(limite * 0.5), facil: Math.round(limite * 0.25), dificil: limite - Math.round(limite * 0.5) - Math.round(limite * 0.25) }
+  const alvo = {
+    medio: Math.round(limite * 0.5),
+    facil: Math.round(limite * 0.25),
+    dificil: limite - Math.round(limite * 0.5) - Math.round(limite * 0.25),
+  }
   const out: T[] = []
   for (const k of ['medio', 'facil', 'dificil'] as const) out.push(...por[k].slice(0, alvo[k]))
   if (out.length < limite) {
     const usados = new Set(out)
-    for (const c of cartoes) { if (out.length >= limite) break; if (!usados.has(c)) out.push(c) }
+    for (const c of cartoes) {
+      if (out.length >= limite) break
+      if (!usados.has(c)) out.push(c)
+    }
   }
   return out.slice(0, limite)
 }
@@ -132,6 +149,79 @@ export const LOTE_DE_ATIVACAO = 300
 
 // Marco 1: userId obrigatório (branded) em TODA função deste repositório, sem exceção.
 // P3-1: a migração de boot (que atravessa tenants) mudou para server/db/manutencao.ts.
+/**
+ * AS COLUNAS QUE SAEM DO SERVIDOR EM `GET /api/vocab` — e as seis que pararam de sair.
+ *
+ * MEDIDO em 2026-09-09 sobre o banco real (2.783 cartoes vivos, `vocab_cards` com 33 colunas):
+ *
+ *   | medida | valor |
+ *   |---|---:|
+ *   | resposta com `SELECT *` | 2.002,9 KB |
+ *   | so os NOMES DE CHAVE, repetidos linha a linha | 1.084,4 KB (54%) |
+ *   | resposta sem as seis colunas abaixo | 1.636,7 KB |
+ *   | reducao | 18,3% |
+ *
+ * O achado que muda a leitura do numero: mais da METADE do corpo desta rota nao e dado, sao os
+ * nomes das chaves repetidos 2.783 vezes. Cada coluna a menos vale ~65 KB, quase toda ela nome.
+ *
+ * DUAS DELAS NUNCA DEVERIAM TER SAIDO. `user_id` e `deleted_at` sao contabilidade interna: o
+ * primeiro devolve ao cliente o identificador do dono, que ele ja sabe e nao precisa ver de volta,
+ * e o segundo so pode ser NULL nesta consulta (o `WHERE` ja filtra) — viajava para dizer sempre a
+ * mesma coisa.
+ *
+ * AS OUTRAS QUATRO foram conferidas uma a uma no cliente antes de sair, e essa conferencia mudou a
+ * lista: `cloze_prompt`, `cloze_answer`, `cefr_source`, `last_seen_at` e `first_seen_at` PARECIAM
+ * nao usadas, porque `rowToVocabCard` (src/data/rotas/vocabulario.ts:60) nao as nomeia — e sao
+ * lidas, pelo espalhamento `...row`, em `Play.tsx`, `ResumoDaRodada.tsx`, `CatalogoDePalavras.tsx`
+ * e `core/learning/dificuldade.ts`. Ficam. Saem so `norm_key`, `src_lang_base`, `difficulty_at` e
+ * `updated_at`, que nao tem nenhum leitor no cliente (`grep` em `src/`, fora do espelho anonimo,
+ * que guarda `norm_key` no proprio IndexedDB e nao o recebe desta rota).
+ *
+ * A alternativa recusada foi PAGINAR. `GET /api/vocab/pagina` ja existe para quem pagina; esta
+ * rota e chamada por cinco telas que precisam do baralho inteiro de uma vez (busca global, bingo,
+ * analise, auditoria de idioma) e pagina-la trocaria uma requisicao de 2 MB por trinta de 70 KB,
+ * com o mesmo total e mais latencia somada. O corpo grande e o preco de responder "o baralho
+ * inteiro"; o que nao tem preco justificado e mandar coluna que ninguem le.
+ */
+const COLUNAS_DO_CARTAO = {
+  id: vocabCards.id,
+  createdAt: vocabCards.createdAt,
+  sessionId: vocabCards.sessionId,
+  word: vocabCards.word,
+  back: vocabCards.back,
+  phonetics: vocabCards.phonetics,
+  sentence: vocabCards.sentence,
+  srcLang: vocabCards.srcLang,
+  tgtLang: vocabCards.tgtLang,
+  inDeck: vocabCards.inDeck,
+  box: vocabCards.box,
+  dueAt: vocabCards.dueAt,
+  stability: vocabCards.stability,
+  difficulty: vocabCards.difficulty,
+  reps: vocabCards.reps,
+  lapses: vocabCards.lapses,
+  lastReview: vocabCards.lastReview,
+  clozePrompt: vocabCards.clozePrompt,
+  clozeAnswer: vocabCards.clozeAnswer,
+  cefrLevel: vocabCards.cefrLevel,
+  cefrConfidence: vocabCards.cefrConfidence,
+  addedAt: vocabCards.addedAt,
+  occurrences: vocabCards.occurrences,
+  firstSeenAt: vocabCards.firstSeenAt,
+  lastSeenAt: vocabCards.lastSeenAt,
+  cefrSource: vocabCards.cefrSource,
+  difficultyScore: vocabCards.difficultyScore,
+}
+
+/**
+ * O tipo DERIVA da selecao, e nao o contrario: acrescentar uma coluna a
+ * `COLUNAS_DO_CARTAO` a faz aparecer aqui sozinha, e tirar uma faz o compilador achar quem a lia.
+ * Escrever a lista duas vezes seria o jeito de as duas divergirem.
+ */
+export type CartaoParaCliente = {
+  [K in keyof typeof COLUNAS_DO_CARTAO]: VocabCard[K & keyof VocabCard]
+}
+
 export const vocabRepo = {
   /**
    * O baralho, com a marca de PROCEDÊNCIA que faltava.
@@ -148,34 +238,46 @@ export const vocabRepo = {
    * `(user_id, origin_kind)`, então a segunda é um lookup indexado único, em vez de um EXISTS por
    * linha sobre um baralho de milhares. `list()` roda depois de cada rodada — o custo importa.
    */
-  async list(userId: UserId): Promise<Array<VocabCard & { daTrilha: boolean; daAnki: boolean; baralhosAnki: string[] }>> {
+  async list(
+    userId: UserId,
+  ): Promise<Array<CartaoParaCliente & { daTrilha: boolean; daAnki: boolean; baralhosAnki: string[] }>> {
     /* `daAnki` VIAJA PELA MESMA RAZÃO QUE `daTrilha`, e a falta dele custava o baralho inteiro: a
        régua de qualidade tem dois perfis (fala capturada × material curado) e o CLIENTE reavalia
        cada cartão antes da rodada. Sem a marca, ele aplicava o teto de 42 caracteres da captura a
        definições de dicionário — medido no baralho real: 299 cartões importados e jogáveis, e o
        lobby anunciando 8. A procedência já estava no banco; só não chegava a quem decide. */
     const [cartoes, daTrilha, daAnki] = await Promise.all([
-      db.select().from(vocabCards)
+      db
+        .select(COLUNAS_DO_CARTAO)
+        .from(vocabCards)
         .where(and(eq(vocabCards.userId, userId), isNull(vocabCards.deletedAt)))
         .orderBy(desc(vocabCards.addedAt)),
-      db.selectDistinct({ cardId: vocabOccurrences.cardId }).from(vocabOccurrences)
-        .where(and(
-          eq(vocabOccurrences.userId, userId),
-          isNull(vocabOccurrences.deletedAt),
-          eq(vocabOccurrences.originKind, 'trilha'),
-        )),
+      db
+        .selectDistinct({ cardId: vocabOccurrences.cardId })
+        .from(vocabOccurrences)
+        .where(
+          and(
+            eq(vocabOccurrences.userId, userId),
+            isNull(vocabOccurrences.deletedAt),
+            eq(vocabOccurrences.originKind, 'trilha'),
+          ),
+        ),
       /* Tarefa 3 (seletor-facetado): `origin_ref` viaja junto — é o id do baralho Anki de origem.
          `selectDistinct` porque a MESMA nota pode gerar mais de uma ocorrência 'anki' para o
          mesmo cartão (reimport, `ativarLote`), e um cartão pode ter vindo de dois baralhos
          diferentes (mesma palavra projetada de dois decks). Continua UMA consulta agregada — não
          N+1: o custo desta chamada não cresce com o número de cartões, só com o de linhas
          distintas (cardId, deckId), que `idx_occ_origem` já cobre. */
-      db.selectDistinct({ cardId: vocabOccurrences.cardId, deckId: vocabOccurrences.originRef }).from(vocabOccurrences)
-        .where(and(
-          eq(vocabOccurrences.userId, userId),
-          isNull(vocabOccurrences.deletedAt),
-          eq(vocabOccurrences.originKind, 'anki'),
-        )),
+      db
+        .selectDistinct({ cardId: vocabOccurrences.cardId, deckId: vocabOccurrences.originRef })
+        .from(vocabOccurrences)
+        .where(
+          and(
+            eq(vocabOccurrences.userId, userId),
+            isNull(vocabOccurrences.deletedAt),
+            eq(vocabOccurrences.originKind, 'anki'),
+          ),
+        ),
     ])
     const daTrilhaIds = new Set(daTrilha.map((r) => r.cardId))
     const daAnkiIds = new Set(daAnki.map((r) => r.cardId))
@@ -203,15 +305,20 @@ export const vocabRepo = {
    * procedência dele SUMIR na hora — e a régua de qualidade voltava a medi-lo pelo teto da fala
    * capturada, que é o defeito de "299 cartões importados viram 8 palavras prontas".
    */
-  async procedenciaDe(userId: UserId, cardId: string): Promise<{ daTrilha: boolean; daAnki: boolean; baralhosAnki: string[] }> {
+  async procedenciaDe(
+    userId: UserId,
+    cardId: string,
+  ): Promise<{ daTrilha: boolean; daAnki: boolean; baralhosAnki: string[] }> {
     const ocorrencias = await db
       .selectDistinct({ kind: vocabOccurrences.originKind, ref: vocabOccurrences.originRef })
       .from(vocabOccurrences)
-      .where(and(
-        eq(vocabOccurrences.userId, userId),
-        eq(vocabOccurrences.cardId, cardId),
-        isNull(vocabOccurrences.deletedAt),
-      ))
+      .where(
+        and(
+          eq(vocabOccurrences.userId, userId),
+          eq(vocabOccurrences.cardId, cardId),
+          isNull(vocabOccurrences.deletedAt),
+        ),
+      )
     return {
       daTrilha: ocorrencias.some((o) => o.kind === 'trilha'),
       daAnki: ocorrencias.some((o) => o.kind === 'anki'),
@@ -220,7 +327,10 @@ export const vocabRepo = {
   },
 
   /** `get` + procedência: a MESMA forma de `list`, que é o que o cliente sabe consumir. */
-  async getComProcedencia(userId: UserId, id: string): Promise<(VocabCard & { daTrilha: boolean; daAnki: boolean; baralhosAnki: string[] }) | undefined> {
+  async getComProcedencia(
+    userId: UserId,
+    id: string,
+  ): Promise<(VocabCard & { daTrilha: boolean; daAnki: boolean; baralhosAnki: string[] }) | undefined> {
     const card = await this.get(userId, id)
     if (!card) return undefined
     return { ...card, ...(await this.procedenciaDe(userId, id)) }
@@ -258,13 +368,22 @@ export const vocabRepo = {
     const aceitos: NewVocabCard[] = []
     const vistasNoLote = new Set<string>()
     for (const c of cards) {
-      const v = avaliarCartao(
-        { word: c.word, translation: c.back ?? '', sentence: c.sentence ?? '', srcLang: c.srcLang } as never,
-      )
-      if (!v.serve) { skipped.push({ word: c.word, motivo: v.motivo! }); continue }
+      const v = avaliarCartao({
+        word: c.word,
+        translation: c.back ?? '',
+        sentence: c.sentence ?? '',
+        srcLang: c.srcLang,
+      } as never)
+      if (!v.serve) {
+        skipped.push({ word: c.word, motivo: v.motivo! })
+        continue
+      }
       // Colapsa repetição DENTRO do mesmo lote: 3 vezes no mesmo payload = 3 ocorrências, 1 upsert.
       const chave = chaveDedup(c.word, c.srcLang ?? null)
-      if (vistasNoLote.has(chave)) { aceitos.push(c); continue }
+      if (vistasNoLote.has(chave)) {
+        aceitos.push(c)
+        continue
+      }
       vistasNoLote.add(chave)
       aceitos.push(c)
     }
@@ -345,27 +464,32 @@ export const vocabRepo = {
        gravações simultâneas somarem em vez de uma sobrescrever a outra. */
     const repetidas: string[] = []
     for (const row of rows) {
-      await db.insert(vocabCards).values(row).onConflictDoUpdate({
-        target: [vocabCards.userId, vocabCards.normKey],
-        /* O índice é PARCIAL (`where deleted_at is null`), e o SQLite exige que o alvo do
+      await db
+        .insert(vocabCards)
+        .values(row)
+        .onConflictDoUpdate({
+          target: [vocabCards.userId, vocabCards.normKey],
+          /* O índice é PARCIAL (`where deleted_at is null`), e o SQLite exige que o alvo do
            ON CONFLICT repita o mesmo predicado — sem isto ele não reconhece o índice e responde
            SQLITE_ERROR. Não é detalhe de estilo: é o que faz o upsert existir. */
-        targetWhere: sql`${vocabCards.deletedAt} IS NULL`,
-        set: {
-          occurrences: sql`${vocabCards.occurrences} + 1`,
-          lastSeenAt: now,
-          updatedAt: now,
-          // Preenche buracos sem sobrescrever o que já é bom: tradução e frase só entram se faltarem.
-          back: sql`COALESCE(NULLIF(${vocabCards.back}, ''), ${row.back ?? null})`,
-          sentence: sql`COALESCE(NULLIF(${vocabCards.sentence}, ''), ${row.sentence ?? null})`,
-        },
-        setWhere: sql`${vocabCards.deletedAt} IS NULL`,
-      })
+          targetWhere: sql`${vocabCards.deletedAt} IS NULL`,
+          set: {
+            occurrences: sql`${vocabCards.occurrences} + 1`,
+            lastSeenAt: now,
+            updatedAt: now,
+            // Preenche buracos sem sobrescrever o que já é bom: tradução e frase só entram se faltarem.
+            back: sql`COALESCE(NULLIF(${vocabCards.back}, ''), ${row.back ?? null})`,
+            sentence: sql`COALESCE(NULLIF(${vocabCards.sentence}, ''), ${row.sentence ?? null})`,
+          },
+          setWhere: sql`${vocabCards.deletedAt} IS NULL`,
+        })
     }
 
     // Releitura pela CHAVE, não pelo id gerado: num conflito, o id que vale é o do cartão que já existia.
     const chaves = rows.map((r) => r.normKey!)
-    const finais = await db.select().from(vocabCards)
+    const finais = await db
+      .select()
+      .from(vocabCards)
       .where(and(eq(vocabCards.userId, userId), isNull(vocabCards.deletedAt), inArray(vocabCards.normKey, chaves)))
     const porChave = new Map(finais.map((c) => [c.normKey!, c]))
 
@@ -374,10 +498,20 @@ export const vocabRepo = {
       const card = porChave.get(chaveDedup(c.word, c.srcLang ?? null))
       if (!card) return []
       const o = origemDe(c)
-      return [{
-        id: randomUUID(), createdAt: now, updatedAt: now, userId, cardId: card.id, occurredAt: now,
-        originKind: o.kind, originRef: o.ref, sentence: c.sentence ?? null, utteranceId: null,
-      }]
+      return [
+        {
+          id: randomUUID(),
+          createdAt: now,
+          updatedAt: now,
+          userId,
+          cardId: card.id,
+          occurredAt: now,
+          originKind: o.kind,
+          originRef: o.ref,
+          sentence: c.sentence ?? null,
+          utteranceId: null,
+        },
+      ]
     })
     if (ocorrencias.length) await db.insert(vocabOccurrences).values(ocorrencias)
 
@@ -396,16 +530,23 @@ export const vocabRepo = {
    * Cursor composto `(chave, id)` em vez de OFFSET: com OFFSET, inserir uma palavra durante a
    * rolagem faz um item repetir na página seguinte.
    */
-  async listarPagina(userId: UserId, opts: {
-    limite?: number
-    cursor?: { valor: number | string | null; id: string } | null
-    busca?: string
-    niveis?: string[]
-    origens?: string[]
-    desde?: number
-    ate?: number
-    ordem?: 'recentes' | 'frequentes' | 'dificuldade' | 'alfabetica'
-  } = {}): Promise<{ itens: VocabCard[]; proximoCursor: { valor: number | string | null; id: string } | null; total: number }> {
+  async listarPagina(
+    userId: UserId,
+    opts: {
+      limite?: number
+      cursor?: { valor: number | string | null; id: string } | null
+      busca?: string
+      niveis?: string[]
+      origens?: string[]
+      desde?: number
+      ate?: number
+      ordem?: 'recentes' | 'frequentes' | 'dificuldade' | 'alfabetica'
+    } = {},
+  ): Promise<{
+    itens: VocabCard[]
+    proximoCursor: { valor: number | string | null; id: string } | null
+    total: number
+  }> {
     const limite = Math.min(Math.max(opts.limite ?? 200, 1), 500)
     const ordem = opts.ordem ?? 'recentes'
     const cond = [eq(vocabCards.userId, userId), isNull(vocabCards.deletedAt)]
@@ -419,7 +560,8 @@ export const vocabRepo = {
       // 'ausente' é um filtro legítimo: "o que eu tenho sem nível" é uma pergunta real.
       const reais = opts.niveis.filter((n) => n !== 'ausente')
       const querAusente = opts.niveis.includes('ausente')
-      if (reais.length && querAusente) cond.push(sql`(${vocabCards.cefrLevel} IN ${reais} OR ${vocabCards.cefrLevel} IS NULL)`)
+      if (reais.length && querAusente)
+        cond.push(sql`(${vocabCards.cefrLevel} IN ${reais} OR ${vocabCards.cefrLevel} IS NULL)`)
       else if (querAusente) cond.push(isNull(vocabCards.cefrLevel))
       else cond.push(inArray(vocabCards.cefrLevel, reais))
     }
@@ -440,14 +582,22 @@ export const vocabRepo = {
 
     if (opts.cursor) {
       const { valor, id } = opts.cursor
-      cond.push(ordem === 'alfabetica'
-        ? sql`(${coluna} > ${valor} OR (${coluna} = ${valor} AND ${vocabCards.id} > ${id}))`
-        : sql`(${coluna} < ${valor} OR (${coluna} IS ${valor} AND ${vocabCards.id} > ${id}))`)
+      cond.push(
+        ordem === 'alfabetica'
+          ? sql`(${coluna} > ${valor} OR (${coluna} = ${valor} AND ${vocabCards.id} > ${id}))`
+          : sql`(${coluna} < ${valor} OR (${coluna} IS ${valor} AND ${vocabCards.id} > ${id}))`,
+      )
     }
 
     const where = and(...cond)
-    const [{ n }] = await db.select({ n: sql<number>`count(*)` }).from(vocabCards).where(where)
-    const itens = await db.select().from(vocabCards).where(where)
+    const [{ n }] = await db
+      .select({ n: sql<number>`count(*)` })
+      .from(vocabCards)
+      .where(where)
+    const itens = await db
+      .select()
+      .from(vocabCards)
+      .where(where)
       .orderBy(ordem === 'alfabetica' ? coluna : desc(coluna), vocabCards.id)
       .limit(limite + 1)
 
@@ -457,9 +607,12 @@ export const vocabRepo = {
     /* O cursor carrega o valor da MESMA coluna que ordena — senão a página seguinte parte de um
        ponto que a ordenação não conhece e itens somem no meio. */
     const valorDoCursor = (c: VocabCard): number | string | null =>
-      ordem === 'recentes' ? c.addedAt
-        : ordem === 'frequentes' ? c.occurrences
-          : ordem === 'dificuldade' ? c.difficultyScore
+      ordem === 'recentes'
+        ? c.addedAt
+        : ordem === 'frequentes'
+          ? c.occurrences
+          : ordem === 'dificuldade'
+            ? c.difficultyScore
             : c.word
     return {
       itens: pagina,
@@ -481,10 +634,16 @@ export const vocabRepo = {
     if (cardIds?.length) cond.push(inArray(vocabCards.id, cardIds))
     else cond.push(sql`(${vocabCards.difficultyAt} IS NULL OR ${vocabCards.difficultyAt} < ${agora - 7 * 86_400_000})`)
 
-    const cartoes = await db.select().from(vocabCards).where(and(...cond))
+    const cartoes = await db
+      .select()
+      .from(vocabCards)
+      .where(and(...cond))
     if (!cartoes.length) return 0
 
-    const desempenho = await exerciseResultsRepo.desempenhoPorCartao(userId, cartoes.map((c) => c.id))
+    const desempenho = await exerciseResultsRepo.desempenhoPorCartao(
+      userId,
+      cartoes.map((c) => c.id),
+    )
 
     const stmts = cartoes.map((c) => {
       const d = calcularDificuldade({
@@ -519,8 +678,16 @@ export const vocabRepo = {
    * pequeno ou homogêneo finja separação.
    */
   async cortesDeFaixa(userId: UserId): Promise<CortesDeFaixa> {
-    const linhas = await db.select({ s: vocabCards.difficultyScore }).from(vocabCards)
-      .where(and(eq(vocabCards.userId, userId), isNull(vocabCards.deletedAt), sql`${vocabCards.difficultyScore} IS NOT NULL`))
+    const linhas = await db
+      .select({ s: vocabCards.difficultyScore })
+      .from(vocabCards)
+      .where(
+        and(
+          eq(vocabCards.userId, userId),
+          isNull(vocabCards.deletedAt),
+          sql`${vocabCards.difficultyScore} IS NOT NULL`,
+        ),
+      )
     return cortesDoDeck(linhas.map((l) => Number(l.s)))
   },
 
@@ -532,8 +699,16 @@ export const vocabRepo = {
    */
   async distribuicaoDeDificuldade(userId: UserId) {
     const cortes = await this.cortesDeFaixa(userId)
-    const linhas = await db.select({ s: vocabCards.difficultyScore }).from(vocabCards)
-      .where(and(eq(vocabCards.userId, userId), isNull(vocabCards.deletedAt), sql`${vocabCards.difficultyScore} IS NOT NULL`))
+    const linhas = await db
+      .select({ s: vocabCards.difficultyScore })
+      .from(vocabCards)
+      .where(
+        and(
+          eq(vocabCards.userId, userId),
+          isNull(vocabCards.deletedAt),
+          sql`${vocabCards.difficultyScore} IS NOT NULL`,
+        ),
+      )
     const conta = { facil: 0, medio: 0, dificil: 0 }
     for (const l of linhas) conta[faixaDe(Number(l.s), cortes)] += 1
     const n = linhas.length || 1
@@ -554,22 +729,25 @@ export const vocabRepo = {
    * cada fim de rodada. Cada item volta com PROVENIÊNCIA: de onde veio, que nível tem e de que
    * procedência, e por que foi escolhido. "Por que esta palavra apareceu?" passa a ter resposta.
    */
-  async selecionarParaJogo(userId: UserId, opts: {
-    fonte?: 'baralho' | 'sessao' | 'trilha'
-    fonteRef?: string | null
-    dificuldade?: FaixaDificuldade[]
-    estrategia?: 'equilibrado' | 'recentes' | 'frequentes' | 'em-dificuldade'
-    limite?: number
-    evitar?: string[]
-    /** Base ISO-639-1 ('en', 'pt'). Vazio/ausente = sem filtro, o comportamento antigo. */
-    lang?: string | null
-    /**
-     * O SELETOR FACETADO (openspec/changes/seletor-facetado). Quando presente, TEM PRECEDÊNCIA
-     * sobre `fonte`/`fonteRef`/`lang` — os chamadores de hoje (que não enviam `filtro`) continuam
-     * caindo nos ramos antigos, byte a byte.
-     */
-    filtro?: FiltroFacetado
-  } = {}) {
+  async selecionarParaJogo(
+    userId: UserId,
+    opts: {
+      fonte?: 'baralho' | 'sessao' | 'trilha'
+      fonteRef?: string | null
+      dificuldade?: FaixaDificuldade[]
+      estrategia?: 'equilibrado' | 'recentes' | 'frequentes' | 'em-dificuldade'
+      limite?: number
+      evitar?: string[]
+      /** Base ISO-639-1 ('en', 'pt'). Vazio/ausente = sem filtro, o comportamento antigo. */
+      lang?: string | null
+      /**
+       * O SELETOR FACETADO (openspec/changes/seletor-facetado). Quando presente, TEM PRECEDÊNCIA
+       * sobre `fonte`/`fonteRef`/`lang` — os chamadores de hoje (que não enviam `filtro`) continuam
+       * caindo nos ramos antigos, byte a byte.
+       */
+      filtro?: FiltroFacetado
+    } = {},
+  ) {
     const limite = Math.min(Math.max(opts.limite ?? 20, 1), 200)
     const estrategia = opts.estrategia ?? 'equilibrado'
     const cortes = await this.cortesDeFaixa(userId)
@@ -616,21 +794,25 @@ export const vocabRepo = {
           AND o.origin_kind = 'trilha')`)
       }
       if (f.fontes.includes('sessao')) {
-        membros.push(f.sessoes?.length
-          ? sql`EXISTS (SELECT 1 FROM ${vocabOccurrences} o WHERE o.user_id = ${userId} AND o.card_id = ${vocabCards.id}
+        membros.push(
+          f.sessoes?.length
+            ? sql`EXISTS (SELECT 1 FROM ${vocabOccurrences} o WHERE o.user_id = ${userId} AND o.card_id = ${vocabCards.id}
               AND o.origin_kind = 'sessao' AND o.origin_ref IN ${f.sessoes})`
-          : sql`EXISTS (SELECT 1 FROM ${vocabOccurrences} o WHERE o.user_id = ${userId} AND o.card_id = ${vocabCards.id}
-              AND o.origin_kind = 'sessao')`)
+            : sql`EXISTS (SELECT 1 FROM ${vocabOccurrences} o WHERE o.user_id = ${userId} AND o.card_id = ${vocabCards.id}
+              AND o.origin_kind = 'sessao')`,
+        )
       }
       if (f.fontes.includes('baralho')) {
-        membros.push(f.baralhos?.length
-          ? sql`EXISTS (SELECT 1 FROM ${vocabOccurrences} o WHERE o.user_id = ${userId} AND o.card_id = ${vocabCards.id}
+        membros.push(
+          f.baralhos?.length
+            ? sql`EXISTS (SELECT 1 FROM ${vocabOccurrences} o WHERE o.user_id = ${userId} AND o.card_id = ${vocabCards.id}
               AND o.origin_kind = 'anki' AND o.origin_ref IN ${f.baralhos})`
-          // Sem baralhos específicos: "baralho" sozinho significa "não é trilha" — mesma
-          // semântica do ramo `else` dos chamadores antigos (o EXISTS de 'anki' exigiria que
-          // TODO cartão manual também tivesse ocorrência 'anki', o que nunca foi verdade).
-          : sql`NOT EXISTS (SELECT 1 FROM ${vocabOccurrences} o WHERE o.user_id = ${userId} AND o.card_id = ${vocabCards.id}
-              AND o.origin_kind = 'trilha')`)
+            : // Sem baralhos específicos: "baralho" sozinho significa "não é trilha" — mesma
+              // semântica do ramo `else` dos chamadores antigos (o EXISTS de 'anki' exigiria que
+              // TODO cartão manual também tivesse ocorrência 'anki', o que nunca foi verdade).
+              sql`NOT EXISTS (SELECT 1 FROM ${vocabOccurrences} o WHERE o.user_id = ${userId} AND o.card_id = ${vocabCards.id}
+              AND o.origin_kind = 'trilha')`,
+        )
       }
       /* `fontes` é obrigatório e não-vazio no schema Zod da rota — na prática sempre há ao menos
          um membro aqui. Mas o REPOSITÓRIO é chamado direto por testes/outros callers sem passar
@@ -677,19 +859,31 @@ export const vocabRepo = {
     if (opts.evitar?.length) cond.push(sql`${vocabCards.id} NOT IN ${opts.evitar}`)
     if (opts.dificuldade?.length) {
       const faixas = opts.dificuldade.map((f) =>
-        f === 'facil' ? sql`${vocabCards.difficultyScore} < ${cortes.corte1}`
-          : f === 'medio' ? sql`(${vocabCards.difficultyScore} >= ${cortes.corte1} AND ${vocabCards.difficultyScore} < ${cortes.corte2})`
-            : sql`${vocabCards.difficultyScore} >= ${cortes.corte2}`)
+        f === 'facil'
+          ? sql`${vocabCards.difficultyScore} < ${cortes.corte1}`
+          : f === 'medio'
+            ? sql`(${vocabCards.difficultyScore} >= ${cortes.corte1} AND ${vocabCards.difficultyScore} < ${cortes.corte2})`
+            : sql`${vocabCards.difficultyScore} >= ${cortes.corte2}`,
+      )
       cond.push(sql`(${sql.join(faixas, sql` OR `)})`)
     }
 
-    const ordem = estrategia === 'recentes' ? desc(vocabCards.lastSeenAt)
-      : estrategia === 'frequentes' ? desc(vocabCards.occurrences)
-        : estrategia === 'em-dificuldade' ? desc(vocabCards.difficultyScore)
-          // Equilibrado mantém a prioridade do FSRS: vencido primeiro, como desempate.
-          : sql`${vocabCards.dueAt} ASC`
+    const ordem =
+      estrategia === 'recentes'
+        ? desc(vocabCards.lastSeenAt)
+        : estrategia === 'frequentes'
+          ? desc(vocabCards.occurrences)
+          : estrategia === 'em-dificuldade'
+            ? desc(vocabCards.difficultyScore)
+            : // Equilibrado mantém a prioridade do FSRS: vencido primeiro, como desempate.
+              sql`${vocabCards.dueAt} ASC`
 
-    const cartoes = await db.select().from(vocabCards).where(and(...cond)).orderBy(ordem).limit(limite * 3)
+    const cartoes = await db
+      .select()
+      .from(vocabCards)
+      .where(and(...cond))
+      .orderBy(ordem)
+      .limit(limite * 3)
 
     // Mistura 50/25/25 só na estratégia equilibrada; nas outras a ordem já é o critério.
     const escolhidos = estrategia === 'equilibrado' ? balancear(cartoes, limite, cortes) : cartoes.slice(0, limite)
@@ -699,8 +893,16 @@ export const vocabRepo = {
       /** Os cortes usados viajam com a resposta — a UI precisa poder explicar a faixa. */
       cortes,
       itens: escolhidos.map((c) => ({
-        cardId: c.id, word: c.word, back: c.back, sentence: c.sentence, srcLang: c.srcLang, tgtLang: c.tgtLang,
-        clozePrompt: c.clozePrompt, clozeAnswer: c.clozeAnswer, dueAt: c.dueAt, box: c.box,
+        cardId: c.id,
+        word: c.word,
+        back: c.back,
+        sentence: c.sentence,
+        srcLang: c.srcLang,
+        tgtLang: c.tgtLang,
+        clozePrompt: c.clozePrompt,
+        clozeAnswer: c.clozeAnswer,
+        dueAt: c.dueAt,
+        box: c.box,
         proveniencia: {
           origem: opts.fonte ?? 'baralho',
           origemRef: opts.fonteRef ?? null,
@@ -723,23 +925,45 @@ export const vocabRepo = {
    * número falso apresentado como dado (Ajuste 4).
    */
   async inicioDaContagem(userId: UserId): Promise<{ inicioEm: number | null; totalLegado: number; total: number }> {
-    const [{ inicio }] = await db.select({ inicio: sql<number | null>`min(${vocabOccurrences.occurredAt})` })
+    const [{ inicio }] = await db
+      .select({ inicio: sql<number | null>`min(${vocabOccurrences.occurredAt})` })
       .from(vocabOccurrences)
-      .where(and(eq(vocabOccurrences.userId, userId), isNull(vocabOccurrences.deletedAt),
-        sql`${vocabOccurrences.originKind} <> 'legado'`))
-    const [{ n: total }] = await db.select({ n: sql<number>`count(*)` }).from(vocabCards)
+      .where(
+        and(
+          eq(vocabOccurrences.userId, userId),
+          isNull(vocabOccurrences.deletedAt),
+          sql`${vocabOccurrences.originKind} <> 'legado'`,
+        ),
+      )
+    const [{ n: total }] = await db
+      .select({ n: sql<number>`count(*)` })
+      .from(vocabCards)
       .where(and(eq(vocabCards.userId, userId), isNull(vocabCards.deletedAt)))
-    const [{ n: legado }] = await db.select({ n: sql<number>`count(*)` }).from(vocabCards)
-      .where(and(eq(vocabCards.userId, userId), isNull(vocabCards.deletedAt),
-        sql`NOT EXISTS (SELECT 1 FROM ${vocabOccurrences} o WHERE o.user_id = ${userId} AND o.card_id = ${vocabCards.id} AND o.origin_kind <> 'legado')`))
+    const [{ n: legado }] = await db
+      .select({ n: sql<number>`count(*)` })
+      .from(vocabCards)
+      .where(
+        and(
+          eq(vocabCards.userId, userId),
+          isNull(vocabCards.deletedAt),
+          sql`NOT EXISTS (SELECT 1 FROM ${vocabOccurrences} o WHERE o.user_id = ${userId} AND o.card_id = ${vocabCards.id} AND o.origin_kind <> 'legado')`,
+        ),
+      )
     return { inicioEm: inicio ?? null, totalLegado: Number(legado), total: Number(total) }
   },
 
   /** Ocorrências de um cartão — a linha do tempo que a tela de detalhe (F5) mostra. */
   async ocorrencias(userId: UserId, cardId: string) {
-    return db.select().from(vocabOccurrences)
-      .where(and(eq(vocabOccurrences.userId, userId), isNull(vocabOccurrences.deletedAt),
-        eq(vocabOccurrences.cardId, cardId)))
+    return db
+      .select()
+      .from(vocabOccurrences)
+      .where(
+        and(
+          eq(vocabOccurrences.userId, userId),
+          isNull(vocabOccurrences.deletedAt),
+          eq(vocabOccurrences.cardId, cardId),
+        ),
+      )
       .orderBy(desc(vocabOccurrences.occurredAt))
   },
 
@@ -812,7 +1036,10 @@ export const vocabRepo = {
     const set: Record<string, unknown> = { updatedAt: Date.now() }
     if (typeof patch.back === 'string') set.back = patch.back.trim() || null
     if (typeof patch.inDeck === 'boolean') set.inDeck = patch.inDeck ? 1 : 0
-    await db.update(vocabCards).set(set).where(and(eq(vocabCards.id, id), eq(vocabCards.userId, userId)))
+    await db
+      .update(vocabCards)
+      .set(set)
+      .where(and(eq(vocabCards.id, id), eq(vocabCards.userId, userId)))
     return this.get(userId, id)
   },
 
@@ -825,16 +1052,26 @@ export const vocabRepo = {
    */
   async remove(userId: UserId, id: string): Promise<boolean> {
     const now = Date.now()
-    const alvo = await db.select({ id: vocabCards.id }).from(vocabCards)
+    const alvo = await db
+      .select({ id: vocabCards.id })
+      .from(vocabCards)
       .where(and(eq(vocabCards.id, id), eq(vocabCards.userId, userId), isNull(vocabCards.deletedAt)))
       .limit(1)
     if (!alvo.length) return false
     await db.batch([
-      db.update(vocabCards).set({ deletedAt: now, updatedAt: now })
+      db
+        .update(vocabCards)
+        .set({ deletedAt: now, updatedAt: now })
         .where(and(eq(vocabCards.id, id), eq(vocabCards.userId, userId), isNull(vocabCards.deletedAt))),
-      db.update(vocabOccurrences).set({ deletedAt: now, updatedAt: now })
-        .where(and(eq(vocabOccurrences.cardId, id), eq(vocabOccurrences.userId, userId), isNull(vocabOccurrences.deletedAt))),
-      db.update(reviewLogs).set({ deletedAt: now, updatedAt: now })
+      db
+        .update(vocabOccurrences)
+        .set({ deletedAt: now, updatedAt: now })
+        .where(
+          and(eq(vocabOccurrences.cardId, id), eq(vocabOccurrences.userId, userId), isNull(vocabOccurrences.deletedAt)),
+        ),
+      db
+        .update(reviewLogs)
+        .set({ deletedAt: now, updatedAt: now })
         .where(and(eq(reviewLogs.cardId, id), eq(reviewLogs.userId, userId), isNull(reviewLogs.deletedAt))),
     ])
     return true
@@ -876,17 +1113,26 @@ export const vocabRepo = {
          o mesmo buraco no caminho do import. */
       const motivoDeTamanho = foraDoBulkAdd(palavra)
       if (motivoDeTamanho) {
-        await db.update(ankiNotes).set({ motivoDescarte: motivoDeTamanho, updatedAt: now })
+        await db
+          .update(ankiNotes)
+          .set({ motivoDescarte: motivoDeTamanho, updatedAt: now })
           .where(and(eq(ankiNotes.id, nota.id), eq(ankiNotes.userId, userId)))
         continue
       }
 
       const veredito = avaliarCartao(
-        { word: palavra, translation: nota.verso ?? '', sentence: nota.exemplo ?? '', srcLang: deckLang.srcLang } as never,
+        {
+          word: palavra,
+          translation: nota.verso ?? '',
+          sentence: nota.exemplo ?? '',
+          srcLang: deckLang.srcLang,
+        } as never,
         { origem: 'curado' },
       )
       if (!veredito.serve) {
-        await db.update(ankiNotes).set({ motivoDescarte: veredito.motivo ?? null, updatedAt: now })
+        await db
+          .update(ankiNotes)
+          .set({ motivoDescarte: veredito.motivo ?? null, updatedAt: now })
           .where(and(eq(ankiNotes.id, nota.id), eq(ankiNotes.userId, userId)))
         continue
       }
@@ -902,12 +1148,21 @@ export const vocabRepo = {
          e deixamos o upsert criar um cartão novo. */
       let card: VocabCard | undefined
       if (nota.motivoDaBaixa === 'desativacao') {
-        const mortos = await db.select().from(vocabCards)
-          .where(and(eq(vocabCards.userId, userId), eq(vocabCards.normKey, normKey), sql`${vocabCards.deletedAt} IS NOT NULL`))
+        const mortos = await db
+          .select()
+          .from(vocabCards)
+          .where(
+            and(
+              eq(vocabCards.userId, userId),
+              eq(vocabCards.normKey, normKey),
+              sql`${vocabCards.deletedAt} IS NOT NULL`,
+            ),
+          )
           .orderBy(desc(vocabCards.deletedAt))
           .limit(1)
         if (mortos[0]) {
-          await db.update(vocabCards)
+          await db
+            .update(vocabCards)
             .set({ deletedAt: null, updatedAt: now, occurrences: sql`${vocabCards.occurrences} + 1`, lastSeenAt: now })
             .where(eq(vocabCards.id, mortos[0].id))
           const relidos = await db.select().from(vocabCards).where(eq(vocabCards.id, mortos[0].id)).limit(1)
@@ -954,21 +1209,26 @@ export const vocabRepo = {
           firstSeenAt: now,
           lastSeenAt: now,
         }
-        await db.insert(vocabCards).values(row).onConflictDoUpdate({
-          target: [vocabCards.userId, vocabCards.normKey],
-          // Mesmo predicado do índice parcial — ver comentário de `bulkAdd`.
-          targetWhere: sql`${vocabCards.deletedAt} IS NULL`,
-          set: {
-            occurrences: sql`${vocabCards.occurrences} + 1`,
-            lastSeenAt: now,
-            updatedAt: now,
-            back: sql`COALESCE(NULLIF(${vocabCards.back}, ''), ${row.back ?? null})`,
-            sentence: sql`COALESCE(NULLIF(${vocabCards.sentence}, ''), ${row.sentence ?? null})`,
-          },
-          setWhere: sql`${vocabCards.deletedAt} IS NULL`,
-        })
+        await db
+          .insert(vocabCards)
+          .values(row)
+          .onConflictDoUpdate({
+            target: [vocabCards.userId, vocabCards.normKey],
+            // Mesmo predicado do índice parcial — ver comentário de `bulkAdd`.
+            targetWhere: sql`${vocabCards.deletedAt} IS NULL`,
+            set: {
+              occurrences: sql`${vocabCards.occurrences} + 1`,
+              lastSeenAt: now,
+              updatedAt: now,
+              back: sql`COALESCE(NULLIF(${vocabCards.back}, ''), ${row.back ?? null})`,
+              sentence: sql`COALESCE(NULLIF(${vocabCards.sentence}, ''), ${row.sentence ?? null})`,
+            },
+            setWhere: sql`${vocabCards.deletedAt} IS NULL`,
+          })
 
-        const finais = await db.select().from(vocabCards)
+        const finais = await db
+          .select()
+          .from(vocabCards)
           .where(and(eq(vocabCards.userId, userId), isNull(vocabCards.deletedAt), eq(vocabCards.normKey, normKey)))
           .limit(1)
         card = finais[0]
@@ -991,13 +1251,16 @@ export const vocabRepo = {
         utteranceId: null,
       })
 
-      await db.update(ankiNotes).set({
-        projectedCardId: card.id,
-        estado: 'ativa',
-        motivoDaBaixa: null,
-        motivoDescarte: null,
-        updatedAt: now,
-      }).where(and(eq(ankiNotes.id, nota.id), eq(ankiNotes.userId, userId)))
+      await db
+        .update(ankiNotes)
+        .set({
+          projectedCardId: card.id,
+          estado: 'ativa',
+          motivoDaBaixa: null,
+          motivoDescarte: null,
+          updatedAt: now,
+        })
+        .where(and(eq(ankiNotes.id, nota.id), eq(ankiNotes.userId, userId)))
     }
 
     return { criados, reaproveitados, reativados }
@@ -1012,8 +1275,14 @@ export const vocabRepo = {
    * só pega `estado='arquivada'` — chamar duas vezes não pega a mesma nota de novo, mesmo sem
    * nenhum controle explícito de "já processei este id".
    */
-  async ativarLote(userId: UserId, deckId: string, limite: number = LOTE_DE_ATIVACAO): Promise<{ ativadas: number; restantes: number }> {
-    const decks = await db.select().from(ankiDecks)
+  async ativarLote(
+    userId: UserId,
+    deckId: string,
+    limite: number = LOTE_DE_ATIVACAO,
+  ): Promise<{ ativadas: number; restantes: number }> {
+    const decks = await db
+      .select()
+      .from(ankiDecks)
       .where(and(eq(ankiDecks.id, deckId), eq(ankiDecks.userId, userId)))
       .limit(1)
     const deckLang = { srcLang: decks[0]?.idiomaOrigem ?? null, tgtLang: decks[0]?.idiomaAlvo ?? null }
@@ -1028,18 +1297,36 @@ export const vocabRepo = {
       eq(ankiNotes.estado, 'arquivada'),
       isNull(ankiNotes.motivoDescarte),
     ]
-    const proximas = await db.select().from(ankiNotes).where(and(...condBase))
+    const proximas = await db
+      .select()
+      .from(ankiNotes)
+      .where(and(...condBase))
       .orderBy(ankiNotes.createdAt, ankiNotes.id)
       .limit(Math.max(1, limite))
 
     const resultado = proximas.length
-      ? await this.projetarDoAnki(userId, deckId, proximas.map((n) => ({
-        id: n.id, frente: n.frente, verso: n.verso, exemplo: n.exemplo, motivoDaBaixa: n.motivoDaBaixa,
-      })), deckLang)
+      ? await this.projetarDoAnki(
+          userId,
+          deckId,
+          proximas.map((n) => ({
+            id: n.id,
+            frente: n.frente,
+            verso: n.verso,
+            exemplo: n.exemplo,
+            motivoDaBaixa: n.motivoDaBaixa,
+          })),
+          deckLang,
+        )
       : { criados: 0, reaproveitados: 0, reativados: 0 }
 
-    const [{ n: restantes }] = await db.select({ n: sql<number>`count(*)` }).from(ankiNotes).where(and(...condBase))
+    const [{ n: restantes }] = await db
+      .select({ n: sql<number>`count(*)` })
+      .from(ankiNotes)
+      .where(and(...condBase))
 
-    return { ativadas: resultado.criados + resultado.reaproveitados + resultado.reativados, restantes: Number(restantes) }
+    return {
+      ativadas: resultado.criados + resultado.reaproveitados + resultado.reativados,
+      restantes: Number(restantes),
+    }
   },
 }

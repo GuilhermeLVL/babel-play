@@ -1,0 +1,6 @@
+# O portão que roda ANTES do commit, só sobre o que está no índice (`lint-staged`).
+#
+# Por que existe: até 2026-09-09 toda verificação deste repositório era da CI, e uma falha de
+# formatação ou de lint custava um ciclo de push. O que roda aqui é o que é rápido e local;
+# typecheck, testes e os portões de i18n continuam na CI, onde há tempo para eles.
+npx lint-staged

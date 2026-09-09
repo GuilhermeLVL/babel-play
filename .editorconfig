@@ -1,0 +1,27 @@
+# Um acordo mínimo entre editores, para o Prettier não ter de desfazer o que o editor fez.
+# O que decide o estilo do código é `prettier.config.mjs`; aqui fica só o que o Prettier não vê
+# (arquivos que ele ignora) e o que o editor precisa saber antes de salvar.
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+indent_style = space
+indent_size = 2
+
+# CSS escrito à mão: colunas alinhadas de propósito (paletas e a prova de contraste WCAG ao lado
+# do valor). Fica fora do Prettier pelo mesmo motivo — ver `.prettierignore`.
+[*.css]
+indent_size = 2
+
+[*.md]
+# Dois espaços no fim de linha são quebra de linha em Markdown.
+trim_trailing_whitespace = false
+
+[*.{yml,yaml}]
+indent_size = 2
+
+[Makefile]
+indent_style = tab

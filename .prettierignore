@@ -1,0 +1,22 @@
+# Saída de build e dados
+dist
+dist-server
+coverage
+data
+backups
+public/models
+public/i18n
+node_modules
+
+# Gerado por ferramenta: reformatar cria ruído sem dono
+package-lock.json
+server/db/migrations
+src/data/trilha/niveis
+src/data/i18n
+tests/caracterizacao/__snapshots__
+tests/__snapshots__
+openspec/audits
+
+# CSS escrito à mão com blocos alinhados de propósito (paletas, @theme): o Prettier
+# desalinha as colunas de token que a documentação de contraste usa como prova.
+src/index.css

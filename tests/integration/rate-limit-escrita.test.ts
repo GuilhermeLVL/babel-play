@@ -3,8 +3,10 @@
  *
  * O que a auditoria mediu: `express.raw` bufferiza o corpo inteiro antes do handler, cada upload
  * de áudio no teto custa 120,02 MB de RSS, e o container tem 1 GB. Oito requisições simultâneas
- * bastam — e `/api/sessions` não passava por limitador nenhum, porque `server.ts` só cobria
+ * bastam — e `/api/sessions` não passava por limitador nenhum, porque a montagem só cobria
  * `/api/ai`, `/api/import` e `/api/gemini`.
+ *
+ * Lê `server/http/app.ts`: a montagem saiu do `server.ts` quando a Fase 3 extraiu `criarApp()`.
  *
  * O que este teste trava, sem subir servidor: a CONFIGURAÇÃO. É o que estava errado — não a
  * implementação do `express-rate-limit`, que é de terceiros e já é exercitada pelas rotas caras.
@@ -13,7 +15,7 @@ import { describe, it, expect } from 'vitest'
 import { readFileSync } from 'node:fs'
 import path from 'node:path'
 
-const servidor = readFileSync(path.resolve(import.meta.dirname, '..', '..', 'server.ts'), 'utf8')
+const servidor = readFileSync(path.resolve(import.meta.dirname, '..', '..', 'server', 'http', 'app.ts'), 'utf8')
 
 /** As rotas de escrita que a auditoria listou como descobertas (F4-02 / D6). */
 const ROTAS_DE_ESCRITA = [
@@ -55,14 +57,15 @@ describe('F4-02 — rate limit cobre as rotas de escrita', () => {
    * cabeçalho não correspondia a nenhum dos dois tetos.
    */
   it('cada limitador conta no próprio balde', () => {
-    const caro = /const expensiveLimiter = rateLimit\(\{([\s\S]*?)\n\}\)/.exec(servidor)
-    const escrita = /const writeLimiter = rateLimit\(\{([\s\S]*?)\n\}\)/.exec(servidor)
+    // `\n\s*\}\)` e nao `\n\}\)`: dentro do `criarApp()` as declaracoes sao indentadas.
+    const caro = /const expensiveLimiter = rateLimit\(\{([\s\S]*?)\n\s*\}\)/.exec(servidor)
+    const escrita = /const writeLimiter = rateLimit\(\{([\s\S]*?)\n\s*\}\)/.exec(servidor)
     expect(caro![1]).toContain('METRIC_RATELIMIT_CARO')
     expect(escrita![1]).toContain('METRIC_RATELIMIT_ESCRITA')
   })
 
   it('não penaliza leitura — GET e HEAD são pulados', () => {
-    const decl = /const writeLimiter = rateLimit\(\{([\s\S]*?)\n\}\)/.exec(servidor)
+    const decl = /const writeLimiter = rateLimit\(\{([\s\S]*?)\n\s*\}\)/.exec(servidor)
     expect(decl![1]).toMatch(/skip:.*GET.*HEAD/s)
   })
 

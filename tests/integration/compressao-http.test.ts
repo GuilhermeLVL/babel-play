@@ -12,8 +12,9 @@
  * Este teste exercita o middleware DE VERDADE (mesma versão, mesmo Node) em vez de conferir que
  * uma linha existe no arquivo: prova que uma resposta grande volta comprimida e que o cliente que
  * não pede compressão continua recebendo texto puro. A segunda parte trava a ORDEM de montagem
- * no `server.ts` — compressão depois do `helmet` e ANTES dos routers, senão ela não alcança as
- * respostas que importam.
+ * em `server/http/app.ts` — compressão depois do `helmet` e ANTES dos routers, senão ela não
+ * alcança as respostas que importam. (A montagem morava no `server.ts` até a Fase 3 extrair
+ * `criarApp()`; o bootstrap não monta mais middleware nenhum.)
  */
 import { describe, it, expect, beforeAll, afterAll } from 'vitest'
 import express from 'express'
@@ -90,10 +91,10 @@ describe('respostas grandes de API voltam comprimidas', () => {
 })
 
 describe('a ordem de montagem no servidor real', () => {
-  const src = readFileSync(path.join(process.cwd(), 'server.ts'), 'utf8')
+  const src = readFileSync(path.join(process.cwd(), 'server', 'http', 'app.ts'), 'utf8')
   const posicao = (re: RegExp) => src.search(re)
 
-  it('server.ts monta a compressão', () => {
+  it('o criarApp() monta a compressão', () => {
     expect(posicao(/app\.use\(compression\(/)).toBeGreaterThan(-1)
   })
 

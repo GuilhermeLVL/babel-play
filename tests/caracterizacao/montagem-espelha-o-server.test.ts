@@ -1,18 +1,22 @@
 /**
- * O HARNESS DE CARACTERIZAÇÃO REPETE A MONTAGEM DO `server.ts` — e este teste cobra que as duas
- * não divirjam até a Fase 3 extrair `criarApp()`.
+ * TODO ROUTER PRIVADO DO SERVIDOR É CONHECIDO PELA CARACTERIZAÇÃO — ou a suíte cai.
  *
- * Lê o `server.ts` como texto e extrai cada `app.use("/api/...", capturarAssincrono(xRouter))`;
- * compara com `ROUTERS_PRIVADOS` do harness. Um router novo no servidor sem par no harness (ou o
- * contrário) falha aqui, e não numa suíte que passa por não testar o que não conhece.
+ * Até a Fase 3 este teste comparava duas MONTAGENS: o harness repetia o `server.ts` linha a linha e
+ * ele cobrava que as duas listas não divergissem. A duplicação acabou — o harness chama o mesmo
+ * `criarApp()` que produção chama —, então a pergunta mudou de "as montagens são iguais?" para a
+ * que continua valendo: "a rede de caracterização SABE de todos os routers?".
+ *
+ * Lê `server/http/app.ts` como texto e extrai cada `app.use("/api/...", capturarAssincrono(x))`;
+ * compara com `ROUTERS_PRIVADOS`. Um router novo no servidor sem entrada na lista falha aqui, e
+ * não numa suíte que passa por não testar o que não conhece.
  */
 import { describe, it, expect } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { ROUTERS_PRIVADOS } from './_app'
 
-describe('montagem do harness x server.ts', () => {
+describe('montagem do app x routers declarados na caracterizacao', () => {
   it('os routers privados sao os mesmos, na mesma ordem', () => {
-    const fonte = readFileSync('server.ts', 'utf8')
+    const fonte = readFileSync('server/http/app.ts', 'utf8')
     const doServidor: Array<[string, string]> = []
     for (const m of fonte.matchAll(/app\.use\("(\/api\/[a-z-]+)",\s*capturarAssincrono\((\w+)\)\)/g)) {
       doServidor.push([m[1], m[2]])

@@ -3,15 +3,21 @@
  *
  * A rede de segurança da rodada de saneamento (Fase 1) precisa gravar o comportamento ATUAL de
  * cada fluxo crítico por HTTP, antes de qualquer remoção ou movimentação. Os testes de integração
- * existentes montam um `express()` com um router de cada vez; aqui a montagem repete a ORDEM do
- * `server.ts` (requestId → json → compression → health público → webhook → rank → auth →
+ * existentes montam um `express()` com um router de cada vez; aqui sobe a montagem DE VERDADE
+ * (requestId → json → compression → helmet → health público → webhook → rank → auth →
  * limitadores → routers → erroGlobal), porque a ordem é parte do comportamento: um router antes
  * do auth é público, um depois é privado.
  *
- * DUPLICAÇÃO DELIBERADA E TEMPORÁRIA. O `server.ts` não exporta o app (ele chama `listen` no
- * carregamento), então esta função repete a montagem. A change `servidor-app-e-bootstrap`
- * (Fase 3) extrai `criarApp()` e este arquivo passa a chamá-la — o teste
- * `montagem-espelha-o-server.test.ts` cobra que as duas listas de routers não divirjam até lá.
+ * A DUPLICAÇÃO ACABOU. Este arquivo repetia a montagem inteira enquanto o `server.ts` não
+ * exportava o app (ele chamava `listen` no carregamento). A change `servidor-app-e-bootstrap`
+ * (Fase 3) extraiu `criarApp()` para `server/http/app.ts`, e agora o harness CHAMA a mesma função
+ * que produção chama; só acrescenta por cima o que o bootstrap acrescenta lá (o `erroGlobal`, que
+ * é o último por posição). O teste `montagem-espelha-o-server.test.ts` passou a cobrar a lista de
+ * `ROUTERS_PRIVADOS` contra o `app.ts`.
+ *
+ * IMPORT DINÂMICO do `app.ts`, sempre por `load()`: ele puxa os routers, que puxam
+ * `server/db/db.ts`, que lê `DATABASE_URL` NO IMPORT. Um import estático aqui seria hoisted acima
+ * do `setupEphemeralDb()` e o harness inteiro escreveria no banco de verdade.
  *
  * Dois modos, como em produção:
  *  - `self-host`: `AUTH_REQUIRED=0`; toda requisição é `LOCAL_OWNER`, sem token.
@@ -28,9 +34,6 @@
  *   expect(forma(await r.json())).toMatchFileSnapshot('__snapshots__/me.get.json')
  *   await s.encerrar()
  */
-import express from 'express'
-import compression from 'compression'
-import rateLimit from 'express-rate-limit'
 import type { Server } from 'node:http'
 import { SignJWT, generateKeyPair } from 'jose'
 
@@ -59,7 +62,14 @@ export interface AppDeTeste {
 
 export const URL_SUPABASE_TESTE = 'https://projeto-caracterizacao.supabase.co'
 
-/** Os routers do `server.ts`, na ordem em que ele os monta. Lista usada também pelo teste-espelho. */
+/**
+ * Os routers PRIVADOS do `server/http/app.ts`, na ordem em que ele os monta.
+ *
+ * O harness não monta mais a partir desta lista (quem monta é o `criarApp()`), mas ela continua
+ * sendo a DECLARAÇÃO do que a caracterização conhece: `montagem-espelha-o-server.test.ts` a
+ * compara com o `app.ts`, então um router novo no servidor sem entrada aqui derruba a suíte em vez
+ * de passar despercebido por uma rede que não sabe que ele existe.
+ */
 export const ROUTERS_PRIVADOS: Array<[string, string, string]> = [
   ['/api/ai', '../../server/routes/ai', 'aiRouter'],
   ['/api/sessions', '../../server/routes/sessions', 'sessionsRouter'],
@@ -74,8 +84,10 @@ export const ROUTERS_PRIVADOS: Array<[string, string, string]> = [
   ['/api/admin', '../../server/routes/admin', 'adminRouter'],
   ['/api/erros-do-cliente', '../../server/routes/erros', 'errosRouter'],
   ['/api/billing', '../../server/routes/billing', 'billingRouter'],
-  /* So no self-host: no modo publico o `server.ts` responde 403 no lugar dele. */
+  /* So no self-host: no modo publico o `app.ts` responde 403 no lugar dele. */
   ['/api/audio', '../../server/audio/loopback', 'audioRouter'],
+  /* Ultimo a ser montado, como no `app.ts`: a rota de chat saiu do `server.ts` na Fase 3. */
+  ['/api/gemini', '../../server/routes/gemini', 'geminiRouter'],
 ]
 
 const salvo: Record<string, string | undefined> = {}
@@ -106,48 +118,21 @@ export async function subirApp(opts: { modo: Modo } = { modo: 'self-host' }): Pr
   }
 
   const load = <T = any>(spec: string) => h.load<T>(spec)
-  const { requestIdMiddleware } = await load('../../server/lib/requestId')
-  const { healthHandler } = await load('../../server/routes/health')
-  const { asaasWebhookRouter } = await load('../../server/routes/billing')
-  const { rankRouter } = await load('../../server/routes/rank')
-  const { makeAuthMiddleware, createVerifier, authMiddleware, authRequired } = await load('../../server/lib/auth')
-  const { createDbRateLimitStore, chaveDoRequest, METRIC_RATELIMIT_CARO, METRIC_RATELIMIT_ESCRITA } = await load('../../server/lib/rateLimitStore')
-  const { erroGlobal, capturarAssincrono } = await load('../../server/lib/erroGlobal')
-
-  const app = express()
-  app.use(requestIdMiddleware)
-  app.use(express.json({ limit: '5mb' }))
-  app.use(compression())
-  app.get('/api/health', healthHandler)
-
-  const expensiveLimiter = rateLimit({ windowMs: 60_000, limit: 60, standardHeaders: true, legacyHeaders: false, keyGenerator: chaveDoRequest, store: createDbRateLimitStore(METRIC_RATELIMIT_CARO) })
-  const writeLimiter = rateLimit({ windowMs: 60_000, limit: 120, standardHeaders: true, legacyHeaders: false, keyGenerator: chaveDoRequest, store: createDbRateLimitStore(METRIC_RATELIMIT_ESCRITA), skip: (req: express.Request) => req.method === 'GET' || req.method === 'HEAD' })
-
-  if (authRequired()) app.use('/api/billing/webhook/asaas', writeLimiter)
-  app.use('/api/billing/webhook/asaas', capturarAssincrono(asaasWebhookRouter))
-  if (authRequired()) app.use('/api/rank', writeLimiter)
-  app.use('/api/rank', capturarAssincrono(rankRouter))
-
+  const { criarApp } = await load('../../server/http/app')
+  const { makeAuthMiddleware, createVerifier } = await load('../../server/lib/auth')
+  const { erroGlobal } = await load('../../server/lib/erroGlobal')
   const { usersRepo } = await load('../../server/db/repositories/users')
-  app.use('/api', opts.modo === 'publico'
-    ? makeAuthMiddleware(createVerifier({ key: chavePublica, supabaseUrl: URL_SUPABASE_TESTE }), (u: string) => usersRepo.isSuspended(u))
-    : authMiddleware)
 
-  app.use(['/api/ai', '/api/import', '/api/gemini'], expensiveLimiter)
-  if (authRequired()) {
-    app.use(['/api/sessions', '/api/vocab', '/api/settings', '/api/exercises', '/api/metrics', '/api/images', '/api/me', '/api/erros-do-cliente', '/api/billing', '/api/anki'], writeLimiter)
-  }
-  if (authRequired()) {
-    app.post('/api/import/youtube', (_req, res) => res.status(403).json({ error: 'importação de YouTube indisponível no modo hospedado' }))
-  }
-  for (const [caminho, modulo, nome] of ROUTERS_PRIVADOS) {
-    if (caminho === '/api/audio' && authRequired()) {
-      app.use('/api/audio', (_req, res) => res.status(403).json({ error: 'captura de áudio do sistema indisponível no modo hospedado' }))
-      continue
-    }
-    const mod = await load(modulo)
-    app.use(caminho, capturarAssincrono(mod[nome]))
-  }
+  /*
+   * A ÚNICA diferença para produção, e ela é sobre a REDE: o `authMiddleware` real resolve o JWKS
+   * do Supabase por HTTP, e aqui os tokens são assinados com um par gerado neste processo. O resto
+   * — ordem, limitadores, stubs de modo público, todos os routers — vem do `criarApp()`.
+   */
+  const app = criarApp(opts.modo === 'publico'
+    ? { autenticacao: makeAuthMiddleware(createVerifier({ key: chavePublica, supabaseUrl: URL_SUPABASE_TESTE }), (u: string) => usersRepo.isSuspended(u)) }
+    : {})
+
+  /* Como no `server.ts`: o `erroGlobal` é o ÚLTIMO, e por isso não está dentro do `criarApp()`. */
   app.use(erroGlobal)
 
   const server: Server = await new Promise((r) => { const s = app.listen(0, '127.0.0.1', () => r(s)) })

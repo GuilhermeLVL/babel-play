@@ -183,7 +183,25 @@ export function verificarConfiguracaoNoBoot(): ResultadoDaConferencia {
   return r
 }
 
-/* ─────────────── as duas leituras que estavam dentro de handler ─────────────── */
+/* ─────────────── as leituras que estavam dentro de handler ─────────────── */
+
+/**
+ * A CHAVE e o MODELO do Gemini — passaram por aqui na Fase 3 do saneamento.
+ *
+ * As duas eram lidas direto do `process.env` dentro do `server.ts`, onde nenhuma regra alcançava.
+ * Quando `/api/gemini/chat` virou `server/routes/gemini.ts`, a regra `env-fora-de-config`
+ * (`audit/rules/ast-grep/`) passou a alcançá-las — e está certa: uma variável lida no handler não
+ * aparece em inventário nenhum, e as duas JÁ estão declaradas na lista acima. O valor não muda;
+ * muda o lugar de onde ele é lido.
+ */
+export function chaveDoGemini(env: NodeJS.ProcessEnv = process.env): string | undefined {
+  return env.GEMINI_API_KEY
+}
+
+/** O modelo do Gemini, ou `undefined` — o default (`MODELO_GEMINI_PADRAO`) é de quem chama. */
+export function modeloDoGemini(env: NodeJS.ProcessEnv = process.env): string | undefined {
+  return env.GEMINI_MODEL
+}
 
 /**
  * A nuvem de STT está configurada? Lido por `GET /api/ai/stt/available`, que existe para o

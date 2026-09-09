@@ -39,6 +39,12 @@ export default defineConfig({
       exclude: ['src/**/*.d.ts', 'src/data/trilha/niveis/**', 'server/db/migrations/**'],
       reporter: ['text-summary', 'json', 'json-summary', 'lcov'],
       reportsDirectory: 'coverage',
+      /*
+       * PISO = o valor medido na baseline de 2026-09-08 (linhas 42,8 %, ramos 34,5 %, funcoes
+       * 36,7 %, statements 41,3 %), arredondado para baixo. Catraca: so sobe. Baixar exige
+       * justificativa no mesmo commit, como o piso de i18n no ci.yml.
+       */
+      thresholds: { lines: 42, branches: 34, functions: 36, statements: 41 },
     },
   },
   resolve: {

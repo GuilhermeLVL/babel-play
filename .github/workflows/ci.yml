@@ -38,8 +38,19 @@ jobs:
       # O JSON da suite vai como artefato SEMPRE (`if: always()`): a run 34278328814 (08/09) falhou
       # em `npm test` e o log do job so e legivel por quem tem admin no repositorio — quem nao tem
       # ficava sem saber QUAL teste caiu. O artefato e publico para quem ve o repositorio.
-      - name: Testes de unidade e integracao
-        run: npx vitest run --reporter=default --reporter=json --outputFile=vitest-resultado.json
+      # COM COBERTURA e com piso (`coverage.thresholds` no vitest.config.ts): a rede de seguranca
+      # da rodada de saneamento (Fase 1) so protege se a cobertura nao puder cair em silencio.
+      - name: Testes de unidade e integracao (com cobertura e piso)
+        run: npx vitest run --coverage --reporter=default --reporter=json --outputFile=vitest-resultado.json
+      - name: Artefato da cobertura
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: cobertura
+          path: |
+            coverage/coverage-summary.json
+            coverage/lcov.info
+          if-no-files-found: ignore
       - name: Artefato da suite (vitest)
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
@@ -100,6 +111,9 @@ jobs:
 
       # Invariantes arquiteturais deste repositório (não SAST genérico): as regras têm fixture,
       # porque uma regra errada devolve zero achados e isso tem a cara de "código limpo".
+      # Toda rota do servidor tem teste de caracterizacao ou motivo escrito (Fase 1).
+      - name: Rotas sem caracterizacao
+        run: node scripts/testes/rotas-sem-caracterizacao.mjs
       - name: Regras arquiteturais (ast-grep)
         run: |
           ./node_modules/.bin/ast-grep test -c sgconfig.yml

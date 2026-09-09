@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef, Suspense } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import LayoutEditorToolbar from './components/LayoutEditorToolbar';
 import PracticeMenu from './components/PracticeMenu';
 import Hub from './components/views/Hub'; // tela inicial, eager p/ primeiro paint instantâneo
@@ -28,54 +28,35 @@ const ResetPassword = lazyComRecarga(() => import('./components/auth/ResetPasswo
 // mesma pintura que o usuário via antes: nada muda na tela, só o momento do download.
 const Onboarding = lazyComRecarga(() => import('./components/Onboarding'));
 import { ViewType, Recording } from './types';
-import { askNavGuard } from './lib/navGuard';
-import { desbloqueado } from './lib/desbloqueios';
 import FloatingScoreLayer from './components/FloatingScoreLayer';
 import BuscaGlobal from './components/BuscaGlobal';
-import { useCommandPalette } from './components/CommandPalette';
-import type { PracticeSeed } from './lib/sentences';
-import { fetchSessions, fetchSettings, fetchMetrics, fetchRecordes, patchUiSettings, type AppMetrics, type RecordeDoJogo } from './data/api';
-import { registrarPresencaHoje } from './lib/presenca';
-import { montarContextoDeConquistas, verificarConquistas } from './lib/conquistas';
-import type { ContextoDeConquistas } from '@core';
-import Toaster, { toast } from './components/Toast';
-import { PROFILE_KEY, CREDENTIAL_KEY, MODE_KEY } from './gateway/activeProfile';
-import type { ThemeType, FonteType } from './lib/appearance';
-import { readTheme, readDarkMode, readFonte, hydrateTheme, persistTheme } from './lib/theme';
-import { carregarSupabase, authRequired } from './lib/supabase';
-import { carregarEntitlements, limparEntitlements } from './lib/entitlements';
-import { armarIdentidade, definirIdentidade, estaAnonimo, aoMudarIdentidade, estadoDeIdentidade } from './lib/identidade';
-import { EVENTO_EXIGE_CONTA } from './data/efemero/servidor';
-import { aceitarAnonimo, anonimoAceito, exigeConta, motivoDoGate, porta } from './components/conta/exigeConta';
+import { fetchSessions } from './data/api';
+import Toaster from './components/Toast';
+import { authRequired } from './lib/supabase';
+import { carregarEntitlements } from './lib/entitlements';
+import { aceitarAnonimo, exigeConta, porta } from './components/conta/exigeConta';
 import CartaoDeConvite from './components/conta/CartaoDeConvite';
 import GateDeConta from './components/conta/GateDeConta';
 import ModalDeMigracao from './components/conta/ModalDeMigracao';
-import { temDadosLocais } from './data/efemero/store';
 
-import StudioHeader, { type AgeProfileType, type MenuPositionType, type FontScale } from './components/StudioHeader';
+import StudioHeader from './components/StudioHeader';
 import MobileNav from './components/shell/MobileNav';
 import MobileTopBar from './components/shell/MobileTopBar';
 import ParticleCanvas from './components/ParticleCanvas';
 import { useIdiomaDaInterfaceEscolhido } from './lib/langConfig';
-import { setSoundMuted, play } from './lib/soundFx';
-import { installSfxDelegate } from './lib/sfxDelegate';
-import { instalarRastroDoMouse } from './lib/rastroDoMouse';
-import { deriveProgress } from './lib/progress';
-import { ativarLiberacaoTotal, liberadoTudo } from './lib/desbloqueios';
-import { recompensasDoNivelCompleto, itemDaConquista } from './lib/galeria/progressao';
-import { equiparItem, type ContextoDeEquipar } from './lib/galeria/equipar';
-import RecompensaDesbloqueada, { recompensasVistas, chaveDaRecompensa, EVENTO_DROP_GANHO, type Recompensa, type DetalheDoDrop } from './components/RecompensaDesbloqueada';
-import { comemorar } from './lib/juice';
-import { isAgeProfile, readAgeProfile, readStoredEnum, readStoredValue } from './lib/profile';
-import { hidratarPosse, CATALOGO_DA_LOJA } from './lib/loja';
-import { hidratarCromas } from './lib/galeria/cromas';
-import { hidratarAprimoramentos } from './lib/aprimoramentos';
-import { emitBurst } from './lib/effects';
-import { isOnAuthCallback, clearAuthCallbackUrl } from './lib/authCallback';
-import { lerUrlAtual, publicarUrl, type ViewDeRota, type EstadoDeRota } from './lib/rotas';
+import { play } from './lib/soundFx';
+import { equiparItem } from './lib/galeria/equipar';
+import RecompensaDesbloqueada from './components/RecompensaDesbloqueada';
 
-const MENU_POSITION_KEY = 'babel.menu_position';
-const MENU_POSITIONS: readonly MenuPositionType[] = ['top', 'bottom', 'left', 'right'];
+/* ESTADO POR DOMÍNIO — cada bloco que o App concentrava virou um hook em `lib/estado`. A ORDEM
+   das chamadas abaixo é a ordem em que os efeitos rodavam antes da divisão, e é por isso que os
+   hooks são chamados exatamente onde o bloco original estava. */
+import { useSessaoSupabase } from './lib/estado/useSessaoSupabase';
+import { useGateDeConta } from './lib/estado/useGateDeConta';
+import { useAparencia, useHidratacaoDeAjustes } from './lib/estado/useAparencia';
+import { useMetricas } from './lib/estado/useMetricas';
+import { useRecompensas } from './lib/estado/useRecompensas';
+import { useNavegacao } from './lib/estado/useNavegacao';
 
 export default function App() {
   /* A interface acompanha "meu idioma" do perfil — um lugar só, no topo, para não haver tela que
@@ -87,300 +68,22 @@ export default function App() {
   const [selectedRecordingId, setSelectedRecordingId] = useState<string | null>(null);
   const [resumingRecordingId, setResumingRecordingId] = useState<string | null>(null);
   const [onboarded, setOnboarded] = useState<boolean | null>(null);
-  // Marco 1: sessão Supabase — só relevante no modo público (authRequired). No local fica null.
-  const [session, setSession] = useState<{ user?: unknown } | null | undefined>(authRequired ? undefined : null);
-  // Marco 1: fluxo de recuperação. O link do e-mail dispara PASSWORD_RECOVERY (com sessão temporária);
-  // enquanto ativo, a tela de redefinir senha tem precedência sobre a porta de login e o app.
-  const [recovery, setRecovery] = useState(false);
-  // OAuth/recuperação voltam em /auth/callback: mostra um spinner até a sessão resolver e limpa a URL.
-  const [processingCallback, setProcessingCallback] = useState(authRequired && isOnAuthCallback());
-  /**
-   * O pacote do Supabase agora chega por `import()` (ver lib/supabase — ele era 96% código não
-   * executado no arranque de quem não usa login). Isso custa um `await` aqui, porque
-   * `onAuthStateChange` não pode mais ser chamado na hora.
-   *
-   * A TELA NÃO MUDA: enquanto `session` é `undefined` o App já pintava "Carregando…" — a espera
-   * pelo `getSession()`, que é uma ida ao servidor. Agora essa mesma espera cobre também o
-   * download do pacote, que acontece antes e é a parte curta. Nada de piscada de login: o gate
-   * `session === undefined` é testado ANTES do `!session` que monta a porta de login.
-   *
-   * `vivo` cobre a desmontagem no meio da carga, e a inscrição é desfeita mesmo que ela chegue
-   * depois — senão um StrictMode em desenvolvimento deixaria um listener órfão por montagem.
-   */
-  useEffect(() => {
-    if (!authRequired) return;
-    armarIdentidade();
-    let vivo = true;
-    let inscricao: { unsubscribe: () => void } | null = null;
-    // Sem resposta do Supabase a identidade é `anonimo`, não `carregando`: ficar carregando para
-    // sempre deixaria todo `apiFetch` pendurado.
-    const semSessao = () => { if (vivo) { setSession(null); definirIdentidade('anonimo'); } };
-    void (async () => {
-      try {
-        const sb = await carregarSupabase();
-        if (!sb || !vivo) { if (!sb) semSessao(); return; }
-        sb.auth.getSession().then(({ data }) => {
-          if (!vivo) return;
-          setSession(data.session);
-          definirIdentidade(data.session ? 'conta' : 'anonimo');
-          clearAuthCallbackUrl();
-          setProcessingCallback(false);
-        }).catch(semSessao);
-        const { data: sub } = sb.auth.onAuthStateChange((event, s) => {
-          if (event === 'PASSWORD_RECOVERY') setRecovery(true);
-          setSession(s);
-          if (s) definirIdentidade('conta');
-          else if (event === 'SIGNED_OUT') { definirIdentidade('anonimo'); limparEntitlements(); }
-        });
-        if (!vivo) { sub.subscription.unsubscribe(); return; }
-        inscricao = sub.subscription;
-      } catch {
-        semSessao();
-      }
-    })();
-    return () => { vivo = false; inscricao?.unsubscribe(); };
-  }, []);
 
-  /**
-   * Acesso SEM conta (soft gate, D10). `anonimo` espelha a identidade; `semContaAceito` lembra a
-   * escolha "continuar sem conta"; `pedindoLogin` é a pessoa sem conta pedindo a porta de volta
-   * (menu, convite, gate). `gate` é o modal contextual — o que motivou, em linguagem de gente.
-   */
-  const [anonimo, setAnonimo] = useState(estaAnonimo);
-  const [semContaAceito, setSemContaAceito] = useState(anonimoAceito);
-  const [pedindoLogin, setPedindoLogin] = useState(false);
-  const [gate, setGate] = useState<string | null>(null);
-  const [migracao, setMigracao] = useState(false);
-  useEffect(() => aoMudarIdentidade((depois, antes) => {
-    setAnonimo(depois === 'anonimo');
-    if (depois === 'conta') {
-      setPedindoLogin(false); setGate(null);
-      // Entrou vindo do modo sem conta, ou entrou com coisas de uma visita anterior neste
-      // navegador: oferece subir. Visível, nunca em silêncio.
-      if (antes === 'anonimo') setMigracao(true);
-      else void temDadosLocais().then((tem) => { if (tem) setMigracao(true); }).catch(() => {});
-    }
-  }), []);
-  // O servidor em memória avisa quando, sem conta, algo pediu uma rota que só existe com conta.
-  // UMA vez por visita: depois que a pessoa fecha o convite, as ações seguintes só recebem o 501
-  // (cada tela já degrada sozinha). Quem quiser entrar tem o menu da conta e os cartões inline.
-  useEffect(() => {
-    const h = (ev: Event) => {
-      try { if (sessionStorage.getItem('babel.convite_visto') === '1') return; } catch { /* sem sessionStorage */ }
-      const rota = (ev as CustomEvent<{ rota: string }>).detail?.rota ?? '';
-      setGate(motivoDoGate(rota));
-    };
-    window.addEventListener(EVENTO_EXIGE_CONTA, h);
-    return () => window.removeEventListener(EVENTO_EXIGE_CONTA, h);
-  }, []);
-  const fecharGate = () => {
-    try { sessionStorage.setItem('babel.convite_visto', '1'); } catch { /* best-effort */ }
-    setGate(null);
-  };
+  const { session, recovery, setRecovery, processingCallback } = useSessaoSupabase();
 
-  const [theme, setThemeState] = useState<ThemeType>(readTheme);
-  const [fonte, setFonteState] = useState<FonteType>(readFonte);
-  const [darkMode, setDarkMode] = useState<boolean>(readDarkMode);
-  const [isStudioOpen, setIsStudioOpen] = useState(false);
-  /* O atalho vem do hook; o botão do shell escreve no mesmo estado. Enquanto o Study estiver
-     montado ele assume o Ctrl+K (pilha LIFO em `useCommandPalette`) e este fica quieto. */
-  const [buscaAberta, setBuscaAberta] = useCommandPalette();
-  const [ageProfile, setAgeProfileState] = useState<AgeProfileType>(readAgeProfile);
+  const {
+    anonimo, semContaAceito, setSemContaAceito, pedindoLogin, setPedindoLogin,
+    gate, migracao, setMigracao, fecharGate,
+  } = useGateDeConta();
 
-  const [menuPosition, setMenuPositionState] = useState<MenuPositionType>(
-    () => readStoredEnum(MENU_POSITION_KEY, MENU_POSITIONS, 'top')
-  );
-  const [soundEnabled, setSoundEnabledState] = useState<boolean>(() => {
-    return readStoredValue('babel.sound_enabled') !== 'false';
-  });
-  /**
-   * ANIMAÇÕES — a preferência do sistema define o PADRÃO; a sua escolha explícita vence.
-   *
-   * Antes o `prefers-reduced-motion` do sistema vetava tudo por dentro do `ParticleCanvas`, mesmo
-   * com o botão do app mostrando "ativado". A interface prometia efeitos e não entregava, sem
-   * recurso nenhum. Agora: se nada está guardado, respeitamos o sistema (é a atitude correta na
-   * primeira execução); se o usuário mexeu no interruptor, ele está nos dizendo diretamente o que
-   * quer — e isso tem precedência sobre uma inferência do sistema operacional.
-   */
-  const [animationsEnabled, setAnimationsEnabledState] = useState<boolean>(() => {
-    const guardado = readStoredValue('babel.animations_enabled');
-    if (guardado === 'true') return true;
-    if (guardado === 'false') return false;
-    return !window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
-  });
-  const [performanceMode, setPerformanceModeState] = useState<boolean>(() => {
-    return readStoredValue('babel.performance_mode') === 'true';
-  });
-
-  const FONT_SCALE_ORDER: FontScale[] = ['sm', 'md', 'lg', 'xl'];
-  const [fontScale, setFontScaleState] = useState<FontScale>(
-    /* O default acompanha o perfil padrão (sênior / Leitura ampliada): 'lg'. O boot direto em
-       senior não passa por `setAgeProfile`, então a sugestão de fonte de lá não roda — o padrão
-       precisa nascer certo aqui. Preferência gravada continua vencendo. */
-    () => readStoredEnum('babel.font_scale', FONT_SCALE_ORDER, 'lg')
-  );
-
-  /**
-   * ESCALA DE TEXTO — UM mecanismo, não dois.
-   *
-   * A versão anterior mexia no `documentElement.style.fontSize` E aplicava `.font-scale-xl`
-   * (`font-size: 1.3em !important`) no <main>. As duas se multiplicavam: no XL o texto saía a
-   * 1,75× e, somado ao `.age-senior { font-size: 18px }`, virava a "fonte gigante" que quebrava
-   * o layout. Aqui fica só a raiz — todo `rem` da app acompanha, e uma vez só.
-   */
-  useEffect(() => {
-    /* Trocar o font-size da raiz só escala o que é `rem` — e boa parte da app usa utilitários em
-       PX (`text-[13px]`), que ficavam do mesmo tamanho: o A+/A- "não funcionava" (reclamação real,
-       2026-08-27). `zoom` escala o pixel CSS inteiro (px, rem, ícones, espaçamentos juntos) e é
-       suportado pelos navegadores que o app já exige (Chrome/Edge; Firefox 126+). */
-    const scaleMap: Record<FontScale, string> = {
-      sm: '0.94',
-      md: '1',
-      lg: '1.15',
-      xl: '1.3',
-    };
-    document.documentElement.style.fontSize = '100%';
-    (document.body.style as unknown as { zoom: string }).zoom = scaleMap[fontScale];
-    /**
-     * O ZOOM PRECISA SER LEGÍVEL PELO CSS — e sem isto o A± estourava a altura do app inteiro.
-     *
-     * `zoom` no `body` escala o pixel CSS, mas as unidades de VIEWPORT (`dvh`/`vh`/`vw`) continuam
-     * resolvendo contra a janela real e só DEPOIS são multiplicadas pelo zoom. A casca usava
-     * `h-dvh`: a 1,3 ela virava 130% da janela. Medido no Termo, a 1,5 numa janela de 893px, o
-     * painel tinha 1250px — e o teclado, que é o último filho, simplesmente ficava fora da tela.
-     *
-     * Publicar a escala como variável deixa o CSS dividir de volta (ver `.h-tela` em index.css).
-     * Fica no `documentElement`, que está FORA do subarvore com zoom: assim o valor lido é o
-     * número puro, e não um número já escalado.
-     */
-    document.documentElement.style.setProperty('--zoom-a', scaleMap[fontScale]);
-  }, [fontScale]);
-
-  const setFontScale = (next: FontScale) => {
-    setFontScaleState(next);
-    localStorage.setItem('babel.font_scale', next);
-  };
-
-  /**
-   * UM botão que CICLA (pedido do dono, 31/08): clique avança a escala e, na máxima, volta à
-   * mínima. Substitui o trio (menos / indicador / mais) — menos alvos no cabeçalho, e o próprio
-   * "A" crescendo mostra onde se está. O salto xl->sm é anunciado pelo aria-label do botão.
-   */
-  const cycleFontScale = () => {
-    const idx = FONT_SCALE_ORDER.indexOf(fontScale);
-    setFontScale(FONT_SCALE_ORDER[(idx + 1) % FONT_SCALE_ORDER.length]);
-  };
-
-  const setAgeProfile = (profile: AgeProfileType) => {
-    setAgeProfileState(profile);
-    localStorage.setItem('babel.age_profile', profile);
-    void patchUiSettings({ ageProfile: profile });
-    // O perfil SUGERE uma escala confortável, mas só quando o usuário ainda não escolheu a dele.
-    // Antes, trocar de perfil zerava a escolha explícita de quem tinha acabado de ajustar o A+/A-.
-    if (!readStoredValue('babel.font_scale')) {
-      setFontScaleState(profile === 'senior' ? 'lg' : 'md');
-    }
-  };
-
-  const setMenuPosition = (pos: MenuPositionType) => {
-    setMenuPositionState(pos);
-    localStorage.setItem(MENU_POSITION_KEY, pos);
-  };
-
-  const toggleSound = () => {
-    setSoundEnabledState(prev => {
-      const next = !prev;
-      localStorage.setItem('babel.sound_enabled', String(next));
-      setSoundMuted(!next);
-      return next;
-    });
-  };
-
-  const toggleAnimations = () => {
-    setAnimationsEnabledState(prev => {
-      const next = !prev;
-      localStorage.setItem('babel.animations_enabled', String(next));
-      return next;
-    });
-  };
-
-  const togglePerformanceMode = () => {
-    setPerformanceModeState(prev => {
-      const next = !prev;
-      localStorage.setItem('babel.performance_mode', String(next));
-      return next;
-    });
-  };
-
-  /**
-   * As duas classes que o CSS observa. `performance-mode` corta sombras compostas, desfoques e
-   * gradientes decorativos; `animations-off` corta o movimento. São independentes de propósito:
-   * quem tem enjoo de movimento não quer necessariamente uma app feia, e quem tem um PC fraco
-   * não perde nada em manter uma transição de 150ms.
-   */
-  useEffect(() => {
-    document.body.classList.toggle('performance-mode', performanceMode);
-  }, [performanceMode]);
-
-  /**
-   * DUAS classes, não uma. `animations-off` corta o movimento quando o usuário desliga;
-   * `animations-on` é o que autoriza o CSS a IGNORAR o `prefers-reduced-motion` do sistema
-   * (ver o bloco da media query em index.css). Sem a segunda, quem tem "reduzir movimento" no
-   * Windows não conseguia reativar as transições nem pedindo.
-   */
-  useEffect(() => {
-    document.body.classList.toggle('animations-off', !animationsEnabled);
-    document.body.classList.toggle('animations-on', animationsEnabled);
-  }, [animationsEnabled]);
-
-  // Recuo inferior para os elementos `fixed` quando a barra fica no rodapé (ver index.css).
-  useEffect(() => {
-    document.body.classList.toggle('shell-bar-bottom', menuPosition === 'bottom');
-  }, [menuPosition]);
-
-  useEffect(() => {
-    setSoundMuted(!soundEnabled);
-  }, [soundEnabled]);
-
-  /**
-   * Som em TODA a app, de um lugar só. O listener deduz o efeito da semântica que cada elemento
-   * já declara (`aria-pressed`, `aria-expanded`, `role`…) — ver lib/sfxDelegate para o porquê de
-   * não ter sido botão por botão. Respeita o mute pelo `setSoundMuted` acima.
-   */
-  useEffect(() => installSfxDelegate(), []);
-  // Rastro do mouse (item de loja): listeners globais uma vez; o estilo é lido a cada evento.
-  useEffect(() => instalarRastroDoMouse(), []);
-
-  /* LIBERACAO TOTAL para demonstracao: `window.babel.liberarTudo()` (ou `.travarTudo()`) no
-     console, ou abrir com `?liberar=1`. So destrava cosmeticos (temas/posicoes/estudio). */
-  useEffect(() => {
-    /* SÓ EM DESENVOLVIMENTO (2026-08-28): na versão publicada este atalho era um jeito de burlar
-       níveis, Seeds e conquistas. Em produção o objeto e o parâmetro `?liberar` não existem. */
-    const env = (import.meta as unknown as { env?: { DEV?: boolean } }).env;
-    if (!env?.DEV) return;
-    (window as unknown as { babel?: unknown }).babel = {
-      liberarTudo: () => { ativarLiberacaoTotal(true); location.reload(); },
-      travarTudo: () => { ativarLiberacaoTotal(false); location.reload(); },
-      liberado: () => liberadoTudo(),
-    };
-    if (new URLSearchParams(location.search).get('liberar') === '1') ativarLiberacaoTotal(true);
-  }, []);
-
-  const setTheme = (next: ThemeType) => {
-    setThemeState(next);
-    persistTheme({ theme: next });
-  };
-  const setFonte = (next: FonteType) => {
-    setFonteState(next);
-    persistTheme({ fonte: next });
-  };
-  const toggleDarkMode = () => {
-    setDarkMode(prev => {
-      const next = !prev;
-      persistTheme({ darkMode: next });
-      return next;
-    });
-  };
+  const {
+    theme, setTheme, fonte, setFonte, darkMode, toggleDarkMode,
+    isStudioOpen, setIsStudioOpen, buscaAberta, setBuscaAberta,
+    ageProfile, setAgeProfile, menuPosition, setMenuPosition,
+    soundEnabled, toggleSound, animationsEnabled, toggleAnimations,
+    performanceMode, togglePerformanceMode, fontScale, setFontScale, cycleFontScale,
+    setThemeState, setFonteState, setDarkMode, setAgeProfileState,
+  } = useAparencia();
 
   // Entitlements: o servidor decide o plano; o cliente só cacheia para pintar. Recarrega quando a
   // sessão muda (login/logout), que é quando a resposta pode mudar.
@@ -396,302 +99,31 @@ export default function App() {
       .catch(() => setRecordings([]));
   }, []);
 
-  /**
-   * MÉTRICAS DO PERFIL — carregadas UMA vez, aqui, e distribuídas por prop.
-   * O StudioHeader chamava `fetchMetrics()` por conta própria em paralelo ao Hub: duas
-   * requisições para o mesmo endpoint e, quando ela falhava, um número inventado na tela.
-   * Recarrega quando a lista de sessões muda, que é quando o dado de fato envelhece.
-   */
-  const [metrics, setMetrics] = useState<AppMetrics | null>(null);
-  const [recordes, setRecordes] = useState<RecordeDoJogo[]>([]);
-  /* ECONOMIA v2: além da lista de sessões, uma rodada gravada, uma presença ou um crédito de
-     conquista também envelhecem as métricas — quem faz isso dispara `babel:metricas-mudaram`. */
-  const [versaoDasMetricas, setVersaoDasMetricas] = useState(0);
-  useEffect(() => {
-    const bump = () => setVersaoDasMetricas((v) => v + 1);
-    window.addEventListener('babel:metricas-mudaram', bump);
-    window.addEventListener('babel:conquista', bump);
-    return () => { window.removeEventListener('babel:metricas-mudaram', bump); window.removeEventListener('babel:conquista', bump); };
-  }, []);
-  useEffect(() => {
-    let alive = true;
-    Promise.all([fetchMetrics(), fetchRecordes()])
-      .then(([m, rs]) => {
-        if (!alive) return;
-        setMetrics(m);
-        setRecordes(rs);
-        /* B4: o servidor é a fonte da posse da Loja. COM CONTA ele SUBSTITUI o espelho local
-           (01/09): a união de antes preservava a compra offline e, junto com ela, qualquer id
-           injetado à mão no localStorage — que nunca mais saía. Sem conta a união continua,
-           porque ali o espelho local é a única fonte que existe. */
-        const comConta = estadoDeIdentidade() === 'conta';
-        hidratarPosse(m?.itensComprados, comConta);
-        hidratarCromas(m?.cromasComprados, comConta);
-        hidratarAprimoramentos(m?.aprimoramentos, comConta);
-      })
-      .catch(() => { if (alive) setMetrics(null); });
-    return () => { alive = false; };
-  }, [recordings.length, versaoDasMetricas]);
+  const { metrics, recordes, progress, setVersaoDasMetricas } = useMetricas(recordings.length);
 
-  const progress = useMemo(() => deriveProgress(metrics), [metrics]);
-
-  /* PRESENÇA DO DIA — uma vez por dia, no boot. O toast só aparece quando creditou de verdade. */
-  useEffect(() => {
-    void registrarPresencaHoje().then((r) => {
-      if (!r?.creditou) return;
-      toast.ok(r.streak > 1 ? `+${r.seeds} Seeds pela presença · ${r.streak} dias seguidos!` : `+${r.seeds} Seeds pela presença de hoje.`);
-      setVersaoDasMetricas((v) => v + 1);
-    });
-  }, []);
-
-  /* CONQUISTAS — avaliadas a cada métrica nova; o crédito é idempotente no servidor. */
-  const ctxConquistas = useMemo<ContextoDeConquistas | null>(
-    () => (metrics ? montarContextoDeConquistas({ metricas: metrics, nivel: progress.level, recordes }) : null),
-    [metrics, progress.level, recordes],
-  );
-  useEffect(() => {
-    if (!ctxConquistas) return;
-    void verificarConquistas(ctxConquistas).then((novas) => {
-      /* v3: a conquista é ENTREGUE no modal de resgate (com "Equipar agora" no exclusivo), não
-         num toast que some. A fila mostra uma por vez e espera a rodada fechar. */
-      const vistas = recompensasVistas();
-      const entradas: Recompensa[] = novas
-        .map((c): Recompensa => ({ tipo: 'conquista', id: c.id, nome: c.nome, emoji: c.emoji, seeds: c.recompensa.seeds, xp: c.recompensa.xp, item: itemDaConquista(c.id) }))
-        .filter((r) => !vistas.has(chaveDaRecompensa(r)));
-      if (entradas.length) setFilaDeRecompensas((f) => [...f, ...entradas]);
-    });
-  }, [ctxConquistas]);
-
-  /** v3: fila do modal de resgate (nível/conquista/bau) e o contexto único de equipar. */
-  const [filaDeRecompensas, setFilaDeRecompensas] = useState<Recompensa[]>([]);
-
-  /* O BAU DA RODADA entra na mesma fila do nivel e da conquista: o `Play` anuncia o que o servidor
-     sorteou e aqui o id vira item do catalogo. Sem isto o drop creditava e ninguem via. */
-  useEffect(() => {
-    const ouvir = (e: Event) => {
-      const d = (e as CustomEvent<DetalheDoDrop>).detail;
-      const item = CATALOGO_DA_LOJA.find((i) => i.id === d?.itemId);
-      if (!item) return;
-      const r: Recompensa = { tipo: 'drop', roundId: d.roundId, seeds: d.seeds, item };
-      if (recompensasVistas().has(chaveDaRecompensa(r))) return;
-      setFilaDeRecompensas((f) => [...f, r]);
-      setVersaoDasMetricas((v) => v + 1);
-    };
-    window.addEventListener(EVENTO_DROP_GANHO, ouvir);
-    return () => window.removeEventListener(EVENTO_DROP_GANHO, ouvir);
-  }, []);
-  const [lojaAba, setLojaAba] = useState<string | null>(null);
-  /**
-   * PORTA ÚNICA do Estúdio de Layout (brecha B2, spec galeria-gating-fechado): eram cinco
-   * callsites passando `abrirEstudio` cru — a proteção morava só em QUEM
-   * renderizava o botão, e o Estúdio de nível 10 abria por qualquer entrada nova. Agora o gate
-   * mora na porta: fora do nível, diz o que falta em vez de abrir.
-   */
-  const abrirEstudio = () => {
-    const nivelAtual = progress.available ? progress.level : 1;
-    if (!desbloqueado(nivelAtual, 'estudio', 'abrir')) {
-      toast.warn(`O Estúdio de Layout abre no nível 10 — você está no ${nivelAtual}. Ele também está na Loja.`);
-      return;
-    }
-    setIsStudioOpen(true);
-  };
-  // Sem useMemo: os setters são redefinidos a cada render (não são useCallback) e o objeto é barato.
-  const equiparCtx: ContextoDeEquipar = {
-    setTheme, setFonte, setMenuPosition, onOpenStudio: abrirEstudio,
-    nivel: progress.available ? progress.level : 1, saldo: progress.available ? progress.seeds : 0,
-  };
-
-  /* SUBIU DE NÍVEL → festa + o que destravou. O último nível visto fica no navegador; na primeira
-     visita só registra (ninguém "sobe" para o nível atual). Aparência é recompensa (desbloqueios). */
-  useEffect(() => {
-    if (!progress.available) return;
-    let visto = 0;
-    try { visto = Number(localStorage.getItem('babel.nivel_visto')) || 0; } catch { /* sem storage */ }
-    if (visto === 0) { try { localStorage.setItem('babel.nivel_visto', String(progress.level)); } catch { /* idem */ } return; }
-    if (progress.level > visto) {
-      try { localStorage.setItem('babel.nivel_visto', String(progress.level)); } catch { /* idem */ }
-      /* v3: cada nível subido vira UMA entrada no modal de resgate, com TUDO que abriu (Loja +
-         galeria — `recompensasDoNivelCompleto`), e "Equipar agora" por item. O toast saiu. */
-      const vistas = recompensasVistas();
-      const entradas: Recompensa[] = [];
-      for (let n = visto + 1; n <= progress.level; n++) {
-        const r: Recompensa = { tipo: 'nivel', nivel: n, itens: recompensasDoNivelCompleto(n) };
-        if (!vistas.has(chaveDaRecompensa(r))) entradas.push(r);
-      }
-      if (entradas.length) setFilaDeRecompensas((f) => [...f, ...entradas]);
-      else comemorar('subiuNivel', null, { tremer: true });
-    }
-  }, [progress.available, progress.level]);
-
-  /**
-   * SUBIDA DE NÍVEL — o único momento que a app comemora com força.
-   *
-   * Detectado comparando o nível derivado entre atualizações de métrica (ver lib/progress). O
-   * `useRef` guarda o nível ANTERIOR: sem ele, a primeira carga dispararia a comemoração para
-   * quem já estava no nível 27 há meses.
-   */
-  const prevLevelRef = useRef<number | null>(null);
-  useEffect(() => {
-    if (!progress.available) return;
-    const anterior = prevLevelRef.current;
-    prevLevelRef.current = progress.level;
-    if (anterior !== null && progress.level > anterior) {
-      play('levelUp');
-      emitBurst(window.innerWidth / 2, window.innerHeight * 0.35, 'levelUp');
-    }
-  }, [progress.available, progress.level]);
-
-  // Onboarding: lê a escolha do usuário (settings.ui) e espelha no localStorage para
-  // o gateway (getActiveProfile) refletir provedor/credencial já no primeiro build.
-  // O mesmo blob carrega a aparência — o servidor é a cópia durável.
-  useEffect(() => {
-    fetchSettings()
-      .then((s) => {
-        let ui: any;
-        try { ui = s?.ui ? JSON.parse(s.ui) : null; } catch { ui = null; }
-        if (s?.activeProfileId) localStorage.setItem(PROFILE_KEY, s.activeProfileId);
-        if (ui?.credentialId) localStorage.setItem(CREDENTIAL_KEY, ui.credentialId);
-        else localStorage.removeItem(CREDENTIAL_KEY);
-        if (ui?.providerMode) localStorage.setItem(MODE_KEY, ui.providerMode);
-        // Perfil de exibição — o servidor é a cópia durável. Antes ele só existia no localStorage:
-        // quem configurava a app para um filho ou para um pai perdia a escolha na outra máquina.
-        if (isAgeProfile(ui?.ageProfile)) {
-          setAgeProfileState(ui.ageProfile);
-          localStorage.setItem('babel.age_profile', ui.ageProfile);
-        }
-        const applied = hydrateTheme(ui);
-        setThemeState(applied.theme);
-        setDarkMode(applied.darkMode);
-        setFonteState(applied.fonte);
-        // Sem conta não há onboarding: ele configura credenciais e perfil, que são da conta.
-        setOnboarded(estaAnonimo() ? true : !!ui?.onboarded);
-      })
-      .catch(() => setOnboarded(true)); // se settings falhar, não trava o app
-  }, []);
-  const [analysisSubTab, setAnalysisSubTab] = useState<string>('transcript');
-  const [liveTranscription, setLiveTranscription] = useState<string>('');
-
-  // iChat layout orchestration state
-  const [isChatOpen, setIsChatOpen] = useState<boolean>(false);
-  const [isChatDocked, setIsChatDocked] = useState<boolean>(() => {
-    return localStorage.getItem('ichat_docked') === 'true';
+  const {
+    ctxConquistas, filaDeRecompensas, setFilaDeRecompensas,
+    lojaAba, setLojaAba, abrirEstudio, equiparCtx,
+  } = useRecompensas({
+    metrics, recordes, progress, setVersaoDasMetricas,
+    setTheme, setFonte, setMenuPosition, setIsStudioOpen,
   });
-  const [isChatMaximized, setIsChatMaximized] = useState<boolean>(false);
 
-  /**
-   * SEMENTE DE PRÁTICA — o canal que faz "praticar este trecho" funcionar de qualquer tela.
-   *
-   * Antes, `navigateTo('study', data)` DESCARTAVA `data` silenciosamente, e `navigateTo('analysis', …)`
-   * forçava o subtab de volta a 'transcript'. Ou seja: um deep-link "abra o Shadowing já com ESTA frase"
-   * era literalmente impossível. Agora a semente é guardada aqui e desce até o Study.
-   */
-  const [practiceSeed, setPracticeSeed] = useState<PracticeSeed | null>(null);
+  useHidratacaoDeAjustes({ setThemeState, setDarkMode, setFonteState, setAgeProfileState, setOnboarded });
 
-  const navigateTo = (view: string, data?: any) => {
-    // Sem conta: a porta de entrada é um destino ("Entrar" no menu), e o que exige conta abre o
-    // convite em vez de navegar — a tela atual fica como está.
-    if (view === 'login') { setPedindoLogin(true); return; }
-    // Tela que exige conta NAVEGA normalmente: lá o CartaoDeConvite (inline) explica. O modal
-    // fica só para ações (importar, iChat) — navegação abrindo modal era convite demais.
-    // A tela atual pode ter trabalho em risco (uma captura em andamento, por exemplo). Ela
-    // decide se deixa sair na hora ou se pergunta antes — ver `lib/navGuard`.
-    if (askNavGuard(() => doNavigate(view, data))) return;
-    doNavigate(view, data);
-  };
-
-  const doNavigate = (view: string, data?: any) => {
-    if (view === 'study') {
-      setActiveView('analysis');
-      setAnalysisSubTab('study');
-      // A semente vem no `data` (texto selecionado, palavra, exercício-alvo). Antes era jogada fora.
-      setPracticeSeed(data?.seed ?? null);
-      if (data?.id) setSelectedRecordingId(data.id);
-    } else if (view === 'reading') {
-      setActiveView('analysis');
-      setAnalysisSubTab('reading');
-    } else {
-      setActiveView(view as ViewType);
-      // v3: Personalizar aceita a aba de destino ("progressao" do fim de rodada, "loja" do cadeado).
-      if (view === 'loja') setLojaAba(typeof data?.aba === 'string' ? data.aba : null);
-      // `capture` com `resumeId` retoma uma sessão existente (Biblioteca → "Retomar
-      // Captura"). Sem o id, é uma captura nova — limpar, senão a próxima gravação
-      // sobrescreveria a sessão retomada anteriormente.
-      if (view === 'capture') {
-        setResumingRecordingId(data?.resumeId ?? null);
-      }
-      if (view === 'analysis') {
-        // Só volta ao 'transcript' quando NÃO há um subtab explícito no payload — senão um
-        // deep-link para uma aba específica seria sempre anulado.
-        setAnalysisSubTab(data?.subTab ?? 'transcript');
-        if (data?.id) {
-          setSelectedRecordingId(data.id);
-        }
-      }
-      /* "Jogar com ESTA sessão" — o `data` era descartado aqui, então a tela de jogos era a
-         única de primeiro nível sem canal de entrada e sempre caía na gravação mais recente.
-         Sem `id`, limpa: "Jogar" pelo menu volta a ser o baralho inteiro, como deve ser. */
-      if (view === 'play') {
-        setSelectedRecordingId(data?.id ?? null);
-        /* "Praticar ISTO" chega aqui quando o alvo é um JOGO. Os atalhos do menu de contexto e do
-           painel de vocabulário apontavam para os exercícios legados; com eles fora, o destino
-           passou a ser o minijogo equivalente, e a semente precisa viajar junto, senão o atalho
-           abriria o lobby genérico e escolher uma frase não teria efeito. */
-        setPracticeSeed(data?.seed ?? null);
-      }
-    }
-  };
-
-  /* ═══════════════════════════════════════════════════════════════════════
-     F10, A URL ESPELHA O ESTADO.
-
-     Aditivo: a máquina de estados acima continua sendo a implementação. Estes três efeitos
-     apenas mantêm a barra de endereço em sincronia com ela.
-
-     O que isto conserta, medido na auditoria: recarregar devolvia ao Hub e perdia a sessão
-     aberta e a aba; o botão "voltar" do navegador saía do app; nenhuma tela era compartilhável;
-     e `Study` não tinha porta (agora tem: `/revisar`).
-     ═══════════════════════════════════════════════════════════════════════ */
-
-  /* 1) BOOT — restaura o estado a partir da URL, uma vez. `replaceState` (push=false) para não
-        criar uma entrada de histórico que devolveria o usuário para FORA do app no primeiro
-        "voltar". */
-  const rotaRestaurada = useRef(false);
-  useEffect(() => {
-    if (rotaRestaurada.current) return;
-    rotaRestaurada.current = true;
-    if (isOnAuthCallback()) return; // o callback tem dono; não é rota de tela
-    const e = lerUrlAtual();
-    if (e.view === 'hub' && window.location.pathname === '/') return;
-    doNavigate(e.subTab === 'study' ? 'study' : e.view, { id: e.sessionId, subTab: e.subTab, aba: e.lojaTab });
-  }, []);
-
-  /* 2) NAVEGAÇÃO → URL. Espelha o estado corrente sempre que ele muda. */
-  useEffect(() => {
-    if (!rotaRestaurada.current || isOnAuthCallback()) return;
-    publicarUrl({
-      view: (activeView === 'study' || activeView === 'reading' ? 'analysis' : activeView) as ViewDeRota,
-      sessionId: activeView === 'analysis' ? (selectedRecordingId ?? recordings[0]?.id ?? undefined) : undefined,
-      subTab: activeView === 'analysis' ? (analysisSubTab as EstadoDeRota['subTab']) : undefined,
-      lojaTab: activeView === 'loja' ? ((lojaAba ?? undefined) as EstadoDeRota['lojaTab']) : undefined,
-    });
-  }, [activeView, selectedRecordingId, recordings, analysisSubTab, lojaAba]);
-
-  /* 3) BOTÃO VOLTAR. Sem isto, "voltar" saía do app — era o beco relatado na auditoria.
-        Passa pelo `navGuard`: uma captura em andamento ainda pode pedir confirmação. */
-  useEffect(() => {
-    const aoVoltar = () => {
-      const e = lerUrlAtual();
-      navigateTo(e.subTab === 'study' ? 'study' : e.view, { id: e.sessionId, subTab: e.subTab, aba: e.lojaTab });
-    };
-    window.addEventListener('popstate', aoVoltar);
-    return () => window.removeEventListener('popstate', aoVoltar);
-    /* `navigateTo` FICA DE FORA das dependências, de propósito. Ela é recriada a cada render (é
-       uma função comum, não um `useCallback`), então incluí-la faria este efeito remover e
-       registrar de novo o ouvinte de `popstate` a CADA render — e o que ele precisa é existir uma
-       vez, do primeiro render ao último. O que ela lê (`lerUrlAtual`) vem da URL no momento do
-       evento, não de uma captura antiga, então não há estado velho para vazar aqui. */
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  const {
+    analysisSubTab, setAnalysisSubTab,
+    liveTranscription, setLiveTranscription,
+    isChatOpen, setIsChatOpen,
+    isChatDocked, setIsChatDocked,
+    isChatMaximized, setIsChatMaximized,
+    practiceSeed, setPracticeSeed,
+    navigateTo,
+  } = useNavegacao({
+    activeView, setActiveView,
+    selectedRecordingId, setSelectedRecordingId, setResumingRecordingId,
+    recordings, lojaAba, setLojaAba, setPedindoLogin,
+  });
 
   /**
    * `shouldRedirect=false` = "salvar e continuar na tela" (o usuário segue capturando).
@@ -719,7 +151,7 @@ export default function App() {
   const selectedRecording = recordings.find(r => r.id === selectedRecordingId) || recordings[0];
 
   // Map sub tabs like reading and study to distinct views for precise iChat context matching
-  const mappedActiveViewForChat = activeView === 'analysis' 
+  const mappedActiveViewForChat = activeView === 'analysis'
     ? (analysisSubTab === 'study' ? 'study' : analysisSubTab === 'reading' ? 'reading' : 'analysis') as ViewType
     : activeView;
 

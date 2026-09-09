@@ -1,0 +1,1 @@
+Documento vencido na raiz e pior que documento ausente: quem chega le primeiro o que esta mais a mao. Nenhum deles foi apagado — o historico foi movido com um cabecalho que diz o que e, e o README foi reescrito contando por que os jogos sairam e o que precisou mudar para voltarem (o contrato continua valendo para o proximo jogo).

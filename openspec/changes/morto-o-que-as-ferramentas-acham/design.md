@@ -1,0 +1,1 @@
+A regra da casa (comentario do `ci.yml` sobre `morto:arquivos`) e que export sem chamador nao e gateado porque `index.ts` reexporta o que cada tela importa da origem. Esta change respeita a regra e faz o trabalho que a ferramenta nao faz: separar barril de morto, e barril de DUPLICATA — que e o achado que vale.

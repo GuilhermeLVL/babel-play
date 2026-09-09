@@ -1,0 +1,3 @@
+- [x] 1.1 `coverage.thresholds` com o baseline
+- [x] 1.2 `ci.yml` roda `test:cov` e sobe `coverage/`
+- [x] 1.3 run verde na branch com os tres projetos e2e: https://github.com/GuilhermeLVL/babel-play/actions/runs/34352188827 (commit 3089ec3) — o comando unico `npm run test:e2e` roda os 114 testes no runner sem o limite de processo da maquina local

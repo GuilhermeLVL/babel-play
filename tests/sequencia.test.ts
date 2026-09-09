@@ -1,9 +1,10 @@
-import { describe, it, expect } from 'vitest';
+import { describe, expect,it } from 'vitest';
+
 import {
-  acumular, mesmaCorrente, marcarPromovidas, resumir,
-  pontuarRodada, xpFromRound, buildScrambleRounds,
-  type EstadoSequencia, type ItemOutcome, type RoundReport, type MinigameId,
-} from '../src/core';
+  acumular, buildScrambleRounds,
+  type EstadoSequencia, type ItemOutcome, marcarPromovidas, mesmaCorrente, type MinigameId,
+  pontuarRodada, resumir,
+type RoundReport, xpFromRound, } from '../src/core';
 
 /**
  * O que a corrente precisa garantir. Em ordem de gravidade:

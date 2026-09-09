@@ -14,8 +14,9 @@
  *
  * O valor 0,5 é o já majoritário (2 dos 3 limiares explícitos). O 0,6 era o desvio.
  */
-import { describe, it, expect } from 'vitest'
-import { LIMIAR_CONFIANCA, ehBaixaConfianca, rotuloDeConfianca } from '../src/components/Honestidade'
+import { describe, expect,it } from 'vitest'
+
+import { ehBaixaConfianca, LIMIAR_CONFIANCA, rotuloDeConfianca } from '../src/components/Honestidade'
 
 describe('o limiar é único e explícito', () => {
   it('vale 0,5 — o valor que já era maioria', () => {

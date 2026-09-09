@@ -1,16 +1,17 @@
-import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { X, Delete, CornerDownLeft, Lightbulb, Volume2, WandSparkles, ChevronsUp, Sparkles, Flame } from 'lucide-react';
-import type { ItemOutcome, RoundReport, RodadaTermo, Palpite } from '@core';
+import type { ItemOutcome, Palpite,RodadaTermo, RoundReport } from '@core';
 import {
-  julgarPalpite, acertou, estadoDoTecladoMulti, dicaDeLetra, letrasCertas,
-  TENTATIVAS_POR_MODO, modoDeTabuleiros, montarEscada, planoDaEscada, scoreRound,
-  layoutDoTermo, GAP_TABULEIRO, type LayoutDoTermo,
-} from '@core';
-import type { AgeProfileType } from '../../lib/profile';
-import { pontosDoElemento, multiplicador } from '../../lib/juice';
-import { speak } from '../../lib/tts';
+acertou, dicaDeLetra, estadoDoTecladoMulti, GAP_TABULEIRO,   julgarPalpite, type LayoutDoTermo,
+  layoutDoTermo, letrasCertas,
+modoDeTabuleiros, montarEscada, planoDaEscada, scoreRound,
+  TENTATIVAS_POR_MODO, } from '@core';
+import { ChevronsUp, CornerDownLeft, Delete, Flame,Lightbulb, Sparkles, Volume2, WandSparkles, X } from 'lucide-react';
+import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+
+import { playJuicedError, playJuicedHit, playJuicedVictory, triggerHaptic } from '../../lib/gameFeel';
+import { multiplicador,pontosDoElemento } from '../../lib/juice';
 import { toBcp47 } from '../../lib/languages';
-import { playJuicedHit, playJuicedError, playJuicedVictory, triggerHaptic } from '../../lib/gameFeel';
+import type { AgeProfileType } from '../../lib/profile';
+import { speak } from '../../lib/tts';
 
 /**
  * SOLETRAR — o jogo de escrever a palavra a partir do significado, em degraus.

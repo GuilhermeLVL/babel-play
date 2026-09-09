@@ -6,9 +6,10 @@
  * escrito à mão dentro do componente — a prop `items` chegava assinada como `_itemsProp` e era
  * ignorada. Nenhum outcome tinha `cardId`, e sem `cardId` `Play.tsx` descarta o resultado.
  */
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { render, cleanup, fireEvent, act } from '@testing-library/react'
+import { act,cleanup, fireEvent, render } from '@testing-library/react'
 import React from 'react'
+import { afterEach,beforeEach, describe, expect, it, vi } from 'vitest'
+
 import type { MinigameItem, RoundReport } from '../src/core/minigames/types'
 
 vi.mock('../src/lib/juice', () => ({ comemorar: vi.fn() }))

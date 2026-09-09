@@ -7,9 +7,10 @@
  * (`lerTextoAnki`, que não é meu para editar) já devolve exatamente o mesmo `LeituraAnki` que o
  * `.apkg` devolveria.
  */
-import { describe, it, expect, beforeAll, afterAll } from 'vitest'
-import { setupEphemeralDb, type EphemeralDb } from '../harness/ephemeralDb'
+import { afterAll,beforeAll, describe, expect, it } from 'vitest'
+
 import { asUserId, type UserId } from '../../server/lib/authContext'
+import { type EphemeralDb,setupEphemeralDb } from '../harness/ephemeralDb'
 
 const U = asUserId('anki-rotas-user')
 const OUTRO = asUserId('anki-rotas-outro')

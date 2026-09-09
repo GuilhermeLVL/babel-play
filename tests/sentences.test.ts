@@ -1,6 +1,7 @@
-import { describe, it, expect } from 'vitest';
-import { toSentences, seedFromSentence, seedFromSelection } from '../src/lib/sentences';
+import { describe, expect,it } from 'vitest';
+
 import type { UtteranceRow } from '../src/data/api';
+import { seedFromSelection,seedFromSentence, toSentences } from '../src/lib/sentences';
 
 const row = (over: Partial<UtteranceRow>): UtteranceRow => ({
   id: 'u1',

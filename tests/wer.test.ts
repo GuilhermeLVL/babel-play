@@ -5,10 +5,11 @@
  * O foco dos testes é a normalização de português e a decomposição dos erros — as duas partes onde
  * um descuido produz um WER que parece bom e esconde o defeito.
  */
-import { describe, it, expect } from 'vitest'
+import { describe, expect,it } from 'vitest'
+
 import {
-  normalizarPt, wer, cer, distanciaDeEdicao, agregar, agregarPorFaixa, palavras,
-} from '../src/core/eval/wer'
+agregar, agregarPorFaixa, cer, distanciaDeEdicao,   normalizarPt, palavras,
+wer, } from '../src/core/eval/wer'
 
 describe('normalização pt-BR', () => {
   it('tira caixa e pontuação, mas MANTÉM o acento', () => {

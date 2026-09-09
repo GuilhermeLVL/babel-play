@@ -1,4 +1,5 @@
-import { describe, it, expect } from 'vitest'
+import { describe, expect,it } from 'vitest'
+
 import { classificarVazamento, sobreposicaoMs } from '../src/lib/vazamento'
 
 const base = { idiomaDoMic: 'pt', idiomaDoSistema: 'en', mic: { inicioMs: 1000, fimMs: 3000 } }

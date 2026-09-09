@@ -3,7 +3,7 @@
  * devolve mensagem GENÉRICA (anti-enumeração), signup sem sessão pede verificação, reset SEMPRE
  * responde ok+genérico (mesmo se o provedor lançar), e o MFA encapsula enroll/confirm.
  */
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { beforeEach,describe, expect, it, vi } from 'vitest'
 
 // vi.hoisted: o factory do vi.mock é içado ao topo — a mock precisa existir antes.
 const { auth } = vi.hoisted(() => ({

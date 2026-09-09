@@ -1,6 +1,6 @@
-import { emitBurst, type BurstKind } from './effects';
-import { sortearEventoRaro, eventosCondicionais, marcarEventoVisto, type EfeitoComposto } from './eventosDeJogo';
 import { sorteDeEventos } from './aprimoramentos';
+import { type BurstKind,emitBurst } from './effects';
+import { type EfeitoComposto,eventosCondicionais, marcarEventoVisto, sortearEventoRaro } from './eventosDeJogo';
 import { play } from './soundFx';
 
 /**

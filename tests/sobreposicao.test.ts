@@ -5,7 +5,8 @@
  * ninguém. Sem essa regra o indicador contaria o recorte do motor de transcrição como conversa
  * atropelada, e o número subiria quanto mais bem fatiado fosse o áudio — o oposto da verdade.
  */
-import { describe, it, expect } from 'vitest'
+import { describe, expect,it } from 'vitest'
+
 import { contarSobreposicoes } from '../src/core/learning/sobreposicao'
 
 describe('contarSobreposicoes', () => {

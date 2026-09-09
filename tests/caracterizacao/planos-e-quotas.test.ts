@@ -5,9 +5,10 @@
  * REMOVIDAS do ambiente para o arquivo: o que se caracteriza e o servidor sem provedor
  * configurado, que e o estado de qualquer CI — e as respostas mudam com a chave presente.
  */
-import { describe, it, expect, beforeAll, afterAll } from 'vitest'
-import { subirApp, resposta, type AppDeTeste } from './_app'
+import { afterAll,beforeAll, describe, expect, it } from 'vitest'
+
 import { PLAN_MATRIX } from '../../src/core/planos'
+import { type AppDeTeste,resposta, subirApp } from './_app'
 
 const CHAVES_DE_IA = ['LLM_API_KEY', 'GROQ_API_KEY', 'STT_API_KEY', 'PRO_MONTHLY_MANAGED_CALLS'] as const
 const salvo: Partial<Record<(typeof CHAVES_DE_IA)[number], string | undefined>> = {}

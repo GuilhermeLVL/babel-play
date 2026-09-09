@@ -5,8 +5,9 @@
  * não havia unique em `sessions` — reenviar o mesmo POST criava uma segunda sessão.
  */
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
-import { setupEphemeralDb, type EphemeralDb } from '../harness/ephemeralDb'
+
 import { asUserId } from '../../server/lib/authContext'
+import { type EphemeralDb,setupEphemeralDb } from '../harness/ephemeralDb'
 
 const A = asUserId('origem-local-a')
 const B = asUserId('origem-local-b')

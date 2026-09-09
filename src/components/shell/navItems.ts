@@ -1,17 +1,17 @@
 import {
-  Gamepad2,
-  LayoutDashboard,
-  Mic,
-  Library,
   BookOpen,
-  Settings as SettingsIcon,
-  Heart,
-  Shirt,
   CreditCard,
-  type LucideIcon
-} from 'lucide-react';
-import type { ViewType } from '../../types';
+  Gamepad2,
+  Heart,
+  LayoutDashboard,
+  Library,
+  type LucideIcon,
+  Mic,
+  Settings as SettingsIcon,
+  Shirt} from 'lucide-react';
+
 import { t } from '../../lib/i18n';
+import type { ViewType } from '../../types';
 
 // O tipo mora em `lib/profile` (junto do dicionário de linguagem); aqui só reexportamos para não
 // quebrar os ~15 imports que já apontam para este módulo.

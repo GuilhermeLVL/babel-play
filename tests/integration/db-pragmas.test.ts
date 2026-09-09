@@ -9,8 +9,9 @@
  * WAL + busy_timeout zeraram as duas medições. Este teste amarra os PRAGMAs para que
  * ninguém volte ao default sem perceber.
  */
-import { describe, it, expect, beforeAll, afterAll } from 'vitest'
-import { setupEphemeralDb, type EphemeralDb } from '../harness/ephemeralDb'
+import { afterAll,beforeAll, describe, expect, it } from 'vitest'
+
+import { type EphemeralDb,setupEphemeralDb } from '../harness/ephemeralDb'
 
 let h: EphemeralDb
 let dbMod: any

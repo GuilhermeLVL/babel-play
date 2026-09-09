@@ -1,26 +1,27 @@
-import EditablePanel from '../EditablePanel';
-import React, { useState, useRef, useEffect } from 'react';
-import { PlayCircle, Plus, Search, BookOpen, Volume2, X, Highlighter, StickyNote, Eraser, Check, Pen, MousePointer, Trash2, Play, Pause, Square, SkipBack, SkipForward, Settings2, AlertTriangle } from 'lucide-react';
-import { VocabCard, Recording, VocabWord } from '../../types';
+import { makeCloze } from '@core';
+import { AlertTriangle,BookOpen, Check, Eraser, Highlighter, MousePointer, Pause, Pen, Play, PlayCircle, Plus, Search, Settings2, SkipBack, SkipForward, Square, StickyNote, Trash2, Volume2, X } from 'lucide-react';
+import React, { useEffect,useRef, useState } from 'react';
+
 import { fetchDeck, fetchSessionTranscript, searchImages } from '../../data/api';
 import { buildGateway } from '../../gateway';
 import { getActiveProfile } from '../../gateway/activeProfile';
-import { makeCloze } from '@core';
-import { speak as ttsSpeak, pickVoice, voicesFor, hasVoiceFor, getVoicePrefs, setVoicePref } from '../../lib/tts';
-import { usePopoverDePalavra } from '../../lib/popoverDePalavra';
+import { ficharCartao } from '../../lib/adicionarAoDeck';
+import { useLangConfig } from '../../lib/langConfig';
 import { detectLanguage, hasNativeDetector, type LangDetection } from '../../lib/langDetect';
 import { baseLang, langLabel, toBcp47 } from '../../lib/languages';
-import LangPicker from '../LangPicker';
-import { useLangConfig } from '../../lib/langConfig';
-import { buildVocabWord, mtNoteFor, resolveWord, tokenizarTexto } from '../../lib/vocabWord';
-import { ficharCartao } from '../../lib/adicionarAoDeck';
-import PopoverFlutuante from '../PopoverFlutuante';
-import type { WordOrigin, ResolvedWord } from '../../lib/vocabWord';
-import { seedFromSelection, telaDoExercicio } from '../../lib/sentences';
-import type { PracticeSeed, ExerciseId } from '../../lib/sentences';
-import VocabularyPanel from '../VocabularyPanel';
 import { micErrorMessage } from '../../lib/mediaErrors';
-import { toast, askConfirm } from '../Toast';
+import { usePopoverDePalavra } from '../../lib/popoverDePalavra';
+import type { ExerciseId,PracticeSeed } from '../../lib/sentences';
+import { seedFromSelection, telaDoExercicio } from '../../lib/sentences';
+import { getVoicePrefs, hasVoiceFor, pickVoice, setVoicePref,speak as ttsSpeak, voicesFor } from '../../lib/tts';
+import type { ResolvedWord,WordOrigin } from '../../lib/vocabWord';
+import { buildVocabWord, mtNoteFor, resolveWord, tokenizarTexto } from '../../lib/vocabWord';
+import { Recording, VocabCard, VocabWord } from '../../types';
+import EditablePanel from '../EditablePanel';
+import LangPicker from '../LangPicker';
+import PopoverFlutuante from '../PopoverFlutuante';
+import { askConfirm,toast } from '../Toast';
+import VocabularyPanel from '../VocabularyPanel';
 
 /**
  * LEITURA INTELIGENTE — modos do narrador.

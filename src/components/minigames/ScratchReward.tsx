@@ -1,13 +1,14 @@
+import type { ResumoDaSequencia,RoundReport } from '@core';
+import { estrelasDaRodada,summarize } from '@core';
+import { Medal, Play, RotateCcw, Sparkles, Sprout, Star, Target, Timer,Zap } from 'lucide-react';
 import React, { useEffect, useRef, useState } from 'react';
-import { Sparkles, Play, RotateCcw, Zap, Medal, Sprout, Star, Target, Timer } from 'lucide-react';
-import type { RoundReport, ResumoDaSequencia } from '@core';
-import { summarize, estrelasDaRodada } from '@core';
-import type { AgeProfileType } from '../../lib/profile';
-import { comemorar, pontosDoElemento } from '../../lib/juice';
+
 import { burstFromElement } from '../../lib/effects';
-import type { DerivedProgress } from '../../lib/progress';
-import { proximaRecompensa, emojiDoItem } from '../../lib/galeria/progressao';
+import { emojiDoItem,proximaRecompensa } from '../../lib/galeria/progressao';
 import { TEXTOS } from '../../lib/galeria/textos';
+import { comemorar, pontosDoElemento } from '../../lib/juice';
+import type { AgeProfileType } from '../../lib/profile';
+import type { DerivedProgress } from '../../lib/progress';
 
 /**
  * RASPADINHA — e, agora, a EMENDA para a próxima rodada.

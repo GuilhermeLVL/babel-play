@@ -1,6 +1,7 @@
-import { describe, it, expect } from 'vitest';
-import { resolveWord, buildVocabWord, cardLangs, type MtLike } from '../src/lib/vocabWord';
+import { describe, expect,it } from 'vitest';
+
 import { DEFAULT_LANG_CONFIG } from '../src/lib/langConfig';
+import { buildVocabWord, cardLangs, type MtLike,resolveWord } from '../src/lib/vocabWord';
 
 const config = DEFAULT_LANG_CONFIG; // mine: pt-BR, studying: en-US
 

@@ -12,11 +12,12 @@
  * vem no espaço de layout zoomado), o zoom entra aqui simplesmente dividindo a viewport — que é
  * exatamente o que o navegador faz.
  */
-import { describe, it, expect } from 'vitest'
+import { describe, expect,it } from 'vitest'
+
 import {
-  layoutDoTermo, larguraDoTabuleiro,
-  CELULA_MIN, CELULA_MAX, CELULA_CONFORTAVEL, GAP_CELULA, GAP_TABULEIRO,
-} from '../src/core/minigames/termoLayout'
+CELULA_CONFORTAVEL, CELULA_MAX,   CELULA_MIN, GAP_CELULA, GAP_TABULEIRO,
+larguraDoTabuleiro,
+  layoutDoTermo, } from '../src/core/minigames/termoLayout'
 
 /** Telas reais, da menor à maior. */
 const TELAS: Array<[string, number, number]> = [

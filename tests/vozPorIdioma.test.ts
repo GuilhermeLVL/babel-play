@@ -12,7 +12,7 @@
  * sei" — e bloquear por informação ausente daria um jogo trancado por engano, que é pior que o
  * defeito original.
  */
-import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 type VozFalsa = { lang: string; name: string }
 

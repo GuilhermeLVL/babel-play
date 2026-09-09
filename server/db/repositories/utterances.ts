@@ -1,8 +1,10 @@
 import { randomUUID } from 'node:crypto'
+
 import { and, asc, eq, isNull } from 'drizzle-orm'
+
+import type { UserId } from '../../lib/authContext'
 import { db, type ExecutorDb } from '../db'
 import { utterances } from '../schema'
-import type { UserId } from '../../lib/authContext'
 
 export type Utterance = typeof utterances.$inferSelect
 

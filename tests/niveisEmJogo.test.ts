@@ -9,9 +9,10 @@
  *
  * Achado F08 de `docs/auditoria/tela-de-jogos-v1.md`.
  */
-import { describe, it, expect } from 'vitest'
-import { niveisEmJogo } from '../src/core/learning/trilha'
+import { describe, expect,it } from 'vitest'
+
 import type { DadoTrilha } from '../src/core/learning/trilha'
+import { niveisEmJogo } from '../src/core/learning/trilha'
 
 const trilha: DadoTrilha = {
   lang: 'en',

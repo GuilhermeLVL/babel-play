@@ -5,9 +5,10 @@
  * REALMENTE chamado. Antes da correção, 20 requisições simultâneas contra um teto de 5
  * resultavam em 20 chamadas pagas (docs/audit/04-scalability.md §3).
  */
-import { describe, it, expect, beforeAll, afterAll, afterEach, vi } from 'vitest'
-import { setupEphemeralDb, type EphemeralDb } from '../harness/ephemeralDb'
+import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
+
 import { asUserId } from '../../server/lib/authContext'
+import { type EphemeralDb,setupEphemeralDb } from '../harness/ephemeralDb'
 
 let h: EphemeralDb
 let mt: any

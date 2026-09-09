@@ -5,17 +5,17 @@
  * Falha-antes: `App.tsx` tinha `if (authRequired && !session) return <Login/>` — sem conta, nem o
  * hub nem a captura existiam; e `Login` não tinha como seguir sem conta.
  */
-import { afterEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 
 vi.mock('../src/lib/supabase', () => ({
   supabase: null, authRequired: true, carregarSupabase: async () => null, getAccessToken: async () => null,
 }))
 
-import Login from '../src/components/Login'
 import CartaoDeConvite from '../src/components/conta/CartaoDeConvite'
-import GateDeConta from '../src/components/conta/GateDeConta'
 import { EXIGE_CONTA, exigeConta, porta } from '../src/components/conta/exigeConta'
+import GateDeConta from '../src/components/conta/GateDeConta'
+import Login from '../src/components/Login'
 
 afterEach(cleanup)
 

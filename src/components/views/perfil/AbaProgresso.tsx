@@ -1,26 +1,27 @@
-import { useEffect, useMemo, useState } from 'react';
-import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, ReferenceDot } from 'recharts';
+import {
+  escalaDe,
+  type Fluencia,
+  fluenciaDoBaralho,
+  MIN_CARTOES_POR_FAIXA,
+  RETENCAO_DE_DOMINIO,
+  rotuloDeFluencia,
+} from '@core';
 import { Loader2, Trophy } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
+import { Area, AreaChart, ReferenceDot,ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
+
 import { fetchDeck } from '../../../data/api';
 import { fetchHistoricoDeXp, type HistoricoDeXp } from '../../../data/me';
-import {
-  fluenciaDoBaralho,
-  rotuloDeFluencia,
-  escalaDe,
-  RETENCAO_DE_DOMINIO,
-  MIN_CARTOES_POR_FAIXA,
-  type Fluencia,
-} from '@core';
 import { precarregarNiveis } from '../../../data/trilha/carregar';
-import { baseLang, langLabelNaUI } from '../../../lib/languages';
-import type { VocabCard } from '../../../types';
-import type { DerivedProgress } from '../../../lib/progress';
-import type { AgeProfileType } from '../../../lib/profile';
 import { palavraDeNivel } from '../../../lib/galeria/textos';
+import { data, numero } from '../../../lib/i18n';
+import { baseLang, langLabelNaUI } from '../../../lib/languages';
+import type { AgeProfileType } from '../../../lib/profile';
+import type { DerivedProgress } from '../../../lib/progress';
+import type { VocabCard } from '../../../types';
+import { Confianca, rotuloDaBase } from '../../Honestidade';
 import FaixaDeProgresso from '../../progress/FaixaDeProgresso';
 import { Barra, Ladrilho } from '../../ui';
-import { Confianca, rotuloDaBase } from '../../Honestidade';
-import { data, numero } from '../../../lib/i18n';
 
 /**
  * O PROGRESSO — nível, a curva no tempo, e a fluência estimada.

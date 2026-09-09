@@ -1,7 +1,8 @@
 /** SaaS — quota fair-use: pro respeita o teto mensal; selfhost é ilimitado; erro degrada ABERTO. */
-import { describe, it, expect, beforeAll, afterAll, afterEach } from 'vitest'
-import { setupEphemeralDb, type EphemeralDb } from '../harness/ephemeralDb'
+import { afterAll, afterEach,beforeAll, describe, expect, it } from 'vitest'
+
 import { asUserId } from '../../server/lib/authContext'
+import { type EphemeralDb,setupEphemeralDb } from '../harness/ephemeralDb'
 
 let h: EphemeralDb
 let quota: any

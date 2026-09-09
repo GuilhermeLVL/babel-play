@@ -1,9 +1,10 @@
 // Importa SÓ as bandeiras dos idiomas que a app oferece (tree-shaking: cada uma é ~1KB de
 // SVG inline; importar o namespace inteiro embarcaria ~250 bandeiras à toa).
 import {
-  BR, PT, US, GB, ES, MX, FR, DE, IT, NL, RU, PL, UA, TR, SE, DK, NO, FI,
-  CZ, GR, RO, HU, JP, KR, CN, TW, IN, SA, IL, ID, VN, TH,
-} from 'country-flag-icons/react/3x2';
+  BR, CN,   CZ, DE, DK, ES, FI,
+FR, GB, GR, HU, ID, IL, IN, IT, JP, KR, MX, NL, NO, PL, PT, RO, RU, SA, SE, TH,
+TR, TW, UA, US, VN, } from 'country-flag-icons/react/3x2';
+
 import { langCountry, langShortLabel } from '../lib/langFlag';
 import { langLabel } from '../lib/languages';
 

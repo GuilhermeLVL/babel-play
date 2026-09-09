@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
-import { estaAnonimo, aoMudarIdentidade } from '../identidade';
-import { EVENTO_EXIGE_CONTA } from '../../data/efemero/servidor';
+
 import { anonimoAceito, motivoDoGate } from '../../components/conta/exigeConta';
+import { EVENTO_EXIGE_CONTA } from '../../data/efemero/servidor';
 import { temDadosLocais } from '../../data/efemero/store';
+import { aoMudarIdentidade,estaAnonimo } from '../identidade';
 
 export interface EstadoDoGateDeConta {
   anonimo: boolean;

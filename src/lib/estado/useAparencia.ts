@@ -1,16 +1,17 @@
 import { useEffect, useState } from 'react';
+
 import { useCommandPalette } from '../../components/CommandPalette';
-import type { AgeProfileType, MenuPositionType, FontScale } from '../../components/StudioHeader';
-import type { ThemeType, FonteType } from '../appearance';
-import { readTheme, readDarkMode, readFonte, hydrateTheme, persistTheme } from '../theme';
-import { patchUiSettings, fetchSettings } from '../../data/api';
-import { PROFILE_KEY, CREDENTIAL_KEY, MODE_KEY } from '../../gateway/activeProfile';
-import { estaAnonimo } from '../identidade';
-import { setSoundMuted } from '../soundFx';
-import { installSfxDelegate } from '../sfxDelegate';
-import { instalarRastroDoMouse } from '../rastroDoMouse';
+import type { AgeProfileType, FontScale,MenuPositionType } from '../../components/StudioHeader';
+import { fetchSettings,patchUiSettings } from '../../data/api';
+import { CREDENTIAL_KEY, MODE_KEY,PROFILE_KEY } from '../../gateway/activeProfile';
+import type { FonteType,ThemeType } from '../appearance';
 import { ativarLiberacaoTotal, liberadoTudo } from '../desbloqueios';
+import { estaAnonimo } from '../identidade';
 import { isAgeProfile, readAgeProfile, readStoredEnum, readStoredValue } from '../profile';
+import { instalarRastroDoMouse } from '../rastroDoMouse';
+import { installSfxDelegate } from '../sfxDelegate';
+import { setSoundMuted } from '../soundFx';
+import { hydrateTheme, persistTheme,readDarkMode, readFonte, readTheme } from '../theme';
 
 const MENU_POSITION_KEY = 'babel.menu_position';
 const MENU_POSITIONS: readonly MenuPositionType[] = ['top', 'bottom', 'left', 'right'];

@@ -1,23 +1,24 @@
-import { Mic, CheckCircle2, ChevronRight, Brain, Zap, Volume2, Briefcase, Sparkles, Plus, Search } from 'lucide-react';
-import { useExameDePalavra } from '../../lib/useExameDePalavra';
-import { ficharPalavraDoAnalista } from '../../lib/adicionarAoDeck';
-import FraseComLacuna from '../FraseComLacuna';
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { fetchDeck, reviewCard, salvarRodada } from '../../data/api';
-import { VocabCard, SchedulerType, Recording, ExerciseKind, VocabWord } from '../../types';
-import {
-  stabilityThreshold,
-  formatForCard,
-  ActiveProductionExercise,
-  similarityPercentage,
-} from '../../lib/exercicios';
 import { countDue, isDueNow } from '@core';
-import { speak as ttsSpeak } from '../../lib/tts';
-import type { Sentence, PracticeSeed, ExerciseId } from '../../lib/sentences';
+import { Brain, Briefcase, CheckCircle2, ChevronRight, Mic, Plus, Search,Sparkles, Volume2, Zap } from 'lucide-react';
+import React, { useCallback,useEffect, useMemo, useState } from 'react';
+
+import { fetchDeck, reviewCard, salvarRodada } from '../../data/api';
+import { ficharPalavraDoAnalista } from '../../lib/adicionarAoDeck';
+import {
+  ActiveProductionExercise,
+  formatForCard,
+  similarityPercentage,
+  stabilityThreshold,
+} from '../../lib/exercicios';
+import { type AgeProfileType,copyDoPerfil, showsPowerUserAffordances } from '../../lib/profile';
+import type { ExerciseId,PracticeSeed, Sentence } from '../../lib/sentences';
 import { seedFromSelection, telaDoExercicio } from '../../lib/sentences';
-import VocabularyPanel from '../VocabularyPanel';
+import { speak as ttsSpeak } from '../../lib/tts';
+import { useExameDePalavra } from '../../lib/useExameDePalavra';
+import { ExerciseKind, Recording, SchedulerType, VocabCard, VocabWord } from '../../types';
 import CommandPalette, { useCommandPalette } from '../CommandPalette';
-import { copyDoPerfil, showsPowerUserAffordances, type AgeProfileType } from '../../lib/profile';
+import FraseComLacuna from '../FraseComLacuna';
+import VocabularyPanel from '../VocabularyPanel';
 
 // Exercícios — cada um é um componente próprio, com o contrato `ExerciseProps`.
 

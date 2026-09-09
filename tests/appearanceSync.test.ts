@@ -1,5 +1,6 @@
-import { describe, it, expect } from 'vitest';
-import { readAppearance, applyAppearance, APPEARANCE_ATTRS, type StyledElement } from '../src/lib/appearanceSync';
+import { describe, expect,it } from 'vitest';
+
+import { APPEARANCE_ATTRS, applyAppearance, readAppearance, type StyledElement } from '../src/lib/appearanceSync';
 
 /** Elemento falso com a superfície mínima que a sincronia usa (sem DOM, roda em node). */
 function fakeEl(init: { theme?: string; className?: string; vars?: Record<string, string>; fontSize?: string } = {}): StyledElement {

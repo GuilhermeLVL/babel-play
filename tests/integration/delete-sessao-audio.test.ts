@@ -5,12 +5,14 @@
  * era `{ok:true}` de qualquer jeito: o arquivo ficava órfão no disco enquanto o usuário via
  * "apagado". Para um pedido de exclusão (LGPD/GDPR) é confirmar o que não ocorreu.
  */
-import { describe, it, expect, beforeAll, afterAll, afterEach, vi } from 'vitest'
-import { setupEphemeralDb, type EphemeralDb } from '../harness/ephemeralDb'
-import { asUserId } from '../../server/lib/authContext'
-import { mkdtempSync, mkdirSync, writeFileSync, existsSync } from 'node:fs'
+import { existsSync,mkdirSync, mkdtempSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
+
+import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
+
+import { asUserId } from '../../server/lib/authContext'
+import { type EphemeralDb,setupEphemeralDb } from '../harness/ephemeralDb'
 
 let h: EphemeralDb
 let router: any

@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 /** apiFetch: em modo público, 401 tenta 1 refresh e retry; se persistir, faz signOut. Local não mexe. */
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 const supa = vi.hoisted(() => ({
   refreshSession: vi.fn(),

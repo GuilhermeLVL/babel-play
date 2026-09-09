@@ -1,6 +1,7 @@
-import { describe, it, expect } from 'vitest';
-import { avaliarPalpite, acertou, estadoDoTeclado, buildTermoRounds, contarJogaveisTermo, MIN_LETRAS, MAX_LETRAS } from '../src/core/minigames/termo';
-import { shuffleWords, checkOrder, acertosPosicionais, tokenize, fraseJogavel, buildScrambleRounds } from '../src/core/minigames/scramble';
+import { describe, expect,it } from 'vitest';
+
+import { acertosPosicionais, buildScrambleRounds,checkOrder, fraseJogavel, shuffleWords, tokenize } from '../src/core/minigames/scramble';
+import { acertou, avaliarPalpite, buildTermoRounds, contarJogaveisTermo, estadoDoTeclado, MAX_LETRAS,MIN_LETRAS } from '../src/core/minigames/termo';
 import type { VocabCard } from '../src/types';
 
 const estados = (palpite: string, resposta: string) => avaliarPalpite(palpite, resposta).estados;

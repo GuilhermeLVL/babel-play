@@ -1,25 +1,26 @@
 import {
-  Search, Filter, Play, Clock, MoreVertical, Plus, Upload, Link as LinkIcon,
-  FileAudio, Youtube, FileText, LayoutDashboard, Loader2, Lock, Shield, Pin,
-  Trash2, Download, Image as ImageIcon, X, Mic, Pencil, Package, Eye
-} from 'lucide-react';
-import InfoHint from '../InfoHint';
-import BuscaDeCapa from '../BuscaDeCapa';
-import { createPortal } from 'react-dom';
-import { usePosicaoFlutuante } from '../../lib/posicaoFlutuante';
+Clock, Download, Eye,
+  FileAudio, FileText, Filter, Image as ImageIcon, LayoutDashboard, Link as LinkIcon,
+Loader2, Lock, Mic, MoreVertical, Package, Pencil, Pin,
+Play, Plus,   Search, Shield,   Trash2, Upload, X, Youtube} from 'lucide-react';
 import React, { useEffect, useRef, useState } from 'react';
-import { Recording } from '../../types';
-import EditablePanel from '../EditablePanel';
+import { createPortal } from 'react-dom';
+
 import {
-  createSession, fetchSessions, fetchSessionTranscript, patchSessionMeta, deleteSession,
-  updateSession, searchImages, uploadSessionAudio,
-  importYoutube, importWeb, importDocument, type ImageResult,
+  createSession, deleteSession,
+fetchSessions, fetchSessionTranscript, type ImageResult,
+importDocument, importWeb,   importYoutube, patchSessionMeta, searchImages,   updateSession, uploadSessionAudio,
 } from '../../data/api';
-import { toast, askConfirm } from '../Toast';
-import { fetchLangConfig } from '../../lib/langConfig';
-import { buildDocumentSession, transcribeImportedAudio } from '../../lib/import/buildSession';
 import { getEntitlements, onPlanChange } from '../../lib/entitlements';
 import { numero } from '../../lib/i18n';
+import { buildDocumentSession, transcribeImportedAudio } from '../../lib/import/buildSession';
+import { fetchLangConfig } from '../../lib/langConfig';
+import { usePosicaoFlutuante } from '../../lib/posicaoFlutuante';
+import { Recording } from '../../types';
+import BuscaDeCapa from '../BuscaDeCapa';
+import EditablePanel from '../EditablePanel';
+import InfoHint from '../InfoHint';
+import { askConfirm,toast } from '../Toast';
 
 type LibraryTab = 'collections' | 'vault';
 

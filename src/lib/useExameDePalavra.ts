@@ -16,13 +16,14 @@
  * mostram o resultado de formas diferentes, e essa diferença é legítima.
  */
 import { useEffect, useMemo, useState } from 'react';
-import type { VocabCard, VocabWord } from '../types';
-import { fetchLangConfig, onLangConfigChange, DEFAULT_LANG_CONFIG, type LangConfig } from './langConfig';
-import { baseLang } from './languages';
-import { resolveWord, buildVocabWord, type WordOrigin } from './vocabWord';
+
 import { buildGateway } from '../gateway';
 import { getActiveProfile } from '../gateway/activeProfile';
+import type { VocabCard, VocabWord } from '../types';
+import { DEFAULT_LANG_CONFIG, fetchLangConfig, type LangConfig,onLangConfigChange } from './langConfig';
+import { baseLang } from './languages';
 import { speak as ttsSpeak } from './tts';
+import { buildVocabWord, resolveWord, type WordOrigin } from './vocabWord';
 
 export interface ExameDePalavra {
   /** Configuração de idioma do usuário, já reconciliada com mudanças em Configurações. */

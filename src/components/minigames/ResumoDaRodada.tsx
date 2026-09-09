@@ -8,8 +8,8 @@
  * Reusa `.card-panel`, `.badge-tag`, `.btn-solid`, `.btn-outline` (src/index.css). Ícones SVG
  * `lucide-react`, sem emoji.
  */
+import { ArrowUp, Check, ChevronLeft, Minus,RotateCw, Sparkles, TrendingDown, TrendingUp, X } from 'lucide-react';
 import React from 'react';
-import { Check, X, RotateCw, ArrowUp, Sparkles, ChevronLeft, TrendingUp, TrendingDown, Minus } from 'lucide-react';
 
 export interface ItemDaRodada {
   /* Opcional, como o `itemRef` do `ItemOutcome` de onde ele vem: quando o jogo não sabe

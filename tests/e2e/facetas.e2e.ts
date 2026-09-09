@@ -1,5 +1,6 @@
-import { test, expect } from '@playwright/test';
-import { irParaPraticar, clicarRobusto, apareceEmAte, baralhosNoServidor, abrirSeletor } from './_helpers';
+import { expect,test } from '@playwright/test';
+
+import { abrirSeletor,apareceEmAte, baralhosNoServidor, clicarRobusto, irParaPraticar } from './_helpers';
 
 /**
  * A fileira RECORTE do lobby `/jogar` (onda facetada): pílulas "Pedindo revisão"/"Nunca vistas",

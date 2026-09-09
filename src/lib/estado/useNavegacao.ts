@@ -1,9 +1,10 @@
-import { useEffect, useRef, useState, type Dispatch, type SetStateAction } from 'react';
-import type { ViewType, Recording } from '../../types';
-import { askNavGuard } from '../navGuard';
-import type { PracticeSeed } from '../sentences';
+import { type Dispatch, type SetStateAction,useEffect, useRef, useState } from 'react';
+
+import type { Recording,ViewType } from '../../types';
 import { isOnAuthCallback } from '../authCallback';
-import { lerUrlAtual, publicarUrl, type ViewDeRota, type EstadoDeRota } from '../rotas';
+import { askNavGuard } from '../navGuard';
+import { type EstadoDeRota,lerUrlAtual, publicarUrl, type ViewDeRota } from '../rotas';
+import type { PracticeSeed } from '../sentences';
 
 export interface DependenciasDaNavegacao {
   activeView: ViewType;

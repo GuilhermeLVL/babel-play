@@ -14,8 +14,9 @@
  * A correção que importa é a desistência: rota não aparece no meio de um laço. Uma falha por
  * ausência de rota prova que as outras vão falhar igual.
  */
-import { describe, it, expect, vi } from 'vitest'
-import { traduzirVersos, ehFaltaDeRota } from '../src/lib/versosDoVocabulario'
+import { describe, expect, it, vi } from 'vitest'
+
+import { ehFaltaDeRota,traduzirVersos } from '../src/lib/versosDoVocabulario'
 
 const pedidos = (n: number) =>
   Array.from({ length: n }, (_, i) => ({ word: `palavra${i}`, src: 'pt', tgt: 'en' }))

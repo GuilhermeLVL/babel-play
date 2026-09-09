@@ -14,10 +14,11 @@
  * 3. Dia fora da janela de fuso plausível é 400 — não presença retroativa.
  * 4. O perfil (`computeProfile`) reflete créditos e presença, como o servidor efêmero.
  */
-import { describe, it, expect, beforeAll, afterAll } from 'vitest'
-import { setupEphemeralDb, type EphemeralDb } from '../harness/ephemeralDb'
+import { afterAll,beforeAll, describe, expect, it } from 'vitest'
+
 import { asUserId } from '../../server/lib/authContext'
 import { diaLocal } from '../../src/core/learning/economia'
+import { type EphemeralDb,setupEphemeralDb } from '../harness/ephemeralDb'
 
 let h: EphemeralDb
 let metricsRouter: any

@@ -1,4 +1,4 @@
-import type { VocabCard, SchedulerType } from '../../types';
+import type { SchedulerType,VocabCard } from '../../types';
 
 /**
  * "ESTE CARTÃO ESTÁ VENCIDO?" — a pergunta que a interface fazia errado.

@@ -16,12 +16,13 @@
  * alcança as respostas que importam. (A montagem morava no `server.ts` até a Fase 3 extrair
  * `criarApp()`; o bootstrap não monta mais middleware nenhum.)
  */
-import { describe, it, expect, beforeAll, afterAll } from 'vitest'
-import express from 'express'
-import compression from 'compression'
 import { readFileSync } from 'node:fs'
-import path from 'node:path'
 import { request as httpRequest, type Server } from 'node:http'
+import path from 'node:path'
+
+import compression from 'compression'
+import express from 'express'
+import { afterAll,beforeAll, describe, expect, it } from 'vitest'
 
 /** Payload com a forma real do problema: array de objetos com chaves repetidas. */
 const CARGA = Array.from({ length: 2000 }, (_, i) => ({

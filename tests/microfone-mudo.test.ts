@@ -15,7 +15,7 @@
  * Por isso `setMuted` desabilita a FAIXA e deixa tudo o mais de pé. Estes testes prendem
  * exatamente isso: a faixa muda, o gravador não.
  */
-import { describe, expect, it, vi, beforeEach } from 'vitest'
+import { beforeEach,describe, expect, it, vi } from 'vitest'
 
 vi.mock('@ricky0123/vad-web', () => ({
   MicVAD: { new: vi.fn(async () => ({ start: vi.fn(), pause: vi.fn(), destroy: vi.fn() })) },

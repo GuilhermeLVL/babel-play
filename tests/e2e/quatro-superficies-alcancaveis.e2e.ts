@@ -1,5 +1,6 @@
-import { test, expect } from '@playwright/test';
-import { fecharSobreposicoes, clicarRobusto } from './_helpers';
+import { expect,test } from '@playwright/test';
+
+import { clicarRobusto,fecharSobreposicoes } from './_helpers';
 
 /**
  * AS QUATRO SUPERFÍCIES TÊM PORTA PRÓPRIA, E A PORTA ESTÁ NA BARRA DE CIMA.

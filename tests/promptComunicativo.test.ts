@@ -1,5 +1,6 @@
-import { describe, it, expect } from 'vitest'
-import { systemComunicativo, userComunicativo, FALA_OPEN, FALA_CLOSE, LINHAS_DE_CONTEXTO } from '../src/lib/traducao/promptComunicativo'
+import { describe, expect,it } from 'vitest'
+
+import { FALA_CLOSE, FALA_OPEN, LINHAS_DE_CONTEXTO,systemComunicativo, userComunicativo } from '../src/lib/traducao/promptComunicativo'
 
 describe('prompt da tradução comunicativa', () => {
   it('pede sentido (não literal), registro informal, e nomeia os idiomas', () => {

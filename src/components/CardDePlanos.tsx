@@ -1,5 +1,6 @@
-import { useState } from 'react';
 import { Sparkles, X } from 'lucide-react';
+import { useState } from 'react';
+
 import { menorPrecoDeAssinatura } from '../core/planos';
 import { getEntitlements } from '../lib/entitlements';
 import { readStoredValue } from '../lib/profile';

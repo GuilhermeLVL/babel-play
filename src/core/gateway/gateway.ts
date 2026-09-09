@@ -11,8 +11,8 @@
  * AbortSignal) nem SDKs.
  */
 import { BreakerRegistry, withRetry, withTimeout } from '../robustness'
-import type { Capability, CapabilityBinding, Profile } from './profile'
 import type { BudgetLedger } from './budget'
+import type { Capability, CapabilityBinding, Profile } from './profile'
 
 /**
  * A-01: teto de tempo POR TENTATIVA, por capacidade. STT/LLM/VLM toleram mais (áudio longo,

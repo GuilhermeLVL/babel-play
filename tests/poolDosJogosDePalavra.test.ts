@@ -11,7 +11,8 @@
  * a troca: se a contagem barata divergir de `buildItems` em qualquer baralho, o conserto está
  * errado — a carta passaria a anunciar um acervo que a rodada não tem.
  */
-import { describe, it, expect } from 'vitest'
+import { describe, expect,it } from 'vitest'
+
 import { poolDosJogosDePalavra } from '../src/core/minigames/estadoDosJogos'
 import { buildItems } from '../src/core/minigames/itemSource'
 import type { MinigameId } from '../src/core/minigames/types'

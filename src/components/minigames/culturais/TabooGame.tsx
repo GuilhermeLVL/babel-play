@@ -1,11 +1,12 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { X, AlertTriangle, Timer as TimerIcon, Lightbulb } from 'lucide-react';
-import type { MinigameItem, ItemOutcome, RoundReport } from '@core';
+import type { ItemOutcome, MinigameItem, RoundReport } from '@core';
 import { distractorsFor, extractKeywords, scoreRound } from '@core';
+import { AlertTriangle, Lightbulb,Timer as TimerIcon, X } from 'lucide-react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+
 import { mascararResposta } from '../../../core/learning/pistaDeJogo';
+import { comemorar } from '../../../lib/juice';
 import { direcaoDoTexto } from '../../../lib/languages';
 import type { AgeProfileType } from '../../../lib/profile';
-import { comemorar } from '../../../lib/juice';
 import { play } from '../../../lib/soundFx';
 
 /**

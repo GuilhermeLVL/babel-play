@@ -1,15 +1,16 @@
-import { describe, it, expect } from 'vitest';
-import {
-  pontuarRodada, scoreRound, multiplicador, MINIGAMES,
-  PONTOS_BASE, BONUS_RAPIDO, BONUS_SEM_DICA, LIMITE_RESPOSTA_RAPIDA_MS,
-  MINIGAME_IDS,
-  type ItemOutcome,
-} from '../src/core';
+import { describe, expect,it } from 'vitest';
+
 /* `exerciseResultSchema` (o gravador POR ITEM, anterior a `/rodada`) foi removido em 07/09 junto
    com a rota que o usava — eram duas portas para o mesmo dado, com formas diferentes no banco
    (achado A53). O teto de pontuacao que este arquivo protege continua existindo, agora em
    `rodadaSchema.score`, que e por onde os nove jogos e o Estudo gravam. */
 import { rodadaSchema } from '../server/validation';
+import {
+BONUS_RAPIDO, BONUS_SEM_DICA,   type ItemOutcome,
+LIMITE_RESPOSTA_RAPIDA_MS,
+  MINIGAME_IDS,
+MINIGAMES,
+multiplicador,   PONTOS_BASE,   pontuarRodada, scoreRound, } from '../src/core';
 
 /** O corpo minimo de uma rodada, para o teste falar so do que lhe interessa: o teto do `score`. */
 const rodadaCom = (exerciseKind: string, score: number) =>

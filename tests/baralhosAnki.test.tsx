@@ -4,9 +4,9 @@
  * acionável) e `ausentes` (sumiu do arquivo, é histórico) nunca podem aparecer como a mesma
  * coisa, e o botão "ativar mais" precisa sumir — não ficar morto — quando não resta nada a ativar.
  */
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import React from 'react'
-import { describe, it, expect, vi, afterEach, beforeEach } from 'vitest'
-import { render, screen, cleanup, fireEvent, waitFor } from '@testing-library/react'
+import { afterEach, beforeEach,describe, expect, it, vi } from 'vitest'
 
 afterEach(() => cleanup())
 

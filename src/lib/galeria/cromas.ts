@@ -15,9 +15,10 @@
  * `reason: 'croma:<item>:<matiz>'` — e o servidor deriva a posse desse razão, exatamente como
  * passou a fazer com `loja:<id>` quando a brecha B4 foi fechada. Um evento, uma fonte de verdade.
  */
-import { MATIZES } from './paletas'
-import type { Raridade } from '../loja'
 import { PRECO_DO_CROMA } from '@core'
+
+import type { Raridade } from '../loja'
+import { MATIZES } from './paletas'
 
 /** As quatro vias de um croma. Só uma delas envolve gastar a moeda de estudo. */
 export type ViaDoCroma = 'incluso' | 'meu' | 'seeds' | 'conquista' | 'premium'

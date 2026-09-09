@@ -1,8 +1,9 @@
 // @vitest-environment jsdom
-import { describe, it, expect, beforeEach } from 'vitest'
-import { itensPorNivel, proximaRecompensa, estadoDaColecao, recompensasDoNivelCompleto, itemDaConquista, emojiDoItem } from '../src/lib/galeria/progressao'
-import { CATALOGO_DA_LOJA } from '../src/lib/loja'
+import { beforeEach,describe, expect, it } from 'vitest'
+
 import { recompensasDoNivel } from '../src/lib/desbloqueios'
+import { emojiDoItem,estadoDaColecao, itemDaConquista, itensPorNivel, proximaRecompensa, recompensasDoNivelCompleto } from '../src/lib/galeria/progressao'
+import { CATALOGO_DA_LOJA } from '../src/lib/loja'
 
 describe('progressão — o mapa das quatro áreas', () => {
   beforeEach(() => localStorage.clear())

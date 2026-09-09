@@ -1,20 +1,21 @@
+import {
+BarChart2, BookOpen, Check, ChevronDown,   Eye, EyeOff,   Home, LayoutGrid, Library as LibraryIcon, LineChart,
+Lock,
+Mic, Move,
+Palette, RotateCcw, SlidersHorizontal, Sparkles,   X} from 'lucide-react';
 import React, { useEffect, useState } from 'react';
-import {
-  X, Palette, LayoutGrid, Sparkles, RotateCcw, Move,
-  Eye, EyeOff, Check, SlidersHorizontal, ChevronDown, Lock,
-  Home, Mic, Library as LibraryIcon, BarChart2, BookOpen, LineChart
-} from 'lucide-react';
+
 import { useLayout } from '../hooks/useLayout';
-import { AppLayoutConfig, PanelConfig } from '../lib/layoutStore';
-import { VIEWS_LABELS, PANEL_TITLES } from '../lib/panelMeta';
 import {
+  type CustomColors, readCustomColors,
   SIZE_PRESETS,
-  type CustomColors, type ThemeType, readCustomColors
-} from '../lib/appearance';
-import { persistTheme } from '../lib/theme';
+type ThemeType} from '../lib/appearance';
 import { acessoAoItem } from '../lib/galeria/acesso';
-import { askConfirm } from './Toast';
 import { t } from '../lib/i18n';
+import { AppLayoutConfig, PanelConfig } from '../lib/layoutStore';
+import { PANEL_TITLES,VIEWS_LABELS } from '../lib/panelMeta';
+import { persistTheme } from '../lib/theme';
+import { askConfirm } from './Toast';
 
 interface LayoutStudioProps {
   isOpen: boolean;

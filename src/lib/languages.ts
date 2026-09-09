@@ -1,5 +1,5 @@
-import { ehRTL, idiomaDaInterface } from './i18n';
 import { dobrarTexto } from '../core/texto/palavra';
+import { ehRTL, idiomaDaInterface } from './i18n';
 /**
  * Lista única de idiomas usada pelos seletores (captura, configurações). `code` é
  * o BCP-47 (para a captura/Whisper e o TTS); `short` é o ISO-639-1 (para o MT).

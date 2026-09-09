@@ -1,8 +1,9 @@
 import { useMemo } from 'react';
+
 import { indiceDaTrilha } from '../../data/trilha/indice';
-import { hasVoiceFor } from '../../lib/tts';
-import { langLabelNaUI, LANGUAGES } from '../../lib/languages';
 import { numero, t } from '../../lib/i18n';
+import { langLabelNaUI, LANGUAGES } from '../../lib/languages';
+import { hasVoiceFor } from '../../lib/tts';
 
 /**
  * O QUE CADA IDIOMA TEM HOJE.

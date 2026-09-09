@@ -1,5 +1,6 @@
-import { describe, it, expect } from 'vitest';
-import { priorizar, cartoesDaFonte } from '../src/core/minigames/source';
+import { describe, expect,it } from 'vitest';
+
+import { cartoesDaFonte,priorizar } from '../src/core/minigames/source';
 
 /**
  * "PRATICAR ISTO" — a regra que faz o trecho escolhido em outra tela começar a rodada.

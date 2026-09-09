@@ -5,15 +5,16 @@
  * Saiu de `views/LiveCapture.tsx` sem mudar comportamento: a fábrica roda a cada render, como as
  * closures que substituiu, e o estado da tela entra por PARÂMETRO explícito.
  */
-import type { Dispatch, SetStateAction, RefObject } from 'react';
 import { makeCloze, motivoLegivel } from '@core';
+import type { Dispatch, RefObject,SetStateAction } from 'react';
+
 import { bulkAddCards } from '../../data/api';
 import { type VocabWord } from '../../types';
-import { resolveWord, buildVocabWord, cardLangs, type WordOrigin } from '../vocabWord';
-import { seedFromSelection, telaDoExercicio } from '../sentences';
-import type { PracticeSeed, ExerciseId } from '../sentences';
-import { baseLang } from '../languages';
 import type { LangConfig } from '../langConfig';
+import { baseLang } from '../languages';
+import type { ExerciseId,PracticeSeed } from '../sentences';
+import { seedFromSelection, telaDoExercicio } from '../sentences';
+import { buildVocabWord, cardLangs, resolveWord, type WordOrigin } from '../vocabWord';
 import type { GatewayDaCaptura } from './tiposDaFala';
 
 /** Tudo que o vocabulário da captura precisa da tela — por parâmetro, sem contexto novo. */

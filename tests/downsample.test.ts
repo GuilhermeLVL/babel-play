@@ -1,5 +1,6 @@
-import { describe, it, expect } from 'vitest';
-import { makeDownsampler, DECIM } from '../server/audio/downsample';
+import { describe, expect,it } from 'vitest';
+
+import { DECIM,makeDownsampler } from '../server/audio/downsample';
 
 /** Monta um chunk Int16LE estéreo a partir de pares [L, R]. */
 function stereoChunk(frames: Array<[number, number]>): Buffer {

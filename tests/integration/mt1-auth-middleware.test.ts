@@ -5,9 +5,10 @@
  * exige um JWT válido (HS256 e, via chave injetável, ES256). Tokens são assinados/verificados
  * localmente com jose — nenhuma rede, nenhum Supabase real.
  */
-import { describe, it, expect, beforeEach, afterEach } from 'vitest'
-import { SignJWT, generateKeyPair } from 'jose'
-import { makeAuthMiddleware, createVerifier, authRequired, authMiddleware } from '../../server/lib/auth'
+import { generateKeyPair,SignJWT } from 'jose'
+import { afterEach,beforeEach, describe, expect, it } from 'vitest'
+
+import { authMiddleware,authRequired, createVerifier, makeAuthMiddleware } from '../../server/lib/auth'
 import { LOCAL_OWNER } from '../../server/lib/authContext'
 
 const SECRET = 'segredo-de-teste-hs256-marco1-nunca-real'

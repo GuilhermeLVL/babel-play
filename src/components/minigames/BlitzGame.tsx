@@ -1,20 +1,21 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { X, Scissors, Zap, Star, Medal } from 'lucide-react';
-import type { MinigameItem, ItemOutcome, RoundReport } from '@core';
+import type { ItemOutcome, MinigameItem, RoundReport } from '@core';
 import { distractorsFor, scoreRound } from '@core';
+import { Medal,Scissors, Star, X, Zap } from 'lucide-react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+
+import {
+  bonusDeTempo, ehMarco, emFever, estrelasDaRodada,
+  PENALIDADE_ERRO_S, pontosDoAcerto, rotuloDaSequencia, SEQUENCIA_FEVER,
+} from '../../core/minigames/blitzRegras';
+import { emitBurst } from '../../lib/effects';
+import { eventosCondicionais } from '../../lib/eventosDeJogo';
+import { playJuicedError, playJuicedHit, playJuicedVictory, triggerHaptic } from '../../lib/gameFeel';
+import { executarEfeito,flashDeTela, multiplicador, pontosDoElemento, pontosFlutuantes, pulsoDeZoom, tremor, tremorDeTela, vibrar } from '../../lib/juice';
 import { direcaoDoTexto } from '../../lib/languages';
 import type { AgeProfileType } from '../../lib/profile';
-import { pontosDoElemento, pontosFlutuantes, multiplicador, tremor, tremorDeTela, pulsoDeZoom, flashDeTela, vibrar, executarEfeito } from '../../lib/juice';
-import { emitBurst } from '../../lib/effects';
+import { apelidoValido,enviarParaRanking, lerApelido, salvarApelido } from '../../lib/ranking';
 import { play } from '../../lib/soundFx';
-import { eventosCondicionais } from '../../lib/eventosDeJogo';
-import { enviarParaRanking, lerApelido, salvarApelido, apelidoValido } from '../../lib/ranking';
-import { playJuicedHit, playJuicedError, playJuicedVictory, triggerHaptic } from '../../lib/gameFeel';
 import { speak } from '../../lib/tts';
-import {
-  bonusDeTempo, pontosDoAcerto, emFever, ehMarco, rotuloDaSequencia, estrelasDaRodada,
-  PENALIDADE_ERRO_S, SEQUENCIA_FEVER,
-} from '../../core/minigames/blitzRegras';
 
 /**
  * DUELO RELÂMPAGO — a revisão cronometrada, agora em "ARCADE DE BRINQUEDO" (v2, 2026-08-27).

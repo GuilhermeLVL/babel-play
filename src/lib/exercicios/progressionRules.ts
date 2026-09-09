@@ -1,4 +1,4 @@
-import { VocabCard, ExerciseFormat } from '../../types';
+import { ExerciseFormat,VocabCard } from '../../types';
 
 export const STABILITY_THRESHOLD_DEFAULT = 10;
 

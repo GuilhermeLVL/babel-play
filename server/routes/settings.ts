@@ -1,10 +1,11 @@
 /** Rotas de configurações da app (montadas em `/api/settings`). Linha única. */
 import { Router } from 'express'
-import { settingsRepo, type SettingsPatch } from '../db/repositories/settings'
+
+import { type SettingsPatch,settingsRepo } from '../db/repositories/settings'
 import { erroDeRota } from '../lib/erroDeRota'
-import { settingsPatchSchema, parseOr400 } from '../validation'
-import { recusaDePosse, type RecusaDePosse } from '../lib/posseDeCosmeticos'
+import { type RecusaDePosse,recusaDePosse } from '../lib/posseDeCosmeticos'
 import { responderErro } from '../lib/respostaDeErro'
+import { parseOr400,settingsPatchSchema } from '../validation'
 
 /**
  * Os campos do blob `ui` que nomeiam um item do catálogo, e o tipo de cada um.

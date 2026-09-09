@@ -7,8 +7,8 @@
  * Nota: a IA local do usuário (Ollama/LM Studio) é chamada pelo CLIENTE, não por
  * este proxy — logo bloquear localhost aqui não a afeta; são caminhos distintos.
  */
-import { isIP } from 'node:net'
 import { lookup } from 'node:dns/promises'
+import { isIP } from 'node:net'
 
 const BLOCKED_HOSTNAMES = new Set(['metadata.google.internal'])
 

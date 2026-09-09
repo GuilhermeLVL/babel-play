@@ -11,9 +11,10 @@
  * Ou seja: introduzir transações (P1-N3) sem tratar isso reintroduziria o P0-2 — todas as
  * queries seguintes voltariam a levar SQLITE_BUSY imediato entre processos.
  */
-import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest'
-import { setupEphemeralDb, type EphemeralDb } from '../harness/ephemeralDb'
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
+
 import { asUserId } from '../../server/lib/authContext'
+import { type EphemeralDb,setupEphemeralDb } from '../harness/ephemeralDb'
 
 let h: EphemeralDb
 let client: any

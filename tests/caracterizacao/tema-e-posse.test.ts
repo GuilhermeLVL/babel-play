@@ -5,9 +5,10 @@
  * As chaves do blob `ui` que nomeiam item do catalogo (server/routes/settings.ts, CAMPOS_DE_ITEM):
  * theme, fonte, menuPosition, particulas, pack, cursor, rastro. O resto do blob passa direto.
  */
-import { describe, it, expect, beforeAll, afterAll } from 'vitest'
-import { subirApp, resposta, semear, type AppDeTeste } from './_app'
+import { afterAll,beforeAll, describe, expect, it } from 'vitest'
+
 import { CATALOGO_DA_LOJA, type ItemDaLoja } from '../../src/core/loja'
+import { type AppDeTeste,resposta, semear, subirApp } from './_app'
 
 const DONO = 'local-owner'
 

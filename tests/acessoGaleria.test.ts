@@ -1,13 +1,14 @@
 // @vitest-environment jsdom
 import { beforeEach, describe, expect, it } from 'vitest'
+
 import {
-  acessoAoEstilo, acessoACategoria, acessoAFormaDeRastro, acessoAoEditorDePack, acessoAoCursorDeEmoji, faltaParaOPerfil,
-  ITEM_DO_ESTILO, ITEM_DA_CATEGORIA, ITEM_DA_FORMA_DE_RASTRO, ITEM_EDITOR_DE_PACK, ITEM_CURSOR_DE_EMOJI,
-} from '../src/lib/galeria/acesso'
-import { CATALOGO_DA_LOJA, marcarPosse } from '../src/lib/loja'
-import { PRESETS } from '../src/lib/galeria/perfis'
-import { paletaPorId } from '../src/lib/galeria/paletas'
+acessoACategoria, acessoAFormaDeRastro, acessoAoCursorDeEmoji, acessoAoEditorDePack,   acessoAoEstilo, faltaParaOPerfil,
+ITEM_CURSOR_DE_EMOJI,
+ITEM_DA_CATEGORIA, ITEM_DA_FORMA_DE_RASTRO,   ITEM_DO_ESTILO, ITEM_EDITOR_DE_PACK, } from '../src/lib/galeria/acesso'
 import { CATEGORIAS_DE_EMOJI } from '../src/lib/galeria/emojis'
+import { paletaPorId } from '../src/lib/galeria/paletas'
+import { PRESETS } from '../src/lib/galeria/perfis'
+import { CATALOGO_DA_LOJA, marcarPosse } from '../src/lib/loja'
 
 beforeEach(() => { for (const k of ['babel.loja_possuidos', 'babel.liberado', 'babel.conquistas']) localStorage.removeItem(k) })
 

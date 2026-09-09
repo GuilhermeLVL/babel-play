@@ -1,10 +1,11 @@
+import { Headphones, MessagesSquare, Mic, MonitorPlay, Play, Radio } from 'lucide-react';
 import React from 'react';
-import { MonitorPlay, MessagesSquare, Mic, Headphones, Play, Radio } from 'lucide-react';
-import { LangChip } from './LangFlag';
+
 import { toBcp47 } from '../lib/languages';
-import { getTranscriptStyleClasses, type TranscriptSettings } from '../lib/transcriptUtils';
 import type { AgeProfileType } from '../lib/profile';
+import { getTranscriptStyleClasses, type TranscriptSettings } from '../lib/transcriptUtils';
 import type { VocabWord } from '../types';
+import { LangChip } from './LangFlag';
 
 /**
  * A CONVERSA — transcrição ao vivo em balões, com os dois lados em posições opostas

@@ -11,11 +11,12 @@
  *    Um slug livre vindo do cliente viraria "games", "jogos" e "video-game" como três interesses
  *    distintos, e nenhuma recomendação construída sobre isso funcionaria.
  */
-import { describe, it, expect } from 'vitest'
+import { describe, expect,it } from 'vitest'
+
 import { perfilPatchSchema } from '../server/validation'
 import {
-  INTERESSES, saneiaInteresses, interessePorSlug, MAX_INTERESSES,
-} from '../src/core/learning/interesses'
+interessePorSlug,   INTERESSES, MAX_INTERESSES,
+saneiaInteresses, } from '../src/core/learning/interesses'
 import { iniciaisDe } from '../src/lib/usePerfil'
 
 describe('PATCH /api/me — o esquema é a fronteira de confiança', () => {

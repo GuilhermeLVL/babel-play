@@ -1,5 +1,5 @@
-import type { MinigameId, RoundReport } from './types';
 import type { PontosDaRodada } from './grade';
+import type { MinigameId, RoundReport } from './types';
 
 /**
  * A SEQUÊNCIA — o fim de uma rodada é o começo da próxima.

@@ -14,11 +14,12 @@
  * O contrato correto: falhar quando NÃO DÁ para migrar e o schema está ausente; seguir quando
  * simplesmente NÃO PRECISA migrar.
  */
-import { describe, it, expect, afterAll, beforeAll } from 'vitest'
 import { mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
+
 import { createClient } from '@libsql/client'
+import { afterAll, beforeAll,describe, expect, it } from 'vitest'
 
 const dir = mkdtempSync(path.join(tmpdir(), 'babel-rep-'))
 const url = 'file:' + path.join(dir, 'r.db').split(path.sep).join('/')

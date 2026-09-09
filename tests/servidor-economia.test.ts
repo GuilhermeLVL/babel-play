@@ -5,10 +5,12 @@
  * MESMAS rotas que a tela usa.
  */
 import 'fake-indexeddb/auto'
+
 import { afterAll, describe, expect, it } from 'vitest'
+
+import { diaLocal } from '../src/core/learning/economia'
 import { servidorEfemero } from '../src/data/efemero/servidor'
 import { fecharStore } from '../src/data/efemero/store'
-import { diaLocal } from '../src/core/learning/economia'
 
 afterAll(() => fecharStore())
 

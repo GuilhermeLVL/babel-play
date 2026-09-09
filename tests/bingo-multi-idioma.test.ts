@@ -1,5 +1,6 @@
 /** O bingo da escuta usava normalização A-Z: em não-latino a cartela nascia vazia, sem gate. */
-import { describe, it, expect } from 'vitest';
+import { describe, expect,it } from 'vitest';
+
 import { buildCartela, marcarFala } from '../src/core/minigames/bingo';
 import type { VocabCard } from '../src/types';
 

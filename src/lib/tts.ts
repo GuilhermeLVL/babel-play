@@ -5,8 +5,8 @@
  * por idioma (padrão do Reading.tsx) e deixa um SEAM para uma voz neural (nuvem)
  * ser plugada depois, atrás de consentimento — sem nada fabricado agora.
  */
-import { play } from './soundFx';
 import { idiomaDaInterface } from './i18n';
+import { play } from './soundFx';
 
 export interface SpeakOptions {
   /**

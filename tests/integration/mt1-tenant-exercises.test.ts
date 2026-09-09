@@ -4,10 +4,11 @@
  * Cobre os dois arrays SQL[] (histórico e recordes) além de list/listBySession/listByOrigem.
  * B tem placar MAIOR que A de propósito: se o recorde vazasse, A veria o 100 de B.
  */
-import { describe, it, expect, beforeAll, afterAll } from 'vitest'
-import { setupEphemeralDb, type EphemeralDb } from '../harness/ephemeralDb'
+import { afterAll,beforeAll, describe, expect, it } from 'vitest'
+
 import { asUserId } from '../../server/lib/authContext'
 import { MINIGAME_IDS } from '../../src/core/minigames/revelavel'
+import { type EphemeralDb,setupEphemeralDb } from '../harness/ephemeralDb'
 
 const A = asUserId('user-A')
 const B = asUserId('user-B')

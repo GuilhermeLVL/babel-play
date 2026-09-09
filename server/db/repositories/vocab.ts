@@ -1,15 +1,17 @@
 import { randomUUID } from 'node:crypto'
+
 import { and, desc, eq, inArray, isNull, sql } from 'drizzle-orm'
-import { db } from '../db'
-import { vocabCards, vocabOccurrences, reviewLogs, sessions, ankiNotes, ankiDecks } from '../schema'
-import { makeFsrs5, type Grade, type SchedulingState } from '../../../src/core/learning/scheduler'
+
 import { nivelCefr } from '../../../src/core/learning/cefrWordlist'
-import { garantirNiveis } from '../../lib/niveisDaTrilha'
-import { chaveDedup as chaveDedupDoNucleo } from '../../../src/core/texto/palavra'
+import { calcularDificuldade, type CortesDeFaixa, cortesDoDeck, faixaDe, type FaixaDificuldade } from '../../../src/core/learning/dificuldade'
 import { avaliarCartao, foraDoBulkAdd, type MotivoDescarte } from '../../../src/core/learning/quality'
-import { calcularDificuldade, faixaDe, cortesDoDeck, type CortesDeFaixa, type FaixaDificuldade } from '../../../src/core/learning/dificuldade'
-import { exerciseResultsRepo } from './exerciseResults'
+import { type Grade, makeFsrs5, type SchedulingState } from '../../../src/core/learning/scheduler'
+import { chaveDedup as chaveDedupDoNucleo } from '../../../src/core/texto/palavra'
 import type { UserId } from '../../lib/authContext'
+import { garantirNiveis } from '../../lib/niveisDaTrilha'
+import { db } from '../db'
+import { ankiDecks,ankiNotes, reviewLogs, sessions, vocabCards, vocabOccurrences } from '../schema'
+import { exerciseResultsRepo } from './exerciseResults'
 
 // FSRS-5 lift do desktop (núcleo isomórfico) — o agendamento roda no servidor.
 const fsrs = makeFsrs5()

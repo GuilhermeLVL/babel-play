@@ -6,8 +6,9 @@
  *        usuário que dispara 70 chamadas faz OUTRO, que não consumiu nada, levar 429.
  *  P1-3: o contador vive no heap do processo, então o teto efetivo vira 60/min × réplicas.
  */
-import { describe, it, expect, beforeAll, afterAll } from 'vitest'
-import { setupEphemeralDb, type EphemeralDb } from '../harness/ephemeralDb'
+import { afterAll,beforeAll, describe, expect, it } from 'vitest'
+
+import { type EphemeralDb,setupEphemeralDb } from '../harness/ephemeralDb'
 
 let h: EphemeralDb
 let makeStore: any

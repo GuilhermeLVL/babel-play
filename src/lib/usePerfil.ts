@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { fetchPerfil, patchPerfil, type Perfil, type PatchDePerfil } from '../data/me';
+
+import { fetchPerfil, type PatchDePerfil,patchPerfil, type Perfil } from '../data/me';
 
 /**
  * O PERFIL, COMPARTILHADO ENTRE AS TELAS — com store de módulo, não Context.

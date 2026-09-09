@@ -1,9 +1,10 @@
-import { useEffect, useState } from 'react';
-import { Check, Loader2 } from 'lucide-react';
-import { usePerfil, salvarPerfil, iniciaisDe } from '../../../lib/usePerfil';
 import { INTERESSES, MAX_INTERESSES } from '@core';
-import AccountSecuritySection from '../../auth/AccountSecuritySection';
+import { Check, Loader2 } from 'lucide-react';
+import { useEffect, useState } from 'react';
+
 import { authRequired } from '../../../lib/supabase';
+import { iniciaisDe,salvarPerfil, usePerfil } from '../../../lib/usePerfil';
+import AccountSecuritySection from '../../auth/AccountSecuritySection';
 
 /**
  * QUEM É VOCÊ — a metade da tela de perfil que o app nunca teve.

@@ -5,9 +5,11 @@
  * Via harness efêmero: importar sessions.ts puxa o banco no load, então setamos DATABASE_URL antes
  * (o teste não toca o babel.db real).
  */
-import { describe, it, expect, beforeAll, afterAll } from 'vitest'
 import path from 'node:path'
-import { setupEphemeralDb, type EphemeralDb } from '../harness/ephemeralDb'
+
+import { afterAll,beforeAll, describe, expect, it } from 'vitest'
+
+import { type EphemeralDb,setupEphemeralDb } from '../harness/ephemeralDb'
 
 let h: EphemeralDb
 let resolveInAudioDir: (name: string) => string

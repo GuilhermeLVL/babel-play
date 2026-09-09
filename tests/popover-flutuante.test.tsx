@@ -1,7 +1,8 @@
 // @vitest-environment jsdom
+import { cleanup,render } from '@testing-library/react'
 import React from 'react'
 import { afterEach, describe, expect, it } from 'vitest'
-import { render, cleanup } from '@testing-library/react'
+
 import PopoverFlutuante from '../src/components/PopoverFlutuante'
 
 afterEach(cleanup)

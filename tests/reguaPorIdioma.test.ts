@@ -8,11 +8,12 @@
  *
  * Este arquivo trava a diferença entre "medi e deu zero" e "não sei medir isto neste idioma".
  */
-import { describe, it, expect } from 'vitest';
-import { computeTextStats, temReguaDeLegibilidade, temStopwordsDeTexto } from '../src/core/learning/text-stats';
-import { detectarVozPassiva, temReguaDeVozPassiva } from '../src/core/learning/passive-voice';
+import { describe, expect,it } from 'vitest';
+
 import { extractKeywords, temStopwords } from '../src/core/learning/keywords';
-import { prepararFala, idiomasComPreparacaoDeFala } from '../src/lib/traducao/prepararFala';
+import { detectarVozPassiva, temReguaDeVozPassiva } from '../src/core/learning/passive-voice';
+import { computeTextStats, temReguaDeLegibilidade, temStopwordsDeTexto } from '../src/core/learning/text-stats';
+import { idiomasComPreparacaoDeFala,prepararFala } from '../src/lib/traducao/prepararFala';
 
 const INGLES = 'The report was written by the committee. The results were published later.';
 const ALEMAO = 'Der Bericht wurde vom Ausschuss geschrieben. Die Ergebnisse wurden veröffentlicht.';

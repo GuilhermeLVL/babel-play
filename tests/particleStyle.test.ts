@@ -1,11 +1,12 @@
-import { describe, it, expect } from 'vitest';
+import { describe, expect,it } from 'vitest';
+
+import type { ThemeType } from '../src/lib/appearance';
 import {
-  resolveParticleStyle,
-  PARTICLE_PRESETS,
   MIN_AMBIENT_ALPHA_DARK,
   MIN_AMBIENT_ALPHA_LIGHT,
+  PARTICLE_PRESETS,
+  resolveParticleStyle,
 } from '../src/lib/effects';
-import type { ThemeType } from '../src/lib/appearance';
 
 const TEMAS = Object.keys(PARTICLE_PRESETS) as ThemeType[];
 

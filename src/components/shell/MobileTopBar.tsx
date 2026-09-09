@@ -1,7 +1,8 @@
 import React from 'react';
+
+import type { DerivedProgress } from '../../lib/progress';
 import ControlCluster, { type ControlClusterProps } from './ControlCluster';
 import { Brand } from './ShellBits';
-import type { DerivedProgress } from '../../lib/progress';
 
 interface MobileTopBarProps {
   /** Mantido na assinatura: o App passa para todas as molduras; a pílula de ofensiva/seeds saiu daqui a pedido. */

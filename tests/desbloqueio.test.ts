@@ -8,7 +8,8 @@
  * O caso que mais importa é o último: `sem-voz` e `audio-carregando` NÃO ganham botão. É fácil
  * "melhorar" isso oferecendo algo genérico e transformar a carta num botão que mente.
  */
-import { describe, it, expect } from 'vitest'
+import { describe, expect,it } from 'vitest'
+
 import { comoDesbloquear, type ContextoDeDesbloqueio } from '../src/core/minigames/desbloqueio'
 import type { EstadoDoJogo } from '../src/core/minigames/estadoDosJogos'
 import { MINIGAMES } from '../src/core/minigames/types'

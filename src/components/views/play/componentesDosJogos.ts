@@ -1,4 +1,5 @@
 import type { ComponentType } from 'react';
+
 import type { MinigameItem, RoundReport } from '../../../core/minigames/types';
 import type { AgeProfileType } from '../../../lib/profile';
 

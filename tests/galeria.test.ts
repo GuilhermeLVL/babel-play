@@ -1,12 +1,13 @@
 // @vitest-environment jsdom
 import { beforeEach, describe, expect, it } from 'vitest'
-import { todasAsPaletas, buscarPaletas, paletaPorId } from '../src/lib/galeria/paletas'
-import { CATEGORIAS_DE_EMOJI, todosOsEmojis, sanearListaDeEmojis } from '../src/lib/galeria/emojis'
-import { PRESETS, perfisSalvos, salvarPerfil, apagarPerfil, renomearPerfil } from '../src/lib/galeria/perfis'
+
+import { cursorValido,emojiDoCursor, idDeCursorDeEmoji, readCursor, setCursor } from '../src/lib/cursores'
+import { CATEGORIAS_DE_EMOJI, sanearListaDeEmojis,todosOsEmojis } from '../src/lib/galeria/emojis'
+import { buscarPaletas, paletaPorId,todasAsPaletas } from '../src/lib/galeria/paletas'
+import { apagarPerfil, perfisSalvos, PRESETS, renomearPerfil,salvarPerfil } from '../src/lib/galeria/perfis'
 import { restaurarVisualPadrao } from '../src/lib/galeria/restaurar'
-import { estiloDeRastro, setRastro, readRastro, idDeRastroGerado, idDeRastroDeEmojis, rastroValido } from '../src/lib/rastroDoMouse'
-import { setCursor, readCursor, idDeCursorDeEmoji, emojiDoCursor, cursorValido } from '../src/lib/cursores'
-import { setPackCustom, lerPackCustom, readPack, emojisDoPack, PACK_CUSTOM, PACKS_DE_EMOJI, setPack } from '../src/lib/particulas'
+import { emojisDoPack, lerPackCustom, PACK_CUSTOM, PACKS_DE_EMOJI, readPack, setPack,setPackCustom } from '../src/lib/particulas'
+import { estiloDeRastro, idDeRastroDeEmojis, idDeRastroGerado, rastroValido,readRastro, setRastro } from '../src/lib/rastroDoMouse'
 
 /** Luminância relativa aproximada (0..1) de um #RRGGBB. */
 function lum(hex: string): number {

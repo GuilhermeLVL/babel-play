@@ -19,7 +19,8 @@
  * Ou seja: quem tem conta erra uma palavra e a recebe de volta imediatamente, para sempre, sem
  * espaçamento e sem escape. Exatamente a queixa de "palavras se repetindo infinitamente".
  */
-import { describe, it, expect } from 'vitest'
+import { describe, expect,it } from 'vitest'
+
 import { agregarHistorico } from '../server/db/repositories/exerciseResults'
 import { estadoDoItem, prontoParaVoltar } from '../src/core/learning/memoriaDeItens'
 

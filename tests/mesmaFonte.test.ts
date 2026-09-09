@@ -1,5 +1,6 @@
-import { describe, it, expect } from 'vitest';
-import { mesmaFonte, fonteDaEscolha, type FonteDeItens } from '../src/core/minigames/source';
+import { describe, expect,it } from 'vitest';
+
+import { fonteDaEscolha, type FonteDeItens,mesmaFonte } from '../src/core/minigames/source';
 
 /**
  * O DEFEITO QUE ESTE ARQUIVO IMPEDE DE VOLTAR.

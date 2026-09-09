@@ -7,23 +7,24 @@
  * idiomas do render corrente) entra por PARÂMETRO explícito — nada de contexto novo.
  */
 import type { Dispatch, RefObject, SetStateAction } from 'react';
-import { apiFetch } from '../../data/api';
-import { capMetrics, type CapSource } from '../../gateway/capture/captureMetrics';
-import { getActiveProfile, getProviderMode } from '../../gateway/activeProfile';
-import { areModelsCached, expectedModelIds } from '../../gateway/modelCache';
-import { routeStt, getSttQuality } from '../../gateway/sttRouter';
+
 import type { ModelPrepState } from '../../components/ModelPrepPanel';
-import { PerfilAdaptativoDeIdioma } from '../perfilDeIdioma';
-import { langLabel, baseLang } from '../languages';
-import { detectLanguage } from '../langDetect';
-import { classificarVazamento, type Intervalo } from '../vazamento';
-import { isTtsActive } from '../tts';
-import { SpeakerClusterer } from '../speakerCluster';
+import { apiFetch } from '../../data/api';
+import { getActiveProfile, getProviderMode } from '../../gateway/activeProfile';
+import { capMetrics, type CapSource } from '../../gateway/capture/captureMetrics';
+import { areModelsCached, expectedModelIds } from '../../gateway/modelCache';
+import { getSttQuality,routeStt } from '../../gateway/sttRouter';
 import { DominantLangTracker } from '../convoLang';
+import { detectLanguage } from '../langDetect';
+import { baseLang,langLabel } from '../languages';
+import { PerfilAdaptativoDeIdioma } from '../perfilDeIdioma';
+import { SpeakerClusterer } from '../speakerCluster';
 import { embedUtterance } from '../speakerId';
+import { isTtsActive } from '../tts';
+import { classificarVazamento, type Intervalo } from '../vazamento';
 import {
-  clog, formatTime, wordsFromText,
-  type CaptureScenario, type GatewayDaCaptura, type SpeakerProfile, type SpeechSegment,
+  type CaptureScenario,   clog, formatTime, type GatewayDaCaptura, type SpeakerProfile, type SpeechSegment,
+wordsFromText,
 } from './tiposDaFala';
 import type { OpcoesDeTraducao } from './traducaoDaFala';
 

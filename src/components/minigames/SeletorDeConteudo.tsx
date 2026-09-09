@@ -1,8 +1,9 @@
-import { useEffect, useRef, type ReactNode } from 'react';
 import { ChevronRight, SlidersHorizontal as SlidersIcon } from 'lucide-react';
-import Segmentado from '../ui/Segmentado';
-import { numero, t, tp } from '../../lib/i18n';
+import { type ReactNode,useEffect, useRef } from 'react';
+
 import { empilharCamada } from '../../lib/camadasDeEscape';
+import { numero, t, tp } from '../../lib/i18n';
+import Segmentado from '../ui/Segmentado';
 
 /**
  * O SELETOR DE CONTEÚDO — três linhas de controle viradas uma, com uma gaveta atrás do «Trocar».

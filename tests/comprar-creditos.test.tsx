@@ -7,8 +7,9 @@
  *    estado pós-envio NÃO finge sucesso.
  * 4. Nome e CPF incompletos não deixam pagar (o Asaas recusaria, e o erro seria do usuário).
  */
-import { it, expect, afterEach, vi } from 'vitest'
-import { render, screen, cleanup, fireEvent, waitFor } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { afterEach, expect, it, vi } from 'vitest'
+
 import { CATALOGO_DE_CREDITOS, PRECO_DO_PASSE_CENTAVOS } from '../src/core/creditos'
 import { precoEmReais } from '../src/lib/i18n'
 

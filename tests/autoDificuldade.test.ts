@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { faixaAuto, ALVO_MAX, ALVO_MIN } from '../src/core/minigames/autoDificuldade'
+
+import { ALVO_MAX, ALVO_MIN,faixaAuto } from '../src/core/minigames/autoDificuldade'
 
 describe('dificuldade automática', () => {
   it('novato começa em fácil, com motivo', () => {

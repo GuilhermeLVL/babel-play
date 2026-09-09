@@ -15,10 +15,11 @@
  * ele exige que **todo número e todo nome que o cadeado cita apareçam na rota**. A rota pode
  * dizer mais; não pode dizer menos.
  */
-import { describe, it, expect, beforeEach } from 'vitest';
-import { CATALOGO_DA_LOJA, estadoDoItem, rotaDeObtencao, type ItemDaLoja } from '../../src/lib/loja';
+import { beforeEach,describe, expect, it } from 'vitest';
+
 import { CONQUISTAS } from '../../src/core';
 import { FONTE_OPTIONS } from '../../src/lib/appearance';
+import { CATALOGO_DA_LOJA, estadoDoItem, type ItemDaLoja,rotaDeObtencao } from '../../src/lib/loja';
 
 /* Nível 1 e zero Seeds: o estado de quem acabou de chegar, que é quando a rota importa. Sem
    nenhuma posse no localStorage, `estadoDoItem` responde pela regra pura do catálogo. */

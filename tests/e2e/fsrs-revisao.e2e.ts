@@ -1,6 +1,7 @@
-import { test, expect } from '@playwright/test';
-import { fecharSobreposicoes, clicarRobusto } from './_helpers';
-import { semearSessaoComCartoes, listarCartoes, type CartaoNoServidor } from './_fixtures';
+import { expect,test } from '@playwright/test';
+
+import { type CartaoNoServidor,listarCartoes, semearSessaoComCartoes } from './_fixtures';
+import { clicarRobusto,fecharSobreposicoes } from './_helpers';
 
 /**
  * A REVISAO ESPACADA, de ponta a ponta: abrir `/revisar`, avaliar um cartao e ver o agendamento

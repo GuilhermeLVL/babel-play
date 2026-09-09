@@ -17,8 +17,9 @@
  * A dica é o gatilho mais comum porque `pedirDica` chama `proximaVaga(n, d.posicao + 1)`; quando
  * a letra revelada cai na última casa, o cursor já sai fora da linha antes de qualquer digitação.
  */
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { render, screen, cleanup, fireEvent, act } from '@testing-library/react'
+import { act,cleanup, fireEvent, render, screen } from '@testing-library/react'
+import { afterEach,beforeEach, describe, expect, it, vi } from 'vitest'
+
 import TermoGame from '../src/components/minigames/TermoGame'
 import type { RodadaTermo } from '../src/core'
 

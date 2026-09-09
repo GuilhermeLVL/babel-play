@@ -23,8 +23,9 @@
  * caso `ad-04` no eval v2. Uma defesa que depende só da peça 3 já se provou insuficiente aqui.
  * ─────────────────────────────────────────────────────────────────────────────────────────
  */
-import { describe, it, expect, vi, beforeEach, afterAll } from 'vitest'
-import { CORRETOR_SYSTEM, GUESS_OPEN, GUESS_CLOSE, respostaEhPlausivel } from '../../src/lib/exercicios/corretorPrompt'
+import { afterAll,beforeEach, describe, expect, it, vi } from 'vitest'
+
+import { CORRETOR_SYSTEM, GUESS_CLOSE, GUESS_OPEN, respostaEhPlausivel } from '../../src/lib/exercicios/corretorPrompt'
 
 /** Falas devolvidas pelo `fetch` trocado — reescritas por teste. */
 let falas: Array<{ sourceText: string; speakerName?: string; sourceLang?: string; targetLang?: string }> = []

@@ -1,11 +1,12 @@
+import { type CartaoFora,contarPorMotivo, type MotivoDescarte, ROTULO_MOTIVO, type Triagem } from '@core';
+import { Archive, ArrowLeft, Check, Info, Languages, Loader2,Pencil } from 'lucide-react';
 import React, { useMemo, useState } from 'react';
-import { ArrowLeft, Archive, Check, Pencil, Languages, Info, Loader2 } from 'lucide-react';
-import { contarPorMotivo, ROTULO_MOTIVO, type Triagem, type MotivoDescarte, type CartaoFora } from '@core';
+
 import { updateCard } from '../../data/api';
-import type { VocabCard } from '../../types';
-import type { AgeProfileType } from '../../lib/profile';
 import { langLabel } from '../../lib/languages';
-import { toast, askConfirm } from '../Toast';
+import type { AgeProfileType } from '../../lib/profile';
+import type { VocabCard } from '../../types';
+import { askConfirm,toast } from '../Toast';
 
 /**
  * CURADORIA — o que ficou de fora das rodadas, e o que fazer com isso.

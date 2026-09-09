@@ -1,8 +1,9 @@
-import { describe, expect, it, beforeEach } from 'vitest';
+import { beforeEach,describe, expect, it } from 'vitest';
+
 import {
-  t, tp, registrarCatalogo, usarIdioma, idiomaDaInterface, ehRTL, numero,
-  temTraducao, IDIOMAS_DA_INTERFACE, coberturaDaInterface, idiomasAbaixoDoPiso,
-} from '../src/lib/i18n';
+coberturaDaInterface, ehRTL, idiomaDaInterface, IDIOMAS_DA_INTERFACE, idiomasAbaixoDoPiso,
+numero,
+registrarCatalogo,   t,   temTraducao, tp, usarIdioma, } from '../src/lib/i18n';
 
 /**
  * A chave é o texto português, e é isso que este arquivo trava: uma tradução ausente devolve a

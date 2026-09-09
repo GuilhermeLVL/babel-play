@@ -16,9 +16,10 @@
  * O payload é de 400 MB (acima do teto de 300 MB) e comprime para poucas centenas de KB, porque
  * é zero repetido. É a mesma forma da bomba real.
  */
-import { describe, it, expect } from 'vitest'
 import JSZip from 'jszip'
-import { lerApkg, descompactarComTeto } from '../../server/import/anki'
+import { describe, expect,it } from 'vitest'
+
+import { descompactarComTeto,lerApkg } from '../../server/import/anki'
 
 const MB = 1024 * 1024
 

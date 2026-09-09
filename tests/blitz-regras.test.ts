@@ -1,5 +1,6 @@
-import { describe, it, expect } from 'vitest'
-import { bonusDeVelocidade, bonusDeTempo, pontosDoAcerto, emFever, ehMarco, rotuloDaSequencia, estrelasDaRodada } from '../src/core/minigames/blitzRegras'
+import { describe, expect,it } from 'vitest'
+
+import { bonusDeTempo, bonusDeVelocidade, ehMarco, emFever, estrelasDaRodada,pontosDoAcerto, rotuloDaSequencia } from '../src/core/minigames/blitzRegras'
 
 describe('duelo relâmpago: regras de velocidade e tempo', () => {
   it('bônus de velocidade cai linearmente e zera aos 3 s', () => {

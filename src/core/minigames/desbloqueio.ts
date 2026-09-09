@@ -1,5 +1,5 @@
-import { MINIGAMES } from './types';
 import type { EstadoDoJogo } from './estadoDosJogos';
+import { MINIGAMES } from './types';
 
 /**
  * A PORTA DE SAÍDA DE UM JOGO BLOQUEADO.

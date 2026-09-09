@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+
 import { agruparFases, estrelasDaRodada, nivelNoJogo, RODADAS_POR_NIVEL } from '../src/core/minigames/fases'
 
 describe('estrelasDaRodada', () => {

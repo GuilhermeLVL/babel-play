@@ -3,9 +3,10 @@
  * gerenciada; um usuário `free` recebe 402. A tradução LOCAL (Chrome/opus-mt/MyMemory) roda no
  * cliente e não passa por aqui — então o free ainda traduz, só não usa o Groq do dono.
  */
-import { describe, it, expect, beforeAll, afterAll, afterEach, vi } from 'vitest'
-import { setupEphemeralDb, type EphemeralDb } from '../harness/ephemeralDb'
+import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
+
 import { asUserId } from '../../server/lib/authContext'
+import { type EphemeralDb,setupEphemeralDb } from '../harness/ephemeralDb'
 
 let h: EphemeralDb
 let mtTranslateProxy: any

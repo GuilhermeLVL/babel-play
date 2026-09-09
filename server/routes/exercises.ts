@@ -1,9 +1,10 @@
 /** Rotas de exercícios (montadas em `/api/exercises`). */
 import { Router } from 'express'
+
 import { exerciseResultsRepo } from '../db/repositories/exerciseResults'
 import { vocabRepo } from '../db/repositories/vocab'
-import { rodadaSchema, historicoQuerySchema, recordesQuerySchema, parseOr400, exerciseResultsQuerySchema } from '../validation'
 import { erroDeRota } from '../lib/erroDeRota'
+import { exerciseResultsQuerySchema,historicoQuerySchema, parseOr400, recordesQuerySchema, rodadaSchema } from '../validation'
 
 export const exercisesRouter = Router()
 

@@ -5,7 +5,8 @@
  * medição que justifica a lista ser por idioma, então está travada aqui — se alguém unificar as
  * listas "para simplificar", este arquivo reprova.
  */
-import { describe, it, expect } from 'vitest'
+import { describe, expect,it } from 'vitest'
+
 import { contarVicios, contarViciosDasFalas, idiomasComVicios } from '../src/core/learning/fillers'
 
 describe('contarVicios', () => {

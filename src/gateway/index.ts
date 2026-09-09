@@ -7,10 +7,19 @@
  * Adicionar um provider = registrar um caso em `resolveMt`/`resolveLlm`. Nenhuma
  * tela muda — é o mandato provider-agnóstico do produto.
  */
-import { AiGateway, BreakerRegistry, BudgetLedger } from '@core'
-import { validarTraducao, explicarRejeicao, precisaConferir } from '../lib/validaTraducao'
-import { detectLanguage } from '../lib/langDetect'
 import type { CapabilityBinding, ChatMessage, ChatResult, Profile } from '@core'
+import { AiGateway, BreakerRegistry, BudgetLedger } from '@core'
+
+import { detectLanguage } from '../lib/langDetect'
+import { explicarRejeicao, precisaConferir,validarTraducao } from '../lib/validaTraducao'
+import { ChromeTranslatorMt } from './adapters/chromeTranslator'
+import { GroqWhisperStt } from './adapters/groqWhisper'
+import { MyMemoryMt } from './adapters/mymemory'
+import { OpenAiCompatibleLlm } from './adapters/openaiCompatible'
+import { OpusMtLocal } from './adapters/opusMtLocal'
+import { ServerLlmMt } from './adapters/serverLlmMt'
+import { WebSpeechStt } from './adapters/webSpeech'
+import { WhisperLocalStt } from './adapters/whisperLocal'
 import type {
   LlmOptions,
   LlmProvider,
@@ -22,14 +31,6 @@ import type {
   SttSession,
   TranslationProvider,
 } from './capabilities'
-import { MyMemoryMt } from './adapters/mymemory'
-import { ServerLlmMt } from './adapters/serverLlmMt'
-import { ChromeTranslatorMt } from './adapters/chromeTranslator'
-import { OpusMtLocal } from './adapters/opusMtLocal'
-import { OpenAiCompatibleLlm } from './adapters/openaiCompatible'
-import { WebSpeechStt } from './adapters/webSpeech'
-import { WhisperLocalStt } from './adapters/whisperLocal'
-import { GroqWhisperStt } from './adapters/groqWhisper'
 
 const LOCAL_RE = /^https?:\/\/(127\.0\.0\.1|localhost|\[::1\])/i
 const isLocalUrl = (u?: string): boolean => !!u && LOCAL_RE.test(u)

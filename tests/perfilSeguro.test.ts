@@ -10,8 +10,9 @@
  *   2. `localStorage.getItem` LANÇA com storage bloqueado (aba privada, iframe com sandbox). Dentro
  *      do inicializador de um `useState`, isso impede a montagem do App inteiro.
  */
-import { describe, it, expect, afterEach } from 'vitest';
-import { readAgeProfile, readStoredEnum, readStoredValue, COPY, copyDoPerfil } from '../src/lib/profile';
+import { afterEach,describe, expect, it } from 'vitest';
+
+import { COPY, copyDoPerfil,readAgeProfile, readStoredEnum, readStoredValue } from '../src/lib/profile';
 
 const original = Object.getOwnPropertyDescriptor(globalThis, 'localStorage');
 

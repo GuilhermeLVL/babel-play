@@ -8,8 +8,9 @@
  *
  * A lógica foi extraída para server/ai/llmRequest.ts — testável sem subir o servidor.
  */
-import { describe, it, expect } from 'vitest'
-import { prepareLlmRequest, MAX_OUTPUT_TOKENS, MAX_PROMPT_CHARS } from '../../server/ai/llmRequest'
+import { describe, expect,it } from 'vitest'
+
+import { MAX_OUTPUT_TOKENS, MAX_PROMPT_CHARS,prepareLlmRequest } from '../../server/ai/llmRequest'
 
 describe('S-06/M-02 — preparo do /api/gemini/chat', () => {
   it('rejeita corpo sem array de mensagens (400)', () => {

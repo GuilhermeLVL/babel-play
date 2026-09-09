@@ -1,6 +1,7 @@
-import { test, expect } from '@playwright/test';
-import { fecharSobreposicoes, clicarRobusto } from './_helpers';
-import { semearCartoes, perfil, saldoEsperado } from './_fixtures';
+import { expect,test } from '@playwright/test';
+
+import { perfil, saldoEsperado,semearCartoes } from './_fixtures';
+import { clicarRobusto,fecharSobreposicoes } from './_helpers';
 
 /**
  * AS SEEDS NA LOJA: o saldo que a tela mostra e o que o servidor calcula, e a compra respeita o

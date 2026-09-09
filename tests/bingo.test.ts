@@ -1,5 +1,6 @@
-import { describe, it, expect } from 'vitest';
-import { buildCartela, marcarFala, linhasCompletas, cartelaCheia, CASAS } from '../src/core/minigames/bingo';
+import { describe, expect,it } from 'vitest';
+
+import { buildCartela, cartelaCheia, CASAS,linhasCompletas, marcarFala } from '../src/core/minigames/bingo';
 import type { VocabCard } from '../src/types';
 
 const card = (word: string, id = word): VocabCard => ({

@@ -1,10 +1,11 @@
-import { describe, it, expect } from 'vitest'
+import { describe, expect,it } from 'vitest'
+
 import {
   avaliarPalpite,
-  estadoDoTecladoMulti,
-  dicaDeLetra,
   buildTermoRounds,
   contarJogaveisMulti,
+  dicaDeLetra,
+  estadoDoTecladoMulti,
   TABULEIROS_POR_MODO,
   TENTATIVAS_POR_MODO,
 } from '../src/core/minigames/termo'

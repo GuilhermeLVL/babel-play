@@ -5,10 +5,11 @@
  * demanda por direção. Espelha o padrão do whisperWorker.
  */
 import { pipeline, Tensor } from '@huggingface/transformers'
-import { configureModelDelivery } from './transformersEnv'
-import { criarRastreadorDeProgresso, rotuloDeBytes } from './modelProgress'
+
+import { juntarFrases,separarEmFrases } from '../../core/texto/frases'
 import { registrarModeloBaixado } from '../modelManifest'
-import { separarEmFrases, juntarFrases } from '../../core/texto/frases'
+import { criarRastreadorDeProgresso, rotuloDeBytes } from './modelProgress'
+import { configureModelDelivery } from './transformersEnv'
 
 // Entrega dos pesos: cache do navegador (padrão) ou self-host same-origin (VITE_SELF_HOST_MODELS).
 configureModelDelivery()

@@ -9,10 +9,10 @@
  *
  * Sem `Date.now()` proibido aqui — é módulo Node normal (não script de workflow).
  */
-import type { UserId } from './authContext'
+import { ehPlanoDeAssinatura,PLAN_MATRIX } from '../../src/core/planos'
+import { type Plan, type Subscription,subscriptionsRepo } from '../db/repositories/subscriptions'
 import { authRequired } from './auth'
-import { subscriptionsRepo, type Plan, type Subscription } from '../db/repositories/subscriptions'
-import { PLAN_MATRIX, ehPlanoDeAssinatura } from '../../src/core/planos'
+import type { UserId } from './authContext'
 import { log } from './logger'
 
 export interface Entitlements {

@@ -15,9 +15,10 @@
  * roda os efeitos dos filhos antes dos do pai, então "quem montou por último" elegeria o shell numa
  * carga direta em `/revisar`.
  */
-import { describe, it, expect, afterEach, vi } from 'vitest'
-import { render, screen, cleanup, act } from '@testing-library/react'
+import { act,cleanup, render, screen } from '@testing-library/react'
 import React from 'react'
+import { afterEach, describe, expect, it, vi } from 'vitest'
+
 import { useCommandPalette } from '../src/components/CommandPalette'
 
 function ctrlK() {

@@ -4,9 +4,10 @@
  * nenhum e, quando `items` não dava, caía em silêncio numa lista fixa de cinco palavras em inglês
  * (`MOCK_PUZZLES_CHOSEONG`) — a pessoa jogava uma rodada inteira que não era a dela.
  */
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { render, screen, cleanup, fireEvent, act } from '@testing-library/react'
+import { act,cleanup, fireEvent, render, screen } from '@testing-library/react'
 import React from 'react'
+import { afterEach,beforeEach, describe, expect, it, vi } from 'vitest'
+
 import type { MinigameItem, RoundReport } from '../src/core/minigames/types'
 
 vi.mock('../src/lib/juice', () => ({ comemorar: vi.fn(), tremor: vi.fn() }))

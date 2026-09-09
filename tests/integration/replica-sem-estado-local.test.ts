@@ -14,10 +14,11 @@
  *  3. **A coerência da topologia.** O servidor não tem como descobrir quantas réplicas existem;
  *     quem opera declara, e o boot recusa a combinação que serve dado que some.
  */
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
-import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, existsSync, rmSync } from 'node:fs'
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync,writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
+
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 const guardaDoEnv = { ...process.env }
 

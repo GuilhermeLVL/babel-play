@@ -1,5 +1,6 @@
 /** Rotas de busca de imagens (montadas em `/api/images`). Proxy keyless p/ Openverse. */
 import { Router } from 'express'
+
 import { imageSearchQuerySchema, parseOr400 } from '../validation'
 
 export const imagesRouter = Router()

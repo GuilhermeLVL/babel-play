@@ -1,11 +1,11 @@
-import { PACKS_DE_EMOJI, readPack, lerPackCustom, PACK_CUSTOM } from '../lib/particulas';
-import { emojiDoCursor } from '../lib/cursores';
-import { estiloDeRastro } from '../lib/rastroDoMouse';
-import { todasAsPaletas } from '../lib/galeria/paletas';
-import { CATEGORIAS_DE_EMOJI } from '../lib/galeria/emojis';
 import { THEME_OPTIONS } from '../lib/appearance';
+import { emojiDoCursor } from '../lib/cursores';
 import { corDoCromaEquipado } from '../lib/galeria/cromas';
+import { CATEGORIAS_DE_EMOJI } from '../lib/galeria/emojis';
+import { todasAsPaletas } from '../lib/galeria/paletas';
 import type { ItemDaLoja } from '../lib/loja';
+import { lerPackCustom, PACK_CUSTOM,PACKS_DE_EMOJI, readPack } from '../lib/particulas';
+import { estiloDeRastro } from '../lib/rastroDoMouse';
 
 /**
  * A MINIATURA REAL DE UMA PEÇA (pedido do dono, 01/09: "adicione as miniaturas reais dos itens

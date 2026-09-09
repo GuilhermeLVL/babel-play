@@ -8,8 +8,9 @@
  *  P2-5 — migração e backfill do boot falhavam com console.warn e o servidor subia assim
  *         mesmo, sem nenhum sinal externo de que os dados estavam incompletos.
  */
-import { describe, it, expect, beforeAll, afterAll, afterEach, vi } from 'vitest'
-import { setupEphemeralDb, type EphemeralDb } from '../harness/ephemeralDb'
+import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
+
+import { type EphemeralDb,setupEphemeralDb } from '../harness/ephemeralDb'
 
 let h: EphemeralDb
 let erroDeRota: any

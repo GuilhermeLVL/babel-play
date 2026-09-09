@@ -11,13 +11,14 @@
  * 07/09, com a edição leve. O estado vazio continua existindo, mas agora ele significa o que
  * qualquer estado vazio significa: não deu para falar com o servidor agora.
  */
+import { Globe2, Medal,Target, X, Zap } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { X, Zap, Target, Globe2, Medal } from 'lucide-react';
+
 import { fetchRecordes, type RecordeDoJogo } from '../../../data/api';
-import { lerRanking, lerApelido, type LinhaDoRanking } from '../../../lib/ranking';
 import { eventosVistos, todosOsEventos } from '../../../lib/eventosDeJogo';
-import { JOGOS } from './jogos';
 import type { AgeProfileType } from '../../../lib/profile';
+import { lerApelido, lerRanking, type LinhaDoRanking } from '../../../lib/ranking';
+import { JOGOS } from './jogos';
 
 function tituloDoJogo(id: string, ageProfile: AgeProfileType): string {
   const j = JOGOS.find((x) => x.id === id);

@@ -1,9 +1,10 @@
 // @vitest-environment jsdom
 import { describe, expect, it } from 'vitest'
-import { CURSORES, applyCursor, setCursor, readCursor } from '../src/lib/cursores'
-import { estiloDeRastro, RASTROS, setRastro, readRastro } from '../src/lib/rastroDoMouse'
-import { PACKS_DE_EMOJI, setPack, readPack, emojisDoPack } from '../src/lib/particulas'
+
+import { applyCursor, CURSORES, readCursor,setCursor } from '../src/lib/cursores'
 import { CATALOGO_DA_LOJA } from '../src/lib/loja'
+import { emojisDoPack,PACKS_DE_EMOJI, readPack, setPack } from '../src/lib/particulas'
+import { estiloDeRastro, RASTROS, readRastro,setRastro } from '../src/lib/rastroDoMouse'
 
 describe('cosméticos (cursor, rastro, packs)', () => {
   it('cursor aplica e remove o atributo data-cursor; id inválido cai no padrão', () => {

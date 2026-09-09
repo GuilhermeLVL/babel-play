@@ -23,32 +23,33 @@
  * (limitadores, stub de YouTube, stub de áudio) e o harness troca `AUTH_REQUIRED` entre arquivos
  * de teste. Uma decisão congelada no import daria a montagem do primeiro teste para todos.
  */
-import express from "express";
-import type { RequestHandler } from "express";
-import helmet from "helmet";
 import compression from "compression";
+import type { RequestHandler } from "express";
+import express from "express";
 import rateLimit from "express-rate-limit";
-import { healthHandler } from "../routes/health";
+import helmet from "helmet";
+
+import { audioRouter } from "../audio/loopback";
+import { authMiddleware, authRequired } from "../lib/auth";
+import { capturarAssincrono } from "../lib/erroGlobal";
+import { chaveDoRequest, createDbRateLimitStore, METRIC_RATELIMIT_CARO, METRIC_RATELIMIT_ESCRITA } from "../lib/rateLimitStore";
+import { requestIdMiddleware } from "../lib/requestId";
+import { adminRouter } from "../routes/admin";
 import { aiRouter } from "../routes/ai";
-import { sessionsRouter } from "../routes/sessions";
-import { importRouter } from "../routes/import";
-import { vocabRouter } from "../routes/vocab";
 import { ankiRouter } from "../routes/anki";
+import { asaasWebhookRouter,billingRouter } from "../routes/billing";
+import { errosRouter } from "../routes/erros";
+import { exercisesRouter } from "../routes/exercises";
+import { geminiRouter, iniciarClienteGemini } from "../routes/gemini";
+import { healthHandler } from "../routes/health";
+import { imagesRouter } from "../routes/images";
+import { importRouter } from "../routes/import";
+import { meRouter } from "../routes/me";
 import { metricsRouter } from "../routes/metrics";
 import { rankRouter } from "../routes/rank";
-import { exercisesRouter } from "../routes/exercises";
+import { sessionsRouter } from "../routes/sessions";
 import { settingsRouter } from "../routes/settings";
-import { imagesRouter } from "../routes/images";
-import { meRouter } from "../routes/me";
-import { adminRouter } from "../routes/admin";
-import { errosRouter } from "../routes/erros";
-import { billingRouter, asaasWebhookRouter } from "../routes/billing";
-import { geminiRouter, iniciarClienteGemini } from "../routes/gemini";
-import { audioRouter } from "../audio/loopback";
-import { createDbRateLimitStore, chaveDoRequest, METRIC_RATELIMIT_CARO, METRIC_RATELIMIT_ESCRITA } from "../lib/rateLimitStore";
-import { capturarAssincrono } from "../lib/erroGlobal";
-import { authMiddleware, authRequired } from "../lib/auth";
-import { requestIdMiddleware } from "../lib/requestId";
+import { vocabRouter } from "../routes/vocab";
 
 /**
  * A ÚNICA COSTURA da montagem, e ela existe para os testes: o `authMiddleware` de produção resolve

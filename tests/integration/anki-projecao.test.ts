@@ -8,9 +8,10 @@
  * `vocab_cards` é PARCIAL (`deleted_at IS NULL`), então reimportar depois de uma desativação NÃO
  * pode criar um cartão paralelo — tem de ressuscitar o mesmo id, com o mesmo `review_logs`.
  */
-import { describe, it, expect, beforeAll, afterAll } from 'vitest'
-import { setupEphemeralDb, type EphemeralDb } from '../harness/ephemeralDb'
+import { afterAll,beforeAll, describe, expect, it } from 'vitest'
+
 import { asUserId } from '../../server/lib/authContext'
+import { type EphemeralDb,setupEphemeralDb } from '../harness/ephemeralDb'
 
 let h: EphemeralDb
 let vocabRepo: any

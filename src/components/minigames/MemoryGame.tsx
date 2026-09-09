@@ -1,16 +1,16 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { X, Eye } from 'lucide-react';
-import type { MinigameItem, ItemOutcome, RoundReport } from '@core';
+import type { ItemOutcome, MinigameItem, RoundReport } from '@core';
 import { scoreRound } from '@core';
+import { Eye,X } from 'lucide-react';
+import { Flame,Sparkles } from 'lucide-react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+
+import { emitBurst } from '../../lib/effects';
+import { playJuicedError, playJuicedHit, playJuicedVictory, triggerHaptic } from '../../lib/gameFeel';
+import { multiplicador,pontosDoElemento } from '../../lib/juice';
 import { direcaoDoTexto } from '../../lib/languages';
 import type { AgeProfileType } from '../../lib/profile';
 import { play } from '../../lib/soundFx';
-import { pontosDoElemento, multiplicador } from '../../lib/juice';
-import { playJuicedHit, playJuicedError, playJuicedVictory, triggerHaptic } from '../../lib/gameFeel';
-
 import { speak } from '../../lib/tts';
-import { emitBurst } from '../../lib/effects';
-import { Sparkles, Flame } from 'lucide-react';
 
 interface MemoryGameProps {
   items: MinigameItem[];

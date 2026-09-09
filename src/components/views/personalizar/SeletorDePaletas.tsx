@@ -1,13 +1,14 @@
-import { useMemo, useState } from 'react';
 import { Lock, Search, ShoppingBag } from 'lucide-react';
-import { toast } from '../../Toast';
-import { comemorar } from '../../../lib/juice';
-import {
-  buscarPaletas, todasAsPaletas, ESTILOS, lerPaletaAtiva, gravarPaletaAtiva,
-  type EstiloDePaleta, type Paleta,
-} from '../../../lib/galeria/paletas';
-import { acessoAoEstilo } from '../../../lib/galeria/acesso';
+import { useMemo, useState } from 'react';
+
 import { applyCustomColors, type ThemeType } from '../../../lib/appearance';
+import { acessoAoEstilo } from '../../../lib/galeria/acesso';
+import {
+  buscarPaletas,   type EstiloDePaleta, ESTILOS, gravarPaletaAtiva,
+lerPaletaAtiva, type Paleta,
+todasAsPaletas, } from '../../../lib/galeria/paletas';
+import { comemorar } from '../../../lib/juice';
+import { toast } from '../../Toast';
 
 /**
  * AS 200 PALETAS — o produto "troque as quatro cores da tela", agora dentro do editor do TEMA.

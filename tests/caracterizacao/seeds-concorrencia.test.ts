@@ -11,8 +11,9 @@
  * `parseOr400`, pelo catálogo de preços nem pelo limitador — e é exatamente aí que uma refatoração
  * de rota quebraria sem ninguém ver.
  */
-import { describe, it, expect, beforeAll, afterAll } from 'vitest'
-import { subirApp, semear, type AppDeTeste } from './_app'
+import { afterAll,beforeAll, describe, expect, it } from 'vitest'
+
+import { type AppDeTeste,semear, subirApp } from './_app'
 
 let s: AppDeTeste
 /** Saldo derivado como a tela deriva (ganhas − gastas), lido do próprio perfil. */

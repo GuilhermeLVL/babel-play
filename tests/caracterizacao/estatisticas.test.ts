@@ -8,8 +8,9 @@
  * agregado tenha ao menos uma linha de entrada. Cada resposta vira um snapshot de FORMA. O que
  * parecer errado está marcado com `// caracterizacao:` — o teste detecta mudança, não corrige.
  */
-import { describe, it, expect, beforeAll, afterAll } from 'vitest'
-import { subirApp, resposta, semear, type AppDeTeste } from './_app'
+import { afterAll,beforeAll, describe, expect, it } from 'vitest'
+
+import { type AppDeTeste,resposta, semear, subirApp } from './_app'
 
 describe('estatisticas (self-host)', () => {
   let s: AppDeTeste

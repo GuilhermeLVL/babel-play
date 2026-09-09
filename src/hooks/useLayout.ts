@@ -1,14 +1,15 @@
-import { useState, useEffect } from 'react';
+import { useEffect,useState } from 'react';
+
 import { ThemeType } from '../lib/appearance';
 import {
   AppLayoutConfig,
   DEFAULT_LAYOUT_CONFIG,
-  getSavedLayout,
-  saveLayout,
-  resetLayout,
-  isLayoutEditMode,
-  setLayoutEditMode,
   getIntelligentLayout,
+  getSavedLayout,
+  isLayoutEditMode,
+  resetLayout,
+  saveLayout,
+  setLayoutEditMode,
   ViewLayoutConfig,
 } from '../lib/layoutStore';
 

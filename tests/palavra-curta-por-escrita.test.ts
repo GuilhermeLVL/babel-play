@@ -3,7 +3,8 @@
  * Medido no G0: um baralho japonês de 10 notas perdeu 7 por `palavra-curta` — 窓 (janela),
  * 家 (casa), 本 (livro) são palavras inteiras.
  */
-import { describe, it, expect } from 'vitest';
+import { describe, expect,it } from 'vitest';
+
 import { avaliarCartao, foraDoBulkAdd } from '../src/core/learning/quality';
 
 const cartao = (word: string, translation: string) =>

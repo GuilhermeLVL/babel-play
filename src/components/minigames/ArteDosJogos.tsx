@@ -1,5 +1,5 @@
+import { type MinigameId,MINIGAMES } from '@core';
 import React from 'react';
-import { MINIGAMES, type MinigameId } from '@core';
 
 /**
  * AS MINIATURAS DOS JOGOS — cada uma é a MECÂNICA desenhada, não um enfeite.

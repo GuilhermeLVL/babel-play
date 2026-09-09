@@ -3,7 +3,8 @@
  * determinística, ordem global preservada. Os invariantes aqui são o CONTRATO — a UI multi-fonte
  * só pode existir porque estes testes travam que a união não vira "quem chegou primeiro engole".
  */
-import { describe, it, expect } from 'vitest';
+import { describe, expect,it } from 'vitest';
+
 import { cotasPorMaiorResto, distribuirPorFonte } from '../src/core/minigames/distribuicao';
 import type { CartaoFiltravel } from '../src/core/minigames/filtro';
 

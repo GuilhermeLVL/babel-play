@@ -1,11 +1,12 @@
-import React, { useRef, useState } from 'react';
-import { X, Check, Link2, Flame, Sparkles } from 'lucide-react';
-import type { ItemOutcome, RoundReport, RodadaConectores } from '@core';
+import type { ItemOutcome, RodadaConectores,RoundReport } from '@core';
 import { notaConectores, scoreRound } from '@core';
-import type { AgeProfileType } from '../../lib/profile';
-import { multiplicador } from '../../lib/juice';
-import { playJuicedHit, playJuicedError, playJuicedVictory, triggerHaptic } from '../../lib/gameFeel';
+import { Check, Flame, Link2, Sparkles,X } from 'lucide-react';
+import React, { useRef, useState } from 'react';
+
 import { emitBurst } from '../../lib/effects';
+import { playJuicedError, playJuicedHit, playJuicedVictory, triggerHaptic } from '../../lib/gameFeel';
+import { multiplicador } from '../../lib/juice';
+import type { AgeProfileType } from '../../lib/profile';
 
 /**
  * CAÇA-CONECTORES — marcar as palavras que amarram as ideias da frase.

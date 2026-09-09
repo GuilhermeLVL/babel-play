@@ -1,13 +1,13 @@
-import { MINIGAMES, type MinigameId } from './types';
-import { canPlay, promptFor, cabeNaEscrita } from './itemSource';
-import { chaveComparavel } from '../learning/quality';
-import { contarJogaveisMulti, consumoDaEscada, ESCADA_POR_FAIXA } from './termo';
-import { entraNaGrade } from './wordsearch';
-import type { FaixaDificuldade } from './composicao';
-import { buildScrambleRounds } from './scramble';
-import { buildRodadasEscuta, buildRodadasDitado, buildRodadasConectores, temConectores } from './escuta';
 import type { VocabCard } from '../../types';
+import { chaveComparavel } from '../learning/quality';
+import type { FaixaDificuldade } from './composicao';
 import type { FalaComAudio } from './escuta';
+import { buildRodadasConectores, buildRodadasDitado, buildRodadasEscuta, temConectores } from './escuta';
+import { cabeNaEscrita,canPlay, promptFor } from './itemSource';
+import { buildScrambleRounds } from './scramble';
+import { consumoDaEscada, contarJogaveisMulti, ESCADA_POR_FAIXA } from './termo';
+import { type MinigameId,MINIGAMES } from './types';
+import { entraNaGrade } from './wordsearch';
 
 /**
  * O QUE DÁ PARA JOGAR AGORA, e o que falta para o resto — calculado fora do React.

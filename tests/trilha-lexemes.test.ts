@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { lematizar, escolherPorCognato } from '../scripts/trilha/lexemes.mjs';
+
+import { escolherPorCognato,lematizar } from '../scripts/trilha/lexemes.mjs';
 
 const conta = (palavra: string, contagem: number) => ({ palavra, contagem });
 

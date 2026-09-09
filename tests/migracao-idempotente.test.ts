@@ -7,16 +7,17 @@
  * duplica, falha de áudio não perde a sessão, falha de sessão a mantém local para a próxima vez.
  */
 import 'fake-indexeddb/auto'
+
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 vi.mock('../src/lib/supabase', () => ({
   supabase: null, authRequired: true, carregarSupabase: async () => null, getAccessToken: async () => null,
 }))
 
-import { definirIdentidade } from '../src/lib/identidade'
-import { abrirStore, fecharStore, limparTudo } from '../src/data/efemero/store'
-import { migrarParaConta, inventarioLocal } from '../src/data/migracao'
 import * as api from '../src/data/api'
+import { abrirStore, fecharStore, limparTudo } from '../src/data/efemero/store'
+import { inventarioLocal,migrarParaConta } from '../src/data/migracao'
+import { definirIdentidade } from '../src/lib/identidade'
 
 interface Servidor {
   sessoes: Map<string, { id: string; origemLocalId: string; title: string; falas: number }>

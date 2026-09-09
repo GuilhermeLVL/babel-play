@@ -16,10 +16,12 @@
  * Um documento que precisa de disciplina para não mentir mente. Este teste varre o código e falha
  * quando alguém lê uma variável que o inventário não declara, ou declara uma que ninguém lê.
  */
-import { describe, it, expect } from 'vitest'
 import { readdirSync, readFileSync, statSync } from 'node:fs'
 import { join } from 'node:path'
-import { VARIAVEIS_POR_PLANO, VARIAVEIS } from '../../server/lib/config'
+
+import { describe, expect,it } from 'vitest'
+
+import { VARIAVEIS,VARIAVEIS_POR_PLANO } from '../../server/lib/config'
 
 /** Arquivos de servidor. `server.ts` entra porque é onde metade das leituras acontece. */
 function arquivosDeServidor(dir = 'server', fora: string[] = []): string[] {

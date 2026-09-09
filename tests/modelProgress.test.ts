@@ -13,8 +13,9 @@
  *
  * Estes testes fixam o contrato do tradutor de eventos: SÓ `progress_total` e `ready` movem a barra.
  */
-import { describe, it, expect, vi } from 'vitest'
-import { lerProgresso, criarRastreadorDeProgresso, criarWatchdogDeEstagnacao } from '../src/gateway/adapters/modelProgress'
+import { describe, expect, it, vi } from 'vitest'
+
+import { criarRastreadorDeProgresso, criarWatchdogDeEstagnacao,lerProgresso } from '../src/gateway/adapters/modelProgress'
 
 /** Eventos fiéis ao que @huggingface/transformers 4.2 emite (utils/core.js, utils/hub.js). */
 const ev = {

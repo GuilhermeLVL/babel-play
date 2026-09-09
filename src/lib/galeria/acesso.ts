@@ -21,9 +21,9 @@
  * (nível, Seeds ou conquista). Presets listam o que falta; os livres aplicam na hora.
  */
 import { CATALOGO_DA_LOJA, estadoDoItem, type ItemDaLoja } from '../loja';
+import { PACKS_DE_EMOJI } from '../particulas';
 import type { EstiloDePaleta } from './paletas';
 import type { Perfil } from './perfis';
-import { PACKS_DE_EMOJI } from '../particulas';
 
 /** Item da Loja que abre um ESTILO de paleta (ausente = livre). */
 export const ITEM_DO_ESTILO: Partial<Record<EstiloDePaleta, string>> = {

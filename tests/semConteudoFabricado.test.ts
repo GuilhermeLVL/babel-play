@@ -20,9 +20,10 @@
  * removido, e a armadilha está registrada em `docs/ux-audit/PROTOCOLO.md`: ler comentário produz
  * falso-negativo aqui e produziria falso-POSITIVO no caso simétrico.
  */
-import { describe, it, expect } from 'vitest'
 import { readFileSync } from 'node:fs'
 import path from 'node:path'
+
+import { describe, expect,it } from 'vitest'
 
 /** Remove comentários de bloco, de linha e os JSX `{/* … *\/}`. */
 const semComentarios = (txt: string) =>

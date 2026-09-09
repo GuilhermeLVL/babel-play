@@ -1,14 +1,15 @@
-import React, { useMemo } from 'react';
-import { GraduationCap, Check } from 'lucide-react';
 import {
-  progressoDaTrilha, nivelSugerido, chaveDaPalavra,
-  etapasDoNivel, progressoDasEtapas, etapaAtual, posicaoNaTrilha,
-  type DadoTrilha, type CefrLevel,
-} from '@core';
+type CefrLevel,
+chaveDaPalavra,
+  type DadoTrilha, etapaAtual,   etapasDoNivel, nivelSugerido, posicaoNaTrilha,
+progressoDasEtapas,   progressoDaTrilha, } from '@core';
+import { Check,GraduationCap } from 'lucide-react';
+import React, { useMemo } from 'react';
+
 import { rotuloDaEtapa } from '../../core/learning/trilha';
-import type { VocabCard } from '../../types';
-import type { AgeProfileType } from '../../lib/profile';
 import { langLabelNaUI } from '../../lib/languages';
+import type { AgeProfileType } from '../../lib/profile';
+import type { VocabCard } from '../../types';
 
 /**
  * A TRILHA — trazer vocabulário curado para o baralho, por nível.

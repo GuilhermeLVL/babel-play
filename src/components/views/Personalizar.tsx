@@ -1,19 +1,20 @@
+import { Eye,Gamepad2, Undo2, Zap } from 'lucide-react';
 import { useState } from 'react';
-import { Undo2, Gamepad2, Zap, Eye } from 'lucide-react';
-import { toast } from '../Toast';
-import { comemorar, explodirAleatorio } from '../../lib/juice';
-import { paletaPorId, lerPaletaAtiva, gravarPaletaAtiva, type Paleta } from '../../lib/galeria/paletas';
+
+import { applyCustomColors, FONTE_OPTIONS, type FonteType,type ThemeType } from '../../lib/appearance';
+import { CURSORES, emojiDoCursor,readCursor, setCursor } from '../../lib/cursores';
+import { acessoAoEstilo, faltaParaOPerfil } from '../../lib/galeria/acesso';
 import { CATEGORIAS_DE_EMOJI } from '../../lib/galeria/emojis';
-import { PRESETS, perfisSalvos, salvarPerfil, apagarPerfil, renomearPerfil, type Perfil } from '../../lib/galeria/perfis';
+import { gravarPaletaAtiva, lerPaletaAtiva, type Paleta,paletaPorId } from '../../lib/galeria/paletas';
+import { apagarPerfil, type Perfil,perfisSalvos, PRESETS, renomearPerfil, salvarPerfil } from '../../lib/galeria/perfis';
 import { restaurarVisualPadrao } from '../../lib/galeria/restaurar';
 import { palavraDeNivel } from '../../lib/galeria/textos';
-import { acessoAoEstilo, faltaParaOPerfil } from '../../lib/galeria/acesso';
-import { PARTICULAS_OPTIONS, PACKS_DE_EMOJI, PACK_CUSTOM, readParticulas, setParticulas, readPack, setPack, setPackCustom, lerPackCustom } from '../../lib/particulas';
-import { CURSORES, readCursor, setCursor, emojiDoCursor } from '../../lib/cursores';
-import { readRastro, setRastro, estiloDeRastro } from '../../lib/rastroDoMouse';
-import { applyCustomColors, FONTE_OPTIONS, type ThemeType, type FonteType } from '../../lib/appearance';
-import Inventario from './personalizar/Inventario';
+import { comemorar, explodirAleatorio } from '../../lib/juice';
+import { lerPackCustom,PACK_CUSTOM, PACKS_DE_EMOJI, PARTICULAS_OPTIONS, readPack, readParticulas, setPack, setPackCustom, setParticulas } from '../../lib/particulas';
+import { estiloDeRastro,readRastro, setRastro } from '../../lib/rastroDoMouse';
 import type { AgeProfileType, MenuPositionType } from '../shell/navItems';
+import { toast } from '../Toast';
+import Inventario from './personalizar/Inventario';
 
 /**
  * MEU VISUAL — o inventário e o perfil de exibição. Só isso.

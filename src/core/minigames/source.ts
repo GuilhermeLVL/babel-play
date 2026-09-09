@@ -1,8 +1,8 @@
 import type { VocabCard } from '../../types';
 import type { CefrLevel } from '../learning/contract';
-import { triarCartoes, baseLangDe, pistasDaTriagem, type Triagem } from '../learning/quality';
-import { passaNoFiltro, type FiltroDaPratica, type CartaoFiltravel, type ExtrasDoFiltro } from './filtro';
-import type { FonteId, FonteDeItens } from './types';
+import { baseLangDe, pistasDaTriagem, type Triagem,triarCartoes } from '../learning/quality';
+import { type CartaoFiltravel, type ExtrasDoFiltro,type FiltroDaPratica, passaNoFiltro } from './filtro';
+import type { FonteDeItens,FonteId } from './types';
 
 /**
  * DE ONDE VÊM OS ITENS DESTA RODADA.
@@ -31,7 +31,7 @@ import type { FonteId, FonteDeItens } from './types';
  *
  * `types.ts` é o contrato dos minigames e não importa nenhum dos dois — é o lugar certo para um
  * tipo que os dois lados precisam. Reexportados abaixo para nenhum chamador mudar de import. */
-export type { FonteId, FonteDeItens } from './types';
+export type { FonteDeItens,FonteId } from './types';
 
 /**
  * O id sintético com que a trilha ESCREVE — e só isso.

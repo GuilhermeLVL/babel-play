@@ -12,11 +12,12 @@
  * O que se prova aqui é a decisão pura: dado um motivo, o que ele autoriza e por quanto. A rota
  * que consome isto é testada em `tests/integration/economia-autoridade.test.ts`.
  */
-import { describe, it, expect } from 'vitest'
+import { describe, expect,it } from 'vitest'
+
 import {
-  autorizarGasto, ehRecusa, conquistaDoCreditoId, PRECO_DO_CROMA, CUSTOS_DE_NIVEL,
-  CUSTO_PULAR_RODADA, CATALOGO_DA_LOJA, CONQUISTAS,
-} from '../src/core'
+  autorizarGasto, CATALOGO_DA_LOJA, conquistaDoCreditoId, CONQUISTAS,
+  CUSTO_PULAR_RODADA, CUSTOS_DE_NIVEL,
+ehRecusa, PRECO_DO_CROMA, } from '../src/core'
 
 describe('autorizarGasto — o preço vem do catálogo, não do cliente', () => {
   it('item da Loja cobra o preço do catálogo', () => {

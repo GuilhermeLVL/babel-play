@@ -15,9 +15,10 @@
  *    caso encontrado no banco real: alvo igual ao idioma da própria pessoa (resíduo de gravação
  *    automática) contra um idioma estrangeiro escolhido na tela de jogos.
  */
-import { describe, it, expect, beforeAll, afterAll } from 'vitest'
-import { setupEphemeralDb, type EphemeralDb } from '../harness/ephemeralDb'
+import { afterAll,beforeAll, describe, expect, it } from 'vitest'
+
 import { asUserId } from '../../server/lib/authContext'
+import { type EphemeralDb,setupEphemeralDb } from '../harness/ephemeralDb'
 
 let h: EphemeralDb
 const U = asUserId('idioma-u1')

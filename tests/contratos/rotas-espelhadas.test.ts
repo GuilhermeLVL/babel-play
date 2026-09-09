@@ -16,10 +16,13 @@
  * e mais barata: existe alguém do outro lado?
  */
 import 'fake-indexeddb/auto'
-import { describe, it, expect } from 'vitest'
-import { readFileSync, readdirSync } from 'node:fs'
+
+import { readdirSync,readFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { servidorEfemero, CODIGO_EXIGE_CONTA } from '../../src/data/efemero/servidor'
+
+import { describe, expect,it } from 'vitest'
+
+import { CODIGO_EXIGE_CONTA,servidorEfemero } from '../../src/data/efemero/servidor'
 
 /**
  * AS ROTAS QUE O MODO SEM CONTA NÃO ESPELHA — cada uma com o motivo, e o motivo é sempre o mesmo

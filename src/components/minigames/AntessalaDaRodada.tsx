@@ -1,15 +1,16 @@
+import type { EstadoDoItem,FaseJogada, MinigameId } from '@core';
+import type { ItemDaAntessala } from '@core';
+import { ALVO_MAX, ALVO_MIN, JANELA_DE_RODADAS,JANELAS_DE_RETORNO, LEECH_APOS, nivelNoJogo } from '@core';
+import { ChevronDown, ChevronLeft, ChevronRight,HelpCircle, LifeBuoy, ListChecks , Medal, Play, RotateCcw, Shuffle, SlidersHorizontal, Sparkles, Star, Target, X, Zap} from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
-import { X, Play, Shuffle, RotateCcw, Medal, Zap, Target, Sparkles, Star, SlidersHorizontal, ChevronDown, LifeBuoy, HelpCircle, ListChecks , ChevronLeft, ChevronRight} from 'lucide-react';
+
+import type { EstrategiaDaUI,FaixaDificuldade } from '../../core/minigames/composicao';
 import { fetchRecordes, type RecordeDoJogo } from '../../data/api';
 import { eventosVistos, todosOsEventos } from '../../lib/eventosDeJogo';
-import { IconePixel } from '../views/play/IconesPixel';
-import type { MinigameId, FaseJogada, EstadoDoItem } from '@core';
-import type { FaixaDificuldade, EstrategiaDaUI } from '../../core/minigames/composicao';
-import { nivelNoJogo, LEECH_APOS, JANELAS_DE_RETORNO, ALVO_MIN, ALVO_MAX, JANELA_DE_RODADAS } from '@core';
+import { emojiDoItem,proximaRecompensa } from '../../lib/galeria/progressao';
 import type { AgeProfileType } from '../../lib/profile';
-import type { ItemDaAntessala } from '@core';
-import { Segmentado, Ladrilho } from '../ui';
-import { proximaRecompensa, emojiDoItem } from '../../lib/galeria/progressao';
+import { Ladrilho,Segmentado } from '../ui';
+import { IconePixel } from '../views/play/IconesPixel';
 
 /**
  * ANTESSALA DA RODADA — o que vai cair, dito ANTES de a partida começar.

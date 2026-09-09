@@ -14,10 +14,11 @@
  * seu" são indistinguíveis por fora — o que é a postura certa (não vaza que o id existe).
  */
 import { Router } from 'express'
+
 import { ankiRepo } from '../db/repositories/anki'
 import { vocabRepo } from '../db/repositories/vocab'
-import { parseOr400, idParamSchema, ankiNotasQuerySchema, ankiAtivarSchema, ankiPurgarSchema } from '../validation'
 import { erroDeRota } from '../lib/erroDeRota'
+import { ankiAtivarSchema, ankiNotasQuerySchema, ankiPurgarSchema,idParamSchema, parseOr400 } from '../validation'
 
 export const ankiRouter = Router()
 

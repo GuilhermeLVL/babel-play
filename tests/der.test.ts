@@ -7,7 +7,8 @@
  *   2. reportar só o número agregado — que não distingue VAD perdendo fala de embedding
  *      confundindo pessoas, defeitos com correções opostas.
  */
-import { describe, it, expect } from 'vitest'
+import { describe, expect,it } from 'vitest'
+
 import { calcularDer, mapearRotulos, purezaDeClusters, type Turno } from '../src/core/eval/der'
 
 /** A,B,A — dois falantes alternando, 3 s cada. */

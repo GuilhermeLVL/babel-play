@@ -10,7 +10,8 @@
  * O parser JÁ LIA os nomes dos campos e já os usava para achar o exemplo; só nunca os usou para
  * os dois campos que decidem se a nota existe.
  */
-import { describe, it, expect } from 'vitest'
+import { describe, expect,it } from 'vitest'
+
 import { indicePorNome, PADRAO_FRENTE, PADRAO_VERSO } from '../server/import/anki'
 
 /** Os dois tipos de nota REAIS do baralho que falhou. */

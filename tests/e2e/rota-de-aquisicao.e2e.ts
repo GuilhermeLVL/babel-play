@@ -1,5 +1,6 @@
-import { test, expect } from '@playwright/test';
-import { fecharSobreposicoes, clicarRobusto } from './_helpers';
+import { expect,test } from '@playwright/test';
+
+import { clicarRobusto,fecharSobreposicoes } from './_helpers';
 
 /**
  * "COMO EU CONSIGO ISTO?" — a pergunta que o Inventário passou a responder (onda 1 de 08/09).

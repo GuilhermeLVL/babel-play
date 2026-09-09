@@ -1,35 +1,36 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { apiFetch } from '../data/api';
 import {
-  Sparkles,
-  X,
-  Send,
-  Plus,
-  Trash2,
-  RefreshCw,
-  BookOpen,
-  BarChart2,
-  Mic,
-  LayoutDashboard,
-  Youtube,
-  History,
-  MessageSquare,
-  HelpCircle,
-  FileText,
-  ArrowRight,
   Activity,
-  Edit2,
+  ArrowRight,
+  BarChart2,
   Bookmark,
+  BookOpen,
+  Edit2,
+  FileText,
   GraduationCap,
-  Pin,
+  HelpCircle,
+  History,
+  LayoutDashboard,
   Maximize2,
+  MessageSquare,
+  Mic,
   Minimize2,
   Paperclip,
+  Pin,
+  Plus,
+  RefreshCw,
+  Send,
+  Sparkles,
+  Trash2,
+  X,
+  Youtube,
 } from 'lucide-react';
-import { toast, askConfirm } from './Toast';
+import React, { useEffect, useMemo,useRef, useState } from 'react';
+
+import { apiFetch } from '../data/api';
+import { cercarContexto, clausulaDeContencao,construirContextoDaTela } from '../lib/ichatContext';
+import { type AgeProfileType,TUTOR_REGISTER } from '../lib/profile';
 import { Recording, ViewType } from '../types';
-import { construirContextoDaTela, cercarContexto, clausulaDeContencao } from '../lib/ichatContext';
-import { TUTOR_REGISTER, type AgeProfileType } from '../lib/profile';
+import { askConfirm,toast } from './Toast';
 
 interface ContextoFixado {
   view: ViewType;

@@ -13,9 +13,10 @@
  *   `FonteDeItens` (src/core/minigames/source.ts:23-33)
  *   `GET /api/vocab/para-jogo?fonte=sessao&fonteRef=<id>` (server/routes/vocab.ts:19-34)
  */
-import { describe, it, expect, beforeAll, afterAll } from 'vitest'
-import { setupEphemeralDb, type EphemeralDb } from '../harness/ephemeralDb'
+import { afterAll,beforeAll, describe, expect, it } from 'vitest'
+
 import { asUserId } from '../../server/lib/authContext'
+import { type EphemeralDb,setupEphemeralDb } from '../harness/ephemeralDb'
 
 const OWNER = asUserId('f4-owner')
 const SESSAO_A = 'sess-a'

@@ -2,7 +2,8 @@
  * Os conectores portugueses acentuados (porém, além, aliás) nunca acendiam: a lista guarda a
  * forma COM acento e a comparação normalizava para sem acento.
  */
-import { describe, it, expect } from 'vitest';
+import { describe, expect,it } from 'vitest';
+
 import { buildRodadasConectores } from '../src/core/minigames/escuta';
 
 const fala = (text: string) => ({ id: text.slice(0, 8), text, translation: '', lang: 'pt', startMs: 0, endMs: 0 });

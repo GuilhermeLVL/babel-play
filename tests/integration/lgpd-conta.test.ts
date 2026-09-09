@@ -13,12 +13,14 @@
  *  4. excluir A não encosta em B — nem nas linhas, nem no segredo, nem no áudio no disco;
  *  5. falha ao apagar o arquivo de mídia é REPORTADA, não engolida (mesmo contrato do P1-9).
  */
-import { describe, it, expect, beforeAll, afterAll } from 'vitest'
-import { mkdtempSync, mkdirSync, writeFileSync, existsSync } from 'node:fs'
+import { existsSync,mkdirSync, mkdtempSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
-import { setupEphemeralDb, type EphemeralDb } from '../harness/ephemeralDb'
+
+import { afterAll,beforeAll, describe, expect, it } from 'vitest'
+
 import { asUserId, type UserId } from '../../server/lib/authContext'
+import { type EphemeralDb,setupEphemeralDb } from '../harness/ephemeralDb'
 
 const SEGREDO = (id: string) => `sk-CHAVE-DO-${id}-nunca-real-00000`
 

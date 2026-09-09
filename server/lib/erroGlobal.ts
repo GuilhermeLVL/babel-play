@@ -20,10 +20,11 @@
  * porque sabem devolver 400/404 com mensagem específica. Isto é o que sobra quando eles falham ou
  * não existem.
  */
-import { envelopeDeErro } from './respostaDeErro'
 import type { NextFunction, Request, Response, Router } from 'express'
-import { log } from './logger'
+
 import { cadeiaDeCausas } from './cadeiaDeCausas'
+import { log } from './logger'
+import { envelopeDeErro } from './respostaDeErro'
 
 /**
  * Embrulha um router para que rejeição de handler `async` vire `next(err)`.

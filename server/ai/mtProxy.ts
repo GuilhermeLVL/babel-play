@@ -1,12 +1,13 @@
 import type { Request, Response } from 'express'
 import { z } from 'zod'
+
+import { nomeDoIdioma, systemComunicativo, userComunicativo } from '../../src/lib/traducao/promptComunicativo'
 import { hasEntitlement } from '../lib/entitlements'
-import { reserveManagedCall, refundManagedCall, registrarTokensDeLlm } from '../lib/usageQuota'
-import { log } from '../lib/logger'
 import { erroDeRota } from '../lib/erroDeRota'
+import { log } from '../lib/logger'
+import { refundManagedCall, registrarTokensDeLlm,reserveManagedCall } from '../lib/usageQuota'
 import { chamarChat, type MensagemDeChat, type RespostaDeChat } from './llmClient'
 import { cascataDeTraducao } from './provedores'
-import { nomeDoIdioma, systemComunicativo, userComunicativo } from '../../src/lib/traducao/promptComunicativo'
 
 /**
  * Tradução via LLM (Groq) no SERVIDOR — o elo que faltava na cadeia de MT.

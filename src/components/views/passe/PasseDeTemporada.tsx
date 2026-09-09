@@ -1,17 +1,18 @@
-import { useEffect, useMemo, useState } from 'react';
-// Sprout, e não Leaf: é o ícone que TODA a aplicação usa para Seeds (FaixaDeProgresso,
-// Conquistas, Loja) — um conceito, um ícone.
-import { Check, Coins, Crown, Lock, Sprout, Star } from 'lucide-react';
-import { COR_DA_RARIDADE, estadoDoItem, type ItemDaLoja } from '../../../lib/loja';
-import MiniaturaDoItem from '../../MiniaturaDoItem';
-import { equiparItem, equipavel, type ContextoDeEquipar } from '../../../lib/galeria/equipar';
 /* DO MODULO, e nao do barril. `lib/galeria/passe.ts` era um `export * from '@core'`: importar a
    curva do passe arrastava o nucleo INTEIRO para o grafo desta tela (auditoria de 2026-09-07,
    achado A43). O que esta tela precisa mora em `core/passe.ts`. */
-import { passeNivel, premiumDoNivel, slotsDoPasse, slotDestravado, totalPremiumEmCreditos, TEMPORADA_ATUAL, type SlotDoPasse } from '@core/passe';
-import { creditarSeeds, creditarPasse } from '../../../data/api';
-import { toast } from '../../Toast';
+import { passeNivel, premiumDoNivel, slotDestravado, type SlotDoPasse,slotsDoPasse, TEMPORADA_ATUAL, totalPremiumEmCreditos } from '@core/passe';
+// Sprout, e não Leaf: é o ícone que TODA a aplicação usa para Seeds (FaixaDeProgresso,
+// Conquistas, Loja) — um conceito, um ícone.
+import { Check, Coins, Crown, Lock, Sprout, Star } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
+
+import { creditarPasse,creditarSeeds } from '../../../data/api';
+import { type ContextoDeEquipar,equiparItem, equipavel } from '../../../lib/galeria/equipar';
+import { COR_DA_RARIDADE, estadoDoItem, type ItemDaLoja } from '../../../lib/loja';
 import type { DerivedProgress } from '../../../lib/progress';
+import MiniaturaDoItem from '../../MiniaturaDoItem';
+import { toast } from '../../Toast';
 
 /**
  * O PASSE DE TEMPORADA — a lente de 100 níveis sobre a progressão existente (spec

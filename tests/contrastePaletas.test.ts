@@ -23,9 +23,10 @@
  * essa folga NÃO é usada aqui de propósito: `--ink-faint` aparece em `text-[8px]` e `text-[9px]`
  * na medição, o oposto de texto grande.
  */
-import { describe, it, expect } from 'vitest'
 import { readFileSync } from 'node:fs'
 import path from 'node:path'
+
+import { describe, expect,it } from 'vitest'
 
 const css = readFileSync(path.join(process.cwd(), 'src/index.css'), 'utf8')
 

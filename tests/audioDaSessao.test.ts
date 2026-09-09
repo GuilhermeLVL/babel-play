@@ -12,7 +12,7 @@
  * pelo resto da vida da aba. As duas falhas são invisíveis em uso normal — só aparecem como lentidão
  * e consumo de memória que ninguém liga à causa.
  */
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { afterEach,beforeEach, describe, expect, it, vi } from 'vitest'
 
 const apiFetch = vi.fn()
 vi.mock('../src/data/api', () => ({ apiFetch: (...a: unknown[]) => apiFetch(...a) }))

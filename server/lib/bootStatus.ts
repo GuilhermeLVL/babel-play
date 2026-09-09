@@ -21,6 +21,7 @@
  * a instância degradada para sempre, e o operador aprenderia a ignorar a probe.
  */
 import { sql } from 'drizzle-orm'
+
 import { db } from '../db/db'
 import { bootFalhas } from '../db/schema'
 import { log } from './logger'

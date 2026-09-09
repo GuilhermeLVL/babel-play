@@ -1,10 +1,11 @@
-import { useEffect, useState } from 'react';
 import { CreditCard, ExternalLink, XCircle } from 'lucide-react';
-import { apiFetch } from '../../../data/api';
+import { useEffect, useState } from 'react';
+
 import { PLAN_MATRIX, type PlanoDeAssinatura } from '../../../core/planos';
-import { authRequired } from '../../../lib/supabase';
+import { apiFetch } from '../../../data/api';
 import { carregarEntitlements } from '../../../lib/entitlements';
 import { data } from '../../../lib/i18n';
+import { authRequired } from '../../../lib/supabase';
 
 /**
  * ASSINAR — o pedaço que faltava da tela de Planos (E3).

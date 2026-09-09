@@ -10,9 +10,10 @@
  *      (o cadeado vale para TROCAR para algo ainda não conquistado, nunca para expulsar).
  */
 
-import { CATALOGO_DA_LOJA, estadoPorAlvo } from './loja';
-import { liberadoTudo } from './liberacaoDev';
 import type { TipoDesbloqueavel } from '@core';
+
+import { liberadoTudo } from './liberacaoDev';
+import { CATALOGO_DA_LOJA, estadoPorAlvo } from './loja';
 
 // O tipo mudou para `core/loja.ts` (o catálogo é quem o consome); a REGRA de nível continua aqui.
 export type { TipoDesbloqueavel };
@@ -36,7 +37,7 @@ export type { TipoDesbloqueavel };
    
    `nivelNecessario` foi para onde o dado dela está (o catálogo); a liberação foi para um módulo
    que não importa nada. Os dois lados passam a depender dele, e ele não depende de ninguém. */
-export { liberadoTudo, ativarLiberacaoTotal } from './liberacaoDev';
+export { ativarLiberacaoTotal,liberadoTudo } from './liberacaoDev';
 export { nivelNecessario } from './loja';
 
 /**

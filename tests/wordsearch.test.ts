@@ -1,6 +1,7 @@
-import { describe, it, expect } from 'vitest';
-import { buildGrid, matchSelection, cellsBetween, normalizarPalavra, entraNaGrade } from '../src/core/minigames/wordsearch';
+import { describe, expect,it } from 'vitest';
+
 import type { MinigameItem } from '../src/core/minigames/types';
+import { buildGrid, cellsBetween, entraNaGrade,matchSelection, normalizarPalavra } from '../src/core/minigames/wordsearch';
 
 const item = (answer: string, prompt = 'pista'): MinigameItem => ({ answer, prompt, lang: 'en' });
 const PALAVRAS = ['house', 'water', 'green', 'book', 'phone'];

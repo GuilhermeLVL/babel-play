@@ -1,11 +1,12 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { X, Play, Turtle, CornerDownLeft, Lightbulb, SkipForward, Sparkles, Flame } from 'lucide-react';
-import type { ItemOutcome, RoundReport, RodadaDitado } from '@core';
+import type { ItemOutcome, RodadaDitado,RoundReport } from '@core';
 import { conferirDitado, scoreRound } from '@core';
-import type { AgeProfileType } from '../../lib/profile';
-import { comemorar, pontosDoElemento, multiplicador } from '../../lib/juice';
+import { CornerDownLeft, Flame,Lightbulb, Play, SkipForward, Sparkles, Turtle, X } from 'lucide-react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+
 import { criarFalante } from '../../lib/falante';
-import { playJuicedHit, playJuicedError, playJuicedVictory, triggerHaptic } from '../../lib/gameFeel';
+import { playJuicedError, playJuicedHit, playJuicedVictory, triggerHaptic } from '../../lib/gameFeel';
+import { comemorar, multiplicador,pontosDoElemento } from '../../lib/juice';
+import type { AgeProfileType } from '../../lib/profile';
 
 /**
  * DITADO — ouvir e escrever o que foi dito.

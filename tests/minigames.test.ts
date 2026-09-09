@@ -1,8 +1,9 @@
-import { describe, it, expect } from 'vitest';
-import { buildItems, canPlay, promptFor, distractorsFor, shortPrompt } from '../src/core/minigames/itemSource';
-import { gradeFor, scoreRound, xpFromRound, summarize, LIMITE_RESPOSTA_RAPIDA_MS } from '../src/core/minigames/grade';
-import { MINIGAMES } from '../src/core/minigames/types';
+import { describe, expect,it } from 'vitest';
+
+import { gradeFor, LIMITE_RESPOSTA_RAPIDA_MS,scoreRound, summarize, xpFromRound } from '../src/core/minigames/grade';
+import { buildItems, canPlay, distractorsFor, promptFor, shortPrompt } from '../src/core/minigames/itemSource';
 import type { ItemOutcome } from '../src/core/minigames/types';
+import { MINIGAMES } from '../src/core/minigames/types';
 import type { VocabCard } from '../src/types';
 
 const AGORA = Date.parse('2026-07-28T12:00:00.000Z');

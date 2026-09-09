@@ -5,13 +5,15 @@
  * (zstd por arquivo na variante Latest + teto de tamanho) e `indiceInversoDeMidia`. As fixtures
  * seguem o padrão de `tests/ankiMidia.test.ts` e `tests/integration/anki-bomba.test.ts`.
  */
-import { describe, it, expect } from 'vitest'
 import { zstdCompressSync } from 'node:zlib'
+
 import JSZip from 'jszip'
+import { describe, expect,it } from 'vitest'
+
 import {
-  lerMapaDeMidia,
   extrairArquivoDeMidia,
   indiceInversoDeMidia,
+  lerMapaDeMidia,
   TETO_DE_MIDIA_POR_ARQUIVO,
 } from '../server/import/anki'
 

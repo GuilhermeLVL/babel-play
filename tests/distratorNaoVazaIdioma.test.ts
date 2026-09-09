@@ -1,4 +1,5 @@
-import { describe, it, expect } from 'vitest';
+import { describe, expect,it } from 'vitest';
+
 import { distractorsFor } from '../src/core/minigames/itemSource';
 import type { MinigameItem } from '../src/core/minigames/types';
 

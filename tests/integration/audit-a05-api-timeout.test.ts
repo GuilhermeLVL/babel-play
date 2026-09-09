@@ -5,7 +5,8 @@
  * Correção: wrapper `apiFetch` injeta `AbortSignal.timeout` em todo request (rotas de import/upload
  * com teto folgado). Este teste prova, pelas funções públicas, que os requests carregam um signal.
  */
-import { describe, it, expect, vi, afterEach } from 'vitest'
+import { afterEach,describe, expect, it, vi } from 'vitest'
+
 import { fetchSessions, importYoutube } from '../../src/data/api'
 
 let captured: { signal: unknown } | null

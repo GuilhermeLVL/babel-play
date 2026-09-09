@@ -11,9 +11,10 @@
  * O que este teste trava, sem subir servidor: a CONFIGURAÇÃO. É o que estava errado — não a
  * implementação do `express-rate-limit`, que é de terceiros e já é exercitada pelas rotas caras.
  */
-import { describe, it, expect } from 'vitest'
 import { readFileSync } from 'node:fs'
 import path from 'node:path'
+
+import { describe, expect,it } from 'vitest'
 
 const servidor = readFileSync(path.resolve(import.meta.dirname, '..', '..', 'server', 'http', 'app.ts'), 'utf8')
 

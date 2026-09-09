@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
+
 import {
-  REGRAS, minutosPremiados, marcosDeSequencia, sequencias, diaLocal, TETO_CAPTURA_MIN_POR_DIA,
+diaLocal, marcosDeSequencia, minutosPremiados,   REGRAS, sequencias, TETO_CAPTURA_MIN_POR_DIA,
 } from '../src/core/learning/economia'
 import { PESOS_SEEDS, PESOS_XP, seedsGanhasDeEventos, xpDeEventos } from '../src/core/learning/xp'
 import { CATALOGO_DA_LOJA } from '../src/lib/loja'

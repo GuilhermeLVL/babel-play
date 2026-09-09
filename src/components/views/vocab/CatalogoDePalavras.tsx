@@ -12,8 +12,9 @@
  * Reusa os primitivos existentes: `.card-panel`, `.badge-tag`, `.field-input`, `.kpi-pill`,
  * `.custom-scrollbar`, `.label-mono` (src/index.css). Ícones `lucide-react`. Sem emoji.
  */
+import { AlertTriangle, ArrowUpDown,Inbox, Loader2, RotateCw, Search } from 'lucide-react'
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { Search, Loader2, AlertTriangle, RotateCw, Inbox, ArrowUpDown } from 'lucide-react'
+
 import { apiFetch } from '../../../data/api'
 import NotaDeContagem from './NotaDeContagem'
 

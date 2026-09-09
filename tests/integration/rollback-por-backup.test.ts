@@ -9,12 +9,13 @@
  * e `--sem-midia`. Aqui ele roda num processo filho apontado para uma copia da fixture
  * `tests/fixtures/banco-estado-atual.db`, fora do repositorio.
  */
-import { describe, it, expect, beforeAll, afterAll } from 'vitest'
 import { spawnSync } from 'node:child_process'
 import { copyFileSync, existsSync, mkdtempSync, readdirSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
-import { createClient, type Client } from '@libsql/client'
+
+import { type Client,createClient } from '@libsql/client'
+import { afterAll,beforeAll, describe, expect, it } from 'vitest'
 
 const RAIZ = process.cwd()
 const FIXTURE = path.resolve(RAIZ, 'tests', 'fixtures', 'banco-estado-atual.db')

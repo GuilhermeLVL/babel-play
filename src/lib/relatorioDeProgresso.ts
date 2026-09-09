@@ -1,4 +1,5 @@
 import type { AppMetrics } from '@core';
+
 import type { VocabCard } from '../types';
 // `as dataDaUI` porque este arquivo ja tem uma variavel local `data`.
 import { data as dataDaUI, numero, t, tp } from './i18n';

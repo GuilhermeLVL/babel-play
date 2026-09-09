@@ -13,6 +13,7 @@
  * Vive num repository porque rota não fala com o banco (regra `rota-fala-com-o-banco`).
  */
 import { count, gte, sql } from 'drizzle-orm'
+
 import { db } from '../db'
 import { sessions, users, utterances, vocabCards } from '../schema'
 

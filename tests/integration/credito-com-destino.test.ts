@@ -9,11 +9,12 @@
  *
  * A régua do gasto é a mesma das Seeds, e com mais razão: esta moeda custou dinheiro.
  */
-import { describe, it, expect, beforeAll, afterAll } from 'vitest'
-import { setupEphemeralDb, type EphemeralDb } from '../harness/ephemeralDb'
+import { afterAll,beforeAll, describe, expect, it } from 'vitest'
+
 import { asUserId } from '../../server/lib/authContext'
 import { CATALOGO_DA_LOJA } from '../../src/core/loja'
 import { totalPremiumEmCreditos } from '../../src/core/passe'
+import { type EphemeralDb,setupEphemeralDb } from '../harness/ephemeralDb'
 
 let h: EphemeralDb
 let billingRouter: any

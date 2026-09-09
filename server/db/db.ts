@@ -4,10 +4,13 @@
  * o schema e os repositories não mudam.
  */
 import 'dotenv/config'
+
 import { mkdirSync } from 'node:fs'
 import { dirname } from 'node:path'
-import { drizzle } from 'drizzle-orm/libsql'
+
 import { createClient } from '@libsql/client'
+import { drizzle } from 'drizzle-orm/libsql'
+
 import * as schema from './schema'
 
 const url = process.env.DATABASE_URL ?? 'file:./data/babel.db'

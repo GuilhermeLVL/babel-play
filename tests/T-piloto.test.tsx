@@ -1,8 +1,9 @@
 // @vitest-environment jsdom
-import { describe, expect, it, beforeEach } from 'vitest';
-import { render, cleanup } from '@testing-library/react';
+import { cleanup,render } from '@testing-library/react';
+import { beforeEach,describe, expect, it } from 'vitest';
+
+import { registrarCatalogo, tp, usarIdioma } from '../src/lib/i18n';
 import { T } from '../src/lib/T';
-import { tp, registrarCatalogo, usarIdioma } from '../src/lib/i18n';
 
 /**
  * O piloto real (`ModalDeMigracao`): texto rico + interpolação + DOIS plurais na mesma frase.

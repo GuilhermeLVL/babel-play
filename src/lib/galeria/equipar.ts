@@ -8,12 +8,12 @@
  * Retorna `false` quando o item não é equipável (galeria/aprimoramento são CAPACIDADES, não
  * peças; o Estúdio abre em vez de equipar) ou quando está trancado.
  */
-import { estadoDoItem, type ItemDaLoja } from '../loja'
-import { setParticulas, setPack, type ParticulasType } from '../particulas'
-import { setCursor } from '../cursores'
-import { setRastro } from '../rastroDoMouse'
-import type { ThemeType, FonteType } from '../appearance'
 import type { MenuPositionType } from '../../components/shell/navItems'
+import type { FonteType,ThemeType } from '../appearance'
+import { setCursor } from '../cursores'
+import { estadoDoItem, type ItemDaLoja } from '../loja'
+import { type ParticulasType,setPack, setParticulas } from '../particulas'
+import { setRastro } from '../rastroDoMouse'
 
 export interface ContextoDeEquipar {
   setTheme: (t: ThemeType) => void

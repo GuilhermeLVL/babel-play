@@ -11,6 +11,7 @@
  * não preenchidos com invenção.
  */
 import { NonRealTimeVAD } from '@ricky0123/vad-web'
+
 import { WhisperLocalStt } from './adapters/whisperLocal'
 
 export interface OfflineSegment {

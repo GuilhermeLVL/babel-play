@@ -1,5 +1,5 @@
-import { MINIGAMES, type MinigameId } from './types';
 import { chaveComparavel } from '../learning/quality';
+import { type MinigameId,MINIGAMES } from './types';
 
 /**
  * O QUE A PRÉVIA PODE MOSTRAR — a regra anti-spoiler, declarada em vez de improvisada.

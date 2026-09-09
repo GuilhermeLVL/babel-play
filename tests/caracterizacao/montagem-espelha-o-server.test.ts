@@ -10,8 +10,10 @@
  * compara com `ROUTERS_PRIVADOS`. Um router novo no servidor sem entrada na lista falha aqui, e
  * não numa suíte que passa por não testar o que não conhece.
  */
-import { describe, it, expect } from 'vitest'
 import { readFileSync } from 'node:fs'
+
+import { describe, expect,it } from 'vitest'
+
 import { ROUTERS_PRIVADOS } from './_app'
 
 describe('montagem do app x routers declarados na caracterizacao', () => {

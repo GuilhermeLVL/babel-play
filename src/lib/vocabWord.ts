@@ -32,9 +32,9 @@
  * que a origem foi o rótulo (`langSource: 'declared'`) para a auditoria poder revisitar depois.
  */
 import type { VocabWord } from '../types';
-import { baseLang, mtCoverage, langLabel } from './languages';
-import { resolveSpokenLang } from './spokenLang';
 import type { LangConfig } from './langConfig';
+import { baseLang, langLabel,mtCoverage } from './languages';
+import { resolveSpokenLang } from './spokenLang';
 
 /** De onde saiu o idioma que gravamos. Torna o rótulo AUDITÁVEL (ver a auditoria de idioma). */
 export type LangSource = 'detected' | 'declared' | 'config' | 'unknown';

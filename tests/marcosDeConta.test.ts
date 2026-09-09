@@ -9,9 +9,10 @@
  * A regra nova é a do padrão de 2026: pedir a conta no momento em que a pessoa TEM ALGO A PERDER,
  * uma vez por marco, dispensável, e sem bloquear nada.
  */
-import { describe, it, expect, beforeEach } from 'vitest'
-import { avisoPendente, marcarVisto, jaViu } from '../src/lib/marcosDeConta'
+import { beforeEach,describe, expect, it } from 'vitest'
+
 import { TETO_ANONIMO } from '../src/core/tetoAnonimo'
+import { avisoPendente, jaViu,marcarVisto } from '../src/lib/marcosDeConta'
 
 beforeEach(() => { localStorage.removeItem('babel.marcos_vistos') })
 

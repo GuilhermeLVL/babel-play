@@ -10,7 +10,8 @@
  * Quanto mais lento o tradutor, mais provável a inversão. Ou seja: falha exatamente quando o
  * usuário mais depende da legenda.
  */
-import { describe, it, expect } from 'vitest'
+import { describe, expect,it } from 'vitest'
+
 import { OrdemDasTraducoes } from '../src/lib/ordemDaTraducao'
 
 describe('ordem das traduções', () => {

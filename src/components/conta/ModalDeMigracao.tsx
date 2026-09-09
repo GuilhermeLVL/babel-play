@@ -2,11 +2,12 @@
  * O MODAL DA MIGRAÇÃO — visível, não silencioso: diz o que vai subir, pede confirmação, mostra o
  * progresso e o resultado (inclusive o que NÃO subiu e por quê).
  */
-import { useEffect, useState } from 'react';
 import { CloudUpload, X } from 'lucide-react';
-import { inventarioLocal, migrarParaConta, type InventarioLocal, type ProgressoDaMigracao, type RelatorioDeMigracao } from '../../data/migracao';
-import { T } from '../../lib/T';
+import { useEffect, useState } from 'react';
+
+import { type InventarioLocal, inventarioLocal, migrarParaConta, type ProgressoDaMigracao, type RelatorioDeMigracao } from '../../data/migracao';
 import { t, tp } from '../../lib/i18n';
+import { T } from '../../lib/T';
 
 interface ModalDeMigracaoProps {
   aberto: boolean;

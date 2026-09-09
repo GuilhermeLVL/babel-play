@@ -1,5 +1,5 @@
-import type { MinigameItem } from './types';
 import { comBaseLatina } from '../texto/palavra';
+import type { MinigameItem } from './types';
 
 /**
  * CAÇA-PALAVRAS — a grade e onde cada palavra ficou.

@@ -1,12 +1,13 @@
-import { menorPrecoDeAssinatura } from '../../core/planos';
+import { CreditCard,LogIn, LogOut, Settings as SettingsIcon, User } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { User, Settings as SettingsIcon, LogOut, LogIn, CreditCard } from 'lucide-react';
-import { planoAnunciavel } from '../CardDePlanos';
-import { usePerfil } from '../../lib/usePerfil';
-import { authRequired } from '../../lib/supabase';
-import { aoMudarIdentidade, estaAnonimo } from '../../lib/identidade';
+
+import { menorPrecoDeAssinatura } from '../../core/planos';
 import * as auth from '../../lib/auth';
+import { aoMudarIdentidade, estaAnonimo } from '../../lib/identidade';
+import { authRequired } from '../../lib/supabase';
+import { usePerfil } from '../../lib/usePerfil';
+import { planoAnunciavel } from '../CardDePlanos';
 
 /**
  * O MENU DA CONTA — quem eu sou, e como eu saio.

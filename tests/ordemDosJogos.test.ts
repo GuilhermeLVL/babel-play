@@ -1,5 +1,6 @@
-import { describe, it, expect } from 'vitest';
-import { aplicarOrdem, mover, alternarFixado, ORDEM_VAZIA, type OrdemDosJogos } from '../src/lib/ordemDosJogos';
+import { describe, expect,it } from 'vitest';
+
+import { alternarFixado, aplicarOrdem, mover, ORDEM_VAZIA, type OrdemDosJogos } from '../src/lib/ordemDosJogos';
 
 /**
  * A ordem da grade de jogos é o tipo de lógica em que o engano NÃO APARECE: a tela continua

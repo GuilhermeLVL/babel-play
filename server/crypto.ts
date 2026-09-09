@@ -13,6 +13,7 @@
 import { createCipheriv, createDecipheriv, randomBytes, scryptSync } from 'node:crypto'
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
+
 import { diretorioGravavel } from './lib/diretorios'
 
 /**

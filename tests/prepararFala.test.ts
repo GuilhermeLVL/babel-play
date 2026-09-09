@@ -1,6 +1,7 @@
-import { describe, it, expect } from 'vitest'
-import { prepararFala, limparVicios, normalizarContracoes, parafrasearExpressoes, traducaoDeFraseInteira, chaveNormalizada } from '../src/lib/traducao/prepararFala'
-import { PARAFRASES, FRASES_INTEIRAS } from '../src/lib/traducao/expressoes'
+import { describe, expect,it } from 'vitest'
+
+import { FRASES_INTEIRAS,PARAFRASES } from '../src/lib/traducao/expressoes'
+import { chaveNormalizada,limparVicios, normalizarContracoes, parafrasearExpressoes, prepararFala, traducaoDeFraseInteira } from '../src/lib/traducao/prepararFala'
 
 describe('prepararFala — a fala do mic em português vira português claro antes de traduzir', () => {
   it('remove hesitações isoladas e a gagueira, sem tocar em palavra de conteúdo', () => {

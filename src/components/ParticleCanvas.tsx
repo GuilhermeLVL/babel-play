@@ -1,9 +1,10 @@
-import { ajusteDeBurst } from '../lib/aprimoramentos';
-import { emojisDoPack } from '../lib/particulas';
-import { corDoCromaEquipado } from '../lib/galeria/cromas';
 import React, { useEffect, useRef } from 'react';
+
 import type { ThemeType } from '../lib/appearance';
-import { resolveParticleStyle, BURST_SPECS, onBurst, type BurstKind, type BurstSpec } from '../lib/effects';
+import { ajusteDeBurst } from '../lib/aprimoramentos';
+import { BURST_SPECS, type BurstKind, type BurstSpec,onBurst, resolveParticleStyle } from '../lib/effects';
+import { corDoCromaEquipado } from '../lib/galeria/cromas';
+import { emojisDoPack } from '../lib/particulas';
 
 interface ParticleCanvasProps {
   /** Interruptor do usuário (Animações e efeitos). */

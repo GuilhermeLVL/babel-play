@@ -3,9 +3,12 @@
  * Uso: `npm run db:migrate` (gere antes com `npm run db:generate`).
  */
 import 'dotenv/config'
+
 import { mkdirSync } from 'node:fs'
 import { dirname } from 'node:path'
+
 import { migrate } from 'drizzle-orm/libsql/migrator'
+
 import { client, db } from './db'
 
 const url = process.env.DATABASE_URL ?? 'file:./data/babel.db'

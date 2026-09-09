@@ -1,13 +1,14 @@
 /** Rotas de vocabulário/SRS (montadas em `/api/vocab`). */
 import { Router } from 'express'
-import { vocabRepo } from '../db/repositories/vocab'
+
 import type { Grade } from '../../src/core/learning/scheduler'
-import {
-  bulkAddCardsSchema, parseOr400, reviewGradeSchema, relabelVocabSchema,
-  idParamSchema, vocabParaJogoQuerySchema, vocabPaginaQuerySchema, patchVocabSchema,
-} from '../validation'
+import { vocabRepo } from '../db/repositories/vocab'
 import { erroDeRota } from '../lib/erroDeRota'
 import { log } from '../lib/logger'
+import {
+  bulkAddCardsSchema,   idParamSchema, parseOr400, patchVocabSchema,
+relabelVocabSchema,
+reviewGradeSchema, vocabPaginaQuerySchema, vocabParaJogoQuerySchema, } from '../validation'
 
 export const vocabRouter = Router()
 

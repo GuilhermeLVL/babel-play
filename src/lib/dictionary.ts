@@ -1,6 +1,6 @@
+import { dobrarTexto } from '../core/texto/palavra';
 import { idiomaDaInterface } from './i18n';
 import { baseLang } from './languages';
-import { dobrarTexto } from '../core/texto/palavra';
 
 /**
  * DICIONÁRIO REAL — cliente do Wiktionary (Wikimedia), multi-wiki.

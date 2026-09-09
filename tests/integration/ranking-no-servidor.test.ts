@@ -13,8 +13,9 @@
  * O cliente NÃO mudou uma linha: `src/lib/ranking.ts` chama os mesmos `/api/rank/<jogo>` de antes.
  * Era o servidor do outro lado que não existia.
  */
-import { describe, it, expect, beforeAll, afterAll } from 'vitest'
-import { setupEphemeralDb, type EphemeralDb } from '../harness/ephemeralDb'
+import { afterAll,beforeAll, describe, expect, it } from 'vitest'
+
+import { type EphemeralDb,setupEphemeralDb } from '../harness/ephemeralDb'
 
 let h: EphemeralDb
 let rankRouter: any

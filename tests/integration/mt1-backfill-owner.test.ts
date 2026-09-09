@@ -8,9 +8,10 @@
  * podiam ser carimbadas. Ela foi removida na migração 0026 (órfã, zero linhas, zero operações), e
  * com ela a exceção: hoje toda tabela desta varredura tem dono.
  */
-import { describe, it, expect, beforeAll, afterAll } from 'vitest'
-import { setupEphemeralDb, type EphemeralDb } from '../harness/ephemeralDb'
+import { afterAll,beforeAll, describe, expect, it } from 'vitest'
+
 import { asUserId } from '../../server/lib/authContext'
+import { type EphemeralDb,setupEphemeralDb } from '../harness/ephemeralDb'
 
 let h: EphemeralDb
 let backfillNullOwner: (id: ReturnType<typeof asUserId>) => Promise<number>

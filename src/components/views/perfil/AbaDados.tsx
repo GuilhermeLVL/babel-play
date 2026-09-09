@@ -1,6 +1,7 @@
-import { useState } from 'react';
 import { AlertTriangle, Download, Loader2, Trash2 } from 'lucide-react';
-import { exportarConta, excluirConta, type ResultadoDaExclusao } from '../../../data/api';
+import { useState } from 'react';
+
+import { excluirConta, exportarConta, type ResultadoDaExclusao } from '../../../data/api';
 
 /**
  * SEUS DADOS — portabilidade e exclusão (LGPD art. 18, incisos V e VI).

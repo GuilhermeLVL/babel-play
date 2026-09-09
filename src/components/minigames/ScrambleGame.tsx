@@ -1,13 +1,14 @@
+import type { ItemOutcome, RodadaFrase,RoundReport } from '@core';
+import { acertosPosicionais, checkOrder, scoreRound } from '@core';
+import { Check, Flame, Lightbulb, RotateCcw, Sparkles,Volume2, X } from 'lucide-react';
 import React, { useEffect, useRef, useState } from 'react';
-import { X, RotateCcw, Check, Lightbulb, Flame, Volume2, Sparkles } from 'lucide-react';
-import type { ItemOutcome, RoundReport, RodadaFrase } from '@core';
-import { checkOrder, acertosPosicionais, scoreRound } from '@core';
-import type { AgeProfileType } from '../../lib/profile';
-import { pontosDoElemento, multiplicador } from '../../lib/juice';
-import { playJuicedHit, playJuicedError, playJuicedVictory, triggerHaptic } from '../../lib/gameFeel';
-import { speak } from '../../lib/tts';
+
 import { emitBurst } from '../../lib/effects';
+import { playJuicedError, playJuicedHit, playJuicedVictory, triggerHaptic } from '../../lib/gameFeel';
+import { multiplicador,pontosDoElemento } from '../../lib/juice';
+import type { AgeProfileType } from '../../lib/profile';
 import { play } from '../../lib/soundFx';
+import { speak } from '../../lib/tts';
 
 /**
  * FRASE EMBARALHADA — reordenar as palavras de uma frase real da sua sessão.

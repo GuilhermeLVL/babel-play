@@ -21,7 +21,8 @@
  * normalização. Assim, um tema novo adicionado só num dos dois lugares falha aqui em vez de
  * virar outro silêncio destes.
  */
-import { describe, it, expect } from 'vitest'
+import { describe, expect,it } from 'vitest'
+
 import { THEME_OPTIONS } from '../src/lib/appearance'
 import { coerceTheme, DEFAULT_THEME } from '../src/lib/theme'
 

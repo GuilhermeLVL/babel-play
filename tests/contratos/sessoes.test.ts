@@ -16,11 +16,13 @@
  * lado por natureza. O que precisa ser igual é o contrato.
  */
 import 'fake-indexeddb/auto'
-import { describe, it, expect, beforeAll, afterAll } from 'vitest'
-import { setupEphemeralDb, type EphemeralDb } from '../harness/ephemeralDb'
+
+import { afterAll,beforeAll, describe, expect, it } from 'vitest'
+
+import { asUserId } from '../../server/lib/authContext'
 import { servidorEfemero } from '../../src/data/efemero/servidor'
 import { fecharStore } from '../../src/data/efemero/store'
-import { asUserId } from '../../server/lib/authContext'
+import { type EphemeralDb,setupEphemeralDb } from '../harness/ephemeralDb'
 
 let h: EphemeralDb
 let sessionsRouter: any

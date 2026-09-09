@@ -8,9 +8,11 @@
  * O braço LLM (Groq) fica em docs/auditoria/eval/run-corretor-llm.mjs (on-demand, custa cota).
  * Baseline e thresholds: docs/auditoria/eval-baseline-v1.md.
  */
-import { describe, it, expect } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
+
+import { describe, expect,it } from 'vitest'
+
 import { similarityPercentage } from '../../src/lib/exercicios/diff'
 
 const THRESHOLD = 0.8 // handleVerifyLocal: isPass = score >= 0.8 (activeProduction.tsx:105)

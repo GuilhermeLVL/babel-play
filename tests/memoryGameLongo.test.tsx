@@ -11,9 +11,10 @@
  * MECANISMO: a classe de `line-clamp` está presente, a fonte desce um passo quando o texto passa
  * de ~80 caracteres, e o `title` carrega a string inteira (o clamp é só visual).
  */
-import { describe, it, expect, afterEach } from 'vitest';
-import { render, screen, cleanup, fireEvent } from '@testing-library/react';
+import { cleanup, fireEvent,render, screen } from '@testing-library/react';
 import React from 'react';
+import { afterEach,describe, expect, it } from 'vitest';
+
 import type { MinigameItem, RoundReport } from '../src/core/minigames/types';
 
 const { default: MemoryGame } = await import('../src/components/minigames/MemoryGame');

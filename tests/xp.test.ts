@@ -10,13 +10,14 @@
  * sobre a fórmula (`xpDeEventos` é a única definição, usada pelos dois lados) e foi conferida
  * também contra o banco real — 60.474 dos dois lados.
  */
-import { describe, it, expect } from 'vitest'
-import {
-  PESOS_XP, PESOS_SEEDS, xpDeEventos, seedsGanhasDeEventos,
-  levelFloor, nivelDoXp, posicaoNoNivel, NIVEL_MAXIMO,
-} from '../src/core/learning/xp'
-import { deriveProgress, EMPTY_PROGRESS } from '../src/lib/progress'
+import { describe, expect,it } from 'vitest'
+
 import type { AppMetrics } from '../src/core/learning/contract'
+import {
+  levelFloor, NIVEL_MAXIMO,
+nivelDoXp, PESOS_SEEDS,   PESOS_XP, posicaoNoNivel, seedsGanhasDeEventos,
+xpDeEventos, } from '../src/core/learning/xp'
+import { deriveProgress, EMPTY_PROGRESS } from '../src/lib/progress'
 
 /** Métricas mínimas, com os campos que a fórmula usa. */
 function metricas(p: Partial<AppMetrics> = {}): AppMetrics {

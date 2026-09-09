@@ -11,11 +11,12 @@
  * `valorDoDrop` recusa. A ancoragem na rodada e a idempotência de ponta a ponta ficam em
  * `tests/integration/drop-idempotente.test.ts`, que precisa de banco.
  */
-import { describe, it, expect } from 'vitest'
+import { describe, expect,it } from 'vitest'
+
 import {
-  SEEDS_DO_DROP, PESOS_DO_DROP, roundIdDoDrop, itensSorteaveisNoDrop, sortearItemDoDrop,
-  valorDoDrop, valorDoCredito, ehRecusa,
-} from '../src/core/economiaAutoridade'
+ehRecusa,
+itensSorteaveisNoDrop, PESOS_DO_DROP, roundIdDoDrop,   SEEDS_DO_DROP, sortearItemDoDrop,
+valorDoCredito,   valorDoDrop, } from '../src/core/economiaAutoridade'
 import { CATALOGO_DA_LOJA } from '../src/core/loja'
 
 const TODOS = itensSorteaveisNoDrop(new Set())

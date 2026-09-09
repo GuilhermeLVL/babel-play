@@ -11,9 +11,10 @@
  * porque os testes dela ficam verdes e dão a impressão contrária. Este arquivo testa a ROTA, não
  * a função: é a rota que a auditoria encontrou vazia.
  */
-import { describe, it, expect, beforeAll, afterAll } from 'vitest'
-import { setupEphemeralDb, type EphemeralDb } from '../harness/ephemeralDb'
+import { afterAll,beforeAll, describe, expect, it } from 'vitest'
+
 import { asUserId } from '../../server/lib/authContext'
+import { type EphemeralDb,setupEphemeralDb } from '../harness/ephemeralDb'
 
 let h: EphemeralDb
 let exercisesRouter: any

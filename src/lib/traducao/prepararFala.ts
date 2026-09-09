@@ -13,7 +13,7 @@
  * A lista de hesitações é a mesma da Análise (`core/learning/fillers.ts`, medida por idioma) mais
  * "aham/uhum": uma verdade só sobre o que é vício.
  */
-import { PARAFRASES, FRASES_INTEIRAS } from './expressoes'
+import { FRASES_INTEIRAS,PARAFRASES } from './expressoes'
 
 /**
  * OS IDIOMAS COM PREPARACAO — hoje um so, e a lista existe para dizer isso em voz alta.

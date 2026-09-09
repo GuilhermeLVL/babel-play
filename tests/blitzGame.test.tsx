@@ -15,9 +15,10 @@
  * O que estes testes travam é o CONTRATO do relatório: um item respondido produz exatamente um
  * `ItemOutcome`, e nada entra depois do fim da rodada.
  */
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { render, screen, cleanup, fireEvent, act } from '@testing-library/react'
+import { act,cleanup, fireEvent, render, screen } from '@testing-library/react'
 import React from 'react'
+import { afterEach,beforeEach, describe, expect, it, vi } from 'vitest'
+
 import type { MinigameItem, RoundReport } from '../src/core/minigames/types'
 
 /*

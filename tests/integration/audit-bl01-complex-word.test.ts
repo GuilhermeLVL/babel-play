@@ -3,8 +3,8 @@
  * 4 palavras inglesas. Substituído por heurística real: palavra longa (≥13) ou polissilábica (≥4
  * sílabas). (src/core/learning/text-stats.ts sentenceHasComplexWord)
  */
-import { describe, it, expect } from 'vitest'
 import { sentenceHasComplexWord } from '@core'
+import { describe, expect,it } from 'vitest'
 
 describe('BL-01 — heurística de frase complexa', () => {
   it('detecta palavra longa/polissilábica (heurística real, não a lista de 4 palavras)', () => {

@@ -1,8 +1,10 @@
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
+
 import { describe, expect, it } from 'vitest';
-import { ehGramatical, chaveComparavel } from '../src/core/learning/quality';
-import { temConectores, buildRodadasConectores, type FalaComAudio } from '../src/core/minigames/escuta';
+
+import { chaveComparavel,ehGramatical } from '../src/core/learning/quality';
+import { buildRodadasConectores, type FalaComAudio,temConectores } from '../src/core/minigames/escuta';
 
 /**
  * AS DUAS TABELAS POR IDIOMA — o que elas prometem e o que elas não podem custar.

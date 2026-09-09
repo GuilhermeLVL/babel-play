@@ -1,7 +1,8 @@
 /** SaaS — no teto de fair-use, o proxy STT gerenciado responde 402 quota_exceeded ANTES de chamar upstream. */
-import { describe, it, expect, beforeAll, afterAll, afterEach, vi } from 'vitest'
-import { setupEphemeralDb, type EphemeralDb } from '../harness/ephemeralDb'
+import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
+
 import { asUserId } from '../../server/lib/authContext'
+import { type EphemeralDb,setupEphemeralDb } from '../harness/ephemeralDb'
 
 let h: EphemeralDb
 let stt: any

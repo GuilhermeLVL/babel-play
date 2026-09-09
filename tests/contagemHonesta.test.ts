@@ -13,9 +13,10 @@
  * exibir um artefato de paginação como se fosse um fato sobre o acervo é o defeito mais grave
  * possível — corrói justamente o diferencial.
  */
-import { describe, it, expect } from 'vitest'
-import { composicaoLocal, contagemDaFonte, type CartaoParaCompor, type PedidoDeComposicao } from '../src/core/minigames/composicao'
-import { triarCartoes, pistasDaTriagem } from '../src/core/learning/quality'
+import { describe, expect,it } from 'vitest'
+
+import { pistasDaTriagem,triarCartoes } from '../src/core/learning/quality'
+import { type CartaoParaCompor, composicaoLocal, contagemDaFonte, type PedidoDeComposicao } from '../src/core/minigames/composicao'
 import { estadoDoJogo } from '../src/core/minigames/estadoDosJogos'
 import type { VocabCard } from '../src/types'
 

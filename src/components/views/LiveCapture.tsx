@@ -1,104 +1,103 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { createPortal } from 'react-dom';
-import { PerfilAdaptativoDeIdioma, destinoDaTraducao } from '../../lib/perfilDeIdioma';
-import { OrdemDasTraducoes } from '../../lib/ordemDaTraducao';
-import { cenarioDasFontes } from '../../lib/cenarioDeCaptura';
-import BuscaDeCapa from '../BuscaDeCapa';
-import { buildGateway } from '../../gateway';
-import { probeSystemAudio, probeLoopback, probeServerLoopback, serverLoopbackSupported, type AudioCapture, type SystemAudioProbe } from '../../gateway/capture/systemAudio';
-import { capMetrics } from '../../gateway/capture/captureMetrics';
-import type { SttSession } from '../../gateway/capabilities';
-import { mtCoverage, langLabel, baseLang, toBcp47 } from '../../lib/languages';
-// Cenário conversa sem fone: a caixa de som entra pelo mic — detecta e descarta.
-import { type Intervalo } from '../../lib/vazamento';
-// Configuração de idioma: fonte ÚNICA (`mine` = o que VOCÊ fala no mic; `studying` = o que você
-// ESTUDA, o áudio estrangeiro). Antes os defaults nasciam aqui, em `useState`.
-import { fetchLangConfig, saveLangConfig, onLangConfigChange, DEFAULT_LANG_CONFIG, type LangConfig } from '../../lib/langConfig';
-// Produtor ÚNICO de palavra/cartão: o idioma vem da FRASE de onde a palavra saiu e a direção da
-// tradução é decidida pelo idioma DA PALAVRA (não pelo par da sessão).
-import { speak as ttsSpeak } from '../../lib/tts';
-import { listDevices, onDeviceChange, supportsSinkId, filterLoopbackDevices, type AudioDevice } from '../../lib/audioDevices';
-import { getActiveProfile, getProviderMode } from '../../gateway/activeProfile';
-import { getSttQuality, setSttQualityMirror, type SttQuality } from '../../gateway/sttRouter';
 import {
-  fetchSessionTranscript,
-  searchImages, fetchSettings, patchUiSettings, type ImageResult,
-} from '../../data/api';
-import ModelPrepPanel, { type ModelPrepState } from '../ModelPrepPanel';
-import {
+  Activity, 
+  AlertCircle, 
+  ArrowDown,
+  ArrowRight, 
+  Check, 
+  ChevronDown,
+  Cpu, 
+  Edit2,
+  Eye,
+  Gamepad2,
+  Headphones,
+  Image as ImageIcon,
+  Layout, 
+  LayoutGrid,
+  Loader2,
+  Maximize2,
   Mic,
   MicOff,
-  Headphones,
-  ArrowDown,
-  StopCircle, 
-  Settings2, 
-  Cpu, 
-  AlertCircle, 
-  RefreshCw, 
-  Activity, 
-  Layout, 
-  Check, 
-  Plus, 
-  ArrowRight, 
-  Monitor, 
-  Sliders,
-  Edit2,
-  Users,
-  Gamepad2,
-  Eye,
-  Maximize2,
   Minimize2,
-  X,
-  Loader2,
+  Monitor, 
+  Plus, 
+  RefreshCw, 
+  Settings2, 
+  Sliders,
   Sparkles,
-  ChevronDown,
-  Image as ImageIcon,
-  LayoutGrid
-} from 'lucide-react';
-import Overlay, { OverlayCaption } from '../Overlay';
-// Subcomponentes locais da captura (um arquivo por componente, em `views/captura/`).
-import TranscriptVisualSettings from './captura/TranscriptVisualSettings';
-import SetaDoPar from './captura/SetaDoPar';
-import LangSelect from './captura/LangSelect';
-import { usePosicaoFlutuante } from '../../lib/posicaoFlutuante';
-// Bandeira SVG do idioma (nunca emoji: o Windows renderiza 🇧🇷 como "BR") + o rótulo curto.
-import { LangFlag } from '../LangFlag';
+  StopCircle, 
+  Users,
+  X} from 'lucide-react';
+import React, { useEffect, useMemo,useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
+
+import {
+  fetchSessionTranscript,
+fetchSettings, type ImageResult,
+patchUiSettings,   searchImages, } from '../../data/api';
+import { buildGateway } from '../../gateway';
+import { getActiveProfile, getProviderMode } from '../../gateway/activeProfile';
+import type { SttSession } from '../../gateway/capabilities';
+import { capMetrics } from '../../gateway/capture/captureMetrics';
+import { type AudioCapture, probeLoopback, probeServerLoopback, probeSystemAudio, serverLoopbackSupported, type SystemAudioProbe } from '../../gateway/capture/systemAudio';
+import { getSttQuality, setSttQualityMirror, type SttQuality } from '../../gateway/sttRouter';
+import { type AudioDevice,filterLoopbackDevices, listDevices, onDeviceChange, supportsSinkId } from '../../lib/audioDevices';
+// Fontes de áudio: som do sistema/aba, microfone (Whisper ou Web Speech) e o mudo/ativo do mic.
+import { criarFontesDeAudio } from '../../lib/captura/fontesDeAudio';
+// Vocabulário dentro da captura: examinar a palavra, fichar no deck, mandar praticar.
+import { criarPalavraDaFala } from '../../lib/captura/palavraDaFala';
+// Pipeline de fala: VAD → STT → diarização → emissão, e a preparação dos modelos locais.
+import { criarPipelineDeFala, type EnunciadoPendente } from '../../lib/captura/pipelineDeFala';
+// Ciclo da sessão: começar, retomar, parar e salvar (falas, áudio e vocabulário).
+import { criarSalvarSessao, type EstadoDaIdentificacaoDeVoz } from '../../lib/captura/salvarSessao';
+// Tipos e helpers de fala + o logger da captura (`lib/captura/tiposDaFala.ts`).
+import {
+type CaptureScenario,
+  clog, formatTime, SPEAKER_COLORS, type SpeakerProfile,   type SpeechSegment, UNKNOWN_VOICE_COLOR,
+USER_COLOR, wordsFromText, } from '../../lib/captura/tiposDaFala';
+// Relógio da sessão + pipeline de MT (retradução de degradados incluída).
+import { criarRelogioDaSessao, criarTraducaoDaFala } from '../../lib/captura/traducaoDaFala';
+import { cenarioDasFontes } from '../../lib/cenarioDeCaptura';
+import { DominantLangTracker } from '../../lib/convoLang';
+// Configuração de idioma: fonte ÚNICA (`mine` = o que VOCÊ fala no mic; `studying` = o que você
+// ESTUDA, o áudio estrangeiro). Antes os defaults nasciam aqui, em `useState`.
+import { DEFAULT_LANG_CONFIG, fetchLangConfig, type LangConfig,onLangConfigChange, saveLangConfig } from '../../lib/langConfig';
 import { langShortLabel } from '../../lib/langFlag';
+import { baseLang, langLabel, mtCoverage, toBcp47 } from '../../lib/languages';
 import { setNavGuard } from '../../lib/navGuard';
-// A conversa em balões (lados opostos, agrupamento por pessoa, estado vazio que ensina).
-// Um componente só serve a tela embutida E o Modo Foco — antes eram dois blocos que divergiam.
-import ChatTranscript from '../ChatTranscript';
-import BingoPanel from '../minigames/BingoPanel';
+import { OrdemDasTraducoes } from '../../lib/ordemDaTraducao';
+import { destinoDaTraducao,PerfilAdaptativoDeIdioma } from '../../lib/perfilDeIdioma';
+import { usePosicaoFlutuante } from '../../lib/posicaoFlutuante';
+import { coreOnly } from '../../lib/profile';
+import { play } from '../../lib/soundFx';
 // Identificação automática de voz (diarização leve): embedding WeSpeaker por enunciado
 // (worker WASM, 6,7MB) + agrupamento online → "Pessoa 1/2/3" com cor própria.
 import { SpeakerClusterer } from '../../lib/speakerCluster';
-import { DominantLangTracker } from '../../lib/convoLang';
 import { disposeSpeakerId } from '../../lib/speakerId';
-import { play } from '../../lib/soundFx';
-import { coreOnly } from '../../lib/profile';
-import { toast } from '../Toast';
-import DocumentPiP, { isDocumentPiPSupported } from '../DocumentPiP';
-import VocabularyPanel from '../VocabularyPanel';
+import { DEFAULT_TRANSCRIPT_SETTINGS,TranscriptSettings } from '../../lib/transcriptUtils';
+// Produtor ÚNICO de palavra/cartão: o idioma vem da FRASE de onde a palavra saiu e a direção da
+// tradução é decidida pelo idioma DA PALAVRA (não pelo par da sessão).
+import { speak as ttsSpeak } from '../../lib/tts';
+// Cenário conversa sem fone: a caixa de som entra pelo mic — detecta e descarta.
+import { type Intervalo } from '../../lib/vazamento';
 import { Recording, type VocabWord } from '../../types';
+import BuscaDeCapa from '../BuscaDeCapa';
+// A conversa em balões (lados opostos, agrupamento por pessoa, estado vazio que ensina).
+// Um componente só serve a tela embutida E o Modo Foco — antes eram dois blocos que divergiam.
+import ChatTranscript from '../ChatTranscript';
+import DocumentPiP, { isDocumentPiPSupported } from '../DocumentPiP';
 import EditablePanel from '../EditablePanel';
 import GuidePanel from '../GuidePanel';
-import { TranscriptSettings, DEFAULT_TRANSCRIPT_SETTINGS } from '../../lib/transcriptUtils';
-
-// Tipos e helpers de fala + o logger da captura (`lib/captura/tiposDaFala.ts`).
-import {
-  clog, wordsFromText, formatTime, SPEAKER_COLORS, USER_COLOR, UNKNOWN_VOICE_COLOR,
-  type SpeechSegment, type SpeakerProfile, type CaptureScenario,
-} from '../../lib/captura/tiposDaFala';
-// Relógio da sessão + pipeline de MT (retradução de degradados incluída).
-import { criarRelogioDaSessao, criarTraducaoDaFala } from '../../lib/captura/traducaoDaFala';
-// Pipeline de fala: VAD → STT → diarização → emissão, e a preparação dos modelos locais.
-import { criarPipelineDeFala, type EnunciadoPendente } from '../../lib/captura/pipelineDeFala';
-// Fontes de áudio: som do sistema/aba, microfone (Whisper ou Web Speech) e o mudo/ativo do mic.
-import { criarFontesDeAudio } from '../../lib/captura/fontesDeAudio';
-// Ciclo da sessão: começar, retomar, parar e salvar (falas, áudio e vocabulário).
-import { criarSalvarSessao, type EstadoDaIdentificacaoDeVoz } from '../../lib/captura/salvarSessao';
-// Vocabulário dentro da captura: examinar a palavra, fichar no deck, mandar praticar.
-import { criarPalavraDaFala } from '../../lib/captura/palavraDaFala';
+// Bandeira SVG do idioma (nunca emoji: o Windows renderiza 🇧🇷 como "BR") + o rótulo curto.
+import { LangFlag } from '../LangFlag';
+import BingoPanel from '../minigames/BingoPanel';
+import ModelPrepPanel, { type ModelPrepState } from '../ModelPrepPanel';
+import Overlay, { OverlayCaption } from '../Overlay';
+import { toast } from '../Toast';
+import VocabularyPanel from '../VocabularyPanel';
+import LangSelect from './captura/LangSelect';
+import SetaDoPar from './captura/SetaDoPar';
+// Subcomponentes locais da captura (um arquivo por componente, em `views/captura/`).
+import TranscriptVisualSettings from './captura/TranscriptVisualSettings';
 
 export default function LiveCapture({ onSave, onTranscriptChange, resumingRecordingId, recordings, onChangeView, ageProfile = 'pro' }: {
   onSave: (recording: Recording, shouldRedirect?: boolean) => void;

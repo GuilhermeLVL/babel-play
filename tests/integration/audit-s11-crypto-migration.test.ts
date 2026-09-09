@@ -3,8 +3,9 @@
  * migrado até o usuário reeditar a credencial. Correção: decryptSecretEx devolve um migratedBlob
  * re-cifrado com a chave atual, e o repo persiste no 1º uso. (server/crypto.ts)
  */
-import { describe, it, expect, beforeAll } from 'vitest'
-import { createCipheriv, scryptSync, randomBytes } from 'node:crypto'
+import { createCipheriv, randomBytes,scryptSync } from 'node:crypto'
+
+import { beforeAll,describe, expect, it } from 'vitest'
 
 // Replica a cifragem LEGADA de crypto.ts (mesma passphrase/salt) para fabricar um blob legado.
 const LEGACY = scryptSync('dev-only-insecure-key-change-me', 'babel-play-web:secrets', 32)

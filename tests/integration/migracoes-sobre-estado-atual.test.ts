@@ -15,10 +15,11 @@
  * UM banco por arquivo, de proposito: `server/db/db.ts` exporta uma instancia unica ligada ao
  * `DATABASE_URL` lido no PRIMEIRO import (ver `migrations-no-boot.test.ts`).
  */
-import { describe, it, expect, afterAll, beforeAll, vi } from 'vitest'
 import { copyFileSync, mkdtempSync, readFileSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
+
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
 
 const FIXTURE = path.resolve(process.cwd(), 'tests', 'fixtures', 'banco-estado-atual.db')
 const JOURNAL = path.resolve(process.cwd(), 'server', 'db', 'migrations', 'meta', '_journal.json')

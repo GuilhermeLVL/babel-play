@@ -1,10 +1,11 @@
-﻿import React, { useEffect, useRef, useState } from 'react';
-import { EyeOff, MousePointer, Palette, ArrowDown, Volume2, Film, MessagesSquare, Gamepad2, Brain, Star, Radio, type LucideIcon, ChevronRight } from 'lucide-react';
-import { LangChip } from './LangFlag';
-import { initials } from './ChatTranscript';
+﻿import { ArrowDown, Brain, ChevronRight,EyeOff, Film, Gamepad2, type LucideIcon, MessagesSquare, MousePointer, Palette, Radio, Star, Volume2 } from 'lucide-react';
+import React, { useEffect, useRef, useState } from 'react';
+
+import { fetchSettings,patchUiSettings } from '../data/api';
 import { THEME_OPTIONS, type ThemeType } from '../lib/appearance';
-import { readAppearance, applyAppearance, type StyledElement } from '../lib/appearanceSync';
-import { patchUiSettings, fetchSettings } from '../data/api';
+import { applyAppearance, readAppearance, type StyledElement } from '../lib/appearanceSync';
+import { initials } from './ChatTranscript';
+import { LangChip } from './LangFlag';
 
 /**
  * Legenda ao vivo para o overlay. Vem SEMPRE das falas reais capturadas

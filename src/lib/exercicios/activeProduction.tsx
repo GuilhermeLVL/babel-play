@@ -1,11 +1,12 @@
-import React, { useState, useEffect } from 'react';
-import { VocabCard } from '../../types';
-import { similarityPercentage, diffWords } from './diff';
-import { CORRETOR_SYSTEM, buildCorretorUser, respostaEhPlausivel } from './corretorPrompt';
-import { Volume2, CheckCircle2, AlertTriangle, XCircle, Sparkles } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, Sparkles,Volume2, XCircle } from 'lucide-react';
+import React, { useEffect,useState } from 'react';
+
+import { AiBadge } from '../../components/Provenance';
 import { buildGateway } from '../../gateway';
 import { getActiveProfile } from '../../gateway/activeProfile';
-import { AiBadge } from '../../components/Provenance';
+import { VocabCard } from '../../types';
+import { buildCorretorUser, CORRETOR_SYSTEM, respostaEhPlausivel } from './corretorPrompt';
+import { diffWords,similarityPercentage } from './diff';
 
 /**
  * "VERIFICAR COM IA" — agora chama uma IA de verdade.

@@ -17,12 +17,13 @@
  * deixar o `setState` fora foi o que permitiu unificar sem mudar o que cada tela faz depois.
  */
 import { makeCloze, motivoLegivel } from '@core';
+
+import { toast } from '../components/Toast';
 import { bulkAddCards } from '../data/api';
 import type { VocabCard, VocabWord } from '../types';
-import { cardLangs, resolveWord } from './vocabWord';
-import type { ResolvedWord } from './vocabWord';
 import type { LangConfig } from './langConfig';
-import { toast } from '../components/Toast';
+import type { ResolvedWord } from './vocabWord';
+import { cardLangs, resolveWord } from './vocabWord';
 
 export interface CartaoAFichar {
   word: string;

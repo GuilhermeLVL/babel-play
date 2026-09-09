@@ -7,7 +7,8 @@
  * Sempre WASM: o modelo é minúsculo (~100ms/enunciado) e o WebGPU fica livre para o Whisper —
  * zero disputa com a transcrição. Mesma entrega de pesos dos outros workers (self-host/cache).
  */
-import { AutoProcessor, AutoModel, env } from '@huggingface/transformers';
+import { AutoModel, AutoProcessor, env } from '@huggingface/transformers';
+
 import { configureModelDelivery } from '../gateway/adapters/transformersEnv';
 
 configureModelDelivery();

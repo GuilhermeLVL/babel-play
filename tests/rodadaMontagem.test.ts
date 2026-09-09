@@ -19,9 +19,10 @@
  * (`embaralhar` sem semente, dentro de `buildRodadasConectores`). Nesses dois, o teste fixa o
  * CONJUNTO e o tamanho, que é o que a montagem de fato decide.
  */
-import { describe, it, expect } from 'vitest';
+import { describe, expect,it } from 'vitest';
+
+import { type EntradaDaRodada, type FalaDaRodada,montarRodada } from '../src/core/minigames/rodada';
 import type { VocabCard } from '../src/types';
-import { montarRodada, type EntradaDaRodada, type FalaDaRodada } from '../src/core/minigames/rodada';
 
 /** Um dia fixo: `diaLocal(agora)` é a semente de todos os construtores. */
 const AGORA = new Date('2026-03-15T12:00:00Z').getTime();

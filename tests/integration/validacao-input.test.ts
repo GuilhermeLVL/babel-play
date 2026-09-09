@@ -5,13 +5,14 @@
  * O caso mais grave era `grade`: cast direto `as Grade`, entrando no FSRS e sendo
  * persistido em `review_logs` sem nenhuma checagem.
  */
-import { describe, it, expect, beforeAll, afterAll } from 'vitest'
-import {
-  reviewGradeSchema, settingsPatchSchema, relabelUtterancesSchema,
-  patchUtteranceSchema, patchSessionSchema, imageSearchQuerySchema,
-} from '../../server/validation'
-import { setupEphemeralDb, type EphemeralDb } from '../harness/ephemeralDb'
+import { afterAll,beforeAll, describe, expect, it } from 'vitest'
+
 import { asUserId } from '../../server/lib/authContext'
+import {
+imageSearchQuerySchema,
+patchSessionSchema,   patchUtteranceSchema, relabelUtterancesSchema,
+  reviewGradeSchema, settingsPatchSchema, } from '../../server/validation'
+import { type EphemeralDb,setupEphemeralDb } from '../harness/ephemeralDb'
 
 describe('reviewGradeSchema — P2-1 (o pior caso: entrava no FSRS sem checagem)', () => {
   it('aceita as notas válidas 1..4', () => {

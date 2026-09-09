@@ -14,9 +14,10 @@
  * Estes testes travam três coisas: pular registra resultado, rodada vazia não comemora, e falar
  * várias vezes na mesma fala não a faz aparecer várias vezes no histórico.
  */
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { render, screen, cleanup, fireEvent, act } from '@testing-library/react'
+import { act,cleanup, fireEvent, render, screen } from '@testing-library/react'
 import React from 'react'
+import { afterEach,beforeEach, describe, expect, it, vi } from 'vitest'
+
 import type { RoundReport } from '../src/core/minigames/types'
 
 const comemorarMock = vi.fn()

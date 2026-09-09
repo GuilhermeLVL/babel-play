@@ -13,9 +13,9 @@
  *   - 'BUG ATUAL: binding pendurado trava'  passará a falhar → inverta.
  *   - 'DESEJADO: cai para o próximo binding' (it.fails) passará → remova o .fails.
  */
-import { describe, it, expect } from 'vitest'
+import type { CapabilityBinding,Profile } from '@core'
 import { AiGateway, BreakerRegistry, BudgetLedger } from '@core'
-import type { Profile, CapabilityBinding } from '@core'
+import { describe, expect,it } from 'vitest'
 
 const NUNCA_RESOLVE = new Promise<never>(() => { /* pendura de propósito */ })
 

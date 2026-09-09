@@ -1,6 +1,7 @@
-import { test, expect } from '@playwright/test';
-import { fecharSobreposicoes, clicarRobusto } from './_helpers';
+import { expect,test } from '@playwright/test';
+
 import { uiDoServidor } from './_fixtures';
+import { clicarRobusto,fecharSobreposicoes } from './_helpers';
 
 /**
  * CLARO/ESCURO PERSISTE NAS DUAS CAMADAS.

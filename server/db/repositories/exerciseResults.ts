@@ -1,9 +1,11 @@
 import { randomUUID } from 'node:crypto'
-import { desc, eq, isNull, isNotNull, and, gte, asc, inArray, max, sql, type SQL } from 'drizzle-orm'
-import { db } from '../db'
-import { exerciseResults, sessions, vocabCards } from '../schema'
+
+import { and, asc, desc, eq, gte, inArray, isNotNull, isNull, max, type SQL,sql } from 'drizzle-orm'
+
 import { MINIGAME_IDS } from '../../../src/core/minigames/revelavel'
 import type { UserId } from '../../lib/authContext'
+import { db } from '../db'
+import { exerciseResults, sessions, vocabCards } from '../schema'
 
 export type ExerciseResult = typeof exerciseResults.$inferSelect
 

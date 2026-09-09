@@ -1,7 +1,8 @@
 import confetti from 'canvas-confetti';
-import { play } from './soundFx';
+
 import { emitBurst } from './effects';
-import { tremor, flashDeTela, pulsoDeZoom, pontosFlutuantes } from './juice';
+import { flashDeTela, pontosFlutuantes,pulsoDeZoom, tremor } from './juice';
+import { play } from './soundFx';
 
 /**
  * GAME FEEL ENGINE ("JUICE") — BABEL PLAY

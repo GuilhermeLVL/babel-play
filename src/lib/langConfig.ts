@@ -1,5 +1,5 @@
-import { IDIOMAS_DA_INTERFACE, assinarIdioma, ehRTL, idiomaDaInterface, usarIdioma } from './i18n';
 import React from 'react';
+
 /**
  * CONFIGURAÇÃO DE IDIOMA — leitor único, com nomes que não admitem inversão.
  *
@@ -24,6 +24,7 @@ import React from 'react';
  * AUTORITATIVA de `studying`, com a Captura como fallback.
  */
 import { fetchSettings, patchUiSettings, saveSettings } from '../data/api';
+import { assinarIdioma, ehRTL, idiomaDaInterface, IDIOMAS_DA_INTERFACE, usarIdioma } from './i18n';
 import { toBcp47 } from './languages';
 
 export interface LangConfig {

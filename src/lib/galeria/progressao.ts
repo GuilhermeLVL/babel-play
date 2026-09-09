@@ -7,8 +7,9 @@
  * `recompensasDoNivel` (desbloqueios) só sabia de tema/posição/estúdio, e as partículas, packs,
  * cursores e galeria que o mesmo nível libera ficavam de fora do "você destravou".
  */
-import { CATALOGO_DA_LOJA, estadoDoItem, possuidos, type ItemDaLoja } from '../loja'
 import { CONQUISTAS } from '@core'
+
+import { CATALOGO_DA_LOJA, estadoDoItem, type ItemDaLoja,possuidos } from '../loja'
 
 /** Itens que abrem por nível (sem exclusivo), agrupados: nível → itens. Ordenado por nível. */
 export function itensPorNivel(catalogo: ReadonlyArray<ItemDaLoja> = CATALOGO_DA_LOJA): Map<number, ItemDaLoja[]> {

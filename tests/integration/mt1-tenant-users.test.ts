@@ -2,9 +2,10 @@
  * SaaS Fatia 2 — usersRepo (RBAC). Provisão idempotente da conta, fail-safe de menor privilégio
  * (role 'user' quando não provisionada), e ops admin (setRole/setStatus) isoladas por usuário.
  */
-import { describe, it, expect, beforeAll, afterAll } from 'vitest'
-import { setupEphemeralDb, type EphemeralDb } from '../harness/ephemeralDb'
+import { afterAll,beforeAll, describe, expect, it } from 'vitest'
+
 import { asUserId } from '../../server/lib/authContext'
+import { type EphemeralDb,setupEphemeralDb } from '../harness/ephemeralDb'
 
 let h: EphemeralDb
 let repo: any

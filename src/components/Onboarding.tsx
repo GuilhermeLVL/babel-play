@@ -1,16 +1,17 @@
-import React, { useEffect, useState } from 'react';
 import {
-  HardDrive, Cloud, Check, Loader2, AlertTriangle, ArrowLeft, KeyRound,
-  AudioLines, Languages, ScanText, GraduationCap, ShieldCheck, Repeat,
-  ChevronLeft, ChevronRight, Mic, Gamepad2, Zap, Eye, UserRound,
-} from 'lucide-react';
-import { createCredential, testProvider, saveSettings, patchUiSettings } from '../data/api';
-import LangPicker from './LangPicker';
-import { DEFAULT_LANG_CONFIG, saveLangConfig, idiomasDaInterfaceOferecidos } from '../lib/langConfig';
+AlertTriangle, ArrowLeft,   AudioLines, Check,   ChevronLeft, ChevronRight, Cloud, Eye, Gamepad2, GraduationCap,   HardDrive, KeyRound,
+Languages, Loader2, Mic, Repeat,
+ScanText, ShieldCheck, UserRound,
+Zap, } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+
+import { createCredential, patchUiSettings,saveSettings, testProvider } from '../data/api';
+import { getActiveProfile,setProviderChoice } from '../gateway/activeProfile';
+import { getSttQuality, MODEL_DOWNLOAD_MB, MODEL_DOWNLOAD_MEDIDO,routeStt } from '../gateway/sttRouter';
 import { t } from '../lib/i18n';
+import { DEFAULT_LANG_CONFIG, idiomasDaInterfaceOferecidos,saveLangConfig } from '../lib/langConfig';
 import type { AgeProfileType } from '../lib/profile';
-import { setProviderChoice, getActiveProfile } from '../gateway/activeProfile';
-import { routeStt, getSttQuality, MODEL_DOWNLOAD_MB, MODEL_DOWNLOAD_MEDIDO } from '../gateway/sttRouter';
+import LangPicker from './LangPicker';
 
 /**
  * Tela de PRIMEIRA EXECUÇÃO (sem contas/login). O usuário escolhe, com consentimento

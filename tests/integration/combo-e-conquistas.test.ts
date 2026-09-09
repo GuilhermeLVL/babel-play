@@ -13,11 +13,12 @@
  * O sintoma era silencioso: a conquista simplesmente não acontecia, e ninguém tinha como saber se
  * era porque a pessoa não jogou o suficiente ou porque o número nunca chegou.
  */
-import { describe, it, expect, beforeAll, afterAll } from 'vitest'
-import { setupEphemeralDb, type EphemeralDb } from '../harness/ephemeralDb'
+import { afterAll,beforeAll, describe, expect, it } from 'vitest'
+
 import { asUserId } from '../../server/lib/authContext'
-import { CONQUISTAS } from '../../src/core/learning/conquistas'
 import { CONQUISTAS_CONFERIVEIS } from '../../src/core/economiaAutoridade'
+import { CONQUISTAS } from '../../src/core/learning/conquistas'
+import { type EphemeralDb,setupEphemeralDb } from '../harness/ephemeralDb'
 
 let h: EphemeralDb
 let metricsRouter: any

@@ -13,7 +13,8 @@
  * Vale para os quatro consumidores do hook (LangPicker, menu e filtros da Biblioteca, InfoHint,
  * gaveta de idiomas): todos renderizam por portal dentro do `body`.
  */
-import { describe, it, expect } from 'vitest'
+import { describe, expect,it } from 'vitest'
+
 import { caixaFlutuante } from '../src/lib/posicaoFlutuante'
 
 const viewport = { width: 1920, height: 893 }

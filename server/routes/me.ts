@@ -1,17 +1,18 @@
 /** Rota do usuário atual (montada em `/api/me`, atrás do authMiddleware). */
 import { Router } from 'express'
-import { getEntitlementsForUser, getPlanForUser } from '../lib/entitlements'
-import { usoDeArmazenamento, capDeArmazenamento, reconciliarSeVencido } from '../lib/storageQuota'
-import { capForPlan, capSegundosParaPlano, METRIC_MANAGED, METRIC_STT_SEGUNDOS, METRIC_LLM_TOKENS } from '../lib/usageQuota'
+
+import { contaRepo } from '../db/repositories/conta'
+import { perfilRepo } from '../db/repositories/perfil'
 import { usageCountersRepo } from '../db/repositories/usageCounters'
+import { usersRepo } from '../db/repositories/users'
 import { authRequired } from '../lib/auth'
 import { adminDoSupabase } from '../lib/config'
-import { usersRepo } from '../db/repositories/users'
-import { perfilRepo } from '../db/repositories/perfil'
-import { contaRepo } from '../db/repositories/conta'
-import { perfilPatchSchema, excluirContaSchema, parseOr400 } from '../validation'
+import { getEntitlementsForUser, getPlanForUser } from '../lib/entitlements'
 import { erroDeRota } from '../lib/erroDeRota'
 import { log } from '../lib/logger'
+import { capDeArmazenamento, reconciliarSeVencido,usoDeArmazenamento } from '../lib/storageQuota'
+import { capForPlan, capSegundosParaPlano, METRIC_LLM_TOKENS,METRIC_MANAGED, METRIC_STT_SEGUNDOS } from '../lib/usageQuota'
+import { excluirContaSchema, parseOr400,perfilPatchSchema } from '../validation'
 // O store de mídia é um só; importar daqui evita uma segunda resolução de `AUDIO_DIR` que
 // poderia divergir da que grava e serve os arquivos.
 import { armazenamentoDeMidia } from './sessions'

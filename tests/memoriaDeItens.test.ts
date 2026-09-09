@@ -1,8 +1,9 @@
 import { describe, expect, it } from 'vitest'
+
 import {
-  estadoDoItem, janelaDeRetorno, prontoParaVoltar, ordenarPorMemoria, embaralharComSemente, LEECH_APOS,
-  type HistoricoDoItem,
-} from '../src/core/learning/memoriaDeItens'
+embaralharComSemente,   estadoDoItem,   type HistoricoDoItem,
+janelaDeRetorno, LEECH_APOS,
+ordenarPorMemoria, prontoParaVoltar, } from '../src/core/learning/memoriaDeItens'
 
 const dia = (ts: number) => Math.floor(ts / 86_400_000)
 const h = (p: Partial<HistoricoDoItem>): HistoricoDoItem => ({ vezes: 0, erros: 0, ultimoAcerto: false, ...p })

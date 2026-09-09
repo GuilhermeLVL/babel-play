@@ -19,11 +19,12 @@
  * serializa escritor único e vários processos passam a competir por lock. Subir "saudável" nessa
  * condição é pior do que não subir.
  */
-import { describe, it, expect, afterEach } from 'vitest'
-import { spawn, type ChildProcess } from 'node:child_process'
+import { type ChildProcess,spawn } from 'node:child_process'
 import { mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
+
+import { afterEach,describe, expect, it } from 'vitest'
 
 const RAIZ = path.resolve(import.meta.dirname, '..', '..')
 const vivos: ChildProcess[] = []

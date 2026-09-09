@@ -1,6 +1,7 @@
-import { describe, it, expect } from 'vitest';
+import { describe, expect,it } from 'vitest';
+
+import { coberturaDasFaixas, faixas, NIVEIS } from '../scripts/trilha/faixas.mjs';
 import { filtrar, motivoDoDescarte } from '../scripts/trilha/filtrar.mjs';
-import { faixas, coberturaDasFaixas, NIVEIS } from '../scripts/trilha/faixas.mjs';
 
 const e = (palavra: string, contagem = 1) => ({ palavra, contagem });
 

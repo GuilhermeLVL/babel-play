@@ -1,8 +1,9 @@
+import type { Capability } from '@core';
+import { AlertTriangle, Check, Cloud, HardDrive, Languages,Loader2, ShieldCheck, Zap } from 'lucide-react';
 import React, { useMemo, useState } from 'react';
-import { Zap, Check, AlertTriangle, Loader2, ShieldCheck, Cloud, HardDrive, Languages } from 'lucide-react';
+
 import { buildGateway } from '../gateway';
 import { BUILTIN_PROFILES, DEFAULT_PROFILE_ID, getBuiltinProfile } from '../gateway/profiles';
-import type { Capability } from '@core';
 import { t } from '../lib/i18n';
 
 const PROFILE_STORAGE_KEY = 'babel.activeProfileId';

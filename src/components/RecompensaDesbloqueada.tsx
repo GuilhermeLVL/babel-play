@@ -9,13 +9,14 @@
  * Fila: um evento por vez. `babel.recompensas_vistas` guarda o que já foi mostrado (nível ou
  * conquista) para não repetir em recarga.
  */
+import { Check, Gift,Sparkles, Sprout, Trophy, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { Sparkles, Trophy, Check, X, Sprout, Gift } from 'lucide-react';
-import { COR_DA_RARIDADE, type ItemDaLoja } from '../lib/loja';
-import MiniaturaDoItem from './MiniaturaDoItem';
+
 import { TEXTOS } from '../lib/galeria/textos';
 import { comemorar, explodirAleatorio } from '../lib/juice';
+import { COR_DA_RARIDADE, type ItemDaLoja } from '../lib/loja';
+import MiniaturaDoItem from './MiniaturaDoItem';
 
 export type Recompensa =
   | { tipo: 'nivel'; nivel: number; itens: ItemDaLoja[] }

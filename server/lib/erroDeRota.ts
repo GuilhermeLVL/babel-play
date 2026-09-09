@@ -23,8 +23,8 @@
  * log continua guardando tudo, inclusive a cadeia de causas e o stack.
  * ─────────────────────────────────────────────────────────────────────────────────────────
  */
-import { log } from './logger'
 import { cadeiaDeCausas } from './cadeiaDeCausas'
+import { log } from './logger'
 
 export interface ContextoDeErro {
   /** Nome do evento, no padrão do logger (ex.: 'sessions_create_error'). */

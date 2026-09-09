@@ -1,7 +1,8 @@
-import type { FiltroDaPratica, CefrLevel } from '@core';
+import type { CefrLevel,FiltroDaPratica } from '@core';
 import { FILTRO_PADRAO, fonteDominante } from '@core';
-import { lerFonteGuardada, gravarFonteGuardada, type FonteGuardada } from './fonteDaPratica';
 import { escolhaDaFonte } from '@core';
+
+import { type FonteGuardada,gravarFonteGuardada, lerFonteGuardada } from './fonteDaPratica';
 
 /**
  * A ÚLTIMA ESCOLHA DE FILTRO, LEMBRADA ENTRE VISITAS — o molde de `fonteDaPratica.ts`, adaptado

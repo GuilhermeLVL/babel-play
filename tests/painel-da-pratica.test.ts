@@ -4,9 +4,10 @@
  * Nove cartas cinzentas misturadas com as jogáveis, sem dizer o que faltava, faziam a tela parecer
  * quebrada quando o que faltava era material.
  */
-import { describe, it, expect } from 'vitest';
-import { agruparJogos } from '../src/core/minigames/painelDaPratica';
+import { describe, expect,it } from 'vitest';
+
 import type { EstadoDoJogo } from '../src/core/minigames/estadoDosJogos';
+import { agruparJogos } from '../src/core/minigames/painelDaPratica';
 import type { MinigameId } from '../src/core/minigames/types';
 
 const jogo = (id: MinigameId, over: Partial<EstadoDoJogo> = {}): EstadoDoJogo => ({

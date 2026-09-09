@@ -5,9 +5,10 @@
  * jogável. Estes testes cobrem a garantia central: reimportar nunca duplica e nunca apaga —
  * "sumiu do arquivo" é um ESTADO (`ausente_no_arquivo`), não uma deleção.
  */
-import { describe, it, expect, beforeAll, afterAll } from 'vitest'
-import { setupEphemeralDb, type EphemeralDb } from '../harness/ephemeralDb'
+import { afterAll,beforeAll, describe, expect, it } from 'vitest'
+
 import { asUserId } from '../../server/lib/authContext'
+import { type EphemeralDb,setupEphemeralDb } from '../harness/ephemeralDb'
 
 const U = asUserId('anki-user')
 

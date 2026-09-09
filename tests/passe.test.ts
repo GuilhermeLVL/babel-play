@@ -6,8 +6,9 @@
  * 3. Exclusivo de conquista NUNCA entra no passe.
  * 4. Slots de Seeds têm creditoId determinístico (idempotência no servidor).
  */
-import { describe, it, expect } from 'vitest';
-import { slotsDoPasse, passeNivel, slotDestravado, premiumDoNivel, totalPremiumEmCreditos } from '../src/core/passe';
+import { describe, expect,it } from 'vitest';
+
+import { passeNivel, premiumDoNivel, slotDestravado, slotsDoPasse, totalPremiumEmCreditos } from '../src/core/passe';
 import { CATALOGO_DA_LOJA } from '../src/lib/loja';
 
 describe('slotsDoPasse', () => {

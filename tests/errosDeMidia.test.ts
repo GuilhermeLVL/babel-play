@@ -9,7 +9,8 @@
  * Estes testes travam os DOIS caminhos novos. Não medem a redação (isso é `mediaErrors.ts`);
  * medem que a mensagem sai de onde a falha acontece.
  */
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { afterEach,beforeEach, describe, expect, it, vi } from 'vitest';
+
 import { mediaErrorMessage, speechErrorMessage } from '../src/lib/mediaErrors';
 
 vi.mock('../src/components/Toast', () => ({

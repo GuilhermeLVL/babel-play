@@ -12,8 +12,9 @@
  *
  * Comentário que afirma paridade sem teste que a prove envelhece para mentira. Este é o teste.
  */
-import { describe, it, expect } from 'vitest'
-import { chaveDedup, chaveDaPalavra } from '../src/core/texto/palavra'
+import { describe, expect,it } from 'vitest'
+
+import { chaveDaPalavra,chaveDedup } from '../src/core/texto/palavra'
 
 /** Palavras com acento, caixa, pontuação e espaços — o que uma captura real produz. */
 const PALAVRAS = [

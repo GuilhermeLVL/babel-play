@@ -1,9 +1,11 @@
 import { randomUUID } from 'node:crypto'
+
 import { and, desc, eq, isNull, like, sql, sum } from 'drizzle-orm'
-import { db } from '../db'
-import { creditPurchases, creditSpends } from '../schema'
+
 import type { SkuDeCredito } from '../../../src/core/creditos'
 import type { UserId } from '../../lib/authContext'
+import { db } from '../db'
+import { creditPurchases, creditSpends } from '../schema'
 
 /**
  * O RAZÃO DOS CRÉDITOS — a moeda comprada com dinheiro.

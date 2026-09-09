@@ -11,12 +11,10 @@
  * reprova a build se isso escapar.
  */
 
-export { default as Abas, PainelDeAba } from './Abas';
 export type { ItemDeAba } from './Abas';
-
-export { default as Segmentado } from './Segmentado';
-export type { OpcaoSegmentada, TomDeOpcao } from './Segmentado';
-
+export { default as Abas, PainelDeAba } from './Abas';
 export { default as Barra } from './Barra';
 export { default as Ladrilho } from './Ladrilho';
+export type { OpcaoSegmentada, TomDeOpcao } from './Segmentado';
+export { default as Segmentado } from './Segmentado';
 export { default as Vazio } from './Vazio';

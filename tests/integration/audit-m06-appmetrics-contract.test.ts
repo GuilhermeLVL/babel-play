@@ -3,9 +3,10 @@
  * contrato ÚNICO em src/core/learning/contract.ts. O typecheck impede divergência de TIPO; este
  * teste garante que o servidor (`computeProfile`) REALMENTE devolve todos os campos do contrato.
  */
-import { describe, it, expect, beforeAll, afterAll } from 'vitest'
-import { setupEphemeralDb, type EphemeralDb } from '../harness/ephemeralDb'
+import { afterAll,beforeAll, describe, expect, it } from 'vitest'
+
 import { asUserId } from '../../server/lib/authContext'
+import { type EphemeralDb,setupEphemeralDb } from '../harness/ephemeralDb'
 
 const OWNER = asUserId('m06-owner')
 

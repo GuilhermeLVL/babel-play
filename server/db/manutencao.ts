@@ -11,12 +11,14 @@
  */
 import { mkdirSync } from 'node:fs'
 import { dirname, join } from 'node:path'
+
 import { and, eq, gt, isNull } from 'drizzle-orm'
 import { migrate } from 'drizzle-orm/libsql/migrator'
-import { client, db } from './db'
-import { vocabCards } from './schema'
-import { toState } from './repositories/vocab'
+
 import { migrateLeitnerToFsrs } from '../../src/core/learning/scheduler'
+import { client, db } from './db'
+import { toState } from './repositories/vocab'
+import { vocabCards } from './schema'
 
 /**
  * Aplica as migrations do Drizzle. Idempotente.

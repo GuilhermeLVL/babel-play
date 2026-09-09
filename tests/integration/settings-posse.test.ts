@@ -11,10 +11,11 @@
  * quem pagou. Um gate que recusa o item comprado não é rigor, é um defeito com outra cara — e era
  * exatamente o que acontecia no cliente, onde a segunda régua (`desbloqueado`) não sabia de compra.
  */
-import { describe, it, expect, beforeAll, afterAll } from 'vitest'
-import { setupEphemeralDb, type EphemeralDb } from '../harness/ephemeralDb'
+import { afterAll,beforeAll, describe, expect, it } from 'vitest'
+
 import { asUserId } from '../../server/lib/authContext'
 import { CATALOGO_DA_LOJA } from '../../src/core/loja'
+import { type EphemeralDb,setupEphemeralDb } from '../harness/ephemeralDb'
 
 let h: EphemeralDb
 let settingsRouter: any

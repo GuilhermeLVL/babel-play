@@ -1,10 +1,11 @@
-import React, { useState, useEffect } from 'react';
 import { PanelLeftClose, PanelLeftOpen } from 'lucide-react';
-import type { ViewType } from '../../types';
-import { NAV_ITEMS, navLabel, type AgeProfileType } from './navItems';
-import ControlCluster, { type ControlClusterProps } from './ControlCluster';
-import { Brand } from './ShellBits';
+import React, { useEffect,useState } from 'react';
+
 import type { DerivedProgress } from '../../lib/progress';
+import type { ViewType } from '../../types';
+import ControlCluster, { type ControlClusterProps } from './ControlCluster';
+import { type AgeProfileType,NAV_ITEMS, navLabel } from './navItems';
+import { Brand } from './ShellBits';
 
 const COLLAPSE_KEY = 'babel.rail_collapsed';
 

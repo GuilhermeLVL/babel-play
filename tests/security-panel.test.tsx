@@ -4,8 +4,8 @@
  * "Habilitar 2FA"; com fator verificado mostra "Ativo" + "Desativar". Supabase e serviço de auth
  * mockados (não toca a rede).
  */
-import { describe, it, expect, vi, afterEach } from 'vitest';
-import { render, screen, cleanup, waitFor } from '@testing-library/react';
+import { cleanup, render, screen, waitFor } from '@testing-library/react';
+import { afterEach,describe, expect, it, vi } from 'vitest';
 
 const m = vi.hoisted(() => ({
   listTotpFactors: vi.fn(async () => [] as any[]),

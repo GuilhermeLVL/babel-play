@@ -9,7 +9,8 @@
  *
  * Não é caso raro: todo baralho de idioma tem artigo ou pronome de uma letra.
  */
-import { describe, it, expect } from 'vitest'
+import { describe, expect,it } from 'vitest'
+
 import { foraDoBulkAdd, LIMITES_DO_BULK_ADD } from '../src/core/learning/quality'
 
 describe('a fronteira de formato do bulk-add', () => {

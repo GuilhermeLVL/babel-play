@@ -9,8 +9,9 @@
  * microfone o navegador esconde os rótulos, e aí "não achei loopback" não significa "não existe
  * loopback". Trocar nesse caso passaria por cima de uma escolha legítima.
  */
-import { describe, it, expect } from 'vitest'
-import { isLoopbackDevice, filterLoopbackDevices } from '../src/lib/audioDevices'
+import { describe, expect,it } from 'vitest'
+
+import { filterLoopbackDevices,isLoopbackDevice } from '../src/lib/audioDevices'
 
 /** A decisão, isolada do React: vale trocar a rota salva por "servidor"? */
 function deveTrocarParaServidor(entrada: {

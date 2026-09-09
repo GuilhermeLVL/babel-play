@@ -1,5 +1,6 @@
-import type { Request, Response, NextFunction } from 'express'
-import { usersRepo, type Role } from '../db/repositories/users'
+import type { NextFunction,Request, Response } from 'express'
+
+import { type Role,usersRepo } from '../db/repositories/users'
 
 /**
  * Gate de RBAC (SaaS Fatia 2) — a PORTA dos endpoints ADMIN cross-tenant. Lê o `role` NO SERVIDOR

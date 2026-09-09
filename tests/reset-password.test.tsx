@@ -4,8 +4,8 @@
  * → erro e NÃO redefine; iguais + sucesso → chama updatePassword e onDone; falha do servidor → mensagem
  * e NÃO conclui. Supabase e serviço de auth mockados (não toca a rede).
  */
-import { describe, it, expect, vi, afterEach } from 'vitest';
-import { render, screen, cleanup, fireEvent, waitFor } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { afterEach,describe, expect, it, vi } from 'vitest';
 
 const m = vi.hoisted(() => ({
   updatePassword: vi.fn(),

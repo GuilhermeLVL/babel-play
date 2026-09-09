@@ -6,13 +6,14 @@
  * estado da tela (refs, setters, gateway) entra por PARÂMETRO explícito — nada de contexto novo.
  */
 import type { Dispatch, RefObject, SetStateAction } from 'react';
-import { PerfilAdaptativoDeIdioma, destinoDaTraducao } from '../perfilDeIdioma';
-import { OrdemDasTraducoes } from '../ordemDaTraducao';
-import { getEntitlements } from '../entitlements';
+
 import { capMetrics } from '../../gateway/capture/captureMetrics';
-import { langLabel, baseLang } from '../languages';
+import { getEntitlements } from '../entitlements';
+import { baseLang,langLabel } from '../languages';
+import { OrdemDasTraducoes } from '../ordemDaTraducao';
+import { destinoDaTraducao,PerfilAdaptativoDeIdioma } from '../perfilDeIdioma';
 // Fala do MIC em português → português claro antes de traduzir (vícios, contrações, gíria).
-import { prepararFala, chaveNormalizada } from '../traducao/prepararFala';
+import { chaveNormalizada,prepararFala } from '../traducao/prepararFala';
 import { clog, type GatewayDaCaptura, type SpeechSegment } from './tiposDaFala';
 
 /** O que o relógio da sessão precisa da tela. */

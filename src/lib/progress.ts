@@ -1,5 +1,6 @@
+import { economiaDeMetricas, PESOS_SEEDS,PESOS_XP, posicaoNoNivel } from '@core';
+
 import type { AppMetrics } from '../data/api';
-import { economiaDeMetricas, posicaoNoNivel, PESOS_XP, PESOS_SEEDS } from '@core';
 
 /**
  * PROGRESSO DERIVADO — a camada de gamificação, e nada além disso.

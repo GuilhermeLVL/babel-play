@@ -1,4 +1,5 @@
 import type { MinigameId } from '@core';
+
 import type { PassoTour } from './TourGuiado';
 
 /**

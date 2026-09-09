@@ -16,16 +16,17 @@
  * Vale para os nove jogos, não só o Termo. Um gate que libera o que o montador recusa é a classe do
  * defeito, e é essa classe que a verificação cruzada cobre — inclusive no décimo jogo.
  */
-import { describe, it, expect } from 'vitest'
-import { estadoDoJogo, type EntradaDoEstado } from '../src/core/minigames/estadoDosJogos'
-import { MINIGAMES, type MinigameId } from '../src/core/minigames/types'
-import {
-  rodadasDaEscada, consumoDaEscada, contarJogaveisMulti, planoDaEscada, DEGRAUS_MINIMOS, ESCADA_POR_FAIXA,
-  MIN_LETRAS, MAX_LETRAS,
-} from '../src/core/minigames/termo'
+import { describe, expect,it } from 'vitest'
+
+import { buildRodadasConectores,buildRodadasDitado, buildRodadasEscuta } from '../src/core/minigames/escuta'
+import { type EntradaDoEstado,estadoDoJogo } from '../src/core/minigames/estadoDosJogos'
 import { buildItems } from '../src/core/minigames/itemSource'
 import { buildScrambleRounds } from '../src/core/minigames/scramble'
-import { buildRodadasEscuta, buildRodadasDitado, buildRodadasConectores } from '../src/core/minigames/escuta'
+import {
+consumoDaEscada, contarJogaveisMulti, DEGRAUS_MINIMOS, ESCADA_POR_FAIXA,
+MAX_LETRAS,
+  MIN_LETRAS, planoDaEscada,   rodadasDaEscada, } from '../src/core/minigames/termo'
+import { type MinigameId,MINIGAMES } from '../src/core/minigames/types'
 import type { VocabCard } from '../src/types'
 
 function carta(word: string, translation: string): VocabCard {

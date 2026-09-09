@@ -1,12 +1,13 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { X, Play, RotateCcw, Turtle, Flame, Sparkles } from 'lucide-react';
-import type { ItemOutcome, RoundReport, RodadaEscuta } from '@core';
+import type { ItemOutcome, RodadaEscuta,RoundReport } from '@core';
 import { scoreRound } from '@core';
-import type { AgeProfileType } from '../../lib/profile';
-import { multiplicador } from '../../lib/juice';
-import { criarFalante } from '../../lib/falante';
-import { playJuicedHit, playJuicedError, playJuicedVictory, triggerHaptic } from '../../lib/gameFeel';
+import { Flame, Play, RotateCcw, Sparkles,Turtle, X } from 'lucide-react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+
 import { emitBurst } from '../../lib/effects';
+import { criarFalante } from '../../lib/falante';
+import { playJuicedError, playJuicedHit, playJuicedVictory, triggerHaptic } from '../../lib/gameFeel';
+import { multiplicador } from '../../lib/juice';
+import type { AgeProfileType } from '../../lib/profile';
 
 /**
  * QUAL FOI? — ouvir um trecho real e escolher a legenda certa.

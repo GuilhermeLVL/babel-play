@@ -11,10 +11,11 @@
  * O que este arquivo prende é a régua: cada família vale o que a REGRA diz, e o cofre exige o
  * nível da sua década.
  */
-import { describe, it, expect } from 'vitest'
-import { valorDoCredito, ehRecusa } from '../src/core/economiaAutoridade'
-import { slotsDoPasse, TEMPORADA_ATUAL } from '../src/core/passe'
+import { describe, expect,it } from 'vitest'
+
+import { ehRecusa,valorDoCredito } from '../src/core/economiaAutoridade'
 import { CONQUISTAS } from '../src/core/learning/conquistas'
+import { slotsDoPasse, TEMPORADA_ATUAL } from '../src/core/passe'
 
 const cofres = slotsDoPasse().filter((s): s is Extract<typeof s, { tipo: 'seeds' }> => s.tipo === 'seeds')
 

@@ -9,9 +9,10 @@
  *  P1-9 — o DELETE respondia `{ok:true}` mesmo quando a remoção do arquivo falhava, com
  *         duplo swallow. Pedido de exclusão confirmado sem exclusão efetiva (LGPD/GDPR).
  */
-import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest'
-import { setupEphemeralDb, type EphemeralDb } from '../harness/ephemeralDb'
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
+
 import { asUserId } from '../../server/lib/authContext'
+import { type EphemeralDb,setupEphemeralDb } from '../harness/ephemeralDb'
 
 let h: EphemeralDb
 let sessions: any

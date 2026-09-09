@@ -22,27 +22,27 @@
  * da trilha, e ele está comentado onde acontece.
  */
 import type { VocabCard } from '../../types';
-import { MINIGAMES, type MinigameId, type MinigameItem } from './types';
-import { baseLang } from '../texto/idioma';
 import { isDueNow } from '../learning/due';
+import { diaLocal } from '../learning/economia';
+import { estadoDoItem, type HistoricoDoItem,ordenarPorMemoria, rngDe } from '../learning/memoriaDeItens';
+import { baseLang } from '../texto/idioma';
 import { chaveDaPalavra } from '../texto/palavra';
-import { estadoDoItem, ordenarPorMemoria, rngDe, type HistoricoDoItem } from '../learning/memoriaDeItens';
-import { previaSegura, origemDoMaterial, type ItemCru, type ItemDaAntessala, type OrigemDoItem } from './revelavel';
-import { priorizar, type FonteDeItens } from './source';
-import { rodadasDaEscada, type RodadaTermo } from './termo';
-import { buildScrambleRounds, type RodadaFrase } from './scramble';
+import { aceitaFiltroDeDificuldade, type CortesDeFaixa, type EstrategiaDaUI,faixaDe as faixaDaComposicao, type FaixaDificuldade } from './composicao';
 import {
-  buildRodadasEscuta,
-  buildRodadasDitado,
   buildRodadasConectores,
+  buildRodadasDitado,
+  buildRodadasEscuta,
   type FalaComAudio,
-  type RodadaEscuta,
-  type RodadaDitado,
   type RodadaConectores,
+  type RodadaDitado,
+  type RodadaEscuta,
 } from './escuta';
 import { buildItems } from './itemSource';
-import { diaLocal } from '../learning/economia';
-import { aceitaFiltroDeDificuldade, faixaDe as faixaDaComposicao, type CortesDeFaixa, type FaixaDificuldade, type EstrategiaDaUI } from './composicao';
+import { type ItemCru, type ItemDaAntessala, type OrigemDoItem,origemDoMaterial, previaSegura } from './revelavel';
+import { buildScrambleRounds, type RodadaFrase } from './scramble';
+import { type FonteDeItens,priorizar } from './source';
+import { rodadasDaEscada, type RodadaTermo } from './termo';
+import { type MinigameId, type MinigameItem,MINIGAMES } from './types';
 
 /**
  * Uma fala, como esta montagem precisa dela.

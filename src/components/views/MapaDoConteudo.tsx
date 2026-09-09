@@ -1,7 +1,8 @@
-import { useMemo, useState } from 'react';
 import { ArrowLeft, Check, Info } from 'lucide-react';
-import type { AgeProfileType } from '../../lib/profile';
+import { useMemo, useState } from 'react';
+
 import { data, t } from '../../lib/i18n';
+import type { AgeProfileType } from '../../lib/profile';
 
 /**
  * MAPA DO CONTEÚDO — o que já caiu, o que nunca caiu, o que eu errei.

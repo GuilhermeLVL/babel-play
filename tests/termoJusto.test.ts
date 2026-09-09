@@ -1,9 +1,10 @@
 import { describe, expect, it } from 'vitest'
-import {
-  chaveDoTermo, motivoForaDoTermo, diagnosticoTermo, julgarPalpite, buildTermoRounds, distanciaDeEdicao,
-  type RodadaTermo,
-} from '../src/core/minigames/termo'
+
 import { balancear } from '../src/core/minigames/composicao'
+import {
+buildTermoRounds,   chaveDoTermo, diagnosticoTermo, distanciaDeEdicao,
+julgarPalpite, motivoForaDoTermo,   type RodadaTermo,
+} from '../src/core/minigames/termo'
 import type { VocabCard } from '../src/types'
 
 const carta = (word: string, translation: string, extra: Partial<VocabCard> = {}): VocabCard =>

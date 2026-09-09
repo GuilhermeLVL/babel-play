@@ -3,9 +3,10 @@
  * Leitner nunca migravam. Agora migrarLeitnerParaFsrs (server/db/manutencao) roda no boot (idempotente/não-destrutivo).
  * Testado em banco SINTÉTICO (harness); não toca o babel.db real.
  */
-import { describe, it, expect, beforeAll, afterAll } from 'vitest'
-import { setupEphemeralDb, type EphemeralDb } from '../harness/ephemeralDb'
+import { afterAll,beforeAll, describe, expect, it } from 'vitest'
+
 import { asUserId } from '../../server/lib/authContext'
+import { type EphemeralDb,setupEphemeralDb } from '../harness/ephemeralDb'
 
 const OWNER = asUserId('m04-owner')
 

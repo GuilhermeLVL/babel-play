@@ -1,14 +1,15 @@
-import { describe, it, expect } from 'vitest';
-import {
-  proximasPalavras, progressoDaTrilha, nivelSugerido, chaveDaPalavra, cartoesDaTrilha,
-  NIVEIS_CEFR, CONFIANCA_CURADA, type DadoTrilha,
-} from '../src/core/learning/trilha';
-import { cartoesDaFonte, SESSAO_DA_TRILHA } from '../src/core/minigames/source';
-import { buildItems } from '../src/core/minigames/itemSource';
-import { pistaUtil } from '../src/core/learning/quality';
-import { COMO_SE_JOGA } from '../src/components/minigames/ComoSeJoga';
-import { MINIGAMES } from '../src/core/minigames/types';
+import { describe, expect,it } from 'vitest';
+
 import trilhaEn from '../public/trilha/en.json';
+import { COMO_SE_JOGA } from '../src/components/minigames/ComoSeJoga';
+import { pistaUtil } from '../src/core/learning/quality';
+import {
+cartoesDaTrilha,
+chaveDaPalavra, CONFIANCA_CURADA, type DadoTrilha,
+  NIVEIS_CEFR, nivelSugerido, progressoDaTrilha,   proximasPalavras, } from '../src/core/learning/trilha';
+import { buildItems } from '../src/core/minigames/itemSource';
+import { cartoesDaFonte, SESSAO_DA_TRILHA } from '../src/core/minigames/source';
+import { MINIGAMES } from '../src/core/minigames/types';
 import type { VocabCard } from '../src/types';
 
 /**

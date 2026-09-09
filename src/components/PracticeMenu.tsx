@@ -1,8 +1,9 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { Mic, Headphones, Plus, Zap, Volume2 } from 'lucide-react';
-import { seedFromSelection, type ExerciseId } from '../lib/sentences';
-import { speak as ttsSpeak } from '../lib/tts';
+import { Headphones, Mic, Plus, Volume2,Zap } from 'lucide-react';
+import React, { useCallback,useEffect, useState } from 'react';
+
+import { type ExerciseId,seedFromSelection } from '../lib/sentences';
 import { resolveSpokenLang } from '../lib/spokenLang';
+import { speak as ttsSpeak } from '../lib/tts';
 
 /**
  * MENU DE PRÁTICA — selecione qualquer texto, em qualquer tela, e clique com o botão direito.

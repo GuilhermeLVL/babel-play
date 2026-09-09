@@ -1,10 +1,11 @@
-import { describe, it, expect } from 'vitest';
+import { describe, expect,it } from 'vitest';
+
 import {
-  avaliarCartao, avaliarFrase, triarCartoes, contarPorMotivo, pistaUtil, resumoDosPulados,
-  ehGramatical, ROTULO_MOTIVO, type MotivoDescarte,
-} from '../src/core/learning/quality';
-import { cartoesDaFonte, idiomasDisponiveis, rotuloDaFonte } from '../src/core/minigames/source';
+  avaliarCartao, avaliarFrase, contarPorMotivo,   ehGramatical, type MotivoDescarte,
+pistaUtil, resumoDosPulados,
+ROTULO_MOTIVO, triarCartoes, } from '../src/core/learning/quality';
 import { promptFor } from '../src/core/minigames/itemSource';
+import { cartoesDaFonte, idiomasDisponiveis, rotuloDaFonte } from '../src/core/minigames/source';
 import type { VocabCard } from '../src/types';
 
 /**

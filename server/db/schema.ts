@@ -17,8 +17,8 @@
  * que admite ser adiado para o fim da transação (`PRAGMA defer_foreign_keys`) se algum dia um
  * lote precisar ser reordenado — `RESTRICT` recusa mesmo assim.
  */
-import { sqliteTable, text, integer, real, index, unique, uniqueIndex } from 'drizzle-orm/sqlite-core'
 import { sql } from 'drizzle-orm'
+import { index, integer, real, sqliteTable, text, unique, uniqueIndex } from 'drizzle-orm/sqlite-core'
 
 /** Colunas comuns a toda tabela de domínio (sync-ready). */
 const meta = {

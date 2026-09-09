@@ -14,8 +14,9 @@
  *  - fallback: segredo compartilhado HS256 (SUPABASE_JWT_SECRET), para projeto legado.
  * O verificador aceita uma CHAVE INJETÁVEL, então os testes assinam/verificam offline.
  */
-import { jwtVerify, createRemoteJWKSet } from 'jose'
-import type { Request, Response, NextFunction } from 'express'
+import type { NextFunction,Request, Response } from 'express'
+import { createRemoteJWKSet,jwtVerify } from 'jose'
+
 import { asUserId, LOCAL_OWNER, type UserId } from './authContext'
 import { log } from './logger'
 

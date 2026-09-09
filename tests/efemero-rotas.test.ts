@@ -8,7 +8,9 @@
  * sem dado de usuário) — o servidor real decide se existe.
  */
 import 'fake-indexeddb/auto'
+
 import { afterAll, afterEach, describe, expect, it, vi } from 'vitest'
+
 import { CODIGO_EXIGE_CONTA, EVENTO_EXIGE_CONTA, servidorEfemero } from '../src/data/efemero/servidor'
 import { fecharStore } from '../src/data/efemero/store'
 

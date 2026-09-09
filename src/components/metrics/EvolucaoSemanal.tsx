@@ -15,9 +15,10 @@
  * `evolucaoSemanal`, o `.map` do drawer), e era justamente aí que o formato da data divergia.
  * Recebendo a série crua do contrato, não há o que divergir.
  */
-import React from 'react';
 import { TrendingUp } from 'lucide-react';
-import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, CartesianGrid } from 'recharts';
+import React from 'react';
+import { Area, AreaChart, CartesianGrid,ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
+
 import type { AppMetrics } from '../../core/learning/contract';
 import { data } from '../../lib/i18n';
 

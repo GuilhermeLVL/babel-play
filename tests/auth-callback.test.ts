@@ -1,7 +1,8 @@
 // @vitest-environment jsdom
 /** util de callback: detecta /auth/callback e limpa a URL para '/'. Fora do callback é no-op. */
-import { describe, it, expect, afterEach } from 'vitest'
-import { isOnAuthCallback, clearAuthCallbackUrl, AUTH_CALLBACK_PATH } from '../src/lib/authCallback'
+import { afterEach,describe, expect, it } from 'vitest'
+
+import { AUTH_CALLBACK_PATH,clearAuthCallbackUrl, isOnAuthCallback } from '../src/lib/authCallback'
 
 afterEach(() => { window.history.replaceState({}, '', '/') })
 

@@ -1,7 +1,8 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useRef,useState } from 'react';
 import { createPortal } from 'react-dom';
+
+import { APPEARANCE_ATTRS, applyAppearance, readAppearance, type StyledElement } from '../lib/appearanceSync';
 import { toast } from './Toast';
-import { readAppearance, applyAppearance, APPEARANCE_ATTRS, type StyledElement } from '../lib/appearanceSync';
 
 /**
  * "Relay" de legendas: renderiza os filhos numa janela Document Picture-in-Picture

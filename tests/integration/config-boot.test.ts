@@ -6,12 +6,13 @@
  * reimport do módulo para reavaliar o env, o que o torna sensível a ordem e a carga da máquina.
  * Uma função pura não tem esse problema: o teste diz o que entra e confere o que sai.
  */
-import { describe, it, expect } from 'vitest'
+import { describe, expect,it } from 'vitest'
+
 import {
-  VARIAVEIS,
+  adminDoSupabase,
   conferirConfiguracao,
   sttDeNuvemConfigurado,
-  adminDoSupabase,
+  VARIAVEIS,
 } from '../../server/lib/config'
 
 /** Ambiente mínimo de um deploy público bem configurado. */

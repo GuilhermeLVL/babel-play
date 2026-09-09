@@ -13,16 +13,16 @@
 import { patchUiSettings } from '../data/api';
 import {
   applyCustomColors,
-  readCustomColors,
+  type CustomColors,
   DEFAULT_CUSTOM_COLORS,
   FONTE_OPTIONS,
-  type CustomColors,
-  type ThemeType,
   type FonteType,
+  readCustomColors,
+  type ThemeType,
 } from './appearance';
-import { setSoundTheme, setSoundFonte } from './soundFx';
-import { applyParticulas, readParticulas } from './particulas';
 import { applyCursor, readCursor } from './cursores';
+import { applyParticulas, readParticulas } from './particulas';
+import { setSoundFonte,setSoundTheme } from './soundFx';
 
 export const THEME_KEY = 'app_theme';
 export const FONTE_KEY = 'app_fonte';

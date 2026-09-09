@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
+import { cleanup,fireEvent, render, screen, waitFor } from '@testing-library/react'
 import React from 'react'
-import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest'
-import { render, screen, fireEvent, waitFor, cleanup } from '@testing-library/react'
+import { afterEach,beforeEach, describe, expect, it, vi } from 'vitest'
 
 afterEach(cleanup)
 import AntessalaDaRodada from '../src/components/minigames/AntessalaDaRodada'

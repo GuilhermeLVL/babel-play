@@ -1,7 +1,8 @@
 /** Relatório de progresso (spec progresso-de-idioma): texto dos dados reais, nunca inventado. */
-import { describe, it, expect } from 'vitest';
-import { gerarRelatorioDeProgresso } from '../src/lib/relatorioDeProgresso';
 import type { AppMetrics } from '@core';
+import { describe, expect,it } from 'vitest';
+
+import { gerarRelatorioDeProgresso } from '../src/lib/relatorioDeProgresso';
 
 const base: AppMetrics = {
   sessions: 2, wordsCaptured: 300, deckSize: 201, newCards: 180, dueToday: 20,

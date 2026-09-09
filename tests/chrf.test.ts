@@ -5,8 +5,9 @@
  * que este produto traduz. Os testes abaixo verificam justamente essa propriedade, além da conta
  * de repetição, que é a assinatura da alucinação.
  */
-import { describe, it, expect } from 'vitest'
-import { chrf, agregarChrf, agregarPorCategoria, type CasoDeTraducao } from '../src/core/eval/chrf'
+import { describe, expect,it } from 'vitest'
+
+import { agregarChrf, agregarPorCategoria, type CasoDeTraducao,chrf } from '../src/core/eval/chrf'
 
 describe('chrF++', () => {
   it('tradução idêntica dá 1', () => {

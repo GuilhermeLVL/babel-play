@@ -5,11 +5,12 @@
  * Um `expect` que pareca estranho esta marcado com `// caracterizacao:` — o teste existe para
  * detectar MUDANCA, e a correcao, quando couber, pertence a outra fase.
  */
-import { describe, it, expect, beforeAll, afterAll } from 'vitest'
-import { subirApp, resposta, forma, semear, type AppDeTeste } from './_app'
-import { CATALOGO_DA_LOJA } from '../../src/core/loja'
+import { afterAll,beforeAll, describe, expect, it } from 'vitest'
+
 import { CONQUISTAS_CONFERIVEIS } from '../../src/core/economiaAutoridade'
 import { diaLocal } from '../../src/core/learning/economia'
+import { CATALOGO_DA_LOJA } from '../../src/core/loja'
+import { type AppDeTeste,forma, resposta, semear, subirApp } from './_app'
 
 const DONO = 'local-owner'
 

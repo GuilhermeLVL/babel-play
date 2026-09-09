@@ -1,5 +1,6 @@
-import type { Request, Response } from 'express'
 import { sql } from 'drizzle-orm'
+import type { Request, Response } from 'express'
+
 import { db } from '../db/db'
 import { bootStatus } from '../lib/bootStatus'
 import { log } from '../lib/logger'

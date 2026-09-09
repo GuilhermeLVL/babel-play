@@ -1,5 +1,6 @@
-import React from 'react';
 import { Loader2, Search } from 'lucide-react';
+import React from 'react';
+
 import type { ImageResult } from '../data/api';
 
 /**

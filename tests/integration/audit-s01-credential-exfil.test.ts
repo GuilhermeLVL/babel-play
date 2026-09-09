@@ -15,9 +15,10 @@
  * fetch é interceptado — NENHUM pacote sai da máquina. IP público literal 1.2.3.4 passa no guarda
  * SSRF (não é privado) e o mock intercepta antes de qualquer rede.
  */
-import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest'
-import { setupEphemeralDb, type EphemeralDb } from '../harness/ephemeralDb'
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
+
 import { asUserId } from '../../server/lib/authContext'
+import { type EphemeralDb,setupEphemeralDb } from '../harness/ephemeralDb'
 
 const FAKE_SECRET = 'sk-CHAVE-FALSA-DE-TESTE-nunca-real-0000'
 const ATTACKER = 'http://1.2.3.4'

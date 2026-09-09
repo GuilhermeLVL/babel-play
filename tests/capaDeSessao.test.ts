@@ -12,8 +12,9 @@
  * A imagem continua exatamente onde estava no banco. O que muda é o caminho de entrega — e com
  * ele o cache, que data-URI não tem.
  */
-import { describe, it, expect } from 'vitest'
-import { lerCapaEmbutida, ehCapaEmbutida, aliviarMeta, aliviarListagem } from '../server/lib/capaDeSessao'
+import { describe, expect,it } from 'vitest'
+
+import { aliviarListagem,aliviarMeta, ehCapaEmbutida, lerCapaEmbutida } from '../server/lib/capaDeSessao'
 
 /** PNG 1×1 transparente — o menor data-URI de imagem válido. */
 const PNG_1X1 = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg=='

@@ -1,11 +1,12 @@
-import React from 'react';
 // F5 — os imports de `recharts` e os ícones do gráfico saíram junto com a TERCEIRA cópia da
 // série semanal, que agora vive só em `components/metrics/EvolucaoSemanal.tsx`.
-import { X, Target, Clock, Activity, BookOpen, Mic } from 'lucide-react';
+import { Activity, BookOpen, Clock, Mic,Target, X } from 'lucide-react';
+import React from 'react';
+
 import type { AppMetrics } from '../../data/api';
+import { numero } from '../../lib/i18n';
 import { Confianca, SemDado } from '../Honestidade';
 import EvolucaoSemanal from '../metrics/EvolucaoSemanal';
-import { numero } from '../../lib/i18n';
 
 export type KpiType = 'volume' | 'retention' | 'time' | 'level' | null;
 

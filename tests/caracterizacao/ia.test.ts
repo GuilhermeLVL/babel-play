@@ -11,8 +11,9 @@
  * primário da tradução é configurado por env ANTES de subir o app; a credencial BYOK usa um IP
  * público literal (TEST-NET-3) porque o guard anti-SSRF resolve DNS de qualquer hostname.
  */
-import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from 'vitest'
-import { subirApp, resposta, type AppDeTeste } from './_app'
+import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
+
+import { type AppDeTeste,resposta, subirApp } from './_app'
 
 const ENV_PRIMARIO = {
   LLM_API_KEY: 'chave-falsa-primaria',

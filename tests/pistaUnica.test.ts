@@ -1,7 +1,8 @@
-import { describe, it, expect } from 'vitest';
+import { describe, expect,it } from 'vitest';
+
+import { chaveComparavel } from '../src/core/learning/quality';
 import { buildItems, promptFor } from '../src/core/minigames/itemSource';
 import { buildTermoRounds } from '../src/core/minigames/termo';
-import { chaveComparavel } from '../src/core/learning/quality';
 import type { VocabCard } from '../src/types';
 
 /**

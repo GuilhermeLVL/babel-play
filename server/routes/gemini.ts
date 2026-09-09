@@ -19,15 +19,16 @@
  * provedor recusou" que existe hoje. Trocá-las pelo `log()` mudaria o formato da saída, e esta
  * change move código sem mudar comportamento. A migração é da fase de observabilidade.
  */
-import { Router } from "express";
 import { GoogleGenAI } from "@google/genai";
-import { prepareLlmRequest } from "../ai/llmRequest";
+import { Router } from "express";
+
 import { chamarChat, type MensagemDeChat } from "../ai/llmClient";
+import { prepareLlmRequest } from "../ai/llmRequest";
 import { llmDeNuvem, llmLocal, MODELO_GEMINI_PADRAO } from "../ai/provedores";
 /* F14-02: a leitura de env sai do handler e passa pelo inventario declarado em lib/config. */
 import { chaveDoGemini, modeloDoGemini } from "../lib/config";
 import { hasEntitlement } from "../lib/entitlements";
-import { reserveManagedCall, refundManagedCall } from "../lib/usageQuota";
+import { refundManagedCall,reserveManagedCall } from "../lib/usageQuota";
 
 export const geminiRouter = Router();
 

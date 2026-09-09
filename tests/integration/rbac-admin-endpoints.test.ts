@@ -3,12 +3,14 @@
  * admin lê/escreve dado de OUTRO dono, support só lê (PATCH→403), guarda anti-self-lockout, e 404.
  * Express in-process + stub injetando req.userId (o requireRole real lê o papel do banco efêmero).
  */
-import { describe, it, expect, beforeAll, afterAll } from 'vitest'
-import express from 'express'
-import type { AddressInfo } from 'node:net'
 import type { Server } from 'node:http'
-import { setupEphemeralDb, type EphemeralDb } from '../harness/ephemeralDb'
+import type { AddressInfo } from 'node:net'
+
+import express from 'express'
+import { afterAll,beforeAll, describe, expect, it } from 'vitest'
+
 import { asUserId, type UserId } from '../../server/lib/authContext'
+import { type EphemeralDb,setupEphemeralDb } from '../harness/ephemeralDb'
 
 let h: EphemeralDb
 let server: Server

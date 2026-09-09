@@ -1,6 +1,7 @@
-import { test, expect, type Page } from '@playwright/test';
-import { irParaPraticar, clicarRobusto, fecharSobreposicoes } from './_helpers';
-import { semearCartoes, mapaDoBaralho } from './_fixtures';
+import { expect, type Page,test } from '@playwright/test';
+
+import { mapaDoBaralho,semearCartoes } from './_fixtures';
+import { clicarRobusto, fecharSobreposicoes,irParaPraticar } from './_helpers';
 
 /**
  * UMA SESSAO DE JOGO INTEIRA, do lobby ao fim da rodada — tres jogos, tres mecanicas.

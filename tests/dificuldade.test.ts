@@ -8,10 +8,11 @@
  * Ou seja: "cartão sem sinal forte" é o caso COMUM, não a exceção. Estes testes tratam o deck frio
  * como caminho principal, e o cartão revisado como o caso que se soma depois.
  */
-import { describe, it, expect } from 'vitest'
+import { describe, expect,it } from 'vitest'
+
 import {
-  calcularDificuldade, faixaDe, cortesDoDeck, CORTE_FACIL, CORTE_DIFICIL,
-  PESO_MAXIMO_RETRIEVABILITY, REVISOES_PARA_PESO_CHEIO,
+  calcularDificuldade, CORTE_DIFICIL,
+CORTE_FACIL, cortesDoDeck, faixaDe,   PESO_MAXIMO_RETRIEVABILITY, REVISOES_PARA_PESO_CHEIO,
   type SinaisDoCartao,
 } from '../src/core/learning/dificuldade'
 

@@ -1,19 +1,20 @@
-import { useEffect, useMemo, useRef, useState, type Dispatch, type SetStateAction } from 'react';
 import type { ContextoDeConquistas } from '@core';
-import type { AppMetrics, RecordeDoJogo } from '../../data/api';
-import type { ThemeType, FonteType } from '../appearance';
+import { type Dispatch, type SetStateAction,useEffect, useMemo, useRef, useState } from 'react';
+
+import { chaveDaRecompensa, type DetalheDoDrop,EVENTO_DROP_GANHO, type Recompensa, recompensasVistas } from '../../components/RecompensaDesbloqueada';
 import type { MenuPositionType } from '../../components/shell/navItems';
 import { toast } from '../../components/Toast';
-import { recompensasVistas, chaveDaRecompensa, EVENTO_DROP_GANHO, type Recompensa, type DetalheDoDrop } from '../../components/RecompensaDesbloqueada';
+import type { AppMetrics, RecordeDoJogo } from '../../data/api';
+import type { FonteType,ThemeType } from '../appearance';
 import { montarContextoDeConquistas, verificarConquistas } from '../conquistas';
 import { desbloqueado } from '../desbloqueios';
-import { recompensasDoNivelCompleto, itemDaConquista } from '../galeria/progressao';
-import type { ContextoDeEquipar } from '../galeria/equipar';
-import { CATALOGO_DA_LOJA } from '../loja';
-import { comemorar } from '../juice';
-import { play } from '../soundFx';
 import { emitBurst } from '../effects';
+import type { ContextoDeEquipar } from '../galeria/equipar';
+import { itemDaConquista,recompensasDoNivelCompleto } from '../galeria/progressao';
+import { comemorar } from '../juice';
+import { CATALOGO_DA_LOJA } from '../loja';
 import type { DerivedProgress } from '../progress';
+import { play } from '../soundFx';
 
 export interface DependenciasDasRecompensas {
   metrics: AppMetrics | null;

@@ -1,9 +1,10 @@
 // @vitest-environment jsdom
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { CONQUISTAS, avaliarConquistas, progressoDasConquistas, conquistaDoCosmetico, type ContextoDeConquistas } from '../src/core/learning/conquistas'
+
+import { avaliarConquistas, conquistaDoCosmetico, CONQUISTAS, type ContextoDeConquistas,progressoDasConquistas } from '../src/core/learning/conquistas'
 import type { AppMetrics } from '../src/core/learning/contract'
-import { CATALOGO_DA_LOJA } from '../src/lib/loja'
 import { conquistasDesbloqueadas } from '../src/lib/conquistasPosse'
+import { CATALOGO_DA_LOJA } from '../src/lib/loja'
 
 function metricas(p: Partial<AppMetrics> = {}): AppMetrics {
   return {

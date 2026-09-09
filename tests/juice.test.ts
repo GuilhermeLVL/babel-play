@@ -1,8 +1,9 @@
-import { describe, it, expect } from 'vitest';
-import { multiplicador, SOM } from '../src/lib/juice';
-import { EVENTS } from '../src/lib/soundFx';
+import { describe, expect,it } from 'vitest';
+
 import { gradeFor } from '../src/core/minigames/grade';
 import { BURST_SPECS } from '../src/lib/effects';
+import { multiplicador, SOM } from '../src/lib/juice';
+import { EVENTS } from '../src/lib/soundFx';
 
 /**
  * A CAMADA DE COMEMORAÇÃO — o que precisa continuar verdade.

@@ -1,7 +1,8 @@
+import { Check,ChevronDown, Search, Sparkles } from 'lucide-react';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { ChevronDown, Sparkles, Search, Check } from 'lucide-react';
-import { LANGUAGES, langMatches } from '../lib/languages';
+
+import { langMatches,LANGUAGES } from '../lib/languages';
 import { usePosicaoFlutuante } from '../lib/posicaoFlutuante';
 import { LangFlag } from './LangFlag';
 

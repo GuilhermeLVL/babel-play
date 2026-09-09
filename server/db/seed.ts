@@ -4,9 +4,9 @@
  * primeira sessão real. Idempotente (só roda com o banco vazio). Honesto: são
  * dados de demonstração explícitos, não mock disfarçado de real.
  */
+import { LOCAL_OWNER } from '../lib/authContext'
 import { sessionsRepo } from './repositories/sessions'
 import { vocabRepo } from './repositories/vocab'
-import { LOCAL_OWNER } from '../lib/authContext'
 
 export async function seedIfEmpty(): Promise<void> {
   // Seed de demonstração pertence ao dono local (Marco 1). Idempotente: se ele já tem sessões, sai.

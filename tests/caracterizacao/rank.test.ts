@@ -8,8 +8,9 @@
  * saem de 127.0.0.1. O primeiro POST valido entra; a partir dele, qualquer POST valido dentro de
  * um minuto e 429. As recusas de validacao (400/404) vem ANTES da trava e continuam observaveis.
  */
-import { describe, it, expect, beforeAll, afterAll } from 'vitest'
-import { subirApp, resposta, type AppDeTeste } from './_app'
+import { afterAll,beforeAll, describe, expect, it } from 'vitest'
+
+import { type AppDeTeste,resposta, subirApp } from './_app'
 
 describe('ranking publico (modo publico, sem token)', () => {
   let s: AppDeTeste

@@ -16,8 +16,7 @@ import { Router } from "express";
  * OBS: esta rota só faz sentido no modo local/self-host. Num deploy em nuvem o servidor
  * não tem áudio do usuário — `supported` responde false e a UI esconde a opção.
  */
-
-import { TARGET_RATE, makeDownsampler } from "./downsample";
+import { makeDownsampler,TARGET_RATE } from "./downsample";
 import { LoopbackExclusion } from "./loopbackExclusion";
 
 type LoopbackModule = { LoopbackCapture: new () => { startSystemAudio(cb: (chunk: Buffer) => void): void; stop(): void } };

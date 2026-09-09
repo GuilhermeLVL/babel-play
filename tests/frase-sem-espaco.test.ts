@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { contarPalavras, avaliarFrase } from '../src/core/learning/quality';
+
+import { avaliarFrase,contarPalavras } from '../src/core/learning/quality';
 
 /**
  * `split(/\s+/)` responde 1 para qualquer frase japonesa, e a régua reprovava o idioma inteiro:

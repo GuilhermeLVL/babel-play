@@ -5,8 +5,8 @@
  * Nunca perde o que está na tela: fecha e a pessoa segue onde estava. As três saídas são as do
  * desenho (D10): entrar · criar conta · continuar sem conta.
  */
-import { useEffect, useRef } from 'react';
 import { Lock, X } from 'lucide-react';
+import { useEffect, useRef } from 'react';
 
 interface GateDeContaProps {
   aberto: boolean;

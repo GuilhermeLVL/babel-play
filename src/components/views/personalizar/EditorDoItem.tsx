@@ -1,24 +1,25 @@
+import { Check, Crown, Lock, ShoppingBag,Sprout, Trophy, X } from 'lucide-react';
 import { useState } from 'react';
 import { createPortal } from 'react-dom';
-import { X, Check, Lock, Sprout, Trophy, Crown, ShoppingBag } from 'lucide-react';
-import { toast } from '../../Toast';
+
 import { gastarSeeds } from '../../../data/api';
-import {
-  cromasDaPeca, temOCroma, idDoCroma, marcarCroma, cromaEquipado, equiparCroma,
-  type Croma,
-} from '../../../lib/galeria/cromas';
-import {
-  lerIntensidade, setIntensidade, intensidadeMaxima, nivelDoAprimoramento, type Intensidade,
-} from '../../../lib/aprimoramentos';
-import { FORMAS_DE_RASTRO, setRastro, readRastro, idDeRastroDeCroma, idDeRastroDeEmojis } from '../../../lib/rastroDoMouse';
-import { PACK_CUSTOM, readPack, setPack, setPackCustom, lerPackCustom } from '../../../lib/particulas';
-import { readCursor, setCursor, idDeCursorDeEmoji } from '../../../lib/cursores';
-import { acessoAoEditorDePack, acessoAoCursorDeEmoji, acessoAoRastroDeEmojis, type Acesso } from '../../../lib/galeria/acesso';
-import { MATIZES } from '../../../lib/galeria/paletas';
 import { applyCustomColors, THEME_OPTIONS, type ThemeType } from '../../../lib/appearance';
+import {
+type Intensidade,
+intensidadeMaxima,   lerIntensidade, nivelDoAprimoramento, setIntensidade, } from '../../../lib/aprimoramentos';
+import { idDeCursorDeEmoji,readCursor, setCursor } from '../../../lib/cursores';
+import { type Acesso,acessoAoCursorDeEmoji, acessoAoEditorDePack, acessoAoRastroDeEmojis } from '../../../lib/galeria/acesso';
+import {
+  type Croma,
+cromaEquipado,   cromasDaPeca, equiparCroma,
+idDoCroma, marcarCroma, temOCroma, } from '../../../lib/galeria/cromas';
+import { MATIZES } from '../../../lib/galeria/paletas';
+import type { ItemDaLoja } from '../../../lib/loja';
+import { lerPackCustom,PACK_CUSTOM, readPack, setPack, setPackCustom } from '../../../lib/particulas';
+import { FORMAS_DE_RASTRO, idDeRastroDeCroma, idDeRastroDeEmojis,readRastro, setRastro } from '../../../lib/rastroDoMouse';
+import { toast } from '../../Toast';
 import SeletorDeEmojis from './SeletorDeEmojis';
 import SeletorDePaletas from './SeletorDePaletas';
-import type { ItemDaLoja } from '../../../lib/loja';
 
 /**
  * EDITOR CONTEXTUAL DE UM ITEM (mudança inventario-e-cromas; protótipo aprovado em 01/09).

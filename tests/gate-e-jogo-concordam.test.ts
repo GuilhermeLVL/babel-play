@@ -1,7 +1,8 @@
-import { describe, it, expect } from 'vitest';
+import { describe, expect,it } from 'vitest';
+
 import { buildItems, canPlay } from '../src/core/minigames/itemSource';
-import { MINIGAMES, type MinigameId } from '../src/core/minigames/types';
 import { montarCorrente } from '../src/core/minigames/shiritori';
+import { type MinigameId,MINIGAMES } from '../src/core/minigames/types';
 import type { VocabCard } from '../src/types';
 
 /**

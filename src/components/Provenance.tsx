@@ -1,5 +1,5 @@
+import { BookOpen, ChevronDown,Cpu, ExternalLink, Info, Sparkles, Waves } from 'lucide-react';
 import { useState } from 'react';
-import { BookOpen, Cpu, ExternalLink, Info, Sparkles, Waves, ChevronDown } from 'lucide-react';
 
 /**
  * PROCEDÊNCIA — de onde veio este dado, e como foi apurado.

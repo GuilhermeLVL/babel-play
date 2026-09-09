@@ -1,19 +1,20 @@
 /** Rota de métricas (montada em `/api/metrics`). */
-import { Router, type Request, type Response } from 'express'
-import { computeProfile, computeXpHistory } from '../db/repositories/metrics'
-import { seedSpendsRepo } from '../db/repositories/seedSpends'
-import { economiaRepo } from '../db/repositories/economia'
-import { exerciseResultsRepo } from '../db/repositories/exerciseResults'
-import { economiaDoUsuario } from '../db/repositories/metrics'
+import { type Request, type Response,Router } from 'express'
+
 import {
-  autorizarGasto, ehRecusa, valorDoCredito, CONQUISTAS_CONFERIVEIS,
-  roundIdDoDrop, itensSorteaveisNoDrop, sortearItemDoDrop, valorDoDrop,
+  autorizarGasto, CONQUISTAS_CONFERIVEIS,
+ehRecusa, itensSorteaveisNoDrop,   roundIdDoDrop, sortearItemDoDrop, valorDoCredito, valorDoDrop,
 } from '../../src/core/economiaAutoridade'
 import type { ContextoDeConquistas } from '../../src/core/learning/conquistas'
 import { diaLocal, sequencias } from '../../src/core/learning/economia'
-import { seedSpendSchema, seedCreditSchema, presencaSchema, parseOr400, metricsProfileQuerySchema, metricsXpQuerySchema } from '../validation'
+import { economiaRepo } from '../db/repositories/economia'
+import { exerciseResultsRepo } from '../db/repositories/exerciseResults'
+import { computeProfile, computeXpHistory } from '../db/repositories/metrics'
+import { economiaDoUsuario } from '../db/repositories/metrics'
+import { seedSpendsRepo } from '../db/repositories/seedSpends'
 import { erroDeRota } from '../lib/erroDeRota'
 import { responderErro } from '../lib/respostaDeErro'
+import { metricsProfileQuerySchema, metricsXpQuerySchema,parseOr400, presencaSchema, seedCreditSchema, seedSpendSchema } from '../validation'
 
 export const metricsRouter = Router()
 

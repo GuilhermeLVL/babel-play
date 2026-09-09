@@ -11,11 +11,12 @@
  * `deriveProgress` (os cartões do Hub) e a tela de Conquistas. Nada os comparava. Este teste
  * compara, e a decisão de não unificá-los está em `docs/adr/0002-pareamento-de-recompensa-cobrado-por-teste.md`.
  */
-import { describe, it, expect } from 'vitest'
+import { describe, expect,it } from 'vitest'
+
 import { REGRAS } from '../src/core/learning/economia'
-import { PESOS_XP, PESOS_SEEDS } from '../src/core/learning/xp'
-import { deriveProgress } from '../src/lib/progress'
+import { PESOS_SEEDS,PESOS_XP } from '../src/core/learning/xp'
 import type { AppMetrics } from '../src/data/api'
+import { deriveProgress } from '../src/lib/progress'
 
 /** Métricas mínimas para `deriveProgress` devolver as três missões com as recompensas preenchidas. */
 const METRICAS = {

@@ -25,7 +25,7 @@
  * reescreve o passado. É aceitável porque é a mesma propriedade que o número de hoje sempre teve;
  * o que não seria aceitável é fingir um registro histórico que não existe.
  */
-import { xpDeEventos, nivelDoXp, type EventosDeXp } from './xp';
+import { type EventosDeXp,nivelDoXp, xpDeEventos } from './xp';
 
 export type BaldeDeXp = 'dia' | 'semana';
 

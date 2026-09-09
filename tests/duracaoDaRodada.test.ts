@@ -6,8 +6,9 @@
  * devolvendo um chute no lugar do `null`, e o resultado seria um número plausível e falso — a
  * mesma classe de defeito que `tests/semConteudoFabricado.test.ts` barra em outras telas.
  */
-import { describe, it, expect } from 'vitest'
-import { estimativaDeMinutos, medianaPorItem, rotuloDeDuracao, MIN_AMOSTRAS } from '../src/core/minigames/duracao'
+import { describe, expect,it } from 'vitest'
+
+import { estimativaDeMinutos, medianaPorItem, MIN_AMOSTRAS,rotuloDeDuracao } from '../src/core/minigames/duracao'
 
 /** `n` amostras de `ms` cada. */
 const amostras = (n: number, ms: number) => Array.from({ length: n }, () => ms)

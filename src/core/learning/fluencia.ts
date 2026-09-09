@@ -1,8 +1,8 @@
-import { retrievability } from './scheduler';
-import { nivelCefr } from './cefrWordlist';
-import { NIVEIS_CEFR } from './trilha';
-import type { CefrLevel } from './contract';
 import type { VocabCard } from '../../types';
+import { nivelCefr } from './cefrWordlist';
+import type { CefrLevel } from './contract';
+import { retrievability } from './scheduler';
+import { NIVEIS_CEFR } from './trilha';
 
 /**
  * FLUÊNCIA — o quanto você SUSTENTA de cada faixa CEFR, e o rótulo que sai disso.

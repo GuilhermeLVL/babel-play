@@ -1,15 +1,15 @@
-import type { VocabCard, SchedulerType } from '../../types';
-import { byUrgency, isDueNow } from '../learning/due';
+import type { SchedulerType,VocabCard } from '../../types';
 import { makeCloze } from '../learning/cloze';
+import { byUrgency, isDueNow } from '../learning/due';
+import { type HistoricoDoItem,ordenarPorMemoria } from '../learning/memoriaDeItens';
+import { pistaDeJogo } from '../learning/pistaDeJogo';
 import { avaliarCartao, chaveComparavel } from '../learning/quality';
 import { baseLang } from '../texto/idioma';
-import { pistaDeJogo } from '../learning/pistaDeJogo';
-import { digitavelNoTermo } from './termo';
-import { entraNaGrade } from './wordsearch';
 import { itensDaCorrente } from './shiritori';
-import type { MinigameItem, MinigameId } from './types';
+import { digitavelNoTermo } from './termo';
+import type { MinigameId,MinigameItem } from './types';
 import { MINIGAMES } from './types';
-import { ordenarPorMemoria, type HistoricoDoItem } from '../learning/memoriaDeItens';
+import { entraNaGrade } from './wordsearch';
 
 /**
  * DE ONDE VÊM OS ITENS DE UMA RODADA.

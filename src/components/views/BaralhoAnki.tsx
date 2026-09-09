@@ -1,13 +1,14 @@
-import React, { useRef, useState } from 'react';
+import { type MotivoDescarte,motivoLegivel, ROTULO_MOTIVO } from '@core';
 import JSZip from 'jszip';
-import { ArrowLeft, Upload, Download, Loader2, AlertTriangle, FileText, Info, CheckCircle2 } from 'lucide-react';
+import { AlertTriangle, ArrowLeft, CheckCircle2,Download, FileText, Info, Loader2, Upload } from 'lucide-react';
+import React, { useRef, useState } from 'react';
+
 import { apiFetch, exportarApkg } from '../../data/api';
 import { ativarNotasDoBaralho, type ResultadoAtivar } from '../../data/apiAnki';
-import { motivoLegivel, ROTULO_MOTIVO, type MotivoDescarte } from '@core';
-import type { VocabCard } from '../../types';
-import type { AgeProfileType } from '../../lib/profile';
-import { toast } from '../Toast';
 import { t } from '../../lib/i18n';
+import type { AgeProfileType } from '../../lib/profile';
+import type { VocabCard } from '../../types';
+import { toast } from '../Toast';
 
 /**
  * BARALHOS DO ANKI — trazer e levar.

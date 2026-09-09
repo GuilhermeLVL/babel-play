@@ -21,9 +21,9 @@
  * Nada disso cria spec nova: `estiloDeRastro()` resolve o id para um `kind` base + um
  * `sobrescrever` (cores/emojis) e o canvas aplica por cima. Centenas de combinações, zero custo.
  */
-import { emitBurst, type BurstKind, type BurstSpec } from './effects';
-import { paletaPorId, coresDaPaleta, MATIZES } from './galeria/paletas';
+import { type BurstKind, type BurstSpec,emitBurst } from './effects';
 import { sanearListaDeEmojis } from './galeria/emojis';
+import { coresDaPaleta, MATIZES,paletaPorId } from './galeria/paletas';
 
 export interface EstiloDeRastro { id: string; nome: string; kind: BurstKind }
 

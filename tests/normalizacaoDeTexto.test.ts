@@ -8,8 +8,9 @@
  * Os casos abaixo são justamente os que as distinguem. Se alguém "simplificar" as três numa só,
  * é aqui que a simplificação falha.
  */
-import { describe, it, expect } from 'vitest'
-import { chaveDaPalavra, chaveDedup, dobrarTexto, comBaseLatina } from '../src/core/texto/palavra'
+import { describe, expect,it } from 'vitest'
+
+import { chaveDaPalavra, chaveDedup, comBaseLatina,dobrarTexto } from '../src/core/texto/palavra'
 
 describe('1. estas duas PALAVRAS são a mesma?', () => {
   it('ignora acento e caixa', () => {

@@ -9,9 +9,11 @@
  * Este teste varre as telas de venda por preço em real escrito no meio do JSX. Ele reprova o
  * padrão, não o número: se alguém escrever "R$ 29,90" numa tela nova, quebra aqui.
  */
-import { describe, it, expect } from 'vitest'
 import { readFileSync } from 'node:fs'
-import { precoDoPlano, menorPrecoDeAssinatura, armazenamentoEmTexto } from '../src/core/planos'
+
+import { describe, expect,it } from 'vitest'
+
+import { armazenamentoEmTexto,menorPrecoDeAssinatura, precoDoPlano } from '../src/core/planos'
 
 const TELAS = [
   'src/components/views/Planos.tsx',

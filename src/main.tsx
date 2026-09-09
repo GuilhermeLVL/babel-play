@@ -1,10 +1,12 @@
+import './index.css';
+
 import {StrictMode} from 'react';
 import {createRoot} from 'react-dom/client';
+
 import App from './App.tsx';
 import ErroDaTela from './components/ErroDaTela';
-import './index.css';
-import {bootTheme} from './lib/theme';
 import {instalarRelatorioDeErros} from './lib/relatorioDeErros';
+import {bootTheme} from './lib/theme';
 
 // Antes do primeiro render: pinta `data-theme` e `.dark` a partir do localStorage.
 // O servidor reconcilia depois (App → hydrateTheme), mas sem isto haveria um

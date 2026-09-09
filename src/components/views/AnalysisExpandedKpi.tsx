@@ -1,9 +1,10 @@
-import React from 'react';
-import { X, Activity, MessageSquareWarning, Crosshair, TrendingUp, AlertTriangle, BookOpen, Clock, BarChart2, Zap, Tags } from 'lucide-react';
-import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid, AreaChart, Area } from 'recharts';
 import { extractKeywords } from '@core';
-import { SemDado } from '../Honestidade';
+import { Activity, AlertTriangle, BarChart2, BookOpen, Clock, Crosshair, MessageSquareWarning, Tags,TrendingUp, X, Zap } from 'lucide-react';
+import React from 'react';
+import { Area,AreaChart, Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
+
 import { numero } from '../../lib/i18n';
+import { SemDado } from '../Honestidade';
 
 export type AnalysisKpiType = 'ppm' | 'fillers' | 'lexical_richness' | 'dominant_tone' | 'long_pauses' | 'words_read' | 'study_time' | 'flesch' | 'density' | 'jargons' | 'articulatory_pauses' | 'topics' | null;
 

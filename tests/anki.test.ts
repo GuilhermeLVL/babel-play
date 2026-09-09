@@ -1,7 +1,9 @@
-import { describe, it, expect } from 'vitest';
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import { lerApkg, lerTextoAnki, limparCampo, escritaDominante } from '../server/import/anki';
+
+import { describe, expect,it } from 'vitest';
+
+import { escritaDominante,lerApkg, lerTextoAnki, limparCampo } from '../server/import/anki';
 
 /**
  * O LEITOR DE BARALHOS DO ANKI.

@@ -1,13 +1,14 @@
+import type { ItemOutcome, MinigameItem, RoundReport } from '@core';
+import { distractorsFor, MINIGAMES, scoreRound } from '@core';
+import { Award, Timer as TimerIcon,Volume2, X } from 'lucide-react';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { X, Volume2, Award, Timer as TimerIcon } from 'lucide-react';
-import type { MinigameItem, ItemOutcome, RoundReport } from '@core';
-import { MINIGAMES, distractorsFor, scoreRound } from '@core';
-import { direcaoDoTexto } from '../../../lib/languages';
+
 import { idiomaDaInterface } from '../../../lib/i18n';
+import { comemorar, tremor } from '../../../lib/juice';
+import { direcaoDoTexto } from '../../../lib/languages';
 import type { AgeProfileType } from '../../../lib/profile';
 import { play } from '../../../lib/soundFx';
-import { comemorar, tremor } from '../../../lib/juice';
-import { speak, isTtsSupported } from '../../../lib/tts';
+import { isTtsSupported,speak } from '../../../lib/tts';
 
 /**
  * KARUTA — o narrador declama a PISTA e as cartas na mesa trazem as palavras candidatas.

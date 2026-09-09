@@ -23,10 +23,12 @@
  * chamada capaz de dispará-lo. É o mesmo desenho de `tests/contratos/rotas-espelhadas.test.ts`,
  * que varre o código atrás das rotas em vez de confiar numa lista.
  */
-import { describe, it, expect } from 'vitest';
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
-import { todosOsEventos, eventosCondicionais, sortearEventoRaro, type ContextoDeJogada } from '../src/lib/eventosDeJogo';
+
+import { describe, expect,it } from 'vitest';
+
+import { type ContextoDeJogada,eventosCondicionais, sortearEventoRaro, todosOsEventos } from '../src/lib/eventosDeJogo';
 
 const RAIZ = join(__dirname, '..', 'src');
 

@@ -6,6 +6,7 @@
  * a secundária devolve para onde dá para usar sem conta.
  */
 import { Lock } from 'lucide-react';
+
 import { Vazio } from '../ui';
 import { CONVITE } from './exigeConta';
 

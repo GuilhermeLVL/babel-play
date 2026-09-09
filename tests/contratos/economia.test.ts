@@ -16,12 +16,14 @@
  * justamente o que estava divergindo.
  */
 import 'fake-indexeddb/auto'
-import { describe, it, expect, beforeAll, afterAll } from 'vitest'
-import { setupEphemeralDb, type EphemeralDb } from '../harness/ephemeralDb'
+
+import { afterAll,beforeAll, describe, expect, it } from 'vitest'
+
+import { asUserId } from '../../server/lib/authContext'
+import { itensSorteaveisNoDrop,SEEDS_DO_DROP } from '../../src/core/economiaAutoridade'
 import { servidorEfemero } from '../../src/data/efemero/servidor'
 import { fecharStore, limparTudo } from '../../src/data/efemero/store'
-import { asUserId } from '../../server/lib/authContext'
-import { SEEDS_DO_DROP, itensSorteaveisNoDrop } from '../../src/core/economiaAutoridade'
+import { type EphemeralDb,setupEphemeralDb } from '../harness/ephemeralDb'
 
 let h: EphemeralDb
 let metricsRouter: any

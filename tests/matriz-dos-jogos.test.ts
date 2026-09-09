@@ -2,12 +2,13 @@
  * Matriz: TODO minijogo de `MINIGAMES` × 5 perfis de conteúdo. Alvo: pista que entrega a resposta, pool que
  * despenca sem aviso, jogo que aceita material que não sabe renderizar.
  */
-import { describe, it, expect } from 'vitest';
-import { buildItems } from '../src/core/minigames/itemSource';
-import { rodadasDaEscada, buildTermoRounds } from '../src/core/minigames/termo';
-import { estadoDoJogo } from '../src/core/minigames/estadoDosJogos';
-import { MINIGAMES, type MinigameId } from '../src/core/minigames/types';
+import { describe, expect,it } from 'vitest';
+
 import { vazaResposta } from '../src/core/learning/pistaDeJogo';
+import { estadoDoJogo } from '../src/core/minigames/estadoDosJogos';
+import { buildItems } from '../src/core/minigames/itemSource';
+import { buildTermoRounds,rodadasDaEscada } from '../src/core/minigames/termo';
+import { type MinigameId,MINIGAMES } from '../src/core/minigames/types';
 import type { VocabCard } from '../src/types';
 
 const AGORA = Date.parse('2026-07-28T12:00:00.000Z');

@@ -9,13 +9,14 @@
  * A correção é um MANIFESTO gravado ao fim de uma carga bem-sucedida: só está em cache quando
  * todos os arquivos do manifesto existem E o tamanho de cada um bate.
  */
-import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
+
 import {
   chaveDoManifesto,
   gravarManifesto,
   lerManifesto,
-  modeloEstaCompleto,
   type ManifestoDeModelo,
+  modeloEstaCompleto,
 } from '../src/gateway/modelManifest'
 
 /** Cache Storage falso, fiel ao que usamos: keys() + match() + put(). */

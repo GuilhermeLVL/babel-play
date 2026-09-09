@@ -1,8 +1,9 @@
+import { BarChart3, BookOpen, FileText, Gamepad2, Headphones, LayoutGrid, Library, Mic, Settings as SettingsIcon, Timer,Video } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
-import { Mic, BookOpen, Headphones, Video, FileText, LayoutGrid, Gamepad2, Library, BarChart3, Settings as SettingsIcon, Timer } from 'lucide-react';
-import CommandPalette, { type Command } from './CommandPalette';
+
 import { fetchDeck } from '../data/api';
 import type { Recording, VocabCard } from '../types';
+import CommandPalette, { type Command } from './CommandPalette';
 
 /**
  * BUSCA GLOBAL — achar pelo nome, de qualquer tela.

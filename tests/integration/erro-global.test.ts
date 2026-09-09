@@ -11,10 +11,12 @@
  * Um teste que só verificasse "o handler existe" não provaria nada — o valor está em o request
  * TERMINAR, e é isso que o timeout abaixo mede.
  */
-import { describe, it, expect } from 'vitest'
-import express, { Router } from 'express'
 import type { AddressInfo } from 'node:net'
-import { erroGlobal, capturarAssincrono } from '../../server/lib/erroGlobal'
+
+import express, { Router } from 'express'
+import { describe, expect,it } from 'vitest'
+
+import { capturarAssincrono,erroGlobal } from '../../server/lib/erroGlobal'
 
 /** Sobe um app efêmero e devolve a URL base + como derrubá-lo. */
 async function subir(montar: (app: express.Express) => void) {

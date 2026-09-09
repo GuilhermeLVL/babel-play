@@ -1,16 +1,17 @@
+import { Check, Crown, Lock, Palette, Pencil, Save, ShoppingBag, Sparkles, Sprout, Trash2, TrendingUp, Trophy, Wand2 } from 'lucide-react';
 import { useMemo, useState } from 'react';
-import { Check, Lock, Palette, Pencil, Save, ShoppingBag, Sparkles, Sprout, Trash2, Trophy, TrendingUp, Crown, Wand2 } from 'lucide-react';
-import { toast } from '../../Toast';
-import { comemorar } from '../../../lib/juice';
-import { CATALOGO_DA_LOJA, COR_DA_RARIDADE, ORIGEM, estadoDoItem, rotaDeObtencao, type DestinoDeObtencao, type ItemDaLoja, type OrigemDoItem } from '../../../lib/loja';
-import { estadoDaColecao } from '../../../lib/galeria/progressao';
-import { equiparItem, equipavel, type ContextoDeEquipar } from '../../../lib/galeria/equipar';
-import { possuidos } from '../../../lib/loja';
-import { cromasDaPeca, temOCroma, cromaEquipado } from '../../../lib/galeria/cromas';
+
+import { cromaEquipado,cromasDaPeca, temOCroma } from '../../../lib/galeria/cromas';
+import { type ContextoDeEquipar,equiparItem, equipavel } from '../../../lib/galeria/equipar';
 import { paletaPorId } from '../../../lib/galeria/paletas';
 import type { Perfil } from '../../../lib/galeria/perfis';
+import { estadoDaColecao } from '../../../lib/galeria/progressao';
+import { comemorar } from '../../../lib/juice';
+import { CATALOGO_DA_LOJA, COR_DA_RARIDADE, type DestinoDeObtencao, estadoDoItem, type ItemDaLoja, ORIGEM, type OrigemDoItem,rotaDeObtencao } from '../../../lib/loja';
+import { possuidos } from '../../../lib/loja';
 import MiniaturaDoItem from '../../MiniaturaDoItem';
-import EditorDoItem, { temPersonalizacao, temCroma } from './EditorDoItem';
+import { toast } from '../../Toast';
+import EditorDoItem, { temCroma,temPersonalizacao } from './EditorDoItem';
 
 /**
  * O INVENTÁRIO (protótipo aprovado 01/09) — a arrumação que jogos usam há vinte anos: **o que

@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 /** A seção de conta só aparece no modo com login (authRequired); no self-host não renderiza nada. */
-import { it, expect, afterEach, vi } from 'vitest'
-import { render, screen, cleanup } from '@testing-library/react'
+import { cleanup,render, screen } from '@testing-library/react'
+import { afterEach, expect, it, vi } from 'vitest'
 
 afterEach(() => { cleanup(); vi.resetModules() })
 

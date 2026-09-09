@@ -1,15 +1,17 @@
 /** Rotas de sessões (montadas em `/api/sessions`). */
-import { Router, raw } from 'express'
 import path from 'node:path'
+
+import { raw,Router } from 'express'
+
 import { sessionsRepo } from '../db/repositories/sessions'
 import { utterancesRepo } from '../db/repositories/utterances'
-import { createSessionSchema, replaceUtterancesSchema, parseOr400, isSafeImageUrl, patchUtteranceSchema, patchSessionSchema, relabelUtterancesSchema, patchMetaSchema, idParamSchema } from '../validation'
-import { erroDeRota } from '../lib/erroDeRota'
-import { aliviarListagem, aliviarMeta, lerCapaEmbutida } from '../lib/capaDeSessao'
-import { reservarArmazenamento, liberarArmazenamento, corpoDeRecusa } from '../lib/storageQuota'
 import { armazenamentoDoAmbiente } from '../lib/armazenamento'
-import { detectarAudio, FORMATOS_DE_AUDIO_ACEITOS } from '../lib/tipoDeArquivo'
+import { aliviarListagem, aliviarMeta, lerCapaEmbutida } from '../lib/capaDeSessao'
+import { erroDeRota } from '../lib/erroDeRota'
 import { log } from '../lib/logger'
+import { corpoDeRecusa,liberarArmazenamento, reservarArmazenamento } from '../lib/storageQuota'
+import { detectarAudio, FORMATOS_DE_AUDIO_ACEITOS } from '../lib/tipoDeArquivo'
+import { createSessionSchema, idParamSchema,isSafeImageUrl, parseOr400, patchMetaSchema, patchSessionSchema, patchUtteranceSchema, relabelUtterancesSchema, replaceUtterancesSchema } from '../validation'
 
 export const sessionsRouter = Router()
 

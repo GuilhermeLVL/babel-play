@@ -10,8 +10,9 @@
  * URL vira o espelho dela. Por isso o contrato é um par de funções PURAS — dá para travar o
  * comportamento inteiro sem montar o app, e a ida-e-volta é verificável.
  */
-import { describe, it, expect } from 'vitest'
-import { estadoParaUrl, urlParaEstado, normalizarAbaDaLoja, type EstadoDeRota } from '../src/lib/rotas'
+import { describe, expect,it } from 'vitest'
+
+import { type EstadoDeRota,estadoParaUrl, normalizarAbaDaLoja, urlParaEstado } from '../src/lib/rotas'
 
 const ida = (e: EstadoDeRota) => urlParaEstado(estadoParaUrl(e))
 

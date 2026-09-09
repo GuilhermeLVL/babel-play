@@ -1,8 +1,9 @@
-import React from 'react';
-import { IconePixel } from './IconesPixel';
 import type { MinigameId } from '@core';
-import type { AgeProfileType } from '../../../lib/profile';
+import React from 'react';
+
 import { t } from '../../../lib/i18n';
+import type { AgeProfileType } from '../../../lib/profile';
+import { IconePixel } from './IconesPixel';
 
 /**
  * OS NOVE JOGOS, como a tela os apresenta.

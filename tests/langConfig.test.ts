@@ -1,5 +1,6 @@
-import { describe, it, expect } from 'vitest';
-import { langConfigFrom, idiomasDaInterfaceOferecidos, DEFAULT_LANG_CONFIG } from '../src/lib/langConfig';
+import { describe, expect,it } from 'vitest';
+
+import { DEFAULT_LANG_CONFIG,idiomasDaInterfaceOferecidos, langConfigFrom } from '../src/lib/langConfig';
 
 /**
  * TRÊS EIXOS, UMA FONTE CADA (auditoria de 2026-09-07, achado A38).

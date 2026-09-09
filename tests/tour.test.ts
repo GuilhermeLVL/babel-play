@@ -1,7 +1,8 @@
-import { describe, it, expect } from 'vitest';
-import { PASSOS_DOS_JOGOS } from '../src/components/minigames/passosDosJogos';
+import { describe, expect,it } from 'vitest';
+
 import { COMO_SE_JOGA } from '../src/components/minigames/ComoSeJoga';
-import { MINIGAMES, type MinigameId } from '../src/core/minigames/types';
+import { PASSOS_DOS_JOGOS } from '../src/components/minigames/passosDosJogos';
+import { type MinigameId,MINIGAMES } from '../src/core/minigames/types';
 
 /**
  * O TOUR GUIADO.

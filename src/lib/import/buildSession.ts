@@ -5,12 +5,12 @@
  * Invariante do projeto: idioma DETECTADO do texto (reconciliado com o hint do servidor), nunca
  * chutado; documento/web ficam SEM timestamps (Análise narra por TTS com espaçamento honesto).
  */
-import { detectLanguage } from '../langDetect'
-import { fetchLangConfig } from '../langConfig'
-import { toBcp47 } from '../languages'
-import { apiFetch, createSession, replaceSessionUtterances, type NewUtterancePayload } from '../../data/api'
-import { offlineTranscribe, type OfflineProgress } from '../../gateway/offlineTranscribe'
+import { apiFetch, createSession, type NewUtterancePayload,replaceSessionUtterances } from '../../data/api'
+import { type OfflineProgress,offlineTranscribe } from '../../gateway/offlineTranscribe'
 import type { Recording } from '../../types'
+import { fetchLangConfig } from '../langConfig'
+import { detectLanguage } from '../langDetect'
+import { toBcp47 } from '../languages'
 
 /**
  * Segmenta um texto em frases, CIENTE de idioma via `Intl.Segmenter` (não regex ingênua). Fallback

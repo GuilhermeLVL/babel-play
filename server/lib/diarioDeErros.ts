@@ -25,6 +25,7 @@
  */
 import { appendFileSync, mkdirSync, readdirSync, readFileSync, statSync, unlinkSync } from 'node:fs'
 import path from 'node:path'
+
 import type { SinkDeErro } from './logger'
 
 /** Dias de diário mantidos. Além disso o arquivo é apagado na primeira escrita do dia seguinte. */

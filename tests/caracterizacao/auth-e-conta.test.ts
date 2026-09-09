@@ -5,8 +5,9 @@
  * estranho está marcado com `// caracterizacao:` — o teste existe para detectar MUDANÇA, e a
  * correção, quando couber, pertence a outra fase.
  */
-import { describe, it, expect, beforeAll, afterAll } from 'vitest'
-import { subirApp, resposta, forma, type AppDeTeste } from './_app'
+import { afterAll,beforeAll, describe, expect, it } from 'vitest'
+
+import { type AppDeTeste,forma, resposta, subirApp } from './_app'
 
 describe('modo publico (AUTH_REQUIRED=1, JWT ES256)', () => {
   let s: AppDeTeste

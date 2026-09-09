@@ -6,9 +6,10 @@
  *  · crédito só entra CONFIRMADO — pendente vale zero, senão quem abandona o checkout leva;
  *  · a reentrega do webhook (que o Asaas faz sempre que não recebe 200) não credita duas vezes.
  */
-import { describe, it, expect, beforeAll, afterAll } from 'vitest'
-import { setupEphemeralDb, type EphemeralDb } from '../harness/ephemeralDb'
+import { afterAll,beforeAll, describe, expect, it } from 'vitest'
+
 import { asUserId } from '../../server/lib/authContext'
+import { type EphemeralDb,setupEphemeralDb } from '../harness/ephemeralDb'
 
 const A = asUserId('user-A')
 const B = asUserId('user-B')

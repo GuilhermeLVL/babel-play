@@ -1,8 +1,8 @@
-import React, { useState, useEffect, Suspense } from 'react';
+import React, { Suspense,useEffect, useState } from 'react';
+
 import LayoutEditorToolbar from './components/LayoutEditorToolbar';
 import PracticeMenu from './components/PracticeMenu';
 import Hub from './components/views/Hub'; // tela inicial, eager p/ primeiro paint instantâneo
-
 // CODE-SPLITTING: as demais views e overlays pesados carregam SOB DEMANDA. Antes, tudo caía num único
 // bundle de arranque (~1,9 MB) — incluindo o onnxruntime-web/VAD (Captura), o recharts (Métricas) e o
 // gateway/offlineTranscribe (Análise/Biblioteca), pesos que só importam quando você abre aquela tela.
@@ -27,36 +27,34 @@ const ResetPassword = lazyComRecarga(() => import('./components/auth/ResetPasswo
 // `onboarded` é `null` a tela já mostrava "Carregando…", então o fallback do Suspense abaixo é a
 // mesma pintura que o usuário via antes: nada muda na tela, só o momento do download.
 const Onboarding = lazyComRecarga(() => import('./components/Onboarding'));
-import { ViewType, Recording } from './types';
-import FloatingScoreLayer from './components/FloatingScoreLayer';
 import BuscaGlobal from './components/BuscaGlobal';
-import { fetchSessions } from './data/api';
-import Toaster from './components/Toast';
-import { authRequired } from './lib/supabase';
-import { carregarEntitlements } from './lib/entitlements';
-import { aceitarAnonimo, exigeConta, porta } from './components/conta/exigeConta';
 import CartaoDeConvite from './components/conta/CartaoDeConvite';
+import { aceitarAnonimo, exigeConta, porta } from './components/conta/exigeConta';
 import GateDeConta from './components/conta/GateDeConta';
 import ModalDeMigracao from './components/conta/ModalDeMigracao';
-
-import StudioHeader from './components/StudioHeader';
+import FloatingScoreLayer from './components/FloatingScoreLayer';
+import ParticleCanvas from './components/ParticleCanvas';
+import RecompensaDesbloqueada from './components/RecompensaDesbloqueada';
 import MobileNav from './components/shell/MobileNav';
 import MobileTopBar from './components/shell/MobileTopBar';
-import ParticleCanvas from './components/ParticleCanvas';
-import { useIdiomaDaInterfaceEscolhido } from './lib/langConfig';
-import { play } from './lib/soundFx';
-import { equiparItem } from './lib/galeria/equipar';
-import RecompensaDesbloqueada from './components/RecompensaDesbloqueada';
-
+import StudioHeader from './components/StudioHeader';
+import Toaster from './components/Toast';
+import { fetchSessions } from './data/api';
+import { carregarEntitlements } from './lib/entitlements';
+import { useAparencia, useHidratacaoDeAjustes } from './lib/estado/useAparencia';
+import { useGateDeConta } from './lib/estado/useGateDeConta';
+import { useMetricas } from './lib/estado/useMetricas';
+import { useNavegacao } from './lib/estado/useNavegacao';
+import { useRecompensas } from './lib/estado/useRecompensas';
 /* ESTADO POR DOMÍNIO — cada bloco que o App concentrava virou um hook em `lib/estado`. A ORDEM
    das chamadas abaixo é a ordem em que os efeitos rodavam antes da divisão, e é por isso que os
    hooks são chamados exatamente onde o bloco original estava. */
 import { useSessaoSupabase } from './lib/estado/useSessaoSupabase';
-import { useGateDeConta } from './lib/estado/useGateDeConta';
-import { useAparencia, useHidratacaoDeAjustes } from './lib/estado/useAparencia';
-import { useMetricas } from './lib/estado/useMetricas';
-import { useRecompensas } from './lib/estado/useRecompensas';
-import { useNavegacao } from './lib/estado/useNavegacao';
+import { equiparItem } from './lib/galeria/equipar';
+import { useIdiomaDaInterfaceEscolhido } from './lib/langConfig';
+import { play } from './lib/soundFx';
+import { authRequired } from './lib/supabase';
+import { Recording,ViewType } from './types';
 
 export default function App() {
   /* A interface acompanha "meu idioma" do perfil — um lugar só, no topo, para não haver tela que

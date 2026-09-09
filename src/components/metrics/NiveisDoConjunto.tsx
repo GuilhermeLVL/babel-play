@@ -11,10 +11,11 @@
  * desconhecido e — por decisão do produto — não é estimado. Por isso aparece como faixa própria,
  * com o motivo escrito, em vez de ser omitida do gráfico.
  */
-import React from 'react'
 import { BarChart2 } from 'lucide-react'
-import { Confianca, SemDado, rotuloDaBase } from '../Honestidade'
+import React from 'react'
+
 import type { AppMetrics } from '../../core/learning/contract'
+import { Confianca, rotuloDaBase,SemDado } from '../Honestidade'
 
 const ORDEM = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2']
 

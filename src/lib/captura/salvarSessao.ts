@@ -6,31 +6,32 @@
  * substituiu (ela lê `timer`, `speechSegments` e o par de idiomas do render corrente), e tudo
  * que vem da tela entra por PARÂMETRO explícito — nada de contexto novo nem store global.
  */
-import type { Dispatch, RefObject, SetStateAction } from 'react';
 import { makeCloze, resumoDosPulados } from '@core';
+import type { Dispatch, RefObject, SetStateAction } from 'react';
+
+import type { ModelPrepState } from '../../components/ModelPrepPanel';
 import {
-  createSession, bulkAddCards, uploadSessionAudio, patchSessionMeta, updateSession,
-  replaceSessionUtterances, type ImageResult, type NewUtterancePayload,
-} from '../../data/api';
+bulkAddCards,   createSession, type ImageResult, type NewUtterancePayload,
+patchSessionMeta,   replaceSessionUtterances, updateSession,
+uploadSessionAudio, } from '../../data/api';
+import type { SttSession } from '../../gateway/capabilities';
 import { capMetrics } from '../../gateway/capture/captureMetrics';
 import type { AudioCapture } from '../../gateway/capture/systemAudio';
-import type { SttSession } from '../../gateway/capabilities';
-import type { ModelPrepState } from '../../components/ModelPrepPanel';
 import { Recording } from '../../types';
-import { PerfilAdaptativoDeIdioma } from '../perfilDeIdioma';
-import { OrdemDasTraducoes } from '../ordemDaTraducao';
-import { traduzirVersos, explicarParada } from '../versosDoVocabulario';
-import { toBcp47, baseLang } from '../languages';
-import { dataHora } from '../i18n';
-import { SpeakerClusterer } from '../speakerCluster';
 import { DominantLangTracker } from '../convoLang';
-import { preloadSpeakerId } from '../speakerId';
-import { play } from '../soundFx';
-import { misturarAudios } from '../misturarAudios';
 import { burstFromElement } from '../effects';
+import { dataHora } from '../i18n';
+import { baseLang,toBcp47 } from '../languages';
+import { misturarAudios } from '../misturarAudios';
+import { OrdemDasTraducoes } from '../ordemDaTraducao';
+import { PerfilAdaptativoDeIdioma } from '../perfilDeIdioma';
+import { play } from '../soundFx';
+import { SpeakerClusterer } from '../speakerCluster';
+import { preloadSpeakerId } from '../speakerId';
+import { explicarParada,traduzirVersos } from '../versosDoVocabulario';
 import {
-  clog, formatTime,
-  type CaptureScenario, type GatewayDaCaptura, type SpeakerProfile, type SpeechSegment,
+  type CaptureScenario,   clog, formatTime,
+type GatewayDaCaptura, type SpeakerProfile, type SpeechSegment,
 } from './tiposDaFala';
 
 /** Estado honesto da identificação de voz, exibido no painel Falantes. */

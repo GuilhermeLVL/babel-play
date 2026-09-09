@@ -7,13 +7,14 @@
  * já cobrem `estadoDoJogo` linha a linha; aqui fixamos o resultado ANTES de tocar no código (via
  * git, na cabeça) contra o resultado DEPOIS, para uma dúzia de pools variados.
  */
-import { describe, it, expect } from 'vitest'
+import { describe, expect,it } from 'vitest'
+
 import {
   elegibilidadeDoJogo,
-  estadoDoJogo,
   type EntradaDoEstado,
+  estadoDoJogo,
 } from '../src/core/minigames/estadoDosJogos'
-import { MINIGAMES, type MinigameId } from '../src/core/minigames/types'
+import { type MinigameId,MINIGAMES } from '../src/core/minigames/types'
 import type { VocabCard } from '../src/types'
 
 function carta(word: string, translation: string): VocabCard {

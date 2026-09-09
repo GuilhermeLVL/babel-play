@@ -1,6 +1,7 @@
-import { describe, it, expect } from 'vitest';
+import { describe, expect,it } from 'vitest';
+
 import { JOGOS } from '../src/components/views/play/jogos';
-import { MINIGAMES, type MinigameId } from '../src/core/minigames/types';
+import { type MinigameId,MINIGAMES } from '../src/core/minigames/types';
 
 /* `JOGOS` e um array, nao um Record: um id novo em MINIGAMES compila sem entrada aqui e
    simplesmente nao aparece na grade. Este teste e a unica coisa que acusa. */

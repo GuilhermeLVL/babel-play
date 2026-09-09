@@ -1,11 +1,12 @@
-import { precoDoPlano, armazenamentoEmTexto } from '../../core/planos';
+import { Check, Cloud, Cpu, Minus, Sparkles } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { Check, Minus, Cloud, Cpu, Sparkles } from 'lucide-react';
-import { Abas, PainelDeAba, Barra, Vazio } from '../ui';
+
+import { armazenamentoEmTexto,precoDoPlano } from '../../core/planos';
 import { getEntitlements, onPlanChange, PLAN_LABELS } from '../../lib/entitlements';
-import { carregarUso, fracao, duracaoLegivel, type UsoDoMes } from '../../lib/uso';
-import Assinar from './planos/Assinar';
 import { numero, t } from '../../lib/i18n';
+import { carregarUso, duracaoLegivel, fracao, type UsoDoMes } from '../../lib/uso';
+import { Abas, Barra, PainelDeAba, Vazio } from '../ui';
+import Assinar from './planos/Assinar';
 
 /**
  * PLANOS E USO — o que cada plano dá, e quanto do seu já foi usado.

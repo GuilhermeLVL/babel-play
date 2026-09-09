@@ -11,11 +11,12 @@
  * no mesmo arquivo dariam falso-verde — o 2º caso migraria o banco do 1º e compararia
  * um banco vazio consigo mesmo. Foi exatamente o que aconteceu na primeira versão.
  */
-import { describe, it, expect, afterAll } from 'vitest'
-import { mkdtempSync, rmSync, existsSync } from 'node:fs'
+import { existsSync,mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
+
 import { createClient } from '@libsql/client'
+import { afterAll,describe, expect, it } from 'vitest'
 
 // Definido ANTES de qualquer import de `server/db/db` — é o que a instância única lê.
 const dir = mkdtempSync(path.join(tmpdir(), 'babel-mig-'))

@@ -5,11 +5,13 @@
  * efêmero, e o exercita por HTTP com dois tokens HS256 assinados localmente. Prova o boundary de
  * verdade: dois usuários veem conjuntos DISJUNTOS de sessões, e sem token dá 401.
  */
-import { describe, it, expect, beforeAll, afterAll } from 'vitest'
-import express from 'express'
 import type { Server } from 'node:http'
-import { SignJWT, generateKeyPair } from 'jose'
-import { setupEphemeralDb, type EphemeralDb } from '../harness/ephemeralDb'
+
+import express from 'express'
+import { generateKeyPair,SignJWT } from 'jose'
+import { afterAll,beforeAll, describe, expect, it } from 'vitest'
+
+import { type EphemeralDb,setupEphemeralDb } from '../harness/ephemeralDb'
 
 /*
  * F15-01 (2026-08-26): o deploy bem configurado e JWKS ASSIMETRICO com origem declarada. Este e2e

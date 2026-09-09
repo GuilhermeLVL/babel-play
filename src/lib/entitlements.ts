@@ -15,9 +15,9 @@
  *
  * Regra de honestidade (inalterada): gate NUNCA esconde a feature — mostra com selo e explica.
  */
+import { PLAN_MATRIX, type PlanoDeAssinatura,PLANOS_DE_ASSINATURA } from '../core/planos';
 import { apiFetch } from '../data/api';
 import { authRequired } from './supabase';
-import { PLAN_MATRIX, PLANOS_DE_ASSINATURA, type PlanoDeAssinatura } from '../core/planos';
 
 /** Plano de assinatura (da MATRIZ) + `anonimo`, que é identidade do cliente sem conta — o
  *  servidor nunca o atribui, por isso ele fica fora da matriz. */

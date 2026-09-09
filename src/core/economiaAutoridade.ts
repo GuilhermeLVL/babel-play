@@ -1,6 +1,6 @@
+import { type Conquista,CONQUISTAS } from './learning/conquistas'
 import { CATALOGO_DA_LOJA, type ItemDaLoja, type Raridade } from './loja'
-import { CONQUISTAS, type Conquista } from './learning/conquistas'
-import { slotsDoPasse, type SlotDoPasse } from './passe'
+import { type SlotDoPasse,slotsDoPasse } from './passe'
 
 /**
  * A TABELA DE PREÇOS QUE O SERVIDOR CONSULTA.

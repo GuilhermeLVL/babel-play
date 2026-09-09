@@ -1,11 +1,12 @@
+import type { ItemOutcome, MinigameItem, RoundReport } from '@core';
+import { chaveDoTermo, MINIGAMES, scoreRound } from '@core';
+import { Award, Delete, Lightbulb, Timer as TimerIcon,X } from 'lucide-react';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { X, Award, Lightbulb, Delete, Timer as TimerIcon } from 'lucide-react';
-import type { MinigameItem, ItemOutcome, RoundReport } from '@core';
-import { MINIGAMES, chaveDoTermo, scoreRound } from '@core';
+
+import { comemorar, tremor } from '../../../lib/juice';
 import { direcaoDoTexto } from '../../../lib/languages';
 import type { AgeProfileType } from '../../../lib/profile';
 import { play } from '../../../lib/soundFx';
-import { comemorar, tremor } from '../../../lib/juice';
 
 /**
  * CHOSEONG — as consoantes ficam à vista, as vogais somem, e a pessoa escreve a palavra a partir

@@ -7,11 +7,12 @@
  * já domina. A faixa (`facil`/`medio`/`dificil`) já existia e já recortava o material da rodada;
  * o que faltava era ela alcançar as duas alavancas que decidem o custo real deste jogo.
  */
-import { describe, it, expect } from 'vitest'
+import { describe, expect,it } from 'vitest'
+
 import {
-  motivoForaDoTermo, contarJogaveisMulti, rodadasDaEscada, digitavelNoTermo,
-  LETRAS_POR_FAIXA, ESCADA_POR_FAIXA, MIN_LETRAS, MAX_LETRAS,
-} from '../src/core/minigames/termo'
+contarJogaveisMulti, digitavelNoTermo,
+ESCADA_POR_FAIXA,   LETRAS_POR_FAIXA, MAX_LETRAS,
+MIN_LETRAS,   motivoForaDoTermo, rodadasDaEscada, } from '../src/core/minigames/termo'
 import type { VocabCard } from '../src/types'
 
 const carta = (word: string, translation: string): VocabCard => ({

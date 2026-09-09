@@ -6,7 +6,8 @@
  * que a Loja e os desbloqueios consultam; se o crédito falhar (rede), a conquista NÃO é marcada
  * e será tentada de novo na próxima avaliação — nunca "conquistada sem as Seeds".
  */
-import { avaliarConquistas, type AppMetrics, type Conquista, type ContextoDeConquistas } from '@core';
+import { type AppMetrics, avaliarConquistas, type Conquista, type ContextoDeConquistas } from '@core';
+
 import { creditarSeeds, type RecordeDoJogo } from '../data/api';
 import { conquistasDesbloqueadas, marcarConquista, registrarDataDaConquista } from './conquistasPosse';
 import { eventosVistos, todosOsEventos } from './eventosDeJogo';

@@ -1,5 +1,6 @@
-import { test, expect } from '@playwright/test';
-import { irParaPraticar, clicarRobusto, abrirSeletor } from './_helpers';
+import { expect,test } from '@playwright/test';
+
+import { abrirSeletor,clicarRobusto, irParaPraticar } from './_helpers';
 
 /**
  * A trilha passa a carregar sob demanda. O modo de falha dessa mudança é SILENCIOSO: a contagem

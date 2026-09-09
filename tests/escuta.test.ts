@@ -1,9 +1,10 @@
-import { describe, it, expect } from 'vitest';
+import { describe, expect,it } from 'vitest';
+
 import {
-  buildRodadasEscuta, buildRodadasDitado, conferirDitado,
-  buildRodadasConectores, notaConectores, temConectores, falasAudiveis,
+  buildRodadasConectores, buildRodadasDitado,   buildRodadasEscuta, conferirDitado,
   type FalaComAudio,
-} from '../src/core/minigames/escuta';
+falasAudiveis,
+notaConectores, temConectores, } from '../src/core/minigames/escuta';
 
 /**
  * OS TRÊS SUBSTITUTOS DOS EXERCÍCIOS LEGADOS.

@@ -9,16 +9,17 @@
  * Falha-antes: `createSession` lançava "REDE PROIBIDA: /api/sessions".
  */
 import 'fake-indexeddb/auto'
+
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
 
 vi.mock('../src/lib/supabase', () => ({
   supabase: null, authRequired: true, carregarSupabase: async () => null, getAccessToken: async () => null,
 }))
 
-import { definirIdentidade } from '../src/lib/identidade'
-import { carregarEntitlements } from '../src/lib/entitlements'
-import { fecharStore, limparTudo } from '../src/data/efemero/store'
 import * as api from '../src/data/api'
+import { fecharStore, limparTudo } from '../src/data/efemero/store'
+import { carregarEntitlements } from '../src/lib/entitlements'
+import { definirIdentidade } from '../src/lib/identidade'
 
 const rede = vi.fn((url: unknown) => { throw new Error(`REDE PROIBIDA: ${String(url)}`) })
 

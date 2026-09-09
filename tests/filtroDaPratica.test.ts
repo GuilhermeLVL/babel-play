@@ -1,12 +1,13 @@
 // @vitest-environment jsdom
-import { describe, it, expect, beforeEach } from 'vitest'
+import { beforeEach,describe, expect, it } from 'vitest'
+
 import {
-  passaNoFiltro, filtroAplicavel, fonteDominante, filtroDaFonte, FILTRO_PADRAO,
-  type FiltroDaPratica, type CartaoFiltravel,
-} from '../src/core/minigames/filtro'
+type CartaoFiltravel,
+FILTRO_PADRAO,
+filtroAplicavel, filtroDaFonte,   type FiltroDaPratica, fonteDominante,   passaNoFiltro, } from '../src/core/minigames/filtro'
 import type { FonteDeItens } from '../src/core/minigames/source'
+import { gravarFiltro,lerFiltroGuardado } from '../src/lib/filtroDaPratica'
 import { gravarFonteGuardada } from '../src/lib/fonteDaPratica'
-import { lerFiltroGuardado, gravarFiltro } from '../src/lib/filtroDaPratica'
 
 function cartao(overrides: Partial<CartaoFiltravel> = {}): CartaoFiltravel {
   return { srcLang: 'en', translation: 'water', sentence: 'I drink water.', ...overrides }

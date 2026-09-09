@@ -4,9 +4,10 @@
  * e tipos garantidos ANTES de tocar o repositório — sem mudar o contrato do cliente
  * (`src/data/api.ts` é a fonte dos shapes; campos continuam opcionais onde lá são opcionais).
  */
-import { z } from 'zod'
-import { FILTROS_DE_NOTA_ANKI } from '../src/core/learning/contract'
 import type { Response } from 'express'
+import { z } from 'zod'
+
+import { FILTROS_DE_NOTA_ANKI } from '../src/core/learning/contract'
 import { subtipoDeCapaAceito } from './lib/capaDeSessao'
 
 const shortStr = (max: number) => z.string().max(max).optional()

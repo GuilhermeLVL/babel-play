@@ -9,33 +9,35 @@
  *  - POST /anki     (corpo binário)    → lê um baralho .apkg/.txt e devolve as notas (NÃO grava)
  *  - POST /anki/export { cartoes }     → devolve um .apkg pronto para o Anki
  */
-import { Router, raw, type ErrorRequestHandler, type Request, type Response } from 'express'
-import path from 'node:path'
-import { readFile, rm } from 'node:fs/promises'
 import { createHash } from 'node:crypto'
-import { AUDIO_DIR, armazenamentoDeMidia } from './sessions'
-import { sessionsRepo } from '../db/repositories/sessions'
-import { hasEntitlement } from '../lib/entitlements'
-import { hasYtDlp, resolveYouTube, fetchCaptions, downloadAudio } from '../import/youtube'
-import { extractArticle } from '../import/web'
-import { extractDocument } from '../import/document'
-import { lerApkg, lerTextoAnki, escritaDominante, contagemDeEscritas, type EscritaDominante } from '../import/anki'
-// F11-04: schemas de corpo e de cabeçalho das rotas de importação.
-import { parseOr400, ankiExportSchema, importUrlSchema, uploadHeadersSchema } from '../validation'
-import { montarApkg } from '../import/ankiExport'
-import { erroDeRota } from '../lib/erroDeRota'
-import { ankiRepo } from '../db/repositories/anki'
-import { avaliarCartao } from '../../src/core/learning/quality'
-import { vocabRepo } from '../db/repositories/vocab'
+import { readFile, rm } from 'node:fs/promises'
+import path from 'node:path'
+
+import { type ErrorRequestHandler, raw, type Request, type Response,Router } from 'express'
+
 import { vazaResposta } from '../../src/core/learning/pistaDeJogo'
+import { avaliarCartao } from '../../src/core/learning/quality'
+import { ankiRepo } from '../db/repositories/anki'
+import { sessionsRepo } from '../db/repositories/sessions'
+import { vocabRepo } from '../db/repositories/vocab'
+import { contagemDeEscritas, type EscritaDominante,escritaDominante, lerApkg, lerTextoAnki } from '../import/anki'
+import { montarApkg } from '../import/ankiExport'
+import { extractDocument } from '../import/document'
+import { extractArticle } from '../import/web'
+import { downloadAudio,fetchCaptions, hasYtDlp, resolveYouTube } from '../import/youtube'
+import { hasEntitlement } from '../lib/entitlements'
+import { erroDeRota } from '../lib/erroDeRota'
 import {
-  reservarArmazenamento,
-  liberarArmazenamento,
   ajustarArmazenamento,
-  estimarBytesDeAudio,
-  tamanhoNoDisco,
   corpoDeRecusa,
+  estimarBytesDeAudio,
+  liberarArmazenamento,
+  reservarArmazenamento,
+  tamanhoNoDisco,
 } from '../lib/storageQuota'
+// F11-04: schemas de corpo e de cabeçalho das rotas de importação.
+import { ankiExportSchema, importUrlSchema, parseOr400, uploadHeadersSchema } from '../validation'
+import { armazenamentoDeMidia,AUDIO_DIR } from './sessions'
 
 export const importRouter = Router()
 

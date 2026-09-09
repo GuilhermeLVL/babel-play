@@ -11,10 +11,11 @@
  *
  * Nenhum dado é fabricado: sem legenda, retornamos `null` e deixamos o cliente decidir.
  */
-import { baseLang as baseLangDoCodigo } from '../../src/core/texto/idioma'
 import { spawn } from 'node:child_process'
 import { mkdir, readdir } from 'node:fs/promises'
 import path from 'node:path'
+
+import { baseLang as baseLangDoCodigo } from '../../src/core/texto/idioma'
 
 // Nome do binário (sobrescrevível por env, p/ quem instala o yt-dlp fora do PATH).
 const YTDLP = process.env.YTDLP_PATH || 'yt-dlp'

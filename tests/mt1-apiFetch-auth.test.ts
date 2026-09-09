@@ -4,7 +4,7 @@
  * authHeaders() é o seam: devolve o Bearer quando há sessão Supabase e {} quando não há (uso
  * local/self-host sem login). O supabase é mockado — nenhuma rede, nenhum env real.
  */
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { beforeEach,describe, expect, it, vi } from 'vitest'
 
 vi.mock('../src/lib/supabase', () => ({ getAccessToken: vi.fn(), supabase: null, authRequired: false }))
 

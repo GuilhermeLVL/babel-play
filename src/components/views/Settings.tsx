@@ -1,41 +1,42 @@
 import {
-  User,
-  Shield,
-  Sparkles,
-  Server,
-  Target,
+  AlertTriangle,
+  Eye,
+  Gamepad2,
   Languages,
   Palette,
   PlayCircle,
-  AlertTriangle,
-  Gamepad2,
+  Server,
+  Shield,
+  Sparkles,
+  Target,
+  User,
   Zap,
-  Eye,
 } from 'lucide-react';
 import React, { useEffect, useRef, useState } from 'react';
-import AiEnginePanel from '../AiEnginePanel';
-import GuidePanel from '../GuidePanel';
-import AccountSecuritySection from '../auth/AccountSecuritySection';
-import LangAudit from './LangAudit';
-import LangPicker from '../LangPicker';
+
+import { type AppMetrics,fetchMetrics, fetchSettings, patchUiSettings, saveSettings } from '../../data/api';
 import { DEFAULT_PROFILE_ID } from '../../gateway/profiles';
-import { fetchSettings, saveSettings, patchUiSettings, fetchMetrics, type AppMetrics } from '../../data/api';
 import type { ThemeType } from '../../lib/appearance';
-import { baseLang, langLabelNaUI } from '../../lib/languages';
+import { getEntitlements, onPlanChange, PLAN_LABELS } from '../../lib/entitlements';
+import { idiomasAbaixoDoPiso,t } from '../../lib/i18n';
 import {
-  langConfigFrom,
-  saveLangConfig,
+  DEFAULT_LANG_CONFIG,
   fetchLangConfig,
   idiomasDaInterfaceOferecidos,
-  DEFAULT_LANG_CONFIG,
   type LangConfig,
+  langConfigFrom,
+  saveLangConfig,
 } from '../../lib/langConfig';
-import { getEntitlements, onPlanChange, PLAN_LABELS } from '../../lib/entitlements';
-import type { AgeProfileType, MenuPositionType } from '../shell/navItems';
-import type { FontScale } from '../shell/ControlCluster';
-import { Abas, PainelDeAba } from '../ui';
-import { t, idiomasAbaixoDoPiso } from '../../lib/i18n';
+import { baseLang, langLabelNaUI } from '../../lib/languages';
 import { T } from '../../lib/T';
+import AiEnginePanel from '../AiEnginePanel';
+import AccountSecuritySection from '../auth/AccountSecuritySection';
+import GuidePanel from '../GuidePanel';
+import LangPicker from '../LangPicker';
+import type { FontScale } from '../shell/ControlCluster';
+import type { AgeProfileType, MenuPositionType } from '../shell/navItems';
+import { Abas, PainelDeAba } from '../ui';
+import LangAudit from './LangAudit';
 
 /**
  * AS QUATRO ABAS, e por que esta tela deixou de ser uma rolagem só.

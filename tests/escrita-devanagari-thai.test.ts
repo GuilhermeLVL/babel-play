@@ -1,5 +1,6 @@
 /** Hindi e tailandês caíam em 'desconhecido': sem faixa própria, o import não sabia o que era. */
-import { describe, it, expect } from 'vitest';
+import { describe, expect,it } from 'vitest';
+
 import { escritaDominante } from '../server/import/anki';
 
 describe('escritas que faltavam no detector', () => {

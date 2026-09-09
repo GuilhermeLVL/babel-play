@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+
 import { carregarTrilha } from '../src/data/trilha/carregar';
 
 /**

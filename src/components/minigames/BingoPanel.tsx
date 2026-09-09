@@ -1,9 +1,10 @@
-import React, { useEffect, useRef, useState } from 'react';
+import { buildCartela, cartelaCheia, type CasaBingo,LADO_CARTELA, linhasCompletas, marcarFala } from '@core';
 import { LayoutGrid, RefreshCw, X } from 'lucide-react';
-import { buildCartela, marcarFala, linhasCompletas, cartelaCheia, LADO_CARTELA, type CasaBingo } from '@core';
+import React, { useEffect, useRef, useState } from 'react';
+
 import { fetchDeck } from '../../data/api';
-import type { AgeProfileType } from '../../lib/profile';
 import { comemorar } from '../../lib/juice';
+import type { AgeProfileType } from '../../lib/profile';
 
 /**
  * BINGO DA ESCUTA — a cartela que acende enquanto você assiste.

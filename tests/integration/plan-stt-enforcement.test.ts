@@ -3,9 +3,10 @@
  * pelo cliente): um usuário `free` recebe 402 no caminho gerenciado (chave do dono), independente do
  * que o cliente ache do próprio plano. BYOK e local passam livres (só o ramo gerenciado é gateado).
  */
-import { describe, it, expect, beforeAll, afterAll, afterEach, vi } from 'vitest'
-import { setupEphemeralDb, type EphemeralDb } from '../harness/ephemeralDb'
+import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
+
 import { asUserId } from '../../server/lib/authContext'
+import { type EphemeralDb,setupEphemeralDb } from '../harness/ephemeralDb'
 
 let h: EphemeralDb
 let sttTranscribeProxy: any

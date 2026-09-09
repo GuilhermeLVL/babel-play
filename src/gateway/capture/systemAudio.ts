@@ -1,4 +1,5 @@
 import { MicVAD } from '@ricky0123/vad-web';
+
 import { apiFetch } from '../../data/api';
 
 // Logger de diagnóstico da captura de sistema/VAD (observabilidade no console do navegador).

@@ -1,13 +1,14 @@
-import { describe, it, expect } from 'vitest'
+import { describe, expect,it } from 'vitest'
+
 import {
-  planoDaEscada,
-  montarEscada,
-  modoDeTabuleiros,
-  letrasCertas,
-  pistaUtil,
   avaliarPalpite,
   buildTermoRounds,
   ESCADA_PADRAO,
+  letrasCertas,
+  modoDeTabuleiros,
+  montarEscada,
+  pistaUtil,
+  planoDaEscada,
   TENTATIVAS_POR_MODO,
 } from '../src/core/minigames/termo'
 import type { VocabCard } from '../src/types'

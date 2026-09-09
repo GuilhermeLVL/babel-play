@@ -1,6 +1,7 @@
 import { extractKeywords } from '@core';
-import { type VocabWord } from '../../types';
+
 import type { buildGateway } from '../../gateway';
+import { type VocabWord } from '../../types';
 
 /** O AI Gateway como a captura o enxerga (mesma instância que a tela monta com `buildGateway`). */
 export type GatewayDaCaptura = ReturnType<typeof buildGateway>;

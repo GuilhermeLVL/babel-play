@@ -5,7 +5,8 @@
  * diário), avalanche contida por usuário (laço de erro no cliente não vira incidente no servidor),
  * e o formato que chega ao logger é o mesmo dos erros de servidor — um leitor só para os dois.
  */
-import { describe, it, expect, beforeAll, afterEach, vi } from 'vitest'
+import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
+
 import { asUserId } from '../../server/lib/authContext'
 
 let errosRouter: any

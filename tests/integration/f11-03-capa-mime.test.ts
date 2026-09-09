@@ -12,11 +12,13 @@
  *   · LEITURA  — `lerCapaEmbutida`, para as que já estão no banco não saírem.
  * Consertar só a escrita deixaria passando tudo o que foi gravado antes.
  */
-import { describe, it, expect } from 'vitest'
-import express from 'express'
 import type { AddressInfo } from 'node:net'
+
+import express from 'express'
+import { describe, expect,it } from 'vitest'
+
+import { ehCapaEmbutida, lerCapaEmbutida, SUBTIPOS_DE_CAPA_ACEITOS } from '../../server/lib/capaDeSessao'
 import { isSafeImageUrl, MAX_IMAGE_URL } from '../../server/validation'
-import { lerCapaEmbutida, ehCapaEmbutida, SUBTIPOS_DE_CAPA_ACEITOS } from '../../server/lib/capaDeSessao'
 
 const b64 = (s: string) => Buffer.from(s, 'utf8').toString('base64')
 

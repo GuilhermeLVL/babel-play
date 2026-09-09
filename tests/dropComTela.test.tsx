@@ -6,14 +6,15 @@
  * (`src/data/api.ts`) nem declarava o campo `item` que o servidor devolve, entao o premio era
  * descartado no `await res.json()`.
  */
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { render, screen, cleanup, act } from '@testing-library/react';
+import { act,cleanup, render, screen } from '@testing-library/react';
 import React from 'react';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+
 import RecompensaDesbloqueada, {
-  chaveDaRecompensa, recompensasVistas, marcarVista, EVENTO_RODADA_FECHOU, type Recompensa,
-} from '../src/components/RecompensaDesbloqueada';
-import { CATALOGO_DA_LOJA } from '../src/lib/loja';
+  chaveDaRecompensa, EVENTO_RODADA_FECHOU, marcarVista, type Recompensa,
+recompensasVistas, } from '../src/components/RecompensaDesbloqueada';
 import { SEEDS_DO_DROP } from '../src/core/economiaAutoridade';
+import { CATALOGO_DA_LOJA } from '../src/lib/loja';
 
 vi.mock('../src/lib/juice', () => ({ comemorar: vi.fn(), explodirAleatorio: vi.fn() }));
 

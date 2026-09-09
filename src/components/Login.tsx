@@ -5,8 +5,9 @@
  * genéricas por segurança). Após entrar, o `onAuthStateChange` no App troca a tela sozinho.
  */
 import React, { useState } from 'react';
-import { supabase } from '../lib/supabase';
+
 import * as auth from '../lib/auth';
+import { supabase } from '../lib/supabase';
 import AuthShell from './auth/AuthShell';
 import PasswordField from './auth/PasswordField';
 

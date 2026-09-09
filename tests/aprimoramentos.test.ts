@@ -1,9 +1,10 @@
 // @vitest-environment jsdom
 import { beforeEach, describe, expect, it } from 'vitest'
+
 import {
-  nivelDoAprimoramento, custoDoProximoNivel, registrarAprimoramento, progressoDoAprimoramento,
-  intensidadeMaxima, setIntensidade, intensidadeEfetiva, ajusteDeBurst, sorteDeEventos,
-  hidratarAprimoramentos,
+ajusteDeBurst, custoDoProximoNivel,   hidratarAprimoramentos,
+intensidadeEfetiva,   intensidadeMaxima,   nivelDoAprimoramento, progressoDoAprimoramento,
+registrarAprimoramento, setIntensidade, sorteDeEventos,
 } from '../src/lib/aprimoramentos'
 import { sortearEventoRaro } from '../src/lib/eventosDeJogo'
 

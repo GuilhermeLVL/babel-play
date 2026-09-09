@@ -12,9 +12,10 @@
  *     endpoint e com os cabeçalhos certos;
  *  3. em self-host (`AUTH_REQUIRED` desligado) não existe vínculo externo e a resposta é `ok`.
  */
-import { describe, it, expect, beforeAll, afterAll, afterEach, vi } from 'vitest'
-import { setupEphemeralDb, type EphemeralDb } from '../harness/ephemeralDb'
+import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
+
 import { asUserId } from '../../server/lib/authContext'
+import { type EphemeralDb,setupEphemeralDb } from '../harness/ephemeralDb'
 
 let h: EphemeralDb
 let router: any

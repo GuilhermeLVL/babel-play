@@ -10,7 +10,8 @@
  * Quem quiser jogar com o baralho inteiro vai à tela Jogar. A troca de escopo passa a ser uma
  * mudança de LUGAR, não um controle escondido dentro de um contexto que promete outra coisa.
  */
-import { describe, it, expect } from 'vitest'
+import { describe, expect,it } from 'vitest'
+
 import { fontesDisponiveis } from '../src/core/minigames/source'
 
 describe('fontesDisponiveis — quando embutido na Sessão', () => {

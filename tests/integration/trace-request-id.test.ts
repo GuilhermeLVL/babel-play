@@ -2,7 +2,8 @@
  * Rastreabilidade — ID de correlação por request (auditoria Fase 5).
  * Ver docs/audit/05-traceability.md.
  */
-import { describe, it, expect, vi } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
+
 import { makeRequestId, requestIdMiddleware } from '../../server/lib/requestId'
 
 describe('makeRequestId', () => {

@@ -4,6 +4,7 @@
  * (Supabase configurado); no self-host mostra um aviso. Toda a auth vem de `src/lib/auth.ts`.
  */
 import React, { useEffect, useState } from 'react';
+
 import * as auth from '../../lib/auth';
 import { supabase } from '../../lib/supabase';
 

@@ -5,13 +5,15 @@
  * provedor OpenAI-compatible fazendo pass-through do streaming. A chave NUNCA
  * chega ao cliente.
  */
-import type { Request, Response } from 'express'
 import { Readable } from 'node:stream'
 import { pipeline } from 'node:stream/promises'
+
+import type { Request, Response } from 'express'
+
 import { credentialsRepo } from '../db/repositories/credentials'
-import { assertPublicUrl } from './ssrf'
-import { log } from '../lib/logger'
 import { erroDeRota } from '../lib/erroDeRota'
+import { log } from '../lib/logger'
+import { assertPublicUrl } from './ssrf'
 
 /** A-04: teto de tempo do proxy de LLM (era a ÚNICA rota de IA sem timeout). */
 const LLM_TIMEOUT_MS = 60_000

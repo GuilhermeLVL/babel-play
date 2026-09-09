@@ -1,15 +1,16 @@
+import type { CefrLevel,EscolhaDaPratica, EscopoDeGravacoes, OrigemDaPratica } from '@core';
+import { Check as IconeCheck, FileAudio,Flame, Globe, GraduationCap, Layers, Mic, X } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
-import { X, Check as IconeCheck, Mic, GraduationCap, Flame, Globe, Layers, FileAudio } from 'lucide-react';
-import { Segmentado } from '../ui';
-import LangPicker from '../LangPicker';
-import CoberturaDosIdiomas from './CoberturaDosIdiomas';
+
+import { type EscalaDaTrilha,nomeDaEscala, rotuloDaEtapa } from '../../core/learning/trilha';
+import { empilharCamada } from '../../lib/camadasDeEscape';
+import { numero, t, tp } from '../../lib/i18n';
 import { langLabelNaUI } from '../../lib/languages';
 import type { AgeProfileType } from '../../lib/profile';
-import type { EscolhaDaPratica, OrigemDaPratica, EscopoDeGravacoes, CefrLevel } from '@core';
-import { nomeDaEscala, rotuloDaEtapa, type EscalaDaTrilha } from '../../core/learning/trilha';
-import { numero, t, tp } from '../../lib/i18n';
 import { T } from '../../lib/T';
-import { empilharCamada } from '../../lib/camadasDeEscape';
+import LangPicker from '../LangPicker';
+import { Segmentado } from '../ui';
+import CoberturaDosIdiomas from './CoberturaDosIdiomas';
 
 /**
  * A SALA DE ESCOLHA — o que você vai jogar, decidido antes de a tela encher de cartas.

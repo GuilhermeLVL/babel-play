@@ -28,10 +28,10 @@
  * Um cartão em 'sem-sinal' NÃO é um cartão consertado. Ele é um cartão sobre o qual nós admitimos não
  * ter informação — que é diferente, e é a única resposta honesta.
  */
+import type { VocabCard } from '../types';
+import type { LangConfig } from './langConfig';
 import { detectLanguage, type LangDetection } from './langDetect';
 import { baseLang } from './languages';
-import type { LangConfig } from './langConfig';
-import type { VocabCard } from '../types';
 
 /** Acima disto, o texto vence o rótulo. Mesmo limiar do `spokenLang.ts` — uma regra só na app. */
 const CONFIDENT = 0.6;

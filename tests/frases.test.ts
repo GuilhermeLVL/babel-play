@@ -3,8 +3,9 @@
  * descarta a segunda. Se ele errar a divisão, o conserto vira outro defeito — daí os testes
  * concentrarem-se nas três armadilhas clássicas e na garantia de que nada se perde.
  */
-import { describe, it, expect } from 'vitest'
-import { separarEmFrases, juntarFrases } from '../src/core/texto/frases'
+import { describe, expect,it } from 'vitest'
+
+import { juntarFrases,separarEmFrases } from '../src/core/texto/frases'
 
 describe('separação em frases', () => {
   it('separa o caso que motivou tudo isto', () => {

@@ -12,20 +12,21 @@
  * pela POSIÇÃO: ele precisa vir depois do middleware do Vite / do estático, que só existem neste
  * arquivo. Montado antes deles, ele deixaria de ser alcançado.
  */
+import dotenv from "dotenv";
 import express from "express";
 import path from "path";
-import dotenv from "dotenv";
-import { criarApp } from "./server/http/app";
-import { seedIfEmpty } from "./server/db/seed";
+
 import { dbReady } from "./server/db/db";
-import { erroGlobal } from "./server/lib/erroGlobal";
+import { seedIfEmpty } from "./server/db/seed";
+import { criarApp } from "./server/http/app";
+import { authRequired,mecanismoDe } from "./server/lib/auth";
 import { registrarFalhaDeBoot, registrarSucessoDeBoot } from "./server/lib/bootStatus";
+import { verificarConfiguracaoNoBoot } from "./server/lib/config";
 /* `diretorioGravavel` morava aqui e o `crypto.ts` tinha a sua propria versao divergente — a chave
    de segredos ia parar no disco efemero do conteiner enquanto o diario ia para o volume. Uma
    resposta so, em `server/lib/diretorios.ts` (auditoria de 2026-09-07, achado A34). */
 import { diretorioGravavel, erroDeMultiReplica } from "./server/lib/diretorios";
-import { verificarConfiguracaoNoBoot } from "./server/lib/config";
-import { mecanismoDe, authRequired } from "./server/lib/auth";
+import { erroGlobal } from "./server/lib/erroGlobal";
 
 dotenv.config();
 

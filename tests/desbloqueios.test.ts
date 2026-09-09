@@ -1,5 +1,6 @@
-import { describe, it, expect } from 'vitest'
-import { nivelNecessario, desbloqueado, recompensasDoNivel, rotuloDaRecompensa } from '../src/lib/desbloqueios'
+import { describe, expect,it } from 'vitest'
+
+import { desbloqueado, nivelNecessario, recompensasDoNivel, rotuloDaRecompensa } from '../src/lib/desbloqueios'
 
 describe('desbloqueios por nível', () => {
   it('o básico é livre; o resto tem degrau', () => {

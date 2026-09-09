@@ -4,9 +4,10 @@
  * `cardId` em TODO outcome (sem ele `Play.tsx` pula o FSRS) e `onExit` quando o baralho não
  * fecha corrente — antes ele caía num dicionário inglês embutido e jogava sozinho.
  */
-import { describe, it, expect, vi, afterEach } from 'vitest'
-import { render, screen, cleanup, fireEvent } from '@testing-library/react'
+import { cleanup, fireEvent,render, screen } from '@testing-library/react'
 import React from 'react'
+import { afterEach,describe, expect, it, vi } from 'vitest'
+
 import type { MinigameItem, RoundReport } from '../src/core/minigames/types'
 
 vi.mock('../src/lib/juice', () => ({

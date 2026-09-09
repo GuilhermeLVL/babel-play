@@ -5,9 +5,10 @@
  * a CONTINUIDADE — a linha legada 'app' (user_id NULL) tem de continuar visível ao dono local
  * depois do backfill, com onboarding/plano preservados.
  */
-import { describe, it, expect, beforeAll, afterAll } from 'vitest'
-import { setupEphemeralDb, type EphemeralDb } from '../harness/ephemeralDb'
+import { afterAll,beforeAll, describe, expect, it } from 'vitest'
+
 import { asUserId, LOCAL_OWNER } from '../../server/lib/authContext'
+import { type EphemeralDb,setupEphemeralDb } from '../harness/ephemeralDb'
 
 const A = asUserId('user-A')
 const B = asUserId('user-B')

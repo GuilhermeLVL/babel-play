@@ -8,13 +8,15 @@
  * O que este arquivo amarra: um arquivo que MENTE (ZIP/PDF anunciado como `audio/webm`) é recusado
  * com 400 e não chega ao disco; e o que é gravado em `meta` é o tipo DETECTADO, não o declarado.
  */
-import { describe, it, expect, beforeAll, afterAll } from 'vitest'
-import { mkdtempSync, existsSync, readdirSync } from 'node:fs'
+import { existsSync, mkdtempSync, readdirSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
-import { setupEphemeralDb, type EphemeralDb } from '../harness/ephemeralDb'
+
+import { afterAll,beforeAll, describe, expect, it } from 'vitest'
+
 import { asUserId } from '../../server/lib/authContext'
-import { detectarTipoDeArquivo, detectarAudio } from '../../server/lib/tipoDeArquivo'
+import { detectarAudio,detectarTipoDeArquivo } from '../../server/lib/tipoDeArquivo'
+import { type EphemeralDb,setupEphemeralDb } from '../harness/ephemeralDb'
 
 /** Um corpo com a assinatura pedida e enchimento depois — o tamanho não importa para a detecção. */
 function comAssinatura(sig: number[] | string, total = 64, offset = 0): Buffer {

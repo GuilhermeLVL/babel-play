@@ -1,8 +1,9 @@
+import { Check, Eye, EyeOff,RotateCcw, Sparkles } from 'lucide-react';
 import React, { useState } from 'react';
+
 import { useLayout } from '../hooks/useLayout';
-import { Sparkles, RotateCcw, Check, Eye, EyeOff } from 'lucide-react';
-import { PANEL_TITLES } from '../lib/panelMeta';
 import { t } from '../lib/i18n';
+import { PANEL_TITLES } from '../lib/panelMeta';
 
 export default function LayoutEditorToolbar() {
   const { 

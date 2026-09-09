@@ -4,6 +4,7 @@
  * e transforma "escolheu janela, sem áudio" num erro TIPADO que a UI usa para abrir o guia.
  */
 import { describe, expect, it, vi } from 'vitest'
+
 import { startSystemAudioCapture } from '../src/gateway/capture/systemAudio'
 
 function streamFalso(surface: string) {

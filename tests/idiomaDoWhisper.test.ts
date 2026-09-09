@@ -10,7 +10,8 @@
  * escreve de um jeito: a OpenAI devolve o nome em inglês, a Groq o código, e há compatíveis que
  * devolvem BCP-47.
  */
-import { describe, it, expect } from 'vitest'
+import { describe, expect,it } from 'vitest'
+
 import { normalizarIdiomaDoWhisper } from '../server/lib/idiomaDoWhisper'
 
 describe('normalizar o idioma devolvido pelo provedor', () => {

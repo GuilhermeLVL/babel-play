@@ -1,6 +1,7 @@
-import { test, expect, type Browser } from '@playwright/test';
+import { type Browser,expect, test } from '@playwright/test';
+
+import { type CartaoNoServidor,gastarSeedsViaApi, perfil, rodadaPerfeitaViaApi, saldoEsperado, semearCartoes } from './_fixtures';
 import { fecharSobreposicoes } from './_helpers';
-import { semearCartoes, perfil, saldoEsperado, rodadaPerfeitaViaApi, gastarSeedsViaApi, type CartaoNoServidor } from './_fixtures';
 
 /**
  * A MESMA CONTA EM DOIS APARELHOS: o saldo e um so, e duas compras ao mesmo tempo nao o furam.

@@ -3,16 +3,17 @@
  * provider e CRUD de credenciais (segredo write-only). Perfis entram na próxima
  * etapa da Fase 1.
  */
-import { Router, raw } from 'express'
-import { credentialsRepo } from '../db/repositories/credentials'
+import { raw,Router } from 'express'
+
+import { mtTranslateProxy } from '../ai/mtProxy'
 import { llmChatProxy, providerTest } from '../ai/proxy'
 import { sttTranscribeProxy } from '../ai/sttProxy'
-import { mtTranslateProxy } from '../ai/mtProxy'
-import { createCredentialSchema, parseOr400, idParamSchema } from '../validation'
-import { erroDeRota } from '../lib/erroDeRota'
+import { credentialsRepo } from '../db/repositories/credentials'
 // F14-02: a leitura de env sai do handler e passa pelo inventario declarado em lib/config.
 import { sttDeNuvemConfigurado } from '../lib/config'
 import { hasEntitlement } from '../lib/entitlements'
+import { erroDeRota } from '../lib/erroDeRota'
+import { createCredentialSchema, idParamSchema,parseOr400 } from '../validation'
 
 export const aiRouter = Router()
 

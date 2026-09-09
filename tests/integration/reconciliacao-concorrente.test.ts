@@ -10,9 +10,10 @@
  * linha para quem chegar primeiro. Este arquivo prova as duas metades — que a corrida sumiu, e
  * que a varredura continua acontecendo quando é para acontecer.
  */
-import { describe, it, expect, beforeAll, afterAll } from 'vitest'
-import { setupEphemeralDb, type EphemeralDb } from '../harness/ephemeralDb'
+import { afterAll,beforeAll, describe, expect, it } from 'vitest'
+
 import { asUserId } from '../../server/lib/authContext'
+import { type EphemeralDb,setupEphemeralDb } from '../harness/ephemeralDb'
 
 let h: EphemeralDb
 let quota: any

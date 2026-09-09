@@ -5,6 +5,7 @@
  * Mesmo AuthShell/PasswordField do login → herda o design system, o caret (F1) e o olho (F4).
  */
 import React, { useState } from 'react';
+
 import * as auth from '../../lib/auth';
 import AuthShell from './AuthShell';
 import PasswordField from './PasswordField';

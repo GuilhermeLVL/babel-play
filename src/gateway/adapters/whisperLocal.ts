@@ -3,7 +3,7 @@
  * mas web-nativo via Web Worker. Backend PADRÃO = WASM (roda em qualquer navegador, sem WebGPU);
  * WebGPU é opcional via localStorage `babel.whisperDevice = 'webgpu'`.
  */
-import type { SttProvider, SttFinal } from '../capabilities'
+import type { SttFinal,SttProvider } from '../capabilities'
 import { criarWatchdogDeEstagnacao } from './modelProgress'
 
 interface PendingRequest {

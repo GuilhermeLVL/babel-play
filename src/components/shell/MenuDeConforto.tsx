@@ -1,6 +1,6 @@
+import { Gauge, Settings2, Sparkles, Volume2, VolumeX } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { Gauge, Settings2, Sparkles, Volume2, VolumeX } from 'lucide-react';
 
 /**
  * CONFORTO VISUAL — três preferências raras atrás de UM botão (auditoria de UX, 31/08).

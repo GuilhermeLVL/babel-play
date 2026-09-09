@@ -6,8 +6,9 @@
  * os campos e a alternância entrar/criar. A porta de boot no App.tsx (só ativa no modo público) é
  * coberta por typecheck + build.
  */
-import { describe, it, expect, afterEach } from 'vitest'
-import { render, screen, fireEvent, cleanup } from '@testing-library/react'
+import { cleanup,fireEvent, render, screen } from '@testing-library/react'
+import { afterEach,describe, expect, it } from 'vitest'
+
 import Login from '../src/components/Login'
 
 afterEach(cleanup) // sem globals no vitest, o auto-cleanup do testing-library não roda

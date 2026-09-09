@@ -1,12 +1,12 @@
-import React from 'react';
 import {
-  Sun,
   Moon,
-  Search } from 'lucide-react';
-import type { ThemeType, FonteType } from '../../lib/appearance';
-import type { AgeProfileType, MenuPositionType } from './navItems';
+  Search,  Sun } from 'lucide-react';
+import React from 'react';
+
+import type { FonteType,ThemeType } from '../../lib/appearance';
 import MenuDaConta from './MenuDaConta';
 import MenuDeConforto from './MenuDeConforto';
+import type { AgeProfileType, MenuPositionType } from './navItems';
 
 export type FontScale = 'sm' | 'md' | 'lg' | 'xl';
 

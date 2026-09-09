@@ -6,9 +6,10 @@
  * conforto falso. Por isso os testes abaixo não conferem a existência da constraint, e sim que ela
  * REJEITA: cada relação leva um insert de filho com pai inexistente e tem de falhar.
  */
-import { describe, it, expect, beforeAll, afterAll } from 'vitest'
-import { setupEphemeralDb, type EphemeralDb } from '../harness/ephemeralDb'
+import { afterAll,beforeAll, describe, expect, it } from 'vitest'
+
 import { asUserId } from '../../server/lib/authContext'
+import { type EphemeralDb,setupEphemeralDb } from '../harness/ephemeralDb'
 
 let h: EphemeralDb
 let client: any

@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
-import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { empilharCamada, camadasAbertas } from '../src/lib/camadasDeEscape';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+import { camadasAbertas,empilharCamada } from '../src/lib/camadasDeEscape';
 
 /**
  * UM `Escape`, UMA CAMADA.

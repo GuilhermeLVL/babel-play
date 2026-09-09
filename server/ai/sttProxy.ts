@@ -6,13 +6,14 @@
  * chega ao cliente.
  */
 import type { Request, Response } from 'express'
+
 import { credentialsRepo } from '../db/repositories/credentials'
-import { hasEntitlement } from '../lib/entitlements'
-import { reserveManagedCall, refundManagedCall, reservarSegundosDeStt, estornarSegundosDeStt } from '../lib/usageQuota'
 import { segundosFaturaveis } from '../lib/duracaoDeAudio'
-import { assertPublicUrl } from './ssrf'
+import { hasEntitlement } from '../lib/entitlements'
 import { erroDeRota } from '../lib/erroDeRota'
 import { normalizarIdiomaDoWhisper } from '../lib/idiomaDoWhisper'
+import { estornarSegundosDeStt,refundManagedCall, reservarSegundosDeStt, reserveManagedCall } from '../lib/usageQuota'
+import { assertPublicUrl } from './ssrf'
 
 /** POST /api/ai/stt/transcribe (OpenAI-compatible Whisper). */
 export async function sttTranscribeProxy(req: Request, res: Response): Promise<void> {

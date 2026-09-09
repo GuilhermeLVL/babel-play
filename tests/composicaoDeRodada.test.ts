@@ -12,13 +12,14 @@
  * jogam sobre falas de sessão, que não têm dificuldade por palavra. O adaptador serve os 9 e diz,
  * por jogo, se o filtro se aplica — em vez de fingir que sim e devolver um chip inerte.
  */
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { beforeEach,describe, expect, it, vi } from 'vitest'
+
 import {
-  compor, aceitaFiltroDeDificuldade, composicaoLocal, recortarPelaComposicao, filtroParaComposicao,
-  pedidoHttpDaComposicao, TETO_DA_QUERY_DA_COMPOSICAO,
-  type PedidoDeComposicao, type CartaoParaCompor, type Composicao,
+aceitaFiltroDeDificuldade, type CartaoParaCompor,   compor, type Composicao,
+composicaoLocal, filtroParaComposicao,
+  type PedidoDeComposicao,   pedidoHttpDaComposicao, recortarPelaComposicao, TETO_DA_QUERY_DA_COMPOSICAO,
 } from '../src/core/minigames/composicao'
-import { FILTRO_PADRAO, type FiltroDaPratica, type CartaoFiltravel } from '../src/core/minigames/filtro'
+import { type CartaoFiltravel,FILTRO_PADRAO, type FiltroDaPratica } from '../src/core/minigames/filtro'
 
 const CARTOES: CartaoParaCompor[] = [
   { id: 'c1', word: 'water', back: 'água', sentence: null, cefrLevel: 'A1', cefrSource: 'wordlist', occurrences: 9, difficultyScore: 0.12, dueAt: 1, srcLang: 'en', tgtLang: 'pt', clozePrompt: null, clozeAnswer: null },

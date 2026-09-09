@@ -1,6 +1,7 @@
-import React, { useEffect, useRef } from 'react';
-import { X, Play, GraduationCap, Lightbulb, Target, AlertTriangle } from 'lucide-react';
 import type { MinigameId } from '@core';
+import { AlertTriangle,GraduationCap, Lightbulb, Play, Target, X } from 'lucide-react';
+import React, { useEffect, useRef } from 'react';
+
 import type { AgeProfileType } from '../../lib/profile';
 import ArteDoJogo from './ArteDosJogos';
 

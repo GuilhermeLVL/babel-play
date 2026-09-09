@@ -8,10 +8,11 @@
  * contra o servidor-fixture) e pelo canário de payload real, ambos em `scripts/diagnosis/`.
  * Repetir aqui exigiria baixar 116 MB para reprovar nada de novo — está declarado, não omitido.
  */
-import { describe, it, expect, beforeAll, afterAll } from 'vitest'
-import { setupEphemeralDb, type EphemeralDb } from '../harness/ephemeralDb'
+import { afterAll,beforeAll, describe, expect, it } from 'vitest'
+
 import { asUserId } from '../../server/lib/authContext'
-import { faixaDe, cortesDoDeck } from '../../src/core/learning/dificuldade'
+import { cortesDoDeck,faixaDe } from '../../src/core/learning/dificuldade'
+import { type EphemeralDb,setupEphemeralDb } from '../harness/ephemeralDb'
 
 const U = asUserId('fio-completo')
 let h: EphemeralDb

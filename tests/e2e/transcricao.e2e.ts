@@ -1,5 +1,6 @@
-import { test, expect } from '@playwright/test';
-import { fecharSobreposicoes, clicarRobusto } from './_helpers';
+import { expect,test } from '@playwright/test';
+
+import { clicarRobusto,fecharSobreposicoes } from './_helpers';
 
 /**
  * A SUPERFICIE DE CAPTURA EXISTE NOS TRES VIEWPORTS.

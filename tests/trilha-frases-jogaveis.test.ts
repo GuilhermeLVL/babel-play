@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { carregarTrilha } from '../src/data/trilha/carregar';
+
 import { frasesDaTrilha } from '../src/core/learning/trilha';
 import { buildScrambleRounds } from '../src/core/minigames/scramble';
+import { carregarTrilha } from '../src/data/trilha/carregar';
 
 /**
  * A frase da trilha só vira jogo quando vem com a tradução: `fraseJogavel` a exige, e sem ela

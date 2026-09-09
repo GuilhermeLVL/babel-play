@@ -3,8 +3,9 @@
  * em linguagem de usuário, com os fluxos principais e as pegadinhas conhecidas.
  * Aberto pelo "?" na tela Capturar e por Configurações.
  */
+import { Download, GraduationCap,MessageCircle, Mic, Monitor, PictureInPicture2, X } from 'lucide-react';
 import React from 'react';
-import { X, Mic, Monitor, Download, MessageCircle, PictureInPicture2, GraduationCap } from 'lucide-react';
+
 import { t } from '../lib/i18n';
 
 const FLUXOS: Array<{ icon: React.ReactNode; titulo: string; passos: string }> = [

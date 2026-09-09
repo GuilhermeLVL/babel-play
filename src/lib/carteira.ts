@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useState } from 'react'
+
 import { apiFetch } from '../data/api'
-import { authRequired } from './supabase'
 import { hidratarPremium } from './loja'
+import { authRequired } from './supabase'
 
 /**
  * A CARTEIRA DE CRÉDITOS — leitura única compartilhada pelo cabeçalho, pelo Passe e pela Loja.

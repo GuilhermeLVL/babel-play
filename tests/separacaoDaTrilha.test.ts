@@ -18,11 +18,12 @@
  * O que este arquivo trava é a **partição**: todo cartão tem exatamente uma casa. É a propriedade
  * que faz a escolha binária ser verdadeira.
  */
-import { describe, it, expect } from 'vitest'
-import { cartoesDaFonte, SESSAO_DA_TRILHA } from '../src/core/minigames/source'
-import { cartoesDaTrilha } from '../src/core/learning/trilha'
-import type { VocabCard } from '../src/types'
+import { describe, expect,it } from 'vitest'
+
 import type { DadoTrilha } from '../src/core/learning/trilha'
+import { cartoesDaTrilha } from '../src/core/learning/trilha'
+import { cartoesDaFonte, SESSAO_DA_TRILHA } from '../src/core/minigames/source'
+import type { VocabCard } from '../src/types'
 
 function carta(p: Partial<VocabCard> & { id: string; word: string }): VocabCard {
   return {

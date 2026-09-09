@@ -4,9 +4,10 @@
  * Cobre a dedup POR usuário (A e B podem ter a mesma palavra), o carimbo do review_log e os
  * no-ops de escrita cruzada (review/patch/remove/relabel de A sobre cartão de B).
  */
-import { describe, it, expect, beforeAll, afterAll } from 'vitest'
-import { setupEphemeralDb, type EphemeralDb } from '../harness/ephemeralDb'
+import { afterAll,beforeAll, describe, expect, it } from 'vitest'
+
 import { asUserId } from '../../server/lib/authContext'
+import { type EphemeralDb,setupEphemeralDb } from '../harness/ephemeralDb'
 
 const A = asUserId('user-A')
 const B = asUserId('user-B')

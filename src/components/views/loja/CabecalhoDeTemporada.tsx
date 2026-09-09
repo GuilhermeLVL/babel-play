@@ -1,7 +1,8 @@
-import { Sprout, Coins, Plus, Infinity as Infinito, Sparkles } from 'lucide-react';
-import { palavraDeNivel } from '../../../lib/galeria/textos';
-import { proximaRecompensa } from '../../../lib/galeria/progressao';
+import { Coins, Infinity as Infinito, Plus, Sparkles,Sprout } from 'lucide-react';
+
 import type { Carteira } from '../../../lib/carteira';
+import { proximaRecompensa } from '../../../lib/galeria/progressao';
+import { palavraDeNivel } from '../../../lib/galeria/textos';
 import type { DerivedProgress } from '../../../lib/progress';
 
 /**

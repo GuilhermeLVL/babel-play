@@ -1,5 +1,5 @@
-import type { SttCallbacks, SttProvider, SttSession } from '../capabilities'
 import { speechErrorMessage } from '../../lib/mediaErrors'
+import type { SttCallbacks, SttProvider, SttSession } from '../capabilities'
 
 /**
  * STT via Web Speech API (`SpeechRecognition`) — grátis, nativo do navegador

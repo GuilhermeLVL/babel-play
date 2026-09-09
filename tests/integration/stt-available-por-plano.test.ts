@@ -6,9 +6,10 @@
  * `sttRouter` e só descobria o 402 AO ENVIAR ÁUDIO — no meio da captura ao vivo, a pior hora
  * possível. É o espelho do defeito já corrigido no MT (`serverLlmMt.ts:42-44`).
  */
-import { describe, it, expect, beforeAll, afterAll } from 'vitest'
-import { setupEphemeralDb, type EphemeralDb } from '../harness/ephemeralDb'
+import { afterAll,beforeAll, describe, expect, it } from 'vitest'
+
 import { asUserId } from '../../server/lib/authContext'
+import { type EphemeralDb,setupEphemeralDb } from '../harness/ephemeralDb'
 
 let h: EphemeralDb
 let aiRouter: any

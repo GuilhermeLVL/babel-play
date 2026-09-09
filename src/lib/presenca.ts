@@ -5,8 +5,9 @@
  * bater na API a cada render. Se o atalho estiver errado (outro navegador, limpeza), a API
  * responde `jaExistia` e nada é creditado duas vezes.
  */
-import { registrarPresenca } from '../data/api';
 import { diaLocal, PESOS_SEEDS } from '@core';
+
+import { registrarPresenca } from '../data/api';
 
 const CHAVE = 'babel.presenca_dia';
 

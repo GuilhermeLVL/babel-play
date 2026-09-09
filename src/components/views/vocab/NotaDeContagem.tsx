@@ -12,8 +12,9 @@
  *   2. "sem ocorrências registradas ainda" (`legado`, contagem não começou para ela);
  *   3. "zero ocorrências medidas" — que não existe: todo cartão tem ao menos a de legado.
  */
-import React from 'react'
 import { Info } from 'lucide-react'
+import React from 'react'
+
 import { data } from '../../../lib/i18n';
 
 /** Data em que a contagem passou a ser real. Vem do banco (menor `occurred_at` não-legado). */

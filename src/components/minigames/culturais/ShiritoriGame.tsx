@@ -1,11 +1,12 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { X, ArrowRight, Timer as TimerIcon, Volume2, Lightbulb, Link2 } from 'lucide-react';
-import type { MinigameItem, ItemOutcome, RoundReport } from '@core';
+import type { ItemOutcome, MinigameItem, RoundReport } from '@core';
 import { scoreRound } from '@core';
+import { ArrowRight, Lightbulb, Link2,Timer as TimerIcon, Volume2, X } from 'lucide-react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+
 import { montarCorrente } from '../../../core/minigames/shiritori';
+import { comemorar } from '../../../lib/juice';
 import { direcaoDoTexto } from '../../../lib/languages';
 import type { AgeProfileType } from '../../../lib/profile';
-import { comemorar } from '../../../lib/juice';
 import { play } from '../../../lib/soundFx';
 import { speak } from '../../../lib/tts';
 

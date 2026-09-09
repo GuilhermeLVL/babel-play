@@ -8,9 +8,10 @@
  *  - o cliente gravava com `Promise.all` sobre os itens: 20 itens = 20 requests HTTP e ~60 queries,
  *    e uma falha parcial deixava a rodada meio gravada, sem ninguém saber.
  */
-import { describe, it, expect, beforeAll, afterAll } from 'vitest'
-import { setupEphemeralDb, type EphemeralDb } from '../harness/ephemeralDb'
+import { afterAll,beforeAll, describe, expect, it } from 'vitest'
+
 import { asUserId } from '../../server/lib/authContext'
+import { type EphemeralDb,setupEphemeralDb } from '../harness/ephemeralDb'
 
 const U = asUserId('f3-user')
 let h: EphemeralDb

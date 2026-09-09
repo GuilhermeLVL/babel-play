@@ -1,8 +1,9 @@
-import React, { useRef, useState } from 'react';
-import { useLayout } from '../hooks/useLayout';
 import { EyeOff } from 'lucide-react';
-import { AppLayoutConfig } from '../lib/layoutStore';
+import React, { useRef, useState } from 'react';
+
+import { useLayout } from '../hooks/useLayout';
 import { ThemeType } from '../lib/appearance';
+import { AppLayoutConfig } from '../lib/layoutStore';
 
 interface EditablePanelProps {
   viewKey: keyof AppLayoutConfig;

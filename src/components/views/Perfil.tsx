@@ -1,12 +1,13 @@
+import { ShieldCheck,TrendingUp, User } from 'lucide-react';
 import { useState } from 'react';
-import { User, TrendingUp, ShieldCheck } from 'lucide-react';
-import { Abas, PainelDeAba } from '../ui';
-import { usePerfil } from '../../lib/usePerfil';
-import type { DerivedProgress } from '../../lib/progress';
+
 import type { AgeProfileType } from '../../lib/profile';
-import AbaVoce from './perfil/AbaVoce';
-import AbaProgresso from './perfil/AbaProgresso';
+import type { DerivedProgress } from '../../lib/progress';
+import { usePerfil } from '../../lib/usePerfil';
+import { Abas, PainelDeAba } from '../ui';
 import AbaDados from './perfil/AbaDados';
+import AbaProgresso from './perfil/AbaProgresso';
+import AbaVoce from './perfil/AbaVoce';
 
 /**
  * PERFIL — quem você é e onde você está.

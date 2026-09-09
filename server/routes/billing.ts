@@ -12,23 +12,25 @@
  * Idempotência: entrega *at-least-once* → `billingEventsRepo.marcarSeNovo` (INSERT com PK do
  * evento) decide e marca numa instrução. Evento repetido = 200 sem efeito.
  */
-import { Router, json } from 'express'
 import { timingSafeEqual } from 'node:crypto'
+
+import { json,Router } from 'express'
 import { z } from 'zod'
-import { PLAN_MATRIX, ehPlanoDeAssinatura } from '../../src/core/planos'
-import { creditsRepo } from '../db/repositories/credits'
-import { pacotePorSku, centavosParaReais } from '../../src/core/creditos'
+
+import { centavosParaReais,pacotePorSku } from '../../src/core/creditos'
 import { autorizarGastoDeCredito, ehRecusa } from '../../src/core/economiaAutoridade'
-import { premiumDoNivel, passeNivel, TEMPORADA_ATUAL } from '../../src/core/passe'
+import { passeNivel, premiumDoNivel, TEMPORADA_ATUAL } from '../../src/core/passe'
+import { ehPlanoDeAssinatura,PLAN_MATRIX } from '../../src/core/planos'
+import { billingEventsRepo } from '../db/repositories/billingEvents'
+import { creditsRepo } from '../db/repositories/credits'
 import { economiaDoUsuario } from '../db/repositories/metrics'
 import { subscriptionsRepo } from '../db/repositories/subscriptions'
-import { billingEventsRepo } from '../db/repositories/billingEvents'
-import { aplicarEvento, eventoSchema, providerRefDoEvento, referenciaDoEvento } from '../lib/billingEventos'
 import { asaasConfigurado, cancelarAssinatura, criarAssinatura,
-  criarCobrancaAvulsa, criarCliente, primeiraCobranca, webhookToken } from '../lib/asaas'
-import { parseOr400 } from '../validation'
+criarCliente,   criarCobrancaAvulsa, primeiraCobranca, webhookToken } from '../lib/asaas'
+import { aplicarEvento, eventoSchema, providerRefDoEvento, referenciaDoEvento } from '../lib/billingEventos'
 import { erroDeRota } from '../lib/erroDeRota'
 import { log } from '../lib/logger'
+import { parseOr400 } from '../validation'
 
 /* ------------------------------------------------------------------ rotas do usuário (atrás do auth) */
 

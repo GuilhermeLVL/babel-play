@@ -1,12 +1,13 @@
-import { useEffect, useMemo, useState, type Dispatch, type SetStateAction } from 'react';
-import { fetchMetrics, fetchRecordes, type AppMetrics, type RecordeDoJogo } from '../../data/api';
+import { type Dispatch, type SetStateAction,useEffect, useMemo, useState } from 'react';
+
 import { toast } from '../../components/Toast';
+import { type AppMetrics, fetchMetrics, fetchRecordes, type RecordeDoJogo } from '../../data/api';
+import { hidratarAprimoramentos } from '../aprimoramentos';
+import { hidratarCromas } from '../galeria/cromas';
 import { estadoDeIdentidade } from '../identidade';
 import { hidratarPosse } from '../loja';
-import { hidratarCromas } from '../galeria/cromas';
-import { hidratarAprimoramentos } from '../aprimoramentos';
-import { deriveProgress, type DerivedProgress } from '../progress';
 import { registrarPresencaHoje } from '../presenca';
+import { type DerivedProgress,deriveProgress } from '../progress';
 
 export interface EstadoDasMetricas {
   metrics: AppMetrics | null;

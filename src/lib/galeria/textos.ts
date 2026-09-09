@@ -4,7 +4,7 @@
  * Personalizar v3 (2026-08-28): a Loja dizia "Liberado · usar no Visual", o editor dizia
  * "Obter · 50", o modal ia dizer outra coisa. Aqui mora a única redação; quem mostra um item lê daqui.
  */
-import { readAgeProfile, copyDoPerfil } from '../profile'
+import { copyDoPerfil,readAgeProfile } from '../profile'
 
 /**
  * A palavra do nível segue o perfil de exibição ("Etapa" no sênior — ux-v2 §1.7). Leitura via

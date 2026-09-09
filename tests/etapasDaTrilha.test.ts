@@ -9,13 +9,14 @@
  * A segunda é a honestidade do rótulo: nenhuma etapa derivada pode ganhar um nome temático, porque
  * o dado de origem é uma lista alfabética e não há tema nenhum lá dentro.
  */
-import { describe, it, expect } from 'vitest'
-import {
-  etapasDoNivel, progressoDasEtapas, etapaAtual, posicaoNaTrilha, niveisComEtapas,
-  TAMANHO_PADRAO, CORTE_DE_FEITA, type DadoTrilhaComEtapas,
-} from '../src/core/learning/etapas'
-import { chaveDaPalavra } from '../src/core/learning/trilha'
+import { describe, expect,it } from 'vitest'
+
 import trilhaEn from '../public/trilha/en.json'
+import {
+CORTE_DE_FEITA, type DadoTrilhaComEtapas,
+etapaAtual,   etapasDoNivel, niveisComEtapas,
+posicaoNaTrilha, progressoDasEtapas,   TAMANHO_PADRAO, } from '../src/core/learning/etapas'
+import { chaveDaPalavra } from '../src/core/learning/trilha'
 
 const EN = trilhaEn as unknown as DadoTrilhaComEtapas
 

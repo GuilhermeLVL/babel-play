@@ -5,8 +5,9 @@
  * Honesto: se não houver texto principal extraível, lançamos erro claro (não devolvemos o HTML
  * cru nem inventamos conteúdo). Guard anti-SSRF simples: só http(s) público, nada de rede interna.
  */
-import { JSDOM } from 'jsdom'
 import { Readability } from '@mozilla/readability'
+import { JSDOM } from 'jsdom'
+
 import { assertPublicUrl } from '../ai/ssrf'
 
 // Teto do HTML aceito (anti-DoS do jsdom/Readability com páginas-bomba).

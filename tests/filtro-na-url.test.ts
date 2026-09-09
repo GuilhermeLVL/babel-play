@@ -7,9 +7,10 @@
  * resto; (4) query que não fala de filtro devolve null (a persistência local decide), nunca um
  * padrão que apagaria a escolha guardada.
  */
-import { describe, it, expect, vi } from 'vitest';
-import { queryDoFiltro, filtroDaQuery } from '../src/lib/filtroDaPratica';
+import { describe, expect, it, vi } from 'vitest';
+
 import { FILTRO_PADRAO, type FiltroDaPratica } from '../src/core/minigames/filtro';
+import { filtroDaQuery,queryDoFiltro } from '../src/lib/filtroDaPratica';
 
 const cheio: FiltroDaPratica = {
   versao: 1,

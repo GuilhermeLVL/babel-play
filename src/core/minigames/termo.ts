@@ -1,9 +1,9 @@
 import type { VocabCard } from '../../types';
-import { comBaseLatina } from '../texto/palavra';
 import { isDueNow } from '../learning/due';
-import { pistaUtil, chaveComparavel } from '../learning/quality';
+import { type HistoricoDoItem,ordenarPorMemoria } from '../learning/memoriaDeItens';
 import { pistaDeJogo } from '../learning/pistaDeJogo';
-import { ordenarPorMemoria, type HistoricoDoItem } from '../learning/memoriaDeItens';
+import { chaveComparavel,pistaUtil } from '../learning/quality';
+import { comBaseLatina } from '../texto/palavra';
 import type { FaixaDificuldade } from './composicao';
 
 /**

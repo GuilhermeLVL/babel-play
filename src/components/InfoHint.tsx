@@ -1,6 +1,7 @@
+import { Info } from 'lucide-react';
 import React, { useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { Info } from 'lucide-react';
+
 import { usePosicaoFlutuante } from '../lib/posicaoFlutuante';
 
 /**

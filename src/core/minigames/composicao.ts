@@ -18,12 +18,12 @@
  * testado, não acidental: rodada vazia silenciosa ou tela quebrada seriam piores que uma seleção
  * sem o refinamento do servidor.
  */
-import { MINIGAMES, type MinigameId } from './types'
+import type { CefrLevel } from '../learning/contract'
 import { baseLangDe } from '../learning/quality'
 import {
-  passaNoFiltro, type FiltroDaPratica, type CartaoFiltravel, type ExtrasDoFiltro,
-} from './filtro'
-import type { CefrLevel } from '../learning/contract'
+type CartaoFiltravel, type ExtrasDoFiltro,
+type FiltroDaPratica,   passaNoFiltro, } from './filtro'
+import { type MinigameId,MINIGAMES } from './types'
 
 export type FaixaDificuldade = 'facil' | 'medio' | 'dificil'
 export type EstrategiaDeDistribuicao = 'equilibrado' | 'recentes' | 'frequentes' | 'em-dificuldade'

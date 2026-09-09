@@ -1,207 +1,208 @@
-import React, { useCallback, useEffect, useMemo, useState, useRef, useDeferredValue } from 'react';
-import { createPortal } from 'react-dom';
 import {
-  Mic,
-  ChevronRight,
-  ChevronLeft,
-  Pin,
-  ListChecks,
-  Map as MapIcon,
-  Sprout,
-  Flame,
-  GraduationCap,
-  Lock,
-  HelpCircle,
-  Package,
-  Trophy,
-  SlidersHorizontal as SlidersIcon,
-  Trophy as TrophyIcon,
-  Layers,
-  Globe,
+  acumular,
+  agruparFases,
+  agruparJogos,
+  cartoesDaFonte,
+  cartoesDaTrilha,
+  cartoesDoFiltro,
+  type CefrLevel,
+  chaveDaPalavra,
+  chaveDaPalavra as chaveDaPalavraCore,
+  comoDesbloquear,
+  CONFIANCA_CURADA,
+  type ContextoDeDesbloqueio,
+  type DadoTrilha,
+  type Desbloqueio,
+  diagnosticoTermo,
+  escolhaDaFonte,
+  type EscolhaDaPratica,
+  estadoDeCadaJogo,
+  type EstadoDoItem,
+  estadoDoItem,
+  type EstadoSequencia,
+  estimativaDeMinutos,
+  etapaAtual,
+  etapasDoNivel,
+  faixaAuto,
+  fonteDaEscolha,
+  type FonteDeItens,
+  type FonteId,
+  fontesDisponiveis,
+  frasesDaTrilha,
+  frasesDoAcervo,
+  gradeFor,
+  idiomasDisponiveis,
+  isDueNow,
+  type ItemCru,
+  type ItemDaAntessala,
+  MAPA_REVELA_ALVO,
+  marcarPromovidas,
+  mesmaCorrente,
+  mesmaFonte,
+  type MinigameId,
+  type MinigameItem,
+  MINIGAMES,
+  niveisEmJogo,
+  type OrigemDaPratica,
+  pistasDaTriagem,
+  pontuarRodada,
+  previaSegura,
+  progressoDasEtapas,
+  progressoDaTrilha,
+  REGRAS,
+  repetidosDaUltima,
+  resumir,
+  type ResumoDaSequencia,
+  resumoDosPulados,
+  type RodadaConectores,
+  type RodadaDitado,
+  type RodadaEscuta,
+  type RodadaFrase,
+  type RodadaTermo,
+  rotuloDaFonte,
+  rotuloDeDuracao,
+  type RoundReport,
+  SEEDS_DO_DROP,
+  SESSAO_DA_TRILHA,
+  type Triagem,
+  xpFromRound,
+} from '@core';
+import {
+  BarChart2,
   BookOpen,
   CalendarClock,
-  Sparkles,
-  Languages,
-  MessageSquareText,
-  Gamepad2,
+  ChevronLeft,
+  ChevronRight,
   Dices,
-  Search,
-  X as XIcon,
-  Zap,
+  Flame,
+  Gamepad2,
+  Globe,
+  GraduationCap,
+  HelpCircle,
+  Languages,
+  Layers,
+  ListChecks,
+  Lock,
+  Map as MapIcon,
+  MessageSquareText,
+  Mic,
+  Package,
+  Pin,
   Play as Headphones,
   Puzzle,
-  BarChart2,
+  Search,
+  SlidersHorizontal as SlidersIcon,
+  Sparkles,
+  Sprout,
+  Trophy,
+  Trophy as TrophyIcon,
+  X as XIcon,
+  Zap,
 } from 'lucide-react';
-import { playJuicedHit, triggerHaptic } from '../../lib/gameFeel';
+import React, { useCallback, useDeferredValue,useEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
+
+import { escalaDe } from '../../core/learning/cefrWordlist';
+import { rotuloDaEtapa } from '../../core/learning/trilha';
+import { type EstrategiaDaUI } from '../../core/minigames/composicao';
 import {
+  aceitaFiltroDeDificuldade,
+  type CartaoParaCompor,
+  compor,
+  type Composicao,
+  contagemDaFonte,
+  faixaDe as faixaDeScore,
+  type FaixaDificuldade,
+  filtroParaComposicao,
+  recortarPelaComposicao,
+} from '../../core/minigames/composicao';
+import { filtroDaFonte, type FiltroDaPratica,fonteDominante, passaNoFiltro } from '../../core/minigames/filtro';
+import {
+  type MaterialDaRodada,
+  montarRodada as montarRodadaPura,
+} from '../../core/minigames/rodada';
+import {
+  type AppMetrics,
+  bulkAddCards,
   creditarSeeds,
   fetchDeck,
-  reviewCard,
-  salvarRodada,
+  fetchExerciseResults,
+  fetchHistoricoDeItens,
+  fetchRecordes,
   fetchSessions,
   fetchSessionTranscript,
   fetchSettings,
-  bulkAddCards,
-  fetchHistoricoDeItens,
-  fetchExerciseResults,
-  fetchRecordes,
   gastarSeedsEx,
-  type AppMetrics,
   type HistoricoDeItem,
+  reviewCard,
+  salvarRodada,
 } from '../../data/api';
-import { toSentences, type Sentence, type PracticeSeed } from '../../lib/sentences';
-import type { VocabCard, Recording } from '../../types';
-import { coreOnly, type AgeProfileType } from '../../lib/profile';
-import type { DerivedProgress } from '../../lib/progress';
-import {
-  gradeFor,
-  MINIGAMES,
-  SEEDS_DO_DROP,
-  cartoesDaFonte,
-  cartoesDaTrilha,
-  chaveDaPalavra,
-  rotuloDaFonte,
-  fontesDisponiveis,
-  idiomasDisponiveis,
-  fonteDaEscolha,
-  escolhaDaFonte,
-  mesmaFonte,
-  progressoDaTrilha,
-  SESSAO_DA_TRILHA,
-  CONFIANCA_CURADA,
-  isDueNow,
-  estadoDeCadaJogo,
-  comoDesbloquear,
-  type ContextoDeDesbloqueio,
-  type Desbloqueio,
-  cartoesDoFiltro,
-  frasesDoAcervo,
-  agruparJogos,
-  estimativaDeMinutos,
-  rotuloDeDuracao,
-  pistasDaTriagem,
-  resumoDosPulados,
-  previaSegura,
-  repetidosDaUltima,
-  MAPA_REVELA_ALVO,
-  pontuarRodada,
-  xpFromRound,
-  acumular,
-  mesmaCorrente,
-  marcarPromovidas,
-  resumir,
-  agruparFases,
-  faixaAuto,
-  estadoDoItem,
-  etapasDoNivel,
-  progressoDasEtapas,
-  etapaAtual,
-  frasesDaTrilha,
-  diagnosticoTermo,
-  chaveDaPalavra as chaveDaPalavraCore,
-  REGRAS,
-  niveisEmJogo,
-  type EstadoDoItem,
-  type RodadaEscuta,
-  type RodadaDitado,
-  type RodadaConectores,
-  type MinigameId,
-  type MinigameItem,
-  type RoundReport,
-  type RodadaTermo,
-  type RodadaFrase,
-  type FonteDeItens,
-  type Triagem,
-  type DadoTrilha,
-  type CefrLevel,
-  type ItemCru,
-  type ItemDaAntessala,
-  type EstadoSequencia,
-  type ResumoDaSequencia,
-  type EscolhaDaPratica,
-  type OrigemDaPratica,
-  type FonteId,
-} from '@core';
-import { baseLang, langLabelNaUI } from '../../lib/languages';
-import { langConfigFrom, saveLangConfig } from '../../lib/langConfig';
+import { listarBaralhosAnki } from '../../data/apiAnki';
+import { carregarTrilha, indiceDaTrilha, precarregarNiveis,trilhaEmCache } from '../../data/trilha/carregar';
+import { useAudioDaSessao } from '../../lib/audioDaSessao';
+import { filtroDaQuery, gravarFiltro, lerFiltroGuardado, queryDoFiltro } from '../../lib/filtroDaPratica';
 import { temFonteGuardada } from '../../lib/fonteDaPratica';
-import { contarPassada } from '../../lib/passadasDoPipeline';
-import { type EstrategiaDaUI } from '../../core/minigames/composicao';
+import { playJuicedHit, triggerHaptic } from '../../lib/gameFeel';
+import { numero, t, tp } from '../../lib/i18n';
+import {
+  buscarComposicaoPeloFunil,
+  chaveDaMemoriaCurta,
+  gravarDetalhesDoBaralho,
+  gravarPularAntessala,
+  LIMITE_DA_COMPOSICAO,
+  pularAntessala,
+  verDetalhesDoBaralho,
+} from '../../lib/jogos/estadoDaPratica';
+import { langConfigFrom, saveLangConfig } from '../../lib/langConfig';
+import { baseLang, langLabelNaUI } from '../../lib/languages';
 import {
   lerPrecisoes,
   registrarPrecisao,
   registrarVistas,
   vistasRecentes as vistasGuardadas,
 } from '../../lib/memoriaLocal';
-import SalaDeEscolha from '../minigames/SalaDeEscolha';
-import SeletorDeConteudo from '../minigames/SeletorDeConteudo';
-import CoberturaDosIdiomas from '../minigames/CoberturaDosIdiomas';
-import { isTtsSupported, hasVoiceFor, vozesCarregadas, aoMudarVozes } from '../../lib/tts';
-import { useAudioDaSessao } from '../../lib/audioDaSessao';
-import CuradoriaBaralho from './CuradoriaBaralho';
-import MapaDoConteudo from './MapaDoConteudo';
-import ArteDoJogo, { tomDoJogo, FAMILIAS } from '../minigames/ArteDosJogos';
-import Recordes from './play/Recordes';
-import { JOGOS, tituloDoJogo, descricaoDoJogo, type JogoUI } from './play/jogos';
-import { numero, t, tp } from '../../lib/i18n';
-import { T } from '../../lib/T';
-import PainelTrilha from './PainelTrilha';
-import BaralhoAnki from './BaralhoAnki';
-import BaralhosAnki from './BaralhosAnki';
-import { listarBaralhosAnki } from '../../data/apiAnki';
-import { indiceDaTrilha, carregarTrilha, trilhaEmCache, precarregarNiveis } from '../../data/trilha/carregar';
-import { escalaDe } from '../../core/learning/cefrWordlist';
-import { rotuloDaEtapa } from '../../core/learning/trilha';
-import ComoSeJoga from '../minigames/ComoSeJoga';
-import AntessalaDaRodada from '../minigames/AntessalaDaRodada';
-import { toast } from '../Toast';
-import TourGuiado from '../minigames/TourGuiado';
-import { PASSOS_DOS_JOGOS, jaFezTour, marcarTourFeito } from '../minigames/passosDosJogos';
 import {
-  aplicarOrdem,
-  mover,
   alternarFixado,
-  lerOrdem,
+  aplicarOrdem,
   gravarOrdem,
+  lerOrdem,
+  mover,
   ORDEM_VAZIA,
   type OrdemDosJogos,
 } from '../../lib/ordemDosJogos';
-import TermoGame from '../minigames/TermoGame';
-import ScrambleGame from '../minigames/ScrambleGame';
-import KaraokeGame, { type FalaKaraoke } from '../minigames/KaraokeGame';
-import ScratchReward from '../minigames/ScratchReward';
-import ResumoDaRodada, { type ItemDaRodada } from '../minigames/ResumoDaRodada';
-import { EVENTO_DROP_GANHO, type DetalheDoDrop } from '../RecompensaDesbloqueada';
-import {
-  compor,
-  aceitaFiltroDeDificuldade,
-  faixaDe as faixaDeScore,
-  contagemDaFonte,
-  recortarPelaComposicao,
-  filtroParaComposicao,
-  type FaixaDificuldade,
-  type Composicao,
-  type CartaoParaCompor,
-} from '../../core/minigames/composicao';
-import {
-  montarRodada as montarRodadaPura,
-  type MaterialDaRodada,
-} from '../../core/minigames/rodada';
-import { filtroDaFonte, fonteDominante, passaNoFiltro, type FiltroDaPratica } from '../../core/minigames/filtro';
-import { lerFiltroGuardado, gravarFiltro, filtroDaQuery, queryDoFiltro } from '../../lib/filtroDaPratica';
-import {
-  LIMITE_DA_COMPOSICAO,
-  buscarComposicaoPeloFunil,
-  chaveDaMemoriaCurta,
-  gravarDetalhesDoBaralho,
-  gravarPularAntessala,
-  pularAntessala,
-  verDetalhesDoBaralho,
-} from '../../lib/jogos/estadoDaPratica';
-import { lerUrlAtual, publicarQueryDoJogar, consumirQueryDoBoot } from '../../lib/rotas';
-import EscutaGame from '../minigames/EscutaGame';
-import DitadoGame from '../minigames/DitadoGame';
+import { contarPassada } from '../../lib/passadasDoPipeline';
+import { type AgeProfileType,coreOnly } from '../../lib/profile';
+import type { DerivedProgress } from '../../lib/progress';
+import { consumirQueryDoBoot,lerUrlAtual, publicarQueryDoJogar } from '../../lib/rotas';
+import { type PracticeSeed,type Sentence, toSentences } from '../../lib/sentences';
+import { T } from '../../lib/T';
+import { aoMudarVozes,hasVoiceFor, isTtsSupported, vozesCarregadas } from '../../lib/tts';
+import type { Recording,VocabCard } from '../../types';
+import AntessalaDaRodada from '../minigames/AntessalaDaRodada';
+import ArteDoJogo, { FAMILIAS,tomDoJogo } from '../minigames/ArteDosJogos';
+import CoberturaDosIdiomas from '../minigames/CoberturaDosIdiomas';
+import ComoSeJoga from '../minigames/ComoSeJoga';
 import ConectoresGame from '../minigames/ConectoresGame';
+import DitadoGame from '../minigames/DitadoGame';
+import EscutaGame from '../minigames/EscutaGame';
+import KaraokeGame, { type FalaKaraoke } from '../minigames/KaraokeGame';
+import { jaFezTour, marcarTourFeito,PASSOS_DOS_JOGOS } from '../minigames/passosDosJogos';
+import ResumoDaRodada, { type ItemDaRodada } from '../minigames/ResumoDaRodada';
+import SalaDeEscolha from '../minigames/SalaDeEscolha';
+import ScrambleGame from '../minigames/ScrambleGame';
+import ScratchReward from '../minigames/ScratchReward';
+import SeletorDeConteudo from '../minigames/SeletorDeConteudo';
+import TermoGame from '../minigames/TermoGame';
+import TourGuiado from '../minigames/TourGuiado';
+import { type DetalheDoDrop,EVENTO_DROP_GANHO } from '../RecompensaDesbloqueada';
+import { toast } from '../Toast';
+import BaralhoAnki from './BaralhoAnki';
+import BaralhosAnki from './BaralhosAnki';
+import CuradoriaBaralho from './CuradoriaBaralho';
+import MapaDoConteudo from './MapaDoConteudo';
+import PainelTrilha from './PainelTrilha';
+import { descricaoDoJogo, JOGOS, type JogoUI,tituloDoJogo } from './play/jogos';
+import Recordes from './play/Recordes';
 import { TELA_DO_JOGO } from './play/telaDoJogo';
 
 /**

@@ -10,11 +10,12 @@
  * O conteudo de aprendizado (falas, palavras, frases de exemplo, notas do Anki) fica — e o dado
  * que as migrations precisam encontrar. A varredura por e-mail passa por ele mesmo assim.
  */
-import { describe, it, expect, beforeAll, afterAll } from 'vitest'
 import { copyFileSync, existsSync, mkdtempSync, readFileSync, rmSync, statSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
-import { createClient, type Client } from '@libsql/client'
+
+import { type Client,createClient } from '@libsql/client'
+import { afterAll,beforeAll, describe, expect, it } from 'vitest'
 
 const FIXTURE = path.resolve(process.cwd(), 'tests', 'fixtures', 'banco-estado-atual.db')
 const JOURNAL = path.resolve(process.cwd(), 'server', 'db', 'migrations', 'meta', '_journal.json')

@@ -11,10 +11,11 @@
  * (spendId = 'loja-<id>': comprar duas vezes não cobra duas vezes). Equipar delega aos módulos
  * que já mandam na aparência (persistTheme/setParticulas) — a loja não inventa um segundo dono.
  */
-import { liberadoTudo } from './liberacaoDev';
 import type { TipoDesbloqueavel } from '@core';
+import { CATALOGO_DA_LOJA, CONQUISTAS, type ItemDaLoja, type Raridade } from '@core';
+
 import { conquistasDesbloqueadas } from './conquistasPosse';
-import { CONQUISTAS, CATALOGO_DA_LOJA, type ItemDaLoja, type Raridade } from '@core';
+import { liberadoTudo } from './liberacaoDev';
 
 /* O catálogo e os tipos mudaram para `src/core/loja.ts` para que o SERVIDOR possa lê-los (ver o
    cabeçalho de lá). Reexportados daqui porque 30+ telas importam `from '../lib/loja'` e trocar o

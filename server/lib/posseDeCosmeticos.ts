@@ -20,10 +20,10 @@
  * o Estúdio está liberado, as cores são da pessoa.
  */
 import { CATALOGO_DA_LOJA } from '../../src/core/loja'
-import { seedSpendsRepo } from '../db/repositories/seedSpends'
 import { creditsRepo } from '../db/repositories/credits'
 import { economiaRepo } from '../db/repositories/economia'
 import { economiaDoUsuario } from '../db/repositories/metrics'
+import { seedSpendsRepo } from '../db/repositories/seedSpends'
 import type { UserId } from './authContext'
 
 export interface RecusaDePosse {

@@ -6,11 +6,12 @@
  * Estes testes prendem a consolidação: se alguém recriar uma lista à mão e ela divergir, é aqui
  * que quebra — em vez de na conta de um assinante.
  */
-import { describe, it, expect } from 'vitest'
-import { PLAN_MATRIX, PLANOS_DE_ASSINATURA, ehPlanoDeAssinatura } from '../src/core/planos'
+import { describe, expect,it } from 'vitest'
+
 import { getEntitlements } from '../server/lib/entitlements'
-import { capForPlan, capSegundosParaPlano } from '../server/lib/usageQuota'
 import { capDeArmazenamento } from '../server/lib/storageQuota'
+import { capForPlan, capSegundosParaPlano } from '../server/lib/usageQuota'
+import { ehPlanoDeAssinatura,PLAN_MATRIX, PLANOS_DE_ASSINATURA } from '../src/core/planos'
 import { PLAN_LABELS } from '../src/lib/entitlements'
 
 describe('a matriz é a fonte única', () => {

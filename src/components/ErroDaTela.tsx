@@ -1,5 +1,6 @@
+import { Home,RefreshCw } from 'lucide-react';
 import React from 'react';
-import { RefreshCw, Home } from 'lucide-react';
+
 import { reportarErro } from '../lib/relatorioDeErros';
 
 /**

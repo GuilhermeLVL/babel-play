@@ -1,5 +1,5 @@
+import { AlertTriangle, CheckCircle2, Download, HardDriveDownload,Loader2, RotateCw } from 'lucide-react';
 import React from 'react';
-import { Loader2, CheckCircle2, AlertTriangle, RotateCw, Download, HardDriveDownload } from 'lucide-react';
 
 /**
  * Painel de PREPARAÇÃO DO MODELO local — honesto e visível (antes: uma barrinha de 1.5px no

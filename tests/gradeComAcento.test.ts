@@ -1,6 +1,7 @@
-import { describe, it, expect } from 'vitest';
-import { buildGrid, letrasNaGrade, normalizarPalavra, entraNaGrade } from '../src/core/minigames/wordsearch';
+import { describe, expect,it } from 'vitest';
+
 import type { MinigameItem } from '../src/core/minigames/types';
+import { buildGrid, entraNaGrade,letrasNaGrade, normalizarPalavra } from '../src/core/minigames/wordsearch';
 
 /**
  * A GRADE ESCREVE A PALAVRA COMO ELA E.

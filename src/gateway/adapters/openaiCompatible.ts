@@ -1,6 +1,7 @@
 import type { AdapterCost, AdapterRuntime, ChatMessage, ChatResult } from '@core'
-import type { LlmOptions, LlmProvider } from '../capabilities'
+
 import { apiFetch } from '../../data/api'
+import type { LlmOptions, LlmProvider } from '../capabilities'
 
 /**
  * Adapter OpenAI-compatible — o MESMO protocolo `/chat/completions` do desktop

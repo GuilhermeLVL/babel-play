@@ -8,7 +8,8 @@
  *   err.message = "Failed query: insert into sessions (...)"     ← inútil
  *   err.cause   = "SQLITE_ERROR: no such table: sessions"        ← o que importa
  */
-import { describe, it, expect, vi, afterEach } from 'vitest'
+import { afterEach,describe, expect, it, vi } from 'vitest'
+
 import { erroDeRota } from '../../server/lib/erroDeRota'
 
 afterEach(() => vi.restoreAllMocks())

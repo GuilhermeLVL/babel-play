@@ -1,30 +1,30 @@
-import React, { useState, useMemo, useEffect } from 'react';
-import { baixarRelatorio } from '../../lib/relatorioDeProgresso';
-import { useExameDePalavra } from '../../lib/useExameDePalavra';
+import { computeTextStats, detectarVozPassiva,retrievability } from '@core';
+import {
+Activity, AlertCircle,
+ArrowUpRight, BarChart2,   BookOpen, Brain, Clock,   Download, Eye, Headphones,LayoutGrid, MessageSquareWarning, Mic, MoreHorizontal, PieChart as PieChartIcon,
+  Sprout, Target} from 'lucide-react';
+import React, { useEffect,useMemo, useState } from 'react';
+import {
+Cell,
+Pie,   PieChart,   ResponsiveContainer, Tooltip} from 'recharts';
+
+import { type AppMetrics, fetchAllUtterances, fetchDeck, fetchMetrics, type UtteranceRow } from '../../data/api';
 import { ficharPalavraDoAnalista } from '../../lib/adicionarAoDeck';
-import { fetchMetrics, fetchDeck, fetchAllUtterances, type AppMetrics, type UtteranceRow } from '../../data/api';
+import { numero } from '../../lib/i18n';
+import { baseLang, langLabelNaUI } from '../../lib/languages';
+import { copyDoPerfil, coreOnly } from '../../lib/profile';
+import { baixarRelatorio } from '../../lib/relatorioDeProgresso';
+import type { ExerciseId,PracticeSeed } from '../../lib/sentences';
+import { seedFromSelection, telaDoExercicio } from '../../lib/sentences';
+import { useExameDePalavra } from '../../lib/useExameDePalavra';
 import { Recording, VocabCard, VocabWord } from '../../types';
 import EditablePanel from '../EditablePanel';
-import { copyDoPerfil, coreOnly } from '../../lib/profile';
-import {
-  BookOpen, Clock, Activity, ArrowUpRight, AlertCircle,
-  Download, LayoutGrid, Brain, Mic, PieChart as PieChartIcon,
-  Sprout, Eye, MoreHorizontal, BarChart2, MessageSquareWarning, Target, Headphones} from 'lucide-react';
-import {
-  ResponsiveContainer, Tooltip, 
-  PieChart, Pie, Cell
-} from 'recharts';
-import MetricsExpandedKpi, { KpiType } from './MetricsExpandedKpi';
-import { retrievability, computeTextStats, detectarVozPassiva } from '@core';
-import CatalogoDePalavras from './vocab/CatalogoDePalavras';
-import { baseLang, langLabelNaUI } from '../../lib/languages';
-import { seedFromSelection, telaDoExercicio } from '../../lib/sentences';
-import type { PracticeSeed, ExerciseId } from '../../lib/sentences';
-import VocabularyPanel from '../VocabularyPanel';
-import { Confianca, SemDado, ehBaixaConfianca } from '../Honestidade';
-import { Abas, Barra, PainelDeAba } from '../ui';
+import { Confianca, ehBaixaConfianca,SemDado } from '../Honestidade';
 import EvolucaoSemanal from '../metrics/EvolucaoSemanal';
-import { numero } from '../../lib/i18n';
+import { Abas, Barra, PainelDeAba } from '../ui';
+import VocabularyPanel from '../VocabularyPanel';
+import MetricsExpandedKpi, { KpiType } from './MetricsExpandedKpi';
+import CatalogoDePalavras from './vocab/CatalogoDePalavras';
 
 // --- HELPERS ---
 

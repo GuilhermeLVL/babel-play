@@ -3,8 +3,8 @@
  * acessível por teclado (tab + enter/space), com aria-label dinâmico. O input ganha `pe-11` para o
  * ícone não sobrepor o texto nem interferir no caret.
  */
-import React, { useState } from 'react';
 import { Eye, EyeOff } from 'lucide-react';
+import React, { useState } from 'react';
 
 export default function PasswordField(props: React.InputHTMLAttributes<HTMLInputElement>) {
   const [mostrar, setMostrar] = useState(false);

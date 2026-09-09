@@ -8,11 +8,12 @@
  * O que travam: a frase CONTÉM a palavra, o comprimento está na faixa que a tela aguenta, e frase e
  * tradução andam sempre juntas. Um par com frase e sem tradução daria pista sem gabarito.
  */
-import { describe, it, expect } from 'vitest'
+import { describe, expect,it } from 'vitest'
+
 import trilhaEn from '../public/trilha/en.json'
-import { cartoesDaTrilha, proximasPalavras, frasesDaTrilha, NIVEIS_CEFR } from '../src/core/learning/trilha'
-import { buildScrambleRounds } from '../src/core/minigames/scramble'
 import type { DadoTrilha } from '../src/core/learning/trilha'
+import { cartoesDaTrilha, frasesDaTrilha, NIVEIS_CEFR,proximasPalavras } from '../src/core/learning/trilha'
+import { buildScrambleRounds } from '../src/core/minigames/scramble'
 
 const dado = trilhaEn as unknown as DadoTrilha
 

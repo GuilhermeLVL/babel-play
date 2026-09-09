@@ -14,10 +14,11 @@
  * (e o gênero em pt-BR: cartão corrigido × fala corrigida). Depois de aplicar, re-auditamos: a lista
  * passa a refletir o banco, não o nosso otimismo.
  */
-import { useState } from 'react';
 import { AlertTriangle, ArrowRight, Ban, CheckCircle2, HelpCircle, Loader2, ScanSearch } from 'lucide-react';
+import { useState } from 'react';
+
 import { fetchAllUtterances, fetchDeck, relabelCards, relabelUtterances } from '../../data/api';
-import { auditDeck, auditUtterances, targetFor, type AuditReport, type LangFinding } from '../../lib/langAudit';
+import { auditDeck, type AuditReport, auditUtterances, type LangFinding,targetFor } from '../../lib/langAudit';
 import { fetchLangConfig, type LangConfig } from '../../lib/langConfig';
 import { baseLang, knownShorts, langLabel } from '../../lib/languages';
 import { askConfirm, toast } from '../Toast';

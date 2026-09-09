@@ -1,4 +1,4 @@
-import { type Page, type Locator, expect } from '@playwright/test';
+import { expect,type Locator, type Page } from '@playwright/test';
 
 /**
  * Helpers compartilhados entre as suítes de `/jogar` (`baralhos.e2e.ts`, `facetas.e2e.ts`).

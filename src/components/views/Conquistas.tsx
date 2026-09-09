@@ -1,15 +1,16 @@
-import { useMemo } from 'react';
-import { Trophy, Sprout, Star, Lock, Check, Flame, Info } from 'lucide-react';
 import {
-  REGRAS, CONQUISTAS, progressoDasConquistas, levelFloor, PESOS_SEEDS,
-  type ContextoDeConquistas, type ProgressoDeConquista, type RaridadeDaConquista,
-} from '@core';
+CONQUISTAS,   type ContextoDeConquistas, levelFloor, PESOS_SEEDS,
+progressoDasConquistas, type ProgressoDeConquista, type RaridadeDaConquista,
+  REGRAS, } from '@core';
+import { Check, Flame, Info,Lock, Sprout, Star, Trophy } from 'lucide-react';
+import { useMemo } from 'react';
+
 import { conquistasDesbloqueadas, dataDaConquista } from '../../lib/conquistasPosse';
-import { CATALOGO_DA_LOJA, COR_DA_RARIDADE } from '../../lib/loja';
-import MiniaturaDoItem from '../MiniaturaDoItem';
 import { TEXTOS } from '../../lib/galeria/textos';
-import type { DerivedProgress } from '../../lib/progress';
 import { data } from '../../lib/i18n';
+import { CATALOGO_DA_LOJA, COR_DA_RARIDADE } from '../../lib/loja';
+import type { DerivedProgress } from '../../lib/progress';
+import MiniaturaDoItem from '../MiniaturaDoItem';
 
 /**
  * CONQUISTAS & RECOMPENSAS — a tela que diz, em números, como se ganha e o que se ganha.

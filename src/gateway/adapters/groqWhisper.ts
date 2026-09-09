@@ -3,9 +3,9 @@
  * modelo whisper-large-v3-turbo na nuvem. A chave da API nunca chega ao cliente; o servidor
  * injeta via `x-credential-id`.
  */
-import type { SttFinal, SttProvider } from '../capabilities'
-import { encodeWav } from '../audio/wav'
 import { apiFetch } from '../../data/api'
+import { encodeWav } from '../audio/wav'
+import type { SttFinal, SttProvider } from '../capabilities'
 
 export interface GroqWhisperConfig {
   model: string

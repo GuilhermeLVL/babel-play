@@ -13,7 +13,8 @@
  * problema e o operador achar exatamente aquele request no log.
  */
 import { randomUUID } from 'node:crypto'
-import type { Request, Response, NextFunction } from 'express'
+
+import type { NextFunction,Request, Response } from 'express'
 
 /** Só o alfabeto seguro para log; teto de 64 para não inflar a linha. */
 const SAFE = /^[A-Za-z0-9._-]{1,64}$/

@@ -1,9 +1,10 @@
-import { useState } from 'react';
-import { CloudOff, X } from 'lucide-react';
-import { avisoPendente, marcarVisto } from '../../lib/marcosDeConta';
-import { estaAnonimo } from '../../lib/identidade';
 import type { AppMetrics } from '@core';
+import { CloudOff, X } from 'lucide-react';
+import { useState } from 'react';
+
 import { t } from '../../lib/i18n';
+import { estaAnonimo } from '../../lib/identidade';
+import { avisoPendente, marcarVisto } from '../../lib/marcosDeConta';
 
 /**
  * O AVISO POR MARCO DE USO — pedir a conta quando a pessoa TEM ALGO A PERDER.

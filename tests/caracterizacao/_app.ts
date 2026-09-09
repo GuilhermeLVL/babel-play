@@ -35,10 +35,11 @@
  *   await s.encerrar()
  */
 import type { Server } from 'node:http'
-import { SignJWT, generateKeyPair } from 'jose'
+
+import { generateKeyPair,SignJWT } from 'jose'
 
 type Chave = Awaited<ReturnType<typeof generateKeyPair>>['privateKey']
-import { setupEphemeralDb, type EphemeralDb } from '../harness/ephemeralDb'
+import { type EphemeralDb,setupEphemeralDb } from '../harness/ephemeralDb'
 
 export type Modo = 'self-host' | 'publico'
 

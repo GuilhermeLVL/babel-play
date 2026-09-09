@@ -1,9 +1,10 @@
 // @vitest-environment jsdom
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { beforeEach,describe, expect, it, vi } from 'vitest'
+
+import { readCursor } from '../src/lib/cursores'
 import { equiparItem, equipavel } from '../src/lib/galeria/equipar'
 import { CATALOGO_DA_LOJA } from '../src/lib/loja'
-import { readParticulas, readPack } from '../src/lib/particulas'
-import { readCursor } from '../src/lib/cursores'
+import { readPack,readParticulas } from '../src/lib/particulas'
 import { readRastro } from '../src/lib/rastroDoMouse'
 
 const item = (id: string) => CATALOGO_DA_LOJA.find((i) => i.id === id)!

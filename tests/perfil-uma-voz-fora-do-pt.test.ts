@@ -1,6 +1,7 @@
-import { describe, expect, it, beforeEach } from 'vitest';
-import { copyDoPerfil } from '../src/lib/profile';
+import { beforeEach,describe, expect, it } from 'vitest';
+
 import { registrarCatalogo, usarIdioma } from '../src/lib/i18n';
+import { copyDoPerfil } from '../src/lib/profile';
 
 /**
  * Os três registros (kids/pro/senior) são de PORTUGUÊS. Fora dele traduz-se um só — a voz `pro` —

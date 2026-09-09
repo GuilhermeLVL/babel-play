@@ -10,7 +10,8 @@
  *  - `babel.providerMode`     → 'local' | 'cloud' (a escolha do onboarding)
  */
 import type { CapabilityBinding, Profile } from '@core'
-import { getBuiltinProfile, DEFAULT_PROFILE_ID } from './profiles'
+
+import { DEFAULT_PROFILE_ID,getBuiltinProfile } from './profiles'
 
 export const PROFILE_KEY = 'babel.activeProfileId'
 export const CREDENTIAL_KEY = 'babel.credentialId'

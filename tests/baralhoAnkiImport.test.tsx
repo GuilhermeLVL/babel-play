@@ -9,9 +9,9 @@
  * quando não há nada ativável, que erro na importação aparece como erro (não como "0 notas"), e
  * que `truncado` é dito quando o arquivo tem mais notas do que o teto de leitura.
  */
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import React from 'react'
-import { describe, it, expect, vi, afterEach, beforeEach } from 'vitest'
-import { render, screen, cleanup, fireEvent, waitFor } from '@testing-library/react'
+import { afterEach, beforeEach,describe, expect, it, vi } from 'vitest'
 
 afterEach(() => cleanup())
 

@@ -1,13 +1,14 @@
+import type { ItemOutcome, ResultadoDitado,RoundReport } from '@core';
+import { conferirDitado,scorePronunciation, scoreRound } from '@core';
+import { Mic, Play, SkipForward, Square, Turtle,X } from 'lucide-react';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { X, Play, Mic, Square, SkipForward, Turtle } from 'lucide-react';
-import type { ItemOutcome, RoundReport, ResultadoDitado } from '@core';
-import { scorePronunciation, scoreRound, conferirDitado } from '@core';
-import type { AgeProfileType } from '../../lib/profile';
+
+import { criarFalante } from '../../lib/falante';
+import { playJuicedError, playJuicedHit, triggerConfetti,triggerHaptic } from '../../lib/gameFeel';
 import { comemorar } from '../../lib/juice';
 import { speechErrorMessage } from '../../lib/mediaErrors';
+import type { AgeProfileType } from '../../lib/profile';
 import { toast } from '../Toast';
-import { criarFalante } from '../../lib/falante';
-import { playJuicedHit, playJuicedError, triggerHaptic, triggerConfetti } from '../../lib/gameFeel';
 
 /**
  * KARAOKÊ DA FALA — a frase real toca com as palavras acendendo em sincronia; você fala junto e

@@ -1,5 +1,6 @@
-import { describe, it, expect } from 'vitest';
-import { LANGUAGES, langMatches } from '../src/lib/languages';
+import { describe, expect,it } from 'vitest';
+
+import { langMatches,LANGUAGES } from '../src/lib/languages';
 
 /** Idiomas que casam com o termo, pelo rótulo nativo. */
 const buscar = (q: string) => LANGUAGES.filter(l => langMatches(l, q)).map(l => l.label);

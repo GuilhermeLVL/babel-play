@@ -6,18 +6,19 @@
  * closures que substituiu, e o estado da tela entra por PARÂMETRO explícito.
  */
 import type { Dispatch, RefObject, SetStateAction } from 'react';
-import {
-  startSystemAudioCapture, startSystemLoopbackCapture, startServerLoopbackCapture,
-  startMicCapture, type AudioCapture,
-} from '../../gateway/capture/systemAudio';
+
+import type { ModelPrepState } from '../../components/ModelPrepPanel';
 import { WebSpeechStt } from '../../gateway/adapters/webSpeech';
 import type { SttSession } from '../../gateway/capabilities';
-import type { ModelPrepState } from '../../components/ModelPrepPanel';
-import { listDevices, filterLoopbackDevices } from '../audioDevices';
+import {
+type AudioCapture,
+  startMicCapture, startServerLoopbackCapture,
+  startSystemAudioCapture, startSystemLoopbackCapture, } from '../../gateway/capture/systemAudio';
+import { filterLoopbackDevices,listDevices } from '../audioDevices';
 import { isTtsActive } from '../tts';
 import {
-  clog, formatTime, wordsFromText,
-  type HandlersDaFonte, type SpeechSegment,
+  clog, formatTime,   type HandlersDaFonte, type SpeechSegment,
+wordsFromText,
 } from './tiposDaFala';
 import type { OpcoesDeTraducao } from './traducaoDaFala';
 

@@ -1,6 +1,6 @@
-import { MINIGAMES } from './types';
 import type { EstadoDoJogo } from './estadoDosJogos';
 import { ROTULO_DO_MOTIVO } from './estadoDosJogos';
+import { MINIGAMES } from './types';
 
 /**
  * O PAINEL DA PRÁTICA — como os nove jogos se dividem antes de a tela desenhar qualquer coisa.

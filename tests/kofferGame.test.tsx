@@ -6,9 +6,10 @@
  * no arquivo — nenhum outcome tinha `cardId`, e `Play.tsx:1112` descarta outcome sem `cardId`.
  * Uma rodada inteira era jogada sem agendar UMA revisão, e nada na tela dizia isso.
  */
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { render, cleanup, fireEvent, act } from '@testing-library/react'
+import { act,cleanup, fireEvent, render } from '@testing-library/react'
 import React from 'react'
+import { afterEach,beforeEach, describe, expect, it, vi } from 'vitest'
+
 import type { MinigameItem, RoundReport } from '../src/core/minigames/types'
 
 vi.mock('../src/lib/juice', () => ({ comemorar: vi.fn() }))

@@ -1,7 +1,8 @@
 import { desc, eq } from 'drizzle-orm'
+
+import type { UserId } from '../../lib/authContext'
 import { db } from '../db'
 import { users } from '../schema'
-import type { UserId } from '../../lib/authContext'
 
 export type User = typeof users.$inferSelect
 export type Role = 'user' | 'admin' | 'support'

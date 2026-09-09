@@ -1,14 +1,15 @@
 import React from 'react';
-import type { ThemeType } from '../lib/appearance';
-import type { ViewType } from '../types';
-import type { DerivedProgress } from '../lib/progress';
-import NavBar from './shell/NavBar';
-import NavRail from './shell/NavRail';
-import type { ControlClusterProps, FontScale } from './shell/ControlCluster';
-import type { AgeProfileType, MenuPositionType } from './shell/navItems';
 
-export type { AgeProfileType, MenuPositionType } from './shell/navItems';
+import type { ThemeType } from '../lib/appearance';
+import type { DerivedProgress } from '../lib/progress';
+import type { ViewType } from '../types';
+import type { ControlClusterProps, FontScale } from './shell/ControlCluster';
+import NavBar from './shell/NavBar';
+import type { AgeProfileType, MenuPositionType } from './shell/navItems';
+import NavRail from './shell/NavRail';
+
 export type { FontScale } from './shell/ControlCluster';
+export type { AgeProfileType, MenuPositionType } from './shell/navItems';
 
 interface StudioHeaderProps {
   fonte: ControlClusterProps['fonte'];

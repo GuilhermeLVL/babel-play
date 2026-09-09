@@ -1,4 +1,4 @@
-import type { OrigemDaPratica, EscopoDeGravacoes } from '@core';
+import type { EscopoDeGravacoes,OrigemDaPratica } from '@core';
 import type { CefrLevel } from '@core';
 
 /**

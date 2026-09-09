@@ -1,7 +1,8 @@
 // @vitest-environment jsdom
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { render, screen, fireEvent, act, cleanup } from '@testing-library/react'
-import RecompensaDesbloqueada, { recompensasVistas, chaveDaRecompensa, type Recompensa } from '../src/components/RecompensaDesbloqueada'
+import { act, cleanup,fireEvent, render, screen } from '@testing-library/react'
+import { afterEach,beforeEach, describe, expect, it, vi } from 'vitest'
+
+import RecompensaDesbloqueada, { chaveDaRecompensa, type Recompensa,recompensasVistas } from '../src/components/RecompensaDesbloqueada'
 import { CATALOGO_DA_LOJA } from '../src/lib/loja'
 
 vi.mock('../src/lib/juice', () => ({ comemorar: vi.fn(), explodirAleatorio: vi.fn() }))

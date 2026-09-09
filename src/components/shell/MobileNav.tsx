@@ -1,6 +1,7 @@
 import React from 'react';
+
 import type { ViewType } from '../../types';
-import { NAV_ITEMS, navLabel, type AgeProfileType } from './navItems';
+import { type AgeProfileType,NAV_ITEMS, navLabel } from './navItems';
 
 interface MobileNavProps {
   activeView: ViewType;

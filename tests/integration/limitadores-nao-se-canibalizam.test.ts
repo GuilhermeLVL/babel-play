@@ -14,8 +14,9 @@
  * O teste é sobre o STORE, não sobre o Express: é o store que decide onde contar, e testá-lo
  * direto dispensa subir servidor para provar um fato de contabilidade.
  */
-import { describe, it, expect, beforeAll, afterAll } from 'vitest'
-import { setupEphemeralDb, type EphemeralDb } from '../harness/ephemeralDb'
+import { afterAll,beforeAll, describe, expect, it } from 'vitest'
+
+import { type EphemeralDb,setupEphemeralDb } from '../harness/ephemeralDb'
 
 let h: EphemeralDb
 let store: any

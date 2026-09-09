@@ -1,4 +1,5 @@
 import { useSyncExternalStore } from 'react';
+
 import { assinarIdioma, idiomaDaInterface, t, tp } from './i18n';
 
 /**

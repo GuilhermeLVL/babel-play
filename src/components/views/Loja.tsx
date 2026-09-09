@@ -10,43 +10,44 @@
  * Comprar aqui e equipar ali passam pelo mesmo `equiparItem` (lib/galeria/equipar) — o único
  * caminho que equipa no app. Os textos dos estados vêm de `lib/galeria/textos`.
  */
-import { normalizarAbaDaLoja } from '../../lib/rotas';
+import { type ContextoDeConquistas,REGRAS } from '@core';
+import { Check, Coins, Crown, Lock, Shirt, ShoppingBag, Sparkles, Sprout, Ticket,Trophy } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
-import { ShoppingBag, Sprout, Lock, Check, Sparkles, Coins, Crown, Trophy, Shirt, Ticket } from 'lucide-react';
-import { Abas, PainelDeAba } from '../ui';
-import Conquistas from './Conquistas';
-import PasseDeTemporada from './passe/PasseDeTemporada';
-import Personalizar from './Personalizar';
-import { REGRAS, type ContextoDeConquistas } from '@core';
-import {
-  CATALOGO_DA_LOJA, COR_DA_RARIDADE, estadoDoItem, marcarPosse, type ItemDaLoja,
-} from '../../lib/loja';
-import { proximaRecompensa, estadoDaColecao } from '../../lib/galeria/progressao';
-import { equiparItem, equipavel, type ContextoDeEquipar } from '../../lib/galeria/equipar';
-import { TEXTOS } from '../../lib/galeria/textos';
-import MiniaturaDoItem from '../MiniaturaDoItem';
-import ComprarCreditos from './loja/ComprarCreditos';
-import CabecalhoDeTemporada from './loja/CabecalhoDeTemporada';
-import { useCarteira } from '../../lib/carteira';
-import { estaAnonimo } from '../../lib/identidade';
-import CartaoDeConvite from '../conta/CartaoDeConvite';
-import { gastarSeeds, gastarCreditos } from '../../data/api';
-import { toast } from '../Toast';
-import { comemorar, explodirAleatorio } from '../../lib/juice';
-import { emitBurst } from '../../lib/effects';
-import { readParticulas, readPack } from '../../lib/particulas';
-import { readCursor } from '../../lib/cursores';
-import { readRastro } from '../../lib/rastroDoMouse';
+
+import { gastarCreditos,gastarSeeds } from '../../data/api';
+import type { FonteType,ThemeType } from '../../lib/appearance';
 /* A intensidade das partículas saiu daqui: ela é ajuste da peça, e mora no editor da peça
    (`personalizar/EditorDoItem`). Ter os dois lugares fazia a mesma escolha aparecer numa loja
    e num inventário, com dois desenhos. */
 import {
-  nivelDoAprimoramento, custoDoProximoNivel, registrarAprimoramento, progressoDoAprimoramento,
-  NIVEL_MAXIMO,
-} from '../../lib/aprimoramentos';
-import type { ThemeType, FonteType } from '../../lib/appearance';
-import type { MenuPositionType, AgeProfileType } from '../shell/navItems';
+custoDoProximoNivel,   NIVEL_MAXIMO,
+  nivelDoAprimoramento, progressoDoAprimoramento,
+registrarAprimoramento, } from '../../lib/aprimoramentos';
+import { useCarteira } from '../../lib/carteira';
+import { readCursor } from '../../lib/cursores';
+import { emitBurst } from '../../lib/effects';
+import { type ContextoDeEquipar,equiparItem, equipavel } from '../../lib/galeria/equipar';
+import { estadoDaColecao,proximaRecompensa } from '../../lib/galeria/progressao';
+import { TEXTOS } from '../../lib/galeria/textos';
+import { estaAnonimo } from '../../lib/identidade';
+import { comemorar, explodirAleatorio } from '../../lib/juice';
+import {
+  CATALOGO_DA_LOJA, COR_DA_RARIDADE, estadoDoItem, type ItemDaLoja,
+marcarPosse, } from '../../lib/loja';
+import { readPack,readParticulas } from '../../lib/particulas';
 import type { DerivedProgress } from '../../lib/progress';
+import { readRastro } from '../../lib/rastroDoMouse';
+import { normalizarAbaDaLoja } from '../../lib/rotas';
+import CartaoDeConvite from '../conta/CartaoDeConvite';
+import MiniaturaDoItem from '../MiniaturaDoItem';
+import type { AgeProfileType,MenuPositionType } from '../shell/navItems';
+import { toast } from '../Toast';
+import { Abas, PainelDeAba } from '../ui';
+import Conquistas from './Conquistas';
+import CabecalhoDeTemporada from './loja/CabecalhoDeTemporada';
+import ComprarCreditos from './loja/ComprarCreditos';
+import PasseDeTemporada from './passe/PasseDeTemporada';
+import Personalizar from './Personalizar';
 
 interface LojaProps {
   progress: DerivedProgress;

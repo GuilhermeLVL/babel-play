@@ -10,8 +10,9 @@
  * que o `.apkg`, sem precisar montar um SQLite dentro de um zip. O `.apkg` e o teto de tamanho já
  * têm cobertura em `tests/integration/anki-bomba.test.ts`.
  */
-import { describe, it, expect, beforeAll, afterAll } from 'vitest'
-import { subirApp, resposta, type AppDeTeste } from './_app'
+import { afterAll,beforeAll, describe, expect, it } from 'vitest'
+
+import { type AppDeTeste,resposta, subirApp } from './_app'
 
 let s: AppDeTeste
 beforeAll(async () => { s = await subirApp({ modo: 'self-host' }) })

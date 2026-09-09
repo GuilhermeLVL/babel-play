@@ -2,8 +2,9 @@
  * CARACTERIZAÇÃO — conta no modo self-host (`AUTH_REQUIRED=0`): todo request é o dono local.
  * Arquivo próprio porque o harness sobe um app por arquivo (ver `_app.ts`).
  */
-import { describe, it, expect, beforeAll, afterAll } from 'vitest'
-import { subirApp, resposta, type AppDeTeste } from './_app'
+import { afterAll,beforeAll, describe, expect, it } from 'vitest'
+
+import { type AppDeTeste,resposta, subirApp } from './_app'
 
 describe('modo self-host (AUTH_REQUIRED=0)', () => {
   let s: AppDeTeste

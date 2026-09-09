@@ -1,8 +1,9 @@
-import { describe, it, expect } from 'vitest';
+import { describe, expect,it } from 'vitest';
+
 import {
-  REVELAVEL, MINIGAME_IDS, previaSegura, esqueleto, repetidosDaUltima, origemDoMaterial,
-  type ItemCru,
-} from '../src/core';
+esqueleto,   type ItemCru,
+MINIGAME_IDS, origemDoMaterial,
+previaSegura, repetidosDaUltima,   REVELAVEL, } from '../src/core';
 import { chaveComparavel } from '../src/core/learning/quality';
 
 /**

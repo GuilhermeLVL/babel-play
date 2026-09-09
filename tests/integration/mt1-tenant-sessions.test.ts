@@ -4,9 +4,10 @@
  * Prova as DUAS metades: (1) leitura — A nunca vê os dados de B; (2) escrita — update/remove/
  * replace de A sobre linha de B são no-op (pega o WHERE id=? que esqueceu AND user_id=?).
  */
-import { describe, it, expect, beforeAll, afterAll } from 'vitest'
-import { setupEphemeralDb, type EphemeralDb } from '../harness/ephemeralDb'
+import { afterAll,beforeAll, describe, expect, it } from 'vitest'
+
 import { asUserId } from '../../server/lib/authContext'
+import { type EphemeralDb,setupEphemeralDb } from '../harness/ephemeralDb'
 
 const A = asUserId('user-A')
 const B = asUserId('user-B')

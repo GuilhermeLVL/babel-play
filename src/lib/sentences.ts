@@ -9,8 +9,9 @@
  *
  * Agora há um tipo e um normalizador só.
  */
-import type { UtteranceRow } from '../data/api';
 import type { MinigameId } from '@core';
+
+import type { UtteranceRow } from '../data/api';
 import { baseLang } from './languages';
 
 export interface Sentence {

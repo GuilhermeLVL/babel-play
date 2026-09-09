@@ -1,10 +1,12 @@
-import { and, eq, isNull } from 'drizzle-orm'
 import { randomUUID } from 'node:crypto'
-import { db } from '../db'
-import { users, userInterests } from '../schema'
-import { usersRepo } from './users'
-import { saneiaInteresses, MAX_INTERESSES } from '../../../src/core/learning/interesses'
+
+import { and, eq, isNull } from 'drizzle-orm'
+
+import { MAX_INTERESSES,saneiaInteresses } from '../../../src/core/learning/interesses'
 import type { UserId } from '../../lib/authContext'
+import { db } from '../db'
+import { userInterests,users } from '../schema'
+import { usersRepo } from './users'
 
 /**
  * PERFIL DO USUÁRIO — quem é a pessoa, e não o que ela pagou nem o que pode fazer.

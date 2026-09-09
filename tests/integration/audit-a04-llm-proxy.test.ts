@@ -7,10 +7,12 @@
  *
  * O `fetch` é interceptado; nada sai da máquina. Verifica as propriedades do REQUEST montado.
  */
-import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest'
 import { Writable } from 'node:stream'
-import { setupEphemeralDb, type EphemeralDb } from '../harness/ephemeralDb'
+
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
+
 import { asUserId } from '../../server/lib/authContext'
+import { type EphemeralDb,setupEphemeralDb } from '../harness/ephemeralDb'
 
 const OWNER = asUserId('a04-owner')
 

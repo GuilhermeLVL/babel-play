@@ -7,9 +7,10 @@
  * pilha adapter → fetch → `withTimeout` → fallback, não só o núcleo. `fetch` é stubbed (sem socket
  * real): `hang.local` nunca resolve, `ok.local` responde uma chat-completion válida — determinístico.
  */
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
+import type { CapabilityBinding, ChatMessage,Profile } from '@core'
 import { AiGateway, BreakerRegistry, BudgetLedger } from '@core'
-import type { Profile, CapabilityBinding, ChatMessage } from '@core'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+
 import { OpenAiCompatibleLlm } from '../../src/gateway/adapters/openaiCompatible'
 
 const HANG = 'http://hang.local'

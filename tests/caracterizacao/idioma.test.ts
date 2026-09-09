@@ -7,8 +7,9 @@
  * contrato precisa ver este teste quebrar. Um `expect` marcado com `// caracterizacao:` descreve o
  * que acontece hoje, não o que deveria acontecer.
  */
-import { describe, it, expect, beforeAll, afterAll } from 'vitest'
-import { subirApp, resposta, type AppDeTeste } from './_app'
+import { afterAll,beforeAll, describe, expect, it } from 'vitest'
+
+import { type AppDeTeste,resposta, subirApp } from './_app'
 
 describe('idioma e preferencias (self-host)', () => {
   let s: AppDeTeste

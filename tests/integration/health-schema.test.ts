@@ -8,8 +8,9 @@
  * Efeito prático: o orquestrador mantém no balanceador uma réplica que falha em tudo.
  * O boot é fail-fast, o runtime era cego — a pior combinação.
  */
-import { describe, it, expect, beforeAll, afterAll } from 'vitest'
-import { setupEphemeralDb, type EphemeralDb } from '../harness/ephemeralDb'
+import { afterAll,beforeAll, describe, expect, it } from 'vitest'
+
+import { type EphemeralDb,setupEphemeralDb } from '../harness/ephemeralDb'
 
 let h: EphemeralDb
 let health: any

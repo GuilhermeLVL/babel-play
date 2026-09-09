@@ -1,11 +1,31 @@
 // ESLint 9 flat config — mínimo intencional: só regras que pegam ERRO REAL.
-// Sem guerra de estilo (formatação fica com o editor); o typecheck do tsc segue
+// A formatação é do Prettier desde 2026-09-09 (`prettier.config.mjs`); o typecheck do tsc segue
 // sendo a rede principal. Ampliar regras só quando uma classe de bug justificar.
 import js from '@eslint/js'
 import tseslint from 'typescript-eslint'
 import reactHooks from 'eslint-plugin-react-hooks'
+import simpleImportSort from 'eslint-plugin-simple-import-sort'
 
 export default tseslint.config(
+  {
+    /**
+     * ORDEM DE IMPORT AUTOMÁTICA — a única regra de estilo aqui, e ela não é sobre gosto.
+     *
+     * O Prettier não ordena import (por decisão do próprio Prettier), e a ordem manual produz um
+     * tipo específico de conflito de merge: duas frentes acrescentam um import no mesmo lugar e o
+     * git não sabe qual vem antes. Com ordem determinística e `--fix`, o conflito some.
+     *
+     * `warn` e não `error`: com `--max-warnings 0` no `npm run lint` o efeito no CI é o mesmo, e o
+     * `lint-staged` já corrige antes do commit — quem vê o aviso é quem roda o lint à mão, e para
+     * essa pessoa o recado é "rode --fix", não "seu código está errado".
+     */
+    files: ['src/**/*.{ts,tsx}', 'server/**/*.ts', 'server.ts', 'tests/**/*.{ts,tsx}'],
+    plugins: { 'simple-import-sort': simpleImportSort },
+    rules: {
+      'simple-import-sort/imports': 'warn',
+      'simple-import-sort/exports': 'warn',
+    },
+  },
   { ignores: ['dist/**', 'dist-server/**', 'node_modules/**', 'public/**', 'data/**', '*.cjs'] },
   js.configs.recommended,
   ...tseslint.configs.recommended,

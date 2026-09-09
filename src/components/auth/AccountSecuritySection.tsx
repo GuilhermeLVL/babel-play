@@ -3,8 +3,9 @@
  * no self-host retorna null. Encapsula o SecurityPanel (2FA / trocar senha / sair) — wrapper testável
  * isolado do Settings (que é grande demais para montar em teste).
  */
-import React from 'react'
 import { Shield } from 'lucide-react'
+import React from 'react'
+
 import { authRequired } from '../../lib/supabase'
 import SecurityPanel from './SecurityPanel'
 

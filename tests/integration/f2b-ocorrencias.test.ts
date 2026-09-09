@@ -6,9 +6,10 @@
  * linhas, `sentence` guardando só a primeira frase, e nenhuma resposta para "quantas vezes vi" ou
  * "onde vi". A dedup também era 100% em JS, sem UNIQUE — e já tinha falhado 214 vezes.
  */
-import { describe, it, expect, beforeAll, afterAll } from 'vitest'
-import { setupEphemeralDb, type EphemeralDb } from '../harness/ephemeralDb'
+import { afterAll,beforeAll, describe, expect, it } from 'vitest'
+
 import { asUserId } from '../../server/lib/authContext'
+import { type EphemeralDb,setupEphemeralDb } from '../harness/ephemeralDb'
 
 const A = asUserId('user-A')
 const B = asUserId('user-B')

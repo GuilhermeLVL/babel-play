@@ -3,12 +3,14 @@
  * por usuário e read-only. Sobe um Express in-process (stub de auth injetando `req.userId`) + o
  * `meRouter` REAL contra banco efêmero, exercitando por HTTP.
  */
-import { describe, it, expect, beforeAll, afterAll } from 'vitest'
-import express from 'express'
-import type { AddressInfo } from 'node:net'
 import type { Server } from 'node:http'
-import { setupEphemeralDb, type EphemeralDb } from '../harness/ephemeralDb'
+import type { AddressInfo } from 'node:net'
+
+import express from 'express'
+import { afterAll,beforeAll, describe, expect, it } from 'vitest'
+
 import { asUserId, type UserId } from '../../server/lib/authContext'
+import { type EphemeralDb,setupEphemeralDb } from '../harness/ephemeralDb'
 
 let h: EphemeralDb
 let server: Server

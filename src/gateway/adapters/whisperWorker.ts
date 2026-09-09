@@ -10,11 +10,12 @@
  * Recebe mensagens { type: 'load' | 'transcribe', ... } e responde com progresso +
  * resultados via postMessage.
  */
-import { pipeline, env, TextStreamer } from '@huggingface/transformers';
-import { configureModelDelivery } from './transformersEnv';
-import { criarRastreadorDeProgresso, rotuloDeBytes } from './modelProgress';
-import { registrarModeloBaixado } from '../modelManifest';
+import { env, pipeline, TextStreamer } from '@huggingface/transformers';
+
 import { filtrarAlucinacao, tokensPorSegundo } from '../alucinacao';
+import { registrarModeloBaixado } from '../modelManifest';
+import { criarRastreadorDeProgresso, rotuloDeBytes } from './modelProgress';
+import { configureModelDelivery } from './transformersEnv';
 /* `initial_prompt` POR FONTE (contexto das falas anteriores do mic/sistema) foi avaliado e NÃO
    entrou: a versão instalada de @huggingface/transformers não expõe `prompt_ids` no pipeline de
    ASR (conferido no bundle). Quando expuser, o lugar é o objeto de opções abaixo. */

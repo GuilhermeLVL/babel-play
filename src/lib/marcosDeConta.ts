@@ -1,4 +1,4 @@
-import { TETO_ANONIMO, estadoDoTeto } from '@core'
+import { estadoDoTeto,TETO_ANONIMO } from '@core'
 
 /**
  * OS AVISOS POR MARCO DE USO — a peça que não existia (mudança porta-de-entrada).

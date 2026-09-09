@@ -2,10 +2,11 @@
  * P2 da re-auditoria v2: authz de `sessionId`, semântica honesta do DELETE, teto do
  * `imageUrl` e idempotência de seeds que ignora `deletedAt`.
  */
-import { describe, it, expect, beforeAll, afterAll } from 'vitest'
-import { setupEphemeralDb, type EphemeralDb } from '../harness/ephemeralDb'
+import { afterAll,beforeAll, describe, expect, it } from 'vitest'
+
 import { asUserId } from '../../server/lib/authContext'
 import { isSafeImageUrl, patchMetaSchema } from '../../server/validation'
+import { type EphemeralDb,setupEphemeralDb } from '../harness/ephemeralDb'
 
 let h: EphemeralDb
 let vocab: any

@@ -10,8 +10,9 @@
  * Os casos abaixo são AMOSTRAS LITERAIS do banco do dono (`vocab_cards` do deck importado), não
  * exemplos inventados: se a regra passar aqui, passa no material que ele de fato joga.
  */
-import { describe, it, expect } from 'vitest';
-import { vazaResposta, mascararResposta, pistaDeJogo, LACUNA } from '../src/core/learning/pistaDeJogo';
+import { describe, expect,it } from 'vitest';
+
+import { LACUNA,mascararResposta, pistaDeJogo, vazaResposta } from '../src/core/learning/pistaDeJogo';
 
 /** Amostras reais do acervo (SELECT word, back FROM vocab_cards … origin_kind='anki'). */
 const REAIS: Array<[string, string]> = [

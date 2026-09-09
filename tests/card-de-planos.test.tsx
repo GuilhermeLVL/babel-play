@@ -5,8 +5,8 @@
  * 2. Dispensar grava e o card não volta em render seguinte.
  * 3. O preço vem da PLAN_MATRIX, não de string escrita à mão.
  */
-import { it, expect, afterEach, vi } from 'vitest'
-import { render, screen, cleanup, fireEvent } from '@testing-library/react'
+import { cleanup, fireEvent,render, screen } from '@testing-library/react'
+import { afterEach, expect, it, vi } from 'vitest'
 
 afterEach(() => { cleanup(); vi.resetModules(); localStorage.clear() })
 

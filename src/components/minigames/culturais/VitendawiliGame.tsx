@@ -1,10 +1,11 @@
+import type { ItemOutcome, MinigameItem, RoundReport } from '@core';
+import { distractorsFor, makeCloze, MINIGAMES, scoreRound } from '@core';
+import { Sparkles,Volume2, X } from 'lucide-react';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { X, Volume2, Sparkles } from 'lucide-react';
-import type { MinigameItem, ItemOutcome, RoundReport } from '@core';
-import { MINIGAMES, distractorsFor, makeCloze, scoreRound } from '@core';
+
+import { comemorar } from '../../../lib/juice';
 import { direcaoDoTexto } from '../../../lib/languages';
 import type { AgeProfileType } from '../../../lib/profile';
-import { comemorar } from '../../../lib/juice';
 import { speak } from '../../../lib/tts';
 
 /**

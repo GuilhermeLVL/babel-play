@@ -13,10 +13,12 @@
  * O quarto é o que separa telemetria de armadilha. Um sink que lança no caminho de erro
  * transformaria "o request falhou" em "o processo morreu ao anotar que o request falhou".
  */
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
-import { mkdtempSync, rmSync, readdirSync, readFileSync, writeFileSync, utimesSync, mkdirSync } from 'node:fs'
+import { mkdirSync,mkdtempSync, readdirSync, readFileSync, rmSync, utimesSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
+
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+
 import { diarioEmArquivo } from '../../server/lib/diarioDeErros'
 import { log, registrarSinkDeErro } from '../../server/lib/logger'
 

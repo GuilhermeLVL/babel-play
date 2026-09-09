@@ -17,10 +17,10 @@
  * vez de mostrar um botão que não faz som. É o mesmo princípio que o Karaokê já aplica ao
  * reconhecimento de voz ("nota de pronúncia inventada é pior que nota nenhuma").
  */
-import { speak, cancelSpeech, isTtsSupported } from './tts';
+import { toast } from '../components/Toast';
 import { toBcp47 } from './languages';
 import { mediaErrorMessage } from './mediaErrors';
-import { toast } from '../components/Toast';
+import { cancelSpeech, isTtsSupported,speak } from './tts';
 
 /** O que se pede para ouvir. `startMs`/`endMs` só existem quando o item veio de uma gravação. */
 interface ItemAudivel {

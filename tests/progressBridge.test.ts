@@ -1,6 +1,7 @@
-import { describe, it, expect } from 'vitest';
-import { deriveProgress } from '../src/lib/progress';
+import { describe, expect,it } from 'vitest';
+
 import type { AppMetrics } from '../src/data/api';
+import { deriveProgress } from '../src/lib/progress';
 
 function metrics(over: Partial<AppMetrics> = {}): AppMetrics {
   return {

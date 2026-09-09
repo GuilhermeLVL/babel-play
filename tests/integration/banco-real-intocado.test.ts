@@ -9,8 +9,9 @@
  * Causa: `.env` não define `DATABASE_URL` e `server/db/db.ts` cai em `file:./data/babel.db`.
  * Rede: `tests/setup-db-isolada.ts` (setupFile do vitest) aponta para um arquivo descartável.
  */
-import { describe, it, expect } from 'vitest'
 import path from 'node:path'
+
+import { describe, expect,it } from 'vitest'
 
 describe('isolamento do banco na suíte', () => {
   it('DATABASE_URL aponta para um arquivo temporário, não para data/babel.db', () => {

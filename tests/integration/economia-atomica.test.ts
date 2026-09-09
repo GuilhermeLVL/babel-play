@@ -12,10 +12,11 @@
  * O teste do item 1 é sobre o MECANISMO, não sobre um espião: dez gastos simultâneos contra um
  * saldo que paga poucos, e a conta do que entrou no ledger.
  */
-import { describe, it, expect, beforeAll, afterAll } from 'vitest'
-import { setupEphemeralDb, type EphemeralDb } from '../harness/ephemeralDb'
+import { afterAll,beforeAll, describe, expect, it } from 'vitest'
+
 import { asUserId } from '../../server/lib/authContext'
 import { slotsDoPasse } from '../../src/core/passe'
+import { type EphemeralDb,setupEphemeralDb } from '../harness/ephemeralDb'
 
 let h: EphemeralDb
 let metricsRouter: any

@@ -2,7 +2,8 @@
  * REGRESSÃO — M-01 (mínimo): logger estruturado com ALLOWLIST de campos. Garante que transcrição /
  * chave / prompt NUNCA vão para o log, mesmo que um caller passe por engano. (server/lib/logger.ts)
  */
-import { describe, it, expect, vi, afterEach } from 'vitest'
+import { afterEach,describe, expect, it, vi } from 'vitest'
+
 import { log } from '../../server/lib/logger'
 
 afterEach(() => vi.restoreAllMocks())

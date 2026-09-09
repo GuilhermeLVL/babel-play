@@ -20,9 +20,10 @@
  *  2. **Idioma**: o material entregue aos jogos respeita o idioma escolhido — o que, antes, o
  *     seletor do lobby não conseguia garantir de jeito nenhum.
  */
-import { describe, it, expect } from 'vitest'
-import { recortarPelaComposicao, composicaoLocal, type Composicao, type CartaoParaCompor } from '../src/core/minigames/composicao'
-import { triarCartoes, baseLangDe } from '../src/core/learning/quality'
+import { describe, expect,it } from 'vitest'
+
+import { baseLangDe,triarCartoes } from '../src/core/learning/quality'
+import { type CartaoParaCompor,type Composicao, composicaoLocal, recortarPelaComposicao } from '../src/core/minigames/composicao'
 import { cartoesDaFonte } from '../src/core/minigames/source'
 import type { VocabCard } from '../src/types'
 

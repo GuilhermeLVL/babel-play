@@ -8,8 +8,10 @@
  * `profiles` entra apenas pelas linhas do usuário — as builtin têm `user_id` NULL e são globais
  * (mesma exceção documentada em `tenancy.ts`); um filtro por `user_id` já as preserva.
  */
-import { eq, inArray, is, getTableColumns } from 'drizzle-orm'
+import { eq, getTableColumns,inArray, is } from 'drizzle-orm'
 import { SQLiteTable } from 'drizzle-orm/sqlite-core'
+
+import type { UserId } from '../../lib/authContext'
 import { db } from '../db'
 import * as schema from '../schema'
 import {
@@ -36,7 +38,6 @@ import {
   vocabCards,
   vocabOccurrences,
 } from '../schema'
-import type { UserId } from '../../lib/authContext'
 
 /**
  * Toda tabela com `user_id` do titular. `secrets` e `users` são tratadas à parte (chave própria).

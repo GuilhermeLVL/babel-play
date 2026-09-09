@@ -1,5 +1,5 @@
+import { ArrowRight,Hand, Keyboard, MousePointerClick, X } from 'lucide-react';
 import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { X, MousePointerClick, Hand, Keyboard, ArrowRight } from 'lucide-react';
 
 /**
  * TOUR GUIADO — a explicação que acontece NA TELA, sobre o jogo de verdade.

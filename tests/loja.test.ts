@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { describe, expect, it } from 'vitest'
-import { CATALOGO_DA_LOJA, estadoDoItem, marcarPosse, hidratarPosse, possuidos, nivelCoerente, vitrineDoProximoNivel } from '../src/lib/loja'
+
+import { CATALOGO_DA_LOJA, estadoDoItem, hidratarPosse, marcarPosse, nivelCoerente, possuidos, vitrineDoProximoNivel } from '../src/lib/loja'
 
 describe('loja', () => {
   it('o catálogo espelha os níveis do módulo de desbloqueios', () => {

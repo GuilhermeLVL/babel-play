@@ -9,12 +9,13 @@
  * deleção física é `purgarBaralho`, uma ação explícita do usuário.
  */
 import { randomUUID } from 'node:crypto'
+
 import { and, desc, eq, inArray, isNull, sql } from 'drizzle-orm'
+
+import { cursorDeNotas, type FiltroDeNotaAnki,lerCursorDeNotas } from '../../../src/core/learning/contract'
+import type { UserId } from '../../lib/authContext'
 import { db } from '../db'
 import { ankiDecks, ankiImports, ankiNotes } from '../schema'
-
-import type { UserId } from '../../lib/authContext'
-import { cursorDeNotas, lerCursorDeNotas, type FiltroDeNotaAnki } from '../../../src/core/learning/contract'
 
 export type AnkiDeck = typeof ankiDecks.$inferSelect
 export type AnkiNote = typeof ankiNotes.$inferSelect

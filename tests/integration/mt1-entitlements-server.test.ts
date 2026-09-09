@@ -3,9 +3,10 @@
  * resolução: subscriptions (autoritativa) → settings.ui.plan (fallback) → default por modo
  * (público=free, local=selfhost), e a derivação dos entitlements por tier.
  */
-import { describe, it, expect, beforeAll, afterAll, afterEach } from 'vitest'
-import { setupEphemeralDb, type EphemeralDb } from '../harness/ephemeralDb'
+import { afterAll, afterEach,beforeAll, describe, expect, it } from 'vitest'
+
 import { asUserId } from '../../server/lib/authContext'
+import { type EphemeralDb,setupEphemeralDb } from '../harness/ephemeralDb'
 
 let h: EphemeralDb
 let ent: any

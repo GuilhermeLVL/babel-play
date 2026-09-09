@@ -1,8 +1,10 @@
 import { randomUUID } from 'node:crypto'
+
 import { and, eq, isNull, like, sql, sum } from 'drizzle-orm'
+
+import type { UserId } from '../../lib/authContext'
 import { db } from '../db'
 import { presencas, seedCredits } from '../schema'
-import type { UserId } from '../../lib/authContext'
 
 /**
  * ECONOMIA v2 — créditos de seeds/XP e presença diária (a metade servidor do A7).

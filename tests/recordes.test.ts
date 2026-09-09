@@ -4,7 +4,9 @@
  * distintas — via as MESMAS rotas que a tela usa (`/api/exercises/rodada` e `/recordes`).
  */
 import 'fake-indexeddb/auto'
+
 import { afterAll, describe, expect, it } from 'vitest'
+
 import { servidorEfemero } from '../src/data/efemero/servidor'
 import { fecharStore } from '../src/data/efemero/store'
 

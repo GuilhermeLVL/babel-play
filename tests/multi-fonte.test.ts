@@ -1,7 +1,8 @@
 /** Triagem por filtro (multi-fonte) e frases do acervo — os dois caminhos novos do seletor. */
-import { describe, it, expect } from 'vitest';
-import { cartoesDoFiltro, cartoesDaFonte, frasesDoAcervo } from '../src/core/minigames/source';
+import { describe, expect,it } from 'vitest';
+
 import { FILTRO_PADRAO } from '../src/core/minigames/filtro';
+import { cartoesDaFonte, cartoesDoFiltro, frasesDoAcervo } from '../src/core/minigames/source';
 import type { VocabCard } from '../src/types';
 
 const carta = (over: Partial<VocabCard>): VocabCard => ({

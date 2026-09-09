@@ -1,16 +1,17 @@
-import { Mic, Upload, ArrowRight, Sparkles, TrendingUp, Video, FileText, Headphones, ChevronDown, ChevronUp, Gamepad2, Target, Sprout, Rocket, Eye, Zap, Check } from 'lucide-react';
+import { estimativaDeMinutos, rotuloDeDuracao } from '@core';
+import { ArrowRight, Check,ChevronDown, ChevronUp, Eye, FileText, Gamepad2, Headphones, Mic, Rocket, Sparkles, Sprout, Target, TrendingUp, Upload, Video, Zap } from 'lucide-react';
+import React, { useEffect, useRef,useState } from 'react';
+
+import { type AppMetrics,fetchExerciseResults, fetchSettings, patchUiSettings } from '../../data/api';
+import { numero, t, tp } from '../../lib/i18n';
+import { type DerivedProgress, type Mission } from '../../lib/progress';
+import { Recording } from '../../types';
 import CardDePlanos from '../CardDePlanos';
 import AvisoDeConta from '../conta/AvisoDeConta';
-import React, { useState, useEffect, useRef } from 'react';
-import { Recording } from '../../types';
-import { fetchSettings, patchUiSettings, fetchExerciseResults, type AppMetrics } from '../../data/api';
 import EditablePanel from '../EditablePanel';
-import { type DerivedProgress, type Mission } from '../../lib/progress';
 import { ehBaixaConfianca } from '../Honestidade';
-import { Vazio } from '../ui';
-import { estimativaDeMinutos, rotuloDeDuracao } from '@core';
 import FaixaDeProgresso from '../progress/FaixaDeProgresso';
-import { numero, t, tp } from '../../lib/i18n';
+import { Vazio } from '../ui';
 
 // Metas de ritmo DECLARADAS por nível (benchmark, não medição). O valor MEDIDO
 // vem sempre de metrics.wpm; aqui só guardamos o alvo com que comparar.

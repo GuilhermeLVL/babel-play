@@ -11,12 +11,13 @@
  *   1. o cliente não recebe schema;
  *   2. o servidor não PERDE a causa (senão o conserto seria só cegar quem opera).
  */
-import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest'
-import express from 'express'
-import type { AddressInfo } from 'node:net'
 import { mkdtempSync, rmSync } from 'node:fs'
+import type { AddressInfo } from 'node:net'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
+
+import express from 'express'
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
 
 const dir = mkdtempSync(path.join(tmpdir(), 'f11-02-'))
 process.env.DATABASE_URL = 'file:' + path.join(dir, 'vazamento.db').split(path.sep).join('/')

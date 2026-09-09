@@ -15,9 +15,10 @@
  * A piscina abaixo é a REAL: as 9 palavras de 5 letras da etapa 1 do A1 (`mesmoTamanho` reduz o
  * material ao maior grupo de mesmo comprimento, e é ele que a escada consome).
  */
-import { describe, it, expect } from 'vitest'
-import { rodadasDaEscada } from '../src/core/minigames/termo'
+import { describe, expect,it } from 'vitest'
+
 import { buildItems } from '../src/core/minigames/itemSource'
+import { rodadasDaEscada } from '../src/core/minigames/termo'
 import type { VocabCard } from '../src/types'
 
 const PISCINA_A1: Array<[string, string]> = [

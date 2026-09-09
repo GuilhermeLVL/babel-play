@@ -1,5 +1,6 @@
-import { describe, it, expect } from 'vitest';
-import { SpeakerClusterer, cosineSimilarity } from '../src/lib/speakerCluster';
+import { describe, expect,it } from 'vitest';
+
+import { cosineSimilarity,SpeakerClusterer } from '../src/lib/speakerCluster';
 
 /**
  * Vetor 2-D no ângulo pedido — permite construir similaridades EXATAS: cos(θ) entre dois

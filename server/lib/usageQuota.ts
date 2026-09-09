@@ -3,11 +3,11 @@
  * autorizou o acesso. Por isso DEGRADA ABERTO: qualquer erro ao resolver plano/contador → permite
  * (nunca bloquear um pagante por falha de contador). Só a chave gerenciada conta; BYOK/local nem chegam aqui.
  */
-import type { UserId } from './authContext'
-import { getPlanForUser } from './entitlements'
+import { PLAN_MATRIX } from '../../src/core/planos'
 import type { Plan } from '../db/repositories/subscriptions'
 import { usageCountersRepo } from '../db/repositories/usageCounters'
-import { PLAN_MATRIX } from '../../src/core/planos'
+import type { UserId } from './authContext'
+import { getPlanForUser } from './entitlements'
 import { log } from './logger'
 
 export const METRIC_MANAGED = 'managed_calls'

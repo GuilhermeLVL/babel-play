@@ -14,8 +14,9 @@
  *
  * Daí a histerese: converge com maioria simples, mas exige maioria MAIOR para ser derrubado.
  */
-import { describe, it, expect } from 'vitest'
-import { PerfilAdaptativoDeIdioma, destinoDaTraducao } from '../src/lib/perfilDeIdioma'
+import { describe, expect,it } from 'vitest'
+
+import { destinoDaTraducao,PerfilAdaptativoDeIdioma } from '../src/lib/perfilDeIdioma'
 
 const ouvir = (p: PerfilAdaptativoDeIdioma, ...langs: string[]) => langs.forEach((l) => p.observar(l))
 

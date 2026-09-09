@@ -1,6 +1,7 @@
-import { test, expect } from '@playwright/test';
+import { expect,test } from '@playwright/test';
+
+import { listarCartoes, perfil,semearCartoes } from './_fixtures';
 import { fecharSobreposicoes } from './_helpers';
-import { semearCartoes, listarCartoes, perfil } from './_fixtures';
 
 /**
  * OS CONTADORES DE VOCABULARIO BATEM COM O ACERVO.

@@ -18,8 +18,9 @@
  * `askConfirm()` devolve `Promise<boolean>` — é o substituto honesto do `confirm()` nativo, que os
  * toasts não podem substituir (um toast não espera resposta; uma exclusão precisa esperar).
  */
-import React, { useEffect, useState, useCallback } from 'react';
 import { AlertTriangle, CheckCircle2, Info, X, XCircle } from 'lucide-react';
+import React, { useCallback,useEffect, useState } from 'react';
+
 import { play } from '../lib/soundFx';
 
 export type ToastKind = 'error' | 'warn' | 'ok' | 'info';

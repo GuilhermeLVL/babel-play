@@ -19,11 +19,13 @@
  * Ele mede `server/` inteiro, e não só `repositories/`: uma tabela lida por `server/lib/` continua
  * sendo uma tabela usada.
  */
-import { describe, it, expect } from 'vitest'
 import { readdirSync, readFileSync, statSync } from 'node:fs'
 import { join } from 'node:path'
+
 import { getTableName } from 'drizzle-orm'
 import { SQLiteTable } from 'drizzle-orm/sqlite-core'
+import { describe, expect,it } from 'vitest'
+
 import * as schema from '../../server/db/schema'
 
 /** Todo arquivo `.ts` sob `server/`, exceto o próprio schema (declarar não é usar). */

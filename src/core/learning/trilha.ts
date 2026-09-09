@@ -1,6 +1,6 @@
+import { SESSAO_DA_TRILHA } from '../minigames/source';
 import type { CefrLevel } from './contract';
 import { baseLangDe } from './quality';
-import { SESSAO_DA_TRILHA } from '../minigames/source';
 
 /**
  * A TRILHA — vocabulário curado por nível, para quem ainda não tem o que capturar.

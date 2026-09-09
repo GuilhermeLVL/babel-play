@@ -19,10 +19,12 @@
  * `selecionarParaJogo` devolve até `limite*3` cartões (sem paginação): com 8 cartões e limite
  * generoso, `itens` cobre o conjunto inteiro do WHERE — comparamos por `word` (chave legível).
  */
-import { describe, it, expect, beforeAll, afterAll } from 'vitest'
 import { randomUUID } from 'node:crypto'
-import { setupEphemeralDb, type EphemeralDb } from '../harness/ephemeralDb'
+
+import { afterAll,beforeAll, describe, expect, it } from 'vitest'
+
 import { asUserId } from '../../server/lib/authContext'
+import { type EphemeralDb,setupEphemeralDb } from '../harness/ephemeralDb'
 
 let h: EphemeralDb
 let vocabRepo: any

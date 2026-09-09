@@ -9,16 +9,17 @@
  * hierarquia agora vem do layout, não só deles. Dados do autor: `lib/criador.ts` (placeholders
  * `*_AQUI` ficam ocultos).
  */
-import { planoAnunciavel } from '../CardDePlanos';
-import { PRECO_DO_PASSE_CENTAVOS } from '../../core/creditos';
-import { precoEmReais } from '../../lib/i18n';
-import { menorPrecoDeAssinatura } from '../../core/planos';
-import { useState } from 'react';
 import {
-  Github, Globe, Linkedin, Mail, Copy, Check, Heart, MessageSquare, Headphones,
-  ShieldCheck, Sparkles, Gamepad2, Star, Code2, Rocket, Quote,
-} from 'lucide-react';
+Check, Code2, Copy, Gamepad2,   Github, Globe, Headphones,
+Heart, Linkedin, Mail, MessageSquare, Quote,
+Rocket,   ShieldCheck, Sparkles, Star, } from 'lucide-react';
+import { useState } from 'react';
+
+import { PRECO_DO_PASSE_CENTAVOS } from '../../core/creditos';
+import { menorPrecoDeAssinatura } from '../../core/planos';
 import { CRIADOR, preenchido } from '../../lib/criador';
+import { precoEmReais } from '../../lib/i18n';
+import { planoAnunciavel } from '../CardDePlanos';
 
 function LinkDoCriador({ href, icone, rotulo, destaque = false }: {
   href: string; icone: React.ReactNode; rotulo: string; destaque?: boolean;

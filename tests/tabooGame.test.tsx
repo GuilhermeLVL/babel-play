@@ -8,9 +8,10 @@
  * outcome, proibidas DERIVADAS do texto (nunca de lista fixa) e `onExit` quando o material não
  * sustenta nenhuma.
  */
-import { describe, it, expect, vi, afterEach } from 'vitest'
-import { render, screen, cleanup, fireEvent } from '@testing-library/react'
+import { cleanup, fireEvent,render, screen } from '@testing-library/react'
 import React from 'react'
+import { afterEach,describe, expect, it, vi } from 'vitest'
+
 import type { MinigameItem, RoundReport } from '../src/core/minigames/types'
 
 vi.mock('../src/lib/juice', () => ({

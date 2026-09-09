@@ -1,9 +1,10 @@
 import { Bot, Flame, Sprout } from 'lucide-react';
-import { compactNumber, type DerivedProgress } from '../../lib/progress';
-import { copyDoPerfil, type AgeProfileType } from '../../lib/profile';
-import { Barra } from '../ui';
-import { proximaRecompensa, emojiDoItem } from '../../lib/galeria/progressao';
+
+import { emojiDoItem,proximaRecompensa } from '../../lib/galeria/progressao';
 import { TEXTOS } from '../../lib/galeria/textos';
+import { type AgeProfileType,copyDoPerfil } from '../../lib/profile';
+import { compactNumber, type DerivedProgress } from '../../lib/progress';
+import { Barra } from '../ui';
 
 /**
  * A FAIXA DE PROGRESSO — nível, XP, ofensiva e seeds.

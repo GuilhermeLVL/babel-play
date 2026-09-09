@@ -7,9 +7,9 @@
  * cada mensagem. Reusa os fetchers existentes — não refatora estado.
  */
 import {
-  fetchSessionTranscript,
-  fetchMetrics,
   fetchDeck,
+  fetchMetrics,
+  fetchSessionTranscript,
   type UtteranceRow,
 } from '../data/api'
 import type { Recording, ViewType } from '../types'

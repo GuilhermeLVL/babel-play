@@ -9,12 +9,12 @@
  * Tema e fonte moram no React (props de App) e são devolvidos ao chamador em vez de setados
  * aqui — o mesmo contrato de `equiparItem`, que também não é dono do estado do tema.
  */
-import { DEFAULT_THEME, DEFAULT_FONTE } from '../theme'
-import type { ThemeType, FonteType } from '../appearance'
+import type { FonteType,ThemeType } from '../appearance'
+import { setCursor } from '../cursores'
 import { setParticulas } from '../particulas'
 import { setPack } from '../particulas'
-import { setCursor } from '../cursores'
 import { setRastro } from '../rastroDoMouse'
+import { DEFAULT_FONTE,DEFAULT_THEME } from '../theme'
 import { gravarPaletaAtiva } from './paletas'
 
 export const VISUAL_PADRAO = {

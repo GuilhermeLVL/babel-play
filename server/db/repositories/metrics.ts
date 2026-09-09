@@ -5,17 +5,18 @@
  * `confidence` que cai com amostra pequena. A UI não deve exibir falsa precisão.
  */
 import { and, eq, isNull } from 'drizzle-orm'
-import { db } from '../db'
-import { sessions, vocabCards, reviewLogs, utterances, exerciseResults } from '../schema'
-import { retrievability } from '../../../src/core/learning/scheduler'
-import { diaLocal, sequencias, marcosDeSequencia, minutosPremiados } from '../../../src/core/learning/economia'
-import { MINIGAMES } from '../../../src/core/minigames/types'
-import { economiaRepo } from './economia'
-import { economiaDeMetricas } from '../../../src/core/learning/xp'
-import { historicoDeXp, type BaldeDeXp, type HistoricoDeXp } from '../../../src/core/learning/historicoDeXp'
+
 import type { AppMetrics } from '../../../src/core/learning/contract'
-import { seedSpendsRepo } from './seedSpends'
+import { diaLocal, marcosDeSequencia, minutosPremiados,sequencias } from '../../../src/core/learning/economia'
+import { type BaldeDeXp, type HistoricoDeXp,historicoDeXp } from '../../../src/core/learning/historicoDeXp'
+import { retrievability } from '../../../src/core/learning/scheduler'
+import { economiaDeMetricas } from '../../../src/core/learning/xp'
+import { MINIGAMES } from '../../../src/core/minigames/types'
 import type { UserId } from '../../lib/authContext'
+import { db } from '../db'
+import { exerciseResults,reviewLogs, sessions, utterances, vocabCards } from '../schema'
+import { economiaRepo } from './economia'
+import { seedSpendsRepo } from './seedSpends'
 
 // M-06: `AppMetrics` agora vem do contrato único em src/core/learning/contract.ts (era duplicado
 // aqui e no cliente, e já divergia). Re-exportado para não quebrar quem importava daqui.
@@ -443,7 +444,7 @@ export async function computeProfile(userId: UserId, opts: OpcoesDePerfil = {}):
  * concordariam só enquanto ninguém mexesse numa delas.
  *
  * O que ficou aqui é o que só o servidor sabe fazer: LER as três tabelas. A fórmula é do core. */
-export type { BaldeDeXp, PontoDeXp, MarcoDeNivel, HistoricoDeXp } from '../../../src/core/learning/historicoDeXp'
+export type { BaldeDeXp, HistoricoDeXp,MarcoDeNivel, PontoDeXp } from '../../../src/core/learning/historicoDeXp'
 
 export async function computeXpHistory(
   userId: UserId,

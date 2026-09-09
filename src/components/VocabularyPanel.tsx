@@ -1,13 +1,14 @@
+import { Check, ExternalLink, Loader2,Plus, SlidersHorizontal, Sparkles, Volume2, X, Zap } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
-import { SlidersHorizontal, Volume2, Plus, Check, X, Zap, Sparkles, ExternalLink, Loader2 } from 'lucide-react';
-import EditablePanel from './EditablePanel';
-import Provenance from './Provenance';
-import type { VocabWord } from '../types';
+
+import { type DictionaryResult,forvoUrl, lookup, wiktionaryUrl } from '../lib/dictionary';
+import { idiomaDaInterface,t } from '../lib/i18n';
+import { baseLang, langLabel, langLabelNaUI } from '../lib/languages';
 import type { AppLayoutConfig } from '../lib/layoutStore';
 import type { ExerciseId } from '../lib/sentences';
-import { lookup, forvoUrl, wiktionaryUrl, type DictionaryResult } from '../lib/dictionary';
-import { baseLang, langLabel, langLabelNaUI } from '../lib/languages';
-import { t, idiomaDaInterface } from '../lib/i18n';
+import type { VocabWord } from '../types';
+import EditablePanel from './EditablePanel';
+import Provenance from './Provenance';
 
 /** Rótulos amigáveis dos motores de tradução — o usuário não deve ler ids técnicos crus. */
 const MT_ENGINE_LABELS: Record<string, string> = {

@@ -3,7 +3,8 @@
  * (403) mesmo com JWT válido; conta ativa passa; erro ao checar → 503 (fail-closed); e o modo LOCAL
  * nem chega a checar. Middleware testado com `verify`/`isSuspended` injetados (sem banco).
  */
-import { describe, it, expect, afterEach } from 'vitest'
+import { afterEach,describe, expect, it } from 'vitest'
+
 import { makeAuthMiddleware } from '../../server/lib/auth'
 import { asUserId } from '../../server/lib/authContext'
 

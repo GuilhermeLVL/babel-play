@@ -12,7 +12,8 @@
  *   → Antes da correção este arquivo tinha um `it.fails` sobre o modelo; agora o DESEJADO roda contra
  *     o código de produção real e passa por mérito (a asserção "sem órfã" é a mesma).
  */
-import { describe, it, expect } from 'vitest'
+import { describe, expect,it } from 'vitest'
+
 import { LoopbackExclusion } from '../../server/audio/loopbackExclusion'
 
 const deferred = () => {

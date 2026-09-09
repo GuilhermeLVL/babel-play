@@ -1,5 +1,5 @@
-import type { MtResult, TranslationProvider } from '../capabilities'
 import { apiFetch } from '../../data/api'
+import type { MtResult, TranslationProvider } from '../capabilities'
 
 /**
  * Tradução via LLM no SERVIDOR (Groq) — o elo de qualidade da cadeia de MT quando os

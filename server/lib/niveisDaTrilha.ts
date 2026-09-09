@@ -25,7 +25,6 @@
  */
 import { registrarNiveis } from '../../src/core/learning/cefrWordlist'
 import { baseDoIdioma } from '../../src/data/trilha/indice'
-
 import ar from '../../src/data/trilha/niveis/ar.json'
 import de from '../../src/data/trilha/niveis/de.json'
 import en from '../../src/data/trilha/niveis/en.json'

@@ -22,8 +22,9 @@
  *    haver dado é diferente em cada tela e apagar essa diferença seria perder informação real.
  *    O que se unifica é o tratamento visual e a garantia final, não a explicação.
  */
-import React from 'react'
 import { Info } from 'lucide-react'
+import React from 'react'
+
 import { numero, t } from '../lib/i18n'
 
 /**

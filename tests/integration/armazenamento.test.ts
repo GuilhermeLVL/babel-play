@@ -1,11 +1,13 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest'
-import { mkdtempSync, rmSync, existsSync } from 'node:fs'
+import { existsSync,mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
+
+import { afterEach,beforeEach, describe, expect, it } from 'vitest'
+
 import {
-  armazenamentoDeArquivos, armazenamentoS3, armazenamentoDoAmbiente,
-  assinarSigV4, resolverDentroDe, type ConfigS3,
-} from '../../server/lib/armazenamento'
+  armazenamentoDeArquivos, armazenamentoDoAmbiente,
+armazenamentoS3,   assinarSigV4, type ConfigS3,
+resolverDentroDe, } from '../../server/lib/armazenamento'
 
 let dir: string
 beforeEach(() => { dir = mkdtempSync(path.join(tmpdir(), 'armz-')) })

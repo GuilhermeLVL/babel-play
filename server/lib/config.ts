@@ -22,9 +22,9 @@
  * que estavam dentro de handler.
  */
 import { PLAN_MATRIX } from '../../src/core/planos'
+import { authRequired } from './auth'
 import { registrarFalhaDeBoot } from './bootStatus'
 import { log } from './logger'
-import { authRequired } from './auth'
 
 /** Quando uma variável é obrigatória. */
 type Exigencia =

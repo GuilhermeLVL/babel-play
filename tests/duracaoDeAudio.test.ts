@@ -5,8 +5,9 @@
  * O caso que motiva tudo: o VAD desta aplicação entrega enunciados de ~6 s, e a Groq fatura no
  * mínimo 10 s por requisição. Debitar 6 subestimaria a conta em ~70%.
  */
-import { describe, it, expect } from 'vitest'
-import { duracaoDoWav, segundosFaturaveis, MINIMO_FATURADO_S } from '../server/lib/duracaoDeAudio'
+import { describe, expect,it } from 'vitest'
+
+import { duracaoDoWav, MINIMO_FATURADO_S,segundosFaturaveis } from '../server/lib/duracaoDeAudio'
 
 /** Monta um WAV PCM 16 bits mono válido com a duração pedida. */
 function wav(segundos: number, taxa = 16_000, chunksExtras = false): Buffer {

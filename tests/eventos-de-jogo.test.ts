@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
-import { describe, it, expect } from 'vitest'
-import { EVENTOS_RAROS, sortearEventoRaro, eventosCondicionais, todosOsEventos, marcarEventoVisto, eventosVistos } from '../src/lib/eventosDeJogo'
+import { describe, expect,it } from 'vitest'
+
+import { EVENTOS_RAROS, eventosCondicionais, eventosVistos,marcarEventoVisto, sortearEventoRaro, todosOsEventos } from '../src/lib/eventosDeJogo'
 
 describe('eventos de jogo', () => {
   it('a soma das probabilidades raras fica abaixo de 5% por acerto', () => {

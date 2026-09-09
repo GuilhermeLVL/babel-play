@@ -1,7 +1,8 @@
-import { useState } from 'react';
 import { Lock, ShoppingBag } from 'lucide-react';
-import { CATEGORIAS_DE_EMOJI, todosOsEmojis } from '../../../lib/galeria/emojis';
+import { useState } from 'react';
+
 import { acessoACategoria, acessoAoCursorDeEmoji } from '../../../lib/galeria/acesso';
+import { CATEGORIAS_DE_EMOJI, todosOsEmojis } from '../../../lib/galeria/emojis';
 
 /**
  * O SELETOR DE EMOJIS — categorias com cadeado + a grade.

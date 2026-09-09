@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
-import { carregarSupabase, authRequired } from '../supabase';
+
+import { clearAuthCallbackUrl,isOnAuthCallback } from '../authCallback';
 import { limparEntitlements } from '../entitlements';
 import { armarIdentidade, definirIdentidade } from '../identidade';
-import { isOnAuthCallback, clearAuthCallbackUrl } from '../authCallback';
+import { authRequired,carregarSupabase } from '../supabase';
 
 export interface EstadoDaSessaoSupabase {
   session: { user?: unknown } | null | undefined;

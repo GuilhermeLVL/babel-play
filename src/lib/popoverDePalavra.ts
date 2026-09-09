@@ -21,6 +21,7 @@
  * e a Análise cancela sempre, e as duas continuam fazendo exatamente o que faziam.
  */
 import React from 'react';
+
 import { posicaoPopoverPalavra } from './posicaoFlutuante';
 
 /** Milissegundos entre sair da palavra e o cartão fechar. É a travessia até o cartão. */

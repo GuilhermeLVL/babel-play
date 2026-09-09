@@ -17,15 +17,17 @@
  * A varredura é ESTÁTICA (lê os arquivos) e não por renderização, porque renderizar só cobre as
  * variantes que o teste lembrou de montar. O arquivo inteiro cobre todas.
  */
-import { describe, it, expect, afterEach } from 'vitest'
 import { readdirSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { render, screen, cleanup, fireEvent } from '@testing-library/react'
+
+import { cleanup, fireEvent,render, screen } from '@testing-library/react'
 import React from 'react'
+import { afterEach,describe, expect, it } from 'vitest'
+
 import Abas, { PainelDeAba } from '../src/components/ui/Abas'
-import Segmentado from '../src/components/ui/Segmentado'
 import Barra from '../src/components/ui/Barra'
 import Ladrilho from '../src/components/ui/Ladrilho'
+import Segmentado from '../src/components/ui/Segmentado'
 import Vazio from '../src/components/ui/Vazio'
 
 const DIR = join(__dirname, '..', 'src', 'components', 'ui')

@@ -1,11 +1,12 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { X, Volume2, Check, Shuffle, PenLine } from 'lucide-react';
-import type { MinigameItem, ItemOutcome, RoundReport } from '@core';
+import type { ItemOutcome, MinigameItem, RoundReport } from '@core';
 import { MINIGAMES, scoreRound } from '@core';
+import { Check, PenLine,Shuffle, Volume2, X } from 'lucide-react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+
 import { vazaResposta } from '../../../core/learning/pistaDeJogo';
+import { comemorar } from '../../../lib/juice';
 import { direcaoDoTexto } from '../../../lib/languages';
 import type { AgeProfileType } from '../../../lib/profile';
-import { comemorar } from '../../../lib/juice';
 import { speak } from '../../../lib/tts';
 
 /**

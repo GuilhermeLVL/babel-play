@@ -19,9 +19,10 @@
  * impedem trapaça — impedem que a trapaça quebre a tabela.
  */
 import { Router } from 'express'
-import { rankRepo, sanearApelido, hashDaOrigem, TETO_DE_PONTOS, TETO_DE_COMBO } from '../db/repositories/rank'
+
 import { MINIGAME_IDS } from '../../src/core/minigames/revelavel'
 import { CHAVE_DE_HASH } from '../crypto'
+import { hashDaOrigem, rankRepo, sanearApelido, TETO_DE_COMBO,TETO_DE_PONTOS } from '../db/repositories/rank'
 import { erroDeRota } from '../lib/erroDeRota'
 import { responderErro } from '../lib/respostaDeErro'
 

@@ -8,8 +8,10 @@
  * correção é de outra fase.
  */
 import { randomUUID } from 'node:crypto'
-import { describe, it, expect, beforeAll, afterAll } from 'vitest'
-import { subirApp, resposta, semear, type AppDeTeste } from './_app'
+
+import { afterAll,beforeAll, describe, expect, it } from 'vitest'
+
+import { type AppDeTeste,resposta, semear, subirApp } from './_app'
 
 describe('vocabulario e FSRS (self-host)', () => {
   let s: AppDeTeste

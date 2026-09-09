@@ -5,8 +5,9 @@
  * volta atrás quando o primeiro elo que cabe fecha a saída, e material que não encadeia devolve
  * `null` — que é o sinal do componente para chamar `onExit` em vez de inventar palavra.
  */
-import { describe, it, expect } from 'vitest';
-import { montarCorrente, maiorCorrente, letraInicial, letraFinal, PASSOS_MINIMOS } from '../src/core/minigames/shiritori';
+import { describe, expect,it } from 'vitest';
+
+import { letraFinal, letraInicial, maiorCorrente, montarCorrente, PASSOS_MINIMOS } from '../src/core/minigames/shiritori';
 import type { MinigameItem } from '../src/core/minigames/types';
 
 const item = (cardId: string, answer: string): MinigameItem => ({ cardId, prompt: `pista de ${answer}`, answer, lang: 'en' });

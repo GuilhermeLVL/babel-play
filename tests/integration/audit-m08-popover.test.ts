@@ -2,7 +2,8 @@
  * REGRESSÃO — M-08: cálculo de posição do popover de palavra estava DUPLICADO byte-a-byte em
  * Analysis e Reading. Extraído para posicaoPopoverPalavra (src/lib/posicaoFlutuante.ts).
  */
-import { describe, it, expect } from 'vitest'
+import { describe, expect,it } from 'vitest'
+
 import { posicaoPopoverPalavra } from '../../src/lib/posicaoFlutuante'
 
 const vp = { width: 1200, height: 800 }

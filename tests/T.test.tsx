@@ -1,8 +1,9 @@
 // @vitest-environment jsdom
-import { describe, expect, it, beforeEach, vi, afterEach } from 'vitest';
-import { render, cleanup, screen } from '@testing-library/react';
-import { T, montar } from '../src/lib/T';
+import { cleanup, render, screen } from '@testing-library/react';
+import { afterEach,beforeEach, describe, expect, it, vi } from 'vitest';
+
 import { registrarCatalogo, usarIdioma } from '../src/lib/i18n';
+import { montar,T } from '../src/lib/T';
 
 /**
  * O que justifica `<T>` existir é o caso de REORDENAÇÃO: uma frase com formatação no meio,

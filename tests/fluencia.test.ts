@@ -16,16 +16,17 @@
  * As palavras das fixtures são escolhidas CONSULTANDO `nivelCefr`, não fixadas na mão: a lista
  * curada é dado externo e pode discordar de qualquer nível que eu presumisse aqui.
  */
-import { describe, it, expect } from 'vitest'
-import {
-  fluenciaDoBaralho, rotuloDeFluencia,
-  MIN_CARTOES_POR_FAIXA, MIN_FAIXAS_COM_EVIDENCIA, RETENCAO_DE_DOMINIO,
-} from '../src/core/learning/fluencia'
-import { nivelCefr } from '../src/core/learning/cefrWordlist'
-import { CORTE_DE_FEITA } from '../src/core/learning/etapas'
+import { describe, expect,it } from 'vitest'
+
 import trilhaEn from '../public/trilha/en.json'
-import type { VocabCard } from '../src/types'
+import { nivelCefr } from '../src/core/learning/cefrWordlist'
 import type { CefrLevel } from '../src/core/learning/contract'
+import { CORTE_DE_FEITA } from '../src/core/learning/etapas'
+import {
+  fluenciaDoBaralho,   MIN_CARTOES_POR_FAIXA, MIN_FAIXAS_COM_EVIDENCIA, RETENCAO_DE_DOMINIO,
+rotuloDeFluencia,
+} from '../src/core/learning/fluencia'
+import type { VocabCard } from '../src/types'
 
 const AGORA = 1_700_000_000_000
 const DIA = 86_400_000

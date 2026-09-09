@@ -21,8 +21,8 @@
  * NÃO recebe nível — recebe `null` com procedência `ausente`. Nível ausente pesa ZERO no modelo de
  * dificuldade (F4); é a diferença entre "não sei" e "chutei".
  */
-import niveisEn from '../../data/trilha/niveis/en.json'
 import { indiceDaTrilha } from '../../data/trilha/indice'
+import niveisEn from '../../data/trilha/niveis/en.json'
 import { dobrarTexto } from '../texto/palavra'
 
 export type CefrLevel = 'A1' | 'A2' | 'B1' | 'B2' | 'C1' | 'C2'

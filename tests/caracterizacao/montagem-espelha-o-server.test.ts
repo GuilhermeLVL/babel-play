@@ -12,7 +12,7 @@
  */
 import { readFileSync } from 'node:fs'
 
-import { describe, expect,it } from 'vitest'
+import { describe, expect, it } from 'vitest'
 
 import { ROUTERS_PRIVADOS } from './_app'
 
@@ -20,7 +20,11 @@ describe('montagem do app x routers declarados na caracterizacao', () => {
   it('os routers privados sao os mesmos, na mesma ordem', () => {
     const fonte = readFileSync('server/http/app.ts', 'utf8')
     const doServidor: Array<[string, string]> = []
-    for (const m of fonte.matchAll(/app\.use\("(\/api\/[a-z-]+)",\s*capturarAssincrono\((\w+)\)\)/g)) {
+    // ASPAS DE QUALQUER TIPO — ver rate-limit-escrita.test.ts. Este teste le `app.ts` como
+    // TEXTO, e o prettier da Fase 3 (`singleQuote` em `server/**`) reescreveu o arquivo: a
+    // regex com aspas duplas passou a casar com ZERO mounts, e o teste caiu comparando os 14
+    // routers do harness com uma lista vazia. Um teste de texto nao pode depender do formatador.
+    for (const m of fonte.matchAll(/app\.use\(['"`](\/api\/[a-z-]+)['"`],\s*capturarAssincrono\((\w+)\)\)/g)) {
       doServidor.push([m[1], m[2]])
     }
     // Os públicos (webhook e rank) ficam antes do auth e o harness os monta à parte.

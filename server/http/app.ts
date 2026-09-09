@@ -35,6 +35,7 @@ import { capturarAssincrono } from '../lib/erroGlobal'
 import {
   chaveDoRequest,
   createDbRateLimitStore,
+  METRIC_RATELIMIT_AUTH,
   METRIC_RATELIMIT_CARO,
   METRIC_RATELIMIT_ESCRITA,
 } from '../lib/rateLimitStore'
@@ -132,28 +133,38 @@ export function criarApp(opcoes: OpcoesDoApp = {}): express.Express {
   // `tests/integration/compressao-http.test.ts` trava essa ordem.
   app.use(compression())
 
-  // Headers de segurança (achado da auditoria: nenhum header de hardening).
-  // CSP só em PRODUÇÃO: em dev o Vite/HMR precisa de inline/eval e a CSP viraria ruído.
-  // A política cobre o que o app realmente usa: WASM (wasm-unsafe-eval), workers em blob,
-  // pesos de modelo/tradução/dicionário via https, áudio/imagens em blob/data.
+  /**
+   * Headers de segurança (achado da auditoria: nenhum header de hardening).
+   *
+   * A política cobre o que o app realmente usa: WASM (`wasm-unsafe-eval`), workers em blob, pesos
+   * de modelo/tradução/dicionário via https, áudio e imagens em blob/data.
+   *
+   * EM DEV ELA PASSA A EXISTIR, EM MODO RELATÓRIO (Fase 4). Antes era `false` fora de produção, e
+   * a consequência é a que se espera de um portão que só liga no fim: a primeira vez que alguém vê
+   * a CSP é em produção, quando ela já está bloqueando. `reportOnly` emite
+   * `Content-Security-Policy-Report-Only` com as MESMAS diretivas — o navegador reclama no console
+   * e não bloqueia nada, nem o inline nem o eval que o HMR do Vite precisa.
+   *
+   * O ruído no console de desenvolvimento não é efeito colateral, é o produto: cada violação em dev
+   * é uma que teria sido um recurso que não carrega em produção.
+   */
   app.use(
     helmet({
-      contentSecurityPolicy:
-        process.env.NODE_ENV === 'production'
-          ? {
-              directives: {
-                defaultSrc: ["'self'"],
-                scriptSrc: ["'self'", "'wasm-unsafe-eval'", 'blob:'],
-                workerSrc: ["'self'", 'blob:'],
-                connectSrc: ["'self'", 'https:', 'blob:', 'data:'],
-                imgSrc: ["'self'", 'https:', 'data:', 'blob:'],
-                mediaSrc: ["'self'", 'blob:', 'data:'],
-                styleSrc: ["'self'", "'unsafe-inline'"],
-                objectSrc: ["'none'"],
-                frameAncestors: ["'self'"],
-              },
-            }
-          : false,
+      contentSecurityPolicy: {
+        // Em dev, relatar; em produção, bloquear. As diretivas são as mesmas de propósito.
+        reportOnly: process.env.NODE_ENV !== 'production',
+        directives: {
+          defaultSrc: ["'self'"],
+          scriptSrc: ["'self'", "'wasm-unsafe-eval'", 'blob:'],
+          workerSrc: ["'self'", 'blob:'],
+          connectSrc: ["'self'", 'https:', 'blob:', 'data:'],
+          imgSrc: ["'self'", 'https:', 'data:', 'blob:'],
+          mediaSrc: ["'self'", 'blob:', 'data:'],
+          styleSrc: ["'self'", "'unsafe-inline'"],
+          objectSrc: ["'none'"],
+          frameAncestors: ["'self'"],
+        },
+      },
       crossOriginEmbedderPolicy: false, // COEP é opt-in via CROSS_ORIGIN_ISOLATION (abaixo)
     }),
   )
@@ -241,6 +252,41 @@ export function criarApp(opcoes: OpcoesDoApp = {}): express.Express {
      de um envio por minuto por origem, dentro da rota, é sobre o placar; esta é sobre o servidor. */
   if (authRequired()) app.use('/api/rank', writeLimiter)
   app.use('/api/rank', capturarAssincrono(rankRouter))
+
+  /**
+   * FORÇA BRUTA CONTRA O TOKEN — o balde que faltava (Fase 4).
+   *
+   * Os dois limitadores existentes são montados DEPOIS do `authMiddleware`, porque a chave deles é
+   * o tenant. A consequência, lida na matriz rota × guarda: uma requisição que termina em **401
+   * nunca chega a limitador nenhum**. Quem tenta adivinhar token — ou reusa um vazado contra várias
+   * contas — não encontrava teto em lugar nenhum do servidor.
+   *
+   * Este vem ANTES do auth e conta SÓ o que falhou: `requestWasSuccessful` marca como sucesso
+   * tudo que não é 401, e `skipSuccessfulRequests` faz o contador ignorar os sucessos. Um usuário
+   * legítimo, com token válido, nunca soma um ponto aqui, por mais que navegue.
+   *
+   * A chave é o IP (`chaveDoRequest` cai nele quando não há usuário resolvido, que é exatamente o
+   * caso de um 401) — e é por isso que ele depende de `TRUST_PROXY` estar certo atrás de proxy.
+   *
+   * 30 por 15 minutos: um token expirado que o cliente reenvia em algumas telas antes de renovar
+   * cabe com folga; um laço de adivinhação, não. Só em modo público — no self-host o
+   * `authMiddleware` injeta o dono e 401 não existe.
+   */
+  if (authRequired()) {
+    app.use(
+      '/api',
+      rateLimit({
+        windowMs: 15 * 60_000,
+        limit: 30,
+        standardHeaders: true,
+        legacyHeaders: false,
+        keyGenerator: chaveDoRequest,
+        store: createDbRateLimitStore(METRIC_RATELIMIT_AUTH),
+        skipSuccessfulRequests: true,
+        requestWasSuccessful: (_req, res) => res.statusCode !== 401,
+      }),
+    )
+  }
 
   app.use('/api', opcoes.autenticacao ?? authMiddleware)
 

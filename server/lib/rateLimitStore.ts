@@ -34,6 +34,10 @@ import { asUserId } from './authContext'
 export const METRIC_RATELIMIT = 'ratelimit'
 export const METRIC_RATELIMIT_CARO = 'ratelimit:caro'
 export const METRIC_RATELIMIT_ESCRITA = 'ratelimit:escrita'
+/* O balde das falhas de autenticacao. Separado dos outros pelo mesmo motivo do A27: um balde
+   compartilhado faria o teto de uma coisa consumir o teto de outra, e aqui a chave nem e a mesma
+   (o IP, porque numa falha de auth nao existe usuario resolvido). */
+export const METRIC_RATELIMIT_AUTH = 'ratelimit:auth'
 
 /**
  * A chave do balde: o TENANT, não o IP. Cai no IP só onde não há usuário resolvido
@@ -45,7 +49,9 @@ export function chaveDoRequest(req: Request): string {
   return `ip:${ipKeyGenerator(req.ip ?? '')}`
 }
 
-interface StoreOptions { windowMs: number }
+interface StoreOptions {
+  windowMs: number
+}
 
 /**
  * Store do express-rate-limit sobre o banco. `localKeys: false` avisa a lib que o contador
@@ -64,7 +70,11 @@ export function createDbRateLimitStore(metric: string = METRIC_RATELIMIT) {
     if (agora < podarEm) return
     podarEm = agora + 5 * windowMs
     // Mantém o balde atual e o anterior; apaga o resto.
-    try { await usageCountersRepo.prune(metric, balde(agora - windowMs)) } catch { /* poda é best-effort */ }
+    try {
+      await usageCountersRepo.prune(metric, balde(agora - windowMs))
+    } catch {
+      /* poda é best-effort */
+    }
   }
 
   return {

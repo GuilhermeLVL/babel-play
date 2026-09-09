@@ -14,19 +14,19 @@
 import { readFileSync } from 'node:fs'
 import path from 'node:path'
 
-import { describe, expect,it } from 'vitest'
+import { describe, expect, it } from 'vitest'
 
 const servidor = readFileSync(path.resolve(import.meta.dirname, '..', '..', 'server', 'http', 'app.ts'), 'utf8')
 
 /** As rotas de escrita que a auditoria listou como descobertas (F4-02 / D6). */
 const ROTAS_DE_ESCRITA = [
-  '/api/sessions',   // upload de áudio de 120 MB e criação de sessão com até 5.000 falas
-  '/api/vocab',      // bulk-add
+  '/api/sessions', // upload de áudio de 120 MB e criação de sessão com até 5.000 falas
+  '/api/vocab', // bulk-add
   '/api/settings',
   '/api/exercises',
   '/api/metrics',
-  '/api/images',     // faz fetch externo ao Openverse
-  '/api/me',         // DELETE apaga 17 tabelas; exportar lê a conta inteira
+  '/api/images', // faz fetch externo ao Openverse
+  '/api/me', // DELETE apaga 17 tabelas; exportar lê a conta inteira
 ]
 
 describe('F4-02 — rate limit cobre as rotas de escrita', () => {
@@ -37,7 +37,11 @@ describe('F4-02 — rate limit cobre as rotas de escrita', () => {
     const bloco = /\[([^\]]*)\],\s*writeLimiter/.exec(servidor)
     expect(bloco, 'o writeLimiter não está montado sobre uma lista de rotas').not.toBeNull()
     for (const rota of ROTAS_DE_ESCRITA) {
-      expect(bloco![1], `${rota} ficou fora do writeLimiter`).toContain(`"${rota}"`)
+      // ASPAS DE QUALQUER TIPO. A versao anterior exigia aspas DUPLAS, e o prettier da Fase 3
+      // (`singleQuote` em `server/**`) reescreveu o arquivo — o teste passou a falhar por causa do
+      // formatador, sobre uma montagem que continuava certa. O que ele cobra e a rota estar na
+      // lista, nao o caractere que a envolve.
+      expect(bloco![1], `${rota} ficou fora do writeLimiter`).toMatch(new RegExp(`['"\`]${rota}['"\`]`))
     }
   })
 

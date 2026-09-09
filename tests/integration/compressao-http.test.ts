@@ -22,13 +22,19 @@ import path from 'node:path'
 
 import compression from 'compression'
 import express from 'express'
-import { afterAll,beforeAll, describe, expect, it } from 'vitest'
+import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
 /** Payload com a forma real do problema: array de objetos com chaves repetidas. */
 const CARGA = Array.from({ length: 2000 }, (_, i) => ({
-  id: `card-${i}`, term: `palavra${i}`, translation: `traducao${i}`,
-  inDeck: true, leitnerBox: (i % 5) + 1, stability: 1.5, difficulty: 5.2,
-  sourceSessionId: 'sessao-exemplo', createdAt: 1786000000000 + i,
+  id: `card-${i}`,
+  term: `palavra${i}`,
+  translation: `traducao${i}`,
+  inDeck: true,
+  leitnerBox: (i % 5) + 1,
+  stability: 1.5,
+  difficulty: 5.2,
+  sourceSessionId: 'sessao-exemplo',
+  createdAt: 1786000000000 + i,
 }))
 
 let servidor: Server
@@ -42,7 +48,9 @@ function bytesNaRede(caminho: string, encoding: string): Promise<number> {
       { host: '127.0.0.1', port: porta, path: caminho, headers: { 'accept-encoding': encoding } },
       (res) => {
         let n = 0
-        res.on('data', (c: Buffer) => { n += c.length })
+        res.on('data', (c: Buffer) => {
+          n += c.length
+        })
         res.on('end', () => resolve(n))
         res.on('error', reject)
       },
@@ -55,8 +63,12 @@ function bytesNaRede(caminho: string, encoding: string): Promise<number> {
 beforeAll(async () => {
   const app = express()
   app.use(compression())
-  app.get('/api/vocab', (_req, res) => { res.json(CARGA) })
-  await new Promise<void>((r) => { servidor = app.listen(0, '127.0.0.1', () => r()) })
+  app.get('/api/vocab', (_req, res) => {
+    res.json(CARGA)
+  })
+  await new Promise<void>((r) => {
+    servidor = app.listen(0, '127.0.0.1', () => r())
+  })
   const addr = servidor.address()
   porta = typeof addr === 'object' && addr ? addr.port : 0
   base = `http://127.0.0.1:${porta}`
@@ -87,7 +99,7 @@ describe('respostas grandes de API voltam comprimidas', () => {
   it('quem não pede compressão continua recebendo o corpo íntegro', async () => {
     const res = await fetch(`${base}/api/vocab`, { headers: { 'accept-encoding': 'identity' } })
     expect(res.headers.get('content-encoding')).toBeNull()
-    expect((await res.json())).toHaveLength(CARGA.length)
+    expect(await res.json()).toHaveLength(CARGA.length)
   })
 })
 
@@ -101,7 +113,10 @@ describe('a ordem de montagem no servidor real', () => {
 
   it('monta ANTES dos routers de API — depois deles não alcançaria as respostas', () => {
     const comp = posicao(/app\.use\(compression\(/)
-    const primeiroRouter = posicao(/app\.use\("\/api\/(ai|sessions|vocab)"/)
+    // Aspas de qualquer tipo: o prettier da Fase 3 trocou as duplas por simples em `server/**`,
+    // e com a regex antiga a busca devolvia -1 — o teste falhava por formatacao, sobre uma
+    // ordem de montagem que continuava certa.
+    const primeiroRouter = posicao(/app\.use\(['"`]\/api\/(ai|sessions|vocab)['"`]/)
     expect(comp).toBeGreaterThan(-1)
     expect(primeiroRouter).toBeGreaterThan(-1)
     expect(comp).toBeLessThan(primeiroRouter)

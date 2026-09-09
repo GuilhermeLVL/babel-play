@@ -1,0 +1,4 @@
+- [x] 1.1 `env-fora-de-config.yml` e `rota-fala-com-o-banco.yml` com glob por camada
+- [x] 1.2 `eslint.config.js` cobrindo `rotas`/`servico`/`repositorio`
+- [x] 1.3 prova negativa das tres regras, registrada em `evidencias/`
+- [x] 1.4 `ast-grep test` (6 fixtures) e `eslint --max-warnings 0` verdes

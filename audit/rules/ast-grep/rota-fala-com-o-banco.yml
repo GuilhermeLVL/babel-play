@@ -6,6 +6,11 @@ message: >-
   `userId`; contornar esse ponto é a classe de falha que F3-06 mediu (vazamento entre contas).
   Se a chamada é legítima (health probe, por exemplo), ela precisa de motivo escrito.
 files:
-  - 'server/routes/*.ts'
+  # O GLOB E FUNDO DE PROPOSITO. Ate 2026-09-09 era `server/routes/*.ts`, que casa com UM nivel:
+  # no dia em que as rotas fossem para `server/dominios/<d>/rotas/`, a regra passaria a casar com
+  # zero arquivo e a acusar zero violacao — com a cara de codigo limpo. Portao que passa sempre e
+  # pior que portao nenhum. `**/rotas/` cobre a arvore por dominio antes de ela existir.
+  - 'server/routes/**/*.ts'
+  - 'server/**/rotas/**/*.ts'
 rule:
   pattern: db.$METODO($$$ARGS)

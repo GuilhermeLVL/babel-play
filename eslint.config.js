@@ -1,9 +1,9 @@
 // ESLint 9 flat config — mínimo intencional: só regras que pegam ERRO REAL.
 // Sem guerra de estilo (formatação fica com o editor); o typecheck do tsc segue
 // sendo a rede principal. Ampliar regras só quando uma classe de bug justificar.
-import js from '@eslint/js';
-import tseslint from 'typescript-eslint';
-import reactHooks from 'eslint-plugin-react-hooks';
+import js from '@eslint/js'
+import tseslint from 'typescript-eslint'
+import reactHooks from 'eslint-plugin-react-hooks'
 
 export default tseslint.config(
   { ignores: ['dist/**', 'dist-server/**', 'node_modules/**', 'public/**', 'data/**', '*.cjs'] },
@@ -42,10 +42,14 @@ export default tseslint.config(
     files: ['server/ai/**/*.ts'],
     rules: {
       'no-empty': ['error', { allowEmptyCatch: false }],
-      'no-restricted-syntax': ['error', {
-        selector: 'CatchClause[body.body.length=0]',
-        message: 'catch vazio em caminho de rede/adapter: logue via server/lib/logger.ts (log(...)) antes de degradar.',
-      }],
+      'no-restricted-syntax': [
+        'error',
+        {
+          selector: 'CatchClause[body.body.length=0]',
+          message:
+            'catch vazio em caminho de rede/adapter: logue via server/lib/logger.ts (log(...)) antes de degradar.',
+        },
+      ],
     },
   },
   {
@@ -66,7 +70,20 @@ export default tseslint.config(
      * `error` e não `warn`: um `console.*` novo aqui é log de produção que nenhum agregador vê,
      * e é exatamente o que a regra existe para impedir de voltar.
      */
-    files: ['server/routes/**/*.ts', 'server/ai/**/*.ts', 'server/db/repositories/**/*.ts', 'server/import/**/*.ts'],
+    /* O GLOB COBRE A CAMADA, NAO A PASTA DE HOJE. A lista literal de quatro pastas deixaria de
+       cobrir no dia em que a arvore virasse `server/dominios/<dominio>/rotas/`, e um
+       `console.log` novo passaria calado. As entradas por camada (rotas, servico, repositorio)
+       valem para a arvore atual e para a proxima.
+       (Sem glob literal neste comentario: a sequencia de asterisco com barra fecharia o bloco.) */
+    files: [
+      'server/routes/**/*.ts',
+      'server/ai/**/*.ts',
+      'server/db/repositories/**/*.ts',
+      'server/import/**/*.ts',
+      'server/**/rotas/**/*.ts',
+      'server/**/servico/**/*.ts',
+      'server/**/repositorio/**/*.ts',
+    ],
     rules: {
       'no-console': 'error',
     },
@@ -76,9 +93,14 @@ export default tseslint.config(
     files: ['**/*.mjs'],
     languageOptions: {
       globals: {
-        process: 'readonly', Buffer: 'readonly', console: 'readonly',
-        fetch: 'readonly', URL: 'readonly', __dirname: 'readonly',
-        setTimeout: 'readonly', clearTimeout: 'readonly',
+        process: 'readonly',
+        Buffer: 'readonly',
+        console: 'readonly',
+        fetch: 'readonly',
+        URL: 'readonly',
+        __dirname: 'readonly',
+        setTimeout: 'readonly',
+        clearTimeout: 'readonly',
       },
     },
   },
@@ -91,4 +113,4 @@ export default tseslint.config(
       globals: { document: 'readonly', getComputedStyle: 'readonly', CSS: 'readonly', window: 'readonly' },
     },
   },
-);
+)

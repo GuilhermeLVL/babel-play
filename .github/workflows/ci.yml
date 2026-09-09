@@ -114,6 +114,12 @@ jobs:
       # Toda rota do servidor tem teste de caracterizacao ou motivo escrito (Fase 1).
       - name: Rotas sem caracterizacao
         run: node scripts/testes/rotas-sem-caracterizacao.mjs
+      # E toda rota tem quem a chame — a pergunta do outro lado (Fase 2). `rotas-espelhadas`
+      # cobra que a rota que o cliente chama exista sem conta; esta cobra que a rota que o
+      # servidor registra tenha consumidor, que foi como `POST /api/ai/llm/chat/completions`
+      # ficou orfa sem nada acusar (achado A52 de 2026-09-07).
+      - name: Rotas sem consumidor
+        run: node scripts/testes/rotas-sem-consumidor.mjs
       - name: Regras arquiteturais (ast-grep)
         run: |
           ./node_modules/.bin/ast-grep test -c sgconfig.yml

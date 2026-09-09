@@ -11,33 +11,19 @@
 import { modeloDisponivel } from './modelManifest'
 
 /**
- * Este modelo tem uma cópia COMPLETA no navegador?
+ * Todos os modelos da lista têm cópia COMPLETA no navegador? (decide "Baixando" vs
+ * "Carregando (em cache)")
  *
  * Antes: `keys.some(u => u.includes(modelId))` — uma entrada qualquer bastava. Medido: 1 de 4
  * pesos presentes devolvia `true` e a UI afirmava "nada é baixado de novo" com ~113 MB faltando
  * (A-P0-4). Agora a resposta vem do manifesto gravado ao fim de uma carga bem-sucedida, validado
  * arquivo a arquivo contra o tamanho real do corpo em cache.
  */
-export async function isModelCached(modelId: string): Promise<boolean> {
-  return (await modeloDisponivel(modelId)).completo
-}
-
-/** Todos os modelos da lista têm cópia completa? (decide "Baixando" vs "Carregando (em cache)") */
 export async function areModelsCached(modelIds: string[]): Promise<boolean> {
   for (const id of modelIds) {
     if (!(await modeloDisponivel(id)).completo) return false
   }
   return true
-}
-
-/** Quantos bytes ainda faltam para estes modelos ficarem completos — para a UI ser honesta. */
-export async function bytesFaltando(modelIds: string[]): Promise<number> {
-  let total = 0
-  for (const id of modelIds) {
-    const e = await modeloDisponivel(id)
-    if (!e.completo) total += e.bytesFaltando
-  }
-  return total
 }
 
 /** Id do modelo Whisper EFETIVO — mesma fonte de verdade do worker (override em localStorage). */

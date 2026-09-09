@@ -6,7 +6,7 @@ import { env } from '@huggingface/transformers'
  *
  * PADRÃO (sem VITE_SELF_HOST_MODELS): baixa os pesos do HF Hub e os guarda no Cache Storage
  * do navegador. Robusto em deploy same-origin (o cache é estável); a impressão de "re-download"
- * era só a barra reaparecendo em cache-hit — tratada na UI via modelCache.isModelCached.
+ * era só a barra reaparecendo em cache-hit — tratada na UI via modelCache.areModelsCached.
  *
  * SELF-HOST (VITE_SELF_HOST_MODELS=1 — distribuição em escala / imagem Docker): serve os pesos
  * de `/models` no MESMO domínio (rode antes: `node scripts/fetch-models.mjs`, que baixa para

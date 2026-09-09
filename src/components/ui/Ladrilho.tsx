@@ -15,7 +15,7 @@ import type { ReactNode } from 'react';
  *
  * O QUE ESTE COMPONENTE NÃO FAZ: inventar `0`. Quando o dado ainda não chegou, passe `valor={null}`
  * e ele mostra um esqueleto. Um "0" durante o carregamento é um número falso, e o app já decidiu
- * isso uma vez no `StatPill` do shell — aqui a decisão é a mesma.
+ * isso uma vez em `lib/progress.ts` (`EMPTY_PROGRESS`) — aqui a decisão é a mesma.
  */
 
 interface LadrilhoProps {

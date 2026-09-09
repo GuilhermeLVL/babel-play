@@ -134,64 +134,8 @@ export interface BaseDeCalculo {
 }
 
 
-/**
- * Carta de flashcard. Agendamento plugável (srs-fsrs): `box`(1..5)+`dueAt` são o
- * estado Leitner legado (sempre presente, reversível); os campos FSRS abaixo são
- * opcionais e preenchidos pelo FSRS-5 na 1ª revisão ou pela migração.
- */
-export interface Flashcard {
-  id: string
-  front: string
-  back: string
-  /** Frase real da conversa de onde a palavra veio. */
-  sentence: string
-  srcLang: string
-  tgtLang: string
-  box: number
-  dueAt: number
-  addedAt: number
-  /** Sessão de origem (deck da conversa); cartas antigas não têm. */
-  sessionId?: string
-  /** FSRS-5: estabilidade em dias (≈ intervalo p/ ~90% de retenção). */
-  stability?: number
-  /** FSRS-5: dificuldade 1..10. */
-  difficulty?: number
-  /** FSRS-5: nº de revisões. */
-  reps?: number
-  /** FSRS-5: nº de lapsos (Again). */
-  lapses?: number
-  /** FSRS-5: epoch ms da última revisão. */
-  lastReview?: number
-  /** liga o card à utterance de origem p/ frame/áudio. */
-  uttId?: string
-  /** caminho relativo do frame da cena. */
-  frameRef?: string
-  /** clipe de áudio do trecho. */
-  audioRef?: { path: string; startMs: number; endMs: number }
-  /** nível CEFR ESTIMADO da sentença-fonte (honesto: probabilístico + confiança). */
-  cefrBadge?: CefrBadge
-  /** CEFR do conteúdo multi-sentença de origem. */
-  cefrEstimate?: CefrBadge
-  /** lacuna da frase-contexto (gerada por makeCloze). */
-  clozePrompt?: string
-  /** palavra exata a preencher na lacuna. */
-  clozeAnswer?: string
-}
-
 /** Bandas CEFR válidas. */
 export type CefrLevel = 'A1' | 'A2' | 'B1' | 'B2' | 'C1' | 'C2'
-
-/** Badge de nível CEFR estimado por sentença. Honesto por tipo: nunca "nível
- *  oficial" — sempre estimativa probabilística com confiança 0..1. */
-export interface CefrBadge {
-  /** A1..C2. */
-  level: string
-  source: 'probabilistic'
-  /** 0..1; cai com frases curtas (poucos tokens → menor confiança). */
-  confidence: number
-  /** Faixa estimada [percentil25, percentil75]. */
-  range?: [CefrLevel, CefrLevel]
-}
 
 
 
@@ -206,25 +150,6 @@ export interface ExerciseResult {
   exerciseKind?: 'mc' | 'typing' | 'active-production'
 }
 
-// ─────────────────── metrics-pipeline — honestidade como tipo ───────────────────
-
-/**
- * Proveniência de uma métrica. A camada de exibição NÃO pode renderizar
- * `self-report`/`probabilistic` como se fosse `deterministic`.
- */
-export type MetricSource = 'deterministic' | 'self-report' | 'probabilistic'
-
-/** Uma métrica exposta — sempre carrega fonte, amostra e (opcional) confiança. */
-export interface LearningMetric {
-  key: string
-  value: number
-  unit?: string
-  sampleSize: number
-  source: MetricSource
-  confidence?: number
-  /** epoch ms — "medido até". */
-  asOf: number
-}
 
 
 

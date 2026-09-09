@@ -17,7 +17,7 @@
  * memória e a "migração" copiaria o local para ele mesmo.
  */
 import { apiFetch, bulkAddCards, type NewUtterancePayload } from './api';
-import { abrirStore, limparTudo, temDadosLocais, type CartaoLocal, type SessaoLocal } from './efemero/store';
+import { abrirStore, limparTudo, type CartaoLocal, type SessaoLocal } from './efemero/store';
 import { estadoDeIdentidade } from '../lib/identidade';
 
 export interface RelatorioDeMigracao {
@@ -41,8 +41,6 @@ export async function inventarioLocal(): Promise<InventarioLocal> {
   ]);
   return { sessoes, cartoes, comAudio, rodadas };
 }
-
-export { temDadosLocais };
 
 async function subirSessao(s: SessaoLocal, falas: NewUtterancePayload[]): Promise<{ id: string; jaExistia: boolean }> {
   const res = await apiFetch('/api/sessions', {

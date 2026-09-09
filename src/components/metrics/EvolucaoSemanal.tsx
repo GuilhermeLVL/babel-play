@@ -26,7 +26,7 @@ function rotuloDaSemana(ts: number): string {
   return data(new Date(ts), { day: '2-digit', month: '2-digit' })
 }
 
-export function EvolucaoSemanal({
+function EvolucaoSemanal({
   serie,
   titulo = 'Evolução ao longo do tempo',
   altura = 200,

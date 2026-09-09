@@ -13,8 +13,8 @@ import { TEXTOS } from '../../lib/galeria/textos';
  * sobre o seu progresso não pode depender de por qual porta você entrou.
  *
  * `available: false` vira ESQUELETO, nunca zeros. Um "Nível 1 · 0 XP" durante o carregamento é um
- * número falso, e quem olha não tem como saber que ainda vai mudar — a decisão é a mesma do
- * `StatPill` do shell e está registrada em `lib/progress.ts` (`EMPTY_PROGRESS`).
+ * número falso, e quem olha não tem como saber que ainda vai mudar — a decisão está registrada em
+ * `lib/progress.ts` (`EMPTY_PROGRESS`).
  */
 export default function FaixaDeProgresso({ progress, ageProfile }: { progress: DerivedProgress; ageProfile: AgeProfileType }) {
   /**

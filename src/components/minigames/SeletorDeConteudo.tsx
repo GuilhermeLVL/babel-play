@@ -70,7 +70,7 @@ export interface SeletorDeConteudoProps {
 
 const ID_DA_GAVETA = 'seletor-de-conteudo-gaveta';
 
-export function SeletorDeConteudo({
+function SeletorDeConteudo({
   total,
   nomeDaFonte,
   idioma,

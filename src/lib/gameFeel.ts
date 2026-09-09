@@ -194,13 +194,3 @@ export function playJuicedVictory(): void {
   triggerVictoryConfetti();
   pulsoDeZoom();
 }
-
-/**
- * Helper para calcular multiplicador de pontos pelo combo
- */
-export function calculateMultiplier(combo: number): number {
-  if (combo >= 6) return 5; // FEVER MODE
-  if (combo >= 4) return 3;
-  if (combo >= 2) return 2;
-  return 1;
-}

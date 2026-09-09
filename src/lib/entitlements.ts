@@ -17,7 +17,7 @@
  */
 import { apiFetch } from '../data/api';
 import { authRequired } from './supabase';
-import { PLAN_MATRIX, PLANOS_DE_ASSINATURA, ehPlanoDeAssinatura, type PlanoDeAssinatura } from '../core/planos';
+import { PLAN_MATRIX, PLANOS_DE_ASSINATURA, type PlanoDeAssinatura } from '../core/planos';
 
 /** Plano de assinatura (da MATRIZ) + `anonimo`, que é identidade do cliente sem conta — o
  *  servidor nunca o atribui, por isso ele fica fora da matriz. */
@@ -132,6 +132,3 @@ export const PLAN_LABELS: Record<Plan, string> = {
     PLANOS_DE_ASSINATURA.map((p) => [p, PLAN_MATRIX[p].rotulo])
   ) as Record<PlanoDeAssinatura, string>),
 };
-
-// Guarda de sanidade importada pelos testes de paridade.
-export { ehPlanoDeAssinatura };

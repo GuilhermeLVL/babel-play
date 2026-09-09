@@ -40,11 +40,12 @@ export default defineConfig({
       reporter: ['text-summary', 'json', 'json-summary', 'lcov'],
       reportsDirectory: 'coverage',
       /*
-       * PISO = o valor medido na baseline de 2026-09-08 (linhas 42,8 %, ramos 34,5 %, funcoes
-       * 36,7 %, statements 41,3 %), arredondado para baixo. Catraca: so sobe. Baixar exige
-       * justificativa no mesmo commit, como o piso de i18n no ci.yml.
+       * PISO = o medido, arredondado para baixo. Catraca: so sobe. Baixar exige justificativa no
+       * mesmo commit, como o piso de i18n no ci.yml.
+       *   baseline 2026-09-08: linhas 42,8 · ramos 34,5 · funcoes 36,7 · statements 41,3
+       *   apos a rede da Fase 1 (2026-09-09): linhas 43,8 · ramos 35,2 · funcoes 37,6 · statements 42,2
        */
-      thresholds: { lines: 42, branches: 34, functions: 36, statements: 41 },
+      thresholds: { lines: 43, branches: 35, functions: 37, statements: 42 },
     },
   },
   resolve: {

@@ -38,10 +38,24 @@ export default defineConfig({
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
   },
+  /**
+   * TRES VIEWPORTS, UM MOTOR. O app tem duas molduras de navegacao (dock inferior abaixo de
+   * `md`, barra/rail acima) e telas que rolam de lado no celular. Um projeto so, de desktop,
+   * passava sem tocar na dock — e a dock foi justamente onde a auditoria achou a tela sem porta
+   * (`MobileNav.tsx`, F9). Os tres rodam em serie (workers: 1, ver acima), no mesmo banco.
+   */
   projects: [
     {
-      name: 'chromium',
-      use: { ...devices['Desktop Chrome'] },
+      name: 'mobile-375',
+      use: { ...devices['Desktop Chrome'], viewport: { width: 375, height: 812 }, isMobile: true, hasTouch: true },
+    },
+    {
+      name: 'tablet-768',
+      use: { ...devices['Desktop Chrome'], viewport: { width: 768, height: 1024 } },
+    },
+    {
+      name: 'desktop-1280',
+      use: { ...devices['Desktop Chrome'], viewport: { width: 1280, height: 800 } },
     },
   ],
   webServer: {

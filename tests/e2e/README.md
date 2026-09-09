@@ -3,8 +3,10 @@
 ## Como rodar
 
 ```bash
-npm run test:e2e        # roda a suíte inteira (headless, Chromium)
-npm run test:e2e:ui     # abre o modo UI do Playwright (útil para debugar)
+npm run test:e2e        # a suíte inteira, nos três viewports (headless, Chromium)
+npm run test:e2e:ui     # modo UI do Playwright (útil para depurar)
+npx playwright test --project=mobile-375 tests/e2e/seeds.e2e.ts   # um arquivo, um viewport
+bash scripts/testes/matriz-e2e.sh                                  # a matriz em lotes (ver abaixo)
 ```
 
 O `playwright.config.ts` sobe o app sozinho (`npm run dev:local`, porta 3100, sem login) via
@@ -12,79 +14,86 @@ O `playwright.config.ts` sobe o app sozinho (`npm run dev:local`, porta 3100, se
 terminal, o Playwright reaproveita esse servidor (`reuseExistingServer`, fora de CI) em vez de
 subir um segundo — não precisa parar o seu.
 
-**Banco.** O servidor que o Playwright sobe usa o `DATABASE_URL` do ambiente e, sem ele, o
-padrão `file:./data/babel.db` — o SEU banco. Os testes de facetas e baralhos gravam filtro e
-recorte no servidor, então rode contra uma cópia:
+**Três viewports, um motor.** Os projetos são `mobile-375` (375×812, com toque), `tablet-768`
+(768×1024) e `desktop-1280` (1280×800). O app tem duas molduras de navegação — dock inferior
+abaixo de `md`, barra/rail acima — e um projeto só, de desktop, nunca tocava na dock. Os testes
+falam por papel e nome acessível (`getByRole`), então o mesmo teste vale nos três: quando a matriz
+de 2026-09-09 rodou pela primeira vez, nenhum seletor precisou de correção por largura.
+
+**Banco.** O servidor usa o `DATABASE_URL` do ambiente e, sem ele, o padrão `file:./data/babel.db`
+— o SEU banco. Os testes gravam de verdade (filtro, recorte, rodadas, compras de Seeds). Rode
+contra uma cópia:
 
 ```bash
 cp data/babel.db /tmp/e2e.db          # (e os -wal/-shm, se existirem)
 DATABASE_URL=file:/tmp/e2e.db AUDIO_DIR=/tmp/e2e-audio npm run test:e2e
 ```
 
-No CI não existe `data/babel.db`: o servidor nasce com banco vazio, e os testes condicionais a
-haver baralho importado pulam com a razão (`test.skip`), como descrito abaixo.
+**`globalSetup`** (`_global-setup.ts`) marca `settings.ui.onboarded` pelo mesmo `PUT /api/settings`
+que o Onboarding usa. Sem isso, um banco novo — o caso da CI — abre a app no Onboarding, que não
+tem `<main>`, e 20 de 26 testes falhavam antes do primeiro passo. Era por isso que a suíte passava
+na máquina de quem a escreveu e nunca na CI.
 
-**Rótulos.** Os seletores seguem os rótulos acessíveis atuais do lobby: a gaveta de fonte abre
-pelo botão **"Fonte"** (`SeletorDeConteudo.tsx`; era "Trocar" até o redesenho de 2026-09-03), a
-importação pelo botão **"Trazer do Anki"** e a tela de baralhos por **"Gerenciar baralhos"**.
-Quando um rótulo muda na tela, o teste falha no mesmo commit e é atualizado junto — nunca
-desligado.
+**Fixtures por API, não pela tela** (`_fixtures.ts`): as suítes que precisam de baralho, rodada ou
+saldo semeiam por `POST /api/vocab/bulk-add` e `POST /api/exercises/rodada` no `beforeAll`. Criar
+o mesmo estado pela interface amarraria cada suíte ao formulário de outra tela.
 
-## Por que esta suíte é mínima
+**Rótulos.** Os seletores seguem os rótulos acessíveis atuais: a gaveta de fonte abre pelo botão
+**"Fonte"** (`SeletorDeConteudo.tsx`; era "Trocar" até o redesenho de 2026-09-03), a importação
+pelo botão **"Trazer do Anki"** e a tela de baralhos por **"Gerenciar baralhos"**. Quando um rótulo
+muda na tela, o teste falha no mesmo commit e é atualizado junto — nunca desligado.
 
-Esta é a **primeira** suíte e2e do projeto. As dependências (`@playwright/test`, `playwright`,
-`@axe-core/playwright`) já estavam instaladas, mas não havia `playwright.config.ts` nem uma pasta
-`e2e/` — a verificação de UI da casa sempre foi feita por inspeção manual via **Chrome DevTools
-MCP** (`new_page`, `take_snapshot`, `evaluate_script`, `take_screenshot` — ver
-`docs/HANDOFF-PROXIMA-SESSAO.md`).
+## O que a suíte cobre
 
-Uma suíte nova, robusta e sólida vale mais do que uma ambiciosa e frágil. Por isso `fumaca.e2e.ts`
-cobre só o que **existe e está estável hoje**:
+| Arquivo | Fluxo |
+|---|---|
+| `fumaca.e2e.ts` | a casca carrega e a navegação principal leva a `/jogar` |
+| `grade-so-com-jogos-do-sistema.e2e.ts` | a grade só anuncia jogo que registra progresso |
+| `sessao-de-jogo.e2e.ts` | Memória, Termo e Bao (cultural) do início ao fim da rodada |
+| `fsrs-revisao.e2e.ts` | avaliar um cartão move o `due` no servidor |
+| `seeds.e2e.ts` | o saldo da tela é o do servidor; o item mais barato diz o preço ou o que falta |
+| `dois-dispositivos.e2e.ts` | a mesma conta em dois navegadores; compra simultânea não fura o saldo |
+| `estatisticas.e2e.ts` | os contadores batem com `GET /api/vocab` |
+| `tema.e2e.ts` | o tema escuro sobrevive ao F5 e a um navegador limpo |
+| `transcricao.e2e.ts` | a tela de captura e o painel de motor renderizam |
+| `baralhos.e2e.ts` | importação Anki e a tela de baralhos |
+| `facetas.e2e.ts` | a fileira RECORTE do lobby, e o recorte que persiste no F5 |
+| `trilha-carregamento.e2e.ts` | a contagem do curso nunca passa por zero |
+| `idioma-da-interface.e2e.ts` | o seletor só oferece idioma com tradução pronta |
+| `pseudo-localizacao.e2e.ts` | nada corta com texto 40% mais longo |
+| `quatro-superficies-alcancaveis.e2e.ts` | as quatro áreas de Personalizar |
+| `rota-de-aquisicao.e2e.ts` | a peça trancada diz como se consegue |
 
-- a casca do app carrega (sem tela em branco, sem exigir login);
-- a navegação principal aparece com os rótulos reais do perfil padrão (sênior —
-  `src/lib/profile.ts`, decisão "leitura ampliada como padrão");
-- clicar em "Praticar" leva à tela de jogos (`/jogar` — `src/lib/rotas.ts`) e ela renderiza.
+## O que ela NÃO cobre, e por quê
 
-Os seletores usam papel/acessibilidade (`getByRole`) e nunca CSS de classe, para não quebrar a
-cada ajuste de estilo.
+Cada um destes é um `test.skip` com o motivo escrito no próprio arquivo — nunca um teste
+silenciosamente ausente:
 
-## Baralhos do Anki (`baralhos.e2e.ts`)
+- **Login real** (`login.e2e.ts`): exige um projeto Supabase de teste com URL e chave compilados no
+  bundle. O caminho está coberto no nível HTTP em `tests/caracterizacao/auth-e-conta.test.ts`, com
+  JWT ES256 assinado localmente (401 sem token, 403 suspenso, isolamento entre dois usuários).
+- **Gravar e transcrever** (`transcricao.e2e.ts`): exige microfone e modelo local.
+- **Tetos do modo sem conta** (`limites-anonimo.e2e.ts`): `estaAnonimo()` só é verdade com
+  `VITE_AUTH_REQUIRED=1` e projeto Supabase configurado, e `dev:local` força `0`. A regra está
+  coberta no core (vitest).
+- **Verificação visual/exploratória**: continua por inspeção com o MCP chrome-devtools. Esta suíte
+  prova que os caminhos funcionam, não que estão bonitos.
 
-Cobre o caminho de ingestão de baralhos Anki, que amadureceu depois de `fumaca.e2e.ts` ter sido
-escrita. Sem criar dado (não faz upload de `.apkg`/`.txt` pelo teste — leria o que já estiver no
-ambiente):
+Dois testes antigos (`baralhos`, `facetas`) são **condicionais a já existir baralho importado** e
+pulam com a razão quando o ambiente não tem acervo — que é o caso de um banco novo.
 
-- **Sempre verificável**: o lobby (perfil sênior, `/jogar`) tem o botão "Anki"; clicar nele abre a
-  tela de importação (`BaralhoAnki.tsx` — botão "Escolher arquivo"); "Voltar aos jogos" retorna ao
-  lobby.
-- **Condicional a já existir baralho importado**: o botão "Baralhos" só existe na faixa quando
-  `listarBaralhosAnki()` devolve ao menos um baralho (`Play.tsx`, `temBaralhosAnki`). Quando ele
-  não existe no ambiente, os dois testes que dependem dele chamam `test.skip()` com a razão —
-  nunca fingem passar. Quando existe: abrir "Baralhos" mostra o cabeçalho da tela
-  "Baralhos do Anki", e o cartão do baralho expõe "Jogar só com este" (se há nota ativa) ou o
-  saldo "N de M ativadas". Clicar em "Jogar só com este" volta ao lobby com o nome do baralho na
-  faixa (substituindo o rótulo genérico "Baralhos").
-- Um diálogo de recompensa/conquista (`RecompensaDesbloqueada.tsx`) pode aparecer sobreposto,
-  às vezes em fila (uma recompensa por vez, cada uma animando com atraso) — o teste fecha por
-  `aria-label="Fechar"` quantas vezes for preciso antes de interagir com o lobby.
+## Quando o processo do Playwright morre
 
-Rodado de verdade contra o ambiente local (sem baralho importado nele): 3 passaram (casca +
-Anki), 2 pulados com a razão de ausência de baralho — nunca "verde forçado".
-
-## O que esta suíte NÃO cobre (de propósito)
-
-- **Captura de áudio, jogos individuais, SRS, loja/créditos**: fluxos reais, mas que dependem de
-  estado (gravação existente, XP, sessão) — fora do escopo de um teste de fumaça. Merecem specs
-  próprias quando o fluxo estiver maduro.
-- **Verificação visual/exploratória de UI**: continua sendo feita por MCP chrome-devtools
-  (`take_snapshot`, `take_screenshot`), como sempre foi nesta casa. Esta suíte é a **rede de
-  segurança do caminho feliz** — prova que a casca e a navegação básica não quebraram —, não um
-  substituto para a inspeção visual.
+Numa máquina de desenvolvimento Windows, o processo morre quando um único comando passa de ~30
+testes: medido em 9/114 e em 32/38, sempre **sem falha de asserção** e sempre com o JSON por
+escrever. Não é o teste, é o processo. Para rodar a matriz inteira localmente use
+`scripts/testes/matriz-e2e.sh`, que a quebra em cinco lotes por projeto e grava um JSON por lote —
+a morte de um lote não apaga o resultado dos outros. Na CI (Ubuntu) o comando único segue valendo.
 
 ## Convenção de arquivos
 
 - `*.e2e.ts` nesta pasta → Playwright (`testMatch` em `playwright.config.ts`).
-- `tests/*.test.ts` (fora desta pasta) → Vitest (`npm run test`).
-
-As duas suítes convivem em `tests/` sem colidir porque cada runner só enxerga o seu padrão.
+- `_helpers.ts`, `_fixtures.ts`, `_global-setup.ts` → apoio, não são testes (o `_` os mantém fora
+  do `testMatch`).
+- `tests/**/*.test.ts` → Vitest (`npm test`), inclusive `tests/caracterizacao/`, que exercita as
+  mesmas rotas por HTTP sem navegador.

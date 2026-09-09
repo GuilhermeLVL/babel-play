@@ -232,6 +232,13 @@ export const VARIAVEIS: readonly VariavelDeclarada[] = [
     paraQue: 'modelo de tradução/tutor no provedor escolhido',
   },
   {
+    nome: 'LLM_MODEL_GRANDE',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue:
+      'modelo entregue a quem tem o entitlement `largerModels` (planos pro e selfhost). Ausente, todo plano recebe o mesmo modelo de `LLM_MODEL` — que era o comportamento antes da Fase 4, quando `largerModels` nao era lido por linha nenhuma do servidor',
+  },
+  {
     nome: 'LLM_RESERVA_API_KEY',
     exigencia: 'opcional',
     criticidade: 'degrada-capacidade',

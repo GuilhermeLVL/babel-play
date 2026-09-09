@@ -2,7 +2,7 @@ import type { Request, Response } from 'express'
 import { z } from 'zod'
 
 import { nomeDoIdioma, systemComunicativo, userComunicativo } from '../../src/lib/traducao/promptComunicativo'
-import { hasEntitlement } from '../lib/entitlements'
+import { getEntitlementsForUser } from '../lib/entitlements'
 import { erroDeRota } from '../lib/erroDeRota'
 import { log } from '../lib/logger'
 import { responderErro } from '../lib/respostaDeErro'
@@ -48,8 +48,13 @@ export async function mtTranslateProxy(req: Request, res: Response): Promise<voi
   // de tradução LOCAL (Chrome Translator/opus-mt/MyMemory) roda no cliente e não passa por aqui, então
   // o usuário free ainda traduz — só não usa o Groq gerenciado. FAIL-CLOSED: erro ao checar o plano
   // vira 502 (nunca passa direto), consistente com o STT e o gemini/chat.
+  /* UMA leitura de plano, dois usos. `hasEntitlement` resolve o plano do zero a cada chamada (ida
+     ao banco em `subscriptions`), e daqui para baixo precisamos de dois entitlements: o que deixa
+     entrar e o que escolhe o modelo. */
+  let planoDoUsuario
   try {
-    if (!(await hasEntitlement(req.userId, 'managedCloudLlm'))) {
+    planoDoUsuario = await getEntitlementsForUser(req.userId)
+    if (!planoDoUsuario.managedCloudLlm) {
       res.status(402).json({ error: 'tradução por IA gerenciada requer plano Pro', entitlement: 'managedCloudLlm' })
       return
     }
@@ -70,7 +75,7 @@ export async function mtTranslateProxy(req: Request, res: Response): Promise<voi
      de modelo estavam escritos aqui, no `server.ts` e no gateway, com ordens ligeiramente
      diferentes — e um default corrigido num lugar deixava os outros dois com o modelo antigo
      (achado A31). A explicacao de POR QUE existe reserva mora la, junto da funcao. */
-  const provedores = cascataDeTraducao()
+  const provedores = cascataDeTraducao({ modelosGrandes: planoDoUsuario.largerModels })
   if (provedores.length === 0) {
     res.status(501).json({ error: 'tradução por LLM não configurada no servidor (defina LLM_API_KEY)' })
     return

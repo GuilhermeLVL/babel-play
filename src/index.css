@@ -974,24 +974,20 @@
 .fade-in, .fade-in-0 { --enter-opacity: 0; }
 
 .zoom-in, .zoom-in-95 { --enter-scale: 0.95; }
-.zoom-in-90 { --enter-scale: 0.9; }
 
 /* Distâncias na escala do Tailwind (1 = 0.25rem). A variante sem número usa 0.5rem. */
 .slide-in-from-top    { --enter-y: -0.5rem; }
 .slide-in-from-top-1  { --enter-y: -0.25rem; }
 .slide-in-from-top-2  { --enter-y: -0.5rem; }
 .slide-in-from-top-4  { --enter-y: -1rem; }
+/* `-5` estava em uso (`IChat.tsx:676`) e nunca declarado: a classe nao produzia CSS nenhum. */
+.slide-in-from-top-5  { --enter-y: -1.25rem; }
 .slide-in-from-bottom   { --enter-y: 0.5rem; }
 .slide-in-from-bottom-1 { --enter-y: 0.25rem; }
 .slide-in-from-bottom-2 { --enter-y: 0.5rem; }
-.slide-in-from-bottom-4 { --enter-y: 1rem; }
-.slide-in-from-bottom-5 { --enter-y: 1.25rem; }
 .slide-in-from-left    { --enter-x: -0.5rem; }
-.slide-in-from-left-1  { --enter-x: -0.25rem; }
 .slide-in-from-left-2  { --enter-x: -0.5rem; }
-.slide-in-from-left-4  { --enter-x: -1rem; }
 .slide-in-from-right   { --enter-x: 0.5rem; }
-.slide-in-from-right-1 { --enter-x: 0.25rem; }
 .slide-in-from-right-2 { --enter-x: 0.5rem; }
 .slide-in-from-right-4 { --enter-x: 1rem; }
 
@@ -1468,19 +1464,7 @@ body.animations-off .hover\:-translate-y-1:hover {
    Tudo aqui é retorno visual de 200–600 ms; nada muda layout (só transform/opacity/box-shadow),
    então a barra e as alternativas ficam no lugar. As guardas globais de movimento reduzido
    (.animations-off / .performance-mode) desligam estas animações como as demais. */
-@keyframes blitz-pop {
-  0%   { transform: scale(1); }
-  35%  { transform: scale(1.35); }
-  100% { transform: scale(1); }
-}
-.blitz-pop { animation: blitz-pop 0.32s cubic-bezier(0.16, 1, 0.3, 1); }
 
-@keyframes blitz-refill {
-  0%   { filter: brightness(1); box-shadow: 0 0 0 0 color-mix(in srgb, var(--good) 60%, transparent); }
-  40%  { filter: brightness(1.8); box-shadow: 0 0 14px 2px color-mix(in srgb, var(--good) 60%, transparent); }
-  100% { filter: brightness(1); box-shadow: 0 0 0 0 color-mix(in srgb, var(--good) 0%, transparent); }
-}
-.blitz-refill { animation: blitz-refill 0.5s ease-out; }
 
 @keyframes blitz-erro {
   0%   { box-shadow: inset 0 0 0 0 color-mix(in srgb, var(--error) 0%, transparent); }

@@ -17,4 +17,17 @@ paths = ['''scripts/models-hashes\.json''']
 # auditoria que registram a propria varredura (o `gitleaks-historico.json` da Fase 0 guardava os
 # dois achados originais, e a varredura seguinte os achava de novo — quatro achados que eram o
 # registro de dois). Um segredo DIFERENTE em qualquer arquivo continua sendo acusado.
-regexes = ['''segredo-e2e-hs256-marco1''']
+# AS CARGAS DO TESTE DE REDACAO. `tests/seguranca/log-sem-pii.test.ts` cobra que `redigirErro`
+# corte as tres formas de segredo que este servidor manuseia — `Bearer`, chave de provedor e JWT.
+# Para cobrar isso ele precisa CONTER uma string com cara de chave; nao ha como testar o corte sem
+# escrever o que deve ser cortado. Os valores abaixo sao inventados, e a lista e nominal: uma chave
+# de verdade, com outro corpo, continua sendo acusada.
+#
+# Este achado apareceu na varredura final da rodada, DEPOIS de o proprio teste entrar (commit
+# 0a2ad48) — o portao pegou o que a Fase 4 tinha acabado de instalar, que e o que se espera dele.
+regexes = [
+  '''segredo-e2e-hs256-marco1''',
+  '''AIzaSyA1234567890abcdef''',
+  '''sk-proj-AAAABBBBCCCCDDDD''',
+  '''gsk_1234567890abcdefgh''',
+]

@@ -3,6 +3,46 @@
 > **Documento historico (2026-07-24).** A descricao vigente do produto, escrita a partir do codigo com `arquivo:linha`, esta em `openspec/specs/` (`ciclo-do-usuario`, `conteudo-e-trilha`, `rodada-e-fsrs`, `economia`, `i18n`, `modo-anonimo`, `planos-e-billing`) e nas specs arquivadas de cada change. O que segue abaixo nao conhece economia, planos, Anki nem trilha multi-idioma e lista "8 exercicios"; nao use como fonte para decidir o que existe. Ver `openspec/audits/2026-09-07-coerencia.md`, secao 2, para o mapa atual.
 > Legenda de estado: ✅ funciona · ⚠️ frágil/degrada · ❌ quebrado/stub · 🔜 planejado
 
+## 0. Onde o código mora hoje (2026-09-09)
+
+Esta seção é o mapa mínimo que faltava para quem chega: o resto do documento é histórico e está
+marcado como tal.
+
+```
+src/
+  core/            núcleo isomórfico — sem DOM, `strict`, compartilhado por cliente, servidor e
+                   espelho anônimo. Fronteira declarada em `src/core/tsconfig.json`
+  data/
+    funil.ts       o ÚNICO `fetch('/api/…')` do cliente. Regra ast-grep `fetch-fora-do-funil`
+    api.ts         fachada que reexporta `data/rotas/*` (46 linhas; eram 1.163)
+    rotas/         um módulo por domínio de rota
+    efemero/       o espelho do servidor sobre IndexedDB — é o que faz o modo sem conta existir
+  lib/{captura,analise,estado,jogos}/   o que saiu dos arquivos-deus
+  components/      telas
+server.ts          bootstrap: dotenv, config conferida, `iniciar()`/cluster (345 linhas; eram 703)
+server/
+  http/app.ts      `criarApp()` — a ordem de montagem, que é parte do comportamento
+  http/metricas.ts `/metrics`
+  routes/          uma rota por arquivo
+  lib/             config, logger, redação, auth, quotas, limitadores, desligamento
+  ai/              gateway de LLM/STT/MT, com disjuntor
+  db/              schema, migrações e repositórios
+```
+
+**A ordem de montagem é comportamento, não estilo.** O mesmo router antes do `authMiddleware` é
+público e depois dele é privado — foi por isso que a matriz rota × guarda passou a ser lida do
+`app._router.stack` em tempo de execução, e não do texto dos arquivos
+(`tests/seguranca/_matriz.ts`).
+
+**A árvore por domínio (`src/dominios/<d>/`) foi proposta, aprovada e NÃO executada.** O mapa está
+em `openspec/changes/estrutura-por-dominio-proposta/mapa.csv`, e os portões já sobrevivem a ela: as
+regras de arquitetura e o `eslint.config.js` foram reescritos por camada, com prova negativa
+registrada, antes de qualquer movimentação. A decisão que adiou o `git mv` está no relatório da
+Fase 3, seção 1.
+
+Os relatórios de cada fase da rodada de saneamento de 2026-09 estão em `openspec/audits/`, e os
+ADRs em `docs/adr/`.
+
 ## 1. Visão geral (camadas)
 
 ```mermaid
@@ -90,14 +130,14 @@ flowchart LR
 
 ### 2.1 Identificação automática de falantes (2026-07)
 
-Cada fala do **som do computador** no cenário *Conversa* passa por um worker WASM próprio
-(`src/lib/speakerIdWorker.ts`) que extrai um *embedding* de voz de 256 dimensões; o agrupamento
+Cada fala do **som do computador** no cenário _Conversa_ passa por um worker WASM próprio
+(`src/lib/speakerIdWorker.ts`) que extrai um _embedding_ de voz de 256 dimensões; o agrupamento
 online (`src/lib/speakerCluster.ts`) decide se é uma voz já vista ou uma pessoa nova — "Pessoa 1",
 "Pessoa 2"… cada uma com cor própria no transcript, no painel Falantes e no overlay. O usuário
 renomeia com um clique.
 
 Roda **em paralelo** ao decode (nunca atrasa a legenda) e sempre em WASM, deixando o WebGPU livre
-para o Whisper. É *best-effort*: sem o modelo (offline no 1º uso) a captura segue normal e o painel
+para o Whisper. É _best-effort_: sem o modelo (offline no 1º uso) a captura segue normal e o painel
 avisa honestamente.
 
 **Limiar 0.5, medido — não chutado.** Contra o conjunto de verificação de locutor do
@@ -116,7 +156,7 @@ Limites honestos: vozes muito parecidas podem se fundir e ruído forte pode abri
 > header mostra o motor efetivo, e cada fala grava o `engine` real (procedência).
 >
 > **Idioma sem atrito** (2026-07): "Detectar automaticamente" é a PRIMEIRA opção do próprio
-> seletor de idioma (o antigo par *select desabilitado + checkbox multi-idioma* virou uma escolha
+> seletor de idioma (o antigo par _select desabilitado + checkbox multi-idioma_ virou uma escolha
 > só) e vem ligada por padrão — o usuário novo não precisa saber de antemão o que vai ouvir. Cada
 > idioma exibe a BANDEIRA (SVG de `country-flag-icons`; emoji de bandeira não renderiza no Windows)
 > e cada fala carrega um chip com o idioma REAL detectado. Numa conversa multi-idioma, a fala do
@@ -171,28 +211,28 @@ flowchart LR
 
 ## 5. Lacunas mapeadas (atualizado 2026-07-24, ciclo 2)
 
-| # | Lacuna | Onde | Estado |
-|---|--------|------|--------|
-| 1 | Tela inteira sem áudio no Windows (`NotReadableError`) | `systemAudio.ts` | ✅ resolvida na prática: rota "Som do computador ★" (WASAPI via servidor local) |
-| 2 | Cold-start do Whisper sem feedback; fala descartada durante carga | `LiveCapture.tsx` | ✅ fala bufferizada + barra agregada + watchdog WebGPU→WASM (45s) |
-| 3 | opus-mt local falha silencioso → MyMemory vira o caminho real | `mtWorker.ts` | ⚠️ ainda silencioso — roadmap (avisar o usuário) |
-| 4 | Detecção de cache não cobria overrides de modelo | `modelCache.ts` | ✅ corrigida + testada (vitest) |
-| 5 | Selo estático falso / diarização com % fabricado | `LiveCapture.tsx` | ✅ selos reais e legíveis; diarização só com dados reais |
-| 6 | Modo Visão/OCR inalcançável (~200 linhas mortas) | `LiveCapture.tsx` | ✅ removido (spec vision-ocr-web preservada) |
-| 7 | Streaming STT de nuvem | `streamingCloudStt.ts` | ❌ stub (Pro — production-readiness Fase B) |
-| 8 | Painéis IA "em breve" | `AnalysisExpandedKpi` · `Hub` · `Metrics` | 🔜 roadmap |
-| 9 | Web Speech (default do mic) envia áudio ao provedor | `webSpeech.ts` | ⚠️ agora DITO no onboarding; alternativa local a um clique |
-| 10 | Sem testes formais / lint / CI | raiz | ✅ CI Actions + ESLint + vitest (24 testes) + Semgrep/Trivy |
-| 11 | Zero auth em `0.0.0.0` + SSRF parcial + fallback de chave inseguro | `server.ts` e afins | ✅ hardening ciclo 2 (bind local, SSRF unificado, SECRET_KEY real, helmet, Zod) |
-| 12 | Auth/multi-tenant/billing p/ deploy público | — | 🔜 `openspec/changes/production-readiness` |
+| #   | Lacuna                                                             | Onde                                      | Estado                                                                          |
+| --- | ------------------------------------------------------------------ | ----------------------------------------- | ------------------------------------------------------------------------------- |
+| 1   | Tela inteira sem áudio no Windows (`NotReadableError`)             | `systemAudio.ts`                          | ✅ resolvida na prática: rota "Som do computador ★" (WASAPI via servidor local) |
+| 2   | Cold-start do Whisper sem feedback; fala descartada durante carga  | `LiveCapture.tsx`                         | ✅ fala bufferizada + barra agregada + watchdog WebGPU→WASM (45s)               |
+| 3   | opus-mt local falha silencioso → MyMemory vira o caminho real      | `mtWorker.ts`                             | ⚠️ ainda silencioso — roadmap (avisar o usuário)                                |
+| 4   | Detecção de cache não cobria overrides de modelo                   | `modelCache.ts`                           | ✅ corrigida + testada (vitest)                                                 |
+| 5   | Selo estático falso / diarização com % fabricado                   | `LiveCapture.tsx`                         | ✅ selos reais e legíveis; diarização só com dados reais                        |
+| 6   | Modo Visão/OCR inalcançável (~200 linhas mortas)                   | `LiveCapture.tsx`                         | ✅ removido (spec vision-ocr-web preservada)                                    |
+| 7   | Streaming STT de nuvem                                             | `streamingCloudStt.ts`                    | ❌ stub (Pro — production-readiness Fase B)                                     |
+| 8   | Painéis IA "em breve"                                              | `AnalysisExpandedKpi` · `Hub` · `Metrics` | 🔜 roadmap                                                                      |
+| 9   | Web Speech (default do mic) envia áudio ao provedor                | `webSpeech.ts`                            | ⚠️ agora DITO no onboarding; alternativa local a um clique                      |
+| 10  | Sem testes formais / lint / CI                                     | raiz                                      | ✅ CI Actions + ESLint + vitest (24 testes) + Semgrep/Trivy                     |
+| 11  | Zero auth em `0.0.0.0` + SSRF parcial + fallback de chave inseguro | `server.ts` e afins                       | ✅ hardening ciclo 2 (bind local, SSRF unificado, SECRET_KEY real, helmet, Zod) |
+| 12  | Auth/multi-tenant/billing p/ deploy público                        | —                                         | 🔜 `openspec/changes/production-readiness`                                      |
 
 ## 6. Acesso — três eixos independentes e o modo sem conta (2026-08)
 
-| Eixo | Valores | Onde vive | Quem decide |
-|---|---|---|---|
-| Identidade | anonimo · conta · selfhost | `src/lib/identidade.ts` (alimentado pelo App) | o cliente (tem sessão ou não) |
-| Plano | free · pro · selfhost | tabela `subscriptions`; `src/lib/entitlements.ts` é só cache de `GET /api/me/entitlements` | SÓ o servidor |
-| Papel | user · admin · support | `users.role`, `server/lib/rbac.ts` | o servidor |
+| Eixo       | Valores                    | Onde vive                                                                                  | Quem decide                   |
+| ---------- | -------------------------- | ------------------------------------------------------------------------------------------ | ----------------------------- |
+| Identidade | anonimo · conta · selfhost | `src/lib/identidade.ts` (alimentado pelo App)                                              | o cliente (tem sessão ou não) |
+| Plano      | free · pro · selfhost      | tabela `subscriptions`; `src/lib/entitlements.ts` é só cache de `GET /api/me/entitlements` | SÓ o servidor                 |
+| Papel      | user · admin · support     | `users.role`, `server/lib/rbac.ts`                                                         | o servidor                    |
 
 **Sem conta, nada sai para a rede.** `apiFetch` (`src/data/api.ts`) é o funil único de toda a
 camada de dados; com identidade `anonimo` ele responde por um servidor em memória sobre IndexedDB

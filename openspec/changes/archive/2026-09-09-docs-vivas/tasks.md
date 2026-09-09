@@ -1,0 +1,4 @@
+- [x] 1.1 runbook com o que se lê em plantão
+- [x] 1.2 CONTRIBUTING com a bateria que a CI roda
+- [x] 1.3 mapa mínimo da árvore atual
+- [x] 1.4 relatório final com baseline x final pelo mesmo comando

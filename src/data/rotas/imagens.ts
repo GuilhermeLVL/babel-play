@@ -9,7 +9,7 @@
  *
  * Rotas: GET `/api/images/search`.
  */
-import { apiFetch } from '../api'
+import { apiFetch } from '../funil'
 
 export interface ImageResult {
   id: string

@@ -5,7 +5,7 @@
  *
  * Rotas: GET `/api/settings`, PUT `/api/settings`.
  */
-import { apiFetch } from '../api'
+import { apiFetch } from '../funil'
 
 export interface AppSettings {
   id: string

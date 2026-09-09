@@ -16,9 +16,9 @@
  * Precisa rodar com a identidade já em `conta` — senão o `apiFetch` responderia pelo servidor em
  * memória e a "migração" copiaria o local para ele mesmo.
  */
-import { apiFetch, bulkAddCards, type NewUtterancePayload } from './api';
-import { abrirStore, limparTudo, type CartaoLocal, type SessaoLocal } from './efemero/store';
 import { estadoDeIdentidade } from '../lib/identidade';
+import { apiFetch, bulkAddCards, type NewUtterancePayload } from './api';
+import { abrirStore, type CartaoLocal, limparTudo, type SessaoLocal } from './efemero/store';
 
 export interface RelatorioDeMigracao {
   sessoes: number;

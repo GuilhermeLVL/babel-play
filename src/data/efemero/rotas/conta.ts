@@ -8,7 +8,7 @@
  *
  * Rotas: GET `/api/me/entitlements`.
  */
-import { json } from '../servidor';
+import { json } from '../nucleo';
 
 export async function entitlementsAnonimos(): Promise<Response> {
   return json({

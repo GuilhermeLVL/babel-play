@@ -9,9 +9,9 @@
  * POST/GET `/api/sessions/:id/audio`, PATCH `/api/sessions/utterances/:id`,
  * GET `/api/sessions/utterances/all`, POST `/api/sessions/utterances/relabel`.
  */
-import type { Recording } from '../../types'
 import { data } from '../../lib/i18n'
-import { apiFetch, IMPORT_TIMEOUT_MS } from '../api'
+import type { Recording } from '../../types'
+import { apiFetch, IMPORT_TIMEOUT_MS } from '../funil'
 
 interface SessionRow {
   id: string

@@ -11,12 +11,12 @@
  * POST/GET `/api/sessions/:id/audio`, PATCH `/api/sessions/utterances/:id`,
  * GET `/api/sessions/utterances/all`.
  */
-import { abrirStore, type FalaLocal, type SessaoLocal } from '../store';
 import { estadoDoTeto, motivoDoTeto } from '../../../core/tetoAnonimo';
 import {
-  contarPalavras, json, lerBytes, lerJson, lerMeta, num, opcional, str, uuid,
-  type Json,
-} from '../servidor';
+  contarPalavras,   type Json,
+json, lerBytes, lerJson, lerMeta, num, opcional, str, uuid,
+} from '../nucleo';
+import { abrirStore, type FalaLocal, type SessaoLocal } from '../store';
 
 function falaDePayload(sessionId: string, u: Json, i: number): FalaLocal {
   return {

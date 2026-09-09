@@ -10,7 +10,7 @@
  *
  * Rotas: POST `/api/import/youtube`, POST `/api/import/web`, POST `/api/import/document`.
  */
-import { apiFetch, IMPORT_TIMEOUT_MS } from '../api'
+import { apiFetch, IMPORT_TIMEOUT_MS } from '../funil'
 
 export interface ImportYoutubeResult {
   id: string

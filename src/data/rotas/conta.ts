@@ -11,7 +11,7 @@
  *
  * Rotas: GET `/api/me/exportar`, DELETE `/api/me`.
  */
-import { apiFetch } from '../api'
+import { apiFetch } from '../funil'
 
 /** O que o servidor devolve ao excluir a conta: o relatório por tabela e o que NÃO deu certo. */
 export interface ResultadoDaExclusao {

@@ -8,13 +8,13 @@
  *
  * Rotas: GET `/api/metrics/profile`, GET `/api/metrics/xp`.
  */
-import { abrirStore } from '../store';
-import { Fsrs5Strategy } from '../../../core/learning/scheduler';
 import type { AppMetrics } from '../../../core/learning/contract';
 import { diaLocal, marcosDeSequencia, minutosPremiados, sequencias } from '../../../core/learning/economia';
 import { historicoDeXp } from '../../../core/learning/historicoDeXp';
+import { Fsrs5Strategy } from '../../../core/learning/scheduler';
 import { MINIGAMES } from '../../../core/minigames/types';
-import { contarPalavras, DIA, json } from '../servidor';
+import { contarPalavras, DIA, json } from '../nucleo';
+import { abrirStore } from '../store';
 import { estadoDe } from './vocabulario';
 
 /**

@@ -9,11 +9,6 @@
  * `/api/vocab/relabel` NÃO tem espelho — está justificada em `tests/contratos/rotas-espelhadas`
  * (escrita cruzada no acervo, só com conta), e é essa ausência declarada que a tabela guarda.
  */
-import { abrirStore, type CartaoLocal } from '../store';
-import { Fsrs5Strategy, type Grade, type SchedulingState } from '../../../core/learning/scheduler';
-import { estadoDoTeto, motivoDoTeto } from '../../../core/tetoAnonimo';
-import { json, lerJson, num, str, uuid, type Json } from '../servidor';
-
 /**
  * A MESMA CHAVE DO SERVIDOR — agora de verdade (auditoria de 2026-09-07, achado A24).
  *
@@ -27,6 +22,11 @@ import { json, lerJson, num, str, uuid, type Json } from '../servidor';
  * agora é uma só (`core/texto/palavra.ts`) e `tests/paridade-anonima.test.ts` a trava.
  */
 import { chaveDedup } from '@core/texto/palavra';
+
+import { Fsrs5Strategy, type Grade, type SchedulingState } from '../../../core/learning/scheduler';
+import { estadoDoTeto, motivoDoTeto } from '../../../core/tetoAnonimo';
+import { type Json,json, lerJson, num, str, uuid } from '../nucleo';
+import { abrirStore, type CartaoLocal } from '../store';
 export { chaveDedup };
 
 /**

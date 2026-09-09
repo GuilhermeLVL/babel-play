@@ -10,7 +10,7 @@
  * O áudio é guardado como ArrayBuffer + tipo (não como Blob): `structuredClone` de Blob varia
  * entre ambientes, e ArrayBuffer clona em todos.
  */
-import { openDB, type DBSchema, type IDBPDatabase } from 'idb';
+import { type DBSchema, type IDBPDatabase,openDB } from 'idb';
 
 export interface SessaoLocal {
   id: string;

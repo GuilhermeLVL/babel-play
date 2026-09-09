@@ -6,7 +6,7 @@
  * Rotas: POST `/api/exercises/rodada`, GET `/api/exercises/results`,
  * GET `/api/exercises/historico`, GET `/api/exercises/recordes`.
  */
-import { apiFetch } from '../api'
+import { apiFetch } from '../funil'
 
 export interface ExerciseResultPayload {
   sessionId?: string

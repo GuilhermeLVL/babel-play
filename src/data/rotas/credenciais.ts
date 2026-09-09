@@ -10,7 +10,7 @@
  *
  * Rotas: GET/POST `/api/ai/credentials`, POST `/api/ai/providers/test`.
  */
-import { apiFetch } from '../api'
+import { apiFetch } from '../funil'
 
 export interface CredentialMeta {
   id: string

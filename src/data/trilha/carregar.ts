@@ -1,7 +1,7 @@
 /// <reference types="vite/client" />
+import { registrarNiveis } from '../../core/learning/cefrWordlist'
 import type { CefrLevel } from '../../core/learning/contract'
 import type { DadoTrilha } from '../../core/learning/trilha'
-import { registrarNiveis } from '../../core/learning/cefrWordlist'
 import { baseDoIdioma } from './indice'
 
 export { indiceDaTrilha } from './indice'

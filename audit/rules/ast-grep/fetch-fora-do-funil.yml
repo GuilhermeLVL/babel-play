@@ -2,7 +2,7 @@ id: fetch-fora-do-funil
 language: TypeScript
 severity: error
 message: >-
-  `fetch('/api/…')` fora de `src/data/api.ts` contorna o funil `apiFetch`: não injeta o Bearer no
+  `fetch('/api/…')` fora de `src/data/funil.ts` contorna o funil `apiFetch`: não injeta o Bearer no
   modo público, não trata 401 com refresh e — o que esta regra guarda — SAI PARA A REDE sem conta,
   quando o servidor em memória deveria responder. O teste-sentinela (`tests/anonimo-sem-rede`) só
   cobre o que passa por `data/api`; esta regra cobre o resto do `src/`.
@@ -10,7 +10,11 @@ files:
   - 'src/**/*.ts'
   - 'src/**/*.tsx'
 ignores:
-  - 'src/data/api.ts'
+  # O funil, e SÓ ele: a única chamada real de `fetch('/api/…')` do cliente. Caminho literal — se o
+  # `fetch` mudar de arquivo, este `ignores` muda no mesmo commit, senão a regra vira uma que nunca
+  # dispara (CI verde, guarda caída). `src/data/api.ts` saiu daqui: virou fachada de reexportações
+  # e não tem mais `fetch` algum, então liberá-lo seria abrir uma porta que ninguém usa.
+  - 'src/data/funil.ts'
   - '**/*.test.ts'
   - '**/*.test.tsx'
 rule:

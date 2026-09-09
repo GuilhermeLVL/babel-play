@@ -11,14 +11,14 @@
  * `/api/billing/*` (créditos comprados com dinheiro, passe) NÃO tem espelho — justificado em
  * `tests/contratos/rotas-espelhadas`: moeda paga nasce e morre no servidor.
  */
-import { abrirStore } from '../store';
+import {
+autorizarGasto, ehRecusa,
+itensSorteaveisNoDrop,   roundIdDoDrop, sortearItemDoDrop,   valorDoCredito, valorDoDrop,
+} from '../../../core/economiaAutoridade';
 import { diaLocal, sequencias } from '../../../core/learning/economia';
 import { economiaDeMetricas } from '../../../core/learning/xp';
-import {
-  valorDoCredito, autorizarGasto, ehRecusa,
-  roundIdDoDrop, itensSorteaveisNoDrop, sortearItemDoDrop, valorDoDrop,
-} from '../../../core/economiaAutoridade';
-import { json, lerJson, num, str } from '../servidor';
+import { json, lerJson, num, str } from '../nucleo';
+import { abrirStore } from '../store';
 import { perfilEfemero } from './metricas';
 
 /**

@@ -20,94 +20,34 @@
  * (`src/data/rotas/`): este contrato tem dois lados, e enquanto cada lado era um arquivo de
  * ~1000 linhas não havia como comparar `sessoes` com `sessoes`. Agora há — arquivo a arquivo.
  *
- * Aqui ficam só as três coisas que são do ROTEADOR e não de um domínio: os helpers compartilhados
- * (`json`, `uuid`, leitura de corpo, coerção), a tabela `ROTAS` e o ponto de entrada. Eles ficam
- * exportados porque os módulos de rota os importam de volta — o mesmo desenho do funil do cliente,
- * onde `apiFetch` fica em `src/data/api.ts` e os módulos de rota o importam.
+ * Aqui fica só o ROTEADOR: a tabela `ROTAS` e o ponto de entrada. Os helpers compartilhados
+ * (`json`, `uuid`, leitura de corpo, coerção, `naoDisponivelSemConta`) estão em `./nucleo.ts` —
+ * uma FOLHA — porque este arquivo importa os `rotas/*` e eles importavam os helpers DE VOLTA
+ * daqui: sete ciclos de importação, com `npm run morto:ciclos` (madge) como portão de CI. É o
+ * mesmo desenho do cliente, onde o funil saiu de `src/data/api.ts` para `src/data/funil.ts`.
+ *
+ * Este arquivo REEXPORTA o núcleo: quem já importava `EVENTO_EXIGE_CONTA`, `json` ou `chaveDedup`
+ * de `efemero/servidor` (telas e testes) continua valendo, sem nenhum símbolo mudando de nome.
  */
-import * as sessoes from './rotas/sessoes';
-import * as vocabulario from './rotas/vocabulario';
+import { json, naoDisponivelSemConta, PASSAM_DIRETO } from './nucleo';
+import * as conta from './rotas/conta';
+import * as economia from './rotas/economia';
 import * as exercicios from './rotas/exercicios';
 import * as metricas from './rotas/metricas';
-import * as economia from './rotas/economia';
+import * as sessoes from './rotas/sessoes';
 import * as settings from './rotas/settings';
-import * as conta from './rotas/conta';
+import * as vocabulario from './rotas/vocabulario';
 
-export const CODIGO_EXIGE_CONTA = 'EXIGE_CONTA';
-export const EVENTO_EXIGE_CONTA = 'babel_exige_conta';
-export const DIA = 86_400_000;
-
-export type Json = Record<string, unknown>;
-type Handler = (m: RegExpMatchArray, url: URL, init: RequestInit) => Promise<Response>;
-
-export const json = (corpo: unknown, status = 200): Response =>
-  new Response(JSON.stringify(corpo), { status, headers: { 'content-type': 'application/json' } });
-
-export const uuid = (): string =>
-  globalThis.crypto?.randomUUID?.() ?? `ef-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
-
-/**
- * Rotas que vão ao servidor REAL mesmo sem conta: capacidades do servidor LOCAL (captura WASAPI
- * do áudio do sistema), sem banco, sem custo e sem dado de usuário. O próprio servidor decide se
- * existem (no modo público responde 403) — o cliente só pergunta. É a única exceção ao "nada sai".
- */
-const PASSAM_DIRETO: RegExp[] = [/^\/api\/audio\/loopback\//];
-
-/**
- * Só AÇÕES da pessoa avisam o App para oferecer a conta. Sondas automáticas (disponibilidade de
- * STT, suporte a loopback, busca de capa, tradução ao vivo) recebem o 501 em silêncio — senão o
- * convite aparece a cada tela, sem ninguém ter pedido nada, e vira ruído.
- */
-const ACOES_QUE_CONVIDAM: RegExp[] = [
-  /^POST \/api\/import\//, /^POST \/api\/gemini\/chat$/, /^POST \/api\/ai\/credentials$/,
-  /^POST \/api\/ai\/providers\/test$/, /^POST \/api\/vocab\/relabel$/, /^POST \/api\/sessions\/utterances\/relabel$/,
-  /^(PATCH|DELETE) \/api\/me$/,
-];
-
-/** Resposta padronizada para o que não existe sem conta. Em ação da pessoa, avisa o App. */
-export function naoDisponivelSemConta(rota: string): Response {
-  if (typeof window !== 'undefined' && ACOES_QUE_CONVIDAM.some((r) => r.test(rota))) {
-    window.dispatchEvent(new CustomEvent(EVENTO_EXIGE_CONTA, { detail: { rota } }));
-  }
-  /* `code` além de `codigo`: o envelope de erro do servidor real é `{ error, code?, detalhes? }`
-     (change `contratos-alinhados-nas-tres-pontas`), e o cliente que lê `code` precisa achar o
-     mesmo campo nas duas pontas. `codigo` fica porque já há tela lendo dele. */
-  return json({ error: 'conta necessária', code: CODIGO_EXIGE_CONTA, codigo: CODIGO_EXIGE_CONTA, rota, detalhes: { rota } }, 501);
-}
-
-// ───────────────────────────── Helpers de corpo e coerção ─────────────────────────────
-
-export function lerJson(init: RequestInit): Json {
-  const b = init.body;
-  if (typeof b !== 'string') return {};
-  try { return JSON.parse(b) as Json; } catch { return {}; }
-}
-
-export async function lerBytes(init: RequestInit): Promise<ArrayBuffer | null> {
-  const b = init.body as unknown;
-  if (b instanceof ArrayBuffer) return b;
-  if (ArrayBuffer.isView(b)) return b.buffer.slice(b.byteOffset, b.byteOffset + b.byteLength) as ArrayBuffer;
-  if (typeof Blob !== 'undefined' && b instanceof Blob) return await b.arrayBuffer();
-  if (typeof b === 'string') return new TextEncoder().encode(b).buffer as ArrayBuffer;
-  return null;
-}
-
-export const str = (v: unknown): string | null => (typeof v === 'string' ? v : null);
-export const num = (v: unknown): number | null => (typeof v === 'number' && Number.isFinite(v) ? v : null);
-export const opcional = <T,>(v: T | undefined, atual: T): T => (v === undefined ? atual : v);
-
-export function contarPalavras(falas: Array<{ sourceText: string | null }>): number {
-  return falas.reduce((n, f) => n + (f.sourceText ? f.sourceText.trim().split(/\s+/).filter(Boolean).length : 0), 0);
-}
-
-export function lerMeta(meta: string | null): Json {
-  try { return meta ? (JSON.parse(meta) as Json) : {}; } catch { return {}; }
-}
+/* O núcleo inteiro segue alcançável por `efemero/servidor`: a divisão em `nucleo.ts` é sobre o
+   grafo de importação, não sobre a superfície pública deste módulo. */
+export * from './nucleo';
 
 /* A chave de dedup continua alcançável POR AQUI: `tests/paridade-anonima.test.ts` a importa deste
    módulo para provar que ela é a MESMA do servidor real. O corpo (e o porquê) está em
    `./rotas/vocabulario.ts`, junto do único código que a usa. */
 export { chaveDedup } from './rotas/vocabulario';
+
+type Handler = (m: RegExpMatchArray, url: URL, init: RequestInit) => Promise<Response>;
 
 // ───────────────────────────── Tabela de rotas ─────────────────────────────
 

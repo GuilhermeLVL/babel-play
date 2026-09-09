@@ -6,8 +6,8 @@
  * Rotas: POST `/api/exercises/rodada`, GET `/api/exercises/results`,
  * GET `/api/exercises/historico`, GET `/api/exercises/recordes`.
  */
+import { type Json,json, lerJson, num, str, uuid } from '../nucleo';
 import { abrirStore, type ExercicioLocal } from '../store';
-import { json, lerJson, num, str, uuid, type Json } from '../servidor';
 
 function exercicioDe(base: Json, item: Json, agora: number): ExercicioLocal {
   return {

@@ -6,7 +6,7 @@
  *
  * Rotas: GET `/api/metrics/profile`.
  */
-import { apiFetch } from '../api'
+import { apiFetch } from '../funil'
 
 // M-06: contrato ÚNICO — `AppMetrics` vem de src/core/learning/contract.ts (era duplicado aqui e no
 // servidor, e já divergia: `seedsGastas` era opcional aqui e obrigatório lá). Re-exportado para os

@@ -8,9 +8,9 @@
  * Rotas: GET `/api/vocab`, PATCH `/api/vocab/:id`, POST `/api/vocab/bulk-add`,
  * POST `/api/vocab/relabel`, POST `/api/vocab/:id/review`, POST `/api/import/anki/export`.
  */
-import type { VocabCard } from '../../types'
 import { play } from '../../lib/soundFx'
-import { apiFetch } from '../api'
+import type { VocabCard } from '../../types'
+import { apiFetch } from '../funil'
 
 interface VocabRow {
   id: string

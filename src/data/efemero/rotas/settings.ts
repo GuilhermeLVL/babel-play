@@ -7,7 +7,7 @@
  *
  * Rotas: GET `/api/settings`, PUT `/api/settings`.
  */
-import { json, lerJson, str } from '../servidor';
+import { json, lerJson, str } from '../nucleo';
 
 const CHAVE_SETTINGS = 'babel.efemero.settings';
 

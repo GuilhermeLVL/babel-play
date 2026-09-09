@@ -9,7 +9,7 @@
  * Rotas: POST `/api/metrics/seeds/gastar`, POST `/api/metrics/seeds/creditar`,
  * POST `/api/metrics/presenca`, POST `/api/billing/gastar`, POST `/api/billing/creditar-passe`.
  */
-import { apiFetch, lerErro, type ErroDaApi } from '../api'
+import { apiFetch, type ErroDaApi,lerErro } from '../funil'
 
 /**
  * Gasta seeds — idempotente por `spendId`.

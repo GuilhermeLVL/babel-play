@@ -330,15 +330,24 @@ export const vocabRepo = {
   async getComProcedencia(
     userId: UserId,
     id: string,
-  ): Promise<(VocabCard & { daTrilha: boolean; daAnki: boolean; baralhosAnki: string[] }) | undefined> {
+  ): Promise<(CartaoParaCliente & { daTrilha: boolean; daAnki: boolean; baralhosAnki: string[] }) | undefined> {
     const card = await this.get(userId, id)
     if (!card) return undefined
     return { ...card, ...(await this.procedenciaDe(userId, id)) }
   },
 
-  async get(userId: UserId, id: string): Promise<VocabCard | undefined> {
+  /**
+   * A MESMA lista de colunas de `list` — ver `COLUNAS_DO_CARTAO`.
+   *
+   * Aqui o argumento nao e tamanho (e UMA linha): e a FORMA. `PATCH /vocab/:id` e
+   * `POST /vocab/:id/review` devolvem o que sai daqui, e o cliente usa a resposta para substituir o
+   * cartao da tela. Se `get` devolvesse chaves que `list` nao devolve, o mesmo cartao teria duas
+   * formas dependendo de por onde chegou — e a que carrega `user_id` e `deleted_at` seria
+   * justamente a que o cliente guarda no estado.
+   */
+  async get(userId: UserId, id: string): Promise<CartaoParaCliente | undefined> {
     const rows = await db
-      .select()
+      .select(COLUNAS_DO_CARTAO)
       .from(vocabCards)
       // P2-9: sem `isNull(deletedAt)`, `review` e `patch` operavam em cartão já removido —
       // o usuário apagava e continuava sendo cobrado dele no agendamento.
@@ -968,7 +977,7 @@ export const vocabRepo = {
   },
 
   /** Aplica uma revisão FSRS-5, persiste o novo estado e grava um review_log. */
-  async review(userId: UserId, id: string, grade: Grade): Promise<VocabCard> {
+  async review(userId: UserId, id: string, grade: Grade): Promise<CartaoParaCliente> {
     const card = await this.get(userId, id)
     if (!card) throw new Error('card não encontrado')
     const now = Date.now()

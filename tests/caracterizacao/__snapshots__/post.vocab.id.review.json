@@ -13,9 +13,7 @@
     "createdAt": "number",
     "daAnki": "boolean",
     "daTrilha": "boolean",
-    "deletedAt": "null",
     "difficulty": "number",
-    "difficultyAt": "null",
     "difficultyScore": "null",
     "dueAt": "number",
     "firstSeenAt": "number",
@@ -24,18 +22,14 @@
     "lapses": "number",
     "lastReview": "number",
     "lastSeenAt": "number",
-    "normKey": "string",
     "occurrences": "number",
     "phonetics": "null",
     "reps": "number",
     "sentence": "string",
     "sessionId": "null",
     "srcLang": "string",
-    "srcLangBase": "string",
     "stability": "number",
     "tgtLang": "null",
-    "updatedAt": "number",
-    "userId": "string",
     "word": "string"
   }
 }

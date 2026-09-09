@@ -8,10 +8,10 @@
  *  - o cliente gravava com `Promise.all` sobre os itens: 20 itens = 20 requests HTTP e ~60 queries,
  *    e uma falha parcial deixava a rodada meio gravada, sem ninguém saber.
  */
-import { afterAll,beforeAll, describe, expect, it } from 'vitest'
+import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
 import { asUserId } from '../../server/lib/authContext'
-import { type EphemeralDb,setupEphemeralDb } from '../harness/ephemeralDb'
+import { type EphemeralDb, setupEphemeralDb } from '../harness/ephemeralDb'
 
 const U = asUserId('f3-user')
 let h: EphemeralDb
@@ -23,7 +23,9 @@ beforeAll(async () => {
   vocabRepo = (await import('../../server/db/repositories/vocab')).vocabRepo
   exerciseResultsRepo = (await import('../../server/db/repositories/exerciseResults')).exerciseResultsRepo
 })
-afterAll(async () => { await h?.cleanup?.() })
+afterAll(async () => {
+  await h?.cleanup?.()
+})
 
 async function cartao(word: string) {
   const r = await vocabRepo.bulkAdd(U, [{ word, srcLang: 'en', back: 'traducao' }])
@@ -35,7 +37,10 @@ describe('addRodada — uma rodada, uma gravação', () => {
     const a = await cartao('leverage')
     const b = await cartao('churn')
     const r = await exerciseResultsRepo.addRodada(U, {
-      roundId: 'r-1', exerciseKind: 'memory', origem: 'baralho', score: 80,
+      roundId: 'r-1',
+      exerciseKind: 'memory',
+      origem: 'baralho',
+      score: 80,
       itens: [
         { cardId: a.id, itemRef: 'leverage', correct: 1, attempts: 1, ms: 900, hinted: 0, kind: 'srs' },
         { cardId: b.id, itemRef: 'churn', correct: 0, attempts: 2, ms: 2400, hinted: 1, kind: 'srs' },
@@ -50,7 +55,10 @@ describe('addRodada — uma rodada, uma gravação', () => {
   it('REGRESSÃO: cada linha guarda o card_id, não só a palavra', async () => {
     const c = await cartao('runway')
     await exerciseResultsRepo.addRodada(U, {
-      roundId: 'r-2', exerciseKind: 'blitz', origem: 'baralho', score: 10,
+      roundId: 'r-2',
+      exerciseKind: 'blitz',
+      origem: 'baralho',
+      score: 10,
       itens: [{ cardId: c.id, itemRef: 'runway', correct: 1, attempts: 1, ms: 500, hinted: 0, kind: 'srs' }],
     })
     const [linha] = await exerciseResultsRepo.listarPorRodada(U, 'r-2')
@@ -60,13 +68,18 @@ describe('addRodada — uma rodada, uma gravação', () => {
   it('é ATÔMICA: item inválido no meio não deixa a rodada pela metade', async () => {
     const c = await cartao('moat')
     const antes = (await exerciseResultsRepo.listarPorRodada(U, 'r-3')).length
-    await expect(exerciseResultsRepo.addRodada(U, {
-      roundId: 'r-3', exerciseKind: 'memory', origem: 'baralho', score: 1,
-      itens: [
-        { cardId: c.id, itemRef: 'moat', correct: 1, attempts: 1, ms: 1, hinted: 0, kind: 'srs' },
-        { cardId: null, itemRef: null, correct: null, attempts: 1, ms: 1, hinted: 0, kind: null, forcarErro: true },
-      ],
-    })).rejects.toThrow()
+    await expect(
+      exerciseResultsRepo.addRodada(U, {
+        roundId: 'r-3',
+        exerciseKind: 'memory',
+        origem: 'baralho',
+        score: 1,
+        itens: [
+          { cardId: c.id, itemRef: 'moat', correct: 1, attempts: 1, ms: 1, hinted: 0, kind: 'srs' },
+          { cardId: null, itemRef: null, correct: null, attempts: 1, ms: 1, hinted: 0, kind: null, forcarErro: true },
+        ],
+      }),
+    ).rejects.toThrow()
     expect((await exerciseResultsRepo.listarPorRodada(U, 'r-3')).length).toBe(antes)
   })
 
@@ -75,7 +88,10 @@ describe('addRodada — uma rodada, uma gravação', () => {
     const r = await vocabRepo.bulkAdd(alheio, [{ word: 'trespass', srcLang: 'en', back: 'invadir' }])
     const cartaoAlheio = r.cards[0]
     await exerciseResultsRepo.addRodada(U, {
-      roundId: 'r-4', exerciseKind: 'memory', origem: 'baralho', score: 1,
+      roundId: 'r-4',
+      exerciseKind: 'memory',
+      origem: 'baralho',
+      score: 1,
       itens: [{ cardId: cartaoAlheio.id, itemRef: 'trespass', correct: 1, attempts: 1, ms: 1, hinted: 0, kind: 'srs' }],
     })
     const [linha] = await exerciseResultsRepo.listarPorRodada(U, 'r-4')
@@ -87,9 +103,16 @@ describe('addRodada — uma rodada, uma gravação', () => {
 describe('desempenho por cartão — o que a F4 vai ler', () => {
   it('agrega acertos e tentativas por cartão', async () => {
     const c = await cartao('cohort')
-    for (const [i, ok] of [[0, 1], [1, 0], [2, 0]] as const) {
+    for (const [i, ok] of [
+      [0, 1],
+      [1, 0],
+      [2, 0],
+    ] as const) {
       await exerciseResultsRepo.addRodada(U, {
-        roundId: `r-des-${i}`, exerciseKind: 'memory', origem: 'baralho', score: 1,
+        roundId: `r-des-${i}`,
+        exerciseKind: 'memory',
+        origem: 'baralho',
+        score: 1,
         itens: [{ cardId: c.id, itemRef: 'cohort', correct: ok, attempts: 1, ms: 100, hinted: 0, kind: 'srs' }],
       })
     }
@@ -116,7 +139,18 @@ describe('F4 — dificuldade materializada e seleção com proveniência', () =>
     expect(n).toBeGreaterThanOrEqual(2)
     const deck = await vocabRepo.list(u)
     expect(deck.every((c: any) => typeof c.difficultyScore === 'number')).toBe(true)
-    expect(deck.every((c: any) => c.difficultyAt > 0)).toBe(true)
+    /* `difficultyAt` E LIDA DO BANCO, e nao da resposta do repositorio: desde 2026-09-09 ela
+       nao sai mais em `GET /api/vocab` nem em `get` — e carimbo interno de quando a dificuldade
+       foi recalculada, sem nenhum leitor no cliente (ver `COLUNAS_DO_CARTAO` em
+       server/db/repositories/vocab.ts). A pergunta do teste continua a mesma; o que muda e que
+       ela e feita a coluna, que e onde o carimbo mora. */
+    const { client } = await import('../../server/db/db')
+    const carimbos = await client.execute({
+      sql: 'select difficulty_at from vocab_cards where user_id = ? and deleted_at is null',
+      args: [String(u)],
+    })
+    expect(carimbos.rows.length).toBe(deck.length)
+    expect(carimbos.rows.every((r: any) => Number(r.difficulty_at) > 0)).toBe(true)
   })
 
   it('cada item selecionado carrega PROVENIÊNCIA completa', async () => {

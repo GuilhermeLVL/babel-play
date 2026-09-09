@@ -8,11 +8,11 @@
  * contra o servidor-fixture) e pelo canário de payload real, ambos em `scripts/diagnosis/`.
  * Repetir aqui exigiria baixar 116 MB para reprovar nada de novo — está declarado, não omitido.
  */
-import { afterAll,beforeAll, describe, expect, it } from 'vitest'
+import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
 import { asUserId } from '../../server/lib/authContext'
-import { cortesDoDeck,faixaDe } from '../../src/core/learning/dificuldade'
-import { type EphemeralDb,setupEphemeralDb } from '../harness/ephemeralDb'
+import { cortesDoDeck, faixaDe } from '../../src/core/learning/dificuldade'
+import { type EphemeralDb, setupEphemeralDb } from '../harness/ephemeralDb'
 
 const U = asUserId('fio-completo')
 let h: EphemeralDb
@@ -24,7 +24,9 @@ beforeAll(async () => {
   vocabRepo = (await import('../../server/db/repositories/vocab')).vocabRepo
   exerciseResultsRepo = (await import('../../server/db/repositories/exerciseResults')).exerciseResultsRepo
 })
-afterAll(async () => { await h?.cleanup?.() })
+afterAll(async () => {
+  await h?.cleanup?.()
+})
 
 describe('a jornada inteira', () => {
   it('captura → classificação → tela → jogo → exercício → dificuldade recalculada', async () => {
@@ -35,29 +37,29 @@ describe('a jornada inteira', () => {
       { word: 'garden', srcLang: 'en', back: 'jardim', sentence: 'A small garden.' },
     ])
     await vocabRepo.bulkAdd(U, [
-      { word: 'water', srcLang: 'en', back: 'água', sentence: 'Water the plants.' },   // 2ª vez
+      { word: 'water', srcLang: 'en', back: 'água', sentence: 'Water the plants.' }, // 2ª vez
     ])
 
     const deck = await vocabRepo.list(U)
-    expect(deck).toHaveLength(3)   // a repetição NÃO virou cartão novo
+    expect(deck).toHaveLength(3) // a repetição NÃO virou cartão novo
 
     // ── 2. CLASSIFICAÇÃO: nível com procedência, repetição contada ────────────────────────────
     const agua = deck.find((c: any) => c.word === 'water')
     expect(agua.cefrLevel).toBe('A1')
-    expect(agua.cefrSource).toBe('wordlist')     // wordlist real, não chute por comprimento
-    expect(agua.occurrences).toBe(2)             // `frequency` era 0 em 2.126 linhas; agora conta
+    expect(agua.cefrSource).toBe('wordlist') // wordlist real, não chute por comprimento
+    expect(agua.occurrences).toBe(2) // `frequency` era 0 em 2.126 linhas; agora conta
 
     // ── 3. TELA: a palavra aparece com proveniência e origem rastreável ───────────────────────
     const pagina = await vocabRepo.listarPagina(U, { limite: 50, ordem: 'frequentes' })
     expect(pagina.total).toBe(3)
-    expect(pagina.itens[0].word).toBe('water')   // mais vista primeiro
+    expect(pagina.itens[0].word).toBe('water') // mais vista primeiro
     const colheita = deck.find((c: any) => c.word === 'harvest')
     const occ = await vocabRepo.ocorrencias(U, colheita.id)
-    expect(occ[0].originKind).toBe('trilha')     // a origem da trilha sobreviveu ao round-trip
+    expect(occ[0].originKind).toBe('trilha') // a origem da trilha sobreviveu ao round-trip
     expect(occ[0].originRef).toBe('en')
 
     const contagem = await vocabRepo.inicioDaContagem(U)
-    expect(contagem.total).toBe(3)               // a tela tem o que declarar (Z2)
+    expect(contagem.total).toBe(3) // a tela tem o que declarar (Z2)
 
     // ── 4. DIFICULDADE inicial ────────────────────────────────────────────────────────────────
     await vocabRepo.recalcularDificuldade(U)
@@ -70,11 +72,14 @@ describe('a jornada inteira', () => {
     const item = rodada.itens.find((i: any) => i.word === 'garden')
     expect(item.proveniencia).toMatchObject({ origem: 'baralho', nivelFonte: expect.any(String) })
     expect(item.proveniencia.porQueSelecionado).toBeTruthy()
-    expect(rodada.cortes).toBeTruthy()           // os cortes usados viajam com a resposta (Z3)
+    expect(rodada.cortes).toBeTruthy() // os cortes usados viajam com a resposta (Z3)
 
     // ── 6. EXERCÍCIO: a rodada grava DE UMA VEZ, com card_id ──────────────────────────────────
     await exerciseResultsRepo.addRodada(U, {
-      roundId: 'fio-1', exerciseKind: 'memory', origem: 'baralho', score: 10,
+      roundId: 'fio-1',
+      exerciseKind: 'memory',
+      origem: 'baralho',
+      score: 10,
       itens: [
         { cardId: antes.id, itemRef: 'garden', correct: 0, attempts: 3, ms: 4000, hinted: 1, kind: 'srs' },
         { cardId: agua.id, itemRef: 'water', correct: 1, attempts: 1, ms: 700, hinted: 0, kind: 'srs' },
@@ -82,7 +87,7 @@ describe('a jornada inteira', () => {
     })
     const linhas = await exerciseResultsRepo.listarPorRodada(U, 'fio-1')
     expect(linhas).toHaveLength(2)
-    expect(linhas.every((l: any) => l.cardId)).toBe(true)   // por ID, nunca por string
+    expect(linhas.every((l: any) => l.cardId)).toBe(true) // por ID, nunca por string
 
     // ── 7. O FIO SE FECHA: o desempenho realimenta a dificuldade ──────────────────────────────
     const desempenho = await exerciseResultsRepo.desempenhoPorCartao(U, [antes.id])
@@ -95,7 +100,17 @@ describe('a jornada inteira', () => {
     // Errar deixa a palavra MAIS difícil; acertar, menos. É o elo que não existia.
     expect(depois.difficultyScore).toBeGreaterThan(antes.difficultyScore)
     expect(aguaDepois.difficultyScore).toBeLessThan(depois.difficultyScore)
-    expect(depois.difficultyAt).toBeGreaterThanOrEqual(antes.difficultyAt ?? 0)
+    /* `difficultyAt` E LIDA DO BANCO, e nao da resposta do repositorio: desde 2026-09-09 ela
+       nao sai mais em `GET /api/vocab` nem em `get` — e carimbo interno de quando a dificuldade
+       foi recalculada, sem nenhum leitor no cliente (ver `COLUNAS_DO_CARTAO` em
+       server/db/repositories/vocab.ts). A pergunta do teste continua a mesma; o que muda e que
+       ela e feita a coluna, que e onde o carimbo mora. */
+    const { client } = await import('../../server/db/db')
+    const carimbo = await client.execute({
+      sql: 'select difficulty_at from vocab_cards where id = ?',
+      args: [antes.id],
+    })
+    expect(Number(carimbo.rows[0].difficulty_at)).toBeGreaterThan(0)
   })
 
   it('errar repetidamente joga a palavra para DIFÍCIL, por precedência', async () => {
@@ -105,7 +120,10 @@ describe('a jornada inteira', () => {
 
     for (let i = 0; i < 4; i++) {
       await exerciseResultsRepo.addRodada(u, {
-        roundId: `p-${i}`, exerciseKind: 'blitz', origem: 'baralho', score: 1,
+        roundId: `p-${i}`,
+        exerciseKind: 'blitz',
+        origem: 'baralho',
+        score: 1,
         itens: [{ cardId: c.id, itemRef: 'water', correct: 0, attempts: 2, ms: 3000, hinted: 0, kind: 'srs' }],
       })
     }

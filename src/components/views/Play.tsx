@@ -34,7 +34,6 @@ import {
 } from 'lucide-react';
 import { playJuicedHit, triggerHaptic } from '../../lib/gameFeel';
 import {
-  apiFetch,
   creditarSeeds,
   fetchDeck,
   reviewCard,
@@ -55,14 +54,10 @@ import type { VocabCard, Recording } from '../../types';
 import { coreOnly, type AgeProfileType } from '../../lib/profile';
 import type { DerivedProgress } from '../../lib/progress';
 import {
-  buildItems,
   gradeFor,
   MINIGAMES,
-  rodadasDaEscada,
   SEEDS_DO_DROP,
-  buildScrambleRounds,
   cartoesDaFonte,
-  priorizar,
   cartoesDaTrilha,
   chaveDaPalavra,
   rotuloDaFonte,
@@ -74,9 +69,6 @@ import {
   progressoDaTrilha,
   SESSAO_DA_TRILHA,
   CONFIANCA_CURADA,
-  buildRodadasEscuta,
-  buildRodadasDitado,
-  buildRodadasConectores,
   isDueNow,
   estadoDeCadaJogo,
   comoDesbloquear,
@@ -92,7 +84,6 @@ import {
   previaSegura,
   repetidosDaUltima,
   MAPA_REVELA_ALVO,
-  origemDoMaterial,
   pontuarRodada,
   xpFromRound,
   acumular,
@@ -101,15 +92,12 @@ import {
   resumir,
   agruparFases,
   faixaAuto,
-  diaLocal,
   estadoDoItem,
-  ordenarPorMemoria,
   etapasDoNivel,
   progressoDasEtapas,
   etapaAtual,
   frasesDaTrilha,
   diagnosticoTermo,
-  rngDe,
   chaveDaPalavra as chaveDaPalavraCore,
   REGRAS,
   niveisEmJogo,
@@ -138,7 +126,7 @@ import { baseLang, langLabelNaUI } from '../../lib/languages';
 import { langConfigFrom, saveLangConfig } from '../../lib/langConfig';
 import { temFonteGuardada } from '../../lib/fonteDaPratica';
 import { contarPassada } from '../../lib/passadasDoPipeline';
-import { faixaDe as faixaDaComposicao, type EstrategiaDaUI } from '../../core/minigames/composicao';
+import { type EstrategiaDaUI } from '../../core/minigames/composicao';
 import {
   lerPrecisoes,
   registrarPrecisao,
@@ -195,8 +183,21 @@ import {
   type Composicao,
   type CartaoParaCompor,
 } from '../../core/minigames/composicao';
+import {
+  montarRodada as montarRodadaPura,
+  type MaterialDaRodada,
+} from '../../core/minigames/rodada';
 import { filtroDaFonte, fonteDominante, passaNoFiltro, type FiltroDaPratica } from '../../core/minigames/filtro';
 import { lerFiltroGuardado, gravarFiltro, filtroDaQuery, queryDoFiltro } from '../../lib/filtroDaPratica';
+import {
+  LIMITE_DA_COMPOSICAO,
+  buscarComposicaoPeloFunil,
+  chaveDaMemoriaCurta,
+  gravarDetalhesDoBaralho,
+  gravarPularAntessala,
+  pularAntessala,
+  verDetalhesDoBaralho,
+} from '../../lib/jogos/estadoDaPratica';
 import { lerUrlAtual, publicarQueryDoJogar, consumirQueryDoBoot } from '../../lib/rotas';
 import EscutaGame from '../minigames/EscutaGame';
 import DitadoGame from '../minigames/DitadoGame';
@@ -248,33 +249,6 @@ interface PlayProps {
    */
   embutido?: boolean;
 }
-
-/**
- * Quantos cartões o servidor PRIORIZA por rodada.
- *
- * Não é o tamanho do pool — o pool é o acervo inteiro (`recortarPelaComposicao` completa por trás).
- * Este número é só até onde vale a pena o servidor ordenar por vencimento e estratégia; o resto
- * entra na ordem da triagem. Cortar o pool aqui foi o que fez a Memória ver 5 palavras de 323.
- */
-/**
- * A CHAVE DA MEMÓRIA CURTA (vistas recentes, persistidas por origem no localStorage).
- *
- * Uma função só, usada na LEITURA e na GRAVAÇÃO — este cálculo existia copiado em três pontos do
- * arquivo, e foi assim que o baralho Anki ficou de fora de um deles (auditoria S6): rodada com o
- * recorte ligado gravava as vistas em 'baralho' e a troca de baralho não zerava nada.
- *
- * O baralho entra na chave pela mesma razão que a sessão e o nível entram: trocar de baralho é
- * começar outro assunto. NOTA: isto é memória LOCAL; a `origem` persistida em `exercise_results`
- * continua 'baralho' — separar o histórico por baralho é decisão do modelo facetado, não daqui.
- */
-function chaveDaMemoriaCurta(fonte: FonteDeItens, baralhoAnki: { id: string } | null): string {
-  if (fonte.id === 'sessao') return `sessao:${fonte.sessionId ?? ''}`;
-  if (fonte.id === 'trilha') return `trilha:${fonte.nivel ?? ''}`;
-  if (fonte.id === 'dificeis') return 'dificeis';
-  return baralhoAnki ? `baralho:anki:${baralhoAnki.id}` : 'baralho';
-}
-
-const LIMITE_DA_COMPOSICAO = 200;
 
 /**
  * AS TRÊS FONTES, COMO A TELA AS OFERECE.
@@ -350,61 +324,6 @@ interface RodadaPronta {
   previa: ItemDaAntessala[];
   aplicar: () => void;
 }
-
-/* Quem já sabe o que quer não deve pagar um clique por rodada. Fica no `localStorage`, no
-   precedente de `minigames/passosDosJogos.ts`, e a antessala continua alcançável pelo ícone de
-   lista na carta, senão desligar seria um caminho sem volta. */
-const CHAVE_PULAR = 'babel.pular_antessala';
-/**
- * PULAR A PRÉVIA É O PADRÃO — quem quiser vê-la marca o checkbox no lobby.
- *
- * A prévia vinha ligada, e voltava a cada rodada: mais uma tela cheia entre querer jogar e jogar,
- * com quatro contadores dos quais três costumam ser "0". Ela continua inteira e a um clique — o
- * checkbox "Mostrar a prévia antes de começar" fica ao lado do título da grade, e o botão de
- * espiar aparece em cada carta justamente quando a prévia está desligada.
- *
- * `'0'` explícito é o que distingue "escolheu ver" de "nunca mexeu": só quem desmarcou volta a
- * ver a prévia, e quem chega hoje entra na partida no primeiro clique.
- */
-const pularAntessala = (): boolean => {
-  try {
-    return localStorage.getItem(CHAVE_PULAR) !== '0';
-  } catch {
-    return true;
-  }
-};
-const gravarPularAntessala = (v: boolean): void => {
-  try {
-    localStorage.setItem(CHAVE_PULAR, v ? '1' : '0');
-  } catch {
-    /* storage bloqueado */
-  }
-};
-
-/**
- * TRANSPORTE da composição pelo FUNIL. O default do núcleo resolve `globalThis.fetch` — sem
- * Bearer e, sem conta, direto ao servidor real: foi assim que o lobby mostrou "600 no idioma"
- * (os cartões do banco do servidor) ao lado de um baralho vazio (o do navegador). Pelo `apiFetch`,
- * sem conta a rota responde 501 e `compor` cai no fallback local — o mesmo baralho, um número só.
- */
-const buscarComposicaoPeloFunil = async (
-  caminho: string,
-  init?: { method: 'POST'; body: string },
-): Promise<unknown> => {
-  // `init` só vem quando o filtro facetado não cabe na URL — mesmos campos, no corpo.
-  const res = await apiFetch(
-    caminho,
-    init
-      ? {
-          method: init.method,
-          body: init.body,
-          headers: { accept: 'application/json', 'content-type': 'application/json' },
-        }
-      : { headers: { accept: 'application/json' } },
-  );
-  if (!res.ok) throw new Error(`http ${res.status}`);
-  return res.json();
-};
 
 export default function Play({ onChangeView, ageProfile, progress, metrics, recording, seed, embutido }: PlayProps) {
   const [deck, setDeck] = useState<VocabCard[] | null>(null);
@@ -522,20 +441,11 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
      nunca foi desenhado: o estado era escrito e nunca lido. O custo não era só a memória — o
      efeito ia à rede a cada toque no painel de recordes para jogar a resposta fora. Quem mostra
      recorde hoje é a tela de Recordes, que busca os seus. */
-  const [detalhes, setDetalhes] = useState<boolean>(() => {
-    try {
-      return localStorage.getItem('babel.play.detalhes') === '1';
-    } catch {
-      return false;
-    }
-  });
+  const [detalhes, setDetalhes] = useState<boolean>(verDetalhesDoBaralho);
+  /** Um só ponto de escrita: estado e persistência mudam juntos ou não mudam. */
   const alternarDetalhes = () =>
     setDetalhes((v) => {
-      try {
-        localStorage.setItem('babel.play.detalhes', v ? '0' : '1');
-      } catch {
-        /* sem storage */
-      }
+      gravarDetalhesDoBaralho(!v);
       return !v;
     });
   const [curando, setCurando] = useState(false);
@@ -759,6 +669,39 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
   const [temposMedidos, setTemposMedidos] = useState<number[]>([]);
 
   /**
+   * APLICAR o material escolhido: qual `setState` recebe o quê, e nada mais.
+   *
+   * É a outra metade da divisão que `@core/minigames/rodada` estabelece — o núcleo ESCOLHE, a
+   * tela APLICA. O `switch` é exaustivo de propósito: um jogo novo que acrescente um rótulo a
+   * `MaterialDaRodada` e esqueça desta tabela não compila.
+   */
+  const aplicarMaterial = (m: MaterialDaRodada) => {
+    switch (m.tipo) {
+      case 'termo':
+        setRodadaTermo(m.rodadas);
+        return;
+      case 'frase':
+        setRodadaFrase(m.rodadas);
+        return;
+      case 'escuta':
+        setRodadaEscuta(m.rodadas);
+        return;
+      case 'ditado':
+        setRodadaDitado(m.rodadas);
+        return;
+      case 'conectores':
+        setRodadaConectores(m.rodadas);
+        return;
+      case 'karaoke':
+        setRodadaKaraoke(m.falas);
+        return;
+      case 'itens':
+        setRodada({ jogo: m.jogo, itens: m.itens });
+        return;
+    }
+  };
+
+  /**
    * MONTAR ≠ COMEÇAR — e essa separação é a antessala inteira.
    *
    * Antes, clicar num jogo montava a rodada e caía direto nela: não havia instante nenhum em que
@@ -766,8 +709,15 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
    * que vem", "quero repetir esta", "quero pular esta" só têm resposta se a rodada existir ANTES
    * de começar.
    *
+   * OS OITO RAMOS MUDARAM DE CASA. A regra de escolha — qual ramo, quais itens, em que ordem, com
+   * que prévia — mora agora em `@core/minigames/rodada`, como função PURA que recebe tudo por
+   * parâmetro. Aqui sobra o que de fato é da tela: LER o estado do componente, chamá-la, e
+   * transformar o material devolvido no `aplicar` que a antessala já esperava. Enquanto ela foi
+   * uma closure sobre quinze valores deste arquivo, a regra mais cara da tela era a única sem
+   * teste possível — ver `tests/rodadaMontagem.test.ts`, que fixa a saída dos oito ramos.
+   *
    * Devolve `null` quando não dá para montar (faltam itens). O `aplicar` é um fecho que guarda a
-   * rodada já montada: assim a antessala mostra EXATAMENTE o que vai ser jogado, e não uma amostra
+   * rodada JÁ MONTADA: assim a antessala mostra EXATAMENTE o que vai ser jogado, e não uma amostra
    * parecida — sortear de novo na hora de jogar seria mentir na cara da pessoa.
    *
    * `apenas` restringe o material de partida a um conjunto de `item_ref`. É como "repetir a
@@ -780,352 +730,38 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
     apenas?: ReadonlySet<string>,
     evitarTambem?: ReadonlySet<string>,
   ): RodadaPronta | null => {
-    const trecho = semente?.word || semente?.text;
-    const agora = Date.now();
-    /* SELEÇÃO v2 — os insumos da régua: a memória de itens (histórico por `item_ref`, em todos os
-       jogos) e a SEMENTE do dia (rotação própria por jogo dentro do mesmo acervo). */
-    const sementeDoDia = String(diaLocal(agora));
-    const memoria = historico;
-    /* A trilha recorta pela ETAPA atual (+ o que está voltando por erro ou vencido): estudar a
-       etapa 7 não deveria sortear o nível A2 inteiro. Sem material suficiente, alarga. */
-    let base = jogaveis;
-    if (!apenas?.size && fonte.id === 'trilha' && etapaDaTrilha) {
-      const daEtapa = new Set(etapaDaTrilha.palavras.map((p) => chaveDaPalavraCore(p)));
-      const recorte = jogaveis.filter((c) => {
-        if (daEtapa.has(chaveDaPalavraCore(c.word))) return true;
-        const e = estadoDoItem(memoria.get(c.word));
-        return e.tag === 'errando' || isDueNow(c, 'fsrs', agora);
-      });
-      if (recorte.length >= MINIGAMES[jogo].minItems) base = recorte;
-    }
-    /* Modo AUTO: a faixa decidida pela precisão recente filtra aqui (o pedido ao servidor não muda
-       por jogo). Sem material na faixa, alarga para o acervo inteiro em vez de recusar a rodada. */
-    if (!apenas?.size && estrategia === 'auto' && aceitaFiltroDeDificuldade(jogo)) {
-      const { faixa } = decisaoAuto(jogo);
-      const naFaixa = base.filter((c) => {
-        const f = faixaDaComposicao(c.difficultyScore ?? null, composicao?.cortes);
-        return f == null || f === faixa;
-      });
-      if (naFaixa.length >= MINIGAMES[jogo].minItems) base = naFaixa;
-    }
-    /**
-     * O QUE JÁ CAIU NESTA CORRENTE SAI DO MATERIAL — regra DURA, e ela some do resto do arquivo.
-     *
-     * Há dois conjuntos de "já vi" e eles nunca tiveram o mesmo peso, mas eram fundidos num só
-     * `evitar` logo abaixo:
-     *
-     *   · `vistasRecentes` — memória curta persistida (teto 200, por origem). É PREFERÊNCIA: melhor
-     *     não repetir, mas repetir é aceitável, porque a alternativa é ficar sem jogo depois de uma
-     *     maratona. Todos os construtores a tratam como demoção, com fallback — e está certo.
-     *   · `vistosNaSequencia` — o que caiu NESTA corrente. É CONTRATO: o botão que trouxe a pessoa
-     *     até aqui diz "palavras novas".
-     *
-     * Fundidos, o segundo herdava o fallback do primeiro. MEDIDO no banco real (`trilha:A1`): duas
-     * correntes emendadas devolveram 5 das 7 mesmas palavras; simulando com o dado da trilha, da
-     * terceira rodada em diante era 7/7 — para sempre. A piscina é pequena porque a trilha recorta
-     * pela ETAPA atual e o Termo ainda reduz ao maior grupo de mesmo comprimento: na etapa 1 do A1
-     * são nove palavras de cinco letras, e a escada come sete.
-     *
-     * Cortando aqui, ANTES dos oito ramos, a regra vale para os nove jogos de uma vez — inclusive
-     * para o ramo de palavra falada da trilha (Ditado/Qual foi?/Karaokê), que é `slice(0, maxItems)`
-     * puro e nunca recebeu `evitar` nenhum: lá "mais uma" repetia a rodada inteira desde sempre.
-     *
-     * E quando não sobra material, cada ramo já devolve `null` — que é o caminho honesto que
-     * existia e era inalcançável: `semMaterial` fica verdadeiro e a raspadinha esconde o "mais uma"
-     * em vez de entregar a rodada anterior de novo.
-     *
-     * `apenas` (repetir estas) ignora a regra de propósito: ali repetir é o pedido.
-     */
-    const naoRepetir = apenas?.size ? null : evitarTambem;
-    const semRepetidas = <T,>(lista: T[], refDe: (x: T) => string) =>
-      naoRepetir?.size ? lista.filter((x) => !naoRepetir.has((refDe(x) ?? '').trim())) : lista;
-
-    const cartas = semRepetidas(apenas?.size ? jogaveis.filter((c) => apenas.has(c.word)) : base, (c) => c.word);
-    /* Frases: na trilha vêm das 2.552 frases Tatoeba (`frasesDaTrilha`), que antes eram código
-       morto e deixavam a Frase embaralhada bloqueada com "trilha sem frase". */
-    /* As frases do acervo só entram quando NÃO há fala gravada: numa rodada de escuta, misturar
-       voz sintetizada com áudio real entrega a resposta pelo timbre. */
-    /* A fala gravada TAMBÉM passa pelo filtro de idioma: sem isto, uma gravação em inglês
-       aparecia numa rodada de árabe — a rodada dizia um idioma e jogava outro (G0, defeito 3). */
-    const doIdioma = (f: { lang?: string }) => !fonte.lang || !f.lang || baseLang(f.lang) === baseLang(fonte.lang);
-    const gravadas = frases.filter(doIdioma);
-    const falasGravadas = comTrilha ? [...frasesTrilha, ...gravadas] : gravadas;
-    const falasBrutas = falasGravadas.length ? falasGravadas : frasesDoAcervoAtual;
-    const falas = semRepetidas(apenas?.size ? falasBrutas.filter((f) => apenas.has(f.id)) : falasBrutas, (f) => f.id);
-    /* Repetir NÃO deve evitar o que acabou de cair — é justamente isso que se está pedindo.
-       Já o "trocar por outras" precisa evitar TAMBÉM o que está na tela agora: quem clica ali está
-       dizendo "essas não". Medido antes deste ajuste: trocar devolvia 4 dos 12 itens de volta. */
-    const evitar = apenas?.size
-      ? undefined
-      : evitarTambem?.size
-        ? new Set([...vistasRecentes, ...evitarTambem])
-        : vistasRecentes;
-
-    /**
-     * O FUNIL ÚNICO DA PRÉVIA.
-     *
-     * Antes, cada um dos oito ramos abaixo montava a sua `previa` na mão — e os oito escreviam a
-     * RESPOSTA no título (`titulo: x.palavra`, `titulo: i.answer`, `titulo: x.fala.text`…). Oito
-     * lugares para lembrar de uma regra é zero lugares: o Termo imprimia a palavra que ia pedir
-     * para soletrar letra a letra, e o Ditado, a frase que ia pedir para transcrever.
-     *
-     * Agora cada ramo só entrega o material CRU e `previaSegura` decide o que vai à tela, pela
-     * tabela `REVELAVEL` (ver `core/minigames/revelavel.ts`). Um ramo novo não consegue vazar
-     * sem passar por aqui, e um jogo novo não compila sem declarar o que revela.
-     */
-    /* A procedência PADRÃO é preenchida aqui, no ponto por onde os oito ramos passam — e não em
-       cada um deles. Os cinco jogos de frase tiram material de falas, não de cartões: para eles
-       não há proveniência por item, mas a fonte da rodada é conhecida e vale para todos. Um ramo
-       que já sabe a origem (os de baralho, via `nivelDe`) mantém a sua. */
-    /* Jogo de FRASE vive de gravação, e a prévia diz isso mesmo quando a aba é outra —
-       `origemDoMaterial` (revelavel.ts) carrega a regra e o porquê (auditoria S4). */
-    const pronta = (crus: ItemCru[], aplicar: () => void): RodadaPronta => ({
+    const montada = montarRodadaPura({
       jogo,
-      previa: previaSegura(
-        jogo,
-        crus.map((c) => ({
-          ...c,
-          origem: origemDoMaterial(jogo, fonte.id, c.origem),
-          origemRotulo: c.origemRotulo ?? sessaoEmUso?.title,
-          idioma: c.idioma ?? fonte.lang,
-        })),
-      ),
-      aplicar,
+      agora: Date.now(),
+      jogaveis,
+      fonte,
+      etapaDaTrilha,
+      memoria: historico,
+      estrategia,
+      faixas,
+      cortes: composicao?.cortes,
+      /* Injetada, e não lida lá dentro: `decisaoAuto` consulta as precisões no `localStorage` e o
+         `ref` da faixa vigente — dois estados de navegador, que não atravessam a fronteira do
+         núcleo. Passar a DECISÃO em vez do estado preserva a chamada preguiçosa (ela só acontece
+         nos ramos que a usam) sem trazer o storage junto. */
+      decisaoAuto,
+      vistasRecentes,
+      frasesGravadas: frases,
+      frasesDaTrilha: frasesTrilha,
+      frasesDoAcervo: frasesDoAcervoAtual,
+      comTrilha,
+      temVoz,
+      /* A tela conhece a URL do blob; o núcleo só precisa saber SE há áudio. */
+      temAudio: !!audioParaJogos,
+      porPalavra,
+      origemDaPalavra,
+      tituloDaSessao: sessaoEmUso?.title,
+      semente,
+      apenas,
+      evitarTambem,
     });
-    /**
-     * Os dados de APRESENTAÇÃO de uma palavra: nível e procedência.
-     *
-     * Nenhum dos dois viaja no `MinigameItem`, e não devem — lá é contrato de JOGO, e nem o nível
-     * nem a origem mudam como qualquer um dos nove joga. Vêm daqui, do mesmo índice do baralho que
-     * a promoção da trilha já usa, e seguem para `previaSegura`, que decide o que a tela vê.
-     *
-     * O rótulo da gravação entra CRU de propósito: quem o cerca é `previaSegura`, num lugar só. Se
-     * a filtragem fosse feita aqui, cada ramo de `montarRodada` teria de lembrar dela — que é
-     * exatamente o arranjo que deixou os oito ramos vazarem a resposta da primeira vez.
-     */
-    const nivelDe = (palavra: string) => {
-      const c = porPalavra.get((palavra || '').toLowerCase());
-      return {
-        cefr: c?.cefrLevel,
-        cefrConfianca: c?.cefrConfidence,
-        origem: origemDaPalavra(palavra, c?.id),
-        origemRotulo: sessaoEmUso?.title,
-        idioma: c?.srcLang || fonte.lang,
-      };
-    };
-
-    /**
-     * `evitar` PARA OS JOGOS DE FALA — que não o recebiam.
-     *
-     * Só `buildItems` (memória/caça-palavras/duelo) e `buildTermoRounds` aceitam `evitar`. Os cinco
-     * jogos de frase nunca souberam o que já tinha caído, e um deles é pior: `buildScrambleRounds`
-     * faz `.filter().slice(0, quantidade)` SEM embaralhar — devolvia a MESMA rodada para sempre,
-     * então "mais uma" na Frase embaralhada era literalmente a rodada anterior de novo. Medido no
-     * navegador ao emendar uma corrente.
-     *
-     * A despriorização é feita aqui, na lista de falas, com a mesma semântica de `evitar` no core:
-     * o que já caiu vai para o FIM da fila, não é excluído. Assim uma fonte com três falas continua
-     * jogável em vez de virar beco sem saída.
-     */
-    const falasNaOrdem = (() => {
-      /* SELEÇÃO v2: os cinco jogos de frase passam pela MESMA régua de memória das palavras
-         (errando → novas → aprendendo → firmes; leeches fora; semente própria por jogo). Antes só
-         demoviam o que tinha acabado de cair, e isso morria no F5. */
-      const { ordenados } = ordenarPorMemoria(falas, (f) => f.id, {
-        memoria,
-        semente: `${jogo}:${sementeDoDia}`,
-        agora,
-        diaDe: diaLocal,
-        cotaDeNovas: 0.3,
-      });
-      if (!evitar?.size) return ordenados;
-      const frescas: typeof falas = [];
-      const vistas: typeof falas = [];
-      for (const f of ordenados) (evitar.has(f.id) ? vistas : frescas).push(f);
-      return [...frescas, ...vistas];
-    })();
-
-    if (jogo === 'termo') {
-      /* A escada gasta 1+2+4 = 7 palavras, e todas precisam ter o MESMO comprimento: o palpite é
-         um só para todos os tabuleiros de um degrau.
-
-         O tamanho da rodada é decidido por `rodadasDaEscada`, no core, e não aqui. O comentário
-         que existia neste lugar afirmava que "com menos de 7, `planoDaEscada` encurta a escada em
-         vez de recusar o jogo", era falso, e foi essa premissa que deixou o Termo inacessível:
-         com `mesmoTamanho`, pedir 7 e ter 5 devolvia lista VAZIA, nunca uma escada curta. */
-      /* A FAIXA CHEGA AO TERMO. Ela já recortava o material da rodada, mas o Termo montava a
-         escada com régua própria: 4–8 letras e 1→2→4 tabuleiros para todo mundo. O resultado na
-         tela era um quarteto — quatro grades lado a lado, nove linhas cada — para quem estava
-         começando. Agora as letras e o teto da escada seguem a mesma faixa do resto.
-         A escolha explícita nos chips vence; sem ela, a decisão automática pela precisão recente. */
-      /* REFAZER NÃO É ESCOLHER DIFICULDADE. Com `apenas`, as palavras JÁ foram escolhidas numa
-         rodada que aconteceu, e reaplicar a régua de letras de hoje sobre elas tornava fases
-         inteiras impossíveis de refazer — o clique morria em silêncio. Ver `ReguaDeLetras`. */
-      const faixaDoTermo = apenas?.size
-        ? ('livre' as const)
-        : faixas.length === 1
-          ? faixas[0]
-          : faixas.length
-            ? undefined
-            : decisaoAuto('termo').faixa;
-      const r = rodadasDaEscada(cartas, {
-        evitar,
-        memoria,
-        semente: sementeDoDia,
-        diaDe: diaLocal,
-        faixa: faixaDoTermo,
-      });
-      if (!r.length) return null;
-      return pronta(
-        r.map((x) => ({ ref: x.palavra, alvo: x.palavra, pista: x.pista, ...nivelDe(x.palavra) })),
-        () => setRodadaTermo(r),
-      );
-    }
-    if (jogo === 'scramble') {
-      // `rand` com semente: a Frase embaralhada não embaralhava a ORDEM das falas (mesma rodada
-      // para sempre); a ordem já vem da memória, e o embaralhar das peças fica determinístico no dia.
-      const r = buildScrambleRounds(falasNaOrdem, {
-        quantidade: MINIGAMES.scramble.maxItems,
-        rand: rngDe(`scramble:${sementeDoDia}:${falasNaOrdem.length}`),
-      });
-      if (r.length < MINIGAMES.scramble.minItems) return null;
-      return pronta(
-        r.map((x) => ({ ref: x.sentenceId ?? '', alvo: x.correta.join(' '), pista: x.traducao })),
-        () => setRodadaFrase(r),
-      );
-    }
-    /**
-     * NA TRILHA, os três jogos de escuta saem de PALAVRAS faladas por voz sintetizada.
-     *
-     * `FalaComAudio` pede `startMs`/`endMs`; aqui eles vão ZERADOS de propósito, e é isso que o
-     * `falante` lê como "não há clipe a recortar, fale o texto". Marcar um intervalo falso faria
-     * o jogo tentar recortar um áudio que não existe.
-     *
-     * O exercício muda de natureza e continua legítimo: Ditado = ouça e escreva a palavra;
-     * Qual foi? = ouça e escolha entre palavras parecidas (par mínimo); Karaokê = repita a palavra.
-     */
-    if (fonte.id === 'trilha' && MINIGAMES[jogo].aceitaPalavraFalada) {
-      const def = MINIGAMES[jogo];
-      const sorteadas = priorizar<VocabCard>(cartas, trecho, (c) => c.word).slice(0, def.maxItems);
-      if (sorteadas.length < def.minItems || !temVoz) return null;
-      const comoFala = sorteadas.map((c) => ({
-        id: c.id || c.word,
-        text: c.word,
-        translation: c.translation,
-        lang: c.srcLang || fonte.lang,
-        startMs: 0,
-        endMs: 0,
-      }));
-      const crus: ItemCru[] = sorteadas.map((c) => ({
-        ref: c.word,
-        alvo: c.word,
-        pista: c.translation,
-        ...nivelDe(c.word),
-      }));
-
-      if (jogo === 'ditado') {
-        return pronta(crus, () => setRodadaDitado(comoFala.map((f) => ({ fala: f, palavras: 1 }))));
-      }
-      if (jogo === 'escuta') {
-        /* As alternativas erradas são as OUTRAS palavras da mesma leva — é o que transforma isto
-           num exercício de par mínimo em vez de adivinhação. */
-        return pronta(crus, () =>
-          setRodadaEscuta(
-            comoFala.map((f, i) => ({
-              correta: f,
-              opcoes: [f, ...comoFala.filter((_, k) => k !== i).slice(0, 3)].sort(() => Math.random() - 0.5),
-            })),
-          ),
-        );
-      }
-      return pronta(crus, () =>
-        setRodadaKaraoke(
-          comoFala.map((f) => ({
-            id: f.id,
-            texto: f.text,
-            traducao: f.translation,
-            lang: f.lang,
-            startMs: 0,
-            endMs: 0,
-          })),
-        ),
-      );
-    }
-
-    if (jogo === 'escuta') {
-      const r = priorizar(
-        buildRodadasEscuta(falasNaOrdem, { quantidade: MINIGAMES.escuta.maxItems }),
-        trecho,
-        (x) => x.correta.text,
-      );
-      if (r.length < MINIGAMES.escuta.minItems || !audioParaJogos) return null;
-      return pronta(
-        r.map((x) => ({ ref: x.correta.id ?? '', alvo: x.correta.text, pista: x.correta.translation })),
-        () => setRodadaEscuta(r),
-      );
-    }
-    if (jogo === 'ditado') {
-      const r = priorizar(
-        buildRodadasDitado(falasNaOrdem, { quantidade: MINIGAMES.ditado.maxItems }),
-        trecho,
-        (x) => x.fala.text,
-      );
-      if (r.length < MINIGAMES.ditado.minItems || !audioParaJogos) return null;
-      return pronta(
-        r.map((x) => ({ ref: x.fala.id ?? '', alvo: x.fala.text, pista: x.fala.translation })),
-        () => setRodadaDitado(r),
-      );
-    }
-    if (jogo === 'conectores') {
-      const r = priorizar(
-        buildRodadasConectores(falasNaOrdem, { lang: fonte.lang, quantidade: MINIGAMES.conectores.maxItems }),
-        trecho,
-        (x) => x.fala.text,
-      );
-      if (r.length < MINIGAMES.conectores.minItems) return null;
-      return pronta(
-        r.map((x) => ({ ref: x.fala.id ?? '', alvo: x.fala.text, pista: x.fala.translation })),
-        () => setRodadaConectores(r),
-      );
-    }
-    if (jogo === 'karaoke') {
-      const lista: FalaKaraoke[] = priorizar<Sentence>(
-        falasNaOrdem.filter((f) => f.endMs > f.startMs && !!f.text.trim()),
-        trecho,
-        (f) => f.text,
-      )
-        .slice(0, MINIGAMES.karaoke.maxItems)
-        .map((f) => ({
-          id: f.id,
-          texto: f.text,
-          traducao: f.translation,
-          lang: f.lang || '',
-          startMs: f.startMs,
-          endMs: f.endMs,
-        }));
-      if (lista.length < MINIGAMES.karaoke.minItems || !audioParaJogos) return null;
-      return pronta(
-        lista.map((f) => ({ ref: f.id ?? '', alvo: f.texto, pista: f.traducao })),
-        () => setRodadaKaraoke(lista),
-      );
-    }
-    const itens = priorizar(
-      buildItems(jogo, cartas, {
-        evitar,
-        memoria,
-        semente: sementeDoDia,
-        diaDe: diaLocal,
-        excluirEvitadas: true,
-        now: agora,
-      }),
-      trecho,
-      (x) => x.answer,
-    );
-    if (itens.length < MINIGAMES[jogo].minItems) return null;
-    return pronta(
-      itens.map((i) => ({ ref: i.answer, alvo: i.answer, pista: i.prompt, ...nivelDe(i.answer) })),
-      () => setRodada({ jogo, itens }),
-    );
+    if (!montada) return null;
+    return { jogo: montada.jogo, previa: montada.previa, aplicar: () => aplicarMaterial(montada.material) };
   };
 
   /**

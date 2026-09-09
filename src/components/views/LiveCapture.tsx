@@ -2,40 +2,29 @@ import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { PerfilAdaptativoDeIdioma, destinoDaTraducao } from '../../lib/perfilDeIdioma';
 import { OrdemDasTraducoes } from '../../lib/ordemDaTraducao';
-import { traduzirVersos, explicarParada } from '../../lib/versosDoVocabulario';
-import { apiFetch } from '../../data/api';
 import { cenarioDasFontes } from '../../lib/cenarioDeCaptura';
-import { getEntitlements } from '../../lib/entitlements';
 import BuscaDeCapa from '../BuscaDeCapa';
 import { buildGateway } from '../../gateway';
-import { startSystemAudioCapture, startSystemLoopbackCapture, startServerLoopbackCapture, startMicCapture, probeSystemAudio, probeLoopback, probeServerLoopback, serverLoopbackSupported, type AudioCapture, type SystemAudioProbe } from '../../gateway/capture/systemAudio';
-import { capMetrics, type CapSource } from '../../gateway/capture/captureMetrics';
-import { WebSpeechStt } from '../../gateway/adapters/webSpeech';
+import { probeSystemAudio, probeLoopback, probeServerLoopback, serverLoopbackSupported, type AudioCapture, type SystemAudioProbe } from '../../gateway/capture/systemAudio';
+import { capMetrics } from '../../gateway/capture/captureMetrics';
 import type { SttSession } from '../../gateway/capabilities';
 import { mtCoverage, langLabel, baseLang, toBcp47 } from '../../lib/languages';
-import { detectLanguage } from '../../lib/langDetect';
-// Fala do MIC em português → português claro antes de traduzir (vícios, contrações, gíria).
-import { prepararFala, chaveNormalizada } from '../../lib/traducao/prepararFala';
 // Cenário conversa sem fone: a caixa de som entra pelo mic — detecta e descarta.
-import { classificarVazamento, type Intervalo } from '../../lib/vazamento';
+import { type Intervalo } from '../../lib/vazamento';
 // Configuração de idioma: fonte ÚNICA (`mine` = o que VOCÊ fala no mic; `studying` = o que você
 // ESTUDA, o áudio estrangeiro). Antes os defaults nasciam aqui, em `useState`.
 import { fetchLangConfig, saveLangConfig, onLangConfigChange, DEFAULT_LANG_CONFIG, type LangConfig } from '../../lib/langConfig';
 // Produtor ÚNICO de palavra/cartão: o idioma vem da FRASE de onde a palavra saiu e a direção da
 // tradução é decidida pelo idioma DA PALAVRA (não pelo par da sessão).
-import { resolveWord, buildVocabWord, cardLangs, type WordOrigin } from '../../lib/vocabWord';
-import { speak as ttsSpeak, isTtsActive } from '../../lib/tts';
+import { speak as ttsSpeak } from '../../lib/tts';
 import { listDevices, onDeviceChange, supportsSinkId, filterLoopbackDevices, type AudioDevice } from '../../lib/audioDevices';
 import { getActiveProfile, getProviderMode } from '../../gateway/activeProfile';
-import { areModelsCached, expectedModelIds } from '../../gateway/modelCache';
-import { routeStt, getSttQuality, setSttQualityMirror, type SttQuality } from '../../gateway/sttRouter';
+import { getSttQuality, setSttQualityMirror, type SttQuality } from '../../gateway/sttRouter';
 import {
-  createSession, bulkAddCards, uploadSessionAudio,
-  patchSessionMeta, updateSession, replaceSessionUtterances, fetchSessionTranscript,
-  searchImages, fetchSettings, patchUiSettings, type ImageResult, type NewUtterancePayload,
+  fetchSessionTranscript,
+  searchImages, fetchSettings, patchUiSettings, type ImageResult,
 } from '../../data/api';
 import ModelPrepPanel, { type ModelPrepState } from '../ModelPrepPanel';
-import { makeCloze, extractKeywords, resumoDosPulados, motivoLegivel } from '@core';
 import {
   Mic,
   MicOff,
@@ -67,7 +56,10 @@ import {
   LayoutGrid
 } from 'lucide-react';
 import Overlay, { OverlayCaption } from '../Overlay';
-import LangPicker from '../LangPicker';
+// Subcomponentes locais da captura (um arquivo por componente, em `views/captura/`).
+import TranscriptVisualSettings from './captura/TranscriptVisualSettings';
+import SetaDoPar from './captura/SetaDoPar';
+import LangSelect from './captura/LangSelect';
 import { usePosicaoFlutuante } from '../../lib/posicaoFlutuante';
 // Bandeira SVG do idioma (nunca emoji: o Windows renderiza 🇧🇷 como "BR") + o rótulo curto.
 import { LangFlag } from '../LangFlag';
@@ -77,182 +69,36 @@ import { setNavGuard } from '../../lib/navGuard';
 // Um componente só serve a tela embutida E o Modo Foco — antes eram dois blocos que divergiam.
 import ChatTranscript from '../ChatTranscript';
 import BingoPanel from '../minigames/BingoPanel';
-import { dataHora } from '../../lib/i18n';
 // Identificação automática de voz (diarização leve): embedding WeSpeaker por enunciado
 // (worker WASM, 6,7MB) + agrupamento online → "Pessoa 1/2/3" com cor própria.
 import { SpeakerClusterer } from '../../lib/speakerCluster';
 import { DominantLangTracker } from '../../lib/convoLang';
-import { preloadSpeakerId, embedUtterance, disposeSpeakerId } from '../../lib/speakerId';
+import { disposeSpeakerId } from '../../lib/speakerId';
 import { play } from '../../lib/soundFx';
-import { misturarAudios } from '../../lib/misturarAudios';
-import { burstFromElement } from '../../lib/effects';
 import { coreOnly } from '../../lib/profile';
 import { toast } from '../Toast';
 import DocumentPiP, { isDocumentPiPSupported } from '../DocumentPiP';
 import VocabularyPanel from '../VocabularyPanel';
-import { seedFromSelection, telaDoExercicio } from '../../lib/sentences';
-import type { PracticeSeed, ExerciseId } from '../../lib/sentences';
 import { Recording, type VocabWord } from '../../types';
 import EditablePanel from '../EditablePanel';
 import GuidePanel from '../GuidePanel';
 import { TranscriptSettings, DEFAULT_TRANSCRIPT_SETTINGS } from '../../lib/transcriptUtils';
 
-// Voice transcript structures
-// Logger de diagnóstico da captura — prefixo colorido no console do navegador (observabilidade).
-const clog = (...args: any[]) => console.log('%c[cap]', 'color:#F04E23;font-weight:bold', ...args);
-
-interface SpeechSegment {
-  id: string;
-  speakerId: string;
-  /** FONTE do áudio ('system' = som do computador; 'mic' = sua voz). Antes a fonte era
-   *  inferida de `speakerId === 'system'` — com a identificação automática de voz o
-   *  speakerId vira 'voice_N' e a inferência quebraria a direção da tradução/save. */
-  source: 'system' | 'mic';
-  timestamp: string;
-  originalText: string;
-  translatedText: string;
-  isPartial?: boolean;
-  words: VocabWord[];
-  /** Início/fim do enunciado em ms, relativos ao START da sessão (timing real). */
-  tStartMs?: number;
-  tEndMs?: number;
-  /** ISO-639-1 REAL desta fala quando DETECTADO (modo multi-idioma). undefined = usa a config. */
-  lang?: string;
-  /** Adapter que transcreveu (procedência: whisper-local/groq-whisper/web-speech). */
-  engine?: string;
-}
-
-// `VocabWord` agora vive em `src/types.ts` — é o contrato compartilhado do <VocabularyPanel/>,
-// usado por Captura, Análise, Leitura, Estudo e Métricas. A invariante de honestidade (campos
-// ricos só quando há fonte REAL) está documentada lá.
-
-/**
- * Palavras de vocabulário derivadas de uma fala REAL (determinístico, sem IA nem
- * lista fixa). A tradução do verso é preenchida depois pelo gateway de MT.
- */
-function wordsFromText(text: string, lang: string): VocabWord[] {
-  // O idioma da FALA escolhe a lista de stopwords; sem lista a extracao roda sem filtro
-  // gramatical, e `temStopwords` deixa a tela declarar isso quando for o caso.
-  return extractKeywords(text, { max: 6, lang }).map((w) => ({ word: w, translation: '' }));
-}
-
-// Speaker definition
-interface SpeakerProfile {
-  id: string;
-  name: string;
-  /** Cor da PESSOA (hex). Vale para o ponto do avatar, a borda do balão e o overlay —
-   *  hex em vez de classe Tailwind para poder ir via inline style a qualquer superfície. */
-  color: string;
-  isActive: boolean;
-}
-
-/** Paleta das pessoas identificadas (voz N usa a cor N; recicla depois do fim). */
-const SPEAKER_COLORS = [
-  '#7C3AED', // roxo
-  '#0284C7', // azul
-  '#10B981', // verde
-  '#F59E0B', // âmbar
-  '#EF4444', // vermelho
-  '#E91E63', // rosa
-  '#14B8A6', // teal
-  '#8B5CF6', // violeta
-];
-/** Você (microfone) tem cor FIXA fora da paleta — nunca é confundido com uma voz detectada. */
-const USER_COLOR = '#EA580C';
-/** Voz do sistema ainda não identificada (cinza neutro: "alguém", não uma pessoa nomeada). */
-const UNKNOWN_VOICE_COLOR = '#64748B';
-
-/**
- * Painel "Visual" da transcrição — componente ÚNICO usado tanto inline quanto no Modo Foco
- * (antes eram dois blocos JSX quase idênticos que divergiam a cada ajuste).
- */
-function TranscriptVisualSettings({ idPrefix, dense, tsSettings, updateSetting }: {
-  idPrefix: string;
-  dense: boolean;
-  tsSettings: TranscriptSettings;
-  updateSetting: <K extends keyof TranscriptSettings>(key: K, value: TranscriptSettings[K]) => void;
-}) {
-  const wrap = dense
-    ? 'p-4 bg-canvas border border-border-subtle rounded-xl mb-4 grid grid-cols-2 sm:grid-cols-5 gap-3 text-[11px] animate-in slide-in-from-top-2 duration-200'
-    : 'bg-surface border border-border-subtle rounded-2xl p-4 mb-6 grid grid-cols-2 sm:grid-cols-5 gap-4 text-xs animate-in slide-in-from-top-2 duration-200 shadow-card shrink-0';
-  const labelCls = dense ? 'font-bold text-ink-muted text-[9px] uppercase tracking-wide' : 'font-bold text-ink-muted text-[10px] uppercase';
-  const selectCls = dense
-    ? 'w-full bg-surface border border-border-subtle rounded-lg p-1.5 font-bold text-ink cursor-pointer outline-none focus:border-accent'
-    : 'w-full bg-canvas border border-border-subtle rounded-lg p-2 font-semibold text-ink cursor-pointer outline-none focus:border-accent';
-  const fields: Array<{ id: string; label: string; value: string; onChange: (v: string) => void; options: Array<[string, string]>; span?: boolean }> = [
-    { id: 'font-size', label: 'Tamanho', value: tsSettings.fontSize, onChange: v => updateSetting('fontSize', v as any), options: [['small', 'Pequeno'], ['medium', 'Médio'], ['large', 'Grande'], ['xlarge', 'Extra Grande'], ['xxlarge', 'Gigante']] },
-    { id: 'text-color', label: 'Tema de Cor', value: tsSettings.textColor, onChange: v => updateSetting('textColor', v as any), options: [['standard', 'Padrão'], ['highContrast', 'Alto Contraste'], ['sepia', 'Sépia'], ['ocean', 'Oceano'], ['neon', 'Neon']] },
-    { id: 'font-family', label: 'Fonte', value: tsSettings.fontFamily, onChange: v => updateSetting('fontFamily', v as any), options: [['sans', 'Sans (padrão)'], ['serif', 'Serif'], ['mono', 'Mono']] },
-    { id: 'display-order', label: 'Ordem', value: tsSettings.displayOrder, onChange: v => updateSetting('displayOrder', v as any), options: [['original-first', 'Original primeiro'], ['translated-first', 'Tradução primeiro']] },
-    { id: 'hide-original', label: 'Original', value: tsSettings.hideOriginal ? 'true' : 'false', onChange: v => updateSetting('hideOriginal', v === 'true'), options: [['false', 'Mostrar'], ['true', 'Ocultar']], span: true },
-  ];
-  return (
-    <div className={wrap}>
-      {fields.map(f => (
-        <div key={f.id} className={`space-y-1 ${f.span ? 'col-span-2 sm:col-span-1' : ''}`}>
-          <label htmlFor={`${idPrefix}-${f.id}`} className={labelCls}>{f.label}</label>
-          <select id={`${idPrefix}-${f.id}`} name={`${idPrefix}-${f.id}`} value={f.value} onChange={(e) => f.onChange(e.target.value)} className={selectCls}>
-            {f.options.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
-          </select>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-/**
- * Rótulo + <LangPicker/>: uma escolha só (o "Detectar automaticamente" é a primeira opção da
- * lista), com bandeira TAMBÉM na lista — o que a `<option>` nativa não permite (só aceita texto).
- */
-/**
- * A seta ENTRE os dois idiomas — a mesma ideia nas duas formas, o desenho seguindo a forma.
- *
- * Na linha ela aponta para a direita e ganha `mt-3` para descer até a altura da caixa (os campos
- * têm rótulo em cima, então o centro vertical do grupo não é o centro da caixa). Empilhada ela
- * gira para baixo e alinha com o texto do campo (`ms-3` = o `px-3` do botão em modo `block`),
- * formando uma espinha vertical entre origem e destino.
- */
-function SetaDoPar({ empilhado }: { empilhado: boolean }) {
-  return (
-    <ArrowRight
-      aria-hidden
-      className={`w-3.5 h-3.5 text-ink-faint shrink-0 ${empilhado ? 'rotate-90 ms-3 -my-1' : 'mt-3'}`}
-    />
-  );
-}
-
-function LangSelect({ id, label, icon, value, auto = false, allowAuto = false, accent = false, block = false, onPick }: {
-  id: string;
-  label: string;
-  icon?: React.ReactNode;
-  /** BCP-47 selecionado (mostrado quando NÃO está no automático). */
-  value: string;
-  auto?: boolean;
-  allowAuto?: boolean;
-  /** Caixa destacada (o idioma do conteúdo/estudo). */
-  accent?: boolean;
-  /** Ocupa a largura toda — a forma da gaveta, onde os campos são empilhados. */
-  block?: boolean;
-  onPick: (v: { auto: boolean; code?: string }) => void;
-}) {
-  return (
-    <div className={`flex flex-col items-start gap-0.5 ${block ? 'w-full' : ''}`}>
-      <span className="text-[8px] font-bold uppercase tracking-wider text-ink-faint flex items-center gap-1">
-        {icon} {label}
-      </span>
-      <LangPicker
-        id={id}
-        ariaLabel={label}
-        value={value}
-        auto={auto}
-        allowAuto={allowAuto}
-        accent={accent}
-        block={block}
-        onPick={onPick}
-      />
-    </div>
-  );
-}
+// Tipos e helpers de fala + o logger da captura (`lib/captura/tiposDaFala.ts`).
+import {
+  clog, wordsFromText, formatTime, SPEAKER_COLORS, USER_COLOR, UNKNOWN_VOICE_COLOR,
+  type SpeechSegment, type SpeakerProfile, type CaptureScenario,
+} from '../../lib/captura/tiposDaFala';
+// Relógio da sessão + pipeline de MT (retradução de degradados incluída).
+import { criarRelogioDaSessao, criarTraducaoDaFala } from '../../lib/captura/traducaoDaFala';
+// Pipeline de fala: VAD → STT → diarização → emissão, e a preparação dos modelos locais.
+import { criarPipelineDeFala, type EnunciadoPendente } from '../../lib/captura/pipelineDeFala';
+// Fontes de áudio: som do sistema/aba, microfone (Whisper ou Web Speech) e o mudo/ativo do mic.
+import { criarFontesDeAudio } from '../../lib/captura/fontesDeAudio';
+// Ciclo da sessão: começar, retomar, parar e salvar (falas, áudio e vocabulário).
+import { criarSalvarSessao, type EstadoDaIdentificacaoDeVoz } from '../../lib/captura/salvarSessao';
+// Vocabulário dentro da captura: examinar a palavra, fichar no deck, mandar praticar.
+import { criarPalavraDaFala } from '../../lib/captura/palavraDaFala';
 
 export default function LiveCapture({ onSave, onTranscriptChange, resumingRecordingId, recordings, onChangeView, ageProfile = 'pro' }: {
   onSave: (recording: Recording, shouldRedirect?: boolean) => void;
@@ -412,7 +258,7 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
   const speakerAutoIdRef = useRef(true);
   useEffect(() => { speakerAutoIdRef.current = speakerAutoId; }, [speakerAutoId]);
   /** Estado honesto p/ o painel Falantes: off | loading | ready | unavailable. */
-  const [speakerIdStatus, setSpeakerIdStatus] = useState<'off' | 'loading' | 'ready' | 'unavailable'>('off');
+  const [speakerIdStatus, setSpeakerIdStatus] = useState<EstadoDaIdentificacaoDeVoz>('off');
   const clustererRef = useRef(new SpeakerClusterer());
   /** Última voz identificada — enunciados curtos demais para identificar herdam esta. */
   const lastVoiceIdRef = useRef<string | null>(null);
@@ -611,8 +457,7 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
   // CENÁRIO DE CAPTURA — a intenção do usuário decide fontes, rótulos e painéis.
   // 'media' = assistir vídeo/aula/podcast (só sistema) · 'conversation' = chamada/reunião
   // (mic+sistema) · 'mic' = praticar a própria voz (só mic). Trocar de cenário só ajusta as
-  // FONTES; os idiomas escolhidos permanecem.
-  type CaptureScenario = 'media' | 'conversation' | 'mic';
+  // FONTES; os idiomas escolhidos permanecem. (O tipo vive em `lib/captura/tiposDaFala.ts`.)
   const [captureScenario, setCaptureScenario] = useState<CaptureScenario>('media');
   // Espelho p/ os handlers assíncronos (a identificação de voz só roda no cenário Conversa).
   const captureScenarioRef = useRef<CaptureScenario>('media');
@@ -957,7 +802,6 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
   // RELATIVOS a isso → habilita WPM real e sincronização do player (o áudio grava a
   // partir do mesmo instante). 0 quando não há gravação em curso.
   const sessionStartMsRef = useRef<number>(0);
-  const nowRel = () => (sessionStartMsRef.current ? Math.max(0, Date.now() - sessionStartMsRef.current) : 0);
 
   // ── Ancoragem do relógio ao recorder (alinha LEGENDA × ÁUDIO na página da sessão) ──
   // O relógio zera no CLIQUE em START, mas o MediaRecorder do áudio salvo só começa depois (após a
@@ -965,25 +809,13 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
   // re-ancoramos sessionStartMsRef ao t=0 REAL do recorder quando a captura fica ativa.
   const shouldAnchorClockRef = useRef<boolean>(false); // só em sessão NOVA (retomada mantém o recuo)
   const micStartedAtRef = useRef<number>(0);           // t=0 do recorder do mic (fallback se o sistema falhar)
-  /**
-   * Re-zera o relógio da sessão para o t=0 do recorder que produz o áudio salvo. O áudio salvo
-   * prefere o do SISTEMA (recordedAudioRef = sysBlob ?? micBlob), então o mic só ancora quando o
-   * sistema NÃO é fonte (mic-only) ou quando o sistema FALHOU ('mic-fallback'). Primeira âncora vence.
-   */
-  const anchorSessionClock = (startedAtMs: number, source: 'system' | 'mic' | 'mic-fallback') => {
-    if (!shouldAnchorClockRef.current || !startedAtMs) return;
-    if (source === 'mic' && systemEnabled) return; // o sistema é a fonte do áudio salvo → ele ancora
-    sessionStartMsRef.current = startedAtMs;
-    shouldAnchorClockRef.current = false;
-    clog('⏱ relógio ancorado ao início do recorder (', source, '), legenda alinhada ao áudio salvo');
-  };
 
   // Tradução DESACOPLADA, deduplicada e com cache — nunca bloqueia a exibição do texto.
   // Compartilhada pelas DUAS fontes (mic Web Speech + sistema Whisper). Espelha o LRU do desktop.
   // Aviso único por sessão quando a tradução degrada (nunca silencioso).
   const mtFailNotifiedRef = useRef(false);
 
-  /** Avisa UMA vez por sessão que o destino da tradução foi redirecionado (ver abaixo). */
+  /** Avisa UMA vez por sessão que o destino da tradução foi redirecionado (ver traducaoDaFala). */
   const altTargetNotifiedRef = useRef(false);
 
   /**
@@ -993,938 +825,58 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
    */
   const ordemMtRef = useRef(new OrdemDasTraducoes());
 
-  /** Balões que degradaram para "(texto original)" voltam a "…" e pedem tradução de novo. */
-  const retraduzirDegradados = () => {
-    setSpeechSegments(prev => {
-      const alvo = prev.filter(seg => !seg.isPartial && seg.originalText && seg.translatedText === `(${seg.originalText})`);
-      if (alvo.length === 0) return prev;
-      clog('tradutor pronto: retraduzindo', alvo.length, 'balão(ões) degradado(s)');
-      const ids = new Set(alvo.map(seg => seg.id));
-      setTimeout(() => {
-        for (const seg of alvo) {
-          const doSistema = seg.source === 'system';
-          translateSegment(seg.id, seg.originalText, doSistema ? targetLangRef.current : sourceLangRef.current, doSistema ? sourceLangRef.current : targetLangRef.current);
-        }
-      }, 0);
-      return prev.map(seg => (ids.has(seg.id) ? { ...seg, translatedText: '…' } : seg));
-    });
-  };
-
   /** Aviso único de sessão: a nuvem que o plano promete caiu e a tradução voltou ao motor local. */
   const degradacaoAvisadaRef = useRef(false);
 
-  /**
-   * AVISA QUANDO A NUVEM CAI, em vez de degradar em silêncio.
-   *
-   * A cascata é boa: se o `server-llm-mt` falha, o `opus-mt` local assume e o usuário continua
-   * lendo alguma coisa. O problema é o SILÊNCIO. Medido (docs/auditoria/eval-producao-v1.md): o
-   * local traduz idiomático a 27,4% e a nuvem a 83,1% — quem paga pela nuvem e recebe o local
-   * recebe de volta exatamente a tradução literal que motivou a assinatura, sem nenhum sinal de
-   * que algo mudou. Cobrar por isso caladamente é o pior primeiro contato possível com um assinante.
-   *
-   * Só para quem TEM direito à nuvem: para o plano gratuito o motor local não é degradação, é o
-   * produto — avisar ali seria transformar funcionamento normal em mensagem de erro.
-   */
-  const avisarSeDegradou = (engine: string | undefined, falada: boolean) => {
-    if (!falada || degradacaoAvisadaRef.current) return;
-    if (!engine || engine === 'server-llm-mt' || engine === 'groq-llm') return;
-    if (!getEntitlements().managedCloudLlm) return;
-    degradacaoAvisadaRef.current = true;
-    clog('tradução degradou para', engine, '— a nuvem do plano não respondeu');
-    setFeedbackMsg('A tradução de nuvem não respondeu; seguindo com o tradutor local, que é mais literal.');
-    setTimeout(() => setFeedbackMsg(''), 8000);
-  };
-
-  const translateSegment = (
-    segId: string,
-    text: string,
-    srcCode?: string,
-    tgtCode?: string,
-    opts?: { descartarSeOcupado?: boolean; falada?: boolean },
-  ) => {
-    /* PARCIAL NÃO ENFILEIRA TRADUÇÃO. Cada refinamento do parcial gastava uma chamada de MT
-       inteira que era descartada segundos depois pelo refinamento seguinte. Com uma tradução já
-       em voo para este balão, o parcial seguinte simplesmente não é pedido, o decode final
-       sempre traduz, então nenhum balão fica sem legenda por causa disto. */
-    if (opts?.descartarSeOcupado && ordemMtRef.current.ocupado(segId)) return;
-    const selo = ordemMtRef.current.abrir(segId);
-
-    const src = srcCode ?? sourceLangRef.current.split('-')[0];
-    let tgt = tgtCode ?? targetLangRef.current.split('-')[0];
-
-    /**
-     * NUNCA TRADUZIR PARA O PRÓPRIO IDIOMA (bug relatado). O áudio do sistema é sempre vertido
-     * para "o seu idioma" — mas quem assiste um vídeo EM português tendo o português como idioma
-     * nativo recebia origem = destino, e a "tradução" saía idêntica ao original: a tela parecia
-     * quebrada, e o caso é justamente o de quem consome conteúdo na própria língua para praticar
-     * a outra ("assisto em PT e quero ver em inglês").
-     *
-     * Regra: se origem e destino coincidem, o destino passa a ser o OUTRO idioma do par. Se os
-     * dois lados do par forem o mesmo idioma, não há para onde traduzir — o balão fica só com o
-     * original (honesto), em vez de repetir a frase como se fosse tradução.
-     */
-    const mine = baseLang(sourceLangRef.current);
-    const studying = baseLang(targetLangRef.current);
-
-    /* A DECISÃO VEM DO PERFIL, não de uma dedução refeita a cada fala.
-       O idioma OBSERVADO na sessão (já convergido, resistente a detecção isolada errada) tem
-       precedência sobre o desta fala: numa conversa em português, um "Thank you." solto não
-       deve mudar o destino da tradução do trecho inteiro. Sem observação ainda, cai no idioma
-       desta fala, que é o melhor palpite disponível no começo. */
-    const observado = idiomaObservadoRef.current || baseLang(src);
-    const decisao = destinoDaTraducao(observado, mine, studying);
-
-    if (decisao.motivo === 'sem-destino') {
-      // Os dois lados do par são a mesma língua: não há para onde traduzir. Limpa o "…" para o
-      // balão não ficar preso esperando para sempre — e não repete a frase fingindo tradução.
-      if (ordemMtRef.current.encerrar(segId, selo)) {
-        setSpeechSegments(prev => prev.map(seg => seg.id === segId ? { ...seg, translatedText: '' } : seg));
-      }
-      return;
-    }
-    if (decisao.motivo === 'redirecionado' && decisao.destino !== baseLang(tgt)) {
-      tgt = decisao.destino;
-      /* AVISO ÚNICO, e agora ele é honesto sobre a NATUREZA da decisão: antes dizia "o áudio já
-         está em X" a partir de UMA fala, e repetia a dedução 40 vezes no log. Agora só fala
-         quando o perfil convergiu, e diz que foi detecção da sessão inteira. */
-      if (!altTargetNotifiedRef.current && perfilIdiomaRef.current.observado()) {
-        altTargetNotifiedRef.current = true;
-        const conf = Math.round(perfilIdiomaRef.current.ler().confianca * 100);
-        clog('perfil de idioma convergiu:', observado, `(${conf}% das falas)`, '→ traduzindo para', decisao.destino);
-        setFeedbackMsg(
-          `Detectei que o áudio está em ${langLabel(observado)} (${conf}% das falas), traduzindo para ${langLabel(decisao.destino)}.`,
-        );
-        setTimeout(() => setFeedbackMsg(''), 7000);
-      }
-    }
-
-    /* ORIGEM VAZIA DESQUALIFICA TRÊS DOS QUATRO TRADUTORES.
-       `chrome-translator`, `mymemory` e `opus-mt-local` recusam `src` nulo no `supports()`,
-       precisam do par explícito. Sobra o `server-llm-mt`, e quando ele está fora o gateway
-       responde `NoRouteError`. Era a causa dos erros intermitentes no log: com detecção
-       automática, `src` chegava vazio sempre que a detecção daquela fala falhava.
-
-       O perfil da sessão preenche a lacuna: já sabemos, com confiança medida, o que está sendo
-       falado. Usar isso como origem devolve os três tradutores à cascata, e é informação
-       melhor que o palpite de uma fala isolada, não pior. */
-    const origem = src || idiomaObservadoRef.current || '';
-    /* FALA em português vai "arrumada" para o motor: sem "né"/"ahn", sem "tá"/"pra", gíria em
-       português claro. É o que faz o opus-mt/Chrome Translator (motores de texto escrito) darem o
-       SENTIDO em vez de "the people" para "a gente". Texto do sistema não passa por aqui. */
-    const preparada = opts?.falada ? prepararFala(text, origem, tgt) : { texto: text, mudou: false };
-    const textoParaMt = preparada.texto;
-    if (preparada.mudou) clog('fala preparada:', JSON.stringify(text).slice(0, 60), '→', JSON.stringify(preparada.traducaoPronta ?? textoParaMt).slice(0, 60));
-    // Chave tolerante a caixa/pontuação final: "Tá bom." e "tá bom" eram duas entradas.
-    const cacheKey = `${origem}|${tgt}|${chaveNormalizada(textoParaMt)}`;
-    const applyTranslation = (translated: string, aproximada = false) => {
-      // "≈" na frente: o último recurso público (MyMemory) acerta frases comuns e erra gíria e
-      // contexto. Dizer que é aproximada é o que separa "tradução ruim" de "app mentindo".
-      const capitalized = (aproximada ? '≈ ' : '') + translated.charAt(0).toUpperCase() + translated.slice(1);
-      // As palavras de vocabulário já foram extraídas da fala real no commit do
-      // enunciado (wordsFromText); a tradução só atualiza o texto traduzido.
-      setSpeechSegments(prev => prev.map(seg => seg.id === segId ? {
-        ...seg,
-        translatedText: capitalized,
-      } : seg));
-    };
-    // Expressão inteira conhecida ("valeu!", "pois é."): a tradução natural já está pronta.
-    if (preparada.traducaoPronta) {
-      if (ordemMtRef.current.encerrar(segId, selo)) applyTranslation(preparada.traducaoPronta);
-      return;
-    }
-    const cached = translationCacheRef.current.get(cacheKey);
-    if (cached) {
-      if (ordemMtRef.current.encerrar(segId, selo)) applyTranslation(cached);
-      return;
-    }
-    const mtT0 = performance.now();
-    // Contexto para o LLM (só na fala): as últimas 3 falas comprometidas da conversa.
-    const contexto = opts?.falada
-      ? speechSegmentsRef.current.filter(s => !s.isPartial && s.originalText && s.id !== segId).slice(-3).map(s => `${s.source === 'mic' ? 'Eu' : 'Outro'}: ${s.originalText}`)
-      : undefined;
-
-    // Rede de segurança: a tradução NUNCA pode deixar o balão preso em "…". Se vier vazia, der
-    // erro, OU travar (timeout) — degrada para o texto ORIGINAL entre parênteses (honesto e útil
-    // offline: você ao menos lê o que foi dito). Só degrada se ainda estiver em "…" (não sobrescreve
-    // uma tradução já mostrada). `settled` evita corrida entre resposta tardia e o timeout.
-    let settled = false;
-    const degrade = () => {
-      setSpeechSegments(prev => prev.map(seg =>
-        (seg.id === segId && seg.translatedText === '…') ? { ...seg, translatedText: `(${text})` } : seg));
-      // Degradação NUNCA mais é silenciosa (achado da auditoria): avisa UMA vez por sessão
-      // que a tradução caiu e o que o usuário está vendo é o texto original.
-      if (!mtFailNotifiedRef.current) {
-        mtFailNotifiedRef.current = true;
-        setFeedbackMsg('Tradução indisponível agora (motores locais e web falharam), mostrando o texto original entre parênteses.');
-        setTimeout(() => setFeedbackMsg(''), 8000);
-      }
-    };
-    const timeout = setTimeout(() => {
-      if (settled) return;
-      settled = true;
-      if (ordemMtRef.current.encerrar(segId, selo)) degrade();
-    }, 8000);
-
-    /* `origem` já caiu para o idioma OBSERVADO da sessão quando esta fala não foi detectada —
-       ver o bloco acima. Só chega `null` aqui quando nem o perfil convergiu ainda, e aí o
-       Tradutor IA do servidor detecta a origem sozinho, como antes. */
-    gateway.mt.translate(textoParaMt, origem || null, tgt, { falada: opts?.falada === true, contexto })
-      .then(({ text: translated, engine, approximate }) => {
-        if (settled) return;               // timeout já degradou → ignora resposta tardia
-        settled = true; clearTimeout(timeout);
-        capMetrics.mt(Math.round(performance.now() - mtT0), engine || 'mt');
-        avisarSeDegradou(engine, opts?.falada === true);
-        // `atual` = este pedido ainda é o mais recente do balão. Um resultado ATRASADO não escreve
-        // na tela (sobrescreveria a tradução do final pelo texto pela metade), mas ainda é uma
-        // tradução válida deste texto: entra no cache, e o próximo pedido igual chega instantâneo.
-        const atual = ordemMtRef.current.encerrar(segId, selo);
-        if (!translated) { if (atual) degrade(); return; }   // vazio → degrada (antes: ficava em "…")
-        translationCacheRef.current.set(cacheKey, translated);
-        if (translationCacheRef.current.size > 300) {
-          const firstKey = translationCacheRef.current.keys().next().value;
-          if (firstKey !== undefined) translationCacheRef.current.delete(firstKey);
-        }
-        if (atual) applyTranslation(translated, approximate === true);
-      })
-      .catch(err => {
-        if (settled) return;
-        settled = true; clearTimeout(timeout);
-        console.warn("Live translation error:", err);
-        if (ordemMtRef.current.encerrar(segId, selo)) degrade();
-      });
-  };
-
-  // Handlers de captura por FONTE (sistema/mic). Um único pipeline VAD→Whisper serve as duas
-  // fontes; muda a direção da tradução, o prefixo do id e o falante conforme a fonte.
-  // Direção — SISTEMA: conteúdo estrangeiro no idioma-ALVO → transcreve com hint do ALVO e
-  // traduz PARA o idioma-FONTE (você lê no seu idioma). MIC: sua voz no idioma-FONTE →
-  // transcreve no FONTE e traduz PARA o ALVO (você lê como se diz). São inversas.
-  // O `seq` do VAD começa em 1 em CADA fonte; deslocamos o do mic (+MIC_SEQ_OFFSET) para que
-  // as chaves (seqToSegment/capMetrics) nunca colidam quando as duas fontes rodam juntas.
-  const MIC_SEQ_OFFSET = 1_000_000;
-  const makeCaptureHandlers = (source: CapSource) => {
-    const isSys = source === 'system';
-    const idPrefix = isSys ? 'sys' : 'mic';
-    const offset = isSys ? 0 : MIC_SEQ_OFFSET;
-    // MIC = você → orador ativo (se houver) ou 'user'. SISTEMA = 'system' (eles).
-    const speakerIdFor = (): string => isSys
-      ? 'system'
-      : (speakerProfilesRef.current.find(p => p.isActive && p.id !== 'system')?.id ?? 'user');
-    const langs = () => {
-      // MULTI-IDIOMA: hint vazio → Whisper detecta o idioma da fala; origem vazia → o
-      // Tradutor IA do servidor detecta e traduz para o alvo. Sistema traduz para o idioma
-      // do usuário; mic traduz para o idioma de estudo (mesmo alvo do modo fixo).
-      if (isSys && autoDetectLangRef.current) {
-        /* A DICA DE IDIOMA PASSA A VIR DO PERFIL — e isto conserta um defeito com sintoma feio.
-           Sem dica, o Whisper LOCAL (fallback, `whisper-base`) não recebe idioma fixo. O
-           comentário no worker já avisava por quê: "idioma FIXO pula a auto-detecção e evita
-           traduzir sozinho". Sem ele, o modelo pequeno TRADUZIA para inglês em vez de
-           transcrever, num vídeo em espanhol o log alternava entre `groq-whisper` devolvendo
-           "le pillamos desprevenido por detrás" e `whisper-local` devolvendo "Let's continue.
-           Now we can do it". Texto inglês entrava no detector, o perfil via inglês, e o rótulo
-           mentia.
-
-           Também é latência de verdade: sem dica, o modelo gasta uma passada só para descobrir
-           o idioma, a cada fala. Com o perfil convergido, essa passada some.
-
-           As primeiras falas seguem sem dica (o perfil ainda ouve), é o único jeito de
-           descobrir o idioma sem pedir ao usuário. A partir da convergência, fixa. */
-        return { hint: idiomaObservadoRef.current || '', from: '', to: sourceLangRef.current.split('-')[0] };
-      }
-      if (!isSys && autoDetectMyLangRef.current) {
-        // Sua fala vai para o IDIOMA DOMINANTE da conversa (o que os outros de fato falam,
-        // detectado ao vivo) — num lobby misto não existe "o idioma deles" fixo. Sem falas
-        // deles ainda, cai no idioma de estudo configurado.
-        const convoLang = captureScenarioRef.current === 'conversation' ? dominantLangRef.current.dominant() : '';
-        return { hint: '', from: '', to: convoLang || targetLangRef.current.split('-')[0] };
-      }
-      return isSys
-        ? { hint: targetLangRef.current.split('-')[0], from: targetLangRef.current.split('-')[0], to: sourceLangRef.current.split('-')[0] }
-        : { hint: sourceLangRef.current.split('-')[0], from: sourceLangRef.current.split('-')[0], to: targetLangRef.current.split('-')[0] };
-    };
-
-    // Início de fala (seq monotônico): cria o balão. Sem "ouvindo…" — o texto real flui no 1º parcial.
-    const onSpeechStart = (rawSeq: number) => {
-      const seq = rawSeq + offset;
-      // ANTI-ECO: se o próprio app está falando (TTS de pronúncia/frase), o que a captura
-      // "ouviu" é o NOSSO áudio voltando pelos alto-falantes — descarta o enunciado inteiro
-      // (senão cada clique em palavra virava uma fala nova transcrita e traduzida).
-      if (isTtsActive()) {
-        suppressedSeqsRef.current.add(seq);
-        clog('anti-eco: fala', seq, source, 'iniciada durante TTS, suprimida');
-        return;
-      }
-      if (!modelReadyRef.current) return; // modelo ainda baixando → não cria balão vazio
-      const uttId = `${idPrefix}-${seq}`;
-      seqToSegmentRef.current.set(seq, uttId);
-      capMetrics.start(seq, source);
-      if (isSys) sysAbertasRef.current.set(seq, Date.now()); else micInicioRef.current.set(seq, Date.now());
-      setSpeechSegments(prev => prev.some(s => s.id === uttId) ? prev : [...prev, {
-        id: uttId, speakerId: speakerIdFor(), source, timestamp: formatTime(timerRef.current),
-        originalText: '', translatedText: '…', words: [], isPartial: true, tStartMs: nowRel(),
-      }]);
-    };
-
-    // Ruído curto (misfire): remove o balão provisório para não deixar bloco órfão.
-    const onMisfire = (rawSeq: number) => {
-      const seq = rawSeq + offset;
-      suppressedSeqsRef.current.delete(seq); // anti-eco: não deixa entrada órfã no set
-      const id = seqToSegmentRef.current.get(seq);
-      seqToSegmentRef.current.delete(seq);
-      lastPartialTextRef.current.delete(seq);
-      capMetrics.drop(seq);
-      if (id) setSpeechSegments(prev => prev.filter(s => s.id !== id));
-    };
-
-    // PARCIAL: transcreve o buffer-até-agora SÓ SE o Whisper estiver ocioso (idle-gating →
-    // nunca enfileira → sem backlog). O texto aparece e refina em tempo real; a tradução acompanha.
-    const onPartialAudio = (pcm: Float32Array, sr: number, rawSeq: number) => {
-      if (perfModeRef.current) return; // modo desempenho: sem decodes parciais (só o final)
-      const seq = rawSeq + offset;
-      if (suppressedSeqsRef.current.has(seq)) return; // anti-eco: enunciado é o nosso TTS
-      const uttId = seqToSegmentRef.current.get(seq);
-      if (!uttId) return; // enunciado já finalizado/descartado
-      const { hint, from, to } = langs();
-      /* ENQUANTO NÃO SABEMOS O IDIOMA, O PARCIAL ATRAPALHA MAIS DO QUE AJUDA.
-         Parcial roda SEMPRE no Whisper local, e o Whisper local sem dica de idioma às vezes
-         traduz para inglês em vez de transcrever. Resultado visível: num vídeo em espanhol, o
-         balão piscava um texto em inglês antes de o final trazer o espanhol.
-
-         Pior, ele cobra por isso: o decode do parcial ocupa o worker, e o final da fala seguinte
-         espera, justo nas primeiras falas, que são as que fazem o perfil convergir. Pular o
-         parcial aqui ACELERA a convergência e apaga o flash em inglês; assim que o perfil conclui,
-         `hint` deixa de ser vazio e os parciais voltam pelo resto da sessão.
-
-         Vale para as DUAS fontes: o mic em modo automático também mandava parcial sem dica e o
-         balão de "você" piscava inglês antes do final em português. */
-      if (!from && !hint) return;
-      gateway.stt.transcribePartial(pcm, sr, { languageHint: hint })
-        .then(res => {
-          if (!res) { capMetrics.saturated(seq); return; } // worker ocupado → parcial descartado
-          if (!seqToSegmentRef.current.has(seq)) return;   // já finalizou → o final é autoritativo
-          const clean = (res.text ?? '').trim();
-          if (!clean) return;
-          capMetrics.partial(seq);
-          setSpeechSegments(prev => prev.map(s =>
-            (s.id === uttId && s.isPartial) ? { ...s, originalText: clean } : s));
-          if (lastPartialTextRef.current.get(seq) !== clean) {
-            lastPartialTextRef.current.set(seq, clean);
-            // `descartarSeOcupado`: já há tradução em voo para este balão → não pede outra. Cada
-            // refinamento do parcial custava uma chamada de MT que o refinamento seguinte jogava
-            // fora; o final sempre traduz, então nenhuma legenda deixa de existir por causa disto.
-            translateSegment(uttId, clean, from, to, { descartarSeOcupado: true, falada: !isSys });
-          }
-        })
-        .catch(() => { capMetrics.saturated(seq); });
-    };
-
-    // Fim da fala → decode FINAL (autoritativo) → commit do texto + tradução.
-    const onUtterance = (pcm: Float32Array, sr: number, rawSeq: number) => {
-      // anti-eco: o enunciado inteiro era o NOSSO TTS voltando — descarta e limpa.
-      if (suppressedSeqsRef.current.has(rawSeq + offset)) {
-        suppressedSeqsRef.current.delete(rawSeq + offset);
-        clog('anti-eco: enunciado', rawSeq + offset, source, 'descartado (era o TTS do app)');
-        return;
-      }
-      if (!modelReadyRef.current) {
-        // NÃO descarta: guarda o enunciado e transcreve assim que o modelo ficar pronto.
-        // Limite de ~24 trechos (~2 min de fala) para não crescer sem fim se a carga travar.
-        if (pendingUtterancesRef.current.length < 24) {
-          pendingUtterancesRef.current.push({ pcm: pcm.slice(), sr, rawSeq, source });
-          clog('modelo ainda carregando, trecho', rawSeq, source, 'GUARDADO p/ transcrever depois (', pendingUtterancesRef.current.length, 'na fila)');
-          if (pendingUtterancesRef.current.length === 1) {
-            setFeedbackMsg('O modelo ainda está carregando, sua fala está sendo GUARDADA e será transcrita assim que ele ficar pronto.');
-            setTimeout(() => setFeedbackMsg(''), 5000);
-          }
-        } else {
-          clog('modelo ainda carregando, fila cheia, trecho', rawSeq, source, 'descartado');
-        }
-        return;
-      }
-      const seq = rawSeq + offset;
-      const uttId = seqToSegmentRef.current.get(seq) ?? `${idPrefix}-${seq}`;
-      capMetrics.speechEnd(seq);
-      clog('enunciado', source, '(seq', seq, ') →', pcm.length, 'amostras @', sr, 'Hz, decode final');
-      setSpeechSegments(prev => prev.some(s => s.id === uttId) ? prev : [...prev, {
-        id: uttId, speakerId: speakerIdFor(), source, timestamp: formatTime(timerRef.current),
-        originalText: '', translatedText: '…', words: [], isPartial: true, tStartMs: nowRel(),
-      }]);
-
-      // IDENTIFICAÇÃO DE VOZ (paralela ao decode; nunca atrasa a legenda): quem falou?
-      // Só nas vozes do SISTEMA em Conversa — a sua voz já é "Você" por definição.
-      if (isSys && captureScenarioRef.current === 'conversation' && speakerAutoIdRef.current) {
-        void embedUtterance(pcm, sr).then((emb) => {
-          if (!emb) {
-            // Curto demais p/ identificar → herda a última voz (é quase sempre a mesma pessoa
-            // terminando a frase). Sem voz anterior, fica no genérico "Outros".
-            const inherit = lastVoiceIdRef.current;
-            if (inherit) setSpeechSegments(prev => prev.map(s => (s.id === uttId && s.speakerId === 'system') ? { ...s, speakerId: inherit } : s));
-            return;
-          }
-          const { clusterId, isNew, provisional, promoted, uncertain, similarity, merged } = clustererRef.current.assign(emb);
-
-          // VOZ PROVISÓRIA: ainda não é uma pessoa na tela. A fala fica com a voz anterior (ou no
-          // genérico) e é GUARDADA sob este id; se uma segunda fala confirmar, ela é reetiquetada.
-          // É o que impede um trecho ruidoso isolado de virar "Pessoa 5" para sempre.
-          if (provisional) {
-            clog('voz nova PROVISÓRIA', clusterId, '(sim', similarity.toFixed(2), '), aguarda confirmação');
-            const pendentes = provisionalUttsRef.current.get(clusterId) ?? [];
-            pendentes.push(uttId);
-            provisionalUttsRef.current.set(clusterId, pendentes);
-            const heranca = lastVoiceIdRef.current;
-            if (heranca) setSpeechSegments(prev => prev.map(s => (s.id === uttId && s.speakerId === 'system') ? { ...s, speakerId: heranca } : s));
-            return;
-          }
-
-          const vid = ensureVoiceProfile(clusterId);
-          lastVoiceIdRef.current = vid;
-          if (isNew) clog('voz NOVA identificada → Pessoa', clusterId, '(sim', similarity.toFixed(2), ')');
-          else if (uncertain) clog('voz em DÚVIDA (sim', similarity.toFixed(2), ') → atribuída a Pessoa', clusterId, 'sem alterar a referência');
-          if (promoted) clog('voz provisória CONFIRMADA → Pessoa', promoted);
-
-          // Falas guardadas enquanto a voz era provisória agora passam a ser dela.
-          const guardadas = promoted ? (provisionalUttsRef.current.get(promoted) ?? []) : [];
-          if (promoted) provisionalUttsRef.current.delete(promoted);
-
-          setSpeechSegments(prev => {
-            let next = prev.map(s => (s.id === uttId || guardadas.includes(s.id)) ? { ...s, speakerId: vid } : s);
-            // FUSÃO: pessoas que se revelaram a mesma voz. Reetiqueta o que já está na tela —
-            // é assim que os fantasmas do começo da conversa desaparecem sozinhos.
-            for (const { from, into } of merged) {
-              next = next.map(s => s.speakerId === `voice_${from}` ? { ...s, speakerId: `voice_${into}` } : s);
-            }
-            return next;
-          });
-
-          if (merged.length) {
-            for (const { from, into } of merged) {
-              clog('vozes fundidas: Pessoa', from, '→ Pessoa', into, '(eram a mesma pessoa)');
-              if (lastVoiceIdRef.current === `voice_${from}`) lastVoiceIdRef.current = `voice_${into}`;
-            }
-            const mortos = new Set(merged.map(m => `voice_${m.from}`));
-            setSpeakerProfiles(prev => prev.filter(p => !mortos.has(p.id)));
-            setFeedbackMsg(`Vozes parecidas foram unidas, agora são ${clustererRef.current.count} pessoa(s).`);
-            setTimeout(() => setFeedbackMsg(''), 4000);
-          }
-        });
-      }
-
-      const { hint, from, to } = langs();
-      const t0 = performance.now();
-      const audioMs = Math.round((pcm.length / sr) * 1000);
-      const queueDepth = gateway.stt.pendingCount();
-      gateway.stt.transcribePcm(pcm, sr, {
-        languageHint: hint,
-        // STREAMING: mostra os tokens do decode final crescendo no balão em tempo real.
-        onUpdate: (streamed) => {
-          const partial = (streamed ?? '').trim();
-          if (!partial || !seqToSegmentRef.current.has(seq)) return;
-          setSpeechSegments(prev => prev.map(s =>
-            (s.id === uttId && s.isPartial) ? { ...s, originalText: partial } : s));
-        },
-      })
-        .then(({ text, engine, language }) => {
-          const clean = (text ?? '').trim();
-          const decodeMs = Math.round(performance.now() - t0);
-          clog('Whisper final', source, '(seq', seq, ',', decodeMs, 'ms,', engine ?? '?', ') →', clean ? JSON.stringify(clean).slice(0, 80) : '(vazio)');
-          seqToSegmentRef.current.delete(seq);
-          lastPartialTextRef.current.delete(seq);
-          if (!clean) {
-            /* Final vazio: o decode COMPLETO do trecho não achou fala. Antes, se um parcial já tinha
-               mostrado texto, ele era COMMITADO "para evitar flicker", e era assim que uma frase
-               inventada sobre ruído ficava na tela para sempre. O final é a leitura melhor; se ele
-               diz vazio, o parcial era alucinação e sai. */
-            capMetrics.final(seq, { decodeMs, queueDepth, text: '', audioMs });
-            clog('Whisper final vazio → parcial descartado (seq', seq, ')');
-            setSpeechSegments(prev => prev.filter(s => s.id !== uttId));
-            return;
-          }
-          /* O IDIOMA DEIXOU DE FICAR NA FRENTE DO TEXTO.
-             Antes, `await detectLanguage(clean)` acontecia ANTES de commitar a legenda e de pedir
-             a tradução: toda fala esperava a detecção, e a PRIMEIRA esperava também a criação do
-             detector on-device do navegador. Agora o texto vai para a tela imediatamente.
-
-             E há uma fonte melhor que o detector de texto: o `language` que o motor devolve. O
-             Whisper de nuvem identifica o idioma dentro do decode, a partir do ÁUDIO, não do
-             texto. Fala curta ("Vale, vamos") não dá sinal para palavras-função, e era exatamente
-             onde a identificação falhava. Medido pelo áudio, dá. */
-          const idiomaDoMotor = baseLang(language || '');
-          // Janela desta fala, para o detector de vazamento (sistema fecha a sua; mic lê a sua).
-          const agora = Date.now();
-          if (isSys) {
-            const ini = sysAbertasRef.current.get(seq) ?? agora - audioMs;
-            sysAbertasRef.current.delete(seq);
-            sysFalasRef.current.push({ inicioMs: ini, fimMs: agora });
-            if (sysFalasRef.current.length > 40) sysFalasRef.current.splice(0, sysFalasRef.current.length - 40);
-          }
-          const micJanela: Intervalo = { inicioMs: micInicioRef.current.get(seq) ?? agora - audioMs, fimMs: agora };
-          micInicioRef.current.delete(seq);
-          capMetrics.final(seq, { decodeMs, queueDepth, text: clean, audioMs });
-          setSpeechSegments(prev => prev.map(s => s.id === uttId
-            ? { ...s, originalText: clean, translatedText: '…', words: wordsFromText(clean, (from || idiomaDoMotor) || sourceLang), isPartial: false, tEndMs: nowRel(), lang: (from || idiomaDoMotor) || undefined, engine }
-            : s));
-
-          /** Alimenta o perfil da sessão e devolve o idioma desta fala ('' = não descobrimos). */
-          const observarIdioma = async (): Promise<string> => {
-            // Idioma medido pelo motor dispensa o detector de texto — é medição, não palpite.
-            let detectado = idiomaDoMotor;
-            if (!detectado) {
-              try { detectado = baseLang((await detectLanguage(clean))?.lang || ''); } catch { /* '' = desconhecido */ }
-            }
-            if (!isSys || !detectado) return detectado;
-            // Alimenta o "idioma dominante da conversa" (destino da SUA fala no multi-idioma).
-            dominantLangRef.current.push(detectado);
-            // E o PERFIL ADAPTATIVO, que é quem transforma detecções soltas em conclusão: ele
-            // resiste ao tropeço isolado (histerese) e é lido pela interface e pela tradução.
-            const antes = perfilIdiomaRef.current.observado();
-            /* Transcrição do motor LOCAL sem dica de idioma vale MENOS: é justamente a
-               combinação em que o `whisper-base` traduz para inglês em vez de transcrever, e o
-               texto resultante envenenaria o perfil com "en". Não descartamos (pode ser inglês de
-               verdade), mas não deixamos decidir sozinha. Idioma vindo do motor nunca é suspeito. */
-            const suspeita = !idiomaDoMotor && engine === 'whisper-local' && !hint;
-            perfilIdiomaRef.current.observar(detectado, suspeita ? 0.5 : 1);
-            const leitura = perfilIdiomaRef.current.ler();
-            /* O ESTADO DO PERFIL VAI PARA O LOG SEMPRE, não só quando muda o destino da tradução.
-               Antes ele só aparecia no caso "redirecionado", num vídeo em espanhol com usuário em
-               português não há redirecionamento, então o perfil trabalhava em silêncio absoluto. */
-            if (leitura.idioma !== antes) {
-              clog('perfil de idioma:', antes || '(ouvindo)', '→', leitura.idioma,
-                `(${Math.round(leitura.confianca * 100)}% de ${leitura.amostras} falas)`);
-            }
-            if (leitura.estado === 'convergido' && leitura.idioma !== idiomaObservadoRef.current) {
-              setIdiomaObservado(leitura.idioma);
-            }
-            return detectado;
-          };
-
-          /** SUA VOZ no cenário conversa: é vazamento da caixa de som? E você fala mesmo o idioma configurado? */
-          const avaliarFalaDoMic = async (): Promise<boolean> => {
-            let det = idiomaDoMotor;
-            if (!det) { try { det = baseLang((await detectLanguage(clean))?.lang || ''); } catch { /* '' */ } }
-            const idiomaDoSistema = idiomaObservadoRef.current || baseLang(targetLangRef.current);
-            const abertas = [...sysAbertasRef.current.values()].map(ini => ({ inicioMs: ini, fimMs: Date.now() }));
-            const { veredicto, fracao } = classificarVazamento({
-              idiomaDetectado: det || null,
-              idiomaDoMic: from || baseLang(sourceLangRef.current),
-              idiomaDoSistema,
-              mic: micJanela,
-              falasDoSistema: [...sysFalasRef.current, ...abertas],
-            });
-            if (veredicto === 'vazamento') {
-              clog('vazamento: fala do mic soa como', det, 'com', Math.round(fracao * 100) + '% sobre o sistema → descartada (seq', seq, ')');
-              capMetrics.drop(seq);
-              setSpeechSegments(prev => prev.filter(s => s.id !== uttId));
-              if (!avisoVazamentoRef.current) {
-                avisoVazamentoRef.current = true;
-                setFeedbackMsg('O microfone está captando o áudio da chamada. Use fone de ouvido para a sua fala sair limpa.');
-                setTimeout(() => setFeedbackMsg(''), 9000);
-              }
-              return false;
-            }
-            if (det) {
-              perfilMicRef.current.observar(det, 1);
-              const leitura = perfilMicRef.current.ler();
-              const configurado = baseLang(sourceLangRef.current);
-              if (leitura.estado === 'convergido' && leitura.idioma !== configurado && !avisoIdiomaMicRef.current) {
-                avisoIdiomaMicRef.current = true;
-                clog('perfil do mic convergiu em', leitura.idioma, 'mas "eu falo" está', configurado);
-                setFeedbackMsg(`Você parece falar ${langLabel(leitura.idioma)}, mas "Eu falo" está em ${langLabel(configurado)}. Ajuste no seletor de idiomas para a transcrição melhorar.`);
-                setTimeout(() => setFeedbackMsg(''), 9000);
-              }
-            }
-            return true;
-          };
-
-          if (from) {
-            // Idioma FIXO: não há o que observar nem por que esperar.
-            if (!isSys && captureScenarioRef.current === 'conversation') {
-              void avaliarFalaDoMic().then(ok => { if (ok) translateSegment(uttId, clean, from, to, { falada: true }); });
-              return;
-            }
-            translateSegment(uttId, clean, from, to, { falada: !isSys });
-            return;
-          }
-          /* A detecção só volta a SEGURAR a tradução no caso frio em que ela é a única fonte de
-             origem, nem o motor informou, nem o perfil convergiu. Sem origem, três dos quatro
-             tradutores se recusam a atuar (`supports()` exige o par), e sobra só o LLM do
-             servidor: esperar alguns milissegundos ali compra a cascata inteira. Fora desse caso,
-             a tradução parte na hora e a observação corre por fora. */
-          const origemConhecida = idiomaDoMotor || idiomaObservadoRef.current;
-          if (origemConhecida) {
-            translateSegment(uttId, clean, origemConhecida, to, { falada: !isSys });
-            void observarIdioma().then((d) => {
-              if (d && d !== idiomaDoMotor) {
-                setSpeechSegments(prev => prev.map(s => s.id === uttId ? { ...s, lang: d } : s));
-              }
-            });
-            return;
-          }
-          void observarIdioma().then((d) => {
-            if (d) setSpeechSegments(prev => prev.map(s => s.id === uttId ? { ...s, lang: d } : s));
-            translateSegment(uttId, clean, d, to, { falada: !isSys });
-          });
-        })
-        .catch(err => {
-          clog('Whisper final', source, '(seq', seq, ') ERRO:', String(err));
-          seqToSegmentRef.current.delete(seq);
-          lastPartialTextRef.current.delete(seq);
-          capMetrics.final(seq, { queueDepth });
-          setSpeechSegments(prev => prev.map(s => s.id === uttId
-            ? { ...s, originalText: s.originalText || '(falha na transcrição)', translatedText: s.originalText ? s.translatedText : `(${String(err).slice(0, 80)})`, isPartial: false }
-            : s));
-        });
-    };
-
-    return { onSpeechStart, onMisfire, onPartialAudio, onUtterance };
-  };
-
-  const sysHandlers = makeCaptureHandlers('system');
-  const micHandlers = makeCaptureHandlers('mic');
+  /* O RELÓGIO e o PIPELINE DE MT vivem em `lib/captura/traducaoDaFala.ts`. As fábricas são
+     chamadas a cada render, como as closures que substituíram — nada de useMemo aqui, senão
+     elas congelariam `systemEnabled`/setters de um render antigo. */
+  const { nowRel, anchorSessionClock } = criarRelogioDaSessao({
+    sessionStartMsRef, shouldAnchorClockRef, systemEnabled,
+  });
+  const { translateSegment, retraduzirDegradados } = criarTraducaoDaFala({
+    gateway, ordemMtRef, sourceLangRef, targetLangRef, idiomaObservadoRef, perfilIdiomaRef,
+    speechSegmentsRef, translationCacheRef, mtFailNotifiedRef, altTargetNotifiedRef,
+    degradacaoAvisadaRef, setSpeechSegments, setFeedbackMsg,
+  });
 
   // Enunciados que chegaram ENQUANTO o modelo carregava — transcritos no flush (nada se perde).
-  const pendingUtterancesRef = useRef<Array<{ pcm: Float32Array; sr: number; rawSeq: number; source: CapSource }>>([]);
+  const pendingUtterancesRef = useRef<EnunciadoPendente[]>([]);
   // ANTI-ECO: seqs cuja fala começou enquanto o TTS do app tocava (é o nosso áudio voltando).
   const suppressedSeqsRef = useRef<Set<number>>(new Set());
-  const flushPendingUtterances = () => {
-    const pending = pendingUtterancesRef.current;
-    if (!pending.length) return;
-    pendingUtterancesRef.current = [];
-    clog('modelo pronto, transcrevendo', pending.length, 'trecho(s) guardado(s) durante a carga');
-    for (const u of pending) {
-      (u.source === 'system' ? sysHandlers : micHandlers).onUtterance(u.pcm, u.sr, u.rawSeq);
-    }
-  };
 
-  // Prepara os modelos locais (Whisper + opus-mt) com barras honestas, detecção de cache e retry.
-  // Nuvem: NÃO baixa modelo nenhum (a transcrição/tradução vai pela chave do usuário).
-  const prepareModels = async () => {
-    if (getProviderMode() === 'cloud') { modelReadyRef.current = true; setModelPrep(null); return; }
-    // A-P3-14: na captura dupla (mic + sistema) esta função era chamada DUAS vezes sem guard —
-    // as duas resetavam `modelPrep` e sobrescreviam o `onProgress` do adapter, e a barra zerava
-    // no meio. O guard é liberado no fim (sucesso ou erro) para o retry continuar possível.
-    if (prepareEmVooRef.current) { clog('preparação já em andamento, ignorando chamada duplicada'); return; }
-    prepareEmVooRef.current = true;
-    try {
-      await prepareModelsInterno();
-    } finally {
-      prepareEmVooRef.current = false;
-    }
-  };
+  /* O PIPELINE DE FALA (VAD → STT → diarização → emissão) e a preparação dos modelos moram em
+     `lib/captura/pipelineDeFala.ts`. A fábrica roda a cada render, como as closures que
+     substituiu: os handlers precisam do `micEnabled`/`micEngine` do render corrente. */
+  const { sysHandlers, micHandlers, prepareModels } = criarPipelineDeFala({
+    gateway,
+    sourceLang, sourceLangRef, targetLangRef, autoDetectLangRef, autoDetectMyLangRef,
+    idiomaObservadoRef, captureScenarioRef, perfModeRef, micEnabled, micEngine,
+    timerRef, nowRel,
+    setSpeechSegments, seqToSegmentRef, lastPartialTextRef, pendingUtterancesRef,
+    suppressedSeqsRef, modelReadyRef, prepareEmVooRef,
+    speakerProfilesRef, setSpeakerProfiles, speakerAutoIdRef, clustererRef,
+    lastVoiceIdRef, provisionalUttsRef, ensureVoiceProfile,
+    dominantLangRef, perfilIdiomaRef, perfilMicRef, avisoIdiomaMicRef, setIdiomaObservado,
+    sysFalasRef, sysAbertasRef, micInicioRef, avisoVazamentoRef,
+    translateSegment, retraduzirDegradados,
+    setFeedbackMsg, setModelPrep, setSttRouteLabel,
+  });
 
-  const prepareModelsInterno = async () => {
-    const listenLang = targetLangRef.current.split('-')[0]; // você OUVE o idioma-alvo
-    const myLang = sourceLangRef.current.split('-')[0];
-
-    // ROTEADOR DE MODELO STT: escolhe o motor pela QUALIDADE exigida pelo idioma do
-    // conteúdo (tiny erra feio fora do EN) — nuvem-primeiro quando disponível, senão o
-    // melhor modelo local viável no dispositivo. O selo da UI reflete a rota.
-    // Pelo funil: sem conta responde 501 → `cloudAvailable=false` → rota local, que é o correto.
-    const cloudAvailable = await apiFetch('/api/ai/stt/available').then(r => r.ok).catch(() => false);
-    const route = routeStt({
-      contentLang: listenLang,
-      // O mesmo modelo decodifica o MIC: se você fala PT enquanto ouve EN, "tiny de inglês" não serve.
-      micLang: micEnabled && micEngine === 'whisper' ? myLang : '',
-      autoDetect: autoDetectLangRef.current || autoDetectMyLangRef.current,
-      quality: getSttQuality(),
-      hasWebGpu: !!(navigator as any).gpu,
-      cloudAvailable,
-      profileId: getActiveProfile().id,
-    });
-    gateway.stt.setRoute({ preferCloud: route.preferCloud, localModel: route.localModel });
-    setSttRouteLabel(route.label);
-    clog('roteador STT:', route.label, '| modelo local:', route.localModel, '| nuvem primeiro:', route.preferCloud);
-
-    const cached = await areModelsCached(expectedModelIds(listenLang, myLang, route.localModel));
-
-    // NUVEM-PRIMEIRO: o motor principal é o Groq — a captura NÃO espera o download do
-    // modelo local (que é só a RESERVA). Libera o pipeline já e baixa a reserva em
-    // background; se a nuvem falhar num trecho, o adapter local aguarda o próprio load.
-    if (route.preferCloud) {
-      modelReadyRef.current = true;
-      flushPendingUtterances();
-      setModelPrep({ whisper: 0, mt: null, fromCache: cached, error: null, done: false });
-      gateway.mt.preload(listenLang, myLang, (p, _l, bytes) =>
-        setModelPrep((s) => (s ? { ...s, mt: p >= 1 ? 1 : p, mtBytes: bytes ?? s.mtBytes } : s)));
-      gateway.stt.preloadModel((p, _l, bytes) =>
-        setModelPrep((s) => (s ? { ...s, whisper: p >= 1 ? 1 : p, whisperBytes: bytes ?? s.whisperBytes } : s)))
-        .then(() => {
-          clog('reserva local pronta ✓ (nuvem segue como principal)');
-          setModelPrep((s) => (s ? { ...s, whisper: 1, done: true } : s));
-          setTimeout(() => setModelPrep((s) => (s?.done ? null : s)), 1800);
-        })
-        .catch((e) => {
-          // A-P1-5: aqui só havia um clog(). Com a nuvem como principal, a falha do modelo local
-          // é degradação — não é fatal — mas ficava INVISÍVEL: medido, 150 s com a rede caída e
-          // o painel ainda dizendo "Baixando modelo", sem erro algum e sem botão de retry.
-          // Agora o estado de erro do ModelPrepPanel é alcançável nesta rota também.
-          clog('reserva local falhou (nuvem segue como principal):', String(e));
-          const msg = String((e as Error)?.message ?? e);
-          setModelPrep((s) => (s ? { ...s, error: msg } : s));
-        });
-      return;
-    }
-
-    modelReadyRef.current = false;
-    setModelPrep({ whisper: 0, mt: null, fromCache: cached, error: null, done: false });
-    try {
-      // Tradutor local (best-effort; direção "ouço → meu idioma"). Emite barra própria.
-      gateway.mt.preload(listenLang, myLang, (p, _l, bytes) => {
-        setModelPrep((s) => (s ? { ...s, mt: p >= 1 ? 1 : p, mtBytes: bytes ?? s.mtBytes } : s));
-        if (p >= 1) {
-          /* O tradutor local (113 MB) fica pronto DEPOIS do Whisper. Tudo que foi falado nesse
-             intervalo já tinha degradado para "(texto original)" e ficava assim para sempre,
-             medido no teste do dono (2026-08-26): legenda certa, tradução nenhuma. Retraduz. */
-          retraduzirDegradados();
-          setTimeout(() => setModelPrep((s) => (s?.done ? null : s)), 1800);
-        }
-      });
-      // Whisper (obrigatório para transcrever o áudio do sistema/aba).
-      await gateway.stt.preloadModel((p, _l, bytes) =>
-        setModelPrep((s) => (s ? { ...s, whisper: p >= 1 ? 1 : p, whisperBytes: bytes ?? s.whisperBytes } : s)));
-      clog('modelos locais prontos ✓');
-      modelReadyRef.current = true;
-      flushPendingUtterances();
-      setModelPrep((s) => (s ? { ...s, whisper: 1, done: true } : s));
-      // O painel só some quando o tradutor também acabou (ou não existe para este par).
-      setTimeout(() => setModelPrep((s) => (s?.done && (s.mt == null || s.mt >= 1) ? null : s)), 1800);
-    } catch (e) {
-      clog('preparação do modelo FALHOU:', String(e));
-      const msg = String((e as Error)?.message ?? e);
-      setModelPrep((s) => (s ? { ...s, error: msg } : { whisper: null, mt: null, fromCache: cached, error: msg, done: false }));
-    }
-  };
-
-  // Inicia a captura do áudio do sistema/aba: pede a fonte (gesto do usuário) e prepara o modelo.
-  const handleStartSystemCapture = async () => {
-    // O estado de gravação (isRecording/timer) já foi ligado por handleStartRecording (captura dupla).
-    const source = systemSourceRef.current;
-    clog('sistema: preparar modelos locais + fonte:', source);
-    void prepareModels();
-    try {
-      const cb = {
-        onUtterance: sysHandlers.onUtterance,
-        onSpeechStart: (seq: number) => { clog('VAD: início de fala (sistema, seq', seq, ')'); sysHandlers.onSpeechStart(seq); },
-        onPartialAudio: sysHandlers.onPartialAudio,
-        onMisfire: (seq: number) => sysHandlers.onMisfire(seq),
-        onLevel: pushLevel,
-        onStatus: (msg: string) => { clog('sistema:', msg); setFeedbackMsg(msg); setTimeout(() => setFeedbackMsg(''), 4000); },
-        onError: (err: Error) => { clog('sistema ERRO assíncrono:', err.message); setFeedbackMsg('Erro na captura do sistema: ' + err.message); setTimeout(() => setFeedbackMsg(''), 6000); },
-      };
-      systemCaptureRef.current = source === 'server'
-        ? await startServerLoopbackCapture(cb)
-        : source === 'loopback'
-          ? await (async () => {
-              /* Sem dispositivo escolhido E sem nenhum candidato (Stereo Mix / VB-Cable) o getUserMedia
-                 abriria o MICROFONE padrão, e a pessoa acharia que o "loopback" estava ligado enquanto
-                 ouvia o próprio ambiente. Medido no teste do dono (2026-08-26): sem legenda nenhuma.
-                 Melhor recusar com o caminho certo do que capturar a fonte errada em silêncio. */
-              if (!loopbackDeviceIdRef.current) {
-                const { inputs } = await listDevices();
-                if (!filterLoopbackDevices(inputs).detected) {
-                  throw new Error('Nenhum dispositivo de loopback (Stereo Mix / VB-Cable) existe neste computador, sem ele, esta rota captaria o microfone. Use "Compartilhar aba/tela" (marque "compartilhar áudio") ou instale o VB-Audio Cable.');
-                }
-              }
-              return startSystemLoopbackCapture(loopbackDeviceIdRef.current || undefined, cb);
-            })()
-          : await startSystemAudioCapture(cb);
-      clog('captura do sistema ATIVA ✓');
-      if (systemCaptureRef.current) anchorSessionClock(systemCaptureRef.current.startedAtMs, 'system');
-      setFeedbackMsg(micEnabled
-        ? 'Captura DUPLA ativa: microfone (você) + sistema/aba (outros). A transcrição do sistema aparece e refina em tempo real.'
-        : 'Capturando áudio do sistema/aba. A transcrição aparece e refina em tempo real (Whisper local).');
-      setTimeout(() => setFeedbackMsg(''), 5000);
-    } catch (err) {
-      clog('getDisplayMedia FALHOU:', (err as Error).message);
-      const code = (err as Error & { code?: string }).code;
-      if (code === 'JANELA_SEM_AUDIO' || code === 'SEM_AUDIO_COMPARTILHADO') {
-        // Sem áudio na superfície escolhida: em vez de um toast que some, um guia com o botão
-        // de tentar de novo (o picker só reabre com um novo gesto do usuário).
-        setIsFocusMode(false);
-        setGuiaDeAudio(code);
-      } else {
-        setFeedbackMsg((err as Error).message);
-        setTimeout(() => setFeedbackMsg(''), 7000);
-      }
-      // mantém o painel se estava em erro de modelo; só limpa se não havia erro
-      setModelPrep((s) => (s?.error ? s : null));
-      // Se o sistema era a ÚNICA fonte, encerra a gravação (se o mic também estiver ligado, ele continua).
-      if (!micEnabled) {
-        setIsRecording(false);
-        isRecordingRef.current = false;
-      } else if (micStartedAtRef.current) {
-        // Sistema falhou, mas o mic segue: o áudio salvo passa a ser o do mic → ancora nele.
-        anchorSessionClock(micStartedAtRef.current, 'mic-fallback');
-      }
-    }
-  };
-
-  // Inicia a captura do MICROFONE (sua voz) — mesmo pipeline VAD+Whisper do sistema, no
-  // dispositivo de entrada escolhido. Substitui a antiga Web Speech API (que não deixava
-  // escolher o dispositivo nem funcionava offline).
-  const handleStartMicCapture = async () => {
-    clog('mic: preparar modelos locais + getUserMedia…');
-    void prepareModels();
-    try {
-      micCaptureRef.current = await startMicCapture(inputDeviceIdRef.current || undefined, {
-        onUtterance: micHandlers.onUtterance,
-        onSpeechStart: (seq) => { clog('VAD: início de fala (mic, seq', seq, ')'); micHandlers.onSpeechStart(seq); },
-        onPartialAudio: micHandlers.onPartialAudio,
-        onMisfire: (seq) => micHandlers.onMisfire(seq),
-        onLevel: pushLevel,
-        onStatus: (msg) => { clog('mic:', msg); setFeedbackMsg(msg); setTimeout(() => setFeedbackMsg(''), 4000); },
-        onError: (err) => { clog('mic ERRO assíncrono:', err.message); setFeedbackMsg('Erro no microfone: ' + err.message); setTimeout(() => setFeedbackMsg(''), 6000); },
-      });
-      clog('captura do microfone ATIVA ✓');
-      micStartedAtRef.current = micCaptureRef.current?.startedAtMs ?? 0;
-      anchorSessionClock(micStartedAtRef.current, 'mic'); // ancora só se o mic for a fonte do áudio salvo
-      if (!systemEnabled) {
-        setFeedbackMsg('Microfone ativo (Whisper local). Fale, a transcrição aparece e refina em tempo real.');
-        setTimeout(() => setFeedbackMsg(''), 3500);
-      }
-    } catch (err) {
-      clog('getUserMedia(mic) FALHOU:', (err as Error).message);
-      setFeedbackMsg((err as Error).message);
-      setTimeout(() => setFeedbackMsg(''), 7000);
-      setModelPrep((s) => (s?.error ? s : null));
-      if (!systemEnabled) { // mic era a única fonte → encerra a gravação
-        setIsRecording(false);
-        isRecordingRef.current = false;
-      }
-    }
-  };
-
-  // Medidor de nível LEVE (só p/ o waveform) — necessário no motor navegador, pois a Web Speech
-  // não expõe o áudio. Abre um getUserMedia próprio e mede RMS. Best-effort.
-  const startMeter = async () => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        audio: inputDeviceIdRef.current ? { deviceId: { exact: inputDeviceIdRef.current } } : true,
-      });
-      const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
-      const an = ctx.createAnalyser();
-      an.fftSize = 512;
-      ctx.createMediaStreamSource(stream).connect(an);
-      const buf = new Float32Array(an.fftSize);
-      const iv = setInterval(() => {
-        an.getFloatTimeDomainData(buf);
-        let s = 0;
-        for (let i = 0; i < buf.length; i++) s += buf[i] * buf[i];
-        pushLevel(Math.min(1, Math.sqrt(s / buf.length) * 4));
-      }, 50);
-      meterRef.current = { stop: () => { clearInterval(iv); stream.getTracks().forEach(t => t.stop()); ctx.close().catch(() => {}); } };
-    } catch { /* medidor é opcional */ }
-  };
-
-  // MICROFONE via Web Speech API (navegador) — motor PADRÃO: leve, sem baixar modelo, ótimo p/
-  // português. Usa o adaptador WebSpeechStt do gateway. Não escolhe dispositivo (usa o padrão do
-  // SO) — para isso, o usuário troca para o motor Whisper. Sem streaming de PCM: partials/finais.
-  const startWebSpeechMic = () => {
-    const speakerId = 'user';
-    const from = sourceLangRef.current.split('-')[0];
-    const to = targetLangRef.current.split('-')[0];
-    try {
-      webSpeechRef.current = new WebSpeechStt().startLive(sourceLangRef.current, {
-        onPartial: (text: string) => {
-          if (isTtsActive()) return; // anti-eco: o mic ouviu o TTS do app pelos alto-falantes
-          const clean = text.trim();
-          if (!clean) return;
-          if (!webSpeechPartialIdRef.current) webSpeechPartialIdRef.current = Math.random().toString(36).slice(2, 11);
-          const pid = webSpeechPartialIdRef.current;
-          setSpeechSegments(prev => {
-            const idx = prev.findIndex(s => s.id === pid);
-            if (idx !== -1) { const u = [...prev]; u[idx] = { ...u[idx], originalText: clean }; return u; }
-            return [...prev, { id: pid, speakerId, source: 'mic' as const, timestamp: formatTime(timerRef.current), originalText: clean, translatedText: '…', words: [], isPartial: true, tStartMs: nowRel() }];
-          });
-        },
-        onFinal: ({ text }: { text: string }) => {
-          if (isTtsActive()) { webSpeechPartialIdRef.current = null; return; } // anti-eco no final também
-          const clean = text.trim();
-          if (!clean) return;
-          const uttId = webSpeechPartialIdRef.current ?? Math.random().toString(36).slice(2, 11);
-          webSpeechPartialIdRef.current = null;
-          setSpeechSegments(prev => {
-            const existing = prev.find(s => s.id === uttId);
-            const committed: SpeechSegment = {
-              id: uttId, speakerId, source: 'mic', timestamp: formatTime(timerRef.current),
-              originalText: clean, translatedText: '…', words: wordsFromText(clean, sourceLang), isPartial: false,
-              tStartMs: existing?.tStartMs ?? nowRel(), tEndMs: nowRel(),
-            };
-            const idx = prev.findIndex(s => s.id === uttId);
-            if (idx !== -1) { const u = [...prev]; u[idx] = committed; return u; }
-            return [...prev, committed];
-          });
-          translateSegment(uttId, clean, from, to, { falada: true });
-        },
-        onError: (e: Error) => { clog('web-speech mic erro:', String(e)); },
-      });
-      clog('microfone (Web Speech) ATIVO ✓');
-      void startMeter(); // waveform real (a Web Speech não fornece nível)
-      if (!systemEnabled) {
-        setFeedbackMsg('Microfone (navegador) ativo, transcrição instantânea. Fale à vontade.');
-        setTimeout(() => setFeedbackMsg(''), 3000);
-      }
-    } catch (e) {
-      setFeedbackMsg('Web Speech indisponível: ' + (e as Error).message + ', troque para o motor Whisper.');
-      setTimeout(() => setFeedbackMsg(''), 5000);
-      if (!systemEnabled) { setIsRecording(false); isRecordingRef.current = false; }
-    }
-  };
-
-  // Liga o microfone conforme o motor escolhido (navegador vs Whisper).
-  // Devolve promessa para que quem liga o mic NO MEIO da sessão saiba quando a permissão
-  // do navegador terminou — é esse intervalo que o botão mostra como "pedindo permissão…".
-  const startMic = async (): Promise<void> => {
-    if (micEngine === 'browser' && webSpeechSupported) startWebSpeechMic();
-    else await handleStartMicCapture();
-  };
-
-  /**
-   * O INTERRUPTOR DO MICROFONE — a única fonte que a pessoa escolhe, e ela pode escolher
-   * A QUALQUER MOMENTO, inclusive no meio da gravação.
-   *
-   * O QUE ISTO SUBSTITUI. A tela pedia, ANTES de gravar, quais fontes entravam: dois cartões
-   * ("Som do computador" / "Meu microfone") mais um seletor de rota. Era uma decisão tomada no
-   * pior momento possível — antes de a sessão existir — e irreversível depois: quem começasse a
-   * assistir uma aula e quisesse repetir uma frase em voz alta tinha de parar, salvar e recomeçar.
-   * Agora o som do computador entra sempre e o microfone é um MUDO/ATIVO, como em qualquer chamada.
-   *
-   * TRÊS CAMINHOS, porque o estado real da captura é diferente em cada um:
-   *  1. Fora da sessão — só marca a preferência; nada é aberto (nenhuma permissão pedida à toa).
-   *  2. Primeira vez ATIVO na sessão — abre a captura agora. É aqui, e só aqui, que o navegador
-   *     pede permissão do microfone: quem nunca desmuta nunca vê o pedido.
-   *  3. Já aberto — alterna o mudo da faixa. Nada de fechar e reabrir: ver `AudioCapture.setMuted`.
-   */
-  const alternarMicrofone = (ligado: boolean) => {
-    marcarMicrofone(ligado);
-    if (!isRecordingRef.current) return; // (1) fora da sessão: só a preferência
-
-    if (!ligado) {
-      micCaptureRef.current?.setMuted(true);
-      /* O motor NAVEGADOR (Web Speech) não grava áudio nenhum — não há blob para preservar,
-         então encerrar o reconhecedor É o mudo dele. Ao desmutar, começa outro. */
-      if (webSpeechRef.current) {
-        try { webSpeechRef.current.stop(); } catch { /* já parado */ }
-        webSpeechRef.current = null;
-        webSpeechPartialIdRef.current = null;
-      }
-      clog('microfone MUDO no meio da sessão');
-      setFeedbackMsg('Microfone mudo, só o som do computador entra agora.');
-      setTimeout(() => setFeedbackMsg(''), 2500);
-      return;
-    }
-
-    if (micCaptureRef.current) {                       // (3) já aberto: só desmuta
-      micCaptureRef.current.setMuted(false);
-      clog('microfone ATIVO de novo (faixa reabilitada)');
-      setFeedbackMsg('Microfone ativo, sua fala entra a partir de agora.');
-      setTimeout(() => setFeedbackMsg(''), 2500);
-      return;
-    }
-
-    clog('microfone ATIVO no meio da sessão: abrindo a captura agora');  // (2) primeira vez
-    setMicAbrindo(true);
-    void startMic().finally(() => setMicAbrindo(false));
-  };
+  /* AS FONTES DE ÁUDIO (sistema/aba, microfone, medidor e o interruptor do mic) moram em
+     `lib/captura/fontesDeAudio.ts`. Fábrica por render, como as closures que substituiu: elas
+     leem `micEnabled`/`micEngine`/`systemEnabled` do render corrente nos caminhos de erro. */
+  const { handleStartSystemCapture, startMic, alternarMicrofone } = criarFontesDeAudio({
+    sysHandlers, micHandlers, prepareModels,
+    systemSourceRef, loopbackDeviceIdRef, inputDeviceIdRef,
+    systemCaptureRef, micCaptureRef, webSpeechRef, webSpeechPartialIdRef, meterRef,
+    isRecordingRef, micStartedAtRef, timerRef,
+    sourceLang, sourceLangRef, targetLangRef,
+    micEnabled, systemEnabled, micEngine, webSpeechSupported,
+    pushLevel, nowRel, anchorSessionClock, translateSegment,
+    marcarMicrofone, setSpeechSegments, setFeedbackMsg, setIsFocusMode, setGuiaDeAudio,
+    setModelPrep, setIsRecording, setMicAbrindo,
+  });
 
   // Harness OFFLINE de teste (dev): injeta um PCM conhecido pelo MESMO caminho do sistema
   // (speechStart → parciais crescentes → utterance final), sem precisar de um compartilhamento
@@ -2104,325 +1056,27 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
     if (!loopbackDetected || testeFalhou) setShowSetupGuide(true);
   }, [systemSource, loopbackDetected, probe]);
 
-  const handleStartRecording = () => {
-    if (!micEnabled && !systemEnabled) {
-      setFeedbackMsg('Selecione ao menos uma fonte: Microfone e/ou Sistema.');
-      setTimeout(() => setFeedbackMsg(''), 4000);
-      return;
-    }
-    // RETOMANDO: já há transcript reidratado → NÃO zere timer/segmentos; o relógio da
-    // sessão recua `timer` segundos para que os novos enunciados continuem a linha do tempo.
-    const resuming = !!(resumeId && speechSegments.length > 0);
-    // Retorno sensorial no momento exato em que a gravação começa — som + rajada saindo do botão
-    // que a pessoa acabou de apertar. Antes, começar a gravar era completamente silencioso.
-    play('recordStart');
-    burstFromElement(document.activeElement, 'record');
-    clog('▶ START, microfone:', micEnabled, '| sistema:', systemEnabled, resuming ? '| RETOMANDO' : '');
-    setIsRecording(true);
-    /* Gravou → FOCO CHEIO na hora (pedido do dono, 2026-08-27): a tela de acompanhar é a melhor
-       casa da legenda ao vivo; a barra do topo do Foco oferece as outras rotas. */
-    setIsFocusMode(true);
-    isRecordingRef.current = true;
-    sessionStartMsRef.current = resuming ? Date.now() - timer * 1000 : Date.now();
-    shouldAnchorClockRef.current = !resuming; // sessão nova → o relógio será re-ancorado ao recorder
-    micStartedAtRef.current = 0;
-    partialIdRef.current = null;
-    seqToSegmentRef.current.clear();
-    lastPartialTextRef.current.clear();
-    ordemMtRef.current.limpar(); // os selos são por segmento; sessão nova começa do zero
-    capMetrics.reset();
-    // Identificação de voz: sessão nova = memória de vozes nova (retomada mantém os clusters
-    // — as "Pessoas" já nomeadas continuam valendo). O modelo (6,7MB, cacheado) carrega em
-    // background; o painel Falantes mostra o estado honesto.
-    if (!resuming) {
-      clustererRef.current.reset();
-      dominantLangRef.current.reset();
-      // Sessão nova não herda a conclusão da anterior: o conteúdo pode ser outro idioma.
-      perfilIdiomaRef.current.reset();
-      setIdiomaObservado('');
-      altTargetNotifiedRef.current = false;
-      lastVoiceIdRef.current = null;
-      provisionalUttsRef.current.clear();
-    }
-    if (captureScenario === 'conversation' && speakerAutoId && systemEnabled) {
-      setSpeakerIdStatus('loading');
-      void preloadSpeakerId().then((ok) => {
-        setSpeakerIdStatus(ok ? 'ready' : 'unavailable');
-        clog(ok ? 'identificação de voz PRONTA ✓ (WeSpeaker q8, WASM)' : 'identificação de voz INDISPONÍVEL, segue com atribuição manual');
-      });
-    } else {
-      setSpeakerIdStatus('off');
-    }
-    // Aquece o MT local (opus-mt) para as DUAS direções (mic: fonte→alvo; sistema: alvo→fonte),
-    // em background — assim já está pronto quando as traduções começarem (sem aquecer no meio).
-    const s = sourceLang.split('-')[0], t = targetLang.split('-')[0];
-    gateway.mt.warmup([[s, t], [t, s]]);
-    if (!resuming) setTimer(0);
-    if (micEnabled) void startMic();
-    if (systemEnabled) void handleStartSystemCapture();
-  };
-
-  // Start "limpo" a partir dos botões: só descarta o transcript quando NÃO estamos
-  // retomando uma sessão (retomar continua de onde parou).
-  const handleStartOrResume = () => {
-    if (!(resumeId && speechSegments.length > 0)) setSpeechSegments([]);
-    handleStartRecording();
-  };
-
-  // Sai do modo "retomar": a partir daqui a próxima gravação é uma sessão NOVA.
-  const handleExitResume = () => {
-    setResumeId(null);
-    setSpeechSegments([]);
-    setTimer(0);
-    setCustomSessionTitle('');
-    setFeedbackMsg('Modo retomar encerrado, a próxima captura cria uma sessão nova.');
-    setTimeout(() => setFeedbackMsg(''), 3000);
-  };
-
-  // Parar a gravação NÃO salva mais direto: encerra as fontes, guarda o áudio e abre o
-  // modal de encerramento (título + capa + destino). A persistência real acontece em
-  // handleFinalizeSave, com o título/capa escolhidos.
-  const handleStopRecording = async () => {
-    play('recordStop');
-    setIsRecording(false);
-    isRecordingRef.current = false;
-    partialIdRef.current = null;
-    setModelPrep(null);
-    clog('■ STOP');
-    if (webSpeechRef.current) {
-      try { webSpeechRef.current.stop(); } catch {}
-      webSpeechRef.current = null;
-      webSpeechPartialIdRef.current = null;
-    }
-    if (meterRef.current) { meterRef.current.stop(); meterRef.current = null; }
-    let sysBlob: Blob | null = null;
-    let micBlob: Blob | null = null;
-    let sysInicioMs = 0;
-    if (systemCaptureRef.current) {
-      sysInicioMs = systemCaptureRef.current.startedAtMs ?? 0;
-      try { sysBlob = await systemCaptureRef.current.stop(); } catch {}
-      systemCaptureRef.current = null;
-    }
-    if (micCaptureRef.current) {
-      try { micBlob = await micCaptureRef.current.stop(); } catch {}
-      micCaptureRef.current = null;
-    }
-    // Player do Analysis: com as DUAS fontes, mistura (a sua voz também fica na sessão — antes o
-    // mic era descartado e a pessoa não conseguia se reescutar nos exercícios); senão, a que houver.
-    recordedAudioRef.current = sysBlob ?? micBlob;
-    if (sysBlob && micBlob) {
-      try {
-        const offsetMic = sysInicioMs > 0 && micStartedAtRef.current > 0 ? micStartedAtRef.current - sysInicioMs : 0;
-        recordedAudioRef.current = await misturarAudios(sysBlob, micBlob, offsetMic);
-        clog('áudio da sessão: sistema + microfone misturados (offset', Math.round(offsetMic), 'ms)');
-      } catch (e) {
-        clog('mixagem falhou, mantendo só o áudio do sistema:', String(e));
-      }
-    }
-    seqToSegmentRef.current.clear();
-    lastPartialTextRef.current.clear();
-    clog('métricas da sessão:', capMetrics.summary());
-
-    if (speechSegments.length === 0) {
-      setFeedbackMsg('Nenhuma fala capturada, nada para salvar.');
-      setTimeout(() => setFeedbackMsg(''), 3000);
-      return;
-    }
-
-    // Pré-preenche o modal: retomando → título/capa existentes; senão, título por data.
-    if (resumeId) {
-      const existing = (recordings ?? []).find(r => r.id === resumeId);
-      setCustomSessionTitle(prev => prev.trim() || existing?.title || `Captura ao vivo, ${dataHora(new Date())}`);
-      setCustomSessionImage(existing?.imageUrl ?? '');
-      setImgQuery(existing?.title ?? '');
-    } else {
-      setCustomSessionTitle(`Captura ao vivo, ${dataHora(new Date())}`);
-      setCustomSessionImage('');
-      setImgQuery('');
-    }
-    setImgResults([]);
-    setShowSaveModal(true);
-  };
-
-  // "Continuar Gravando": fecha o modal e volta a capturar SEM perder o transcript
-  // já feito (o relógio segue de onde parou via `resuming` no handleStartRecording).
-  const handleCancelStop = () => {
-    setShowSaveModal(false);
-    setIsRecording(true);
-    isRecordingRef.current = true;
-    sessionStartMsRef.current = Date.now() - timer * 1000; // continua a linha do tempo
-    if (micEnabled) void startMic();
-    if (systemEnabled) void handleStartSystemCapture();
-    setFeedbackMsg('Gravação retomada!');
-    setTimeout(() => setFeedbackMsg(''), 1500);
-  };
-
-  // Persistência REAL das saídas do modal. Sessão NOVA → createSession; sessão RETOMADA
-  // (resumeId) → substitui as falas + atualiza título/duração + capa, MANTENDO o mesmo id
-  // (nunca duplica na Biblioteca). Depois sobe o áudio e gera os cards de vocabulário.
-  const handleFinalizeSave = async (shouldRedirect: boolean) => {
-    const segs = speechSegments;
-    const title = customSessionTitle.trim() || `Captura ao vivo, ${dataHora(new Date())}`;
-    const cover = customSessionImage.trim();
-    setShowSaveModal(false);
-    setFeedbackMsg('Salvando sessão…');
-    try {
-      const nameOf = (id: string) => speakerProfilesRef.current.find(p => p.id === id)?.name ?? id;
-      // Idiomas POR FALA (não por sessão): as duas fontes são INVERSAS — o áudio do SISTEMA
-      // vem no idioma-ALVO e é traduzido para o seu; o MIC é o contrário (ver `langs()` em
-      // makeCaptureHandlers). Gravar `sourceLang` fixo aqui fazia a Análise/Leitura narrarem o
-      // texto estrangeiro com a voz do idioma errado.
-      const utterances: NewUtterancePayload[] = segs.map((s, i) => {
-        const isSys = s.source === 'system'; // FONTE decide a direção (speakerId agora pode ser 'voice_N')
-        return {
-          idx: i,
-          source: isSys ? 'system' : 'mic',
-          speakerName: nameOf(s.speakerId),
-          // Idioma REAL detectado (multi-idioma) vence; senão, o da config.
-          sourceLang: s.lang ? (toBcp47(s.lang) || s.lang) : (isSys ? targetLang : sourceLang),
-          engine: s.engine ?? (isSys ? 'whisper-local' : micEngine === 'browser' ? 'web-speech' : 'whisper-local'),
-          sourceText: s.originalText,
-          targetLang: isSys ? sourceLang : targetLang,   // idioma de `translatedText`
-          translatedText: s.translatedText,
-          tStartMs: s.tStartMs,
-          tEndMs: s.tEndMs,
-        };
-      });
-
-      let recording: Recording | null = null;
-      if (resumeId) {
-        // Retomada: substitui TODAS as falas (append duplicaria as antigas já reidratadas),
-        // renomeia/ajusta duração e grava a capa — tudo no MESMO id.
-        recording = await replaceSessionUtterances(resumeId, utterances);
-        const upd = await updateSession(resumeId, { title, durationMs: timer * 1000 });
-        if (upd) recording = upd;
-        if (cover) { const r = await patchSessionMeta(resumeId, { imageUrl: cover }); if (r) recording = r; }
-        if (!recording) {
-          // Fallback honesto se o backend não devolveu a linha: reusa o que já existia.
-          const existing = (recordings ?? []).find(r => r.id === resumeId);
-          recording = {
-            id: resumeId,
-            title,
-            date: existing?.date ?? 'Agora',
-            durationStr: formatTime(timer),
-            wordCount: existing?.wordCount ?? 0,
-            type: existing?.type ?? 'audio',
-            tags: existing?.tags ?? [],
-            status: 'Processado',
-            imageUrl: cover || existing?.imageUrl,
-          };
-        }
-        if (recordedAudioRef.current) {
-          const url = await uploadSessionAudio(resumeId, recordedAudioRef.current);
-          if (url) recording.audioUrl = url;
-        }
-      } else {
-        recording = await createSession({
-          title,
-          kind: 'live',
-          sourceLang,
-          targetLang,
-          status: 'done',
-          durationMs: timer * 1000,
-          utterances,
-        });
-        if (cover) { const r = await patchSessionMeta(recording.id, { imageUrl: cover }); if (r) recording = r; }
-        if (recordedAudioRef.current) {
-          const url = await uploadSessionAudio(recording.id, recordedAudioRef.current);
-          if (url) recording.audioUrl = url;
-        }
-      }
-
-      // Vocabulário das palavras REAIS extraídas das falas (verso via MT, cloze da frase real).
-      // O idioma da PALAVRA é o da fala de onde ela veio (sistema = alvo; mic = fonte) — é o que
-      // Estudo/Métricas leem depois para falar/traduzir no idioma certo. Traduzir sempre de
-      // `sourceLang`→`targetLang` invertia a direção nas palavras vindas do áudio do sistema.
-      /* A SESSÃO JÁ ESTÁ SALVA AQUI. Libera a tela ANTES de enriquecer o vocabulário.
-         Antes, `onSave()` só rodava depois de traduzir palavra por palavra, e a pessoa ficava
-         presa em "Salvando sessão…" sem conseguir iniciar outra captura nem navegar. O que
-         importa, a gravação e as falas, já está no servidor neste ponto; o verso dos cartões
-         é enriquecimento, e enriquecimento não segura ninguém. */
-      onSave(recording, shouldRedirect);
-      recordedAudioRef.current = null;
-      setResumeId(null);
-      setSpeechSegments([]);
-      setTimer(0);
-      setCustomSessionImage('');
-      setFeedbackMsg('Sessão salva · fichando vocabulário…');
-
-      // Monta a lista de palavras únicas. O idioma da PALAVRA é o da fala de onde ela veio.
-      const seen = new Set<string>();
-      type Pendente = { word: string; back: string; sentence: string; srcLang: string; tgtLang: string };
-      const pendentes: Pendente[] = [];
-      for (const s of segs) {
-        const isSys = s.source === 'system';
-        const wordLang = isSys ? targetLang : sourceLang;  // idioma da palavra capturada
-        const backLang = isSys ? sourceLang : targetLang;  // idioma do verso (tradução)
-        for (const w of s.words as any[]) {
-          const word = String(w?.word ?? '');
-          const key = word.toLowerCase();
-          if (!key || seen.has(key)) continue;
-          seen.add(key);
-          pendentes.push({ word, back: String(w?.translation ?? ''), sentence: s.originalText, srcLang: wordLang, tgtLang: backLang });
-        }
-      }
-
-      /* Os versos que faltam vão em LOTE, com desistência rápida e concorrência limitada
-         (`lib/versosDoVocabulario`). O laço serial anterior fazia uma chamada de rede por
-         palavra, e com o tradutor fora do ar, cada uma ainda pagava a tentativa antes de
-         estourar. Quanto pior o tradutor, mais longa a espera. */
-      const semVerso = pendentes.filter((p) => !p.back);
-      const traducao = await traduzirVersos(
-        semVerso.map((p) => ({ word: p.word, src: baseLang(p.srcLang), tgt: baseLang(p.tgtLang) })),
-        (texto, de, para) => gateway.mt.translate(texto, de, para),
-      );
-
-      const cards = pendentes.map((p) => {
-        const cloze = makeCloze(p.sentence, p.word);
-        return {
-          word: p.word,
-          back: p.back || traducao.versos.get(p.word.toLowerCase()) || '',
-          sentence: p.sentence,
-          srcLang: p.srcLang,
-          tgtLang: p.tgtLang,
-          clozePrompt: cloze?.prompt,
-          clozeAnswer: cloze?.answer,
-          sessionId: recording.id,
-        };
-      });
-      /* O NÚMERO QUE A TELA MOSTRA É O QUE O SERVIDOR GRAVOU, não o que tentamos gravar.
-         `cards` é a lista TENTADA; desde que a régua de qualidade entrou, boa parte dela é
-         recusada (repetida, sem tradução, ruído). A tela continuava anunciando o total tentado,
-         dizia "30 cards" quando entraram 12. Inflar em silêncio foi como o baralho chegou a 1.506
-         cartões com 194 repetições; anunciar o que não entrou é a mesma mentira com outro nome. */
-      const entrada = cards.length ? await bulkAddCards(cards) : { cards: [], skipped: [] };
-
-      const salvos = entrada.cards.length;
-      const pulados = resumoDosPulados(entrada.skipped);
-      // A parada da tradução entra na mensagem: "sem verso" por falta de tradutor é um fato
-      // sobre o resultado, e omiti-lo faria a contagem parecer um limite do texto capturado.
-      const parada = explicarParada(traducao);
-      setFeedbackMsg(
-        salvos || entrada.skipped.length
-          ? `Sessão salva · ${salvos} palavra(s) fichada(s)`
-            + (pulados ? ` · ${entrada.skipped.length} pulada(s): ${pulados}` : '')
-            + (parada ? ` · ${parada}` : '')
-          : 'Sessão salva.',
-      );
-      // Mais tempo quando há motivo para ler: a linha ficou maior que "salvo com N cards".
-      setTimeout(() => setFeedbackMsg(''), pulados ? 7000 : 4000);
-    } catch (e) {
-      setShowSaveModal(true); // reabre para o usuário tentar de novo, sem perder o transcript
-      setFeedbackMsg('Falha ao salvar a sessão: ' + (e as Error).message);
-      setTimeout(() => setFeedbackMsg(''), 4000);
-    }
-  };
-
-  const formatTime = (s: number) => {
-    const mins = Math.floor(s / 60);
-    const secs = s % 60;
-    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-  };
+  /* O CICLO DA SESSÃO — começar, retomar, parar e SALVAR — mora em `lib/captura/salvarSessao.ts`.
+     Fábrica por render, como as closures que substituiu: `handleStartRecording` e
+     `handleFinalizeSave` leem `timer`, `speechSegments` e o par de idiomas do render corrente. */
+  const {
+    handleStartOrResume, handleExitResume,
+    handleStopRecording, handleCancelStop, handleFinalizeSave,
+  } = criarSalvarSessao({
+    gateway, onSave, recordings,
+    speechSegments, timer, sourceLang, targetLang, micEnabled, systemEnabled, micEngine,
+    captureScenario, speakerAutoId, resumeId, customSessionTitle, customSessionImage,
+    startMic, handleStartSystemCapture,
+    systemCaptureRef, micCaptureRef, webSpeechRef, webSpeechPartialIdRef, meterRef,
+    recordedAudioRef,
+    isRecordingRef, sessionStartMsRef, shouldAnchorClockRef, micStartedAtRef, partialIdRef,
+    seqToSegmentRef, lastPartialTextRef, ordemMtRef,
+    clustererRef, dominantLangRef, perfilIdiomaRef, altTargetNotifiedRef, lastVoiceIdRef,
+    provisionalUttsRef, speakerProfilesRef,
+    setIsRecording, setIsFocusMode, setTimer, setSpeechSegments, setIdiomaObservado,
+    setSpeakerIdStatus, setModelPrep, setResumeId, setShowSaveModal, setCustomSessionTitle,
+    setCustomSessionImage, setImgQuery, setImgResults, setFeedbackMsg,
+  });
 
   // --- RETOMAR SESSÃO: reidrata o transcript REAL do backend (não usa mock) ---
   useEffect(() => {
@@ -2619,124 +1273,15 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
    */
   const selectedWordLangRef = useRef<string>('');
 
-  /**
-   * Seleciona uma palavra para análise.
-   *
-   * O idioma NÃO é mais chutado como "o idioma-alvo": ele é resolvido por `vocabWord.resolveWord` a
-   * partir da FRASE de onde a palavra saiu (`context`), tendo o idioma declarado daquela linha
-   * (`declaredLang`) como rótulo de partida. E a tradução vai na direção decidida pelo idioma DA
-   * PALAVRA — traduzir sempre `mine → studying` mandava a palavra inglesa ao MT declarada como
-   * portuguesa (era exatamente o bug de "verbete que não existe").
-   */
-  const examineWord = async (w: VocabWord, declaredLang?: string, context?: string) => {
-    const origin: WordOrigin = {
-      word: w.word,
-      context: context ?? w.example,
-      declaredLang: declaredLang || undefined,
-      config: langConfigRef.current,
-    };
-
-    // 1) Idioma REAL primeiro (detecção local, sem rede): painel e pronúncia já saem certos.
-    const resolved = await resolveWord(origin);
-    selectedWordLangRef.current = resolved.lang;
-    setSelectedExamWord({
-      ...w,
-      lang: resolved.lang || undefined,
-      example: resolved.context ?? w.example,
-    });
-    speakWord(w.word, resolved.lang);
-
-    if (w.translation) return;
-
-    // 2) Verso pelo MT real, no par que `vocabWord` decidiu (sem motor para o par → sem tradução,
-    //    honestamente, em vez de um "traduzindo…" eterno).
-    const { vocab } = await buildVocabWord(origin, gateway.mt);
-    if (vocab.translation) {
-      setSelectedExamWord(prev => (prev && prev.word === w.word
-        ? { ...prev, translation: vocab.translation, mtEngine: vocab.mtEngine }
-        : prev));
-    }
-  };
-
-
-  /**
-   * Add word to study deck (SRS) — grava no BACKEND (mesmo deck do Study/FSRS).
-   *
-   * ANTES: gravava `srcLang: sourceLang` / `tgtLang: targetLang` SEMPRE, e traduzia sempre
-   * `mine → studying`. Ou seja: clicar numa palavra de uma linha do SISTEMA (que está no idioma que
-   * você ESTUDA) criava um cartão em inglês rotulado `pt-BR`, com o verso traduzido na direção
-   * errada — contradizendo o `handleFinalizeSave` deste mesmo arquivo, que inverte por fala.
-   *
-   * AGORA: o idioma sai da LINHA de onde a palavra veio (`resolveWord`) e os rótulos do cartão saem
-   * de `cardLangs` — o mesmo produtor que as outras telas usam.
-   */
+  /** Palavras já fichadas nesta visita (o botão do Analista fica "adicionado"). */
   const [addedWords, setAddedWords] = useState<string[]>([]);
-  const handleAddWordToDeck = async (wordObj: any) => {
-    const word: string = wordObj.word;
-    setAddedWords(prev => prev.includes(word) ? prev : [...prev, word]);
-    try {
-      const sentence: string = wordObj.sentence || wordObj.example || '';
-      const origin: WordOrigin = {
-        word,
-        // A frase de onde a palavra saiu — é DAQUI que sai o idioma real.
-        context: sentence || undefined,
-        // Rótulo declarado: o idioma que a palavra já carrega (posto por `examineWord`) ou, na falta
-        // dele, o idioma da linha que está no Analista.
-        declaredLang: wordObj.lang || selectedWordLangRef.current || undefined,
-        config: langConfigRef.current,
-      };
-      const resolved = await resolveWord(origin);
 
-      let back: string = wordObj.translation || '';
-      if (!back && resolved.coverage !== 'same' && resolved.coverage !== 'unknown') {
-        // Direção decidida pelo idioma DA PALAVRA, não pelo par da sessão.
-        try { back = (await gateway.mt.translate(word, resolved.lang, resolved.targetLang)).text || ''; } catch { back = ''; }
-      }
-      const cloze = sentence ? makeCloze(sentence, word) : null;
-      const r = await bulkAddCards([{
-        word,
-        back,
-        sentence: sentence || undefined,
-        ...cardLangs(resolved),
-        clozePrompt: cloze?.prompt,
-        clozeAnswer: cloze?.answer,
-      }]);
-      /* Confirmar antes de saber é o defeito mais fácil de cometer aqui: a régua pode recusar a
-         palavra (repetida, sem tradução) e a tela dizia "adicionado" do mesmo jeito. A pessoa
-         então procura no baralho o que nunca entrou e conclui que o app perde coisa. */
-      setFeedbackMsg(
-        r.cards.length
-          ? `"${word}" adicionado ao seu deck (FSRS)!`
-          : `"${word}" não entrou: ${motivoLegivel(r.skipped[0]?.motivo ?? '')}.`,
-      );
-    } catch {
-      setFeedbackMsg(`Falha ao adicionar "${word}" ao deck.`);
-    }
-    setTimeout(() => setFeedbackMsg(''), 3000);
-  };
-
-  /**
-   * "Praticar esta palavra" durante a captura — leva a palavra ao exercício, no Estudo.
-   *
-   *  • `review` → a revisão só existe para cartões DO DECK; então fichamos ANTES (reusando o
-   *    `handleAddWordToDeck` desta tela) e só então abrimos a revisão. É o que substitui o velho
-   *    "adicionar e torcer para reencontrar numa revisão futura".
-   *  • demais → semente com a palavra + o idioma REAL da linha de onde ela saiu.
-   *
-   * Sem `sessionId`: a captura em curso ainda não é uma sessão salva — não inventamos um id.
-   */
-  const handlePracticeWord = async (w: VocabWord, exercise: ExerciseId) => {
-    if (!onChangeView) return;
-    if (exercise === 'review' && !addedWords.includes(w.word)) {
-      await handleAddWordToDeck(w);
-    }
-    const lang = baseLang(selectedWordLangRef.current || targetLangRef.current);
-    const seed: PracticeSeed = {
-      ...seedFromSelection(w.word, lang, exercise),
-      word: w.word,
-    };
-    onChangeView(telaDoExercicio(exercise), { seed });
-  };
+  /* O VOCABULÁRIO DA CAPTURA (examinar, fichar no deck, mandar praticar) mora em
+     `lib/captura/palavraDaFala.ts`. Fábrica por render, como as closures que substituiu. */
+  const { examineWord, handleAddWordToDeck, handlePracticeWord } = criarPalavraDaFala({
+    gateway, langConfigRef, targetLangRef, selectedWordLangRef, speakWord,
+    setSelectedExamWord, addedWords, setAddedWords, setFeedbackMsg, onChangeView,
+  });
 
   // Speaker Renaming
   const handleStartRenameSpeaker = (id: string, currentName: string) => {

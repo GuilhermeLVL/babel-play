@@ -1,0 +1,1773 @@
+{
+  "duplicates": [
+    {
+      "firstFile": {
+        "end": 76,
+        "endLoc": {
+          "column": 15,
+          "line": 76,
+          "position": 2841
+        },
+        "name": "db\\repositories\\sessions.ts",
+        "start": 65,
+        "startLoc": {
+          "column": 22,
+          "line": 65,
+          "position": 2496
+        }
+      },
+      "format": "typescript",
+      "fragment": "",
+      "lines": 12,
+      "secondFile": {
+        "end": 114,
+        "endLoc": {
+          "column": 15,
+          "line": 114,
+          "position": 4513
+        },
+        "name": "db\\repositories\\sessions.ts",
+        "start": 103,
+        "startLoc": {
+          "column": 8,
+          "line": 103,
+          "position": 4168
+        }
+      },
+      "tokens": 64
+    },
+    {
+      "firstFile": {
+        "end": 51,
+        "endLoc": {
+          "column": 7,
+          "line": 51,
+          "position": 1683
+        },
+        "name": "db\\repositories\\utterances.ts",
+        "start": 32,
+        "startLoc": {
+          "column": 4,
+          "line": 32,
+          "position": 1016
+        }
+      },
+      "format": "typescript",
+      "fragment": "",
+      "lines": 20,
+      "secondFile": {
+        "end": 91,
+        "endLoc": {
+          "column": 7,
+          "line": 91,
+          "position": 3391
+        },
+        "name": "db\\repositories\\utterances.ts",
+        "start": 72,
+        "startLoc": {
+          "column": 4,
+          "line": 72,
+          "position": 2724
+        }
+      },
+      "tokens": 149
+    },
+    {
+      "firstFile": {
+        "end": 361,
+        "endLoc": {
+          "column": 8,
+          "line": 361,
+          "position": 17889
+        },
+        "name": "db\\repositories\\vocab.ts",
+        "start": 346,
+        "startLoc": {
+          "column": 6,
+          "line": 346,
+          "position": 16942
+        }
+      },
+      "format": "typescript",
+      "fragment": "",
+      "lines": 16,
+      "secondFile": {
+        "end": 967,
+        "endLoc": {
+          "column": 10,
+          "line": 967,
+          "position": 49433
+        },
+        "name": "db\\repositories\\vocab.ts",
+        "start": 955,
+        "startLoc": {
+          "column": 8,
+          "line": 955,
+          "position": 48770
+        }
+      },
+      "tokens": 100
+    },
+    {
+      "firstFile": {
+        "end": 326,
+        "endLoc": {
+          "column": 8,
+          "line": 326,
+          "position": 17071
+        },
+        "name": "db\\schema.ts",
+        "start": 314,
+        "startLoc": {
+          "column": 51,
+          "line": 314,
+          "position": 16506
+        }
+      },
+      "format": "typescript",
+      "fragment": "",
+      "lines": 13,
+      "secondFile": {
+        "end": 401,
+        "endLoc": {
+          "column": 8,
+          "line": 401,
+          "position": 21128
+        },
+        "name": "db\\schema.ts",
+        "start": 392,
+        "startLoc": {
+          "column": 55,
+          "line": 392,
+          "position": 20839
+        }
+      },
+      "tokens": 65
+    },
+    {
+      "firstFile": {
+        "end": 96,
+        "endLoc": {
+          "column": 18,
+          "line": 96,
+          "position": 4556
+        },
+        "name": "routes\\anki.ts",
+        "start": 85,
+        "startLoc": {
+          "column": 24,
+          "line": 85,
+          "position": 4062
+        }
+      },
+      "format": "typescript",
+      "fragment": "",
+      "lines": 12,
+      "secondFile": {
+        "end": 112,
+        "endLoc": {
+          "column": 15,
+          "line": 112,
+          "position": 5262
+        },
+        "name": "routes\\anki.ts",
+        "start": 106,
+        "startLoc": {
+          "column": 39,
+          "line": 106,
+          "position": 5078
+        }
+      },
+      "tokens": 55
+    },
+    {
+      "firstFile": {
+        "end": 307,
+        "endLoc": {
+          "column": 15,
+          "line": 307,
+          "position": 15332
+        },
+        "name": "routes\\sessions.ts",
+        "start": 297,
+        "startLoc": {
+          "column": 72,
+          "line": 297,
+          "position": 14803
+        }
+      },
+      "format": "typescript",
+      "fragment": "",
+      "lines": 11,
+      "secondFile": {
+        "end": 327,
+        "endLoc": {
+          "column": 15,
+          "line": 327,
+          "position": 16493
+        },
+        "name": "routes\\sessions.ts",
+        "start": 317,
+        "startLoc": {
+          "column": 96,
+          "line": 317,
+          "position": 15969
+        }
+      },
+      "tokens": 98
+    },
+    {
+      "firstFile": {
+        "end": 307,
+        "endLoc": {
+          "column": 15,
+          "line": 307,
+          "position": 15332
+        },
+        "name": "routes\\sessions.ts",
+        "start": 297,
+        "startLoc": {
+          "column": 45,
+          "line": 297,
+          "position": 14776
+        }
+      },
+      "format": "typescript",
+      "fragment": "",
+      "lines": 11,
+      "secondFile": {
+        "end": 386,
+        "endLoc": {
+          "column": 15,
+          "line": 386,
+          "position": 19634
+        },
+        "name": "routes\\sessions.ts",
+        "start": 367,
+        "startLoc": {
+          "column": 48,
+          "line": 367,
+          "position": 18623
+        }
+      },
+      "tokens": 108
+    },
+    {
+      "firstFile": {
+        "end": 133,
+        "endLoc": {
+          "column": 18,
+          "line": 133,
+          "position": 5618
+        },
+        "name": "routes\\vocab.ts",
+        "start": 123,
+        "startLoc": {
+          "column": 73,
+          "line": 123,
+          "position": 5245
+        }
+      },
+      "format": "typescript",
+      "fragment": "",
+      "lines": 11,
+      "secondFile": {
+        "end": 153,
+        "endLoc": {
+          "column": 17,
+          "line": 153,
+          "position": 6654
+        },
+        "name": "routes\\vocab.ts",
+        "start": 147,
+        "startLoc": {
+          "column": 75,
+          "line": 147,
+          "position": 6465
+        }
+      },
+      "tokens": 56
+    },
+    {
+      "firstFile": {
+        "end": 67,
+        "endLoc": {
+          "column": 10,
+          "line": 67,
+          "position": 2321
+        },
+        "name": "components\\minigames\\ConectoresGame.tsx",
+        "start": 54,
+        "startLoc": {
+          "column": 49,
+          "line": 54,
+          "position": 1976
+        }
+      },
+      "format": "tsx",
+      "fragment": "",
+      "lines": 14,
+      "secondFile": {
+        "end": 90,
+        "endLoc": {
+          "column": 10,
+          "line": 90,
+          "position": 3411
+        },
+        "name": "components\\minigames\\EscutaGame.tsx",
+        "start": 77,
+        "startLoc": {
+          "column": 55,
+          "line": 77,
+          "position": 3079
+        }
+      },
+      "tokens": 79
+    },
+    {
+      "firstFile": {
+        "end": 85,
+        "endLoc": {
+          "column": 17,
+          "line": 85,
+          "position": 3031
+        },
+        "name": "components\\minigames\\ConectoresGame.tsx",
+        "start": 74,
+        "startLoc": {
+          "column": 73,
+          "line": 74,
+          "position": 2669
+        }
+      },
+      "format": "tsx",
+      "fragment": "",
+      "lines": 12,
+      "secondFile": {
+        "end": 107,
+        "endLoc": {
+          "column": 17,
+          "line": 107,
+          "position": 4077
+        },
+        "name": "components\\minigames\\EscutaGame.tsx",
+        "start": 95,
+        "startLoc": {
+          "column": 65,
+          "line": 95,
+          "position": 3671
+        }
+      },
+      "tokens": 73
+    },
+    {
+      "firstFile": {
+        "end": 149,
+        "endLoc": {
+          "column": 9,
+          "line": 149,
+          "position": 5953
+        },
+        "name": "components\\minigames\\ConectoresGame.tsx",
+        "start": 126,
+        "startLoc": {
+          "column": 10,
+          "line": 126,
+          "position": 4814
+        }
+      },
+      "format": "tsx",
+      "fragment": "",
+      "lines": 24,
+      "secondFile": {
+        "end": 224,
+        "endLoc": {
+          "column": 9,
+          "line": 224,
+          "position": 10246
+        },
+        "name": "components\\minigames\\DitadoGame.tsx",
+        "start": 201,
+        "startLoc": {
+          "column": 10,
+          "line": 201,
+          "position": 9107
+        }
+      },
+      "tokens": 141
+    },
+    {
+      "firstFile": {
+        "end": 66,
+        "endLoc": {
+          "column": 20,
+          "line": 66,
+          "position": 3243
+        },
+        "name": "components\\minigames\\DitadoGame.tsx",
+        "start": 53,
+        "startLoc": {
+          "column": 19,
+          "line": 53,
+          "position": 2593
+        }
+      },
+      "format": "tsx",
+      "fragment": "",
+      "lines": 14,
+      "secondFile": {
+        "end": 45,
+        "endLoc": {
+          "column": 20,
+          "line": 45,
+          "position": 1786
+        },
+        "name": "components\\minigames\\EscutaGame.tsx",
+        "start": 38,
+        "startLoc": {
+          "column": 32,
+          "line": 38,
+          "position": 1551
+        }
+      },
+      "tokens": 57
+    },
+    {
+      "firstFile": {
+        "end": 172,
+        "endLoc": {
+          "column": 18,
+          "line": 172,
+          "position": 7651
+        },
+        "name": "components\\minigames\\DitadoGame.tsx",
+        "start": 160,
+        "startLoc": {
+          "column": 39,
+          "line": 160,
+          "position": 6985
+        }
+      },
+      "format": "tsx",
+      "fragment": "",
+      "lines": 13,
+      "secondFile": {
+        "end": 207,
+        "endLoc": {
+          "column": 18,
+          "line": 207,
+          "position": 8702
+        },
+        "name": "components\\minigames\\KaraokeGame.tsx",
+        "start": 195,
+        "startLoc": {
+          "column": 24,
+          "line": 195,
+          "position": 8036
+        }
+      },
+      "tokens": 60
+    },
+    {
+      "firstFile": {
+        "end": 223,
+        "endLoc": {
+          "column": 36,
+          "line": 223,
+          "position": 10175
+        },
+        "name": "components\\minigames\\DitadoGame.tsx",
+        "start": 196,
+        "startLoc": {
+          "column": 10,
+          "line": 196,
+          "position": 8979
+        }
+      },
+      "format": "tsx",
+      "fragment": "",
+      "lines": 28,
+      "secondFile": {
+        "end": 224,
+        "endLoc": {
+          "column": 36,
+          "line": 224,
+          "position": 9758
+        },
+        "name": "components\\minigames\\ScrambleGame.tsx",
+        "start": 197,
+        "startLoc": {
+          "column": 10,
+          "line": 197,
+          "position": 8562
+        }
+      },
+      "tokens": 161
+    },
+    {
+      "firstFile": {
+        "end": 161,
+        "endLoc": {
+          "column": 114,
+          "line": 161,
+          "position": 6577
+        },
+        "name": "components\\minigames\\EscutaGame.tsx",
+        "start": 149,
+        "startLoc": {
+          "column": 10,
+          "line": 149,
+          "position": 5871
+        }
+      },
+      "format": "tsx",
+      "fragment": "",
+      "lines": 13,
+      "secondFile": {
+        "end": 207,
+        "endLoc": {
+          "column": 114,
+          "line": 207,
+          "position": 9267
+        },
+        "name": "components\\minigames\\MemoryGame.tsx",
+        "start": 195,
+        "startLoc": {
+          "column": 10,
+          "line": 195,
+          "position": 8561
+        }
+      },
+      "tokens": 80
+    },
+    {
+      "firstFile": {
+        "end": 208,
+        "endLoc": {
+          "column": 68,
+          "line": 208,
+          "position": 9356
+        },
+        "name": "components\\minigames\\MemoryGame.tsx",
+        "start": 192,
+        "startLoc": {
+          "column": 59,
+          "line": 192,
+          "position": 8522
+        }
+      },
+      "format": "tsx",
+      "fragment": "",
+      "lines": 17,
+      "secondFile": {
+        "end": 573,
+        "endLoc": {
+          "column": 15,
+          "line": 573,
+          "position": 28026
+        },
+        "name": "components\\minigames\\TermoGame.tsx",
+        "start": 556,
+        "startLoc": {
+          "column": 22,
+          "line": 556,
+          "position": 27194
+        }
+      },
+      "tokens": 100
+    },
+    {
+      "firstFile": {
+        "end": 208,
+        "endLoc": {
+          "column": 68,
+          "line": 208,
+          "position": 9356
+        },
+        "name": "components\\minigames\\MemoryGame.tsx",
+        "start": 192,
+        "startLoc": {
+          "column": 57,
+          "line": 192,
+          "position": 8520
+        }
+      },
+      "format": "tsx",
+      "fragment": "",
+      "lines": 17,
+      "secondFile": {
+        "end": 250,
+        "endLoc": {
+          "column": 15,
+          "line": 250,
+          "position": 11933
+        },
+        "name": "components\\minigames\\WordSearchGame.tsx",
+        "start": 233,
+        "startLoc": {
+          "column": 42,
+          "line": 233,
+          "position": 11099
+        }
+      },
+      "tokens": 102
+    },
+    {
+      "firstFile": {
+        "end": 23,
+        "endLoc": {
+          "column": 9,
+          "line": 23,
+          "position": 1228
+        },
+        "name": "components\\minigames\\culturais\\BaoGame.tsx",
+        "start": 2,
+        "startLoc": {
+          "column": 29,
+          "line": 2,
+          "position": 99
+        }
+      },
+      "format": "tsx",
+      "fragment": "",
+      "lines": 22,
+      "secondFile": {
+        "end": 22,
+        "endLoc": {
+          "column": 9,
+          "line": 22,
+          "position": 1147
+        },
+        "name": "components\\minigames\\culturais\\KofferGame.tsx",
+        "start": 2,
+        "startLoc": {
+          "column": 47,
+          "line": 2,
+          "position": 117
+        }
+      },
+      "tokens": 57
+    },
+    {
+      "firstFile": {
+        "end": 195,
+        "endLoc": {
+          "column": 18,
+          "line": 195,
+          "position": 8098
+        },
+        "name": "components\\minigames\\culturais\\BaoGame.tsx",
+        "start": 184,
+        "startLoc": {
+          "column": 54,
+          "line": 184,
+          "position": 7466
+        }
+      },
+      "format": "tsx",
+      "fragment": "",
+      "lines": 12,
+      "secondFile": {
+        "end": 200,
+        "endLoc": {
+          "column": 18,
+          "line": 200,
+          "position": 7424
+        },
+        "name": "components\\minigames\\culturais\\KofferGame.tsx",
+        "start": 189,
+        "startLoc": {
+          "column": 52,
+          "line": 189,
+          "position": 6792
+        }
+      },
+      "tokens": 50
+    },
+    {
+      "firstFile": {
+        "end": 16,
+        "endLoc": {
+          "column": 9,
+          "line": 16,
+          "position": 793
+        },
+        "name": "components\\minigames\\culturais\\ChoseongGame.tsx",
+        "start": 2,
+        "startLoc": {
+          "column": 36,
+          "line": 2,
+          "position": 118
+        }
+      },
+      "format": "tsx",
+      "fragment": "",
+      "lines": 15,
+      "secondFile": {
+        "end": 19,
+        "endLoc": {
+          "column": 9,
+          "line": 19,
+          "position": 953
+        },
+        "name": "components\\minigames\\culturais\\TenseTennisGame.tsx",
+        "start": 2,
+        "startLoc": {
+          "column": 35,
+          "line": 2,
+          "position": 108
+        }
+      },
+      "tokens": 63
+    },
+    {
+      "firstFile": {
+        "end": 75,
+        "endLoc": {
+          "column": 13,
+          "line": 75,
+          "position": 3173
+        },
+        "name": "components\\minigames\\culturais\\ChoseongGame.tsx",
+        "start": 63,
+        "startLoc": {
+          "column": 52,
+          "line": 63,
+          "position": 2865
+        }
+      },
+      "format": "tsx",
+      "fragment": "",
+      "lines": 13,
+      "secondFile": {
+        "end": 97,
+        "endLoc": {
+          "column": 13,
+          "line": 97,
+          "position": 4094
+        },
+        "name": "components\\minigames\\culturais\\KarutaGame.tsx",
+        "start": 85,
+        "startLoc": {
+          "column": 26,
+          "line": 85,
+          "position": 3786
+        }
+      },
+      "tokens": 68
+    },
+    {
+      "firstFile": {
+        "end": 75,
+        "endLoc": {
+          "column": 13,
+          "line": 75,
+          "position": 3173
+        },
+        "name": "components\\minigames\\culturais\\ChoseongGame.tsx",
+        "start": 63,
+        "startLoc": {
+          "column": 44,
+          "line": 63,
+          "position": 2857
+        }
+      },
+      "format": "tsx",
+      "fragment": "",
+      "lines": 13,
+      "secondFile": {
+        "end": 70,
+        "endLoc": {
+          "column": 13,
+          "line": 70,
+          "position": 3065
+        },
+        "name": "components\\minigames\\culturais\\TenseTennisGame.tsx",
+        "start": 58,
+        "startLoc": {
+          "column": 46,
+          "line": 58,
+          "position": 2749
+        }
+      },
+      "tokens": 71
+    },
+    {
+      "firstFile": {
+        "end": 218,
+        "endLoc": {
+          "column": 18,
+          "line": 218,
+          "position": 8869
+        },
+        "name": "components\\minigames\\culturais\\ChoseongGame.tsx",
+        "start": 207,
+        "startLoc": {
+          "column": 103,
+          "line": 207,
+          "position": 8354
+        }
+      },
+      "format": "tsx",
+      "fragment": "",
+      "lines": 12,
+      "secondFile": {
+        "end": 186,
+        "endLoc": {
+          "column": 18,
+          "line": 186,
+          "position": 7559
+        },
+        "name": "components\\minigames\\culturais\\TenseTennisGame.tsx",
+        "start": 175,
+        "startLoc": {
+          "column": 100,
+          "line": 175,
+          "position": 7044
+        }
+      },
+      "tokens": 52
+    },
+    {
+      "firstFile": {
+        "end": 231,
+        "endLoc": {
+          "column": 7,
+          "line": 231,
+          "position": 9591
+        },
+        "name": "components\\minigames\\culturais\\ChoseongGame.tsx",
+        "start": 218,
+        "startLoc": {
+          "column": 52,
+          "line": 218,
+          "position": 8903
+        }
+      },
+      "format": "tsx",
+      "fragment": "",
+      "lines": 14,
+      "secondFile": {
+        "end": 212,
+        "endLoc": {
+          "column": 7,
+          "line": 212,
+          "position": 8708
+        },
+        "name": "components\\minigames\\culturais\\KarutaGame.tsx",
+        "start": 199,
+        "startLoc": {
+          "column": 31,
+          "line": 199,
+          "position": 8020
+        }
+      },
+      "tokens": 110
+    },
+    {
+      "firstFile": {
+        "end": 113,
+        "endLoc": {
+          "column": 15,
+          "line": 113,
+          "position": 4682
+        },
+        "name": "components\\minigames\\culturais\\KarutaGame.tsx",
+        "start": 103,
+        "startLoc": {
+          "column": 64,
+          "line": 103,
+          "position": 4391
+        }
+      },
+      "format": "tsx",
+      "fragment": "",
+      "lines": 11,
+      "secondFile": {
+        "end": 86,
+        "endLoc": {
+          "column": 15,
+          "line": 86,
+          "position": 3653
+        },
+        "name": "components\\minigames\\culturais\\TenseTennisGame.tsx",
+        "start": 76,
+        "startLoc": {
+          "column": 66,
+          "line": 76,
+          "position": 3362
+        }
+      },
+      "tokens": 71
+    },
+    {
+      "firstFile": {
+        "end": 127,
+        "endLoc": {
+          "column": 48,
+          "line": 127,
+          "position": 5206
+        },
+        "name": "components\\minigames\\culturais\\KarutaGame.tsx",
+        "start": 117,
+        "startLoc": {
+          "column": 33,
+          "line": 117,
+          "position": 4853
+        }
+      },
+      "format": "tsx",
+      "fragment": "",
+      "lines": 11,
+      "secondFile": {
+        "end": 101,
+        "endLoc": {
+          "column": 48,
+          "line": 101,
+          "position": 4162
+        },
+        "name": "components\\minigames\\culturais\\TenseTennisGame.tsx",
+        "start": 91,
+        "startLoc": {
+          "column": 32,
+          "line": 91,
+          "position": 3826
+        }
+      },
+      "tokens": 77
+    },
+    {
+      "firstFile": {
+        "end": 51,
+        "endLoc": {
+          "column": 23,
+          "line": 51,
+          "position": 2022
+        },
+        "name": "components\\minigames\\culturais\\KofferGame.tsx",
+        "start": 39,
+        "startLoc": {
+          "column": 17,
+          "line": 39,
+          "position": 1776
+        }
+      },
+      "format": "tsx",
+      "fragment": "",
+      "lines": 13,
+      "secondFile": {
+        "end": 64,
+        "endLoc": {
+          "column": 23,
+          "line": 64,
+          "position": 2326
+        },
+        "name": "components\\minigames\\culturais\\VitendawiliGame.tsx",
+        "start": 52,
+        "startLoc": {
+          "column": 4,
+          "line": 52,
+          "position": 2092
+        }
+      },
+      "tokens": 98
+    },
+    {
+      "firstFile": {
+        "end": 121,
+        "endLoc": {
+          "column": 7,
+          "line": 121,
+          "position": 4779
+        },
+        "name": "components\\minigames\\culturais\\ShiritoriGame.tsx",
+        "start": 111,
+        "startLoc": {
+          "column": 29,
+          "line": 111,
+          "position": 4495
+        }
+      },
+      "format": "tsx",
+      "fragment": "",
+      "lines": 11,
+      "secondFile": {
+        "end": 151,
+        "endLoc": {
+          "column": 7,
+          "line": 151,
+          "position": 5757
+        },
+        "name": "components\\minigames\\culturais\\TabooGame.tsx",
+        "start": 141,
+        "startLoc": {
+          "column": 21,
+          "line": 141,
+          "position": 5473
+        }
+      },
+      "tokens": 63
+    },
+    {
+      "firstFile": {
+        "end": 163,
+        "endLoc": {
+          "column": 37,
+          "line": 163,
+          "position": 6951
+        },
+        "name": "components\\minigames\\culturais\\ShiritoriGame.tsx",
+        "start": 151,
+        "startLoc": {
+          "column": 29,
+          "line": 151,
+          "position": 6474
+        }
+      },
+      "format": "tsx",
+      "fragment": "",
+      "lines": 13,
+      "secondFile": {
+        "end": 209,
+        "endLoc": {
+          "column": 37,
+          "line": 209,
+          "position": 8483
+        },
+        "name": "components\\minigames\\culturais\\TabooGame.tsx",
+        "start": 197,
+        "startLoc": {
+          "column": 27,
+          "line": 197,
+          "position": 8006
+        }
+      },
+      "tokens": 75
+    },
+    {
+      "firstFile": {
+        "end": 61,
+        "endLoc": {
+          "column": 21,
+          "line": 61,
+          "position": 3270
+        },
+        "name": "components\\shell\\MenuDaConta.tsx",
+        "start": 47,
+        "startLoc": {
+          "column": 72,
+          "line": 47,
+          "position": 2516
+        }
+      },
+      "format": "tsx",
+      "fragment": "",
+      "lines": 15,
+      "secondFile": {
+        "end": 68,
+        "endLoc": {
+          "column": 21,
+          "line": 68,
+          "position": 2503
+        },
+        "name": "components\\shell\\MenuDeConforto.tsx",
+        "start": 58,
+        "startLoc": {
+          "column": 44,
+          "line": 58,
+          "position": 2131
+        }
+      },
+      "tokens": 94
+    },
+    {
+      "firstFile": {
+        "end": 77,
+        "endLoc": {
+          "column": 13,
+          "line": 77,
+          "position": 3978
+        },
+        "name": "components\\shell\\MenuDaConta.tsx",
+        "start": 61,
+        "startLoc": {
+          "column": 39,
+          "line": 61,
+          "position": 3288
+        }
+      },
+      "format": "tsx",
+      "fragment": "",
+      "lines": 17,
+      "secondFile": {
+        "end": 80,
+        "endLoc": {
+          "column": 13,
+          "line": 80,
+          "position": 3133
+        },
+        "name": "components\\shell\\MenuDeConforto.tsx",
+        "start": 68,
+        "startLoc": {
+          "column": 39,
+          "line": 68,
+          "position": 2521
+        }
+      },
+      "tokens": 154
+    },
+    {
+      "firstFile": {
+        "end": 53,
+        "endLoc": {
+          "column": 51,
+          "line": 53,
+          "position": 2590
+        },
+        "name": "components\\shell\\NavBar.tsx",
+        "start": 41,
+        "startLoc": {
+          "column": 8,
+          "line": 41,
+          "position": 1872
+        }
+      },
+      "format": "tsx",
+      "fragment": "",
+      "lines": 13,
+      "secondFile": {
+        "end": 83,
+        "endLoc": {
+          "column": 51,
+          "line": 83,
+          "position": 3589
+        },
+        "name": "components\\shell\\NavRail.tsx",
+        "start": 75,
+        "startLoc": {
+          "column": 8,
+          "line": 75,
+          "position": 3279
+        }
+      },
+      "tokens": 63
+    },
+    {
+      "firstFile": {
+        "end": 787,
+        "endLoc": {
+          "column": 9,
+          "line": 787,
+          "position": 40055
+        },
+        "name": "components\\views\\Analysis.tsx",
+        "start": 777,
+        "startLoc": {
+          "column": 20,
+          "line": 777,
+          "position": 39799
+        }
+      },
+      "format": "tsx",
+      "fragment": "",
+      "lines": 11,
+      "secondFile": {
+        "end": 238,
+        "endLoc": {
+          "column": 9,
+          "line": 238,
+          "position": 10754
+        },
+        "name": "components\\views\\Reading.tsx",
+        "start": 225,
+        "startLoc": {
+          "column": 32,
+          "line": 225,
+          "position": 10162
+        }
+      },
+      "tokens": 51
+    },
+    {
+      "firstFile": {
+        "end": 341,
+        "endLoc": {
+          "column": 7,
+          "line": 341,
+          "position": 15121
+        },
+        "name": "components\\views\\Library.tsx",
+        "start": 328,
+        "startLoc": {
+          "column": 3,
+          "line": 328,
+          "position": 14888
+        }
+      },
+      "format": "tsx",
+      "fragment": "",
+      "lines": 14,
+      "secondFile": {
+        "end": 2523,
+        "endLoc": {
+          "column": 7,
+          "line": 2523,
+          "position": 138517
+        },
+        "name": "components\\views\\LiveCapture.tsx",
+        "start": 2509,
+        "startLoc": {
+          "column": 21,
+          "line": 2509,
+          "position": 138197
+        }
+      },
+      "tokens": 53
+    },
+    {
+      "firstFile": {
+        "end": 252,
+        "endLoc": {
+          "column": 11,
+          "line": 252,
+          "position": 12401
+        },
+        "name": "components\\views\\Metrics.tsx",
+        "start": 237,
+        "startLoc": {
+          "column": 24,
+          "line": 237,
+          "position": 11577
+        }
+      },
+      "format": "tsx",
+      "fragment": "",
+      "lines": 16,
+      "secondFile": {
+        "end": 319,
+        "endLoc": {
+          "column": 11,
+          "line": 319,
+          "position": 14967
+        },
+        "name": "components\\views\\Reading.tsx",
+        "start": 306,
+        "startLoc": {
+          "column": 22,
+          "line": 306,
+          "position": 14227
+        }
+      },
+      "tokens": 54
+    },
+    {
+      "firstFile": {
+        "end": 1786,
+        "endLoc": {
+          "column": 10,
+          "line": 1786,
+          "position": 104097
+        },
+        "name": "components\\views\\Play.tsx",
+        "start": 1758,
+        "startLoc": {
+          "column": 6,
+          "line": 1758,
+          "position": 102214
+        }
+      },
+      "format": "tsx",
+      "fragment": "",
+      "lines": 29,
+      "secondFile": {
+        "end": 1835,
+        "endLoc": {
+          "column": 4,
+          "line": 1835,
+          "position": 107035
+        },
+        "name": "components\\views\\Play.tsx",
+        "start": 1830,
+        "startLoc": {
+          "column": 4,
+          "line": 1830,
+          "position": 106735
+        }
+      },
+      "tokens": 80
+    },
+    {
+      "firstFile": {
+        "end": 1740,
+        "endLoc": {
+          "column": 96,
+          "line": 1740,
+          "position": 83311
+        },
+        "name": "components\\views\\Reading.tsx",
+        "start": 1728,
+        "startLoc": {
+          "column": 24,
+          "line": 1728,
+          "position": 82406
+        }
+      },
+      "format": "tsx",
+      "fragment": "",
+      "lines": 13,
+      "secondFile": {
+        "end": 1842,
+        "endLoc": {
+          "column": 94,
+          "line": 1842,
+          "position": 89033
+        },
+        "name": "components\\views\\Reading.tsx",
+        "start": 1830,
+        "startLoc": {
+          "column": 22,
+          "line": 1830,
+          "position": 88150
+        }
+      },
+      "tokens": 148
+    },
+    {
+      "firstFile": {
+        "end": 1795,
+        "endLoc": {
+          "column": 24,
+          "line": 1795,
+          "position": 86647
+        },
+        "name": "components\\views\\Reading.tsx",
+        "start": 1784,
+        "startLoc": {
+          "column": 88,
+          "line": 1784,
+          "position": 86057
+        }
+      },
+      "format": "tsx",
+      "fragment": "",
+      "lines": 12,
+      "secondFile": {
+        "end": 1882,
+        "endLoc": {
+          "column": 24,
+          "line": 1882,
+          "position": 91547
+        },
+        "name": "components\\views\\Reading.tsx",
+        "start": 1871,
+        "startLoc": {
+          "column": 118,
+          "line": 1871,
+          "position": 90957
+        }
+      },
+      "tokens": 73
+    },
+    {
+      "firstFile": {
+        "end": 43,
+        "endLoc": {
+          "column": 53,
+          "line": 43,
+          "position": 2018
+        },
+        "name": "components\\views\\loja\\ComprarCreditos.tsx",
+        "start": 33,
+        "startLoc": {
+          "column": 73,
+          "line": 33,
+          "position": 1657
+        }
+      },
+      "format": "tsx",
+      "fragment": "",
+      "lines": 11,
+      "secondFile": {
+        "end": 42,
+        "endLoc": {
+          "column": 53,
+          "line": 42,
+          "position": 1865
+        },
+        "name": "components\\views\\planos\\Assinar.tsx",
+        "start": 32,
+        "startLoc": {
+          "column": 67,
+          "line": 32,
+          "position": 1504
+        }
+      },
+      "tokens": 101
+    },
+    {
+      "firstFile": {
+        "end": 34,
+        "endLoc": {
+          "column": 72,
+          "line": 34,
+          "position": 2218
+        },
+        "name": "core\\learning\\keywords.ts",
+        "start": 23,
+        "startLoc": {
+          "column": 21,
+          "line": 23,
+          "position": 1357
+        }
+      },
+      "format": "typescript",
+      "fragment": "",
+      "lines": 12,
+      "secondFile": {
+        "end": 84,
+        "endLoc": {
+          "column": 74,
+          "line": 84,
+          "position": 4786
+        },
+        "name": "core\\learning\\quality.ts",
+        "start": 73,
+        "startLoc": {
+          "column": 13,
+          "line": 73,
+          "position": 3903
+        }
+      },
+      "tokens": 226
+    },
+    {
+      "firstFile": {
+        "end": 47,
+        "endLoc": {
+          "column": 55,
+          "line": 47,
+          "position": 3097
+        },
+        "name": "core\\learning\\keywords.ts",
+        "start": 37,
+        "startLoc": {
+          "column": 21,
+          "line": 37,
+          "position": 2331
+        }
+      },
+      "format": "typescript",
+      "fragment": "",
+      "lines": 11,
+      "secondFile": {
+        "end": 97,
+        "endLoc": {
+          "column": 57,
+          "line": 97,
+          "position": 5644
+        },
+        "name": "core\\learning\\quality.ts",
+        "start": 87,
+        "startLoc": {
+          "column": 13,
+          "line": 87,
+          "position": 4858
+        }
+      },
+      "tokens": 198
+    },
+    {
+      "firstFile": {
+        "end": 111,
+        "endLoc": {
+          "column": 1,
+          "line": 111,
+          "position": 5222
+        },
+        "name": "core\\learning\\trilha.ts",
+        "start": 101,
+        "startLoc": {
+          "column": 31,
+          "line": 101,
+          "position": 5013
+        }
+      },
+      "format": "typescript",
+      "fragment": "",
+      "lines": 11,
+      "secondFile": {
+        "end": 75,
+        "endLoc": {
+          "column": 1,
+          "line": 75,
+          "position": 3302
+        },
+        "name": "core\\minigames\\escuta.ts",
+        "start": 65,
+        "startLoc": {
+          "column": 25,
+          "line": 65,
+          "position": 3093
+        }
+      },
+      "tokens": 95
+    },
+    {
+      "firstFile": {
+        "end": 117,
+        "endLoc": {
+          "column": 8,
+          "line": 117,
+          "position": 5566
+        },
+        "name": "core\\learning\\trilha.ts",
+        "start": 101,
+        "startLoc": {
+          "column": 31,
+          "line": 101,
+          "position": 5013
+        }
+      },
+      "format": "typescript",
+      "fragment": "",
+      "lines": 17,
+      "secondFile": {
+        "end": 84,
+        "endLoc": {
+          "column": 15,
+          "line": 84,
+          "position": 4062
+        },
+        "name": "core\\minigames\\itemSource.ts",
+        "start": 64,
+        "startLoc": {
+          "column": 29,
+          "line": 64,
+          "position": 3385
+        }
+      },
+      "tokens": 97
+    },
+    {
+      "firstFile": {
+        "end": 117,
+        "endLoc": {
+          "column": 8,
+          "line": 117,
+          "position": 5566
+        },
+        "name": "core\\learning\\trilha.ts",
+        "start": 101,
+        "startLoc": {
+          "column": 31,
+          "line": 101,
+          "position": 5013
+        }
+      },
+      "format": "typescript",
+      "fragment": "",
+      "lines": 17,
+      "secondFile": {
+        "end": 60,
+        "endLoc": {
+          "column": 15,
+          "line": 60,
+          "position": 2116
+        },
+        "name": "core\\minigames\\shiritori.ts",
+        "start": 40,
+        "startLoc": {
+          "column": 30,
+          "line": 40,
+          "position": 1534
+        }
+      },
+      "tokens": 97
+    },
+    {
+      "firstFile": {
+        "end": 117,
+        "endLoc": {
+          "column": 8,
+          "line": 117,
+          "position": 5566
+        },
+        "name": "core\\learning\\trilha.ts",
+        "start": 104,
+        "startLoc": {
+          "column": 0,
+          "line": 104,
+          "position": 5018
+        }
+      },
+      "format": "typescript",
+      "fragment": "",
+      "lines": 14,
+      "secondFile": {
+        "end": 445,
+        "endLoc": {
+          "column": 15,
+          "line": 445,
+          "position": 21710
+        },
+        "name": "core\\minigames\\termo.ts",
+        "start": 436,
+        "startLoc": {
+          "column": 0,
+          "line": 436,
+          "position": 21489
+        }
+      },
+      "tokens": 95
+    },
+    {
+      "firstFile": {
+        "end": 40,
+        "endLoc": {
+          "column": 1,
+          "line": 40,
+          "position": 2392
+        },
+        "name": "core\\minigames\\filtro.ts",
+        "start": 25,
+        "startLoc": {
+          "column": 33,
+          "line": 25,
+          "position": 1562
+        }
+      },
+      "format": "typescript",
+      "fragment": "",
+      "lines": 16,
+      "secondFile": {
+        "end": 34,
+        "endLoc": {
+          "column": 1,
+          "line": 34,
+          "position": 1726
+        },
+        "name": "lib\\filtroDaPratica.ts",
+        "start": 25,
+        "startLoc": {
+          "column": 27,
+          "line": 25,
+          "position": 1407
+        }
+      },
+      "tokens": 80
+    },
+    {
+      "firstFile": {
+        "end": 288,
+        "endLoc": {
+          "column": 21,
+          "line": 288,
+          "position": 11138
+        },
+        "name": "data\\api.ts",
+        "start": 274,
+        "startLoc": {
+          "column": 57,
+          "line": 274,
+          "position": 10688
+        }
+      },
+      "format": "typescript",
+      "fragment": "",
+      "lines": 15,
+      "secondFile": {
+        "end": 310,
+        "endLoc": {
+          "column": 21,
+          "line": 310,
+          "position": 11882
+        },
+        "name": "data\\api.ts",
+        "start": 293,
+        "startLoc": {
+          "column": 52,
+          "line": 293,
+          "position": 11361
+        }
+      },
+      "tokens": 58
+    },
+    {
+      "firstFile": {
+        "end": 40,
+        "endLoc": {
+          "column": 1,
+          "line": 40,
+          "position": 1850
+        },
+        "name": "gateway\\adapters\\mtWorker.ts",
+        "start": 26,
+        "startLoc": {
+          "column": 0,
+          "line": 26,
+          "position": 1330
+        }
+      },
+      "format": "typescript",
+      "fragment": "",
+      "lines": 15,
+      "secondFile": {
+        "end": 98,
+        "endLoc": {
+          "column": 1,
+          "line": 98,
+          "position": 4993
+        },
+        "name": "gateway\\adapters\\whisperWorker.ts",
+        "start": 82,
+        "startLoc": {
+          "column": 0,
+          "line": 82,
+          "position": 4293
+        }
+      },
+      "tokens": 100
+    }
+  ],
+  "statistics": {
+    "detectionDate": "2026-09-09T13:11:24.826Z",
+    "formats": {
+      "tsx": {
+        "clones": 31,
+        "duplicatedLines": 432,
+        "duplicatedTokens": 2579,
+        "lines": 46907,
+        "newClones": 0,
+        "newDuplicatedLines": 0,
+        "percentage": 0.9209712836037266,
+        "percentageTokens": 0.8847462743914153,
+        "sources": 129,
+        "tokens": 291496
+      },
+      "typescript": {
+        "clones": 17,
+        "duplicatedLines": 217,
+        "duplicatedTokens": 1741,
+        "lines": 45517,
+        "newClones": 0,
+        "newDuplicatedLines": 0,
+        "percentage": 0.4767449524353538,
+        "percentageTokens": 0.6903881004215293,
+        "sources": 281,
+        "tokens": 252177
+      }
+    },
+    "total": {
+      "clones": 48,
+      "duplicatedLines": 649,
+      "duplicatedTokens": 4320,
+      "lines": 92424,
+      "newClones": 0,
+      "newDuplicatedLines": 0,
+      "percentage": 0.7021985631437722,
+      "percentageTokens": 0.7945952806190485,
+      "sources": 410,
+      "tokens": 543673
+    }
+  }
+}

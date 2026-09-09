@@ -1,0 +1,1 @@
+O harness duplica a montagem de proposito e diz isso no cabecalho; a change `servidor-app-e-bootstrap` (Fase 3) extrai `criarApp()` e o harness passa a usa-la. Snapshots sao de FORMA (chaves e tipos), nunca de valor: id novo nao quebra, chave que sumiu quebra. Os snapshots ficam em `tests/caracterizacao/__snapshots__/` e sao o artefato da change `contratos-snapshot-de-api`.

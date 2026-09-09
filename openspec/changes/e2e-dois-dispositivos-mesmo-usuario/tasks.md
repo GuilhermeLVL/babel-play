@@ -1,0 +1,2 @@
+- [ ] 1.1 `dois-dispositivos.e2e.ts` verde 5 vezes seguidas
+- [ ] 1.2 `seeds-concorrencia.test.ts` (N debitos simultaneos por HTTP)

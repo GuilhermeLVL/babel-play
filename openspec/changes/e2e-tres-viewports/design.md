@@ -1,0 +1,1 @@
+Testes escrevem o que veem em cada viewport e nao assumem layout de desktop: seletores por role/nome, nunca por posicao. Fixtures via API (`PUT /api/settings`, `POST /api/vocab/bulk-add`) no `beforeAll`, nao pela UI, para o teste testar uma coisa so.

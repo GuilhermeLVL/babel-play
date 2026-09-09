@@ -1,0 +1,3 @@
+- [x] 1.1 snapshots de forma gerados para as rotas dos 11 fluxos
+- [x] 1.2 `paridade-de-forma.test.ts` contra o espelho anonimo
+- [x] 1.3 prova negativa (campo removido de `/api/health` -> teste falha) registrada em `evidencias/`

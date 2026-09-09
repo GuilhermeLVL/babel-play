@@ -1,0 +1,3 @@
+- [ ] 1.1 `fixture-anonimizada.mjs` + teste de PII
+- [ ] 1.2 `migracoes-sobre-estado-atual.test.ts`
+- [ ] 1.3 `rollback-por-backup.test.ts`

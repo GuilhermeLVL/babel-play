@@ -1,0 +1,1 @@
+A fixture e commitada se < 2 MB; senao e gerada no CI a partir de um seed. Migrations nao tem `down` neste projeto (decisao anterior); rollback = backup antes + restaurar, e o teste prova que o caminho existe e funciona.

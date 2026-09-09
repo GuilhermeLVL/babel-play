@@ -1,0 +1,1 @@
+Snapshot de forma, nao de valor: `forma()` reduz a chaves ordenadas e tipos, arrays a uniao dos elementos. Atualizar um snapshot exige `vitest -u` e justificativa no PR — e o que transforma "o contrato mudou" em decisao explicita.

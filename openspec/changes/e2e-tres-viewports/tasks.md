@@ -1,0 +1,10 @@
+- [ ] 1.1 tres projetos no config; suite atual verde nos tres
+- [ ] 1.2 sessao de jogo (Memoria, Termo, um cultural)
+- [ ] 1.3 revisao FSRS
+- [ ] 1.4 seeds: saldo e gasto na loja
+- [ ] 1.5 transcricao com upstream falso (ou `test.skip` com motivo se exigir modelo local)
+- [ ] 1.6 importacao Anki por fixture
+- [ ] 1.7 estatisticas
+- [ ] 1.8 tema e personalizacao
+- [ ] 1.9 limites do modo anonimo
+- [ ] 1.10 login `test.skip` com motivo

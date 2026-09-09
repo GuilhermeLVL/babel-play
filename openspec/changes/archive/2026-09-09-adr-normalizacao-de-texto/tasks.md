@@ -1,0 +1,4 @@
+- [x] 1.1 ADR 0004
+- [x] 1.2 `dobrarTexto` no nucleo
+- [x] 1.3 quatro chamadores ligados
+- [x] 1.4 13 casos fixando as tres perguntas

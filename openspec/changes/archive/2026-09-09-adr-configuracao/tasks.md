@@ -1,0 +1,4 @@
+- [x] 1.1 ADR 0005
+- [x] 1.2 variaveis por plano geradas
+- [x] 1.3 regra cobrindo leitura montada
+- [x] 1.4 teste cobrando os quatro planos

@@ -1,0 +1,3 @@
+- [x] 1.1 ADR 0002
+- [x] 1.2 teste comparando as tres tabelas
+- [x] 1.3 divergencia encontrada e registrada (missao "capturar" mistura duas regras)

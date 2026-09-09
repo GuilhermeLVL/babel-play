@@ -1,0 +1,7 @@
+- [x] 1.1 `server.ts` -> `criarApp()` + `routes/gemini.ts`
+- [x] 1.2 `App.tsx` -> seis hooks de estado
+- [x] 1.3 `api.ts` e o espelho -> mesmo recorte por dominio
+- [x] 1.4 `LiveCapture.tsx` -> nove modulos
+- [x] 1.5 `Play.tsx` -> `montarRodada` no nucleo
+- [x] 1.6 `Analysis.tsx` -> cinco modulos, metricas com 27 casos
+- [x] 1.7 os 17 ciclos que a divisao criou, zerados

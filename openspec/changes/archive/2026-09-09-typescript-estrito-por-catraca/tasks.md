@@ -1,0 +1,3 @@
+- [x] 1.1 `tsconfig.estrito.json`
+- [x] 1.2 81 -> 0 erros
+- [x] 1.3 passo no `ci.yml`

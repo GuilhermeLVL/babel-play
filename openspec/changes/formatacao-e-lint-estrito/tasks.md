@@ -1,0 +1,6 @@
+- [x] 1.1 prettier com as duas convencoes medidas
+- [x] 1.2 `.editorconfig`
+- [x] 1.3 husky + lint-staged
+- [x] 1.4 ordem de import automatica
+- [ ] 1.5 passada geral do Prettier (depois das movimentacoes, por decisao do dono)
+- [ ] 1.6 `prettier --check` no CI (junto com 1.5)

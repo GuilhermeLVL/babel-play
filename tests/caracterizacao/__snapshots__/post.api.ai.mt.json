@@ -1,0 +1,13 @@
+{
+  "status": 200,
+  "forma": {
+    "engine": "string",
+    "provenance": {
+      "kind": "string",
+      "limits": "string",
+      "method": "string",
+      "origin": "string"
+    },
+    "text": "string"
+  }
+}

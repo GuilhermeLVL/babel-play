@@ -1,0 +1,13 @@
+{
+  "status": 200,
+  "forma": {
+    "linhas": [
+      {
+        "apelido": "string",
+        "combo": "number",
+        "pontos": "number",
+        "quando": "number"
+      }
+    ]
+  }
+}

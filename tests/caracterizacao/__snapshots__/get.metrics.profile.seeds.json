@@ -1,0 +1,66 @@
+{
+  "status": 200,
+  "forma": {
+    "accuracy": "number",
+    "accuracyConfidence": "number",
+    "acertoPorExercicio": [
+      {
+        "acerto": "number",
+        "kind": "string",
+        "total": "number"
+      }
+    ],
+    "aprimoramentos": {},
+    "asOf": "number",
+    "avgRetention": "number",
+    "avgRetentionConfidence": "number",
+    "avgStability": "number",
+    "base": {
+      "considerados": "number",
+      "total": "number"
+    },
+    "capturaMinutos": "number",
+    "capturaMinutosPremiados": "number",
+    "correctReviews": "number",
+    "cromasComprados": [],
+    "deckSize": "number",
+    "drillCorrect": "number",
+    "drillItems": "number",
+    "dueToday": "number",
+    "escopo": "string",
+    "idiomas": "number",
+    "itensComprados": [],
+    "levelConfidence": "number",
+    "levelDistribution": [
+      {
+        "count": "number",
+        "level": "string"
+      }
+    ],
+    "listeningMs": "number",
+    "maiorSequenciaPresenca": "number",
+    "newCards": "number",
+    "palavrasDificeis": [],
+    "presencas": "number",
+    "reviews": "number",
+    "rodadasPerfeitas": "number",
+    "seedsCreditadas": "number",
+    "seedsGastas": "number",
+    "sequencias7": "number",
+    "sessions": "number",
+    "speakingMs": "number",
+    "streakDays": "number",
+    "streakPresenca": "number",
+    "uniqueWords": "number",
+    "vocabByWeek": [
+      {
+        "count": "number",
+        "weekStart": "number"
+      }
+    ],
+    "wordsCaptured": "number",
+    "wpm": "number",
+    "wpmConfidence": "number",
+    "xpCreditado": "number"
+  }
+}

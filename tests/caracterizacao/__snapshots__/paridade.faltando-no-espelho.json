@@ -1,0 +1,150 @@
+{
+  "POST /api/vocab/bulk-add": {
+    "status": {
+      "express": 200,
+      "espelho": 200
+    },
+    "faltamNoEspelho": [
+      ".repetidas"
+    ]
+  },
+  "POST /api/sessions": {
+    "status": {
+      "express": 200,
+      "espelho": 200
+    },
+    "faltamNoEspelho": [
+      ".deletedAt",
+      ".endedAt",
+      ".startedAt",
+      ".userId"
+    ]
+  },
+  "GET /api/settings": {
+    "status": {
+      "express": 200,
+      "espelho": 200
+    },
+    "faltamNoEspelho": [
+      ".createdAt",
+      ".deletedAt",
+      ".updatedAt",
+      ".userId"
+    ]
+  },
+  "GET /api/sessions": {
+    "status": {
+      "express": 200,
+      "espelho": 200
+    },
+    "faltamNoEspelho": [
+      "[].deletedAt",
+      "[].endedAt",
+      "[].startedAt",
+      "[].userId"
+    ]
+  },
+  "GET /api/vocab": {
+    "status": {
+      "express": 200,
+      "espelho": 200
+    },
+    "faltamNoEspelho": [
+      "[].addedAt",
+      "[].baralhosAnki",
+      "[].cefrSource",
+      "[].daAnki",
+      "[].daTrilha",
+      "[].deletedAt",
+      "[].difficultyAt",
+      "[].difficultyScore",
+      "[].firstSeenAt",
+      "[].lastSeenAt",
+      "[].phonetics",
+      "[].srcLangBase",
+      "[].updatedAt",
+      "[].userId"
+    ]
+  },
+  "GET /api/vocab/pagina?limite=10": {
+    "status": {
+      "express": 200,
+      "espelho": 200
+    },
+    "faltamNoEspelho": [
+      ".itens[].addedAt",
+      ".itens[].cefrSource",
+      ".itens[].deletedAt",
+      ".itens[].difficultyAt",
+      ".itens[].difficultyScore",
+      ".itens[].firstSeenAt",
+      ".itens[].lastSeenAt",
+      ".itens[].phonetics",
+      ".itens[].srcLangBase",
+      ".itens[].updatedAt",
+      ".itens[].userId"
+    ]
+  },
+  "GET /api/vocab/inicio-da-contagem": {
+    "status": {
+      "express": 200,
+      "espelho": 200
+    },
+    "faltamNoEspelho": []
+  },
+  "GET /api/metrics/profile": {
+    "status": {
+      "express": 200,
+      "espelho": 200
+    },
+    "faltamNoEspelho": [
+      ".acertoPorExercicio",
+      ".aprimoramentos",
+      ".cromasComprados",
+      ".listeningMs",
+      ".palavrasDificeis"
+    ]
+  },
+  "GET /api/metrics/xp": {
+    "status": {
+      "express": 200,
+      "espelho": 200
+    },
+    "faltamNoEspelho": []
+  },
+  "GET /api/exercises/historico": {
+    "status": {
+      "express": 200,
+      "espelho": 200
+    },
+    "faltamNoEspelho": []
+  },
+  "GET /api/exercises/recordes": {
+    "status": {
+      "express": 200,
+      "espelho": 200
+    },
+    "faltamNoEspelho": []
+  },
+  "GET /api/exercises/results": {
+    "status": {
+      "express": 200,
+      "espelho": 200
+    },
+    "faltamNoEspelho": []
+  },
+  "GET /api/sessions/utterances/all": {
+    "status": {
+      "express": 200,
+      "espelho": 200
+    },
+    "faltamNoEspelho": [
+      "[].createdAt",
+      "[].deletedAt",
+      "[].speakerId",
+      "[].status",
+      "[].updatedAt",
+      "[].userId"
+    ]
+  }
+}

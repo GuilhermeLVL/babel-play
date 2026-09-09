@@ -1,0 +1,21 @@
+{
+  "status": 200,
+  "forma": {
+    "arquivo": "string",
+    "bytes": "number",
+    "createdAt": "number",
+    "deckId": "string",
+    "deletedAt": "null",
+    "erro": "null",
+    "estado": "string",
+    "hashDoArquivo": "null",
+    "id": "string",
+    "notasAtualizadas": "number",
+    "notasDescartadas": "number",
+    "notasLidas": "number",
+    "notasNovas": "number",
+    "porMotivo": "string",
+    "updatedAt": "number",
+    "userId": "string"
+  }
+}

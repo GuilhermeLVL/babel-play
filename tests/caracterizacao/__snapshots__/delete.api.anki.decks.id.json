@@ -1,0 +1,7 @@
+{
+  "status": 200,
+  "forma": {
+    "notasApagadas": "number",
+    "ok": "boolean"
+  }
+}

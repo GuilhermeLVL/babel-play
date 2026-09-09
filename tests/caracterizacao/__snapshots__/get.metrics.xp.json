@@ -1,0 +1,15 @@
+{
+  "status": 200,
+  "forma": {
+    "marcos": [],
+    "pontos": [
+      {
+        "em": "number",
+        "nivel": "number",
+        "xpAcumulado": "number",
+        "xpNoPeriodo": "number"
+      }
+    ],
+    "xpTotal": "number"
+  }
+}

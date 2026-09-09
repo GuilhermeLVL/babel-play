@@ -1,0 +1,12 @@
+{
+  "status": 403,
+  "forma": {
+    "code": "string",
+    "detalhes": {
+      "alvo": "string",
+      "motivo": "string",
+      "tipo": "string"
+    },
+    "error": "string"
+  }
+}

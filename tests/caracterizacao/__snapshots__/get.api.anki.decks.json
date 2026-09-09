@@ -1,0 +1,23 @@
+{
+  "status": 200,
+  "forma": [
+    {
+      "arquivadas": "number",
+      "arquivoOrigem": "string",
+      "ativas": "number",
+      "ausentes": "number",
+      "createdAt": "number",
+      "deletedAt": "null",
+      "descartadas": "number",
+      "estado": "string",
+      "id": "string",
+      "idiomaAlvo": "string",
+      "idiomaOrigem": "string",
+      "nome": "string",
+      "nomeNoArquivo": "null",
+      "total": "number",
+      "updatedAt": "number",
+      "userId": "string"
+    }
+  ]
+}

@@ -1,0 +1,14 @@
+{
+  "status": 200,
+  "forma": [
+    {
+      "erros": "number",
+      "errosSeguidos": "number",
+      "itemRef": "string",
+      "rodadasDesdeUltimoErro": "number",
+      "ultimaEm": "number",
+      "ultimoAcerto": "boolean",
+      "vezes": "number"
+    }
+  ]
+}

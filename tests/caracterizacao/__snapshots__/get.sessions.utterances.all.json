@@ -1,0 +1,26 @@
+{
+  "status": 200,
+  "forma": [
+    {
+      "confidence": "null",
+      "createdAt": "number",
+      "deletedAt": "null",
+      "engine": "null",
+      "id": "string",
+      "idx": "number",
+      "sessionId": "string",
+      "source": "string",
+      "sourceLang": "string",
+      "sourceText": "string",
+      "speakerId": "null",
+      "speakerName": "string",
+      "status": "null",
+      "tEndMs": "number",
+      "tStartMs": "number",
+      "targetLang": "string",
+      "translatedText": "string",
+      "updatedAt": "number",
+      "userId": "string"
+    }
+  ]
+}

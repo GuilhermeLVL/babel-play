@@ -1,0 +1,7 @@
+{
+  "status": 200,
+  "forma": {
+    "ativadas": "number",
+    "restantes": "number"
+  }
+}

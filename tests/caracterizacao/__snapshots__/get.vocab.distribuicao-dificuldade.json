@@ -1,0 +1,23 @@
+{
+  "status": 200,
+  "forma": {
+    "cortes": {
+      "corte1": "number",
+      "corte2": "number",
+      "motivo": "string",
+      "tipo": "string"
+    },
+    "faixas": {
+      "dificil": "number",
+      "facil": "number",
+      "medio": "number"
+    },
+    "maiorFaixaPct": "number",
+    "pct": {
+      "dificil": "number",
+      "facil": "number",
+      "medio": "number"
+    },
+    "total": "number"
+  }
+}

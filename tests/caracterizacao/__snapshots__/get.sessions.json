@@ -1,0 +1,23 @@
+{
+  "status": 200,
+  "forma": [
+    {
+      "createdAt": "number",
+      "deletedAt": "null",
+      "durationMs": "number",
+      "endedAt": "null",
+      "id": "string",
+      "kind": "string",
+      "meta": "null",
+      "origemLocalId": "null",
+      "sourceLang": "string",
+      "startedAt": "number",
+      "status": "string",
+      "targetLang": "string",
+      "title": "string",
+      "updatedAt": "number",
+      "userId": "string",
+      "wordCount": "number"
+    }
+  ]
+}

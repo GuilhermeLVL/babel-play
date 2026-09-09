@@ -1,0 +1,19 @@
+{
+  "status": 200,
+  "forma": {
+    "chamadas": {
+      "teto": "number",
+      "usado": "number"
+    },
+    "janela": "string",
+    "plano": "string",
+    "segundosDeAudio": {
+      "teto": "number",
+      "usado": "number"
+    },
+    "tokensDeLlm": {
+      "teto": "null",
+      "usado": "number"
+    }
+  }
+}

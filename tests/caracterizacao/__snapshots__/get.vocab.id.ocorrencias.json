@@ -1,0 +1,18 @@
+{
+  "status": 200,
+  "forma": [
+    {
+      "cardId": "string",
+      "createdAt": "number",
+      "deletedAt": "null",
+      "id": "string",
+      "occurredAt": "number",
+      "originKind": "string",
+      "originRef": "null",
+      "sentence": "string",
+      "updatedAt": "number",
+      "userId": "string",
+      "utteranceId": "null"
+    }
+  ]
+}

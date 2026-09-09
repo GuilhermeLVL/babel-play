@@ -1,0 +1,27 @@
+{
+  "status": 200,
+  "forma": {
+    "amostra": [
+      {
+        "exemplo": "string",
+        "frente": "string",
+        "verso": "string"
+      }
+    ],
+    "campos": [],
+    "deckId": "string",
+    "estruturaHash": "null",
+    "formato": "string",
+    "importId": "string",
+    "notetype": "null",
+    "resumo": {
+      "ativadas": "number",
+      "atualizadas": "number",
+      "descartadas": "number",
+      "iguais": "number",
+      "notas": "number",
+      "novas": "number",
+      "porMotivo": {}
+    }
+  }
+}

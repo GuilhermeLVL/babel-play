@@ -1,0 +1,45 @@
+{
+  "status": 200,
+  "forma": {
+    "arquivosDeMidia": [],
+    "dados": {
+      "ankiDecks": [],
+      "ankiImports": [],
+      "ankiNotes": [],
+      "billingEvents": [],
+      "creditPurchases": [],
+      "creditSpends": [],
+      "exerciseResults": [],
+      "presencas": [],
+      "providerCredentials": [],
+      "reviewLogs": [],
+      "secrets": [],
+      "seedCredits": [],
+      "seedSpends": [],
+      "sessions": [],
+      "settings": [],
+      "subscriptions": [],
+      "usageCounters": [],
+      "userInterests": [],
+      "utterances": [],
+      "vocabCards": [],
+      "vocabOccurrences": []
+    },
+    "exportadoEm": "number",
+    "formato": "number",
+    "userId": "string",
+    "usuario": {
+      "bio": "null",
+      "createdAt": "number",
+      "displayName": "null",
+      "email": "null",
+      "goal": "null",
+      "id": "string",
+      "locale": "null",
+      "onboardedAt": "null",
+      "role": "string",
+      "status": "string",
+      "updatedAt": "number"
+    }
+  }
+}

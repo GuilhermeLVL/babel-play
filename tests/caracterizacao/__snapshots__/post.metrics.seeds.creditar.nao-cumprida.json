@@ -1,0 +1,11 @@
+{
+  "status": 400,
+  "forma": {
+    "code": "string",
+    "detalhes": {
+      "atual": "number",
+      "meta": "number"
+    },
+    "error": "string"
+  }
+}

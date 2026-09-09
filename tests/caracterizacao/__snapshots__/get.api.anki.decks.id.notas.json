@@ -1,0 +1,30 @@
+{
+  "status": 200,
+  "forma": {
+    "itens": [
+      {
+        "camposBrutos": "string",
+        "createdAt": "number",
+        "deckId": "string",
+        "deletedAt": "null",
+        "estado": "string",
+        "estruturaHash": "null",
+        "exemplo": "null",
+        "frente": "string",
+        "guid": "string",
+        "id": "string",
+        "importId": "string",
+        "motivoDaBaixa": "null",
+        "motivoDescarte": "null",
+        "notetype": "null",
+        "projectedCardId": "string",
+        "tags": "null",
+        "updatedAt": "number",
+        "userId": "string",
+        "verso": "string"
+      }
+    ],
+    "proximoCursor": "null",
+    "total": "number"
+  }
+}

@@ -1,0 +1,44 @@
+{
+  "status": 200,
+  "forma": {
+    "itens": [
+      {
+        "addedAt": "number",
+        "back": "string",
+        "box": "number",
+        "cefrConfidence": "number",
+        "cefrLevel": "null|string",
+        "cefrSource": "string",
+        "clozeAnswer": "null",
+        "clozePrompt": "null",
+        "createdAt": "number",
+        "deletedAt": "null",
+        "difficulty": "null",
+        "difficultyAt": "null",
+        "difficultyScore": "null",
+        "dueAt": "number",
+        "firstSeenAt": "number",
+        "id": "string",
+        "inDeck": "number",
+        "lapses": "null",
+        "lastReview": "null",
+        "lastSeenAt": "number",
+        "normKey": "string",
+        "occurrences": "number",
+        "phonetics": "null",
+        "reps": "null",
+        "sentence": "string",
+        "sessionId": "null",
+        "srcLang": "string",
+        "srcLangBase": "string",
+        "stability": "null",
+        "tgtLang": "null",
+        "updatedAt": "number",
+        "userId": "string",
+        "word": "string"
+      }
+    ],
+    "proximoCursor": "null",
+    "total": "number"
+  }
+}

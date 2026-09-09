@@ -1,0 +1,16 @@
+{
+  "status": 200,
+  "forma": {
+    "choices": [
+      {
+        "message": {
+          "content": "string"
+        }
+      }
+    ],
+    "usage": {
+      "completion_tokens": "number",
+      "prompt_tokens": "number"
+    }
+  }
+}

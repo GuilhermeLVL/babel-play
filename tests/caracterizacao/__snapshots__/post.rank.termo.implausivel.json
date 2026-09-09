@@ -1,0 +1,10 @@
+{
+  "status": 400,
+  "forma": {
+    "code": "string",
+    "detalhes": {
+      "teto": "number"
+    },
+    "error": "string"
+  }
+}

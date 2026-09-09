@@ -1,0 +1,14 @@
+{
+  "status": 200,
+  "forma": [
+    {
+      "exerciseKind": "string",
+      "melhorCombo": "number",
+      "melhorEm": "number",
+      "melhorPontos": "number",
+      "precisao": "number",
+      "rodadas": "number",
+      "ultimaEm": "number"
+    }
+  ]
+}

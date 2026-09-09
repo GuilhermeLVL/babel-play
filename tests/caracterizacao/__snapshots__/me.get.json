@@ -1,0 +1,15 @@
+{
+  "status": 200,
+  "forma": {
+    "bio": "null",
+    "displayName": "null",
+    "email": "null",
+    "goal": "null",
+    "id": "string",
+    "interests": [],
+    "locale": "null",
+    "onboardedAt": "null",
+    "role": "string",
+    "status": "string"
+  }
+}

@@ -1,0 +1,7 @@
+{
+  "status": 200,
+  "forma": {
+    "manteve": "boolean",
+    "ok": "boolean"
+  }
+}

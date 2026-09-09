@@ -1,0 +1,25 @@
+{
+  "status": 200,
+  "forma": [
+    {
+      "attempts": "number",
+      "cardId": "string",
+      "combo": "number",
+      "correct": "number",
+      "createdAt": "number",
+      "deletedAt": "null",
+      "exerciseKind": "string",
+      "hinted": "number",
+      "id": "string",
+      "itemRef": "string",
+      "kind": "string",
+      "ms": "number",
+      "origem": "string",
+      "roundId": "string",
+      "score": "number",
+      "sessionId": "null|string",
+      "updatedAt": "number",
+      "userId": "string"
+    }
+  ]
+}

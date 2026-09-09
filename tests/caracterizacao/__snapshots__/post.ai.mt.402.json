@@ -1,0 +1,7 @@
+{
+  "status": 402,
+  "forma": {
+    "entitlement": "string",
+    "error": "string"
+  }
+}

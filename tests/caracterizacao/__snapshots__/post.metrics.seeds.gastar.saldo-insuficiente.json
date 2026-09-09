@@ -1,0 +1,12 @@
+{
+  "status": 402,
+  "forma": {
+    "code": "string",
+    "detalhes": {
+      "falta": "number",
+      "preco": "number",
+      "saldo": "number"
+    },
+    "error": "string"
+  }
+}

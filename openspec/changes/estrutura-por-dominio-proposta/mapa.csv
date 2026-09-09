@@ -1,0 +1,438 @@
+origem,destino,dominio,camada,acao,observacao
+src/App.tsx,,app,ui,dividir,ARQUIVO-DEUS (1030 linhas). Saem: 1-79 imports+telas lazy -> src/app/rotas.tsx; 108-141 sessao Supabase/identidade -> dominios/auth/estado/usarSessaoSupabase.ts; 143-177 acesso sem conta+gate+migracao -> dominios/conta/estado/usarGateDeConta.ts; 179-384 tema/fonte/escala/som/animacoes/desempenho/posicao-do-menu/perfil-de-idade -> dominios/personalizacao/estado/usarAparencia.ts; 386-390 entitlements -> dominios/economia/estado; 403-446 metricas/recordes/progresso -> dominios/estatisticas/estado/usarMetricas.ts; 448-546 conquistas/recompensas/drops/loja/equipar -> dominios/economia/estado/usarRecompensas.ts; 547-570 hidratacao das settings de UI -> dominios/personalizacao/estado; 571-700 navegacao/URL/sessoes -> src/app/usarNavegacao.ts; 763-1030 casca e render FICAM em src/app/App.tsx
+src/components/BuscaGlobal.tsx,src/app/BuscaGlobal.tsx,app,ui,mover,"Busca de qualquer tela: atravessa sessao e vocabulario, nao pertence a nenhum"
+src/components/StudioHeader.tsx,src/app/StudioHeader.tsx,app,ui,mover,Cabecalho da casca
+src/components/shell/ControlCluster.tsx,src/app/casca/ControlCluster.tsx,app,ui,mover,Casca de navegacao
+src/components/shell/MenuDaConta.tsx,src/app/casca/MenuDaConta.tsx,app,ui,mover,Casca de navegacao
+src/components/shell/MenuDeConforto.tsx,src/app/casca/MenuDeConforto.tsx,app,ui,mover,Casca de navegacao
+src/components/shell/MobileNav.tsx,src/app/casca/MobileNav.tsx,app,ui,mover,Casca de navegacao
+src/components/shell/MobileTopBar.tsx,src/app/casca/MobileTopBar.tsx,app,ui,mover,Casca de navegacao
+src/components/shell/NavBar.tsx,src/app/casca/NavBar.tsx,app,ui,mover,Casca de navegacao
+src/components/shell/NavRail.tsx,src/app/casca/NavRail.tsx,app,ui,mover,Casca de navegacao
+src/components/shell/ShellBits.tsx,src/app/casca/ShellBits.tsx,app,ui,mover,Casca de navegacao
+src/components/shell/navItems.ts,src/app/casca/navItems.ts,app,ui,mover,Casca de navegacao
+src/components/views/Hub.tsx,src/app/Hub.tsx,app,ui,mover,Tela inicial: agrega todos os dominios
+src/components/views/Sobre.tsx,src/app/Sobre.tsx,app,ui,mover,
+src/index.css,src/app/index.css,app,ui,mover,
+src/lib/criador.ts,src/app/criador.ts,app,dados,mover,Fonte unica dos dados do criador (onboarding e tela Sobre)
+src/lib/navGuard.ts,src/app/navGuard.ts,app,estado,mover,
+src/lib/rotas.ts,src/app/rotas.ts,app,estado,mover,Leitura e escrita da URL da casca
+src/main.tsx,src/app/main.tsx,app,ui,mover,Ponto de entrada; index.html aponta para ele e precisa ser atualizado no mesmo commit
+src/types.ts,src/app/types.ts,app,,mover,Contratos de UI compartilhados (42 importadores); alias @/types se mantem
+server/db/repositories/tenancy.ts,server/dominios/auth/repositorio/tenancy.ts,auth,repositorio,mover,
+server/db/repositories/users.ts,server/dominios/auth/repositorio/users.ts,auth,repositorio,mover,
+server/lib/auth.ts,server/dominios/auth/servico/auth.ts,auth,servico,mover,
+server/lib/authContext.ts,server/dominios/auth/servico/authContext.ts,auth,servico,mover,
+server/lib/rbac.ts,server/dominios/auth/servico/rbac.ts,auth,servico,mover,
+src/components/Login.tsx,src/dominios/auth/ui/Login.tsx,auth,ui,mover,
+src/components/auth/AccountSecuritySection.tsx,src/dominios/auth/ui/AccountSecuritySection.tsx,auth,ui,mover,
+src/components/auth/AuthShell.tsx,src/dominios/auth/ui/AuthShell.tsx,auth,ui,mover,
+src/components/auth/PasswordField.tsx,src/dominios/auth/ui/PasswordField.tsx,auth,ui,mover,
+src/components/auth/ResetPassword.tsx,src/dominios/auth/ui/ResetPassword.tsx,auth,ui,mover,
+src/components/auth/SecurityPanel.tsx,src/dominios/auth/ui/SecurityPanel.tsx,auth,ui,mover,
+src/lib/auth.ts,src/dominios/auth/servico/auth.ts,auth,servico,mover,
+src/lib/authCallback.ts,src/dominios/auth/servico/authCallback.ts,auth,servico,mover,
+src/lib/authHeaders.ts,src/dominios/auth/servico/authHeaders.ts,auth,servico,mover,
+src/lib/identidade.ts,src/dominios/auth/estado/identidade.ts,auth,estado,mover,Eixo identidade (selfhost/carregando/anonimo/conta)
+src/lib/supabase.ts,src/dominios/auth/servico/supabase.ts,auth,servico,mover,
+src/components/CommandPalette.tsx,src/compartilhado/ui/CommandPalette.tsx,compartilhado,ui,mover,
+src/components/ErroDaTela.tsx,src/compartilhado/ui/ErroDaTela.tsx,compartilhado,ui,mover,ErrorBoundary da arvore inteira
+src/components/GuidePanel.tsx,src/compartilhado/ui/GuidePanel.tsx,compartilhado,ui,mover,Ajuda in-app aberta pela tela Capturar e por Configuracoes
+src/components/InfoHint.tsx,src/compartilhado/ui/InfoHint.tsx,compartilhado,ui,mover,
+src/components/PopoverFlutuante.tsx,src/compartilhado/ui/PopoverFlutuante.tsx,compartilhado,ui,mover,So a moldura do popover; Analysis e Reading a reusam
+src/components/Provenance.tsx,src/compartilhado/ui/Provenance.tsx,compartilhado,ui,mover,"Procedencia do dado: usada por transcricao, vocabulario e estatisticas"
+src/components/Toast.tsx,src/compartilhado/ui/Toast.tsx,compartilhado,ui,mover,21 importadores em todos os dominios
+src/components/ui/Abas.tsx,src/compartilhado/ui/Abas.tsx,compartilhado,ui,mover,
+src/components/ui/Barra.tsx,src/compartilhado/ui/Barra.tsx,compartilhado,ui,mover,
+src/components/ui/Ladrilho.tsx,src/compartilhado/ui/Ladrilho.tsx,compartilhado,ui,mover,
+src/components/ui/Segmentado.tsx,src/compartilhado/ui/Segmentado.tsx,compartilhado,ui,mover,
+src/components/ui/Vazio.tsx,src/compartilhado/ui/Vazio.tsx,compartilhado,ui,mover,
+src/components/ui/index.ts,src/compartilhado/ui/index.ts,compartilhado,ui,mover,
+src/hooks/useLayout.ts,src/compartilhado/hooks/useLayout.ts,compartilhado,estado,mover,
+src/lib/camadasDeEscape.ts,src/compartilhado/lib/camadasDeEscape.ts,compartilhado,,mover,"Pilha de camadas do Escape; hoje so jogos usa (2), mas e primitiva de UI"
+src/lib/lazyComRecarga.ts,src/compartilhado/lib/lazyComRecarga.ts,compartilhado,,mover,
+src/lib/posicaoFlutuante.ts,src/compartilhado/hooks/posicaoFlutuante.ts,compartilhado,estado,mover,
+src/lib/relatorioDeErros.ts,src/compartilhado/lib/relatorioDeErros.ts,compartilhado,,mover,
+src/lib/sfxDelegate.ts,src/compartilhado/lib/sfxDelegate.ts,compartilhado,,mover,Delegacao global de som instalada uma vez pela casca
+src/lib/soundFx.ts,src/compartilhado/lib/soundFx.ts,compartilhado,,mover,"AMBIGUO: 10 dos 18 importadores sao de jogos, mas o motor e instalado globalmente pela casca via sfxDelegate; fica compartilhado"
+server/db/repositories/conta.ts,server/dominios/conta/repositorio/conta.ts,conta,repositorio,mover,
+server/db/repositories/credentials.ts,server/dominios/conta/repositorio/credentials.ts,conta,repositorio,mover,
+server/db/repositories/perfil.ts,server/dominios/conta/repositorio/perfil.ts,conta,repositorio,mover,
+server/db/repositories/settings.ts,server/dominios/conta/repositorio/settings.ts,conta,repositorio,mover,
+server/routes/admin.ts,server/dominios/conta/rotas/admin.ts,conta,rotas,mover,
+server/routes/me.ts,server/dominios/conta/rotas/me.ts,conta,rotas,mover,
+server/routes/settings.ts,server/dominios/conta/rotas/settings.ts,conta,rotas,mover,
+src/components/Onboarding.tsx,src/dominios/conta/ui/Onboarding.tsx,conta,ui,mover,
+src/components/conta/AvisoDeConta.tsx,src/dominios/conta/ui/AvisoDeConta.tsx,conta,ui,mover,
+src/components/conta/CartaoDeConvite.tsx,src/dominios/conta/ui/CartaoDeConvite.tsx,conta,ui,mover,
+src/components/conta/GateDeConta.tsx,src/dominios/conta/ui/GateDeConta.tsx,conta,ui,mover,
+src/components/conta/ModalDeMigracao.tsx,src/dominios/conta/ui/ModalDeMigracao.tsx,conta,ui,mover,
+src/components/conta/exigeConta.ts,src/dominios/conta/estado/exigeConta.ts,conta,estado,mover,
+src/components/views/Perfil.tsx,src/dominios/conta/ui/Perfil.tsx,conta,ui,mover,
+src/components/views/perfil/AbaDados.tsx,src/dominios/conta/ui/AbaDados.tsx,conta,ui,mover,
+src/components/views/perfil/AbaProgresso.tsx,src/dominios/conta/ui/AbaProgresso.tsx,conta,ui,mover,
+src/components/views/perfil/AbaVoce.tsx,src/dominios/conta/ui/AbaVoce.tsx,conta,ui,mover,
+src/data/me.ts,src/dominios/conta/dados/me.ts,conta,dados,mover,"Sai de src/data: nao e o funil nem o espelho, e leitura/escrita de conta"
+src/data/migracao.ts,src/dominios/conta/dados/migracao.ts,conta,dados,mover,"Sai de src/data: nao e o funil nem o espelho, e leitura/escrita de conta"
+src/lib/marcosDeConta.ts,src/dominios/conta/estado/marcosDeConta.ts,conta,estado,mover,
+src/lib/usePerfil.ts,src/dominios/conta/estado/usePerfil.ts,conta,estado,mover,
+server/db/db.ts,,dados,infra,fica,"drizzle.config.ts, o Dockerfile e o harness de teste citam este caminho literalmente"
+server/db/migrate.ts,,dados,infra,fica,"drizzle.config.ts, o Dockerfile e o harness de teste citam este caminho literalmente"
+server/db/migrations/**,,dados,infra,fica,"Diretorio inteiro (28 SQL + 24 snapshots + _journal.json): drizzle.config.ts, Dockerfile e o harness de teste citam o caminho"
+server/db/schema.ts,,dados,infra,fica,"drizzle.config.ts, o Dockerfile e o harness de teste citam este caminho literalmente"
+src/data/api.ts,,dados,dados,dividir,"ARQUIVO-DEUS (1163 linhas) e FUNIL. apiFetch (18-68) FICA aqui: audit/rules/ast-grep/fetch-fora-do-funil.yml cita src/data/api.ts literalmente. Saem por dominio de rota: 70-153 e 155-366 sessoes/falas/importacao -> dominios/sessao/dados; 367-486 e 525-659 vocabulario/FSRS -> dominios/vocabulario/dados; 487-524 Anki -> dominios/vocabulario/dados; 660-822 metricas, resultados de exercicio e historico de itens -> dominios/estatisticas/dados; 823-956 Seeds, presenca, passe, creditos e recordes -> dominios/economia/dados; 957-1008 settings -> dominios/personalizacao/dados; 1009-1066 credenciais de provedor -> dominios/conta/dados; 1067-1109 busca de capa -> dominios/sessao/dados; 1110-1163 exportar/excluir conta -> dominios/conta/dados"
+src/data/efemero/servidor.ts,,dados,dados,dividir,"ARQUIVO-DEUS (972 linhas). Espelho em memoria do servidor; o roteador FICA aqui. Saem: 147-302 sessoes, falas e audio -> dominios/sessao/dados; 303-547 cartoes, FSRS e paginacao -> dominios/vocabulario/dados; 548-591 falas e resultados de exercicio -> dominios/vocabulario/dados; 592-623 recordes -> dominios/jogos/dados; 624-768 Seeds, presenca e drops -> dominios/economia/dados; 769-888 perfil e metricas -> dominios/estatisticas/dados; 889-922 settings e entitlements anonimos -> dominios/conta/dados; 30-146 helpers e 923-972 tabela ROTAS + servidorEfemero FICAM"
+src/data/efemero/store.ts,,dados,dados,fica,Espelho em memoria do banco; para junto do servidor efemero
+src/data/trilha/FONTES.md,,dados,,fica,"Procedencia dos dados CEFR, fica junto do que sobrou da trilha"
+src/data/trilha/carregar.ts,,dados,dados,fica,Carregador da trilha no cliente; so o indice e os niveis sobem para o nucleo
+src/data/trilha/indice.json,,dados,dados,fica,
+server/db/repositories/billingEvents.ts,server/dominios/economia/repositorio/billingEvents.ts,economia,repositorio,mover,
+server/db/repositories/credits.ts,server/dominios/economia/repositorio/credits.ts,economia,repositorio,mover,
+server/db/repositories/economia.ts,server/dominios/economia/repositorio/economia.ts,economia,repositorio,mover,
+server/db/repositories/seedSpends.ts,server/dominios/economia/repositorio/seedSpends.ts,economia,repositorio,mover,
+server/db/repositories/subscriptions.ts,server/dominios/economia/repositorio/subscriptions.ts,economia,repositorio,mover,
+server/db/repositories/usageCounters.ts,server/dominios/economia/repositorio/usageCounters.ts,economia,repositorio,mover,
+server/lib/asaas.ts,server/dominios/economia/servico/asaas.ts,economia,servico,mover,
+server/lib/billingEventos.ts,server/dominios/economia/servico/billingEventos.ts,economia,servico,mover,
+server/lib/entitlements.ts,server/dominios/economia/servico/entitlements.ts,economia,servico,mover,
+server/lib/posseDeCosmeticos.ts,server/dominios/economia/servico/posseDeCosmeticos.ts,economia,servico,mover,
+server/lib/storageQuota.ts,server/dominios/economia/servico/storageQuota.ts,economia,servico,mover,
+server/lib/usageQuota.ts,server/dominios/economia/servico/usageQuota.ts,economia,servico,mover,
+server/routes/billing.ts,server/dominios/economia/rotas/billing.ts,economia,rotas,mover,
+src/components/CardDePlanos.tsx,src/dominios/economia/ui/CardDePlanos.tsx,economia,ui,mover,
+src/components/RecompensaDesbloqueada.tsx,src/dominios/economia/ui/RecompensaDesbloqueada.tsx,economia,ui,mover,
+src/components/progress/FaixaDeProgresso.tsx,src/dominios/economia/ui/FaixaDeProgresso.tsx,economia,ui,mover,
+src/components/views/Conquistas.tsx,src/dominios/economia/ui/Conquistas.tsx,economia,ui,mover,
+src/components/views/Loja.tsx,src/dominios/economia/ui/Loja.tsx,economia,ui,mover,
+src/components/views/Planos.tsx,src/dominios/economia/ui/Planos.tsx,economia,ui,mover,
+src/components/views/loja/CabecalhoDeTemporada.tsx,src/dominios/economia/ui/CabecalhoDeTemporada.tsx,economia,ui,mover,
+src/components/views/loja/ComprarCreditos.tsx,src/dominios/economia/ui/ComprarCreditos.tsx,economia,ui,mover,
+src/components/views/passe/PasseDeTemporada.tsx,src/dominios/economia/ui/PasseDeTemporada.tsx,economia,ui,mover,
+src/components/views/planos/Assinar.tsx,src/dominios/economia/ui/Assinar.tsx,economia,ui,mover,
+src/lib/carteira.ts,src/dominios/economia/estado/carteira.ts,economia,estado,mover,
+src/lib/conquistas.ts,src/dominios/economia/servico/conquistas.ts,economia,servico,mover,
+src/lib/conquistasPosse.ts,src/dominios/economia/estado/conquistasPosse.ts,economia,estado,mover,
+src/lib/desbloqueios.ts,src/dominios/economia/servico/desbloqueios.ts,economia,servico,mover,
+src/lib/entitlements.ts,src/dominios/economia/estado/entitlements.ts,economia,estado,mover,
+src/lib/liberacaoDev.ts,src/dominios/economia/estado/liberacaoDev.ts,economia,estado,mover,
+src/lib/loja.ts,src/dominios/economia/dados/loja.ts,economia,dados,mover,
+src/lib/presenca.ts,src/dominios/economia/servico/presenca.ts,economia,servico,mover,
+src/lib/progress.ts,src/dominios/economia/servico/progress.ts,economia,servico,mover,
+src/lib/uso.ts,src/dominios/economia/estado/uso.ts,economia,estado,mover,
+server/db/repositories/metrics.ts,server/dominios/estatisticas/repositorio/metrics.ts,estatisticas,repositorio,mover,
+server/db/repositories/resumo.ts,server/dominios/estatisticas/repositorio/resumo.ts,estatisticas,repositorio,mover,
+server/routes/erros.ts,server/dominios/estatisticas/rotas/erros.ts,estatisticas,rotas,mover,
+server/routes/metrics.ts,server/dominios/estatisticas/rotas/metrics.ts,estatisticas,rotas,mover,
+src/components/Honestidade.tsx,src/dominios/estatisticas/ui/Honestidade.tsx,estatisticas,ui,mover,
+src/components/metrics/EvolucaoSemanal.tsx,src/dominios/estatisticas/ui/EvolucaoSemanal.tsx,estatisticas,ui,mover,
+src/components/metrics/NiveisDoConjunto.tsx,src/dominios/estatisticas/ui/NiveisDoConjunto.tsx,estatisticas,ui,mover,
+src/components/views/AnalysisExpandedKpi.tsx,src/dominios/estatisticas/ui/AnalysisExpandedKpi.tsx,estatisticas,ui,mover,
+src/components/views/Metrics.tsx,src/dominios/estatisticas/ui/Metrics.tsx,estatisticas,ui,mover,
+src/components/views/MetricsExpandedKpi.tsx,src/dominios/estatisticas/ui/MetricsExpandedKpi.tsx,estatisticas,ui,mover,
+src/lib/ranking.ts,src/dominios/estatisticas/servico/ranking.ts,estatisticas,servico,mover,
+src/lib/relatorioDeProgresso.ts,src/dominios/estatisticas/servico/relatorioDeProgresso.ts,estatisticas,servico,mover,
+server/ai/mtProxy.ts,server/dominios/i18n/servico/mtProxy.ts,i18n,servico,mover,"Importa src/lib/traducao/promptComunicativo:9, que sobe para src/core/traducao/ na mesma fase"
+server/lib/idiomaDoWhisper.ts,server/dominios/i18n/servico/idiomaDoWhisper.ts,i18n,servico,mover,
+src/components/LangFlag.tsx,src/dominios/i18n/ui/LangFlag.tsx,i18n,ui,mover,
+src/components/LangPicker.tsx,src/dominios/i18n/ui/LangPicker.tsx,i18n,ui,mover,
+src/components/views/LangAudit.tsx,src/dominios/i18n/ui/LangAudit.tsx,i18n,ui,mover,
+src/data/i18n/cobertura.json,src/dominios/i18n/dados/cobertura.json,i18n,dados,mover,Sai de src/data: nao e o funil nem o espelho
+src/lib/T.tsx,src/dominios/i18n/ui/T.tsx,i18n,ui,mover,
+src/lib/convoLang.ts,src/dominios/i18n/servico/convoLang.ts,i18n,servico,mover,
+src/lib/langAudit.ts,src/dominios/i18n/servico/langAudit.ts,i18n,servico,mover,
+src/lib/langConfig.ts,src/dominios/i18n/estado/langConfig.ts,i18n,estado,mover,
+src/lib/langDetect.ts,src/dominios/i18n/servico/langDetect.ts,i18n,servico,mover,
+src/lib/langFlag.ts,src/dominios/i18n/dados/langFlag.ts,i18n,dados,mover,
+src/lib/languages.ts,src/dominios/i18n/dados/languages.ts,i18n,dados,mover,
+src/lib/perfilDeIdioma.ts,src/dominios/i18n/servico/perfilDeIdioma.ts,i18n,servico,mover,
+src/lib/spokenLang.ts,src/dominios/i18n/servico/spokenLang.ts,i18n,servico,mover,
+src/lib/traducao/expressoes.ts,src/dominios/i18n/dados/traducao/expressoes.ts,i18n,dados,mover,
+src/lib/traducao/prepararFala.ts,src/dominios/i18n/servico/traducao/prepararFala.ts,i18n,servico,mover,
+src/lib/useI18n.ts,src/dominios/i18n/estado/useI18n.ts,i18n,estado,mover,
+src/lib/validaTraducao.ts,src/dominios/i18n/servico/validaTraducao.ts,i18n,servico,mover,
+server.ts,,infra,infra,dividir,"ARQUIVO-DEUS (703 linhas). Saem: 45-145 criacao do app, requestId, helmet, compression e limitadores -> server/http/app.ts (criarApp); 146-225 montagem dos routers -> server/http/rotas.ts; 227-403 rota de negocio /api/gemini/chat com mensagensDeChat/tryOllamaChat/tryGroqChat -> server/dominios/transcricao/rotas/gemini.ts; 404-634 startServer (Vite dev, estatico, erroGlobal, listen) -> server/http/servidor.ts; 635-703 iniciar() e checagem de PRAGMA -> server/infra/boot.ts. Sobra um bootstrap fino"
+server/ai/llmClient.ts,server/infra/ai/llmClient.ts,infra,infra,mover,"Encanamento de IA compartilhado (chokepoint de segredos, SSRF, pass-through de streaming): serve transcricao e i18n"
+server/ai/llmRequest.ts,server/infra/ai/llmRequest.ts,infra,infra,mover,"Encanamento de IA compartilhado (chokepoint de segredos, SSRF, pass-through de streaming): serve transcricao e i18n"
+server/ai/provedores.ts,server/infra/ai/provedores.ts,infra,infra,mover,"Encanamento de IA compartilhado (chokepoint de segredos, SSRF, pass-through de streaming): serve transcricao e i18n"
+server/ai/proxy.ts,server/infra/ai/proxy.ts,infra,infra,mover,"Encanamento de IA compartilhado (chokepoint de segredos, SSRF, pass-through de streaming): serve transcricao e i18n"
+server/ai/ssrf.ts,server/infra/ai/ssrf.ts,infra,infra,mover,"Encanamento de IA compartilhado (chokepoint de segredos, SSRF, pass-through de streaming): serve transcricao e i18n"
+server/crypto.ts,server/infra/crypto.ts,infra,infra,mover,
+server/db/manutencao.ts,server/infra/manutencaoDoBanco.ts,infra,infra,mover,"Rotina de manutencao do banco, nao e schema nem migracao"
+server/db/seed.ts,server/infra/seedDoBanco.ts,infra,infra,mover,seedIfEmpty e chamado so pelo bootstrap (server.ts:25)
+server/lib/armazenamento.ts,server/infra/armazenamento.ts,infra,infra,mover,
+server/lib/bootStatus.ts,server/infra/bootStatus.ts,infra,infra,mover,
+server/lib/cadeiaDeCausas.ts,server/infra/cadeiaDeCausas.ts,infra,infra,mover,
+server/lib/config.ts,server/infra/config.ts,infra,infra,mover,
+server/lib/diarioDeErros.ts,server/infra/diarioDeErros.ts,infra,infra,mover,
+server/lib/diretorios.ts,server/infra/diretorios.ts,infra,infra,mover,
+server/lib/erroDeRota.ts,server/http/erroDeRota.ts,infra,infra,mover,
+server/lib/erroGlobal.ts,server/http/erroGlobal.ts,infra,infra,mover,
+server/lib/logger.ts,server/infra/logger.ts,infra,infra,mover,
+server/lib/rateLimitStore.ts,server/http/rateLimitStore.ts,infra,infra,mover,
+server/lib/requestId.ts,server/http/requestId.ts,infra,infra,mover,
+server/lib/respostaDeErro.ts,server/http/respostaDeErro.ts,infra,infra,mover,
+server/lib/tipoDeArquivo.ts,server/infra/tipoDeArquivo.ts,infra,infra,mover,
+server/routes/health.ts,server/http/health.ts,infra,infra,mover,"Sonda de saude, nao pertence a dominio"
+server/validation.ts,server/http/validation.ts,infra,infra,mover,Esquemas Zod compartilhados por todas as rotas
+server/db/repositories/exerciseResults.ts,server/dominios/jogos/repositorio/exerciseResults.ts,jogos,repositorio,mover,AMBIGUO: o placar e alimentado pelas rodadas (jogos) e consumido pelo perfil (estatisticas); rank.ts e escrito so pelas rotas de jogos
+server/db/repositories/rank.ts,server/dominios/jogos/repositorio/rank.ts,jogos,repositorio,mover,AMBIGUO: o placar e alimentado pelas rodadas (jogos) e consumido pelo perfil (estatisticas); rank.ts e escrito so pelas rotas de jogos
+server/routes/exercises.ts,server/dominios/jogos/rotas/exercises.ts,jogos,rotas,mover,
+server/routes/rank.ts,server/dominios/jogos/rotas/rank.ts,jogos,rotas,mover,
+src/components/FloatingScoreLayer.tsx,src/dominios/jogos/ui/FloatingScoreLayer.tsx,jogos,ui,mover,
+src/components/FraseComLacuna.tsx,src/dominios/jogos/ui/FraseComLacuna.tsx,jogos,ui,mover,
+src/components/PracticeMenu.tsx,src/dominios/jogos/ui/PracticeMenu.tsx,jogos,ui,mover,
+src/components/minigames/AntessalaDaRodada.tsx,src/dominios/jogos/ui/AntessalaDaRodada.tsx,jogos,ui,mover,
+src/components/minigames/ArteDosJogos.tsx,src/dominios/jogos/ui/ArteDosJogos.tsx,jogos,ui,mover,
+src/components/minigames/BingoPanel.tsx,src/dominios/jogos/ui/BingoPanel.tsx,jogos,ui,mover,
+src/components/minigames/BlitzGame.tsx,src/dominios/jogos/ui/BlitzGame.tsx,jogos,ui,mover,
+src/components/minigames/CoberturaDosIdiomas.tsx,src/dominios/jogos/ui/CoberturaDosIdiomas.tsx,jogos,ui,mover,"AMBIGUO: minigame sobre cobertura de idiomas; 1 importador em jogos, o dado vem de i18n"
+src/components/minigames/ComoSeJoga.tsx,src/dominios/jogos/ui/ComoSeJoga.tsx,jogos,ui,mover,
+src/components/minigames/ConectoresGame.tsx,src/dominios/jogos/ui/ConectoresGame.tsx,jogos,ui,mover,
+src/components/minigames/DitadoGame.tsx,src/dominios/jogos/ui/DitadoGame.tsx,jogos,ui,mover,
+src/components/minigames/EscutaGame.tsx,src/dominios/jogos/ui/EscutaGame.tsx,jogos,ui,mover,
+src/components/minigames/KaraokeGame.tsx,src/dominios/jogos/ui/KaraokeGame.tsx,jogos,ui,mover,
+src/components/minigames/MemoryGame.tsx,src/dominios/jogos/ui/MemoryGame.tsx,jogos,ui,mover,
+src/components/minigames/ResumoDaRodada.tsx,src/dominios/jogos/ui/ResumoDaRodada.tsx,jogos,ui,mover,
+src/components/minigames/SalaDeEscolha.tsx,src/dominios/jogos/ui/SalaDeEscolha.tsx,jogos,ui,mover,
+src/components/minigames/ScrambleGame.tsx,src/dominios/jogos/ui/ScrambleGame.tsx,jogos,ui,mover,
+src/components/minigames/ScratchReward.tsx,src/dominios/jogos/ui/ScratchReward.tsx,jogos,ui,mover,"AMBIGUO: recompensa raspadinha, 1 importador (Play, jogos); a logica de premio e de economia mas a tela e da rodada"
+src/components/minigames/SeletorDeConteudo.tsx,src/dominios/jogos/ui/SeletorDeConteudo.tsx,jogos,ui,mover,
+src/components/minigames/TermoGame.tsx,src/dominios/jogos/ui/TermoGame.tsx,jogos,ui,mover,
+src/components/minigames/TourGuiado.tsx,src/dominios/jogos/ui/TourGuiado.tsx,jogos,ui,mover,
+src/components/minigames/WordSearchGame.tsx,src/dominios/jogos/ui/WordSearchGame.tsx,jogos,ui,mover,
+src/components/minigames/culturais/BaoGame.tsx,src/dominios/jogos/ui/culturais/BaoGame.tsx,jogos,ui,mover,
+src/components/minigames/culturais/CadavreExquisGame.tsx,src/dominios/jogos/ui/culturais/CadavreExquisGame.tsx,jogos,ui,mover,
+src/components/minigames/culturais/ChoseongGame.tsx,src/dominios/jogos/ui/culturais/ChoseongGame.tsx,jogos,ui,mover,
+src/components/minigames/culturais/KarutaGame.tsx,src/dominios/jogos/ui/culturais/KarutaGame.tsx,jogos,ui,mover,
+src/components/minigames/culturais/KofferGame.tsx,src/dominios/jogos/ui/culturais/KofferGame.tsx,jogos,ui,mover,
+src/components/minigames/culturais/README.md,src/dominios/jogos/ui/culturais/README.md,jogos,ui,mover,
+src/components/minigames/culturais/ShiritoriGame.tsx,src/dominios/jogos/ui/culturais/ShiritoriGame.tsx,jogos,ui,mover,
+src/components/minigames/culturais/TabooGame.tsx,src/dominios/jogos/ui/culturais/TabooGame.tsx,jogos,ui,mover,
+src/components/minigames/culturais/TenseTennisGame.tsx,src/dominios/jogos/ui/culturais/TenseTennisGame.tsx,jogos,ui,mover,
+src/components/minigames/culturais/VitendawiliGame.tsx,src/dominios/jogos/ui/culturais/VitendawiliGame.tsx,jogos,ui,mover,
+src/components/minigames/passosDosJogos.ts,src/dominios/jogos/dados/passosDosJogos.ts,jogos,dados,mover,
+src/components/views/MapaDoConteudo.tsx,src/dominios/jogos/ui/MapaDoConteudo.tsx,jogos,ui,mover,
+src/components/views/PainelTrilha.tsx,src/dominios/jogos/ui/PainelTrilha.tsx,jogos,ui,mover,
+src/components/views/Play.tsx,,jogos,ui,dividir,"ARQUIVO-DEUS (3522 linhas). Saem: 96-267 props, ABAS_DE_FONTE, habilidadeDoJogoClassico, antessala e buscarComposicaoPeloFunil -> dominios/jogos/dados; 269-604 estado (deck, fonte/filtro, baralhos Anki, sessoes, rodada, sequencia, recordes, historico) -> dominios/jogos/estado; 605-890 montarRodada -> dominios/jogos/servico; 891-1021 pedirParaJogar/comecar/sequencia -> dominios/jogos/servico; 1022-1474 aoTerminar (relatorio, XP, Seeds, conquistas, gravacao da rodada) -> dominios/economia/servico; 1475-1580 trocarIdioma e aplicarEscolha -> dominios/jogos/estado; 1581-1626 trilha CEFR -> dominios/jogos/dados; 1627-1992 dificuldade automatica e catalogo de jogos -> dominios/jogos/dados; 1993-2352 desbloqueios, ordem, telaCheia e tour -> dominios/jogos/ui; 2353-3522 render FICA na tela"
+src/components/views/play/IconesPixel.tsx,src/dominios/jogos/ui/IconesPixel.tsx,jogos,ui,mover,
+src/components/views/play/Recordes.tsx,src/dominios/jogos/ui/Recordes.tsx,jogos,ui,mover,
+src/components/views/play/componentesDosJogos.ts,src/dominios/jogos/ui/componentesDosJogos.ts,jogos,ui,mover,
+src/components/views/play/jogos.tsx,src/dominios/jogos/ui/jogos.tsx,jogos,ui,mover,
+src/components/views/play/telaDoJogo.ts,src/dominios/jogos/ui/telaDoJogo.ts,jogos,ui,mover,
+src/lib/effects.ts,src/dominios/jogos/ui/effects.ts,jogos,ui,mover,"AMBIGUO: 17 importadores, 10 de jogos contra 3 de personalizacao (Loja, ParticleCanvas) e 1 de transcricao (LiveCapture)"
+src/lib/eventosDeJogo.ts,src/dominios/jogos/servico/eventosDeJogo.ts,jogos,servico,mover,
+src/lib/filtroDaPratica.ts,src/dominios/jogos/estado/filtroDaPratica.ts,jogos,estado,mover,
+src/lib/fonteDaPratica.ts,src/dominios/jogos/estado/fonteDaPratica.ts,jogos,estado,mover,
+src/lib/gameFeel.ts,src/dominios/jogos/ui/gameFeel.ts,jogos,ui,mover,"10 importadores, todos de jogos"
+src/lib/juice.ts,src/dominios/jogos/ui/juice.ts,jogos,ui,mover,"AMBIGUO: 28 importadores, 20 de jogos contra 4 de personalizacao (Loja, Personalizar, Inventario, SeletorDePaletas)"
+src/lib/memoriaLocal.ts,src/dominios/jogos/estado/memoriaLocal.ts,jogos,estado,mover,
+src/lib/ordemDosJogos.ts,src/dominios/jogos/estado/ordemDosJogos.ts,jogos,estado,mover,
+src/core/creditos.ts,,nucleo,,fica,"Fronteira isomorfica (alias @core, tsconfig proprio): as duas pontas importam daqui"
+src/core/economiaAutoridade.ts,,nucleo,,fica,"Fronteira isomorfica (alias @core, tsconfig proprio): as duas pontas importam daqui"
+src/core/env.d.ts,,nucleo,,fica,"Fronteira isomorfica (alias @core, tsconfig proprio): as duas pontas importam daqui"
+src/core/eval/chrf.ts,,nucleo,,fica,"Fronteira isomorfica (alias @core, tsconfig proprio): as duas pontas importam daqui"
+src/core/eval/der.ts,,nucleo,,fica,"Fronteira isomorfica (alias @core, tsconfig proprio): as duas pontas importam daqui"
+src/core/eval/wer.ts,,nucleo,,fica,"Fronteira isomorfica (alias @core, tsconfig proprio): as duas pontas importam daqui"
+src/core/gateway/budget.ts,,nucleo,,fica,"Fronteira isomorfica (alias @core, tsconfig proprio): as duas pontas importam daqui"
+src/core/gateway/gateway.ts,,nucleo,,fica,"Fronteira isomorfica (alias @core, tsconfig proprio): as duas pontas importam daqui"
+src/core/gateway/llm-types.ts,,nucleo,,fica,"Fronteira isomorfica (alias @core, tsconfig proprio): as duas pontas importam daqui"
+src/core/gateway/profile.ts,,nucleo,,fica,"Fronteira isomorfica (alias @core, tsconfig proprio): as duas pontas importam daqui"
+src/core/index.ts,,nucleo,,fica,"Fronteira isomorfica (alias @core, tsconfig proprio): as duas pontas importam daqui"
+src/core/learning/cefrWordlist.ts,,nucleo,,fica,"Fronteira isomorfica (alias @core, tsconfig proprio): as duas pontas importam daqui"
+src/core/learning/cloze.ts,,nucleo,,fica,"Fronteira isomorfica (alias @core, tsconfig proprio): as duas pontas importam daqui"
+src/core/learning/conquistas.ts,,nucleo,,fica,"Fronteira isomorfica (alias @core, tsconfig proprio): as duas pontas importam daqui"
+src/core/learning/contract.ts,,nucleo,,fica,"Fronteira isomorfica (alias @core, tsconfig proprio): as duas pontas importam daqui"
+src/core/learning/dificuldade.ts,,nucleo,,fica,"Fronteira isomorfica (alias @core, tsconfig proprio): as duas pontas importam daqui"
+src/core/learning/due.ts,,nucleo,,fica,"Fronteira isomorfica (alias @core, tsconfig proprio): as duas pontas importam daqui"
+src/core/learning/economia.ts,,nucleo,,fica,"Fronteira isomorfica (alias @core, tsconfig proprio): as duas pontas importam daqui"
+src/core/learning/etapas.ts,,nucleo,,fica,"Fronteira isomorfica (alias @core, tsconfig proprio): as duas pontas importam daqui"
+src/core/learning/fillers.ts,,nucleo,,fica,"Fronteira isomorfica (alias @core, tsconfig proprio): as duas pontas importam daqui"
+src/core/learning/fluencia.ts,,nucleo,,fica,"Fronteira isomorfica (alias @core, tsconfig proprio): as duas pontas importam daqui"
+src/core/learning/historicoDeXp.ts,,nucleo,,fica,"Fronteira isomorfica (alias @core, tsconfig proprio): as duas pontas importam daqui"
+src/core/learning/interesses.ts,,nucleo,,fica,"Fronteira isomorfica (alias @core, tsconfig proprio): as duas pontas importam daqui"
+src/core/learning/keywords.ts,,nucleo,,fica,"Fronteira isomorfica (alias @core, tsconfig proprio): as duas pontas importam daqui"
+src/core/learning/memoriaDeItens.ts,,nucleo,,fica,"Fronteira isomorfica (alias @core, tsconfig proprio): as duas pontas importam daqui"
+src/core/learning/passive-voice.ts,,nucleo,,fica,"Fronteira isomorfica (alias @core, tsconfig proprio): as duas pontas importam daqui"
+src/core/learning/pistaDeJogo.ts,,nucleo,,fica,"Fronteira isomorfica (alias @core, tsconfig proprio): as duas pontas importam daqui"
+src/core/learning/pronunciation.ts,,nucleo,,fica,"Fronteira isomorfica (alias @core, tsconfig proprio): as duas pontas importam daqui"
+src/core/learning/quality.ts,,nucleo,,fica,"Fronteira isomorfica (alias @core, tsconfig proprio): as duas pontas importam daqui"
+src/core/learning/scheduler.ts,,nucleo,,fica,"Fronteira isomorfica (alias @core, tsconfig proprio): as duas pontas importam daqui"
+src/core/learning/sobreposicao.ts,,nucleo,,fica,"Fronteira isomorfica (alias @core, tsconfig proprio): as duas pontas importam daqui"
+src/core/learning/text-stats.ts,,nucleo,,fica,"Fronteira isomorfica (alias @core, tsconfig proprio): as duas pontas importam daqui"
+src/core/learning/trilha.ts,,nucleo,,fica,"Fronteira isomorfica (alias @core, tsconfig proprio): as duas pontas importam daqui"
+src/core/learning/xp.ts,,nucleo,,fica,"Fronteira isomorfica (alias @core, tsconfig proprio): as duas pontas importam daqui"
+src/core/loja.ts,,nucleo,,fica,"Fronteira isomorfica (alias @core, tsconfig proprio): as duas pontas importam daqui"
+src/core/minigames/autoDificuldade.ts,,nucleo,,fica,"Fronteira isomorfica (alias @core, tsconfig proprio): as duas pontas importam daqui"
+src/core/minigames/bingo.ts,,nucleo,,fica,"Fronteira isomorfica (alias @core, tsconfig proprio): as duas pontas importam daqui"
+src/core/minigames/blitzRegras.ts,,nucleo,,fica,"Fronteira isomorfica (alias @core, tsconfig proprio): as duas pontas importam daqui"
+src/core/minigames/composicao.ts,,nucleo,,fica,"Fronteira isomorfica (alias @core, tsconfig proprio): as duas pontas importam daqui"
+src/core/minigames/desbloqueio.ts,,nucleo,,fica,"Fronteira isomorfica (alias @core, tsconfig proprio): as duas pontas importam daqui"
+src/core/minigames/distribuicao.ts,,nucleo,,fica,"Fronteira isomorfica (alias @core, tsconfig proprio): as duas pontas importam daqui"
+src/core/minigames/duracao.ts,,nucleo,,fica,"Fronteira isomorfica (alias @core, tsconfig proprio): as duas pontas importam daqui"
+src/core/minigames/escuta.ts,,nucleo,,fica,"Fronteira isomorfica (alias @core, tsconfig proprio): as duas pontas importam daqui"
+src/core/minigames/estadoDosJogos.ts,,nucleo,,fica,"Fronteira isomorfica (alias @core, tsconfig proprio): as duas pontas importam daqui"
+src/core/minigames/fases.ts,,nucleo,,fica,"Fronteira isomorfica (alias @core, tsconfig proprio): as duas pontas importam daqui"
+src/core/minigames/filtro.ts,,nucleo,,fica,"Fronteira isomorfica (alias @core, tsconfig proprio): as duas pontas importam daqui"
+src/core/minigames/grade.ts,,nucleo,,fica,"Fronteira isomorfica (alias @core, tsconfig proprio): as duas pontas importam daqui"
+src/core/minigames/itemSource.ts,,nucleo,,fica,"Fronteira isomorfica (alias @core, tsconfig proprio): as duas pontas importam daqui"
+src/core/minigames/painelDaPratica.ts,,nucleo,,fica,"Fronteira isomorfica (alias @core, tsconfig proprio): as duas pontas importam daqui"
+src/core/minigames/revelavel.ts,,nucleo,,fica,"Fronteira isomorfica (alias @core, tsconfig proprio): as duas pontas importam daqui"
+src/core/minigames/scramble.ts,,nucleo,,fica,"Fronteira isomorfica (alias @core, tsconfig proprio): as duas pontas importam daqui"
+src/core/minigames/sequencia.ts,,nucleo,,fica,"Fronteira isomorfica (alias @core, tsconfig proprio): as duas pontas importam daqui"
+src/core/minigames/shiritori.ts,,nucleo,,fica,"Fronteira isomorfica (alias @core, tsconfig proprio): as duas pontas importam daqui"
+src/core/minigames/source.ts,,nucleo,,fica,"Fronteira isomorfica (alias @core, tsconfig proprio): as duas pontas importam daqui"
+src/core/minigames/termo.ts,,nucleo,,fica,"Fronteira isomorfica (alias @core, tsconfig proprio): as duas pontas importam daqui"
+src/core/minigames/termoLayout.ts,,nucleo,,fica,"Fronteira isomorfica (alias @core, tsconfig proprio): as duas pontas importam daqui"
+src/core/minigames/types.ts,,nucleo,,fica,"Fronteira isomorfica (alias @core, tsconfig proprio): as duas pontas importam daqui"
+src/core/minigames/wordsearch.ts,,nucleo,,fica,"Fronteira isomorfica (alias @core, tsconfig proprio): as duas pontas importam daqui"
+src/core/passe.ts,,nucleo,,fica,"Fronteira isomorfica (alias @core, tsconfig proprio): as duas pontas importam daqui"
+src/core/planos.ts,,nucleo,,fica,"Fronteira isomorfica (alias @core, tsconfig proprio): as duas pontas importam daqui"
+src/core/robustness.ts,,nucleo,,fica,"Fronteira isomorfica (alias @core, tsconfig proprio): as duas pontas importam daqui"
+src/core/tetoAnonimo.ts,,nucleo,,fica,"Fronteira isomorfica (alias @core, tsconfig proprio): as duas pontas importam daqui"
+src/core/texto/frases.ts,,nucleo,,fica,"Fronteira isomorfica (alias @core, tsconfig proprio): as duas pontas importam daqui"
+src/core/texto/idioma.ts,,nucleo,,fica,"Fronteira isomorfica (alias @core, tsconfig proprio): as duas pontas importam daqui"
+src/core/texto/palavra.ts,,nucleo,,fica,"Fronteira isomorfica (alias @core, tsconfig proprio): as duas pontas importam daqui"
+src/core/tsconfig.json,,nucleo,,fica,"Fronteira isomorfica (alias @core, tsconfig proprio): as duas pontas importam daqui"
+src/data/trilha/indice.ts,src/core/trilha/indice.ts,nucleo,dados,mover,"Importado pelo SERVIDOR em server/lib/niveisDaTrilha.ts:27; sobe para o nucleo, que e o que as duas pontas podem importar"
+src/data/trilha/niveis/ar.json,src/core/trilha/niveis/ar.json,nucleo,dados,mover,"Importado pelo SERVIDOR em server/lib/niveisDaTrilha.ts:29-44 (os 16 JSON, um por idioma); sobe para o nucleo"
+src/data/trilha/niveis/de.json,src/core/trilha/niveis/de.json,nucleo,dados,mover,"Importado pelo SERVIDOR em server/lib/niveisDaTrilha.ts:29-44 (os 16 JSON, um por idioma); sobe para o nucleo"
+src/data/trilha/niveis/en.json,src/core/trilha/niveis/en.json,nucleo,dados,mover,"Importado pelo SERVIDOR em server/lib/niveisDaTrilha.ts:29-44 (os 16 JSON, um por idioma); sobe para o nucleo"
+src/data/trilha/niveis/es.json,src/core/trilha/niveis/es.json,nucleo,dados,mover,"Importado pelo SERVIDOR em server/lib/niveisDaTrilha.ts:29-44 (os 16 JSON, um por idioma); sobe para o nucleo"
+src/data/trilha/niveis/fr.json,src/core/trilha/niveis/fr.json,nucleo,dados,mover,"Importado pelo SERVIDOR em server/lib/niveisDaTrilha.ts:29-44 (os 16 JSON, um por idioma); sobe para o nucleo"
+src/data/trilha/niveis/he.json,src/core/trilha/niveis/he.json,nucleo,dados,mover,"Importado pelo SERVIDOR em server/lib/niveisDaTrilha.ts:29-44 (os 16 JSON, um por idioma); sobe para o nucleo"
+src/data/trilha/niveis/hi.json,src/core/trilha/niveis/hi.json,nucleo,dados,mover,"Importado pelo SERVIDOR em server/lib/niveisDaTrilha.ts:29-44 (os 16 JSON, um por idioma); sobe para o nucleo"
+src/data/trilha/niveis/it.json,src/core/trilha/niveis/it.json,nucleo,dados,mover,"Importado pelo SERVIDOR em server/lib/niveisDaTrilha.ts:29-44 (os 16 JSON, um por idioma); sobe para o nucleo"
+src/data/trilha/niveis/ja.json,src/core/trilha/niveis/ja.json,nucleo,dados,mover,"Importado pelo SERVIDOR em server/lib/niveisDaTrilha.ts:29-44 (os 16 JSON, um por idioma); sobe para o nucleo"
+src/data/trilha/niveis/ko.json,src/core/trilha/niveis/ko.json,nucleo,dados,mover,"Importado pelo SERVIDOR em server/lib/niveisDaTrilha.ts:29-44 (os 16 JSON, um por idioma); sobe para o nucleo"
+src/data/trilha/niveis/nl.json,src/core/trilha/niveis/nl.json,nucleo,dados,mover,"Importado pelo SERVIDOR em server/lib/niveisDaTrilha.ts:29-44 (os 16 JSON, um por idioma); sobe para o nucleo"
+src/data/trilha/niveis/pl.json,src/core/trilha/niveis/pl.json,nucleo,dados,mover,"Importado pelo SERVIDOR em server/lib/niveisDaTrilha.ts:29-44 (os 16 JSON, um por idioma); sobe para o nucleo"
+src/data/trilha/niveis/ru.json,src/core/trilha/niveis/ru.json,nucleo,dados,mover,"Importado pelo SERVIDOR em server/lib/niveisDaTrilha.ts:29-44 (os 16 JSON, um por idioma); sobe para o nucleo"
+src/data/trilha/niveis/sv.json,src/core/trilha/niveis/sv.json,nucleo,dados,mover,"Importado pelo SERVIDOR em server/lib/niveisDaTrilha.ts:29-44 (os 16 JSON, um por idioma); sobe para o nucleo"
+src/data/trilha/niveis/tr.json,src/core/trilha/niveis/tr.json,nucleo,dados,mover,"Importado pelo SERVIDOR em server/lib/niveisDaTrilha.ts:29-44 (os 16 JSON, um por idioma); sobe para o nucleo"
+src/data/trilha/niveis/zh.json,src/core/trilha/niveis/zh.json,nucleo,dados,mover,"Importado pelo SERVIDOR em server/lib/niveisDaTrilha.ts:29-44 (os 16 JSON, um por idioma); sobe para o nucleo"
+src/lib/i18n.ts,src/core/i18n.ts,nucleo,servico,mover,Citado literalmente por audit/rules/ast-grep/locale-cravado.yml; sobe para o nucleo (45 importadores nas duas pontas) e a regra do portao precisa apontar para src/core/i18n.ts no mesmo commit
+src/lib/traducao/promptComunicativo.ts,src/core/traducao/promptComunicativo.ts,nucleo,servico,mover,Importado pelo SERVIDOR em server/ai/mtProxy.ts:9 e pelos scripts de avaliacao; sobe para o nucleo
+src/components/EditablePanel.tsx,src/dominios/personalizacao/ui/EditablePanel.tsx,personalizacao,ui,mover,
+src/components/LayoutEditorToolbar.tsx,src/dominios/personalizacao/ui/LayoutEditorToolbar.tsx,personalizacao,ui,mover,
+src/components/LayoutStudio.tsx,src/dominios/personalizacao/ui/LayoutStudio.tsx,personalizacao,ui,mover,
+src/components/MiniaturaDoItem.tsx,src/dominios/personalizacao/ui/MiniaturaDoItem.tsx,personalizacao,ui,mover,
+src/components/ParticleCanvas.tsx,src/dominios/personalizacao/ui/ParticleCanvas.tsx,personalizacao,ui,mover,
+src/components/views/Personalizar.tsx,src/dominios/personalizacao/ui/Personalizar.tsx,personalizacao,ui,mover,
+src/components/views/Settings.tsx,src/dominios/personalizacao/ui/Settings.tsx,personalizacao,ui,mover,
+src/components/views/personalizar/EditorDoItem.tsx,src/dominios/personalizacao/ui/EditorDoItem.tsx,personalizacao,ui,mover,
+src/components/views/personalizar/Inventario.tsx,src/dominios/personalizacao/ui/Inventario.tsx,personalizacao,ui,mover,
+src/components/views/personalizar/SeletorDeEmojis.tsx,src/dominios/personalizacao/ui/SeletorDeEmojis.tsx,personalizacao,ui,mover,
+src/components/views/personalizar/SeletorDePaletas.tsx,src/dominios/personalizacao/ui/SeletorDePaletas.tsx,personalizacao,ui,mover,
+src/lib/appearance.ts,src/dominios/personalizacao/dados/appearance.ts,personalizacao,dados,mover,
+src/lib/appearanceSync.ts,src/dominios/personalizacao/servico/appearanceSync.ts,personalizacao,servico,mover,
+src/lib/aprimoramentos.ts,src/dominios/personalizacao/estado/aprimoramentos.ts,personalizacao,estado,mover,
+src/lib/cursores.ts,src/dominios/personalizacao/dados/cursores.ts,personalizacao,dados,mover,
+src/lib/galeria/acesso.ts,src/dominios/personalizacao/dados/galeria/acesso.ts,personalizacao,dados,mover,
+src/lib/galeria/cromas.ts,src/dominios/personalizacao/dados/galeria/cromas.ts,personalizacao,dados,mover,
+src/lib/galeria/emojis.ts,src/dominios/personalizacao/dados/galeria/emojis.ts,personalizacao,dados,mover,
+src/lib/galeria/equipar.ts,src/dominios/personalizacao/dados/galeria/equipar.ts,personalizacao,dados,mover,
+src/lib/galeria/paletas.ts,src/dominios/personalizacao/dados/galeria/paletas.ts,personalizacao,dados,mover,
+src/lib/galeria/perfis.ts,src/dominios/personalizacao/dados/galeria/perfis.ts,personalizacao,dados,mover,
+src/lib/galeria/progressao.ts,src/dominios/personalizacao/dados/galeria/progressao.ts,personalizacao,dados,mover,
+src/lib/galeria/restaurar.ts,src/dominios/personalizacao/dados/galeria/restaurar.ts,personalizacao,dados,mover,
+src/lib/galeria/textos.ts,src/dominios/personalizacao/dados/galeria/textos.ts,personalizacao,dados,mover,
+src/lib/layoutStore.ts,src/dominios/personalizacao/estado/layoutStore.ts,personalizacao,estado,mover,
+src/lib/panelMeta.ts,src/dominios/personalizacao/dados/panelMeta.ts,personalizacao,dados,mover,
+src/lib/particulas.ts,src/dominios/personalizacao/dados/particulas.ts,personalizacao,dados,mover,
+src/lib/profile.ts,src/dominios/personalizacao/dados/profile.ts,personalizacao,dados,mover,
+src/lib/rastroDoMouse.ts,src/dominios/personalizacao/servico/rastroDoMouse.ts,personalizacao,servico,mover,
+src/lib/theme.ts,src/dominios/personalizacao/servico/theme.ts,personalizacao,servico,mover,
+server/db/repositories/sessions.ts,server/dominios/sessao/repositorio/sessions.ts,sessao,repositorio,mover,
+server/import/document.ts,server/dominios/sessao/servico/document.ts,sessao,servico,mover,
+server/import/web.ts,server/dominios/sessao/servico/web.ts,sessao,servico,mover,
+server/import/youtube.ts,server/dominios/sessao/servico/youtube.ts,sessao,servico,mover,
+server/lib/capaDeSessao.ts,server/dominios/sessao/servico/capaDeSessao.ts,sessao,servico,mover,
+server/routes/images.ts,server/dominios/sessao/rotas/images.ts,sessao,rotas,mover,
+server/routes/import.ts,server/dominios/sessao/rotas/import.ts,sessao,rotas,mover,
+server/routes/sessions.ts,server/dominios/sessao/rotas/sessions.ts,sessao,rotas,mover,
+src/components/BuscaDeCapa.tsx,src/dominios/sessao/ui/BuscaDeCapa.tsx,sessao,ui,mover,
+src/components/views/Analysis.tsx,,sessao,ui,dividir,"ARQUIVO-DEUS (2886 linhas). Saem: 39-74 lazy do Play e provenanceLabel -> dominios/jogos/ui e dominios/transcricao/dados; 101-166 estado do player, velocidade, loop e shadowing -> dominios/sessao/estado; 167-253 carga das falas reais e idiomas da sessao -> dominios/transcricao/dados; 254-399 derivacao de frases e idioma por frase -> dominios/transcricao/servico; 400-438 settings de transcricao, cartoes e metricas da sessao -> dominios/estatisticas/estado; 439-703 edicao de falas (startEditUtt/saveEditUtt) -> dominios/transcricao/servico; 704-848 exame de palavra, adicionar ao deck, praticar e TTS -> dominios/vocabulario/servico; 849-1539 renderInteractivePlayer -> dominios/sessao/ui; 1540-2886 render FICA na tela"
+src/components/views/Library.tsx,src/dominios/sessao/ui/Library.tsx,sessao,ui,mover,
+src/components/views/Reading.tsx,src/dominios/sessao/ui/Reading.tsx,sessao,ui,mover,
+src/lib/audioDaSessao.ts,src/dominios/sessao/servico/audioDaSessao.ts,sessao,servico,mover,"AMBIGUO: 2 importadores, 1 sessao (Analysis) e 1 jogos (Play)"
+src/lib/import/buildSession.ts,src/dominios/sessao/servico/buildSession.ts,sessao,servico,mover,
+src/lib/sentences.ts,src/dominios/sessao/dados/sentences.ts,sessao,dados,mover,"AMBIGUO: frase canonica derivada das falas da sessao; 14 importadores, 6 de sessao/transcricao (Analysis, LiveCapture, Reading) contra 5 de vocabulario/jogos (Study, PracticeMenu, VocabularyPanel) e 2 de estatisticas (Metrics)"
+server/ai/sttProxy.ts,server/dominios/transcricao/servico/sttProxy.ts,transcricao,servico,mover,
+server/audio/downsample.ts,server/dominios/transcricao/servico/downsample.ts,transcricao,servico,mover,
+server/audio/loopback.ts,server/dominios/transcricao/servico/loopback.ts,transcricao,servico,mover,
+server/audio/loopbackExclusion.ts,server/dominios/transcricao/servico/loopbackExclusion.ts,transcricao,servico,mover,
+server/db/repositories/utterances.ts,server/dominios/transcricao/repositorio/utterances.ts,transcricao,repositorio,mover,
+server/lib/duracaoDeAudio.ts,server/dominios/transcricao/servico/duracaoDeAudio.ts,transcricao,servico,mover,
+server/routes/ai.ts,server/dominios/transcricao/rotas/ai.ts,transcricao,rotas,mover,
+src/components/AiEnginePanel.tsx,src/dominios/transcricao/ui/AiEnginePanel.tsx,transcricao,ui,mover,
+src/components/ChatTranscript.tsx,src/dominios/transcricao/ui/ChatTranscript.tsx,transcricao,ui,mover,
+src/components/DocumentPiP.tsx,src/dominios/transcricao/ui/DocumentPiP.tsx,transcricao,ui,mover,
+src/components/IChat.tsx,src/dominios/transcricao/ui/IChat.tsx,transcricao,ui,mover,
+src/components/ModelPrepPanel.tsx,src/dominios/transcricao/ui/ModelPrepPanel.tsx,transcricao,ui,mover,
+src/components/Overlay.tsx,src/dominios/transcricao/ui/Overlay.tsx,transcricao,ui,mover,
+src/components/views/LiveCapture.tsx,,transcricao,ui,dividir,"ARQUIVO-DEUS (4260 linhas). Saem: 104-168 tipos e helpers de fala -> dominios/transcricao/dados; 169-256 TranscriptVisualSettings/SetaDoPar/LangSelect -> dominios/transcricao/ui e dominios/i18n/ui; 266-304 overlay/bingo/sonda de audio -> dominios/transcricao/estado; 291-344 modal de salvar sessao -> dominios/sessao/ui; 345-463 dispositivos/motor/rota STT/perfis de falante -> dominios/transcricao/estado; 464-959 estado da captura (gravacao, idiomas, segmentos, mic, cenario, loopback, preparo de modelo) -> dominios/transcricao/estado; 960-1204 relogio da sessao e traducao de segmento -> dominios/transcricao/servico; 1205-1587 makeCaptureHandlers (pipeline de captura) -> dominios/transcricao/servico; 1588-1933 preparo de modelos e inicio de captura/mic -> dominios/transcricao/servico; 2039-2106 guarda de navegacao -> src/app; 2107-2420 gravar/parar/salvar sessao -> dominios/sessao/servico; 2421-2553 capa da sessao (busca e upload) -> dominios/sessao/ui; 2554-2612 fala manual e TTS -> dominios/transcricao/servico; 2613-2741 exame de palavra, adicionar ao deck, praticar -> dominios/vocabulario/servico; 2742-2771 renomear falante -> dominios/transcricao/servico; 2772-4260 seletores, botoes e render FICAM na tela"
+src/gateway/activeProfile.ts,src/dominios/transcricao/servico/gateway/activeProfile.ts,transcricao,servico,mover,
+src/gateway/adapters/chromeTranslator.ts,src/dominios/transcricao/servico/gateway/adapters/chromeTranslator.ts,transcricao,servico,mover,
+src/gateway/adapters/groqWhisper.ts,src/dominios/transcricao/servico/gateway/adapters/groqWhisper.ts,transcricao,servico,mover,
+src/gateway/adapters/modelProgress.ts,src/dominios/transcricao/servico/gateway/adapters/modelProgress.ts,transcricao,servico,mover,
+src/gateway/adapters/mtWorker.ts,src/dominios/transcricao/servico/gateway/adapters/mtWorker.ts,transcricao,servico,mover,Entry literal do knip: atualizar knip.json:5-7 no mesmo commit
+src/gateway/adapters/mymemory.ts,src/dominios/transcricao/servico/gateway/adapters/mymemory.ts,transcricao,servico,mover,
+src/gateway/adapters/openaiCompatible.ts,src/dominios/transcricao/servico/gateway/adapters/openaiCompatible.ts,transcricao,servico,mover,
+src/gateway/adapters/opusMtLocal.ts,src/dominios/transcricao/servico/gateway/adapters/opusMtLocal.ts,transcricao,servico,mover,
+src/gateway/adapters/serverLlmMt.ts,src/dominios/transcricao/servico/gateway/adapters/serverLlmMt.ts,transcricao,servico,mover,
+src/gateway/adapters/transformersEnv.ts,src/dominios/transcricao/servico/gateway/adapters/transformersEnv.ts,transcricao,servico,mover,
+src/gateway/adapters/webSpeech.ts,src/dominios/transcricao/servico/gateway/adapters/webSpeech.ts,transcricao,servico,mover,
+src/gateway/adapters/whisperLocal.ts,src/dominios/transcricao/servico/gateway/adapters/whisperLocal.ts,transcricao,servico,mover,
+src/gateway/adapters/whisperWorker.ts,src/dominios/transcricao/servico/gateway/adapters/whisperWorker.ts,transcricao,servico,mover,Entry literal do knip: atualizar knip.json:5-7 no mesmo commit
+src/gateway/alucinacao.ts,src/dominios/transcricao/servico/gateway/alucinacao.ts,transcricao,servico,mover,
+src/gateway/audio/wav.ts,src/dominios/transcricao/servico/gateway/audio/wav.ts,transcricao,servico,mover,
+src/gateway/capabilities.ts,src/dominios/transcricao/servico/gateway/capabilities.ts,transcricao,servico,mover,
+src/gateway/capture/captureMetrics.ts,src/dominios/transcricao/servico/gateway/capture/captureMetrics.ts,transcricao,servico,mover,
+src/gateway/capture/systemAudio.ts,src/dominios/transcricao/servico/gateway/capture/systemAudio.ts,transcricao,servico,mover,
+src/gateway/index.ts,src/dominios/transcricao/servico/gateway/index.ts,transcricao,servico,mover,
+src/gateway/modelCache.ts,src/dominios/transcricao/servico/gateway/modelCache.ts,transcricao,servico,mover,
+src/gateway/modelManifest.ts,src/dominios/transcricao/servico/gateway/modelManifest.ts,transcricao,servico,mover,
+src/gateway/offlineTranscribe.ts,src/dominios/transcricao/servico/gateway/offlineTranscribe.ts,transcricao,servico,mover,
+src/gateway/profiles.ts,src/dominios/transcricao/servico/gateway/profiles.ts,transcricao,servico,mover,
+src/gateway/sttRouter.ts,src/dominios/transcricao/servico/gateway/sttRouter.ts,transcricao,servico,mover,
+src/lib/audioDevices.ts,src/dominios/transcricao/servico/audioDevices.ts,transcricao,servico,mover,
+src/lib/cenarioDeCaptura.ts,src/dominios/transcricao/estado/cenarioDeCaptura.ts,transcricao,estado,mover,
+src/lib/falante.ts,src/dominios/transcricao/servico/falante.ts,transcricao,servico,mover,
+src/lib/ichatContext.ts,src/dominios/transcricao/servico/ichatContext.ts,transcricao,servico,mover,
+src/lib/mediaErrors.ts,src/dominios/transcricao/servico/mediaErrors.ts,transcricao,servico,mover,
+src/lib/misturarAudios.ts,src/dominios/transcricao/servico/misturarAudios.ts,transcricao,servico,mover,
+src/lib/ordemDaTraducao.ts,src/dominios/transcricao/servico/ordemDaTraducao.ts,transcricao,servico,mover,
+src/lib/passadasDoPipeline.ts,src/dominios/transcricao/servico/passadasDoPipeline.ts,transcricao,servico,mover,
+src/lib/speakerCluster.ts,src/dominios/transcricao/servico/speakerCluster.ts,transcricao,servico,mover,Importado por scripts/eval-fala/medir-der.mjs: atualizar o caminho no script no mesmo commit
+src/lib/speakerId.ts,src/dominios/transcricao/servico/speakerId.ts,transcricao,servico,mover,"Lido POR TEXTO (regex de MIN_EMBED_SECONDS) por scripts/eval-fala/medir-der.mjs, nao por import: mover exige atualizar o caminho no script no mesmo commit, senao a avaliacao quebra em silencio"
+src/lib/speakerIdWorker.ts,src/dominios/transcricao/servico/speakerIdWorker.ts,transcricao,servico,mover,Entry literal do knip: atualizar knip.json:5-7 no mesmo commit
+src/lib/transcriptUtils.ts,src/dominios/transcricao/servico/transcriptUtils.ts,transcricao,servico,mover,
+src/lib/tts.ts,src/dominios/transcricao/servico/tts.ts,transcricao,servico,mover,
+src/lib/vazamento.ts,src/dominios/transcricao/servico/vazamento.ts,transcricao,servico,mover,
+server/db/repositories/anki.ts,server/dominios/vocabulario/repositorio/anki.ts,vocabulario,repositorio,mover,
+server/db/repositories/vocab.ts,server/dominios/vocabulario/repositorio/vocab.ts,vocabulario,repositorio,mover,
+server/import/anki.ts,server/dominios/vocabulario/servico/anki.ts,vocabulario,servico,mover,
+server/import/ankiExport.ts,server/dominios/vocabulario/servico/ankiExport.ts,vocabulario,servico,mover,
+server/lib/niveisDaTrilha.ts,server/dominios/vocabulario/servico/niveisDaTrilha.ts,vocabulario,servico,mover,"Importa src/data/trilha/indice:27 e os 16 JSON de src/data/trilha/niveis:29-44, que sobem para src/core/trilha/ na mesma fase"
+server/routes/anki.ts,server/dominios/vocabulario/rotas/anki.ts,vocabulario,rotas,mover,
+server/routes/vocab.ts,server/dominios/vocabulario/rotas/vocab.ts,vocabulario,rotas,mover,
+src/components/TokensClicaveis.tsx,src/dominios/vocabulario/ui/TokensClicaveis.tsx,vocabulario,ui,mover,
+src/components/VocabularyPanel.tsx,src/dominios/vocabulario/ui/VocabularyPanel.tsx,vocabulario,ui,mover,
+src/components/views/BaralhoAnki.tsx,src/dominios/vocabulario/ui/BaralhoAnki.tsx,vocabulario,ui,mover,
+src/components/views/BaralhosAnki.tsx,src/dominios/vocabulario/ui/BaralhosAnki.tsx,vocabulario,ui,mover,
+src/components/views/CuradoriaBaralho.tsx,src/dominios/vocabulario/ui/CuradoriaBaralho.tsx,vocabulario,ui,mover,
+src/components/views/Study.tsx,src/dominios/vocabulario/ui/Study.tsx,vocabulario,ui,mover,
+src/components/views/vocab/CatalogoDePalavras.tsx,src/dominios/vocabulario/ui/CatalogoDePalavras.tsx,vocabulario,ui,mover,
+src/components/views/vocab/NotaDeContagem.tsx,src/dominios/vocabulario/ui/NotaDeContagem.tsx,vocabulario,ui,mover,
+src/data/apiAnki.ts,src/dominios/vocabulario/dados/apiAnki.ts,vocabulario,dados,mover,Sai de src/data: o funil e so api.ts; este e o cliente das rotas /api/anki
+src/lib/adicionarAoDeck.ts,src/dominios/vocabulario/servico/adicionarAoDeck.ts,vocabulario,servico,mover,"AMBIGUO: 4 importadores, 3 de vocabulario/sessao (Analysis, Reading, Study) e 1 de estatisticas (Metrics)"
+src/lib/dictionary.ts,src/dominios/vocabulario/dados/dictionary.ts,vocabulario,dados,mover,
+src/lib/exercicios/activeProduction.tsx,src/dominios/vocabulario/ui/exercicios/activeProduction.tsx,vocabulario,ui,mover,
+src/lib/exercicios/corretorPrompt.ts,src/dominios/vocabulario/servico/exercicios/corretorPrompt.ts,vocabulario,servico,mover,
+src/lib/exercicios/diff.ts,src/dominios/vocabulario/servico/exercicios/diff.ts,vocabulario,servico,mover,
+src/lib/exercicios/index.ts,src/dominios/vocabulario/servico/exercicios/index.ts,vocabulario,servico,mover,
+src/lib/exercicios/progressionRules.ts,src/dominios/vocabulario/servico/exercicios/progressionRules.ts,vocabulario,servico,mover,
+src/lib/popoverDePalavra.ts,src/dominios/vocabulario/ui/popoverDePalavra.ts,vocabulario,ui,mover,
+src/lib/useExameDePalavra.ts,src/dominios/vocabulario/estado/useExameDePalavra.ts,vocabulario,estado,mover,
+src/lib/versosDoVocabulario.ts,src/dominios/vocabulario/dados/versosDoVocabulario.ts,vocabulario,dados,mover,
+src/lib/vocabWord.ts,src/dominios/vocabulario/dados/vocabWord.ts,vocabulario,dados,mover,

@@ -7,6 +7,8 @@
  * SLIs da Fase 4 (latência/provedor/rota/fallback) e substitui os `console.*` soltos nos caminhos
  * de rede/adapter que hoje engolem a exceção em silêncio (parte dos 171 `catch` do M-01).
  */
+import { redigirErro } from './redacao'
+
 export interface LogFields {
   event: string
   route?: string
@@ -14,8 +16,15 @@ export interface LogFields {
   status?: number
   latencyMs?: number
   fallbackLevel?: number
-  /** Mensagem CURTA do erro — nunca o objeto/stack, nunca dados do usuário. */
+  /** Mensagem CURTA do erro — nunca dados do usuário: `log()` a passa por `redigirErro`. */
   error?: string
+  /**
+   * Cadeia de causas + stack, JÁ REDIGIDA e truncada. Existe para o dump multilinha de
+   * `console.error` não precisar mais existir em produção: ele quebrava o contrato de UMA linha
+   * JSON por evento, que é o que um agregador consegue ler. Só `erroDeRota`/`erroGlobal`
+   * preenchem, e só em nível `error`.
+   */
+  stack?: string
   requestId?: string
   /* Z3 — instrumentação da distribuição de dificuldade. Números agregados, sem nada do usuário:
      é o que torna o drift de faixa observável em produção em vez de virar reclamação. */
@@ -29,8 +38,21 @@ export interface LogFields {
 }
 
 const ALLOWED = new Set([
-  'ts', 'level', 'event', 'route', 'provider', 'status', 'latencyMs', 'fallbackLevel', 'error', 'requestId',
-  'maiorFaixaPct', 'tipoDeCorte', 'total', 'raciocinio',
+  'ts',
+  'level',
+  'event',
+  'route',
+  'provider',
+  'status',
+  'latencyMs',
+  'fallbackLevel',
+  'error',
+  'requestId',
+  'maiorFaixaPct',
+  'tipoDeCorte',
+  'total',
+  'raciocinio',
+  'stack',
 ])
 
 /**
@@ -65,7 +87,14 @@ export function registrarSinkDeErro(sink: SinkDeErro): () => void {
 export function log(level: 'info' | 'warn' | 'error', fields: LogFields): void {
   const out: Record<string, unknown> = { ts: Date.now(), level }
   for (const [k, v] of Object.entries(fields)) {
-    if (ALLOWED.has(k) && v !== undefined) out[k] = v
+    if (!ALLOWED.has(k) || v === undefined) continue
+    /**
+     * A ALLOWLIST É SOBRE A CHAVE; ESTA LINHA É SOBRE O VALOR — ver `redacao.ts` para a medição.
+     * `error` e `stack` são os dois únicos campos de texto livre da lista, e são justamente os
+     * que carregam o que o drizzle anexou (a query INTEIRA com os valores vinculados). Os
+     * outros campos são enum, número ou id.
+     */
+    out[k] = (k === 'error' || k === 'stack') && typeof v === 'string' ? redigirErro(v) : v
   }
   const line = JSON.stringify(out)
   if (level === 'error') console.error(line)
@@ -74,7 +103,11 @@ export function log(level: 'info' | 'warn' | 'error', fields: LogFields): void {
 
   if (level === 'error' && sinks.length) {
     for (const sink of sinks) {
-      try { sink(out) } catch { /* telemetria quebrada não derruba o request que ela observa */ }
+      try {
+        sink(out)
+      } catch {
+        /* telemetria quebrada não derruba o request que ela observa */
+      }
     }
   }
 }

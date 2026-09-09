@@ -47,7 +47,7 @@ export function capturarAssincrono(router: Router): Router {
           const r = original(req, res, next)
           // `Promise.resolve` cobre tanto `async function` quanto retorno de thenable.
           if (r && typeof (r as Promise<unknown>).catch === 'function') {
-            (r as Promise<unknown>).catch(next)
+            ;(r as Promise<unknown>).catch(next)
           }
         } catch (err) {
           next(err)
@@ -69,13 +69,21 @@ export function erroGlobal(err: unknown, req: Request, res: Response, _next: Nex
     route: req.path,
     status: 500,
     error: causa.slice(0, 300),
+    // Mesma decisão de `erroDeRota`, pelo mesmo motivo medido: o stack entra na linha JSON,
+    // redigido por `log()`, em vez de sair num dump ao lado que a allowlist não alcança.
+    stack: `${causa}${err instanceof Error && err.stack ? `\n${err.stack}` : ''}`.slice(0, 1200),
     requestId: (req as Request & { requestId?: string }).requestId,
   })
-  console.error(`[erro_nao_tratado] ${req.method} ${req.path}`, err)
+  if (process.env.NODE_ENV !== 'production') {
+    console.error(`[erro_nao_tratado] ${req.method} ${req.path}`, err)
+  }
 
   // Resposta já iniciada: só encerrar. Escrever de novo estouraria ERR_HTTP_HEADERS_SENT e
   // trocaria um erro por outro.
-  if (res.headersSent) { res.end(); return }
+  if (res.headersSent) {
+    res.end()
+    return
+  }
 
   /**
    * O MESMO ENVELOPE DE TODO MUNDO (auditoria de 2026-09-07, achado A30).
@@ -88,9 +96,11 @@ export function erroGlobal(err: unknown, req: Request, res: Response, _next: Nex
    * Nunca a causa no `error`: ela carrega nome de coluna, caminho de arquivo e às vezes o valor
    * que falhou. Quem investiga usa o `requestId` para achar a linha no log.
    */
-  res.status(500).json(envelopeDeErro(
-    'erro interno',
-    'erro_interno',
-    { requestId: (req as Request & { requestId?: string }).requestId ?? null },
-  ))
+  res
+    .status(500)
+    .json(
+      envelopeDeErro('erro interno', 'erro_interno', {
+        requestId: (req as Request & { requestId?: string }).requestId ?? null,
+      }),
+    )
 }

@@ -45,9 +45,7 @@ const MENSAGEM_PARA_O_CLIENTE = 'erro interno'
  * log que tem a causa. Sem esse elo, "erro interno" seria informação zero para os dois lados.
  */
 export function erroDeRota(err: unknown, ctx: ContextoDeErro): string {
-  const completa = err instanceof Error
-    ? `${cadeiaDeCausas(err)}${err.stack ? `\n${err.stack}` : ''}`
-    : String(err)
+  const completa = err instanceof Error ? `${cadeiaDeCausas(err)}${err.stack ? `\n${err.stack}` : ''}` : String(err)
 
   /**
    * NIVEL PELO STATUS: 4xx e `warn`, 5xx e `error` (auditoria de 2026-09-07, achado A29).
@@ -62,9 +60,37 @@ export function erroDeRota(err: unknown, ctx: ContextoDeErro): string {
   const nivel = ctx.status !== undefined && ctx.status >= 400 && ctx.status < 500 ? 'warn' : 'error'
   // `log()` corta o campo `error` para manter a linha JSON legível; o texto integral vai
   // no console.error ao lado, que é o que um operador realmente lê ao investigar.
-  log(nivel, { ...ctx, error: String(err).slice(0, 300) })
-  if (nivel === 'error') console.error(`[${ctx.event}]`, completa)
-  else console.warn(`[${ctx.event}]`, String(err).slice(0, 300))
+  /**
+   * PRODUÇÃO NÃO GANHA O DUMP MULTILINHA — e a razão não é "stack vaza", é medida.
+   *
+   * O `console.error` ao lado imprimia a cadeia de causas e o stack inteiros, fora do logger e,
+   * portanto, fora da allowlist. Medido em 2026-09-09 (ver `server/lib/redacao.ts`): o drizzle
+   * escreve os VALORES VINCULADOS dentro de `message` e de `stack`, então esse dump despejava o
+   * conteúdo do usuário — texto de transcrição, e-mail, o que a escrita carregasse — em texto
+   * livre no diário.
+   *
+   * Duas coisas mudam, e as duas são necessárias:
+   *   - o stack passa a ir DENTRO da linha JSON, no campo `stack`, redigido por `log()`. Um
+   *     agregador consegue ler isso; um dump multilinha ao lado, não — ele quebra o contrato de uma
+   *     linha por evento que este logger tem desde o M-01.
+   *   - o dump legível ao lado fica só FORA de produção, onde quem lê é uma pessoa no terminal e o
+   *     banco é de desenvolvimento.
+   *
+   * `NODE_ENV` é lido aqui, e não em `config.ts`, porque esta é uma decisão de FORMATO de saída, do
+   * mesmo tipo que o `console` já embute — não é configuração de comportamento do produto.
+   */
+  const desenvolvimento = process.env.NODE_ENV !== 'production'
+  log(nivel, {
+    ...ctx,
+    error: String(err).slice(0, 300),
+    // Só no nível `error`: um 400 de corpo malformado não precisa de stack, e enchê-lo de stack
+    // é como o diário voltava a ficar ilegível (achado A29, o mesmo que separou warn de error).
+    stack: nivel === 'error' ? completa.slice(0, 1200) : undefined,
+  })
+  if (desenvolvimento) {
+    if (nivel === 'error') console.error(`[${ctx.event}]`, completa)
+    else console.warn(`[${ctx.event}]`, String(err).slice(0, 300))
+  }
 
   return ctx.requestId ? `${MENSAGEM_PARA_O_CLIENTE} (req: ${ctx.requestId})` : MENSAGEM_PARA_O_CLIENTE
 }

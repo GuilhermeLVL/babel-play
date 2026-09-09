@@ -1,3 +1,3 @@
 - [x] 1.1 `coverage.thresholds` com o baseline
 - [x] 1.2 `ci.yml` roda `test:cov` e sobe `coverage/`
-- [ ] 1.3 run verde na branch com os tres projetos e2e
+- [ ] 1.3 run verde na branch com os tres projetos e2e (aguardando a CI do commit 3089ec3)

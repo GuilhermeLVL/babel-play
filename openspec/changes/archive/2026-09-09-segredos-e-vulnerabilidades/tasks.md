@@ -1,0 +1,4 @@
+- [x] 6.1 varredura do historico e allowlist por valor
+- [x] 6.2 semgrep rodado a mao e triado
+- [x] 6.3 semgrep no CI com versao fixada
+- [x] 6.4 `audit:gate` verde com allowlist justificada e `reevaluateBy`

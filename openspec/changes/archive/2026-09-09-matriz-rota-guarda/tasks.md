@@ -1,0 +1,5 @@
+- [x] 1.1 `_matriz.ts` lendo a pilha do Express em tempo de execucao
+- [x] 1.2 teste da matriz com allowlist de publicas e lista (vazia) de escrita sem limitador
+- [x] 1.3 `/api/admin` e `/api/audio` no `writeLimiter`
+- [x] 1.4 `TRUST_PROXY` no inventario, no `.env.example` e aplicada em `criarApp()`
+- [x] 1.5 bateria verde

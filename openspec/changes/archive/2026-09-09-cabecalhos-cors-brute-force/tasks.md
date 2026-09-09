@@ -1,0 +1,5 @@
+- [x] 7.1 CSP report-only fora de producao
+- [x] 7.2 limitador de 401 antes do auth, com balde proprio
+- [x] 7.3 raio de alcance do bloqueio registrado como caracterizacao
+- [x] 7.4 prova negativa de CORS e de cookie
+- [x] 7.5 tres testes de texto deixando de depender do formatador

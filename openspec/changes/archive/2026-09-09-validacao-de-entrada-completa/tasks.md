@@ -1,0 +1,7 @@
+- [x] 3.1 schema no corpo do chat e no teste de provedor
+- [x] 3.2 schema nos cabecalhos do STT
+- [x] 3.3 `idParamSchema` nos quatro `req.params` crus
+- [x] 3.4 recusa de SSRF com status e codigo proprios, sem revelar o destino resolvido
+- [x] 3.5 corpo do upstream fora da resposta, dentro do log
+- [x] 3.6 envelope unico em metrics
+- [x] 3.7 seis snapshots atualizados, um por correcao

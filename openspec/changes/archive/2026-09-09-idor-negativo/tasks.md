@@ -1,0 +1,5 @@
+- [x] 2.1 casos gerados da matriz, com semeadura declarada por rota
+- [x] 2.2 corpo valido onde a rota exige corpo (400 de schema nao prova isolamento)
+- [x] 2.3 verificacao de que o recurso de A continua intacto
+- [x] 2.4 chamada de controle de A, contra passagem por vacuidade
+- [x] 2.5 `/api/admin` respondendo 403 para conta sem papel

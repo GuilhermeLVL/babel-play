@@ -1,0 +1,5 @@
+- [x] 8.1 medicao registrada em teste (drizzle anexa, libsql nao)
+- [x] 8.2 `redigirErro` no chokepoint de `log()`
+- [x] 8.3 campo `stack` na linha JSON, so em nivel error
+- [x] 8.4 dump multilinha so fora de producao
+- [x] 8.5 prova negativa registrada

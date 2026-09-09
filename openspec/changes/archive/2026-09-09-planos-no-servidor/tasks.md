@@ -1,0 +1,5 @@
+- [x] 4.1 `LLM_MODEL_GRANDE` no inventario e no `.env.example`
+- [x] 4.2 selecao de modelo por entitlement em `provedores.ts`
+- [x] 4.3 `mtProxy` e `gemini` passando o entitlement, com uma leitura de plano so
+- [x] 4.4 a reserva da cascata NAO segue o plano, com a razao registrada
+- [x] 4.5 conferencia do diagnostico de quota (nada a mudar)

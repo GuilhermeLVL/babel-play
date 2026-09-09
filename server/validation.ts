@@ -528,6 +528,10 @@ export const exerciseResultsQuerySchema = z
   .object({
     sessionId: z.string().max(128).optional(),
     origem: z.string().max(80).optional(),
+    /* `limite` ja era MANDADO pelos scripts de medicao e silenciosamente descartado pelo `.strip()`
+       — a rota devolvia a tabela inteira e ninguem percebia, porque o 200 era o mesmo. Agora ele
+       existe no contrato e o handler o respeita. `coerce` porque query string e texto. */
+    limite: z.coerce.number().int().min(1).max(1000).optional(),
   })
   .strip()
 

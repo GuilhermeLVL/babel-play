@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto'
 
-import { and, asc, desc, eq, gte, inArray, isNotNull, isNull, max, type SQL,sql } from 'drizzle-orm'
+import { and, asc, desc, eq, gte, inArray, isNotNull, isNull, max, type SQL, sql } from 'drizzle-orm'
 
 import { MINIGAME_IDS } from '../../../src/core/minigames/revelavel'
 import type { UserId } from '../../lib/authContext'
@@ -83,15 +83,25 @@ export interface LinhaDeResultado {
  * contagem de seguidos uma simples varredura.
  */
 export function agregarHistorico(linhas: LinhaDeResultado[]): HistoricoDeItem[] {
-  interface Acc extends HistoricoDeItem { ultimoErroEm: number; jogoDoUltimoErro: string | null }
+  interface Acc extends HistoricoDeItem {
+    ultimoErroEm: number
+    jogoDoUltimoErro: string | null
+  }
   const porItem = new Map<string, Acc>()
   for (const r of linhas) {
     const chave = r.itemRef
     if (!chave) continue
     const acertou = r.correct === 1
     const acc = porItem.get(chave) ?? {
-      itemRef: chave, vezes: 0, erros: 0, ultimaEm: 0, ultimoAcerto: false,
-      errosSeguidos: 0, rodadasDesdeUltimoErro: 0, ultimoErroEm: 0, jogoDoUltimoErro: null,
+      itemRef: chave,
+      vezes: 0,
+      erros: 0,
+      ultimaEm: 0,
+      ultimoAcerto: false,
+      errosSeguidos: 0,
+      rodadasDesdeUltimoErro: 0,
+      ultimoErroEm: 0,
+      jogoDoUltimoErro: null,
     }
     acc.vezes += 1
     if (acertou) {
@@ -148,20 +158,50 @@ export interface NovaRodada {
   }>
 }
 
+/**
+ * O teto padrao de `list()`. Exportado porque o schema da rota o usa como maximo — um so numero,
+ * em vez de dois que concordam ate alguem mexer num deles.
+ */
+export const TETO_PADRAO_DE_RESULTADOS = 200
+
 export const exerciseResultsRepo = {
-  async list(userId: UserId): Promise<ExerciseResult[]> {
+  /**
+   * TETO DE LINHAS, e por que ele nao existia — medido em 2026-09-09 com o k6.
+   *
+   * Esta consulta nao tinha limite nenhum: ela devolvia a tabela INTEIRA, ordenada. Com a base de
+   * desenvolvimento (198 linhas) isso custava 37 ms e ninguem via. Sob o teste de carga, que grava
+   * uma rodada por iteracao, a tabela chegou a 20 mil linhas e a MESMA rota passou a devolver
+   * **3,85 MB por chamada** — 1,1 GB de trafego numa corrida de 2m30. A rota e chamada uma vez por
+   * montagem do Hub e a cada fim de rodada; ou seja, ela fica mais cara exatamente na medida em que
+   * a pessoa joga.
+   *
+   * `limite` com padrao, e nao `limite` opcional sem padrao: um parametro que so protege quem se
+   * lembra de passa-lo nao protege. Quem precisa de mais pede mais, ate o teto do schema.
+   *
+   * 200 e o padrao porque e o que o unico consumidor sem filtro usa: o Hub le a MEDIANA dos tempos
+   * por item (`Hub.tsx:41`) para dizer quanto leva uma rodada — e mediana de amostra recente e mais
+   * honesta que mediana da vida inteira, porque o ritmo de quem joga muda.
+   */
+  async list(userId: UserId, limite = TETO_PADRAO_DE_RESULTADOS): Promise<ExerciseResult[]> {
     return db
       .select()
       .from(exerciseResults)
       .where(and(eq(exerciseResults.userId, userId), isNull(exerciseResults.deletedAt)))
       .orderBy(desc(exerciseResults.createdAt))
+      .limit(limite)
   },
 
   async listBySession(userId: UserId, sessionId: string): Promise<ExerciseResult[]> {
     return db
       .select()
       .from(exerciseResults)
-      .where(and(eq(exerciseResults.sessionId, sessionId), eq(exerciseResults.userId, userId), isNull(exerciseResults.deletedAt)))
+      .where(
+        and(
+          eq(exerciseResults.sessionId, sessionId),
+          eq(exerciseResults.userId, userId),
+          isNull(exerciseResults.deletedAt),
+        ),
+      )
       .orderBy(desc(exerciseResults.createdAt))
   },
 
@@ -178,7 +218,9 @@ export const exerciseResultsRepo = {
     return db
       .select()
       .from(exerciseResults)
-      .where(and(eq(exerciseResults.origem, origem), eq(exerciseResults.userId, userId), isNull(exerciseResults.deletedAt)))
+      .where(
+        and(eq(exerciseResults.origem, origem), eq(exerciseResults.userId, userId), isNull(exerciseResults.deletedAt)),
+      )
       .orderBy(desc(exerciseResults.createdAt))
   },
 
@@ -194,8 +236,15 @@ export const exerciseResultsRepo = {
    * Linhas antigas (anteriores à migração 0001) não têm `item_ref` e são filtradas por
    * `isNotNull`: entram como zero, não como item fantasma de chave vazia.
    */
-  async listarHistoricoPorItem(userId: UserId, opts: { origem?: string; desde?: number } = {}): Promise<HistoricoDeItem[]> {
-    const filtros: SQL[] = [eq(exerciseResults.userId, userId), isNull(exerciseResults.deletedAt), isNotNull(exerciseResults.itemRef)]
+  async listarHistoricoPorItem(
+    userId: UserId,
+    opts: { origem?: string; desde?: number } = {},
+  ): Promise<HistoricoDeItem[]> {
+    const filtros: SQL[] = [
+      eq(exerciseResults.userId, userId),
+      isNull(exerciseResults.deletedAt),
+      isNotNull(exerciseResults.itemRef),
+    ]
     if (opts.origem) filtros.push(eq(exerciseResults.origem, opts.origem))
     if (typeof opts.desde === 'number') filtros.push(gte(exerciseResults.createdAt, opts.desde))
 
@@ -275,8 +324,8 @@ export const exerciseResultsRepo = {
       .groupBy(exerciseResults.exerciseKind)
 
     return rows
-      .filter(r => !!r.exerciseKind)
-      .map(r => {
+      .filter((r) => !!r.exerciseKind)
+      .map((r) => {
         const respondidos = Number(r.respondidos ?? 0)
         return {
           exerciseKind: r.exerciseKind as string,
@@ -305,11 +354,9 @@ export const exerciseResultsRepo = {
         melhorCombo: max(exerciseResults.combo),
       })
       .from(exerciseResults)
-      .where(and(
-        eq(exerciseResults.userId, userId),
-        isNull(exerciseResults.deletedAt),
-        isNotNull(exerciseResults.combo),
-      ))
+      .where(
+        and(eq(exerciseResults.userId, userId), isNull(exerciseResults.deletedAt), isNotNull(exerciseResults.combo)),
+      )
       .groupBy(exerciseResults.exerciseKind)
 
     const out: Record<string, number> = {}
@@ -335,8 +382,11 @@ export const exerciseResultsRepo = {
     // Dono da sessão conferido UMA vez para a rodada, não por item.
     let sessionId: string | null = null
     if (rodada.sessionId) {
-      const dono = await db.select({ id: sessions.id }).from(sessions)
-        .where(and(eq(sessions.id, rodada.sessionId), eq(sessions.userId, userId))).limit(1)
+      const dono = await db
+        .select({ id: sessions.id })
+        .from(sessions)
+        .where(and(eq(sessions.id, rodada.sessionId), eq(sessions.userId, userId)))
+        .limit(1)
       sessionId = dono[0]?.id ?? null
     }
 
@@ -346,19 +396,32 @@ export const exerciseResultsRepo = {
     const idsPedidos = [...new Set(rodada.itens.map((i) => i.cardId).filter((x): x is string => !!x))]
     const meus = new Set<string>()
     if (idsPedidos.length) {
-      for (const r of await db.select({ id: vocabCards.id }).from(vocabCards)
-        .where(and(eq(vocabCards.userId, userId), inArray(vocabCards.id, idsPedidos)))) meus.add(r.id)
+      for (const r of await db
+        .select({ id: vocabCards.id })
+        .from(vocabCards)
+        .where(and(eq(vocabCards.userId, userId), inArray(vocabCards.id, idsPedidos))))
+        meus.add(r.id)
     }
 
     const linhas = rodada.itens.map((i) => {
       if ((i as { forcarErro?: boolean }).forcarErro) throw new Error('item inválido na rodada')
       return {
-        id: randomUUID(), createdAt: now, updatedAt: now, userId, sessionId,
-        kind: i.kind ?? null, correct: i.correct ?? null, score: rodada.score ?? null,
+        id: randomUUID(),
+        createdAt: now,
+        updatedAt: now,
+        userId,
+        sessionId,
+        kind: i.kind ?? null,
+        correct: i.correct ?? null,
+        score: rodada.score ?? null,
         combo: rodada.melhorSequencia ?? null,
-        exerciseKind: rodada.exerciseKind ?? null, roundId: rodada.roundId,
-        itemRef: i.itemRef ?? null, attempts: i.attempts ?? null, ms: i.ms ?? null,
-        hinted: i.hinted ?? null, origem: rodada.origem ?? null,
+        exerciseKind: rodada.exerciseKind ?? null,
+        roundId: rodada.roundId,
+        itemRef: i.itemRef ?? null,
+        attempts: i.attempts ?? null,
+        ms: i.ms ?? null,
+        hinted: i.hinted ?? null,
+        origem: rodada.origem ?? null,
         cardId: i.cardId && meus.has(i.cardId) ? i.cardId : null,
       } satisfies typeof exerciseResults.$inferInsert
     })
@@ -369,7 +432,9 @@ export const exerciseResultsRepo = {
   },
 
   async listarPorRodada(userId: UserId, roundId: string): Promise<ExerciseResult[]> {
-    return db.select().from(exerciseResults)
+    return db
+      .select()
+      .from(exerciseResults)
       .where(and(eq(exerciseResults.userId, userId), eq(exerciseResults.roundId, roundId)))
   },
 
@@ -379,14 +444,19 @@ export const exerciseResultsRepo = {
    * Cartão SEM histórico não aparece no resultado. Devolver `{acertos:0, tentativas:0}` faria o
    * modelo tratar "nunca praticado" como "sempre errou", que é o oposto da verdade.
    */
-  async desempenhoPorCartao(userId: UserId, cardIds: string[]): Promise<Record<string, { acertos: number; tentativas: number; ultimoEm: number | null }>> {
+  async desempenhoPorCartao(
+    userId: UserId,
+    cardIds: string[],
+  ): Promise<Record<string, { acertos: number; tentativas: number; ultimoEm: number | null }>> {
     if (!cardIds.length) return {}
-    const rows = await db.select({
-      cardId: exerciseResults.cardId,
-      acertos: sql<number>`sum(case when ${exerciseResults.correct} = 1 then 1 else 0 end)`,
-      tentativas: sql<number>`count(*)`,
-      ultimoEm: sql<number>`max(${exerciseResults.createdAt})`,
-    }).from(exerciseResults)
+    const rows = await db
+      .select({
+        cardId: exerciseResults.cardId,
+        acertos: sql<number>`sum(case when ${exerciseResults.correct} = 1 then 1 else 0 end)`,
+        tentativas: sql<number>`count(*)`,
+        ultimoEm: sql<number>`max(${exerciseResults.createdAt})`,
+      })
+      .from(exerciseResults)
       .where(and(eq(exerciseResults.userId, userId), inArray(exerciseResults.cardId, cardIds)))
       .groupBy(exerciseResults.cardId)
 

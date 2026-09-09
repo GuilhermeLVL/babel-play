@@ -41,10 +41,17 @@ export async function listarResultados(_m: RegExpMatchArray, url: URL): Promise<
   const db = await abrirStore();
   const sessionId = url.searchParams.get('sessionId');
   const origem = url.searchParams.get('origem');
+  /* O MESMO TETO DO SERVIDOR (`TETO_PADRAO_DE_RESULTADOS`, 200). Sem ele o modo anonimo seria o
+     unico lugar onde a rota ainda devolve a tabela inteira — e a divergencia apareceria como "no
+     anonimo trava, com conta nao", que e o tipo de diferenca que este espelho existe para nao ter.
+     O teto so vale no caminho SEM filtro, como no Express: filtrar por sessao ou fonte ja limita. */
+  const limite = Number(url.searchParams.get('limite')) || 200;
   let linhas = await db.getAll('exercicios');
+  const filtrado = Boolean(sessionId || origem);
   if (sessionId) linhas = linhas.filter((l) => l.sessionId === sessionId);
   else if (origem) linhas = linhas.filter((l) => l.origem === origem);
-  return json(linhas.sort((a, b) => b.createdAt - a.createdAt));
+  const ordenadas = linhas.sort((a, b) => b.createdAt - a.createdAt);
+  return json(filtrado ? ordenadas : ordenadas.slice(0, limite));
 }
 
 export async function historicoPorItem(_m: RegExpMatchArray, url: URL): Promise<Response> {

@@ -4,7 +4,13 @@ import { Router } from 'express'
 import { exerciseResultsRepo } from '../db/repositories/exerciseResults'
 import { vocabRepo } from '../db/repositories/vocab'
 import { erroDeRota } from '../lib/erroDeRota'
-import { exerciseResultsQuerySchema,historicoQuerySchema, parseOr400, recordesQuerySchema, rodadaSchema } from '../validation'
+import {
+  exerciseResultsQuerySchema,
+  historicoQuerySchema,
+  parseOr400,
+  recordesQuerySchema,
+  rodadaSchema,
+} from '../validation'
 
 export const exercisesRouter = Router()
 
@@ -38,12 +44,14 @@ exercisesRouter.get('/recordes', async (req, res) => {
 exercisesRouter.get('/results', async (req, res) => {
   const q = parseOr400(exerciseResultsQuerySchema, req.query, res)
   if (!q) return
-  const { sessionId, origem } = q
+  const { sessionId, origem, limite } = q
+  /* Os dois caminhos FILTRADOS ja sao limitados pelo proprio filtro (uma sessao, uma fonte); o sem
+     filtro e o que devolvia a tabela inteira — ver `TETO_PADRAO_DE_RESULTADOS`. */
   const rows = sessionId
     ? await exerciseResultsRepo.listBySession(req.userId, sessionId)
     : origem
       ? await exerciseResultsRepo.listByOrigem(req.userId, origem)
-      : await exerciseResultsRepo.list(req.userId)
+      : await exerciseResultsRepo.list(req.userId, limite)
   res.json(rows)
 })
 
@@ -82,7 +90,16 @@ exercisesRouter.post('/rodada', async (req, res) => {
       })
     }
   } catch (err) {
-    res.status(400).json({ error: erroDeRota(err, { status: 400, event: 'exercises_route_error', route: req.path, requestId: req.requestId }) })
+    res
+      .status(400)
+      .json({
+        error: erroDeRota(err, {
+          status: 400,
+          event: 'exercises_route_error',
+          route: req.path,
+          requestId: req.requestId,
+        }),
+      })
   }
 })
 

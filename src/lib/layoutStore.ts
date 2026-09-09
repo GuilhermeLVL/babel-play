@@ -8,7 +8,7 @@ export interface PanelConfig {
   theme?: ThemeType;
 }
 
-interface ViewLayoutConfig {
+export interface ViewLayoutConfig {
   [panelKey: string]: PanelConfig;
 }
 
@@ -64,34 +64,34 @@ export const DEFAULT_LAYOUT_CONFIG: AppLayoutConfig = {
   capture: {
     diarization: { show: true, widthPercent: 40, heightPx: 380 },
     vocabAnalyst: { show: true, widthPercent: 28, heightPx: 480 },
-    liveTranscript: { show: true, widthPercent: 100, heightPx: 280 }
+    liveTranscript: { show: true, widthPercent: 100, heightPx: 280 },
   },
   analysis: {
     overview: { show: true, widthPercent: 100, heightPx: 600 },
     transcript: { show: true, widthPercent: 65, heightPx: 550 },
-    vocabAnalyst: { show: true, widthPercent: 35, heightPx: 550 }
+    vocabAnalyst: { show: true, widthPercent: 35, heightPx: 550 },
   },
   reading: {
     interactiveArea: { show: true, widthPercent: 65, heightPx: 600 },
     notesSidebar: { show: false, widthPercent: 35, heightPx: 600 },
-    vocabAnalyst: { show: true, widthPercent: 35, heightPx: 0 }
+    vocabAnalyst: { show: true, widthPercent: 35, heightPx: 0 },
   },
   study: {
-    vocabAnalyst: { show: true, widthPercent: 35, heightPx: 0 }
+    vocabAnalyst: { show: true, widthPercent: 35, heightPx: 0 },
   },
   hub: {
     quickActions: { show: true, widthPercent: 100, heightPx: 140 },
     statsDashboard: { show: true, widthPercent: 100, heightPx: 200 },
-    recentRecordings: { show: true, widthPercent: 100, heightPx: 320 }
+    recentRecordings: { show: true, widthPercent: 100, heightPx: 320 },
   },
   library: {
     filters: { show: true, widthPercent: 100, heightPx: 80 },
-    gridList: { show: true, widthPercent: 100, heightPx: 450 }
+    gridList: { show: true, widthPercent: 100, heightPx: 450 },
   },
   metrics: {
     header: { show: true, widthPercent: 100, heightPx: 100 },
-    vocabAnalyst: { show: true, widthPercent: 35, heightPx: 0 }
-  }
+    vocabAnalyst: { show: true, widthPercent: 35, heightPx: 0 },
+  },
 };
 
 /**

@@ -56,9 +56,7 @@ export default function PracticeMenu({ onChangeView, sessionId, studyLang = '' }
 
       // Mantém o menu dentro da viewport (mesma matemática do popover do Analysis).
       const x = Math.min(Math.max(8, e.clientX), window.innerWidth - MENU_W - 8);
-      const y = e.clientY + MENU_H > window.innerHeight
-        ? Math.max(8, e.clientY - MENU_H)
-        : e.clientY;
+      const y = e.clientY + MENU_H > window.innerHeight ? Math.max(8, e.clientY - MENU_H) : e.clientY;
 
       setMenu({ x, y, text });
     };
@@ -66,7 +64,9 @@ export default function PracticeMenu({ onChangeView, sessionId, studyLang = '' }
     const onDown = (e: MouseEvent) => {
       if (!(e.target as HTMLElement)?.closest('[data-practice-menu]')) close();
     };
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') close(); };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') close();
+    };
 
     document.addEventListener('contextmenu', onContextMenu);
     document.addEventListener('mousedown', onDown);
@@ -108,15 +108,25 @@ export default function PracticeMenu({ onChangeView, sessionId, studyLang = '' }
     const text = menu.text;
     close();
     const spoken = await resolveSpokenLang(text, studyLang);
-    ttsSpeak(text, { lang: spoken.bcp47 || undefined });
+    // `bcp47` já é string ('' quando o idioma não foi resolvido); o motor trata '' e undefined
+    // do mesmo jeito, e o `|| undefined` era resquício de quando `lang` era opcional.
+    ttsSpeak(text, { lang: spoken.bcp47 });
   };
 
   const preview = menu.text.length > 52 ? menu.text.slice(0, 52) + '…' : menu.text;
   const isSingleWord = !/\s/.test(menu.text.trim());
 
   const Item = ({
-    icon, label, hint, onClick,
-  }: { icon: React.ReactNode; label: string; hint: string; onClick: () => void }) => (
+    icon,
+    label,
+    hint,
+    onClick,
+  }: {
+    icon: React.ReactNode;
+    label: string;
+    hint: string;
+    onClick: () => void;
+  }) => (
     <button
       onClick={onClick}
       className="w-full flex items-center gap-2.5 px-3 py-2 text-start hover:bg-surface-hover transition-colors cursor-pointer group"
@@ -182,7 +192,9 @@ export default function PracticeMenu({ onChangeView, sessionId, studyLang = '' }
           icon={<Volume2 className="w-3.5 h-3.5" />}
           label="Ouvir"
           hint="pronúncia na sua voz preferida"
-          onClick={() => { void listen(); }}
+          onClick={() => {
+            void listen();
+          }}
         />
       </div>
     </div>

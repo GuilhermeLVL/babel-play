@@ -9,7 +9,7 @@
  *  - POST /anki     (corpo binário)    → lê um baralho .apkg/.txt e devolve as notas (NÃO grava)
  *  - POST /anki/export { cartoes }     → devolve um .apkg pronto para o Anki
  */
-import { Router, raw, type ErrorRequestHandler } from 'express'
+import { Router, raw, type ErrorRequestHandler, type Request, type Response } from 'express'
 import path from 'node:path'
 import { readFile, rm } from 'node:fs/promises'
 import { createHash } from 'node:crypto'
@@ -86,13 +86,48 @@ function guidDerivadoDoConteudo(n: { notetype?: string | null; frente: string; v
  * caso de faltar um código aqui é o mesmo de hoje (carimba sem checar), não um dado novo.
  */
 const LANGS_ESCRITA_LATINA = new Set([
-  'en', 'pt', 'es', 'fr', 'de', 'it', 'nl', 'sv', 'no', 'nb', 'nn', 'da', 'fi', 'pl', 'cs', 'sk',
-  'hu', 'ro', 'hr', 'tr', 'id', 'vi', 'af', 'ca', 'et', 'lv', 'lt', 'sl', 'is',
+  'en',
+  'pt',
+  'es',
+  'fr',
+  'de',
+  'it',
+  'nl',
+  'sv',
+  'no',
+  'nb',
+  'nn',
+  'da',
+  'fi',
+  'pl',
+  'cs',
+  'sk',
+  'hu',
+  'ro',
+  'hr',
+  'tr',
+  'id',
+  'vi',
+  'af',
+  'ca',
+  'et',
+  'lv',
+  'lt',
+  'sl',
+  'is',
 ])
 
 /** ESCRITAS que o `escritaDominante` pode devolver e que NÃO são latinas. */
 const ESCRITAS_NAO_LATINAS = new Set<EscritaDominante>([
-  'cjk', 'kana', 'hangul', 'cirilico', 'arabe', 'hebraico', 'grego', 'devanagari', 'thai',
+  'cjk',
+  'kana',
+  'hangul',
+  'cirilico',
+  'arabe',
+  'hebraico',
+  'grego',
+  'devanagari',
+  'thai',
 ])
 
 /**
@@ -162,8 +197,9 @@ function decidirIdiomaOrigem(
 
   return {
     idiomaOrigem: null,
-    avisoIdioma: `o cabeçalho dizia "${cabecalho}", mas o conteúdo do baralho é predominantemente ${escrita} — `
-      + 'como esse script serve mais de um idioma, o idioma do baralho ficou em branco em vez de arriscar um palpite errado.',
+    avisoIdioma:
+      `o cabeçalho dizia "${cabecalho}", mas o conteúdo do baralho é predominantemente ${escrita} — ` +
+      'como esse script serve mais de um idioma, o idioma do baralho ficou em branco em vez de arriscar um palpite errado.',
   }
 }
 /**
@@ -203,168 +239,187 @@ const erroDeTamanho: ErrorRequestHandler = (err, _req, res, next) => {
   if (e?.type !== 'entity.too.large') return next(err)
   const mb = (n?: number) => (n ? `${(n / 1_048_576).toFixed(0)} MB` : '?')
   res.status(413).json({
-    error: `este arquivo tem ${mb(e.length)} e o limite é ${mb(e.limit)}. `
-      + 'Num .apkg quase todo o tamanho é áudio e imagem, que não são importados: '
-      + 'exporte o baralho no Anki SEM mídia, ou tente pelo navegador (ele já manda só a lista de palavras).',
+    error:
+      `este arquivo tem ${mb(e.length)} e o limite é ${mb(e.limit)}. ` +
+      'Num .apkg quase todo o tamanho é áudio e imagem, que não são importados: ' +
+      'exporte o baralho no Anki SEM mídia, ou tente pelo navegador (ele já manda só a lista de palavras).',
   })
 }
 
-importRouter.post('/anki', raw({ type: () => true, limit: '200mb' }), erroDeTamanho, async (req, res) => {
-  const cab = parseOr400(uploadHeadersSchema, req.headers, res)
-  if (!cab) return
-  const buf = req.body as Buffer
-  if (!buf?.length) { res.status(400).json({ error: 'arquivo vazio' }); return }
-  const nome = decodeURIComponent(cab['x-filename'] || 'baralho')
+importRouter.post(
+  '/anki',
+  raw({ type: () => true, limit: '200mb' }), // `req`/`res` anotados: com o `erroDeTamanho` no meio da cadeia o Express perde a sobrecarga
+  // que infere os tipos do handler final.
+  erroDeTamanho,
+  async (req: Request, res: Response) => {
+    const cab = parseOr400(uploadHeadersSchema, req.headers, res)
+    if (!cab) return
+    const buf = req.body as Buffer
+    if (!buf?.length) {
+      res.status(400).json({ error: 'arquivo vazio' })
+      return
+    }
+    const nome = decodeURIComponent(cab['x-filename'] || 'baralho')
 
-  // Leitura: se o ARQUIVO não abre (zip corrompido, formato desconhecido), nada foi criado ainda
-  // no acervo — é só um 400, igual ao comportamento antigo.
-  let r: Awaited<ReturnType<typeof lerApkg>>
-  try {
-    const ehTexto = /\.(txt|csv|tsv)$/i.test(nome)
-    r = ehTexto ? lerTextoAnki(buf.toString('utf8')) : await lerApkg(buf)
-  } catch (err) {
-    res.status(400).json({ error: erroDeRota(err, { status: 400, event: 'import_route_error' }) })
-    return
-  }
+    // Leitura: se o ARQUIVO não abre (zip corrompido, formato desconhecido), nada foi criado ainda
+    // no acervo — é só um 400, igual ao comportamento antigo.
+    let r: Awaited<ReturnType<typeof lerApkg>>
+    try {
+      const ehTexto = /\.(txt|csv|tsv)$/i.test(nome)
+      r = ehTexto ? lerTextoAnki(buf.toString('utf8')) : await lerApkg(buf)
+    } catch (err) {
+      res.status(400).json({ error: erroDeRota(err, { status: 400, event: 'import_route_error' }) })
+      return
+    }
 
-  // Nome do baralho: o primeiro baralho visto no arquivo, ou o nome do arquivo sem extensão.
-  const nomeDoDeck = r.baralhos?.[0] || nome.replace(/\.[^.]+$/, '') || 'baralho'
-  let importId: string | undefined
-  try {
-    /**
-     * O IDIOMA DO BARALHO VEM DO CLIENTE, e sem ele o baralho entra e não chega a jogo nenhum.
-     *
-     * Medido importando 3.600 notas reais: todos os cartões projetados nasciam com `src_lang` NULL,
-     * porque o baralho não guardava idioma e `ativarLote` só repassa o que o baralho tem. Cartão
-     * sem idioma é `idioma-incerto` na triagem e vai para a pilha `fora` assim que existe um idioma
-     * selecionado no lobby — ou seja, o acervo enchia e a tela continuava dizendo "3 palavras".
-     *
-     * O `.apkg` não declara idioma de forma confiável (o campo é livre e quase ninguém preenche),
-     * então quem sabe é a tela: ela já tem o idioma que a pessoa está praticando e o nativo dela.
-     * Ausente, fica NULL — e aí o cartão vale para "sem filtro", que é o comportamento antigo.
-     *
-     * S11 (auditoria) — MAS o cabeçalho `X-Src-Lang` vem do LOBBY, não do baralho: é o idioma que a
-     * PESSOA está praticando na tela, preenchido pelo cliente sem nunca olhar o conteúdo do
-     * arquivo. Importar um deck JAPONÊS com o lobby aberto em inglês carimbava `srcLang='en'` em
-     * milhares de cartões, silenciosamente — envenenando o filtro de idioma para sempre (um
-     * cartão japonês rotulado 'en' nunca mais aparece corretamente etiquetado). A checagem abaixo
-     * confere o cabeçalho contra a ESCRITA de verdade das frentes antes de carimbar.
-     */
-    const idioma = decidirIdiomaOrigem(cab['x-src-lang'] ?? null, r.notas.slice(0, 200).map((n) => n.frente))
-
-    /* Verso que repete a frente é definição monolíngue, não tradução — carimbar um idioma-alvo
-       ali seria mentir sobre o conteúdo. Medido: 100% num baralho de dicionário de aprendiz. */
-    const monolingue = versoEhDefinicao(r.notas.slice(0, 200))
-    const deck = await ankiRepo.criarOuAcharDeck(req.userId, {
-      nome: nomeDoDeck,
-      nomeNoArquivo: r.baralhos?.[0] ?? null,
-      arquivoOrigem: nome,
-      idiomaOrigem: idioma.idiomaOrigem,
-      idiomaAlvo: monolingue ? idioma.idiomaOrigem : (cab['x-tgt-lang'] ?? null),
-    })
-    const imp = await ankiRepo.criarImport(req.userId, { deckId: deck.id, arquivo: nome, bytes: buf.length })
-    importId = imp.id
-    await ankiRepo.atualizarImport(imp.id, { estado: 'gravando' })
-
-    // Qualidade por nota (Decisão 6 do design: perfil 'curado', não 'captura') — a nota que não
-    // serve continua no acervo com o motivo anotado; quem filtra depois é a ativação.
-    const porMotivo: Record<string, number> = {}
-    const notasParaGravar = r.notas.map((n) => {
-      const veredito = avaliarCartao(
-        { word: n.frente, translation: n.verso, sentence: n.exemplo ?? '', srcLang: undefined } as never,
-        { origem: 'curado' },
+    // Nome do baralho: o primeiro baralho visto no arquivo, ou o nome do arquivo sem extensão.
+    const nomeDoDeck = r.baralhos?.[0] || nome.replace(/\.[^.]+$/, '') || 'baralho'
+    let importId: string | undefined
+    try {
+      /**
+       * O IDIOMA DO BARALHO VEM DO CLIENTE, e sem ele o baralho entra e não chega a jogo nenhum.
+       *
+       * Medido importando 3.600 notas reais: todos os cartões projetados nasciam com `src_lang` NULL,
+       * porque o baralho não guardava idioma e `ativarLote` só repassa o que o baralho tem. Cartão
+       * sem idioma é `idioma-incerto` na triagem e vai para a pilha `fora` assim que existe um idioma
+       * selecionado no lobby — ou seja, o acervo enchia e a tela continuava dizendo "3 palavras".
+       *
+       * O `.apkg` não declara idioma de forma confiável (o campo é livre e quase ninguém preenche),
+       * então quem sabe é a tela: ela já tem o idioma que a pessoa está praticando e o nativo dela.
+       * Ausente, fica NULL — e aí o cartão vale para "sem filtro", que é o comportamento antigo.
+       *
+       * S11 (auditoria) — MAS o cabeçalho `X-Src-Lang` vem do LOBBY, não do baralho: é o idioma que a
+       * PESSOA está praticando na tela, preenchido pelo cliente sem nunca olhar o conteúdo do
+       * arquivo. Importar um deck JAPONÊS com o lobby aberto em inglês carimbava `srcLang='en'` em
+       * milhares de cartões, silenciosamente — envenenando o filtro de idioma para sempre (um
+       * cartão japonês rotulado 'en' nunca mais aparece corretamente etiquetado). A checagem abaixo
+       * confere o cabeçalho contra a ESCRITA de verdade das frentes antes de carimbar.
+       */
+      const idioma = decidirIdiomaOrigem(
+        cab['x-src-lang'] ?? null,
+        r.notas.slice(0, 200).map((n) => n.frente),
       )
-      const motivoDescarte = veredito.serve ? null : (veredito.motivo ?? 'descartada')
-      if (motivoDescarte) porMotivo[motivoDescarte] = (porMotivo[motivoDescarte] ?? 0) + 1
-      return {
-        guid: guidDaNota(n),
-        notetype: n.notetype ?? null,
-        estruturaHash: n.estruturaHash ?? null,
-        /* OS CAMPOS ORIGINAIS, por nome — é o que sustenta "trocar o mapeamento sem reimportar".
+
+      /* Verso que repete a frente é definição monolíngue, não tradução — carimbar um idioma-alvo
+       ali seria mentir sobre o conteúdo. Medido: 100% num baralho de dicionário de aprendiz. */
+      const monolingue = versoEhDefinicao(r.notas.slice(0, 200))
+      const deck = await ankiRepo.criarOuAcharDeck(req.userId, {
+        nome: nomeDoDeck,
+        nomeNoArquivo: r.baralhos?.[0] ?? null,
+        arquivoOrigem: nome,
+        idiomaOrigem: idioma.idiomaOrigem,
+        idiomaAlvo: monolingue ? idioma.idiomaOrigem : (cab['x-tgt-lang'] ?? null),
+      })
+      const imp = await ankiRepo.criarImport(req.userId, { deckId: deck.id, arquivo: nome, bytes: buf.length })
+      importId = imp.id
+      await ankiRepo.atualizarImport(imp.id, { estado: 'gravando' })
+
+      // Qualidade por nota (Decisão 6 do design: perfil 'curado', não 'captura') — a nota que não
+      // serve continua no acervo com o motivo anotado; quem filtra depois é a ativação.
+      const porMotivo: Record<string, number> = {}
+      const notasParaGravar = r.notas.map((n) => {
+        const veredito = avaliarCartao(
+          { word: n.frente, translation: n.verso, sentence: n.exemplo ?? '', srcLang: undefined } as never,
+          { origem: 'curado' },
+        )
+        const motivoDescarte = veredito.serve ? null : (veredito.motivo ?? 'descartada')
+        if (motivoDescarte) porMotivo[motivoDescarte] = (porMotivo[motivoDescarte] ?? 0) + 1
+        return {
+          guid: guidDaNota(n),
+          notetype: n.notetype ?? null,
+          estruturaHash: n.estruturaHash ?? null,
+          /* OS CAMPOS ORIGINAIS, por nome — é o que sustenta "trocar o mapeamento sem reimportar".
            Guardar aqui só mídia e lacunas, como esta linha fazia, jogava fora exatamente o que a
            reclassificação precisa ler: o valor bruto de cada campo do baralho. Sem eles, corrigir
            um campo mal mapeado exigiria o arquivo de novo — 214 MB, no baralho que medimos. */
-        camposBrutos: JSON.stringify({ campos: n.camposBrutos ?? {}, midia: n.midia, lacunas: n.lacunas }),
-        frente: n.frente,
-        verso: n.verso,
-        exemplo: n.exemplo ?? null,
-        tags: n.tags?.length ? n.tags.join(' ') : null,
-        motivoDescarte,
-      }
-    })
+          camposBrutos: JSON.stringify({ campos: n.camposBrutos ?? {}, midia: n.midia, lacunas: n.lacunas }),
+          frente: n.frente,
+          verso: n.verso,
+          exemplo: n.exemplo ?? null,
+          tags: n.tags?.length ? n.tags.join(' ') : null,
+          motivoDescarte,
+        }
+      })
 
-    const resultado = await ankiRepo.gravarNotas(req.userId, deck.id, imp.id, notasParaGravar)
-    await ankiRepo.marcarAusentes(req.userId, deck.id, notasParaGravar.map((n) => n.guid))
+      const resultado = await ankiRepo.gravarNotas(req.userId, deck.id, imp.id, notasParaGravar)
+      await ankiRepo.marcarAusentes(
+        req.userId,
+        deck.id,
+        notasParaGravar.map((n) => n.guid),
+      )
 
-    const notasDescartadas = Object.values(porMotivo).reduce((a, b) => a + b, 0)
-    await ankiRepo.atualizarImport(imp.id, {
-      estado: 'concluido',
-      notasLidas: r.notas.length,
-      notasNovas: resultado.novas,
-      notasAtualizadas: resultado.atualizadas,
-      notasDescartadas,
-      porMotivo,
-    })
+      const notasDescartadas = Object.values(porMotivo).reduce((a, b) => a + b, 0)
+      await ankiRepo.atualizarImport(imp.id, {
+        estado: 'concluido',
+        notasLidas: r.notas.length,
+        notasNovas: resultado.novas,
+        notasAtualizadas: resultado.atualizadas,
+        notasDescartadas,
+        porMotivo,
+      })
 
-    /* Importar tem de ENTREGAR algo jogável. Antes toda nota nascia arquivada e a tela de jogar
+      /* Importar tem de ENTREGAR algo jogável. Antes toda nota nascia arquivada e a tela de jogar
        continuava igual: quem importou concluía que o app não fez nada (G0, defeito 2). Um lote
        entra na hora; o resto continua atrás de "Ativar mais", que é o controle de volume. */
-    /**
-     * FALHA NA ATIVACAO NAO VIRA "ZERO ATIVADAS" (auditoria de 2026-09-07, achado A29).
-     *
-     * O `.catch(() => ({ ativadas: 0 }))` transformava um erro de banco no MESMO resultado de um
-     * baralho que legitimamente nao tinha nada a ativar: a resposta era 200 com `ativadas: 0` e a
-     * pessoa concluia que o arquivo dela nao servia. Sao duas coisas diferentes, e agora a
-     * resposta diz qual foi — o import em si nao e desfeito, porque as notas ja entraram.
-     */
-    let ativadasNoImport: { ativadas: number } = { ativadas: 0 }
-    let erroDeAtivacao: string | null = null
-    try {
-      ativadasNoImport = await vocabRepo.ativarLote(req.userId, deck.id)
-    } catch (err) {
-      erroDeAtivacao = erroDeRota(err, { event: 'import_ativacao_error', route: req.path, requestId: req.requestId })
-    }
+      /**
+       * FALHA NA ATIVACAO NAO VIRA "ZERO ATIVADAS" (auditoria de 2026-09-07, achado A29).
+       *
+       * O `.catch(() => ({ ativadas: 0 }))` transformava um erro de banco no MESMO resultado de um
+       * baralho que legitimamente nao tinha nada a ativar: a resposta era 200 com `ativadas: 0` e a
+       * pessoa concluia que o arquivo dela nao servia. Sao duas coisas diferentes, e agora a
+       * resposta diz qual foi — o import em si nao e desfeito, porque as notas ja entraram.
+       */
+      let ativadasNoImport: { ativadas: number } = { ativadas: 0 }
+      let erroDeAtivacao: string | null = null
+      try {
+        ativadasNoImport = await vocabRepo.ativarLote(req.userId, deck.id)
+      } catch (err) {
+        erroDeAtivacao = erroDeRota(err, { event: 'import_ativacao_error', route: req.path, requestId: req.requestId })
+      }
 
-    const trunc = (s: string | null | undefined) => (s ?? '').slice(0, 80)
-    const amostra = r.notas.slice(0, 4).map((n) => ({
-      frente: trunc(n.frente), verso: trunc(n.verso), exemplo: trunc(n.exemplo),
-    }))
+      const trunc = (s: string | null | undefined) => (s ?? '').slice(0, 80)
+      const amostra = r.notas.slice(0, 4).map((n) => ({
+        frente: trunc(n.frente),
+        verso: trunc(n.verso),
+        exemplo: trunc(n.exemplo),
+      }))
 
-    res.json({
-      importId: imp.id,
-      deckId: deck.id,
-      resumo: {
-        ativadas: ativadasNoImport.ativadas ?? 0,
-        notas: r.notas.length,
-        novas: resultado.novas,
-        atualizadas: resultado.atualizadas,
-        iguais: resultado.iguais,
-        descartadas: notasDescartadas,
-        porMotivo,
-      },
-      campos: r.campos,
-      notetype: r.notas[0]?.notetype ?? null,
-      estruturaHash: r.notas[0]?.estruturaHash ?? null,
-      baralhos: r.baralhos,
-      formato: r.formato,
-      truncado: r.truncado,
-      totalNoArquivo: r.totalNoArquivo,
-      amostra,
-      // S11: presente só quando o cabeçalho e a escrita real do baralho se contradisseram — a
-      // tela mostra, e o cartão sem idioma cai em 'idioma-incerto' na triagem (honesto).
-      avisoIdioma: idioma.avisoIdioma,
-      /* Presente SO quando a ativacao falhou. O import entrou; o que nao aconteceu foi a primeira
+      res.json({
+        importId: imp.id,
+        deckId: deck.id,
+        resumo: {
+          ativadas: ativadasNoImport.ativadas ?? 0,
+          notas: r.notas.length,
+          novas: resultado.novas,
+          atualizadas: resultado.atualizadas,
+          iguais: resultado.iguais,
+          descartadas: notasDescartadas,
+          porMotivo,
+        },
+        campos: r.campos,
+        notetype: r.notas[0]?.notetype ?? null,
+        estruturaHash: r.notas[0]?.estruturaHash ?? null,
+        baralhos: r.baralhos,
+        formato: r.formato,
+        truncado: r.truncado,
+        totalNoArquivo: r.totalNoArquivo,
+        amostra,
+        // S11: presente só quando o cabeçalho e a escrita real do baralho se contradisseram — a
+        // tela mostra, e o cartão sem idioma cai em 'idioma-incerto' na triagem (honesto).
+        avisoIdioma: idioma.avisoIdioma,
+        /* Presente SO quando a ativacao falhou. O import entrou; o que nao aconteceu foi a primeira
          leva virar cartao jogavel — e "ativadas: 0" sozinho nao distingue isso de um baralho sem
          nada a ativar. */
-      ...(erroDeAtivacao ? { erroDeAtivacao, code: 'ativacao_falhou' } : {}),
-    })
-  } catch (err) {
-    // O que já entrou no acervo PERMANECE — só o ledger registra que esta fatia falhou.
-    const msg = erroDeRota(err, { event: 'import_route_error' })
-    if (importId) await ankiRepo.atualizarImport(importId, { estado: 'falhou', erro: msg }).catch(() => {})
-    res.status(400).json({ error: msg })
-  }
-})
+        ...(erroDeAtivacao ? { erroDeAtivacao, code: 'ativacao_falhou' } : {}),
+      })
+    } catch (err) {
+      // O que já entrou no acervo PERMANECE — só o ledger registra que esta fatia falhou.
+      const msg = erroDeRota(err, { event: 'import_route_error' })
+      if (importId) await ankiRepo.atualizarImport(importId, { estado: 'falhou', erro: msg }).catch(() => {})
+      res.status(400).json({ error: msg })
+    }
+  },
+)
 
 const isYouTube = (u: string) =>
   /^(https?:\/\/)?(www\.|m\.)?(youtube\.com\/(watch\?|shorts\/|live\/)|youtu\.be\/)/i.test(u)
@@ -393,16 +448,29 @@ importRouter.post('/youtube', async (req, res) => {
       return
     }
   } catch (err) {
-    res.status(502).json({ error: erroDeRota(err, { status: 502, event: 'import_entitlement_error', route: req.path, requestId: req.requestId }) })
+    res
+      .status(502)
+      .json({
+        error: erroDeRota(err, {
+          status: 502,
+          event: 'import_entitlement_error',
+          route: req.path,
+          requestId: req.requestId,
+        }),
+      })
     return
   }
 
   try {
     const url = corpo.url.trim()
-    if (!isYouTube(url)) { res.status(400).json({ error: 'Informe um link de vídeo do YouTube.' }); return }
+    if (!isYouTube(url)) {
+      res.status(400).json({ error: 'Informe um link de vídeo do YouTube.' })
+      return
+    }
     if (!(await hasYtDlp())) {
       res.status(501).json({
-        error: 'yt-dlp não encontrado. Instale o yt-dlp e coloque-o no PATH (ou defina a variável de ambiente YTDLP_PATH) para importar do YouTube.',
+        error:
+          'yt-dlp não encontrado. Instale o yt-dlp e coloque-o no PATH (ou defina a variável de ambiente YTDLP_PATH) para importar do YouTube.',
       })
       return
     }
@@ -449,7 +517,7 @@ importRouter.post('/youtube', async (req, res) => {
     const session = await sessionsRepo.createWithUtterances(
       req.userId,
       { kind: 'video', title: info.title, sourceLang, status: 'ready', durationMs: info.durationMs },
-      utts
+      utts,
     )
 
     /*
@@ -491,7 +559,10 @@ importRouter.post('/web', async (req, res) => {
   if (!corpo) return
   try {
     const url = corpo.url.trim()
-    if (!url) { res.status(400).json({ error: 'Informe uma URL.' }); return }
+    if (!url) {
+      res.status(400).json({ error: 'Informe uma URL.' })
+      return
+    }
     res.json(await extractArticle(url))
   } catch (err) {
     res.status(400).json({ error: erroDeRota(err, { status: 400, event: 'import_route_error' }) })
@@ -504,7 +575,10 @@ importRouter.post('/document', raw({ type: () => true, limit: '30mb' }), async (
   if (!cab) return
   try {
     const buf = req.body as Buffer
-    if (!buf || !buf.length) { res.status(400).json({ error: 'Arquivo vazio.' }); return }
+    if (!buf || !buf.length) {
+      res.status(400).json({ error: 'Arquivo vazio.' })
+      return
+    }
     const filename = decodeURIComponent(cab['x-filename'] || 'documento')
     const mime = cab['content-type'] || ''
     res.json(await extractDocument(buf, filename, mime))

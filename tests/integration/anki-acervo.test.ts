@@ -26,7 +26,9 @@ beforeAll(async () => {
   ;({ reviewLogs, vocabCards, ankiNotes: ankiNotesTable } = await h.load('../../server/db/schema'))
   ;({ eq: eqFn } = await import('drizzle-orm'))
 })
-afterAll(async () => { await h?.cleanup?.() })
+afterAll(async () => {
+  await h?.cleanup?.()
+})
 
 async function criarDeckEImport(userId = U, sufixo = '') {
   const deck = await ankiRepo.criarOuAcharDeck(userId, {
@@ -71,7 +73,9 @@ describe('gravarNotas — upsert por (deckId, guid)', () => {
   it('nota com conteúdo mudado é reportada como "atualizada", não como nova', async () => {
     const { deck, imp } = await criarDeckEImport(U, '-upd')
     await ankiRepo.gravarNotas(U, deck.id, imp.id, [{ guid: 'g1', frente: 'ledger', verso: 'livro-razão' }])
-    const r2 = await ankiRepo.gravarNotas(U, deck.id, imp.id, [{ guid: 'g1', frente: 'ledger', verso: 'livro contábil' }])
+    const r2 = await ankiRepo.gravarNotas(U, deck.id, imp.id, [
+      { guid: 'g1', frente: 'ledger', verso: 'livro contábil' },
+    ])
     expect(r2.novas).toBe(0)
     expect(r2.atualizadas).toBe(1)
 
@@ -149,12 +153,15 @@ describe('desativarBaralho — arquiva sem apagar', () => {
     // Simula a projeção (Fase 3, fora deste change): a nota ganhou um cartão jogável.
     const cardId = 'card-simulado'
     await db.insert(vocabCards).values({
-      id: cardId, createdAt: Date.now(), updatedAt: Date.now(), userId: U,
-      word: 'ledger', normKey: 'en|ledger', occurrences: 1,
+      id: cardId,
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+      userId: U,
+      word: 'ledger',
+      normKey: 'en|ledger',
+      occurrences: 1,
     })
-    await db.update(ankiNotesTable)
-      .set({ projectedCardId: cardId })
-      .where(eqFn(ankiNotesTable.id, pagina0.itens[0].id))
+    await db.update(ankiNotesTable).set({ projectedCardId: cardId }).where(eqFn(ankiNotesTable.id, pagina0.itens[0].id))
 
     await ankiRepo.desativarBaralho(U, deck.id)
     const pagina = await ankiRepo.listarNotas(U, deck.id, {})
@@ -170,13 +177,23 @@ describe('purgarBaralho — apaga notas e deck; review_logs intocado', () => {
     // Um review_log independente, para provar que a purga não varre a tabela errada.
     const cardId = 'card-purga-teste'
     await db.insert(vocabCards).values({
-      id: cardId, createdAt: Date.now(), updatedAt: Date.now(), userId: U,
-      word: 'sentinela', normKey: 'en|sentinela', occurrences: 1,
+      id: cardId,
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+      userId: U,
+      word: 'sentinela',
+      normKey: 'en|sentinela',
+      occurrences: 1,
     })
     const logId = 'log-purga-teste'
     await db.insert(reviewLogs).values({
-      id: logId, createdAt: Date.now(), updatedAt: Date.now(), userId: U,
-      cardId, reviewedAt: Date.now(), grade: 3,
+      id: logId,
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+      userId: U,
+      cardId,
+      reviewedAt: Date.now(),
+      grade: 3,
     })
 
     await ankiRepo.purgarBaralho(U, deck.id)
@@ -208,8 +225,8 @@ describe('listarBaralhos — contagens', () => {
     const d = decks.find((x: any) => x.id === deck.id)
     expect(d.total).toBe(4)
     expect(d.arquivadas).toBe(3)
-    expect(d.ausentes).toBe(1)      // g3: sumiu do arquivo
-    expect(d.descartadas).toBe(1)   // g4: a régua recusou — acionável, e nada a ver com g3
+    expect(d.ausentes).toBe(1) // g3: sumiu do arquivo
+    expect(d.descartadas).toBe(1) // g4: a régua recusou — acionável, e nada a ver com g3
     expect(d.ativas).toBe(0)
   })
 })
@@ -223,9 +240,11 @@ describe('reimportar um baralho DESATIVADO o traz de volta', () => {
 
     // Reimportar o MESMO arquivo é o pedido de volta: ninguém sobe de novo o que quer desligado.
     const voltou = await ankiRepo.criarOuAcharDeck(U, {
-      nome: deck.nome, arquivoOrigem: deck.arquivoOrigem, nomeNoArquivo: deck.nomeNoArquivo,
+      nome: deck.nome,
+      arquivoOrigem: deck.arquivoOrigem,
+      nomeNoArquivo: deck.nomeNoArquivo,
     })
-    expect(voltou.id).toBe(deck.id)   // o MESMO baralho, não um paralelo
+    expect(voltou.id).toBe(deck.id) // o MESMO baralho, não um paralelo
     expect(voltou.estado).toBe('ativo')
     expect((await ankiRepo.listarBaralhos(U)).find((d: any) => d.id === deck.id)!.estado).toBe('ativo')
   })
@@ -247,7 +266,13 @@ describe('listarNotas — paginação por cursor não repete item', () => {
     let cursor: string | null = null
     let paginas = 0
     do {
-      const pagina = await ankiRepo.listarNotas(U, deck.id, { limite: 5, cursor })
+      // `ankiRepo` e `any` no harness, entao a forma da pagina precisa estar escrita aqui
+      // (e o mesmo contrato declarado em `listarNotas`).
+      const pagina: { itens: Array<{ id: string }>; proximoCursor: string | null } = await ankiRepo.listarNotas(
+        U,
+        deck.id,
+        { limite: 5, cursor },
+      )
       for (const it of pagina.itens) {
         expect(vistos.has(it.id)).toBe(false)
         vistos.add(it.id)

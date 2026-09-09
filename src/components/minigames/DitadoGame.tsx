@@ -62,26 +62,44 @@ export default function DitadoGame({ rodadas, audioUrl, ageProfile, onFinish, on
   const ouvir = (velocidade = 1) => {
     if (!rodada || !falante.disponivel) return;
     triggerHaptic('soft');
-    falante.ouvir({
-      texto: rodada.fala.text, lang: rodada.fala.lang,
-      startMs: rodada.fala.startMs, endMs: rodada.fala.endMs,
-    }, velocidade);
+    falante.ouvir(
+      {
+        // `lang` é opcional na fala e obrigatório no `ItemAudivel`; '' e undefined percorrem o mesmo
+        // caminho no falante (baseLang trata os dois como ''), então o som não muda.
+        texto: rodada.fala.text,
+        lang: rodada.fala.lang ?? '',
+        startMs: rodada.fala.startMs,
+        endMs: rodada.fala.endMs,
+      },
+      velocidade,
+    );
     setTocando(true);
     if (pararRef.current) window.clearTimeout(pararRef.current);
     // A voz sintetizada não avisa o fim por este caminho: sem o relógio, o indicador ficaria preso.
-    const duracao = rodada.fala.endMs > rodada.fala.startMs
-      ? Math.max(300, rodada.fala.endMs - rodada.fala.startMs) / velocidade
-      : Math.max(900, rodada.fala.text.length * 90) / velocidade;
+    const duracao =
+      rodada.fala.endMs > rodada.fala.startMs
+        ? Math.max(300, rodada.fala.endMs - rodada.fala.startMs) / velocidade
+        : Math.max(900, rodada.fala.text.length * 90) / velocidade;
     pararRef.current = window.setTimeout(() => setTocando(false), duracao);
   };
 
   useEffect(() => {
-    if (rodada) { ouvir(1); entradaRef.current?.focus(); }
-    return () => { if (pararRef.current) window.clearTimeout(pararRef.current); };
+    if (rodada) {
+      ouvir(1);
+      entradaRef.current?.focus();
+    }
+    return () => {
+      if (pararRef.current) window.clearTimeout(pararRef.current);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [indice]);
 
-  useEffect(() => () => { audioRef.current?.pause(); }, []);
+  useEffect(
+    () => () => {
+      audioRef.current?.pause();
+    },
+    [],
+  );
 
   const avancar = (r: ReturnType<typeof conferirDitado>, pulou: boolean) => {
     const certo = !pulou && r.precisao >= LIMIAR;
@@ -101,7 +119,7 @@ export default function DitadoGame({ rodadas, audioUrl, ageProfile, onFinish, on
       const mult = multiplicador(nova);
       const ganho = 10 * (dicas ? 1 : mult);
       setSequencia(nova);
-      setPontos(p => p + ganho);
+      setPontos((p) => p + ganho);
       triggerHaptic('success');
       playJuicedHit(nova, undefined, `+${ganho}${mult > 1 && !dicas ? ` ×${mult}` : ''}`);
     } else {
@@ -111,28 +129,35 @@ export default function DitadoGame({ rodadas, audioUrl, ageProfile, onFinish, on
     }
 
     // Pausa maior quando errou: é onde a correção palavra a palavra é lida.
-    setTimeout(() => {
-      if (indice + 1 >= rodadas.length) {
-        if (encerradoRef.current) return;
-        encerradoRef.current = true;
-        const todos = resultadosRef.current;
-        const impecavel = todos.every(o => o.correct && !o.hinted);
-        if (impecavel) playJuicedVictory();
-        else comemorar(todos.some(o => o.correct) ? 'rodadaBoa' : 'erro', palcoRef.current, { tremer: impecavel });
-        setTimeout(() => onFinish({
-          gameId: 'ditado',
-          items: todos,
-          score: scoreRound('ditado', todos),
-          durationMs: Date.now() - inicioRodadaRef.current,
-        }), 900);
-        return;
-      }
-      setIndice(i => i + 1);
-      setTexto('');
-      setConferido(null);
-      setDicas(0);
-      inicioItemRef.current = Date.now();
-    }, certo ? 1200 : 3200);
+    setTimeout(
+      () => {
+        if (indice + 1 >= rodadas.length) {
+          if (encerradoRef.current) return;
+          encerradoRef.current = true;
+          const todos = resultadosRef.current;
+          const impecavel = todos.every((o) => o.correct && !o.hinted);
+          if (impecavel) playJuicedVictory();
+          else comemorar(todos.some((o) => o.correct) ? 'rodadaBoa' : 'erro', palcoRef.current, { tremer: impecavel });
+          setTimeout(
+            () =>
+              onFinish({
+                gameId: 'ditado',
+                items: todos,
+                score: scoreRound('ditado', todos),
+                durationMs: Date.now() - inicioRodadaRef.current,
+              }),
+            900,
+          );
+          return;
+        }
+        setIndice((i) => i + 1);
+        setTexto('');
+        setConferido(null);
+        setDicas(0);
+        inicioItemRef.current = Date.now();
+      },
+      certo ? 1200 : 3200,
+    );
   };
 
   const conferir = () => {
@@ -148,10 +173,10 @@ export default function DitadoGame({ rodadas, audioUrl, ageProfile, onFinish, on
     const alvo = rodada.fala.text.split(/\s+/).filter(Boolean);
     const jaEscritas = texto.split(/\s+/).filter(Boolean).length;
     if (jaEscritas >= alvo.length) return;
-    setDicas(d => d + 1);
+    setDicas((d) => d + 1);
     setSequencia(0);
     triggerHaptic('soft');
-    setTexto(t => (t.trim() ? `${t.trim()} ` : '') + alvo[jaEscritas]);
+    setTexto((t) => (t.trim() ? `${t.trim()} ` : '') + alvo[jaEscritas]);
     pontosDoElemento(`palavra ${jaEscritas + 1}`, el, 'neutro');
     entradaRef.current?.focus();
   };
@@ -179,9 +204,13 @@ export default function DitadoGame({ rodadas, audioUrl, ageProfile, onFinish, on
               <span className="font-display font-black text-lg tracking-wide uppercase text-accent">
                 {ageProfile === 'kids' ? 'Ditado Mágico' : 'Ditado Digital'}
               </span>
-              <span className="text-xs px-2 py-0.5 rounded-full bg-accent-soft text-accent-ink font-semibold">Ortografia & Áudio 🎧</span>
+              <span className="text-xs px-2 py-0.5 rounded-full bg-accent-soft text-accent-ink font-semibold">
+                Ortografia & Áudio 🎧
+              </span>
             </div>
-            <p className="text-xs text-ink-muted">Escute com atenção o áudio nativo e escreva as palavras com precisão!</p>
+            <p className="text-xs text-ink-muted">
+              Escute com atenção o áudio nativo e escreva as palavras com precisão!
+            </p>
           </div>
         </div>
 
@@ -219,88 +248,94 @@ export default function DitadoGame({ rodadas, audioUrl, ageProfile, onFinish, on
       </header>
 
       <main className="flex-1 flex flex-col items-center justify-center p-4 lg:p-8 overflow-y-auto custom-scrollbar">
+        <div ref={palcoRef} className="w-full max-w-2xl flex flex-col items-center gap-5 my-auto">
+          <div className="flex items-center gap-3">
+            <button
+              data-tour="ouvir"
+              onClick={() => ouvir(1)}
+              className={`py-3.5 px-7 rounded-2xl bg-accent hover:bg-accent-ink text-white font-bold text-[15px] shadow-btn cursor-pointer flex items-center gap-2.5 transition-all ${tocando ? 'scale-105 ring-4 ring-accent/30' : 'hover:-translate-y-0.5'}`}
+            >
+              <Play className={`w-5 h-5 ${tocando ? 'animate-pulse' : ''}`} />{' '}
+              {tocando ? 'Tocando áudio…' : 'Ouvir fala'}
+            </button>
+            <button
+              onClick={() => ouvir(0.6)}
+              className="py-3.5 px-4 rounded-2xl bg-canvas border border-border-subtle text-ink-muted hover:text-ink hover:border-accent font-bold text-[13px] cursor-pointer flex items-center gap-1.5 transition-colors"
+              title="Toca mais devagar, sem mudar o tom da voz"
+            >
+              <Turtle className="w-4 h-4" /> devagar
+            </button>
+          </div>
 
-      <div ref={palcoRef} className="w-full max-w-2xl flex flex-col items-center gap-5 my-auto">
-        <div className="flex items-center gap-3">
-          <button
-            data-tour="ouvir"
-            onClick={() => ouvir(1)}
-            className={`py-3.5 px-7 rounded-2xl bg-accent hover:bg-accent-ink text-white font-bold text-[15px] shadow-btn cursor-pointer flex items-center gap-2.5 transition-all ${tocando ? 'scale-105 ring-4 ring-accent/30' : 'hover:-translate-y-0.5'}`}
-          >
-            <Play className={`w-5 h-5 ${tocando ? 'animate-pulse' : ''}`} /> {tocando ? 'Tocando áudio…' : 'Ouvir fala'}
-          </button>
-          <button
-            onClick={() => ouvir(0.6)}
-            className="py-3.5 px-4 rounded-2xl bg-canvas border border-border-subtle text-ink-muted hover:text-ink hover:border-accent font-bold text-[13px] cursor-pointer flex items-center gap-1.5 transition-colors"
-            title="Toca mais devagar, sem mudar o tom da voz"
-          >
-            <Turtle className="w-4 h-4" /> devagar
-          </button>
-        </div>
-
-        {/* A LINHA DE ESCRITA. Uma caixa só: dividir em campos por palavra entregaria onde cada
+          {/* A LINHA DE ESCRITA. Uma caixa só: dividir em campos por palavra entregaria onde cada
             uma começa e termina, que é metade do que o ditado treina. */}
-        <div className="w-full flex items-center gap-2">
-          <input
-            ref={entradaRef}
-            data-tour="entrada"
-            value={texto}
-            onChange={e => setTexto(e.target.value)}
-            onKeyDown={e => { if (e.key === 'Enter') conferir(); }}
-            disabled={!!conferido}
-            placeholder={ageProfile === 'senior' ? 'Escreva aqui o que você ouviu' : 'escreva o que ouviu…'}
-            className="flex-1 px-4 py-3.5 rounded-xl bg-surface border border-border-subtle text-ink text-[15px] focus:border-accent outline-none disabled:opacity-60 shadow-sm"
-          />
-          <button
-            data-tour="conferir"
-            onClick={conferir}
-            disabled={!texto.trim() || !!conferido}
-            className="py-3.5 px-5 rounded-xl bg-accent hover:bg-accent-ink text-white font-bold text-[13px] shadow-btn disabled:opacity-40 cursor-pointer flex items-center gap-1.5 active:scale-95 transition-all"
-          >
-            <CornerDownLeft className="w-4 h-4" /> Conferir
-          </button>
-        </div>
+          <div className="w-full flex items-center gap-2">
+            <input
+              ref={entradaRef}
+              data-tour="entrada"
+              value={texto}
+              onChange={(e) => setTexto(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') conferir();
+              }}
+              disabled={!!conferido}
+              placeholder={ageProfile === 'senior' ? 'Escreva aqui o que você ouviu' : 'escreva o que ouviu…'}
+              className="flex-1 px-4 py-3.5 rounded-xl bg-surface border border-border-subtle text-ink text-[15px] focus:border-accent outline-none disabled:opacity-60 shadow-sm"
+            />
+            <button
+              data-tour="conferir"
+              onClick={conferir}
+              disabled={!texto.trim() || !!conferido}
+              className="py-3.5 px-5 rounded-xl bg-accent hover:bg-accent-ink text-white font-bold text-[13px] shadow-btn disabled:opacity-40 cursor-pointer flex items-center gap-1.5 active:scale-95 transition-all"
+            >
+              <CornerDownLeft className="w-4 h-4" /> Conferir
+            </button>
+          </div>
 
-        {/* A CORREÇÃO PALAVRA A PALAVRA — o que o exercício antigo não fazia e que é o que ensina. */}
-        {conferido && (
-          <div className="w-full flex flex-col gap-2 animate-in fade-in">
-            <p className="text-[12px] text-ink-muted">
-              {conferido.acertos} de {conferido.total} palavras, {conferido.precisao}%
-            </p>
-            <p className="flex flex-wrap gap-x-2 gap-y-1.5">
-              {/* `palavras` — o campo real de `ResultadoDitado`. Estava `itemRefs`, resíduo da
+          {/* A CORREÇÃO PALAVRA A PALAVRA — o que o exercício antigo não fazia e que é o que ensina. */}
+          {conferido && (
+            <div className="w-full flex flex-col gap-2 animate-in fade-in">
+              <p className="text-[12px] text-ink-muted">
+                {conferido.acertos} de {conferido.total} palavras, {conferido.precisao}%
+              </p>
+              <p className="flex flex-wrap gap-x-2 gap-y-1.5">
+                {/* `palavras` — o campo real de `ResultadoDitado`. Estava `itemRefs`, resíduo da
                   renomeação `ItemOutcome.palavra`→`itemRef`, que varreu este componente por engano:
                   `undefined.map()` dentro do render, ou seja, o Ditado QUEBRAVA ao clicar em
                   "Conferir", justo a correção palavra a palavra, que é o que ensina. Passou porque
                   `@types/react` não estava instalado e `conferido` era `any`. */}
-              {conferido.palavras.map((p, i) => (
-                <span key={i} className="flex flex-col items-center">
-                  <span className={`font-display font-bold text-[15px] ${p.certa ? 'text-good-ink' : 'text-error-ink'}`}>
-                    {p.esperada}
+                {conferido.palavras.map((p, i) => (
+                  <span key={i} className="flex flex-col items-center">
+                    <span
+                      className={`font-display font-bold text-[15px] ${p.certa ? 'text-good-ink' : 'text-error-ink'}`}
+                    >
+                      {p.esperada}
+                    </span>
+                    {/* O que ELA escreveu fica embaixo, riscado: é a comparação que faz entender. */}
+                    {!p.certa && p.escrita && (
+                      <span className="text-[11px] text-ink-faint line-through">{p.escrita}</span>
+                    )}
+                    {!p.certa && !p.escrita && <span className="text-[11px] text-ink-faint">-</span>}
                   </span>
-                  {/* O que ELA escreveu fica embaixo, riscado: é a comparação que faz entender. */}
-                  {!p.certa && p.escrita && (
-                    <span className="text-[11px] text-ink-faint line-through">{p.escrita}</span>
-                  )}
-                  {!p.certa && !p.escrita && <span className="text-[11px] text-ink-faint">-</span>}
-                </span>
-              ))}
-            </p>
-            {rodada.fala.translation && (
-              <p className="text-[12px] text-ink-muted">{rodada.fala.translation}</p>
-            )}
-          </div>
-        )}
+                ))}
+              </p>
+              {rodada.fala.translation && <p className="text-[12px] text-ink-muted">{rodada.fala.translation}</p>}
+            </div>
+          )}
 
-        {!conferido && (
-          <button
-            onClick={() => { const r = conferirDitado(rodada.fala.text, texto); setConferido(r); avancar(r, true); }}
-            className="flex items-center gap-1.5 text-[11px] text-ink-faint hover:text-warn-ink cursor-pointer"
-          >
-            <SkipForward className="w-3.5 h-3.5" /> não consigo, pular
-          </button>
-        )}
-      </div>
+          {!conferido && (
+            <button
+              onClick={() => {
+                const r = conferirDitado(rodada.fala.text, texto);
+                setConferido(r);
+                avancar(r, true);
+              }}
+              className="flex items-center gap-1.5 text-[11px] text-ink-faint hover:text-warn-ink cursor-pointer"
+            >
+              <SkipForward className="w-3.5 h-3.5" /> não consigo, pular
+            </button>
+          )}
+        </div>
       </main>
     </div>
   );

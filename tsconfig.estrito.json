@@ -1,0 +1,23 @@
+{
+  "// nota": [
+    "A CATRACA DO `strict` — Fase 3 da rodada de saneamento (2026-09-09).",
+    "",
+    "O `tsconfig.json` da raiz nunca teve `strict`, e ligá-lo de uma vez produz centenas de erros",
+    "num repositório de 130 mil linhas: ou se para tudo para consertar, ou se desliga a flag e ela",
+    "nunca mais volta. Este arquivo é o meio-termo que funciona: `strict: true` sobre a árvore",
+    "inteira, e a lista do que AINDA falha vive em `typecheck-estrito-pendentes.txt`.",
+    "",
+    "`npm run typecheck:estrito` compara o que falha hoje com essa lista. Um arquivo novo na lista",
+    "derruba o CI; um arquivo que sai dela baixa o número e ninguém pode subi-lo de volta sem",
+    "justificar no mesmo commit. É a mesma mecânica do piso de i18n em `ci.yml`.",
+    "",
+    "`src/core` já é estrito por conta própria (`src/core/tsconfig.json`) e continua sendo — este",
+    "arquivo o inclui de novo só porque a árvore é uma só."
+  ],
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "strict": true,
+    "noEmit": true
+  },
+  "exclude": ["_graveyard", "node_modules", "dist", "dist-server", "coverage"]
+}

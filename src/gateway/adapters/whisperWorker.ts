@@ -10,25 +10,30 @@
  * Recebe mensagens { type: 'load' | 'transcribe', ... } e responde com progresso +
  * resultados via postMessage.
  */
-import { pipeline, env, TextStreamer } from '@huggingface/transformers'
-import { configureModelDelivery } from './transformersEnv'
-import { criarRastreadorDeProgresso, rotuloDeBytes } from './modelProgress'
-import { registrarModeloBaixado } from '../modelManifest'
-import { filtrarAlucinacao, tokensPorSegundo } from '../alucinacao'
+import { pipeline, env, TextStreamer } from '@huggingface/transformers';
+import { configureModelDelivery } from './transformersEnv';
+import { criarRastreadorDeProgresso, rotuloDeBytes } from './modelProgress';
+import { registrarModeloBaixado } from '../modelManifest';
+import { filtrarAlucinacao, tokensPorSegundo } from '../alucinacao';
 /* `initial_prompt` POR FONTE (contexto das falas anteriores do mic/sistema) foi avaliado e NÃO
    entrou: a versão instalada de @huggingface/transformers não expõe `prompt_ids` no pipeline de
    ASR (conferido no bundle). Quando expuser, o lugar é o objeto de opções abaixo. */
 
 // Entrega dos pesos: cache do navegador (padrão) ou self-host same-origin (VITE_SELF_HOST_MODELS).
-configureModelDelivery()
+configureModelDelivery();
 
 // Threads do runtime WASM do ONNX. Multithread exige SharedArrayBuffer → página cross-origin
 // isolada (COOP/COEP). SEM isolamento, o ort cai graciosamente para 1 thread (mais lento, porém
 // FUNCIONA). SIMD funciona sem isolamento. Limitamos as threads p/ não saturar a máquina.
 try {
-  const cores = (self as any).navigator?.hardwareConcurrency || 4
-  env.backends.onnx.wasm.simd = true
-  env.backends.onnx.wasm.numThreads = Math.max(1, Math.min(cores, 4))
+  const cores = (self as any).navigator?.hardwareConcurrency || 4;
+  // `wasm` é opcional no tipo do runtime; se faltar, o comportamento é o mesmo do catch abaixo
+  // (não mexe em nada e usa os defaults do runtime).
+  const wasm = env.backends.onnx.wasm;
+  if (wasm) {
+    wasm.simd = true;
+    wasm.numThreads = Math.max(1, Math.min(cores, 4));
+  }
 } catch {
   // ambiente sem esses campos — ignora (usa defaults do runtime)
 }
@@ -41,21 +46,21 @@ try {
  * continua sendo o fallback que garante transcrição local em QUALQUER navegador.
  */
 function resolveDevice(device?: string): 'wasm' | 'webgpu' {
-  if (device === 'webgpu') return 'webgpu'
-  if (device === 'wasm') return 'wasm'
-  const hasWebGpu = !!(self as any).navigator?.gpu
-  return hasWebGpu ? 'webgpu' : 'wasm'
+  if (device === 'webgpu') return 'webgpu';
+  if (device === 'wasm') return 'wasm';
+  const hasWebGpu = !!(self as any).navigator?.gpu;
+  return hasWebGpu ? 'webgpu' : 'wasm';
 }
 
-let asr: any = null
-let asrModel = ''
+let asr: any = null;
+let asrModel = '';
 
 // Modelo padrão: whisper-TINY. Cada decode do Whisper processa uma janela interna fixa de
 // 30s, então o custo é ~constante por chamada — e o tiny tem esse custo ~4× menor que o base.
 // Em áudio contínuo (vídeo/2x), isso é o que faz o decode ser < a duração do trecho e a fila
 // DRENAR (senão a latência acumula até dezenas de segundos). O adapter pode passar outro id
 // no 'load' (ex.: 'onnx-community/whisper-base' p/ mais precisão).
-const DEFAULT_MODEL = 'onnx-community/whisper-tiny'
+const DEFAULT_MODEL = 'onnx-community/whisper-tiny';
 
 // dtype padrão HÍBRIDO: o ENCODER do Whisper é sensível a quantização (q8 degrada e propaga
 // erro por todo o decode), mas o DECODER tolera bem 4-bit. Então: encoder em precisão alta +
@@ -68,7 +73,7 @@ const DTYPE_PRESETS: Record<string, any> = {
   q4: 'q4',
   fp16: 'fp16',
   fp32: 'fp32',
-}
+};
 
 /**
  * Progresso: a lib JÁ agrega por bytes reais e pré-semeia o denominador com TODOS os arquivos
@@ -83,18 +88,22 @@ function novoProgresso(rotulo: string) {
   // Guarda o total agregado que a lib informou. É o que o manifesto usa como `bytesEsperados`:
   // sem ele, uma gravação parcial no cache (quota) produzia um manifesto que se descrevia como
   // completo. Achado pela suíte de mecanismo (cenário 11).
-  let bytesEsperados = 0
+  let bytesEsperados = 0;
   const rastrear = criarRastreadorDeProgresso((p) => {
-    if (p.total > 0) bytesEsperados = p.total
+    if (p.total > 0) bytesEsperados = p.total;
     self.postMessage({
       type: 'progress',
       progress: p.progress,
       loaded: p.loaded,
       total: p.total,
       label: rotuloDeBytes(p.loaded, p.total) ?? rotulo,
-    })
-  })
-  return Object.assign(rastrear, { get bytesEsperados() { return bytesEsperados } })
+    });
+  });
+  return Object.assign(rastrear, {
+    get bytesEsperados() {
+      return bytesEsperados;
+    },
+  });
 }
 
 /**
@@ -103,43 +112,55 @@ function novoProgresso(rotulo: string) {
  * stall de compilação/JIT (em WebGPU chegava a ~13s compilando shaders; em WASM aquece o JIT).
  */
 async function ensurePipeline(model?: string, dtypeKey?: string, device?: string): Promise<void> {
-  if (asr) return
-  asrModel = model || DEFAULT_MODEL
-  const dev = resolveDevice(device)
-  const wantDtype = DTYPE_PRESETS[dtypeKey || 'hybrid'] ?? DTYPE_PRESETS.hybrid
+  if (asr) return;
+  asrModel = model || DEFAULT_MODEL;
+  const dev = resolveDevice(device);
+  const wantDtype = DTYPE_PRESETS[dtypeKey || 'hybrid'] ?? DTYPE_PRESETS.hybrid;
 
-  let dtypeEfetivo = dtypeKey || 'hybrid'
-  let progresso = novoProgresso('Whisper')
+  let dtypeEfetivo = dtypeKey || 'hybrid';
+  let progresso = novoProgresso('Whisper');
   try {
     asr = await pipeline('automatic-speech-recognition', asrModel, {
       device: dev,
       dtype: wantDtype,
       progress_callback: progresso,
-    })
+    });
   } catch (err) {
-    dtypeEfetivo = 'q8'
+    dtypeEfetivo = 'q8';
     // Fallback robusto: repo sem os arquivos do dtype híbrido → usa q8 (no mesmo device).
     // Rastreador NOVO: o dtype mudou, logo os arquivos e o total mudaram. Reaproveitar o anterior
     // faria a barra nascer no percentual da tentativa que falhou.
-    console.warn('[whisper:worker] dtype', wantDtype, 'indisponível no repo, caindo para q8:', String((err as Error)?.message || err).slice(0, 120))
-    self.postMessage({ type: 'progress', progress: 0, loaded: 0, total: 0, label: 'usando formato alternativo (q8)…' })
-    progresso = novoProgresso('Whisper (q8)')
+    console.warn(
+      '[whisper:worker] dtype',
+      wantDtype,
+      'indisponível no repo, caindo para q8:',
+      String((err as Error)?.message || err).slice(0, 120),
+    );
+    self.postMessage({ type: 'progress', progress: 0, loaded: 0, total: 0, label: 'usando formato alternativo (q8)…' });
+    progresso = novoProgresso('Whisper (q8)');
     asr = await pipeline('automatic-speech-recognition', asrModel, {
       device: dev,
       dtype: 'q8',
       progress_callback: progresso,
-    })
+    });
   }
 
   // Manifesto: só agora existe verdade a gravar — o modelo carregou, com ESTE dtype e ESTE device.
   // É o que permite a UI responder "já está completo?" sem chutar (A-P0-4).
-  void registrarModeloBaixado(asrModel, dtypeEfetivo, dev, progresso.bytesEsperados)
+  void registrarModeloBaixado(asrModel, dtypeEfetivo, dev, progresso.bytesEsperados);
 
   // WARMUP: a 1ª inferência compila shaders (WebGPU) / aquece o JIT (WASM) do laço de decode.
   // Precisa gerar VÁRIOS tokens (não 1) p/ compilar o passo autoregressivo — senão a primeira
   // transcrição real ainda paga o stall. Rodar em silêncio agora esconde isso no "carregando".
   try {
-    await asr(new Float32Array(16000), { language: 'en', task: 'transcribe', return_timestamps: false, num_beams: 1, do_sample: false, max_new_tokens: 8 })
+    await asr(new Float32Array(16000), {
+      language: 'en',
+      task: 'transcribe',
+      return_timestamps: false,
+      num_beams: 1,
+      do_sample: false,
+      max_new_tokens: 8,
+    });
   } catch {
     // warmup é best-effort
   }
@@ -149,28 +170,28 @@ async function ensurePipeline(model?: string, dtypeKey?: string, device?: string
  * Processa mensagens do adapter.
  */
 self.onmessage = async (e: MessageEvent) => {
-  const { type, id, pcm, language, model, dtype, device, maxNewTokens } = e.data
+  const { type, id, pcm, language, model, dtype, device, maxNewTokens } = e.data;
 
   try {
     if (type === 'load') {
-      await ensurePipeline(model, dtype, device)
-      self.postMessage({ type: 'ready' })
+      await ensurePipeline(model, dtype, device);
+      self.postMessage({ type: 'ready' });
     } else if (type === 'transcribe') {
-      await ensurePipeline(model, dtype, device)
+      await ensurePipeline(model, dtype, device);
 
       // STREAMING token-a-token: em vez de só entregar o texto ao FIM do decode, emitimos
       // mensagens `update` incrementais conforme os tokens saem — a UI vê o texto crescendo
       // durante a fala (sensação de tempo real). Acumulamos aqui e postamos o texto-até-agora.
       // (Padrão do exemplo oficial realtime-whisper-webgpu.)
-      let acc = ''
+      let acc = '';
       const streamer = new TextStreamer(asr.tokenizer, {
         skip_prompt: true,
         skip_special_tokens: true,
         callback_function: (t: string) => {
-          acc += t
-          self.postMessage({ type: 'update', id, text: acc.trim() })
+          acc += t;
+          self.postMessage({ type: 'update', id, text: acc.trim() });
         },
-      })
+      });
 
       // TETO DINÂMICO de tokens (anti-alucinação): o Whisper, em silêncio/pausa ou em buffer
       // curto, "continua inventando" até bater o max_new_tokens. Limitar à DURAÇÃO real do áudio
@@ -178,9 +199,9 @@ self.onmessage = async (e: MessageEvent) => {
       // cortar fala legítima. Ex.: parcial de 1s → 15 tokens; trecho de 6s → 90 (< teto de 128).
       // POR IDIOMA: português/espanhol tokenizam pior que inglês no vocabulário do Whisper —
       // 15 tok/s truncava fala rápida em PT (medido no cenário conversa). Ver alucinacao.ts.
-      const audioSec = pcm.length / 16000
-      const hardCap = maxNewTokens || (language && language !== 'en' ? 160 : 128)
-      const dynMax = Math.max(8, Math.min(hardCap, Math.round(audioSec * tokensPorSegundo(language))))
+      const audioSec = pcm.length / 16000;
+      const hardCap = maxNewTokens || (language && language !== 'en' ? 160 : 128);
+      const dynMax = Math.max(8, Math.min(hardCap, Math.round(audioSec * tokensPorSegundo(language))));
 
       // Decode enxuto p/ baixa latência: greedy (sem beam), cache ligado (implícito no grafo
       // merged), idioma FIXO (pula auto-detecção e evita "traduzir" sozinho), sem timestamps.
@@ -196,20 +217,20 @@ self.onmessage = async (e: MessageEvent) => {
         no_repeat_ngram_size: 3,
         repetition_penalty: 1.15,
         streamer,
-      })
+      });
 
       self.postMessage({
         type: 'result',
         id,
         text: filtrarAlucinacao((out.text ?? '').trim(), audioSec, language),
-      })
+      });
     }
   } catch (err) {
-    const message = err instanceof Error ? err.message : String(err)
+    const message = err instanceof Error ? err.message : String(err);
     self.postMessage({
       type: 'error',
       id: id ?? null,
       message,
-    })
+    });
   }
-}
+};

@@ -1,14 +1,15 @@
 import { useState, useEffect } from 'react';
 import { ThemeType } from '../lib/appearance';
-import { 
-  AppLayoutConfig, 
-  DEFAULT_LAYOUT_CONFIG, 
-  getSavedLayout, 
-  saveLayout, 
-  resetLayout, 
-  isLayoutEditMode, 
+import {
+  AppLayoutConfig,
+  DEFAULT_LAYOUT_CONFIG,
+  getSavedLayout,
+  saveLayout,
+  resetLayout,
+  isLayoutEditMode,
   setLayoutEditMode,
-  getIntelligentLayout
+  getIntelligentLayout,
+  ViewLayoutConfig,
 } from '../lib/layoutStore';
 
 export function useLayout() {
@@ -16,7 +17,7 @@ export function useLayout() {
   const [editMode, setEditMode] = useState<boolean>(isLayoutEditMode);
   const [windowSize, setWindowSize] = useState({
     width: typeof window !== 'undefined' ? window.innerWidth : 1200,
-    height: typeof window !== 'undefined' ? window.innerHeight : 800
+    height: typeof window !== 'undefined' ? window.innerHeight : 800,
   });
 
   useEffect(() => {
@@ -24,12 +25,12 @@ export function useLayout() {
     const handleResize = () => {
       setWindowSize({
         width: window.innerWidth,
-        height: window.innerHeight
+        height: window.innerHeight,
       });
     };
 
     window.addEventListener('resize', handleResize);
-    
+
     // Subscribe to layout changes
     const handleLayoutChange = (e: Event) => {
       const customEvent = e as CustomEvent<AppLayoutConfig>;
@@ -63,16 +64,19 @@ export function useLayout() {
   };
 
   const updatePanel = (
-    viewKey: keyof AppLayoutConfig, 
-    panelKey: string, 
-    updates: Partial<{ show: boolean; widthPercent: number; heightPx: number; theme: ThemeType | undefined }>
+    viewKey: keyof AppLayoutConfig,
+    panelKey: string,
+    updates: Partial<{ show: boolean; widthPercent: number; heightPx: number; theme: ThemeType | undefined }>,
   ) => {
     const newLayout = { ...layout };
-    const viewConfig = { ...newLayout[viewKey] };
+    // Cada tela de `AppLayoutConfig` tem suas próprias chaves de painel, então indexar
+    // por uma `panelKey: string` só funciona pela visão genérica `ViewLayoutConfig`
+    // (o mesmo passo que `normalizeLayout` já faz em layoutStore.ts).
+    const viewConfig: ViewLayoutConfig = { ...(newLayout[viewKey] as unknown as ViewLayoutConfig) };
     if (viewConfig && viewConfig[panelKey]) {
       viewConfig[panelKey] = {
         ...viewConfig[panelKey],
-        ...updates
+        ...updates,
       };
       // Ensure widths are bounded between 10% and 100%
       if (viewConfig[panelKey].widthPercent !== undefined) {
@@ -82,7 +86,7 @@ export function useLayout() {
       if (viewConfig[panelKey].heightPx !== undefined) {
         viewConfig[panelKey].heightPx = Math.max(50, Math.min(1200, viewConfig[panelKey].heightPx));
       }
-      newLayout[viewKey] = viewConfig as any;
+      (newLayout as unknown as Record<string, ViewLayoutConfig>)[viewKey] = viewConfig;
       setLayout(newLayout);
       saveLayout(newLayout);
     }
@@ -106,6 +110,6 @@ export function useLayout() {
     toggleEditMode,
     updatePanel,
     applyIntelligentLayout,
-    resetToDefault
+    resetToDefault,
   };
 }

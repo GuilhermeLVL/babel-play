@@ -24,7 +24,9 @@ interface StudioHeaderProps {
   fontScale: FontScale;
   cycleFontScale: () => void;
   activeView: ViewType;
-  onChangeView: (view: ViewType) => void;
+  /* `string`, e não `ViewType`: o menu da conta (via `ControlCluster`) navega para 'login', que é
+     um destino do `navigateTo` do App e NÃO é uma view. Quem recebe aqui já era `(view: string)`. */
+  onChangeView: (view: string) => void;
   menuPosition: MenuPositionType;
   setMenuPosition: (pos: MenuPositionType) => void;
   soundEnabled: boolean;
@@ -69,7 +71,7 @@ export default function StudioHeader({
   performanceMode,
   togglePerformanceMode,
   onOpenSearch,
-  progress
+  progress,
 }: StudioHeaderProps) {
   const controls: Omit<ControlClusterProps, 'orientation'> = {
     theme,
@@ -93,7 +95,7 @@ export default function StudioHeader({
     performanceMode,
     togglePerformanceMode,
     onOpenSearch,
-    onChangeView
+    onChangeView,
   };
 
   if (menuPosition === 'left' || menuPosition === 'right') {

@@ -15,15 +15,15 @@
  * `evolucaoSemanal`, o `.map` do drawer), e era justamente aí que o formato da data divergia.
  * Recebendo a série crua do contrato, não há o que divergir.
  */
-import React from 'react'
-import { TrendingUp } from 'lucide-react'
-import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, CartesianGrid } from 'recharts'
-import type { AppMetrics } from '../../core/learning/contract'
+import React from 'react';
+import { TrendingUp } from 'lucide-react';
+import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, CartesianGrid } from 'recharts';
+import type { AppMetrics } from '../../core/learning/contract';
 import { data } from '../../lib/i18n';
 
 /** Rótulo curto da semana. Único formato — antes eram dois (`fmtWeek` e um `toLocaleDateString` solto). */
 function rotuloDaSemana(ts: number): string {
-  return data(new Date(ts), { day: '2-digit', month: '2-digit' })
+  return data(new Date(ts), { day: '2-digit', month: '2-digit' });
 }
 
 function EvolucaoSemanal({
@@ -32,15 +32,15 @@ function EvolucaoSemanal({
   altura = 200,
   className = '',
 }: {
-  serie: AppMetrics['vocabByWeek'] | null | undefined
-  titulo?: string
-  altura?: number
-  className?: string
+  serie: AppMetrics['vocabByWeek'] | null | undefined;
+  titulo?: string;
+  altura?: number;
+  className?: string;
 }) {
   const dados = React.useMemo(
     () => (serie ?? []).map((s) => ({ rotulo: rotuloDaSemana(s.weekStart), palavras: s.count })),
     [serie],
-  )
+  );
 
   return (
     <div className={`card-panel p-5 ${className}`}>
@@ -50,7 +50,10 @@ function EvolucaoSemanal({
 
       {dados.length === 0 ? (
         /* Vazio explicado, não vazio mudo. */
-        <div className="flex flex-col justify-center items-center text-center gap-3 text-ink-muted" style={{ height: altura }}>
+        <div
+          className="flex flex-col justify-center items-center text-center gap-3 text-ink-muted"
+          style={{ height: altura }}
+        >
           <div className="w-12 h-12 rounded-xl bg-accent-soft text-accent flex items-center justify-center">
             <TrendingUp className="w-6 h-6" aria-hidden />
           </div>
@@ -73,17 +76,27 @@ function EvolucaoSemanal({
                 <XAxis dataKey="rotulo" stroke="var(--ink-muted)" tick={{ fontSize: 11 }} />
                 <YAxis stroke="var(--ink-muted)" tick={{ fontSize: 11 }} allowDecimals={false} />
                 <Tooltip
-                  contentStyle={{ backgroundColor: 'var(--surface)', borderColor: 'var(--border-subtle)', borderRadius: '8px', color: 'var(--ink)' }}
-                  formatter={(v: number) => [`${v} palavras`, 'Capturadas']}
-                  labelFormatter={(l: string) => `Semana de ${l}`}
+                  contentStyle={{
+                    backgroundColor: 'var(--surface)',
+                    borderColor: 'var(--border-subtle)',
+                    borderRadius: '8px',
+                    color: 'var(--ink)',
+                  }}
+                  // Sem anotar `v`/`l`: o recharts passa `ValueType`/`ReactNode`, mais largos do
+                  // que `number`/`string`, e a interpolação continua a mesma.
+                  formatter={(v) => [`${v} palavras`, 'Capturadas']}
+                  labelFormatter={(l) => `Semana de ${l}`}
                 />
                 {/* `dot` explícito com UMA semana: o recharts não desenha ponto por padrão, então
                     uma série de um item virava um gráfico literalmente em branco — grade, eixos e
                     nada dentro. O texto abaixo já diz que um ponto não é tendência; o ponto
                     precisa ao menos existir. */}
                 <Area
-                  type="monotone" dataKey="palavras" name="Palavras"
-                  stroke="var(--accent)" fill="url(#gradEvolucaoSemanal)"
+                  type="monotone"
+                  dataKey="palavras"
+                  name="Palavras"
+                  stroke="var(--accent)"
+                  fill="url(#gradEvolucaoSemanal)"
                   dot={dados.length === 1 ? { r: 4, fill: 'var(--accent)', stroke: 'var(--accent)' } : false}
                 />
               </AreaChart>
@@ -100,7 +113,7 @@ function EvolucaoSemanal({
         </>
       )}
     </div>
-  )
+  );
 }
 
-export default EvolucaoSemanal
+export default EvolucaoSemanal;

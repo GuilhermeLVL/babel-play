@@ -15,20 +15,39 @@ import { lazy, type ComponentType } from 'react';
  */
 const CHAVE = 'babel.recarga-por-chunk';
 
-export function lazyComRecarga<T extends ComponentType<unknown>>(carregar: () => Promise<{ default: T }>) {
+/*
+ * O GENERICO E SOBRE AS PROPS, nao sobre o componente. `T extends ComponentType<unknown>` parecia
+ * mais estrito e era o oposto: props sao CONTRAVARIANTES, entao um componente que recebe props
+ * (`LiveCapture`, `Play`, `Loja`...) nao e atribuivel a `ComponentType<unknown>`, e as 30 chamadas
+ * de `App.tsx` so passavam porque o `tsconfig` da raiz nao tinha `strict`. Com `P` inferido do
+ * proprio modulo, o tipo das props sobrevive ate o ponto de uso.
+ */
+export function lazyComRecarga<P>(carregar: () => Promise<{ default: ComponentType<P> }>) {
   return lazy(async () => {
     try {
       const m = await carregar();
-      try { sessionStorage.removeItem(CHAVE); } catch { /* sem storage */ }
+      try {
+        sessionStorage.removeItem(CHAVE);
+      } catch {
+        /* sem storage */
+      }
       return m;
     } catch (erro) {
       let jaRecarregou = false;
-      try { jaRecarregou = sessionStorage.getItem(CHAVE) === '1'; } catch { /* sem storage */ }
+      try {
+        jaRecarregou = sessionStorage.getItem(CHAVE) === '1';
+      } catch {
+        /* sem storage */
+      }
       if (!jaRecarregou && typeof window !== 'undefined') {
-        try { sessionStorage.setItem(CHAVE, '1'); } catch { /* sem storage */ }
+        try {
+          sessionStorage.setItem(CHAVE, '1');
+        } catch {
+          /* sem storage */
+        }
         window.location.reload();
         // Enquanto a página recarrega, devolve algo vazio para o Suspense não estourar.
-        return new Promise<{ default: T }>(() => {});
+        return new Promise<{ default: ComponentType<P> }>(() => {});
       }
       throw erro;
     }

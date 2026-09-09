@@ -3,7 +3,14 @@ import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, ReferenceD
 import { Loader2, Trophy } from 'lucide-react';
 import { fetchDeck } from '../../../data/api';
 import { fetchHistoricoDeXp, type HistoricoDeXp } from '../../../data/me';
-import { fluenciaDoBaralho, rotuloDeFluencia, escalaDe, RETENCAO_DE_DOMINIO, MIN_CARTOES_POR_FAIXA, type Fluencia } from '@core';
+import {
+  fluenciaDoBaralho,
+  rotuloDeFluencia,
+  escalaDe,
+  RETENCAO_DE_DOMINIO,
+  MIN_CARTOES_POR_FAIXA,
+  type Fluencia,
+} from '@core';
 import { precarregarNiveis } from '../../../data/trilha/carregar';
 import { baseLang, langLabelNaUI } from '../../../lib/languages';
 import type { VocabCard } from '../../../types';
@@ -41,10 +48,21 @@ export default function AbaProgresso({ progress, ageProfile }: AbaProgressoProps
   useEffect(() => {
     let vivo = true;
     void Promise.all([fetchHistoricoDeXp('dia'), fetchDeck()])
-      .then(([h, d]) => { if (vivo) { setHistorico(h); setBaralho(d); } })
-      .catch(() => { /* cada seção trata a própria ausência */ })
-      .finally(() => { if (vivo) setCarregando(false); });
-    return () => { vivo = false; };
+      .then(([h, d]) => {
+        if (vivo) {
+          setHistorico(h);
+          setBaralho(d);
+        }
+      })
+      .catch(() => {
+        /* cada seção trata a própria ausência */
+      })
+      .finally(() => {
+        if (vivo) setCarregando(false);
+      });
+    return () => {
+      vivo = false;
+    };
   }, []);
 
   /**
@@ -58,16 +76,22 @@ export default function AbaProgresso({ progress, ageProfile }: AbaProgressoProps
    */
   const [niveisProntos, setNiveisProntos] = useState(0);
   const idiomasDoBaralho = useMemo(
-    () => [...new Set((baralho ?? []).map(c => baseLang(c.srcLang ?? '')).filter(Boolean))],
+    () => [...new Set((baralho ?? []).map((c) => baseLang(c.srcLang ?? '')).filter(Boolean))],
     [baralho],
   );
   useEffect(() => {
     if (!idiomasDoBaralho.length) return;
     let vivo = true;
     void Promise.all(idiomasDoBaralho.map(precarregarNiveis))
-      .then(() => { if (vivo) setNiveisProntos(n => n + 1); })
-      .catch(() => { /* sem lista, `nivelCefr` responde ausente — que e a resposta honesta */ });
-    return () => { vivo = false; };
+      .then(() => {
+        if (vivo) setNiveisProntos((n) => n + 1);
+      })
+      .catch(() => {
+        /* sem lista, `nivelCefr` responde ausente — que e a resposta honesta */
+      });
+    return () => {
+      vivo = false;
+    };
   }, [idiomasDoBaralho]);
 
   const fluencia: Fluencia | null = useMemo(
@@ -80,20 +104,23 @@ export default function AbaProgresso({ progress, ageProfile }: AbaProgressoProps
 
   /** Idiomas do baralho para os quais NAO existe lista de niveis — a tela nomeia quais. */
   const idiomasSemRegua = useMemo(
-    () => idiomasDoBaralho.filter(l => escalaDe(l) === null),
+    () => idiomasDoBaralho.filter((l) => escalaDe(l) === null),
     // Depende das listas carregadas pelo mesmo motivo acima.
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [idiomasDoBaralho, niveisProntos],
   );
 
-  const serie = useMemo(() => (historico?.pontos ?? []).map(p => ({
-    ...p,
-    rotulo: data(new Date(p.em), { day: '2-digit', month: 'short' }),
-  })), [historico]);
+  const serie = useMemo(
+    () =>
+      (historico?.pontos ?? []).map((p) => ({
+        ...p,
+        rotulo: data(new Date(p.em), { day: '2-digit', month: 'short' }),
+      })),
+    [historico],
+  );
 
   return (
     <div className="space-y-8">
-
       <FaixaDeProgresso progress={progress} ageProfile={ageProfile} />
 
       {/* ── A CURVA ──────────────────────────────────────────────────────────────────────────
@@ -116,8 +143,8 @@ export default function AbaProgresso({ progress, ageProfile }: AbaProgressoProps
             /* Um ponto não é uma curva. Dizer isso é melhor que desenhar uma linha reta que
                parece estagnação. */
             <p className="text-[13px] text-ink-muted py-10 text-center">
-              Ainda não há dias suficientes para desenhar uma curva. Grave ou revise em dois dias
-              diferentes e ela aparece aqui.
+              Ainda não há dias suficientes para desenhar uma curva. Grave ou revise em dois dias diferentes e ela
+              aparece aqui.
             </p>
           ) : (
             <>
@@ -130,19 +157,54 @@ export default function AbaProgresso({ progress, ageProfile }: AbaProgressoProps
                         <stop offset="100%" stopColor="var(--accent)" stopOpacity={0} />
                       </linearGradient>
                     </defs>
-                    <XAxis dataKey="rotulo" tick={{ fontSize: 11, fill: 'var(--ink-muted)' }} tickLine={false} axisLine={false} minTickGap={24} />
-                    <YAxis tick={{ fontSize: 11, fill: 'var(--ink-muted)' }} tickLine={false} axisLine={false} width={56} />
-                    <Tooltip
-                      contentStyle={{ background: 'var(--surface)', border: '1px solid var(--border-subtle)', borderRadius: 12, fontSize: 12 }}
-                      labelStyle={{ color: 'var(--ink)' }}
-                      formatter={(v: number, nome) => [nome === 'xpAcumulado' ? `${v} XP` : `+${v} XP`, nome === 'xpAcumulado' ? 'total' : 'no dia']}
+                    <XAxis
+                      dataKey="rotulo"
+                      tick={{ fontSize: 11, fill: 'var(--ink-muted)' }}
+                      tickLine={false}
+                      axisLine={false}
+                      minTickGap={24}
                     />
-                    <Area type="monotone" dataKey="xpAcumulado" stroke="var(--accent)" strokeWidth={2} fill="url(#curvaXp)" />
+                    <YAxis
+                      tick={{ fontSize: 11, fill: 'var(--ink-muted)' }}
+                      tickLine={false}
+                      axisLine={false}
+                      width={56}
+                    />
+                    <Tooltip
+                      contentStyle={{
+                        background: 'var(--surface)',
+                        border: '1px solid var(--border-subtle)',
+                        borderRadius: 12,
+                        fontSize: 12,
+                      }}
+                      labelStyle={{ color: 'var(--ink)' }}
+                      // Sem anotar `v`: o recharts passa `ValueType`, mais largo que `number`,
+                      // e a interpolação no template continua a mesma.
+                      formatter={(v, nome) => [
+                        nome === 'xpAcumulado' ? `${v} XP` : `+${v} XP`,
+                        nome === 'xpAcumulado' ? 'total' : 'no dia',
+                      ]}
+                    />
+                    <Area
+                      type="monotone"
+                      dataKey="xpAcumulado"
+                      stroke="var(--accent)"
+                      strokeWidth={2}
+                      fill="url(#curvaXp)"
+                    />
                     {/* Cada subida de nível vira um ponto — é literalmente o "saí do 1 para o 2". */}
-                    {(historico?.marcos ?? []).map(m => {
-                      const ponto = serie.find(p => p.em === m.em);
+                    {(historico?.marcos ?? []).map((m) => {
+                      const ponto = serie.find((p) => p.em === m.em);
                       return ponto ? (
-                        <ReferenceDot key={`${m.em}-${m.nivel}`} x={ponto.rotulo} y={ponto.xpAcumulado} r={4} fill="var(--good)" stroke="var(--surface)" strokeWidth={2} />
+                        <ReferenceDot
+                          key={`${m.em}-${m.nivel}`}
+                          x={ponto.rotulo}
+                          y={ponto.xpAcumulado}
+                          r={4}
+                          fill="var(--good)"
+                          stroke="var(--surface)"
+                          strokeWidth={2}
+                        />
                       ) : null;
                     })}
                   </AreaChart>
@@ -151,18 +213,19 @@ export default function AbaProgresso({ progress, ageProfile }: AbaProgressoProps
 
               {(historico?.marcos.length ?? 0) > 0 && (
                 <ul className="flex flex-wrap gap-2 mt-4">
-                  {historico!.marcos.slice(-6).map(m => (
+                  {historico!.marcos.slice(-6).map((m) => (
                     <li key={`${m.em}-${m.nivel}`} className="kpi-pill cursor-default">
                       <Trophy className="w-3 h-3 text-good" aria-hidden />
-                      {palavraDeNivel().toLowerCase()} {m.nivel} · {data(new Date(m.em), { day: '2-digit', month: 'short', year: '2-digit' })}
+                      {palavraDeNivel().toLowerCase()} {m.nivel} ·{' '}
+                      {data(new Date(m.em), { day: '2-digit', month: 'short', year: '2-digit' })}
                     </li>
                   ))}
                 </ul>
               )}
 
               <p className="text-[11px] text-ink-faint mt-4 leading-snug max-w-[70ch]">
-                Reconstruído a partir das suas gravações, revisões e rodadas, não há um registro
-                separado de XP. Se a fórmula de pontos mudar, este gráfico muda junto.
+                Reconstruído a partir das suas gravações, revisões e rodadas, não há um registro separado de XP. Se a
+                fórmula de pontos mudar, este gráfico muda junto.
               </p>
             </>
           )}
@@ -175,8 +238,7 @@ export default function AbaProgresso({ progress, ageProfile }: AbaProgressoProps
       <section>
         <h2 className="font-display font-bold text-lg text-ink mb-1">Onde você está no idioma</h2>
         <p className="text-[12.5px] text-ink-muted mb-4 max-w-[64ch]">
-          Medido pelo que você <b>sustenta</b>, a chance de lembrar agora, e não quantas palavras
-          você tem guardadas.
+          Medido pelo que você <b>sustenta</b>, a chance de lembrar agora, e não quantas palavras você tem guardadas.
         </p>
 
         <div className="card-panel bg-surface p-5">
@@ -200,9 +262,11 @@ export default function AbaProgresso({ progress, ageProfile }: AbaProgressoProps
                 </p>
               ) : (
                 <ul className="space-y-2.5">
-                  {fluencia.faixas.map(f => (
+                  {fluencia.faixas.map((f) => (
                     <li key={f.nivel} className="flex items-center gap-3">
-                      <span className={`font-display font-black text-[13px] w-7 shrink-0 ${f.sustentada ? 'text-good-ink' : 'text-ink-muted'}`}>
+                      <span
+                        className={`font-display font-black text-[13px] w-7 shrink-0 ${f.sustentada ? 'text-good-ink' : 'text-ink-muted'}`}
+                      >
                         {f.nivel}
                       </span>
                       <Barra
@@ -232,15 +296,15 @@ export default function AbaProgresso({ progress, ageProfile }: AbaProgressoProps
                 </p>
                 {fluencia.semNivel > 0 && (
                   <p className="text-[11px] text-ink-faint">
-                    {numero(fluencia.semNivel)} palavras ficaram de fora porque não
-                    estão na lista de níveis conferidos, elas não foram chutadas para faixa nenhuma.
+                    {numero(fluencia.semNivel)} palavras ficaram de fora porque não estão na lista de níveis conferidos,
+                    elas não foram chutadas para faixa nenhuma.
                   </p>
                 )}
                 {/* NOMEAR O IDIOMA sem régua, em vez de deixar a ausência parecer culpa do acervo. */}
                 {idiomasSemRegua.length > 0 && (
                   <p className="text-[11px] text-ink-faint">
-                    Não há lista de níveis para {idiomasSemRegua.map(langLabelNaUI).join(', ')}, então
-                    as palavras desse acervo não entram na estimativa de fluência.
+                    Não há lista de níveis para {idiomasSemRegua.map(langLabelNaUI).join(', ')}, então as palavras desse
+                    acervo não entram na estimativa de fluência.
                   </p>
                 )}
               </div>
@@ -253,10 +317,23 @@ export default function AbaProgresso({ progress, ageProfile }: AbaProgressoProps
       <section>
         <h2 className="font-display font-bold text-lg text-ink mb-4">O que você acumulou</h2>
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-          <Ladrilho valor={progress.available ? progress.level : null} rotulo={`${palavraDeNivel().toLowerCase()} atual`} tom="accent" />
-          <Ladrilho valor={progress.available ? historico?.xpTotal ?? null : null} rotulo="XP no total" />
-          <Ladrilho valor={progress.available ? progress.streakDays : null} rotulo="dias seguidos" tom={progress.streakDays > 0 ? 'warn' : 'ink'} />
-          <Ladrilho valor={progress.available ? progress.seeds : null} rotulo="seeds" tom="good" nota={`${progress.seedsGanhas} ganhas no total`} />
+          <Ladrilho
+            valor={progress.available ? progress.level : null}
+            rotulo={`${palavraDeNivel().toLowerCase()} atual`}
+            tom="accent"
+          />
+          <Ladrilho valor={progress.available ? (historico?.xpTotal ?? null) : null} rotulo="XP no total" />
+          <Ladrilho
+            valor={progress.available ? progress.streakDays : null}
+            rotulo="dias seguidos"
+            tom={progress.streakDays > 0 ? 'warn' : 'ink'}
+          />
+          <Ladrilho
+            valor={progress.available ? progress.seeds : null}
+            rotulo="seeds"
+            tom="good"
+            nota={`${progress.seedsGanhas} ganhas no total`}
+          />
         </div>
       </section>
     </div>

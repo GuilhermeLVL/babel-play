@@ -1,4 +1,4 @@
-import { MicVAD } from "@ricky0123/vad-web";
+import { MicVAD } from '@ricky0123/vad-web';
 import { apiFetch } from '../../data/api';
 
 // Logger de diagnóstico da captura de sistema/VAD (observabilidade no console do navegador).
@@ -28,7 +28,6 @@ export interface AudioCapture {
    */
   startedAtMs: number;
 }
-
 
 // Escolhe um container/codec de áudio suportado pelo MediaRecorder deste navegador.
 function pickRecorderMime(): string {
@@ -71,7 +70,9 @@ function releaseActiveDisplayStream(): void {
 async function acquireDisplayStream(): Promise<MediaStream> {
   const prior = displayAcquireLock;
   let release!: () => void;
-  displayAcquireLock = new Promise<void>((r) => { release = r; });
+  displayAcquireLock = new Promise<void>((r) => {
+    release = r;
+  });
   try {
     await prior; // serializa: uma aquisição por vez
     releaseActiveDisplayStream();
@@ -151,7 +152,9 @@ async function startCaptureFromStream(
   let startedAtMs = Date.now();
   try {
     recorder = new MediaRecorder(audioStream, recMime ? { mimeType: recMime } : undefined);
-    recorder.ondataavailable = (e) => { if (e.data && e.data.size) recChunks.push(e.data); };
+    recorder.ondataavailable = (e) => {
+      if (e.data && e.data.size) recChunks.push(e.data);
+    };
     recorder.start(1000); // timeslice → chunks periódicos (não perde tudo se algo falhar)
     startedAtMs = Date.now(); // t=0 REAL da gravação, captura AQUI, não no clique em START
     vlog(label, 'MediaRecorder gravando (', recMime || 'default', ')');
@@ -193,9 +196,11 @@ async function startCaptureFromStream(
         reported = true;
         vlog(label, 'pico RMS em 2,5s:', peak.toFixed(4));
         if (peak < 0.0015) {
-          cb.onStatus?.(label === 'system'
-            ? '⚠ A faixa de áudio do sistema existe, mas está SILENCIOSA (nível ~0). Confirme que marcou "Compartilhar o áudio do sistema/aba" e que algo está de fato tocando.'
-            : '⚠ O microfone está SILENCIOSO (nível ~0). Verifique o dispositivo de entrada escolhido e o volume do microfone no Windows.');
+          cb.onStatus?.(
+            label === 'system'
+              ? '⚠ A faixa de áudio do sistema existe, mas está SILENCIOSA (nível ~0). Confirme que marcou "Compartilhar o áudio do sistema/aba" e que algo está de fato tocando.'
+              : '⚠ O microfone está SILENCIOSO (nível ~0). Verifique o dispositivo de entrada escolhido e o volume do microfone no Windows.',
+          );
         }
       }
     }, 50);
@@ -228,11 +233,18 @@ async function startCaptureFromStream(
   let accumSamples = 0;
   let lastPartialSamples = 0;
 
-  const resetUtterance = (): void => { frameChunks = []; accumSamples = 0; lastPartialSamples = 0; };
+  const resetUtterance = (): void => {
+    frameChunks = [];
+    accumSamples = 0;
+    lastPartialSamples = 0;
+  };
   const concatFrames = (): Float32Array => {
     const out = new Float32Array(accumSamples);
     let o = 0;
-    for (const c of frameChunks) { out.set(c, o); o += c.length; }
+    for (const c of frameChunks) {
+      out.set(c, o);
+      o += c.length;
+    }
     return out;
   };
 
@@ -249,9 +261,9 @@ async function startCaptureFromStream(
     submitUserSpeechOnPause: true, // pause() entrega o áudio acumulado, usado no corte forçado
     positiveSpeechThreshold: 0.5,
     negativeSpeechThreshold: 0.35,
-    redemptionMs: 450,   // fecha ~0,45s após o silêncio → limite de frase mais natural
+    redemptionMs: 450, // fecha ~0,45s após o silêncio → limite de frase mais natural
     preSpeechPadMs: 300, // prepende 0,3s → não corta o INÍCIO das sentenças
-    minSpeechMs: 400,    // descarta ruídos < 0,4s (era 250: ruído curto virava frase inventada)
+    minSpeechMs: 400, // descarta ruídos < 0,4s (era 250: ruído curto virava frase inventada)
     onSpeechStart: () => {
       speechStartTs = performance.now();
       currentSeq = ++seqCounter;
@@ -269,7 +281,12 @@ async function startCaptureFromStream(
         forcingCut = true;
         speechStartTs = performance.now();
         vlog(label, 'VAD → corte forçado (fala contínua > ' + MAX_SPEECH_MS + 'ms)');
-        Promise.resolve(vad.pause()).then(() => vad.start()).catch(() => {}).finally(() => { forcingCut = false; });
+        Promise.resolve(vad.pause())
+          .then(() => vad.start())
+          .catch(() => {})
+          .finally(() => {
+            forcingCut = false;
+          });
       }
     },
     onVADMisfire: () => {
@@ -302,11 +319,9 @@ async function startCaptureFromStream(
 
   // Detecta quando a faixa de áudio encerra (usuário parou o compartilhamento / desplugou o mic).
   const audioTracks = audioStream.getAudioTracks();
-  audioTracks[0]?.addEventListener("ended", () => {
+  audioTracks[0]?.addEventListener('ended', () => {
     vlog(label, 'faixa de áudio encerrada');
-    cb.onStatus?.(label === 'mic'
-      ? 'Microfone desconectado.'
-      : 'Compartilhamento de áudio encerrado pelo usuário.');
+    cb.onStatus?.(label === 'mic' ? 'Microfone desconectado.' : 'Compartilhamento de áudio encerrado pelo usuário.');
   });
 
   return {
@@ -315,7 +330,9 @@ async function startCaptureFromStream(
       if (next === muted) return;
       muted = next;
       // A faixa para de entregar áudio: o recorder grava silêncio e o VAD não vê fala.
-      audioTracks.forEach((t) => { t.enabled = !next; });
+      audioTracks.forEach((t) => {
+        t.enabled = !next;
+      });
       if (next) {
         /* Descarta o enunciado EM CURSO. Mutar no meio de uma frase deixaria um parcial
            pendurado na tela para sempre — o VAD nunca fecharia um segmento que agora só
@@ -337,13 +354,29 @@ async function startCaptureFromStream(
         blob = await new Promise<Blob | null>((resolve) => {
           recorder!.onstop = () =>
             resolve(recChunks.length ? new Blob(recChunks, { type: recMime || 'audio/webm' }) : null);
-          try { recorder!.stop(); } catch { resolve(null); }
+          try {
+            recorder!.stop();
+          } catch {
+            resolve(null);
+          }
         });
       }
-      try { vad.pause(); } catch { /* ignore */ }
-      try { (vad as any).destroy?.(); } catch { /* ignore */ }
+      try {
+        vad.pause();
+      } catch {
+        /* ignore */
+      }
+      try {
+        (vad as any).destroy?.();
+      } catch {
+        /* ignore */
+      }
       if (levelTimer) clearInterval(levelTimer);
-      try { await levelCtx?.close(); } catch { /* ignore */ }
+      try {
+        await levelCtx?.close();
+      } catch {
+        /* ignore */
+      }
       cb.onLevel?.(0);
       fullStream.getTracks().forEach((t) => t.stop());
       return blob;
@@ -361,29 +394,29 @@ export async function startSystemAudioCapture(cb: SystemAudioCallbacks): Promise
   try {
     let stream: MediaStream;
     try {
-      vlog('solicitando getDisplayMedia({ video:true, audio:true })… (escolha ABA ou TELA e marque compartilhar áudio)');
+      vlog(
+        'solicitando getDisplayMedia({ video:true, audio:true })… (escolha ABA ou TELA e marque compartilhar áudio)',
+      );
       // Aquisição serializada (ver acquireDisplayStream): um único stream de display por vez, com
       // cooldown de liberação — impede a colisão probe→start que causava NotReadableError na aba.
       stream = await acquireDisplayStream();
     } catch (err) {
       vlog('getDisplayMedia rejeitado:', (err as Error)?.name, '-', (err as Error)?.message);
-      if (err instanceof DOMException && err.name === "NotAllowedError") {
-        throw new Error(
-          "Compartilhamento cancelado ou bloqueado. Clique novamente e escolha uma ABA/TELA com áudio."
-        );
+      if (err instanceof DOMException && err.name === 'NotAllowedError') {
+        throw new Error('Compartilhamento cancelado ou bloqueado. Clique novamente e escolha uma ABA/TELA com áudio.');
       }
       // NotReadableError = você MARCOU "compartilhar áudio do sistema", mas o Windows/navegador
       // não conseguiu ABRIR o loopback de áudio. É falha de SO/driver, não do app. Causas comuns:
       // modo exclusivo no dispositivo de reprodução, outro app segurando o áudio, ou driver.
-      if (err instanceof DOMException && (err.name === "NotReadableError" || err.name === "AbortError")) {
+      if (err instanceof DOMException && (err.name === 'NotReadableError' || err.name === 'AbortError')) {
         releaseActiveDisplayStream();
         throw new Error(
           'O Windows não conseguiu INICIAR a captura do áudio da TELA (NotReadableError), limitação conhecida ' +
-          'do Chrome no Windows para o áudio de tela inteira (o áudio de ABA costuma funcionar). ' +
-          'Caminhos que funcionam: ' +
-          '(1) ROTA CONFIÁVEL p/ Discord/jogos/sistema inteiro: troque a fonte para "Dispositivo de loopback (Stereo Mix / VB-Cable)", veja o guia; ' +
-          '(2) para conteúdo numa ABA (YouTube, chamada): compartilhe a ABA e marque "compartilhar áudio da aba"; ' +
-          '(3) se insistir na tela inteira, desative o "modo exclusivo" do dispositivo de reprodução (Som → Propriedades → Avançado) e feche apps que usem o áudio.'
+            'do Chrome no Windows para o áudio de tela inteira (o áudio de ABA costuma funcionar). ' +
+            'Caminhos que funcionam: ' +
+            '(1) ROTA CONFIÁVEL p/ Discord/jogos/sistema inteiro: troque a fonte para "Dispositivo de loopback (Stereo Mix / VB-Cable)", veja o guia; ' +
+            '(2) para conteúdo numa ABA (YouTube, chamada): compartilhe a ABA e marque "compartilhar áudio da aba"; ' +
+            '(3) se insistir na tela inteira, desative o "modo exclusivo" do dispositivo de reprodução (Som → Propriedades → Avançado) e feche apps que usem o áudio.',
         );
       }
       throw err;
@@ -398,11 +431,14 @@ export async function startSystemAudioCapture(cb: SystemAudioCallbacks): Promise
       stream.getTracks().forEach((t) => t.stop());
       let msg: string;
       if (surface === 'window') {
-        msg = 'O modo JANELA não captura áudio no Chrome (limitação da plataforma, a própria janela de seleção avisa "To share audio, share a tab or screen instead"). Para jogos/apps, use a TELA INTEIRA e marque "Também compartilhar o áudio do sistema".';
+        msg =
+          'O modo JANELA não captura áudio no Chrome (limitação da plataforma, a própria janela de seleção avisa "To share audio, share a tab or screen instead"). Para jogos/apps, use a TELA INTEIRA e marque "Também compartilhar o áudio do sistema".';
       } else if (surface === 'monitor') {
-        msg = 'Você compartilhou a Tela, mas NÃO marcou "Também compartilhar o áudio do sistema". Clique de novo e ATIVE essa opção (o botão fica no canto inferior esquerdo da janela de seleção).';
+        msg =
+          'Você compartilhou a Tela, mas NÃO marcou "Também compartilhar o áudio do sistema". Clique de novo e ATIVE essa opção (o botão fica no canto inferior esquerdo da janela de seleção).';
       } else {
-        msg = 'Nenhum áudio foi compartilhado. Escolha uma ABA (marque "áudio da aba") ou a TELA INTEIRA (marque "áudio do sistema"). Uma JANELA não tem áudio.';
+        msg =
+          'Nenhum áudio foi compartilhado. Escolha uma ABA (marque "áudio da aba") ou a TELA INTEIRA (marque "áudio do sistema"). Uma JANELA não tem áudio.';
       }
       vlog('SEM faixa de áudio ✗ (superfície:', surface, ')');
       // Erro TIPADO: o LiveCapture usa o código para abrir o guia com botão "Escolher de novo"
@@ -424,7 +460,10 @@ export async function startSystemAudioCapture(cb: SystemAudioCallbacks): Promise
       setMuted: (m) => capture.setMuted(m),
       async stop(): Promise<Blob | null> {
         const blob = await capture.stop();
-        if (activeDisplayStream === stream) { activeDisplayStream = null; lastDisplayReleaseTs = performance.now(); }
+        if (activeDisplayStream === stream) {
+          activeDisplayStream = null;
+          lastDisplayReleaseTs = performance.now();
+        }
         return blob;
       },
     };
@@ -481,7 +520,10 @@ export async function startMicCapture(deviceId: string | undefined, cb: SystemAu
  * voz DESLIGADO — EC/NS/AGC estragariam música/áudio de jogo. `deviceId` vazio cai no default
  * (útil só se o default do SO já for um loopback).
  */
-export async function startSystemLoopbackCapture(deviceId: string | undefined, cb: SystemAudioCallbacks): Promise<AudioCapture> {
+export async function startSystemLoopbackCapture(
+  deviceId: string | undefined,
+  cb: SystemAudioCallbacks,
+): Promise<AudioCapture> {
   try {
     let stream: MediaStream;
     try {
@@ -500,10 +542,14 @@ export async function startSystemLoopbackCapture(deviceId: string | undefined, c
         throw new Error('Permissão de captura negada. Autorize o acesso ao dispositivo de áudio no navegador.');
       }
       if (err instanceof DOMException && (err.name === 'NotFoundError' || err.name === 'OverconstrainedError')) {
-        throw new Error('Dispositivo de loopback não encontrado. Habilite o "Stereo Mix" (Som → Gravação → Mostrar dispositivos desabilitados) ou instale o VB-Audio Cable, e selecione-o.');
+        throw new Error(
+          'Dispositivo de loopback não encontrado. Habilite o "Stereo Mix" (Som → Gravação → Mostrar dispositivos desabilitados) ou instale o VB-Audio Cable, e selecione-o.',
+        );
       }
       if (err instanceof DOMException && err.name === 'NotReadableError') {
-        throw new Error('O dispositivo de loopback existe mas não pôde ser aberto (outro app o segura, ou está em modo exclusivo). Feche apps que o usem e tente de novo.');
+        throw new Error(
+          'O dispositivo de loopback existe mas não pôde ser aberto (outro app o segura, ou está em modo exclusivo). Feche apps que o usem e tente de novo.',
+        );
       }
       throw err;
     }
@@ -543,7 +589,11 @@ export async function startServerLoopbackCapture(cb: SystemAudioCallbacks): Prom
     const resp = await apiFetch('/api/audio/loopback/stream', { timeoutMs: 24 * 3_600_000 });
     if (!resp.ok || !resp.body) {
       let msg = `Servidor recusou o stream de loopback (HTTP ${resp.status}).`;
-      try { msg = (await resp.json()).error || msg; } catch { /* corpo não-JSON */ }
+      try {
+        msg = (await resp.json()).error || msg;
+      } catch {
+        /* corpo não-JSON */
+      }
       throw new Error(msg);
     }
     vlog('loopback do SERVIDOR conectado, montando grafo WebAudio (AudioWorklet)…');
@@ -568,8 +618,10 @@ export async function startServerLoopbackCapture(cb: SystemAudioCallbacks): Prom
           const { done, value } = await reader.read();
           if (done || stopped) break;
           if (!value || !value.length) continue;
-          const data = carry ? new Uint8Array([...carry, ...value]) : value;
-          const usable = data.length - (data.length % 2);
+          // Anotado porque `carry` é alimentado a partir de `data` logo abaixo: sem o tipo escrito,
+          // o compilador vê a inferência de `data` dependendo dela mesma.
+          const data: Uint8Array = carry ? new Uint8Array([...carry, ...value]) : value;
+          const usable: number = data.length - (data.length % 2);
           carry = usable < data.length ? data.slice(usable) : null;
           const i16 = new Int16Array(data.buffer, data.byteOffset, usable / 2);
           const f32 = new Float32Array(i16.length);
@@ -590,10 +642,22 @@ export async function startServerLoopbackCapture(cb: SystemAudioCallbacks): Prom
       setMuted: (m) => capture.setMuted(m),
       async stop(): Promise<Blob | null> {
         stopped = true;
-        try { await reader.cancel(); } catch { /* já cancelado */ }
+        try {
+          await reader.cancel();
+        } catch {
+          /* já cancelado */
+        }
         const blob = await capture.stop();
-        try { feeder.disconnect(); } catch { /* já desconectado */ }
-        try { await ctx.close(); } catch { /* já fechado */ }
+        try {
+          feeder.disconnect();
+        } catch {
+          /* já desconectado */
+        }
+        try {
+          await ctx.close();
+        } catch {
+          /* já fechado */
+        }
         return blob;
       },
     };
@@ -615,7 +679,11 @@ export async function probeServerLoopback(): Promise<SystemAudioProbe> {
   const resp = await apiFetch('/api/audio/loopback/stream', { timeoutMs: 24 * 3_600_000 });
   if (!resp.ok || !resp.body) {
     let msg = `Servidor recusou o stream de loopback (HTTP ${resp.status}).`;
-    try { msg = (await resp.json()).error || msg; } catch { /* corpo não-JSON */ }
+    try {
+      msg = (await resp.json()).error || msg;
+    } catch {
+      /* corpo não-JSON */
+    }
     throw new Error(msg);
   }
   const reader = resp.body.getReader();
@@ -630,12 +698,16 @@ export async function probeServerLoopback(): Promise<SystemAudioProbe> {
       bytes += value.length;
       const usable = value.length - (value.length % 2);
       for (let i = 0; i < usable; i += 2) {
-        const s = Math.abs(((value[i + 1] << 8) | value[i]) << 16 >> 16) / 32768;
+        const s = Math.abs((((value[i + 1] << 8) | value[i]) << 16) >> 16) / 32768;
         if (s > peak) peak = s;
       }
     }
   } finally {
-    try { await reader.cancel(); } catch { /* já cancelado */ }
+    try {
+      await reader.cancel();
+    } catch {
+      /* já cancelado */
+    }
   }
   vlog('PROBE servidor → bytes:', bytes, '| pico:', peak.toFixed(4));
   return {
@@ -667,13 +739,20 @@ async function measurePeakRms(stream: MediaStream, ms = 2000): Promise<number> {
         let s = 0;
         for (let i = 0; i < buf.length; i++) s += buf[i] * buf[i];
         peak = Math.max(peak, Math.sqrt(s / buf.length));
-        if (performance.now() - t0 > ms) { clearInterval(iv); resolve(); }
+        if (performance.now() - t0 > ms) {
+          clearInterval(iv);
+          resolve();
+        }
       }, 50);
     });
   } catch (e) {
     vlog('sonda de nível falhou:', String(e));
   }
-  try { await ctx?.close(); } catch { /* ignore */ }
+  try {
+    await ctx?.close();
+  } catch {
+    /* ignore */
+  }
   return peak;
 }
 
@@ -705,8 +784,8 @@ export async function probeSystemAudio(): Promise<SystemAudioProbe> {
       // Mesmo diagnóstico do fluxo real: o SO não conseguiu abrir o loopback do áudio da tela.
       throw new Error(
         'O Windows não conseguiu INICIAR o áudio da TELA (NotReadableError), limitação do Chrome no Windows. ' +
-        'Use a fonte "Dispositivo de loopback (Stereo Mix / VB-Cable)" para Discord/jogos/sistema inteiro, ' +
-        'ou compartilhe uma ABA com "áudio da aba" (esse caminho funciona).'
+          'Use a fonte "Dispositivo de loopback (Stereo Mix / VB-Cable)" para Discord/jogos/sistema inteiro, ' +
+          'ou compartilhe uma ABA com "áudio da aba" (esse caminho funciona).',
       );
     }
     throw err;
@@ -753,7 +832,9 @@ export async function probeLoopback(deviceId: string | undefined): Promise<Syste
   } catch (err) {
     vlog('PROBE loopback rejeitado:', (err as Error)?.name, '-', (err as Error)?.message);
     if (err instanceof DOMException && (err.name === 'NotFoundError' || err.name === 'OverconstrainedError')) {
-      throw new Error('Dispositivo de loopback não encontrado. Habilite o "Stereo Mix" ou instale o VB-Audio Cable e selecione-o.');
+      throw new Error(
+        'Dispositivo de loopback não encontrado. Habilite o "Stereo Mix" ou instale o VB-Audio Cable e selecione-o.',
+      );
     }
     if (err instanceof DOMException && (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError')) {
       throw new Error('Permissão negada. Autorize o acesso ao dispositivo de áudio no navegador.');

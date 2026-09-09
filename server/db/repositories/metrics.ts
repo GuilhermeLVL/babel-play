@@ -52,61 +52,76 @@ export async function computeProfile(userId: UserId, opts: OpcoesDePerfil = {}):
   // Marco 1: todo scan é escopado por userId. reviewLogs, que não tinha filtro nenhum, passa a
   // filtrar por user_id (o review() carimba o dono no log).
   const [sessTodas, cardsTodos, logs, uttsTodas, drills] = await Promise.all([
-    db.select({
-      id: sessions.id,
-      createdAt: sessions.createdAt,
-      wordCount: sessions.wordCount,
-      durationMs: sessions.durationMs,
-      /* Uma coluna a mais na varredura que já acontecia — é o que a conquista "Poliglota"
+    db
+      .select({
+        id: sessions.id,
+        createdAt: sessions.createdAt,
+        wordCount: sessions.wordCount,
+        durationMs: sessions.durationMs,
+        /* Uma coluna a mais na varredura que já acontecia — é o que a conquista "Poliglota"
          precisava, e ela nunca disparava na conta logada por falta deste dado. */
-      sourceLang: sessions.sourceLang,
-    }).from(sessions).where(and(eq(sessions.userId, userId), isNull(sessions.deletedAt))),
+        sourceLang: sessions.sourceLang,
+      })
+      .from(sessions)
+      .where(and(eq(sessions.userId, userId), isNull(sessions.deletedAt))),
     /* `vocab_cards` tem 34 colunas e o perfil lê treze. As que ficam de fora incluem `sentence`,
        `cloze_prompt` e `cloze_answer` — frases inteiras, por cartão, em todo o acervo. */
-    db.select({
-      id: vocabCards.id,
-      word: vocabCards.word,
-      sessionId: vocabCards.sessionId,
-      createdAt: vocabCards.createdAt,
-      addedAt: vocabCards.addedAt,
-      inDeck: vocabCards.inDeck,
-      dueAt: vocabCards.dueAt,
-      stability: vocabCards.stability,
-      difficulty: vocabCards.difficulty,
-      lapses: vocabCards.lapses,
-      lastReview: vocabCards.lastReview,
-      cefrLevel: vocabCards.cefrLevel,
-      cefrConfidence: vocabCards.cefrConfidence,
-    }).from(vocabCards).where(and(eq(vocabCards.userId, userId), isNull(vocabCards.deletedAt))),
+    db
+      .select({
+        id: vocabCards.id,
+        word: vocabCards.word,
+        sessionId: vocabCards.sessionId,
+        createdAt: vocabCards.createdAt,
+        addedAt: vocabCards.addedAt,
+        inDeck: vocabCards.inDeck,
+        dueAt: vocabCards.dueAt,
+        stability: vocabCards.stability,
+        difficulty: vocabCards.difficulty,
+        lapses: vocabCards.lapses,
+        lastReview: vocabCards.lastReview,
+        cefrLevel: vocabCards.cefrLevel,
+        cefrConfidence: vocabCards.cefrConfidence,
+      })
+      .from(vocabCards)
+      .where(and(eq(vocabCards.userId, userId), isNull(vocabCards.deletedAt))),
     /* SÓ AS COLUNAS QUE ESTA FUNÇÃO LÊ (auditoria de 2026-09-07, seção 5).
        Era `select()`, ou seja, `SELECT *`. Em `utterances` isso traz `source_text` e
        `translated_text` — o transcrito INTEIRO de todas as sessões da pessoa — para contar
        palavras e somar duração de fala. Num acervo de tamanho real são megabytes lidos do disco,
        serializados pelo driver e descartados depois de um `split(/\s+/)`. As cinco colunas abaixo
        são exatamente as que o laço usa. */
-    db.select({
-      cardId: reviewLogs.cardId,
-      createdAt: reviewLogs.createdAt,
-      reviewedAt: reviewLogs.reviewedAt,
-      grade: reviewLogs.grade,
-    }).from(reviewLogs).where(eq(reviewLogs.userId, userId)),
-    db.select({
-      sessionId: utterances.sessionId,
-      source: utterances.source,
-      sourceText: utterances.sourceText,
-      tStartMs: utterances.tStartMs,
-      tEndMs: utterances.tEndMs,
-    }).from(utterances).where(and(eq(utterances.userId, userId), isNull(utterances.deletedAt))),
+    db
+      .select({
+        cardId: reviewLogs.cardId,
+        createdAt: reviewLogs.createdAt,
+        reviewedAt: reviewLogs.reviewedAt,
+        grade: reviewLogs.grade,
+      })
+      .from(reviewLogs)
+      .where(eq(reviewLogs.userId, userId)),
+    db
+      .select({
+        sessionId: utterances.sessionId,
+        source: utterances.source,
+        sourceText: utterances.sourceText,
+        tStartMs: utterances.tStartMs,
+        tEndMs: utterances.tEndMs,
+      })
+      .from(utterances)
+      .where(and(eq(utterances.userId, userId), isNull(utterances.deletedAt))),
     // `exercise_results` existia e NINGUÉM lia — por isso o XP dos exercícios nunca chegava
     // ao perfil. É a tabela que fecha a ponte, sem precisar de nenhuma nova.
-    db.select({
-      createdAt: exerciseResults.createdAt,
-      correct: exerciseResults.correct,
-      kind: exerciseResults.kind,
-      exerciseKind: exerciseResults.exerciseKind,
-      origem: exerciseResults.origem,
-      roundId: exerciseResults.roundId,
-    }).from(exerciseResults).where(and(eq(exerciseResults.userId, userId), isNull(exerciseResults.deletedAt))),
+    db
+      .select({
+        createdAt: exerciseResults.createdAt,
+        correct: exerciseResults.correct,
+        kind: exerciseResults.kind,
+        exerciseKind: exerciseResults.exerciseKind,
+        origem: exerciseResults.origem,
+        roundId: exerciseResults.roundId,
+      })
+      .from(exerciseResults)
+      .where(and(eq(exerciseResults.userId, userId), isNull(exerciseResults.deletedAt))),
   ])
 
   const sess = sessionId ? sessTodas.filter((s) => s.id === sessionId) : sessTodas
@@ -115,9 +130,7 @@ export async function computeProfile(userId: UserId, opts: OpcoesDePerfil = {}):
   /* Ligação por cartão: um log de revisão pertence à sessão de onde o cartão veio. */
   const idsDeCartao = new Set(cards.map((c) => c.id))
   const logsNoEscopo = sessionId ? logs.filter((l) => idsDeCartao.has(l.cardId)) : logs
-  const drillsNoEscopo = sessionId
-    ? drills.filter((d) => (d.origem ?? '') === `sessao:${sessionId}`)
-    : drills
+  const drillsNoEscopo = sessionId ? drills.filter((d) => (d.origem ?? '') === `sessao:${sessionId}`) : drills
 
   const inDeck = cards.filter((c) => c.inDeck !== 0)
   const wordsCaptured = sess.reduce((n, s) => n + (s.wordCount ?? 0), 0)
@@ -133,7 +146,8 @@ export async function computeProfile(userId: UserId, opts: OpcoesDePerfil = {}):
   let listeningMs = 0
   let timedWords = 0
   for (const u of utts) {
-    const a = u.tStartMs, b = u.tEndMs
+    const a = u.tStartMs,
+      b = u.tEndMs
     if (a == null || b == null || b <= a) continue
     if (u.source === 'mic') {
       speakingMs += b - a
@@ -315,7 +329,11 @@ export async function computeProfile(userId: UserId, opts: OpcoesDePerfil = {}):
   }
   let rodadasPerfeitas = 0
   for (const r of porRodada.values()) {
-    const minimo = (r.kind && (MINIGAMES as Record<string, { minItems?: number } | undefined>)[r.kind]?.minItems) ?? 3
+    /* Com `r.kind === ''` o `&&` devolve a própria string vazia, e o `>=` a coage para 0. O
+       `Number()` reproduz EXATAMENTE essa coerção e tira o `string` do tipo de `minimo`. */
+    const minimo = Number(
+      (r.kind && (MINIGAMES as Record<string, { minItems?: number } | undefined>)[r.kind]?.minItems) ?? 3,
+    )
     if (r.total >= minimo && r.certos === r.total) rodadasPerfeitas += 1
   }
 
@@ -432,21 +450,32 @@ export async function computeXpHistory(
   opts: { balde?: BaldeDeXp; desde?: number } = {},
 ): Promise<HistoricoDeXp> {
   const [sess, logs, drills] = await Promise.all([
-    db.select({ createdAt: sessions.createdAt, wordCount: sessions.wordCount })
-      .from(sessions).where(and(eq(sessions.userId, userId), isNull(sessions.deletedAt))),
-    db.select({ createdAt: reviewLogs.createdAt, reviewedAt: reviewLogs.reviewedAt, grade: reviewLogs.grade })
-      .from(reviewLogs).where(and(eq(reviewLogs.userId, userId), isNull(reviewLogs.deletedAt))),
-    db.select({ createdAt: exerciseResults.createdAt, kind: exerciseResults.kind, correct: exerciseResults.correct })
-      .from(exerciseResults).where(and(eq(exerciseResults.userId, userId), isNull(exerciseResults.deletedAt))),
+    db
+      .select({ createdAt: sessions.createdAt, wordCount: sessions.wordCount })
+      .from(sessions)
+      .where(and(eq(sessions.userId, userId), isNull(sessions.deletedAt))),
+    db
+      .select({ createdAt: reviewLogs.createdAt, reviewedAt: reviewLogs.reviewedAt, grade: reviewLogs.grade })
+      .from(reviewLogs)
+      .where(and(eq(reviewLogs.userId, userId), isNull(reviewLogs.deletedAt))),
+    db
+      .select({ createdAt: exerciseResults.createdAt, kind: exerciseResults.kind, correct: exerciseResults.correct })
+      .from(exerciseResults)
+      .where(and(eq(exerciseResults.userId, userId), isNull(exerciseResults.deletedAt))),
   ])
 
-  return historicoDeXp({
-    sessoes: sess.map((s) => ({ em: s.createdAt, palavras: s.wordCount ?? 0 })),
-    revisoes: logs.map((l) => ({ em: l.reviewedAt ?? l.createdAt, certa: (l.grade ?? 0) >= 3 })),
-    /* `kind === 'drill'` é o mesmo discriminador de `computeProfile`, e pelo mesmo motivo: um item
+  return historicoDeXp(
+    {
+      sessoes: sess.map((s) => ({ em: s.createdAt, palavras: s.wordCount ?? 0 })),
+      revisoes: logs.map((l) => ({ em: l.reviewedAt ?? l.createdAt, certa: (l.grade ?? 0) >= 3 })),
+      /* `kind === 'drill'` é o mesmo discriminador de `computeProfile`, e pelo mesmo motivo: um item
        que gravou nota no agendador JÁ está em `revisoes`; contá-lo de novo inflaria a curva. */
-    itensDeJogo: drills.filter((d) => d.kind === 'drill').map((d) => ({ em: d.createdAt, certo: (d.correct ?? 0) > 0 })),
-  }, opts)
+      itensDeJogo: drills
+        .filter((d) => d.kind === 'drill')
+        .map((d) => ({ em: d.createdAt, certo: (d.correct ?? 0) > 0 })),
+    },
+    opts,
+  )
 }
 
 /**
@@ -462,7 +491,11 @@ export async function computeXpHistory(
  * passariam a discordar.
  */
 export async function economiaDoUsuario(userId: UserId): Promise<{
-  metricas: AppMetrics; nivel: number; ganhas: number; gastas: number; saldo: number
+  metricas: AppMetrics
+  nivel: number
+  ganhas: number
+  gastas: number
+  saldo: number
 }> {
   const m = await computeProfile(userId)
   /* O mapeamento métrica → evento vive no core (`economiaDeMetricas`). Ele estava escrito aqui e

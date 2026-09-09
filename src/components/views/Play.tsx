@@ -1,40 +1,150 @@
 import React, { useCallback, useEffect, useMemo, useState, useRef, useDeferredValue } from 'react';
 import { createPortal } from 'react-dom';
-import { Mic, ChevronRight, ChevronLeft, Pin, ListChecks, Map as MapIcon, Sprout, Flame, GraduationCap, Lock, HelpCircle, Package, Trophy, SlidersHorizontal as SlidersIcon, Trophy as TrophyIcon, Layers, Globe, BookOpen, CalendarClock, Sparkles, Languages, MessageSquareText, Gamepad2, Dices, Search, X as XIcon, Zap, Play as Headphones, Puzzle, BarChart2 } from 'lucide-react';
+import {
+  Mic,
+  ChevronRight,
+  ChevronLeft,
+  Pin,
+  ListChecks,
+  Map as MapIcon,
+  Sprout,
+  Flame,
+  GraduationCap,
+  Lock,
+  HelpCircle,
+  Package,
+  Trophy,
+  SlidersHorizontal as SlidersIcon,
+  Trophy as TrophyIcon,
+  Layers,
+  Globe,
+  BookOpen,
+  CalendarClock,
+  Sparkles,
+  Languages,
+  MessageSquareText,
+  Gamepad2,
+  Dices,
+  Search,
+  X as XIcon,
+  Zap,
+  Play as Headphones,
+  Puzzle,
+  BarChart2,
+} from 'lucide-react';
 import { playJuicedHit, triggerHaptic } from '../../lib/gameFeel';
-import { apiFetch, creditarSeeds, fetchDeck, reviewCard, salvarRodada, fetchSessions, fetchSessionTranscript, fetchSettings, bulkAddCards, fetchHistoricoDeItens, fetchExerciseResults, fetchRecordes, gastarSeedsEx, type AppMetrics, type HistoricoDeItem } from '../../data/api';
+import {
+  apiFetch,
+  creditarSeeds,
+  fetchDeck,
+  reviewCard,
+  salvarRodada,
+  fetchSessions,
+  fetchSessionTranscript,
+  fetchSettings,
+  bulkAddCards,
+  fetchHistoricoDeItens,
+  fetchExerciseResults,
+  fetchRecordes,
+  gastarSeedsEx,
+  type AppMetrics,
+  type HistoricoDeItem,
+} from '../../data/api';
 import { toSentences, type Sentence, type PracticeSeed } from '../../lib/sentences';
 import type { VocabCard, Recording } from '../../types';
 import { coreOnly, type AgeProfileType } from '../../lib/profile';
 import type { DerivedProgress } from '../../lib/progress';
 import {
-  buildItems, gradeFor, MINIGAMES, rodadasDaEscada, SEEDS_DO_DROP,
-  buildScrambleRounds, cartoesDaFonte, priorizar, cartoesDaTrilha, chaveDaPalavra, rotuloDaFonte,
-  fontesDisponiveis, idiomasDisponiveis, fonteDaEscolha, escolhaDaFonte, mesmaFonte,
+  buildItems,
+  gradeFor,
+  MINIGAMES,
+  rodadasDaEscada,
+  SEEDS_DO_DROP,
+  buildScrambleRounds,
+  cartoesDaFonte,
+  priorizar,
+  cartoesDaTrilha,
+  chaveDaPalavra,
+  rotuloDaFonte,
+  fontesDisponiveis,
+  idiomasDisponiveis,
+  fonteDaEscolha,
+  escolhaDaFonte,
+  mesmaFonte,
   progressoDaTrilha,
-  SESSAO_DA_TRILHA, CONFIANCA_CURADA,
-  buildRodadasEscuta, buildRodadasDitado, buildRodadasConectores, isDueNow,
-  estadoDeCadaJogo, comoDesbloquear, type ContextoDeDesbloqueio, type Desbloqueio,
-  cartoesDoFiltro, frasesDoAcervo,
+  SESSAO_DA_TRILHA,
+  CONFIANCA_CURADA,
+  buildRodadasEscuta,
+  buildRodadasDitado,
+  buildRodadasConectores,
+  isDueNow,
+  estadoDeCadaJogo,
+  comoDesbloquear,
+  type ContextoDeDesbloqueio,
+  type Desbloqueio,
+  cartoesDoFiltro,
+  frasesDoAcervo,
   agruparJogos,
-  estimativaDeMinutos, rotuloDeDuracao, pistasDaTriagem, resumoDosPulados,
-  previaSegura, repetidosDaUltima, MAPA_REVELA_ALVO, origemDoMaterial,
-  pontuarRodada, xpFromRound, acumular, mesmaCorrente, marcarPromovidas, resumir, agruparFases,
-  faixaAuto, diaLocal, estadoDoItem, ordenarPorMemoria, etapasDoNivel, progressoDasEtapas, etapaAtual,
-  frasesDaTrilha, diagnosticoTermo, rngDe, chaveDaPalavra as chaveDaPalavraCore, REGRAS, niveisEmJogo,
+  estimativaDeMinutos,
+  rotuloDeDuracao,
+  pistasDaTriagem,
+  resumoDosPulados,
+  previaSegura,
+  repetidosDaUltima,
+  MAPA_REVELA_ALVO,
+  origemDoMaterial,
+  pontuarRodada,
+  xpFromRound,
+  acumular,
+  mesmaCorrente,
+  marcarPromovidas,
+  resumir,
+  agruparFases,
+  faixaAuto,
+  diaLocal,
+  estadoDoItem,
+  ordenarPorMemoria,
+  etapasDoNivel,
+  progressoDasEtapas,
+  etapaAtual,
+  frasesDaTrilha,
+  diagnosticoTermo,
+  rngDe,
+  chaveDaPalavra as chaveDaPalavraCore,
+  REGRAS,
+  niveisEmJogo,
   type EstadoDoItem,
-  type RodadaEscuta, type RodadaDitado, type RodadaConectores,
-  type MinigameId, type MinigameItem, type RoundReport, type RodadaTermo, type RodadaFrase,
-  type FonteDeItens, type Triagem, type DadoTrilha, type CefrLevel,
-  type ItemCru, type ItemDaAntessala, type EstadoSequencia, type ResumoDaSequencia,
-  type EscolhaDaPratica, type OrigemDaPratica, type FonteId,
+  type RodadaEscuta,
+  type RodadaDitado,
+  type RodadaConectores,
+  type MinigameId,
+  type MinigameItem,
+  type RoundReport,
+  type RodadaTermo,
+  type RodadaFrase,
+  type FonteDeItens,
+  type Triagem,
+  type DadoTrilha,
+  type CefrLevel,
+  type ItemCru,
+  type ItemDaAntessala,
+  type EstadoSequencia,
+  type ResumoDaSequencia,
+  type EscolhaDaPratica,
+  type OrigemDaPratica,
+  type FonteId,
 } from '@core';
 import { baseLang, langLabelNaUI } from '../../lib/languages';
 import { langConfigFrom, saveLangConfig } from '../../lib/langConfig';
 import { temFonteGuardada } from '../../lib/fonteDaPratica';
 import { contarPassada } from '../../lib/passadasDoPipeline';
 import { faixaDe as faixaDaComposicao, type EstrategiaDaUI } from '../../core/minigames/composicao';
-import { lerPrecisoes, registrarPrecisao, registrarVistas, vistasRecentes as vistasGuardadas } from '../../lib/memoriaLocal';
+import {
+  lerPrecisoes,
+  registrarPrecisao,
+  registrarVistas,
+  vistasRecentes as vistasGuardadas,
+} from '../../lib/memoriaLocal';
 import SalaDeEscolha from '../minigames/SalaDeEscolha';
 import SeletorDeConteudo from '../minigames/SeletorDeConteudo';
 import CoberturaDosIdiomas from '../minigames/CoberturaDosIdiomas';
@@ -59,7 +169,15 @@ import AntessalaDaRodada from '../minigames/AntessalaDaRodada';
 import { toast } from '../Toast';
 import TourGuiado from '../minigames/TourGuiado';
 import { PASSOS_DOS_JOGOS, jaFezTour, marcarTourFeito } from '../minigames/passosDosJogos';
-import { aplicarOrdem, mover, alternarFixado, lerOrdem, gravarOrdem, ORDEM_VAZIA, type OrdemDosJogos } from '../../lib/ordemDosJogos';
+import {
+  aplicarOrdem,
+  mover,
+  alternarFixado,
+  lerOrdem,
+  gravarOrdem,
+  ORDEM_VAZIA,
+  type OrdemDosJogos,
+} from '../../lib/ordemDosJogos';
 import TermoGame from '../minigames/TermoGame';
 import ScrambleGame from '../minigames/ScrambleGame';
 import KaraokeGame, { type FalaKaraoke } from '../minigames/KaraokeGame';
@@ -67,10 +185,15 @@ import ScratchReward from '../minigames/ScratchReward';
 import ResumoDaRodada, { type ItemDaRodada } from '../minigames/ResumoDaRodada';
 import { EVENTO_DROP_GANHO, type DetalheDoDrop } from '../RecompensaDesbloqueada';
 import {
-  compor, aceitaFiltroDeDificuldade, faixaDe as faixaDeScore, contagemDaFonte, recortarPelaComposicao,
+  compor,
+  aceitaFiltroDeDificuldade,
+  faixaDe as faixaDeScore,
+  contagemDaFonte,
+  recortarPelaComposicao,
   filtroParaComposicao,
   type FaixaDificuldade,
-  type Composicao, type CartaoParaCompor,
+  type Composicao,
+  type CartaoParaCompor,
 } from '../../core/minigames/composicao';
 import { filtroDaFonte, fonteDominante, passaNoFiltro, type FiltroDaPratica } from '../../core/minigames/filtro';
 import { lerFiltroGuardado, gravarFiltro, filtroDaQuery, queryDoFiltro } from '../../lib/filtroDaPratica';
@@ -244,10 +367,18 @@ const CHAVE_PULAR = 'babel.pular_antessala';
  * ver a prévia, e quem chega hoje entra na partida no primeiro clique.
  */
 const pularAntessala = (): boolean => {
-  try { return localStorage.getItem(CHAVE_PULAR) !== '0'; } catch { return true; }
+  try {
+    return localStorage.getItem(CHAVE_PULAR) !== '0';
+  } catch {
+    return true;
+  }
 };
 const gravarPularAntessala = (v: boolean): void => {
-  try { localStorage.setItem(CHAVE_PULAR, v ? '1' : '0'); } catch { /* storage bloqueado */ }
+  try {
+    localStorage.setItem(CHAVE_PULAR, v ? '1' : '0');
+  } catch {
+    /* storage bloqueado */
+  }
 };
 
 /**
@@ -256,11 +387,21 @@ const gravarPularAntessala = (v: boolean): void => {
  * (os cartões do banco do servidor) ao lado de um baralho vazio (o do navegador). Pelo `apiFetch`,
  * sem conta a rota responde 501 e `compor` cai no fallback local — o mesmo baralho, um número só.
  */
-const buscarComposicaoPeloFunil = async (caminho: string, init?: { method: 'POST'; body: string }): Promise<unknown> => {
+const buscarComposicaoPeloFunil = async (
+  caminho: string,
+  init?: { method: 'POST'; body: string },
+): Promise<unknown> => {
   // `init` só vem quando o filtro facetado não cabe na URL — mesmos campos, no corpo.
-  const res = await apiFetch(caminho, init
-    ? { method: init.method, body: init.body, headers: { accept: 'application/json', 'content-type': 'application/json' } }
-    : { headers: { accept: 'application/json' } });
+  const res = await apiFetch(
+    caminho,
+    init
+      ? {
+          method: init.method,
+          body: init.body,
+          headers: { accept: 'application/json', 'content-type': 'application/json' },
+        }
+      : { headers: { accept: 'application/json' } },
+  );
   if (!res.ok) throw new Error(`http ${res.status}`);
   return res.json();
 };
@@ -283,8 +424,10 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
    * histórico. Entre dias, quem manda é o agendador — e deve mandar mesmo.
    */
   const [vistasRecentes, setVistasRecentes] = useState<ReadonlySet<string>>(new Set());
-  
-  useEffect(() => { setOrdem(lerOrdem()); }, []);
+
+  useEffect(() => {
+    setOrdem(lerOrdem());
+  }, []);
   const [erro, setErro] = useState<string | null>(null);
   /**
    * A FONTE desta rodada: de onde vêm as palavras e em que idioma.
@@ -310,12 +453,9 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
   /* A gaveta do seletor nasce FECHADA: quem chega quer jogar, não configurar. Ela é a resposta
      ao «Trocar», e o resumo acima dela já diz o que está valendo sem precisar abrir nada. */
   const [seletorAberto, setSeletorAberto] = useState(false);
-  const fonte = useMemo<FonteDeItens>(
-    () => ({ ...fonteDominante(filtro), lang: filtro.idiomas[0] ?? '' }),
-    [filtro],
-  );
+  const fonte = useMemo<FonteDeItens>(() => ({ ...fonteDominante(filtro), lang: filtro.idiomas[0] ?? '' }), [filtro]);
   const setFonte = useCallback((upd: FonteDeItens | ((f: FonteDeItens) => FonteDeItens)) => {
-    setFiltro(prev => {
+    setFiltro((prev) => {
       const atual: FonteDeItens = { ...fonteDominante(prev), lang: prev.idiomas[0] ?? '' };
       const nova = typeof upd === 'function' ? upd(atual) : upd;
       if (mesmaFonte(atual, nova)) {
@@ -335,10 +475,7 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
    * estado (ou no localStorage) faria a rodada praticar a foto do dia da escolha, e "difícil"
    * é exatamente o que muda conforme se pratica.
    */
-  const rankingDeDificeis = useMemo(
-    () => (metrics?.palavrasDificeis ?? []).map((p) => p.cardId),
-    [metrics],
-  );
+  const rankingDeDificeis = useMemo(() => (metrics?.palavrasDificeis ?? []).map((p) => p.cardId), [metrics]);
 
   /* O ranking como CONJUNTO — o formato que `passaNoFiltro` consome no complemento do recorte.
      Derivado do mesmo memo acima; nunca persiste (regra de `source.ts`: difícil é o que muda). */
@@ -385,13 +522,29 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
      nunca foi desenhado: o estado era escrito e nunca lido. O custo não era só a memória — o
      efeito ia à rede a cada toque no painel de recordes para jogar a resposta fora. Quem mostra
      recorde hoje é a tela de Recordes, que busca os seus. */
-  const [detalhes, setDetalhes] = useState<boolean>(() => { try { return localStorage.getItem('babel.play.detalhes') === '1'; } catch { return false; } });
-  const alternarDetalhes = () => setDetalhes((v) => { try { localStorage.setItem('babel.play.detalhes', v ? '0' : '1'); } catch { /* sem storage */ } return !v; });
+  const [detalhes, setDetalhes] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem('babel.play.detalhes') === '1';
+    } catch {
+      return false;
+    }
+  });
+  const alternarDetalhes = () =>
+    setDetalhes((v) => {
+      try {
+        localStorage.setItem('babel.play.detalhes', v ? '0' : '1');
+      } catch {
+        /* sem storage */
+      }
+      return !v;
+    });
   const [curando, setCurando] = useState(false);
   const [importando, setImportando] = useState(false);
   const [categoriaAtiva, setCategoriaAtiva] = useState<'todos' | 'classicos' | 'favoritos'>('todos');
   const [buscaJogos, setBuscaJogos] = useState('');
-  const [filtroHabilidade, setFiltroHabilidade] = useState<'todas' | 'vocab' | 'escuta_fala' | 'frase_gramatica'>('todas');
+  const [filtroHabilidade, setFiltroHabilidade] = useState<'todas' | 'vocab' | 'escuta_fala' | 'frase_gramatica'>(
+    'todas',
+  );
   const [vendoBaralhos, setVendoBaralhos] = useState(false);
   /**
    * O BARALHO ESCOLHIDO como recorte da rodada — "hoje só o japonês".
@@ -414,9 +567,15 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
         const vivos = prev.baralhos.filter((id) => lista.some((d) => d.id === id));
         return vivos.length === prev.baralhos.length ? prev : { ...prev, baralhos: vivos };
       });
-    } catch { /* sem baralhos: a porta só não aparece */ } finally { setDecksCarregados(true); }
+    } catch {
+      /* sem baralhos: a porta só não aparece */
+    } finally {
+      setDecksCarregados(true);
+    }
   }, []);
-  useEffect(() => { void recarregarBaralhosAnki(); }, [recarregarBaralhosAnki]);
+  useEffect(() => {
+    void recarregarBaralhosAnki();
+  }, [recarregarBaralhosAnki]);
   /** Derivado do filtro — o "chip" é só a cara do primeiro baralho do recorte. */
   const baralhoAnki = useMemo<{ id: string; nome: string } | null>(() => {
     const id = filtro.baralhos[0];
@@ -424,9 +583,15 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
     return { id, nome: decksAnki.find((d) => d.id === id)?.nome ?? 'Baralho' };
   }, [filtro.baralhos, decksAnki]);
   const setBaralhoAnki = useCallback((v: { id: string; nome: string } | null) => {
-    setFiltro((prev) => v
-      ? { ...prev, fontes: prev.fontes.includes('baralho') ? prev.fontes : [...prev.fontes, 'baralho'], baralhos: [v.id] }
-      : { ...prev, baralhos: [] });
+    setFiltro((prev) =>
+      v
+        ? {
+            ...prev,
+            fontes: prev.fontes.includes('baralho') ? prev.fontes : [...prev.fontes, 'baralho'],
+            baralhos: [v.id],
+          }
+        : { ...prev, baralhos: [] },
+    );
   }, []);
   /** Idioma da pessoa — é o destino da tradução das palavras da trilha. */
   const [idiomaNativo, setIdiomaNativo] = useState('pt');
@@ -464,7 +629,7 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
   const [sessaoEmUso, setSessaoEmUso] = useState<{ id: string; title: string } | null>(null);
   /** Título da sessão vinda por prop, lido pelo efeito de busca sem virar dependência dele. */
   const tituloRef = useRef<string | undefined>(recording?.title);
-  
+
   const [vendoMapa, setVendoMapa] = useState(false);
   /** Modo ORGANIZAR: revela as setas e o alfinete de cada carta. Ver o botão que o liga. */
   const [modoOrganizar, setModoOrganizar] = useState(false);
@@ -483,7 +648,9 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
   const [resultado, setResultado] = useState<RoundReport | null>(null);
   /* v3 — RODADA EM CURSO marca o body (`data-jogo-ativo`): o modal de recompensa (App) espera
      `babel:rodada-fechou` em vez de cobrir a partida. Fechar a rodada dispara o evento. */
-  const emRodada = !resultado && !!(rodada || rodadaTermo || rodadaFrase || rodadaKaraoke || rodadaEscuta || rodadaDitado || rodadaConectores);
+  const emRodada =
+    !resultado &&
+    !!(rodada || rodadaTermo || rodadaFrase || rodadaKaraoke || rodadaEscuta || rodadaDitado || rodadaConectores);
   useEffect(() => {
     if (emRodada) document.body.setAttribute('data-jogo-ativo', '1');
     else {
@@ -491,7 +658,9 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
       document.body.removeAttribute('data-jogo-ativo');
       if (estava) window.dispatchEvent(new Event('babel:rodada-fechou'));
     }
-    return () => { document.body.removeAttribute('data-jogo-ativo'); };
+    return () => {
+      document.body.removeAttribute('data-jogo-ativo');
+    };
   }, [emRodada]);
   /* Z1 — FILTRO DE DIFICULDADE. Vale para os 4 jogos de modalidade `palavra`; os 5 de frase
      jogam sobre falas, que não têm dificuldade por palavra (ver `composicao.ts`). */
@@ -527,7 +696,10 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
   const [pularSempre, setPularSempre] = useState(pularAntessala);
 
   /** Um só ponto de escrita: estado e persistência mudam juntos ou não mudam. */
-  const mudarPularSempre = (v: boolean) => { setPularSempre(v); gravarPularAntessala(v); };
+  const mudarPularSempre = (v: boolean) => {
+    setPularSempre(v);
+    gravarPularAntessala(v);
+  };
   /**
    * A CORRENTE DE RODADAS. `null` = ninguém emendou nada ainda.
    *
@@ -666,9 +838,9 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
      */
     const naoRepetir = apenas?.size ? null : evitarTambem;
     const semRepetidas = <T,>(lista: T[], refDe: (x: T) => string) =>
-      naoRepetir?.size ? lista.filter(x => !naoRepetir.has((refDe(x) ?? '').trim())) : lista;
+      naoRepetir?.size ? lista.filter((x) => !naoRepetir.has((refDe(x) ?? '').trim())) : lista;
 
-    const cartas = semRepetidas(apenas?.size ? jogaveis.filter(c => apenas.has(c.word)) : base, c => c.word);
+    const cartas = semRepetidas(apenas?.size ? jogaveis.filter((c) => apenas.has(c.word)) : base, (c) => c.word);
     /* Frases: na trilha vêm das 2.552 frases Tatoeba (`frasesDaTrilha`), que antes eram código
        morto e deixavam a Frase embaralhada bloqueada com "trilha sem frase". */
     /* As frases do acervo só entram quando NÃO há fala gravada: numa rodada de escuta, misturar
@@ -679,7 +851,7 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
     const gravadas = frases.filter(doIdioma);
     const falasGravadas = comTrilha ? [...frasesTrilha, ...gravadas] : gravadas;
     const falasBrutas = falasGravadas.length ? falasGravadas : frasesDoAcervoAtual;
-    const falas = semRepetidas(apenas?.size ? falasBrutas.filter(f => apenas.has(f.id)) : falasBrutas, f => f.id);
+    const falas = semRepetidas(apenas?.size ? falasBrutas.filter((f) => apenas.has(f.id)) : falasBrutas, (f) => f.id);
     /* Repetir NÃO deve evitar o que acabou de cair — é justamente isso que se está pedindo.
        Já o "trocar por outras" precisa evitar TAMBÉM o que está na tela agora: quem clica ali está
        dizendo "essas não". Medido antes deste ajuste: trocar devolvia 4 dos 12 itens de volta. */
@@ -709,12 +881,15 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
        `origemDoMaterial` (revelavel.ts) carrega a regra e o porquê (auditoria S4). */
     const pronta = (crus: ItemCru[], aplicar: () => void): RodadaPronta => ({
       jogo,
-      previa: previaSegura(jogo, crus.map(c => ({
-        ...c,
-        origem: origemDoMaterial(jogo, fonte.id, c.origem),
-        origemRotulo: c.origemRotulo ?? sessaoEmUso?.title,
-        idioma: c.idioma ?? fonte.lang,
-      }))),
+      previa: previaSegura(
+        jogo,
+        crus.map((c) => ({
+          ...c,
+          origem: origemDoMaterial(jogo, fonte.id, c.origem),
+          origemRotulo: c.origemRotulo ?? sessaoEmUso?.title,
+          idioma: c.idioma ?? fonte.lang,
+        })),
+      ),
       aplicar,
     });
     /**
@@ -756,8 +931,12 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
       /* SELEÇÃO v2: os cinco jogos de frase passam pela MESMA régua de memória das palavras
          (errando → novas → aprendendo → firmes; leeches fora; semente própria por jogo). Antes só
          demoviam o que tinha acabado de cair, e isso morria no F5. */
-      const { ordenados } = ordenarPorMemoria(falas, f => f.id, {
-        memoria, semente: `${jogo}:${sementeDoDia}`, agora, diaDe: diaLocal, cotaDeNovas: 0.3,
+      const { ordenados } = ordenarPorMemoria(falas, (f) => f.id, {
+        memoria,
+        semente: `${jogo}:${sementeDoDia}`,
+        agora,
+        diaDe: diaLocal,
+        cotaDeNovas: 0.3,
       });
       if (!evitar?.size) return ordenados;
       const frescas: typeof falas = [];
@@ -783,22 +962,35 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
          rodada que aconteceu, e reaplicar a régua de letras de hoje sobre elas tornava fases
          inteiras impossíveis de refazer — o clique morria em silêncio. Ver `ReguaDeLetras`. */
       const faixaDoTermo = apenas?.size
-        ? 'livre' as const
-        : faixas.length === 1 ? faixas[0] : faixas.length ? undefined : decisaoAuto('termo').faixa;
-      const r = rodadasDaEscada(cartas, { evitar, memoria, semente: sementeDoDia, diaDe: diaLocal, faixa: faixaDoTermo });
+        ? ('livre' as const)
+        : faixas.length === 1
+          ? faixas[0]
+          : faixas.length
+            ? undefined
+            : decisaoAuto('termo').faixa;
+      const r = rodadasDaEscada(cartas, {
+        evitar,
+        memoria,
+        semente: sementeDoDia,
+        diaDe: diaLocal,
+        faixa: faixaDoTermo,
+      });
       if (!r.length) return null;
       return pronta(
-        r.map(x => ({ ref: x.palavra, alvo: x.palavra, pista: x.pista, ...nivelDe(x.palavra) })),
+        r.map((x) => ({ ref: x.palavra, alvo: x.palavra, pista: x.pista, ...nivelDe(x.palavra) })),
         () => setRodadaTermo(r),
       );
     }
     if (jogo === 'scramble') {
       // `rand` com semente: a Frase embaralhada não embaralhava a ORDEM das falas (mesma rodada
       // para sempre); a ordem já vem da memória, e o embaralhar das peças fica determinístico no dia.
-      const r = buildScrambleRounds(falasNaOrdem, { quantidade: MINIGAMES.scramble.maxItems, rand: rngDe(`scramble:${sementeDoDia}:${falasNaOrdem.length}`) });
+      const r = buildScrambleRounds(falasNaOrdem, {
+        quantidade: MINIGAMES.scramble.maxItems,
+        rand: rngDe(`scramble:${sementeDoDia}:${falasNaOrdem.length}`),
+      });
       if (r.length < MINIGAMES.scramble.minItems) return null;
       return pronta(
-        r.map(x => ({ ref: x.sentenceId ?? '', alvo: x.correta.join(' '), pista: x.traducao })),
+        r.map((x) => ({ ref: x.sentenceId ?? '', alvo: x.correta.join(' '), pista: x.traducao })),
         () => setRodadaFrase(r),
       );
     }
@@ -814,70 +1006,124 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
      */
     if (fonte.id === 'trilha' && MINIGAMES[jogo].aceitaPalavraFalada) {
       const def = MINIGAMES[jogo];
-      const sorteadas = priorizar<VocabCard>(cartas, trecho, c => c.word).slice(0, def.maxItems);
+      const sorteadas = priorizar<VocabCard>(cartas, trecho, (c) => c.word).slice(0, def.maxItems);
       if (sorteadas.length < def.minItems || !temVoz) return null;
-      const comoFala = sorteadas.map(c => ({ id: c.id || c.word, text: c.word, translation: c.translation, lang: c.srcLang || fonte.lang, startMs: 0, endMs: 0 }));
-      const crus: ItemCru[] = sorteadas.map(c => ({
-        ref: c.word, alvo: c.word, pista: c.translation, ...nivelDe(c.word),
+      const comoFala = sorteadas.map((c) => ({
+        id: c.id || c.word,
+        text: c.word,
+        translation: c.translation,
+        lang: c.srcLang || fonte.lang,
+        startMs: 0,
+        endMs: 0,
+      }));
+      const crus: ItemCru[] = sorteadas.map((c) => ({
+        ref: c.word,
+        alvo: c.word,
+        pista: c.translation,
+        ...nivelDe(c.word),
       }));
 
       if (jogo === 'ditado') {
-        return pronta(crus, () => setRodadaDitado(comoFala.map(f => ({ fala: f, palavras: 1 }))));
+        return pronta(crus, () => setRodadaDitado(comoFala.map((f) => ({ fala: f, palavras: 1 }))));
       }
       if (jogo === 'escuta') {
         /* As alternativas erradas são as OUTRAS palavras da mesma leva — é o que transforma isto
            num exercício de par mínimo em vez de adivinhação. */
-        return pronta(crus, () => setRodadaEscuta(comoFala.map((f, i) => ({
-          correta: f,
-          opcoes: [f, ...comoFala.filter((_, k) => k !== i).slice(0, 3)].sort(() => Math.random() - 0.5),
-        }))));
+        return pronta(crus, () =>
+          setRodadaEscuta(
+            comoFala.map((f, i) => ({
+              correta: f,
+              opcoes: [f, ...comoFala.filter((_, k) => k !== i).slice(0, 3)].sort(() => Math.random() - 0.5),
+            })),
+          ),
+        );
       }
-      return pronta(crus, () => setRodadaKaraoke(
-        comoFala.map(f => ({ id: f.id, texto: f.text, traducao: f.translation, lang: f.lang, startMs: 0, endMs: 0 })),
-      ));
+      return pronta(crus, () =>
+        setRodadaKaraoke(
+          comoFala.map((f) => ({
+            id: f.id,
+            texto: f.text,
+            traducao: f.translation,
+            lang: f.lang,
+            startMs: 0,
+            endMs: 0,
+          })),
+        ),
+      );
     }
 
     if (jogo === 'escuta') {
-      const r = priorizar(buildRodadasEscuta(falasNaOrdem, { quantidade: MINIGAMES.escuta.maxItems }), trecho, x => x.correta.text);
+      const r = priorizar(
+        buildRodadasEscuta(falasNaOrdem, { quantidade: MINIGAMES.escuta.maxItems }),
+        trecho,
+        (x) => x.correta.text,
+      );
       if (r.length < MINIGAMES.escuta.minItems || !audioParaJogos) return null;
       return pronta(
-        r.map(x => ({ ref: x.correta.id ?? '', alvo: x.correta.text, pista: x.correta.translation })),
+        r.map((x) => ({ ref: x.correta.id ?? '', alvo: x.correta.text, pista: x.correta.translation })),
         () => setRodadaEscuta(r),
       );
     }
     if (jogo === 'ditado') {
-      const r = priorizar(buildRodadasDitado(falasNaOrdem, { quantidade: MINIGAMES.ditado.maxItems }), trecho, x => x.fala.text);
+      const r = priorizar(
+        buildRodadasDitado(falasNaOrdem, { quantidade: MINIGAMES.ditado.maxItems }),
+        trecho,
+        (x) => x.fala.text,
+      );
       if (r.length < MINIGAMES.ditado.minItems || !audioParaJogos) return null;
       return pronta(
-        r.map(x => ({ ref: x.fala.id ?? '', alvo: x.fala.text, pista: x.fala.translation })),
+        r.map((x) => ({ ref: x.fala.id ?? '', alvo: x.fala.text, pista: x.fala.translation })),
         () => setRodadaDitado(r),
       );
     }
     if (jogo === 'conectores') {
-      const r = priorizar(buildRodadasConectores(falasNaOrdem, { lang: fonte.lang, quantidade: MINIGAMES.conectores.maxItems }), trecho, x => x.fala.text);
+      const r = priorizar(
+        buildRodadasConectores(falasNaOrdem, { lang: fonte.lang, quantidade: MINIGAMES.conectores.maxItems }),
+        trecho,
+        (x) => x.fala.text,
+      );
       if (r.length < MINIGAMES.conectores.minItems) return null;
       return pronta(
-        r.map(x => ({ ref: x.fala.id ?? '', alvo: x.fala.text, pista: x.fala.translation })),
+        r.map((x) => ({ ref: x.fala.id ?? '', alvo: x.fala.text, pista: x.fala.translation })),
         () => setRodadaConectores(r),
       );
     }
     if (jogo === 'karaoke') {
       const lista: FalaKaraoke[] = priorizar<Sentence>(
-        falasNaOrdem.filter(f => f.endMs > f.startMs && !!f.text.trim()),
-        trecho, f => f.text,
+        falasNaOrdem.filter((f) => f.endMs > f.startMs && !!f.text.trim()),
+        trecho,
+        (f) => f.text,
       )
         .slice(0, MINIGAMES.karaoke.maxItems)
-        .map(f => ({ id: f.id, texto: f.text, traducao: f.translation, lang: f.lang || '', startMs: f.startMs, endMs: f.endMs }));
+        .map((f) => ({
+          id: f.id,
+          texto: f.text,
+          traducao: f.translation,
+          lang: f.lang || '',
+          startMs: f.startMs,
+          endMs: f.endMs,
+        }));
       if (lista.length < MINIGAMES.karaoke.minItems || !audioParaJogos) return null;
       return pronta(
-        lista.map(f => ({ ref: f.id ?? '', alvo: f.texto, pista: f.traducao })),
+        lista.map((f) => ({ ref: f.id ?? '', alvo: f.texto, pista: f.traducao })),
         () => setRodadaKaraoke(lista),
       );
     }
-    const itens = priorizar(buildItems(jogo, cartas, { evitar, memoria, semente: sementeDoDia, diaDe: diaLocal, excluirEvitadas: true, now: agora }), trecho, x => x.answer);
+    const itens = priorizar(
+      buildItems(jogo, cartas, {
+        evitar,
+        memoria,
+        semente: sementeDoDia,
+        diaDe: diaLocal,
+        excluirEvitadas: true,
+        now: agora,
+      }),
+      trecho,
+      (x) => x.answer,
+    );
     if (itens.length < MINIGAMES[jogo].minItems) return null;
     return pronta(
-      itens.map(i => ({ ref: i.answer, alvo: i.answer, pista: i.prompt, ...nivelDe(i.answer) })),
+      itens.map((i) => ({ ref: i.answer, alvo: i.answer, pista: i.prompt, ...nivelDe(i.answer) })),
       () => setRodada({ jogo, itens }),
     );
   };
@@ -913,7 +1159,10 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
        Antes esta linha lia `pularAntessala()` direto do storage enquanto o checkbox espelhava
        `pularSempre`, dois leitores da mesma preferência, que discordavam por um render sempre que
        ela mudava. Agora o storage é só persistência; quem decide é o estado. */
-    if (pularSempre && !forcarAntessala) { comecar(pronta); return; }
+    if (pularSempre && !forcarAntessala) {
+      comecar(pronta);
+      return;
+    }
     setAntessala(pronta);
   };
 
@@ -922,7 +1171,7 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
     setResultado(null);
     setAntessala(null);
     setSemMaterial(false);
-    setUltimaCorrente(null);   // começou outra: a pílula da anterior sai da tela
+    setUltimaCorrente(null); // começou outra: a pílula da anterior sai da tela
     pronta.aplicar();
   };
 
@@ -940,7 +1189,10 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
     if (!resultado) return;
     const evitar = new Set<string>(sequencia?.vistosNaSequencia ?? []);
     const pronta = montarRodada(resultado.gameId, null, undefined, evitar);
-    if (!pronta) { setSemMaterial(true); return; }
+    if (!pronta) {
+      setSemMaterial(true);
+      return;
+    }
     comecar(pronta);
   };
 
@@ -950,9 +1202,7 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
    * atrasada no instante em que a raspadinha aparece. É a mesma correção de corrida que a
    * antessala não tem.
    */
-  const refsDoResultado = resultado
-    ? resultado.items.map(o => o.itemRef).filter((r): r is string => !!r)
-    : [];
+  const refsDoResultado = resultado ? resultado.items.map((o) => o.itemRef).filter((r): r is string => !!r) : [];
   const repetirSequencia = () => {
     if (!resultado || !refsDoResultado.length) return;
     const pronta = montarRodada(resultado.gameId, null, new Set(refsDoResultado));
@@ -983,32 +1233,41 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
     setGastando(true);
     try {
       const spendId = `pular-${resultado.gameId}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-      const { resultado: r, erro } = await gastarSeedsEx({ spendId, amount: CUSTO_PULAR, reason: 'pular-rodada', ref: resultado.gameId });
+      const { resultado: r, erro } = await gastarSeedsEx({
+        spendId,
+        amount: CUSTO_PULAR,
+        reason: 'pular-rodada',
+        ref: resultado.gameId,
+      });
       if (!r) {
         /* O MOTIVO, quando o servidor manda um (achado A30). "Não consegui gastar as seeds agora"
            era a mesma frase para rede fora, saldo insuficiente e preço divergente — e no caso do
            saldo o servidor diz exatamente quantas faltam. */
         const falta = erro?.code === 'saldo_insuficiente' ? Number(erro.detalhes?.falta ?? 0) : 0;
-        toast.error(falta > 0
-          ? t('Faltam {n} seeds para pular esta rodada. Nada foi cobrado.', { n: numero(falta) })
-          : t('Não consegui gastar as seeds agora, nada foi cobrado.'));
+        toast.error(
+          falta > 0
+            ? t('Faltam {n} seeds para pular esta rodada. Nada foi cobrado.', { n: numero(falta) })
+            : t('Não consegui gastar as seeds agora, nada foi cobrado.'),
+        );
         return;
       }
       /* O servidor é a autoridade sobre o saldo, mas `progress` só se atualiza quando as métricas
          forem recarregadas pelo App. Este desconto local existe para o número na tela não mentir
          no instante seguinte ao clique, e para não deixar gastar duas vezes o que já não há. */
-      setGastasLocais(g => g + CUSTO_PULAR);
+      setGastasLocais((g) => g + CUSTO_PULAR);
     } finally {
       setGastando(false);
     }
     const evitar = new Set<string>(sequencia.vistosNaSequencia);
     const pronta = montarRodada(resultado.gameId, null, undefined, evitar);
-    if (!pronta) { setSemMaterial(true); return; }
+    if (!pronta) {
+      setSemMaterial(true);
+      return;
+    }
     /* O COMBO SOBREVIVE: `comecar` não mexe em `sequencia`, e `sequenciaAtual` é o que a próxima
        rodada herda como `sequenciaInicial`. Era exatamente isto que foi comprado. */
     comecar(pronta);
   };
-
 
   /**
    * FIM DA RODADA — onde o jogo vira memória de verdade.
@@ -1035,11 +1294,11 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
        precisão desta rodada alimenta o modo Auto deste jogo. */
     {
       const origemDaRodada = chaveDaMemoriaCurta(fonte, baralhoAnki);
-      const refs = report.items.map(o => o.itemRef).filter((r): r is string => !!r);
+      const refs = report.items.map((o) => o.itemRef).filter((r): r is string => !!r);
       registrarVistas(origemDaRodada, refs);
       setVistasRecentes(vistasGuardadas(origemDaRodada));
       const total = report.items.length;
-      const certos = report.items.filter(o => o.correct && !o.revealed).length;
+      const certos = report.items.filter((o) => o.correct && !o.revealed).length;
       if (total > 0) registrarPrecisao(report.gameId, (certos / total) * 100);
     }
     /**
@@ -1054,10 +1313,14 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
      * `attempts`, `ms` e `hinted` o `ItemOutcome` já media e o POST jogava fora.
      */
     const roundId = `${report.gameId}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-    const origem = fonte.id === 'sessao' ? `sessao:${fonte.sessionId ?? ''}`
-      : fonte.id === 'trilha' ? `trilha:${fonte.nivel ?? ''}`
-      : fonte.id === 'dificeis' ? 'dificeis'
-      : 'baralho';
+    const origem =
+      fonte.id === 'sessao'
+        ? `sessao:${fonte.sessionId ?? ''}`
+        : fonte.id === 'trilha'
+          ? `trilha:${fonte.nivel ?? ''}`
+          : fonte.id === 'dificeis'
+            ? 'dificeis'
+            : 'baralho';
 
     /**
      * A CORRENTE SOMA ESTA RODADA.
@@ -1109,13 +1372,21 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
     const promovidos: VocabCard[] = [];
     for (const o of report.items) {
       if (!o.cardId || !def.writesSrs) continue;
-      try { atualizados.push(await reviewCard(o.cardId, gradeFor(report.gameId, o))); }
-      catch (e) { falhas.push(`srs ${o.itemRef}: ${String((e as Error)?.message ?? e).slice(0, 80)}`); }
+      try {
+        atualizados.push(await reviewCard(o.cardId, gradeFor(report.gameId, o)));
+      } catch (e) {
+        falhas.push(`srs ${o.itemRef}: ${String((e as Error)?.message ?? e).slice(0, 80)}`);
+      }
     }
 
     const gravacao = await salvarRodada({
       melhorSequencia: pontos.melhorSequencia,
-      roundId, exerciseKind: report.gameId, origem, sessionId: daSessao, score: report.score, itens,
+      roundId,
+      exerciseKind: report.gameId,
+      origem,
+      sessionId: daSessao,
+      score: report.score,
+      itens,
     });
     if (!gravacao.ok) falhas.push(`${gravacao.status ?? 'rede'}: ${gravacao.motivo}`);
     /* ECONOMIA v2: a rodada gravada muda Seeds/XP (acertos, rodada perfeita) e pode fechar uma
@@ -1131,9 +1402,11 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
         if (!r || r.jaExistia || !r.item) return;
         /* `seedsCreditadas` e o TOTAL acumulado da conta, nao o que ESTE credito valeu — a tela
            anunciava "+2049 Seeds" pelo bau. Quanto o bau paga e regra, e a regra mora no core. */
-        window.dispatchEvent(new CustomEvent<DetalheDoDrop>(EVENTO_DROP_GANHO, {
-          detail: { roundId, itemId: r.item, seeds: SEEDS_DO_DROP },
-        }));
+        window.dispatchEvent(
+          new CustomEvent<DetalheDoDrop>(EVENTO_DROP_GANHO, {
+            detail: { roundId, itemId: r.item, seeds: SEEDS_DO_DROP },
+          }),
+        );
       });
     }
 
@@ -1168,7 +1441,7 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
          repetida. O servidor deduplica e não criaria linha dupla, mas mandar duas é pedir para
          ele recusar uma e contar como "pulada", um número errado por culpa nossa. */
       const vistas = new Set<string>();
-      const errados = report.items.filter(o => {
+      const errados = report.items.filter((o) => {
         if (o.correct || o.cardId || !o.itemRef) return false;
         const k = o.itemRef.toLowerCase();
         if (vistas.has(k)) return false;
@@ -1185,11 +1458,11 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
          curado com confiança 1 plantaria um dado falso no banco. */
       const curado = escalaDe(fonte.lang) === 'cefr';
       const novos = errados
-        .map(o => porPalavra.get((o.itemRef ?? '').toLowerCase()))
+        .map((o) => porPalavra.get((o.itemRef ?? '').toLowerCase()))
         .filter((c): c is VocabCard => !!c && !c.id)
         // Sem glosa do par não há pista: o cartão jogaria, mas nasceria mudo no baralho.
-        .filter(c => !!c.translation?.trim())
-        .map(c => ({
+        .filter((c) => !!c.translation?.trim())
+        .map((c) => ({
           word: c.word,
           back: c.translation,
           srcLang: c.srcLang,
@@ -1202,8 +1475,17 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
         try {
           const criados = await bulkAddCards(novos);
           promovidos.push(...criados.cards);
-          setSequencia(s => (s ? marcarPromovidas(s, novos.map(n => n.word.toLowerCase())) : s));
-        } catch { /* a promoção é um bônus, não a partida */ }
+          setSequencia((s) =>
+            s
+              ? marcarPromovidas(
+                  s,
+                  novos.map((n) => n.word.toLowerCase()),
+                )
+              : s,
+          );
+        } catch {
+          /* a promoção é um bônus, não a partida */
+        }
       }
     }
 
@@ -1220,10 +1502,13 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
      * costurar: substituir as tocadas, acrescentar as novas.
      */
     if (atualizados.length || promovidos.length) {
-      setDeck(anterior => {
-        const porId = new Map(anterior.map(c => [c.id, c]));
+      setDeck((anterior) => {
+        /* `anterior!`: aqui já houve uma rodada, então o baralho carregou. A afirmação mantém o
+           comportamento de hoje — com `deck` nulo isto estoura, e trocar por `?? []` apagaria o
+           baralho inteiro em vez de estourar. */
+        const porId = new Map(anterior!.map((c) => [c.id, c]));
         for (const c of [...atualizados, ...promovidos]) porId.set(c.id, c);
-        return [...porId.values()].filter(c => c.inDeck);
+        return [...porId.values()].filter((c) => c.inDeck);
       });
     }
   };
@@ -1257,14 +1542,19 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
     let cancelado = false;
     void (async () => {
       const [baralho, ajustes] = await Promise.all([
-        fetchDeck().then(cards => ({ cards, erro: null as string | null }))
+        fetchDeck()
+          .then((cards) => ({ cards, erro: null as string | null }))
           .catch((e: unknown) => ({ cards: null, erro: (e as Error).message })),
         fetchSettings().catch(() => null),
       ]);
       if (cancelado) return;
 
       let ui: Record<string, unknown>;
-      try { ui = ajustes?.ui ? JSON.parse(ajustes.ui) as Record<string, unknown> : {}; } catch { ui = {}; }
+      try {
+        ui = ajustes?.ui ? (JSON.parse(ajustes.ui) as Record<string, unknown>) : {};
+      } catch {
+        ui = {};
+      }
       const cfg = langConfigFrom(ui, ajustes?.targetLanguage);
       /* UMA FONTE PARA O ALVO. Havia `ui.praticaLang` aqui, gravado por esta tela, ao lado de
          `settings.targetLanguage`, gravado por Ajustes — dois campos respondendo "que idioma você
@@ -1275,11 +1565,14 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
 
       /* React 19 agrupa estes `setState` num render só (batching automático também fora de
          eventos), e é disso que depende o ganho: separados, voltariam a ser duas passadas. */
-      if (baralho.cards) setDeck(baralho.cards.filter(c => c.inDeck)); else setErro(baralho.erro);
-      setFonte(f => (f.lang === lang ? f : { ...f, lang }));
+      if (baralho.cards) setDeck(baralho.cards.filter((c) => c.inDeck));
+      else setErro(baralho.erro);
+      setFonte((f) => (f.lang === lang ? f : { ...f, lang }));
       setIdiomaNativo(baseLang(cfg.mine));
     })();
-    return () => { cancelado = true; };
+    return () => {
+      cancelado = true;
+    };
     // setFonte é useCallback estável; entra na lista só para o linter dizer a verdade.
   }, [setFonte]);
 
@@ -1311,19 +1604,23 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
        não. Consumo único: um link vale para ESTA abertura, não para toda troca de aba futura. */
     const daUrl = filtroDaQuery(
       lerUrlAtual().jogarQuery ?? consumirQueryDoBoot(),
-      sessoes.map(s => s.id),
-      decksAnki.map(d => d.id),
+      sessoes.map((s) => s.id),
+      decksAnki.map((d) => d.id),
     );
-    const guardado = daUrl ?? lerFiltroGuardado(sessoes.map(s => s.id), decksAnki.map(d => d.id));
+    const guardado =
+      daUrl ??
+      lerFiltroGuardado(
+        sessoes.map((s) => s.id),
+        decksAnki.map((d) => d.id),
+      );
     /* RESTAURAR O MESMO FILTRO NÃO É MUDAR DE FILTRO: devolver `prev` aborta a atualização e poupa
        uma passada inteira do pipeline (triagem, composição, gate) — a mesma economia que a
        restauração de fonte já tinha, mantida aqui. O idioma NÃO vem do guardado: chega pelo
        carregador de settings (preferência de perfil, atravessa dispositivos) e o merge preserva o
        que já estiver no estado. */
-    setFiltro(prev => {
+    setFiltro((prev) => {
       // Idioma explícito na URL também vence; o guardado local nunca vence o de settings (perfil).
-      const idiomas = daUrl?.idiomas.length ? daUrl.idiomas
-        : prev.idiomas.length ? prev.idiomas : guardado.idiomas;
+      const idiomas = daUrl?.idiomas.length ? daUrl.idiomas : prev.idiomas.length ? prev.idiomas : guardado.idiomas;
       const restaurado = { ...guardado, idiomas };
       return JSON.stringify(restaurado) === JSON.stringify(prev) ? prev : restaurado;
     });
@@ -1334,7 +1631,7 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
      métricas carregadas: antes disso, ranking vazio significa "ainda não sei". */
   useEffect(() => {
     if (!metrics || fonte.id !== 'dificeis' || rankingDeDificeis.length >= 4) return;
-    setFonte(f => ({ id: 'baralho', lang: f.lang }));
+    setFonte((f) => ({ id: 'baralho', lang: f.lang }));
   }, [metrics, fonte.id, rankingDeDificeis.length, setFonte]);
 
   /**
@@ -1347,14 +1644,14 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
       try {
         const lista = await fetchSessions();
         if (cancelado) return;
-        setSessoes(lista.map(x => ({ id: x.id, title: x.title, audioUrl: x.audioUrl ?? undefined })));
+        setSessoes(lista.map((x) => ({ id: x.id, title: x.title, audioUrl: x.audioUrl ?? undefined })));
         setSessoesCarregadas(true);
 
         /* A gravação de onde se veio vence o palpite do código — e o palpite continua sendo dito
            na tela, nunca silencioso. O ramo de "escolha manual" saiu junto com a lista de
            gravações inalcançável: quem escolhe a gravação hoje é a Sala, por `fonte.sessionId`. */
-        const escolhida = recording?.id ? lista.find(x => x.id === recording.id) : undefined;
-        const alvo = escolhida ?? (recording?.id ? undefined : lista.find(x => x.audioUrl) ?? lista[0]);
+        const escolhida = recording?.id ? lista.find((x) => x.id === recording.id) : undefined;
+        const alvo = escolhida ?? (recording?.id ? undefined : (lista.find((x) => x.audioUrl) ?? lista[0]));
         const alvoId = alvo?.id ?? recording?.id ?? '';
         const alvoAudio = alvo?.audioUrl ?? recording?.audioUrl ?? '';
         if (!alvoId) return;
@@ -1371,14 +1668,18 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
         if (!cancelado) setSessoesCarregadas(true);
       }
     })();
-    return () => { cancelado = true; };
+    return () => {
+      cancelado = true;
+    };
     /* `recording?.title` é lido por REF de propósito, e não como dependência: ele só serve de
        fallback para quando a sessão não aparece na lista, e colocá-lo aqui faria uma simples
        RENOMEAÇÃO refazer a busca do transcrito na rede. A atualização do rótulo é o efeito abaixo. */
   }, [recording?.id, recording?.audioUrl]);
 
   /** Espelho do título para o efeito acima poder lê-lo sem depender dele. */
-  useEffect(() => { tituloRef.current = recording?.title; }, [recording?.title]);
+  useEffect(() => {
+    tituloRef.current = recording?.title;
+  }, [recording?.title]);
 
   /**
    * RENOMEAR A SESSÃO ATUALIZA O RÓTULO — sem ir à rede.
@@ -1391,7 +1692,7 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
   useEffect(() => {
     const t = recording?.title;
     if (!recording?.id || !t) return;
-    setSessaoEmUso(s => (s && s.id === recording.id && s.title !== t ? { ...s, title: t } : s));
+    setSessaoEmUso((s) => (s && s.id === recording.id && s.title !== t ? { ...s, title: t } : s));
   }, [recording?.id, recording?.title]);
 
   // Chegar pela Análise já entra no modo sessão — senão o botão "Jogar com esta sessão" mentiria.
@@ -1399,16 +1700,22 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
   // uma passada inteira do pipeline (ver `mesmaFonte`).
   useEffect(() => {
     if (recording?.id) {
-      setFonte(f => (f.id === 'sessao' && f.sessionId === recording.id ? f : { ...f, id: 'sessao', sessionId: recording.id }));
+      setFonte((f) =>
+        f.id === 'sessao' && f.sessionId === recording.id ? f : { ...f, id: 'sessao', sessionId: recording.id },
+      );
     }
   }, [recording?.id, setFonte]);
 
   /** A `origem` como ela é gravada em `exercise_results` — precisa casar com o que o fim de
    *  rodada escreve, senão o histórico da fonte errada apareceria na antessala. */
-  const origemAtual = fonte.id === 'sessao' ? `sessao:${fonte.sessionId ?? ''}`
-    : fonte.id === 'trilha' ? `trilha:${fonte.nivel ?? ''}`
-    : fonte.id === 'dificeis' ? 'dificeis'
-    : 'baralho';
+  const origemAtual =
+    fonte.id === 'sessao'
+      ? `sessao:${fonte.sessionId ?? ''}`
+      : fonte.id === 'trilha'
+        ? `trilha:${fonte.nivel ?? ''}`
+        : fonte.id === 'dificeis'
+          ? 'dificeis'
+          : 'baralho';
 
   /**
    * O PERCURSO desta fonte: como cada item foi, e o que caiu na última rodada de cada jogo.
@@ -1428,20 +1735,22 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
         fetchRecordes({ origem: origemAtual }),
       ]);
       if (cancelado) return;
-      setHistorico(new Map(hist.map(h => [h.itemRef, h])));
-      setRecordes(new Map(recs.map(r => [r.exerciseKind, r.melhorPontos])));
+      setHistorico(new Map(hist.map((h) => [h.itemRef, h])));
+      setRecordes(new Map(recs.map((r) => [r.exerciseKind, r.melhorPontos])));
 
       /* Os tempos MEDIDOS por item, para a antessala poder dizer "leva uns 4 minutos" sem chutar.
          `ms` é gravado desde a migração 0001 e nunca tinha sido lido de volta. Quem decide se há
          amostra suficiente é `@core/minigames/duracao`, aqui só se junta o que existe. */
-      setTemposMedidos(linhas.map(l => l.ms).filter((ms): ms is number => typeof ms === 'number'));
+      setTemposMedidos(linhas.map((l) => l.ms).filter((ms): ms is number => typeof ms === 'number'));
 
       /* A última rodada de CADA jogo nesta fonte. As linhas vêm mais recentes primeiro, então a
          primeira `roundId` que aparece para um jogo é a mais nova, e só ela interessa. */
       const porJogo = new Map<string, string[]>();
       const rodadaEscolhida = new Map<string, string>();
       for (const l of linhas) {
-        const jogo = l.exerciseKind, rid = l.roundId, ref = l.itemRef;
+        const jogo = l.exerciseKind,
+          rid = l.roundId,
+          ref = l.itemRef;
         if (!jogo || !rid || !ref || l.origem !== origemAtual) continue;
         if (!rodadaEscolhida.has(jogo)) rodadaEscolhida.set(jogo, rid);
         if (rodadaEscolhida.get(jogo) !== rid) continue;
@@ -1452,12 +1761,13 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
       setUltimaRodada(porJogo);
       setLinhasDaFonte(linhas);
 
-      const comIdentidade = linhas.filter(l => l.roundId && typeof l.createdAt === 'number');
-      setHistoricoDesde(comIdentidade.length ? Math.min(...comIdentidade.map(l => l.createdAt as number)) : null);
+      const comIdentidade = linhas.filter((l) => l.roundId && typeof l.createdAt === 'number');
+      setHistoricoDesde(comIdentidade.length ? Math.min(...comIdentidade.map((l) => l.createdAt as number)) : null);
     })();
-    return () => { cancelado = true; };
+    return () => {
+      cancelado = true;
+    };
   }, [origemAtual, resultado]);
-
 
   /* Trocar de fonte é começar outro assunto — a memória curta da fonte anterior não se aplica.
      A corrente cai junto, e pela mesma razão: um placar de trilha continuando numa corrente de
@@ -1473,9 +1783,11 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
   }, [fonte, baralhoAnki]);
 
   const trocarIdioma = (lang: string) => {
-    setFonte(f => ({ ...f, lang }));
+    setFonte((f) => ({ ...f, lang }));
     // Trocar o idioma da prática É trocar o idioma que se estuda — mesmo campo, uma escrita só.
-    void saveLangConfig({ studying: lang }).catch(() => { /* preferência é conveniência */ });
+    void saveLangConfig({ studying: lang }).catch(() => {
+      /* preferência é conveniência */
+    });
   };
 
   /**
@@ -1516,19 +1828,16 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
   /* A TRIAGEM DE QUALIDADE continua local (é régua de conteúdo, não seleção), mas QUEM ESCOLHE
      as palavras passou a ser o servidor, ver `composicao.ts`. O filtro de dificuldade em JS
      sobre o deck inteiro deixou de existir. */
-  const triagem: Triagem = useMemo(
-    () => {
-      /* Instrumento, não lógica — ver `lib/passadasDoPipeline`. Desligado, custa uma leitura de
+  const triagem: Triagem = useMemo(() => {
+    /* Instrumento, não lógica — ver `lib/passadasDoPipeline`. Desligado, custa uma leitura de
          propriedade; ligado, é o que prova quantas vezes o baralho inteiro é triado por carga. */
-      contarPassada('triagem', { cartoes: (deck ?? []).length, fonte: fonte.id, lang: fonte.lang });
-      // Fonte única mantém a partição exclusiva de sempre (byte a byte). Com mais de uma, quem
-      // parte o acervo é o predicado, que sabe somar.
-      return filtro.fontes.length > 1
-        ? cartoesDoFiltro(deck ?? [], filtro, { rankingDificeis: conjuntoDeDificeis, agora: Date.now() })
-        : cartoesDaFonte(deck ?? [], fonteComRanking);
-    },
-    [deck, fonteComRanking, fonte.id, fonte.lang, filtro, conjuntoDeDificeis],
-  );
+    contarPassada('triagem', { cartoes: (deck ?? []).length, fonte: fonte.id, lang: fonte.lang });
+    // Fonte única mantém a partição exclusiva de sempre (byte a byte). Com mais de uma, quem
+    // parte o acervo é o predicado, que sabe somar.
+    return filtro.fontes.length > 1
+      ? cartoesDoFiltro(deck ?? [], filtro, { rankingDificeis: conjuntoDeDificeis, agora: Date.now() })
+      : cartoesDaFonte(deck ?? [], fonteComRanking);
+  }, [deck, fonteComRanking, fonte.id, fonte.lang, filtro, conjuntoDeDificeis]);
 
   /* COMPOSIÇÃO SERVIDA. Re-pede quando muda fonte, faixa ou estratégia. Falha de rede cai para
      composição local com a origem marcada, a app é local-first e rodada vazia não é opção. */
@@ -1543,8 +1852,12 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
     let vivo = true;
     contarPassada('composicao', { cartoes: deck.length, fonte: fonte.id, lang: fonte.lang });
     const paraCompor: CartaoParaCompor[] = (deck ?? []).map((c) => ({
-      id: c.id, word: c.word, back: c.translation ?? null, sentence: c.sentence ?? null,
-      srcLang: c.srcLang ?? null, tgtLang: c.tgtLang ?? null,
+      id: c.id,
+      word: c.word,
+      back: c.translation ?? null,
+      sentence: c.sentence ?? null,
+      srcLang: c.srcLang ?? null,
+      tgtLang: c.tgtLang ?? null,
       clozePrompt: (c as { clozePrompt?: string | null }).clozePrompt ?? null,
       clozeAnswer: (c as { clozeAnswer?: string | null }).clozeAnswer ?? null,
       cefrLevel: (c as { cefrLevel?: string | null }).cefrLevel ?? null,
@@ -1555,23 +1868,38 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
       difficultyScore: c.difficultyScore ?? null,
       dueAt: (c as { dueAt?: number | null; due?: number | null }).dueAt ?? (c as { due?: number | null }).due ?? null,
     }));
-    void compor({
-      jogo: 'memory',   // o pool é o mesmo para os jogos de palavra; o jogo só define o recorte final
-      /* A fonte legada CONTINUA no pedido — é a proveniência e o caminho dos servidores antigos —
+    void compor(
+      {
+        jogo: 'memory', // o pool é o mesmo para os jogos de palavra; o jogo só define o recorte final
+        /* A fonte legada CONTINUA no pedido — é a proveniência e o caminho dos servidores antigos —
          mas quem FILTRA agora é o `filtro` facetado abaixo: um objeto só, o mesmo dos dois lados
          (a paridade SQL × predicado é travada por teste de integração). */
-      fonte: { id: fonte.id === 'sessao' ? 'sessao' : fonte.id === 'trilha' ? 'trilha' : 'baralho',
-               ref: fonte.id === 'sessao' ? fonte.sessionId
-                 : fonte.id === 'trilha' ? baseLang(fonte.lang)
-                 : baralhoAnki ? `anki:${baralhoAnki.id}` : null,
-               lang: baseLang(fonte.lang) },
-      filtro: filtroParaComposicao(filtro, filtro.recorte.dificeis ? rankingDeDificeis : undefined),
-      dificuldade: faixas.length ? faixas : undefined,
-      // 'auto' é decisão do cliente (por jogo); ao servidor vai o equilibrado.
-      estrategia: estrategia === 'auto' ? 'equilibrado' : estrategia,
-      limite: LIMITE_DA_COMPOSICAO,
-    }, paraCompor, buscarComposicaoPeloFunil).then((c) => { if (vivo) setComposicao(c); });
-    return () => { vivo = false; };
+        fonte: {
+          id: fonte.id === 'sessao' ? 'sessao' : fonte.id === 'trilha' ? 'trilha' : 'baralho',
+          ref:
+            fonte.id === 'sessao'
+              ? fonte.sessionId
+              : fonte.id === 'trilha'
+                ? baseLang(fonte.lang)
+                : baralhoAnki
+                  ? `anki:${baralhoAnki.id}`
+                  : null,
+          lang: baseLang(fonte.lang),
+        },
+        filtro: filtroParaComposicao(filtro, filtro.recorte.dificeis ? rankingDeDificeis : undefined),
+        dificuldade: faixas.length ? faixas : undefined,
+        // 'auto' é decisão do cliente (por jogo); ao servidor vai o equilibrado.
+        estrategia: estrategia === 'auto' ? 'equilibrado' : estrategia,
+        limite: LIMITE_DA_COMPOSICAO,
+      },
+      paraCompor,
+      buscarComposicaoPeloFunil,
+    ).then((c) => {
+      if (vivo) setComposicao(c);
+    });
+    return () => {
+      vivo = false;
+    };
   }, [deck, fonte, filtro, faixas, estrategia, baralhoAnki, rankingDeDificeis]);
 
   /* A trilha carrega sob demanda, já unida às glosas do par praticado→nativo. O ÍNDICE responde
@@ -1581,16 +1909,28 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
   const [trilha, setTrilha] = useState<DadoTrilha | null>(() => trilhaEmCache(fonte.lang, idiomaNativo));
   const [carregandoTrilha, setCarregandoTrilha] = useState(false);
   useEffect(() => {
-    if (!entradaDaTrilha) { setTrilha(null); return; }
+    if (!entradaDaTrilha) {
+      setTrilha(null);
+      return;
+    }
     void precarregarNiveis(fonte.lang);
     const emCache = trilhaEmCache(fonte.lang, idiomaNativo);
-    if (emCache) { setTrilha(emCache); return; }
+    if (emCache) {
+      setTrilha(emCache);
+      return;
+    }
     let vivo = true;
     setCarregandoTrilha(true);
     carregarTrilha(fonte.lang, idiomaNativo)
-      .then(d => { if (vivo) setTrilha(d); })
-      .finally(() => { if (vivo) setCarregandoTrilha(false); });
-    return () => { vivo = false; };
+      .then((d) => {
+        if (vivo) setTrilha(d);
+      })
+      .finally(() => {
+        if (vivo) setCarregandoTrilha(false);
+      });
+    return () => {
+      vivo = false;
+    };
   }, [fonte.lang, idiomaNativo, entradaDaTrilha]);
 
   /* SELEÇÃO v2 — as frases da trilha (Tatoeba) no formato que os jogos de frase consomem. */
@@ -1609,7 +1949,7 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
   );
 
   const frasesTrilha = useMemo<Sentence[]>(
-    () => (trilha ? niveisDaRodada.flatMap(n => frasesDaTrilha(trilha, n) as unknown as Sentence[]) : []),
+    () => (trilha ? niveisDaRodada.flatMap((n) => frasesDaTrilha(trilha, n) as unknown as Sentence[]) : []),
     [niveisDaRodada, trilha],
   );
 
@@ -1618,13 +1958,16 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
   const etapaDaTrilha = useMemo(() => {
     if (fonte.id !== 'trilha' || !trilha || !fonte.nivel) return null;
     const etapas = etapasDoNivel(trilha, fonte.nivel);
-    const jaTem = new Set((deck ?? []).filter(c => c.daTrilha).map(c => chaveDaPalavraCore(c.word)));
-    const acertos = new Set([...historico.values()].filter(h => h.ultimoAcerto).map(h => chaveDaPalavraCore(h.itemRef)));
+    const jaTem = new Set((deck ?? []).filter((c) => c.daTrilha).map((c) => chaveDaPalavraCore(c.word)));
+    const acertos = new Set(
+      [...historico.values()].filter((h) => h.ultimoAcerto).map((h) => chaveDaPalavraCore(h.itemRef)),
+    );
     return etapaAtual(progressoDasEtapas(etapas, jaTem, acertos));
   }, [fonte.id, fonte.nivel, trilha, deck, historico]);
 
   /** Decisão do modo Auto para um jogo: precisões recentes (localStorage) → faixa + motivo. */
-  const decisaoAuto = (jogo: MinigameId) => faixaAuto({ ultimasPrecisoes: lerPrecisoes(jogo), faixaAtual: faixaAutoAtualRef.current[jogo] ?? null });
+  const decisaoAuto = (jogo: MinigameId) =>
+    faixaAuto({ ultimasPrecisoes: lerPrecisoes(jogo), faixaAtual: faixaAutoAtualRef.current[jogo] ?? null });
   const faixaAutoAtualRef = useRef<Partial<Record<MinigameId, FaixaDificuldade>>>({});
 
   /**
@@ -1663,21 +2006,22 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
     if (!base) return sessoes;
     const comMaterial = new Set(
       (deck ?? [])
-        .filter(c => c.sourceSessionId && baseLang(c.srcLang ?? '') === base)
-        .map(c => c.sourceSessionId as string),
+        .filter((c) => c.sourceSessionId && baseLang(c.srcLang ?? '') === base)
+        .map((c) => c.sourceSessionId as string),
     );
-    return sessoes.filter(s => comMaterial.has(s.id));
+    return sessoes.filter((s) => comMaterial.has(s.id));
   }, [sessoes, deck, fonte.lang]);
 
   const fontesOferecidas = useMemo(
-    () => fontesDisponiveis({
-      embutido: !!embutido,
-      temSessao: !!(recording || sessaoEmUso),
-      temTrilha: !!entradaDaTrilha,
-      sessoesDisponiveis: sessoes.length,
-      // 4 é o menor `minItems` dos jogos: com menos que isso a fonte abriria só telas trancadas.
-      temDificeis: rankingDeDificeis.length >= 4,
-    }),
+    () =>
+      fontesDisponiveis({
+        embutido: !!embutido,
+        temSessao: !!(recording || sessaoEmUso),
+        temTrilha: !!entradaDaTrilha,
+        sessoesDisponiveis: sessoes.length,
+        // 4 é o menor `minItems` dos jogos: com menos que isso a fonte abriria só telas trancadas.
+        temDificeis: rankingDeDificeis.length >= 4,
+      }),
     [embutido, recording, sessaoEmUso, entradaDaTrilha, sessoes.length, rankingDeDificeis.length],
   );
 
@@ -1685,14 +2029,11 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
   const escolhaAtual = useMemo(() => escolhaDaFonte(fonte), [fonte]);
 
   /** Quantas palavras a trilha do idioma atual tem, no recorte vigente (nível ou todos). */
-  const totalDaTrilhaAtual = useMemo(
-    () => {
-      if (!entradaDaTrilha) return 0;
-      const niveis = fonte.nivel ? [fonte.nivel] : Object.keys(entradaDaTrilha.porNivel);
-      return niveis.reduce((n, nv) => n + (entradaDaTrilha.porNivel[nv] ?? 0), 0);
-    },
-    [entradaDaTrilha, fonte.nivel],
-  );
+  const totalDaTrilhaAtual = useMemo(() => {
+    if (!entradaDaTrilha) return 0;
+    const niveis = fonte.nivel ? [fonte.nivel] : Object.keys(entradaDaTrilha.porNivel);
+    return niveis.reduce((n, nv) => n + (entradaDaTrilha.porNivel[nv] ?? 0), 0);
+  }, [entradaDaTrilha, fonte.nivel]);
 
   /**
    * O TAMANHO DE CADA ABA É DELA, não da fonte selecionada.
@@ -1726,16 +2067,24 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
    * Hoje só existe `data/trilha/en.json`; o dia em que houver outro, esta é a única função a mudar.
    */
   /* Só contagens — vem do índice, sem baixar o dado. É o que a Sala e o seletor precisam. */
-  const prefetchTrilha = React.useCallback((lang: string) => {
-    void precarregarNiveis(lang);
-    void carregarTrilha(lang, idiomaNativo);
-  }, [idiomaNativo]);
+  const prefetchTrilha = React.useCallback(
+    (lang: string) => {
+      void precarregarNiveis(lang);
+      void carregarTrilha(lang, idiomaNativo);
+    },
+    [idiomaNativo],
+  );
 
   const trilhaDe = React.useCallback((lang: string) => {
     const e = indiceDaTrilha()[baseLang(lang)];
-    const vazia = { niveis: [] as CefrLevel[], total: 0, porNivel: {} as Partial<Record<CefrLevel, number>>, escala: null };
+    const vazia = {
+      niveis: [] as CefrLevel[],
+      total: 0,
+      porNivel: {} as Partial<Record<CefrLevel, number>>,
+      escala: null,
+    };
     if (!e) return vazia;
-    const niveis = (Object.keys(e.porNivel) as CefrLevel[]).filter(n => (e.porNivel[n] ?? 0) > 0);
+    const niveis = (Object.keys(e.porNivel) as CefrLevel[]).filter((n) => (e.porNivel[n] ?? 0) > 0);
     return { niveis, total: e.total, porNivel: e.porNivel as Partial<Record<CefrLevel, number>>, escala: e.escala };
   }, []);
 
@@ -1755,12 +2104,12 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
   const jogaveis = useMemo(() => {
     if (comTrilha) {
       if (!trilha || !niveisDaRodada.length) return triagem.usaveis;
-      const doBanco = new Map(triagem.usaveis.map(c => [chaveDaPalavra(c.word), c]));
+      const doBanco = new Map(triagem.usaveis.map((c) => [chaveDaPalavra(c.word), c]));
       /* `niveisDaRodada` é o nível escolhido, ou TODOS quando não há escolha — ver `niveisEmJogo`.
          O cartão do BANCO vence o embutido: quem já fichou a palavra carrega o histórico dela. */
       const embutidos = niveisDaRodada
-        .flatMap(n => cartoesDaTrilha(trilha, n))
-        .filter(c => !doBanco.has(chaveDaPalavra(c.word))) as unknown as VocabCard[];
+        .flatMap((n) => cartoesDaTrilha(trilha, n))
+        .filter((c) => !doBanco.has(chaveDaPalavra(c.word))) as unknown as VocabCard[];
       return [...triagem.usaveis, ...embutidos];
     }
 
@@ -1786,9 +2135,9 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
     return faixas.length
       ? recortarPelaComposicao(triagem.usaveis, composicao, { completar: false })
       : recortarPelaComposicao(triagem.usaveis, composicao, {
-        filtro,
-        extras: { rankingDificeis: conjuntoDeDificeis, agora: Date.now() },
-      });
+          filtro,
+          extras: { rankingDificeis: conjuntoDeDificeis, agora: Date.now() },
+        });
     /* `niveisDaRodada` no lugar de `fonte.nivel`: é ele que decide quais listas entram, e sem
        nível escolhido ele vale TODAS. Deixá-lo fora daqui congelaria a rodada nos níveis da
        primeira renderização — o mesmo tipo de dependência esquecida que já mordeu este arquivo. */
@@ -1798,7 +2147,7 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
   }, [triagem.usaveis, comTrilha, niveisDaRodada, trilha, composicao, faixas.length, filtro, conjuntoDeDificeis]);
 
   const frasesDoIdioma = useMemo<Sentence[]>(
-    () => frases.filter(f => !fonte.lang || !f.lang || baseLang(f.lang) === baseLang(fonte.lang)),
+    () => frases.filter((f) => !fonte.lang || !f.lang || baseLang(f.lang) === baseLang(fonte.lang)),
     [frases, fonte.lang],
   );
 
@@ -1806,7 +2155,6 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
     () => frasesDoAcervo(jogaveis, fonte.lang) as unknown as Sentence[],
     [jogaveis, fonte.lang],
   );
-
 
   /**
    * O ACERVO DA FONTE — sem teto. É o conjunto inteiro que a fonte atual oferece.
@@ -1825,12 +2173,14 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
          contava o recortado — dois números discordando na mesma tela. A trilha fica fora do
          predicado porque seus itens embutidos são pseudo-cartões sem `daTrilha`/`dueAtMs`, e o
          filtro os comeria por engano. */
-      return triagem.usaveis.filter(c => passaNoFiltro(c, filtro, { rankingDificeis: conjuntoDeDificeis, agora: Date.now() }));
+      return triagem.usaveis.filter((c) =>
+        passaNoFiltro(c, filtro, { rankingDificeis: conjuntoDeDificeis, agora: Date.now() }),
+      );
     }
-    const doBanco = new Map(triagem.usaveis.map(c => [chaveDaPalavra(c.word), c]));
+    const doBanco = new Map(triagem.usaveis.map((c) => [chaveDaPalavra(c.word), c]));
     const embutidos = niveisDaRodada
-      .flatMap(n => cartoesDaTrilha(trilha, n))
-      .filter(c => !doBanco.has(chaveDaPalavra(c.word))) as unknown as VocabCard[];
+      .flatMap((n) => cartoesDaTrilha(trilha, n))
+      .filter((c) => !doBanco.has(chaveDaPalavra(c.word))) as unknown as VocabCard[];
     return [...triagem.usaveis, ...embutidos];
   }, [triagem.usaveis, comTrilha, niveisDaRodada, trilha, filtro, conjuntoDeDificeis]);
 
@@ -1845,7 +2195,10 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
     const soTraducao = { ...semMidia, midia: { comTraducao: true } };
     const soFrase = { ...semMidia, midia: { comFrase: true } };
     const extras = { rankingDificeis: conjuntoDeDificeis, agora };
-    let pedindo = 0, nunca = 0, traducao = 0, frase = 0;
+    let pedindo = 0,
+      nunca = 0,
+      traducao = 0,
+      frase = 0;
     for (const c of triagem.usaveis) {
       if (passaNoFiltro(c, semRecorte, extras)) {
         const d = (c as { dueAtMs?: number | null }).dueAtMs ?? null;
@@ -1862,15 +2215,12 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
      duelo. Separar é o que permite a faixa de status dizer a verdade inteira. */
   /* Sobre o ACERVO EXIBIDO (já recortado pelo filtro — S9), não sobre a triagem crua: senão o
      painel diria "599 no idioma · 847 com tradução", dois escopos na mesma linha. */
-  const pistas = useMemo(
-    () => pistasDaTriagem({ ...triagem, usaveis: acervoDaFonte }),
-    [triagem, acervoDaFonte],
-  );
+  const pistas = useMemo(() => pistasDaTriagem({ ...triagem, usaveis: acervoDaFonte }), [triagem, acervoDaFonte]);
 
   /* SELEÇÃO v2: os itens do acervo marcados como difíceis para você (≥ LEECH_APOS erros seguidos).
      Ficam fora da rotação comum e voltam na rodada de resgate da antessala. */
   const leechesDoAcervo = useMemo(
-    () => acervoDaFonte.filter(c => estadoDoItem(historico.get(c.word)).tag === 'leech').map(c => c.word),
+    () => acervoDaFonte.filter((c) => estadoDoItem(historico.get(c.word)).tag === 'leech').map((c) => c.word),
     [acervoDaFonte, historico],
   );
 
@@ -1882,10 +2232,7 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
   );
 
   /** Os números que vão para a tela. `total` responde "quantas eu tenho"; `naRodada`, "quantas agora". */
-  const contagem = useMemo(
-    () => contagemDaFonte(composicao, acervoDaFonte.length),
-    [composicao, acervoDaFonte.length],
-  );
+  const contagem = useMemo(() => contagemDaFonte(composicao, acervoDaFonte.length), [composicao, acervoDaFonte.length]);
 
   /* Quantos itens existem por faixa NO RECORTE ATUAL — é o que permite desabilitar um chip com o
      MOTIVO ("só 2 difíceis; o jogo precisa de 4") em vez de deixar o usuário clicar e falhar. */
@@ -1908,7 +2255,7 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
    * noutra entrega.
    */
   const porPalavra = useMemo(
-    () => new Map<string, VocabCard>(jogaveis.map(c => [c.word.toLowerCase(), c])),
+    () => new Map<string, VocabCard>(jogaveis.map((c) => [c.word.toLowerCase(), c])),
     [jogaveis],
   );
 
@@ -1964,10 +2311,10 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
   const sementeUsadaRef = React.useRef<string | null>(null);
   useEffect(() => {
     const jogo = seed?.exercise;
-    if (!jogo || !(jogo in MINIGAMES)) return;   // 'review'/'active_production' moram no Estudo
+    if (!jogo || !(jogo in MINIGAMES)) return; // 'review'/'active_production' moram no Estudo
     const marca = `${jogo}|${seed?.word ?? ''}|${seed?.text ?? ''}`;
     if (sementeUsadaRef.current === marca) return;
-    if (!deck || (!jogaveis.length && !frases.length)) return;   // ainda carregando
+    if (!deck || (!jogaveis.length && !frases.length)) return; // ainda carregando
     sementeUsadaRef.current = marca;
     /* "Praticar isto" vindo de outra tela é um começo, não a continuação de nada — mesmo que a
        corrente anterior fosse do mesmo jogo. */
@@ -2015,7 +2362,7 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
   /** As palavras vencidas AGORA — a antessala marca essas, e é a informação que faz a pessoa
    *  entender por que aquela palavra voltou. */
   const vencidosAgora = useMemo(
-    () => new Set(jogaveis.filter(c => isDueNow(c, 'fsrs')).map(c => c.word)),
+    () => new Set(jogaveis.filter((c) => isDueNow(c, 'fsrs')).map((c) => c.word)),
     [jogaveis],
   );
 
@@ -2041,8 +2388,19 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
       fonteId: fonte.id,
       lang: fonte.lang,
     });
-    return JOGOS.map(j => ({ ...j, estado: porId[j.id] }));
-  }, [jogaveis, frasesDoIdioma, frasesDoAcervoAtual, frasesTrilha, comTrilha, audioSessao, audioParaJogos, fonte.lang, fonte.id, temVoz]);
+    return JOGOS.map((j) => ({ ...j, estado: porId[j.id] }));
+  }, [
+    jogaveis,
+    frasesDoIdioma,
+    frasesDoAcervoAtual,
+    frasesTrilha,
+    comTrilha,
+    audioSessao,
+    audioParaJogos,
+    fonte.lang,
+    fonte.id,
+    temVoz,
+  ]);
 
   /**
    * O QUE A CARTA BLOQUEADA PRECISA SABER PARA OFERECER UMA SAÍDA.
@@ -2058,12 +2416,14 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
    */
   const contextoDoDesbloqueio = useMemo((): ContextoDeDesbloqueio => {
     const atual = baseLang(fonte.lang);
-    const naOutraFonte = embutido ? 0
-      : fonte.id === 'trilha' ? cartoesDaFonte(deck ?? [], { id: 'baralho', lang: fonte.lang }).usaveis.length
+    const naOutraFonte = embutido
+      ? 0
+      : fonte.id === 'trilha'
+        ? cartoesDaFonte(deck ?? [], { id: 'baralho', lang: fonte.lang }).usaveis.length
         : trilhaDe(fonte.lang).total;
     return {
       fonteId: fonte.id,
-      outrosIdiomas: idiomasDoBaralho.filter(i => i.lang !== atual),
+      outrosIdiomas: idiomasDoBaralho.filter((i) => i.lang !== atual),
       naOutraFonte,
       descartados: triagem.fora.length,
       gravacoes: embutido ? 0 : sessoes.length,
@@ -2074,7 +2434,10 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
   /** A porta escolhida vira navegação. Cada ação leva ao lugar que RESOLVE aquela causa. */
   const abrirPorta = (d: Desbloqueio) => {
     const base = escolhaDaFonte(fonte);
-    if (d.acao === 'trocar-idioma' && d.lang) { aplicarEscolha({ ...base, lang: d.lang }); return; }
+    if (d.acao === 'trocar-idioma' && d.lang) {
+      aplicarEscolha({ ...base, lang: d.lang });
+      return;
+    }
     /* Aplica direto, sem reabrir a sala: a queixa era ATRITO, e mandar de volta para o menu quem
        acabou de ler "jogue em inglês" é pedir a mesma decisão duas vezes. A mudança é visível na
        hora, a faixa "Praticando" e a grade inteira se refazem. */
@@ -2082,9 +2445,15 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
       aplicarEscolha({ ...base, origem: d.paraFonte, escopo: 'todas', sessionId: undefined });
       return;
     }
-    if (d.acao === 'revisar-descartes') { setCurando(true); return; }
+    if (d.acao === 'revisar-descartes') {
+      setCurando(true);
+      return;
+    }
     // Escolher gravação é exatamente a linha "QUAIS" da sala — aqui reabrir é o caminho certo.
-    if (d.acao === 'escolher-gravacao') { setSalaAberta(true); return; }
+    if (d.acao === 'escolher-gravacao') {
+      setSalaAberta(true);
+      return;
+    }
     onChangeView('capture');
   };
 
@@ -2097,16 +2466,19 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
   // Genérico anotado: dentro de `.tsx` a inferência do `T` a partir do callback falha e o
   // parâmetro cai para `unknown`.
   const ordenados = useMemo(
-    () => aplicarOrdem<typeof estados[number]>(estados, ordem, j => j.id),
+    () => aplicarOrdem<(typeof estados)[number]>(estados, ordem, (j) => j.id),
     [estados, ordem],
   );
   /* A GRADE MOSTRA TODOS OS JOGOS. A paginação saiu junto com o paginador: `POR_PAGINA` era 9 e
      existem exatamente 9 jogos, então a segunda página nunca chegou a existir — eram 25 linhas de
      JSX inertes mais três derivações para uma navegação que nenhum usuário viu. Quando o décimo
      jogo aparecer, a grade cresce; se um dia precisar paginar de novo, o corte volta aqui. */
-  const idsVisiveis = ordenados.map(j => j.id);
+  const idsVisiveis = ordenados.map((j) => j.id);
 
-  const mexerNaOrdem = (nova: OrdemDosJogos) => { setOrdem(nova); gravarOrdem(nova); };
+  const mexerNaOrdem = (nova: OrdemDosJogos) => {
+    setOrdem(nova);
+    gravarOrdem(nova);
+  };
 
   /* O ESCOPO DO BANNER era o pior contador da tela (auditoria, defeito 2): `metrics.dueToday` é
      GLOBAL da conta — sem idioma, sem aba, sem recorte — e ficava ao lado de números de escopo
@@ -2114,7 +2486,7 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
      existia e é a verdade CERTA: os vencidos DENTRO do que a rodada pode usar — o mesmo conjunto
      de todos os outros números da tela, e o mesmo que o botão do banner de fato joga. */
   const tamanhoDoBaralho = deck?.length ?? 0;
-  const menorMinimo = Math.min(...JOGOS.map(j => MINIGAMES[j.id].minItems));
+  const menorMinimo = Math.min(...JOGOS.map((j) => MINIGAMES[j.id].minItems));
 
   /**
    * O QUE A TELA PROPÕE, e como os nove jogos se dividem (redesenho aprovado em 02/09).
@@ -2129,24 +2501,21 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
    * o Termo no topo fez um trabalho que o redesenho não tem o direito de desfazer. O que muda é
    * a separação — jogável e bloqueado deixam de disputar a mesma grade.
    */
-  const jogosProntos = useMemo(() => ordenados.filter(j => j.estado.ok), [ordenados]);
+  const jogosProntos = useMemo(() => ordenados.filter((j) => j.estado.ok), [ordenados]);
   const jogosPresos = useMemo(() => {
     /* Enquanto a trilha carrega, nenhum jogo é declarado bloqueado: o acervo ainda não chegou, e
        "faltam N palavras" seria mentira, não só feiura. */
     if (carregandoTrilha) return [];
-    const porId = new Map(ordenados.map(j => [j.id, j]));
-    return agruparJogos(estados.map(j => j.estado)).presos
-      .map(p => ({ ...p, ui: porId.get(p.estado.id)! }))
-      .filter(p => p.ui);
+    const porId = new Map(ordenados.map((j) => [j.id, j]));
+    return agruparJogos(estados.map((j) => j.estado))
+      .presos.map((p) => ({ ...p, ui: porId.get(p.estado.id)! }))
+      .filter((p) => p.ui);
   }, [estados, ordenados, carregandoTrilha]);
   /* UMA lista, dois grupos. A grade continua sendo um `<ul>` só — o cabeçalho do segundo grupo
      entra como item na fronteira — porque a carta tem 240 linhas de regras (portas de desbloqueio,
      modo organizar, recordes, tour) e duplicá-la para ter duas grades seria criar dois lugares
      onde a mesma carta pode divergir. */
-  const listaDeJogos = useMemo(
-    () => [...jogosProntos, ...jogosPresos.map(p => p.ui)],
-    [jogosProntos, jogosPresos],
-  );
+  const listaDeJogos = useMemo(() => [...jogosProntos, ...jogosPresos.map((p) => p.ui)], [jogosProntos, jogosPresos]);
 
   const partidaRapida = useCallback(() => {
     triggerHaptic('combo');
@@ -2155,7 +2524,7 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
     /* SORTEIO SO ENTRE JOGOS QUE REGISTRAM. Os nove culturais entravam aqui, entao metade das
        partidas rapidas caia numa rodada que nao gravava nada — e a pessoa que apertou "Partida
        Rapida" duas vezes seguidas podia jogar dez minutos sem um item no historico. */
-    const liberados = listaDeJogos.filter(j => j.estado.ok);
+    const liberados = listaDeJogos.filter((j) => j.estado.ok);
     if (liberados.length === 0) {
       toast.warn(t('Nenhum jogo disponível no momento'));
       return;
@@ -2174,7 +2543,7 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
   const buscaNormalizada = buscaJogos.trim().toLowerCase();
 
   const jogosClassicosFiltrados = useMemo(() => {
-    return listaDeJogos.filter(j => {
+    return listaDeJogos.filter((j) => {
       if (categoriaAtiva === 'favoritos' && !ordem.fixados.includes(j.id)) return false;
       if (filtroHabilidade !== 'todas' && habilidadeDoJogoClassico(j.id) !== filtroHabilidade) return false;
       if (buscaNormalizada) {
@@ -2186,23 +2555,25 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
     });
   }, [listaDeJogos, categoriaAtiva, ordem.fixados, filtroHabilidade, buscaNormalizada, ageProfile, fonte.id]);
 
-
-
   /**
    * O TOUR vive ao lado da tela do jogo, não no lugar dela: ele precisa apontar para os elementos
    * REAIS, com o conteúdo real da pessoa. Por isso cada rodada é envolvida por este ajudante em
    * vez de um `return` direto.
    */
-  const comTour = (tela: React.ReactNode, jogo: MinigameId) => telaCheia(
-    tela,
-    tourDe === jogo ? (
-      <TourGuiado
-        passos={PASSOS_DOS_JOGOS[jogo]}
-        titulo={((j) => (j ? tituloDoJogo(j, ageProfile) : ''))(JOGOS.find(j => j.id === jogo))}
-        onFim={() => { marcarTourFeito(jogo); setTourDe(null); }}
-      />
-    ) : null,
-  );
+  const comTour = (tela: React.ReactNode, jogo: MinigameId) =>
+    telaCheia(
+      tela,
+      tourDe === jogo ? (
+        <TourGuiado
+          passos={PASSOS_DOS_JOGOS[jogo]}
+          titulo={((j) => (j ? tituloDoJogo(j, ageProfile) : ''))(JOGOS.find((j) => j.id === jogo))}
+          onFim={() => {
+            marcarTourFeito(jogo);
+            setTourDe(null);
+          }}
+        />
+      ) : null,
+    );
 
   /**
    * A PARTIDA SAI DA ABA quando esta tela está embutida.
@@ -2232,7 +2603,13 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
    * (`z-[95]`).
    */
   const telaCheia = (n: React.ReactNode, aoLado: React.ReactNode = null) => {
-    if (!embutido) return <>{n}{aoLado}</>;
+    if (!embutido)
+      return (
+        <>
+          {n}
+          {aoLado}
+        </>
+      );
     return createPortal(
       <>
         <div className="fixed inset-0 z-[35] flex flex-col bg-canvas">{n}</div>
@@ -2245,7 +2622,7 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
   /* A ANTESSALA ocupa a tela como uma rodada ocupa: é a mesma decisão de "não dividir atenção", e
      de quebra herda o `telaCheia` que resolve o `transform` do invólucro da aba. */
   if (antessala) {
-    const jogoUI = JOGOS.find(j => j.id === antessala.jogo);
+    const jogoUI = JOGOS.find((j) => j.id === antessala.jogo);
     const refsAnteriores = ultimaRodada.get(antessala.jogo) ?? [];
     return telaCheia(
       <AntessalaDaRodada
@@ -2254,19 +2631,27 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
         nivelGeral={progress.available ? progress.level : undefined}
         /* Z1 — CHIPS DE DIFICULDADE. Só aparecem onde significam algo: os 5 jogos de frase jogam
            sobre falas, que não têm dificuldade por palavra. Chip inerte ensina que a tela mente. */
-        filtroDificuldade={aceitaFiltroDeDificuldade(antessala.jogo) ? {
-          faixas,
-          estrategia,
-          aoTrocarFaixa: (f: FaixaDificuldade) => {
-            setFaixas((atual) => (atual.includes(f) ? atual.filter((x) => x !== f) : [...atual, f]));
-            if (estrategia === 'auto') setEstrategia('equilibrado'); // chip manual assume o controle
-            setAntessala(null);   // o recorte mudou: a prévia atual não vale mais
-          },
-          aoTrocarEstrategia: (e: EstrategiaDaUI) => { setEstrategia(e); if (e === 'auto') setFaixas([]); setAntessala(null); },
-          disponivelPorFaixa: contagemPorFaixa,
-          minimoDoJogo: MINIGAMES[antessala.jogo]?.minItems ?? 3,
-          origemDaComposicao: composicao?.origemDaComposicao ?? 'fallback-local',
-        } : null}
+        filtroDificuldade={
+          aceitaFiltroDeDificuldade(antessala.jogo)
+            ? {
+                faixas,
+                estrategia,
+                aoTrocarFaixa: (f: FaixaDificuldade) => {
+                  setFaixas((atual) => (atual.includes(f) ? atual.filter((x) => x !== f) : [...atual, f]));
+                  if (estrategia === 'auto') setEstrategia('equilibrado'); // chip manual assume o controle
+                  setAntessala(null); // o recorte mudou: a prévia atual não vale mais
+                },
+                aoTrocarEstrategia: (e: EstrategiaDaUI) => {
+                  setEstrategia(e);
+                  if (e === 'auto') setFaixas([]);
+                  setAntessala(null);
+                },
+                disponivelPorFaixa: contagemPorFaixa,
+                minimoDoJogo: MINIGAMES[antessala.jogo]?.minItems ?? 3,
+                origemDaComposicao: composicao?.origemDaComposicao ?? 'fallback-local',
+              }
+            : null
+        }
         itens={antessala.previa}
         historico={historico}
         vencidos={vencidosAgora}
@@ -2313,28 +2698,52 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
         acervoTotal={acervoDaFonte.length}
         itensJogados={historico.size}
         /* SELEÇÃO v2 — o "por que estas?", o Auto com motivo, a etapa, os leeches e o resgate. */
-        estados={new Map<string, EstadoDoItem>(antessala.previa.map(i => [i.ref, estadoDoItem(historico.get(i.ref))]))}
+        estados={
+          new Map<string, EstadoDoItem>(antessala.previa.map((i) => [i.ref, estadoDoItem(historico.get(i.ref))]))
+        }
         leeches={leechesDoAcervo}
-        onResgate={leechesDoAcervo.length
-          ? () => {
-              // Só as difíceis + 2 firmes/aprendendo para dar respiro; sem cronômetro de combo aqui.
-              const firmes = acervoDaFonte.filter(c => { const t = estadoDoItem(historico.get(c.word)).tag; return t === 'firme' || t === 'aprendendo'; }).slice(0, 2).map(c => c.word);
-              const r = montarRodada(antessala.jogo, null, new Set([...leechesDoAcervo, ...firmes]));
-              if (r) setAntessala(r); else toast.warn('Este jogo precisa de mais itens para a rodada de resgate. Tente outro jogo.');
-            }
-          : null}
-        auto={estrategia === 'auto' && aceitaFiltroDeDificuldade(antessala.jogo) ? (() => { const d = decisaoAuto(antessala.jogo); faixaAutoAtualRef.current[antessala.jogo] = d.faixa; return { faixa: d.faixa, motivo: d.motivo }; })() : null}
+        onResgate={
+          leechesDoAcervo.length
+            ? () => {
+                // Só as difíceis + 2 firmes/aprendendo para dar respiro; sem cronômetro de combo aqui.
+                const firmes = acervoDaFonte
+                  .filter((c) => {
+                    const t = estadoDoItem(historico.get(c.word)).tag;
+                    return t === 'firme' || t === 'aprendendo';
+                  })
+                  .slice(0, 2)
+                  .map((c) => c.word);
+                const r = montarRodada(antessala.jogo, null, new Set([...leechesDoAcervo, ...firmes]));
+                if (r) setAntessala(r);
+                else toast.warn('Este jogo precisa de mais itens para a rodada de resgate. Tente outro jogo.');
+              }
+            : null
+        }
+        auto={
+          estrategia === 'auto' && aceitaFiltroDeDificuldade(antessala.jogo)
+            ? (() => {
+                const d = decisaoAuto(antessala.jogo);
+                faixaAutoAtualRef.current[antessala.jogo] = d.faixa;
+                return { faixa: d.faixa, motivo: d.motivo };
+              })()
+            : null
+        }
         diagnosticoTermo={antessala.jogo === 'termo' ? diagnosticoTermo(acervoDaFonte) : null}
         etapa={fonte.id === 'trilha' && etapaDaTrilha ? etapaDaTrilha.nome : null}
         onJogar={() => comecar(antessala)}
         onTrocar={() => {
-          const naTela = new Set<string>(antessala.previa.map(i => i.ref));
+          const naTela = new Set<string>(antessala.previa.map((i) => i.ref));
           const nova = montarRodada(antessala.jogo, null, undefined, naTela);
           if (nova) setAntessala(nova);
         }}
-        onRepetir={refsAnteriores.length
-          ? () => { const r = montarRodada(antessala.jogo, null, new Set(refsAnteriores)); if (r) setAntessala(r); }
-          : null}
+        onRepetir={
+          refsAnteriores.length
+            ? () => {
+                const r = montarRodada(antessala.jogo, null, new Set(refsAnteriores));
+                if (r) setAntessala(r);
+              }
+            : null
+        }
         onSair={() => setAntessala(null)}
         pularSempre={pularSempre}
         onMudarPularSempre={mudarPularSempre}
@@ -2350,29 +2759,88 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
    * parcial, e mudar isso são nove componentes noutra entrega. O que o placar tinha somado até
    * aqui aparece uma última vez na pílula do lobby, para o número não ser apagado em silêncio.
    */
-  const sairDaRodada = (limpar: () => void) => () => { limpar(); encerrarCorrente(); };
+  const sairDaRodada = (limpar: () => void) => () => {
+    limpar();
+    encerrarCorrente();
+  };
 
   // Rodada em curso ou recompensa a revelar ocupam a tela inteira — jogo não divide atenção.
   if (rodadaTermo) {
-    return comTour(<TermoGame rodadas={rodadaTermo} ageProfile={ageProfile} onFinish={aoTerminar} onExit={sairDaRodada(() => setRodadaTermo(null))} />, 'termo');
+    return comTour(
+      <TermoGame
+        rodadas={rodadaTermo}
+        ageProfile={ageProfile}
+        onFinish={aoTerminar}
+        onExit={sairDaRodada(() => setRodadaTermo(null))}
+      />,
+      'termo',
+    );
   }
   if (rodadaFrase) {
-    return comTour(<ScrambleGame rodadas={rodadaFrase} ageProfile={ageProfile} onFinish={aoTerminar} onExit={sairDaRodada(() => setRodadaFrase(null))} />, 'scramble');
+    return comTour(
+      <ScrambleGame
+        rodadas={rodadaFrase}
+        ageProfile={ageProfile}
+        onFinish={aoTerminar}
+        onExit={sairDaRodada(() => setRodadaFrase(null))}
+      />,
+      'scramble',
+    );
   }
   if (rodadaEscuta) {
-    return comTour(<EscutaGame rodadas={rodadaEscuta} audioUrl={audioParaJogos} ageProfile={ageProfile} onFinish={aoTerminar} onExit={sairDaRodada(() => setRodadaEscuta(null))} />, 'escuta');
+    return comTour(
+      <EscutaGame
+        rodadas={rodadaEscuta}
+        audioUrl={audioParaJogos}
+        ageProfile={ageProfile}
+        onFinish={aoTerminar}
+        onExit={sairDaRodada(() => setRodadaEscuta(null))}
+      />,
+      'escuta',
+    );
   }
   if (rodadaDitado) {
-    return comTour(<DitadoGame rodadas={rodadaDitado} audioUrl={audioParaJogos} ageProfile={ageProfile} onFinish={aoTerminar} onExit={sairDaRodada(() => setRodadaDitado(null))} />, 'ditado');
+    return comTour(
+      <DitadoGame
+        rodadas={rodadaDitado}
+        audioUrl={audioParaJogos}
+        ageProfile={ageProfile}
+        onFinish={aoTerminar}
+        onExit={sairDaRodada(() => setRodadaDitado(null))}
+      />,
+      'ditado',
+    );
   }
   if (rodadaConectores) {
-    return comTour(<ConectoresGame rodadas={rodadaConectores} ageProfile={ageProfile} onFinish={aoTerminar} onExit={sairDaRodada(() => setRodadaConectores(null))} />, 'conectores');
+    return comTour(
+      <ConectoresGame
+        rodadas={rodadaConectores}
+        ageProfile={ageProfile}
+        onFinish={aoTerminar}
+        onExit={sairDaRodada(() => setRodadaConectores(null))}
+      />,
+      'conectores',
+    );
   }
   if (rodadaKaraoke) {
-    return comTour(<KaraokeGame falas={rodadaKaraoke} audioUrl={audioParaJogos} ageProfile={ageProfile} onFinish={aoTerminar} onExit={sairDaRodada(() => setRodadaKaraoke(null))} />, 'karaoke');
+    return comTour(
+      <KaraokeGame
+        falas={rodadaKaraoke}
+        audioUrl={audioParaJogos}
+        ageProfile={ageProfile}
+        onFinish={aoTerminar}
+        onExit={sairDaRodada(() => setRodadaKaraoke(null))}
+      />,
+      'karaoke',
+    );
   }
   if (rodada) {
-    const comuns = { items: rodada.itens, ageProfile, onFinish: aoTerminar, onExit: sairDaRodada(() => setRodada(null)) };
+    const comuns = {
+      items: rodada.itens,
+      ageProfile,
+      onFinish: aoTerminar,
+      onExit: sairDaRodada(() => setRodada(null)),
+    };
     const Tela = TELA_DO_JOGO[rodada.jogo];
     if (Tela) return comTour(<Tela {...comuns} />, rodada.jogo);
   }
@@ -2385,8 +2853,12 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
     const itensResumo: ItemDaRodada[] = resultado.items.map((o) => {
       const c = porRef.get(String(o.itemRef).toLowerCase());
       return {
-        itemRef: o.itemRef, cardId: o.cardId ?? null, correct: !!o.correct, attempts: o.attempts ?? 1,
-        hinted: !!o.hinted, back: (c as { translation?: string | null } | undefined)?.translation ?? null,
+        itemRef: o.itemRef,
+        cardId: o.cardId ?? null,
+        correct: !!o.correct,
+        attempts: o.attempts ?? 1,
+        hinted: !!o.hinted,
+        back: (c as { translation?: string | null } | undefined)?.translation ?? null,
         cefrLevel: (c as { cefrLevel?: string | null } | undefined)?.cefrLevel ?? null,
         cefrSource: c?.cefrSource ?? null,
         occurrences: (c as { occurrences?: number | null } | undefined)?.occurrences ?? null,
@@ -2395,7 +2867,9 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
     const acertos = itensResumo.filter((i) => i.correct).length;
     return telaCheia(
       <ResumoDaRodada
-        jogo={((j) => (j ? tituloDoJogo(j, ageProfile) : resultado.gameId))(JOGOS.find((j) => j.id === resultado.gameId))}
+        jogo={((j) => (j ? tituloDoJogo(j, ageProfile) : resultado.gameId))(
+          JOGOS.find((j) => j.id === resultado.gameId),
+        )}
         fonte={rotuloDaFonte(fonte, sessaoEmUso?.title)}
         itens={itensResumo}
         tempoMs={resultado.items.reduce((a, o) => a + (o.ms ?? 0), 0)}
@@ -2406,15 +2880,27 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
         podeSubirDificuldade={acertos / Math.max(itensResumo.length, 1) >= 0.8}
         aoRefazerErradas={(erradas) => {
           setVerResumo(false);
-          const refs = new Set(erradas.map((e) => e.itemRef));
+          /* Mesmo recorte de `refsDoResultado` lá em cima: item sem `itemRef` não identifica nada
+             e, dentro de `montarRodada`, só seria comparado com `has(<string>)` — nunca casaria. */
+          const refs = new Set(erradas.map((e) => e.itemRef).filter((r): r is string => !!r));
           /* "Refazer só as erradas" prioriza os refs que falharam; o construtor completa com o
              mesmo recorte quando não houver itens suficientes (o jogo tem mínimo). */
           const nova = montarRodada(resultado.gameId, null, undefined, refs);
-          if (nova) setAntessala(nova); else continuarSequencia();
+          if (nova) setAntessala(nova);
+          else continuarSequencia();
         }}
-        aoSubirDificuldade={() => { setVerResumo(false); continuarSequencia(); }}
-        aoMaisUma={() => { setVerResumo(false); continuarSequencia(); }}
-        aoVoltar={() => { setVerResumo(false); sairDaSequencia(); }}
+        aoSubirDificuldade={() => {
+          setVerResumo(false);
+          continuarSequencia();
+        }}
+        aoMaisUma={() => {
+          setVerResumo(false);
+          continuarSequencia();
+        }}
+        aoVoltar={() => {
+          setVerResumo(false);
+          sairDaSequencia();
+        }}
       />,
       'resumo',
     );
@@ -2434,7 +2920,7 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
         onRepetir={refsDoResultado.length ? repetirSequencia : null}
         /* A porta para o resumo, e só quando ela tem o que mostrar. As palavras erradas eram
            gravadas item a item em `exercise_results` desde sempre e nunca chegavam a ninguém. */
-        onVerErros={resultado.items.some(o => !o.correct) ? () => setVerResumo(true) : null}
+        onVerErros={resultado.items.some((o) => !o.correct) ? () => setVerResumo(true) : null}
         onDone={sairDaSequencia}
         semMaterial={semMaterial}
         onPularVez={saldoSeeds >= CUSTO_PULAR && !gastando ? pularVez : null}
@@ -2449,13 +2935,16 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
      `fixed` sozinho não escapa do `transform` que o invólucro da aba deixa (ver `telaCheia`), e
      sem ele a ficha abriria medida por uma div de altura zero. */
   if (explicando) {
-    const carta = JOGOS.find(j => j.id === explicando)!;
+    const carta = JOGOS.find((j) => j.id === explicando)!;
     const ficha = (
       <ComoSeJoga
         jogo={explicando}
         titulo={tituloDoJogo(carta, ageProfile)}
         ageProfile={ageProfile}
-        onJogar={() => { setExplicando(null); pedirParaJogar({ id: explicando }); }}
+        onJogar={() => {
+          setExplicando(null);
+          pedirParaJogar({ id: explicando });
+        }}
         onFechar={() => setExplicando(null)}
       />
     );
@@ -2469,15 +2958,27 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
         idiomaNativo={idiomaNativo}
         ageProfile={ageProfile}
         onVoltar={() => setImportando(false)}
-        onImportou={async () => { try { setDeck((await fetchDeck()).filter(c => c.inDeck)); } catch { /* mantém */ } }}
-      />
+        onImportou={async () => {
+          try {
+            setDeck((await fetchDeck()).filter((c) => c.inDeck));
+          } catch {
+            /* mantém */
+          }
+        }}
+      />,
     );
   }
   if (vendoBaralhos) {
     return telaCheia(
       <BaralhosAnki
-        onVoltar={() => { setVendoBaralhos(false); void recarregarBaralhosAnki(); }}
-        onImportar={() => { setVendoBaralhos(false); setImportando(true); }}
+        onVoltar={() => {
+          setVendoBaralhos(false);
+          void recarregarBaralhosAnki();
+        }}
+        onImportar={() => {
+          setVendoBaralhos(false);
+          setImportando(true);
+        }}
         /* O IDIOMA VEM JUNTO. Recortar por um baralho de japonês sem sair do inglês deixava a
            gaveta — que lista baralhos do idioma vigente — sem o chip do baralho recortado: o
            recorte ficava ligado e sem o controle que o desliga. */
@@ -2488,8 +2989,14 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
         }}
         /* Ativar projeta cartões novos: o baralho da tela precisa ser relido, senão o lobby
            continuaria mostrando o acervo de antes da ativação. */
-        onAtivou={async () => { try { setDeck((await fetchDeck()).filter(c => c.inDeck)); } catch { /* mantém */ } }}
-      />
+        onAtivou={async () => {
+          try {
+            setDeck((await fetchDeck()).filter((c) => c.inDeck));
+          } catch {
+            /* mantém */
+          }
+        }}
+      />,
     );
   }
   if (vendoMapa) {
@@ -2508,20 +3015,28 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
        cá, fazendo o mapa anunciar "200 itens no conjunto" e "2% deste conjunto já apareceu"
        sobre um baralho de 1.902. Um resumo de cobertura calculado sobre 10% do acervo é pior
        que nenhum: o usuário decide o que estudar com base nele. */
-    const doBaralho = acervoDaFonte.map(c => {
+    const doBaralho = acervoDaFonte.map((c) => {
       const h = historico.get(c.word);
       return {
-        ref: c.word, titulo: c.word, pista: c.translation,
+        ref: c.word,
+        titulo: c.word,
+        pista: c.translation,
         vencido: vencidosAgora.has(c.word),
-        vezes: h?.vezes ?? 0, erros: h?.erros ?? 0, ultimoAcerto: h?.ultimoAcerto ?? true,
+        vezes: h?.vezes ?? 0,
+        erros: h?.erros ?? 0,
+        ultimoAcerto: h?.ultimoAcerto ?? true,
       };
     });
-    const dasFalas = frases.map(f => {
+    const dasFalas = frases.map((f) => {
       const h = historico.get(f.id);
       return {
-        ref: f.id, titulo: f.text, pista: f.translation,
+        ref: f.id,
+        titulo: f.text,
+        pista: f.translation,
         vencido: false,
-        vezes: h?.vezes ?? 0, erros: h?.erros ?? 0, ultimoAcerto: h?.ultimoAcerto ?? true,
+        vezes: h?.vezes ?? 0,
+        erros: h?.erros ?? 0,
+        ultimoAcerto: h?.ultimoAcerto ?? true,
       };
     });
     return telaCheia(
@@ -2532,12 +3047,16 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
         itens={fonte.id === 'sessao' ? dasFalas : doBaralho}
         ageProfile={ageProfile}
         onVoltar={() => setVendoMapa(false)}
-        niveis={fonte.id === 'trilha' && trilha
-          ? progressoDaTrilha(trilha, new Set(doBaralho.filter(i => i.vezes > 0).map(i => chaveDaPalavra(i.ref))))
-              .map(p => ({ nivel: p.nivel, total: p.total, jaCairam: p.jaTem, pct: p.pct }))
-          : undefined}
+        niveis={
+          fonte.id === 'trilha' && trilha
+            ? progressoDaTrilha(
+                trilha,
+                new Set(doBaralho.filter((i) => i.vezes > 0).map((i) => chaveDaPalavra(i.ref))),
+              ).map((p) => ({ nivel: p.nivel, total: p.total, jaCairam: p.jaTem, pct: p.pct }))
+            : undefined
+        }
         nivelAtivo={fonte.nivel}
-        onEscolherNivel={fonte.id === 'trilha' ? (n) => setFonte(f => ({ ...f, nivel: n as CefrLevel })) : undefined}
+        onEscolherNivel={fonte.id === 'trilha' ? (n) => setFonte((f) => ({ ...f, nivel: n as CefrLevel })) : undefined}
         historicoDesde={historicoDesde}
       />,
     );
@@ -2549,8 +3068,14 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
         idioma={fonte.lang}
         ageProfile={ageProfile}
         onVoltar={() => setCurando(false)}
-        onMudou={async () => { try { setDeck((await fetchDeck()).filter(c => c.inDeck)); } catch { /* mantém */ } }}
-      />
+        onMudou={async () => {
+          try {
+            setDeck((await fetchDeck()).filter((c) => c.inDeck));
+          } catch {
+            /* mantém */
+          }
+        }}
+      />,
     );
   }
 
@@ -2566,22 +3091,23 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
    * embutido (dentro de uma sessão, a fonte É aquela sessão). A garantia passa a ser DERIVADA da
    * mesma função que o resto da tela consulta, em vez de repetida num `!embutido` solto.
    */
-  const sala = salaAberta && fontesOferecidas.length > 1 ? (
-    <SalaDeEscolha
-      escolhaAtual={escolhaDaFonte(fonte)}
-      idiomas={idiomasDoBaralho}
-      gravacoes={sessoes}
-      trilhaDe={trilhaDe}
-      prefetchTrilha={prefetchTrilha}
-      dificeis={rankingDeDificeis.length}
-      ageProfile={ageProfile}
-      aoFechar={() => setSalaAberta(false)}
-      aoConfirmar={(escolha) => {
-        setSalaAberta(false);
-        aplicarEscolha(escolha);
-      }}
-    />
-  ) : null;
+  const sala =
+    salaAberta && fontesOferecidas.length > 1 ? (
+      <SalaDeEscolha
+        escolhaAtual={escolhaDaFonte(fonte)}
+        idiomas={idiomasDoBaralho}
+        gravacoes={sessoes}
+        trilhaDe={trilhaDe}
+        prefetchTrilha={prefetchTrilha}
+        dificeis={rankingDeDificeis.length}
+        ageProfile={ageProfile}
+        aoFechar={() => setSalaAberta(false)}
+        aoConfirmar={(escolha) => {
+          setSalaAberta(false);
+          aplicarEscolha(escolha);
+        }}
+      />
+    ) : null;
 
   if (deck === null && !erro) {
     return (
@@ -2589,7 +3115,13 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
         {sala}
         <div className="h-24 rounded-2xl bg-surface border border-border-subtle animate-pulse mb-6" aria-hidden />
         <div className="grid gap-3 sm:grid-cols-3">
-          {[0, 1, 2].map(i => <div key={i} className="h-28 rounded-2xl bg-surface border border-border-subtle animate-pulse" aria-hidden />)}
+          {[0, 1, 2].map((i) => (
+            <div
+              key={i}
+              className="h-28 rounded-2xl bg-surface border border-border-subtle animate-pulse"
+              aria-hidden
+            />
+          ))}
         </div>
       </div>
     );
@@ -2602,140 +3134,186 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
      aqui daria scroller dentro de scroller (duas barras, roda do mouse presa na de dentro) e
      padding somado nas bordas. Sobra só a transição de entrada. */
   return (
-    <div className={embutido ? 'animate-in fade-in duration-200' : 'flex-1 overflow-y-auto custom-scrollbar p-6 lg:p-10 pb-28 animate-in fade-in duration-200'}>
+    <div
+      className={
+        embutido
+          ? 'animate-in fade-in duration-200'
+          : 'flex-1 overflow-y-auto custom-scrollbar p-6 lg:p-10 pb-28 animate-in fade-in duration-200'
+      }
+    >
       {/* LARGURA MÁXIMA. Sem ela, num monitor de 1920 a faixa de revisão esticava por 1.829px e
           a arte de cada carta ia a 263px de altura, grande e grosseira, porque os desenhos são
           feitos de poucas formas. Limitar o conteúdo resolve os dois de uma vez, e de quebra o
           texto para de atravessar a tela inteira, que já é ruim de ler por si só. */}
       {sala}
       <div className="max-w-6xl mx-auto">
-      {/* Embutido não tem cabeçalho próprio: a tela da sessão já traz um `<h1>` logo acima, e um
+        {/* Embutido não tem cabeçalho próprio: a tela da sessão já traz um `<h1>` logo acima, e um
           segundo `<h1>` na mesma página quebra a navegação por cabeçalho do leitor de tela, a
           pessoa passa a ter dois "títulos da página" e nenhum diz onde ela está. */}
-      {!embutido && (
-        <header className="mb-5 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-          <div>
-            <div className="flex items-center gap-2.5 flex-wrap">
-              <span className="w-8 h-8 rounded-xl bg-accent text-white flex items-center justify-center shadow-xs shrink-0" aria-hidden>
-                <Gamepad2 className="w-4 h-4" />
-              </span>
-              <h1 className="font-display font-black text-2xl text-ink tracking-tight">
-                {ageProfile === 'senior' ? t('Praticar jogando') : t('Jogar & Praticar')}
-              </h1>
-              <span className="kpi-pill text-[10.5px] font-extrabold uppercase tracking-wider text-accent border-accent/30 bg-accent-soft/60">
-                {jogosProntos.length} {t('Jogos')}
-              </span>
+        {!embutido && (
+          <header className="mb-5 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div>
+              <div className="flex items-center gap-2.5 flex-wrap">
+                <span
+                  className="w-8 h-8 rounded-xl bg-accent text-white flex items-center justify-center shadow-xs shrink-0"
+                  aria-hidden
+                >
+                  <Gamepad2 className="w-4 h-4" />
+                </span>
+                <h1 className="font-display font-black text-2xl text-ink tracking-tight">
+                  {ageProfile === 'senior' ? t('Praticar jogando') : t('Jogar & Praticar')}
+                </h1>
+                <span className="kpi-pill text-[10.5px] font-extrabold uppercase tracking-wider text-accent border-accent/30 bg-accent-soft/60">
+                  {jogosProntos.length} {t('Jogos')}
+                </span>
+              </div>
+              <p className="text-[13px] text-ink-muted mt-1 max-w-[65ch]">
+                {ageProfile === 'senior'
+                  ? t('Jogos curtos com as palavras que você já salvou. Cada acerto conta para a sua memória.')
+                  : t('Rodadas curtas e dinâmicas com as suas palavras. O que você acerta aqui conta na revisão.')}
+              </p>
             </div>
-            <p className="text-[13px] text-ink-muted mt-1 max-w-[65ch]">
-              {ageProfile === 'senior'
-                ? t('Jogos curtos com as palavras que você já salvou. Cada acerto conta para a sua memória.')
-                : t('Rodadas curtas e dinâmicas com as suas palavras. O que você acerta aqui conta na revisão.')}
-            </p>
-          </div>
 
-          <div className="flex items-center gap-3 shrink-0 self-start md:self-auto flex-wrap sm:flex-nowrap">
-            {/* BOTÃO DE DESTAQUE: PARTIDA RÁPIDA NO TOPO */}
-            <button
-              type="button"
-              onClick={partidaRapida}
-              className="py-2.5 px-4 bg-accent hover:bg-accent-ink text-white rounded-xl font-black text-[13px] shadow-sm hover:shadow-md transition-all flex items-center gap-2 active:scale-95 cursor-pointer shrink-0"
-              title={t('Sorteia um jogo aleatório dentre os disponíveis e inicia imediatamente')}
-            >
-              <Dices className="w-4 h-4" />
-              <span>{t('Partida Rápida')}</span>
-            </button>
-
-            {/* PROGRESSO no cabeçalho */}
-            {progress.available ? (
-              <section
-                aria-label={t('Seu progresso')}
-                className="card-panel bg-surface px-4 py-2.5 flex items-center gap-4 shrink-0 self-start sm:self-auto relative hover:border-accent transition-colors"
+            <div className="flex items-center gap-3 shrink-0 self-start md:self-auto flex-wrap sm:flex-nowrap">
+              {/* BOTÃO DE DESTAQUE: PARTIDA RÁPIDA NO TOPO */}
+              <button
+                type="button"
+                onClick={partidaRapida}
+                className="py-2.5 px-4 bg-accent hover:bg-accent-ink text-white rounded-xl font-black text-[13px] shadow-sm hover:shadow-md transition-all flex items-center gap-2 active:scale-95 cursor-pointer shrink-0"
+                title={t('Sorteia um jogo aleatório dentre os disponíveis e inicia imediatamente')}
               >
-                <div
-                  className="min-w-[8rem]"
-                  title={t('{xp} XP no total, {detalhe}. Faltam {faltam} XP para o próximo.', {
-                    xp: progress.xp,
-                    detalhe: metrics
-                      ? t('{sessoes} {unidade}, {palavras} palavras capturadas, {revisoes} revisões, {itens} itens de jogo', {
-                          sessoes: metrics.sessions,
-                          unidade: tp(metrics.sessions, 'sessão', 'sessões'),
-                          palavras: metrics.wordsCaptured,
-                          revisoes: metrics.reviews,
-                          itens: metrics.drillItems ?? 0,
-                        })
-                      : t('calculado das suas métricas'),
-                    faltam: progress.xpForLevel - progress.xpIntoLevel,
-                  })}
-                >
-                  <div className="flex items-baseline justify-between gap-3">
-                    <span className="label-mono">{ageProfile === 'senior' ? t('Etapa') : t('Nível')} {progress.level}</span>
-                    <span className="text-[11px] text-ink-muted tabular-nums">{progress.xpIntoLevel}/{progress.xpForLevel} XP</span>
-                  </div>
-                  <div className="h-1.5 bg-canvas rounded-full mt-1.5 overflow-hidden" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={progress.levelPct} aria-label={t('Progresso para {escala} {n}', { escala: ageProfile === 'senior' ? t('etapa') : t('nível'), n: progress.level + 1 })}>
-                    <div className="h-full bg-accent rounded-full transition-all duration-500" style={{ width: `${progress.levelPct}%` }} />
-                  </div>
-                </div>
-                <span
-                  className="flex items-center gap-1 text-[13px] font-bold text-ink"
-                  title={progress.practicedToday
-                    ? t('Você já apareceu hoje: {n} {dias}. Abrir o app amanhã mantém a contagem.', {
-                        n: progress.streakDays, dias: tp(progress.streakDays, 'dia seguido', 'dias seguidos'),
-                      })
-                    : t('Dias seguidos em que você abriu o app ou revisou. Não há penalidade por quebrar.')}
-                >
-                  <Flame className={`w-4 h-4 ${progress.practicedToday ? 'text-warn-ink' : 'text-ink-faint'}`} aria-hidden /> {progress.streakDays}
-                  <span className="text-ink-muted font-medium text-[12px]">{tp(progress.streakDays, 'dia', 'dias')}</span>
-                </span>
-                <span
-                  className="flex items-center gap-1 text-[13px] font-bold text-ink"
-                  title={(() => {
-                    const seeds = (id: string) => REGRAS.find(r => r.id === id)?.seeds ?? 0;
-                    return t('Saldo: {ganhas} ganhas − {gastas} gastas. Jogando: {acerto} por acerto e {perfeita} por rodada sem erro.', {
-                      ganhas: progress.seedsGanhas,
-                      gastas: metrics?.seedsGastas ?? 0,
-                      acerto: seeds('jogoCerto'),
-                      perfeita: seeds('rodadaPerfeita'),
-                    });
-                  })()}
-                >
-                  <Sprout className="w-4 h-4 text-good-ink" aria-hidden /> {progress.seeds}
-                  <span className="text-ink-muted font-medium text-[12px]">{t('seeds')}</span>
-                </span>
-                <button
-                  onClick={() => onChangeView('loja')}
-                  className="ms-0.5 shrink-0 min-w-6 min-h-6 inline-flex items-center justify-center rounded-lg text-ink-faint hover:text-accent cursor-pointer after:absolute after:inset-0 after:content-[''] after:rounded-[inherit]"
-                  title={t('Ver o passe, a loja e os desafios')}
-                  aria-label={t('Ver o passe, a loja e os desafios')}
-                >
-                  <ChevronRight className="w-4 h-4" aria-hidden />
-                </button>
-              </section>
-            ) : (
-              <div className="card-panel bg-surface px-4 py-2.5 h-[54px] w-[22rem] max-w-full animate-pulse shrink-0" aria-hidden />
-            )}
-          </div>
-        </header>
-      )}
+                <Dices className="w-4 h-4" />
+                <span>{t('Partida Rápida')}</span>
+              </button>
 
-      {/* A CORRENTE QUE ACABOU DE ENCERRAR.
+              {/* PROGRESSO no cabeçalho */}
+              {progress.available ? (
+                <section
+                  aria-label={t('Seu progresso')}
+                  className="card-panel bg-surface px-4 py-2.5 flex items-center gap-4 shrink-0 self-start sm:self-auto relative hover:border-accent transition-colors"
+                >
+                  <div
+                    className="min-w-[8rem]"
+                    title={t('{xp} XP no total, {detalhe}. Faltam {faltam} XP para o próximo.', {
+                      xp: progress.xp,
+                      detalhe: metrics
+                        ? t(
+                            '{sessoes} {unidade}, {palavras} palavras capturadas, {revisoes} revisões, {itens} itens de jogo',
+                            {
+                              sessoes: metrics.sessions,
+                              unidade: tp(metrics.sessions, 'sessão', 'sessões'),
+                              palavras: metrics.wordsCaptured,
+                              revisoes: metrics.reviews,
+                              itens: metrics.drillItems ?? 0,
+                            },
+                          )
+                        : t('calculado das suas métricas'),
+                      faltam: progress.xpForLevel - progress.xpIntoLevel,
+                    })}
+                  >
+                    <div className="flex items-baseline justify-between gap-3">
+                      <span className="label-mono">
+                        {ageProfile === 'senior' ? t('Etapa') : t('Nível')} {progress.level}
+                      </span>
+                      <span className="text-[11px] text-ink-muted tabular-nums">
+                        {progress.xpIntoLevel}/{progress.xpForLevel} XP
+                      </span>
+                    </div>
+                    <div
+                      className="h-1.5 bg-canvas rounded-full mt-1.5 overflow-hidden"
+                      role="progressbar"
+                      aria-valuemin={0}
+                      aria-valuemax={100}
+                      aria-valuenow={progress.levelPct}
+                      aria-label={t('Progresso para {escala} {n}', {
+                        escala: ageProfile === 'senior' ? t('etapa') : t('nível'),
+                        n: progress.level + 1,
+                      })}
+                    >
+                      <div
+                        className="h-full bg-accent rounded-full transition-all duration-500"
+                        style={{ width: `${progress.levelPct}%` }}
+                      />
+                    </div>
+                  </div>
+                  <span
+                    className="flex items-center gap-1 text-[13px] font-bold text-ink"
+                    title={
+                      progress.practicedToday
+                        ? t('Você já apareceu hoje: {n} {dias}. Abrir o app amanhã mantém a contagem.', {
+                            n: progress.streakDays,
+                            dias: tp(progress.streakDays, 'dia seguido', 'dias seguidos'),
+                          })
+                        : t('Dias seguidos em que você abriu o app ou revisou. Não há penalidade por quebrar.')
+                    }
+                  >
+                    <Flame
+                      className={`w-4 h-4 ${progress.practicedToday ? 'text-warn-ink' : 'text-ink-faint'}`}
+                      aria-hidden
+                    />{' '}
+                    {progress.streakDays}
+                    <span className="text-ink-muted font-medium text-[12px]">
+                      {tp(progress.streakDays, 'dia', 'dias')}
+                    </span>
+                  </span>
+                  <span
+                    className="flex items-center gap-1 text-[13px] font-bold text-ink"
+                    title={(() => {
+                      const seeds = (id: string) => REGRAS.find((r) => r.id === id)?.seeds ?? 0;
+                      return t(
+                        'Saldo: {ganhas} ganhas − {gastas} gastas. Jogando: {acerto} por acerto e {perfeita} por rodada sem erro.',
+                        {
+                          ganhas: progress.seedsGanhas,
+                          gastas: metrics?.seedsGastas ?? 0,
+                          acerto: seeds('jogoCerto'),
+                          perfeita: seeds('rodadaPerfeita'),
+                        },
+                      );
+                    })()}
+                  >
+                    <Sprout className="w-4 h-4 text-good-ink" aria-hidden /> {progress.seeds}
+                    <span className="text-ink-muted font-medium text-[12px]">{t('seeds')}</span>
+                  </span>
+                  <button
+                    onClick={() => onChangeView('loja')}
+                    className="ms-0.5 shrink-0 min-w-6 min-h-6 inline-flex items-center justify-center rounded-lg text-ink-faint hover:text-accent cursor-pointer after:absolute after:inset-0 after:content-[''] after:rounded-[inherit]"
+                    title={t('Ver o passe, a loja e os desafios')}
+                    aria-label={t('Ver o passe, a loja e os desafios')}
+                  >
+                    <ChevronRight className="w-4 h-4" aria-hidden />
+                  </button>
+                </section>
+              ) : (
+                <div
+                  className="card-panel bg-surface px-4 py-2.5 h-[54px] w-[22rem] max-w-full animate-pulse shrink-0"
+                  aria-hidden
+                />
+              )}
+            </div>
+          </header>
+        )}
+
+        {/* A CORRENTE QUE ACABOU DE ENCERRAR.
           Sair no meio de uma rodada perde a rodada parcial (nenhum dos nove jogos expõe relatório
           parcial). O que já estava somado, porém, foi conquistado, apagá-lo sem dizer nada é o
           tipo de silêncio que faz a pessoa achar que o app perdeu o progresso dela. */}
-      {ultimaCorrente && ultimaCorrente.rodadas > 1 && (
-        <div className="mb-4 flex flex-wrap items-center gap-x-3 gap-y-1 text-[12px] animate-in fade-in">
-          <span className="kpi-pill">
-            <T txt="sequência encerrada · <b>{rodadas}</b> rodadas · <b>{pontos}</b> pontos"
-               val={{ rodadas: ultimaCorrente.rodadas, pontos: ultimaCorrente.pontos }} />
-          </span>
-          <span className="text-ink-faint">{t('{n}% de acerto no conjunto', { n: ultimaCorrente.precisao })}</span>
-        </div>
-      )}
+        {ultimaCorrente && ultimaCorrente.rodadas > 1 && (
+          <div className="mb-4 flex flex-wrap items-center gap-x-3 gap-y-1 text-[12px] animate-in fade-in">
+            <span className="kpi-pill">
+              <T
+                txt="sequência encerrada · <b>{rodadas}</b> rodadas · <b>{pontos}</b> pontos"
+                val={{ rodadas: ultimaCorrente.rodadas, pontos: ultimaCorrente.pontos }}
+              />
+            </span>
+            <span className="text-ink-faint">{t('{n}% de acerto no conjunto', { n: ultimaCorrente.precisao })}</span>
+          </div>
+        )}
 
-      {/* ─── A FONTE DA RODADA ───
+        {/* ─── A FONTE DA RODADA ───
           De onde vêm as palavras e em que idioma. É a peça que faltava: sem ela, uma rodada de
           "inglês" sorteava entre as 1.166 palavras em português e as 337 em inglês do mesmo
           baralho, a queixa de "mistura tudo" era literal. */}
-      {/* ════════════════════════════════════════════════════════════════════════
+        {/* ════════════════════════════════════════════════════════════════════════
           F6, CONFIGURAR e AGIR deixaram de dividir a mesma régua.
 
           Antes, uma única linha horizontal misturava três naturezas sem nada distingui-las:
@@ -2748,17 +3326,17 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
           Agora: configuração RECOLHIDA (o caso comum não mexe nela), status numa faixa própria e
           não-clicável, e as ações como links explícitos, fora da linha de números.
           ════════════════════════════════════════════════════════════════════════ */}
-      {/* A ALTURA DO RECIBO FICA RESERVADA. `fontesOferecidas` depende de `sessoes`, que vem de
+        {/* A ALTURA DO RECIBO FICA RESERVADA. `fontesOferecidas` depende de `sessoes`, que vem de
           `fetchSessions`: o botão nascia DEPOIS da primeira pintura e empurrava a faixa de status
           e a grade de nove cartas para baixo (parte do CLS 0,364 medido no achado F0-02). O valor
           é a altura de repouso do botão: p-3 + uma linha de texto + a borda do `card-panel`. */}
-      {/* A FAIXA DE AÇÕES SAIU DAQUI. Anki, Baralhos e o seletor de idioma flutuavam à direita,
+        {/* A FAIXA DE AÇÕES SAIU DAQUI. Anki, Baralhos e o seletor de idioma flutuavam à direita,
           acima do seletor, como três botões sem rótulo de grupo: pareciam navegação da tela e
           eram, na verdade, parte de UMA decisão — de onde vem o que eu jogo. Foram para o rodapé
           da gaveta, atrás da separação "trazer ou gerenciar", junto das facetas que governam.
           Com isso a tela perde a terceira linha de controle: sobra o resumo e a gaveta. */}
 
-      {/* ── O SELETOR DE CONTEÚDO: três linhas de controle viraram uma (redesenho de 02/09) ───
+        {/* ── O SELETOR DE CONTEÚDO: três linhas de controle viraram uma (redesenho de 02/09) ───
           Abas de fonte, chips de baralho e a faixa de recorte eram três controles que não se
           conheciam — e o inventário do código contou 53 controles e 64 contadores nesta tela.
           Aqui a escolha inteira é UMA linha de resumo com um «Trocar» que abre a gaveta. A linha
@@ -2768,736 +3346,872 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
           A faceta "de onde vêm" segue EXCLUSIVA nesta etapa (ver `exclusiva` em
           `SeletorDeConteudo`): somar fontes é mudança de comportamento da rodada e entra com a
           distribuição por cota, não de carona no redesenho visual. */}
-      {!embutido && fontesOferecidas.length > 1 && (
-        <div className="mb-4">
-          <SeletorDeConteudo
-            total={acervoDaFonte.length}
-            /* O nome curto da ABA, não o título longo do painel de contexto: a linha precisa caber
+        {!embutido && fontesOferecidas.length > 1 && (
+          <div className="mb-4">
+            <SeletorDeConteudo
+              total={acervoDaFonte.length}
+              /* O nome curto da ABA, não o título longo do painel de contexto: a linha precisa caber
                ao lado do total e do idioma, e "Revisão do que você ouviu" empurrava o resto. */
-            nomeDaFonte={filtro.fontes.length > 1
-              ? t('{n} fontes', { n: filtro.fontes.length })
-              : baralhoAnki
-                ? baralhoAnki.nome
-                : (() => {
-                    const r = ABAS_DE_FONTE.find(a => a.origem === escolhaAtual.origem)?.rotulo[ageProfile];
-                    return r ? t(r) : '';
-                  })()}
-            idioma={fonte.lang ? langLabelNaUI(fonte.lang) : undefined}
-            aberta={seletorAberto}
-            aoAlternar={() => setSeletorAberto(v => !v)}
-            aoLimpar={() => {
-              setFiltro(prev => ({ ...prev, baralhos: [], recorte: {}, midia: {} }));
-            }}
-            avisoDeVazio={
-              acervoDaFonte.length === 0 &&
-              (filtro.recorte.pedindoRevisao || filtro.recorte.nuncaVistas || filtro.midia.comTraducao || filtro.midia.comFrase || filtro.baralhos.length > 0)
-                ? t('nenhum item passa; desligue um recorte para voltar a ter material')
-                : undefined
-            }
-            acoesBarra={
-              <>
-                <button
-                  type="button"
-                  onClick={() => setVerRecordes(true)}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-border-subtle bg-surface hover:bg-surface-hover hover:border-warn text-[12px] font-bold text-ink transition-colors cursor-pointer"
-                  title={t('Ver recordes e ranking')}
-                >
-                  <TrophyIcon className="w-3.5 h-3.5 text-warn" />
-                  <span className="hidden sm:inline">{t('Recordes')}</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setVendoMapa(true)}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-border-subtle bg-surface hover:bg-surface-hover hover:border-accent text-[12px] font-bold text-ink transition-colors cursor-pointer"
-                  title={t('Mapa do conteúdo')}
-                >
-                  <MapIcon className="w-3.5 h-3.5 text-accent" />
-                  <span className="hidden sm:inline">{t('Mapa')}</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setCurando(true)}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-border-subtle bg-surface hover:bg-surface-hover hover:border-warn text-[12px] font-bold text-ink transition-colors cursor-pointer"
-                  title={resumoDosPulados(triagem.fora) || t('Ver itens fora do recorte')}
-                >
-                  <SlidersIcon className="w-3.5 h-3.5 text-ink-muted" />
-                  <span className="hidden sm:inline">{t('Curadoria')}</span>
-                  {triagem.fora.length > 0 && (
-                    <span className="px-1.5 py-0.2 rounded-full bg-warn-soft text-warn-ink text-[11px] font-mono font-bold">
-                      {triagem.fora.length}
-                    </span>
-                  )}
-                </button>
-
-                <button
-                  type="button"
-                  onClick={alternarDetalhes}
-                  aria-expanded={detalhes}
-                  className={`flex items-center gap-1 px-2.5 py-1.5 rounded-xl border text-[12px] font-medium transition-colors cursor-pointer ${
-                    detalhes
-                      ? 'bg-canvas border-border-subtle text-ink font-bold'
-                      : 'border-border-subtle bg-surface hover:bg-surface-hover text-ink-muted hover:text-ink'
-                  }`}
-                  title={detalhes ? t('Ocultar estatísticas do baralho') : t('Ver estatísticas do baralho')}
-                >
-                  <BarChart2 className="w-3.5 h-3.5" />
-                  <ChevronRight className={`w-3 h-3 transition-transform ${detalhes ? 'rotate-90' : ''}`} />
-                </button>
-              </>
-            }
-            acoes={
-              <>
-                <button
-                  onClick={() => setImportando(true)}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border-subtle bg-surface text-[12.5px] font-semibold text-ink hover:border-accent transition-colors cursor-pointer"
-                >
-                  <Package className="w-3.5 h-3.5" aria-hidden />
-                  {ageProfile === 'kids' ? t('Palavras de fora') : t('Trazer do Anki')}
-                </button>
-                {temBaralhosAnki && (
+              nomeDaFonte={
+                filtro.fontes.length > 1
+                  ? t('{n} fontes', { n: filtro.fontes.length })
+                  : baralhoAnki
+                    ? baralhoAnki.nome
+                    : (() => {
+                        const r = ABAS_DE_FONTE.find((a) => a.origem === escolhaAtual.origem)?.rotulo[ageProfile];
+                        return r ? t(r) : '';
+                      })()
+              }
+              idioma={fonte.lang ? langLabelNaUI(fonte.lang) : undefined}
+              aberta={seletorAberto}
+              aoAlternar={() => setSeletorAberto((v) => !v)}
+              aoLimpar={() => {
+                setFiltro((prev) => ({ ...prev, baralhos: [], recorte: {}, midia: {} }));
+              }}
+              avisoDeVazio={
+                acervoDaFonte.length === 0 &&
+                (filtro.recorte.pedindoRevisao ||
+                  filtro.recorte.nuncaVistas ||
+                  filtro.midia.comTraducao ||
+                  filtro.midia.comFrase ||
+                  filtro.baralhos.length > 0)
+                  ? t('nenhum item passa; desligue um recorte para voltar a ter material')
+                  : undefined
+              }
+              acoesBarra={
+                <>
                   <button
-                    onClick={() => setVendoBaralhos(true)}
+                    type="button"
+                    onClick={() => setVerRecordes(true)}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-border-subtle bg-surface hover:bg-surface-hover hover:border-warn text-[12px] font-bold text-ink transition-colors cursor-pointer"
+                    title={t('Ver recordes e ranking')}
+                  >
+                    <TrophyIcon className="w-3.5 h-3.5 text-warn" />
+                    <span className="hidden sm:inline">{t('Recordes')}</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setVendoMapa(true)}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-border-subtle bg-surface hover:bg-surface-hover hover:border-accent text-[12px] font-bold text-ink transition-colors cursor-pointer"
+                    title={t('Mapa do conteúdo')}
+                  >
+                    <MapIcon className="w-3.5 h-3.5 text-accent" />
+                    <span className="hidden sm:inline">{t('Mapa')}</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setCurando(true)}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-border-subtle bg-surface hover:bg-surface-hover hover:border-warn text-[12px] font-bold text-ink transition-colors cursor-pointer"
+                    title={resumoDosPulados(triagem.fora) || t('Ver itens fora do recorte')}
+                  >
+                    <SlidersIcon className="w-3.5 h-3.5 text-ink-muted" />
+                    <span className="hidden sm:inline">{t('Curadoria')}</span>
+                    {triagem.fora.length > 0 && (
+                      <span className="px-1.5 py-0.2 rounded-full bg-warn-soft text-warn-ink text-[11px] font-mono font-bold">
+                        {triagem.fora.length}
+                      </span>
+                    )}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={alternarDetalhes}
+                    aria-expanded={detalhes}
+                    className={`flex items-center gap-1 px-2.5 py-1.5 rounded-xl border text-[12px] font-medium transition-colors cursor-pointer ${
+                      detalhes
+                        ? 'bg-canvas border-border-subtle text-ink font-bold'
+                        : 'border-border-subtle bg-surface hover:bg-surface-hover text-ink-muted hover:text-ink'
+                    }`}
+                    title={detalhes ? t('Ocultar estatísticas do baralho') : t('Ver estatísticas do baralho')}
+                  >
+                    <BarChart2 className="w-3.5 h-3.5" />
+                    <ChevronRight className={`w-3 h-3 transition-transform ${detalhes ? 'rotate-90' : ''}`} />
+                  </button>
+                </>
+              }
+              acoes={
+                <>
+                  <button
+                    onClick={() => setImportando(true)}
                     className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border-subtle bg-surface text-[12.5px] font-semibold text-ink hover:border-accent transition-colors cursor-pointer"
                   >
-                    <Layers className="w-3.5 h-3.5" aria-hidden />
-                    {t('Gerenciar baralhos')}
+                    <Package className="w-3.5 h-3.5" aria-hidden />
+                    {ageProfile === 'kids' ? t('Palavras de fora') : t('Trazer do Anki')}
                   </button>
-                )}
-                {/* A Sala só sobra para o que a gaveta não cobre: começar num idioma que ainda
+                  {temBaralhosAnki && (
+                    <button
+                      onClick={() => setVendoBaralhos(true)}
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border-subtle bg-surface text-[12.5px] font-semibold text-ink hover:border-accent transition-colors cursor-pointer"
+                    >
+                      <Layers className="w-3.5 h-3.5" aria-hidden />
+                      {t('Gerenciar baralhos')}
+                    </button>
+                  )}
+                  {/* A Sala só sobra para o que a gaveta não cobre: começar num idioma que ainda
                     não tem palavra nenhuma (a faceta lista só os que têm material). */}
-                <button
-                  onClick={() => setSalaAberta(true)}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border-subtle bg-surface text-[12.5px] font-semibold text-ink hover:border-accent transition-colors cursor-pointer"
-                >
-                  <Globe className="w-3.5 h-3.5" aria-hidden />
-                  {t('Outro idioma')}
-                </button>
-                {/* Ao lado de "outro idioma", que é a pergunta que ela responde: o app oferece 28
+                  <button
+                    onClick={() => setSalaAberta(true)}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border-subtle bg-surface text-[12.5px] font-semibold text-ink hover:border-accent transition-colors cursor-pointer"
+                  >
+                    <Globe className="w-3.5 h-3.5" aria-hidden />
+                    {t('Outro idioma')}
+                  </button>
+                  {/* Ao lado de "outro idioma", que é a pergunta que ela responde: o app oferece 28
                     e não entrega 28 experiências iguais. */}
-                <div className="w-full">
-                  <CoberturaDosIdiomas baralho={idiomasDoBaralho} />
-                </div>
-              </>
-            }
-            facetas={[
-              {
-                /* IDIOMA É A PRIMEIRA FACETA porque manda em todas as outras: trocar de idioma
+                  <div className="w-full">
+                    <CoberturaDosIdiomas baralho={idiomasDoBaralho} />
+                  </div>
+                </>
+              }
+              facetas={[
+                {
+                  /* IDIOMA É A PRIMEIRA FACETA porque manda em todas as outras: trocar de idioma
                    troca o acervo inteiro, e as contagens abaixo passam a falar de outro material.
                    Ele morava atrás de um botão que abria um modal — a decisão mais determinante
                    da tela era a mais escondida. A lista completa continua na Sala, para quem
                    estuda um idioma que ainda não tem palavra nenhuma. */
-                id: 'idioma',
-                rotulo: t('idioma'),
-                exclusiva: true,
-                valor: fonte.lang ? [baseLang(fonte.lang)] : [],
-                aoTrocar: (lang) => {
-                  /* Baralho de OUTRO idioma não sobrevive à troca: ficaria marcado recortando
+                  id: 'idioma',
+                  rotulo: t('idioma'),
+                  exclusiva: true,
+                  valor: fonte.lang ? [baseLang(fonte.lang)] : [],
+                  aoTrocar: (lang) => {
+                    /* Baralho de OUTRO idioma não sobrevive à troca: ficaria marcado recortando
                      para zero, e o motivo não estaria em lugar nenhum da tela. */
-                  setFiltro(prev => ({
-                    ...prev,
-                    baralhos: prev.baralhos.filter(id => {
-                      const d = decksAnki.find(x => x.id === id);
-                      return !d?.lang || baseLang(d.lang) === baseLang(lang);
-                    }),
-                  }));
-                  aplicarEscolha({ ...escolhaAtual, lang });
+                    setFiltro((prev) => ({
+                      ...prev,
+                      baralhos: prev.baralhos.filter((id) => {
+                        const d = decksAnki.find((x) => x.id === id);
+                        return !d?.lang || baseLang(d.lang) === baseLang(lang);
+                      }),
+                    }));
+                    aplicarEscolha({ ...escolhaAtual, lang });
+                  },
+                  opcoes: idiomasDoBaralho.map((i) => ({
+                    id: i.lang,
+                    rotulo: langLabelNaUI(i.lang),
+                    contagem: i.jogaveis,
+                    icone: <Globe className="w-3.5 h-3.5" aria-hidden />,
+                    motivoBloqueio:
+                      i.jogaveis === 0 ? t('nenhuma palavra pronta para jogar neste idioma ainda') : undefined,
+                  })),
                 },
-                opcoes: idiomasDoBaralho.map(i => ({
-                  id: i.lang,
-                  rotulo: langLabelNaUI(i.lang),
-                  contagem: i.jogaveis,
-                  icone: <Globe className="w-3.5 h-3.5" aria-hidden />,
-                  motivoBloqueio: i.jogaveis === 0 ? t('nenhuma palavra pronta para jogar neste idioma ainda') : undefined,
-                })),
-              },
-              {
-                id: 'fonte',
-                rotulo: t('de onde vêm'),
-                ajuda: t('marque quantas quiser — elas se somam na rodada'),
-                valor: filtro.fontes.map(f => (f === 'trilha' ? 'trilha' : 'gravacoes')),
-                aoTrocar: (origem) => {
-                  const alvo = origem === 'trilha' ? 'trilha' as const : 'baralho' as const;
-                  setFiltro(prev => {
-                    const tinha = prev.fontes.includes(alvo);
-                    const fontes = tinha ? prev.fontes.filter(f => f !== alvo) : [...prev.fontes, alvo];
-                    // Nenhuma fonte marcada não é "tudo", é uma rodada que não abre.
-                    return fontes.length ? { ...prev, fontes } : prev;
-                  });
-                },
-                /* A fonte sem material continua VISÍVEL, travada e com o porquê — some da tela
+                {
+                  id: 'fonte',
+                  rotulo: t('de onde vêm'),
+                  ajuda: t('marque quantas quiser — elas se somam na rodada'),
+                  valor: filtro.fontes.map((f) => (f === 'trilha' ? 'trilha' : 'gravacoes')),
+                  aoTrocar: (origem) => {
+                    const alvo = origem === 'trilha' ? ('trilha' as const) : ('baralho' as const);
+                    setFiltro((prev) => {
+                      const tinha = prev.fontes.includes(alvo);
+                      const fontes = tinha ? prev.fontes.filter((f) => f !== alvo) : [...prev.fontes, alvo];
+                      // Nenhuma fonte marcada não é "tudo", é uma rodada que não abre.
+                      return fontes.length ? { ...prev, fontes } : prev;
+                    });
+                  },
+                  /* A fonte sem material continua VISÍVEL, travada e com o porquê — some da tela
                    era pior: "As que mais escapam" desaparecia sem explicação assim que a pessoa
                    revisava bem, que é justamente quando ela merece saber por que sumiu. */
-                opcoes: ABAS_DE_FONTE.filter(aba => aba.origem !== 'dificeis').map(aba => {
-                  const contagem = aba.origem === 'trilha' ? totalDaTrilhaAtual
-                    : aba.origem === 'dificeis' ? rankingDeDificeis.length
-                    : palavrasDasGravacoes;
-                  const oferecida = aba.fontes.some(f => fontesOferecidas.includes(f));
-                  return {
-                    id: aba.origem,
-                    rotulo: t(aba.rotulo[ageProfile]),
-                    contagem,
-                    icone: aba.origem === 'trilha' ? <GraduationCap className="w-3.5 h-3.5" aria-hidden />
-                      : aba.origem === 'dificeis' ? <Flame className="w-3.5 h-3.5" aria-hidden />
-                      : <Mic className="w-3.5 h-3.5" aria-hidden />,
-                    motivoBloqueio: oferecida ? undefined : t(aba.semMaterial),
-                  };
-                }),
-              },
-              {
-                /* A VISÃO DA TRILHA, que não existia. Com o Curso escolhido a gaveta mostrava
+                  opcoes: ABAS_DE_FONTE.filter((aba) => aba.origem !== 'dificeis').map((aba) => {
+                    const contagem =
+                      aba.origem === 'trilha'
+                        ? totalDaTrilhaAtual
+                        : aba.origem === 'dificeis'
+                          ? rankingDeDificeis.length
+                          : palavrasDasGravacoes;
+                    const oferecida = aba.fontes.some((f) => fontesOferecidas.includes(f));
+                    return {
+                      id: aba.origem,
+                      rotulo: t(aba.rotulo[ageProfile]),
+                      contagem,
+                      icone:
+                        aba.origem === 'trilha' ? (
+                          <GraduationCap className="w-3.5 h-3.5" aria-hidden />
+                        ) : aba.origem === 'dificeis' ? (
+                          <Flame className="w-3.5 h-3.5" aria-hidden />
+                        ) : (
+                          <Mic className="w-3.5 h-3.5" aria-hidden />
+                        ),
+                      motivoBloqueio: oferecida ? undefined : t(aba.semMaterial),
+                    };
+                  }),
+                },
+                {
+                  /* A VISÃO DA TRILHA, que não existia. Com o Curso escolhido a gaveta mostrava
                    UMA faceta e mais nada — a pessoa via "2.784 palavras" sem saber que elas estão
                    organizadas em níveis, nem em qual delas está. O nível já era escolhível, mas só
                    dentro do modal; aqui ele fica ao lado da fonte que o governa, com o tamanho de
                    cada etapa à vista. "Todos os níveis" é a ausência de recorte, e por isso vem
                    primeiro: é o estado em que a trilha nasce. */
-                id: 'nivel',
-                rotulo: trilha?.escala === 'frequencia' ? t('faixa do curso') : t('nível do curso'),
-                ajuda: trilha?.escala === 'frequencia'
-                  ? t('por frequência de uso — a faixa 1 traz as mais comuns')
-                  : t('cada etapa tem o seu vocabulário'),
-                exclusiva: true,
-                valor: [fonte.nivel ?? 'todos'],
-                aoTrocar: (n) => aplicarEscolha({ ...escolhaAtual, nivel: n === 'todos' ? undefined : (n as CefrLevel) }),
-                opcoes: fonte.id !== 'trilha' || !trilha ? [] : [
-                  {
-                    id: 'todos',
-                    rotulo: trilha.escala === 'frequencia' ? t('Todas as faixas') : t('Todos os níveis'),
-                    contagem: trilhaDe(fonte.lang).total,
-                    icone: <BookOpen className="w-3.5 h-3.5" aria-hidden />,
-                  },
-                  ...trilhaDe(fonte.lang).niveis.map(n => ({
-                    id: n,
-                    rotulo: rotuloDaEtapa(n, trilha.escala),
-                    contagem: trilha.niveis[n]?.length ?? 0,
-                  })),
-                ],
-              },
-              {
-                /* A Sala existia para escolher UMA gravação, e cobrava a volta inteira por isso:
+                  id: 'nivel',
+                  rotulo: trilha?.escala === 'frequencia' ? t('faixa do curso') : t('nível do curso'),
+                  ajuda:
+                    trilha?.escala === 'frequencia'
+                      ? t('por frequência de uso — a faixa 1 traz as mais comuns')
+                      : t('cada etapa tem o seu vocabulário'),
+                  exclusiva: true,
+                  valor: [fonte.nivel ?? 'todos'],
+                  aoTrocar: (n) =>
+                    aplicarEscolha({ ...escolhaAtual, nivel: n === 'todos' ? undefined : (n as CefrLevel) }),
+                  opcoes:
+                    fonte.id !== 'trilha' || !trilha
+                      ? []
+                      : [
+                          {
+                            id: 'todos',
+                            rotulo: trilha.escala === 'frequencia' ? t('Todas as faixas') : t('Todos os níveis'),
+                            contagem: trilhaDe(fonte.lang).total,
+                            icone: <BookOpen className="w-3.5 h-3.5" aria-hidden />,
+                          },
+                          ...trilhaDe(fonte.lang).niveis.map((n) => ({
+                            id: n,
+                            rotulo: rotuloDaEtapa(n, trilha.escala),
+                            contagem: trilha.niveis[n]?.length ?? 0,
+                          })),
+                        ],
+                },
+                {
+                  /* A Sala existia para escolher UMA gravação, e cobrava a volta inteira por isso:
                    ela repetia idioma, fonte e nível, que já vivem aqui. Como faceta, a escolha
                    fica ao lado das outras e a Sala deixa de ser caminho obrigatório. */
-                id: 'gravacao',
-                rotulo: t('quais gravações'),
-                ajuda: t('nenhuma marcada = todas'),
-                valor: filtro.sessoes,
-                aoTrocar: (id) => setFiltro(prev => ({
-                  ...prev,
-                  sessoes: prev.sessoes.includes(id) ? [] : [id],
-                  fontes: prev.sessoes.includes(id) ? prev.fontes : ['sessao'],
-                })),
-                opcoes: fonte.id === 'trilha' || sessoesDoIdioma.length < 2 ? [] : sessoesDoIdioma.map(s => ({
-                  id: s.id,
-                  rotulo: s.title || t('gravação sem título'),
-                  icone: <Mic className="w-3.5 h-3.5" aria-hidden />,
-                })),
-              },
-              {
-                id: 'baralho',
-                rotulo: t('quais baralhos'),
-                ajuda: t('nenhum marcado = todos'),
-                valor: filtro.baralhos,
-                aoTrocar: (id) => setBaralhoAnki(filtro.baralhos.includes(id) ? null : (decksAnki.find(d => d.id === id) ?? null)),
-                /* SÓ OS BARALHOS DO IDIOMA ESCOLHIDO. Oferecer um baralho japonês com inglês
+                  id: 'gravacao',
+                  rotulo: t('quais gravações'),
+                  ajuda: t('nenhuma marcada = todas'),
+                  valor: filtro.sessoes,
+                  aoTrocar: (id) =>
+                    setFiltro((prev) => ({
+                      ...prev,
+                      sessoes: prev.sessoes.includes(id) ? [] : [id],
+                      fontes: prev.sessoes.includes(id) ? prev.fontes : ['sessao'],
+                    })),
+                  opcoes:
+                    fonte.id === 'trilha' || sessoesDoIdioma.length < 2
+                      ? []
+                      : sessoesDoIdioma.map((s) => ({
+                          id: s.id,
+                          rotulo: s.title || t('gravação sem título'),
+                          icone: <Mic className="w-3.5 h-3.5" aria-hidden />,
+                        })),
+                },
+                {
+                  id: 'baralho',
+                  rotulo: t('quais baralhos'),
+                  ajuda: t('nenhum marcado = todos'),
+                  valor: filtro.baralhos,
+                  aoTrocar: (id) =>
+                    setBaralhoAnki(filtro.baralhos.includes(id) ? null : (decksAnki.find((d) => d.id === id) ?? null)),
+                  /* SÓ OS BARALHOS DO IDIOMA ESCOLHIDO. Oferecer um baralho japonês com inglês
                    selecionado produzia "0 palavras · nenhum item passa" — a tela convidava a uma
                    escolha que ela mesma anulava. O idioma do baralho vem do import. */
-                opcoes: fonte.id === 'trilha' ? [] : decksAnki.filter(d => !fonte.lang || !d.lang || baseLang(d.lang) === baseLang(fonte.lang)).map((d) => ({
-                  id: d.id,
-                  icone: <Package className="w-3.5 h-3.5" aria-hidden />,
-                  /* O NOME DO BARALHO COMO SE LÊ, não como o Anki o guarda. Dois problemas reais
+                  opcoes:
+                    fonte.id === 'trilha'
+                      ? []
+                      : decksAnki
+                          .filter((d) => !fonte.lang || !d.lang || baseLang(d.lang) === baseLang(fonte.lang))
+                          .map((d) => ({
+                            id: d.id,
+                            icone: <Package className="w-3.5 h-3.5" aria-hidden />,
+                            /* O NOME DO BARALHO COMO SE LÊ, não como o Anki o guarda. Dois problemas reais
                      do acervo do dono: o `::` da hierarquia do Anki ("4000 Essential English
                      Words::1.Book") é sintaxe de arquivo, não nome; e importar o mesmo arquivo
                      duas vezes produzia DOIS chips com texto idêntico, impossíveis de distinguir.
                      O sufixo só aparece quando há de fato colisão — numerar um baralho único seria
                      ruído. */
-                  rotulo: (() => {
-                    const legivel = d.nome.split('::').filter(Boolean).join(' › ');
-                    const homonimos = decksAnki.filter(o => o.nome === d.nome);
-                    return homonimos.length > 1
-                      ? t('{nome} ({i} de {n})', { nome: legivel, i: homonimos.indexOf(d) + 1, n: homonimos.length })
-                      : legivel;
-                  })(),
-                })),
-              },
-              {
-                id: 'recorte',
-                rotulo: t('recorte'),
-                ajuda: t('filtra dentro do que você escolheu acima'),
-                valor: [
-                  ...(filtro.recorte.dificeis ? ['dificeis'] : []),
-                  ...(filtro.recorte.pedindoRevisao ? ['pedindoRevisao'] : []),
-                  ...(filtro.recorte.nuncaVistas ? ['nuncaVistas'] : []),
-                  ...(filtro.midia.comTraducao ? ['comTraducao'] : []),
-                  ...(filtro.midia.comFrase ? ['comFrase'] : []),
-                ],
-                aoTrocar: (id) => setFiltro(prev =>
-                  id === 'comTraducao' || id === 'comFrase'
-                    ? { ...prev, midia: { ...prev.midia, [id]: !prev.midia[id] } }
-                    : { ...prev, recorte: { ...prev.recorte, [id]: !prev.recorte[id as 'pedindoRevisao' | 'nuncaVistas' | 'dificeis'] } }),
-                opcoes: fonte.id === 'trilha' ? [] : [
-                  {
-                    id: 'dificeis',
-                    rotulo: t(ABAS_DE_FONTE.find(a => a.origem === 'dificeis')?.rotulo[ageProfile] ?? 'As que mais escapam'),
-                    contagem: rankingDeDificeis.length,
-                    icone: <Flame className="w-3.5 h-3.5" aria-hidden />,
-                    motivoBloqueio: rankingDeDificeis.length < 4
-                      ? t('revise mais um pouco — ainda não há material para uma rodada')
-                      : undefined,
-                  },
-                  {
-                    id: 'pedindoRevisao', rotulo: t('Pedindo revisão'), contagem: contagemRecortes.pedindo,
-                    icone: <CalendarClock className="w-3.5 h-3.5" aria-hidden />,
-                    motivoBloqueio: contagemRecortes.pedindo === 0 ? t('nada vencido neste acervo agora') : undefined,
-                  },
-                  {
-                    id: 'nuncaVistas', rotulo: t('Nunca vistas'), contagem: contagemRecortes.nunca,
-                    icone: <Sparkles className="w-3.5 h-3.5" aria-hidden />,
-                    motivoBloqueio: contagemRecortes.nunca === 0 ? t('tudo aqui já foi visto ao menos uma vez') : undefined,
-                  },
-                  {
-                    id: 'comTraducao', rotulo: t('Com tradução'), contagem: contagemRecortes.traducao,
-                    icone: <Languages className="w-3.5 h-3.5" aria-hidden />,
-                    motivoBloqueio: contagemRecortes.traducao === 0 ? t('nenhum item deste acervo tem tradução utilizável') : undefined,
-                  },
-                  {
-                    id: 'comFrase', rotulo: t('Com frase'), contagem: contagemRecortes.frase,
-                    icone: <MessageSquareText className="w-3.5 h-3.5" aria-hidden />,
-                    motivoBloqueio: contagemRecortes.frase === 0 ? t('nenhum item deste acervo tem frase de exemplo') : undefined,
-                  },
-                ],
-              },
-            ]}
-          />
-        </div>
-      )}
-
-      {verRecordes && <Recordes ageProfile={ageProfile} onFechar={() => setVerRecordes(false)} />}
-
-      {/* ── DIAGNÓSTICO TÉCNICO EXPANSÍVEL (ativado pelo botão de gráfico da barra de acervo) ── */}
-      {detalhes && (
-        <section
-          aria-label={t('Diagnóstico do baralho')}
-          className="card-panel bg-surface border border-border-subtle px-4 py-2.5 mb-4 text-[12px] text-ink-muted flex flex-wrap items-center gap-x-4 gap-y-1.5 rounded-xl animate-in fade-in duration-200"
-        >
-          <span className="label-mono flex items-center gap-1.5 text-ink font-bold">
-            <BarChart2 className="w-3.5 h-3.5 text-accent" />
-            {t('Diagnóstico')}
-          </span>
-          <span className="font-bold text-good-ink" title={t('{n} palavras do idioma escolhido passaram na régua de qualidade.', { n: contagem.total })}>
-            ✓ {t('{n} no idioma', { n: contagem.total })}
-          </span>
-          <span title={t('Jogos de par precisam de tradução.')}>
-            · {t('{n} com tradução', { n: pistas.comTraducao.length })}
-          </span>
-          {pistas.soComFrase.length > 0 && (
-            <span title={t('Sem tradução, mas com frase real.')}>
-              · {t('{n} só com frase', { n: pistas.soComFrase.length })}
-            </span>
-          )}
-          {!coreOnly(ageProfile) && triagem.outroIdioma.length > 0 && (
-            <span title={t('Existem e prestam, mas são de outro idioma')}>
-              · {t('{n} em outro idioma', { n: triagem.outroIdioma.length })}
-            </span>
-          )}
-          {triagem.fora.length > 0 && (
-            <span className="text-warn-ink font-semibold">· {t('{n} fora do recorte', { n: triagem.fora.length })}</span>
-          )}
-          {nuncaCairam > 0 && (
-            <span>· {t('{n} nunca caíram', { n: numero(nuncaCairam) })}</span>
-          )}
-        </section>
-      )}
-
-      {fonte.id === 'trilha' && trilha && (
-        <PainelTrilha
-          dado={trilha}
-          deck={deck ?? []}
-          ageProfile={ageProfile}
-          nivel={fonte.nivel}
-          onEscolherNivel={(n: CefrLevel) => setFonte(f => ({ ...f, nivel: n }))}
-          nativo={idiomaNativo}
-          paresDeGlosa={entradaDaTrilha?.glosas ?? []}
-        />
-      )}
-
-      {tamanhoDoBaralho < menorMinimo && fonte.id !== 'trilha' ? (
-        <section className="card-panel bg-surface p-8 text-center flex flex-col items-center gap-4">
-          <span className="w-14 h-14 rounded-2xl bg-accent-soft flex items-center justify-center">
-            <Mic className="w-7 h-7 text-accent" aria-hidden />
-          </span>
-          <div>
-            <p className="font-display font-extrabold text-[17px] text-ink">
-              {tamanhoDoBaralho === 0
-                ? t('Você ainda não salvou palavras')
-                : t('Faltam {n} palavras', { n: menorMinimo - tamanhoDoBaralho })}
-            </p>
-            <p className="text-[13px] text-ink-muted mt-1.5 max-w-[46ch]">
-              <T txt="Os jogos usam as palavras que você guarda das suas gravações, nada de lista pronta. Você tem <b>{tem}</b> e precisa de <b>{precisa}</b> para a primeira rodada."
-                 val={{ tem: tamanhoDoBaralho, precisa: menorMinimo }} />
-            </p>
+                            rotulo: (() => {
+                              const legivel = d.nome.split('::').filter(Boolean).join(' › ');
+                              const homonimos = decksAnki.filter((o) => o.nome === d.nome);
+                              return homonimos.length > 1
+                                ? t('{nome} ({i} de {n})', {
+                                    nome: legivel,
+                                    i: homonimos.indexOf(d) + 1,
+                                    n: homonimos.length,
+                                  })
+                                : legivel;
+                            })(),
+                          })),
+                },
+                {
+                  id: 'recorte',
+                  rotulo: t('recorte'),
+                  ajuda: t('filtra dentro do que você escolheu acima'),
+                  valor: [
+                    ...(filtro.recorte.dificeis ? ['dificeis'] : []),
+                    ...(filtro.recorte.pedindoRevisao ? ['pedindoRevisao'] : []),
+                    ...(filtro.recorte.nuncaVistas ? ['nuncaVistas'] : []),
+                    ...(filtro.midia.comTraducao ? ['comTraducao'] : []),
+                    ...(filtro.midia.comFrase ? ['comFrase'] : []),
+                  ],
+                  aoTrocar: (id) =>
+                    setFiltro((prev) =>
+                      id === 'comTraducao' || id === 'comFrase'
+                        ? { ...prev, midia: { ...prev.midia, [id]: !prev.midia[id] } }
+                        : {
+                            ...prev,
+                            recorte: {
+                              ...prev.recorte,
+                              [id]: !prev.recorte[id as 'pedindoRevisao' | 'nuncaVistas' | 'dificeis'],
+                            },
+                          },
+                    ),
+                  opcoes:
+                    fonte.id === 'trilha'
+                      ? []
+                      : [
+                          {
+                            id: 'dificeis',
+                            rotulo: t(
+                              ABAS_DE_FONTE.find((a) => a.origem === 'dificeis')?.rotulo[ageProfile] ??
+                                'As que mais escapam',
+                            ),
+                            contagem: rankingDeDificeis.length,
+                            icone: <Flame className="w-3.5 h-3.5" aria-hidden />,
+                            motivoBloqueio:
+                              rankingDeDificeis.length < 4
+                                ? t('revise mais um pouco — ainda não há material para uma rodada')
+                                : undefined,
+                          },
+                          {
+                            id: 'pedindoRevisao',
+                            rotulo: t('Pedindo revisão'),
+                            contagem: contagemRecortes.pedindo,
+                            icone: <CalendarClock className="w-3.5 h-3.5" aria-hidden />,
+                            motivoBloqueio:
+                              contagemRecortes.pedindo === 0 ? t('nada vencido neste acervo agora') : undefined,
+                          },
+                          {
+                            id: 'nuncaVistas',
+                            rotulo: t('Nunca vistas'),
+                            contagem: contagemRecortes.nunca,
+                            icone: <Sparkles className="w-3.5 h-3.5" aria-hidden />,
+                            motivoBloqueio:
+                              contagemRecortes.nunca === 0 ? t('tudo aqui já foi visto ao menos uma vez') : undefined,
+                          },
+                          {
+                            id: 'comTraducao',
+                            rotulo: t('Com tradução'),
+                            contagem: contagemRecortes.traducao,
+                            icone: <Languages className="w-3.5 h-3.5" aria-hidden />,
+                            motivoBloqueio:
+                              contagemRecortes.traducao === 0
+                                ? t('nenhum item deste acervo tem tradução utilizável')
+                                : undefined,
+                          },
+                          {
+                            id: 'comFrase',
+                            rotulo: t('Com frase'),
+                            contagem: contagemRecortes.frase,
+                            icone: <MessageSquareText className="w-3.5 h-3.5" aria-hidden />,
+                            motivoBloqueio:
+                              contagemRecortes.frase === 0
+                                ? t('nenhum item deste acervo tem frase de exemplo')
+                                : undefined,
+                          },
+                        ],
+                },
+              ]}
+            />
           </div>
-          <button
-            onClick={() => onChangeView('capture')}
-            className="py-2.5 px-5 bg-accent hover:bg-accent-ink text-white rounded-xl font-bold text-[13px] shadow-btn transition-all cursor-pointer"
+        )}
+
+        {verRecordes && <Recordes ageProfile={ageProfile} onFechar={() => setVerRecordes(false)} />}
+
+        {/* ── DIAGNÓSTICO TÉCNICO EXPANSÍVEL (ativado pelo botão de gráfico da barra de acervo) ── */}
+        {detalhes && (
+          <section
+            aria-label={t('Diagnóstico do baralho')}
+            className="card-panel bg-surface border border-border-subtle px-4 py-2.5 mb-4 text-[12px] text-ink-muted flex flex-wrap items-center gap-x-4 gap-y-1.5 rounded-xl animate-in fade-in duration-200"
           >
-            {ageProfile === 'kids' ? t('Gravar alguma coisa') : t('Capturar uma sessão')}
-          </button>
-        </section>
-      ) : (
-        <>
-          {/* ── NAVEGAÇÃO DE CATEGORIAS ── */}
-          <div className="flex items-center justify-between gap-3 mb-3 flex-wrap">
-            <div className="flex items-center gap-1.5 p-1 bg-surface border border-border-subtle rounded-xl overflow-x-auto custom-scrollbar" role="tablist" aria-label={t('Categorias de jogos')}>
-              {[
-                { id: 'todos' as const, label: t('Todos'), icon: <Sparkles className="w-3.5 h-3.5" />, total: jogosProntos.length },
-                { id: 'classicos' as const, label: t('Clássicos'), icon: <Zap className="w-3.5 h-3.5" />, total: jogosProntos.length },
-                { id: 'favoritos' as const, label: t('Favoritos'), icon: <Pin className="w-3.5 h-3.5" />, total: ordem.fixados.length },
-              ].map(cat => {
-                const ativo = categoriaAtiva === cat.id;
-                return (
-                  <button
-                    key={cat.id}
-                    type="button"
-                    role="tab"
-                    aria-selected={ativo}
-                    onClick={() => {
-                      setCategoriaAtiva(cat.id);
-                      triggerHaptic('soft');
-                      playJuicedHit(1);
-                    }}
-                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12.5px] font-bold transition-all cursor-pointer ${
-                      ativo
-                        ? 'bg-accent text-white shadow-xs'
-                        : 'text-ink-muted hover:text-ink hover:bg-surface-hover'
-                    }`}
-                  >
-                    {cat.icon}
-                    <span>{cat.label}</span>
-                    <span className={`text-[11px] px-1.5 py-0.2 rounded-full font-mono ${
-                      ativo ? 'bg-white/25 text-white' : 'bg-canvas text-ink-muted'
-                    }`}>
-                      {cat.total}
-                    </span>
-                  </button>
-                );
-              })}
+            <span className="label-mono flex items-center gap-1.5 text-ink font-bold">
+              <BarChart2 className="w-3.5 h-3.5 text-accent" />
+              {t('Diagnóstico')}
+            </span>
+            <span
+              className="font-bold text-good-ink"
+              title={t('{n} palavras do idioma escolhido passaram na régua de qualidade.', { n: contagem.total })}
+            >
+              ✓ {t('{n} no idioma', { n: contagem.total })}
+            </span>
+            <span title={t('Jogos de par precisam de tradução.')}>
+              · {t('{n} com tradução', { n: pistas.comTraducao.length })}
+            </span>
+            {pistas.soComFrase.length > 0 && (
+              <span title={t('Sem tradução, mas com frase real.')}>
+                · {t('{n} só com frase', { n: pistas.soComFrase.length })}
+              </span>
+            )}
+            {!coreOnly(ageProfile) && triagem.outroIdioma.length > 0 && (
+              <span title={t('Existem e prestam, mas são de outro idioma')}>
+                · {t('{n} em outro idioma', { n: triagem.outroIdioma.length })}
+              </span>
+            )}
+            {triagem.fora.length > 0 && (
+              <span className="text-warn-ink font-semibold">
+                · {t('{n} fora do recorte', { n: triagem.fora.length })}
+              </span>
+            )}
+            {nuncaCairam > 0 && <span>· {t('{n} nunca caíram', { n: numero(nuncaCairam) })}</span>}
+          </section>
+        )}
+
+        {fonte.id === 'trilha' && trilha && (
+          <PainelTrilha
+            dado={trilha}
+            deck={deck ?? []}
+            ageProfile={ageProfile}
+            nivel={fonte.nivel}
+            onEscolherNivel={(n: CefrLevel) => setFonte((f) => ({ ...f, nivel: n }))}
+            nativo={idiomaNativo}
+            paresDeGlosa={entradaDaTrilha?.glosas ?? []}
+          />
+        )}
+
+        {tamanhoDoBaralho < menorMinimo && fonte.id !== 'trilha' ? (
+          <section className="card-panel bg-surface p-8 text-center flex flex-col items-center gap-4">
+            <span className="w-14 h-14 rounded-2xl bg-accent-soft flex items-center justify-center">
+              <Mic className="w-7 h-7 text-accent" aria-hidden />
+            </span>
+            <div>
+              <p className="font-display font-extrabold text-[17px] text-ink">
+                {tamanhoDoBaralho === 0
+                  ? t('Você ainda não salvou palavras')
+                  : t('Faltam {n} palavras', { n: menorMinimo - tamanhoDoBaralho })}
+              </p>
+              <p className="text-[13px] text-ink-muted mt-1.5 max-w-[46ch]">
+                <T
+                  txt="Os jogos usam as palavras que você guarda das suas gravações, nada de lista pronta. Você tem <b>{tem}</b> e precisa de <b>{precisa}</b> para a primeira rodada."
+                  val={{ tem: tamanhoDoBaralho, precisa: menorMinimo }}
+                />
+              </p>
+            </div>
+            <button
+              onClick={() => onChangeView('capture')}
+              className="py-2.5 px-5 bg-accent hover:bg-accent-ink text-white rounded-xl font-bold text-[13px] shadow-btn transition-all cursor-pointer"
+            >
+              {ageProfile === 'kids' ? t('Gravar alguma coisa') : t('Capturar uma sessão')}
+            </button>
+          </section>
+        ) : (
+          <>
+            {/* ── NAVEGAÇÃO DE CATEGORIAS ── */}
+            <div className="flex items-center justify-between gap-3 mb-3 flex-wrap">
+              <div
+                className="flex items-center gap-1.5 p-1 bg-surface border border-border-subtle rounded-xl overflow-x-auto custom-scrollbar"
+                role="tablist"
+                aria-label={t('Categorias de jogos')}
+              >
+                {[
+                  {
+                    id: 'todos' as const,
+                    label: t('Todos'),
+                    icon: <Sparkles className="w-3.5 h-3.5" />,
+                    total: jogosProntos.length,
+                  },
+                  {
+                    id: 'classicos' as const,
+                    label: t('Clássicos'),
+                    icon: <Zap className="w-3.5 h-3.5" />,
+                    total: jogosProntos.length,
+                  },
+                  {
+                    id: 'favoritos' as const,
+                    label: t('Favoritos'),
+                    icon: <Pin className="w-3.5 h-3.5" />,
+                    total: ordem.fixados.length,
+                  },
+                ].map((cat) => {
+                  const ativo = categoriaAtiva === cat.id;
+                  return (
+                    <button
+                      key={cat.id}
+                      type="button"
+                      role="tab"
+                      aria-selected={ativo}
+                      onClick={() => {
+                        setCategoriaAtiva(cat.id);
+                        triggerHaptic('soft');
+                        playJuicedHit(1);
+                      }}
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12.5px] font-bold transition-all cursor-pointer ${
+                        ativo
+                          ? 'bg-accent text-white shadow-xs'
+                          : 'text-ink-muted hover:text-ink hover:bg-surface-hover'
+                      }`}
+                    >
+                      {cat.icon}
+                      <span>{cat.label}</span>
+                      <span
+                        className={`text-[11px] px-1.5 py-0.2 rounded-full font-mono ${
+                          ativo ? 'bg-white/25 text-white' : 'bg-canvas text-ink-muted'
+                        }`}
+                      >
+                        {cat.total}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+
+              <ul
+                className="hidden lg:flex items-center gap-3 list-none m-0 p-0 text-[11.5px] text-ink-muted"
+                aria-label={t('A cor diz o que o jogo treina')}
+              >
+                {FAMILIAS.map((f) => (
+                  <li key={f.rotulo} className="flex items-center gap-1.5">
+                    <span className="w-2.5 h-2.5 rounded-[3px] shrink-0" style={{ background: f.tom }} aria-hidden />
+                    {f.rotulo}
+                  </li>
+                ))}
+              </ul>
             </div>
 
-            <ul className="hidden lg:flex items-center gap-3 list-none m-0 p-0 text-[11.5px] text-ink-muted" aria-label={t('A cor diz o que o jogo treina')}>
-              {FAMILIAS.map(f => (
-                <li key={f.rotulo} className="flex items-center gap-1.5">
-                  <span className="w-2.5 h-2.5 rounded-[3px] shrink-0" style={{ background: f.tom }} aria-hidden />
-                  {f.rotulo}
-                </li>
-              ))}
-            </ul>
-          </div>
+            {/* ── BARRA DE BUSCA, HABILIDADES E OPÇÕES ── */}
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-4">
+              <div className="relative flex-1 max-w-md">
+                <Search className="w-4 h-4 text-ink-faint absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                <input
+                  type="text"
+                  value={buscaJogos}
+                  onChange={(e) => setBuscaJogos(e.target.value)}
+                  placeholder={t('Buscar por nome, mecânica, país...')}
+                  className="w-full pl-9 pr-8 py-2 rounded-xl bg-surface border border-border-subtle text-ink placeholder:text-ink-faint text-[12.5px] focus:outline-none focus:border-accent transition-colors"
+                />
+                {buscaJogos && (
+                  <button
+                    type="button"
+                    onClick={() => setBuscaJogos('')}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-ink-faint hover:text-ink p-0.5 cursor-pointer"
+                    title={t('Limpar busca')}
+                  >
+                    <XIcon className="w-3.5 h-3.5" />
+                  </button>
+                )}
+              </div>
 
-          {/* ── BARRA DE BUSCA, HABILIDADES E OPÇÕES ── */}
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-4">
-            <div className="relative flex-1 max-w-md">
-              <Search className="w-4 h-4 text-ink-faint absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
-              <input
-                type="text"
-                value={buscaJogos}
-                onChange={e => setBuscaJogos(e.target.value)}
-                placeholder={t('Buscar por nome, mecânica, país...')}
-                className="w-full pl-9 pr-8 py-2 rounded-xl bg-surface border border-border-subtle text-ink placeholder:text-ink-faint text-[12.5px] focus:outline-none focus:border-accent transition-colors"
-              />
-              {buscaJogos && (
+              <div className="flex items-center gap-1.5 overflow-x-auto custom-scrollbar pb-1 md:pb-0">
+                {[
+                  { id: 'todas' as const, label: t('Todas'), icon: null },
+                  { id: 'vocab' as const, label: t('Vocabulário'), icon: <BookOpen className="w-3.5 h-3.5" /> },
+                  {
+                    id: 'escuta_fala' as const,
+                    label: t('Escuta & Fala'),
+                    icon: <Headphones className="w-3.5 h-3.5" />,
+                  },
+                  {
+                    id: 'frase_gramatica' as const,
+                    label: t('Sintaxe & Frases'),
+                    icon: <Puzzle className="w-3.5 h-3.5" />,
+                  },
+                ].map((h) => {
+                  const ativo = filtroHabilidade === h.id;
+                  return (
+                    <button
+                      key={h.id}
+                      type="button"
+                      onClick={() => {
+                        setFiltroHabilidade(h.id);
+                        triggerHaptic('soft');
+                        playJuicedHit(1);
+                      }}
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11.5px] font-bold shrink-0 transition-colors cursor-pointer border ${
+                        ativo
+                          ? 'bg-accent-soft text-accent-ink border-accent/40 font-black'
+                          : 'bg-surface border-border-subtle text-ink-muted hover:text-ink hover:border-ink-faint'
+                      }`}
+                    >
+                      {h.icon}
+                      <span>{h.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+
+              <div className="flex items-center gap-3 shrink-0 ms-auto">
+                <label className="flex items-center gap-1.5 text-[12px] text-ink-muted cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={!pularSempre}
+                    onChange={(e) => mudarPularSempre(!e.target.checked)}
+                    className="w-5 h-5 accent-accent cursor-pointer"
+                  />
+                  <span className="hidden sm:inline">
+                    {ageProfile === 'kids' ? t('Ver antes de jogar') : t('Prévia antes de começar')}
+                  </span>
+                </label>
+
                 <button
                   type="button"
-                  onClick={() => setBuscaJogos('')}
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-ink-faint hover:text-ink p-0.5 cursor-pointer"
-                  title={t('Limpar busca')}
-                >
-                  <XIcon className="w-3.5 h-3.5" />
-                </button>
-              )}
-            </div>
-
-            <div className="flex items-center gap-1.5 overflow-x-auto custom-scrollbar pb-1 md:pb-0">
-              {[
-                { id: 'todas' as const, label: t('Todas'), icon: null },
-                { id: 'vocab' as const, label: t('Vocabulário'), icon: <BookOpen className="w-3.5 h-3.5" /> },
-                { id: 'escuta_fala' as const, label: t('Escuta & Fala'), icon: <Headphones className="w-3.5 h-3.5" /> },
-                { id: 'frase_gramatica' as const, label: t('Sintaxe & Frases'), icon: <Puzzle className="w-3.5 h-3.5" /> },
-              ].map(h => {
-                const ativo = filtroHabilidade === h.id;
-                return (
-                  <button
-                    key={h.id}
-                    type="button"
-                    onClick={() => {
-                      setFiltroHabilidade(h.id);
-                      triggerHaptic('soft');
-                      playJuicedHit(1);
-                    }}
-                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11.5px] font-bold shrink-0 transition-colors cursor-pointer border ${
-                      ativo
-                        ? 'bg-accent-soft text-accent-ink border-accent/40 font-black'
-                        : 'bg-surface border-border-subtle text-ink-muted hover:text-ink hover:border-ink-faint'
-                    }`}
-                  >
-                    {h.icon}
-                    <span>{h.label}</span>
-                  </button>
-                );
-              })}
-            </div>
-
-            <div className="flex items-center gap-3 shrink-0 ms-auto">
-              <label className="flex items-center gap-1.5 text-[12px] text-ink-muted cursor-pointer select-none">
-                <input
-                  type="checkbox"
-                  checked={!pularSempre}
-                  onChange={e => mudarPularSempre(!e.target.checked)}
-                  className="w-5 h-5 accent-accent cursor-pointer"
-                />
-                <span className="hidden sm:inline">{ageProfile === 'kids' ? t('Ver antes de jogar') : t('Prévia antes de começar')}</span>
-              </label>
-
-              <button
-                type="button"
-                onClick={() => setModoOrganizar(v => !v)}
-                aria-pressed={modoOrganizar}
-                title={t('Mudar a ordem das cartas e fixar as favoritas no topo')}
-                className={`shrink-0 flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-[12px] font-bold cursor-pointer transition-colors ${
-                  modoOrganizar ? 'bg-accent text-accent-contrast border-accent' : 'bg-surface border-border-subtle text-ink-muted hover:text-ink hover:border-ink-faint'
-                }`}
-              >
-                <Pin className="w-3.5 h-3.5" aria-hidden />
-                {modoOrganizar ? t('Pronto') : t('Organizar')}
-              </button>
-            </div>
-          </div>
-
-          {/* ── GRADE DINÂMICA DE JOGOS ── */}
-          <ul id="grade-de-jogos" className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 list-none m-0 p-0">
-            {/* Clássicos Filtrados */}
-            {jogosClassicosFiltrados.map((j, i) => {
-              const liberado = j.estado.ok;
-              const prontosNestaLista = jogosClassicosFiltrados.filter(item => item.estado.ok);
-              const presosNestaLista = jogosClassicosFiltrados.filter(item => !item.estado.ok);
-              const abreOSegundoGrupo = i === prontosNestaLista.length && presosNestaLista.length > 0;
-
-              return (
-                <React.Fragment key={j.chave}>
-                {abreOSegundoGrupo && (
-                  <li className="col-span-full list-none mt-4 mb-1">
-                    <h3 className="font-display font-bold text-[15px] text-ink">{t('Precisam de outro material')}</h3>
-                    <p className="text-[12.5px] text-ink-muted mt-0.5 max-w-[64ch]">
-                      {t('Não estão quebrados: pedem algo que este recorte não tem. Cada um diz o que falta.')}
-                    </p>
-                  </li>
-                )}
-                <li className="contents">
-                <div
-                  className={`card-panel text-start flex flex-col overflow-hidden transition-all relative group ${
-                    liberado ? 'bg-surface hover:border-accent hover:-translate-y-1 hover:shadow-card' : 'bg-canvas border-dashed'
+                  onClick={() => setModoOrganizar((v) => !v)}
+                  aria-pressed={modoOrganizar}
+                  title={t('Mudar a ordem das cartas e fixar as favoritas no topo')}
+                  className={`shrink-0 flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-[12px] font-bold cursor-pointer transition-colors ${
+                    modoOrganizar
+                      ? 'bg-accent text-accent-contrast border-accent'
+                      : 'bg-surface border-border-subtle text-ink-muted hover:text-ink hover:border-ink-faint'
                   }`}
                 >
-                  <span
-                    className="block w-full aspect-[16/7] border-b border-border-subtle overflow-hidden"
-                    style={{ background: `color-mix(in srgb, ${tomDoJogo(j.id)} ${liberado ? 9 : 4}%, var(--canvas))` }}
-                    aria-hidden
-                  >
-                    <ArteDoJogo jogo={j.id} />
-                  </span>
+                  <Pin className="w-3.5 h-3.5" aria-hidden />
+                  {modoOrganizar ? t('Pronto') : t('Organizar')}
+                </button>
+              </div>
+            </div>
 
-                  <span className="p-4 flex flex-col flex-1 gap-1">
-                  <span className="flex items-start justify-between gap-2">
-                    <span className="flex items-center gap-2">
-                      <span
-                        className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${
-                          liberado ? 'bg-surface text-ink' : 'bg-surface-hover text-ink-muted'
-                        }`}
-                        aria-hidden
-                      >
-                        {liberado ? j.icone : <Lock className="w-3.5 h-3.5" />}
-                      </span>
-                      <h3 className="font-display font-bold text-[14.5px] text-ink leading-tight">
-                        <button
-                          type="button"
-                          disabled={!liberado}
-                          onClick={() => {
-                            triggerHaptic('soft');
-                            playJuicedHit(1);
-                            pedirParaJogar(j);
-                          }}
-                          className={`text-start font-bold ${
-                            liberado
-                              ? 'cursor-pointer text-ink hover:text-accent after:absolute after:inset-0 focus-visible:outline-2 focus-visible:outline-accent'
-                              : 'cursor-not-allowed text-ink-muted'
-                          }`}
-                        >
-                          {tituloDoJogo(j, ageProfile)}
-                        </button>
-                      </h3>
-                    </span>
+            {/* ── GRADE DINÂMICA DE JOGOS ── */}
+            <ul id="grade-de-jogos" className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 list-none m-0 p-0">
+              {/* Clássicos Filtrados */}
+              {jogosClassicosFiltrados.map((j, i) => {
+                const liberado = j.estado.ok;
+                const prontosNestaLista = jogosClassicosFiltrados.filter((item) => item.estado.ok);
+                const presosNestaLista = jogosClassicosFiltrados.filter((item) => !item.estado.ok);
+                const abreOSegundoGrupo = i === prontosNestaLista.length && presosNestaLista.length > 0;
 
-                    {liberado && pularSempre && (
-                      <button
-                        onClick={() => pedirParaJogar(j, true)}
-                        className="relative z-10 min-w-6 min-h-6 inline-flex items-center justify-center rounded-lg text-ink-faint hover:text-accent hover:bg-surface-hover cursor-pointer shrink-0 opacity-0 group-hover:opacity-100 focus:opacity-100 focus-visible:opacity-100 [@media(hover:none)]:opacity-100 transition-opacity"
-                        title={t('Ver a prévia desta rodada antes de começar')}
-                        aria-label={`${t('Prévia da rodada')}: ${tituloDoJogo(j, ageProfile)}`}
-                      >
-                        <ListChecks className="w-4 h-4" />
-                      </button>
+                return (
+                  <React.Fragment key={j.chave}>
+                    {abreOSegundoGrupo && (
+                      <li className="col-span-full list-none mt-4 mb-1">
+                        <h3 className="font-display font-bold text-[15px] text-ink">
+                          {t('Precisam de outro material')}
+                        </h3>
+                        <p className="text-[12.5px] text-ink-muted mt-0.5 max-w-[64ch]">
+                          {t('Não estão quebrados: pedem algo que este recorte não tem. Cada um diz o que falta.')}
+                        </p>
+                      </li>
                     )}
-
-                    <button
-                      onClick={() => setExplicando(j.id)}
-                      className="relative z-10 min-w-6 min-h-6 inline-flex items-center justify-center rounded-lg text-ink-faint hover:text-accent hover:bg-surface-hover cursor-pointer shrink-0 opacity-0 group-hover:opacity-100 focus:opacity-100 focus-visible:opacity-100 [@media(hover:none)]:opacity-100 transition-opacity"
-                      title={t('Como se joga')}
-                      aria-label={`${t('Como se joga')}: ${tituloDoJogo(j, ageProfile)}`}
-                    >
-                      <HelpCircle className="w-4 h-4" />
-                    </button>
-                  </span>
-
-                  {modoOrganizar && (
-                    <span className="relative z-10 flex items-center gap-1 pt-1">
-                      {([
-                        { icone: <ChevronLeft className="w-3.5 h-3.5" />, dir: -1 as const, rot: t('Mover para a esquerda') },
-                        { icone: <ChevronRight className="w-3.5 h-3.5" />, dir: 1 as const, rot: t('Mover para a direita') },
-                      ]).map(({ icone, dir, rot }) => (
-                        <button
-                          key={dir}
-                          onClick={() => mexerNaOrdem(mover(ordem, idsVisiveis, j.id, dir))}
-                          className="min-w-6 min-h-6 inline-flex items-center justify-center rounded-md text-ink-faint hover:text-accent hover:bg-surface-hover cursor-pointer"
-                          title={rot}
-                          aria-label={`${rot}: ${tituloDoJogo(j, ageProfile)}`}
+                    <li className="contents">
+                      <div
+                        className={`card-panel text-start flex flex-col overflow-hidden transition-all relative group ${
+                          liberado
+                            ? 'bg-surface hover:border-accent hover:-translate-y-1 hover:shadow-card'
+                            : 'bg-canvas border-dashed'
+                        }`}
+                      >
+                        <span
+                          className="block w-full aspect-[16/7] border-b border-border-subtle overflow-hidden"
+                          style={{
+                            background: `color-mix(in srgb, ${tomDoJogo(j.id)} ${liberado ? 9 : 4}%, var(--canvas))`,
+                          }}
+                          aria-hidden
                         >
-                          {icone}
-                        </button>
-                      ))}
-                      <button
-                        aria-pressed={ordem.fixados.includes(j.id)}
-                        onClick={() => mexerNaOrdem(alternarFixado(ordem, j.id))}
-                        className={`min-w-6 min-h-6 inline-flex items-center justify-center rounded-md cursor-pointer hover:bg-surface-hover ${ordem.fixados.includes(j.id) ? 'text-accent' : 'text-ink-faint hover:text-accent'}`}
-                        title={ordem.fixados.includes(j.id) ? t('Desafixar do topo') : t('Fixar no topo')}
-                        aria-label={`${ordem.fixados.includes(j.id) ? t('Desafixar') : t('Fixar no topo')}: ${tituloDoJogo(j, ageProfile)}`}
-                      >
-                        <Pin className={`w-3.5 h-3.5 ${ordem.fixados.includes(j.id) ? 'fill-current' : ''}`} />
-                      </button>
-                    </span>
-                  )}
+                          <ArteDoJogo jogo={j.id} />
+                        </span>
 
-                  <span className="text-[12px] text-ink-muted leading-snug">
-                    {descricaoDoJogo(j, ageProfile, fonte.id === 'trilha')}
-                  </span>
+                        <span className="p-4 flex flex-col flex-1 gap-1">
+                          <span className="flex items-start justify-between gap-2">
+                            <span className="flex items-center gap-2">
+                              <span
+                                className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${
+                                  liberado ? 'bg-surface text-ink' : 'bg-surface-hover text-ink-muted'
+                                }`}
+                                aria-hidden
+                              >
+                                {liberado ? j.icone : <Lock className="w-3.5 h-3.5" />}
+                              </span>
+                              <h3 className="font-display font-bold text-[14.5px] text-ink leading-tight">
+                                <button
+                                  type="button"
+                                  disabled={!liberado}
+                                  onClick={() => {
+                                    triggerHaptic('soft');
+                                    playJuicedHit(1);
+                                    pedirParaJogar(j);
+                                  }}
+                                  className={`text-start font-bold ${
+                                    liberado
+                                      ? 'cursor-pointer text-ink hover:text-accent after:absolute after:inset-0 focus-visible:outline-2 focus-visible:outline-accent'
+                                      : 'cursor-not-allowed text-ink-muted'
+                                  }`}
+                                >
+                                  {tituloDoJogo(j, ageProfile)}
+                                </button>
+                              </h3>
+                            </span>
 
-                  {!liberado && (() => {
-                    const porta = comoDesbloquear(j.estado, contextoDoDesbloqueio);
-                    if (!porta) return null;
-                    return (
-                      <button
-                        onClick={() => abrirPorta(porta)}
-                        className="relative z-10 mt-auto self-start inline-flex items-center gap-1.5 rounded-lg bg-accent-soft px-2.5 py-1.5 text-[11.5px] font-bold text-accent-ink hover:bg-accent hover:text-accent-contrast cursor-pointer"
-                      >
-                        {porta.rotulo} <ChevronRight className="w-3.5 h-3.5" aria-hidden />
-                      </button>
-                    );
-                  })()}
+                            {liberado && pularSempre && (
+                              <button
+                                onClick={() => pedirParaJogar(j, true)}
+                                className="relative z-10 min-w-6 min-h-6 inline-flex items-center justify-center rounded-lg text-ink-faint hover:text-accent hover:bg-surface-hover cursor-pointer shrink-0 opacity-0 group-hover:opacity-100 focus:opacity-100 focus-visible:opacity-100 [@media(hover:none)]:opacity-100 transition-opacity"
+                                title={t('Ver a prévia desta rodada antes de começar')}
+                                aria-label={`${t('Prévia da rodada')}: ${tituloDoJogo(j, ageProfile)}`}
+                              >
+                                <ListChecks className="w-4 h-4" />
+                              </button>
+                            )}
 
-                  <span className={`text-[11px] pt-1 ${liberado ? 'font-bold mt-auto text-good-ink' : 'text-ink-muted'}`}>
-                    {(() => {
-                      const unidade = (n: number) => (j.estado.fonte === 'falas'
-                        ? tp(n, 'fala', 'falas')
-                        : tp(n, 'palavra', 'palavras'));
-                      if (liberado) {
-                        const total = ('pool' in j.estado ? j.estado.pool : undefined) ?? j.estado.disponiveis;
-                        const naRodada = j.estado.tamanhoDaRodada;
-                        return naRodada < total
-                          ? t('{n} nesta rodada · {total} disponíveis', { n: naRodada, total })
-                          : t('{n} {unidade} nesta rodada', { n: naRodada, unidade: unidade(naRodada) });
-                      }
-                      const motivo = 'motivo' in j.estado ? j.estado.motivo : undefined;
-                      if (motivo === 'trilha-sem-frase') {
-                        return ageProfile === 'kids'
-                          ? t('a trilha tem palavras, não frases')
-                          : t('a trilha tem palavras soltas, este jogo precisa de frase; escolha uma gravação');
-                      }
-                      if (motivo === 'sem-voz') return t('este navegador não tem voz em {idioma}', { idioma: langLabelNaUI(fonte.lang) });
-                      /* A trilha japonesa TEM 5.181 frases: a mensagem de acervo vazio mandaria a
+                            <button
+                              onClick={() => setExplicando(j.id)}
+                              className="relative z-10 min-w-6 min-h-6 inline-flex items-center justify-center rounded-lg text-ink-faint hover:text-accent hover:bg-surface-hover cursor-pointer shrink-0 opacity-0 group-hover:opacity-100 focus:opacity-100 focus-visible:opacity-100 [@media(hover:none)]:opacity-100 transition-opacity"
+                              title={t('Como se joga')}
+                              aria-label={`${t('Como se joga')}: ${tituloDoJogo(j, ageProfile)}`}
+                            >
+                              <HelpCircle className="w-4 h-4" />
+                            </button>
+                          </span>
+
+                          {modoOrganizar && (
+                            <span className="relative z-10 flex items-center gap-1 pt-1">
+                              {[
+                                {
+                                  icone: <ChevronLeft className="w-3.5 h-3.5" />,
+                                  dir: -1 as const,
+                                  rot: t('Mover para a esquerda'),
+                                },
+                                {
+                                  icone: <ChevronRight className="w-3.5 h-3.5" />,
+                                  dir: 1 as const,
+                                  rot: t('Mover para a direita'),
+                                },
+                              ].map(({ icone, dir, rot }) => (
+                                <button
+                                  key={dir}
+                                  onClick={() => mexerNaOrdem(mover(ordem, idsVisiveis, j.id, dir))}
+                                  className="min-w-6 min-h-6 inline-flex items-center justify-center rounded-md text-ink-faint hover:text-accent hover:bg-surface-hover cursor-pointer"
+                                  title={rot}
+                                  aria-label={`${rot}: ${tituloDoJogo(j, ageProfile)}`}
+                                >
+                                  {icone}
+                                </button>
+                              ))}
+                              <button
+                                aria-pressed={ordem.fixados.includes(j.id)}
+                                onClick={() => mexerNaOrdem(alternarFixado(ordem, j.id))}
+                                className={`min-w-6 min-h-6 inline-flex items-center justify-center rounded-md cursor-pointer hover:bg-surface-hover ${ordem.fixados.includes(j.id) ? 'text-accent' : 'text-ink-faint hover:text-accent'}`}
+                                title={ordem.fixados.includes(j.id) ? t('Desafixar do topo') : t('Fixar no topo')}
+                                aria-label={`${ordem.fixados.includes(j.id) ? t('Desafixar') : t('Fixar no topo')}: ${tituloDoJogo(j, ageProfile)}`}
+                              >
+                                <Pin className={`w-3.5 h-3.5 ${ordem.fixados.includes(j.id) ? 'fill-current' : ''}`} />
+                              </button>
+                            </span>
+                          )}
+
+                          <span className="text-[12px] text-ink-muted leading-snug">
+                            {descricaoDoJogo(j, ageProfile, fonte.id === 'trilha')}
+                          </span>
+
+                          {!liberado &&
+                            (() => {
+                              const porta = comoDesbloquear(j.estado, contextoDoDesbloqueio);
+                              if (!porta) return null;
+                              return (
+                                <button
+                                  onClick={() => abrirPorta(porta)}
+                                  className="relative z-10 mt-auto self-start inline-flex items-center gap-1.5 rounded-lg bg-accent-soft px-2.5 py-1.5 text-[11.5px] font-bold text-accent-ink hover:bg-accent hover:text-accent-contrast cursor-pointer"
+                                >
+                                  {porta.rotulo} <ChevronRight className="w-3.5 h-3.5" aria-hidden />
+                                </button>
+                              );
+                            })()}
+
+                          <span
+                            className={`text-[11px] pt-1 ${liberado ? 'font-bold mt-auto text-good-ink' : 'text-ink-muted'}`}
+                          >
+                            {(() => {
+                              const unidade = (n: number) =>
+                                j.estado.fonte === 'falas' ? tp(n, 'fala', 'falas') : tp(n, 'palavra', 'palavras');
+                              if (liberado) {
+                                const total = ('pool' in j.estado ? j.estado.pool : undefined) ?? j.estado.disponiveis;
+                                const naRodada = j.estado.tamanhoDaRodada;
+                                return naRodada < total
+                                  ? t('{n} nesta rodada · {total} disponíveis', { n: naRodada, total })
+                                  : t('{n} {unidade} nesta rodada', { n: naRodada, unidade: unidade(naRodada) });
+                              }
+                              const motivo = 'motivo' in j.estado ? j.estado.motivo : undefined;
+                              if (motivo === 'trilha-sem-frase') {
+                                return ageProfile === 'kids'
+                                  ? t('a trilha tem palavras, não frases')
+                                  : t('a trilha tem palavras soltas, este jogo precisa de frase; escolha uma gravação');
+                              }
+                              if (motivo === 'sem-voz')
+                                return t('este navegador não tem voz em {idioma}', {
+                                  idioma: langLabelNaUI(fonte.lang),
+                                });
+                              /* A trilha japonesa TEM 5.181 frases: a mensagem de acervo vazio mandaria a
                          pessoa procurar uma gravação para resolver o que não é falta de material. */
-                      if (motivo === 'escrita-sem-separacao') {
-                        return ageProfile === 'kids'
-                          ? t('em {idioma} as palavras ficam juntinhas, sem espaço', { idioma: langLabelNaUI(fonte.lang) })
-                          : t('este jogo separa as palavras da frase, e {idioma} não marca onde cada uma começa', { idioma: langLabelNaUI(fonte.lang) });
-                      }
-                      // Estado transitório e honesto: a gravação TEM som, ele está a caminho.
-                      if (motivo === 'audio-carregando') return t('baixando o áudio da gravação…');
-                      if (j.estado.fonte === 'falas' && j.estado.disponiveis === 0) return t('precisa de uma gravação com legenda');
+                              if (motivo === 'escrita-sem-separacao') {
+                                return ageProfile === 'kids'
+                                  ? t('em {idioma} as palavras ficam juntinhas, sem espaço', {
+                                      idioma: langLabelNaUI(fonte.lang),
+                                    })
+                                  : t(
+                                      'este jogo separa as palavras da frase, e {idioma} não marca onde cada uma começa',
+                                      { idioma: langLabelNaUI(fonte.lang) },
+                                    );
+                              }
+                              // Estado transitório e honesto: a gravação TEM som, ele está a caminho.
+                              if (motivo === 'audio-carregando') return t('baixando o áudio da gravação…');
+                              if (j.estado.fonte === 'falas' && j.estado.disponiveis === 0)
+                                return t('precisa de uma gravação com legenda');
 
-                      /* A CONTA INTEIRA, e não só o que falta.
+                              /* A CONTA INTEIRA, e não só o que falta.
                          "faltam 2 palavras" não diz de quantas nem sobre o quê, e a pessoa não tem
                          como saber se 2 palavras é perto ou longe, nem em que idioma elas contam.
                          Com "precisa de 4 · você tem 2 do espanhol", a mesma linha responde as três
                          perguntas e o caminho de saída fica óbvio: gravar mais naquele idioma. */
-                      const precisa = MINIGAMES[j.id].minItems;
-                      const falta = tp(j.estado.faltam, 'falta {n} {unidade}', 'faltam {n} {unidade}', {
-                        unidade: unidade(j.estado.faltam),
-                      });
-                      return ageProfile === 'kids'
-                        ? t('{falta} para abrir', { falta })
-                        : t('{falta} · precisa de {precisa} · você tem {tem} do {idioma}', {
-                            falta, precisa, tem: j.estado.disponiveis, idioma: langLabelNaUI(fonte.lang),
-                          });
-                    })()}
-                  </span>
-                  {/* O RECORDE, quando existe. Vem da coluna `score`, que era gravada a cada rodada
+                              const precisa = MINIGAMES[j.id].minItems;
+                              const falta = tp(j.estado.faltam, 'falta {n} {unidade}', 'faltam {n} {unidade}', {
+                                unidade: unidade(j.estado.faltam),
+                              });
+                              return ageProfile === 'kids'
+                                ? t('{falta} para abrir', { falta })
+                                : t('{falta} · precisa de {precisa} · você tem {tem} do {idioma}', {
+                                    falta,
+                                    precisa,
+                                    tem: j.estado.disponiveis,
+                                    idioma: langLabelNaUI(fonte.lang),
+                                  });
+                            })()}
+                          </span>
+                          {/* O RECORDE, quando existe. Vem da coluna `score`, que era gravada a cada rodada
                       desde a migração 0001 e nunca tinha sido lida de volta. Só aparece com jogo
                       liberado e recorde > 0: "recorde: 0" seria uma provocação sem sentido. */}
-                  {liberado && (recordeDoJogo(j.id) ?? 0) > 0 && (
-                    <span className="kpi-pill mt-1.5 self-start" title={t('Sua melhor sequência neste jogo, nesta fonte')}>
-                      <Trophy className="w-3 h-3" aria-hidden /> {t('recorde {n}', { n: recordeDoJogo(j.id) ?? 0 })}
-                    </span>
-                  )}
-                  </span>
-                </div>
+                          {liberado && (recordeDoJogo(j.id) ?? 0) > 0 && (
+                            <span
+                              className="kpi-pill mt-1.5 self-start"
+                              title={t('Sua melhor sequência neste jogo, nesta fonte')}
+                            >
+                              <Trophy className="w-3 h-3" aria-hidden />{' '}
+                              {t('recorde {n}', { n: recordeDoJogo(j.id) ?? 0 })}
+                            </span>
+                          )}
+                        </span>
+                      </div>
+                    </li>
+                  </React.Fragment>
+                );
+              })}
+
+              {/* Estado Vazio de Busca */}
+              {jogosClassicosFiltrados.length === 0 && (
+                <li className="col-span-full list-none py-12 text-center flex flex-col items-center gap-3">
+                  <div className="w-12 h-12 rounded-2xl bg-surface border border-border-subtle flex items-center justify-center text-ink-faint">
+                    <Search className="w-6 h-6" />
+                  </div>
+                  <p className="font-bold text-ink text-[15px]">{t('Nenhum jogo encontrado')}</p>
+                  <p className="text-[12.5px] text-ink-muted max-w-sm">
+                    {t('Tente buscar por outro termo ou ajuste os filtros de categoria e habilidade.')}
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setBuscaJogos('');
+                      setFiltroHabilidade('todas');
+                      setCategoriaAtiva('todos');
+                      triggerHaptic('soft');
+                      playJuicedHit(1);
+                    }}
+                    className="px-4 py-2 rounded-xl bg-surface border border-border-subtle hover:border-accent text-[12px] font-bold text-ink cursor-pointer transition-colors"
+                  >
+                    {t('Limpar filtros e busca')}
+                  </button>
                 </li>
-                </React.Fragment>
-              );
-            })}
+              )}
+            </ul>
+          </>
+        )}
 
-            {/* Estado Vazio de Busca */}
-            {jogosClassicosFiltrados.length === 0 && (
-              <li className="col-span-full list-none py-12 text-center flex flex-col items-center gap-3">
-                <div className="w-12 h-12 rounded-2xl bg-surface border border-border-subtle flex items-center justify-center text-ink-faint">
-                  <Search className="w-6 h-6" />
-                </div>
-                <p className="font-bold text-ink text-[15px]">{t('Nenhum jogo encontrado')}</p>
-                <p className="text-[12.5px] text-ink-muted max-w-sm">
-                  {t('Tente buscar por outro termo ou ajuste os filtros de categoria e habilidade.')}
-                </p>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setBuscaJogos('');
-                    setFiltroHabilidade('todas');
-                    setCategoriaAtiva('todos');
-                    triggerHaptic('soft');
-                    playJuicedHit(1);
-                  }}
-                  className="px-4 py-2 rounded-xl bg-surface border border-border-subtle hover:border-accent text-[12px] font-bold text-ink cursor-pointer transition-colors"
-                >
-                  {t('Limpar filtros e busca')}
-                </button>
-              </li>
-            )}
-          </ul>
-        </>
-      )}
-
-      {erro && (
-        <p className="mt-4 text-[12px] text-warn-ink">
-          {t('Não consegui carregar o seu baralho: {erro}', { erro })}
-        </p>
-      )}
+        {erro && (
+          <p className="mt-4 text-[12px] text-warn-ink">{t('Não consegui carregar o seu baralho: {erro}', { erro })}</p>
+        )}
       </div>
 
       {/* O progresso mora no CABEÇALHO (ver acima): uma linha, ao lado do título, onde o olho

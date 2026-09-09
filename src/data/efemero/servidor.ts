@@ -120,7 +120,9 @@ function chaveDedupLegada(word: string, srcLang: string | null | undefined): str
 }
 
 async function acharPelaChaveAntiga(
-  store: { index: (nome: string) => { get: (k: string) => Promise<CartaoLocal | undefined> } },
+  // O nome do índice é literal ('porNormKey'), não `string`: o `IDBPObjectStore` do `idb` tipa
+  // `index()` pelos índices declarados no schema, e um parâmetro `string` não casa com isso.
+  store: { index: (nome: 'porNormKey') => { get: (k: string) => Promise<CartaoLocal | undefined> } },
   word: string,
   srcLang: string | null | undefined,
 ): Promise<CartaoLocal | undefined> {
@@ -816,7 +818,9 @@ async function perfilEfemero(sessionId: string | null): Promise<AppMetrics> {
   }
   let rodadasPerfeitas = 0;
   for (const r of porRodada.values()) {
-    const minimo = (r.kind && (MINIGAMES as Record<string, { minItems?: number } | undefined>)[r.kind]?.minItems) ?? 3;
+    /* Com `r.kind === ''` o `&&` devolve a própria string vazia, e o `>=` a coage para 0. O
+       `Number()` reproduz EXATAMENTE essa coerção e tira o `string` do tipo de `minimo`. */
+    const minimo = Number((r.kind && (MINIGAMES as Record<string, { minItems?: number } | undefined>)[r.kind]?.minItems) ?? 3);
     if (r.total >= minimo && r.certos === r.total) rodadasPerfeitas += 1;
   }
   const seedsCreditadas = creditos.reduce((n, c) => n + c.amount, 0);

@@ -22,12 +22,15 @@ function instalarVozes(vozes: VozFalsa[]) {
     configurable: true,
     value: {
       getVoices: () => vozes,
-      addEventListener: (_: string, cb: () => void) => { ouvintes.push(cb) },
+      addEventListener: (_: string, cb: () => void) => {
+        ouvintes.push(cb)
+      },
       removeEventListener: vi.fn(),
-      speak: vi.fn(), cancel: vi.fn(),
+      speak: vi.fn(),
+      cancel: vi.fn(),
     },
   })
-  return { avisarQueChegaram: () => ouvintes.forEach(cb => cb()) }
+  return { avisarQueChegaram: () => ouvintes.forEach((cb) => cb()) }
 }
 
 /** Recarrega o módulo: o cache de vozes é de módulo e precisa nascer de novo a cada cenário. */
@@ -36,7 +39,9 @@ async function carregarTts() {
   return import('../src/lib/tts')
 }
 
-beforeEach(() => { vi.resetModules() })
+beforeEach(() => {
+  vi.resetModules()
+})
 
 describe('vozesCarregadas', () => {
   it('é falso enquanto a lista não chegou — o navegador ainda não respondeu', async () => {
@@ -86,13 +91,18 @@ describe('a conta do portão: na dúvida, libera', () => {
   })
 
   it('libera quando a lista chegou e o idioma está nela', async () => {
-    instalarVozes([{ lang: 'fr-FR', name: 'Thomas' }, { lang: 'en-US', name: 'Samantha' }])
+    instalarVozes([
+      { lang: 'fr-FR', name: 'Thomas' },
+      { lang: 'en-US', name: 'Samantha' },
+    ])
     const tts = await carregarTts()
     expect(portao(tts, 'fr')).toBe(true)
   })
 
   it('sem motor de voz nenhum, bloqueia — aí não é dúvida, é ausência', async () => {
-    delete window.speechSynthesis
+    // `speechSynthesis` nao e opcional no lib.dom; o cast expoe a propriedade como opcional para
+    // que o `delete` (que e exatamente o que o teste quer simular) seja aceito pelo compilador.
+    delete (window as { speechSynthesis?: SpeechSynthesis }).speechSynthesis
     const tts = await carregarTts()
     expect(portao(tts, 'fr')).toBe(false)
   })
@@ -110,7 +120,9 @@ describe('aoMudarVozes', () => {
   })
 
   it('sem suporte a voz, devolve um cancelador inofensivo em vez de quebrar', async () => {
-    delete window.speechSynthesis
+    // `speechSynthesis` nao e opcional no lib.dom; o cast expoe a propriedade como opcional para
+    // que o `delete` (que e exatamente o que o teste quer simular) seja aceito pelo compilador.
+    delete (window as { speechSynthesis?: SpeechSynthesis }).speechSynthesis
     const tts = await carregarTts()
     expect(() => tts.aoMudarVozes(() => {})()).not.toThrow()
   })

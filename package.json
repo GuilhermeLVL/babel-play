@@ -33,6 +33,7 @@
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
     "typecheck:core": "tsc -p src/core/tsconfig.json",
+    "typecheck:estrito": "tsc -p tsconfig.estrito.json --noEmit",
     "test": "vitest run",
     "test:unit": "vitest run",
     "test:cov": "vitest run --coverage",

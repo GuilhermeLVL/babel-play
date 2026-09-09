@@ -50,21 +50,51 @@ function porNomes(itens: Array<{ word: string }>): string[] {
  * matriz (inclusive a combinação "sem back e sem sentence", que `bulkAdd` recusaria) sem
  * confundir o resultado com a régua de outro repositório.
  */
-async function semear(userId: string, c: {
-  word: string; srcLang: string; back: string | null; sentence: string | null
-  cefrLevel: string | null; dueAt: number | null; origem: { kind: string; ref: string | null }
-}) {
+async function semear(
+  userId: string,
+  c: {
+    word: string
+    srcLang: string
+    back: string | null
+    sentence: string | null
+    cefrLevel: string | null
+    dueAt: number | null
+    origem: { kind: string; ref: string | null }
+  },
+) {
   const now = Date.now()
   const id = randomUUID()
   await db.insert(vocabCards).values({
-    id, createdAt: now, updatedAt: now, userId, word: c.word, back: c.back, sentence: c.sentence,
-    srcLang: c.srcLang, tgtLang: 'pt', inDeck: 1, box: 1, dueAt: c.dueAt, addedAt: now,
-    normKey: `${c.srcLang}|${c.word}`, occurrences: 1, firstSeenAt: now, lastSeenAt: now,
-    cefrLevel: c.cefrLevel, cefrSource: c.cefrLevel ? 'curado' : 'ausente',
+    id,
+    createdAt: now,
+    updatedAt: now,
+    userId,
+    word: c.word,
+    back: c.back,
+    sentence: c.sentence,
+    srcLang: c.srcLang,
+    tgtLang: 'pt',
+    inDeck: 1,
+    box: 1,
+    dueAt: c.dueAt,
+    addedAt: now,
+    normKey: `${c.srcLang}|${c.word}`,
+    occurrences: 1,
+    firstSeenAt: now,
+    lastSeenAt: now,
+    cefrLevel: c.cefrLevel,
+    cefrSource: c.cefrLevel ? 'curado' : 'ausente',
   })
   await db.insert(vocabOccurrences).values({
-    id: randomUUID(), createdAt: now, updatedAt: now, userId, cardId: id, occurredAt: now,
-    originKind: c.origem.kind, originRef: c.origem.ref, sentence: c.sentence,
+    id: randomUUID(),
+    createdAt: now,
+    updatedAt: now,
+    userId,
+    cardId: id,
+    occurredAt: now,
+    originKind: c.origem.kind,
+    originRef: c.origem.ref,
+    sentence: c.sentence,
   })
   palavras.set(c.word, id)
 }
@@ -80,19 +110,90 @@ beforeAll(async () => {
   const futuro = now + 86_400_000
   sessaoId = 'sessao-facetado-1'
   await db.insert(sessions).values({
-    id: sessaoId, createdAt: now, updatedAt: now, userId: U, title: 'Sessão do filtro facetado', kind: 'live',
+    id: sessaoId,
+    createdAt: now,
+    updatedAt: now,
+    userId: U,
+    title: 'Sessão do filtro facetado',
+    kind: 'live',
   })
 
-  await semear(U, { word: 'apple', srcLang: 'en', back: 'x', sentence: 's1', cefrLevel: 'A1', dueAt: null, origem: { kind: 'trilha', ref: 'en' } })
-  await semear(U, { word: 'banana', srcLang: 'en', back: null, sentence: 's2', cefrLevel: 'A2', dueAt: passado, origem: { kind: 'anki', ref: DECK_A } })
-  await semear(U, { word: 'cherry', srcLang: 'en', back: 'b3', sentence: null, cefrLevel: 'B1', dueAt: futuro, origem: { kind: 'anki', ref: DECK_B } })
-  await semear(U, { word: 'maçã', srcLang: 'pt', back: 'b4', sentence: 's4', cefrLevel: 'B1', dueAt: futuro, origem: { kind: 'sessao', ref: sessaoId } })
-  await semear(U, { word: 'laranja', srcLang: 'pt', back: null, sentence: null, cefrLevel: null, dueAt: null, origem: { kind: 'manual', ref: null } })
-  await semear(U, { word: 'ringo', srcLang: 'ja', back: 'b6', sentence: 's6', cefrLevel: 'A1', dueAt: passado, origem: { kind: 'anki', ref: DECK_A } })
-  await semear(U, { word: 'budou', srcLang: 'ja', back: 'b7', sentence: 's7', cefrLevel: 'C1', dueAt: futuro, origem: { kind: 'trilha', ref: 'ja' } })
-  await semear(U, { word: 'momo', srcLang: 'en', back: null, sentence: null, cefrLevel: 'A2', dueAt: futuro, origem: { kind: 'anki', ref: DECK_B } })
+  await semear(U, {
+    word: 'apple',
+    srcLang: 'en',
+    back: 'x',
+    sentence: 's1',
+    cefrLevel: 'A1',
+    dueAt: null,
+    origem: { kind: 'trilha', ref: 'en' },
+  })
+  await semear(U, {
+    word: 'banana',
+    srcLang: 'en',
+    back: null,
+    sentence: 's2',
+    cefrLevel: 'A2',
+    dueAt: passado,
+    origem: { kind: 'anki', ref: DECK_A },
+  })
+  await semear(U, {
+    word: 'cherry',
+    srcLang: 'en',
+    back: 'b3',
+    sentence: null,
+    cefrLevel: 'B1',
+    dueAt: futuro,
+    origem: { kind: 'anki', ref: DECK_B },
+  })
+  await semear(U, {
+    word: 'maçã',
+    srcLang: 'pt',
+    back: 'b4',
+    sentence: 's4',
+    cefrLevel: 'B1',
+    dueAt: futuro,
+    origem: { kind: 'sessao', ref: sessaoId },
+  })
+  await semear(U, {
+    word: 'laranja',
+    srcLang: 'pt',
+    back: null,
+    sentence: null,
+    cefrLevel: null,
+    dueAt: null,
+    origem: { kind: 'manual', ref: null },
+  })
+  await semear(U, {
+    word: 'ringo',
+    srcLang: 'ja',
+    back: 'b6',
+    sentence: 's6',
+    cefrLevel: 'A1',
+    dueAt: passado,
+    origem: { kind: 'anki', ref: DECK_A },
+  })
+  await semear(U, {
+    word: 'budou',
+    srcLang: 'ja',
+    back: 'b7',
+    sentence: 's7',
+    cefrLevel: 'C1',
+    dueAt: futuro,
+    origem: { kind: 'trilha', ref: 'ja' },
+  })
+  await semear(U, {
+    word: 'momo',
+    srcLang: 'en',
+    back: null,
+    sentence: null,
+    cefrLevel: 'A2',
+    dueAt: futuro,
+    origem: { kind: 'anki', ref: DECK_B },
+  })
 })
-afterAll(async () => { await h?.cleanup?.() })
+afterAll(async () => {
+  await h?.cleanup?.()
+})
 
 /**
  * O FILTRO CHEGA AO SERVIDOR (change `filtro-facetado-chega-ao-servidor`, auditoria A17).
@@ -108,8 +209,14 @@ describe('compor → rota → selecionarParaJogo — o filtro viaja de ponta a p
 
   function fakeRes() {
     const r: any = { statusCode: 200, body: undefined }
-    r.status = (c: number) => { r.statusCode = c; return r }
-    r.json = (b: any) => { r.body = b; return r }
+    r.status = (c: number) => {
+      r.statusCode = c
+      return r
+    }
+    r.json = (b: any) => {
+      r.body = b
+      return r
+    }
     return r
   }
 
@@ -117,7 +224,9 @@ describe('compor → rota → selecionarParaJogo — o filtro viaja de ponta a p
   const transporte = async (caminho: string, init?: { method: 'POST'; body: string }) => {
     const url = new URL(`http://x${caminho}`)
     const query: Record<string, string> = {}
-    url.searchParams.forEach((v, k) => { query[k] = v })
+    url.searchParams.forEach((v, k) => {
+      query[k] = v
+    })
     const req: any = { userId: U, path: url.pathname, query, body: init ? JSON.parse(init.body) : {} }
     const res = fakeRes()
     await (init ? handlers.post : handlers.get)(req, res)
@@ -129,14 +238,16 @@ describe('compor → rota → selecionarParaJogo — o filtro viaja de ponta a p
     ;({ compor } = await h.load('../../src/core/minigames/composicao'))
     const { vocabRouter } = (await h.load('../../server/routes/vocab')) as any
     const camada = (metodo: 'get' | 'post') =>
-      vocabRouter.stack.find((l: any) => l.route?.path === '/para-jogo' && l.route?.methods?.[metodo]).route.stack[0].handle
+      vocabRouter.stack.find((l: any) => l.route?.path === '/para-jogo' && l.route?.methods?.[metodo]).route.stack[0]
+        .handle
     handlers = { get: camada('get'), post: camada('post') }
   })
 
   it('GET: o filtro por baralho recorta no servidor, não só no fallback local', async () => {
     const r = await compor(
       { jogo: 'memory', fonte: { id: 'baralho' }, limite: 50, filtro: { fontes: ['baralho'], baralhos: [DECK_A] } },
-      [], transporte,
+      [],
+      transporte,
     )
     expect(r.origemDaComposicao).toBe('servidor')
     expect(porNomes(r.itens)).toEqual(['banana', 'ringo'])
@@ -145,7 +256,8 @@ describe('compor → rota → selecionarParaJogo — o filtro viaja de ponta a p
   it('GET: fontes:[trilha] + idiomas:[ja] — interseção calculada no servidor', async () => {
     const r = await compor(
       { jogo: 'memory', fonte: { id: 'baralho' }, limite: 50, filtro: { fontes: ['trilha'], idiomas: ['ja'] } },
-      [], transporte,
+      [],
+      transporte,
     )
     expect(r.origemDaComposicao).toBe('servidor')
     expect(porNomes(r.itens)).toEqual(['budou'])
@@ -154,8 +266,14 @@ describe('compor → rota → selecionarParaJogo — o filtro viaja de ponta a p
   it('GET: fontes:[sessao] com a sessão pedida — e `fonte: baralho` no pedido NÃO manda', async () => {
     // Precedência: `fonte/fonteRef/lang` viajam como proveniência; com `filtro`, o recorte é dele.
     const r = await compor(
-      { jogo: 'memory', fonte: { id: 'baralho', lang: 'en' }, limite: 50, filtro: { fontes: ['sessao'], sessoes: [sessaoId] } },
-      [], transporte,
+      {
+        jogo: 'memory',
+        fonte: { id: 'baralho', lang: 'en' },
+        limite: 50,
+        filtro: { fontes: ['sessao'], sessoes: [sessaoId] },
+      },
+      [],
+      transporte,
     )
     expect(r.origemDaComposicao).toBe('servidor')
     expect(porNomes(r.itens)).toEqual(['maçã'])
@@ -163,8 +281,14 @@ describe('compor → rota → selecionarParaJogo — o filtro viaja de ponta a p
 
   it('GET: recorte.pedindoRevisao — o servidor devolve só os vencidos', async () => {
     const r = await compor(
-      { jogo: 'memory', fonte: { id: 'baralho' }, limite: 50, filtro: { fontes: ['trilha', 'sessao', 'baralho'], recorte: { pedindoRevisao: true } } },
-      [], transporte,
+      {
+        jogo: 'memory',
+        fonte: { id: 'baralho' },
+        limite: 50,
+        filtro: { fontes: ['trilha', 'sessao', 'baralho'], recorte: { pedindoRevisao: true } },
+      },
+      [],
+      transporte,
     )
     expect(r.origemDaComposicao).toBe('servidor')
     expect(porNomes(r.itens)).toEqual(['banana', 'ringo'])
@@ -175,8 +299,14 @@ describe('compor → rota → selecionarParaJogo — o filtro viaja de ponta a p
     const dificeisIds = Array.from({ length: 200 }, (_, i) => `id-${String(i).padStart(36, '0')}`)
     dificeisIds[0] = palavras.get('banana')!
     const r = await compor(
-      { jogo: 'memory', fonte: { id: 'baralho' }, limite: 50, filtro: { fontes: ['baralho'], baralhos: [DECK_A], recorte: { dificeisIds } } },
-      [], transporte,
+      {
+        jogo: 'memory',
+        fonte: { id: 'baralho' },
+        limite: 50,
+        filtro: { fontes: ['baralho'], baralhos: [DECK_A], recorte: { dificeisIds } },
+      },
+      [],
+      transporte,
     )
     expect(r.origemDaComposicao).toBe('servidor')
     expect(porNomes(r.itens)).toEqual(['banana'])
@@ -210,17 +340,26 @@ describe('selecionarParaJogo(filtro) — o invariante de paridade', () => {
   })
 
   it('idiomas:[en] com todas as fontes — interseção por idioma', async () => {
-    const r = await vocabRepo.selecionarParaJogo(U, { limite: 50, filtro: { fontes: ['trilha', 'sessao', 'baralho'], idiomas: ['en'] } })
+    const r = await vocabRepo.selecionarParaJogo(U, {
+      limite: 50,
+      filtro: { fontes: ['trilha', 'sessao', 'baralho'], idiomas: ['en'] },
+    })
     expect(porNomes(r.itens)).toEqual(['apple', 'banana', 'cherry', 'momo'])
   })
 
   it('recorte.nuncaVistas — só due IS NULL', async () => {
-    const r = await vocabRepo.selecionarParaJogo(U, { limite: 50, filtro: { fontes: ['trilha', 'sessao', 'baralho'], recorte: { nuncaVistas: true } } })
+    const r = await vocabRepo.selecionarParaJogo(U, {
+      limite: 50,
+      filtro: { fontes: ['trilha', 'sessao', 'baralho'], recorte: { nuncaVistas: true } },
+    })
     expect(porNomes(r.itens)).toEqual(['apple', 'laranja'])
   })
 
   it('recorte.pedindoRevisao — due vencido, EXCLUI due NULL', async () => {
-    const r = await vocabRepo.selecionarParaJogo(U, { limite: 50, filtro: { fontes: ['trilha', 'sessao', 'baralho'], recorte: { pedindoRevisao: true } } })
+    const r = await vocabRepo.selecionarParaJogo(U, {
+      limite: 50,
+      filtro: { fontes: ['trilha', 'sessao', 'baralho'], recorte: { pedindoRevisao: true } },
+    })
     const nomes = porNomes(r.itens)
     expect(nomes).toEqual(['banana', 'ringo'])
     expect(nomes).not.toContain('apple') // due NULL não é "vencido"
@@ -228,23 +367,35 @@ describe('selecionarParaJogo(filtro) — o invariante de paridade', () => {
   })
 
   it('recorte.niveis — nível CEFR exato', async () => {
-    const r = await vocabRepo.selecionarParaJogo(U, { limite: 50, filtro: { fontes: ['trilha', 'sessao', 'baralho'], recorte: { niveis: ['B1'] } } })
+    const r = await vocabRepo.selecionarParaJogo(U, {
+      limite: 50,
+      filtro: { fontes: ['trilha', 'sessao', 'baralho'], recorte: { niveis: ['B1'] } },
+    })
     expect(porNomes(r.itens)).toEqual(['cherry', 'maçã'])
   })
 
   it('recorte.dificeisIds — recorte manual por id, um cartão só', async () => {
     const alvo = palavras.get('momo')!
-    const r = await vocabRepo.selecionarParaJogo(U, { limite: 50, filtro: { fontes: ['trilha', 'sessao', 'baralho'], recorte: { dificeisIds: [alvo] } } })
+    const r = await vocabRepo.selecionarParaJogo(U, {
+      limite: 50,
+      filtro: { fontes: ['trilha', 'sessao', 'baralho'], recorte: { dificeisIds: [alvo] } },
+    })
     expect(porNomes(r.itens)).toEqual(['momo'])
   })
 
   it('midia.comTraducao — só cartões com back preenchido', async () => {
-    const r = await vocabRepo.selecionarParaJogo(U, { limite: 50, filtro: { fontes: ['trilha', 'sessao', 'baralho'], midia: { comTraducao: true } } })
+    const r = await vocabRepo.selecionarParaJogo(U, {
+      limite: 50,
+      filtro: { fontes: ['trilha', 'sessao', 'baralho'], midia: { comTraducao: true } },
+    })
     expect(porNomes(r.itens)).toEqual(['apple', 'budou', 'cherry', 'maçã', 'ringo'])
   })
 
   it('midia.comFrase — só cartões com sentence preenchida', async () => {
-    const r = await vocabRepo.selecionarParaJogo(U, { limite: 50, filtro: { fontes: ['trilha', 'sessao', 'baralho'], midia: { comFrase: true } } })
+    const r = await vocabRepo.selecionarParaJogo(U, {
+      limite: 50,
+      filtro: { fontes: ['trilha', 'sessao', 'baralho'], midia: { comFrase: true } },
+    })
     expect(porNomes(r.itens)).toEqual(['apple', 'banana', 'budou', 'maçã', 'ringo'])
   })
 
@@ -260,7 +411,10 @@ describe('selecionarParaJogo(filtro) — o invariante de paridade', () => {
 describe('paridade com os chamadores ANTIGOS (fonte/fonteRef, sem filtro)', () => {
   it('fonte:"baralho", fonteRef:"anki:<deckA>" — mesmo conjunto que o filtro equivalente', async () => {
     const antigo = await vocabRepo.selecionarParaJogo(U, { limite: 50, fonte: 'baralho', fonteRef: `anki:${DECK_A}` })
-    const novo = await vocabRepo.selecionarParaJogo(U, { limite: 50, filtro: { fontes: ['baralho'], baralhos: [DECK_A] } })
+    const novo = await vocabRepo.selecionarParaJogo(U, {
+      limite: 50,
+      filtro: { fontes: ['baralho'], baralhos: [DECK_A] },
+    })
     expect(porNomes(antigo.itens)).toEqual(porNomes(novo.itens))
     expect(porNomes(antigo.itens)).toEqual(['banana', 'ringo'])
   })
@@ -309,7 +463,21 @@ describe('paridade SQL × passaNoFiltro — a mesma verdade dos dois lados', () 
       lista.push({ kind: o.originKind, ref: o.originRef })
       occsPorCartao.set(o.cardId, lista)
     }
-    const clientes = linhas.map((l: any) => {
+    /* O tipo tem de estar escrito aqui: `db` e um `any` do harness efemero, entao `linhas` chega
+       como `any` e o `.filter((c) => ...)` la embaixo ficaria com parametro implicito. */
+    type CartaoCliente = {
+      word: string
+      daTrilha: boolean
+      daAnki: boolean
+      baralhosAnki: string[]
+      sourceSessionId: string | undefined
+      srcLang: string | undefined
+      cefrLevel: string | undefined
+      translation: string | undefined
+      sentence: string | undefined
+      dueAtMs: number | null
+    }
+    const clientes: CartaoCliente[] = linhas.map((l: any) => {
       const minhas = occsPorCartao.get(l.id) ?? []
       return {
         word: l.word as string,
@@ -333,7 +501,11 @@ describe('paridade SQL × passaNoFiltro — a mesma verdade dos dois lados', () 
       { ...FILTRO_PADRAO, fontes: ['baralho' as const], baralhos: [DECK_A] },
       { ...FILTRO_PADRAO, fontes: ['baralho' as const, 'trilha' as const], idiomas: ['ja'] },
       { ...FILTRO_PADRAO, fontes: ['baralho' as const], idiomas: ['en'] },
-      { ...FILTRO_PADRAO, fontes: ['baralho' as const, 'sessao' as const, 'trilha' as const], recorte: { pedindoRevisao: true } },
+      {
+        ...FILTRO_PADRAO,
+        fontes: ['baralho' as const, 'sessao' as const, 'trilha' as const],
+        recorte: { pedindoRevisao: true },
+      },
       { ...FILTRO_PADRAO, fontes: ['baralho' as const, 'trilha' as const], recorte: { nuncaVistas: true } },
       { ...FILTRO_PADRAO, fontes: ['baralho' as const], midia: { comTraducao: true } },
       { ...FILTRO_PADRAO, fontes: ['baralho' as const, 'trilha' as const], recorte: { niveis: ['A1', 'B1'] } },
@@ -341,7 +513,9 @@ describe('paridade SQL × passaNoFiltro — a mesma verdade dos dois lados', () 
 
     for (const filtro of casos) {
       const doSql = await vocabRepo.selecionarParaJogo(U, {
-        jogo: 'memory', limite: 200, filtro: filtroParaComposicao(filtro as never),
+        jogo: 'memory',
+        limite: 200,
+        filtro: filtroParaComposicao(filtro as never),
       })
       const doPredicado = clientes
         .filter((c) => passaNoFiltro(c as never, filtro as never, { agora }))

@@ -22,6 +22,10 @@ jobs:
         run: npm run workflows:validar
       - run: npm run typecheck
       - run: npm run typecheck:core
+      # `strict` LIGADO na arvore inteira. O `tsconfig.json` da raiz nunca teve `strict`, e a Fase 3
+      # zerou os 81 erros que ele acusava (30 vinham de uma assinatura so, em `lazyComRecarga`).
+      # Este passo impede que o proximo entre: nao ha lista de pendentes porque nao sobrou nenhum.
+      - run: npm run typecheck:estrito
       - run: npm run lint
       # CODIGO MORTO (auditoria de 2026-09-07, achados A50-A56): 15 arquivos sem importador,
       # dependencias sem uso e dois ciclos de importacao entraram porque nada os cobrava. Os dois

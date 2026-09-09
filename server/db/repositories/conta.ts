@@ -13,9 +13,27 @@ import { SQLiteTable } from 'drizzle-orm/sqlite-core'
 import { db } from '../db'
 import * as schema from '../schema'
 import {
-  ankiDecks, ankiImports, ankiNotes, billingEvents, creditPurchases,
-  creditSpends, exerciseResults, presencas, providerCredentials, reviewLogs, secrets, seedCredits, seedSpends,
-  sessions, settings, subscriptions, usageCounters, userInterests, users, utterances, vocabCards,
+  ankiDecks,
+  ankiImports,
+  ankiNotes,
+  billingEvents,
+  creditPurchases,
+  creditSpends,
+  exerciseResults,
+  presencas,
+  providerCredentials,
+  reviewLogs,
+  secrets,
+  seedCredits,
+  seedSpends,
+  sessions,
+  settings,
+  subscriptions,
+  usageCounters,
+  userInterests,
+  users,
+  utterances,
+  vocabCards,
   vocabOccurrences,
 } from '../schema'
 import type { UserId } from '../../lib/authContext'
@@ -90,7 +108,9 @@ function conferirCobertura(): void {
     .filter(([, v]) => is(v, SQLiteTable))
     .filter(([, t]) => 'userId' in getTableColumns(t as SQLiteTable))
     .map(([nome]) => nome)
-  const faltando = noSchema.filter((n) => !NOMES_DAS_TABELAS_DO_TITULAR.includes(n) && !TABELAS_TRATADAS_A_PARTE.includes(n))
+  const faltando = noSchema.filter(
+    (n) => !NOMES_DAS_TABELAS_DO_TITULAR.includes(n) && !TABELAS_TRATADAS_A_PARTE.includes(n),
+  )
   if (faltando.length) {
     throw new Error(`conta.ts: tabelas com user_id fora de TABELAS_DO_TITULAR: ${faltando.join(', ')}`)
   }
@@ -150,11 +170,13 @@ function credencialSemSegredo(c: typeof providerCredentials.$inferSelect) {
  */
 async function refsDeSegredo(userId: UserId): Promise<string[]> {
   const [porCredencial, porDono] = await Promise.all([
-    db.select({ ref: providerCredentials.secretRef }).from(providerCredentials)
+    db
+      .select({ ref: providerCredentials.secretRef })
+      .from(providerCredentials)
       .where(eq(providerCredentials.userId, userId)),
     db.select({ ref: secrets.ref }).from(secrets).where(eq(secrets.userId, userId)),
   ])
-  return [...new Set([...porCredencial, ...porDono].map(l => l.ref).filter((r): r is string => !!r))]
+  return [...new Set([...porCredencial, ...porDono].map((l) => l.ref).filter((r): r is string => !!r))]
 }
 
 function arquivosEmMeta(linhas: { meta: string | null }[]): string[] {
@@ -164,7 +186,9 @@ function arquivosEmMeta(linhas: { meta: string | null }[]): string[] {
     try {
       const m = JSON.parse(s.meta) as Record<string, unknown>
       if (typeof m.audioFile === 'string' && m.audioFile) nomes.push(m.audioFile)
-    } catch { /* meta ilegível não pode impedir a exclusão do resto da conta */ }
+    } catch {
+      /* meta ilegível não pode impedir a exclusão do resto da conta */
+    }
   }
   return [...new Set(nomes)]
 }
@@ -189,16 +213,26 @@ export const contaRepo = {
   async exportar(userId: UserId): Promise<ExportacaoDaConta> {
     const dados: Record<string, unknown[]> = {}
     for (const [nome, tabela] of TABELAS_DO_TITULAR) {
-      const linhas = await db.select().from(tabela).where(inArray(tabela.userId, chavesDoTitular(nome, userId)))
-      dados[nome] = nome === 'providerCredentials' ? linhas.map(credencialSemSegredo) : linhas
+      const linhas = await db
+        .select()
+        .from(tabela)
+        .where(inArray(tabela.userId, chavesDoTitular(nome, userId)))
+      /* `TABELAS_DO_TITULAR` é heterogênea, então `linhas` chega como a união das linhas de todas
+         as tabelas; dentro do ramo já sabemos QUAL tabela é, e o cast só diz isso ao compilador. */
+      dados[nome] =
+        nome === 'providerCredentials'
+          ? (linhas as (typeof providerCredentials.$inferSelect)[]).map(credencialSemSegredo)
+          : linhas
     }
 
     const refs = await refsDeSegredo(userId)
     dados.secrets = refs.length
-      ? (await db
-        .select({ ref: secrets.ref, createdAt: secrets.createdAt, updatedAt: secrets.updatedAt })
-        .from(secrets)
-        .where(inArray(secrets.ref, refs))).map(s => ({ ...s, temValor: true }))
+      ? (
+          await db
+            .select({ ref: secrets.ref, createdAt: secrets.createdAt, updatedAt: secrets.updatedAt })
+            .from(secrets)
+            .where(inArray(secrets.ref, refs))
+        ).map((s) => ({ ...s, temValor: true }))
       : []
 
     const conta = await db.select().from(users).where(eq(users.id, userId)).limit(1)

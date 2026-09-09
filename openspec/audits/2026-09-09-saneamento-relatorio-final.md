@@ -1,6 +1,6 @@
 # Relatório final — rodada de saneamento 2026-09
 
-Branch `saneamento/2026-09-08`, a partir de `main` @ `47ecf10`. **50 commits, 31 changes OpenSpec
+Branch `saneamento/2026-09-08`, a partir de `main` @ `47ecf10`. **55 commits, 32 changes OpenSpec
 arquivadas, seis fases.**
 
 Máquina: Windows 11, Node v24.18.0. Toda medição de servidor com os mesmos parâmetros da linha de
@@ -219,7 +219,7 @@ sinal — que era o comportamento antes desta rodada.
 
 ## 8. Estado da entrega
 
-- **Branch**: `saneamento/2026-09-08`, 50 commits à frente de `main`.
+- **Branch**: `saneamento/2026-09-08`, 55 commits à frente de `main`, empurrada para `origin` em `8030e61`.
 - **Bateria local, com a árvore quieta**: 3.901 testes vitest · 99 e2e em 3 viewports · `tsc` ·
   `typecheck:core` · `typecheck:estrito` · `eslint --max-warnings 0` · `knip` · `madge` ·
   `audit:gate` · `gitleaks` (0) · `ast-grep test` + `scan` · `rotas-sem-caracterizacao` (87) ·
@@ -228,7 +228,7 @@ sinal — que era o comportamento antes desta rodada.
 - **PRs**: não abertas. O `gh` está instalado (2.100.0) e **não autenticado** nesta máquina
   (`gh auth status`: "not logged into any GitHub hosts"), e a autenticação exige uma sessão
   interativa. Os comandos prontos estão em §8.
-- **Changes OpenSpec**: 31 arquivadas nesta rodada; 14 continuam abertas (as três paradas por
+- **Changes OpenSpec**: 32 arquivadas nesta rodada; 14 continuam abertas (as três paradas por
   decisão do dono, mais as de produto anteriores a esta rodada). `openspec validate --all` limpo, 91
   itens.
 

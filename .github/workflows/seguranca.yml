@@ -1,6 +1,7 @@
 name: Segurança
 
-# Segredos no histórico (gitleaks) e análise estática (CodeQL). Grátis em repositório público.
+# Segredos no histórico (gitleaks) e análise estática (CodeQL + Semgrep). Grátis em repositório
+# público.
 on:
   push:
   pull_request:
@@ -30,3 +31,27 @@ jobs:
         with:
           languages: javascript-typescript
       - uses: github/codeql-action/analyze@42947a340483f03ba47bb1a039b2c519aab3df85 # v3
+
+  # SAST GENÉRICO, ao lado do CodeQL e das regras próprias.
+  #
+  # As seis regras de `audit/rules/ast-grep/` são invariantes DESTA casa (rota que fala com o banco,
+  # `process.env` dentro de handler, `fetch` fora do funil) — elas não substituem um SAST, e um SAST
+  # não substitui elas. Rodado à mão em 2026-09-09 sobre `server/` e `src/`, o Semgrep achou UM
+  # aviso, e era o mesmo que a regra `resposta-crua` já acusava: uma confirmação independente de que
+  # as regras da casa cobrem o que importa. Aqui ele entra para valer a cada push.
+  #
+  # `p/secrets` fica de fora: o gitleaks acima já varre o histórico inteiro, com allowlist nomeada.
+  semgrep:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      # Via pip, e nao pela imagem oficial nem pela action: as duas exigiriam fixar um digest, e
+      # digest que ninguem consegue verificar de onde escreve o workflow e pior que versao fixada.
+      # `==` e nao `>=`: um pacote de regras novo nao deve aparecer sem alguem decidir.
+      - name: Instalar Semgrep
+        run: pipx install semgrep==1.176.1
+      - name: Semgrep (TypeScript, Node, Express, React)
+        # `--error` faz o passo falhar em achado de severidade ERROR; WARNING aparece no log e não
+        # barra — a severidade é do pacote de regras, e barrar em WARNING transformaria o gate numa
+        # fila de exceções logo na primeira semana.
+        run: semgrep --config=p/typescript --config=p/nodejs --config=p/expressjs --config=p/react --error --quiet server server.ts src

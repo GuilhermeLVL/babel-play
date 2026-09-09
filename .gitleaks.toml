@@ -7,3 +7,14 @@ description = "Falsos positivos conhecidos, um por linha, com motivo"
 # scripts/models-hashes.json: manifesto TOFU de integridade dos pesos de modelo — só SHA-256 hex,
 # público por natureza (é o que garante que o download não foi trocado).
 paths = ['''scripts/models-hashes\.json''']
+
+# A CONSTANTE DE TESTE DO JWT, e nao um segredo. `segredo-e2e-hs256-marco1` e o valor com que
+# `tests/integration/mt1-isolation-e2e.test.ts` assina um HS256 local para provar isolamento entre
+# duas contas; `docs/auditoria/seguranca-v1.md` a cita ao explicar o teste. Ela nunca foi chave de
+# nada — nao abre conta, nao assina token que algum servidor real aceite.
+#
+# A allowlist e por VALOR e nao por caminho, de proposito: assim ela cobre tambem os relatorios de
+# auditoria que registram a propria varredura (o `gitleaks-historico.json` da Fase 0 guardava os
+# dois achados originais, e a varredura seguinte os achava de novo — quatro achados que eram o
+# registro de dois). Um segredo DIFERENTE em qualquer arquivo continua sendo acusado.
+regexes = ['''segredo-e2e-hs256-marco1''']

@@ -12,7 +12,10 @@ import { segundosFaturaveis } from '../lib/duracaoDeAudio'
 import { hasEntitlement } from '../lib/entitlements'
 import { erroDeRota } from '../lib/erroDeRota'
 import { normalizarIdiomaDoWhisper } from '../lib/idiomaDoWhisper'
-import { estornarSegundosDeStt,refundManagedCall, reservarSegundosDeStt, reserveManagedCall } from '../lib/usageQuota'
+import { log } from '../lib/logger'
+import { responderErro } from '../lib/respostaDeErro'
+import { estornarSegundosDeStt, refundManagedCall, reservarSegundosDeStt, reserveManagedCall } from '../lib/usageQuota'
+import { parseOr400, sttHeadersSchema } from '../validation'
 import { assertPublicUrl } from './ssrf'
 
 /** POST /api/ai/stt/transcribe (OpenAI-compatible Whisper). */
@@ -38,7 +41,7 @@ export async function sttTranscribeProxy(req: Request, res: Response): Promise<v
     let defaultModel: string | null
 
     if (credentialId) {
-      ({ baseUrl, secret, defaultModel } = await credentialsRepo.getSecret(req.userId, credentialId))
+      ;({ baseUrl, secret, defaultModel } = await credentialsRepo.getSecret(req.userId, credentialId))
     } else {
       // SaaS Fatia 1b — STT de nuvem GERENCIADA (chave do DONO) exige o entitlement. BYOK (ramo `if`)
       // e o STT local (no navegador) passam livres: só o caminho que gasta a chave do serviço é gateado.
@@ -83,8 +86,22 @@ export async function sttTranscribeProxy(req: Request, res: Response): Promise<v
     }
     await assertPublicUrl(baseUrl) // anti-SSRF
 
-    const model = req.header('x-model') || defaultModel || 'whisper-large-v3-turbo'
-    const lang = req.header('x-language')
+    /* ACHADO DA FASE 4: `x-model` e `x-language` iam do cabeçalho para dentro do `FormData` do
+       provedor sem validação nenhuma — o cabeçalho escolhia (e pagava) o modelo, e o idioma
+       entrava verbatim no campo `language`. Agora os dois passam por schema de formato e tamanho;
+       fora do formato é 400 aqui, antes de qualquer chamada externa. */
+    const cabecalhos = parseOr400(
+      sttHeadersSchema,
+      {
+        'x-model': req.header('x-model'),
+        'x-language': req.header('x-language'),
+      },
+      res,
+    )
+    if (!cabecalhos) return
+
+    const model = cabecalhos['x-model'] || defaultModel || 'whisper-large-v3-turbo'
+    const lang = cabecalhos['x-language']
     const endpoint = baseUrl.replace(/\/+$/, '') + '/audio/transcriptions'
 
     /* PEDIMOS `verbose_json` PARA NÃO JOGAR FORA O IDIOMA.
@@ -104,12 +121,13 @@ export async function sttTranscribeProxy(req: Request, res: Response): Promise<v
     }
     // Sem anotação de retorno: neste arquivo `Response` é o da Express (importado acima), não o
     // do fetch. Deixar o TypeScript inferir evita a colisão de nomes.
-    const enviar = (formato: 'verbose_json' | 'json') => fetch(endpoint, {
-      method: 'POST',
-      headers: { Authorization: 'Bearer ' + secret },
-      body: montarForm(formato),
-      signal: AbortSignal.timeout(30_000),
-    })
+    const enviar = (formato: 'verbose_json' | 'json') =>
+      fetch(endpoint, {
+        method: 'POST',
+        headers: { Authorization: 'Bearer ' + secret },
+        body: montarForm(formato),
+        signal: AbortSignal.timeout(30_000),
+      })
 
     let upstream = await enviar('verbose_json')
     // Nem todo endpoint OpenAI-compatible implementa `verbose_json`. Quando ele RECUSA o formato
@@ -120,8 +138,25 @@ export async function sttTranscribeProxy(req: Request, res: Response): Promise<v
     }
 
     if (!upstream.ok) {
-      const text = await upstream.text()
-      res.status(502).json({ error: 'STT upstream HTTP ' + upstream.status + ': ' + text.slice(0, 160) })
+      /* O CORPO DO TERCEIRO NÃO É PARA O CLIENTE (achado da Fase 4). Até aqui, 160 caracteres da
+         resposta do provedor eram ecoados dentro de `error` — e o que o provedor escreve num erro
+         não é contrato nosso: pode trazer nome de modelo interno, id de organização, host ou
+         trecho do pedido. O cliente precisa saber que falhou e poder CITAR o `requestId`; o texto
+         do upstream fica no log estruturado, que é onde alguém investiga. */
+      const text = await upstream.text().catch(() => '')
+      log('error', {
+        event: 'stt_upstream_erro',
+        route: '/api/ai/stt',
+        status: upstream.status,
+        error: text.slice(0, 300),
+        requestId: req.requestId,
+      })
+      responderErro(
+        res,
+        502,
+        req.requestId ? `transcrição indisponível (req: ${req.requestId})` : 'transcrição indisponível',
+        'provedor_indisponivel',
+      )
       return
     }
 

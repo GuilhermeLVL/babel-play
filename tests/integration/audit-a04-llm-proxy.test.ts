@@ -12,7 +12,7 @@ import { Writable } from 'node:stream'
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
 
 import { asUserId } from '../../server/lib/authContext'
-import { type EphemeralDb,setupEphemeralDb } from '../harness/ephemeralDb'
+import { type EphemeralDb, setupEphemeralDb } from '../harness/ephemeralDb'
 
 const OWNER = asUserId('a04-owner')
 
@@ -24,16 +24,23 @@ let captured: { signal: unknown; body: any } | null
 beforeAll(async () => {
   h = await setupEphemeralDb()
   ;({ llmChatProxy } = await h.load<{ llmChatProxy: typeof llmChatProxy }>('../../server/ai/proxy'))
-  const { credentialsRepo } = await h.load<{ credentialsRepo: {
-    create: (userId: unknown, p: Record<string, unknown>) => Promise<{ id: string }>
-  } }>('../../server/db/repositories/credentials')
+  const { credentialsRepo } = await h.load<{
+    credentialsRepo: {
+      create: (userId: unknown, p: Record<string, unknown>) => Promise<{ id: string }>
+    }
+  }>('../../server/db/repositories/credentials')
   const cred = await credentialsRepo.create(OWNER, {
-    label: 'a04', kind: 'openai',
-    baseUrl: 'https://api.groq.com/openai/v1', defaultModel: 'llama-3.1-8b-instant', secret: 'sk-fake',
+    label: 'a04',
+    kind: 'openai',
+    baseUrl: 'https://api.groq.com/openai/v1',
+    defaultModel: 'llama-3.1-8b-instant',
+    secret: 'sk-fake',
   })
   credId = cred.id
 })
-afterAll(async () => { await h.cleanup() })
+afterAll(async () => {
+  await h.cleanup()
+})
 
 function mockFetch() {
   captured = null
@@ -47,22 +54,40 @@ function mockFetch() {
 /** res mínimo que é um Writable (para o pipeline) + os métodos do Express usados pelo proxy. */
 function mkRes() {
   const chunks: Buffer[] = []
-  const w = new Writable({ write(c, _e, cb) { chunks.push(Buffer.from(c)); cb() } }) as Writable & Record<string, any>
+  const w = new Writable({
+    write(c, _e, cb) {
+      chunks.push(Buffer.from(c))
+      cb()
+    },
+  }) as Writable & Record<string, any>
   w.statusCode = 200
   w.headersSent = false
-  w.status = (c: number) => { w.statusCode = c; return w }
+  w.status = (c: number) => {
+    w.statusCode = c
+    return w
+  }
   w.setHeader = () => w
-  w.json = (o: unknown) => { w._json = o; return w }
+  w.json = (o: unknown) => {
+    w._json = o
+    return w
+  }
   w.header = () => undefined
   w.chunks = chunks
   return w
 }
 
+/* FASE 4: as fixtures deixaram de mandar `messages: []`. O corpo do proxy agora passa por
+   `llmChatCompletionsSchema` (era espalhado cru para o provedor), e uma conversa sem nenhuma
+   mensagem nunca foi um pedido válido — era só o mínimo que o teste antigo precisava escrever. */
 describe('A-04/S-07 — proxy de LLM endurecido', () => {
   it('CORRIGIDO (A-04): o fetch upstream tem timeout (AbortSignal)', async () => {
     const spy = mockFetch()
     const res = mkRes()
-    const req = { userId: OWNER, header: (n: string) => (n === 'x-credential-id' ? credId : undefined), body: { messages: [] } }
+    const req = {
+      userId: OWNER,
+      header: (n: string) => (n === 'x-credential-id' ? credId : undefined),
+      body: { messages: [{ role: 'user', content: 'oi' }] },
+    }
     await llmChatProxy(req, res)
     spy.mockRestore()
     expect(captured?.signal).toBeTruthy()
@@ -72,7 +97,11 @@ describe('A-04/S-07 — proxy de LLM endurecido', () => {
   it('CORRIGIDO (S-07): max_tokens é clampado no servidor mesmo se o cliente pedir muito', async () => {
     const spy = mockFetch()
     const res = mkRes()
-    const req = { userId: OWNER, header: (n: string) => (n === 'x-credential-id' ? credId : undefined), body: { messages: [], max_tokens: 999999 } }
+    const req = {
+      userId: OWNER,
+      header: (n: string) => (n === 'x-credential-id' ? credId : undefined),
+      body: { messages: [{ role: 'user', content: 'oi' }], max_tokens: 999999 },
+    }
     await llmChatProxy(req, res)
     spy.mockRestore()
     expect(captured?.body.max_tokens).toBeLessThanOrEqual(4096)

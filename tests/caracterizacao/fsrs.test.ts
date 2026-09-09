@@ -9,9 +9,9 @@
  */
 import { randomUUID } from 'node:crypto'
 
-import { afterAll,beforeAll, describe, expect, it } from 'vitest'
+import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
-import { type AppDeTeste,resposta, semear, subirApp } from './_app'
+import { type AppDeTeste, resposta, semear, subirApp } from './_app'
 
 describe('vocabulario e FSRS (self-host)', () => {
   let s: AppDeTeste
@@ -20,7 +20,9 @@ describe('vocabulario e FSRS (self-host)', () => {
     s = await subirApp({ modo: 'self-host' })
     semente = await semear(s, 'local-owner')
   })
-  afterAll(async () => { await s.encerrar() })
+  afterAll(async () => {
+    await s.encerrar()
+  })
 
   async function contarReviewLogs(): Promise<number> {
     const { client } = await s.load('../../server/db/db')
@@ -38,7 +40,9 @@ describe('vocabulario e FSRS (self-host)', () => {
   it('GET /api/vocab/para-jogo seleciona do baralho com a forma conhecida', async () => {
     const r = await s.get('/api/vocab/para-jogo?fonte=baralho&limite=10&estrategia=equilibrado')
     expect(r.status).toBe(200)
-    await expect(JSON.stringify(await resposta(r), null, 2)).toMatchFileSnapshot('__snapshots__/get.vocab.para-jogo.json')
+    await expect(JSON.stringify(await resposta(r), null, 2)).toMatchFileSnapshot(
+      '__snapshots__/get.vocab.para-jogo.json',
+    )
   })
 
   it('GET /api/vocab/pagina?limite=10 devolve a pagina do catalogo', async () => {
@@ -50,7 +54,9 @@ describe('vocabulario e FSRS (self-host)', () => {
   it('GET /api/vocab/inicio-da-contagem devolve o marco da contagem', async () => {
     const r = await s.get('/api/vocab/inicio-da-contagem')
     expect(r.status).toBe(200)
-    await expect(JSON.stringify(await resposta(r), null, 2)).toMatchFileSnapshot('__snapshots__/get.vocab.inicio-da-contagem.json')
+    await expect(JSON.stringify(await resposta(r), null, 2)).toMatchFileSnapshot(
+      '__snapshots__/get.vocab.inicio-da-contagem.json',
+    )
   })
 
   it('POST /api/vocab/:id/review {grade:3} move o dueAt para a frente e grava um review_log', async () => {
@@ -64,13 +70,17 @@ describe('vocabulario e FSRS (self-host)', () => {
     expect(corpo.dueAt).toBeGreaterThan(cartao.dueAt ?? 0)
     expect(corpo.lastReview).toBeGreaterThan(0)
     expect(await contarReviewLogs()).toBe(antes + 1)
-    await expect(JSON.stringify(await resposta(r), null, 2)).toMatchFileSnapshot('__snapshots__/post.vocab.id.review.json')
+    await expect(JSON.stringify(await resposta(r), null, 2)).toMatchFileSnapshot(
+      '__snapshots__/post.vocab.id.review.json',
+    )
   })
 
   it('review com grade 5 responde 400', async () => {
     const r = await s.post(`/api/vocab/${semente.cartoes[1].id}/review`, { grade: 5 })
     expect(r.status).toBe(400)
-    await expect(JSON.stringify(await resposta(r), null, 2)).toMatchFileSnapshot('__snapshots__/post.vocab.id.review.400.json')
+    await expect(JSON.stringify(await resposta(r), null, 2)).toMatchFileSnapshot(
+      '__snapshots__/post.vocab.id.review.400.json',
+    )
   })
 
   it('review sem grade usa o default 3 do schema', async () => {
@@ -80,7 +90,10 @@ describe('vocabulario e FSRS (self-host)', () => {
     expect(r.status).toBe(200)
     expect(await contarReviewLogs()).toBe(antes + 1)
     const { client } = await s.load('../../server/db/db')
-    const log = await client.execute({ sql: 'select grade from review_logs where card_id = ? order by reviewed_at desc limit 1', args: [cartao.id] })
+    const log = await client.execute({
+      sql: 'select grade from review_logs where card_id = ? order by reviewed_at desc limit 1',
+      args: [cartao.id],
+    })
     expect(Number(log.rows[0].grade)).toBe(3)
   })
 
@@ -89,13 +102,27 @@ describe('vocabulario e FSRS (self-host)', () => {
     // caracterizacao: comportamento atual, nao desejado — o repositorio lanca `card não encontrado`
     // e a rota traduz toda excecao em 400; o cliente nao distingue "nao existe" de "payload ruim".
     expect(r.status).toBe(400)
-    await expect(JSON.stringify(await resposta(r), null, 2)).toMatchFileSnapshot('__snapshots__/post.vocab.id.review.inexistente.json')
+    await expect(JSON.stringify(await resposta(r), null, 2)).toMatchFileSnapshot(
+      '__snapshots__/post.vocab.id.review.inexistente.json',
+    )
+  })
+
+  it('POST /api/vocab/:id/review com :id acima do teto → 400 pelo idParamSchema', async () => {
+    /* FASE 4 (correção 4): o `:id` desta rota ia CRU ao repositório — a nota tinha schema, o
+       identificador não. Agora passa pelo mesmo `idParamSchema` das rotas vizinhas. */
+    const r = await s.post(`/api/vocab/${'x'.repeat(200)}/review`, { grade: 3 })
+    expect(r.status).toBe(400)
+    expect(String((await r.json()).error)).toContain('id')
   })
 
   it('POST /api/vocab/bulk-add com palavra repetida nao cria cartao novo', async () => {
-    const r = await s.post('/api/vocab/bulk-add', { cards: [{ word: 'harvest', srcLang: 'en', back: 'colheita', sentence: 'Another harvest.' }] })
+    const r = await s.post('/api/vocab/bulk-add', {
+      cards: [{ word: 'harvest', srcLang: 'en', back: 'colheita', sentence: 'Another harvest.' }],
+    })
     expect(r.status).toBe(200)
-    await expect(JSON.stringify(await resposta(r), null, 2)).toMatchFileSnapshot('__snapshots__/post.vocab.bulk-add.json')
+    await expect(JSON.stringify(await resposta(r), null, 2)).toMatchFileSnapshot(
+      '__snapshots__/post.vocab.bulk-add.json',
+    )
     expect(await (await s.get('/api/vocab')).json()).toHaveLength(4)
   })
 

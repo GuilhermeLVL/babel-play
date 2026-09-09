@@ -6,7 +6,7 @@
 import { Router } from 'express'
 import { z } from 'zod'
 
-import { type PlanoDeAssinatura,PLANOS_DE_ASSINATURA } from '../../src/core/planos'
+import { type PlanoDeAssinatura, PLANOS_DE_ASSINATURA } from '../../src/core/planos'
 import { billingEventsRepo } from '../db/repositories/billingEvents'
 import { resumoDoDono } from '../db/repositories/resumo'
 import { subscriptionsRepo } from '../db/repositories/subscriptions'
@@ -16,7 +16,7 @@ import { aplicarEvento, eventoSchema } from '../lib/billingEventos'
 import { lerUltimosErros } from '../lib/diarioDeErros'
 import { log } from '../lib/logger'
 import { requireRole } from '../lib/rbac'
-import { modoDeReconciliacao,reconciliarArmazenamento } from '../lib/storageQuota'
+import { modoDeReconciliacao, reconciliarArmazenamento } from '../lib/storageQuota'
 import { idParamSchema, parseOr400 } from '../validation'
 
 export const adminRouter = Router()
@@ -32,41 +32,69 @@ adminRouter.get('/users/:id', requireRole('admin', 'support'), async (req, res) 
   if (!p) return
   const target = asUserId(p.id)
   const user = await usersRepo.get(target)
-  if (!user) { res.status(404).json({ error: 'usuário não encontrado' }); return }
+  if (!user) {
+    res.status(404).json({ error: 'usuário não encontrado' })
+    return
+  }
   res.json({ user, subscription: await subscriptionsRepo.getActive(target) })
 })
 
 // ── Escrita (só admin) ───────────────────────────────────────────────────────
-const patchSchema = z.object({
-  role: z.enum(['user', 'admin', 'support']).optional(),
-  status: z.enum(['active', 'suspended']).optional(),
-}).strip()
+const patchSchema = z
+  .object({
+    role: z.enum(['user', 'admin', 'support']).optional(),
+    status: z.enum(['active', 'suspended']).optional(),
+  })
+  .strip()
 
 adminRouter.patch('/users/:id', requireRole('admin'), async (req, res) => {
   const parsed = patchSchema.safeParse(req.body ?? {})
   if (!parsed.success || (parsed.data.role === undefined && parsed.data.status === undefined)) {
-    res.status(400).json({ error: 'informe role e/ou status válidos' }); return
+    res.status(400).json({ error: 'informe role e/ou status válidos' })
+    return
   }
-  const target = asUserId(req.params.id)
+  // Fase 4: `asUserId` é cast de marca, não validação — o `:id` chegava cru ao `usersRepo`, do
+  // mesmo jeito que o `GET /users/:id` acima já corrigira. As rotas de ESCRITA ficaram de fora.
+  const p = parseOr400(idParamSchema, req.params, res)
+  if (!p) return
+  const target = asUserId(p.id)
   // Gere só contas EXISTENTES: sem isto, `ensure`/`setRole` criariam uma conta-fantasma e poderiam
   // pré-atribuir 'admin' a um `sub` que nem se cadastrou (pré-provisionamento de privilégio).
-  if (!(await usersRepo.get(target))) { res.status(404).json({ error: 'usuário não encontrado' }); return }
+  if (!(await usersRepo.get(target))) {
+    res.status(404).json({ error: 'usuário não encontrado' })
+    return
+  }
   // Anti-self-lockout: o admin não remove o PRÓPRIO acesso (evita se trancar para fora).
-  if (target === req.userId && (parsed.data.status === 'suspended' || parsed.data.role === 'user' || parsed.data.role === 'support')) {
-    res.status(400).json({ error: 'não é possível remover o próprio acesso de admin' }); return
+  if (
+    target === req.userId &&
+    (parsed.data.status === 'suspended' || parsed.data.role === 'user' || parsed.data.role === 'support')
+  ) {
+    res.status(400).json({ error: 'não é possível remover o próprio acesso de admin' })
+    return
   }
   if (parsed.data.role) await usersRepo.setRole(target, parsed.data.role)
   if (parsed.data.status) await usersRepo.setStatus(target, parsed.data.status)
   res.json(await usersRepo.get(target))
 })
 
-const planSchema = z.object({ plan: z.enum(PLANOS_DE_ASSINATURA as unknown as [PlanoDeAssinatura, ...PlanoDeAssinatura[]]) }).strip() // deriva da matriz
+const planSchema = z
+  .object({ plan: z.enum(PLANOS_DE_ASSINATURA as unknown as [PlanoDeAssinatura, ...PlanoDeAssinatura[]]) })
+  .strip() // deriva da matriz
 
 adminRouter.patch('/users/:id/plan', requireRole('admin'), async (req, res) => {
   const parsed = planSchema.safeParse(req.body ?? {})
-  if (!parsed.success) { res.status(400).json({ error: 'plan inválido' }); return }
-  const target = asUserId(req.params.id)
-  if (!(await usersRepo.get(target))) { res.status(404).json({ error: 'usuário não encontrado' }); return }
+  if (!parsed.success) {
+    res.status(400).json({ error: 'plan inválido' })
+    return
+  }
+  // Fase 4: idem — `:id` cru até aqui.
+  const p = parseOr400(idParamSchema, req.params, res)
+  if (!p) return
+  const target = asUserId(p.id)
+  if (!(await usersRepo.get(target))) {
+    res.status(404).json({ error: 'usuário não encontrado' })
+    return
+  }
   res.json(await subscriptionsRepo.upsert(target, { plan: parsed.data.plan, status: 'active' }))
 })
 
@@ -132,13 +160,25 @@ adminRouter.post('/billing/reprocessar/:id', requireRole('admin'), async (req, r
   const p = parseOr400(idParamSchema, req.params, res)
   if (!p) return
   const linha = await billingEventsRepo.ler(p.id)
-  if (!linha) { res.status(404).json({ error: 'evento não encontrado' }); return }
-  if (linha.estado === 'aplicado') { res.json({ ok: true, repetido: true, estado: 'aplicado' }); return }
-  if (!linha.payload) { res.status(409).json({ error: 'evento sem payload guardado — anterior ao registro de estado' }); return }
+  if (!linha) {
+    res.status(404).json({ error: 'evento não encontrado' })
+    return
+  }
+  if (linha.estado === 'aplicado') {
+    res.json({ ok: true, repetido: true, estado: 'aplicado' })
+    return
+  }
+  if (!linha.payload) {
+    res.status(409).json({ error: 'evento sem payload guardado — anterior ao registro de estado' })
+    return
+  }
 
   let ev
-  try { ev = eventoSchema.parse(JSON.parse(linha.payload)) } catch {
-    res.status(409).json({ error: 'payload guardado fora da forma esperada' }); return
+  try {
+    ev = eventoSchema.parse(JSON.parse(linha.payload))
+  } catch {
+    res.status(409).json({ error: 'payload guardado fora da forma esperada' })
+    return
   }
   const r = await aplicarEvento(ev, req.requestId)
   await billingEventsRepo.registrarResultado(linha.id, r.estado, r.motivo)

@@ -1,7 +1,7 @@
 /** Rotas de sessões (montadas em `/api/sessions`). */
 import path from 'node:path'
 
-import { raw,Router } from 'express'
+import { raw, Router } from 'express'
 
 import { sessionsRepo } from '../db/repositories/sessions'
 import { utterancesRepo } from '../db/repositories/utterances'
@@ -9,9 +9,19 @@ import { armazenamentoDoAmbiente } from '../lib/armazenamento'
 import { aliviarListagem, aliviarMeta, lerCapaEmbutida } from '../lib/capaDeSessao'
 import { erroDeRota } from '../lib/erroDeRota'
 import { log } from '../lib/logger'
-import { corpoDeRecusa,liberarArmazenamento, reservarArmazenamento } from '../lib/storageQuota'
+import { corpoDeRecusa, liberarArmazenamento, reservarArmazenamento } from '../lib/storageQuota'
 import { detectarAudio, FORMATOS_DE_AUDIO_ACEITOS } from '../lib/tipoDeArquivo'
-import { createSessionSchema, idParamSchema,isSafeImageUrl, parseOr400, patchMetaSchema, patchSessionSchema, patchUtteranceSchema, relabelUtterancesSchema, replaceUtterancesSchema } from '../validation'
+import {
+  createSessionSchema,
+  idParamSchema,
+  isSafeImageUrl,
+  parseOr400,
+  patchMetaSchema,
+  patchSessionSchema,
+  patchUtteranceSchema,
+  relabelUtterancesSchema,
+  replaceUtterancesSchema,
+} from '../validation'
 
 export const sessionsRouter = Router()
 
@@ -71,7 +81,11 @@ export function resolveInAudioDir(name: string): string {
 }
 
 function readMeta(metaStr: string | null): Record<string, any> {
-  try { return metaStr ? JSON.parse(metaStr) : {} } catch { return {} }
+  try {
+    return metaStr ? JSON.parse(metaStr) : {}
+  } catch {
+    return {}
+  }
 }
 
 /**
@@ -96,14 +110,27 @@ sessionsRouter.get('/:id/capa', async (req, res) => {
     const linha = await sessionsRepo.get(req.userId, p.id)
     if (!linha) return res.status(404).json({ error: 'sessão não encontrada' })
     let meta: Record<string, unknown> = {}
-    try { meta = linha.meta ? JSON.parse(linha.meta) as Record<string, unknown> : {} } catch { meta = {} }
+    try {
+      meta = linha.meta ? (JSON.parse(linha.meta) as Record<string, unknown>) : {}
+    } catch {
+      meta = {}
+    }
     const capa = lerCapaEmbutida(meta.imageUrl)
     if (!capa) return res.status(404).json({ error: 'esta sessão não tem capa embutida' })
     res.setHeader('Content-Type', capa.mime)
     res.setHeader('Cache-Control', 'private, max-age=86400')
     return res.send(capa.bytes)
   } catch (err) {
-    return res.status(500).json({ error: erroDeRota(err, { status: 500, event: 'session_cover_error', route: req.path, requestId: req.requestId }) })
+    return res
+      .status(500)
+      .json({
+        error: erroDeRota(err, {
+          status: 500,
+          event: 'session_cover_error',
+          route: req.path,
+          requestId: req.requestId,
+        }),
+      })
   }
 })
 
@@ -123,7 +150,16 @@ sessionsRouter.post('/utterances/relabel', async (req, res) => {
   try {
     res.json({ changed: await utterancesRepo.relabel(req.userId, payload.items) })
   } catch (err) {
-    res.status(400).json({ error: erroDeRota(err, { status: 400, event: 'sessions_route_error', route: req.path, requestId: req.requestId }) })
+    res
+      .status(400)
+      .json({
+        error: erroDeRota(err, {
+          status: 400,
+          event: 'sessions_route_error',
+          route: req.path,
+          requestId: req.requestId,
+        }),
+      })
   }
 })
 
@@ -151,7 +187,16 @@ sessionsRouter.post('/', async (req, res) => {
     const { session: created, jaExistia } = await sessionsRepo.criarOuReusar(req.userId, session, utterances)
     res.json(jaExistia ? { ...created, jaExistia: true } : created)
   } catch (err) {
-    res.status(400).json({ error: erroDeRota(err, { status: 400, event: 'sessions_route_error', route: req.path, requestId: req.requestId }) })
+    res
+      .status(400)
+      .json({
+        error: erroDeRota(err, {
+          status: 400,
+          event: 'sessions_route_error',
+          route: req.path,
+          requestId: req.requestId,
+        }),
+      })
   }
 })
 
@@ -164,9 +209,15 @@ sessionsRouter.post(
     if (!p) return
     try {
       const session = await sessionsRepo.get(req.userId, p.id)
-      if (!session) { res.status(404).json({ error: 'sessão não encontrada' }); return }
+      if (!session) {
+        res.status(404).json({ error: 'sessão não encontrada' })
+        return
+      }
       const buf = req.body as Buffer
-      if (!buf || !buf.length) { res.status(400).json({ error: 'corpo de áudio vazio' }); return }
+      if (!buf || !buf.length) {
+        res.status(400).json({ error: 'corpo de áudio vazio' })
+        return
+      }
 
       /*
        * F4-04: o tipo sai dos MAGIC BYTES, não do `Content-Type` (que o cliente escolhe). O que é
@@ -191,7 +242,7 @@ sessionsRouter.post(
        * DELTA: o arquivo é sobrescrito, não somado.
        */
       const anterior = String(readMeta(session.meta).audioFile || '')
-      const bytesAnteriores = anterior ? (await armazenamentoDeMidia.tamanho(anterior)) ?? 0 : 0
+      const bytesAnteriores = anterior ? ((await armazenamentoDeMidia.tamanho(anterior)) ?? 0) : 0
       const delta = buf.length - bytesAnteriores
       const cota = await reservarArmazenamento(req.userId, delta)
       if (!cota.ok) {
@@ -228,12 +279,23 @@ sessionsRouter.post(
       res.json({
         ok: true,
         audioUrl: `/api/sessions/${p.id}/audio`,
-        ...(orfaoNaoRemovido ? { aviso: 'o áudio anterior não pôde ser removido e ainda ocupa espaço', code: 'orfao_nao_removido' } : {}),
+        ...(orfaoNaoRemovido
+          ? { aviso: 'o áudio anterior não pôde ser removido e ainda ocupa espaço', code: 'orfao_nao_removido' }
+          : {}),
       })
     } catch (err) {
-      res.status(500).json({ error: erroDeRota(err, { status: 500, event: 'sessions_route_error', route: req.path, requestId: req.requestId }) })
+      res
+        .status(500)
+        .json({
+          error: erroDeRota(err, {
+            status: 500,
+            event: 'sessions_route_error',
+            route: req.path,
+            requestId: req.requestId,
+          }),
+        })
     }
-  }
+  },
 )
 
 /**
@@ -247,13 +309,27 @@ sessionsRouter.get('/:id/audio', async (req, res) => {
   const p = parseOr400(idParamSchema, req.params, res)
   if (!p) return
   const session = await sessionsRepo.get(req.userId, p.id)
-  if (!session) { res.status(404).end(); return }
+  if (!session) {
+    res.status(404).end()
+    return
+  }
   const meta = readMeta(session.meta)
-  if (!meta.audioFile) { res.status(404).json({ error: 'sessão sem áudio' }); return }
+  if (!meta.audioFile) {
+    res.status(404).json({ error: 'sessão sem áudio' })
+    return
+  }
   const nome = String(meta.audioFile)
-  try { resolveInAudioDir(nome) } catch { res.status(400).json({ error: 'caminho de áudio inválido' }); return }
+  try {
+    resolveInAudioDir(nome)
+  } catch {
+    res.status(400).json({ error: 'caminho de áudio inválido' })
+    return
+  }
   const size = await armazenamentoDeMidia.tamanho(nome)
-  if (size === null) { res.status(404).json({ error: 'arquivo ausente' }); return }
+  if (size === null) {
+    res.status(404).json({ error: 'arquivo ausente' })
+    return
+  }
   const type = String(meta.audioType || 'audio/webm')
   const range = req.headers.range
 
@@ -263,7 +339,11 @@ sessionsRouter.get('/:id/audio', async (req, res) => {
     const m = /bytes=(\d*)-(\d*)/.exec(range)
     start = m && m[1] ? parseInt(m[1], 10) : 0
     end = m && m[2] ? parseInt(m[2], 10) : size - 1
-    if (start >= size || end >= size) { res.status(416).setHeader('Content-Range', `bytes */${size}`); res.end(); return }
+    if (start >= size || end >= size) {
+      res.status(416).setHeader('Content-Range', `bytes */${size}`)
+      res.end()
+      return
+    }
     res.status(206)
     res.setHeader('Content-Range', `bytes ${start}-${end}/${size}`)
   }
@@ -272,9 +352,15 @@ sessionsRouter.get('/:id/audio', async (req, res) => {
   res.setHeader('Content-Type', type)
 
   try {
-    (await armazenamentoDeMidia.lerFaixa(nome, start, end)).pipe(res)
+    ;(await armazenamentoDeMidia.lerFaixa(nome, start, end)).pipe(res)
   } catch (err) {
-    log('error', { event: 'audio_leitura_falhou', route: req.path, status: 500, error: String((err as Error)?.message || err).slice(0, 120), requestId: req.requestId })
+    log('error', {
+      event: 'audio_leitura_falhou',
+      route: req.path,
+      status: 500,
+      error: String((err as Error)?.message || err).slice(0, 120),
+      requestId: req.requestId,
+    })
     if (!res.headersSent) res.status(500).json({ error: 'falha ao ler o áudio' })
     else res.end()
   }
@@ -297,11 +383,23 @@ sessionsRouter.patch('/:id', async (req, res) => {
     if (typeof b.durationMs === 'number') patch.durationMs = b.durationMs
     if (typeof b.wordCount === 'number') patch.wordCount = b.wordCount
     const updated = await sessionsRepo.update(req.userId, alvo.id, patch)
-    if (!updated) { res.status(404).json({ error: 'sessão não encontrada' }); return }
+    if (!updated) {
+      res.status(404).json({ error: 'sessão não encontrada' })
+      return
+    }
     // Mesma razão do GET: a capa embutida não volta inteira a cada edição (achado A62).
     res.json({ ...updated, meta: aliviarMeta(updated.meta, alvo.id) })
   } catch (err) {
-    res.status(400).json({ error: erroDeRota(err, { status: 400, event: 'sessions_route_error', route: req.path, requestId: req.requestId }) })
+    res
+      .status(400)
+      .json({
+        error: erroDeRota(err, {
+          status: 400,
+          event: 'sessions_route_error',
+          route: req.path,
+          requestId: req.requestId,
+        }),
+      })
   }
 })
 
@@ -317,11 +415,23 @@ sessionsRouter.put('/:id/utterances', async (req, res) => {
   if (!payload) return
   try {
     const updated = await sessionsRepo.replaceUtterances(req.userId, alvo.id, payload.utterances)
-    if (!updated) { res.status(404).json({ error: 'sessão não encontrada' }); return }
+    if (!updated) {
+      res.status(404).json({ error: 'sessão não encontrada' })
+      return
+    }
     // Mesma razão do GET: a capa embutida não volta inteira a cada edição (achado A62).
     res.json({ ...updated, meta: aliviarMeta(updated.meta, alvo.id) })
   } catch (err) {
-    res.status(400).json({ error: erroDeRota(err, { status: 400, event: 'sessions_route_error', route: req.path, requestId: req.requestId }) })
+    res
+      .status(400)
+      .json({
+        error: erroDeRota(err, {
+          status: 400,
+          event: 'sessions_route_error',
+          route: req.path,
+          requestId: req.requestId,
+        }),
+      })
   }
 })
 
@@ -330,17 +440,37 @@ sessionsRouter.patch('/utterances/:uid', async (req, res) => {
   // P2-1: o POST limitava a 10.000/120 via `utteranceSchema`; o PATCH não tinha teto algum.
   const b = parseOr400(patchUtteranceSchema, req.body, res)
   if (!b) return
+  /* Fase 4: o `:uid` era lido cru — era o corpo que tinha schema, e o identificador que ia direto
+     ao repositório. `idParamSchema` é o mesmo das rotas vizinhas; só o nome do parâmetro muda,
+     então o valor é renomeado aqui em vez de duplicar o schema por causa de uma letra. */
+  const p = parseOr400(idParamSchema, { id: req.params.uid }, res)
+  if (!p) return
   try {
     const patch: Record<string, string> = {}
     for (const k of ['sourceText', 'translatedText', 'speakerName'] as const) {
       if (typeof b[k] === 'string') patch[k] = b[k] as string
     }
-    if (!Object.keys(patch).length) { res.status(400).json({ error: 'nada para atualizar' }); return }
-    const updated = await utterancesRepo.update(req.userId, req.params.uid, patch)
-    if (!updated) { res.status(404).json({ error: 'fala não encontrada' }); return }
+    if (!Object.keys(patch).length) {
+      res.status(400).json({ error: 'nada para atualizar' })
+      return
+    }
+    const updated = await utterancesRepo.update(req.userId, p.id, patch)
+    if (!updated) {
+      res.status(404).json({ error: 'fala não encontrada' })
+      return
+    }
     res.json(updated)
   } catch (err) {
-    res.status(400).json({ error: erroDeRota(err, { status: 400, event: 'sessions_route_error', route: req.path, requestId: req.requestId }) })
+    res
+      .status(400)
+      .json({
+        error: erroDeRota(err, {
+          status: 400,
+          event: 'sessions_route_error',
+          route: req.path,
+          requestId: req.requestId,
+        }),
+      })
   }
 })
 
@@ -362,16 +492,29 @@ sessionsRouter.patch('/:id/meta', async (req, res) => {
       const raw = body.imageUrl ? String(body.imageUrl) : null
       // S-13: rejeita esquema não permitido em vez de gravar uma URL de saída arbitrária.
       if (raw && !isSafeImageUrl(raw)) {
-        res.status(400).json({ error: 'imageUrl inválida — só https: ou data:image/' }); return
+        res.status(400).json({ error: 'imageUrl inválida — só https: ou data:image/' })
+        return
       }
       patch.imageUrl = raw
     }
     const updated = await sessionsRepo.patchMeta(req.userId, alvo.id, patch)
-    if (!updated) { res.status(404).json({ error: 'sessão não encontrada' }); return }
+    if (!updated) {
+      res.status(404).json({ error: 'sessão não encontrada' })
+      return
+    }
     // Mesma razão do GET: a capa embutida não volta inteira a cada edição (achado A62).
     res.json({ ...updated, meta: aliviarMeta(updated.meta, alvo.id) })
   } catch (err) {
-    res.status(400).json({ error: erroDeRota(err, { status: 400, event: 'sessions_route_error', route: req.path, requestId: req.requestId }) })
+    res
+      .status(400)
+      .json({
+        error: erroDeRota(err, {
+          status: 400,
+          event: 'sessions_route_error',
+          route: req.path,
+          requestId: req.requestId,
+        }),
+      })
   }
 })
 

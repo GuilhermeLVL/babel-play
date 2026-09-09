@@ -6,9 +6,15 @@ import { vocabRepo } from '../db/repositories/vocab'
 import { erroDeRota } from '../lib/erroDeRota'
 import { log } from '../lib/logger'
 import {
-  bulkAddCardsSchema,   idParamSchema, parseOr400, patchVocabSchema,
-relabelVocabSchema,
-reviewGradeSchema, vocabPaginaQuerySchema, vocabParaJogoQuerySchema, } from '../validation'
+  bulkAddCardsSchema,
+  idParamSchema,
+  parseOr400,
+  patchVocabSchema,
+  relabelVocabSchema,
+  reviewGradeSchema,
+  vocabPaginaQuerySchema,
+  vocabParaJogoQuerySchema,
+} from '../validation'
 
 export const vocabRouter = Router()
 
@@ -20,24 +26,34 @@ vocabRouter.get('/', async (req, res) => {
  * SELEÇÃO PARA JOGO (F4) — no servidor, onde os índices trabalham.
  * Antes o cliente baixava o baralho inteiro a cada fim de rodada e filtrava em JS.
  */
-async function paraJogo(req: Parameters<Parameters<typeof vocabRouter.get>[1]>[0], res: Parameters<Parameters<typeof vocabRouter.get>[1]>[1], entrada: unknown) {
+async function paraJogo(
+  req: Parameters<Parameters<typeof vocabRouter.get>[1]>[0],
+  res: Parameters<Parameters<typeof vocabRouter.get>[1]>[1],
+  entrada: unknown,
+) {
   // F11-04: o `as never` saiu daqui. Os enums são validados no schema, então o que chega ao
   // repositório já tem o tipo que ele declara — em vez de o compilador acreditar no cliente.
   const q = parseOr400(vocabParaJogoQuerySchema, entrada, res)
   if (!q) return
   try {
-    res.json(await vocabRepo.selecionarParaJogo(req.userId, {
-      fonte: q.fonte ?? 'baralho',
-      fonteRef: q.fonteRef ?? null,
-      dificuldade: q.dificuldade,
-      estrategia: q.estrategia ?? 'equilibrado',
-      limite: q.limite,
-      evitar: q.evitar,
-      lang: q.lang ?? null,
-      filtro: q.filtro,
-    }))
+    res.json(
+      await vocabRepo.selecionarParaJogo(req.userId, {
+        fonte: q.fonte ?? 'baralho',
+        fonteRef: q.fonteRef ?? null,
+        dificuldade: q.dificuldade,
+        estrategia: q.estrategia ?? 'equilibrado',
+        limite: q.limite,
+        evitar: q.evitar,
+        lang: q.lang ?? null,
+        filtro: q.filtro,
+      }),
+    )
   } catch (err) {
-    res.status(400).json({ error: erroDeRota(err, { status: 400, event: 'vocab_route_error', route: req.path, requestId: req.requestId }) })
+    res
+      .status(400)
+      .json({
+        error: erroDeRota(err, { status: 400, event: 'vocab_route_error', route: req.path, requestId: req.requestId }),
+      })
   }
 }
 
@@ -55,18 +71,24 @@ vocabRouter.get('/pagina', async (req, res) => {
   const q = parseOr400(vocabPaginaQuerySchema, req.query, res)
   if (!q) return
   try {
-    res.json(await vocabRepo.listarPagina(req.userId, {
-      limite: q.limite,
-      cursor: q.cursorValor !== undefined && q.cursorId ? { valor: q.cursorValor, id: q.cursorId } : null,
-      busca: q.q,
-      niveis: q.niveis,
-      origens: q.origens,
-      desde: q.desde,
-      ate: q.ate,
-      ordem: q.ordem ?? 'recentes',
-    }))
+    res.json(
+      await vocabRepo.listarPagina(req.userId, {
+        limite: q.limite,
+        cursor: q.cursorValor !== undefined && q.cursorId ? { valor: q.cursorValor, id: q.cursorId } : null,
+        busca: q.q,
+        niveis: q.niveis,
+        origens: q.origens,
+        desde: q.desde,
+        ate: q.ate,
+        ordem: q.ordem ?? 'recentes',
+      }),
+    )
   } catch (err) {
-    res.status(400).json({ error: erroDeRota(err, { status: 400, event: 'vocab_route_error', route: req.path, requestId: req.requestId }) })
+    res
+      .status(400)
+      .json({
+        error: erroDeRota(err, { status: 400, event: 'vocab_route_error', route: req.path, requestId: req.requestId }),
+      })
   }
 })
 
@@ -75,10 +97,20 @@ vocabRouter.get('/distribuicao-dificuldade', async (req, res) => {
   try {
     const d = await vocabRepo.distribuicaoDeDificuldade(req.userId)
     // Log estruturado: é assim que a concentração vira métrica em produção, não reclamação.
-    log('info', { event: 'dificuldade_distribuicao', requestId: req.requestId, maiorFaixaPct: d.maiorFaixaPct, tipoDeCorte: d.cortes.tipo, total: d.total })
+    log('info', {
+      event: 'dificuldade_distribuicao',
+      requestId: req.requestId,
+      maiorFaixaPct: d.maiorFaixaPct,
+      tipoDeCorte: d.cortes.tipo,
+      total: d.total,
+    })
     res.json(d)
   } catch (err) {
-    res.status(400).json({ error: erroDeRota(err, { status: 400, event: 'vocab_route_error', route: req.path, requestId: req.requestId }) })
+    res
+      .status(400)
+      .json({
+        error: erroDeRota(err, { status: 400, event: 'vocab_route_error', route: req.path, requestId: req.requestId }),
+      })
   }
 })
 
@@ -87,7 +119,11 @@ vocabRouter.get('/inicio-da-contagem', async (req, res) => {
   try {
     res.json(await vocabRepo.inicioDaContagem(req.userId))
   } catch (err) {
-    res.status(400).json({ error: erroDeRota(err, { status: 400, event: 'vocab_route_error', route: req.path, requestId: req.requestId }) })
+    res
+      .status(400)
+      .json({
+        error: erroDeRota(err, { status: 400, event: 'vocab_route_error', route: req.path, requestId: req.requestId }),
+      })
   }
 })
 
@@ -98,7 +134,11 @@ vocabRouter.get('/:id/ocorrencias', async (req, res) => {
   try {
     res.json(await vocabRepo.ocorrencias(req.userId, p.id))
   } catch (err) {
-    res.status(400).json({ error: erroDeRota(err, { status: 400, event: 'vocab_route_error', route: req.path, requestId: req.requestId }) })
+    res
+      .status(400)
+      .json({
+        error: erroDeRota(err, { status: 400, event: 'vocab_route_error', route: req.path, requestId: req.requestId }),
+      })
   }
 })
 
@@ -108,7 +148,11 @@ vocabRouter.post('/bulk-add', async (req, res) => {
   try {
     res.json(await vocabRepo.bulkAdd(req.userId, payload.cards))
   } catch (err) {
-    res.status(400).json({ error: erroDeRota(err, { status: 400, event: 'vocab_route_error', route: req.path, requestId: req.requestId }) })
+    res
+      .status(400)
+      .json({
+        error: erroDeRota(err, { status: 400, event: 'vocab_route_error', route: req.path, requestId: req.requestId }),
+      })
   }
 })
 
@@ -123,7 +167,11 @@ vocabRouter.post('/relabel', async (req, res) => {
   try {
     res.json({ changed: await vocabRepo.relabel(req.userId, payload.items) })
   } catch (err) {
-    res.status(400).json({ error: erroDeRota(err, { status: 400, event: 'vocab_route_error', route: req.path, requestId: req.requestId }) })
+    res
+      .status(400)
+      .json({
+        error: erroDeRota(err, { status: 400, event: 'vocab_route_error', route: req.path, requestId: req.requestId }),
+      })
   }
 })
 
@@ -147,7 +195,11 @@ vocabRouter.patch('/:id', async (req, res) => {
        na tela assim que alguém editasse a tradução (achado A20). */
     res.json({ ...card, ...(await vocabRepo.procedenciaDe(req.userId, p.id)) })
   } catch (err) {
-    res.status(400).json({ error: erroDeRota(err, { status: 400, event: 'vocab_route_error', route: req.path, requestId: req.requestId }) })
+    res
+      .status(400)
+      .json({
+        error: erroDeRota(err, { status: 400, event: 'vocab_route_error', route: req.path, requestId: req.requestId }),
+      })
   }
 })
 
@@ -156,11 +208,19 @@ vocabRouter.post('/:id/review', async (req, res) => {
   // FSRS e era persistido em `review_logs.grade`, corrompendo o histórico do usuário.
   const payload = parseOr400(reviewGradeSchema, req.body, res)
   if (!payload) return
+  // Fase 4: o `:id` ia cru para o repositório — a nota tinha schema, o identificador não. É o
+  // mesmo `idParamSchema` que o `DELETE /:id` logo abaixo já usava.
+  const p = parseOr400(idParamSchema, req.params, res)
+  if (!p) return
   try {
-    const atualizado = await vocabRepo.review(req.userId, req.params.id, payload.grade as Grade)
-    res.json({ ...atualizado, ...(await vocabRepo.procedenciaDe(req.userId, req.params.id)) })
+    const atualizado = await vocabRepo.review(req.userId, p.id, payload.grade as Grade)
+    res.json({ ...atualizado, ...(await vocabRepo.procedenciaDe(req.userId, p.id)) })
   } catch (err) {
-    res.status(400).json({ error: erroDeRota(err, { status: 400, event: 'vocab_route_error', route: req.path, requestId: req.requestId }) })
+    res
+      .status(400)
+      .json({
+        error: erroDeRota(err, { status: 400, event: 'vocab_route_error', route: req.path, requestId: req.requestId }),
+      })
   }
 })
 

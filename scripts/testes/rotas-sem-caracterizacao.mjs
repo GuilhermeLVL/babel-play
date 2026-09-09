@@ -17,11 +17,15 @@ import { join } from 'node:path'
 
 /** Rotas deliberadamente fora: cada uma com o motivo. Uma entrada aqui é decisão, não pendência. */
 const SEM_CARACTERIZACAO = {
-  'POST /api/import/web': 'busca de página externa (SSRF); coberto por `tests/integration/audit-s13-image-url.test.ts` e `server/import/web.ts` tem teste próprio de redirecionamento',
-  'POST /api/import/document': 'PDF/DOCX exige fixtures binárias; `.txt` está coberto pela importação Anki e o parser tem teste unitário (`f4-04-tipo-por-conteudo`)',
+  'POST /api/import/web':
+    'busca de página externa (SSRF); coberto por `tests/integration/audit-s13-image-url.test.ts` e `server/import/web.ts` tem teste próprio de redirecionamento',
+  'POST /api/import/document':
+    'PDF/DOCX exige fixtures binárias; `.txt` está coberto pela importação Anki e o parser tem teste unitário (`f4-04-tipo-por-conteudo`)',
   'POST /api/import/anki/export': 'exportação inversa; coberta por `tests/integration/anki-rotas.test.ts`',
-  'GET /api/audio/loopback/stream': 'dispositivo da máquina (WASAPI); só existe no self-host e o 403 do modo público está em auth-e-conta',
-  'POST /api/billing/comprar': 'Asaas em sandbox é dependência do dono; `tests/integration/billing-webhook.test.ts` cobre o webhook e a idempotência',
+  'GET /api/audio/loopback/stream':
+    'dispositivo da máquina (WASAPI); só existe no self-host e o 403 do modo público está em auth-e-conta',
+  'POST /api/billing/comprar':
+    'Asaas em sandbox é dependência do dono; `tests/integration/billing-webhook.test.ts` cobre o webhook e a idempotência',
   'GET /api/billing/creditos': 'idem',
   'POST /api/billing/gastar': 'idem',
   'POST /api/billing/creditar-passe': 'idem',
@@ -29,9 +33,12 @@ const SEM_CARACTERIZACAO = {
   'GET /api/billing/status': 'idem',
   'POST /api/billing/cancelar': 'idem',
   'POST /api/billing/webhook/asaas': 'idem (é o próprio webhook)',
-  'GET /api/images/search': 'proxy do Openverse; `tests/integration/audit-s13-image-url.test.ts` e `images` com cache em memória — Fase 5 troca o cache e escreve o teste HTTP',
-  'POST /api/erros-do-cliente': 'coberto por `tests/integration/erros-do-cliente.test.ts` (quota em memória por processo, item da Fase 5)',
-  'GET /api/admin/users/:id': 'RBAC coberto por `rbac-admin-endpoints.test.ts`; o 403 de usuário comum está em auth-e-conta',
+  'GET /api/images/search':
+    'proxy do Openverse; `tests/integration/audit-s13-image-url.test.ts` e `images` com cache em memória — Fase 5 troca o cache e escreve o teste HTTP',
+  'POST /api/erros-do-cliente':
+    'coberto por `tests/integration/erros-do-cliente.test.ts` (quota em memória por processo, item da Fase 5)',
+  'GET /api/admin/users/:id':
+    'RBAC coberto por `rbac-admin-endpoints.test.ts`; o 403 de usuário comum está em auth-e-conta',
   'PATCH /api/admin/users/:id': 'idem',
   'PATCH /api/admin/users/:id/plan': 'idem',
   'POST /api/admin/armazenamento/reconciliar': 'idem',
@@ -39,14 +46,16 @@ const SEM_CARACTERIZACAO = {
   'GET /api/admin/resumo': 'idem',
   'GET /api/admin/billing/pendentes': 'idem',
   'POST /api/admin/billing/reprocessar/:id': 'idem',
-  'GET /api/sessions/:id/capa': 'capa embutida (data: URI); coberto por `f11-03-capa-mime.test.ts` e `capa-teto.test.ts`',
-  'POST /api/sessions/:id/audio': 'upload binário de áudio (120 MB); coberto por `delete-sessao-audio.test.ts` e `cota-armazenamento.test.ts`',
+  'GET /api/sessions/:id/capa':
+    'capa embutida (data: URI); coberto por `f11-03-capa-mime.test.ts` e `capa-teto.test.ts`',
+  'POST /api/sessions/:id/audio':
+    'upload binário de áudio (120 MB); coberto por `delete-sessao-audio.test.ts` e `cota-armazenamento.test.ts`',
   'GET /api/sessions/:id/audio': 'idem',
   'POST /api/sessions/utterances/relabel': 'reetiquetagem em lote; coberto por `tests/integration/sessions-*`',
-  'PATCH /api/sessions/utterances/:uid': 'idem — e é uma das leituras cruas de `req.params` da Fase 4',
   'PATCH /api/sessions/:id/meta': 'coberto por `audit-s13-image-url.test.ts`',
   'POST /api/vocab/relabel': 'reetiquetagem em lote; coberto por `mt1-tenant-vocab.test.ts`',
-  'POST /api/vocab/para-jogo': 'variante POST para filtro acima de 6 KB; mesma função da GET (`filtro-composicao.test.ts`)',
+  'POST /api/vocab/para-jogo':
+    'variante POST para filtro acima de 6 KB; mesma função da GET (`filtro-composicao.test.ts`)',
 }
 
 const PREFIXOS = {
@@ -86,7 +95,12 @@ function rotasDoServidor() {
   }
   rotas.push({ metodo: 'GET', caminho: '/api/health', arquivo: 'server.ts' })
   const vistos = new Set()
-  return rotas.filter((r) => { const k = `${r.metodo} ${r.caminho}`; if (vistos.has(k)) return false; vistos.add(k); return true })
+  return rotas.filter((r) => {
+    const k = `${r.metodo} ${r.caminho}`
+    if (vistos.has(k)) return false
+    vistos.add(k)
+    return true
+  })
 }
 
 /** Chamadas nos testes: `s.get('/api/x')`, `s.post(`/api/x/${id}`)`, `chamar('DELETE', '/api/x')`. */
@@ -115,7 +129,9 @@ function casa(padrao, chamada) {
 const rotas = rotasDoServidor()
 const chamadas = chamadasDosTestes()
 const tabela = rotas.map((r) => {
-  const testes = [...new Set(chamadas.filter((c) => c.metodo === r.metodo && casa(r.caminho, c.caminho)).map((c) => c.teste))]
+  const testes = [
+    ...new Set(chamadas.filter((c) => c.metodo === r.metodo && casa(r.caminho, c.caminho)).map((c) => c.teste)),
+  ]
   const chave = `${r.metodo} ${r.caminho}`
   return { ...r, chave, testes, motivo: SEM_CARACTERIZACAO[chave] }
 })
@@ -126,7 +142,10 @@ if (process.argv.includes('--tabela')) {
 }
 const sobrando = tabela.filter((l) => l.testes.length === 0 && !l.motivo)
 const justificadasComTeste = tabela.filter((l) => l.testes.length > 0 && l.motivo)
-console.log(`\nrotas: ${rotas.length} · com teste: ${tabela.filter((l) => l.testes.length).length} · justificadas: ${tabela.filter((l) => !l.testes.length && l.motivo).length} · sobrando: ${sobrando.length}`)
+console.log(
+  `\nrotas: ${rotas.length} · com teste: ${tabela.filter((l) => l.testes.length).length} · justificadas: ${tabela.filter((l) => !l.testes.length && l.motivo).length} · sobrando: ${sobrando.length}`,
+)
 for (const l of sobrando) console.log(`  SEM TESTE  ${l.chave}  (${l.arquivo})`)
-for (const l of justificadasComTeste) console.log(`  aviso: ${l.chave} tem teste E justificativa — remova a justificativa`)
+for (const l of justificadasComTeste)
+  console.log(`  aviso: ${l.chave} tem teste E justificativa — remova a justificativa`)
 process.exit(sobrando.length ? 1 : 0)

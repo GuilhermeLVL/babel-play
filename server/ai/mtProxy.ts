@@ -5,7 +5,8 @@ import { nomeDoIdioma, systemComunicativo, userComunicativo } from '../../src/li
 import { hasEntitlement } from '../lib/entitlements'
 import { erroDeRota } from '../lib/erroDeRota'
 import { log } from '../lib/logger'
-import { refundManagedCall, registrarTokensDeLlm,reserveManagedCall } from '../lib/usageQuota'
+import { responderErro } from '../lib/respostaDeErro'
+import { refundManagedCall, registrarTokensDeLlm, reserveManagedCall } from '../lib/usageQuota'
 import { chamarChat, type MensagemDeChat, type RespostaDeChat } from './llmClient'
 import { cascataDeTraducao } from './provedores'
 
@@ -21,15 +22,17 @@ import { cascataDeTraducao } from './provedores'
  * motor. `src` é opcional — o LLM detecta o idioma de origem (base do modo multi-idioma).
  */
 
-const bodySchema = z.object({
-  text: z.string().min(1).max(4000),
-  src: z.string().max(20).optional(),
-  tgt: z.string().min(2).max(20),
-  /** Fala espontânea (microfone): usa o prompt COMUNICATIVO (sentido, não palavra por palavra). */
-  falada: z.boolean().optional(),
-  /** Últimas falas da conversa (≤ 3, ≤ 300 chars cada), só para referência. */
-  contexto: z.array(z.string().max(300)).max(3).optional(),
-}).strip()
+const bodySchema = z
+  .object({
+    text: z.string().min(1).max(4000),
+    src: z.string().max(20).optional(),
+    tgt: z.string().min(2).max(20),
+    /** Fala espontânea (microfone): usa o prompt COMUNICATIVO (sentido, não palavra por palavra). */
+    falada: z.boolean().optional(),
+    /** Últimas falas da conversa (≤ 3, ≤ 300 chars cada), só para referência. */
+    contexto: z.array(z.string().max(300)).max(3).optional(),
+  })
+  .strip()
 
 const langName = nomeDoIdioma
 
@@ -130,7 +133,12 @@ export async function mtTranslateProxy(req: Request, res: Response): Promise<voi
          que e o que a cascata precisa para decidir e para o log dizer QUAL perna quebrou. */
       const resultado: RespostaDeChat = await tentar(prov)
       if (resultado.ok) {
-        entregue = { texto: resultado.texto ?? '', tokens: resultado.tokens ?? 0, rotulo: prov.rotulo, model: prov.model }
+        entregue = {
+          texto: resultado.texto ?? '',
+          tokens: resultado.tokens ?? 0,
+          rotulo: prov.rotulo,
+          model: prov.model,
+        }
         break
       }
       ultimaFalha = resultado.causa ?? 'falha sem causa declarada'
@@ -138,13 +146,35 @@ export async function mtTranslateProxy(req: Request, res: Response): Promise<voi
          modelo que o provedor aposentou (aconteceu: o llama-3.3-70b sumiu do self-serve em dias)
          são exatamente os casos em que a reserva salva o assinante. */
       log('warn', {
-        event: 'mt_provedor_falhou', route: '/api/ai/mt', provider: prov.rotulo,
-        status: resultado.status, error: (resultado.causa ?? '').slice(0, 120), requestId: req.requestId,
+        event: 'mt_provedor_falhou',
+        route: '/api/ai/mt',
+        provider: prov.rotulo,
+        status: resultado.status,
+        error: (resultado.causa ?? '').slice(0, 120),
+        requestId: req.requestId,
       })
     }
 
     if (!entregue) {
-      res.status(502).json({ error: `tradução indisponível: ${ultimaFalha}` })
+      /* O CORPO DO TERCEIRO NÃO É PARA O CLIENTE (achado da Fase 4). `ultimaFalha` carrega a causa
+         do último provedor — e a causa de um HTTP não-ok é `HTTP <status>: <160 chars do corpo>`
+         (`llmClient.ts`), ou seja, texto escrito pelo provedor, que não é contrato nosso e pode
+         trazer nome de modelo interno, id de organização ou trecho do pedido. Vai inteira para o
+         log; o cliente recebe código estável + `requestId` para citar. */
+      log('error', {
+        event: 'mt_indisponivel',
+        route: '/api/ai/mt',
+        status: 502,
+        error: ultimaFalha.slice(0, 300),
+        latencyMs: Date.now() - t0,
+        requestId: req.requestId,
+      })
+      responderErro(
+        res,
+        502,
+        req.requestId ? `tradução indisponível (req: ${req.requestId})` : 'tradução indisponível',
+        'provedor_indisponivel',
+      )
       return
     }
 
@@ -153,8 +183,12 @@ export async function mtTranslateProxy(req: Request, res: Response): Promise<voi
     void registrarTokensDeLlm(req.userId, entregue.tokens)
     reservaPendente = false // consumada: a reserva vira a chamada entregue
     log('info', {
-      event: 'mt_translated', route: '/api/ai/mt', provider: entregue.rotulo,
-      status: 200, latencyMs: Date.now() - t0, requestId: req.requestId,
+      event: 'mt_translated',
+      route: '/api/ai/mt',
+      provider: entregue.rotulo,
+      status: 200,
+      latencyMs: Date.now() - t0,
+      requestId: req.requestId,
     })
     // Procedência no PAYLOAD: a origem diz o modelo que REALMENTE serviu — com a cascata, pode ser
     // o da reserva. `engine` é o id NEUTRO do adaptador (A5): 'groq-llm' mentia quando o provedor
@@ -167,7 +201,8 @@ export async function mtTranslateProxy(req: Request, res: Response): Promise<voi
         kind: 'ai',
         origin: entregue.model,
         method: 'tradução por LLM',
-        limits: 'Tradução gerada por modelo de linguagem — pode conter erros de sentido, registro ou termo técnico. Confira antes de decorar.',
+        limits:
+          'Tradução gerada por modelo de linguagem — pode conter erros de sentido, registro ou termo técnico. Confira antes de decorar.',
       },
     })
   } catch (err) {

@@ -1,7 +1,7 @@
 {
-  "status": 200,
+  "status": 400,
   "forma": {
-    "message": "string",
-    "ok": "boolean"
+    "code": "string",
+    "error": "string"
   }
 }

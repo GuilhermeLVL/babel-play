@@ -1,6 +1,10 @@
 {
   "status": 400,
   "forma": {
+    "code": "string",
+    "detalhes": {
+      "diaDoServidor": "number"
+    },
     "error": "string"
   }
 }

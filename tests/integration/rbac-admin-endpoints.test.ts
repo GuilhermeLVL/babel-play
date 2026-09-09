@@ -7,10 +7,10 @@ import type { Server } from 'node:http'
 import type { AddressInfo } from 'node:net'
 
 import express from 'express'
-import { afterAll,beforeAll, describe, expect, it } from 'vitest'
+import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
 import { asUserId, type UserId } from '../../server/lib/authContext'
-import { type EphemeralDb,setupEphemeralDb } from '../harness/ephemeralDb'
+import { type EphemeralDb, setupEphemeralDb } from '../harness/ephemeralDb'
 
 let h: EphemeralDb
 let server: Server
@@ -21,15 +21,22 @@ beforeAll(async () => {
   h = await setupEphemeralDb()
   const { adminRouter } = (await h.load('../../server/routes/admin')) as any
   const { usersRepo } = (await h.load('../../server/db/repositories/users')) as any
-  await usersRepo.ensure(asUserId('admin')); await usersRepo.setRole(asUserId('admin'), 'admin')
-  await usersRepo.ensure(asUserId('support')); await usersRepo.setRole(asUserId('support'), 'support')
+  await usersRepo.ensure(asUserId('admin'))
+  await usersRepo.setRole(asUserId('admin'), 'admin')
+  await usersRepo.ensure(asUserId('support'))
+  await usersRepo.setRole(asUserId('support'), 'support')
   await usersRepo.ensure(asUserId('alice'), 'alice@x.com') // alvo cross-tenant
 
   const app = express()
   app.use(express.json())
-  app.use((req, _res, next) => { req.userId = currentUser; next() })
+  app.use((req, _res, next) => {
+    req.userId = currentUser
+    next()
+  })
   app.use('/api/admin', adminRouter)
-  await new Promise<void>((resolve) => { server = app.listen(0, () => resolve()) })
+  await new Promise<void>((resolve) => {
+    server = app.listen(0, () => resolve())
+  })
   base = `http://127.0.0.1:${(server.address() as AddressInfo).port}`
 })
 afterAll(async () => {
@@ -48,7 +55,9 @@ async function call(user: UserId, method: string, path: string, body?: any): Pro
   return { status: res.status, body: text ? JSON.parse(text) : null }
 }
 
-const ADMIN = asUserId('admin'), SUPPORT = asUserId('support'), USER = asUserId('regular')
+const ADMIN = asUserId('admin'),
+  SUPPORT = asUserId('support'),
+  USER = asUserId('regular')
 
 describe('SaaS Fatia 2 — endpoints admin cross-tenant', () => {
   it('usuário comum é barrado (403) em listar e ver', async () => {
@@ -71,6 +80,14 @@ describe('SaaS Fatia 2 — endpoints admin cross-tenant', () => {
     const r = await call(ADMIN, 'PATCH', '/api/admin/users/alice', { status: 'suspended' })
     expect(r.status).toBe(200)
     expect(r.body.status).toBe('suspended')
+  })
+
+  it('Fase 4 — `:id` acima do teto é 400 nas DUAS rotas de escrita (idParamSchema)', async () => {
+    /* `asUserId` é um cast de marca, não uma validação: o `:id` chegava cru ao `usersRepo` nas
+       rotas de escrita, enquanto o `GET /users/:id` já o validava. */
+    const gigante = 'a'.repeat(200)
+    expect((await call(ADMIN, 'PATCH', `/api/admin/users/${gigante}`, { role: 'support' })).status).toBe(400)
+    expect((await call(ADMIN, 'PATCH', `/api/admin/users/${gigante}/plan`, { plan: 'pro' })).status).toBe(400)
   })
 
   it('admin muda o plano de outro dono (subscriptions)', async () => {
@@ -107,7 +124,11 @@ describe('eventos de cobrança pendentes', () => {
     const { creditsRepo } = (await h.load('../../server/db/repositories/credits')) as any
 
     // Um avulso que chegou antes de a compra existir: pendente, com payload guardado.
-    const payload = { id: 'evt_pend', event: 'PAYMENT_CONFIRMED', payment: { id: 'pay_pend', externalReference: 'alice' } }
+    const payload = {
+      id: 'evt_pend',
+      event: 'PAYMENT_CONFIRMED',
+      payment: { id: 'pay_pend', externalReference: 'alice' },
+    }
     await billingEventsRepo.marcarSeNovo('evt_pend', 'asaas', 'PAYMENT_CONFIRMED', 'alice', 'pay_pend', payload)
     await billingEventsRepo.registrarResultado('evt_pend', 'nao-aplicado', 'avulso-desconhecido: teste')
 
@@ -126,12 +147,19 @@ describe('eventos de cobrança pendentes', () => {
     expect(ainda.body.estado).toBe('nao-aplicado')
 
     // Compra registrada: reaplicar credita e o evento sai da fila.
-    await creditsRepo.registrarCompra(asUserId('alice'), { sku: 'c100', creditos: 100, valorCentavos: 990, providerPaymentId: 'pay_pend' })
+    await creditsRepo.registrarCompra(asUserId('alice'), {
+      sku: 'c100',
+      creditos: 100,
+      valorCentavos: 990,
+      providerPaymentId: 'pay_pend',
+    })
     const ok = await call(ADMIN, 'POST', '/api/admin/billing/reprocessar/evt_pend')
     expect(ok.status).toBe(200)
     expect(ok.body.estado).toBe('aplicado')
     expect(await creditsRepo.saldo(asUserId('alice'))).toBe(100)
-    expect((await call(SUPPORT, 'GET', '/api/admin/billing/pendentes')).body.map((e: any) => e.id)).not.toContain('evt_pend')
+    expect((await call(SUPPORT, 'GET', '/api/admin/billing/pendentes')).body.map((e: any) => e.id)).not.toContain(
+      'evt_pend',
+    )
 
     // Segunda vez: repetido, sem segundo crédito.
     const de_novo = await call(ADMIN, 'POST', '/api/admin/billing/reprocessar/evt_pend')

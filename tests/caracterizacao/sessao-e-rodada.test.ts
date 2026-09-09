@@ -7,9 +7,9 @@
  * rota crítica vira um snapshot de FORMA (chaves e tipos, nunca valores). O que parecer errado
  * está marcado com `// caracterizacao:` — o teste detecta mudança; a correção é de outra fase.
  */
-import { afterAll,beforeAll, describe, expect, it } from 'vitest'
+import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
-import { type AppDeTeste,resposta, semear, subirApp } from './_app'
+import { type AppDeTeste, resposta, semear, subirApp } from './_app'
 
 describe('sessao e rodada (self-host)', () => {
   let s: AppDeTeste
@@ -19,15 +19,45 @@ describe('sessao e rodada (self-host)', () => {
     s = await subirApp({ modo: 'self-host' })
     semente = await semear(s, 'local-owner')
   })
-  afterAll(async () => { await s.encerrar() })
+  afterAll(async () => {
+    await s.encerrar()
+  })
 
   const falas = [
-    { idx: 0, source: 'mic', speakerName: 'A', sourceLang: 'en', sourceText: 'Good morning.', targetLang: 'pt', translatedText: 'Bom dia.', tStartMs: 0, tEndMs: 900 },
-    { idx: 1, source: 'mic', speakerName: 'B', sourceLang: 'en', sourceText: 'Good night.', targetLang: 'pt', translatedText: 'Boa noite.', tStartMs: 900, tEndMs: 1800 },
+    {
+      idx: 0,
+      source: 'mic',
+      speakerName: 'A',
+      sourceLang: 'en',
+      sourceText: 'Good morning.',
+      targetLang: 'pt',
+      translatedText: 'Bom dia.',
+      tStartMs: 0,
+      tEndMs: 900,
+    },
+    {
+      idx: 1,
+      source: 'mic',
+      speakerName: 'B',
+      sourceLang: 'en',
+      sourceText: 'Good night.',
+      targetLang: 'pt',
+      translatedText: 'Boa noite.',
+      tStartMs: 900,
+      tEndMs: 1800,
+    },
   ]
 
   it('POST /api/sessions com 2 falas devolve a sessao criada (sem as falas no corpo)', async () => {
-    const r = await s.post('/api/sessions', { title: 'Gravada', kind: 'live', sourceLang: 'en', targetLang: 'pt', status: 'done', durationMs: 1800, utterances: falas })
+    const r = await s.post('/api/sessions', {
+      title: 'Gravada',
+      kind: 'live',
+      sourceLang: 'en',
+      targetLang: 'pt',
+      status: 'done',
+      durationMs: 1800,
+      utterances: falas,
+    })
     expect(r.status).toBe(200)
     const corpo = await r.clone().json()
     sessaoId = corpo.id
@@ -67,7 +97,9 @@ describe('sessao e rodada (self-host)', () => {
   it('PUT /api/sessions/:id/utterances substitui TODAS as falas', async () => {
     const r = await s.put(`/api/sessions/${sessaoId}/utterances`, { utterances: [falas[1]] })
     expect(r.status).toBe(200)
-    await expect(JSON.stringify(await resposta(r), null, 2)).toMatchFileSnapshot('__snapshots__/put.sessions.id.utterances.json')
+    await expect(JSON.stringify(await resposta(r), null, 2)).toMatchFileSnapshot(
+      '__snapshots__/put.sessions.id.utterances.json',
+    )
     const lido = await (await s.get(`/api/sessions/${sessaoId}`)).json()
     expect(lido.utterances).toHaveLength(1)
     expect(lido.utterances[0].sourceText).toBe('Good night.')
@@ -79,23 +111,52 @@ describe('sessao e rodada (self-host)', () => {
     const lista = await r.clone().json()
     // 2 da sessao semeada + 1 que sobrou do PUT acima.
     expect(lista).toHaveLength(3)
-    await expect(JSON.stringify(await resposta(r), null, 2)).toMatchFileSnapshot('__snapshots__/get.sessions.utterances.all.json')
+    await expect(JSON.stringify(await resposta(r), null, 2)).toMatchFileSnapshot(
+      '__snapshots__/get.sessions.utterances.all.json',
+    )
+  })
+
+  it('PATCH /api/sessions/utterances/:uid com :uid acima do teto → 400 pelo idParamSchema', async () => {
+    /* FASE 4 (correção 4): o `:uid` era a leitura crua de `req.params` desta rota — só o CORPO
+       tinha schema. Agora o identificador passa pelo mesmo `idParamSchema` das rotas vizinhas
+       (o nome do parâmetro difere, o contrato não). */
+    const r = await s.patch(`/api/sessions/utterances/${'u'.repeat(200)}`, { sourceText: 'x' })
+    expect(r.status).toBe(400)
+    expect(String((await r.json()).error)).toContain('id')
   })
 
   it('DELETE /api/sessions/:id responde {ok:true} e o GET seguinte e 404', async () => {
     const r = await s.del(`/api/sessions/${sessaoId}`)
     expect(r.status).toBe(200)
-    await expect(JSON.stringify(await resposta(r), null, 2)).toMatchFileSnapshot('__snapshots__/delete.sessions.id.json')
+    await expect(JSON.stringify(await resposta(r), null, 2)).toMatchFileSnapshot(
+      '__snapshots__/delete.sessions.id.json',
+    )
     const depois = await s.get(`/api/sessions/${sessaoId}`)
     expect(depois.status).toBe(404)
-    await expect(JSON.stringify(await resposta(depois), null, 2)).toMatchFileSnapshot('__snapshots__/get.sessions.id.404.json')
+    await expect(JSON.stringify(await resposta(depois), null, 2)).toMatchFileSnapshot(
+      '__snapshots__/get.sessions.id.404.json',
+    )
     // caracterizacao: apagar de novo tambem responde 200 {ok:true} (soft delete idempotente, sem 404)
     expect((await s.del(`/api/sessions/${sessaoId}`)).status).toBe(200)
   })
 
   const rodadaDe = (roundId: string, extra: Record<string, unknown> = {}) => ({
-    roundId, exerciseKind: 'memory', origem: 'baralho', score: 120, melhorSequencia: 2,
-    itens: semente.cartoes.slice(0, 2).map((c: { id: string; word: string }) => ({ cardId: c.id, itemRef: c.word, correct: 1, attempts: 1, ms: 800, hinted: 0, kind: 'srs' })),
+    roundId,
+    exerciseKind: 'memory',
+    origem: 'baralho',
+    score: 120,
+    melhorSequencia: 2,
+    itens: semente.cartoes
+      .slice(0, 2)
+      .map((c: { id: string; word: string }) => ({
+        cardId: c.id,
+        itemRef: c.word,
+        correct: 1,
+        attempts: 1,
+        ms: 800,
+        hinted: 0,
+        kind: 'srs',
+      })),
     ...extra,
   })
 
@@ -104,17 +165,23 @@ describe('sessao e rodada (self-host)', () => {
     expect(r.status).toBe(200)
     const corpo = await r.clone().json()
     expect(corpo).toEqual({ gravados: 2, roundId: 'rodada-http-1' })
-    await expect(JSON.stringify(await resposta(r), null, 2)).toMatchFileSnapshot('__snapshots__/post.exercises.rodada.json')
+    await expect(JSON.stringify(await resposta(r), null, 2)).toMatchFileSnapshot(
+      '__snapshots__/post.exercises.rodada.json',
+    )
   })
 
   it('GET /api/exercises/historico, /recordes e /results?limite=20 tem as formas conhecidas', async () => {
     const historico = await s.get('/api/exercises/historico')
     expect(historico.status).toBe(200)
-    await expect(JSON.stringify(await resposta(historico), null, 2)).toMatchFileSnapshot('__snapshots__/get.exercises.historico.json')
+    await expect(JSON.stringify(await resposta(historico), null, 2)).toMatchFileSnapshot(
+      '__snapshots__/get.exercises.historico.json',
+    )
 
     const recordes = await s.get('/api/exercises/recordes')
     expect(recordes.status).toBe(200)
-    await expect(JSON.stringify(await resposta(recordes), null, 2)).toMatchFileSnapshot('__snapshots__/get.exercises.recordes.json')
+    await expect(JSON.stringify(await resposta(recordes), null, 2)).toMatchFileSnapshot(
+      '__snapshots__/get.exercises.recordes.json',
+    )
 
     const results = await s.get('/api/exercises/results?limite=20')
     expect(results.status).toBe(200)
@@ -122,13 +189,17 @@ describe('sessao e rodada (self-host)', () => {
     // caracterizacao: `limite` nao existe no schema (e descartado pelo `.strip()`); a rota devolve
     // TODAS as linhas — 2 da rodada semeada + 2 da rodada acima.
     expect(linhas).toHaveLength(4)
-    await expect(JSON.stringify(await resposta(results), null, 2)).toMatchFileSnapshot('__snapshots__/get.exercises.results.json')
+    await expect(JSON.stringify(await resposta(results), null, 2)).toMatchFileSnapshot(
+      '__snapshots__/get.exercises.results.json',
+    )
   })
 
   it('POST rodada com 0 itens responde 400', async () => {
     const r = await s.post('/api/exercises/rodada', rodadaDe('rodada-vazia', { itens: [] }))
     expect(r.status).toBe(400)
-    await expect(JSON.stringify(await resposta(r), null, 2)).toMatchFileSnapshot('__snapshots__/post.exercises.rodada.400.json')
+    await expect(JSON.stringify(await resposta(r), null, 2)).toMatchFileSnapshot(
+      '__snapshots__/post.exercises.rodada.400.json',
+    )
   })
 
   it('POST rodada com score acima de 100000 responde 400', async () => {

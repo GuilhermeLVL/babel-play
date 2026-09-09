@@ -40,47 +40,59 @@ export function isSafeImageUrl(url: string): boolean {
   if (data) return subtipoDeCapaAceito(data[1])
   // `data:` que não casa o formato acima (sem subtipo, sem `;`) não é capa válida.
   if (u.toLowerCase().startsWith('data:')) return false
-  try { return new URL(u).protocol === 'https:' } catch { return false }
+  try {
+    return new URL(u).protocol === 'https:'
+  } catch {
+    return false
+  }
 }
 
 /**
  * PATCH /api/sessions/:id/meta — a rota lia `req.body` cru (resto do P2-1). Só as duas
  * chaves conhecidas passam; `imageUrl: null` limpa a capa.
  */
-export const patchMetaSchema = z.object({
-  pinned: z.boolean().optional(),
-  imageUrl: z.string().max(MAX_IMAGE_URL).nullable().optional(),
-}).strip()
+export const patchMetaSchema = z
+  .object({
+    pinned: z.boolean().optional(),
+    imageUrl: z.string().max(MAX_IMAGE_URL).nullable().optional(),
+  })
+  .strip()
 
-export const utteranceSchema = z.object({
-  idx: z.number().int().min(0).max(1_000_000).optional(),
-  source: shortStr(16),
-  speakerName: shortStr(120),
-  sourceLang: shortStr(20),
-  sourceText: shortStr(10_000),
-  targetLang: shortStr(20),
-  translatedText: shortStr(10_000),
-  confidence: z.number().min(0).max(1).optional(),
-  engine: shortStr(60),
-  tStartMs: z.number().int().min(0).optional(),
-  tEndMs: z.number().int().min(0).optional(),
-}).strip()
+export const utteranceSchema = z
+  .object({
+    idx: z.number().int().min(0).max(1_000_000).optional(),
+    source: shortStr(16),
+    speakerName: shortStr(120),
+    sourceLang: shortStr(20),
+    sourceText: shortStr(10_000),
+    targetLang: shortStr(20),
+    translatedText: shortStr(10_000),
+    confidence: z.number().min(0).max(1).optional(),
+    engine: shortStr(60),
+    tStartMs: z.number().int().min(0).optional(),
+    tEndMs: z.number().int().min(0).optional(),
+  })
+  .strip()
 
-export const createSessionSchema = z.object({
-  title: shortStr(200),
-  kind: shortStr(30),
-  sourceLang: shortStr(20),
-  targetLang: shortStr(20),
-  status: shortStr(30),
-  durationMs: z.number().int().min(0).optional(),
-  utterances: z.array(utteranceSchema).max(5_000).optional(),
-  /** Migração sem conta → conta: chave de idempotência (ver `sessions.origem_local_id`). */
-  origemLocalId: z.string().min(8).max(64).optional(),
-}).strip()
+export const createSessionSchema = z
+  .object({
+    title: shortStr(200),
+    kind: shortStr(30),
+    sourceLang: shortStr(20),
+    targetLang: shortStr(20),
+    status: shortStr(30),
+    durationMs: z.number().int().min(0).optional(),
+    utterances: z.array(utteranceSchema).max(5_000).optional(),
+    /** Migração sem conta → conta: chave de idempotência (ver `sessions.origem_local_id`). */
+    origemLocalId: z.string().min(8).max(64).optional(),
+  })
+  .strip()
 
-export const replaceUtterancesSchema = z.object({
-  utterances: z.array(utteranceSchema).max(5_000),
-}).strip()
+export const replaceUtterancesSchema = z
+  .object({
+    utterances: z.array(utteranceSchema).max(5_000),
+  })
+  .strip()
 
 /**
  * `word` com no MÍNIMO 2 caracteres. Aceitar 1 deixava passar pontuação solta e sobra de
@@ -88,31 +100,41 @@ export const replaceUtterancesSchema = z.object({
  * conteúdo (tradução vazia, ruído, duplicata) mora em `core/learning/quality.ts` e é aplicada no
  * repositório: aqui é só a fronteira de FORMATO.
  */
-export const bulkAddCardsSchema = z.object({
-  cards: z.array(z.object({
-    word: z.string().trim().min(2).max(200),
-    back: shortStr(2_000),
-    sentence: shortStr(4_000),
-    srcLang: shortStr(20),
-    tgtLang: shortStr(20),
-    clozePrompt: shortStr(4_000),
-    clozeAnswer: shortStr(400),
-    sessionId: shortStr(64),
-    /* Nível CEFR vindo de lista curada. Sem estes dois campos o servidor sempre sobrescrevia com
+export const bulkAddCardsSchema = z
+  .object({
+    cards: z
+      .array(
+        z
+          .object({
+            word: z.string().trim().min(2).max(200),
+            back: shortStr(2_000),
+            sentence: shortStr(4_000),
+            srcLang: shortStr(20),
+            tgtLang: shortStr(20),
+            clozePrompt: shortStr(4_000),
+            clozeAnswer: shortStr(400),
+            sessionId: shortStr(64),
+            /* Nível CEFR vindo de lista curada. Sem estes dois campos o servidor sempre sobrescrevia com
        `estimateCefr`, que é comprimento de palavra — ou seja, um dado medido por linguistas era
        rebaixado a chute na hora de entrar. A confiança distingue os dois: 1 = medido, ~0,3 = chute. */
-    cefrLevel: z.enum(['A1', 'A2', 'B1', 'B2', 'C1', 'C2']).optional(),
-    cefrConfidence: z.number().min(0).max(1).optional(),
-  }).strip()).max(500),
-}).strip()
+            cefrLevel: z.enum(['A1', 'A2', 'B1', 'B2', 'C1', 'C2']).optional(),
+            cefrConfidence: z.number().min(0).max(1).optional(),
+          })
+          .strip(),
+      )
+      .max(500),
+  })
+  .strip()
 
-export const createCredentialSchema = z.object({
-  label: shortStr(120),
-  kind: shortStr(40),
-  baseUrl: z.string().max(500).url().optional(),
-  defaultModel: shortStr(120),
-  secret: shortStr(4_000),
-}).strip()
+export const createCredentialSchema = z
+  .object({
+    label: shortStr(120),
+    kind: shortStr(40),
+    baseUrl: z.string().max(500).url().optional(),
+    defaultModel: shortStr(120),
+    secret: shortStr(4_000),
+  })
+  .strip()
 
 /**
  * Um item de exercício. Os campos a partir de `roundId` chegaram com a migração 0001: antes,
@@ -135,15 +157,20 @@ export const rodadaSchema = z.object({
      o servidor nunca via combo nenhum. O teto acompanha o de `itens` — não há combo maior que o
      número de itens da rodada. */
   melhorSequencia: z.number().int().min(0).max(200).optional(),
-  itens: z.array(z.object({
-    cardId: shortStr(64),
-    itemRef: shortStr(400),
-    correct: z.number().int().min(0).max(1).optional(),
-    attempts: z.number().int().min(0).max(1000).optional(),
-    ms: z.number().int().min(0).max(3_600_000).optional(),
-    hinted: z.number().int().min(0).max(1).optional(),
-    kind: shortStr(60),
-  })).min(1).max(200),
+  itens: z
+    .array(
+      z.object({
+        cardId: shortStr(64),
+        itemRef: shortStr(400),
+        correct: z.number().int().min(0).max(1).optional(),
+        attempts: z.number().int().min(0).max(1000).optional(),
+        ms: z.number().int().min(0).max(3_600_000).optional(),
+        hinted: z.number().int().min(0).max(1).optional(),
+        kind: shortStr(60),
+      }),
+    )
+    .min(1)
+    .max(200),
 })
 
 /* `exerciseResultSchema` SAIU com a rota `POST /exercises/results` (achado A53): era o gravador
@@ -152,15 +179,19 @@ export const rodadaSchema = z.object({
    `rodadaSchema` acima, e `tests/pontuacao.test.ts` amarra os dois lados. */
 
 /** Filtros do histórico agregado (`GET /api/exercises/historico`), ambos opcionais. */
-export const historicoQuerySchema = z.object({
-  origem: shortStr(80),
-  desde: z.coerce.number().int().min(0).optional(),
-}).strip()
+export const historicoQuerySchema = z
+  .object({
+    origem: shortStr(80),
+    desde: z.coerce.number().int().min(0).optional(),
+  })
+  .strip()
 
 /** Filtro do recorde por jogo (`GET /api/exercises/recordes`). Sem `origem` = todas as fontes. */
-export const recordesQuerySchema = z.object({
-  origem: shortStr(80),
-}).strip()
+export const recordesQuerySchema = z
+  .object({
+    origem: shortStr(80),
+  })
+  .strip()
 
 /**
  * Um gasto de seeds. `spendId` é OBRIGATÓRIO e é a chave da idempotência — sem ele o servidor não
@@ -169,12 +200,14 @@ export const recordesQuerySchema = z.object({
  * O teto de `amount` é baixo de propósito: os sinks desta entrega custam dezenas, e um valor
  * absurdo vindo do cliente indica bug ou adulteração, não uma compra grande.
  */
-export const seedSpendSchema = z.object({
-  spendId: z.string().min(8).max(64),
-  amount: z.number().int().min(1).max(10_000),
-  reason: z.string().min(1).max(40),
-  ref: shortStr(120),
-}).strip()
+export const seedSpendSchema = z
+  .object({
+    spendId: z.string().min(8).max(64),
+    amount: z.number().int().min(1).max(10_000),
+    reason: z.string().min(1).max(40),
+    ref: shortStr(120),
+  })
+  .strip()
 
 /**
  * Crédito avulso (conquista) — economia v2, endurecido em 01/09.
@@ -185,18 +218,22 @@ export const seedSpendSchema = z.object({
  * catálogo. Continuam ACEITOS e ignorados (`.strip()` os descarta) para o cliente antigo não
  * quebrar no meio de um deploy; o `reason` idem, porque quem o escreve agora é o servidor.
  */
-export const seedCreditSchema = z.object({
-  creditoId: z.string().min(8).max(80),
-}).strip()
+export const seedCreditSchema = z
+  .object({
+    creditoId: z.string().min(8).max(80),
+  })
+  .strip()
 
 /**
  * Presença do dia — economia v2. O `dia` vem do CLIENTE porque o fuso é o dele; a janela de ±2
  * dias em torno do relógio do servidor aceita qualquer fuso real e barra um dia inventado (que
  * fabricaria sequência retroativa).
  */
-export const presencaSchema = z.object({
-  dia: z.number().int().optional(),
-}).strip()
+export const presencaSchema = z
+  .object({
+    dia: z.number().int().optional(),
+  })
+  .strip()
 
 /* ────────────────────────────────────────────────────────────────────────────
  * P2-1 — rotas que liam `req.body`/`req.query` cru, agora com fronteira de formato.
@@ -208,23 +245,29 @@ export const presencaSchema = z.object({
  * em `review_logs.grade`, corrompendo o histórico de aprendizado do usuário.
  * O default 3 preserva o contrato do cliente.
  */
-export const reviewGradeSchema = z.object({
-  grade: z.number().int().min(1).max(4).default(3),
-}).strip()
+export const reviewGradeSchema = z
+  .object({
+    grade: z.number().int().min(1).max(4).default(3),
+  })
+  .strip()
 
 /**
  * Patch de settings. `ui` ia cru para `JSON.stringify` — um blob de até 5mb (o teto global
  * do body) por usuário, gravado sem limite próprio.
  */
 const MAX_UI_BYTES = 64_000
-export const settingsPatchSchema = z.object({
-  activeProfileId: z.string().max(64).nullable().optional(),
-  targetLanguage: z.string().max(20).nullable().optional(),
-  ui: z.unknown().refine(
-    (v) => v === undefined || v === null || JSON.stringify(v).length <= MAX_UI_BYTES,
-    { message: `preferências de UI acima do teto (${MAX_UI_BYTES} caracteres)` },
-  ).optional(),
-}).strip()
+export const settingsPatchSchema = z
+  .object({
+    activeProfileId: z.string().max(64).nullable().optional(),
+    targetLanguage: z.string().max(20).nullable().optional(),
+    ui: z
+      .unknown()
+      .refine((v) => v === undefined || v === null || JSON.stringify(v).length <= MAX_UI_BYTES, {
+        message: `preferências de UI acima do teto (${MAX_UI_BYTES} caracteres)`,
+      })
+      .optional(),
+  })
+  .strip()
 
 /**
  * Patch do PERFIL do usuário (`PATCH /api/me`).
@@ -237,15 +280,17 @@ export const settingsPatchSchema = z.object({
  * `nullable` em toda parte porque apagar o próprio nome é uma operação legítima, e distinta de
  * "não mandei este campo" (que é `undefined` e não toca a coluna).
  */
-export const perfilPatchSchema = z.object({
-  displayName: z.string().max(60).nullable().optional(),
-  locale: z.string().max(16).nullable().optional(),
-  bio: z.string().max(280).nullable().optional(),
-  goal: z.string().max(120).nullable().optional(),
-  /* O teto de 32 é anti-abuso, não a regra de produto: o repositório corta em `MAX_INTERESSES` (8)
+export const perfilPatchSchema = z
+  .object({
+    displayName: z.string().max(60).nullable().optional(),
+    locale: z.string().max(16).nullable().optional(),
+    bio: z.string().max(280).nullable().optional(),
+    goal: z.string().max(120).nullable().optional(),
+    /* O teto de 32 é anti-abuso, não a regra de produto: o repositório corta em `MAX_INTERESSES` (8)
      usando o vocabulário fechado. Aqui só se impede que alguém mande dez mil strings. */
-  interests: z.array(z.string().max(40)).max(32).optional(),
-}).strip()
+    interests: z.array(z.string().max(40)).max(32).optional(),
+  })
+  .strip()
 
 /**
  * DELETE /api/me — exclusão da conta (F5-03). `confirmar: true` é OBRIGATÓRIO.
@@ -254,9 +299,11 @@ export const perfilPatchSchema = z.object({
  * para desfazer nem lixeira de onde recuperar. Um DELETE disparado por engano (retry de cliente,
  * prefetch, botão duplicado) apagaria a conta inteira sem que ninguém tivesse dito nada.
  */
-export const excluirContaSchema = z.object({
-  confirmar: z.literal(true),
-}).strip()
+export const excluirContaSchema = z
+  .object({
+    confirmar: z.literal(true),
+  })
+  .strip()
 
 /**
  * Reetiquetagem em lote: sem teto, virava um UPDATE por item num laço.
@@ -264,28 +311,46 @@ export const excluirContaSchema = z.object({
  * utterances fala `sourceLang/targetLang`, vocab fala `srcLang/tgtLang`.
  */
 const MAX_RELABEL = 5_000
-export const relabelUtterancesSchema = z.object({
-  items: z.array(z.object({
-    id: z.string().min(1).max(64),
-    sourceLang: z.string().min(1).max(20),
-    targetLang: z.string().min(1).max(20),
-  }).strip()).max(MAX_RELABEL),
-}).strip()
+export const relabelUtterancesSchema = z
+  .object({
+    items: z
+      .array(
+        z
+          .object({
+            id: z.string().min(1).max(64),
+            sourceLang: z.string().min(1).max(20),
+            targetLang: z.string().min(1).max(20),
+          })
+          .strip(),
+      )
+      .max(MAX_RELABEL),
+  })
+  .strip()
 
-export const relabelVocabSchema = z.object({
-  items: z.array(z.object({
-    id: z.string().min(1).max(64),
-    srcLang: z.string().min(1).max(20),
-    tgtLang: z.string().min(1).max(20),
-  }).strip()).max(MAX_RELABEL),
-}).strip()
+export const relabelVocabSchema = z
+  .object({
+    items: z
+      .array(
+        z
+          .object({
+            id: z.string().min(1).max(64),
+            srcLang: z.string().min(1).max(20),
+            tgtLang: z.string().min(1).max(20),
+          })
+          .strip(),
+      )
+      .max(MAX_RELABEL),
+  })
+  .strip()
 
 /** PATCH de uma fala. O POST já limitava a 10.000/120 via `utteranceSchema`; o PATCH não. */
-export const patchUtteranceSchema = z.object({
-  sourceText: shortStr(10_000),
-  translatedText: shortStr(10_000),
-  speakerName: shortStr(120),
-}).strip()
+export const patchUtteranceSchema = z
+  .object({
+    sourceText: shortStr(10_000),
+    translatedText: shortStr(10_000),
+    speakerName: shortStr(120),
+  })
+  .strip()
 
 /**
  * PATCH de sessão: `kind`/`status` sem teto e números negativos passavam.
@@ -296,18 +361,27 @@ export const patchUtteranceSchema = z.object({
  * 200 mil palavras e 24 horas não recusam nenhuma sessão real, e barram a ordem de grandeza que
  * só aparece em adulteração.
  */
-export const patchSessionSchema = z.object({
-  title: shortStr(200),
-  kind: shortStr(30),
-  status: shortStr(30),
-  durationMs: z.number().int().min(0).max(24 * 60 * 60 * 1000).optional(),
-  wordCount: z.number().int().min(0).max(200_000).optional(),
-}).strip()
+export const patchSessionSchema = z
+  .object({
+    title: shortStr(200),
+    kind: shortStr(30),
+    status: shortStr(30),
+    durationMs: z
+      .number()
+      .int()
+      .min(0)
+      .max(24 * 60 * 60 * 1000)
+      .optional(),
+    wordCount: z.number().int().min(0).max(200_000).optional(),
+  })
+  .strip()
 
 /** Busca de imagem: `q` sem teto virava chave do cache em memória (200 entradas). */
-export const imageSearchQuerySchema = z.object({
-  q: z.string().min(1).max(120),
-}).strip()
+export const imageSearchQuerySchema = z
+  .object({
+    q: z.string().min(1).max(120),
+  })
+  .strip()
 
 /* ══════════════════ F11-04 · schemas de PARÂMETRO, QUERY e CABEÇALHO ══════════════════
  *
@@ -326,8 +400,19 @@ export const idParamSchema = z.object({ id: z.string().min(1).max(128) }).strip(
 
 /** Lista separada por vírgula, com teto de itens e de tamanho por item. */
 const csv = (maxItens: number, maxCada = 64) =>
-  z.string().max(maxItens * (maxCada + 1)).optional()
-    .transform((v) => (v ? v.split(',').map((x) => x.trim()).filter(Boolean).slice(0, maxItens) : undefined))
+  z
+    .string()
+    .max(maxItens * (maxCada + 1))
+    .optional()
+    .transform((v) =>
+      v
+        ? v
+            .split(',')
+            .map((x) => x.trim())
+            .filter(Boolean)
+            .slice(0, maxItens)
+        : undefined,
+    )
 
 const FAIXAS = ['facil', 'medio', 'dificil'] as const
 
@@ -338,22 +423,30 @@ const FAIXAS = ['facil', 'medio', 'dificil'] as const
  * vem de uma seleção manual na tela.
  */
 const filtroFonteSchema = z.enum(['baralho', 'sessao', 'trilha'])
-export const filtroFacetadoSchema = z.object({
-  fontes: z.array(filtroFonteSchema).min(1).max(3),
-  baralhos: z.array(z.string().max(128)).max(50).optional(),
-  sessoes: z.array(z.string().max(128)).max(50).optional(),
-  idiomas: z.array(z.string().max(16)).max(20).optional(),
-  recorte: z.object({
-    nuncaVistas: z.boolean().optional(),
-    pedindoRevisao: z.boolean().optional(),
-    niveis: z.array(z.string().max(16)).max(20).optional(),
-    dificeisIds: z.array(z.string().max(128)).max(200).optional(),
-  }).strip().optional(),
-  midia: z.object({
-    comTraducao: z.boolean().optional(),
-    comFrase: z.boolean().optional(),
-  }).strip().optional(),
-}).strip()
+export const filtroFacetadoSchema = z
+  .object({
+    fontes: z.array(filtroFonteSchema).min(1).max(3),
+    baralhos: z.array(z.string().max(128)).max(50).optional(),
+    sessoes: z.array(z.string().max(128)).max(50).optional(),
+    idiomas: z.array(z.string().max(16)).max(20).optional(),
+    recorte: z
+      .object({
+        nuncaVistas: z.boolean().optional(),
+        pedindoRevisao: z.boolean().optional(),
+        niveis: z.array(z.string().max(16)).max(20).optional(),
+        dificeisIds: z.array(z.string().max(128)).max(200).optional(),
+      })
+      .strip()
+      .optional(),
+    midia: z
+      .object({
+        comTraducao: z.boolean().optional(),
+        comFrase: z.boolean().optional(),
+      })
+      .strip()
+      .optional(),
+  })
+  .strip()
 
 /**
  * `filtro` chega como JSON serializado num query param — a rota já é GET (o corpo semântico é
@@ -363,7 +456,10 @@ export const filtroFacetadoSchema = z.object({
  * máximos de TODOS os campos ao mesmo tempo — 20 KB cobre o uso real com folga sem abrir a porta
  * para um payload absurdo dentro da URL).
  */
-const filtroQuerySchema = z.string().max(20_000).optional()
+const filtroQuerySchema = z
+  .string()
+  .max(20_000)
+  .optional()
   .transform((v, ctx) => {
     if (!v) return undefined
     let parsed: unknown
@@ -375,37 +471,44 @@ const filtroQuerySchema = z.string().max(20_000).optional()
     }
     const r = filtroFacetadoSchema.safeParse(parsed)
     if (!r.success) {
-      ctx.addIssue({ code: 'custom', message: `filtro: ${r.error.issues[0]?.path.join('.') || '?'} — ${r.error.issues[0]?.message ?? 'inválido'}` })
+      ctx.addIssue({
+        code: 'custom',
+        message: `filtro: ${r.error.issues[0]?.path.join('.') || '?'} — ${r.error.issues[0]?.message ?? 'inválido'}`,
+      })
       return z.NEVER
     }
     return r.data
   })
 
-export const vocabParaJogoQuerySchema = z.object({
-  fonte: z.enum(['baralho', 'sessao', 'trilha']).optional(),
-  fonteRef: z.string().max(128).optional(),
-  // Enum fechado no lugar do `as never`: valor fora da lista vira 400, não uma consulta torta.
-  dificuldade: csv(3, 16).pipe(z.array(z.enum(FAIXAS)).max(3).optional()),
-  estrategia: z.enum(['equilibrado', 'recentes', 'frequentes', 'em-dificuldade']).optional(),
-  // O repositório já faz clamp em 1..200; declarar aqui recusa `limite=1e9` antes da consulta.
-  limite: z.coerce.number().int().min(1).max(200).optional(),
-  evitar: csv(200),
-  lang: z.string().max(16).optional(),
-  // Presente => tem PRECEDÊNCIA sobre fonte/fonteRef/lang, no repositório (não aqui).
-  filtro: filtroQuerySchema,
-}).strip()
+export const vocabParaJogoQuerySchema = z
+  .object({
+    fonte: z.enum(['baralho', 'sessao', 'trilha']).optional(),
+    fonteRef: z.string().max(128).optional(),
+    // Enum fechado no lugar do `as never`: valor fora da lista vira 400, não uma consulta torta.
+    dificuldade: csv(3, 16).pipe(z.array(z.enum(FAIXAS)).max(3).optional()),
+    estrategia: z.enum(['equilibrado', 'recentes', 'frequentes', 'em-dificuldade']).optional(),
+    // O repositório já faz clamp em 1..200; declarar aqui recusa `limite=1e9` antes da consulta.
+    limite: z.coerce.number().int().min(1).max(200).optional(),
+    evitar: csv(200),
+    lang: z.string().max(16).optional(),
+    // Presente => tem PRECEDÊNCIA sobre fonte/fonteRef/lang, no repositório (não aqui).
+    filtro: filtroQuerySchema,
+  })
+  .strip()
 
-export const vocabPaginaQuerySchema = z.object({
-  limite: z.coerce.number().int().min(1).max(500).optional(),
-  cursorValor: z.string().max(128).optional(),
-  cursorId: z.string().max(128).optional(),
-  q: z.string().max(200).optional(),
-  niveis: csv(20),
-  origens: csv(20),
-  desde: z.coerce.number().int().min(0).optional(),
-  ate: z.coerce.number().int().min(0).optional(),
-  ordem: z.enum(['recentes', 'frequentes', 'dificuldade', 'alfabetica']).optional(),
-}).strip()
+export const vocabPaginaQuerySchema = z
+  .object({
+    limite: z.coerce.number().int().min(1).max(500).optional(),
+    cursorValor: z.string().max(128).optional(),
+    cursorId: z.string().max(128).optional(),
+    q: z.string().max(200).optional(),
+    niveis: csv(20),
+    origens: csv(20),
+    desde: z.coerce.number().int().min(0).optional(),
+    ate: z.coerce.number().int().min(0).optional(),
+    ordem: z.enum(['recentes', 'frequentes', 'dificuldade', 'alfabetica']).optional(),
+  })
+  .strip()
 
 /**
  * PATCH de cartão: o handler fazia `typeof` + `slice(0,2000)` à mão.
@@ -414,24 +517,32 @@ export const vocabPaginaQuerySchema = z.object({
  * idioma, frase) tem donos próprios. Um schema mais largo aqui AMPLIARIA o contrato em vez de
  * apenas tipá-lo, que é o oposto do que este achado pede.
  */
-export const patchVocabSchema = z.object({
-  back: z.string().max(2_000).optional(),
-  inDeck: z.boolean().optional(),
-}).strip()
+export const patchVocabSchema = z
+  .object({
+    back: z.string().max(2_000).optional(),
+    inDeck: z.boolean().optional(),
+  })
+  .strip()
 
-export const exerciseResultsQuerySchema = z.object({
-  sessionId: z.string().max(128).optional(),
-  origem: z.string().max(80).optional(),
-}).strip()
+export const exerciseResultsQuerySchema = z
+  .object({
+    sessionId: z.string().max(128).optional(),
+    origem: z.string().max(80).optional(),
+  })
+  .strip()
 
-export const metricsProfileQuerySchema = z.object({
-  sessao: z.string().max(128).optional(),
-}).strip()
+export const metricsProfileQuerySchema = z
+  .object({
+    sessao: z.string().max(128).optional(),
+  })
+  .strip()
 
-export const metricsXpQuerySchema = z.object({
-  balde: z.enum(['dia', 'semana']).optional(),
-  desde: z.coerce.number().int().min(0).optional(),
-}).strip()
+export const metricsXpQuerySchema = z
+  .object({
+    balde: z.enum(['dia', 'semana']).optional(),
+    desde: z.coerce.number().int().min(0).optional(),
+  })
+  .strip()
 
 /**
  * Exportação de baralho: o handler cortava em 5.000/120 depois de já ter o array inteiro na mão.
@@ -440,33 +551,52 @@ export const metricsXpQuerySchema = z.object({
  * denunciou a primeira versão, que aceitava `Record<string, unknown>` e teria empurrado objetos
  * sem `frente`/`verso` para dentro do gerador do `.apkg`.
  */
-export const ankiExportSchema = z.object({
-  cartoes: z.array(z.object({
-    frente: z.string().max(2_000),
-    verso: z.string().max(2_000),
-    exemplo: z.string().max(2_000).optional(),
-  }).strip()).min(1).max(5_000),
-  nome: z.string().max(120).optional(),
-}).strip()
+export const ankiExportSchema = z
+  .object({
+    cartoes: z
+      .array(
+        z
+          .object({
+            frente: z.string().max(2_000),
+            verso: z.string().max(2_000),
+            exemplo: z.string().max(2_000).optional(),
+          })
+          .strip(),
+      )
+      .min(1)
+      .max(5_000),
+    nome: z.string().max(120).optional(),
+  })
+  .strip()
 
 /** Importação por URL (YouTube e web). O `assertPublicUrl` continua sendo a guarda de SSRF. */
-export const importUrlSchema = z.object({
-  url: z.string().min(1).max(2_048),
-}).strip()
+export const importUrlSchema = z
+  .object({
+    url: z.string().min(1).max(2_048),
+  })
+  .strip()
 
 /**
  * Cabeçalhos dos uploads brutos. `x-filename` nunca vira caminho (o nome do arquivo é gerado pelo
  * servidor a partir do id da sessão — S-14), mas vira TÍTULO e chega ao banco.
  */
-export const uploadHeadersSchema = z.object({
-  'x-filename': z.string().max(400).optional(),
-  'content-type': z.string().max(200).optional(),
-  /* O IDIOMA DO BARALHO vem por cabeçalho porque o `.apkg` não o declara de forma confiável — quem
+export const uploadHeadersSchema = z
+  .object({
+    'x-filename': z.string().max(400).optional(),
+    'content-type': z.string().max(200).optional(),
+    /* O IDIOMA DO BARALHO vem por cabeçalho porque o `.apkg` não o declara de forma confiável — quem
      sabe é a tela, que já tem o idioma praticado e o nativo. Sem isto o cartão importado nasce sem
      `srcLang`, a triagem o marca `idioma-incerto` e o baralho inteiro fica fora das rodadas. */
-  'x-src-lang': z.string().regex(/^[A-Za-z-]{2,20}$/).optional(),
-  'x-tgt-lang': z.string().regex(/^[A-Za-z-]{2,20}$/).optional(),
-}).strip()
+    'x-src-lang': z
+      .string()
+      .regex(/^[A-Za-z-]{2,20}$/)
+      .optional(),
+    'x-tgt-lang': z
+      .string()
+      .regex(/^[A-Za-z-]{2,20}$/)
+      .optional(),
+  })
+  .strip()
 
 /* ══════════════════ motor-anki-acervo — schemas das rotas do acervo (`/api/anki`) ══════════════════
  *
@@ -477,28 +607,111 @@ export const uploadHeadersSchema = z.object({
  */
 
 /** Query de `GET /api/anki/decks/:id/notas` — cursor + filtros, mesmo padrão de `vocabPaginaQuerySchema`. */
-export const ankiNotasQuerySchema = z.object({
-  /* CURSOR OPACO, um parametro so (`valor:id`). Eram dois — `cursor` e `cursorId` — e o cliente
+export const ankiNotasQuerySchema = z
+  .object({
+    /* CURSOR OPACO, um parametro so (`valor:id`). Eram dois — `cursor` e `cursorId` — e o cliente
      mandava so o primeiro, com o objeto serializado como `[object Object]`: a segunda pagina
      repetia a primeira para sempre (achado A21). Ver `cursorDeNotas` em `contract.ts`. */
-  cursor: z.string().max(256).optional(),
-  estado: z.enum(FILTROS_DE_NOTA_ANKI).optional(),
-  busca: z.string().max(200).optional(),
-  limite: z.coerce.number().int().min(1).max(500).optional(),
-}).strip()
+    cursor: z.string().max(256).optional(),
+    estado: z.enum(FILTROS_DE_NOTA_ANKI).optional(),
+    busca: z.string().max(200).optional(),
+    limite: z.coerce.number().int().min(1).max(500).optional(),
+  })
+  .strip()
 
 /** Body de `POST /api/anki/decks/:id/ativar` — `limite` é opcional; o repositório aplica o teto default. */
-export const ankiAtivarSchema = z.object({
-  limite: z.coerce.number().int().min(1).max(1000).optional(),
-}).strip()
+export const ankiAtivarSchema = z
+  .object({
+    limite: z.coerce.number().int().min(1).max(1000).optional(),
+  })
+  .strip()
 
 /**
  * `DELETE /api/anki/decks/:id` — purga física (notas + import + deck). `confirmar: true` é
  * OBRIGATÓRIO, mesmo contrato de `excluirContaSchema`: sem confirmação explícita a rota nunca apaga.
  */
-export const ankiPurgarSchema = z.object({
-  confirmar: z.literal(true),
-}).strip()
+export const ankiPurgarSchema = z
+  .object({
+    confirmar: z.literal(true),
+  })
+  .strip()
+
+/* ══════════════════ Fase 4 · fronteira dos PROXIES DE IA (`/api/ai`) ══════════════════
+ *
+ * ACHADO: os três proxies de IA eram a maior superfície sem schema do servidor. O corpo de
+ * `/llm/chat/completions` era ESPALHADO (`{ ...req.body }`) e reenviado ao provedor; o de
+ * `/providers/test` era desestruturado cru; e os cabeçalhos `x-model`/`x-language` do STT iam
+ * verbatim para dentro do `FormData` do Whisper. Em todos os casos o servidor era um encaminhador
+ * de campo arbitrário: quem chamava escolhia o que o provedor recebia (e o que a fatura paga).
+ */
+
+/** Teto de mensagens por requisição de chat. Nenhuma tela do app monta conversa maior. */
+const MAX_MENSAGENS_DE_CHAT = 200
+/** Teto por mensagem, o mesmo `MAX_PROMPT_CHARS` de `server/ai/llmRequest.ts` (custo/DoS). */
+const MAX_CONTEUDO_DE_MENSAGEM = 100_000
+
+/**
+ * Corpo OpenAI-compatible de `POST /api/ai/llm/chat/completions`.
+ *
+ * `strictObject` (recusa campo desconhecido) é a parte que importa: com `.strip()` o campo
+ * estranho seria só descartado, mas o achado é justamente que o cliente ditava o pedido ao
+ * provedor — `logprobs`, `n`, `tools`, `response_format` e qualquer parâmetro caro entravam de
+ * carona. Recusar em vez de descartar torna a ampliação do contrato uma decisão, não um acidente.
+ *
+ * `max_tokens` NÃO tem teto aqui de propósito: quem o impõe é o clamp de 4096 do proxy (S-07),
+ * que também cobre a ausência do campo. Recusar 999_999 com 400 quebraria clientes que hoje
+ * mandam um número grande e recebem a resposta clampada.
+ */
+export const llmChatCompletionsSchema = z.strictObject({
+  model: z.string().min(1).max(200).optional(),
+  messages: z
+    .array(
+      z.strictObject({
+        role: z.enum(['system', 'developer', 'user', 'assistant']),
+        content: z.string().max(MAX_CONTEUDO_DE_MENSAGEM),
+      }),
+    )
+    .min(1)
+    .max(MAX_MENSAGENS_DE_CHAT),
+  temperature: z.number().min(0).max(2).optional(),
+  top_p: z.number().min(0).max(1).optional(),
+  max_tokens: z.number().int().min(1).optional(),
+  stream: z.boolean().optional(),
+})
+
+/**
+ * Corpo de `POST /api/ai/providers/test`. `baseUrl` é opcional porque `credentialId` a substitui
+ * (e, com credencial, o host vem EXCLUSIVAMENTE dela — ver S-01 em `ai/proxy.ts`); a ausência dos
+ * dois continua sendo o 400 "baseUrl ausente" que a rota já respondia.
+ */
+export const providerTestSchema = z.strictObject({
+  baseUrl: z.string().max(2_048).url().optional(),
+  apiKey: z.string().max(1_000).optional(),
+  model: z.string().max(200).optional(),
+  credentialId: z.string().max(128).optional(),
+})
+
+/**
+ * Cabeçalhos de `POST /api/ai/stt`. Os dois viajavam sem checagem alguma até o `FormData` do
+ * provedor: `x-model` escolhia (e pagava) o modelo, e `x-language` entrava no campo `language`.
+ * `.strip()` — e não `strictObject` — porque o que se valida aqui é um recorte de `req.headers`,
+ * que sempre traz dezenas de cabeçalhos alheios.
+ *
+ * O formato do modelo espelha o que os provedores OpenAI-compatible aceitam (`whisper-large-v3`,
+ * `openai/whisper-1`); o do idioma reusa a regra de `x-src-lang` acima.
+ */
+export const sttHeadersSchema = z
+  .object({
+    'x-model': z
+      .string()
+      .regex(/^[A-Za-z0-9][A-Za-z0-9._/-]{0,119}$/)
+      .optional(),
+    'x-language': z
+      .string()
+      .regex(/^[A-Za-z-]{2,20}$/)
+      .optional(),
+  })
+  .strip()
 
 /**
  * Valida e responde 400 com a PRIMEIRA razão legível quando o payload não passa.
@@ -508,6 +721,8 @@ export function parseOr400<T>(schema: z.ZodType<T>, body: unknown, res: Response
   const r = schema.safeParse(body ?? {})
   if (r.success) return r.data
   const first = r.error.issues[0]
-  res.status(400).json({ error: `payload inválido: ${first?.path?.join('.') || '?'} — ${first?.message || 'malformado'}` })
+  res
+    .status(400)
+    .json({ error: `payload inválido: ${first?.path?.join('.') || '?'} — ${first?.message || 'malformado'}` })
   return null
 }

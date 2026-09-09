@@ -1,9 +1,15 @@
 /** Rota de métricas (montada em `/api/metrics`). */
-import { type Request, type Response,Router } from 'express'
+import { type Request, type Response, Router } from 'express'
 
 import {
-  autorizarGasto, CONQUISTAS_CONFERIVEIS,
-ehRecusa, itensSorteaveisNoDrop,   roundIdDoDrop, sortearItemDoDrop, valorDoCredito, valorDoDrop,
+  autorizarGasto,
+  CONQUISTAS_CONFERIVEIS,
+  ehRecusa,
+  itensSorteaveisNoDrop,
+  roundIdDoDrop,
+  sortearItemDoDrop,
+  valorDoCredito,
+  valorDoDrop,
 } from '../../src/core/economiaAutoridade'
 import type { ContextoDeConquistas } from '../../src/core/learning/conquistas'
 import { diaLocal, sequencias } from '../../src/core/learning/economia'
@@ -14,7 +20,14 @@ import { economiaDoUsuario } from '../db/repositories/metrics'
 import { seedSpendsRepo } from '../db/repositories/seedSpends'
 import { erroDeRota } from '../lib/erroDeRota'
 import { responderErro } from '../lib/respostaDeErro'
-import { metricsProfileQuerySchema, metricsXpQuerySchema,parseOr400, presencaSchema, seedCreditSchema, seedSpendSchema } from '../validation'
+import {
+  metricsProfileQuerySchema,
+  metricsXpQuerySchema,
+  parseOr400,
+  presencaSchema,
+  seedCreditSchema,
+  seedSpendSchema,
+} from '../validation'
 
 export const metricsRouter = Router()
 
@@ -35,7 +48,16 @@ metricsRouter.get('/profile', async (req, res) => {
     const sessao = q.sessao?.trim() ? q.sessao.trim() : null
     res.json(await computeProfile(req.userId, { sessionId: sessao }))
   } catch (err) {
-    res.status(500).json({ error: erroDeRota(err, { status: 500, event: 'metrics_route_error', route: req.path, requestId: req.requestId }) })
+    res
+      .status(500)
+      .json({
+        error: erroDeRota(err, {
+          status: 500,
+          event: 'metrics_route_error',
+          route: req.path,
+          requestId: req.requestId,
+        }),
+      })
   }
 })
 
@@ -52,7 +74,11 @@ metricsRouter.get('/xp', async (req, res) => {
   try {
     res.json(await computeXpHistory(req.userId, { balde: q.balde ?? 'dia', desde: q.desde || undefined }))
   } catch (err) {
-    res.status(500).json({ error: erroDeRota(err, { status: 500, event: 'metrics_xp_error', route: req.path, requestId: req.requestId }) })
+    res
+      .status(500)
+      .json({
+        error: erroDeRota(err, { status: 500, event: 'metrics_xp_error', route: req.path, requestId: req.requestId }),
+      })
   }
 })
 
@@ -90,7 +116,11 @@ metricsRouter.post('/seeds/gastar', async (req, res) => {
   try {
     const autorizacao = autorizarGasto(payload.reason)
     if (ehRecusa(autorizacao)) {
-      res.status(400).json({ error: autorizacao.erro })
+      /* Fase 4 — ENVELOPE UNIFORME. As outras duas recusas DESTA MESMA rota já vinham com `code`
+         (`preco_divergente`, `saldo_insuficiente`) e esta saía como `{ error }` solto: a tela
+         precisava distinguir por texto, exatamente o que o `code` existe para evitar. O texto de
+         `autorizarGasto` continua no `error` — ele diz QUAL item foi recusado e por quê. */
+      responderErro(res, 400, autorizacao.erro, 'motivo_desconhecido')
       return
     }
     if (payload.amount !== autorizacao.preco) {
@@ -114,7 +144,11 @@ metricsRouter.post('/seeds/gastar', async (req, res) => {
       /* Recusa ANTECIPADA, para o 402 poder dizer quanto falta: o teto dentro do INSERT sabe
          barrar, mas não sabe explicar. As duas conferências usam o mesmo número. */
       if (saldo < autorizacao.preco) {
-        responderErro(res, 402, 'saldo insuficiente', 'saldo_insuficiente', { falta: autorizacao.preco - saldo, saldo, preco: autorizacao.preco })
+        responderErro(res, 402, 'saldo insuficiente', 'saldo_insuficiente', {
+          falta: autorizacao.preco - saldo,
+          saldo,
+          preco: autorizacao.preco,
+        })
         return
       }
     }
@@ -126,13 +160,26 @@ metricsRouter.post('/seeds/gastar', async (req, res) => {
     if (recusadoPorSaldo || !linha) {
       /* Chegou aqui quem passou na conferência e perdeu a corrida para outra compra simultânea.
          O 402 é o mesmo: a diferença é que agora o saldo não estoura. */
-      responderErro(res, 402, 'saldo insuficiente', 'saldo_insuficiente', { falta: autorizacao.preco, saldo, preco: autorizacao.preco })
+      responderErro(res, 402, 'saldo insuficiente', 'saldo_insuficiente', {
+        falta: autorizacao.preco,
+        saldo,
+        preco: autorizacao.preco,
+      })
       return
     }
     const perfil = await computeProfile(req.userId)
     res.json({ jaExistia, gasto: linha.amount, seedsGastas: perfil.seedsGastas })
   } catch (err) {
-    res.status(400).json({ error: erroDeRota(err, { status: 400, event: 'metrics_route_error', route: req.path, requestId: req.requestId }) })
+    res
+      .status(400)
+      .json({
+        error: erroDeRota(err, {
+          status: 400,
+          event: 'metrics_route_error',
+          route: req.path,
+          requestId: req.requestId,
+        }),
+      })
   }
 })
 
@@ -152,14 +199,27 @@ metricsRouter.post('/presenca', async (req, res) => {
     // Fuso real fica a no máximo 1 dia do servidor; 2 de folga barra dia inventado sem
     // rejeitar nenhum fuso legítimo. Dia fora da janela = 400, não presença retroativa.
     if (Math.abs(dia - hojeDoServidor) > 2) {
-      res.status(400).json({ error: 'dia fora da janela aceitável' })
+      /* Fase 4 — ENVELOPE UNIFORME: era `{ error }` solto, sem `code`, enquanto as recusas de
+         `/seeds/gastar` já discriminavam por código. Aqui o `code` importa em particular porque a
+         causa provável é RELÓGIO do cliente errado, e a tela só consegue dizer isso se souber
+         qual recusa recebeu. `detalhes` traz o dia do servidor, que é o que permite comparar. */
+      responderErro(res, 400, 'dia fora da janela aceitável', 'dia_fora_da_janela', { diaDoServidor: hojeDoServidor })
       return
     }
     const { jaExistia } = await economiaRepo.registrarPresenca(req.userId, dia)
     const { atual } = sequencias(await economiaRepo.diasDePresenca(req.userId), dia)
     res.json({ jaExistia, dia, streakPresenca: atual })
   } catch (err) {
-    res.status(500).json({ error: erroDeRota(err, { status: 500, event: 'metrics_route_error', route: req.path, requestId: req.requestId }) })
+    res
+      .status(500)
+      .json({
+        error: erroDeRota(err, {
+          status: 500,
+          event: 'metrics_route_error',
+          route: req.path,
+          requestId: req.requestId,
+        }),
+      })
   }
 })
 
@@ -220,10 +280,7 @@ async function creditarDrop(req: Request, res: Response, creditoId: string, roun
     return
   }
 
-  const jaPossui = new Set([
-    ...await seedSpendsRepo.itensComprados(req.userId),
-    ...drops.map((d) => d.itemId),
-  ])
+  const jaPossui = new Set([...(await seedSpendsRepo.itensComprados(req.userId)), ...drops.map((d) => d.itemId)])
   const sorteado = sortearItemDoDrop(Math.random(), itensSorteaveisNoDrop(jaPossui))
   if (!sorteado) {
     const totais = await economiaRepo.totaisCreditados(req.userId)
@@ -240,7 +297,10 @@ async function creditarDrop(req: Request, res: Response, creditoId: string, roun
   }
 
   const { jaExistia } = await economiaRepo.creditar(req.userId, {
-    creditoId: credito.creditoId, amount: credito.seeds, xp: credito.xp, reason: credito.reason,
+    creditoId: credito.creditoId,
+    amount: credito.seeds,
+    xp: credito.xp,
+    reason: credito.reason,
   })
   const totais = await economiaRepo.totaisCreditados(req.userId)
   res.json({ jaExistia, item: sorteado.id, ...totais })
@@ -266,8 +326,8 @@ metricsRouter.post('/seeds/creditar', async (req, res) => {
 
     /* Uma leitura de economia serve às DUAS conferências abaixo, e nenhuma das duas roda quando o
        crédito não exige nada — `computeProfile` varre cinco tabelas e não vale pagá-lo à toa. */
-    const precisaDeEconomia = credito.nivelMinimo > 0
-      || (credito.conquista != null && CONQUISTAS_CONFERIVEIS.has(credito.conquista.id))
+    const precisaDeEconomia =
+      credito.nivelMinimo > 0 || (credito.conquista != null && CONQUISTAS_CONFERIVEIS.has(credito.conquista.id))
     if (precisaDeEconomia) {
       const { metricas, nivel } = await economiaDoUsuario(req.userId)
 
@@ -275,7 +335,10 @@ metricsRouter.post('/seeds/creditar', async (req, res) => {
          desenho, não regra: sem esta linha o cofre de 172 Seeds da década 10 sairia no nível 1
          para quem pedisse a rota direto. */
       if (nivel < credito.nivelMinimo) {
-        responderErro(res, 400, 'nível insuficiente para este crédito', 'nivel_insuficiente', { nivel, exigido: credito.nivelMinimo })
+        responderErro(res, 400, 'nível insuficiente para este crédito', 'nivel_insuficiente', {
+          nivel,
+          exigido: credito.nivelMinimo,
+        })
         return
       }
 
@@ -285,9 +348,11 @@ metricsRouter.post('/seeds/creditar', async (req, res) => {
            falsear nenhuma decisão. `idiomas` e `melhorComboPorJogo` SAÍRAM dessa lista: o perfil
            passou a emitir `idiomas` e os recordes passaram a devolver o combo. */
         const ctx: ContextoDeConquistas = {
-          metricas, nivel,
+          metricas,
+          nivel,
           melhorComboPorJogo: await exerciseResultsRepo.melhorComboPorJogo(req.userId),
-          eventosVistos: 0, totalDeEventos: 0,
+          eventosVistos: 0,
+          totalDeEventos: 0,
           idiomas: metricas.idiomas ?? 0,
           compras: metricas.itensComprados?.length ?? 0,
         }
@@ -308,6 +373,15 @@ metricsRouter.post('/seeds/creditar', async (req, res) => {
     const totais = await economiaRepo.totaisCreditados(req.userId)
     res.json({ jaExistia, ...totais })
   } catch (err) {
-    res.status(500).json({ error: erroDeRota(err, { status: 500, event: 'metrics_route_error', route: req.path, requestId: req.requestId }) })
+    res
+      .status(500)
+      .json({
+        error: erroDeRota(err, {
+          status: 500,
+          event: 'metrics_route_error',
+          route: req.path,
+          requestId: req.requestId,
+        }),
+      })
   }
 })

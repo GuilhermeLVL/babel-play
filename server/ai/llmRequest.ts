@@ -2,10 +2,14 @@
  * Preparo + validação do corpo de `/api/gemini/chat` (S-06 / M-02).
  *
  * S-06: a rota aceitava `messages`/`systemInstruction`/`maxTokens` do corpo sem NENHUM teto — qualquer
- * chamador (a rota usa a chave do dono, sem auth) podia ditar prompt gigante e `max_tokens` ilimitado
- * (custo/DoS). Aqui impomos teto de TAMANHO do prompt e clamp de `max_tokens` no servidor. A exposição
- * do `systemInstruction` em si é, no fundo, um problema de AUTENTICAÇÃO (S-02, fora deste escopo) — o
- * teto de custo é a mitigação possível sem auth.
+ * chamador podia ditar prompt gigante e `max_tokens` ilimitado (custo/DoS). Aqui impomos teto de
+ * TAMANHO do prompt e clamp de `max_tokens` no servidor.
+ *
+ * O texto anterior dizia que "a rota usa a chave do dono, SEM AUTH", e isso deixou de ser verdade:
+ * `/api/gemini/chat` é registrada DEPOIS de `app.use("/api", authMiddleware)` (`server.ts:171` x
+ * `:314`), passa pelo `expensiveLimiter` e confere `hasEntitlement`/`reserveManagedCall`. O teto de
+ * custo, que era "a mitigação possível sem auth", hoje é a segunda camada. (Comentário corrigido na
+ * Fase 2 da rodada de saneamento, 2026-09-09.)
  *
  * Extraído de server.ts para ser testável de forma pura, sem subir o servidor.
  */

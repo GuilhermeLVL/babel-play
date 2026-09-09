@@ -1,3 +1,8 @@
+> **Documento histórico.** Estava na raiz do repositório como `AUDITORIA-ESTADO.md`, onde parecia
+> descrever o estado ATUAL do projeto — e não descrevia desde 2026-09-07. Movido para cá na Fase 2
+> da rodada de saneamento (2026-09-09), sem alterar o conteúdo abaixo. O estado vigente está em
+> `openspec/specs/` e nos relatórios `openspec/audits/2026-09-0*`.
+
 # Estado da Auditoria — Babel Play (Sessão Paralela: Telas, UX, Economia & Monetização)
 
 > **Data de Atualização:** 2026-09-02  

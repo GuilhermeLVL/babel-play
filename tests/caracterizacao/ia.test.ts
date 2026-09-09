@@ -13,6 +13,7 @@
  */
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { esquecerDisjuntores } from '../../server/ai/disjuntor'
 import { type AppDeTeste, resposta, subirApp } from './_app'
 
 const ENV_PRIMARIO = {
@@ -94,6 +95,11 @@ beforeEach(() => {
   chamadas = []
   responder = () => completacao('resposta padrão')
   for (const k of Object.keys(ENV_RESERVA)) delete process.env[k]
+  /* O disjuntor de `server/ai/disjuntor.ts` guarda falhas SEGUIDAS por provedor, e é estado de
+     processo de propósito. Sem zerar entre casos, as falhas encenadas por um teste (timeout, 500,
+     429) somariam e o teste seguinte encontraria o provedor com o disjuntor aberto — a chamada
+     não sairia, e o `chamadas` que cada caso confere mediria outra coisa. */
+  esquecerDisjuntores()
 })
 
 describe('POST /api/ai/mt — tradução gerenciada', () => {
@@ -371,7 +377,7 @@ describe('POST /api/ai/stt — transcrição gerenciada com upstream falso', () 
     expect(chamadas[0].headers.authorization).toBe('Bearer chave-stt-falsa')
   })
 
-  it('upstream 4xx em verbose_json → repete em json; 5xx → 502 sem repetir', async () => {
+  it('upstream 4xx em verbose_json → repete em json; 5xx → retenta com espera e termina em 502', async () => {
     fixar('STT_API_KEY', 'chave-stt-falsa')
     fixar('STT_BASE_URL', 'http://203.0.113.20/v1') // IP público literal: `assertPublicUrl` resolve DNS de verdade
     let n = 0
@@ -402,7 +408,44 @@ describe('POST /api/ai/stt — transcrição gerenciada com upstream falso', () 
     await expect(JSON.stringify(await resposta(r), null, 2)).toMatchFileSnapshot(
       '__snapshots__/post.api.ai.stt.502.json',
     )
-    expect(chamadas).toHaveLength(1)
+    /*
+     * MUDOU NA FASE 5, e a mudança é deliberada: eram 1 chamada, agora são 3.
+     *
+     * A caracterização gravava "5xx não repete", e isso descrevia a regra do FORMATO — 5xx não é
+     * o provedor recusando `verbose_json`, então não adiantava reenviar em `json`. Continua
+     * valendo, e é por isso que as três tentativas são todas em `verbose_json`.
+     *
+     * O que passou a existir por cima é a RETENTATIVA com espera crescente do
+     * `server/ai/sttProxy.ts`: o STT não tem cascata para onde cair, e um 503 momentâneo do
+     * provedor fazia o usuário perder a fala — áudio de enunciado não volta. Duas tentativas
+     * extras (500 ms e 1.500 ms). O corpo da resposta ao cliente NÃO mudou: mesmo 502, mesmo
+     * `code`, mesmo snapshot — só o número de tentativas antes de desistir.
+     */
+    expect(chamadas).toHaveLength(3)
+    expect(chamadas.every((c) => String(c.url).endsWith('/audio/transcriptions'))).toBe(true)
+  })
+
+  it('429 do provedor: NÃO reenvia em json (não é sobre formato) — espera e tenta de novo', async () => {
+    // Antes da Fase 5 o 429 caía na regra dos 4xx e disparava um reenvio IMEDIATO do mesmo áudio
+    // em outro formato: dois pedidos recusados em vez de um, no momento em que o provedor pede
+    // para diminuir o ritmo.
+    fixar('STT_API_KEY', 'chave-stt-falsa')
+    fixar('STT_BASE_URL', 'http://203.0.113.20/v1')
+    let n = 0
+    responder = () => {
+      n++
+      return n === 1
+        ? new Response('rate limited', { status: 429 })
+        : new Response(JSON.stringify({ text: 'passou na segunda' }), {
+            status: 200,
+            headers: { 'content-type': 'application/json' },
+          })
+    }
+    const r = await s.chamar('POST', '/api/ai/stt', { raw: wavDeSilencio(1), headers: { 'content-type': 'audio/wav' } })
+    expect(r.status).toBe(200)
+    expect((await r.json()).text).toBe('passou na segunda')
+    // Duas chamadas: a recusada e a retentativa. Não três — o reenvio em `json` não aconteceu.
+    expect(chamadas).toHaveLength(2)
   })
 
   it('cabeçalho x-model fora do formato → 400 antes de qualquer chamada ao provedor', async () => {

@@ -38,6 +38,15 @@ export const METRIC_RATELIMIT_ESCRITA = 'ratelimit:escrita'
    compartilhado faria o teto de uma coisa consumir o teto de outra, e aqui a chave nem e a mesma
    (o IP, porque numa falha de auth nao existe usuario resolvido). */
 export const METRIC_RATELIMIT_AUTH = 'ratelimit:auth'
+/**
+ * O balde do relatório de erro do navegador (`server/routes/erros.ts`), separado pelo mesmo A27.
+ *
+ * Ele era um `Map` no heap do processo — o padrão que o P1-3 acima já tinha corrigido nos outros
+ * limitadores e que sobreviveu aqui. Com N processos, o teto de 10 por minuto valia 10 × N: em
+ * `CLUSTER_WORKERS=3`, um cliente em laço de erro entrega 30 relatórios por minuto ao diário, que
+ * é exatamente a avalanche que o teto existe para conter.
+ */
+export const METRIC_RATELIMIT_ERROS = 'ratelimit:erros'
 
 /**
  * A chave do balde: o TENANT, não o IP. Cai no IP só onde não há usuário resolvido

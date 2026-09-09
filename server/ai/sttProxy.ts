@@ -16,7 +16,15 @@ import { log } from '../lib/logger'
 import { responderErro } from '../lib/respostaDeErro'
 import { estornarSegundosDeStt, refundManagedCall, reservarSegundosDeStt, reserveManagedCall } from '../lib/usageQuota'
 import { parseOr400, sttHeadersSchema } from '../validation'
+import { deveRetentar, esperaDaRetentativa } from './disjuntor'
 import { assertPublicUrl } from './ssrf'
+
+/**
+ * Quantas tentativas EXTRAS o STT faz. Duas, e o porquê do número está no bloco que as usa: cada
+ * tentativa carrega 30 s de timeout próprio, então o teto de espera é o que limita, não a
+ * insistência.
+ */
+const RETENTATIVAS_DE_STT = 2
 
 /** POST /api/ai/stt/transcribe (OpenAI-compatible Whisper). */
 export async function sttTranscribeProxy(req: Request, res: Response): Promise<void> {
@@ -129,12 +137,51 @@ export async function sttTranscribeProxy(req: Request, res: Response): Promise<v
         signal: AbortSignal.timeout(30_000),
       })
 
-    let upstream = await enviar('verbose_json')
-    // Nem todo endpoint OpenAI-compatible implementa `verbose_json`. Quando ele RECUSA o formato
-    // (4xx), repetimos em `json` — degrada para o comportamento antigo (sem idioma) em vez de
-    // quebrar a transcrição de quem usa outro provedor. Erro 5xx não é sobre o formato: não repete.
-    if (!upstream.ok && upstream.status >= 400 && upstream.status < 500) {
-      upstream = await enviar('json')
+    /**
+     * UMA tentativa completa contra o provedor.
+     *
+     * Nem todo endpoint OpenAI-compatible implementa `verbose_json`. Quando ele RECUSA o formato
+     * (4xx), repetimos em `json` — degrada para o comportamento antigo (sem idioma) em vez de
+     * quebrar a transcrição de quem usa outro provedor. Erro 5xx não é sobre o formato: não repete.
+     *
+     * O 429 SAIU DESSA REGRA (Fase 5). Ele é 4xx e caía aqui, então um limite de taxa disparava um
+     * reenvio IMEDIATO do mesmo áudio em outro formato — dois pedidos recusados em vez de um, no
+     * exato momento em que o provedor está pedindo para diminuir o ritmo. Limite de taxa não é
+     * desacordo sobre formato; quem cuida dele é a retentativa com espera, logo abaixo.
+     */
+    const umaTentativa = async () => {
+      const r = await enviar('verbose_json')
+      if (!r.ok && r.status >= 400 && r.status < 500 && r.status !== 429) return await enviar('json')
+      return r
+    }
+
+    /**
+     * RETENTATIVA COM ESPERA CRESCENTE — e só aqui, não na tradução (Fase 5).
+     *
+     * A diferença entre os dois proxies é que a tradução TEM cascata (`cascataDeTraducao`): um 429
+     * do primário já cai na reserva, e insistir antes disso só somaria espera ao caminho em que
+     * alguém aguarda legenda na tela. O STT não tem para onde cair — sem reserva configurada, um
+     * 429 momentâneo do provedor simplesmente perdia a fala do usuário, e o áudio de um enunciado
+     * não volta.
+     *
+     * DUAS tentativas extras, com 500 ms e 1.500 ms de espera. O teto é o custo: cada tentativa tem
+     * 30 s de timeout próprio, e três delas no pior caso somam 92 s — muito além do que qualquer
+     * cliente espera, mas o pior caso aqui exige 429/5xx nas três, que é indisponibilidade real.
+     * `deveRetentar` explica por que o TIMEOUT ficou de fora (a requisição pode ter sido processada
+     * e cobrada do outro lado).
+     */
+    let upstream = await umaTentativa()
+    for (let n = 1; n <= RETENTATIVAS_DE_STT && deveRetentar(upstream.status); n++) {
+      const espera = esperaDaRetentativa(n)
+      log('warn', {
+        event: 'stt_retentativa',
+        route: '/api/ai/stt',
+        status: upstream.status,
+        error: `tentativa ${n} de ${RETENTATIVAS_DE_STT} após ${espera} ms`,
+        requestId: req.requestId,
+      })
+      await new Promise((r) => setTimeout(r, espera))
+      upstream = await umaTentativa()
     }
 
     if (!upstream.ok) {

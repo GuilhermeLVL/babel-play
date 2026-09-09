@@ -7,6 +7,7 @@ import { erroDeRota } from '../lib/erroDeRota'
 import { log } from '../lib/logger'
 import { responderErro } from '../lib/respostaDeErro'
 import { refundManagedCall, registrarTokensDeLlm, reserveManagedCall } from '../lib/usageQuota'
+import { chaveDoProvedor, disjuntorPermite, registrarFalha, registrarSucesso } from './disjuntor'
 import { chamarChat, type MensagemDeChat, type RespostaDeChat } from './llmClient'
 import { cascataDeTraducao } from './provedores'
 
@@ -134,10 +135,30 @@ export async function mtTranslateProxy(req: Request, res: Response): Promise<voi
     let entregue: { texto: string; tokens: number; rotulo: string; model: string } | null = null
     let ultimaFalha = 'sem provedor'
     for (const prov of provedores) {
+      /*
+       * O DISJUNTOR ANTES DA CHAMADA (Fase 5). A cascata já cobria "o primário falhou AGORA"; o que
+       * ela não tinha era memória entre requisições. Com o primário fora do ar, cada tradução pagava
+       * os 12 s de timeout dele antes de chegar à reserva — repetidos, um por fala. Aberto o
+       * disjuntor, a perna é PULADA sem abrir socket e a reserva atende na hora. Ver
+       * `server/ai/disjuntor.ts` para a política e para por que o estado é por processo.
+       */
+      const chave = chaveDoProvedor(prov)
+      if (!disjuntorPermite(chave)) {
+        ultimaFalha = `disjuntor aberto para ${prov.rotulo} (${prov.model})`
+        log('warn', {
+          event: 'mt_provedor_em_disjuntor',
+          route: '/api/ai/mt',
+          provider: prov.rotulo,
+          error: ultimaFalha,
+          requestId: req.requestId,
+        })
+        continue
+      }
       /* Sem `try/catch` aqui: `chamarChat` nunca lanca — timeout e rede viram resultado com causa,
          que e o que a cascata precisa para decidir e para o log dizer QUAL perna quebrou. */
       const resultado: RespostaDeChat = await tentar(prov)
       if (resultado.ok) {
+        registrarSucesso(chave)
         entregue = {
           texto: resultado.texto ?? '',
           tokens: resultado.tokens ?? 0,
@@ -146,6 +167,7 @@ export async function mtTranslateProxy(req: Request, res: Response): Promise<voi
         }
         break
       }
+      registrarFalha(chave, resultado.status)
       ultimaFalha = resultado.causa ?? 'falha sem causa declarada'
       /* Todo tipo de falha do primário tenta a reserva — inclusive 4xx: uma chave revogada ou um
          modelo que o provedor aposentou (aconteceu: o llama-3.3-70b sumiu do self-serve em dias)

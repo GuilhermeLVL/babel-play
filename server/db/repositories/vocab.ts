@@ -113,7 +113,17 @@ export interface NewVocabCard {
 
 /** Extrai o SchedulingState (contrato do FSRS) de uma linha de card.
  *  Exportado para server/db/manutencao.ts (migração de boot) reutilizar. */
-export function toState(card: VocabCard): SchedulingState {
+/**
+ * O agendamento le SETE colunas, e o parametro diz isso — em vez de exigir a linha inteira.
+ *
+ * Era `card: VocabCard`, a linha de 33 colunas. Quando `get` passou a devolver so o que sai do
+ * servidor (`COLUNAS_DO_CARTAO`), o `strict` acusou: o tipo pedia `user_id`, `deleted_at` e outras
+ * quatro que esta funcao nunca leu. Pedir mais do que se usa nao e conservador — e o que faz uma
+ * mudanca de forma bater num lugar que nao tinha nada com ela.
+ */
+export function toState(
+  card: Pick<VocabCard, 'box' | 'dueAt' | 'stability' | 'difficulty' | 'reps' | 'lapses' | 'lastReview'>,
+): SchedulingState {
   return {
     box: card.box ?? 1,
     dueAt: card.dueAt ?? Date.now(),
@@ -1041,7 +1051,11 @@ export const vocabRepo = {
    * Edição pontual de um cartão, vinda da CURADORIA. Só toca tradução e presença no baralho —
    * não encosta no agendamento FSRS. Arquivar (`inDeck: false`) tira das rodadas SEM apagar.
    */
-  async patch(userId: UserId, id: string, patch: { back?: string; inDeck?: boolean }): Promise<VocabCard | undefined> {
+  async patch(
+    userId: UserId,
+    id: string,
+    patch: { back?: string; inDeck?: boolean },
+  ): Promise<CartaoParaCliente | undefined> {
     const set: Record<string, unknown> = { updatedAt: Date.now() }
     if (typeof patch.back === 'string') set.back = patch.back.trim() || null
     if (typeof patch.inDeck === 'boolean') set.inDeck = patch.inDeck ? 1 : 0

@@ -170,6 +170,13 @@ export const VARIAVEIS: readonly VariavelDeclarada[] = [
     paraQue: 'raiz dos dados persistentes',
   },
   {
+    nome: 'DESLIGAMENTO_TIMEOUT_MS',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue:
+      'teto em ms para drenar as conexoes em curso no SIGTERM antes de sair com 1 (padrao 10.000, o mesmo prazo que o `docker stop` da antes do SIGKILL); ajuste quem roda com `docker stop -t` menor ou `terminationGracePeriodSeconds` diferente',
+  },
+  {
     nome: 'ERROS_DIR',
     exigencia: 'opcional',
     criticidade: 'degrada-capacidade',
@@ -261,6 +268,20 @@ export const VARIAVEIS: readonly VariavelDeclarada[] = [
     exigencia: 'opcional',
     criticidade: 'degrada-capacidade',
     paraQue: 'id do dono no modo self-host',
+  },
+  {
+    nome: 'METRICS_ENABLED',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue:
+      '1 MONTA `GET /metrics` (Prometheus, na raiz — não confundir com `/api/metrics`, que é a rota de negócio). Ausente, a rota não existe e responde 404 como qualquer caminho desconhecido: um 403 confirmaria a existência do endpoint a quem sonda',
+  },
+  {
+    nome: 'METRICS_TOKEN',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue:
+      'segredo do `Authorization: Bearer` de `GET /metrics`. Ausente, o scrape é aberto — aceitável em rede interna fechada e no self-host, e NÃO em rede pública: o scrape descreve rotas, volume e taxa de erro do servidor inteiro',
   },
   {
     nome: 'MIGRATIONS_DIR',
@@ -459,6 +480,35 @@ export function chaveDoGemini(env: NodeJS.ProcessEnv = process.env): string | un
 /** O modelo do Gemini, ou `undefined` — o default (`MODELO_GEMINI_PADRAO`) é de quem chama. */
 export function modeloDoGemini(env: NodeJS.ProcessEnv = process.env): string | undefined {
   return env.GEMINI_MODEL
+}
+
+/**
+ * `GET /metrics` deve EXISTIR? (Fase 5.)
+ *
+ * A resposta decide MONTAGEM, não comportamento de handler — `server/http/app.ts` só registra a
+ * rota quando isto é verdade. A diferença importa: uma rota montada que responde 403 confirma a
+ * um estranho que o endpoint existe e que o servidor é instrumentado; uma rota não montada responde
+ * o 404 de qualquer caminho inexistente e não conta nada.
+ *
+ * `'1'` exato, e não "qualquer valor verdadeiro": `METRICS_ENABLED=0` e `METRICS_ENABLED=false`
+ * são as duas formas que um operador escreve quando quer DESLIGAR, e as duas são strings não
+ * vazias — um teste de truthiness ligaria a rota justamente para quem pediu para desligá-la.
+ */
+export function metricasHabilitadas(env: NodeJS.ProcessEnv = process.env): boolean {
+  return env.METRICS_ENABLED === '1'
+}
+
+/**
+ * O segredo do `Bearer` de `GET /metrics`, ou `undefined` quando não configurado.
+ *
+ * `undefined` (e não string vazia) porque quem chama precisa distinguir "sem token, scrape aberto"
+ * de "token vazio" — o segundo, tratado como segredo, autenticaria qualquer requisição sem
+ * `Authorization`. Espaço em volta é aparado: `METRICS_TOKEN=" abc "` no `.env` é erro de digitação,
+ * e comparar com o espaço faria o scraper falhar com um 401 sem explicação.
+ */
+export function tokenDeMetricas(env: NodeJS.ProcessEnv = process.env): string | undefined {
+  const bruto = env.METRICS_TOKEN?.trim()
+  return bruto ? bruto : undefined
 }
 
 /**

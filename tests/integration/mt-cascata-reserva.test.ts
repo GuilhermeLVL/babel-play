@@ -9,8 +9,9 @@
  */
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
 
+import { esquecerDisjuntores } from '../../server/ai/disjuntor'
 import { asUserId } from '../../server/lib/authContext'
-import { type EphemeralDb,setupEphemeralDb } from '../harness/ephemeralDb'
+import { type EphemeralDb, setupEphemeralDb } from '../harness/ephemeralDb'
 
 let h: EphemeralDb
 let mtTranslateProxy: any
@@ -18,8 +19,12 @@ let subs: any
 let counters: any
 
 const ENVS = [
-  'LLM_API_KEY', 'LLM_BASE_URL', 'LLM_MODEL',
-  'LLM_RESERVA_API_KEY', 'LLM_RESERVA_BASE_URL', 'LLM_RESERVA_MODEL',
+  'LLM_API_KEY',
+  'LLM_BASE_URL',
+  'LLM_MODEL',
+  'LLM_RESERVA_API_KEY',
+  'LLM_RESERVA_BASE_URL',
+  'LLM_RESERVA_MODEL',
   'GROQ_API_KEY',
 ] as const
 
@@ -28,13 +33,23 @@ function mockReq(userId: any): any {
 }
 function mockRes(): any {
   const r: any = { statusCode: 200, body: undefined, headersSent: false }
-  r.status = (c: number) => { r.statusCode = c; return r }
-  r.json = (b: any) => { r.body = b; r.headersSent = true; return r }
+  r.status = (c: number) => {
+    r.statusCode = c
+    return r
+  }
+  r.json = (b: any) => {
+    r.body = b
+    r.headersSent = true
+    return r
+  }
   return r
 }
 const respostaOk = (texto: string) => ({
   ok: true,
-  json: async () => ({ choices: [{ message: { content: texto } }], usage: { prompt_tokens: 10, completion_tokens: 5 } }),
+  json: async () => ({
+    choices: [{ message: { content: texto } }],
+    usage: { prompt_tokens: 10, completion_tokens: 5 },
+  }),
 })
 
 beforeAll(async () => {
@@ -53,6 +68,11 @@ afterAll(async () => {
 afterEach(() => {
   vi.unstubAllGlobals()
   for (const e of ENVS) delete process.env[e]
+  /* O disjuntor (Fase 5) conta falhas SEGUIDAS por provedor e o estado é do processo. Estes casos
+     encenam falha de propósito; sem zerar, a soma de um caso abriria o disjuntor no seguinte e a
+     chamada que ele conta deixaria de sair. O disjuntor tem arquivo próprio
+     (`tests/integration/disjuntor-de-ia.test.ts`) — aqui ele não pode ser variável escondida. */
+  esquecerDisjuntores()
 })
 
 function configurarPrimario() {
@@ -68,9 +88,13 @@ function configurarReserva() {
 
 describe('cascata de MT com reserva', () => {
   it('primário responde → reserva nem é chamada, procedência diz o modelo primário', async () => {
-    configurarPrimario(); configurarReserva()
+    configurarPrimario()
+    configurarReserva()
     const chamadas: string[] = []
-    vi.stubGlobal('fetch', async (url: any) => { chamadas.push(String(url)); return respostaOk('olá!') })
+    vi.stubGlobal('fetch', async (url: any) => {
+      chamadas.push(String(url))
+      return respostaOk('olá!')
+    })
     const res = mockRes()
     await mtTranslateProxy(mockReq(asUserId('cascata')), res)
     expect(res.statusCode).toBe(200)
@@ -81,7 +105,8 @@ describe('cascata de MT com reserva', () => {
   })
 
   it('primário em 429 → a reserva serve, e a procedência diz o modelo da RESERVA', async () => {
-    configurarPrimario(); configurarReserva()
+    configurarPrimario()
+    configurarReserva()
     const chamadas: string[] = []
     vi.stubGlobal('fetch', async (url: any) => {
       chamadas.push(String(url))
@@ -98,7 +123,8 @@ describe('cascata de MT com reserva', () => {
 
   it('primário devolve VAZIO (raciocínio estourou o teto) → a reserva também serve', async () => {
     // O caso medido: HTTP 200 sem conteúdo, sem nenhum erro para ler.
-    configurarPrimario(); configurarReserva()
+    configurarPrimario()
+    configurarReserva()
     vi.stubGlobal('fetch', async (url: any) => {
       if (String(url).includes('primario')) {
         return {
@@ -126,16 +152,16 @@ describe('cascata de MT com reserva', () => {
   })
 
   it('QUOTA: uma tradução entregue pela reserva debita UMA chamada, e falha total estorna', async () => {
-    configurarPrimario(); configurarReserva()
+    configurarPrimario()
+    configurarReserva()
     const u = asUserId('cascata-quota')
     await subs.upsert(u, { plan: 'pro', status: 'active' })
     const janela = new Date().toISOString().slice(0, 7)
 
     // Entregue pela reserva: 1 chamada no contador — a tentativa falhada do primário NÃO cobra.
     vi.stubGlobal('fetch', async (url: any) =>
-      String(url).includes('primario')
-        ? { ok: false, status: 429, text: async () => 'limite' }
-        : respostaOk('ok'))
+      String(url).includes('primario') ? { ok: false, status: 429, text: async () => 'limite' } : respostaOk('ok'),
+    )
     await mtTranslateProxy(mockReq(u), mockRes())
     expect(await counters.get(u, 'managed_calls', janela)).toBe(1)
 

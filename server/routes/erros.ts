@@ -14,53 +14,74 @@
  * `GET /api/admin/erros` lê os dois lados.
  */
 import { Router } from 'express'
+import rateLimit from 'express-rate-limit'
 import { z } from 'zod'
 
 import { log } from '../lib/logger'
+import { chaveDoRequest, createDbRateLimitStore, METRIC_RATELIMIT_ERROS } from '../lib/rateLimitStore'
 import { parseOr400 } from '../validation'
 
 export const errosRouter = Router()
 
 /** Campos CURTOS de propósito: o diário é linha JSON, e stack inteira de bundle minificado é ruído. */
-const relatorioSchema = z.object({
-  /** Um id gerado no cliente e MOSTRADO ao usuário — é o que ele cita no suporte. */
-  id: z.string().regex(/^[a-z0-9-]{6,40}$/),
-  mensagem: z.string().min(1).max(300),
-  /** Primeira linha útil da stack, se houver. */
-  origem: z.string().max(200).optional(),
-  /** Rota da SPA onde aconteceu (pathname, sem query — o cliente já poda). */
-  tela: z.string().max(80).optional(),
-  tipo: z.enum(['render', 'promise', 'erro-global']),
-}).strip()
+const relatorioSchema = z
+  .object({
+    /** Um id gerado no cliente e MOSTRADO ao usuário — é o que ele cita no suporte. */
+    id: z.string().regex(/^[a-z0-9-]{6,40}$/),
+    mensagem: z.string().min(1).max(300),
+    /** Primeira linha útil da stack, se houver. */
+    origem: z.string().max(200).optional(),
+    /** Rota da SPA onde aconteceu (pathname, sem query — o cliente já poda). */
+    tela: z.string().max(80).optional(),
+    tipo: z.enum(['render', 'promise', 'erro-global']),
+  })
+  .strip()
 
 /**
- * Teto simples por usuário em memória: um cliente em laço de erro (render que quebra, conserta e
- * quebra de novo) reportaria centenas por minuto — e o diário viraria o próprio incidente.
- * Estado por processo é suficiente: o objetivo é conter avalanche, não contabilidade exata.
+ * TETO POR USUÁRIO, CONTADO NO BANCO (Fase 5).
+ *
+ * Era um `Map` no heap com o comentário "estado por processo é suficiente: o objetivo é conter
+ * avalanche, não contabilidade exata". A premissa não se sustenta desde que existem várias
+ * instâncias: o `docker-compose.yml` permite réplicas e `CLUSTER_WORKERS` forka N processos na
+ * mesma máquina. Cada um tinha o SEU `Map`, então o teto efetivo era 10 × N — com
+ * `CLUSTER_WORKERS=3`, trinta relatórios por minuto do mesmo cliente em laço. E não é "quase
+ * contido": o diário é o recurso que a avalanche consome, e ele é COMPARTILHADO (um arquivo por
+ * processo, no mesmo volume, lidos juntos por `GET /api/admin/erros`).
+ *
+ * É o achado P1-3, o mesmo que já tinha tirado o `MemoryStore` dos outros limitadores, sobrevivendo
+ * nesta rota. A regra da casa está escrita em `tests/integration/replica-sem-estado-local.test.ts`.
+ *
+ * REAPROVEITA O PADRÃO PRONTO em vez de contar à mão: `createDbRateLimitStore` conta em
+ * `usage_counters` com `incrementAndGet` numa instrução só (sem a corrida de ler-decidir-escrever)
+ * e já traz a poda dos baldes vencidos. Balde próprio (`METRIC_RATELIMIT_ERROS`) pelo achado A27 —
+ * compartilhar métrica é compartilhar contador.
+ *
+ * `standardHeaders: false`, e isto é sobre não mentir: no modo público esta rota já passa pelo
+ * `writeLimiter` (`server/http/app.ts`), que anuncia os cabeçalhos `RateLimit-*` do teto DELE (120
+ * por minuto). Dois limitadores escrevendo os mesmos cabeçalhos deixam o cliente com o número de
+ * um e o comportamento do outro.
  */
-const janelaMs = 60_000
-const maxPorJanela = 10
-const janelas = new Map<string, { inicio: number; n: number }>()
-function dentroDoTeto(chave: string): boolean {
-  const agora = Date.now()
-  const j = janelas.get(chave)
-  if (!j || agora - j.inicio > janelaMs) {
-    janelas.set(chave, { inicio: agora, n: 1 })
-    if (janelas.size > 5_000) janelas.clear() // nunca cresce sem limite
-    return true
-  }
-  j.n += 1
-  return j.n <= maxPorJanela
-}
+const tetoDeRelatorios = rateLimit({
+  windowMs: 60_000,
+  limit: 10,
+  standardHeaders: false,
+  legacyHeaders: false,
+  keyGenerator: chaveDoRequest,
+  store: createDbRateLimitStore(METRIC_RATELIMIT_ERROS),
+  /* 202 no lugar do 429 padrão: o cliente NÃO deve reagir a isto — reagir a erro de reporte gera
+     mais reporte. O contrato de resposta é o mesmo de antes da mudança. */
+  handler: (_req, res) => {
+    res.status(202).json({ ok: true })
+  },
+})
 
-errosRouter.post('/', (req, res) => {
+/* O teto passou a valer ANTES da validação de forma — como middleware, ele roda antes do handler,
+   e antes o `Map` era consultado depois do `parseOr400`. A mudança é na direção certa: um cliente
+   despejando payload inválido é a mesma avalanche, e agora ele também encontra teto. */
+
+errosRouter.post('/', tetoDeRelatorios, (req, res) => {
   const r = parseOr400(relatorioSchema, req.body, res)
   if (!r) return
-  if (!dentroDoTeto(String(req.userId))) {
-    // 202 mesmo assim: o cliente não deve reagir a isto — reagir a erro de reporte gera mais reporte.
-    res.status(202).json({ ok: true })
-    return
-  }
   /* O relatório vira uma linha do MESMO logger dos erros de servidor. `error` carrega mensagem +
      origem (o formato compacto que cabe na allowlist); `route` carrega a tela da SPA. */
   log('error', {

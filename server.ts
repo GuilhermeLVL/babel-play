@@ -12,30 +12,31 @@
  * pela POSIÇÃO: ele precisa vir depois do middleware do Vite / do estático, que só existem neste
  * arquivo. Montado antes deles, ele deixaria de ser alcançado.
  */
-import dotenv from "dotenv";
-import express from "express";
-import path from "path";
+import dotenv from 'dotenv'
+import express from 'express'
+import path from 'path'
 
-import { dbReady } from "./server/db/db";
-import { seedIfEmpty } from "./server/db/seed";
-import { criarApp } from "./server/http/app";
-import { authRequired,mecanismoDe } from "./server/lib/auth";
-import { registrarFalhaDeBoot, registrarSucessoDeBoot } from "./server/lib/bootStatus";
-import { verificarConfiguracaoNoBoot } from "./server/lib/config";
+import { dbReady } from './server/db/db'
+import { seedIfEmpty } from './server/db/seed'
+import { criarApp } from './server/http/app'
+import { authRequired, mecanismoDe } from './server/lib/auth'
+import { registrarFalhaDeBoot, registrarSucessoDeBoot } from './server/lib/bootStatus'
+import { verificarConfiguracaoNoBoot } from './server/lib/config'
+import { registrarDesligamento } from './server/lib/desligamento'
 /* `diretorioGravavel` morava aqui e o `crypto.ts` tinha a sua propria versao divergente — a chave
    de segredos ia parar no disco efemero do conteiner enquanto o diario ia para o volume. Uma
    resposta so, em `server/lib/diretorios.ts` (auditoria de 2026-09-07, achado A34). */
-import { diretorioGravavel, erroDeMultiReplica } from "./server/lib/diretorios";
-import { erroGlobal } from "./server/lib/erroGlobal";
+import { diretorioGravavel, erroDeMultiReplica } from './server/lib/diretorios'
+import { erroGlobal } from './server/lib/erroGlobal'
 
-dotenv.config();
+dotenv.config()
 
 /* `criarApp()` DEPOIS do `dotenv.config()`, e não no import: metade da montagem depende de
    `authRequired()` e do resto do ambiente, e imports são hoisted acima de qualquer statement. */
-const app = criarApp();
+const app = criarApp()
 
 // A mensagem de erro de EADDRINUSE manda "definir PORT no .env" — então honre-a.
-const PORT = Number(process.env.PORT) || 3000;
+const PORT = Number(process.env.PORT) || 3000
 
 // Configure Vite middleware in development or serve static assets in production
 /**
@@ -55,10 +56,10 @@ async function startServer({ prepararDados = true } = {}) {
    * declara `REPLICAS` e o boot verifica a coerencia. Falha DURA: subir assim e servir dados que
    * somem de forma intermitente, que e pior que nao subir.
    */
-  const incoerencia = erroDeMultiReplica();
+  const incoerencia = erroDeMultiReplica()
   if (incoerencia) {
-    console.error(`[boot] ABORTADO: ${incoerencia}`);
-    process.exit(1);
+    console.error(`[boot] ABORTADO: ${incoerencia}`)
+    process.exit(1)
   }
   /*
    * DIÁRIO DE ERROS — achado F5-04, a parte que não depende de escolher fornecedor.
@@ -71,17 +72,17 @@ async function startServer({ prepararDados = true } = {}) {
    * `ERROS_DIR=off` desliga, para quem tiver um coletor de verdade e não quiser a cópia em disco.
    * O que isto NÃO faz continua valendo e está escrito em `diarioDeErros.ts`: não alerta ninguém.
    */
-  const dirDeErros = process.env.ERROS_DIR ?? path.join(diretorioGravavel(), "erros");
-  if (dirDeErros !== "off") {
+  const dirDeErros = process.env.ERROS_DIR ?? path.join(diretorioGravavel(), 'erros')
+  if (dirDeErros !== 'off') {
     try {
-      const { diarioEmArquivo } = await import("./server/lib/diarioDeErros");
-      const { registrarSinkDeErro } = await import("./server/lib/logger");
+      const { diarioEmArquivo } = await import('./server/lib/diarioDeErros')
+      const { registrarSinkDeErro } = await import('./server/lib/logger')
       /* PODA SO NO PRIMARIO. `prepararDados` e o que ja distingue os dois papeis do cluster: o
          primario migra, faz seed e agora tambem cuida do volume. Antes, N workers varriam o mesmo
          diretorio uma vez por dia cada um (achado A61). Cada processo escreve no proprio arquivo,
          e a leitura junta todos. */
-      registrarSinkDeErro(diarioEmArquivo({ dir: dirDeErros, podarAqui: prepararDados }));
-      console.log(`[erros] diário em ${dirDeErros}`);
+      registrarSinkDeErro(diarioEmArquivo({ dir: dirDeErros, podarAqui: prepararDados }))
+      console.log(`[erros] diário em ${dirDeErros}`)
     } catch (err) {
       /*
        * Degradação, não falha: o servidor serve sem o diário. Mas a mensagem precisa nomear o
@@ -91,7 +92,7 @@ async function startServer({ prepararDados = true } = {}) {
        * a mensagem não dizia onde ele tinha tentado escrever. Uma observabilidade que se desliga
        * em produção e não conta onde falhou é pior do que não tê-la: dá a sensação de cobertura.
        */
-      console.error(`[erros] diário em disco INDISPONÍVEL em ${dirDeErros}; seguindo só com stdout:`, err);
+      console.error(`[erros] diário em disco INDISPONÍVEL em ${dirDeErros}; seguindo só com stdout:`, err)
     }
   }
 
@@ -106,7 +107,7 @@ async function startServer({ prepararDados = true } = {}) {
    * reinício em laço; registrando, `/api/health` responde `degraded` com o NOME do passo, que é o
    * que uma probe enxerga. Mesma decisão do P2-5.
    */
-  const configuracao = verificarConfiguracaoNoBoot();
+  const configuracao = verificarConfiguracaoNoBoot()
   /*
    * DIZER qual mecanismo autentica — achado F15-01 (fechado em 2026-08-26: o JWKS assimetrico
    * tem precedencia; o segredo compartilhado so vale sem SUPABASE_URL). Se as duas variaveis
@@ -114,21 +115,29 @@ async function startServer({ prepararDados = true } = {}) {
    * inerte em .env e material de vazamento sem funcao.
    */
   if (configuracao.modoPublico) {
-    const mecanismo = mecanismoDe();
-    console.log(`[auth] verificacao de token por: ${mecanismo}`);
-    if (mecanismo === "jwks-assimetrico" && process.env.SUPABASE_JWT_SECRET) {
-      console.warn("[auth] AVISO: SUPABASE_JWT_SECRET esta definido mas NAO e usado — com SUPABASE_URL a verificacao e pelo JWKS assimetrico. Remova o segredo do ambiente.");
+    const mecanismo = mecanismoDe()
+    console.log(`[auth] verificacao de token por: ${mecanismo}`)
+    if (mecanismo === 'jwks-assimetrico' && process.env.SUPABASE_JWT_SECRET) {
+      console.warn(
+        '[auth] AVISO: SUPABASE_JWT_SECRET esta definido mas NAO e usado — com SUPABASE_URL a verificacao e pelo JWKS assimetrico. Remova o segredo do ambiente.',
+      )
     }
   }
   if (configuracao.ok) {
-    const aviso = configuracao.faltando.length ? ` (${configuracao.faltando.length} de capacidade ausente(s): ${configuracao.faltando.join(", ")})` : "";
-    console.log(`[config] ${configuracao.declaradas} variáveis declaradas; nenhuma CRÍTICA ausente (modo ${configuracao.modoPublico ? "público" : "self-host"})${aviso}.`);
+    const aviso = configuracao.faltando.length
+      ? ` (${configuracao.faltando.length} de capacidade ausente(s): ${configuracao.faltando.join(', ')})`
+      : ''
+    console.log(
+      `[config] ${configuracao.declaradas} variáveis declaradas; nenhuma CRÍTICA ausente (modo ${configuracao.modoPublico ? 'público' : 'self-host'})${aviso}.`,
+    )
   } else {
-    console.error(`[config] CRÍTICAS ausentes no modo ${configuracao.modoPublico ? "público" : "self-host"}: ${configuracao.faltandoCriticas.join(", ")} — /api/health responderá degraded.`);
+    console.error(
+      `[config] CRÍTICAS ausentes no modo ${configuracao.modoPublico ? 'público' : 'self-host'}: ${configuracao.faltandoCriticas.join(', ')} — /api/health responderá degraded.`,
+    )
   }
 
   // P0-2: garante que WAL/busy_timeout já valem ANTES de qualquer escrita (inclusive o seed).
-  await dbReady;
+  await dbReady
 
   // Migrations ANTES de tudo. Sem isto, um deploy limpo entra em crash-loop: o volume começa
   // vazio e o `seedIfEmpty()` abaixo estoura com "no such table: sessions". Idempotente —
@@ -139,11 +148,11 @@ async function startServer({ prepararDados = true } = {}) {
   // orquestrador também resolve sozinho a contenção transitória de lock entre réplicas.
   if (prepararDados) {
     try {
-      const { aplicarMigrations } = await import("./server/db/manutencao");
-      await aplicarMigrations();
+      const { aplicarMigrations } = await import('./server/db/manutencao')
+      await aplicarMigrations()
     } catch (err) {
-      console.error("[db] FALHA AO APLICAR MIGRATIONS — o app não pode servir sem schema:", err);
-      process.exit(1);
+      console.error('[db] FALHA AO APLICAR MIGRATIONS — o app não pode servir sem schema:', err)
+      process.exit(1)
     }
 
     /*
@@ -155,60 +164,60 @@ async function startServer({ prepararDados = true } = {}) {
      * Em modo publico a base nova esta certa vazia.
      */
     if (!authRequired()) {
-      await seedIfEmpty();
+      await seedIfEmpty()
     }
   }
   if (prepararDados) {
     // M-04: migra cartões Leitner → FSRS no boot (idempotente; nas próximas execuções migra 0).
     try {
       // P3-1: a migração vive em `db/manutencao` (atravessa tenants), não no barrel das rotas.
-      const { migrarLeitnerParaFsrs } = await import("./server/db/manutencao");
-      const migrados = await migrarLeitnerParaFsrs();
-      if (migrados > 0) console.log(`[db] ${migrados} cartão(ões) Leitner migrado(s) para FSRS (M-04)`);
+      const { migrarLeitnerParaFsrs } = await import('./server/db/manutencao')
+      const migrados = await migrarLeitnerParaFsrs()
+      if (migrados > 0) console.log(`[db] ${migrados} cartão(ões) Leitner migrado(s) para FSRS (M-04)`)
       // Passo que deu certo APAGA a falha anterior: sem isto, uma falha transitória deixaria a
       // instância em 503 para sempre — e uma probe que mente para baixo é ignorada como a que
       // mente para cima.
-      registrarSucessoDeBoot("migracao-fsrs");
+      registrarSucessoDeBoot('migracao-fsrs')
     } catch (err) {
       // P2-5: seguir subindo é a escolha certa (a migração é idempotente e roda de novo no
       // próximo boot), mas o /api/health precisa DENUNCIAR que os dados estão incompletos.
-      console.warn("[db] migração Leitner→FSRS falhou (segue sem migrar):", (err as Error)?.message || err);
-      registrarFalhaDeBoot("migracao-fsrs", err);
+      console.warn('[db] migração Leitner→FSRS falhou (segue sem migrar):', (err as Error)?.message || err)
+      registrarFalhaDeBoot('migracao-fsrs', err)
     }
     // Marco 1: carimba linhas legadas (user_id NULL) com o dono local, para o scoping por usuário
     // (Commits 3+) não esconder os dados atuais. Idempotente (nas próximas execuções carimba 0).
     try {
-      const { backfillNullOwner } = await import("./server/db/repositories/tenancy");
-      const { LOCAL_OWNER } = await import("./server/lib/authContext");
-      const carimbados = await backfillNullOwner(LOCAL_OWNER);
-      if (carimbados > 0) console.log(`[db] ${carimbados} linha(s) legada(s) atribuída(s) ao dono local (Marco 1)`);
-      registrarSucessoDeBoot("backfill-tenancy");
+      const { backfillNullOwner } = await import('./server/db/repositories/tenancy')
+      const { LOCAL_OWNER } = await import('./server/lib/authContext')
+      const carimbados = await backfillNullOwner(LOCAL_OWNER)
+      if (carimbados > 0) console.log(`[db] ${carimbados} linha(s) legada(s) atribuída(s) ao dono local (Marco 1)`)
+      registrarSucessoDeBoot('backfill-tenancy')
     } catch (err) {
       // P2-5: linhas com user_id NULL continuam invisíveis ao dono — isso PRECISA aparecer.
-      console.warn("[db] backfill de tenancy falhou (segue sem carimbar):", (err as Error)?.message || err);
-      registrarFalhaDeBoot("backfill-tenancy", err);
+      console.warn('[db] backfill de tenancy falhou (segue sem carimbar):', (err as Error)?.message || err)
+      registrarFalhaDeBoot('backfill-tenancy', err)
     }
   }
-  if (process.env.NODE_ENV !== "production") {
+  if (process.env.NODE_ENV !== 'production') {
     // Import DINÂMICO, e não estático no topo: `vite` é devDependency, e o esbuild com
     // `--packages=external` transformava o import estático num `require("vite")` no TOPO do
     // bundle. Resultado: a imagem de produção (`npm ci --omit=dev`) quebrava no boot com
     // "Cannot find module 'vite'" — o servidor exigia em runtime algo que nunca usa em
     // produção. Aqui o require só acontece dentro deste ramo, que produção nunca executa.
-    const { createServer: createViteServer } = await import("vite");
+    const { createServer: createViteServer } = await import('vite')
     const vite = await createViteServer({
       server: { middlewareMode: true },
-      appType: "spa",
-    });
-    app.use(vite.middlewares);
-    console.log("Vite dev server mounted as middleware.");
+      appType: 'spa',
+    })
+    app.use(vite.middlewares)
+    console.log('Vite dev server mounted as middleware.')
   } else {
-    const distPath = path.join(process.cwd(), "dist");
-    app.use(express.static(distPath));
-    app.get("*", (req, res) => {
-      res.sendFile(path.join(distPath, "index.html"));
-    });
-    console.log("Serving static assets from dist/ in production.");
+    const distPath = path.join(process.cwd(), 'dist')
+    app.use(express.static(distPath))
+    app.get('*', (req, res) => {
+      res.sendFile(path.join(distPath, 'index.html'))
+    })
+    console.log('Serving static assets from dist/ in production.')
   }
 
   /*
@@ -218,26 +227,26 @@ async function startServer({ prepararDados = true } = {}) {
    * Sem isto, uma rejeição de handler `async` no Express 4 não vira 500 — vira request
    * PENDURADO. E há rotas sem `try/catch` (`sessions.ts:151`, todo o `admin.ts`).
    */
-  app.use(erroGlobal);
+  app.use(erroGlobal)
 
   // BIND SEGURO (achado da auditoria): por padrão só 127.0.0.1 — sem auth em nenhuma rota,
   // escutar em 0.0.0.0 entregava TODAS as rotas (inclusive o stream do áudio do sistema e as
   // credenciais) para qualquer dispositivo da rede local. Expor na LAN é decisão explícita:
   // HOST=0.0.0.0 no .env — e o log avisa o que isso significa.
-  const HOST = process.env.HOST || "127.0.0.1";
-  if (HOST !== "127.0.0.1" && HOST !== "localhost" && !authRequired()) {
+  const HOST = process.env.HOST || '127.0.0.1'
+  if (HOST !== '127.0.0.1' && HOST !== 'localhost' && !authRequired()) {
     // O aviso só vale quando a auth está DESLIGADA. Antes ele era incondicional e dizia
     // "EXPOSTO ... SEM autenticação" mesmo com AUTH_REQUIRED=1 — ou seja, todo container
     // (que PRECISA de HOST=0.0.0.0 para receber tráfego) imprimia, a cada boot, uma
     // afirmação falsa sobre a própria postura de segurança.
-    console.warn(`⚠  HOST=${HOST}: o app está EXPOSTO à rede local SEM autenticação —`);
-    console.warn("   qualquer dispositivo da rede acessa suas sessões, credenciais e o áudio do sistema.");
+    console.warn(`⚠  HOST=${HOST}: o app está EXPOSTO à rede local SEM autenticação —`)
+    console.warn('   qualquer dispositivo da rede acessa suas sessões, credenciais e o áudio do sistema.')
   }
   // Marco 1: aviso do modo de auth. Desligada = todo request é o dono local (sem login),
   // correto para uso local/self-host. Para deploy PÚBLICO, defina AUTH_REQUIRED=1.
   if (!authRequired()) {
-    console.warn("⚠  AUTH_REQUIRED desligada: sem login; todo request é tratado como o dono local.");
-    console.warn("   Correto para local/self-host. Deploy público EXIGE AUTH_REQUIRED=1.");
+    console.warn('⚠  AUTH_REQUIRED desligada: sem login; todo request é tratado como o dono local.')
+    console.warn('   Correto para local/self-host. Deploy público EXIGE AUTH_REQUIRED=1.')
   }
   const server = app.listen(PORT, HOST, () => {
     // Anuncia LOCALHOST, não 0.0.0.0. Só localhost/127.0.0.1/HTTPS são "contexto seguro", e o
@@ -245,20 +254,34 @@ async function startServer({ prepararDados = true } = {}) {
     // seguro. Abrir por 0.0.0.0 ou por um IP de rede desliga o cache e o modelo re-baixa a cada
     // captura. Além disso, o cache é particionado por PORTA: mantenha a porta fixa (PORT no .env)
     // para não re-baixar o modelo a cada troca de porta.
-    console.log(`Babel Play rodando em  ->  http://localhost:${PORT}`);
-    console.log(`   (abra sempre por http://localhost:${PORT} — por 0.0.0.0/IP o modelo local re-baixa toda vez)`);
-  });
-  server.on("error", (err: NodeJS.ErrnoException) => {
-    if (err.code === "EADDRINUSE") {
-      console.error(`\n⚠  A porta ${PORT} já está em uso — outro servidor está rodando.`);
-      console.error(`   Defina uma porta FIXA no .env (ex.: PORT=3100) e use sempre a mesma:`);
-      console.error(`   o cache do modelo local é POR PORTA — trocar de porta faz o navegador`);
-      console.error(`   re-baixar o Whisper/opus-mt do zero.\n`);
+    console.log(`Babel Play rodando em  ->  http://localhost:${PORT}`)
+    console.log(`   (abra sempre por http://localhost:${PORT} — por 0.0.0.0/IP o modelo local re-baixa toda vez)`)
+  })
+  /*
+   * DESLIGAMENTO GRACIOSO (Fase 5) — registrado LOGO APÓS o `listen`, e não antes.
+   *
+   * Antes do `listen` não há o que drenar, e um SIGTERM que chegasse durante as migrations
+   * encontraria um handler que chama `server.close()` num servidor que ainda não escuta. O que a
+   * ordem custa: um sinal recebido durante o boot (antes desta linha) continua matando o processo
+   * na hora — e está certo que seja assim, porque nesse intervalo não há requisição de ninguém
+   * para preservar, só migração idempotente que o próximo boot refaz.
+   *
+   * `repassarSinalAosWorkers` é o gancho do primário do cluster; fora do cluster ele é nulo. Ver
+   * `iniciar()`, mais abaixo, para o porquê de o respawn precisar ser desligado junto.
+   */
+  registrarDesligamento({ servidor: server, antes: () => repassarSinalAosWorkers?.() })
+
+  server.on('error', (err: NodeJS.ErrnoException) => {
+    if (err.code === 'EADDRINUSE') {
+      console.error(`\n⚠  A porta ${PORT} já está em uso — outro servidor está rodando.`)
+      console.error(`   Defina uma porta FIXA no .env (ex.: PORT=3100) e use sempre a mesma:`)
+      console.error(`   o cache do modelo local é POR PORTA — trocar de porta faz o navegador`)
+      console.error(`   re-baixar o Whisper/opus-mt do zero.\n`)
     } else {
-      console.error("Erro ao iniciar o servidor:", err);
+      console.error('Erro ao iniciar o servidor:', err)
     }
-    process.exit(1);
-  });
+    process.exit(1)
+  })
 }
 
 /**
@@ -275,11 +298,21 @@ async function startServer({ prepararDados = true } = {}) {
  * Só o primário migra: os workers são forkados DEPOIS de `startServer()` do primário terminar, o
  * que elimina a contenção de lock no boot que hoje depende de restart do orquestrador.
  */
+/**
+ * O QUE O PRIMÁRIO FAZ AO RECEBER O SINAL — nulo fora do cluster.
+ *
+ * Vive no escopo do módulo porque quem registra o handler é o `startServer()` (que não sabe nada
+ * de cluster) e quem sabe quais workers existem é o `iniciar()`, que roda DEPOIS. Uma variável
+ * lida no momento do sinal resolve as duas metades sem `startServer()` ganhar um parâmetro sobre
+ * um modo que ele não conhece.
+ */
+let repassarSinalAosWorkers: (() => void) | null = null
+
 async function iniciar() {
-  const pedidos = Number(process.env.CLUSTER_WORKERS || 0);
+  const pedidos = Number(process.env.CLUSTER_WORKERS || 0)
   if (!Number.isFinite(pedidos) || pedidos <= 1) {
-    await startServer();
-    return;
+    await startServer()
+    return
   }
 
   /*
@@ -291,14 +324,14 @@ async function iniciar() {
    * simultaneas passam pelo mutex e brigam pelo hardware. Declarar a incompatibilidade e melhor
    * que descobri-la como audio cortado em producao.
    */
-  if (process.platform === "win32") {
-    console.warn("[cluster] captura de loopback do servidor desligada: o mutex do dispositivo");
-    console.warn("   WASAPI e por processo, e /api/audio/loopback/* recusa neste modo.");
+  if (process.platform === 'win32') {
+    console.warn('[cluster] captura de loopback do servidor desligada: o mutex do dispositivo')
+    console.warn('   WASAPI e por processo, e /api/audio/loopback/* recusa neste modo.')
   }
 
-  const { default: cluster } = await import("node:cluster");
-  const { availableParallelism } = await import("node:os");
-  const workers = Math.min(pedidos, availableParallelism());
+  const { default: cluster } = await import('node:cluster')
+  const { availableParallelism } = await import('node:os')
+  const workers = Math.min(pedidos, availableParallelism())
 
   if (cluster.isPrimary) {
     /*
@@ -309,15 +342,15 @@ async function iniciar() {
      * cluster isso significaria N processos subindo "saudáveis" e perdendo um quarto das escritas
      * com o aviso perdido no log — então aqui é falha dura, não aviso.
      */
-    const { db } = await import("./server/db/db");
-    const { sql } = await import("drizzle-orm");
-    const modo = String(Object.values((await db.get(sql`PRAGMA journal_mode`)) ?? {})[0] ?? "").toLowerCase();
-    if (modo !== "wal") {
-      console.error(`[cluster] ABORTADO: journal_mode é '${modo}', não 'wal'.`);
-      console.error("   Sem WAL, múltiplos processos perdem ~25% das escritas. WAL exige memória");
-      console.error("   compartilhada e NÃO funciona sobre NFS/SMB — use volume local, ou rode com");
-      console.error("   um processo só (sem CLUSTER_WORKERS).");
-      process.exit(1);
+    const { db } = await import('./server/db/db')
+    const { sql } = await import('drizzle-orm')
+    const modo = String(Object.values((await db.get(sql`PRAGMA journal_mode`)) ?? {})[0] ?? '').toLowerCase()
+    if (modo !== 'wal') {
+      console.error(`[cluster] ABORTADO: journal_mode é '${modo}', não 'wal'.`)
+      console.error('   Sem WAL, múltiplos processos perdem ~25% das escritas. WAL exige memória')
+      console.error('   compartilhada e NÃO funciona sobre NFS/SMB — use volume local, ou rode com')
+      console.error('   um processo só (sem CLUSTER_WORKERS).')
+      process.exit(1)
     }
 
     /*
@@ -325,14 +358,47 @@ async function iniciar() {
      * uma vez só, antes de qualquer worker existir. Ele também atende, então não há processo
      * ocioso.
      */
-    await startServer();
-    for (let i = 1; i < workers; i++) cluster.fork();
-    cluster.on("exit", (worker, code, signal) => {
-      console.error(`[cluster] worker ${worker.process.pid} saiu (${signal || code}); refazendo`);
-      cluster.fork();
-    });
-    console.log(`[cluster] ${workers} processos (1 primário + ${workers - 1} workers)`);
-    return;
+    await startServer()
+    /*
+     * O RESPAWN PRECISA SABER QUE ESTAMOS DESLIGANDO (Fase 5).
+     *
+     * O `cluster.on('exit')` abaixo refazia QUALQUER worker que morresse — que é o comportamento
+     * certo para queda acidental e o errado para desligamento: no SIGTERM os workers terminam de
+     * propósito, e cada um deles era refeito enquanto o primário drenava. O resultado é um
+     * processo recém-forkado, sem sinal nenhum recebido, segurando a porta depois de o primário
+     * sair; para o orquestrador o container "não termina".
+     *
+     * A trava é uma variável simples, e não um `removeAllListeners`, porque o handler também
+     * precisa continuar imprimindo a saída de cada worker durante o desligamento — quem opera quer
+     * ver os N processos indo embora, não silêncio.
+     */
+    let desligandoOCluster = false
+    repassarSinalAosWorkers = () => {
+      desligandoOCluster = true
+      /* O sinal chega ao primário e a MAIS NINGUÉM quando vem de um `docker stop` (SIGTERM para o
+         PID 1) ou de um `kill` avulso: só o Ctrl+C do terminal alcança o grupo inteiro. Repassar é
+         o que faz cada worker rodar o seu próprio dreno em vez de morrer no SIGKILL seguinte. */
+      for (const worker of Object.values(cluster.workers ?? {})) {
+        try {
+          worker?.process.kill('SIGTERM')
+        } catch {
+          /* já morreu */
+        }
+      }
+    }
+    for (let i = 1; i < workers; i++) cluster.fork()
+    cluster.on('exit', (worker, code, signal) => {
+      if (desligandoOCluster) {
+        console.log(
+          `[cluster] worker ${worker.process.pid} saiu (${signal || code}) durante o desligamento; NÃO refazendo`,
+        )
+        return
+      }
+      console.error(`[cluster] worker ${worker.process.pid} saiu (${signal || code}); refazendo`)
+      cluster.fork()
+    })
+    console.log(`[cluster] ${workers} processos (1 primário + ${workers - 1} workers)`)
+    return
   }
 
   /*
@@ -340,7 +406,7 @@ async function iniciar() {
    * pelo caminho que o cluster existe para eliminar. `cluster` compartilha o listener, então
    * o `app.listen` na mesma porta é o comportamento correto, não um EADDRINUSE.
    */
-  await startServer({ prepararDados: false });
+  await startServer({ prepararDados: false })
 }
 
-iniciar();
+iniciar()

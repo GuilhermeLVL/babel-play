@@ -102,54 +102,280 @@ export const VARIAVEIS_POR_PLANO: readonly VariavelDeclarada[] = Object.keys(PLA
 
 export const VARIAVEIS: readonly VariavelDeclarada[] = [
   ...VARIAVEIS_POR_PLANO,
-  { nome: 'ARMAZENAMENTO_COMPARTILHADO', exigencia: 'opcional', criticidade: 'degrada-capacidade', paraQue: '1 declara que as réplicas montam o MESMO volume; sem isso, REPLICAS>1 exige S3 (ver server/lib/diretorios.ts)' },
-  { nome: 'ASAAS_API_KEY', exigencia: 'opcional', criticidade: 'degrada-capacidade', paraQue: 'cobrança no Asaas; ausente, as rotas de compra e assinatura respondem indisponível' },
-  { nome: 'ASAAS_BASE_URL', exigencia: 'opcional', criticidade: 'degrada-capacidade', paraQue: 'endpoint do Asaas (sandbox ou produção)' },
-  { nome: 'ASAAS_WEBHOOK_TOKEN', exigencia: 'opcional', criticidade: 'impede-servico', paraQue: 'token que autentica o webhook do Asaas. Sem ele, qualquer um pode declarar um pagamento confirmado' },
-  { nome: 'AUDIO_DIR', exigencia: 'opcional', criticidade: 'degrada-capacidade', paraQue: 'diretório do áudio de sessão; sem ela, `data/audio` local — o que prende o arquivo ao disco da réplica' },
-  { nome: 'AUTH_REQUIRED', exigencia: 'opcional', criticidade: 'degrada-capacidade', paraQue: '1 liga o modo público, 0 desliga; sem valor, liga só em produção' },
-  { nome: 'CLUSTER_WORKERS', exigencia: 'opcional', criticidade: 'degrada-capacidade', paraQue: 'nº de processos do cluster; sem ela, processo único (ver F6-01)' },
-  { nome: 'CROSS_ORIGIN_ISOLATION', exigencia: 'opcional', criticidade: 'degrada-capacidade', paraQue: 'habilita COOP/COEP, necessário para SharedArrayBuffer na inferência local' },
-  { nome: 'DATABASE_AUTH_TOKEN', exigencia: 'opcional', criticidade: 'degrada-capacidade', paraQue: 'token do banco libsql REMOTO (Turso); ignorado com arquivo local' },
-  { nome: 'DATABASE_URL', exigencia: 'opcional', criticidade: 'degrada-capacidade', paraQue: 'URL do libsql; sem ela, arquivo local em DATA_DIR' },
-  { nome: 'DATA_DIR', exigencia: 'opcional', criticidade: 'degrada-capacidade', paraQue: 'raiz dos dados persistentes' },
-  { nome: 'ERROS_DIR', exigencia: 'opcional', criticidade: 'degrada-capacidade', paraQue: 'diário de erros em disco (F5-04)' },
-  { nome: 'GEMINI_API_KEY', exigencia: 'opcional', criticidade: 'degrada-capacidade', paraQue: 'LLM de nuvem via Google; ausente, a cadeia cai para o próximo binding' },
-  { nome: 'GEMINI_MODEL', exigencia: 'opcional', criticidade: 'degrada-capacidade', paraQue: 'modelo do Gemini; sem ela, gemini-2.0-flash' },
-  { nome: 'GROQ_API_KEY', exigencia: 'opcional', criticidade: 'degrada-capacidade', paraQue: 'STT e MT de nuvem via Groq; ausente, as rotas respondem 501' },
-  { nome: 'GROQ_BASE_URL', exigencia: 'opcional', criticidade: 'degrada-capacidade', paraQue: 'endpoint alternativo compatível com a API da Groq' },
-  { nome: 'GROQ_LLM_MODEL', exigencia: 'opcional', criticidade: 'degrada-capacidade', paraQue: 'modelo de LLM na Groq' },
+  {
+    nome: 'ARMAZENAMENTO_COMPARTILHADO',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue:
+      '1 declara que as réplicas montam o MESMO volume; sem isso, REPLICAS>1 exige S3 (ver server/lib/diretorios.ts)',
+  },
+  {
+    nome: 'ASAAS_API_KEY',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue: 'cobrança no Asaas; ausente, as rotas de compra e assinatura respondem indisponível',
+  },
+  {
+    nome: 'ASAAS_BASE_URL',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue: 'endpoint do Asaas (sandbox ou produção)',
+  },
+  {
+    nome: 'ASAAS_WEBHOOK_TOKEN',
+    exigencia: 'opcional',
+    criticidade: 'impede-servico',
+    paraQue: 'token que autentica o webhook do Asaas. Sem ele, qualquer um pode declarar um pagamento confirmado',
+  },
+  {
+    nome: 'AUDIO_DIR',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue: 'diretório do áudio de sessão; sem ela, `data/audio` local — o que prende o arquivo ao disco da réplica',
+  },
+  {
+    nome: 'AUTH_REQUIRED',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue: '1 liga o modo público, 0 desliga; sem valor, liga só em produção',
+  },
+  {
+    nome: 'CLUSTER_WORKERS',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue: 'nº de processos do cluster; sem ela, processo único (ver F6-01)',
+  },
+  {
+    nome: 'CROSS_ORIGIN_ISOLATION',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue: 'habilita COOP/COEP, necessário para SharedArrayBuffer na inferência local',
+  },
+  {
+    nome: 'DATABASE_AUTH_TOKEN',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue: 'token do banco libsql REMOTO (Turso); ignorado com arquivo local',
+  },
+  {
+    nome: 'DATABASE_URL',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue: 'URL do libsql; sem ela, arquivo local em DATA_DIR',
+  },
+  {
+    nome: 'DATA_DIR',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue: 'raiz dos dados persistentes',
+  },
+  {
+    nome: 'ERROS_DIR',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue: 'diário de erros em disco (F5-04)',
+  },
+  {
+    nome: 'GEMINI_API_KEY',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue: 'LLM de nuvem via Google; ausente, a cadeia cai para o próximo binding',
+  },
+  {
+    nome: 'GEMINI_MODEL',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue: 'modelo do Gemini; sem ela, gemini-2.0-flash',
+  },
+  {
+    nome: 'GROQ_API_KEY',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue: 'STT e MT de nuvem via Groq; ausente, as rotas respondem 501',
+  },
+  {
+    nome: 'GROQ_BASE_URL',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue: 'endpoint alternativo compatível com a API da Groq',
+  },
+  {
+    nome: 'GROQ_LLM_MODEL',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue: 'modelo de LLM na Groq',
+  },
   { nome: 'GROQ_MODEL', exigencia: 'opcional', criticidade: 'degrada-capacidade', paraQue: 'modelo de STT na Groq' },
   { nome: 'HOST', exigencia: 'opcional', criticidade: 'degrada-capacidade', paraQue: 'interface de escuta' },
-  { nome: 'HOSTNAME', exigencia: 'opcional', criticidade: 'degrada-capacidade', paraQue: 'só diagnóstico: identifica a instância que registrou uma falha de boot' },
-  { nome: 'LLM_API_KEY', exigencia: 'opcional', criticidade: 'degrada-capacidade', paraQue: 'chave do provedor de LLM (qualquer um OpenAI-compatible). Substitui GROQ_API_KEY, que segue válida' },
-  { nome: 'LLM_BASE_URL', exigencia: 'opcional', criticidade: 'degrada-capacidade', paraQue: 'endpoint do provedor de LLM; trocar de provedor é só mudar isto' },
-  { nome: 'LLM_MODEL', exigencia: 'opcional', criticidade: 'degrada-capacidade', paraQue: 'modelo de tradução/tutor no provedor escolhido' },
-  { nome: 'LLM_RESERVA_API_KEY', exigencia: 'opcional', criticidade: 'degrada-capacidade', paraQue: 'provedor de LLM de RESERVA, usado quando o principal falha' },
-  { nome: 'LLM_RESERVA_BASE_URL', exigencia: 'opcional', criticidade: 'degrada-capacidade', paraQue: 'endpoint do provedor de reserva' },
-  { nome: 'LLM_RESERVA_MODEL', exigencia: 'opcional', criticidade: 'degrada-capacidade', paraQue: 'modelo no provedor de reserva' },
-  { nome: 'LOCAL_OWNER_ID', exigencia: 'opcional', criticidade: 'degrada-capacidade', paraQue: 'id do dono no modo self-host' },
-  { nome: 'MIGRATIONS_DIR', exigencia: 'opcional', criticidade: 'degrada-capacidade', paraQue: 'diretório das migrações do Drizzle' },
-  { nome: 'NODE_ENV', exigencia: 'opcional', criticidade: 'degrada-capacidade', paraQue: 'production liga CSP, exige auth por padrão e muda o pipeline do Vite' },
+  {
+    nome: 'HOSTNAME',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue: 'só diagnóstico: identifica a instância que registrou uma falha de boot',
+  },
+  {
+    nome: 'LLM_API_KEY',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue: 'chave do provedor de LLM (qualquer um OpenAI-compatible). Substitui GROQ_API_KEY, que segue válida',
+  },
+  {
+    nome: 'LLM_BASE_URL',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue: 'endpoint do provedor de LLM; trocar de provedor é só mudar isto',
+  },
+  {
+    nome: 'LLM_MODEL',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue: 'modelo de tradução/tutor no provedor escolhido',
+  },
+  {
+    nome: 'LLM_RESERVA_API_KEY',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue: 'provedor de LLM de RESERVA, usado quando o principal falha',
+  },
+  {
+    nome: 'LLM_RESERVA_BASE_URL',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue: 'endpoint do provedor de reserva',
+  },
+  {
+    nome: 'LLM_RESERVA_MODEL',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue: 'modelo no provedor de reserva',
+  },
+  {
+    nome: 'LOCAL_OWNER_ID',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue: 'id do dono no modo self-host',
+  },
+  {
+    nome: 'MIGRATIONS_DIR',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue: 'diretório das migrações do Drizzle',
+  },
+  {
+    nome: 'NODE_ENV',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue: 'production liga CSP, exige auth por padrão e muda o pipeline do Vite',
+  },
   { nome: 'OLLAMA_MODEL', exigencia: 'opcional', criticidade: 'degrada-capacidade', paraQue: 'modelo do Ollama local' },
-  { nome: 'OLLAMA_URL', exigencia: 'opcional', criticidade: 'degrada-capacidade', paraQue: 'endereço do Ollama local; sem ela, http://localhost:11434/v1' },
+  {
+    nome: 'OLLAMA_URL',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue: 'endereço do Ollama local; sem ela, http://localhost:11434/v1',
+  },
   { nome: 'PORT', exigencia: 'opcional', criticidade: 'degrada-capacidade', paraQue: 'porta de escuta' },
-  { nome: 'REPLICAS', exigencia: 'opcional', criticidade: 'impede-servico', paraQue: 'nº de instâncias independentes. Acima de 1 o boot EXIGE armazenamento compartilhado, senão o áudio some conforme a réplica' },
-  { nome: 'S3_ACCESS_KEY_ID', exigencia: 'opcional', criticidade: 'degrada-capacidade', paraQue: 'credencial do armazenamento de objetos' },
-  { nome: 'S3_BUCKET', exigencia: 'opcional', criticidade: 'degrada-capacidade', paraQue: 'bucket do áudio; é o que torna o áudio alcançável por mais de uma réplica' },
-  { nome: 'S3_ENDPOINT', exigencia: 'opcional', criticidade: 'degrada-capacidade', paraQue: 'endpoint S3-compatível (R2, MinIO, S3)' },
-  { nome: 'S3_REGION', exigencia: 'opcional', criticidade: 'degrada-capacidade', paraQue: 'região do bucket; sem ela, auto' },
-  { nome: 'S3_SECRET_ACCESS_KEY', exigencia: 'opcional', criticidade: 'degrada-capacidade', paraQue: 'credencial do armazenamento de objetos' },
-  { nome: 'SECRET_KEY', exigencia: 'producao', criticidade: 'impede-servico', paraQue: 'cifra os segredos de credencial de IA guardados no banco (server/crypto.ts)' },
-  { nome: 'STORAGE_RECONCILE_HOURS', exigencia: 'opcional', criticidade: 'degrada-capacidade', paraQue: 'intervalo da reconciliação oportunista de armazenamento' },
-  { nome: 'STORAGE_RECONCILE_MODE', exigencia: 'opcional', criticidade: 'degrada-capacidade', paraQue: 'job tira a varredura de armazenamento do caminho de /api/me/entitlements; quem opera chama POST /api/admin/armazenamento/reconciliar' },
-  { nome: 'STT_API_KEY', exigencia: 'opcional', criticidade: 'degrada-capacidade', paraQue: 'STT de nuvem alternativo ao Groq' },
-  { nome: 'STT_BASE_URL', exigencia: 'opcional', criticidade: 'degrada-capacidade', paraQue: 'endpoint do STT alternativo' },
+  {
+    nome: 'REPLICAS',
+    exigencia: 'opcional',
+    criticidade: 'impede-servico',
+    paraQue:
+      'nº de instâncias independentes. Acima de 1 o boot EXIGE armazenamento compartilhado, senão o áudio some conforme a réplica',
+  },
+  {
+    nome: 'S3_ACCESS_KEY_ID',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue: 'credencial do armazenamento de objetos',
+  },
+  {
+    nome: 'S3_BUCKET',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue: 'bucket do áudio; é o que torna o áudio alcançável por mais de uma réplica',
+  },
+  {
+    nome: 'S3_ENDPOINT',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue: 'endpoint S3-compatível (R2, MinIO, S3)',
+  },
+  {
+    nome: 'S3_REGION',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue: 'região do bucket; sem ela, auto',
+  },
+  {
+    nome: 'S3_SECRET_ACCESS_KEY',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue: 'credencial do armazenamento de objetos',
+  },
+  {
+    nome: 'SECRET_KEY',
+    exigencia: 'producao',
+    criticidade: 'impede-servico',
+    paraQue: 'cifra os segredos de credencial de IA guardados no banco (server/crypto.ts)',
+  },
+  {
+    nome: 'STORAGE_RECONCILE_HOURS',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue: 'intervalo da reconciliação oportunista de armazenamento',
+  },
+  {
+    nome: 'STORAGE_RECONCILE_MODE',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue:
+      'job tira a varredura de armazenamento do caminho de /api/me/entitlements; quem opera chama POST /api/admin/armazenamento/reconciliar',
+  },
+  {
+    nome: 'STT_API_KEY',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue: 'STT de nuvem alternativo ao Groq',
+  },
+  {
+    nome: 'STT_BASE_URL',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue: 'endpoint do STT alternativo',
+  },
   { nome: 'STT_MODEL', exigencia: 'opcional', criticidade: 'degrada-capacidade', paraQue: 'modelo do STT alternativo' },
-  { nome: 'SUPABASE_JWT_SECRET', exigencia: 'opcional', criticidade: 'degrada-capacidade', paraQue: 'fallback HS256 do verificador de JWT. ATENÇÃO: tem PRECEDÊNCIA sobre o JWKS assimétrico (medido em F15-01)' },
-  { nome: 'SUPABASE_SERVICE_ROLE_KEY', exigencia: 'modo-publico', criticidade: 'degrada-capacidade', paraQue: 'Admin API do Supabase para desfazer o vínculo de login na exclusão de conta (LGPD art. 18, VI)' },
-  { nome: 'SUPABASE_URL', exigencia: 'modo-publico', criticidade: 'impede-servico', paraQue: 'origem do JWKS e base da Admin API; também é o que faz o `iss` do JWT ser exigido' },
-  { nome: 'YTDLP_PATH', exigencia: 'opcional', criticidade: 'degrada-capacidade', paraQue: 'binário do yt-dlp para importação do YouTube; ausente, a capacidade se declara indisponível' },
+  {
+    nome: 'SUPABASE_JWT_SECRET',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue:
+      'fallback HS256 do verificador de JWT. ATENÇÃO: tem PRECEDÊNCIA sobre o JWKS assimétrico (medido em F15-01)',
+  },
+  {
+    nome: 'SUPABASE_SERVICE_ROLE_KEY',
+    exigencia: 'modo-publico',
+    criticidade: 'degrada-capacidade',
+    paraQue: 'Admin API do Supabase para desfazer o vínculo de login na exclusão de conta (LGPD art. 18, VI)',
+  },
+  {
+    nome: 'SUPABASE_URL',
+    exigencia: 'modo-publico',
+    criticidade: 'impede-servico',
+    paraQue: 'origem do JWKS e base da Admin API; também é o que faz o `iss` do JWT ser exigido',
+  },
+  {
+    nome: 'TRUST_PROXY',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue:
+      'em quantos saltos de proxy reverso confiar para resolver `req.ip` (`1`, `true`, `false`, `loopback` ou lista de sub-redes). Ausente, o Express não confia em `X-Forwarded-For` — atrás de proxy isso faz TODA origem virar a mesma chave do limitador e da trava do ranking; ligada sem proxy à frente, o cliente escolhe a própria chave e o limitador deixa de existir',
+  },
+  {
+    nome: 'YTDLP_PATH',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue: 'binário do yt-dlp para importação do YouTube; ausente, a capacidade se declara indisponível',
+  },
 ]
 
 export interface ResultadoDaConferencia {
@@ -173,13 +399,17 @@ export function conferirConfiguracao(
 ): ResultadoDaConferencia {
   const preenchida = (n: string) => typeof env[n] === 'string' && env[n]!.trim().length > 0
   const producao = env.NODE_ENV === 'production'
-  const exigidas = VARIAVEIS
-    .filter((v) => v.exigencia === 'sempre'
-      || (v.exigencia === 'modo-publico' && modoPublico)
-      || (v.exigencia === 'producao' && producao))
-    .filter((v) => !preenchida(v.nome))
+  const exigidas = VARIAVEIS.filter(
+    (v) =>
+      v.exigencia === 'sempre' ||
+      (v.exigencia === 'modo-publico' && modoPublico) ||
+      (v.exigencia === 'producao' && producao),
+  ).filter((v) => !preenchida(v.nome))
   const faltando = exigidas.map((v) => v.nome).sort()
-  const faltandoCriticas = exigidas.filter((v) => v.criticidade === 'impede-servico').map((v) => v.nome).sort()
+  const faltandoCriticas = exigidas
+    .filter((v) => v.criticidade === 'impede-servico')
+    .map((v) => v.nome)
+    .sort()
   /* `ok` fala do SERVIÇO. Capacidade degradada aparece em `faltando`, não derruba a saúde. */
   return { ok: faltandoCriticas.length === 0, modoPublico, faltando, faltandoCriticas, declaradas: VARIAVEIS.length }
 }

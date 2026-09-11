@@ -14,11 +14,11 @@ import {
 } from 'lucide-react';
 import React, { useEffect, useRef, useState } from 'react';
 
-import { type AppMetrics,fetchMetrics, fetchSettings, patchUiSettings, saveSettings } from '../../data/api';
+import { type AppMetrics, fetchMetrics, fetchSettings, patchUiSettings, saveSettings } from '../../data/api';
 import { DEFAULT_PROFILE_ID } from '../../gateway/profiles';
 import type { ThemeType } from '../../lib/appearance';
 import { getEntitlements, onPlanChange, PLAN_LABELS } from '../../lib/entitlements';
-import { idiomasAbaixoDoPiso,t } from '../../lib/i18n';
+import { idiomasAbaixoDoPiso, t } from '../../lib/i18n';
 import {
   DEFAULT_LANG_CONFIG,
   fetchLangConfig,
@@ -35,7 +35,7 @@ import GuidePanel from '../GuidePanel';
 import LangPicker from '../LangPicker';
 import type { FontScale } from '../shell/ControlCluster';
 import type { AgeProfileType, MenuPositionType } from '../shell/navItems';
-import { Abas, PainelDeAba } from '../ui';
+import { Abas, CabecalhoDeTela, PainelDeAba } from '../ui';
 import LangAudit from './LangAudit';
 
 /**
@@ -265,40 +265,44 @@ export default function Settings({ onReplayTour, onAbrirSobre, ageProfile = 'pro
   return (
     <div className="flex-1 overflow-y-auto w-full bg-canvas">
       <div className="p-6 md:p-10 max-w-4xl mx-auto w-full">
-        <header className="mb-10">
-          <span className="label-mono text-accent flex items-center gap-1.5">
-            {ageProfile === 'kids' ? (
-              <Gamepad2 className="w-3.5 h-3.5" aria-hidden />
-            ) : ageProfile === 'senior' ? (
-              <Eye className="w-3.5 h-3.5" aria-hidden />
-            ) : (
-              <Zap className="w-3.5 h-3.5" aria-hidden />
-            )}
-            <span>
-              {ageProfile === 'kids'
-                ? t('Ajustes do jogador')
-                : ageProfile === 'senior'
-                  ? t('Painel de opções')
-                  : t('Preferências do app')}
-            </span>
-          </span>
-          <h1 className="font-display font-black text-2xl md:text-3xl text-ink tracking-tight mt-1 mb-2">
-            {/* A tela tinha TRÊS nomes — "Ajustes" no menu, "Configurações" no título, "Preferências
-              do app" no kicker (auditoria de UX, 31/08). Um vocabulário: ela se chama Ajustes. */}
-            {ageProfile === 'kids'
+        {/* Cabeçalho pelo primitivo (redesign v3). A tela tinha TRÊS nomes — "Ajustes" no menu,
+            "Configurações" no título, "Preferências do app" no kicker (auditoria de UX, 31/08).
+            Um vocabulário: ela se chama Ajustes. */}
+        <CabecalhoDeTela
+          className="mb-10"
+          kicker={
+            <>
+              {ageProfile === 'kids' ? (
+                <Gamepad2 className="w-3.5 h-3.5" aria-hidden />
+              ) : ageProfile === 'senior' ? (
+                <Eye className="w-3.5 h-3.5" aria-hidden />
+              ) : (
+                <Zap className="w-3.5 h-3.5" aria-hidden />
+              )}
+              <span>
+                {ageProfile === 'kids'
+                  ? t('Ajustes do jogador')
+                  : ageProfile === 'senior'
+                    ? t('Painel de opções')
+                    : t('Preferências do app')}
+              </span>
+            </>
+          }
+          titulo={
+            ageProfile === 'kids'
               ? t('Ajustes do jogo')
               : ageProfile === 'senior'
                 ? t('Ajustes do aplicativo')
-                : t('Ajustes')}
-          </h1>
-          <p className="text-ink-muted text-xs md:text-sm">
-            {ageProfile === 'kids'
+                : t('Ajustes')
+          }
+          subtitulo={
+            ageProfile === 'kids'
               ? t('Escolha os idiomas que você quer praticar e personalize o visual do seu jogo.')
               : ageProfile === 'senior'
                 ? t('Configure o idioma que você deseja aprender e altere opções de leitura de forma simples.')
-                : t('Preferências de interface, processamento e integrações.')}
-          </p>
-        </header>
+                : t('Preferências de interface, processamento e integrações.')
+          }
+        />
 
         {/* Erro HONESTO de gravação — o valor exibido volta ao do servidor, e o usuário sabe por quê. */}
         {saveError && (

@@ -1,10 +1,10 @@
-import { ShieldCheck,TrendingUp, User } from 'lucide-react';
+import { ShieldCheck, TrendingUp, User } from 'lucide-react';
 import { useState } from 'react';
 
 import type { AgeProfileType } from '../../lib/profile';
 import type { DerivedProgress } from '../../lib/progress';
 import { usePerfil } from '../../lib/usePerfil';
-import { Abas, PainelDeAba } from '../ui';
+import { Abas, CabecalhoDeTela, PainelDeAba } from '../ui';
 import AbaDados from './perfil/AbaDados';
 import AbaProgresso from './perfil/AbaProgresso';
 import AbaVoce from './perfil/AbaVoce';
@@ -41,17 +41,13 @@ export default function Perfil({ progress, ageProfile }: PerfilProps) {
   return (
     <div className="flex-1 overflow-y-auto w-full bg-canvas">
       <div className="p-6 md:p-10 max-w-4xl mx-auto w-full">
-
-        <header className="mb-6">
-          <span className="label-mono text-accent">Sua conta</span>
-          <h1 className="font-display font-black text-2xl md:text-3xl text-ink tracking-tight mt-1 mb-2">
-            {/* Cumprimenta pelo nome quando ele existe — e não inventa um quando não existe. */}
-            {nome ? `Olá, ${nome.split(/\s+/)[0]}` : 'Seu perfil'}
-          </h1>
-          <p className="text-ink-muted text-xs md:text-sm max-w-[62ch]">
-            Os seus dados, o que você já conquistou e onde você está no idioma.
-          </p>
-        </header>
+        {/* Cabeçalho pelo primitivo (redesign v3). Cumprimenta pelo nome quando ele existe — e
+            não inventa um quando não existe. */}
+        <CabecalhoDeTela
+          kicker="Sua conta"
+          titulo={nome ? `Olá, ${nome.split(/\s+/)[0]}` : 'Seu perfil'}
+          subtitulo="Os seus dados, o que você já conquistou e onde você está no idioma."
+        />
 
         <Abas
           rotuloDoGrupo="Seções do perfil"

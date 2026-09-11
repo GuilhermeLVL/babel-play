@@ -149,3 +149,16 @@ mas o custo de um engano é o banco real).
   (variante `foco` intacta). Gate: typecheck, lint, build, integridade OK; 5 arquivos de
   caracterização HTTP estouraram timeout sob carga e passaram isolados (54/54); matriz E2E 102/0/15.
   Inventário: 4 linhas de Capturar marcadas "depois".
+
+## F9 — Personalizar, Planos, Ajustes, Perfil (2026-09-11)
+
+- Ajustes, Planos e Perfil pelo `CabecalhoDeTela` (kicker com ícone por perfil em Ajustes; os
+  textos e chaves i18n são os mesmos). Filtros da Loja em `kpi-pill` com ativa em ink (D-012),
+  `aria-pressed` intacto.
+- Personalizar (4 abas, carteira Seeds/Créditos, Passe, Desafios) já vestia a F1 e fica; o
+  catálogo do v3 é inventado (D-016). Sobre mantém o herói do criador em `font-marca`.
+- Evidências em `evidencias/09-personalizar-planos-ajustes-perfil/` (ajustes, plano, perfil,
+  loja/itens × 3 viewports × claro/escuro).
+- Gate verde completo: 4126 unitários (2 skipped, sem timeouts), typecheck, lint, build, integridade;
+  matriz E2E 102/0/15. Inventário: Planos (2 abas, 3 cards), Perfil (3 abas) e Ajustes (4 abas)
+  conferidos nas capturas de 1280 e marcados "depois".

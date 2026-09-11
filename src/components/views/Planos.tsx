@@ -1,11 +1,11 @@
 import { Check, Cloud, Cpu, Minus, Sparkles } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
-import { armazenamentoEmTexto,precoDoPlano } from '../../core/planos';
+import { armazenamentoEmTexto, precoDoPlano } from '../../core/planos';
 import { getEntitlements, onPlanChange, PLAN_LABELS } from '../../lib/entitlements';
 import { numero, t } from '../../lib/i18n';
 import { carregarUso, duracaoLegivel, fracao, type UsoDoMes } from '../../lib/uso';
-import { Abas, Barra, PainelDeAba, Vazio } from '../ui';
+import { Abas, Barra, CabecalhoDeTela, PainelDeAba, Vazio } from '../ui';
 import Assinar from './planos/Assinar';
 
 /**
@@ -76,7 +76,12 @@ const RECURSOS: Recurso[] = [
   { nome: 'Importar do YouTube', gratis: false, essencial: false, pro: true },
   /* Derivado da quota, não escrito à mão: mudar `armazenamentoMb` na matriz e esquecer esta
      linha faria a tabela prometer um teto que o servidor não aplica. */
-  { nome: 'Suas sessões guardadas na conta', gratis: armazenamentoEmTexto('free'), essencial: armazenamentoEmTexto('essencial'), pro: armazenamentoEmTexto('pro') },
+  {
+    nome: 'Suas sessões guardadas na conta',
+    gratis: armazenamentoEmTexto('free'),
+    essencial: armazenamentoEmTexto('essencial'),
+    pro: armazenamentoEmTexto('pro'),
+  },
   { nome: 'Sua própria chave de IA (BYOK)', gratis: true, essencial: true, pro: true },
 ];
 
@@ -106,7 +111,8 @@ function LinhaDeUso({
         <span className="text-[13px] font-semibold text-ink">{titulo}</span>
         <span className="text-[13px] text-ink-muted">
           {/* Sem teto NÃO vira barra vazia: uma barra a 0% pareceria "nada usado". */}
-          {formatar(usado)}{teto === null ? ' · sem limite' : ` de ${formatar(teto)}`}
+          {formatar(usado)}
+          {teto === null ? ' · sem limite' : ` de ${formatar(teto)}`}
         </span>
       </div>
       {f !== null && (
@@ -137,7 +143,9 @@ export default function Planos() {
       setUso(u);
       setCarregando(false);
     });
-    return () => { vivo = false; };
+    return () => {
+      vivo = false;
+    };
   }, []);
 
   const meuPlano = entitlements.plan;
@@ -145,15 +153,16 @@ export default function Planos() {
   return (
     <div className="flex-1 overflow-y-auto w-full bg-canvas">
       <div className="p-6 md:p-10 max-w-4xl mx-auto w-full">
-        <header className="mb-6">
-          <span className="label-mono text-accent-ink">Plano e consumo</span>
-          <h1 className="font-display font-black text-2xl md:text-3xl text-ink tracking-tight mt-1 mb-2">
-            Seu plano
-          </h1>
-          <p className="text-ink-muted text-[14px]">
-            Você está no plano <strong className="text-ink">{t(PLAN_LABELS[meuPlano])}</strong>.
-          </p>
-        </header>
+        {/* Cabeçalho pelo primitivo (redesign v3). */}
+        <CabecalhoDeTela
+          kicker="Plano e consumo"
+          titulo="Seu plano"
+          subtitulo={
+            <>
+              Você está no plano <strong className="text-ink">{t(PLAN_LABELS[meuPlano])}</strong>.
+            </>
+          }
+        />
 
         <Abas
           itens={[
@@ -182,14 +191,19 @@ export default function Planos() {
                 <tr className="border-b border-subtle">
                   <th className="text-start font-semibold text-ink-muted pb-3">Recurso</th>
                   <th className="text-center font-semibold text-ink pb-3 px-3 whitespace-nowrap">
-                    <Cpu size={14} className="inline me-1" aria-hidden />Grátis
+                    <Cpu size={14} className="inline me-1" aria-hidden />
+                    Grátis
                   </th>
                   <th className="text-center font-semibold text-ink pb-3 px-3 whitespace-nowrap">
-                    <Sparkles size={14} className="inline me-1" aria-hidden />Essencial
-                    <span className="block text-[11px] font-normal text-ink-muted">R$ {precoDoPlano('essencial')}/mês</span>
+                    <Sparkles size={14} className="inline me-1" aria-hidden />
+                    Essencial
+                    <span className="block text-[11px] font-normal text-ink-muted">
+                      R$ {precoDoPlano('essencial')}/mês
+                    </span>
                   </th>
                   <th className="text-center font-semibold text-accent-ink pb-3 px-3 whitespace-nowrap">
-                    <Cloud size={14} className="inline me-1" aria-hidden />Pro
+                    <Cloud size={14} className="inline me-1" aria-hidden />
+                    Pro
                     <span className="block text-[11px] font-normal text-ink-muted">R$ {precoDoPlano('pro')}/mês</span>
                   </th>
                 </tr>
@@ -201,9 +215,15 @@ export default function Planos() {
                       {r.nome}
                       {r.fonte && <span className="block text-[11px] text-ink-faint mt-0.5">{r.fonte}</span>}
                     </td>
-                    <td className="py-3 px-3 text-center"><Marca v={r.gratis} /></td>
-                    <td className="py-3 px-3 text-center"><Marca v={r.essencial} /></td>
-                    <td className="py-3 px-3 text-center"><Marca v={r.pro} /></td>
+                    <td className="py-3 px-3 text-center">
+                      <Marca v={r.gratis} />
+                    </td>
+                    <td className="py-3 px-3 text-center">
+                      <Marca v={r.essencial} />
+                    </td>
+                    <td className="py-3 px-3 text-center">
+                      <Marca v={r.pro} />
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -211,20 +231,19 @@ export default function Planos() {
           </div>
 
           <p className="text-[12px] text-ink-muted mt-4 leading-relaxed">
-            As porcentagens de qualidade são <strong className="text-ink">medidas</strong>, não
-            estimadas: taxa de erro de palavra no corpus CORAA de fala espontânea brasileira, e
-            chrF++ num conjunto anotado por fenômeno (pronome, gênero, idiomático, registro). O
+            As porcentagens de qualidade são <strong className="text-ink">medidas</strong>, não estimadas: taxa de erro
+            de palavra no corpus CORAA de fala espontânea brasileira, e chrF++ num conjunto anotado por fenômeno
+            (pronome, gênero, idiomático, registro). O
             {/* Sem caminho de repositório na tela (ux-v2 §1.10): o leigo não tem onde clicar num
                 path de arquivo; o método publicado é alcançável pelo GitHub do projeto (Sobre). */}
-            método e os números completos estão publicados no repositório do projeto — o link
-            fica na tela Sobre.
+            método e os números completos estão publicados no repositório do projeto — o link fica na tela Sobre.
           </p>
 
           <p className="text-[12px] text-ink-muted mt-2 leading-relaxed">
-            O plano grátis roda tudo <strong className="text-ink">no seu computador</strong>: nada do
-            que você fala sai do navegador. O Essencial manda só a <strong className="text-ink">tradução</strong> para
-            o servidor — a fala continua transcrita localmente. O Pro processa tudo no servidor, o
-            que traz a qualidade acima e dispensa o download dos modelos.
+            O plano grátis roda tudo <strong className="text-ink">no seu computador</strong>: nada do que você fala sai
+            do navegador. O Essencial manda só a <strong className="text-ink">tradução</strong> para o servidor — a fala
+            continua transcrita localmente. O Pro processa tudo no servidor, o que traz a qualidade acima e dispensa o
+            download dos modelos.
           </p>
 
           {/* Só renderiza no modo público, com billing configurado — ver o cabeçalho do componente. */}
@@ -244,9 +263,7 @@ export default function Planos() {
 
             {uso && (
               <>
-                <p className="text-[12px] text-ink-muted mb-4">
-                  Janela {uso.janela} · zera na virada do mês
-                </p>
+                <p className="text-[12px] text-ink-muted mb-4">Janela {uso.janela} · zera na virada do mês</p>
 
                 <LinhaDeUso
                   titulo="Chamadas à IA de nuvem"
@@ -266,15 +283,15 @@ export default function Planos() {
 
                 {uso.tokensDeLlm.usado > 0 && (
                   <div className="text-[12px] text-ink-muted pt-2 border-t border-subtle">
-                    {numero(uso.tokensDeLlm.usado)} tokens de tradução usados neste
-                    mês. Não há limite para isso — é registrado só para acompanhar custo.
+                    {numero(uso.tokensDeLlm.usado)} tokens de tradução usados neste mês. Não há limite para isso — é
+                    registrado só para acompanhar custo.
                   </div>
                 )}
 
                 {uso.chamadas.teto === null && (
                   <p className="text-[12px] text-ink-muted mt-2">
-                    Rodando no seu computador (self-host): sem limites, e o custo da IA de nuvem é
-                    seu, pela sua própria chave.
+                    Rodando no seu computador (self-host): sem limites, e o custo da IA de nuvem é seu, pela sua própria
+                    chave.
                   </p>
                 )}
               </>

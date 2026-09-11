@@ -1,0 +1,3 @@
+- [x] 9.1 Ajustes, Planos e Perfil pelo `CabecalhoDeTela`
+- [x] 9.2 filtros da Loja em pílula ink (D-012), `aria-pressed` intacto
+- [x] 9.3 gate; evidências `09-personalizar-planos-ajustes-perfil`; matriz E2E

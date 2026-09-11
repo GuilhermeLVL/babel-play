@@ -59,8 +59,27 @@ Orbitron, Rajdhani, Nunito, Caveat.
 
 Contradiz a promessa do README ("not a single request reaches the server") e o modo local/offline.
 Sem `preconnect`, num request único, bloqueando o render.
-**`VT323` não é usada em lugar nenhum** — import morto (`src/index.css:1598` só a cita num
-comentário). Correção: self-hospedar em `public/fontes/` com `@font-face` e subset; remover VT323.
+**`VT323` não é usada em lugar nenhum** — import morto.
+
+**FEITO.** As 13 famílias restantes passaram a vir de `@fontsource`, resolvidas pelo Vite e
+servidas do próprio domínio. Duas propriedades preservadas de propósito:
+- **subsets completos** (latin, latin-ext, cyrillic, devanagari, vietnamese), como o Google servia.
+  Cada `@font-face` traz o seu `unicode-range`, então o navegador continua baixando só o subset da
+  página. Cortar para latin-only teria quebrado russo e hindi no vocabulário.
+- `font-display: swap`, que era o `&display=swap` do import antigo.
+
+**VT323 saiu** — estava no import e nenhuma regra a usava.
+
+Não foi para `public/fontes/` como eu havia proposto: o Vite já resolve e versiona os `woff2` a
+partir do `node_modules`, então copiar à mão seria duplicar o que o bundler faz. O padrão de
+`public/` do projeto (`scripts/copiar-assets-runtime.mjs`) existe para binários que bibliotecas
+de terceiros carregam de `/` em runtime — não é o caso de fonte referenciada por CSS.
+
+Evidência: `dist` emite 73 `woff2` (2,65 MB em disco) e **zero** ocorrência de `fonts.googleapis`
+ou `fonts.gstatic`; o app rodando não faz nenhuma requisição a `gstatic` e as fontes renderizam.
+Travado por `tests/fontesSemCdn.test.ts` (5 casos), que lê o CSS fonte — pega a regressão no commit,
+não no build. O teste remove comentários antes de varrer, pelo mesmo motivo que
+`semConteudoFabricado.test.ts:29`: o cabeçalho de `index.css` cita o import antigo textualmente.
 
 ### P0-4 [app] Estado de ERRO ausente em 9 das 13 telas
 

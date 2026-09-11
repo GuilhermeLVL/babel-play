@@ -1,4 +1,42 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Archivo:wght@500;600;700;800;900&family=IBM+Plex+Mono:wght@400;500;600&family=Geist:wght@400;500;600;700;800;900&family=Geist+Mono:wght@400;500;600&family=Baloo+2:wght@700;800&family=Silkscreen:wght@400;700&family=VT323&family=Merriweather:ital,wght@0,400;0,700;1,400&family=JetBrains+Mono:wght@400;600&family=Orbitron:wght@600;800&family=Rajdhani:wght@600;700&family=Nunito:wght@600;700&family=Caveat:wght@600;700&display=swap');
+/* FONTES SELF-HOSTED — nada de CDN.
+ *
+ * Aqui havia um `@import url('https://fonts.googleapis.com/css2?...')` com 14 famílias num
+ * request único, render-blocking e sem `preconnect`. Ele contradizia frontalmente a promessa do
+ * README ("not a single request reaches the server") e o modo local/offline: abrir o app sem
+ * internet, ou com o Google bloqueado, deixava a interface inteira em fonte de sistema — e, com
+ * internet, vazava uma requisição com IP e User-Agent para um terceiro a cada visita.
+ *
+ * Agora as mesmas famílias vêm de `@fontsource`, resolvidas pelo Vite e servidas do próprio
+ * domínio. Duas propriedades preservadas de propósito:
+ *  · SUBSETS COMPLETOS (latin, latin-ext, cyrillic, devanagari, vietnamese…), como o Google servia.
+ *    Cada `@font-face` traz o seu `unicode-range`, então o navegador continua baixando só o subset
+ *    que a página realmente usa. Cortar para latin-only teria quebrado russo e hindi no vocabulário.
+ *  · `font-display: swap`, que era o `&display=swap` do import antigo (padrão do @fontsource).
+ *
+ * VT323 SAIU. Estava no import e não era usada em lugar nenhum — só citada num comentário mais
+ * abaixo, que explica a rodada em que ela foi abandonada. Era peso no caminho crítico por nada.
+ *
+ * Sempre carregadas (marca e corpo):
+ */
+@import "@fontsource-variable/inter/index.css";
+@import "@fontsource-variable/archivo/index.css";
+@import "@fontsource/ibm-plex-mono/400.css";
+@import "@fontsource/ibm-plex-mono/500.css";
+@import "@fontsource/ibm-plex-mono/600.css";
+@import "@fontsource/silkscreen/400.css";
+@import "@fontsource/silkscreen/700.css";
+/* Temas de fonte opcionais (`data-fonte`) — o CSS é leve; o woff2 só é baixado se o tema for usado: */
+@import "@fontsource-variable/geist/index.css";
+@import "@fontsource-variable/geist-mono/index.css";
+@import "@fontsource-variable/baloo-2/index.css";
+@import "@fontsource-variable/merriweather/index.css";
+@import "@fontsource-variable/merriweather/standard-italic.css";
+@import "@fontsource-variable/jetbrains-mono/index.css";
+@import "@fontsource-variable/orbitron/index.css";
+@import "@fontsource/rajdhani/600.css";
+@import "@fontsource/rajdhani/700.css";
+@import "@fontsource-variable/nunito/index.css";
+@import "@fontsource-variable/caveat/index.css";
 @import "tailwindcss";
 
 @theme {

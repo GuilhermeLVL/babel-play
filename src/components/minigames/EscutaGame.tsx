@@ -1,6 +1,6 @@
-import type { ItemOutcome, RodadaEscuta,RoundReport } from '@core';
+import type { ItemOutcome, RodadaEscuta, RoundReport } from '@core';
 import { scoreRound } from '@core';
-import { Flame, Play, RotateCcw, Sparkles,Turtle, X } from 'lucide-react';
+import { Flame, Play, RotateCcw, Sparkles, Turtle, X } from 'lucide-react';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 
 import { emitBurst } from '../../lib/effects';
@@ -170,7 +170,7 @@ export default function EscutaGame({ rodadas, audioUrl, ageProfile: _ageProfile,
         {/* Ações, Combo, Pontos e Status */}
         <div className="flex items-center gap-2.5 sm:gap-3">
           {mult > 1 && (
-            <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-gradient-to-r from-orange-500 to-amber-500 text-white font-black text-xs shadow-md animate-bounce">
+            <div className="selo-combo animate-bounce">
               <Flame className="w-4 h-4 fill-current" />
               <span>×{mult}</span>
             </div>

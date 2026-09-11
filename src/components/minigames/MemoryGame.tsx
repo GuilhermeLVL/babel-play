@@ -1,12 +1,12 @@
 import type { ItemOutcome, MinigameItem, RoundReport } from '@core';
 import { scoreRound } from '@core';
-import { Eye,X } from 'lucide-react';
-import { Flame,Sparkles } from 'lucide-react';
+import { Eye, X } from 'lucide-react';
+import { Flame, Sparkles } from 'lucide-react';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 
 import { emitBurst } from '../../lib/effects';
 import { playJuicedError, playJuicedHit, playJuicedVictory, triggerHaptic } from '../../lib/gameFeel';
-import { multiplicador,pontosDoElemento } from '../../lib/juice';
+import { multiplicador, pontosDoElemento } from '../../lib/juice';
 import { direcaoDoTexto } from '../../lib/languages';
 import type { AgeProfileType } from '../../lib/profile';
 import { play } from '../../lib/soundFx';
@@ -96,7 +96,7 @@ export default function MemoryGame({ items, ageProfile, onFinish, onExit }: Memo
   const virar = (carta: Carta, el: HTMLElement | null) => {
     if (travado || espiando || viradas.includes(carta.id) || fechados.has(carta.itemIndex)) return;
     if (!inicioItemRef.current.has(carta.itemIndex)) inicioItemRef.current.set(carta.itemIndex, Date.now());
-    
+
     triggerHaptic('soft');
     play('select');
 
@@ -109,7 +109,7 @@ export default function MemoryGame({ items, ageProfile, onFinish, onExit }: Memo
     setViradas(novas);
     if (novas.length < 2) return;
 
-    const [a, b] = novas.map(id => cartas.find(c => c.id === id)!);
+    const [a, b] = novas.map((id) => cartas.find((c) => c.id === id)!);
     const par = a.itemIndex === b.itemIndex && a.lado !== b.lado;
     // Conta a tentativa nos DOIS itens envolvidos
     for (const idx of new Set([a.itemIndex, b.itemIndex])) {
@@ -124,11 +124,11 @@ export default function MemoryGame({ items, ageProfile, onFinish, onExit }: Memo
       const mult = multiplicador(nova);
       const ganho = 10 * mult;
       setSequencia(nova);
-      setPontos(p => p + ganho);
+      setPontos((p) => p + ganho);
       triggerHaptic('success');
       if (coords) emitBurst(coords.x, coords.y, 'confete');
       playJuicedHit(nova, coords, `+${ganho}${mult > 1 ? ` ×${mult}` : ''}`);
-      setFechados(prev => new Set([...prev, a.itemIndex]));
+      setFechados((prev) => new Set([...prev, a.itemIndex]));
       setViradas([]);
       return;
     }
@@ -136,7 +136,10 @@ export default function MemoryGame({ items, ageProfile, onFinish, onExit }: Memo
     setSequencia(0);
     playJuicedError(mesaRef.current, coords, 'Quase!');
     setTravado(true);
-    setTimeout(() => { setViradas([]); setTravado(false); }, 850);
+    setTimeout(() => {
+      setViradas([]);
+      setTravado(false);
+    }, 850);
   };
 
   /** ESPIAR: abre a mesa inteira por 1,2s. Cobra a nota de todos os itens (ver `gradeFor`). */
@@ -172,9 +175,13 @@ export default function MemoryGame({ items, ageProfile, onFinish, onExit }: Memo
               <span className="font-display font-black text-lg tracking-wide uppercase text-accent">
                 {ageProfile === 'kids' ? 'Ache os Pares' : 'Jogo da Memória'}
               </span>
-              <span className="text-xs px-2 py-0.5 rounded-full bg-accent-soft text-accent-ink font-semibold">Pares & Sinapses 🧠</span>
+              <span className="text-xs px-2 py-0.5 rounded-full bg-accent-soft text-accent-ink font-semibold">
+                Pares & Sinapses 🧠
+              </span>
             </div>
-            <p className="text-xs text-ink-muted">Encontre todos os pares combinando termos e significados correspondentes!</p>
+            <p className="text-xs text-ink-muted">
+              Encontre todos os pares combinando termos e significados correspondentes!
+            </p>
           </div>
         </div>
 
@@ -193,7 +200,7 @@ export default function MemoryGame({ items, ageProfile, onFinish, onExit }: Memo
           </button>
 
           {mult > 1 && (
-            <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-gradient-to-r from-orange-500 to-amber-500 text-white font-black text-xs shadow-md animate-bounce">
+            <div className="selo-combo animate-bounce">
               <Flame className="w-4 h-4 fill-current" />
               <span>×{mult}</span>
             </div>
@@ -204,7 +211,10 @@ export default function MemoryGame({ items, ageProfile, onFinish, onExit }: Memo
             <span className="font-mono font-bold text-base">{pontos} pts</span>
           </div>
 
-          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-border-subtle bg-surface" data-tour="placar">
+          <div
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-border-subtle bg-surface"
+            data-tour="placar"
+          >
             <span className="font-mono font-bold text-base text-ink">
               {fechados.size}/{total} pares
             </span>
@@ -213,62 +223,68 @@ export default function MemoryGame({ items, ageProfile, onFinish, onExit }: Memo
       </header>
 
       <main className="flex-1 flex flex-col items-center justify-center p-4 lg:p-8 overflow-y-auto custom-scrollbar">
-
-      {/* A mesa fica no MEIO da área livre */}
-      <div ref={mesaRef} data-tour="mesa" className={`grid gap-3 ${total <= 4 ? 'grid-cols-2 sm:grid-cols-4' : 'grid-cols-3 sm:grid-cols-4'} max-w-3xl w-full mx-auto my-auto`}>
-        {cartas.map(carta => {
-          const aberta = espiando || viradas.includes(carta.id) || fechados.has(carta.itemIndex);
-          const fechada = fechados.has(carta.itemIndex);
-          const cor = CORES[carta.itemIndex % CORES.length];
-          return (
-            <button
-              key={carta.id}
-              onClick={(e) => virar(carta, e.currentTarget)}
-              disabled={fechada}
-              aria-label={aberta ? carta.texto : 'Carta virada para baixo'}
-              className={`carta3d ${aberta ? 'aberta' : ''} ${folgado ? 'min-h-[6.5rem]' : 'min-h-[5.5rem]'} rounded-2xl ${
-                fechada ? 'opacity-80 scale-95 ring-2 ring-emerald-500/40' : 'cursor-pointer active:scale-95'
-              } ${!aberta ? 'hover:-translate-y-1 hover:shadow-lg transition-all' : ''}`}
-            >
-              <span className="carta3d-giro block">
-                {/* O VERSO (face para baixo) com textura geométrica elegante do Babel Play */}
-                <span className="carta3d-frente bg-surface border-2 border-border-subtle hover:border-accent/40 rounded-2xl flex items-center justify-center shadow-sm relative overflow-hidden group" aria-hidden>
-                  <div className="absolute inset-0 bg-gradient-to-br from-accent-soft/20 to-transparent opacity-40 group-hover:opacity-100 transition-opacity" />
-                  <span className="w-8 h-8 rounded-xl border border-border-subtle bg-canvas/80 flex items-center justify-center font-display font-black text-xs text-ink-muted/50 group-hover:text-accent transition-colors">
-                    ✦
-                  </span>
-                </span>
-                <span
-                  className={`carta3d-verso bg-surface shadow-md rounded-2xl px-3 py-2 text-center overflow-hidden flex flex-col items-center justify-center transition-all ${
-                    fechada ? 'bg-emerald-500/5' : ''
-                  }`}
-                  style={{ borderColor: cor, borderWidth: 2, borderStyle: 'solid' }}
-                >
+        {/* A mesa fica no MEIO da área livre */}
+        <div
+          ref={mesaRef}
+          data-tour="mesa"
+          className={`grid gap-3 ${total <= 4 ? 'grid-cols-2 sm:grid-cols-4' : 'grid-cols-3 sm:grid-cols-4'} max-w-3xl w-full mx-auto my-auto`}
+        >
+          {cartas.map((carta) => {
+            const aberta = espiando || viradas.includes(carta.id) || fechados.has(carta.itemIndex);
+            const fechada = fechados.has(carta.itemIndex);
+            const cor = CORES[carta.itemIndex % CORES.length];
+            return (
+              <button
+                key={carta.id}
+                onClick={(e) => virar(carta, e.currentTarget)}
+                disabled={fechada}
+                aria-label={aberta ? carta.texto : 'Carta virada para baixo'}
+                className={`carta3d ${aberta ? 'aberta' : ''} ${folgado ? 'min-h-[6.5rem]' : 'min-h-[5.5rem]'} rounded-2xl ${
+                  fechada ? 'opacity-80 scale-95 ring-2 ring-emerald-500/40' : 'cursor-pointer active:scale-95'
+                } ${!aberta ? 'hover:-translate-y-1 hover:shadow-lg transition-all' : ''}`}
+              >
+                <span className="carta3d-giro block">
+                  {/* O VERSO (face para baixo) com textura geométrica elegante do Babel Play */}
                   <span
-                    className={`${carta.texto.length > 45 ? (folgado ? 'text-[11px]' : 'text-[10px]') : folgado ? 'text-[14px]' : 'text-[13px]'} font-bold leading-tight break-words ${folgado ? 'line-clamp-4' : 'line-clamp-3'}`}
-                    style={{ color: carta.lado === 'palavra' ? cor : undefined }}
-                    dir={direcaoDoTexto(carta.lang)}
-                    title={carta.texto}
+                    className="carta3d-frente bg-surface border-2 border-border-subtle hover:border-accent/40 rounded-2xl flex items-center justify-center shadow-sm relative overflow-hidden group"
+                    aria-hidden
                   >
-                    {carta.texto}
-                  </span>
-                  {fechada && (
-                    <span className="text-[10px] font-bold text-emerald-600 mt-1 flex items-center gap-1 animate-scaleIn">
-                      <Sparkles className="w-3 h-3" /> Par
+                    <div className="absolute inset-0 bg-gradient-to-br from-accent-soft/20 to-transparent opacity-40 group-hover:opacity-100 transition-opacity" />
+                    <span className="w-8 h-8 rounded-xl border border-border-subtle bg-canvas/80 flex items-center justify-center font-display font-black text-xs text-ink-muted/50 group-hover:text-accent transition-colors">
+                      ✦
                     </span>
-                  )}
+                  </span>
+                  <span
+                    className={`carta3d-verso bg-surface shadow-md rounded-2xl px-3 py-2 text-center overflow-hidden flex flex-col items-center justify-center transition-all ${
+                      fechada ? 'bg-good/5' : ''
+                    }`}
+                    style={{ borderColor: cor, borderWidth: 2, borderStyle: 'solid' }}
+                  >
+                    <span
+                      className={`${carta.texto.length > 45 ? (folgado ? 'text-[11px]' : 'text-[10px]') : folgado ? 'text-[14px]' : 'text-[13px]'} font-bold leading-tight break-words ${folgado ? 'line-clamp-4' : 'line-clamp-3'}`}
+                      style={{ color: carta.lado === 'palavra' ? cor : undefined }}
+                      dir={direcaoDoTexto(carta.lang)}
+                      title={carta.texto}
+                    >
+                      {carta.texto}
+                    </span>
+                    {fechada && (
+                      <span className="text-[10px] font-bold text-emerald-600 mt-1 flex items-center gap-1 animate-scaleIn">
+                        <Sparkles className="w-3 h-3" /> Par
+                      </span>
+                    )}
+                  </span>
                 </span>
-              </span>
-            </button>
-          );
-        })}
-      </div>
+              </button>
+            );
+          })}
+        </div>
 
-      <p className="text-[11px] text-ink-faint text-center mt-5 mb-auto max-w-[52ch] mx-auto">
-        {ageProfile === 'senior'
-          ? 'Toque em duas cartas: uma com a palavra e outra com o significado dela.'
-          : 'Vire duas cartas e feche o par: a palavra e a tradução dela.'}
-      </p>
+        <p className="text-[11px] text-ink-faint text-center mt-5 mb-auto max-w-[52ch] mx-auto">
+          {ageProfile === 'senior'
+            ? 'Toque em duas cartas: uma com a palavra e outra com o significado dela.'
+            : 'Vire duas cartas e feche o par: a palavra e a tradução dela.'}
+        </p>
       </main>
     </div>
   );

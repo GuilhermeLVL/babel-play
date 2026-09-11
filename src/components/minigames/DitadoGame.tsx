@@ -1,11 +1,11 @@
-import type { ItemOutcome, RodadaDitado,RoundReport } from '@core';
+import type { ItemOutcome, RodadaDitado, RoundReport } from '@core';
 import { conferirDitado, scoreRound } from '@core';
-import { CornerDownLeft, Flame,Lightbulb, Play, SkipForward, Sparkles, Turtle, X } from 'lucide-react';
+import { CornerDownLeft, Flame, Lightbulb, Play, SkipForward, Sparkles, Turtle, X } from 'lucide-react';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 
 import { criarFalante } from '../../lib/falante';
 import { playJuicedError, playJuicedHit, playJuicedVictory, triggerHaptic } from '../../lib/gameFeel';
-import { comemorar, multiplicador,pontosDoElemento } from '../../lib/juice';
+import { comemorar, multiplicador, pontosDoElemento } from '../../lib/juice';
 import type { AgeProfileType } from '../../lib/profile';
 
 /**
@@ -229,7 +229,7 @@ export default function DitadoGame({ rodadas, audioUrl, ageProfile, onFinish, on
           </button>
 
           {mult > 1 && (
-            <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-gradient-to-r from-orange-500 to-amber-500 text-white font-black text-xs shadow-md animate-bounce">
+            <div className="selo-combo animate-bounce">
               <Flame className="w-4 h-4 fill-current" />
               <span>×{mult}</span>
             </div>

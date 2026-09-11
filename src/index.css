@@ -1214,6 +1214,13 @@
   /* D-012: a pilula ATIVA passa a ser preenchimento `--ink` (aba/chip ativo do protótipo v3),
      alinhando `Abas pilula` e `Segmentado pilula` ao `Segmentado tom="ink"`. O accent fica
      reservado ao botao primario e ao item de navegacao. */
+  /* SELO DE COMBO (jogos, F11): era `bg-gradient-to-r from-orange-500 to-amber-500 text-white`
+     copiado em oito jogos — cores da paleta do Tailwind, fora dos 7 temas e sem par de contraste.
+     Agora é o preenchimento `warn` com o `--warn-contrast` verificado por tema. */
+  .selo-combo {
+    @apply inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-warn font-black text-xs shadow-md;
+    color: var(--warn-contrast);
+  }
   .kpi-pill.active {
     @apply bg-ink border-ink;
     color: var(--ink-contrast);

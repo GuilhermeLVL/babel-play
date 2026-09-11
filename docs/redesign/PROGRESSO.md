@@ -162,3 +162,14 @@ mas o custo de um engano é o banco real).
 - Gate verde completo: 4126 unitários (2 skipped, sem timeouts), typecheck, lint, build, integridade;
   matriz E2E 102/0/15. Inventário: Planos (2 abas, 3 cards), Perfil (3 abas) e Ajustes (4 abas)
   conferidos nas capturas de 1280 e marcados "depois".
+
+## F11 — Jogos (2026-09-11)
+
+- Os 18 jogos já eram tokens; sobravam o selo de combo copiado em 8 jogos com `from-orange-500
+to-amber-500 text-white` (paleta do Tailwind, sem par de contraste) e um `emerald-500/5` no
+  Memory. Agora `.selo-combo` (warn + `--warn-contrast` verificado por tema) e `good/5`.
+- Os `text-white` restantes estão todos sobre accent/warn/good/error, pares que a camada de
+  contraste resolve. Nenhuma regra, handler, `data-tour` ou nome acessível muda.
+- Sem evidência própria: o selo só aparece no meio de uma rodada; a mudança é uma classe de CSS
+  coberta pelo build e pela matriz de contraste.
+- Gate verde completo: 4126 unitários, typecheck, lint, build, integridade; matriz E2E 102/0/15.

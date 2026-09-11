@@ -1,11 +1,11 @@
-import type { ItemOutcome, RodadaFrase,RoundReport } from '@core';
+import type { ItemOutcome, RodadaFrase, RoundReport } from '@core';
 import { acertosPosicionais, checkOrder, scoreRound } from '@core';
-import { Check, Flame, Lightbulb, RotateCcw, Sparkles,Volume2, X } from 'lucide-react';
+import { Check, Flame, Lightbulb, RotateCcw, Sparkles, Volume2, X } from 'lucide-react';
 import React, { useEffect, useRef, useState } from 'react';
 
 import { emitBurst } from '../../lib/effects';
 import { playJuicedError, playJuicedHit, playJuicedVictory, triggerHaptic } from '../../lib/gameFeel';
-import { multiplicador,pontosDoElemento } from '../../lib/juice';
+import { multiplicador, pontosDoElemento } from '../../lib/juice';
 import type { AgeProfileType } from '../../lib/profile';
 import { play } from '../../lib/soundFx';
 import { speak } from '../../lib/tts';
@@ -23,7 +23,7 @@ interface ScrambleGameProps {
 
 export default function ScrambleGame({ rodadas, ageProfile, onFinish, onExit }: ScrambleGameProps) {
   const [indice, setIndice] = useState(0);
-  const [montada, setMontada] = useState<number[]>([]);   // índices na ordem escolhida
+  const [montada, setMontada] = useState<number[]>([]); // índices na ordem escolhida
   const [conferido, setConferido] = useState<'certo' | 'errado' | null>(null);
   const [sequencia, setSequencia] = useState(0);
   const [pontos, setPontos] = useState(0);
@@ -36,7 +36,7 @@ export default function ScrambleGame({ rodadas, ageProfile, onFinish, onExit }: 
   const jaFinalizouRef = useRef(false);
 
   const rodada = rodadas[indice];
-  const disponiveis = rodada ? rodada.embaralhada.map((_, i) => i).filter(i => !montada.includes(i)) : [];
+  const disponiveis = rodada ? rodada.embaralhada.map((_, i) => i).filter((i) => !montada.includes(i)) : [];
   const completa = rodada && montada.length === rodada.embaralhada.length;
 
   useEffect(() => {
@@ -51,19 +51,23 @@ export default function ScrambleGame({ rodadas, ageProfile, onFinish, onExit }: 
     if (jaFinalizouRef.current) return;
     jaFinalizouRef.current = true;
     const todos = resultadosRef.current;
-    const impecavel = todos.length > 0 && todos.every(o => o.correct && o.attempts <= 1 && !o.hinted);
+    const impecavel = todos.length > 0 && todos.every((o) => o.correct && o.attempts <= 1 && !o.hinted);
     if (impecavel) playJuicedVictory();
-    setTimeout(() => onFinish({
-      gameId: 'scramble',
-      items: todos,
-      score: scoreRound('scramble', todos),
-      durationMs: Date.now() - inicioRodadaRef.current,
-    }), 900);
+    setTimeout(
+      () =>
+        onFinish({
+          gameId: 'scramble',
+          items: todos,
+          score: scoreRound('scramble', todos),
+          durationMs: Date.now() - inicioRodadaRef.current,
+        }),
+      900,
+    );
   };
 
   const conferir = (el: HTMLElement | null) => {
     if (!rodada || !completa || conferido === 'certo') return;
-    const palavras = montada.map(i => rodada.embaralhada[i]);
+    const palavras = montada.map((i) => rodada.embaralhada[i]);
     const rect = el?.getBoundingClientRect();
     const coords = rect ? { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 } : undefined;
 
@@ -72,7 +76,7 @@ export default function ScrambleGame({ rodadas, ageProfile, onFinish, onExit }: 
       const mult = multiplicador(nova);
       const ganho = 10 * (usouDica ? 1 : mult);
       setSequencia(nova);
-      setPontos(p => p + ganho);
+      setPontos((p) => p + ganho);
       triggerHaptic('success');
       if (coords) emitBurst(coords.x, coords.y, 'confete');
       playJuicedHit(nova, coords, '+' + ganho + (mult > 1 && !usouDica ? ' ×' + mult : ''));
@@ -92,7 +96,7 @@ export default function ScrambleGame({ rodadas, ageProfile, onFinish, onExit }: 
       });
       setTimeout(() => {
         if (indice + 1 >= rodadas.length) finalizarTudo();
-        else setIndice(i => i + 1);
+        else setIndice((i) => i + 1);
       }, 1400);
       return;
     }
@@ -118,7 +122,7 @@ export default function ScrambleGame({ rodadas, ageProfile, onFinish, onExit }: 
     });
     setSequencia(0);
     if (indice + 1 >= rodadas.length) finalizarTudo();
-    else setIndice(i => i + 1);
+    else setIndice((i) => i + 1);
   };
 
   /**
@@ -130,7 +134,7 @@ export default function ScrambleGame({ rodadas, ageProfile, onFinish, onExit }: 
    */
   const pedirDica = (el: HTMLElement | null) => {
     if (!rodada || conferido === 'certo') return;
-    const escolhidas = montada.map(i => rodada.embaralhada[i]);
+    const escolhidas = montada.map((i) => rodada.embaralhada[i]);
     let prefixo = 0;
     while (prefixo < escolhidas.length && escolhidas[prefixo] === rodada.correta[prefixo]) prefixo++;
     if (prefixo >= rodada.correta.length) return;
@@ -148,9 +152,13 @@ export default function ScrambleGame({ rodadas, ageProfile, onFinish, onExit }: 
 
   if (!rodada) return null;
 
-  const acertosParciais = conferido === 'errado'
-    ? acertosPosicionais(montada.map(i => rodada.embaralhada[i]), rodada.correta)
-    : 0;
+  const acertosParciais =
+    conferido === 'errado'
+      ? acertosPosicionais(
+          montada.map((i) => rodada.embaralhada[i]),
+          rodada.correta,
+        )
+      : 0;
 
   const mult = multiplicador(sequencia);
 
@@ -169,8 +177,12 @@ export default function ScrambleGame({ rodadas, ageProfile, onFinish, onExit }: 
           </button>
           <div>
             <div className="flex items-center gap-2">
-              <span className="font-display font-black text-lg tracking-wide uppercase text-accent">Scramble Arena</span>
-              <span className="text-xs px-2 py-0.5 rounded-full bg-accent-soft text-accent-ink font-semibold">Ordem Sintática 🧩</span>
+              <span className="font-display font-black text-lg tracking-wide uppercase text-accent">
+                Scramble Arena
+              </span>
+              <span className="text-xs px-2 py-0.5 rounded-full bg-accent-soft text-accent-ink font-semibold">
+                Ordem Sintática 🧩
+              </span>
             </div>
             <p className="text-xs text-ink-muted">Reorganize os blocos e construa a frase com a sintaxe correta!</p>
           </div>
@@ -201,7 +213,7 @@ export default function ScrambleGame({ rodadas, ageProfile, onFinish, onExit }: 
           </button>
 
           {mult > 1 && (
-            <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-gradient-to-r from-orange-500 to-amber-500 text-white font-black text-xs shadow-md animate-bounce">
+            <div className="selo-combo animate-bounce">
               <Flame className="w-4 h-4 fill-current" />
               <span>×{mult}</span>
             </div>
@@ -221,100 +233,110 @@ export default function ScrambleGame({ rodadas, ageProfile, onFinish, onExit }: 
       </header>
 
       <main className="flex-1 flex flex-col items-center justify-center p-4 lg:p-8 overflow-y-auto custom-scrollbar">
+        <div ref={palcoRef} className="w-full max-w-2xl flex flex-col gap-5 my-auto">
+          {/* O SIGNIFICADO guia a ordem — sem ele o jogo vira tentativa e erro. */}
+          <div className="text-center">
+            <p className="label-mono mb-1">
+              {ageProfile === 'senior' ? 'Monte a frase que quer dizer' : 'Esta frase significa'}
+            </p>
+            <p data-tour="traducao" className="font-display font-extrabold text-[17px] text-accent-ink leading-snug">
+              {rodada.traducao}
+            </p>
+          </div>
 
-      <div ref={palcoRef} className="w-full max-w-2xl flex flex-col gap-5 my-auto">
-        {/* O SIGNIFICADO guia a ordem — sem ele o jogo vira tentativa e erro. */}
-        <div className="text-center">
-          <p className="label-mono mb-1">{ageProfile === 'senior' ? 'Monte a frase que quer dizer' : 'Esta frase significa'}</p>
-          <p data-tour="traducao" className="font-display font-extrabold text-[17px] text-accent-ink leading-snug">{rodada.traducao}</p>
-        </div>
+          {/* A LINHA que a pessoa monta */}
+          <div
+            className={`min-h-[4.5rem] rounded-2xl border-2 border-dashed p-3 flex flex-wrap gap-2 items-start content-start transition-all ${
+              conferido === 'certo'
+                ? 'border-good bg-good-soft/30 shadow-md ring-2 ring-good/20'
+                : conferido === 'errado'
+                  ? 'border-error bg-error-soft/20 animate-shake'
+                  : 'border-border-subtle bg-surface hover:border-accent/40'
+            }`}
+          >
+            {montada.length === 0 && (
+              <span className="text-[13px] text-ink-faint py-2 px-1">
+                {ageProfile === 'senior'
+                  ? 'Toque nas palavras abaixo, na ordem certa.'
+                  : 'Clique nas palavras na ordem certa.'}
+              </span>
+            )}
+            {montada.map((idx, pos) => (
+              <button
+                key={`${idx}-${pos}`}
+                onClick={() => {
+                  triggerHaptic('soft');
+                  play('click');
+                  setMontada((m) => m.filter((_, k) => k !== pos));
+                }}
+                disabled={conferido === 'certo'}
+                className="px-3.5 py-2 rounded-xl bg-accent-soft border border-accent/40 text-accent-ink font-bold text-[15px] cursor-pointer hover:brightness-95 active:scale-95 transition-all shadow-sm flex items-center gap-1 animate-scaleIn"
+                title="Clique para tirar da frase"
+              >
+                {rodada.embaralhada[idx]}
+              </button>
+            ))}
+          </div>
 
-        {/* A LINHA que a pessoa monta */}
-        <div
-          className={`min-h-[4.5rem] rounded-2xl border-2 border-dashed p-3 flex flex-wrap gap-2 items-start content-start transition-all ${
-            conferido === 'certo' ? 'border-good bg-good-soft/30 shadow-md ring-2 ring-good/20'
-            : conferido === 'errado' ? 'border-error bg-error-soft/20 animate-shake'
-            : 'border-border-subtle bg-surface hover:border-accent/40'
-          }`}
-        >
-          {montada.length === 0 && (
-            <span className="text-[13px] text-ink-faint py-2 px-1">
-              {ageProfile === 'senior' ? 'Toque nas palavras abaixo, na ordem certa.' : 'Clique nas palavras na ordem certa.'}
-            </span>
+          {/* Feedback PARCIAL: diz quantas estão no lugar, sem entregar quais. */}
+          {conferido === 'errado' && (
+            <p className="text-center text-[13px] text-warn-ink animate-in fade-in font-bold">
+              {acertosParciais > 0
+                ? `${acertosParciais} ${acertosParciais === 1 ? 'palavra está' : 'palavras estão'} no lugar certo, continue.`
+                : 'Ainda não. Tente começar por outra palavra.'}
+            </p>
           )}
-          {montada.map((idx, pos) => (
+
+          {/* As PEÇAS disponíveis */}
+          <div data-tour="pecas" className="flex flex-wrap gap-2 justify-center">
+            {disponiveis.map((i) => (
+              <button
+                key={i}
+                onClick={() => {
+                  triggerHaptic('soft');
+                  play('add');
+                  if (rodada.lang) {
+                    speak(rodada.embaralhada[i], { lang: rodada.lang });
+                  }
+                  setMontada((m) => [...m, i]);
+                }}
+                disabled={conferido === 'certo'}
+                className="px-4 py-2.5 rounded-xl bg-surface border-2 border-border-subtle hover:border-accent text-ink font-bold text-[15px] cursor-pointer hover:-translate-y-1 active:scale-95 transition-all shadow-sm hover:shadow-md"
+              >
+                {rodada.embaralhada[i]}
+              </button>
+            ))}
+          </div>
+
+          <div className="flex items-center justify-center gap-3">
             <button
-              key={`${idx}-${pos}`}
               onClick={() => {
                 triggerHaptic('soft');
                 play('click');
-                setMontada(m => m.filter((_, k) => k !== pos));
+                setMontada([]);
               }}
-              disabled={conferido === 'certo'}
-              className="px-3.5 py-2 rounded-xl bg-accent-soft border border-accent/40 text-accent-ink font-bold text-[15px] cursor-pointer hover:brightness-95 active:scale-95 transition-all shadow-sm flex items-center gap-1 animate-scaleIn"
-              title="Clique para tirar da frase"
+              disabled={!montada.length || conferido === 'certo'}
+              className="py-2.5 px-4 rounded-xl bg-canvas border border-border-subtle text-ink-muted hover:text-ink font-bold text-[13px] disabled:opacity-40 cursor-pointer flex items-center gap-1.5 transition-colors"
             >
-              {rodada.embaralhada[idx]}
+              <RotateCcw className="w-3.5 h-3.5" /> Recomeçar
             </button>
-          ))}
-        </div>
-
-        {/* Feedback PARCIAL: diz quantas estão no lugar, sem entregar quais. */}
-        {conferido === 'errado' && (
-          <p className="text-center text-[13px] text-warn-ink animate-in fade-in font-bold">
-            {acertosParciais > 0
-              ? `${acertosParciais} ${acertosParciais === 1 ? 'palavra está' : 'palavras estão'} no lugar certo, continue.`
-              : 'Ainda não. Tente começar por outra palavra.'}
-          </p>
-        )}
-
-        {/* As PEÇAS disponíveis */}
-        <div data-tour="pecas" className="flex flex-wrap gap-2 justify-center">
-          {disponiveis.map(i => (
             <button
-              key={i}
-              onClick={() => {
-                triggerHaptic('soft');
-                play('add');
-                if (rodada.lang) {
-                  speak(rodada.embaralhada[i], { lang: rodada.lang });
-                }
-                setMontada(m => [...m, i]);
-              }}
-              disabled={conferido === 'certo'}
-              className="px-4 py-2.5 rounded-xl bg-surface border-2 border-border-subtle hover:border-accent text-ink font-bold text-[15px] cursor-pointer hover:-translate-y-1 active:scale-95 transition-all shadow-sm hover:shadow-md"
+              data-tour="conferir"
+              onClick={(e) => conferir(e.currentTarget)}
+              disabled={!completa || conferido === 'certo'}
+              className="py-2.5 px-6 rounded-xl bg-accent hover:bg-accent-ink text-white font-bold text-[13px] shadow-btn disabled:opacity-40 cursor-pointer flex items-center gap-1.5 active:scale-95 transition-all"
             >
-              {rodada.embaralhada[i]}
+              <Check className="w-4 h-4" /> Conferir
             </button>
-          ))}
-        </div>
+          </div>
 
-        <div className="flex items-center justify-center gap-3">
           <button
-            onClick={() => {
-              triggerHaptic('soft');
-              play('click');
-              setMontada([]);
-            }}
-            disabled={!montada.length || conferido === 'certo'}
-            className="py-2.5 px-4 rounded-xl bg-canvas border border-border-subtle text-ink-muted hover:text-ink font-bold text-[13px] disabled:opacity-40 cursor-pointer flex items-center gap-1.5 transition-colors"
+            onClick={desistir}
+            className="text-[11px] text-ink-faint hover:text-warn-ink underline cursor-pointer mx-auto"
           >
-            <RotateCcw className="w-3.5 h-3.5" /> Recomeçar
-          </button>
-          <button
-            data-tour="conferir"
-            onClick={(e) => conferir(e.currentTarget)}
-            disabled={!completa || conferido === 'certo'}
-            className="py-2.5 px-6 rounded-xl bg-accent hover:bg-accent-ink text-white font-bold text-[13px] shadow-btn disabled:opacity-40 cursor-pointer flex items-center gap-1.5 active:scale-95 transition-all"
-          >
-            <Check className="w-4 h-4" /> Conferir
+            pular esta frase
           </button>
         </div>
-
-        <button onClick={desistir} className="text-[11px] text-ink-faint hover:text-warn-ink underline cursor-pointer mx-auto">
-          pular esta frase
-        </button>
-      </div>
       </main>
     </div>
   );

@@ -1,0 +1,3 @@
+- [x] 11.1 `.selo-combo` em tokens; oito jogos trocam o gradiente da paleta pela classe
+- [x] 11.2 Memory: tinte da carta fechada em `good`
+- [x] 11.3 gate; matriz E2E

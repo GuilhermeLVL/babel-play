@@ -1,19 +1,35 @@
 import type { ItemOutcome, MinigameItem, RoundReport } from '@core';
 import { distractorsFor, scoreRound } from '@core';
-import { Medal,Scissors, Star, X, Zap } from 'lucide-react';
+import { Medal, Scissors, Star, X, Zap } from 'lucide-react';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 
 import {
-  bonusDeTempo, ehMarco, emFever, estrelasDaRodada,
-  PENALIDADE_ERRO_S, pontosDoAcerto, rotuloDaSequencia, SEQUENCIA_FEVER,
+  bonusDeTempo,
+  ehMarco,
+  emFever,
+  estrelasDaRodada,
+  PENALIDADE_ERRO_S,
+  pontosDoAcerto,
+  rotuloDaSequencia,
+  SEQUENCIA_FEVER,
 } from '../../core/minigames/blitzRegras';
 import { emitBurst } from '../../lib/effects';
 import { eventosCondicionais } from '../../lib/eventosDeJogo';
 import { playJuicedError, playJuicedHit, playJuicedVictory, triggerHaptic } from '../../lib/gameFeel';
-import { executarEfeito,flashDeTela, multiplicador, pontosDoElemento, pontosFlutuantes, pulsoDeZoom, tremor, tremorDeTela, vibrar } from '../../lib/juice';
+import {
+  executarEfeito,
+  flashDeTela,
+  multiplicador,
+  pontosDoElemento,
+  pontosFlutuantes,
+  pulsoDeZoom,
+  tremor,
+  tremorDeTela,
+  vibrar,
+} from '../../lib/juice';
 import { direcaoDoTexto } from '../../lib/languages';
 import type { AgeProfileType } from '../../lib/profile';
-import { apelidoValido,enviarParaRanking, lerApelido, salvarApelido } from '../../lib/ranking';
+import { apelidoValido, enviarParaRanking, lerApelido, salvarApelido } from '../../lib/ranking';
 import { play } from '../../lib/soundFx';
 import { speak } from '../../lib/tts';
 
@@ -54,7 +70,8 @@ const CHAVE_RECORDE = 'babel.blitz.recorde';
 /** Rajadas nas BORDAS da tela (marcos e fever): a festa cerca o jogo em vez de cobri-lo. */
 function explodirBordas(quantas: number, kind: 'levelUp' | 'combo' | 'confete'): void {
   if (typeof window === 'undefined') return;
-  const w = window.innerWidth, h = window.innerHeight;
+  const w = window.innerWidth,
+    h = window.innerHeight;
   for (let i = 0; i < quantas; i++) {
     const lado = i % 4;
     const t = Math.random();
@@ -80,36 +97,65 @@ function usePlacarRolando(alvo: number, dur = 420): number {
       if (t < 1) requestAnimationFrame(passo);
     };
     requestAnimationFrame(passo);
-    return () => { vivo = false; };
+    return () => {
+      vivo = false;
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [alvo]);
   return mostrado;
 }
 
 function lerRecorde(): number {
-  try { return Number(localStorage.getItem(CHAVE_RECORDE)) || 0; } catch { return 0; }
+  try {
+    return Number(localStorage.getItem(CHAVE_RECORDE)) || 0;
+  } catch {
+    return 0;
+  }
 }
 
 /** O ANEL do tempo: SVG com stroke-dashoffset — o tempo encolhe visivelmente. */
-function AnelDoTempo({ restante, duracao, apertado, fever, pulso }: {
-  restante: number; duracao: number; apertado: boolean; fever: boolean; pulso: number;
+function AnelDoTempo({
+  restante,
+  duracao,
+  apertado,
+  fever,
+  pulso,
+}: {
+  restante: number;
+  duracao: number;
+  apertado: boolean;
+  fever: boolean;
+  pulso: number;
 }) {
   const R = 20;
   const C = 2 * Math.PI * R;
   const frac = Math.max(0, Math.min(1, restante / duracao));
   return (
-    <span key={'anel' + pulso} className={`relative inline-flex items-center justify-center ${pulso > 0 ? 'blitz-selo' : ''}`} aria-label={`${restante} segundos restantes`}>
+    <span
+      key={'anel' + pulso}
+      className={`relative inline-flex items-center justify-center ${pulso > 0 ? 'blitz-selo' : ''}`}
+      aria-label={`${restante} segundos restantes`}
+    >
       <svg width="52" height="52" viewBox="0 0 52 52" className="-rotate-90">
         <circle cx="26" cy="26" r={R} fill="none" stroke="var(--border-subtle)" strokeWidth="5" />
         <circle
-          cx="26" cy="26" r={R} fill="none"
+          cx="26"
+          cy="26"
+          r={R}
+          fill="none"
           stroke={apertado ? 'var(--error)' : fever ? 'var(--warn)' : 'var(--accent)'}
-          strokeWidth="5" strokeLinecap="round"
-          strokeDasharray={C} strokeDashoffset={C * (1 - frac)}
+          strokeWidth="5"
+          strokeLinecap="round"
+          strokeDasharray={C}
+          strokeDashoffset={C * (1 - frac)}
           style={{ transition: 'stroke-dashoffset 1s linear, stroke 0.3s' }}
         />
       </svg>
-      <span className={`absolute font-mono font-black text-[15px] tabular-nums ${apertado ? 'text-error-ink' : 'text-ink'}`}>{restante}</span>
+      <span
+        className={`absolute font-mono font-black text-[15px] tabular-nums ${apertado ? 'text-error-ink' : 'text-ink'}`}
+      >
+        {restante}
+      </span>
     </span>
   );
 }
@@ -133,7 +179,10 @@ export default function BlitzGame({ items, ageProfile, onFinish, onExit }: Blitz
   const [apelido, setApelido] = useState(lerApelido());
   const [envio, setEnvio] = useState<'parado' | 'enviando' | 'ok' | 'indisponivel' | 'recusado'>('parado');
   const [resultado, setResultado] = useState<{
-    report: RoundReport; estrelas: 0 | 1 | 2 | 3; recorde: boolean; melhorSeq: number;
+    report: RoundReport;
+    estrelas: 0 | 1 | 2 | 3;
+    recorde: boolean;
+    melhorSeq: number;
   } | null>(null);
   /**
    * A RODADA ACABOU — tela congelada. `jaFinalizouRef` é a guarda síncrona (o clique não espera
@@ -186,19 +235,29 @@ export default function BlitzGame({ items, ageProfile, onFinish, onExit }: Blitz
     // pessoa viu subir a rodada inteira.
     const anterior = lerRecorde();
     const recorde = pontosRef.current > anterior && pontosRef.current > 0;
-    if (recorde) { try { localStorage.setItem(CHAVE_RECORDE, String(pontosRef.current)); } catch { /* sem storage */ } }
+    if (recorde) {
+      try {
+        localStorage.setItem(CHAVE_RECORDE, String(pontosRef.current));
+      } catch {
+        /* sem storage */
+      }
+    }
     setResultado({ report, estrelas, recorde, melhorSeq: melhorSeqRef.current });
     // Fanfarra: um arpejo por estrela, subindo; recorde ganha a festa grande.
     for (let i = 0; i < estrelas; i++) setTimeout(() => play('fanfarra', { transpose: i * 4 }), 200 + i * 380);
     if (recorde) {
       playJuicedVictory();
-      setTimeout(() => {
-        flashDeTela();
-        pulsoDeZoom();
-        vibrar([40, 60, 40]);
-        for (const ev of eventosCondicionais({ combo: 0, fever: false, recorde: true })) executarEfeito(ev);
-        play('levelUp'); explodirBordas(10, 'confete');
-      }, 200 + estrelas * 380);
+      setTimeout(
+        () => {
+          flashDeTela();
+          pulsoDeZoom();
+          vibrar([40, 60, 40]);
+          for (const ev of eventosCondicionais({ combo: 0, fever: false, recorde: true })) executarEfeito(ev);
+          play('levelUp');
+          explodirBordas(10, 'confete');
+        },
+        200 + estrelas * 380,
+      );
     } else if (estrelas >= 2) {
       playJuicedVictory();
     }
@@ -207,9 +266,12 @@ export default function BlitzGame({ items, ageProfile, onFinish, onExit }: Blitz
   // O relógio. Zerou, acabou — mesmo com itens restantes. Nos últimos segundos, um toque por segundo.
   useEffect(() => {
     if (jaFinalizouRef.current) return;
-    if (restante <= 0) { finalizar(); return; }
+    if (restante <= 0) {
+      finalizar();
+      return;
+    }
     if (restante <= CONTAGEM_FINAL_S) play('tick');
-    const t = setTimeout(() => setRestante(s => s - 1), 1000);
+    const t = setTimeout(() => setRestante((s) => s - 1), 1000);
     return () => clearTimeout(t);
   }, [restante]);
 
@@ -241,7 +303,10 @@ export default function BlitzGame({ items, ageProfile, onFinish, onExit }: Blitz
       const ganho = pontosDoAcerto(ms, mult, nova, comDica);
       setSequencia(nova);
       melhorSeqRef.current = Math.max(melhorSeqRef.current, nova);
-      setPontos(p => { pontosRef.current = p + ganho.total; return p + ganho.total; });
+      setPontos((p) => {
+        pontosRef.current = p + ganho.total;
+        return p + ganho.total;
+      });
 
       // 1. O acerto sensorial completo: áudio escalonado por semitom, haptics e número flutuante
       const texto = '+' + ganho.total + (mult > 1 && !comDica ? ' ×' + mult : '') + (ganho.fever ? ' FEVER' : '');
@@ -253,13 +318,16 @@ export default function BlitzGame({ items, ageProfile, onFinish, onExit }: Blitz
       // 2. Velocidade: um segundo número, defasado, para não colidir com o primeiro.
       if (ganho.velocidade > 0 && el) {
         const r = el.getBoundingClientRect();
-        setTimeout(() => pontosFlutuantes('⚡ rápido +' + ganho.velocidade, r.left + r.width * 0.75, r.top, 'bom'), 140);
+        setTimeout(
+          () => pontosFlutuantes('⚡ rápido +' + ganho.velocidade, r.left + r.width * 0.75, r.top, 'bom'),
+          140,
+        );
       }
       // 3. Tempo de volta: o anel "engole" um pulso e o relógio ganha um "+2s". Só sem dica.
       const segundos = comDica ? 0 : bonusDeTempo(ms);
       if (segundos > 0) {
-        setRestante(s => Math.min(duracao, s + segundos));
-        setAnelPulso(n => n + 1);
+        setRestante((s) => Math.min(duracao, s + segundos));
+        setAnelPulso((n) => n + 1);
         play('timeBonus');
         setTimeout(() => pontosDoElemento('+' + segundos + 's', relogioRef.current, 'bom'), 80);
       }
@@ -272,7 +340,7 @@ export default function BlitzGame({ items, ageProfile, onFinish, onExit }: Blitz
         pulsoDeZoom();
         triggerHaptic('combo');
         tremor(palcoRef.current, 6);
-        setOndas(o => [...o, nova]);
+        setOndas((o) => [...o, nova]);
         setMarco({ id: nova, texto: 'FEVER ×2' });
       } else if (ehMarco(nova) && !comDica) {
         play('levelUp');
@@ -280,33 +348,39 @@ export default function BlitzGame({ items, ageProfile, onFinish, onExit }: Blitz
         tremorDeTela(4);
         triggerHaptic('combo');
         tremor(palcoRef.current, 4);
-        setOndas(o => [...o, nova]);
+        setOndas((o) => [...o, nova]);
         setMarco({ id: nova, texto: nova + ' seguidas!' });
       }
     } else {
       setSequencia(0);
-      setErroPulso(n => n + 1);
-      setRestante(s => Math.max(0, s - PENALIDADE_ERRO_S));
+      setErroPulso((n) => n + 1);
+      setRestante((s) => Math.max(0, s - PENALIDADE_ERRO_S));
       playJuicedError(palcoRef.current, coords, '−' + PENALIDADE_ERRO_S + 's');
     }
-    setTimeout(() => {
-      /* No último item nada é limpo — a tela fica no estado revelado e congelada; só há reset
+    setTimeout(
+      () => {
+        /* No último item nada é limpo — a tela fica no estado revelado e congelada; só há reset
          quando existe um item seguinte para receber a tela limpa (correção antiga, mantida). */
-      if (indice + 1 >= items.length) { finalizar(); return; }
-      setEscolhido(null);
-      setCortadas([]);
-      inicioItemRef.current = Date.now();
-      setIndice(i => i + 1);
-    }, certo ? 420 : 650);
+        if (indice + 1 >= items.length) {
+          finalizar();
+          return;
+        }
+        setEscolhido(null);
+        setCortadas([]);
+        inicioItemRef.current = Date.now();
+        setIndice((i) => i + 1);
+      },
+      certo ? 420 : 650,
+    );
   };
 
   /** DICA "cortar duas": remove duas alternativas erradas do item atual. Custa nota 2. */
   const cortarDuas = (el: HTMLElement | null) => {
     if (!item || escolhido || cortesRestantes <= 0 || cortadas.length) return;
     if (jaFinalizouRef.current) return; // gastar uma dica numa rodada encerrada não faz nada
-    const erradas = alternativas.filter(a => a !== item.answer);
+    const erradas = alternativas.filter((a) => a !== item.answer);
     setCortadas(erradas.slice(0, 2));
-    setCortesRestantes(n => n - 1);
+    setCortesRestantes((n) => n - 1);
     setSequencia(0); // a sequência é mérito; com ajuda ela recomeça
     pontosDoElemento('sobraram 2', el, 'neutro');
   };
@@ -335,8 +409,11 @@ export default function BlitzGame({ items, ageProfile, onFinish, onExit }: Blitz
       <div className="flex-1 flex flex-col items-center justify-center p-6 animate-in fade-in zoom-in-95 duration-300">
         <div className="card-panel bg-surface p-8 w-full max-w-md text-center relative overflow-hidden">
           <p className="label-mono mb-3">Fim da rodada</p>
-          <div className="flex items-center justify-center gap-2 mb-4" aria-label={`${resultado.estrelas} de 3 estrelas`}>
-            {[0, 1, 2].map(i => (
+          <div
+            className="flex items-center justify-center gap-2 mb-4"
+            aria-label={`${resultado.estrelas} de 3 estrelas`}
+          >
+            {[0, 1, 2].map((i) => (
               <Star
                 key={i}
                 className={`w-12 h-12 blitz-estrela ${i < resultado.estrelas ? 'text-warn fill-warn' : 'text-border-subtle'}`}
@@ -345,7 +422,9 @@ export default function BlitzGame({ items, ageProfile, onFinish, onExit }: Blitz
               />
             ))}
           </div>
-          <p className={`font-display font-black text-5xl tabular-nums ${resultado.recorde ? 'text-warn-ink blitz-recorde' : 'text-ink'}`}>
+          <p
+            className={`font-display font-black text-5xl tabular-nums ${resultado.recorde ? 'text-warn-ink blitz-recorde' : 'text-ink'}`}
+          >
             {placar}
           </p>
           <p className="text-[12px] text-ink-muted mt-1">pontos</p>
@@ -357,17 +436,29 @@ export default function BlitzGame({ items, ageProfile, onFinish, onExit }: Blitz
             lerRecorde() > 0 && <p className="text-[12px] text-ink-faint mt-3">recorde pessoal: {lerRecorde()}</p>
           )}
           <div className="flex items-center justify-center gap-5 mt-4 text-[13px] text-ink-muted">
-            <span className="flex items-center gap-1"><Zap className="w-4 h-4 text-warn" aria-hidden /> melhor combo: <b className="text-ink">{resultado.melhorSeq}</b></span>
-            <span>acertos: <b className="text-ink">{resultado.report.items.filter(o => o.correct).length}/{resultado.report.items.length}</b></span>
+            <span className="flex items-center gap-1">
+              <Zap className="w-4 h-4 text-warn" aria-hidden /> melhor combo:{' '}
+              <b className="text-ink">{resultado.melhorSeq}</b>
+            </span>
+            <span>
+              acertos:{' '}
+              <b className="text-ink">
+                {resultado.report.items.filter((o) => o.correct).length}/{resultado.report.items.length}
+              </b>
+            </span>
           </div>
           {/* Ranking global: opt-in, com apelido — só pontos e combo saem daqui. */}
           {pontosRef.current > 0 && (
             <div className="mt-6 pt-5 border-t border-border-subtle text-start">
               <p className="text-[11px] font-bold uppercase tracking-wider text-ink-faint mb-2">Ranking global</p>
               {envio === 'ok' ? (
-                <p className="text-[13px] font-bold text-good-ink">Pontuação enviada! Veja a tabela em "Recordes e ranking".</p>
+                <p className="text-[13px] font-bold text-good-ink">
+                  Pontuação enviada! Veja a tabela em "Recordes e ranking".
+                </p>
               ) : envio === 'indisponivel' ? (
-                <p className="text-[12.5px] text-ink-muted">Não deu para enviar agora. A pontuação fica guardada aqui; tente de novo depois.</p>
+                <p className="text-[12.5px] text-ink-muted">
+                  Não deu para enviar agora. A pontuação fica guardada aqui; tente de novo depois.
+                </p>
               ) : (
                 <div className="flex items-center gap-2">
                   <input
@@ -380,7 +471,10 @@ export default function BlitzGame({ items, ageProfile, onFinish, onExit }: Blitz
                   />
                   <button
                     onClick={async () => {
-                      if (!apelidoValido(apelido)) { setEnvio('recusado'); return; }
+                      if (!apelidoValido(apelido)) {
+                        setEnvio('recusado');
+                        return;
+                      }
                       salvarApelido(apelido);
                       setEnvio('enviando');
                       setEnvio(await enviarParaRanking('blitz', pontosRef.current, melhorSeqRef.current));
@@ -392,7 +486,11 @@ export default function BlitzGame({ items, ageProfile, onFinish, onExit }: Blitz
                   </button>
                 </div>
               )}
-              {envio === 'recusado' && <p className="text-[11.5px] text-error-ink mt-1.5">Apelido inválido ou envio recusado — use 3 a 20 letras/números.</p>}
+              {envio === 'recusado' && (
+                <p className="text-[11.5px] text-error-ink mt-1.5">
+                  Apelido inválido ou envio recusado — use 3 a 20 letras/números.
+                </p>
+              )}
             </div>
           )}
           <button
@@ -426,10 +524,16 @@ export default function BlitzGame({ items, ageProfile, onFinish, onExit }: Blitz
           </button>
           <div>
             <div className="flex items-center gap-2">
-              <span className="font-display font-black text-lg tracking-wide uppercase text-accent">Duelo Relâmpago</span>
-              <span className="text-xs px-2 py-0.5 rounded-full bg-accent-soft text-accent-ink font-semibold">Arcade Blitz ⚡</span>
+              <span className="font-display font-black text-lg tracking-wide uppercase text-accent">
+                Duelo Relâmpago
+              </span>
+              <span className="text-xs px-2 py-0.5 rounded-full bg-accent-soft text-accent-ink font-semibold">
+                Arcade Blitz ⚡
+              </span>
             </div>
-            <p className="text-xs text-ink-muted">Responda o máximo de palavras antes que o cronômetro chegue ao fim!</p>
+            <p className="text-xs text-ink-muted">
+              Responda o máximo de palavras antes que o cronômetro chegue ao fim!
+            </p>
           </div>
         </div>
 
@@ -447,7 +551,7 @@ export default function BlitzGame({ items, ageProfile, onFinish, onExit }: Blitz
           </button>
 
           {fever && (
-            <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-gradient-to-r from-orange-500 to-amber-500 text-white font-black text-xs shadow-md animate-bounce">
+            <div className="selo-combo animate-bounce">
               <Zap className="w-4 h-4 fill-current" />
               <span>FEVER ×2</span>
             </div>
@@ -464,7 +568,10 @@ export default function BlitzGame({ items, ageProfile, onFinish, onExit }: Blitz
             <span className="font-mono font-bold text-base">{placar} pts</span>
           </div>
 
-          <span ref={relogioRef} className="flex items-center gap-2 px-3 py-1.5 rounded-xl border border-border-subtle bg-surface">
+          <span
+            ref={relogioRef}
+            className="flex items-center gap-2 px-3 py-1.5 rounded-xl border border-border-subtle bg-surface"
+          >
             <AnelDoTempo restante={restante} duracao={duracao} apertado={apertado} fever={fever} pulso={anelPulso} />
             <span className={`font-mono font-black text-base ${apertado ? 'text-error animate-pulse' : 'text-ink'}`}>
               {restante}s
@@ -474,89 +581,98 @@ export default function BlitzGame({ items, ageProfile, onFinish, onExit }: Blitz
       </header>
 
       <main className="flex-1 flex flex-col p-4 lg:p-8 relative min-h-0 overflow-y-auto">
-      <div
-        ref={palcoRef}
-        key={'e' + erroPulso}
-        className={`flex-1 flex flex-col items-center justify-center gap-7 max-w-xl mx-auto w-full relative min-h-0 py-2 ${
-          fever ? 'blitz-fever' : ''
-        } ${erroPulso > 0 ? 'blitz-erro' : ''}`}
-      >
-        {/* Ondas de choque dos marcos. */}
-        {ondas.map(o => <span key={o} className="blitz-onda" aria-hidden />)}
+        <div
+          ref={palcoRef}
+          key={'e' + erroPulso}
+          className={`flex-1 flex flex-col items-center justify-center gap-7 max-w-xl mx-auto w-full relative min-h-0 py-2 ${
+            fever ? 'blitz-fever' : ''
+          } ${erroPulso > 0 ? 'blitz-erro' : ''}`}
+        >
+          {/* Ondas de choque dos marcos. */}
+          {ondas.map((o) => (
+            <span key={o} className="blitz-onda" aria-hidden />
+          ))}
 
-        {/* Cartaz do marco: nasce no centro, cresce e some. Não recebe clique. */}
-        {marco && (
-          <div
-            key={marco.id}
-            aria-hidden
-            className="pointer-events-none absolute left-1/2 top-1/2 z-10 font-display font-black text-4xl sm:text-5xl text-warn-ink drop-shadow-lg whitespace-nowrap blitz-marco"
-          >
-            {marco.texto}
-          </div>
-        )}
-
-        {/* O SELO do combo: grande, acima da pergunta, pop a cada acerto. */}
-        <div className="h-12 flex items-end justify-center" aria-hidden={sequencia < 2}>
-          {sequencia >= 2 && (
-            <span key={'selo' + sequencia} className={`blitz-selo flex items-baseline gap-1.5 select-none ${fever ? 'text-warn-ink' : sequencia >= 5 ? 'text-warn-ink' : 'text-accent-ink'}`}>
-              <Zap className="w-6 h-6 self-center" aria-hidden />
-              <span className="font-display font-black text-4xl leading-none">×{multVisivel}</span>
-              {rotulo && <span className="font-black uppercase tracking-widest text-[12px] opacity-80">{rotulo}</span>}
-            </span>
+          {/* Cartaz do marco: nasce no centro, cresce e some. Não recebe clique. */}
+          {marco && (
+            <div
+              key={marco.id}
+              aria-hidden
+              className="pointer-events-none absolute left-1/2 top-1/2 z-10 font-display font-black text-4xl sm:text-5xl text-warn-ink drop-shadow-lg whitespace-nowrap blitz-marco"
+            >
+              {marco.texto}
+            </div>
           )}
-        </div>
 
-        <div className="text-center">
-          <p className="label-mono mb-2">
-            {item.clozed ? 'Complete a frase' : ageProfile === 'senior' ? 'Qual palavra significa' : 'Que palavra é'}
-          </p>
-          {/* Pista curada pode chegar com até 160 caracteres. `line-clamp-4` corta em linha
+          {/* O SELO do combo: grande, acima da pergunta, pop a cada acerto. */}
+          <div className="h-12 flex items-end justify-center" aria-hidden={sequencia < 2}>
+            {sequencia >= 2 && (
+              <span
+                key={'selo' + sequencia}
+                className={`blitz-selo flex items-baseline gap-1.5 select-none ${fever ? 'text-warn-ink' : sequencia >= 5 ? 'text-warn-ink' : 'text-accent-ink'}`}
+              >
+                <Zap className="w-6 h-6 self-center" aria-hidden />
+                <span className="font-display font-black text-4xl leading-none">×{multVisivel}</span>
+                {rotulo && (
+                  <span className="font-black uppercase tracking-widest text-[12px] opacity-80">{rotulo}</span>
+                )}
+              </span>
+            )}
+          </div>
+
+          <div className="text-center">
+            <p className="label-mono mb-2">
+              {item.clozed ? 'Complete a frase' : ageProfile === 'senior' ? 'Qual palavra significa' : 'Que palavra é'}
+            </p>
+            {/* Pista curada pode chegar com até 160 caracteres. `line-clamp-4` corta em linha
               cheia (não no meio de uma palavra); o `title` guarda o texto inteiro. Acima de
               ~80 chars a fonte desce um degrau para abrir mais linha antes do clamp cortar —
               mesma técnica condicional simples da carta de memória, sem medir DOM. */}
-          <p
-            data-tour="pergunta"
-            dir={direcaoDoTexto(item.clozed ? item.lang : '')}
-            className={`font-display font-black text-ink leading-tight line-clamp-4 ${item.prompt.length > 80 ? 'text-xl sm:text-2xl' : 'text-2xl sm:text-3xl'}`}
-            title={item.prompt}
-          >
-            {item.prompt}
-          </p>
-          <p className="text-[11px] text-ink-faint mt-2">{indice + 1} de {items.length}</p>
-        </div>
+            <p
+              data-tour="pergunta"
+              dir={direcaoDoTexto(item.clozed ? item.lang : '')}
+              className={`font-display font-black text-ink leading-tight line-clamp-4 ${item.prompt.length > 80 ? 'text-xl sm:text-2xl' : 'text-2xl sm:text-3xl'}`}
+              title={item.prompt}
+            >
+              {item.prompt}
+            </p>
+            <p className="text-[11px] text-ink-faint mt-2">
+              {indice + 1} de {items.length}
+            </p>
+          </div>
 
-        <div data-tour="alternativas" className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full">
-          {alternativas.map(alt => {
-            const escolhida = escolhido === alt;
-            const certa = alt === item.answer;
-            /* `acabou` entra junto com `escolhido`: no fim do tempo a pergunta não foi respondida
+          <div data-tour="alternativas" className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full">
+            {alternativas.map((alt) => {
+              const escolhida = escolhido === alt;
+              const certa = alt === item.answer;
+              /* `acabou` entra junto com `escolhido`: no fim do tempo a pergunta não foi respondida
                e sem isto ela continuaria clicável. */
-            const revelando = escolhido !== null || acabou;
-            const cortada = cortadas.includes(alt);
-            return (
-              <button
-                key={alt}
-                onClick={(e) => responder(alt, e.currentTarget)}
-                disabled={revelando || cortada}
-                dir={direcaoDoTexto(item.lang)}
-                className={`blitz-btn py-4 px-4 font-bold text-[16px] ${
-                  cortada
-                    ? 'bg-canvas border-border-subtle text-ink-faint line-through opacity-40'
-                    : revelando
-                      ? certa
-                        ? 'bg-good-soft border-good text-good-ink blitz-btn-certa blitz-squash'
-                        : escolhida
-                          ? 'bg-error-soft border-error text-error-ink blitz-btn-errada blitz-balanca'
-                          : 'bg-surface border-border-subtle text-ink-faint'
-                      : 'bg-surface border-border-subtle text-ink hover:border-accent cursor-pointer'
-                }`}
-              >
-                {alt}
-              </button>
-            );
-          })}
+              const revelando = escolhido !== null || acabou;
+              const cortada = cortadas.includes(alt);
+              return (
+                <button
+                  key={alt}
+                  onClick={(e) => responder(alt, e.currentTarget)}
+                  disabled={revelando || cortada}
+                  dir={direcaoDoTexto(item.lang)}
+                  className={`blitz-btn py-4 px-4 font-bold text-[16px] ${
+                    cortada
+                      ? 'bg-canvas border-border-subtle text-ink-faint line-through opacity-40'
+                      : revelando
+                        ? certa
+                          ? 'bg-good-soft border-good text-good-ink blitz-btn-certa blitz-squash'
+                          : escolhida
+                            ? 'bg-error-soft border-error text-error-ink blitz-btn-errada blitz-balanca'
+                            : 'bg-surface border-border-subtle text-ink-faint'
+                        : 'bg-surface border-border-subtle text-ink hover:border-accent cursor-pointer'
+                  }`}
+                >
+                  {alt}
+                </button>
+              );
+            })}
+          </div>
         </div>
-      </div>
       </main>
     </div>
   );

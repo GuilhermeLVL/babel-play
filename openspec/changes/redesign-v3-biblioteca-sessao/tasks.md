@@ -3,3 +3,5 @@
 - [x] 7.3 Sessão: abas pelo `Abas`; "Mais" fora do tablist; classes por mídia removidas
 - [x] 7.4 gate; evidências `07-biblioteca-sessao`; matriz E2E
 - [ ] 7.5 (rodada seguinte) painel escuro da transcrição via modo escuro do `ChatTranscript`
+- [x] 7.6 Biblioteca: capa dos cards em `surface-sunken`; Leitura sem segundo `<h1>` dentro da Sessão
+- [x] 7.7 gate; evidências `07-biblioteca-sessao` (capa); matriz E2E

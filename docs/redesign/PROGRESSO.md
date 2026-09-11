@@ -173,3 +173,12 @@ to-amber-500 text-white` (paleta do Tailwind, sem par de contraste) e um `emeral
 - Sem evidência própria: o selo só aparece no meio de uma rodada; a mudança é uma classe de CSS
   coberta pelo build e pela matriz de contraste.
 - Gate verde completo: 4126 unitários, typecheck, lint, build, integridade; matriz E2E 102/0/15.
+
+## F7 (complemento) — Biblioteca e Leitura (2026-09-11)
+
+- Capa dos cards da Biblioteca em `surface-sunken` (hover `surface-raised`); documentos mantêm o
+  tinte `rare`. A Leitura, aba da Sessão, deixa de ter um segundo `<h1>` na página (vira `<h2>`).
+- Transcrição escura adiada com motivo: os balões seguem os presets `--transcript-*`, que a spec
+  manda não migrar (tarefa 7.5 continua aberta).
+- Gate verde completo: 4126 unitários, typecheck, lint, build, integridade; matriz E2E 102/0/15;
+  evidências da Biblioteca refeitas em `evidencias/07-biblioteca-sessao/`.

@@ -886,7 +886,7 @@ export default function Library({ onChangeView, recordings, onRecordingsChange, 
                     onClick={() => onChangeView('analysis', { id: rec.id })}
                   >
                     <div
-                      className={`aspect-video relative overflow-hidden flex items-center justify-center transition-colors shrink-0 ${rec.type === 'document' ? 'bg-rare-soft/30 group-hover:bg-rare-soft/50' : 'bg-ink/5 group-hover:bg-ink/10'}`}
+                      className={`aspect-video relative overflow-hidden flex items-center justify-center transition-colors shrink-0 ${rec.type === 'document' ? 'bg-rare-soft/30 group-hover:bg-rare-soft/50' : 'bg-surface-sunken group-hover:bg-surface-raised'}`}
                     >
                       {rec.imageUrl ? (
                         <img src={rec.imageUrl} className="w-full h-full object-cover" alt={rec.title} />

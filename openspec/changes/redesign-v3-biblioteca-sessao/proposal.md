@@ -17,3 +17,12 @@ mão como botões `aria-pressed` (ux-v2 §1.13), fora do primitivo `Abas`.
 
 O painel escuro da transcrição (protótipo) fica para a rodada seguinte: exige um modo escuro no
 `ChatTranscript` (9 usos de `text-ink`). Leitura, filtros e cards da Biblioteca não mudam.
+
+## Complemento (mesma rodada)
+
+- Capa dos cards da Biblioteca em `surface-sunken` (hover `surface-raised`), como a capa listrada
+  do protótipo; documentos continuam com o tinte `rare`.
+- A Leitura é uma aba da Sessão e tinha o seu próprio `<h1>`: passa a `<h2>` com o mesmo texto.
+- A transcrição escura fica adiada de propósito: os balões do `ChatTranscript` recebem cor dos
+  presets `--transcript-*`, que a spec manda não migrar; um modo escuro do componente precisa
+  de decisão própria sobre esses presets.

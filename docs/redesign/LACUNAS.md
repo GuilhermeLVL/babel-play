@@ -110,8 +110,23 @@ componente.
 
 Travado por `tests/erroNaoEhVazio.test.tsx` (9 casos).
 
-**Falta ainda:** `Metrics.tsx:191` e `:198`, `Reading.tsx:181` e `Settings.tsx:153` têm o mesmo
-padrão e ainda não foram convertidos.
+**`Metrics.tsx` também feito**, e ali doía mais: os `SemDado` desta tela afirmam a CAUSA
+("Seu deck ainda está vazio, sem cartões", "Nenhuma fala capturada ainda"). Uma falha de fetch não
+virava só um painel em branco — virava uma **frase errada sobre o acervo do usuário**. Tanto o deck
+quanto as falas passaram a ter estado de erro com porta de saída.
+
+**`Settings.tsx:153` NÃO precisa de conserto.** Ele faz `.catch(() => setMetrics(null))`, e `null`
+ali já é honesto: `wpmMeasured` vira `null` e a tela mostra "—". O próprio comentário da linha
+seguinte diz isso ("ppm medido honesto: só existe com fala capturada; senão mostramos '—'").
+Mexer seria trocar uma resposta certa por outra.
+
+**Falta `Reading.tsx:181`**, e é um caso diferente dos anteriores — por isso ficou de fora em vez
+de ser resolvido às pressas. Lá o deck não alimenta um estado vazio visível: alimenta buscas
+(`Reading.tsx:219`, `:276`, `:307`, `:2249`) do tipo "esta palavra já está no meu deck?". Com o
+fetch falhando, a resposta vira "não está" para palavras que **estão** — e a tela oferece
+"Adicionar ao deck" para algo que o usuário já tem. Não é um rótulo errado num painel; é uma
+afirmação errada sobre cada palavra do texto, com uma ação destrutiva pendurada nela. Merece a sua
+própria change, com decisão sobre o que fazer com a afordância enquanto o deck é desconhecido.
 
 ### P0-5 [-] Nenhuma acessibilidade automatizada
 

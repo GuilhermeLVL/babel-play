@@ -3,7 +3,7 @@ import {
 Activity, AlertCircle,
 ArrowUpRight, BarChart2,   BookOpen, Brain, Clock,   Download, Eye, Headphones,LayoutGrid, MessageSquareWarning, Mic, MoreHorizontal, PieChart as PieChartIcon,
   Sprout, Target} from 'lucide-react';
-import React, { useEffect,useMemo, useState } from 'react';
+import React, { useCallback, useEffect,useMemo, useState } from 'react';
 import {
 Cell,
 Pie,   PieChart,   ResponsiveContainer, Tooltip} from 'recharts';
@@ -21,7 +21,7 @@ import { Recording, VocabCard, VocabWord } from '../../types';
 import EditablePanel from '../EditablePanel';
 import { Confianca, ehBaixaConfianca,SemDado } from '../Honestidade';
 import EvolucaoSemanal from '../metrics/EvolucaoSemanal';
-import { Abas, Barra, PainelDeAba } from '../ui';
+import { Abas, Barra, Erro, PainelDeAba } from '../ui';
 import VocabularyPanel from '../VocabularyPanel';
 import MetricsExpandedKpi, { KpiType } from './MetricsExpandedKpi';
 import CatalogoDePalavras from './vocab/CatalogoDePalavras';
@@ -186,17 +186,30 @@ export default function Metrics({ recordings, onChangeView, ageProfile = 'pro', 
 
   // --- ANALISTA DE VOCABULÁRIO (painel compartilhado) ---
   // Fonte REAL da lista de vocábulos desta tela: o deck do backend (mesmo do Estudo/FSRS).
+  /* REDE CAÍDA NÃO É DECK VAZIO — mesmo conserto de `Study.tsx`, e aqui doía mais: os `SemDado`
+     desta tela afirmam a CAUSA ("Seu deck ainda está vazio, sem cartões"), então uma falha de
+     fetch não virava só um painel em branco, virava uma frase errada sobre o acervo do usuário. */
   const [vocabCards, setVocabCards] = useState<VocabCard[]>([]);
-  useEffect(() => {
-    fetchDeck().then(setVocabCards).catch(() => setVocabCards([]));
+  const [erroDoDeck, setErroDoDeck] = useState<string | null>(null);
+  const carregarDeck = useCallback(() => {
+    setErroDoDeck(null);
+    fetchDeck()
+      .then((cartoes) => { setVocabCards(cartoes); setErroDoDeck(null); })
+      .catch((e: unknown) => setErroDoDeck(String((e as Error)?.message ?? e)));
   }, []);
+  useEffect(() => { carregarDeck(); }, [carregarDeck]);
 
   // Falas REAIS de todas as sessões — fonte do painel "Complexidade Estrutural & Tom" (abaixo).
   // Mesmo endpoint que a Auditoria de Idioma já usa (`fetchAllUtterances`, uma chamada só).
   const [allUtterances, setAllUtterances] = useState<UtteranceRow[]>([]);
-  useEffect(() => {
-    fetchAllUtterances().then(setAllUtterances).catch(() => setAllUtterances([]));
+  const [erroDasFalas, setErroDasFalas] = useState<string | null>(null);
+  const carregarFalas = useCallback(() => {
+    setErroDasFalas(null);
+    fetchAllUtterances()
+      .then((falas) => { setAllUtterances(falas); setErroDasFalas(null); })
+      .catch((e: unknown) => setErroDasFalas(String((e as Error)?.message ?? e)));
   }, []);
+  useEffect(() => { carregarFalas(); }, [carregarFalas]);
 
   // --- ANALISTA DE VOCABULÁRIO ---
   // C12 — mesma rotina da tela de Revisão, agora em `lib/useExameDePalavra`.
@@ -633,6 +646,16 @@ export default function Metrics({ recordings, onChangeView, ageProfile = 'pro', 
                   </>
                 ) : (
                   <div className="flex-1 min-h-0 flex items-center justify-center">
+                    {erroDoDeck ? (
+                      /* Sem isto, a falha de fetch cairia no ramo `totalDeck === 0` e a tela
+                         AFIRMARIA "Seu deck ainda está vazio" — uma frase errada sobre o acervo
+                         do usuário, não apenas um painel em branco. */
+                      <Erro
+                        titulo="Não consegui carregar seu vocabulário."
+                        detalhe={erroDoDeck}
+                        aoTentarDeNovo={carregarDeck}
+                      />
+                    ) : (
                     <SemDado
                       compacto
                       motivo={lowRetentionAnalysis.totalDeck === 0
@@ -643,6 +666,7 @@ export default function Metrics({ recordings, onChangeView, ageProfile = 'pro', 
                               : ''
                           }. Revise alguns cartões no Estudo para começar a ver este ranqueamento.`}
                     />
+                    )}
                   </div>
                 )}
               </div>
@@ -908,9 +932,17 @@ export default function Metrics({ recordings, onChangeView, ageProfile = 'pro', 
                 ) : (
                   // Era uma template string com o ternario DENTRO das crases — o usuario lia
                   // codigo-fonte na tela (visto em 31/08).
+                  erroDasFalas ? (
+                    <Erro
+                      titulo="Não consegui carregar as falas das suas sessões."
+                      detalhe={erroDasFalas}
+                      aoTentarDeNovo={carregarFalas}
+                    />
+                  ) : (
                   <SemDado compacto motivo={corpusDoAlvo.totalFalas === 0
                       ? 'Nenhuma fala capturada ainda, grave ou importe uma sessão para medir complexidade.'
                       : `Nenhuma das falas capturadas está em ${nomeDoIdiomaEstudado}, que é o idioma que você estuda.`} />
+                  )
                 )}
               </div>
 

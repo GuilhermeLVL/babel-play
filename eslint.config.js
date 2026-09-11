@@ -146,4 +146,11 @@ export default tseslint.config(
       globals: { document: 'readonly', getComputedStyle: 'readonly', CSS: 'readonly', window: 'readonly' },
     },
   },
+  {
+    // Evidências do redesign: o corpo passado a `context.addInitScript()` roda DENTRO do navegador,
+    // onde `localStorage` é global legítimo — é assim que o modo escuro e a fila de recompensas são
+    // forçados antes de a página carregar (mesma técnica de `tests/e2e/acessibilidade.e2e.ts`).
+    files: ['scripts/redesign/evidencias.mjs'],
+    languageOptions: { globals: { localStorage: 'readonly' } },
+  },
 )

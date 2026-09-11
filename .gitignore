@@ -96,4 +96,7 @@ vitest-resultado.json
 
 # Fixture anonimizada do banco (gerada por scripts/db/fixture-anonimizada.mjs); e a unica excecao ao *.db
 !tests/fixtures/banco-estado-atual.db
-data/gate-e2e.db*
+data/e2e-descartavel.db*
+
+# banco descartavel do scripts/redesign/evidencias.mjs
+data/evidencias-descartavel.db*

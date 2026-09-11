@@ -62,8 +62,10 @@ etapa "4. Build de produção"         npm run build
 # ser a simples — ZERO falhas.
 e2e() {
   local saida="${TMPDIR:-/tmp}/gate-e2e.txt"
-  rm -f data/gate-e2e.db data/gate-e2e.db-wal data/gate-e2e.db-shm
-  PORT=3300 BASE_URL=http://localhost:3300 DATABASE_URL=file:./data/gate-e2e.db     npm run test:e2e > "$saida" 2>&1
+  # A protecao vive no `playwright.config.ts`: `webServer.command` chama
+  # `scripts/e2e/preparar-banco.mjs`, que apaga o descartavel e RECUSA subir contra data/babel.db.
+  # Vale para `npx playwright test` digitado a mao tambem — por isso nao ha nada a fazer aqui.
+  npm run test:e2e > "$saida" 2>&1
   local codigo=$? ok falhas
   ok=$(grep -cE "^  ok" "$saida" || true)
   falhas=$(grep -cE "^  x " "$saida" || true)

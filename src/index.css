@@ -1630,6 +1630,34 @@ body.animations-off .hover\:-translate-y-1:hover {
 .animations-off .sobre-blob, .animations-off .sobre-anel::before,
 .performance-mode .sobre-blob, .performance-mode .sobre-anel::before { animation: none; }
 
+/* NENHUMA CAMADA DECORATIVA ATRAS DE TEXTO OU CONTROLE — decisao do dono (D-011, 2026-09-11).
+ *
+ * Os blobs do heroi de `/sobre` sao `aria-hidden`, mas cor por baixo de texto nao e invisivel para
+ * quem le: eles derivam (`sobre-flutua`, 18-26s) e, ao passarem atras do botao `bg-accent`, comiam
+ * a margem de 0,04 do par `accent-contrast x accent` (4,54:1). O axe reprovava — e reprovava um
+ * elemento DIFERENTE a cada corrida, porque a animacao estava em outra fase.
+ *
+ * A mascara recorta o MIOLO da camada decorativa: onde o conteudo mora, decoracao nao existe;
+ * nas bordas, o brilho continua. Resolve sem tocar em `--accent-contrast`, que mudaria a aparencia
+ * de todo botao primario nos 8 temas.
+ *
+ * A regra vale para qualquer tela daqui em diante, nao so para esta — esta registrada em
+ * `docs/redesign/LACUNAS.md` (P0-16). */
+.sobre-decor {
+  -webkit-mask-image: radial-gradient(115% 95% at 50% 50%, transparent 0 58%, #000 80%);
+  mask-image: radial-gradient(115% 95% at 50% 50%, transparent 0 58%, #000 80%);
+}
+
+/* A PREFERENCIA DO SISTEMA PAUSA A DERIVA. A guarda global de `index.css:1451` so age quando o
+ * usuario NAO ligou animacoes no app; esta e incondicional para movimento puramente decorativo,
+ * que e o caso em que `prefers-reduced-motion` menos admite excecao. */
+@media (prefers-reduced-motion: reduce) {
+  .sobre-blob,
+  .sobre-anel::before {
+    animation: none !important;
+  }
+}
+
 /* ─────────────── FONTE "ARCADE (PIXEL)" ───────────────
    `data-fonte` no <html> (lib/theme.ts). DECISAO 2026-08-27 (2a rodada de legibilidade): a fonte
    pixel vale SO para titulos/display e para a marca — o corpo do texto fica na familia normal.

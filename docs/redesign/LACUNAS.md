@@ -63,6 +63,7 @@ Sem `preconnect`, num request único, bloqueando o render.
 
 **FEITO.** As 13 famílias restantes passaram a vir de `@fontsource`, resolvidas pelo Vite e
 servidas do próprio domínio. Duas propriedades preservadas de propósito:
+
 - **subsets completos** (latin, latin-ext, cyrillic, devanagari, vietnamese), como o Google servia.
   Cada `@font-face` traz o seu `unicode-range`, então o navegador continua baixando só o subset da
   página. Cortar para latin-only teria quebrado russo e hindi no vocabulário.
@@ -236,13 +237,27 @@ o axe reprova o botão em `desktop-1280`.
 É a única falha que sobrou na suíte de acessibilidade (14 de 15 verdes). **Não é ruído de teste:**
 o mesmo botão, no mesmo tema, fica abaixo de 4,5:1 quando um blob passa atrás dele.
 
-Duas saídas, e as duas são decisão de produto (registrado em `DECISOES.md` D-011 como `REVISAR`):
-1. **Escurecer `--accent-contrast`** para abrir margem — mexe nos 8 temas e muda a aparência de todo
-   botão primário;
-2. **Tirar os blobs de baixo do texto** em `/sobre` — resolve este caso e deixa o par frágil de pé
-   para o próximo lugar que compuser algo atrás de um botão accent.
+**DECIDIDO PELO DONO (D-011, 2026-09-11): não se mexe em `--accent-contrast`.** Escurecer o token
+mudaria a aparência de todo botão primário nos 8 temas para resolver um caso; o que se remove é a
+camada decorativa de trás do componente.
 
-A segunda é mais barata; a primeira é a que conserta a classe do problema.
+Feito: `.sobre-decor` (`src/index.css`) recorta o miolo da camada decorativa com uma máscara radial
+— onde há conteúdo, decoração não existe; nas bordas o brilho continua. E
+`@media (prefers-reduced-motion: reduce)` pausa a deriva dos blobs e do anel, incondicionalmente:
+a guarda global de `index.css:1451` só age quando o usuário não ligou animações no app, e movimento
+puramente decorativo é o caso em que a preferência do sistema menos admite exceção.
+Resultado: 15/15 na suíte de acessibilidade.
+
+### REGRA PERMANENTE — nenhuma camada decorativa atrás de componente accent
+
+O par continua com margem de 0,04, e o risco **não foi eliminado, foi contornado**. Qualquer
+gradiente, blob, textura, sombra colorida ou imagem por trás de um elemento `bg-accent` pode
+consumir esses 0,04 e derrubar o contraste de novo — em outra tela, meses depois, com o mesmo
+sintoma confuso de "o axe reprova um elemento diferente a cada corrida".
+
+Vale para a F5 inteira: ao migrar qualquer tela, **decoração fica fora da caixa de componentes
+accent**, por posição, `z-index` ou máscara. Se um dia alguém precisar violar isso, a alternativa é
+abrir margem no token — e aí é decisão de design nos 8 temas, não exceção local.
 
 ### P0-14 [teste] O modal de recompensa saiu da varredura de axe e precisa da sua própria
 
@@ -299,23 +314,27 @@ O teste não conserta: fixa o fato para que a decisão seja deliberada.
 produto em si (`docs/design/auditoria-prototipo-v2/PROMPT.md`, item 6: "Sem isso não é o produto"),
 e o protótipo v3 o desenha em `isPalavras` (L675-755). Três saídas possíveis, e escolher é de
 produto, não de implementação:
+
 1. tornar a grade alcançável (um quarto formato, ou a grade após o exercício) — muda a UX de revisão;
 2. assumir a nota derivada e **remover** a grade como código morto — contraria o design;
 3. manter as duas, com a grade sob preferência do usuário.
-Enquanto não houver decisão, fica como está: a correção do P0-1 já garante que, no dia em que a
-grade aparecer, ela não vai mentir.
+   Enquanto não houver decisão, fica como está: a correção do P0-1 já garante que, no dia em que a
+   grade aparecer, ela não vai mentir.
 
 ### P1-1 [proto] Antessala da rodada
+
 Prévia, fases com estrelas, dificuldade, leeches, Jogar/Trocar/Repetir/Sair.
 `montarRodada` já devolve `previa: ItemDaAntessala[]` (`src/core/minigames/rodada.ts:89-93`) — **o
 dado já existe**, falta a tela. Verificar antes se `Play.tsx` já a renderiza sob outro nome.
 
 ### P1-2 [proto] Raspadinha de fim de rodada
+
 3 estrelas, canvas raspável, corrente, combo, caça ao recorde. Depende da economia, que é real
 (`server/routes/metrics.ts:113-175`). O "Trocar mantendo o combo — 40 Seeds" bate com
 `CUSTO_PULAR_RODADA = 40` (`src/core/economiaAutoridade.ts`). Coerente com a arquitetura.
 
 ### P1-3 [app] O Bingo é um jogo fora do registro
+
 `src/core/minigames/bingo.ts:1-20` + `BingoPanel.tsx` funcionam, mas o Bingo não é `MinigameId`,
 não entra em `MINIGAMES`, nem em `montarRodada`, nem no gate de elegibilidade
 (`estadoDosJogos.ts:390`), nem no ranking. Ou entra no registro, ou fica documentado como painel
@@ -326,11 +345,13 @@ de captura e não como jogo. Decisão de produto — marcar `REVISAR`.
 ## P2 — precisa de decisão ou backend
 
 ### P2-1 [app] Corrida no débito de Seeds
+
 `server/routes/metrics.ts:107-111` documenta que duas compras simultâneas podem ambas passar a
 conferência de saldo. Pré-existente, fora do escopo visual, mas registrado porque o redesign toca
 a Loja. Não corrigir de passagem sem teste.
 
 ### P2-2 [suíte] Cinco E2E que dependem de banco que o setup não cria
+
 `fsrs-revisao:27`, `seeds:25`, `sessao-de-jogo:66/104/141` — ver `PROGRESSO.md`. Falham nesta
 máquina contra o banco real do operador. A correção certa é o `_global-setup.ts` semear o mínimo
 que eles exigem, **nunca** afrouxar asserção (regra 4).

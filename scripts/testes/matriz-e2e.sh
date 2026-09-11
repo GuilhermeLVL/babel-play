@@ -27,8 +27,24 @@ LOTE5="tests/e2e/dois-dispositivos.e2e.ts"
 
 falhou=0
 
+# Quando o processo do Playwright morre, o servidor que ele subiu na porta do E2E (3301, ver
+# `playwright.config.ts`) SOBREVIVE; e com `reuseExistingServer: false` todos os lotes seguintes
+# recusam subir ("is already used"). Medido em 2026-09-11: um lote morto invalidou os outros 14.
+# Por isso cada lote comeca encerrando o que estiver preso na porta.
+PORTA_E2E="${PORT:-3301}"
+liberar_porta() {
+  if command -v netstat >/dev/null 2>&1 && command -v taskkill >/dev/null 2>&1; then
+    for pid in $(netstat -ano 2>/dev/null | grep -E ":${PORTA_E2E} " | grep LISTEN | awk '{print $5}' | sort -u); do
+      taskkill //PID "$pid" //F //T >/dev/null 2>&1 && echo "  (porta ${PORTA_E2E} liberada: pid $pid)"
+    done
+  elif command -v lsof >/dev/null 2>&1; then
+    lsof -ti tcp:"$PORTA_E2E" 2>/dev/null | xargs -r kill -9
+  fi
+}
+
 rodar() { # $1 projeto  $2 numero do lote  $3... arquivos
   proj="$1"; n="$2"; shift 2
+  liberar_porta
   saida="$S/lote-$proj-$n"
   rm -f "$saida.json" "$saida.log"
   DATABASE_URL="file:$SW/lote-$proj.db" \

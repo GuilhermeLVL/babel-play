@@ -12,16 +12,25 @@
     "scripts/**/*.mjs",
     "*.config.{ts,js}"
   ],
-  "project": [
-    "src/**/*.{ts,tsx}",
-    "server/**/*.ts",
-    "scripts/**/*.mjs"
-  ],
+  "project": ["src/**/*.{ts,tsx}", "server/**/*.ts", "scripts/**/*.mjs"],
   "ignoreDependencies": [
     "depcheck",
     "jscpd",
     "lighthouse",
-    "tailwindcss"
+    "tailwindcss",
+    "@fontsource-variable/archivo",
+    "@fontsource-variable/baloo-2",
+    "@fontsource-variable/caveat",
+    "@fontsource-variable/geist",
+    "@fontsource-variable/geist-mono",
+    "@fontsource-variable/inter",
+    "@fontsource-variable/jetbrains-mono",
+    "@fontsource-variable/merriweather",
+    "@fontsource-variable/nunito",
+    "@fontsource-variable/orbitron",
+    "@fontsource/ibm-plex-mono",
+    "@fontsource/rajdhani",
+    "@fontsource/silkscreen"
   ],
   "ignoreExportsUsedInFile": true
 }

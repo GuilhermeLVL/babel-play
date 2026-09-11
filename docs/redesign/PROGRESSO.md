@@ -1,113 +1,69 @@
-# Progresso — Redesign Design System v3
+# Progresso — Redesign v3
 
-Branch: `feat/redesign-design-system-v3` (de `main` @ `2ac979b`)
-Fonte da verdade: `docs/redesign/PROMPT-REDESIGN-BABELPLAY.md`
+Branch: `feat/redesign-v3` (de `main @ 2ac979b`) · Plano: `docs/redesign/PLANO.md` · Decisões: `DECISOES.md`
+Regra: cada fase termina com o gate verde e um relatório aqui. Pisos só sobem.
 
-## Linha de base medida em 2026-09-11 (antes de qualquer mudança)
+## Linha de base (F0, 2026-09-11)
 
-| Verificação | Comando | Resultado |
-|---|---|---|
-| Typecheck | `npm run typecheck` | **verde** (exit 0) |
-| Lint | `npm run lint` (`eslint src server server.ts tests --max-warnings 0`) | **verde** (exit 0) |
-| Testes unitários | `npm run test:unit` | **verde** — 352 arquivos, **3901 passaram**, 2 pulados |
-| Build de produção | `npm run build` | **verde** (exit 0) |
-| E2E (3 viewports) | `npm run test:e2e` | **VERMELHO** — 87 ok, **15 falhas**, 12 pulados, exit 1 |
+Medida na árvore da F0 (os oito commits herdados + stash + docs), **antes de qualquer linha de design**.
 
-### As 15 falhas do E2E são pré-existentes e vêm do banco local, não do código
+| Verificação           | Comando                                                       | Resultado                                                                                                                         |
+| --------------------- | ------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| Typecheck             | `npm run typecheck`                                           | verde                                                                                                                             |
+| Lint                  | `npm run lint` (`--max-warnings 0`)                           | verde                                                                                                                             |
+| Unitários             | `npm run test:unit`                                           | **3.931 passaram**, 2 pulados, 356 arquivos (main: 3.901 / 352)                                                                   |
+| Build                 | `npm run build`                                               | verde                                                                                                                             |
+| E2E, 3 viewports      | `bash scripts/testes/matriz-e2e.sh` + `resumir-matriz.mjs`    | **99 aprovados, 0 falhas, 15 pulados** (banco descartável)                                                                        |
+| Integridade de testes | `gate.sh` etapa 6                                             | nenhum teste removido, nenhum `.skip`/`.only` novo                                                                                |
+| Código morto          | `npm run morto:arquivos` (knip)                               | verde (13 pacotes `@fontsource*` na lista de exceções: knip não segue `@import` de CSS; `tests/fontesSemCdn.test.ts` prova o uso) |
+| Ciclos                | `npm run morto:ciclos` (madge)                                | verde, 0 ciclos                                                                                                                   |
+| i18n                  | `i18n:orfas`, `pseudo --check`, `cobertura --check`, piso 420 | verde (701 chaves, 0 órfãs, 420 chamadas)                                                                                         |
+| Regras arquiteturais  | `ast-grep test` + `scan`                                      | verde (6 regras; avisos pré-existentes)                                                                                           |
+| Evidências visuais    | `node scripts/redesign/evidencias.mjs --fase 00-base`         | `docs/redesign/evidencias/00-base/` (14 rotas × 3 viewports × claro/escuro)                                                       |
 
-A branch ainda não tem **nenhuma** mudança de código — só documentos. Logo, nada aqui é
-regressão desta rodada. São **5 testes × 3 viewports**, idênticos nos três, portanto
-determinísticos e não intermitentes:
+**Pisos desta rodada**: 3.931 unitários · 99 E2E aprovados · 0 falhas.
 
-| Teste | Causa medida |
-|---|---|
-| `fsrs-revisao.e2e.ts:27` | `a fila deveria ter os cartoes da sessao` — esperado >= 6, recebido **3** |
-| `seeds.e2e.ts:25` | `a Loja deveria listar itens com preco em Seeds` — esperado > 0, recebido **0** |
-| `sessao-de-jogo.e2e.ts:66` (Memória) | depende de baralho montado |
-| `sessao-de-jogo.e2e.ts:104` (Termo) | idem |
-| `sessao-de-jogo.e2e.ts:141` (Bao) | idem |
+### O que a F0 corrigiu de verdade (não estava no plano)
 
-**Diagnóstico:** `tests/e2e/_global-setup.ts` só grava `settings.ui.onboarded` — "nenhum baralho,
-nenhuma sessao". O próprio docblock diz que os testes que dependem de dados trazem "condicional"
-no título e tratam a ausência. **Estes cinco não trazem, e assumem dados que o setup não cria.**
-Nesta máquina eles caem no banco real do operador (11 MB), onde a fila tem 3 cartões vencidos em
-vez de 6 e a Loja não tem mais item com preço em Seeds porque o operador já os possui.
+- **As fixtures E2E escreviam no banco real.** `tests/e2e/_fixtures.ts` tinha `localhost:3100` como
+  padrão; a página ia para a 3301 (descartável) e as sementes/asserções iam para a 3100 (banco de
+  trabalho). Com o servidor de desenvolvimento aberto, 8 testes × 3 viewports reprovavam por comparar
+  dois servidores, e uma sessão + 12 cartões + `darkMode=false` foram gravados em `data/babel.db`.
+  Corrigido: `BASE` segue `PORT`/`BASE_URL` como o config e recusa a 3100. Detalhe em
+  `AUDITORIA-EXCECOES-E2E.md` (adendo). A limpeza do banco real ficou para decisão do dono
+  (backup em `data/babel.db.bak-antes-limpeza-e2e-*`).
+- **Servidor órfão na 3301** derrubava todos os lotes seguintes quando o Playwright morria;
+  `matriz-e2e.sh` libera a porta antes de cada lote. `resumir-matriz.mjs` lê os JSON por lote.
+- `knip.json`: exceção documentada para as fontes self-hosted.
 
-Não é regressão nem defeito de produção: é **fragilidade da suíte**, que depende de um formato de
-banco que ninguém garante. Fica registrada como linha de base e **não será "consertada" afrouxando
-asserção** (regra 4). Se a F6 tiver folga, a correção certa é o `_global-setup.ts` semear o
-mínimo que esses cinco exigem.
+### Achado da linha de base visual
 
-**Piso de paridade desta rodada: 87 aprovados.** A branch não pode terminar abaixo disso.
+Em `00-base/jogar__1280__claro.png` (perfil `senior`, barra no topo), os rótulos longos do perfil
+("Gravar Áudio", "Planos e preços", "Configurações") **estouram sobre o cluster de controles** a
+1280 px: "Gravar Áudio" fica cortado à esquerda e "Planos" some atrás da busca. É defeito pré-existente
+da `main`, não desta branch; a F2 (casca) precisa resolvê-lo junto com a sidebar, e a pseudo-localização
+(+40 %) só o acusa em elementos com overflow contido.
 
-Nenhuma outra falha pré-existente na `main`. Backup do SQLite antes de mexer:
-`data/babel.db.bak-antes-redesign-v3-20260911-005018`.
+### Fases
 
-**A contagem de 3901 testes unitários é o piso.** A branch não pode terminar abaixo disso.
+| Fase                                                | Estado        | Gate          | Relatório  |
+| --------------------------------------------------- | ------------- | ------------- | ---------- |
+| F0 Fundação                                         | **concluída** | verde (acima) | esta seção |
+| F1 Tokens e classes                                 | —             |               |            |
+| F2 Casca                                            | —             |               |            |
+| F3 Primitivos                                       | —             |               |            |
+| F4+F5 Início, Vocabulário, Revisar                  | —             |               |            |
+| F6 Jogar                                            | —             |               |            |
+| F7 Biblioteca, Sessão, Leitura                      | —             |               |            |
+| F8 Capturar                                         | —             |               |            |
+| F9+F10 Personalizar, Planos, Ajustes, Perfil, Sobre | —             |               |            |
+| F11 Jogos                                           | —             |               |            |
+| F12+F13 Estados, mobile, temas, fechamento          | —             |               |            |
 
-## F0 — Preparação e segurança
+### Como rodar o gate nesta máquina
 
-- [x] `git fetch`, `main` atualizada, branch `feat/redesign-design-system-v3` criada
-- [x] Worktree de baseline da `main` em `../babelplay-baseline` (`git worktree list`)
-- [x] Stack descoberta e registrada em `FERRAMENTAS.md` (Express/TS no back, Tailwind 4 no front — **não** é FastAPI)
-- [x] Protótipo v3 copiado para `docs/redesign/source/prototipo-v3.html` (caminho ASCII; o nome com acento quebra no Git Bash)
-- [x] Backup do SQLite local
-- [x] `scripts/redesign/gate.sh` escrito
-- [x] `gate.sh` rodado por etapas na branch, resultado registrado acima (typecheck/lint/unit/build verdes; E2E vermelho por estado de banco, pré-existente)
-- [ ] commit `chore(redesign): scaffolding e gates`
-
-## Achados que mudam o escopo (ver DECISOES.md)
-
-O prompt lista como "lacunas P0" uma série de coisas que **já estão feitas no app** — ele descreve
-as deficiências do *protótipo*, não as do produto. Verificado nesta sessão:
-
-| Suposto P0 do prompt | Situação real | Evidência |
-|---|---|---|
-| "Não existe design system formal" | Existe, semântico e em Tailwind 4 | `src/index.css:5-107` |
-| "Contraste reprovado, recalcule" | Travado por teste, 7 temas × claro/escuro, limiar 4,5:1 | `tests/contrastePaletas.test.ts` |
-| "Zero `@media`, frame fixo 1360×860" | E2E roda em 375/768/1280 com dock mobile própria | `playwright.config.ts:41-60` |
-| "Ícones de CDN" | `lucide-react` via npm | `package.json` |
-| "Dados de mentira" | Já há testes contra dado fabricado | `tests/semConteudoFabricado.test.ts`, `tests/contagemHonesta.test.ts` |
-| **"Fontes de CDN"** | **CONFIRMADO** — `@import` de ~10 famílias do Google Fonts | `src/index.css:1` |
-| **Acessibilidade automatizada** | **CONFIRMADO ausente** — nenhuma dep axe/a11y no projeto | `package.json` devDependencies |
-
-## Bloqueios
-
-- **[BLOQUEADO] PR draft na F7** — `gh` não está autenticado (`gh auth login` pede login
-  interativo) e o MCP do github também não está autorizado nesta sessão. O push da branch é
-  possível; abrir o PR draft não. **O operador precisa rodar `gh auth login`** ou abrir o PR à mão.
-
-## F1 — Inventário
-
-- [x] `INVENTARIO.md` escrito — 3 subagentes read-only (telas/rotas/atalhos; jogos/economia/FSRS;
-      i18n/honestidade/estilo), tudo com `arquivo:linha`
-- [ ] Revalidar `docs/design/auditoria-prototipo-v2/AUDITORIA.md` contra o código atual
-- [ ] Suíte de paridade: **estender `tests/e2e/`**, não criar `e2e/paridade/` paralela (D-002)
-- [ ] Screenshots do baseline
-
-## F6 — Lacunas funcionais (começou pelos defeitos confirmados)
-
-- [x] **P0-1 — intervalos dos botões FSRS derivados do agendador**
-      `src/core/learning/previsaoDeIntervalo.ts` (novo) + `Study.tsx:790`, `:1116/:1125/:1134/:1143`.
-      Teste: `tests/previsaoDeIntervalo.test.ts`, 13 casos.
-      Gate: typecheck/lint/build verdes; unitários **3914 passam** (era 3901, +13);
-      E2E 87 ok / 15 falhas — **conjunto de falhas idêntico ao baseline, zero regressão**.
-- [x] **P0-2 — retratado.** Não procede; ver `LACUNAS.md`. O erro foi meu na primeira leitura.
-- [x] **P0-12 — descoberto e travado por teste** (`tests/gradeDeRevisaoAlcancavel.test.ts`, 4 casos):
-      a grade de 4 botões do FSRS é inalcançável. `[REVISAR]` — decisão de produto do dono.
-- [x] **P0-3 — fontes self-hosted, sem CDN**
-      13 famílias via `@fontsource` em `src/index.css`; VT323 (import morto) removida.
-      Teste: `tests/fontesSemCdn.test.ts`, 5 casos.
-      Evidência: `dist` com 73 woff2 e zero `fonts.googleapis`/`fonts.gstatic`; app rodando sem
-      nenhuma requisição a `gstatic`.
-- [ ] P0-4 — estado de erro nas 9 telas sem ele
-- [x] **P0-5 — acessibilidade automatizada**
-      `@axe-core/playwright@4.13.0` + `tests/e2e/acessibilidade.e2e.ts`: 5 rotas × 3 viewports.
-      Achou e corrigiu uma violação real de contraste em `/planos` (accent como texto, 3,23:1).
-      15/15 verdes.
-- [ ] P0-11 — tokens derivados + regra de lint
-
-## F2–F5, F7
-
-Não iniciadas. A F2 tem a extração de tokens e o mapa de telas feitos; falta a especificação
-detalhada tela a tela. A F3 tem `LACUNAS.md` pronto; `PARIDADE.md` ainda é rascunho.
+`bash scripts/redesign/gate.sh` roda o E2E num comando só, e o processo do Playwright morre acima de
+~30 testes no Windows. Use `GATE_PULAR_E2E=1 bash scripts/redesign/gate.sh` para as etapas 1-4 e 6, e
+`bash scripts/testes/matriz-e2e.sh && node scripts/testes/resumir-matriz.mjs` para o E2E em lotes.
+Nunca com um servidor de desenvolvimento aberto na 3100 durante a corrida (as fixtures agora recusam,
+mas o custo de um engano é o banco real).

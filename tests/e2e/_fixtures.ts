@@ -11,11 +11,30 @@
  * ja esta de pe quando os testes comecam (ordem do `webServer` + `globalSetup`).
  */
 
-export const BASE = process.env.BASE_URL || 'http://localhost:3100';
+/**
+ * A MESMA PORTA DO `webServer` DO PLAYWRIGHT, SEMPRE.
+ *
+ * Ate 2026-09-11 o padrao aqui era `localhost:3100`, a porta do servidor de DESENVOLVIMENTO. Quando a
+ * suite passou a subir o seu proprio servidor na 3301 com banco descartavel (`playwright.config.ts`),
+ * a pagina do teste foi para a 3301 mas estas fixtures continuaram semeando — e as asercoes
+ * continuaram lendo — pela 3100. Resultado medido: 130 cartoes, uma sessao e gastos de Seeds
+ * escritos no `data/babel.db` de quem desenvolve, e 8 testes reprovando por comparar dois
+ * servidores diferentes ("o KPI diz 3 e o servidor tem 2913 cartoes").
+ *
+ * O padrao agora segue `PORT`/`BASE_URL` exatamente como o config, e a 3100 e recusada de forma
+ * explicita: nenhuma fixture pode escrever no banco de trabalho por engano de novo.
+ */
+export const BASE = process.env.BASE_URL || `http://localhost:${process.env.PORT ?? '3301'}`
+if (/:3100(\/|$)/.test(BASE)) {
+  throw new Error(
+    `fixtures E2E apontando para ${BASE}: essa e a porta do servidor de desenvolvimento, com o banco real. ` +
+      'A suite usa a 3301 com banco descartavel (playwright.config.ts). Nao defina BASE_URL para a 3100.',
+  )
+}
 
 export interface CartaoSemente {
-  word: string;
-  back: string;
+  word: string
+  back: string
 }
 
 /**
@@ -36,17 +55,17 @@ export const CARTOES_SEMENTE: CartaoSemente[] = [
   { word: 'yellow', back: 'amarelo' },
   { word: 'kitchen', back: 'cozinha' },
   { word: 'morning', back: 'manha' },
-];
+]
 
 export interface CartaoNoServidor {
-  id: string;
-  word: string;
-  back: string | null;
-  dueAt: number | null;
-  reps: number | null;
-  stability: number | null;
-  inDeck: number | null;
-  srcLang: string | null;
+  id: string
+  word: string
+  back: string | null
+  dueAt: number | null
+  reps: number | null
+  stability: number | null
+  inDeck: number | null
+  srcLang: string | null
 }
 
 /**
@@ -56,21 +75,21 @@ export interface CartaoNoServidor {
  * entao quem precisa fechar pares ou digitar respostas le a fonte real, nao a lista da fixture.
  */
 export async function mapaDoBaralho(): Promise<{ traducaoDe: Map<string, string>; palavraDe: Map<string, string> }> {
-  const cartoes = await listarCartoes();
-  const traducaoDe = new Map<string, string>();
-  const palavraDe = new Map<string, string>();
+  const cartoes = await listarCartoes()
+  const traducaoDe = new Map<string, string>()
+  const palavraDe = new Map<string, string>()
   for (const c of cartoes) {
-    if (!c.back) continue;
-    traducaoDe.set(c.word.trim(), c.back.trim());
-    palavraDe.set(c.back.trim().toLowerCase(), c.word.trim());
+    if (!c.back) continue
+    traducaoDe.set(c.word.trim(), c.back.trim())
+    palavraDe.set(c.back.trim().toLowerCase(), c.word.trim())
   }
-  return { traducaoDe, palavraDe };
+  return { traducaoDe, palavraDe }
 }
 
 export async function listarCartoes(): Promise<CartaoNoServidor[]> {
-  const r = await fetch(`${BASE}/api/vocab`);
-  if (!r.ok) throw new Error(`GET /api/vocab devolveu ${r.status}`);
-  return (await r.json()) as CartaoNoServidor[];
+  const r = await fetch(`${BASE}/api/vocab`)
+  if (!r.ok) throw new Error(`GET /api/vocab devolveu ${r.status}`)
+  return (await r.json()) as CartaoNoServidor[]
 }
 
 /** Semeia os doze cartoes (idempotente) e devolve os que existem no servidor com essas palavras. */
@@ -81,15 +100,15 @@ export async function semearCartoes(): Promise<CartaoNoServidor[]> {
     body: JSON.stringify({
       cards: CARTOES_SEMENTE.map((c) => ({ ...c, srcLang: 'en', tgtLang: 'pt-BR' })),
     }),
-  });
-  if (!r.ok) throw new Error(`POST /api/vocab/bulk-add devolveu ${r.status}: ${(await r.text()).slice(0, 200)}`);
-  const palavras = new Set(CARTOES_SEMENTE.map((c) => c.word));
-  const todos = await listarCartoes();
-  const meus = todos.filter((c) => palavras.has(c.word));
+  })
+  if (!r.ok) throw new Error(`POST /api/vocab/bulk-add devolveu ${r.status}: ${(await r.text()).slice(0, 200)}`)
+  const palavras = new Set(CARTOES_SEMENTE.map((c) => c.word))
+  const todos = await listarCartoes()
+  const meus = todos.filter((c) => palavras.has(c.word))
   if (meus.length < CARTOES_SEMENTE.length) {
-    throw new Error(`esperava ${CARTOES_SEMENTE.length} cartoes semeados, o servidor tem ${meus.length}`);
+    throw new Error(`esperava ${CARTOES_SEMENTE.length} cartoes semeados, o servidor tem ${meus.length}`)
   }
-  return meus;
+  return meus
 }
 
 /**
@@ -107,13 +126,13 @@ export const CARTOES_DA_SESSAO: CartaoSemente[] = [
   { word: 'forest', back: 'floresta' },
   { word: 'bridge', back: 'ponte' },
   { word: 'candle', back: 'vela' },
-];
+]
 
 export async function semearSessaoComCartoes(): Promise<{ sessionId: string; cartoes: CartaoNoServidor[] }> {
-  const lista = await fetch(`${BASE}/api/sessions`);
-  if (!lista.ok) throw new Error(`GET /api/sessions devolveu ${lista.status}`);
-  const existentes = (await lista.json()) as Array<{ id: string; title?: string | null }>;
-  let sessionId = existentes.find((s) => s.title === 'Sessao e2e de revisao')?.id;
+  const lista = await fetch(`${BASE}/api/sessions`)
+  if (!lista.ok) throw new Error(`GET /api/sessions devolveu ${lista.status}`)
+  const existentes = (await lista.json()) as Array<{ id: string; title?: string | null }>
+  let sessionId = existentes.find((s) => s.title === 'Sessao e2e de revisao')?.id
   if (!sessionId) {
     const r = await fetch(`${BASE}/api/sessions`, {
       method: 'POST',
@@ -136,9 +155,9 @@ export async function semearSessaoComCartoes(): Promise<{ sessionId: string; car
           tEndMs: idx * 5000 + 4000,
         })),
       }),
-    });
-    if (!r.ok) throw new Error(`POST /api/sessions devolveu ${r.status}: ${(await r.text()).slice(0, 200)}`);
-    sessionId = ((await r.json()) as { id: string }).id;
+    })
+    if (!r.ok) throw new Error(`POST /api/sessions devolveu ${r.status}: ${(await r.text()).slice(0, 200)}`)
+    sessionId = ((await r.json()) as { id: string }).id
   }
   const add = await fetch(`${BASE}/api/vocab/bulk-add`, {
     method: 'POST',
@@ -146,35 +165,35 @@ export async function semearSessaoComCartoes(): Promise<{ sessionId: string; car
     body: JSON.stringify({
       cards: CARTOES_DA_SESSAO.map((c) => ({ ...c, srcLang: 'en', tgtLang: 'pt-BR', sessionId })),
     }),
-  });
-  if (!add.ok) throw new Error(`POST /api/vocab/bulk-add devolveu ${add.status}: ${(await add.text()).slice(0, 200)}`);
-  const palavras = new Set(CARTOES_DA_SESSAO.map((c) => c.word));
-  const cartoes = (await listarCartoes()).filter((c) => palavras.has(c.word));
+  })
+  if (!add.ok) throw new Error(`POST /api/vocab/bulk-add devolveu ${add.status}: ${(await add.text()).slice(0, 200)}`)
+  const palavras = new Set(CARTOES_DA_SESSAO.map((c) => c.word))
+  const cartoes = (await listarCartoes()).filter((c) => palavras.has(c.word))
   if (cartoes.length < CARTOES_DA_SESSAO.length) {
-    throw new Error(`esperava ${CARTOES_DA_SESSAO.length} cartoes da sessao, o servidor tem ${cartoes.length}`);
+    throw new Error(`esperava ${CARTOES_DA_SESSAO.length} cartoes da sessao, o servidor tem ${cartoes.length}`)
   }
-  return { sessionId, cartoes };
+  return { sessionId, cartoes }
 }
 
 export interface PerfilDeMetricas {
-  deckSize: number;
-  reviews: number;
-  correctReviews: number;
-  drillItems: number;
-  drillCorrect: number;
-  seedsGastas: number;
-  presencas?: number;
-  sequencias7?: number;
-  capturaMinutosPremiados?: number;
-  rodadasPerfeitas?: number;
-  seedsCreditadas?: number;
-  itensComprados?: string[];
+  deckSize: number
+  reviews: number
+  correctReviews: number
+  drillItems: number
+  drillCorrect: number
+  seedsGastas: number
+  presencas?: number
+  sequencias7?: number
+  capturaMinutosPremiados?: number
+  rodadasPerfeitas?: number
+  seedsCreditadas?: number
+  itensComprados?: string[]
 }
 
 export async function perfil(): Promise<PerfilDeMetricas> {
-  const r = await fetch(`${BASE}/api/metrics/profile`);
-  if (!r.ok) throw new Error(`GET /api/metrics/profile devolveu ${r.status}`);
-  return (await r.json()) as PerfilDeMetricas;
+  const r = await fetch(`${BASE}/api/metrics/profile`)
+  if (!r.ok) throw new Error(`GET /api/metrics/profile devolveu ${r.status}`)
+  return (await r.json()) as PerfilDeMetricas
 }
 
 /**
@@ -194,13 +213,13 @@ export function saldoEsperado(p: PerfilDeMetricas): number {
     (p.presencas ?? 0) * 5 +
     Math.floor((p.capturaMinutosPremiados ?? 0) / 5) * 1 +
     (p.sequencias7 ?? 0) * 25 +
-    (p.seedsCreditadas ?? 0);
-  return Math.max(0, ganhas - (p.seedsGastas ?? 0));
+    (p.seedsCreditadas ?? 0)
+  return Math.max(0, ganhas - (p.seedsGastas ?? 0))
 }
 
 /** Grava uma rodada 100% certa via API — o mesmo `POST /api/exercises/rodada` que os jogos usam. */
 export async function rodadaPerfeitaViaApi(cartoes: CartaoNoServidor[], jogo = 'memory'): Promise<void> {
-  const roundId = `e2e-${jogo}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  const roundId = `e2e-${jogo}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
   const r = await fetch(`${BASE}/api/exercises/rodada`, {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
@@ -209,10 +228,18 @@ export async function rodadaPerfeitaViaApi(cartoes: CartaoNoServidor[], jogo = '
       exerciseKind: jogo,
       origem: 'baralho',
       score: 100,
-      itens: cartoes.map((c) => ({ cardId: c.id, itemRef: c.word, correct: 1, attempts: 1, ms: 900, hinted: 0, kind: 'drill' })),
+      itens: cartoes.map((c) => ({
+        cardId: c.id,
+        itemRef: c.word,
+        correct: 1,
+        attempts: 1,
+        ms: 900,
+        hinted: 0,
+        kind: 'drill',
+      })),
     }),
-  });
-  if (!r.ok) throw new Error(`POST /api/exercises/rodada devolveu ${r.status}: ${(await r.text()).slice(0, 200)}`);
+  })
+  if (!r.ok) throw new Error(`POST /api/exercises/rodada devolveu ${r.status}: ${(await r.text()).slice(0, 200)}`)
 }
 
 /** Tenta gastar Seeds; devolve status e corpo sem lancar — o teste decide o que e aceitavel. */
@@ -221,15 +248,19 @@ export async function gastarSeedsViaApi(input: { spendId: string; amount: number
     method: 'POST',
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify(input),
-  });
-  const corpo: unknown = await r.json().catch(() => null);
-  return { status: r.status, corpo };
+  })
+  const corpo: unknown = await r.json().catch(() => null)
+  return { status: r.status, corpo }
 }
 
 /** Le `settings.ui` ja desserializado. */
 export async function uiDoServidor(): Promise<Record<string, unknown>> {
-  const r = await fetch(`${BASE}/api/settings`);
-  if (!r.ok) throw new Error(`GET /api/settings devolveu ${r.status}`);
-  const s = (await r.json()) as { ui?: string | null };
-  try { return s.ui ? (JSON.parse(s.ui) as Record<string, unknown>) : {}; } catch { return {}; }
+  const r = await fetch(`${BASE}/api/settings`)
+  if (!r.ok) throw new Error(`GET /api/settings devolveu ${r.status}`)
+  const s = (await r.json()) as { ui?: string | null }
+  try {
+    return s.ui ? (JSON.parse(s.ui) as Record<string, unknown>) : {}
+  } catch {
+    return {}
+  }
 }

@@ -1,0 +1,11 @@
+- [x] 0.1 branch `feat/redesign-v3` de `main @ 2ac979b`
+- [x] 0.2 oito commits herdados por cherry-pick, conflitos só em docs resolvidos com a versão final
+- [x] 0.3 stash aplicado; `scripts/e2e/preparar-banco.mjs` entra no versionamento
+- [x] 0.4 docs finais da tag em `docs/redesign/`; ERRATA extraída; protótipos em `source/`
+- [x] 0.5 `scripts/redesign/evidencias.mjs` e linha de base `evidencias/00-base/`
+- [x] 0.6 `INVENTARIO-FUNCIONAL.md` com a coluna "antes" marcada
+- [x] 0.7 `COPY.md` com as renomeações candidatas decididas
+- [x] 0.8 D-012 a D-016 em `DECISOES.md`; `PLANO.md`
+- [x] 0.9 gate verde (typecheck, lint, 3.931 unitários, build, E2E 99/0/15 em 3 viewports, integridade) e `PROGRESSO.md` com a linha de base
+- [x] 0.10 fixtures E2E deixam de apontar para a 3100 (banco real) e recusam essa porta; runner de lotes libera a porta presa; `resumir-matriz.mjs`
+- [x] 0.11 `knip.json` com a exceção documentada das fontes self-hosted

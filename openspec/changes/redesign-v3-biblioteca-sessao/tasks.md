@@ -1,0 +1,5 @@
+- [x] 7.1 Biblioteca: cabeçalho pelo primitivo
+- [x] 7.2 Sessão: cabeçalho pelo primitivo, com seletor e Exportar como ações
+- [x] 7.3 Sessão: abas pelo `Abas`; "Mais" fora do tablist; classes por mídia removidas
+- [x] 7.4 gate; evidências `07-biblioteca-sessao`; matriz E2E
+- [ ] 7.5 (rodada seguinte) painel escuro da transcrição via modo escuro do `ChatTranscript`

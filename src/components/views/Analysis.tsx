@@ -32,25 +32,19 @@ import {
   X,
   Zap,
 } from 'lucide-react';
-import React, { lazy, Suspense,useEffect, useRef, useState } from 'react';
+import React, { lazy, Suspense, useEffect, useRef, useState } from 'react';
 import { CartesianGrid, ResponsiveContainer, Scatter, ScatterChart, Tooltip, XAxis, YAxis, ZAxis } from 'recharts';
 
-import type { AppMetrics,UtteranceRow } from '../../data/api';
-import {
-  apiFetch,
-  fetchDeck,
-  fetchMetrics,
-  fetchSessionTranscript,
-  fetchSettings,
-} from '../../data/api';
+import type { AppMetrics, UtteranceRow } from '../../data/api';
+import { apiFetch, fetchDeck, fetchMetrics, fetchSessionTranscript, fetchSettings } from '../../data/api';
 import { applyOutputDevice } from '../../lib/audioDevices';
 import { useLangConfig } from '../../lib/langConfig';
 import { baseLang, langLabel } from '../../lib/languages';
 import { usePopoverDePalavra } from '../../lib/popoverDePalavra';
 import { copyDoPerfil, coreOnly } from '../../lib/profile';
-import type { PracticeSeed,Sentence } from '../../lib/sentences';
+import type { PracticeSeed, Sentence } from '../../lib/sentences';
 import { toSentences } from '../../lib/sentences';
-import { isTtsSupported,speak as ttsSpeak } from '../../lib/tts';
+import { isTtsSupported, speak as ttsSpeak } from '../../lib/tts';
 import type { WordOrigin } from '../../lib/vocabWord';
 import { tokenizarTexto } from '../../lib/vocabWord';
 import type { VocabWord } from '../../types';
@@ -79,13 +73,14 @@ import { buildGateway } from '../../gateway';
 import { getActiveProfile } from '../../gateway/activeProfile';
 import { criarEdicaoDeFala } from '../../lib/analise/edicaoDeFala';
 import { useMetricasDaSessao } from '../../lib/analise/metricasDaSessao';
-import { criarPalavraDaAnalise,useCacheDeHover } from '../../lib/analise/palavraDaAnalise';
-import { formatSeconds,usePlayerDaSessao } from '../../lib/analise/playerDaSessao';
-import { caminhoDoAudio,useAudioDaSessao } from '../../lib/audioDaSessao';
+import { criarPalavraDaAnalise, useCacheDeHover } from '../../lib/analise/palavraDaAnalise';
+import { formatSeconds, usePlayerDaSessao } from '../../lib/analise/playerDaSessao';
+import { caminhoDoAudio, useAudioDaSessao } from '../../lib/audioDaSessao';
 import { data, numero } from '../../lib/i18n';
 import type { DerivedProgress } from '../../lib/progress';
-import { getTranscriptStyleClasses,TranscriptSettings } from '../../lib/transcriptUtils';
+import { getTranscriptStyleClasses, TranscriptSettings } from '../../lib/transcriptUtils';
 import EditablePanel from '../EditablePanel';
+import { Abas, CabecalhoDeTela } from '../ui';
 import PlayerInterativo from './analise/PlayerInterativo';
 
 /** Selo de PROCEDÊNCIA da transcrição (honestidade): de onde vieram as falas desta sessão. */
@@ -529,7 +524,6 @@ export default function Analysis({
     setTsSettings((prev) => ({ ...prev, [key]: value }));
   };
 
-
   /* NUNCA `return null` aqui: era uma tela PRETA de verdade. Enquanto a lista de gravações ainda
      não chegou (abrir /sessao/<id> direto pela URL) mostra "abrindo"; se a lista chegou e o id
      não existe, diz isso e oferece o caminho de volta. */
@@ -564,10 +558,6 @@ export default function Analysis({
   let backLinkClass = 'text-accent hover:text-accent/80';
   let selectClass = 'bg-surface border border-border-subtle text-ink';
   let exportBtnClass = 'btn-ink hover:bg-ink-muted border-none';
-  let activeTabClass = 'bg-accent text-white shadow-btn font-extrabold';
-  let inactiveTabClass = 'text-ink hover:bg-surface-hover font-bold';
-  let tabContainerClass =
-    'bg-canvas border-2 border-border-subtle p-1.5 rounded-2xl w-fit mb-6 flex items-center gap-1 overflow-x-auto max-w-full shadow-card';
 
   // Cada tipo de gravação ganha um acento semântico (não decorativo): vídeo→error,
   // documento→good, áudio→rare. Usa sempre -soft (preenchimento) + -ink (texto sobre
@@ -578,30 +568,18 @@ export default function Analysis({
     backLinkClass = 'text-error-ink hover:text-error';
     selectClass = 'bg-surface border border-border-subtle text-ink';
     exportBtnClass = 'btn-solid bg-error-soft text-error-ink border-none';
-    activeTabClass = 'bg-error text-white shadow-btn font-extrabold';
-    inactiveTabClass = 'text-ink hover:bg-surface-hover font-bold';
-    tabContainerClass =
-      'bg-canvas border-2 border-border-subtle p-1.5 rounded-2xl w-fit mb-6 flex items-center gap-1 overflow-x-auto max-w-full shadow-card';
   } else if (isDoc) {
     headerBgClass = 'bg-surface/30 border-b border-good/20';
     badgeClass = 'bg-good-soft text-good-ink border border-good/20';
     backLinkClass = 'text-good-ink hover:text-good';
     selectClass = 'bg-surface border border-border-subtle text-ink';
     exportBtnClass = 'btn-solid bg-good-soft text-good-ink border-none';
-    activeTabClass = 'bg-good text-white shadow-btn font-extrabold';
-    inactiveTabClass = 'text-ink hover:bg-surface-hover font-bold';
-    tabContainerClass =
-      'bg-canvas border-2 border-border-subtle p-1.5 rounded-2xl w-fit mb-6 flex items-center gap-1 overflow-x-auto max-w-full shadow-card';
   } else if (isAudio) {
     headerBgClass = 'bg-surface/30 border-b border-rare/20';
     badgeClass = 'bg-rare-soft text-rare-ink border border-rare/20';
     backLinkClass = 'text-rare-ink hover:text-rare';
     selectClass = 'bg-surface border border-border-subtle text-ink';
     exportBtnClass = 'btn-solid bg-rare-soft text-rare-ink border-none';
-    activeTabClass = 'bg-rare text-white shadow-btn font-extrabold';
-    inactiveTabClass = 'text-ink hover:bg-surface-hover font-bold';
-    tabContainerClass =
-      'bg-canvas border-2 border-border-subtle p-1.5 rounded-2xl w-fit mb-6 flex items-center gap-1 overflow-x-auto max-w-full shadow-card';
   }
 
   return (
@@ -624,17 +602,19 @@ export default function Analysis({
           <span>Voltar para Biblioteca</span>
         </button>
 
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 mb-6">
-          <div>
-            <div className="flex items-center gap-2 mb-1.5">
+        {/* Cabeçalho pelo primitivo (redesign v3): selos como kicker, título com a procedência,
+            subtítulo, e à direita o seletor de sessão e o Exportar. Nada mudou de função. */}
+        <CabecalhoDeTela
+          kicker={
+            <>
               <span className={`text-[10px] uppercase font-bold tracking-wider px-2.5 py-1 rounded ${badgeClass}`}>
                 Sessão de{' '}
                 {recording.type === 'video' ? 'YouTube' : recording.type === 'document' ? 'PDF/Documento' : 'Áudio'}
               </span>
               {/* C11 — `opacity-70` saiu: era a terceira vez que opacidade sobre texto aparecia
-                  na medição (4,32:1 aqui). A hierarquia já vem do tamanho e do peso; a
-                  opacidade só subtraía contraste. `text-ink-muted` diz a mesma coisa com um
-                  token que o teste de paletas consegue verificar. */}
+              na medição (4,32:1 aqui). A hierarquia já vem do tamanho e do peso; a
+              opacidade só subtraía contraste. `text-ink-muted` diz a mesma coisa com um
+              token que o teste de paletas consegue verificar. */}
               <span className="text-[11.5px] font-semibold flex items-center gap-1 text-ink-muted">
                 {recording.type === 'video' ? (
                   <Video className="w-3.5 h-3.5" />
@@ -649,8 +629,10 @@ export default function Analysis({
                     ? 'Documento Editorial'
                     : 'Gravação de Áudio'}
               </span>
-            </div>
-            <h1 className="font-display font-black text-xl md:text-2xl tracking-tight flex items-center gap-2 flex-wrap">
+            </>
+          }
+          titulo={
+            <>
               {recording.title}
               {(() => {
                 const label = provenanceLabel(realUtterances[0]?.engine);
@@ -663,48 +645,49 @@ export default function Analysis({
                   </span>
                 ) : null;
               })()}
-            </h1>
-            <p className="text-[12.5px] text-ink-muted mt-1 leading-snug">
-              Análise linguística contextual, práticas ativas e exercícios criados a partir desta mídia específica.
-            </p>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-4">
-            {/* Elegant Session Switcher Dropdown */}
-            <div className="flex items-center gap-2">
-              <span className="text-[12.5px] font-bold text-ink-muted hidden sm:inline">Alternar de Sessão:</span>
-              <div className="relative">
-                {/* C2 — este único `<select>` respondia por 18 dos 23 nós críticos da medição:
-                    ele é renderizado em TODA aba de Sessão, então o mesmo defeito aparecia 6
-                    vezes. O rótulo ao lado é `hidden sm:inline`, ou seja, some no mobile e nunca
-                    foi associado por `for`. `aria-label` vale nos dois viewports. */}
-                <select
-                  aria-label="Alternar de sessão"
-                  id="analysis-session-switcher"
-                  name="analysis-session-switcher"
-                  value={recording.id}
-                  onChange={(e) => onChangeView('analysis', { id: e.target.value })}
-                  className={`appearance-none rounded-xl py-2 ps-3.5 pe-9 text-[12.5px] font-bold outline-none cursor-pointer transition-colors ${selectClass}`}
-                >
-                  {allRecordings.map((r) => (
-                    <option key={r.id} value={r.id}>
-                      {r.title.length > 30 ? r.title.substring(0, 30) + '...' : r.title}
-                    </option>
-                  ))}
-                </select>
-                <ChevronDown className="w-4 h-4 absolute right-3 top-3 opacity-60 pointer-events-none" />
+            </>
+          }
+          subtitulo={
+            'Análise linguística contextual, práticas ativas e exercícios criados a partir desta mídia específica.'
+          }
+          acoes={
+            <>
+              {/* Elegant Session Switcher Dropdown */}
+              <div className="flex items-center gap-2">
+                <span className="text-[12.5px] font-bold text-ink-muted hidden sm:inline">Alternar de Sessão:</span>
+                <div className="relative">
+                  {/* C2 — este único `<select>` respondia por 18 dos 23 nós críticos da medição:
+              ele é renderizado em TODA aba de Sessão, então o mesmo defeito aparecia 6
+              vezes. O rótulo ao lado é `hidden sm:inline`, ou seja, some no mobile e nunca
+              foi associado por `for`. `aria-label` vale nos dois viewports. */}
+                  <select
+                    aria-label="Alternar de sessão"
+                    id="analysis-session-switcher"
+                    name="analysis-session-switcher"
+                    value={recording.id}
+                    onChange={(e) => onChangeView('analysis', { id: e.target.value })}
+                    className={`appearance-none rounded-xl py-2 ps-3.5 pe-9 text-[12.5px] font-bold outline-none cursor-pointer transition-colors ${selectClass}`}
+                  >
+                    {allRecordings.map((r) => (
+                      <option key={r.id} value={r.id}>
+                        {r.title.length > 30 ? r.title.substring(0, 30) + '...' : r.title}
+                      </option>
+                    ))}
+                  </select>
+                  <ChevronDown className="w-4 h-4 absolute right-3 top-3 opacity-60 pointer-events-none" />
+                </div>
               </div>
-            </div>
 
-            {/* Saiu daqui o botão "Jogar com esta sessão": era um destino de tela inteira escondido
-                entre os controles do cabeçalho, ao lado de "Exportar". O mesmo conteúdo agora é a
-                aba "Jogos", visível na barra de sub-abas. A tela global de jogos continua existindo
-                pelo menu, ela vive do baralho e não pode depender de uma sessão (`types.ts:80-84`). */}
-            <button className={exportBtnClass} onClick={() => setShowExportModal(true)}>
-              <Download className="w-4 h-4" /> <span>Exportar</span>
-            </button>
-          </div>
-        </div>
+              {/* Saiu daqui o botão "Jogar com esta sessão": era um destino de tela inteira escondido
+              entre os controles do cabeçalho, ao lado de "Exportar". O mesmo conteúdo agora é a
+              aba "Jogos", visível na barra de sub-abas. A tela global de jogos continua existindo
+              pelo menu, ela vive do baralho e não pode depender de uma sessão (`types.ts:80-84`). */}
+              <button className={exportBtnClass} onClick={() => setShowExportModal(true)}>
+                <Download className="w-4 h-4" /> <span>Exportar</span>
+              </button>
+            </>
+          }
+        />
 
         {/* Sub-abas — a ORDEM é a mesma nos três perfis (prática antes de métrica); o que muda é a
             linguagem e quantas abrem de uma vez. Em Kids/Sênior, "Visão Geral & Métricas" entra no
@@ -714,44 +697,42 @@ export default function Analysis({
             texto apagado num trilho fino; agora a aba ativa é um botão sólido na cor do tipo de
             mídia, as inativas têm a cor do texto principal, e um rótulo diz o que a barra é. */}
         <p className="label-mono mb-2">O que fazer com esta sessão</p>
-        <div className={tabContainerClass} role="tablist" aria-label="Seções da sessão">
-          <button
-            className={`px-5 py-2.5 rounded-xl text-[14px] font-bold whitespace-nowrap transition-all cursor-pointer ${currentTab === 'transcript' ? activeTabClass : inactiveTabClass}`}
-            onClick={() => onSubTabChange('transcript')}
-            aria-pressed={currentTab === 'transcript'}
-          >
-            {copyDoPerfil(
-              recording.type === 'document' ? 'sessionTab.transcript.doc' : 'sessionTab.transcript',
-              ageProfile,
-            )}
-          </button>
-          <button
-            className={`flex items-center gap-1.5 px-5 py-2.5 rounded-xl text-[14px] font-bold whitespace-nowrap transition-all cursor-pointer ${currentTab === 'reading' ? activeTabClass : inactiveTabClass}`}
-            onClick={() => onSubTabChange('reading')}
-            aria-pressed={currentTab === 'reading'}
-          >
-            <BookOpen className="w-4 h-4" /> {copyDoPerfil('sessionTab.reading', ageProfile)}
-          </button>
-          <button
-            className={`flex items-center gap-1.5 px-5 py-2.5 rounded-xl text-[14px] font-bold whitespace-nowrap transition-all cursor-pointer ${currentTab === 'practice' ? activeTabClass : inactiveTabClass}`}
-            onClick={() => onSubTabChange('practice')}
-            aria-pressed={currentTab === 'practice'}
-          >
-            <Gamepad2 className="w-4 h-4" /> {copyDoPerfil('sessionTab.practice', ageProfile)}
-          </button>
-          {(!coreOnly(ageProfile) || showAllTabs || currentTab === 'overview') && (
-            <button
-              className={`px-5 py-2.5 rounded-xl text-[14px] font-bold whitespace-nowrap transition-all cursor-pointer ${currentTab === 'overview' ? activeTabClass : inactiveTabClass}`}
-              onClick={() => onSubTabChange('overview')}
-              aria-pressed={currentTab === 'overview'}
-            >
-              {copyDoPerfil('sessionTab.overview', ageProfile)}
-            </button>
-          )}
+        {/* Abas pelo primitivo (redesign v3, ux-v2 §1.13): eram botões `aria-pressed` soltos; agora é
+            um tablist de verdade com setas e a pílula ativa em ink (D-012). Em Kids/Sênior a aba de
+            métricas continua atrás de "Mais" — que não é aba, e por isso fica fora do tablist. */}
+        <div className="mb-6 flex flex-wrap items-center gap-2">
+          <Abas
+            rotuloDoGrupo="Seções da sessão"
+            variante="pilula"
+            ativo={currentTab}
+            aoTrocar={(id) => onSubTabChange(id as typeof currentTab)}
+            itens={[
+              {
+                id: 'transcript',
+                rotulo: copyDoPerfil(
+                  recording.type === 'document' ? 'sessionTab.transcript.doc' : 'sessionTab.transcript',
+                  ageProfile,
+                ),
+              },
+              {
+                id: 'reading',
+                rotulo: copyDoPerfil('sessionTab.reading', ageProfile),
+                icone: <BookOpen className="w-4 h-4" />,
+              },
+              {
+                id: 'practice',
+                rotulo: copyDoPerfil('sessionTab.practice', ageProfile),
+                icone: <Gamepad2 className="w-4 h-4" />,
+              },
+              ...(!coreOnly(ageProfile) || showAllTabs || currentTab === 'overview'
+                ? [{ id: 'overview', rotulo: copyDoPerfil('sessionTab.overview', ageProfile) }]
+                : []),
+            ]}
+          />
           {coreOnly(ageProfile) && !showAllTabs && currentTab !== 'overview' && (
             <button
               onClick={() => setShowAllTabs(true)}
-              className={`${inactiveTabClass} flex items-center gap-1 px-4 py-2.5 rounded-xl text-[14px] font-bold whitespace-nowrap cursor-pointer`}
+              className="kpi-pill flex items-center gap-1"
               title={copyDoPerfil('sessionTab.overview', ageProfile)}
             >
               <MoreHorizontal className="w-3.5 h-3.5" /> Mais

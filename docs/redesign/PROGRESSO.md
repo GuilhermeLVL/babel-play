@@ -123,3 +123,13 @@ mas o custo de um engano é o banco real).
   `.card-panel.bloqueado`. Nenhum nome acessível mudou.
 - Antessala, Raspadinha, Resumo e os 18 jogos já eram `card-panel`/tokens: vestem a F1 sem edição.
 - Evidência: `06-jogar/jogar__1280__claro.png` (vs `02-casca`).
+
+## F7 — Biblioteca e Sessão (2026-09-11, parcial)
+
+- Biblioteca e Sessão com o cabeçalho pelo primitivo; abas da Sessão pelo `Abas` (tablist de
+  verdade, pílula ativa em ink), "Mais" fora do tablist; classes de aba por tipo de mídia removidas.
+- Fica para a rodada seguinte: painel escuro da transcrição (modo escuro do `ChatTranscript`),
+  Leitura, filtros e cards da Biblioteca.
+- Gate: typecheck, lint, build e integridade OK; unitários 4063 (5 arquivos de caracterização HTTP
+  estouraram timeout sob carga e passaram isolados, 63/63); matriz E2E 102/0/15; 12 evidências em
+  `evidencias/07-biblioteca-sessao/` (biblioteca e revisar × 3 viewports × claro/escuro).

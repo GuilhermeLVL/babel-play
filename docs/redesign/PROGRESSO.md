@@ -67,3 +67,15 @@ da `main`, não desta branch; a F2 (casca) precisa resolvê-lo junto com a sideb
 `bash scripts/testes/matriz-e2e.sh && node scripts/testes/resumir-matriz.mjs` para o E2E em lotes.
 Nunca com um servidor de desenvolvimento aberto na 3100 durante a corrida (as fixtures agora recusam,
 mas o custo de um engano é o banco real).
+
+## F1 — Tokens e classes globais (2026-09-11)
+
+- 11 tokens derivados em 17 blocos de tema, hex literal (babel claro = protótipo), `custom` por
+  `color-mix`; gerador com medição prévia em `scripts/redesign/` (fórmulas no cabeçalho).
+- `contrastePaletas`: 14 pares novos, piso 200; **424 casos verdes**. A medição impôs três ajustes
+  ao protótipo (D-017): hover do primário mais claro no babel (o `#D6431C` do protótipo dava 3,65:1
+  com o texto `#3d1105`), superfícies rebaixadas de mochi/notion com menos escurecimento, painel
+  escuro mais claro que a superfície no modo escuro.
+- Classes: `.btn-solid:hover` por token; `.kpi-pill.active` em ink (D-012); `.field-input` com
+  `--field-bg`; `.card-panel.escuro`, `.card-panel.bloqueado`, `.titulo-de-tela`; borda do card do
+  babel 1,5 px. Nenhum `.tsx` tocado.

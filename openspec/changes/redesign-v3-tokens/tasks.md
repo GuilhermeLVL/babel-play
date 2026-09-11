@@ -1,0 +1,7 @@
+- [x] 1.1 gerador mede os pares novos antes de gravar; 17 blocos recebem os 11 tokens
+- [x] 1.2 `@theme` expõe os tokens como utilitários Tailwind
+- [x] 1.3 14 pares novos em `contrastePaletas`; 424 casos verdes (era 70 pares avaliados)
+- [x] 1.4 `.btn-solid:hover` por token; `.kpi-pill.active` em ink; `.field-input` com `--field-bg`
+- [x] 1.5 `.card-panel.escuro`, `.card-panel.bloqueado`, `.titulo-de-tela`; borda 1,5 px no babel
+- [x] 1.6 D-017 e execução da D-012 em `DECISOES.md`
+- [x] 1.7 gate sem E2E verde (4.113 unitários); evidências `01-tokens` (84 capturas) idênticas à base exceto a borda 1,5 px

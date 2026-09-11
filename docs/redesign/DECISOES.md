@@ -163,3 +163,23 @@ moeda só; números de progresso soltos; CEFR clicável; "Meta da semana"; KPIs 
 breve" em busca, iChat e ajustes de captura; overlay como card fixo), vale o app. Lista fechada em
 `docs/design/auditoria-prototipo-v2/AUDITORIA.md` §13 e no inventário do v3.
 Reversível: n/a. REVISAR: não.
+
+**D-017 | 2026-09-11 | O hover do botão primário se afasta da luminância do texto de contraste.**
+Contexto: o protótipo escurece o accent no hover (`#D6431C`). Medido na F1: com o texto
+`--accent-contrast` do babel (`#3d1105`, escuro), esse hover cai a **3,65:1** (o par em repouso está
+em 4,54:1, margem de 0,04 — ver D-011). Escurecer o texto está vetado pela D-011.
+Opções: (a) copiar o hover do protótipo e aceitar a reprovação; (b) `--accent-hover` calculado por
+tema, clareando o accent quando o texto de contraste é escuro e escurecendo quando é claro, medido
+por `tests/contrastePaletas.test.ts` (par novo `accent-contrast × accent-hover`).
+Escolha: **(b)**. No babel claro o hover fica `#F26039` (mais claro que o repouso); nos temas de
+texto branco (babel escuro, vercel, linear…) fica mais escuro, como no protótipo.
+Também nesta decisão: `surface-sunken`/`surface-raised` escurecem a superfície só até onde
+`ink-muted` continua ≥ 4,5:1 (mochi e notion claros aceitam menos que os 8 %/4 % do babel), e o
+painel escuro no modo escuro é MAIS CLARO que a superfície, com um `panel-ink-muted` próprio.
+Reversível: sim (gerador em `scripts/redesign/`, fórmulas no cabeçalho). REVISAR: não.
+
+**D-012 (execução) | 2026-09-11 | `.kpi-pill.active` passa de accent para ink.**
+A pílula ativa (`Abas variante="pilula"`, `Segmentado variante="pilula"`) usa preenchimento
+`--ink` com `--ink-contrast`, como a aba/chip ativo do protótipo; o accent fica reservado ao botão
+primário e ao item de navegação. A camada de contraste (`index.css`, regras 1 e 2) acompanhou.
+Reversível: sim. REVISAR: não.

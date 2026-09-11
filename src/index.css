@@ -68,6 +68,19 @@
   --color-rare-ink: var(--rare-ink);
   --color-error: var(--error);
   --color-error-soft: var(--error-soft);
+  /* Redesign v3 (F1) — derivadas: fundos rebaixado/elevado, campo, hover e borda do accent,
+     divisor e o painel escuro (hero de Capturar, transcricao, "Jogando com"). */
+  --color-surface-sunken: var(--surface-sunken);
+  --color-surface-raised: var(--surface-raised);
+  --color-field-bg: var(--field-bg);
+  --color-accent-hover: var(--accent-hover);
+  --color-accent-border: var(--accent-border);
+  --color-divider: var(--divider);
+  --color-panel-bg: var(--panel-bg);
+  --color-panel-surface: var(--panel-surface);
+  --color-panel-border: var(--panel-border);
+  --color-panel-ink: var(--panel-ink);
+  --color-panel-ink-muted: var(--panel-ink-muted);
   --color-error-ink: var(--error-ink);
   --color-border-subtle: var(--border-subtle);
 
@@ -137,6 +150,20 @@
     --error-soft: #FFE3E3;
     --border-subtle: #C6BFAC;
     --accent-contrast: #ffffff;
+
+    /* Derivadas do redesign v3 (F1): fundos rebaixado/elevado, campo, hover e borda do accent,
+       divisor e o painel escuro. Hex literal de proposito: `tests/contrastePaletas.test.ts` mede. */
+    --surface-sunken: #E4E2DA;
+    --surface-raised: #EDEAE2;
+    --field-bg: #F5F2EA;
+    --accent-hover: #CE431E;
+    --accent-border: #F3B9A4;
+    --divider: #D8D5CE;
+    --panel-bg: #22201C;
+    --panel-surface: #26241F;
+    --panel-border: #4C4A44;
+    --panel-ink: #E6E2D6;
+    --panel-ink-muted: #ACA99F;
 
     --ink-contrast: var(--canvas);
     --good-ink: color-mix(in srgb, var(--good) 50%, var(--ink));
@@ -208,6 +235,20 @@
     --border-subtle: #333B48;
     --accent-contrast: #ffffff;
 
+    /* Derivadas do redesign v3 (F1): fundos rebaixado/elevado, campo, hover e borda do accent,
+       divisor e o painel escuro. Hex literal de proposito: `tests/contrastePaletas.test.ts` mede. */
+    --surface-sunken: #10141B;
+    --surface-raised: #22262F;
+    --field-bg: #11151C;
+    --accent-hover: #C7462A;
+    --accent-border: #673029;
+    --divider: #2F343C;
+    --panel-bg: #272B33;
+    --panel-surface: #31363E;
+    --panel-border: #52575F;
+    --panel-ink: #F0F6FC;
+    --panel-ink-muted: #B3BBC4;
+
     --ink-contrast: var(--canvas);
     --good-ink: color-mix(in srgb, var(--good) 50%, var(--ink));
     --warn-ink: color-mix(in srgb, var(--warn) 50%, var(--ink));
@@ -254,6 +295,20 @@
     --border-subtle: #C6BFAC;
     --accent-contrast: #3d1105;
 
+    /* Derivadas do redesign v3 (F1): fundos rebaixado/elevado, campo, hover e borda do accent,
+       divisor e o painel escuro. Hex literal de proposito: `tests/contrastePaletas.test.ts` mede. */
+    --surface-sunken: #EBE7DB;
+    --surface-raised: #EFEAD9;
+    --field-bg: #FFFFFF;
+    --accent-hover: #F26039;
+    --accent-border: #F0C9BE;
+    --divider: #E5E1D4;
+    --panel-bg: #1C1A16;
+    --panel-surface: #26241F;
+    --panel-border: #45423A;
+    --panel-ink: #E6E2D6;
+    --panel-ink-muted: #B8B2A2;
+
     --ink-contrast: var(--canvas);
     --good-ink: color-mix(in srgb, var(--good) 50%, var(--ink));
     --warn-ink: color-mix(in srgb, var(--warn) 50%, var(--ink));
@@ -268,7 +323,7 @@
     --font-mono-val: "IBM Plex Mono", monospace;
     --radius-card: 16px;
     --radius-btn: 12px;
-    --border-width-card: 2px;
+    --border-width-card: 1.5px; /* protótipo v3; os outros temas seguem com o seu */
 
     --shadow-card-val: inset 0 1px 0 rgba(255,255,255,0.6), 0 2px 5px rgba(38,36,31,0.08);
   }
@@ -292,6 +347,20 @@
     --error-soft: rgba(248, 81, 73, 0.15);
     --border-subtle: #333B48;
     --accent-contrast: #551507;
+
+    /* Derivadas do redesign v3 (F1): fundos rebaixado/elevado, campo, hover e borda do accent,
+       divisor e o painel escuro. Hex literal de proposito: `tests/contrastePaletas.test.ts` mede. */
+    --surface-sunken: #10141B;
+    --surface-raised: #22262F;
+    --field-bg: #11151C;
+    --accent-hover: #FF6A4A;
+    --accent-border: #673029;
+    --divider: #2F343C;
+    --panel-bg: #272B33;
+    --panel-surface: #31363E;
+    --panel-border: #52575F;
+    --panel-ink: #F0F6FC;
+    --panel-ink-muted: #B3BBC4;
 
     --ink-contrast: var(--canvas);
     --good-ink: color-mix(in srgb, var(--good) 50%, var(--ink));
@@ -323,6 +392,20 @@
     --rare: #2563EB;  --rare-soft: rgba(37,99,235,0.12);
     --error: #DC2626; --error-soft: rgba(220,38,38,0.12);
     --border-subtle: #D3E4DF;
+    /* Derivadas do redesign v3 (F1): fundos rebaixado/elevado, campo, hover e borda do accent,
+       divisor e o painel escuro. Hex literal de proposito: `tests/contrastePaletas.test.ts` mede. */
+    --surface-sunken: #EBEDEC;
+    --surface-raised: #F5F6F6;
+    --field-bg: #FFFFFF;
+    --accent-hover: #259F94;
+    --accent-border: #AADAD5;
+    --divider: #DDDFDE;
+    --panel-bg: #0A1714;
+    --panel-surface: #0B1A16;
+    --panel-border: #394743;
+    --panel-ink: #F2F9F7;
+    --panel-ink-muted: #ADB6B3;
+
     --ink-contrast: var(--canvas);
     --good-ink: color-mix(in srgb, var(--good) 65%, var(--ink));
     --warn-ink: color-mix(in srgb, var(--warn) 63%, var(--ink));
@@ -354,6 +437,20 @@
     --rare: #60A5FA; --rare-soft: rgba(96,165,250,0.16);
     --error: #F87171; --error-soft: rgba(248,113,113,0.16);
     --border-subtle: #21323E;
+    /* Derivadas do redesign v3 (F1): fundos rebaixado/elevado, campo, hover e borda do accent,
+       divisor e o painel escuro. Hex literal de proposito: `tests/contrastePaletas.test.ts` mede. */
+    --surface-sunken: #091016;
+    --surface-raised: #1A242C;
+    --field-bg: #0A1118;
+    --accent-hover: #42D8C5;
+    --accent-border: #185958;
+    --divider: #273139;
+    --panel-bg: #1F2931;
+    --panel-surface: #2A333B;
+    --panel-border: #4B545A;
+    --panel-ink: #E9F2F0;
+    --panel-ink-muted: #B3C4C0;
+
     --ink-contrast: var(--canvas);
     --good-ink: color-mix(in srgb, var(--good) 50%, var(--ink));
     --warn-ink: color-mix(in srgb, var(--warn) 50%, var(--ink));
@@ -433,6 +530,20 @@
     --border-subtle: #d8d8e0;
     --accent-contrast: #ffffff;
 
+    /* Derivadas do redesign v3 (F1): fundos rebaixado/elevado, campo, hover e borda do accent,
+       divisor e o painel escuro. Hex literal de proposito: `tests/contrastePaletas.test.ts` mede. */
+    --surface-sunken: #EDEDED;
+    --surface-raised: #F6F6F6;
+    --field-bg: #FFFFFF;
+    --accent-hover: #555FBD;
+    --accent-border: #C7CBEF;
+    --divider: #DFDFE0;
+    --panel-bg: #191A1E;
+    --panel-surface: #1C1D21;
+    --panel-border: #48494D;
+    --panel-ink: #F9F9FB;
+    --panel-ink-muted: #B7B7BA;
+
     --ink-contrast: var(--canvas);
     --good-ink: color-mix(in srgb, var(--good) 50%, var(--ink));
     --warn-ink: color-mix(in srgb, var(--warn) 50%, var(--ink));
@@ -472,6 +583,20 @@
     --error-soft: rgba(239, 68, 68, 0.15);
     --border-subtle: #2f2f3a;
     --accent-contrast: #ffffff;
+
+    /* Derivadas do redesign v3 (F1): fundos rebaixado/elevado, campo, hover e borda do accent,
+       divisor e o painel escuro. Hex literal de proposito: `tests/contrastePaletas.test.ts` mede. */
+    --surface-sunken: #0D0D10;
+    --surface-raised: #202024;
+    --field-bg: #0E0E11;
+    --accent-hover: #555FBD;
+    --accent-border: #2D3158;
+    --divider: #2D2E31;
+    --panel-bg: #242428;
+    --panel-surface: #303033;
+    --panel-border: #525255;
+    --panel-ink: #F7F8F8;
+    --panel-ink-muted: #B6B9BE;
 
     --ink-contrast: var(--canvas);
     --good-ink: color-mix(in srgb, var(--good) 50%, var(--ink));
@@ -514,6 +639,20 @@
     --border-subtle: #dedede;
     --accent-contrast: #ffffff;
 
+    /* Derivadas do redesign v3 (F1): fundos rebaixado/elevado, campo, hover e borda do accent,
+       divisor e o painel escuro. Hex literal de proposito: `tests/contrastePaletas.test.ts` mede. */
+    --surface-sunken: #E6E6E6;
+    --surface-raised: #F0F0F0;
+    --field-bg: #FDFDFD;
+    --accent-hover: #000000;
+    --accent-border: #A2A2A2;
+    --divider: #D7D7D7;
+    --panel-bg: #000000;
+    --panel-surface: #000000;
+    --panel-border: #333333;
+    --panel-ink: #FFFFFF;
+    --panel-ink-muted: #B2B2B2;
+
     --ink-contrast: var(--canvas);
     --good-ink: color-mix(in srgb, var(--good) 50%, var(--ink));
     --warn-ink: color-mix(in srgb, var(--warn) 50%, var(--ink));
@@ -555,6 +694,20 @@
     --error-soft: rgba(255, 107, 107, 0.14);
     --border-subtle: #3d3d3d;
     --accent-contrast: #000000;
+
+    /* Derivadas do redesign v3 (F1): fundos rebaixado/elevado, campo, hover e borda do accent,
+       divisor e o painel escuro. Hex literal de proposito: `tests/contrastePaletas.test.ts` mede. */
+    --surface-sunken: #080808;
+    --surface-raised: #1F1F1F;
+    --field-bg: #0A0A0A;
+    --accent-hover: #FFFFFF;
+    --accent-border: #646464;
+    --divider: #2E2E2E;
+    --panel-bg: #242424;
+    --panel-surface: #303030;
+    --panel-border: #545454;
+    --panel-ink: #FFFFFF;
+    --panel-ink-muted: #B8B8B8;
 
     --ink-contrast: var(--canvas);
     --good-ink: color-mix(in srgb, var(--good) 50%, var(--ink));
@@ -600,6 +753,20 @@
     --border-subtle: #22304A;
     --accent-contrast: #05240F;
 
+    /* Derivadas do redesign v3 (F1): fundos rebaixado/elevado, campo, hover e borda do accent,
+       divisor e o painel escuro. Hex literal de proposito: `tests/contrastePaletas.test.ts` mede. */
+    --surface-sunken: #0A101D;
+    --surface-raised: #1B2333;
+    --field-bg: #0B121F;
+    --accent-hover: #5CE18D;
+    --accent-border: #235C46;
+    --divider: #28303F;
+    --panel-bg: #1F2737;
+    --panel-surface: #2A3241;
+    --panel-border: #4A5261;
+    --panel-ink: #E6EDF7;
+    --panel-ink-muted: #C0CBDB;
+
     --ink-contrast: var(--canvas);
     --good-ink: color-mix(in srgb, var(--good) 55%, var(--ink));
     --warn-ink: color-mix(in srgb, var(--warn) 55%, var(--ink));
@@ -641,6 +808,20 @@
     --border-subtle: #cbb992;
     --accent-contrast: #1a202c;
 
+    /* Derivadas do redesign v3 (F1): fundos rebaixado/elevado, campo, hover e borda do accent,
+       divisor e o painel escuro. Hex literal de proposito: `tests/contrastePaletas.test.ts` mede. */
+    --surface-sunken: #F2ECDA;
+    --surface-raised: #F5EEDC;
+    --field-bg: #FEFBF4;
+    --accent-hover: #93C6A0;
+    --accent-border: #D4E3C8;
+    --divider: #E0DBCB;
+    --panel-bg: #272E33;
+    --panel-surface: #2B3339;
+    --panel-border: #53595A;
+    --panel-ink: #F3EFDF;
+    --panel-ink-muted: #B7B7AD;
+
     --ink-contrast: var(--canvas);
     --good-ink: color-mix(in srgb, var(--good) 43%, var(--ink));
     --warn-ink: color-mix(in srgb, var(--warn) 41%, var(--ink));
@@ -679,6 +860,20 @@
     --error-soft: rgba(230, 126, 128, 0.15);
     --border-subtle: #515e66;
     --accent-contrast: #1c1e21;
+
+    /* Derivadas do redesign v3 (F1): fundos rebaixado/elevado, campo, hover e borda do accent,
+       divisor e o painel escuro. Hex literal de proposito: `tests/contrastePaletas.test.ts` mede. */
+    --surface-sunken: #303A40;
+    --surface-raised: #3E474A;
+    --field-bg: #313B40;
+    --accent-hover: #B0C68D;
+    --accent-border: #5C6C59;
+    --divider: #474F50;
+    --panel-bg: #414A4C;
+    --panel-surface: #444C4E;
+    --panel-border: #616561;
+    --panel-ink: #D3C6AA;
+    --panel-ink-muted: #BCBCAD;
 
     --ink-contrast: var(--canvas);
     --good-ink: color-mix(in srgb, var(--good) 50%, var(--ink));
@@ -721,6 +916,20 @@
     --border-subtle: #d8d7d4;
     --accent-contrast: #061a2d;
 
+    /* Derivadas do redesign v3 (F1): fundos rebaixado/elevado, campo, hover e borda do accent,
+       divisor e o painel escuro. Hex literal de proposito: `tests/contrastePaletas.test.ts` mede. */
+    --surface-sunken: #F1F1EF;
+    --surface-raised: #F1F1EF;
+    --field-bg: #FCFCFB;
+    --accent-hover: #398FE5;
+    --accent-border: #ADCEEE;
+    --divider: #DCDCD9;
+    --panel-bg: #32302A;
+    --panel-surface: #37352F;
+    --panel-border: #5F5D59;
+    --panel-ink: #FFFFFF;
+    --panel-ink-muted: #C3C2C1;
+
     --ink-contrast: var(--canvas);
     --good-ink: color-mix(in srgb, var(--good) 50%, var(--ink));
     --warn-ink: color-mix(in srgb, var(--warn) 46%, var(--ink));
@@ -759,6 +968,20 @@
     --error-soft: rgba(255, 115, 105, 0.12);
     --border-subtle: #3a3a3a;
     --accent-contrast: #191919;
+
+    /* Derivadas do redesign v3 (F1): fundos rebaixado/elevado, campo, hover e borda do accent,
+       divisor e o painel escuro. Hex literal de proposito: `tests/contrastePaletas.test.ts` mede. */
+    --surface-sunken: #1C1C1C;
+    --surface-raised: #2D2D2D;
+    --field-bg: #1D1D1D;
+    --accent-hover: #43B2E0;
+    --accent-border: #255062;
+    --divider: #3B3B3A;
+    --panel-bg: #323231;
+    --panel-surface: #3D3D3C;
+    --panel-border: #5E5E5C;
+    --panel-ink: #FFFFF6;
+    --panel-ink-muted: #C3C2BD;
 
     --ink-contrast: var(--canvas);
     --good-ink: color-mix(in srgb, var(--good) 50%, var(--ink));
@@ -803,6 +1026,20 @@
     --rare-soft: color-mix(in srgb, var(--rare) 15%, var(--surface));
     --error: #C92A2A;
     --error-soft: color-mix(in srgb, var(--error) 15%, var(--surface));
+
+    /* Derivadas do redesign v3 (F1): fundos rebaixado/elevado, campo, hover e borda do accent,
+       divisor e o painel escuro. Hex literal de proposito: `tests/contrastePaletas.test.ts` mede. */
+    --surface-sunken: color-mix(in srgb, var(--surface) 94%, var(--ink) 6%);
+    --surface-raised: color-mix(in srgb, var(--surface) 97%, var(--ink) 3%);
+    --field-bg: color-mix(in srgb, var(--surface) 40%, #ffffff 60%);
+    --accent-hover: color-mix(in srgb, var(--accent) 88%, #000000 12%);
+    --accent-border: color-mix(in srgb, var(--surface) 65%, var(--accent) 35%);
+    --divider: color-mix(in srgb, var(--surface) 86%, var(--ink) 14%);
+    --panel-bg: color-mix(in srgb, var(--ink) 90%, #000000 10%);
+    --panel-surface: var(--ink);
+    --panel-border: color-mix(in srgb, var(--ink) 80%, var(--canvas) 20%);
+    --panel-ink: var(--canvas);
+    --panel-ink-muted: color-mix(in srgb, var(--canvas) 70%, var(--ink) 30%);
 
     --ink-contrast: var(--canvas);
     --good-ink: color-mix(in srgb, var(--good) 50%, var(--ink));
@@ -850,6 +1087,20 @@
     --error: #F85149;
     --error-soft: color-mix(in srgb, var(--error) 15%, transparent);
 
+    /* Derivadas do redesign v3 (F1): fundos rebaixado/elevado, campo, hover e borda do accent,
+       divisor e o painel escuro. Hex literal de proposito: `tests/contrastePaletas.test.ts` mede. */
+    --surface-sunken: color-mix(in srgb, var(--surface) 50%, var(--canvas) 50%);
+    --surface-raised: color-mix(in srgb, var(--surface) 95%, var(--ink) 5%);
+    --field-bg: color-mix(in srgb, var(--surface) 60%, var(--canvas) 40%);
+    --accent-hover: color-mix(in srgb, var(--accent) 88%, #000000 12%);
+    --accent-border: color-mix(in srgb, var(--surface) 65%, var(--accent) 35%);
+    --divider: color-mix(in srgb, var(--surface) 88%, var(--ink) 12%);
+    --panel-bg: color-mix(in srgb, var(--surface) 93%, var(--ink) 7%);
+    --panel-surface: color-mix(in srgb, var(--surface) 89%, var(--ink) 11%);
+    --panel-border: color-mix(in srgb, var(--surface) 72%, var(--ink) 28%);
+    --panel-ink: var(--ink);
+    --panel-ink-muted: color-mix(in srgb, var(--ink-muted) 60%, var(--ink) 40%);
+
     --ink-contrast: var(--canvas);
     --good-ink: color-mix(in srgb, var(--good) 50%, var(--ink));
     --warn-ink: color-mix(in srgb, var(--warn) 50%, var(--ink));
@@ -877,6 +1128,13 @@
        vercel-dark e lava no accent verde-claro do mochi. */
     color: var(--accent-contrast);
   }
+  /* Hover do primario pelo TOKEN (`--accent-hover`, D-017), nao por brilho: o token e medido por
+     `contrastePaletas` contra `--accent-contrast` em todos os temas. So quando o elemento nao
+     traz outro preenchimento (`btn-solid bg-good`, `bg-ink`, `bg-*-soft` continuam com o seu). */
+  .btn-solid:not([class*="bg-"]):hover {
+    background-color: var(--accent-hover);
+    filter: none;
+  }
   /* Botão primário NEUTRO (preenchimento `--ink`). Use esta classe em vez de
      `btn-solid bg-ink text-white`: no modo escuro o --ink é CLARO, então
      `text-white` era branco sobre branco. --ink-contrast é sempre o --canvas. */
@@ -900,6 +1158,30 @@
   .card-panel:hover {
     box-shadow: var(--shadow-card);
     border-color: var(--color-accent);
+  }
+  /* PAINEL ESCURO (protótipo v3): hero de Capturar, transcricao ao vivo, "Jogando com". E uma
+     SUPERFICIE, nao um tema: usa os tokens `--panel-*` do tema em vigor (no escuro o painel e
+     mais claro que o canvas), e nao `data-theme`. Nao ganha borda accent no hover. */
+  .card-panel.escuro {
+    background-color: var(--color-panel-bg);
+    border-color: var(--color-panel-border);
+    color: var(--color-panel-ink);
+  }
+  .card-panel.escuro:hover {
+    border-color: var(--color-panel-border);
+  }
+  /* CARD BLOQUEADO (jogo que precisa de outro material): tracejado, fundo rebaixado, sem hover. */
+  .card-panel.bloqueado {
+    background-color: var(--color-surface-sunken);
+    border-style: dashed;
+  }
+  .card-panel.bloqueado:hover {
+    border-color: var(--color-border-subtle);
+    box-shadow: var(--shadow-card);
+  }
+  /* TITULO DE TELA (protótipo v3): display 900, tracking apertado, 24px no celular e 28px do md. */
+  .titulo-de-tela {
+    @apply font-display font-black text-ink leading-tight tracking-[-0.02em] text-2xl md:text-[28px];
   }
   /* --ink-faint reprovava em contraste sobre `surface` em TODOS os temas — e como
      .label-mono é o caption padrão da app, todo rótulo mono ficava ilegível. */
@@ -929,9 +1211,12 @@
   .kpi-pill {
     @apply inline-flex items-center gap-1.5 text-[11.5px] font-bold border border-border-subtle rounded-full px-3 py-1 text-ink-muted bg-surface transition-colors hover:border-accent hover:text-ink cursor-pointer;
   }
+  /* D-012: a pilula ATIVA passa a ser preenchimento `--ink` (aba/chip ativo do protótipo v3),
+     alinhando `Abas pilula` e `Segmentado pilula` ao `Segmentado tom="ink"`. O accent fica
+     reservado ao botao primario e ao item de navegacao. */
   .kpi-pill.active {
-    @apply bg-accent border-accent;
-    color: var(--accent-contrast);
+    @apply bg-ink border-ink;
+    color: var(--ink-contrast);
   }
 
   /* Active Production CSS Classes */
@@ -947,7 +1232,7 @@
   /* Campo de FORMULÁRIO (auth/config) — distinto do .ap-input de jogo (que é text-center/text-lg/p-4).
      Alinhado à esquerda, tamanho normal e padding vertical SIMÉTRICO → caret centralizado, baseline ok. */
   .field-input {
-    @apply w-full rounded-xl border border-border-subtle bg-canvas px-3.5 py-2.5 text-sm text-ink leading-normal outline-none transition-colors placeholder:text-ink-faint focus:border-accent focus:ring-2 focus:ring-accent-soft/25;
+    @apply w-full rounded-xl border border-border-subtle bg-field-bg px-3.5 py-2.5 text-sm text-ink leading-normal outline-none transition-colors placeholder:text-ink-faint focus:border-accent focus:ring-2 focus:ring-accent-soft/25;
   }
   .ap-result-correct {
     @apply bg-good-soft/20 border border-good/30 p-5 rounded-2xl text-center shadow-sm;
@@ -1126,7 +1411,6 @@
 
 /* 1) Preenchimento ACCENT → texto --accent-contrast */
 .btn-solid,
-.kpi-pill.active,
 button.bg-accent,
 span.bg-accent,
 a.bg-accent,
@@ -1139,6 +1423,7 @@ div.bg-accent.text-white {
       elemento carrega as duas classes — o caso dos ~10 `btn-solid bg-ink text-white`
       espalhados pelos exercícios. */
 .btn-ink,
+.kpi-pill.active,
 .btn-solid.bg-ink,
 button.bg-ink,
 span.bg-ink,

@@ -374,3 +374,11 @@ self-hosted, "em breve" em string de interface, `href="#"`, Sessão com 4 abas, 
 Loja com 4 abas, Perfil com 3 abas, busca Ctrl+K, iChat, menu de conta, gaveta de Capturar,
 Ajustes com 4 abas, Importar com 4 fontes, lobby facetado, Recordes, ranking global,
 `prefers-reduced-motion`, i18n com pseudo-locale e catraca de cobertura no CI.
+
+---
+
+**2026-09-11 (F5)** — **P0-12 resolvido** pelo modelo híbrido da D-006 (`openspec/changes/fsrs-hibrido`):
+a grade de quatro botões continua inalcançável (o teste que a trava segue válido), mas a pessoa passa
+a escolher a nota do acerto em todos os formatos. Pendência derivada, registrada aqui: remover o ramo
+morto do flashcard e o `scheduler` sem setter (`Study.tsx`), e reescrever
+`tests/gradeDeRevisaoAlcancavel.test.ts` para o que sobrar.

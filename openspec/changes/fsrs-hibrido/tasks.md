@@ -1,0 +1,6 @@
+- [x] 1 `notasOferecidas` + `notaFinal` no core, com sobrecargas e 7 casos
+- [x] 2 `NotaDeRevisao` (radiogroup) com 3 casos de componente
+- [x] 3 `Study.tsx`: três formatos enviam `notaFinal`; estado reseta a cada cartão
+- [x] 4 `activeProduction.tsx`: `notaAntesDeAvancar`
+- [x] 5 E2E: acerto → "Bom" marcado → escolher "Fácil" → avança
+- [x] 6 gate sem E2E verde (4.126 unitários); matriz E2E 99 existentes verdes + o caso novo verde em desktop com banco zerado (o `test.skip` inicial saiu: o gate proíbe skip novo)

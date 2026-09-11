@@ -1,6 +1,6 @@
-import { countDue, estadoDoCartao, isDueNow, previsaoDosBotoes } from '@core';
-import { Brain, Briefcase, CheckCircle2, ChevronRight, Mic, Plus, Search,Sparkles, Volume2, Zap } from 'lucide-react';
-import React, { useCallback,useEffect, useMemo, useState } from 'react';
+import { countDue, estadoDoCartao, type Grade, isDueNow, notaFinal, notasOferecidas, previsaoDosBotoes } from '@core';
+import { Brain, Briefcase, CheckCircle2, ChevronRight, Mic, Plus, Search, Sparkles, Volume2, Zap } from 'lucide-react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { fetchDeck, reviewCard, salvarRodada } from '../../data/api';
 import { ficharPalavraDoAnalista } from '../../lib/adicionarAoDeck';
@@ -10,8 +10,8 @@ import {
   similarityPercentage,
   stabilityThreshold,
 } from '../../lib/exercicios';
-import { type AgeProfileType,copyDoPerfil, showsPowerUserAffordances } from '../../lib/profile';
-import type { ExerciseId,PracticeSeed, Sentence } from '../../lib/sentences';
+import { type AgeProfileType, copyDoPerfil, showsPowerUserAffordances } from '../../lib/profile';
+import type { ExerciseId, PracticeSeed, Sentence } from '../../lib/sentences';
 import { seedFromSelection, telaDoExercicio } from '../../lib/sentences';
 import { speak as ttsSpeak } from '../../lib/tts';
 import { useExameDePalavra } from '../../lib/useExameDePalavra';
@@ -20,6 +20,7 @@ import CommandPalette, { useCommandPalette } from '../CommandPalette';
 import FraseComLacuna from '../FraseComLacuna';
 import { Erro } from '../ui';
 import VocabularyPanel from '../VocabularyPanel';
+import NotaDeRevisao from './study/NotaDeRevisao';
 
 // Exercícios — cada um é um componente próprio, com o contrato `ExerciseProps`.
 
@@ -78,7 +79,9 @@ export default function Study({
       .catch((e: unknown) => setErroDoDeck(String((e as Error)?.message ?? e)))
       .finally(() => setDeckLoaded(true));
   }, []);
-  useEffect(() => { carregarDeck(); }, [carregarDeck]);
+  useEffect(() => {
+    carregarDeck();
+  }, [carregarDeck]);
 
   /**
    * Cartões do contexto ativo (a sessão em foco, ou o baralho inteiro).
@@ -157,6 +160,10 @@ export default function Study({
   const [typingAttempt, setTypingAttempt] = useState('');
   const [typingVerified, setTypingVerified] = useState(false);
   const [typingCorrect, setTypingCorrect] = useState(false);
+  /* MODELO HÍBRIDO (D-006): a resposta objetiva decide acerto/erro; no acerto a pessoa pode
+     ajustar a nota entre Difícil/Bom/Fácil, com a derivada pré-selecionada. `null` = não mexeu. */
+  const [notaEscolhida, setNotaEscolhida] = useState<Grade | null>(null);
+  const [resultadoAtivo, setResultadoAtivo] = useState<{ correct: boolean } | null>(null);
 
   // Reset exercise states when card changes
   useEffect(() => {
@@ -186,10 +193,10 @@ export default function Study({
    * `reviewCard()` já devolve o cartão atualizado pelo servidor. Agora é essa a única fonte.
    */
   const handleFsrsFeedback = async (cardId: string, rating: 1 | 2 | 3 | 4, exerciseKind?: ExerciseKind) => {
-    let effectiveRating = rating;
-    if (exerciseKind === 'active-production' && rating === 3) {
-      effectiveRating = 4; // produção ativa é mais difícil: um acerto vale Easy
-    }
+    /* A regra "produção ativa é mais difícil: um acerto vale Easy" saiu daqui e mora em
+       `notasOferecidas` (core): é a nota PRÉ-SELECIONADA daquele formato, que a pessoa pode
+       baixar para Bom ou Difícil (D-006). Converter aqui de novo desfaria a escolha dela. */
+    const effectiveRating = rating;
 
     try {
       const updated = await reviewCard(cardId, effectiveRating);
@@ -252,6 +259,8 @@ export default function Study({
   // Move forward in the flashcard queue
   const triggerNextCard = () => {
     setShowAnswer(false);
+    setNotaEscolhida(null);
+    setResultadoAtivo(null);
     if (currentReviewIndex + 1 < reviewCards.length) {
       setCurrentReviewIndex((prev) => prev + 1);
     } else {
@@ -852,10 +861,24 @@ export default function Study({
                           playTTS={playWordTTS}
                           onVerify={(res: any) => {
                             (currentCard as any)._lastResult = res;
+                            setResultadoAtivo({ correct: !!res.correct });
                           }}
+                          notaAntesDeAvancar={
+                            resultadoAtivo?.correct && scheduler === 'fsrs' ? (
+                              <NotaDeRevisao
+                                opcoes={notasOferecidas(true, 'active-production').opcoes}
+                                selecionada={notaFinal(notasOferecidas(true, 'active-production'), notaEscolhida)}
+                                aoEscolher={setNotaEscolhida}
+                                previsao={previsao}
+                              />
+                            ) : null
+                          }
                           onNext={() => {
                             const res = (currentCard as any)._lastResult || { correct: false };
-                            const rating = res.correct ? 3 : 1;
+                            const rating = notaFinal(
+                              notasOferecidas(!!res.correct, 'active-production'),
+                              notaEscolhida,
+                            );
                             if (scheduler === 'fsrs') {
                               handleFsrsFeedback(currentCard.id, rating, 'active-production');
                             } else {
@@ -915,11 +938,23 @@ export default function Study({
                                     {typingAttempt}")
                                   </div>
                                 )}
+                                {typingCorrect && scheduler === 'fsrs' && (
+                                  <NotaDeRevisao
+                                    opcoes={notasOferecidas(true, 'typing').opcoes}
+                                    selecionada={notaFinal(notasOferecidas(true, 'typing'), notaEscolhida)}
+                                    aoEscolher={setNotaEscolhida}
+                                    previsao={previsao}
+                                  />
+                                )}
                                 <button
                                   onClick={() => {
                                     const isCorrect = typingCorrect;
                                     if (scheduler === 'fsrs') {
-                                      handleFsrsFeedback(currentCard.id, isCorrect ? 3 : 1, 'typing');
+                                      handleFsrsFeedback(
+                                        currentCard.id,
+                                        notaFinal(notasOferecidas(isCorrect, 'typing'), notaEscolhida),
+                                        'typing',
+                                      );
                                     } else {
                                       handleLeitnerFeedback(currentCard.id, isCorrect, 'typing');
                                     }
@@ -991,11 +1026,23 @@ export default function Study({
                                     <strong className="text-good">{currentCard.word}</strong>"
                                   </div>
                                 )}
+                                {typingCorrect && scheduler === 'fsrs' && (
+                                  <NotaDeRevisao
+                                    opcoes={notasOferecidas(true, 'mc').opcoes}
+                                    selecionada={notaFinal(notasOferecidas(true, 'mc'), notaEscolhida)}
+                                    aoEscolher={setNotaEscolhida}
+                                    previsao={previsao}
+                                  />
+                                )}
                                 <button
                                   onClick={() => {
                                     const isCorrect = typingCorrect;
                                     if (scheduler === 'fsrs') {
-                                      handleFsrsFeedback(currentCard.id, isCorrect ? 3 : 1, 'mc');
+                                      handleFsrsFeedback(
+                                        currentCard.id,
+                                        notaFinal(notasOferecidas(isCorrect, 'mc'), notaEscolhida),
+                                        'mc',
+                                      );
                                     } else {
                                       handleLeitnerFeedback(currentCard.id, isCorrect, 'mc');
                                     }
@@ -1166,7 +1213,9 @@ export default function Study({
                                       className="p-3 border-2 border-good-soft bg-good-soft/10 rounded-xl hover:bg-good-soft/20 text-center transition-colors flex flex-col items-center justify-between min-h-[75px] cursor-pointer"
                                     >
                                       <span className="font-extrabold text-[12px] text-good">Fácil</span>
-                                      <span className="text-[9px] text-ink-muted block font-mono mt-1">{previsao?.[4] ?? '—'}</span>
+                                      <span className="text-[9px] text-ink-muted block font-mono mt-1">
+                                        {previsao?.[4] ?? '—'}
+                                      </span>
                                     </button>
                                   </div>
                                 ) : (

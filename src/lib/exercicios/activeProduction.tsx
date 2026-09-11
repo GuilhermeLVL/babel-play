@@ -1,12 +1,12 @@
-import { AlertTriangle, CheckCircle2, Sparkles,Volume2, XCircle } from 'lucide-react';
-import React, { useEffect,useState } from 'react';
+import { AlertTriangle, CheckCircle2, Sparkles, Volume2, XCircle } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
 
 import { AiBadge } from '../../components/Provenance';
 import { buildGateway } from '../../gateway';
 import { getActiveProfile } from '../../gateway/activeProfile';
 import { VocabCard } from '../../types';
 import { buildCorretorUser, CORRETOR_SYSTEM, respostaEhPlausivel } from './corretorPrompt';
-import { diffWords,similarityPercentage } from './diff';
+import { diffWords, similarityPercentage } from './diff';
 
 /**
  * "VERIFICAR COM IA" — agora chama uma IA de verdade.
@@ -35,7 +35,10 @@ interface LlmVerdict {
 function parseVerdict(raw: string | undefined): LlmVerdict | null {
   if (!raw) return null;
   // Modelos pequenos adoram embrulhar JSON em cercas de código.
-  const cleaned = raw.replace(/^```(?:json)?/i, '').replace(/```\s*$/, '').trim();
+  const cleaned = raw
+    .replace(/^```(?:json)?/i, '')
+    .replace(/```\s*$/, '')
+    .trim();
   const start = cleaned.indexOf('{');
   const end = cleaned.lastIndexOf('}');
   if (start < 0 || end <= start) return null;
@@ -60,6 +63,8 @@ interface ActiveProductionProps {
     validationSource: 'deterministic' | 'probabilistic';
   }) => void;
   onNext: () => void;
+  /** Rodapé opcional entre o veredito e "Próximo" — é onde o Estudo põe a nota híbrida (D-006). */
+  notaAntesDeAvancar?: React.ReactNode;
   llmValidationEnabled?: boolean;
   playTTS?: (word: string) => void;
 }
@@ -68,6 +73,7 @@ export function ActiveProductionExercise({
   card,
   onVerify,
   onNext,
+  notaAntesDeAvancar,
   llmValidationEnabled = false,
   playTTS,
 }: ActiveProductionProps) {
@@ -199,7 +205,10 @@ export function ActiveProductionExercise({
         {parts.map((part, index) => {
           if (part.toLowerCase() === card.word.toLowerCase()) {
             return (
-              <span key={index} className="ap-blank px-3 py-1 mx-1 bg-accent-soft text-accent-ink font-bold border-b-2 border-dashed border-accent font-mono">
+              <span
+                key={index}
+                className="ap-blank px-3 py-1 mx-1 bg-accent-soft text-accent-ink font-bold border-b-2 border-dashed border-accent font-mono"
+              >
                 ___
               </span>
             );
@@ -217,11 +226,27 @@ export function ActiveProductionExercise({
       <div className="flex flex-wrap gap-0.5 justify-center font-mono text-lg font-bold my-2">
         {parts.map((part, idx) => {
           if (part.type === 'match') {
-            return <span key={idx} className="text-good">{part.value}</span>;
+            return (
+              <span key={idx} className="text-good">
+                {part.value}
+              </span>
+            );
           } else if (part.type === 'added') {
-            return <span key={idx} className="text-error line-through bg-error-soft/30 px-0.5 rounded">{part.value}</span>;
+            return (
+              <span key={idx} className="text-error line-through bg-error-soft/30 px-0.5 rounded">
+                {part.value}
+              </span>
+            );
           } else {
-            return <span key={idx} className="text-warn underline decoration-dotted bg-warn-soft/30 px-0.5 rounded" title="Caractere esperado">{part.value}</span>;
+            return (
+              <span
+                key={idx}
+                className="text-warn underline decoration-dotted bg-warn-soft/30 px-0.5 rounded"
+                title="Caractere esperado"
+              >
+                {part.value}
+              </span>
+            );
           }
         })}
       </div>
@@ -256,7 +281,9 @@ export function ActiveProductionExercise({
 
         {/* Prompt */}
         <div className="my-6 w-full px-4">
-          <span className="text-[11px] font-mono text-ink-muted uppercase tracking-widest block mb-4">Escreva a palavra que completa a frase:</span>
+          <span className="text-[11px] font-mono text-ink-muted uppercase tracking-widest block mb-4">
+            Escreva a palavra que completa a frase:
+          </span>
           {renderSentenceWithBlank()}
         </div>
 
@@ -324,7 +351,9 @@ export function ActiveProductionExercise({
                     <AlertTriangle className="w-5 h-5" />
                     <span>Acerto Parcial! ({(similarity * 100).toFixed(0)}% de similaridade)</span>
                   </div>
-                  <p className="text-[13px] text-ink-muted">Sua resposta teve pequenas divergências em relação à palavra-alvo:</p>
+                  <p className="text-[13px] text-ink-muted">
+                    Sua resposta teve pequenas divergências em relação à palavra-alvo:
+                  </p>
                   {renderDiff()}
                   <div className="text-sm">
                     Forma correta: <strong className="text-accent text-base">{card.word}</strong>
@@ -337,7 +366,9 @@ export function ActiveProductionExercise({
                     <CheckCircle2 className="w-5 h-5" />
                     <span>Resposta Correta!</span>
                   </div>
-                  <p className="text-sm">Sua resposta bateu perfeitamente com <strong className="text-good">{card.word}</strong></p>
+                  <p className="text-sm">
+                    Sua resposta bateu perfeitamente com <strong className="text-good">{card.word}</strong>
+                  </p>
                 </div>
               )
             ) : (
@@ -359,9 +390,7 @@ export function ActiveProductionExercise({
             {/* O veredito foi de um MODELO: mostramos o motivo DELE e marcamos como conteúdo de IA. */}
             {validationSource === 'probabilistic' && (
               <div className="bg-canvas border border-border-subtle p-4 rounded-xl text-start space-y-2">
-                <span className="text-[10px] uppercase font-mono text-ink-muted block">
-                  Por que a IA decidiu assim
-                </span>
+                <span className="text-[10px] uppercase font-mono text-ink-muted block">Por que a IA decidiu assim</span>
                 <p className="text-[12.5px] text-ink-muted leading-relaxed">
                   {llmReason || 'O modelo não explicou o veredito.'}
                 </p>
@@ -376,7 +405,11 @@ export function ActiveProductionExercise({
                 {card.sentence ? (
                   card.sentence.split(new RegExp(`(${escapeRegExp(card.word)})`, 'gi')).map((chunk, index) => {
                     if (chunk.toLowerCase() === card.word.toLowerCase()) {
-                      return <strong key={index} className="text-accent underline font-extrabold">{chunk}</strong>;
+                      return (
+                        <strong key={index} className="text-accent underline font-extrabold">
+                          {chunk}
+                        </strong>
+                      );
                     }
                     return <span key={index}>{chunk}</span>;
                   })
@@ -385,6 +418,8 @@ export function ActiveProductionExercise({
                 )}
               </p>
             </div>
+
+            {notaAntesDeAvancar && <div className="max-w-sm mx-auto">{notaAntesDeAvancar}</div>}
 
             <div className="flex gap-3 justify-center">
               {playTTS && (
@@ -396,10 +431,7 @@ export function ActiveProductionExercise({
                 </button>
               )}
 
-              <button
-                onClick={onNext}
-                className="btn-ink py-2 px-6 rounded-xl text-xs font-bold cursor-pointer"
-              >
+              <button onClick={onNext} className="btn-ink py-2 px-6 rounded-xl text-xs font-bold cursor-pointer">
                 Próximo Exercício
               </button>
             </div>

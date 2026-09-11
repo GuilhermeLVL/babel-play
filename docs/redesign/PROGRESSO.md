@@ -104,3 +104,14 @@ mas o custo de um engano é o banco real).
   reprovaram por "Hook timed out in 10000ms" (o servidor de teste não subiu em 10 s com a máquina
   carregada) e passaram isolados (54/54). Não é regressão; fica registrado porque o mesmo sintoma vai
   reaparecer sempre que o gate rodar junto com outra carga. Matriz E2E 99/0/15.
+
+## F4+F5 — Início, Vocabulário e Revisar (2026-09-11)
+
+- Início e Vocabulário já receberam o cabeçalho na F3; os pilares, a faixa de progresso, o card-herói,
+  as sessões recentes e o rodapé de planos já eram os do protótipo e passaram a vestir os tokens da
+  F1. Nada foi reescrito por reescrever.
+- **FSRS híbrido (D-006)**, change `openspec/changes/fsrs-hibrido`: `notasOferecidas`/`notaFinal` no
+  core, `NotaDeRevisao` (radiogroup com intervalos do agendador), os três formatos do Estudo enviam a
+  nota marcada; produção ativa recebe o grupo entre o veredito e "Próximo". Testes: 7 puros, 3 de
+  componente, 1 E2E novo (acertar → "Bom" marcado → "Fácil" → avança).
+- P0-12 de `LACUNAS.md` resolvido; ramo morto do flashcard fica para limpeza própria.

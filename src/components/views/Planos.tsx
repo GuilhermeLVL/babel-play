@@ -146,7 +146,7 @@ export default function Planos() {
     <div className="flex-1 overflow-y-auto w-full bg-canvas">
       <div className="p-6 md:p-10 max-w-4xl mx-auto w-full">
         <header className="mb-6">
-          <span className="label-mono text-accent">Plano e consumo</span>
+          <span className="label-mono text-accent-ink">Plano e consumo</span>
           <h1 className="font-display font-black text-2xl md:text-3xl text-ink tracking-tight mt-1 mb-2">
             Seu plano
           </h1>
@@ -166,7 +166,17 @@ export default function Planos() {
         />
 
         <PainelDeAba id="planos" ativo={aba}>
-          <div className="card-panel bg-surface p-5 overflow-x-auto">
+          {/* `tabIndex={0}` + `role="region"` + nome acessível NÃO são enfeite: a tabela tem
+              `min-w-[520px]` e o viewport mobile é 375px, então ela SEMPRE rola de lado ali. Um
+              contêiner rolável sem foco é inalcançável por teclado — quem não usa mouse não chega
+              às colunas "Essencial" e "Pro", isto é, à comparação inteira de preços. Encontrado
+              pelo axe (`scrollable-region-focusable`) só no projeto `mobile-375`. */}
+          <div
+            className="card-panel bg-surface p-5 overflow-x-auto"
+            tabIndex={0}
+            role="region"
+            aria-label="Comparação entre os planos"
+          >
             <table className="w-full text-[13px] border-collapse min-w-[520px]">
               <thead>
                 <tr className="border-b border-subtle">
@@ -178,7 +188,7 @@ export default function Planos() {
                     <Sparkles size={14} className="inline me-1" aria-hidden />Essencial
                     <span className="block text-[11px] font-normal text-ink-muted">R$ {precoDoPlano('essencial')}/mês</span>
                   </th>
-                  <th className="text-center font-semibold text-accent pb-3 px-3 whitespace-nowrap">
+                  <th className="text-center font-semibold text-accent-ink pb-3 px-3 whitespace-nowrap">
                     <Cloud size={14} className="inline me-1" aria-hidden />Pro
                     <span className="block text-[11px] font-normal text-ink-muted">R$ {precoDoPlano('pro')}/mês</span>
                   </th>

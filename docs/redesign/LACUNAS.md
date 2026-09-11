@@ -95,7 +95,43 @@ estão bem cobertos.
 Nenhuma dependência axe/a11y no `package.json`. O projeto trava contraste por teste
 (`tests/contrastePaletas.test.ts`, 7 temas × claro/escuro, limiar 4,5:1) e tem primitivos testados
 (`tests/primitivosDeUi.test.tsx`), mas nada trava papel, rótulo, foco visível e ordem de tabulação.
-Correção: `@axe-core/playwright` nas rotas migradas (D-005).
+
+**FEITO.** `@axe-core/playwright@4.13.0` + `tests/e2e/acessibilidade.e2e.ts`, varrendo 5 rotas sem
+exigência de conta (`/`, `/jogar`, `/planos`, `/sobre`, `/ajustes`) nos **3 viewports** — 15 casos.
+Limiar: falha em `serious` e `critical`; `minor`/`moderate` aparecem no relatório e não derrubam.
+Exigir zero em tudo, num app de 13 telas que nunca passou por axe, produziria um teste que alguém
+desliga na primeira semana.
+
+A mensagem de falha imprime regra, seletor e link — um "expected 3 to be 0" mandaria a próxima
+pessoa reabrir o navegador para descobrir o que o teste já sabia.
+
+**Achou uma violação real na primeira execução**, e ela está corrigida: `/planos` usava `--accent`
+como **cor de texto** em dois lugares (`Planos.tsx:149` e `:181`). Medido: accent `#F04E23` dá
+**3,23:1** sobre `surface` e **2,79:1** sobre `canvas` — reprova o mínimo AA de 4,5:1 nos dois.
+O token correto é `--accent-ink`, que no tema `babel` (`index.css:245`) é `#b93613` e dá **5,21:1**
+sobre surface e **4,50:1** sobre canvas. Trocado para `text-accent-ink`; 15/15 verdes depois.
+
+Nota lateral: o `--accent-ink` do `:root` (`index.css:129`) é `#C93A15`, que dá 3,96:1 sobre canvas
+e reprovaria. Ele só vale como fallback quando nenhum `data-theme` está aplicado — situação que o
+`main.tsx:11` evita pintando o tema antes do primeiro render. Fica anotado, não perseguido.
+
+**Segunda violação real, achada quando o teste entrou no gate:**
+`scrollable-region-focusable` em `/planos`, **só no viewport de 375px**. A tabela de comparação tem
+`min-w-[520px]` e portanto sempre rola de lado no celular; um contêiner rolável sem foco é
+inalcançável por teclado, ou seja, quem não usa mouse não chegava às colunas "Essencial" e "Pro" —
+à comparação de preços inteira. Corrigido com `tabIndex={0}` + `role="region"` + nome acessível
+(`Planos.tsx:169`).
+
+**E um defeito do próprio teste, corrigido junto.** Ele falhava na suíte completa e passava quando
+rodado sozinho, pela mesma revisão de código. Causa: a aba ativa de `/planos` **persiste** entre
+execuções — com "Consumo do mês" aberta, a tabela nem renderiza e o axe varria uma tela onde o
+defeito não existia. Um teste cuja cobertura muda em silêncio conforme o estado deixado por outro
+é pior que nenhum, porque dá confiança sem dar garantia. Agora ele percorre todas as abas de cada
+rota e deduplica, então o que cobre não depende de onde a sessão anterior parou.
+
+Também passou a anexar o relatório completo do axe (inclusive `minor`/`moderate`) ao resultado do
+teste: na primeira falha no gate, o detalhe da violação não existia em lugar nenhum e o diagnóstico
+virou adivinhação.
 
 ### P0-6 [proto] Contraste reprovado no protótipo
 

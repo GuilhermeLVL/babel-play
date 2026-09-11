@@ -101,7 +101,10 @@ as deficiências do *protótipo*, não as do produto. Verificado nesta sessão:
       Evidência: `dist` com 73 woff2 e zero `fonts.googleapis`/`fonts.gstatic`; app rodando sem
       nenhuma requisição a `gstatic`.
 - [ ] P0-4 — estado de erro nas 9 telas sem ele
-- [ ] P0-5 — `@axe-core/playwright`
+- [x] **P0-5 — acessibilidade automatizada**
+      `@axe-core/playwright@4.13.0` + `tests/e2e/acessibilidade.e2e.ts`: 5 rotas × 3 viewports.
+      Achou e corrigiu uma violação real de contraste em `/planos` (accent como texto, 3,23:1).
+      15/15 verdes.
 - [ ] P0-11 — tokens derivados + regra de lint
 
 ## F2–F5, F7

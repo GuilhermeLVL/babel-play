@@ -90,6 +90,29 @@ Settings/LangAudit, Recordes e PainelTrilha não têm.
 É a única lacuna de estado que o prompt aponta e que **de fato existe**. Vazio e carregando já
 estão bem cobertos.
 
+**EM ANDAMENTO — a parte mais grave está feita.** O buraco não era decorativo: várias telas faziam
+`.catch(() => set...([]))`, ou seja, **apresentavam falha de rede como conteúdo vazio**. Em
+`Study.tsx:62` isso significava anunciar "Nenhuma palavra no deck ainda" com o wi-fi fora — o app
+dizendo ao usuário que o vocabulário dele sumiu. É a mesma família que
+`semConteudoFabricado.test.ts` e `contagemHonesta.test.ts` perseguem, pela porta dos fundos: em vez
+de inventar um número, inventa um ZERO. **Um `Vazio` exibido no lugar de um `Erro` é conteúdo
+fabricado.**
+
+`CatalogoDePalavras.tsx:113` já tinha nomeado e corrigido isto na sua própria tela. O markup de lá
+virou o primitivo `src/components/ui/Erro.tsx` — a regra de admissão da pasta exige dois
+consumidores reais, e ele nasce com dois: `Study.tsx` (o conserto) e `CatalogoDePalavras.tsx`
+(refatorado para provar equivalência). O primitivo acrescenta `role="alert"`, que faltava no
+original: sem ele o leitor de tela não anunciava a falha.
+
+A ordem importa e está travada por teste: **o erro renderiza ANTES do vazio**. Sem isso, a falha de
+rede volta a aparecer como "você não tem palavras" mesmo com o estado de erro existindo no
+componente.
+
+Travado por `tests/erroNaoEhVazio.test.tsx` (9 casos).
+
+**Falta ainda:** `Metrics.tsx:191` e `:198`, `Reading.tsx:181` e `Settings.tsx:153` têm o mesmo
+padrão e ainda não foram convertidos.
+
 ### P0-5 [-] Nenhuma acessibilidade automatizada
 
 Nenhuma dependência axe/a11y no `package.json`. O projeto trava contraste por teste

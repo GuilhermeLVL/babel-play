@@ -12,10 +12,11 @@
  * Reusa os primitivos existentes: `.card-panel`, `.badge-tag`, `.field-input`, `.kpi-pill`,
  * `.custom-scrollbar`, `.label-mono` (src/index.css). Ícones `lucide-react`. Sem emoji.
  */
-import { AlertTriangle, ArrowUpDown,Inbox, Loader2, RotateCw, Search } from 'lucide-react'
+import { ArrowUpDown, Inbox, Loader2, Search } from 'lucide-react'
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
 import { apiFetch } from '../../../data/api'
+import { Erro } from '../../ui'
 import NotaDeContagem from './NotaDeContagem'
 
 export interface ItemCatalogo {
@@ -196,18 +197,14 @@ export default function CatalogoDePalavras({ aoAbrirPalavra }: { aoAbrirPalavra?
 
       {/* ── estados ───────────────────────────────────────────────────────────────── */}
       {erro && (
-        <div className="rounded-xl border border-error/30 bg-error-soft/10 p-3 text-[13px]">
-          <div className="flex items-start gap-2 text-error font-semibold">
-            <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
-            <div>
-              <p>Não consegui carregar seu vocabulário.</p>
-              <p className="font-normal text-ink-muted text-[12px] mt-0.5">{erro}</p>
-            </div>
-          </div>
-          <button onClick={() => void carregar(false)} className="btn-solid mt-2 px-3 py-1.5 text-[12px] flex items-center gap-1.5 cursor-pointer">
-            <RotateCw className="w-3.5 h-3.5" /> Tentar de novo
-          </button>
-        </div>
+        /* Markup extraído para `ui/Erro` — mesmas classes, mesmo texto, mesma ação. O primitivo
+           acrescenta `role="alert"`, que faltava aqui: sem ele o leitor de tela não anunciava a
+           falha e a pessoa ficava esperando uma lista que nunca vinha. */
+        <Erro
+          titulo="Não consegui carregar seu vocabulário."
+          detalhe={erro}
+          aoTentarDeNovo={() => void carregar(false)}
+        />
       )}
 
       {!erro && carregando && (

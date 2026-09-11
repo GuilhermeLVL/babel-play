@@ -1,10 +1,10 @@
 import { PanelLeftClose, PanelLeftOpen } from 'lucide-react';
-import React, { useEffect,useState } from 'react';
+import React, { useEffect, useState } from 'react';
 
 import type { DerivedProgress } from '../../lib/progress';
 import type { ViewType } from '../../types';
 import ControlCluster, { type ControlClusterProps } from './ControlCluster';
-import { type AgeProfileType,NAV_ITEMS, navLabel } from './navItems';
+import { type AgeProfileType, NAV_ITEMS, navLabel } from './navItems';
 import { Brand } from './ShellBits';
 
 const COLLAPSE_KEY = 'babel.rail_collapsed';
@@ -37,7 +37,9 @@ export default function NavRail({ activeView, onChangeView, ageProfile, side, co
     });
   };
 
-  const width = collapsed ? 'w-[68px]' : 'w-[232px]';
+  /* 220 px (protótipo v3). Mudou de 232: quem consome a largura é `--shell-inset-right` no
+     index.css, que precisa acompanhar — é o único outro lugar. */
+  const width = collapsed ? 'w-[68px]' : 'w-[220px]';
   const border = side === 'right' ? 'border-s' : 'border-e';
 
   // Publica o recuo para os elementos `fixed` (botão flutuante do iChat) — ver index.css.
@@ -52,10 +54,12 @@ export default function NavRail({ activeView, onChangeView, ageProfile, side, co
   return (
     <aside
       data-shell="rail"
-      className={`hidden md:flex ${width} ${border} border-border-subtle/70 h-full flex-col bg-surface/80 backdrop-blur-sm z-20 shrink-0 select-none transition-[width] duration-200`}
+      className={`hidden md:flex ${width} ${border} border-divider h-full flex-col bg-surface/85 backdrop-blur-sm z-20 shrink-0 select-none transition-[width] duration-200`}
     >
       {/* Marca + recolher, na mesma linha de base do conteúdo */}
-      <div className={`h-[60px] shrink-0 flex items-center gap-2 border-b border-border-subtle/70 ${collapsed ? 'justify-center px-2' : 'px-4'}`}>
+      <div
+        className={`h-[60px] shrink-0 flex items-center gap-2 border-b border-divider ${collapsed ? 'justify-center px-2' : 'px-4'}`}
+      >
         <Brand compact={collapsed} />
         {!collapsed && (
           <button
@@ -72,7 +76,10 @@ export default function NavRail({ activeView, onChangeView, ageProfile, side, co
       </div>
 
       {/* Navegação — com rolagem própria: com a fonte no XL, seis itens já não cabiam. */}
-      <nav aria-label="Navegação principal" className="flex-1 min-h-0 overflow-y-auto custom-scrollbar py-3 px-2 space-y-1">
+      <nav
+        aria-label="Navegação principal"
+        className="flex-1 min-h-0 overflow-y-auto custom-scrollbar py-3 px-2 space-y-1"
+      >
         {NAV_ITEMS.map((item) => {
           const isActive = activeView === item.id;
           const Icon = item.icon;
@@ -85,27 +92,23 @@ export default function NavRail({ activeView, onChangeView, ageProfile, side, co
               title={collapsed ? label : undefined}
               aria-label={label}
               aria-current={isActive ? 'page' : undefined}
-              className={`relative w-full min-h-[44px] flex items-center gap-3 rounded-xl font-display font-bold text-[13.5px] cursor-pointer transition-colors ${
-                collapsed ? 'justify-center px-0' : 'px-3'
-              } ${isActive ? 'bg-accent-soft text-accent-ink' : 'text-ink-muted hover:text-ink hover:bg-surface-hover'}`}
+              /* Item do protótipo v3: 42 px, cantos de 12 px, ativo = preenchimento accent-soft SEM a
+                 barra lateral (o preenchimento já é o marcador). O rótulo QUEBRA em duas linhas em
+                 vez de cortar: com 220 px, "Planos e preços" em pseudo-locale (+40 %) não cabe numa
+                 linha, e `truncate` é exatamente o que `pseudo-localizacao.e2e.ts` reprova. */
+              className={`relative w-full min-h-[42px] flex items-center gap-3 rounded-xl font-display font-bold text-[13.5px] text-start cursor-pointer transition-colors ${
+                collapsed ? 'justify-center px-0' : 'px-3 py-1.5'
+              } ${isActive ? 'bg-accent-soft text-accent-ink' : 'text-ink-muted hover:text-ink hover:bg-surface-raised'}`}
             >
-              {isActive && (
-                <span
-                  aria-hidden
-                  className={`absolute top-2 bottom-2 w-1 bg-accent ${
-                    side === 'right' ? 'right-0 rounded-s-full' : 'left-0 rounded-e-full'
-                  }`}
-                />
-              )}
               <Icon className="w-5 h-5 shrink-0" aria-hidden />
-              {!collapsed && <span className="truncate">{label}</span>}
+              {!collapsed && <span className="leading-tight">{label}</span>}
             </button>
           );
         })}
       </nav>
 
       {/* Rodapé ancorado: utilitários */}
-      <div className={`shrink-0 border-t border-border-subtle/70 py-3 space-y-2 ${collapsed ? 'px-2' : 'px-3'}`}>
+      <div className={`shrink-0 border-t border-divider py-3 space-y-2 ${collapsed ? 'px-2' : 'px-3'}`}>
         {/* Sempre `column` (= quebra em linhas): oito controles de 36px somam ~300px e não cabem
             nos 232px do rail expandido, em `row` eles vazavam por fora da borda. */}
         <ControlCluster {...controls} orientation="column" />

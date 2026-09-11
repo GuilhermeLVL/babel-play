@@ -79,3 +79,16 @@ mas o custo de um engano é o banco real).
 - Classes: `.btn-solid:hover` por token; `.kpi-pill.active` em ink (D-012); `.field-input` com
   `--field-bg`; `.card-panel.escuro`, `.card-panel.bloqueado`, `.titulo-de-tela`; borda do card do
   babel 1,5 px. Nenhum `.tsx` tocado.
+
+## F2 — Casca (2026-09-11)
+
+- Padrão da posição do menu: `left` (D-012). Preferência gravada vence; as quatro posições
+  continuam como itens da loja. Modo claro já era o padrão de quem nunca escolheu (`readDarkMode`).
+- `NavRail` a 220 px (protótipo), item de 42 px em accent-soft sem a barra lateral, rótulo que
+  quebra em vez de cortar (a pseudo-localização reprova `truncate`), bordas `--divider`, hover
+  `--surface-raised`; `--shell-inset-right` = 220 px (o iChat acompanha).
+- `ControlCluster` em coluna: busca como pílula larga com "Ctrl K" impresso + fileira A / conforto /
+  claro-escuro / conta. Nenhum controle saiu; nomes acessíveis intactos (`tema.e2e` verde).
+- `NavBar`: rótulos só a partir de `2xl` — o estouro a 1280 px com os rótulos sênior (achado da
+  linha de base) deixa de existir.
+- Evidência: `02-casca/jogar__1280__claro.png` (vs `00-base`).

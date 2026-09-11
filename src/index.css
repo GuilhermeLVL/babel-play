@@ -1669,7 +1669,7 @@ select optgroup {
   :root { --shell-inset-bottom: 60px; }
 }
 @media (min-width: 768px) {
-  body.shell-rail-right { --shell-inset-right: 232px; }
+  body.shell-rail-right { --shell-inset-right: 220px; } /* = w-[220px] do NavRail (redesign v3) */
   body.shell-rail-right.shell-rail-collapsed { --shell-inset-right: 68px; }
   body.shell-bar-bottom { --shell-inset-bottom: 60px; }
 }

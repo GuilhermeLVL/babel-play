@@ -1,0 +1,5 @@
+- [x] 2.1 padrão `left` em `useAparencia` (D-012)
+- [x] 2.2 `NavRail` 220 px, item 42 px, sem barra lateral, rótulo quebra; `--shell-inset-right: 220px`
+- [x] 2.3 `ControlCluster` em coluna: pílula de busca + fileira; nada sai
+- [x] 2.4 `NavBar` rótulos a partir de `2xl`
+- [x] 2.5 gate sem E2E verde (4.113 unitários); matriz E2E 99/0/15 nos 3 viewports; evidências `02-casca` (18 capturas)

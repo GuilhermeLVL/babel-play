@@ -3,7 +3,7 @@ import React from 'react';
 import type { DerivedProgress } from '../../lib/progress';
 import type { ViewType } from '../../types';
 import ControlCluster, { type ControlClusterProps } from './ControlCluster';
-import { type AgeProfileType,NAV_ITEMS, navLabel } from './navItems';
+import { type AgeProfileType, NAV_ITEMS, navLabel } from './navItems';
 import { Brand } from './ShellBits';
 
 interface NavBarProps {
@@ -31,14 +31,15 @@ export default function NavBar({ activeView, onChangeView, ageProfile, edge, con
          que a app inteira usa em blocos de título. Ver a regra em index.css. */
       data-shell="bar"
       className={`h-[60px] w-full items-center gap-3 px-3 md:px-5 bg-surface/90 backdrop-blur-md z-20 shrink-0 select-none ${
-        edge === 'bottom'
-          ? 'hidden md:flex border-t border-border-subtle/70'
-          : 'flex border-b border-border-subtle/70'
+        edge === 'bottom' ? 'hidden md:flex border-t border-border-subtle/70' : 'flex border-b border-border-subtle/70'
       }`}
     >
       <Brand compact />
 
-      <nav aria-label="Navegação principal" className="hidden md:flex items-center gap-0.5 min-w-0 flex-1 justify-center">
+      <nav
+        aria-label="Navegação principal"
+        className="hidden md:flex items-center gap-0.5 min-w-0 flex-1 justify-center"
+      >
         {NAV_ITEMS.map((item) => {
           const isActive = activeView === item.id;
           const Icon = item.icon;
@@ -60,7 +61,10 @@ export default function NavBar({ activeView, onChangeView, ageProfile, edge, con
               }`}
             >
               <Icon className="w-4 h-4 shrink-0" aria-hidden />
-              <span className="hidden xl:inline">{label}</span>
+              {/* `2xl`, não `xl`: a 1280 px os rótulos do perfil sênior ("Gravar Áudio", "Planos e
+                  preços", "Configurações") estouravam sobre o cluster de controles — medido na linha
+                  de base do redesign v3 (`evidencias/00-base/jogar__1280__claro.png`). */}
+              <span className="hidden 2xl:inline">{label}</span>
             </button>
           );
         })}

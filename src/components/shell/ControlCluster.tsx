@@ -1,9 +1,7 @@
-import {
-  Moon,
-  Search,  Sun } from 'lucide-react';
+import { Moon, Search, Sun } from 'lucide-react';
 import React from 'react';
 
-import type { FonteType,ThemeType } from '../../lib/appearance';
+import type { FonteType, ThemeType } from '../../lib/appearance';
 import MenuDaConta from './MenuDaConta';
 import MenuDeConforto from './MenuDeConforto';
 import type { AgeProfileType, MenuPositionType } from './navItems';
@@ -62,7 +60,7 @@ function IconButton({
   title,
   active,
   tone,
-  children
+  children,
 }: {
   onClick: () => void;
   title: string;
@@ -74,8 +72,8 @@ function IconButton({
     tone === 'warn'
       ? 'bg-warn-soft text-warn-ink'
       : tone === 'good'
-      ? 'bg-good-soft text-good-ink'
-      : 'bg-accent-soft text-accent-ink';
+        ? 'bg-good-soft text-good-ink'
+        : 'bg-accent-soft text-accent-ink';
   return (
     <button
       type="button"
@@ -114,21 +112,28 @@ export default function ControlCluster(props: ControlClusterProps) {
     togglePerformanceMode,
     orientation,
     onOpenSearch,
-    onChangeView
+    onChangeView,
   } = props;
 
   /* O som saiu daqui: o listener delegado (lib/sfxDelegate) já toca `click` em qualquer <button>,
      e `toggleOn`/`toggleOff` nos que declaram `aria-pressed`, que é o caso destes. Manter a
      chamada manual tocaria em dobro. */
-  const click = (fn: () => void) => () => { fn(); };
+  const click = (fn: () => void) => () => {
+    fn();
+  };
 
   const scaleIndex = FONT_SCALE_ORDER.indexOf(fontScale);
 
   return (
     <div
-      className={`flex items-center gap-0.5 bg-surface-hover/40 border border-border-subtle/60 p-1 rounded-xl ${
-        orientation === 'column' ? 'flex-wrap justify-center w-full' : ''
-      }`}
+      /* Em `column` (rodapé do rail, protótipo v3) o cluster deixa de ser uma caixa: a busca vira
+         uma pílula larga com o atalho impresso e os outros controles ficam numa fileira abaixo.
+         Em `row` (barra do topo/rodapé e barra do celular) nada muda. */
+      className={
+        orientation === 'column'
+          ? 'flex flex-col gap-1.5 w-full'
+          : 'flex items-center gap-0.5 bg-surface-hover/40 border border-border-subtle/60 p-1 rounded-xl'
+      }
     >
       {/* ── BUSCA GLOBAL ─────────────────────────────────────────────────────────────────────
           Na barra horizontal vira uma pílula larga com o atalho impresso: um ⌘K que ninguém vê não
@@ -142,12 +147,19 @@ export default function ControlCluster(props: ControlClusterProps) {
         aria-keyshortcuts="Control+K Meta+K"
         className={`flex items-center gap-2 rounded-lg text-ink-muted hover:text-ink hover:bg-surface-hover transition-colors cursor-pointer shrink-0 ${
           orientation === 'column'
-            ? 'w-9 h-9 justify-center'
+            ? 'w-full h-9 px-3 border border-border-subtle bg-field-bg'
             : 'h-9 ps-2.5 pe-2 border border-border-subtle/60 bg-surface'
         }`}
       >
         <Search className="w-4 h-4 shrink-0" />
-        {orientation === 'row' && (
+        {orientation === 'column' ? (
+          <>
+            <span className="text-[12.5px] font-semibold">Buscar</span>
+            <kbd className="ms-auto text-[10px] font-mono border border-border-subtle rounded px-1.5 py-0.5">
+              Ctrl K
+            </kbd>
+          </>
+        ) : (
           <>
             <span className="hidden lg:inline text-[12.5px] font-semibold">Buscar</span>
             <kbd className="hidden xl:inline text-[10px] font-mono border border-border-subtle rounded px-1.5 py-0.5">
@@ -157,61 +169,66 @@ export default function ControlCluster(props: ControlClusterProps) {
         )}
       </button>
 
-      <div className={orientation === 'column' ? 'hidden' : 'w-px h-5 bg-border-subtle/70 mx-1'} />
+      {/* Em coluna, os controles restantes formam a segunda linha do rodapé. */}
+      <div className={orientation === 'column' ? 'flex items-center justify-between gap-0.5 w-full' : 'contents'}>
+        <div className={orientation === 'column' ? 'hidden' : 'w-px h-5 bg-border-subtle/70 mx-1'} />
 
-      {/* Escala de fonte — o indicador é o próprio "A" mudando de tamanho, não uma sigla a decifrar */}
-      {/* UM botão que cicla (spec controle-de-fonte-ciclico): eram três alvos (menos / indicador
+        {/* Escala de fonte — o indicador é o próprio "A" mudando de tamanho, não uma sigla a decifrar */}
+        {/* UM botão que cicla (spec controle-de-fonte-ciclico): eram três alvos (menos / indicador
           passivo / mais); agora o "A" é o botão E o indicador — cresce com a escala, e no máximo
           o clique volta ao mínimo, dito pelo aria-label. */}
-      <button
-        type="button"
-        onClick={click(cycleFontScale)}
-        title={ROTULO_DO_CICLO[fontScale]}
-        aria-label={ROTULO_DO_CICLO[fontScale]}
-        className="w-9 h-9 rounded-lg text-ink-muted hover:bg-surface-hover hover:text-ink flex items-center justify-center transition-colors cursor-pointer shrink-0"
-      >
-        <span
-          className="font-display font-black select-none leading-none"
-          style={{ fontSize: `${11 + scaleIndex * 2}px` }}
-          aria-hidden
+        <button
+          type="button"
+          onClick={click(cycleFontScale)}
+          title={ROTULO_DO_CICLO[fontScale]}
+          aria-label={ROTULO_DO_CICLO[fontScale]}
+          className="w-9 h-9 rounded-lg text-ink-muted hover:bg-surface-hover hover:text-ink flex items-center justify-center transition-colors cursor-pointer shrink-0"
         >
-          A
-        </span>
-      </button>
+          <span
+            className="font-display font-black select-none leading-none"
+            style={{ fontSize: `${11 + scaleIndex * 2}px` }}
+            aria-hidden
+          >
+            A
+          </span>
+        </button>
 
-      <div className={orientation === 'column' ? 'hidden' : 'w-px h-5 bg-border-subtle/70 mx-1'} />
+        <div className={orientation === 'column' ? 'hidden' : 'w-px h-5 bg-border-subtle/70 mx-1'} />
 
-      {/* Som, animações e desempenho — preferências raras, agrupadas num popover COM RÓTULOS
+        {/* Som, animações e desempenho — preferências raras, agrupadas num popover COM RÓTULOS
           (auditoria de UX, 31/08): oito ícones soltos no cabeçalho exigiam decifração; três deles
           a maioria toca uma vez. Ver MenuDeConforto. */}
-      <MenuDeConforto
-        soundEnabled={soundEnabled}
-        toggleSound={toggleSound}
-        animationsEnabled={animationsEnabled}
-        toggleAnimations={click(toggleAnimations)}
-        performanceMode={performanceMode}
-        togglePerformanceMode={click(togglePerformanceMode)}
-        orientation={orientation}
-      />
+        <MenuDeConforto
+          soundEnabled={soundEnabled}
+          toggleSound={toggleSound}
+          animationsEnabled={animationsEnabled}
+          toggleAnimations={click(toggleAnimations)}
+          performanceMode={performanceMode}
+          togglePerformanceMode={click(togglePerformanceMode)}
+          orientation={orientation}
+        />
 
-      {/* O botão do tutor SAIU daqui (auditoria de UX, 31/08): ele e o balão flutuante do iChat
+        {/* O botão do tutor SAIU daqui (auditoria de UX, 31/08): ele e o balão flutuante do iChat
           abriam o MESMO painel com dois nomes diferentes ("BabelBot" aqui, "iChat" lá) — duas
           portas com placas distintas para a mesma sala é atrito puro. O balão flutuante fica,
           porque carrega contexto ("sintonizado com…") e está sempre visível. */}
 
-      {/* Claro / escuro */}
-      <IconButton onClick={click(toggleDarkMode)} title={darkMode ? 'Mudar para o modo claro' : 'Mudar para o modo escuro'}>
-        {darkMode ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
-      </IconButton>
+        {/* Claro / escuro */}
+        <IconButton
+          onClick={click(toggleDarkMode)}
+          title={darkMode ? 'Mudar para o modo claro' : 'Mudar para o modo escuro'}
+        >
+          {darkMode ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+        </IconButton>
 
-      {/* ── A CONTA ────────────────────────────────────────────────────────────────────────────
+        {/* ── A CONTA ────────────────────────────────────────────────────────────────────────────
           Último da fileira porque é o item de MAIS ALTO nível: os outros ajustam a tela, este
           responde "quem sou eu e como saio". Mora aqui, e não em `NAV_ITEMS`, porque este cluster
           é a única peça que as quatro posições de menu e a barra do celular compartilham,
           `MobileNav` renderiza a lista de navegação INTEIRA e já está no limite de largura. */}
-      <div className={orientation === 'column' ? 'hidden' : 'w-px h-5 bg-border-subtle/70 mx-1'} />
-      <MenuDaConta onIr={onChangeView} orientation={orientation} />
-
+        <div className={orientation === 'column' ? 'hidden' : 'w-px h-5 bg-border-subtle/70 mx-1'} />
+        <MenuDaConta onIr={onChangeView} orientation={orientation} />
+      </div>
     </div>
   );
 }

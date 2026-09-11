@@ -20,12 +20,13 @@
 import { readdirSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 
-import { cleanup, fireEvent,render, screen } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import React from 'react'
-import { afterEach,describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it } from 'vitest'
 
 import Abas, { PainelDeAba } from '../src/components/ui/Abas'
 import Barra from '../src/components/ui/Barra'
+import CabecalhoDeTela from '../src/components/ui/CabecalhoDeTela'
 import Ladrilho from '../src/components/ui/Ladrilho'
 import Segmentado from '../src/components/ui/Segmentado'
 import Vazio from '../src/components/ui/Vazio'
@@ -42,7 +43,10 @@ const PROIBIDOS: Array<{ re: RegExp; porque: string }> = [
   { re: /\btext-black\b/, porque: 'ilegível no modo escuro; use text-ink' },
   { re: /\bbg-white\b/, porque: 'não acompanha o tema; use bg-surface ou bg-canvas' },
   { re: /\bbg-black\b/, porque: 'não acompanha o tema; use bg-canvas' },
-  { re: /\b(?:text|bg|border)-(?:slate|gray|zinc|neutral|stone|red|blue|green|yellow|amber|emerald|indigo|violet|purple|pink)-\d{2,3}\b/, porque: 'tom fixo do Tailwind ignora os 7 temas; use os tokens semânticos' },
+  {
+    re: /\b(?:text|bg|border)-(?:slate|gray|zinc|neutral|stone|red|blue|green|yellow|amber|emerald|indigo|violet|purple|pink)-\d{2,3}\b/,
+    porque: 'tom fixo do Tailwind ignora os 7 temas; use os tokens semânticos',
+  },
   { re: /#[0-9a-fA-F]{3,8}\b/, porque: 'hex literal; a cor tem de vir de um token' },
   { re: /\brgba?\(/, porque: 'cor literal; a cor tem de vir de um token' },
 ]
@@ -137,8 +141,12 @@ describe('Abas — o contrato de acessibilidade que as versões à mão não tin
   it('o painel só renderiza o conteúdo da aba ativa', () => {
     render(
       <>
-        <PainelDeAba id="a" ativo="b">conteúdo A</PainelDeAba>
-        <PainelDeAba id="b" ativo="b">conteúdo B</PainelDeAba>
+        <PainelDeAba id="a" ativo="b">
+          conteúdo A
+        </PainelDeAba>
+        <PainelDeAba id="b" ativo="b">
+          conteúdo B
+        </PainelDeAba>
       </>,
     )
 
@@ -176,7 +184,9 @@ describe('Segmentado — opção sem itens não fica clicável, e diz por quê',
         rotuloDoGrupo="Nível"
         opcoes={[{ id: 'x', rotulo: 'Vazia', contagem: 0, motivoBloqueio: 'nenhuma palavra aqui' }]}
         valor={[]}
-        aoTrocar={() => { chamou++ }}
+        aoTrocar={() => {
+          chamou++
+        }}
         multiplo
       />,
     )
@@ -203,7 +213,10 @@ describe('Segmentado — opção sem itens não fica clicável, e diz por quê',
     const { unmount } = render(
       <Segmentado
         rotuloDoGrupo="Fonte"
-        opcoes={[{ id: 'a', rotulo: 'A' }, { id: 'b', rotulo: 'B' }]}
+        opcoes={[
+          { id: 'a', rotulo: 'A' },
+          { id: 'b', rotulo: 'B' },
+        ]}
         valor={['a']}
         aoTrocar={() => {}}
       />,
@@ -283,12 +296,46 @@ describe('Vazio — diz a causa e oferece a saída', () => {
       <Vazio
         titulo="Falta 1 palavra para abrir"
         explicacao="precisa de 4 · você tem 3 do inglês"
-        acao={{ rotulo: 'Gravar agora', aoClicar: () => { clicou = true } }}
+        acao={{
+          rotulo: 'Gravar agora',
+          aoClicar: () => {
+            clicou = true
+          },
+        }}
       />,
     )
 
     expect(screen.getByText(/precisa de 4/)).toBeTruthy()
     fireEvent.click(screen.getByRole('button', { name: 'Gravar agora' }))
     expect(clicou).toBe(true)
+  })
+})
+
+describe('CabecalhoDeTela — um h1 por tela, ações à direita, kicker opcional', () => {
+  afterEach(cleanup)
+
+  it('o título é o único h1 e o kicker não vira heading', () => {
+    render(
+      <CabecalhoDeTela
+        kicker="Seu estudo"
+        titulo="O que você quer fazer agora?"
+        subtitulo="Captura, prática e vocabulário."
+      />,
+    )
+    const h1 = screen.getAllByRole('heading', { level: 1 })
+    expect(h1).toHaveLength(1)
+    expect(h1[0].textContent).toBe('O que você quer fazer agora?')
+    expect(screen.getByText('Seu estudo').tagName).not.toMatch(/^H[1-6]$/)
+  })
+
+  it('as ações continuam sendo os botões que o chamador passou, com os seus nomes', () => {
+    render(<CabecalhoDeTela titulo="Vocabulário" acoes={<button type="button">Exportar Relatório</button>} />)
+    expect(screen.getByRole('button', { name: 'Exportar Relatório' })).toBeTruthy()
+  })
+
+  it('sem kicker e sem subtítulo renderiza só o título — nada de espaço vazio anunciado', () => {
+    const { container } = render(<CabecalhoDeTela titulo="Planos" />)
+    expect(container.querySelectorAll('p')).toHaveLength(0)
+    expect(container.querySelector('.label-mono')).toBeNull()
   })
 })

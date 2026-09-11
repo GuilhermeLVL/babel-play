@@ -27,6 +27,12 @@ interface LadrilhoProps {
   tom?: 'ink' | 'accent' | 'good' | 'warn' | 'error';
   /** Ícone opcional acima do número. */
   icone?: ReactNode;
+  /**
+   * `kpi` (protótipo v3): o rótulo vira um kicker em mono ACIMA do número, que cresce. É o cartão
+   * de indicador das telas de Vocabulário, Início e Sessão. `padrao` mantém o desenho anterior
+   * (número, rótulo embaixo), usado na antessala e no Perfil.
+   */
+  variante?: 'padrao' | 'kpi';
   className?: string;
 }
 
@@ -44,23 +50,37 @@ export default function Ladrilho({
   nota,
   tom = 'ink',
   icone,
+  variante = 'padrao',
   className = '',
 }: LadrilhoProps) {
+  const kpi = variante === 'kpi';
   return (
     <div className={`card-panel bg-surface p-4 ${className}`}>
-      {icone && <div className="text-ink-muted mb-2">{icone}</div>}
+      {kpi && (
+        <div className="label-mono flex items-center gap-1.5 mb-2">
+          {icone && (
+            <span className="text-ink-muted" aria-hidden>
+              {icone}
+            </span>
+          )}
+          <span>{rotulo}</span>
+        </div>
+      )}
+      {!kpi && icone && <div className="text-ink-muted mb-2">{icone}</div>}
 
       {valor === null ? (
         /* Esqueleto: ocupa o mesmo espaço que o número ocupará, para a tela não pular quando o
            dado chegar. `aria-hidden` porque "carregando" é dito pelo `aria-busy` do contêiner. */
         <div className="h-8 w-16 rounded-lg bg-surface-hover animate-pulse" aria-hidden />
       ) : (
-        <div className={`font-display font-black text-2xl leading-none tabular-nums ${COR_DO_VALOR[tom]}`}>
+        <div
+          className={`font-display font-black leading-none tabular-nums ${kpi ? 'text-[23px]' : 'text-2xl'} ${COR_DO_VALOR[tom]}`}
+        >
           {valor}
         </div>
       )}
 
-      <div className="text-[12px] text-ink-muted mt-1.5 leading-snug">{rotulo}</div>
+      {!kpi && <div className="text-[12px] text-ink-muted mt-1.5 leading-snug">{rotulo}</div>}
 
       {nota && <div className="text-[11px] text-ink-muted mt-1.5 leading-snug">{nota}</div>}
     </div>

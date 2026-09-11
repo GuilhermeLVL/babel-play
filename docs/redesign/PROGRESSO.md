@@ -92,3 +92,15 @@ mas o custo de um engano é o banco real).
 - `NavBar`: rótulos só a partir de `2xl` — o estouro a 1280 px com os rótulos sênior (achado da
   linha de base) deixa de existir.
 - Evidência: `02-casca/jogar__1280__claro.png` (vs `00-base`).
+
+## F3 — Primitivos (2026-09-11)
+
+- `CabecalhoDeTela` (kicker, `h1.titulo-de-tela`, subtítulo, ações) nasce com dois consumidores:
+  Início e Vocabulário. O botão "Exportar Relatório / Baixar Palavras / Exportar Meu Caderno" vira a
+  ação do cabeçalho — mesmo `onClick`, mesmo rótulo.
+- `Ladrilho variante="kpi"`: o cartão de indicador do protótipo (kicker mono acima, número 23 px).
+- `PainelEscuro` e `CartaoDeJogo` adiados para a F6: só lá existem dois consumidores de verdade.
+- Gate: os cinco arquivos `tests/caracterizacao/{auth-e-conta,ia,importacao-anki,planos-e-quotas,seeds-concorrencia}`
+  reprovaram por "Hook timed out in 10000ms" (o servidor de teste não subiu em 10 s com a máquina
+  carregada) e passaram isolados (54/54). Não é regressão; fica registrado porque o mesmo sintoma vai
+  reaparecer sempre que o gate rodar junto com outra carga. Matriz E2E 99/0/15.

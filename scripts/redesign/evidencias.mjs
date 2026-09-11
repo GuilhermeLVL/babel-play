@@ -54,7 +54,13 @@ const ROTAS_PADRAO = [
   '/perfil',
   '/ajustes',
 ]
-const rotas = lerArg('--so', '') ? lerArg('--so', '').split(',') : ROTAS_PADRAO
+/* `inicio` é o apelido da raiz: no Git Bash um argumento `/` vira `C:/Program Files/Git/` antes de
+   chegar ao Node (conversão de caminho do MSYS), e a captura da tela inicial falhava em silêncio. */
+const rotas = lerArg('--so', '')
+  ? lerArg('--so', '')
+      .split(',')
+      .map((r) => (r === 'inicio' || r === '' ? '/' : r))
+  : ROTAS_PADRAO
 /* Mesma lista de `tests/e2e/acessibilidade.e2e.ts`: conquistas de `core/learning/conquistas.ts` + níveis. */
 const CONQUISTAS = [
   'primeira-captura',

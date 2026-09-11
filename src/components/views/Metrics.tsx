@@ -1,12 +1,25 @@
-import { computeTextStats, detectarVozPassiva,retrievability } from '@core';
+import { computeTextStats, detectarVozPassiva, retrievability } from '@core';
 import {
-Activity, AlertCircle,
-ArrowUpRight, BarChart2,   BookOpen, Brain, Clock,   Download, Eye, Headphones,LayoutGrid, MessageSquareWarning, Mic, MoreHorizontal, PieChart as PieChartIcon,
-  Sprout, Target} from 'lucide-react';
-import React, { useCallback, useEffect,useMemo, useState } from 'react';
-import {
-Cell,
-Pie,   PieChart,   ResponsiveContainer, Tooltip} from 'recharts';
+  Activity,
+  AlertCircle,
+  ArrowUpRight,
+  BarChart2,
+  BookOpen,
+  Brain,
+  Clock,
+  Download,
+  Eye,
+  Headphones,
+  LayoutGrid,
+  MessageSquareWarning,
+  Mic,
+  MoreHorizontal,
+  PieChart as PieChartIcon,
+  Sprout,
+  Target,
+} from 'lucide-react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from 'recharts';
 
 import { type AppMetrics, fetchAllUtterances, fetchDeck, fetchMetrics, type UtteranceRow } from '../../data/api';
 import { ficharPalavraDoAnalista } from '../../lib/adicionarAoDeck';
@@ -14,14 +27,14 @@ import { numero } from '../../lib/i18n';
 import { baseLang, langLabelNaUI } from '../../lib/languages';
 import { copyDoPerfil, coreOnly } from '../../lib/profile';
 import { baixarRelatorio } from '../../lib/relatorioDeProgresso';
-import type { ExerciseId,PracticeSeed } from '../../lib/sentences';
+import type { ExerciseId, PracticeSeed } from '../../lib/sentences';
 import { seedFromSelection, telaDoExercicio } from '../../lib/sentences';
 import { useExameDePalavra } from '../../lib/useExameDePalavra';
 import { Recording, VocabCard, VocabWord } from '../../types';
 import EditablePanel from '../EditablePanel';
-import { Confianca, ehBaixaConfianca,SemDado } from '../Honestidade';
+import { Confianca, ehBaixaConfianca, SemDado } from '../Honestidade';
 import EvolucaoSemanal from '../metrics/EvolucaoSemanal';
-import { Abas, Barra, Erro, PainelDeAba } from '../ui';
+import { Abas, Barra, CabecalhoDeTela, Erro, PainelDeAba } from '../ui';
 import VocabularyPanel from '../VocabularyPanel';
 import MetricsExpandedKpi, { KpiType } from './MetricsExpandedKpi';
 import CatalogoDePalavras from './vocab/CatalogoDePalavras';
@@ -120,7 +133,12 @@ function desdeAUltimaRevisao(lastReview?: number): string {
   return meses === 1 ? 'há 1 mês' : `há ${meses} meses`;
 }
 
-export default function Metrics({ recordings, onChangeView, ageProfile = 'pro', metrics: metricsDoApp }: {
+export default function Metrics({
+  recordings,
+  onChangeView,
+  ageProfile = 'pro',
+  metrics: metricsDoApp,
+}: {
   recordings: Recording[];
   /** Navegação entre telas (ex.: abrir um exercício a partir de uma métrica). */
   onChangeView?: (view: string, data?: any) => void;
@@ -145,7 +163,7 @@ export default function Metrics({ recordings, onChangeView, ageProfile = 'pro', 
   const chartTheme = useChartTheme();
   const levelColors = useMemo(
     () => [chartTheme.accent, chartTheme.good, chartTheme.warn, chartTheme.rare, chartTheme.error, chartTheme.inkMuted],
-    [chartTheme]
+    [chartTheme],
   );
 
   /* Métricas REAIS computadas no backend (sem dados fabricados) — vindas do App, que já as
@@ -154,7 +172,9 @@ export default function Metrics({ recordings, onChangeView, ageProfile = 'pro', 
   const [metricsLocais, setMetricsLocais] = useState<AppMetrics | null>(null);
   useEffect(() => {
     if (metricsDoApp !== undefined) return;
-    fetchMetrics().then(setMetricsLocais).catch(() => setMetricsLocais(null));
+    fetchMetrics()
+      .then(setMetricsLocais)
+      .catch(() => setMetricsLocais(null));
   }, [recordings, metricsDoApp]);
   const metrics = metricsDoApp !== undefined ? metricsDoApp : metricsLocais;
 
@@ -178,7 +198,7 @@ export default function Metrics({ recordings, onChangeView, ageProfile = 'pro', 
      fora da wordlist"). Classificada é a que tem nível CEFR de verdade. */
   const niveisComCefr = useMemo(
     () => levelDist.filter((l) => l.level !== 'N/D').reduce((n, l) => n + l.count, 0),
-    [levelDist]
+    [levelDist],
   );
   const niveisSemBase = !levelDist.length || ehBaixaConfianca(metrics?.levelConfidence ?? 0);
   /** Há distribuição para desenhar? Só "N/D" é ausência de dado, não uma fatia. */
@@ -194,10 +214,15 @@ export default function Metrics({ recordings, onChangeView, ageProfile = 'pro', 
   const carregarDeck = useCallback(() => {
     setErroDoDeck(null);
     fetchDeck()
-      .then((cartoes) => { setVocabCards(cartoes); setErroDoDeck(null); })
+      .then((cartoes) => {
+        setVocabCards(cartoes);
+        setErroDoDeck(null);
+      })
       .catch((e: unknown) => setErroDoDeck(String((e as Error)?.message ?? e)));
   }, []);
-  useEffect(() => { carregarDeck(); }, [carregarDeck]);
+  useEffect(() => {
+    carregarDeck();
+  }, [carregarDeck]);
 
   // Falas REAIS de todas as sessões — fonte do painel "Complexidade Estrutural & Tom" (abaixo).
   // Mesmo endpoint que a Auditoria de Idioma já usa (`fetchAllUtterances`, uma chamada só).
@@ -206,10 +231,15 @@ export default function Metrics({ recordings, onChangeView, ageProfile = 'pro', 
   const carregarFalas = useCallback(() => {
     setErroDasFalas(null);
     fetchAllUtterances()
-      .then((falas) => { setAllUtterances(falas); setErroDasFalas(null); })
+      .then((falas) => {
+        setAllUtterances(falas);
+        setErroDasFalas(null);
+      })
       .catch((e: unknown) => setErroDasFalas(String((e as Error)?.message ?? e)));
   }, []);
-  useEffect(() => { carregarFalas(); }, [carregarFalas]);
+  useEffect(() => {
+    carregarFalas();
+  }, [carregarFalas]);
 
   // --- ANALISTA DE VOCABULÁRIO ---
   // C12 — mesma rotina da tela de Revisão, agora em `lib/useExameDePalavra`.
@@ -225,10 +255,7 @@ export default function Metrics({ recordings, onChangeView, ageProfile = 'pro', 
      dois idiomas configurados são o mesmo — o app avisa em Ajustes e mesmo assim ficha. Contamos
      aqui para a tela poder dizer, e apontar onde se conserta a causa. */
   const minutosDoIdioma = Math.round(((metrics?.listeningMs ?? 0) + (metrics?.speakingMs ?? 0)) / 60000);
-  const semVerso = useMemo(
-    () => vocabCards.filter((c) => !(c.translation ?? '').trim()).length,
-    [vocabCards],
-  );
+  const semVerso = useMemo(() => vocabCards.filter((c) => !(c.translation ?? '').trim()).length, [vocabCards]);
   const speakWord = exame.falar;
   const ttsSpeed = exame.velocidade;
   const setTtsSpeed = exame.setVelocidade;
@@ -246,8 +273,7 @@ export default function Metrics({ recordings, onChangeView, ageProfile = 'pro', 
 
   /** Já fichada? (deck do backend ou adicionada agora, nesta tela) */
   const isWordAdded = (w: VocabWord) =>
-    addedWords.includes(w.word) ||
-    vocabCards.some((c) => c.word.toLowerCase() === w.word.toLowerCase());
+    addedWords.includes(w.word) || vocabCards.some((c) => c.word.toLowerCase() === w.word.toLowerCase());
 
   /**
    * "Praticar esta palavra" a partir do Analista de Vocabulário das Métricas.
@@ -300,8 +326,14 @@ export default function Metrics({ recordings, onChangeView, ageProfile = 'pro', 
          caía em "sem estabilidade", forçando a frase "0 nunca foram revisados" num deck de 201
          novos — visto em produção em 31/08. "Nunca revisado" é a causa raiz e vem primeiro;
          "sem estabilidade" fica para o caso raro de cartão revisado sem FSRS (legado Leitner). */
-      if (!(ultima > 0)) { semRevisao++; continue; }
-      if (!(estabilidade > 0)) { semEstabilidade++; continue; }
+      if (!(ultima > 0)) {
+        semRevisao++;
+        continue;
+      }
+      if (!(estabilidade > 0)) {
+        semEstabilidade++;
+        continue;
+      }
       const dias = Math.max(0, (now - ultima) / 86_400_000);
       comRetencao.push({ card: c, retencaoPct: Math.round(retrievability(dias, estabilidade) * 100) });
     }
@@ -342,127 +374,165 @@ export default function Metrics({ recordings, onChangeView, ageProfile = 'pro', 
 
   const textStats = useMemo(
     () => computeTextStats(corpusDoAlvo.texto, idiomaEstudado),
-    [corpusDoAlvo.texto, idiomaEstudado]
+    [corpusDoAlvo.texto, idiomaEstudado],
   );
   const vozPassiva = useMemo(
     () => detectarVozPassiva(corpusDoAlvo.texto, idiomaEstudado),
-    [corpusDoAlvo.texto, idiomaEstudado]
+    [corpusDoAlvo.texto, idiomaEstudado],
   );
   const nomeDoIdiomaEstudado = langLabelNaUI(idiomaEstudado);
 
   return (
     <div className="flex-1 flex flex-col lg:flex-row h-full min-h-0 bg-surface">
-    <div className="flex-1 min-w-0 flex flex-col h-full bg-surface overflow-y-auto relative custom-scrollbar">
+      <div className="flex-1 min-w-0 flex flex-col h-full bg-surface overflow-y-auto relative custom-scrollbar">
+        {/* KPI DEEP DIVE MODAL */}
+        <MetricsExpandedKpi kpi={expandedKpi} onClose={() => setExpandedKpi(null)} metrics={metrics} />
 
-      {/* KPI DEEP DIVE MODAL */}
-      <MetricsExpandedKpi kpi={expandedKpi} onClose={() => setExpandedKpi(null)} metrics={metrics} />
-
-      {/* Main Header */}
-      <EditablePanel
-        viewKey="metrics"
-        panelKey="header"
-        title="Cabeçalho Métricas"
-        canResizeWidth={false}
-        canResizeHeight={false}
-        defaultHeight={0}
-      >
-        <div className="px-6 md:px-10 pt-8 pb-4 bg-canvas shrink-0">
-          <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
-            <div>
-              <h1 className="font-display font-black text-2xl md:text-3xl text-ink tracking-tight mb-2 flex items-center gap-2">
-                {ageProfile === 'kids' ? (
+        {/* Main Header */}
+        <EditablePanel
+          viewKey="metrics"
+          panelKey="header"
+          title="Cabeçalho Métricas"
+          canResizeWidth={false}
+          canResizeHeight={false}
+          defaultHeight={0}
+        >
+          <div className="px-6 md:px-10 pt-8 pb-4 bg-canvas shrink-0">
+            {/* Cabeçalho pelo primitivo (redesign v3): o ícone do perfil vira kicker, o título fica
+              na hierarquia única e o botão de exportar é a ação à direita. Textos intactos. */}
+            <CabecalhoDeTela
+              kicker={
+                ageProfile === 'kids' ? (
                   <>
-                    <Sprout className="w-7 h-7 text-good inline" />
-                    <span>Jardim de Palavras &amp; Recompensas</span>
+                    <Sprout className="w-3.5 h-3.5" aria-hidden />
+                    <span>Jardim de palavras</span>
                   </>
                 ) : ageProfile === 'senior' ? (
                   <>
-                    <Eye className="w-7 h-7 text-accent inline" />
-                    <span>Seu Caderno de Palavras &amp; Frases</span>
+                    <Eye className="w-3.5 h-3.5" aria-hidden />
+                    <span>Minhas palavras</span>
                   </>
                 ) : (
-                  <span>Analytics &amp; Inteligência Lexical</span>
-                )}
-              </h1>
-              <p className="text-xs md:text-sm text-ink-muted max-w-2xl">
-                {ageProfile === 'kids' ? (
+                  <span>Vocabulário</span>
+                )
+              }
+              titulo={
+                ageProfile === 'kids'
+                  ? 'Jardim de Palavras & Recompensas'
+                  : ageProfile === 'senior'
+                    ? 'Seu Caderno de Palavras & Frases'
+                    : 'Analytics & Inteligência Lexical'
+              }
+              subtitulo={
+                ageProfile === 'kids' ? (
                   <span className="flex items-center gap-1 flex-wrap">
                     <span>Suas palavras salvas prontas para regar! Revise suas cartas para ganhar Seeds</span>
-                    <Sprout className="w-3.5 h-3.5 text-good inline" />
+                    <Sprout className="w-3.5 h-3.5 text-good-ink inline" aria-hidden />
                     <span>e subir de nível.</span>
                   </span>
                 ) : ageProfile === 'senior' ? (
                   'Veja todas as palavras salvas das suas gravações com botão de pronúncia em áudio e explicações fáceis.'
                 ) : (
                   'Acompanhe sua evolução com base nos dados reais das suas sessões e revisões. Métricas estimadas vêm sempre com o nível de confiança correspondente.'
-                )}
-              </p>
-            </div>
-            {/* Este botão existia SEM onClick — controle falso (achado da spec
-                progresso-de-idioma). Agora exporta de verdade: um .txt gerado dos dados reais
-                (palavras difíceis, tempo ativo × passivo, ritmo), pensado para sair do app. */}
-            <button
-              onClick={() => { if (metrics) { baixarRelatorio(metrics, vocabCards); } }}
-              disabled={!metrics}
-              className="flex items-center gap-2 px-4 py-2 bg-surface border border-border-subtle rounded-lg text-xs md:text-sm font-bold text-ink hover:bg-surface-hover hover:border-ink transition-colors shadow-sm cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">
-              <Download className="w-4 h-4" /> {ageProfile === 'kids' ? 'Baixar Palavras' : ageProfile === 'senior' ? 'Exportar Meu Caderno' : 'Exportar Relatório'}
-            </button>
-          </div>
+                )
+              }
+              acoes={
+                /* Este botão existia SEM onClick — controle falso (achado da spec
+                 progresso-de-idioma). Agora exporta de verdade: um .txt gerado dos dados reais
+                 (palavras difíceis, tempo ativo × passivo, ritmo), pensado para sair do app. */
+                <button
+                  onClick={() => {
+                    if (metrics) {
+                      baixarRelatorio(metrics, vocabCards);
+                    }
+                  }}
+                  disabled={!metrics}
+                  className="flex items-center gap-2 px-4 py-2 bg-surface border border-border-subtle rounded-lg text-xs md:text-sm font-bold text-ink hover:bg-surface-hover hover:border-ink transition-colors shadow-sm cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <Download className="w-4 h-4" />{' '}
+                  {ageProfile === 'kids'
+                    ? 'Baixar Palavras'
+                    : ageProfile === 'senior'
+                      ? 'Exportar Meu Caderno'
+                      : 'Exportar Relatório'}
+                </button>
+              }
+            />
 
-          {/* Abas — em Kids/Sênior as duas mais densas ficam atrás de "Mais". Elas continuam
+            {/* Abas — em Kids/Sênior as duas mais densas ficam atrás de "Mais". Elas continuam
               existindo e a UM clique; o que muda é não abrirem três frentes de análise de uma vez
               para quem só quer ver as próprias palavras. */}
-          {/* "Mais" NÃO é uma aba: ele não tem painel, ele revela as outras duas. Passá-lo por
+            {/* "Mais" NÃO é uma aba: ele não tem painel, ele revela as outras duas. Passá-lo por
               `Abas` o faria anunciar-se como aba selecionável para quem usa leitor de tela, e as
               setas do teclado parariam nele à toa. Fica ao lado, como o botão que sempre foi. */}
-          <div className="flex gap-2 border-b border-border-subtle mt-4">
-            <Abas
-              rotuloDoGrupo="Seções do vocabulário"
-              ativo={mainTab}
-              aoTrocar={(id) => setMainTab(id as typeof mainTab)}
-              className="border-b-0"
-              itens={[
-                { id: 'dashboard', rotulo: copyDoPerfil('metricsTab.dashboard', ageProfile), icone: <LayoutGrid className="w-4 h-4" /> },
-                ...((!coreOnly(ageProfile) || showAllTabs || mainTab !== 'dashboard')
-                  ? [
-                    { id: 'lexical', rotulo: copyDoPerfil('metricsTab.lexical', ageProfile), icone: <Brain className="w-4 h-4" /> },
-                    { id: 'fluency', rotulo: copyDoPerfil('metricsTab.fluency', ageProfile), icone: <Mic className="w-4 h-4" /> },
-                  ]
-                  : []),
-              ]}
-            />
-            {coreOnly(ageProfile) && !showAllTabs && mainTab === 'dashboard' && (
-              <button
-                onClick={() => setShowAllTabs(true)}
-                className="pb-3 px-4 text-[13px] font-bold border-b-2 border-transparent text-ink-muted hover:text-ink transition-colors flex items-center gap-2 cursor-pointer"
-              >
-                <MoreHorizontal className="w-4 h-4" /> Mais
-              </button>
-            )}
+            <div className="flex gap-2 border-b border-border-subtle mt-4">
+              <Abas
+                rotuloDoGrupo="Seções do vocabulário"
+                ativo={mainTab}
+                aoTrocar={(id) => setMainTab(id as typeof mainTab)}
+                className="border-b-0"
+                itens={[
+                  {
+                    id: 'dashboard',
+                    rotulo: copyDoPerfil('metricsTab.dashboard', ageProfile),
+                    icone: <LayoutGrid className="w-4 h-4" />,
+                  },
+                  ...(!coreOnly(ageProfile) || showAllTabs || mainTab !== 'dashboard'
+                    ? [
+                        {
+                          id: 'lexical',
+                          rotulo: copyDoPerfil('metricsTab.lexical', ageProfile),
+                          icone: <Brain className="w-4 h-4" />,
+                        },
+                        {
+                          id: 'fluency',
+                          rotulo: copyDoPerfil('metricsTab.fluency', ageProfile),
+                          icone: <Mic className="w-4 h-4" />,
+                        },
+                      ]
+                    : []),
+                ]}
+              />
+              {coreOnly(ageProfile) && !showAllTabs && mainTab === 'dashboard' && (
+                <button
+                  onClick={() => setShowAllTabs(true)}
+                  className="pb-3 px-4 text-[13px] font-bold border-b-2 border-transparent text-ink-muted hover:text-ink transition-colors flex items-center gap-2 cursor-pointer"
+                >
+                  <MoreHorizontal className="w-4 h-4" /> Mais
+                </button>
+              )}
+            </div>
           </div>
-        </div>
-      </EditablePanel>
+        </EditablePanel>
 
-      {/* Main Content Area */}
-      <div className="flex-1 p-6 md:p-10 bg-surface min-h-full">
-
-        {/* --- DASHBOARD TAB --- */}
-        <PainelDeAba id="dashboard" ativo={mainTab} className="animate-in fade-in space-y-8 max-w-7xl mx-auto">
+        {/* Main Content Area */}
+        <div className="flex-1 p-6 md:p-10 bg-surface min-h-full">
+          {/* --- DASHBOARD TAB --- */}
+          <PainelDeAba id="dashboard" ativo={mainTab} className="animate-in fade-in space-y-8 max-w-7xl mx-auto">
             {/* Top Level KPIs */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               <div
                 className="card-panel p-6 relative overflow-hidden cursor-pointer hover:shadow-md transition-all group"
                 onClick={() => setExpandedKpi('volume')}
-                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setExpandedKpi('volume'); } }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    setExpandedKpi('volume');
+                  }
+                }}
                 role="button"
                 tabIndex={0}
                 aria-label="Abrir o detalhamento do volume lexical"
               >
                 <div className="flex items-center gap-2 mb-3 text-ink-muted group-hover:text-ink transition-colors">
                   <BookOpen className="w-4 h-4 text-accent" />
-                  <span className="text-[11px] font-bold uppercase tracking-wider font-mono">{copyDoPerfil('metric.deckSize', ageProfile)}</span>
+                  <span className="text-[11px] font-bold uppercase tracking-wider font-mono">
+                    {copyDoPerfil('metric.deckSize', ageProfile)}
+                  </span>
                 </div>
-                <div className="font-display font-black text-4xl tracking-tight text-ink mb-1">{numero(metrics?.deckSize ?? 0)}</div>
+                <div className="font-display font-black text-4xl tracking-tight text-ink mb-1">
+                  {numero(metrics?.deckSize ?? 0)}
+                </div>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-1 text-[12px] text-ink-muted font-bold">
                     {metrics?.newCards ?? 0} novos • {metrics?.dueToday ?? 0} p/ revisar
@@ -474,21 +544,32 @@ export default function Metrics({ recordings, onChangeView, ageProfile = 'pro', 
               <div
                 className="card-panel p-6 relative overflow-hidden cursor-pointer hover:shadow-md transition-all group"
                 onClick={() => setExpandedKpi('retention')}
-                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setExpandedKpi('retention'); } }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    setExpandedKpi('retention');
+                  }
+                }}
                 role="button"
                 tabIndex={0}
                 aria-label="Abrir o detalhamento da taxa de retenção"
               >
                 <div className="flex items-center gap-2 mb-3 text-ink-muted group-hover:text-ink transition-colors">
                   <Activity className="w-4 h-4 text-good" />
-                  <span className="text-[11px] font-bold uppercase tracking-wider font-mono">{copyDoPerfil('metric.retention', ageProfile)}</span>
+                  <span className="text-[11px] font-bold uppercase tracking-wider font-mono">
+                    {copyDoPerfil('metric.retention', ageProfile)}
+                  </span>
                 </div>
-                <div className="font-display font-black text-4xl tracking-tight text-ink mb-1">{metrics && metrics.avgRetentionConfidence > 0 ? Math.round(metrics.avgRetention * 100) + '%' : '-'}</div>
+                <div className="font-display font-black text-4xl tracking-tight text-ink mb-1">
+                  {metrics && metrics.avgRetentionConfidence > 0 ? Math.round(metrics.avgRetention * 100) + '%' : '-'}
+                </div>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-1 text-[12px] text-ink-muted font-bold">
-                    {metrics && metrics.avgRetentionConfidence > 0
-                      ? <Confianca valor={metrics.avgRetentionConfidence} estimativa />
-                      : 'sem revisões ainda'}
+                    {metrics && metrics.avgRetentionConfidence > 0 ? (
+                      <Confianca valor={metrics.avgRetentionConfidence} estimativa />
+                    ) : (
+                      'sem revisões ainda'
+                    )}
                   </div>
                   <ArrowUpRight className="w-4 h-4 text-ink-muted opacity-0 group-hover:opacity-100 transition-opacity" />
                 </div>
@@ -497,18 +578,29 @@ export default function Metrics({ recordings, onChangeView, ageProfile = 'pro', 
               <div
                 className="card-panel p-6 relative overflow-hidden cursor-pointer hover:shadow-md transition-all group"
                 onClick={() => setExpandedKpi('time')}
-                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setExpandedKpi('time'); } }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    setExpandedKpi('time');
+                  }
+                }}
                 role="button"
                 tabIndex={0}
                 aria-label="Abrir o detalhamento das revisões feitas"
               >
                 <div className="flex items-center gap-2 mb-3 text-ink-muted group-hover:text-ink transition-colors">
                   <Clock className="w-4 h-4 text-rare" />
-                  <span className="text-[11px] font-bold uppercase tracking-wider font-mono">{copyDoPerfil('metric.reviews', ageProfile)}</span>
+                  <span className="text-[11px] font-bold uppercase tracking-wider font-mono">
+                    {copyDoPerfil('metric.reviews', ageProfile)}
+                  </span>
                 </div>
-                <div className="font-display font-black text-4xl tracking-tight text-ink mb-1">{metrics?.reviews ?? 0}</div>
+                <div className="font-display font-black text-4xl tracking-tight text-ink mb-1">
+                  {metrics?.reviews ?? 0}
+                </div>
                 <div className="flex items-center justify-between mt-1">
-                  <div className="text-[12px] text-ink-muted">{metrics?.sessions ?? 0} sessões • {metrics?.streakDays ?? 0} dias seguidos</div>
+                  <div className="text-[12px] text-ink-muted">
+                    {metrics?.sessions ?? 0} sessões • {metrics?.streakDays ?? 0} dias seguidos
+                  </div>
                   <ArrowUpRight className="w-4 h-4 text-ink-muted opacity-0 group-hover:opacity-100 transition-opacity" />
                 </div>
               </div>
@@ -522,7 +614,8 @@ export default function Metrics({ recordings, onChangeView, ageProfile = 'pro', 
                   <span className="text-[11px] font-bold uppercase tracking-wider font-mono">Tempo com o idioma</span>
                 </div>
                 <div className="font-display font-black text-4xl tracking-tight text-ink mb-1">
-                  {minutosDoIdioma}<span className="text-2xl"> min</span>
+                  {minutosDoIdioma}
+                  <span className="text-2xl"> min</span>
                 </div>
                 <div className="text-[12px] text-ink-muted font-bold">
                   {numero(metrics?.wordsCaptured ?? 0)} palavras ouvidas
@@ -552,11 +645,7 @@ export default function Metrics({ recordings, onChangeView, ageProfile = 'pro', 
                   implementações diferentes, que divergiram em margem, eixo, formato de data e
                   rodapé). A transformação da série mora dentro do componente. */}
               <div className="lg:col-span-2">
-                <EvolucaoSemanal
-                  serie={metrics?.vocabByWeek}
-                  titulo="Evolução do Vocabulário"
-                  altura={280}
-                />
+                <EvolucaoSemanal serie={metrics?.vocabByWeek} titulo="Evolução do Vocabulário" altura={280} />
               </div>
 
               {/* Attention Required — retenção REAL por cartão (FSRS puro, `retrievability` de `@core`) */}
@@ -577,8 +666,8 @@ export default function Metrics({ recordings, onChangeView, ageProfile = 'pro', 
                       Termos com menor retenção prevista agora (FSRS).
                     </p>
                     <p className="text-[11.5px] text-ink-faint mb-3 shrink-0">
-                      Calculado sobre <strong className="text-ink-muted">{lowRetentionAnalysis.totalCalculavel}</strong> de{' '}
-                      <strong className="text-ink-muted">{lowRetentionAnalysis.totalDeck}</strong> cartões.
+                      Calculado sobre <strong className="text-ink-muted">{lowRetentionAnalysis.totalCalculavel}</strong>{' '}
+                      de <strong className="text-ink-muted">{lowRetentionAnalysis.totalDeck}</strong> cartões.
                     </p>
                     <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar space-y-1.5 pe-1">
                       {lowRetentionAnalysis.piores.map(({ card, retencaoPct }) => (
@@ -611,7 +700,9 @@ export default function Metrics({ recordings, onChangeView, ageProfile = 'pro', 
                             />
                             {/* C9 — `-ink` e não a cor cheia: `--error`/`--warn` são de
                                 PREENCHIMENTO e como texto sobre o card davam 2,54:1. */}
-                            <span className={`text-[12px] font-bold font-mono w-9 text-end ${retencaoPct < 50 ? 'text-error-ink' : 'text-warn-ink'}`}>
+                            <span
+                              className={`text-[12px] font-bold font-mono w-9 text-end ${retencaoPct < 50 ? 'text-error-ink' : 'text-warn-ink'}`}
+                            >
                               {retencaoPct}%
                             </span>
                             {/* "há 21 dias" responde a pergunta seguinte — por que esta caiu tanto
@@ -629,18 +720,17 @@ export default function Metrics({ recordings, onChangeView, ageProfile = 'pro', 
                         para agir sobre eles: o único botão da página era "Exportar Relatório".
                         Informar sem conduzir é o que fazia dela um beco, não estava escondida
                         (1 clique do menu), estava sem saída. */}
-                    <button
-                      onClick={() => onChangeView?.('study')}
-                      className="btn-solid w-full mt-3 shrink-0"
-                    >
+                    <button onClick={() => onChangeView?.('study')} className="btn-solid w-full mt-3 shrink-0">
                       <Target className="w-4 h-4" aria-hidden />
                       Revisar {lowRetentionAnalysis.piores.length} agora
                     </button>
 
                     {(lowRetentionAnalysis.semRevisao > 0 || lowRetentionAnalysis.semEstabilidade > 0) && (
                       <p className="text-[10.5px] text-ink-muted mt-3 pt-3 border-t border-border-subtle shrink-0">
-                        {lowRetentionAnalysis.semRevisao + lowRetentionAnalysis.semEstabilidade} de {lowRetentionAnalysis.totalDeck} cartões ficaram FORA do cálculo, sem revisão FSRS, retenção não existe:{' '}
-                        {lowRetentionAnalysis.semRevisao} nunca revisados, {lowRetentionAnalysis.semEstabilidade} sem estabilidade FSRS ainda.
+                        {lowRetentionAnalysis.semRevisao + lowRetentionAnalysis.semEstabilidade} de{' '}
+                        {lowRetentionAnalysis.totalDeck} cartões ficaram FORA do cálculo, sem revisão FSRS, retenção não
+                        existe: {lowRetentionAnalysis.semRevisao} nunca revisados,{' '}
+                        {lowRetentionAnalysis.semEstabilidade} sem estabilidade FSRS ainda.
                       </p>
                     )}
                   </>
@@ -656,16 +746,18 @@ export default function Metrics({ recordings, onChangeView, ageProfile = 'pro', 
                         aoTentarDeNovo={carregarDeck}
                       />
                     ) : (
-                    <SemDado
-                      compacto
-                      motivo={lowRetentionAnalysis.totalDeck === 0
-                        ? 'Seu deck ainda está vazio, sem cartões, não há retenção para ranquear.'
-                        : `Nenhum dos ${lowRetentionAnalysis.totalDeck} cartões tem retenção calculável ainda${
-                            lowRetentionAnalysis.semRevisao > 0
-                              ? ` — ${lowRetentionAnalysis.semRevisao === lowRetentionAnalysis.totalDeck ? 'nenhum' : `${lowRetentionAnalysis.totalDeck - lowRetentionAnalysis.semRevisao} de ${lowRetentionAnalysis.totalDeck}`} foi revisado`
-                              : ''
-                          }. Revise alguns cartões no Estudo para começar a ver este ranqueamento.`}
-                    />
+                      <SemDado
+                        compacto
+                        motivo={
+                          lowRetentionAnalysis.totalDeck === 0
+                            ? 'Seu deck ainda está vazio, sem cartões, não há retenção para ranquear.'
+                            : `Nenhum dos ${lowRetentionAnalysis.totalDeck} cartões tem retenção calculável ainda${
+                                lowRetentionAnalysis.semRevisao > 0
+                                  ? ` — ${lowRetentionAnalysis.semRevisao === lowRetentionAnalysis.totalDeck ? 'nenhum' : `${lowRetentionAnalysis.totalDeck - lowRetentionAnalysis.semRevisao} de ${lowRetentionAnalysis.totalDeck}`} foi revisado`
+                                  : ''
+                              }. Revise alguns cartões no Estudo para começar a ver este ranqueamento.`
+                        }
+                      />
                     )}
                   </div>
                 )}
@@ -688,15 +780,18 @@ export default function Metrics({ recordings, onChangeView, ageProfile = 'pro', 
                   </button>
                 </div>
                 <p className="text-[12px] text-ink-muted mb-4">
-                  As que você mais esquece e erra, pelo histórico real de revisões (só entram
-                  cartões com 2+ revisões).
+                  As que você mais esquece e erra, pelo histórico real de revisões (só entram cartões com 2+ revisões).
                 </p>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
                   {metrics!.palavrasDificeis!.map((p) => (
-                    <div key={p.cardId} className="flex items-center justify-between gap-2 bg-canvas border border-border-subtle rounded-lg px-3 py-2">
+                    <div
+                      key={p.cardId}
+                      className="flex items-center justify-between gap-2 bg-canvas border border-border-subtle rounded-lg px-3 py-2"
+                    >
                       <span className="font-bold text-[13.5px] text-ink truncate">{p.word}</span>
                       <span className="text-[11px] text-ink-muted font-mono shrink-0">
-                        {p.lapses > 0 ? `${p.lapses}× esquecida · ` : ''}{Math.round(p.fracaoDeErro * 100)}% erro
+                        {p.lapses > 0 ? `${p.lapses}× esquecida · ` : ''}
+                        {Math.round(p.fracaoDeErro * 100)}% erro
                       </span>
                     </div>
                   ))}
@@ -719,41 +814,52 @@ export default function Metrics({ recordings, onChangeView, ageProfile = 'pro', 
                 </span>
               </div>
               <p className="text-[12px] text-ink-muted mb-4">
-                Busque, filtre por nível e origem, ordene. Clique num termo para ouvir a pronúncia
-                e ver a explicação.
+                Busque, filtre por nível e origem, ordene. Clique num termo para ouvir a pronúncia e ver a explicação.
               </p>
-              <CatalogoDePalavras aoAbrirPalavra={(id) => {
-                const c = vocabCards.find((x) => x.id === id)
-                if (c) void examineWord(c.word, c.sentence)
-              }} />
+              <CatalogoDePalavras
+                aoAbrirPalavra={(id) => {
+                  const c = vocabCards.find((x) => x.id === id);
+                  if (c) void examineWord(c.word, c.sentence);
+                }}
+              />
               {semVerso > 0 && (
                 <p className="text-[12px] text-warn-ink mt-3 leading-relaxed">
-                  <b>{numero(semVerso)} {semVerso === 1 ? 'palavra está' : 'palavras estão'} sem tradução.</b>{' '}
-                  Isso acontece quando o idioma que você aprende e o seu idioma são o mesmo — não há
-                  o que traduzir, e o cartão fica sem verso.{' '}
-                  <button onClick={() => onChangeView?.('settings')} className="underline font-bold hover:text-ink cursor-pointer">
+                  <b>
+                    {numero(semVerso)} {semVerso === 1 ? 'palavra está' : 'palavras estão'} sem tradução.
+                  </b>{' '}
+                  Isso acontece quando o idioma que você aprende e o seu idioma são o mesmo — não há o que traduzir, e o
+                  cartão fica sem verso.{' '}
+                  <button
+                    onClick={() => onChangeView?.('settings')}
+                    className="underline font-bold hover:text-ink cursor-pointer"
+                  >
                     Conferir os dois idiomas
                   </button>
                 </p>
               )}
             </div>
-        </PainelDeAba>
+          </PainelDeAba>
 
-        {/* --- LEXICAL INTELLIGENCE TAB --- */}
-        <PainelDeAba id="lexical" ativo={mainTab} className="animate-in fade-in space-y-6 max-w-7xl mx-auto">
-
+          {/* --- LEXICAL INTELLIGENCE TAB --- */}
+          <PainelDeAba id="lexical" ativo={mainTab} className="animate-in fade-in space-y-6 max-w-7xl mx-auto">
             {/* Resumo lexical real */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div className="card-panel p-6">
-                <div className="text-[11px] font-bold uppercase tracking-wider font-mono text-ink-muted mb-2">Palavras Distintas</div>
+                <div className="text-[11px] font-bold uppercase tracking-wider font-mono text-ink-muted mb-2">
+                  Palavras Distintas
+                </div>
                 <div className="font-display font-black text-3xl text-ink">{numero(metrics?.uniqueWords ?? 0)}</div>
               </div>
               <div className="card-panel p-6">
-                <div className="text-[11px] font-bold uppercase tracking-wider font-mono text-ink-muted mb-2">Cartões no Deck</div>
+                <div className="text-[11px] font-bold uppercase tracking-wider font-mono text-ink-muted mb-2">
+                  Cartões no Deck
+                </div>
                 <div className="font-display font-black text-3xl text-ink">{numero(metrics?.deckSize ?? 0)}</div>
               </div>
               <div className="card-panel p-6">
-                <div className="text-[11px] font-bold uppercase tracking-wider font-mono text-ink-muted mb-2">Palavras Capturadas</div>
+                <div className="text-[11px] font-bold uppercase tracking-wider font-mono text-ink-muted mb-2">
+                  Palavras Capturadas
+                </div>
                 <div className="font-display font-black text-3xl text-ink">{numero(metrics?.wordsCaptured ?? 0)}</div>
               </div>
             </div>
@@ -767,7 +873,9 @@ export default function Metrics({ recordings, onChangeView, ageProfile = 'pro', 
                   </h3>
                   {levelDist.length > 0 && <Confianca valor={metrics?.levelConfidence ?? 0} estimativa />}
                 </div>
-                <p className="text-[12px] text-ink-muted mb-6">Estimativa aproximada de nível, não represente como classificação exata.</p>
+                <p className="text-[12px] text-ink-muted mb-6">
+                  Estimativa aproximada de nível, não represente como classificação exata.
+                </p>
 
                 {/* "N/D" NÃO É UMA DISTRIBUIÇÃO. Com todo o acervo fora da wordlist, o donut
                     desenhava uma fatia única de 100% "N/D" — um gráfico que não informa nada,
@@ -778,12 +886,28 @@ export default function Metrics({ recordings, onChangeView, ageProfile = 'pro', 
                     <div className="w-full" style={{ height: 240 }}>
                       <ResponsiveContainer width="100%" height="100%">
                         <PieChart>
-                          <Pie data={pieData} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={55} outerRadius={90} paddingAngle={2}>
+                          <Pie
+                            data={pieData}
+                            dataKey="value"
+                            nameKey="name"
+                            cx="50%"
+                            cy="50%"
+                            innerRadius={55}
+                            outerRadius={90}
+                            paddingAngle={2}
+                          >
                             {pieData.map((_, i) => (
                               <Cell key={i} fill={levelColors[i % levelColors.length]} />
                             ))}
                           </Pie>
-                          <Tooltip contentStyle={{ backgroundColor: chartTheme.surface, border: `1px solid ${chartTheme.borderSubtle}`, borderRadius: '8px', color: chartTheme.ink }} />
+                          <Tooltip
+                            contentStyle={{
+                              backgroundColor: chartTheme.surface,
+                              border: `1px solid ${chartTheme.borderSubtle}`,
+                              borderRadius: '8px',
+                              color: chartTheme.ink,
+                            }}
+                          />
                         </PieChart>
                       </ResponsiveContainer>
                     </div>
@@ -791,7 +915,10 @@ export default function Metrics({ recordings, onChangeView, ageProfile = 'pro', 
                       {levelDist.map((l, i) => (
                         <div key={l.level} className="flex items-center justify-between text-[12px]">
                           <span className="flex items-center gap-2 text-ink font-medium">
-                            <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: levelColors[i % levelColors.length] }}></span>
+                            <span
+                              className="w-2.5 h-2.5 rounded-full"
+                              style={{ backgroundColor: levelColors[i % levelColors.length] }}
+                            ></span>
                             {l.level}
                           </span>
                           <span className="text-ink-muted font-bold">
@@ -805,24 +932,27 @@ export default function Metrics({ recordings, onChangeView, ageProfile = 'pro', 
                   <SemDado compacto motivo={`Sem dados suficientes para estimar a distribuição de níveis.`} />
                 )}
               </div>
-
             </div>
-        </PainelDeAba>
+          </PainelDeAba>
 
-        {/* --- FLUENCY TAB --- */}
-        <PainelDeAba id="fluency" ativo={mainTab} className="animate-in fade-in space-y-6 max-w-7xl mx-auto">
+          {/* --- FLUENCY TAB --- */}
+          <PainelDeAba id="fluency" ativo={mainTab} className="animate-in fade-in space-y-6 max-w-7xl mx-auto">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-
               {/* Acoustic competences radar — requer IA */}
               <div className="card-panel p-6 flex flex-col h-[400px]">
-                <h3 className="font-display font-extrabold text-[16px] text-ink mb-2">Radar de Competências Acústicas</h3>
+                <h3 className="font-display font-extrabold text-[16px] text-ink mb-2">
+                  Radar de Competências Acústicas
+                </h3>
                 <p className="text-[12px] text-ink-muted mb-4">Avaliação multidimensional da fala espontânea.</p>
                 <div className="flex-1 min-h-0 flex items-center justify-center">
                   {/* Sem "em breve": não há nada a caminho. Um radar por dimensão exigiria uma
                       avaliação por modelo de linguagem A CADA abertura de tela, custo por token e
                       envio do seu texto para fora, que o perfil Privado/Local proíbe. É uma feature
                       com preço e consentimento a decidir, não uma data. */}
-                  <SemDado compacto motivo={`Avaliar fluência, gramática e pronúncia por dimensão exigiria um modelo de linguagem, que este painel não chama.`} />
+                  <SemDado
+                    compacto
+                    motivo={`Avaliar fluência, gramática e pronúncia por dimensão exigiria um modelo de linguagem, que este painel não chama.`}
+                  />
                 </div>
               </div>
 
@@ -837,7 +967,9 @@ export default function Metrics({ recordings, onChangeView, ageProfile = 'pro', 
                       <div className="flex items-end gap-4 mb-3 flex-wrap">
                         <div className="text-5xl font-black font-display text-ink">{Math.round(metrics.wpm)}</div>
                         <div className="text-[13px] text-ink-muted font-medium mb-1">Palavras por Minuto</div>
-                        <div className="mb-2"><Confianca valor={metrics.wpmConfidence} /></div>
+                        <div className="mb-2">
+                          <Confianca valor={metrics.wpmConfidence} />
+                        </div>
                       </div>
                       <div className="relative h-2 bg-surface rounded-full border border-border-subtle overflow-hidden mb-2">
                         {/* Zonas: Lento (0-110), Bom (110-150), Acelerado (150+) */}
@@ -860,7 +992,10 @@ export default function Metrics({ recordings, onChangeView, ageProfile = 'pro', 
                       </div>
                     </>
                   ) : (
-                    <SemDado compacto motivo={`Sem dados suficientes. Grave algumas sessões de fala para calcular seu ritmo.`} />
+                    <SemDado
+                      compacto
+                      motivo={`Sem dados suficientes. Grave algumas sessões de fala para calcular seu ritmo.`}
+                    />
                   )}
                 </div>
 
@@ -872,7 +1007,9 @@ export default function Metrics({ recordings, onChangeView, ageProfile = 'pro', 
                   {metrics && metrics.speakingMs > 0 ? (
                     <div className="flex items-end gap-4 flex-wrap">
                       <div className="text-5xl font-black font-display text-ink">{formatMs(metrics.speakingMs)}</div>
-                      <div className="text-[13px] text-ink-muted font-medium mb-1">min : seg • {recordings.length} capturas</div>
+                      <div className="text-[13px] text-ink-muted font-medium mb-1">
+                        min : seg • {recordings.length} capturas
+                      </div>
                     </div>
                   ) : (
                     <SemDado compacto motivo={`Sem dados suficientes de fala capturada ainda.`} />
@@ -898,51 +1035,77 @@ export default function Metrics({ recordings, onChangeView, ageProfile = 'pro', 
                   Estatísticas determinísticas do texto (sem IA), calculadas sobre as falas em{' '}
                   <b>{nomeDoIdiomaEstudado}</b>, o idioma que você estuda.
                   {corpusDoAlvo.totalFalas > 0 && (
-                    <> {corpusDoAlvo.noAlvo} de {corpusDoAlvo.totalFalas} falas capturadas estão nele
-                    {corpusDoAlvo.emOutrosIdiomas > 0 && ` (${corpusDoAlvo.emOutrosIdiomas} em outros idiomas ficaram fora)`}.</>
+                    <>
+                      {' '}
+                      {corpusDoAlvo.noAlvo} de {corpusDoAlvo.totalFalas} falas capturadas estão nele
+                      {corpusDoAlvo.emOutrosIdiomas > 0 &&
+                        ` (${corpusDoAlvo.emOutrosIdiomas} em outros idiomas ficaram fora)`}
+                      .
+                    </>
                   )}
                 </p>
                 {textStats.wordCount > 0 ? (
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                     <div className="bg-surface border border-border-subtle rounded-xl p-3">
-                      <div className="text-[10px] font-bold uppercase tracking-wider text-ink-muted mb-1">Palavras/Frase</div>
+                      <div className="text-[10px] font-bold uppercase tracking-wider text-ink-muted mb-1">
+                        Palavras/Frase
+                      </div>
                       <div className="font-display font-black text-xl text-ink">{textStats.avgSentenceLength}</div>
                     </div>
                     <div className="bg-surface border border-border-subtle rounded-xl p-3">
-                      <div className="text-[10px] font-bold uppercase tracking-wider text-ink-muted mb-1">Flesch Reading Ease</div>
-                      <div className="font-display font-black text-xl text-ink">{textStats.readingEase != null ? textStats.readingEase : '-'}</div>
+                      <div className="text-[10px] font-bold uppercase tracking-wider text-ink-muted mb-1">
+                        Flesch Reading Ease
+                      </div>
+                      <div className="font-display font-black text-xl text-ink">
+                        {textStats.readingEase != null ? textStats.readingEase : '-'}
+                      </div>
                       {textStats.readingEase == null && (
                         <div className="text-[10px] text-ink-muted mt-0.5">
-                          {textStats.syllableCount == null ? `sem régua para ${nomeDoIdiomaEstudado}` : 'precisa de 10+ palavras'}
+                          {textStats.syllableCount == null
+                            ? `sem régua para ${nomeDoIdiomaEstudado}`
+                            : 'precisa de 10+ palavras'}
                         </div>
                       )}
                     </div>
                     <div className="bg-surface border border-border-subtle rounded-xl p-3">
-                      <div className="text-[10px] font-bold uppercase tracking-wider text-ink-muted mb-1">Densidade Lexical</div>
-                      <div className="font-display font-black text-xl text-ink">{textStats.lexicalDensityPct != null ? `${textStats.lexicalDensityPct}%` : '-'}</div>
+                      <div className="text-[10px] font-bold uppercase tracking-wider text-ink-muted mb-1">
+                        Densidade Lexical
+                      </div>
+                      <div className="font-display font-black text-xl text-ink">
+                        {textStats.lexicalDensityPct != null ? `${textStats.lexicalDensityPct}%` : '-'}
+                      </div>
                       {textStats.lexicalDensityPct == null && (
-                        <div className="text-[10px] text-ink-muted mt-0.5">sem lista de stopwords para {nomeDoIdiomaEstudado}</div>
+                        <div className="text-[10px] text-ink-muted mt-0.5">
+                          sem lista de stopwords para {nomeDoIdiomaEstudado}
+                        </div>
                       )}
                     </div>
                     <div className="bg-surface border border-border-subtle rounded-xl p-3">
-                      <div className="text-[10px] font-bold uppercase tracking-wider text-ink-muted mb-1">Riqueza Lexical (TTR)</div>
-                      <div className="font-display font-black text-xl text-ink">{Math.round(textStats.typeTokenRatio * 100)}/100</div>
+                      <div className="text-[10px] font-bold uppercase tracking-wider text-ink-muted mb-1">
+                        Riqueza Lexical (TTR)
+                      </div>
+                      <div className="font-display font-black text-xl text-ink">
+                        {Math.round(textStats.typeTokenRatio * 100)}/100
+                      </div>
                     </div>
                   </div>
+                ) : // Era uma template string com o ternario DENTRO das crases — o usuario lia
+                // codigo-fonte na tela (visto em 31/08).
+                erroDasFalas ? (
+                  <Erro
+                    titulo="Não consegui carregar as falas das suas sessões."
+                    detalhe={erroDasFalas}
+                    aoTentarDeNovo={carregarFalas}
+                  />
                 ) : (
-                  // Era uma template string com o ternario DENTRO das crases — o usuario lia
-                  // codigo-fonte na tela (visto em 31/08).
-                  erroDasFalas ? (
-                    <Erro
-                      titulo="Não consegui carregar as falas das suas sessões."
-                      detalhe={erroDasFalas}
-                      aoTentarDeNovo={carregarFalas}
-                    />
-                  ) : (
-                  <SemDado compacto motivo={corpusDoAlvo.totalFalas === 0
-                      ? 'Nenhuma fala capturada ainda, grave ou importe uma sessão para medir complexidade.'
-                      : `Nenhuma das falas capturadas está em ${nomeDoIdiomaEstudado}, que é o idioma que você estuda.`} />
-                  )
+                  <SemDado
+                    compacto
+                    motivo={
+                      corpusDoAlvo.totalFalas === 0
+                        ? 'Nenhuma fala capturada ainda, grave ou importe uma sessão para medir complexidade.'
+                        : `Nenhuma das falas capturadas está em ${nomeDoIdiomaEstudado}, que é o idioma que você estuda.`
+                    }
+                  />
                 )}
               </div>
 
@@ -951,15 +1114,18 @@ export default function Metrics({ recordings, onChangeView, ageProfile = 'pro', 
                   <MessageSquareWarning className="w-5 h-5 text-warn" /> Uso de Voz Passiva
                 </h3>
                 <p className="text-[11.5px] text-ink-muted mb-4">
-                  Detecção por padrão "be + particípio", sem IA. É HEURÍSTICA, não um parser
-                  gramatical: perde particípios irregulares fora da lista curada e pode confundir um
-                  punhado de adjetivos em "-ed" com voz passiva, os números são um indício, não um veredito.
+                  Detecção por padrão "be + particípio", sem IA. É HEURÍSTICA, não um parser gramatical: perde
+                  particípios irregulares fora da lista curada e pode confundir um punhado de adjetivos em "-ed" com voz
+                  passiva, os números são um indício, não um veredito.
                 </p>
                 {vozPassiva == null ? (
                   /* AUSENCIA DECLARADA. O padrao "be + participio" e do ingles; para os outros
                      idiomas nao existe regua aqui, e zero ocorrencias seria uma afirmacao falsa
                      sobre a fala da pessoa. */
-                  <SemDado compacto motivo={`Não há régua de voz passiva para ${nomeDoIdiomaEstudado}. O padrão "be + particípio" é do inglês, e aplicá-lo a outro idioma devolveria zero como se fosse medida.`} />
+                  <SemDado
+                    compacto
+                    motivo={`Não há régua de voz passiva para ${nomeDoIdiomaEstudado}. O padrão "be + particípio" é do inglês, e aplicá-lo a outro idioma devolveria zero como se fosse medida.`}
+                  />
                 ) : textStats.wordCount > 0 ? (
                   <>
                     <div className="flex items-end gap-4 flex-wrap mb-3">
@@ -971,25 +1137,32 @@ export default function Metrics({ recordings, onChangeView, ageProfile = 'pro', 
                     {vozPassiva.exemplos.length > 0 && (
                       <div className="flex flex-wrap gap-1.5">
                         {vozPassiva.exemplos.map((ex, i) => (
-                          <span key={i} className="text-[11px] font-mono px-2 py-1 rounded bg-warn-soft text-warn-ink">{ex}</span>
+                          <span key={i} className="text-[11px] font-mono px-2 py-1 rounded bg-warn-soft text-warn-ink">
+                            {ex}
+                          </span>
                         ))}
                       </div>
                     )}
                   </>
                 ) : (
-                  <p className="text-[12px] text-ink-muted">Sem texto suficiente em {nomeDoIdiomaEstudado} para detectar.</p>
+                  <p className="text-[12px] text-ink-muted">
+                    Sem texto suficiente em {nomeDoIdiomaEstudado} para detectar.
+                  </p>
                 )}
               </div>
 
               <div className="pt-6 border-t border-border-subtle">
                 <h3 className="font-display font-extrabold text-[16px] text-ink mb-2">Tom da Fala</h3>
-                <SemDado compacto motivo={`Classificar tom (confiante/analítico/hesitante) exige análise acústica e prosódica do
-                  áudio, o app transcreve, mas não mede pitch nem entonação. Nada foi estimado.`} />
+                <SemDado
+                  compacto
+                  motivo={`Classificar tom (confiante/analítico/hesitante) exige análise acústica e prosódica do
+                  áudio, o app transcreve, mas não mede pitch nem entonação. Nada foi estimado.`}
+                />
               </div>
             </div>
-        </PainelDeAba>
+          </PainelDeAba>
+        </div>
       </div>
-    </div>
 
       {/* Analista de Vocabulário — coluna à direita; só monta quando há palavra selecionada. */}
       <VocabularyPanel

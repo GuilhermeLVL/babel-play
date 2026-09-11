@@ -1,0 +1,5 @@
+- [x] 3.1 `CabecalhoDeTela` em `ui/`, exportado pelo barril, só tokens
+- [x] 3.2 Início e Vocabulário usam o primitivo (textos e `t()` intactos; exportar vira ação)
+- [x] 3.3 `Ladrilho variante="kpi"`
+- [x] 3.4 testes do primitivo em `primitivosDeUi` (22 casos verdes)
+- [x] 3.5 gate: 4.062 unitários (5 arquivos de caracterização HTTP deram timeout de hook sob carga e passaram isolados, 54/54); evidências `03-primitivos`; matriz E2E 99/0/15

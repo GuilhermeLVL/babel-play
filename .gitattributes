@@ -1,0 +1,21 @@
+# Fim de linha normalizado no repositorio: LF, sempre.
+#
+# POR QUE ISTO EXISTE. Nesta rodada uma escrita de arquivo em modo texto no Windows converteu
+# src/components/views/Study.tsx de LF para CRLF, e o commit passou a mostrar 1225 linhas
+# alteradas onde havia 15. Um diff assim nao e revisavel: a mudanca real some no ruido, e a
+# revisao vira carimbo. Com `text=auto eol=lf` o git normaliza na entrada e nenhuma ferramenta
+# de escrita consegue reintroduzir CRLF no que esta versionado.
+#
+# Verificacao: `git ls-files --eol | grep w/crlf` tem de sair vazio.
+
+* text=auto eol=lf
+
+# Binarios: nada de conversao.
+*.png binary
+*.jpg binary
+*.ico binary
+*.woff binary
+*.woff2 binary
+*.onnx binary
+*.wasm binary
+*.db binary

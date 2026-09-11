@@ -1,46 +1,57 @@
 import {
-  Activity, 
-  AlertCircle, 
+  Activity,
+  AlertCircle,
   ArrowDown,
-  ArrowRight, 
-  Check, 
+  ArrowRight,
+  Check,
   ChevronDown,
-  Cpu, 
+  Cpu,
   Edit2,
   Eye,
   Gamepad2,
   Headphones,
   Image as ImageIcon,
-  Layout, 
+  Layout,
   LayoutGrid,
   Loader2,
   Maximize2,
   Mic,
   MicOff,
   Minimize2,
-  Monitor, 
-  Plus, 
-  RefreshCw, 
-  Settings2, 
+  Monitor,
+  Plus,
+  RefreshCw,
+  Settings2,
   Sliders,
   Sparkles,
-  StopCircle, 
+  StopCircle,
   Users,
-  X} from 'lucide-react';
-import React, { useEffect, useMemo,useRef, useState } from 'react';
+  X,
+} from 'lucide-react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 
-import {
-  fetchSessionTranscript,
-fetchSettings, type ImageResult,
-patchUiSettings,   searchImages, } from '../../data/api';
+import { fetchSessionTranscript, fetchSettings, type ImageResult, patchUiSettings, searchImages } from '../../data/api';
 import { buildGateway } from '../../gateway';
 import { getActiveProfile, getProviderMode } from '../../gateway/activeProfile';
 import type { SttSession } from '../../gateway/capabilities';
 import { capMetrics } from '../../gateway/capture/captureMetrics';
-import { type AudioCapture, probeLoopback, probeServerLoopback, probeSystemAudio, serverLoopbackSupported, type SystemAudioProbe } from '../../gateway/capture/systemAudio';
+import {
+  type AudioCapture,
+  probeLoopback,
+  probeServerLoopback,
+  probeSystemAudio,
+  serverLoopbackSupported,
+  type SystemAudioProbe,
+} from '../../gateway/capture/systemAudio';
 import { getSttQuality, setSttQualityMirror, type SttQuality } from '../../gateway/sttRouter';
-import { type AudioDevice,filterLoopbackDevices, listDevices, onDeviceChange, supportsSinkId } from '../../lib/audioDevices';
+import {
+  type AudioDevice,
+  filterLoopbackDevices,
+  listDevices,
+  onDeviceChange,
+  supportsSinkId,
+} from '../../lib/audioDevices';
 // Fontes de áudio: som do sistema/aba, microfone (Whisper ou Web Speech) e o mudo/ativo do mic.
 import { criarFontesDeAudio } from '../../lib/captura/fontesDeAudio';
 // Vocabulário dentro da captura: examinar a palavra, fichar no deck, mandar praticar.
@@ -51,21 +62,34 @@ import { criarPipelineDeFala, type EnunciadoPendente } from '../../lib/captura/p
 import { criarSalvarSessao, type EstadoDaIdentificacaoDeVoz } from '../../lib/captura/salvarSessao';
 // Tipos e helpers de fala + o logger da captura (`lib/captura/tiposDaFala.ts`).
 import {
-type CaptureScenario,
-  clog, formatTime, SPEAKER_COLORS, type SpeakerProfile,   type SpeechSegment, UNKNOWN_VOICE_COLOR,
-USER_COLOR, wordsFromText, } from '../../lib/captura/tiposDaFala';
+  type CaptureScenario,
+  clog,
+  formatTime,
+  SPEAKER_COLORS,
+  type SpeakerProfile,
+  type SpeechSegment,
+  UNKNOWN_VOICE_COLOR,
+  USER_COLOR,
+  wordsFromText,
+} from '../../lib/captura/tiposDaFala';
 // Relógio da sessão + pipeline de MT (retradução de degradados incluída).
 import { criarRelogioDaSessao, criarTraducaoDaFala } from '../../lib/captura/traducaoDaFala';
 import { cenarioDasFontes } from '../../lib/cenarioDeCaptura';
 import { DominantLangTracker } from '../../lib/convoLang';
 // Configuração de idioma: fonte ÚNICA (`mine` = o que VOCÊ fala no mic; `studying` = o que você
 // ESTUDA, o áudio estrangeiro). Antes os defaults nasciam aqui, em `useState`.
-import { DEFAULT_LANG_CONFIG, fetchLangConfig, type LangConfig,onLangConfigChange, saveLangConfig } from '../../lib/langConfig';
+import {
+  DEFAULT_LANG_CONFIG,
+  fetchLangConfig,
+  type LangConfig,
+  onLangConfigChange,
+  saveLangConfig,
+} from '../../lib/langConfig';
 import { langShortLabel } from '../../lib/langFlag';
 import { baseLang, langLabel, mtCoverage, toBcp47 } from '../../lib/languages';
 import { setNavGuard } from '../../lib/navGuard';
 import { OrdemDasTraducoes } from '../../lib/ordemDaTraducao';
-import { destinoDaTraducao,PerfilAdaptativoDeIdioma } from '../../lib/perfilDeIdioma';
+import { destinoDaTraducao, PerfilAdaptativoDeIdioma } from '../../lib/perfilDeIdioma';
 import { usePosicaoFlutuante } from '../../lib/posicaoFlutuante';
 import { coreOnly } from '../../lib/profile';
 import { play } from '../../lib/soundFx';
@@ -73,7 +97,7 @@ import { play } from '../../lib/soundFx';
 // (worker WASM, 6,7MB) + agrupamento online → "Pessoa 1/2/3" com cor própria.
 import { SpeakerClusterer } from '../../lib/speakerCluster';
 import { disposeSpeakerId } from '../../lib/speakerId';
-import { DEFAULT_TRANSCRIPT_SETTINGS,TranscriptSettings } from '../../lib/transcriptUtils';
+import { DEFAULT_TRANSCRIPT_SETTINGS, TranscriptSettings } from '../../lib/transcriptUtils';
 // Produtor ÚNICO de palavra/cartão: o idioma vem da FRASE de onde a palavra saiu e a direção da
 // tradução é decidida pelo idioma DA PALAVRA (não pelo par da sessão).
 import { speak as ttsSpeak } from '../../lib/tts';
@@ -99,7 +123,14 @@ import SetaDoPar from './captura/SetaDoPar';
 // Subcomponentes locais da captura (um arquivo por componente, em `views/captura/`).
 import TranscriptVisualSettings from './captura/TranscriptVisualSettings';
 
-export default function LiveCapture({ onSave, onTranscriptChange, resumingRecordingId, recordings, onChangeView, ageProfile = 'pro' }: {
+export default function LiveCapture({
+  onSave,
+  onTranscriptChange,
+  resumingRecordingId,
+  recordings,
+  onChangeView,
+  ageProfile = 'pro',
+}: {
   onSave: (recording: Recording, shouldRedirect?: boolean) => void;
   onTranscriptChange?: (text: string) => void;
   resumingRecordingId?: string | null;
@@ -119,23 +150,28 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
   const [probe, setProbe] = useState<SystemAudioProbe | null>(null);
   const [probing, setProbing] = useState(false);
   const handleProbeSystem = async () => {
-    setProbing(true); setProbe(null);
+    setProbing(true);
+    setProbe(null);
     try {
-      setProbe(systemSource === 'server'
-        ? await probeServerLoopback()
-        : systemSource === 'loopback'
-          ? await probeLoopback(loopbackDeviceId || undefined)
-          : await probeSystemAudio());
+      setProbe(
+        systemSource === 'server'
+          ? await probeServerLoopback()
+          : systemSource === 'loopback'
+            ? await probeLoopback(loopbackDeviceId || undefined)
+            : await probeSystemAudio(),
+      );
     } catch (e) {
       setFeedbackMsg('Teste cancelado/bloqueado: ' + (e as Error).message);
       setTimeout(() => setFeedbackMsg(''), 5000);
-    } finally { setProbing(false); }
+    } finally {
+      setProbing(false);
+    }
   };
 
   // --- MODAL DE ENCERRAMENTO DA SESSÃO ---
   const [showSaveModal, setShowSaveModal] = useState(false);
   const [customSessionTitle, setCustomSessionTitle] = useState('');
-  const [customSessionImage, setCustomSessionImage] = useState('');   // capa escolhida (URL ou data URL)
+  const [customSessionImage, setCustomSessionImage] = useState(''); // capa escolhida (URL ou data URL)
   const [imgQuery, setImgQuery] = useState('');
   const [imgResults, setImgResults] = useState<ImageResult[]>([]);
   const [imgLoading, setImgLoading] = useState(false);
@@ -149,20 +185,21 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
   // persistência olha para `resumeId`, não para a prop.
   const [resumeId, setResumeId] = useState<string | null>(resumingRecordingId ?? null);
 
-
   // --- TRANSCRIPT CUSTOM CUSTOMIZATION SETTINGS ---
   const [tsSettings, setTsSettings] = useState<TranscriptSettings>(() => {
     const saved = localStorage.getItem('transcriptSettings');
     if (saved) {
       try {
         return JSON.parse(saved);
-      } catch { /* leitura opcional: sem ajustes salvos, segue o padrão */ }
+      } catch {
+        /* leitura opcional: sem ajustes salvos, segue o padrão */
+      }
     }
     return DEFAULT_TRANSCRIPT_SETTINGS;
   });
 
   const updateSetting = <K extends keyof TranscriptSettings>(key: K, value: TranscriptSettings[K]) => {
-    setTsSettings(prev => {
+    setTsSettings((prev) => {
       const updated = { ...prev, [key]: value };
       localStorage.setItem('transcriptSettings', JSON.stringify(updated));
       window.dispatchEvent(new Event('transcriptSettingsChanged'));
@@ -176,7 +213,9 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
       if (saved) {
         try {
           setTsSettings(JSON.parse(saved));
-        } catch { /* idem: ausência de ajuste não é erro */ }
+        } catch {
+          /* idem: ausência de ajuste não é erro */
+        }
       }
     };
     window.addEventListener('transcriptSettingsChanged', handleSettingsChange);
@@ -202,14 +241,17 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
   // Motor de transcrição do MICROFONE: 'browser' = Web Speech (rápido, leve, ótimo p/ PT — PADRÃO)
   // ou 'whisper' = getUserMedia+VAD+Whisper local (offline, escolhe dispositivo). Persistido.
   const [micEngine, setMicEngine] = useState<'browser' | 'whisper'>('browser');
-  const webSpeechSupported = typeof window !== 'undefined' && ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window);
+  const webSpeechSupported =
+    typeof window !== 'undefined' && ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window);
   // Velocidade do TTS (escutar tradução/palavra). Persistida em settings.ui.
   const [ttsSpeed, setTtsSpeed] = useState(1.0);
   // Waveform REAL: histórico de níveis (0..1) que segue o áudio capturado, não animação falsa.
   const [levels, setLevels] = useState<number[]>(() => new Array(48).fill(0));
   const currentLevelRef = useRef(0); // peak-hold do nível instantâneo (as fontes escrevem aqui)
   const meterRef = useRef<{ stop: () => void } | null>(null); // medidor de mic p/ o motor navegador
-  const pushLevel = (v: number) => { if (v > currentLevelRef.current) currentLevelRef.current = v; };
+  const pushLevel = (v: number) => {
+    if (v > currentLevelRef.current) currentLevelRef.current = v;
+  };
   // Nome do perfil que de fato roda no gateway (Configurações → Perfil de IA).
   const activeProfileName = getActiveProfile().name;
   const [showConfigPanel, setShowConfigPanel] = useState(false);
@@ -229,7 +271,7 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
   // (talkTimePct abaixo) e outros falantes entram via "Adicionar Falante".
   const [speakerProfiles, setSpeakerProfiles] = useState<SpeakerProfile[]>([
     { id: 'user', name: 'Você', color: USER_COLOR, isActive: true },
-    { id: 'system', name: 'Outros', color: UNKNOWN_VOICE_COLOR, isActive: false }
+    { id: 'system', name: 'Outros', color: UNKNOWN_VOICE_COLOR, isActive: false },
   ]);
   const [editingSpeakerId, setEditingSpeakerId] = useState<string | null>(null);
   const [editingSpeakerName, setEditingSpeakerName] = useState('');
@@ -242,9 +284,9 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
       id: newId,
       name: `Falante ${nextLetter}`,
       color: SPEAKER_COLORS[speakerProfiles.length % SPEAKER_COLORS.length],
-      isActive: false
+      isActive: false,
     };
-    setSpeakerProfiles(prev => [...prev, newSpeaker]);
+    setSpeakerProfiles((prev) => [...prev, newSpeaker]);
     setFeedbackMsg(`Novo orador "${newSpeaker.name}" adicionado!`);
     setTimeout(() => setFeedbackMsg(''), 2000);
   };
@@ -255,7 +297,9 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
   // Best-effort de ponta a ponta: sem modelo (offline/1º uso) a captura segue com "Outros".
   const [speakerAutoId, setSpeakerAutoId] = useState(true);
   const speakerAutoIdRef = useRef(true);
-  useEffect(() => { speakerAutoIdRef.current = speakerAutoId; }, [speakerAutoId]);
+  useEffect(() => {
+    speakerAutoIdRef.current = speakerAutoId;
+  }, [speakerAutoId]);
   /** Estado honesto p/ o painel Falantes: off | loading | ready | unavailable. */
   const [speakerIdStatus, setSpeakerIdStatus] = useState<EstadoDaIdentificacaoDeVoz>('off');
   const clustererRef = useRef(new SpeakerClusterer());
@@ -278,7 +322,9 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
   /** O que o perfil concluiu, para a interface exibir. Vazio = ainda ouvindo. */
   const [idiomaObservado, setIdiomaObservado] = useState('');
   const idiomaObservadoRef = useRef('');
-  useEffect(() => { idiomaObservadoRef.current = idiomaObservado; }, [idiomaObservado]);
+  useEffect(() => {
+    idiomaObservadoRef.current = idiomaObservado;
+  }, [idiomaObservado]);
   /**
    * PERFIL DO MICROFONE — o mic nunca alimentava o perfil acima (que é do SISTEMA), então o app
    * jamais aprendia que "eu falo" estava configurado errado. Este ouve só a sua voz; ao
@@ -296,12 +342,19 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
   /** Garante o perfil 'voice_N' (criado na 1ª fala daquela voz; nome/cor padrão renomeáveis). */
   const ensureVoiceProfile = (clusterId: number) => {
     const vid = `voice_${clusterId}`;
-    setSpeakerProfiles(prev => prev.some(p => p.id === vid) ? prev : [...prev, {
-      id: vid,
-      name: `Pessoa ${clusterId}`,
-      color: SPEAKER_COLORS[(clusterId - 1) % SPEAKER_COLORS.length],
-      isActive: false,
-    }]);
+    setSpeakerProfiles((prev) =>
+      prev.some((p) => p.id === vid)
+        ? prev
+        : [
+            ...prev,
+            {
+              id: vid,
+              name: `Pessoa ${clusterId}`,
+              color: SPEAKER_COLORS[(clusterId - 1) % SPEAKER_COLORS.length],
+              isActive: false,
+            },
+          ],
+    );
     return vid;
   };
 
@@ -315,14 +368,22 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
   const [targetLang, setTargetLang] = useState(DEFAULT_LANG_CONFIG.studying);
   const [manualSpeakerInput, setManualSpeakerInput] = useState('');
   // Ferramentas de dev (simulador de fala na UI): opt-in por localStorage, fora da UI normal.
-  const devToolsEnabled = useMemo(() => { try { return localStorage.getItem('babel.devTools') === '1'; } catch { return false; } }, []);
+  const devToolsEnabled = useMemo(() => {
+    try {
+      return localStorage.getItem('babel.devTools') === '1';
+    } catch {
+      return false;
+    }
+  }, []);
   const [isProcessingManualInput, setIsProcessingManualInput] = useState(false);
 
   // Segmentos de fala capturados AO VIVO (começa vazio; sem simulação).
   const [speechSegments, setSpeechSegments] = useState<SpeechSegment[]>([]);
   // Espelho para os handlers assíncronos lerem as últimas falas (contexto da tradução comunicativa).
   const speechSegmentsRef = useRef<SpeechSegment[]>([]);
-  useEffect(() => { speechSegmentsRef.current = speechSegments; }, [speechSegments]);
+  useEffect(() => {
+    speechSegmentsRef.current = speechSegments;
+  }, [speechSegments]);
 
   // % de tempo de fala REAL por falante, somando a duração (tEnd−tStart) dos enunciados finais.
   // null enquanto não há nenhum enunciado com timing — a UI então omite o número em vez de exibir 0% falso.
@@ -344,11 +405,11 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
   // Legendas do relay (overlay), derivadas das falas REAIS. Cronológico; sem parciais
   // vazios. 'system' = eles (áudio da aba/sistema), o resto = você (microfone).
   const overlayCaptions: OverlayCaption[] = useMemo(() => {
-    const profileOf = (id: string) => speakerProfiles.find(p => p.id === id);
+    const profileOf = (id: string) => speakerProfiles.find((p) => p.id === id);
     return speechSegments
-      .filter(s => s.originalText && s.originalText.trim())
+      .filter((s) => s.originalText && s.originalText.trim())
       .slice(-200)
-      .map(s => {
+      .map((s) => {
         const isSys = s.source === 'system';
         return {
           id: s.id,
@@ -359,7 +420,7 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
           // Cor da PESSOA identificada + idiomas REAIS da linha (multi-idioma) — o overlay
           // usa para colorir o balão por pessoa e para o TTS falar no idioma certo.
           speakerColor: profileOf(s.speakerId)?.color,
-          origLang: s.lang ? (toBcp47(s.lang) || s.lang) : (isSys ? targetLang : sourceLang),
+          origLang: s.lang ? toBcp47(s.lang) || s.lang : isSys ? targetLang : sourceLang,
           transLang: isSys ? sourceLang : targetLang,
         };
       });
@@ -369,7 +430,7 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
   // `detected` = casou por heurística; se false, é o fallback com todos os inputs.
   const { devices: loopbackDevices, detected: loopbackDetected } = useMemo(
     () => filterLoopbackDevices(audioInputs),
-    [audioInputs]
+    [audioInputs],
   );
 
   // Captura DUPLA e simultânea (como o desktop): microfone (sua voz) + sistema/aba (outros falantes).
@@ -398,7 +459,9 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
   });
   /* O Foco Cheio cobre a tela normal, mas a gaveta vive num PORTAL no `body` — ela sobreviveria
      por cima do Foco, ancorada num chip que ninguém mais vê. Fecha junto. */
-  useEffect(() => { if (isFocusMode) setIdiomasAbertos(false); }, [isFocusMode]);
+  useEffect(() => {
+    if (isFocusMode) setIdiomasAbertos(false);
+  }, [isFocusMode]);
   useEffect(() => {
     if (!idiomasAbertos) return;
     /* `[data-lang-ui]` cobre a lista do LangPicker, que abre num portal no `body`: sem isso,
@@ -409,7 +472,9 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
       if (alvo instanceof Element && alvo.closest('[data-lang-ui]')) return;
       setIdiomasAbertos(false);
     };
-    const esc = (e: KeyboardEvent) => { if (e.key === 'Escape') setIdiomasAbertos(false); };
+    const esc = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setIdiomasAbertos(false);
+    };
     document.addEventListener('mousedown', fora);
     document.addEventListener('keydown', esc);
     return () => {
@@ -436,7 +501,9 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
   // Corta a maior fatia de GPU/CPU da captura contínua — o decode final continua intacto.
   const [perfMode, setPerfMode] = useState(false);
   const perfModeRef = useRef(false);
-  useEffect(() => { perfModeRef.current = perfMode; }, [perfMode]);
+  useEffect(() => {
+    perfModeRef.current = perfMode;
+  }, [perfMode]);
   // MULTI-IDIOMA: em vez de fixar "Eles falam = X", o Whisper detecta o idioma de CADA fala do
   // sistema (lobby com gente de vários países, chamadas mistas) e o Tradutor IA do servidor
   // (que dispensa origem declarada) traduz tudo para o SEU idioma.
@@ -445,13 +512,17 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
   // escolher um idioma fixo no seletor desliga isto na hora (a escolha fica persistida).
   const [autoDetectLang, setAutoDetectLang] = useState(true);
   const autoDetectLangRef = useRef(true);
-  useEffect(() => { autoDetectLangRef.current = autoDetectLang; }, [autoDetectLang]);
+  useEffect(() => {
+    autoDetectLangRef.current = autoDetectLang;
+  }, [autoDetectLang]);
   // O MESMO para "Eu falo": conteúdo no idioma nativo, fala misturada, ou o usuário alternando
   // idiomas — o Whisper detecta cada fala do MIC e traduz para o idioma de estudo. (A Web Speech
   // não autodetecta; nesse motor a escolha vale só para o Whisper do mic.)
   const [autoDetectMyLang, setAutoDetectMyLang] = useState(false);
   const autoDetectMyLangRef = useRef(false);
-  useEffect(() => { autoDetectMyLangRef.current = autoDetectMyLang; }, [autoDetectMyLang]);
+  useEffect(() => {
+    autoDetectMyLangRef.current = autoDetectMyLang;
+  }, [autoDetectMyLang]);
 
   // CENÁRIO DE CAPTURA — a intenção do usuário decide fontes, rótulos e painéis.
   // 'media' = assistir vídeo/aula/podcast (só sistema) · 'conversation' = chamada/reunião
@@ -460,7 +531,9 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
   const [captureScenario, setCaptureScenario] = useState<CaptureScenario>('media');
   // Espelho p/ os handlers assíncronos (a identificação de voz só roda no cenário Conversa).
   const captureScenarioRef = useRef<CaptureScenario>('media');
-  useEffect(() => { captureScenarioRef.current = captureScenario; }, [captureScenario]);
+  useEffect(() => {
+    captureScenarioRef.current = captureScenario;
+  }, [captureScenario]);
   /** Escolha de IDIOMA feita antes de a carga assíncrona chegar não pode ser desfeita por ela. */
   const langTouchedRef = useRef(false);
   /*
@@ -491,7 +564,9 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
   // A rota "servidor local" (WASAPI loopback no Node) só existe quando o backend roda no
   // Windows com o módulo nativo — sondamos uma vez e só então mostramos a opção.
   const [serverCaptureAvailable, setServerCaptureAvailable] = useState(false);
-  useEffect(() => { void serverLoopbackSupported().then(setServerCaptureAvailable); }, []);
+  useEffect(() => {
+    void serverLoopbackSupported().then(setServerCaptureAvailable);
+  }, []);
   // Dispositivo de loopback escolhido ('' = padrão do SO — útil só se o default já for loopback).
   const [loopbackDeviceId, setLoopbackDeviceId] = useState('');
 
@@ -522,10 +597,12 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
     resgatouRotaRef.current = true;
     void (async () => {
       const { inputs, hasLabels } = await listDevices();
-      if (!hasLabels) return;                       // sem rótulos não dá para concluir nada
-      if (filterLoopbackDevices(inputs).detected) return;  // existe dispositivo: a escolha vale
+      if (!hasLabels) return; // sem rótulos não dá para concluir nada
+      if (filterLoopbackDevices(inputs).detected) return; // existe dispositivo: a escolha vale
       setSystemSource('server');
-      setFeedbackMsg('Nenhum dispositivo de loopback (Stereo Mix / VB-Cable) foi encontrado, mudei para "Som do computador", que não precisa de configuração.');
+      setFeedbackMsg(
+        'Nenhum dispositivo de loopback (Stereo Mix / VB-Cable) foi encontrado, mudei para "Som do computador", que não precisa de configuração.',
+      );
       setTimeout(() => setFeedbackMsg(''), 8000);
     })();
   }, [serverCaptureAvailable, systemSource]);
@@ -540,7 +617,7 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
         profile: getActiveProfile(),
         cloudConsent: () => true,
       }),
-    []
+    [],
   );
 
   // Expõe o gateway no console para diagnóstico/testes (ex.: window.__babelGateway.stt.transcribePcm).
@@ -550,7 +627,7 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
 
   useEffect(() => {
     if (onTranscriptChange) {
-      onTranscriptChange(speechSegments.map(s => s.originalText).join(' '));
+      onTranscriptChange(speechSegments.map((s) => s.originalText).join(' '));
     }
   }, [speechSegments, onTranscriptChange]);
 
@@ -589,8 +666,13 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
     const el = which === 'transcript' ? transcriptScrollRef.current : focusScrollRef.current;
     if (!el) return;
     el.scrollTop = el.scrollHeight;
-    if (which === 'transcript') { transcriptPinnedRef.current = true; setShowJumpTranscript(false); }
-    else { focusPinnedRef.current = true; setShowJumpFocus(false); }
+    if (which === 'transcript') {
+      transcriptPinnedRef.current = true;
+      setShowJumpTranscript(false);
+    } else {
+      focusPinnedRef.current = true;
+      setShowJumpFocus(false);
+    }
   };
   useEffect(() => {
     const t = transcriptScrollRef.current;
@@ -607,8 +689,8 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
 
   // Manual select speaker helper
   const handleSelectActiveSpeaker = (id: string) => {
-    setSpeakerProfiles(prev => prev.map(p => p.id === id ? { ...p, isActive: true } : { ...p, isActive: false }));
-    const selected = speakerProfiles.find(p => p.id === id);
+    setSpeakerProfiles((prev) => prev.map((p) => (p.id === id ? { ...p, isActive: true } : { ...p, isActive: false })));
+    const selected = speakerProfiles.find((p) => p.id === id);
     if (selected) {
       setFeedbackMsg(`Orador ativo alterado para ${selected.name}!`);
       setTimeout(() => setFeedbackMsg(''), 2500);
@@ -620,7 +702,7 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
     let interval: any;
     if (isRecording) {
       interval = setInterval(() => {
-        setTimer(t => t + 1);
+        setTimer((t) => t + 1);
       }, 1000);
     } else {
       clearInterval(interval);
@@ -661,8 +743,12 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
     inputDeviceIdRef.current = inputDeviceId;
   }, [inputDeviceId]);
 
-  useEffect(() => { systemSourceRef.current = systemSource; }, [systemSource]);
-  useEffect(() => { loopbackDeviceIdRef.current = loopbackDeviceId; }, [loopbackDeviceId]);
+  useEffect(() => {
+    systemSourceRef.current = systemSource;
+  }, [systemSource]);
+  useEffect(() => {
+    loopbackDeviceIdRef.current = loopbackDeviceId;
+  }, [loopbackDeviceId]);
 
   // Enumera os dispositivos de áudio REAIS e reage a plugar/desplugar. Os rótulos só
   // aparecem depois que a permissão de mic é concedida — a UI trata o estado sem rótulo.
@@ -676,8 +762,13 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
       setDeviceLabelsReady(hasLabels);
     };
     void refresh();
-    const off = onDeviceChange(() => { void refresh(); });
-    return () => { cancelled = true; off(); };
+    const off = onDeviceChange(() => {
+      void refresh();
+    });
+    return () => {
+      cancelled = true;
+      off();
+    };
   }, []);
 
   // Carrega as preferências persistidas (idiomas, dispositivos, velocidade do TTS) do
@@ -697,10 +788,15 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
 
       const s = await fetchSettings();
       let ui: Record<string, any>;
-      try { ui = s?.ui ? JSON.parse(s.ui) : {}; } catch { ui = {}; }
+      try {
+        ui = s?.ui ? JSON.parse(s.ui) : {};
+      } catch {
+        ui = {};
+      }
       if (ui.audioInputId) setInputDeviceId(ui.audioInputId);
       if (ui.audioOutputId) setOutputDeviceId(ui.audioOutputId);
-      if (ui.systemSource === 'display' || ui.systemSource === 'loopback' || ui.systemSource === 'server') setSystemSource(ui.systemSource);
+      if (ui.systemSource === 'display' || ui.systemSource === 'loopback' || ui.systemSource === 'server')
+        setSystemSource(ui.systemSource);
       if (ui.loopbackDeviceId) setLoopbackDeviceId(ui.loopbackDeviceId);
       if (typeof ui.ttsSpeed === 'number') setTtsSpeed(ui.ttsSpeed);
       if (ui.micEngine === 'browser' || ui.micEngine === 'whisper') setMicEngine(ui.micEngine);
@@ -712,7 +808,15 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
       // O porquê está no bloco de comentário sobre o cenário, junto de `marcarMicrofone`.
       /* Esta linha estava DUPLICADA, caractere por caractere. Sem efeito visível — atribuir o mesmo
          valor duas vezes é idempotente, mas quem lesse depois ficaria procurando a diferença. */
-      if (ui.sttQuality === 'auto' || ui.sttQuality === 'fast' || ui.sttQuality === 'accurate' || ui.sttQuality === 'cloud') { setSttQuality(ui.sttQuality); setSttQualityMirror(ui.sttQuality); }
+      if (
+        ui.sttQuality === 'auto' ||
+        ui.sttQuality === 'fast' ||
+        ui.sttQuality === 'accurate' ||
+        ui.sttQuality === 'cloud'
+      ) {
+        setSttQuality(ui.sttQuality);
+        setSttQualityMirror(ui.sttQuality);
+      }
       settingsLoadedRef.current = true;
     })();
     /* Deps VAZIAS de propósito: isto carrega os ajustes salvos UMA vez, na montagem. */
@@ -723,8 +827,8 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
     return onLangConfigChange(() => {
       void (async () => {
         const cfg = await fetchLangConfig();
-        setSourceLang(prev => (prev === cfg.mine ? prev : cfg.mine));
-        setTargetLang(prev => (prev === cfg.studying ? prev : cfg.studying));
+        setSourceLang((prev) => (prev === cfg.mine ? prev : cfg.mine));
+        setTargetLang((prev) => (prev === cfg.studying ? prev : cfg.studying));
       })();
     });
   }, []);
@@ -759,16 +863,32 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
       });
     }, 500);
     return () => clearTimeout(t);
-  }, [inputDeviceId, outputDeviceId, ttsSpeed, micEngine, systemSource, loopbackDeviceId, perfMode, autoDetectLang, autoDetectMyLang, captureScenario, speakerAutoId]);
+  }, [
+    inputDeviceId,
+    outputDeviceId,
+    ttsSpeed,
+    micEngine,
+    systemSource,
+    loopbackDeviceId,
+    perfMode,
+    autoDetectLang,
+    autoDetectMyLang,
+    captureScenario,
+    speakerAutoId,
+  ]);
 
   // Amostrador do waveform: enquanto grava, desloca o histórico a ~20fps lendo o peak-hold das
   // fontes (com decaimento suave). Fora de gravação, zera. Barato: um setInterval + array de 48.
   useEffect(() => {
-    if (!isRecording) { setLevels(new Array(48).fill(0)); currentLevelRef.current = 0; return; }
+    if (!isRecording) {
+      setLevels(new Array(48).fill(0));
+      currentLevelRef.current = 0;
+      return;
+    }
     const iv = setInterval(() => {
       const v = currentLevelRef.current;
       currentLevelRef.current = v * 0.55; // decai para o pico "cair" entre amostras
-      setLevels(prev => [...prev.slice(1), v]);
+      setLevels((prev) => [...prev.slice(1), v]);
     }, 50);
     return () => clearInterval(iv);
   }, [isRecording]);
@@ -807,7 +927,7 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
   // caixa de compartilhamento do getDisplayMedia). Esse GAP variável fazia a legenda descolar. Aqui
   // re-ancoramos sessionStartMsRef ao t=0 REAL do recorder quando a captura fica ativa.
   const shouldAnchorClockRef = useRef<boolean>(false); // só em sessão NOVA (retomada mantém o recuo)
-  const micStartedAtRef = useRef<number>(0);           // t=0 do recorder do mic (fallback se o sistema falhar)
+  const micStartedAtRef = useRef<number>(0); // t=0 do recorder do mic (fallback se o sistema falhar)
 
   // Tradução DESACOPLADA, deduplicada e com cache — nunca bloqueia a exibição do texto.
   // Compartilhada pelas DUAS fontes (mic Web Speech + sistema Whisper). Espelha o LRU do desktop.
@@ -831,12 +951,24 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
      chamadas a cada render, como as closures que substituíram — nada de useMemo aqui, senão
      elas congelariam `systemEnabled`/setters de um render antigo. */
   const { nowRel, anchorSessionClock } = criarRelogioDaSessao({
-    sessionStartMsRef, shouldAnchorClockRef, systemEnabled,
+    sessionStartMsRef,
+    shouldAnchorClockRef,
+    systemEnabled,
   });
   const { translateSegment, retraduzirDegradados } = criarTraducaoDaFala({
-    gateway, ordemMtRef, sourceLangRef, targetLangRef, idiomaObservadoRef, perfilIdiomaRef,
-    speechSegmentsRef, translationCacheRef, mtFailNotifiedRef, altTargetNotifiedRef,
-    degradacaoAvisadaRef, setSpeechSegments, setFeedbackMsg,
+    gateway,
+    ordemMtRef,
+    sourceLangRef,
+    targetLangRef,
+    idiomaObservadoRef,
+    perfilIdiomaRef,
+    speechSegmentsRef,
+    translationCacheRef,
+    mtFailNotifiedRef,
+    altTargetNotifiedRef,
+    degradacaoAvisadaRef,
+    setSpeechSegments,
+    setFeedbackMsg,
   });
 
   // Enunciados que chegaram ENQUANTO o modelo carregava — transcritos no flush (nada se perde).
@@ -849,32 +981,85 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
      substituiu: os handlers precisam do `micEnabled`/`micEngine` do render corrente. */
   const { sysHandlers, micHandlers, prepareModels } = criarPipelineDeFala({
     gateway,
-    sourceLang, sourceLangRef, targetLangRef, autoDetectLangRef, autoDetectMyLangRef,
-    idiomaObservadoRef, captureScenarioRef, perfModeRef, micEnabled, micEngine,
-    timerRef, nowRel,
-    setSpeechSegments, seqToSegmentRef, lastPartialTextRef, pendingUtterancesRef,
-    suppressedSeqsRef, modelReadyRef, prepareEmVooRef,
-    speakerProfilesRef, setSpeakerProfiles, speakerAutoIdRef, clustererRef,
-    lastVoiceIdRef, provisionalUttsRef, ensureVoiceProfile,
-    dominantLangRef, perfilIdiomaRef, perfilMicRef, avisoIdiomaMicRef, setIdiomaObservado,
-    sysFalasRef, sysAbertasRef, micInicioRef, avisoVazamentoRef,
-    translateSegment, retraduzirDegradados,
-    setFeedbackMsg, setModelPrep, setSttRouteLabel,
+    sourceLang,
+    sourceLangRef,
+    targetLangRef,
+    autoDetectLangRef,
+    autoDetectMyLangRef,
+    idiomaObservadoRef,
+    captureScenarioRef,
+    perfModeRef,
+    micEnabled,
+    micEngine,
+    timerRef,
+    nowRel,
+    setSpeechSegments,
+    seqToSegmentRef,
+    lastPartialTextRef,
+    pendingUtterancesRef,
+    suppressedSeqsRef,
+    modelReadyRef,
+    prepareEmVooRef,
+    speakerProfilesRef,
+    setSpeakerProfiles,
+    speakerAutoIdRef,
+    clustererRef,
+    lastVoiceIdRef,
+    provisionalUttsRef,
+    ensureVoiceProfile,
+    dominantLangRef,
+    perfilIdiomaRef,
+    perfilMicRef,
+    avisoIdiomaMicRef,
+    setIdiomaObservado,
+    sysFalasRef,
+    sysAbertasRef,
+    micInicioRef,
+    avisoVazamentoRef,
+    translateSegment,
+    retraduzirDegradados,
+    setFeedbackMsg,
+    setModelPrep,
+    setSttRouteLabel,
   });
 
   /* AS FONTES DE ÁUDIO (sistema/aba, microfone, medidor e o interruptor do mic) moram em
      `lib/captura/fontesDeAudio.ts`. Fábrica por render, como as closures que substituiu: elas
      leem `micEnabled`/`micEngine`/`systemEnabled` do render corrente nos caminhos de erro. */
   const { handleStartSystemCapture, startMic, alternarMicrofone } = criarFontesDeAudio({
-    sysHandlers, micHandlers, prepareModels,
-    systemSourceRef, loopbackDeviceIdRef, inputDeviceIdRef,
-    systemCaptureRef, micCaptureRef, webSpeechRef, webSpeechPartialIdRef, meterRef,
-    isRecordingRef, micStartedAtRef, timerRef,
-    sourceLang, sourceLangRef, targetLangRef,
-    micEnabled, systemEnabled, micEngine, webSpeechSupported,
-    pushLevel, nowRel, anchorSessionClock, translateSegment,
-    marcarMicrofone, setSpeechSegments, setFeedbackMsg, setIsFocusMode, setGuiaDeAudio,
-    setModelPrep, setIsRecording, setMicAbrindo,
+    sysHandlers,
+    micHandlers,
+    prepareModels,
+    systemSourceRef,
+    loopbackDeviceIdRef,
+    inputDeviceIdRef,
+    systemCaptureRef,
+    micCaptureRef,
+    webSpeechRef,
+    webSpeechPartialIdRef,
+    meterRef,
+    isRecordingRef,
+    micStartedAtRef,
+    timerRef,
+    sourceLang,
+    sourceLangRef,
+    targetLangRef,
+    micEnabled,
+    systemEnabled,
+    micEngine,
+    webSpeechSupported,
+    pushLevel,
+    nowRel,
+    anchorSessionClock,
+    translateSegment,
+    marcarMicrofone,
+    setSpeechSegments,
+    setFeedbackMsg,
+    setIsFocusMode,
+    setGuiaDeAudio,
+    setModelPrep,
+    setIsRecording,
+    setMicAbrindo,
   });
 
   // Harness OFFLINE de teste (dev): injeta um PCM conhecido pelo MESMO caminho do sistema
@@ -885,7 +1070,7 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
   useEffect(() => {
     let simSeq = 10000; // faixa própria p/ não colidir com o seq real do VAD
     const JFK_URL = 'https://huggingface.co/datasets/Xenova/transformers.js-docs/resolve/main/jfk.wav';
-    const sleep = (ms: number) => new Promise(r => setTimeout(r, ms));
+    const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
     const loadPcm = async (input?: Float32Array | 'jfk'): Promise<Float32Array> => {
       if (input instanceof Float32Array) return input;
@@ -913,7 +1098,10 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
       clog(`__simSystem: ${count} enunciado(s), ${pcm.length} amostras cada`);
       // count>1: dispara em paralelo (com pequeno atraso) para testar a ORDEM por seq.
       const runs: Promise<void>[] = [];
-      for (let i = 0; i < count; i++) { runs.push(runOne(pcm)); await sleep(120); }
+      for (let i = 0; i < count; i++) {
+        runs.push(runOne(pcm));
+        await sleep(120);
+      }
       await Promise.all(runs);
       clog('__simSystem concluído, window.__capSummary():', capMetrics.summary());
       return capMetrics.summary();
@@ -928,9 +1116,18 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
       const chunk = full.slice(0, Math.min(full.length, Math.round(16000 * chunkSec)));
       const audioMs = Math.round((chunk.length / 16000) * 1000);
       const g = (window as any).__babelGateway;
-      const dec: number[] = [], mt: number[] = [];
-      const pctl = (xs: number[], p: number) => { if (!xs.length) return 0; const s = [...xs].sort((a, b) => a - b); return Math.round(s[Math.min(s.length - 1, Math.floor((p / 100) * s.length))]); };
-      const st = (xs: number[]) => ({ p50: pctl(xs, 50), p95: pctl(xs, 95), avg: Math.round(xs.reduce((a, b) => a + b, 0) / (xs.length || 1)) });
+      const dec: number[] = [],
+        mt: number[] = [];
+      const pctl = (xs: number[], p: number) => {
+        if (!xs.length) return 0;
+        const s = [...xs].sort((a, b) => a - b);
+        return Math.round(s[Math.min(s.length - 1, Math.floor((p / 100) * s.length))]);
+      };
+      const st = (xs: number[]) => ({
+        p50: pctl(xs, 50),
+        p95: pctl(xs, 95),
+        avg: Math.round(xs.reduce((a, b) => a + b, 0) / (xs.length || 1)),
+      });
       // O benchmark mede o caminho REAL do usuário: áudio no idioma ESTUDADO → traduzido para o DELE.
       // Fixar 'en'→'pt' aqui media um par que talvez ele nem use.
       const studying = baseLang(langConfigRef.current.studying);
@@ -950,12 +1147,15 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
       }
       const result = {
         model: localStorage.getItem('babel.whisperModel') ?? 'default',
-        chunkSec, n, audioMs,
+        chunkSec,
+        n,
+        audioMs,
         decodeMs: st(dec),
-        rtf: +(st(dec).p50 / audioMs).toFixed(3),   // < 1 = acompanha tempo real
+        rtf: +(st(dec).p50 / audioMs).toFixed(3), // < 1 = acompanha tempo real
         keepsUp: st(dec).p50 < audioMs,
-        mtMs: st(mt), mtEngine: engine,
-        endToEndMs: st(dec).p50 + st(mt).p50,        // decode + tradução (latência sentida)
+        mtMs: st(mt),
+        mtEngine: engine,
+        endToEndMs: st(dec).p50 + st(mt).p50, // decode + tradução (latência sentida)
       };
       clog('__simBench concluído:', result);
       return result;
@@ -975,7 +1175,7 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
   // Ao parar a gravação, desmarca o orador ativo (sem simulação de falas).
   useEffect(() => {
     if (!isRecording) {
-      setSpeakerProfiles(prev => prev.map(p => ({ ...p, isActive: false })));
+      setSpeakerProfiles((prev) => prev.map((p) => ({ ...p, isActive: false })));
     }
   }, [isRecording]);
 
@@ -990,14 +1190,20 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
   const [pendingNav, setPendingNav] = useState<(() => void) | null>(null);
   const temTrabalhoEmRisco = isRecording || speechSegments.length > 0;
   useEffect(() => {
-    if (!temTrabalhoEmRisco) { setNavGuard(null); return; }
+    if (!temTrabalhoEmRisco) {
+      setNavGuard(null);
+      return;
+    }
     setNavGuard((proceed) => {
       // `() => proceed` porque `setState` com função a EXECUTARIA em vez de guardá-la.
       setPendingNav(() => proceed);
       return true; // navegação suspensa: quem decide agora é o modal
     });
     // Fechar a aba/janela no meio da captura também avisa (mesma classe de perda).
-    const onBeforeUnload = (e: BeforeUnloadEvent) => { e.preventDefault(); e.returnValue = ''; };
+    const onBeforeUnload = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = '';
+    };
     window.addEventListener('beforeunload', onBeforeUnload);
     return () => {
       setNavGuard(null);
@@ -1011,11 +1217,26 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
     setPendingNav(null);
     setIsRecording(false);
     isRecordingRef.current = false;
-    try { webSpeechRef.current?.stop(); } catch { /* já parado */ }
+    try {
+      webSpeechRef.current?.stop();
+    } catch {
+      /* já parado */
+    }
     webSpeechRef.current = null;
-    if (meterRef.current) { meterRef.current.stop(); meterRef.current = null; }
-    try { await systemCaptureRef.current?.stop(); } catch { /* já parado */ }
-    try { await micCaptureRef.current?.stop(); } catch { /* já parado */ }
+    if (meterRef.current) {
+      meterRef.current.stop();
+      meterRef.current = null;
+    }
+    try {
+      await systemCaptureRef.current?.stop();
+    } catch {
+      /* já parado */
+    }
+    try {
+      await micCaptureRef.current?.stop();
+    } catch {
+      /* já parado */
+    }
     systemCaptureRef.current = null;
     micCaptureRef.current = null;
     setSpeechSegments([]);
@@ -1035,7 +1256,10 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
   useEffect(() => {
     if (!showConfigPanel) return;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') { play('close'); setShowConfigPanel(false); }
+      if (e.key === 'Escape') {
+        play('close');
+        setShowConfigPanel(false);
+      }
     };
     window.addEventListener('keydown', onKey);
     configCloseRef.current?.focus();
@@ -1050,7 +1274,10 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
    * Agora aparece quando não há dispositivo detectado, ou depois de um teste que falhou.
    */
   useEffect(() => {
-    if (systemSource !== 'loopback') { setShowSetupGuide(false); return; }
+    if (systemSource !== 'loopback') {
+      setShowSetupGuide(false);
+      return;
+    }
     const testeFalhou = probe != null && probe.verdict !== 'ok';
     if (!loopbackDetected || testeFalhou) setShowSetupGuide(true);
   }, [systemSource, loopbackDetected, probe]);
@@ -1058,24 +1285,61 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
   /* O CICLO DA SESSÃO — começar, retomar, parar e SALVAR — mora em `lib/captura/salvarSessao.ts`.
      Fábrica por render, como as closures que substituiu: `handleStartRecording` e
      `handleFinalizeSave` leem `timer`, `speechSegments` e o par de idiomas do render corrente. */
-  const {
-    handleStartOrResume, handleExitResume,
-    handleStopRecording, handleCancelStop, handleFinalizeSave,
-  } = criarSalvarSessao({
-    gateway, onSave, recordings,
-    speechSegments, timer, sourceLang, targetLang, micEnabled, systemEnabled, micEngine,
-    captureScenario, speakerAutoId, resumeId, customSessionTitle, customSessionImage,
-    startMic, handleStartSystemCapture,
-    systemCaptureRef, micCaptureRef, webSpeechRef, webSpeechPartialIdRef, meterRef,
-    recordedAudioRef,
-    isRecordingRef, sessionStartMsRef, shouldAnchorClockRef, micStartedAtRef, partialIdRef,
-    seqToSegmentRef, lastPartialTextRef, ordemMtRef,
-    clustererRef, dominantLangRef, perfilIdiomaRef, altTargetNotifiedRef, lastVoiceIdRef,
-    provisionalUttsRef, speakerProfilesRef,
-    setIsRecording, setIsFocusMode, setTimer, setSpeechSegments, setIdiomaObservado,
-    setSpeakerIdStatus, setModelPrep, setResumeId, setShowSaveModal, setCustomSessionTitle,
-    setCustomSessionImage, setImgQuery, setImgResults, setFeedbackMsg,
-  });
+  const { handleStartOrResume, handleExitResume, handleStopRecording, handleCancelStop, handleFinalizeSave } =
+    criarSalvarSessao({
+      gateway,
+      onSave,
+      recordings,
+      speechSegments,
+      timer,
+      sourceLang,
+      targetLang,
+      micEnabled,
+      systemEnabled,
+      micEngine,
+      captureScenario,
+      speakerAutoId,
+      resumeId,
+      customSessionTitle,
+      customSessionImage,
+      startMic,
+      handleStartSystemCapture,
+      systemCaptureRef,
+      micCaptureRef,
+      webSpeechRef,
+      webSpeechPartialIdRef,
+      meterRef,
+      recordedAudioRef,
+      isRecordingRef,
+      sessionStartMsRef,
+      shouldAnchorClockRef,
+      micStartedAtRef,
+      partialIdRef,
+      seqToSegmentRef,
+      lastPartialTextRef,
+      ordemMtRef,
+      clustererRef,
+      dominantLangRef,
+      perfilIdiomaRef,
+      altTargetNotifiedRef,
+      lastVoiceIdRef,
+      provisionalUttsRef,
+      speakerProfilesRef,
+      setIsRecording,
+      setIsFocusMode,
+      setTimer,
+      setSpeechSegments,
+      setIdiomaObservado,
+      setSpeakerIdStatus,
+      setModelPrep,
+      setResumeId,
+      setShowSaveModal,
+      setCustomSessionTitle,
+      setCustomSessionImage,
+      setImgQuery,
+      setImgResults,
+      setFeedbackMsg,
+    });
 
   // --- RETOMAR SESSÃO: reidrata o transcript REAL do backend (não usa mock) ---
   useEffect(() => {
@@ -1115,7 +1379,9 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
         }
       }
     })();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
     /* `sourceLang` e `targetLang` ficam FORA das dependências, e não por esquecimento.
     
        Este efeito RETOMA uma gravação: ele lê o par de idiomas para rotular as falas que vêm sem
@@ -1131,7 +1397,9 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
     if (!showSaveModal) return;
     const prevOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') handleCancelStop(); };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') handleCancelStop();
+    };
     window.addEventListener('keydown', onKey);
     return () => {
       document.body.style.overflow = prevOverflow;
@@ -1151,7 +1419,9 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
           const file = items[i].getAsFile();
           if (file) {
             const reader = new FileReader();
-            reader.onloadend = () => { setCustomSessionImage(reader.result as string); };
+            reader.onloadend = () => {
+              setCustomSessionImage(reader.result as string);
+            };
             reader.readAsDataURL(file);
           }
         }
@@ -1177,7 +1447,9 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
     const file = e.target.files?.[0];
     if (!file) return;
     const reader = new FileReader();
-    reader.onloadend = () => { setCustomSessionImage(reader.result as string); };
+    reader.onloadend = () => {
+      setCustomSessionImage(reader.result as string);
+    };
     reader.readAsDataURL(file);
   };
 
@@ -1214,7 +1486,8 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
 
     try {
       // Find active speaker
-      const activeSpeaker = speakerProfiles.find(p => p.isActive) || speakerProfiles.find(p => p.id === 'user') || speakerProfiles[0];
+      const activeSpeaker =
+        speakerProfiles.find((p) => p.isActive) || speakerProfiles.find((p) => p.id === 'user') || speakerProfiles[0];
       const speakerId = activeSpeaker.id;
       const timestampStr = formatTime(timer);
 
@@ -1226,7 +1499,7 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
       const cleanTranslated = clean.charAt(0).toUpperCase() + clean.slice(1);
 
       // Append segment to live transcript feed! Vocabulário da fala real.
-      setSpeechSegments(prev => [
+      setSpeechSegments((prev) => [
         ...prev,
         {
           id: Math.random().toString(36).substr(2, 9),
@@ -1238,7 +1511,7 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
           words: wordsFromText(inputText, sourceLang),
           tStartMs: nowRel(),
           tEndMs: nowRel(),
-        }
+        },
       ]);
 
       setFeedbackMsg(`Frase de ${activeSpeaker.name} traduzida e integrada à transcrição!`);
@@ -1278,8 +1551,16 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
   /* O VOCABULÁRIO DA CAPTURA (examinar, fichar no deck, mandar praticar) mora em
      `lib/captura/palavraDaFala.ts`. Fábrica por render, como as closures que substituiu. */
   const { examineWord, handleAddWordToDeck, handlePracticeWord } = criarPalavraDaFala({
-    gateway, langConfigRef, targetLangRef, selectedWordLangRef, speakWord,
-    setSelectedExamWord, addedWords, setAddedWords, setFeedbackMsg, onChangeView,
+    gateway,
+    langConfigRef,
+    targetLangRef,
+    selectedWordLangRef,
+    speakWord,
+    setSelectedExamWord,
+    addedWords,
+    setAddedWords,
+    setFeedbackMsg,
+    onChangeView,
   });
 
   // Speaker Renaming
@@ -1290,7 +1571,7 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
 
   const handleSaveSpeakerName = (id: string) => {
     if (!editingSpeakerName.trim()) return;
-    setSpeakerProfiles(prev => prev.map(p => p.id === id ? { ...p, name: editingSpeakerName } : p));
+    setSpeakerProfiles((prev) => prev.map((p) => (p.id === id ? { ...p, name: editingSpeakerName } : p)));
     setEditingSpeakerId(null);
     setFeedbackMsg('Nome do orador atualizado!');
     setTimeout(() => setFeedbackMsg(''), 2000);
@@ -1314,7 +1595,11 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
    * para baixo — continua dizendo "daqui para ali", que é a única coisa que ela precisa dizer.
    */
   const seletoresDeIdioma = (p = '', empilhado = false) => (
-    <div className={empilhado ? 'flex flex-col items-stretch gap-1.5' : 'flex items-center gap-1.5 flex-wrap md:justify-end'}>
+    <div
+      className={
+        empilhado ? 'flex flex-col items-stretch gap-1.5' : 'flex items-center gap-1.5 flex-wrap md:justify-end'
+      }
+    >
       {captureScenario !== 'media' && (
         <LangSelect
           id={p + 'my-lang'}
@@ -1324,23 +1609,35 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
           auto={autoDetectMyLang}
           allowAuto
           block={empilhado}
-          onPick={({ auto, code }) => { langTouchedRef.current = true; setAutoDetectMyLang(auto); if (code) setSourceLang(code); }}
+          onPick={({ auto, code }) => {
+            langTouchedRef.current = true;
+            setAutoDetectMyLang(auto);
+            if (code) setSourceLang(code);
+          }}
         />
       )}
       {captureScenario === 'conversation' && <SetaDoPar empilhado={empilhado} />}
       {captureScenario !== 'mic' && (
         <LangSelect
           id={p + 'their-lang'}
-          label={captureScenario === 'media'
-            ? (ageProfile === 'kids' ? 'Língua do vídeo/jogo' : 'Idioma do conteúdo')
-            : 'Eles falam'}
+          label={
+            captureScenario === 'media'
+              ? ageProfile === 'kids'
+                ? 'Língua do vídeo/jogo'
+                : 'Idioma do conteúdo'
+              : 'Eles falam'
+          }
           icon={<Headphones className="w-2.5 h-2.5" />}
           value={targetLang}
           auto={autoDetectLang}
           allowAuto
           accent
           block={empilhado}
-          onPick={({ auto, code }) => { langTouchedRef.current = true; setAutoDetectLang(auto); if (code) setTargetLang(code); }}
+          onPick={({ auto, code }) => {
+            langTouchedRef.current = true;
+            setAutoDetectLang(auto);
+            if (code) setTargetLang(code);
+          }}
         />
       )}
       {captureScenario !== 'conversation' && (
@@ -1354,7 +1651,8 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
             onPick={({ code }) => {
               if (!code) return;
               langTouchedRef.current = true;
-              if (captureScenario === 'media') setSourceLang(code); else setTargetLang(code);
+              if (captureScenario === 'media') setSourceLang(code);
+              else setTargetLang(code);
             }}
           />
         </>
@@ -1370,20 +1668,58 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
       {/* C13 — o automático agora DIZ o que descobriu. Antes prometia "é detectado sozinho"
           e nunca mostrava o resultado: numa sessão inteira em português, a tela seguia
           anunciando o idioma configurado enquanto o sistema já sabia a resposta há 40 falas. */}
-      {captureScenario === 'media' && (autoDetectLang
-        ? (idiomaObservado
-          ? <>Detectei <b>{langLabel(idiomaObservado)}</b> no conteúdo ({Math.round(perfilIdiomaRef.current.ler().confianca * 100)}% das falas), legenda em <b>{langLabel(destinoDaTraducao(idiomaObservado, baseLang(sourceLang), baseLang(targetLang)).destino || sourceLang)}</b>.</>
-          : <>O idioma do conteúdo é detectado sozinho (pode até misturar) e tudo vira legenda em <b>{langLabel(sourceLang)}</b>.</>)
-        : <>Cada fala vira legenda bilíngue em <b>{langLabel(sourceLang)}</b>.</>)}
+      {captureScenario === 'media' &&
+        (autoDetectLang ? (
+          idiomaObservado ? (
+            <>
+              Detectei <b>{langLabel(idiomaObservado)}</b> no conteúdo (
+              {Math.round(perfilIdiomaRef.current.ler().confianca * 100)}% das falas), legenda em{' '}
+              <b>
+                {langLabel(
+                  destinoDaTraducao(idiomaObservado, baseLang(sourceLang), baseLang(targetLang)).destino || sourceLang,
+                )}
+              </b>
+              .
+            </>
+          ) : (
+            <>
+              O idioma do conteúdo é detectado sozinho (pode até misturar) e tudo vira legenda em{' '}
+              <b>{langLabel(sourceLang)}</b>.
+            </>
+          )
+        ) : (
+          <>
+            Cada fala vira legenda bilíngue em <b>{langLabel(sourceLang)}</b>.
+          </>
+        ))}
       {captureScenario === 'conversation' && (
         <>
-          {idiomaObservado && autoDetectLang && <>Eles estão falando <b>{langLabel(idiomaObservado)}</b> · </>}
-          Você lê os outros em <b>{langLabel(sourceLang)}</b> · sua fala aparece {autoDetectMyLang ? <>no idioma da conversa (detectado ao vivo)</> : <>em <b>{langLabel(targetLang)}</b></>}.
+          {idiomaObservado && autoDetectLang && (
+            <>
+              Eles estão falando <b>{langLabel(idiomaObservado)}</b> ·{' '}
+            </>
+          )}
+          Você lê os outros em <b>{langLabel(sourceLang)}</b> · sua fala aparece{' '}
+          {autoDetectMyLang ? (
+            <>no idioma da conversa (detectado ao vivo)</>
+          ) : (
+            <>
+              em <b>{langLabel(targetLang)}</b>
+            </>
+          )}
+          .
         </>
       )}
-      {captureScenario === 'mic' && (autoDetectMyLang
-        ? <>Sua fala é detectada em qualquer idioma e traduzida para <b>{langLabel(targetLang)}</b>.</>
-        : <>Sua fala vira texto em <b>{langLabel(sourceLang)}</b> com tradução em <b>{langLabel(targetLang)}</b>.</>)}
+      {captureScenario === 'mic' &&
+        (autoDetectMyLang ? (
+          <>
+            Sua fala é detectada em qualquer idioma e traduzida para <b>{langLabel(targetLang)}</b>.
+          </>
+        ) : (
+          <>
+            Sua fala vira texto em <b>{langLabel(sourceLang)}</b> com tradução em <b>{langLabel(targetLang)}</b>.
+          </>
+        ))}
     </>
   );
 
@@ -1406,9 +1742,11 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
         role="switch"
         aria-checked={micEnabled}
         disabled={micAbrindo}
-        title={micEnabled
-          ? 'Sua fala está entrando na gravação. Clique para mutar.'
-          : 'Sua fala está fora da gravação. Clique para entrar — vale a qualquer momento, inclusive gravando.'}
+        title={
+          micEnabled
+            ? 'Sua fala está entrando na gravação. Clique para mutar.'
+            : 'Sua fala está fora da gravação. Clique para entrar — vale a qualquer momento, inclusive gravando.'
+        }
         className={`flex items-center gap-2 rounded-xl transition-all cursor-pointer shrink-0 disabled:cursor-wait ${
           variante === 'foco'
             ? 'py-3 px-6 text-xs font-bold border'
@@ -1416,19 +1754,30 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
         } ${
           micEnabled
             ? 'bg-accent-soft border-accent text-accent-ink shadow-btn'
-            : 'bg-canvas border-border-subtle text-ink-muted hover:text-ink hover:border-ink-faint'
+            : variante === 'foco'
+              ? 'bg-canvas border-border-subtle text-ink-muted hover:text-ink hover:border-ink-faint'
+              : /* na tela o botão mora no painel escuro (F8): tokens `panel-*` */
+                'bg-panel-surface border-panel-border text-panel-ink-muted hover:text-panel-ink hover:border-accent'
         }`}
       >
-        {micAbrindo
-          ? <Loader2 className={`${iconeCls} animate-spin`} />
-          : micEnabled ? <Mic className={iconeCls} /> : <MicOff className={iconeCls} />}
+        {micAbrindo ? (
+          <Loader2 className={`${iconeCls} animate-spin`} />
+        ) : micEnabled ? (
+          <Mic className={iconeCls} />
+        ) : (
+          <MicOff className={iconeCls} />
+        )}
         {/* O estado é dito por ESCRITO, não só pela cor: o app tem 7 temas e o ícone sozinho
             (mic vs mic cortado) já falhou em teste de leitura. */}
         {micAbrindo
           ? 'Pedindo permissão…'
           : ageProfile === 'kids'
-            ? (micEnabled ? 'Minha voz entra' : 'Minha voz fora')
-            : (micEnabled ? 'Microfone ativo' : 'Microfone mudo')}
+            ? micEnabled
+              ? 'Minha voz entra'
+              : 'Minha voz fora'
+            : micEnabled
+              ? 'Microfone ativo'
+              : 'Microfone mudo'}
       </button>
     );
   };
@@ -1450,11 +1799,15 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
       <button
         onClick={() => setShowOverlay(!showOverlay)}
         aria-pressed={showOverlay}
-        title={isDocumentPiPSupported()
-          ? 'Legendas ao vivo numa janela flutuante sempre-no-topo (por cima de jogo/vídeo/chamada)'
-          : 'Janela flutuante requer Chrome/Edge; aqui o overlay abre embutido na tela'}
+        title={
+          isDocumentPiPSupported()
+            ? 'Legendas ao vivo numa janela flutuante sempre-no-topo (por cima de jogo/vídeo/chamada)'
+            : 'Janela flutuante requer Chrome/Edge; aqui o overlay abre embutido na tela'
+        }
         className={`flex items-center gap-2 rounded-xl transition-all cursor-pointer shrink-0 ${
-          foco ? 'py-3 px-6 text-xs font-bold border' : 'py-3 px-5 text-xs md:text-sm font-extrabold border-2 min-h-[48px]'
+          foco
+            ? 'py-3 px-6 text-xs font-bold border'
+            : 'py-3 px-5 text-xs md:text-sm font-extrabold border-2 min-h-[48px]'
         } ${
           showOverlay
             ? 'bg-good text-white border-good shadow-btn'
@@ -1473,9 +1826,10 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
      Espelha os mesmos rótulos de `seletoresDeIdioma`, que continua sendo o único lugar que
      ESCREVE o par (ele é o recheio da gaveta). Em 'media' o idioma do conteúdo é `targetLang`
      e a legenda sai em `sourceLang`; em conversa é "eu falo" → "eles falam". */
-  const parResumido = captureScenario === 'media'
-    ? { auto: autoDetectLang, de: targetLang, para: sourceLang }
-    : { auto: autoDetectMyLang, de: sourceLang, para: targetLang };
+  const parResumido =
+    captureScenario === 'media'
+      ? { auto: autoDetectLang, de: targetLang, para: sourceLang }
+      : { auto: autoDetectMyLang, de: sourceLang, para: targetLang };
 
   /* IDIOMAS IGUAIS = CARTÃO SEM VERSO (spec entrega-honesta). O chip precisa avisar mesmo
      fechado: é aqui que a palavra é fichada, e o caderno enchia de palavras sem tradução. */
@@ -1530,11 +1884,19 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
         {/* Live Status Indicators */}
         <div className="flex items-center gap-3">
           {/* Collapse/Expand Inline configurations panel */}
-          <button 
-            onClick={() => { play(showConfigPanel ? 'close' : 'open'); setShowConfigPanel(!showConfigPanel); }}
+          <button
+            onClick={() => {
+              play(showConfigPanel ? 'close' : 'open');
+              setShowConfigPanel(!showConfigPanel);
+            }}
             className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold border transition-all cursor-pointer ${showConfigPanel ? 'bg-canvas border-accent text-ink' : 'border-border-subtle bg-surface text-ink-muted hover:text-ink hover:bg-surface-hover'}`}
           >
-            <Sliders className="w-4 h-4 text-accent" /> {ageProfile === 'kids' ? 'Ajustes de Áudio' : ageProfile === 'senior' ? 'Configurações Simples' : 'Configurações de Dispositivos & IA'}
+            <Sliders className="w-4 h-4 text-accent" />{' '}
+            {ageProfile === 'kids'
+              ? 'Ajustes de Áudio'
+              : ageProfile === 'senior'
+                ? 'Configurações Simples'
+                : 'Configurações de Dispositivos & IA'}
           </button>
 
           <button
@@ -1553,10 +1915,12 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
             {ageProfile === 'kids'
               ? 'Legenda inteligente ativa'
               : ageProfile === 'senior'
-              ? 'Reconhecimento Automático Pronto'
-              : sttRouteLabel
-              ? `Transcrição: ${sttRouteLabel}`
-              : micEngine === 'browser' ? 'Transcrição no dispositivo · mic via navegador' : 'Transcrição 100% no dispositivo'}
+                ? 'Reconhecimento Automático Pronto'
+                : sttRouteLabel
+                  ? `Transcrição: ${sttRouteLabel}`
+                  : micEngine === 'browser'
+                    ? 'Transcrição no dispositivo · mic via navegador'
+                    : 'Transcrição 100% no dispositivo'}
           </span>
         </div>
       </header>
@@ -1566,7 +1930,7 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
         <div className="px-6 py-2.5 bg-accent-soft border-b border-accent/20 flex items-center justify-between gap-3 shrink-0 z-20 animate-in slide-in-from-top duration-200">
           <span className="text-[12px] font-bold text-accent-ink flex items-center gap-2">
             <RefreshCw className="w-3.5 h-3.5" />
-            Retomando: {customSessionTitle || (recordings ?? []).find(r => r.id === resumeId)?.title || 'sessão'}
+            Retomando: {customSessionTitle || (recordings ?? []).find((r) => r.id === resumeId)?.title || 'sessão'}
             <span className="text-[10px] font-mono font-semibold text-ink-muted">
               continua o transcript e a duração, salvar não cria uma nova sessão
             </span>
@@ -1587,368 +1951,484 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
         <div
           className="fixed inset-0 z-[80] flex items-start justify-center bg-black/55 p-4 md:p-8 overflow-y-auto"
           onClick={() => setShowConfigPanel(false)}
-          onKeyDown={(e) => { if (e.key === 'Escape') setShowConfigPanel(false); }}
+          onKeyDown={(e) => {
+            if (e.key === 'Escape') setShowConfigPanel(false);
+          }}
         >
-        <section
-          role="dialog"
-          aria-modal="true"
-          aria-label="Configurações de dispositivos e modelos de IA"
-          className="bg-surface border border-border-subtle rounded-2xl shadow-2xl p-5 w-full max-w-3xl max-h-[88vh] overflow-y-auto custom-scrollbar animate-in zoom-in-95 duration-200"
-          onClick={(e) => e.stopPropagation()}
-        >
-          <div>
-            <div className="flex items-center justify-between mb-4 pb-3 border-b border-border-subtle">
-              <div className="min-w-0">
-                <h3 className="font-display font-black text-base text-ink flex items-center gap-2">
-                  <Settings2 className="w-4 h-4 text-accent shrink-0" aria-hidden />
-                  {ageProfile === 'kids' ? 'Ajustes de áudio' : ageProfile === 'senior' ? 'Configurações do som' : 'Dispositivos e modelos de IA'}
-                </h3>
-                <p className="text-[12px] text-ink-muted mt-0.5">
-                  {ageProfile === 'senior'
-                    ? 'De onde vem o som e como ele vira texto.'
-                    : 'De onde vem o áudio, qual motor transcreve e como a legenda aparece.'}
-                </p>
+          <section
+            role="dialog"
+            aria-modal="true"
+            aria-label="Configurações de dispositivos e modelos de IA"
+            className="bg-surface border border-border-subtle rounded-2xl shadow-2xl p-5 w-full max-w-3xl max-h-[88vh] overflow-y-auto custom-scrollbar animate-in zoom-in-95 duration-200"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div>
+              <div className="flex items-center justify-between mb-4 pb-3 border-b border-border-subtle">
+                <div className="min-w-0">
+                  <h3 className="font-display font-black text-base text-ink flex items-center gap-2">
+                    <Settings2 className="w-4 h-4 text-accent shrink-0" aria-hidden />
+                    {ageProfile === 'kids'
+                      ? 'Ajustes de áudio'
+                      : ageProfile === 'senior'
+                        ? 'Configurações do som'
+                        : 'Dispositivos e modelos de IA'}
+                  </h3>
+                  <p className="text-[12px] text-ink-muted mt-0.5">
+                    {ageProfile === 'senior'
+                      ? 'De onde vem o som e como ele vira texto.'
+                      : 'De onde vem o áudio, qual motor transcreve e como a legenda aparece.'}
+                  </p>
+                </div>
+                <button
+                  ref={configCloseRef}
+                  onClick={() => {
+                    play('close');
+                    setShowConfigPanel(false);
+                  }}
+                  aria-label="Fechar configurações"
+                  className="shrink-0 w-9 h-9 rounded-lg flex items-center justify-center text-ink-muted hover:text-ink hover:bg-surface-hover transition-colors cursor-pointer"
+                >
+                  <X className="w-4 h-4" aria-hidden />
+                </button>
               </div>
-              <button
-                ref={configCloseRef}
-                onClick={() => { play('close'); setShowConfigPanel(false); }}
-                aria-label="Fechar configurações"
-                className="shrink-0 w-9 h-9 rounded-lg flex items-center justify-center text-ink-muted hover:text-ink hover:bg-surface-hover transition-colors cursor-pointer"
-              >
-                <X className="w-4 h-4" aria-hidden />
-              </button>
-            </div>
 
-            {/* ─────────── FONTES DE CAPTURA (avançado) ───────────
+              {/* ─────────── FONTES DE CAPTURA (avançado) ───────────
                 Estes controles ficavam TODOS empilhados na tela de captura, antes do botão Iniciar,
                 era o maior gargalo de onboarding. Agora moram aqui: quem quer só gravar não os vê;
                 quem precisa ajustar (Discord/jogos, Stereo Mix, motor do mic) abre esta gaveta. */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 mb-5">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 mb-5">
+                {/* ÁUDIO DO SISTEMA — como capturar (a decisão que realmente importa) */}
+                <div className="space-y-2 bg-canvas border border-border-subtle rounded-xl p-3.5">
+                  <label className="text-[10px] text-ink-muted font-bold uppercase tracking-wider flex items-center gap-1">
+                    <Monitor className="w-3 h-3 text-accent" /> Áudio do Sistema, como capturar
+                  </label>
 
-              {/* ÁUDIO DO SISTEMA — como capturar (a decisão que realmente importa) */}
-              <div className="space-y-2 bg-canvas border border-border-subtle rounded-xl p-3.5">
-                <label className="text-[10px] text-ink-muted font-bold uppercase tracking-wider flex items-center gap-1">
-                  <Monitor className="w-3 h-3 text-accent" /> Áudio do Sistema, como capturar
-                </label>
-
-                {/* A ROTA de captura é a decisão mais técnica desta tela. Em Kids/Sênior ela abre
+                  {/* A ROTA de captura é a decisão mais técnica desta tela. Em Kids/Sênior ela abre
                     recolhida: o padrão já é a melhor rota disponível, e mostrar três alternativas
                     com nomes de API não ajuda ninguém desses perfis. Continua a um clique. */}
-                {coreOnly(ageProfile) && !showAdvancedRoutes && (
-                  <button
-                    type="button"
-                    onClick={() => setShowAdvancedRoutes(true)}
-                    className="flex items-center gap-1.5 text-[10px] font-bold text-ink-muted hover:text-ink cursor-pointer transition-colors"
-                  >
-                    <ChevronDown className="w-3 h-3" aria-hidden /> Trocar a forma de captar o som
-                  </button>
-                )}
-
-                <div className={`flex-wrap items-center gap-1 bg-surface border border-border-subtle rounded-lg p-0.5 text-[10px] w-fit ${
-                  coreOnly(ageProfile) && !showAdvancedRoutes ? 'hidden' : 'flex'
-                }`}>
-                  {serverCaptureAvailable && (
+                  {coreOnly(ageProfile) && !showAdvancedRoutes && (
                     <button
-                      onClick={() => setSystemSource('server')}
-                      title="O servidor local captura o mix do Windows (WASAPI loopback) e envia ao app. ZERO setup e ZERO permissão de navegador, capta o sistema INTEIRO (Discord/jogos/qualquer app)."
-                      className={`px-2.5 py-1 rounded-md font-bold transition-all cursor-pointer ${systemSource === 'server' ? 'bg-accent text-white shadow-btn' : 'text-ink-muted hover:text-ink'}`}
+                      type="button"
+                      onClick={() => setShowAdvancedRoutes(true)}
+                      className="flex items-center gap-1.5 text-[10px] font-bold text-ink-muted hover:text-ink cursor-pointer transition-colors"
                     >
-                      Computador (servidor) ★
+                      <ChevronDown className="w-3 h-3" aria-hidden /> Trocar a forma de captar o som
                     </button>
                   )}
-                  <button
-                    onClick={() => setSystemSource('display')}
-                    title="Compartilhar uma ABA ou a TELA (getDisplayMedia). Zero setup. Áudio de ABA é confiável; áudio de tela inteira sofre a limitação do Windows."
-                    className={`px-2.5 py-1 rounded-md font-bold transition-all cursor-pointer ${systemSource === 'display' ? 'bg-accent text-white shadow-btn' : 'text-ink-muted hover:text-ink'}`}
-                  >
-                    Compartilhar aba/tela
-                  </button>
-                  <button
-                    onClick={() => setSystemSource('loopback')}
-                    title="Captura um dispositivo de loopback (Stereo Mix / VB-Cable) como microfone. À prova de falhas, capta o sistema INTEIRO (Discord/jogos). Requer setup único."
-                    className={`px-2.5 py-1 rounded-md font-bold transition-all cursor-pointer ${systemSource === 'loopback' ? 'bg-accent text-white shadow-btn' : 'text-ink-muted hover:text-ink'}`}
-                  >
-                    Dispositivo de loopback
-                  </button>
-                </div>
 
-                {systemSource === 'loopback' && (
-                  <select
-                    className="w-full bg-surface border border-border-subtle rounded-lg p-2 text-xs font-semibold text-ink cursor-pointer focus:border-accent outline-none"
-                    value={loopbackDeviceId}
-                    onChange={(e) => setLoopbackDeviceId(e.target.value)}
+                  <div
+                    className={`flex-wrap items-center gap-1 bg-surface border border-border-subtle rounded-lg p-0.5 text-[10px] w-fit ${
+                      coreOnly(ageProfile) && !showAdvancedRoutes ? 'hidden' : 'flex'
+                    }`}
                   >
-                    <option value="">{loopbackDetected ? 'Selecione o dispositivo de loopback…' : 'Dispositivo padrão do sistema'}</option>
-                    {loopbackDevices.map((d, i) => (
-                      <option key={d.deviceId} value={d.deviceId}>{d.label || `Entrada ${i + 1}`}</option>
-                    ))}
-                  </select>
-                )}
-
-                {/* Guia de setup honesto, por rota */}
-                <div className="text-[10px] text-ink-muted space-y-1.5 pt-1">
-                  {systemSource === 'server' ? (
-                    <>
-                      <p>O <b className="text-ink">servidor local</b> captura tudo que o computador toca (WASAPI loopback) e envia ao app, <b className="text-ink">sem popup de compartilhamento e sem configurar dispositivo</b>. Capta o sistema inteiro: Discord, jogos, players, chamadas.</p>
-                      <p className="text-ink-faint">Esta rota escuta a <b>saída padrão</b> do Windows. Para capturar uma saída específica, defina-a como padrão no Windows (Som → Saída), ou use <b>Compartilhar aba</b> (só uma aba) / <b>Dispositivo de loopback</b> (escolhe o dispositivo abaixo).</p>
-                      <p className="text-ink-faint">Disponível porque o app está rodando com o servidor local no Windows. O áudio não sai da sua máquina.</p>
-                    </>
-                  ) : systemSource === 'display' ? (
-                    <>
-                      <p><b className="text-ink">Aba</b> (YouTube, chamada web): escolha a <b className="text-ink">aba</b> e marque <b className="text-ink">"áudio da aba"</b>, caminho confiável.</p>
-                      <p><b className="text-ink">Tela inteira</b> (Discord/jogo): marque <b className="text-ink">"Compartilhar o áudio do sistema"</b>. No Windows isso às vezes falha (NotReadableError), nesse caso use <b className="text-ink">Dispositivo de loopback</b>.</p>
-                      <p className="text-ink-faint">"Janela" não tem áudio no Chrome. O áudio do sistema vem INTEIRO (mixado), não dá para isolar um app.</p>
-                    </>
-                  ) : (
-                    <>
-                      <p>Capta o <b className="text-ink">sistema inteiro</b> (Discord, jogos, qualquer app) como se fosse um microfone, sem o erro de compartilhamento de tela.</p>
-                      {!loopbackDetected && (
-                        <p className="text-warn-ink font-bold">Nenhum dispositivo de loopback detectado, siga um dos dois caminhos abaixo.</p>
-                      )}
-
-                      {/* GAVETA: o passo-a-passo só ocupa a tela de quem precisa dele. Abre sozinha
-                          quando não há dispositivo ou quando o teste falha (ver o efeito acima). */}
+                    {serverCaptureAvailable && (
                       <button
-                        type="button"
-                        onClick={() => setShowSetupGuide(v => !v)}
-                        aria-expanded={showSetupGuide}
-                        className="flex items-center gap-1.5 text-[10px] font-bold text-ink-muted hover:text-ink cursor-pointer transition-colors"
+                        onClick={() => setSystemSource('server')}
+                        title="O servidor local captura o mix do Windows (WASAPI loopback) e envia ao app. ZERO setup e ZERO permissão de navegador, capta o sistema INTEIRO (Discord/jogos/qualquer app)."
+                        className={`px-2.5 py-1 rounded-md font-bold transition-all cursor-pointer ${systemSource === 'server' ? 'bg-accent text-white shadow-btn' : 'text-ink-muted hover:text-ink'}`}
                       >
-                        <ChevronDown className={`w-3 h-3 transition-transform ${showSetupGuide ? 'rotate-180' : ''}`} aria-hidden />
-                        {showSetupGuide ? 'Esconder o passo a passo' : 'Como configurar (2 caminhos)'}
+                        Computador (servidor) ★
                       </button>
-
-                      {showSetupGuide && (
-                        <div className="space-y-1.5 pt-1 ps-4 border-s-2 border-border-subtle">
-                          <p><b className="text-ink">A, Stereo Mix:</b> Som → aba <b className="text-ink">Gravação</b> → botão direito → <b className="text-ink">"Mostrar dispositivos desabilitados"</b> → ative <b className="text-ink">"Mixagem estéreo"</b> e selecione-a acima.</p>
-                          <p><b className="text-ink">B, VB-Audio Cable:</b> instale de <a href="https://vb-audio.com/Cable/" target="_blank" rel="noreferrer" className="text-accent underline">vb-audio.com/Cable</a>, defina <b className="text-ink">"CABLE Input"</b> como saída do Windows (ative "Escutar este dispositivo" p/ continuar ouvindo) e selecione <b className="text-ink">"CABLE Output"</b> acima.</p>
-                          {!loopbackDetected && (
-                            <p className="text-warn-ink">Se já ativou, conceda a permissão de microfone e recarregue a página.</p>
-                          )}
-                        </div>
-                      )}
-                    </>
-                  )}
-                </div>
-
-                {/* TESTE de diagnóstico: prova, no PC real, se o áudio chega mesmo. */}
-                <div className="pt-2 border-t border-border-subtle">
-                  <button
-                    onClick={handleProbeSystem}
-                    disabled={probing}
-                    className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-[10px] font-bold bg-surface border border-border-subtle text-ink hover:bg-surface-hover disabled:opacity-50 cursor-pointer"
-                  >
-                    {probing ? <Loader2 className="w-3 h-3 animate-spin" /> : <Activity className="w-3 h-3" />}
-                    {probing ? 'Testando… (deixe algo tocando por ~2s)' : 'Testar captura do áudio do sistema'}
-                  </button>
-                  {probe && (
-                    <div className={`mt-2 rounded-md p-2 border text-[10px] ${probe.verdict === 'ok' ? 'border-good/40 bg-good-soft/30 text-good-ink' : 'border-warn/40 bg-warn-soft/30 text-warn-ink'}`}>
-                      <p className="font-bold">
-                        {probe.verdict === 'ok' && '✓ Áudio do sistema OK, sinal detectado!'}
-                        {probe.verdict === 'silent' && '⚠ Faixa de áudio existe, mas está SILENCIOSA (nível ~0)'}
-                        {probe.verdict === 'no-audio-track' && '✗ Nenhuma faixa de áudio foi compartilhada'}
-                      </p>
-                      <p className="mt-0.5 text-ink-muted">
-                        {probe.surface === 'loopback' || probe.surface === 'server' ? 'Fonte' : 'Superfície'}: <b>{probe.surface === 'monitor' ? 'Tela inteira' : probe.surface === 'browser' ? 'Aba' : probe.surface === 'window' ? 'Janela' : probe.surface === 'loopback' ? 'Loopback' : probe.surface === 'server' ? 'Servidor local' : probe.surface}</b>
-                        {' · '}faixas: <b>{probe.audioTrackCount}</b>
-                        {' · '}pico: <b>{probe.peakLevel}</b>
-                        {probe.audioLabel && <> · <span className="font-mono">{probe.audioLabel}</span></>}
-                      </p>
-                      {probe.verdict === 'no-audio-track' && (
-                        <p className="mt-0.5">{systemSource === 'loopback'
-                          ? 'O dispositivo escolhido não entregou áudio. Confirme que é o Stereo Mix/CABLE Output e que a saída do Windows aponta para ele.'
-                          : 'Escolha uma aba + "áudio da aba", ou Tela inteira + "Compartilhar o áudio do sistema". Janela não tem áudio.'}</p>
-                      )}
-                      {probe.verdict === 'silent' && (
-                        <p className="mt-0.5">{systemSource === 'loopback'
-                          ? 'O dispositivo veio, mas sem sinal. Deixe algo tocando e confirme que a saída do Windows aponta para o Stereo Mix/CABLE Input.'
-                          : 'A faixa veio, mas sem som. Deixe um vídeo/música tocando durante o teste.'}</p>
-                      )}
-                    </div>
-                  )}
-                </div>
-              </div>
-
-
-              {/* MICROFONE — motor + dispositivo */}
-              <div className="space-y-2 bg-canvas border border-border-subtle rounded-xl p-3.5">
-                <label className="text-[10px] text-ink-muted font-bold uppercase tracking-wider flex items-center gap-1">
-                  <Mic className="w-3 h-3 text-accent" /> Microfone, motor e dispositivo
-                </label>
-
-                <div className="flex items-center gap-1 bg-surface border border-border-subtle rounded-lg p-0.5 text-[10px] w-fit">
-                  <button
-                    onClick={() => setMicEngine('browser')}
-                    disabled={!webSpeechSupported}
-                    title="Web Speech API do navegador, leve, instantânea, ótima p/ português. Usa o mic padrão do Windows e requer internet."
-                    className={`px-2.5 py-1 rounded-md font-bold transition-all disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer ${micEngine === 'browser' ? 'bg-accent text-white shadow-btn' : 'text-ink-muted hover:text-ink'}`}
-                  >
-                    Navegador (rápido)
-                  </button>
-                  <button
-                    onClick={() => setMicEngine('whisper')}
-                    title="Whisper local, offline e permite escolher o dispositivo de entrada, porém mais pesado."
-                    className={`px-2.5 py-1 rounded-md font-bold transition-all cursor-pointer ${micEngine === 'whisper' ? 'bg-accent text-white shadow-btn' : 'text-ink-muted hover:text-ink'}`}
-                  >
-                    Whisper (offline)
-                  </button>
-                </div>
-                <p className="text-[9px] text-ink-faint leading-tight">
-                  {micEngine === 'browser'
-                    ? 'Navegador: instantâneo e leve, mas usa o mic padrão do Windows e precisa de internet.'
-                    : 'Whisper: offline e escolhe o dispositivo abaixo, porém mais pesado.'}
-                  {' '}O áudio do sistema é <b>sempre</b> transcrito por Whisper.
-                </p>
-
-                {/* Dispositivo de entrada — enumeração REAL (enumerateDevices). Só o motor Whisper
-                    honra a escolha; a Web Speech usa o mic padrão do SO. */}
-                <select
-                  className="w-full bg-surface border border-border-subtle rounded-lg p-2 text-xs font-semibold text-ink cursor-pointer focus:border-accent outline-none disabled:opacity-50 disabled:cursor-not-allowed"
-                  value={inputDeviceId}
-                  disabled={micEngine === 'browser'}
-                  onChange={(e) => setInputDeviceId(e.target.value)}
-                >
-                  <option value="">Microfone padrão do sistema</option>
-                  {audioInputs.filter(d => d.deviceId).map((d, i) => (
-                    <option key={d.deviceId} value={d.deviceId}>{d.label || `Microfone ${i + 1}`}</option>
-                  ))}
-                </select>
-                {!deviceLabelsReady && (
-                  <div className="flex items-center gap-2">
-                    <p className="text-[9px] text-ink-faint leading-tight flex-1">Os nomes dos dispositivos exigem permissão do microfone.</p>
+                    )}
                     <button
-                      onClick={async () => {
-                        // Pede a permissão AGORA (sem esperar uma gravação) só para destravar
-                        // os nomes; a faixa é fechada na hora.
-                        try {
-                          const s = await navigator.mediaDevices.getUserMedia({ audio: true });
-                          s.getTracks().forEach(t => t.stop());
-                          const { inputs, outputs, hasLabels } = await listDevices();
-                          setAudioInputs(inputs); setAudioOutputs(outputs); setDeviceLabelsReady(hasLabels);
-                        } catch {
-                          setFeedbackMsg('Permissão do microfone negada, os nomes dos dispositivos ficam ocultos.');
-                          setTimeout(() => setFeedbackMsg(''), 4000);
-                        }
-                      }}
-                      className="shrink-0 text-[10px] font-bold px-2 py-1 rounded-md border border-border-subtle bg-surface hover:border-accent hover:text-accent cursor-pointer"
+                      onClick={() => setSystemSource('display')}
+                      title="Compartilhar uma ABA ou a TELA (getDisplayMedia). Zero setup. Áudio de ABA é confiável; áudio de tela inteira sofre a limitação do Windows."
+                      className={`px-2.5 py-1 rounded-md font-bold transition-all cursor-pointer ${systemSource === 'display' ? 'bg-accent text-white shadow-btn' : 'text-ink-muted hover:text-ink'}`}
                     >
-                      Listar dispositivos
+                      Compartilhar aba/tela
+                    </button>
+                    <button
+                      onClick={() => setSystemSource('loopback')}
+                      title="Captura um dispositivo de loopback (Stereo Mix / VB-Cable) como microfone. À prova de falhas, capta o sistema INTEIRO (Discord/jogos). Requer setup único."
+                      className={`px-2.5 py-1 rounded-md font-bold transition-all cursor-pointer ${systemSource === 'loopback' ? 'bg-accent text-white shadow-btn' : 'text-ink-muted hover:text-ink'}`}
+                    >
+                      Dispositivo de loopback
                     </button>
                   </div>
-                )}
-                {micEngine === 'browser' && (
-                  <p className="text-[9px] text-ink-faint leading-tight">Para ESCOLHER o dispositivo do microfone, troque o motor para Whisper (acima), a Web Speech usa sempre o padrão do Windows.</p>
-                )}
+
+                  {systemSource === 'loopback' && (
+                    <select
+                      className="w-full bg-surface border border-border-subtle rounded-lg p-2 text-xs font-semibold text-ink cursor-pointer focus:border-accent outline-none"
+                      value={loopbackDeviceId}
+                      onChange={(e) => setLoopbackDeviceId(e.target.value)}
+                    >
+                      <option value="">
+                        {loopbackDetected ? 'Selecione o dispositivo de loopback…' : 'Dispositivo padrão do sistema'}
+                      </option>
+                      {loopbackDevices.map((d, i) => (
+                        <option key={d.deviceId} value={d.deviceId}>
+                          {d.label || `Entrada ${i + 1}`}
+                        </option>
+                      ))}
+                    </select>
+                  )}
+
+                  {/* Guia de setup honesto, por rota */}
+                  <div className="text-[10px] text-ink-muted space-y-1.5 pt-1">
+                    {systemSource === 'server' ? (
+                      <>
+                        <p>
+                          O <b className="text-ink">servidor local</b> captura tudo que o computador toca (WASAPI
+                          loopback) e envia ao app,{' '}
+                          <b className="text-ink">sem popup de compartilhamento e sem configurar dispositivo</b>. Capta
+                          o sistema inteiro: Discord, jogos, players, chamadas.
+                        </p>
+                        <p className="text-ink-faint">
+                          Esta rota escuta a <b>saída padrão</b> do Windows. Para capturar uma saída específica,
+                          defina-a como padrão no Windows (Som → Saída), ou use <b>Compartilhar aba</b> (só uma aba) /{' '}
+                          <b>Dispositivo de loopback</b> (escolhe o dispositivo abaixo).
+                        </p>
+                        <p className="text-ink-faint">
+                          Disponível porque o app está rodando com o servidor local no Windows. O áudio não sai da sua
+                          máquina.
+                        </p>
+                      </>
+                    ) : systemSource === 'display' ? (
+                      <>
+                        <p>
+                          <b className="text-ink">Aba</b> (YouTube, chamada web): escolha a{' '}
+                          <b className="text-ink">aba</b> e marque <b className="text-ink">"áudio da aba"</b>, caminho
+                          confiável.
+                        </p>
+                        <p>
+                          <b className="text-ink">Tela inteira</b> (Discord/jogo): marque{' '}
+                          <b className="text-ink">"Compartilhar o áudio do sistema"</b>. No Windows isso às vezes falha
+                          (NotReadableError), nesse caso use <b className="text-ink">Dispositivo de loopback</b>.
+                        </p>
+                        <p className="text-ink-faint">
+                          "Janela" não tem áudio no Chrome. O áudio do sistema vem INTEIRO (mixado), não dá para isolar
+                          um app.
+                        </p>
+                      </>
+                    ) : (
+                      <>
+                        <p>
+                          Capta o <b className="text-ink">sistema inteiro</b> (Discord, jogos, qualquer app) como se
+                          fosse um microfone, sem o erro de compartilhamento de tela.
+                        </p>
+                        {!loopbackDetected && (
+                          <p className="text-warn-ink font-bold">
+                            Nenhum dispositivo de loopback detectado, siga um dos dois caminhos abaixo.
+                          </p>
+                        )}
+
+                        {/* GAVETA: o passo-a-passo só ocupa a tela de quem precisa dele. Abre sozinha
+                          quando não há dispositivo ou quando o teste falha (ver o efeito acima). */}
+                        <button
+                          type="button"
+                          onClick={() => setShowSetupGuide((v) => !v)}
+                          aria-expanded={showSetupGuide}
+                          className="flex items-center gap-1.5 text-[10px] font-bold text-ink-muted hover:text-ink cursor-pointer transition-colors"
+                        >
+                          <ChevronDown
+                            className={`w-3 h-3 transition-transform ${showSetupGuide ? 'rotate-180' : ''}`}
+                            aria-hidden
+                          />
+                          {showSetupGuide ? 'Esconder o passo a passo' : 'Como configurar (2 caminhos)'}
+                        </button>
+
+                        {showSetupGuide && (
+                          <div className="space-y-1.5 pt-1 ps-4 border-s-2 border-border-subtle">
+                            <p>
+                              <b className="text-ink">A, Stereo Mix:</b> Som → aba <b className="text-ink">Gravação</b>{' '}
+                              → botão direito → <b className="text-ink">"Mostrar dispositivos desabilitados"</b> → ative{' '}
+                              <b className="text-ink">"Mixagem estéreo"</b> e selecione-a acima.
+                            </p>
+                            <p>
+                              <b className="text-ink">B, VB-Audio Cable:</b> instale de{' '}
+                              <a
+                                href="https://vb-audio.com/Cable/"
+                                target="_blank"
+                                rel="noreferrer"
+                                className="text-accent underline"
+                              >
+                                vb-audio.com/Cable
+                              </a>
+                              , defina <b className="text-ink">"CABLE Input"</b> como saída do Windows (ative "Escutar
+                              este dispositivo" p/ continuar ouvindo) e selecione{' '}
+                              <b className="text-ink">"CABLE Output"</b> acima.
+                            </p>
+                            {!loopbackDetected && (
+                              <p className="text-warn-ink">
+                                Se já ativou, conceda a permissão de microfone e recarregue a página.
+                              </p>
+                            )}
+                          </div>
+                        )}
+                      </>
+                    )}
+                  </div>
+
+                  {/* TESTE de diagnóstico: prova, no PC real, se o áudio chega mesmo. */}
+                  <div className="pt-2 border-t border-border-subtle">
+                    <button
+                      onClick={handleProbeSystem}
+                      disabled={probing}
+                      className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-[10px] font-bold bg-surface border border-border-subtle text-ink hover:bg-surface-hover disabled:opacity-50 cursor-pointer"
+                    >
+                      {probing ? <Loader2 className="w-3 h-3 animate-spin" /> : <Activity className="w-3 h-3" />}
+                      {probing ? 'Testando… (deixe algo tocando por ~2s)' : 'Testar captura do áudio do sistema'}
+                    </button>
+                    {probe && (
+                      <div
+                        className={`mt-2 rounded-md p-2 border text-[10px] ${probe.verdict === 'ok' ? 'border-good/40 bg-good-soft/30 text-good-ink' : 'border-warn/40 bg-warn-soft/30 text-warn-ink'}`}
+                      >
+                        <p className="font-bold">
+                          {probe.verdict === 'ok' && '✓ Áudio do sistema OK, sinal detectado!'}
+                          {probe.verdict === 'silent' && '⚠ Faixa de áudio existe, mas está SILENCIOSA (nível ~0)'}
+                          {probe.verdict === 'no-audio-track' && '✗ Nenhuma faixa de áudio foi compartilhada'}
+                        </p>
+                        <p className="mt-0.5 text-ink-muted">
+                          {probe.surface === 'loopback' || probe.surface === 'server' ? 'Fonte' : 'Superfície'}:{' '}
+                          <b>
+                            {probe.surface === 'monitor'
+                              ? 'Tela inteira'
+                              : probe.surface === 'browser'
+                                ? 'Aba'
+                                : probe.surface === 'window'
+                                  ? 'Janela'
+                                  : probe.surface === 'loopback'
+                                    ? 'Loopback'
+                                    : probe.surface === 'server'
+                                      ? 'Servidor local'
+                                      : probe.surface}
+                          </b>
+                          {' · '}faixas: <b>{probe.audioTrackCount}</b>
+                          {' · '}pico: <b>{probe.peakLevel}</b>
+                          {probe.audioLabel && (
+                            <>
+                              {' '}
+                              · <span className="font-mono">{probe.audioLabel}</span>
+                            </>
+                          )}
+                        </p>
+                        {probe.verdict === 'no-audio-track' && (
+                          <p className="mt-0.5">
+                            {systemSource === 'loopback'
+                              ? 'O dispositivo escolhido não entregou áudio. Confirme que é o Stereo Mix/CABLE Output e que a saída do Windows aponta para ele.'
+                              : 'Escolha uma aba + "áudio da aba", ou Tela inteira + "Compartilhar o áudio do sistema". Janela não tem áudio.'}
+                          </p>
+                        )}
+                        {probe.verdict === 'silent' && (
+                          <p className="mt-0.5">
+                            {systemSource === 'loopback'
+                              ? 'O dispositivo veio, mas sem sinal. Deixe algo tocando e confirme que a saída do Windows aponta para o Stereo Mix/CABLE Input.'
+                              : 'A faixa veio, mas sem som. Deixe um vídeo/música tocando durante o teste.'}
+                          </p>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* MICROFONE — motor + dispositivo */}
+                <div className="space-y-2 bg-canvas border border-border-subtle rounded-xl p-3.5">
+                  <label className="text-[10px] text-ink-muted font-bold uppercase tracking-wider flex items-center gap-1">
+                    <Mic className="w-3 h-3 text-accent" /> Microfone, motor e dispositivo
+                  </label>
+
+                  <div className="flex items-center gap-1 bg-surface border border-border-subtle rounded-lg p-0.5 text-[10px] w-fit">
+                    <button
+                      onClick={() => setMicEngine('browser')}
+                      disabled={!webSpeechSupported}
+                      title="Web Speech API do navegador, leve, instantânea, ótima p/ português. Usa o mic padrão do Windows e requer internet."
+                      className={`px-2.5 py-1 rounded-md font-bold transition-all disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer ${micEngine === 'browser' ? 'bg-accent text-white shadow-btn' : 'text-ink-muted hover:text-ink'}`}
+                    >
+                      Navegador (rápido)
+                    </button>
+                    <button
+                      onClick={() => setMicEngine('whisper')}
+                      title="Whisper local, offline e permite escolher o dispositivo de entrada, porém mais pesado."
+                      className={`px-2.5 py-1 rounded-md font-bold transition-all cursor-pointer ${micEngine === 'whisper' ? 'bg-accent text-white shadow-btn' : 'text-ink-muted hover:text-ink'}`}
+                    >
+                      Whisper (offline)
+                    </button>
+                  </div>
+                  <p className="text-[9px] text-ink-faint leading-tight">
+                    {micEngine === 'browser'
+                      ? 'Navegador: instantâneo e leve, mas usa o mic padrão do Windows e precisa de internet.'
+                      : 'Whisper: offline e escolhe o dispositivo abaixo, porém mais pesado.'}{' '}
+                    O áudio do sistema é <b>sempre</b> transcrito por Whisper.
+                  </p>
+
+                  {/* Dispositivo de entrada — enumeração REAL (enumerateDevices). Só o motor Whisper
+                    honra a escolha; a Web Speech usa o mic padrão do SO. */}
+                  <select
+                    className="w-full bg-surface border border-border-subtle rounded-lg p-2 text-xs font-semibold text-ink cursor-pointer focus:border-accent outline-none disabled:opacity-50 disabled:cursor-not-allowed"
+                    value={inputDeviceId}
+                    disabled={micEngine === 'browser'}
+                    onChange={(e) => setInputDeviceId(e.target.value)}
+                  >
+                    <option value="">Microfone padrão do sistema</option>
+                    {audioInputs
+                      .filter((d) => d.deviceId)
+                      .map((d, i) => (
+                        <option key={d.deviceId} value={d.deviceId}>
+                          {d.label || `Microfone ${i + 1}`}
+                        </option>
+                      ))}
+                  </select>
+                  {!deviceLabelsReady && (
+                    <div className="flex items-center gap-2">
+                      <p className="text-[9px] text-ink-faint leading-tight flex-1">
+                        Os nomes dos dispositivos exigem permissão do microfone.
+                      </p>
+                      <button
+                        onClick={async () => {
+                          // Pede a permissão AGORA (sem esperar uma gravação) só para destravar
+                          // os nomes; a faixa é fechada na hora.
+                          try {
+                            const s = await navigator.mediaDevices.getUserMedia({ audio: true });
+                            s.getTracks().forEach((t) => t.stop());
+                            const { inputs, outputs, hasLabels } = await listDevices();
+                            setAudioInputs(inputs);
+                            setAudioOutputs(outputs);
+                            setDeviceLabelsReady(hasLabels);
+                          } catch {
+                            setFeedbackMsg('Permissão do microfone negada, os nomes dos dispositivos ficam ocultos.');
+                            setTimeout(() => setFeedbackMsg(''), 4000);
+                          }
+                        }}
+                        className="shrink-0 text-[10px] font-bold px-2 py-1 rounded-md border border-border-subtle bg-surface hover:border-accent hover:text-accent cursor-pointer"
+                      >
+                        Listar dispositivos
+                      </button>
+                    </div>
+                  )}
+                  {micEngine === 'browser' && (
+                    <p className="text-[9px] text-ink-faint leading-tight">
+                      Para ESCOLHER o dispositivo do microfone, troque o motor para Whisper (acima), a Web Speech usa
+                      sempre o padrão do Windows.
+                    </p>
+                  )}
+                </div>
               </div>
-            </div>
 
-            {/* ─────────── SAÍDA + MOTOR DE IA ─────────── */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* ─────────── SAÍDA + MOTOR DE IA ─────────── */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Dispositivo de Saída — real via setSinkId (aplica ao player de gravações). */}
+                <div className="space-y-1.5">
+                  <label className="text-[10px] text-ink-muted font-bold uppercase tracking-wider flex items-center gap-1">
+                    Dispositivo de Saída
+                  </label>
+                  <select
+                    className="w-full bg-canvas border border-border-subtle rounded-lg p-2 text-xs font-semibold text-ink cursor-pointer focus:border-accent outline-none disabled:opacity-50 disabled:cursor-not-allowed"
+                    value={outputDeviceId}
+                    disabled={!supportsSinkId()}
+                    onChange={(e) => setOutputDeviceId(e.target.value)}
+                  >
+                    <option value="">Saída padrão do sistema</option>
+                    {audioOutputs
+                      .filter((d) => d.deviceId)
+                      .map((d, i) => (
+                        <option key={d.deviceId} value={d.deviceId}>
+                          {d.label || `Saída ${i + 1}`}
+                        </option>
+                      ))}
+                  </select>
+                  <p className="text-[9px] text-ink-faint leading-tight">
+                    {supportsSinkId()
+                      ? 'Aplica ao player de gravações. A voz falada (TTS) usa a saída padrão do Windows.'
+                      : 'Seu navegador não permite escolher a saída de áudio.'}
+                  </p>
+                </div>
 
-              {/* Dispositivo de Saída — real via setSinkId (aplica ao player de gravações). */}
-              <div className="space-y-1.5">
-                <label className="text-[10px] text-ink-muted font-bold uppercase tracking-wider flex items-center gap-1">Dispositivo de Saída</label>
-                <select
-                  className="w-full bg-canvas border border-border-subtle rounded-lg p-2 text-xs font-semibold text-ink cursor-pointer focus:border-accent outline-none disabled:opacity-50 disabled:cursor-not-allowed"
-                  value={outputDeviceId}
-                  disabled={!supportsSinkId()}
-                  onChange={(e) => setOutputDeviceId(e.target.value)}
-                >
-                  <option value="">Saída padrão do sistema</option>
-                  {audioOutputs.filter(d => d.deviceId).map((d, i) => (
-                    <option key={d.deviceId} value={d.deviceId}>{d.label || `Saída ${i + 1}`}</option>
-                  ))}
-                </select>
-                <p className="text-[9px] text-ink-faint leading-tight">
-                  {supportsSinkId()
-                    ? 'Aplica ao player de gravações. A voz falada (TTS) usa a saída padrão do Windows.'
-                    : 'Seu navegador não permite escolher a saída de áudio.'}
-                </p>
-              </div>
-
-              {/* Motor de IA: leitura do PERFIL ATIVO, que é o que realmente alimenta o
+                {/* Motor de IA: leitura do PERFIL ATIVO, que é o que realmente alimenta o
                   gateway. Antes havia aqui três <select> (voz/visão/chat) cujo estado não
                   chegava a lugar nenhum, a escolha real de adapter vem do perfil. */}
-              <div className="space-y-1.5">
-                <label className="text-[10px] text-ink-muted font-bold uppercase tracking-wider flex items-center gap-1">Motor de IA ativo</label>
-                <div className="bg-canvas border border-border-subtle rounded-md p-2 flex items-center justify-between gap-2">
-                  <div className="min-w-0">
-                    <div className="text-[11px] font-bold text-ink truncate">{activeProfileName}</div>
-                    <div className="text-[9px] text-ink-muted">
-                      {getProviderMode() === 'cloud' ? 'Nuvem (sua chave)' : 'Local, no dispositivo'}
+                <div className="space-y-1.5">
+                  <label className="text-[10px] text-ink-muted font-bold uppercase tracking-wider flex items-center gap-1">
+                    Motor de IA ativo
+                  </label>
+                  <div className="bg-canvas border border-border-subtle rounded-md p-2 flex items-center justify-between gap-2">
+                    <div className="min-w-0">
+                      <div className="text-[11px] font-bold text-ink truncate">{activeProfileName}</div>
+                      <div className="text-[9px] text-ink-muted">
+                        {getProviderMode() === 'cloud' ? 'Nuvem (sua chave)' : 'Local, no dispositivo'}
+                      </div>
                     </div>
+                    <Cpu className="w-3.5 h-3.5 text-ink-faint shrink-0" />
                   </div>
-                  <Cpu className="w-3.5 h-3.5 text-ink-faint shrink-0" />
+                  <p className="text-[9px] text-ink-faint">Troque em Configurações → Perfil de IA.</p>
                 </div>
-                <p className="text-[9px] text-ink-faint">Troque em Configurações → Perfil de IA.</p>
-              </div>
 
+                {/* QUALIDADE DA TRANSCRIÇÃO — a política do roteador de modelo por idioma. */}
+                <div className="lg:col-span-2 space-y-1.5 bg-canvas border border-border-subtle rounded-xl p-3.5">
+                  <label
+                    htmlFor="stt-quality"
+                    className="text-[10px] text-ink-muted font-bold uppercase tracking-wider flex items-center gap-1"
+                  >
+                    <Cpu className="w-3 h-3 text-accent" /> Qualidade da transcrição
+                  </label>
+                  <select
+                    id="stt-quality"
+                    name="sttQuality"
+                    value={sttQuality}
+                    onChange={(e) => {
+                      const q = e.target.value as SttQuality;
+                      setSttQuality(q);
+                      setSttQualityMirror(q);
+                      void patchUiSettings({ sttQuality: q });
+                    }}
+                    className="w-full bg-surface border border-border-subtle rounded-lg p-2 text-xs font-semibold text-ink cursor-pointer focus:border-accent outline-none"
+                  >
+                    <option value="auto">Automática (recomendado), escolhe o melhor motor pelo idioma</option>
+                    <option value="fast">Rápida, modelo leve local (menos precisa fora do inglês)</option>
+                    <option value="accurate">Precisa, melhor modelo local (download maior, mais pesada)</option>
+                    <option value="cloud">Nuvem, máxima qualidade via servidor (requer chave; usa rede)</option>
+                  </select>
+                  <p className="text-[9px] text-ink-faint leading-tight">
+                    Automática: inglês usa o modelo leve local; outros idiomas usam a nuvem quando configurada (melhor
+                    qualidade) ou o melhor modelo local do seu dispositivo. O selo no topo mostra o motor em uso. O
+                    perfil Privado/Local nunca usa nuvem.
+                  </p>
+                </div>
 
-              {/* QUALIDADE DA TRANSCRIÇÃO — a política do roteador de modelo por idioma. */}
-              <div className="lg:col-span-2 space-y-1.5 bg-canvas border border-border-subtle rounded-xl p-3.5">
-                <label htmlFor="stt-quality" className="text-[10px] text-ink-muted font-bold uppercase tracking-wider flex items-center gap-1">
-                  <Cpu className="w-3 h-3 text-accent" /> Qualidade da transcrição
+                {/* MODO DESEMPENHO — para jogar/trabalhar pesado enquanto captura */}
+                <label className="lg:col-span-2 flex items-start gap-2.5 bg-canvas border border-border-subtle rounded-xl p-3.5 cursor-pointer">
+                  <input
+                    id="perf-mode"
+                    name="perfMode"
+                    type="checkbox"
+                    checked={perfMode}
+                    onChange={(e) => setPerfMode(e.target.checked)}
+                    className="mt-0.5 accent-[var(--accent)]"
+                  />
+                  <span className="text-[11px] leading-relaxed">
+                    <b className="text-ink">Modo desempenho (jogos)</b>
+                    <span className="text-ink-muted">
+                      , a legenda aparece só no fim de cada frase, sem o refino em tempo real. Reduz muito o uso de
+                      GPU/CPU enquanto você joga ou roda apps pesados.
+                    </span>
+                  </span>
                 </label>
-                <select
-                  id="stt-quality"
-                  name="sttQuality"
-                  value={sttQuality}
-                  onChange={(e) => {
-                    const q = e.target.value as SttQuality;
-                    setSttQuality(q);
-                    setSttQualityMirror(q);
-                    void patchUiSettings({ sttQuality: q });
-                  }}
-                  className="w-full bg-surface border border-border-subtle rounded-lg p-2 text-xs font-semibold text-ink cursor-pointer focus:border-accent outline-none"
-                >
-                  <option value="auto">Automática (recomendado), escolhe o melhor motor pelo idioma</option>
-                  <option value="fast">Rápida, modelo leve local (menos precisa fora do inglês)</option>
-                  <option value="accurate">Precisa, melhor modelo local (download maior, mais pesada)</option>
-                  <option value="cloud">Nuvem, máxima qualidade via servidor (requer chave; usa rede)</option>
-                </select>
-                <p className="text-[9px] text-ink-faint leading-tight">
-                  Automática: inglês usa o modelo leve local; outros idiomas usam a nuvem quando configurada (melhor qualidade) ou o melhor modelo local do seu dispositivo. O selo no topo mostra o motor em uso. O perfil Privado/Local nunca usa nuvem.
-                </p>
               </div>
 
-              {/* MODO DESEMPENHO — para jogar/trabalhar pesado enquanto captura */}
-              <label className="lg:col-span-2 flex items-start gap-2.5 bg-canvas border border-border-subtle rounded-xl p-3.5 cursor-pointer">
-                <input
-                  id="perf-mode"
-                  name="perfMode"
-                  type="checkbox"
-                  checked={perfMode}
-                  onChange={(e) => setPerfMode(e.target.checked)}
-                  className="mt-0.5 accent-[var(--accent)]"
-                />
-                <span className="text-[11px] leading-relaxed">
-                  <b className="text-ink">Modo desempenho (jogos)</b>
-                  <span className="text-ink-muted">, a legenda aparece só no fim de cada frase, sem o refino em tempo real. Reduz muito o uso de GPU/CPU enquanto você joga ou roda apps pesados.</span>
-                </span>
-              </label>
-            </div>
-
-            {/* APARÊNCIA DA LEGENDA — o antigo botão "Visual" da barra.
+              {/* APARÊNCIA DA LEGENDA — o antigo botão "Visual" da barra.
                 Mesmo componente, montado onde os outros ajustes já moram. A barra da Captura
                 ficou com duas ações (legendas flutuantes, foco cheio) em vez de três. */}
-            <div className="mt-5 pt-4 border-t border-border-subtle">
-              <h4 className="label-mono mb-2 flex items-center gap-1.5">
-                <Sliders className="w-3 h-3 text-accent" aria-hidden />
-                {ageProfile === 'senior' ? 'Como a legenda aparece' : 'Aparência da legenda'}
-              </h4>
-              <p className="text-[11px] text-ink-muted mb-3">
-                Fonte, tamanho e ordem das linhas na transcrição ao vivo.
-              </p>
-              <TranscriptVisualSettings idPrefix="cfg-visual" dense tsSettings={tsSettings} updateSetting={updateSetting} />
+              <div className="mt-5 pt-4 border-t border-border-subtle">
+                <h4 className="label-mono mb-2 flex items-center gap-1.5">
+                  <Sliders className="w-3 h-3 text-accent" aria-hidden />
+                  {ageProfile === 'senior' ? 'Como a legenda aparece' : 'Aparência da legenda'}
+                </h4>
+                <p className="text-[11px] text-ink-muted mb-3">
+                  Fonte, tamanho e ordem das linhas na transcrição ao vivo.
+                </p>
+                <TranscriptVisualSettings
+                  idPrefix="cfg-visual"
+                  dense
+                  tsSettings={tsSettings}
+                  updateSetting={updateSetting}
+                />
+              </div>
             </div>
-          </div>
-        </section>
+          </section>
         </div>
       )}
 
       {/* --- DASHBOARD WRAPPER --- */}
       <div className="flex-1 flex flex-col lg:flex-row overflow-y-auto lg:overflow-hidden relative">
-        
         {/* ============================================== */}
         {/* LEFT COLUMN: PRIMARY WORKSPACE & STREAMS       */}
         {/* ============================================== */}
@@ -1959,18 +2439,16 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
             {ageProfile === 'kids'
               ? 'Grave o som do Roblox, de vídeos ou do microfone e veja a legenda aparecer em tempo real.'
               : ageProfile === 'senior'
-              ? 'Siga os passos abaixo para gravar o som do computador ou a sua voz e ver o texto em português.'
-              : 'Transcreve e traduz o que você ouve e fala, em tempo real.'}
+                ? 'Siga os passos abaixo para gravar o som do computador ou a sua voz e ver o texto em português.'
+                : 'Transcreve e traduz o que você ouve e fala, em tempo real.'}
           </p>
-
 
           {/* ============================================== */}
           {/* WORKSPACE VIEWPORTS (SEPARATE AREAS)          */}
           {/* ============================================== */}
           <div className="w-full">
-            
             {/* TRANSCRIÇÃO AO VIVO (modo único da tela) */}
-            {(
+            {
               <EditablePanel
                 viewKey="capture"
                 panelKey="liveTranscript"
@@ -1980,8 +2458,7 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
                 defaultHeight={520}
               >
                 <div className="flex flex-col gap-5 animate-in fade-in duration-300 h-full min-h-0">
-
-                {/* ══════════════ HERO RECORDER — o centro de comando da captura ══════════════
+                  {/* ══════════════ HERO RECORDER — o centro de comando da captura ══════════════
                     ANTES: os controles ficavam espalhados no RODAPÉ do card de transcrição (abaixo da
                     dobra), toggles, sub-toggles, guia de setup, botão "Testar" e só então o CTA. Era o
                     maior gargalo de onboarding.
@@ -1989,440 +2466,512 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
                     (fonte do sistema, device de loopback, motor do mic, teste de captura, guia do
                     Stereo Mix/VB-Cable) mora na gaveta "Configurações de Dispositivos & IA" do header.
                     Resultado: iniciar uma captura = 1 clique. */}
-                <div className={`bg-surface border rounded-2xl p-5 shadow-xl space-y-4 shrink-0 transition-colors ${isRecording ? 'border-accent/40 ring-1 ring-accent/20' : 'border-border-subtle'}`}>
+                  {/* PAINEL ESCURO (protótipo v3, 2º consumidor de `card-panel escuro`): o hero da
+                    captura é o bloco de maior peso da tela; tudo aqui dentro usa os tokens `panel-*`. */}
+                  <div
+                    className={`card-panel escuro p-5 space-y-4 shrink-0 transition-colors ${isRecording ? 'ring-1 ring-accent/50' : ''}`}
+                  >
+                    {/* Linha 1 — status da sessão + atalhos de visualização */}
+                    <div className="flex items-center justify-between border-b border-panel-border pb-3">
+                      <div className="flex items-center gap-2.5">
+                        <span className="flex h-3 w-3 relative">
+                          {isRecording && (
+                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-accent opacity-75"></span>
+                          )}
+                          <span
+                            className={`relative inline-flex rounded-full h-3 w-3 ${isRecording ? 'bg-accent' : 'bg-panel-ink-muted'}`}
+                          ></span>
+                        </span>
+                        <span className="font-display font-black text-[15px] uppercase tracking-wide text-panel-ink">
+                          {isRecording ? 'Gravando…' : 'Espaço de Gravação'}
+                        </span>
+                      </div>
 
-                  {/* Linha 1 — status da sessão + atalhos de visualização */}
-                  <div className="flex items-center justify-between border-b border-border-subtle pb-3">
-                    <div className="flex items-center gap-2.5">
-                      <span className="flex h-3 w-3 relative">
-                        {isRecording && <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-accent opacity-75"></span>}
-                        <span className={`relative inline-flex rounded-full h-3 w-3 ${isRecording ? 'bg-accent' : 'bg-ink-faint'}`}></span>
-                      </span>
-                      <span className="font-display font-black text-[15px] uppercase tracking-wide text-ink">
-                        {isRecording ? 'Gravando…' : 'Espaço de Gravação'}
-                      </span>
-                    </div>
-
-                    <div className="flex items-center gap-2">
-                      {/* O Relay ("Legendas flutuantes") mudou de casa: é o botão de destaque ao
+                      <div className="flex items-center gap-2">
+                        {/* O Relay ("Legendas flutuantes") mudou de casa: é o botão de destaque ao
                           lado do Iniciar/Parar — funcionalidade essencial não mora em atalho pequeno. */}
-                      <button
-                        onClick={() => setIsFocusMode(true)}
-                        className="p-1.5 px-2 bg-canvas border border-border-subtle rounded-xl text-ink hover:text-accent hover:border-accent transition-all flex items-center gap-1 font-bold text-[11px] cursor-pointer"
-                        title="Expandir para o modo focado em tela cheia"
-                      >
-                        <Maximize2 className="w-3.5 h-3.5" />
-                        <span>Foco Cheio</span>
-                      </button>
+                        <button
+                          onClick={() => setIsFocusMode(true)}
+                          className="p-1.5 px-2 bg-panel-surface border border-panel-border rounded-xl text-panel-ink hover:border-accent transition-all flex items-center gap-1 font-bold text-[11px] cursor-pointer"
+                          title="Expandir para o modo focado em tela cheia"
+                        >
+                          <Maximize2 className="w-3.5 h-3.5" />
+                          <span>Foco Cheio</span>
+                        </button>
 
-                      {/* BINGO — transforma assistir em jogo sem atrapalhar a captura. */}
-                      <button
-                        onClick={() => setShowBingo(v => !v)}
-                        aria-pressed={showBingo}
-                        title="Cartela de palavras que acende quando você as ouve"
-                        className={`p-1.5 px-2 border rounded-xl transition-all flex items-center gap-1 font-bold text-[11px] cursor-pointer ${
-                          showBingo ? 'bg-accent border-accent text-white shadow-btn' : 'bg-canvas border-border-subtle text-ink-muted hover:text-ink hover:border-accent'
-                        }`}
-                      >
-                        <LayoutGrid className="w-3.5 h-3.5" />
-                        <span>Bingo</span>
-                      </button>
+                        {/* BINGO — transforma assistir em jogo sem atrapalhar a captura. */}
+                        <button
+                          onClick={() => setShowBingo((v) => !v)}
+                          aria-pressed={showBingo}
+                          title="Cartela de palavras que acende quando você as ouve"
+                          className={`p-1.5 px-2 border rounded-xl transition-all flex items-center gap-1 font-bold text-[11px] cursor-pointer ${
+                            showBingo
+                              ? 'bg-accent border-accent text-white shadow-btn'
+                              : 'bg-panel-surface border-panel-border text-panel-ink-muted hover:text-panel-ink hover:border-accent'
+                          }`}
+                        >
+                          <LayoutGrid className="w-3.5 h-3.5" />
+                          <span>Bingo</span>
+                        </button>
 
-                      {/* O botão "Visual" saiu daqui: eram três botões disputando a mesma linha, e
+                        {/* O botão "Visual" saiu daqui: eram três botões disputando a mesma linha, e
                           o ajuste de fontes/tamanhos da transcrição pertence ao mesmo lugar que os
                           outros ajustes. Virou uma seção do modal de configurações, mesmo
                           componente (`TranscriptVisualSettings`), nenhum recurso perdido. */}
+                      </div>
                     </div>
-                  </div>
 
-                  {/* Linha 3 — CTA + timer (esquerda) · idiomas (direita) */}
-                  <div className="grid grid-cols-1 md:grid-cols-3 items-center gap-4">
-                    <div className="flex flex-wrap items-center gap-3 md:col-span-2">
-                      {isRecording ? (
-                        <button
-                          onClick={handleStopRecording}
-                          data-sfx="none"
-                          className="flex items-center gap-2 py-3 px-6 bg-error text-white font-extrabold text-xs md:text-sm rounded-xl shadow-btn transition-all hover:scale-[1.02] cursor-pointer shrink-0 min-h-[48px]"
-                        >
-                          <StopCircle className="w-5 h-5" />
-                          {ageProfile === 'senior' ? 'Parar e salvar a gravação' : ageProfile === 'kids' ? 'Parar gravação' : 'Parar & Salvar'}
-                        </button>
-                      ) : (
-                        <button
-                          onClick={handleStartOrResume}
-                          disabled={!micEnabled && !systemEnabled}
-                          className="flex items-center gap-2 py-3.5 px-7 bg-accent hover:bg-accent-ink disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-xl font-extrabold text-xs md:text-sm shadow-btn transition-all hover:scale-[1.02] cursor-pointer shrink-0 min-h-[50px]"
-                        >
-                          <Mic className="w-5 h-5" />
-                          {ageProfile === 'senior'
-                            ? (resumeId ? 'Continuar a gravação da aula' : 'Iniciar a gravação de áudio')
-                            : ageProfile === 'kids'
-                            ? (resumeId ? 'Continuar gravação' : 'Começar a gravar')
-                            : (resumeId ? 'Continuar captura' : 'Iniciar captura')}
-                        </button>
-                      )}
+                    {/* Linha 3 — CTA + timer (esquerda) · idiomas (direita) */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 items-center gap-4">
+                      <div className="flex flex-wrap items-center gap-3 md:col-span-2">
+                        {isRecording ? (
+                          <button
+                            onClick={handleStopRecording}
+                            data-sfx="none"
+                            className="flex items-center gap-2 py-3 px-6 bg-error text-white font-extrabold text-xs md:text-sm rounded-xl shadow-btn transition-all hover:scale-[1.02] cursor-pointer shrink-0 min-h-[48px]"
+                          >
+                            <StopCircle className="w-5 h-5" />
+                            {ageProfile === 'senior'
+                              ? 'Parar e salvar a gravação'
+                              : ageProfile === 'kids'
+                                ? 'Parar gravação'
+                                : 'Parar & Salvar'}
+                          </button>
+                        ) : (
+                          <button
+                            onClick={handleStartOrResume}
+                            disabled={!micEnabled && !systemEnabled}
+                            className="flex items-center gap-2 py-3.5 px-7 bg-accent hover:bg-accent-ink disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-xl font-extrabold text-xs md:text-sm shadow-btn transition-all hover:scale-[1.02] cursor-pointer shrink-0 min-h-[50px]"
+                          >
+                            <Mic className="w-5 h-5" />
+                            {ageProfile === 'senior'
+                              ? resumeId
+                                ? 'Continuar a gravação da aula'
+                                : 'Iniciar a gravação de áudio'
+                              : ageProfile === 'kids'
+                                ? resumeId
+                                  ? 'Continuar gravação'
+                                  : 'Começar a gravar'
+                                : resumeId
+                                  ? 'Continuar captura'
+                                  : 'Iniciar captura'}
+                          </button>
+                        )}
 
-                      {/* O MICROFONE — a única fonte que a pessoa escolhe, e o único controle que
+                        {/* O MICROFONE — a única fonte que a pessoa escolhe, e o único controle que
                           vale ANTES e DURANTE a sessão. Vive ao lado do gesto principal justamente
                           porque é um gesto de mesma ordem: no meio de uma aula dá vontade de repetir
                           a frase em voz alta, e isso não pode exigir parar e recomeçar a gravação.
                           A mecânica (abrir tarde, mutar sem fechar) está em `alternarMicrofone`. */}
-                      {botaoDoMicrofone()}
+                        {botaoDoMicrofone()}
 
-                      {/* LEGENDAS FLUTUANTES — a porta de destaque. É o que permite usar o app por
+                        {/* LEGENDAS FLUTUANTES — a porta de destaque. É o que permite usar o app por
                           cima de jogo/chamada; por isso vive AQUI, ao lado do gesto principal, com
                           cor própria e pulso quando está gravando sem elas. */}
-                      {botaoDasLegendas()}
+                        {botaoDasLegendas()}
 
-                      <div className="flex items-baseline gap-1">
-                        <span className="font-mono text-2xl font-black text-ink tracking-widest">
-                          {isRecording ? formatTime(timer) : '00:00'}
-                        </span>
+                        <div className="flex items-baseline gap-1">
+                          <span className="font-mono text-2xl font-black text-panel-ink tracking-widest">
+                            {isRecording ? formatTime(timer) : '00:00'}
+                          </span>
+                        </div>
                       </div>
-                    </div>
 
-                    {/* Idiomas CONTEXTUAIS por cenário — a mesma dupla sourceLang/targetLang de
+                      {/* Idiomas CONTEXTUAIS por cenário — a mesma dupla sourceLang/targetLang de
                         sempre, com rótulos que fazem sentido para o que o usuário está fazendo.
                         A direção da tradução por fonte (sistema ↔ mic) continua automática. */}
-                    <div className="flex flex-col md:items-end gap-1 md:col-span-1">
-                      {/* O PAR NUM CHIP. Os dois seletores e a explicação da direção ocupavam três
+                      <div className="flex flex-col md:items-end gap-1 md:col-span-1">
+                        {/* O PAR NUM CHIP. Os dois seletores e a explicação da direção ocupavam três
                           linhas fixas da tela — informação que se lê UMA vez e se muda quase nunca,
                           disputando espaço com o único gesto que importa aqui. Agora o chip mostra
                           o par (com bandeira, como no resto do app) e a gaveta guarda a edição.
                           Os AVISOS ficaram de fora dela de propósito: são a parte que a pessoa
                           precisa ver sem clicar em nada. */}
-                      <button
-                        ref={gatilhoIdiomas}
-                        type="button"
-                        onClick={() => setIdiomasAbertos(a => !a)}
-                        aria-haspopup="dialog"
-                        aria-expanded={idiomasAbertos}
-                        title="Ver e trocar os idiomas da sessão"
-                        className={`flex items-center gap-2 px-2.5 py-2 rounded-xl border bg-canvas cursor-pointer transition-colors min-h-10 ${
-                          mesmoIdioma ? 'border-warn' : 'border-border-subtle hover:border-accent'
-                        }`}
-                      >
-                        {/* O aviso não pode depender só da cor da borda (o app tem 7 temas). */}
-                        {mesmoIdioma && <span className="w-1.5 h-1.5 rounded-full bg-warn shrink-0" aria-hidden />}
-                        <span className="flex items-center gap-1.5 text-[11px] font-bold text-ink">
-                          {parResumido.auto
-                            ? <Sparkles className="w-3.5 h-3.5 text-accent shrink-0" aria-hidden />
-                            : <LangFlag code={parResumido.de} className="w-4 h-3" />}
-                          {parResumido.auto ? 'Detectar' : langShortLabel(parResumido.de)}
-                        </span>
-                        <ArrowRight className="w-3 h-3 text-ink-faint shrink-0" aria-hidden />
-                        <span className="flex items-center gap-1.5 text-[11px] font-bold text-ink">
-                          <LangFlag code={parResumido.para} className="w-4 h-3" />
-                          {langLabel(parResumido.para)}
-                        </span>
-                        <ChevronDown className={`w-3.5 h-3.5 text-ink-faint shrink-0 transition-transform ${idiomasAbertos ? 'rotate-180' : ''}`} aria-hidden />
-                      </button>
+                        <button
+                          ref={gatilhoIdiomas}
+                          type="button"
+                          onClick={() => setIdiomasAbertos((a) => !a)}
+                          aria-haspopup="dialog"
+                          aria-expanded={idiomasAbertos}
+                          title="Ver e trocar os idiomas da sessão"
+                          className={`flex items-center gap-2 px-2.5 py-2 rounded-xl border bg-panel-surface cursor-pointer transition-colors min-h-10 ${
+                            mesmoIdioma ? 'border-warn' : 'border-panel-border hover:border-accent'
+                          }`}
+                        >
+                          {/* O aviso não pode depender só da cor da borda (o app tem 7 temas). */}
+                          {mesmoIdioma && <span className="w-1.5 h-1.5 rounded-full bg-warn shrink-0" aria-hidden />}
+                          <span className="flex items-center gap-1.5 text-[11px] font-bold text-panel-ink">
+                            {parResumido.auto ? (
+                              <Sparkles className="w-3.5 h-3.5 text-accent shrink-0" aria-hidden />
+                            ) : (
+                              <LangFlag code={parResumido.de} className="w-4 h-3" />
+                            )}
+                            {parResumido.auto ? 'Detectar' : langShortLabel(parResumido.de)}
+                          </span>
+                          <ArrowRight className="w-3 h-3 text-panel-ink-muted shrink-0" aria-hidden />
+                          <span className="flex items-center gap-1.5 text-[11px] font-bold text-panel-ink">
+                            <LangFlag code={parResumido.para} className="w-4 h-3" />
+                            {langLabel(parResumido.para)}
+                          </span>
+                          <ChevronDown
+                            className={`w-3.5 h-3.5 text-panel-ink-muted shrink-0 transition-transform ${idiomasAbertos ? 'rotate-180' : ''}`}
+                            aria-hidden
+                          />
+                        </button>
 
-                      {/* Portal no `body`: o card da captura entra com `animate-in`, e um `fixed`
+                        {/* Portal no `body`: o card da captura entra com `animate-in`, e um `fixed`
                           sob um ancestral com `transform` passa a ser medido a partir dele — o
                           mesmo conserto já documentado em LangPicker e PopoverFlutuante.
                           z-65 fica ABAIXO do z-70 da lista do LangPicker, senão a lista de idiomas
                           abriria atrás da própria gaveta que a contém. */}
-                      {idiomasAbertos && caixaIdiomas && createPortal(
-                        <div
-                          ref={painelIdiomas}
-                          data-lang-ui=""
-                          role="dialog"
-                          aria-label="Idiomas da sessão"
-                          style={{ top: caixaIdiomas.top, left: caixaIdiomas.left, width: caixaIdiomas.largura }}
-                          className="fixed z-[65] bg-surface border border-border-subtle rounded-xl shadow-2xl p-3.5 space-y-2.5 animate-in fade-in slide-in-from-top-1 duration-150"
-                        >
-                          <span className="block text-[9px] font-mono font-bold uppercase tracking-wider text-ink-faint">
-                            Idiomas da sessão
-                          </span>
-                          {seletoresDeIdioma('pop-', true)}
-                          {/* RESUMO HUMANO da direção — o fluxo fica óbvio sem jargão (público leigo). */}
-                          <p className="text-[10px] text-ink-muted leading-snug">{resumoDaDirecao()}</p>
-                        </div>,
-                        document.body,
-                      )}
-                      {/* IDIOMAS IGUAIS = CARTÃO SEM VERSO (spec entrega-honesta). Ajustes já avisa
+                        {idiomasAbertos &&
+                          caixaIdiomas &&
+                          createPortal(
+                            <div
+                              ref={painelIdiomas}
+                              data-lang-ui=""
+                              role="dialog"
+                              aria-label="Idiomas da sessão"
+                              style={{ top: caixaIdiomas.top, left: caixaIdiomas.left, width: caixaIdiomas.largura }}
+                              className="fixed z-[65] bg-surface border border-border-subtle rounded-xl shadow-2xl p-3.5 space-y-2.5 animate-in fade-in slide-in-from-top-1 duration-150"
+                            >
+                              <span className="block text-[9px] font-mono font-bold uppercase tracking-wider text-ink-faint">
+                                Idiomas da sessão
+                              </span>
+                              {seletoresDeIdioma('pop-', true)}
+                              {/* RESUMO HUMANO da direção — o fluxo fica óbvio sem jargão (público leigo). */}
+                              <p className="text-[10px] text-ink-muted leading-snug">{resumoDaDirecao()}</p>
+                            </div>,
+                            document.body,
+                          )}
+                        {/* IDIOMAS IGUAIS = CARTÃO SEM VERSO (spec entrega-honesta). Ajustes já avisa
                           quem passa por lá; quem vai direto gravar não via nada, e o caderno enchia
                           de palavras sem tradução — 198 de 201 na conta do dono. O aviso mora aqui
                           porque é aqui que a palavra é fichada. */}
-                      {baseLang(sourceLang) === baseLang(targetLang) && (
-                        <p className="text-[9px] text-warn-ink md:text-end leading-tight">
-                          ⚠ Os dois idiomas são o mesmo: não há o que traduzir, e as palavras fichadas
-                          ficam <b>sem verso</b> (não servem para revisar).{' '}
-                          <button onClick={() => setShowConfigPanel(true)} className="underline font-bold cursor-pointer">
-                            trocar um dos dois
-                          </button>
-                        </p>
-                      )}
-                      {/* Limite honesto: a Web Speech (motor padrão do mic) não detecta idioma. */}
-                      {autoDetectMyLang && captureScenario !== 'media' && micEngine === 'browser' && (
-                        <p className="text-[9px] text-warn-ink md:text-end leading-tight">
-                          ⚠ No microfone, a detecção automática exige o motor Whisper (ajustes avançados), no motor navegador vale o idioma escolhido.
-                        </p>
-                      )}
-                      {/* Cobertura REAL do par (única tela do app que avisa sobre isso). 'online' =
+                        {baseLang(sourceLang) === baseLang(targetLang) && (
+                          <p className="text-[10px] rounded-lg bg-warn-soft text-warn-ink px-2 py-1 md:text-end leading-tight">
+                            ⚠ Os dois idiomas são o mesmo: não há o que traduzir, e as palavras fichadas ficam{' '}
+                            <b>sem verso</b> (não servem para revisar).{' '}
+                            <button
+                              onClick={() => setShowConfigPanel(true)}
+                              className="underline font-bold cursor-pointer"
+                            >
+                              trocar um dos dois
+                            </button>
+                          </p>
+                        )}
+                        {/* Limite honesto: a Web Speech (motor padrão do mic) não detecta idioma. */}
+                        {autoDetectMyLang && captureScenario !== 'media' && micEngine === 'browser' && (
+                          <p className="text-[10px] rounded-lg bg-warn-soft text-warn-ink px-2 py-1 md:text-end leading-tight">
+                            ⚠ No microfone, a detecção automática exige o motor Whisper (ajustes avançados), no motor
+                            navegador vale o idioma escolhido.
+                          </p>
+                        )}
+                        {/* Cobertura REAL do par (única tela do app que avisa sobre isso). 'online' =
                           funciona, mas depende de rede; 'unknown' = não há motor nenhum para o par,
                           um aviso bem diferente, porque nem com internet vai traduzir. */}
-                      {!autoDetectLang && (() => {
-                        const coverage = mtCoverage(sourceLang, targetLang);
-                        if (coverage === 'online') {
-                          return (
-                            <p className="text-[9px] text-warn-ink md:text-end leading-tight">
-                              ⚠ {langLabel(sourceLang)}↔{langLabel(targetLang)} exige internet (o tradutor local cobre só ↔ inglês).
-                            </p>
-                          );
-                        }
-                        if (coverage === 'unknown') {
-                          return (
-                            <p className="text-[9px] text-warn-ink md:text-end leading-tight">
-                              ⚠ Não há tradutor para {langLabel(sourceLang)}↔{langLabel(targetLang)}, as falas serão transcritas, mas ficarão sem tradução.
-                            </p>
-                          );
-                        }
-                        return null;
-                      })()}
+                        {!autoDetectLang &&
+                          (() => {
+                            const coverage = mtCoverage(sourceLang, targetLang);
+                            if (coverage === 'online') {
+                              return (
+                                <p className="text-[10px] rounded-lg bg-warn-soft text-warn-ink px-2 py-1 md:text-end leading-tight">
+                                  ⚠ {langLabel(sourceLang)}↔{langLabel(targetLang)} exige internet (o tradutor local
+                                  cobre só ↔ inglês).
+                                </p>
+                              );
+                            }
+                            if (coverage === 'unknown') {
+                              return (
+                                <p className="text-[10px] rounded-lg bg-warn-soft text-warn-ink px-2 py-1 md:text-end leading-tight">
+                                  ⚠ Não há tradutor para {langLabel(sourceLang)}↔{langLabel(targetLang)}, as falas
+                                  serão transcritas, mas ficarão sem tradução.
+                                </p>
+                              );
+                            }
+                            return null;
+                          })()}
+                      </div>
                     </div>
-                  </div>
 
-                  {/* UMA linha de orientação, e ela vale GRAVANDO TAMBÉM.
+                    {/* UMA linha de orientação, e ela vale GRAVANDO TAMBÉM.
                       Antes só aparecia antes de iniciar — justamente quando o estado era mais fácil
                       de adivinhar. Agora que a fonte muda no meio da sessão, é durante a gravação
                       que a pessoa precisa ler, em palavras, se a própria voz está entrando. */}
-                  <p className="text-[10px] text-ink-faint leading-tight">
-                    {isRecording
-                      ? (micEnabled
-                        ? 'Gravando o som do computador e a sua voz. Cada voz é identificada e traduzida na direção certa.'
-                        : 'Gravando o som do computador. Sua voz está fora — ligue o microfone quando quiser entrar.')
-                      : (micEnabled
-                        ? 'O som do computador e a sua voz entram juntos. Dê o play no vídeo, aula ou chamada e clique em Iniciar.'
-                        : 'O som do computador entra sozinho. Dê o play no vídeo, aula ou chamada e clique em Iniciar — a legenda bilíngue aparece aqui e nas Legendas flutuantes.')}
-                  </p>
+                    <p className="text-[10px] text-panel-ink-muted leading-tight">
+                      {isRecording
+                        ? micEnabled
+                          ? 'Gravando o som do computador e a sua voz. Cada voz é identificada e traduzida na direção certa.'
+                          : 'Gravando o som do computador. Sua voz está fora — ligue o microfone quando quiser entrar.'
+                        : micEnabled
+                          ? 'O som do computador e a sua voz entram juntos. Dê o play no vídeo, aula ou chamada e clique em Iniciar.'
+                          : 'O som do computador entra sozinho. Dê o play no vídeo, aula ou chamada e clique em Iniciar — a legenda bilíngue aparece aqui e nas Legendas flutuantes.'}
+                    </p>
 
-                  {/* Linha 4 — WAVEFORM REAL: as barras seguem o nível de áudio efetivamente capturado
+                    {/* Linha 4 — WAVEFORM REAL: as barras seguem o nível de áudio efetivamente capturado
                       (sonda RMS), não uma animação decorativa. */}
-                  {isRecording && (
-                    <div className="pointer-events-none h-10 flex items-end justify-center gap-[3px] bg-canvas/40 border border-border-subtle/40 rounded-xl p-2 select-none">
-                      {levels.map((lvl, i) => {
-                        const h = Math.max(5, Math.min(100, lvl * 120));
-                        return (
-                          <div
-                            key={i}
-                            className="w-[3.5px] bg-accent rounded-full"
-                            /* scaleY no lugar de animar `height`: mesma leitura visual sem
+                    {isRecording && (
+                      <div className="pointer-events-none h-10 flex items-end justify-center gap-[3px] bg-panel-surface border border-panel-border rounded-xl p-2 select-none">
+                        {levels.map((lvl, i) => {
+                          const h = Math.max(5, Math.min(100, lvl * 120));
+                          return (
+                            <div
+                              key={i}
+                              className="w-[3.5px] bg-accent rounded-full"
+                              /* scaleY no lugar de animar `height`: mesma leitura visual sem
                                re-layout a cada frame do medidor (ux-v2 §1.13). */
-                            style={{ height: '100%', transformOrigin: 'bottom', transform: `scaleY(${h / 100})`, opacity: 0.3 + lvl * 0.7, transition: 'transform 70ms linear' }}
-                          />
-                        );
-                      })}
-                    </div>
-                  )}
+                              style={{
+                                height: '100%',
+                                transformOrigin: 'bottom',
+                                transform: `scaleY(${h / 100})`,
+                                opacity: 0.3 + lvl * 0.7,
+                                transition: 'transform 70ms linear',
+                              }}
+                            />
+                          );
+                        })}
+                      </div>
+                    )}
 
-                  {/* Linha 5 — preparo dos modelos locais (progresso transitório; não é configuração) */}
-                  {modelPrep && <ModelPrepPanel state={modelPrep} onRetry={prepareModels} compact />}
-                </div>
+                    {/* Linha 5 — preparo dos modelos locais (progresso transitório; não é configuração) */}
+                    {modelPrep && <ModelPrepPanel state={modelPrep} onRetry={prepareModels} compact />}
+                  </div>
 
-                {/* ══════════════ TRANSCRIÇÃO AO VIVO ══════════════ */}
-                <div className="bg-surface border border-border-subtle rounded-2xl p-6 shadow-card flex flex-col flex-1 min-h-0">
+                  {/* ══════════════ TRANSCRIÇÃO AO VIVO ══════════════ */}
+                  <div className="bg-surface border border-border-subtle rounded-2xl p-6 shadow-card flex flex-col flex-1 min-h-0">
+                    {/* Inline Visual Settings Panel */}
+                    {showVisualSettings && (
+                      <TranscriptVisualSettings
+                        idPrefix="cap-visual"
+                        dense
+                        tsSettings={tsSettings}
+                        updateSetting={updateSetting}
+                      />
+                    )}
 
-                {/* Inline Visual Settings Panel */}
-                {showVisualSettings && (
-                  <TranscriptVisualSettings idPrefix="cap-visual" dense tsSettings={tsSettings} updateSetting={updateSetting} />
-                )}
-
-                {/* Fluxo da transcrição — acompanha o fim sozinho; botão volta à fala atual */}
-                <div className="relative flex-1 min-h-[44vh] flex flex-col">
-                {showJumpTranscript && (
-                  <button
-                    onClick={() => jumpToCurrent('transcript')}
-                    className="absolute bottom-3 left-1/2 -translate-x-1/2 z-10 flex items-center gap-1.5 bg-accent text-white text-[11px] font-bold px-3.5 py-1.5 rounded-full shadow-xl hover:scale-[1.03] transition-transform cursor-pointer animate-in fade-in slide-in-from-bottom-2"
-                  >
-                    <ArrowDown className="w-3.5 h-3.5" /> Ir para a fala atual
-                  </button>
-                )}
-                <div ref={transcriptScrollRef} onScroll={handleTranscriptScroll} className="flex-1 min-h-0 overflow-y-auto custom-scrollbar pe-2">
-                  {/* Primeiro contato: o download do modelo (dezenas de MB) acontecia atrás do painel de
+                    {/* Fluxo da transcrição — acompanha o fim sozinho; botão volta à fala atual */}
+                    <div className="relative flex-1 min-h-[44vh] flex flex-col">
+                      {showJumpTranscript && (
+                        <button
+                          onClick={() => jumpToCurrent('transcript')}
+                          className="absolute bottom-3 left-1/2 -translate-x-1/2 z-10 flex items-center gap-1.5 bg-accent text-white text-[11px] font-bold px-3.5 py-1.5 rounded-full shadow-xl hover:scale-[1.03] transition-transform cursor-pointer animate-in fade-in slide-in-from-bottom-2"
+                        >
+                          <ArrowDown className="w-3.5 h-3.5" /> Ir para a fala atual
+                        </button>
+                      )}
+                      <div
+                        ref={transcriptScrollRef}
+                        onScroll={handleTranscriptScroll}
+                        className="flex-1 min-h-0 overflow-y-auto custom-scrollbar pe-2"
+                      >
+                        {/* Primeiro contato: o download do modelo (dezenas de MB) acontecia atrás do painel de
                       ajustes, a tela dizia "Ouvindo…" por minutos sem explicar nada. Aqui, onde a pessoa olha. */}
-                  {isRecording && modelPrep && !(modelPrep.done && (modelPrep.mt == null || modelPrep.mt >= 1)) && (
-                    <div className="mb-3"><ModelPrepPanel state={modelPrep} onRetry={prepareModels} /></div>
-                  )}
-                  <ChatTranscript
-                    segments={speechSegments}
-                    speakers={speakerProfiles}
-                    scenario={captureScenario}
-                    tsSettings={tsSettings}
-                    ageProfile={ageProfile}
-                    sourceLang={sourceLang}
-                    targetLang={targetLang}
-                    observedLang={idiomaObservado}
-                    isRecording={isRecording}
-                    dense
-                    selectedWord={selectedExamWord?.word ?? null}
-                    addedWords={addedWords}
-                    onExamineWord={(w, lang, frase) => void examineWord(w, lang, frase)}
-                    onSpeakWord={speakWord}
-                  />
-                </div>
-                </div>
+                        {isRecording &&
+                          modelPrep &&
+                          !(modelPrep.done && (modelPrep.mt == null || modelPrep.mt >= 1)) && (
+                            <div className="mb-3">
+                              <ModelPrepPanel state={modelPrep} onRetry={prepareModels} />
+                            </div>
+                          )}
+                        <ChatTranscript
+                          segments={speechSegments}
+                          speakers={speakerProfiles}
+                          scenario={captureScenario}
+                          tsSettings={tsSettings}
+                          ageProfile={ageProfile}
+                          sourceLang={sourceLang}
+                          targetLang={targetLang}
+                          observedLang={idiomaObservado}
+                          isRecording={isRecording}
+                          dense
+                          selectedWord={selectedExamWord?.word ?? null}
+                          addedWords={addedWords}
+                          onExamineWord={(w, lang, frase) => void examineWord(w, lang, frase)}
+                          onSpeakWord={speakWord}
+                        />
+                      </div>
+                    </div>
 
-                {/* Simulador de fala — FERRAMENTA DE DEV/TESTE, não de usuário final. Só aparece
+                    {/* Simulador de fala — FERRAMENTA DE DEV/TESTE, não de usuário final. Só aparece
                     com localStorage['babel.devTools']='1' (o harness __simSystem segue sempre
                     disponível no console p/ a bateria de regressão MCP). */}
-                {devToolsEnabled && (
-                  <form onSubmit={handleAddManualSpeechSegment} className="mt-2 flex gap-2 border-t border-border-subtle pt-2">
-                    <input
-                      type="text"
-                      id="sim-speaker-text"
-                      name="simSpeakerText"
-                      placeholder="Simular fala do orador... (dev)"
-                      className="flex-1 bg-canvas border border-border-subtle rounded-xl px-3.5 py-2.5 text-xs text-ink focus:outline-none focus:border-accent placeholder-ink-faint font-medium"
-                      value={manualSpeakerInput}
-                      onChange={(e) => setManualSpeakerInput(e.target.value)}
-                      disabled={isProcessingManualInput}
-                    />
-                    <button
-                      type="submit"
-                      disabled={isProcessingManualInput || !manualSpeakerInput.trim()}
-                      className="py-2.5 px-4 bg-accent hover:bg-accent-ink disabled:opacity-50 text-white text-[11px] font-bold rounded-xl shadow-btn transition-transform hover:scale-[1.01] cursor-pointer flex items-center gap-1 shrink-0"
-                    >
-                      {isProcessingManualInput ? 'Traduzindo...' : 'Simular'}
-                    </button>
-                  </form>
-                )}
-
-              </div>
-
-              </div>
+                    {devToolsEnabled && (
+                      <form
+                        onSubmit={handleAddManualSpeechSegment}
+                        className="mt-2 flex gap-2 border-t border-border-subtle pt-2"
+                      >
+                        <input
+                          type="text"
+                          id="sim-speaker-text"
+                          name="simSpeakerText"
+                          placeholder="Simular fala do orador... (dev)"
+                          className="flex-1 bg-canvas border border-border-subtle rounded-xl px-3.5 py-2.5 text-xs text-ink focus:outline-none focus:border-accent placeholder-ink-faint font-medium"
+                          value={manualSpeakerInput}
+                          onChange={(e) => setManualSpeakerInput(e.target.value)}
+                          disabled={isProcessingManualInput}
+                        />
+                        <button
+                          type="submit"
+                          disabled={isProcessingManualInput || !manualSpeakerInput.trim()}
+                          className="py-2.5 px-4 bg-accent hover:bg-accent-ink disabled:opacity-50 text-white text-[11px] font-bold rounded-xl shadow-btn transition-transform hover:scale-[1.01] cursor-pointer flex items-center gap-1 shrink-0"
+                        >
+                          {isProcessingManualInput ? 'Traduzindo...' : 'Simular'}
+                        </button>
+                      </form>
+                    )}
+                  </div>
+                </div>
               </EditablePanel>
+            }
+
+            {/* BINGO DA ESCUTA — só quando ligado; recebe as falas já transcritas. */}
+            {showBingo && (
+              <div className="mb-4">
+                <BingoPanel
+                  falas={speechSegments.filter((x) => x.originalText.trim()).map((x) => x.originalText)}
+                  ageProfile={ageProfile}
+                  onClose={() => setShowBingo(false)}
+                />
+              </div>
             )}
 
-          {/* BINGO DA ESCUTA — só quando ligado; recebe as falas já transcritas. */}
-          {showBingo && (
-            <div className="mb-4">
-              <BingoPanel
-                falas={speechSegments.filter(x => x.originalText.trim()).map(x => x.originalText)}
-                ageProfile={ageProfile}
-                onClose={() => setShowBingo(false)}
-              />
-            </div>
-          )}
-
-          {/* FALANTES — identificação AUTOMÁTICA de voz (WeSpeaker local, beta) + correção
+            {/* FALANTES — identificação AUTOMÁTICA de voz (WeSpeaker local, beta) + correção
               manual. Cada voz nova do som do computador vira "Pessoa N" com cor própria; o
               usuário renomeia com um clique. Só no cenário CONVERSA (nos outros há um falante
               por lado, era ruído). */}
-          {captureScenario === 'conversation' && (
-          <EditablePanel
-            viewKey="capture"
-            panelKey="diarization"
-            title="Falantes"
-            canResizeWidth={false}
-            canResizeHeight={false}
-            defaultHeight={0} // auto height
-          >
-            <section className="bg-surface border border-border-subtle rounded-2xl p-4 shadow-card">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                <div className="shrink-0">
-                  <span className="text-xs font-bold tracking-wider text-ink-muted uppercase flex items-center gap-2">
-                    <Users className="w-4 h-4 text-accent" /> Falantes
-                    {/* Toggle da identificação automática — persiste; desligado = só manual. */}
-                    <button
-                      onClick={() => { setSpeakerAutoId(v => !v); if (speakerAutoId) setSpeakerIdStatus('off'); }}
-                      aria-pressed={speakerAutoId}
-                      title={speakerAutoId ? 'Desativar a identificação automática de voz' : 'Ativar a identificação automática de voz'}
-                      className={`normal-case tracking-normal text-[9px] font-bold px-2 py-0.5 rounded-full border transition-colors cursor-pointer ${
-                        speakerAutoId ? 'bg-accent-soft border-accent/40 text-accent-ink' : 'bg-canvas border-border-subtle text-ink-faint hover:text-ink'
-                      }`}
-                    >
-                      {speakerAutoId ? 'Auto: ligado' : 'Auto: desligado'}
-                    </button>
-                  </span>
-                  <p className="text-[10px] text-ink-faint leading-tight mt-0.5 max-w-[280px]">
-                    {!speakerAutoId && 'Atribuição manual: clique num nome antes de falar para etiquetar as próximas falas.'}
-                    {speakerAutoId && speakerIdStatus === 'loading' && 'Carregando o identificador de vozes (6,7MB, uma vez)… as falas são etiquetadas assim que ele ficar pronto.'}
-                    {speakerAutoId && speakerIdStatus === 'ready' && 'Cada voz do som do computador vira uma pessoa com cor própria (beta). Clique no lápis para dar nome; vozes parecidas podem se fundir.'}
-                    {speakerAutoId && speakerIdStatus === 'unavailable' && 'O identificador de vozes não carregou (sem internet no 1º uso?), atribuição manual nesta sessão.'}
-                    {speakerAutoId && speakerIdStatus === 'off' && 'Ao iniciar a captura, cada voz do som do computador vira uma pessoa com cor própria (beta). O % é o tempo de fala real.'}
-                  </p>
-                </div>
-
-                <div className="flex flex-wrap items-center gap-3">
-                  {speakerProfiles.map((speaker) => (
-                    <div 
-                      key={speaker.id} 
-                      onClick={() => {
-                        if (editingSpeakerId !== speaker.id) {
-                          handleSelectActiveSpeaker(speaker.id);
-                        }
-                      }}
-                      className={`flex items-center gap-2 px-3 py-1.5 rounded-full border text-xs font-semibold cursor-pointer transition-all ${
-                        speaker.isActive 
-                          ? 'bg-accent/10 border-accent text-accent shadow-sm scale-[1.02]' 
-                          : 'bg-canvas border-border-subtle hover:bg-surface-hover text-ink-muted'
-                      }`}
-                    >
-                      <span className={`w-2 h-2 rounded-full ${speaker.isActive ? 'animate-pulse' : ''}`} style={{ backgroundColor: speaker.color }}></span>
-                      
-                      {editingSpeakerId === speaker.id ? (
-                        <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
-                          <input 
-                            type="text" 
-                            value={editingSpeakerName} 
-                            onChange={(e) => setEditingSpeakerName(e.target.value)}
-                            className="bg-surface text-ink text-xs font-bold px-2 py-0.5 rounded border border-accent outline-none w-24"
-                            onKeyDown={(e) => {
-                              if (e.key === 'Enter') handleSaveSpeakerName(speaker.id);
-                              if (e.key === 'Escape') setEditingSpeakerId(null);
-                            }}
-                            autoFocus
-                          />
-                          <button 
-                            onClick={() => handleSaveSpeakerName(speaker.id)}
-                            className="text-[10px] bg-accent text-white px-1.5 py-0.5 rounded font-bold hover:bg-accent-ink"
-                            title="Confirmar"
-                          >
-                            OK
-                          </button>
-                        </div>
-                      ) : (
-                        <div className="flex items-center gap-1">
-                          <span>{speaker.name}</span>
-                          <button 
-                            onClick={(e) => { 
-                              e.stopPropagation(); 
-                              handleStartRenameSpeaker(speaker.id, speaker.name); 
-                            }}
-                            className="p-0.5 hover:bg-black/10 rounded text-ink-muted hover:text-accent transition-colors"
-                            title="Clique para definir o nome"
-                          >
-                            <Edit2 className="w-3 h-3" />
-                          </button>
-                        </div>
-                      )}
-
-                      {talkTimePct?.[speaker.id] != null && (
-                        <span className="text-[10px] font-mono opacity-80 bg-black/5 px-1.5 py-0.5 rounded-full">{talkTimePct[speaker.id]}%</span>
-                      )}
+            {captureScenario === 'conversation' && (
+              <EditablePanel
+                viewKey="capture"
+                panelKey="diarization"
+                title="Falantes"
+                canResizeWidth={false}
+                canResizeHeight={false}
+                defaultHeight={0} // auto height
+              >
+                <section className="bg-surface border border-border-subtle rounded-2xl p-4 shadow-card">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div className="shrink-0">
+                      <span className="text-xs font-bold tracking-wider text-ink-muted uppercase flex items-center gap-2">
+                        <Users className="w-4 h-4 text-accent" /> Falantes
+                        {/* Toggle da identificação automática — persiste; desligado = só manual. */}
+                        <button
+                          onClick={() => {
+                            setSpeakerAutoId((v) => !v);
+                            if (speakerAutoId) setSpeakerIdStatus('off');
+                          }}
+                          aria-pressed={speakerAutoId}
+                          title={
+                            speakerAutoId
+                              ? 'Desativar a identificação automática de voz'
+                              : 'Ativar a identificação automática de voz'
+                          }
+                          className={`normal-case tracking-normal text-[9px] font-bold px-2 py-0.5 rounded-full border transition-colors cursor-pointer ${
+                            speakerAutoId
+                              ? 'bg-accent-soft border-accent/40 text-accent-ink'
+                              : 'bg-canvas border-border-subtle text-ink-faint hover:text-ink'
+                          }`}
+                        >
+                          {speakerAutoId ? 'Auto: ligado' : 'Auto: desligado'}
+                        </button>
+                      </span>
+                      <p className="text-[10px] text-ink-faint leading-tight mt-0.5 max-w-[280px]">
+                        {!speakerAutoId &&
+                          'Atribuição manual: clique num nome antes de falar para etiquetar as próximas falas.'}
+                        {speakerAutoId &&
+                          speakerIdStatus === 'loading' &&
+                          'Carregando o identificador de vozes (6,7MB, uma vez)… as falas são etiquetadas assim que ele ficar pronto.'}
+                        {speakerAutoId &&
+                          speakerIdStatus === 'ready' &&
+                          'Cada voz do som do computador vira uma pessoa com cor própria (beta). Clique no lápis para dar nome; vozes parecidas podem se fundir.'}
+                        {speakerAutoId &&
+                          speakerIdStatus === 'unavailable' &&
+                          'O identificador de vozes não carregou (sem internet no 1º uso?), atribuição manual nesta sessão.'}
+                        {speakerAutoId &&
+                          speakerIdStatus === 'off' &&
+                          'Ao iniciar a captura, cada voz do som do computador vira uma pessoa com cor própria (beta). O % é o tempo de fala real.'}
+                      </p>
                     </div>
-                  ))}
 
-                  {/* Dynamic Add Speaker trigger */}
-                  <button 
-                    onClick={handleAddSpeaker}
-                    className="flex items-center gap-1 px-3 py-1.5 rounded-full border border-dashed border-border-subtle bg-canvas hover:bg-surface-hover text-ink-muted hover:text-accent text-xs font-bold transition-all cursor-pointer"
-                    title="Adicionar novo falante detectado"
-                  >
-                    <Plus className="w-3.5 h-3.5" />
-                    <span>Adicionar Falante</span>
-                  </button>
-                </div>
-              </div>
-            </section>
-          </EditablePanel>
-          )}
+                    <div className="flex flex-wrap items-center gap-3">
+                      {speakerProfiles.map((speaker) => (
+                        <div
+                          key={speaker.id}
+                          onClick={() => {
+                            if (editingSpeakerId !== speaker.id) {
+                              handleSelectActiveSpeaker(speaker.id);
+                            }
+                          }}
+                          className={`flex items-center gap-2 px-3 py-1.5 rounded-full border text-xs font-semibold cursor-pointer transition-all ${
+                            speaker.isActive
+                              ? 'bg-accent/10 border-accent text-accent shadow-sm scale-[1.02]'
+                              : 'bg-canvas border-border-subtle hover:bg-surface-hover text-ink-muted'
+                          }`}
+                        >
+                          <span
+                            className={`w-2 h-2 rounded-full ${speaker.isActive ? 'animate-pulse' : ''}`}
+                            style={{ backgroundColor: speaker.color }}
+                          ></span>
 
+                          {editingSpeakerId === speaker.id ? (
+                            <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+                              <input
+                                type="text"
+                                value={editingSpeakerName}
+                                onChange={(e) => setEditingSpeakerName(e.target.value)}
+                                className="bg-surface text-ink text-xs font-bold px-2 py-0.5 rounded border border-accent outline-none w-24"
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter') handleSaveSpeakerName(speaker.id);
+                                  if (e.key === 'Escape') setEditingSpeakerId(null);
+                                }}
+                                autoFocus
+                              />
+                              <button
+                                onClick={() => handleSaveSpeakerName(speaker.id)}
+                                className="text-[10px] bg-accent text-white px-1.5 py-0.5 rounded font-bold hover:bg-accent-ink"
+                                title="Confirmar"
+                              >
+                                OK
+                              </button>
+                            </div>
+                          ) : (
+                            <div className="flex items-center gap-1">
+                              <span>{speaker.name}</span>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleStartRenameSpeaker(speaker.id, speaker.name);
+                                }}
+                                className="p-0.5 hover:bg-black/10 rounded text-ink-muted hover:text-accent transition-colors"
+                                title="Clique para definir o nome"
+                              >
+                                <Edit2 className="w-3 h-3" />
+                              </button>
+                            </div>
+                          )}
 
+                          {talkTimePct?.[speaker.id] != null && (
+                            <span className="text-[10px] font-mono opacity-80 bg-black/5 px-1.5 py-0.5 rounded-full">
+                              {talkTimePct[speaker.id]}%
+                            </span>
+                          )}
+                        </div>
+                      ))}
+
+                      {/* Dynamic Add Speaker trigger */}
+                      <button
+                        onClick={handleAddSpeaker}
+                        className="flex items-center gap-1 px-3 py-1.5 rounded-full border border-dashed border-border-subtle bg-canvas hover:bg-surface-hover text-ink-muted hover:text-accent text-xs font-bold transition-all cursor-pointer"
+                        title="Adicionar novo falante detectado"
+                      >
+                        <Plus className="w-3.5 h-3.5" />
+                        <span>Adicionar Falante</span>
+                      </button>
+                    </div>
+                  </div>
+                </section>
+              </EditablePanel>
+            )}
           </div>
-
         </div>
 
         {/* ============================================== */}
@@ -2442,7 +2991,6 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
           // Sem navegação → sem botões de praticar (nada de botão morto).
           onPractice={onChangeView ? handlePracticeWord : undefined}
         />
-
       </div>
 
       {showGuide && <GuidePanel onClose={() => setShowGuide(false)} />}
@@ -2450,7 +2998,11 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
       {/* FIXED FOCUS FULLSCREEN OVERLAY */}
       {/* GUIA DO COMPARTILHAMENTO SEM ÁUDIO — o caminho de volta, não só o aviso. */}
       {guiaDeAudio && (
-        <div className="fixed inset-0 z-50 bg-ink/40 backdrop-blur-sm flex items-center justify-center p-4" role="dialog" aria-label="Como compartilhar com áudio">
+        <div
+          className="fixed inset-0 z-50 bg-ink/40 backdrop-blur-sm flex items-center justify-center p-4"
+          role="dialog"
+          aria-label="Como compartilhar com áudio"
+        >
           <div className="card-panel bg-surface w-full max-w-md p-6">
             <h2 className="font-display font-extrabold text-lg text-ink mb-2">
               {guiaDeAudio === 'JANELA_SEM_AUDIO' ? 'Janela não tem áudio no navegador' : 'Faltou marcar o áudio'}
@@ -2458,27 +3010,48 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
             <div className="text-[13.5px] text-ink-muted leading-relaxed space-y-2">
               {guiaDeAudio === 'JANELA_SEM_AUDIO' ? (
                 <>
-                  <p>O Chrome não entrega o áudio de uma JANELA (limitação da plataforma, não do Babel). Para jogos e apps fora do navegador:</p>
+                  <p>
+                    O Chrome não entrega o áudio de uma JANELA (limitação da plataforma, não do Babel). Para jogos e
+                    apps fora do navegador:
+                  </p>
                   <ol className="list-decimal ms-5 space-y-1">
-                    <li>Clique em <b className="text-ink">Escolher de novo</b>;</li>
-                    <li>Na janela de seleção, escolha a aba <b className="text-ink">Tela inteira</b>;</li>
-                    <li>Marque <b className="text-ink">"Também compartilhar o áudio do sistema"</b> (canto inferior).</li>
+                    <li>
+                      Clique em <b className="text-ink">Escolher de novo</b>;
+                    </li>
+                    <li>
+                      Na janela de seleção, escolha a aba <b className="text-ink">Tela inteira</b>;
+                    </li>
+                    <li>
+                      Marque <b className="text-ink">"Também compartilhar o áudio do sistema"</b> (canto inferior).
+                    </li>
                   </ol>
                 </>
               ) : (
                 <>
                   <p>Você compartilhou, mas sem áudio. Repita a escolha e:</p>
                   <ol className="list-decimal ms-5 space-y-1">
-                    <li>Numa <b className="text-ink">aba</b>: marque "Compartilhar áudio da guia";</li>
-                    <li>Na <b className="text-ink">Tela inteira</b>: marque "Também compartilhar o áudio do sistema".</li>
+                    <li>
+                      Numa <b className="text-ink">aba</b>: marque "Compartilhar áudio da guia";
+                    </li>
+                    <li>
+                      Na <b className="text-ink">Tela inteira</b>: marque "Também compartilhar o áudio do sistema".
+                    </li>
                   </ol>
                 </>
               )}
             </div>
             <div className="flex items-center justify-end gap-2 mt-5">
-              <button onClick={() => setGuiaDeAudio(null)} className="px-4 py-2 rounded-xl border border-border-subtle text-[13px] font-bold text-ink-muted hover:text-ink cursor-pointer">Cancelar</button>
               <button
-                onClick={() => { setGuiaDeAudio(null); void handleStartSystemCapture(); }}
+                onClick={() => setGuiaDeAudio(null)}
+                className="px-4 py-2 rounded-xl border border-border-subtle text-[13px] font-bold text-ink-muted hover:text-ink cursor-pointer"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={() => {
+                  setGuiaDeAudio(null);
+                  void handleStartSystemCapture();
+                }}
                 className="px-5 py-2 rounded-xl bg-accent hover:bg-accent-ink text-white text-[13px] font-bold shadow-btn cursor-pointer"
               >
                 Escolher de novo
@@ -2494,14 +3067,20 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
           <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-border-subtle pb-4 mb-6 shrink-0 gap-4">
             <div className="flex items-center gap-3">
               <span className="flex h-3.5 w-3.5 relative">
-                {isRecording && <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-accent opacity-75"></span>}
-                <span className={`relative inline-flex rounded-full h-3.5 w-3.5 ${isRecording ? 'bg-accent' : 'bg-ink-faint'}`}></span>
+                {isRecording && (
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-accent opacity-75"></span>
+                )}
+                <span
+                  className={`relative inline-flex rounded-full h-3.5 w-3.5 ${isRecording ? 'bg-accent' : 'bg-ink-faint'}`}
+                ></span>
               </span>
               <div>
                 <h1 className="font-display font-extrabold text-lg md:text-xl text-ink tracking-tight flex items-center gap-2">
                   <span>Modo Focado: Tradução & Transcrição</span>
                 </h1>
-                <p className="text-xs text-ink-muted mt-0.5">Foco total no diálogo em andamento e nas traduções simultâneas</p>
+                <p className="text-xs text-ink-muted mt-0.5">
+                  Foco total no diálogo em andamento e nas traduções simultâneas
+                </p>
               </div>
             </div>
 
@@ -2510,13 +3089,15 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
               <button
                 onClick={() => setShowVisualSettings(!showVisualSettings)}
                 className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold border transition-all cursor-pointer ${
-                  showVisualSettings ? 'bg-surface border-accent text-accent' : 'border-border-subtle bg-surface hover:bg-surface-hover text-ink-muted hover:text-ink'
+                  showVisualSettings
+                    ? 'bg-surface border-accent text-accent'
+                    : 'border-border-subtle bg-surface hover:bg-surface-hover text-ink-muted hover:text-ink'
                 }`}
               >
                 <Sliders className="w-3.5 h-3.5" /> Ajustar Visual
               </button>
 
-              <button 
+              <button
                 onClick={() => setIsFocusMode(false)}
                 className="flex items-center gap-1.5 py-2 px-4 bg-accent hover:bg-accent-ink text-white rounded-xl font-bold text-xs shadow-btn transition-all hover:scale-105 cursor-pointer"
               >
@@ -2527,7 +3108,12 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
 
           {/* Quick Settings render inside Focus mode */}
           {showVisualSettings && (
-            <TranscriptVisualSettings idPrefix="focus-visual" dense={false} tsSettings={tsSettings} updateSetting={updateSetting} />
+            <TranscriptVisualSettings
+              idPrefix="focus-visual"
+              dense={false}
+              tsSettings={tsSettings}
+              updateSetting={updateSetting}
+            />
           )}
 
           {/* Large Chat log panel focusing on transcription & translation */}
@@ -2541,48 +3127,52 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
               </div>
 
               {/* Os MESMOS seletores da tela normal: trocar o idioma no Foco Cheio sem sair dele. */}
-              <div className="flex items-center gap-2">
-                {seletoresDeIdioma('foco-')}
-              </div>
+              <div className="flex items-center gap-2">{seletoresDeIdioma('foco-')}</div>
             </div>
 
             {/* Chat List — acompanha o fim sozinho; botão volta à fala atual */}
             <div className="relative flex-1 min-h-0 flex flex-col">
-            {showJumpFocus && (
-              <button
-                onClick={() => jumpToCurrent('focus')}
-                className="absolute bottom-3 left-1/2 -translate-x-1/2 z-10 flex items-center gap-1.5 bg-accent text-white text-[12px] font-bold px-4 py-2 rounded-full shadow-xl hover:scale-[1.03] transition-transform cursor-pointer animate-in fade-in slide-in-from-bottom-2"
-              >
-                <ArrowDown className="w-4 h-4" /> Ir para a fala atual
-              </button>
-            )}
-            <div ref={focusScrollRef} onScroll={handleFocusScroll} className="flex-1 min-h-0 overflow-y-auto custom-scrollbar pe-4">
-              {/* Primeiro contato: o download do modelo (dezenas de MB) acontecia atrás do painel de
-                  ajustes, a tela dizia "Ouvindo…" por minutos sem explicar nada. Aqui, onde a pessoa olha. */}
-              {isRecording && modelPrep && !(modelPrep.done && (modelPrep.mt == null || modelPrep.mt >= 1)) && (
-                <div className="mb-3"><ModelPrepPanel state={modelPrep} onRetry={prepareModels} /></div>
+              {showJumpFocus && (
+                <button
+                  onClick={() => jumpToCurrent('focus')}
+                  className="absolute bottom-3 left-1/2 -translate-x-1/2 z-10 flex items-center gap-1.5 bg-accent text-white text-[12px] font-bold px-4 py-2 rounded-full shadow-xl hover:scale-[1.03] transition-transform cursor-pointer animate-in fade-in slide-in-from-bottom-2"
+                >
+                  <ArrowDown className="w-4 h-4" /> Ir para a fala atual
+                </button>
               )}
-              <ChatTranscript
-                segments={speechSegments}
-                speakers={speakerProfiles}
-                scenario={captureScenario}
-                tsSettings={tsSettings}
-                ageProfile={ageProfile}
-                sourceLang={sourceLang}
-                targetLang={targetLang}
-                    observedLang={idiomaObservado}
-                isRecording={isRecording}
-                dense={false}
-                selectedWord={selectedExamWord?.word ?? null}
-                addedWords={addedWords}
-                onExamineWord={(w, lang, frase) => {
-                  void examineWord(w, lang, frase);
-                  setFeedbackMsg(`Examinando: "${w.word}"`);
-                  setTimeout(() => setFeedbackMsg(''), 1500);
-                }}
-                onSpeakWord={speakWord}
-              />
-            </div>
+              <div
+                ref={focusScrollRef}
+                onScroll={handleFocusScroll}
+                className="flex-1 min-h-0 overflow-y-auto custom-scrollbar pe-4"
+              >
+                {/* Primeiro contato: o download do modelo (dezenas de MB) acontecia atrás do painel de
+                  ajustes, a tela dizia "Ouvindo…" por minutos sem explicar nada. Aqui, onde a pessoa olha. */}
+                {isRecording && modelPrep && !(modelPrep.done && (modelPrep.mt == null || modelPrep.mt >= 1)) && (
+                  <div className="mb-3">
+                    <ModelPrepPanel state={modelPrep} onRetry={prepareModels} />
+                  </div>
+                )}
+                <ChatTranscript
+                  segments={speechSegments}
+                  speakers={speakerProfiles}
+                  scenario={captureScenario}
+                  tsSettings={tsSettings}
+                  ageProfile={ageProfile}
+                  sourceLang={sourceLang}
+                  targetLang={targetLang}
+                  observedLang={idiomaObservado}
+                  isRecording={isRecording}
+                  dense={false}
+                  selectedWord={selectedExamWord?.word ?? null}
+                  addedWords={addedWords}
+                  onExamineWord={(w, lang, frase) => {
+                    void examineWord(w, lang, frase);
+                    setFeedbackMsg(`Examinando: "${w.word}"`);
+                    setTimeout(() => setFeedbackMsg(''), 1500);
+                  }}
+                  onSpeakWord={speakWord}
+                />
+              </div>
             </div>
 
             {/* Simulated Voice Controller at the bottom of Focus screen */}
@@ -2591,7 +3181,7 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
                 <span className="w-2.5 h-2.5 rounded-full bg-accent animate-ping"></span>
                 Status: {isRecording ? 'Gravação Ativa' : 'Pronto para Gravar'}
               </div>
-              
+
               <div className="flex flex-wrap items-center gap-3">
                 {/* OS DOIS INTERRUPTORES DE SESSÃO VEM ANTES DO PARAR/INICIAR: mutar a própria voz e
                     ligar as legendas por cima do jogo são gestos que se REPETEM durante a sessão;
@@ -2605,7 +3195,7 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
                 {isRecording ? (
                   <button
                     onClick={handleStopRecording}
-                          data-sfx="none"
+                    data-sfx="none"
                     className="flex items-center gap-2 py-3 px-6 bg-error-soft text-error-ink border border-error/40 hover:brightness-105 rounded-xl font-bold text-xs shadow-btn transition-all hover:scale-[1.03] cursor-pointer"
                   >
                     <StopCircle className="w-4 h-4" /> Parar & Salvar Gravação
@@ -2645,7 +3235,11 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
             </div>
             <div className="flex flex-col gap-2 pt-1">
               <button
-                onClick={() => { setPendingNav(null); if (isRecording) void handleStopRecording(); else setShowSaveModal(true); }}
+                onClick={() => {
+                  setPendingNav(null);
+                  if (isRecording) void handleStopRecording();
+                  else setShowSaveModal(true);
+                }}
                 className="w-full py-2.5 px-4 bg-accent hover:bg-accent-ink text-white rounded-xl font-bold text-[13px] shadow-btn transition-all cursor-pointer"
               >
                 {isRecording ? 'Parar e salvar a sessão' : 'Salvar na Biblioteca'}
@@ -2680,7 +3274,11 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
                     : 'Sua gravação foi interrompida. Configure os metadados antes de salvar na biblioteca.'}
                 </p>
               </div>
-              <button onClick={handleCancelStop} className="text-ink-muted hover:text-ink p-1 rounded-lg hover:bg-surface-hover cursor-pointer" title="Continuar gravando (Esc)">
+              <button
+                onClick={handleCancelStop}
+                className="text-ink-muted hover:text-ink p-1 rounded-lg hover:bg-surface-hover cursor-pointer"
+                title="Continuar gravando (Esc)"
+              >
                 <X className="w-4 h-4" />
               </button>
             </div>
@@ -2691,7 +3289,7 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
               <input
                 type="text"
                 value={customSessionTitle}
-                onChange={e => setCustomSessionTitle(e.target.value)}
+                onChange={(e) => setCustomSessionTitle(e.target.value)}
                 placeholder="Insira um título para a sessão..."
                 className="w-full px-3 py-2 bg-canvas text-xs border border-border-subtle rounded-xl outline-none text-ink font-medium focus:border-accent"
               />
@@ -2702,7 +3300,9 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
               {customSessionImage ? (
                 <img src={customSessionImage} className="w-full h-full object-cover" alt="Prévia da capa" />
               ) : (
-                <span className="text-[12px] text-ink-muted flex items-center gap-2"><ImageIcon className="w-4 h-4" /> Sem capa (ícone padrão)</span>
+                <span className="text-[12px] text-ink-muted flex items-center gap-2">
+                  <ImageIcon className="w-4 h-4" /> Sem capa (ícone padrão)
+                </span>
               )}
             </div>
 
@@ -2719,11 +3319,13 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
 
             {/* URL manual + upload + colar */}
             <div className="space-y-1.5">
-              <label className="text-[10px] font-mono uppercase tracking-wider text-ink-muted">Ou cole a URL de uma imagem</label>
+              <label className="text-[10px] font-mono uppercase tracking-wider text-ink-muted">
+                Ou cole a URL de uma imagem
+              </label>
               <input
                 type="text"
                 value={customSessionImage}
-                onChange={e => setCustomSessionImage(e.target.value)}
+                onChange={(e) => setCustomSessionImage(e.target.value)}
                 placeholder="https://... ou data:image/..."
                 className="w-full px-3 py-2 bg-canvas text-xs border border-border-subtle rounded-xl outline-none text-ink font-medium focus:border-accent"
               />
@@ -2797,7 +3399,9 @@ export default function LiveCapture({ onSave, onTranscriptChange, resumingRecord
           >
             {overlayEl}
           </DocumentPiP>
-        ) : overlayEl;
+        ) : (
+          overlayEl
+        );
       })()}
     </div>
   );

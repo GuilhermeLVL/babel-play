@@ -1,0 +1,3 @@
+- [x] 8.1 hero como painel escuro (`card-panel escuro`, tokens `panel-*`); anel accent gravando
+- [x] 8.2 microfone mudo com tokens do painel na variante de tela; avisos em chip warn
+- [x] 8.3 gate; evidências `08-capturar`; matriz E2E

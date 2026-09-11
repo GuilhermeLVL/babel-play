@@ -133,3 +133,19 @@ mas o custo de um engano é o banco real).
 - Gate: typecheck, lint, build e integridade OK; unitários 4063 (5 arquivos de caracterização HTTP
   estouraram timeout sob carga e passaram isolados, 63/63); matriz E2E 102/0/15; 12 evidências em
   `evidencias/07-biblioteca-sessao/` (biblioteca e revisar × 3 viewports × claro/escuro).
+
+## F8 — Capturar (2026-09-11)
+
+- O hero da captura é o painel escuro do protótipo (`card-panel escuro`, tokens `panel-*`; 2º
+  consumidor depois do "jogando com"). Título, cronômetro, Foco Cheio, Bingo, chip de idiomas,
+  orientação e waveform nos tokens do painel; gravando, anel accent em vez de borda.
+- Microfone mudo com tokens do painel só na variante de tela; avisos (idiomas iguais, Whisper,
+  cobertura) em chip `warn-soft`/`warn-ink`, par já coberto pelo teste de contraste.
+- Nada de função, rótulo ou nome acessível mudou. Gaveta de configurações, Falantes, ModelPrep,
+  Foco Cheio, Bingo, Overlay e PiP já vestiam a F1 e ficam como estão.
+- Evidências em `evidencias/08-capturar/` (capturar × 3 viewports × claro/escuro).
+- Verificação à mão no banco descartável (3302): chip abre a gaveta "Idiomas da sessão"; Bingo
+  alterna `aria-pressed` e abre a cartela; Foco Cheio abre o modo focado com microfone e Legendas
+  (variante `foco` intacta). Gate: typecheck, lint, build, integridade OK; 5 arquivos de
+  caracterização HTTP estouraram timeout sob carga e passaram isolados (54/54); matriz E2E 102/0/15.
+  Inventário: 4 linhas de Capturar marcadas "depois".

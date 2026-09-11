@@ -64,21 +64,21 @@ a coluna "antes" apenas.
 
 | Elemento                                                                            | Onde                                   | antes | depois | Prova                           |
 | ----------------------------------------------------------------------------------- | -------------------------------------- | :---: | :----: | ------------------------------- |
-| Título × perfil, "?" (Guia), selo técnico                                           | `LiveCapture.tsx`                      |  [x]  |  [ ]   | E2E `transcricao`               |
+| Título × perfil, "?" (Guia), selo técnico                                           | `LiveCapture.tsx`                      |  [x]  |  [x]   | E2E `transcricao`               |
 | Gaveta "Configurações de Dispositivos & IA" (dialog nomeado)                        | `LiveCapture.tsx:1656-1800`            |  [x]  |  [ ]   | E2E `transcricao` (dialog name) |
 | 3 fontes de áudio do sistema + teste com veredito                                   | `:1656-1744`                           |  [x]  |  [ ]   | manual                          |
 | Mic: switch, motor Navegador/Whisper, dispositivo, permissão negada                 | `:1786-1841`                           |  [x]  |  [ ]   | manual                          |
 | Saída, qualidade STT, modo desempenho, aparência da legenda                         | `captura/TranscriptVisualSettings.tsx` |  [x]  |  [ ]   | manual                          |
 | 3 cenários (mídia / conversa / minha voz)                                           | `lib/cenarioDeCaptura.ts`              |  [x]  |  [ ]   | visual                          |
-| Chip de idiomas + drawer "Idiomas da sessão" + 3 avisos                             | `:2131-2166`                           |  [x]  |  [ ]   | manual                          |
+| Chip de idiomas + drawer "Idiomas da sessão" + 3 avisos                             | `:2131-2166`                           |  [x]  |  [x]   | manual                          |
 | Iniciar / Continuar / Parar & Salvar; timer; waveform real                          | `:2048-2061`                           |  [x]  |  [ ]   | manual (mic)                    |
 | ModelPrepPanel (2 barras, cache, tentar de novo)                                    | `ModelPrepPanel.tsx`                   |  [x]  |  [ ]   | manual                          |
 | Transcrição em balões com falante, ordem, "Ir para a fala atual", vazio de 3 passos | `ChatTranscript.tsx`                   |  [x]  |  [ ]   | visual                          |
 | Palavra clicável → Analista de Vocabulário                                          | `ChatTranscript.tsx`                   |  [x]  |  [ ]   | manual                          |
 | Painel Falantes (auto, cores, renomear, % de fala)                                  | `:2317-2345`                           |  [x]  |  [ ]   | manual                          |
 | Legendas flutuantes: Overlay 3 layouts × 3 níveis + Document PiP                    | `Overlay.tsx`, `DocumentPiP.tsx`       |  [x]  |  [ ]   | manual                          |
-| Foco Cheio                                                                          | `:2015`                                |  [x]  |  [ ]   | visual                          |
-| Bingo                                                                               | `minigames/BingoPanel.tsx`             |  [x]  |  [ ]   | visual                          |
+| Foco Cheio                                                                          | `:2015`                                |  [x]  |  [x]   | visual                          |
+| Bingo                                                                               | `minigames/BingoPanel.tsx`             |  [x]  |  [x]   | visual                          |
 | Modal sair no meio; modal Encerramento com busca de capa                            | `:2452`, `BuscaDeCapa.tsx`             |  [x]  |  [ ]   | manual                          |
 
 ## Biblioteca, Sessão, Leitura (F7)

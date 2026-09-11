@@ -1,4 +1,4 @@
-import { countDue, isDueNow } from '@core';
+import { countDue, estadoDoCartao, isDueNow, previsaoDosBotoes } from '@core';
 import { Brain, Briefcase, CheckCircle2, ChevronRight, Mic, Plus, Search,Sparkles, Volume2, Zap } from 'lucide-react';
 import React, { useCallback,useEffect, useMemo, useState } from 'react';
 
@@ -780,6 +780,11 @@ export default function Study({
               {!sessionCompleted ? (
                 (() => {
                   const currentCard = reviewCards[currentReviewIndex];
+                  /* O intervalo escrito em cada botão sai do AGENDADOR, com o estado deste cartão
+                     — não de string fixa. Ver `core/learning/previsaoDeIntervalo.ts`. */
+                  const previsao = currentCard
+                    ? previsaoDosBotoes(estadoDoCartao(currentCard, Date.now()), Date.now())
+                    : null;
                   const format = isActiveProductionOnly
                     ? 'active-production'
                     : scheduler === 'fsrs' && currentCard
@@ -1108,7 +1113,7 @@ export default function Study({
                                     >
                                       <span className="font-extrabold text-[12px] text-error">Errei</span>
                                       <span className="text-[9px] text-ink-muted block font-mono mt-1">
-                                        Again (10m)
+                                        {previsao?.[1] ?? '—'}
                                       </span>
                                     </button>
                                     <button
@@ -1117,7 +1122,7 @@ export default function Study({
                                     >
                                       <span className="font-extrabold text-[12px] text-warn">Difícil</span>
                                       <span className="text-[9px] text-ink-muted block font-mono mt-1">
-                                        Hard (1.2d)
+                                        {previsao?.[2] ?? '—'}
                                       </span>
                                     </button>
                                     <button
@@ -1126,7 +1131,7 @@ export default function Study({
                                     >
                                       <span className="font-extrabold text-[12px] text-accent-ink">Bom</span>
                                       <span className="text-[9px] text-ink-muted block font-mono mt-1">
-                                        Good (3.5d)
+                                        {previsao?.[3] ?? '—'}
                                       </span>
                                     </button>
                                     <button
@@ -1134,7 +1139,7 @@ export default function Study({
                                       className="p-3 border-2 border-good-soft bg-good-soft/10 rounded-xl hover:bg-good-soft/20 text-center transition-colors flex flex-col items-center justify-between min-h-[75px] cursor-pointer"
                                     >
                                       <span className="font-extrabold text-[12px] text-good">Fácil</span>
-                                      <span className="text-[9px] text-ink-muted block font-mono mt-1">Easy (8d)</span>
+                                      <span className="text-[9px] text-ink-muted block font-mono mt-1">{previsao?.[4] ?? '—'}</span>
                                     </button>
                                   </div>
                                 ) : (

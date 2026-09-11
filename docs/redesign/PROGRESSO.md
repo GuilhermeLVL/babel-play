@@ -115,3 +115,11 @@ mas o custo de um engano é o banco real).
   nota marcada; produção ativa recebe o grupo entre o veredito e "Próximo". Testes: 7 puros, 3 de
   componente, 1 E2E novo (acertar → "Bom" marcado → "Fácil" → avança).
 - P0-12 de `LACUNAS.md` resolvido; ramo morto do flashcard fica para limpeza própria.
+
+## F6 — Jogar (2026-09-11)
+
+- Cabeçalho pelo primitivo; painel escuro "jogando com" (`card-panel escuro`) com as ações da barra
+  em pílulas escuras; categorias em ink (D-012); primários pelo token; carta bloqueada pela classe
+  `.card-panel.bloqueado`. Nenhum nome acessível mudou.
+- Antessala, Raspadinha, Resumo e os 18 jogos já eram `card-panel`/tokens: vestem a F1 sem edição.
+- Evidência: `06-jogar/jogar__1280__claro.png` (vs `02-casca`).

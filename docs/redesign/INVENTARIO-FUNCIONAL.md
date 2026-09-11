@@ -9,25 +9,30 @@ da fase que redesenha a tela; **item sem "depois" bloqueia o merge daquela fase*
 
 Legenda: `[x]` existe e funciona · `[ ]` a marcar · `—` não se aplica.
 
+**Estado em 2026-09-11 (fim da primeira rodada)**: F2, F4, F5 e F6 entregues; a coluna "depois" está marcada
+nas linhas dessas seções cuja prova é automática (E2E 99/0/15 e unitários verdes a cada fase). As linhas de
+prova **manual** ficam abertas de propósito até a inspeção no navegador da próxima rodada. F7–F13 seguem com
+a coluna "antes" apenas.
+
 ## Casca (F2) — `App.tsx`, `shell/*`, `StudioHeader.tsx`
 
 | Elemento                                                      | Onde                                                                                      | antes | depois | Prova                                            |
 | ------------------------------------------------------------- | ----------------------------------------------------------------------------------------- | :---: | :----: | ------------------------------------------------ |
-| 9 itens de navegação na ordem real, rótulo × 3 perfis         | `navItems.ts:43-118`                                                                      |  [x]  |  [ ]   | E2E `fumaca`, `quatro-superficies`               |
-| `aria-current="page"` no item ativo                           | `NavRail.tsx:84`, `NavBar.tsx:54`, `MobileNav.tsx:47`                                     |  [x]  |  [ ]   | E2E (getByRole)                                  |
-| 4 posições de menu (top/bottom/left/right) e rail recolhido   | `StudioHeader.tsx:102-124`, `NavRail.tsx:40`                                              |  [x]  |  [ ]   | E2E `tema`, `quatro-superficies`; unit `equipar` |
-| Dock inferior no celular (5 itens + mais)                     | `MobileNav.tsx`                                                                           |  [x]  |  [ ]   | E2E `mobile-375`                                 |
-| Busca global Ctrl/⌘+K (gravações, palavras, ir para)          | `ControlCluster.tsx:143-158`, `BuscaGlobal.tsx`                                           |  [x]  |  [ ]   | unit `buscaGlobal.test.tsx`                      |
-| Ciclo de tamanho de texto A (sm/md/lg/xl)                     | `ControlCluster.tsx`, `useAparencia.ts:105-131`                                           |  [x]  |  [ ]   | visual                                           |
-| Menu de conforto: sons, animações, modo desempenho            | `MenuDeConforto.tsx`                                                                      |  [x]  |  [ ]   | visual + `body.performance-mode`                 |
-| Claro/escuro com rótulo "Mudar para o modo claro/escuro"      | `ControlCluster.tsx:203`                                                                  |  [x]  |  [ ]   | E2E `tema`                                       |
-| Menu da conta (entrar/perfil, plano e consumo, ajustes, sair) | `MenuDaConta.tsx`                                                                         |  [x]  |  [ ]   | visual                                           |
+| 9 itens de navegação na ordem real, rótulo × 3 perfis         | `navItems.ts:43-118`                                                                      |  [x]  |  [x]   | E2E `fumaca`, `quatro-superficies`               |
+| `aria-current="page"` no item ativo                           | `NavRail.tsx:84`, `NavBar.tsx:54`, `MobileNav.tsx:47`                                     |  [x]  |  [x]   | E2E (getByRole)                                  |
+| 4 posições de menu (top/bottom/left/right) e rail recolhido   | `StudioHeader.tsx:102-124`, `NavRail.tsx:40`                                              |  [x]  |  [x]   | E2E `tema`, `quatro-superficies`; unit `equipar` |
+| Dock inferior no celular (5 itens + mais)                     | `MobileNav.tsx`                                                                           |  [x]  |  [x]   | E2E `mobile-375`                                 |
+| Busca global Ctrl/⌘+K (gravações, palavras, ir para)          | `ControlCluster.tsx:143-158`, `BuscaGlobal.tsx`                                           |  [x]  |  [x]   | unit `buscaGlobal.test.tsx`                      |
+| Ciclo de tamanho de texto A (sm/md/lg/xl)                     | `ControlCluster.tsx`, `useAparencia.ts:105-131`                                           |  [x]  |  [x]   | visual                                           |
+| Menu de conforto: sons, animações, modo desempenho            | `MenuDeConforto.tsx`                                                                      |  [x]  |  [x]   | visual + `body.performance-mode`                 |
+| Claro/escuro com rótulo "Mudar para o modo claro/escuro"      | `ControlCluster.tsx:203`                                                                  |  [x]  |  [x]   | E2E `tema`                                       |
+| Menu da conta (entrar/perfil, plano e consumo, ajustes, sair) | `MenuDaConta.tsx`                                                                         |  [x]  |  [x]   | visual                                           |
 | Navegação passa por `navGuard` (captura em andamento)         | `useNavegacao.ts:75`                                                                      |  [x]  |  [ ]   | manual (captura + trocar de tela)                |
-| `<main>` com `age-${perfil}`                                  | `App.tsx:254`                                                                             |  [x]  |  [ ]   | E2E (getByRole('main'))                          |
-| iChat flutuante/acoplado/maximizado + `--shell-inset-*`       | `IChat.tsx:800-818`, `index.css:1348`                                                     |  [x]  |  [ ]   | visual                                           |
-| Toast (erro persistente, detalhe) e `askConfirm`              | `Toast.tsx`                                                                               |  [x]  |  [ ]   | unit                                             |
-| Tela de erro com código                                       | `ErroDaTela.tsx`                                                                          |  [x]  |  [ ]   | visual                                           |
-| Partículas, rastro, cursor, números flutuantes                | `ParticleCanvas.tsx`, `lib/rastroDoMouse.ts`, `lib/cursores.ts`, `FloatingScoreLayer.tsx` |  [x]  |  [ ]   | visual (item equipado continua)                  |
+| `<main>` com `age-${perfil}`                                  | `App.tsx:254`                                                                             |  [x]  |  [x]   | E2E (getByRole('main'))                          |
+| iChat flutuante/acoplado/maximizado + `--shell-inset-*`       | `IChat.tsx:800-818`, `index.css:1348`                                                     |  [x]  |  [x]   | visual                                           |
+| Toast (erro persistente, detalhe) e `askConfirm`              | `Toast.tsx`                                                                               |  [x]  |  [x]   | unit                                             |
+| Tela de erro com código                                       | `ErroDaTela.tsx`                                                                          |  [x]  |  [x]   | visual                                           |
+| Partículas, rastro, cursor, números flutuantes                | `ParticleCanvas.tsx`, `lib/rastroDoMouse.ts`, `lib/cursores.ts`, `FloatingScoreLayer.tsx` |  [x]  |  [x]   | visual (item equipado continua)                  |
 | Menu de contexto "praticar este trecho"                       | `PracticeMenu.tsx`                                                                        |  [x]  |  [ ]   | manual                                           |
 | Estúdio de layout (painéis editáveis)                         | `LayoutStudio.tsx`, `EditablePanel.tsx`                                                   |  [x]  |  [ ]   | manual                                           |
 
@@ -45,15 +50,15 @@ Legenda: `[x]` existe e funciona · `[ ]` a marcar · `—` não se aplica.
 
 | Elemento                                                             | Onde                            | antes | depois | Prova                     |
 | -------------------------------------------------------------------- | ------------------------------- | :---: | :----: | ------------------------- |
-| Kicker + título × perfil                                             | `Hub.tsx:146`                   |  [x]  |  [ ]   | visual pro/senior         |
-| 3 pilares com status real e CTA (o do meio leva a Revisar)           | `Hub.tsx:174,739-790`           |  [x]  |  [ ]   | E2E `fumaca`              |
-| Faixa nível/etapa + XP + ofensiva + Seeds                            | `progress/FaixaDeProgresso.tsx` |  [x]  |  [ ]   | visual                    |
-| Card-herói "N palavras venceram" só com vencidas, esqueleto anti-CLS | `Hub.tsx:248`                   |  [x]  |  [ ]   | visual                    |
-| Relatório executivo expansível (métricas, CEFR, comunicação)         | `Hub.tsx:293-446`               |  [x]  |  [ ]   | visual                    |
-| Recomendações e próximos passos                                      | `Hub.tsx:525`                   |  [x]  |  [ ]   | visual                    |
-| Sessões recentes com selo "processando"                              | `Hub.tsx:578-702`               |  [x]  |  [ ]   | visual                    |
-| Rodapé de planos lendo `core/planos.ts`                              | `Hub.tsx`                       |  [x]  |  [ ]   | unit                      |
-| Modal Recompensa desbloqueada                                        | `RecompensaDesbloqueada.tsx`    |  [x]  |  [ ]   | E2E `_helpers` fecha; axe |
+| Kicker + título × perfil                                             | `Hub.tsx:146`                   |  [x]  |  [x]   | visual pro/senior         |
+| 3 pilares com status real e CTA (o do meio leva a Revisar)           | `Hub.tsx:174,739-790`           |  [x]  |  [x]   | E2E `fumaca`              |
+| Faixa nível/etapa + XP + ofensiva + Seeds                            | `progress/FaixaDeProgresso.tsx` |  [x]  |  [x]   | visual                    |
+| Card-herói "N palavras venceram" só com vencidas, esqueleto anti-CLS | `Hub.tsx:248`                   |  [x]  |  [x]   | visual                    |
+| Relatório executivo expansível (métricas, CEFR, comunicação)         | `Hub.tsx:293-446`               |  [x]  |  [x]   | visual                    |
+| Recomendações e próximos passos                                      | `Hub.tsx:525`                   |  [x]  |  [x]   | visual                    |
+| Sessões recentes com selo "processando"                              | `Hub.tsx:578-702`               |  [x]  |  [x]   | visual                    |
+| Rodapé de planos lendo `core/planos.ts`                              | `Hub.tsx`                       |  [x]  |  [x]   | unit                      |
+| Modal Recompensa desbloqueada                                        | `RecompensaDesbloqueada.tsx`    |  [x]  |  [x]   | E2E `_helpers` fecha; axe |
 
 ## Capturar (F8) — `LiveCapture.tsx`
 
@@ -100,39 +105,39 @@ Legenda: `[x]` existe e funciona · `[ ]` a marcar · `—` não se aplica.
 
 | Elemento                                                                                       | Onde                                              | antes | depois | Prova                                         |
 | ---------------------------------------------------------------------------------------------- | ------------------------------------------------- | :---: | :----: | --------------------------------------------- |
-| Cabeçalho × perfil; "N jogos"; Partida Rápida                                                  | `Play.tsx:2801,2157`                              |  [x]  |  [ ]   | visual                                        |
-| Painel nível/XP/ofensiva/Seeds (sem penalidade)                                                | `Play.tsx:2876-2895`                              |  [x]  |  [ ]   | visual                                        |
-| Seletor facetado: 6 facetas, URL `/jogar?…`, F5 preserva                                       | `SeletorDeConteudo.tsx`, `lib/filtroDaPratica.ts` |  [x]  |  [ ]   | E2E `facetas`                                 |
-| Ações Recordes / Mapa / Curadoria / Diagnóstico / Trazer do Anki / Gerenciar baralhos          | `Play.tsx:2986-3351`                              |  [x]  |  [ ]   | E2E `baralhos`                                |
-| Sala de Escolha (1ª vez)                                                                       | `SalaDeEscolha.tsx`                               |  [x]  |  [ ]   | E2E `_helpers`                                |
-| Card de revisão; card "Sua próxima rodada"                                                     | `Play.tsx`                                        |  [x]  |  [ ]   | visual                                        |
-| Categorias, busca, habilidades, prévia, Organizar (fixar/ordem)                                | `Play.tsx:3441-3722`, `lib/ordemDosJogos.ts`      |  [x]  |  [ ]   | visual                                        |
-| Grade: arte por jogo, cor por modalidade, recorde, estrelas, mapa de fases                     | `ArteDosJogos.tsx`                                |  [x]  |  [ ]   | E2E `grade-so-com-jogos-do-sistema`           |
-| "Precisam de outro material": motivo fechado + porta de saída                                  | `core/minigames/{estadoDosJogos,desbloqueio}.ts`  |  [x]  |  [ ]   | unit `elegibilidade`                          |
-| Vazio "Faltam N palavras"                                                                      | `Play.tsx:3407-3431`                              |  [x]  |  [ ]   | visual                                        |
-| Antessala: prévia, fases, dificuldade, leeches, 4 ações, "pular sempre"                        | `AntessalaDaRodada.tsx`                           |  [x]  |  [ ]   | visual                                        |
-| Como se joga; Tour da 1ª partida                                                               | `ComoSeJoga.tsx`, `TourGuiado.tsx`                |  [x]  |  [ ]   | visual                                        |
-| 18 jogos, cada um com mecânica e `RoundReport`                                                 | `minigames/*`, `core/minigames/types.ts`          |  [x]  |  [ ]   | E2E `sessao-de-jogo`; unit `matriz-dos-jogos` |
-| Raspadinha: estrelas, canvas, corrente, combo, recorde, próxima recompensa, 5 ações (40 Seeds) | `ScratchReward.tsx`                               |  [x]  |  [ ]   | visual                                        |
-| Resumo da rodada (só com erro): refazer erradas, subir dificuldade                             | `ResumoDaRodada.tsx`                              |  [x]  |  [ ]   | visual                                        |
+| Cabeçalho × perfil; "N jogos"; Partida Rápida                                                  | `Play.tsx:2801,2157`                              |  [x]  |  [x]   | visual                                        |
+| Painel nível/XP/ofensiva/Seeds (sem penalidade)                                                | `Play.tsx:2876-2895`                              |  [x]  |  [x]   | visual                                        |
+| Seletor facetado: 6 facetas, URL `/jogar?…`, F5 preserva                                       | `SeletorDeConteudo.tsx`, `lib/filtroDaPratica.ts` |  [x]  |  [x]   | E2E `facetas`                                 |
+| Ações Recordes / Mapa / Curadoria / Diagnóstico / Trazer do Anki / Gerenciar baralhos          | `Play.tsx:2986-3351`                              |  [x]  |  [x]   | E2E `baralhos`                                |
+| Sala de Escolha (1ª vez)                                                                       | `SalaDeEscolha.tsx`                               |  [x]  |  [x]   | E2E `_helpers`                                |
+| Card de revisão; card "Sua próxima rodada"                                                     | `Play.tsx`                                        |  [x]  |  [x]   | visual                                        |
+| Categorias, busca, habilidades, prévia, Organizar (fixar/ordem)                                | `Play.tsx:3441-3722`, `lib/ordemDosJogos.ts`      |  [x]  |  [x]   | visual                                        |
+| Grade: arte por jogo, cor por modalidade, recorde, estrelas, mapa de fases                     | `ArteDosJogos.tsx`                                |  [x]  |  [x]   | E2E `grade-so-com-jogos-do-sistema`           |
+| "Precisam de outro material": motivo fechado + porta de saída                                  | `core/minigames/{estadoDosJogos,desbloqueio}.ts`  |  [x]  |  [x]   | unit `elegibilidade`                          |
+| Vazio "Faltam N palavras"                                                                      | `Play.tsx:3407-3431`                              |  [x]  |  [x]   | visual                                        |
+| Antessala: prévia, fases, dificuldade, leeches, 4 ações, "pular sempre"                        | `AntessalaDaRodada.tsx`                           |  [x]  |  [x]   | visual                                        |
+| Como se joga; Tour da 1ª partida                                                               | `ComoSeJoga.tsx`, `TourGuiado.tsx`                |  [x]  |  [x]   | visual                                        |
+| 18 jogos, cada um com mecânica e `RoundReport`                                                 | `minigames/*`, `core/minigames/types.ts`          |  [x]  |  [x]   | E2E `sessao-de-jogo`; unit `matriz-dos-jogos` |
+| Raspadinha: estrelas, canvas, corrente, combo, recorde, próxima recompensa, 5 ações (40 Seeds) | `ScratchReward.tsx`                               |  [x]  |  [x]   | visual                                        |
+| Resumo da rodada (só com erro): refazer erradas, subir dificuldade                             | `ResumoDaRodada.tsx`                              |  [x]  |  [x]   | visual                                        |
 | Blitz: resultado próprio + envio opt-in ao ranking (apelido)                                   | `BlitzGame.tsx:333-407`                           |  [x]  |  [ ]   | manual                                        |
-| Recordes: KPIs + tabela; ranking global por jogo                                               | `play/Recordes.tsx`                               |  [x]  |  [ ]   | visual                                        |
-| Eventos raros e baú (servidor sorteia)                                                         | `lib/eventosDeJogo.ts`, `economiaAutoridade.ts`   |  [x]  |  [ ]   | unit                                          |
+| Recordes: KPIs + tabela; ranking global por jogo                                               | `play/Recordes.tsx`                               |  [x]  |  [x]   | visual                                        |
+| Eventos raros e baú (servidor sorteia)                                                         | `lib/eventosDeJogo.ts`, `economiaAutoridade.ts`   |  [x]  |  [x]   | unit                                          |
 
 ## Vocabulário e Revisar (F5)
 
 | Elemento                                                                                                        | Onde                                  |    antes    | depois | Prova                                 |
 | --------------------------------------------------------------------------------------------------------------- | ------------------------------------- | :---------: | :----: | ------------------------------------- |
-| Título × perfil; 3 abas; "Mais"                                                                                 | `Metrics.tsx:412-416`                 |     [x]     |  [ ]   | E2E `estatisticas`                    |
+| Título × perfil; 3 abas; "Mais"                                                                                 | `Metrics.tsx:412-416`                 |     [x]     |  [x]   | E2E `estatisticas`                    |
 | Exportar relatório `.txt`                                                                                       | `Metrics.tsx:395`                     |     [x]     |  [ ]   | manual                                |
-| KPIs com estimativa/confiança; KPI expandido                                                                    | `MetricsExpandedKpi.tsx`              |     [x]     |  [ ]   | E2E `estatisticas`                    |
-| Evolução semanal; distribuição CEFR                                                                             | `metrics/*.tsx`                       |     [x]     |  [ ]   | visual                                |
-| Catálogo paginado + nota de contagem                                                                            | `vocab/*.tsx`                         |     [x]     |  [ ]   | E2E `estatisticas`                    |
-| Erro antes do vazio (rede caída)                                                                                | `ui/Erro.tsx`                         |  [x] (F0)   |  [ ]   | unit `erroNaoEhVazio`                 |
-| Revisar: Mostrar Resposta → 4 botões com intervalo do agendador; Leitner                                        | `Study.tsx`, `previsaoDeIntervalo.ts` |  [x] (F0)   |  [ ]   | E2E `fsrs-revisao`; unit              |
+| KPIs com estimativa/confiança; KPI expandido                                                                    | `MetricsExpandedKpi.tsx`              |     [x]     |  [x]   | E2E `estatisticas`                    |
+| Evolução semanal; distribuição CEFR                                                                             | `metrics/*.tsx`                       |     [x]     |  [x]   | visual                                |
+| Catálogo paginado + nota de contagem                                                                            | `vocab/*.tsx`                         |     [x]     |  [x]   | E2E `estatisticas`                    |
+| Erro antes do vazio (rede caída)                                                                                | `ui/Erro.tsx`                         |  [x] (F0)   |  [x]   | unit `erroNaoEhVazio`                 |
+| Revisar: Mostrar Resposta → 4 botões com intervalo do agendador; Leitner                                        | `Study.tsx`, `previsaoDeIntervalo.ts` |  [x] (F0)   |  [x]   | E2E `fsrs-revisao`; unit              |
 | FSRS híbrido (D-006)                                                                                            | change `fsrs-hibrido`                 | [ ] a fazer |  [ ]   | unit servidor + E2E                   |
 | Analista de Vocabulário: IPA, CEFR c/ procedência, ouvir 0,75/1×, tradução c/ motor, Wiktionary, Forvo, 3 ações | `VocabularyPanel.tsx`                 |     [x]     |  [ ]   | manual                                |
-| Curadoria; Mapa do conteúdo; Baralhos Anki (2 telas); Trilha; LangAudit                                         | `views/*`                             |     [x]     |  [ ]   | E2E `baralhos`, `trilha-carregamento` |
+| Curadoria; Mapa do conteúdo; Baralhos Anki (2 telas); Trilha; LangAudit                                         | `views/*`                             |     [x]     |  [x]   | E2E `baralhos`, `trilha-carregamento` |
 
 ## Personalizar (F9) — `Loja.tsx`
 

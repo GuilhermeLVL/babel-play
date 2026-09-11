@@ -99,7 +99,7 @@ import {
   X as XIcon,
   Zap,
 } from 'lucide-react';
-import React, { useCallback, useDeferredValue,useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 
 import { escalaDe } from '../../core/learning/cefrWordlist';
@@ -116,11 +116,8 @@ import {
   filtroParaComposicao,
   recortarPelaComposicao,
 } from '../../core/minigames/composicao';
-import { filtroDaFonte, type FiltroDaPratica,fonteDominante, passaNoFiltro } from '../../core/minigames/filtro';
-import {
-  type MaterialDaRodada,
-  montarRodada as montarRodadaPura,
-} from '../../core/minigames/rodada';
+import { filtroDaFonte, type FiltroDaPratica, fonteDominante, passaNoFiltro } from '../../core/minigames/filtro';
+import { type MaterialDaRodada, montarRodada as montarRodadaPura } from '../../core/minigames/rodada';
 import {
   type AppMetrics,
   bulkAddCards,
@@ -138,7 +135,7 @@ import {
   salvarRodada,
 } from '../../data/api';
 import { listarBaralhosAnki } from '../../data/apiAnki';
-import { carregarTrilha, indiceDaTrilha, precarregarNiveis,trilhaEmCache } from '../../data/trilha/carregar';
+import { carregarTrilha, indiceDaTrilha, precarregarNiveis, trilhaEmCache } from '../../data/trilha/carregar';
 import { useAudioDaSessao } from '../../lib/audioDaSessao';
 import { filtroDaQuery, gravarFiltro, lerFiltroGuardado, queryDoFiltro } from '../../lib/filtroDaPratica';
 import { temFonteGuardada } from '../../lib/fonteDaPratica';
@@ -171,22 +168,22 @@ import {
   type OrdemDosJogos,
 } from '../../lib/ordemDosJogos';
 import { contarPassada } from '../../lib/passadasDoPipeline';
-import { type AgeProfileType,coreOnly } from '../../lib/profile';
+import { type AgeProfileType, coreOnly } from '../../lib/profile';
 import type { DerivedProgress } from '../../lib/progress';
-import { consumirQueryDoBoot,lerUrlAtual, publicarQueryDoJogar } from '../../lib/rotas';
-import { type PracticeSeed,type Sentence, toSentences } from '../../lib/sentences';
+import { consumirQueryDoBoot, lerUrlAtual, publicarQueryDoJogar } from '../../lib/rotas';
+import { type PracticeSeed, type Sentence, toSentences } from '../../lib/sentences';
 import { T } from '../../lib/T';
-import { aoMudarVozes,hasVoiceFor, isTtsSupported, vozesCarregadas } from '../../lib/tts';
-import type { Recording,VocabCard } from '../../types';
+import { aoMudarVozes, hasVoiceFor, isTtsSupported, vozesCarregadas } from '../../lib/tts';
+import type { Recording, VocabCard } from '../../types';
 import AntessalaDaRodada from '../minigames/AntessalaDaRodada';
-import ArteDoJogo, { FAMILIAS,tomDoJogo } from '../minigames/ArteDosJogos';
+import ArteDoJogo, { FAMILIAS, tomDoJogo } from '../minigames/ArteDosJogos';
 import CoberturaDosIdiomas from '../minigames/CoberturaDosIdiomas';
 import ComoSeJoga from '../minigames/ComoSeJoga';
 import ConectoresGame from '../minigames/ConectoresGame';
 import DitadoGame from '../minigames/DitadoGame';
 import EscutaGame from '../minigames/EscutaGame';
 import KaraokeGame, { type FalaKaraoke } from '../minigames/KaraokeGame';
-import { jaFezTour, marcarTourFeito,PASSOS_DOS_JOGOS } from '../minigames/passosDosJogos';
+import { jaFezTour, marcarTourFeito, PASSOS_DOS_JOGOS } from '../minigames/passosDosJogos';
 import ResumoDaRodada, { type ItemDaRodada } from '../minigames/ResumoDaRodada';
 import SalaDeEscolha from '../minigames/SalaDeEscolha';
 import ScrambleGame from '../minigames/ScrambleGame';
@@ -194,14 +191,15 @@ import ScratchReward from '../minigames/ScratchReward';
 import SeletorDeConteudo from '../minigames/SeletorDeConteudo';
 import TermoGame from '../minigames/TermoGame';
 import TourGuiado from '../minigames/TourGuiado';
-import { type DetalheDoDrop,EVENTO_DROP_GANHO } from '../RecompensaDesbloqueada';
+import { type DetalheDoDrop, EVENTO_DROP_GANHO } from '../RecompensaDesbloqueada';
 import { toast } from '../Toast';
+import { CabecalhoDeTela } from '../ui';
 import BaralhoAnki from './BaralhoAnki';
 import BaralhosAnki from './BaralhosAnki';
 import CuradoriaBaralho from './CuradoriaBaralho';
 import MapaDoConteudo from './MapaDoConteudo';
 import PainelTrilha from './PainelTrilha';
-import { descricaoDoJogo, JOGOS, type JogoUI,tituloDoJogo } from './play/jogos';
+import { descricaoDoJogo, JOGOS, type JogoUI, tituloDoJogo } from './play/jogos';
 import Recordes from './play/Recordes';
 import { TELA_DO_JOGO } from './play/telaDoJogo';
 
@@ -2787,147 +2785,145 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
         {/* Embutido não tem cabeçalho próprio: a tela da sessão já traz um `<h1>` logo acima, e um
           segundo `<h1>` na mesma página quebra a navegação por cabeçalho do leitor de tela, a
           pessoa passa a ter dois "títulos da página" e nenhum diz onde ela está. */}
+        {/* Cabeçalho pelo primitivo (redesign v3): kicker com a contagem de jogos, título na
+            hierarquia única, e à direita a Partida Rápida e o painel de progresso. */}
         {!embutido && (
-          <header className="mb-5 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-            <div>
-              <div className="flex items-center gap-2.5 flex-wrap">
-                <span
-                  className="w-8 h-8 rounded-xl bg-accent text-white flex items-center justify-center shadow-xs shrink-0"
-                  aria-hidden
-                >
-                  <Gamepad2 className="w-4 h-4" />
-                </span>
-                <h1 className="font-display font-black text-2xl text-ink tracking-tight">
-                  {ageProfile === 'senior' ? t('Praticar jogando') : t('Jogar & Praticar')}
-                </h1>
-                <span className="kpi-pill text-[10.5px] font-extrabold uppercase tracking-wider text-accent border-accent/30 bg-accent-soft/60">
+          <CabecalhoDeTela
+            className="mb-5"
+            kicker={
+              <>
+                <Gamepad2 className="w-3.5 h-3.5" aria-hidden />
+                <span>{t('Jogar')}</span>
+                <span className="kpi-pill text-[10px] py-0.5">
                   {jogosProntos.length} {t('Jogos')}
                 </span>
-              </div>
-              <p className="text-[13px] text-ink-muted mt-1 max-w-[65ch]">
-                {ageProfile === 'senior'
-                  ? t('Jogos curtos com as palavras que você já salvou. Cada acerto conta para a sua memória.')
-                  : t('Rodadas curtas e dinâmicas com as suas palavras. O que você acerta aqui conta na revisão.')}
-              </p>
-            </div>
-
-            <div className="flex items-center gap-3 shrink-0 self-start md:self-auto flex-wrap sm:flex-nowrap">
-              {/* BOTÃO DE DESTAQUE: PARTIDA RÁPIDA NO TOPO */}
-              <button
-                type="button"
-                onClick={partidaRapida}
-                className="py-2.5 px-4 bg-accent hover:bg-accent-ink text-white rounded-xl font-black text-[13px] shadow-sm hover:shadow-md transition-all flex items-center gap-2 active:scale-95 cursor-pointer shrink-0"
-                title={t('Sorteia um jogo aleatório dentre os disponíveis e inicia imediatamente')}
-              >
-                <Dices className="w-4 h-4" />
-                <span>{t('Partida Rápida')}</span>
-              </button>
-
-              {/* PROGRESSO no cabeçalho */}
-              {progress.available ? (
-                <section
-                  aria-label={t('Seu progresso')}
-                  className="card-panel bg-surface px-4 py-2.5 flex items-center gap-4 shrink-0 self-start sm:self-auto relative hover:border-accent transition-colors"
+              </>
+            }
+            titulo={ageProfile === 'senior' ? t('Praticar jogando') : t('Jogar & Praticar')}
+            subtitulo={
+              ageProfile === 'senior'
+                ? t('Jogos curtos com as palavras que você já salvou. Cada acerto conta para a sua memória.')
+                : t('Rodadas curtas e dinâmicas com as suas palavras. O que você acerta aqui conta na revisão.')
+            }
+            acoes={
+              <>
+                {/* BOTÃO DE DESTAQUE: PARTIDA RÁPIDA NO TOPO */}
+                <button
+                  type="button"
+                  onClick={partidaRapida}
+                  className="btn-solid py-2.5 px-4 font-black text-[13px] shrink-0"
+                  title={t('Sorteia um jogo aleatório dentre os disponíveis e inicia imediatamente')}
                 >
-                  <div
-                    className="min-w-[8rem]"
-                    title={t('{xp} XP no total, {detalhe}. Faltam {faltam} XP para o próximo.', {
-                      xp: progress.xp,
-                      detalhe: metrics
-                        ? t(
-                            '{sessoes} {unidade}, {palavras} palavras capturadas, {revisoes} revisões, {itens} itens de jogo',
-                            {
-                              sessoes: metrics.sessions,
-                              unidade: tp(metrics.sessions, 'sessão', 'sessões'),
-                              palavras: metrics.wordsCaptured,
-                              revisoes: metrics.reviews,
-                              itens: metrics.drillItems ?? 0,
-                            },
-                          )
-                        : t('calculado das suas métricas'),
-                      faltam: progress.xpForLevel - progress.xpIntoLevel,
-                    })}
+                  <Dices className="w-4 h-4" />
+                  <span>{t('Partida Rápida')}</span>
+                </button>
+
+                {/* PROGRESSO no cabeçalho */}
+                {progress.available ? (
+                  <section
+                    aria-label={t('Seu progresso')}
+                    className="card-panel bg-surface px-4 py-2.5 flex items-center gap-4 shrink-0 self-start sm:self-auto relative hover:border-accent transition-colors"
                   >
-                    <div className="flex items-baseline justify-between gap-3">
-                      <span className="label-mono">
-                        {ageProfile === 'senior' ? t('Etapa') : t('Nível')} {progress.level}
-                      </span>
-                      <span className="text-[11px] text-ink-muted tabular-nums">
-                        {progress.xpIntoLevel}/{progress.xpForLevel} XP
-                      </span>
-                    </div>
                     <div
-                      className="h-1.5 bg-canvas rounded-full mt-1.5 overflow-hidden"
-                      role="progressbar"
-                      aria-valuemin={0}
-                      aria-valuemax={100}
-                      aria-valuenow={progress.levelPct}
-                      aria-label={t('Progresso para {escala} {n}', {
-                        escala: ageProfile === 'senior' ? t('etapa') : t('nível'),
-                        n: progress.level + 1,
+                      className="min-w-[8rem]"
+                      title={t('{xp} XP no total, {detalhe}. Faltam {faltam} XP para o próximo.', {
+                        xp: progress.xp,
+                        detalhe: metrics
+                          ? t(
+                              '{sessoes} {unidade}, {palavras} palavras capturadas, {revisoes} revisões, {itens} itens de jogo',
+                              {
+                                sessoes: metrics.sessions,
+                                unidade: tp(metrics.sessions, 'sessão', 'sessões'),
+                                palavras: metrics.wordsCaptured,
+                                revisoes: metrics.reviews,
+                                itens: metrics.drillItems ?? 0,
+                              },
+                            )
+                          : t('calculado das suas métricas'),
+                        faltam: progress.xpForLevel - progress.xpIntoLevel,
                       })}
                     >
+                      <div className="flex items-baseline justify-between gap-3">
+                        <span className="label-mono">
+                          {ageProfile === 'senior' ? t('Etapa') : t('Nível')} {progress.level}
+                        </span>
+                        <span className="text-[11px] text-ink-muted tabular-nums">
+                          {progress.xpIntoLevel}/{progress.xpForLevel} XP
+                        </span>
+                      </div>
                       <div
-                        className="h-full bg-accent rounded-full transition-all duration-500"
-                        style={{ width: `${progress.levelPct}%` }}
-                      />
+                        className="h-1.5 bg-canvas rounded-full mt-1.5 overflow-hidden"
+                        role="progressbar"
+                        aria-valuemin={0}
+                        aria-valuemax={100}
+                        aria-valuenow={progress.levelPct}
+                        aria-label={t('Progresso para {escala} {n}', {
+                          escala: ageProfile === 'senior' ? t('etapa') : t('nível'),
+                          n: progress.level + 1,
+                        })}
+                      >
+                        <div
+                          className="h-full bg-accent rounded-full transition-all duration-500"
+                          style={{ width: `${progress.levelPct}%` }}
+                        />
+                      </div>
                     </div>
-                  </div>
-                  <span
-                    className="flex items-center gap-1 text-[13px] font-bold text-ink"
-                    title={
-                      progress.practicedToday
-                        ? t('Você já apareceu hoje: {n} {dias}. Abrir o app amanhã mantém a contagem.', {
-                            n: progress.streakDays,
-                            dias: tp(progress.streakDays, 'dia seguido', 'dias seguidos'),
-                          })
-                        : t('Dias seguidos em que você abriu o app ou revisou. Não há penalidade por quebrar.')
-                    }
-                  >
-                    <Flame
-                      className={`w-4 h-4 ${progress.practicedToday ? 'text-warn-ink' : 'text-ink-faint'}`}
-                      aria-hidden
-                    />{' '}
-                    {progress.streakDays}
-                    <span className="text-ink-muted font-medium text-[12px]">
-                      {tp(progress.streakDays, 'dia', 'dias')}
+                    <span
+                      className="flex items-center gap-1 text-[13px] font-bold text-ink"
+                      title={
+                        progress.practicedToday
+                          ? t('Você já apareceu hoje: {n} {dias}. Abrir o app amanhã mantém a contagem.', {
+                              n: progress.streakDays,
+                              dias: tp(progress.streakDays, 'dia seguido', 'dias seguidos'),
+                            })
+                          : t('Dias seguidos em que você abriu o app ou revisou. Não há penalidade por quebrar.')
+                      }
+                    >
+                      <Flame
+                        className={`w-4 h-4 ${progress.practicedToday ? 'text-warn-ink' : 'text-ink-faint'}`}
+                        aria-hidden
+                      />{' '}
+                      {progress.streakDays}
+                      <span className="text-ink-muted font-medium text-[12px]">
+                        {tp(progress.streakDays, 'dia', 'dias')}
+                      </span>
                     </span>
-                  </span>
-                  <span
-                    className="flex items-center gap-1 text-[13px] font-bold text-ink"
-                    title={(() => {
-                      const seeds = (id: string) => REGRAS.find((r) => r.id === id)?.seeds ?? 0;
-                      return t(
-                        'Saldo: {ganhas} ganhas − {gastas} gastas. Jogando: {acerto} por acerto e {perfeita} por rodada sem erro.',
-                        {
-                          ganhas: progress.seedsGanhas,
-                          gastas: metrics?.seedsGastas ?? 0,
-                          acerto: seeds('jogoCerto'),
-                          perfeita: seeds('rodadaPerfeita'),
-                        },
-                      );
-                    })()}
-                  >
-                    <Sprout className="w-4 h-4 text-good-ink" aria-hidden /> {progress.seeds}
-                    <span className="text-ink-muted font-medium text-[12px]">{t('seeds')}</span>
-                  </span>
-                  <button
-                    onClick={() => onChangeView('loja')}
-                    className="ms-0.5 shrink-0 min-w-6 min-h-6 inline-flex items-center justify-center rounded-lg text-ink-faint hover:text-accent cursor-pointer after:absolute after:inset-0 after:content-[''] after:rounded-[inherit]"
-                    title={t('Ver o passe, a loja e os desafios')}
-                    aria-label={t('Ver o passe, a loja e os desafios')}
-                  >
-                    <ChevronRight className="w-4 h-4" aria-hidden />
-                  </button>
-                </section>
-              ) : (
-                <div
-                  className="card-panel bg-surface px-4 py-2.5 h-[54px] w-[22rem] max-w-full animate-pulse shrink-0"
-                  aria-hidden
-                />
-              )}
-            </div>
-          </header>
+                    <span
+                      className="flex items-center gap-1 text-[13px] font-bold text-ink"
+                      title={(() => {
+                        const seeds = (id: string) => REGRAS.find((r) => r.id === id)?.seeds ?? 0;
+                        return t(
+                          'Saldo: {ganhas} ganhas − {gastas} gastas. Jogando: {acerto} por acerto e {perfeita} por rodada sem erro.',
+                          {
+                            ganhas: progress.seedsGanhas,
+                            gastas: metrics?.seedsGastas ?? 0,
+                            acerto: seeds('jogoCerto'),
+                            perfeita: seeds('rodadaPerfeita'),
+                          },
+                        );
+                      })()}
+                    >
+                      <Sprout className="w-4 h-4 text-good-ink" aria-hidden /> {progress.seeds}
+                      <span className="text-ink-muted font-medium text-[12px]">{t('seeds')}</span>
+                    </span>
+                    <button
+                      onClick={() => onChangeView('loja')}
+                      className="ms-0.5 shrink-0 min-w-6 min-h-6 inline-flex items-center justify-center rounded-lg text-ink-faint hover:text-accent cursor-pointer after:absolute after:inset-0 after:content-[''] after:rounded-[inherit]"
+                      title={t('Ver o passe, a loja e os desafios')}
+                      aria-label={t('Ver o passe, a loja e os desafios')}
+                    >
+                      <ChevronRight className="w-4 h-4" aria-hidden />
+                    </button>
+                  </section>
+                ) : (
+                  <div
+                    className="card-panel bg-surface px-4 py-2.5 h-[54px] w-[22rem] max-w-full animate-pulse shrink-0"
+                    aria-hidden
+                  />
+                )}
+              </>
+            }
+          />
         )}
 
         {/* A CORRENTE QUE ACABOU DE ENCERRAR.
@@ -3020,7 +3016,7 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
                   <button
                     type="button"
                     onClick={() => setVerRecordes(true)}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-border-subtle bg-surface hover:bg-surface-hover hover:border-warn text-[12px] font-bold text-ink transition-colors cursor-pointer"
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-panel-border bg-panel-surface hover:border-accent hover:border-warn text-[12px] font-bold text-panel-ink transition-colors cursor-pointer"
                     title={t('Ver recordes e ranking')}
                   >
                     <TrophyIcon className="w-3.5 h-3.5 text-warn" />
@@ -3030,7 +3026,7 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
                   <button
                     type="button"
                     onClick={() => setVendoMapa(true)}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-border-subtle bg-surface hover:bg-surface-hover hover:border-accent text-[12px] font-bold text-ink transition-colors cursor-pointer"
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-panel-border bg-panel-surface hover:border-accent hover:border-accent text-[12px] font-bold text-panel-ink transition-colors cursor-pointer"
                     title={t('Mapa do conteúdo')}
                   >
                     <MapIcon className="w-3.5 h-3.5 text-accent" />
@@ -3040,10 +3036,10 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
                   <button
                     type="button"
                     onClick={() => setCurando(true)}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-border-subtle bg-surface hover:bg-surface-hover hover:border-warn text-[12px] font-bold text-ink transition-colors cursor-pointer"
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-panel-border bg-panel-surface hover:border-accent hover:border-warn text-[12px] font-bold text-panel-ink transition-colors cursor-pointer"
                     title={resumoDosPulados(triagem.fora) || t('Ver itens fora do recorte')}
                   >
-                    <SlidersIcon className="w-3.5 h-3.5 text-ink-muted" />
+                    <SlidersIcon className="w-3.5 h-3.5 text-panel-ink-muted" />
                     <span className="hidden sm:inline">{t('Curadoria')}</span>
                     {triagem.fora.length > 0 && (
                       <span className="px-1.5 py-0.2 rounded-full bg-warn-soft text-warn-ink text-[11px] font-mono font-bold">
@@ -3058,8 +3054,8 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
                     aria-expanded={detalhes}
                     className={`flex items-center gap-1 px-2.5 py-1.5 rounded-xl border text-[12px] font-medium transition-colors cursor-pointer ${
                       detalhes
-                        ? 'bg-canvas border-border-subtle text-ink font-bold'
-                        : 'border-border-subtle bg-surface hover:bg-surface-hover text-ink-muted hover:text-ink'
+                        ? 'bg-panel-border border-panel-border text-panel-ink font-bold'
+                        : 'border-panel-border bg-panel-surface hover:border-accent text-panel-ink-muted hover:text-panel-ink'
                     }`}
                     title={detalhes ? t('Ocultar estatísticas do baralho') : t('Ver estatísticas do baralho')}
                   >
@@ -3422,10 +3418,7 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
                 />
               </p>
             </div>
-            <button
-              onClick={() => onChangeView('capture')}
-              className="py-2.5 px-5 bg-accent hover:bg-accent-ink text-white rounded-xl font-bold text-[13px] shadow-btn transition-all cursor-pointer"
-            >
+            <button onClick={() => onChangeView('capture')} className="btn-solid py-2.5 px-5 font-bold text-[13px]">
               {ageProfile === 'kids' ? t('Gravar alguma coisa') : t('Capturar uma sessão')}
             </button>
           </section>
@@ -3472,7 +3465,7 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
                       }}
                       className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12.5px] font-bold transition-all cursor-pointer ${
                         ativo
-                          ? 'bg-accent text-white shadow-xs'
+                          ? 'bg-ink text-ink-contrast shadow-xs'
                           : 'text-ink-muted hover:text-ink hover:bg-surface-hover'
                       }`}
                     >
@@ -3480,7 +3473,7 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
                       <span>{cat.label}</span>
                       <span
                         className={`text-[11px] px-1.5 py-0.2 rounded-full font-mono ${
-                          ativo ? 'bg-white/25 text-white' : 'bg-canvas text-ink-muted'
+                          ativo ? 'bg-ink-contrast/20 text-ink-contrast' : 'bg-canvas text-ink-muted'
                         }`}
                       >
                         {cat.total}
@@ -3620,7 +3613,7 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
                         className={`card-panel text-start flex flex-col overflow-hidden transition-all relative group ${
                           liberado
                             ? 'bg-surface hover:border-accent hover:-translate-y-1 hover:shadow-card'
-                            : 'bg-canvas border-dashed'
+                            : 'bloqueado'
                         }`}
                       >
                         <span

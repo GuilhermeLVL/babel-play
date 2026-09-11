@@ -1,0 +1,4 @@
+- [x] 6.1 cabeçalho pelo primitivo, com Partida Rápida e progresso como ações
+- [x] 6.2 painel escuro "jogando com" + pílulas escuras na barra; gaveta intacta
+- [x] 6.3 categorias em ink; botões primários pelo token; carta bloqueada pela classe
+- [x] 6.4 gate verde (4.126 unitários); evidências `06-jogar` (18 capturas); matriz E2E 102/0/15 nos 3 viewports

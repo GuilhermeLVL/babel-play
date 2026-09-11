@@ -1,5 +1,5 @@
 import { ChevronRight, SlidersHorizontal as SlidersIcon } from 'lucide-react';
-import { type ReactNode,useEffect, useRef } from 'react';
+import { type ReactNode, useEffect, useRef } from 'react';
 
 import { empilharCamada } from '../../lib/camadasDeEscape';
 import { numero, t, tp } from '../../lib/i18n';
@@ -97,32 +97,38 @@ function SeletorDeConteudo({
   return (
     <div>
       {/* ── Linha de resumo ──────────────────────────────────────────────────────────────── */}
+      {/* PAINEL ESCURO (protótipo v3, "JOGANDO COM"): é a única superfície escura do lobby, e por
+         isso é a que se lê primeiro. `card-panel escuro` usa os tokens `--panel-*` do tema em vigor
+         (F1) — no modo escuro o painel fica mais claro que o canvas, não mais escuro. A gaveta
+         embaixo continua clara: a fusão visual (cantos e borda) é a mesma de antes. */}
       <div
-        className={`flex items-center gap-3 flex-wrap card-panel bg-surface px-4 py-2.5 transition-colors ${
-          aberta ? 'border border-accent rounded-b-none' : 'border border-border-subtle'
+        className={`flex items-center gap-3 flex-wrap card-panel escuro px-4 py-2.5 transition-colors ${
+          aberta ? 'border-accent rounded-b-none' : ''
         }`}
       >
         <div className="flex items-center gap-2.5 flex-wrap flex-1 min-w-[240px] text-[13px]">
-          <span className="label-mono text-[10.5px] uppercase tracking-wider">{t('jogando com')}</span>
-          <span className="font-display font-extrabold text-base tabular-nums text-ink">
-            {numero(total)}
+          <span className="label-mono text-[10.5px] uppercase tracking-wider text-panel-ink-muted">
+            {t('jogando com')}
           </span>
-          <span className="text-ink-muted">{tp(total, 'palavra', 'palavras')}</span>
+          <span className="font-display font-extrabold text-base tabular-nums text-panel-ink">{numero(total)}</span>
+          <span className="text-panel-ink-muted">{tp(total, 'palavra', 'palavras')}</span>
           {nomeDaFonte && (
             <>
-              <span className="text-ink-faint">·</span>
-              <span className="text-ink-muted"><b className="text-ink font-semibold">{nomeDaFonte}</b></span>
+              <span className="text-panel-ink-muted">·</span>
+              <span className="text-panel-ink-muted">
+                <b className="text-panel-ink font-semibold">{nomeDaFonte}</b>
+              </span>
             </>
           )}
           {idioma && (
             <>
-              <span className="text-ink-faint">·</span>
-              <span className="text-ink-muted"><b className="text-ink font-semibold">{idioma}</b></span>
+              <span className="text-panel-ink-muted">·</span>
+              <span className="text-panel-ink-muted">
+                <b className="text-panel-ink font-semibold">{idioma}</b>
+              </span>
             </>
           )}
-          {avisoDeVazio && (
-            <span className="text-warn font-semibold">— {avisoDeVazio}</span>
-          )}
+          {avisoDeVazio && <span className="text-warn font-semibold">— {avisoDeVazio}</span>}
         </div>
 
         <div className="flex items-center gap-2 shrink-0 flex-wrap sm:flex-nowrap">
@@ -134,11 +140,11 @@ function SeletorDeConteudo({
             aria-controls={ID_DA_GAVETA}
             className={`shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[12px] font-bold border cursor-pointer transition-all ${
               aberta
-                ? 'bg-accent text-white border-accent shadow-xs'
-                : 'bg-surface border-border-subtle hover:bg-surface-hover hover:border-accent/40 text-ink'
+                ? 'bg-accent text-accent-contrast border-accent shadow-xs'
+                : 'bg-panel-surface border-panel-border hover:border-accent text-panel-ink'
             }`}
           >
-            <SlidersIcon className={`w-3.5 h-3.5 ${aberta ? 'text-white' : 'text-accent'}`} />
+            <SlidersIcon className={`w-3.5 h-3.5 ${aberta ? 'text-accent-contrast' : 'text-accent'}`} />
             <span>{t('Fonte')}</span>
             <ChevronRight className={`w-3.5 h-3.5 transition-transform ${aberta ? 'rotate-90' : ''}`} />
           </button>

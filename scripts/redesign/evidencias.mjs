@@ -59,7 +59,7 @@ const ROTAS_PADRAO = [
 const rotas = lerArg('--so', '')
   ? lerArg('--so', '')
       .split(',')
-      .map((r) => (r === 'inicio' || r === '' ? '/' : r))
+      .map((r) => (r === 'inicio' || r === '' ? '/' : r.startsWith('/') ? r : `/${r}`))
   : ROTAS_PADRAO
 /* Mesma lista de `tests/e2e/acessibilidade.e2e.ts`: conquistas de `core/learning/conquistas.ts` + níveis. */
 const CONQUISTAS = [

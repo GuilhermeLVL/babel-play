@@ -100,12 +100,43 @@ as deficiências do *protótipo*, não as do produto. Verificado nesta sessão:
       Teste: `tests/fontesSemCdn.test.ts`, 5 casos.
       Evidência: `dist` com 73 woff2 e zero `fonts.googleapis`/`fonts.gstatic`; app rodando sem
       nenhuma requisição a `gstatic`.
-- [ ] P0-4 — estado de erro nas 9 telas sem ele
+- [x] **P0-4 — falha de rede deixou de ser apresentada como conteúdo vazio** (maior parte)
+      Primitivo `src/components/ui/Erro.tsx` (com `role="alert"`), nascido com dois consumidores
+      como a regra de admissão da pasta exige. `Study.tsx` e `Metrics.tsx` convertidos;
+      `CatalogoDePalavras.tsx` refatorado para o primitivo, provando equivalência.
+      Teste: `tests/erroNaoEhVazio.test.tsx`, 9 casos.
+      `Settings.tsx:153` verificado e **já estava honesto** — não foi tocado.
+      `Reading.tsx:181` fica para change própria (afeta busca "já está no deck?", não um vazio).
 - [x] **P0-5 — acessibilidade automatizada**
       `@axe-core/playwright@4.13.0` + `tests/e2e/acessibilidade.e2e.ts`: 5 rotas × 3 viewports.
       Achou e corrigiu uma violação real de contraste em `/planos` (accent como texto, 3,23:1).
       15/15 verdes.
-- [ ] P0-11 — tokens derivados + regra de lint
+- [ ] P0-11 — tokens derivados + regra de lint — **adiado de propósito para a F5**: adicionar
+      token que nenhuma tela consome ainda é exatamente a abstração especulativa que
+      `src/components/ui/index.ts` proíbe. Os tokens nascem com a primeira tela migrada.
+- [ ] Reading.tsx:181 — estado de erro (precisa de decisão de produto sobre a afordância)
+
+## Commits desta rodada
+
+| hash | o quê |
+|---|---|
+| `c7b225f` | F0+F1: scaffolding, gates, inventário que inverteu o escopo |
+| `8c2d181` | intervalos dos botões FSRS saem do agendador; grade inalcançável travada por teste |
+| `77a22b7` | 14 famílias de fonte saem do CDN do Google |
+| `1553c1e` | axe no gate + 2 violações reais em `/planos`; gate passa a comparar com baseline |
+| `80cb26f` | rede caída deixa de ser conteúdo vazio (primitivo `Erro`, `Study`) |
+| `ed6aee7` | idem em `Metrics`, onde a falha virava frase errada sobre o acervo |
+
+Estado do gate na última execução: **VERDE** — 3931 unitários em 356 arquivos (baseline 3901/352),
+102 E2E aprovados (87 do baseline + 15 de axe), nenhuma falha nova.
+
+## Decisões pendentes do dono (bloqueiam trabalho)
+
+1. **P0-12** — a grade de 4 botões do FSRS está inalcançável. Torná-la alcançável muda a UX de
+   revisão; removê-la contraria o design. Ver `LACUNAS.md`.
+2. **Reading.tsx:181** — o que a tela deve oferecer enquanto não sabe se a palavra está no deck.
+3. **P1-3** — o Bingo é um jogo funcional fora do registro `MINIGAMES`: entra no registro ou vira
+   painel de captura documentado?
 
 ## F2–F5, F7
 

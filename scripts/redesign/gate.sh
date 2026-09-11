@@ -24,12 +24,16 @@ etapa() {
 
 # 8. Integridade: nenhum teste removido em relação à main, nenhum .skip/.only novo.
 integridade() {
+  # `--ignore-cr-at-eol` e obrigatorio desde a normalizacao de fim de linha: sem ele o diff contra
+  # a main mostra CADA linha dos 185 arquivos renormalizados como adicionada, e todo `.skip`
+  # pre-existente aparece como novo. O gate acusava uma lacuna declarada ha meses como se tivesse
+  # sido introduzida agora.
   local base="${GATE_BASE:-main}" apagados novos
-  apagados=$(git diff --diff-filter=D --name-only "$base" -- 'tests/**' 'src/**/*.test.*' 'server/**/*.test.*' || true)
+  apagados=$(git diff --diff-filter=D --name-only --ignore-cr-at-eol "$base" -- 'tests/**' 'src/**/*.test.*' 'server/**/*.test.*' || true)
   if [ -n "$apagados" ]; then
     echo "ARQUIVO DE TESTE REMOVIDO em relação a $base:"; echo "$apagados"; return 1
   fi
-  novos=$(git diff -U0 "$base" -- 'tests/**' | grep -E '^\+.*\b(it|test|describe)\.(skip|only)\b' || true)
+  novos=$(git diff -U0 --ignore-cr-at-eol "$base" -- 'tests/**' | grep -E '^\+.*\b(it|test|describe)\.(skip|only)\b' || true)
   if [ -n "$novos" ]; then
     echo "SKIP/ONLY NOVO introduzido:"; echo "$novos"; return 1
   fi
@@ -40,41 +44,35 @@ etapa "1. Typecheck"                 npm run typecheck
 etapa "2. Lint"                      npm run lint
 etapa "3. Testes unitários"          npm run test:unit
 etapa "4. Build de produção"         npm run build
-# 5. E2E — verde significa "nenhuma falha NOVA", nao "nenhuma falha".
+# 5. E2E — contra um BANCO DESCARTAVEL, e a razao vale ser escrita.
 #
-# A main ja chegou vermelha aqui: 5 testes (x 3 viewports) falham por dependerem de um estado de
-# banco que `_global-setup.ts` nao cria. Um gate que so soubesse dizer "vermelho" seria inutil
-# nesta branch — vermelho desde o primeiro commit, por causa alheia, e portanto ignorado.
+# Este gate passou a maior parte desta rodada comparando o resultado com uma lista de "falhas
+# conhecidas da main". A lista estava ERRADA. Rodando a suite no worktree de baseline, a main com
+# banco limpo passa nos cinco testes que a lista acusava; rodando a main com o banco REAL do
+# operador (12 MB, anos de uso), os mesmos cinco falham. O codigo nunca teve nada a ver: o que
+# falhava era o ESTADO DO BANCO daquela maquina — fila com 3 cartoes vencidos onde o teste exige
+# 6, Loja sem item com preco em Seeds porque o dono ja os possui.
 #
-# Entao ele compara com `e2e-falhas-conhecidas.txt` e falha nas DUAS direcoes:
-#  · falha fora da lista  -> regressao desta branch;
-#  · teste da lista que passou -> a lista envelheceu e esta escondendo um conserto.
+# Uma suite cujo resultado depende de quantos cartoes o dono revisou ontem nao mede o codigo.
+# `DATABASE_URL` sempre foi configuravel (server/db/db.ts:16); o gate agora aponta para um arquivo
+# proprio, apagado antes de cada corrida, e sobe numa porta propria para nao reaproveitar um
+# servidor de desenvolvimento que esteja de pe com o banco do operador.
+#
+# Com isso a lista de excecoes deixou de existir: o resultado e reproduzivel e a exigencia volta a
+# ser a simples — ZERO falhas.
 e2e() {
-  local saida="${TMPDIR:-/tmp}/gate-e2e.txt" lista="scripts/redesign/e2e-falhas-conhecidas.txt"
-  npm run test:e2e > "$saida" 2>&1
-  local ok falhas
+  local saida="${TMPDIR:-/tmp}/gate-e2e.txt"
+  rm -f data/gate-e2e.db data/gate-e2e.db-wal data/gate-e2e.db-shm
+  PORT=3300 BASE_URL=http://localhost:3300 DATABASE_URL=file:./data/gate-e2e.db     npm run test:e2e > "$saida" 2>&1
+  local codigo=$? ok falhas
   ok=$(grep -cE "^  ok" "$saida" || true)
-  echo "E2E: $ok aprovados."
-
-  grep -E "^  x " "$saida" | sed -E 's/ \([0-9.]+m?s\)$//; s/^  x +[0-9]+ +//; s/^\[[a-z0-9-]+\] › //'     | sort -u > "${saida}.falhas"
-  grep -vE '^\s*(#|$)' "$lista" | sort -u > "${saida}.conhecidas"
-
-  local novas somem
-  novas=$(comm -23 "${saida}.falhas" "${saida}.conhecidas")
-  somem=$(comm -13 "${saida}.falhas" "${saida}.conhecidas")
-
-  if [ -n "$novas" ]; then
-    echo "REGRESSAO — falha(s) que a main nao tinha:"; echo "$novas"
+  falhas=$(grep -cE "^  x " "$saida" || true)
+  echo "E2E: $ok aprovados, $falhas falhas (banco descartavel)."
+  if [ "$codigo" -ne 0 ]; then
+    grep -E "^  x " "$saida" || true
     echo "--- saida completa: $saida"
     return 1
   fi
-  if [ -n "$somem" ]; then
-    echo "BASELINE VELHA — passou(ram) e continua(m) na lista de falhas conhecidas:"; echo "$somem"
-    echo "Remova a(s) linha(s) de $lista; manter esconderia o conserto."
-    return 1
-  fi
-  falhas=$(wc -l < "${saida}.falhas" | tr -d ' ')
-  echo "Nenhuma falha nova. $falhas falha(s) pre-existente(s), todas na lista conhecida."
 }
 
 if [ "${GATE_PULAR_E2E:-0}" != "1" ]; then

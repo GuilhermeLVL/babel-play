@@ -284,7 +284,13 @@ export default function Sobre({ onVerPlanos }: { onVerPlanos?: (view: string) =>
                 <code className="flex-1 min-w-0 truncate px-4 py-3 rounded-xl bg-canvas border border-border-subtle text-[13px] text-ink">{CRIADOR.pix}</code>
                 <button
                   onClick={copiarPix}
-                  className="shrink-0 flex items-center gap-1.5 px-5 py-3 rounded-xl bg-accent hover:bg-accent-ink text-white text-[13px] font-bold shadow-btn cursor-pointer"
+                  /* Era `bg-accent ... text-white`, escrito à mão: branco sobre `--accent` dá
+                     3,61:1 e reprova o mínimo AA de 4,5:1 — o axe pegou em `/sobre`. É o mesmo
+                     defeito que `index.css:876` já documenta ("`white` some no accent branco do
+                     vercel-dark e lava no accent verde-claro do mochi"), e a resposta já existia:
+                     `btn-solid` usa `var(--accent-contrast)`, que é 4,54:1 no tema babel e muda
+                     junto com o tema. Recriar o botão à mão foi o que reintroduziu o problema. */
+                  className="shrink-0 btn-solid px-5 py-3 text-[13px]"
                 >
                   {copiado ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />} {copiado ? 'Copiado!' : 'Copiar Pix'}
                 </button>

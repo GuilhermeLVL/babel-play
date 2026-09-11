@@ -85,6 +85,22 @@ as deficiências do *protótipo*, não as do produto. Verificado nesta sessão:
 - [ ] Suíte de paridade: **estender `tests/e2e/`**, não criar `e2e/paridade/` paralela (D-002)
 - [ ] Screenshots do baseline
 
-## F2–F7
+## F6 — Lacunas funcionais (começou pelos defeitos confirmados)
 
-Não iniciadas.
+- [x] **P0-1 — intervalos dos botões FSRS derivados do agendador**
+      `src/core/learning/previsaoDeIntervalo.ts` (novo) + `Study.tsx:790`, `:1116/:1125/:1134/:1143`.
+      Teste: `tests/previsaoDeIntervalo.test.ts`, 13 casos.
+      Gate: typecheck/lint/build verdes; unitários **3914 passam** (era 3901, +13);
+      E2E 87 ok / 15 falhas — **conjunto de falhas idêntico ao baseline, zero regressão**.
+- [x] **P0-2 — retratado.** Não procede; ver `LACUNAS.md`. O erro foi meu na primeira leitura.
+- [x] **P0-12 — descoberto e travado por teste** (`tests/gradeDeRevisaoAlcancavel.test.ts`, 4 casos):
+      a grade de 4 botões do FSRS é inalcançável. `[REVISAR]` — decisão de produto do dono.
+- [ ] P0-3 — fontes self-hosted
+- [ ] P0-4 — estado de erro nas 9 telas sem ele
+- [ ] P0-5 — `@axe-core/playwright`
+- [ ] P0-11 — tokens derivados + regra de lint
+
+## F2–F5, F7
+
+Não iniciadas. A F2 tem a extração de tokens e o mapa de telas feitos; falta a especificação
+detalhada tela a tela. A F3 tem `LACUNAS.md` pronto; `PARIDADE.md` ainda é rascunho.

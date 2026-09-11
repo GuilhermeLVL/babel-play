@@ -22,16 +22,34 @@ removido a simulação local e que o servidor é a única fonte — verdade para
 (`handleFsrsFeedback` `:170-180`), **falso para os quatro rótulos**.
 
 É exatamente o "dado de mentira" que a regra 3 proíbe, e está no app.
-Correção: derivar cada rótulo de `intervalDays` com a `stability`/`difficulty` do cartão da vez.
 
-### P0-2 [app] O botão mente sobre a nota que envia
+**FEITO.** `src/core/learning/previsaoDeIntervalo.ts` pergunta ao agendador o que ele faria com
+cada nota (`Fsrs5Strategy.review`) e formata a diferença — o mesmo caminho que o servidor percorre
+para agendar de verdade, então rótulo e agendamento não têm como divergir. `Study.tsx` passou a
+consumir `previsaoDosBotoes(estadoDoCartao(currentCard, agora), agora)`.
+Travado por `tests/previsaoDeIntervalo.test.ts` (13 casos), incluindo a armadilha do
+`fsrsStability: 0` que precisa virar `undefined` para o cartão novo não cair no ramo errado do FSRS.
 
-`src/components/views/Study.tsx:171-173`: quando `exercise-kind === 'active-production'`, um `3`
-(Bom) é promovido a `4` (Fácil) antes de ir ao servidor. O botão diz "Good (3.5d)" e o cartão é
-agendado como Fácil.
+**Mas ver P0-12: esses botões não são alcançáveis hoje.**
 
-Mais grave que P0-1, porque altera o agendamento real. Ou o rótulo passa a dizer a verdade, ou a
-promoção sai. Decisão a registrar em `DECISOES.md` antes de mexer.
+### P0-2 [app] ~~O botão mente sobre a nota que envia~~ — CORRIGIDO, não procede
+
+**Esta lacuna foi descrita errado na primeira redação e não existe.** Registrada aqui, e não
+apagada, porque o erro chegou a ser relatado ao dono.
+
+O que eu afirmei: que `Study.tsx:171-173` promove Bom (3) a Fácil (4) e que, por isso, o botão
+rotulado "Good (3.5d)" enviava Easy ao servidor.
+
+O que a verificação mostrou: a promoção existe (`Study.tsx:171-173`), mas só se aplica quando
+`exerciseKind === 'active-production'`, e **o único chamador com esse argumento é
+`Study.tsx:828`** — o exercício de Produção Ativa, que **não tem a grade de quatro botões**.
+Ali a nota é derivada do acerto (`const rating = res.correct ? 3 : 1`, `Study.tsx:826`) e o
+usuário nunca escolhe nem vê rótulo de intervalo. Os quatro botões (`:1106`, `:1115`, `:1124`,
+`:1133`) chamam `handleFsrsFeedback` **sem** `exerciseKind`, então nunca disparam a promoção.
+
+Portanto não há botão mentindo. A promoção é uma política interna declarada no próprio código
+("produção ativa é mais difícil: um acerto vale Easy") aplicada onde não há escolha do usuário —
+decisão de produto defensável, não defeito de honestidade. Fica sem ação.
 
 ### P0-3 [app] 14 famílias de fonte por CDN do Google, render-blocking
 
@@ -106,6 +124,42 @@ Depois, regra de lint proibindo hex solto em arquivo novo ou alterado.
 ---
 
 ## P1 — o design pede e o app suporta
+
+### P0-12 [app] A grade de quatro botões do FSRS está inalcançável
+
+Descoberto ao tentar fotografar a correção do P0-1 no app rodando: **a tela de "Errei · Difícil ·
+Bom · Fácil" não aparece para nenhum cartão.**
+
+A cadeia, com linha:
+
+- `Study.tsx:83` — `const [scheduler] = useState<SchedulerType>('fsrs')`, **sem setter**: nunca muda.
+- `Study.tsx:790` — `format = isActiveProductionOnly ? 'active-production' : scheduler === 'fsrs' && currentCard ? formatForCard(currentCard) : 'cloze'`.
+- `src/lib/exercicios/progressionRules.ts:17-26` — `formatForCard` devolve **só** `mc`, `typing` ou
+  `active-production`.
+- `Study.tsx:821`, `:839`, `:908` — os três ramos esgotam esse contradomínio.
+- `Study.tsx:984` — o `else`, "DEFAULT FLASHCARD VIEW", é onde os quatro botões moram.
+
+Logo o `else` só roda quando `currentCard` é `undefined` — sem cartão, campos vazios.
+
+Nos três formatos que o usuário encontra de fato, a nota é **derivada do acerto**:
+`isCorrect ? 3 : 1` (`Study.tsx:895` e `:971`) e `res.correct ? 3 : 1` (`:826`). Ele nunca escolhe
+entre Difícil e Bom — o FSRS-5 recebe só 1 ou 3 (e 4 na produção ativa).
+
+É isto que explica o P0-1: os intervalos cravados no JSX puderam ficar errados indefinidamente
+porque **ninguém os via**.
+
+Travado por `tests/gradeDeRevisaoAlcancavel.test.ts`, que prova o contradomínio de `formatForCard`.
+O teste não conserta: fixa o fato para que a decisão seja deliberada.
+
+**REVISAR — decisão do dono.** O material de design da rodada anterior trata este fluxo como o
+produto em si (`docs/design/auditoria-prototipo-v2/PROMPT.md`, item 6: "Sem isso não é o produto"),
+e o protótipo v3 o desenha em `isPalavras` (L675-755). Três saídas possíveis, e escolher é de
+produto, não de implementação:
+1. tornar a grade alcançável (um quarto formato, ou a grade após o exercício) — muda a UX de revisão;
+2. assumir a nota derivada e **remover** a grade como código morto — contraria o design;
+3. manter as duas, com a grade sob preferência do usuário.
+Enquanto não houver decisão, fica como está: a correção do P0-1 já garante que, no dia em que a
+grade aparecer, ela não vai mentir.
 
 ### P1-1 [proto] Antessala da rodada
 Prévia, fases com estrelas, dificuldade, leeches, Jogar/Trocar/Repetir/Sair.

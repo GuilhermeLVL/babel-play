@@ -18,6 +18,7 @@ import { useExameDePalavra } from '../../lib/useExameDePalavra';
 import { ExerciseKind, Recording, SchedulerType, VocabCard, VocabWord } from '../../types';
 import CommandPalette, { useCommandPalette } from '../CommandPalette';
 import FraseComLacuna from '../FraseComLacuna';
+import { Erro } from '../ui';
 import VocabularyPanel from '../VocabularyPanel';
 
 // Exercícios — cada um é um componente próprio, com o contrato `ExerciseProps`.
@@ -55,13 +56,29 @@ export default function Study({
    */
   const [deckLoaded, setDeckLoaded] = useState(false);
 
-  // Fase 2: carrega o deck REAL do backend (substitui mockData/localStorage).
-  useEffect(() => {
+  /**
+   * REDE CAÍDA NÃO É BARALHO VAZIO.
+   *
+   * Este efeito fazia `.catch(() => setVocabCards([]))`. O resultado, para quem estava do outro
+   * lado sem conexão, era a tela anunciar "Nenhuma palavra no deck ainda" — ou seja, o app
+   * dizendo que o vocabulário inteiro sumiu. É a mesma classe de mentira que
+   * `contagemHonesta.test.ts` persegue, só que pela porta dos fundos: em vez de inventar um
+   * número, inventa um ZERO. `CatalogoDePalavras.tsx:113` já tinha nomeado e corrigido isto na
+   * sua própria tela; aqui é o mesmo conserto.
+   */
+  const [erroDoDeck, setErroDoDeck] = useState<string | null>(null);
+  const carregarDeck = useCallback(() => {
+    setErroDoDeck(null);
+    setDeckLoaded(false);
     fetchDeck()
-      .then(setVocabCards)
-      .catch(() => setVocabCards([]))
+      .then((cartoes) => {
+        setVocabCards(cartoes);
+        setErroDoDeck(null);
+      })
+      .catch((e: unknown) => setErroDoDeck(String((e as Error)?.message ?? e)))
       .finally(() => setDeckLoaded(true));
   }, []);
+  useEffect(() => { carregarDeck(); }, [carregarDeck]);
 
   /**
    * Cartões do contexto ativo (a sessão em foco, ou o baralho inteiro).
@@ -685,11 +702,21 @@ export default function Study({
 
           {filteredVocab.length === 0 ? (
             <div className="border border-dashed border-border-subtle rounded-2xl p-8 text-center">
-              <p className="text-xs text-ink-muted">
-                {vocabCards.length === 0
-                  ? 'Nenhuma palavra no deck ainda.'
-                  : 'Nenhuma palavra corresponde à busca/filtro.'}
-              </p>
+              {/* O erro vem ANTES do vazio: sem esta ordem, a falha de rede volta a ser
+                  apresentada como "você não tem palavras". */}
+              {erroDoDeck ? (
+                <Erro
+                  titulo="Não consegui carregar seu vocabulário."
+                  detalhe={erroDoDeck}
+                  aoTentarDeNovo={carregarDeck}
+                />
+              ) : (
+                <p className="text-xs text-ink-muted">
+                  {vocabCards.length === 0
+                    ? 'Nenhuma palavra no deck ainda.'
+                    : 'Nenhuma palavra corresponde à busca/filtro.'}
+                </p>
+              )}
             </div>
           ) : (
             <div className="border border-border-subtle rounded-2xl overflow-hidden bg-surface divide-y divide-border-subtle max-h-[420px] overflow-y-auto custom-scrollbar">

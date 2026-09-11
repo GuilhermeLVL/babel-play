@@ -14,6 +14,7 @@
 export type { ItemDeAba } from './Abas';
 export { default as Abas, PainelDeAba } from './Abas';
 export { default as Barra } from './Barra';
+export { default as Erro } from './Erro';
 export { default as Ladrilho } from './Ladrilho';
 export type { OpcaoSegmentada, TomDeOpcao } from './Segmentado';
 export { default as Segmentado } from './Segmentado';

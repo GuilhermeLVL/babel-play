@@ -95,7 +95,11 @@ as deficiências do *protótipo*, não as do produto. Verificado nesta sessão:
 - [x] **P0-2 — retratado.** Não procede; ver `LACUNAS.md`. O erro foi meu na primeira leitura.
 - [x] **P0-12 — descoberto e travado por teste** (`tests/gradeDeRevisaoAlcancavel.test.ts`, 4 casos):
       a grade de 4 botões do FSRS é inalcançável. `[REVISAR]` — decisão de produto do dono.
-- [ ] P0-3 — fontes self-hosted
+- [x] **P0-3 — fontes self-hosted, sem CDN**
+      13 famílias via `@fontsource` em `src/index.css`; VT323 (import morto) removida.
+      Teste: `tests/fontesSemCdn.test.ts`, 5 casos.
+      Evidência: `dist` com 73 woff2 e zero `fonts.googleapis`/`fonts.gstatic`; app rodando sem
+      nenhuma requisição a `gstatic`.
 - [ ] P0-4 — estado de erro nas 9 telas sem ele
 - [ ] P0-5 — `@axe-core/playwright`
 - [ ] P0-11 — tokens derivados + regra de lint

@@ -83,11 +83,27 @@ Com o resultado reproduzível, a exigência volta a ser a simples — **zero fal
 Rodar contra banco vazio é rodar **na experiência de usuário novo**, e ali o axe achou o que o
 banco populado escondia:
 
-- **`Sobre.tsx:287`** — `bg-accent … text-white` escrito à mão. Branco sobre `--accent` dá
-  **3,61:1** e reprova AA. É o defeito que `index.css:876` já documenta ("`white` some no accent
-  branco do vercel-dark e lava no accent verde-claro do mochi"), e a resposta já existia: a classe
-  `btn-solid`, que usa `var(--accent-contrast)`. Recriar o botão à mão reintroduziu o problema.
-  Corrigido usando a classe.
+- **`Sobre.tsx:287` — CORRIGINDO O QUE EU AFIRMEI.** Relatei que ali havia "branco sobre
+  `--accent`, 3,61:1, reprova AA". **Errado, em dois pontos, e a afirmação saiu numa mensagem de
+  commit.**
+
+  Primeiro: `text-white` nunca pintou branco naquele elemento. `src/index.css:1133-1140` é uma rede
+  de segurança global — `.btn-solid, button.bg-accent, a.bg-accent, div.bg-accent.text-white
+  { color: var(--accent-contrast) !important }` — posta justamente porque o projeto já tinha
+  cometido esse erro duas vezes. A cor computada do link visível é `rgb(61,17,5)` = `--accent-contrast`,
+  que dá **4,54:1** e passa. Eu li a classe no código e não medi o que o navegador pinta.
+
+  Segundo: o botão que editei **não renderiza**. `CRIADOR.pix` é o placeholder `'PIX_AQUI'` e
+  `lib/criador.ts:28` esconde campo não preenchido. O `.text-white` que o axe acusou é o de
+  `Sobre.tsx:35`, o link com `destaque` — esse sim renderiza.
+
+  Logo, o que fez `/sobre` voltar a passar foi a **exclusão do modal de recompensa** da varredura,
+  não a minha edição. O `.text-white` entrou na lista do axe porque o par `accent-contrast × accent`
+  tem margem de 0,04 e cai sob a sobreposição do modal — é o D-011, já em `REVISAR`.
+
+  A edição continua valendo como limpeza (depender de um `!important` global para consertar uma
+  classe errada é frágil; `btn-solid` resolve na origem), mas **não corrigiu nada visível**, e eu
+  disse que sim. `Sobre.tsx:35` segue com a mesma classe enganosa e é a que merece o conserto.
 - **`accent-contrast × accent` passa por 4,54:1** — margem de 0,04 sobre o mínimo. O par É coberto
   por `contrastePaletas.test.ts`, que o aprova; mas o axe, medindo o que foi renderizado, reprovou
   o botão do modal de recompensa. O próprio teste de token avisa disso em `:59` ("o coletor ainda

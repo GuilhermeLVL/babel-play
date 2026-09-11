@@ -32,7 +32,11 @@ function LinkDoCriador({ href, icone, rotulo, destaque = false }: {
       rel="noreferrer noopener"
       className={`flex items-center gap-2 px-4 py-2.5 rounded-xl border text-[13px] font-bold transition-all hover:-translate-y-0.5 cursor-pointer ${
         destaque
-          ? 'bg-accent text-white border-accent shadow-btn hover:brightness-110'
+          /* `text-white` aqui é enganoso e sobrevive só porque `index.css:1133-1140` o anula com
+             `!important`. Este é o link que o axe de fato encontrou em `/sobre` (o do Pix, abaixo,
+             nem renderiza com a chave em placeholder). Trocado pelo token real: o mesmo valor que
+             a rede de segurança já aplicava, agora dito onde se lê. */
+          ? 'bg-accent text-accent-contrast border-accent shadow-btn hover:brightness-110'
           : 'bg-surface text-ink border-border-subtle hover:border-accent'
       }`}
     >
@@ -87,7 +91,13 @@ export default function Sobre({ onVerPlanos }: { onVerPlanos?: (view: string) =>
     <div className="relative max-w-5xl mx-auto px-4 sm:px-8 py-10 space-y-16 animate-in fade-in duration-300">
       {/* ── HERÓI: identidade à esquerda, manifesto à direita ── */}
       <section className="relative overflow-hidden rounded-3xl border border-border-subtle bg-surface px-6 py-10 sm:px-10 sm:py-12">
-        <div aria-hidden className="pointer-events-none absolute inset-0">
+        {/* DECORAÇÃO SÓ ONDE ELA CABE. Os blobs são `aria-hidden`, mas cor por baixo de texto não é
+            invisível para quem lê: em 375px não há margem lateral sobrando, e o blob de
+            `-left-16 w-64` cobre de −64px a 192px — exatamente onde ficam o kicker (x=47), o
+            nome e o papel. O texto é `--ink-muted`, que passa AA sobre `--surface` limpo e cai
+            abaixo de 4,5:1 sobre `surface + accent/20`. O axe pegou os três em `mobile-375`.
+            No desktop os blobs ficam nas bordas, longe do texto, e continuam valendo. */}
+        <div aria-hidden className="pointer-events-none absolute inset-0 hidden md:block">
           <span className="sobre-blob absolute -top-16 -left-16 w-64 h-64 rounded-full bg-accent/20 blur-3xl" />
           <span className="sobre-blob sobre-blob-2 absolute -bottom-20 -right-10 w-72 h-72 rounded-full bg-warn/20 blur-3xl" />
           <span className="sobre-blob sobre-blob-3 absolute top-8 right-1/3 w-40 h-40 rounded-full bg-good/15 blur-3xl" />
@@ -254,7 +264,13 @@ export default function Sobre({ onVerPlanos }: { onVerPlanos?: (view: string) =>
 
       {/* ── APOIO ── */}
       <section className="relative overflow-hidden rounded-3xl border border-accent/40 bg-surface p-6 sm:p-10">
-        <div aria-hidden className="pointer-events-none absolute inset-0">
+        {/* DECORAÇÃO SÓ ONDE ELA CABE. Os blobs são `aria-hidden`, mas cor por baixo de texto não é
+            invisível para quem lê: em 375px não há margem lateral sobrando, e o blob de
+            `-left-16 w-64` cobre de −64px a 192px — exatamente onde ficam o kicker (x=47), o
+            nome e o papel. O texto é `--ink-muted`, que passa AA sobre `--surface` limpo e cai
+            abaixo de 4,5:1 sobre `surface + accent/20`. O axe pegou os três em `mobile-375`.
+            No desktop os blobs ficam nas bordas, longe do texto, e continuam valendo. */}
+        <div aria-hidden className="pointer-events-none absolute inset-0 hidden md:block">
           <span className="sobre-blob absolute -top-10 right-0 w-52 h-52 rounded-full bg-accent/15 blur-3xl" />
           <span className="sobre-blob sobre-blob-2 absolute -bottom-16 left-10 w-56 h-56 rounded-full bg-warn/15 blur-3xl" />
         </div>
@@ -284,12 +300,16 @@ export default function Sobre({ onVerPlanos }: { onVerPlanos?: (view: string) =>
                 <code className="flex-1 min-w-0 truncate px-4 py-3 rounded-xl bg-canvas border border-border-subtle text-[13px] text-ink">{CRIADOR.pix}</code>
                 <button
                   onClick={copiarPix}
-                  /* Era `bg-accent ... text-white`, escrito à mão: branco sobre `--accent` dá
-                     3,61:1 e reprova o mínimo AA de 4,5:1 — o axe pegou em `/sobre`. É o mesmo
-                     defeito que `index.css:876` já documenta ("`white` some no accent branco do
-                     vercel-dark e lava no accent verde-claro do mochi"), e a resposta já existia:
-                     `btn-solid` usa `var(--accent-contrast)`, que é 4,54:1 no tema babel e muda
-                     junto com o tema. Recriar o botão à mão foi o que reintroduziu o problema. */
+                  /* Era `bg-accent hover:bg-accent-ink text-white`, escrito à mão.
+                     REGISTRO HONESTO DO QUE ISTO CONSERTA E DO QUE NÃO: o `text-white` NÃO estava
+                     pintando branco — `index.css:1133-1140` tem uma rede de segurança global
+                     (`a.bg-accent { color: var(--accent-contrast) !important }`) posta porque o
+                     projeto já cometeu esse erro duas vezes. Então não havia 3,61:1 na tela, e este
+                     botão sequer renderiza enquanto `CRIADOR.pix` for o placeholder `PIX_AQUI`
+                     (`lib/criador.ts:28`).
+                     O que muda é a fragilidade: escrever a classe errada e depender de um
+                     `!important` a 850 linhas de distância para desfazê-la é uma armadilha para
+                     quem copiar este trecho. `btn-solid` resolve na origem e acompanha o tema. */
                   className="shrink-0 btn-solid px-5 py-3 text-[13px]"
                 >
                   {copiado ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />} {copiado ? 'Copiado!' : 'Copiar Pix'}

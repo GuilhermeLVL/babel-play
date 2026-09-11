@@ -35,6 +35,43 @@ const ROTAS = [
   { caminho: '/ajustes', nome: 'Ajustes' },
 ] as const;
 
+/**
+ * A FILA DE RECOMPENSAS NÃO PODE SUBIR DURANTE A VARREDURA — e a solução não é clicar mais rápido.
+ *
+ * Com banco descartável o app entrega as conquistas de boas-vindas no boot ("Primeira captura",
+ * "Nível 2!"), num modal com backdrop. Isso não é ruído cosmético: o backdrop escurece a página, e
+ * o axe passa a medir TODO o texto de trás contra um fundo esmaecido. O resultado eram violações
+ * de contraste que não existem — verificado injetando o axe na página com o modal fechado: zero
+ * violações em `/sobre` e `/planos`, tanto em 375×812 quanto em 1280×800.
+ *
+ * Tentativas anteriores falharam por atacarem o sintoma: `.exclude()` do modal só impede que ELE
+ * seja checado, não desfaz o escurecimento; e fechar em laço é uma corrida contra a remontagem do
+ * componente a cada item da fila.
+ *
+ * Aqui a fila simplesmente não nasce: o app só mostra o que não está em `babel.recompensas_vistas`
+ * (`RecompensaDesbloqueada.tsx:47`), e `addInitScript` roda ANTES de qualquer script da página.
+ * As chaves vêm do catálogo real (`core/learning/conquistas.ts`) e dos níveis — se uma conquista
+ * nova for criada sem entrar nesta lista, o teste volta a falhar dizendo "um modal continuou
+ * aberto", que é a mensagem certa para mandar alguém atualizar aqui.
+ */
+const CONQUISTAS = [
+  'primeira-captura', 'ouvinte', 'caderno-cheio', 'revisor', 'sem-erro', 'perfeccionista',
+  'maratonista', 'constante', 'colecionador', 'poliglota', 'duelista', 'cliente',
+  'nivel-5', 'nivel-10',
+];
+const RECOMPENSAS_VISTAS = [
+  ...CONQUISTAS.map((id) => `conquista:${id}`),
+  ...Array.from({ length: 60 }, (_, n) => `nivel:${n + 1}`),
+];
+
+test.beforeEach(async ({ page }) => {
+  await page.addInitScript((vistas: string[]) => {
+    try {
+      localStorage.setItem('babel.recompensas_vistas', JSON.stringify(vistas));
+    } catch { /* sem storage: o laço de fechamento abaixo ainda tenta */ }
+  }, RECOMPENSAS_VISTAS);
+});
+
 for (const rota of ROTAS) {
   test(`axe: ${rota.nome} (${rota.caminho}) sem violacao seria ou critica`, async ({ page }) => {
     await page.goto(rota.caminho);
@@ -42,20 +79,38 @@ for (const rota of ROTAS) {
 
     /* A TELA PRECISA ESTAR ASSENTADA ANTES DA VARREDURA, e uma chamada só não garante isso.
        Com banco vazio o app dispara uma FILA de conquistas no boot ("Primeira captura"…), e cada
-       modal entra animado: `fecharSobreposicoes` fechava o que estava na tela e o seguinte subia
-       depois, durante o scan. O axe então media o botão do modal — `bg-accent text-accent-contrast`,
-       4,54:1, à beira do limite — e reprovava `/planos` por um elemento que nada tem a ver com a
-       rota. Aqui espera-se o silêncio: nenhum `role="dialog"` visível antes de medir. */
-    for (let i = 0; i < 10; i++) {
-      await fecharSobreposicoes(page);
-      const aberto = await page
-        .locator('div[role="dialog"]')
-        .first()
-        .isVisible()
-        .catch(() => false);
-      if (!aberto) break;
-      await page.waitForTimeout(200);
+       modal entra animado: fecha-se um e o próximo sobe, inclusive durante o scan. */
+    const dialogos = page.locator('div[role="dialog"]');
+    /* "Resgatar tudo e continuar" DRENA A FILA; o "Fechar" só tira o de cima.
+       Com banco novo o app tem uma fila inteira de conquistas para entregar, e fechar uma por uma
+       é uma corrida contra o próprio app — foi assim que o modal continuava subindo no meio do
+       scan. O botão de resgatar existe exatamente para consumir tudo de uma vez
+       (`lib/galeria/textos.ts:28`), e num banco descartável creditar seeds não custa nada. */
+    const resgatarTudo = page.getByRole('button', { name: /Resgatar tudo e continuar/i });
+    for (let i = 0; i < 15; i++) {
+      if ((await dialogos.count()) === 0) break;
+      if (await resgatarTudo.first().isVisible().catch(() => false)) {
+        await resgatarTudo.first().click({ timeout: 2000 }).catch(() => {});
+      } else {
+        await fecharSobreposicoes(page);
+      }
+      /* 600 ms, e não 200: entre um resgate e o próximo o modal REMONTA com a recompensa seguinte,
+         e um laço mais apertado corre contra a re-renderização — clica no botão do modal que está
+         saindo e acha que nada aconteceu. Medido na mão: a fila de um banco novo ("Primeira
+         captura" → "Nível 2!") drena em dois cliques com esse intervalo. */
+      await page.waitForTimeout(600);
     }
+    /* SE UM MODAL FICAR ABERTO, O TESTE PARA AQUI — e a mensagem diz por quê.
+       Excluir o modal do axe (tentativa anterior) NÃO resolvia: `.exclude()` impede que ele seja
+       CHECADO, mas não remove o escurecimento que ele projeta sobre a página. Com o backdrop no ar,
+       todo texto atrás dele passa a ter contraste reduzido de verdade, e o axe reportava o herói
+       inteiro de `/sobre` como violação — um defeito que não existe com o modal fechado
+       (verificado injetando o axe na página: zero violações em 1280×800 e em 375×812).
+       Medir a rota com um modal por cima não mede a rota. */
+    await expect(
+      dialogos,
+      'um modal continuou aberto e escureceria a pagina inteira durante a varredura',
+    ).toHaveCount(0, { timeout: 10_000 });
 
     /* VARRE TODAS AS ABAS, uma por uma — e isto não é zelo, é correção do próprio teste.
        A aba ativa PERSISTE entre execuções. Com "Consumo do mês" aberta, a tabela de comparação
@@ -64,6 +119,25 @@ for (const rota of ROTAS) {
        cuja cobertura muda em silêncio conforme o estado deixado por outro é pior que nenhum,
        porque dá confiança sem dar garantia. Percorrendo as abas, o que ele cobre não depende de
        onde a sessão anterior parou. */
+    /* ESPERAR A ANIMAÇÃO DE ENTRADA TERMINAR — a última causa de falha fantasma.
+       As telas entram com `animate-in fade-in duration-300`. Medir no meio da transição é medir
+       texto em opacidade parcial: o axe compõe a cor com o fundo e acusa contraste que não existe
+       depois que a animação assenta. Era isso que fazia o conjunto de elementos reprovados MUDAR a
+       cada corrida — `/sobre` falhava ora no kicker, ora no parágrafo, ora no nome.
+       As animações INFINITAS ficam de fora do critério de propósito: os blobs decorativos do herói
+       nunca terminam, e esperar por eles travaria o teste para sempre. */
+    await page
+      .waitForFunction(
+        () =>
+          document
+            .getAnimations()
+            .filter((a) => a.effect?.getComputedTiming?.().iterations !== Infinity)
+            .every((a) => a.playState === 'finished' || a.playState === 'idle'),
+        undefined,
+        { timeout: 5000 },
+      )
+      .catch(() => {});
+
     const abas = page.getByRole('tab');
     const quantas = await abas.count();
 
@@ -71,15 +145,6 @@ for (const rota of ROTAS) {
       (
         await new AxeBuilder({ page })
           .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'])
-          /* O MODAL DE RECOMPENSA FICA FORA DESTA VARREDURA, e isto precisa de justificativa.
-             Com banco vazio o app dispara uma FILA de conquistas durante o boot e a navegação:
-             fecha-se uma e a próxima sobe, inclusive no meio do scan. O resultado era `/planos`,
-             `/` e `/sobre` reprovando por um elemento que não pertence a nenhuma das três — o
-             mesmo `#recompensa-titulo` aparecendo nos três relatórios.
-             Excluir não é perdoar: o modal é uma superfície própria e precisa do seu próprio
-             teste de axe, registrado como pendência em `docs/redesign/LACUNAS.md`. O que se
-             ganha aqui é que a varredura DA ROTA volte a medir a rota. */
-          .exclude('div[role="dialog"][aria-labelledby="recompensa-titulo"]')
           .analyze()
       ).violations;
 

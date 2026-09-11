@@ -214,6 +214,57 @@ não cores novas: `--surface-sunken`, `--field-bg`, `--accent-hover`, `--accent-
 `color-mix()` está documentada em `src/index.css:48-69`.
 Depois, regra de lint proibindo hex solto em arquivo novo ou alterado.
 
+### P0-13 [-] Os parâmetros do FSRS são os padrões, e o acoplamento com o servidor não é travado
+
+Verificado no item 5 (ver `VERIFICACOES.md` §5a): pesos (`scheduler.ts:52`) e retenção desejada
+(`:62`) são constantes de módulo; **não existe parâmetro por usuário em lugar nenhum**. O servidor
+agenda com `makeFsrs5()` sem argumentos (`server/db/repositories/vocab.ts:23`), o mesmo que a
+previsão da UI usa — então hoje rótulo e agendamento coincidem por construção.
+
+**Nada a corrigir agora.** A lacuna é o dia seguinte: `scheduler.ts:51` declara que a otimização
+por usuário está planejada (`srs-fsrs-optimization`). Se ela chegar e `previsaoDeIntervalo`
+continuar lendo os padrões enquanto o servidor lê os do usuário, os rótulos voltam a mentir — o
+defeito exato que o P0-1 acabou de fechar. O acoplamento tem de nascer junto com a otimização.
+
+### P0-16 [app] `accent-contrast × accent` não tem margem, e isso agora derruba o gate
+
+O par mede **4,54:1** — 0,04 acima do mínimo AA. `contrastePaletas.test.ts` o cobre e o aprova,
+porque compara os tokens puros. Mas qualquer coisa composta atrás do elemento consome a margem, e
+em `/sobre` há blobs decorativos animados por baixo do botão `bg-accent text-accent-contrast`:
+o axe reprova o botão em `desktop-1280`.
+
+É a única falha que sobrou na suíte de acessibilidade (14 de 15 verdes). **Não é ruído de teste:**
+o mesmo botão, no mesmo tema, fica abaixo de 4,5:1 quando um blob passa atrás dele.
+
+Duas saídas, e as duas são decisão de produto (registrado em `DECISOES.md` D-011 como `REVISAR`):
+1. **Escurecer `--accent-contrast`** para abrir margem — mexe nos 8 temas e muda a aparência de todo
+   botão primário;
+2. **Tirar os blobs de baixo do texto** em `/sobre` — resolve este caso e deixa o par frágil de pé
+   para o próximo lugar que compuser algo atrás de um botão accent.
+
+A segunda é mais barata; a primeira é a que conserta a classe do problema.
+
+### P0-14 [teste] O modal de recompensa saiu da varredura de axe e precisa da sua própria
+
+**A exclusão foi revertida — ela era o remédio errado.** `.exclude()` impede que o modal seja
+CHECADO, mas não desfaz o escurecimento que o backdrop projeta sobre a página: com ele no ar, todo
+o texto de trás é medido contra fundo esmaecido e reprova. Foi isso que produziu violações
+inexistentes em `/`, `/planos` e `/sobre` (verificado injetando o axe na página com o modal
+fechado: zero violações em 375×812 e 1280×800).
+
+O que resolveu foi **impedir a fila de nascer**: `addInitScript` semeia
+`babel.recompensas_vistas` com o catálogo real de conquistas e os níveis, e o app só mostra o que
+não está lá (`RecompensaDesbloqueada.tsx:47`).
+
+Ainda assim o modal é superfície própria, com botões e foco próprios, e **precisa de um teste de
+axe dedicado** que o abra deliberadamente.
+
+### P0-15 [teste] `ditado` é o único dos 18 jogos sem teste dedicado
+
+Ver a tabela em `VERIFICACOES.md` §5b. Está coberto indiretamente por `composicaoDeRodada.test.ts`
+e `antessala.test.ts`, mas não tem arquivo próprio como os irmãos `escuta` e `karaoke`, que passam
+pelo mesmo tipo de ramo em `montarRodada`.
+
 ---
 
 ## P1 — o design pede e o app suporta

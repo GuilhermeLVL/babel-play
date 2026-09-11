@@ -4,6 +4,7 @@
  *
  *     node scripts/redesign/evidencias.mjs --fase 00-base
  *     node scripts/redesign/evidencias.mjs --fase 02-casca --so /jogar,/vocabulario
+ *     node scripts/redesign/evidencias.mjs --fase 12-temas --so inicio,jogar --temas babel,mochi,aurora
  *
  * Não é teste: não afirma nada, só registra. O objetivo é que cada PR do redesign mostre o antes
  * e o depois de cada tela nos três viewports da suíte E2E (375/768/1280) e nos dois modos
@@ -83,6 +84,10 @@ const RECOMPENSAS_VISTAS = [
   ...Array.from({ length: 60 }, (_, n) => `nivel:${n + 1}`),
 ]
 const modos = lerArg('--modos', 'claro,escuro').split(',')
+/* Temas (`data-theme`): o servidor vence o localStorage em `hydrateTheme`, então cada passada grava
+   o tema por `PUT /api/settings` e o script devolve `babel` no fim. Sem `--temas`, uma passada só,
+   no tema que o banco descartável já tem (babel), e o nome do arquivo não muda. */
+const temas = lerArg('--temas', '') ? lerArg('--temas', '').split(',') : [null]
 const VIEWPORTS = [
   { nome: '375', width: 375, height: 812, isMobile: true, hasTouch: true },
   { nome: '768', width: 768, height: 1024 },
@@ -126,13 +131,14 @@ async function subirServidor() {
 }
 
 /* O onboarding não tem <main>; marcar `onboarded` pelo mesmo PUT que a suíte E2E usa. */
-async function pularOnboarding() {
+async function gravarUi(ui) {
   await fetch(`${BASE}/api/settings`, {
     method: 'PUT',
     headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ ui: { onboarded: true } }),
+    body: JSON.stringify({ ui }),
   }).catch(() => {})
 }
+const pularOnboarding = () => gravarUi({ onboarded: true })
 
 const servidor = await subirServidor()
 await pularOnboarding()
@@ -142,51 +148,60 @@ mkdirSync(destino, { recursive: true })
 const navegador = await chromium.launch()
 let total = 0
 try {
-  for (const vp of VIEWPORTS) {
-    for (const modo of modos) {
-      const contexto = await navegador.newContext({
-        viewport: { width: vp.width, height: vp.height },
-        isMobile: vp.isMobile ?? false,
-        hasTouch: vp.hasTouch ?? false,
-        colorScheme: modo === 'escuro' ? 'dark' : 'light',
-        reducedMotion: 'reduce',
-      })
-      /* O modo é forçado pelo mesmo localStorage que `theme.ts` lê no boot (`DARK_KEY = 'theme'`),
+  for (const tema of temas) {
+    /* `PUT /api/settings` SUBSTITUI o blob `ui` inteiro (server/db/repositories/settings.ts:57);
+     não há merge no servidor. Sem repetir `onboarded: true` aqui, a segunda troca de tema apagava
+     o pulo do onboarding e as capturas seguintes fotografavam a tela de boas-vindas. */
+    if (tema) await gravarUi({ theme: tema, onboarded: true })
+    for (const vp of VIEWPORTS) {
+      for (const modo of modos) {
+        const contexto = await navegador.newContext({
+          viewport: { width: vp.width, height: vp.height },
+          isMobile: vp.isMobile ?? false,
+          hasTouch: vp.hasTouch ?? false,
+          colorScheme: modo === 'escuro' ? 'dark' : 'light',
+          reducedMotion: 'reduce',
+        })
+        /* O modo é forçado pelo mesmo localStorage que `theme.ts` lê no boot (`DARK_KEY = 'theme'`),
          para a captura não depender da preferência do sistema nem da hidratação do servidor.
          A fila de recompensas é silenciada do mesmo jeito que `tests/e2e/acessibilidade.e2e.ts`
          faz: marcando como vistas todas as conquistas do catálogo e os níveis. */
-      await contexto.addInitScript(
-        ({ m, vistas }) => {
+        await contexto.addInitScript(
+          ({ m, t, vistas }) => {
+            try {
+              localStorage.setItem('theme', m === 'escuro' ? 'dark' : 'light')
+              if (t) localStorage.setItem('app_theme', t)
+              localStorage.setItem('babel.recompensas_vistas', JSON.stringify(vistas))
+            } catch {}
+          },
+          { m: modo, t: tema, vistas: RECOMPENSAS_VISTAS },
+        )
+        const pagina = await contexto.newPage()
+        for (const rota of rotas) {
+          const nome =
+            (rota === '/' ? 'inicio' : rota.replace(/^\//, '').replace(/\//g, '-')) +
+            `__${vp.nome}__${modo}${tema ? `__${tema}` : ''}.png`
           try {
-            localStorage.setItem('theme', m === 'escuro' ? 'dark' : 'light')
-            localStorage.setItem('babel.recompensas_vistas', JSON.stringify(vistas))
-          } catch {}
-        },
-        { m: modo, vistas: RECOMPENSAS_VISTAS },
-      )
-      const pagina = await contexto.newPage()
-      for (const rota of rotas) {
-        const nome =
-          (rota === '/' ? 'inicio' : rota.replace(/^\//, '').replace(/\//g, '-')) + `__${vp.nome}__${modo}.png`
-        try {
-          await pagina.goto(`${BASE}${rota}`, { waitUntil: 'networkidle', timeout: 30_000 })
-          await pagina
-            .getByRole('main')
-            .first()
-            .waitFor({ timeout: 15_000 })
-            .catch(() => {})
-          await pagina.waitForTimeout(400)
-          await pagina.screenshot({ path: join(destino, nome), fullPage: true })
-          total++
-          console.log(`  ${nome}`)
-        } catch (e) {
-          console.log(`  FALHOU ${nome}: ${e.message.split('\n')[0]}`)
+            await pagina.goto(`${BASE}${rota}`, { waitUntil: 'networkidle', timeout: 30_000 })
+            await pagina
+              .getByRole('main')
+              .first()
+              .waitFor({ timeout: 15_000 })
+              .catch(() => {})
+            await pagina.waitForTimeout(400)
+            await pagina.screenshot({ path: join(destino, nome), fullPage: true })
+            total++
+            console.log(`  ${nome}`)
+          } catch (e) {
+            console.log(`  FALHOU ${nome}: ${e.message.split('\n')[0]}`)
+          }
         }
+        await contexto.close()
       }
-      await contexto.close()
     }
   }
 } finally {
+  if (temas[0]) await gravarUi({ theme: 'babel', onboarded: true })
   await navegador.close()
   if (servidor) servidor.kill()
 }

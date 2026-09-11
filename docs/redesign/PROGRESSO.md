@@ -182,3 +182,21 @@ to-amber-500 text-white` (paleta do Tailwind, sem par de contraste) e um `emeral
   manda não migrar (tarefa 7.5 continua aberta).
 - Gate verde completo: 4126 unitários, typecheck, lint, build, integridade; matriz E2E 102/0/15;
   evidências da Biblioteca refeitas em `evidencias/07-biblioteca-sessao/`.
+
+## F12 — Estados transversais e temas (2026-09-11)
+
+- `scripts/redesign/evidencias.mjs` ganha `--temas a,b,c`: uma passada por tema, gravando pelo
+  mesmo `PUT /api/settings` que a suíte usa (o servidor vence o localStorage em `hydrateTheme`) e
+  devolvendo `babel` no fim. Nome do arquivo ganha o sufixo `__<tema>` quando usado.
+- **Achado corrigido em produção do script, não do app**: `PUT /api/settings` substitui o blob
+  `ui` inteiro — não há merge no servidor (`server/db/repositories/settings.ts:57`). A primeira
+  versão do script escrevia só `{ theme }` a cada troca, apagando `onboarded: true` gravado no
+  início; da segunda troca de tema em diante as capturas fotografavam a tela de boas-vindas do
+  onboarding, não a rota pedida. Corrigido incluindo `onboarded: true` em toda escrita de tema
+  (e no reset final); recapturado do zero.
+- Varredura de 108 capturas em `evidencias/12-temas/`: Início, Jogar e Capturar nos 6 temas além
+  do babel (linear, vercel, mochi, notion, premium, aurora), claro e escuro, 375/768/1280.
+  Conferido à mão: painel escuro de Jogar e o hero de Capturar legíveis em mochi e aurora escuro.
+- Auditoria de cores fora de token nos componentes globais (Toast, CommandPalette, IChat,
+  GuidePanel, PopoverFlutuante, InfoHint, ErroDaTela, LayoutStudio, Overlay): zero achados —
+  nenhuma cor da paleta do Tailwind nem hex literal em className.

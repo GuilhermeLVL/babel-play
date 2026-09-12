@@ -19,23 +19,40 @@
  *  · caminho desconhecido cai no Hub. Uma URL digitada errado não pode produzir tela em branco.
  */
 
-export type ViewDeRota = 'hub' | 'capture' | 'play' | 'library' | 'analysis' | 'metrics' | 'settings' | 'profile' | 'sobre' | 'loja' | 'planos'
+export type ViewDeRota =
+  | 'hub'
+  | 'capture'
+  | 'play'
+  | 'library'
+  | 'analysis'
+  | 'metrics'
+  | 'settings'
+  | 'profile'
+  | 'sobre'
+  | 'loja'
+  | 'planos';
 
 export interface EstadoDeRota {
-  view: ViewDeRota
+  view: ViewDeRota;
   /** Só para `analysis`: qual gravação. */
-  sessionId?: string
+  sessionId?: string;
   /** Só para `analysis`: qual aba. */
-  subTab?: 'transcript' | 'reading' | 'practice' | 'overview' | 'study'
-  /** Só para `loja` (Personalizar): qual das 4 áreas. Sem ela, a tela abre na padrão. */
-  lojaTab?: 'passe' | 'personalizar' | 'loja' | 'conquistas'
+  subTab?: 'transcript' | 'reading' | 'practice' | 'overview' | 'study';
+  /**
+   * Só para `loja` (Personalizar): qual das DUAS áreas. Sem ela, a tela abre na padrão.
+   *
+   * Eram quatro até 2026-09-12, quando Loja e Passe deixaram de ser abas e viraram seções dentro
+   * de Desafios (decisão do dono). Os nomes antigos seguem resolvendo — em `APELIDO_DE_ABA` —
+   * porque links gravados e o histórico do navegador não se atualizam sozinhos.
+   */
+  lojaTab?: 'personalizar' | 'conquistas';
   /**
    * Só para `play`: o filtro facetado serializado como query string (sem o `?`).
    * OPACO de propósito: quem sabe ler/escrever o formato é `lib/filtroDaPratica` — aqui a rota só
    * transporta. É a única rota com query porque o filtro é a única escolha combinatória do app;
    * tudo o mais continua no caminho (decisão do docblock acima).
    */
-  jogarQuery?: string
+  jogarQuery?: string;
 }
 
 /** View de topo → segmento. `analysis` é tratada à parte porque carrega id e aba. */
@@ -50,7 +67,7 @@ const SEGMENTO: Record<Exclude<ViewDeRota, 'analysis'>, string> = {
   sobre: 'sobre',
   loja: 'loja',
   planos: 'plano',
-}
+};
 
 /**
  * ALIASES DE ENTRADA — segmentos que LEEM para uma view, sem serem o endereço canônico dela.
@@ -65,11 +82,13 @@ const SEGMENTO: Record<Exclude<ViewDeRota, 'analysis'>, string> = {
  */
 const ALIAS_DE_SEGMENTO: Record<string, { view: ViewDeRota; lojaTab?: EstadoDeRota['lojaTab'] }> = {
   planos: { view: 'planos' },
-  creditos: { view: 'loja', lojaTab: 'loja' },
-}
+  creditos: { view: 'loja', lojaTab: 'conquistas' },
+};
 const VIEW_DE_SEGMENTO = Object.fromEntries(
-  Object.entries(SEGMENTO).filter(([, seg]) => seg).map(([v, seg]) => [seg, v as ViewDeRota]),
-) as Record<string, ViewDeRota>
+  Object.entries(SEGMENTO)
+    .filter(([, seg]) => seg)
+    .map(([v, seg]) => [seg, v as ViewDeRota]),
+) as Record<string, ViewDeRota>;
 
 /** Aba da sessão → segmento. `study` não entra: tem rota própria (`/revisar`). */
 const ABA: Record<string, string> = {
@@ -77,8 +96,8 @@ const ABA: Record<string, string> = {
   reading: 'leitura',
   practice: 'jogos',
   overview: 'metricas',
-}
-const ABA_DE_SEGMENTO = Object.fromEntries(Object.entries(ABA).map(([k, v]) => [v, k]))
+};
+const ABA_DE_SEGMENTO = Object.fromEntries(Object.entries(ABA).map(([k, v]) => [v, k]));
 
 /**
  * Área de Personalizar → segmento (ux-v2 §1.6: sem isto, recarregar e deep-link caíam sempre na
@@ -86,109 +105,112 @@ const ABA_DE_SEGMENTO = Object.fromEntries(Object.entries(ABA).map(([k, v]) => [
  * interno — a URL é interface.
  */
 const ABA_DA_LOJA: Record<NonNullable<EstadoDeRota['lojaTab']>, string> = {
-  passe: 'passe',
   personalizar: 'meu-visual',
-  loja: 'itens',
   conquistas: 'desafios',
-}
-const ABA_DA_LOJA_DE_SEGMENTO = Object.fromEntries(
-  Object.entries(ABA_DA_LOJA).map(([k, v]) => [v, k]),
-) as Record<string, NonNullable<EstadoDeRota['lojaTab']>>
+};
+const ABA_DA_LOJA_DE_SEGMENTO = Object.fromEntries(Object.entries(ABA_DA_LOJA).map(([k, v]) => [v, k])) as Record<
+  string,
+  NonNullable<EstadoDeRota['lojaTab']>
+>;
 
 /**
  * NOMES ANTIGOS DE ABA, resolvidos ANTES de virar URL (auditoria de 2026-09-07, achado A16).
  *
  * A tabela vivia dentro de `Loja.tsx`, que a usava para escolher a aba a mostrar. Só que quem
  * escreve a URL é `estadoParaUrl`, aqui, e ela não conhecia os apelidos: `Play.tsx` navegava com
- * `aba: 'progressao'`, a Loja abria certo (o apelido resolve para `passe`) e a barra de endereço
+ * `aba: 'progressao'`, a Loja abria certo (o apelido resolve) e a barra de endereço
  * mostrava `/loja/undefined`. Recarregar aquela página caía na aba padrão.
  *
  * O apelido é do VOCABULÁRIO DE ROTAS, então mora com as rotas. `Loja.tsx` passa a perguntar aqui.
  */
 const APELIDO_DE_ABA: Record<string, NonNullable<EstadoDeRota['lojaTab']>> = {
-  progressao: 'passe',
-  recompensas: 'conquistas',
   cofre: 'personalizar',
-  itens: 'loja',
+  /* As quatro portas viraram duas em 2026-09-12: Loja e Passe são seções de Desafios. Todo nome
+     que apontava para uma delas cai em `conquistas`, que é onde o conteúdo está — um link antigo
+     abre a página certa, e não a aba padrão. */
+  loja: 'conquistas',
+  itens: 'conquistas',
+  passe: 'conquistas',
+  progressao: 'conquistas',
+  recompensas: 'conquistas',
   desafios: 'conquistas',
-}
+};
 
 /** A aba canônica para um nome qualquer (id atual, apelido antigo ou lixo). `null` = desconhecida. */
 export function normalizarAbaDaLoja(bruta: string | null | undefined): NonNullable<EstadoDeRota['lojaTab']> | null {
-  if (!bruta) return null
-  if (bruta in ABA_DA_LOJA) return bruta as NonNullable<EstadoDeRota['lojaTab']>
-  return APELIDO_DE_ABA[bruta] ?? null
+  if (!bruta) return null;
+  if (bruta in ABA_DA_LOJA) return bruta as NonNullable<EstadoDeRota['lojaTab']>;
+  return APELIDO_DE_ABA[bruta] ?? null;
 }
 
 export function estadoParaUrl(e: EstadoDeRota): string {
   if (e.view === 'analysis') {
     // `/revisar` primeiro: é a porta da revisão espaçada, e ela vence a aba genérica.
-    if (e.subTab === 'study') return e.sessionId ? `/revisar/${e.sessionId}` : '/revisar'
+    if (e.subTab === 'study') return e.sessionId ? `/revisar/${e.sessionId}` : '/revisar';
     // Sem gravação escolhida a aba ainda importa: perdê-la aqui fazia `/sessao/x/metricas`
     // virar `/sessao` no primeiro render, antes de a gravação resolver.
-    if (!e.sessionId) return e.subTab && ABA[e.subTab] ? `/sessao/-/${ABA[e.subTab]}` : '/sessao'
-    const aba = e.subTab ? ABA[e.subTab] : ''
-    return aba ? `/sessao/${e.sessionId}/${aba}` : `/sessao/${e.sessionId}`
+    if (!e.sessionId) return e.subTab && ABA[e.subTab] ? `/sessao/-/${ABA[e.subTab]}` : '/sessao';
+    const aba = e.subTab ? ABA[e.subTab] : '';
+    return aba ? `/sessao/${e.sessionId}/${aba}` : `/sessao/${e.sessionId}`;
   }
   if (e.view === 'loja' && e.lojaTab) {
     /* Aba desconhecida vira `/loja`, e nunca `/loja/undefined`: uma URL quebrada na barra de
        endereço é pior que uma URL menos específica — ela não recarrega e não se compartilha. */
-    const canonica = normalizarAbaDaLoja(e.lojaTab)
-    return canonica ? `/loja/${ABA_DA_LOJA[canonica]}` : '/loja'
+    const canonica = normalizarAbaDaLoja(e.lojaTab);
+    return canonica ? `/loja/${ABA_DA_LOJA[canonica]}` : '/loja';
   }
-  if (e.view === 'play' && e.jogarQuery) return `/jogar?${e.jogarQuery}`
-  const seg = SEGMENTO[e.view]
-  return seg ? `/${seg}` : '/'
+  if (e.view === 'play' && e.jogarQuery) return `/jogar?${e.jogarQuery}`;
+  const seg = SEGMENTO[e.view];
+  return seg ? `/${seg}` : '/';
 }
 
 export function urlParaEstado(caminho: string): EstadoDeRota {
-  const bruto = String(caminho || '').split('#')[0]
+  const bruto = String(caminho || '').split('#')[0];
   // A query era DESCARTADA aqui (auditoria do seletor, defeito de persistência): um link com
   // filtro abria a tela certa e jogava o filtro fora. Ela sobrevive apenas em `/jogar` — é a
   // única rota que a publica — e sem o `.toLowerCase()` do caminho, porque ids de baralho e
   // códigos de idioma são sensíveis a caixa.
-  const query = bruto.split('?')[1] ?? ''
-  const partes = bruto
-    .split('?')[0]
-    .toLowerCase()
-    .split('/')
-    .filter(Boolean)
+  const query = bruto.split('?')[1] ?? '';
+  const partes = bruto.split('?')[0].toLowerCase().split('/').filter(Boolean);
 
-  if (partes.length === 0) return { view: 'hub' }
+  if (partes.length === 0) return { view: 'hub' };
   // O callback do Supabase tem dono (`lib/authCallback`) e não é rota de tela.
-  if (partes[0] === 'auth') return { view: 'hub' }
+  if (partes[0] === 'auth') return { view: 'hub' };
 
   if (partes[0] === 'revisar') {
     return partes[1]
       ? { view: 'analysis', sessionId: partes[1], subTab: 'study' }
-      : { view: 'analysis', subTab: 'study' }
+      : { view: 'analysis', subTab: 'study' };
   }
 
   if (partes[0] === 'sessao') {
-    if (!partes[1]) return { view: 'analysis' }
+    if (!partes[1]) return { view: 'analysis' };
     if (partes[1] === '-') {
-      const abaSemId = partes[2] ? ABA_DE_SEGMENTO[partes[2]] : undefined
-      return abaSemId ? { view: 'analysis', subTab: abaSemId as EstadoDeRota['subTab'] } : { view: 'analysis' }
+      const abaSemId = partes[2] ? ABA_DE_SEGMENTO[partes[2]] : undefined;
+      return abaSemId ? { view: 'analysis', subTab: abaSemId as EstadoDeRota['subTab'] } : { view: 'analysis' };
     }
-    const aba = partes[2] ? ABA_DE_SEGMENTO[partes[2]] : undefined
+    const aba = partes[2] ? ABA_DE_SEGMENTO[partes[2]] : undefined;
     return aba
       ? { view: 'analysis', sessionId: partes[1], subTab: aba as EstadoDeRota['subTab'] }
-      : { view: 'analysis', sessionId: partes[1] }
+      : { view: 'analysis', sessionId: partes[1] };
   }
 
   if (partes[0] === 'loja' && partes[1]) {
-    const aba = ABA_DA_LOJA_DE_SEGMENTO[partes[1]]
+    /* Segmento canônico primeiro; depois o APELIDO, que é o que salva os endereços gravados das
+       abas extintas — `/loja/itens` e `/loja/passe` foram URLs de verdade até 2026-09-12, e sem
+       este recuo elas caíam na aba padrão em vez da página onde o conteúdo ficou. */
+    const aba = ABA_DA_LOJA_DE_SEGMENTO[partes[1]] ?? normalizarAbaDaLoja(partes[1]);
     // Sub-aba desconhecida degrada para a tela, nunca para o Hub: o usuário pediu Personalizar.
-    return aba ? { view: 'loja', lojaTab: aba } : { view: 'loja' }
+    return aba ? { view: 'loja', lojaTab: aba } : { view: 'loja' };
   }
 
-  const alias = ALIAS_DE_SEGMENTO[partes[0]]
-  if (alias) return alias.lojaTab ? { view: alias.view, lojaTab: alias.lojaTab } : { view: alias.view }
+  const alias = ALIAS_DE_SEGMENTO[partes[0]];
+  if (alias) return alias.lojaTab ? { view: alias.view, lojaTab: alias.lojaTab } : { view: alias.view };
 
-  const view = VIEW_DE_SEGMENTO[partes[0]]
-  if (view === 'play' && query) return { view, jogarQuery: query }
+  const view = VIEW_DE_SEGMENTO[partes[0]];
+  if (view === 'play' && query) return { view, jogarQuery: query };
   // Caminho desconhecido cai no Hub: uma URL errada não pode virar tela em branco.
-  return view ? { view } : { view: 'hub' }
+  return view ? { view } : { view: 'hub' };
 }
 
 /* ── Ligação com o navegador ──────────────────────────────────────────────
@@ -197,16 +219,16 @@ export function urlParaEstado(caminho: string): EstadoDeRota {
 
 /** Escreve o estado na barra de endereço. `push` quando a navegação foi uma ação do usuário. */
 export function publicarUrl(e: EstadoDeRota, push = true): void {
-  if (typeof window === 'undefined') return
-  const alvo = estadoParaUrl(e)
+  if (typeof window === 'undefined') return;
+  const alvo = estadoParaUrl(e);
   // Alvo COM query compara com caminho+query; alvo SEM query compara só o caminho — assim uma
   // publicação de view que não conhece o filtro (App trocando de aba) não apaga a query que o
   // dono dela (Play) acabou de escrever.
-  const atual = alvo.includes('?') ? window.location.pathname + window.location.search : window.location.pathname
-  if (atual === alvo) return
+  const atual = alvo.includes('?') ? window.location.pathname + window.location.search : window.location.pathname;
+  if (atual === alvo) return;
   // `replaceState` na restauração inicial: entrar no app não deve criar uma entrada de histórico
   // para trás que devolveria o usuário para fora.
-  window.history[push ? 'pushState' : 'replaceState']({}, '', alvo)
+  window.history[push ? 'pushState' : 'replaceState']({}, '', alvo);
 }
 
 /**
@@ -215,16 +237,16 @@ export function publicarUrl(e: EstadoDeRota, push = true): void {
  * da tela, não desfazer chips um a um. Fora de `/jogar` é não-op: o filtro não manda na rota.
  */
 export function publicarQueryDoJogar(query: string): void {
-  if (typeof window === 'undefined') return
-  if (window.location.pathname !== `/${SEGMENTO.play}`) return
-  const alvo = query ? `?${query}` : ''
-  if (window.location.search === alvo) return
-  window.history.replaceState({}, '', window.location.pathname + alvo)
+  if (typeof window === 'undefined') return;
+  if (window.location.pathname !== `/${SEGMENTO.play}`) return;
+  const alvo = query ? `?${query}` : '';
+  if (window.location.search === alvo) return;
+  window.history.replaceState({}, '', window.location.pathname + alvo);
 }
 
 export function lerUrlAtual(): EstadoDeRota {
-  if (typeof window === 'undefined') return { view: 'hub' }
-  return urlParaEstado(window.location.pathname + window.location.search)
+  if (typeof window === 'undefined') return { view: 'hub' };
+  return urlParaEstado(window.location.pathname + window.location.search);
 }
 
 /**
@@ -234,12 +256,13 @@ export function lerUrlAtual(): EstadoDeRota {
  * CAMINHO volta na passada seguinte, a query não. Consumo ÚNICO: um link vale para a abertura
  * que ele causou, não para toda visita futura à tela.
  */
-let queryDoBoot = typeof window === 'undefined'
-  ? ''
-  : (urlParaEstado(window.location.pathname + window.location.search).jogarQuery ?? '')
+let queryDoBoot =
+  typeof window === 'undefined'
+    ? ''
+    : (urlParaEstado(window.location.pathname + window.location.search).jogarQuery ?? '');
 
 export function consumirQueryDoBoot(): string {
-  const q = queryDoBoot
-  queryDoBoot = ''
-  return q
+  const q = queryDoBoot;
+  queryDoBoot = '';
+  return q;
 }

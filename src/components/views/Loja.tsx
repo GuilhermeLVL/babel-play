@@ -1,17 +1,25 @@
 /**
- * PERSONALIZAR v3 — a casca com QUATRO áreas claras (pedido do dono, 2026-08-28):
+ * PERSONALIZAR — a casca com DUAS áreas (decisão do dono, 2026-09-12):
  *
- *   · Meu visual    → o que já é seu, para equipar (o editor por peça — `Personalizar`).
- *   · Loja          → SÓ o que ainda se compra/libera por nível ou Seeds (nada de possuído aqui).
- *   · Conquistas    → o que SÓ vem por conquista (exclusivos em destaque) + a grade + "como ganhar".
- *   · Progressão    → a grade de tudo que dá para liberar, nível a nível, e a curva de XP.
+ *   · Meu visual → o que já é seu, para equipar (o inventário e o editor por peça).
+ *   · Desafios   → tudo o que ainda dá para conseguir, em três seções, na ordem da prioridade
+ *                  da tela: o que vem só fazendo (conquistas), o que a temporada entrega por
+ *                  estudar (Passe), e por último o que se compra (Loja).
  *
- * No topo, sempre visível: a barra de XP do nível, "faltam N XP", o saldo e a PRÓXIMA recompensa.
+ * ERAM QUATRO ABAS (Meu visual · Loja · Passe · Desafios) e a barra descrevia CANAIS DE
+ * AQUISIÇÃO — comprar com Seeds, ganhar no Passe, ganhar por conquista. São três formas de
+ * responder a MESMA pergunta ("o que ainda dá para eu conseguir?"), e quem chega não sabe em qual
+ * das três está o item que quer: tinha de procurar nas três. Agora a barra separa o que a pessoa
+ * TEM do que ela PODE TER, e a divisão por canal virou ordem de seção dentro da segunda.
+ *
+ * Loja e Passe continuam endereçáveis: os nomes antigos de aba resolvem para `conquistas` em
+ * `lib/rotas`, e os atalhos internos rolam até a seção (`irParaSecao`).
+ *
  * Comprar aqui e equipar ali passam pelo mesmo `equiparItem` (lib/galeria/equipar) — o único
  * caminho que equipa no app. Os textos dos estados vêm de `lib/galeria/textos`.
  */
 import { type ContextoDeConquistas, REGRAS } from '@core';
-import { Check, Coins, Crown, Lock, Shirt, ShoppingBag, Sparkles, Sprout, Ticket, Trophy } from 'lucide-react';
+import { Check, Coins, Crown, Lock, Shirt, Sparkles, Sprout, Trophy } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 
 import { gastarCreditos, gastarSeeds } from '../../data/api';
@@ -222,32 +230,24 @@ export default function Loja({
     return false;
   };
 
-  /* O CONTEÚDO DAS DUAS SUPERFÍCIES DE RECOMPENSA, montado uma vez só. As organizações discordam
-     sobre quantas PORTAS elas têm; o que está atrás da porta é idêntico, e escrever duas vezes
-     seria abrir espaço para as duas divergirem enquanto a comparação está no ar. */
-  const conteudoDoPasse = semConta ? (
-    <CartaoDeConvite view="passe" onEntrar={() => onEntrar?.()} onVoltar={() => setAba('personalizar')} />
-  ) : (
-    <PasseDeTemporada
-      progress={progress}
-      ctxEquipar={ctxEquipar}
-      equipadoAtual={equipadoAtual}
-      temPasse={carteira.temPasse}
-      aoComprarPasse={
-        carteira.disponivel
-          ? () => {
-              setAba('loja');
-              setFiltro('tudo');
-            }
-          : undefined
-      }
-    />
-  );
-  const conteudoDosDesafios = semConta ? (
-    <CartaoDeConvite view="conquistas" onEntrar={() => onEntrar?.()} onVoltar={() => setAba('personalizar')} />
-  ) : (
-    <Conquistas progress={progress} ctx={ctxConquistas} />
-  );
+  /**
+   * IR A UMA SEÇÃO DE "DESAFIOS" — as duas portas viraram duas seções (decisão do dono,
+   * 2026-09-12).
+   *
+   * Loja e Passe deixaram de ser abas: tudo o que se ganha, se compra ou se desbloqueia mora
+   * numa página só, a de Desafios, em seções. Os atalhos de dentro do app ("Ver na Loja", "Ver
+   * no Passe", a rota de aquisição de uma peça trancada no inventário) continuam válidos porque
+   * o destino continua existindo — mudou de aba para âncora. Sem o `scrollIntoView` o botão
+   * trocaria a aba e deixaria a pessoa no topo, com a seção certa fora da tela: o clique teria
+   * funcionado e parecido quebrado.
+   */
+  const irParaSecao = (secao: 'desafios' | 'passe' | 'loja') => {
+    setAba('conquistas');
+    /* Um quadro depois: a aba precisa montar antes de haver elemento para rolar até. */
+    requestAnimationFrame(() => {
+      document.getElementById(`secao-${secao}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+  };
 
   /** "Equipar agora" depois da compra — pelo único caminho que equipa. */
   const equiparAgora = (item: ItemDaLoja, el: HTMLElement | null) => {
@@ -565,27 +565,22 @@ export default function Loja({
             saldo={saldo}
             carteira={carteira}
             temporada={{ numero: 1, nome: 'Fundação' }}
-            aoComprarCreditos={() => setAba('loja')}
+            aoComprarCreditos={() => irParaSecao('loja')}
           />
         )}
 
         {/*
-        A ORDEM DAS QUATRO PORTAS diz o que a tela é (decisão de 08/09, onda 2).
+        DUAS PORTAS: o que é meu, e o que dá para conseguir (decisão do dono, 2026-09-12).
 
-        As duas organizações foram montadas e vistas em tela: estas quatro abas, e os três pilares
-        da branch de gamificação (Recompensas · Loja · Meu visual, com Passe e Desafios como
-        sub-abas de Recompensas). Ficaram as quatro, e o motivo é o mesmo achado que abriu esta
-        rodada: os três pilares tiram Desafios da barra de cima e o põem a dois cliques, atrás de
-        uma SEGUNDA fita de abas empilhada sob a primeira. Trocar largura por profundidade só
-        compensa quando a barra está cheia, e quatro não enche barra nenhuma. (A terceira
-        organização da branch, o `GamificacaoHub`, nem entrou na comparação: ela tinha duas abas e
-        deixava o Passe e a Loja sem porta — medido, não suposto.)
+        Eram quatro (Meu visual · Loja · Passe · Desafios), e a barra descrevia CANAIS de
+        aquisição — comprar com Seeds, ganhar no Passe, ganhar por conquista — que são três formas
+        de responder a mesma pergunta: "o que ainda dá para eu conseguir?". Quem chega não sabe em
+        qual das três o item que quer está, e tinha de procurar nas três.
 
-        O QUE OS PILARES ACERTARAM veio junto, e é esta ordem. Eles agrupavam por VERBO: o que se
-        ganha, o que se compra, o que se usa. A barra antiga misturava os três (Passe · Meu visual
-        · Loja · Desafios). Agora ela lê: **uso · compra · ganho · ganho** — o padrão (Meu visual)
-        é a primeira aba, que é onde se espera achar a aba em que a tela abre, e as duas
-        superfícies de recompensa ficam vizinhas sem perder a porta própria.
+        Agora a barra lê: **o que é meu · o que dá para conseguir**. Loja e Passe não sumiram —
+        viraram SEÇÕES dentro de Desafios, na ordem da prioridade da tela (o que se ganha
+        estudando primeiro, o que se paga por último), e os atalhos internos passaram a ser
+        âncoras (ver `irParaSecao`).
       */}
         <Abas
           rotuloDoGrupo="Áreas de Personalizar"
@@ -601,22 +596,14 @@ export default function Loja({
               icone: <Shirt className="w-4 h-4" />,
             },
             {
-              id: 'loja',
-              rotulo: `Loja · ${colecao.compraveis.length + colecao.porNivel.length}`,
-              icone: <ShoppingBag className="w-4 h-4" />,
-            },
-            { id: 'passe', rotulo: 'Passe', icone: <Ticket className="w-4 h-4" /> },
-            {
               id: 'conquistas',
-              rotulo: `Desafios · ${colecao.porConquista.length}`,
+              /* A contagem é de TUDO que ainda dá para desbloquear, e não só do que vem por
+                 conquista: a aba deixou de ser só sobre conquistas. */
+              rotulo: `Desafios · ${colecao.compraveis.length + colecao.porNivel.length + colecao.porConquista.length}`,
               icone: <Trophy className="w-4 h-4" />,
             },
           ]}
         />
-
-        <PainelDeAba id="passe" ativo={aba}>
-          {conteudoDoPasse}
-        </PainelDeAba>
 
         <PainelDeAba id="personalizar" ativo={aba}>
           <Personalizar
@@ -632,204 +619,247 @@ export default function Loja({
             setMenuPosition={setMenuPosition}
             onOpenStudio={onOpenStudio}
             onIrParaLoja={() => {
-              setAba('loja');
               setFiltro('galeria');
+              irParaSecao('loja');
             }}
-            onIrParaPasse={() => setAba('passe')}
-            onIrParaConquistas={() => setAba('conquistas')}
+            onIrParaPasse={() => irParaSecao('passe')}
+            onIrParaConquistas={() => irParaSecao('desafios')}
           />
         </PainelDeAba>
 
+        {/* ── DESAFIOS: TUDO O QUE AINDA DÁ PARA CONSEGUIR, numa página ──────────────────────
+               Três seções, na ordem da prioridade da tela: o que se ganha fazendo (Desafios), o
+               que a temporada entrega por estudar (Passe), e por último o que se compra (Loja).
+               A antiga aba Progressão (grade nível-a-nível) já havia sido absorvida pelo Passe. */}
         <PainelDeAba id="conquistas" ativo={aba}>
-          {conteudoDosDesafios}
-        </PainelDeAba>
-
-        {/* A antiga aba Progressão (grade nível-a-nível) foi absorvida pelo Passe: mesma
-          informação, na apresentação aprovada do protótipo. */}
-        <PainelDeAba id="loja" ativo={aba}>
           {semConta ? (
-            <CartaoDeConvite view="loja" onEntrar={() => onEntrar?.()} onVoltar={() => setAba('personalizar')} />
+            <CartaoDeConvite view="conquistas" onEntrar={() => onEntrar?.()} onVoltar={() => setAba('personalizar')} />
           ) : (
-            <div className="space-y-8">
-              {/* ── AS DUAS MOEDAS, DECLARADAS ────────────────────────────────────────────────
+            <div className="space-y-12">
+              <section id="secao-desafios" className="scroll-mt-4">
+                <h3 className="font-display font-black text-[19px] text-ink tracking-tight mb-1">Desafios</h3>
+                <p className="text-[12.5px] text-ink-muted mb-4 max-w-[70ch]">
+                  O que vem só fazendo. Não se compra com Seeds nem com Créditos.
+                </p>
+                <Conquistas progress={progress} ctx={ctxConquistas} />
+              </section>
+
+              <section id="secao-passe" className="scroll-mt-4">
+                <h3 className="font-display font-black text-[19px] text-ink tracking-tight mb-1">Passe da temporada</h3>
+                <p className="text-[12.5px] text-ink-muted mb-4 max-w-[70ch]">
+                  A trilha do que cada nível entrega. Subir de nível é de graça — estudar é o único requisito.
+                </p>
+                <PasseDeTemporada
+                  progress={progress}
+                  ctxEquipar={ctxEquipar}
+                  equipadoAtual={equipadoAtual}
+                  temPasse={carteira.temPasse}
+                  aoComprarPasse={
+                    carteira.disponivel
+                      ? () => {
+                          setFiltro('tudo');
+                          irParaSecao('loja');
+                        }
+                      : undefined
+                  }
+                />
+              </section>
+
+              <section id="secao-loja" className="scroll-mt-4">
+                <h3 className="font-display font-black text-[19px] text-ink tracking-tight mb-1">Loja</h3>
+                <p className="text-[12.5px] text-ink-muted mb-4 max-w-[70ch]">
+                  O atalho pago: o que o nível entregaria mais tarde, agora, com a moeda de estudo.
+                </p>
+                <div className="space-y-8">
+                  {/* ── AS DUAS MOEDAS, DECLARADAS ────────────────────────────────────────────────
              O dono: "não estamos informando os dois tipos de moeda". A carteira do cabeçalho
              mostra os SALDOS, mas em lugar nenhum a loja dizia o que cada moeda É, de onde ela
              vem e o que ela compra — e essa é a primeira pergunta de quem chega numa loja com
              duas moedas. A linha que separa as duas é a que separa este app de um pay-to-win,
              então ela fica escrita, e não subentendida. */}
-              <section className="grid sm:grid-cols-2 gap-3">
-                <div className="rounded-2xl border-2 border-good/40 bg-good-soft p-4">
-                  <p className="flex items-center justify-between gap-2 mb-1.5">
-                    <span className="inline-flex items-center gap-2 font-display font-black text-[15px] text-ink">
-                      <Sprout className="w-4 h-4 text-good" aria-hidden /> Seeds
-                    </span>
-                    <b className="font-mono font-bold text-[17px] text-good tabular-nums">{saldo}</b>
-                  </p>
-                  <p className="text-[12px] text-ink-muted leading-relaxed">
-                    Vêm de <b className="text-ink">estudar</b>: revisar, jogar, aparecer no dia. Compram tudo o que está
-                    nesta página. <b className="text-ink">Não se compram com dinheiro</b> — nunca vão estar à venda.
-                  </p>
-                </div>
+                  <section className="grid sm:grid-cols-2 gap-3">
+                    <div className="rounded-2xl border-2 border-good/40 bg-good-soft p-4">
+                      <p className="flex items-center justify-between gap-2 mb-1.5">
+                        <span className="inline-flex items-center gap-2 font-display font-black text-[15px] text-ink">
+                          <Sprout className="w-4 h-4 text-good" aria-hidden /> Seeds
+                        </span>
+                        <b className="font-mono font-bold text-[17px] text-good tabular-nums">{saldo}</b>
+                      </p>
+                      <p className="text-[12px] text-ink-muted leading-relaxed">
+                        Vêm de <b className="text-ink">estudar</b>: revisar, jogar, aparecer no dia. Compram tudo o que
+                        está nesta página. <b className="text-ink">Não se compram com dinheiro</b> — nunca vão estar à
+                        venda.
+                      </p>
+                    </div>
 
-                <div className="rounded-2xl border-2 border-premium/40 bg-premium-soft p-4">
-                  <p className="flex items-center justify-between gap-2 mb-1.5">
-                    <span className="inline-flex items-center gap-2 font-display font-black text-[15px] text-ink">
-                      <Coins className="w-4 h-4 text-premium" aria-hidden /> Créditos
-                    </span>
-                    <b className="font-mono font-bold text-[17px] text-premium tabular-nums">
-                      {carteira.disponivel ? (carteira.creditos ?? '—') : '—'}
-                    </b>
-                  </p>
-                  <p className="text-[12px] text-ink-muted leading-relaxed">
-                    Compram-se com dinheiro e pagam o <b className="text-ink">Passe Premium</b> e a prateleira paga.{' '}
-                    <b className="text-ink">Não compram progresso</b>: nível, XP, Seeds e conquista só saem estudando.
-                  </p>
-                  {!carteira.disponivel && (
-                    <p className="text-[11.5px] text-ink-faint mt-2 leading-snug">
-                      Nesta instalação não há compra com dinheiro — sem conta e sem cobrança configurada, não existe o
-                      que vender.
-                    </p>
-                  )}
-                </div>
-              </section>
+                    <div className="rounded-2xl border-2 border-premium/40 bg-premium-soft p-4">
+                      <p className="flex items-center justify-between gap-2 mb-1.5">
+                        <span className="inline-flex items-center gap-2 font-display font-black text-[15px] text-ink">
+                          <Coins className="w-4 h-4 text-premium" aria-hidden /> Créditos
+                        </span>
+                        <b className="font-mono font-bold text-[17px] text-premium tabular-nums">
+                          {carteira.disponivel ? (carteira.creditos ?? '—') : '—'}
+                        </b>
+                      </p>
+                      <p className="text-[12px] text-ink-muted leading-relaxed">
+                        Compram-se com dinheiro e pagam o <b className="text-ink">Passe Premium</b> e a prateleira paga.{' '}
+                        <b className="text-ink">Não compram progresso</b>: nível, XP, Seeds e conquista só saem
+                        estudando.
+                      </p>
+                      {!carteira.disponivel && (
+                        <p className="text-[11.5px] text-ink-faint mt-2 leading-snug">
+                          Nesta instalação não há compra com dinheiro — sem conta e sem cobrança configurada, não existe
+                          o que vender.
+                        </p>
+                      )}
+                    </div>
+                  </section>
 
-              {/* O CAMINHO GRÁTIS, numa linha. Aqui havia uma parede de chips com os 8 itens do
+                  {/* O CAMINHO GRÁTIS, numa linha. Aqui havia uma parede de chips com os 8 itens do
           próximo nível — a mesma informação que o Passe mostra inteira e melhor. A frase fica
           (é ela que lembra que subir de nível entrega coisa sem pagar nada) e o wall vai
           embora, com um atalho para onde ela é desenhada. */}
-              {proxima && (
-                <p className="text-[12.5px] text-ink-muted flex items-center gap-2 flex-wrap">
-                  <Sparkles className="w-4 h-4 text-accent shrink-0" aria-hidden />
-                  No nível {proxima.nivel} você libera <b className="text-ink">{proxima.itens.length} peças de graça</b>
-                  , só estudando.
-                  <button onClick={() => setAba('passe')} className="underline text-accent-ink cursor-pointer">
-                    Ver no Passe
-                  </button>
-                </p>
-              )}
+                  {proxima && (
+                    <p className="text-[12.5px] text-ink-muted flex items-center gap-2 flex-wrap">
+                      <Sparkles className="w-4 h-4 text-accent shrink-0" aria-hidden />
+                      No nível {proxima.nivel} você libera{' '}
+                      <b className="text-ink">{proxima.itens.length} peças de graça</b>, só estudando.
+                      <button onClick={() => irParaSecao('passe')} className="underline text-accent-ink cursor-pointer">
+                        Ver no Passe
+                      </button>
+                    </p>
+                  )}
 
-              {/* ── O DESTAQUE — uma vitrine tem uma peça na frente ────────────────────────────
+                  {/* ── O DESTAQUE — uma vitrine tem uma peça na frente ────────────────────────────
              Escolhido por regra, não por sorteio: o mais caro que o SALDO paga hoje; sem nada
              ao alcance, o que falta menos. Assim o destaque é sempre acionável ou quase — que é
              o que uma vitrine tem de ser. */}
-              {emDestaque && (
-                <section>
-                  <p className="label-mono mb-2 flex items-center gap-1.5">
-                    <Sparkles className="w-3.5 h-3.5 text-accent" aria-hidden /> Em destaque
-                  </p>
-                  <CartaoDaLoja item={emDestaque} destaque />
-                </section>
-              )}
+                  {emDestaque && (
+                    <section>
+                      <p className="label-mono mb-2 flex items-center gap-1.5">
+                        <Sparkles className="w-3.5 h-3.5 text-accent" aria-hidden /> Em destaque
+                      </p>
+                      <CartaoDaLoja item={emDestaque} destaque />
+                    </section>
+                  )}
 
-              {/* ── FILTROS ── */}
-              <div className="flex flex-wrap gap-1.5">
-                {FILTROS.map((f) => (
-                  <button
-                    key={f.id}
-                    onClick={() => setFiltro(f.id)}
-                    aria-pressed={filtro === f.id}
-                    className={`px-3.5 py-1.5 rounded-xl text-[12px] font-bold cursor-pointer border transition-colors ${
-                      filtro === f.id
-                        ? 'bg-accent text-accent-contrast border-accent'
-                        : 'bg-surface border-border-subtle text-ink-muted hover:text-ink hover:border-accent'
-                    }`}
-                  >
-                    {f.nome}
-                  </button>
-                ))}
-              </div>
+                  {/* ── FILTROS ── */}
+                  <div className="flex flex-wrap gap-1.5">
+                    {FILTROS.map((f) => (
+                      <button
+                        key={f.id}
+                        onClick={() => setFiltro(f.id)}
+                        aria-pressed={filtro === f.id}
+                        className={`px-3.5 py-1.5 rounded-xl text-[12px] font-bold cursor-pointer border transition-colors ${
+                          filtro === f.id
+                            ? 'bg-accent text-accent-contrast border-accent'
+                            : 'bg-surface border-border-subtle text-ink-muted hover:text-ink hover:border-accent'
+                        }`}
+                      >
+                        {f.nome}
+                      </button>
+                    ))}
+                  </div>
 
-              {itens.length === 0 && (
-                <p className="text-center text-[13px] text-ink-muted py-6">
-                  Nada para comprar neste filtro: tudo já é seu. Veja em{' '}
-                  <button onClick={() => setAba('personalizar')} className="underline text-accent-ink cursor-pointer">
-                    Meu visual
-                  </button>
-                  .
-                </p>
-              )}
+                  {itens.length === 0 && (
+                    <p className="text-center text-[13px] text-ink-muted py-6">
+                      Nada para comprar neste filtro: tudo já é seu. Veja em{' '}
+                      <button
+                        onClick={() => setAba('personalizar')}
+                        className="underline text-accent-ink cursor-pointer"
+                      >
+                        Meu visual
+                      </button>
+                      .
+                    </p>
+                  )}
 
-              {/* ── AS DUAS PRATELEIRAS (mudança inventario-e-cromas, tarefa 3.3) ──────────────
+                  {/* ── AS DUAS PRATELEIRAS (mudança inventario-e-cromas, tarefa 3.3) ──────────────
              A Loja mostrava 51 itens numa grade só, quase todos trancados: no nível 1 a tela era
              uma parede de cadeados, e conforme a pessoa comprava ela ESVAZIAVA. Separar por "dá
              para levar agora" e "ainda não" resolve os dois lados — a primeira prateleira nunca
              é a mais longa, e a segunda vira vitrine do que vem, que é o que faz querer voltar. */}
-              {naPrateleira(podeAgora).length === 0 && podeAgora.length === 0 ? (
-                <p className="text-[13px] text-ink-muted flex items-start gap-2 max-w-[70ch]">
-                  <Sprout className="w-4 h-4 text-good shrink-0 mt-0.5" aria-hidden />
-                  <span>
-                    Nada cabe no saldo de {saldo} Seeds agora. Elas vêm de estudar — revisar, jogar, aparecer — e o que
-                    está logo abaixo é o que falta menos.
-                  </span>
-                </p>
-              ) : naPrateleira(podeAgora).length > 0 ? (
-                <section>
-                  <p className="label-mono mb-3 flex items-center gap-1.5">
-                    <Sprout className="w-3.5 h-3.5 text-good" aria-hidden /> Dá para levar agora ·{' '}
-                    {naPrateleira(podeAgora).length}
-                  </p>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-                    {naPrateleira(podeAgora).map((item) => (
-                      <CartaoDaLoja key={item.id} item={item} />
-                    ))}
-                  </div>
-                </section>
-              ) : null}
+                  {naPrateleira(podeAgora).length === 0 && podeAgora.length === 0 ? (
+                    <p className="text-[13px] text-ink-muted flex items-start gap-2 max-w-[70ch]">
+                      <Sprout className="w-4 h-4 text-good shrink-0 mt-0.5" aria-hidden />
+                      <span>
+                        Nada cabe no saldo de {saldo} Seeds agora. Elas vêm de estudar — revisar, jogar, aparecer — e o
+                        que está logo abaixo é o que falta menos.
+                      </span>
+                    </p>
+                  ) : naPrateleira(podeAgora).length > 0 ? (
+                    <section>
+                      <p className="label-mono mb-3 flex items-center gap-1.5">
+                        <Sprout className="w-3.5 h-3.5 text-good" aria-hidden /> Dá para levar agora ·{' '}
+                        {naPrateleira(podeAgora).length}
+                      </p>
+                      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+                        {naPrateleira(podeAgora).map((item) => (
+                          <CartaoDaLoja key={item.id} item={item} />
+                        ))}
+                      </div>
+                    </section>
+                  ) : null}
 
-              {aindaNao.length > 0 && (
-                <section>
-                  <p className="label-mono mb-3 flex items-center gap-1.5 flex-wrap">
-                    <Lock className="w-3.5 h-3.5" aria-hidden /> Ainda não · {naPrateleira(aindaNao).length}
-                    <span className="font-sans normal-case tracking-normal text-ink-faint">
-                      — o que falta menos vem primeiro; nada aqui expira
-                    </span>
-                  </p>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-                    {naPrateleira(aindaNao).map((item) => (
-                      <CartaoDaLoja key={item.id} item={item} />
-                    ))}
-                  </div>
-                </section>
-              )}
+                  {aindaNao.length > 0 && (
+                    <section>
+                      <p className="label-mono mb-3 flex items-center gap-1.5 flex-wrap">
+                        <Lock className="w-3.5 h-3.5" aria-hidden /> Ainda não · {naPrateleira(aindaNao).length}
+                        <span className="font-sans normal-case tracking-normal text-ink-faint">
+                          — o que falta menos vem primeiro; nada aqui expira
+                        </span>
+                      </p>
+                      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+                        {naPrateleira(aindaNao).map((item) => (
+                          <CartaoDaLoja key={item.id} item={item} />
+                        ))}
+                      </div>
+                    </section>
+                  )}
 
-              {/* ── A PRATELEIRA PAGA ─────────────────────────────────────────────────────────
+                  {/* ── A PRATELEIRA PAGA ─────────────────────────────────────────────────────────
              `ORIGEM.creditos` anunciava "Passe Premium e prateleira paga" desde a régua das
              quatro origens — e a prateleira não existia: nenhum item tinha preço em Créditos, e
              `creditsRepo.debitar` nunca era chamado. Quem pagasse R$ 49,90 recebia um número que
              não comprava nada. Aqui ele passa a comprar. */}
-              {premium.length > 0 && (
-                <section>
-                  <p className="label-mono mb-3 flex items-center gap-1.5 flex-wrap">
-                    <Coins className="w-3.5 h-3.5 text-premium" aria-hidden /> Com Créditos · {premium.length}
-                    <span className="font-sans normal-case tracking-normal text-ink-faint">
-                      — vêm de graça no Passe da temporada, ou avulsos aqui
-                    </span>
-                  </p>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-                    {premium.map((item) => (
-                      <CartaoDaLoja key={item.id} item={item} />
-                    ))}
-                  </div>
-                </section>
-              )}
+                  {premium.length > 0 && (
+                    <section>
+                      <p className="label-mono mb-3 flex items-center gap-1.5 flex-wrap">
+                        <Coins className="w-3.5 h-3.5 text-premium" aria-hidden /> Com Créditos · {premium.length}
+                        <span className="font-sans normal-case tracking-normal text-ink-faint">
+                          — vêm de graça no Passe da temporada, ou avulsos aqui
+                        </span>
+                      </p>
+                      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+                        {premium.map((item) => (
+                          <CartaoDaLoja key={item.id} item={item} />
+                        ))}
+                      </div>
+                    </section>
+                  )}
 
-              {/* ── O QUE SE PAGA COM DINHEIRO. Fica DEPOIS de tudo que se ganha estudando, e não
+                  {/* ── O QUE SE PAGA COM DINHEIRO. Fica DEPOIS de tudo que se ganha estudando, e não
              antes: a ordem da tela é a ordem da prioridade. */}
-              <ComprarCreditos />
+                  <ComprarCreditos />
 
-              {/* O rodapé lê das REGRAS: o que a Loja diz sobre ganhar Seeds é o que o sistema credita. */}
-              <p className="text-center text-[11.5px] text-ink-faint pb-4">
-                Seeds se ganham fazendo:{' '}
-                {REGRAS.filter((r) => r.seeds > 0)
-                  .slice(0, 4)
-                  .map((r) => `${r.seeds} ${r.unidade}`)
-                  .join(' · ')}
-                .{' '}
-                <button onClick={() => setAba('conquistas')} className="underline hover:text-accent cursor-pointer">
-                  Ver todas as regras
-                </button>
-                . Seeds não se compram com dinheiro: só estudando.
-              </p>
+                  {/* O rodapé lê das REGRAS: o que a Loja diz sobre ganhar Seeds é o que o sistema credita. */}
+                  <p className="text-center text-[11.5px] text-ink-faint pb-4">
+                    Seeds se ganham fazendo:{' '}
+                    {REGRAS.filter((r) => r.seeds > 0)
+                      .slice(0, 4)
+                      .map((r) => `${r.seeds} ${r.unidade}`)
+                      .join(' · ')}
+                    .{' '}
+                    <button
+                      onClick={() => irParaSecao('desafios')}
+                      className="underline hover:text-accent cursor-pointer"
+                    >
+                      Ver todas as regras
+                    </button>
+                    . Seeds não se compram com dinheiro: só estudando.
+                  </p>
+                </div>
+              </section>
             </div>
           )}
         </PainelDeAba>

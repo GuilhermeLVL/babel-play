@@ -10,9 +10,9 @@
  * URL vira o espelho dela. Por isso o contrato é um par de funções PURAS — dá para travar o
  * comportamento inteiro sem montar o app, e a ida-e-volta é verificável.
  */
-import { describe, expect,it } from 'vitest'
+import { describe, expect, it } from 'vitest'
 
-import { type EstadoDeRota,estadoParaUrl, normalizarAbaDaLoja, urlParaEstado } from '../src/lib/rotas'
+import { type EstadoDeRota, estadoParaUrl, normalizarAbaDaLoja, urlParaEstado } from '../src/lib/rotas'
 
 const ida = (e: EstadoDeRota) => urlParaEstado(estadoParaUrl(e))
 
@@ -48,11 +48,20 @@ describe('estadoParaUrl', () => {
   })
 
   it('a área de Personalizar entra no caminho, na língua do rótulo (ux-v2 §1.6)', () => {
-    expect(estadoParaUrl({ view: 'loja', lojaTab: 'passe' })).toBe('/loja/passe')
     expect(estadoParaUrl({ view: 'loja', lojaTab: 'personalizar' })).toBe('/loja/meu-visual')
-    expect(estadoParaUrl({ view: 'loja', lojaTab: 'loja' })).toBe('/loja/itens')
     expect(estadoParaUrl({ view: 'loja', lojaTab: 'conquistas' })).toBe('/loja/desafios')
     expect(estadoParaUrl({ view: 'loja' })).toBe('/loja')
+  })
+
+  /* Loja e Passe deixaram de ser abas em 2026-09-12 (viraram seções de Desafios). Um link
+     gravado com o nome antigo tem de abrir a página onde o conteúdo ESTÁ — cair na aba padrão
+     mandaria a pessoa para "Meu visual" quando ela pediu a prateleira. */
+  it('os nomes das abas extintas resolvem para Desafios, onde o conteúdo ficou', () => {
+    for (const antigo of ['loja', 'itens', 'passe', 'progressao', 'recompensas']) {
+      expect(normalizarAbaDaLoja(antigo), antigo).toBe('conquistas')
+    }
+    expect(urlParaEstado('/loja/itens').lojaTab).toBe('conquistas')
+    expect(urlParaEstado('/loja/passe').lojaTab).toBe('conquistas')
   })
 })
 
@@ -101,9 +110,7 @@ describe('ida e volta — o estado sobrevive ao recarregamento', () => {
     { view: 'analysis', sessionId: 's1', subTab: 'practice' },
     { view: 'analysis', sessionId: 's1', subTab: 'study' },
     { view: 'analysis', subTab: 'study' },
-    { view: 'loja', lojaTab: 'passe' },
     { view: 'loja', lojaTab: 'personalizar' },
-    { view: 'loja', lojaTab: 'loja' },
     { view: 'loja', lojaTab: 'conquistas' },
   ]
   for (const c of casos) {
@@ -122,7 +129,8 @@ describe('ida e volta — o estado sobrevive ao recarregamento', () => {
  */
 describe('as rotas do que está à venda', () => {
   it('/creditos abre a compra de Créditos', () => {
-    expect(urlParaEstado('/creditos')).toEqual({ view: 'loja', lojaTab: 'loja' })
+    // A compra de Créditos mora na seção Loja, que desde 2026-09-12 vive dentro de Desafios.
+    expect(urlParaEstado('/creditos')).toEqual({ view: 'loja', lojaTab: 'conquistas' })
   })
 
   it('/planos vale como /plano — o plural é o que se digita', () => {
@@ -148,8 +156,9 @@ describe('a query do /jogar', () => {
       view: 'play',
       jogarQuery: 'fonte=baralho&baralho=Deck-A',
     })
-    expect(estadoParaUrl({ view: 'play', jogarQuery: 'fonte=baralho&baralho=Deck-A' }))
-      .toBe('/jogar?fonte=baralho&baralho=Deck-A')
+    expect(estadoParaUrl({ view: 'play', jogarQuery: 'fonte=baralho&baralho=Deck-A' })).toBe(
+      '/jogar?fonte=baralho&baralho=Deck-A',
+    )
   })
 
   it('preserva a CAIXA da query — ids de baralho e códigos de idioma são sensíveis a caixa', () => {
@@ -178,23 +187,24 @@ describe('a query do /jogar', () => {
  */
 describe('abas da loja na URL', () => {
   it('apelido antigo vira a aba canônica, não `undefined`', () => {
-    expect(estadoParaUrl({ view: 'loja', lojaTab: 'progressao' as never })).toBe('/loja/passe');
-    expect(normalizarAbaDaLoja('progressao')).toBe('passe');
-  });
+    /* 'progressao' apontava para o Passe, que virou seção de Desafios: o apelido segue válido e
+       agora resolve para a aba onde aquele conteúdo está. */
+    expect(estadoParaUrl({ view: 'loja', lojaTab: 'progressao' as never })).toBe('/loja/desafios')
+    expect(normalizarAbaDaLoja('progressao')).toBe('conquistas')
+  })
 
   it('aba desconhecida cai em `/loja`, e nunca numa URL quebrada', () => {
-    expect(estadoParaUrl({ view: 'loja', lojaTab: 'inventada' as never })).toBe('/loja');
-    expect(normalizarAbaDaLoja('inventada')).toBeNull();
-  });
+    expect(estadoParaUrl({ view: 'loja', lojaTab: 'inventada' as never })).toBe('/loja')
+    expect(normalizarAbaDaLoja('inventada')).toBeNull()
+  })
 
-  it('as quatro abas canônicas continuam com endereço próprio', () => {
-    for (const aba of ['passe', 'personalizar', 'loja', 'conquistas'] as const) {
-      const url = estadoParaUrl({ view: 'loja', lojaTab: aba });
-      expect(url.startsWith('/loja/'), aba).toBe(true);
-      expect(url, aba).not.toContain('undefined');
+  it('as duas abas canônicas continuam com endereço próprio', () => {
+    for (const aba of ['personalizar', 'conquistas'] as const) {
+      const url = estadoParaUrl({ view: 'loja', lojaTab: aba })
+      expect(url.startsWith('/loja/'), aba).toBe(true)
+      expect(url, aba).not.toContain('undefined')
       // E o caminho volta para a MESMA aba: URL que não fecha o ciclo é link quebrado.
-      expect(urlParaEstado(url).lojaTab, aba).toBe(aba);
+      expect(urlParaEstado(url).lojaTab, aba).toBe(aba)
     }
-  });
-});
-
+  })
+})

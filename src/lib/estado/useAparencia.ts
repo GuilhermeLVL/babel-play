@@ -1,17 +1,17 @@
 import { useEffect, useState } from 'react';
 
 import { useCommandPalette } from '../../components/CommandPalette';
-import type { AgeProfileType, FontScale,MenuPositionType } from '../../components/StudioHeader';
-import { fetchSettings,patchUiSettings } from '../../data/api';
-import { CREDENTIAL_KEY, MODE_KEY,PROFILE_KEY } from '../../gateway/activeProfile';
-import type { FonteType,ThemeType } from '../appearance';
+import type { AgeProfileType, FontScale, MenuPositionType } from '../../components/StudioHeader';
+import { fetchSettings, patchUiSettings } from '../../data/api';
+import { CREDENTIAL_KEY, MODE_KEY, PROFILE_KEY } from '../../gateway/activeProfile';
+import type { FonteType, ThemeType } from '../appearance';
 import { ativarLiberacaoTotal, liberadoTudo } from '../desbloqueios';
 import { estaAnonimo } from '../identidade';
 import { isAgeProfile, readAgeProfile, readStoredEnum, readStoredValue } from '../profile';
 import { instalarRastroDoMouse } from '../rastroDoMouse';
 import { installSfxDelegate } from '../sfxDelegate';
 import { setSoundMuted } from '../soundFx';
-import { hydrateTheme, persistTheme,readDarkMode, readFonte, readTheme } from '../theme';
+import { hydrateTheme, persistTheme, readDarkMode, readFonte, readTheme } from '../theme';
 
 const MENU_POSITION_KEY = 'babel.menu_position';
 const MENU_POSITIONS: readonly MenuPositionType[] = ['top', 'bottom', 'left', 'right'];
@@ -61,8 +61,14 @@ export function useAparencia(): EstadoDaAparencia {
   const [buscaAberta, setBuscaAberta] = useCommandPalette();
   const [ageProfile, setAgeProfileState] = useState<AgeProfileType>(readAgeProfile);
 
-  const [menuPosition, setMenuPositionState] = useState<MenuPositionType>(
-    () => readStoredEnum(MENU_POSITION_KEY, MENU_POSITIONS, 'top')
+  /* PADRÃO MUDOU DE 'top' PARA 'left' (redesign-v4): a referência de design mostra sempre o rail
+     à esquerda, e é o próprio NavRail.tsx que descreve a barra horizontal como a versão antiga
+     ("torcida", sem recolher, sem rolagem própria) que o rail veio substituir. Manter 'top' como
+     padrão fazia a tela inteira parecer outra coisa, não importa quanto se ajustasse componente
+     por componente — quem já escolheu uma posição no dispositivo continua com a escolha dele
+     (é o valor gravado que `readStoredEnum` lê primeiro); isto só muda quem nunca mexeu nisso. */
+  const [menuPosition, setMenuPositionState] = useState<MenuPositionType>(() =>
+    readStoredEnum(MENU_POSITION_KEY, MENU_POSITIONS, 'left'),
   );
   const [soundEnabled, setSoundEnabledState] = useState<boolean>(() => {
     return readStoredValue('babel.sound_enabled') !== 'false';
@@ -91,7 +97,7 @@ export function useAparencia(): EstadoDaAparencia {
     /* O default acompanha o perfil padrão (sênior / Leitura ampliada): 'lg'. O boot direto em
        senior não passa por `setAgeProfile`, então a sugestão de fonte de lá não roda — o padrão
        precisa nascer certo aqui. Preferência gravada continua vencendo. */
-    () => readStoredEnum('babel.font_scale', FONT_SCALE_ORDER, 'lg')
+    () => readStoredEnum('babel.font_scale', FONT_SCALE_ORDER, 'lg'),
   );
 
   /**
@@ -162,7 +168,7 @@ export function useAparencia(): EstadoDaAparencia {
   };
 
   const toggleSound = () => {
-    setSoundEnabledState(prev => {
+    setSoundEnabledState((prev) => {
       const next = !prev;
       localStorage.setItem('babel.sound_enabled', String(next));
       setSoundMuted(!next);
@@ -171,7 +177,7 @@ export function useAparencia(): EstadoDaAparencia {
   };
 
   const toggleAnimations = () => {
-    setAnimationsEnabledState(prev => {
+    setAnimationsEnabledState((prev) => {
       const next = !prev;
       localStorage.setItem('babel.animations_enabled', String(next));
       return next;
@@ -179,7 +185,7 @@ export function useAparencia(): EstadoDaAparencia {
   };
 
   const togglePerformanceMode = () => {
-    setPerformanceModeState(prev => {
+    setPerformanceModeState((prev) => {
       const next = !prev;
       localStorage.setItem('babel.performance_mode', String(next));
       return next;
@@ -233,8 +239,14 @@ export function useAparencia(): EstadoDaAparencia {
     const env = (import.meta as unknown as { env?: { DEV?: boolean } }).env;
     if (!env?.DEV) return;
     (window as unknown as { babel?: unknown }).babel = {
-      liberarTudo: () => { ativarLiberacaoTotal(true); location.reload(); },
-      travarTudo: () => { ativarLiberacaoTotal(false); location.reload(); },
+      liberarTudo: () => {
+        ativarLiberacaoTotal(true);
+        location.reload();
+      },
+      travarTudo: () => {
+        ativarLiberacaoTotal(false);
+        location.reload();
+      },
       liberado: () => liberadoTudo(),
     };
     if (new URLSearchParams(location.search).get('liberar') === '1') ativarLiberacaoTotal(true);
@@ -249,7 +261,7 @@ export function useAparencia(): EstadoDaAparencia {
     persistTheme({ fonte: next });
   };
   const toggleDarkMode = () => {
-    setDarkMode(prev => {
+    setDarkMode((prev) => {
       const next = !prev;
       persistTheme({ darkMode: next });
       return next;
@@ -257,12 +269,33 @@ export function useAparencia(): EstadoDaAparencia {
   };
 
   return {
-    theme, setTheme, fonte, setFonte, darkMode, toggleDarkMode,
-    isStudioOpen, setIsStudioOpen, buscaAberta, setBuscaAberta,
-    ageProfile, setAgeProfile, menuPosition, setMenuPosition,
-    soundEnabled, toggleSound, animationsEnabled, toggleAnimations,
-    performanceMode, togglePerformanceMode, fontScale, setFontScale, cycleFontScale,
-    setThemeState, setFonteState, setDarkMode, setAgeProfileState,
+    theme,
+    setTheme,
+    fonte,
+    setFonte,
+    darkMode,
+    toggleDarkMode,
+    isStudioOpen,
+    setIsStudioOpen,
+    buscaAberta,
+    setBuscaAberta,
+    ageProfile,
+    setAgeProfile,
+    menuPosition,
+    setMenuPosition,
+    soundEnabled,
+    toggleSound,
+    animationsEnabled,
+    toggleAnimations,
+    performanceMode,
+    togglePerformanceMode,
+    fontScale,
+    setFontScale,
+    cycleFontScale,
+    setThemeState,
+    setFonteState,
+    setDarkMode,
+    setAgeProfileState,
   };
 }
 
@@ -288,7 +321,11 @@ export function useHidratacaoDeAjustes(alvos: AlvosDaHidratacao): void {
     fetchSettings()
       .then((s) => {
         let ui: any;
-        try { ui = s?.ui ? JSON.parse(s.ui) : null; } catch { ui = null; }
+        try {
+          ui = s?.ui ? JSON.parse(s.ui) : null;
+        } catch {
+          ui = null;
+        }
         if (s?.activeProfileId) localStorage.setItem(PROFILE_KEY, s.activeProfileId);
         if (ui?.credentialId) localStorage.setItem(CREDENTIAL_KEY, ui.credentialId);
         else localStorage.removeItem(CREDENTIAL_KEY);

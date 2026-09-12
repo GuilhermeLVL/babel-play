@@ -1,8 +1,8 @@
 import { Bot, Flame, Sprout } from 'lucide-react';
 
-import { emojiDoItem,proximaRecompensa } from '../../lib/galeria/progressao';
+import { emojiDoItem, proximaRecompensa } from '../../lib/galeria/progressao';
 import { TEXTOS } from '../../lib/galeria/textos';
-import { type AgeProfileType,copyDoPerfil } from '../../lib/profile';
+import { type AgeProfileType, copyDoPerfil } from '../../lib/profile';
 import { compactNumber, type DerivedProgress } from '../../lib/progress';
 import { Barra } from '../ui';
 
@@ -17,7 +17,15 @@ import { Barra } from '../ui';
  * número falso, e quem olha não tem como saber que ainda vai mudar — a decisão está registrada em
  * `lib/progress.ts` (`EMPTY_PROGRESS`).
  */
-export default function FaixaDeProgresso({ progress, ageProfile }: { progress: DerivedProgress; ageProfile: AgeProfileType }) {
+export default function FaixaDeProgresso({
+  progress,
+  ageProfile,
+  className = 'mb-8',
+}: {
+  progress: DerivedProgress;
+  ageProfile: AgeProfileType;
+  /** Espaçamento externo — o Hub zera para fundir esta faixa com a de revisão logo abaixo. */ className?: string;
+}) {
   /**
    * O ESQUELETO TEM A MESMA CAIXA DA FAIXA REAL, e não uma altura escolhida a olho.
    *
@@ -31,7 +39,7 @@ export default function FaixaDeProgresso({ progress, ageProfile }: { progress: D
   if (!progress.available) {
     return (
       <div
-        className="mb-8 card-panel bg-surface p-5 flex flex-col sm:flex-row sm:items-center gap-5 animate-pulse"
+        className={`${className} card-panel bg-surface p-5 flex flex-col sm:flex-row sm:items-center gap-5 animate-pulse`}
         aria-hidden
       >
         {/* As três alturas somam os 196px que a faixa real mede a 412px de largura (medido no
@@ -58,14 +66,19 @@ export default function FaixaDeProgresso({ progress, ageProfile }: { progress: D
   return (
     <section
       aria-label="Seu progresso"
-      className="mb-8 card-panel bg-surface p-5 flex flex-col sm:flex-row sm:items-center gap-5"
+      className={`${className} card-panel bg-surface p-5 flex flex-col sm:flex-row sm:items-center gap-5`}
     >
       <div className="flex items-center gap-3 shrink-0">
-        <span className="w-11 h-11 rounded-2xl bg-accent-soft text-accent-ink flex items-center justify-center shrink-0" aria-hidden>
+        <span
+          className="w-11 h-11 rounded-2xl bg-accent-soft text-accent-ink flex items-center justify-center shrink-0"
+          aria-hidden
+        >
           <Bot className="w-5 h-5" />
         </span>
         <div>
-          <div className="label-mono">{levelWord} {progress.level}</div>
+          <div className="label-mono">
+            {levelWord} {progress.level}
+          </div>
           <div className="font-display font-black text-ink text-lg leading-tight">
             {progress.xpIntoLevel} / {progress.xpForLevel} XP
           </div>
@@ -83,27 +96,31 @@ export default function FaixaDeProgresso({ progress, ageProfile }: { progress: D
             : 'Uma revisão hoje mantém a sua ofensiva viva.'}
           {proxima && (
             <span className="block mt-0.5">
-              {TEXTOS.faltamXp(progress.xpForLevel - progress.xpIntoLevel)} · próximo: <span aria-hidden>{emojiDoItem(proxima.destaque)}</span> <b className="text-ink">{proxima.destaque.nome}</b>
+              {TEXTOS.faltamXp(progress.xpForLevel - progress.xpIntoLevel)} · próximo:{' '}
+              <span aria-hidden>{emojiDoItem(proxima.destaque)}</span>{' '}
+              <b className="text-ink">{proxima.destaque.nome}</b>
               {proxima.itens.length > 1 && <span className="text-ink-faint"> +{proxima.itens.length - 1}</span>}
             </span>
           )}
         </p>
       </div>
 
-      {!simples && <div className="flex items-center gap-4 shrink-0">
-        <div className="text-center">
-          <div className="flex items-center gap-1.5 font-display font-black text-ink text-lg leading-none">
-            <Flame className="w-4 h-4 text-warn" aria-hidden /> {progress.streakDays}
+      {!simples && (
+        <div className="flex items-center gap-4 shrink-0">
+          <div className="text-center">
+            <div className="flex items-center gap-1.5 font-display font-black text-ink text-lg leading-none">
+              <Flame className="w-4 h-4 text-warn" aria-hidden /> {progress.streakDays}
+            </div>
+            <div className="label-mono mt-1">Ofensiva</div>
           </div>
-          <div className="label-mono mt-1">Ofensiva</div>
-        </div>
-        <div className="text-center">
-          <div className="flex items-center gap-1.5 font-display font-black text-ink text-lg leading-none">
-            <Sprout className="w-4 h-4 text-good" aria-hidden /> {compactNumber(progress.seeds)}
+          <div className="text-center">
+            <div className="flex items-center gap-1.5 font-display font-black text-ink text-lg leading-none">
+              <Sprout className="w-4 h-4 text-good" aria-hidden /> {compactNumber(progress.seeds)}
+            </div>
+            <div className="label-mono mt-1">Seeds</div>
           </div>
-          <div className="label-mono mt-1">Seeds</div>
         </div>
-      </div>}
+      )}
     </section>
   );
 }

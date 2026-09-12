@@ -216,8 +216,16 @@ export default function Hub({ onChangeView, recordings, ageProfile = 'pro', prog
         </EditablePanel>
 
         {/* XP e revisão vencida vêm DEPOIS dos três passos (pedido do dono, 2026-08-27):
-          quem chega novo lê primeiro O QUE FAZER; números e pendências são contexto, não porta. */}
-        <FaixaDeProgresso progress={progress} ageProfile={ageProfile} />
+          quem chega novo lê primeiro O QUE FAZER; números e pendências são contexto, não porta.
+          FUNDIDAS NUMA PEÇA SÓ (referência de design): quando há revisão pendente, esta faixa
+          perde a borda/canto de baixo e a faixa de revisão logo abaixo perde os de cima — viram
+          uma única barra de status com uma linha divisória entre as duas metades, em vez de dois
+          cartões soltos com espaço entre eles. */}
+        <FaixaDeProgresso
+          progress={progress}
+          ageProfile={ageProfile}
+          className={metrics && metrics.dueToday > 0 ? 'mb-0 rounded-b-none border-b-0' : 'mb-8'}
+        />
 
         {/* ── AS QUE ESTÃO PRESTES A ESCAPAR ────────────────────────────────────────────────────
           O Hub abria com três cards equivalentes e a revisão vencida aparecia como uma linha de
@@ -259,7 +267,7 @@ export default function Hub({ onChangeView, recordings, ageProfile = 'pro', prog
           conteúdo (todos os textos por perfil, a fila inteira dita, a saída para "outro jogo")
           continua o mesmo, só a caixa ficou do tamanho do que ela diz. */}
         {metrics && metrics.dueToday > 0 && (
-          <section className="card-panel bg-surface border-accent/40 px-5 py-4 mb-8 flex flex-col sm:flex-row sm:items-center gap-4">
+          <section className="card-panel bg-surface border-accent/40 rounded-t-none px-5 py-4 mb-8 flex flex-col sm:flex-row sm:items-center gap-4">
             <div
               className="w-11 h-11 rounded-full bg-accent-soft flex items-center justify-center shrink-0 mx-auto sm:mx-0"
               aria-hidden

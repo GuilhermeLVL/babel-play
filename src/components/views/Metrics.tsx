@@ -1,4 +1,4 @@
-import { computeTextStats, detectarVozPassiva, retrievability } from '@core';
+import { computeTextStats, detectarVozPassiva, estimativaDeMinutos, retrievability, rotuloDeDuracao } from '@core';
 import {
   Activity,
   AlertCircle,
@@ -21,7 +21,14 @@ import {
 import React, { useEffect, useMemo, useState } from 'react';
 import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from 'recharts';
 
-import { type AppMetrics, fetchAllUtterances, fetchDeck, fetchMetrics, type UtteranceRow } from '../../data/api';
+import {
+  type AppMetrics,
+  fetchAllUtterances,
+  fetchDeck,
+  fetchExerciseResults,
+  fetchMetrics,
+  type UtteranceRow,
+} from '../../data/api';
 import { ficharPalavraDoAnalista } from '../../lib/adicionarAoDeck';
 import { numero } from '../../lib/i18n';
 import { baseLang, langLabelNaUI } from '../../lib/languages';
@@ -154,7 +161,10 @@ export default function Metrics({
    */
   metrics?: AppMetrics | null;
 }) {
-  const [mainTab, setMainTab] = useState<'dashboard' | 'lexical' | 'fluency'>('dashboard');
+  /* 'palavras' É A ABA DE ENTRADA (referência de design): a tela chamada Vocabulário abria num
+     painel de analytics — retenção, WPM, CEFR, complexidade — e o acervo, que é o que o nome
+     promete, ficava enterrado lá embaixo. A análise inteira continua existindo, uma aba ao lado. */
+  const [mainTab, setMainTab] = useState<'palavras' | 'dashboard' | 'lexical' | 'fluency'>('palavras');
   const [expandedKpi, setExpandedKpi] = useState<KpiType>(null);
   // Revela as abas densas em Kids/Sênior. Uma vez aberto, fica: quem procurou já sabe onde está.
   const [showAllTabs, setShowAllTabs] = useState<boolean>(false);
@@ -363,6 +373,43 @@ export default function Metrics({
   );
   const nomeDoIdiomaEstudado = langLabelNaUI(idiomaEstudado);
 
+  /**
+   * AS QUATRO CONTAGENS DO ACERVO — derivadas do `fsrsState` REAL de cada cartão, não de uma
+   * tabela à parte. "Guardadas" é o total; as outras três são as fases do FSRS que o baralho
+   * já carrega (`Relearning` entra em "Revisão": para quem olha, é material que volta).
+   */
+  const fasesDoBaralho = useMemo(() => {
+    let novas = 0;
+    let aprendendo = 0;
+    let revisao = 0;
+    for (const c of vocabCards) {
+      if (c.fsrsState === 'New') novas++;
+      else if (c.fsrsState === 'Learning') aprendendo++;
+      else revisao++; // Review + Relearning
+    }
+    return { total: vocabCards.length, novas, aprendendo, revisao };
+  }, [vocabCards]);
+
+  /**
+   * Tempos JÁ MEDIDOS por item — só para o card de revisão poder dizer quanto leva. Mesma fonte e
+   * mesma regra do Início (`estimativaDeMinutos` cala com poucas amostras e a linha vira "rodada
+   * curta"): o número ou é medido, ou não é dito.
+   */
+  const [temposMedidos, setTemposMedidos] = useState<number[]>([]);
+  useEffect(() => {
+    let vivo = true;
+    fetchExerciseResults()
+      .then((linhas) => {
+        if (vivo) setTemposMedidos(linhas.map((l) => l.ms).filter((ms): ms is number => typeof ms === 'number'));
+      })
+      .catch(() => {
+        /* sem medição: o rótulo cai para "rodada curta" */
+      });
+    return () => {
+      vivo = false;
+    };
+  }, []);
+
   return (
     <div className="flex-1 flex flex-col lg:flex-row h-full min-h-0 bg-surface">
       <div className="flex-1 min-w-0 flex flex-col h-full bg-surface overflow-y-auto relative custom-scrollbar">
@@ -393,22 +440,25 @@ export default function Metrics({
                       <span>Seu Caderno de Palavras &amp; Frases</span>
                     </>
                   ) : (
-                    <span>Analytics &amp; Inteligência Lexical</span>
+                    /* "Analytics & Inteligência Lexical" era o nome do PAINEL, não o da tela: o
+                       item de menu diz "Vocabulário" e a pessoa chegava num título que não
+                       existe em lugar nenhum da navegação. A análise segue aqui, numa aba. */
+                    <span>Vocabulário</span>
                   )}
                 </h1>
-                <p className="text-xs md:text-sm text-ink-muted max-w-2xl">
-                  {ageProfile === 'kids' ? (
-                    <span className="flex items-center gap-1 flex-wrap">
-                      <span>Suas palavras salvas prontas para regar! Revise suas cartas para ganhar Seeds</span>
-                      <Sprout className="w-3.5 h-3.5 text-good inline" />
-                      <span>e subir de nível.</span>
-                    </span>
-                  ) : ageProfile === 'senior' ? (
-                    'Veja todas as palavras salvas das suas gravações com botão de pronúncia em áudio e explicações fáceis.'
-                  ) : (
-                    'Acompanhe sua evolução com base nos dados reais das suas sessões e revisões. Métricas estimadas vêm sempre com o nível de confiança correspondente.'
-                  )}
-                </p>
+                {ageProfile !== 'pro' && (
+                  <p className="text-xs md:text-sm text-ink-muted max-w-2xl">
+                    {ageProfile === 'kids' ? (
+                      <span className="flex items-center gap-1 flex-wrap">
+                        <span>Suas palavras salvas prontas para regar! Revise suas cartas para ganhar Seeds</span>
+                        <Sprout className="w-3.5 h-3.5 text-good inline" />
+                        <span>e subir de nível.</span>
+                      </span>
+                    ) : (
+                      'Veja todas as palavras salvas das suas gravações com botão de pronúncia em áudio e explicações fáceis.'
+                    )}
+                  </p>
+                )}
               </div>
               {/* Este botão existia SEM onClick — controle falso (achado da spec
                 progresso-de-idioma). Agora exporta de verdade: um .txt gerado dos dados reais
@@ -445,12 +495,19 @@ export default function Metrics({
                 className="border-b-0"
                 itens={[
                   {
-                    id: 'dashboard',
-                    rotulo: copyDoPerfil('metricsTab.dashboard', ageProfile),
-                    icone: <LayoutGrid className="w-4 h-4" />,
+                    id: 'palavras',
+                    rotulo: ageProfile === 'kids' ? 'Minhas cartas' : 'Minhas palavras',
+                    icone: <BookOpen className="w-4 h-4" />,
                   },
-                  ...(!coreOnly(ageProfile) || showAllTabs || mainTab !== 'dashboard'
+                  /* As três abas de ANÁLISE ficam atrás de "Mais" em Kids/Sênior — e agora também
+                     o painel principal, que antes era a aba de entrada. Continuam a um clique. */
+                  ...(!coreOnly(ageProfile) || showAllTabs || mainTab !== 'palavras'
                     ? [
+                        {
+                          id: 'dashboard',
+                          rotulo: copyDoPerfil('metricsTab.dashboard', ageProfile),
+                          icone: <LayoutGrid className="w-4 h-4" />,
+                        },
                         {
                           id: 'lexical',
                           rotulo: copyDoPerfil('metricsTab.lexical', ageProfile),
@@ -465,7 +522,7 @@ export default function Metrics({
                     : []),
                 ]}
               />
-              {coreOnly(ageProfile) && !showAllTabs && mainTab === 'dashboard' && (
+              {coreOnly(ageProfile) && !showAllTabs && mainTab === 'palavras' && (
                 <button
                   onClick={() => setShowAllTabs(true)}
                   className="pb-3 px-4 text-[13px] font-bold border-b-2 border-transparent text-ink-muted hover:text-ink transition-colors flex items-center gap-2 cursor-pointer"
@@ -759,20 +816,65 @@ export default function Metrics({
                 </div>
               </div>
             )}
+          </PainelDeAba>
 
-            {/* O ACERVO, na tela que leva o nome dele (spec entrega-honesta).
-                Esta lista morava na aba "Detalhes das palavras", que a revelação progressiva
-                esconde atrás do botão "Mais" — então a tela chamada Minhas Palavras abria na
-                única aba sem palavras. Esconder ANÁLISE é revelação progressiva; esconder o
-                ACERVO é a tela não cumprir o próprio nome. As análises ficam nas abas. */}
+          {/* --- MINHAS PALAVRAS (aba de entrada) ---
+              O ACERVO, na tela que leva o nome dele (spec entrega-honesta), agora como PRIMEIRA
+              coisa: o que revisar, quantas em cada fase, e a lista inteira. A análise é o que
+              fica atrás de uma aba, não o contrário. */}
+          <PainelDeAba id="palavras" ativo={mainTab} className="animate-in fade-in space-y-6 max-w-7xl mx-auto">
+            {/* O CONVITE DA REVISÃO — só existe quando há o que revisar. Sem vencidas ele some
+                inteiro, em vez de virar um "0 prontas", que ocuparia o lugar mais nobre da tela
+                para não dizer nada (mesma regra do cartão do Início). */}
+            {metrics && metrics.dueToday > 0 && (
+              <section className="card-panel bg-surface border-accent/40 p-5 md:p-6 flex flex-col sm:flex-row sm:items-center gap-5">
+                <div
+                  className="w-16 h-16 rounded-full bg-accent-soft flex items-center justify-center shrink-0 mx-auto sm:mx-0"
+                  aria-hidden
+                >
+                  <span className="font-display font-black text-2xl text-accent-ink leading-none tabular-nums">
+                    {metrics.dueToday}
+                  </span>
+                </div>
+                <div className="min-w-0 flex-1 text-center sm:text-start">
+                  <h2 className="font-display font-black text-lg md:text-xl text-ink tracking-tight">
+                    {ageProfile === 'kids' ? 'Cartas prontas para regar' : 'Prontas para revisar'}
+                  </h2>
+                  <p className="text-[13px] text-ink-muted mt-1">
+                    {rotuloDeDuracao(estimativaDeMinutos(metrics.dueToday, temposMedidos))}
+                    {' · '}
+                    {numero(metrics.newCards)} {metrics.newCards === 1 ? 'nova' : 'novas'}
+                    {' · '}
+                    {numero(metrics.deckSize)} no total
+                  </p>
+                </div>
+                <button onClick={() => onChangeView?.('study')} className="btn-solid shrink-0 py-3 px-6">
+                  <Target className="w-4 h-4" aria-hidden />
+                  {ageProfile === 'kids' ? 'Regar agora' : 'Revisar agora'}
+                </button>
+              </section>
+            )}
+
+            {/* AS QUATRO FASES, do `fsrsState` real de cada cartão (ver `fasesDoBaralho`). */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+              {[
+                { rotulo: 'Guardadas', valor: fasesDoBaralho.total, tom: 'text-ink' },
+                { rotulo: 'Novas', valor: fasesDoBaralho.novas, tom: 'text-accent-ink' },
+                { rotulo: 'Aprendendo', valor: fasesDoBaralho.aprendendo, tom: 'text-warn-ink' },
+                { rotulo: 'Em revisão', valor: fasesDoBaralho.revisao, tom: 'text-good-ink' },
+              ].map((f) => (
+                <div key={f.rotulo} className="card-panel bg-surface p-4">
+                  <span className="label-mono block mb-1">{f.rotulo}</span>
+                  <span className={`font-display font-black text-2xl tabular-nums ${f.tom}`}>{numero(f.valor)}</span>
+                </div>
+              ))}
+            </div>
+
             <div className="card-panel p-6 flex flex-col">
               <div className="flex justify-between items-center mb-1 flex-wrap gap-2">
                 <h3 className="font-display font-extrabold text-[16px] text-ink flex items-center gap-2">
-                  <BookOpen className="w-5 h-5 text-accent" /> Suas palavras
+                  <BookOpen className="w-5 h-5 text-accent" /> Todas as palavras
                 </h3>
-                <span className="text-[12px] text-ink-muted font-bold tabular-nums">
-                  {numero(metrics?.deckSize ?? 0)} no caderno
-                </span>
               </div>
               <p className="text-[12px] text-ink-muted mb-4">
                 Busque, filtre por nível e origem, ordene. Clique num termo para ouvir a pronúncia e ver a explicação.

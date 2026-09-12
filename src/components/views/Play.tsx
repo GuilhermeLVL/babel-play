@@ -2794,10 +2794,12 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
                 >
                   <Gamepad2 className="w-4 h-4" />
                 </span>
-                <h1 className="font-display font-black text-2xl text-ink tracking-tight">
-                  {ageProfile === 'senior' ? t('Praticar jogando') : t('Jogar & Praticar')}
-                </h1>
-                <span className="kpi-pill text-[10.5px] font-extrabold uppercase tracking-wider text-accent border-accent/30 bg-accent-soft/60">
+                {/* Um título só, o do design. "Jogar & Praticar" repetia o item de menu ("Jogar")
+                    e ainda dizia duas vezes a mesma coisa. */}
+                <h1 className="font-display font-black text-2xl text-ink tracking-tight">{t('Praticar jogando')}</h1>
+                {/* Contagem é INFORMAÇÃO, não ação: em laranja ela competia com "Partida Rápida" —
+                    e num recorte pequeno o que ganhava destaque era um zero. */}
+                <span className="kpi-pill text-[10.5px] font-extrabold uppercase tracking-wider">
                   {jogosProntos.length} {t('Jogos')}
                 </span>
               </div>
@@ -3729,7 +3731,12 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
                               return (
                                 <button
                                   onClick={() => abrirPorta(porta)}
-                                  className="relative z-10 mt-auto self-start inline-flex items-center gap-1.5 rounded-lg bg-accent-soft px-2.5 py-1.5 text-[11.5px] font-bold text-accent-ink hover:bg-accent hover:text-accent-contrast cursor-pointer"
+                                  /* Ação NEUTRA de propósito. Com 18 jogos presos num recorte pequeno, um
+                                     chip laranja em cada cartão pintava a tela inteira de cor de ação —
+                                     e justamente nos jogos que a pessoa AINDA NÃO pode jogar. O laranja
+                                     cheio fica só na "Partida Rápida", a ação primária da tela (é o que
+                                     o design faz: `btnGhost` no cartão bloqueado). */
+                                  className="relative z-10 mt-auto self-start inline-flex items-center gap-1.5 rounded-lg border border-border-subtle bg-surface px-2.5 py-1.5 text-[11.5px] font-bold text-ink-muted hover:border-accent hover:text-accent-ink cursor-pointer"
                                 >
                                   {porta.rotulo} <ChevronRight className="w-3.5 h-3.5" aria-hidden />
                                 </button>

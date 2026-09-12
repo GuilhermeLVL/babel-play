@@ -1,5 +1,5 @@
 import { ChevronRight, SlidersHorizontal as SlidersIcon } from 'lucide-react';
-import { type ReactNode,useEffect, useRef } from 'react';
+import { type ReactNode, useEffect, useRef } from 'react';
 
 import { empilharCamada } from '../../lib/camadasDeEscape';
 import { numero, t, tp } from '../../lib/i18n';
@@ -96,33 +96,39 @@ function SeletorDeConteudo({
 
   return (
     <div>
-      {/* ── Linha de resumo ──────────────────────────────────────────────────────────────── */}
+      {/* ── Linha de resumo ──────────────────────────────────────────────────────────────────
+          FUNDO ESCURO (extensão do padrão do Hub/Capturar): esta faixa é o resumo da ação em
+          curso ("com o que eu vou jogar agora") — mesmo peso visual que o "Espaço de Gravação"
+          da Captura e o card-herói do Hub. A gaveta abaixo continua clara, como os demais cards
+          de apoio da tela. */}
       <div
-        className={`flex items-center gap-3 flex-wrap card-panel bg-surface px-4 py-2.5 transition-colors ${
-          aberta ? 'border border-accent rounded-b-none' : 'border border-border-subtle'
+        className={`flex items-center gap-3 flex-wrap bg-ink text-ink-contrast rounded-2xl px-4 py-2.5 transition-colors ${
+          aberta ? 'border border-accent rounded-b-none' : 'border border-white/10'
         }`}
       >
         <div className="flex items-center gap-2.5 flex-wrap flex-1 min-w-[240px] text-[13px]">
-          <span className="label-mono text-[10.5px] uppercase tracking-wider">{t('jogando com')}</span>
-          <span className="font-display font-extrabold text-base tabular-nums text-ink">
-            {numero(total)}
+          <span className="label-mono text-[10.5px] uppercase tracking-wider text-ink-contrast/60">
+            {t('jogando com')}
           </span>
-          <span className="text-ink-muted">{tp(total, 'palavra', 'palavras')}</span>
+          <span className="font-display font-extrabold text-base tabular-nums text-ink-contrast">{numero(total)}</span>
+          <span className="text-ink-contrast/70">{tp(total, 'palavra', 'palavras')}</span>
           {nomeDaFonte && (
             <>
-              <span className="text-ink-faint">·</span>
-              <span className="text-ink-muted"><b className="text-ink font-semibold">{nomeDaFonte}</b></span>
+              <span className="text-ink-contrast/40">·</span>
+              <span className="text-ink-contrast/70">
+                <b className="text-ink-contrast font-semibold">{nomeDaFonte}</b>
+              </span>
             </>
           )}
           {idioma && (
             <>
-              <span className="text-ink-faint">·</span>
-              <span className="text-ink-muted"><b className="text-ink font-semibold">{idioma}</b></span>
+              <span className="text-ink-contrast/40">·</span>
+              <span className="text-ink-contrast/70">
+                <b className="text-ink-contrast font-semibold">{idioma}</b>
+              </span>
             </>
           )}
-          {avisoDeVazio && (
-            <span className="text-warn font-semibold">— {avisoDeVazio}</span>
-          )}
+          {avisoDeVazio && <span className="text-warn font-semibold">— {avisoDeVazio}</span>}
         </div>
 
         <div className="flex items-center gap-2 shrink-0 flex-wrap sm:flex-nowrap">
@@ -135,7 +141,7 @@ function SeletorDeConteudo({
             className={`shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[12px] font-bold border cursor-pointer transition-all ${
               aberta
                 ? 'bg-accent text-white border-accent shadow-xs'
-                : 'bg-surface border-border-subtle hover:bg-surface-hover hover:border-accent/40 text-ink'
+                : 'bg-white/10 border-white/15 hover:bg-white/15 hover:border-accent/40 text-ink-contrast'
             }`}
           >
             <SlidersIcon className={`w-3.5 h-3.5 ${aberta ? 'text-white' : 'text-accent'}`} />

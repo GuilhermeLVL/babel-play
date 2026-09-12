@@ -99,7 +99,7 @@ import {
   X as XIcon,
   Zap,
 } from 'lucide-react';
-import React, { useCallback, useDeferredValue,useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 
 import { escalaDe } from '../../core/learning/cefrWordlist';
@@ -116,11 +116,8 @@ import {
   filtroParaComposicao,
   recortarPelaComposicao,
 } from '../../core/minigames/composicao';
-import { filtroDaFonte, type FiltroDaPratica,fonteDominante, passaNoFiltro } from '../../core/minigames/filtro';
-import {
-  type MaterialDaRodada,
-  montarRodada as montarRodadaPura,
-} from '../../core/minigames/rodada';
+import { filtroDaFonte, type FiltroDaPratica, fonteDominante, passaNoFiltro } from '../../core/minigames/filtro';
+import { type MaterialDaRodada, montarRodada as montarRodadaPura } from '../../core/minigames/rodada';
 import {
   type AppMetrics,
   bulkAddCards,
@@ -138,7 +135,7 @@ import {
   salvarRodada,
 } from '../../data/api';
 import { listarBaralhosAnki } from '../../data/apiAnki';
-import { carregarTrilha, indiceDaTrilha, precarregarNiveis,trilhaEmCache } from '../../data/trilha/carregar';
+import { carregarTrilha, indiceDaTrilha, precarregarNiveis, trilhaEmCache } from '../../data/trilha/carregar';
 import { useAudioDaSessao } from '../../lib/audioDaSessao';
 import { filtroDaQuery, gravarFiltro, lerFiltroGuardado, queryDoFiltro } from '../../lib/filtroDaPratica';
 import { temFonteGuardada } from '../../lib/fonteDaPratica';
@@ -171,22 +168,22 @@ import {
   type OrdemDosJogos,
 } from '../../lib/ordemDosJogos';
 import { contarPassada } from '../../lib/passadasDoPipeline';
-import { type AgeProfileType,coreOnly } from '../../lib/profile';
+import { type AgeProfileType, coreOnly } from '../../lib/profile';
 import type { DerivedProgress } from '../../lib/progress';
-import { consumirQueryDoBoot,lerUrlAtual, publicarQueryDoJogar } from '../../lib/rotas';
-import { type PracticeSeed,type Sentence, toSentences } from '../../lib/sentences';
+import { consumirQueryDoBoot, lerUrlAtual, publicarQueryDoJogar } from '../../lib/rotas';
+import { type PracticeSeed, type Sentence, toSentences } from '../../lib/sentences';
 import { T } from '../../lib/T';
-import { aoMudarVozes,hasVoiceFor, isTtsSupported, vozesCarregadas } from '../../lib/tts';
-import type { Recording,VocabCard } from '../../types';
+import { aoMudarVozes, hasVoiceFor, isTtsSupported, vozesCarregadas } from '../../lib/tts';
+import type { Recording, VocabCard } from '../../types';
 import AntessalaDaRodada from '../minigames/AntessalaDaRodada';
-import ArteDoJogo, { FAMILIAS,tomDoJogo } from '../minigames/ArteDosJogos';
+import ArteDoJogo, { FAMILIAS, tomDoJogo } from '../minigames/ArteDosJogos';
 import CoberturaDosIdiomas from '../minigames/CoberturaDosIdiomas';
 import ComoSeJoga from '../minigames/ComoSeJoga';
 import ConectoresGame from '../minigames/ConectoresGame';
 import DitadoGame from '../minigames/DitadoGame';
 import EscutaGame from '../minigames/EscutaGame';
 import KaraokeGame, { type FalaKaraoke } from '../minigames/KaraokeGame';
-import { jaFezTour, marcarTourFeito,PASSOS_DOS_JOGOS } from '../minigames/passosDosJogos';
+import { jaFezTour, marcarTourFeito, PASSOS_DOS_JOGOS } from '../minigames/passosDosJogos';
 import ResumoDaRodada, { type ItemDaRodada } from '../minigames/ResumoDaRodada';
 import SalaDeEscolha from '../minigames/SalaDeEscolha';
 import ScrambleGame from '../minigames/ScrambleGame';
@@ -194,14 +191,14 @@ import ScratchReward from '../minigames/ScratchReward';
 import SeletorDeConteudo from '../minigames/SeletorDeConteudo';
 import TermoGame from '../minigames/TermoGame';
 import TourGuiado from '../minigames/TourGuiado';
-import { type DetalheDoDrop,EVENTO_DROP_GANHO } from '../RecompensaDesbloqueada';
+import { type DetalheDoDrop, EVENTO_DROP_GANHO } from '../RecompensaDesbloqueada';
 import { toast } from '../Toast';
 import BaralhoAnki from './BaralhoAnki';
 import BaralhosAnki from './BaralhosAnki';
 import CuradoriaBaralho from './CuradoriaBaralho';
 import MapaDoConteudo from './MapaDoConteudo';
 import PainelTrilha from './PainelTrilha';
-import { descricaoDoJogo, JOGOS, type JogoUI,tituloDoJogo } from './play/jogos';
+import { descricaoDoJogo, JOGOS, type JogoUI, tituloDoJogo } from './play/jogos';
 import Recordes from './play/Recordes';
 import { TELA_DO_JOGO } from './play/telaDoJogo';
 
@@ -3020,7 +3017,7 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
                   <button
                     type="button"
                     onClick={() => setVerRecordes(true)}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-border-subtle bg-surface hover:bg-surface-hover hover:border-warn text-[12px] font-bold text-ink transition-colors cursor-pointer"
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-white/15 bg-white/10 hover:bg-white/15 hover:border-warn text-[12px] font-bold text-ink-contrast transition-colors cursor-pointer"
                     title={t('Ver recordes e ranking')}
                   >
                     <TrophyIcon className="w-3.5 h-3.5 text-warn" />
@@ -3030,7 +3027,7 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
                   <button
                     type="button"
                     onClick={() => setVendoMapa(true)}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-border-subtle bg-surface hover:bg-surface-hover hover:border-accent text-[12px] font-bold text-ink transition-colors cursor-pointer"
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-white/15 bg-white/10 hover:bg-white/15 hover:border-accent text-[12px] font-bold text-ink-contrast transition-colors cursor-pointer"
                     title={t('Mapa do conteúdo')}
                   >
                     <MapIcon className="w-3.5 h-3.5 text-accent" />
@@ -3040,10 +3037,10 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
                   <button
                     type="button"
                     onClick={() => setCurando(true)}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-border-subtle bg-surface hover:bg-surface-hover hover:border-warn text-[12px] font-bold text-ink transition-colors cursor-pointer"
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-white/15 bg-white/10 hover:bg-white/15 hover:border-warn text-[12px] font-bold text-ink-contrast transition-colors cursor-pointer"
                     title={resumoDosPulados(triagem.fora) || t('Ver itens fora do recorte')}
                   >
-                    <SlidersIcon className="w-3.5 h-3.5 text-ink-muted" />
+                    <SlidersIcon className="w-3.5 h-3.5 text-ink-contrast/60" />
                     <span className="hidden sm:inline">{t('Curadoria')}</span>
                     {triagem.fora.length > 0 && (
                       <span className="px-1.5 py-0.2 rounded-full bg-warn-soft text-warn-ink text-[11px] font-mono font-bold">
@@ -3058,8 +3055,8 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
                     aria-expanded={detalhes}
                     className={`flex items-center gap-1 px-2.5 py-1.5 rounded-xl border text-[12px] font-medium transition-colors cursor-pointer ${
                       detalhes
-                        ? 'bg-canvas border-border-subtle text-ink font-bold'
-                        : 'border-border-subtle bg-surface hover:bg-surface-hover text-ink-muted hover:text-ink'
+                        ? 'bg-white/20 border-white/25 text-ink-contrast font-bold'
+                        : 'border-white/15 bg-white/10 hover:bg-white/15 text-ink-contrast/60 hover:text-ink-contrast'
                     }`}
                     title={detalhes ? t('Ocultar estatísticas do baralho') : t('Ver estatísticas do baralho')}
                   >

@@ -1,17 +1,34 @@
-import { Eye,Gamepad2, Undo2, Zap } from 'lucide-react';
+import { Eye, Gamepad2, Undo2, Zap } from 'lucide-react';
 import { useState } from 'react';
 
-import { applyCustomColors, FONTE_OPTIONS, type FonteType,type ThemeType } from '../../lib/appearance';
-import { CURSORES, emojiDoCursor,readCursor, setCursor } from '../../lib/cursores';
+import { applyCustomColors, FONTE_OPTIONS, type FonteType, type ThemeType } from '../../lib/appearance';
+import { CURSORES, emojiDoCursor, readCursor, setCursor } from '../../lib/cursores';
 import { acessoAoEstilo, faltaParaOPerfil } from '../../lib/galeria/acesso';
 import { CATEGORIAS_DE_EMOJI } from '../../lib/galeria/emojis';
-import { gravarPaletaAtiva, lerPaletaAtiva, type Paleta,paletaPorId } from '../../lib/galeria/paletas';
-import { apagarPerfil, type Perfil,perfisSalvos, PRESETS, renomearPerfil, salvarPerfil } from '../../lib/galeria/perfis';
+import { gravarPaletaAtiva, lerPaletaAtiva, type Paleta, paletaPorId } from '../../lib/galeria/paletas';
+import {
+  apagarPerfil,
+  type Perfil,
+  perfisSalvos,
+  PRESETS,
+  renomearPerfil,
+  salvarPerfil,
+} from '../../lib/galeria/perfis';
 import { restaurarVisualPadrao } from '../../lib/galeria/restaurar';
 import { palavraDeNivel } from '../../lib/galeria/textos';
 import { comemorar, explodirAleatorio } from '../../lib/juice';
-import { lerPackCustom,PACK_CUSTOM, PACKS_DE_EMOJI, PARTICULAS_OPTIONS, readPack, readParticulas, setPack, setPackCustom, setParticulas } from '../../lib/particulas';
-import { estiloDeRastro,readRastro, setRastro } from '../../lib/rastroDoMouse';
+import {
+  lerPackCustom,
+  PACK_CUSTOM,
+  PACKS_DE_EMOJI,
+  PARTICULAS_OPTIONS,
+  readPack,
+  readParticulas,
+  setPack,
+  setPackCustom,
+  setParticulas,
+} from '../../lib/particulas';
+import { estiloDeRastro, readRastro, setRastro } from '../../lib/rastroDoMouse';
 import type { AgeProfileType, MenuPositionType } from '../shell/navItems';
 import { toast } from '../Toast';
 import Inventario from './personalizar/Inventario';
@@ -59,9 +76,20 @@ interface PersonalizarProps {
 }
 
 export default function Personalizar({
-  theme, setTheme, fonte, setFonte, nivel, saldo,
-  onIrParaLoja, onIrParaPasse, onIrParaConquistas,
-  ageProfile, setAgeProfile, menuPosition, setMenuPosition, onOpenStudio,
+  theme,
+  setTheme,
+  fonte,
+  setFonte,
+  nivel,
+  saldo,
+  onIrParaLoja,
+  onIrParaPasse,
+  onIrParaConquistas,
+  ageProfile,
+  setAgeProfile,
+  menuPosition,
+  setMenuPosition,
+  onOpenStudio,
 }: PersonalizarProps) {
   const [, force] = useState(0);
   const rerender = () => force((n) => n + 1);
@@ -78,7 +106,10 @@ export default function Personalizar({
      aplique uma paleta — inclusive um perfil salvo — esbarra aqui. */
   const aplicarPaleta = (p: Paleta) => {
     const acesso = acessoAoEstilo(p.estilo, nivel, saldoAgora);
-    if (!acesso.liberado) { toast.warn(`Estilo ainda trancado — ${acesso.motivo}.`); return; }
+    if (!acesso.liberado) {
+      toast.warn(`Estilo ainda trancado — ${acesso.motivo}.`);
+      return;
+    }
     applyCustomColors({ canvas: p.canvas, surface: p.surface, ink: p.ink, accent: p.accent });
     setTheme('custom');
     gravarPaletaAtiva(p.id);
@@ -86,11 +117,20 @@ export default function Personalizar({
 
   const aplicarPerfil = (p: Perfil, el?: HTMLElement | null) => {
     const falta = faltaParaOPerfil(p, ctxAcesso);
-    if (falta.length) { toast.warn(`Falta liberar: ${falta.slice(0, 2).join(' · ')}${falta.length > 2 ? ` e mais ${falta.length - 2}` : ''}.`); return; }
-    if (p.paleta) { const pal = paletaPorId(p.paleta); if (pal) aplicarPaleta(pal); } else if (p.tema) setTheme(p.tema);
+    if (falta.length) {
+      toast.warn(
+        `Falta liberar: ${falta.slice(0, 2).join(' · ')}${falta.length > 2 ? ` e mais ${falta.length - 2}` : ''}.`,
+      );
+      return;
+    }
+    if (p.paleta) {
+      const pal = paletaPorId(p.paleta);
+      if (pal) aplicarPaleta(pal);
+    } else if (p.tema) setTheme(p.tema);
     setFonte(p.fonte);
     setParticulas(p.particulas);
-    if (Array.isArray(p.pack)) setPackCustom(p.pack); else setPack(p.pack);
+    if (Array.isArray(p.pack)) setPackCustom(p.pack);
+    else setPack(p.pack);
     setCursor(p.cursor);
     setRastro(p.rastro);
     comemorar('subiuNivel', el ?? null, { texto: p.nome });
@@ -103,10 +143,15 @@ export default function Personalizar({
     const nomeFinal = nome.trim() || `Meu perfil ${perfisSalvos().length + 1}`;
     const pack = readPack();
     salvarPerfil({
-      nome: nomeFinal, emoji: emojiDoCursor(readCursor()) ?? '✨', desc: 'Montado por você.',
+      nome: nomeFinal,
+      emoji: emojiDoCursor(readCursor()) ?? '✨',
+      desc: 'Montado por você.',
       ...(theme === 'custom' && paletaAtiva ? { paleta: paletaAtiva } : { tema: theme }),
-      fonte, particulas: readParticulas(), pack: pack === PACK_CUSTOM ? lerPackCustom() : pack,
-      cursor: readCursor(), rastro: readRastro(),
+      fonte,
+      particulas: readParticulas(),
+      pack: pack === PACK_CUSTOM ? lerPackCustom() : pack,
+      cursor: readCursor(),
+      rastro: readRastro(),
     });
     toast.ok(`Perfil "${nomeFinal}" salvo.`);
     rerender();
@@ -125,12 +170,17 @@ export default function Personalizar({
     // prompt nativo: um campo, teclado-acessível, sem estado novo — suficiente para um nome.
     const nome = window.prompt(`Novo nome para "${p.nome}":`, p.nome);
     if (nome === null) return;
-    if (renomearPerfil(p.id, nome)) { toast.ok(`Perfil renomeado para "${nome.trim()}".`); rerender(); }
-    else toast.warn('O nome não pode ficar vazio.');
+    if (renomearPerfil(p.id, nome)) {
+      toast.ok(`Perfil renomeado para "${nome.trim()}".`);
+      rerender();
+    } else toast.warn('O nome não pode ficar vazio.');
   };
 
-  const paletaNome = theme === 'custom' && paletaAtiva ? paletaPorId(paletaAtiva)?.nome ?? 'Paleta' : `Tema ${theme}`;
-  const packNome = readPack() === PACK_CUSTOM ? `Meu pack (${packCustom.length})` : PACKS_DE_EMOJI.find((p) => p.id === readPack())?.nome ?? 'Clássico';
+  const paletaNome = theme === 'custom' && paletaAtiva ? (paletaPorId(paletaAtiva)?.nome ?? 'Paleta') : `Tema ${theme}`;
+  const packNome =
+    readPack() === PACK_CUSTOM
+      ? `Meu pack (${packCustom.length})`
+      : (PACKS_DE_EMOJI.find((p) => p.id === readPack())?.nome ?? 'Clássico');
   /* Meus perfis primeiro: o que a pessoa montou vale mais do que o que veio de fábrica. */
   const perfis = [...perfisSalvos(), ...PRESETS];
 
@@ -143,23 +193,54 @@ export default function Personalizar({
         nivel={nivel}
         saldo={saldoAgora}
         ctx={{ setTheme, setFonte, setMenuPosition, onOpenStudio, nivel, saldo: saldoAgora }}
-        equipadoAtual={(i) => (
-          i.tipo === 'tema' ? theme === i.alvo
-          : i.tipo === 'fonte' ? fonte === i.alvo
-          : i.tipo === 'particulas' ? readParticulas() === i.alvo
-          : i.tipo === 'posicao' ? menuPosition === i.alvo
-          : i.tipo === 'pack' ? readPack() === i.alvo
-          : i.tipo === 'cursor' ? cursorAtual === i.alvo
-          : i.tipo === 'rastro' ? rastroAtual === i.alvo
-          : false
-        )}
+        equipadoAtual={(i) =>
+          i.tipo === 'tema'
+            ? theme === i.alvo
+            : i.tipo === 'fonte'
+              ? fonte === i.alvo
+              : i.tipo === 'particulas'
+                ? readParticulas() === i.alvo
+                : i.tipo === 'posicao'
+                  ? menuPosition === i.alvo
+                  : i.tipo === 'pack'
+                    ? readPack() === i.alvo
+                    : i.tipo === 'cursor'
+                      ? cursorAtual === i.alvo
+                      : i.tipo === 'rastro'
+                        ? rastroAtual === i.alvo
+                        : false
+        }
         loadout={[
           { chave: 'tema', rotulo: 'Tema', valor: paletaNome, icone: '🎨', categoria: 'tema' },
-          { chave: 'particulas', rotulo: 'Partículas', valor: PARTICULAS_OPTIONS.find((o) => o.id === readParticulas())?.name ?? '—', icone: '✨', categoria: 'particulas' },
-          { chave: 'rastro', rotulo: 'Rastro', valor: estiloDeRastro(rastroAtual)?.nome ?? 'sem rastro', icone: '💫', categoria: 'rastro' },
-          { chave: 'cursor', rotulo: 'Cursor', valor: CURSORES.find((c) => c.id === cursorAtual)?.nome ?? 'Emoji', icone: emojiDoCursor(cursorAtual) ?? '🖱️', categoria: 'cursor' },
+          {
+            chave: 'particulas',
+            rotulo: 'Partículas',
+            valor: PARTICULAS_OPTIONS.find((o) => o.id === readParticulas())?.name ?? '—',
+            icone: '✨',
+            categoria: 'particulas',
+          },
+          {
+            chave: 'rastro',
+            rotulo: 'Rastro',
+            valor: estiloDeRastro(rastroAtual)?.nome ?? 'sem rastro',
+            icone: '💫',
+            categoria: 'rastro',
+          },
+          {
+            chave: 'cursor',
+            rotulo: 'Cursor',
+            valor: CURSORES.find((c) => c.id === cursorAtual)?.nome ?? 'Emoji',
+            icone: emojiDoCursor(cursorAtual) ?? '🖱️',
+            categoria: 'cursor',
+          },
           { chave: 'pack', rotulo: 'Emojis', valor: packNome, icone: '😀', categoria: 'pack' },
-          { chave: 'fonte', rotulo: 'Fonte', valor: FONTE_OPTIONS.find((f) => f.id === fonte)?.name ?? fonte, icone: '🔤', categoria: 'fonte' },
+          {
+            chave: 'fonte',
+            rotulo: 'Fonte',
+            valor: FONTE_OPTIONS.find((f) => f.id === fonte)?.name ?? fonte,
+            icone: '🔤',
+            categoria: 'fonte',
+          },
         ]}
         onIrParaLoja={onIrParaLoja}
         onIrParaPasse={onIrParaPasse}
@@ -169,7 +250,10 @@ export default function Personalizar({
         faltaDoPerfil={(p) => faltaParaOPerfil(p, ctxAcesso)}
         aoAplicarPerfil={aplicarPerfil}
         aoRenomearPerfil={renomear}
-        aoApagarPerfil={(p) => { apagarPerfil(p.id); rerender(); }}
+        aoApagarPerfil={(p) => {
+          apagarPerfil(p.id);
+          rerender();
+        }}
         aoSalvarPerfil={salvarAtual}
       />
 
@@ -178,39 +262,72 @@ export default function Personalizar({
           mesmo lugar — e leva com contexto, dizendo quantas peças faltam.
           DIREITO, não recompensa: desfazer o visual nunca depende de nível nem de Seeds. */}
       <div className="flex flex-wrap items-center gap-2">
-        <button onClick={voltarAoOriginal} className="btn-outline"><Undo2 className="w-4 h-4" aria-hidden /> Voltar ao visual original</button>
+        <button onClick={voltarAoOriginal} className="btn-outline">
+          <Undo2 className="w-4 h-4" aria-hidden /> Voltar ao visual original
+        </button>
       </div>
 
       {/* ── PERFIL DE EXIBIÇÃO ───────────────────────────────────────────────────────────
              DIREITO declarado onde mora (ux-v2 §4.4): a seção vive numa tela de recompensas e o
              leigo lia o perfil como mais um cosmético trancável. Sem cadeado, sem acordeão. */}
       <section className="card-panel bg-canvas p-4">
-        <p className="label-mono mb-1.5">Perfil de exibição</p>
+        {/* Título de seção de verdade (como no design), não um rótulo mono em caixa alta: isto
+            não é metadado de um cartão, é o cabeçalho de um ajuste que a pessoa vem procurar. */}
+        <h3 className="font-display font-bold text-[14px] text-ink mb-1">Perfil de exibição</h3>
         <p className="text-[12px] text-ink-muted mb-3 max-w-[72ch]">
           Muda a linguagem e a densidade das telas. Não muda o tema nem esconde recurso nenhum.{' '}
-          <b className="text-ink">Isto é acessibilidade: sempre grátis, em qualquer {palavraDeNivel().toLowerCase()}.</b>
+          <b className="text-ink">
+            Isto é acessibilidade: sempre grátis, em qualquer {palavraDeNivel().toLowerCase()}.
+          </b>
         </p>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-          {([
-            { id: 'kids' as const, icon: Gamepad2, label: 'Kids / Gamer', desc: 'Missões, recompensas e linguagem de jogo.' },
+          {[
+            {
+              id: 'kids' as const,
+              icon: Gamepad2,
+              label: 'Kids / Gamer',
+              desc: 'Missões, recompensas e linguagem de jogo.',
+            },
             { id: 'pro' as const, icon: Zap, label: 'Produtividade', desc: 'Densidade alta e vocabulário técnico.' },
-            { id: 'senior' as const, icon: Eye, label: 'Leitura ampliada', desc: 'Passo a passo, alvos de 48px e mais respiro.' },
-          ]).map((opt) => (
+            {
+              id: 'senior' as const,
+              icon: Eye,
+              label: 'Leitura ampliada',
+              desc: 'Passo a passo, alvos de 48px e mais respiro.',
+            },
+          ].map((opt) => (
             <button
               key={opt.id}
               onClick={() => setAgeProfile(opt.id)}
               aria-pressed={ageProfile === opt.id}
-              className={`p-3 rounded-xl border text-start cursor-pointer transition-colors ${
-                ageProfile === opt.id ? 'border-accent bg-accent-soft text-accent-ink' : 'border-border-subtle bg-surface hover:border-accent text-ink-muted'
+              className={`p-3 rounded-xl border text-start cursor-pointer transition-colors flex items-start gap-3 ${
+                ageProfile === opt.id
+                  ? 'border-accent bg-accent-soft'
+                  : 'border-border-subtle bg-surface hover:border-accent'
               }`}
             >
-              <span className="flex items-center gap-2 font-bold text-[13px]"><opt.icon className="w-4 h-4 shrink-0" aria-hidden /> {opt.label}</span>
-              <span className="block text-[11.5px] mt-1 opacity-80">{opt.desc}</span>
+              {/* Selo laranja quadrado, como no design: o ícone deixa de ser um detalhe dentro da
+                  frase e passa a identificar a opção de longe. */}
+              <span
+                className="w-8 h-8 shrink-0 rounded-[10px] bg-accent text-accent-contrast flex items-center justify-center"
+                aria-hidden
+              >
+                <opt.icon className="w-4 h-4" />
+              </span>
+              <span className="min-w-0">
+                <span
+                  className={`block font-display font-bold text-[12.5px] ${ageProfile === opt.id ? 'text-accent-ink' : 'text-ink'}`}
+                >
+                  {opt.label}
+                </span>
+                <span className="block text-[11px] text-ink-muted mt-0.5 leading-snug">{opt.desc}</span>
+              </span>
             </button>
           ))}
         </div>
         <p className="text-[11.5px] text-ink-faint mt-3">
-          A posição do menu virou peça de inventário: está na categoria <b className="text-ink-muted">Layout</b>, ali em cima.
+          A posição do menu virou peça de inventário: está na categoria <b className="text-ink-muted">Layout</b>, ali em
+          cima.
         </p>
       </section>
     </div>

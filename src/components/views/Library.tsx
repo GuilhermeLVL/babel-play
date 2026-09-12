@@ -473,21 +473,26 @@ export default function Library({ onChangeView, recordings, onRecordingsChange, 
             existir, sem nenhuma indicação de que havia outra aba. Confirmado no inventário, o
             passo falhou APENAS no viewport mobile. Esconder uma função por largura de tela é
             diferente de não ter a função: o usuário de celular não descobre que ela existe. */}
-          <div className="flex bg-surface-hover p-1 rounded-lg border border-border-subtle shrink-0">
-            <button
-              onClick={() => setActiveTab('collections')}
-              aria-pressed={activeTab === 'collections'}
-              className={`px-3 py-1.5 rounded-md text-[13px] font-bold transition-colors cursor-pointer ${activeTab === 'collections' ? 'bg-surface shadow-sm text-ink' : 'text-ink-muted hover:text-ink'}`}
-            >
-              {ageProfile === 'kids'
-                ? 'Meus Vídeos & Áudios'
-                : ageProfile === 'senior'
-                  ? 'Minhas Lições'
-                  : 'Coleções e Mídia'}
-            </button>
-            {/* "Cofre de Memória" (RAG) fora da interface: sem índice de embeddings real era uma
-              vitrine vazia (decisão do dono, 2026-08-26). O componente fica no código. */}
-            {MOSTRAR_COFRE && (
+          {/* UM GRUPO DE ABAS COM UMA ABA SÓ NÃO É UM GRUPO DE ABAS. Com o Cofre desligado
+            (`MOSTRAR_COFRE`, decisão do dono de 2026-08-26), esta caixa renderizava um único
+            botão sempre ativo — moldura, fundo e borda para não oferecer escolha nenhuma, logo
+            no primeiro elemento da tela. Some enquanto o Cofre estiver fora; volta inteira, com
+            as duas abas, no dia em que o índice existir. */}
+          {MOSTRAR_COFRE && (
+            <div className="flex bg-surface-hover p-1 rounded-lg border border-border-subtle shrink-0">
+              <button
+                onClick={() => setActiveTab('collections')}
+                aria-pressed={activeTab === 'collections'}
+                className={`px-3 py-1.5 rounded-md text-[13px] font-bold transition-colors cursor-pointer ${activeTab === 'collections' ? 'bg-surface shadow-sm text-ink' : 'text-ink-muted hover:text-ink'}`}
+              >
+                {ageProfile === 'kids'
+                  ? 'Meus Vídeos & Áudios'
+                  : ageProfile === 'senior'
+                    ? 'Minhas Lições'
+                    : 'Coleções e Mídia'}
+              </button>
+              {/* F9 — as abas SOBREVIVEM ao mobile: esconder uma função por largura de tela é
+                diferente de não ter a função. */}
               <button
                 onClick={() => setActiveTab('vault')}
                 aria-pressed={activeTab === 'vault'}
@@ -500,8 +505,8 @@ export default function Library({ onChangeView, recordings, onRecordingsChange, 
                     ? 'Arquivos Seguros'
                     : 'Cofre de Memória'}
               </button>
-            )}
-          </div>
+            </div>
+          )}
 
           {activeTab === 'collections' && (
             <>
@@ -591,21 +596,23 @@ export default function Library({ onChangeView, recordings, onRecordingsChange, 
         <div className="flex-1 overflow-y-auto custom-scrollbar p-6 md:p-10 bg-canvas h-full min-h-0">
           {/* Título dentro da área rolável: informa quando você chega, e sai do caminho depois. */}
           <header className="mb-6">
-            <span className="label-mono text-accent flex items-center gap-1.5">
-              {ageProfile === 'kids' ? (
-                <>
-                  <Package className="w-3.5 h-3.5" aria-hidden />
-                  <span>Seu baú de mídias</span>
-                </>
-              ) : ageProfile === 'senior' ? (
-                <>
-                  <Eye className="w-3.5 h-3.5" aria-hidden />
-                  <span>Suas lições guardadas</span>
-                </>
-              ) : (
-                <span>Acervo de sessões</span>
-              )}
-            </span>
+            {/* Mesma regra do Início: no perfil `pro` fica só o título (é o que o design mostra);
+              o rótulo acima dele orienta quem precisa de orientação, não quem pediu densidade. */}
+            {ageProfile !== 'pro' && (
+              <span className="label-mono text-accent flex items-center gap-1.5">
+                {ageProfile === 'kids' ? (
+                  <>
+                    <Package className="w-3.5 h-3.5" aria-hidden />
+                    <span>Seu baú de mídias</span>
+                  </>
+                ) : (
+                  <>
+                    <Eye className="w-3.5 h-3.5" aria-hidden />
+                    <span>Suas lições guardadas</span>
+                  </>
+                )}
+              </span>
+            )}
             <h1 className="font-display font-black text-2xl md:text-3xl text-ink tracking-tight mt-1 text-balance">
               {ageProfile === 'kids'
                 ? 'Biblioteca de vídeos e cartas'

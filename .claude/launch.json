@@ -1,0 +1,13 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "preview-redesign",
+      "runtimeExecutable": "node",
+      "runtimeArgs": [
+        "C:\\Users\\Guilh\\AppData\\Local\\Temp\\claude\\C--Users-Guilh-OneDrive--rea-de-Trabalho-babel-play-lab\\31a94db2-2d12-4d6d-b8b6-7d95a0de0972\\scratchpad\\preview-server.mjs"
+      ],
+      "port": 3305
+    }
+  ]
+}

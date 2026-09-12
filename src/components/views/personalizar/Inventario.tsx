@@ -1,21 +1,8 @@
-import {
-  Check,
-  Crown,
-  Lock,
-  Palette,
-  Pencil,
-  Save,
-  ShoppingBag,
-  Sparkles,
-  Sprout,
-  Trash2,
-  TrendingUp,
-  Trophy,
-  Wand2,
-} from 'lucide-react';
+import { Lock, Palette, Pencil, Save, ShoppingBag, Sparkles, Sprout, Trash2, Trophy, Wand2 } from 'lucide-react';
 import { useMemo, useState } from 'react';
 
-import { cromaEquipado, cromasDaPeca, temOCroma } from '../../../lib/galeria/cromas';
+import { comprarPecaComSeeds } from '../../../lib/galeria/comprarPeca';
+import { cromaEquipado } from '../../../lib/galeria/cromas';
 import { type ContextoDeEquipar, equiparItem, equipavel } from '../../../lib/galeria/equipar';
 import { paletaPorId } from '../../../lib/galeria/paletas';
 import type { Perfil } from '../../../lib/galeria/perfis';
@@ -34,7 +21,7 @@ import {
 import { possuidos } from '../../../lib/loja';
 import MiniaturaDoItem from '../../MiniaturaDoItem';
 import { toast } from '../../Toast';
-import EditorDoItem, { temCroma, temPersonalizacao } from './EditorDoItem';
+import EditorDoItem, { temPersonalizacao } from './EditorDoItem';
 
 /**
  * O INVENTÁRIO (protótipo aprovado 01/09) — a arrumação que jogos usam há vinte anos: **o que
@@ -83,13 +70,6 @@ const CATEGORIAS: Array<{ id: string; nome: string }> = [
   { id: 'posicao', nome: 'Layout' },
   { id: 'galeria', nome: 'Capacidades' },
 ];
-
-const ICONE_DA_ORIGEM: Record<OrigemDoItem, React.ReactNode> = {
-  nivel: <TrendingUp className="w-3.5 h-3.5" aria-hidden />,
-  seeds: <Sprout className="w-3.5 h-3.5" aria-hidden />,
-  conquista: <Trophy className="w-3.5 h-3.5" aria-hidden />,
-  creditos: <Crown className="w-3.5 h-3.5" aria-hidden />,
-};
 
 /** O ícone da tela para onde a rota manda — o mesmo desenho que a tela de destino usa no menu. */
 const DESTINO: Record<DestinoDeObtencao, React.ReactNode> = {
@@ -152,8 +132,9 @@ export default function Inventario({
      primeiro, e o cartão de cada trancado diz a rota. `false` é o padrão porque a pergunta mais
      frequente na tela de Personalizar continua sendo "o que eu tenho". */
   const [verTudo, setVerTudo] = useState(false);
-  const [escolhido, setEscolhido] = useState<string | null>(null);
   const [editando, setEditando] = useState<ItemDaLoja | null>(null);
+  /** Id da peça em compra — o botão vira "Comprando…" e não aceita um segundo clique. */
+  const [comprando, setComprando] = useState<string | null>(null);
   const [nomeNovo, setNomeNovo] = useState('');
   const [, force] = useState(0);
   const rerender = () => {
@@ -161,7 +142,7 @@ export default function Inventario({
     aoMudar();
   };
 
-  const colecao = useMemo(() => estadoDaColecao(nivel, saldo), [nivel, saldo]);
+  const colecao = useMemo(() => estadoDaColecao(nivel, saldo), [nivel, saldo, comprando]); // eslint-disable-line react-hooks/exhaustive-deps -- `comprando` força reler a posse depois da compra
   const comprados = useMemo(() => possuidos(), [colecao]); // eslint-disable-line react-hooks/exhaustive-deps -- a posse é lida junto com a coleção
 
   /** A origem de um item que JÁ é seu: como ele chegou até aqui. */
@@ -179,9 +160,6 @@ export default function Inventario({
        que já tem, e uma grade em ordem de arquivo enterraria as peças próprias no meio. */
     return [...filtrados].sort((a, b) => Number(meusIds.has(b.id)) - Number(meusIds.has(a.id)));
   }, [acervo, categoria, verTudo, meusIds]);
-  const item = escolhido ? (CATALOGO_DA_LOJA.find((i) => i.id === escolhido) ?? null) : (lista[0] ?? null);
-  const perfil = emPerfis ? (perfis.find((p) => p.id === escolhido) ?? perfis[0] ?? null) : null;
-
   const equipar = (i: ItemDaLoja, el?: HTMLElement | null) => {
     if (!equipavel(i)) {
       toast.ok(
@@ -198,6 +176,28 @@ export default function Inventario({
     }
   };
 
+  /**
+   * COMPRAR A PEÇA AQUI MESMO — o botão "Comprar · N" do design.
+   *
+   * A transação é a de `lib/galeria/comprarPeca`, a MESMA que a Loja chama, com o mesmo
+   * `spendId`: o débito é idempotente por item, então clicar duas vezes ou comprar o mesmo item
+   * nas duas telas cobra uma vez. Aqui fica só a reação — festa, aviso e reler a posse.
+   */
+  const comprar = async (i: ItemDaLoja, el?: HTMLElement | null) => {
+    setComprando(i.id);
+    try {
+      if (!(await comprarPecaComSeeds(i))) {
+        toast.warn('Não deu para completar a compra agora. Tente de novo.');
+        return;
+      }
+      comemorar('subiuNivel', el ?? null, { texto: 'Seu!' });
+      toast.ok(`${i.nome} é seu!`);
+      rerender();
+    } finally {
+      setComprando(null);
+    }
+  };
+
   return (
     <section className="space-y-4">
       {/* ── LOADOUT: o que está vestido agora ─────────────────────────────────────────────
@@ -209,10 +209,7 @@ export default function Inventario({
         {loadout.map((s) => (
           <button
             key={s.chave}
-            onClick={() => {
-              setCategoria(s.categoria);
-              setEscolhido(null);
-            }}
+            onClick={() => setCategoria(s.categoria)}
             title={`Trocar ${s.rotulo.toLowerCase()}`}
             className="inline-flex items-center gap-2 rounded-xl border border-border-subtle bg-canvas px-3 py-2 cursor-pointer hover:border-accent transition-colors"
           >
@@ -247,10 +244,7 @@ export default function Inventario({
             <button
               key={c.id}
               role="tab"
-              onClick={() => {
-                setCategoria(c.id);
-                setEscolhido(null);
-              }}
+              onClick={() => setCategoria(c.id)}
               aria-selected={ativa}
               className={`shrink-0 rounded-full border px-3.5 py-1.5 font-bold text-[12.5px] cursor-pointer inline-flex items-center gap-2 transition-colors ${
                 ativa
@@ -272,482 +266,267 @@ export default function Inventario({
         })}
       </div>
 
-      <div className="grid lg:grid-cols-[1fr_280px] gap-4 items-start">
-        {/* ── A GRADE ─────────────────────────────────────────────────────── */}
-        <div>
-          {!emPerfis && (
-            <div className="flex items-center justify-between gap-2 mb-3 flex-wrap">
-              <div className="inline-flex p-1 rounded-xl bg-canvas border border-border-subtle">
-                <button
-                  onClick={() => {
-                    setVerTudo(false);
-                    setEscolhido(null);
-                  }}
-                  aria-pressed={!verTudo}
-                  className={`px-3 py-1 rounded-lg text-[11.5px] font-bold cursor-pointer ${
-                    !verTudo ? 'bg-surface text-ink' : 'text-ink-muted hover:text-ink'
-                  }`}
-                >
-                  Meu acervo ({meus.length})
-                </button>
-                <button
-                  onClick={() => {
-                    setVerTudo(true);
-                    setEscolhido(null);
-                  }}
-                  aria-pressed={verTudo}
-                  className={`px-3 py-1 rounded-lg text-[11.5px] font-bold cursor-pointer ${
-                    verTudo ? 'bg-surface text-ink' : 'text-ink-muted hover:text-ink'
-                  }`}
-                >
-                  Tudo que existe ({CATALOGO_DA_LOJA.length})
-                </button>
-              </div>
-              {verTudo && (
-                <span className="text-[11px] text-ink-faint">Clique numa peça trancada para ver como se consegue.</span>
-              )}
-            </div>
-          )}
+      {/* ── O ACERVO EM EXIBIÇÃO — um par de links, não um segmentado ──────────────────────
+             O design não tem este controle (ele mostra só o que existe). Ele fica porque responde
+             uma pergunta real ("o que eu tenho" vs "o que existe"), mas como TEXTO: um segmentado
+             com dois botões e duas contagens disputava atenção com as abas de categoria logo
+             acima, e são dois níveis de filtro diferentes na mesma altura. */}
+      {!emPerfis && (
+        <div className="flex items-center gap-3 text-[12px]">
+          <button
+            onClick={() => setVerTudo(!verTudo)}
+            className="text-accent-ink font-bold hover:underline cursor-pointer"
+          >
+            {verTudo ? `Ver só o meu acervo (${meus.length})` : `Ver tudo que existe (${CATALOGO_DA_LOJA.length})`}
+          </button>
+          <span className="text-ink-faint">
+            {verTudo ? 'mostrando o catálogo inteiro' : `mostrando as ${meus.length} peças que já são suas`}
+          </span>
+        </div>
+      )}
 
-          {emPerfis ? (
-            <>
-              {/* Salvar mora AQUI, e não numa barra global: guardar o visual atual é uma ação
-                  sobre perfis, e é nesta categoria que ela é procurada. */}
-              <div className="flex flex-wrap items-center gap-2 mb-3">
-                <input
-                  value={nomeNovo}
-                  onChange={(e) => setNomeNovo(e.target.value)}
-                  placeholder="Nome para salvar o visual de agora"
-                  className="flex-1 min-w-[12rem] px-3 py-2 rounded-xl bg-canvas border border-border-subtle text-[13px] text-ink outline-none focus:border-accent"
-                />
-                <button
-                  onClick={() => {
-                    aoSalvarPerfil(nomeNovo);
-                    setNomeNovo('');
-                    rerender();
-                  }}
-                  className="btn-solid"
-                >
-                  <Save className="w-4 h-4" aria-hidden /> Salvar este visual
-                </button>
-              </div>
-              {/* Mesmo cartão do design na aba Perfis: emoji, nome, o que ele é, e "Aplicar" no
-                  próprio cartão. Perfil troca seis peças de uma vez — esconder essa ação atrás
-                  de um duplo-clique num ladrilho de 100px era o pior lugar possível para ela. */}
-              <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-3">
-                {perfis.map((p) => {
-                  const falta = faltaDoPerfil(p);
-                  const sel = perfil?.id === p.id;
-                  const cores = coresDoPerfil(p);
-                  return (
-                    <div
-                      key={p.id}
-                      className={`card-panel relative flex flex-col gap-2 p-3 border-2 bg-surface transition-transform hover:-translate-y-0.5 ${
-                        sel ? 'border-accent shadow-btn' : 'border-border-subtle'
-                      } ${falta.length ? 'opacity-80' : ''}`}
-                    >
-                      {falta.length > 0 && (
-                        <Lock className="absolute top-2 right-2 w-3 h-3 text-ink-faint z-10" aria-hidden />
-                      )}
-                      {p.proprio && (
-                        <span className="absolute top-2 left-2 font-mono text-[7.5px] font-bold uppercase tracking-wider text-accent-ink z-10">
-                          seu
-                        </span>
-                      )}
+      {emPerfis ? (
+        <>
+          {/* Salvar mora AQUI, e não numa barra global: guardar o visual atual é uma ação
+              sobre perfis, e é nesta categoria que ela é procurada. */}
+          <div className="flex flex-wrap items-center gap-2">
+            <input
+              value={nomeNovo}
+              onChange={(e) => setNomeNovo(e.target.value)}
+              placeholder="Nome para salvar o visual de agora"
+              className="flex-1 min-w-[12rem] px-3 py-2 rounded-xl bg-surface border border-border-subtle text-[13px] text-ink outline-none focus:border-accent"
+            />
+            <button
+              onClick={() => {
+                aoSalvarPerfil(nomeNovo);
+                setNomeNovo('');
+                rerender();
+              }}
+              className="btn-outline"
+            >
+              <Save className="w-4 h-4" aria-hidden /> Salvar este visual
+            </button>
+          </div>
 
-                      <span
-                        className="h-14 rounded-lg border border-border-subtle bg-canvas flex flex-col items-center justify-center gap-1"
-                        aria-hidden
-                      >
-                        <span className="text-[22px] leading-none">{p.emoji}</span>
-                        {cores && (
-                          <span className="flex gap-0.5">
-                            {cores.map((c, i) => (
-                              <span
-                                key={i}
-                                className="w-2.5 h-2.5 rounded-full border border-border-subtle"
-                                style={{ backgroundColor: c }}
-                              />
-                            ))}
-                          </span>
-                        )}
+          {/* O CARTÃO DE PERFIL DO DESIGN: emoji, nome, o que ele é, e "Aplicar perfil" em
+              laranja cheio. Aqui o laranja é certo — é a única ação da aba, e é a que o design
+              destaca (nas abas de peça o botão é de contorno, e continua de contorno). */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            {perfis.map((p) => {
+              const falta = faltaDoPerfil(p);
+              const cores = coresDoPerfil(p);
+              return (
+                <div
+                  key={p.id}
+                  className="rounded-[14px] border border-border-subtle bg-surface p-4 flex flex-col gap-2 hover:border-accent transition-colors"
+                >
+                  <span className="flex items-center gap-2" aria-hidden>
+                    <span className="text-[20px] leading-none">{p.emoji}</span>
+                    {cores && (
+                      <span className="flex gap-1">
+                        {cores.map((c, i) => (
+                          <span
+                            key={i}
+                            className="w-3 h-3 rounded-full border border-border-subtle"
+                            style={{ backgroundColor: c }}
+                          />
+                        ))}
                       </span>
+                    )}
+                    {p.proprio && <span className="label-mono text-[9px] text-ink-faint ms-auto">seu</span>}
+                  </span>
 
-                      <button
-                        onClick={() => setEscolhido(p.id)}
-                        onDoubleClick={(e) => aoAplicarPerfil(p, e.currentTarget)}
-                        aria-pressed={sel}
-                        className="text-start font-display font-bold text-[13px] text-ink leading-tight cursor-pointer hover:text-accent after:absolute after:inset-0 focus-visible:outline-2 focus-visible:outline-accent"
-                      >
-                        {p.nome}
-                      </button>
-                      <span className="text-[11px] text-ink-muted leading-snug line-clamp-2">{p.desc}</span>
+                  <p className="font-display font-bold text-[13px] text-ink leading-tight">{p.nome}</p>
+                  <p className="text-[11px] text-ink-muted leading-snug">{p.desc}</p>
 
+                  {falta.length > 0 && (
+                    <p className="label-mono text-[9.5px] text-ink-faint leading-tight">
+                      falta liberar {falta.length === 1 ? '1 peça' : `${falta.length} peças`}
+                    </p>
+                  )}
+
+                  <button
+                    onClick={(e) => {
+                      aoAplicarPerfil(p, e.currentTarget);
+                      rerender();
+                    }}
+                    className={`mt-auto w-full rounded-lg py-2 text-[12.5px] font-bold cursor-pointer ${
+                      falta.length
+                        ? 'border border-border-subtle bg-canvas text-ink-muted hover:border-accent hover:text-accent-ink'
+                        : 'bg-accent text-accent-contrast hover:brightness-110'
+                    }`}
+                  >
+                    {/* Trancado o botão continua clicável de propósito: `aoAplicarPerfil` diz
+                        EXATAMENTE o que falta liberar. Um botão morto não diria nada. */}
+                    {falta.length ? 'Faltam peças' : 'Aplicar perfil'}
+                  </button>
+
+                  {p.proprio && (
+                    <span className="flex items-center gap-3 pt-1">
                       <button
-                        onClick={(e) => {
-                          aoAplicarPerfil(p, e.currentTarget);
+                        onClick={() => {
+                          aoRenomearPerfil(p);
                           rerender();
                         }}
-                        className={`relative z-10 mt-auto w-full rounded-lg border border-border-subtle bg-canvas py-1.5 text-[12px] font-bold cursor-pointer hover:border-accent hover:text-accent-ink ${
-                          falta.length ? 'text-ink-muted' : 'text-ink'
-                        }`}
+                        className="text-[11px] text-ink-faint hover:text-ink inline-flex items-center gap-1 cursor-pointer"
                       >
-                        {/* Trancado o botão continua clicável de propósito: `aoAplicarPerfil` diz
-                            EXATAMENTE o que falta liberar. Um botão morto não diria nada. */}
-                        {falta.length ? 'Faltam peças' : 'Aplicar perfil'}
+                        <Pencil className="w-3 h-3" aria-hidden /> renomear
                       </button>
-                    </div>
-                  );
-                })}
-              </div>
-            </>
-          ) : lista.length === 0 ? (
-            /* O "SEU" É A PALAVRA QUE IMPORTA quando os dois acervos convivem na mesma grade:
-               sem ela, a mesma frase serviria para "você não tem nada aqui" e para "não existe
-               nada aqui", que são notícias opostas. */
-            <p className="text-[13px] text-ink-muted py-8 text-center">
-              {verTudo ? (
-                'Esta categoria ainda não tem peça nenhuma no catálogo.'
-              ) : (
-                <>
-                  Nada seu nesta categoria ainda.{' '}
-                  <button onClick={() => setVerTudo(true)} className="underline text-accent-ink cursor-pointer">
-                    Ver o que existe
-                  </button>
-                  .
-                </>
-              )}
-            </p>
-          ) : (
-            /* O CARTÃO DE PEÇA, no formato do design: prévia larga em cima, nome legível, e a
-               AÇÃO no próprio cartão. Antes era um ladrilho quadrado de ~100px com o nome em
-               9,5px e nenhum botão — para equipar era preciso descobrir o duplo-clique ou achar
-               o painel da direita. O painel continua (é ele que traz descrição, origem, cromas e
-               o editor); deixou de ser o ÚNICO jeito de agir.
-               Peça trancada não ganha botão de "Comprar" que não compra: diz o requisito e o
-               botão leva à tela que entrega — a compra continua morando só na Loja, com a régua
-               de Seeds do servidor. */
-            <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-3">
-              {lista.map((i) => {
-                // A MESMA RÉGUA de sempre decide o cadeado: a grade não tem opinião própria sobre
-                // o que está liberado. No acervo próprio ela responde 'equipavel' para todos.
-                const est = estadoDoItem(i, nivel, saldo);
-                const liberado = est.estado === 'equipavel';
-                const eq = liberado && equipadoAtual(i);
-                const sel = item?.id === i.id;
-                const cor = COR_DA_RARIDADE[i.raridade];
-                // O croma equipado aparece na grade: sem isso a peça personalizada some no meio
-                // das iguais, e o gasto de Seeds não teria como se mostrar.
-                const croma = cromaEquipado(i.id);
-                const rota = liberado ? null : rotaDeObtencao(i, saldo);
-                const irPara = !rota
-                  ? undefined
-                  : rota.destino === 'conquistas'
-                    ? onIrParaConquistas
-                    : rota.destino === 'passe'
-                      ? onIrParaPasse
-                      : onIrParaLoja;
-                return (
-                  <div
-                    key={i.id}
-                    className={`card-panel relative flex flex-col gap-2 p-3 border-2 transition-transform hover:-translate-y-0.5 ${
-                      sel ? 'border-accent shadow-btn' : cor.borda
-                    } bg-surface ${liberado ? '' : 'opacity-80'}`}
-                  >
-                    {eq && <Check className="absolute top-2 right-2 w-3.5 h-3.5 text-good z-10" aria-hidden />}
-                    {!liberado && (
-                      <Lock className="absolute top-2 right-2 w-3.5 h-3.5 text-ink-faint z-10" aria-hidden />
-                    )}
-                    {croma && <Palette className="absolute top-2 left-2 w-3 h-3 text-rare z-10" aria-hidden />}
-
-                    {/* PEÇA DE COR: faixas na largura inteira, como no design — é assim que um
-                        tema se lê de relance ("claro e terracota", "escuro e verde"). As quatro
-                        bolinhas de 9px do ladrilho antigo diziam a mesma coisa em tamanho que
-                        não dava para comparar. Peça sem cor própria (fonte, cursor, pack, rastro)
-                        segue com a miniatura real, que é o que mostra o que ela desenha. */}
-                    <span className={`h-14 rounded-lg border ${cor.borda} overflow-hidden flex`} aria-hidden>
-                      {i.previa?.length ? (
-                        i.previa.map((c, n) => <span key={n} className="flex-1" style={{ backgroundColor: c }} />)
-                      ) : (
-                        <span className={`flex-1 ${cor.fundo} flex items-center justify-center`}>
-                          <MiniaturaDoItem item={i} />
-                        </span>
-                      )}
+                      <button
+                        onClick={() => {
+                          aoApagarPerfil(p);
+                          rerender();
+                        }}
+                        className="text-[11px] text-ink-faint hover:text-error inline-flex items-center gap-1 cursor-pointer"
+                      >
+                        <Trash2 className="w-3 h-3" aria-hidden /> apagar
+                      </button>
                     </span>
-
-                    <button
-                      onClick={() => setEscolhido(i.id)}
-                      onDoubleClick={(e) => {
-                        if (liberado) equipar(i, e.currentTarget);
-                      }}
-                      aria-pressed={sel}
-                      title={liberado ? i.desc : `${i.nome} — trancado; clique para ver como se consegue`}
-                      className="text-start font-display font-bold text-[13px] text-ink leading-tight cursor-pointer hover:text-accent after:absolute after:inset-0 focus-visible:outline-2 focus-visible:outline-accent"
-                    >
-                      {i.nome}
-                    </button>
-
-                    {!liberado && est.motivo && (
-                      <span className="label-mono text-[9.5px] text-ink-faint leading-tight">{est.motivo}</span>
-                    )}
-
-                    {liberado ? (
-                      <button
-                        onClick={(e) => equipar(i, e.currentTarget)}
-                        disabled={eq}
-                        className={`relative z-10 mt-auto w-full rounded-lg border py-1.5 text-[12px] font-bold cursor-pointer ${
-                          eq
-                            ? 'border-good/40 bg-good-soft text-good-ink cursor-default'
-                            : 'border-border-subtle bg-canvas text-ink hover:border-accent hover:text-accent-ink'
-                        }`}
-                      >
-                        {eq ? 'Equipado' : equipavel(i) ? 'Equipar' : 'Ativa'}
-                      </button>
-                    ) : irPara ? (
-                      <button
-                        onClick={irPara}
-                        className="relative z-10 mt-auto w-full rounded-lg border border-border-subtle bg-canvas py-1.5 text-[12px] font-bold text-ink-muted hover:border-accent hover:text-accent-ink cursor-pointer inline-flex items-center justify-center gap-1.5"
-                      >
-                        {DESTINO[rota.destino]} {rota.rotuloDoBotao}
-                      </button>
-                    ) : null}
-                  </div>
-                );
-              })}
-            </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </>
+      ) : lista.length === 0 ? (
+        /* O "SEU" É A PALAVRA QUE IMPORTA quando os dois acervos convivem na mesma grade:
+           sem ela, a mesma frase serviria para "você não tem nada aqui" e para "não existe
+           nada aqui", que são notícias opostas. */
+        <p className="text-[13px] text-ink-muted py-8 text-center">
+          {verTudo ? (
+            'Esta categoria ainda não tem peça nenhuma no catálogo.'
+          ) : (
+            <>
+              Nada seu nesta categoria ainda.{' '}
+              <button onClick={() => setVerTudo(true)} className="underline text-accent-ink cursor-pointer">
+                Ver o que existe
+              </button>
+              .
+            </>
           )}
-        </div>
+        </p>
+      ) : (
+        /* ── O CARTÃO DE PEÇA, no formato do design ───────────────────────────────────────
+           Prévia larga no topo, nome, o que a peça é, e a ação num botão de contorno da largura
+           do cartão. O que mudou nesta rodada, e por quê:
 
-        {/* ── A PRÉVIA DO QUE ESTÁ ESCOLHIDO ──────────────────────────────── */}
-        <div className="rounded-2xl border border-border-subtle bg-surface p-4 lg:sticky lg:top-4">
-          {emPerfis ? (
-            !perfil ? (
-              <p className="text-[12.5px] text-ink-muted">
-                Nenhum perfil ainda. Salve o visual de agora para criar o primeiro.
-              </p>
-            ) : (
-              (() => {
-                const falta = faltaDoPerfil(perfil);
-                const cores = coresDoPerfil(perfil);
-                return (
-                  <>
-                    <div
-                      className="h-28 rounded-xl border border-border-subtle bg-canvas flex flex-col items-center justify-center gap-2 mb-3"
-                      aria-hidden
-                    >
-                      <span className="text-[40px] leading-none">{perfil.emoji}</span>
-                      {cores && (
-                        <span className="flex gap-1.5">
-                          {cores.map((c, i) => (
-                            <span
-                              key={i}
-                              className="w-6 h-6 rounded-full border border-border-subtle"
-                              style={{ backgroundColor: c }}
-                            />
-                          ))}
-                        </span>
-                      )}
-                    </div>
-                    <h4 className="font-display font-black text-[16px] text-ink leading-tight">{perfil.nome}</h4>
-                    <p className="font-mono text-[10px] uppercase tracking-wider font-bold text-ink-faint mt-1">
-                      {perfil.proprio ? 'Seu' : 'Pronto'}
-                    </p>
-                    <p className="text-[12.5px] text-ink-muted mt-2 leading-relaxed">{perfil.desc}</p>
+           · SAIU O PAINEL LATERAL de 280px. Ele era a única forma de saber o que uma peça é e a
+             única forma de equipar — então a grade tinha de ser um mosaico de ladrilhos de 100px
+             ao lado dele, e o design não tem nada disso. Tudo o que o painel dizia mora agora no
+             cartão: descrição, origem, raridade, requisito, e os dois botões (equipar/comprar e
+             o editor). Nada se perdeu, e a grade ganhou a largura inteira.
+           · SAIU A COR DE RARIDADE DA BORDA. Quatro cores de borda (roxo, dourado, azul, neutro)
+             espalhadas por 130 cartões era o que sobrava de "colorido" numa tela que o design
+             desenhou inteira em bege e creme. A raridade continua escrita, na linha mono.
+           · O BOTÃO "COMPRAR · N" É O DO DESIGN E COMPRA DE VERDADE: a transação saiu para
+             `lib/galeria/comprarPeca`, com o MESMO `spendId` da Loja (compra dobrada não cobra
+             duas vezes). Ele só aparece quando dá para comprar; quando falta nível ou é exclusivo
+             de conquista, o cartão diz o requisito e o botão leva à tela que entrega. */
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+          {lista.map((i) => {
+            // A MESMA RÉGUA de sempre decide o cadeado: a grade não tem opinião própria sobre
+            // o que está liberado. No acervo próprio ela responde 'equipavel' para todos.
+            const est = estadoDoItem(i, nivel, saldo);
+            const liberado = est.estado === 'equipavel';
+            const eq = liberado && equipadoAtual(i);
+            const podeComprar = est.estado === 'compravel' && i.precoSeeds !== undefined;
+            // O croma equipado aparece na grade: sem isso a peça personalizada some no meio
+            // das iguais, e o gasto de Seeds não teria como se mostrar.
+            const croma = cromaEquipado(i.id);
+            const origem = origemDe(i);
+            const legenda = liberado
+              ? i.raridade !== 'comum' || origem !== 'nivel'
+                ? `${COR_DA_RARIDADE[i.raridade].rotulo} · ${ORIGEM[origem].rotulo}`
+                : null
+              : est.motivo;
+            const rota = liberado || podeComprar ? null : rotaDeObtencao(i, saldo);
+            const irPara = !rota
+              ? undefined
+              : rota.destino === 'conquistas'
+                ? onIrParaConquistas
+                : rota.destino === 'passe'
+                  ? onIrParaPasse
+                  : onIrParaLoja;
+            return (
+              <div
+                key={i.id}
+                className="rounded-[14px] border border-border-subtle bg-surface p-4 flex flex-col gap-2 hover:border-accent transition-colors"
+              >
+                {/* PEÇA DE COR: faixas na largura inteira, como no design — é assim que um tema
+                    se lê de relance ("claro e terracota", "escuro e verde"). Peça sem cor própria
+                    (fonte, cursor, pack, rastro) segue com a miniatura real, que é o que mostra
+                    o que ela desenha. */}
+                <span className="h-10 rounded-lg overflow-hidden flex border border-border-subtle/60" aria-hidden>
+                  {i.previa?.length ? (
+                    i.previa.map((c, n) => <span key={n} className="flex-1" style={{ backgroundColor: c }} />)
+                  ) : (
+                    <span className="flex-1 bg-canvas flex items-center justify-center">
+                      <MiniaturaDoItem item={i} />
+                    </span>
+                  )}
+                </span>
 
-                    {/* Perfil troca SEIS peças de uma vez — dizer isso é o que separa "aplicar um
-                      perfil" de "equipar uma peça", e o que justifica a categoria existir. */}
-                    <p className="mt-3 pt-3 border-t border-border-subtle flex items-start gap-2 text-[11.5px]">
-                      <Wand2 className="w-3.5 h-3.5 shrink-0 mt-0.5 text-accent-ink" aria-hidden />
-                      <span>
-                        <b className="text-accent-ink">Loadout</b>{' '}
-                        <span className="text-ink-muted">
-                          — troca tema, fonte, partículas, emojis, cursor e rastro de uma vez
-                        </span>
-                      </span>
-                    </p>
+                <p className="font-display font-bold text-[13px] text-ink leading-tight flex items-start gap-1.5">
+                  <span className="min-w-0">{i.nome}</span>
+                  {croma && <Palette className="w-3 h-3 shrink-0 mt-0.5 text-ink-faint" aria-hidden />}
+                </p>
+                <p className="text-[11px] text-ink-muted leading-snug">{i.desc}</p>
 
+                {/* Raridade e origem (ou o requisito, quando trancada) em UMA linha mono — é o
+                    que o painel lateral dizia em dois blocos coloridos.
+                    SÓ QUANDO DIZ ALGO: "Comum · Nível" é o caso de quase todo o acervo, então a
+                    linha aparecia em ~90% dos cartões sem informar nada — virava textura, que é o
+                    oposto do que o design faz aqui (ele não tem legenda nenhuma). Peça rara, peça
+                    comprada com Seeds, peça de conquista e peça trancada continuam dizendo. */}
+                {legenda && <p className="label-mono text-[9.5px] text-ink-faint leading-tight">{legenda}</p>}
+
+                <span className="mt-auto flex flex-col gap-1.5 pt-1">
+                  {podeComprar ? (
                     <button
-                      onClick={(e) => {
-                        aoAplicarPerfil(perfil, e.currentTarget);
-                        rerender();
-                      }}
-                      className={`w-full mt-3 py-3 rounded-xl font-display font-black text-[13px] cursor-pointer ${
-                        falta.length
-                          ? 'bg-canvas border-2 border-border-subtle text-ink-muted'
-                          : 'bg-accent text-accent-contrast hover:brightness-110'
+                      onClick={(e) => void comprar(i, e.currentTarget)}
+                      disabled={comprando === i.id}
+                      className="w-full rounded-lg border border-border-subtle bg-canvas py-2 text-[12.5px] font-bold text-ink hover:border-accent hover:text-accent-ink cursor-pointer inline-flex items-center justify-center gap-1.5 disabled:opacity-60"
+                    >
+                      <Sprout className="w-3.5 h-3.5 text-good" aria-hidden />
+                      {comprando === i.id ? 'Comprando…' : `Comprar · ${i.precoSeeds}`}
+                    </button>
+                  ) : liberado ? (
+                    <button
+                      onClick={(e) => equipar(i, e.currentTarget)}
+                      disabled={eq}
+                      className={`w-full rounded-lg border py-2 text-[12.5px] font-bold cursor-pointer ${
+                        eq
+                          ? 'border-border-subtle bg-good-soft text-good-ink cursor-default'
+                          : 'border-border-subtle bg-canvas text-ink hover:border-accent hover:text-accent-ink'
                       }`}
                     >
-                      {falta.length ? (
-                        <span className="inline-flex items-center gap-1.5">
-                          <Lock className="w-4 h-4" aria-hidden /> Faltam peças
-                        </span>
-                      ) : (
-                        'Aplicar'
-                      )}
+                      {eq ? 'Equipado' : equipavel(i) ? 'Equipar' : 'Ativa'}
                     </button>
+                  ) : irPara ? (
+                    <button
+                      onClick={irPara}
+                      className="w-full rounded-lg border border-border-subtle bg-canvas py-2 text-[12.5px] font-bold text-ink-muted hover:border-accent hover:text-accent-ink cursor-pointer inline-flex items-center justify-center gap-1.5"
+                    >
+                      {DESTINO[rota.destino]} {rota.rotuloDoBotao}
+                    </button>
+                  ) : null}
 
-                    {falta.length > 0 && (
-                      <p className="text-[11px] text-ink-faint mt-2 leading-snug">
-                        Falta liberar: {falta.slice(0, 3).join(' · ')}
-                        {falta.length > 3 ? ` e mais ${falta.length - 3}` : ''}.
-                      </p>
-                    )}
-
-                    {perfil.proprio && (
-                      <div className="flex items-center gap-3 mt-3">
-                        <button
-                          onClick={() => {
-                            aoRenomearPerfil(perfil);
-                            rerender();
-                          }}
-                          className="text-[11.5px] text-ink-faint hover:text-ink inline-flex items-center gap-1 cursor-pointer"
-                        >
-                          <Pencil className="w-3 h-3" aria-hidden /> renomear
-                        </button>
-                        <button
-                          onClick={() => {
-                            aoApagarPerfil(perfil);
-                            setEscolhido(null);
-                            rerender();
-                          }}
-                          className="text-[11.5px] text-ink-faint hover:text-error inline-flex items-center gap-1 cursor-pointer"
-                        >
-                          <Trash2 className="w-3 h-3" aria-hidden /> apagar
-                        </button>
-                      </div>
-                    )}
-                  </>
-                );
-              })()
-            )
-          ) : !item ? (
-            <p className="text-[12.5px] text-ink-muted">Escolha uma peça na grade para ver o que ela é.</p>
-          ) : (
-            (() => {
-              const cor = COR_DA_RARIDADE[item.raridade];
-              const org = ORIGEM[origemDe(item)];
-              const liberado = estadoDoItem(item, nivel, saldo).estado === 'equipavel';
-              const eq = liberado && equipadoAtual(item);
-              // Pack e cursor entram no editor pelo conteúdo (os emojis), não pela cor: contar
-              // cromas neles seria anunciar um produto que a peça não tem.
-              const cromas = temCroma(item) ? cromasDaPeca(item.id, item.raridade) : [];
-              const meusCromas = cromas.filter(temOCroma).length;
-              return (
-                <>
-                  <div
-                    className={`relative h-28 rounded-xl border ${cor.borda} ${cor.fundo} flex items-center justify-center mb-3`}
-                    aria-hidden
-                  >
-                    {!liberado && (
-                      <span className="absolute top-2 right-2 px-2 py-0.5 rounded-md bg-canvas border border-border-subtle text-ink-faint text-[10px] font-bold inline-flex items-center gap-1">
-                        <Lock className="w-3 h-3" /> Trancado
-                      </span>
-                    )}
-                    <MiniaturaDoItem item={item} tam="grande" />
-                  </div>
-                  <h4 className="font-display font-black text-[16px] text-ink leading-tight">{item.nome}</h4>
-                  <p className="font-mono text-[10px] uppercase tracking-wider font-bold text-ink-faint mt-1">
-                    {cor.rotulo}
-                  </p>
-                  <p className="text-[12.5px] text-ink-muted mt-2 leading-relaxed">{item.desc}</p>
-
-                  {liberado ? (
-                    <>
-                      {/* A ETIQUETA DE ORIGEM — "como isto chegou até mim" é a pergunta que a coleção
-                        antiga não respondia depois que o item entrava no balde único. */}
-                      <p
-                        className={`mt-3 pt-3 border-t border-border-subtle flex items-center gap-2 text-[11.5px] font-bold ${org.texto}`}
-                      >
-                        {ICONE_DA_ORIGEM[origemDe(item)]} {org.rotulo} ·{' '}
-                        <span className="font-normal text-ink-muted">{org.comoSeGanha}</span>
-                      </p>
-
-                      <button
-                        onClick={(e) => equipar(item, e.currentTarget)}
-                        disabled={eq}
-                        className={`w-full mt-3 py-3 rounded-xl font-display font-black text-[13px] cursor-pointer ${
-                          eq
-                            ? 'bg-good-soft text-good-ink cursor-default'
-                            : 'bg-accent text-accent-contrast hover:brightness-110'
-                        }`}
-                      >
-                        {eq ? (
-                          <span className="inline-flex items-center gap-1.5">
-                            <Check className="w-4 h-4" aria-hidden /> Em uso
-                          </span>
-                        ) : equipavel(item) ? (
-                          'Equipar'
-                        ) : (
-                          'Capacidade ativa'
-                        )}
-                      </button>
-
-                      {temPersonalizacao(item) && (
-                        <>
-                          <button
-                            onClick={() => setEditando(item)}
-                            className="w-full mt-2 py-2.5 rounded-xl border-2 border-border-subtle bg-canvas text-ink font-bold text-[12.5px] cursor-pointer hover:border-accent hover:text-accent-ink"
-                          >
-                            <span className="inline-flex items-center gap-1.5">
-                              <Pencil className="w-3.5 h-3.5" aria-hidden /> Personalizar
-                            </span>
-                          </button>
-                          {cromas.length > 0 && (
-                            <p className="text-[11px] text-ink-faint mt-2 leading-snug">
-                              {meusCromas === 1
-                                ? `1 das ${cromas.length} cores desta peça é sua.`
-                                : `${meusCromas} das ${cromas.length} cores desta peça são suas.`}{' '}
-                              As outras se desbloqueiam com Seeds — a peça é a mesma, muda a cor.
-                            </p>
-                          )}
-                        </>
-                      )}
-
-                      {!equipavel(item) && (
-                        <p className="text-[11px] text-ink-faint mt-2 leading-snug flex items-start gap-1.5">
-                          <Sparkles className="w-3 h-3 mt-0.5 shrink-0" aria-hidden />
-                          Capacidade: não se veste — ela abre opções no botão Personalizar da peça que ela destrava.
-                        </p>
-                      )}
-                    </>
-                  ) : (
-                    (() => {
-                      /* A ROTA DE AQUISIÇÃO — a pergunta que a tela nunca respondia. Até aqui, uma peça
-                     que não era sua simplesmente não aparecia no inventário; agora aparece, e o
-                     cartão diz o canal, o que falta e para onde ir. O texto e a cor saem de
-                     `rotaDeObtencao`/`ORIGEM` (lib/loja.ts): a tela não tem régua própria. */
-                      const rota = rotaDeObtencao(item, saldo);
-                      const cores = ORIGEM[rota.origem];
-                      const irPara =
-                        rota.destino === 'conquistas'
-                          ? onIrParaConquistas
-                          : rota.destino === 'passe'
-                            ? onIrParaPasse
-                            : onIrParaLoja;
-                      return (
-                        <div className={`mt-3 rounded-xl border ${cores.borda} ${cores.fundo} p-3`}>
-                          <p className={`text-[11px] font-bold flex items-center gap-1.5 mb-1 ${cores.texto}`}>
-                            {ICONE_DA_ORIGEM[rota.origem]} {rota.titulo}
-                          </p>
-                          <p className="text-[11.5px] text-ink-muted leading-relaxed">{rota.texto}</p>
-                          {irPara && (
-                            <button
-                              onClick={irPara}
-                              className="w-full mt-2.5 py-2 rounded-lg border border-border-subtle bg-canvas text-ink font-bold text-[12px] cursor-pointer hover:border-accent hover:text-accent-ink inline-flex items-center justify-center gap-1.5"
-                            >
-                              {DESTINO[rota.destino]} {rota.rotuloDoBotao}
-                            </button>
-                          )}
-                        </div>
-                      );
-                    })()
+                  {/* O EDITOR DA PEÇA (paletas, pack próprio, croma) só aparece onde há o que
+                      editar — oferecê-lo num item sem parâmetro abriria uma janela vazia. */}
+                  {liberado && temPersonalizacao(i) && (
+                    <button
+                      onClick={() => setEditando(i)}
+                      className="self-start text-[11px] text-ink-faint hover:text-accent-ink inline-flex items-center gap-1 cursor-pointer"
+                    >
+                      <Pencil className="w-3 h-3" aria-hidden /> personalizar
+                    </button>
                   )}
-                </>
-              );
-            })()
-          )}
+                </span>
+              </div>
+            );
+          })}
         </div>
-      </div>
+      )}
 
       {/* ── O QUE FALTA — atalho honesto: o acervo mostra o que é seu, e diz onde vê o resto ── */}
       <p className="text-[12px] text-ink-muted flex items-center gap-2 flex-wrap">

@@ -20,7 +20,6 @@ import { t, temTraducao } from './i18n';
  * eixo do idioma entra por fora deste (chave → idioma → perfil), sem reescrever os consumidores.
  */
 
-
 export type AgeProfileType = 'kids' | 'pro' | 'senior';
 
 export function isAgeProfile(v: unknown): v is AgeProfileType {
@@ -39,11 +38,13 @@ const AGE_PROFILE_KEY = 'babel.age_profile';
  * aberto não reflete ali até reabrir — limite aceito conscientemente.
  */
 export function readAgeProfile(): AgeProfileType {
-  // O padrão é SEMPRE o perfil sênior / "Leitura ampliada" — decisão do dono estendida ao build
-  // completo em 2026-08-31 (spec leitura-ampliada-padrao): a primeira visita deve ser a mais
-  // confortável e guiada; quem quiser densidade troca em Personalizar → Tela. A preferência
-  // gravada (local ou do servidor) continua vencendo.
-  return readStoredEnum(AGE_PROFILE_KEY, ['kids', 'pro', 'senior'], 'senior');
+  // PADRÃO MUDOU DE 'senior' PARA 'pro' (redesign-v4, decisão do dono): a spec
+  // leitura-ampliada-padrao (2026-08-31) tornava sênior o padrão por acessibilidade — mas a
+  // referência de design inteira (todos os prints) só retrata o formato "Produtividade" (grade
+  // de cartões), e quem nunca mexeu no perfil caía num layout sequencial que não tem nenhuma
+  // relação visual com o design, por mais que o resto da tela fosse ajustado. A preferência
+  // gravada (local ou do servidor) continua vencendo; isto só muda quem nunca escolheu.
+  return readStoredEnum(AGE_PROFILE_KEY, ['kids', 'pro', 'senior'], 'pro');
 }
 
 /**
@@ -85,252 +86,252 @@ export const COPY = {
   'ex.review': {
     kids: 'Treino de memória',
     pro: 'Revisão espaçada (SRS)',
-    senior: 'Repetir o que você salvou'
+    senior: 'Repetir o que você salvou',
   },
   'ex.review.hint.due': {
     kids: '{n} cartas esperando você',
     pro: '{n} vencidos agora',
-    senior: '{n} palavras para repetir hoje'
+    senior: '{n} palavras para repetir hoje',
   },
   'ex.review.hint.deck': {
     kids: '{n} cartas no seu baralho',
     pro: '{n} cartões no deck',
-    senior: '{n} palavras guardadas'
+    senior: '{n} palavras guardadas',
   },
   'ex.active_production': {
     kids: 'Escrever de cabeça',
     pro: 'Produção ativa',
-    senior: 'Escrever sem olhar a resposta'
+    senior: 'Escrever sem olhar a resposta',
   },
   'ex.active_production.hint': {
     kids: '{n} cartas prontas para o desafio',
     pro: '{n} cartões maduros o bastante',
-    senior: '{n} palavras já bem firmes'
+    senior: '{n} palavras já bem firmes',
   },
   'ex.shadowing': {
     kids: 'Desafio de pronúncia',
     pro: 'Shadowing (pronúncia)',
-    senior: 'Repetir em voz alta'
+    senior: 'Repetir em voz alta',
   },
   'ex.shadowing.hint': {
     kids: '{n} falas para imitar',
     pro: '{n} frases desta sessão',
-    senior: '{n} frases para praticar'
+    senior: '{n} frases para praticar',
   },
   'ex.rewrite': {
     kids: 'Reescrever do seu jeito',
     pro: 'Reescrever um trecho',
-    senior: 'Escrever a frase com outras palavras'
+    senior: 'Escrever a frase com outras palavras',
   },
   'ex.rewrite.hint': {
     kids: 'mude a frase e veja se ficou boa',
     pro: 'reformular e comparar com feedback',
-    senior: 'você reescreve e recebe uma correção'
+    senior: 'você reescreve e recebe uma correção',
   },
   'ex.caption_sync': {
     kids: 'Casar a legenda com o som',
     pro: 'Sincronizar legenda',
-    senior: 'Ligar a frase ao trecho do áudio'
+    senior: 'Ligar a frase ao trecho do áudio',
   },
   'ex.caption_sync.hint': {
     kids: 'ouça e ache o trecho certo',
     pro: 'ouvir o trecho real e casar a legenda',
-    senior: 'ouça e escolha a frase correspondente'
+    senior: 'ouça e escolha a frase correspondente',
   },
   'ex.waveform': {
     kids: 'Escrever o que ouviu',
     pro: 'Ditado com waveform',
-    senior: 'Escutar e escrever'
+    senior: 'Escutar e escrever',
   },
   'ex.waveform.hint': {
     kids: 'ouça o áudio e digite a fala',
     pro: 'ouvir o áudio real e transcrever',
-    senior: 'ouça o trecho e escreva o que entendeu'
+    senior: 'ouça o trecho e escreva o que entendeu',
   },
   'ex.context_mining': {
     kids: 'Caça às palavras de ligação',
     pro: 'Mineração de conectores',
-    senior: 'Encontrar as palavras que ligam ideias'
+    senior: 'Encontrar as palavras que ligam ideias',
   },
   'ex.context_mining.hint': {
     kids: 'ache as palavrinhas que ligam as frases',
     pro: 'achar os conectores na sua própria transcrição',
-    senior: 'marque as palavras que ligam uma ideia à outra'
+    senior: 'marque as palavras que ligam uma ideia à outra',
   },
   'ex.vocab_drill': {
     kids: 'Trocar por uma palavra melhor',
     pro: 'Drill de vocabulário',
-    senior: 'Escolher a palavra mais precisa'
+    senior: 'Escolher a palavra mais precisa',
   },
   'ex.vocab_drill.hint': {
     kids: 'troque o simples pelo mais legal',
     pro: 'trocar o básico pelo preciso',
-    senior: 'substitua a palavra comum pela mais exata'
+    senior: 'substitua a palavra comum pela mais exata',
   },
   'ex.ed_drill': {
     kids: 'Som do "-ed" no fim',
     pro: 'Drill de pronúncia "-ed"',
-    senior: 'Pronúncia do "-ed" em inglês'
+    senior: 'Pronúncia do "-ed" em inglês',
   },
   'ex.ed_drill.hint': {
     kids: 'três sons diferentes, acerte qual é',
     pro: 'terminais /t/ /d/ /ɪd/, conteúdo em inglês',
-    senior: 'três formas de falar o fim do verbo, em inglês'
+    senior: 'três formas de falar o fim do verbo, em inglês',
   },
   'ex.scenario_interview': {
     kids: 'Conversa: entrevista',
     pro: 'Cenário: entrevista de emprego',
-    senior: 'Conversa: entrevista de emprego'
+    senior: 'Conversa: entrevista de emprego',
   },
   'ex.scenario_meeting': {
     kids: 'Conversa: reunião',
     pro: 'Cenário: reunião de alinhamento',
-    senior: 'Conversa: reunião de trabalho'
+    senior: 'Conversa: reunião de trabalho',
   },
   'ex.scenario_restaurant': {
     kids: 'Conversa: restaurante',
     pro: 'Cenário: restaurante',
-    senior: 'Conversa: pedir no restaurante'
+    senior: 'Conversa: pedir no restaurante',
   },
   'ex.scenario.hint': {
     kids: 'converse e receba dicas',
     pro: 'conversa com feedback',
-    senior: 'você conversa e recebe correções'
+    senior: 'você conversa e recebe correções',
   },
 
   // ── Motivos de bloqueio ──────────────────────────────────────────────────
   'block.emptyDeck': {
     kids: 'Seu baralho está vazio, capture palavras primeiro.',
     pro: 'Seu deck está vazio, adicione palavras primeiro.',
-    senior: 'Você ainda não guardou palavras. Grave algo primeiro.'
+    senior: 'Você ainda não guardou palavras. Grave algo primeiro.',
   },
   'block.notMature': {
     kids: 'Treine mais um pouco para liberar este desafio.',
     pro: 'Nenhum cartão atingiu a estabilidade mínima ({n}d). Revise mais.',
-    senior: 'Repita mais algumas vezes para liberar este exercício.'
+    senior: 'Repita mais algumas vezes para liberar este exercício.',
   },
   'block.noTranscript': {
     kids: 'Precisa de uma gravação com legenda.',
     pro: 'Precisa de uma sessão com transcrição.',
-    senior: 'É preciso ter uma gravação com o texto já pronto.'
+    senior: 'É preciso ter uma gravação com o texto já pronto.',
   },
   'block.noAudio': {
     kids: 'Esta sessão não tem som gravado.',
     pro: 'Esta sessão não tem áudio gravado.',
-    senior: 'Esta gravação não tem áudio salvo.'
+    senior: 'Esta gravação não tem áudio salvo.',
   },
   'block.noTimestamps': {
     kids: 'A legenda não tem as marcas de tempo.',
     pro: 'A transcrição não tem marcações de tempo.',
-    senior: 'Não sabemos em que minuto cada frase acontece.'
+    senior: 'Não sabemos em que minuto cada frase acontece.',
   },
 
   // ── "Agora" — a ação primária do centro de exercícios ────────────────────
   'now.due.title': {
     kids: '{n} cartas esperando você',
     pro: '{n} cartões vencidos',
-    senior: '{n} palavras para repetir'
+    senior: '{n} palavras para repetir',
   },
   'now.due.sub': {
     kids: 'Treine agora para manter a sua ofensiva viva.',
     pro: 'Revisão espaçada ({sched}), o agendamento vem do servidor.',
-    senior: 'São as palavras que você está prestes a esquecer.'
+    senior: 'São as palavras que você está prestes a esquecer.',
   },
   'now.due.cta': {
     kids: 'Treinar agora',
     pro: 'Revisar agora',
-    senior: 'Começar a repetir'
+    senior: 'Começar a repetir',
   },
   'now.clear.title': {
     kids: 'Tudo em dia!',
     pro: 'Nada vencido por hoje',
-    senior: 'Nada para repetir hoje'
+    senior: 'Nada para repetir hoje',
   },
   'now.clear.sub': {
     kids: 'Aproveite para treinar a pronúncia nas {n} falas desta gravação.',
     pro: 'Aproveite para praticar pronúncia nas {n} frases desta sessão.',
-    senior: 'Se quiser, pratique a pronúncia nas {n} frases desta aula.'
+    senior: 'Se quiser, pratique a pronúncia nas {n} frases desta aula.',
   },
   'now.clear.cta': {
     kids: 'Treinar pronúncia',
     pro: 'Praticar shadowing',
-    senior: 'Praticar em voz alta'
+    senior: 'Praticar em voz alta',
   },
   'now.empty.sub': {
     kids: 'Grave alguma coisa para destravar os desafios de fala.',
     pro: 'Capture uma sessão para destravar os exercícios de fala.',
-    senior: 'Grave um áudio para liberar os exercícios de fala.'
+    senior: 'Grave um áudio para liberar os exercícios de fala.',
   },
 
   // ── Métricas ─────────────────────────────────────────────────────────────
   'metric.deckSize': {
     kids: 'Palavras colecionadas',
     pro: 'Volume lexical ativo',
-    senior: 'Palavras guardadas'
+    senior: 'Palavras guardadas',
   },
   'metric.retention': {
     kids: 'Quanto você lembra',
     pro: 'Taxa de retenção média',
-    senior: 'O que ficou na memória'
+    senior: 'O que ficou na memória',
   },
   'metric.reviews': {
     kids: 'Treinos feitos',
     pro: 'Revisões feitas',
-    senior: 'Repetições feitas'
+    senior: 'Repetições feitas',
   },
   'metric.level': {
     kids: 'Nível das suas palavras',
     pro: 'Nível predominante',
-    senior: 'Grau de dificuldade'
+    senior: 'Grau de dificuldade',
   },
   'metric.cefr': {
     kids: 'Faixa de dificuldade',
     pro: 'Nível CEFR',
-    senior: 'Nível de leitura'
+    senior: 'Nível de leitura',
   },
   'metric.wpm': {
     kids: 'Velocidade da fala',
     pro: 'Ritmo (WPM)',
-    senior: 'Palavras por minuto'
+    senior: 'Palavras por minuto',
   },
   'metric.evolution': {
     kids: 'Sua coleção crescendo',
     pro: 'Evolução do vocabulário',
-    senior: 'Quantas palavras por semana'
+    senior: 'Quantas palavras por semana',
   },
 
   // ── Abas de Vocabulário (Metrics) ────────────────────────────────────────
   'metricsTab.dashboard': {
     kids: 'Visão geral',
     pro: 'Visão geral',
-    senior: 'Resumo'
+    senior: 'Resumo',
   },
   'metricsTab.lexical': {
     kids: 'Suas palavras a fundo',
     pro: 'Inteligência lexical',
-    senior: 'Detalhes das palavras'
+    senior: 'Detalhes das palavras',
   },
   'metricsTab.fluency': {
     kids: 'Sua fala',
     pro: 'Desempenho & fluência',
-    senior: 'Como você fala'
+    senior: 'Como você fala',
   },
 
   // ── Sub-abas da Sessão (Analysis) ────────────────────────────────────────
   'sessionTab.transcript': {
     kids: 'Legenda e palavras',
     pro: 'Transcrição & Vocabulário',
-    senior: 'Texto e palavras'
+    senior: 'Texto e palavras',
   },
   'sessionTab.transcript.doc': {
     kids: 'Texto e palavras',
     pro: 'Texto & Vocabulário',
-    senior: 'Texto e palavras'
+    senior: 'Texto e palavras',
   },
   'sessionTab.reading': {
     kids: 'Ler com calma',
     pro: 'Leitura & Notas',
-    senior: 'Leitura e anotações'
+    senior: 'Leitura e anotações',
   },
   // A aba abre o LOBBY DE JOGOS filtrado pela sessão — não mais a lista de exercícios. O rótulo
   // antigo ("Central de Exercícios (SRS)") descrevia o modo de revisão, que hoje é o segundo modo
@@ -339,12 +340,12 @@ export const COPY = {
   'sessionTab.practice': {
     kids: 'Jogos',
     pro: 'Jogos',
-    senior: 'Jogos'
+    senior: 'Jogos',
   },
   'sessionTab.overview': {
     kids: 'Seus números',
     pro: 'Visão Geral & Métricas',
-    senior: 'Resumo desta aula'
+    senior: 'Resumo desta aula',
   },
 
   // ── Vocabulário de progressão ────────────────────────────────────────────
@@ -355,20 +356,20 @@ export const COPY = {
   'word.level': {
     kids: 'Nível',
     pro: 'Nível',
-    senior: 'Etapa'
+    senior: 'Etapa',
   },
 
   // ── Revelação progressiva ────────────────────────────────────────────────
   'reveal.more': {
     kids: 'Ver tudo ({n})',
     pro: 'Ver tudo ({n})',
-    senior: 'Mostrar todas as opções ({n})'
+    senior: 'Mostrar todas as opções ({n})',
   },
   'reveal.less': {
     kids: 'Mostrar menos',
     pro: 'Mostrar menos',
-    senior: 'Mostrar só o principal'
-  }
+    senior: 'Mostrar só o principal',
+  },
 } as const satisfies Record<string, Variants>;
 
 export type CopyKey = keyof typeof COPY;
@@ -433,5 +434,5 @@ export const TUTOR_REGISTER: Record<AgeProfileType, string> = {
   senior:
     'O usuário prefere leitura tranquila e linguagem simples. Use português direto, sem nenhuma ' +
     'sigla nem termo em inglês sem tradução. Uma ideia por frase, frases curtas, e sempre diga o ' +
-    'próximo passo concreto. Máximo de 4 frases por resposta.'
+    'próximo passo concreto. Máximo de 4 frases por resposta.',
 };

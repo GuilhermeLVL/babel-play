@@ -94,10 +94,10 @@ export function useAparencia(): EstadoDaAparencia {
 
   const FONT_SCALE_ORDER: FontScale[] = ['sm', 'md', 'lg', 'xl'];
   const [fontScale, setFontScaleState] = useState<FontScale>(
-    /* O default acompanha o perfil padrão (sênior / Leitura ampliada): 'lg'. O boot direto em
-       senior não passa por `setAgeProfile`, então a sugestão de fonte de lá não roda — o padrão
-       precisa nascer certo aqui. Preferência gravada continua vencendo. */
-    () => readStoredEnum('babel.font_scale', FONT_SCALE_ORDER, 'lg'),
+    /* Acompanha o perfil padrão (redesign-v4: 'pro', não mais 'senior' — ver profile.ts). O boot
+       direto no perfil padrão não passa por `setAgeProfile`, então a sugestão de fonte de lá não
+       roda — o padrão precisa nascer certo aqui. Preferência gravada continua vencendo. */
+    () => readStoredEnum('babel.font_scale', FONT_SCALE_ORDER, 'md'),
   );
 
   /**

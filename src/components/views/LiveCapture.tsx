@@ -97,7 +97,7 @@ import { play } from '../../lib/soundFx';
 // (worker WASM, 6,7MB) + agrupamento online → "Pessoa 1/2/3" com cor própria.
 import { SpeakerClusterer } from '../../lib/speakerCluster';
 import { disposeSpeakerId } from '../../lib/speakerId';
-import { DEFAULT_TRANSCRIPT_SETTINGS, TranscriptSettings } from '../../lib/transcriptUtils';
+import { DEFAULT_TRANSCRIPT_SETTINGS, permiteSuperficieEscura, TranscriptSettings } from '../../lib/transcriptUtils';
 // Produtor ÚNICO de palavra/cartão: o idioma vem da FRASE de onde a palavra saiu e a direção da
 // tradução é decidida pelo idioma DA PALAVRA (não pelo par da sessão).
 import { speak as ttsSpeak } from '../../lib/tts';
@@ -197,6 +197,11 @@ export default function LiveCapture({
     }
     return DEFAULT_TRANSCRIPT_SETTINGS;
   });
+  /**
+   * Painel de leitura escuro (o do design). Cede a vez para os presets de leitura escolhidos à
+   * mão (Sépia/Oceano/Neon/Alto Contraste), que pintam o próprio fundo claro.
+   */
+  const transcricaoEscura = permiteSuperficieEscura(tsSettings);
 
   const updateSetting = <K extends keyof TranscriptSettings>(key: K, value: TranscriptSettings[K]) => {
     setTsSettings((prev) => {
@@ -1888,14 +1893,16 @@ export default function LiveCapture({
               play(showConfigPanel ? 'close' : 'open');
               setShowConfigPanel(!showConfigPanel);
             }}
-            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold border transition-all cursor-pointer ${showConfigPanel ? 'bg-canvas border-accent text-ink' : 'border-border-subtle bg-surface text-ink-muted hover:text-ink hover:bg-surface-hover'}`}
+            title="Configurações de dispositivos e modelos de IA"
+            aria-label="Configurações de dispositivos e modelos de IA"
+            className={`flex items-center justify-center gap-2 rounded-xl text-xs font-bold border transition-all cursor-pointer ${
+              ageProfile === 'pro' ? 'w-9 h-9 shrink-0' : 'px-4 py-2'
+            } ${showConfigPanel ? 'bg-canvas border-accent text-ink' : 'border-border-subtle bg-surface text-ink-muted hover:text-ink hover:bg-surface-hover'}`}
           >
-            <Sliders className="w-4 h-4 text-accent" />{' '}
-            {ageProfile === 'kids'
-              ? 'Ajustes de Áudio'
-              : ageProfile === 'senior'
-                ? 'Configurações Simples'
-                : 'Configurações de Dispositivos & IA'}
+            <Sliders className="w-4 h-4 text-accent" />
+            {/* Kids/Sênior precisam da palavra escrita; no perfil Produtividade o ícone basta —
+                é o que o design faz com os botões utilitários de 38px do cabeçalho. */}
+            {ageProfile === 'kids' ? 'Ajustes de Áudio' : ageProfile === 'senior' ? 'Configurações Simples' : null}
           </button>
 
           <button
@@ -2737,7 +2744,11 @@ export default function LiveCapture({
                   </div>
 
                   {/* ══════════════ TRANSCRIÇÃO AO VIVO ══════════════ */}
-                  <div className="bg-surface border border-border-subtle rounded-2xl p-6 shadow-card flex flex-col flex-1 min-h-0">
+                  <div
+                    className={`rounded-2xl p-6 shadow-card flex flex-col flex-1 min-h-0 border ${
+                      transcricaoEscura ? 'bg-ink border-ink text-ink-contrast' : 'bg-surface border-border-subtle'
+                    }`}
+                  >
                     {/* Inline Visual Settings Panel */}
                     {showVisualSettings && (
                       <TranscriptVisualSettings
@@ -2783,6 +2794,7 @@ export default function LiveCapture({
                           observedLang={idiomaObservado}
                           isRecording={isRecording}
                           dense
+                          escuro={transcricaoEscura}
                           selectedWord={selectedExamWord?.word ?? null}
                           addedWords={addedWords}
                           onExamineWord={(w, lang, frase) => void examineWord(w, lang, frase)}
@@ -2797,14 +2809,14 @@ export default function LiveCapture({
                     {devToolsEnabled && (
                       <form
                         onSubmit={handleAddManualSpeechSegment}
-                        className="mt-2 flex gap-2 border-t border-border-subtle pt-2"
+                        className={`mt-2 flex gap-2 border-t pt-2 ${transcricaoEscura ? 'border-white/15' : 'border-border-subtle'}`}
                       >
                         <input
                           type="text"
                           id="sim-speaker-text"
                           name="simSpeakerText"
                           placeholder="Simular fala do orador... (dev)"
-                          className="flex-1 bg-canvas border border-border-subtle rounded-xl px-3.5 py-2.5 text-xs text-ink focus:outline-none focus:border-accent placeholder-ink-faint font-medium"
+                          className={`flex-1 border rounded-xl px-3.5 py-2.5 text-xs focus:outline-none focus:border-accent font-medium ${transcricaoEscura ? 'bg-white/10 border-white/15 text-ink-contrast placeholder-white/40' : 'bg-canvas border-border-subtle text-ink placeholder-ink-faint'}`}
                           value={manualSpeakerInput}
                           onChange={(e) => setManualSpeakerInput(e.target.value)}
                           disabled={isProcessingManualInput}

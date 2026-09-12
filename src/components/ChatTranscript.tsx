@@ -62,6 +62,12 @@ interface ChatTranscriptProps {
   isRecording: boolean;
   /** Modo Foco usa a versão espaçada (`dense = false`). */
   dense?: boolean;
+  /**
+   * Painel de leitura ESCURO (`bg-ink`), como no design: os balões viram vidro sobre o escuro
+   * em vez de cartões claros. Quem decide é a tela — só liga quando
+   * `permiteSuperficieEscura(tsSettings)` (ver `lib/transcriptUtils`).
+   */
+  escuro?: boolean;
   selectedWord?: string | null;
   addedWords: string[];
   onExamineWord: (word: VocabWord, lang: string, sentence: string) => void;
@@ -81,11 +87,19 @@ export function initials(name: string): string {
  * elemento da interface não dizia nada. Agora ela explica, no vocabulário do perfil, o que vai
  * acontecer e qual é o próximo passo.
  */
-function EmptyState({ scenario, ageProfile, isRecording }: {
+function EmptyState({
+  scenario,
+  ageProfile,
+  isRecording,
+  escuro = false,
+}: {
   scenario: 'media' | 'conversation' | 'mic';
   ageProfile: AgeProfileType;
   isRecording: boolean;
+  escuro?: boolean;
 }) {
+  const tituloCls = escuro ? 'text-ink-contrast' : 'text-ink';
+  const apoioCls = escuro ? 'text-white/60' : 'text-ink-muted';
   if (isRecording) {
     return (
       <div className="h-full flex flex-col items-center justify-center gap-3 text-center px-6 select-none">
@@ -93,54 +107,84 @@ function EmptyState({ scenario, ageProfile, isRecording }: {
           <span className="absolute inline-flex h-full w-full rounded-full bg-accent/20 animate-ping" />
           <Radio className="w-6 h-6 text-accent relative" />
         </span>
-        <p className="text-[15px] font-bold text-ink">Ouvindo…</p>
-        <p className="text-[12px] text-ink-muted max-w-sm leading-relaxed">
+        <p className={`text-[15px] font-bold ${tituloCls}`}>Ouvindo…</p>
+        <p className={`text-[12px] ${apoioCls} max-w-sm leading-relaxed`}>
           {scenario === 'media' && 'Dê o play no vídeo ou áudio. A legenda aparece aqui assim que alguém falar.'}
-          {scenario === 'conversation' && 'Fale ou deixe a conversa correr. Cada pessoa vai aparecer de um lado, com a sua cor.'}
+          {scenario === 'conversation' &&
+            'Fale ou deixe a conversa correr. Cada pessoa vai aparecer de um lado, com a sua cor.'}
           {scenario === 'mic' && 'Pode falar ao microfone. Sua fala vira texto e tradução na hora.'}
         </p>
       </div>
     );
   }
 
-  const passos = scenario === 'media'
-    ? [
-        { icon: <Play className="w-4 h-4" />, txt: ageProfile === 'kids' ? 'Abra o vídeo ou o jogo' : 'Abra o vídeo, aula ou podcast em qualquer app' },
-        { icon: <MonitorPlay className="w-4 h-4" />, txt: 'Clique em iniciar, pegamos o som do computador' },
-        { icon: <Headphones className="w-4 h-4" />, txt: 'A legenda bilíngue aparece aqui e nas Legendas flutuantes' },
-      ]
-    : scenario === 'conversation'
+  const passos =
+    scenario === 'media'
       ? [
-          { icon: <Play className="w-4 h-4" />, txt: ageProfile === 'senior' ? 'Abra a sua chamada (WhatsApp, Zoom…)' : 'Entre na call, reunião ou partida' },
-          { icon: <MessagesSquare className="w-4 h-4" />, txt: 'Clique em iniciar, capturamos você e os outros ao mesmo tempo' },
-          { icon: <Mic className="w-4 h-4" />, txt: 'Cada voz vira uma pessoa, com cor e lado próprios' },
+          {
+            icon: <Play className="w-4 h-4" />,
+            txt: ageProfile === 'kids' ? 'Abra o vídeo ou o jogo' : 'Abra o vídeo, aula ou podcast em qualquer app',
+          },
+          { icon: <MonitorPlay className="w-4 h-4" />, txt: 'Clique em iniciar, pegamos o som do computador' },
+          {
+            icon: <Headphones className="w-4 h-4" />,
+            txt: 'A legenda bilíngue aparece aqui e nas Legendas flutuantes',
+          },
         ]
-      : [
-          { icon: <Mic className="w-4 h-4" />, txt: 'Clique em iniciar e fale ao microfone' },
-          { icon: <MessagesSquare className="w-4 h-4" />, txt: 'Sua fala vira texto na hora' },
-          { icon: <Headphones className="w-4 h-4" />, txt: 'A tradução aparece embaixo, para você conferir' },
-        ];
+      : scenario === 'conversation'
+        ? [
+            {
+              icon: <Play className="w-4 h-4" />,
+              txt:
+                ageProfile === 'senior' ? 'Abra a sua chamada (WhatsApp, Zoom…)' : 'Entre na call, reunião ou partida',
+            },
+            {
+              icon: <MessagesSquare className="w-4 h-4" />,
+              txt: 'Clique em iniciar, capturamos você e os outros ao mesmo tempo',
+            },
+            { icon: <Mic className="w-4 h-4" />, txt: 'Cada voz vira uma pessoa, com cor e lado próprios' },
+          ]
+        : [
+            { icon: <Mic className="w-4 h-4" />, txt: 'Clique em iniciar e fale ao microfone' },
+            { icon: <MessagesSquare className="w-4 h-4" />, txt: 'Sua fala vira texto na hora' },
+            { icon: <Headphones className="w-4 h-4" />, txt: 'A tradução aparece embaixo, para você conferir' },
+          ];
 
   return (
     <div className="h-full flex flex-col items-center justify-center gap-5 text-center px-6 select-none">
-      <div className="w-14 h-14 rounded-2xl bg-accent-soft flex items-center justify-center">
-        {scenario === 'media' ? <MonitorPlay className="w-7 h-7 text-accent" />
-          : scenario === 'conversation' ? <MessagesSquare className="w-7 h-7 text-accent" />
-          : <Mic className="w-7 h-7 text-accent" />}
+      <div
+        className={`w-14 h-14 rounded-2xl flex items-center justify-center ${escuro ? 'bg-white/10' : 'bg-accent-soft'}`}
+      >
+        {scenario === 'media' ? (
+          <MonitorPlay className="w-7 h-7 text-accent" />
+        ) : scenario === 'conversation' ? (
+          <MessagesSquare className="w-7 h-7 text-accent" />
+        ) : (
+          <Mic className="w-7 h-7 text-accent" />
+        )}
       </div>
       <div>
-        <p className="text-[15px] font-bold text-ink">
+        <p className={`text-[15px] font-bold ${tituloCls}`}>
           {ageProfile === 'kids' ? 'A legenda aparece aqui' : 'Sua conversa aparece aqui'}
         </p>
-        <p className="text-[12px] text-ink-muted mt-1">Três passos e pronto:</p>
+        <p className={`text-[12px] ${apoioCls} mt-1`}>Três passos e pronto:</p>
       </div>
       <ol className="flex flex-col gap-2.5 text-start">
         {passos.map((p, i) => (
-          <li key={i} className="flex items-center gap-3 text-[12.5px] text-ink-muted">
-            <span className="w-7 h-7 rounded-lg bg-canvas border border-border-subtle flex items-center justify-center text-ink-faint shrink-0">
+          <li key={i} className={`flex items-center gap-3 text-[12.5px] ${apoioCls}`}>
+            <span
+              className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${
+                escuro
+                  ? 'bg-white/10 border border-white/15 text-white/70'
+                  : 'bg-canvas border border-border-subtle text-ink-faint'
+              }`}
+            >
               {p.icon}
             </span>
-            <span><b className="text-ink-faint font-mono text-[10px] me-1.5">{i + 1}</b>{p.txt}</span>
+            <span>
+              <b className={`font-mono text-[10px] me-1.5 ${escuro ? 'text-white/50' : 'text-ink-faint'}`}>{i + 1}</b>
+              {p.txt}
+            </span>
           </li>
         ))}
       </ol>
@@ -149,8 +193,21 @@ function EmptyState({ scenario, ageProfile, isRecording }: {
 }
 
 export default function ChatTranscript({
-  segments, speakers, scenario, tsSettings, ageProfile, sourceLang, targetLang, observedLang,
-  isRecording, dense = true, selectedWord, addedWords, onExamineWord, onSpeakWord,
+  segments,
+  speakers,
+  scenario,
+  tsSettings,
+  ageProfile,
+  sourceLang,
+  targetLang,
+  observedLang,
+  isRecording,
+  dense = true,
+  escuro = false,
+  selectedWord,
+  addedWords,
+  onExamineWord,
+  onSpeakWord,
 }: ChatTranscriptProps) {
   const { sizeClasses, fontClass, colorClasses } = getTranscriptStyleClasses(tsSettings);
   // "Mídia" tem uma fonte só — não há dois lados a distinguir; o balão ocupa a linha toda.
@@ -159,10 +216,10 @@ export default function ChatTranscript({
   const folgado = ageProfile !== 'pro' || !dense;
 
   if (!segments.length) {
-    return <EmptyState scenario={scenario} ageProfile={ageProfile} isRecording={isRecording} />;
+    return <EmptyState scenario={scenario} ageProfile={ageProfile} isRecording={isRecording} escuro={escuro} />;
   }
 
-  const speakerOf = (id: string) => speakers.find(p => p.id === id) ?? speakers[0];
+  const speakerOf = (id: string) => speakers.find((p) => p.id === id) ?? speakers[0];
   /**
    * Idioma da fala, em ordem de confiabilidade:
    *  1. o DETECTADO nesta fala — é a evidência mais direta;
@@ -188,15 +245,14 @@ export default function ChatTranscript({
         // AGRUPAMENTO: falas seguidas da MESMA pessoa não repetem avatar e nome — é o que
         // transforma uma lista de linhas numa conversa legível (e economiza altura de tela).
         const anterior = segments[i - 1];
-        const primeiraDaSequencia = !anterior
-          || anterior.speakerId !== segment.speakerId
-          || anterior.source !== segment.source;
+        const primeiraDaSequencia =
+          !anterior || anterior.speakerId !== segment.speakerId || anterior.source !== segment.source;
 
         const palavras = !tsSettings.hideOriginal && (
           <div className="flex flex-wrap items-center gap-x-1.5 gap-y-1">
             {segment.originalText.split(' ').map((wordStr, wIdx) => {
               const cleanWord = wordStr.replace(/[,.:?!]/g, '').toLowerCase();
-              const vocabMatch = segment.words.find(vw => vw.word.toLowerCase() === cleanWord);
+              const vocabMatch = segment.words.find((vw) => vw.word.toLowerCase() === cleanWord);
               if (vocabMatch) {
                 return (
                   <button
@@ -207,7 +263,9 @@ export default function ChatTranscript({
                         ? 'bg-accent text-white border-accent shadow-btn'
                         : addedWords.includes(vocabMatch.word)
                           ? 'bg-good-soft border-good/50 text-good-ink'
-                          : 'bg-canvas/80 border-border-subtle text-ink hover:bg-surface-hover'
+                          : escuro
+                            ? 'bg-white/10 border-white/25 text-ink-contrast hover:bg-white/20'
+                            : 'bg-canvas/80 border-border-subtle text-ink hover:bg-surface-hover'
                     }`}
                     title="Clique para pronúncia nativa e detalhes"
                   >
@@ -230,9 +288,15 @@ export default function ChatTranscript({
         );
 
         const traducao = segment.translatedText && (
-          <p className={`leading-relaxed font-semibold ${sizeClasses.translated} ${colorClasses.translated} ${
-            tsSettings.hideOriginal ? '' : 'mt-1 pt-1 border-t border-border-subtle/60'
-          }`}>
+          <p
+            className={`leading-relaxed font-semibold ${sizeClasses.translated} ${
+              escuro ? 'text-white/70 italic' : colorClasses.translated
+            } ${
+              tsSettings.hideOriginal
+                ? ''
+                : `mt-1 pt-1 border-t ${escuro ? 'border-white/15' : 'border-border-subtle/60'}`
+            }`}
+          >
             {segment.translatedText}
           </p>
         );
@@ -253,17 +317,24 @@ export default function ChatTranscript({
             key={segment.id}
             className={`flex items-end gap-2 animate-in fade-in ${
               usaLados
-                ? (isMic ? 'flex-row-reverse slide-in-from-right-2' : 'slide-in-from-left-2')
+                ? isMic
+                  ? 'flex-row-reverse slide-in-from-right-2'
+                  : 'slide-in-from-left-2'
                 : 'slide-in-from-bottom-1'
-            } ${primeiraDaSequencia ? '' : (folgado ? '-mt-1.5' : '-mt-1')}`}
+            } ${primeiraDaSequencia ? '' : folgado ? '-mt-1.5' : '-mt-1'}`}
           >
             {/* Avatar só na primeira fala da sequência; nas seguintes, um vão do mesmo tamanho
                 mantém os balões alinhados (sem "degrau" na coluna). */}
-            {usaLados && (primeiraDaSequencia
-              ? avatar
-              : <div className={folgado ? 'w-8 shrink-0' : 'w-7 shrink-0'} aria-hidden />)}
+            {usaLados &&
+              (primeiraDaSequencia ? (
+                avatar
+              ) : (
+                <div className={folgado ? 'w-8 shrink-0' : 'w-7 shrink-0'} aria-hidden />
+              ))}
 
-            <div className={`min-w-0 ${usaLados ? 'max-w-[82%]' : 'w-full'} flex flex-col ${isMic && usaLados ? 'items-end' : 'items-start'}`}>
+            <div
+              className={`min-w-0 ${usaLados ? 'max-w-[82%]' : 'w-full'} flex flex-col ${isMic && usaLados ? 'items-end' : 'items-start'}`}
+            >
               {/* Cabeçalho: nome (só na 1ª da sequência), idioma da fala e hora. */}
               {(primeiraDaSequencia || !usaLados) && (
                 <div className={`flex items-center gap-1.5 mb-0.5 px-1 ${isMic && usaLados ? 'flex-row-reverse' : ''}`}>
@@ -273,7 +344,9 @@ export default function ChatTranscript({
                     </span>
                   )}
                   <LangChip code={lineLang} />
-                  <span className="text-[9px] font-mono text-ink-faint">{segment.timestamp}</span>
+                  <span className={`text-[9px] font-mono ${escuro ? 'text-white/45' : 'text-ink-faint'}`}>
+                    {segment.timestamp}
+                  </span>
                 </div>
               )}
 
@@ -282,23 +355,43 @@ export default function ChatTranscript({
                   da faixa colorida da pessoa e do lado, não de um fundo colorido ilegível. */}
               <div
                 className={`relative px-3 py-2 shadow-sm ${colorClasses.container} ${
+                  escuro ? 'text-ink-contrast' : ''
+                } ${
                   usaLados
-                    ? (isMic
-                        ? 'bg-accent-soft/60 border border-accent/25 rounded-2xl rounded-br-sm'
-                        : 'bg-surface border border-border-subtle rounded-2xl rounded-bl-sm')
-                    : 'bg-surface border border-border-subtle rounded-xl w-full'
+                    ? isMic
+                      ? escuro
+                        ? 'bg-accent/20 border border-accent/40 rounded-2xl rounded-br-sm'
+                        : 'bg-accent-soft/60 border border-accent/25 rounded-2xl rounded-br-sm'
+                      : escuro
+                        ? 'bg-white/[0.07] border border-white/15 rounded-2xl rounded-bl-sm'
+                        : 'bg-surface border border-border-subtle rounded-2xl rounded-bl-sm'
+                    : escuro
+                      ? 'bg-white/[0.07] border border-white/15 rounded-xl w-full'
+                      : 'bg-surface border border-border-subtle rounded-xl w-full'
                 } ${segment.isPartial ? 'opacity-90' : ''}`}
                 style={!usaLados || !isMic ? { borderLeftWidth: 3, borderLeftColor: speaker.color } : undefined}
               >
-                {tsSettings.displayOrder === 'original-first'
-                  ? <>{palavras}{traducao}</>
-                  : <>{traducao}{palavras}</>}
+                {tsSettings.displayOrder === 'original-first' ? (
+                  <>
+                    {palavras}
+                    {traducao}
+                  </>
+                ) : (
+                  <>
+                    {traducao}
+                    {palavras}
+                  </>
+                )}
 
                 {/* Fala ainda em andamento: três pontos vivos, como num app de mensagens. */}
                 {segment.isPartial && !segment.originalText && (
                   <span className="flex items-center gap-1 py-0.5" aria-label="transcrevendo">
-                    {[0, 150, 300].map(d => (
-                      <span key={d} className="w-1.5 h-1.5 rounded-full bg-ink-faint animate-bounce" style={{ animationDelay: `${d}ms` }} />
+                    {[0, 150, 300].map((d) => (
+                      <span
+                        key={d}
+                        className="w-1.5 h-1.5 rounded-full bg-ink-faint animate-bounce"
+                        style={{ animationDelay: `${d}ms` }}
+                      />
                     ))}
                   </span>
                 )}

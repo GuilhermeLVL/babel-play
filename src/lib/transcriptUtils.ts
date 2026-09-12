@@ -53,23 +53,39 @@ export function getTranscriptStyleClasses(settings: TranscriptSettings) {
     };
   } else if (settings.textColor === 'sepia') {
     colorClasses = {
-      container: 'bg-[var(--transcript-sepia-bg)] text-[var(--transcript-sepia-text)] p-4 rounded-xl border border-[var(--transcript-sepia-border)]',
+      container:
+        'bg-[var(--transcript-sepia-bg)] text-[var(--transcript-sepia-text)] p-4 rounded-xl border border-[var(--transcript-sepia-border)]',
       original: 'text-[var(--transcript-sepia-text)] font-semibold',
       translated: 'text-[var(--transcript-sepia-text-soft)] italic',
     };
   } else if (settings.textColor === 'ocean') {
     colorClasses = {
-      container: 'bg-[var(--transcript-ocean-bg)] text-[var(--transcript-ocean-text)] p-4 rounded-xl border border-[var(--transcript-ocean-border)]',
+      container:
+        'bg-[var(--transcript-ocean-bg)] text-[var(--transcript-ocean-text)] p-4 rounded-xl border border-[var(--transcript-ocean-border)]',
       original: 'text-[var(--transcript-ocean-text)] font-semibold',
       translated: 'text-[var(--transcript-ocean-text-soft)] italic',
     };
   } else if (settings.textColor === 'neon') {
     colorClasses = {
-      container: 'bg-[var(--transcript-neon-bg)] text-[var(--transcript-neon-text)] p-4 rounded-xl border border-[var(--transcript-neon-border)] font-mono',
-      original: 'text-[var(--transcript-neon-original)] font-bold bg-[var(--transcript-neon-chip)]/80 px-1.5 py-0.5 rounded',
-      translated: 'text-[var(--transcript-neon-translated)] font-mono bg-[var(--transcript-neon-chip)]/80 px-1.5 py-0.5 rounded',
+      container:
+        'bg-[var(--transcript-neon-bg)] text-[var(--transcript-neon-text)] p-4 rounded-xl border border-[var(--transcript-neon-border)] font-mono',
+      original:
+        'text-[var(--transcript-neon-original)] font-bold bg-[var(--transcript-neon-chip)]/80 px-1.5 py-0.5 rounded',
+      translated:
+        'text-[var(--transcript-neon-translated)] font-mono bg-[var(--transcript-neon-chip)]/80 px-1.5 py-0.5 rounded',
     };
   }
 
   return { sizeClasses, fontClass, colorClasses };
+}
+
+/**
+ * A transcrição pode usar a SUPERFÍCIE ESCURA do design (painel `bg-ink`, texto creme)?
+ *
+ * Só no tema "Padrão". Alto Contraste/Sépia/Oceano/Neon são presets de LEITURA escolhidos à mão
+ * pelo usuário e cada um pinta o próprio fundo claro no balão — sobrepor um painel escuro atrás
+ * deles devolveria justamente o contraste que a pessoa pediu para trocar.
+ */
+export function permiteSuperficieEscura(settings: TranscriptSettings): boolean {
+  return settings.textColor === 'standard';
 }

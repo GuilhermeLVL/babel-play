@@ -2794,9 +2794,14 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
                 >
                   <Gamepad2 className="w-4 h-4" />
                 </span>
-                {/* Um título só, o do design. "Jogar & Praticar" repetia o item de menu ("Jogar")
-                    e ainda dizia duas vezes a mesma coisa. */}
-                <h1 className="font-display font-black text-2xl text-ink tracking-tight">{t('Praticar jogando')}</h1>
+                {/* "Praticar jogando" (o do design) em pro e sênior: "Jogar & Praticar" repetia o
+                    item de menu e dizia duas vezes a mesma coisa.
+                    KIDS MANTÉM A VOZ DELE. A primeira versão colapsou o ternário inteiro e deu a
+                    todos os perfis o texto que era do sênior — kids perdeu o seu sem que o design
+                    tivesse opinião sobre kids, que não aparece no protótipo. */}
+                <h1 className="font-display font-black text-2xl text-ink tracking-tight">
+                  {ageProfile === 'kids' ? t('Jogar & Praticar') : t('Praticar jogando')}
+                </h1>
                 {/* Contagem é INFORMAÇÃO, não ação: em laranja ela competia com "Partida Rápida" —
                     e num recorte pequeno o que ganhava destaque era um zero. */}
                 <span className="kpi-pill text-[10.5px] font-extrabold uppercase tracking-wider">

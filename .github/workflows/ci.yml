@@ -87,8 +87,16 @@ jobs:
       # `jogos-culturais-dentro-do-sistema`) e levaram junto 7 chamadas de `t()` — os rotulos dos
       # cards, a aba "Jogos do Mundo" e o selo "100% Funcional". Remocao deliberada de tela, nao
       # perda de cobertura: as chaves nem estavam traduzidas em `en.json`.
+      #
+      # 420 -> 415 em 12/09 (redesign v4). Cinco elementos sairam da tela Inicio, nao cinco
+      # traducoes: o rotulo "Seu estudo" e a frase de apoio do cabecalho, que no perfil
+      # Produtividade o design nao tem; o subtitulo "Retencao, tempo de estudo e evolucao
+      # semanal" do cartao de estatisticas, que virou link; e os rotulos "Expandir"/"Ocultar"
+      # daquele mesmo controle, cujo estado agora vem de `aria-expanded` em vez de texto.
+      # As frases REESCRITAS (titulo do Inicio, os tres pilares) nao contam aqui: elas
+      # continuam passando por `t()` e ganharam chave nova em `en.json` no mesmo commit.
       - name: Piso de cobertura da interface
-        run: node scripts/i18n/orfas.mjs --progresso --piso=420
+        run: node scripts/i18n/orfas.mjs --progresso --piso=415
 
       # Falha em HIGH/CRITICAL, exceto a allowlist NOMEADA das sem fix upstream.
       - name: Auditoria de dependências

@@ -42,7 +42,7 @@ interface Recurso {
 /*
  * O ESSENCIAL vende UMA coisa, e é a maior queixa medida: tradução contextualizada (idiomático
  * 27%→83%). A transcrição continua local — é isso que o deixa a R$ 9,90. Números de
- * docs/auditoria/eval-producao-v1.md; a fonte de cada um fica visível na própria tabela.
+ * docs/auditoria/eval-producao-v1.md; a fonte de cada um abre em "Como cada número foi medido".
  */
 const RECURSOS: Recurso[] = [
   { nome: 'Captura ao vivo (mic + áudio do sistema)', gratis: true, essencial: true, pro: true },
@@ -99,7 +99,12 @@ const RECURSOS: Recurso[] = [
  */
 function Marca({ v }: { v: string | boolean }) {
   return (
-    <span className="w-[54px] shrink-0 flex items-start justify-end pt-px" aria-hidden={typeof v !== 'string'}>
+    /* SEM `aria-hidden` AQUI. A primeira versão escondia a lane quando o valor era booleano, com a
+       ideia de que "é só um ícone" — mas o ícone É a informação da linha. Escondido, o leitor de
+       tela lia só o nome do recurso em toda linha de ✓ e de —, e os cartões Grátis e Pro ficavam
+       IDÊNTICOS em áudio: a tela de comparação parava de comparar. O texto vem do `aria-label` de
+       cada ícone. */
+    <span className="w-[54px] shrink-0 flex items-start justify-end pt-px">
       {v === true ? (
         <Check size={15} className="text-good" aria-label="incluído" />
       ) : v === false ? (
@@ -136,7 +141,6 @@ function CartaoDePlano({
   destaque?: boolean;
   atual?: boolean;
 }) {
-  const chave = planoId === 'gratis' ? 'gratis' : planoId;
   return (
     /* `overflow-visible` é obrigatório aqui: `.card-panel` recorta o conteúdo, e era isso que
        cortava a fita "Recomendado" ao meio (ela fica meio corpo acima da borda, como no design).
@@ -170,8 +174,11 @@ function CartaoDePlano({
 
       <ul className="flex flex-col gap-2.5 flex-1">
         {RECURSOS.map((r) => (
-          <li key={r.nome} className="flex items-start gap-2.5 text-[12.5px] text-ink-muted" title={r.fonte}>
-            <Marca v={r[chave]} />
+          /* Sem `title` aqui: num `<li>` não interativo ele é inalcançável por teclado e não
+             existe no toque, então prometia uma explicação que metade das pessoas nunca veria.
+             A procedência de cada número está inteira no "Como cada número foi medido", abaixo. */
+          <li key={r.nome} className="flex items-start gap-2.5 text-[12.5px] text-ink-muted">
+            <Marca v={r[planoId]} />
             <span className="leading-snug">{r.nome}</span>
           </li>
         ))}
@@ -331,9 +338,21 @@ export default function Planos() {
               (onde a dúvida nasce) e o detalhe do método abre no link abaixo. */}
           <p className="text-[11.5px] text-ink-muted mt-5 leading-relaxed max-w-[80ch]">
             As porcentagens são <strong className="text-ink">medidas</strong> (WER no corpus CORAA de fala espontânea
-            brasileira e chrF++ em conjunto anotado), não estimadas. O Grátis roda tudo no seu computador; o Essencial
-            manda só a tradução para a nuvem; o Pro processa tudo no servidor. Rodando no seu computador (self-host):
-            sem limites.
+            brasileira e chrF++ em conjunto anotado por fenômeno — pronome, gênero, idiomático, registro), não
+            estimadas. Rodando no seu computador (self-host): sem limites.
+          </p>
+
+          {/* ONDE CADA PLANO PROCESSA — a frase de privacidade, devolvida.
+              O parágrafo do design comprimia os três planos em "roda no computador / manda para a
+              nuvem / processa no servidor" e, no caminho, perdia as três cláusulas que dizem o que
+              isso SIGNIFICA para quem fala perto do microfone. "Nada do que você fala sai do
+              navegador" é o argumento de confiança desta tela; enquanto não está escrito, a tela
+              promete menos do que o app faz. */}
+          <p className="text-[11.5px] text-ink-muted mt-2 leading-relaxed max-w-[80ch]">
+            O <strong className="text-ink">Grátis</strong> roda tudo no seu computador: nada do que você fala sai do
+            navegador. O <strong className="text-ink">Essencial</strong> manda só a tradução para a nuvem — a fala
+            continua transcrita localmente. O <strong className="text-ink">Pro</strong> processa tudo no servidor, o que
+            traz a qualidade acima e dispensa o download dos modelos.
           </p>
 
           <button

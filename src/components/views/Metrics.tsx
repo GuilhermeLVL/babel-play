@@ -875,6 +875,14 @@ export default function Metrics({
                 <h3 className="font-display font-extrabold text-[16px] text-ink flex items-center gap-2">
                   <BookOpen className="w-5 h-5 text-accent" /> Todas as palavras
                 </h3>
+                {/* O TAMANHO DO ACERVO ao lado do título. Saiu sem querer quando a lista mudou de
+                    lugar e o `justify-between` ficou com um filho só — e é o número que responde
+                    "quantas eu tenho", a pergunta que traz a pessoa a esta tela. Os ladrilhos
+                    acima contam por FASE (novas, aprendendo, em revisão); nenhum deles diz o
+                    total. */}
+                <span className="text-[12px] text-ink-muted font-bold tabular-nums">
+                  {numero(metrics?.deckSize ?? 0)} no caderno
+                </span>
               </div>
               <p className="text-[12px] text-ink-muted mb-4">
                 Busque, filtre por nível e origem, ordene. Clique num termo para ouvir a pronúncia e ver a explicação.

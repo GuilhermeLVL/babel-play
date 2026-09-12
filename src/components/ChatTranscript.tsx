@@ -343,7 +343,9 @@ export default function ChatTranscript({
                       {speaker.name}
                     </span>
                   )}
-                  <LangChip code={lineLang} />
+                  {/* O chip é uma pastilha clara por padrão; sobre o balão escuro ela virava um
+                      adesivo branco. `!` porque as duas classes disputam a mesma propriedade. */}
+                  <LangChip code={lineLang} className={escuro ? '!bg-white/10 !border-white/20 !text-white/70' : ''} />
                   <span className={`text-[9px] font-mono ${escuro ? 'text-white/45' : 'text-ink-faint'}`}>
                     {segment.timestamp}
                   </span>
@@ -389,7 +391,10 @@ export default function ChatTranscript({
                     {[0, 150, 300].map((d) => (
                       <span
                         key={d}
-                        className="w-1.5 h-1.5 rounded-full bg-ink-faint animate-bounce"
+                        /* `ink-faint` sobre `ink` dá ~2,6:1 — os três pontos de "transcrevendo"
+                           praticamente sumiam no painel escuro, que é justamente o momento em que
+                           a pessoa está esperando a fala aparecer. */
+                        className={`w-1.5 h-1.5 rounded-full animate-bounce ${escuro ? 'bg-white/50' : 'bg-ink-faint'}`}
                         style={{ animationDelay: `${d}ms` }}
                       />
                     ))}

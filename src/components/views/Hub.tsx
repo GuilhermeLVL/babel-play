@@ -257,10 +257,15 @@ export default function Hub({ onChangeView, recordings, ageProfile = 'pro', prog
           </div>
         )}
 
-        {/* Faixa compacta (uma linha, como a referência de design): o círculo de contagem, o
-          texto e o botão dividem a MESMA linha em vez de empilhar num cartão grande — o
-          conteúdo (todos os textos por perfil, a fila inteira dita, a saída para "outro jogo")
-          continua o mesmo, só a caixa ficou do tamanho do que ela diz. */}
+        {/* Faixa compacta (uma linha, como a referência de design): o círculo de contagem, o texto
+          e o botão dividem a MESMA linha em vez de empilhar num cartão grande.
+          O QUE A PRIMEIRA VERSÃO DESTE BLOCO PERDEU, e está de volta abaixo: a frase que diz por
+          que revisar AGORA importa ("acertar empurra a próxima revisão para semanas à frente").
+          Ela existia nas duas redações — a de kids e a dos demais — e sumiu inteira junto com o
+          cartão antigo, enquanto este comentário afirmava que "todos os textos por perfil"
+          continuavam. Agora ela volta como segunda linha em kids e sênior, que é onde a
+          explicação faz o bloco funcionar; no perfil Produtividade a linha única fica, porque foi
+          o que o design pediu e quem escolheu densidade alta lê o cabeçalho de relance. */}
         {metrics && metrics.dueToday > 0 && (
           <section className="card-panel bg-surface border-accent/40 rounded-t-none px-5 py-4 mb-8 flex flex-col sm:flex-row sm:items-center gap-4">
             <div
@@ -285,6 +290,13 @@ export default function Hub({ onChangeView, recordings, ageProfile = 'pro', prog
                   {metrics.dueToday > agora && <> {t('· {n} no total', { n: numero(metrics.dueToday) })}</>}
                 </span>
               </h2>
+              {ageProfile !== 'pro' && (
+                <p className="text-[12px] text-ink-muted mt-0.5">
+                  {ageProfile === 'kids'
+                    ? t('O que você acertar volta só daqui a semanas.')
+                    : t('Acertar agora empurra a próxima revisão para semanas à frente.')}
+                </p>
+              )}
             </div>
 
             <div className="flex flex-wrap items-center justify-center sm:justify-end gap-3 shrink-0">

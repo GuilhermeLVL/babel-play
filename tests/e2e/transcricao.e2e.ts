@@ -1,6 +1,6 @@
-import { expect,test } from '@playwright/test';
+import { expect, test } from '@playwright/test'
 
-import { clicarRobusto,fecharSobreposicoes } from './_helpers';
+import { clicarRobusto, fecharSobreposicoes } from './_helpers'
 
 /**
  * A SUPERFICIE DE CAPTURA EXISTE NOS TRES VIEWPORTS.
@@ -14,31 +14,36 @@ import { clicarRobusto,fecharSobreposicoes } from './_helpers';
 
 test.describe('Transcricao (captura)', () => {
   test('a tela de captura mostra o botao de iniciar e o painel de motor', async ({ page }) => {
-    test.slow();
-    await page.goto('/capturar');
-    await expect(page.getByRole('main')).toBeVisible();
-    await fecharSobreposicoes(page);
+    test.slow()
+    await page.goto('/capturar')
+    await expect(page.getByRole('main')).toBeVisible()
+    await fecharSobreposicoes(page)
 
-    const iniciar = page.getByRole('button', { name: /Iniciar a gravação de áudio|Iniciar captura|Começar a gravar/ });
-    await expect(iniciar, 'o gesto principal da captura deveria estar na tela').toBeVisible({ timeout: 15_000 });
-    await expect(iniciar, 'o botao nasce habilitado: o microfone e a fonte padrao').toBeEnabled();
+    const iniciar = page.getByRole('button', { name: /Iniciar a gravação de áudio|Iniciar captura|Começar a gravar/ })
+    await expect(iniciar, 'o gesto principal da captura deveria estar na tela').toBeVisible({ timeout: 15_000 })
+    await expect(iniciar, 'o botao nasce habilitado: o microfone e a fonte padrao').toBeEnabled()
 
-    /* O rotulo do botao muda por perfil (senior: "Configurações Simples"); o dialogo que ele abre
-       tem um `aria-label` unico. */
-    const abrirPainel = page.getByRole('button', { name: /Configurações Simples|Configurações de Dispositivos & IA|Ajustes de Áudio/ });
-    await expect(abrirPainel).toBeVisible();
-    await clicarRobusto(page, abrirPainel);
+    /* O rotulo do botao muda por perfil — e no perfil Produtividade ele NAO TEM texto desde o
+       redesign v4: virou um icone de 36px, como os botoes utilitarios do cabecalho no design, e o
+       nome acessivel passou a vir do `aria-label` ("Configurações de dispositivos e modelos de
+       IA", o mesmo do dialogo). Kids e senior seguem com a palavra escrita. Procurar pelo
+       `aria-label` cobre os tres perfis de uma vez, e e o nome que o leitor de tela anuncia. */
+    const abrirPainel = page.getByRole('button', {
+      name: /Configurações de dispositivos e modelos de IA|Configurações Simples|Ajustes de Áudio/,
+    })
+    await expect(abrirPainel).toBeVisible()
+    await clicarRobusto(page, abrirPainel)
 
-    const painel = page.getByRole('dialog', { name: 'Configurações de dispositivos e modelos de IA' });
-    await expect(painel).toBeVisible();
-    await expect(painel.getByText('Motor de IA ativo')).toBeVisible();
-    await expect(painel.getByText(/Local, no dispositivo|Nuvem \(sua chave\)/)).toBeVisible();
+    const painel = page.getByRole('dialog', { name: 'Configurações de dispositivos e modelos de IA' })
+    await expect(painel).toBeVisible()
+    await expect(painel.getByText('Motor de IA ativo')).toBeVisible()
+    await expect(painel.getByText(/Local, no dispositivo|Nuvem \(sua chave\)/)).toBeVisible()
 
-    await clicarRobusto(page, painel.getByRole('button', { name: 'Fechar configurações' }));
-    await expect(painel).toBeHidden();
-  });
+    await clicarRobusto(page, painel.getByRole('button', { name: 'Fechar configurações' }))
+    await expect(painel).toBeHidden()
+  })
 
   test.skip('gravar e transcrever um trecho', () => {
     // exige microfone e modelo local
-  });
-});
+  })
+})

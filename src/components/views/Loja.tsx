@@ -334,8 +334,15 @@ export default function Loja({
       /* A transação mora em `comprarPecaComSeeds` porque o cartão do inventário compra pela
          MESMA porta desde que ganhou o botão "Comprar · N" do design. O `spendId` fixo por item
          é compartilhado de propósito: o mesmo item comprado nas duas telas debita uma vez só. */
-      if (!(await comprarPecaComSeeds(item))) {
-        toast.warn('Não deu para completar a compra agora. Tente de novo.');
+      const compra = await comprarPecaComSeeds(item);
+      if (!compra.ok) {
+        /* O MOTIVO, quando o servidor manda um: "faltam 12 Seeds" é acionável, "tente de novo"
+           não. E o "nada foi cobrado" importa — sem ele a pessoa não sabe se perdeu o saldo. */
+        toast.warn(
+          compra.faltam > 0
+            ? `Faltam ${compra.faltam} Seeds para levar ${item.nome}. Nada foi cobrado.`
+            : 'Não deu para completar a compra agora. Nada foi cobrado.',
+        );
         return;
       }
       recemComprados.add(item.id);

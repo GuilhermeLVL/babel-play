@@ -186,12 +186,24 @@ export default function Inventario({
   const comprar = async (i: ItemDaLoja, el?: HTMLElement | null) => {
     setComprando(i.id);
     try {
-      if (!(await comprarPecaComSeeds(i))) {
-        toast.warn('Não deu para completar a compra agora. Tente de novo.');
+      const compra = await comprarPecaComSeeds(i);
+      if (!compra.ok) {
+        /* Recusa NÃO celebra e NÃO marca posse — ver a guarda em `comprarPecaComSeeds`. Com o
+           motivo na mão, "faltam 12 Seeds" é acionável onde "tente de novo" não era. */
+        toast.warn(
+          compra.faltam > 0
+            ? `Faltam ${compra.faltam} Seeds para levar ${i.nome}. Nada foi cobrado.`
+            : 'Não deu para completar a compra agora. Nada foi cobrado.',
+        );
         return;
       }
       comemorar('subiuNivel', el ?? null, { texto: 'Seu!' });
       toast.ok(`${i.nome} é seu!`);
+      /* `rerender` relê a POSSE (é o que faz a peça comprada virar "Equipar"). O SALDO não: ele
+         chega por prop, derivado de `progress`, e só muda quando o App recarrega as métricas —
+         mesma limitação que a Loja sempre teve. Enquanto isso, um segundo cartão pode oferecer
+         "Comprar" com Seeds que já não existem; quem decide é o servidor, e a recusa agora diz
+         quantas faltam em vez de "tente de novo". É o motivo de a mensagem acima ser específica. */
       rerender();
     } finally {
       setComprando(null);
@@ -227,7 +239,12 @@ export default function Inventario({
              a caber em três colunas de ladrilhos de ~100px — foi isso que deixou o acervo
              ilegível, não o tamanho da tela. Na horizontal (como o design e como o resto do app),
              a grade recebe a largura de volta e o cartão pode ter prévia, nome e ação. */}
-      <div className="flex flex-wrap gap-2" role="tablist" aria-label="Categorias do inventário">
+      {/* `aria-pressed` em botões simples, e NÃO `role="tab"`.
+          A primeira versão anunciou `role="tablist"`/`role="tab"` sem `role="tabpanel"` nem
+          `aria-controls` — um tablist que não aponta para painel nenhum promete ao leitor de tela
+          uma navegação que não existe, e é pior do que o `aria-pressed` que havia antes. Estes
+          botões filtram uma grade que já está na tela: é estado de alternância, não aba. */}
+      <div className="flex flex-wrap gap-2" role="group" aria-label="Categorias do inventário">
         {CATEGORIAS.map((c) => {
           /* A contagem segue o ACERVO em exibição, não a posse: contando só o que é meu, ligar
              "catálogo completo" deixava sumidas justamente as categorias em que ainda não tenho
@@ -243,9 +260,8 @@ export default function Inventario({
           return (
             <button
               key={c.id}
-              role="tab"
               onClick={() => setCategoria(c.id)}
-              aria-selected={ativa}
+              aria-pressed={ativa}
               className={`shrink-0 rounded-full border px-3.5 py-1.5 font-bold text-[12.5px] cursor-pointer inline-flex items-center gap-2 transition-colors ${
                 ativa
                   ? 'bg-ink border-ink text-ink-contrast'
@@ -318,6 +334,9 @@ export default function Inventario({
               return (
                 <div
                   key={p.id}
+                  /* Mesmo atalho do cartão de peça: duplo-clique aplica, e o botão continua sendo
+                     o caminho acessível. */
+                  onDoubleClick={(e) => aoAplicarPerfil(p, e.currentTarget)}
                   className="rounded-[14px] border border-border-subtle bg-surface p-4 flex flex-col gap-2 hover:border-accent transition-colors"
                 >
                   <span className="flex items-center gap-2" aria-hidden>
@@ -434,22 +453,33 @@ export default function Inventario({
             // das iguais, e o gasto de Seeds não teria como se mostrar.
             const croma = cromaEquipado(i.id);
             const origem = origemDe(i);
+            /* A ROTA vale para toda peça que ainda não é minha — inclusive a que dá para comprar
+               agora, porque é ela que diz de onde a peça vem. Só o BOTÃO de destino é que some
+               quando há "Comprar · N", para não competir com a compra. */
+            const rota = liberado ? null : rotaDeObtencao(i, saldo);
             const legenda = liberado
               ? i.raridade !== 'comum' || origem !== 'nivel'
                 ? `${COR_DA_RARIDADE[i.raridade].rotulo} · ${ORIGEM[origem].rotulo}`
                 : null
-              : est.motivo;
-            const rota = liberado || podeComprar ? null : rotaDeObtencao(i, saldo);
-            const irPara = !rota
-              ? undefined
-              : rota.destino === 'conquistas'
-                ? onIrParaConquistas
-                : rota.destino === 'passe'
-                  ? onIrParaPasse
-                  : onIrParaLoja;
+              : (rota?.titulo ?? est.motivo);
+            const irPara =
+              !rota || podeComprar
+                ? undefined
+                : rota.destino === 'conquistas'
+                  ? onIrParaConquistas
+                  : rota.destino === 'passe'
+                    ? onIrParaPasse
+                    : onIrParaLoja;
             return (
               <div
                 key={i.id}
+                /* O DUPLO-CLIQUE PARA EQUIPAR, de volta. Ele existia no ladrilho antigo e sumiu na
+                   troca por cartão — atalho de quem usa a tela toda semana. É ADICIONAL: o botão
+                   "Equipar" continua sendo o caminho pelo teclado e pelo leitor de tela, então o
+                   cartão não precisa (nem deve) virar um alvo clicável por si. */
+                onDoubleClick={(e) => {
+                  if (liberado) equipar(i, e.currentTarget);
+                }}
                 className="rounded-[14px] border border-border-subtle bg-surface p-4 flex flex-col gap-2 hover:border-accent transition-colors"
               >
                 {/* PEÇA DE COR: faixas na largura inteira, como no design — é assim que um tema
@@ -467,10 +497,25 @@ export default function Inventario({
                 </span>
 
                 <p className="font-display font-bold text-[13px] text-ink leading-tight flex items-start gap-1.5">
+                  {/* O CADEADO, de volta. Ele saiu na troca por cartão e o único sinal de peça
+                      trancada virou a linha de requisito em mono de 9,5px — fácil demais de não
+                      ver numa grade de 130 cartões. `aria-label` porque aqui ele carrega
+                      informação que nenhum outro elemento do cartão repete. */}
+                  {!liberado && <Lock className="w-3 h-3 shrink-0 mt-0.5 text-ink-faint" aria-label="trancada" />}
                   <span className="min-w-0">{i.nome}</span>
-                  {croma && <Palette className="w-3 h-3 shrink-0 mt-0.5 text-ink-faint" aria-hidden />}
+                  {croma && (
+                    <Palette className="w-3 h-3 shrink-0 mt-0.5 text-ink-faint" aria-label="com cor personalizada" />
+                  )}
                 </p>
                 <p className="text-[11px] text-ink-muted leading-snug">{i.desc}</p>
+
+                {/* COMO SE CONSEGUE, em frase inteira — de volta.
+                    A primeira versão do cartão trocou isto pelo resumo de `est.motivo` ("Nível 6
+                    ou 130 Seeds"), que diz o requisito e não diz o que falta. `rota.texto` diz:
+                    "Chega de graça no nível 6, ou agora por 130 Seeds. Faltam 81 Seeds para o
+                    atalho." A diferença entre as duas é a pessoa saber se está perto. O texto sai
+                    de `rotaDeObtencao` (lib/loja.ts) — a tela não tem régua própria. */}
+                {rota && <p className="text-[11px] text-ink-muted leading-snug">{rota.texto}</p>}
 
                 {/* Raridade e origem (ou o requisito, quando trancada) em UMA linha mono — é o
                     que o painel lateral dizia em dois blocos coloridos.
@@ -478,7 +523,17 @@ export default function Inventario({
                     linha aparecia em ~90% dos cartões sem informar nada — virava textura, que é o
                     oposto do que o design faz aqui (ele não tem legenda nenhuma). Peça rara, peça
                     comprada com Seeds, peça de conquista e peça trancada continuam dizendo. */}
-                {legenda && <p className="label-mono text-[9.5px] text-ink-faint leading-tight">{legenda}</p>}
+                {legenda && (
+                  <p className="label-mono text-[9.5px] text-ink-faint leading-tight">
+                    {legenda}
+                    {/* "chega estudando", "só fazendo — não se compra": a meia-frase que diz a
+                        NATUREZA do canal. Vive em `ORIGEM` (lib/loja.ts) e tinha ficado sem
+                        nenhum consumidor de UI no repo quando o painel lateral saiu. */}
+                    {liberado && (
+                      <span className="font-sans normal-case tracking-normal"> · {ORIGEM[origem].comoSeGanha}</span>
+                    )}
+                  </p>
+                )}
 
                 <span className="mt-auto flex flex-col gap-1.5 pt-1">
                   {podeComprar ? (
@@ -502,7 +557,7 @@ export default function Inventario({
                     >
                       {eq ? 'Equipado' : equipavel(i) ? 'Equipar' : 'Ativa'}
                     </button>
-                  ) : irPara ? (
+                  ) : rota && irPara ? (
                     <button
                       onClick={irPara}
                       className="w-full rounded-lg border border-border-subtle bg-canvas py-2 text-[12.5px] font-bold text-ink-muted hover:border-accent hover:text-accent-ink cursor-pointer inline-flex items-center justify-center gap-1.5"

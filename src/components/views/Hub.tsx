@@ -15,7 +15,6 @@ import {
   TrendingUp,
   Upload,
   Video,
-  Zap,
 } from 'lucide-react';
 import React, { useEffect, useRef, useState } from 'react';
 
@@ -147,40 +146,36 @@ export default function Hub({ onChangeView, recordings, ageProfile = 'pro', prog
   return (
     <div className="flex-1 overflow-y-auto w-full bg-canvas">
       <div className="p-6 md:p-10 max-w-6xl mx-auto w-full">
-        {/* Cabeçalho — a linguagem muda por perfil; a estrutura, não. */}
+        {/* Cabeçalho — a linguagem muda por perfil; a estrutura, não.
+            NO PERFIL `pro` FICA SÓ O TÍTULO (referência de design): o rótulo "Seu estudo" e a
+            frase de apoio repetiam, em duas linhas fixas, o que os três cartões logo abaixo já
+            dizem. Kids e sênior MANTÊM os dois: ali a orientação antes da grade é o que guia
+            quem está começando — é a mesma razão de existir dos perfis. */}
         <header className="mb-6">
-          <span className="label-mono text-accent flex items-center gap-1.5">
-            {ageProfile === 'kids' ? (
-              <Gamepad2 className="w-3.5 h-3.5" aria-hidden />
-            ) : ageProfile === 'senior' ? (
-              <Eye className="w-3.5 h-3.5" aria-hidden />
-            ) : (
-              <Zap className="w-3.5 h-3.5" aria-hidden />
-            )}
-            <span>
-              {/* "Painel de performance" era jargão corporativo na tela de boas-vindas (auditoria de UX,
-              31/08): o registro de produto pede que a ferramenta desapareça na tarefa. */}
-              {ageProfile === 'kids'
-                ? t('Central do jogador')
-                : ageProfile === 'senior'
-                  ? t('Aprendizado fácil')
-                  : t('Seu estudo')}
+          {ageProfile !== 'pro' && (
+            <span className="label-mono text-accent flex items-center gap-1.5">
+              {ageProfile === 'kids' ? (
+                <Gamepad2 className="w-3.5 h-3.5" aria-hidden />
+              ) : (
+                <Eye className="w-3.5 h-3.5" aria-hidden />
+              )}
+              <span>{ageProfile === 'kids' ? t('Central do jogador') : t('Aprendizado fácil')}</span>
             </span>
-          </span>
+          )}
           <h1 className="font-display font-black text-3xl md:text-4xl text-ink tracking-tight mt-1 mb-1 text-balance">
             {ageProfile === 'kids'
               ? t('Pronto para os desafios?')
               : ageProfile === 'senior'
                 ? t('Bem-vindo ao Babel Play')
-                : t('O que você quer fazer agora?')}
+                : t('O que você quer fazer?')}
           </h1>
-          <p className="text-ink-muted text-sm max-w-[62ch]">
-            {ageProfile === 'kids'
-              ? t('Três frentes para evoluir: gravar, praticar e cultivar palavras.')
-              : ageProfile === 'senior'
-                ? t('Escolha um dos três passos abaixo. Cada um leva a uma tela só, com o que precisa.')
-                : t('Captura, prática e vocabulário, com o estado real de cada frente.')}
-          </p>
+          {ageProfile !== 'pro' && (
+            <p className="text-ink-muted text-sm max-w-[62ch]">
+              {ageProfile === 'kids'
+                ? t('Três frentes para evoluir: gravar, praticar e cultivar palavras.')
+                : t('Escolha um dos três passos abaixo. Cada um leva a uma tela só, com o que precisa.')}
+            </p>
+          )}
         </header>
 
         {/* Main Actions Panel — movido para o topo (como no design novo) */}
@@ -892,9 +887,12 @@ const PILLARS: PillarDef[] = [
       pro: 'Escutar e traduzir',
       senior: 'Traduzir som ou voz',
     },
+    /* O texto do perfil `pro` é de UMA LINHA (referência de design): quem escolheu densidade
+       alta lê o cartão de relance, não um parágrafo. Kids e sênior mantêm a frase inteira —
+       nesses perfis a explicação é o que faz o cartão funcionar. */
     body: {
       kids: 'Grave o som do Roblox, do YouTube ou do Discord e veja a legenda aparecer na hora.',
-      pro: 'Capture o áudio do sistema ou do microfone e receba transcrição e tradução em tempo real.',
+      pro: 'Áudio do sistema ou do microfone, em tempo real',
       senior: 'Grave o áudio do computador ou a sua própria voz. As frases aparecem traduzidas enquanto você ouve.',
     },
     cta: { kids: 'Começar a gravar', pro: 'Iniciar captura', senior: 'Abrir o gravador' },
@@ -906,12 +904,12 @@ const PILLARS: PillarDef[] = [
     tone: 'warn',
     title: {
       kids: 'Desafios de pronúncia',
-      pro: 'Exercícios e prática',
+      pro: 'Exercícios',
       senior: 'Praticar frases salvas',
     },
     body: {
       kids: 'Fale no microfone, acerte os desafios e ganhe pontos de pronúncia.',
-      pro: 'Shadowing, ditado, reescrita, roleplay e mais, sobre o seu próprio conteúdo.',
+      pro: 'Shadowing, ditado, reescrita, roleplay',
       senior: 'Exercícios de repetição simples, no seu ritmo e sem cronômetro.',
     },
     cta: { kids: 'Iniciar desafio', pro: 'Abrir exercícios', senior: 'Ver exercícios' },
@@ -928,7 +926,7 @@ const PILLARS: PillarDef[] = [
     },
     body: {
       kids: 'Regue as palavras do seu deck para elas não murcharem, e colha Seeds.',
-      pro: 'Deck com repetição espaçada: o que revisar hoje e o que ainda é novo.',
+      pro: 'Deck com repetição espaçada',
       senior: 'Seu caderno de palavras, com tradução e pronúncia em áudio.',
     },
     cta: { kids: 'Regar palavras', pro: 'Abrir vocabulário', senior: 'Ver minhas palavras' },
@@ -939,6 +937,13 @@ const TONE_SOFT: Record<PillarDef['tone'], string> = {
   accent: 'bg-accent-soft text-accent-ink',
   warn: 'bg-warn-soft text-warn-ink',
   good: 'bg-good-soft text-good-ink',
+};
+/* O tom do pilar como COR DE TEXTO (ícone solto, sem pastilha). Sempre a variante `-ink`:
+   `--warn`/`--good` são cores de PREENCHIMENTO e reprovam em contraste sobre `surface`. */
+const TONE_TEXT: Record<PillarDef['tone'], string> = {
+  accent: 'text-accent-ink',
+  warn: 'text-warn-ink',
+  good: 'text-good-ink',
 };
 const TONE_BORDER: Record<PillarDef['tone'], string> = {
   accent: 'hover:border-accent',
@@ -1013,14 +1018,19 @@ const PillarCard: React.FC<PillarCardProps> = ({
       }`}
     >
       <div className={isSenior ? 'flex items-start gap-4 flex-1 min-w-0' : ''}>
-        {/* Marcador: número no perfil sênior (o guia é sequencial), ícone nos demais. */}
+        {/* Marcador: número no perfil sênior (o guia é sequencial), ícone nos demais.
+            NA GRADE O ÍCONE É SOLTO, sem a pastilha colorida atrás (referência de design): três
+            chips de cores diferentes empilhavam ruído logo no topo de cada cartão. No sênior a
+            pastilha fica — ali ela carrega o NÚMERO do passo, que precisa de forma própria. */}
         <span
-          className={`shrink-0 flex items-center justify-center rounded-2xl font-display font-black ${
-            isHero ? 'bg-white/10 text-accent' : TONE_SOFT[pillar.tone]
-          } ${isSenior ? 'w-12 h-12 text-xl' : 'w-11 h-11 mb-4'}`}
+          className={`shrink-0 flex items-center font-display font-black ${
+            isSenior
+              ? `justify-center rounded-2xl w-12 h-12 text-xl ${TONE_SOFT[pillar.tone]}`
+              : `mb-4 ${isHero ? 'text-accent' : TONE_TEXT[pillar.tone]}`
+          }`}
           aria-hidden
         >
-          {isSenior ? index + 1 : <Icon className="w-5 h-5" />}
+          {isSenior ? index + 1 : <Icon className="w-6 h-6" />}
         </span>
 
         <div className="min-w-0">
@@ -1066,11 +1076,18 @@ const PillarCard: React.FC<PillarCardProps> = ({
         </div>
       </div>
 
+      {/* UMA ação primária por tela (referência de design): só o cartão-herói leva preenchimento
+          sólido; os outros dois são contorno neutro. Antes eram três botões saturados lado a lado
+          (laranja, âmbar, verde) disputando a mesma atenção — o tom semântico do pilar continua,
+          mas no ÍCONE, que é onde ele informa sem gritar. No sênior todos ficam sólidos: ali os
+          três são passos de um guia, e cada um é a ação primária da sua vez. */}
       <button
         type="button"
         onClick={() => onChangeView(pillar.view)}
-        className={`btn-solid shrink-0 ${
-          isHero ? '' : pillar.tone === 'warn' ? 'bg-warn' : pillar.tone === 'good' ? 'bg-good' : ''
+        className={`shrink-0 ${
+          isHero || isSenior
+            ? `btn-solid ${isSenior && pillar.tone === 'warn' ? 'bg-warn' : isSenior && pillar.tone === 'good' ? 'bg-good' : ''}`
+            : 'btn-outline justify-center'
         } ${isSenior ? 'w-full md:w-auto text-base px-6' : 'w-full mt-4'}`}
       >
         <span>{t(pillar.cta[ageProfile])}</span>

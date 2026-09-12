@@ -23,34 +23,34 @@
  */
 
 /** Planos que o servidor pode atribuir. Derive listas com `PLANOS_DE_ASSINATURA`, nunca à mão. */
-export type PlanoDeAssinatura = 'free' | 'essencial' | 'pro' | 'selfhost'
+export type PlanoDeAssinatura = 'free' | 'essencial' | 'pro' | 'selfhost';
 
 export interface EntitlementsDoPlano {
   /** Importação de YouTube (yt-dlp roda no servidor — custo/infra de quem hospeda). */
-  youtubeImport: boolean
+  youtubeImport: boolean;
   /** STT de nuvem com a chave do DONO do serviço. BYOK é sempre livre, em qualquer plano. */
-  managedCloudStt: boolean
+  managedCloudStt: boolean;
   /** Tradução/LLM de nuvem com a chave do dono. */
-  managedCloudLlm: boolean
+  managedCloudLlm: boolean;
   /** Modelos locais maiores (whisper-base+). */
-  largerModels: boolean
+  largerModels: boolean;
 }
 
 export interface QuotasDoPlano {
   /** Chamadas gerenciadas por mês (STT + tradução + tutor dividem este pool). `null` = sem teto. */
-  chamadasMes: number | null
+  chamadasMes: number | null;
   /** Segundos de áudio FATURÁVEIS no STT de nuvem por mês. É o teto de gasto real. `null` = sem teto. */
-  sttSegundosMes: number | null
+  sttSegundosMes: number | null;
   /** Armazenamento de sessões/mídia, em MB. `null` = sem teto. */
-  armazenamentoMb: number | null
+  armazenamentoMb: number | null;
 }
 
 export interface DefinicaoDePlano {
-  rotulo: string
+  rotulo: string;
   /** Preço mensal em reais. `null` = não-vendável (free é grátis; selfhost não se compra). */
-  precoMensalBrl: number | null
-  entitlements: EntitlementsDoPlano
-  quotas: QuotasDoPlano
+  precoMensalBrl: number | null;
+  entitlements: EntitlementsDoPlano;
+  quotas: QuotasDoPlano;
 }
 
 export const PLAN_MATRIX: Record<PlanoDeAssinatura, DefinicaoDePlano> = {
@@ -84,13 +84,13 @@ export const PLAN_MATRIX: Record<PlanoDeAssinatura, DefinicaoDePlano> = {
     entitlements: { youtubeImport: true, managedCloudStt: true, managedCloudLlm: true, largerModels: true },
     quotas: { chamadasMes: null, sttSegundosMes: null, armazenamentoMb: null },
   },
-}
+};
 
 /** A lista derivada — o que substitui as cinco cópias manuais. */
-export const PLANOS_DE_ASSINATURA = Object.keys(PLAN_MATRIX) as readonly PlanoDeAssinatura[]
+export const PLANOS_DE_ASSINATURA = Object.keys(PLAN_MATRIX) as readonly PlanoDeAssinatura[];
 
 export const ehPlanoDeAssinatura = (v: unknown): v is PlanoDeAssinatura =>
-  typeof v === 'string' && (PLANOS_DE_ASSINATURA as readonly string[]).includes(v)
+  typeof v === 'string' && (PLANOS_DE_ASSINATURA as readonly string[]).includes(v);
 
 /**
  * QUAL PLANO CUSTA ESTE VALOR — a pergunta que o webhook precisa fazer.
@@ -103,12 +103,12 @@ export const ehPlanoDeAssinatura = (v: unknown): v is PlanoDeAssinatura =>
  * Tolerância de um centavo porque o provedor devolve o valor em ponto flutuante.
  */
 export function planoPeloPreco(valor: number | undefined): PlanoDeAssinatura | null {
-  if (typeof valor !== 'number' || !Number.isFinite(valor)) return null
+  if (typeof valor !== 'number' || !Number.isFinite(valor)) return null;
   for (const p of PLANOS_DE_ASSINATURA) {
-    const preco = PLAN_MATRIX[p].precoMensalBrl
-    if (preco !== null && Math.abs(preco - valor) < 0.01) return p
+    const preco = PLAN_MATRIX[p].precoMensalBrl;
+    if (preco !== null && Math.abs(preco - valor) < 0.01) return p;
   }
-  return null
+  return null;
 }
 
 /**
@@ -120,21 +120,30 @@ export function planoPeloPreco(valor: number | undefined): PlanoDeAssinatura | n
  * existe, e a duplicação tinha voltado pela porta da apresentação.
  */
 export function precoDoPlano(plano: PlanoDeAssinatura): string | null {
-  const v = PLAN_MATRIX[plano].precoMensalBrl
-  return v === null ? null : v.toFixed(2).replace('.', ',')
+  const v = PLAN_MATRIX[plano].precoMensalBrl;
+  return v === null ? null : v.toFixed(2).replace('.', ',');
 }
 
 /** O menor preço mensal entre os planos vendáveis — para "a partir de R$ X". */
 export function menorPrecoDeAssinatura(): string | null {
-  const precos = PLANOS_DE_ASSINATURA
-    .map((p) => PLAN_MATRIX[p].precoMensalBrl)
-    .filter((v): v is number => typeof v === 'number' && v > 0)
-  return precos.length ? Math.min(...precos).toFixed(2).replace('.', ',') : null
+  const precos = PLANOS_DE_ASSINATURA.map((p) => PLAN_MATRIX[p].precoMensalBrl).filter(
+    (v): v is number => typeof v === 'number' && v > 0,
+  );
+  return precos.length
+    ? Math.min(...precos)
+        .toFixed(2)
+        .replace('.', ',')
+    : null;
 }
 
 /** "500 MB" / "1 GB" — o teto de armazenamento em texto, derivado da quota. */
 export function armazenamentoEmTexto(plano: PlanoDeAssinatura): string {
-  const mb = PLAN_MATRIX[plano].quotas.armazenamentoMb
-  if (mb === null) return 'sem teto'
-  return mb >= 1024 ? `${(mb / 1024).toFixed(mb % 1024 === 0 ? 0 : 1)} GB` : `${mb} MB`
+  const mb = PLAN_MATRIX[plano].quotas.armazenamentoMb;
+  if (mb === null) return 'sem teto';
+  /* MIL, e não 1024: os tetos da matriz são escritos em milhares redondos (500, 1_000, 5_000),
+     porque é assim que um teto comercial é decidido — e a régua binária os devolvia como
+     "1000 MB" e "4.9 GB", números que ninguém escolheria escrever numa tabela de preços. Não é
+     só formatação feia: "4.9 GB" faz o teto parecer arredondado para baixo por alguma pegadinha,
+     quando o valor é exatamente 5. */
+  return mb >= 1000 ? `${(mb / 1000).toFixed(mb % 1000 === 0 ? 0 : 1)} GB` : `${mb} MB`;
 }

@@ -28,6 +28,8 @@ import { llmDeNuvem, llmLocal, MODELO_GEMINI_PADRAO } from '../ai/provedores'
 /* F14-02: a leitura de env sai do handler e passa pelo inventario declarado em lib/config. */
 import { chaveDoGemini, modeloDoGemini } from '../lib/config'
 import { getEntitlementsForUser } from '../lib/entitlements'
+import { erroDeRota } from '../lib/erroDeRota'
+import { log } from '../lib/logger'
 import { refundManagedCall, reserveManagedCall } from '../lib/usageQuota'
 
 export const geminiRouter = Router()
@@ -109,8 +111,8 @@ async function tryOllamaChat(
   // depender de nuvem. E a unica politica que continua diferente do padrao, e por isso explicita.
   const r = await chamarChat({ ...prov, messages: mensagensDeChat(messages, systemInstruction), timeoutMs: 60_000 })
   if (!r.ok) {
-    // eslint-disable-next-line no-console -- diagnostico da cascata, herdado do server.ts
-    console.warn('LLM local (Ollama) indisponível:', r.causa)
+    // GAP-024: pelo logger (r.causa pode trazer trecho do corpo upstream — redação aplica).
+    log('warn', { event: 'gemini_ollama_indisponivel', error: r.causa })
     return null
   }
   return r.texto ?? null
@@ -131,8 +133,8 @@ async function tryGroqChat(
     maxTokens: opts?.maxTokens,
   })
   if (!r.ok) {
-    // eslint-disable-next-line no-console -- diagnostico da cascata, herdado do server.ts
-    console.warn('LLM de nuvem indisponível:', r.causa)
+    // GAP-024: pelo logger (redação de PII/token/corpo upstream).
+    log('warn', { event: 'gemini_nuvem_indisponivel', error: r.causa })
     return null
   }
   return r.texto ?? null
@@ -205,8 +207,8 @@ geminiRouter.post('/chat', async (req, res) => {
     reservaPendente = false // consumada pelo Gemini
     res.json({ text: response.text || 'No response received from the model.', engine: 'gemini', local: false })
   } catch (error: any) {
-    // eslint-disable-next-line no-console -- diagnostico da cascata, herdado do server.ts
-    console.error('Gemini API Error:', error)
+    // GAP-024: pelo logger (allowlist + redação de email/token/JWT/stack), não console.error cru.
+    log('error', { event: 'gemini_api_error', error: erroDeRota(error, { event: 'gemini_api_error' }), requestId: req.requestId })
     // Erro na nuvem: tentamos o LLM local como alternativa honesta.
     //
     // P2-2: aqui ia `req.body.messages` CRU, pulando `prepareLlmRequest` — o teto de 100k

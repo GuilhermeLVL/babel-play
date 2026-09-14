@@ -132,6 +132,10 @@ export function createVerifier(opts: VerifierOptions = {}): (token: string) => P
     const { payload } = await jwtVerify(token, key, {
       audience: 'authenticated',
       algorithms: [...algoritmos],
+      // GAP-021 (auditoria 2026-09-13): exige `exp`. Sem isto, um token SEM expiração nunca vencia —
+      // se a chave/segredo vazasse, o token roubado valeria para sempre. Tokens do Supabase (e os de
+      // teste) sempre trazem `exp`; a `jose` já rejeita `exp` vencido.
+      requiredClaims: ['exp'],
       ...(issuer ? { issuer } : {}),
     })
     if (typeof payload.sub !== 'string' || payload.sub.length === 0) {

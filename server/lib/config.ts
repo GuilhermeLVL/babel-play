@@ -512,6 +512,18 @@ export function tokenDeMetricas(env: NodeJS.ProcessEnv = process.env): string | 
 }
 
 /**
+ * GAP-013 (auditoria 2026-09-13): em produção, `/metrics` ligado SEM token é scrape aberto — expõe
+ * rota, volume e taxa de erro do servidor a qualquer um. Fora de produção (self-host, rede interna
+ * fechada) exigir token é fricção sem ameaça. Retorna a mensagem de aborto de boot, ou `null` se ok.
+ */
+export function erroDeMetricasEmProducao(env: NodeJS.ProcessEnv = process.env): string | null {
+  if (env.NODE_ENV === 'production' && metricasHabilitadas(env) && !tokenDeMetricas(env)) {
+    return 'METRICS_ENABLED=1 em produção exige METRICS_TOKEN: recusando expor /metrics sem autenticação.'
+  }
+  return null
+}
+
+/**
  * A nuvem de STT está configurada? Lido por `GET /api/ai/stt/available`, que existe para o
  * roteador decidir sem gastar chamada de API.
  */

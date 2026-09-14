@@ -1,0 +1,5 @@
+1) Usuário novo, sem pagar:            getPlanForUser => "free"
+2) Chamou /assinar (grava trialing+pro), MAS NUNCA pagou nem houve webhook.
+3) Plano efetivo resolvido no servidor: getPlanForUser => "pro"
+
+VEREDITO: FALHA — plano Pro concedido SEM pagamento (billing.ts:200-206 -> entitlements.ts:31-33)

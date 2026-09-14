@@ -1,0 +1,116 @@
+=== HEAD ===
+161cbf3fdcf62171348741dbb070e826a7e46186 2026-09-13 21:24:23 -0300 .....
+
+=== status -sb ===
+## main...origin/main [ahead 16]
+ M LICENSE
+ M README.es.md
+ M README.fr.md
+ M README.md
+ M README.pt-BR.md
+ M README.zh-CN.md
+ M docs/monetizacao.md
+ M openspec/changes/estrutura-por-dominio-proposta/mapa.csv
+ M package.json
+ M public/i18n/en.json
+ M public/i18n/xx.json
+ M server/db/repositories/vocab.ts
+ M server/routes/billing.ts
+ M src/App.tsx
+ M src/components/ChatTranscript.tsx
+ M src/components/auth/AuthShell.tsx
+ M src/components/conta/GateDeConta.tsx
+ M src/components/conta/ModalDeMigracao.tsx
+D  src/components/minigames/BingoPanel.tsx
+ M src/components/minigames/SeletorDeConteudo.tsx
+ M src/components/shell/ControlCluster.tsx
+ M src/components/shell/NavRail.tsx
+ M src/components/views/Analysis.tsx
+ M src/components/views/AnalysisExpandedKpi.tsx
+ M src/components/views/Hub.tsx
+ M src/components/views/Library.tsx
+ M src/components/views/LiveCapture.tsx
+ M src/components/views/Loja.tsx
+ M src/components/views/Metrics.tsx
+ M src/components/views/MetricsExpandedKpi.tsx
+ M src/components/views/Personalizar.tsx
+ M src/components/views/Planos.tsx
+ M src/components/views/Play.tsx
+ M src/components/views/Reading.tsx
+ M src/components/views/Settings.tsx
+ M src/components/views/Sobre.tsx
+ M src/components/views/Study.tsx
+ M src/components/views/personalizar/Inventario.tsx
+ M src/components/views/play/Recordes.tsx
+ M src/core/economiaAutoridade.ts
+ M src/core/index.ts
+D  src/core/minigames/bingo.ts
+ M src/index.css
+ M src/lib/criador.ts
+ M src/lib/galeria/acesso.ts
+ M src/lib/loja.ts
+ M src/lib/transcriptUtils.ts
+D  tests/bingo-multi-idioma.test.ts
+D  tests/bingo.test.ts
+ M tests/creditoComAutoridade.test.ts
+ M tests/integration/credito-com-destino.test.ts
+ M tests/integration/economia-atomica.test.ts
+ M tests/integration/vocab-colunas-que-saem.test.ts
+?? openspec/audits/2026-09-13-pre-deploy/
+?? openspec/changes/vocabulario-tela-unica/
+
+=== diff --stat (ignore-space/cr) ===
+ LICENSE                                            |  26 +-
+ README.es.md                                       |   4 +-
+ README.fr.md                                       |   4 +-
+ README.md                                          |   4 +-
+ README.pt-BR.md                                    |   4 +-
+ README.zh-CN.md                                    |   4 +-
+ docs/monetizacao.md                                | 105 ++-
+ .../estrutura-por-dominio-proposta/mapa.csv        |   2 -
+ package.json                                       |   2 +-
+ public/i18n/en.json                                |   2 +-
+ public/i18n/xx.json                                |   2 +-
+ server/db/repositories/vocab.ts                    |   2 +-
+ server/routes/billing.ts                           |  43 --
+ src/App.tsx                                        |   1 -
+ src/components/ChatTranscript.tsx                  |   8 +-
+ src/components/auth/AuthShell.tsx                  |  16 +-
+ src/components/conta/GateDeConta.tsx               |   2 +-
+ src/components/conta/ModalDeMigracao.tsx           |   2 +-
+ src/components/minigames/SeletorDeConteudo.tsx     |  24 +-
+ src/components/shell/ControlCluster.tsx            |  10 +-
+ src/components/shell/NavRail.tsx                   |  63 +-
+ src/components/views/Analysis.tsx                  |   4 +-
+ src/components/views/AnalysisExpandedKpi.tsx       |   2 +-
+ src/components/views/Hub.tsx                       |  20 +-
+ src/components/views/Library.tsx                   |  34 +-
+ src/components/views/LiveCapture.tsx               |  54 +-
+ src/components/views/Loja.tsx                      | 791 +--------------------
+ src/components/views/Metrics.tsx                   | 673 +++++++++++-------
+ src/components/views/MetricsExpandedKpi.tsx        |   2 +-
+ src/components/views/Personalizar.tsx              |  12 -
+ src/components/views/Planos.tsx                    |   8 +-
+ src/components/views/Play.tsx                      |  12 +-
+ src/components/views/Reading.tsx                   |   6 +-
+ src/components/views/Settings.tsx                  |   2 +-
+ src/components/views/Sobre.tsx                     | 125 ++--
+ src/components/views/Study.tsx                     |   2 +-
+ src/components/views/personalizar/Inventario.tsx   |  77 +-
+ src/components/views/play/Recordes.tsx             |   2 +-
+ src/core/economiaAutoridade.ts                     |  39 +-
+ src/core/index.ts                                  |   2 -
+ src/index.css                                      |  72 +-
+ src/lib/criador.ts                                 |  11 +-
+ src/lib/galeria/acesso.ts                          |  20 +-
+ src/lib/loja.ts                                    |  30 +-
+ src/lib/transcriptUtils.ts                         |   2 +-
+ tests/creditoComAutoridade.test.ts                 |  52 +-
+ tests/integration/credito-com-destino.test.ts      |  46 --
+ tests/integration/economia-atomica.test.ts         |  29 +-
+ tests/integration/vocab-colunas-que-saem.test.ts   |   2 +-
+ 49 files changed, 833 insertions(+), 1628 deletions(-)
+
+=== ahead of origin/main ===
+16
+=== last green CI sha (from earlier api call): 2ac979b ; local HEAD: 161cbf3 ===

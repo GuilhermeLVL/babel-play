@@ -1,0 +1,147 @@
+
+ RUN  v4.1.10 C:/Users/Guilh/OneDrive/Área de Trabalho/babel-play-lab
+
+······································stdout | tests/seguranca/cabecalhos-e-forca-bruta.test.ts
+[crypto] chave de segredos movida de C:\Users\Guilh\OneDrive\Área de Trabalho\babel-play-lab\data\secret.key para C:\Users\Guilh\AppData\Local\Temp\babel-test-NocyTC\secret.key (mesma chave, segredos preservados)
+
+stdout | tests/seguranca/idor.test.ts > IDOR — usuario B contra os recursos de A
+[crypto] chave de segredos movida de C:\Users\Guilh\OneDrive\Área de Trabalho\babel-play-lab\data\secret.key para C:\Users\Guilh\AppData\Local\Temp\babel-test-daTzhl\secret.key (mesma chave, segredos preservados)
+
+stdout | tests/seguranca/matriz-de-rotas.test.ts > matriz rota x guarda (lida do Express em tempo de execucao)
+[crypto] chave de segredos movida de C:\Users\Guilh\OneDrive\Área de Trabalho\babel-play-lab\data\secret.key para C:\Users\Guilh\AppData\Local\Temp\babel-test-LV0UGg\secret.key (mesma chave, segredos preservados)
+
+------stdout | tests/seguranca/cabecalhos-e-forca-bruta.test.ts
+Nenhuma chave de LLM em nuvem — usando LLM local (Ollama) quando disponível.
+
+stdout | tests/seguranca/idor.test.ts > IDOR — usuario B contra os recursos de A
+Nenhuma chave de LLM em nuvem — usando LLM local (Ollama) quando disponível.
+
+··stderr | tests/seguranca/cabecalhos-e-forca-bruta.test.ts > força bruta contra o token > 401 repetido acaba em 429
+{"ts":1789348002302,"level":"warn","event":"auth_verify_failed","route":"/me","status":401,"error":"Invalid Compact JWS","requestId":"63596607-a438-42be-9730-70b32e78c352"}
+
+stderr | tests/seguranca/cabecalhos-e-forca-bruta.test.ts > força bruta contra o token > 401 repetido acaba em 429
+{"ts":1789348002309,"level":"warn","event":"auth_verify_failed","route":"/me","status":401,"error":"Invalid Compact JWS","requestId":"c66e3239-c12a-4767-bb6b-8bcc70c356ea"}
+
+stderr | tests/seguranca/cabecalhos-e-forca-bruta.test.ts > força bruta contra o token > 401 repetido acaba em 429
+{"ts":1789348002314,"level":"warn","event":"auth_verify_failed","route":"/me","status":401,"error":"Invalid Compact JWS","requestId":"fedfb76b-df05-475e-8672-b989dc24e2e0"}
+
+stderr | tests/seguranca/cabecalhos-e-forca-bruta.test.ts > força bruta contra o token > 401 repetido acaba em 429
+{"ts":1789348002319,"level":"warn","event":"auth_verify_failed","route":"/me","status":401,"error":"Invalid Compact JWS","requestId":"0ece8f34-c08b-4b5a-86e1-a6aee97f8df4"}
+
+stderr | tests/seguranca/cabecalhos-e-forca-bruta.test.ts > força bruta contra o token > 401 repetido acaba em 429
+{"ts":1789348002324,"level":"warn","event":"auth_verify_failed","route":"/me","status":401,"error":"Invalid Compact JWS","requestId":"ede07de1-13f0-43fc-b4d3-a9f9f30064cd"}
+
+····stderr | tests/seguranca/cabecalhos-e-forca-bruta.test.ts > força bruta contra o token > 401 repetido acaba em 429
+{"ts":1789348002330,"level":"warn","event":"auth_verify_failed","route":"/me","status":401,"error":"Invalid Compact JWS","requestId":"b4f86734-97ae-4cb4-ab79-5ecc75e223c2"}
+
+stderr | tests/seguranca/cabecalhos-e-forca-bruta.test.ts > força bruta contra o token > 401 repetido acaba em 429
+{"ts":1789348002334,"level":"warn","event":"auth_verify_failed","route":"/me","status":401,"error":"Invalid Compact JWS","requestId":"c77a076a-6733-4c60-aee0-f5207f707bfd"}
+
+stderr | tests/seguranca/cabecalhos-e-forca-bruta.test.ts > força bruta contra o token > 401 repetido acaba em 429
+{"ts":1789348002337,"level":"warn","event":"auth_verify_failed","route":"/me","status":401,"error":"Invalid Compact JWS","requestId":"0e053707-d386-4855-91a9-083b7b5cdf82"}
+
+stderr | tests/seguranca/cabecalhos-e-forca-bruta.test.ts > força bruta contra o token > 401 repetido acaba em 429
+{"ts":1789348002341,"level":"warn","event":"auth_verify_failed","route":"/me","status":401,"error":"Invalid Compact JWS","requestId":"de0df78b-8374-4221-a5a6-4c0622c5e82b"}
+
+stderr | tests/seguranca/cabecalhos-e-forca-bruta.test.ts > força bruta contra o token > 401 repetido acaba em 429
+{"ts":1789348002344,"level":"warn","event":"auth_verify_failed","route":"/me","status":401,"error":"Invalid Compact JWS","requestId":"6ed6128a-0fbc-42fd-b75c-853eecb1227a"}
+
+stderr | tests/seguranca/cabecalhos-e-forca-bruta.test.ts > força bruta contra o token > 401 repetido acaba em 429
+{"ts":1789348002347,"level":"warn","event":"auth_verify_failed","route":"/me","status":401,"error":"Invalid Compact JWS","requestId":"6cc1a27e-a3cf-43f1-b6d9-9f24798bf2c2"}
+
+stderr | tests/seguranca/cabecalhos-e-forca-bruta.test.ts > força bruta contra o token > 401 repetido acaba em 429
+{"ts":1789348002352,"level":"warn","event":"auth_verify_failed","route":"/me","status":401,"error":"Invalid Compact JWS","requestId":"4cfa5622-335a-4958-9314-87e6fba24357"}
+
+stderr | tests/seguranca/cabecalhos-e-forca-bruta.test.ts > força bruta contra o token > 401 repetido acaba em 429
+{"ts":1789348002355,"level":"warn","event":"auth_verify_failed","route":"/me","status":401,"error":"Invalid Compact JWS","requestId":"35629cb2-ccc6-4331-b74e-2b3488fa548a"}
+
+stderr | tests/seguranca/cabecalhos-e-forca-bruta.test.ts > força bruta contra o token > 401 repetido acaba em 429
+{"ts":1789348002357,"level":"warn","event":"auth_verify_failed","route":"/me","status":401,"error":"Invalid Compact JWS","requestId":"d4065920-1699-468d-a28b-6bd00ee08f51"}
+
+stderr | tests/seguranca/cabecalhos-e-forca-bruta.test.ts > força bruta contra o token > 401 repetido acaba em 429
+{"ts":1789348002360,"level":"warn","event":"auth_verify_failed","route":"/me","status":401,"error":"Invalid Compact JWS","requestId":"8933f6b9-a365-423d-9246-543da781599b"}
+
+stderr | tests/seguranca/cabecalhos-e-forca-bruta.test.ts > força bruta contra o token > 401 repetido acaba em 429
+{"ts":1789348002365,"level":"warn","event":"auth_verify_failed","route":"/me","status":401,"error":"Invalid Compact JWS","requestId":"bdaf958a-a220-4c49-9916-cc40bcb5fa1d"}
+
+stderr | tests/seguranca/cabecalhos-e-forca-bruta.test.ts > força bruta contra o token > 401 repetido acaba em 429
+{"ts":1789348002367,"level":"warn","event":"auth_verify_failed","route":"/me","status":401,"error":"Invalid Compact JWS","requestId":"294ea8a3-9980-4c65-b15b-f9e7e24b0296"}
+
+stderr | tests/seguranca/cabecalhos-e-forca-bruta.test.ts > força bruta contra o token > 401 repetido acaba em 429
+{"ts":1789348002369,"level":"warn","event":"auth_verify_failed","route":"/me","status":401,"error":"Invalid Compact JWS","requestId":"377aceed-8891-45bc-ad95-d86f5a2a8eb4"}
+
+stderr | tests/seguranca/cabecalhos-e-forca-bruta.test.ts > força bruta contra o token > 401 repetido acaba em 429
+{"ts":1789348002373,"level":"warn","event":"auth_verify_failed","route":"/me","status":401,"error":"Invalid Compact JWS","requestId":"92b5a5d9-a36c-4f27-a982-da19e04468e7"}
+
+stderr | tests/seguranca/cabecalhos-e-forca-bruta.test.ts > força bruta contra o token > 401 repetido acaba em 429
+{"ts":1789348002377,"level":"warn","event":"auth_verify_failed","route":"/me","status":401,"error":"Invalid Compact JWS","requestId":"233cafca-e35c-4762-b479-6ddb88d451c9"}
+
+stderr | tests/seguranca/cabecalhos-e-forca-bruta.test.ts > força bruta contra o token > 401 repetido acaba em 429
+{"ts":1789348002382,"level":"warn","event":"auth_verify_failed","route":"/me","status":401,"error":"Invalid Compact JWS","requestId":"0ee45cfb-8064-4e96-8efe-29d1c101c28b"}
+
+stderr | tests/seguranca/cabecalhos-e-forca-bruta.test.ts > força bruta contra o token > 401 repetido acaba em 429
+{"ts":1789348002385,"level":"warn","event":"auth_verify_failed","route":"/me","status":401,"error":"Invalid Compact JWS","requestId":"e365c039-69c3-4b7d-925b-5393556096c8"}
+
+stderr | tests/seguranca/cabecalhos-e-forca-bruta.test.ts > força bruta contra o token > 401 repetido acaba em 429
+{"ts":1789348002389,"level":"warn","event":"auth_verify_failed","route":"/me","status":401,"error":"Invalid Compact JWS","requestId":"57d66366-cbd7-484e-b444-c33c66072c6a"}
+
+stderr | tests/seguranca/cabecalhos-e-forca-bruta.test.ts > força bruta contra o token > 401 repetido acaba em 429
+{"ts":1789348002391,"level":"warn","event":"auth_verify_failed","route":"/me","status":401,"error":"Invalid Compact JWS","requestId":"0c0ccca0-0ce2-45ce-9656-ce22b23221c9"}
+
+stderr | tests/seguranca/cabecalhos-e-forca-bruta.test.ts > força bruta contra o token > 401 repetido acaba em 429
+{"ts":1789348002396,"level":"warn","event":"auth_verify_failed","route":"/me","status":401,"error":"Invalid Compact JWS","requestId":"e85d5f87-6654-4390-8e1c-3222b152ccbb"}
+
+stderr | tests/seguranca/cabecalhos-e-forca-bruta.test.ts > força bruta contra o token > 401 repetido acaba em 429
+{"ts":1789348002401,"level":"warn","event":"auth_verify_failed","route":"/me","status":401,"error":"Invalid Compact JWS","requestId":"44d090f5-4387-40f0-80f0-2eb5337744cf"}
+
+stderr | tests/seguranca/cabecalhos-e-forca-bruta.test.ts > força bruta contra o token > 401 repetido acaba em 429
+{"ts":1789348002406,"level":"warn","event":"auth_verify_failed","route":"/me","status":401,"error":"Invalid Compact JWS","requestId":"e841e0c3-5fa7-4f54-8e36-f8ad54a3376d"}
+
+stderr | tests/seguranca/cabecalhos-e-forca-bruta.test.ts > força bruta contra o token > 401 repetido acaba em 429
+{"ts":1789348002409,"level":"warn","event":"auth_verify_failed","route":"/me","status":401,"error":"Invalid Compact JWS","requestId":"34a35d45-9a57-4789-ab0c-e8b793f243c4"}
+
+stderr | tests/seguranca/cabecalhos-e-forca-bruta.test.ts > força bruta contra o token > 401 repetido acaba em 429
+{"ts":1789348002414,"level":"warn","event":"auth_verify_failed","route":"/me","status":401,"error":"Invalid Compact JWS","requestId":"750c48ff-fd89-41b2-9fea-87c73092c59d"}
+
+stderr | tests/seguranca/cabecalhos-e-forca-bruta.test.ts > força bruta contra o token > 401 repetido acaba em 429
+{"ts":1789348002417,"level":"warn","event":"auth_verify_failed","route":"/me","status":401,"error":"Invalid Compact JWS","requestId":"c5764ed5-4932-4273-9faf-4216cabc354b"}
+
+····stderr | tests/seguranca/idor.test.ts > IDOR — usuario B contra os recursos de A > B nao alcanca o recurso de A em nenhuma rota com id no caminho
+{"ts":1789348003195,"level":"warn","status":400,"event":"vocab_route_error","route":"/6b1d994f-db4b-4793-9e6e-c4379a1e5d73/review","requestId":"b5667867-5348-4994-897e-4a7abf1108d0","error":"Error: card não encontrado"}
+[vocab_route_error] Error: card não encontrado
+
+···
+
+⎯⎯⎯⎯⎯⎯ Failed Suites 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/seguranca/matriz-de-rotas.test.ts > matriz rota x guarda (lida do Express em tempo de execucao)
+Error: Hook timed out in 10000ms.
+If this is a long-running hook, pass a timeout value as the last argument or configure it globally with "hookTimeout".
+ ❯ tests/seguranca/matriz-de-rotas.test.ts:55:3
+     53|   let m: Matriz
+     54|
+     55|   beforeAll(async () => {
+       |   ^
+     56|     s = await subirApp({ modo: 'publico' })
+     57|     /* Um SEGUNDO app, só para ler a montagem: `subirApp` não devolve …
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  tests/seguranca/matriz-de-rotas.test.ts > matriz rota x guarda (lida do Express em tempo de execucao)
+TypeError: Cannot read properties of undefined (reading 'encerrar')
+ ❯ tests/seguranca/matriz-de-rotas.test.ts:66:13
+     64|   })
+     65|   afterAll(async () => {
+     66|     await s.encerrar()
+       |             ^
+     67|   })
+     68|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+
+ Test Files  1 failed | 5 passed (6)
+      Tests  51 passed | 6 skipped (57)
+   Start at  22:06:04
+   Duration  39.00s (transform 5.52s, setup 793ms, import 5.73s, tests 87.34s, environment 1ms)
+

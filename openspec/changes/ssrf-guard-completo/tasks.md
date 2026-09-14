@@ -1,5 +1,11 @@
 > Origem: auditoria `openspec/audits/2026-09-13-pre-deploy/` (GAP-002), provado por PoC em
 > `evidencias/poc-ssrf.txt` (6 bypass de 8). Nenhuma change ativa cobria SSRF.
+>
+> **STATUS 2026-09-13: IMPLEMENTADO** na branch `fix/pre-deploy-p0` (commit `92cfb98`). Guard
+> canonicaliza IPv4-mapped/NAT64 e cobre CGNAT/198.18/multicast (fail-closed); proxy IA com
+> `redirect:'manual'`. Teste `tests/seguranca/ssrf-vetores.test.ts` (10/10); PoC agora 0 bypass.
+> Resíduo documentado: DNS rebinding via pin de IP não foi feito (redirect fechado cobre o vetor
+> principal). `server/import/web.ts` já revalida cada hop. Ver `IMPLEMENTATION_REPORT.md`.
 
 ## 1. Fechar a canonicalização em `server/ai/ssrf.ts`
 

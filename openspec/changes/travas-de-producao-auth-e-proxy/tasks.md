@@ -1,5 +1,10 @@
 > Origem: auditoria `openspec/audits/2026-09-13-pre-deploy/` (GAP-003 e GAP-004). Configuração/código,
 > independente da decisão de alvo de deploy (GAP-008).
+>
+> **STATUS 2026-09-13: GAP-003 IMPLEMENTADO** na branch `fix/pre-deploy-p0` (commit `92cfb98`): o boot
+> aborta se `NODE_ENV=production` e `AUTH_REQUIRED≠1` (`erroDeAuthEmProducao`). Teste
+> `tests/auth-producao-fail-closed.test.ts` (4/4). **GAP-004 (TRUST_PROXY)**: já é configurável no
+> código (`app.ts:116`); documentado em `DEPLOY_GUIDE.md` como secret obrigatório no Fly.io.
 
 ## 1. Fail-closed de autenticação em produção
 

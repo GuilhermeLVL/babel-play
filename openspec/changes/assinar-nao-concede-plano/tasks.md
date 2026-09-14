@@ -1,6 +1,11 @@
 > Origem: auditoria `openspec/audits/2026-09-13-pre-deploy/` (GAP-001), provado por PoC em
 > `evidencias/poc-billing.txt`. Complementa `servidor-e-autoridade` (que endureceu o WEBHOOK, tarefas
 > 4.1–4.2); esta change fecha o caminho `/assinar`, que ficou aberto.
+>
+> **STATUS 2026-09-13: IMPLEMENTADO** na branch `fix/pre-deploy-p0` (commit `92cfb98`). `subConcede`
+> não concede em `trialing`; `/assinar` não sobrescreve plan/status de assinatura existente. Teste
+> `tests/integration/billing-assinar-nao-concede.test.ts` (verde); PoC volta `free`; webhook (38) intacto.
+> Ver `IMPLEMENTATION_REPORT.md`.
 
 ## 1. `/assinar` para de conceder
 

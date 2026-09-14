@@ -238,15 +238,20 @@ billingRouter.post('/assinar', async (req, res) => {
       atual?.providerCustomerId ?? (await criarCliente(req.userId, dados.nome, dados.cpfCnpj, dados.email)).id
 
     const assinatura = await criarAssinatura(req.userId, clienteId, preco, `Babel Play ${PLAN_MATRIX[plano].rotulo}`)
-    /* Guarda os ids do provedor JÁ, mas NÃO muda plan/status: a promoção é do webhook, quando o
-       pagamento confirmar. `plan` aqui registra a INTENÇÃO para o webhook saber o que conceder. */
-    await subscriptionsRepo.upsert(req.userId, {
-      provider: 'asaas',
-      providerCustomerId: clienteId,
-      providerSubscriptionId: assinatura.id,
-      plan: plano,
-      status: (atual?.status as import('../db/repositories/subscriptions').SubStatus | undefined) ?? 'trialing',
-    })
+    /* NÃO conceder aqui (GAP-001, auditoria 2026-09-13): a promoção é EXCLUSIVA do webhook, quando o
+       pagamento confirmar. O webhook decide o plano pelo VALOR pago (billingEventos.ts), então
+       iniciar o checkout nunca pode dar plano de graça.
+       - Assinatura NOVA: grava a INTENÇÃO em `trialing`, que NÃO concede (entitlements.subConcede) e
+         serve de fallback ao webhook quando o evento vier sem valor.
+       - Assinatura JÁ existente: só atualiza os ids da nova tentativa de cobrança; NÃO toca em
+         plan/status. Sobrescrever `plan` de um assinante ativo o promoveria sem pagar (escalada
+         essencial→pro); baixá-lo para `trialing` revogaria o que ele já paga. */
+    await subscriptionsRepo.upsert(
+      req.userId,
+      atual
+        ? { provider: 'asaas', providerCustomerId: clienteId, providerSubscriptionId: assinatura.id }
+        : { provider: 'asaas', providerCustomerId: clienteId, providerSubscriptionId: assinatura.id, plan: plano, status: 'trialing' },
+    )
 
     const cobranca = await primeiraCobranca(assinatura.id)
     log('info', { event: 'billing_assinatura_criada', route: '/api/billing/assinar', requestId: req.requestId })

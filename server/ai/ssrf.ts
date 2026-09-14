@@ -12,26 +12,85 @@ import { isIP } from 'node:net'
 
 const BLOCKED_HOSTNAMES = new Set(['metadata.google.internal'])
 
-function isPrivateIp(ip: string): boolean {
-  const kind = isIP(ip)
-  if (kind === 4) {
-    const [a, b] = ip.split('.').map(Number)
-    if (a === 0 || a === 127) return true // "this host" / loopback
-    if (a === 10) return true // privado
-    if (a === 172 && b >= 16 && b <= 31) return true // privado
-    if (a === 192 && b === 168) return true // privado
-    if (a === 169 && b === 254) return true // link-local + metadata cloud
-    return false
-  }
-  if (kind === 6) {
-    const low = ip.toLowerCase().replace(/^\[|\]$/g, '')
-    if (low === '::1' || low === '::') return true // loopback / unspecified
-    if (low.startsWith('fe80')) return true // link-local
-    if (low.startsWith('fc') || low.startsWith('fd')) return true // ULA
-    if (low.startsWith('::ffff:')) return isPrivateIp(low.slice(7)) // IPv4-mapped
-    return false
-  }
+/** IPv4 não roteável na Internet pública. Malformado → bloqueia (fail-closed). */
+function isPrivateV4(ip: string): boolean {
+  const o = ip.split('.').map(Number)
+  if (o.length !== 4 || o.some((n) => Number.isNaN(n) || n < 0 || n > 255)) return true
+  const [a, b, c] = o
+  if (a === 0) return true // "this host"
+  if (a === 10) return true // privado
+  if (a === 127) return true // loopback
+  if (a === 100 && b >= 64 && b <= 127) return true // CGNAT 100.64/10 (metadata Alibaba/Oracle)
+  if (a === 169 && b === 254) return true // link-local + metadata cloud (169.254.169.254)
+  if (a === 172 && b >= 16 && b <= 31) return true // privado
+  if (a === 192 && b === 0 && c === 0) return true // IETF protocol assignments 192.0.0/24
+  if (a === 192 && b === 168) return true // privado
+  if (a === 198 && (b === 18 || b === 19)) return true // benchmark 198.18/15
+  if (a >= 224) return true // multicast 224/4 + reservado 240/4
   return false
+}
+
+/** Dois hextets de 16 bits → IPv4 pontilhado. */
+function hextetsParaV4(h1: number, h2: number): string {
+  return `${h1 >> 8}.${h1 & 0xff}.${h2 >> 8}.${h2 & 0xff}`
+}
+
+/** Expande um IPv6 (com `::` e cauda IPv4 opcional) em 8 hextets numéricos, ou `null`. */
+function expandeV6(low: string): number[] | null {
+  if (!low.includes(':')) return null
+  let s = low
+  const cauda = s.match(/^(.*:)(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})$/)
+  if (cauda) {
+    const v4 = cauda[2].split('.').map(Number)
+    if (v4.some((o) => o > 255)) return null
+    s = `${cauda[1]}${(((v4[0] << 8) | v4[1]) >>> 0).toString(16)}:${(((v4[2] << 8) | v4[3]) >>> 0).toString(16)}`
+  }
+  const partes = s.split('::')
+  if (partes.length > 2) return null
+  const head = partes[0] ? partes[0].split(':') : []
+  const tail = partes.length === 2 ? (partes[1] ? partes[1].split(':') : []) : null
+  let hextets: string[]
+  if (tail === null) {
+    hextets = head
+  } else {
+    const faltam = 8 - head.length - tail.length
+    if (faltam < 0) return null
+    hextets = [...head, ...Array(faltam).fill('0'), ...tail]
+  }
+  if (hextets.length !== 8) return null
+  const nums = hextets.map((h) => parseInt(h || '0', 16))
+  if (nums.some((n) => Number.isNaN(n) || n < 0 || n > 0xffff)) return null
+  return nums
+}
+
+/** IPv4 embutido num IPv6 (mapped `::ffff:`, compatible `::`, NAT64 `64:ff9b::`) → IPv4, ou `null`. */
+function ipv4Embutido(nums: number[]): string | null {
+  const zeros = (ate: number) => nums.slice(0, ate).every((n) => n === 0)
+  if (zeros(5) && nums[5] === 0xffff) return hextetsParaV4(nums[6], nums[7]) // ::ffff:0:0/96 (mapped)
+  if (nums[0] === 0x64 && nums[1] === 0xff9b && nums.slice(2, 6).every((n) => n === 0)) {
+    return hextetsParaV4(nums[6], nums[7]) // 64:ff9b::/96 (NAT64)
+  }
+  if (zeros(6) && !(nums[6] === 0 && nums[7] <= 1)) return hextetsParaV4(nums[6], nums[7]) // ::a.b.c.d (compatible)
+  return null
+}
+
+/** `true` se o IP não é destino público seguro para o proxy chamar. */
+function isPrivateIp(ip: string): boolean {
+  const bare = ip.toLowerCase().replace(/^\[|\]$/g, '')
+  const kind = isIP(bare)
+  if (kind === 4) return isPrivateV4(bare)
+  if (kind === 6) {
+    if (bare === '::1' || bare === '::') return true // loopback / unspecified
+    if (bare.startsWith('fe80')) return true // link-local
+    if (/^f[cd]/.test(bare)) return true // ULA fc00::/7
+    const nums = expandeV6(bare)
+    if (nums) {
+      const v4 = ipv4Embutido(nums)
+      if (v4) return isPrivateV4(v4) // IPv4 disfarçado de IPv6 → checa como IPv4
+    }
+    return false // IPv6 global unicast comum: permitido
+  }
+  return true // não é IP reconhecível → fail-closed
 }
 
 /**

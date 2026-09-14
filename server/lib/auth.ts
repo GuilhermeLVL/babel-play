@@ -28,6 +28,19 @@ export function authRequired(): boolean {
   return process.env.NODE_ENV === 'production'
 }
 
+/**
+ * GAP-003: em produção, auth desligada é FAIL-OPEN — todo request vira o dono local. Antes o boot
+ * só avisava (`console.warn`) e seguia; a imagem Docker faz bind em `0.0.0.0`, então um
+ * `AUTH_REQUIRED=0` esquecido expunha o app inteiro sem login. Retorna a mensagem de aborto, ou
+ * `null` quando a postura é segura. O boot (`startServer`) aborta como faz com multi-réplica.
+ */
+export function erroDeAuthEmProducao(): string | null {
+  if (process.env.NODE_ENV === 'production' && !authRequired()) {
+    return 'AUTH_REQUIRED=1 é obrigatório em produção (NODE_ENV=production): recusando subir com autenticação desligada — seria acesso total ao app sem login.'
+  }
+  return null
+}
+
 type VerifyKey = Parameters<typeof jwtVerify>[1]
 
 export interface VerifierOptions {

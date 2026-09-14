@@ -60,6 +60,10 @@ export async function llmChatProxy(req: Request, res: Response): Promise<void> {
       headers,
       body: JSON.stringify(body),
       signal: AbortSignal.timeout(LLM_TIMEOUT_MS), // A-04: teto de tempo
+      // GAP-002: NÃO seguir redirects. `assertPublicUrl` valida o destino ANTES do fetch; um provedor
+      // hostil poderia responder 302 para um endereço interno depois do guard passar. Sem seguir, o
+      // servidor nunca busca o alvo do redirect (um endpoint OpenAI-compatible não redireciona).
+      redirect: 'manual',
     })
 
     res.status(upstream.status)
@@ -115,6 +119,7 @@ export async function providerTest(req: Request, res: Response): Promise<void> {
       headers,
       body: JSON.stringify({ model, max_tokens: 8, messages: [{ role: 'user', content: 'ping' }] }),
       signal: AbortSignal.timeout(10_000),
+      redirect: 'manual', // GAP-002: não seguir redirect para destino não validado
     })
     if (!r.ok) {
       const b = await r.text().catch(() => '')

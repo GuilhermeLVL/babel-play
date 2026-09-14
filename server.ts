@@ -19,7 +19,7 @@ import path from 'path'
 import { dbReady } from './server/db/db'
 import { seedIfEmpty } from './server/db/seed'
 import { criarApp } from './server/http/app'
-import { authRequired, mecanismoDe } from './server/lib/auth'
+import { authRequired, erroDeAuthEmProducao, mecanismoDe } from './server/lib/auth'
 import { registrarFalhaDeBoot, registrarSucessoDeBoot } from './server/lib/bootStatus'
 import { verificarConfiguracaoNoBoot } from './server/lib/config'
 import { registrarDesligamento } from './server/lib/desligamento'
@@ -59,6 +59,13 @@ async function startServer({ prepararDados = true } = {}) {
   const incoerencia = erroDeMultiReplica()
   if (incoerencia) {
     console.error(`[boot] ABORTADO: ${incoerencia}`)
+    process.exit(1)
+  }
+  /* GAP-003 (auditoria 2026-09-13): em produção, auth desligada é fail-open — aborta o boot em vez
+     de só avisar (o warning permanece, mais abaixo, para o caso legítimo self-host/local). */
+  const authInsegura = erroDeAuthEmProducao()
+  if (authInsegura) {
+    console.error(`[boot] ABORTADO: ${authInsegura}`)
     process.exit(1)
   }
   /*

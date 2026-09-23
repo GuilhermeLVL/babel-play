@@ -24,13 +24,13 @@ import {
   X,
   Youtube,
 } from 'lucide-react';
-import React, { useEffect, useMemo,useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 
 import { apiFetch } from '../data/api';
-import { cercarContexto, clausulaDeContencao,construirContextoDaTela } from '../lib/ichatContext';
-import { type AgeProfileType,TUTOR_REGISTER } from '../lib/profile';
+import { cercarContexto, clausulaDeContencao, construirContextoDaTela } from '../lib/ichatContext';
+import { type AgeProfileType, TUTOR_REGISTER } from '../lib/profile';
 import { Recording, ViewType } from '../types';
-import { askConfirm,toast } from './Toast';
+import { askConfirm, toast } from './Toast';
 
 interface ContextoFixado {
   view: ViewType;
@@ -97,6 +97,16 @@ function motivoDaResposta(res: Response, data: Record<string, unknown>): string 
   return null;
 }
 
+/* MODO FIXO: largura arrastável e volta automática a flutuar.
+   Fixo ao lado, o chat divide a linha com o conteúdo; numa janela estreita ele espremia a tela até
+   ela ficar ilegível. Abaixo de CONTEUDO_MINIMO o chat passa a flutuar SOZINHO, sem apagar a escolha
+   do usuário (`ichat_docked` continua `true`): quando a janela voltar a ter espaço, ele volta a fixar. */
+const LARGURA_KEY = 'ichat_largura';
+const LARGURA_MIN = 320;
+const LARGURA_MAX = 560;
+const CONTEUDO_MINIMO = 440;
+const limitarLargura = (px: number) => Math.min(LARGURA_MAX, Math.max(LARGURA_MIN, Math.round(px)));
+
 export default function IChat({
   activeView,
   selectedRecording,
@@ -112,6 +122,55 @@ export default function IChat({
   ageProfile = 'pro',
 }: IChatProps) {
   const [showSessionSelector, setShowSessionSelector] = useState(false);
+  const [largura, setLargura] = useState(() => limitarLargura(Number(localStorage.getItem(LARGURA_KEY)) || 420));
+  const [semEspaco, setSemEspaco] = useState(false);
+  const fixado = isDocked && !semEspaco;
+  const ocupandoRef = useRef(false);
+  ocupandoRef.current = isOpen && fixado && !isMaximized;
+  useEffect(() => {
+    const conteudo = document.querySelector('main');
+    if (!isDocked || !conteudo) {
+      setSemEspaco(false);
+      return;
+    }
+    // O total disponível não depende do estado atual: é o `main` mais a coluna do chat, se ela
+    // estiver na linha. Assim a decisão não oscila quando o chat sai e o `main` cresce.
+    const medir = () => {
+      const total = conteudo.clientWidth + (ocupandoRef.current ? largura : 0);
+      setSemEspaco(total - largura < CONTEUDO_MINIMO);
+    };
+    medir();
+    const ro = new ResizeObserver(medir);
+    ro.observe(conteudo);
+    window.addEventListener('resize', medir);
+    return () => {
+      ro.disconnect();
+      window.removeEventListener('resize', medir);
+    };
+  }, [isDocked, largura]);
+  const guardarLargura = (px: number) => {
+    const conteudo = document.querySelector('main');
+    const total = (conteudo?.clientWidth ?? Infinity) + largura;
+    const nova = limitarLargura(Math.min(px, total - CONTEUDO_MINIMO));
+    setLargura(nova);
+    localStorage.setItem(LARGURA_KEY, String(nova));
+  };
+  const arrastar = (e: React.PointerEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    const inicioX = e.clientX;
+    const inicioL = largura;
+    const alvo = e.currentTarget;
+    alvo.setPointerCapture(e.pointerId);
+    const mover = (ev: PointerEvent) => guardarLargura(inicioL + (inicioX - ev.clientX));
+    const soltar = () => {
+      alvo.removeEventListener('pointermove', mover);
+      alvo.removeEventListener('pointerup', soltar);
+      alvo.removeEventListener('pointercancel', soltar);
+    };
+    alvo.addEventListener('pointermove', mover);
+    alvo.addEventListener('pointerup', soltar);
+    alvo.addEventListener('pointercancel', soltar);
+  };
   const [sessions, setSessions] = useState<ChatSession[]>([]);
   const [activeSessionId, setActiveSessionId] = useState<string>('default');
   const [chatInput, setChatInput] = useState('');
@@ -842,7 +901,7 @@ ${TUTOR_REGISTER[ageProfile]}`;
       )}
 
       {/* Drawer Overlay Backdrop */}
-      {isOpen && !isDocked && !isMaximized && (
+      {isOpen && !fixado && !isMaximized && (
         <div
           className="fixed inset-0 z-40 bg-black/40 backdrop-blur-xs transition-opacity animate-in fade-in duration-200"
           onClick={() => setIsOpen(false)}
@@ -854,13 +913,34 @@ ${TUTOR_REGISTER[ageProfile]}`;
         className={
           !isOpen
             ? 'hidden'
-            : isMaximized && !isDocked
+            : isMaximized && !fixado
               ? 'fixed inset-0 w-full h-full max-w-none bg-canvas z-50 flex flex-col transition-all duration-300 animate-in fade-in duration-300'
-              : isDocked
-                ? 'relative h-full w-full max-w-md bg-canvas border-s border-border-subtle shrink-0 flex flex-col z-30 transition-all duration-300 animate-in slide-in-from-right duration-300'
+              : fixado
+                ? 'relative h-full bg-canvas border-s border-border-subtle shrink-0 flex flex-col z-30 transition-all duration-300 animate-in slide-in-from-right duration-300'
                 : 'fixed top-0 right-0 h-full w-full max-w-md bg-canvas border-s border-border-subtle shadow-3xl flex flex-col z-50 transition-all duration-300 animate-in slide-in-from-right duration-300'
         }
+        style={fixado && isOpen ? { width: largura } : undefined}
       >
+        {/* Alça de largura do modo fixo: arrasta com o ponteiro, ou ←/→ pelo teclado. */}
+        {fixado && (
+          <div
+            role="separator"
+            aria-orientation="vertical"
+            aria-label="Largura do iChat"
+            aria-valuemin={LARGURA_MIN}
+            aria-valuemax={LARGURA_MAX}
+            aria-valuenow={largura}
+            tabIndex={0}
+            onPointerDown={arrastar}
+            onKeyDown={(e) => {
+              if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+                e.preventDefault();
+                guardarLargura(largura + (e.key === 'ArrowLeft' ? 16 : -16));
+              }
+            }}
+            className="absolute inset-y-0 -start-1 w-2 z-10 cursor-col-resize touch-none hover:bg-accent/30 focus-visible:bg-accent/40 focus-visible:outline-none transition-colors"
+          />
+        )}
         {/* Drawer Header */}
         <div className="px-5 py-4 border-b border-border-subtle bg-surface flex items-center justify-between shrink-0">
           <div className="flex items-center gap-3">
@@ -891,6 +971,8 @@ ${TUTOR_REGISTER[ageProfile]}`;
                 estaFixado ? 'bg-rare-soft/20 text-rare' : 'text-ink-muted hover:text-ink hover:bg-surface-hover'
               }`}
               title={estaFixado ? 'Desafixar este contexto' : 'Fixar o contexto desta tela na conversa'}
+              aria-label={estaFixado ? 'Desafixar este contexto' : 'Fixar o contexto desta tela na conversa'}
+              aria-pressed={estaFixado}
             >
               <Bookmark className={`w-4 h-4 ${estaFixado ? 'fill-rare text-rare' : ''}`} />
             </button>
@@ -902,14 +984,18 @@ ${TUTOR_REGISTER[ageProfile]}`;
                 isDocked ? 'bg-rare-soft/20 text-rare' : 'text-ink-muted hover:text-ink hover:bg-surface-hover'
               }`}
               title={isDocked ? 'Desafixar do lado (Modo Flutuante)' : 'Fixar na lateral (Modo Lado a Lado)'}
+              aria-label="Fixar o iChat na lateral direita"
+              aria-pressed={isDocked}
             >
               <Pin className={`w-4 h-4 ${isDocked ? 'fill-rare rotate-45 text-rare' : ''}`} />
             </button>
 
             {/* Maximize Toggle button */}
-            {!isDocked && (
+            {!fixado && (
               <button
                 onClick={() => setIsMaximized(!isMaximized)}
+                aria-label="Maximizar o iChat"
+                aria-pressed={isMaximized}
                 className={`p-2 rounded-lg transition-colors cursor-pointer ${
                   isMaximized ? 'bg-rare-soft/20 text-rare' : 'text-ink-muted hover:text-ink hover:bg-surface-hover'
                 }`}
@@ -926,6 +1012,8 @@ ${TUTOR_REGISTER[ageProfile]}`;
                 showSessionSelector ? 'bg-surface-hover text-ink' : ''
               }`}
               title="Histórico de Conversas (Sessões)"
+              aria-label="Histórico de conversas"
+              aria-expanded={showSessionSelector}
             >
               <History className="w-4 h-4" />
               <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-accent border-2 border-canvas"></span>
@@ -934,6 +1022,8 @@ ${TUTOR_REGISTER[ageProfile]}`;
             {/* Close button */}
             <button
               onClick={() => setIsOpen(false)}
+              aria-label="Fechar o iChat"
+              title="Fechar o iChat"
               className="p-2 hover:bg-surface-hover rounded-lg text-ink-muted hover:text-ink transition-colors cursor-pointer"
             >
               <X className="w-4.5 h-4.5" />

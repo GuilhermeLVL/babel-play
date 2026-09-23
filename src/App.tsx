@@ -251,7 +251,7 @@ export default function App() {
       <div className="flex-1 flex min-h-0 w-full">
         {menuPosition === 'left' && shell}
 
-        <main className={`flex-1 min-w-0 flex flex-col h-full relative overflow-hidden bg-canvas age-${ageProfile}`}>
+        <main className={`@container/conteudo flex-1 min-w-0 flex flex-col h-full relative overflow-hidden bg-canvas age-${ageProfile}`}>
           {/* O AMBIENTE fica fora do perfil sênior de propósito: movimento contínuo de fundo é
               exatamente o que atrapalha quem já tem dificuldade de leitura. As RAJADAS continuam
               para os três, são curtas e confirmam uma ação que a pessoa acabou de fazer. */}

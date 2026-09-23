@@ -3,10 +3,10 @@ import type { ReactNode } from 'react';
 /**
  * TELA — a moldura de rolagem e largura de toda view.
  *
- * O DEFEITO QUE ISTO CONSERTA. Cada view repetia `flex-1 overflow-y-auto … p-6 md:p-10 max-w-*xl
- * mx-auto` com larguras e respiros que divergiam (Hub `6xl`, Ajustes `4xl`, outras sem máximo). A
- * referência aprovada (`docs/prototipos/consistencia-telas.html`) tem só duas larguras: `larga`
- * para telas de grade e `estreita` para telas de leitura e formulário.
+ * O protótipo aprovado (`docs/prototipos/consistencia-telas.html`) é o "Figma" do app: a marcação
+ * aqui é a MESMA dele (`.rolagem` > `.tela.larga|.estreita.entra`), e o CSS vem gerado dele em
+ * `src/styles/prototipo.css`. Duas larguras só: `larga` (1152) para grades, `estreita` (896) para
+ * leitura e formulário.
  */
 interface TelaProps {
   largura?: 'larga' | 'estreita';
@@ -14,12 +14,10 @@ interface TelaProps {
   className?: string;
 }
 
-const LARGURA = { larga: 'max-w-6xl', estreita: 'max-w-4xl' } as const;
-
 export default function Tela({ largura = 'larga', children, className = '' }: TelaProps) {
   return (
-    <div className="flex-1 overflow-y-auto w-full bg-canvas">
-      <div className={`p-6 md:p-10 ${LARGURA[largura]} mx-auto w-full ${className}`}>{children}</div>
+    <div className="rolagem w-full">
+      <div className={`tela ${largura} entra ${className}`}>{children}</div>
     </div>
   );
 }

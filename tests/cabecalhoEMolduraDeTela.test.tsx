@@ -19,9 +19,9 @@ afterEach(cleanup)
 describe('Tela', () => {
   it('limita a largura conforme o molde', () => {
     const { container, rerender } = render(<Tela largura="larga">x</Tela>)
-    expect(container.querySelector('.max-w-6xl')).not.toBeNull()
+    expect(container.querySelector('.tela.larga')).not.toBeNull()
     rerender(<Tela largura="estreita">x</Tela>)
-    expect(container.querySelector('.max-w-4xl')).not.toBeNull()
+    expect(container.querySelector('.tela.estreita')).not.toBeNull()
   })
 })
 
@@ -36,7 +36,7 @@ describe('CabecalhoDeTela', () => {
 
   it('sem sobrancelha nem voltar, fica só o título', () => {
     const { container } = render(<CabecalhoDeTela titulo="Início" />)
-    expect(container.querySelector('.label-mono')).toBeNull()
+    expect(container.querySelector('.sobrancelha')).toBeNull()
     expect(screen.queryByRole('button')).toBeNull()
   })
 
@@ -67,10 +67,10 @@ describe('TituloDeSecao', () => {
 
 describe('IconeEmBloco', () => {
   it('é decorativo e aplica o tom', () => {
-    const { container } = render(<IconeEmBloco icone={Sparkles} tom="good" tamanho="lg" />)
+    const { container } = render(<IconeEmBloco icone={Sparkles} tom="good" />)
     const bloco = container.firstElementChild as HTMLElement
     expect(bloco.getAttribute('aria-hidden')).toBe('true')
-    expect(bloco.className).toContain('bg-good-soft')
-    expect(bloco.className).toContain('w-12')
+    expect(bloco.classList.contains('ib')).toBe(true)
+    expect(bloco.classList.contains('good')).toBe(true)
   })
 })

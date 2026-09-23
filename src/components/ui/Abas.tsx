@@ -63,34 +63,20 @@ export default function Abas({
     alvo?.focus();
   }
 
-  const contorno =
-    variante === 'sublinhado'
-      ? 'relative flex gap-1 border-b border-border-subtle overflow-x-auto [scrollbar-width:none]'
-      : 'flex flex-wrap gap-2';
-
+  // Marcação do protótipo aprovado (`Abas()`): `.abas` > `.aba` (sublinhado) ou `.abas.pilula` >
+  // `.pill`, com a contagem em `.n`. O CSS é o dele (src/styles/prototipo.css).
   return (
-    <div role="tablist" aria-label={rotuloDoGrupo} className={`${contorno} ${className}`}>
+    <div
+      role="tablist"
+      aria-label={rotuloDoGrupo}
+      className={`abas ${variante === 'pilula' ? 'pilula' : ''} ${className}`}
+    >
       {itens.map((item, i) => {
         const selecionado = item.id === ativo;
-
-        /* Medidas do protótipo aprovado (23/09/2026, `.aba` e `.pill`): a régua da aba ativa
-           desliza (scaleX) e o ícone ativo ganha o tom de acento; a pílula ativa é tinta cheia. */
-        const estilo =
-          variante === 'sublinhado'
-            ? `relative flex items-center gap-2 min-h-11 px-4 pb-0.5 -mb-px rounded-t-[10px] whitespace-nowrap font-display font-bold text-[13px] cursor-pointer transition-colors after:content-[''] after:absolute after:left-2.5 after:right-2.5 after:bottom-0 after:h-[2.5px] after:rounded-t-[3px] after:bg-accent after:transition-transform after:duration-300 [&_svg]:w-4 [&_svg]:h-4 ${
-                selecionado
-                  ? 'text-ink after:scale-x-100 [&_svg]:text-accent-ink'
-                  : 'text-ink-muted hover:text-ink hover:bg-surface-hover/60 after:scale-x-0'
-              }`
-            : `inline-flex items-center gap-1.5 min-h-8 px-[13px] rounded-full border font-bold text-[12px] cursor-pointer transition-colors [&_svg]:w-3.5 [&_svg]:h-3.5 ${
-                selecionado
-                  ? 'bg-ink border-ink text-ink-contrast shadow-card'
-                  : 'bg-surface border-border-subtle text-ink-muted hover:text-ink hover:border-accent/60'
-              }`;
-
         return (
           <button
             key={item.id}
+            type="button"
             role="tab"
             id={`aba-${item.id}`}
             aria-selected={selecionado}
@@ -98,18 +84,11 @@ export default function Abas({
             tabIndex={selecionado ? 0 : -1}
             onClick={() => aoTrocar(item.id)}
             onKeyDown={(e) => aoTeclar(e, i)}
-            className={`${estilo} focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent`}
+            className={variante === 'pilula' ? 'pill' : 'aba'}
           >
             {item.icone}
             {item.rotulo}
-            {/* Sem `opacity-70`. A contagem já herda `text-ink-muted` da aba não selecionada, e a
-                opacidade compunha por cima: no tema vercel escuro o par `--ink-muted` sobre
-                `--surface` cai de 5,57:1 para 3,23:1, abaixo dos 4,5:1 exigidos. Medido em axe
-                color-contrast. A hierarquia visual vem do tamanho e da posição, não de apagar o
-                texto duas vezes. */}
-            {item.contagem !== undefined && (
-              <span className={`tabular-nums ${variante === 'sublinhado' ? 'text-ink-muted' : ''}`}>{item.contagem}</span>
-            )}
+            {item.contagem !== undefined && <span className="n">{item.contagem}</span>}
           </button>
         );
       })}

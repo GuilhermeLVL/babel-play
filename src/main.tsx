@@ -1,4 +1,8 @@
 import './index.css';
+/* O protótipo aprovado é o "Figma" do app: o mesmo CSS, gerado de docs/prototipos. Depois do
+   index.css para que, onde os dois falam da mesma classe, valha o desenho aprovado. */
+import './styles/prototipo.css';
+import './styles/prototipo-app.css';
 
 import {StrictMode} from 'react';
 import {createRoot} from 'react-dom/client';

@@ -1,12 +1,12 @@
 import { PanelLeftClose, PanelLeftOpen } from 'lucide-react';
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 
 import { t } from '../../lib/i18n';
 import type { DerivedProgress } from '../../lib/progress';
 import type { ViewType } from '../../types';
 import ControlCluster, { type ControlClusterProps } from './ControlCluster';
 import { type AgeProfileType, NAV_ITEMS, navLabel } from './navItems';
-import { Brand } from './ShellBits';
+import { MarcaBabel } from './ShellBits';
 
 const COLLAPSE_KEY = 'babel.rail_collapsed';
 
@@ -52,145 +52,111 @@ export default function NavRail({ activeView, onChangeView, ageProfile, side, co
     return () => window.removeEventListener('keydown', onKey);
   }, [toggle]);
 
-  /* Dica com o nome do item quando o menu está recolhido. Só `title` não bastava: demora a
-     aparecer, não aparece no foco por teclado e some em telas de toque. É `fixed` porque a
-     navegação tem rolagem própria, e um balão posicionado dentro dela seria cortado. */
-  const [dica, setDica] = useState<{ rotulo: string; top: number; left: number } | null>(null);
-  const mostrarDica = (rotulo: string) => (e: React.SyntheticEvent<HTMLElement>) => {
-    if (!collapsed) return;
-    const r = e.currentTarget.getBoundingClientRect();
-    setDica({ rotulo, top: r.top + r.height / 2, left: side === 'right' ? r.left - 8 : r.right + 8 });
-  };
-  useEffect(() => setDica(null), [collapsed]);
-
-  const width = collapsed ? 'w-[68px]' : 'w-[232px]';
-  const border = side === 'right' ? 'border-s' : 'border-e';
-
-  // Publica o recuo para os elementos `fixed` (botão flutuante do iChat) — ver index.css.
+  // Recolhido: o CSS do protótipo (`.rail-recolhido …`) esconde os rótulos e mostra a dica com
+  // o nome (`[data-rot]::after`) no hover e no foco por teclado.
   useEffect(() => {
+    document.body.classList.toggle('rail-recolhido', collapsed);
     document.body.classList.toggle('shell-rail-right', side === 'right');
     document.body.classList.toggle('shell-rail-collapsed', collapsed);
     return () => {
-      document.body.classList.remove('shell-rail-right', 'shell-rail-collapsed');
+      document.body.classList.remove('rail-recolhido', 'shell-rail-right', 'shell-rail-collapsed');
     };
   }, [side, collapsed]);
 
+  /* A pílula do item ativo DESLIZA de um item para o outro (`moverIndicador` do protótipo): ela e
+     o marcador são peças da navegação posicionadas sobre o item com `aria-current`. */
+  const navRef = useRef<HTMLElement>(null);
+  const pilulaRef = useRef<HTMLSpanElement>(null);
+  const indicadorRef = useRef<HTMLSpanElement>(null);
+  useLayoutEffect(() => {
+    const nav = navRef.current,
+      pil = pilulaRef.current,
+      ind = indicadorRef.current;
+    if (!nav || !pil || !ind) return;
+    const ativo = nav.querySelector<HTMLElement>('[aria-current="page"]');
+    if (!ativo) {
+      pil.style.opacity = '0';
+      ind.style.opacity = '0';
+      return;
+    }
+    const top = ativo.offsetTop,
+      h = ativo.offsetHeight;
+    pil.style.opacity = '1';
+    ind.style.opacity = '1';
+    pil.style.top = `${top}px`;
+    pil.style.height = `${h}px`;
+    ind.style.top = `${top + 11}px`;
+    ind.style.height = `${h - 22}px`;
+  }, [activeView, collapsed, ageProfile]);
+
   const renderItem = (item: (typeof NAV_ITEMS)[number]) => {
-    const isActive = activeView === item.id;
     const Icon = item.icon;
     const label = navLabel(item, ageProfile);
     return (
       <button
         key={item.id}
         type="button"
-        onClick={() => onChangeView(item.id)}
-        onMouseEnter={mostrarDica(label)}
-        onMouseLeave={() => setDica(null)}
-        onFocus={mostrarDica(label)}
-        onBlur={() => setDica(null)}
+        className="item"
+        data-rot={label}
+        /* Recolhido, o CSS do protótipo zera o tamanho do texto, e o navegador tira do nome acessível
+           o texto de tamanho zero: sem este rótulo o item ficaria mudo para o leitor de tela. */
         aria-label={label}
-        aria-current={isActive ? 'page' : undefined}
-        className={`group relative w-full min-h-[42px] flex items-center gap-3 rounded-xl font-display font-bold text-[13.5px] cursor-pointer transition-colors ${
-          collapsed ? 'justify-center px-0' : 'px-3'
-        } ${
-          isActive
-            ? 'bg-accent-soft text-accent-ink shadow-[inset_0_0_0_1px_color-mix(in_srgb,var(--accent)_16%,transparent)]'
-            : 'text-ink-muted hover:text-ink hover:bg-surface-hover'
-        }`}
+        onClick={() => onChangeView(item.id)}
+        aria-current={activeView === item.id ? 'page' : undefined}
       >
-        {isActive && (
-          <span
-            aria-hidden
-            className={`absolute top-[11px] bottom-[11px] w-[3px] bg-accent shadow-[0_0_8px_color-mix(in_srgb,var(--accent)_60%,transparent)] ${
-              side === 'right' ? '-right-2 rounded-s-[3px]' : '-left-2 rounded-e-[3px]'
-            }`}
-          />
-        )}
-        <Icon
-          className="w-[18px] h-[18px] shrink-0 transition-transform duration-200 group-hover:translate-x-px"
-          aria-hidden
-        />
-        {!collapsed && <span className="truncate">{label}</span>}
+        <Icon aria-hidden />
+        {label}
       </button>
     );
   };
 
+  // Marcação do protótipo aprovado (`.rail`): topo com a marca e o botão de recolher, a navegação
+  // com o grupo "Mais", e o rodapé com o cluster de utilitários.
   return (
     <aside
       id="menu-lateral"
       data-shell="rail"
-      className={`hidden md:flex ${width} ${border} border-border-subtle/70 h-full flex-col bg-[linear-gradient(180deg,var(--surface)_0%,color-mix(in_srgb,var(--surface)_70%,var(--canvas))_100%)] z-20 shrink-0 select-none transition-[width] duration-200`}
+      className="rail"
+      aria-label={t('Menu lateral')}
+      style={{ width: collapsed ? 72 : 220, flexShrink: 0, transition: 'width .25s var(--ease)' }}
     >
-      {/* Marca + recolher, na mesma linha de base do conteúdo */}
-      <div
-        className={`h-[60px] shrink-0 flex items-center gap-2 border-b border-border-subtle/70 ${collapsed ? 'justify-center px-2' : 'px-4'}`}
-      >
-        <Brand compact={collapsed} />
-        {!collapsed && (
-          <button
-            type="button"
-            onClick={toggle}
-            title="Recolher o menu lateral (Ctrl+B)"
-            aria-label="Recolher o menu lateral"
-            aria-expanded
-            aria-controls="menu-lateral"
-            className="ms-auto w-8 h-8 rounded-lg flex items-center justify-center text-ink-muted hover:text-ink hover:bg-surface-hover transition-colors cursor-pointer shrink-0"
-          >
-            <PanelLeftClose className={`w-4 h-4 ${side === 'right' ? 'rotate-180' : ''}`} aria-hidden />
-          </button>
-        )}
+      <div className="rail-topo">
+        <div className="marca" title="Babel Play">
+          <MarcaBabel className="" />
+          <span>
+            Babel<b>Play</b>
+          </span>
+        </div>
+        <button
+          type="button"
+          className="item"
+          style={{ width: 36, minHeight: 36, padding: 0, justifyContent: 'center' }}
+          onClick={toggle}
+          aria-label={collapsed ? t('Expandir o menu lateral (Ctrl+B)') : t('Recolher o menu lateral (Ctrl+B)')}
+          aria-expanded={!collapsed}
+          aria-controls="menu-lateral"
+        >
+          {collapsed ? (
+            <PanelLeftOpen aria-hidden className={side === 'right' ? 'rotate-180' : ''} />
+          ) : (
+            <PanelLeftClose aria-hidden className={side === 'right' ? 'rotate-180' : ''} />
+          )}
+        </button>
       </div>
 
-      {/* Navegação — com rolagem própria: com a fonte no XL, seis itens já não cabiam. */}
-      <nav
-        aria-label="Navegação principal"
-        className="flex-1 min-h-0 overflow-y-auto overflow-x-visible custom-scrollbar py-2.5 px-2 flex flex-col gap-0.5"
-      >
+      <nav aria-label={t('Navegação principal')} ref={navRef}>
+        <span className="pilula-ativa" ref={pilulaRef} aria-hidden />
+        <span className="indicador" ref={indicadorRef} aria-hidden />
         {NAV_ITEMS.filter((item) => !item.secondary).map(renderItem)}
-        {/* "Mais": separa as telas de uso das de descoberta e conta, como no protótipo aprovado.
-            Recolhido, o rótulo vira um fio. */}
-        <div
-          aria-hidden
-          className={
-            collapsed
-              ? 'mx-2 my-2.5 h-px bg-border-subtle'
-              : 'label-mono text-[9.5px] text-ink-muted px-3 pt-3.5 pb-1.5'
-          }
-        >
-          {!collapsed && t('Mais')}
+        <div className="grupo-nav" aria-hidden>
+          {t('Mais')}
         </div>
         {NAV_ITEMS.filter((item) => item.secondary).map(renderItem)}
       </nav>
 
-      {/* Rodapé ancorado: utilitários */}
-      <div className={`shrink-0 border-t border-border-subtle/70 py-3 space-y-2 ${collapsed ? 'px-2' : 'px-3'}`}>
-        {/* Sempre `column` (= quebra em linhas): oito controles de 36px somam ~300px e não cabem
-            nos 232px do rail expandido, em `row` eles vazavam por fora da borda. */}
+      <div className="rail-pe">
         <ControlCluster {...controls} orientation="column" />
-        {collapsed && (
-          <button
-            type="button"
-            onClick={toggle}
-            title="Expandir o menu lateral (Ctrl+B)"
-            aria-label="Expandir o menu lateral"
-            aria-expanded={false}
-            aria-controls="menu-lateral"
-            className="w-full min-h-[40px] rounded-lg flex items-center justify-center text-ink-muted hover:text-ink hover:bg-surface-hover transition-colors cursor-pointer"
-          >
-            <PanelLeftOpen className={`w-4 h-4 ${side === 'right' ? 'rotate-180' : ''}`} aria-hidden />
-          </button>
-        )}
       </div>
-
-      {dica && (
-        <span
-          role="tooltip"
-          style={{ top: dica.top, left: dica.left }}
-          className={`fixed z-50 -translate-y-1/2 ${side === 'right' ? '-translate-x-full' : ''} pointer-events-none whitespace-nowrap rounded-lg bg-ink text-ink-contrast px-2.5 py-1.5 text-[12.5px] font-display font-bold shadow-lift`}
-        >
-          {dica.rotulo}
-        </span>
-      )}
     </aside>
   );
 }

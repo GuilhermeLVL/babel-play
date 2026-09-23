@@ -1,0 +1,19 @@
+/* ENCAIXE do CSS do protótipo (prototipo.css, gerado) no app real.
+   Só entra aqui o que o protótipo SIMULA e o app faz de verdade — nunca um ajuste de desenho.
+   O desenho é o do protótipo; se algo aqui mudar a aparência, está no arquivo errado. */
+
+/* O celular: o protótipo decide por `@container (max-width:760px)` medindo a moldura `.app`; no
+   app essa moldura é a raiz (`@container/app` em App.tsx), então as mesmas regras valem. */
+
+/* O botão do iChat: no protótipo ele fica dentro da moldura (`position:absolute`); no app é fixo
+   na janela e recua do menu lateral quando o menu está à direita ou embaixo. */
+.fab {
+  position: fixed;
+  right: calc(22px + var(--shell-inset-right, 0px));
+  bottom: calc(22px + var(--shell-inset-bottom, 0px));
+}
+/* No celular vale a posição do protótipo (acima da dock) — repetida aqui só porque a regra de cima
+   vem depois da dele. */
+@container app (max-width: 760px) {
+  .fab { bottom: 80px; right: 14px; }
+}

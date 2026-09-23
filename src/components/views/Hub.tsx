@@ -1,7 +1,6 @@
 import { estimativaDeMinutos, rotuloDeDuracao } from '@core';
 import {
   ArrowRight,
-  Check,
   ChevronUp,
   Eye,
   FileText,
@@ -9,13 +8,12 @@ import {
   Headphones,
   History,
   Mic,
-  Rocket,
   Sparkles,
   Sprout,
   Target,
   TrendingUp,
   Upload,
-  Video,
+  Youtube,
 } from 'lucide-react';
 import React, { useEffect, useRef, useState } from 'react';
 
@@ -28,7 +26,7 @@ import AvisoDeConta from '../conta/AvisoDeConta';
 import EditablePanel from '../EditablePanel';
 import { ehBaixaConfianca } from '../Honestidade';
 import FaixaDeProgresso from '../progress/FaixaDeProgresso';
-import { CabecalhoDeTela, IconeEmBloco, Tela, TituloDeSecao, Vazio } from '../ui';
+import { Abas, CabecalhoDeTela, IconeEmBloco, Tela, TituloDeSecao, Vazio } from '../ui';
 
 // Metas de ritmo DECLARADAS por nível (benchmark, não medição). O valor MEDIDO
 // vem sempre de metrics.wpm; aqui só guardamos o alvo com que comparar.
@@ -152,7 +150,11 @@ export default function Hub({ onChangeView, recordings, ageProfile = 'pro', prog
       <CabecalhoDeTela
         icone={ageProfile === 'kids' ? Gamepad2 : ageProfile === 'senior' ? Eye : Sparkles}
         sobrancelha={
-          ageProfile === 'kids' ? t('Central do jogador') : ageProfile === 'senior' ? t('Aprendizado fácil') : t('Seu estudo')
+          ageProfile === 'kids'
+            ? t('Central do jogador')
+            : ageProfile === 'senior'
+              ? t('Aprendizado fácil')
+              : t('Seu estudo')
         }
         titulo={
           ageProfile === 'kids'
@@ -164,11 +166,12 @@ export default function Hub({ onChangeView, recordings, ageProfile = 'pro', prog
         sub={
           ageProfile === 'kids'
             ? t('Três frentes para evoluir: gravar, praticar e cultivar palavras.')
-            : t('Escolha um dos três passos abaixo. Cada um leva a uma tela só, com o que precisa.')
+            : t('Escolha um dos três passos. Cada um leva a uma tela só, com o que precisa.')
         }
       />
 
-      {/* Main Actions Panel — movido para o topo (como no design novo) */}
+      {/* Marcação do protótipo aprovado (`T.inicio`), o "Figma" do app: os três passos em `.g3`, a
+          peça de progresso com a faixa de revisão colada embaixo, e o link de estatísticas. */}
       <EditablePanel
         viewKey="hub"
         panelKey="quickActions"
@@ -177,147 +180,77 @@ export default function Hub({ onChangeView, recordings, ageProfile = 'pro', prog
         canResizeHeight={false}
         defaultHeight={0}
       >
-        <section className="mb-8">
-          {/* TRÊS PILARES — a MESMA estrutura nos três perfis.
-            Antes, cada perfil renderizava uma árvore JSX completamente diferente (livro de missões
-            × guia de passos × grid executivo). Trocar de perfil parecia trocar de aplicativo, e as
-            três versões envelheciam separadamente, foi assim que os emojis e os números fixos
-            sobreviveram só em duas delas. Aqui a estrutura é uma; o que varia é a LINGUAGEM, a
-            densidade e se as recompensas aparecem. */}
-          <div className={ageProfile === 'senior' ? 'space-y-4' : 'grid grid-cols-1 md:grid-cols-3 gap-5'}>
-            {PILLARS.map((pillar, idx) => (
-              <PillarCard
-                key={pillar.id}
-                pillar={pillar}
-                index={idx}
-                ageProfile={ageProfile}
-                mission={progress.missions.find((m) => m.id === pillar.id)}
-                progressAvailable={progress.available}
-                onChangeView={onChangeView}
-              />
-            ))}
-          </div>
+        <section className="g3" aria-label={t('Três passos')}>
+          {PILLARS.map((pillar) => (
+            <PillarCard
+              key={pillar.id}
+              pillar={pillar}
+              ageProfile={ageProfile}
+              mission={progress.missions.find((m) => m.id === pillar.id)}
+              progressAvailable={progress.available}
+              onChangeView={onChangeView}
+            />
+          ))}
         </section>
       </EditablePanel>
 
-      {/* XP e revisão vencida vêm DEPOIS dos três passos (pedido do dono, 2026-08-27):
-          quem chega novo lê primeiro O QUE FAZER; números e pendências são contexto, não porta.
-          FUNDIDAS NUMA PEÇA SÓ (referência de design): quando há revisão pendente, esta faixa
-          perde a borda/canto de baixo e a faixa de revisão logo abaixo perde os de cima — viram
-          uma única barra de status com uma linha divisória entre as duas metades, em vez de dois
-          cartões soltos com espaço entre eles. */}
       <FaixaDeProgresso
         progress={progress}
         ageProfile={ageProfile}
-        className={metrics && metrics.dueToday > 0 ? 'mb-0 rounded-b-none border-b-0' : 'mb-8'}
-      />
-
-      {/* ── AS QUE ESTÃO PRESTES A ESCAPAR ────────────────────────────────────────────────────
-          O Hub abria com três cards equivalentes e a revisão vencida aparecia como uma linha de
-          texto num deles, lá embaixo, competindo com "Seu Vocabulário" e "Métricas". Mas revisão
-          vencida é a única coisa nesta tela que PIORA com o tempo: cada dia que passa derruba a
-          chance de lembrar, e o resto espera sem custo. Uma decisão que caduca merece o topo.
-
-          O CARD SÓ EXISTE QUANDO HÁ O QUE REVISAR. Sem vencidas ele some inteiro, em vez de virar
-          um "0 palavras para revisar", que ocuparia o lugar mais nobre da tela para não dizer
-          nada, e ensinaria a ignorar aquele espaço justamente nos dias em que ele importa.
-
-          O TEMPO É MEDIDO ou não é dito: `estimativaDeMinutos` cala abaixo de 20 respostas
-          cronometradas e a linha vira "rodada curta". */}
-      {/* ENQUANTO AS MÉTRICAS NÃO CHEGARAM, O ESPAÇO FICA RESERVADO.
-          O card entra entre a faixa de progresso e TODO o resto da tela, e nascia com a resposta
-          da rede, empurrando de uma vez os três pilares, o relatório e as sessões recentes (é a
-          maior parcela do CLS 0,311 medido no Início, achado F0-02). O esqueleto repete as mesmas
-          classes de caixa do card real para a altura sair das mesmas regras nos dois tamanhos de
-          tela; os blocos internos declaram a altura do conteúdo que vai ocupá-los. */}
-      {metrics === null && (
-        <div
-          className="card-panel bg-surface border-accent/40 p-5 md:p-6 mb-8 flex flex-col sm:flex-row sm:items-center gap-5 animate-pulse"
-          aria-hidden
-        >
-          <div className="w-24 h-24 rounded-full bg-surface-hover shrink-0 mx-auto sm:mx-0" />
-          <div className="min-w-0 flex-1">
-            {/* 56 + 6 + 40 + 16 + 44 = os 319px que o card real mede a 412px de largura (medido no
-                build de produção, viewport do Lighthouse). O título ocupa duas linhas onde a
-                coluna é estreita e uma a partir de `sm`. */}
-            <div className="h-14 sm:h-7 rounded-lg bg-surface-hover" />
-            <div className="h-10 rounded-lg bg-surface-hover mt-1.5" />
-            <div className="h-11 w-56 rounded-xl bg-surface-hover mt-4" />
+        className="secao"
+        style={{ marginTop: 24 }}
+        destaque={!!metrics && metrics.dueToday > 0}
+      >
+        {/* A faixa de revisão só existe quando há o que revisar (sem vencidas ela some inteira,
+            em vez de um "0 palavras" no lugar mais nobre da tela). Enquanto as métricas não
+            chegaram, o espaço fica reservado para a tela não pular (CLS, achado F0-02). */}
+        {metrics === null && (
+          <div className="faixa-rev animate-pulse" aria-hidden>
+            <span className="contador" />
+            <span style={{ flex: 1, height: 20, borderRadius: 8, background: 'var(--surface-hover)' }} />
           </div>
-        </div>
-      )}
-
-      {/* Faixa compacta (uma linha, como a referência de design): o círculo de contagem, o texto
-          e o botão dividem a MESMA linha em vez de empilhar num cartão grande.
-          O QUE A PRIMEIRA VERSÃO DESTE BLOCO PERDEU, e está de volta abaixo: a frase que diz por
-          que revisar AGORA importa ("acertar empurra a próxima revisão para semanas à frente").
-          Ela existia nas duas redações — a de kids e a dos demais — e sumiu inteira junto com o
-          cartão antigo, enquanto este comentário afirmava que "todos os textos por perfil"
-          continuavam. Agora ela volta como segunda linha em kids e sênior, que é onde a
-          explicação faz o bloco funcionar; no perfil Produtividade a linha única fica, porque foi
-          o que o design pediu e quem escolheu densidade alta lê o cabeçalho de relance. */}
-      {metrics && metrics.dueToday > 0 && (
-        <section className="card-panel bg-surface border-accent/40 rounded-t-none px-5 py-4 mb-8 flex flex-col sm:flex-row sm:items-center gap-4">
-          <div
-            className="w-11 h-11 rounded-full bg-accent-soft flex items-center justify-center shrink-0 mx-auto sm:mx-0"
-            aria-hidden
-          >
-            <span className="font-display font-black text-base text-accent-ink leading-none tabular-nums">{agora}</span>
-          </div>
-
-          <div className="min-w-0 flex-1 text-center sm:text-start">
-            <h2 className="font-display font-bold text-sm text-ink">
-              {ageProfile === 'kids'
-                ? t('Você está quase esquecendo estas {n}', { n: agora })
-                : ageProfile === 'senior'
-                  ? tp(agora, '{n} palavra está na hora de rever', '{n} palavras estão na hora de rever')
-                  : tp(agora, '{n} palavra pronta para revisar', '{n} palavras prontas para revisar')}
-              <span className="font-normal text-ink-muted">
-                {' · '}
-                {rotuloDeDuracao(estimativaDeMinutos(agora, temposMedidos))}
+        )}
+        {metrics && metrics.dueToday > 0 && (
+          <div className="faixa-rev">
+            <span className="contador">{agora}</span>
+            <p style={{ flex: 1, minWidth: 180 }}>
+              <b>
+                {ageProfile === 'kids'
+                  ? t('Você está quase esquecendo estas {n}', { n: agora })
+                  : ageProfile === 'senior'
+                    ? tp(agora, '{n} palavra está na hora de rever', '{n} palavras estão na hora de rever')
+                    : tp(agora, '{n} palavra pronta para revisar', '{n} palavras prontas para revisar')}
+              </b>{' '}
+              <span className="mut">
+                · {rotuloDeDuracao(estimativaDeMinutos(agora, temposMedidos))}
                 {metrics.dueToday > agora && <> {t('· {n} no total', { n: numero(metrics.dueToday) })}</>}
               </span>
-            </h2>
-            {ageProfile !== 'pro' && (
-              <p className="text-[12px] text-ink-muted mt-0.5">
-                {ageProfile === 'kids'
-                  ? t('O que você acertar volta só daqui a semanas.')
-                  : t('Acertar agora empurra a próxima revisão para semanas à frente.')}
-              </p>
-            )}
-          </div>
-
-          <div className="flex flex-wrap items-center justify-center sm:justify-end gap-3 shrink-0">
-            <button onClick={() => ir('study')} className="btn-solid !py-2 !px-5 shrink-0">
+            </p>
+            <button type="button" className="btn btn-solid" onClick={() => ir('study')}>
               {ageProfile === 'kids'
                 ? t('Bora!')
                 : ageProfile === 'senior'
                   ? t('Começar a revisão')
                   : t('Revisar agora')}
             </button>
-            {/* Quem não quer revisar agora tem uma saída DECLARADA, em vez de precisar adivinhar
-                que a mesma coisa também mora em Jogar. */}
-            <button
-              onClick={() => onChangeView('play')}
-              className="text-[12px] font-bold text-ink-muted hover:text-accent-ink underline decoration-dotted underline-offset-4 cursor-pointer shrink-0"
-            >
+            <button type="button" className="link" onClick={() => onChangeView('play')}>
               {t('escolher outro jogo')}
             </button>
           </div>
-        </section>
-      )}
+        )}
+      </FaixaDeProgresso>
 
-      {/* Estatísticas detalhadas — link discreto (como a referência de design), não mais um
-          cartão do tamanho de uma ação primária; o conteúdo por trás do link é só nosso
-          (o design não tem dashboard), então a expansão em página continua igual. */}
-      <button
-        onClick={() => setShowDetailedStats(!showDetailedStats)}
-        aria-expanded={showDetailedStats}
-        className="mb-8 inline-flex items-center gap-1.5 text-[12.5px] font-bold text-accent-ink hover:text-accent cursor-pointer"
-      >
-        <span>{t('Ver estatísticas detalhadas')}</span>
-        {showDetailedStats ? <ChevronUp className="w-3.5 h-3.5" /> : <ArrowRight className="w-3.5 h-3.5" />}
-      </button>
+      <div style={{ marginTop: 14 }}>
+        <button
+          type="button"
+          className="link"
+          onClick={() => setShowDetailedStats(!showDetailedStats)}
+          aria-expanded={showDetailedStats}
+        >
+          {t('Ver estatísticas detalhadas')}{' '}
+          {showDetailedStats ? <ChevronUp aria-hidden /> : <ArrowRight aria-hidden />}
+        </button>
+      </div>
 
       {/* DESCOBRIBILIDADE DO PLANO, segunda rodada (spec planos-visiveis): a linha discreta da
           auditoria anterior informava mas não tinha o peso de card que o dono pediu. O componente
@@ -684,169 +617,142 @@ export default function Hub({ onChangeView, recordings, ageProfile = 'pro', prog
         </EditablePanel>
       )}
 
-      {/* Recents */}
+      {/* Sessões recentes — marcação do protótipo: título de seção, abas em pílula por tipo e as
+          sessões como `.sessao-mini`. */}
       <EditablePanel
         viewKey="hub"
         panelKey="recentRecordings"
-        title={t('Sessões Recentes')}
+        title={t('Sessões recentes')}
         canResizeWidth={false}
         canResizeHeight={false}
         defaultHeight={0}
       >
-        <section>
+        {/* A margem vai explícita: dentro do EditablePanel a seção é "primeiro filho", e o CSS do
+            protótipo zera a margem de `.secao:first-child`. */}
+        <section className="secao" style={{ marginTop: 36 }}>
           <TituloDeSecao
             icone={History}
-            titulo={t('Sessões Recentes')}
-            desc={t('Estudos e mídias salvos organizados por tipo de arquivo.')}
+            titulo={t('Sessões recentes')}
+            desc={t('Estudos e mídias salvos, organizados por tipo de arquivo.')}
             direita={
-              <button
-                className="text-[12.5px] font-bold text-accent-ink hover:text-accent flex items-center gap-1 py-1 transition-colors"
-                onClick={() => onChangeView('library')}
-              >
-                {t('Ver biblioteca completa')} &rarr;
+              <button type="button" className="link" onClick={() => onChangeView('library')}>
+                {t('Ver biblioteca completa')} <ArrowRight aria-hidden />
               </button>
             }
           />
+          <Abas
+            variante="pilula"
+            rotuloDoGrupo={t('Tipo de mídia')}
+            ativo={filterCategory}
+            aoTrocar={(id) => setFilterCategory(id as typeof filterCategory)}
+            itens={[
+              { id: 'all', rotulo: t('Tudo'), contagem: recordings.length },
+              {
+                id: 'video',
+                rotulo: 'YouTube',
+                icone: <Youtube aria-hidden />,
+                contagem: recordings.filter((r) => r.type === 'video').length,
+              },
+              {
+                id: 'audio',
+                rotulo: t('Áudio'),
+                icone: <Headphones aria-hidden />,
+                contagem: recordings.filter((r) => r.type === 'audio').length,
+              },
+              {
+                id: 'document',
+                rotulo: t('Documentos'),
+                icone: <FileText aria-hidden />,
+                contagem: recordings.filter((r) => r.type === 'document').length,
+              },
+            ]}
+          />
 
-          {/* Categories segmented control */}
-          <div className="flex gap-2 mb-6 overflow-x-auto pb-1.5 scrollbar-thin">
-            <button
-              onClick={() => setFilterCategory('all')}
-              className={`px-4 py-2 rounded-xl text-xs font-bold border transition-all flex items-center gap-1.5 shrink-0 cursor-pointer ${
-                filterCategory === 'all'
-                  ? 'bg-ink text-ink-contrast border-ink shadow-sm'
-                  : 'bg-surface hover:bg-surface-hover text-ink-muted border-border-subtle'
-              }`}
-            >
-              <span>{t('Tudo ({n})', { n: recordings.length })}</span>
-            </button>
-            <button
-              onClick={() => setFilterCategory('video')}
-              className={`px-4 py-2 rounded-xl text-xs font-bold border transition-all flex items-center gap-1.5 shrink-0 cursor-pointer ${
-                filterCategory === 'video'
-                  ? 'bg-error-soft text-error-ink border-error/30'
-                  : 'bg-surface hover:bg-surface-hover text-ink-muted border-border-subtle'
-              }`}
-            >
-              <Video className="w-3.5 h-3.5 text-error" />
-              <span>YouTube ({recordings.filter((r) => r.type === 'video').length})</span>
-            </button>
-            <button
-              onClick={() => setFilterCategory('audio')}
-              className={`px-4 py-2 rounded-xl text-xs font-bold border transition-all flex items-center gap-1.5 shrink-0 cursor-pointer ${
-                filterCategory === 'audio'
-                  ? 'bg-rare-soft text-rare-ink border-rare/30'
-                  : 'bg-surface hover:bg-surface-hover text-ink-muted border-border-subtle'
-              }`}
-            >
-              <Headphones className="w-3.5 h-3.5 text-rare" />
-              <span>{t('Áudio ({n})', { n: recordings.filter((r) => r.type === 'audio').length })}</span>
-            </button>
-            <button
-              onClick={() => setFilterCategory('document')}
-              className={`px-4 py-2 rounded-xl text-xs font-bold border transition-all flex items-center gap-1.5 shrink-0 cursor-pointer ${
-                filterCategory === 'document'
-                  ? 'bg-good-soft text-good-ink border-good/30'
-                  : 'bg-surface hover:bg-surface-hover text-ink-muted border-border-subtle'
-              }`}
-            >
-              <FileText className="w-3.5 h-3.5 text-good" />
-              <span>{t('Documentos ({n})', { n: recordings.filter((r) => r.type === 'document').length })}</span>
-            </button>
-          </div>
-
-          {filteredRecs.length === 0 ? (
-            <Vazio
-              icone={<Headphones className="w-7 h-7" />}
-              titulo={recordings.length === 0 ? t('Nenhuma sessão ainda') : t('Nada nesta categoria')}
-              explicacao={
-                recordings.length === 0
-                  ? t('Capture sua primeira sessão ou importe uma mídia pela Biblioteca, ela aparecerá aqui.')
-                  : t(
-                      'Nenhuma sessão salva com este tipo de arquivo. Escolha outra categoria ou capture uma nova sessão.',
-                    )
-              }
-              acao={{
-                rotulo: (
-                  <>
-                    <Mic className="w-4 h-4" /> {t('Nova captura')}
-                  </>
-                ),
-                aoClicar: () => onChangeView('capture'),
-              }}
-              acaoSecundaria={
-                recordings.length === 0
-                  ? {
-                      rotulo: (
-                        <>
-                          <Upload className="w-4 h-4" /> {t('Importar mídia')}
-                        </>
-                      ),
-                      aoClicar: () => onChangeView('library'),
-                    }
-                  : { rotulo: t('Ver todas as categorias'), aoClicar: () => setFilterCategory('all') }
-              }
-            />
-          ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {filteredRecs.map((rec) => (
-                <div
-                  key={rec.id}
-                  className={`card-panel p-4 flex items-center justify-between group cursor-pointer hover:shadow-card transition-all bg-surface border ${
-                    rec.type === 'video'
-                      ? 'hover:border-error/40'
-                      : rec.type === 'document'
-                        ? 'hover:border-good/40'
-                        : 'hover:border-rare/40'
-                  }`}
-                  onClick={() => onChangeView('analysis', { id: rec.id })}
-                >
-                  <div className="flex items-center gap-3 min-w-0">
-                    <div
-                      className={`w-9 h-9 rounded-lg flex items-center justify-center transition-colors shrink-0 ${
-                        rec.type === 'video'
-                          ? 'bg-error/10 text-error group-hover:bg-error/20'
-                          : rec.type === 'document'
-                            ? 'bg-good/10 text-good group-hover:bg-good/20'
-                            : 'bg-rare/10 text-rare group-hover:bg-rare/20'
-                      }`}
-                    >
-                      {rec.type === 'video' ? (
-                        <Video className="w-4 h-4" />
-                      ) : rec.type === 'document' ? (
-                        <FileText className="w-4 h-4" />
-                      ) : (
-                        <Headphones className="w-4 h-4" />
-                      )}
-                    </div>
-                    <div className="min-w-0">
-                      <h4 className="font-bold text-[13px] text-ink truncate group-hover:text-accent transition-colors mb-0.5">
+          <div role="tabpanel" id={`painel-${filterCategory}`} aria-labelledby={`aba-${filterCategory}`}>
+            {filteredRecs.length === 0 ? (
+              <Vazio
+                className="mt-3.5"
+                icone={<Headphones className="w-7 h-7" />}
+                titulo={recordings.length === 0 ? t('Nenhuma sessão ainda') : t('Nada nesta categoria')}
+                explicacao={
+                  recordings.length === 0
+                    ? t('Capture sua primeira sessão ou importe uma mídia pela Biblioteca, ela aparecerá aqui.')
+                    : t(
+                        'Nenhuma sessão salva com este tipo de arquivo. Escolha outra categoria ou capture uma nova sessão.',
+                      )
+                }
+                acao={{
+                  rotulo: (
+                    <>
+                      <Mic className="w-4 h-4" /> {t('Nova captura')}
+                    </>
+                  ),
+                  aoClicar: () => onChangeView('capture'),
+                }}
+                acaoSecundaria={
+                  recordings.length === 0
+                    ? {
+                        rotulo: (
+                          <>
+                            <Upload className="w-4 h-4" /> {t('Importar mídia')}
+                          </>
+                        ),
+                        aoClicar: () => onChangeView('library'),
+                      }
+                    : { rotulo: t('Ver todas as categorias'), aoClicar: () => setFilterCategory('all') }
+                }
+              />
+            ) : (
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 340px))',
+                  gap: 14,
+                  marginTop: 14,
+                }}
+              >
+                {filteredRecs.map((rec) => (
+                  <button
+                    key={rec.id}
+                    type="button"
+                    className="cartao clicavel sessao-mini"
+                    style={{ width: '100%', textAlign: 'left' }}
+                    onClick={() => onChangeView('analysis', { id: rec.id })}
+                  >
+                    <IconeEmBloco
+                      icone={rec.type === 'video' ? Youtube : rec.type === 'document' ? FileText : Headphones}
+                      tom="rare"
+                    />
+                    <span style={{ minWidth: 0, flex: 1 }}>
+                      <b
+                        style={{
+                          display: 'block',
+                          fontFamily: 'var(--font-display)',
+                          whiteSpace: 'nowrap',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                        }}
+                      >
                         {rec.title}
-                      </h4>
-                      <div className="flex items-center gap-2 text-[11px] text-ink-muted font-mono">
-                        <span>{rec.date}</span>
-                        <span>·</span>
-                        <span className="uppercase">
-                          {rec.type === 'video' ? 'YouTube' : rec.type === 'document' ? 'PDF' : t('ÁUDIO')}
+                      </b>
+                      <span className="meta">
+                        {rec.date} ·{' '}
+                        <span className="label-mono">
+                          {rec.type === 'video' ? 'YouTube' : rec.type === 'document' ? t('Documento') : t('Áudio')}
                         </span>
-                        {/* O ESTADO, quando ele muda o que dá para fazer.
-                          Uma sessão ainda em processamento não tem transcrição, então clicar nela
-                          leva a uma tela pela metade, e a lista não dizia isso em lugar nenhum.
-                          "Processado" não ganha selo: o normal não precisa de etiqueta, e etiquetar
-                          tudo faz o selo que importa desaparecer no meio dos outros. */}
+                        {/* O estado só aparece quando muda o que dá para fazer: sem transcrição
+                            ainda, abrir a sessão leva a uma tela pela metade. */}
                         {rec.status !== 'Processado' && (
-                          <span className="badge-tag warn">
-                            {ageProfile === 'kids' ? t('lendo ainda') : t('processando')}
-                          </span>
+                          <> · {ageProfile === 'kids' ? t('lendo ainda') : t('processando')}</>
                         )}
-                      </div>
-                    </div>
-                  </div>
-                  <ArrowRight className="w-3.5 h-3.5 text-ink-faint group-hover:text-ink transition-colors shrink-0" />
-                </div>
-              ))}
-            </div>
-          )}
+                      </span>
+                    </span>
+                    <ArrowRight aria-hidden style={{ width: 16, height: 16, color: 'var(--ink-muted)' }} />
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
         </section>
       </EditablePanel>
     </Tela>
@@ -886,7 +792,7 @@ const PILLARS: PillarDef[] = [
        nesses perfis a explicação é o que faz o cartão funcionar. */
     body: {
       kids: 'Grave o som do Roblox, do YouTube ou do Discord e veja a legenda aparecer na hora.',
-      pro: 'Áudio do sistema ou do microfone, em tempo real',
+      pro: 'Áudio do sistema ou do microfone, em tempo real.',
       senior: 'Grave o áudio do computador ou a sua própria voz. As frases aparecem traduzidas enquanto você ouve.',
     },
     cta: { kids: 'Começar a gravar', pro: 'Iniciar captura', senior: 'Abrir o gravador' },
@@ -903,7 +809,7 @@ const PILLARS: PillarDef[] = [
     },
     body: {
       kids: 'Fale no microfone, acerte os desafios e ganhe pontos de pronúncia.',
-      pro: 'Shadowing, ditado, reescrita, roleplay',
+      pro: 'Shadowing, ditado, reescrita, roleplay.',
       senior: 'Exercícios de repetição simples, no seu ritmo e sem cronômetro.',
     },
     cta: { kids: 'Iniciar desafio', pro: 'Abrir exercícios', senior: 'Ver exercícios' },
@@ -920,166 +826,49 @@ const PILLARS: PillarDef[] = [
     },
     body: {
       kids: 'Regue as palavras do seu deck para elas não murcharem, e colha Seeds.',
-      pro: 'Deck com repetição espaçada',
+      pro: 'Deck com repetição espaçada.',
       senior: 'Seu caderno de palavras, com tradução e pronúncia em áudio.',
     },
     cta: { kids: 'Regar palavras', pro: 'Abrir vocabulário', senior: 'Ver minhas palavras' },
   },
 ];
 
-const TONE_SOFT: Record<PillarDef['tone'], string> = {
-  accent: 'bg-accent-soft text-accent-ink',
-  warn: 'bg-warn-soft text-warn-ink',
-  good: 'bg-good-soft text-good-ink',
-};
-const TONE_BORDER: Record<PillarDef['tone'], string> = {
-  accent: 'hover:border-accent',
-  warn: 'hover:border-warn',
-  good: 'hover:border-good',
-};
 
-/**
- * Linha de estado do pilar — o único lugar do card que carrega NÚMERO.
- * Cada um deles vem de `AppMetrics`; nenhum é escrito à mão. Enquanto as métricas não
- * chegaram, a linha não aparece: melhor ausência do que um valor plausível e falso.
- */
-function pillarStatus(mission: Mission | undefined, profile: AgeProfile): string | null {
-  if (!mission) return null;
-  switch (mission.id) {
-    case 'capture':
-      return mission.done
-        ? null
-        : profile === 'senior'
-          ? t('Você ainda não gravou nada. Comece por aqui.')
-          : t('Nenhuma gravação ainda, este é o ponto de partida.');
-    case 'practice':
-      if (mission.pending === 0)
-        return profile === 'senior' ? t('Nada para revisar agora. Tudo em dia.') : t('Revisão em dia.');
-      /* UM NÚMERO, UM DONO (auditoria de UX, 31/08). Quando há vencidas, o cartão-herói da revisão
-         está VISÍVEL logo acima dizendo "N prontas para revisar" — e este pilar repetia a mesma
-         frase com OUTRO número (o total, contra a rodada curta do herói): dois valores para "a
-         mesma coisa" lado a lado confundem em vez de informar. Com vencidas, o pilar cala; a
-         contagem vive no herói, que só existe exatamente nesses dias. */
-      return null;
-    case 'vocabulary':
-      if (mission.pending === 0)
-        return profile === 'senior' ? t('Nenhuma palavra nova esperando.') : t('Sem palavras novas na fila.');
-      return tp(mission.pending, '{n} palavra nova esperando', '{n} palavras novas esperando');
-  }
-}
 
 interface PillarCardProps {
   pillar: PillarDef;
-  index: number;
   ageProfile: AgeProfile;
   mission: Mission | undefined;
   progressAvailable: boolean;
   onChangeView: (view: string, data?: any) => void;
 }
 
-const PillarCard: React.FC<PillarCardProps> = ({
-  pillar,
-  index,
-  ageProfile,
-  mission,
-  progressAvailable,
-  onChangeView,
-}) => {
-  const Icon = pillar.icon;
-  const status = progressAvailable ? pillarStatus(mission, ageProfile) : null;
-  const isSenior = ageProfile === 'senior';
-  const isKids = ageProfile === 'kids';
-  // "Em dia" só faz sentido onde existe uma FILA que pode zerar (revisão, palavras novas).
-  // No pilar de captura, `done` significa apenas "já gravou alguma vez" — marcar isso como
-  // concluído sugeriria, falsamente, que não há mais o que gravar.
-  const complete = progressAvailable && mission?.done && mission.id !== 'capture';
-  // A referência de design dá à AÇÃO PRIMÁRIA (capturar) um cartão escuro entre dois claros —
-  // sinaliza "comece por aqui" antes de qualquer texto. Só no layout em grade (não no sênior,
-  // que já é sequencial e não precisa de contraste extra para indicar ordem).
-  const isHero = pillar.id === 'capture' && !isSenior;
-
+const PillarCard: React.FC<PillarCardProps> = ({ pillar, ageProfile, mission, progressAvailable, onChangeView }) => {
+  /* Marcação do protótipo (`article.cartao.pilar`): a ação primária (capturar) é o cartão escuro
+     com botão cheio; os outros dois são claros com botão de contorno. A linha `.extra` só existe
+     no pilar de vocabulário, com a fila real de palavras novas. */
+  const escuro = pillar.id === 'capture';
+  const extra =
+    pillar.id === 'vocabulary' && progressAvailable && mission
+      ? mission.pending > 0
+        ? tp(mission.pending, '{n} palavra nova esperando', '{n} palavras novas esperando')
+        : t('Tudo revisado hoje')
+      : null;
   return (
-    <div
-      className={`card-panel p-6 ${isHero ? 'bg-ink border-ink text-ink-contrast' : `bg-surface ${TONE_BORDER[pillar.tone]}`} ${
-        isSenior ? 'flex flex-col md:flex-row md:items-center gap-5' : 'flex flex-col justify-between min-h-[196px]'
-      }`}
-    >
-      <div className={isSenior ? 'flex items-start gap-4 flex-1 min-w-0' : ''}>
-        {/* Marcador: número no perfil sênior (o guia é sequencial), ícone em bloco nos demais.
-            O ícone VOLTA para a pastilha colorida: a versão solta veio de uma referência de design
-            anterior, e o dono reprovou tirar os blocos de ícone ("mata a intuitividade", 22/09). */}
-        {isSenior ? (
-          <span
-            className={`shrink-0 flex items-center justify-center font-display font-black rounded-2xl w-12 h-12 text-xl ${TONE_SOFT[pillar.tone]}`}
-            aria-hidden
-          >
-            {index + 1}
-          </span>
-        ) : (
-          <IconeEmBloco icone={Icon} tom={isHero ? 'sobreEscuro' : pillar.tone} tamanho="lg" className="mb-4" />
-        )}
-
-        <div className="min-w-0">
-          <div className={`flex items-center gap-2 flex-wrap ${isSenior ? '' : 'mb-1'}`}>
-            <h2
-              className={`font-display font-black ${isHero ? 'text-ink-contrast' : 'text-ink'} ${isSenior ? 'text-xl' : 'text-base'}`}
-            >
-              {isSenior ? `${t('Passo {n}.', { n: index + 1 })} ` : ''}
-              {t(pillar.title[ageProfile])}
-            </h2>
-            {/* Recompensa só no perfil Kids, e vinda da tabela de pesos de lib/progress. */}
-            {isKids && mission && !complete && (
-              <span
-                className={`badge-tag ${pillar.tone === 'warn' ? 'warn' : pillar.tone === 'good' ? 'ok' : 'acc'}`}
-                title={t('Você ganha {xp} XP e {seeds} Seeds {unidade}', {
-                  xp: mission.rewardXp,
-                  seeds: mission.rewardSeeds,
-                  unidade: t(mission.rewardUnit),
-                })}
-              >
-                +{mission.rewardXp} XP · {mission.rewardSeeds} <Sprout className="w-3 h-3" aria-hidden />
-                <span className="normal-case tracking-normal font-sans font-bold ms-0.5">{t(mission.rewardUnit)}</span>
-              </span>
-            )}
-            {complete && (
-              <span className="badge-tag ok">
-                <Check className="w-3 h-3" aria-hidden /> {t('Em dia')}
-              </span>
-            )}
-          </div>
-          <p
-            className={`leading-relaxed ${isHero ? 'text-ink-contrast/70' : 'text-ink-muted'} ${isSenior ? 'text-sm mt-1' : 'text-xs md:text-[13px]'}`}
-          >
-            {t(pillar.body[ageProfile])}
-          </p>
-          {status && (
-            <p
-              className={`mt-2 font-bold ${isSenior ? 'text-sm' : 'text-xs'} ${complete ? 'text-good-ink' : isHero ? 'text-ink-contrast' : 'text-ink'}`}
-            >
-              {status}
-            </p>
-          )}
-        </div>
-      </div>
-
-      {/* UMA ação primária por tela (referência de design): só o cartão-herói leva preenchimento
-          sólido; os outros dois são contorno neutro. Antes eram três botões saturados lado a lado
-          (laranja, âmbar, verde) disputando a mesma atenção — o tom semântico do pilar continua,
-          mas no ÍCONE, que é onde ele informa sem gritar. No sênior todos ficam sólidos: ali os
-          três são passos de um guia, e cada um é a ação primária da sua vez. */}
+    <article className={`cartao pilar ${escuro ? 'escuro' : ''}`}>
+      <IconeEmBloco icone={pillar.icon} tom={escuro ? 'accent' : pillar.tone} />
+      <h3>{t(pillar.title[ageProfile])}</h3>
+      <p className="mut">{t(pillar.body[ageProfile])}</p>
+      {extra && <p className="extra">{extra}</p>}
+      <div className="espaco" />
       <button
         type="button"
+        className={`btn ${escuro ? 'btn-solid' : 'btn-outline'} bloco`}
         onClick={() => onChangeView(pillar.view)}
-        className={`shrink-0 ${
-          isHero || isSenior
-            ? `btn-solid ${isSenior && pillar.tone === 'warn' ? 'bg-warn' : isSenior && pillar.tone === 'good' ? 'bg-good' : ''}`
-            : 'btn-outline justify-center'
-        } ${isSenior ? 'w-full md:w-auto text-base px-6' : 'w-full mt-4'}`}
       >
-        <span>{t(pillar.cta[ageProfile])}</span>
-        {isKids ? <Rocket className="w-4 h-4" aria-hidden /> : <ArrowRight className="w-4 h-4" aria-hidden />}
+        {t(pillar.cta[ageProfile])} <ArrowRight aria-hidden />
       </button>
-    </div>
+    </article>
   );
 };
 

@@ -76,6 +76,14 @@
 
 @layer base {
   :root {
+    /* Medidas do protótipo (src/styles/prototipo.css usa estes nomes). */
+    --r-card: 16px; --r-btn: 12px; --bw-card: 2px;
+    --font-marca: "Silkscreen", "Archivo", sans-serif;
+    --z-part: 0; --z-dock: 20; --z-fab: 30; --z-pop: 40; --z-sheet: 50; --z-modal: 60; --z-toast: 70;
+    --surface-sunken: color-mix(in srgb, var(--canvas) 90%, var(--ink));
+    --border-strong: color-mix(in srgb, var(--border-subtle) 82%, var(--ink));
+    --epic-ink: color-mix(in srgb, var(--epic) 55%, var(--ink));
+    --anel: 0 0 0 3px color-mix(in srgb, var(--accent) 28%, transparent);
     /* ESQUEMA DE COR NATIVO — sem isto, o navegador desenha TODO widget dele próprio
        (popup do <select>, scrollbars, input[type=color|range], bolhas de validação) com a
        paleta CLARA do sistema operacional, mesmo com o app inteiro em tema escuro: era a
@@ -216,10 +224,10 @@
     --surface-hover: #EBE7DB;
     --ink: #26241F;
     --ink-muted: #5E5A50;
-    --ink-faint: #696459;
+    --ink-faint: #696459; /* o protótipo usa #7A7568, que mede 3,55:1 no canvas (abaixo do AA). */
     --accent: #F04E23;
     --accent-soft: #FBDDD3;
-    --accent-ink: #b93613;
+    --accent-ink: #AE300E;
     --good: #3E6B44;
     --good-soft: #DCE7DB;
     --warn: #C98A12;
@@ -232,10 +240,10 @@
     --accent-contrast: #3d1105;
 
     --ink-contrast: var(--canvas);
-    --good-ink: color-mix(in srgb, var(--good) 50%, var(--ink));
-    --warn-ink: color-mix(in srgb, var(--warn) 50%, var(--ink));
-    --rare-ink: color-mix(in srgb, var(--rare) 55%, var(--ink));
-    --error-ink: color-mix(in srgb, var(--error) 60%, var(--ink));
+    --good-ink: #324731;
+    --warn-ink: #6E5016;
+    --rare-ink: #43446C;
+    --error-ink: #8A2424;
     --good-contrast: #ffffff;  /* #3E6B44 → 6.19:1 */
     --warn-contrast: #111111;  /* #C98A12 → 7.13:1 */
     --error-contrast: #ffffff; /* #C92A2A → 5.46:1 */
@@ -247,7 +255,15 @@
     --radius-btn: 12px;
     --border-width-card: 2px;
 
-    --shadow-card-val: inset 0 1px 0 rgba(255,255,255,0.6), 0 2px 5px rgba(38,36,31,0.08);
+    --shadow-card-val: inset 0 1px 0 rgba(255,255,255,.7), 0 1px 2px rgba(38,36,31,.06), 0 4px 14px -6px rgba(38,36,31,.12);
+
+    /* Protótipo aprovado (23/09/2026) — o "Figma" do app: mesmos valores, um a um. */
+    --surface-sunken: #DDD8CA;
+    --border-strong: #B3AB96;
+    --epic: #8A55C9; --epic-soft: #EDE3F8; --epic-ink: #5A3587;
+    --shadow-lift-val: inset 0 1px 0 rgba(255,255,255,.7), 0 2px 4px rgba(38,36,31,.06), 0 16px 36px -14px rgba(38,36,31,.28);
+    --shadow-pop-val: 0 1px 0 rgba(255,255,255,.6) inset, 0 24px 60px -16px rgba(38,36,31,.40), 0 0 0 1px rgba(38,36,31,.05);
+    --anel: 0 0 0 3px color-mix(in srgb, var(--accent) 28%, transparent);
   }
   [data-theme="babel"].dark, .dark [data-theme="babel"], [data-theme="babel"] [class*="dark"] {
     --canvas: #17130F;
@@ -282,6 +298,10 @@
     --shadow-card-val: inset 0 1px 0 rgba(255,240,220,.04), 0 1px 2px rgba(0,0,0,.35), 0 6px 18px -8px rgba(0,0,0,.55);
     --shadow-lift-val: inset 0 1px 0 rgba(255,240,220,.05), 0 2px 4px rgba(0,0,0,.35), 0 18px 40px -14px rgba(0,0,0,.7);
     --shadow-pop-val: 0 1px 0 rgba(255,240,220,.05) inset, 0 24px 60px -12px rgba(0,0,0,.75), 0 0 0 1px rgba(0,0,0,.3);
+    --surface-sunken: #120F0C;
+    --border-strong: #4A4136;
+    --epic: #BE96F2; --epic-soft: #2C2238; --epic-ink: #D9C2F7;
+    --anel: 0 0 0 3px color-mix(in srgb, var(--accent) 35%, transparent);
   }
 
   /* ═══════════ Theme: Instrument Premium (F6) — ADITIVO, não altera nenhum tema acima ═══════════ */

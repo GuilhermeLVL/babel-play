@@ -1,7 +1,9 @@
-import React from 'react';
+import { Ellipsis, UserRound } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
 
+import { t } from '../../lib/i18n';
 import type { ViewType } from '../../types';
-import { type AgeProfileType,NAV_ITEMS, navLabel } from './navItems';
+import { type AgeProfileType, NAV_ITEMS, navLabel } from './navItems';
 
 interface MobileNavProps {
   activeView: ViewType;
@@ -10,54 +12,82 @@ interface MobileNavProps {
 }
 
 /**
- * Dock inferior do celular.
- *
- * Ela existe porque, depois do redesign, a app ficou LITERALMENTE sem navegação abaixo de `md`:
- * o nav do topo é `hidden md:flex` e o Sidebar — que era o plano B — deixou de ser renderizado.
- * Cinco destinos; Ajustes (`secondary`) fica de fora e continua alcançável pelo Início.
+ * Dock inferior do celular — marcação do protótipo aprovado (`.dock` + `.folha`): os cinco
+ * destinos principais e "Mais", que abre a folha com os secundários (Personalizar, Sobre, Planos,
+ * Ajustes) e o perfil. Todo destino continua com porta no celular — a auditoria F9 achou uma tela
+ * sem porta quando os secundários simplesmente sumiam; aqui eles estão a um toque, na folha.
  */
 export default function MobileNav({ activeView, onChangeView, ageProfile }: MobileNavProps) {
-  /**
-   * F9 — "Ajustes" VOLTA para a dock.
-   *
-   * `NAV_ITEMS.filter(i => !i.secondary)` removia o único item marcado como secundário, e o
-   * resultado era que no celular NÃO EXISTIA botão de Ajustes em lugar nenhum da navegação: a
-   * tela existia e não tinha porta. O harness da auditoria bateu nisso — o passo `07 settings`
-   * falhava só no viewport mobile, por não achar o botão.
-   *
-   * O motivo de `secondary` era caber na largura; com 6 itens cada um fica com ~16% da tela, o
-   * que ainda respeita o alvo mínimo de toque. Perder o acesso é pior que apertar o espaço.
-   */
-  const items = NAV_ITEMS;
+  const [maisAberto, setMaisAberto] = useState(false);
+  const principais = NAV_ITEMS.filter((i) => !i.secondary);
+  const secundarios = NAV_ITEMS.filter((i) => i.secondary);
+  const secundarioAtivo = secundarios.some((i) => i.id === activeView) || activeView === 'profile';
+
+  // Trocar de tela fecha a folha.
+  useEffect(() => setMaisAberto(false), [activeView]);
+
+  const ir = (id: ViewType) => {
+    setMaisAberto(false);
+    onChangeView(id);
+  };
 
   return (
-    <nav
-      aria-label="Navegação principal"
-      data-shell="dock"
-      className="md:hidden shrink-0 w-full flex items-stretch border-t border-border-subtle/70 bg-surface/95 backdrop-blur-md z-30 pb-[env(safe-area-inset-bottom)]"
-    >
-      {items.map((item) => {
-        const isActive = activeView === item.id;
-        const Icon = item.icon;
-        const label = navLabel(item, ageProfile, true);
-        return (
-          <button
-            key={item.id}
-            type="button"
-            onClick={() => onChangeView(item.id)}
-            aria-current={isActive ? 'page' : undefined}
-            className={`flex-1 min-h-[56px] flex flex-col items-center justify-center gap-1 px-1 cursor-pointer transition-colors ${
-              isActive ? 'text-accent-ink' : 'text-ink-muted'
-            }`}
-          >
-            <span className="relative flex items-center justify-center">
-              {isActive && <span aria-hidden className="absolute -inset-x-3 -inset-y-1.5 rounded-full bg-accent-soft" />}
-              <Icon className="w-5 h-5 relative" aria-hidden />
-            </span>
-            <span className="text-[10px] font-bold leading-none truncate max-w-full">{label}</span>
-          </button>
-        );
-      })}
-    </nav>
+    <>
+      <nav className="dock" data-shell="dock" aria-label={t('Navegação principal')}>
+        {principais.map((item) => {
+          const Icon = item.icon;
+          return (
+            <button
+              key={item.id}
+              type="button"
+              onClick={() => ir(item.id)}
+              aria-current={activeView === item.id ? 'page' : undefined}
+            >
+              <Icon aria-hidden />
+              {navLabel(item, ageProfile, true)}
+            </button>
+          );
+        })}
+        <button
+          type="button"
+          aria-expanded={maisAberto}
+          aria-controls="folha-mais"
+          aria-current={secundarioAtivo ? 'page' : undefined}
+          onClick={() => setMaisAberto((v) => !v)}
+        >
+          <Ellipsis aria-hidden />
+          {t('Mais')}
+        </button>
+      </nav>
+      <div id="folha-mais" className={`folha ${maisAberto ? 'on' : ''}`} role="region" aria-label={t('Mais destinos')}>
+        <h2>{t('Mais')}</h2>
+        {secundarios.map((item) => {
+          const Icon = item.icon;
+          return (
+            <button
+              key={item.id}
+              type="button"
+              className="item"
+              onClick={() => ir(item.id)}
+              aria-current={activeView === item.id ? 'page' : undefined}
+              tabIndex={maisAberto ? 0 : -1}
+            >
+              <Icon aria-hidden />
+              {navLabel(item, ageProfile)}
+            </button>
+          );
+        })}
+        <button
+          type="button"
+          className="item"
+          onClick={() => ir('profile' as ViewType)}
+          aria-current={activeView === 'profile' ? 'page' : undefined}
+          tabIndex={maisAberto ? 0 : -1}
+        >
+          <UserRound aria-hidden />
+          {t('Seu perfil')}
+        </button>
+      </div>
+    </>
   );
 }

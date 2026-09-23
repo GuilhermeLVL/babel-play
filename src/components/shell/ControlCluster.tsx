@@ -1,9 +1,7 @@
-import {
-  Moon,
-  Search,  Sun } from 'lucide-react';
+import { Moon, Search, Sun } from 'lucide-react';
 import React from 'react';
 
-import type { FonteType,ThemeType } from '../../lib/appearance';
+import type { FonteType, ThemeType } from '../../lib/appearance';
 import MenuDaConta from './MenuDaConta';
 import MenuDeConforto from './MenuDeConforto';
 import type { AgeProfileType, MenuPositionType } from './navItems';
@@ -42,6 +40,8 @@ export interface ControlClusterProps {
   onOpenSearch: () => void;
   /** Navega para uma view — o menu da conta leva a "Meu perfil" e a "Ajustes". */
   onChangeView: (view: string) => void;
+  /** Celular (protótipo, `.topo-movel`): só busca, claro/escuro e conta. */
+  enxuto?: boolean;
 }
 
 /* O rótulo diz o estado E a ação — inclusive o salto do máximo para o mínimo. */
@@ -62,7 +62,7 @@ function IconButton({
   title,
   active,
   tone,
-  children
+  children,
 }: {
   onClick: () => void;
   title: string;
@@ -74,8 +74,8 @@ function IconButton({
     tone === 'warn'
       ? 'bg-warn-soft text-warn-ink'
       : tone === 'good'
-      ? 'bg-good-soft text-good-ink'
-      : 'bg-accent-soft text-accent-ink';
+        ? 'bg-good-soft text-good-ink'
+        : 'bg-accent-soft text-accent-ink';
   return (
     <button
       type="button"
@@ -114,21 +114,26 @@ export default function ControlCluster(props: ControlClusterProps) {
     togglePerformanceMode,
     orientation,
     onOpenSearch,
-    onChangeView
+    onChangeView,
+    enxuto = false,
   } = props;
 
   /* O som saiu daqui: o listener delegado (lib/sfxDelegate) já toca `click` em qualquer <button>,
      e `toggleOn`/`toggleOff` nos que declaram `aria-pressed`, que é o caso destes. Manter a
      chamada manual tocaria em dobro. */
-  const click = (fn: () => void) => () => { fn(); };
+  const click = (fn: () => void) => () => {
+    fn();
+  };
 
   const scaleIndex = FONT_SCALE_ORDER.indexOf(fontScale);
 
   return (
     <div
-      className={`flex items-center gap-0.5 bg-surface-hover/40 border border-border-subtle/60 p-1 rounded-xl ${
-        orientation === 'column' ? 'flex-wrap justify-center w-full' : ''
-      }`}
+      className={
+        orientation === 'column'
+          ? 'cluster' /* o rodapé do menu lateral: marcação e CSS do protótipo */
+          : 'flex items-center gap-0.5 bg-surface-hover/40 border border-border-subtle/60 p-1 rounded-xl'
+      }
     >
       {/* ── BUSCA GLOBAL ─────────────────────────────────────────────────────────────────────
           Na barra horizontal vira uma pílula larga com o atalho impresso: um ⌘K que ninguém vê não
@@ -163,36 +168,40 @@ export default function ControlCluster(props: ControlClusterProps) {
       {/* UM botão que cicla (spec controle-de-fonte-ciclico): eram três alvos (menos / indicador
           passivo / mais); agora o "A" é o botão E o indicador — cresce com a escala, e no máximo
           o clique volta ao mínimo, dito pelo aria-label. */}
-      <button
-        type="button"
-        onClick={click(cycleFontScale)}
-        title={ROTULO_DO_CICLO[fontScale]}
-        aria-label={ROTULO_DO_CICLO[fontScale]}
-        className="w-9 h-9 rounded-lg text-ink-muted hover:bg-surface-hover hover:text-ink flex items-center justify-center transition-colors cursor-pointer shrink-0"
-      >
-        <span
-          className="font-display font-black select-none leading-none"
-          style={{ fontSize: `${11 + scaleIndex * 2}px` }}
-          aria-hidden
+      {!enxuto && (
+        <button
+          type="button"
+          onClick={click(cycleFontScale)}
+          title={ROTULO_DO_CICLO[fontScale]}
+          aria-label={ROTULO_DO_CICLO[fontScale]}
+          className="w-9 h-9 rounded-lg text-ink-muted hover:bg-surface-hover hover:text-ink flex items-center justify-center transition-colors cursor-pointer shrink-0"
         >
-          A
-        </span>
-      </button>
+          <span
+            className="font-display font-black select-none leading-none"
+            style={{ fontSize: `${11 + scaleIndex * 2}px` }}
+            aria-hidden
+          >
+            A
+          </span>
+        </button>
+      )}
 
       <div className={orientation === 'column' ? 'hidden' : 'w-px h-5 bg-border-subtle/70 mx-1'} />
 
       {/* Som, animações e desempenho — preferências raras, agrupadas num popover COM RÓTULOS
           (auditoria de UX, 31/08): oito ícones soltos no cabeçalho exigiam decifração; três deles
           a maioria toca uma vez. Ver MenuDeConforto. */}
-      <MenuDeConforto
-        soundEnabled={soundEnabled}
-        toggleSound={toggleSound}
-        animationsEnabled={animationsEnabled}
-        toggleAnimations={click(toggleAnimations)}
-        performanceMode={performanceMode}
-        togglePerformanceMode={click(togglePerformanceMode)}
-        orientation={orientation}
-      />
+      {!enxuto && (
+        <MenuDeConforto
+          soundEnabled={soundEnabled}
+          toggleSound={toggleSound}
+          animationsEnabled={animationsEnabled}
+          toggleAnimations={click(toggleAnimations)}
+          performanceMode={performanceMode}
+          togglePerformanceMode={click(togglePerformanceMode)}
+          orientation={orientation}
+        />
+      )}
 
       {/* O botão do tutor SAIU daqui (auditoria de UX, 31/08): ele e o balão flutuante do iChat
           abriam o MESMO painel com dois nomes diferentes ("BabelBot" aqui, "iChat" lá) — duas
@@ -200,7 +209,10 @@ export default function ControlCluster(props: ControlClusterProps) {
           porque carrega contexto ("sintonizado com…") e está sempre visível. */}
 
       {/* Claro / escuro */}
-      <IconButton onClick={click(toggleDarkMode)} title={darkMode ? 'Mudar para o modo claro' : 'Mudar para o modo escuro'}>
+      <IconButton
+        onClick={click(toggleDarkMode)}
+        title={darkMode ? 'Mudar para o modo claro' : 'Mudar para o modo escuro'}
+      >
         {darkMode ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
       </IconButton>
 
@@ -211,7 +223,6 @@ export default function ControlCluster(props: ControlClusterProps) {
           `MobileNav` renderiza a lista de navegação INTEIRA e já está no limite de largura. */}
       <div className={orientation === 'column' ? 'hidden' : 'w-px h-5 bg-border-subtle/70 mx-1'} />
       <MenuDaConta onIr={onChangeView} orientation={orientation} />
-
     </div>
   );
 }

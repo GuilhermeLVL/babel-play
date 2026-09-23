@@ -101,22 +101,27 @@ test.describe('shell de tela grande', () => {
     await expect(rail).toBeVisible()
     const larguraAberta = (await rail.boundingBox())!.width
 
-    await page.getByRole('button', { name: 'Recolher o menu lateral' }).click()
+    await page.getByRole('button', { name: /^Recolher o menu lateral/ }).click()
     await expect.poll(async () => (await rail.boundingBox())!.width).toBeLessThan(larguraAberta)
 
-    // Recolhido, o item mostra o nome numa dica visível ao passar o mouse.
-    await rail.getByRole('button', { name: /^(Início|Página Inicial)$/ }).hover()
-    await expect(page.getByRole('tooltip')).toBeVisible()
+    // Recolhido, o item mostra o nome numa dica visível ao passar o mouse (CSS do protótipo,
+    // `[data-rot]::after`).
+    const item = rail.getByRole('button', { name: /^(Início|Página Inicial)$/ })
+    await item.hover()
+    await expect
+      .poll(() => item.evaluate((el) => getComputedStyle(el, '::after').opacity))
+      .toBe('1')
+    expect(await item.getAttribute('data-rot')).toMatch(/Início|Página Inicial/)
 
     await page.reload()
-    await expect(page.getByRole('button', { name: 'Expandir o menu lateral' })).toBeVisible()
+    await expect(page.getByRole('button', { name: /^Expandir o menu lateral/ })).toBeVisible()
 
     await page
       .locator('body')
       .click({ position: { x: 5, y: 5 } })
       .catch(() => {})
     await page.keyboard.press('Control+b')
-    await expect(page.getByRole('button', { name: 'Recolher o menu lateral' })).toBeVisible()
+    await expect(page.getByRole('button', { name: /^Recolher o menu lateral/ })).toBeVisible()
   })
 
   test('iChat fixo divide a linha, muda de largura e volta a flutuar em janela estreita', async ({ page }) => {

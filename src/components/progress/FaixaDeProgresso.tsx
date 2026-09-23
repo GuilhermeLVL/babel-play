@@ -1,10 +1,11 @@
 import { Bot, Flame, Sprout } from 'lucide-react';
+import type { CSSProperties, ReactNode } from 'react';
 
-import { emojiDoItem, proximaRecompensa } from '../../lib/galeria/progressao';
-import { TEXTOS } from '../../lib/galeria/textos';
+import { proximaRecompensa } from '../../lib/galeria/progressao';
+import { t, tp } from '../../lib/i18n';
 import { type AgeProfileType, copyDoPerfil } from '../../lib/profile';
 import { compactNumber, type DerivedProgress } from '../../lib/progress';
-import { Barra } from '../ui';
+import { IconeEmBloco } from '../ui';
 
 /**
  * A FAIXA DE PROGRESSO — nível, XP, ofensiva e seeds.
@@ -20,107 +21,103 @@ import { Barra } from '../ui';
 export default function FaixaDeProgresso({
   progress,
   ageProfile,
-  className = 'mb-8',
+  className = '',
+  destaque = false,
+  style,
+  children,
 }: {
   progress: DerivedProgress;
   ageProfile: AgeProfileType;
-  /** Espaçamento externo — o Hub zera para fundir esta faixa com a de revisão logo abaixo. */ className?: string;
+  className?: string;
+  /** Borda em acento (o Início liga quando há revisão pendente, como no protótipo). */
+  destaque?: boolean;
+  style?: CSSProperties;
+  /** O que vem colado embaixo, na mesma peça — a faixa de revisão do Início. */
+  children?: ReactNode;
 }) {
-  /**
-   * O ESQUELETO TEM A MESMA CAIXA DA FAIXA REAL, e não uma altura escolhida a olho.
-   *
-   * Era `h-20` fixo (80px) contra uma seção `flex-col sm:flex-row` com `p-5`: batia de raspão no
-   * desktop e errava por mais de 100px no celular, onde os três blocos empilham — e a diferença
-   * virava salto no instante em que as métricas chegavam (parte do CLS 0,311 medido no Início,
-   * achado F0-02). Repetindo aqui as mesmas classes de layout, a altura reservada passa a ser
-   * calculada pelas mesmas regras nos dois tamanhos de tela; só os três blocos internos são
-   * declarados, com a altura que o conteúdo real tem.
-   */
+  /* Marcação do protótipo aprovado (`T.inicio`): `.cartao` > `.progresso` (`.nivel`, barra e frase,
+     `.numeros`), e a faixa de revisão por baixo. `available: false` vira esqueleto com a mesma
+     caixa, nunca zeros (`EMPTY_PROGRESS` em lib/progress.ts). */
+  const estilo: CSSProperties = {
+    ...style,
+    ...(destaque ? { borderColor: 'color-mix(in srgb,var(--accent) 45%,var(--border-subtle))' } : {}),
+  };
   if (!progress.available) {
     return (
-      <div
-        className={`${className} card-panel bg-surface p-5 flex flex-col sm:flex-row sm:items-center gap-5 animate-pulse`}
-        aria-hidden
-      >
-        {/* As três alturas somam os 196px que a faixa real mede a 412px de largura (medido no
-            build de produção, viewport do Lighthouse); a partir de `sm` os blocos ficam lado a
-            lado e a maior delas manda, como na faixa real. */}
-        <div className="h-11 w-44 rounded-2xl bg-surface-hover shrink-0" />
-        <div className="flex-1 min-w-0 h-[34px] rounded-lg bg-surface-hover" />
-        <div className="h-9 w-32 rounded-lg bg-surface-hover shrink-0" />
-      </div>
+      <section className={`cartao ${className}`} style={estilo} aria-hidden>
+        <div className="progresso animate-pulse">
+          <div className="h-11 w-44 rounded-2xl bg-surface-hover" />
+          <div className="h-[34px] rounded-lg bg-surface-hover" />
+          <div className="h-9 w-32 rounded-lg bg-surface-hover" />
+        </div>
+      </section>
     );
   }
 
   const levelWord = copyDoPerfil('word.level', ageProfile);
-  /**
-   * PERFIL SÊNIOR: um conceito, não quatro (auditoria de UX, 31/08). NÍVEL + XP + OFENSIVA +
-   * SEEDS de uma vez é exatamente a carga que esse perfil pede para não ter. Fica a etapa com a
-   * barra — a frase abaixo já narra a ofensiva em português corrente quando ela existe — e saem
-   * os contadores gêmeos e o teaser de recompensa da galeria.
-   */
+  // Sênior: um conceito só (auditoria de UX, 31/08) — sem os contadores gêmeos nem o teaser.
   const simples = ageProfile === 'senior';
-  // v3: a faixa diz para ONDE se vai — o 1º item do próximo nível que libera algo.
   const proxima = simples ? null : proximaRecompensa(progress.level);
+  const faltam = progress.xpForLevel - progress.xpIntoLevel;
 
   return (
-    <section
-      aria-label="Seu progresso"
-      className={`${className} card-panel bg-surface p-5 flex flex-col sm:flex-row sm:items-center gap-5`}
-    >
-      <div className="flex items-center gap-3 shrink-0">
-        <span
-          className="w-11 h-11 rounded-2xl bg-accent-soft text-accent-ink flex items-center justify-center shrink-0"
-          aria-hidden
-        >
-          <Bot className="w-5 h-5" />
-        </span>
-        <div>
-          <div className="label-mono">
-            {levelWord} {progress.level}
-          </div>
-          <div className="font-display font-black text-ink text-lg leading-tight">
-            {progress.xpIntoLevel} / {progress.xpForLevel} XP
-          </div>
-        </div>
-      </div>
-
-      <div className="flex-1 min-w-0">
-        <Barra
-          pct={progress.levelPct}
-          rotuloAcessivel={`Progresso para ${levelWord.toLowerCase()} ${progress.level + 1}`}
-        />
-        <p className="text-[11.5px] text-ink-muted mt-1.5">
-          {progress.practicedToday
-            ? `Você já revisou hoje, ofensiva de ${progress.streakDays} ${progress.streakDays === 1 ? 'dia' : 'dias'}.`
-            : 'Uma revisão hoje mantém a sua ofensiva viva.'}
-          {proxima && (
-            <span className="block mt-0.5">
-              {TEXTOS.faltamXp(progress.xpForLevel - progress.xpIntoLevel)} · próximo:{' '}
-              <span aria-hidden>{emojiDoItem(proxima.destaque)}</span>{' '}
-              <b className="text-ink">{proxima.destaque.nome}</b>
-              {proxima.itens.length > 1 && <span className="text-ink-faint"> +{proxima.itens.length - 1}</span>}
+    <section className={`cartao ${className}`} style={estilo} aria-label={t('Seu progresso')}>
+      <div className="progresso">
+        <div className="nivel">
+          <IconeEmBloco icone={Bot} />
+          <div>
+            <span className="label-mono">
+              {levelWord} {progress.level}
             </span>
-          )}
-        </p>
-      </div>
-
-      {!simples && (
-        <div className="flex items-center gap-4 shrink-0">
-          <div className="text-center">
-            <div className="flex items-center gap-1.5 font-display font-black text-ink text-lg leading-none">
-              <Flame className="w-4 h-4 text-warn" aria-hidden /> {progress.streakDays}
-            </div>
-            <div className="label-mono mt-1">Ofensiva</div>
-          </div>
-          <div className="text-center">
-            <div className="flex items-center gap-1.5 font-display font-black text-ink text-lg leading-none">
-              <Sprout className="w-4 h-4 text-good" aria-hidden /> {compactNumber(progress.seeds)}
-            </div>
-            <div className="label-mono mt-1">Seeds</div>
+            <span className="v">
+              {progress.xpIntoLevel} / {progress.xpForLevel} XP
+            </span>
           </div>
         </div>
-      )}
+        <div>
+          <div
+            className="barra"
+            role="progressbar"
+            aria-label={t('Progresso para o {nivel} {n}', { nivel: levelWord.toLowerCase(), n: progress.level + 1 })}
+            aria-valuemin={0}
+            aria-valuemax={progress.xpForLevel}
+            aria-valuenow={progress.xpIntoLevel}
+          >
+            <span style={{ width: `${progress.levelPct}%` }} />
+          </div>
+          <p className="mut" style={{ fontSize: 12.5, marginTop: 8 }}>
+            {progress.practicedToday
+              ? tp(progress.streakDays, 'Você revisou hoje, ofensiva de {n} dia.', 'Você revisou hoje, ofensiva de {n} dias.')
+              : t('Uma revisão hoje começa a sua ofensiva.')}{' '}
+            {t('Faltam {n} XP', { n: faltam })}
+            {proxima && (
+              <>
+                {' · '}
+                {t('próximo:')} <b style={{ color: 'var(--ink)' }}>{proxima.destaque.nome}</b>
+              </>
+            )}
+          </p>
+        </div>
+        {!simples && (
+          <div className="numeros">
+            <div>
+              <span className="v">
+                <Flame style={{ color: 'var(--warn)' }} className={progress.streakDays ? 'chama-acesa' : ''} aria-hidden />
+                {progress.streakDays}
+              </span>
+              <span className="label-mono">{t('Ofensiva')}</span>
+            </div>
+            <div>
+              <span className="v">
+                <Sprout style={{ color: 'var(--good)' }} aria-hidden />
+                {compactNumber(progress.seeds)}
+              </span>
+              <span className="label-mono">{t('Seeds')}</span>
+            </div>
+          </div>
+        )}
+      </div>
+      {children}
     </section>
   );
 }

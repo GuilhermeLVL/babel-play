@@ -105,7 +105,7 @@ export default function MenuDaConta({ onIr, orientation }: MenuDaContaProps) {
         aria-expanded={aberto}
         aria-label={nome ? `Conta de ${nome}` : 'Sua conta'}
         title={nome ?? email ?? 'Sua conta'}
-        className="w-9 h-9 shrink-0 rounded-full bg-accent-soft text-accent-ink font-display font-black text-[12px] flex items-center justify-center border border-border-subtle hover:border-accent transition-colors cursor-pointer"
+        className="conta w-9 h-9 shrink-0 rounded-full bg-accent-soft text-accent-ink font-display font-black text-[12px] flex items-center justify-center border border-border-subtle hover:border-accent transition-colors cursor-pointer"
       >
         {/* Sem nome nem e-mail, o ícone genérico — nunca uma letra inventada. */}
         {iniciais || <User className="w-4 h-4" aria-hidden />}

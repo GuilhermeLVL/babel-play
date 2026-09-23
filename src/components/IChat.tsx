@@ -868,35 +868,20 @@ ${TUTOR_REGISTER[ageProfile]}`;
         </div>
       )}
 
-      {/* Floating iChat Trigger Badge button */}
+      {/* Botão flutuante do iChat — marcação do protótipo aprovado (`.fab`: ícone, "iChat" e o chip
+          "Context"). A posição fixa e o recuo do menu estão em src/styles/prototipo-app.css. */}
       {!isOpen && (
         <button
+          type="button"
+          className="fab"
           onClick={() => setIsOpen(true)}
-          style={{
-            right: 'calc(1.5rem + var(--shell-inset-right, 0px))',
-            bottom: 'calc(1.5rem + var(--shell-inset-bottom, 0px))',
-          }}
-          /* Compacto no celular: com o rótulo, este botão cobria o CTA principal do Hub numa
-             tela de 390px. Vira um círculo de ícone, que é o que cabe. */
-          className="fixed z-40 p-4 rounded-full shadow-2xl flex items-center justify-center gap-2 hover:scale-105 active:scale-95 transition-all cursor-pointer group border bg-rare-soft hover:brightness-95 text-rare-ink border-rare"
           title="iChat — seu tutor de estudos"
           aria-label="Abrir o iChat, seu tutor de estudos"
+          aria-expanded={false}
         >
-          <Sparkles className="w-5 h-5 fill-rare-ink group-hover:rotate-12 transition-all duration-300 text-rare-ink" />
-          <span className="hidden sm:inline text-xs font-bold font-display pe-1">iChat</span>
-          {/* C10 — fundo OPACO em vez de `bg-rare/15`.
-              Este pill empilhava 15% de `--rare` por cima de um botão que já é `bg-rare-soft`,
-              também translúcido: duas camadas do mesmo matiz, e a cor final dependia do que
-              estivesse atrás. Medido em 3,35:1 no mochi escuro, e o botão é FLUTUANTE, o mesmo
-              defeito aparecia nas 11 telas.
-
-              As três saídas foram medidas nos 12 pares de tema × modo: manter como está reprova
-              em dois, tirar só o tom interno reprova em um (4,22 no mochi escuro), e fundo
-              opaco passa em todos com folga (pior caso 4,86). Translucidez sobre translucidez
-              não tem token que a conserte: a única correção é parar de empilhar. */}
-          <span className="hidden sm:inline text-[10px] bg-surface px-1.5 py-0.5 rounded-full font-mono text-rare-ink">
-            Context
-          </span>
+          <Sparkles aria-hidden />
+          <span className="rot">iChat</span>
+          <span className="ctx">Context</span>
         </button>
       )}
 

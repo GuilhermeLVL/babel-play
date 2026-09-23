@@ -244,7 +244,7 @@ export default function App() {
   return (
     // `h-dvh`: com 100vh a raiz cinza (bg-surface) ficava maior que a viewport dinamica e o
     // overflow-hidden cortava o rodape, a "faixa cinza" que escondia conteudo na Captura.
-    <div className="flex flex-col h-tela w-full bg-surface overflow-hidden relative">
+    <div className="@container/app flex flex-col h-tela w-full bg-canvas overflow-hidden relative">
       {/* Barra do topo: a de desktop quando a preferência é "topo"; senão, só a do celular. */}
       {menuPosition === 'top' ? shell : <MobileTopBar progress={progress} controls={mobileControls} />}
 

@@ -1744,6 +1744,46 @@ body.animations-off .hover\:-translate-y-1:hover {
 .animations-off .babel-zoom-pulso, .animations-off .babel-glitch, .animations-off .babel-flash,
 .performance-mode .babel-glitch { animation: none; }
 
+/* Câmera e ritmo (juice.ts, Fundação): contagem, hit-stop, vinheta, desfoque de golpe, dolly. */
+.babel-contagem {
+  inset: 0; z-index: 60; display: grid; place-items: center; pointer-events: none;
+  background: color-mix(in oklab, var(--canvas) 55%, transparent);
+}
+.babel-contagem-num {
+  font-family: var(--font-display); font-weight: 900; font-size: clamp(64px, 14vw, 160px);
+  color: var(--accent-ink); line-height: 1;
+  animation: babel-contagem-kf 0.62s var(--ease-mola) both;
+}
+@keyframes babel-contagem-kf {
+  0% { transform: scale(1.8); opacity: 0; filter: blur(8px); }
+  45% { transform: scale(1); opacity: 1; filter: blur(0); }
+  100% { transform: scale(0.85); opacity: 0; }
+}
+.babel-pausa-impacto, .babel-pausa-impacto * { animation-play-state: paused !important; }
+
+.babel-vinheta {
+  position: fixed; inset: 0; z-index: 55; pointer-events: none;
+  animation: babel-vinheta-kf 0.6s var(--ease) forwards;
+}
+.babel-vinheta-erro { background: radial-gradient(ellipse at center, transparent 55%, color-mix(in oklab, var(--error) 45%, transparent)); }
+.babel-vinheta-combo { background: radial-gradient(ellipse at center, transparent 55%, color-mix(in oklab, var(--warn) 45%, transparent)); }
+.babel-vinheta-acerto { background: radial-gradient(ellipse at center, transparent 60%, color-mix(in oklab, var(--good) 35%, transparent)); }
+@keyframes babel-vinheta-kf { 0% { opacity: 0; } 25% { opacity: 1; } 100% { opacity: 0; } }
+
+.babel-desfoque-golpe { animation: babel-desfoque-kf 0.28s var(--ease); }
+@keyframes babel-desfoque-kf {
+  0% { filter: blur(var(--golpe-desfoque, 6px)); transform: scale(1.03); }
+  100% { filter: blur(0); transform: scale(1); }
+}
+.babel-entrada-camera { animation: babel-entrada-camera-kf 0.56s var(--ease) both; }
+@keyframes babel-entrada-camera-kf {
+  0% { transform: scale(1.06); filter: blur(4px); opacity: 0; }
+  100% { transform: scale(1); filter: blur(0); opacity: 1; }
+}
+.animations-off .babel-contagem-num, .animations-off .babel-vinheta, .animations-off .babel-desfoque-golpe,
+.animations-off .babel-entrada-camera, .performance-mode .babel-desfoque-golpe,
+.performance-mode .babel-entrada-camera { animation: none; }
+
 /* ─────────────── ÍCONES NUNCA ESMAGAM ───────────────
    Ícone é quadrado ou não é ícone. Num flex apertado (agora que o A+ escala a interface inteira,
    linhas que cabiam passam a transbordar) os svg sem shrink-0 eram espremidos na horizontal —

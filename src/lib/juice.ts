@@ -262,4 +262,115 @@ export function executarEfeito(ev: EfeitoComposto): void {
   marcarEventoVisto(ev.id);
 }
 
+/* ─────────────────────────── CÂMERA E RITMO (Fundação, 23/09/2026) ───────────────────────────
+   O que o protótipo aprovado usa nos jogos e o app ainda não tinha: contagem antes da rodada,
+   número que sobe no placar, a pausa de impacto do golpe, vinheta de erro/combo, desfoque de
+   golpe e a entrada de câmera da tela. Com movimento reduzido tudo vira instantâneo — a
+   contagem some, o número já nasce no valor final — porque o jogo continua jogável sem eles. */
+
+const esperar = (ms: number) => new Promise<void>((ok) => setTimeout(ok, ms));
+
+/** Aplica uma classe a um elemento por `ms` e a retira (reinicia se já estava). */
+function classeNoElemento(el: HTMLElement | null, nome: string, ms: number): void {
+  if (!el || movimentoReduzido()) return;
+  el.classList.remove(nome);
+  void el.offsetWidth; // força o reflow para a animação recomeçar
+  el.classList.add(nome);
+  setTimeout(() => el.classList.remove(nome), ms);
+}
+
+/**
+ * Contagem 3-2-1 sobre o palco (ou sobre `alvo`) com um toque por número.
+ * `rotuloFinal` chega traduzido de quem chama ("Vai!"): esta camada não conhece o idioma.
+ */
+export async function contagem321(rotuloFinal: string, alvo?: HTMLElement | null): Promise<void> {
+  if (typeof document === 'undefined' || movimentoReduzido()) return;
+  const palco = alvo ?? document.body;
+  const camada = document.createElement('div');
+  camada.className = `babel-contagem ${alvo ? 'absolute' : 'fixed'}`;
+  camada.setAttribute('aria-live', 'assertive');
+  if (alvo && getComputedStyle(alvo).position === 'static') alvo.style.position = 'relative';
+  palco.appendChild(camada);
+  try {
+    for (const passo of ['3', '2', '1', rotuloFinal]) {
+      const num = document.createElement('span');
+      num.className = 'babel-contagem-num';
+      num.textContent = passo;
+      camada.replaceChildren(num);
+      play(passo === rotuloFinal ? 'timeBonus' : 'tick');
+      await esperar(passo === rotuloFinal ? 520 : 680);
+    }
+  } finally {
+    camada.remove();
+  }
+}
+
+/** Número que sobe até `ate` (placar, XP, moedas). Sempre termina exatamente no valor final. */
+export function contarAte(
+  el: HTMLElement | null,
+  ate: number,
+  { de = 0, dur = 700, sufixo = '', formatar = (n: number) => String(Math.round(n)) }: {
+    de?: number;
+    dur?: number;
+    sufixo?: string;
+    formatar?: (n: number) => string;
+  } = {},
+): Promise<void> {
+  if (!el) return Promise.resolve();
+  const final = () => {
+    el.textContent = formatar(ate) + sufixo;
+  };
+  if (movimentoReduzido() || dur <= 0) {
+    final();
+    return Promise.resolve();
+  }
+  return new Promise((ok) => {
+    let passado = 0;
+    const passo = () => {
+      passado += 16;
+      const p = Math.min(1, passado / dur);
+      const suave = 1 - Math.pow(1 - p, 3);
+      el.textContent = formatar(de + (ate - de) * suave) + sufixo;
+      if (p < 1) setTimeout(passo, 16);
+      else {
+        final();
+        ok();
+      }
+    };
+    passo();
+  });
+}
+
+/** Hit-stop: congela as animações do palco por alguns ms no instante do golpe. */
+export async function pausaDeImpacto(ms = 90): Promise<void> {
+  if (movimentoReduzido()) return;
+  const palco = elementoDePalco();
+  if (!palco) return;
+  palco.classList.add('babel-pausa-impacto');
+  await esperar(ms);
+  palco.classList.remove('babel-pausa-impacto');
+}
+
+/** Vinheta nas bordas da tela: vermelha no erro, dourada no combo, verde no acerto. */
+export function vinheta(tipo: 'erro' | 'combo' | 'acerto'): void {
+  if (typeof document === 'undefined' || movimentoReduzido()) return;
+  const v = document.createElement('div');
+  v.className = `babel-vinheta babel-vinheta-${tipo}`;
+  v.setAttribute('aria-hidden', 'true');
+  document.body.appendChild(v);
+  setTimeout(() => v.remove(), 620);
+}
+
+/** Desfoque rápido de golpe num elemento (a peça que levou o erro, a carta que virou). */
+export function desfoqueDeGolpe(el: HTMLElement | null, px = 6): void {
+  if (!el) return;
+  el.style.setProperty('--golpe-desfoque', `${px}px`);
+  classeNoElemento(el, 'babel-desfoque-golpe', 280);
+}
+
+/** Entrada de câmera (dolly): a tela chega de um pouco mais perto e desfocada. */
+export function entradaDeCamera(el: HTMLElement | null): void {
+  classeNoElemento(el, 'babel-entrada-camera', 560);
+}
+
 export { multiplicador } from '../core/minigames/grade';

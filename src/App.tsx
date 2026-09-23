@@ -34,7 +34,7 @@ import GateDeConta from './components/conta/GateDeConta';
 import ModalDeMigracao from './components/conta/ModalDeMigracao';
 import FloatingScoreLayer from './components/FloatingScoreLayer';
 import ParticleCanvas from './components/ParticleCanvas';
-import RecompensaDesbloqueada from './components/RecompensaDesbloqueada';
+import RecompensaDesbloqueada, { tirarDaFila } from './components/RecompensaDesbloqueada';
 import MobileNav from './components/shell/MobileNav';
 import MobileTopBar from './components/shell/MobileTopBar';
 import StudioHeader from './components/StudioHeader';
@@ -347,7 +347,7 @@ export default function App() {
           <RecompensaDesbloqueada
             fila={filaDeRecompensas}
             onEquipar={(item) => equiparItem(item, equiparCtx)}
-            onFechar={() => setFilaDeRecompensas((f) => f.slice(1))}
+            onFechar={(r) => setFilaDeRecompensas((f) => tirarDaFila(f, r))}
             onVerPersonalizar={() => navigateTo('loja', { aba: 'personalizar' })}
           />
           {activeView === 'settings' && (

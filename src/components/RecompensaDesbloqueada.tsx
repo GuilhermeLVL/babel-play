@@ -50,6 +50,26 @@ export function recompensasVistas(): Set<string> {
 export function marcarVista(r: Recompensa): void {
   try { const v = recompensasVistas(); v.add(chaveDaRecompensa(r)); localStorage.setItem(CHAVE_VISTAS, JSON.stringify([...v].slice(-200))); } catch { /* sem storage */ }
 }
+/**
+ * A fila não repete: as conquistas são reavaliadas a cada métrica nova, e antes de o usuário fechar
+ * a primeira a mesma já tinha entrado de novo ("Primeira captura" voltava depois de fechada).
+ */
+export function enfileirarSemRepetir(fila: Recompensa[], novas: Recompensa[]): Recompensa[] {
+  const ja = new Set(fila.map(chaveDaRecompensa));
+  const saida = [...fila];
+  for (const r of novas) {
+    const chave = chaveDaRecompensa(r);
+    if (ja.has(chave)) continue;
+    ja.add(chave);
+    saida.push(r);
+  }
+  return saida;
+}
+/** Fechar tira TODAS as cópias daquela recompensa, não só a da frente. */
+export function tirarDaFila(fila: Recompensa[], r: Recompensa): Recompensa[] {
+  const chave = chaveDaRecompensa(r);
+  return fila.filter((x) => chaveDaRecompensa(x) !== chave);
+}
 /** Há uma rodada de jogo em curso? (Play marca o body enquanto joga.) */
 export function jogoAtivo(): boolean {
   return typeof document !== 'undefined' && document.body.hasAttribute('data-jogo-ativo');

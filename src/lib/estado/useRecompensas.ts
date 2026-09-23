@@ -1,7 +1,7 @@
 import type { ContextoDeConquistas } from '@core';
 import { type Dispatch, type SetStateAction,useEffect, useMemo, useRef, useState } from 'react';
 
-import { chaveDaRecompensa, type DetalheDoDrop,EVENTO_DROP_GANHO, type Recompensa, recompensasVistas } from '../../components/RecompensaDesbloqueada';
+import { chaveDaRecompensa, type DetalheDoDrop, enfileirarSemRepetir, EVENTO_DROP_GANHO, type Recompensa, recompensasVistas } from '../../components/RecompensaDesbloqueada';
 import type { MenuPositionType } from '../../components/shell/navItems';
 import { toast } from '../../components/Toast';
 import type { AppMetrics, RecordeDoJogo } from '../../data/api';
@@ -59,7 +59,7 @@ export function useRecompensas(deps: DependenciasDasRecompensas): EstadoDasRecom
       const entradas: Recompensa[] = novas
         .map((c): Recompensa => ({ tipo: 'conquista', id: c.id, nome: c.nome, emoji: c.emoji, seeds: c.recompensa.seeds, xp: c.recompensa.xp, item: itemDaConquista(c.id) }))
         .filter((r) => !vistas.has(chaveDaRecompensa(r)));
-      if (entradas.length) setFilaDeRecompensas((f) => [...f, ...entradas]);
+      if (entradas.length) setFilaDeRecompensas((f) => enfileirarSemRepetir(f, entradas));
     });
   }, [ctxConquistas]);
 
@@ -75,7 +75,7 @@ export function useRecompensas(deps: DependenciasDasRecompensas): EstadoDasRecom
       if (!item) return;
       const r: Recompensa = { tipo: 'drop', roundId: d.roundId, seeds: d.seeds, item };
       if (recompensasVistas().has(chaveDaRecompensa(r))) return;
-      setFilaDeRecompensas((f) => [...f, r]);
+      setFilaDeRecompensas((f) => enfileirarSemRepetir(f, [r]));
       setVersaoDasMetricas((v) => v + 1);
     };
     window.addEventListener(EVENTO_DROP_GANHO, ouvir);
@@ -120,7 +120,7 @@ export function useRecompensas(deps: DependenciasDasRecompensas): EstadoDasRecom
         const r: Recompensa = { tipo: 'nivel', nivel: n, itens: recompensasDoNivelCompleto(n) };
         if (!vistas.has(chaveDaRecompensa(r))) entradas.push(r);
       }
-      if (entradas.length) setFilaDeRecompensas((f) => [...f, ...entradas]);
+      if (entradas.length) setFilaDeRecompensas((f) => enfileirarSemRepetir(f, entradas));
       else comemorar('subiuNivel', null, { tremer: true });
     }
   }, [progress.available, progress.level]);

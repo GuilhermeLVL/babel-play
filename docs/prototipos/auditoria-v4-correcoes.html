@@ -1,0 +1,535 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Babel Play — correções v4</title>
+<meta name="description" content="Protótipo navegável com as correções propostas na auditoria de design do redesign v4 (22/09/2026).">
+<!-- Só as três famílias do tema babel: é a própria correção P2 de fontes. -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;800;900&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet">
+<style>
+  /* Tokens = tema babel do app, com UMA mudança: --accent-ink #C93A15 → #AE300E (5,02:1 no canvas). */
+  :root {
+    color-scheme: light;
+    --canvas: #E6E2D6; --surface: #F5F2EA; --surface-hover: #EBE7DB;
+    --ink: #26241F; --ink-muted: #5E5A50; --ink-contrast: #E6E2D6;
+    --accent: #F04E23; --accent-soft: #FBDDD3; --accent-ink: #AE300E; --accent-on: #3D1105;
+    --good: #3E6B44; --good-soft: #DCE7DB; --rare-soft: #E1E1F2; --rare-ink: #3F4178;
+    --border: #C6BFAC; --focus: #26241F;
+    --shadow: inset 0 1px 0 rgba(255,255,255,.6), 0 2px 5px rgba(38,36,31,.08);
+    --font-display: "Archivo", system-ui, sans-serif;
+    --font-body: "Inter", system-ui, sans-serif;
+    --font-mono: "IBM Plex Mono", ui-monospace, monospace;
+    --r-card: 16px; --r-btn: 12px;
+    --z-sheet: 5; --z-sticky: 10; --z-fab: 20; --z-toast: 40;
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --canvas: #0B0E14; --surface: #151922; --surface-hover: #1F2430;
+    --ink: #F0F6FC; --ink-muted: #8B949E; --ink-contrast: #0B0E14;
+    --accent: #FF5A36; --accent-soft: #2A1A17; --accent-ink: #FF7B5C; --accent-on: #3D1105;
+    --good: #3FB950; --good-soft: #15291B; --rare-soft: #1A2233; --rare-ink: #A9CBFF;
+    --border: #333B48; --focus: #F0F6FC;
+    --shadow: 0 1px 0 rgba(255,255,255,.03), 0 2px 6px rgba(0,0,0,.4);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      color-scheme: dark;
+      --canvas: #0B0E14; --surface: #151922; --surface-hover: #1F2430;
+      --ink: #F0F6FC; --ink-muted: #8B949E; --ink-contrast: #0B0E14;
+      --accent: #FF5A36; --accent-soft: #2A1A17; --accent-ink: #FF7B5C; --accent-on: #3D1105;
+      --good: #3FB950; --good-soft: #15291B; --rare-soft: #1A2233; --rare-ink: #A9CBFF;
+      --border: #333B48; --focus: #F0F6FC;
+      --shadow: 0 1px 0 rgba(255,255,255,.03), 0 2px 6px rgba(0,0,0,.4);
+    }
+  }
+
+  *, *::before, *::after { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body { background: #7d786c; font: 15px/1.5 var(--font-body); color: var(--ink); }
+  :root[data-theme="dark"] body { background: #05070a; }
+  button, input { font: inherit; color: inherit; }
+  :focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; border-radius: 6px; }
+  /* word-spacing: o espaço do Archivo em 800–900 some com tracking negativo ("querfazer", P3). */
+  h1, h2, h3 { font-family: var(--font-display); margin: 0; text-wrap: balance; letter-spacing: -0.01em; word-spacing: 0.08em; }
+  svg { flex: none; }
+  .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+
+  /* ── Barra da auditoria (fora do app) ─────────────────────────────── */
+  .ferramentas { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; padding: 10px 16px;
+    background: #1b1a17; color: #EDEAE2; font-size: 13px; position: sticky; top: 0; z-index: 50; }
+  .ferramentas strong { font-family: var(--font-display); font-size: 14px; margin-right: auto; }
+  .ferramentas label { display: inline-flex; gap: 6px; align-items: center; min-height: 32px; cursor: pointer; }
+  .ferramentas input { accent-color: #F04E23; width: 16px; height: 16px; }
+
+  .palco { display: flex; justify-content: center; padding: 20px 16px 40px; }
+  .app { width: 100%; max-width: 1280px; height: min(820px, calc(100dvh - 100px)); min-height: 560px;
+    background: var(--canvas); border-radius: 14px; overflow: hidden; position: relative;
+    display: grid; grid-template-columns: 224px 1fr; container-type: inline-size; box-shadow: 0 20px 60px rgba(0,0,0,.35); }
+  body.celular .app { max-width: 390px; height: min(844px, calc(100dvh - 100px)); grid-template-columns: 1fr; }
+
+  /* ── Rail (desktop) ────────────────────────────────────────────────── */
+  .rail { background: var(--surface); border-right: 1px solid var(--border); display: flex; flex-direction: column; padding: 14px 10px; gap: 2px; }
+  .marca { display: flex; align-items: center; gap: 8px; padding: 4px 8px 16px; font: 900 15px var(--font-display); letter-spacing: .06em; }
+  .marca b { color: var(--accent-ink); }  /* era text-accent: 3,23:1 → agora 5,81:1 */
+  .marca i { width: 22px; height: 22px; border-radius: 5px; background: var(--accent); display: block; }
+  .item { display: flex; align-items: center; gap: 12px; min-height: 44px; padding: 0 12px; border: 0; border-radius: var(--r-btn);
+    background: none; cursor: pointer; font: 700 13.5px var(--font-display); text-align: left; width: 100%; color: var(--ink-muted); }
+  .item:hover { background: var(--surface-hover); color: var(--ink); }
+  /* Ativo: só fundo + tinta. Sem a faixa lateral (P3). */
+  .item[aria-current="page"] { background: var(--accent-soft); color: var(--accent-ink); }
+  .rail .sep { flex: 1; }
+
+  /* ── Área principal ────────────────────────────────────────────────── */
+  .principal { display: flex; flex-direction: column; min-width: 0; min-height: 0; }
+  .topo { display: none; }
+  .conteudo { flex: 1; overflow-y: auto; padding: 36px 40px 120px; scroll-padding-bottom: 120px; }
+  .tela { max-width: 960px; margin: 0 auto; display: none; }
+  .tela.ativa { display: block; animation: entra 180ms cubic-bezier(.22,1,.36,1); }
+  @keyframes entra { from { opacity: 0; transform: translateY(4px); } }
+  .tela > h1 { font-size: 30px; font-weight: 900; line-height: 1.15; margin-bottom: 6px; }
+  .sub { color: var(--ink-muted); margin: 0 0 24px; max-width: 65ch; }
+
+  .cartao { background: var(--surface); border: 1.5px solid var(--border); border-radius: var(--r-card); box-shadow: var(--shadow); padding: 22px; }
+  .cartao.escuro { background: var(--ink); color: var(--ink-contrast); border-color: var(--ink); }
+  .cartao.escuro p { color: color-mix(in srgb, var(--ink-contrast) 78%, var(--ink)); }
+  .cartao h2 { font-size: 17px; font-weight: 800; }
+  .cartao p { margin: 6px 0 0; color: var(--ink-muted); font-size: 14px; }
+
+  .acoes { display: grid; grid-template-columns: 1.15fr 1fr 1fr; gap: 16px; margin-bottom: 20px; }
+  .acoes .cartao { display: flex; flex-direction: column; }
+  .acoes .cartao .btn { margin-top: auto; }
+  .acoes .cartao > p { margin-bottom: 18px; }
+
+  .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 44px; padding: 0 18px;
+    border-radius: var(--r-btn); border: 1.5px solid var(--border); background: var(--surface); cursor: pointer;
+    font: 700 14px var(--font-display); transition: background-color 150ms, transform 150ms; }
+  .btn:hover { background: var(--surface-hover); }
+  .btn:active { transform: translateY(1px); }
+  .btn.primario { background: var(--accent); color: var(--accent-on); border-color: transparent; }
+  .btn.primario:hover { background: color-mix(in srgb, var(--accent) 88%, #000); }
+  .link { background: none; border: 0; padding: 0 4px; min-height: 44px; display: inline-flex; align-items: center; gap: 6px;
+    color: var(--accent-ink); font: 700 14px var(--font-display); cursor: pointer; text-decoration: underline; text-underline-offset: 3px; text-decoration-thickness: 1px; }
+
+  /* Progresso: rótulos de dado em mono ficam SÓ aqui (debaixo do número), não em todo bloco. */
+  .progresso { display: grid; grid-template-columns: auto 1fr auto; gap: 20px; align-items: center; }
+  .nivel { font: 800 18px var(--font-display); }
+  .nivel small { display: block; font: 500 12px var(--font-body); color: var(--ink-muted); }
+  .barra { height: 8px; border-radius: 99px; background: var(--surface-hover); border: 1px solid var(--border); overflow: hidden; }
+  .barra span { display: block; height: 100%; width: 6%; background: var(--accent); }
+  .numeros { display: flex; gap: 22px; }
+  .numeros div { text-align: center; font: 800 20px var(--font-display); }
+  .numeros small { display: block; font: 500 11px var(--font-mono); letter-spacing: .08em; color: var(--ink-muted); }
+  .revisar { display: flex; align-items: center; gap: 14px; margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border); flex-wrap: wrap; }
+  .revisar .qtd { width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; background: var(--accent-soft); color: var(--accent-ink); font: 800 16px var(--font-display); }
+  .revisar p { margin: 0; flex: 1; min-width: 180px; color: var(--ink); }
+
+  .secao-titulo { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin: 28px 0 12px; flex-wrap: wrap; }
+  .secao-titulo h2 { font-size: 19px; font-weight: 800; }
+
+  .lista { display: grid; gap: 8px; }
+  .linha { display: flex; align-items: center; gap: 14px; min-height: 56px; padding: 8px 16px; border-radius: var(--r-btn);
+    background: var(--surface); border: 1.5px solid var(--border); cursor: pointer; text-align: left; width: 100%; }
+  .linha:hover { background: var(--surface-hover); }
+  .linha .tt { font-weight: 700; }
+  .linha .ds { color: var(--ink-muted); font-size: 13px; }
+  .linha .fim { margin-left: auto; color: var(--ink-muted); }
+  .linha .etiqueta { margin-left: auto; }
+  .linha .etiqueta + .fim { margin-left: 0; }
+  .etiqueta { font: 600 12px var(--font-body); padding: 3px 9px; border-radius: 99px; background: var(--surface-hover); color: var(--ink-muted); white-space: nowrap; }
+  .etiqueta.boa { background: var(--good-soft); color: var(--ink); }
+
+  /* Jogar: o "Antes de jogar" vira painel inline, não modal (P2). */
+  .pratica { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; }
+  .pratica .resumo { flex: 1; min-width: 220px; }
+  .pratica .resumo b { font-family: var(--font-display); }
+  .escolhas { display: none; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 18px; margin-top: 18px; padding-top: 18px; border-top: 1px solid var(--border); width: 100%; }
+  .pratica.aberta .escolhas { display: grid; }
+  .escolhas h3 { font: 700 13px var(--font-body); color: var(--ink-muted); margin-bottom: 8px; }
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; }
+  .chip { min-height: 44px; padding: 0 14px; border-radius: 99px; border: 1.5px solid var(--border); background: var(--surface); cursor: pointer; font-weight: 600; font-size: 14px; }
+  .chip[aria-pressed="true"] { background: var(--ink); color: var(--ink-contrast); border-color: var(--ink); }
+  .check { display: inline-flex; align-items: center; gap: 10px; min-height: 44px; cursor: pointer; font-size: 14px; }
+  .check input { width: 20px; height: 20px; accent-color: var(--accent); }
+
+  /* Capturar */
+  .modelo { display: flex; gap: 16px; align-items: flex-start; flex-wrap: wrap; }
+  .modelo .dado { font: 800 28px var(--font-display); }
+  .modelo .dado small { font: 500 13px var(--font-body); color: var(--ink-muted); display: block; }
+
+  /* ── iChat: balão + aviso de contexto ─────────────────────────────── */
+  .fab { position: absolute; right: 20px; bottom: 20px; z-index: var(--z-fab); display: inline-flex; align-items: center; gap: 8px;
+    min-height: 48px; padding: 0 18px; border-radius: 99px; border: 1.5px solid var(--border); background: var(--rare-soft); color: var(--rare-ink);
+    font: 700 14px var(--font-display); cursor: pointer; box-shadow: var(--shadow); }
+  .aviso { position: absolute; right: 20px; bottom: 80px; z-index: var(--z-toast); background: var(--ink); color: var(--ink-contrast);
+    padding: 10px 14px; border-radius: 12px; font-size: 13.5px; max-width: 280px; opacity: 0; transform: translateY(6px);
+    transition: opacity 200ms, transform 200ms cubic-bezier(.22,1,.36,1); pointer-events: none; }
+  .aviso.visivel { opacity: 1; transform: none; }
+  .aviso strong { font-weight: 800; }  /* sem cor: era text-rare, 2,88:1 */
+
+  /* ── Barra inferior (celular): 4 destinos + Mais (P1) ─────────────── */
+  .barra-inf { display: none; }
+  .folha { position: absolute; inset: auto 0 0 0; z-index: var(--z-sheet); background: var(--surface); border-top: 1.5px solid var(--border);
+    border-radius: 18px 18px 0 0; padding: 12px 16px 88px; transform: translateY(100%); transition: transform 220ms cubic-bezier(.22,1,.36,1); visibility: hidden; }
+  .folha.aberta { transform: none; visibility: visible; box-shadow: 0 -12px 40px rgba(0,0,0,.25); }
+  .app:has(.folha.aberta) .fab, .app:has(.folha.aberta) .aviso { display: none; }
+  .folha h2 { font-size: 16px; font-weight: 800; padding: 6px 4px 10px; }
+
+  @container (max-width: 700px) {
+    .rail { display: none; }
+    .topo { display: flex; align-items: center; justify-content: space-between; padding: 10px 16px; border-bottom: 1px solid var(--border); background: var(--surface); }
+    .conteudo { padding: 24px 16px 150px; }
+    .tela > h1 { font-size: 26px; }
+    .acoes { grid-template-columns: 1fr; }
+    .progresso { grid-template-columns: 1fr; }
+    .numeros { justify-content: flex-start; }
+    .barra-inf { display: grid; grid-template-columns: repeat(5, 1fr); position: absolute; inset: auto 0 0 0; z-index: var(--z-sticky);
+      background: var(--surface); border-top: 1.5px solid var(--border); padding: 4px 4px 8px; }
+    .barra-inf button { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; min-height: 56px;
+      border: 0; background: none; border-radius: 12px; font: 600 11.5px var(--font-body); color: var(--ink-muted); cursor: pointer; }
+    .barra-inf button[aria-current="page"] { color: var(--accent-ink); background: var(--accent-soft); }
+    /* Balão do iChat sobe acima da barra; o conteúdo reserva a folga (P2). */
+    .fab { bottom: 78px; right: 14px; padding: 0 14px; }
+    .fab span { display: none; }
+    .aviso { bottom: 136px; right: 14px; left: 14px; max-width: none; }
+  }
+
+  /* ── Diálogo de conquista: <dialog> nativo = Esc + foco (P1) ──────── */
+  dialog { border: 1.5px solid var(--border); border-radius: 20px; background: var(--surface); color: var(--ink); padding: 0; width: min(420px, calc(100% - 32px)); box-shadow: 0 24px 60px rgba(0,0,0,.35); }
+  dialog::backdrop { background: rgba(20,18,14,.55); }
+  dialog[open] { animation: sobe 220ms cubic-bezier(.22,1,.36,1); }
+  @keyframes sobe { from { opacity: 0; transform: translateY(10px) scale(.98); } }
+  .dlg { padding: 26px; text-align: center; }
+  .dlg .emoji { font-size: 40px; line-height: 1; }
+  .dlg h2 { font-size: 22px; font-weight: 900; margin: 10px 0 4px; }
+  .dlg p { color: var(--ink-muted); margin: 0 0 14px; }
+  .ganhos { display: flex; justify-content: center; gap: 10px; margin-bottom: 20px; }
+  .dlg .btn { width: 100%; }
+  .dlg .fechar { position: absolute; top: 10px; right: 10px; width: 44px; height: 44px; border-radius: 12px; border: 0; background: none; cursor: pointer; display: grid; place-items: center; }
+
+  /* ── Onboarding etapa 6 ────────────────────────────────────────────── */
+  .onb { position: absolute; inset: 0; z-index: 45; background: var(--canvas); overflow-y: auto; padding: 40px 16px; display: none; }
+  .onb.aberto { display: block; }
+  .onb .caixa { max-width: 640px; margin: 0 auto; }
+  .passos { display: flex; gap: 6px; align-items: center; margin-bottom: 18px; color: var(--ink-muted); font-size: 13px; }
+  .passos i { width: 28px; height: 5px; border-radius: 9px; background: var(--border); display: block; }
+  .passos i.on { background: var(--accent); }
+  .opcao { display: block; width: 100%; text-align: left; padding: 18px; margin-top: 12px; border-radius: var(--r-card); border: 1.5px solid var(--border); background: var(--surface); cursor: pointer; }
+  .opcao:hover { background: var(--surface-hover); }
+  .opcao b { font: 800 16px var(--font-display); display: block; }
+  .opcao span { color: var(--ink-muted); font-size: 14px; }
+
+  /* ── Anotações da auditoria ────────────────────────────────────────── */
+  .nota { display: none; position: relative; top: -2px; margin-left: 6px; min-width: 22px; height: 22px; padding: 0 6px; border-radius: 99px;
+    background: #1b1a17; color: #fff; font: 700 11px var(--font-body); align-items: center; justify-content: center; vertical-align: middle; }
+  body.anotar .nota { display: inline-flex; }
+  .legenda { display: none; background: #1b1a17; color: #EDEAE2; font-size: 13px; padding: 12px 16px; }
+  body.anotar .legenda { display: block; }
+  .legenda ol { margin: 0; padding-left: 20px; columns: 2 320px; column-gap: 32px; }
+  .legenda li { margin-bottom: 4px; break-inside: avoid; }
+  .legenda b { color: #FFB199; }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation-duration: 1ms !important; transition-duration: 1ms !important; }
+  }
+</style>
+</head>
+<body class="anotar">
+
+<div class="ferramentas" role="region" aria-label="Controles do protótipo">
+  <strong>Protótipo · correções da auditoria v4</strong>
+  <label><input type="checkbox" id="t-anotar" checked> Mostrar anotações</label>
+  <label><input type="checkbox" id="t-celular"> Ver como celular (390 px)</label>
+  <label><input type="checkbox" id="t-escuro"> Tema escuro</label>
+</div>
+<div class="legenda" aria-label="O que mudou">
+  <ol>
+    <li><b>P1</b> Texto laranja usa <code>--accent-ink</code> #AE300E (5,0:1 no canvas). O #F04E23 fica para preenchimento.</li>
+    <li><b>P1</b> Aviso do iChat mostra o nome da tela, sem cor no destaque, uma vez por tela.</li>
+    <li><b>P1</b> Celular: 4 destinos + "Mais". Nada fica fora da tela.</li>
+    <li><b>P1</b> Conquista em <code>&lt;dialog&gt;</code> nativo: Esc fecha e o foco entra no diálogo. Dispara por ação real.</li>
+    <li><b>P1</b> Um tamanho de modelo só (880 MB), vindo de uma constante.</li>
+    <li><b>P1</b> Checkbox de prévia com rótulo visível em qualquer largura.</li>
+    <li><b>P2</b> "Antes de jogar" vira painel inline com a última escolha.</li>
+    <li><b>P2</b> Links e linhas com 44 px de altura; o balão do iChat não cobre ações.</li>
+    <li><b>P2</b> Toda tela com um <code>h1</code>.</li>
+    <li><b>P3</b> Sem faixa lateral no menu, sem partículas, rótulos mono só debaixo dos números.</li>
+  </ol>
+</div>
+
+<div class="palco">
+<div class="app" id="app">
+
+  <aside class="rail" aria-label="Menu lateral">
+    <div class="marca"><i aria-hidden="true"></i><span>BABEL<b>PLAY</b></span><span class="nota">1</span></div>
+    <nav aria-label="Navegação principal" id="nav-rail">
+      <button class="item" data-ir="inicio" aria-current="page"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg>Início<span class="nota">10</span></button>
+      <button class="item" data-ir="capturar"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0M12 19v3"/></svg>Capturar</button>
+      <button class="item" data-ir="jogar"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 11h4M8 9v4M15 12h.01M18 10h.01"/><rect x="2" y="6" width="20" height="12" rx="4"/></svg>Jogar</button>
+      <button class="item" data-ir="biblioteca"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 4v16M8 4v16M12 4l4 16M17 4l3 16"/></svg>Biblioteca</button>
+      <button class="item" data-ir="vocabulario"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M2 5h7a3 3 0 0 1 3 3v12a2 2 0 0 0-2-2H2zM22 5h-7a3 3 0 0 0-3 3v12a2 2 0 0 1 2-2h8z"/></svg>Vocabulário</button>
+      <button class="item" data-ir="personalizar"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M20.4 7.2 16 3l-2 2h-4L8 3 3.6 7.2 6 10v11h12V10z"/></svg>Personalizar</button>
+      <button class="item" data-ir="sobre"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M19 14c1.5-1.5 3-3.2 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.8 0-3 .5-4.5 2-1.5-1.5-2.7-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4 3 5.5l7 7z"/></svg>Sobre</button>
+      <button class="item" data-ir="planos"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg>Planos</button>
+      <button class="item" data-ir="ajustes"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>Ajustes</button>
+    </nav>
+    <div class="sep"></div>
+  </aside>
+
+  <div class="principal">
+    <header class="topo">
+      <div class="marca" style="padding:0"><i aria-hidden="true"></i><span>BABEL<b>PLAY</b></span></div>
+      <button class="btn" style="min-height:40px;padding:0 12px" data-ir="ajustes" aria-label="Ajustes">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9 7 7M17 17l2.1 2.1M4.9 19.1 7 17M17 7l2.1-2.1"/></svg>
+      </button>
+    </header>
+
+    <main class="conteudo" id="conteudo" tabindex="-1">
+
+      <!-- INÍCIO -->
+      <section class="tela ativa" data-tela="inicio" aria-labelledby="h-inicio">
+        <h1 id="h-inicio">O que você quer fazer?</h1>
+        <p class="sub">Continue de onde parou ou comece uma captura nova.</p>
+        <div class="acoes">
+          <div class="cartao escuro">
+            <h2>Escutar e traduzir</h2>
+            <p>Áudio do sistema ou do microfone, em tempo real.</p>
+            <button class="btn primario" data-ir="capturar">Iniciar captura →</button>
+          </div>
+          <div class="cartao">
+            <h2>Exercícios</h2>
+            <p>Shadowing, ditado, reescrita, roleplay.</p>
+            <button class="btn" data-ir="jogar">Abrir exercícios →</button>
+          </div>
+          <div class="cartao">
+            <h2>Vocabulário</h2>
+            <p><strong style="color:var(--ink)">3 palavras novas</strong> esperando na revisão.</p>
+            <button class="btn" data-ir="vocabulario">Abrir vocabulário →</button>
+          </div>
+        </div>
+
+        <div class="cartao">
+          <div class="progresso">
+            <div class="nivel">Nível 2<small>11 de 200 XP</small></div>
+            <div>
+              <div class="barra" role="progressbar" aria-label="Progresso para o nível 3" aria-valuenow="11" aria-valuemax="200"><span></span></div>
+              <p style="margin:8px 0 0;font-size:13px;color:var(--ink-muted)">Uma revisão hoje mantém a sua ofensiva viva. Próximo prêmio: Pack Brasil, em 189 XP.</p>
+            </div>
+            <div class="numeros">
+              <div>0<small>OFENSIVA</small></div>
+              <div>9<small>SEEDS</small></div>
+            </div>
+          </div>
+          <div class="revisar">
+            <span class="qtd" aria-hidden="true">3</span>
+            <p><strong>3 palavras prontas para revisar</strong> · rodada curta</p>
+            <button class="btn primario" data-ir="vocabulario">Revisar agora</button>
+            <button class="link" data-ir="jogar">Escolher outro jogo<span class="nota">8</span></button>
+          </div>
+        </div>
+
+        <div class="secao-titulo">
+          <h2>Sessões recentes</h2>
+          <button class="link" data-ir="biblioteca">Ver biblioteca completa →</button>
+        </div>
+        <div class="lista">
+          <button class="linha"><span><span class="tt">Reunião de alinhamento (Q3)</span><br><span class="ds">Hoje · áudio · exemplo</span></span><span class="etiqueta">Demonstração</span><span class="fim">→</span></button>
+        </div>
+      </section>
+
+      <!-- CAPTURAR -->
+      <section class="tela" data-tela="capturar" aria-labelledby="h-capturar">
+        <h1 id="h-capturar">Capturar<span class="nota">9</span></h1>
+        <p class="sub">Escolha a fonte do áudio. A transcrição e a tradução aparecem enquanto a pessoa fala.</p>
+        <div class="cartao">
+          <div class="modelo">
+            <div class="dado"><span data-modelo-mb></span> MB<small>download único do modelo de transcrição</small></div>
+            <p style="flex:1;min-width:220px;margin:0">Baixa na primeira captura, com barra de progresso. Depois fica no navegador e funciona offline. <span class="nota">5</span></p>
+          </div>
+          <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:18px">
+            <button class="btn primario">Capturar áudio do sistema</button>
+            <button class="btn">Usar o microfone</button>
+            <button class="btn">Importar link ou arquivo</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- JOGAR -->
+      <section class="tela" data-tela="jogar" aria-labelledby="h-jogar">
+        <h1 id="h-jogar">Jogar</h1>
+        <p class="sub">Rodadas curtas. Tudo o que você acerta aqui conta na revisão.</p>
+        <div class="cartao pratica" id="pratica">
+          <div class="resumo">Praticando <b>inglês</b> com <b>3 palavras</b> das suas gravações.<span class="nota">7</span></div>
+          <button class="btn" id="mudar-pratica" aria-expanded="false" aria-controls="escolhas">Mudar</button>
+          <div class="escolhas" id="escolhas">
+            <div><h3>Idioma</h3><div class="chips"><button class="chip" aria-pressed="true">Inglês · 3</button><button class="chip" aria-pressed="false">Espanhol · 0</button></div></div>
+            <div><h3>De onde vêm as palavras</h3><div class="chips"><button class="chip" aria-pressed="true">Minhas gravações · 3</button><button class="chip" aria-pressed="false">Trilha · 2.784</button></div></div>
+          </div>
+        </div>
+        <div class="secao-titulo">
+          <h2>Jogos</h2>
+          <label class="check"><input type="checkbox" checked> Prévia antes de começar<span class="nota">6</span></label>
+        </div>
+        <div class="lista">
+          <button class="linha"><span><span class="tt">Memória</span><br><span class="ds">Palavra e tradução</span></span><span class="etiqueta boa">3 prontas</span><span class="fim">→</span></button>
+          <button class="linha"><span><span class="tt">Frase embaralhada</span><br><span class="ds">Monte a frase na ordem</span></span><span class="etiqueta boa">3 prontas</span><span class="fim">→</span></button>
+          <button class="linha"><span><span class="tt">Karuta</span><br><span class="ds">Ouça e pegue a carta</span></span><span class="etiqueta">Precisa de 8 palavras</span><span class="fim">→</span></button>
+          <button class="linha"><span><span class="tt">Rali cronometrado</span><br><span class="ds">60 segundos, o máximo de acertos</span></span><span class="etiqueta">Precisa de 10 palavras</span><span class="fim">→</span></button>
+        </div>
+      </section>
+
+      <!-- VOCABULÁRIO -->
+      <section class="tela" data-tela="vocabulario" aria-labelledby="h-vocab">
+        <h1 id="h-vocab">Vocabulário</h1>
+        <p class="sub">Três palavras novas. Revise para ganhar a primeira conquista de verdade.</p>
+        <div class="lista" style="margin-bottom:18px">
+          <div class="linha" style="cursor:default"><span><span class="tt">alignment</span><br><span class="ds">alinhamento</span></span><span class="etiqueta">Nova</span></div>
+          <div class="linha" style="cursor:default"><span><span class="tt">deadline</span><br><span class="ds">prazo</span></span><span class="etiqueta">Nova</span></div>
+          <div class="linha" style="cursor:default"><span><span class="tt">roadmap</span><br><span class="ds">plano de ação</span></span><span class="etiqueta">Nova</span></div>
+        </div>
+        <button class="btn primario" id="concluir">Concluir a revisão</button>
+        <span class="nota">4</span>
+      </section>
+
+      <!-- DEMAIS TELAS (fora do escopo das correções) -->
+      <section class="tela" data-tela="biblioteca" aria-labelledby="h-bib"><h1 id="h-bib">Biblioteca</h1><p class="sub">Sem mudanças propostas nesta auditoria além dos tokens de cor.</p></section>
+      <section class="tela" data-tela="personalizar" aria-labelledby="h-pers"><h1 id="h-pers">Personalizar<span class="nota">9</span></h1><p class="sub">Ganha um <code>h1</code>. As partículas passam a ser um item equipável, desligado no tema babel.</p></section>
+      <section class="tela" data-tela="sobre" aria-labelledby="h-sobre"><h1 id="h-sobre">Sobre</h1><p class="sub">Links de Termos e Privacidade passam a ter 44 px de altura.</p><button class="link">Política de privacidade</button> <button class="link">Termos de uso</button></section>
+      <section class="tela" data-tela="planos" aria-labelledby="h-planos"><h1 id="h-planos">Planos</h1><p class="sub">Sem mudanças propostas nesta auditoria além dos tokens de cor.</p></section>
+      <section class="tela" data-tela="ajustes" aria-labelledby="h-ajustes">
+        <h1 id="h-ajustes">Ajustes</h1>
+        <p class="sub">No celular, Ajustes agora está em "Mais" e no ícone do topo.</p>
+        <button class="btn" id="rever-onb">Rever a apresentação</button>
+      </section>
+    </main>
+  </div>
+
+  <!-- iChat -->
+  <div class="aviso" id="aviso" role="status" aria-live="polite"></div>
+  <button class="fab" id="fab" aria-label="Abrir o iChat"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 3l1.9 5.8L20 11l-6.1 2.2L12 19l-1.9-5.8L4 11l6.1-2.2z"/></svg><span>iChat</span></button>
+
+  <!-- Barra inferior (celular) -->
+  <nav class="barra-inf" aria-label="Navegação principal" id="nav-inf">
+    <button data-ir="inicio" aria-current="page"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg>Início</button>
+    <button data-ir="capturar"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0M12 19v3"/></svg>Capturar</button>
+    <button data-ir="jogar"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 11h4M8 9v4M15 12h.01M18 10h.01"/><rect x="2" y="6" width="20" height="12" rx="4"/></svg>Jogar</button>
+    <button data-ir="vocabulario"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M2 5h7a3 3 0 0 1 3 3v12a2 2 0 0 0-2-2H2zM22 5h-7a3 3 0 0 0-3 3v12a2 2 0 0 1 2-2h8z"/></svg>Vocabulário</button>
+    <button id="mais" aria-expanded="false" aria-controls="folha"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="5" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="19" cy="12" r="1.5"/></svg>Mais<span class="nota">3</span></button>
+  </nav>
+  <div class="folha" id="folha" role="region" aria-label="Mais destinos">
+    <h2>Mais</h2>
+    <div class="lista">
+      <button class="linha" data-ir="biblioteca"><span class="tt">Biblioteca</span><span class="fim">→</span></button>
+      <button class="linha" data-ir="personalizar"><span class="tt">Personalizar</span><span class="fim">→</span></button>
+      <button class="linha" data-ir="planos"><span class="tt">Planos</span><span class="fim">→</span></button>
+      <button class="linha" data-ir="sobre"><span class="tt">Sobre</span><span class="fim">→</span></button>
+      <button class="linha" data-ir="ajustes"><span class="tt">Ajustes</span><span class="fim">→</span></button>
+    </div>
+  </div>
+
+  <!-- Onboarding, etapa 6 -->
+  <div class="onb" id="onb" role="dialog" aria-modal="true" aria-labelledby="h-onb">
+    <div class="caixa">
+      <div class="passos" aria-label="Etapa 6 de 6"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><span style="margin-left:8px">6 de 6</span></div>
+      <h1 id="h-onb" style="font-size:28px;font-weight:900">Como você quer rodar a IA?</h1>
+      <p class="sub" style="margin-top:6px">Dá para mudar depois em Ajustes.</p>
+      <button class="opcao" data-fechar-onb><b>Rodar no seu aparelho</b><span>Sem chave e sem custo, funciona offline. Baixa <strong><span data-modelo-mb></span> MB</strong> uma vez, na primeira captura, com barra de progresso.</span><span class="nota">5</span></button>
+      <button class="opcao" data-fechar-onb><b>Usar a sua chave (nuvem)</b><span>OpenAI, Groq, OpenRouter… Sem download. A chave fica cifrada no servidor e nunca volta ao navegador.</span></button>
+      <p style="margin-top:18px"><button class="link" data-fechar-onb>Voltar</button></p>
+    </div>
+  </div>
+
+  <!-- Conquista -->
+  <dialog id="conquista" aria-labelledby="h-conq">
+    <form method="dialog" class="dlg">
+      <button class="fechar" value="fechar" aria-label="Fechar"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
+      <div class="emoji" aria-hidden="true">🌱</div>
+      <h2 id="h-conq">Primeira revisão</h2>
+      <p>Você revisou as suas 3 primeiras palavras.</p>
+      <div class="ganhos"><span class="etiqueta boa">+25 Seeds</span><span class="etiqueta boa">+30 XP</span></div>
+      <button class="btn primario" value="ok" autofocus>Continuar</button>
+    </form>
+  </dialog>
+</div>
+</div>
+
+<script>
+  // Uma fonte de verdade para o tamanho do modelo (P1). No app: derivar do modelo escolhido.
+  const MODELO_MB = 880
+  document.querySelectorAll('[data-modelo-mb]').forEach((el) => { el.textContent = MODELO_MB })
+
+  const NOMES = { inicio: 'Início', capturar: 'Capturar', jogar: 'Jogar', biblioteca: 'Biblioteca', vocabulario: 'Vocabulário', personalizar: 'Personalizar', sobre: 'Sobre', planos: 'Planos', ajustes: 'Ajustes' }
+  const DO_MAIS = new Set(['biblioteca', 'personalizar', 'planos', 'sobre', 'ajustes'])
+  const avisadas = new Set(['inicio'])
+  const aviso = document.getElementById('aviso')
+  const folha = document.getElementById('folha')
+  const mais = document.getElementById('mais')
+  let timerAviso
+
+  function abrirFolha(abrir) {
+    folha.classList.toggle('aberta', abrir)
+    mais.setAttribute('aria-expanded', String(abrir))
+    if (abrir) folha.querySelector('button').focus()
+  }
+
+  function ir(tela) {
+    document.querySelectorAll('.tela').forEach((s) => s.classList.toggle('ativa', s.dataset.tela === tela))
+    document.querySelectorAll('#nav-inf [data-ir]').forEach((b) => { b.dataset.ir === tela ? b.setAttribute('aria-current', 'page') : b.removeAttribute('aria-current') })
+    DO_MAIS.has(tela) ? mais.setAttribute('aria-current', 'page') : mais.removeAttribute('aria-current')
+    document.querySelectorAll('#nav-rail [data-ir]').forEach((b) => { b.dataset.ir === tela ? b.setAttribute('aria-current', 'page') : b.removeAttribute('aria-current') })
+    abrirFolha(false)
+    const main = document.getElementById('conteudo')
+    main.scrollTop = 0
+    main.focus({ preventScroll: true })
+    // Aviso do iChat: nome da tela, uma vez por tela (P1).
+    if (!avisadas.has(tela)) {
+      avisadas.add(tela)
+      aviso.innerHTML = 'iChat acompanha a tela <strong></strong>'
+      aviso.querySelector('strong').textContent = NOMES[tela]
+      aviso.classList.add('visivel')
+      clearTimeout(timerAviso)
+      timerAviso = setTimeout(() => aviso.classList.remove('visivel'), 2600)
+    }
+  }
+
+  document.addEventListener('click', (e) => {
+    const alvo = e.target.closest('[data-ir]')
+    if (alvo) { ir(alvo.dataset.ir); return }
+    if (e.target.closest('#mais')) { abrirFolha(!folha.classList.contains('aberta')); return }
+    if (e.target.closest('[data-fechar-onb]')) { document.getElementById('onb').classList.remove('aberto'); document.getElementById('rever-onb').focus() }
+  })
+  document.addEventListener('keydown', (e) => {
+    if (e.key !== 'Escape') return
+    if (folha.classList.contains('aberta')) { abrirFolha(false); mais.focus() }
+    const onb = document.getElementById('onb')
+    if (onb.classList.contains('aberto')) { onb.classList.remove('aberto'); document.getElementById('rever-onb').focus() }
+  })
+
+  document.getElementById('mudar-pratica').addEventListener('click', (e) => {
+    const p = document.getElementById('pratica')
+    const aberta = p.classList.toggle('aberta')
+    e.currentTarget.setAttribute('aria-expanded', String(aberta))
+    e.currentTarget.textContent = aberta ? 'Pronto' : 'Mudar'
+  })
+  document.querySelectorAll('.chips').forEach((grupo) => grupo.addEventListener('click', (e) => {
+    const c = e.target.closest('.chip'); if (!c) return
+    grupo.querySelectorAll('.chip').forEach((x) => x.setAttribute('aria-pressed', String(x === c)))
+  }))
+
+  // Conquista só depois de uma ação real (P2), em <dialog> nativo (P1).
+  document.getElementById('concluir').addEventListener('click', () => document.getElementById('conquista').showModal())
+  document.getElementById('rever-onb').addEventListener('click', () => {
+    const onb = document.getElementById('onb'); onb.classList.add('aberto'); onb.querySelector('.opcao').focus()
+  })
+
+  const raiz = document.documentElement
+  document.getElementById('t-anotar').addEventListener('change', (e) => document.body.classList.toggle('anotar', e.target.checked))
+  document.getElementById('t-celular').addEventListener('change', (e) => document.body.classList.toggle('celular', e.target.checked))
+  const escuro = document.getElementById('t-escuro')
+  escuro.checked = matchMedia('(prefers-color-scheme: dark)').matches
+  escuro.addEventListener('change', (e) => raiz.setAttribute('data-theme', e.target.checked ? 'dark' : 'light'))
+</script>
+</body>
+</html>

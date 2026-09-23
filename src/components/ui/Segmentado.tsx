@@ -89,15 +89,16 @@ export default function Segmentado({
         const ativo = valor.includes(o.id);
         const bloqueada = !!o.motivoBloqueio;
 
-        const estilo = variante === 'pilula'
-          ? `kpi-pill ${ativo ? 'active' : ''} ${bloqueada ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer'}`
-          : `px-4 py-2 rounded-xl text-xs font-bold border transition-all flex items-center gap-1.5 shrink-0 ${
-            bloqueada
-              ? 'opacity-40 cursor-not-allowed bg-surface text-ink-muted border-border-subtle'
-              : ativo
-                ? `cursor-pointer ${ATIVO_CHIP[o.tom ?? 'accent']}`
-                : 'cursor-pointer bg-surface hover:bg-surface-hover text-ink-muted border-border-subtle'
-          }`;
+        const estilo =
+          variante === 'pilula'
+            ? `kpi-pill ${ativo ? 'active' : ''} ${bloqueada ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer'}`
+            : `px-4 py-2 rounded-xl text-xs font-bold border transition-all flex items-center gap-1.5 shrink-0 ${
+                bloqueada
+                  ? 'opacity-40 cursor-not-allowed bg-surface text-ink-muted border-border-subtle'
+                  : ativo
+                    ? `cursor-pointer ${ATIVO_CHIP[o.tom ?? 'accent']}`
+                    : 'cursor-pointer bg-surface hover:bg-surface-hover text-ink-muted border-border-subtle'
+              }`;
 
         return (
           <button
@@ -106,9 +107,7 @@ export default function Segmentado({
             disabled={bloqueada}
             onClick={() => aoTrocar(o.id)}
             // Em multi-seleção o estado é `aria-pressed`; em exclusivo é `aria-checked` num radio.
-            {...(multiplo
-              ? { 'aria-pressed': ativo }
-              : { role: 'radio' as const, 'aria-checked': ativo })}
+            {...(multiplo ? { 'aria-pressed': ativo } : { role: 'radio' as const, 'aria-checked': ativo })}
             title={o.motivoBloqueio ?? o.dica}
             className={`${estilo} focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent`}
           >
@@ -118,9 +117,7 @@ export default function Segmentado({
                 herda o tom apagado do botão não selecionado, e a opacidade compunha por cima,
                 derrubando o par de 5,57:1 para 3,23:1 no tema vercel escuro. Medido em axe
                 color-contrast, nas rotas desktop__jogar e mobile__jogar. */}
-            {o.contagem !== undefined && (
-              <span className="tabular-nums">{o.contagem}</span>
-            )}
+            {o.contagem !== undefined && <span className="tabular-nums">{o.contagem}</span>}
           </button>
         );
       })}

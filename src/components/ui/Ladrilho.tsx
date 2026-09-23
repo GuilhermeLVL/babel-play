@@ -38,14 +38,7 @@ const COR_DO_VALOR = {
   error: 'text-error-ink',
 } as const;
 
-export default function Ladrilho({
-  valor,
-  rotulo,
-  nota,
-  tom = 'ink',
-  icone,
-  className = '',
-}: LadrilhoProps) {
+export default function Ladrilho({ valor, rotulo, nota, tom = 'ink', icone, className = '' }: LadrilhoProps) {
   return (
     <div className={`card-panel bg-surface p-4 ${className}`}>
       {icone && <div className="text-ink-muted mb-2">{icone}</div>}
@@ -55,9 +48,7 @@ export default function Ladrilho({
            dado chegar. `aria-hidden` porque "carregando" é dito pelo `aria-busy` do contêiner. */
         <div className="h-8 w-16 rounded-lg bg-surface-hover animate-pulse" aria-hidden />
       ) : (
-        <div className={`font-display font-black text-2xl leading-none tabular-nums ${COR_DO_VALOR[tom]}`}>
-          {valor}
-        </div>
+        <div className={`font-display font-black text-2xl leading-none tabular-nums ${COR_DO_VALOR[tom]}`}>{valor}</div>
       )}
 
       <div className="text-[12px] text-ink-muted mt-1.5 leading-snug">{rotulo}</div>

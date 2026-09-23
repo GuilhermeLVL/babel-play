@@ -34,14 +34,7 @@ interface VazioProps {
   className?: string;
 }
 
-export default function Vazio({
-  icone,
-  titulo,
-  explicacao,
-  acao,
-  acaoSecundaria,
-  className = '',
-}: VazioProps) {
+export default function Vazio({ icone, titulo, explicacao, acao, acaoSecundaria, className = '' }: VazioProps) {
   /* As classes são as do vazio do Hub, ao pixel: `border` (1px) SOBRESCREVE o 2px que `.card-panel`
      define em `--border-width-card`, e é essa borda fina tracejada que distingue "não há nada aqui"
      de um card comum. Trocar por `card-panel border-dashed` engrossaria a moldura em todo vazio. */
@@ -50,16 +43,17 @@ export default function Vazio({
       className={`card-panel p-10 bg-surface border border-dashed border-border-subtle flex flex-col items-center text-center ${className}`}
     >
       {icone && (
-        <div className="w-14 h-14 rounded-full bg-canvas border border-border-subtle flex items-center justify-center mb-4 text-ink-faint" aria-hidden>
+        <div
+          className="w-14 h-14 rounded-full bg-canvas border border-border-subtle flex items-center justify-center mb-4 text-ink-faint"
+          aria-hidden
+        >
           {icone}
         </div>
       )}
 
       <h3 className="font-display font-extrabold text-base text-ink">{titulo}</h3>
 
-      {explicacao && (
-        <p className="text-[12.5px] text-ink-muted mt-2 max-w-md">{explicacao}</p>
-      )}
+      {explicacao && <p className="text-[12.5px] text-ink-muted mt-2 max-w-md">{explicacao}</p>}
 
       {(acao || acaoSecundaria) && (
         <div className="flex flex-wrap items-center justify-center gap-2 mt-5">

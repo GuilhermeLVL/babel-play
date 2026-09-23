@@ -56,18 +56,14 @@ export default function Abas({
     if (!passo && e.key !== 'Home' && e.key !== 'End') return;
     e.preventDefault();
     const destino =
-      e.key === 'Home' ? 0
-        : e.key === 'End' ? itens.length - 1
-          : (indice + passo + itens.length) % itens.length;
+      e.key === 'Home' ? 0 : e.key === 'End' ? itens.length - 1 : (indice + passo + itens.length) % itens.length;
     aoTrocar(itens[destino].id);
     // O foco tem de acompanhar a seleção, senão a próxima seta parte do lugar errado.
     const alvo = e.currentTarget.parentElement?.children[destino] as HTMLElement | undefined;
     alvo?.focus();
   }
 
-  const contorno = variante === 'sublinhado'
-    ? 'flex gap-2 border-b border-border-subtle'
-    : 'flex flex-wrap gap-1.5';
+  const contorno = variante === 'sublinhado' ? 'flex gap-2 border-b border-border-subtle' : 'flex flex-wrap gap-1.5';
 
   return (
     <div role="tablist" aria-label={rotuloDoGrupo} className={`${contorno} ${className}`}>
@@ -76,11 +72,12 @@ export default function Abas({
 
         /* As classes são as MESMAS que Metrics.tsx já usava — este primitivo nasce sem mudar um
            pixel, para que a adoção possa ser conferida por comparação direta. */
-        const estilo = variante === 'sublinhado'
-          ? `pb-3 px-4 text-[13px] font-bold border-b-2 transition-colors flex items-center gap-2 cursor-pointer ${
-            selecionado ? 'border-accent text-ink' : 'border-transparent text-ink-muted hover:text-ink'
-          }`
-          : `kpi-pill ${selecionado ? 'active' : ''}`;
+        const estilo =
+          variante === 'sublinhado'
+            ? `pb-3 px-4 text-[13px] font-bold border-b-2 transition-colors flex items-center gap-2 cursor-pointer ${
+                selecionado ? 'border-accent text-ink' : 'border-transparent text-ink-muted hover:text-ink'
+              }`
+            : `kpi-pill ${selecionado ? 'active' : ''}`;
 
         return (
           <button
@@ -101,9 +98,7 @@ export default function Abas({
                 `--surface` cai de 5,57:1 para 3,23:1, abaixo dos 4,5:1 exigidos. Medido em axe
                 color-contrast. A hierarquia visual vem do tamanho e da posição, não de apagar o
                 texto duas vezes. */}
-            {item.contagem !== undefined && (
-              <span className="tabular-nums">{item.contagem}</span>
-            )}
+            {item.contagem !== undefined && <span className="tabular-nums">{item.contagem}</span>}
           </button>
         );
       })}

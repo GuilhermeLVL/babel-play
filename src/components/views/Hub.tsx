@@ -7,6 +7,7 @@ import {
   FileText,
   Gamepad2,
   Headphones,
+  History,
   Mic,
   Rocket,
   Sparkles,
@@ -27,7 +28,7 @@ import AvisoDeConta from '../conta/AvisoDeConta';
 import EditablePanel from '../EditablePanel';
 import { ehBaixaConfianca } from '../Honestidade';
 import FaixaDeProgresso from '../progress/FaixaDeProgresso';
-import { Vazio } from '../ui';
+import { CabecalhoDeTela, IconeEmBloco, Tela, TituloDeSecao, Vazio } from '../ui';
 
 // Metas de ritmo DECLARADAS por nível (benchmark, não medição). O valor MEDIDO
 // vem sempre de metrics.wpm; aqui só guardamos o alvo com que comparar.
@@ -144,85 +145,77 @@ export default function Hub({ onChangeView, recordings, ageProfile = 'pro', prog
   const vocabAdherence = levelTotal > 0 ? Math.round((atOrAbove / levelTotal) * 100) : null;
 
   return (
-    <div className="flex-1 overflow-y-auto w-full bg-canvas">
-      <div className="p-6 md:p-10 max-w-6xl mx-auto w-full">
-        {/* Cabeçalho — a linguagem muda por perfil; a estrutura, não.
-            NO PERFIL `pro` FICA SÓ O TÍTULO (referência de design): o rótulo "Seu estudo" e a
-            frase de apoio repetiam, em duas linhas fixas, o que os três cartões logo abaixo já
-            dizem. Kids e sênior MANTÊM os dois: ali a orientação antes da grade é o que guia
-            quem está começando — é a mesma razão de existir dos perfis. */}
-        <header className="mb-6">
-          {ageProfile !== 'pro' && (
-            <span className="label-mono text-accent flex items-center gap-1.5">
-              {ageProfile === 'kids' ? (
-                <Gamepad2 className="w-3.5 h-3.5" aria-hidden />
-              ) : (
-                <Eye className="w-3.5 h-3.5" aria-hidden />
-              )}
-              <span>{ageProfile === 'kids' ? t('Central do jogador') : t('Aprendizado fácil')}</span>
-            </span>
-          )}
-          <h1 className="font-display font-black text-3xl md:text-4xl text-ink tracking-tight mt-1 mb-1 text-balance">
-            {ageProfile === 'kids'
-              ? t('Pronto para os desafios?')
-              : ageProfile === 'senior'
-                ? t('Bem-vindo ao Babel Play')
-                : t('O que você quer fazer?')}
-          </h1>
-          {ageProfile !== 'pro' && (
-            <p className="text-ink-muted text-sm max-w-[62ch]">
-              {ageProfile === 'kids'
-                ? t('Três frentes para evoluir: gravar, praticar e cultivar palavras.')
-                : t('Escolha um dos três passos abaixo. Cada um leva a uma tela só, com o que precisa.')}
-            </p>
-          )}
-        </header>
+    <Tela largura="larga">
+      {/* Cabeçalho — a linguagem muda por perfil; a estrutura, não.
+          NO PERFIL `pro` FICA SÓ O TÍTULO (referência de design): o rótulo "Seu estudo" e a frase de
+          apoio repetiam, em duas linhas fixas, o que os três cartões logo abaixo já dizem. Kids e
+          sênior MANTÊM os dois: ali a orientação antes da grade é o que guia quem está começando. */}
+      <CabecalhoDeTela
+        icone={ageProfile === 'kids' ? Gamepad2 : Eye}
+        sobrancelha={
+          ageProfile === 'pro' ? undefined : ageProfile === 'kids' ? t('Central do jogador') : t('Aprendizado fácil')
+        }
+        titulo={
+          ageProfile === 'kids'
+            ? t('Pronto para os desafios?')
+            : ageProfile === 'senior'
+              ? t('Bem-vindo ao Babel Play')
+              : t('O que você quer fazer?')
+        }
+        sub={
+          ageProfile === 'pro'
+            ? undefined
+            : ageProfile === 'kids'
+              ? t('Três frentes para evoluir: gravar, praticar e cultivar palavras.')
+              : t('Escolha um dos três passos abaixo. Cada um leva a uma tela só, com o que precisa.')
+        }
+      />
 
-        {/* Main Actions Panel — movido para o topo (como no design novo) */}
-        <EditablePanel
-          viewKey="hub"
-          panelKey="quickActions"
-          title={t('Ações Rápidas')}
-          canResizeWidth={false}
-          canResizeHeight={false}
-          defaultHeight={0}
-        >
-          <section className="mb-8">
-            {/* TRÊS PILARES — a MESMA estrutura nos três perfis.
+      {/* Main Actions Panel — movido para o topo (como no design novo) */}
+      <EditablePanel
+        viewKey="hub"
+        panelKey="quickActions"
+        title={t('Ações Rápidas')}
+        canResizeWidth={false}
+        canResizeHeight={false}
+        defaultHeight={0}
+      >
+        <section className="mb-8">
+          {/* TRÊS PILARES — a MESMA estrutura nos três perfis.
             Antes, cada perfil renderizava uma árvore JSX completamente diferente (livro de missões
             × guia de passos × grid executivo). Trocar de perfil parecia trocar de aplicativo, e as
             três versões envelheciam separadamente, foi assim que os emojis e os números fixos
             sobreviveram só em duas delas. Aqui a estrutura é uma; o que varia é a LINGUAGEM, a
             densidade e se as recompensas aparecem. */}
-            <div className={ageProfile === 'senior' ? 'space-y-4' : 'grid grid-cols-1 md:grid-cols-3 gap-5'}>
-              {PILLARS.map((pillar, idx) => (
-                <PillarCard
-                  key={pillar.id}
-                  pillar={pillar}
-                  index={idx}
-                  ageProfile={ageProfile}
-                  mission={progress.missions.find((m) => m.id === pillar.id)}
-                  progressAvailable={progress.available}
-                  onChangeView={onChangeView}
-                />
-              ))}
-            </div>
-          </section>
-        </EditablePanel>
+          <div className={ageProfile === 'senior' ? 'space-y-4' : 'grid grid-cols-1 md:grid-cols-3 gap-5'}>
+            {PILLARS.map((pillar, idx) => (
+              <PillarCard
+                key={pillar.id}
+                pillar={pillar}
+                index={idx}
+                ageProfile={ageProfile}
+                mission={progress.missions.find((m) => m.id === pillar.id)}
+                progressAvailable={progress.available}
+                onChangeView={onChangeView}
+              />
+            ))}
+          </div>
+        </section>
+      </EditablePanel>
 
-        {/* XP e revisão vencida vêm DEPOIS dos três passos (pedido do dono, 2026-08-27):
+      {/* XP e revisão vencida vêm DEPOIS dos três passos (pedido do dono, 2026-08-27):
           quem chega novo lê primeiro O QUE FAZER; números e pendências são contexto, não porta.
           FUNDIDAS NUMA PEÇA SÓ (referência de design): quando há revisão pendente, esta faixa
           perde a borda/canto de baixo e a faixa de revisão logo abaixo perde os de cima — viram
           uma única barra de status com uma linha divisória entre as duas metades, em vez de dois
           cartões soltos com espaço entre eles. */}
-        <FaixaDeProgresso
-          progress={progress}
-          ageProfile={ageProfile}
-          className={metrics && metrics.dueToday > 0 ? 'mb-0 rounded-b-none border-b-0' : 'mb-8'}
-        />
+      <FaixaDeProgresso
+        progress={progress}
+        ageProfile={ageProfile}
+        className={metrics && metrics.dueToday > 0 ? 'mb-0 rounded-b-none border-b-0' : 'mb-8'}
+      />
 
-        {/* ── AS QUE ESTÃO PRESTES A ESCAPAR ────────────────────────────────────────────────────
+      {/* ── AS QUE ESTÃO PRESTES A ESCAPAR ────────────────────────────────────────────────────
           O Hub abria com três cards equivalentes e a revisão vencida aparecia como uma linha de
           texto num deles, lá embaixo, competindo com "Seu Vocabulário" e "Métricas". Mas revisão
           vencida é a única coisa nesta tela que PIORA com o tempo: cada dia que passa derruba a
@@ -234,30 +227,30 @@ export default function Hub({ onChangeView, recordings, ageProfile = 'pro', prog
 
           O TEMPO É MEDIDO ou não é dito: `estimativaDeMinutos` cala abaixo de 20 respostas
           cronometradas e a linha vira "rodada curta". */}
-        {/* ENQUANTO AS MÉTRICAS NÃO CHEGARAM, O ESPAÇO FICA RESERVADO.
+      {/* ENQUANTO AS MÉTRICAS NÃO CHEGARAM, O ESPAÇO FICA RESERVADO.
           O card entra entre a faixa de progresso e TODO o resto da tela, e nascia com a resposta
           da rede, empurrando de uma vez os três pilares, o relatório e as sessões recentes (é a
           maior parcela do CLS 0,311 medido no Início, achado F0-02). O esqueleto repete as mesmas
           classes de caixa do card real para a altura sair das mesmas regras nos dois tamanhos de
           tela; os blocos internos declaram a altura do conteúdo que vai ocupá-los. */}
-        {metrics === null && (
-          <div
-            className="card-panel bg-surface border-accent/40 p-5 md:p-6 mb-8 flex flex-col sm:flex-row sm:items-center gap-5 animate-pulse"
-            aria-hidden
-          >
-            <div className="w-24 h-24 rounded-full bg-surface-hover shrink-0 mx-auto sm:mx-0" />
-            <div className="min-w-0 flex-1">
-              {/* 56 + 6 + 40 + 16 + 44 = os 319px que o card real mede a 412px de largura (medido no
+      {metrics === null && (
+        <div
+          className="card-panel bg-surface border-accent/40 p-5 md:p-6 mb-8 flex flex-col sm:flex-row sm:items-center gap-5 animate-pulse"
+          aria-hidden
+        >
+          <div className="w-24 h-24 rounded-full bg-surface-hover shrink-0 mx-auto sm:mx-0" />
+          <div className="min-w-0 flex-1">
+            {/* 56 + 6 + 40 + 16 + 44 = os 319px que o card real mede a 412px de largura (medido no
                 build de produção, viewport do Lighthouse). O título ocupa duas linhas onde a
                 coluna é estreita e uma a partir de `sm`. */}
-              <div className="h-14 sm:h-7 rounded-lg bg-surface-hover" />
-              <div className="h-10 rounded-lg bg-surface-hover mt-1.5" />
-              <div className="h-11 w-56 rounded-xl bg-surface-hover mt-4" />
-            </div>
+            <div className="h-14 sm:h-7 rounded-lg bg-surface-hover" />
+            <div className="h-10 rounded-lg bg-surface-hover mt-1.5" />
+            <div className="h-11 w-56 rounded-xl bg-surface-hover mt-4" />
           </div>
-        )}
+        </div>
+      )}
 
-        {/* Faixa compacta (uma linha, como a referência de design): o círculo de contagem, o texto
+      {/* Faixa compacta (uma linha, como a referência de design): o círculo de contagem, o texto
           e o botão dividem a MESMA linha em vez de empilhar num cartão grande.
           O QUE A PRIMEIRA VERSÃO DESTE BLOCO PERDEU, e está de volta abaixo: a frase que diz por
           que revisar AGORA importa ("acertar empurra a próxima revisão para semanas à frente").
@@ -266,608 +259,600 @@ export default function Hub({ onChangeView, recordings, ageProfile = 'pro', prog
           continuavam. Agora ela volta como segunda linha em kids e sênior, que é onde a
           explicação faz o bloco funcionar; no perfil Produtividade a linha única fica, porque foi
           o que o design pediu e quem escolheu densidade alta lê o cabeçalho de relance. */}
-        {metrics && metrics.dueToday > 0 && (
-          <section className="card-panel bg-surface border-accent/40 rounded-t-none px-5 py-4 mb-8 flex flex-col sm:flex-row sm:items-center gap-4">
-            <div
-              className="w-11 h-11 rounded-full bg-accent-soft flex items-center justify-center shrink-0 mx-auto sm:mx-0"
-              aria-hidden
-            >
-              <span className="font-display font-black text-base text-accent-ink leading-none tabular-nums">
-                {agora}
+      {metrics && metrics.dueToday > 0 && (
+        <section className="card-panel bg-surface border-accent/40 rounded-t-none px-5 py-4 mb-8 flex flex-col sm:flex-row sm:items-center gap-4">
+          <div
+            className="w-11 h-11 rounded-full bg-accent-soft flex items-center justify-center shrink-0 mx-auto sm:mx-0"
+            aria-hidden
+          >
+            <span className="font-display font-black text-base text-accent-ink leading-none tabular-nums">{agora}</span>
+          </div>
+
+          <div className="min-w-0 flex-1 text-center sm:text-start">
+            <h2 className="font-display font-bold text-sm text-ink">
+              {ageProfile === 'kids'
+                ? t('Você está quase esquecendo estas {n}', { n: agora })
+                : ageProfile === 'senior'
+                  ? tp(agora, '{n} palavra está na hora de rever', '{n} palavras estão na hora de rever')
+                  : tp(agora, '{n} palavra pronta para revisar', '{n} palavras prontas para revisar')}
+              <span className="font-normal text-ink-muted">
+                {' · '}
+                {rotuloDeDuracao(estimativaDeMinutos(agora, temposMedidos))}
+                {metrics.dueToday > agora && <> {t('· {n} no total', { n: numero(metrics.dueToday) })}</>}
               </span>
-            </div>
-
-            <div className="min-w-0 flex-1 text-center sm:text-start">
-              <h2 className="font-display font-bold text-sm text-ink">
+            </h2>
+            {ageProfile !== 'pro' && (
+              <p className="text-[12px] text-ink-muted mt-0.5">
                 {ageProfile === 'kids'
-                  ? t('Você está quase esquecendo estas {n}', { n: agora })
-                  : ageProfile === 'senior'
-                    ? tp(agora, '{n} palavra está na hora de rever', '{n} palavras estão na hora de rever')
-                    : tp(agora, '{n} palavra pronta para revisar', '{n} palavras prontas para revisar')}
-                <span className="font-normal text-ink-muted">
-                  {' · '}
-                  {rotuloDeDuracao(estimativaDeMinutos(agora, temposMedidos))}
-                  {metrics.dueToday > agora && <> {t('· {n} no total', { n: numero(metrics.dueToday) })}</>}
-                </span>
-              </h2>
-              {ageProfile !== 'pro' && (
-                <p className="text-[12px] text-ink-muted mt-0.5">
-                  {ageProfile === 'kids'
-                    ? t('O que você acertar volta só daqui a semanas.')
-                    : t('Acertar agora empurra a próxima revisão para semanas à frente.')}
-                </p>
-              )}
-            </div>
+                  ? t('O que você acertar volta só daqui a semanas.')
+                  : t('Acertar agora empurra a próxima revisão para semanas à frente.')}
+              </p>
+            )}
+          </div>
 
-            <div className="flex flex-wrap items-center justify-center sm:justify-end gap-3 shrink-0">
-              <button onClick={() => ir('study')} className="btn-solid !py-2 !px-5 shrink-0">
-                {ageProfile === 'kids'
-                  ? t('Bora!')
-                  : ageProfile === 'senior'
-                    ? t('Começar a revisão')
-                    : t('Revisar agora')}
-              </button>
-              {/* Quem não quer revisar agora tem uma saída DECLARADA, em vez de precisar adivinhar
+          <div className="flex flex-wrap items-center justify-center sm:justify-end gap-3 shrink-0">
+            <button onClick={() => ir('study')} className="btn-solid !py-2 !px-5 shrink-0">
+              {ageProfile === 'kids'
+                ? t('Bora!')
+                : ageProfile === 'senior'
+                  ? t('Começar a revisão')
+                  : t('Revisar agora')}
+            </button>
+            {/* Quem não quer revisar agora tem uma saída DECLARADA, em vez de precisar adivinhar
                 que a mesma coisa também mora em Jogar. */}
-              <button
-                onClick={() => onChangeView('play')}
-                className="text-[12px] font-bold text-ink-muted hover:text-accent-ink underline decoration-dotted underline-offset-4 cursor-pointer shrink-0"
-              >
-                {t('escolher outro jogo')}
-              </button>
-            </div>
-          </section>
-        )}
+            <button
+              onClick={() => onChangeView('play')}
+              className="text-[12px] font-bold text-ink-muted hover:text-accent-ink underline decoration-dotted underline-offset-4 cursor-pointer shrink-0"
+            >
+              {t('escolher outro jogo')}
+            </button>
+          </div>
+        </section>
+      )}
 
-        {/* Estatísticas detalhadas — link discreto (como a referência de design), não mais um
+      {/* Estatísticas detalhadas — link discreto (como a referência de design), não mais um
           cartão do tamanho de uma ação primária; o conteúdo por trás do link é só nosso
           (o design não tem dashboard), então a expansão em página continua igual. */}
-        <button
-          onClick={() => setShowDetailedStats(!showDetailedStats)}
-          aria-expanded={showDetailedStats}
-          className="mb-8 inline-flex items-center gap-1.5 text-[12.5px] font-bold text-accent-ink hover:text-accent cursor-pointer"
-        >
-          <span>{t('Ver estatísticas detalhadas')}</span>
-          {showDetailedStats ? <ChevronUp className="w-3.5 h-3.5" /> : <ArrowRight className="w-3.5 h-3.5" />}
-        </button>
+      <button
+        onClick={() => setShowDetailedStats(!showDetailedStats)}
+        aria-expanded={showDetailedStats}
+        className="mb-8 inline-flex items-center gap-1.5 text-[12.5px] font-bold text-accent-ink hover:text-accent cursor-pointer"
+      >
+        <span>{t('Ver estatísticas detalhadas')}</span>
+        {showDetailedStats ? <ChevronUp className="w-3.5 h-3.5" /> : <ArrowRight className="w-3.5 h-3.5" />}
+      </button>
 
-        {/* DESCOBRIBILIDADE DO PLANO, segunda rodada (spec planos-visiveis): a linha discreta da
+      {/* DESCOBRIBILIDADE DO PLANO, segunda rodada (spec planos-visiveis): a linha discreta da
           auditoria anterior informava mas não tinha o peso de card que o dono pediu. O componente
           carrega TODAS as regras (só Grátis/anônimo, nunca na leve, dispensável, preço da
           matriz) — aqui só se diz onde ele fica. */}
-        {/* O AVISO POR MARCO DE USO (mudança porta-de-entrada). Vem ANTES do card de planos porque
+      {/* O AVISO POR MARCO DE USO (mudança porta-de-entrada). Vem ANTES do card de planos porque
           é mais urgente: um fala de guardar o que já existe, o outro de comprar mais. Só aparece
           sem conta, com motivo concreto, e some para sempre quando dispensado. */}
-        <AvisoDeConta metrics={metrics} onEntrar={() => onChangeView('login')} />
+      <AvisoDeConta metrics={metrics} onEntrar={() => onChangeView('login')} />
 
-        <CardDePlanos onVerPlanos={() => onChangeView('planos')} />
+      <CardDePlanos onVerPlanos={() => onChangeView('planos')} />
 
-        {/* Progress Dashboard & Metrics — só quando expandido */}
-        {showDetailedStats && (
-          <EditablePanel
-            viewKey="hub"
-            panelKey="statsDashboard"
-            title={t('Dashboard de Estatísticas')}
-            canResizeWidth={false}
-            canResizeHeight={false}
-            defaultHeight={0}
-          >
-            <section className="mb-8 animate-in slide-in-from-top-2 duration-300">
-              <h2 className="font-display font-extrabold text-lg text-ink mb-4">{t('Métricas do Perfil')}</h2>
+      {/* Progress Dashboard & Metrics — só quando expandido */}
+      {showDetailedStats && (
+        <EditablePanel
+          viewKey="hub"
+          panelKey="statsDashboard"
+          title={t('Dashboard de Estatísticas')}
+          canResizeWidth={false}
+          canResizeHeight={false}
+          defaultHeight={0}
+        >
+          <section className="mb-8 animate-in slide-in-from-top-2 duration-300">
+            <TituloDeSecao icone={TrendingUp} titulo={t('Métricas do Perfil')} />
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-                <button
-                  className="card-panel p-5 text-start hover:border-accent hover:shadow-card transition-all group"
-                  onClick={() => ir('metrics')}
-                >
-                  <span className="label-mono block mb-1 text-ink-muted group-hover:text-accent transition-colors">
-                    {t('Palavras Produzidas')}
-                  </span>
-                  <div className="font-display font-black text-2xl tracking-tight text-ink mb-1">
-                    {metrics ? fmtNum(metrics.wordsCaptured) : '-'}
-                  </div>
-                  <div className="text-[11.5px] font-semibold text-ink-muted flex items-center gap-1">
-                    <TrendingUp className="w-3.5 h-3.5" />{' '}
-                    {tp(metrics?.sessions ?? 0, '{n} sessão capturada', '{n} sessões capturadas')}
-                  </div>
-                </button>
-
-                <button
-                  className="card-panel p-5 text-start hover:border-accent hover:shadow-card transition-all group"
-                  onClick={() => ir('metrics')}
-                >
-                  <span className="label-mono block mb-1 text-ink-muted group-hover:text-accent transition-colors">
-                    {t('Vocabulário no Deck')}
-                  </span>
-                  <div className="font-display font-black text-2xl tracking-tight text-ink mb-1">
-                    {metrics ? fmtNum(metrics.deckSize) : '-'}
-                  </div>
-                  <div className="text-[11.5px] font-medium text-ink-muted">
-                    {t('{revisar} para revisar hoje • {novos} novos', {
-                      revisar: metrics?.dueToday ?? 0,
-                      novos: metrics?.newCards ?? 0,
-                    })}
-                  </div>
-                </button>
-
-                <div className="card-panel p-5 text-start relative overflow-hidden flex flex-col justify-between border-dashed border-accent-soft/60 hover:border-accent transition-colors bg-surface">
-                  <div>
-                    <div className="flex justify-between items-start">
-                      <span className="label-mono block mb-1 text-ink-muted">{t('Ritmo de Fala')}</span>
-                      <span className="text-[9px] bg-accent-soft text-accent-ink px-1.5 py-0.5 rounded font-mono font-bold uppercase">
-                        WPM
-                      </span>
-                    </div>
-                    {metrics && metrics.speakingMs > 0 ? (
-                      <>
-                        <div className="font-display font-bold text-sm text-ink mt-2 mb-1">
-                          {t('{n} palavras/min', { n: Math.round(metrics.wpm) })}
-                          {wpmLowConf ? ` ${t('(estimativa)')}` : ''}
-                        </div>
-                        <p className="text-[11px] leading-snug text-ink-muted">
-                          {t('Baseado em {n} min de fala capturada.', { n: (metrics.speakingMs / 60000).toFixed(1) })}
-                        </p>
-                      </>
-                    ) : (
-                      <>
-                        <div className="font-display font-bold text-sm text-ink mt-2 mb-1">
-                          {t('Sem medição recente')}
-                        </div>
-                        <p className="text-[11px] leading-snug text-ink-muted">
-                          {t('Grave ou faça Shadowing para medir seu ritmo de fala.')}
-                        </p>
-                      </>
-                    )}
-                  </div>
-                  <button
-                    onClick={() => ir('study')}
-                    className="mt-3 text-xs font-bold text-accent hover:text-accent-ink flex items-center gap-1 transition-colors group/btn self-start"
-                  >
-                    {t('Medir agora')}{' '}
-                    <ArrowRight className="w-3.5 h-3.5 transform group-hover/btn:translate-x-1 transition-transform" />
-                  </button>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+              <button
+                className="card-panel p-5 text-start hover:border-accent hover:shadow-card transition-all group"
+                onClick={() => ir('metrics')}
+              >
+                <span className="label-mono block mb-1 text-ink-muted group-hover:text-accent transition-colors">
+                  {t('Palavras Produzidas')}
+                </span>
+                <div className="font-display font-black text-2xl tracking-tight text-ink mb-1">
+                  {metrics ? fmtNum(metrics.wordsCaptured) : '-'}
                 </div>
+                <div className="text-[11.5px] font-semibold text-ink-muted flex items-center gap-1">
+                  <TrendingUp className="w-3.5 h-3.5" />{' '}
+                  {tp(metrics?.sessions ?? 0, '{n} sessão capturada', '{n} sessões capturadas')}
+                </div>
+              </button>
 
-                <div className="card-panel p-5 text-start group bg-surface">
-                  <span className="label-mono block mb-1 text-ink-muted">{t('Vícios de Linguagem')}</span>
-                  {/* A contagem de vícios (marcadores de hesitação) é REAL desde src/core/learning/fillers.ts
+              <button
+                className="card-panel p-5 text-start hover:border-accent hover:shadow-card transition-all group"
+                onClick={() => ir('metrics')}
+              >
+                <span className="label-mono block mb-1 text-ink-muted group-hover:text-accent transition-colors">
+                  {t('Vocabulário no Deck')}
+                </span>
+                <div className="font-display font-black text-2xl tracking-tight text-ink mb-1">
+                  {metrics ? fmtNum(metrics.deckSize) : '-'}
+                </div>
+                <div className="text-[11.5px] font-medium text-ink-muted">
+                  {t('{revisar} para revisar hoje • {novos} novos', {
+                    revisar: metrics?.dueToday ?? 0,
+                    novos: metrics?.newCards ?? 0,
+                  })}
+                </div>
+              </button>
+
+              <div className="card-panel p-5 text-start relative overflow-hidden flex flex-col justify-between border-dashed border-accent-soft/60 hover:border-accent transition-colors bg-surface">
+                <div>
+                  <div className="flex justify-between items-start">
+                    <span className="label-mono block mb-1 text-ink-muted">{t('Ritmo de Fala')}</span>
+                    <span className="text-[9px] bg-accent-soft text-accent-ink px-1.5 py-0.5 rounded font-mono font-bold uppercase">
+                      WPM
+                    </span>
+                  </div>
+                  {metrics && metrics.speakingMs > 0 ? (
+                    <>
+                      <div className="font-display font-bold text-sm text-ink mt-2 mb-1">
+                        {t('{n} palavras/min', { n: Math.round(metrics.wpm) })}
+                        {wpmLowConf ? ` ${t('(estimativa)')}` : ''}
+                      </div>
+                      <p className="text-[11px] leading-snug text-ink-muted">
+                        {t('Baseado em {n} min de fala capturada.', { n: (metrics.speakingMs / 60000).toFixed(1) })}
+                      </p>
+                    </>
+                  ) : (
+                    <>
+                      <div className="font-display font-bold text-sm text-ink mt-2 mb-1">
+                        {t('Sem medição recente')}
+                      </div>
+                      <p className="text-[11px] leading-snug text-ink-muted">
+                        {t('Grave ou faça Shadowing para medir seu ritmo de fala.')}
+                      </p>
+                    </>
+                  )}
+                </div>
+                <button
+                  onClick={() => ir('study')}
+                  className="mt-3 text-xs font-bold text-accent hover:text-accent-ink flex items-center gap-1 transition-colors group/btn self-start"
+                >
+                  {t('Medir agora')}{' '}
+                  <ArrowRight className="w-3.5 h-3.5 transform group-hover/btn:translate-x-1 transition-transform" />
+                </button>
+              </div>
+
+              <div className="card-panel p-5 text-start group bg-surface">
+                <span className="label-mono block mb-1 text-ink-muted">{t('Vícios de Linguagem')}</span>
+                {/* A contagem de vícios (marcadores de hesitação) é REAL desde src/core/learning/fillers.ts
                , não requer processamento de linguagem, é busca de token por idioma. Ela já aparece
                 por sessão na tela de Análise (aba "Desempenho & Fluência"). O que falta é só o
                 SOMATÓRIO entre todas as sessões: exigiria campo novo em AppMetrics (src/data/api.ts)
                 mais agregação no servidor, fora do escopo desta correção, por isso o card mostra
                 onde o número já existe em vez de fingir que a contagem em si está pendente. */}
-                  <div className="font-display font-bold text-sm text-ink mt-2 mb-1 flex items-center gap-2">
-                    {t('Por sessão')}
-                    <span className="kpi-pill opacity-60 cursor-default text-[11px]">{t('Sem agregado')}</span>
-                  </div>
-                  <div className="text-[11.5px] font-medium text-ink-muted leading-snug">
-                    {t(
-                      'Contagem real por sessão, na aba "Desempenho & Fluência" da tela de Análise. O somatório entre todas as sessões ainda não existe.',
-                    )}
-                  </div>
+                <div className="font-display font-bold text-sm text-ink mt-2 mb-1 flex items-center gap-2">
+                  {t('Por sessão')}
+                  <span className="kpi-pill opacity-60 cursor-default text-[11px]">{t('Sem agregado')}</span>
                 </div>
-              </div>
-
-              {/* Nível CEFR estimado a partir da distribuição real de níveis do deck */}
-              <div className="card-panel p-6 mb-8 bg-surface">
-                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
-                  <div>
-                    <h3 className="font-display font-extrabold text-[15px] text-ink">
-                      {t('Nível Estimado do Vocabulário (CEFR)')}
-                    </h3>
-                    <p className="text-[12px] text-ink-muted mt-1">
-                      {t(
-                        'Estimativa derivada da distribuição de níveis das palavras do seu deck. Não é uma avaliação oficial.',
-                      )}
-                    </p>
-                  </div>
-                  {topLevel && (
-                    <div className="flex items-center gap-2 bg-canvas border border-border-subtle rounded-xl px-3 py-1.5 self-start sm:self-auto">
-                      <span className="text-[10px] font-mono uppercase tracking-wider text-ink-muted">
-                        {t('Estimativa')}
-                      </span>
-                      <span className="text-sm font-extrabold text-accent">{topLevel}</span>
-                      {metrics && metrics.levelConfidence > 0 && (
-                        <span className="text-[10px] text-ink-muted">
-                          {t('· conf. {n}%', { n: Math.round(metrics.levelConfidence * 100) })}
-                        </span>
-                      )}
-                    </div>
+                <div className="text-[11.5px] font-medium text-ink-muted leading-snug">
+                  {t(
+                    'Contagem real por sessão, na aba "Desempenho & Fluência" da tela de Análise. O somatório entre todas as sessões ainda não existe.',
                   )}
                 </div>
+              </div>
+            </div>
 
-                {levelBars.length === 0 ? (
-                  <p className="text-[12px] text-ink-muted leading-snug">
+            {/* Nível CEFR estimado a partir da distribuição real de níveis do deck */}
+            <div className="card-panel p-6 mb-8 bg-surface">
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+                <div>
+                  <h3 className="font-display font-extrabold text-[15px] text-ink">
+                    {t('Nível Estimado do Vocabulário (CEFR)')}
+                  </h3>
+                  <p className="text-[12px] text-ink-muted mt-1">
                     {t(
-                      'Sem palavras suficientes para estimar o nível. Capture sessões e adicione palavras ao deck para gerar a estimativa.',
+                      'Estimativa derivada da distribuição de níveis das palavras do seu deck. Não é uma avaliação oficial.',
                     )}
                   </p>
-                ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    {levelBars.map((b) => (
-                      <div key={b.level}>
-                        <div className="flex justify-between items-center text-[12px] mb-2">
-                          <span className="font-bold text-ink-muted">{b.level}</span>
-                          <span className="font-extrabold text-accent">
-                            {tp(b.count, '{n} palavra', '{n} palavras')}
-                          </span>
-                        </div>
-                        <div className="w-full h-2 bg-canvas rounded-full overflow-hidden border border-border-subtle">
-                          <div
-                            className="h-full bg-accent transition-all duration-500 rounded-full"
-                            style={{ width: `${b.pct}%` }}
-                          ></div>
-                        </div>
-                        <span className="text-[11px] text-ink-muted mt-2 block leading-snug">
-                          {t('{n}% do vocabulário classificado neste nível.', { n: b.pct })}
-                        </span>
-                      </div>
-                    ))}
+                </div>
+                {topLevel && (
+                  <div className="flex items-center gap-2 bg-canvas border border-border-subtle rounded-xl px-3 py-1.5 self-start sm:self-auto">
+                    <span className="text-[10px] font-mono uppercase tracking-wider text-ink-muted">
+                      {t('Estimativa')}
+                    </span>
+                    <span className="text-sm font-extrabold text-accent">{topLevel}</span>
+                    {metrics && metrics.levelConfidence > 0 && (
+                      <span className="text-[10px] text-ink-muted">
+                        {t('· conf. {n}%', { n: Math.round(metrics.levelConfidence * 100) })}
+                      </span>
+                    )}
                   </div>
                 )}
               </div>
 
-              {/* Nível-alvo declarado × valor medido (o seletor persiste em ui.cefrGoal) */}
-              <div className="card-panel p-6 mb-8 bg-surface">
-                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
-                  <div>
-                    <h3 className="font-display font-extrabold text-[15px] text-ink">
-                      {t('Nível de Comunicação Corporativa & Alinhamento')}
-                    </h3>
-                    <p className="text-[12px] text-ink-muted mt-1">
-                      {t('Escolha um nível-alvo. Comparamos o alvo declarado com o que foi medido nas suas sessões.')}
-                    </p>
+              {levelBars.length === 0 ? (
+                <p className="text-[12px] text-ink-muted leading-snug">
+                  {t(
+                    'Sem palavras suficientes para estimar o nível. Capture sessões e adicione palavras ao deck para gerar a estimativa.',
+                  )}
+                </p>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  {levelBars.map((b) => (
+                    <div key={b.level}>
+                      <div className="flex justify-between items-center text-[12px] mb-2">
+                        <span className="font-bold text-ink-muted">{b.level}</span>
+                        <span className="font-extrabold text-accent">{tp(b.count, '{n} palavra', '{n} palavras')}</span>
+                      </div>
+                      <div className="w-full h-2 bg-canvas rounded-full overflow-hidden border border-border-subtle">
+                        <div
+                          className="h-full bg-accent transition-all duration-500 rounded-full"
+                          style={{ width: `${b.pct}%` }}
+                        ></div>
+                      </div>
+                      <span className="text-[11px] text-ink-muted mt-2 block leading-snug">
+                        {t('{n}% do vocabulário classificado neste nível.', { n: b.pct })}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Nível-alvo declarado × valor medido (o seletor persiste em ui.cefrGoal) */}
+            <div className="card-panel p-6 mb-8 bg-surface">
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+                <div>
+                  <h3 className="font-display font-extrabold text-[15px] text-ink">
+                    {t('Nível de Comunicação Corporativa & Alinhamento')}
+                  </h3>
+                  <p className="text-[12px] text-ink-muted mt-1">
+                    {t('Escolha um nível-alvo. Comparamos o alvo declarado com o que foi medido nas suas sessões.')}
+                  </p>
+                </div>
+                <div className="flex gap-1 bg-canvas border border-border-subtle/50 rounded-xl p-0.5 self-start sm:self-auto shadow-inner">
+                  {(['B2', 'C1', 'C2'] as const).map((lvl) => (
+                    <button
+                      key={lvl}
+                      onClick={() => chooseLevel(lvl)}
+                      className={`px-3.5 py-1.5 text-xs font-bold rounded-lg transition-all duration-200 active:scale-95 cursor-pointer ${
+                        selectedLevel === lvl
+                          ? 'bg-accent text-accent-contrast shadow-sm'
+                          : 'text-ink-muted hover:text-ink hover:bg-surface-hover/30'
+                      }`}
+                    >
+                      {lvl === 'B2' ? t('B2 - Gerente') : lvl === 'C1' ? t('C1 - Executivo') : t('C2 - Conselheiro')}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                {/* Ritmo: alvo declarado × wpm medido (real) */}
+                <div>
+                  <div className="flex justify-between items-center text-[12px] mb-2">
+                    <span className="font-bold text-ink-muted">{t('Ritmo de Fala')}</span>
+                    <span className="font-mono font-extrabold text-accent">
+                      {wpmMeasured != null ? `${wpmMeasured}` : '-'}{' '}
+                      <span className="text-ink-faint font-normal">{t('/ {n} ppm', { n: targetWpm })}</span>
+                    </span>
                   </div>
-                  <div className="flex gap-1 bg-canvas border border-border-subtle/50 rounded-xl p-0.5 self-start sm:self-auto shadow-inner">
-                    {(['B2', 'C1', 'C2'] as const).map((lvl) => (
-                      <button
-                        key={lvl}
-                        onClick={() => chooseLevel(lvl)}
-                        className={`px-3.5 py-1.5 text-xs font-bold rounded-lg transition-all duration-200 active:scale-95 cursor-pointer ${
-                          selectedLevel === lvl
-                            ? 'bg-accent text-accent-contrast shadow-sm'
-                            : 'text-ink-muted hover:text-ink hover:bg-surface-hover/30'
-                        }`}
-                      >
-                        {lvl === 'B2' ? t('B2 - Gerente') : lvl === 'C1' ? t('C1 - Executivo') : t('C2 - Conselheiro')}
-                      </button>
-                    ))}
+                  <div className="w-full h-2.5 bg-canvas overflow-hidden border border-border-subtle/40 rounded-full">
+                    <div
+                      className="h-full bg-accent transition-all duration-500 rounded-full"
+                      style={{ width: `${pacePct}%` }}
+                    ></div>
                   </div>
+                  <span className="text-[11px] text-ink-muted mt-2 block leading-snug">
+                    {wpmMeasured != null ? (
+                      <>
+                        {t('Medido: {n} ppm', { n: wpmMeasured })}
+                        {wpmLowConf ? ` ${t('(estimativa, poucas sessões)')}` : ''}
+                        {' · '}
+                        {t('alvo declarado {n} ppm.', { n: targetWpm })}
+                      </>
+                    ) : (
+                      <>
+                        {t('Alvo declarado {n} ppm. Sem fala capturada suficiente para medir seu ritmo.', {
+                          n: targetWpm,
+                        })}
+                      </>
+                    )}
+                  </span>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  {/* Ritmo: alvo declarado × wpm medido (real) */}
-                  <div>
-                    <div className="flex justify-between items-center text-[12px] mb-2">
-                      <span className="font-bold text-ink-muted">{t('Ritmo de Fala')}</span>
-                      <span className="font-mono font-extrabold text-accent">
-                        {wpmMeasured != null ? `${wpmMeasured}` : '-'}{' '}
-                        <span className="text-ink-faint font-normal">{t('/ {n} ppm', { n: targetWpm })}</span>
-                      </span>
-                    </div>
-                    <div className="w-full h-2.5 bg-canvas overflow-hidden border border-border-subtle/40 rounded-full">
-                      <div
-                        className="h-full bg-accent transition-all duration-500 rounded-full"
-                        style={{ width: `${pacePct}%` }}
-                      ></div>
-                    </div>
-                    <span className="text-[11px] text-ink-muted mt-2 block leading-snug">
-                      {wpmMeasured != null ? (
-                        <>
-                          {t('Medido: {n} ppm', { n: wpmMeasured })}
-                          {wpmLowConf ? ` ${t('(estimativa, poucas sessões)')}` : ''}
-                          {' · '}
-                          {t('alvo declarado {n} ppm.', { n: targetWpm })}
-                        </>
-                      ) : (
-                        <>
-                          {t('Alvo declarado {n} ppm. Sem fala capturada suficiente para medir seu ritmo.', {
-                            n: targetWpm,
-                          })}
-                        </>
-                      )}
+                {/* Vocabulário: aderência real ao nível-alvo (derivada da distribuição) */}
+                <div>
+                  <div className="flex justify-between items-center text-[12px] mb-2">
+                    <span className="font-bold text-ink-muted">{t('Vocabulário no Nível-Alvo')}</span>
+                    <span className="font-mono font-extrabold text-good">
+                      {vocabAdherence != null ? `${vocabAdherence}%` : '-'}
                     </span>
                   </div>
-
-                  {/* Vocabulário: aderência real ao nível-alvo (derivada da distribuição) */}
-                  <div>
-                    <div className="flex justify-between items-center text-[12px] mb-2">
-                      <span className="font-bold text-ink-muted">{t('Vocabulário no Nível-Alvo')}</span>
-                      <span className="font-mono font-extrabold text-good">
-                        {vocabAdherence != null ? `${vocabAdherence}%` : '-'}
-                      </span>
-                    </div>
-                    <div className="w-full h-2.5 bg-canvas overflow-hidden border border-border-subtle/40 rounded-full">
-                      <div
-                        className="h-full bg-good transition-all duration-500 rounded-full"
-                        style={{ width: `${vocabAdherence ?? 0}%` }}
-                      ></div>
-                    </div>
-                    <span className="text-[11px] text-ink-muted mt-2 block leading-snug">
-                      {vocabAdherence != null ? (
-                        <>
-                          {t('{pct}% do seu vocabulário está classificado em {nivel} ou acima', {
-                            pct: vocabAdherence,
-                            nivel: selectedLevel,
-                          })}
-                          {topLevel ? (
-                            <>
-                              {' · '}
-                              {t('nível estimado {n}', { n: topLevel })}
-                            </>
-                          ) : null}
-                          .
-                        </>
-                      ) : (
-                        <>
-                          {t('Sem palavras suficientes no deck para medir a aderência ao nível {n}.', {
-                            n: selectedLevel,
-                          })}
-                        </>
-                      )}
-                    </span>
+                  <div className="w-full h-2.5 bg-canvas overflow-hidden border border-border-subtle/40 rounded-full">
+                    <div
+                      className="h-full bg-good transition-all duration-500 rounded-full"
+                      style={{ width: `${vocabAdherence ?? 0}%` }}
+                    ></div>
                   </div>
+                  <span className="text-[11px] text-ink-muted mt-2 block leading-snug">
+                    {vocabAdherence != null ? (
+                      <>
+                        {t('{pct}% do seu vocabulário está classificado em {nivel} ou acima', {
+                          pct: vocabAdherence,
+                          nivel: selectedLevel,
+                        })}
+                        {topLevel ? (
+                          <>
+                            {' · '}
+                            {t('nível estimado {n}', { n: topLevel })}
+                          </>
+                        ) : null}
+                        .
+                      </>
+                    ) : (
+                      <>
+                        {t('Sem palavras suficientes no deck para medir a aderência ao nível {n}.', {
+                          n: selectedLevel,
+                        })}
+                      </>
+                    )}
+                  </span>
+                </div>
 
-                  {/* Clareza & Concisão: a metade "vícios" já é medida (fillers.ts, por sessão), mas esta
+                {/* Clareza & Concisão: a metade "vícios" já é medida (fillers.ts, por sessão), mas esta
                 caixa é uma comparação alvo × medido AGREGADA como as duas irmãs acima, e o
                 agregado entre sessões não existe (ver comentário do card "Vícios de Linguagem"
                 mais acima). "Pausas preenchidas" (duração de silêncio) também nunca foi medido;
                 fillers.ts conta MARCADORES de hesitação (palavras), não pausas. Por isso o pill
                 não diz "Em breve": não é uma feature no roadmap, são dois dados que faltam. */}
-                  <div>
-                    <div className="flex justify-between items-center text-[12px] mb-2">
-                      <span className="font-bold text-ink-muted">{t('Clareza & Concisão')}</span>
-                      <span className="kpi-pill opacity-60 cursor-default text-[11px]">{t('Sem agregado')}</span>
-                    </div>
-                    <div className="w-full h-2.5 bg-canvas overflow-hidden border border-border-subtle/40 rounded-full opacity-50">
-                      <div className="h-full bg-border-subtle" style={{ width: '0%' }}></div>
-                    </div>
-                    <span className="text-[11px] text-ink-muted mt-2 block leading-snug">
-                      {t(
-                        'A contagem de vícios já existe por sessão (aba "Desempenho & Fluência" na tela de Análise). Faltam aqui o somatório entre sessões e a medição de pausas preenchidas, que ainda não existe.',
-                      )}
-                    </span>
+                <div>
+                  <div className="flex justify-between items-center text-[12px] mb-2">
+                    <span className="font-bold text-ink-muted">{t('Clareza & Concisão')}</span>
+                    <span className="kpi-pill opacity-60 cursor-default text-[11px]">{t('Sem agregado')}</span>
                   </div>
+                  <div className="w-full h-2.5 bg-canvas overflow-hidden border border-border-subtle/40 rounded-full opacity-50">
+                    <div className="h-full bg-border-subtle" style={{ width: '0%' }}></div>
+                  </div>
+                  <span className="text-[11px] text-ink-muted mt-2 block leading-snug">
+                    {t(
+                      'A contagem de vícios já existe por sessão (aba "Desempenho & Fluência" na tela de Análise). Faltam aqui o somatório entre sessões e a medição de pausas preenchidas, que ainda não existe.',
+                    )}
+                  </span>
                 </div>
               </div>
+            </div>
 
-              {/* Recomendações e Próximos Passos — CTAs com dado real, sem números fabricados */}
-              <h3 className="font-display font-extrabold text-[15px] text-ink mb-4">
-                {t('Recomendações e Próximos Passos')}
-              </h3>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-                {/* Shadowing — CTA genérico honesto (sem alegar que você "não treinou hoje") */}
-                <div className="card-panel p-5 flex flex-col justify-between min-h-[160px] bg-rare-soft/10 border-rare/20 hover:border-rare/40">
-                  <div>
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-[9px] px-1.5 py-0.5 rounded font-mono font-bold uppercase tracking-wider bg-rare-soft text-rare">
-                        {t('Precisão Acústica')}
-                      </span>
-                      <Sparkles className="w-4 h-4 text-rare" />
-                    </div>
-                    <h4 className="font-display font-bold text-[13.5px] text-ink mb-1">
-                      {t('Exercício de Shadowing')}
-                    </h4>
-                    <p className="text-[12px] text-ink-muted leading-relaxed">
-                      {t('Pratique Shadowing para medir e elevar a fidelidade da sua pronúncia.')}
-                    </p>
+            {/* Recomendações e Próximos Passos — CTAs com dado real, sem números fabricados */}
+            <h3 className="font-display font-extrabold text-[15px] text-ink mb-4">
+              {t('Recomendações e Próximos Passos')}
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+              {/* Shadowing — CTA genérico honesto (sem alegar que você "não treinou hoje") */}
+              <div className="card-panel p-5 flex flex-col justify-between min-h-[160px] bg-rare-soft/10 border-rare/20 hover:border-rare/40">
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-[9px] px-1.5 py-0.5 rounded font-mono font-bold uppercase tracking-wider bg-rare-soft text-rare">
+                      {t('Precisão Acústica')}
+                    </span>
+                    <Sparkles className="w-4 h-4 text-rare" />
                   </div>
-                  <button
-                    onClick={() => ir('study')}
-                    className="mt-4 w-full py-2 text-[11.5px] font-bold rounded-xl bg-surface transition-all duration-200 cursor-pointer text-center border border-rare/30 text-rare hover:bg-rare-soft hover:text-rare-ink"
-                  >
-                    {t('Medir precisão')}
-                  </button>
+                  <h4 className="font-display font-bold text-[13.5px] text-ink mb-1">{t('Exercício de Shadowing')}</h4>
+                  <p className="text-[12px] text-ink-muted leading-relaxed">
+                    {t('Pratique Shadowing para medir e elevar a fidelidade da sua pronúncia.')}
+                  </p>
                 </div>
+                <button
+                  onClick={() => ir('study')}
+                  className="mt-4 w-full py-2 text-[11.5px] font-bold rounded-xl bg-surface transition-all duration-200 cursor-pointer text-center border border-rare/30 text-rare hover:bg-rare-soft hover:text-rare-ink"
+                >
+                  {t('Medir precisão')}
+                </button>
+              </div>
 
-                {/* Vocabulário — copy ligada a dado real (deckSize / uniqueWords / nível estimado) */}
-                <div className="card-panel p-5 flex flex-col justify-between min-h-[160px] bg-rare-soft/10 border-rare/20 hover:border-rare/40">
-                  <div>
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-[9px] px-1.5 py-0.5 rounded font-mono font-bold uppercase tracking-wider bg-rare-soft text-rare">
-                        {t('Vocabulário')}
-                      </span>
-                      <TrendingUp className="w-4 h-4 text-rare" />
-                    </div>
-                    <h4 className="font-display font-bold text-[13.5px] text-ink mb-1">{t('Seu Vocabulário')}</h4>
-                    <p className="text-[12px] text-ink-muted leading-relaxed">
-                      {t('Seu deck tem {cartas} cartas, com {unicas} palavras únicas capturadas', {
-                        cartas: metrics ? fmtNum(metrics.deckSize) : '0',
-                        unicas: metrics ? fmtNum(metrics.uniqueWords) : '0',
-                      })}
-                      {topLevel ? (
-                        <>
-                          {' · '}
-                          {t('nível estimado {n}', { n: topLevel })}
-                        </>
-                      ) : null}
-                      .
-                    </p>
+              {/* Vocabulário — copy ligada a dado real (deckSize / uniqueWords / nível estimado) */}
+              <div className="card-panel p-5 flex flex-col justify-between min-h-[160px] bg-rare-soft/10 border-rare/20 hover:border-rare/40">
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-[9px] px-1.5 py-0.5 rounded font-mono font-bold uppercase tracking-wider bg-rare-soft text-rare">
+                      {t('Vocabulário')}
+                    </span>
+                    <TrendingUp className="w-4 h-4 text-rare" />
                   </div>
-                  <button
-                    onClick={() => ir('study')}
-                    className="mt-4 w-full py-2 text-[11.5px] font-bold rounded-xl bg-surface transition-all duration-200 cursor-pointer text-center border border-rare/30 text-rare hover:bg-rare-soft hover:text-rare-ink"
-                  >
-                    {t('Estudar deck')}
-                  </button>
+                  <h4 className="font-display font-bold text-[13.5px] text-ink mb-1">{t('Seu Vocabulário')}</h4>
+                  <p className="text-[12px] text-ink-muted leading-relaxed">
+                    {t('Seu deck tem {cartas} cartas, com {unicas} palavras únicas capturadas', {
+                      cartas: metrics ? fmtNum(metrics.deckSize) : '0',
+                      unicas: metrics ? fmtNum(metrics.uniqueWords) : '0',
+                    })}
+                    {topLevel ? (
+                      <>
+                        {' · '}
+                        {t('nível estimado {n}', { n: topLevel })}
+                      </>
+                    ) : null}
+                    .
+                  </p>
                 </div>
+                <button
+                  onClick={() => ir('study')}
+                  className="mt-4 w-full py-2 text-[11.5px] font-bold rounded-xl bg-surface transition-all duration-200 cursor-pointer text-center border border-rare/30 text-rare hover:bg-rare-soft hover:text-rare-ink"
+                >
+                  {t('Estudar deck')}
+                </button>
+              </div>
 
-                {/* O cartão "Revisão de Hoje" SAIU daqui (auditoria de UX, 31/08): era o TERCEIRO lugar
+              {/* O cartão "Revisão de Hoje" SAIU daqui (auditoria de UX, 31/08): era o TERCEIRO lugar
               da mesma tela com um botão "Revisar agora" para o mesmo destino — o cartão-herói e o
               pilar já cobrem a revisão. Painel de estatísticas mostra estatística. */}
-              </div>
-            </section>
-          </EditablePanel>
-        )}
+            </div>
+          </section>
+        </EditablePanel>
+      )}
 
-        {/* Recents */}
-        <EditablePanel
-          viewKey="hub"
-          panelKey="recentRecordings"
-          title={t('Sessões Recentes')}
-          canResizeWidth={false}
-          canResizeHeight={false}
-          defaultHeight={0}
-        >
-          <section>
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
-              <div>
-                <h3 className="font-display font-extrabold text-lg text-ink">{t('Sessões Recentes')}</h3>
-                <p className="text-[12px] text-ink-muted">
-                  {t('Estudos e mídias salvos organizados por tipo de arquivo.')}
-                </p>
-              </div>
+      {/* Recents */}
+      <EditablePanel
+        viewKey="hub"
+        panelKey="recentRecordings"
+        title={t('Sessões Recentes')}
+        canResizeWidth={false}
+        canResizeHeight={false}
+        defaultHeight={0}
+      >
+        <section>
+          <TituloDeSecao
+            icone={History}
+            titulo={t('Sessões Recentes')}
+            desc={t('Estudos e mídias salvos organizados por tipo de arquivo.')}
+            direita={
               <button
-                className="text-[12.5px] font-bold text-accent-ink hover:text-accent flex items-center gap-1 py-1 transition-colors self-start sm:self-auto"
+                className="text-[12.5px] font-bold text-accent-ink hover:text-accent flex items-center gap-1 py-1 transition-colors"
                 onClick={() => onChangeView('library')}
               >
                 {t('Ver biblioteca completa')} &rarr;
               </button>
-            </div>
+            }
+          />
 
-            {/* Categories segmented control */}
-            <div className="flex gap-2 mb-6 overflow-x-auto pb-1.5 scrollbar-thin">
-              <button
-                onClick={() => setFilterCategory('all')}
-                className={`px-4 py-2 rounded-xl text-xs font-bold border transition-all flex items-center gap-1.5 shrink-0 cursor-pointer ${
-                  filterCategory === 'all'
-                    ? 'bg-ink text-ink-contrast border-ink shadow-sm'
-                    : 'bg-surface hover:bg-surface-hover text-ink-muted border-border-subtle'
-                }`}
-              >
-                <span>{t('Tudo ({n})', { n: recordings.length })}</span>
-              </button>
-              <button
-                onClick={() => setFilterCategory('video')}
-                className={`px-4 py-2 rounded-xl text-xs font-bold border transition-all flex items-center gap-1.5 shrink-0 cursor-pointer ${
-                  filterCategory === 'video'
-                    ? 'bg-error-soft text-error-ink border-error/30'
-                    : 'bg-surface hover:bg-surface-hover text-ink-muted border-border-subtle'
-                }`}
-              >
-                <Video className="w-3.5 h-3.5 text-error" />
-                <span>YouTube ({recordings.filter((r) => r.type === 'video').length})</span>
-              </button>
-              <button
-                onClick={() => setFilterCategory('audio')}
-                className={`px-4 py-2 rounded-xl text-xs font-bold border transition-all flex items-center gap-1.5 shrink-0 cursor-pointer ${
-                  filterCategory === 'audio'
-                    ? 'bg-rare-soft text-rare-ink border-rare/30'
-                    : 'bg-surface hover:bg-surface-hover text-ink-muted border-border-subtle'
-                }`}
-              >
-                <Headphones className="w-3.5 h-3.5 text-rare" />
-                <span>{t('Áudio ({n})', { n: recordings.filter((r) => r.type === 'audio').length })}</span>
-              </button>
-              <button
-                onClick={() => setFilterCategory('document')}
-                className={`px-4 py-2 rounded-xl text-xs font-bold border transition-all flex items-center gap-1.5 shrink-0 cursor-pointer ${
-                  filterCategory === 'document'
-                    ? 'bg-good-soft text-good-ink border-good/30'
-                    : 'bg-surface hover:bg-surface-hover text-ink-muted border-border-subtle'
-                }`}
-              >
-                <FileText className="w-3.5 h-3.5 text-good" />
-                <span>{t('Documentos ({n})', { n: recordings.filter((r) => r.type === 'document').length })}</span>
-              </button>
-            </div>
+          {/* Categories segmented control */}
+          <div className="flex gap-2 mb-6 overflow-x-auto pb-1.5 scrollbar-thin">
+            <button
+              onClick={() => setFilterCategory('all')}
+              className={`px-4 py-2 rounded-xl text-xs font-bold border transition-all flex items-center gap-1.5 shrink-0 cursor-pointer ${
+                filterCategory === 'all'
+                  ? 'bg-ink text-ink-contrast border-ink shadow-sm'
+                  : 'bg-surface hover:bg-surface-hover text-ink-muted border-border-subtle'
+              }`}
+            >
+              <span>{t('Tudo ({n})', { n: recordings.length })}</span>
+            </button>
+            <button
+              onClick={() => setFilterCategory('video')}
+              className={`px-4 py-2 rounded-xl text-xs font-bold border transition-all flex items-center gap-1.5 shrink-0 cursor-pointer ${
+                filterCategory === 'video'
+                  ? 'bg-error-soft text-error-ink border-error/30'
+                  : 'bg-surface hover:bg-surface-hover text-ink-muted border-border-subtle'
+              }`}
+            >
+              <Video className="w-3.5 h-3.5 text-error" />
+              <span>YouTube ({recordings.filter((r) => r.type === 'video').length})</span>
+            </button>
+            <button
+              onClick={() => setFilterCategory('audio')}
+              className={`px-4 py-2 rounded-xl text-xs font-bold border transition-all flex items-center gap-1.5 shrink-0 cursor-pointer ${
+                filterCategory === 'audio'
+                  ? 'bg-rare-soft text-rare-ink border-rare/30'
+                  : 'bg-surface hover:bg-surface-hover text-ink-muted border-border-subtle'
+              }`}
+            >
+              <Headphones className="w-3.5 h-3.5 text-rare" />
+              <span>{t('Áudio ({n})', { n: recordings.filter((r) => r.type === 'audio').length })}</span>
+            </button>
+            <button
+              onClick={() => setFilterCategory('document')}
+              className={`px-4 py-2 rounded-xl text-xs font-bold border transition-all flex items-center gap-1.5 shrink-0 cursor-pointer ${
+                filterCategory === 'document'
+                  ? 'bg-good-soft text-good-ink border-good/30'
+                  : 'bg-surface hover:bg-surface-hover text-ink-muted border-border-subtle'
+              }`}
+            >
+              <FileText className="w-3.5 h-3.5 text-good" />
+              <span>{t('Documentos ({n})', { n: recordings.filter((r) => r.type === 'document').length })}</span>
+            </button>
+          </div>
 
-            {filteredRecs.length === 0 ? (
-              <Vazio
-                icone={<Headphones className="w-7 h-7" />}
-                titulo={recordings.length === 0 ? t('Nenhuma sessão ainda') : t('Nada nesta categoria')}
-                explicacao={
-                  recordings.length === 0
-                    ? t('Capture sua primeira sessão ou importe uma mídia pela Biblioteca, ela aparecerá aqui.')
-                    : t(
-                        'Nenhuma sessão salva com este tipo de arquivo. Escolha outra categoria ou capture uma nova sessão.',
-                      )
-                }
-                acao={{
-                  rotulo: (
-                    <>
-                      <Mic className="w-4 h-4" /> {t('Nova captura')}
-                    </>
-                  ),
-                  aoClicar: () => onChangeView('capture'),
-                }}
-                acaoSecundaria={
-                  recordings.length === 0
-                    ? {
-                        rotulo: (
-                          <>
-                            <Upload className="w-4 h-4" /> {t('Importar mídia')}
-                          </>
-                        ),
-                        aoClicar: () => onChangeView('library'),
-                      }
-                    : { rotulo: t('Ver todas as categorias'), aoClicar: () => setFilterCategory('all') }
-                }
-              />
-            ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                {filteredRecs.map((rec) => (
-                  <div
-                    key={rec.id}
-                    className={`card-panel p-4 flex items-center justify-between group cursor-pointer hover:shadow-card transition-all bg-surface border ${
-                      rec.type === 'video'
-                        ? 'hover:border-error/40'
-                        : rec.type === 'document'
-                          ? 'hover:border-good/40'
-                          : 'hover:border-rare/40'
-                    }`}
-                    onClick={() => onChangeView('analysis', { id: rec.id })}
-                  >
-                    <div className="flex items-center gap-3 min-w-0">
-                      <div
-                        className={`w-9 h-9 rounded-lg flex items-center justify-center transition-colors shrink-0 ${
-                          rec.type === 'video'
-                            ? 'bg-error/10 text-error group-hover:bg-error/20'
-                            : rec.type === 'document'
-                              ? 'bg-good/10 text-good group-hover:bg-good/20'
-                              : 'bg-rare/10 text-rare group-hover:bg-rare/20'
-                        }`}
-                      >
-                        {rec.type === 'video' ? (
-                          <Video className="w-4 h-4" />
-                        ) : rec.type === 'document' ? (
-                          <FileText className="w-4 h-4" />
-                        ) : (
-                          <Headphones className="w-4 h-4" />
-                        )}
-                      </div>
-                      <div className="min-w-0">
-                        <h4 className="font-bold text-[13px] text-ink truncate group-hover:text-accent transition-colors mb-0.5">
-                          {rec.title}
-                        </h4>
-                        <div className="flex items-center gap-2 text-[11px] text-ink-muted font-mono">
-                          <span>{rec.date}</span>
-                          <span>·</span>
-                          <span className="uppercase">
-                            {rec.type === 'video' ? 'YouTube' : rec.type === 'document' ? 'PDF' : t('ÁUDIO')}
-                          </span>
-                          {/* O ESTADO, quando ele muda o que dá para fazer.
+          {filteredRecs.length === 0 ? (
+            <Vazio
+              icone={<Headphones className="w-7 h-7" />}
+              titulo={recordings.length === 0 ? t('Nenhuma sessão ainda') : t('Nada nesta categoria')}
+              explicacao={
+                recordings.length === 0
+                  ? t('Capture sua primeira sessão ou importe uma mídia pela Biblioteca, ela aparecerá aqui.')
+                  : t(
+                      'Nenhuma sessão salva com este tipo de arquivo. Escolha outra categoria ou capture uma nova sessão.',
+                    )
+              }
+              acao={{
+                rotulo: (
+                  <>
+                    <Mic className="w-4 h-4" /> {t('Nova captura')}
+                  </>
+                ),
+                aoClicar: () => onChangeView('capture'),
+              }}
+              acaoSecundaria={
+                recordings.length === 0
+                  ? {
+                      rotulo: (
+                        <>
+                          <Upload className="w-4 h-4" /> {t('Importar mídia')}
+                        </>
+                      ),
+                      aoClicar: () => onChangeView('library'),
+                    }
+                  : { rotulo: t('Ver todas as categorias'), aoClicar: () => setFilterCategory('all') }
+              }
+            />
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {filteredRecs.map((rec) => (
+                <div
+                  key={rec.id}
+                  className={`card-panel p-4 flex items-center justify-between group cursor-pointer hover:shadow-card transition-all bg-surface border ${
+                    rec.type === 'video'
+                      ? 'hover:border-error/40'
+                      : rec.type === 'document'
+                        ? 'hover:border-good/40'
+                        : 'hover:border-rare/40'
+                  }`}
+                  onClick={() => onChangeView('analysis', { id: rec.id })}
+                >
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div
+                      className={`w-9 h-9 rounded-lg flex items-center justify-center transition-colors shrink-0 ${
+                        rec.type === 'video'
+                          ? 'bg-error/10 text-error group-hover:bg-error/20'
+                          : rec.type === 'document'
+                            ? 'bg-good/10 text-good group-hover:bg-good/20'
+                            : 'bg-rare/10 text-rare group-hover:bg-rare/20'
+                      }`}
+                    >
+                      {rec.type === 'video' ? (
+                        <Video className="w-4 h-4" />
+                      ) : rec.type === 'document' ? (
+                        <FileText className="w-4 h-4" />
+                      ) : (
+                        <Headphones className="w-4 h-4" />
+                      )}
+                    </div>
+                    <div className="min-w-0">
+                      <h4 className="font-bold text-[13px] text-ink truncate group-hover:text-accent transition-colors mb-0.5">
+                        {rec.title}
+                      </h4>
+                      <div className="flex items-center gap-2 text-[11px] text-ink-muted font-mono">
+                        <span>{rec.date}</span>
+                        <span>·</span>
+                        <span className="uppercase">
+                          {rec.type === 'video' ? 'YouTube' : rec.type === 'document' ? 'PDF' : t('ÁUDIO')}
+                        </span>
+                        {/* O ESTADO, quando ele muda o que dá para fazer.
                           Uma sessão ainda em processamento não tem transcrição, então clicar nela
                           leva a uma tela pela metade, e a lista não dizia isso em lugar nenhum.
                           "Processado" não ganha selo: o normal não precisa de etiqueta, e etiquetar
                           tudo faz o selo que importa desaparecer no meio dos outros. */}
-                          {rec.status !== 'Processado' && (
-                            <span className="badge-tag warn">
-                              {ageProfile === 'kids' ? t('lendo ainda') : t('processando')}
-                            </span>
-                          )}
-                        </div>
+                        {rec.status !== 'Processado' && (
+                          <span className="badge-tag warn">
+                            {ageProfile === 'kids' ? t('lendo ainda') : t('processando')}
+                          </span>
+                        )}
                       </div>
                     </div>
-                    <ArrowRight className="w-3.5 h-3.5 text-ink-faint group-hover:text-ink transition-colors shrink-0" />
                   </div>
-                ))}
-              </div>
-            )}
-          </section>
-        </EditablePanel>
-      </div>
-    </div>
+                  <ArrowRight className="w-3.5 h-3.5 text-ink-faint group-hover:text-ink transition-colors shrink-0" />
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
+      </EditablePanel>
+    </Tela>
   );
 }
 
@@ -950,13 +935,6 @@ const TONE_SOFT: Record<PillarDef['tone'], string> = {
   warn: 'bg-warn-soft text-warn-ink',
   good: 'bg-good-soft text-good-ink',
 };
-/* O tom do pilar como COR DE TEXTO (ícone solto, sem pastilha). Sempre a variante `-ink`:
-   `--warn`/`--good` são cores de PREENCHIMENTO e reprovam em contraste sobre `surface`. */
-const TONE_TEXT: Record<PillarDef['tone'], string> = {
-  accent: 'text-accent-ink',
-  warn: 'text-warn-ink',
-  good: 'text-good-ink',
-};
 const TONE_BORDER: Record<PillarDef['tone'], string> = {
   accent: 'hover:border-accent',
   warn: 'hover:border-warn',
@@ -1030,20 +1008,19 @@ const PillarCard: React.FC<PillarCardProps> = ({
       }`}
     >
       <div className={isSenior ? 'flex items-start gap-4 flex-1 min-w-0' : ''}>
-        {/* Marcador: número no perfil sênior (o guia é sequencial), ícone nos demais.
-            NA GRADE O ÍCONE É SOLTO, sem a pastilha colorida atrás (referência de design): três
-            chips de cores diferentes empilhavam ruído logo no topo de cada cartão. No sênior a
-            pastilha fica — ali ela carrega o NÚMERO do passo, que precisa de forma própria. */}
-        <span
-          className={`shrink-0 flex items-center font-display font-black ${
-            isSenior
-              ? `justify-center rounded-2xl w-12 h-12 text-xl ${TONE_SOFT[pillar.tone]}`
-              : `mb-4 ${isHero ? 'text-accent' : TONE_TEXT[pillar.tone]}`
-          }`}
-          aria-hidden
-        >
-          {isSenior ? index + 1 : <Icon className="w-6 h-6" />}
-        </span>
+        {/* Marcador: número no perfil sênior (o guia é sequencial), ícone em bloco nos demais.
+            O ícone VOLTA para a pastilha colorida: a versão solta veio de uma referência de design
+            anterior, e o dono reprovou tirar os blocos de ícone ("mata a intuitividade", 22/09). */}
+        {isSenior ? (
+          <span
+            className={`shrink-0 flex items-center justify-center font-display font-black rounded-2xl w-12 h-12 text-xl ${TONE_SOFT[pillar.tone]}`}
+            aria-hidden
+          >
+            {index + 1}
+          </span>
+        ) : (
+          <IconeEmBloco icone={Icon} tom={isHero ? 'sobreEscuro' : pillar.tone} tamanho="lg" className="mb-4" />
+        )}
 
         <div className="min-w-0">
           <div className={`flex items-center gap-2 flex-wrap ${isSenior ? '' : 'mb-1'}`}>

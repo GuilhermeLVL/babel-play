@@ -14,7 +14,12 @@
 export type { ItemDeAba } from './Abas';
 export { default as Abas, PainelDeAba } from './Abas';
 export { default as Barra } from './Barra';
+export { default as CabecalhoDeTela } from './CabecalhoDeTela';
+export type { TomDoIcone } from './IconeEmBloco';
+export { default as IconeEmBloco } from './IconeEmBloco';
 export { default as Ladrilho } from './Ladrilho';
 export type { OpcaoSegmentada, TomDeOpcao } from './Segmentado';
 export { default as Segmentado } from './Segmentado';
+export { default as Tela } from './Tela';
+export { default as TituloDeSecao } from './TituloDeSecao';
 export { default as Vazio } from './Vazio';

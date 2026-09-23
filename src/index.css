@@ -43,6 +43,12 @@
   --shadow-card: var(--shadow-card-val);
   --shadow-btn: var(--shadow-btn-val);
   --shadow-btn-hover: var(--shadow-btn-hover-val);
+  /* Elevação em 3 níveis: repouso (card), levantado (hover), flutuante (pop-over/diálogo). */
+  --shadow-lift: var(--shadow-lift-val);
+  --shadow-pop: var(--shadow-pop-val);
+
+  --ease-suave: cubic-bezier(.16, 1, .3, 1);
+  --ease-mola: cubic-bezier(.34, 1.56, .64, 1);
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
@@ -119,6 +125,13 @@
     --shadow-card-val: inset 0 1px 0 rgba(255,255,255,0.6), 0 2px 5px rgba(38,36,31,0.08);
     --shadow-btn-val: inset 0 1px 0 rgba(255,255,255,0.25), 0 2px 0 rgba(0,0,0,0.18);
     --shadow-btn-hover-val: inset 0 1px 0 rgba(255,255,255,0.35), 0 1px 0 rgba(0,0,0,0.18);
+    --shadow-lift-val: inset 0 1px 0 rgba(255,255,255,.7), 0 2px 4px rgba(38,36,31,.06), 0 16px 36px -14px rgba(38,36,31,.28);
+    --shadow-pop-val: 0 1px 0 rgba(255,255,255,.6) inset, 0 24px 60px -16px rgba(38,36,31,.40), 0 0 0 1px rgba(38,36,31,.05);
+
+    /* Curvas de movimento — as mesmas em todo o app (antes, escritas à mão em cada keyframe).
+       --ease: desacelera no fim (entradas, deslizes). --ease-mola: passa do ponto e volta ("pop"). */
+    --ease: cubic-bezier(.16, 1, .3, 1);
+    --ease-mola: cubic-bezier(.34, 1.56, .64, 1);
 
     /* ─────────── Presets de aparência da TRANSCRIÇÃO (src/lib/transcriptUtils.ts) ───────────
        `getTranscriptStyleClasses` deixa o usuário escolher um estilo de leitura para a transcrição
@@ -150,34 +163,34 @@
     /* A metade que faltava: avisa o navegador que estamos no escuro (ver :root acima). */
     color-scheme: dark;
 
-    --canvas: #0B0E14;
-    --surface: #151922;
-    --surface-hover: #1F2430;
-    --ink: #F0F6FC;
-    --ink-muted: #8B949E;
-    --ink-faint: #79828C;
-    --accent: #FF5A36;
-    --accent-soft: rgba(255, 90, 54, 0.15);
-    --accent-ink: #FF7B5C;
-    --good: #3FB950;
-    --good-soft: rgba(63, 185, 80, 0.15);
-    --warn: #D29922;
-    --warn-soft: rgba(210, 153, 34, 0.15);
-    --rare: #58A6FF;
-    --rare-soft: rgba(88, 166, 255, 0.15);
-    --error: #F85149;
-    --error-soft: rgba(248, 81, 73, 0.15);
-    --border-subtle: #333B48;
+    --canvas: #17130F;
+    --surface: #211C17;
+    --surface-hover: #2B251F;
+    --ink: #F3ECE0;
+    --ink-muted: #B5AA98;
+    --ink-faint: #978C7A;
+    --accent: #FF6B3D;
+    --accent-soft: #3B2219;
+    --accent-ink: #FF8C66;
+    --good: #6DBE6F;
+    --good-soft: #1E2B1D;
+    --warn: #E3A43A;
+    --warn-soft: #33271A;
+    --rare: #9195E6;
+    --rare-soft: #25243A;
+    --error: #F0706A;
+    --error-soft: #361A18;
+    --border-subtle: #3A3229;
     --accent-contrast: #ffffff;
 
     --ink-contrast: var(--canvas);
-    --good-ink: color-mix(in srgb, var(--good) 50%, var(--ink));
-    --warn-ink: color-mix(in srgb, var(--warn) 50%, var(--ink));
-    --rare-ink: color-mix(in srgb, var(--rare) 55%, var(--ink));
-    --error-ink: color-mix(in srgb, var(--error) 60%, var(--ink));
-    --good-contrast: #111111;  /* #3FB950 → 8.27:1 */
-    --warn-contrast: #111111;  /* #D29922 → 8.32:1 */
-    --error-contrast: #111111; /* #F85149 → 6.26:1 */
+    --good-ink: #A9D8A6;
+    --warn-ink: #F0C77E;
+    --rare-ink: #C6C8F5;
+    --error-ink: #FFADA8;
+    --good-contrast: #111111;  /* #6DBE6F */
+    --warn-contrast: #111111;  /* #E3A43A */
+    --error-contrast: #111111; /* #F0706A */
 
     --font-display-val: "Archivo", sans-serif;
     --font-body-val: "Inter", sans-serif;
@@ -186,7 +199,9 @@
     --radius-btn: 12px;
     --border-width-card: 2px;
 
-    --shadow-card-val: inset 0 1px 0 rgba(255,255,255,0.05), 0 2px 8px rgba(0,0,0,0.5);
+    --shadow-card-val: inset 0 1px 0 rgba(255,240,220,.04), 0 1px 2px rgba(0,0,0,.35), 0 6px 18px -8px rgba(0,0,0,.55);
+    --shadow-lift-val: inset 0 1px 0 rgba(255,240,220,.05), 0 2px 4px rgba(0,0,0,.35), 0 18px 40px -14px rgba(0,0,0,.7);
+    --shadow-pop-val: 0 1px 0 rgba(255,240,220,.05) inset, 0 24px 60px -12px rgba(0,0,0,.75), 0 0 0 1px rgba(0,0,0,.3);
     --shadow-btn-val: 0 1.5px 2px rgba(0,0,0,0.4);
     --shadow-btn-hover-val: 0 2px 4px rgba(0,0,0,0.55);
   }
@@ -235,36 +250,38 @@
     --shadow-card-val: inset 0 1px 0 rgba(255,255,255,0.6), 0 2px 5px rgba(38,36,31,0.08);
   }
   [data-theme="babel"].dark, .dark [data-theme="babel"], [data-theme="babel"] [class*="dark"] {
-    --canvas: #0B0E14;
-    --surface: #151922;
-    --surface-hover: #1F2430;
-    --ink: #F0F6FC;
-    --ink-muted: #8B949E;
-    --ink-faint: #838b95;
-    --accent: #FF5A36;
-    --accent-soft: rgba(255, 90, 54, 0.15);
-    --accent-ink: #FF7B5C;
-    --good: #3FB950;
-    --good-soft: rgba(63, 185, 80, 0.15);
-    --warn: #D29922;
-    --warn-soft: rgba(210, 153, 34, 0.15);
-    --rare: #58A6FF;
-    --rare-soft: rgba(88, 166, 255, 0.15);
-    --error: #F85149;
-    --error-soft: rgba(248, 81, 73, 0.15);
-    --border-subtle: #333B48;
+    --canvas: #17130F;
+    --surface: #211C17;
+    --surface-hover: #2B251F;
+    --ink: #F3ECE0;
+    --ink-muted: #B5AA98;
+    --ink-faint: #978C7A;
+    --accent: #FF6B3D;
+    --accent-soft: #3B2219;
+    --accent-ink: #FF8C66;
+    --good: #6DBE6F;
+    --good-soft: #1E2B1D;
+    --warn: #E3A43A;
+    --warn-soft: #33271A;
+    --rare: #9195E6;
+    --rare-soft: #25243A;
+    --error: #F0706A;
+    --error-soft: #361A18;
+    --border-subtle: #3A3229;
     --accent-contrast: #551507;
 
     --ink-contrast: var(--canvas);
-    --good-ink: color-mix(in srgb, var(--good) 50%, var(--ink));
-    --warn-ink: color-mix(in srgb, var(--warn) 50%, var(--ink));
-    --rare-ink: color-mix(in srgb, var(--rare) 55%, var(--ink));
-    --error-ink: color-mix(in srgb, var(--error) 60%, var(--ink));
-    --good-contrast: #111111;  /* #3FB950 → 8.27:1 */
-    --warn-contrast: #111111;  /* #D29922 → 8.32:1 */
-    --error-contrast: #111111; /* #F85149 → 6.26:1 */
+    --good-ink: #A9D8A6;
+    --warn-ink: #F0C77E;
+    --rare-ink: #C6C8F5;
+    --error-ink: #FFADA8;
+    --good-contrast: #111111;  /* #6DBE6F */
+    --warn-contrast: #111111;  /* #E3A43A */
+    --error-contrast: #111111; /* #F0706A */
 
-    --shadow-card-val: inset 0 1px 0 rgba(255,255,255,0.05), 0 2px 8px rgba(0,0,0,0.5);
+    --shadow-card-val: inset 0 1px 0 rgba(255,240,220,.04), 0 1px 2px rgba(0,0,0,.35), 0 6px 18px -8px rgba(0,0,0,.55);
+    --shadow-lift-val: inset 0 1px 0 rgba(255,240,220,.05), 0 2px 4px rgba(0,0,0,.35), 0 18px 40px -14px rgba(0,0,0,.7);
+    --shadow-pop-val: 0 1px 0 rgba(255,240,220,.05) inset, 0 24px 60px -12px rgba(0,0,0,.75), 0 0 0 1px rgba(0,0,0,.3);
   }
 
   /* ═══════════ Theme: Instrument Premium (F6) — ADITIVO, não altera nenhum tema acima ═══════════ */
@@ -857,7 +874,7 @@
     border-radius: var(--radius-2xl);
     box-shadow: inset 0 1px 0 rgba(255,255,255,0.05), var(--shadow-card);
     overflow: hidden;
-    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    transition: all 0.3s var(--ease);
   }
   .card-panel:hover {
     box-shadow: var(--shadow-card);
@@ -931,7 +948,7 @@
     to   { opacity: 1; transform: none; }
   }
   .babel-toast {
-    animation: babel-toast-in 180ms cubic-bezier(0.16, 1, 0.3, 1);
+    animation: babel-toast-in 180ms var(--ease);
   }
   @media (prefers-reduced-motion: reduce) {
     .babel-toast { animation: none; }
@@ -968,7 +985,7 @@
   --enter-y: 0;
   --enter-scale: 1;
   /* `--tw-duration` é o que as classes `duration-*` do Tailwind v4 definem; sem elas, 200ms. */
-  animation: babel-enter var(--tw-duration, 200ms) cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation: babel-enter var(--tw-duration, 200ms) var(--ease) both;
 }
 
 .fade-in, .fade-in-0 { --enter-opacity: 0; }
@@ -1000,7 +1017,7 @@
   100% { opacity: 0; transform: translate(-50%, -140%) scale(1); }
 }
 .babel-float {
-  animation: babel-float 1s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: babel-float 1s var(--ease) forwards;
   text-shadow: 0 1px 3px color-mix(in srgb, var(--canvas) 70%, transparent);
 }
 
@@ -1485,7 +1502,7 @@ body.animations-off .hover\:-translate-y-1:hover {
   70%  { transform: translate(-50%, -50%) scale(1); opacity: 1; }
   100% { transform: translate(-50%, -50%) scale(1.3); opacity: 0; }
 }
-.blitz-marco { animation: blitz-marco 1s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+.blitz-marco { animation: blitz-marco 1s var(--ease) forwards; }
 
 .animations-off .blitz-pop, .animations-off .blitz-refill, .animations-off .blitz-erro,
 .animations-off .blitz-fever, .performance-mode .blitz-fever { animation: none; }
@@ -1511,7 +1528,7 @@ body.animations-off .hover\:-translate-y-1:hover {
   60%  { transform: scale(0.94, 1.1) translateY(-6px); }
   100% { transform: scale(1, 1); }
 }
-.blitz-squash { animation: blitz-squash 0.45s cubic-bezier(0.34, 1.56, 0.64, 1); }
+.blitz-squash { animation: blitz-squash 0.45s var(--ease-mola); }
 
 @keyframes blitz-balanca {
   0%, 100% { transform: translateX(0); }
@@ -1527,7 +1544,7 @@ body.animations-off .hover\:-translate-y-1:hover {
   40%  { transform: scale(1.18); opacity: 1; }
   100% { transform: scale(1); opacity: 1; }
 }
-.blitz-selo { animation: blitz-selo-pop 0.28s cubic-bezier(0.34, 1.56, 0.64, 1); }
+.blitz-selo { animation: blitz-selo-pop 0.28s var(--ease-mola); }
 
 /* Onda de choque dos marcos: um anel que nasce no centro e expande. */
 @keyframes blitz-onda {
@@ -1546,7 +1563,7 @@ body.animations-off .hover\:-translate-y-1:hover {
   60%  { transform: scale(0.9) rotate(4deg); opacity: 1; }
   100% { transform: scale(1) rotate(0); opacity: 1; }
 }
-.blitz-estrela { animation: blitz-estrela 0.45s cubic-bezier(0.34, 1.56, 0.64, 1) both; }
+.blitz-estrela { animation: blitz-estrela 0.45s var(--ease-mola) both; }
 
 @keyframes blitz-recorde {
   0%, 100% { transform: scale(1); }

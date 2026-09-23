@@ -49,7 +49,6 @@ import {
   previaSegura,
   progressoDasEtapas,
   progressoDaTrilha,
-  REGRAS,
   repetidosDaUltima,
   resumir,
   type ResumoDaSequencia,
@@ -73,7 +72,7 @@ import {
   CalendarClock,
   ChevronLeft,
   ChevronRight,
-  Dices,
+  CirclePlay,
   Flame,
   Gamepad2,
   Globe,
@@ -93,7 +92,7 @@ import {
   Search,
   SlidersHorizontal as SlidersIcon,
   Sparkles,
-  Sprout,
+  Star,
   Trophy,
   Trophy as TrophyIcon,
   X as XIcon,
@@ -193,6 +192,7 @@ import TermoGame from '../minigames/TermoGame';
 import TourGuiado from '../minigames/TourGuiado';
 import { type DetalheDoDrop, EVENTO_DROP_GANHO } from '../RecompensaDesbloqueada';
 import { toast } from '../Toast';
+import { Abas, CabecalhoDeTela, TituloDeSecao } from '../ui';
 import BaralhoAnki from './BaralhoAnki';
 import BaralhosAnki from './BaralhosAnki';
 import CuradoriaBaralho from './CuradoriaBaralho';
@@ -2785,153 +2785,65 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
           segundo `<h1>` na mesma página quebra a navegação por cabeçalho do leitor de tela, a
           pessoa passa a ter dois "títulos da página" e nenhum diz onde ela está. */}
         {!embutido && (
-          <header className="mb-5 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-            <div>
-              <div className="flex items-center gap-2.5 flex-wrap">
-                <span
-                  className="w-8 h-8 rounded-xl bg-accent text-white flex items-center justify-center shadow-xs shrink-0"
-                  aria-hidden
-                >
-                  <Gamepad2 className="w-4 h-4" />
-                </span>
-                {/* "Praticar jogando" (o do design) em pro e sênior: "Jogar & Praticar" repetia o
-                    item de menu e dizia duas vezes a mesma coisa.
-                    KIDS MANTÉM A VOZ DELE. A primeira versão colapsou o ternário inteiro e deu a
-                    todos os perfis o texto que era do sênior — kids perdeu o seu sem que o design
-                    tivesse opinião sobre kids, que não aparece no protótipo. */}
-                <h1 className="font-display font-black text-2xl text-ink tracking-tight">
-                  {ageProfile === 'kids' ? t('Jogar & Praticar') : t('Praticar jogando')}
-                </h1>
-                {/* Contagem é INFORMAÇÃO, não ação: em laranja ela competia com "Partida Rápida" —
-                    e num recorte pequeno o que ganhava destaque era um zero. */}
-                <span className="kpi-pill text-[10.5px] font-extrabold uppercase tracking-wider">
-                  {jogosProntos.length} {t('Jogos')}
-                </span>
-              </div>
-              <p className="text-[13px] text-ink-muted mt-1 max-w-[65ch]">
-                {ageProfile === 'senior'
-                  ? t('Jogos curtos com as palavras que você já salvou. Cada acerto conta para a sua memória.')
-                  : t('Rodadas curtas e dinâmicas com as suas palavras. O que você acerta aqui conta na revisão.')}
-              </p>
-            </div>
-
-            <div className="flex items-center gap-3 shrink-0 self-start md:self-auto flex-wrap sm:flex-nowrap">
-              {/* BOTÃO DE DESTAQUE: PARTIDA RÁPIDA NO TOPO */}
+          /* Cabeçalho no molde do protótipo aprovado (23/09/2026): rótulo, título, apoio, a ação
+             primária à direita e as abas embaixo. O cartão de nível/XP/Seeds que ficava aqui saiu:
+             ele já está no Início, e aqui disputava a atenção com "Partida rápida". */
+          <CabecalhoDeTela
+            icone={Gamepad2}
+            sobrancelha={t('Rodadas curtas')}
+            titulo={
+              ageProfile === 'kids'
+                ? t('Jogar & Praticar')
+                : ageProfile === 'senior'
+                  ? t('Praticar jogando')
+                  : t('Jogar')
+            }
+            sub={
+              ageProfile === 'senior'
+                ? t('Jogos curtos com as palavras que você já salvou. Cada acerto conta para a sua memória.')
+                : t('Rodadas curtas e dinâmicas com as suas palavras. O que você acerta aqui conta na revisão.')
+            }
+            className="mb-5"
+            acoes={
               <button
                 type="button"
                 onClick={partidaRapida}
-                className="py-2.5 px-4 bg-accent hover:bg-accent-ink text-white rounded-xl font-black text-[13px] shadow-sm hover:shadow-md transition-all flex items-center gap-2 active:scale-95 cursor-pointer shrink-0"
+                className="btn-solid min-h-10 px-4 rounded-xl font-display font-bold text-[13px] flex items-center gap-2 active:scale-95 cursor-pointer"
                 title={t('Sorteia um jogo aleatório dentre os disponíveis e inicia imediatamente')}
               >
-                <Dices className="w-4 h-4" />
+                <Zap className="w-4 h-4" aria-hidden />
                 <span>{t('Partida Rápida')}</span>
               </button>
-
-              {/* PROGRESSO no cabeçalho */}
-              {progress.available ? (
-                <section
-                  aria-label={t('Seu progresso')}
-                  className="card-panel bg-surface px-4 py-2.5 flex items-center gap-4 shrink-0 self-start sm:self-auto relative hover:border-accent transition-colors"
-                >
-                  <div
-                    className="min-w-[8rem]"
-                    title={t('{xp} XP no total, {detalhe}. Faltam {faltam} XP para o próximo.', {
-                      xp: progress.xp,
-                      detalhe: metrics
-                        ? t(
-                            '{sessoes} {unidade}, {palavras} palavras capturadas, {revisoes} revisões, {itens} itens de jogo',
-                            {
-                              sessoes: metrics.sessions,
-                              unidade: tp(metrics.sessions, 'sessão', 'sessões'),
-                              palavras: metrics.wordsCaptured,
-                              revisoes: metrics.reviews,
-                              itens: metrics.drillItems ?? 0,
-                            },
-                          )
-                        : t('calculado das suas métricas'),
-                      faltam: progress.xpForLevel - progress.xpIntoLevel,
-                    })}
-                  >
-                    <div className="flex items-baseline justify-between gap-3">
-                      <span className="label-mono">
-                        {ageProfile === 'senior' ? t('Etapa') : t('Nível')} {progress.level}
-                      </span>
-                      <span className="text-[11px] text-ink-muted tabular-nums">
-                        {progress.xpIntoLevel}/{progress.xpForLevel} XP
-                      </span>
-                    </div>
-                    <div
-                      className="h-1.5 bg-canvas rounded-full mt-1.5 overflow-hidden"
-                      role="progressbar"
-                      aria-valuemin={0}
-                      aria-valuemax={100}
-                      aria-valuenow={progress.levelPct}
-                      aria-label={t('Progresso para {escala} {n}', {
-                        escala: ageProfile === 'senior' ? t('etapa') : t('nível'),
-                        n: progress.level + 1,
-                      })}
-                    >
-                      <div
-                        className="h-full bg-accent rounded-full transition-all duration-500"
-                        style={{ width: `${progress.levelPct}%` }}
-                      />
-                    </div>
-                  </div>
-                  <span
-                    className="flex items-center gap-1 text-[13px] font-bold text-ink"
-                    title={
-                      progress.practicedToday
-                        ? t('Você já apareceu hoje: {n} {dias}. Abrir o app amanhã mantém a contagem.', {
-                            n: progress.streakDays,
-                            dias: tp(progress.streakDays, 'dia seguido', 'dias seguidos'),
-                          })
-                        : t('Dias seguidos em que você abriu o app ou revisou. Não há penalidade por quebrar.')
-                    }
-                  >
-                    <Flame
-                      className={`w-4 h-4 ${progress.practicedToday ? 'text-warn-ink' : 'text-ink-faint'}`}
-                      aria-hidden
-                    />{' '}
-                    {progress.streakDays}
-                    <span className="text-ink-muted font-medium text-[12px]">
-                      {tp(progress.streakDays, 'dia', 'dias')}
-                    </span>
-                  </span>
-                  <span
-                    className="flex items-center gap-1 text-[13px] font-bold text-ink"
-                    title={(() => {
-                      const seeds = (id: string) => REGRAS.find((r) => r.id === id)?.seeds ?? 0;
-                      return t(
-                        'Saldo: {ganhas} ganhas − {gastas} gastas. Jogando: {acerto} por acerto e {perfeita} por rodada sem erro.',
-                        {
-                          ganhas: progress.seedsGanhas,
-                          gastas: metrics?.seedsGastas ?? 0,
-                          acerto: seeds('jogoCerto'),
-                          perfeita: seeds('rodadaPerfeita'),
-                        },
-                      );
-                    })()}
-                  >
-                    <Sprout className="w-4 h-4 text-good-ink" aria-hidden /> {progress.seeds}
-                    <span className="text-ink-muted font-medium text-[12px]">{t('seeds')}</span>
-                  </span>
-                  <button
-                    onClick={() => onChangeView('loja')}
-                    className="ms-0.5 shrink-0 min-w-6 min-h-6 inline-flex items-center justify-center rounded-lg text-ink-faint hover:text-accent cursor-pointer after:absolute after:inset-0 after:content-[''] after:rounded-[inherit]"
-                    title={t('Ver o passe, a loja e os desafios')}
-                    aria-label={t('Ver o passe, a loja e os desafios')}
-                  >
-                    <ChevronRight className="w-4 h-4" aria-hidden />
-                  </button>
-                </section>
-              ) : (
-                <div
-                  className="card-panel bg-surface px-4 py-2.5 h-[54px] w-[22rem] max-w-full animate-pulse shrink-0"
-                  aria-hidden
+            }
+            abas={
+              tamanhoDoBaralho < menorMinimo && fonte.id !== 'trilha' ? undefined : (
+                <Abas
+                  rotuloDoGrupo={t('Categorias de jogos')}
+                  ativo={categoriaAtiva}
+                  aoTrocar={(id) => {
+                    setCategoriaAtiva(id as typeof categoriaAtiva);
+                    triggerHaptic('soft');
+                    playJuicedHit(1);
+                  }}
+                  itens={[
+                    { id: 'todos', rotulo: t('Todos'), icone: <Sparkles aria-hidden />, contagem: jogosProntos.length },
+                    {
+                      id: 'classicos',
+                      rotulo: t('Clássicos'),
+                      icone: <Zap aria-hidden />,
+                      contagem: jogosProntos.length,
+                    },
+                    {
+                      id: 'favoritos',
+                      rotulo: t('Favoritos'),
+                      icone: <Star aria-hidden />,
+                      contagem: ordem.fixados.length,
+                    },
+                  ]}
                 />
-              )}
-            </div>
-          </header>
+              )
+            }
+          />
         )}
 
         {/* A CORRENTE QUE ACABOU DE ENCERRAR.
@@ -3435,78 +3347,6 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
           </section>
         ) : (
           <>
-            {/* ── NAVEGAÇÃO DE CATEGORIAS ── */}
-            <div className="flex items-center justify-between gap-3 mb-3 flex-wrap">
-              <div
-                className="flex items-center gap-1.5 p-1 bg-surface border border-border-subtle rounded-xl overflow-x-auto custom-scrollbar"
-                role="tablist"
-                aria-label={t('Categorias de jogos')}
-              >
-                {[
-                  {
-                    id: 'todos' as const,
-                    label: t('Todos'),
-                    icon: <Sparkles className="w-3.5 h-3.5" />,
-                    total: jogosProntos.length,
-                  },
-                  {
-                    id: 'classicos' as const,
-                    label: t('Clássicos'),
-                    icon: <Zap className="w-3.5 h-3.5" />,
-                    total: jogosProntos.length,
-                  },
-                  {
-                    id: 'favoritos' as const,
-                    label: t('Favoritos'),
-                    icon: <Pin className="w-3.5 h-3.5" />,
-                    total: ordem.fixados.length,
-                  },
-                ].map((cat) => {
-                  const ativo = categoriaAtiva === cat.id;
-                  return (
-                    <button
-                      key={cat.id}
-                      type="button"
-                      role="tab"
-                      aria-selected={ativo}
-                      onClick={() => {
-                        setCategoriaAtiva(cat.id);
-                        triggerHaptic('soft');
-                        playJuicedHit(1);
-                      }}
-                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12.5px] font-bold transition-all cursor-pointer ${
-                        ativo
-                          ? 'bg-accent text-white shadow-xs'
-                          : 'text-ink-muted hover:text-ink hover:bg-surface-hover'
-                      }`}
-                    >
-                      {cat.icon}
-                      <span>{cat.label}</span>
-                      <span
-                        className={`text-[11px] px-1.5 py-0.2 rounded-full font-mono ${
-                          ativo ? 'bg-white/25 text-white' : 'bg-canvas text-ink-muted'
-                        }`}
-                      >
-                        {cat.total}
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
-
-              <ul
-                className="hidden lg:flex items-center gap-3 list-none m-0 p-0 text-[11.5px] text-ink-muted"
-                aria-label={t('A cor diz o que o jogo treina')}
-              >
-                {FAMILIAS.map((f) => (
-                  <li key={f.rotulo} className="flex items-center gap-1.5">
-                    <span className="w-2.5 h-2.5 rounded-[3px] shrink-0" style={{ background: f.tom }} aria-hidden />
-                    {f.rotulo}
-                  </li>
-                ))}
-              </ul>
-            </div>
-
             {/* ── BARRA DE BUSCA, HABILIDADES E OPÇÕES ── */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-4">
               <div className="relative flex-1 max-w-md">
@@ -3555,10 +3395,11 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
                         triggerHaptic('soft');
                         playJuicedHit(1);
                       }}
-                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11.5px] font-bold shrink-0 transition-colors cursor-pointer border ${
+                      aria-pressed={ativo}
+                      className={`inline-flex items-center gap-1.5 min-h-8 px-[13px] rounded-full text-[12px] font-bold shrink-0 transition-colors cursor-pointer border [&_svg]:w-3.5 [&_svg]:h-3.5 ${
                         ativo
-                          ? 'bg-accent-soft text-accent-ink border-accent/40 font-black'
-                          : 'bg-surface border-border-subtle text-ink-muted hover:text-ink hover:border-ink-faint'
+                          ? 'bg-ink border-ink text-ink-contrast shadow-card'
+                          : 'bg-surface border-border-subtle text-ink-muted hover:text-ink hover:border-accent/60'
                       }`}
                     >
                       {h.icon}
@@ -3599,259 +3440,284 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
             </div>
 
             {/* ── GRADE DINÂMICA DE JOGOS ── */}
-            <ul id="grade-de-jogos" className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 list-none m-0 p-0">
-              {/* Clássicos Filtrados */}
-              {jogosClassicosFiltrados.map((j, i) => {
-                const liberado = j.estado.ok;
-                const prontosNestaLista = jogosClassicosFiltrados.filter((item) => item.estado.ok);
-                const presosNestaLista = jogosClassicosFiltrados.filter((item) => !item.estado.ok);
-                const abreOSegundoGrupo = i === prontosNestaLista.length && presosNestaLista.length > 0;
+            <TituloDeSecao
+              icone={CirclePlay}
+              titulo={t('Prontos para jogar')}
+              className="mt-2"
+              direita={
+                <ul
+                  className="hidden sm:flex items-center gap-3 list-none m-0 p-0 text-[11.5px] text-ink-muted"
+                  aria-label={t('A cor diz o que o jogo treina')}
+                >
+                  {FAMILIAS.map((f) => (
+                    <li key={f.rotulo} className="flex items-center gap-1.5">
+                      <span className="w-2.5 h-2.5 rounded-[3px] shrink-0" style={{ background: f.tom }} aria-hidden />
+                      {f.rotulo}
+                    </li>
+                  ))}
+                </ul>
+              }
+            />
+            <div role="tabpanel" id={`painel-${categoriaAtiva}`} aria-labelledby={`aba-${categoriaAtiva}`}>
+              <ul id="grade-de-jogos" className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 list-none m-0 p-0">
+                {/* Clássicos Filtrados */}
+                {jogosClassicosFiltrados.map((j, i) => {
+                  const liberado = j.estado.ok;
+                  const prontosNestaLista = jogosClassicosFiltrados.filter((item) => item.estado.ok);
+                  const presosNestaLista = jogosClassicosFiltrados.filter((item) => !item.estado.ok);
+                  const abreOSegundoGrupo = i === prontosNestaLista.length && presosNestaLista.length > 0;
 
-                return (
-                  <React.Fragment key={j.chave}>
-                    {abreOSegundoGrupo && (
-                      <li className="col-span-full list-none mt-4 mb-1">
-                        <h3 className="font-display font-bold text-[15px] text-ink">
-                          {t('Precisam de outro material')}
-                        </h3>
-                        <p className="text-[12.5px] text-ink-muted mt-0.5 max-w-[64ch]">
-                          {t('Não estão quebrados: pedem algo que este recorte não tem. Cada um diz o que falta.')}
-                        </p>
-                      </li>
-                    )}
-                    <li className="contents">
-                      <div
-                        className={`card-panel text-start flex flex-col overflow-hidden transition-all relative group ${
-                          liberado
-                            ? 'bg-surface hover:border-accent hover:-translate-y-1 hover:shadow-card'
-                            : 'bg-canvas border-dashed'
-                        }`}
-                      >
-                        <span
-                          className="block w-full aspect-[16/7] border-b border-border-subtle overflow-hidden"
-                          style={{
-                            background: `color-mix(in srgb, ${tomDoJogo(j.id)} ${liberado ? 9 : 4}%, var(--canvas))`,
-                          }}
-                          aria-hidden
+                  return (
+                    <React.Fragment key={j.chave}>
+                      {abreOSegundoGrupo && (
+                        <li className="col-span-full list-none mt-4 mb-1">
+                          <h3 className="font-display font-bold text-[15px] text-ink">
+                            {t('Precisam de outro material')}
+                          </h3>
+                          <p className="text-[12.5px] text-ink-muted mt-0.5 max-w-[64ch]">
+                            {t('Não estão quebrados: pedem algo que este recorte não tem. Cada um diz o que falta.')}
+                          </p>
+                        </li>
+                      )}
+                      <li className="contents">
+                        <div
+                          className={`card-panel text-start flex flex-col overflow-hidden transition-all relative group ${
+                            liberado
+                              ? 'bg-surface hover:border-accent hover:-translate-y-1 hover:shadow-card'
+                              : 'bg-canvas border-dashed'
+                          }`}
                         >
-                          <ArteDoJogo jogo={j.id} />
-                        </span>
+                          <span
+                            className="block w-full aspect-[16/7] border-b border-border-subtle overflow-hidden"
+                            style={{
+                              background: `color-mix(in srgb, ${tomDoJogo(j.id)} ${liberado ? 9 : 4}%, var(--canvas))`,
+                            }}
+                            aria-hidden
+                          >
+                            <ArteDoJogo jogo={j.id} />
+                          </span>
 
-                        <span className="p-4 flex flex-col flex-1 gap-1">
-                          <span className="flex items-start justify-between gap-2">
-                            <span className="flex items-center gap-2">
-                              <span
-                                className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${
-                                  liberado ? 'bg-surface text-ink' : 'bg-surface-hover text-ink-muted'
-                                }`}
-                                aria-hidden
-                              >
-                                {liberado ? j.icone : <Lock className="w-3.5 h-3.5" />}
-                              </span>
-                              <h3 className="font-display font-bold text-[14.5px] text-ink leading-tight">
-                                <button
-                                  type="button"
-                                  disabled={!liberado}
-                                  onClick={() => {
-                                    triggerHaptic('soft');
-                                    playJuicedHit(1);
-                                    pedirParaJogar(j);
-                                  }}
-                                  className={`text-start font-bold ${
-                                    liberado
-                                      ? 'cursor-pointer text-ink hover:text-accent after:absolute after:inset-0 focus-visible:outline-2 focus-visible:outline-accent'
-                                      : 'cursor-not-allowed text-ink-muted'
+                          <span className="p-4 flex flex-col flex-1 gap-1">
+                            <span className="flex items-start justify-between gap-2">
+                              <span className="flex items-center gap-2">
+                                <span
+                                  className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${
+                                    liberado ? 'bg-surface text-ink' : 'bg-surface-hover text-ink-muted'
                                   }`}
+                                  aria-hidden
                                 >
-                                  {tituloDoJogo(j, ageProfile)}
+                                  {liberado ? j.icone : <Lock className="w-3.5 h-3.5" />}
+                                </span>
+                                <h3 className="font-display font-bold text-[14.5px] text-ink leading-tight">
+                                  <button
+                                    type="button"
+                                    disabled={!liberado}
+                                    onClick={() => {
+                                      triggerHaptic('soft');
+                                      playJuicedHit(1);
+                                      pedirParaJogar(j);
+                                    }}
+                                    className={`text-start font-bold ${
+                                      liberado
+                                        ? 'cursor-pointer text-ink hover:text-accent after:absolute after:inset-0 focus-visible:outline-2 focus-visible:outline-accent'
+                                        : 'cursor-not-allowed text-ink-muted'
+                                    }`}
+                                  >
+                                    {tituloDoJogo(j, ageProfile)}
+                                  </button>
+                                </h3>
+                              </span>
+
+                              {liberado && pularSempre && (
+                                <button
+                                  onClick={() => pedirParaJogar(j, true)}
+                                  className="relative z-10 min-w-6 min-h-6 inline-flex items-center justify-center rounded-lg text-ink-faint hover:text-accent hover:bg-surface-hover cursor-pointer shrink-0 opacity-0 group-hover:opacity-100 focus:opacity-100 focus-visible:opacity-100 [@media(hover:none)]:opacity-100 transition-opacity"
+                                  title={t('Ver a prévia desta rodada antes de começar')}
+                                  aria-label={`${t('Prévia da rodada')}: ${tituloDoJogo(j, ageProfile)}`}
+                                >
+                                  <ListChecks className="w-4 h-4" />
                                 </button>
-                              </h3>
+                              )}
+
+                              <button
+                                onClick={() => setExplicando(j.id)}
+                                className="relative z-10 min-w-6 min-h-6 inline-flex items-center justify-center rounded-lg text-ink-faint hover:text-accent hover:bg-surface-hover cursor-pointer shrink-0 opacity-0 group-hover:opacity-100 focus:opacity-100 focus-visible:opacity-100 [@media(hover:none)]:opacity-100 transition-opacity"
+                                title={t('Como se joga')}
+                                aria-label={`${t('Como se joga')}: ${tituloDoJogo(j, ageProfile)}`}
+                              >
+                                <HelpCircle className="w-4 h-4" />
+                              </button>
                             </span>
 
-                            {liberado && pularSempre && (
-                              <button
-                                onClick={() => pedirParaJogar(j, true)}
-                                className="relative z-10 min-w-6 min-h-6 inline-flex items-center justify-center rounded-lg text-ink-faint hover:text-accent hover:bg-surface-hover cursor-pointer shrink-0 opacity-0 group-hover:opacity-100 focus:opacity-100 focus-visible:opacity-100 [@media(hover:none)]:opacity-100 transition-opacity"
-                                title={t('Ver a prévia desta rodada antes de começar')}
-                                aria-label={`${t('Prévia da rodada')}: ${tituloDoJogo(j, ageProfile)}`}
-                              >
-                                <ListChecks className="w-4 h-4" />
-                              </button>
+                            {modoOrganizar && (
+                              <span className="relative z-10 flex items-center gap-1 pt-1">
+                                {[
+                                  {
+                                    icone: <ChevronLeft className="w-3.5 h-3.5" />,
+                                    dir: -1 as const,
+                                    rot: t('Mover para a esquerda'),
+                                  },
+                                  {
+                                    icone: <ChevronRight className="w-3.5 h-3.5" />,
+                                    dir: 1 as const,
+                                    rot: t('Mover para a direita'),
+                                  },
+                                ].map(({ icone, dir, rot }) => (
+                                  <button
+                                    key={dir}
+                                    onClick={() => mexerNaOrdem(mover(ordem, idsVisiveis, j.id, dir))}
+                                    className="min-w-6 min-h-6 inline-flex items-center justify-center rounded-md text-ink-faint hover:text-accent hover:bg-surface-hover cursor-pointer"
+                                    title={rot}
+                                    aria-label={`${rot}: ${tituloDoJogo(j, ageProfile)}`}
+                                  >
+                                    {icone}
+                                  </button>
+                                ))}
+                                <button
+                                  aria-pressed={ordem.fixados.includes(j.id)}
+                                  onClick={() => mexerNaOrdem(alternarFixado(ordem, j.id))}
+                                  className={`min-w-6 min-h-6 inline-flex items-center justify-center rounded-md cursor-pointer hover:bg-surface-hover ${ordem.fixados.includes(j.id) ? 'text-accent' : 'text-ink-faint hover:text-accent'}`}
+                                  title={ordem.fixados.includes(j.id) ? t('Desafixar do topo') : t('Fixar no topo')}
+                                  aria-label={`${ordem.fixados.includes(j.id) ? t('Desafixar') : t('Fixar no topo')}: ${tituloDoJogo(j, ageProfile)}`}
+                                >
+                                  <Pin
+                                    className={`w-3.5 h-3.5 ${ordem.fixados.includes(j.id) ? 'fill-current' : ''}`}
+                                  />
+                                </button>
+                              </span>
                             )}
 
-                            <button
-                              onClick={() => setExplicando(j.id)}
-                              className="relative z-10 min-w-6 min-h-6 inline-flex items-center justify-center rounded-lg text-ink-faint hover:text-accent hover:bg-surface-hover cursor-pointer shrink-0 opacity-0 group-hover:opacity-100 focus:opacity-100 focus-visible:opacity-100 [@media(hover:none)]:opacity-100 transition-opacity"
-                              title={t('Como se joga')}
-                              aria-label={`${t('Como se joga')}: ${tituloDoJogo(j, ageProfile)}`}
-                            >
-                              <HelpCircle className="w-4 h-4" />
-                            </button>
-                          </span>
-
-                          {modoOrganizar && (
-                            <span className="relative z-10 flex items-center gap-1 pt-1">
-                              {[
-                                {
-                                  icone: <ChevronLeft className="w-3.5 h-3.5" />,
-                                  dir: -1 as const,
-                                  rot: t('Mover para a esquerda'),
-                                },
-                                {
-                                  icone: <ChevronRight className="w-3.5 h-3.5" />,
-                                  dir: 1 as const,
-                                  rot: t('Mover para a direita'),
-                                },
-                              ].map(({ icone, dir, rot }) => (
-                                <button
-                                  key={dir}
-                                  onClick={() => mexerNaOrdem(mover(ordem, idsVisiveis, j.id, dir))}
-                                  className="min-w-6 min-h-6 inline-flex items-center justify-center rounded-md text-ink-faint hover:text-accent hover:bg-surface-hover cursor-pointer"
-                                  title={rot}
-                                  aria-label={`${rot}: ${tituloDoJogo(j, ageProfile)}`}
-                                >
-                                  {icone}
-                                </button>
-                              ))}
-                              <button
-                                aria-pressed={ordem.fixados.includes(j.id)}
-                                onClick={() => mexerNaOrdem(alternarFixado(ordem, j.id))}
-                                className={`min-w-6 min-h-6 inline-flex items-center justify-center rounded-md cursor-pointer hover:bg-surface-hover ${ordem.fixados.includes(j.id) ? 'text-accent' : 'text-ink-faint hover:text-accent'}`}
-                                title={ordem.fixados.includes(j.id) ? t('Desafixar do topo') : t('Fixar no topo')}
-                                aria-label={`${ordem.fixados.includes(j.id) ? t('Desafixar') : t('Fixar no topo')}: ${tituloDoJogo(j, ageProfile)}`}
-                              >
-                                <Pin className={`w-3.5 h-3.5 ${ordem.fixados.includes(j.id) ? 'fill-current' : ''}`} />
-                              </button>
+                            <span className="text-[12px] text-ink-muted leading-snug">
+                              {descricaoDoJogo(j, ageProfile, fonte.id === 'trilha')}
                             </span>
-                          )}
 
-                          <span className="text-[12px] text-ink-muted leading-snug">
-                            {descricaoDoJogo(j, ageProfile, fonte.id === 'trilha')}
-                          </span>
-
-                          {!liberado &&
-                            (() => {
-                              const porta = comoDesbloquear(j.estado, contextoDoDesbloqueio);
-                              if (!porta) return null;
-                              return (
-                                <button
-                                  onClick={() => abrirPorta(porta)}
-                                  /* Ação NEUTRA de propósito. Com 18 jogos presos num recorte pequeno, um
+                            {!liberado &&
+                              (() => {
+                                const porta = comoDesbloquear(j.estado, contextoDoDesbloqueio);
+                                if (!porta) return null;
+                                return (
+                                  <button
+                                    onClick={() => abrirPorta(porta)}
+                                    /* Ação NEUTRA de propósito. Com 18 jogos presos num recorte pequeno, um
                                      chip laranja em cada cartão pintava a tela inteira de cor de ação —
                                      e justamente nos jogos que a pessoa AINDA NÃO pode jogar. O laranja
                                      cheio fica só na "Partida Rápida", a ação primária da tela (é o que
                                      o design faz: `btnGhost` no cartão bloqueado). */
-                                  className="relative z-10 mt-auto self-start inline-flex items-center gap-1.5 rounded-lg border border-border-subtle bg-surface px-2.5 py-1.5 text-[11.5px] font-bold text-ink-muted hover:border-accent hover:text-accent-ink cursor-pointer"
-                                >
-                                  {porta.rotulo} <ChevronRight className="w-3.5 h-3.5" aria-hidden />
-                                </button>
-                              );
-                            })()}
+                                    className="relative z-10 mt-auto self-start inline-flex items-center gap-1.5 rounded-lg border border-border-subtle bg-surface px-2.5 py-1.5 text-[11.5px] font-bold text-ink-muted hover:border-accent hover:text-accent-ink cursor-pointer"
+                                  >
+                                    {porta.rotulo} <ChevronRight className="w-3.5 h-3.5" aria-hidden />
+                                  </button>
+                                );
+                              })()}
 
-                          <span
-                            className={`text-[11px] pt-1 ${liberado ? 'font-bold mt-auto text-good-ink' : 'text-ink-muted'}`}
-                          >
-                            {(() => {
-                              const unidade = (n: number) =>
-                                j.estado.fonte === 'falas' ? tp(n, 'fala', 'falas') : tp(n, 'palavra', 'palavras');
-                              if (liberado) {
-                                const total = ('pool' in j.estado ? j.estado.pool : undefined) ?? j.estado.disponiveis;
-                                const naRodada = j.estado.tamanhoDaRodada;
-                                return naRodada < total
-                                  ? t('{n} nesta rodada · {total} disponíveis', { n: naRodada, total })
-                                  : t('{n} {unidade} nesta rodada', { n: naRodada, unidade: unidade(naRodada) });
-                              }
-                              const motivo = 'motivo' in j.estado ? j.estado.motivo : undefined;
-                              if (motivo === 'trilha-sem-frase') {
-                                return ageProfile === 'kids'
-                                  ? t('a trilha tem palavras, não frases')
-                                  : t('a trilha tem palavras soltas, este jogo precisa de frase; escolha uma gravação');
-                              }
-                              if (motivo === 'sem-voz')
-                                return t('este navegador não tem voz em {idioma}', {
-                                  idioma: langLabelNaUI(fonte.lang),
-                                });
-                              /* A trilha japonesa TEM 5.181 frases: a mensagem de acervo vazio mandaria a
+                            <span
+                              className={`text-[11px] pt-1 ${liberado ? 'font-bold mt-auto text-good-ink' : 'text-ink-muted'}`}
+                            >
+                              {(() => {
+                                const unidade = (n: number) =>
+                                  j.estado.fonte === 'falas' ? tp(n, 'fala', 'falas') : tp(n, 'palavra', 'palavras');
+                                if (liberado) {
+                                  const total =
+                                    ('pool' in j.estado ? j.estado.pool : undefined) ?? j.estado.disponiveis;
+                                  const naRodada = j.estado.tamanhoDaRodada;
+                                  return naRodada < total
+                                    ? t('{n} nesta rodada · {total} disponíveis', { n: naRodada, total })
+                                    : t('{n} {unidade} nesta rodada', { n: naRodada, unidade: unidade(naRodada) });
+                                }
+                                const motivo = 'motivo' in j.estado ? j.estado.motivo : undefined;
+                                if (motivo === 'trilha-sem-frase') {
+                                  return ageProfile === 'kids'
+                                    ? t('a trilha tem palavras, não frases')
+                                    : t(
+                                        'a trilha tem palavras soltas, este jogo precisa de frase; escolha uma gravação',
+                                      );
+                                }
+                                if (motivo === 'sem-voz')
+                                  return t('este navegador não tem voz em {idioma}', {
+                                    idioma: langLabelNaUI(fonte.lang),
+                                  });
+                                /* A trilha japonesa TEM 5.181 frases: a mensagem de acervo vazio mandaria a
                          pessoa procurar uma gravação para resolver o que não é falta de material. */
-                              if (motivo === 'escrita-sem-separacao') {
-                                return ageProfile === 'kids'
-                                  ? t('em {idioma} as palavras ficam juntinhas, sem espaço', {
-                                      idioma: langLabelNaUI(fonte.lang),
-                                    })
-                                  : t(
-                                      'este jogo separa as palavras da frase, e {idioma} não marca onde cada uma começa',
-                                      { idioma: langLabelNaUI(fonte.lang) },
-                                    );
-                              }
-                              // Estado transitório e honesto: a gravação TEM som, ele está a caminho.
-                              if (motivo === 'audio-carregando') return t('baixando o áudio da gravação…');
-                              if (j.estado.fonte === 'falas' && j.estado.disponiveis === 0)
-                                return t('precisa de uma gravação com legenda');
+                                if (motivo === 'escrita-sem-separacao') {
+                                  return ageProfile === 'kids'
+                                    ? t('em {idioma} as palavras ficam juntinhas, sem espaço', {
+                                        idioma: langLabelNaUI(fonte.lang),
+                                      })
+                                    : t(
+                                        'este jogo separa as palavras da frase, e {idioma} não marca onde cada uma começa',
+                                        { idioma: langLabelNaUI(fonte.lang) },
+                                      );
+                                }
+                                // Estado transitório e honesto: a gravação TEM som, ele está a caminho.
+                                if (motivo === 'audio-carregando') return t('baixando o áudio da gravação…');
+                                if (j.estado.fonte === 'falas' && j.estado.disponiveis === 0)
+                                  return t('precisa de uma gravação com legenda');
 
-                              /* A CONTA INTEIRA, e não só o que falta.
+                                /* A CONTA INTEIRA, e não só o que falta.
                          "faltam 2 palavras" não diz de quantas nem sobre o quê, e a pessoa não tem
                          como saber se 2 palavras é perto ou longe, nem em que idioma elas contam.
                          Com "precisa de 4 · você tem 2 do espanhol", a mesma linha responde as três
                          perguntas e o caminho de saída fica óbvio: gravar mais naquele idioma. */
-                              const precisa = MINIGAMES[j.id].minItems;
-                              const falta = tp(j.estado.faltam, 'falta {n} {unidade}', 'faltam {n} {unidade}', {
-                                unidade: unidade(j.estado.faltam),
-                              });
-                              return ageProfile === 'kids'
-                                ? t('{falta} para abrir', { falta })
-                                : t('{falta} · precisa de {precisa} · você tem {tem} do {idioma}', {
-                                    falta,
-                                    precisa,
-                                    tem: j.estado.disponiveis,
-                                    idioma: langLabelNaUI(fonte.lang),
-                                  });
-                            })()}
-                          </span>
-                          {/* O RECORDE, quando existe. Vem da coluna `score`, que era gravada a cada rodada
+                                const precisa = MINIGAMES[j.id].minItems;
+                                const falta = tp(j.estado.faltam, 'falta {n} {unidade}', 'faltam {n} {unidade}', {
+                                  unidade: unidade(j.estado.faltam),
+                                });
+                                return ageProfile === 'kids'
+                                  ? t('{falta} para abrir', { falta })
+                                  : t('{falta} · precisa de {precisa} · você tem {tem} do {idioma}', {
+                                      falta,
+                                      precisa,
+                                      tem: j.estado.disponiveis,
+                                      idioma: langLabelNaUI(fonte.lang),
+                                    });
+                              })()}
+                            </span>
+                            {/* O RECORDE, quando existe. Vem da coluna `score`, que era gravada a cada rodada
                       desde a migração 0001 e nunca tinha sido lida de volta. Só aparece com jogo
                       liberado e recorde > 0: "recorde: 0" seria uma provocação sem sentido. */}
-                          {liberado && (recordeDoJogo(j.id) ?? 0) > 0 && (
-                            <span
-                              className="kpi-pill mt-1.5 self-start"
-                              title={t('Sua melhor sequência neste jogo, nesta fonte')}
-                            >
-                              <Trophy className="w-3 h-3" aria-hidden />{' '}
-                              {t('recorde {n}', { n: recordeDoJogo(j.id) ?? 0 })}
-                            </span>
-                          )}
-                        </span>
-                      </div>
-                    </li>
-                  </React.Fragment>
-                );
-              })}
+                            {liberado && (recordeDoJogo(j.id) ?? 0) > 0 && (
+                              <span
+                                className="kpi-pill mt-1.5 self-start"
+                                title={t('Sua melhor sequência neste jogo, nesta fonte')}
+                              >
+                                <Trophy className="w-3 h-3" aria-hidden />{' '}
+                                {t('recorde {n}', { n: recordeDoJogo(j.id) ?? 0 })}
+                              </span>
+                            )}
+                          </span>
+                        </div>
+                      </li>
+                    </React.Fragment>
+                  );
+                })}
 
-              {/* Estado Vazio de Busca */}
-              {jogosClassicosFiltrados.length === 0 && (
-                <li className="col-span-full list-none py-12 text-center flex flex-col items-center gap-3">
-                  <div className="w-12 h-12 rounded-2xl bg-surface border border-border-subtle flex items-center justify-center text-ink-faint">
-                    <Search className="w-6 h-6" />
-                  </div>
-                  <p className="font-bold text-ink text-[15px]">{t('Nenhum jogo encontrado')}</p>
-                  <p className="text-[12.5px] text-ink-muted max-w-sm">
-                    {t('Tente buscar por outro termo ou ajuste os filtros de categoria e habilidade.')}
-                  </p>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setBuscaJogos('');
-                      setFiltroHabilidade('todas');
-                      setCategoriaAtiva('todos');
-                      triggerHaptic('soft');
-                      playJuicedHit(1);
-                    }}
-                    className="px-4 py-2 rounded-xl bg-surface border border-border-subtle hover:border-accent text-[12px] font-bold text-ink cursor-pointer transition-colors"
-                  >
-                    {t('Limpar filtros e busca')}
-                  </button>
-                </li>
-              )}
-            </ul>
+                {/* Estado Vazio de Busca */}
+                {jogosClassicosFiltrados.length === 0 && (
+                  <li className="col-span-full list-none py-12 text-center flex flex-col items-center gap-3">
+                    <div className="w-12 h-12 rounded-2xl bg-surface border border-border-subtle flex items-center justify-center text-ink-faint">
+                      <Search className="w-6 h-6" />
+                    </div>
+                    <p className="font-bold text-ink text-[15px]">{t('Nenhum jogo encontrado')}</p>
+                    <p className="text-[12.5px] text-ink-muted max-w-sm">
+                      {t('Tente buscar por outro termo ou ajuste os filtros de categoria e habilidade.')}
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setBuscaJogos('');
+                        setFiltroHabilidade('todas');
+                        setCategoriaAtiva('todos');
+                        triggerHaptic('soft');
+                        playJuicedHit(1);
+                      }}
+                      className="px-4 py-2 rounded-xl bg-surface border border-border-subtle hover:border-accent text-[12px] font-bold text-ink cursor-pointer transition-colors"
+                    >
+                      {t('Limpar filtros e busca')}
+                    </button>
+                  </li>
+                )}
+              </ul>
+            </div>
           </>
         )}
 

@@ -39,7 +39,7 @@ export default function CabecalhoDeTela({
   className = '',
 }: CabecalhoDeTelaProps) {
   return (
-    <header className={`mb-8 ${className}`}>
+    <header className={`mb-7 ${className}`}>
       {voltar && (
         <button
           type="button"
@@ -58,10 +58,10 @@ export default function CabecalhoDeTela({
               <span>{sobrancelha}</span>
             </span>
           )}
-          <h1 className="font-display font-black text-2xl md:text-[30px] leading-tight text-ink tracking-tight mt-1 text-balance">
+          <h1 className="font-display font-black text-[25px] md:text-[30px] leading-[1.12] tracking-[-0.02em] [word-spacing:0.06em] text-ink my-1.5 text-balance">
             {titulo}
           </h1>
-          {sub && <p className="text-ink-muted text-sm mt-1.5 max-w-[64ch]">{sub}</p>}
+          {sub && <p className="text-ink-muted text-sm max-w-[64ch]">{sub}</p>}
         </div>
         {acoes && <div className="flex flex-wrap items-center gap-2">{acoes}</div>}
       </div>

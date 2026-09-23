@@ -28,11 +28,11 @@ export default function TituloDeSecao({
 }: TituloDeSecaoProps) {
   const Tag = nivel;
   return (
-    <div className={`flex flex-wrap items-end justify-between gap-3 mb-4 ${className}`}>
-      <div className="min-w-0">
+    <div className={`flex flex-wrap items-end justify-between gap-3 mb-3.5 ${className}`}>
+      <div className="min-w-0 flex-[1_1_320px]">
         <div className="flex items-center gap-2 text-ink">
-          {Icone && <Icone className="w-[18px] h-[18px] shrink-0 text-accent-ink" aria-hidden />}
-          <Tag className="font-display font-extrabold text-lg leading-tight">{titulo}</Tag>
+          {Icone && <Icone className="w-5 h-5 shrink-0" aria-hidden />}
+          <Tag className="font-display font-bold text-lg leading-[1.25]">{titulo}</Tag>
         </div>
         {desc && <p className="text-[13px] text-ink-muted mt-1 max-w-[70ch]">{desc}</p>}
       </div>

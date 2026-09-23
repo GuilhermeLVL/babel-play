@@ -146,14 +146,13 @@ export default function Hub({ onChangeView, recordings, ageProfile = 'pro', prog
 
   return (
     <Tela largura="larga">
-      {/* Cabeçalho — a linguagem muda por perfil; a estrutura, não.
-          NO PERFIL `pro` FICA SÓ O TÍTULO (referência de design): o rótulo "Seu estudo" e a frase de
-          apoio repetiam, em duas linhas fixas, o que os três cartões logo abaixo já dizem. Kids e
-          sênior MANTÊM os dois: ali a orientação antes da grade é o que guia quem está começando. */}
+      {/* Cabeçalho — a linguagem muda por perfil; a estrutura, não. O protótipo aprovado
+          (23/09/2026) devolve ao perfil `pro` o rótulo "Seu estudo" e a frase de apoio: com eles
+          o Início abre igual às outras telas (sobrancelha, título, apoio). */}
       <CabecalhoDeTela
-        icone={ageProfile === 'kids' ? Gamepad2 : Eye}
+        icone={ageProfile === 'kids' ? Gamepad2 : ageProfile === 'senior' ? Eye : Sparkles}
         sobrancelha={
-          ageProfile === 'pro' ? undefined : ageProfile === 'kids' ? t('Central do jogador') : t('Aprendizado fácil')
+          ageProfile === 'kids' ? t('Central do jogador') : ageProfile === 'senior' ? t('Aprendizado fácil') : t('Seu estudo')
         }
         titulo={
           ageProfile === 'kids'
@@ -163,11 +162,9 @@ export default function Hub({ onChangeView, recordings, ageProfile = 'pro', prog
               : t('O que você quer fazer?')
         }
         sub={
-          ageProfile === 'pro'
-            ? undefined
-            : ageProfile === 'kids'
-              ? t('Três frentes para evoluir: gravar, praticar e cultivar palavras.')
-              : t('Escolha um dos três passos abaixo. Cada um leva a uma tela só, com o que precisa.')
+          ageProfile === 'kids'
+            ? t('Três frentes para evoluir: gravar, praticar e cultivar palavras.')
+            : t('Escolha um dos três passos abaixo. Cada um leva a uma tela só, com o que precisa.')
         }
       />
 

@@ -1,6 +1,7 @@
 import { PanelLeftClose, PanelLeftOpen } from 'lucide-react';
 import React, { useCallback, useEffect, useState } from 'react';
 
+import { t } from '../../lib/i18n';
 import type { DerivedProgress } from '../../lib/progress';
 import type { ViewType } from '../../types';
 import ControlCluster, { type ControlClusterProps } from './ControlCluster';
@@ -74,11 +75,51 @@ export default function NavRail({ activeView, onChangeView, ageProfile, side, co
     };
   }, [side, collapsed]);
 
+  const renderItem = (item: (typeof NAV_ITEMS)[number]) => {
+    const isActive = activeView === item.id;
+    const Icon = item.icon;
+    const label = navLabel(item, ageProfile);
+    return (
+      <button
+        key={item.id}
+        type="button"
+        onClick={() => onChangeView(item.id)}
+        onMouseEnter={mostrarDica(label)}
+        onMouseLeave={() => setDica(null)}
+        onFocus={mostrarDica(label)}
+        onBlur={() => setDica(null)}
+        aria-label={label}
+        aria-current={isActive ? 'page' : undefined}
+        className={`group relative w-full min-h-[42px] flex items-center gap-3 rounded-xl font-display font-bold text-[13.5px] cursor-pointer transition-colors ${
+          collapsed ? 'justify-center px-0' : 'px-3'
+        } ${
+          isActive
+            ? 'bg-accent-soft text-accent-ink shadow-[inset_0_0_0_1px_color-mix(in_srgb,var(--accent)_16%,transparent)]'
+            : 'text-ink-muted hover:text-ink hover:bg-surface-hover'
+        }`}
+      >
+        {isActive && (
+          <span
+            aria-hidden
+            className={`absolute top-[11px] bottom-[11px] w-[3px] bg-accent shadow-[0_0_8px_color-mix(in_srgb,var(--accent)_60%,transparent)] ${
+              side === 'right' ? '-right-2 rounded-s-[3px]' : '-left-2 rounded-e-[3px]'
+            }`}
+          />
+        )}
+        <Icon
+          className="w-[18px] h-[18px] shrink-0 transition-transform duration-200 group-hover:translate-x-px"
+          aria-hidden
+        />
+        {!collapsed && <span className="truncate">{label}</span>}
+      </button>
+    );
+  };
+
   return (
     <aside
       id="menu-lateral"
       data-shell="rail"
-      className={`hidden md:flex ${width} ${border} border-border-subtle/70 h-full flex-col bg-surface/80 backdrop-blur-sm z-20 shrink-0 select-none transition-[width] duration-200`}
+      className={`hidden md:flex ${width} ${border} border-border-subtle/70 h-full flex-col bg-[linear-gradient(180deg,var(--surface)_0%,color-mix(in_srgb,var(--surface)_70%,var(--canvas))_100%)] z-20 shrink-0 select-none transition-[width] duration-200`}
     >
       {/* Marca + recolher, na mesma linha de base do conteúdo */}
       <div
@@ -103,40 +144,22 @@ export default function NavRail({ activeView, onChangeView, ageProfile, side, co
       {/* Navegação — com rolagem própria: com a fonte no XL, seis itens já não cabiam. */}
       <nav
         aria-label="Navegação principal"
-        className="flex-1 min-h-0 overflow-y-auto custom-scrollbar py-3 px-2 space-y-1"
+        className="flex-1 min-h-0 overflow-y-auto overflow-x-visible custom-scrollbar py-2.5 px-2 flex flex-col gap-0.5"
       >
-        {NAV_ITEMS.map((item) => {
-          const isActive = activeView === item.id;
-          const Icon = item.icon;
-          const label = navLabel(item, ageProfile);
-          return (
-            <button
-              key={item.id}
-              type="button"
-              onClick={() => onChangeView(item.id)}
-              onMouseEnter={mostrarDica(label)}
-              onMouseLeave={() => setDica(null)}
-              onFocus={mostrarDica(label)}
-              onBlur={() => setDica(null)}
-              aria-label={label}
-              aria-current={isActive ? 'page' : undefined}
-              className={`relative w-full min-h-[44px] flex items-center gap-3 rounded-xl font-display font-bold text-[13.5px] cursor-pointer transition-colors ${
-                collapsed ? 'justify-center px-0' : 'px-3'
-              } ${isActive ? 'bg-accent-soft text-accent-ink' : 'text-ink-muted hover:text-ink hover:bg-surface-hover'}`}
-            >
-              {isActive && (
-                <span
-                  aria-hidden
-                  className={`absolute top-2 bottom-2 w-1 bg-accent ${
-                    side === 'right' ? 'right-0 rounded-s-full' : 'left-0 rounded-e-full'
-                  }`}
-                />
-              )}
-              <Icon className="w-5 h-5 shrink-0" aria-hidden />
-              {!collapsed && <span className="truncate">{label}</span>}
-            </button>
-          );
-        })}
+        {NAV_ITEMS.filter((item) => !item.secondary).map(renderItem)}
+        {/* "Mais": separa as telas de uso das de descoberta e conta, como no protótipo aprovado.
+            Recolhido, o rótulo vira um fio. */}
+        <div
+          aria-hidden
+          className={
+            collapsed
+              ? 'mx-2 my-2.5 h-px bg-border-subtle'
+              : 'label-mono text-[9.5px] text-ink-muted px-3 pt-3.5 pb-1.5'
+          }
+        >
+          {!collapsed && t('Mais')}
+        </div>
+        {NAV_ITEMS.filter((item) => item.secondary).map(renderItem)}
       </nav>
 
       {/* Rodapé ancorado: utilitários */}

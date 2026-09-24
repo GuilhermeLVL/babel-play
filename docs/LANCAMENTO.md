@@ -111,6 +111,14 @@ O Asaas não tem mensalidade: cobra por transação (cartão ~R$ 0,49 + 1,99 % a
 3. No Supabase → **Authentication → SMTP Settings** → _Enable custom SMTP_: host `smtp.resend.com`,
    porta 465, usuário `resend`, senha = a chave, remetente `nao-responda@<domínio>`, nome "Babel Play".
 4. Desligar _open/click tracking_ no Resend. Aceitar o DPA.
+5. **O Resend é pré-requisito do convite ao responsável** (Fase 4: conta de menor de 16 anos fica sem
+   nuvem até o responsável aceitar o convite). Hoje o `EnviadorDeConvite`, em
+   `server/lib/conviteDoResponsavel.ts`, **só registra no log** — e em produção o link não aparece na
+   tela (`CONVITE_LINK_NA_TELA` desligado). Ou seja: **sem implementar o envio pelo Resend, nenhum
+   menor de 16 consegue liberar a conta em produção.** É uma pendência de código (pequena: um
+   `EnviadorDeConvite` que faz `POST https://api.resend.com/emails` com a chave do passo 2, lida de uma
+   variável nova), e fica marcada nas conferências do passo 10. `APP_URL=https://<domínio>` é o que
+   torna o link do convite absoluto.
 
 ## 5. Groq e OpenRouter (IA) — 20 min
 
@@ -123,8 +131,11 @@ mensal** (ex.: US$ 30) e alerta em 80 % → **Settings → Data controls → Zer
 retention"_ e _"Disable training"_ ligados (roteia só para provedores ZDR) → **Keys** → criar a
 chave com **credit limit** (ex.: US$ 10).
 
-Decida o **orçamento global** `AI_BUDGET_USD_MONTH` (soma do que aceita gastar nos dois; o app avisa
-em 80 % e desliga a IA de nuvem sozinho em 100 %).
+Decida o **orçamento global** `AI_BUDGET_USD_MONTH` (soma do que aceita gastar nos dois; sem ela o
+app usa US$ 20). O servidor estima o gasto de cada chamada (`server/lib/orcamentoDeIa.ts`): a 80 %
+sai o evento `ia_orcamento_alerta_80` e a 100 % o `ia_orcamento_esgotado` — a IA de nuvem fecha
+sozinha até o mês virar e o app volta para os modelos locais. Os dois chegam ao Sentry; a regra de
+alerta está no passo 7.
 
 ## 6. Asaas (cobrança, conta PJ) — 1 a 3 dias úteis de aprovação
 
@@ -144,7 +155,8 @@ em 80 % e desliga a IA de nuvem sozinho em 100 %).
 `babel-play-servidor` (plataforma Node) e `babel-play-navegador` (Browser JavaScript). Em cada um,
 **Settings → Security & Privacy**: _Prevent Storing of IP Addresses_ **ligado**, _Data Scrubber_
 **ligado**, _Use Default Scrubbers_ **ligado**. Anotar os dois **DSN**. Em **Alerts**: e-mail em
-issue nova. Aceitar o DPA.
+issue nova, e uma regra no projeto do servidor para `tags.event` igual a `ia_orcamento_alerta_80`,
+`ia_orcamento_esgotado` ou `backup_diario_falhou` → e-mail imediato. Aceitar o DPA.
 
 **UptimeRobot:** uptimerobot.com → conta → três itens:
 
@@ -174,7 +186,7 @@ https://<domínio>/api/health` (liga o `uptime.yml`, o segundo par de olhos, que
      LITESTREAM_ACCESS_KEY_ID=... LITESTREAM_SECRET_ACCESS_KEY=... \
      LLM_BASE_URL=https://api.groq.com/openai/v1 LLM_API_KEY=... LLM_MODEL=openai/gpt-oss-120b \
      LLM_RESERVA_BASE_URL=https://openrouter.ai/api/v1 LLM_RESERVA_API_KEY=... LLM_RESERVA_MODEL=openai/gpt-oss-120b \
-     AI_BUDGET_USD_MONTH=40 SENTRY_DSN=...
+     AI_BUDGET_USD_MONTH=40 APP_URL=https://<domínio> SENTRY_DSN=...
    ```
    Gere `SECRET_KEY` e `ORIGEM_SEGREDO` com
    `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"` e guarde **as duas no
@@ -222,6 +234,11 @@ https://<domínio>/api/health` (liga o `uptime.yml`, o segundo par de olhos, que
 - [ ] Aceitar os DPAs e marcar `docs/lgpd/operadores.md`; atualizar a política de privacidade com os
       operadores novos (a lista está lá).
 - [ ] Ligar alerta de fatura no Fly, no Supabase e no Sentry.
+- [ ] **Convite ao responsável por e-mail implementado** (passo 4.5) e testado com uma conta de 15 anos:
+      o e-mail chega, o responsável aceita e a conta libera a nuvem. **Sem isso, não abra para menores.**
+- [ ] Testar as três chaves de emergência no staging: `AI_ENABLED=0` (tradução cai para o local),
+      `CHECKOUT_ENABLED=0` (assinar responde 503 com mensagem), `SIGNUP_ENABLED=0` (conta nova recebe
+      `cadastro_fechado`; desligar também o cadastro no painel do Supabase).
 
 ## 11. Rotina depois do lançamento
 
@@ -232,5 +249,12 @@ https://<domínio>/api/health` (liga o `uptime.yml`, o segundo par de olhos, que
 | todo mês         | restaurar o Litestream à mão (runbook §0.2-A) e anotar; conferir as faturas contra esta tabela     |
 | a cada trimestre | `node scripts/modelos/revisoes.mjs` (modelos novos no Hub?); revisar a RoPA (`docs/lgpd/ropa.csv`) |
 
-Chaves de emergência (runbook §0): `AI_ENABLED=0`, `CHECKOUT_ENABLED=0`, `SIGNUP_ENABLED=0` —
-`fly secrets set` e a máquina reinicia em ~20 s.
+Chaves de emergência (runbook §0), todas por `fly secrets set NOME=0 --app babel-play` (a máquina
+reinicia em ~20 s; volte com `1`):
+
+| chave                       | efeito                                                                                     |
+| --------------------------- | ------------------------------------------------------------------------------------------ |
+| `AI_ENABLED=0`              | desliga toda IA de nuvem (tradução, transcrição, tutor); o app segue com os modelos locais |
+| `CHECKOUT_ENABLED=0`        | fecha assinar e comprar; quem já paga segue com o plano                                    |
+| `SIGNUP_ENABLED=0`          | recusa contas novas (`cadastro_fechado`); desligue também o cadastro no Supabase           |
+| `AI_BUDGET_USD_MONTH=<US$>` | o teto do mês; alerta em 80 %, fecha a nuvem em 100 %                                      |

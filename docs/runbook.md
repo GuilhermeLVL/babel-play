@@ -26,14 +26,24 @@ vão pedir a linha do tempo.
 **2. CONTER — as chaves de emergência** (cada uma é `fly secrets set X=… --app babel-play`; o Fly
 reinicia a máquina em ~20 s):
 
-| situação                                                       | chave                                                                      |
-| -------------------------------------------------------------- | -------------------------------------------------------------------------- |
-| IA gastando demais, abuso de prompt, provedor respondendo lixo | `AI_ENABLED=0` (o app volta para os modelos locais)                        |
-| cobrança errada, webhook suspeito, preço errado na tela        | `CHECKOUT_ENABLED=0` (quem já assina segue)                                |
-| enxurrada de contas falsas, ataque de cadastro                 | `SIGNUP_ENABLED=0`                                                         |
-| deploy novo quebrou                                            | rollback (§0.3)                                                            |
-| suspeita de vazamento de chave                                 | trocar a chave NO PROVEDOR primeiro, depois `fly secrets set` (§6)         |
-| tráfego hostil                                                 | Cloudflare → Security → "Under Attack Mode"; bloquear o país/ASN/IP na WAF |
+| situação                                                       | chave                                               |
+| -------------------------------------------------------------- | --------------------------------------------------- |
+| IA gastando demais, abuso de prompt, provedor respondendo lixo | `AI_ENABLED=0` (o app volta para os modelos locais) |
+| cobrança errada, webhook suspeito, preço errado na tela        | `CHECKOUT_ENABLED=0` (quem já assina segue)         |
+| enxurrada de contas falsas, ataque de cadastro                 | `SIGNUP_ENABLED=0`                                  |
+
+O que cada chave faz, exatamente (as três ficam no inventário `server/lib/config.ts`; ausente = ligada):
+
+- `AI_ENABLED=0` — desliga TODA IA de nuvem na hora (tradução, transcrição, tutor em `/api/tutor/chat`,
+  com `/api/gemini/chat` como alias temporário); o app segue com os modelos locais. Volte com `1`.
+- `CHECKOUT_ENABLED=0` — assinar e comprar respondem 503 com mensagem clara; quem já paga continua
+  com o plano e o webhook do Asaas continua processando o que chegar.
+- `SIGNUP_ENABLED=0` — conta que o banco ainda não conhece recebe 403 `cadastro_fechado` em qualquer
+  rota e a tela esconde `Criar conta`. **Desligue também o cadastro no painel do Supabase**
+  (Authentication → Providers → _Allow new users to sign up_), senão o login cria a identidade lá.
+  | deploy novo quebrou | rollback (§0.3) |
+  | suspeita de vazamento de chave | trocar a chave NO PROVEDOR primeiro, depois `fly secrets set` (§6) |
+  | tráfego hostil | Cloudflare → Security → "Under Attack Mode"; bloquear o país/ASN/IP na WAF |
 
 **3. COMUNICAR.**
 
@@ -123,14 +133,30 @@ sobre um banco migrado continua funcionando enquanto a migração nova só ACRES
 | **Fly.io** (região GRU)  | fora do ar                                                                           | status.flyio.net; se passar de 2 h, subir em outra região restaurando do Litestream (volume novo + `fly deploy`)                           |
 | **Cloudflare**           | fora do ar                                                                           | status do Cloudflare; em último caso, DNS direto para o Fly (tira o WAF: religue assim que voltar) e remova `ORIGEM_SEGREDO` enquanto isso |
 | **R2**                   | áudio novo não grava (`/api/ready` 503 → a máquina sai do roteamento); backup atrasa | página de status; o banco segue local no volume e o Litestream reenvia quando o R2 voltar                                                  |
+| **Resend** (e-mail)      | e-mail de confirmação, recuperação de senha e o convite ao responsável não chegam    | status do Resend; o Supabase reenvia pelo botão "reenviar"; se passar de horas, troque o SMTP do Supabase para outro provedor (SES)        |
 
-### 0.5 Custo fora do previsto
+### 0.5 Custo fora do previsto — o orçamento de IA
 
-Painel do Groq (teto mensal ligado) e da OpenRouter (crédito pré-pago) mandam e-mail ao chegar
-perto do limite; o orçamento global `AI_BUDGET_USD_MONTH` desliga a IA sozinho em 100 %. Fly,
-Supabase e Sentry têm alerta de fatura no painel — ligue os três (LANCAMENTO.md).
+`AI_BUDGET_USD_MONTH` é o teto de gasto **estimado** com IA de nuvem no mês, em US$ (padrão US$ 20 no
+modo público; `0` desliga a nuvem). Cada chamada entregue soma tokens ou segundos × preço do modelo
+na tabela `gasto_de_ia` (`server/lib/orcamentoDeIa.ts`; preços embutidos, sobreponíveis por
+`AI_PRECOS_MODELOS`). Dois eventos de log, um de cada por mês:
 
----
+| evento                   | nível | o que significa                                                                  | alerta                                                                   |
+| ------------------------ | ----- | -------------------------------------------------------------------------------- | ------------------------------------------------------------------------ |
+| `ia_orcamento_alerta_80` | warn  | 80 % do orçamento gasto                                                          | chega ao Sentry como _warning_ (é um dos `AVISOS_QUE_ALERTAM` do logger) |
+| `ia_orcamento_esgotado`  | error | 100 %: a nuvem fecha sozinha até o mês virar; o app volta para os modelos locais | chega ao Sentry como _error_                                             |
+
+No Sentry, crie **uma regra de alerta** no projeto do servidor: _"A new issue is created" OU "The
+issue changes state"_ com o filtro `tags.event` em `ia_orcamento_alerta_80, ia_orcamento_esgotado`
+→ e-mail imediato. (No Axiom, se entrar: monitor de contagem `event == "ia_orcamento_*"` > 0 em 5 min.)
+
+Ao receber o de 80 %: olhe o painel do Groq/OpenRouter (quem está gastando? abuso?) e decida entre
+subir o orçamento (`fly secrets set AI_BUDGET_USD_MONTH=…`) ou deixar fechar. O teto do painel do
+Groq e o crédito pré-pago sem recarga da OpenRouter são a segunda e a terceira barreira: mesmo que a
+estimativa erre, o provedor corta.
+
+## Fly, Supabase e Sentry têm alerta de fatura no painel — ligue os três (LANCAMENTO.md).
 
 ## 1. As duas perguntas de saúde, e por que são duas
 
@@ -293,11 +319,11 @@ entrada só, a constante de teste `segredo-e2e-hs256-marco1`, que nunca foi chav
 
 ## 7. Limites que respondem 429, e o que cada um protege
 
-| balde                                                 | teto               | chave  | protege              |
-| ----------------------------------------------------- | ------------------ | ------ | -------------------- |
-| autenticação                                          | 30 falhas / 15 min | IP     | adivinhação de token |
-| rotas caras (`/api/ai`, `/api/import`, `/api/gemini`) | 60 / min           | tenant | gasto com terceiros  |
-| escrita (CRUD, admin, áudio)                          | 120 / min          | tenant | memória do processo  |
+| balde                                                | teto               | chave  | protege              |
+| ---------------------------------------------------- | ------------------ | ------ | -------------------- |
+| autenticação                                         | 30 falhas / 15 min | IP     | adivinhação de token |
+| rotas caras (`/api/ai`, `/api/import`, `/api/tutor`) | 60 / min           | tenant | gasto com terceiros  |
+| escrita (CRUD, admin, áudio)                         | 120 / min          | tenant | memória do processo  |
 
 Os três contam **no banco**, não no heap: em memória o teto viraria "teto × número de réplicas", e
 atrás de proxy a chave seria a do proxy, fazendo um visitante esgotar a cota de todos.

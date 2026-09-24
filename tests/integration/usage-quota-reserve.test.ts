@@ -8,7 +8,7 @@
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
 
 import { asUserId } from '../../server/lib/authContext'
-import { type EphemeralDb,setupEphemeralDb } from '../harness/ephemeralDb'
+import { type EphemeralDb, setupEphemeralDb } from '../harness/ephemeralDb'
 
 let h: EphemeralDb
 let quota: any
@@ -21,8 +21,13 @@ beforeAll(async () => {
   ;({ subscriptionsRepo: subs } = await h.load('../../server/db/repositories/subscriptions'))
   ;({ usageCountersRepo: repo } = await h.load('../../server/db/repositories/usageCounters'))
 })
-afterAll(async () => { await h.cleanup() })
-afterEach(() => { delete process.env.AUTH_REQUIRED; delete process.env.PRO_MONTHLY_MANAGED_CALLS })
+afterAll(async () => {
+  await h.cleanup()
+})
+afterEach(() => {
+  delete process.env.AUTH_REQUIRED
+  delete process.env.PRO_MONTHLY_MANAGED_CALLS
+})
 
 describe('reserveManagedCall', () => {
   it('pro abaixo do teto reserva; no teto recusa', async () => {
@@ -31,9 +36,9 @@ describe('reserveManagedCall', () => {
     const u = asUserId('rq-pro')
     await subs.upsert(u, { plan: 'pro', status: 'active' })
 
-    expect(await quota.reserveManagedCall(u)).toBe(true)   // 1/2
-    expect(await quota.reserveManagedCall(u)).toBe(true)   // 2/2
-    expect(await quota.reserveManagedCall(u)).toBe(false)  // cheio
+    expect(await quota.reserveManagedCall(u)).toBe(true) // 1/2
+    expect(await quota.reserveManagedCall(u)).toBe(true) // 2/2
+    expect(await quota.reserveManagedCall(u)).toBe(false) // cheio
   })
 
   it('free (teto 0) nunca reserva', async () => {
@@ -59,16 +64,17 @@ describe('reserveManagedCall', () => {
     expect(r.filter(Boolean)).toHaveLength(5)
   })
 
-  it('mantém o fail-OPEN: falha de infra libera a chamada (política de fair-use)', async () => {
+  it('falha FECHADA: falha de infra recusa a chamada (Fase 2 do lançamento, OWASP LLM10)', async () => {
     process.env.AUTH_REQUIRED = '1'
     process.env.PRO_MONTHLY_MANAGED_CALLS = '1'
-    const u = asUserId('rq-failopen')
+    const u = asUserId('rq-failclosed')
     await subs.upsert(u, { plan: 'pro', status: 'active' })
 
-    // Simula o banco fora do ar NA RESERVA — é o caminho que degrada aberto de propósito.
+    // Simula o banco fora do ar NA RESERVA. Liberar aqui desligava todos os tetos de uma vez;
+    // agora a reserva lança, e a rota responde 503 (ver cota-que-vale.test.ts).
     const boom = vi.spyOn(repo, 'reserve').mockRejectedValue(new Error('banco indisponível'))
     try {
-      expect(await quota.reserveManagedCall(u)).toBe(true)
+      await expect(quota.reserveManagedCall(u)).rejects.toBeInstanceOf(quota.ContadorIndisponivel)
     } finally {
       boom.mockRestore()
     }
@@ -86,6 +92,6 @@ describe('refundManagedCall', () => {
     expect(await quota.reserveManagedCall(u)).toBe(false) // cheio
 
     await quota.refundManagedCall(u)
-    expect(await quota.reserveManagedCall(u)).toBe(true)  // vaga de volta
+    expect(await quota.reserveManagedCall(u)).toBe(true) // vaga de volta
   })
 })

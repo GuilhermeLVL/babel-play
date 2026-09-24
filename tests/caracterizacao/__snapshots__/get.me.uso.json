@@ -12,7 +12,7 @@
       "usado": "number"
     },
     "tokensDeLlm": {
-      "teto": "null",
+      "teto": "number",
       "usado": "number"
     }
   }

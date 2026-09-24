@@ -10,9 +10,16 @@ import { adminDoSupabase } from '../lib/config'
 import { getEntitlementsForUser, getPlanForUser } from '../lib/entitlements'
 import { erroDeRota } from '../lib/erroDeRota'
 import { log } from '../lib/logger'
-import { capDeArmazenamento, reconciliarSeVencido,usoDeArmazenamento } from '../lib/storageQuota'
-import { capForPlan, capSegundosParaPlano, METRIC_LLM_TOKENS,METRIC_MANAGED, METRIC_STT_SEGUNDOS } from '../lib/usageQuota'
-import { excluirContaSchema, parseOr400,perfilPatchSchema } from '../validation'
+import { capDeArmazenamento, reconciliarSeVencido, usoDeArmazenamento } from '../lib/storageQuota'
+import {
+  capForPlan,
+  capSegundosParaPlano,
+  capTokensParaPlano,
+  METRIC_LLM_TOKENS,
+  METRIC_MANAGED,
+  METRIC_STT_SEGUNDOS,
+} from '../lib/usageQuota'
+import { excluirContaSchema, parseOr400, perfilPatchSchema } from '../validation'
 // O store de mídia é um só; importar daqui evita uma segunda resolução de `AUDIO_DIR` que
 // poderia divergir da que grava e serve os arquivos.
 import { armazenamentoDeMidia } from './sessions'
@@ -71,7 +78,11 @@ meRouter.get('/exportar', async (req, res) => {
     res.setHeader('Cache-Control', 'no-store')
     res.json(dados)
   } catch (err) {
-    res.status(500).json({ error: erroDeRota(err, { status: 500, event: 'me_exportar_error', route: req.path, requestId: req.requestId }) })
+    res
+      .status(500)
+      .json({
+        error: erroDeRota(err, { status: 500, event: 'me_exportar_error', route: req.path, requestId: req.requestId }),
+      })
   }
 })
 
@@ -156,11 +167,14 @@ meRouter.delete('/', async (req, res) => {
 
     const login = {
       desvinculado: vinculo.removido,
-      ...(vinculo.removido ? {} : {
-        motivo: vinculo.motivo,
-        // Doutrina do P1-9: dizer o que NÃO aconteceu, não confirmar o que não ocorreu.
-        aviso: 'os dados foram apagados, mas o login continua válido — ao entrar de novo, uma conta nova e VAZIA será criada com o mesmo acesso',
-      }),
+      ...(vinculo.removido
+        ? {}
+        : {
+            motivo: vinculo.motivo,
+            // Doutrina do P1-9: dizer o que NÃO aconteceu, não confirmar o que não ocorreu.
+            aviso:
+              'os dados foram apagados, mas o login continua válido — ao entrar de novo, uma conta nova e VAZIA será criada com o mesmo acesso',
+          }),
     }
 
     if (falhas.length || !vinculo.removido) {
@@ -179,7 +193,16 @@ meRouter.delete('/', async (req, res) => {
     }
     res.json({ ok: true, ...relatorio, arquivos: { apagados, falhas: [] }, login })
   } catch (err) {
-    res.status(500).json({ error: erroDeRota(err, { status: 500, event: 'me_excluir_conta_error', route: req.path, requestId: req.requestId }) })
+    res
+      .status(500)
+      .json({
+        error: erroDeRota(err, {
+          status: 500,
+          event: 'me_excluir_conta_error',
+          route: req.path,
+          requestId: req.requestId,
+        }),
+      })
   }
 })
 
@@ -217,8 +240,8 @@ meRouter.get('/uso', async (req, res) => {
       janela,
       chamadas: { usado: chamadas, teto: finito(capForPlan(plano)) },
       segundosDeAudio: { usado: segundos, teto: finito(capSegundosParaPlano(plano)) },
-      // Tokens são CONTABILIDADE, não teto: só se conhecem depois da resposta do provedor.
-      tokensDeLlm: { usado: tokens, teto: null },
+      // Tokens viraram TETO na Fase 2 do lançamento: reservados antes da chamada, acertados depois.
+      tokensDeLlm: { usado: tokens, teto: finito(capTokensParaPlano(plano)) },
     })
   } catch (err) {
     res.status(500).json({ error: erroDeRota(err, { status: 500, event: 'me_route_error' }) })
@@ -229,10 +252,7 @@ meRouter.get('/entitlements', async (req, res) => {
   try {
     // Provisiona a conta no 1º acesso (idempotente) — assim o usuário aparece na gestão admin.
     await usersRepo.ensure(req.userId)
-    const [entitlements, plano] = await Promise.all([
-      getEntitlementsForUser(req.userId),
-      getPlanForUser(req.userId),
-    ])
+    const [entitlements, plano] = await Promise.all([getEntitlementsForUser(req.userId), getPlanForUser(req.userId)])
     const teto = capDeArmazenamento(plano)
     /*
      * F9-02: aqui é o chamador de `reconciliarArmazenamento`. É a rota por onde todo usuário ativo
@@ -240,9 +260,7 @@ meRouter.get('/entitlements', async (req, res) => {
      * A varredura só roda se o contador estiver vencido (24h por padrão) e nunca lança.
      * Plano sem teto (selfhost) não contabiliza nada, então não há o que reconciliar.
      */
-    const usados = Number.isFinite(teto)
-      ? await reconciliarSeVencido(req.userId)
-      : await usoDeArmazenamento(req.userId)
+    const usados = Number.isFinite(teto) ? await reconciliarSeVencido(req.userId) : await usoDeArmazenamento(req.userId)
     // `Infinity` não sobrevive ao JSON (vira null); `null` diz "sem teto" de forma explícita.
     res.json({ ...entitlements, armazenamento: { usados, teto: Number.isFinite(teto) ? teto : null } })
   } catch (err) {

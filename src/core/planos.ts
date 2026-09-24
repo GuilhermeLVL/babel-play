@@ -41,6 +41,8 @@ export interface QuotasDoPlano {
   chamadasMes: number | null;
   /** Segundos de áudio FATURÁVEIS no STT de nuvem por mês. É o teto de gasto real. `null` = sem teto. */
   sttSegundosMes: number | null;
+  /** Tokens (entrada + saída) no LLM de nuvem por mês — tradução e tutor dividem. `null` = sem teto. */
+  tokensMes: number | null;
   /** Armazenamento de sessões/mídia, em MB. `null` = sem teto. */
   armazenamentoMb: number | null;
 }
@@ -59,7 +61,7 @@ export const PLAN_MATRIX: Record<PlanoDeAssinatura, DefinicaoDePlano> = {
     precoMensalBrl: null,
     entitlements: { youtubeImport: false, managedCloudStt: false, managedCloudLlm: false, largerModels: false },
     // Chamadas 0: o free já é barrado antes, pelo entitlement — o teto só reafirma.
-    quotas: { chamadasMes: 0, sttSegundosMes: 0, armazenamentoMb: 500 },
+    quotas: { chamadasMes: 0, sttSegundosMes: 0, tokensMes: 0, armazenamentoMb: 500 },
   },
   essencial: {
     rotulo: 'Essencial',
@@ -67,7 +69,7 @@ export const PLAN_MATRIX: Record<PlanoDeAssinatura, DefinicaoDePlano> = {
     /* Tradução de nuvem SIM, STT de nuvem NÃO — os dois gates são independentes nos proxies
        (mtProxy.ts:46, sttProxy.ts:44), e essa independência é o que torna o plano viável. */
     entitlements: { youtubeImport: false, managedCloudStt: false, managedCloudLlm: true, largerModels: false },
-    quotas: { chamadasMes: 12_000, sttSegundosMes: 0, armazenamentoMb: 1_000 },
+    quotas: { chamadasMes: 12_000, sttSegundosMes: 0, tokensMes: 3_000_000, armazenamentoMb: 1_000 },
   },
   pro: {
     rotulo: 'Pro',
@@ -75,14 +77,14 @@ export const PLAN_MATRIX: Record<PlanoDeAssinatura, DefinicaoDePlano> = {
     entitlements: { youtubeImport: true, managedCloudStt: true, managedCloudLlm: true, largerModels: true },
     /* 12.000 ≈ 6.000 falas ≈ 10 h de conversa/mês (cada fala usa 2 chamadas); 36.000 s = 10 h
        faturadas de STT. Orçamento explícito em docs/auditoria/viabilidade-producao-v1.md. */
-    quotas: { chamadasMes: 12_000, sttSegundosMes: 36_000, armazenamentoMb: 5_000 },
+    quotas: { chamadasMes: 12_000, sttSegundosMes: 36_000, tokensMes: 5_000_000, armazenamentoMb: 5_000 },
   },
   selfhost: {
     rotulo: 'Self-host (tudo liberado)',
     precoMensalBrl: null,
     // A chave de IA é do próprio dono da instância: não há custo nosso, nada a gatear.
     entitlements: { youtubeImport: true, managedCloudStt: true, managedCloudLlm: true, largerModels: true },
-    quotas: { chamadasMes: null, sttSegundosMes: null, armazenamentoMb: null },
+    quotas: { chamadasMes: null, sttSegundosMes: null, tokensMes: null, armazenamentoMb: null },
   },
 };
 

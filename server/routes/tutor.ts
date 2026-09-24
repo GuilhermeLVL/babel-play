@@ -20,14 +20,15 @@
 import { type Request, type Response, Router } from 'express'
 
 import { percorrerCascata } from '../ai/cascata'
-import { chamarChat, type MensagemDeChat } from '../ai/llmClient'
+import { chamarChat, type MensagemDeChat, tamanhoDoPrompt } from '../ai/llmClient'
 import { prepareLlmRequest } from '../ai/llmRequest'
 import { cascataDeNuvem, llmLocal } from '../ai/provedores'
+import { abrirReservaDeLlm, type ReservaDeLlm } from '../ai/reservaDeNuvem'
 import { authRequired } from '../lib/auth'
 import { getEntitlementsForUser } from '../lib/entitlements'
 import { erroDeRota } from '../lib/erroDeRota'
 import { log } from '../lib/logger'
-import { refundManagedCall, reserveManagedCall } from '../lib/usageQuota'
+import { estimarTokens } from '../lib/usageQuota'
 
 export const tutorRouter = Router()
 
@@ -46,8 +47,8 @@ async function tentarLocal(messages: MensagemDeChat[], maxTokens: number): Promi
 }
 
 export async function tutorChat(req: Request, res: Response): Promise<void> {
-  // Reserva de cota pendente: estornada em todo caminho que não entrega resposta da nuvem.
-  let reservaPendente = false
+  // Reserva de cota (chamada + tokens): estornada em todo caminho que não entrega resposta da nuvem.
+  let reserva: ReservaDeLlm | null = null
   try {
     const prep = prepareLlmRequest(req.body)
     if (!prep.ok) {
@@ -60,11 +61,12 @@ export async function tutorChat(req: Request, res: Response): Promise<void> {
     if (plano.managedCloudLlm) {
       const provedores = cascataDeNuvem({ modelosGrandes: plano.largerModels })
       if (provedores.length > 0) {
-        if (!(await reserveManagedCall(req.userId))) {
-          res.status(402).json({ error: 'limite mensal do plano atingido', code: 'quota_exceeded' })
-          return
-        }
-        reservaPendente = true
+        reserva = await abrirReservaDeLlm(
+          req.userId,
+          estimarTokens(tamanhoDoPrompt(prep.messages), prep.maxTokens),
+          res,
+        )
+        if (!reserva) return // já respondeu: 402 de cota ou 503 do contador
         const { entregue, ultimaFalha } = await percorrerCascata(
           provedores,
           {
@@ -76,7 +78,7 @@ export async function tutorChat(req: Request, res: Response): Promise<void> {
           { evento: 'tutor', route: '/api/tutor/chat', requestId: req.requestId },
         )
         if (entregue) {
-          reservaPendente = false
+          await reserva.consumir(entregue.tokensEntrada + entregue.tokensSaida)
           res.json({ text: entregue.texto, engine: 'nuvem', local: false })
           return
         }
@@ -108,7 +110,7 @@ export async function tutorChat(req: Request, res: Response): Promise<void> {
     log('error', { event: 'tutor_erro', error: erroDeRota(error, { event: 'tutor_erro' }), requestId: req.requestId })
     if (!res.headersSent) res.status(502).json({ error: 'tutor indisponível', code: 'provedor_indisponivel' })
   } finally {
-    if (reservaPendente) await refundManagedCall(req.userId)
+    await reserva?.estornar()
   }
 }
 

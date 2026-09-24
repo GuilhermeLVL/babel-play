@@ -401,6 +401,15 @@ export default function Planos() {
           fracao(uso.chamadas),
           uso.chamadas.teto === null ? 'chamadas' : `de ${numero(uso.chamadas.teto)}`,
         ],
+        /* Os tokens viraram TETO na Fase 2 do lançamento (antes só eram contados): a linha mostra o
+           limite como as outras, em vez de "registrados só para acompanhar custo". */
+        [
+          Languages,
+          'Tokens de IA (tradução e tutor)',
+          numero(uso.tokensDeLlm.usado),
+          fracao(uso.tokensDeLlm),
+          uso.tokensDeLlm.teto === null ? 'tokens' : `de ${numero(uso.tokensDeLlm.teto)}`,
+        ],
         ...(arm
           ? [
               [
@@ -411,15 +420,7 @@ export default function Planos() {
                 arm.teto === null ? 'usados' : `de ${mb(arm.teto)}`,
               ] as [LucideIcon, string, string, number | null, string],
             ]
-          : [
-              [Languages, 'Tokens de tradução', numero(uso.tokensDeLlm.usado), null, 'tokens'] as [
-                LucideIcon,
-                string,
-                string,
-                number | null,
-                string,
-              ],
-            ]),
+          : []),
       ]
     : [];
 
@@ -597,10 +598,7 @@ export default function Planos() {
                 <p>
                   {semTeto
                     ? 'Os números acima são só para você acompanhar; o custo da IA de nuvem é seu, pela sua própria chave. Os limites valem nos planos em nuvem.'
-                    : 'Zera na virada do mês. Transcrição, tradução e tutor dividem o limite de chamadas: cada fala ao microfone usa duas. O provedor cobra no mínimo 10 segundos por trecho de áudio enviado.'}
-                  {arm &&
-                    uso.tokensDeLlm.usado > 0 &&
-                    ` ${numero(uso.tokensDeLlm.usado)} tokens de tradução usados neste mês, registrados só para acompanhar custo.`}
+                    : 'Zera na virada do mês. Transcrição, tradução e tutor dividem o limite de chamadas: cada fala transcrita e traduzida usa duas. Tradução e tutor também dividem o limite de tokens. O provedor cobra no mínimo 10 segundos por trecho de áudio enviado.'}
                 </p>
               </div>
             </div>

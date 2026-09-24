@@ -14,9 +14,16 @@ import { erroDeRota } from '../lib/erroDeRota'
 import { normalizarIdiomaDoWhisper } from '../lib/idiomaDoWhisper'
 import { log } from '../lib/logger'
 import { responderErro } from '../lib/respostaDeErro'
-import { estornarSegundosDeStt, refundManagedCall, reservarSegundosDeStt, reserveManagedCall } from '../lib/usageQuota'
+import {
+  ContadorIndisponivel,
+  estornarSegundosDeStt,
+  refundManagedCall,
+  reservarSegundosDeStt,
+  reserveManagedCall,
+} from '../lib/usageQuota'
 import { parseOr400, sttHeadersSchema } from '../validation'
 import { deveRetentar, esperaDaRetentativa } from './disjuntor'
+import { responderContadorIndisponivel } from './reservaDeNuvem'
 import { assertPublicUrl } from './ssrf'
 
 /**
@@ -216,6 +223,12 @@ export async function sttTranscribeProxy(req: Request, res: Response): Promise<v
     // detector de texto. Nunca inventamos um código aqui.
     res.json({ text: j.text ?? '', language: normalizarIdiomaDoWhisper(j.language) })
   } catch (err) {
+    /* A cota falha FECHADA (Fase 2 do lançamento): contador fora do ar é 503 com motivo, e o
+       roteador de STT do cliente cai no Whisper local. */
+    if (err instanceof ContadorIndisponivel) {
+      if (!res.headersSent) responderContadorIndisponivel(res)
+      return
+    }
     if (!res.headersSent) res.status(502).json({ error: erroDeRota(err, { status: 502, event: 'stt_route_error' }) })
   } finally {
     // As duas reservas caem juntas: cobrar segundos por uma transcrição que não aconteceu é o

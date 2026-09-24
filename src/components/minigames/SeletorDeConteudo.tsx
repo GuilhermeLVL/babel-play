@@ -101,55 +101,40 @@ function SeletorDeConteudo({
           curso ("com o que eu vou jogar agora") — mesmo peso visual que o "Espaço de Gravação"
           da Captura e o card-herói do Hub. A gaveta abaixo continua clara, como os demais cards
           de apoio da tela. */}
-      <div
-        className={`flex items-center gap-3 flex-wrap bg-ink text-ink-contrast rounded-2xl px-4 py-2.5 transition-colors ${
-          aberta ? 'border border-accent rounded-b-none' : 'border border-white/10'
-        }`}
+      {/* Marcação do protótipo aprovado (`T.jogar`): `.cartao.escuro.faixa-escura` com o resumo e os
+          botões `.btn.btn-outline.peq`. Aberta, a borda acende para ligar a faixa à gaveta. */}
+      <section
+        className="cartao escuro faixa-escura"
+        aria-label={t('O que você vai praticar')}
+        style={aberta ? { borderColor: 'var(--accent)' } : undefined}
       >
-        <div className="flex items-center gap-2.5 flex-wrap flex-1 min-w-[240px] text-[13px]">
-          <span className="label-mono text-[10.5px] uppercase tracking-wider text-ink-contrast/60">
-            {t('jogando com')}
+        <div className="resumo">
+          <span className="label-mono" style={{ color: 'inherit', opacity: 0.8 }}>
+            {t('Jogando com')}
           </span>
-          <span className="font-display font-extrabold text-base tabular-nums text-ink-contrast">{numero(total)}</span>
-          <span className="text-ink-contrast/70">{tp(total, 'palavra', 'palavras')}</span>
+          <b className="tn">{numero(total)}</b> {tp(total, 'palavra', 'palavras')}
           {nomeDaFonte && (
             <>
-              <span className="text-ink-contrast/40">·</span>
-              <span className="text-ink-contrast/70">
-                <b className="text-ink-contrast font-semibold">{nomeDaFonte}</b>
-              </span>
+              {' · '}
+              <b style={{ font: '700 13.5px var(--font-display)' }}>{nomeDaFonte}</b>
             </>
           )}
-          {idioma && (
-            <>
-              <span className="text-ink-contrast/40">·</span>
-              <span className="text-ink-contrast/70">
-                <b className="text-ink-contrast font-semibold">{idioma}</b>
-              </span>
-            </>
-          )}
-          {avisoDeVazio && <span className="text-warn font-semibold">— {avisoDeVazio}</span>}
+          {idioma && <> · {idioma}</>}
+          {avisoDeVazio && <span style={{ color: 'var(--warn)', fontWeight: 600 }}> — {avisoDeVazio}</span>}
         </div>
-
-        <div className="flex items-center gap-2 shrink-0 flex-wrap sm:flex-nowrap">
+        <div className="linha" style={{ gap: 8, flexWrap: 'wrap' }}>
           {acoesBarra}
           <button
             type="button"
+            className="btn btn-outline peq"
             onClick={aoAlternar}
             aria-expanded={aberta}
             aria-controls={ID_DA_GAVETA}
-            className={`shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[12px] font-bold border cursor-pointer transition-all ${
-              aberta
-                ? 'bg-accent text-white border-accent shadow-xs'
-                : 'bg-white/10 border-white/15 hover:bg-white/15 hover:border-accent/40 text-ink-contrast'
-            }`}
           >
-            <SlidersIcon className={`w-3.5 h-3.5 ${aberta ? 'text-white' : 'text-accent'}`} />
-            <span>{t('Fonte')}</span>
-            <ChevronRight className={`w-3.5 h-3.5 transition-transform ${aberta ? 'rotate-90' : ''}`} />
+            <SlidersIcon aria-hidden /> {t('Fonte')} <ChevronRight aria-hidden />
           </button>
         </div>
-      </div>
+      </section>
 
       {/* ── Gaveta ───────────────────────────────────────────────────────────────────────────
           `hidden`, não uma classe de exibição: é o atributo que o protótipo usa (`.gaveta[hidden]`)

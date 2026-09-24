@@ -446,7 +446,6 @@
   "Existem e prestam, mas são de outro idioma": "They exist and are usable, but they are in another language",
   "{n} em outro idioma": "{n} in another language",
   "{n} fora do recorte": "{n} outside the filter",
-  "Mapa do conteúdo": "Content map",
   "falas": {
     "one": "line",
     "other": "lines"
@@ -482,8 +481,6 @@
     "other": "{n} {unidade} to go"
   },
   "{falta} para abrir": "{falta} to unlock",
-  "{falta} · precisa de {precisa} · você tem {tem} do {idioma}": "{falta} · needs {precisa} · you have {tem} in {idioma}",
-  "Sua melhor sequência neste jogo, nesta fonte": "Your best streak in this game, from this source",
   "recorde {n}": "record {n}",
   "Não consegui carregar o seu baralho: {erro}": "I could not load your deck: {erro}",
   "Revisar minhas palavras": "Review my words",

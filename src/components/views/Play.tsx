@@ -69,15 +69,17 @@ import {
 import {
   BarChart2,
   BookOpen,
+  Brain,
   CalendarClock,
   ChevronLeft,
   ChevronRight,
+  CircleHelp,
   CirclePlay,
   Flame,
   Gamepad2,
   Globe,
   GraduationCap,
-  HelpCircle,
+  Headphones,
   Languages,
   Layers,
   ListChecks,
@@ -86,16 +88,17 @@ import {
   MessageSquareText,
   Mic,
   Package,
+  PackageOpen,
   Pin,
-  Play as Headphones,
+  Play as IconePlay,
   Puzzle,
   Search,
-  SlidersHorizontal as SlidersIcon,
+  Shuffle,
   Sparkles,
   Star,
-  Trophy,
+  Target,
+  Timer,
   Trophy as TrophyIcon,
-  X as XIcon,
   Zap,
 } from 'lucide-react';
 import React, { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
@@ -175,7 +178,7 @@ import { T } from '../../lib/T';
 import { aoMudarVozes, hasVoiceFor, isTtsSupported, vozesCarregadas } from '../../lib/tts';
 import type { Recording, VocabCard } from '../../types';
 import AntessalaDaRodada from '../minigames/AntessalaDaRodada';
-import ArteDoJogo, { FAMILIAS, tomDoJogo } from '../minigames/ArteDosJogos';
+import { FAMILIAS, tomDoJogo } from '../minigames/ArteDosJogos';
 import CoberturaDosIdiomas from '../minigames/CoberturaDosIdiomas';
 import ComoSeJoga from '../minigames/ComoSeJoga';
 import ConectoresGame from '../minigames/ConectoresGame';
@@ -192,12 +195,13 @@ import TermoGame from '../minigames/TermoGame';
 import TourGuiado from '../minigames/TourGuiado';
 import { type DetalheDoDrop, EVENTO_DROP_GANHO } from '../RecompensaDesbloqueada';
 import { toast } from '../Toast';
-import { Abas, CabecalhoDeTela, TituloDeSecao } from '../ui';
+import { Abas, CabecalhoDeTela, IconeEmBloco, TituloDeSecao } from '../ui';
 import BaralhoAnki from './BaralhoAnki';
 import BaralhosAnki from './BaralhosAnki';
 import CuradoriaBaralho from './CuradoriaBaralho';
 import MapaDoConteudo from './MapaDoConteudo';
 import PainelTrilha from './PainelTrilha';
+import { IconePixel } from './play/IconesPixel';
 import { descricaoDoJogo, JOGOS, type JogoUI, tituloDoJogo } from './play/jogos';
 import Recordes from './play/Recordes';
 import { TELA_DO_JOGO } from './play/telaDoJogo';
@@ -2176,6 +2180,55 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
 
   const buscaNormalizada = buscaJogos.trim().toLowerCase();
 
+  /* ── A SUGESTÃO PARA HOJE ──
+     Um jogo pronto, na ordem de rendimento de `agruparJogos`, e "Outra sugestão" gira entre eles. */
+  const [indiceDaSugestao, setIndiceDaSugestao] = useState(0);
+  const [porQueAberto, setPorQueAberto] = useState(false);
+  const nomeCurtoDaFonte = baralhoAnki
+    ? baralhoAnki.nome
+    : (() => {
+        const r = ABAS_DE_FONTE.find((a) => a.origem === escolhaAtual.origem)?.rotulo[ageProfile];
+        return r ? t(r) : '';
+      })();
+  const sugestao = useMemo(() => {
+    const prontosPorRendimento = agruparJogos(listaDeJogos.map((j) => j.estado)).prontos;
+    if (!prontosPorRendimento.length) return null;
+    const alvo = prontosPorRendimento[indiceDaSugestao % prontosPorRendimento.length];
+    const jogo = listaDeJogos.find((j) => j.id === alvo.id);
+    if (!jogo) return null;
+    const vencidos = vencidosAgora.size;
+    const nunca = contagemRecortes.nunca;
+    const titulo =
+      vencidos > 0
+        ? tp(vencidos, 'Revisar {n} palavra que voltou a vencer', 'Revisar {n} palavras que voltaram a vencer')
+        : nunca > 0
+          ? tp(nunca, 'Aprender {n} palavra nova', 'Aprender {n} palavras novas')
+          : tp(acervoDaFonte.length, 'Praticar {n} palavra', 'Praticar {n} palavras');
+    const porque: [typeof Target, string][] = [
+      vencidos > 0
+        ? [
+            Target,
+            t('{n} palavras voltaram a vencer hoje: revisar agora rende mais do que aprender novas.', { n: vencidos }),
+          ]
+        : [Sparkles, t('Nada está pedindo revisão agora, então vale avançar em material novo.')],
+      [
+        Timer,
+        t('{jogo} é o que mais palavras cobre por rodada com este material.', { jogo: tituloDoJogo(jogo, ageProfile) }),
+      ],
+      [BookOpen, t('Vem de {fonte}. Troque em Fonte.', { fonte: nomeCurtoDaFonte })],
+      [Brain, t('O que você acertar aqui conta na sua revisão.')],
+    ];
+    return { jogo, titulo, porque };
+  }, [
+    listaDeJogos,
+    indiceDaSugestao,
+    vencidosAgora,
+    contagemRecortes,
+    acervoDaFonte.length,
+    ageProfile,
+    nomeCurtoDaFonte,
+  ]);
+
   const jogosClassicosFiltrados = useMemo(() => {
     return listaDeJogos.filter((j) => {
       if (categoriaAtiva === 'favoritos' && !ordem.fixados.includes(j.id)) return false;
@@ -2761,6 +2814,158 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
     );
   }
 
+  /* Os dois grupos do protótipo, já filtrados por aba, habilidade e busca. */
+  const prontosFiltrados = jogosClassicosFiltrados.filter((j) => j.estado.ok);
+  const presosFiltrados = jogosClassicosFiltrados.filter((j) => !j.estado.ok);
+
+  /* A CARTA DO JOGO — marcação do protótipo aprovado (`cardJogo`): arte em pixel na grade com o
+     ponto da família, estrela (fixar no topo) e "como se joga"; título, descrição e o pé com
+     "Jogar" e a conta desta rodada. Presa, a carta é tracejada e o pé diz o que falta. */
+  const cartaDoJogo = (j: (typeof jogosClassicosFiltrados)[number]) => {
+    const liberado = j.estado.ok;
+    const fixado = ordem.fixados.includes(j.id);
+    const titulo = tituloDoJogo(j, ageProfile);
+    const jogar = () => {
+      triggerHaptic('soft');
+      playJuicedHit(1);
+      pedirParaJogar(j);
+    };
+    const porta = liberado ? null : comoDesbloquear(j.estado, contextoDoDesbloqueio);
+    const unidade = (n: number) => (j.estado.fonte === 'falas' ? tp(n, 'fala', 'falas') : tp(n, 'palavra', 'palavras'));
+    const nota = (() => {
+      if (liberado) {
+        const total = ('pool' in j.estado ? j.estado.pool : undefined) ?? j.estado.disponiveis;
+        const naRodada = j.estado.tamanhoDaRodada;
+        const conta =
+          naRodada < total
+            ? t('{n} nesta rodada · {total} disponíveis', { n: naRodada, total })
+            : t('{n} {unidade} nesta rodada', { n: naRodada, unidade: unidade(naRodada) });
+        const rec = recordeDoJogo(j.id) ?? 0;
+        return rec > 0 ? `${conta} · ${t('recorde {n}', { n: rec })}` : conta;
+      }
+      const motivo = 'motivo' in j.estado ? j.estado.motivo : undefined;
+      if (motivo === 'trilha-sem-frase')
+        return ageProfile === 'kids'
+          ? t('a trilha tem palavras, não frases')
+          : t('a trilha tem palavras soltas, este jogo precisa de frase; escolha uma gravação');
+      if (motivo === 'sem-voz')
+        return t('este navegador não tem voz em {idioma}', { idioma: langLabelNaUI(fonte.lang) });
+      if (motivo === 'escrita-sem-separacao')
+        return ageProfile === 'kids'
+          ? t('em {idioma} as palavras ficam juntinhas, sem espaço', { idioma: langLabelNaUI(fonte.lang) })
+          : t('este jogo separa as palavras da frase, e {idioma} não marca onde cada uma começa', {
+              idioma: langLabelNaUI(fonte.lang),
+            });
+      if (motivo === 'audio-carregando') return t('baixando o áudio da gravação…');
+      if (j.estado.fonte === 'falas' && j.estado.disponiveis === 0) return t('precisa de uma gravação com legenda');
+      const precisa = MINIGAMES[j.id].minItems;
+      const falta = tp(j.estado.faltam, 'falta {n} {unidade}', 'faltam {n} {unidade}', {
+        unidade: unidade(j.estado.faltam),
+      });
+      return ageProfile === 'kids'
+        ? t('{falta} para abrir', { falta })
+        : t('{falta} · precisa de {precisa}', { falta, precisa });
+    })();
+    return (
+      <article
+        key={j.chave}
+        className={`cartao jogo ${liberado ? 'clicavel' : 'tracejado'}`}
+        onClick={liberado ? jogar : undefined}
+      >
+        <div className="arte">
+          <span className="cat" style={{ background: tomDoJogo(j.id) }} aria-hidden />
+          <IconePixel id={j.id} />
+          <button
+            type="button"
+            className="fav"
+            aria-pressed={fixado}
+            aria-label={`${fixado ? t('Tirar dos favoritos') : t('Favoritar')}: ${titulo}`}
+            onClick={(e) => {
+              e.stopPropagation();
+              mexerNaOrdem(alternarFixado(ordem, j.id));
+            }}
+          >
+            <Star aria-hidden style={fixado ? { fill: 'var(--warn)', color: 'var(--warn)' } : undefined} />
+          </button>
+          <button
+            type="button"
+            className="como"
+            aria-label={`${t('Como se joga')}: ${titulo}`}
+            onClick={(e) => {
+              e.stopPropagation();
+              setExplicando(j.id);
+            }}
+          >
+            <CircleHelp aria-hidden />
+          </button>
+        </div>
+        <div className="corpo">
+          <h3>
+            {!liberado && <Lock aria-hidden />}
+            {/* O título é o botão da carta (nome acessível = nome do jogo); sem mudar o desenho. */}
+            <button
+              type="button"
+              disabled={!liberado}
+              onClick={(e) => {
+                e.stopPropagation();
+                jogar();
+              }}
+              style={{
+                border: 0,
+                background: 'none',
+                padding: 0,
+                textAlign: 'left',
+                cursor: liberado ? 'pointer' : 'default',
+              }}
+            >
+              {titulo}
+            </button>
+          </h3>
+          <p>{descricaoDoJogo(j, ageProfile, fonte.id === 'trilha')}</p>
+          {modoOrganizar && (
+            <div className="linha" style={{ gap: 4, marginTop: 8 }} onClick={(e) => e.stopPropagation()}>
+              {[
+                { Icone: ChevronLeft, dir: -1 as const, rot: t('Mover para a esquerda') },
+                { Icone: ChevronRight, dir: 1 as const, rot: t('Mover para a direita') },
+              ].map(({ Icone, dir, rot }) => (
+                <button
+                  key={dir}
+                  type="button"
+                  className="btn btn-outline peq icone"
+                  onClick={() => mexerNaOrdem(mover(ordem, idsVisiveis, j.id, dir))}
+                  aria-label={`${rot}: ${titulo}`}
+                  title={rot}
+                >
+                  <Icone aria-hidden />
+                </button>
+              ))}
+            </div>
+          )}
+          <div className="pe">
+            {liberado ? (
+              <button
+                type="button"
+                className="btn btn-solid peq"
+                aria-label={`${t('Jogar')}: ${titulo}`}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  jogar();
+                }}
+              >
+                <IconePlay aria-hidden /> {t('Jogar')}
+              </button>
+            ) : porta ? (
+              <button type="button" className="btn btn-outline peq" onClick={() => abrirPorta(porta)}>
+                {porta.rotulo} <ChevronRight aria-hidden />
+              </button>
+            ) : null}
+            <span className="nota">{nota}</span>
+          </div>
+        </div>
+      </article>
+    );
+  };
+
   /* `pb-28`: o botão flutuante do tutor fica no canto inferior direito, fixo, e cobria a última
      carta da grade, medido. A folga devolve a carta ao alcance do clique.
 
@@ -2768,19 +2973,15 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
      aqui daria scroller dentro de scroller (duas barras, roda do mouse presa na de dentro) e
      padding somado nas bordas. Sobra só a transição de entrada. */
   return (
-    <div
-      className={
-        embutido
-          ? 'animate-in fade-in duration-200'
-          : 'flex-1 overflow-y-auto custom-scrollbar p-6 lg:p-10 pb-28 animate-in fade-in duration-200'
-      }
-    >
+    <div className={embutido ? 'animate-in fade-in duration-200' : 'rolagem flex-1'}>
       {/* LARGURA MÁXIMA. Sem ela, num monitor de 1920 a faixa de revisão esticava por 1.829px e
           a arte de cada carta ia a 263px de altura, grande e grosseira, porque os desenhos são
           feitos de poucas formas. Limitar o conteúdo resolve os dois de uma vez, e de quebra o
           texto para de atravessar a tela inteira, que já é ruim de ler por si só. */}
       {sala}
-      <div className="max-w-6xl mx-auto">
+      {/* Moldura do protótipo: `.tela.larga` (1152 px, respiro 40/40/120). Embutida numa sessão, a
+          tela já tem moldura e fica só a largura. */}
+      <div className={embutido ? 'max-w-6xl mx-auto' : 'tela larga entra'}>
         {/* Embutido não tem cabeçalho próprio: a tela da sessão já traz um `<h1>` logo acima, e um
           segundo `<h1>` na mesma página quebra a navegação por cabeçalho do leitor de tela, a
           pessoa passa a ter dois "títulos da página" e nenhum diz onde ela está. */}
@@ -2812,7 +3013,7 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
                 title={t('Sorteia um jogo aleatório dentre os disponíveis e inicia imediatamente')}
               >
                 <Zap className="w-4 h-4" aria-hidden />
-                <span>{t('Partida Rápida')}</span>
+                <span>{t('Partida rápida')}</span>
               </button>
             }
             abas={
@@ -2935,52 +3136,33 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
                 <>
                   <button
                     type="button"
+                    className="btn btn-outline peq"
                     onClick={() => setVerRecordes(true)}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-white/15 bg-white/10 hover:bg-white/15 hover:border-warn text-[12px] font-bold text-ink-contrast transition-colors cursor-pointer"
-                    title={t('Ver recordes e ranking')}
+                    aria-haspopup="dialog"
                   >
-                    <TrophyIcon className="w-3.5 h-3.5 text-warn" />
-                    <span className="hidden sm:inline">{t('Recordes')}</span>
+                    <TrophyIcon aria-hidden /> {t('Recordes')}
                   </button>
-
+                  <button type="button" className="btn btn-outline peq" onClick={() => setVendoMapa(true)}>
+                    <MapIcon aria-hidden /> {t('Mapa')}
+                  </button>
                   <button
                     type="button"
-                    onClick={() => setVendoMapa(true)}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-white/15 bg-white/10 hover:bg-white/15 hover:border-accent text-[12px] font-bold text-ink-contrast transition-colors cursor-pointer"
-                    title={t('Mapa do conteúdo')}
-                  >
-                    <MapIcon className="w-3.5 h-3.5 text-accent" />
-                    <span className="hidden sm:inline">{t('Mapa')}</span>
-                  </button>
-
-                  <button
-                    type="button"
+                    className="btn btn-outline peq"
                     onClick={() => setCurando(true)}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-white/15 bg-white/10 hover:bg-white/15 hover:border-warn text-[12px] font-bold text-ink-contrast transition-colors cursor-pointer"
                     title={resumoDosPulados(triagem.fora) || t('Ver itens fora do recorte')}
                   >
-                    <SlidersIcon className="w-3.5 h-3.5 text-ink-contrast/60" />
-                    <span className="hidden sm:inline">{t('Curadoria')}</span>
-                    {triagem.fora.length > 0 && (
-                      <span className="px-1.5 py-0.2 rounded-full bg-warn-soft text-warn-ink text-[11px] font-mono font-bold">
-                        {triagem.fora.length}
-                      </span>
-                    )}
+                    <ListChecks aria-hidden /> {t('Curadoria')}
+                    {triagem.fora.length > 0 && <span className="n">{triagem.fora.length}</span>}
                   </button>
-
                   <button
                     type="button"
+                    className="btn btn-outline peq icone"
                     onClick={alternarDetalhes}
-                    aria-expanded={detalhes}
-                    className={`flex items-center gap-1 px-2.5 py-1.5 rounded-xl border text-[12px] font-medium transition-colors cursor-pointer ${
-                      detalhes
-                        ? 'bg-white/20 border-white/25 text-ink-contrast font-bold'
-                        : 'border-white/15 bg-white/10 hover:bg-white/15 text-ink-contrast/60 hover:text-ink-contrast'
-                    }`}
-                    title={detalhes ? t('Ocultar estatísticas do baralho') : t('Ver estatísticas do baralho')}
+                    aria-pressed={detalhes}
+                    aria-label={t('Diagnóstico do material')}
+                    title={t('Diagnóstico do material')}
                   >
-                    <BarChart2 className="w-3.5 h-3.5" />
-                    <ChevronRight className={`w-3 h-3 transition-transform ${detalhes ? 'rotate-90' : ''}`} />
+                    <BarChart2 aria-hidden />
                   </button>
                 </>
               }
@@ -3347,376 +3529,172 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
           </section>
         ) : (
           <>
-            {/* ── BARRA DE BUSCA, HABILIDADES E OPÇÕES ── */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-4">
-              <div className="relative flex-1 max-w-md">
-                <Search className="w-4 h-4 text-ink-faint absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
-                <input
-                  type="text"
-                  value={buscaJogos}
-                  onChange={(e) => setBuscaJogos(e.target.value)}
-                  placeholder={t('Buscar por nome, mecânica, país...')}
-                  className="w-full pl-9 pr-8 py-2 rounded-xl bg-surface border border-border-subtle text-ink placeholder:text-ink-faint text-[12.5px] focus:outline-none focus:border-accent transition-colors"
-                />
-                {buscaJogos && (
+            {/* ── SUGESTÃO PARA HOJE (protótipo aprovado, `cartaoRecomendacao`) ──
+                Os números são os DESTE recorte: vencidos que a rodada pode usar, nunca vistas, ou o
+                acervo — nunca o "dueToday" global da conta (defeito 2 da auditoria). */}
+            {!embutido && sugestao && (
+              <section className="cartao reco entra" aria-labelledby="reco-t">
+                <div className="reco-arte" aria-hidden>
+                  <IconePixel id={sugestao.jogo.id} />
+                </div>
+                <div className="reco-texto">
+                  <span className="sobrancelha">
+                    <Sparkles aria-hidden />
+                    <span>{t('Sugestão para hoje')}</span>
+                  </span>
+                  <h2 id="reco-t">{sugestao.titulo}</h2>
+                  <p className="mut">
+                    {t('Com')} <b style={{ color: 'var(--ink)' }}>{tituloDoJogo(sugestao.jogo, ageProfile)}</b> ·{' '}
+                    {t('rodada curta')} · {nomeCurtoDaFonte}
+                  </p>
+                  {porQueAberto && (
+                    <ul className="porque entra">
+                      {sugestao.porque.map(([Icone, texto]) => (
+                        <li key={texto}>
+                          <Icone aria-hidden />
+                          <span>{texto}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+                <div className="reco-acoes">
+                  <button type="button" className="btn btn-solid" onClick={() => pedirParaJogar(sugestao.jogo)}>
+                    <IconePlay aria-hidden /> {t('Começar')}
+                  </button>
                   <button
                     type="button"
-                    onClick={() => setBuscaJogos('')}
-                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-ink-faint hover:text-ink p-0.5 cursor-pointer"
-                    title={t('Limpar busca')}
+                    className="btn btn-outline peq"
+                    onClick={() => setIndiceDaSugestao((n) => n + 1)}
                   >
-                    <XIcon className="w-3.5 h-3.5" />
+                    <Shuffle aria-hidden /> {t('Outra sugestão')}
                   </button>
-                )}
-              </div>
+                  <button
+                    type="button"
+                    className="link"
+                    aria-expanded={porQueAberto}
+                    onClick={() => setPorQueAberto((v) => !v)}
+                  >
+                    <CircleHelp aria-hidden /> {porQueAberto ? t('Esconder o porquê') : t('Por que este?')}
+                  </button>
+                </div>
+              </section>
+            )}
 
-              <div className="flex items-center gap-1.5 overflow-x-auto custom-scrollbar pb-1 md:pb-0">
-                {[
-                  { id: 'todas' as const, label: t('Todas'), icon: null },
-                  { id: 'vocab' as const, label: t('Vocabulário'), icon: <BookOpen className="w-3.5 h-3.5" /> },
-                  {
-                    id: 'escuta_fala' as const,
-                    label: t('Escuta & Fala'),
-                    icon: <Headphones className="w-3.5 h-3.5" />,
-                  },
-                  {
-                    id: 'frase_gramatica' as const,
-                    label: t('Sintaxe & Frases'),
-                    icon: <Puzzle className="w-3.5 h-3.5" />,
-                  },
-                ].map((h) => {
-                  const ativo = filtroHabilidade === h.id;
-                  return (
+            {/* ── BUSCA, HABILIDADES E OPÇÕES (marcação do protótipo) ── */}
+            <div className="entre" style={{ marginTop: 18 }}>
+              <div className="linha" style={{ gap: 8, flexWrap: 'wrap', flex: 1 }}>
+                <label className="busca" style={{ maxWidth: 280 }}>
+                  <Search aria-hidden />
+                  <span className="sr">{t('Buscar jogo')}</span>
+                  <input
+                    className="campo"
+                    value={buscaJogos}
+                    onChange={(e) => setBuscaJogos(e.target.value)}
+                    placeholder={t('Buscar por nome ou mecânica')}
+                  />
+                </label>
+                <div className="chips" role="group" aria-label={t('Filtrar por habilidade')}>
+                  {[
+                    { id: 'todas' as const, label: t('Todas'), Icone: null },
+                    { id: 'vocab' as const, label: t('Vocabulário'), Icone: BookOpen },
+                    { id: 'escuta_fala' as const, label: t('Escuta & fala'), Icone: Headphones },
+                    { id: 'frase_gramatica' as const, label: t('Sintaxe & frases'), Icone: Puzzle },
+                  ].map(({ id, label, Icone }) => (
                     <button
-                      key={h.id}
+                      key={id}
                       type="button"
+                      className="pill"
+                      aria-pressed={filtroHabilidade === id}
                       onClick={() => {
-                        setFiltroHabilidade(h.id);
+                        setFiltroHabilidade(id);
                         triggerHaptic('soft');
                         playJuicedHit(1);
                       }}
-                      aria-pressed={ativo}
-                      className={`inline-flex items-center gap-1.5 min-h-8 px-[13px] rounded-full text-[12px] font-bold shrink-0 transition-colors cursor-pointer border [&_svg]:w-3.5 [&_svg]:h-3.5 ${
-                        ativo
-                          ? 'bg-ink border-ink text-ink-contrast shadow-card'
-                          : 'bg-surface border-border-subtle text-ink-muted hover:text-ink hover:border-accent/60'
-                      }`}
                     >
-                      {h.icon}
-                      <span>{h.label}</span>
+                      {Icone && <Icone aria-hidden />}
+                      {label}
                     </button>
-                  );
-                })}
+                  ))}
+                </div>
               </div>
-
-              <div className="flex items-center gap-3 shrink-0 ms-auto">
-                <label className="flex items-center gap-1.5 text-[12px] text-ink-muted cursor-pointer select-none">
-                  <input
-                    type="checkbox"
-                    checked={!pularSempre}
-                    onChange={(e) => mudarPularSempre(!e.target.checked)}
-                    className="w-5 h-5 accent-accent cursor-pointer"
-                  />
-                  <span className="hidden sm:inline">
-                    {ageProfile === 'kids' ? t('Ver antes de jogar') : t('Prévia antes de começar')}
-                  </span>
-                </label>
-
-                <button
-                  type="button"
-                  onClick={() => setModoOrganizar((v) => !v)}
-                  aria-pressed={modoOrganizar}
-                  title={t('Mudar a ordem das cartas e fixar as favoritas no topo')}
-                  className={`shrink-0 flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-[12px] font-bold cursor-pointer transition-colors ${
-                    modoOrganizar
-                      ? 'bg-accent text-accent-contrast border-accent'
-                      : 'bg-surface border-border-subtle text-ink-muted hover:text-ink hover:border-ink-faint'
-                  }`}
-                >
-                  <Pin className="w-3.5 h-3.5" aria-hidden />
-                  {modoOrganizar ? t('Pronto') : t('Organizar')}
-                </button>
-              </div>
+              <label className="check">
+                <input type="checkbox" checked={!pularSempre} onChange={(e) => mudarPularSempre(!e.target.checked)} />{' '}
+                {ageProfile === 'kids' ? t('Ver antes de jogar') : t('Prévia antes de começar')}
+              </label>
             </div>
 
-            {/* ── GRADE DINÂMICA DE JOGOS ── */}
-            <TituloDeSecao
-              icone={CirclePlay}
-              titulo={t('Prontos para jogar')}
-              className="mt-2"
-              direita={
-                <ul
-                  className="hidden sm:flex items-center gap-3 list-none m-0 p-0 text-[11.5px] text-ink-muted"
-                  aria-label={t('A cor diz o que o jogo treina')}
-                >
-                  {FAMILIAS.map((f) => (
-                    <li key={f.rotulo} className="flex items-center gap-1.5">
-                      <span className="w-2.5 h-2.5 rounded-[3px] shrink-0" style={{ background: f.tom }} aria-hidden />
-                      {f.rotulo}
-                    </li>
-                  ))}
-                </ul>
-              }
-            />
-            <div role="tabpanel" id={`painel-${categoriaAtiva}`} aria-labelledby={`aba-${categoriaAtiva}`}>
-              <ul id="grade-de-jogos" className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 list-none m-0 p-0">
-                {/* Clássicos Filtrados */}
-                {jogosClassicosFiltrados.map((j, i) => {
-                  const liberado = j.estado.ok;
-                  const prontosNestaLista = jogosClassicosFiltrados.filter((item) => item.estado.ok);
-                  const presosNestaLista = jogosClassicosFiltrados.filter((item) => !item.estado.ok);
-                  const abreOSegundoGrupo = i === prontosNestaLista.length && presosNestaLista.length > 0;
-
-                  return (
-                    <React.Fragment key={j.chave}>
-                      {abreOSegundoGrupo && (
-                        <li className="col-span-full list-none mt-4 mb-1">
-                          <h3 className="font-display font-bold text-[15px] text-ink">
-                            {t('Precisam de outro material')}
-                          </h3>
-                          <p className="text-[12.5px] text-ink-muted mt-0.5 max-w-[64ch]">
-                            {t('Não estão quebrados: pedem algo que este recorte não tem. Cada um diz o que falta.')}
-                          </p>
-                        </li>
-                      )}
-                      <li className="contents">
-                        <div
-                          className={`card-panel text-start flex flex-col overflow-hidden transition-all relative group ${
-                            liberado
-                              ? 'bg-surface hover:border-accent hover:-translate-y-1 hover:shadow-card'
-                              : 'bg-canvas border-dashed'
-                          }`}
-                        >
-                          <span
-                            className="block w-full aspect-[16/7] border-b border-border-subtle overflow-hidden"
-                            style={{
-                              background: `color-mix(in srgb, ${tomDoJogo(j.id)} ${liberado ? 9 : 4}%, var(--canvas))`,
-                            }}
-                            aria-hidden
-                          >
-                            <ArteDoJogo jogo={j.id} />
+            {/* `#grade-de-jogos` envolve os dois grupos: é a âncora da grade para a trilha e os testes. */}
+            <div id="grade-de-jogos">
+              {/* ── PRONTOS PARA JOGAR ── */}
+              <section className="secao" style={{ marginTop: 28 }}>
+                <TituloDeSecao
+                  icone={CirclePlay}
+                  titulo={t('Prontos para jogar')}
+                  desc={t('Estes rodam com as {n} palavras de {fonte}.', {
+                    n: numero(acervoDaFonte.length),
+                    fonte: nomeCurtoDaFonte,
+                  })}
+                  direita={
+                    <div className="linha" style={{ gap: 16 }}>
+                      {/* Reordenar e fixar cartas é do app (o protótipo não desenha): um link discreto. */}
+                      <button
+                        type="button"
+                        className="link"
+                        onClick={() => setModoOrganizar((v) => !v)}
+                        aria-pressed={modoOrganizar}
+                        title={t('Mudar a ordem das cartas e fixar as favoritas no topo')}
+                      >
+                        <Pin aria-hidden /> {modoOrganizar ? t('Pronto') : t('Organizar')}
+                      </button>
+                      <div className="legenda-cat" aria-label={t('A cor diz o que o jogo treina')}>
+                        {FAMILIAS.map((f) => (
+                          <span key={f.rotulo}>
+                            <i style={{ background: f.tom }} />
+                            {f.rotulo}
                           </span>
-
-                          <span className="p-4 flex flex-col flex-1 gap-1">
-                            <span className="flex items-start justify-between gap-2">
-                              <span className="flex items-center gap-2">
-                                <span
-                                  className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${
-                                    liberado ? 'bg-surface text-ink' : 'bg-surface-hover text-ink-muted'
-                                  }`}
-                                  aria-hidden
-                                >
-                                  {liberado ? j.icone : <Lock className="w-3.5 h-3.5" />}
-                                </span>
-                                <h3 className="font-display font-bold text-[14.5px] text-ink leading-tight">
-                                  <button
-                                    type="button"
-                                    disabled={!liberado}
-                                    onClick={() => {
-                                      triggerHaptic('soft');
-                                      playJuicedHit(1);
-                                      pedirParaJogar(j);
-                                    }}
-                                    className={`text-start font-bold ${
-                                      liberado
-                                        ? 'cursor-pointer text-ink hover:text-accent after:absolute after:inset-0 focus-visible:outline-2 focus-visible:outline-accent'
-                                        : 'cursor-not-allowed text-ink-muted'
-                                    }`}
-                                  >
-                                    {tituloDoJogo(j, ageProfile)}
-                                  </button>
-                                </h3>
-                              </span>
-
-                              {liberado && pularSempre && (
-                                <button
-                                  onClick={() => pedirParaJogar(j, true)}
-                                  className="relative z-10 min-w-6 min-h-6 inline-flex items-center justify-center rounded-lg text-ink-faint hover:text-accent hover:bg-surface-hover cursor-pointer shrink-0 opacity-0 group-hover:opacity-100 focus:opacity-100 focus-visible:opacity-100 [@media(hover:none)]:opacity-100 transition-opacity"
-                                  title={t('Ver a prévia desta rodada antes de começar')}
-                                  aria-label={`${t('Prévia da rodada')}: ${tituloDoJogo(j, ageProfile)}`}
-                                >
-                                  <ListChecks className="w-4 h-4" />
-                                </button>
-                              )}
-
-                              <button
-                                onClick={() => setExplicando(j.id)}
-                                className="relative z-10 min-w-6 min-h-6 inline-flex items-center justify-center rounded-lg text-ink-faint hover:text-accent hover:bg-surface-hover cursor-pointer shrink-0 opacity-0 group-hover:opacity-100 focus:opacity-100 focus-visible:opacity-100 [@media(hover:none)]:opacity-100 transition-opacity"
-                                title={t('Como se joga')}
-                                aria-label={`${t('Como se joga')}: ${tituloDoJogo(j, ageProfile)}`}
-                              >
-                                <HelpCircle className="w-4 h-4" />
-                              </button>
-                            </span>
-
-                            {modoOrganizar && (
-                              <span className="relative z-10 flex items-center gap-1 pt-1">
-                                {[
-                                  {
-                                    icone: <ChevronLeft className="w-3.5 h-3.5" />,
-                                    dir: -1 as const,
-                                    rot: t('Mover para a esquerda'),
-                                  },
-                                  {
-                                    icone: <ChevronRight className="w-3.5 h-3.5" />,
-                                    dir: 1 as const,
-                                    rot: t('Mover para a direita'),
-                                  },
-                                ].map(({ icone, dir, rot }) => (
-                                  <button
-                                    key={dir}
-                                    onClick={() => mexerNaOrdem(mover(ordem, idsVisiveis, j.id, dir))}
-                                    className="min-w-6 min-h-6 inline-flex items-center justify-center rounded-md text-ink-faint hover:text-accent hover:bg-surface-hover cursor-pointer"
-                                    title={rot}
-                                    aria-label={`${rot}: ${tituloDoJogo(j, ageProfile)}`}
-                                  >
-                                    {icone}
-                                  </button>
-                                ))}
-                                <button
-                                  aria-pressed={ordem.fixados.includes(j.id)}
-                                  onClick={() => mexerNaOrdem(alternarFixado(ordem, j.id))}
-                                  className={`min-w-6 min-h-6 inline-flex items-center justify-center rounded-md cursor-pointer hover:bg-surface-hover ${ordem.fixados.includes(j.id) ? 'text-accent' : 'text-ink-faint hover:text-accent'}`}
-                                  title={ordem.fixados.includes(j.id) ? t('Desafixar do topo') : t('Fixar no topo')}
-                                  aria-label={`${ordem.fixados.includes(j.id) ? t('Desafixar') : t('Fixar no topo')}: ${tituloDoJogo(j, ageProfile)}`}
-                                >
-                                  <Pin
-                                    className={`w-3.5 h-3.5 ${ordem.fixados.includes(j.id) ? 'fill-current' : ''}`}
-                                  />
-                                </button>
-                              </span>
-                            )}
-
-                            <span className="text-[12px] text-ink-muted leading-snug">
-                              {descricaoDoJogo(j, ageProfile, fonte.id === 'trilha')}
-                            </span>
-
-                            {!liberado &&
-                              (() => {
-                                const porta = comoDesbloquear(j.estado, contextoDoDesbloqueio);
-                                if (!porta) return null;
-                                return (
-                                  <button
-                                    onClick={() => abrirPorta(porta)}
-                                    /* Ação NEUTRA de propósito. Com 18 jogos presos num recorte pequeno, um
-                                     chip laranja em cada cartão pintava a tela inteira de cor de ação —
-                                     e justamente nos jogos que a pessoa AINDA NÃO pode jogar. O laranja
-                                     cheio fica só na "Partida Rápida", a ação primária da tela (é o que
-                                     o design faz: `btnGhost` no cartão bloqueado). */
-                                    className="relative z-10 mt-auto self-start inline-flex items-center gap-1.5 rounded-lg border border-border-subtle bg-surface px-2.5 py-1.5 text-[11.5px] font-bold text-ink-muted hover:border-accent hover:text-accent-ink cursor-pointer"
-                                  >
-                                    {porta.rotulo} <ChevronRight className="w-3.5 h-3.5" aria-hidden />
-                                  </button>
-                                );
-                              })()}
-
-                            <span
-                              className={`text-[11px] pt-1 ${liberado ? 'font-bold mt-auto text-good-ink' : 'text-ink-muted'}`}
-                            >
-                              {(() => {
-                                const unidade = (n: number) =>
-                                  j.estado.fonte === 'falas' ? tp(n, 'fala', 'falas') : tp(n, 'palavra', 'palavras');
-                                if (liberado) {
-                                  const total =
-                                    ('pool' in j.estado ? j.estado.pool : undefined) ?? j.estado.disponiveis;
-                                  const naRodada = j.estado.tamanhoDaRodada;
-                                  return naRodada < total
-                                    ? t('{n} nesta rodada · {total} disponíveis', { n: naRodada, total })
-                                    : t('{n} {unidade} nesta rodada', { n: naRodada, unidade: unidade(naRodada) });
-                                }
-                                const motivo = 'motivo' in j.estado ? j.estado.motivo : undefined;
-                                if (motivo === 'trilha-sem-frase') {
-                                  return ageProfile === 'kids'
-                                    ? t('a trilha tem palavras, não frases')
-                                    : t(
-                                        'a trilha tem palavras soltas, este jogo precisa de frase; escolha uma gravação',
-                                      );
-                                }
-                                if (motivo === 'sem-voz')
-                                  return t('este navegador não tem voz em {idioma}', {
-                                    idioma: langLabelNaUI(fonte.lang),
-                                  });
-                                /* A trilha japonesa TEM 5.181 frases: a mensagem de acervo vazio mandaria a
-                         pessoa procurar uma gravação para resolver o que não é falta de material. */
-                                if (motivo === 'escrita-sem-separacao') {
-                                  return ageProfile === 'kids'
-                                    ? t('em {idioma} as palavras ficam juntinhas, sem espaço', {
-                                        idioma: langLabelNaUI(fonte.lang),
-                                      })
-                                    : t(
-                                        'este jogo separa as palavras da frase, e {idioma} não marca onde cada uma começa',
-                                        { idioma: langLabelNaUI(fonte.lang) },
-                                      );
-                                }
-                                // Estado transitório e honesto: a gravação TEM som, ele está a caminho.
-                                if (motivo === 'audio-carregando') return t('baixando o áudio da gravação…');
-                                if (j.estado.fonte === 'falas' && j.estado.disponiveis === 0)
-                                  return t('precisa de uma gravação com legenda');
-
-                                /* A CONTA INTEIRA, e não só o que falta.
-                         "faltam 2 palavras" não diz de quantas nem sobre o quê, e a pessoa não tem
-                         como saber se 2 palavras é perto ou longe, nem em que idioma elas contam.
-                         Com "precisa de 4 · você tem 2 do espanhol", a mesma linha responde as três
-                         perguntas e o caminho de saída fica óbvio: gravar mais naquele idioma. */
-                                const precisa = MINIGAMES[j.id].minItems;
-                                const falta = tp(j.estado.faltam, 'falta {n} {unidade}', 'faltam {n} {unidade}', {
-                                  unidade: unidade(j.estado.faltam),
-                                });
-                                return ageProfile === 'kids'
-                                  ? t('{falta} para abrir', { falta })
-                                  : t('{falta} · precisa de {precisa} · você tem {tem} do {idioma}', {
-                                      falta,
-                                      precisa,
-                                      tem: j.estado.disponiveis,
-                                      idioma: langLabelNaUI(fonte.lang),
-                                    });
-                              })()}
-                            </span>
-                            {/* O RECORDE, quando existe. Vem da coluna `score`, que era gravada a cada rodada
-                      desde a migração 0001 e nunca tinha sido lida de volta. Só aparece com jogo
-                      liberado e recorde > 0: "recorde: 0" seria uma provocação sem sentido. */}
-                            {liberado && (recordeDoJogo(j.id) ?? 0) > 0 && (
-                              <span
-                                className="kpi-pill mt-1.5 self-start"
-                                title={t('Sua melhor sequência neste jogo, nesta fonte')}
-                              >
-                                <Trophy className="w-3 h-3" aria-hidden />{' '}
-                                {t('recorde {n}', { n: recordeDoJogo(j.id) ?? 0 })}
-                              </span>
-                            )}
-                          </span>
-                        </div>
-                      </li>
-                    </React.Fragment>
-                  );
-                })}
-
-                {/* Estado Vazio de Busca */}
-                {jogosClassicosFiltrados.length === 0 && (
-                  <li className="col-span-full list-none py-12 text-center flex flex-col items-center gap-3">
-                    <div className="w-12 h-12 rounded-2xl bg-surface border border-border-subtle flex items-center justify-center text-ink-faint">
-                      <Search className="w-6 h-6" />
+                        ))}
+                      </div>
                     </div>
-                    <p className="font-bold text-ink text-[15px]">{t('Nenhum jogo encontrado')}</p>
-                    <p className="text-[12.5px] text-ink-muted max-w-sm">
-                      {t('Tente buscar por outro termo ou ajuste os filtros de categoria e habilidade.')}
-                    </p>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setBuscaJogos('');
-                        setFiltroHabilidade('todas');
-                        setCategoriaAtiva('todos');
-                        triggerHaptic('soft');
-                        playJuicedHit(1);
-                      }}
-                      className="px-4 py-2 rounded-xl bg-surface border border-border-subtle hover:border-accent text-[12px] font-bold text-ink cursor-pointer transition-colors"
-                    >
-                      {t('Limpar filtros e busca')}
-                    </button>
-                  </li>
-                )}
-              </ul>
+                  }
+                />
+                <div role="tabpanel" id={`painel-${categoriaAtiva}`} aria-labelledby={`aba-${categoriaAtiva}`}>
+                  {prontosFiltrados.length ? (
+                    <div className="gauto">{prontosFiltrados.map(cartaDoJogo)}</div>
+                  ) : (
+                    <div className="cartao">
+                      <div className="vazio">
+                        <IconeEmBloco icone={Search} />
+                        <h3>{t('Nenhum jogo pronto com esse filtro')}</h3>
+                        <p>{t('Troque o filtro ou busque por outra mecânica.')}</p>
+                        <button
+                          type="button"
+                          className="btn btn-outline peq"
+                          onClick={() => {
+                            setBuscaJogos('');
+                            setFiltroHabilidade('todas');
+                            setCategoriaAtiva('todos');
+                          }}
+                        >
+                          {t('Limpar filtros e busca')}
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </section>
+
+              {/* ── PRECISAM DE OUTRO MATERIAL ── */}
+              {presosFiltrados.length > 0 && (
+                <section className="secao">
+                  <TituloDeSecao
+                    icone={PackageOpen}
+                    titulo={t('Precisam de outro material')}
+                    desc={t('Não estão quebrados: pedem algo que este recorte não tem. Cada um diz o que falta.')}
+                  />
+                  <div className="gauto">{presosFiltrados.map(cartaDoJogo)}</div>
+                </section>
+              )}
             </div>
           </>
         )}

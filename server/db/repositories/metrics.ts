@@ -7,14 +7,14 @@
 import { and, eq, isNull } from 'drizzle-orm'
 
 import type { AppMetrics } from '../../../src/core/learning/contract'
-import { diaLocal, marcosDeSequencia, minutosPremiados,sequencias } from '../../../src/core/learning/economia'
-import { type BaldeDeXp, type HistoricoDeXp,historicoDeXp } from '../../../src/core/learning/historicoDeXp'
+import { diaLocal, marcosDeSequencia, minutosPremiados, sequencias } from '../../../src/core/learning/economia'
+import { type BaldeDeXp, type HistoricoDeXp, historicoDeXp } from '../../../src/core/learning/historicoDeXp'
 import { retrievability } from '../../../src/core/learning/scheduler'
 import { economiaDeMetricas } from '../../../src/core/learning/xp'
 import { MINIGAMES } from '../../../src/core/minigames/types'
 import type { UserId } from '../../lib/authContext'
 import { db } from '../db'
-import { exerciseResults,reviewLogs, sessions, utterances, vocabCards } from '../schema'
+import { exerciseResults, reviewLogs, sessions, utterances, vocabCards } from '../schema'
 import { economiaRepo } from './economia'
 import { seedSpendsRepo } from './seedSpends'
 
@@ -380,6 +380,10 @@ export async function computeProfile(userId: UserId, opts: OpcoesDePerfil = {}):
     avgRetention,
     avgRetentionConfidence: retentions.length >= 4 ? 0.7 : retentions.length > 0 ? 0.3 : 0,
     vocabByWeek,
+    revisoesRecentes: logsNoEscopo
+      .map((l) => l.reviewedAt ?? l.createdAt)
+      .filter((t) => t >= now - 8 * DAY)
+      .sort((a, b) => a - b),
     speakingMs,
     listeningMs,
     palavrasDificeis,
@@ -444,7 +448,7 @@ export async function computeProfile(userId: UserId, opts: OpcoesDePerfil = {}):
  * concordariam só enquanto ninguém mexesse numa delas.
  *
  * O que ficou aqui é o que só o servidor sabe fazer: LER as três tabelas. A fórmula é do core. */
-export type { BaldeDeXp, HistoricoDeXp,MarcoDeNivel, PontoDeXp } from '../../../src/core/learning/historicoDeXp'
+export type { BaldeDeXp, HistoricoDeXp, MarcoDeNivel, PontoDeXp } from '../../../src/core/learning/historicoDeXp'
 
 export async function computeXpHistory(
   userId: UserId,

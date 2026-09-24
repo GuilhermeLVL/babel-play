@@ -23,7 +23,7 @@
  */
 import { chaveDedup } from '@core/texto/palavra';
 
-import { Fsrs5Strategy, type Grade, type SchedulingState } from '../../../core/learning/scheduler';
+import { type Grade, makeFsrs5, metaDeRetencao, type SchedulingState } from '../../../core/learning/scheduler';
 import { estadoDoTeto, motivoDoTeto } from '../../../core/tetoAnonimo';
 import { type Json,json, lerJson, num, str, uuid } from '../nucleo';
 import { abrirStore, type CartaoLocal } from '../store';
@@ -105,7 +105,7 @@ export async function adicionarCartoes(_m: RegExpMatchArray, _u: URL, init: Requ
       id: uuid(), normKey, word, back: str(c.back), sentence: str(c.sentence), srcLang, tgtLang: str(c.tgtLang),
       clozePrompt: str(c.clozePrompt), clozeAnswer: str(c.clozeAnswer), box: 1, dueAt: agora,
       stability: null, difficulty: null, reps: null, lapses: null, lastReview: null,
-      sessionId: str(c.sessionId), inDeck: 1, cefrLevel: null, cefrConfidence: null, createdAt: agora, occurrences: 1,
+      sessionId: str(c.sessionId), inDeck: 1, cefrLevel: str(c.cefrLevel), cefrConfidence: null, createdAt: agora, occurrences: 1,
     };
     await tx.store.put(novo);
     resultado.set(normKey, novo);
@@ -123,8 +123,63 @@ export async function editarCartao(m: RegExpMatchArray, _u: URL, init: RequestIn
     ...c,
     back: typeof p.back === 'string' ? p.back : c.back,
     inDeck: typeof p.inDeck === 'boolean' ? (p.inDeck ? 1 : 0) : c.inDeck,
+    sentence: typeof p.sentence === 'string' ? p.sentence.trim() || null : c.sentence,
+    cefrLevel: p.cefrLevel === null || typeof p.cefrLevel === 'string' ? (p.cefrLevel as string | null) : c.cefrLevel,
   };
   await db.put('cartoes', novo);
+  return json(novo);
+}
+
+/** "Na sua memória": revisões e acertos (`grade >= 3`) do cartão, do store de revisões. */
+export async function memoriaDoCartao(m: RegExpMatchArray): Promise<Response> {
+  const db = await abrirStore();
+  const revs = (await db.getAll('revisoes')).filter((r) => r.cardId === m[1]);
+  return json({ revisoes: revs.length, acertos: revs.filter((r) => r.grade >= 3).length });
+}
+
+/**
+ * Ocorrências de um cartão. Sem conta não há `vocab_occurrences` (a contagem mora no cartão), então
+ * a única ocorrência conhecida é a de origem: a sessão e a frase com que o cartão nasceu.
+ */
+export async function ocorrenciasDoCartao(m: RegExpMatchArray): Promise<Response> {
+  const db = await abrirStore();
+  const c = await db.get('cartoes', m[1]);
+  if (!c) return json([]);
+  return json([
+    {
+      id: c.id,
+      cardId: c.id,
+      originKind: c.sessionId ? 'sessao' : 'manual',
+      originRef: c.sessionId,
+      sentence: c.sentence,
+      utteranceId: null,
+      occurredAt: c.createdAt,
+    },
+  ]);
+}
+
+/** Desfaz a última revisão: o estado de antes volta ao cartão e a revisão mais recente sai. */
+export async function desfazerRevisao(m: RegExpMatchArray, _u: URL, init: RequestInit): Promise<Response> {
+  const p = lerJson(init);
+  const db = await abrirStore();
+  const c = await db.get('cartoes', m[1]);
+  if (!c) return json({ error: 'card não encontrado' }, 404);
+  const n = (v: unknown) => (typeof v === 'number' && Number.isFinite(v) ? v : null);
+  const novo: CartaoLocal = {
+    ...c,
+    box: n(p.box) ?? c.box,
+    dueAt: n(p.dueAt) ?? c.dueAt,
+    stability: n(p.stability),
+    difficulty: n(p.difficulty),
+    reps: n(p.reps),
+    lapses: n(p.lapses),
+    lastReview: n(p.lastReview),
+  };
+  const revs = (await db.getAll('revisoes')).filter((r) => r.cardId === c.id).sort((a, b) => b.reviewedAt - a.reviewedAt);
+  const tx = db.transaction(['cartoes', 'revisoes'], 'readwrite');
+  await tx.objectStore('cartoes').put(novo);
+  if (revs[0]) await tx.objectStore('revisoes').delete(revs[0].id);
+  await tx.done;
   return json(novo);
 }
 
@@ -146,7 +201,7 @@ export async function revisarCartao(m: RegExpMatchArray, _u: URL, init: RequestI
   if (!c) return json({ error: 'card não encontrado' }, 404);
   const agora = Date.now();
   const prev = estadoDe(c);
-  const next = Fsrs5Strategy.review(prev, grade as Grade, agora);
+  const next = makeFsrs5(undefined, metaDeRetencao(num(p.retencao))).review(prev, grade as Grade, agora);
   const novo: CartaoLocal = {
     ...c, box: next.box, dueAt: next.dueAt, stability: next.stability ?? null, difficulty: next.difficulty ?? null,
     reps: next.reps ?? null, lapses: next.lapses ?? null, lastReview: next.lastReview ?? null,
@@ -172,7 +227,7 @@ export async function paginaDeCartoes(_m: RegExpMatchArray, url: URL): Promise<R
   const db = await abrirStore();
   const q = url.searchParams;
   const limite = Math.min(Math.max(Number(q.get('limite') ?? 200) || 200, 1), 500);
-  const ordem = (q.get('ordem') ?? 'recentes') as 'recentes' | 'frequentes' | 'dificuldade' | 'alfabetica';
+  const ordem = (q.get('ordem') ?? 'recentes') as 'recentes' | 'frequentes' | 'dificuldade' | 'alfabetica' | 'nivel';
   const busca = (q.get('q') ?? '').trim().toLowerCase();
   const niveis = (q.get('niveis') ?? '').split(',').filter(Boolean);
   const cursorId = q.get('cursorId');
@@ -197,11 +252,12 @@ export async function paginaDeCartoes(_m: RegExpMatchArray, url: URL): Promise<R
     ordem === 'recentes' ? c.createdAt
       : ordem === 'frequentes' ? c.occurrences
         : ordem === 'dificuldade' ? (c.difficulty ?? null)
+          : ordem === 'nivel' ? (c.cefrLevel ?? 'Z')
           : c.word;
 
   cartoes.sort((a, b) => {
     const va = valorDe(a); const vb = valorDe(b);
-    if (ordem === 'alfabetica') return String(va).localeCompare(String(vb)) || a.id.localeCompare(b.id);
+    if (ordem === 'alfabetica' || ordem === 'nivel') return String(va).localeCompare(String(vb)) || a.id.localeCompare(b.id);
     return (Number(vb ?? 0) - Number(va ?? 0)) || a.id.localeCompare(b.id);
   });
 
@@ -216,10 +272,17 @@ export async function paginaDeCartoes(_m: RegExpMatchArray, url: URL): Promise<R
   const temMais = cartoes.length > limite;
   const pagina = cartoes.slice(0, limite);
   const ultimo = pagina[pagina.length - 1];
+  /* A origem, do jeito que o modo sem conta guarda: veio de uma sessão, ou entrou à mão. As
+     contagens das pílulas de Origem são sobre o acervo inteiro, como no servidor. */
+  const origemDe = (c: CartaoLocal) => (c.sessionId ? 'sessao' : 'manual');
+  const acervo = (await db.getAll('cartoes')).filter((c) => c.inDeck !== 0);
+  const porOrigem: Record<string, number> = {};
+  for (const c of acervo) porOrigem[origemDe(c)] = (porOrigem[origemDe(c)] ?? 0) + 1;
   return json({
-    itens: pagina,
+    itens: pagina.map((c) => ({ ...c, origens: [origemDe(c)] })),
     total,
     proximoCursor: temMais && ultimo ? { valor: valorDe(ultimo), id: ultimo.id } : null,
+    porOrigem,
   });
 }
 

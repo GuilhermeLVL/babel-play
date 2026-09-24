@@ -36,6 +36,8 @@ export interface CartaoAFichar {
   cloze: ReturnType<typeof makeCloze>;
   /** Sessão de origem, quando a palavra veio de uma (Análise/Leitura). */
   sessionId?: string;
+  /** Nível escolhido à mão. Ausente = o servidor lê da wordlist. */
+  cefrLevel?: string;
 }
 
 /**
@@ -47,21 +49,26 @@ export interface CartaoAFichar {
  */
 export async function ficharCartao(c: CartaoAFichar): Promise<VocabCard[]> {
   try {
-    const { cards: created, skipped } = await bulkAddCards([{
-      word: c.word,
-      back: c.back,
-      sentence: c.sentence || undefined,
-      // Idiomas REAIS da PALAVRA (o da frase de onde ela saiu → o alvo decidido por ele).
-      ...cardLangs(c.resolved),
-      clozePrompt: c.cloze?.prompt,
-      clozeAnswer: c.cloze?.answer,
-      sessionId: c.sessionId,
-    }]);
+    const { cards: created, skipped } = await bulkAddCards([
+      {
+        word: c.word,
+        back: c.back,
+        sentence: c.sentence || undefined,
+        // Idiomas REAIS da PALAVRA (o da frase de onde ela saiu → o alvo decidido por ele).
+        ...cardLangs(c.resolved),
+        clozePrompt: c.cloze?.prompt,
+        clozeAnswer: c.cloze?.answer,
+        sessionId: c.sessionId,
+        cefrLevel: c.cefrLevel,
+      },
+    ]);
     if (created.length) return created;
     // O servidor aplica a régua de qualidade e deduplica: quando recusa, a tela DIZ o
     // motivo. Clique que não faz nada e não explica é indistinguível de bug.
     if (skipped.length) toast.warn(`"${skipped[0].word}": ${motivoLegivel(skipped[0].motivo)}`);
-  } catch { /* falha silenciosa, deck permanece consistente */ }
+  } catch {
+    /* falha silenciosa, deck permanece consistente */
+  }
   return [];
 }
 
@@ -90,5 +97,6 @@ export async function ficharPalavraDoAnalista(w: VocabWord, config: LangConfig):
     sentence,
     resolved,
     cloze,
+    cefrLevel: w.cefr || undefined,
   });
 }

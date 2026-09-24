@@ -120,11 +120,13 @@ export async function fetchDeck(): Promise<VocabCard[]> {
  */
 export async function updateCard(
   id: string,
-  patch: { translation?: string; inDeck?: boolean },
+  patch: { translation?: string; inDeck?: boolean; sentence?: string; cefrLevel?: string | null },
 ): Promise<VocabCard> {
   const body: Record<string, unknown> = {}
   if (typeof patch.translation === 'string') body.back = patch.translation
   if (typeof patch.inDeck === 'boolean') body.inDeck = patch.inDeck
+  if (typeof patch.sentence === 'string') body.sentence = patch.sentence
+  if (patch.cefrLevel !== undefined) body.cefrLevel = patch.cefrLevel
   const res = await apiFetch(`/api/vocab/${id}`, {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
@@ -132,6 +134,45 @@ export async function updateCard(
   })
   if (!res.ok) throw new Error('não consegui salvar a alteração')
   return rowToVocabCard((await res.json()) as VocabRow)
+}
+
+/**
+ * Apaga o cartão (soft delete no servidor: cartão, ocorrências e revisões saem juntos). O
+ * "Excluir" da gaveta da palavra, com os dois cliques do protótipo.
+ */
+export async function deleteCard(id: string): Promise<boolean> {
+  const res = await apiFetch(`/api/vocab/${id}`, { method: 'DELETE' })
+  return res.ok
+}
+
+/** "Na sua memória": quantas revisões o cartão teve e quantas foram acerto. */
+export async function fetchMemoriaDoCartao(id: string): Promise<{ revisoes: number; acertos: number } | null> {
+  try {
+    const res = await apiFetch(`/api/vocab/${id}/memoria`)
+    return res.ok ? ((await res.json()) as { revisoes: number; acertos: number }) : null
+  } catch {
+    return null
+  }
+}
+
+/** Uma ocorrência do cartão: de onde ele veio (sessão, trilha, manual…) e a frase daquele encontro. */
+export interface OcorrenciaDoCartao {
+  originKind: string | null
+  /** Para `sessao`, o id da sessão. */
+  originRef: string | null
+  sentence: string | null
+  utteranceId: string | null
+  occurredAt: number | null
+}
+
+/** Os encontros do cartão, do mais recente ao mais antigo. */
+export async function fetchOcorrencias(id: string): Promise<OcorrenciaDoCartao[]> {
+  try {
+    const res = await apiFetch(`/api/vocab/${id}/ocorrencias`)
+    return res.ok ? ((await res.json()) as OcorrenciaDoCartao[]) : []
+  } catch {
+    return []
+  }
 }
 
 /** Uma nota lida de um baralho do Anki (ainda NÃO gravada). */
@@ -182,6 +223,8 @@ export interface NewCardPayload {
   clozePrompt?: string
   clozeAnswer?: string
   sessionId?: string
+  /** Nível escolhido à mão (Adicionar palavra). Ausente = o servidor lê da wordlist. */
+  cefrLevel?: string | null
 }
 
 /** Um cartão recusado na entrada, com o motivo — o servidor não engole em silêncio. */
@@ -250,12 +293,34 @@ export async function relabelCards(
 }
 
 /** Revisão SRS: grade 1=Again 2=Hard 3=Good 4=Easy. Persiste o estado FSRS. */
-export async function reviewCard(id: string, grade: 1 | 2 | 3 | 4): Promise<VocabCard> {
+export async function reviewCard(id: string, grade: 1 | 2 | 3 | 4, retencao?: number): Promise<VocabCard> {
   const res = await apiFetch(`/api/vocab/${id}/review`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ grade }),
+    body: JSON.stringify(retencao === undefined ? { grade } : { grade, retencao }),
   })
   if (!res.ok) throw new Error('falha ao revisar o card')
+  return rowToVocabCard((await res.json()) as VocabRow)
+}
+
+/** O estado do agendador de um cartão ANTES de uma nota — o que "Desfazer" devolve. */
+export interface EstadoAntesDaNota {
+  box: number
+  dueAt: number
+  stability: number | null
+  difficulty: number | null
+  reps: number | null
+  lapses: number | null
+  lastReview: number | null
+}
+
+/** Desfaz a última revisão do cartão (Revisão, tecla Z). */
+export async function desfazerRevisao(id: string, antes: EstadoAntesDaNota): Promise<VocabCard> {
+  const res = await apiFetch(`/api/vocab/${id}/desfazer`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(antes),
+  })
+  if (!res.ok) throw new Error('não deu para desfazer a revisão')
   return rowToVocabCard((await res.json()) as VocabRow)
 }

@@ -7,6 +7,7 @@ import { erroDeRota } from '../lib/erroDeRota'
 import { log } from '../lib/logger'
 import {
   bulkAddCardsSchema,
+  desfazerRevisaoSchema,
   idParamSchema,
   parseOr400,
   patchVocabSchema,
@@ -49,11 +50,9 @@ async function paraJogo(
       }),
     )
   } catch (err) {
-    res
-      .status(400)
-      .json({
-        error: erroDeRota(err, { status: 400, event: 'vocab_route_error', route: req.path, requestId: req.requestId }),
-      })
+    res.status(400).json({
+      error: erroDeRota(err, { status: 400, event: 'vocab_route_error', route: req.path, requestId: req.requestId }),
+    })
   }
 }
 
@@ -84,11 +83,9 @@ vocabRouter.get('/pagina', async (req, res) => {
       }),
     )
   } catch (err) {
-    res
-      .status(400)
-      .json({
-        error: erroDeRota(err, { status: 400, event: 'vocab_route_error', route: req.path, requestId: req.requestId }),
-      })
+    res.status(400).json({
+      error: erroDeRota(err, { status: 400, event: 'vocab_route_error', route: req.path, requestId: req.requestId }),
+    })
   }
 })
 
@@ -106,11 +103,9 @@ vocabRouter.get('/distribuicao-dificuldade', async (req, res) => {
     })
     res.json(d)
   } catch (err) {
-    res
-      .status(400)
-      .json({
-        error: erroDeRota(err, { status: 400, event: 'vocab_route_error', route: req.path, requestId: req.requestId }),
-      })
+    res.status(400).json({
+      error: erroDeRota(err, { status: 400, event: 'vocab_route_error', route: req.path, requestId: req.requestId }),
+    })
   }
 })
 
@@ -119,11 +114,24 @@ vocabRouter.get('/inicio-da-contagem', async (req, res) => {
   try {
     res.json(await vocabRepo.inicioDaContagem(req.userId))
   } catch (err) {
-    res
-      .status(400)
-      .json({
-        error: erroDeRota(err, { status: 400, event: 'vocab_route_error', route: req.path, requestId: req.requestId }),
-      })
+    res.status(400).json({
+      error: erroDeRota(err, { status: 400, event: 'vocab_route_error', route: req.path, requestId: req.requestId }),
+    })
+  }
+})
+
+/** "Na sua memória" (gaveta da palavra): revisões e acertos do cartão. */
+vocabRouter.get('/:id/memoria', async (req, res) => {
+  const p = parseOr400(idParamSchema, req.params, res)
+  if (!p) return
+  try {
+    const m = await vocabRepo.memoria(req.userId, p.id)
+    if (!m) return res.status(404).json({ error: 'card não encontrado' })
+    res.json(m)
+  } catch (err) {
+    res.status(400).json({
+      error: erroDeRota(err, { status: 400, event: 'vocab_route_error', route: req.path, requestId: req.requestId }),
+    })
   }
 })
 
@@ -134,11 +142,9 @@ vocabRouter.get('/:id/ocorrencias', async (req, res) => {
   try {
     res.json(await vocabRepo.ocorrencias(req.userId, p.id))
   } catch (err) {
-    res
-      .status(400)
-      .json({
-        error: erroDeRota(err, { status: 400, event: 'vocab_route_error', route: req.path, requestId: req.requestId }),
-      })
+    res.status(400).json({
+      error: erroDeRota(err, { status: 400, event: 'vocab_route_error', route: req.path, requestId: req.requestId }),
+    })
   }
 })
 
@@ -148,11 +154,9 @@ vocabRouter.post('/bulk-add', async (req, res) => {
   try {
     res.json(await vocabRepo.bulkAdd(req.userId, payload.cards))
   } catch (err) {
-    res
-      .status(400)
-      .json({
-        error: erroDeRota(err, { status: 400, event: 'vocab_route_error', route: req.path, requestId: req.requestId }),
-      })
+    res.status(400).json({
+      error: erroDeRota(err, { status: 400, event: 'vocab_route_error', route: req.path, requestId: req.requestId }),
+    })
   }
 })
 
@@ -167,11 +171,9 @@ vocabRouter.post('/relabel', async (req, res) => {
   try {
     res.json({ changed: await vocabRepo.relabel(req.userId, payload.items) })
   } catch (err) {
-    res
-      .status(400)
-      .json({
-        error: erroDeRota(err, { status: 400, event: 'vocab_route_error', route: req.path, requestId: req.requestId }),
-      })
+    res.status(400).json({
+      error: erroDeRota(err, { status: 400, event: 'vocab_route_error', route: req.path, requestId: req.requestId }),
+    })
   }
 })
 
@@ -185,9 +187,11 @@ vocabRouter.patch('/:id', async (req, res) => {
   const body = parseOr400(patchVocabSchema, req.body, res)
   if (!body) return
   try {
-    const patch: { back?: string; inDeck?: boolean } = {}
+    const patch: { back?: string; inDeck?: boolean; sentence?: string; cefrLevel?: string | null } = {}
     if (body.back !== undefined) patch.back = body.back
     if (body.inDeck !== undefined) patch.inDeck = body.inDeck
+    if (body.sentence !== undefined) patch.sentence = body.sentence
+    if (body.cefrLevel !== undefined) patch.cefrLevel = body.cefrLevel
     if (!Object.keys(patch).length) return res.status(400).json({ error: 'nada a alterar' })
     const card = await vocabRepo.patch(req.userId, p.id, patch)
     if (!card) return res.status(404).json({ error: 'card não encontrado' })
@@ -195,11 +199,9 @@ vocabRouter.patch('/:id', async (req, res) => {
        na tela assim que alguém editasse a tradução (achado A20). */
     res.json({ ...card, ...(await vocabRepo.procedenciaDe(req.userId, p.id)) })
   } catch (err) {
-    res
-      .status(400)
-      .json({
-        error: erroDeRota(err, { status: 400, event: 'vocab_route_error', route: req.path, requestId: req.requestId }),
-      })
+    res.status(400).json({
+      error: erroDeRota(err, { status: 400, event: 'vocab_route_error', route: req.path, requestId: req.requestId }),
+    })
   }
 })
 
@@ -213,14 +215,37 @@ vocabRouter.post('/:id/review', async (req, res) => {
   const p = parseOr400(idParamSchema, req.params, res)
   if (!p) return
   try {
-    const atualizado = await vocabRepo.review(req.userId, p.id, payload.grade as Grade)
+    const atualizado = await vocabRepo.review(req.userId, p.id, payload.grade as Grade, payload.retencao)
     res.json({ ...atualizado, ...(await vocabRepo.procedenciaDe(req.userId, p.id)) })
   } catch (err) {
-    res
-      .status(400)
-      .json({
-        error: erroDeRota(err, { status: 400, event: 'vocab_route_error', route: req.path, requestId: req.requestId }),
-      })
+    res.status(400).json({
+      error: erroDeRota(err, { status: 400, event: 'vocab_route_error', route: req.path, requestId: req.requestId }),
+    })
+  }
+})
+
+/** Desfaz a última revisão do cartão (Revisão, tecla Z). */
+vocabRouter.post('/:id/desfazer', async (req, res) => {
+  const p = parseOr400(idParamSchema, req.params, res)
+  if (!p) return
+  const antes = parseOr400(desfazerRevisaoSchema, req.body, res)
+  if (!antes) return
+  try {
+    const card = await vocabRepo.desfazerRevisao(req.userId, p.id, {
+      box: antes.box,
+      dueAt: antes.dueAt,
+      stability: antes.stability ?? null,
+      difficulty: antes.difficulty ?? null,
+      reps: antes.reps ?? null,
+      lapses: antes.lapses ?? null,
+      lastReview: antes.lastReview ?? null,
+    })
+    if (!card) return res.status(404).json({ error: 'card não encontrado' })
+    res.json({ ...card, ...(await vocabRepo.procedenciaDe(req.userId, p.id)) })
+  } catch (err) {
+    res.status(400).json({
+      error: erroDeRota(err, { status: 400, event: 'vocab_route_error', route: req.path, requestId: req.requestId }),
+    })
   }
 })
 

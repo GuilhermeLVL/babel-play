@@ -7,21 +7,24 @@
  *    do deck real;
  *  - Relatório (`.txt`): o relatório de progresso que o antigo "Exportar relatório" já baixava.
  *
- * FICA DE FORA do desenho, por não existir no app: o escopo "Filtradas" (os filtros moram no
- * servidor, dentro do catálogo) e "Incluir o áudio da pronúncia" (o `.apkg` não leva áudio).
+ * "Filtradas" usa o filtro que está no catálogo agora (busca, níveis e origens, resolvidos no
+ * servidor). FICA DE FORA do desenho: "Incluir o áudio da pronúncia" — o `.apkg` que o servidor
+ * gera não leva mídia.
  */
 import { isDueNow } from '@core';
 import { Download, Info } from 'lucide-react';
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 
 import { type AppMetrics, exportarApkg } from '../../../data/api';
+import { langLabelNaUI } from '../../../lib/languages';
 import { baixarRelatorio } from '../../../lib/relatorioDeProgresso';
 import type { VocabCard } from '../../../types';
 import { toast } from '../../Toast';
+import { type FiltroDoCatalogo, idsDoFiltro } from './CatalogoDePalavras';
 import Dialogo, { CampoLinha, Interruptor, Segmentos } from './Dialogo';
 
 type Formato = 'apkg' | 'csv' | 'tsv' | 'txt';
-type Escopo = 'todas' | 'revisar';
+type Escopo = 'todas' | 'filtradas' | 'revisar';
 
 const FORMATOS: Array<[Formato, string, string, string]> = [
   ['apkg', 'Baralho do Anki', '.apkg', 'Abre direto no Anki e no AnkiDroid'],
@@ -45,11 +48,14 @@ export default function ExportarVocabulario({
   cartoes,
   metrics,
   idioma,
+  filtro,
   aoFechar,
 }: {
   cartoes: VocabCard[];
   metrics: AppMetrics | null;
   idioma: string;
+  /** O filtro do catálogo agora; sem ele, "Filtradas" é igual a "Todas". */
+  filtro: FiltroDoCatalogo | null;
   aoFechar: () => void;
 }) {
   const [formato, setFormato] = useState<Formato>('apkg');
@@ -59,7 +65,24 @@ export default function ExportarVocabulario({
 
   const noBaralho = useMemo(() => cartoes.filter((c) => c.inDeck), [cartoes]);
   const paraRevisar = useMemo(() => noBaralho.filter((c) => isDueNow(c)), [noBaralho]);
-  const escolhidas = escopo === 'revisar' ? paraRevisar : noBaralho;
+  const temFiltro = !!filtro && (!!filtro.q || filtro.niveis.length > 0 || filtro.origens.length > 0);
+  const [idsFiltrados, setIdsFiltrados] = useState<Set<string> | null>(null);
+  useEffect(() => {
+    if (escopo !== 'filtradas' || !filtro || !temFiltro) return;
+    let vivo = true;
+    idsDoFiltro(filtro)
+      .then((ids) => vivo && setIdsFiltrados(ids))
+      .catch(() => vivo && setIdsFiltrados(new Set()));
+    return () => {
+      vivo = false;
+    };
+  }, [escopo, filtro, temFiltro]);
+  const filtradas = useMemo(
+    () => (temFiltro ? (idsFiltrados ? noBaralho.filter((c) => idsFiltrados.has(c.id)) : []) : noBaralho),
+    [temFiltro, idsFiltrados, noBaralho],
+  );
+  const escolhidas = escopo === 'revisar' ? paraRevisar : escopo === 'filtradas' ? filtradas : noBaralho;
+  const nomeDoIdioma = idioma ? langLabelNaUI(idioma).toLowerCase() : '';
   /** Cartão sem verso não vira cartão no Anki nem no Quizlet: fica de fora, e o número diz isso. */
   const saem =
     formato === 'apkg' || formato === 'tsv' ? escolhidas.filter((c) => (c.translation ?? '').trim()) : escolhidas;
@@ -79,10 +102,10 @@ export default function ExportarVocabulario({
       try {
         const blob = await exportarApkg(
           saem.map((c) => ({ frente: c.word, verso: c.translation, exemplo: frase ? c.sentence : undefined })),
-          `Babel Play ${idioma || ''}`.trim(),
+          `Babel Play ${nomeDoIdioma}`.trim(),
         );
         baixar(blob, `babel-${idioma || 'deck'}-${data}.apkg`);
-        toast.ok(`${saem.length} palavras no arquivo`);
+        toast.ok(`Baixando “${`Babel Play ${nomeDoIdioma}`.trim()}.apkg”: abra com o Anki`);
         aoFechar();
       } catch (e) {
         toast.error(`Não consegui gerar o .apkg: ${(e as Error).message}`);
@@ -106,7 +129,7 @@ export default function ExportarVocabulario({
       const linhas = saem.map((c) => `${semQuebra(c.word)}\t${semQuebra(c.translation ?? '')}`);
       baixar(new Blob([linhas.join('\n')], { type: 'text/plain;charset=utf-8' }), `babel-vocabulario-${data}.txt`);
     }
-    toast.ok(`${saem.length} palavras exportadas`);
+    toast.ok(`Baixando babel-vocabulario-${data}.${formato === 'csv' ? 'csv' : 'txt'}`);
     aoFechar();
   };
 
@@ -147,6 +170,7 @@ export default function ExportarVocabulario({
               rotulo="Quais palavras"
               opcoes={[
                 ['todas', `Todas · ${noBaralho.length}`],
+                ['filtradas', `Filtradas · ${temFiltro ? (filtro?.total ?? 0) : noBaralho.length}`],
                 ['revisar', `Para revisar · ${paraRevisar.length}`],
               ]}
             />
@@ -169,12 +193,12 @@ export default function ExportarVocabulario({
             </div>
           </div>
         )}
-        {formato !== 'txt' && (
+        {
           <p className="mut" style={{ fontSize: 12.5 }}>
             <Info style={{ width: 13, height: 13, verticalAlign: -2, display: 'inline' }} aria-hidden /> O histórico da
             revisão não vai junto: no Anki, as palavras começam como novas.
           </p>
-        )}
+        }
       </div>
       <div className="dlg-pe">
         <button type="button" className="btn btn-outline" onClick={aoFechar}>

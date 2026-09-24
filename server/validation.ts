@@ -248,6 +248,25 @@ export const presencaSchema = z
 export const reviewGradeSchema = z
   .object({
     grade: z.number().int().min(1).max(4).default(3),
+    /** Meta de retenção escolhida nas Opções da revisão (0,80–0,97). Ausente = 90%. */
+    retencao: z.number().min(0.8).max(0.97).optional(),
+  })
+  .strip()
+
+/**
+ * DESFAZER A ÚLTIMA REVISÃO (Revisão, tecla Z): o estado do agendador de ANTES da nota, que o
+ * cliente guardou ao dar a nota. É o cartão da própria pessoa: quem manda um estado falso só
+ * bagunça a própria agenda.
+ */
+export const desfazerRevisaoSchema = z
+  .object({
+    box: z.number().int().min(1).max(5),
+    dueAt: z.number().int().min(0),
+    stability: z.number().min(0).max(100_000).nullable(),
+    difficulty: z.number().min(0).max(10).nullable(),
+    reps: z.number().int().min(0).nullable(),
+    lapses: z.number().int().min(0).nullable(),
+    lastReview: z.number().int().min(0).nullable(),
   })
   .strip()
 
@@ -506,7 +525,7 @@ export const vocabPaginaQuerySchema = z
     origens: csv(20),
     desde: z.coerce.number().int().min(0).optional(),
     ate: z.coerce.number().int().min(0).optional(),
-    ordem: z.enum(['recentes', 'frequentes', 'dificuldade', 'alfabetica']).optional(),
+    ordem: z.enum(['recentes', 'frequentes', 'dificuldade', 'alfabetica', 'nivel']).optional(),
   })
   .strip()
 
@@ -521,6 +540,10 @@ export const patchVocabSchema = z
   .object({
     back: z.string().max(2_000).optional(),
     inDeck: z.boolean().optional(),
+    /* A gaveta da palavra (Vocabulário) edita também a frase de exemplo e o nível — o "Editar" do
+       protótipo aprovado. Nível escolhido à mão vira nível curado; `null` volta ao da wordlist. */
+    sentence: z.string().max(2_000).optional(),
+    cefrLevel: z.enum(['A1', 'A2', 'B1', 'B2', 'C1', 'C2']).nullable().optional(),
   })
   .strip()
 

@@ -43,6 +43,9 @@
     "palavrasDificeis": [],
     "presencas": "number",
     "reviews": "number",
+    "revisoesRecentes": [
+      "number"
+    ],
     "rodadasPerfeitas": "number",
     "seedsCreditadas": "number",
     "seedsGastas": "number",

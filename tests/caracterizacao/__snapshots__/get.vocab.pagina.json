@@ -25,6 +25,9 @@
         "lastSeenAt": "number",
         "normKey": "string",
         "occurrences": "number",
+        "origens": [
+          "string"
+        ],
         "phonetics": "null",
         "reps": "null",
         "sentence": "string",
@@ -38,6 +41,9 @@
         "word": "string"
       }
     ],
+    "porOrigem": {
+      "manual": "number"
+    },
     "proximoCursor": "null",
     "total": "number"
   }

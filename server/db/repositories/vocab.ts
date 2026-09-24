@@ -559,12 +559,14 @@ export const vocabRepo = {
       origens?: string[]
       desde?: number
       ate?: number
-      ordem?: 'recentes' | 'frequentes' | 'dificuldade' | 'alfabetica'
+      ordem?: 'recentes' | 'frequentes' | 'dificuldade' | 'alfabetica' | 'nivel'
     } = {},
   ): Promise<{
-    itens: VocabCard[]
+    itens: Array<VocabCard & { origens: string[] }>
     proximoCursor: { valor: number | string | null; id: string } | null
     total: number
+    /** Quantos cartões do acervo (sem filtro) têm cada origem — as contagens das pílulas. */
+    porOrigem: Record<string, number>
   }> {
     const limite = Math.min(Math.max(opts.limite ?? 200, 1), 500)
     const ordem = opts.ordem ?? 'recentes'
@@ -596,13 +598,16 @@ export const vocabRepo = {
       frequentes: vocabCards.occurrences,
       dificuldade: vocabCards.difficultyScore,
       alfabetica: vocabCards.word,
+      // Nível: A1 → C2, e "sem nível" por último (o 'Z' só existe na ordenação e no cursor).
+      nivel: sql<string>`coalesce(${vocabCards.cefrLevel}, 'Z')`,
     } as const
     const coluna = colunaDe[ordem]
+    const crescente = ordem === 'alfabetica' || ordem === 'nivel'
 
     if (opts.cursor) {
       const { valor, id } = opts.cursor
       cond.push(
-        ordem === 'alfabetica'
+        crescente
           ? sql`(${coluna} > ${valor} OR (${coluna} = ${valor} AND ${vocabCards.id} > ${id}))`
           : sql`(${coluna} < ${valor} OR (${coluna} IS ${valor} AND ${vocabCards.id} > ${id}))`,
       )
@@ -617,7 +622,7 @@ export const vocabRepo = {
       .select()
       .from(vocabCards)
       .where(where)
-      .orderBy(ordem === 'alfabetica' ? coluna : desc(coluna), vocabCards.id)
+      .orderBy(crescente ? coluna : desc(coluna), vocabCards.id)
       .limit(limite + 1)
 
     const temMais = itens.length > limite
@@ -632,11 +637,46 @@ export const vocabRepo = {
           ? c.occurrences
           : ordem === 'dificuldade'
             ? c.difficultyScore
-            : c.word
+            : ordem === 'nivel'
+              ? (c.cefrLevel ?? 'Z')
+              : c.word
+    /* A origem de cada item da página (uma consulta sobre os ids da página, não N+1) e a contagem
+       por origem do acervo inteiro — as pílulas de Origem mostram o número, como as de Nível. */
+    const ids = pagina.map((c) => c.id)
+    const [origensDaPagina, contagem] = await Promise.all([
+      ids.length
+        ? db
+            .selectDistinct({ cardId: vocabOccurrences.cardId, kind: vocabOccurrences.originKind })
+            .from(vocabOccurrences)
+            .where(
+              and(
+                eq(vocabOccurrences.userId, userId),
+                isNull(vocabOccurrences.deletedAt),
+                inArray(vocabOccurrences.cardId, ids),
+              ),
+            )
+        : Promise.resolve([] as Array<{ cardId: string; kind: string | null }>),
+      db
+        .select({ kind: vocabOccurrences.originKind, n: sql<number>`count(distinct ${vocabOccurrences.cardId})` })
+        .from(vocabOccurrences)
+        .innerJoin(vocabCards, eq(vocabCards.id, vocabOccurrences.cardId))
+        .where(
+          and(eq(vocabOccurrences.userId, userId), isNull(vocabOccurrences.deletedAt), isNull(vocabCards.deletedAt)),
+        )
+        .groupBy(vocabOccurrences.originKind),
+    ])
+    const origensPorId = new Map<string, string[]>()
+    for (const o of origensDaPagina) {
+      if (!o.kind) continue
+      const l = origensPorId.get(o.cardId)
+      if (l) l.push(o.kind)
+      else origensPorId.set(o.cardId, [o.kind])
+    }
     return {
-      itens: pagina,
+      itens: pagina.map((c) => ({ ...c, origens: origensPorId.get(c.id) ?? [] })),
       total: Number(n),
       proximoCursor: temMais && ultimo ? { valor: valorDoCursor(ultimo), id: ultimo.id } : null,
+      porOrigem: Object.fromEntries(contagem.filter((c) => c.kind).map((c) => [c.kind as string, Number(c.n)])),
     }
   },
 
@@ -971,6 +1011,68 @@ export const vocabRepo = {
     return { inicioEm: inicio ?? null, totalLegado: Number(legado), total: Number(total) }
   },
 
+  /**
+   * "Na sua memória" (gaveta da palavra): quantas revisões o cartão teve e quantas foram acerto
+   * (`grade >= 3`, o mesmo critério de `computeProfile`). `idx_review_card` cobre a consulta.
+   */
+  async memoria(userId: UserId, cardId: string): Promise<{ revisoes: number; acertos: number } | undefined> {
+    // Cartão que não é seu (ou não existe) é 404, e não "0 de 0": a contagem não pode falar de um
+    // cartão que esta pessoa não enxerga.
+    if (!(await this.get(userId, cardId))) return undefined
+    const [r] = await db
+      .select({
+        revisoes: sql<number>`count(*)`,
+        acertos: sql<number>`coalesce(sum(case when ${reviewLogs.grade} >= 3 then 1 else 0 end), 0)`,
+      })
+      .from(reviewLogs)
+      .where(and(eq(reviewLogs.userId, userId), eq(reviewLogs.cardId, cardId), isNull(reviewLogs.deletedAt)))
+    return { revisoes: Number(r?.revisoes ?? 0), acertos: Number(r?.acertos ?? 0) }
+  },
+
+  /**
+   * DESFAZER A ÚLTIMA REVISÃO: devolve ao cartão o estado de antes da nota e tira do histórico a
+   * revisão mais recente dele (soft delete, como toda remoção aqui) — XP, acerto e ofensiva, que
+   * são contados em `review_logs`, voltam junto.
+   */
+  async desfazerRevisao(
+    userId: UserId,
+    id: string,
+    antes: {
+      box: number
+      dueAt: number
+      stability: number | null
+      difficulty: number | null
+      reps: number | null
+      lapses: number | null
+      lastReview: number | null
+    },
+  ): Promise<CartaoParaCliente | undefined> {
+    const card = await this.get(userId, id)
+    if (!card) return undefined
+    const now = Date.now()
+    const [ultimo] = await db
+      .select({ id: reviewLogs.id })
+      .from(reviewLogs)
+      .where(and(eq(reviewLogs.userId, userId), eq(reviewLogs.cardId, id), isNull(reviewLogs.deletedAt)))
+      .orderBy(desc(reviewLogs.reviewedAt))
+      .limit(1)
+    await db.batch([
+      db
+        .update(vocabCards)
+        .set({ ...antes, updatedAt: now })
+        .where(and(eq(vocabCards.id, id), eq(vocabCards.userId, userId))),
+      ...(ultimo
+        ? [
+            db
+              .update(reviewLogs)
+              .set({ deletedAt: now, updatedAt: now })
+              .where(and(eq(reviewLogs.id, ultimo.id), eq(reviewLogs.userId, userId))),
+          ]
+        : []),
+    ] as unknown as Parameters<typeof db.batch>[0])
+    return this.get(userId, id)
+  },
+
   /** Ocorrências de um cartão — a linha do tempo que a tela de detalhe (F5) mostra. */
   async ocorrencias(userId: UserId, cardId: string) {
     return db
@@ -987,12 +1089,12 @@ export const vocabRepo = {
   },
 
   /** Aplica uma revisão FSRS-5, persiste o novo estado e grava um review_log. */
-  async review(userId: UserId, id: string, grade: Grade): Promise<CartaoParaCliente> {
+  async review(userId: UserId, id: string, grade: Grade, retencao?: number): Promise<CartaoParaCliente> {
     const card = await this.get(userId, id)
     if (!card) throw new Error('card não encontrado')
     const now = Date.now()
     const prev = toState(card)
-    const next = fsrs.review(prev, grade, now)
+    const next = (retencao === undefined ? fsrs : makeFsrs5(undefined, retencao)).review(prev, grade, now)
 
     await db
       .update(vocabCards)
@@ -1054,11 +1156,16 @@ export const vocabRepo = {
   async patch(
     userId: UserId,
     id: string,
-    patch: { back?: string; inDeck?: boolean },
+    patch: { back?: string; inDeck?: boolean; sentence?: string; cefrLevel?: string | null },
   ): Promise<CartaoParaCliente | undefined> {
     const set: Record<string, unknown> = { updatedAt: Date.now() }
     if (typeof patch.back === 'string') set.back = patch.back.trim() || null
     if (typeof patch.inDeck === 'boolean') set.inDeck = patch.inDeck ? 1 : 0
+    if (typeof patch.sentence === 'string') set.sentence = patch.sentence.trim() || null
+    if (patch.cefrLevel !== undefined) {
+      set.cefrLevel = patch.cefrLevel
+      set.cefrSource = patch.cefrLevel ? 'curado' : null
+    }
     await db
       .update(vocabCards)
       .set(set)

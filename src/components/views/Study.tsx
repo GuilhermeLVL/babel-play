@@ -1,4 +1,4 @@
-import { countDue, Fsrs5Strategy, type Grade, isDueNow } from '@core';
+import { countDue, type Grade, isDueNow, makeFsrs5 } from '@core';
 import {
   Brain,
   ChartColumn,
@@ -12,19 +12,22 @@ import {
   Settings2,
   SlidersHorizontal,
   Target,
+  Undo2,
   Volume2,
   X,
   Zap,
 } from 'lucide-react';
-import React, { useCallback, useEffect, useId, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 
-import { fetchDeck, reviewCard, salvarRodada, updateCard } from '../../data/api';
 import {
-  ActiveProductionExercise,
-  formatForCard,
-  similarityPercentage,
-  stabilityThreshold,
-} from '../../lib/exercicios';
+  desfazerRevisao,
+  type EstadoAntesDaNota,
+  fetchDeck,
+  reviewCard,
+  salvarRodada,
+  updateCard,
+} from '../../data/api';
+import { ActiveProductionExercise, similarityPercentage, stabilityThreshold } from '../../lib/exercicios';
 import { type AgeProfileType, copyDoPerfil, showsPowerUserAffordances } from '../../lib/profile';
 import type { PracticeSeed, Sentence } from '../../lib/sentences';
 import { speak as ttsSpeak } from '../../lib/tts';
@@ -33,8 +36,9 @@ import { ExerciseKind, Recording, SchedulerType, VocabCard } from '../../types';
 import CommandPalette, { useCommandPalette } from '../CommandPalette';
 import FraseComLacuna from '../FraseComLacuna';
 import { toast } from '../Toast';
-import { CabecalhoDeTela, IconeEmBloco, Tela } from '../ui';
+import { CabecalhoDeTela, fecharDialogoDe, IconeEmBloco, Tela } from '../ui';
 import Dialogo, { CampoLinha, Interruptor, Segmentos } from './vocab/Dialogo';
+import GavetaDaPalavra from './vocab/GavetaDaPalavra';
 
 /**
  * REVISÃO — a tela `T.revisao` do protótipo aprovado (`docs/prototipos/consistencia-telas.html`).
@@ -61,10 +65,27 @@ interface StudyProps {
   ageProfile?: AgeProfileType;
 }
 
-/** O tipo de cartão (Opções da revisão). "Automático" é a progressão do app: escolher → digitar → escrever. */
-type TipoDeCartao = 'lembrar' | 'digitar' | 'escolha' | 'auto';
+/** O tipo de cartão (Opções da revisão). O padrão, por decisão do dono, é "Lembrar". */
+type TipoDeCartao = 'lembrar' | 'digitar' | 'escolha';
+type OrdemDaRodada = 'vencidas' | 'misturar';
 const CHAVE_TIPO = 'revisao.tipoDeCartao';
 const CHAVE_OUVIR = 'revisao.ouvirAoMostrar';
+const CHAVE_NOVAS = 'revisao.novasPorDia';
+const CHAVE_REVISOES = 'revisao.revisoesPorDia';
+const CHAVE_ORDEM = 'revisao.ordem';
+const CHAVE_RETENCAO = 'revisao.metaDeRetencao';
+const PADRAO = {
+  novas: 20,
+  revisoes: 200,
+  ordem: 'vencidas' as OrdemDaRodada,
+  tipo: 'lembrar' as TipoDeCartao,
+  ouvir: true,
+  retencao: 90,
+};
+const numeroEntre = (v: string | null, min: number, max: number, padrao: number) => {
+  const n = Number(v);
+  return v !== null && Number.isFinite(n) && n >= min && n <= max ? Math.round(n) : padrao;
+};
 
 function lerPreferencia(chave: string): string | null {
   try {
@@ -81,10 +102,24 @@ function gravarPreferencia(chave: string, valor: string) {
   }
 }
 
-/** "3,5 d", "agora" — o intervalo que o FSRS dá a esta nota, a partir do estado real do cartão. */
-function intervaloDaNota(card: VocabCard, grade: Grade, agora: number): string {
+/** O estado do agendador que o cartão tem AGORA — o que o "Desfazer" devolve depois da nota. */
+function estadoDoCartao(card: VocabCard): EstadoAntesDaNota {
   const extra = card as VocabCard & { difficulty?: number | null; lapses?: number | null };
-  const proximo = Fsrs5Strategy.review(
+  return {
+    box: card.leitnerBox ?? 1,
+    dueAt: card.dueAtMs ?? Date.now(),
+    stability: card.lastReview ? (card.stability ?? null) : null,
+    difficulty: card.lastReview ? (extra.difficulty ?? card.fsrsDifficulty ?? null) : null,
+    reps: card.reps ?? null,
+    lapses: extra.lapses ?? null,
+    lastReview: card.lastReview ?? null,
+  };
+}
+
+/** "3,5 d", "agora" — o intervalo que o FSRS dá a esta nota, a partir do estado real do cartão. */
+function intervaloDaNota(card: VocabCard, grade: Grade, agora: number, retencao: number): string {
+  const extra = card as VocabCard & { difficulty?: number | null; lapses?: number | null };
+  const proximo = makeFsrs5(undefined, retencao / 100).review(
     {
       box: card.leitnerBox ?? 1,
       dueAt: card.dueAtMs ?? agora,
@@ -167,11 +202,21 @@ export default function Study({
   // Opções da revisão (diálogo do protótipo) — preferências locais, valem para as próximas rodadas.
   const [tipo, setTipo] = useState<TipoDeCartao>(() => {
     const v = lerPreferencia(CHAVE_TIPO);
-    return v === 'digitar' || v === 'escolha' || v === 'auto' ? v : 'lembrar';
+    return v === 'digitar' || v === 'escolha' ? v : 'lembrar';
   });
   const [ouvirAoMostrar, setOuvirAoMostrar] = useState<boolean>(() => lerPreferencia(CHAVE_OUVIR) !== 'false');
+  const [novasPorDia, setNovasPorDia] = useState(() => numeroEntre(lerPreferencia(CHAVE_NOVAS), 0, 200, PADRAO.novas));
+  const [revisoesPorDia, setRevisoesPorDia] = useState(() =>
+    numeroEntre(lerPreferencia(CHAVE_REVISOES), 10, 999, PADRAO.revisoes),
+  );
+  const [ordem, setOrdem] = useState<OrdemDaRodada>(() =>
+    lerPreferencia(CHAVE_ORDEM) === 'misturar' ? 'misturar' : 'vencidas',
+  );
+  const [retencao, setRetencao] = useState(() => numeroEntre(lerPreferencia(CHAVE_RETENCAO), 80, 97, PADRAO.retencao));
   const [opcoesAbertas, setOpcoesAbertas] = useState(false);
   const [editando, setEditando] = useState<VocabCard | null>(null);
+  /** As notas desta rodada, com o estado de ANTES de cada uma — o "Desfazer" (Z) volta uma a uma. */
+  const [historico, setHistorico] = useState<Array<{ card: VocabCard; antes: EstadoAntesDaNota; indice: number }>>([]);
 
   // States for interactive typing/mc exercises within review session
   const [typingAttempt, setTypingAttempt] = useState('');
@@ -209,9 +254,11 @@ export default function Study({
       effectiveRating = 4; // produção ativa é mais difícil: um acerto vale Easy
     }
     setNotasDaRodada((prev) => [...prev, effectiveRating]);
+    const antes = vocabCards.find((c) => c.id === cardId);
+    if (antes) setHistorico((h) => [...h, { card: antes, antes: estadoDoCartao(antes), indice: currentReviewIndex }]);
 
     try {
-      const updated = await reviewCard(cardId, effectiveRating);
+      const updated = await reviewCard(cardId, effectiveRating, retencao / 100);
       setVocabCards((prev) => prev.map((c) => (c.id === cardId ? updated : c)));
     } catch {
       // Offline/erro: não inventamos um agendamento novo. O cartão fica como está.
@@ -272,6 +319,7 @@ export default function Study({
     setSessionCompleted(false);
     setIsActiveProductionOnly(producaoAtiva);
     setNotasDaRodada([]);
+    setHistorico([]);
     setInicioDaRodada(Date.now());
     setFimDaRodada(0);
     setEncerrada(false);
@@ -285,9 +333,18 @@ export default function Study({
        'hoje', que a API nunca grava — a fila nunca achava vencido e caía sempre no baralho inteiro. */
     const noBaralho = activeVocabCards.filter((c) => c.inDeck);
     const due = noBaralho.filter((c) => isDueNow(c, scheduler));
-    const finalQueue = due.length > 0 ? due : noBaralho;
-    if (finalQueue.length > 0) abrirRodada(finalQueue, false);
-  }, [activeVocabCards, scheduler]);
+    const base = due.length > 0 ? due : noBaralho;
+    /* OPÇÕES DA REVISÃO: no máximo N novas (nunca vistas) e M revisões por rodada; "Vencidas
+       primeiro" põe as de vencimento mais antigo na frente, "Misturar" embaralha. */
+    const novas = base.filter((c) => c.fsrsState === 'New').slice(0, novasPorDia);
+    const revisoes = base.filter((c) => c.fsrsState !== 'New').slice(0, revisoesPorDia);
+    let fila =
+      ordem === 'misturar'
+        ? [...revisoes, ...novas].sort(() => Math.random() - 0.5)
+        : [...revisoes.sort((a, b) => (a.dueAtMs ?? 0) - (b.dueAtMs ?? 0)), ...novas];
+    if (!fila.length) fila = base.slice(0, Math.max(1, revisoesPorDia));
+    if (fila.length > 0) abrirRodada(fila, false);
+  }, [activeVocabCards, scheduler, novasPorDia, revisoesPorDia, ordem]);
 
   /** Revisão FOCADA numa palavra — o "Revisar agora" do Analista de Vocabulário, via semente. */
   const startReviewSessionFor = (card: VocabCard) => abrirRodada([card], false);
@@ -383,17 +440,36 @@ export default function Study({
     ? 'active-production'
     : !currentCard
       ? 'cloze'
-      : tipo === 'auto'
-        ? formatForCard(currentCard)
-        : tipo === 'digitar'
-          ? 'typing'
-          : tipo === 'escolha'
-            ? 'mc'
-            : 'cloze';
+      : tipo === 'digitar'
+        ? 'typing'
+        : tipo === 'escolha'
+          ? 'mc'
+          : 'cloze';
 
   const mostrarResposta = () => {
     setShowAnswer(true);
     if (ouvirAoMostrar) playWordTTS(currentCard?.word);
+    requestAnimationFrame(() => document.querySelector<HTMLButtonElement>('.flash .fsrs button')?.focus());
+  };
+
+  /** Desfaz a última nota: o cartão volta ao estado de antes (no servidor) e à frente da fila. */
+  const desfazer = async () => {
+    const ultimo = historico[historico.length - 1];
+    if (!ultimo) return;
+    try {
+      const volta = await desfazerRevisao(ultimo.card.id, ultimo.antes);
+      setVocabCards((prev) => prev.map((c) => (c.id === volta.id ? volta : c)));
+    } catch (e) {
+      toast.error('Não deu para desfazer a última resposta.', { detail: e });
+      return;
+    }
+    setHistorico((h) => h.slice(0, -1));
+    setNotasDaRodada((n) => n.slice(0, -1));
+    setSessionCompleted(false);
+    setReviewing(true);
+    setCurrentReviewIndex(ultimo.indice);
+    setShowAnswer(true);
+    toast.ok('Última resposta desfeita');
   };
 
   /** Alternativas da múltipla escolha — sorteadas UMA vez por cartão, não a cada render. */
@@ -428,6 +504,20 @@ export default function Study({
     window.addEventListener('keydown', aoTeclar);
     return () => window.removeEventListener('keydown', aoTeclar);
   });
+  // Z desfaz a última resposta — também na tela de fim de rodada.
+  useEffect(() => {
+    const aoTeclar = (e: KeyboardEvent) => {
+      const alvo = e.target as HTMLElement | null;
+      if (alvo && /INPUT|TEXTAREA|SELECT/.test(alvo.tagName)) return;
+      if (document.querySelector('dialog[open]')) return;
+      if ((e.key === 'z' || e.key === 'Z') && !e.ctrlKey && !e.metaKey && historico.length) {
+        e.preventDefault();
+        void desfazer();
+      }
+    };
+    window.addEventListener('keydown', aoTeclar);
+    return () => window.removeEventListener('keydown', aoTeclar);
+  });
 
   /** Suspender = tirar do baralho (`inDeck: false`) sem apagar; sai desta rodada na hora. */
   const suspender = async (card: VocabCard) => {
@@ -445,31 +535,21 @@ export default function Study({
       if (resto.length) setCurrentReviewIndex(resto.length - 1);
       concluir();
     }
-    toast.ok(`“${card.word}” suspensa: não aparece na revisão até você reativar`, {
+    toast.ok(`“${card.word}” suspensa e tirada desta rodada.`, {
       action: {
         label: 'Desfazer',
         onClick: () => {
           void updateCard(card.id, { inDeck: true })
             .then((c) => {
               setVocabCards((prev) => prev.map((x) => (x.id === c.id ? c : x)));
+              setReviewCards((prev) => [...prev, c]);
+              setSessionCompleted(false);
               toast.ok(`“${card.word}” volta para a revisão`);
             })
             .catch((e) => toast.error('Não consegui reativar a palavra.', { detail: e }));
         },
       },
     });
-  };
-
-  const salvarEdicao = async (card: VocabCard, traducao: string) => {
-    try {
-      const atualizado = await updateCard(card.id, { translation: traducao });
-      setVocabCards((prev) => prev.map((c) => (c.id === card.id ? atualizado : c)));
-      setReviewCards((prev) => prev.map((c) => (c.id === card.id ? { ...c, translation: atualizado.translation } : c)));
-      toast.ok('Palavra atualizada');
-      setEditando(null);
-    } catch (e) {
-      toast.error('Não consegui salvar a alteração.', { detail: e });
-    }
   };
 
   const voltarAoVocabulario = () => onChangeView?.('metrics');
@@ -495,32 +575,55 @@ export default function Study({
     <>
       {opcoesAbertas && (
         <OpcoesDaRevisao
-          tipo={tipo}
-          aoTrocarTipo={(t) => {
-            setTipo(t);
-            gravarPreferencia(CHAVE_TIPO, t);
-          }}
-          ouvir={ouvirAoMostrar}
-          aoTrocarOuvir={(v) => {
-            setOuvirAoMostrar(v);
-            gravarPreferencia(CHAVE_OUVIR, String(v));
-          }}
-          producao={{
-            dica: copyDoPerfil('ex.active_production.hint', ageProfile, { n: producibleCount }),
-            bloqueio: bloqueioDaProducao,
-            comecar: () => {
-              setOpcoesAbertas(false);
-              startActiveProductionSession();
-            },
+          valores={{ novas: novasPorDia, revisoes: revisoesPorDia, ordem, tipo, ouvir: ouvirAoMostrar, retencao }}
+          aoTrocar={(v) => {
+            if (v.novas !== undefined) {
+              setNovasPorDia(v.novas);
+              gravarPreferencia(CHAVE_NOVAS, String(v.novas));
+            }
+            if (v.revisoes !== undefined) {
+              setRevisoesPorDia(v.revisoes);
+              gravarPreferencia(CHAVE_REVISOES, String(v.revisoes));
+            }
+            if (v.ordem !== undefined) {
+              setOrdem(v.ordem);
+              gravarPreferencia(CHAVE_ORDEM, v.ordem);
+            }
+            if (v.tipo !== undefined) {
+              setTipo(v.tipo);
+              gravarPreferencia(CHAVE_TIPO, v.tipo);
+            }
+            if (v.ouvir !== undefined) {
+              setOuvirAoMostrar(v.ouvir);
+              gravarPreferencia(CHAVE_OUVIR, String(v.ouvir));
+            }
+            if (v.retencao !== undefined) {
+              setRetencao(v.retencao);
+              gravarPreferencia(CHAVE_RETENCAO, String(v.retencao));
+            }
           }}
           aoFechar={() => setOpcoesAbertas(false)}
         />
       )}
       {editando && (
-        <EditarCartao
-          card={editando}
-          aoSalvar={(t) => void salvarEdicao(editando, t)}
+        <GavetaDaPalavra
+          key={editando.id}
+          cartao={vocabCards.find((c) => c.id === editando.id) ?? editando}
+          gravacoes={recording ? [recording] : []}
+          editando
+          velocidade={exame.velocidade}
+          aoTrocarVelocidade={exame.setVelocidade}
+          aoFalar={playWordTTS}
           aoFechar={() => setEditando(null)}
+          aoMudar={(novo) => {
+            setVocabCards((prev) => prev.map((c) => (c.id === novo.id ? novo : c)));
+            setReviewCards((prev) => prev.map((c) => (c.id === novo.id ? novo : c)));
+          }}
+          aoExcluir={(c) => {
+            void suspender(c);
+          }}
+          aoExercitar={(c) => onChangeView?.('play', { seed: { exercise: 'memory', word: c.word, lang: c.srcLang } })}
+          aoRevisar={() => setEditando(null)}
         />
       )}
     </>
@@ -578,7 +681,20 @@ export default function Study({
     const feitas = notasDaRodada.length;
     const acertos = notasDaRodada.filter((n) => n > 1).length;
     const seg = inicioDaRodada && fimDaRodada ? Math.round((fimDaRodada - inicioDaRodada) / 1000) : 0;
-    const xp = reviewCards.length * XP_PER_REVIEWED_CARD;
+    const xp = feitas * XP_PER_REVIEWED_CARD;
+    /* Quando abre a próxima rodada: o vencimento mais próximo e quantas vencem naquele dia. */
+    const proxima = (() => {
+      const dues = activeVocabCards.filter((c) => c.inDeck && c.dueAtMs).map((c) => c.dueAtMs as number);
+      if (!dues.length) return null;
+      const d = Math.min(...dues);
+      const fimDoDia = new Date(d);
+      fimDoDia.setHours(24, 0, 0, 0);
+      const amanha = new Date();
+      amanha.setHours(24, 0, 0, 0);
+      const dias = Math.round((fimDoDia.getTime() - amanha.getTime()) / 86_400_000);
+      const quando = d < amanha.getTime() ? 'ainda hoje' : dias <= 1 ? 'amanhã' : `em ${dias} dias`;
+      return { quando, n: dues.filter((x) => x < fimDoDia.getTime()).length };
+    })();
     return (
       <Tela largura="larga">
         <CabecalhoDeTela
@@ -586,7 +702,7 @@ export default function Study({
           sobrancelha="Revisão"
           icone={Target}
           titulo="Rodada concluída"
-          sub={`${feitas === 1 ? 'A palavra foi revisada' : `As ${feitas} palavras foram revisadas`}. Os próximos prazos vêm do FSRS.`}
+          sub={`${feitas === 1 ? 'A palavra foi revisada' : `As ${feitas} palavras foram revisadas`}.${proxima ? ` A próxima rodada abre ${proxima.quando}.` : ''}`}
         />
         <section className="cartao p6 fim-rev entra">
           <div className="vazio" style={{ padding: '12px 0 20px' }}>
@@ -595,7 +711,9 @@ export default function Study({
             <p>
               {dueCount > 0
                 ? `Ainda ${dueCount === 1 ? 'vence 1 palavra' : `vencem ${dueCount} palavras`} agora.`
-                : 'Nada mais vence agora.'}
+                : proxima
+                  ? `A próxima abre ${proxima.quando} com ${proxima.n} palavra${proxima.n === 1 ? '' : 's'}.`
+                  : 'Nada mais vence agora.'}
             </p>
           </div>
           <div className="ladrilhos">
@@ -620,7 +738,7 @@ export default function Study({
             <button type="button" className="btn btn-solid" onClick={() => onChangeView?.('play')}>
               <Gamepad2 aria-hidden /> Jogar com as mesmas
             </button>
-            <button type="button" className="btn btn-outline" onClick={() => onChangeView?.('metrics')}>
+            <button type="button" className="btn btn-outline" onClick={() => onChangeView?.('estatisticas')}>
               <ChartColumn aria-hidden /> Ver estatísticas
             </button>
             <button type="button" className="btn btn-outline" onClick={() => onChangeView?.('hub')}>
@@ -688,7 +806,10 @@ export default function Study({
     else handleLeitnerFeedback(currentCard.id, typingCorrect, kind);
   };
   const verificarDigitacao = () => {
-    const score = similarityPercentage(currentCard.word, typingAttempt);
+    const score = similarityPercentage(
+      format === 'typing' ? currentCard.translation || '' : currentCard.word,
+      typingAttempt,
+    );
     setTypingCorrect(score >= 0.85);
     setTypingVerified(true);
   };
@@ -775,12 +896,14 @@ export default function Study({
           </div>
         ) : format === 'typing' ? (
           <>
-            <FraseComLacuna sentence={currentCard.sentence} word={currentCard.word} />
-            <p className="exemplo">{currentCard.translation}</p>
+            <div className="termo" style={{ marginTop: 14 }}>
+              {currentCard.word}
+            </div>
+            {currentCard.sentence && <p className="exemplo">“{currentCard.sentence}”</p>}
             {!typingVerified ? (
               <div className="resp" style={{ border: 0, paddingTop: 0 }}>
                 <label className="sr" htmlFor="rev-digitar">
-                  Digite a palavra
+                  Digite a tradução
                 </label>
                 <input
                   id="rev-digitar"
@@ -792,7 +915,7 @@ export default function Study({
                   onKeyDown={(e) => {
                     if (e.key === 'Enter' && typingAttempt.trim()) verificarDigitacao();
                   }}
-                  placeholder="Digite a palavra..."
+                  placeholder="Digite a tradução…"
                   autoFocus
                 />
                 <button
@@ -809,11 +932,11 @@ export default function Study({
               resultado(
                 typingCorrect,
                 typingCorrect ? (
-                  <>Correto! A resposta era “{currentCard.word}”</>
+                  <>Correto! A tradução era “{currentCard.translation}”</>
                 ) : (
                   <>
-                    Incorreto. A resposta correta era “<b style={{ font: 'inherit' }}>{currentCard.word}</b>” (você
-                    escreveu “{typingAttempt}”)
+                    Incorreto. A tradução era “<b style={{ font: 'inherit' }}>{currentCard.translation || '—'}</b>”
+                    (você escreveu “{typingAttempt}”)
                   </>
                 ),
               )
@@ -887,7 +1010,7 @@ export default function Study({
                         onClick={() => void handleFsrsFeedback(currentCard.id, nota)}
                       >
                         {rotulo}
-                        <small>{intervaloDaNota(currentCard, nota, agora)}</small>
+                        <small>{intervaloDaNota(currentCard, nota, agora, retencao)}</small>
                         <kbd>{nota}</kbd>
                       </button>
                     ))}
@@ -918,6 +1041,14 @@ export default function Study({
       </section>
 
       <div className="rev-ferr" role="toolbar" aria-label="Ações do cartão">
+        <button
+          type="button"
+          className="btn btn-outline peq"
+          disabled={!historico.length}
+          onClick={() => void desfazer()}
+        >
+          <Undo2 aria-hidden /> Desfazer <kbd>Z</kbd>
+        </button>
         <button type="button" className="btn btn-outline peq" onClick={() => playWordTTS(currentCard.word)}>
           <Volume2 aria-hidden /> Ouvir
         </button>
@@ -935,28 +1066,43 @@ export default function Study({
   );
 }
 
-/** "Opções da revisão" — o diálogo R1 do protótipo, com o que o app tem de verdade. */
+/** "Opções da revisão" — o diálogo R1 do protótipo, os seis campos, todos valendo de verdade. */
+type ValoresDaRevisao = {
+  novas: number;
+  revisoes: number;
+  ordem: OrdemDaRodada;
+  tipo: TipoDeCartao;
+  ouvir: boolean;
+  retencao: number;
+};
 function OpcoesDaRevisao({
-  tipo,
-  aoTrocarTipo,
-  ouvir,
-  aoTrocarOuvir,
-  producao,
+  valores,
+  aoTrocar,
   aoFechar,
 }: {
-  tipo: TipoDeCartao;
-  aoTrocarTipo: (t: TipoDeCartao) => void;
-  ouvir: boolean;
-  aoTrocarOuvir: (v: boolean) => void;
-  producao: { dica: string; bloqueio?: string; comecar: () => void };
+  valores: ValoresDaRevisao;
+  aoTrocar: (v: Partial<ValoresDaRevisao>) => void;
   aoFechar: () => void;
 }) {
   const descricao: Record<TipoDeCartao, string> = {
     lembrar: 'Você pensa e mostra a resposta.',
-    digitar: 'Você escreve a palavra que falta na frase.',
+    digitar: 'Você escreve a tradução.',
     escolha: 'Quatro alternativas.',
-    auto: 'Pelo quanto você já sabe a palavra: escolher, depois digitar, depois escrever a frase.',
   };
+  const numero = (campo: 'novas' | 'revisoes', min: number, max: number, rotulo: string) => (
+    <input
+      className="campo num"
+      type="number"
+      min={min}
+      max={max}
+      value={valores[campo]}
+      aria-label={rotulo}
+      onChange={(e) => {
+        const n = Math.round(Number(e.target.value));
+        if (Number.isFinite(n)) aoTrocar({ [campo]: Math.min(max, Math.max(min, n)) });
+      }}
+    />
+  );
   return (
     <Dialogo
       icone={SlidersHorizontal}
@@ -965,96 +1111,66 @@ function OpcoesDaRevisao({
       aoFechar={aoFechar}
     >
       <div className="dlg-corpo pilha rola-dlg">
-        <CampoLinha rotulo="Tipo de cartão" desc={descricao[tipo]}>
+        <CampoLinha rotulo="Novas por dia" desc="Quantas palavras nunca vistas entram por dia.">
+          {numero('novas', 0, 200, 'Novas por dia')}
+        </CampoLinha>
+        <CampoLinha rotulo="Revisões por dia" desc="Um teto para dias de atraso; o resto fica para amanhã.">
+          {numero('revisoes', 10, 999, 'Revisões por dia')}
+        </CampoLinha>
+        <CampoLinha rotulo="Ordem">
+          <Segmentos<OrdemDaRodada>
+            atual={valores.ordem}
+            aoTrocar={(o) => aoTrocar({ ordem: o })}
+            rotulo="Ordem"
+            opcoes={[
+              ['vencidas', 'Vencidas primeiro'],
+              ['misturar', 'Misturar'],
+            ]}
+          />
+        </CampoLinha>
+        <CampoLinha rotulo="Tipo de cartão" desc={descricao[valores.tipo]}>
           <Segmentos<TipoDeCartao>
-            atual={tipo}
-            aoTrocar={aoTrocarTipo}
+            atual={valores.tipo}
+            aoTrocar={(t) => aoTrocar({ tipo: t })}
             rotulo="Tipo de cartão"
             opcoes={[
               ['lembrar', 'Lembrar'],
               ['digitar', 'Digitar'],
               ['escolha', 'Escolher'],
-              ['auto', 'Automático'],
             ]}
           />
         </CampoLinha>
         <CampoLinha rotulo="Ouvir a palavra ao mostrar">
-          <Interruptor ligado={ouvir} aoTrocar={() => aoTrocarOuvir(!ouvir)} rotulo="Ouvir a palavra ao mostrar" />
+          <Interruptor
+            ligado={valores.ouvir}
+            aoTrocar={() => aoTrocar({ ouvir: !valores.ouvir })}
+            rotulo="Ouvir a palavra ao mostrar"
+          />
         </CampoLinha>
-        <CampoLinha rotulo="Produção ativa" desc={producao.bloqueio ?? producao.dica}>
-          <button
-            type="button"
-            className="btn btn-outline peq"
-            disabled={!!producao.bloqueio}
-            onClick={producao.comecar}
-          >
-            <Brain aria-hidden /> Começar
-          </button>
+        <CampoLinha
+          rotulo={`Meta de retenção · ${valores.retencao}%`}
+          desc="Mais alta = palavras voltam mais cedo, mais revisões por dia."
+        >
+          <input
+            type="range"
+            className="trilho"
+            min={80}
+            max={97}
+            value={valores.retencao}
+            aria-label="Meta de retenção"
+            style={{ '--p': `${((valores.retencao - 80) / 17) * 100}%` } as React.CSSProperties}
+            onChange={(e) => aoTrocar({ retencao: Number(e.target.value) })}
+          />
         </CampoLinha>
       </div>
       <div className="dlg-pe">
-        <button
-          type="button"
-          className="link"
-          style={{ marginRight: 'auto' }}
-          onClick={() => {
-            aoTrocarTipo('lembrar');
-            aoTrocarOuvir(true);
-          }}
-        >
+        <button type="button" className="link" style={{ marginRight: 'auto' }} onClick={() => aoTrocar({ ...PADRAO })}>
           Voltar ao padrão
         </button>
-        <button type="button" className="btn btn-solid" onClick={aoFechar}>
+        <button type="button" className="btn btn-solid" onClick={(e) => fecharDialogoDe(e.currentTarget)}>
           <Check aria-hidden /> Pronto
         </button>
       </div>
-    </Dialogo>
-  );
-}
-
-/** "Editar cartão" — a tradução, que é o que o servidor deixa editar (`PATCH /api/vocab/:id`). */
-function EditarCartao({
-  card,
-  aoSalvar,
-  aoFechar,
-}: {
-  card: VocabCard;
-  aoSalvar: (traducao: string) => void;
-  aoFechar: () => void;
-}) {
-  const [traducao, setTraducao] = useState(card.translation ?? '');
-  const id = useId();
-  return (
-    <Dialogo icone={Pencil} titulo="Editar cartão" sub={card.word} aoFechar={aoFechar}>
-      <form
-        className="dlg-corpo pilha"
-        onSubmit={(e) => {
-          e.preventDefault();
-          if (traducao.trim()) aoSalvar(traducao.trim());
-        }}
-      >
-        <div>
-          <label className="rot" htmlFor={`${id}-t`}>
-            Tradução
-          </label>
-          <input
-            className="campo"
-            id={`${id}-t`}
-            required
-            autoFocus
-            value={traducao}
-            onChange={(e) => setTraducao(e.target.value)}
-          />
-        </div>
-        <div className="dlg-pe" style={{ padding: '8px 0 0' }}>
-          <button type="button" className="btn btn-outline" onClick={aoFechar}>
-            Cancelar
-          </button>
-          <button className="btn btn-solid" disabled={!traducao.trim()}>
-            <Check aria-hidden /> Salvar
-          </button>
-        </div>
-      </form>
     </Dialogo>
   );
 }

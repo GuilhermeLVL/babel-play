@@ -286,6 +286,18 @@ describe('IDOR — usuario B contra os recursos de A', () => {
         const id = await novoCartao('harvest')
         return { caminho: `/api/vocab/${id}/ocorrencias`, aindaExiste: cartaoExiste(id) }
       },
+      'GET /api/vocab/:id/memoria': async () => {
+        const id = await novoCartao('meadow')
+        return { caminho: `/api/vocab/${id}/memoria`, aindaExiste: cartaoExiste(id) }
+      },
+      'POST /api/vocab/:id/desfazer': async () => {
+        const id = await novoCartao('orchard')
+        return {
+          caminho: `/api/vocab/${id}/desfazer`,
+          corpo: { box: 1, dueAt: 0, stability: null, difficulty: null, reps: null, lapses: null, lastReview: null },
+          aindaExiste: cartaoExiste(id),
+        }
+      },
       'PATCH /api/vocab/:id': async () => {
         const id = await novoCartao('garden')
         return { caminho: `/api/vocab/${id}`, corpo: { back: 'reescrito por B' }, aindaExiste: cartaoExiste(id) }

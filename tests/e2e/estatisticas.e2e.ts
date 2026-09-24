@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test'
 
 import { listarCartoes, perfil, semearCartoes } from './_fixtures'
-import { clicarRobusto, fecharSobreposicoes } from './_helpers'
+import { fecharSobreposicoes } from './_helpers'
 
 /**
  * OS CONTADORES DE VOCABULARIO BATEM COM O ACERVO.
@@ -28,26 +28,21 @@ test.describe('Estatisticas do vocabulario', () => {
     await expect(page.getByRole('main')).toBeVisible()
     await fecharSobreposicoes(page)
 
-    /* A TELA ABRE NAS PALAVRAS, nao no painel (redesign v4): quem entra em Vocabulario vem ver as
-       palavras, e o painel de analise virou uma aba ao lado. O KPI do volume lexical mora nessa
-       aba, entao o teste passa por ela — antes ela era a aba inicial e o `goto` bastava. */
-    await clicarRobusto(page, page.getByRole('tab', { name: /Visão geral|Resumo/ }))
-
-    const kpi = page.getByRole('button', { name: 'Abrir o detalhamento do volume lexical' })
-    await expect(kpi).toBeVisible({ timeout: 15_000 })
-    /* O numero grande do KPI e o `.v` do ladrilho (marcacao do prototipo); o texto do cartao
-       inteiro emenda o rotulo e o "N novos • M p/ revisar" sem espaco. */
-    const grande = kpi.locator('.v').first()
-    await expect(grande).toContainText(/\d/)
-    const texto = (await grande.textContent()) ?? ''
+    /* O LADRILHO "Guardadas" (protótipo aprovado, aba Minhas palavras) conta o baralho que
+       `GET /api/vocab` devolve. O antigo KPI "volume lexical" da Visão geral saiu com o protótipo:
+       a Visão geral agora é o gráfico de revisões por dia, o acerto, os minutos e a ofensiva. */
+    const guardadas = page.locator('.ladrilho', { hasText: 'Guardadas' }).locator('.v')
+    await expect(guardadas).toHaveText(new RegExp(`^${cartoes.length}$`), { timeout: 15_000 })
+    const texto = (await guardadas.textContent()) ?? ''
     const numeroGrande = Number(texto.replace(/\./g, '').replace(/\D/g, ''))
-    expect(numeroGrande, `o KPI diz "${texto.trim()}" e o servidor tem ${noBaralho} cartoes`).toBe(noBaralho)
+    expect(numeroGrande, `"Guardadas" diz "${texto.trim()}" e o servidor tem ${cartoes.length} cartoes`).toBe(
+      cartoes.length,
+    )
 
     /* O catalogo (F5) pagina no servidor e anuncia o total. Ele mora na aba das palavras desde o
        redesign v4 — o painel de analise e a lista deixaram de dividir a mesma tela —, entao o
        teste volta para la. As duas contagens continuam vindo de caminhos diferentes, que e o
        ponto do arquivo; o que mudou foi so em qual aba cada uma aparece. */
-    await clicarRobusto(page, page.getByRole('tab', { name: /Minhas palavras|Minhas cartas/ }))
     /* "N de M no caderno", ao lado do titulo "Todas as palavras" (prototipo). Sem filtro, N e o
        total que o servidor achou para a pagina — e e ele que tem de bater com o acervo. */
     const linha = page.getByText(/^\d+ de \d+ no caderno$/)

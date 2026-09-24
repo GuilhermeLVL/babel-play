@@ -1,5 +1,4 @@
 import {
-  Activity,
   AlertTriangle,
   AudioLines,
   BarChart3,
@@ -7,7 +6,6 @@ import {
   BookOpen,
   Brain,
   Check,
-  CheckCircle2,
   Cpu,
   Download,
   FileAudio,
@@ -16,7 +14,6 @@ import {
   KeyRound,
   LayoutGrid,
   Loader2,
-  Lock,
   MessageSquare,
   MessagesSquare,
   Mic,
@@ -35,7 +32,7 @@ import React, { lazy, Suspense, useEffect, useRef, useState } from 'react';
 import { CartesianGrid, ResponsiveContainer, Scatter, ScatterChart, Tooltip, XAxis, YAxis, ZAxis } from 'recharts';
 
 import type { AppMetrics, UtteranceRow } from '../../data/api';
-import { apiFetch, fetchDeck, fetchMetrics, fetchSessionTranscript, fetchSettings } from '../../data/api';
+import { fetchDeck, fetchMetrics, fetchSessionTranscript, fetchSettings } from '../../data/api';
 import { applyOutputDevice } from '../../lib/audioDevices';
 import { useLangConfig } from '../../lib/langConfig';
 import { baseLang, langLabel } from '../../lib/languages';
@@ -74,12 +71,13 @@ import { criarEdicaoDeFala } from '../../lib/analise/edicaoDeFala';
 import { useMetricasDaSessao } from '../../lib/analise/metricasDaSessao';
 import { criarPalavraDaAnalise, useCacheDeHover } from '../../lib/analise/palavraDaAnalise';
 import { formatSeconds, usePlayerDaSessao } from '../../lib/analise/playerDaSessao';
-import { caminhoDoAudio, useAudioDaSessao } from '../../lib/audioDaSessao';
-import { data, numero } from '../../lib/i18n';
+import { useAudioDaSessao } from '../../lib/audioDaSessao';
+import { numero } from '../../lib/i18n';
 import type { DerivedProgress } from '../../lib/progress';
 import { TranscriptSettings } from '../../lib/transcriptUtils';
 import EditablePanel from '../EditablePanel';
 import { Abas, CabecalhoDeTela, TituloDeSecao } from '../ui';
+import ExportarSessao from './analise/ExportarSessao';
 import PlayerInterativo from './analise/PlayerInterativo';
 
 /** Selo de PROCEDÊNCIA da transcrição (honestidade): de onde vieram as falas desta sessão. */
@@ -1771,198 +1769,14 @@ export default function Analysis({
         </PopoverFlutuante>
       )}
 
-      {/* Dynamic Export Modal */}
+      {/* Exportar dados da sessão: o diálogo do protótipo (`dialogoExportarSessao`). */}
       {showExportModal && (
-        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-md flex items-center justify-center p-4 md:p-6 animate-in fade-in duration-200">
-          <div className="card-panel w-full max-w-2xl bg-surface shadow-2xl rounded-2xl overflow-hidden flex flex-col animate-in zoom-in-95 duration-200">
-            {/* Header */}
-            <div className="p-6 border-b border-border-subtle flex justify-between items-center bg-canvas/30">
-              <div>
-                <h2 className="font-display font-extrabold text-lg md:text-xl text-ink">Exportar Dados da Sessão</h2>
-                <p className="text-[12.5px] text-ink-muted mt-1">
-                  Selecione o formato desejado para salvar seu progresso contextual.
-                </p>
-              </div>
-              <button
-                onClick={() => setShowExportModal(false)}
-                className="w-8 h-8 rounded-full bg-surface-hover flex items-center justify-center text-ink-muted hover:text-ink transition-colors cursor-pointer"
-              >
-                ✕
-              </button>
-            </div>
-
-            {/* Content Grid */}
-            <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* Option 1: Metrics Markdown */}
-              <button
-                onClick={() => {
-                  const content =
-                    `# Relatório de Sessão - Babel Play\n\n` +
-                    `**Sessão:** ${recording.title}\n` +
-                    `**Tipo:** ${recording.type}\n` +
-                    `**Total de Palavras:** ${recording.wordCount}\n\n` +
-                    `## Estatísticas do Texto (transcrição)\n` +
-                    `- Palavras: ${stats.wordCount}\n` +
-                    `- Vocábulos únicos: ${stats.uniqueWords}\n` +
-                    `- Frases: ${stats.sentenceCount}\n` +
-                    `- Densidade lexical: ${stats.lexicalDensityPct != null ? `${stats.lexicalDensityPct}%` : 'sem régua para este idioma'}
-` +
-                    `- Razão tipo/token: ${Math.round(stats.typeTokenRatio * 100)}/100\n` +
-                    `- Facilidade de leitura (Flesch): ${stats.readingEase != null ? stats.readingEase : '-'}\n\n` +
-                    `Gerado em ${data(new Date())}`;
-
-                  const blob = new Blob([content], { type: 'text/markdown;charset=utf-8;' });
-                  const url = URL.createObjectURL(blob);
-                  const link = document.createElement('a');
-                  link.setAttribute('href', url);
-                  link.setAttribute('download', `relatorio_sessao_${recording.id}.md`);
-                  link.style.visibility = 'hidden';
-                  document.body.appendChild(link);
-                  link.click();
-                  document.body.removeChild(link);
-                  setShowExportModal(false);
-                }}
-                className="p-5 border-2 border-border-subtle hover:border-accent bg-surface text-start rounded-xl transition-all cursor-pointer group flex flex-col justify-between h-44"
-              >
-                <div>
-                  <div className="flex items-center gap-2 mb-2">
-                    <div className="w-8 h-8 rounded-lg bg-accent/10 flex items-center justify-center text-accent group-hover:scale-105 transition-transform">
-                      <Activity className="w-4 h-4" />
-                    </div>
-                    <span className="font-bold text-[14px] text-ink">Métricas & Desempenho</span>
-                  </div>
-                  <p className="text-[12px] text-ink-muted leading-relaxed">
-                    Baixar relatório completo em formato Markdown contendo KPIs lexical, ritmo e resumo bilingue.
-                  </p>
-                </div>
-                <span className="text-[11px] font-bold text-accent group-hover:underline mt-2">
-                  Baixar Relatório (.md) →
-                </span>
-              </button>
-
-              {/* Option 2: Flashcards CSV — deck REAL do usuário (nada hardcoded). */}
-              <button
-                onClick={() => {
-                  const esc = (v: string) => (v || '').replace(/;/g, ',').replace(/\n/g, ' ');
-                  const rows = vocabCards.map(
-                    (c) => `${esc(c.word)};${esc(c.phonetics)};${esc(c.translation)};${esc(c.sentence || '')}`,
-                  );
-                  const content = `Word;Phonetic;Translation;Sentence\n` + rows.join('\n') + '\n';
-                  const blob = new Blob([content], { type: 'text/csv;charset=utf-8;' });
-                  const url = URL.createObjectURL(blob);
-                  const link = document.createElement('a');
-                  link.setAttribute('href', url);
-                  link.setAttribute('download', `vocab_anki_${recording.id}.csv`);
-                  link.style.visibility = 'hidden';
-                  document.body.appendChild(link);
-                  link.click();
-                  document.body.removeChild(link);
-                  URL.revokeObjectURL(url);
-                  setShowExportModal(false);
-                }}
-                className="p-5 border-2 border-border-subtle hover:border-rare bg-surface text-start rounded-xl transition-all cursor-pointer group flex flex-col justify-between h-44"
-              >
-                <div>
-                  <div className="flex items-center gap-2 mb-2">
-                    <div className="w-8 h-8 rounded-lg bg-rare/10 flex items-center justify-center text-rare group-hover:scale-105 transition-transform">
-                      <CheckCircle2 className="w-4 h-4" />
-                    </div>
-                    <span className="font-bold text-[14px] text-ink">Flashcards para Anki</span>
-                  </div>
-                  <p className="text-[12px] text-ink-muted leading-relaxed">
-                    Baixar seu deck real de vocabulário ({vocabCards.length} cards) para importação direta no Anki SRS.
-                  </p>
-                </div>
-                <span className="text-[11px] font-bold text-rare group-hover:underline mt-2">
-                  Baixar Flashcards (.csv) →
-                </span>
-              </button>
-
-              {/* Option 3: Session Audio — baixa o áudio REAL gravado; desabilita se não houver. */}
-              <button
-                disabled={!recording.audioUrl}
-                onClick={async () => {
-                  if (!recording.audioUrl) return;
-                  try {
-                    /* `apiFetch`, e não `fetch`: esta rota exige o Bearer no modo público, e o
-                       download silenciosamente virava um arquivo de erro de 401. */
-                    const r = await apiFetch(caminhoDoAudio(recording.id), { timeoutMs: 300_000 });
-                    if (!r.ok) throw new Error(`áudio indisponível (${r.status})`);
-                    const blob = await r.blob();
-                    const t = blob.type || '';
-                    const ext = t.includes('webm')
-                      ? 'webm'
-                      : t.includes('mpeg') || t.includes('mp3')
-                        ? 'mp3'
-                        : t.includes('wav')
-                          ? 'wav'
-                          : t.includes('ogg')
-                            ? 'ogg'
-                            : t.includes('mp4')
-                              ? 'm4a'
-                              : 'audio';
-                    const url = URL.createObjectURL(blob);
-                    const link = document.createElement('a');
-                    link.setAttribute('href', url);
-                    link.setAttribute('download', `audio_sessao_${recording.id}.${ext}`);
-                    link.style.visibility = 'hidden';
-                    document.body.appendChild(link);
-                    link.click();
-                    document.body.removeChild(link);
-                    URL.revokeObjectURL(url);
-                  } catch {
-                    /* download best-effort */
-                  }
-                  setShowExportModal(false);
-                }}
-                className={`p-5 border-2 border-border-subtle bg-surface text-start rounded-xl transition-all group flex flex-col justify-between h-44 ${
-                  recording.audioUrl ? 'hover:border-good cursor-pointer' : 'opacity-60 cursor-not-allowed'
-                }`}
-              >
-                <div>
-                  <div className="flex items-center gap-2 mb-2">
-                    <div className="w-8 h-8 rounded-lg bg-good/10 flex items-center justify-center text-good group-hover:scale-105 transition-transform">
-                      <Volume2 className="w-4 h-4" />
-                    </div>
-                    <span className="font-bold text-[14px] text-ink">Áudio da Sessão</span>
-                  </div>
-                  <p className="text-[12px] text-ink-muted leading-relaxed">
-                    {recording.audioUrl
-                      ? 'Baixar o arquivo de áudio real gravado nesta sessão.'
-                      : 'Sem áudio gravado nesta sessão.'}
-                  </p>
-                </div>
-                <span className="text-[11px] font-bold text-good group-hover:underline mt-2">
-                  {recording.audioUrl ? 'Baixar Áudio →' : 'Indisponível'}
-                </span>
-              </button>
-
-              {/* Option 4: YouTube Video (Locked) */}
-              <div className="p-5 border-2 border-dashed border-border-subtle bg-surface-hover/50 text-start rounded-xl flex flex-col justify-between h-44 relative opacity-60">
-                <div>
-                  <div className="flex items-center gap-2 mb-2">
-                    <div className="w-8 h-8 rounded-lg bg-ink-faint/10 flex items-center justify-center text-ink-faint">
-                      <Lock className="w-4 h-4" />
-                    </div>
-                    <span className="font-bold text-[14px] text-ink-muted">Vídeo da Sessão (Protegido)</span>
-                  </div>
-                  <p className="text-[12px] text-ink-faint leading-relaxed">
-                    Download de vídeo indisponível para respeitar políticas de direitos autorais de plataformas de
-                    terceiros.
-                  </p>
-                </div>
-                <span className="text-[11px] font-bold text-ink-faint">Download Bloqueado</span>
-              </div>
-            </div>
-
-            {/* Footer */}
-            <div className="p-4 bg-canvas/30 border-t border-border-subtle flex justify-end gap-2">
-              <button onClick={() => setShowExportModal(false)} className="btn-outline py-1.5 px-4">
-                Cancelar
-              </button>
-            </div>
-          </div>
-        </div>
+        <ExportarSessao
+          recording={recording}
+          vocabCards={vocabCards}
+          stats={stats}
+          aoFechar={() => setShowExportModal(false)}
+        />
       )}
     </div>
   );

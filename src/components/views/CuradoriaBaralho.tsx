@@ -1,12 +1,14 @@
-import { type CartaoFora,contarPorMotivo, type MotivoDescarte, ROTULO_MOTIVO, type Triagem } from '@core';
-import { Archive, ArrowLeft, Check, Info, Languages, Loader2,Pencil } from 'lucide-react';
+import { type CartaoFora, contarPorMotivo, type MotivoDescarte, ROTULO_MOTIVO, type Triagem } from '@core';
+import { Archive, Check, CircleAlert, ListChecks, Loader2, PartyPopper, Pencil } from 'lucide-react';
 import React, { useMemo, useState } from 'react';
 
 import { updateCard } from '../../data/api';
+import { numero } from '../../lib/i18n';
 import { langLabel } from '../../lib/languages';
 import type { AgeProfileType } from '../../lib/profile';
 import type { VocabCard } from '../../types';
-import { askConfirm,toast } from '../Toast';
+import { askConfirm, toast } from '../Toast';
+import { CabecalhoDeTela, IconeEmBloco, Tela, TituloDeSecao } from '../ui';
 
 /**
  * CURADORIA — o que ficou de fora das rodadas, e o que fazer com isso.
@@ -36,8 +38,14 @@ interface CuradoriaProps {
 
 /** Ordem dos grupos: do defeito mais fácil de consertar para o mais trabalhoso. */
 const ORDEM: MotivoDescarte[] = [
-  'traducao-igual', 'sem-pista', 'pista-ruim', 'idioma-incerto',
-  'duplicada', 'gramatical', 'palavra-ruido', 'palavra-curta',
+  'traducao-igual',
+  'sem-pista',
+  'pista-ruim',
+  'idioma-incerto',
+  'duplicada',
+  'gramatical',
+  'palavra-ruido',
+  'palavra-curta',
 ];
 
 export default function CuradoriaBaralho({ triagem, idioma, ageProfile, onVoltar, onMudou }: CuradoriaProps) {
@@ -47,20 +55,19 @@ export default function CuradoriaBaralho({ triagem, idioma, ageProfile, onVoltar
   const [rascunho, setRascunho] = useState('');
   const [ocupado, setOcupado] = useState<string | null>(null);
 
-  const pendentes = useMemo(
-    () => triagem.fora.filter(f => !resolvidos.has(f.card.id)),
-    [triagem.fora, resolvidos],
-  );
+  const pendentes = useMemo(() => triagem.fora.filter((f) => !resolvidos.has(f.card.id)), [triagem.fora, resolvidos]);
   const contagem = useMemo(() => contarPorMotivo(pendentes), [pendentes]);
 
   const grupos = useMemo(
-    () => ORDEM.map(motivo => ({ motivo, itens: pendentes.filter(f => f.motivo === motivo) }))
-      .filter(g => g.itens.length > 0),
+    () =>
+      ORDEM.map((motivo) => ({ motivo, itens: pendentes.filter((f) => f.motivo === motivo) })).filter(
+        (g) => g.itens.length > 0,
+      ),
     [pendentes],
   );
 
   const marcarResolvido = async (id: string) => {
-    setResolvidos(prev => new Set([...prev, id]));
+    setResolvidos((prev) => new Set([...prev, id]));
     await onMudou();
   };
 
@@ -72,7 +79,9 @@ export default function CuradoriaBaralho({ triagem, idioma, ageProfile, onVoltar
       await marcarResolvido(card.id);
     } catch (e) {
       toast.error(`Não consegui arquivar: ${(e as Error).message}`);
-    } finally { setOcupado(null); }
+    } finally {
+      setOcupado(null);
+    }
   };
 
   /**
@@ -94,8 +103,9 @@ export default function CuradoriaBaralho({ triagem, idioma, ageProfile, onVoltar
     const ok = await askConfirm({
       danger: true,
       title: `Arquivar ${itens.length} ${itens.length === 1 ? 'palavra' : 'palavras'}?`,
-      detail: `Todas com o mesmo motivo: ${ROTULO_MOTIVO[motivo].titulo.toLowerCase()}. `
-        + 'Elas saem das rodadas e continuam guardadas, nada é apagado, e dá para trazer de volta.',
+      detail:
+        `Todas com o mesmo motivo: ${ROTULO_MOTIVO[motivo].titulo.toLowerCase()}. ` +
+        'Elas saem das rodadas e continuam guardadas, nada é apagado, e dá para trazer de volta.',
       confirmLabel: 'Arquivar todas',
     });
     if (!ok) return;
@@ -107,13 +117,20 @@ export default function CuradoriaBaralho({ triagem, idioma, ageProfile, onVoltar
          servidor local significa esgotar o pool de conexões e receber falhas que não são do dado.
          Devagar e contando é melhor que rápido e sem saber quantas entraram. */
       for (const { card } of itens) {
-        try { await updateCard(card.id, { inDeck: false }); gravadas++; } catch { /* conta só as que entraram */ }
+        try {
+          await updateCard(card.id, { inDeck: false });
+          gravadas++;
+        } catch {
+          /* conta só as que entraram */
+        }
       }
-      setResolvidos(prev => new Set([...prev, ...itens.map(i => i.card.id)]));
+      setResolvidos((prev) => new Set([...prev, ...itens.map((i) => i.card.id)]));
       await onMudou();
       if (gravadas === itens.length) toast.ok(`${gravadas} saíram das rodadas`);
       else toast.warn(`${gravadas} de ${itens.length} arquivadas, as outras falharam e continuam na lista`);
-    } finally { setOcupado(null); }
+    } finally {
+      setOcupado(null);
+    }
   };
 
   const salvarTraducao = async (card: VocabCard) => {
@@ -128,163 +145,197 @@ export default function CuradoriaBaralho({ triagem, idioma, ageProfile, onVoltar
       await marcarResolvido(card.id);
     } catch (e) {
       toast.error(`Não consegui salvar: ${(e as Error).message}`);
-    } finally { setOcupado(null); }
+    } finally {
+      setOcupado(null);
+    }
   };
 
   const total = triagem.usaveis.length + pendentes.length;
 
+  /* Marcação do protótipo aprovado (`T.curadoria` em docs/prototipos/consistencia-telas.html): o
+     cabeçalho, os quatro ladrilhos do saldo e um `.cartao.p5.secao` por motivo, com o conserto
+     escrito embaixo do título e a `.lista-cur` com editar / arquivar / manter em cada palavra. */
   return (
-    <div className="flex-1 overflow-y-auto custom-scrollbar p-6 lg:p-10 pb-28 animate-in fade-in duration-200">
-      <header className="mb-6">
-        <button
-          onClick={onVoltar}
-          className="flex items-center gap-1.5 text-[13px] text-ink-muted hover:text-ink mb-3 py-1 cursor-pointer"
-        >
-          <ArrowLeft className="w-4 h-4" /> Voltar aos jogos
-        </button>
-        <h1 className="font-display font-black text-2xl text-ink tracking-tight">
-          {ageProfile === 'kids' ? 'Arrumar as palavras' : 'Curadoria do baralho'}
-        </h1>
-        <p className="text-[13px] text-ink-muted mt-1 max-w-[70ch]">
-          Estas <b>{pendentes.length}</b> não entram nas rodadas de {langLabel(idioma) || 'nenhum idioma'},
-          e abaixo está o motivo de cada uma. <b>Nada foi apagado.</b> Arquivar só tira do sorteio;
-          o cartão continua guardado.
-        </p>
-      </header>
+    <Tela largura="larga">
+      <CabecalhoDeTela
+        voltar={{ rotulo: 'Jogar', aoClicar: onVoltar }}
+        sobrancelha="Curadoria do baralho"
+        icone={ListChecks}
+        titulo={ageProfile === 'kids' ? 'Arrumar as palavras' : 'Palavras que ficaram de fora'}
+        sub="Elas não entram nos jogos por um motivo que dá para consertar em um clique. Nada é apagado: arquivar só tira dos jogos."
+      />
 
-      {/* O SALDO, para a pessoa saber se a régua está sendo justa com o material dela. */}
-      <section className="card-panel bg-surface p-4 mb-6 flex flex-wrap items-center gap-x-6 gap-y-2 text-[13px]">
-        <span className="font-bold text-good-ink">{triagem.usaveis.length} prontas para jogar</span>
-        <span className="text-ink-muted">{pendentes.length} separadas aqui</span>
-        {triagem.outroIdioma.length > 0 && (
-          <span className="text-ink-muted flex items-center gap-1.5">
-            <Languages className="w-3.5 h-3.5" aria-hidden />
-            {triagem.outroIdioma.length} em outro idioma, estas estão certas, só não são desta rodada
-          </span>
-        )}
-        {total > 0 && (
-          <span className="text-ink-faint ms-auto">
-            {Math.round((triagem.usaveis.length / total) * 100)}% do baralho joga
-          </span>
-        )}
-      </section>
+      {/* O SALDO, para a pessoa saber se a régua está sendo justa com o material dela. "Em outro
+          idioma" não é problema: aqueles cartões estão certos, só não são desta rodada. */}
+      <div className="ladrilhos">
+        <div className="cartao ladrilho">
+          <span className="label-mono">Prontas para jogar</span>
+          <span className="v good">{numero(triagem.usaveis.length)}</span>
+        </div>
+        <div className="cartao ladrilho">
+          <span className="label-mono">Separadas aqui</span>
+          <span className="v warn">{numero(pendentes.length)}</span>
+        </div>
+        <div className="cartao ladrilho" title={`Estão certas, só não são de ${langLabel(idioma) || 'este idioma'}`}>
+          <span className="label-mono">Em outro idioma</span>
+          <span className="v">{numero(triagem.outroIdioma.length)}</span>
+        </div>
+        <div className="cartao ladrilho">
+          <span className="label-mono">Do baralho joga</span>
+          <span className="v acc">{total > 0 ? `${Math.round((triagem.usaveis.length / total) * 100)}%` : '—'}</span>
+        </div>
+      </div>
 
       {pendentes.length === 0 ? (
-        <section className="card-panel bg-surface p-8 text-center flex flex-col items-center gap-3">
-          <span className="w-14 h-14 rounded-2xl bg-good-soft flex items-center justify-center">
-            <Check className="w-7 h-7 text-good-ink" aria-hidden />
-          </span>
-          <p className="font-display font-extrabold text-[17px] text-ink">Nada para revisar</p>
-          <p className="text-[13px] text-ink-muted max-w-[46ch]">
-            Todas as palavras deste idioma passaram na régua.
-          </p>
+        <section className="cartao secao">
+          <div className="vazio">
+            <IconeEmBloco icone={PartyPopper} />
+            <h3>Nada para revisar</h3>
+            <p>Todas as palavras do baralho entram nos jogos.</p>
+            <button type="button" className="btn btn-solid" onClick={onVoltar}>
+              Voltar aos jogos
+            </button>
+          </div>
         </section>
       ) : (
-        <div className="flex flex-col gap-6">
-          {grupos.map(({ motivo, itens }) => (
-            <section key={motivo}>
-              <div className="flex items-baseline gap-2 mb-2">
-                <h2 className="font-display font-extrabold text-[15px] text-ink">
-                  {ROTULO_MOTIVO[motivo].titulo}
-                </h2>
-                <span className="text-[12px] font-bold text-ink-muted">{contagem[motivo]}</span>
-                {/* A ação em lote fica no CABEÇALHO do grupo, não no rodapé: é aqui que a pessoa lê
-                    o motivo e decide. E só aparece a partir de 3 itens, com dois, o botão de lote
-                    é mais clique do que arquivar cada um. */}
-                {itens.length >= 3 && (
+        grupos.map(({ motivo, itens }) => (
+          <section key={motivo} className="cartao p5 secao">
+            {/* O CONSERTO vem escrito, para a pessoa não ter de deduzir o que fazer. A ação em lote
+                fica no CABEÇALHO do grupo, onde a pessoa lê o motivo e decide — e só a partir de 3
+                itens: com dois, o botão de lote é mais clique do que arquivar cada um. */}
+            <TituloDeSecao
+              icone={CircleAlert}
+              titulo={
+                <>
+                  {ROTULO_MOTIVO[motivo].titulo} <span className="n-sec">{numero(contagem[motivo])}</span>
+                </>
+              }
+              desc={ROTULO_MOTIVO[motivo].conserto}
+              direita={
+                itens.length >= 3 ? (
                   <button
+                    type="button"
+                    className="btn btn-outline peq"
                     onClick={() => void arquivarGrupo(motivo, itens)}
                     disabled={ocupado === `grupo:${motivo}`}
-                    className="ms-auto flex items-center gap-1.5 text-[12px] text-ink-muted hover:text-warn-ink underline py-1 disabled:opacity-40 cursor-pointer"
-                    title={`Tirar das rodadas as ${itens.length} palavras deste grupo (não apaga)`}
+                    title={`Tirar dos jogos as ${itens.length} palavras deste grupo (não apaga)`}
                   >
-                    {ocupado === `grupo:${motivo}`
-                      ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /> arquivando…</>
-                      : <><Archive className="w-3.5 h-3.5" /> arquivar as {itens.length}</>}
-                  </button>
-                )}
-              </div>
-              {/* O CONSERTO vem escrito, para a pessoa não ter de deduzir o que fazer. */}
-              <p className="flex items-start gap-1.5 text-[12px] text-ink-muted mb-2.5 max-w-[64ch]">
-                <Info className="w-3.5 h-3.5 mt-0.5 shrink-0" aria-hidden />
-                {ROTULO_MOTIVO[motivo].conserto}
-              </p>
-
-              <ul className="flex flex-col gap-1.5">
-                {itens.slice(0, 40).map(({ card }: CartaoFora) => (
-                  <li
-                    key={card.id}
-                    className="card-panel bg-surface p-3 flex flex-wrap items-center gap-x-3 gap-y-2"
-                  >
-                    <span className="font-display font-bold text-[14px] text-ink min-w-[8rem]">{card.word}</span>
-                    <span className="text-[12px] text-ink-muted flex-1 min-w-[10rem] truncate" title={card.translation}>
-                      {card.translation || <i className="text-ink-faint">sem tradução</i>}
-                    </span>
-
-                    {editando === card.id ? (
-                      <span className="flex items-center gap-1.5 w-full sm:w-auto">
-                        <input
-                          autoFocus
-                          value={rascunho}
-                          onChange={e => setRascunho(e.target.value)}
-                          onKeyDown={e => {
-                            if (e.key === 'Enter') void salvarTraducao(card);
-                            if (e.key === 'Escape') { setEditando(null); setRascunho(''); }
-                          }}
-                          placeholder="tradução curta"
-                          className="flex-1 min-w-[9rem] px-2.5 py-1.5 rounded-lg bg-canvas border border-border-subtle text-[13px] text-ink focus:border-accent outline-none"
-                        />
-                        <button
-                          onClick={() => void salvarTraducao(card)}
-                          disabled={!rascunho.trim() || ocupado === card.id}
-                          className="px-3 py-1.5 rounded-lg bg-accent text-white font-bold text-[12px] disabled:opacity-40 cursor-pointer"
-                        >
-                          Salvar
-                        </button>
-                      </span>
+                    {ocupado === `grupo:${motivo}` ? (
+                      <>
+                        <Loader2 className="animate-spin" aria-hidden /> Arquivando…
+                      </>
                     ) : (
-                      <span className="flex items-center gap-1 ms-auto">
+                      <>
+                        <Archive aria-hidden /> Arquivar as {numero(itens.length)}
+                      </>
+                    )}
+                  </button>
+                ) : undefined
+              }
+            />
+
+            <ul className="lista-cur">
+              {itens.slice(0, 40).map(({ card }: CartaoFora) => (
+                <li key={card.id}>
+                  <b>{card.word}</b>
+                  {editando === card.id ? (
+                    <form
+                      className="linha"
+                      style={{ gap: 8, flex: 1 }}
+                      onSubmit={(e) => {
+                        e.preventDefault();
+                        void salvarTraducao(card);
+                      }}
+                    >
+                      <label className="sr" htmlFor={`cur-in-${card.id}`}>
+                        Tradução curta de {card.word}
+                      </label>
+                      <input
+                        id={`cur-in-${card.id}`}
+                        className="campo"
+                        autoFocus
+                        value={rascunho}
+                        onChange={(e) => setRascunho(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Escape') {
+                            setEditando(null);
+                            setRascunho('');
+                          }
+                        }}
+                        placeholder="tradução curta"
+                        style={{ minHeight: 36 }}
+                      />
+                      <button
+                        type="submit"
+                        className="btn btn-solid peq"
+                        disabled={!rascunho.trim() || ocupado === card.id}
+                      >
+                        <Check aria-hidden /> Salvar
+                      </button>
+                      <button
+                        type="button"
+                        className="btn btn-outline peq"
+                        onClick={() => {
+                          setEditando(null);
+                          setRascunho('');
+                        }}
+                      >
+                        Cancelar
+                      </button>
+                    </form>
+                  ) : (
+                    <>
+                      <span className="mut" style={{ flex: 1 }} title={card.translation || undefined}>
+                        {card.translation || <i>sem tradução</i>}
+                      </span>
+                      <span className="linha" style={{ gap: 4 }}>
                         <button
-                          onClick={() => { setEditando(card.id); setRascunho(card.translation || ''); }}
-                          className="p-2 rounded-lg text-ink-muted hover:text-accent hover:bg-surface-hover cursor-pointer"
+                          type="button"
+                          className="btn btn-outline peq icone"
+                          onClick={() => {
+                            setEditando(card.id);
+                            setRascunho(card.translation || '');
+                          }}
                           title="Escrever a tradução"
                           aria-label={`Corrigir a tradução de ${card.word}`}
                         >
-                          <Pencil className="w-4 h-4" />
+                          <Pencil aria-hidden />
                         </button>
                         <button
+                          type="button"
+                          className="btn btn-outline peq icone"
                           onClick={() => void arquivar(card)}
                           disabled={ocupado === card.id}
-                          className="p-2 rounded-lg text-ink-muted hover:text-warn-ink hover:bg-surface-hover disabled:opacity-40 cursor-pointer"
-                          title="Tirar das rodadas (não apaga)"
+                          title="Tirar dos jogos (não apaga)"
                           aria-label={`Arquivar ${card.word}`}
                         >
-                          <Archive className="w-4 h-4" />
+                          <Archive aria-hidden />
                         </button>
                         <button
+                          type="button"
+                          className="btn btn-outline peq icone"
                           onClick={() => void marcarResolvido(card.id)}
-                          className="p-2 rounded-lg text-ink-muted hover:text-good-ink hover:bg-surface-hover cursor-pointer"
                           title="Está certo assim, só não mostrar mais"
                           aria-label={`Manter ${card.word}`}
                         >
-                          <Check className="w-4 h-4" />
+                          <Check aria-hidden />
                         </button>
                       </span>
-                    )}
-                  </li>
-                ))}
-              </ul>
+                    </>
+                  )}
+                </li>
+              ))}
+            </ul>
 
-              {/* Teto de 40 por grupo, dito em voz alta: lista silenciosamente cortada mente. */}
-              {itens.length > 40 && (
-                <p className="text-[12px] text-ink-faint mt-2">
-                  mostrando 40 de {itens.length}, resolva estas e as próximas aparecem
-                </p>
-              )}
-            </section>
-          ))}
-        </div>
+            {/* Teto de 40 por grupo, dito em voz alta: lista silenciosamente cortada mente. */}
+            {itens.length > 40 && (
+              <p className="mut" style={{ fontSize: 12.5, marginTop: 12 }}>
+                Mostrando 40 de {numero(itens.length)}. Resolva estas e as próximas aparecem.
+              </p>
+            )}
+          </section>
+        ))
       )}
-    </div>
+    </Tela>
   );
 }

@@ -37,6 +37,16 @@ let aplicarMigrations: () => Promise<void>
 let migrarLeitnerParaFsrs: () => Promise<number>
 let entradasDoJournal: number
 
+/**
+ * QUANTAS MIGRATIONS A FOTO CARREGA. A fixture foi refeita na Fase 4 com a 0028 (menores) aplicada
+ * (29 entradas no diário). Migration nova NÃO exige refazer a foto — pelo contrário: a foto antiga é o estado que o
+ * banco de produção terá no dia do deploy, e é sobre ele que a migration nova precisa se aplicar.
+ * A primeira a chegar depois da foto foi a 0029 (gasto de IA, Fase 2 do lançamento).
+ */
+const ENTRADAS_NA_FOTO = 29
+/** A primeira migration NÃO reexecutável (DROP COLUMN) — idx 26 no journal. */
+const IDX_DA_0026 = 26
+
 beforeAll(async () => {
   const mod = (await import('../../server/db/db')) as any
   client = mod.client
@@ -67,15 +77,21 @@ const temTabela = async (t: string) =>
   (await linhas("SELECT name FROM sqlite_master WHERE type='table' AND name = ?", [t])).length > 0
 
 describe('migrations sobre o estado atual — caminho do boot', () => {
-  it('a fixture chega com o diario completo', async () => {
-    expect(await contar('__drizzle_migrations')).toBe(entradasDoJournal)
+  it('a fixture chega com o diario da foto, e as migrations posteriores estao pendentes', async () => {
+    expect(await contar('__drizzle_migrations')).toBe(ENTRADAS_NA_FOTO)
+    expect(ENTRADAS_NA_FOTO).toBeLessThanOrEqual(entradasDoJournal)
   })
 
-  it('aplicarMigrations num banco ja no estado atual nao reaplica nada e nao lanca', async () => {
+  it('aplicarMigrations aplica SO as pendentes sobre o estado real, e reaplicado nao mexe em nada', async () => {
     const antes = await hashesDoDiario()
     await expect(aplicarMigrations()).resolves.not.toThrow()
-    expect(await hashesDoDiario()).toEqual(antes)
-    expect(antes).toHaveLength(entradasDoJournal)
+    const depois = await hashesDoDiario()
+    // O que já estava aplicado não foi tocado; o diário completou até o journal.
+    expect(depois.slice(0, antes.length)).toEqual(antes)
+    expect(depois).toHaveLength(entradasDoJournal)
+    await expect(aplicarMigrations()).resolves.not.toThrow()
+    expect(await hashesDoDiario()).toEqual(depois)
+    expect(await temTabela('gasto_de_ia')).toBe(true)
   })
 
   it('foreign_key_check vazio e integrity_check ok sobre o dado real', async () => {
@@ -106,7 +122,7 @@ describe('migrations sobre o estado atual — caminho do boot', () => {
 })
 
 describe('migrations sobre o estado atual — caracterizacao do diario', () => {
-  it('apagar a linha da ULTIMA migration e reaplicar: idempotente, porque a 0028 (como a 0027) e toda IF NOT EXISTS', async () => {
+  it('apagar a linha da ULTIMA migration e reaplicar: idempotente, porque a ultima e toda IF NOT EXISTS', async () => {
     const total = await contar('__drizzle_migrations')
     const rankAntes = await contar('rank')
     const ultima = (
@@ -134,14 +150,17 @@ describe('migrations sobre o estado atual — caracterizacao do diario', () => {
     )
   })
 
-  it('apagar as linhas das TRES ultimas e reaplicar: a 0026 (DROP COLUMN) nao e reexecutavel, o lote volta atras e o boot SEGUE', async () => {
+  it('apagar as linhas DESDE a 0026 e reaplicar: a 0026 (DROP COLUMN) nao e reexecutavel, o lote volta atras e o boot SEGUE', async () => {
     const total = await contar('__drizzle_migrations')
-    // TRES desde a 0028 (Fase 4): 0027 e 0028 sao reexecutaveis, e a caracterizacao e sobre a 0026.
-    const tresUltimas = await linhas('SELECT created_at FROM __drizzle_migrations ORDER BY created_at DESC LIMIT 3')
-    for (const r of tresUltimas) {
+    // Da 0026 em diante: com a 0027, a 0028 e a 0029 depois dela, são as QUATRO últimas.
+    const desdeA0026 = total - IDX_DA_0026
+    const ultimas = await linhas(
+      `SELECT created_at FROM __drizzle_migrations ORDER BY created_at DESC LIMIT ${desdeA0026}`,
+    )
+    for (const r of ultimas) {
       await client.execute({ sql: 'DELETE FROM __drizzle_migrations WHERE created_at = ?', args: [r.created_at] })
     }
-    expect(await contar('__drizzle_migrations')).toBe(total - 3)
+    expect(await contar('__drizzle_migrations')).toBe(total - desdeA0026)
 
     // `mockRestore()` do vitest tambem zera `mock.calls`; as asserções sobre o aviso ficam ANTES.
     const aviso = vi.spyOn(console, 'warn').mockImplementation(() => {})
@@ -161,7 +180,7 @@ describe('migrations sobre o estado atual — caracterizacao do diario', () => {
     }
 
     // O diario nao andou e o schema ficou como estava: rank continua, frequency continua ausente.
-    expect(await contar('__drizzle_migrations')).toBe(total - 3)
+    expect(await contar('__drizzle_migrations')).toBe(total - desdeA0026)
     expect(await temTabela('rank')).toBe(true)
     expect(await colunas('vocab_cards')).not.toContain('frequency')
     expect((await linhas('PRAGMA integrity_check'))[0]).toEqual({ integrity_check: 'ok' })

@@ -13,10 +13,18 @@ import { hasEntitlement } from '../lib/entitlements'
 import { erroDeRota } from '../lib/erroDeRota'
 import { normalizarIdiomaDoWhisper } from '../lib/idiomaDoWhisper'
 import { log } from '../lib/logger'
+import { custoDeStt, portaoDaNuvem, registrarGastoDeIa, responderPortaoFechado } from '../lib/orcamentoDeIa'
 import { responderErro } from '../lib/respostaDeErro'
-import { estornarSegundosDeStt, refundManagedCall, reservarSegundosDeStt, reserveManagedCall } from '../lib/usageQuota'
+import {
+  ContadorIndisponivel,
+  estornarSegundosDeStt,
+  refundManagedCall,
+  reservarSegundosDeStt,
+  reserveManagedCall,
+} from '../lib/usageQuota'
 import { parseOr400, sttHeadersSchema } from '../validation'
 import { deveRetentar, esperaDaRetentativa } from './disjuntor'
+import { responderContadorIndisponivel } from './reservaDeNuvem'
 import { assertPublicUrl } from './ssrf'
 
 /**
@@ -54,7 +62,13 @@ export async function sttTranscribeProxy(req: Request, res: Response): Promise<v
       // SaaS Fatia 1b — STT de nuvem GERENCIADA (chave do DONO) exige o entitlement. BYOK (ramo `if`)
       // e o STT local (no navegador) passam livres: só o caminho que gasta a chave do serviço é gateado.
       if (!(await hasEntitlement(req.userId, 'managedCloudStt'))) {
-        res.status(402).json({ error: 'STT de nuvem gerenciada requer plano Pro', entitlement: 'managedCloudStt' })
+        res.status(402).json({ error: 'STT de nuvem gerenciada requer um plano pago', entitlement: 'managedCloudStt' })
+        return
+      }
+      // Chave de emergência e orçamento global do mês (orcamentoDeIa.ts), antes de qualquer cota.
+      const portao = await portaoDaNuvem()
+      if (!portao.ok) {
+        responderPortaoFechado(res, portao)
         return
       }
       // Fair-use: RESERVA antes de chamar o provedor (P0-1 — conferir antes e contabilizar
@@ -158,7 +172,7 @@ export async function sttTranscribeProxy(req: Request, res: Response): Promise<v
     /**
      * RETENTATIVA COM ESPERA CRESCENTE — e só aqui, não na tradução (Fase 5).
      *
-     * A diferença entre os dois proxies é que a tradução TEM cascata (`cascataDeTraducao`): um 429
+     * A diferença entre os dois proxies é que a tradução TEM cascata (`cascataDeNuvem`): um 429
      * do primário já cai na reserva, e insistir antes disso só somaria espera ao caminho em que
      * alguém aguarda legenda na tela. O STT não tem para onde cair — sem reserva configurada, um
      * 429 momentâneo do provedor simplesmente perdia a fala do usuário, e o áudio de um enunciado
@@ -211,11 +225,19 @@ export async function sttTranscribeProxy(req: Request, res: Response): Promise<v
     // Consumada. Antes daqui havia um `recordManagedCall` incondicional, que contabilizava
     // TAMBÉM o caminho BYOK — uso da chave do próprio usuário descontava da quota gerenciada.
     reservaPendente = false
+    // Só o caminho da chave do DONO entra no orçamento global; BYOK é conta do próprio usuário.
+    if (segundosReservados > 0) await registrarGastoDeIa(custoDeStt(model, segundosReservados))
     segundosReservados = 0 // consumados junto com a chamada: nada a estornar
     // `language` vazio = o provedor não informou (ou caímos no `json`): o cliente volta ao
     // detector de texto. Nunca inventamos um código aqui.
     res.json({ text: j.text ?? '', language: normalizarIdiomaDoWhisper(j.language) })
   } catch (err) {
+    /* A cota falha FECHADA (Fase 2 do lançamento): contador fora do ar é 503 com motivo, e o
+       roteador de STT do cliente cai no Whisper local. */
+    if (err instanceof ContadorIndisponivel) {
+      if (!res.headersSent) responderContadorIndisponivel(res)
+      return
+    }
     if (!res.headersSent) res.status(502).json({ error: erroDeRota(err, { status: 502, event: 'stt_route_error' }) })
   } finally {
     // As duas reservas caem juntas: cobrar segundos por uma transcrição que não aconteceu é o

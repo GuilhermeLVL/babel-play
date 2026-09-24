@@ -2,9 +2,9 @@
  * BOOTSTRAP DO PROCESSO — e só ele.
  *
  * Este arquivo tinha 703 linhas e era o arquivo-deus do servidor: montava o Express, servia a rota
- * de negócio `/api/gemini/chat` e subia o processo. A Fase 3 da rodada de saneamento separou as
+ * de negócio do tutor (então `/api/gemini/chat`) e subia o processo. A Fase 3 da rodada de saneamento separou as
  * três responsabilidades. A MONTAGEM vive em `server/http/app.ts` (`criarApp()`), a ROTA vive em
- * `server/routes/gemini.ts`, e o que sobra aqui é o que só um processo faz: carregar o `.env`,
+ * `server/routes/tutor.ts` (antes `gemini.ts`), e o que sobra aqui é o que só um processo faz: carregar o `.env`,
  * conferir a configuração, aplicar migrations, escolher entre Vite e estático, escutar numa porta
  * e, quando pedido, forkar o cluster.
  *

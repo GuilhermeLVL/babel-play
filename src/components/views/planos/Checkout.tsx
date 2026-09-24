@@ -13,7 +13,7 @@ import {
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
-import { armazenamentoEmTexto } from '../../../core/planos';
+import { armazenamentoEmTexto, horasDeTranscricao } from '../../../core/planos';
 import { lerAbertura } from '../../../data/rotas/idade';
 import {
   type Beneficiario,
@@ -249,8 +249,8 @@ export default function Checkout({
                 <h3>{PLANO_NOME[id]}</h3>
                 <p>
                   {id === 'pro'
-                    ? `Tudo no servidor, YouTube, ${armazenamentoEmTexto('pro')}`
-                    : `Tradução com IA de nuvem, ${armazenamentoEmTexto('essencial')}`}
+                    ? `${horasDeTranscricao('pro')} h de transcrição de nuvem, limite maior de IA, ${armazenamentoEmTexto('pro')}`
+                    : `Tradução e ${horasDeTranscricao('essencial')} h de transcrição de nuvem, ${armazenamentoEmTexto('essencial')}`}
                 </p>
               </span>
               <b className="tn">

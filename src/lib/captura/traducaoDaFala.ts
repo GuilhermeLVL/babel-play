@@ -9,11 +9,11 @@ import type { Dispatch, RefObject, SetStateAction } from 'react';
 
 import { capMetrics } from '../../gateway/capture/captureMetrics';
 import { getEntitlements } from '../entitlements';
-import { baseLang,langLabel } from '../languages';
+import { baseLang, langLabel } from '../languages';
 import { OrdemDasTraducoes } from '../ordemDaTraducao';
-import { destinoDaTraducao,PerfilAdaptativoDeIdioma } from '../perfilDeIdioma';
+import { destinoDaTraducao, PerfilAdaptativoDeIdioma } from '../perfilDeIdioma';
 // Fala do MIC em português → português claro antes de traduzir (vícios, contrações, gíria).
-import { chaveNormalizada,prepararFala } from '../traducao/prepararFala';
+import { chaveNormalizada, prepararFala } from '../traducao/prepararFala';
 import { clog, type GatewayDaCaptura, type SpeechSegment } from './tiposDaFala';
 
 /** O que o relógio da sessão precisa da tela. */
@@ -78,9 +78,19 @@ export interface DepsDaTraducaoDaFala {
  */
 export function criarTraducaoDaFala(deps: DepsDaTraducaoDaFala) {
   const {
-    gateway, ordemMtRef, sourceLangRef, targetLangRef, idiomaObservadoRef, perfilIdiomaRef,
-    speechSegmentsRef, translationCacheRef, mtFailNotifiedRef, altTargetNotifiedRef,
-    degradacaoAvisadaRef, setSpeechSegments, setFeedbackMsg,
+    gateway,
+    ordemMtRef,
+    sourceLangRef,
+    targetLangRef,
+    idiomaObservadoRef,
+    perfilIdiomaRef,
+    speechSegmentsRef,
+    translationCacheRef,
+    mtFailNotifiedRef,
+    altTargetNotifiedRef,
+    degradacaoAvisadaRef,
+    setSpeechSegments,
+    setFeedbackMsg,
   } = deps;
 
   /**
@@ -148,7 +158,7 @@ export function criarTraducaoDaFala(deps: DepsDaTraducaoDaFala) {
       // Os dois lados do par são a mesma língua: não há para onde traduzir. Limpa o "…" para o
       // balão não ficar preso esperando para sempre — e não repete a frase fingindo tradução.
       if (ordemMtRef.current.encerrar(segId, selo)) {
-        setSpeechSegments(prev => prev.map(seg => seg.id === segId ? { ...seg, translatedText: '' } : seg));
+        setSpeechSegments((prev) => prev.map((seg) => (seg.id === segId ? { ...seg, translatedText: '' } : seg)));
       }
       return;
     }
@@ -183,7 +193,13 @@ export function criarTraducaoDaFala(deps: DepsDaTraducaoDaFala) {
        SENTIDO em vez de "the people" para "a gente". Texto do sistema não passa por aqui. */
     const preparada = opts?.falada ? prepararFala(text, origem, tgt) : { texto: text, mudou: false };
     const textoParaMt = preparada.texto;
-    if (preparada.mudou) clog('fala preparada:', JSON.stringify(text).slice(0, 60), '→', JSON.stringify(preparada.traducaoPronta ?? textoParaMt).slice(0, 60));
+    if (preparada.mudou)
+      clog(
+        'fala preparada:',
+        JSON.stringify(text).slice(0, 60),
+        '→',
+        JSON.stringify(preparada.traducaoPronta ?? textoParaMt).slice(0, 60),
+      );
     // Chave tolerante a caixa/pontuação final: "Tá bom." e "tá bom" eram duas entradas.
     const cacheKey = `${origem}|${tgt}|${chaveNormalizada(textoParaMt)}`;
     const applyTranslation = (translated: string, aproximada = false) => {
@@ -192,10 +208,16 @@ export function criarTraducaoDaFala(deps: DepsDaTraducaoDaFala) {
       const capitalized = (aproximada ? '≈ ' : '') + translated.charAt(0).toUpperCase() + translated.slice(1);
       // As palavras de vocabulário já foram extraídas da fala real no commit do
       // enunciado (wordsFromText); a tradução só atualiza o texto traduzido.
-      setSpeechSegments(prev => prev.map(seg => seg.id === segId ? {
-        ...seg,
-        translatedText: capitalized,
-      } : seg));
+      setSpeechSegments((prev) =>
+        prev.map((seg) =>
+          seg.id === segId
+            ? {
+                ...seg,
+                translatedText: capitalized,
+              }
+            : seg,
+        ),
+      );
     };
     // Expressão inteira conhecida ("valeu!", "pois é."): a tradução natural já está pronta.
     if (preparada.traducaoPronta) {
@@ -210,7 +232,10 @@ export function criarTraducaoDaFala(deps: DepsDaTraducaoDaFala) {
     const mtT0 = performance.now();
     // Contexto para o LLM (só na fala): as últimas 3 falas comprometidas da conversa.
     const contexto = opts?.falada
-      ? speechSegmentsRef.current.filter(s => !s.isPartial && s.originalText && s.id !== segId).slice(-3).map(s => `${s.source === 'mic' ? 'Eu' : 'Outro'}: ${s.originalText}`)
+      ? speechSegmentsRef.current
+          .filter((s) => !s.isPartial && s.originalText && s.id !== segId)
+          .slice(-3)
+          .map((s) => `${s.source === 'mic' ? 'Eu' : 'Outro'}: ${s.originalText}`)
       : undefined;
 
     // Rede de segurança: a tradução NUNCA pode deixar o balão preso em "…". Se vier vazia, der
@@ -219,13 +244,18 @@ export function criarTraducaoDaFala(deps: DepsDaTraducaoDaFala) {
     // uma tradução já mostrada). `settled` evita corrida entre resposta tardia e o timeout.
     let settled = false;
     const degrade = () => {
-      setSpeechSegments(prev => prev.map(seg =>
-        (seg.id === segId && seg.translatedText === '…') ? { ...seg, translatedText: `(${text})` } : seg));
+      setSpeechSegments((prev) =>
+        prev.map((seg) =>
+          seg.id === segId && seg.translatedText === '…' ? { ...seg, translatedText: `(${text})` } : seg,
+        ),
+      );
       // Degradação NUNCA mais é silenciosa (achado da auditoria): avisa UMA vez por sessão
       // que a tradução caiu e o que o usuário está vendo é o texto original.
       if (!mtFailNotifiedRef.current) {
         mtFailNotifiedRef.current = true;
-        setFeedbackMsg('Tradução indisponível agora (motores locais e web falharam), mostrando o texto original entre parênteses.');
+        setFeedbackMsg(
+          'Tradução indisponível agora (motores locais e web falharam), mostrando o texto original entre parênteses.',
+        );
         setTimeout(() => setFeedbackMsg(''), 8000);
       }
     };
@@ -238,17 +268,25 @@ export function criarTraducaoDaFala(deps: DepsDaTraducaoDaFala) {
     /* `origem` já caiu para o idioma OBSERVADO da sessão quando esta fala não foi detectada —
        ver o bloco acima. Só chega `null` aqui quando nem o perfil convergiu ainda, e aí o
        Tradutor IA do servidor detecta a origem sozinho, como antes. */
-    gateway.mt.translate(textoParaMt, origem || null, tgt, { falada: opts?.falada === true, contexto })
+    /* Quem paga pela nuvem manda também o áudio do SISTEMA primeiro ao LLM do servidor (Fase 2 do
+       lançamento); a fala do microfone já ia. Sem o plano, a cascata local de sempre. */
+    const nuvemPrimeiro = getEntitlements().managedCloudLlm;
+    gateway.mt
+      .translate(textoParaMt, origem || null, tgt, { falada: opts?.falada === true, contexto, nuvemPrimeiro })
       .then(({ text: translated, engine, approximate }) => {
-        if (settled) return;               // timeout já degradou → ignora resposta tardia
-        settled = true; clearTimeout(timeout);
+        if (settled) return; // timeout já degradou → ignora resposta tardia
+        settled = true;
+        clearTimeout(timeout);
         capMetrics.mt(Math.round(performance.now() - mtT0), engine || 'mt');
-        avisarSeDegradou(engine, opts?.falada === true);
+        avisarSeDegradou(engine, opts?.falada === true || nuvemPrimeiro);
         // `atual` = este pedido ainda é o mais recente do balão. Um resultado ATRASADO não escreve
         // na tela (sobrescreveria a tradução do final pelo texto pela metade), mas ainda é uma
         // tradução válida deste texto: entra no cache, e o próximo pedido igual chega instantâneo.
         const atual = ordemMtRef.current.encerrar(segId, selo);
-        if (!translated) { if (atual) degrade(); return; }   // vazio → degrada (antes: ficava em "…")
+        if (!translated) {
+          if (atual) degrade();
+          return;
+        } // vazio → degrada (antes: ficava em "…")
         translationCacheRef.current.set(cacheKey, translated);
         if (translationCacheRef.current.size > 300) {
           const firstKey = translationCacheRef.current.keys().next().value;
@@ -256,28 +294,36 @@ export function criarTraducaoDaFala(deps: DepsDaTraducaoDaFala) {
         }
         if (atual) applyTranslation(translated, approximate === true);
       })
-      .catch(err => {
+      .catch((err) => {
         if (settled) return;
-        settled = true; clearTimeout(timeout);
-        console.warn("Live translation error:", err);
+        settled = true;
+        clearTimeout(timeout);
+        console.warn('Live translation error:', err);
         if (ordemMtRef.current.encerrar(segId, selo)) degrade();
       });
   };
 
   /** Balões que degradaram para "(texto original)" voltam a "…" e pedem tradução de novo. */
   const retraduzirDegradados = () => {
-    setSpeechSegments(prev => {
-      const alvo = prev.filter(seg => !seg.isPartial && seg.originalText && seg.translatedText === `(${seg.originalText})`);
+    setSpeechSegments((prev) => {
+      const alvo = prev.filter(
+        (seg) => !seg.isPartial && seg.originalText && seg.translatedText === `(${seg.originalText})`,
+      );
       if (alvo.length === 0) return prev;
       clog('tradutor pronto: retraduzindo', alvo.length, 'balão(ões) degradado(s)');
-      const ids = new Set(alvo.map(seg => seg.id));
+      const ids = new Set(alvo.map((seg) => seg.id));
       setTimeout(() => {
         for (const seg of alvo) {
           const doSistema = seg.source === 'system';
-          translateSegment(seg.id, seg.originalText, doSistema ? targetLangRef.current : sourceLangRef.current, doSistema ? sourceLangRef.current : targetLangRef.current);
+          translateSegment(
+            seg.id,
+            seg.originalText,
+            doSistema ? targetLangRef.current : sourceLangRef.current,
+            doSistema ? sourceLangRef.current : targetLangRef.current,
+          );
         }
       }, 0);
-      return prev.map(seg => (ids.has(seg.id) ? { ...seg, translatedText: '…' } : seg));
+      return prev.map((seg) => (ids.has(seg.id) ? { ...seg, translatedText: '…' } : seg));
     });
   };
 

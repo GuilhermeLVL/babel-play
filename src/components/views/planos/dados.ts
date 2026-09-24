@@ -1,7 +1,9 @@
 import {
+  Bot,
   Cloud,
   Cpu,
   Download,
+  Gauge,
   HardDrive,
   Languages,
   type LucideIcon,
@@ -9,10 +11,9 @@ import {
   Mic,
   ShieldCheck,
   Sparkles,
-  Youtube,
 } from 'lucide-react';
 
-import { armazenamentoEmTexto, type PlanoDeAssinatura } from '../../../core/planos';
+import { armazenamentoEmTexto, horasDeTranscricao, type PlanoDeAssinatura } from '../../../core/planos';
 import { irParaSubTelaDePlanos, navegarPara, type SubTelaDePlanos } from '../../../lib/rotas';
 
 /**
@@ -22,11 +23,22 @@ import { irParaSubTelaDePlanos, navegarPara, type SubTelaDePlanos } from '../../
  *
  * Mora fora de `Planos.tsx` porque três telas o leem: os cartões de Planos, o "o que ficou
  * liberado" da confirmação e o "você deixa de ter" do cancelamento.
+ *
+ * SÓ O QUE EXISTE (Fase 2 do lançamento, `tests/planos-so-o-que-existe.test.ts`). Saíram três
+ * promessas que o app hospedado não cumpria: "Importar do YouTube" (a rota responde 403 fora do
+ * self-host), "Nada para baixar" (os modelos locais continuam sendo a reserva quando a nuvem falha
+ * ou a cota acaba) e "Download menor" (número não medido com a transcrição de nuvem). O "modelo
+ * maior" do Pro também não aparece aqui: ele só existe quando `LLM_MODEL_GRANDE` está definido no
+ * servidor, e a tela não sabe disso — volta à vitrine quando o modelo for escolhido e medido.
  */
 
 export type Coluna = 'gratis' | 'essencial' | 'pro';
 
-export const MODELOS: Record<Coluna, string> = { gratis: '230–413 MB', essencial: '230–300 MB', pro: 'nenhum' };
+/** O download dos modelos locais do plano Grátis — o único plano que depende só deles. */
+export const DOWNLOAD_DO_GRATIS = '230–413 MB';
+
+/** "15 h de transcrição de nuvem por mês", derivado da quota. */
+const horas = (plano: PlanoDeAssinatura) => `${horasDeTranscricao(plano) ?? 0} h de transcrição de nuvem por mês`;
 
 export interface Plano {
   id: Coluna;
@@ -53,7 +65,7 @@ export const PLANOS: Plano[] = [
     itens: [
       [Cpu, 'Tudo roda no seu aparelho'],
       [ShieldCheck, 'Nada do que você fala sai do computador'],
-      [Download, `Baixa ${MODELOS.gratis} de modelos uma vez`],
+      [Download, `Baixa ${DOWNLOAD_DO_GRATIS} de modelos uma vez`],
       [HardDrive, `${armazenamentoEmTexto('free')} para sessões`],
     ],
   },
@@ -62,13 +74,14 @@ export const PLANOS: Plano[] = [
     chave: 'essencial',
     icone: Sparkles,
     nome: 'Essencial',
-    tag: 'Tradução com IA de nuvem',
-    para: 'Para quem quer traduções melhores sem trocar de computador.',
+    tag: 'Tradução e transcrição com IA de nuvem',
+    para: 'Para quem quer traduções e transcrições melhores sem trocar de computador.',
     base: 'Grátis',
     itens: [
       [Languages, 'Tradução com IA de nuvem: 85% de qualidade'],
       [MessageSquareQuote, 'Expressões idiomáticas: 83%'],
-      [Download, `Download menor: ${MODELOS.essencial}`],
+      [Mic, horas('essencial')],
+      [Bot, 'Tutor de IA (iChat) sobre o seu material'],
       [HardDrive, `${armazenamentoEmTexto('essencial')} para sessões`],
     ],
   },
@@ -77,13 +90,12 @@ export const PLANOS: Plano[] = [
     chave: 'pro',
     icone: Cloud,
     nome: 'Pro',
-    tag: 'Tudo processado no servidor',
-    para: 'Para quem estuda todo dia, em qualquer aparelho.',
+    tag: 'Mais horas de IA de nuvem',
+    para: 'Para quem estuda todo dia e transcreve muito.',
     base: 'Essencial',
     itens: [
-      [Cloud, 'Nada para baixar: roda no servidor'],
-      [Mic, 'Transcrição com menos erro: 24% no português falado'],
-      [Youtube, 'Importar do YouTube'],
+      [Mic, horas('pro')],
+      [Gauge, 'Limite maior de tradução e tutor de IA'],
       [HardDrive, `${armazenamentoEmTexto('pro')} para sessões`],
     ],
     destaque: true,

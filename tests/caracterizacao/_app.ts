@@ -93,7 +93,8 @@ export const ROUTERS_PRIVADOS: Array<[string, string, string]> = [
   /* So no self-host: no modo publico o `app.ts` responde 403 no lugar dele. */
   ['/api/audio', '../../server/audio/loopback', 'audioRouter'],
   /* Ultimo a ser montado, como no `app.ts`: a rota de chat saiu do `server.ts` na Fase 3. */
-  ['/api/gemini', '../../server/routes/gemini', 'geminiRouter'],
+  ['/api/tutor', '../../server/routes/tutor', 'tutorRouter'],
+  ['/api/gemini', '../../server/routes/tutor', 'tutorRouter'],
 ]
 
 const salvo: Record<string, string | undefined> = {}

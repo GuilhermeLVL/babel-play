@@ -5,10 +5,14 @@
  * 2. Dispensar grava e o card não volta em render seguinte.
  * 3. O preço vem da PLAN_MATRIX, não de string escrita à mão.
  */
-import { cleanup, fireEvent,render, screen } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, expect, it, vi } from 'vitest'
 
-afterEach(() => { cleanup(); vi.resetModules(); localStorage.clear() })
+afterEach(() => {
+  cleanup()
+  vi.resetModules()
+  localStorage.clear()
+})
 
 async function montar(plan: string) {
   vi.doMock('../src/lib/entitlements', () => ({ getEntitlements: () => ({ plan }) }))
@@ -16,10 +20,11 @@ async function montar(plan: string) {
   return render(<CardDePlanos onVerPlanos={vi.fn()} />)
 }
 
-it('plano free vê o card, com o preço da matriz (R$ 9,90)', async () => {
+it('plano free vê o card, com o menor preço da matriz', async () => {
   await montar('free')
   const card = screen.getByTestId('card-de-planos')
-  expect(card.textContent).toContain('R$ 9,90')
+  const { menorPrecoDeAssinatura } = await import('../src/core/planos')
+  expect(card.textContent).toContain(`R$ ${menorPrecoDeAssinatura()}`)
 })
 
 it('anônimo também vê', async () => {
@@ -38,7 +43,8 @@ it('dispensar grava e o card não volta', async () => {
   await montar('free')
   fireEvent.click(screen.getByRole('button', { name: 'Dispensar este aviso de planos' }))
   expect(screen.queryByTestId('card-de-planos')).toBeNull()
-  cleanup(); vi.resetModules()
+  cleanup()
+  vi.resetModules()
   await montar('free')
   expect(screen.queryByTestId('card-de-planos')).toBeNull()
 })

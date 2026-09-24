@@ -905,3 +905,19 @@ export const rank = sqliteTable(
     index('idx_rank_ip').on(t.ipHash, t.criadoEm),
   ],
 )
+
+/**
+ * GASTO DE IA DO MÊS — o orçamento global da nuvem (Fase 2 do lançamento; migração 0029).
+ *
+ * Uma linha por mês, sem `user_id`: é conta do serviço, não dado de titular. Microdólares inteiros
+ * porque a soma de milhares de custos minúsculos em ponto flutuante acumula erro, e o gatilho de
+ * 100% é uma comparação exata. Quem lê e escreve: `server/db/repositories/gastoDeIa.ts`.
+ */
+export const gastoDeIa = sqliteTable('gasto_de_ia', {
+  mes: text('mes').primaryKey(),
+  microUsd: integer('micro_usd').notNull().default(0),
+  chamadas: integer('chamadas').notNull().default(0),
+  alerta80Em: integer('alerta_80_em'),
+  esgotadoEm: integer('esgotado_em'),
+  atualizadoEm: integer('atualizado_em').notNull(),
+})

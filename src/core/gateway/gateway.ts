@@ -10,9 +10,9 @@
  * `attempt(binding)` — assim o núcleo não referencia tipos de DOM (MediaStream,
  * AbortSignal) nem SDKs.
  */
-import { BreakerRegistry, withRetry, withTimeout } from '../robustness'
-import type { BudgetLedger } from './budget'
-import type { Capability, CapabilityBinding, Profile } from './profile'
+import { BreakerRegistry, withRetry, withTimeout } from '../robustness';
+import type { BudgetLedger } from './budget';
+import type { Capability, CapabilityBinding, Profile } from './profile';
 
 /**
  * A-01: teto de tempo POR TENTATIVA, por capacidade. STT/LLM/VLM toleram mais (áudio longo,
@@ -22,28 +22,35 @@ const DEFAULT_TIMEOUT_MS: Record<Capability, number> = {
   stt: 30_000,
   llm: 45_000,
   vlm: 45_000,
-  mt: 6_000,   // legenda ao vivo: 15 s por tentativa era o dobro do que a pessoa espera olhando
+  mt: 6_000, // legenda ao vivo: 15 s por tentativa era o dobro do que a pessoa espera olhando
   tts: 15_000,
   embed: 20_000,
-}
+};
 
 export class NoRouteError extends Error {
   constructor(
     readonly capability: Capability,
-    readonly reason?: unknown
+    readonly reason?: unknown,
   ) {
-    super(`sem rota disponível para a capacidade "${capability}"`)
-    this.name = 'NoRouteError'
+    super(`sem rota disponível para a capacidade "${capability}"`);
+    this.name = 'NoRouteError';
   }
 }
 
 export interface RunOptions {
   /** Marca se um binding usa nuvem (exige consentimento + conta no orçamento). */
-  isCloud?: (binding: CapabilityBinding) => boolean
+  isCloud?: (binding: CapabilityBinding) => boolean;
+  /**
+   * Marca se um binding manda dado a um servidor de terceiro e por isso exige o CONSENTIMENTO de
+   * nuvem — mesmo sem contar no orçamento de BYOK (o Tradutor IA do servidor, a transcrição
+   * gerenciada, o MyMemory). Separado de `isCloud` porque `economyMode` e o orçamento são sobre a
+   * chave do usuário, e o consentimento é sobre o dado dele (Fase 2 do lançamento).
+   */
+  exigeConsentimento?: (binding: CapabilityBinding) => boolean;
   /** Tentativas por binding (default 2). */
-  retries?: number
+  retries?: number;
   /** Teto de tempo por tentativa (ms). Default por capacidade em `DEFAULT_TIMEOUT_MS`. */
-  timeoutMs?: number
+  timeoutMs?: number;
 }
 
 export class AiGateway {
@@ -52,16 +59,16 @@ export class AiGateway {
     private breakers: BreakerRegistry,
     private ledger: BudgetLedger,
     /** Consentimento de nuvem da sessão: bindings de nuvem são pulados se `false`. */
-    private cloudConsent: () => boolean
+    private cloudConsent: () => boolean,
   ) {}
 
   setProfile(profile: Profile): void {
-    this.profile = profile
-    this.ledger.setBudget(profile.budget)
+    this.profile = profile;
+    this.ledger.setBudget(profile.budget);
   }
 
   getProfile(): Profile {
-    return this.profile
+    return this.profile;
   }
 
   /**
@@ -72,20 +79,21 @@ export class AiGateway {
   async run<R>(
     cap: Capability,
     attempt: (binding: CapabilityBinding) => Promise<R>,
-    opts: RunOptions = {}
+    opts: RunOptions = {},
   ): Promise<R> {
-    const chain = this.profile.bindings[cap] ?? []
-    let reason: unknown = new Error(`nenhum binding para "${cap}" no perfil "${this.profile.id}"`)
+    const chain = this.profile.bindings[cap] ?? [];
+    let reason: unknown = new Error(`nenhum binding para "${cap}" no perfil "${this.profile.id}"`);
 
     for (const binding of chain) {
-      const cloud = opts.isCloud?.(binding) ?? false
-      if (cloud && (this.profile.economyMode || !this.cloudConsent())) continue
-      if (cloud && this.ledger.exhausted) continue
+      const cloud = opts.isCloud?.(binding) ?? false;
+      if (cloud && (this.profile.economyMode || !this.cloudConsent())) continue;
+      if (opts.exigeConsentimento?.(binding) && !this.cloudConsent()) continue;
+      if (cloud && this.ledger.exhausted) continue;
 
-      const breaker = this.breakers.get(binding.adapterId)
-      if (breaker.isOpen) continue
+      const breaker = this.breakers.get(binding.adapterId);
+      if (breaker.isOpen) continue;
 
-      const timeoutMs = opts.timeoutMs ?? DEFAULT_TIMEOUT_MS[cap] ?? 30_000
+      const timeoutMs = opts.timeoutMs ?? DEFAULT_TIMEOUT_MS[cap] ?? 30_000;
       try {
         const result = await breaker.run(() =>
           // MT: UMA tentativa (o parâmetro é TENTATIVAS, não re-tentativas) — numa legenda ao vivo,
@@ -96,15 +104,15 @@ export class AiGateway {
             // A-01: sem este teto, um `attempt` pendurado congelava a cascata — o retry nunca
             // disparava, o breaker nunca abria, o próximo binding nunca era tentado. `withTimeout`
             // já existia em robustness.ts e não tinha nenhum call site.
-            withTimeout(binding.adapterId, timeoutMs, attempt(binding))
-          )
-        )
-        return result
+            withTimeout(binding.adapterId, timeoutMs, attempt(binding)),
+          ),
+        );
+        return result;
       } catch (e) {
-        reason = e
+        reason = e;
       }
     }
 
-    throw new NoRouteError(cap, reason)
+    throw new NoRouteError(cap, reason);
   }
 }

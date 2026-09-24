@@ -58,7 +58,7 @@ describe('planos e quotas (modo publico)', () => {
       plano: 'free',
       chamadas: { usado: 0, teto: PLAN_MATRIX.free.quotas.chamadasMes },
       segundosDeAudio: { usado: 0, teto: PLAN_MATRIX.free.quotas.sttSegundosMes },
-      tokensDeLlm: { usado: 0, teto: null },
+      tokensDeLlm: { usado: 0, teto: PLAN_MATRIX.free.quotas.tokensMes },
     })
     expect(corpo.janela).toMatch(/^\d{4}-\d{2}$/)
     await expect(JSON.stringify(await resposta(r), null, 2)).toMatchFileSnapshot('__snapshots__/get.me.uso.json')
@@ -70,7 +70,7 @@ describe('planos e quotas (modo publico)', () => {
     // caracterizacao: comportamento atual — a recusa por plano nao usa o envelope `code`; traz
     // `entitlement` solto no topo, diferente do 402 de quota que usa `code: 'quota_exceeded'`
     expect(await r.clone().json()).toEqual({
-      error: 'tradução por IA gerenciada requer plano Pro',
+      error: 'tradução por IA gerenciada requer um plano pago',
       entitlement: 'managedCloudLlm',
     })
     await expect(JSON.stringify(await resposta(r), null, 2)).toMatchFileSnapshot('__snapshots__/post.ai.mt.402.json')
@@ -110,7 +110,8 @@ describe('planos e quotas (modo publico)', () => {
       plan: 'pro',
       managedCloudLlm: true,
       managedCloudStt: true,
-      youtubeImport: true,
+      // Fase 2 do lançamento: YouTube só no self-host (no hospedado a rota responde 403).
+      youtubeImport: false,
       largerModels: true,
     })
     expect(ent.armazenamento.teto).toBe(PLAN_MATRIX.pro.quotas.armazenamentoMb! * 1024 * 1024)

@@ -42,7 +42,7 @@ export const PASSAM_DIRETO: RegExp[] = [/^\/api\/audio\/loopback\//];
  * convite aparece a cada tela, sem ninguém ter pedido nada, e vira ruído.
  */
 const ACOES_QUE_CONVIDAM: RegExp[] = [
-  /^POST \/api\/import\//, /^POST \/api\/gemini\/chat$/, /^POST \/api\/ai\/credentials$/,
+  /^POST \/api\/import\//, /^POST \/api\/tutor\/chat$/, /^POST \/api\/ai\/credentials$/,
   /^POST \/api\/ai\/providers\/test$/, /^POST \/api\/vocab\/relabel$/, /^POST \/api\/sessions\/utterances\/relabel$/,
   /^(PATCH|DELETE) \/api\/me$/,
 ];

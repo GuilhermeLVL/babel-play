@@ -89,6 +89,7 @@ const SUFIXOS_POR_PLANO: ReadonlyArray<{ sufixo: string; paraQue: string }> = [
   { sufixo: 'STORAGE_MB', paraQue: 'teto de armazenamento do plano, em MB (override da PLAN_MATRIX)' },
   { sufixo: 'MONTHLY_MANAGED_CALLS', paraQue: 'cota mensal de chamadas gerenciadas do plano (default da PLAN_MATRIX)' },
   { sufixo: 'MONTHLY_STT_SECONDS', paraQue: 'teto mensal de segundos de STT do plano' },
+  { sufixo: 'MONTHLY_LLM_TOKENS', paraQue: 'teto mensal de tokens (entrada + saída) do LLM de nuvem do plano' },
 ]
 
 export const VARIAVEIS_POR_PLANO: readonly VariavelDeclarada[] = Object.keys(PLAN_MATRIX).flatMap((plano) =>
@@ -102,6 +103,27 @@ export const VARIAVEIS_POR_PLANO: readonly VariavelDeclarada[] = Object.keys(PLA
 
 export const VARIAVEIS: readonly VariavelDeclarada[] = [
   ...VARIAVEIS_POR_PLANO,
+  {
+    nome: 'AI_BUDGET_USD_MONTH',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue:
+      'teto de gasto ESTIMADO com IA de nuvem no mês, em US$ (server/lib/orcamentoDeIa.ts). A 80% sai o evento ia_orcamento_alerta_80; a 100% a nuvem desliga até o mês virar. Ausente: US$ 20 no modo público, sem teto no self-host. 0 desliga a nuvem',
+  },
+  {
+    nome: 'AI_ENABLED',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue:
+      'chave de emergência: 0 desliga TODA IA de nuvem na hora (tradução, transcrição, tutor) e o app segue com os modelos locais. Ausente ou 1: ligada',
+  },
+  {
+    nome: 'AI_PRECOS_MODELOS',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue:
+      'JSON com o preço por modelo que o orçamento usa: {"modelo": {"entrada": US$/1M, "saida": US$/1M}} para LLM e {"modelo": {"hora": US$}} para STT. Sobrepõe a tabela oficial embutida',
+  },
   {
     nome: 'APP_URL',
     exigencia: 'opcional',
@@ -202,18 +224,6 @@ export const VARIAVEIS: readonly VariavelDeclarada[] = [
     exigencia: 'opcional',
     criticidade: 'degrada-capacidade',
     paraQue: 'diário de erros em disco (F5-04)',
-  },
-  {
-    nome: 'GEMINI_API_KEY',
-    exigencia: 'opcional',
-    criticidade: 'degrada-capacidade',
-    paraQue: 'LLM de nuvem via Google; ausente, a cadeia cai para o próximo binding',
-  },
-  {
-    nome: 'GEMINI_MODEL',
-    exigencia: 'opcional',
-    criticidade: 'degrada-capacidade',
-    paraQue: 'modelo do Gemini; sem ela, gemini-2.0-flash',
   },
   {
     nome: 'GROQ_API_KEY',
@@ -321,7 +331,15 @@ export const VARIAVEIS: readonly VariavelDeclarada[] = [
     nome: 'OLLAMA_URL',
     exigencia: 'opcional',
     criticidade: 'degrada-capacidade',
-    paraQue: 'endereço do Ollama local; sem ela, http://localhost:11434/v1',
+    paraQue:
+      'endereço do Ollama local (só self-host: com AUTH_REQUIRED o tutor não tenta o Ollama); sem ela, http://localhost:11434/v1',
+  },
+  {
+    nome: 'OPENROUTER_API_KEY',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue:
+      'atalho da RESERVA do LLM: base do OpenRouter e o modelo de LLM_RESERVA_MODEL (ou o padrão). As três LLM_RESERVA_* completas vencem o atalho',
   },
   { nome: 'PORT', exigencia: 'opcional', criticidade: 'degrada-capacidade', paraQue: 'porta de escuta' },
   {
@@ -366,6 +384,13 @@ export const VARIAVEIS: readonly VariavelDeclarada[] = [
     exigencia: 'producao',
     criticidade: 'impede-servico',
     paraQue: 'cifra os segredos de credencial de IA guardados no banco (server/crypto.ts)',
+  },
+  {
+    nome: 'SELF_HOST',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue:
+      '1 declara a instalação pessoal sem login: só com ela o build de produção sobe com AUTH_REQUIRED=0 (GAP-003 recusa o AUTH_REQUIRED=0 esquecido sozinho)',
   },
   {
     nome: 'SIGNUP_ENABLED',
@@ -493,24 +518,6 @@ export function verificarConfiguracaoNoBoot(): ResultadoDaConferencia {
 /* ─────────────── as leituras que estavam dentro de handler ─────────────── */
 
 /**
- * A CHAVE e o MODELO do Gemini — passaram por aqui na Fase 3 do saneamento.
- *
- * As duas eram lidas direto do `process.env` dentro do `server.ts`, onde nenhuma regra alcançava.
- * Quando `/api/gemini/chat` virou `server/routes/gemini.ts`, a regra `env-fora-de-config`
- * (`audit/rules/ast-grep/`) passou a alcançá-las — e está certa: uma variável lida no handler não
- * aparece em inventário nenhum, e as duas JÁ estão declaradas na lista acima. O valor não muda;
- * muda o lugar de onde ele é lido.
- */
-export function chaveDoGemini(env: NodeJS.ProcessEnv = process.env): string | undefined {
-  return env.GEMINI_API_KEY
-}
-
-/** O modelo do Gemini, ou `undefined` — o default (`MODELO_GEMINI_PADRAO`) é de quem chama. */
-export function modeloDoGemini(env: NodeJS.ProcessEnv = process.env): string | undefined {
-  return env.GEMINI_MODEL
-}
-
-/**
  * `GET /metrics` deve EXISTIR? (Fase 5.)
  *
  * A resposta decide MONTAGEM, não comportamento de handler — `server/http/app.ts` só registra a
@@ -573,6 +580,74 @@ export function adminDoSupabase(env: NodeJS.ProcessEnv = process.env): { base: s
   const chave = env.SUPABASE_SERVICE_ROLE_KEY
   if (!base || !chave) return null
   return { base, chave }
+}
+
+/* ─────────────── IA de nuvem: chave de emergência, orçamento e preços (Fase 2 do lançamento) ─────────────── */
+
+/**
+ * A chave de emergência. `AI_ENABLED=0` (ou `false`/`off`) desliga TODA IA de nuvem na hora — as rotas
+ * respondem 503 com o motivo e o cliente cai nos modelos locais. Ausente = ligada: desligar precisa
+ * ser um ato, não o esquecimento de uma variável.
+ */
+export function iaDeNuvemLigada(env: NodeJS.ProcessEnv = process.env): boolean {
+  const v = env.AI_ENABLED?.trim().toLowerCase()
+  return !(v === '0' || v === 'false' || v === 'off')
+}
+
+/**
+ * O teto padrão do modo público quando `AI_BUDGET_USD_MONTH` não foi definido. Existe porque
+ * "sem variável" não pode significar "sem teto" num serviço aberto (OWASP LLM10). US$ 20 cobre com
+ * folga o lançamento em fatias (a conta de ~US$ 0,80/mês por assinante Essencial típico está em
+ * `src/core/planos.ts`) e é pequeno o bastante para que um vazamento de chave não vire prejuízo.
+ * O dono ajusta pela variável; o self-host não tem teto (a chave é dele).
+ */
+export const ORCAMENTO_PADRAO_USD = 20
+
+export function orcamentoMensalDeIaUsd(
+  env: NodeJS.ProcessEnv = process.env,
+  modoPublico: boolean = authRequired(),
+): number {
+  const bruto = env.AI_BUDGET_USD_MONTH?.trim()
+  if (bruto) {
+    const n = Number(bruto.replace(',', '.'))
+    if (Number.isFinite(n) && n >= 0) return n
+    log('warn', { event: 'config_orcamento_invalido', error: 'AI_BUDGET_USD_MONTH não é um número; usando o padrão' })
+  }
+  return modoPublico ? ORCAMENTO_PADRAO_USD : Infinity
+}
+
+export interface PrecoDeModelo {
+  /** US$ por 1 milhão de tokens de entrada (LLM). */
+  entrada?: number
+  /** US$ por 1 milhão de tokens de saída (LLM). */
+  saida?: number
+  /** US$ por hora de áudio (STT). */
+  hora?: number
+}
+
+/**
+ * Os preços que o operador sobrepôs por env (`AI_PRECOS_MODELOS`, JSON). JSON inválido não derruba
+ * nada: loga e fica com a tabela embutida — o orçamento continua valendo com os preços oficiais.
+ */
+export function precosDeModelosDoEnv(env: NodeJS.ProcessEnv = process.env): Record<string, PrecoDeModelo> {
+  const bruto = env.AI_PRECOS_MODELOS?.trim()
+  if (!bruto) return {}
+  try {
+    const obj = JSON.parse(bruto) as Record<string, PrecoDeModelo>
+    const saida: Record<string, PrecoDeModelo> = {}
+    const num = (v: unknown) => (typeof v === 'number' && Number.isFinite(v) && v >= 0 ? v : undefined)
+    for (const [modelo, p] of Object.entries(obj ?? {})) {
+      if (!p || typeof p !== 'object') continue
+      saida[modelo] = { entrada: num(p.entrada), saida: num(p.saida), hora: num(p.hora) }
+    }
+    return saida
+  } catch {
+    log('warn', {
+      event: 'config_precos_invalidos',
+      error: 'AI_PRECOS_MODELOS não é JSON válido; usando a tabela embutida',
+    })
+    return {}
+  }
 }
 
 /* ─────────────── chaves de emergência e menores (Fases 3 e 4 do lançamento) ─────────────── */

@@ -64,9 +64,11 @@ import { useMetricasDaSessao } from '../../lib/analise/metricasDaSessao';
 import { criarPalavraDaAnalise, useCacheDeHover } from '../../lib/analise/palavraDaAnalise';
 import { formatSeconds, usePlayerDaSessao } from '../../lib/analise/playerDaSessao';
 import { useAudioDaSessao } from '../../lib/audioDaSessao';
+import { consentiuNuvem } from '../../lib/consentimentoDeNuvem';
 import { numero } from '../../lib/i18n';
 import type { DerivedProgress } from '../../lib/progress';
 import { TranscriptSettings } from '../../lib/transcriptUtils';
+import AvisoDeNuvemSemConsentimento from '../AvisoDeNuvemSemConsentimento';
 import EditablePanel from '../EditablePanel';
 import { toast } from '../Toast';
 import { Abas, CabecalhoDeTela, TituloDeSecao } from '../ui';
@@ -385,7 +387,7 @@ export default function Analysis({
   }, []);
 
   // Gateway (uma vez) para traduções reais no hover e no "Adicionar ao Deck".
-  const gateway = React.useMemo(() => buildGateway({ profile: getActiveProfile(), cloudConsent: () => true }), []);
+  const gateway = React.useMemo(() => buildGateway({ profile: getActiveProfile(), cloudConsent: consentiuNuvem }), []);
 
   /**
    * ORIGEM de uma palavra: a FRASE de onde ela saiu e o idioma DAQUELA frase. É o único insumo
@@ -663,6 +665,7 @@ export default function Analysis({
   return (
     <div className="rolagem flex-1 h-full">
       <div className="tela larga entra" style={{ paddingBottom: 0 }}>
+        <AvisoDeNuvemSemConsentimento />
         <CabecalhoDeTela
           voltar={{ rotulo: 'Biblioteca', aoClicar: () => onChangeView('library') }}
           icone={IconeDoTipo}

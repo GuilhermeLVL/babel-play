@@ -28,7 +28,12 @@ export const NOME_DO_NIVEL: Record<Cefr, string> = {
 
 export type TipoDeAviso = 'revisao' | 'conquista' | 'fatura' | 'novidades';
 export type Canal = 'app' | 'email' | 'push';
-export type Consentimento = 'metricas' | 'novidades' | 'ia';
+/**
+ * `nuvem` (Fase 2 do lançamento): mandar fala e texto a servidores de IA — tradução, transcrição e
+ * tutor (Groq, OpenRouter) e o tradutor público MyMemory. Desligado por padrão: o app é aberto a
+ * menores, e sem o "sim" datado nada sai do aparelho (o gateway pula esses motores).
+ */
+export type Consentimento = 'metricas' | 'novidades' | 'ia' | 'nuvem';
 
 export interface Preferencias {
   lembrete: { on: boolean; hora: string };
@@ -57,7 +62,7 @@ export const PADRAO: Preferencias = {
   },
   silencio: { on: true, de: '22:00', ate: '08:00' },
   semanal: { on: true, dia: 'domingo' },
-  consentimentos: { metricas: true, novidades: false, ia: false },
+  consentimentos: { metricas: true, novidades: false, ia: false, nuvem: false },
   registroDeConsentimentos: [],
   metaMin: 15,
   niveis: {},

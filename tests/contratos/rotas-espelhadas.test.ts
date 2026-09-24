@@ -36,7 +36,7 @@ import { CODIGO_EXIGE_CONTA, servidorEfemero } from '../../src/data/efemero/serv
 const SO_COM_CONTA: Record<string, string> = {
   '/api/ai':
     'gateway de IA: transcrição, tradução e LLM dependem de chave, cota e plano do servidor. A credencial é cifrada lá, nunca no navegador',
-  '/api/gemini': 'o tutor depende da chave do servidor',
+  '/api/tutor': 'o tutor depende da chave, da cota e do orçamento de IA do servidor',
   '/api/import':
     'importar exige o servidor: yt-dlp, busca de página (CORS e SSRF), extração de PDF/DOCX e um .apkg de dezenas de MB',
   '/api/anki': 'o acervo Anki nasce da importação, que não existe sem conta',

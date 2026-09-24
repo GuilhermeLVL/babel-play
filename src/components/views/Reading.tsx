@@ -33,6 +33,7 @@ import { fetchDeck, fetchSessionTranscript, searchImages } from '../../data/api'
 import { buildGateway } from '../../gateway';
 import { getActiveProfile } from '../../gateway/activeProfile';
 import { ficharCartao } from '../../lib/adicionarAoDeck';
+import { consentiuNuvem } from '../../lib/consentimentoDeNuvem';
 import { useLangConfig } from '../../lib/langConfig';
 import { detectLanguage, hasNativeDetector, type LangDetection } from '../../lib/langDetect';
 import { baseLang, langLabel, toBcp47 } from '../../lib/languages';
@@ -129,7 +130,7 @@ interface ReadingProps {
 
 export default function Reading({ recording, onChangeView }: ReadingProps = {}) {
   // Gateway (MT/LLM) construído uma vez a partir do perfil ativo.
-  const gateway = React.useMemo(() => buildGateway({ profile: getActiveProfile(), cloudConsent: () => true }), []);
+  const gateway = React.useMemo(() => buildGateway({ profile: getActiveProfile(), cloudConsent: consentiuNuvem }), []);
 
   // Transcrição REAL da sessão (sem mocks). Vazia até carregar / se não houver enunciados.
   const [studyTexts, setStudyTexts] = useState<StudyText[]>([]);

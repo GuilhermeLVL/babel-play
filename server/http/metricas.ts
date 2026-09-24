@@ -89,7 +89,7 @@ const PADRAO_DE_ROTA = /^\/[A-Za-z0-9/:_.@-]*$/
 const BALDES = [0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10, 30, 60]
 
 /** Os prefixos que fazem uma rota ser CHAMADA DE IA. Ver `server/http/app.ts`. */
-const PREFIXOS_DE_IA = ['/api/ai', '/api/gemini']
+const PREFIXOS_DE_IA = ['/api/ai', '/api/tutor', '/api/gemini']
 
 interface Estado {
   duracao: Histogram<'method' | 'route' | 'status'>

@@ -2,7 +2,7 @@
  * O QUE O iCHAT ENTENDE DE UMA PERGUNTA — antes de mandá-la ao modelo.
  *
  * O protótipo aprovado responde de forma determinística sobre o estado do app. O app real manda a
- * pergunta ao tutor de verdade (`/api/gemini/chat`); o que fica aqui, fora do modelo, é o que o
+ * pergunta ao tutor de verdade (`/api/tutor/chat`); o que fica aqui, fora do modelo, é o que o
  * protótipo promete e que não pode depender de o modelo "obedecer":
  *
  *  - P2, TODA RESPOSTA CITA A ORIGEM: a origem é o material que FOI enviado (caderno, fila de
@@ -12,6 +12,7 @@
  *    partir do pedido e dos números reais, e só roda quando a pessoa confirma o cartão.
  */
 import type { ViewType } from '../../types';
+import { TETO_DE_ENTRADA_DO_TUTOR } from './contencao';
 import type { Proposta } from './conversas';
 
 export type Sigilo = '@' | '#' | '!';
@@ -204,3 +205,33 @@ export function propostaDoPedido(p: Pedido, pendentes: number): Proposta | null 
 
 export const RESPOSTA_DA_LACUNA =
   'Não tenho esse dado aqui. O iChat só enxerga o que está no app: suas palavras, sessões e progresso. Pagamento fica em Planos.';
+
+/** Quanto do teto o material da tela pode ocupar — o resto fica para a conversa. */
+const TETO_DO_MATERIAL = 6_000;
+
+interface MensagemDoTutor {
+  role: 'user' | 'assistant';
+  content: string;
+}
+
+/**
+ * O PEDIDO QUE CABE NO TETO DO SERVIDOR. O servidor recusa com 413 acima de
+ * `TETO_DE_ENTRADA_DO_TUTOR`; cortar aqui é o que evita a pergunta de agora voltar como "grande
+ * demais" por causa de material longo ou de histórico antigo. Corta o material pelo fim (o começo
+ * da tela é o que situa) e o histórico pelo mais ANTIGO (o recente é o que dá sentido à pergunta).
+ */
+export function pedidoDoTutor(
+  material: string,
+  historico: MensagemDoTutor[],
+  pergunta: string,
+): { material: string; mensagens: MensagemDoTutor[] } {
+  const m = material.length > TETO_DO_MATERIAL ? `${material.slice(0, TETO_DO_MATERIAL - 4)} […]` : material;
+  let resta = TETO_DE_ENTRADA_DO_TUTOR - m.length - pergunta.length;
+  const cabem: MensagemDoTutor[] = [];
+  for (const msg of historico.slice(-19).reverse()) {
+    if (msg.content.length > resta) break;
+    cabem.unshift(msg);
+    resta -= msg.content.length;
+  }
+  return { material: m, mensagens: [...cabem, { role: 'user', content: pergunta }] };
+}

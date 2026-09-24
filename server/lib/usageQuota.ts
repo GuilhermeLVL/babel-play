@@ -1,7 +1,16 @@
 /**
- * QUOTA de fair-use da IA gerenciada. É controle de USO (não de segurança) — o entitlement já
- * autorizou o acesso. Por isso DEGRADA ABERTO: qualquer erro ao resolver plano/contador → permite
- * (nunca bloquear um pagante por falha de contador). Só a chave gerenciada conta; BYOK/local nem chegam aqui.
+ * COTA da IA gerenciada — chamadas, segundos de áudio e tokens por plano e por mês. Só a chave do
+ * DONO conta; BYOK e local nem chegam aqui.
+ *
+ * FALHA FECHADA (Fase 2 do lançamento — OWASP LLM10). Até aqui a cota degradava ABERTA: erro ao
+ * resolver plano ou contador → libera, "nunca bloquear pagante por falha de contador". O efeito
+ * colateral era que uma falha do banco desligava TODOS os tetos de uma vez, e o gasto com a chave do
+ * dono ficava sem forma exatamente quando ninguém estava olhando. Agora a falha lança
+ * `ContadorIndisponivel`; a rota responde 503 com o motivo e o cliente cai nos modelos locais. O
+ * assinante perde qualidade por alguns minutos; o dono não perde dinheiro.
+ *
+ * O ESTORNO continua best-effort (só loga): ele devolve cota ao usuário, e falhar nele erra a favor
+ * do dono, não contra.
  */
 import { PLAN_MATRIX } from '../../src/core/planos'
 import type { Plan } from '../db/repositories/subscriptions'
@@ -13,8 +22,26 @@ import { log } from './logger'
 export const METRIC_MANAGED = 'managed_calls'
 /** Segundos de áudio FATURÁVEIS enviados ao STT de nuvem. A unidade em que o provedor cobra. */
 export const METRIC_STT_SEGUNDOS = 'stt_seconds'
-/** Tokens (entrada + saída) gastos no LLM gerenciado. Só contabiliza; não é teto. */
+/** Tokens (entrada + saída) gastos no LLM gerenciado. Reservados ANTES, acertados DEPOIS. */
 export const METRIC_LLM_TOKENS = 'llm_tokens'
+
+/**
+ * O contador de uso não respondeu. Quem chama devolve 503 com `code: 'contador_indisponivel'` — nunca
+ * segue para o provedor, porque seguir seria gastar sem teto.
+ */
+export class ContadorIndisponivel extends Error {
+  readonly code = 'contador_indisponivel'
+  constructor(causa: unknown) {
+    super(`contador de uso indisponível: ${String((causa as Error)?.message ?? causa).slice(0, 120)}`)
+    this.name = 'ContadorIndisponivel'
+  }
+}
+
+/** Loga e lança — a forma única de uma reserva falhar fechada. */
+function falharFechado(evento: string, err: unknown): never {
+  log('error', { event: evento, error: String((err as Error)?.message || err).slice(0, 120) })
+  throw new ContadorIndisponivel(err)
+}
 
 /** Janela mensal 'YYYY-MM' (Date é permitido — módulo Node normal). */
 function currentWindow(): string {
@@ -65,20 +92,14 @@ export function capForPlan(plan: Plan): number {
  * Decidir e contabilizar agora são a MESMA instrução (`usageCountersRepo.reserve`), então o
  * teto vale sob concorrência. Se a chamada ao provedor falhar depois, use `refundManagedCall`.
  *
- * Erro → true (degrada ABERTO): fair-use nunca bloqueia pagante por falha de infra.
+ * Erro → LANÇA `ContadorIndisponivel` (falha fechada; ver o topo do arquivo).
  */
 export async function reserveManagedCall(userId: UserId): Promise<boolean> {
   try {
     const cap = capForPlan(await getPlanForUser(userId))
     return await usageCountersRepo.reserve(userId, METRIC_MANAGED, currentWindow(), cap)
   } catch (err) {
-    // Rastreabilidade (P2-4): degradar aberto é a política, mas em SILÊNCIO não é. Sem esta
-    // linha, uma falha do banco desligava o teto de gasto sem deixar nenhum rastro.
-    log('error', {
-      event: 'quota_reserve_failed_open',
-      error: String((err as Error)?.message || err).slice(0, 120),
-    })
-    return true // fair-use: nunca bloquear por falha de infra
+    falharFechado('quota_reserve_failed_closed', err)
   }
 }
 
@@ -122,18 +143,14 @@ export function capSegundosParaPlano(plan: Plan): number {
  * `reserveManagedCall`: decidir e contabilizar na MESMA instrução, senão o teto não vale sob
  * concorrência.
  *
- * Degrada ABERTO como o resto do fair-use: falha de infra não bloqueia pagante, mas deixa rastro.
+ * Falha FECHADA como as outras reservas: erro de infra lança `ContadorIndisponivel`.
  */
 export async function reservarSegundosDeStt(userId: UserId, segundos: number): Promise<boolean> {
   try {
     const cap = capSegundosParaPlano(await getPlanForUser(userId))
     return await usageCountersRepo.reserve(userId, METRIC_STT_SEGUNDOS, currentWindow(), cap, segundos)
   } catch (err) {
-    log('error', {
-      event: 'quota_seconds_failed_open',
-      error: String((err as Error)?.message || err).slice(0, 120),
-    })
-    return true
+    falharFechado('quota_seconds_failed_closed', err)
   }
 }
 
@@ -147,20 +164,58 @@ export async function estornarSegundosDeStt(userId: UserId, segundos: number): P
 }
 
 /**
- * Registra tokens gastos no LLM gerenciado. É CONTABILIDADE, não teto: os tokens só se conhecem
- * DEPOIS da resposta, então não há como reservá-los antes — e recusar depois de já ter pago ao
- * provedor não devolveria dinheiro nenhum. O teto de custo do LLM é o de chamadas.
+ * Teto MENSAL DE TOKENS (entrada + saída) no LLM gerenciado. Até a Fase 2 do lançamento os tokens só
+ * eram CONTADOS — e o teto de custo do LLM era o de chamadas, que não vê o tamanho de cada uma. Uma
+ * chamada de tutor com 10 mil caracteres de material custa dez vezes uma legenda.
  *
- * Sem este número não existe preço: os `gpt-oss` são modelos de raciocínio e os tokens de
- * pensamento contam como SAÍDA, a parte cara. Medido no gold set: 96 tokens de saída por fala no
- * esforço padrão contra 31 no `low` — uma diferença de 3× na conta que o campo `usage` já
- * informava e que era descartado.
+ * Os números e a conta de custo por plano estão em `src/core/planos.ts`.
  */
-export async function registrarTokensDeLlm(userId: UserId, tokens: number): Promise<void> {
-  if (!Number.isFinite(tokens) || tokens <= 0) return
+export function capTokensParaPlano(plan: Plan): number {
+  return tetoComEnv(PLAN_MATRIX[plan].quotas.tokensMes, envDoPlano(plan, 'MONTHLY_LLM_TOKENS'))
+}
+
+/**
+ * Estimativa CONSERVADORA de tokens de uma chamada, antes de ela acontecer: metade dos caracteres do
+ * prompt inteiro (alfabeto latino fica perto de 1 token a cada 4 caracteres; CJK chega a 1 por
+ * caractere — a metade cobre o meio-termo) mais o `max_tokens` inteiro, que é o pior caso da saída.
+ * Superestimar só segura cota por alguns segundos: o acerto devolve a diferença.
+ */
+export function estimarTokens(caracteresDoPrompt: number, maxTokens: number): number {
+  return Math.ceil(Math.max(0, caracteresDoPrompt) / 2) + Math.max(0, maxTokens)
+}
+
+/**
+ * RESERVA a estimativa de tokens ANTES de chamar o provedor — a mesma disciplina das outras
+ * reservas: decidir e contabilizar na MESMA instrução. `false` = não cabe no teto do mês.
+ * Falha de infra → `ContadorIndisponivel`.
+ */
+export async function reservarTokensDeLlm(userId: UserId, estimativa: number): Promise<boolean> {
   try {
-    await usageCountersRepo.increment(userId, METRIC_LLM_TOKENS, currentWindow(), Math.round(tokens))
+    const cap = capTokensParaPlano(await getPlanForUser(userId))
+    return await usageCountersRepo.reserve(
+      userId,
+      METRIC_LLM_TOKENS,
+      currentWindow(),
+      cap,
+      Math.max(1, Math.round(estimativa)),
+    )
   } catch (err) {
-    log('warn', { event: 'llm_tokens_record_failed', error: String(err).slice(0, 120) })
+    falharFechado('quota_tokens_failed_closed', err)
+  }
+}
+
+/**
+ * ACERTA a reserva pelo número REAL do provedor (`usage`): devolve o que sobrou ou, se o provedor
+ * gastou mais do que a estimativa (raro — o `max_tokens` limita a saída), soma a diferença. Com
+ * `reais = 0` é o estorno total de uma chamada que não aconteceu. Best-effort: só loga.
+ */
+export async function acertarTokensDeLlm(userId: UserId, reservados: number, reais: number): Promise<void> {
+  const diferenca = Math.round(reservados) - Math.round(Number.isFinite(reais) ? Math.max(0, reais) : 0)
+  if (diferenca === 0) return
+  try {
+    if (diferenca > 0) await usageCountersRepo.refund(userId, METRIC_LLM_TOKENS, currentWindow(), diferenca)
+    else await usageCountersRepo.increment(userId, METRIC_LLM_TOKENS, currentWindow(), -diferenca)
+  } catch (err) {
+    log('warn', { event: 'llm_tokens_acerto_falhou', error: String(err).slice(0, 120) })
   }
 }

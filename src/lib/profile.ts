@@ -417,22 +417,3 @@ export function coreOnly(profile: AgeProfileType): boolean {
 export function showsPowerUserAffordances(profile: AgeProfileType): boolean {
   return profile === 'pro';
 }
-
-/**
- * Registro de linguagem para o tutor de IA. Injetado no `systemInstruction` (ver ichatContext.ts) —
- * sem isto o iChat responde a uma criança de 9 anos no mesmo tom que a um executivo.
- */
-export const TUTOR_REGISTER: Record<AgeProfileType, string> = {
-  kids:
-    'O usuário é uma criança ou adolescente (7 a 15 anos) que joga Roblox/Minecraft. Fale de forma ' +
-    'direta e animada, com frases curtas e exemplos do mundo dele (jogos, vídeos, amigos). Não use ' +
-    'siglas técnicas (SRS, CEFR, FSRS, WPM) nem tom de professor formal, e também não infantilize: ' +
-    'ele quer ser tratado como alguém capaz. Máximo de 3 frases por resposta.',
-  pro:
-    'O usuário é um adulto usando a ferramenta para trabalho ou estudo sério. Pode usar os termos ' +
-    'técnicos do app (SRS, CEFR, WPM, FSRS) sem explicar. Seja denso e direto, sem rodeios.',
-  senior:
-    'O usuário prefere leitura tranquila e linguagem simples. Use português direto, sem nenhuma ' +
-    'sigla nem termo em inglês sem tradução. Uma ideia por frase, frases curtas, e sempre diga o ' +
-    'próximo passo concreto. Máximo de 4 frases por resposta.',
-};

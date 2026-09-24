@@ -17,8 +17,11 @@
 export const MODELO_LLM_PADRAO = 'openai/gpt-oss-120b'
 /** O default do LLM local. */
 export const MODELO_OLLAMA_PADRAO = 'llama3.2'
-/** O default do Gemini. */
-export const MODELO_GEMINI_PADRAO = 'gemini-2.0-flash'
+/**
+ * A base do OpenRouter, para o atalho `OPENROUTER_API_KEY` da reserva. O Gemini saiu daqui na Fase 2
+ * do lançamento: o app é aberto a menores, e os termos do Gemini proíbem esse uso.
+ */
+const BASE_OPENROUTER = 'https://openrouter.ai/api/v1'
 
 /**
  * O MODELO MAIOR, O QUE O PLANO PROMETE E NINGUEM ENTREGAVA (Fase 4).
@@ -76,18 +79,34 @@ export function llmDeNuvem(opcoes: OpcoesDeProvedor = {}): Provedor | null {
  * O provedor de RESERVA da cascata. Ele NAO segue `largerModels`: a reserva existe para a chamada
  * nao morrer quando o primario cai, e o modelo dela e o que o operador configurou naquele
  * provedor — trocar por um nome de modelo de outro catalogo produziria `model_not_found`
- * exatamente no momento em que a reserva precisa funcionar. Só existe com as três variáveis definidas: meia configuração
- * viraria uma segunda tentativa contra um endereço incompleto, o que atrasa a falha sem evitá-la.
+ * exatamente no momento em que a reserva precisa funcionar.
+ *
+ * Duas formas de configurar:
+ *   - as TRÊS `LLM_RESERVA_*` (qualquer provedor OpenAI-compatible). Meia configuração não vale:
+ *     viraria uma segunda tentativa contra um endereço incompleto, o que atrasa a falha sem evitá-la;
+ *   - o ATALHO `OPENROUTER_API_KEY`, a reserva escolhida para o lançamento: base do OpenRouter e o
+ *     modelo de `LLM_RESERVA_MODEL`, ou o padrão (`openai/gpt-oss-120b` tem o mesmo nome no
+ *     catálogo do OpenRouter). As `LLM_RESERVA_*` completas vencem o atalho.
  */
 export function llmDeReserva(): Provedor | null {
-  const { LLM_RESERVA_BASE_URL, LLM_RESERVA_API_KEY, LLM_RESERVA_MODEL } = process.env
-  if (!LLM_RESERVA_BASE_URL || !LLM_RESERVA_API_KEY || !LLM_RESERVA_MODEL) return null
-  return {
-    rotulo: 'llm-reserva',
-    base: semBarra(LLM_RESERVA_BASE_URL),
-    apiKey: LLM_RESERVA_API_KEY,
-    model: LLM_RESERVA_MODEL,
+  const { LLM_RESERVA_BASE_URL, LLM_RESERVA_API_KEY, LLM_RESERVA_MODEL, OPENROUTER_API_KEY } = process.env
+  if (LLM_RESERVA_BASE_URL && LLM_RESERVA_API_KEY && LLM_RESERVA_MODEL) {
+    return {
+      rotulo: 'llm-reserva',
+      base: semBarra(LLM_RESERVA_BASE_URL),
+      apiKey: LLM_RESERVA_API_KEY,
+      model: LLM_RESERVA_MODEL,
+    }
   }
+  if (OPENROUTER_API_KEY) {
+    return {
+      rotulo: 'llm-reserva',
+      base: BASE_OPENROUTER,
+      apiKey: OPENROUTER_API_KEY,
+      model: LLM_RESERVA_MODEL || MODELO_LLM_PADRAO,
+    }
+  }
+  return null
 }
 
 /** O LLM local (Ollama). Não tem chave; a ausência do serviço é descoberta na chamada. */
@@ -101,14 +120,14 @@ export function llmLocal(): Provedor {
 }
 
 /**
- * A CASCATA da tradução: primário e, quando configurada, a reserva.
+ * A CASCATA da nuvem — tradução e tutor: primário e, quando configurada, a reserva.
  *
  * O primário pode ser barato ou gratuito — a bancada mediu o `minimax-m3:free` EMPATANDO com o
  * pago (docs/auditoria/eval-modelos-v1.md §6) — mas camada gratuita é intermitente: some por
  * janelas inteiras com 429. A reserva é o que permite colher a economia sem apostar a experiência
  * do assinante na cota de um terceiro.
  */
-export function cascataDeTraducao(opcoes: OpcoesDeProvedor = {}): Provedor[] {
+export function cascataDeNuvem(opcoes: OpcoesDeProvedor = {}): Provedor[] {
   const primario = llmDeNuvem(opcoes)
   const reserva = llmDeReserva()
   return [...(primario ? [primario] : []), ...(reserva ? [reserva] : [])]

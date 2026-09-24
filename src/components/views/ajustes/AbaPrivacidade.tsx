@@ -21,6 +21,14 @@ import { Interruptor, Linha } from './Linha';
 
 const CONSENTIMENTOS: Array<[Consentimento, string, string, string]> = [
   [
+    'nuvem',
+    t('Usar IA de nuvem'),
+    t(
+      'Tradução, transcrição e tutor por servidores de IA (Groq, OpenRouter) e o tradutor público MyMemory. Desligado, tudo roda no seu aparelho.',
+    ),
+    t('Usar IA de nuvem'),
+  ],
+  [
     'metricas',
     t('Métricas de uso anônimas'),
     t('Quais telas e botões são usados, sem conteúdo. Ajuda a decidir o que melhorar.'),

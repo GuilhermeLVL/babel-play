@@ -3,20 +3,30 @@
  * gerenciada; um usuário `free` recebe 402. A tradução LOCAL (Chrome/opus-mt/MyMemory) roda no
  * cliente e não passa por aqui — então o free ainda traduz, só não usa o Groq do dono.
  */
-import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { esvaziarCacheDeTraducao } from '../../server/ai/cacheDeTraducao'
 import { asUserId } from '../../server/lib/authContext'
-import { type EphemeralDb,setupEphemeralDb } from '../harness/ephemeralDb'
+import { type EphemeralDb, setupEphemeralDb } from '../harness/ephemeralDb'
 
 let h: EphemeralDb
 let mtTranslateProxy: any
 let subs: any
 
-function mockReq(userId: any, body: any): any { return { userId, body } }
+function mockReq(userId: any, body: any): any {
+  return { userId, body }
+}
 function mockRes(): any {
   const r: any = { statusCode: 200, body: undefined, headersSent: false }
-  r.status = (c: number) => { r.statusCode = c; return r }
-  r.json = (b: any) => { r.body = b; r.headersSent = true; return r }
+  r.status = (c: number) => {
+    r.statusCode = c
+    return r
+  }
+  r.json = (b: any) => {
+    r.body = b
+    r.headersSent = true
+    return r
+  }
   return r
 }
 
@@ -34,9 +44,14 @@ afterAll(async () => {
 })
 afterEach(() => vi.unstubAllGlobals())
 
+/* O cache de tradução (Fase 2 do lançamento) é do processo: sem esvaziar, a frase repetida de um
+   caso seria servida do cache no seguinte, e o provedor que o caso encena nem seria chamado. */
+beforeEach(() => esvaziarCacheDeTraducao())
+
 describe('SaaS Fatia 1b — enforcement MT gerenciado', () => {
   it('free → 402 (nem chega a chamar o Groq)', async () => {
-    const req = mockReq(asUserId('free'), { text: 'hello', tgt: 'pt' }), res = mockRes()
+    const req = mockReq(asUserId('free'), { text: 'hello', tgt: 'pt' }),
+      res = mockRes()
     await mtTranslateProxy(req, res)
     expect(res.statusCode).toBe(402)
     expect(res.body?.entitlement).toBe('managedCloudLlm')
@@ -44,8 +59,12 @@ describe('SaaS Fatia 1b — enforcement MT gerenciado', () => {
 
   it('pro → passa o gate e traduz (fetch stub)', async () => {
     process.env.GROQ_API_KEY = 'test-key'
-    vi.stubGlobal('fetch', async () => ({ ok: true, json: async () => ({ choices: [{ message: { content: 'olá' } }] }) }))
-    const req = mockReq(asUserId('pro'), { text: 'hello', tgt: 'pt' }), res = mockRes()
+    vi.stubGlobal('fetch', async () => ({
+      ok: true,
+      json: async () => ({ choices: [{ message: { content: 'olá' } }] }),
+    }))
+    const req = mockReq(asUserId('pro'), { text: 'hello', tgt: 'pt' }),
+      res = mockRes()
     await mtTranslateProxy(req, res)
     expect(res.statusCode).toBe(200)
     expect(res.body).toMatchObject({ text: 'olá', engine: 'server-llm-mt' })

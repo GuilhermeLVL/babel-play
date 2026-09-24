@@ -57,7 +57,6 @@
     "prepare": "husky"
   },
   "dependencies": {
-    "@google/genai": "^2.4.0",
     "@huggingface/transformers": "^4.2.0",
     "@libsql/client": "^0.17.4",
     "@mozilla/readability": "^0.6.0",

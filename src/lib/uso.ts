@@ -26,8 +26,10 @@ export interface UsoDoMes {
   chamadas: Contador;
   /** Segundos de áudio faturáveis no STT de nuvem. É o teto que controla gasto de verdade. */
   segundosDeAudio: Contador;
-  /** Tokens do LLM. Contabilidade, não teto: só se conhecem depois da resposta. */
+  /** Tokens do LLM (tradução e tutor). Teto desde a Fase 2 do lançamento: reservados antes, acertados depois. */
   tokensDeLlm: Contador;
+  /** Portão global da nuvem (chave de emergência e orçamento do mês). Ausente em servidor antigo. */
+  iaDeNuvem?: { disponivel: boolean; motivo: string | null; mensagem: string | null };
 }
 
 /** Busca o consumo. Devolve `null` quando a rota não responde — a tela mostra isso, não zera. */

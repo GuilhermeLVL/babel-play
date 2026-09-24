@@ -1,220 +1,138 @@
-import { CreditCard, LifeBuoy, LogIn, LogOut, Settings as SettingsIcon, User } from 'lucide-react';
+import { ChartColumn, CreditCard, LifeBuoy, LogIn, LogOut, Settings as SettingsIcon, UserRound } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 
-import { menorPrecoDeAssinatura } from '../../core/planos';
 import * as auth from '../../lib/auth';
+import { t } from '../../lib/i18n';
 import { aoMudarIdentidade, estaAnonimo } from '../../lib/identidade';
 import { authRequired } from '../../lib/supabase';
 import { usePerfil } from '../../lib/usePerfil';
-import { planoAnunciavel } from '../CardDePlanos';
+import { raizDoApp } from './raizDoApp';
 
 /**
- * O MENU DA CONTA — quem eu sou, e como eu saio.
+ * O MENU DA CONTA — `.menu-conta.cartao` do protótipo aprovado (`montarShell`).
  *
- * O DEFEITO QUE ISTO CONSERTA, e ele é de dois tipos ao mesmo tempo.
+ * Quem eu sou (`.cab-menu`: nome e e-mail, ou o estado real quando não há e-mail) e os destinos da
+ * conta: Meu perfil, Estatísticas, Ajustes, Planos, Ajuda e suporte e, separado, Sair.
  *
- * PRIMEIRO: a aplicação era anônima. `session.user` do Supabase era tipado como `unknown` no
- * `App.tsx` e NUNCA saía de lá — nenhuma tela sabia o e-mail ou o nome de quem estava logado. Uma
- * busca por `user.email` no `src/` inteiro devolvia zero resultados.
+ * O painel é montado na raiz do app (portal): o CSS do protótipo o ancora no canto de baixo, acima
+ * do rodapé do menu lateral, e no celular abaixo da barra do topo.
  *
- * SEGUNDO: dava para entrar e não dava para sair. O único botão de logout do app estava em
- * `Ajustes → aba "Conta e recomeço" → AccountSecuritySection → SecurityPanel → "Sair da conta"` —
- * quatro níveis de profundidade. Pior: `AccountSecuritySection` devolve `null` quando não há login
- * configurado, então em desenvolvimento a aba ficava VAZIA, e foi por isso que ninguém nunca
- * encontrou o botão.
- *
- * POR QUE AQUI, E NÃO NO MENU DE NAVEGAÇÃO. `MobileNav` renderiza `NAV_ITEMS` inteiro e o próprio
- * arquivo registra que com 6 itens cada um já fica com ~16% da largura da tela; um oitavo destino
- * derrubaria o alvo de toque. O `ControlCluster` é a única peça montada pelas quatro posições de
- * menu (topo, esquerda, direita, rodapé) E pela barra do celular — mesmo argumento que já tinha
- * levado a busca global para cá.
- *
- * "SAIR" É OMITIDO, NÃO DESABILITADO, no modo local: sem sessão não há o que encerrar, e um botão
- * cinza que não faz nada ensina que a interface mente.
+ * "SAIR" SÓ COM LOGIN DE VERDADE: no modo local não há sessão a encerrar, e um "Sair" que não faz
+ * nada ensina que a interface mente. Sem conta, o primeiro item vira "Entrar ou criar conta".
  */
 
 interface MenuDaContaProps {
   onIr: (view: string) => void;
-  /** `column` (rail vertical) abre o painel ao lado; `row`, abaixo. */
-  orientation: 'row' | 'column';
 }
 
-export default function MenuDaConta({ onIr, orientation }: MenuDaContaProps) {
+export default function MenuDaConta({ onIr }: MenuDaContaProps) {
   const { perfil, iniciais } = usePerfil();
   const [aberto, setAberto] = useState(false);
-  // Sem conta o menu vira a porta de entrada: "Entrar" em vez de "Sair", e sem "Meu perfil".
   const [anonimo, setAnonimo] = useState(estaAnonimo);
   useEffect(() => aoMudarIdentidade(() => setAnonimo(estaAnonimo())), []);
-  const [coords, setCoords] = useState<{ top: number; left: number } | null>(null);
   const gatilho = useRef<HTMLButtonElement | null>(null);
   const painel = useRef<HTMLDivElement | null>(null);
 
-  /* `fixed` com coordenadas MEDIDAS, e não `absolute`: a raiz do app é `overflow-hidden` e o rail
-     vertical é um flex de altura total dentro dela, um popover absoluto ali seria recortado. E um
-     `top` fixo abriria para baixo mesmo com o menu no rodapé, ou seja, fora da tela. É a mesma
-     conta (e o mesmo motivo) do popover de aparência, três arquivos ao lado. */
   useEffect(() => {
     if (!aberto) return;
-    const medir = () => {
-      const r = gatilho.current?.getBoundingClientRect();
-      if (!r) return;
-      const LARGURA = 236,
-        ALTURA = 210,
-        FOLGA = 8,
-        MARGEM = 8;
-
-      const cabeAbaixo = window.innerHeight - r.bottom >= ALTURA + FOLGA;
-      const top = cabeAbaixo ? r.bottom + FOLGA : Math.max(MARGEM, r.top - ALTURA - FOLGA);
-
-      // Alinhado pela direita do gatilho, grampeado nas bordas da janela.
-      let left = r.right - LARGURA;
-      left = Math.min(left, window.innerWidth - LARGURA - MARGEM);
-      left = Math.max(MARGEM, left);
-
-      setCoords({ top, left });
-    };
-    medir();
-    window.addEventListener('resize', medir);
-    window.addEventListener('scroll', medir, true);
-    return () => {
-      window.removeEventListener('resize', medir);
-      window.removeEventListener('scroll', medir, true);
-    };
-  }, [aberto, orientation]);
-
-  // Fecha ao clicar fora e no Escape — um menu que só fecha no próprio botão prende quem errou o alvo.
-  useEffect(() => {
-    if (!aberto) return;
-    const foraDaqui = (e: MouseEvent) => {
+    painel.current?.querySelector<HTMLElement>('[role=menuitem]')?.focus();
+    const fora = (e: MouseEvent) => {
       const alvo = e.target as Node;
       if (!painel.current?.contains(alvo) && !gatilho.current?.contains(alvo)) setAberto(false);
     };
-    const escape = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setAberto(false);
+    const tecla = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setAberto(false);
+        gatilho.current?.focus();
+        return;
+      }
+      if (e.key !== 'ArrowDown' && e.key !== 'ArrowUp') return;
+      const itens = [...(painel.current?.querySelectorAll<HTMLElement>('[role=menuitem]') ?? [])];
+      if (!itens.length) return;
+      e.preventDefault();
+      const i = itens.indexOf(document.activeElement as HTMLElement);
+      itens[(i + (e.key === 'ArrowDown' ? 1 : -1) + itens.length) % itens.length].focus();
     };
-    document.addEventListener('mousedown', foraDaqui);
-    document.addEventListener('keydown', escape);
+    document.addEventListener('mousedown', fora);
+    document.addEventListener('keydown', tecla);
     return () => {
-      document.removeEventListener('mousedown', foraDaqui);
-      document.removeEventListener('keydown', escape);
+      document.removeEventListener('mousedown', fora);
+      document.removeEventListener('keydown', tecla);
     };
   }, [aberto]);
 
   const nome = perfil?.displayName?.trim() || null;
   const email = perfil?.email?.trim() || null;
+  const estado = anonimo
+    ? t('sem conta · dados só neste navegador')
+    : authRequired
+      ? t('sessão ativa')
+      : t('conta local');
 
   const ir = (view: string) => {
     setAberto(false);
     onIr(view);
   };
 
+  const alvo = raizDoApp();
+  const item = (view: string, Icone: typeof UserRound, rotulo: string) => (
+    <button type="button" role="menuitem" onClick={() => ir(view)}>
+      <Icone aria-hidden />
+      {rotulo}
+    </button>
+  );
+
   return (
     <>
       <button
         ref={gatilho}
         type="button"
+        className="conta"
         onClick={() => setAberto((a) => !a)}
         aria-haspopup="menu"
         aria-expanded={aberto}
-        aria-label={nome ? `Conta de ${nome}` : 'Sua conta'}
-        title={nome ?? email ?? 'Sua conta'}
-        className="conta w-9 h-9 shrink-0 rounded-full bg-accent-soft text-accent-ink font-display font-black text-[12px] flex items-center justify-center border border-border-subtle hover:border-accent transition-colors cursor-pointer"
+        aria-label={nome ? t('Conta de {nome}', { nome }) : t('Sua conta')}
+        title={nome ?? email ?? t('Sua conta')}
+        style={iniciais ? { font: '900 12px var(--font-display)' } : undefined}
       >
         {/* Sem nome nem e-mail, o ícone genérico — nunca uma letra inventada. */}
-        {iniciais || <User className="w-4 h-4" aria-hidden />}
+        {iniciais || <UserRound aria-hidden />}
       </button>
 
       {aberto &&
-        coords &&
+        alvo &&
         createPortal(
-          <div
-            ref={painel}
-            role="menu"
-            style={{ top: coords.top, left: coords.left }}
-            className="fixed z-[60] w-[236px] card-panel bg-surface shadow-card p-1.5 animate-in fade-in zoom-in-95 duration-150"
-          >
-            {/* A IDENTIDADE, que não existia em lugar nenhum da interface. */}
-            <div className="px-2.5 py-2 border-b border-border-subtle mb-1">
-              <p className="font-bold text-[13px] text-ink truncate">{nome ?? 'Sua conta'}</p>
-              {email ? (
-                <p className="text-[11.5px] text-ink-muted truncate" title={email}>
-                  {email}
-                </p>
-              ) : (
-                /* Sem e-mail não se inventa um: o servidor não retém o e-mail do JWT, e dizer
-                 "conta local" é a verdade sobre o que está acontecendo. */
-                <p className="text-[11.5px] text-ink-faint">
-                  {anonimo ? 'sem conta · dados só neste navegador' : authRequired ? 'sessão ativa' : 'conta local'}
-                </p>
-              )}
+          <div ref={painel} className="menu-conta cartao on" role="menu" aria-label={t('Sua conta')}>
+            <div className="cab-menu">
+              <b style={{ fontFamily: 'var(--font-display)' }}>{nome ?? t('Sua conta')}</b>
+              <p className="mut" style={{ fontSize: 12 }} title={email ?? undefined}>
+                {email ?? estado}
+              </p>
             </div>
-
-            {anonimo ? (
-              <button
-                role="menuitem"
-                onClick={() => ir('login')}
-                className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-[13px] text-accent-ink font-semibold hover:bg-accent-soft cursor-pointer"
-              >
-                <LogIn className="w-4 h-4" aria-hidden /> Entrar ou criar conta
-              </button>
-            ) : (
-              <button
-                role="menuitem"
-                onClick={() => ir('profile')}
-                className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-[13px] text-ink hover:bg-surface-hover cursor-pointer"
-              >
-                <User className="w-4 h-4 text-ink-muted" aria-hidden /> Meu perfil
-              </button>
-            )}
-            {/* Plano e consumo entram AQUI, e não na navegação principal: são assunto de conta, e
-              monetização no menu de uso diário pediria atenção que o produto não precisa pedir. */}
-            <button
-              role="menuitem"
-              onClick={() => ir('planos')}
-              className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-[13px] text-ink hover:bg-surface-hover cursor-pointer"
-            >
-              <CreditCard className="w-4 h-4 text-ink-muted" aria-hidden />
-              <span className="flex-1 text-start">Plano e consumo</span>
-              {/* O preço só aparece para quem TEM o que comprar (spec planos-visiveis); para o
-                assinante o item volta a ser neutro. */}
-              {planoAnunciavel() && (
-                <span className="text-[11px] text-accent-ink font-semibold">R$ {menorPrecoDeAssinatura()}+</span>
-              )}
-            </button>
-            <button
-              role="menuitem"
-              onClick={() => ir('ajuda')}
-              className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-[13px] text-ink hover:bg-surface-hover cursor-pointer"
-            >
-              <LifeBuoy className="w-4 h-4 text-ink-muted" aria-hidden /> Ajuda
-            </button>
-            <button
-              role="menuitem"
-              onClick={() => ir('settings')}
-              className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-[13px] text-ink hover:bg-surface-hover cursor-pointer"
-            >
-              <SettingsIcon className="w-4 h-4 text-ink-muted" aria-hidden /> Ajustes
-            </button>
-
-            {/* Só com login de verdade. Sem sessão não há o que encerrar. */}
+            {anonimo ? item('login', LogIn, t('Entrar ou criar conta')) : item('profile', UserRound, t('Meu perfil'))}
+            {item('estatisticas', ChartColumn, t('Estatísticas'))}
+            {item('settings', SettingsIcon, t('Ajustes'))}
+            {item('planos', CreditCard, t('Planos'))}
+            {item('ajuda', LifeBuoy, t('Ajuda e suporte'))}
             {authRequired && !anonimo && (
               <>
-                <div className="h-px bg-border-subtle my-1" />
+                <div className="sep-menu" />
                 <button
+                  type="button"
                   role="menuitem"
                   onClick={() => {
                     setAberto(false);
                     void auth.signOut();
                   }}
-                  className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-[13px] text-error-ink hover:bg-error-soft cursor-pointer"
                 >
-                  <LogOut className="w-4 h-4" aria-hidden /> Sair da conta
+                  <LogOut aria-hidden />
+                  {t('Sair')}
                 </button>
               </>
             )}
           </div>,
-          document.body,
+          alvo,
         )}
     </>
   );

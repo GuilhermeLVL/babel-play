@@ -48,6 +48,7 @@ import { useAparencia, useHidratacaoDeAjustes } from './lib/estado/useAparencia'
 import { useGateDeConta } from './lib/estado/useGateDeConta';
 import { useMetricas } from './lib/estado/useMetricas';
 import { useNavegacao } from './lib/estado/useNavegacao';
+import { notificarSessaoSalva, useNotificacoes } from './lib/estado/useNotificacoes';
 import { useRecompensas } from './lib/estado/useRecompensas';
 /* ESTADO POR DOMÍNIO — cada bloco que o App concentrava virou um hook em `lib/estado`. A ORDEM
    das chamadas abaixo é a ordem em que os efeitos rodavam antes da divisão, e é por isso que os
@@ -142,6 +143,9 @@ export default function App() {
       setIsStudioOpen,
     });
 
+  // O sino: os fatos que o app já produz viram notificação (ver lib/estado/useNotificacoes).
+  useNotificacoes({ metrics, progress, filaDeRecompensas });
+
   useHidratacaoDeAjustes({ setThemeState, setDarkMode, setFonteState, setAgeProfileState, setOnboarded });
 
   const {
@@ -183,6 +187,7 @@ export default function App() {
     );
     setSelectedRecordingId(recording.id);
     setResumingRecordingId(null);
+    notificarSessaoSalva(recording);
     // Salvar uma sessão é a conclusão mais concreta da app — é o momento que merece o acorde.
     play('success');
     if (shouldRedirect) {
@@ -341,7 +346,7 @@ export default function App() {
   return (
     // `h-dvh`: com 100vh a raiz cinza (bg-surface) ficava maior que a viewport dinamica e o
     // overflow-hidden cortava o rodape, a "faixa cinza" que escondia conteudo na Captura.
-    <div className="@container/app flex flex-col h-tela w-full bg-canvas overflow-hidden relative">
+    <div data-raiz-do-app className="@container/app flex flex-col h-tela w-full bg-canvas overflow-hidden relative">
       {/* Barra do topo: a de desktop quando a preferência é "topo"; senão, só a do celular. */}
       {menuPosition === 'top' ? shell : <MobileTopBar progress={progress} controls={mobileControls} />}
 
@@ -415,6 +420,8 @@ export default function App() {
                 metrics={metrics}
                 recording={selectedRecordingId ? selectedRecording : null}
                 seed={practiceSeed}
+                soundEnabled={soundEnabled}
+                toggleSound={toggleSound}
               />
             )}
             {activeView === 'analysis' && !anonimo && (

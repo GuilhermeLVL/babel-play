@@ -12,7 +12,7 @@ interface MobileTopBarProps {
 
 /**
  * Barra superior do celular — marcação do protótipo aprovado (`.topo-movel`): a marca com o nome
- * e o cluster enxuto (busca, claro/escuro e conta). O CSS do protótipo só a mostra com a janela
+ * e o cluster enxuto (sino, busca, claro/escuro e conta). O CSS do protótipo só a mostra com a janela
  * estreita (`@container` ≤ 760px); na tela grande quem manda é o menu escolhido.
  */
 export default function MobileTopBar({ controls }: MobileTopBarProps) {

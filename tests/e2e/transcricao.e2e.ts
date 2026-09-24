@@ -34,12 +34,16 @@ test.describe('Transcricao (captura)', () => {
     await expect(abrirPainel).toBeVisible()
     await clicarRobusto(page, abrirPainel)
 
-    const painel = page.getByRole('dialog', { name: 'Configurações de dispositivos e modelos de IA' })
+    /* O painel é o diálogo "Dispositivos e modelos de IA" do protótipo (C1); Kids e Sênior têm o
+       título na linguagem do perfil. */
+    const painel = page.getByRole('dialog', {
+      name: /Dispositivos e modelos de IA|Ajustes de áudio|Configurações do som/,
+    })
     await expect(painel).toBeVisible()
     await expect(painel.getByText('Motor de IA ativo')).toBeVisible()
     await expect(painel.getByText(/Local, no dispositivo|Nuvem \(sua chave\)/)).toBeVisible()
 
-    await clicarRobusto(page, painel.getByRole('button', { name: 'Fechar configurações' }))
+    await clicarRobusto(page, painel.getByRole('button', { name: 'Pronto' }))
     await expect(painel).toBeHidden()
   })
 

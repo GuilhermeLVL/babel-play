@@ -1,39 +1,125 @@
-import { TranscriptSettings } from '../../../lib/transcriptUtils';
+import type { TranscriptSettings } from '../../../lib/transcriptUtils';
 
 /**
- * Painel "Visual" da transcrição — componente ÚNICO usado tanto inline quanto no Modo Foco
- * (antes eram dois blocos JSX quase idênticos que divergiam a cada ajuste).
+ * APARÊNCIA DA LEGENDA — a seção do diálogo "Dispositivos e modelos de IA" do protótipo aprovado
+ * (`dialogoAjustesCaptura()`): cinco selects em `.g-vis` e a prévia `.previa-leg`, que muda com a
+ * escolha. Os cinco campos são os de `TranscriptSettings`, os mesmos que a transcrição ao vivo lê.
  */
-export default function TranscriptVisualSettings({ idPrefix, dense, tsSettings, updateSetting }: {
+const CAMPOS: Array<{
+  chave: keyof TranscriptSettings;
+  rotulo: string;
+  opcoes: Array<[string, string]>;
+}> = [
+  {
+    chave: 'fontSize',
+    rotulo: 'Tamanho',
+    opcoes: [
+      ['small', 'Pequeno'],
+      ['medium', 'Médio'],
+      ['large', 'Grande'],
+      ['xlarge', 'Extra grande'],
+      ['xxlarge', 'Gigante'],
+    ],
+  },
+  {
+    chave: 'textColor',
+    rotulo: 'Tema de cor',
+    opcoes: [
+      ['standard', 'Padrão'],
+      ['highContrast', 'Alto contraste'],
+      ['sepia', 'Sépia'],
+      ['ocean', 'Oceano'],
+      ['neon', 'Neon'],
+    ],
+  },
+  {
+    chave: 'fontFamily',
+    rotulo: 'Fonte',
+    opcoes: [
+      ['sans', 'Sans (padrão)'],
+      ['serif', 'Serif'],
+      ['mono', 'Mono'],
+    ],
+  },
+  {
+    chave: 'displayOrder',
+    rotulo: 'Ordem',
+    opcoes: [
+      ['original-first', 'Original primeiro'],
+      ['translated-first', 'Tradução primeiro'],
+    ],
+  },
+  {
+    chave: 'hideOriginal',
+    rotulo: 'Original',
+    opcoes: [
+      ['false', 'Mostrar'],
+      ['true', 'Ocultar'],
+    ],
+  },
+];
+
+/** As classes da prévia no vocabulário do protótipo (`tema-*`, `tam-*`, `fonte-*`). */
+const TEMA: Record<TranscriptSettings['textColor'], string> = {
+  standard: 'padrao',
+  highContrast: 'contraste',
+  sepia: 'sepia',
+  ocean: 'oceano',
+  neon: 'neon',
+};
+const TAMANHO: Record<TranscriptSettings['fontSize'], string> = {
+  small: 'pequeno',
+  medium: 'medio',
+  large: 'grande',
+  xlarge: 'extra',
+  xxlarge: 'gigante',
+};
+
+export default function TranscriptVisualSettings({
+  idPrefix,
+  tsSettings,
+  updateSetting,
+}: {
   idPrefix: string;
-  dense: boolean;
   tsSettings: TranscriptSettings;
   updateSetting: <K extends keyof TranscriptSettings>(key: K, value: TranscriptSettings[K]) => void;
 }) {
-  const wrap = dense
-    ? 'p-4 bg-canvas border border-border-subtle rounded-xl mb-4 grid grid-cols-2 sm:grid-cols-5 gap-3 text-[11px] animate-in slide-in-from-top-2 duration-200'
-    : 'bg-surface border border-border-subtle rounded-2xl p-4 mb-6 grid grid-cols-2 sm:grid-cols-5 gap-4 text-xs animate-in slide-in-from-top-2 duration-200 shadow-card shrink-0';
-  const labelCls = dense ? 'font-bold text-ink-muted text-[9px] uppercase tracking-wide' : 'font-bold text-ink-muted text-[10px] uppercase';
-  const selectCls = dense
-    ? 'w-full bg-surface border border-border-subtle rounded-lg p-1.5 font-bold text-ink cursor-pointer outline-none focus:border-accent'
-    : 'w-full bg-canvas border border-border-subtle rounded-lg p-2 font-semibold text-ink cursor-pointer outline-none focus:border-accent';
-  const fields: Array<{ id: string; label: string; value: string; onChange: (v: string) => void; options: Array<[string, string]>; span?: boolean }> = [
-    { id: 'font-size', label: 'Tamanho', value: tsSettings.fontSize, onChange: v => updateSetting('fontSize', v as any), options: [['small', 'Pequeno'], ['medium', 'Médio'], ['large', 'Grande'], ['xlarge', 'Extra Grande'], ['xxlarge', 'Gigante']] },
-    { id: 'text-color', label: 'Tema de Cor', value: tsSettings.textColor, onChange: v => updateSetting('textColor', v as any), options: [['standard', 'Padrão'], ['highContrast', 'Alto Contraste'], ['sepia', 'Sépia'], ['ocean', 'Oceano'], ['neon', 'Neon']] },
-    { id: 'font-family', label: 'Fonte', value: tsSettings.fontFamily, onChange: v => updateSetting('fontFamily', v as any), options: [['sans', 'Sans (padrão)'], ['serif', 'Serif'], ['mono', 'Mono']] },
-    { id: 'display-order', label: 'Ordem', value: tsSettings.displayOrder, onChange: v => updateSetting('displayOrder', v as any), options: [['original-first', 'Original primeiro'], ['translated-first', 'Tradução primeiro']] },
-    { id: 'hide-original', label: 'Original', value: tsSettings.hideOriginal ? 'true' : 'false', onChange: v => updateSetting('hideOriginal', v === 'true'), options: [['false', 'Mostrar'], ['true', 'Ocultar']], span: true },
-  ];
+  const trocar = (chave: keyof TranscriptSettings, v: string) => {
+    if (chave === 'hideOriginal') updateSetting('hideOriginal', v === 'true');
+    else updateSetting(chave, v as never);
+  };
+  const traduzida = <span className="t">Vamos repassar o roteiro.</span>;
   return (
-    <div className={wrap}>
-      {fields.map(f => (
-        <div key={f.id} className={`space-y-1 ${f.span ? 'col-span-2 sm:col-span-1' : ''}`}>
-          <label htmlFor={`${idPrefix}-${f.id}`} className={labelCls}>{f.label}</label>
-          <select id={`${idPrefix}-${f.id}`} name={`${idPrefix}-${f.id}`} value={f.value} onChange={(e) => f.onChange(e.target.value)} className={selectCls}>
-            {f.options.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
-          </select>
-        </div>
-      ))}
-    </div>
+    <>
+      <div className="g-vis">
+        {CAMPOS.map(({ chave, rotulo, opcoes }) => (
+          <label key={chave} htmlFor={`${idPrefix}-${chave}`}>
+            <span className="label-mono">{rotulo}</span>
+            <select
+              className="campo"
+              id={`${idPrefix}-${chave}`}
+              name={`${idPrefix}-${chave}`}
+              aria-label={rotulo}
+              value={String(tsSettings[chave])}
+              onChange={(e) => trocar(chave, e.target.value)}
+            >
+              {opcoes.map(([v, r]) => (
+                <option key={v} value={v}>
+                  {r}
+                </option>
+              ))}
+            </select>
+          </label>
+        ))}
+      </div>
+      <div
+        className={`previa-leg tema-${TEMA[tsSettings.textColor]} tam-${TAMANHO[tsSettings.fontSize]} fonte-${tsSettings.fontFamily}`}
+        aria-label="Prévia da legenda"
+      >
+        {tsSettings.displayOrder === 'translated-first' && traduzida}
+        {!tsSettings.hideOriginal && <span className="o">Let&apos;s go over the roadmap.</span>}
+        {tsSettings.displayOrder === 'original-first' && traduzida}
+      </div>
+    </>
   );
 }

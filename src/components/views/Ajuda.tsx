@@ -185,7 +185,7 @@ export default function Ajuda() {
         </div>
       </section>
 
-      {guiaAberto && <GuidePanel onClose={() => setGuiaAberto(false)} />}
+      {guiaAberto && <GuidePanel onClose={() => setGuiaAberto(false)} sub="Seis coisas que dá para fazer no app." />}
       {atalhosAbertos && (
         <Dialogo
           icone={Keyboard}

@@ -14,9 +14,9 @@
  * Estes testes travam três coisas: pular registra resultado, rodada vazia não comemora, e falar
  * várias vezes na mesma fala não a faz aparecer várias vezes no histórico.
  */
-import { act,cleanup, fireEvent, render, screen } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
 import React from 'react'
-import { afterEach,beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import type { RoundReport } from '../src/core/minigames/types'
 
@@ -24,6 +24,8 @@ const comemorarMock = vi.fn()
 /* `multiplicador` é stub: estes testes olham o RELATÓRIO da rodada, não a pontuação — ver a
    explicação em `blitzGame.test.tsx`, onde a dependência falsa quebrou de verdade. */
 vi.mock('../src/lib/juice', () => ({
+  contarAte: vi.fn(async () => {}),
+  tremor: vi.fn(),
   comemorar: comemorarMock,
   pontosDoElemento: vi.fn(),
   multiplicador: () => 1,
@@ -38,12 +40,30 @@ const { default: KaraokeGame } = await import('../src/components/minigames/Karao
 /** Falas com id: sem `itemRef` o jogo não tem como saber que é a mesma fala. */
 function falas() {
   return [
-    { id: 'f1', texto: 'the cat is on the roof', translation: 'o gato está no telhado', startMs: 0, endMs: 2000, lang: 'en' },
-    { id: 'f2', texto: 'she opened the window', translation: 'ela abriu a janela', startMs: 2000, endMs: 4000, lang: 'en' },
+    {
+      id: 'f1',
+      texto: 'the cat is on the roof',
+      translation: 'o gato está no telhado',
+      startMs: 0,
+      endMs: 2000,
+      lang: 'en',
+    },
+    {
+      id: 'f2',
+      texto: 'she opened the window',
+      translation: 'ela abriu a janela',
+      startMs: 2000,
+      endMs: 4000,
+      lang: 'en',
+    },
   ]
 }
 
-function avancar(ms: number): void { act(() => { vi.advanceTimersByTime(ms) }) }
+function avancar(ms: number): void {
+  act(() => {
+    vi.advanceTimersByTime(ms)
+  })
+}
 
 /** Clica o botão de avançar/terminar, que é o mesmo elemento nas duas situações. */
 function avancarFala(): void {
@@ -52,38 +72,64 @@ function avancarFala(): void {
 }
 
 describe('KaraokeGame — rodada sem avaliação não vira erro', () => {
-  beforeEach(() => { vi.useFakeTimers({ shouldAdvanceTime: false }) })
-  afterEach(() => { cleanup(); vi.useRealTimers(); vi.clearAllMocks() })
+  beforeEach(() => {
+    vi.useFakeTimers({ shouldAdvanceTime: false })
+  })
+  afterEach(() => {
+    cleanup()
+    vi.useRealTimers()
+    vi.clearAllMocks()
+  })
 
   it('pular todas as falas registra um resultado por fala, não uma rodada vazia', () => {
     const f = falas()
     let relatorio: RoundReport | null = null
-    render(<KaraokeGame falas={f} audioUrl="" ageProfile="pro" onFinish={r => { relatorio = r }} onExit={() => {}} />)
+    render(
+      <KaraokeGame
+        falas={f}
+        audioUrl=""
+        ageProfile="pro"
+        onFinish={(r) => {
+          relatorio = r
+        }}
+        onExit={() => {}}
+      />,
+    )
 
-    avancarFala()   // pula a primeira
-    avancarFala()   // pula a segunda e termina
+    avancarFala() // pula a primeira
+    avancarFala() // pula a segunda e termina
     avancar(1000)
 
     expect(relatorio).not.toBeNull()
     expect(relatorio!.items).toHaveLength(2)
     /* `revealed` é o campo que o projeto já usa para "desistiu" — a diferença entre "não lembrei"
        e "não aconteceu". */
-    expect(relatorio!.items.every(o => o.revealed === true)).toBe(true)
-    expect(relatorio!.items.every(o => o.correct === false)).toBe(true)
-    expect(relatorio!.items.map(o => o.itemRef)).toEqual(['f1', 'f2'])
+    expect(relatorio!.items.every((o) => o.revealed === true)).toBe(true)
+    expect(relatorio!.items.every((o) => o.correct === false)).toBe(true)
+    expect(relatorio!.items.map((o) => o.itemRef)).toEqual(['f1', 'f2'])
   })
 
   it('cada fala pulada entra UMA vez, mesmo com cliques repetidos no avançar', () => {
     const f = falas()
     let relatorio: RoundReport | null = null
-    render(<KaraokeGame falas={f} audioUrl="" ageProfile="pro" onFinish={r => { relatorio = r }} onExit={() => {}} />)
+    render(
+      <KaraokeGame
+        falas={f}
+        audioUrl=""
+        ageProfile="pro"
+        onFinish={(r) => {
+          relatorio = r
+        }}
+        onExit={() => {}}
+      />,
+    )
 
     avancarFala()
     avancarFala()
-    avancarFala()   // rodada já encerrada — não pode acrescentar nada
+    avancarFala() // rodada já encerrada — não pode acrescentar nada
     avancar(1000)
 
-    const ids = relatorio!.items.map(o => o.itemRef)
+    const ids = relatorio!.items.map((o) => o.itemRef)
     expect(ids).toHaveLength(2)
     expect(new Set(ids).size).toBe(2)
   })
@@ -93,13 +139,23 @@ describe('KaraokeGame — rodada sem avaliação não vira erro', () => {
        rodada termina de fato vazia — o caso exato que caía em `comemorar('erro')`. */
     const semId = [{ texto: 'hello there', translation: 'olá', startMs: 0, endMs: 1000, lang: 'en' }]
     let relatorio: RoundReport | null = null
-    render(<KaraokeGame falas={semId} audioUrl="" ageProfile="pro" onFinish={r => { relatorio = r }} onExit={() => {}} />)
+    render(
+      <KaraokeGame
+        falas={semId}
+        audioUrl=""
+        ageProfile="pro"
+        onFinish={(r) => {
+          relatorio = r
+        }}
+        onExit={() => {}}
+      />,
+    )
 
     avancarFala()
     avancar(1000)
 
     expect(relatorio!.items).toHaveLength(0)
-    const tons = comemorarMock.mock.calls.map(c => c[0])
+    const tons = comemorarMock.mock.calls.map((c) => c[0])
     expect(tons).not.toContain('erro')
     expect(tons).toHaveLength(0)
   })
@@ -112,6 +168,6 @@ describe('KaraokeGame — rodada sem avaliação não vira erro', () => {
     avancar(1000)
     /* Duas falas puladas = dois itens, nenhum correto → 'erro' é a resposta CERTA aqui: houve
        avaliação e ela foi negativa. O defeito era comemorar erro sem avaliação nenhuma. */
-    expect(comemorarMock.mock.calls.map(c => c[0])).toContain('erro')
+    expect(comemorarMock.mock.calls.map((c) => c[0])).toContain('erro')
   })
 })

@@ -1,12 +1,14 @@
 import type { ItemOutcome, MinigameItem, RoundReport } from '@core';
 import { MINIGAMES, scoreRound } from '@core';
-import { Briefcase, Check,Eye, Heart, Lock, Unlock, X } from 'lucide-react';
+import { Briefcase, Check, Eye, Lock, Unlock } from 'lucide-react';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 
 import { comemorar } from '../../../lib/juice';
 import { direcaoDoTexto } from '../../../lib/languages';
 import type { AgeProfileType } from '../../../lib/profile';
 import { speak } from '../../../lib/tts';
+import { useRodada } from '../casca/CascaDaRodada';
+import HudDaRodada, { BotaoDeAjuda, usePlacarDaRodada } from '../casca/HudDaRodada';
 
 /**
  * A MALA CUMULATIVA — "Ich packe meinen Koffer" jogado com as palavras do baralho.
@@ -50,6 +52,9 @@ function embaralhar<T>(xs: T[]): T[] {
 }
 
 export default function KofferGame({ items, ageProfile, onFinish, onExit }: KofferGameProps) {
+  /** A casca diz quando a rodada anda (fora da contagem 3-2-1 e da pausa); o placar do HUD sai dos resultados. */
+  const { ativo } = useRodada();
+  const [placar] = usePlacarDaRodada('koffer');
   const def = MINIGAMES.koffer;
 
   /* Duas palavras iguais na mala tornariam a ordem impossível de conferir por toque. */
@@ -110,15 +115,19 @@ export default function KofferGame({ items, ageProfile, onFinish, onExit }: Koff
       });
     });
 
-    const perfeita = outcomes.length > 0 && outcomes.every(o => o.correct && o.attempts === 1);
+    const perfeita = outcomes.length > 0 && outcomes.every((o) => o.correct && o.attempts === 1);
     comemorar(perfeita ? 'rodadaPerfeita' : 'rodadaBoa', malaRef.current);
 
-    setTimeout(() => onFinish({
-      gameId: 'koffer',
-      items: outcomes,
-      score: scoreRound('koffer', outcomes),
-      durationMs: Date.now() - inicioRodadaRef.current,
-    }), 900);
+    setTimeout(
+      () =>
+        onFinish({
+          gameId: 'koffer',
+          items: outcomes,
+          score: scoreRound('koffer', outcomes),
+          durationMs: Date.now() - inicioRodadaRef.current,
+        }),
+      900,
+    );
   };
 
   // A mala abre com a palavra nova, é falada, e depois fecha para a reconstrução.
@@ -154,7 +163,7 @@ export default function KofferGame({ items, ageProfile, onFinish, onExit }: Koff
   };
 
   const tocar = (escolhido: MinigameItem, el: HTMLElement | null) => {
-    if (fase !== 'lembrando' || encerradoRef.current || !esperado) return;
+    if (fase !== 'lembrando' || encerradoRef.current || !esperado || !ativo) return;
 
     const reg = registro(posicao);
     if (espiouNoNivelRef.current) reg.espiou = true;
@@ -181,8 +190,11 @@ export default function KofferGame({ items, ageProfile, onFinish, onExit }: Koff
       inicioPosicaoRef.current = Date.now();
       return;
     }
-    if (nivel >= rodada.length) { finalizar(); return; }
-    setNivel(n => n + 1);
+    if (nivel >= rodada.length) {
+      finalizar();
+      return;
+    }
+    setNivel((n) => n + 1);
   };
 
   if (!suficiente) return null;
@@ -190,51 +202,27 @@ export default function KofferGame({ items, ageProfile, onFinish, onExit }: Koff
   const malaAberta = fase === 'entrando' || espiando;
   const alvoGrande = ageProfile === 'kids' || ageProfile === 'senior';
 
+  /* A CASCA COMUM desenha o cabeçalho, a pausa e a contagem; aqui ficam o placar comum e o tabuleiro,
+     que é deste jogo. */
   return (
-    <div className="fixed inset-0 z-50 flex flex-col bg-canvas text-ink select-none overflow-y-auto">
-      <header className="flex items-center justify-between px-6 py-4 border-b border-border-subtle bg-surface/85 backdrop-blur-md shrink-0">
-        <div className="flex items-center gap-3">
-          <button
-            onClick={onExit}
-            className="p-2 rounded-xl border border-border-subtle bg-surface-hover hover:bg-border-subtle transition-colors cursor-pointer"
-            aria-label="Sair do jogo"
-            title="Sair da Mala"
-          >
-            <X className="w-5 h-5 text-ink" />
-          </button>
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="font-display font-black text-lg tracking-wide uppercase text-accent">Ich packe meinen Koffer</span>
-              <span className="text-xs px-2 py-0.5 rounded-full bg-accent-soft text-accent-ink font-semibold">🧳 A mala cresce</span>
-            </div>
-            <p className="text-xs text-ink-muted">A cada nível entra uma palavra. Reconstrua a mala na ordem em que ela foi feita.</p>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-2.5 sm:gap-3">
-          <button
-            onClick={espiar}
+    <>
+      <HudDaRodada
+        pontos={placar.pontos}
+        sequencia={placar.sequencia}
+        acertos={placar.acertos}
+        rotulo={`Nível ${nivel} de ${rodada.length} · ${vidas} ${vidas === 1 ? 'vida' : 'vidas'}`}
+        progresso={(nivel - 1) / Math.max(1, rodada.length)}
+        ajudas={
+          <BotaoDeAjuda
+            icone={Eye}
+            rotulo="Espiar"
             disabled={fase !== 'lembrando' || espiouNoNivelRef.current}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-border-subtle bg-surface hover:bg-surface-hover text-xs font-bold text-ink transition-colors disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
-            title="Espiar a mala por um instante (limita a nota a difícil)"
-          >
-            <Eye className="w-4 h-4 text-accent" />
-            <span>Espiar</span>
-          </button>
+            onClick={espiar}
+          />
+        }
+      />
 
-          <div className="flex items-center gap-1 px-3 py-1.5 rounded-xl border border-border-subtle bg-surface" aria-label={`${vidas} vidas`}>
-            {Array.from({ length: VIDAS[ageProfile] }).map((_, i) => (
-              <Heart key={i} className={`w-4 h-4 ${i < vidas ? 'text-error fill-current' : 'text-ink-faint'}`} />
-            ))}
-          </div>
-
-          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-border-subtle bg-surface">
-            <span className="font-mono font-bold text-base text-ink">{nivel}/{rodada.length}</span>
-          </div>
-        </div>
-      </header>
-
-      <main className="flex-1 flex flex-col items-center justify-center p-4 sm:p-8 gap-6 w-full max-w-3xl mx-auto">
+      <div className="flex flex-col items-center justify-center gap-6 w-full max-w-3xl mx-auto">
         {/* A MALA */}
         <div
           data-tour="mala"
@@ -246,9 +234,11 @@ export default function KofferGame({ items, ageProfile, onFinish, onExit }: Koff
               <Briefcase className="w-4 h-4 text-accent" />
               {naMala.length} {naMala.length === 1 ? 'palavra' : 'palavras'} na mala
             </span>
-            <span className={`flex items-center gap-1 text-xs px-2.5 py-1 rounded-full font-bold ${
-              malaAberta ? 'bg-good-soft text-good-ink' : 'bg-error-soft text-error-ink'
-            }`}>
+            <span
+              className={`flex items-center gap-1 text-xs px-2.5 py-1 rounded-full font-bold ${
+                malaAberta ? 'bg-good-soft text-good-ink' : 'bg-error-soft text-error-ink'
+              }`}
+            >
               {malaAberta ? <Unlock className="w-3.5 h-3.5" /> : <Lock className="w-3.5 h-3.5" />}
               {malaAberta ? 'Mala aberta' : 'Mala fechada'}
             </span>
@@ -279,7 +269,11 @@ export default function KofferGame({ items, ageProfile, onFinish, onExit }: Koff
               </p>
               <ol className="flex flex-wrap gap-2 justify-center">
                 {naMala.slice(0, posicao).map((it, i) => (
-                  <li key={it.answer} dir={direcaoDoTexto(it.lang)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-good-soft text-good-ink text-sm font-bold">
+                  <li
+                    key={it.answer}
+                    dir={direcaoDoTexto(it.lang)}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-good-soft text-good-ink text-sm font-bold"
+                  >
                     <Check className="w-3.5 h-3.5 text-good" />
                     <span className="font-mono text-[11px]">{i + 1}</span>
                     {it.answer}
@@ -301,11 +295,11 @@ export default function KofferGame({ items, ageProfile, onFinish, onExit }: Koff
             {fase === 'entrando' ? 'Guarde a ordem…' : 'Toque na palavra desta posição'}
           </p>
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-            {palheta.map(it => (
+            {palheta.map((it) => (
               <button
                 key={it.answer}
                 data-palavra={it.answer}
-                onClick={e => tocar(it, e.currentTarget)}
+                onClick={(e) => tocar(it, e.currentTarget)}
                 disabled={fase !== 'lembrando' || encerrado}
                 dir={direcaoDoTexto(it.lang)}
                 className={`rounded-xl border-2 border-border-subtle bg-surface hover:border-accent hover:bg-accent-soft/30 transition-colors text-center font-display font-bold text-ink disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer ${
@@ -318,7 +312,7 @@ export default function KofferGame({ items, ageProfile, onFinish, onExit }: Koff
             ))}
           </div>
         </div>
-      </main>
-    </div>
+      </div>
+    </>
   );
 }

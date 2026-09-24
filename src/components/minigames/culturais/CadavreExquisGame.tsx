@@ -1,6 +1,6 @@
 import type { ItemOutcome, MinigameItem, RoundReport } from '@core';
 import { MINIGAMES, scoreRound } from '@core';
-import { Check, PenLine,Shuffle, Volume2, X } from 'lucide-react';
+import { Check, PenLine, Shuffle, Volume2 } from 'lucide-react';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 
 import { vazaResposta } from '../../../core/learning/pistaDeJogo';
@@ -8,6 +8,8 @@ import { comemorar } from '../../../lib/juice';
 import { direcaoDoTexto } from '../../../lib/languages';
 import type { AgeProfileType } from '../../../lib/profile';
 import { speak } from '../../../lib/tts';
+import { useRodada } from '../casca/CascaDaRodada';
+import HudDaRodada, { usePlacarDaRodada } from '../casca/HudDaRodada';
 
 /**
  * CADAVRE EXQUIS — quatro palavras da leva, UMA frase sua que use as quatro.
@@ -32,6 +34,9 @@ interface CadavreExquisGameProps {
 const PALAVRAS = MINIGAMES.cadavre.maxItems;
 
 export default function CadavreExquisGame({ items, ageProfile, onFinish, onExit }: CadavreExquisGameProps) {
+  /** A casca diz quando a rodada anda (fora da contagem 3-2-1 e da pausa); o placar do HUD sai dos resultados. */
+  const { ativo } = useRodada();
+  const [placar] = usePlacarDaRodada('cadavre');
   const suficiente = items.length >= PALAVRAS;
   const [leva, setLeva] = useState<MinigameItem[]>(() => items.slice(0, PALAVRAS));
   /** Próximo item de reserva para a troca. Só existe quando a leva chegou com sobra. */
@@ -52,6 +57,7 @@ export default function CadavreExquisGame({ items, ageProfile, onFinish, onExit 
   );
 
   const conferir = () => {
+    if (!ativo) return;
     const ms = Date.now() - inicioRef.current;
     const outcomes: ItemOutcome[] = leva.map((it) => ({
       cardId: it.cardId,
@@ -78,26 +84,19 @@ export default function CadavreExquisGame({ items, ageProfile, onFinish, onExit 
 
   if (!suficiente) return null;
 
+  /* A CASCA COMUM desenha o cabeçalho, a pausa e a contagem; aqui ficam o placar comum e o tabuleiro,
+     que é deste jogo. */
   return (
-    <div className="fixed inset-0 z-50 flex flex-col bg-canvas text-ink overflow-hidden">
-      <header className="flex items-center justify-between px-6 py-4 border-b border-border-subtle bg-surface/85 backdrop-blur-md shrink-0">
-        <div className="flex items-center gap-3">
-          <button
-            onClick={onExit}
-            className="p-2 rounded-xl border border-border-subtle bg-surface-hover hover:bg-border-subtle transition-colors cursor-pointer"
-            title="Sair do Cadavre Exquis"
-            aria-label="Sair do jogo"
-          >
-            <X className="w-5 h-5 text-ink" />
-          </button>
-          <div>
-            <span className="font-display font-black text-lg tracking-wide uppercase text-accent">Frase maluca</span>
-            <p className="text-xs text-ink-muted">Uma frase sua com as quatro palavras. Não conta para a revisão.</p>
-          </div>
-        </div>
-      </header>
+    <>
+      <HudDaRodada
+        pontos={placar.pontos}
+        sequencia={placar.sequencia}
+        acertos={placar.acertos}
+        rotulo={`Uma frase com ${leva.length} palavras`}
+        progresso={0}
+      />
 
-      <main ref={palcoRef} className="flex-1 flex flex-col items-center justify-center gap-6 p-4 lg:p-8 max-w-2xl mx-auto w-full min-h-0 overflow-y-auto">
+      <div ref={palcoRef} className="flex flex-col items-center justify-center gap-6 max-w-2xl mx-auto w-full">
         <div data-tour="palavras" className="w-full grid grid-cols-2 gap-3">
           {leva.map((it, i) => {
             const conferida = resultado ? usadas[i] : null;
@@ -116,7 +115,9 @@ export default function CadavreExquisGame({ items, ageProfile, onFinish, onExit 
                   <span dir={direcaoDoTexto(it.lang)} className="font-display font-black text-xl text-ink break-words">
                     {it.answer}
                   </span>
-                  {conferida === true && <Check className="w-4 h-4 text-good-ink shrink-0" aria-label="usada na frase" />}
+                  {conferida === true && (
+                    <Check className="w-4 h-4 text-good-ink shrink-0" aria-label="usada na frase" />
+                  )}
                   <button
                     onClick={() => speak(it.answer, { lang: it.lang })}
                     className="ml-auto p-1 rounded-full hover:bg-surface-hover text-accent cursor-pointer shrink-0"
@@ -144,7 +145,9 @@ export default function CadavreExquisGame({ items, ageProfile, onFinish, onExit 
         {!resultado ? (
           <div className="w-full space-y-3">
             <p className="label-mono">
-              {ageProfile === 'kids' ? 'Escreva uma frase que use as quatro' : 'Escreva UMA frase que use as quatro palavras'}
+              {ageProfile === 'kids'
+                ? 'Escreva uma frase que use as quatro'
+                : 'Escreva UMA frase que use as quatro palavras'}
             </p>
             <textarea
               data-tour="frase"
@@ -167,7 +170,9 @@ export default function CadavreExquisGame({ items, ageProfile, onFinish, onExit 
         ) : (
           <div className="w-full card-panel bg-surface p-6 text-center">
             <p className="label-mono mb-2">A sua frase</p>
-            <p dir={direcaoDoTexto(leva[0].lang)} className="text-[17px] font-bold text-ink">{frase}</p>
+            <p dir={direcaoDoTexto(leva[0].lang)} className="text-[17px] font-bold text-ink">
+              {frase}
+            </p>
             <div className="flex items-center justify-center gap-2 mt-3">
               <button
                 onClick={() => speak(frase, { lang: leva[0].lang })}
@@ -178,7 +183,10 @@ export default function CadavreExquisGame({ items, ageProfile, onFinish, onExit 
               </button>
             </div>
             <p className="text-[13px] text-ink-muted mt-4">
-              palavras usadas: <b className="text-ink">{resultado.items.filter((o) => o.correct).length}/{resultado.items.length}</b>
+              palavras usadas:{' '}
+              <b className="text-ink">
+                {resultado.items.filter((o) => o.correct).length}/{resultado.items.length}
+              </b>
             </p>
             <p className="text-[11.5px] text-ink-faint mt-1">Produção livre: esta rodada não agenda revisão.</p>
             <button onClick={() => onFinish(resultado)} className="btn-ink w-full justify-center mt-5 cursor-pointer">
@@ -186,7 +194,7 @@ export default function CadavreExquisGame({ items, ageProfile, onFinish, onExit 
             </button>
           </div>
         )}
-      </main>
-    </div>
+      </div>
+    </>
   );
 }

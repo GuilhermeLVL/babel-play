@@ -175,16 +175,20 @@ test.describe('Sessao de jogo', () => {
     await irParaPraticar(page)
     await abrirJogo(page, /^Bao: (monte a palavra|semeie os pedaços)$/)
 
-    const sair = page.getByRole('button', { name: 'Sair do jogo' })
-    await expect(sair).toBeVisible({ timeout: 10_000 })
-    await expect(
-      page.getByText('As covas trazem os pedaços da palavra fora de ordem. Semeie na ordem certa.'),
-    ).toBeVisible()
-    /* Ha covas para semear: os pedacos sao botoes fora do cabecalho. */
-    const botoes = page.locator('div.fixed.inset-0 button')
-    expect(await botoes.count(), 'a tela do Bao deveria ter as covas como botoes').toBeGreaterThan(3)
+    /* O Bao veste a CASCA COMUM (casca/CascaDaRodada): o topo e o de toda rodada — "← Jogar",
+       Pausar, Recomecar — e o tabuleiro mora no palco (#palco), abaixo do placar comum. */
+    await expect(page.getByRole('button', { name: 'Pausar' })).toBeVisible({ timeout: 10_000 })
+    await expect(page.getByRole('group', { name: 'Placar da rodada' })).toBeVisible()
+    /* Ha covas para semear: os pedacos sao botoes do palco (fora as ajudas do placar). Antes a
+       conta incluia o X e a Dica do topo antigo (> 3 = pelo menos duas covas); a regra e a mesma. */
+    const covas = page.locator('#palco button:not(.ajuda-jogo)')
+    await expect(covas.first()).toBeVisible()
+    expect(await covas.count(), 'a tela do Bao deveria ter as covas como botoes').toBeGreaterThanOrEqual(2)
 
-    await clicarRobusto(page, sair)
+    /* Sair no meio PERGUNTA antes: a rodada nao conta, e isso e dito. */
+    await clicarRobusto(page, page.locator('button.voltar'))
+    await expect(page.getByRole('heading', { name: 'Sair sem terminar?' })).toBeVisible()
+    await clicarRobusto(page, page.getByRole('dialog').getByRole('button', { name: 'Sair da rodada' }))
     await fecharSobreposicoes(page)
     await expect(page.getByRole('button', { name: 'Fonte' })).toBeVisible({ timeout: 15_000 })
     await expect(page.locator('#grade-de-jogos')).toBeVisible()

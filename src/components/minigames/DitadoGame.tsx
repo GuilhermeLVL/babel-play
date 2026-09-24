@@ -1,12 +1,14 @@
-import type { ItemOutcome, RodadaDitado,RoundReport } from '@core';
+import type { ItemOutcome, RodadaDitado, RoundReport } from '@core';
 import { conferirDitado, scoreRound } from '@core';
-import { CornerDownLeft, Flame,Lightbulb, Play, SkipForward, Sparkles, Turtle, X } from 'lucide-react';
+import { CornerDownLeft, Lightbulb, Play, SkipForward, Turtle } from 'lucide-react';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 
 import { criarFalante } from '../../lib/falante';
 import { playJuicedError, playJuicedHit, playJuicedVictory, triggerHaptic } from '../../lib/gameFeel';
-import { comemorar, multiplicador,pontosDoElemento } from '../../lib/juice';
+import { comemorar, multiplicador, pontosDoElemento } from '../../lib/juice';
 import type { AgeProfileType } from '../../lib/profile';
+import { useRodada } from './casca/CascaDaRodada';
+import HudDaRodada, { BotaoDeAjuda } from './casca/HudDaRodada';
 
 /**
  * DITADO — ouvir e escrever o que foi dito.
@@ -31,7 +33,11 @@ interface DitadoGameProps {
   onExit: () => void;
 }
 
-export default function DitadoGame({ rodadas, audioUrl, ageProfile, onFinish, onExit }: DitadoGameProps) {
+export default function DitadoGame({ rodadas, audioUrl, ageProfile, onFinish }: DitadoGameProps) {
+  /** A casca diz quando a rodada anda (fora da contagem 3-2-1 e da pausa). */
+  const { ativo } = useRodada();
+  const [acertos, setAcertos] = useState(0);
+  const tocouRef = useRef(-1);
   const [indice, setIndice] = useState(0);
   const [texto, setTexto] = useState('');
   const [conferido, setConferido] = useState<ReturnType<typeof conferirDitado> | null>(null);
@@ -84,16 +90,21 @@ export default function DitadoGame({ rodadas, audioUrl, ageProfile, onFinish, on
     pararRef.current = window.setTimeout(() => setTocando(false), duracao);
   };
 
+  // Toca sozinho ao entrar em cada fala — depois da contagem, e uma vez só por fala.
   useEffect(() => {
-    if (rodada) {
+    if (rodada && ativo && tocouRef.current !== indice) {
+      tocouRef.current = indice;
       ouvir(1);
       entradaRef.current?.focus();
     }
-    return () => {
-      if (pararRef.current) window.clearTimeout(pararRef.current);
-    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [indice]);
+  }, [indice, ativo]);
+  useEffect(
+    () => () => {
+      if (pararRef.current) window.clearTimeout(pararRef.current);
+    },
+    [],
+  );
 
   useEffect(
     () => () => {
@@ -120,6 +131,7 @@ export default function DitadoGame({ rodadas, audioUrl, ageProfile, onFinish, on
       const mult = multiplicador(nova);
       const ganho = 10 * (dicas ? 1 : mult);
       setSequencia(nova);
+      setAcertos((n) => n + 1);
       setPontos((p) => p + ganho);
       triggerHaptic('success');
       playJuicedHit(nova, undefined, `+${ganho}${mult > 1 && !dicas ? ` ×${mult}` : ''}`);
@@ -162,7 +174,7 @@ export default function DitadoGame({ rodadas, audioUrl, ageProfile, onFinish, on
   };
 
   const conferir = () => {
-    if (!rodada || conferido) return;
+    if (!rodada || conferido || !ativo) return;
     const r = conferirDitado(rodada.fala.text, texto);
     setConferido(r);
     avancar(r, false);
@@ -183,161 +195,118 @@ export default function DitadoGame({ rodadas, audioUrl, ageProfile, onFinish, on
   };
 
   if (!rodada) return null;
-  const mult = multiplicador(sequencia);
-
+  /* A CASCA COMUM desenha o cabeçalho, a pausa e a contagem; aqui ficam o placar comum e o palco
+     do Ditado, que é dele. */
   return (
-    <div className="fixed inset-0 z-50 flex flex-col bg-canvas text-ink select-none overflow-hidden animate-in fade-in duration-200">
+    <>
       <audio ref={audioRef} src={audioUrl} preload="auto" className="hidden" />
 
       {/* Topo unificado */}
-      <header className="flex items-center justify-between px-6 py-4 border-b border-border-subtle bg-surface/85 backdrop-blur-md shrink-0">
+
+      <HudDaRodada
+        pontos={pontos}
+        sequencia={sequencia}
+        acertos={acertos}
+        rotulo={`Fala ${indice + 1} de ${rodadas.length}`}
+        progresso={indice / rodadas.length}
+        ajudas={
+          <BotaoDeAjuda
+            icone={Lightbulb}
+            rotulo="Próxima palavra"
+            data-tour="dica-ditado"
+            disabled={!!conferido}
+            onClick={(e) => pedirDica(e.currentTarget)}
+            title="Revelar a próxima palavra (conta como dica)"
+          />
+        }
+      />
+      <div ref={palcoRef} className="w-full max-w-2xl mx-auto flex flex-col items-center gap-5">
         <div className="flex items-center gap-3">
           <button
-            onClick={onExit}
-            className="p-2 rounded-xl border border-border-subtle bg-surface-hover hover:bg-border-subtle transition-colors cursor-pointer"
-            title="Sair do Ditado"
-            aria-label="Sair do jogo"
+            data-tour="ouvir"
+            onClick={() => ouvir(1)}
+            className={`py-3.5 px-7 rounded-2xl bg-accent hover:bg-accent-ink text-white font-bold text-[15px] shadow-btn cursor-pointer flex items-center gap-2.5 transition-all ${tocando ? 'scale-105 ring-4 ring-accent/30' : 'hover:-translate-y-0.5'}`}
           >
-            <X className="w-5 h-5 text-ink" />
+            <Play className={`w-5 h-5 ${tocando ? 'animate-pulse' : ''}`} /> {tocando ? 'Tocando áudio…' : 'Ouvir fala'}
           </button>
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="font-display font-black text-lg tracking-wide uppercase text-accent">
-                {ageProfile === 'kids' ? 'Ditado Mágico' : 'Ditado Digital'}
-              </span>
-              <span className="text-xs px-2 py-0.5 rounded-full bg-accent-soft text-accent-ink font-semibold">
-                Ortografia & Áudio 🎧
-              </span>
-            </div>
-            <p className="text-xs text-ink-muted">
-              Escute com atenção o áudio nativo e escreva as palavras com precisão!
-            </p>
-          </div>
-        </div>
-
-        {/* Dica, Combo, Pontos e Status */}
-        <div className="flex items-center gap-2.5 sm:gap-3">
           <button
-            data-tour="dica-ditado"
-            onClick={(e) => pedirDica(e.currentTarget)}
-            disabled={!!conferido}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-2xl border border-border-subtle bg-surface hover:bg-surface-hover text-xs font-bold text-ink transition-all disabled:opacity-40 disabled:cursor-not-allowed shadow-sm cursor-pointer"
-            title="Revelar a próxima palavra (conta como dica)"
+            onClick={() => ouvir(0.6)}
+            className="py-3.5 px-4 rounded-2xl bg-canvas border border-border-subtle text-ink-muted hover:text-ink hover:border-accent font-bold text-[13px] cursor-pointer flex items-center gap-1.5 transition-colors"
+            title="Toca mais devagar, sem mudar o tom da voz"
           >
-            <Lightbulb className="w-3.5 h-3.5 text-warn" />
-            <span>Dica</span>
+            <Turtle className="w-4 h-4" /> devagar
           </button>
-
-          {mult > 1 && (
-            <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-gradient-to-r from-orange-500 to-amber-500 text-white font-black text-xs shadow-md animate-bounce">
-              <Flame className="w-4 h-4 fill-current" />
-              <span>×{mult}</span>
-            </div>
-          )}
-
-          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-border-subtle bg-surface">
-            <Sparkles className="w-4 h-4 text-accent" />
-            <span className="font-mono font-bold text-base">{pontos} pts</span>
-          </div>
-
-          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-border-subtle bg-surface">
-            <span className="font-mono font-bold text-base text-ink">
-              {indice + 1}/{rodadas.length}
-            </span>
-          </div>
         </div>
-      </header>
 
-      <main className="flex-1 flex flex-col items-center justify-center p-4 lg:p-8 overflow-y-auto custom-scrollbar">
-        <div ref={palcoRef} className="w-full max-w-2xl flex flex-col items-center gap-5 my-auto">
-          <div className="flex items-center gap-3">
-            <button
-              data-tour="ouvir"
-              onClick={() => ouvir(1)}
-              className={`py-3.5 px-7 rounded-2xl bg-accent hover:bg-accent-ink text-white font-bold text-[15px] shadow-btn cursor-pointer flex items-center gap-2.5 transition-all ${tocando ? 'scale-105 ring-4 ring-accent/30' : 'hover:-translate-y-0.5'}`}
-            >
-              <Play className={`w-5 h-5 ${tocando ? 'animate-pulse' : ''}`} />{' '}
-              {tocando ? 'Tocando áudio…' : 'Ouvir fala'}
-            </button>
-            <button
-              onClick={() => ouvir(0.6)}
-              className="py-3.5 px-4 rounded-2xl bg-canvas border border-border-subtle text-ink-muted hover:text-ink hover:border-accent font-bold text-[13px] cursor-pointer flex items-center gap-1.5 transition-colors"
-              title="Toca mais devagar, sem mudar o tom da voz"
-            >
-              <Turtle className="w-4 h-4" /> devagar
-            </button>
-          </div>
-
-          {/* A LINHA DE ESCRITA. Uma caixa só: dividir em campos por palavra entregaria onde cada
+        {/* A LINHA DE ESCRITA. Uma caixa só: dividir em campos por palavra entregaria onde cada
             uma começa e termina, que é metade do que o ditado treina. */}
-          <div className="w-full flex items-center gap-2">
-            <input
-              ref={entradaRef}
-              data-tour="entrada"
-              value={texto}
-              onChange={(e) => setTexto(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') conferir();
-              }}
-              disabled={!!conferido}
-              placeholder={ageProfile === 'senior' ? 'Escreva aqui o que você ouviu' : 'escreva o que ouviu…'}
-              className="flex-1 px-4 py-3.5 rounded-xl bg-surface border border-border-subtle text-ink text-[15px] focus:border-accent outline-none disabled:opacity-60 shadow-sm"
-            />
-            <button
-              data-tour="conferir"
-              onClick={conferir}
-              disabled={!texto.trim() || !!conferido}
-              className="py-3.5 px-5 rounded-xl bg-accent hover:bg-accent-ink text-white font-bold text-[13px] shadow-btn disabled:opacity-40 cursor-pointer flex items-center gap-1.5 active:scale-95 transition-all"
-            >
-              <CornerDownLeft className="w-4 h-4" /> Conferir
-            </button>
-          </div>
+        <div className="w-full flex items-center gap-2">
+          <input
+            ref={entradaRef}
+            data-tour="entrada"
+            value={texto}
+            onChange={(e) => setTexto(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') conferir();
+            }}
+            disabled={!!conferido}
+            placeholder={ageProfile === 'senior' ? 'Escreva aqui o que você ouviu' : 'escreva o que ouviu…'}
+            className="flex-1 px-4 py-3.5 rounded-xl bg-surface border border-border-subtle text-ink text-[15px] focus:border-accent outline-none disabled:opacity-60 shadow-sm"
+          />
+          <button
+            data-tour="conferir"
+            onClick={conferir}
+            disabled={!texto.trim() || !!conferido}
+            className="py-3.5 px-5 rounded-xl bg-accent hover:bg-accent-ink text-white font-bold text-[13px] shadow-btn disabled:opacity-40 cursor-pointer flex items-center gap-1.5 active:scale-95 transition-all"
+          >
+            <CornerDownLeft className="w-4 h-4" /> Conferir
+          </button>
+        </div>
 
-          {/* A CORREÇÃO PALAVRA A PALAVRA — o que o exercício antigo não fazia e que é o que ensina. */}
-          {conferido && (
-            <div className="w-full flex flex-col gap-2 animate-in fade-in">
-              <p className="text-[12px] text-ink-muted">
-                {conferido.acertos} de {conferido.total} palavras, {conferido.precisao}%
-              </p>
-              <p className="flex flex-wrap gap-x-2 gap-y-1.5">
-                {/* `palavras` — o campo real de `ResultadoDitado`. Estava `itemRefs`, resíduo da
+        {/* A CORREÇÃO PALAVRA A PALAVRA — o que o exercício antigo não fazia e que é o que ensina. */}
+        {conferido && (
+          <div className="w-full flex flex-col gap-2 animate-in fade-in">
+            <p className="text-[12px] text-ink-muted">
+              {conferido.acertos} de {conferido.total} palavras, {conferido.precisao}%
+            </p>
+            <p className="flex flex-wrap gap-x-2 gap-y-1.5">
+              {/* `palavras` — o campo real de `ResultadoDitado`. Estava `itemRefs`, resíduo da
                   renomeação `ItemOutcome.palavra`→`itemRef`, que varreu este componente por engano:
                   `undefined.map()` dentro do render, ou seja, o Ditado QUEBRAVA ao clicar em
                   "Conferir", justo a correção palavra a palavra, que é o que ensina. Passou porque
                   `@types/react` não estava instalado e `conferido` era `any`. */}
-                {conferido.palavras.map((p, i) => (
-                  <span key={i} className="flex flex-col items-center">
-                    <span
-                      className={`font-display font-bold text-[15px] ${p.certa ? 'text-good-ink' : 'text-error-ink'}`}
-                    >
-                      {p.esperada}
-                    </span>
-                    {/* O que ELA escreveu fica embaixo, riscado: é a comparação que faz entender. */}
-                    {!p.certa && p.escrita && (
-                      <span className="text-[11px] text-ink-faint line-through">{p.escrita}</span>
-                    )}
-                    {!p.certa && !p.escrita && <span className="text-[11px] text-ink-faint">-</span>}
+              {conferido.palavras.map((p, i) => (
+                <span key={i} className="flex flex-col items-center">
+                  <span
+                    className={`font-display font-bold text-[15px] ${p.certa ? 'text-good-ink' : 'text-error-ink'}`}
+                  >
+                    {p.esperada}
                   </span>
-                ))}
-              </p>
-              {rodada.fala.translation && <p className="text-[12px] text-ink-muted">{rodada.fala.translation}</p>}
-            </div>
-          )}
+                  {/* O que ELA escreveu fica embaixo, riscado: é a comparação que faz entender. */}
+                  {!p.certa && p.escrita && (
+                    <span className="text-[11px] text-ink-faint line-through">{p.escrita}</span>
+                  )}
+                  {!p.certa && !p.escrita && <span className="text-[11px] text-ink-faint">-</span>}
+                </span>
+              ))}
+            </p>
+            {rodada.fala.translation && <p className="text-[12px] text-ink-muted">{rodada.fala.translation}</p>}
+          </div>
+        )}
 
-          {!conferido && (
-            <button
-              onClick={() => {
-                const r = conferirDitado(rodada.fala.text, texto);
-                setConferido(r);
-                avancar(r, true);
-              }}
-              className="flex items-center gap-1.5 text-[11px] text-ink-faint hover:text-warn-ink cursor-pointer"
-            >
-              <SkipForward className="w-3.5 h-3.5" /> não consigo, pular
-            </button>
-          )}
-        </div>
-      </main>
-    </div>
+        {!conferido && (
+          <button
+            onClick={() => {
+              const r = conferirDitado(rodada.fala.text, texto);
+              setConferido(r);
+              avancar(r, true);
+            }}
+            className="flex items-center gap-1.5 text-[11px] text-ink-faint hover:text-warn-ink cursor-pointer"
+          >
+            <SkipForward className="w-3.5 h-3.5" /> não consigo, pular
+          </button>
+        )}
+      </div>
+    </>
   );
 }

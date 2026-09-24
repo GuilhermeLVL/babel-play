@@ -1,14 +1,16 @@
-import type { ItemOutcome, ResultadoDitado,RoundReport } from '@core';
-import { conferirDitado,scorePronunciation, scoreRound } from '@core';
-import { Mic, Play, SkipForward, Square, Turtle,X } from 'lucide-react';
+import type { ItemOutcome, ResultadoDitado, RoundReport } from '@core';
+import { conferirDitado, pontuarRodada, scorePronunciation, scoreRound } from '@core';
+import { Mic, Play, SkipForward, Square, Turtle } from 'lucide-react';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 
 import { criarFalante } from '../../lib/falante';
-import { playJuicedError, playJuicedHit, triggerConfetti,triggerHaptic } from '../../lib/gameFeel';
+import { playJuicedError, playJuicedHit, triggerConfetti, triggerHaptic } from '../../lib/gameFeel';
 import { comemorar } from '../../lib/juice';
 import { speechErrorMessage } from '../../lib/mediaErrors';
 import type { AgeProfileType } from '../../lib/profile';
 import { toast } from '../Toast';
+import { useRodada } from './casca/CascaDaRodada';
+import HudDaRodada from './casca/HudDaRodada';
 
 /**
  * KARAOKÊ DA FALA — a frase real toca com as palavras acendendo em sincronia; você fala junto e
@@ -34,7 +36,11 @@ interface KaraokeGameProps {
 
 type Fase = 'parado' | 'ouvindo' | 'gravando' | 'avaliado';
 
-export default function KaraokeGame({ falas, audioUrl, ageProfile, onFinish, onExit }: KaraokeGameProps) {
+export default function KaraokeGame({ falas, audioUrl, ageProfile, onFinish }: KaraokeGameProps) {
+  /** A casca diz quando a rodada anda (fora da contagem 3-2-1 e da pausa). */
+  const { ativo } = useRodada();
+  /** O placar que o HUD mostra: a MESMA conta do fim da rodada (`pontuarRodada`), refeita a cada fala. */
+  const [placar, setPlacar] = useState({ pontos: 0, sequencia: 0, acertos: 0 });
   const [indice, setIndice] = useState(0);
   const [fase, setFase] = useState<Fase>('parado');
   const [palavraAtiva, setPalavraAtiva] = useState(-1);
@@ -78,8 +84,12 @@ export default function KaraokeGame({ falas, audioUrl, ageProfile, onFinish, onE
   };
 
   const gravar = () => {
+    if (!ativo) return;
     const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-    if (!SR) { setSemReconhecimento(true); return; }
+    if (!SR) {
+      setSemReconhecimento(true);
+      return;
+    }
     triggerHaptic('soft');
     const rec = new SR();
     rec.lang = fala.lang || 'en-US';
@@ -119,11 +129,23 @@ export default function KaraokeGame({ falas, audioUrl, ageProfile, onFinish, onE
       if (msg) toast.warn(msg);
       setFase('parado');
     };
-    rec.onend = () => { if (fase === 'gravando') setFase('parado'); };
-    try { rec.start(); } catch { setFase('parado'); }
+    rec.onend = () => {
+      if (fase === 'gravando') setFase('parado');
+    };
+    try {
+      rec.start();
+    } catch {
+      setFase('parado');
+    }
   };
 
-  const parar = () => { try { recRef.current?.stop(); } catch { /* já parou */ } };
+  const parar = () => {
+    try {
+      recRef.current?.stop();
+    } catch {
+      /* já parou */
+    }
+  };
 
   /**
    * Grava o resultado de UMA fala — no máximo um por fala.
@@ -135,12 +157,19 @@ export default function KaraokeGame({ falas, audioUrl, ageProfile, onFinish, onE
    * Sem `itemRef` (fala sem id) não há como saber se é a mesma — aí empilha, porque supor que duas
    * falas anônimas são a mesma apagaria uma nota de verdade.
    */
+  const recontar = () => {
+    const p = pontuarRodada('karaoke', resultadosRef.current);
+    setPlacar({
+      pontos: p.total,
+      sequencia: p.sequenciaFinal,
+      acertos: resultadosRef.current.filter((o) => o.correct).length,
+    });
+  };
   const registrarFala = (o: ItemOutcome) => {
-    if (!o.itemRef) { resultadosRef.current.push(o); return; }
-    const i = resultadosRef.current.findIndex(a => a.itemRef === o.itemRef);
-    if (i < 0) { resultadosRef.current.push(o); return; }
-    const anterior = resultadosRef.current[i];
-    resultadosRef.current[i] = { ...o, attempts: anterior.attempts + 1 };
+    const i = o.itemRef ? resultadosRef.current.findIndex((a) => a.itemRef === o.itemRef) : -1;
+    if (i < 0) resultadosRef.current.push(o);
+    else resultadosRef.current[i] = { ...o, attempts: resultadosRef.current[i].attempts + 1 };
+    recontar();
   };
 
   const proxima = (el?: HTMLElement | null) => {
@@ -153,7 +182,7 @@ export default function KaraokeGame({ falas, audioUrl, ageProfile, onFinish, onE
      * "desistiu", e `correct: false` sem `attempts` é o que o agendador precisa para tratar como
      * item não recuperado. Não é castigo: é a diferença entre "não lembrei" e "não aconteceu".
      */
-    if (fase !== 'avaliado' && fala.id && !resultadosRef.current.some(a => a.itemRef === fala.id)) {
+    if (fase !== 'avaliado' && fala.id && !resultadosRef.current.some((a) => a.itemRef === fala.id)) {
       resultadosRef.current.push({
         itemRef: fala.id,
         correct: false,
@@ -161,82 +190,71 @@ export default function KaraokeGame({ falas, audioUrl, ageProfile, onFinish, onE
         ms: Date.now() - inicioFalaRef.current,
         revealed: true,
       });
+      recontar();
     }
 
     if (indice + 1 >= falas.length) {
       if (jaFinalizouRef.current) return;
       jaFinalizouRef.current = true;
       const todos = resultadosRef.current;
-      const impecavel = todos.length > 0 && todos.every(o => o.correct);
+      const impecavel = todos.length > 0 && todos.every((o) => o.correct);
       /* Rodada de ZERO itens não comemora erro. Antes, `todos.some(...)` era falso numa lista vazia
          e caía em `'erro'`, o jogo dizia que a pessoa errou uma rodada em que nada foi avaliado, e
          a raspadinha mostrava "0 de 0 · 0%". É o mesmo princípio que este arquivo já aplica quando
          não há reconhecimento de voz: sem avaliação, não se dá nota. */
       if (todos.length > 0) {
-        comemorar(impecavel ? 'rodadaPerfeita' : todos.some(o => o.correct) ? 'rodadaBoa' : 'erro', el ?? null, { tremer: impecavel });
+        comemorar(impecavel ? 'rodadaPerfeita' : todos.some((o) => o.correct) ? 'rodadaBoa' : 'erro', el ?? null, {
+          tremer: impecavel,
+        });
       }
       /* Zero itens: NENHUMA comemoração. Não existe efeito "neutro" em `Comemoracao`, e inventar um
          seria dar retorno a uma rodada que não teve avaliação. Silêncio é a resposta honesta. */
-      setTimeout(() => onFinish({
-        gameId: 'karaoke',
-        items: todos,
-        score: scoreRound('karaoke', todos),
-        durationMs: Date.now() - inicioRodadaRef.current,
-      }), 900);
+      setTimeout(
+        () =>
+          onFinish({
+            gameId: 'karaoke',
+            items: todos,
+            score: scoreRound('karaoke', todos),
+            durationMs: Date.now() - inicioRodadaRef.current,
+          }),
+        900,
+      );
       return;
     }
-    setIndice(i => i + 1);
+    setIndice((i) => i + 1);
     setFase('parado');
     setNota(null);
     setPalavraAtiva(-1);
   };
 
-  useEffect(() => () => { try { recRef.current?.abort?.(); } catch { /* nada */ } }, []);
+  useEffect(
+    () => () => {
+      try {
+        recRef.current?.abort?.();
+      } catch {
+        /* nada */
+      }
+    },
+    [],
+  );
 
   if (!fala) return null;
 
+  /* A CASCA COMUM desenha o cabeçalho, a pausa e a contagem; aqui ficam o placar comum e o palco
+     do Karaokê, que é dele. */
   return (
-    <div className="fixed inset-0 z-50 flex flex-col bg-canvas text-ink select-none overflow-hidden animate-in fade-in duration-200">
+    <>
       <audio ref={audioRef} src={audioUrl} preload="auto" className="hidden" />
 
       {/* Topo unificado */}
-      <header className="flex items-center justify-between px-6 py-4 border-b border-border-subtle bg-surface/85 backdrop-blur-md shrink-0">
-        <div className="flex items-center gap-3">
-          <button
-            onClick={onExit}
-            className="p-2 rounded-xl border border-border-subtle bg-surface-hover hover:bg-border-subtle transition-colors cursor-pointer"
-            title="Sair do Karaokê"
-            aria-label="Sair do jogo"
-          >
-            <X className="w-5 h-5 text-ink" />
-          </button>
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="font-display font-black text-lg tracking-wide uppercase text-accent">Karaokê da Fala</span>
-              <span className="text-xs px-2 py-0.5 rounded-full bg-accent-soft text-accent-ink font-semibold">Pronúncia & Ritmo 🎤</span>
-            </div>
-            <p className="text-xs text-ink-muted">Treine sua pronúncia e ritmo vocal sincronizado com o áudio nativo!</p>
-          </div>
-        </div>
 
-        {/* Status de Gravação e Progresso */}
-        <div className="flex items-center gap-2.5 sm:gap-3">
-          {fase === 'gravando' && (
-            <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-error text-white font-black text-xs shadow-md animate-pulse">
-              <span className="w-2 h-2 rounded-full bg-white animate-ping" />
-              <span>GRAVANDO</span>
-            </div>
-          )}
-
-          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-border-subtle bg-surface">
-            <span className="font-mono font-bold text-base text-ink">
-              fala {indice + 1}/{falas.length}
-            </span>
-          </div>
-        </div>
-      </header>
-
-      <main className="flex-1 flex flex-col items-center justify-center p-4 lg:p-8 overflow-y-auto custom-scrollbar">
+      <HudDaRodada
+        pontos={placar.pontos}
+        sequencia={placar.sequencia}
+        acertos={placar.acertos}
+        rotulo={`Fala ${indice + 1} de ${falas.length}${fase === 'gravando' ? ' · gravando' : ''}`}
+        progresso={indice / falas.length}
+      />
 
       <div className="w-full max-w-2xl flex flex-col items-center gap-6">
         {/* A FRASE: acende em sincronia com o áudio enquanto se ouve e, DEPOIS de falar, vira o
@@ -251,10 +269,20 @@ export default function KaraokeGame({ falas, audioUrl, ageProfile, onFinish, onE
                 key={i}
                 /* Cor nunca sozinha: a palavra que escapou também ganha sublinhado ondulado, senão
                    quem não distingue verde de laranja não recebe informação nenhuma. */
-                style={corDoVeredito ? { color: corDoVeredito, textDecoration: v!.certa ? undefined : 'underline wavy' } : undefined}
+                style={
+                  corDoVeredito
+                    ? { color: corDoVeredito, textDecoration: v!.certa ? undefined : 'underline wavy' }
+                    : undefined
+                }
                 title={v && !v.certa ? (v.escrita ? `ouvimos “${v.escrita}”` : 'não ouvimos esta palavra') : undefined}
                 className={`font-display font-black text-2xl leading-tight transition-colors duration-150 ${
-                  nota ? '' : i === palavraAtiva ? 'text-accent scale-105' : i < palavraAtiva ? 'text-ink' : 'text-ink-faint'
+                  nota
+                    ? ''
+                    : i === palavraAtiva
+                      ? 'text-accent scale-105'
+                      : i < palavraAtiva
+                        ? 'text-ink'
+                        : 'text-ink-faint'
                 }`}
               >
                 {p}
@@ -284,11 +312,18 @@ export default function KaraokeGame({ falas, audioUrl, ageProfile, onFinish, onE
           </button>
 
           {fase === 'gravando' ? (
-            <button onClick={parar} className="py-3 px-6 rounded-xl bg-error text-white font-bold text-[13px] shadow-btn cursor-pointer flex items-center gap-2">
+            <button
+              onClick={parar}
+              className="py-3 px-6 rounded-xl bg-error text-white font-bold text-[13px] shadow-btn cursor-pointer flex items-center gap-2"
+            >
               <Square className="w-4 h-4" /> Parar
             </button>
           ) : (
-            <button data-tour="falar" onClick={gravar} className="py-3 px-6 rounded-xl bg-accent hover:bg-accent-ink text-white font-bold text-[13px] shadow-btn cursor-pointer flex items-center gap-2">
+            <button
+              data-tour="falar"
+              onClick={gravar}
+              className="py-3 px-6 rounded-xl bg-accent hover:bg-accent-ink text-white font-bold text-[13px] shadow-btn cursor-pointer flex items-center gap-2"
+            >
               <Mic className="w-4 h-4" /> {ageProfile === 'kids' ? 'Falar!' : 'Falar agora'}
             </button>
           )}
@@ -303,7 +338,10 @@ export default function KaraokeGame({ falas, audioUrl, ageProfile, onFinish, onE
         {/* NOTA — só quando houve reconhecimento de verdade. */}
         {nota && (
           <div className="w-full max-w-md text-center animate-in fade-in slide-in-from-bottom-2">
-            <p className="font-display font-black text-3xl" style={{ color: nota.accuracy >= 60 ? 'var(--good)' : 'var(--warn)' }}>
+            <p
+              className="font-display font-black text-3xl"
+              style={{ color: nota.accuracy >= 60 ? 'var(--good)' : 'var(--warn)' }}
+            >
               {nota.accuracy}%
             </p>
             {/* O número agregado precisa dizer DE QUANTAS — "85%" sem denominador não diz se
@@ -316,13 +354,15 @@ export default function KaraokeGame({ falas, audioUrl, ageProfile, onFinish, onE
             {nota.diff.acertos < nota.diff.total && (
               <p className="text-[12px] text-ink-muted mt-1.5 leading-relaxed">
                 escapou:{' '}
-                {nota.diff.palavras.filter(p => !p.certa).map((p, i, todas) => (
-                  <span key={i}>
-                    <b className="text-ink">{p.esperada}</b>
-                    {p.escrita ? <> (ouvimos “{p.escrita}”)</> : null}
-                    {i < todas.length - 1 ? ', ' : ''}
-                  </span>
-                ))}
+                {nota.diff.palavras
+                  .filter((p) => !p.certa)
+                  .map((p, i, todas) => (
+                    <span key={i}>
+                      <b className="text-ink">{p.esperada}</b>
+                      {p.escrita ? <> (ouvimos “{p.escrita}”)</> : null}
+                      {i < todas.length - 1 ? ', ' : ''}
+                    </span>
+                  ))}
               </p>
             )}
             <p className="text-[12px] text-ink-muted mt-1">o que entendemos: “{nota.transcript}”</p>
@@ -331,8 +371,8 @@ export default function KaraokeGame({ falas, audioUrl, ageProfile, onFinish, onE
 
         {semReconhecimento && (
           <p className="text-[12px] text-warn-ink text-center max-w-[46ch]">
-            Este navegador não tem reconhecimento de voz, então não dá para dar nota aqui, e nota
-            de pronúncia inventada seria pior que nenhuma. Você ainda pode ouvir e repetir.
+            Este navegador não tem reconhecimento de voz, então não dá para dar nota aqui, e nota de pronúncia inventada
+            seria pior que nenhuma. Você ainda pode ouvir e repetir.
           </p>
         )}
 
@@ -343,7 +383,6 @@ export default function KaraokeGame({ falas, audioUrl, ageProfile, onFinish, onE
           {indice + 1 >= falas.length ? 'Terminar' : 'Próxima'} <SkipForward className="w-3.5 h-3.5" />
         </button>
       </div>
-      </main>
-    </div>
+    </>
   );
 }

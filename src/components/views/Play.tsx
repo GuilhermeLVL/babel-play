@@ -179,6 +179,7 @@ import { aoMudarVozes, hasVoiceFor, isTtsSupported, vozesCarregadas } from '../.
 import type { Recording, VocabCard } from '../../types';
 import AntessalaDaRodada from '../minigames/AntessalaDaRodada';
 import { FAMILIAS, tomDoJogo } from '../minigames/ArteDosJogos';
+import CascaDaRodada from '../minigames/casca/CascaDaRodada';
 import CoberturaDosIdiomas from '../minigames/CoberturaDosIdiomas';
 import ComoSeJoga from '../minigames/ComoSeJoga';
 import ConectoresGame from '../minigames/ConectoresGame';
@@ -2247,6 +2248,37 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
    * REAIS, com o conteúdo real da pessoa. Por isso cada rodada é envolvida por este ajudante em
    * vez de um `return` direto.
    */
+  /**
+   * A CASCA COMUM DA RODADA (`T.jogo` do protótipo): cabeçalho, pausa com confirmação de saída,
+   * contagem 3-2-1 e o palco onde o tabuleiro do jogo mora. Termo e Memória ficam FORA por ora —
+   * os tabuleiros deles estão sendo refeitos à parte e ainda desenham o próprio topo em tela cheia.
+   * "Recomeçar" remonta a casca e o jogo (chave nova) com os MESMOS itens.
+   */
+  const [chaveDaRodada, setChaveDaRodada] = useState(0);
+  const naCasca = (tela: React.ReactNode, jogo: MinigameId, total: number, sair: () => void) => {
+    if (jogo === 'termo' || jogo === 'memory') return tela;
+    const j = JOGOS.find((x) => x.id === jogo);
+    const unidade =
+      jogo === 'escuta' || jogo === 'ditado' || jogo === 'karaoke'
+        ? 'falas'
+        : jogo === 'scramble' || jogo === 'conectores'
+          ? 'frases'
+          : 'palavras';
+    return (
+      <CascaDaRodada
+        key={chaveDaRodada}
+        jogo={jogo}
+        titulo={j ? tituloDoJogo(j, ageProfile) : jogo}
+        total={total}
+        unidade={unidade}
+        ageProfile={ageProfile}
+        onRecomecar={() => setChaveDaRodada((k) => k + 1)}
+        onSair={sair}
+      >
+        {tela}
+      </CascaDaRodada>
+    );
+  };
   const comTour = (tela: React.ReactNode, jogo: MinigameId) =>
     telaCheia(
       tela,
@@ -2480,59 +2512,84 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
   }
   if (rodadaFrase) {
     return comTour(
-      <ScrambleGame
-        rodadas={rodadaFrase}
-        ageProfile={ageProfile}
-        onFinish={aoTerminar}
-        onExit={sairDaRodada(() => setRodadaFrase(null))}
-      />,
+      naCasca(
+        <ScrambleGame
+          rodadas={rodadaFrase}
+          ageProfile={ageProfile}
+          onFinish={aoTerminar}
+          onExit={sairDaRodada(() => setRodadaFrase(null))}
+        />,
+        'scramble',
+        rodadaFrase.length,
+        sairDaRodada(() => setRodadaFrase(null)),
+      ),
       'scramble',
     );
   }
   if (rodadaEscuta) {
     return comTour(
-      <EscutaGame
-        rodadas={rodadaEscuta}
-        audioUrl={audioParaJogos}
-        ageProfile={ageProfile}
-        onFinish={aoTerminar}
-        onExit={sairDaRodada(() => setRodadaEscuta(null))}
-      />,
+      naCasca(
+        <EscutaGame
+          rodadas={rodadaEscuta}
+          audioUrl={audioParaJogos}
+          ageProfile={ageProfile}
+          onFinish={aoTerminar}
+          onExit={sairDaRodada(() => setRodadaEscuta(null))}
+        />,
+        'escuta',
+        rodadaEscuta.length,
+        sairDaRodada(() => setRodadaEscuta(null)),
+      ),
       'escuta',
     );
   }
   if (rodadaDitado) {
     return comTour(
-      <DitadoGame
-        rodadas={rodadaDitado}
-        audioUrl={audioParaJogos}
-        ageProfile={ageProfile}
-        onFinish={aoTerminar}
-        onExit={sairDaRodada(() => setRodadaDitado(null))}
-      />,
+      naCasca(
+        <DitadoGame
+          rodadas={rodadaDitado}
+          audioUrl={audioParaJogos}
+          ageProfile={ageProfile}
+          onFinish={aoTerminar}
+          onExit={sairDaRodada(() => setRodadaDitado(null))}
+        />,
+        'ditado',
+        rodadaDitado.length,
+        sairDaRodada(() => setRodadaDitado(null)),
+      ),
       'ditado',
     );
   }
   if (rodadaConectores) {
     return comTour(
-      <ConectoresGame
-        rodadas={rodadaConectores}
-        ageProfile={ageProfile}
-        onFinish={aoTerminar}
-        onExit={sairDaRodada(() => setRodadaConectores(null))}
-      />,
+      naCasca(
+        <ConectoresGame
+          rodadas={rodadaConectores}
+          ageProfile={ageProfile}
+          onFinish={aoTerminar}
+          onExit={sairDaRodada(() => setRodadaConectores(null))}
+        />,
+        'conectores',
+        rodadaConectores.length,
+        sairDaRodada(() => setRodadaConectores(null)),
+      ),
       'conectores',
     );
   }
   if (rodadaKaraoke) {
     return comTour(
-      <KaraokeGame
-        falas={rodadaKaraoke}
-        audioUrl={audioParaJogos}
-        ageProfile={ageProfile}
-        onFinish={aoTerminar}
-        onExit={sairDaRodada(() => setRodadaKaraoke(null))}
-      />,
+      naCasca(
+        <KaraokeGame
+          falas={rodadaKaraoke}
+          audioUrl={audioParaJogos}
+          ageProfile={ageProfile}
+          onFinish={aoTerminar}
+          onExit={sairDaRodada(() => setRodadaKaraoke(null))}
+        />,
+        'karaoke',
+        rodadaKaraoke.length,
+        sairDaRodada(() => setRodadaKaraoke(null)),
+      ),
       'karaoke',
     );
   }
@@ -2544,7 +2601,8 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
       onExit: sairDaRodada(() => setRodada(null)),
     };
     const Tela = TELA_DO_JOGO[rodada.jogo];
-    if (Tela) return comTour(<Tela {...comuns} />, rodada.jogo);
+    if (Tela)
+      return comTour(naCasca(<Tela {...comuns} />, rodada.jogo, rodada.itens.length, comuns.onExit), rodada.jogo);
   }
   /* F6 — PASSO 2, depois da raspadinha.
      A raspadinha funciona como recompensa e continua onde estava; o defeito era ser o FIM DA

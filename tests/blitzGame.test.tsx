@@ -15,9 +15,9 @@
  * O que estes testes travam é o CONTRATO do relatório: um item respondido produz exatamente um
  * `ItemOutcome`, e nada entra depois do fim da rodada.
  */
-import { act,cleanup, fireEvent, render, screen } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
 import React from 'react'
-import { afterEach,beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import type { MinigameItem, RoundReport } from '../src/core/minigames/types'
 
@@ -31,6 +31,7 @@ import type { MinigameItem, RoundReport } from '../src/core/minigames/types'
  * que ainda não está no histórico. Teste que depende do que não precisa falha por motivo errado.
  */
 vi.mock('../src/lib/juice', () => ({
+  contarAte: vi.fn(async () => {}),
   comemorar: vi.fn(),
   pontosDoElemento: vi.fn(),
   pontosFlutuantes: vi.fn(),
@@ -48,7 +49,10 @@ vi.mock('../src/lib/eventosDeJogo', () => ({
   eventosCondicionais: () => [],
 }))
 vi.mock('../src/lib/ranking', () => ({
-  enviarParaRanking: vi.fn(), lerApelido: () => '', salvarApelido: vi.fn(), apelidoValido: () => false,
+  enviarParaRanking: vi.fn(),
+  lerApelido: () => '',
+  salvarApelido: vi.fn(),
+  apelidoValido: () => false,
 }))
 vi.mock('../src/lib/effects', () => ({ emitBurst: vi.fn() }))
 vi.mock('../src/lib/soundFx', () => ({ play: vi.fn() }))
@@ -81,7 +85,9 @@ function clicar(texto: string): 'clicou' | 'desabilitado' | 'ausente' {
 
 /** Avança o relógio DENTRO de `act`, senão o re-render que o timer provoca não chega ao DOM. */
 function avancar(ms: number): void {
-  act(() => { vi.advanceTimersByTime(ms) })
+  act(() => {
+    vi.advanceTimersByTime(ms)
+  })
 }
 
 /**
@@ -99,20 +105,35 @@ function esgotarOTempo(segundos = 61): void {
 /** Responde o item visível na tela lendo a pergunta e clicando na resposta certa. */
 function responderCerto(items: MinigameItem[]): void {
   const pergunta = document.querySelector('[data-tour="pergunta"]')?.textContent ?? ''
-  const alvo = items.find(i => i.prompt === pergunta)
+  const alvo = items.find((i) => i.prompt === pergunta)
   if (!alvo) throw new Error('pergunta na tela não corresponde a nenhum item: ' + pergunta)
   const r = clicar(alvo.answer)
   if (r !== 'clicou') throw new Error(`não deu para responder "${alvo.answer}": ${r}`)
 }
 
 describe('BlitzGame — a rodada congela quando acaba', () => {
-  beforeEach(() => { vi.useFakeTimers({ shouldAdvanceTime: false }) })
-  afterEach(() => { cleanup(); vi.useRealTimers(); vi.clearAllMocks() })
+  beforeEach(() => {
+    vi.useFakeTimers({ shouldAdvanceTime: false })
+  })
+  afterEach(() => {
+    cleanup()
+    vi.useRealTimers()
+    vi.clearAllMocks()
+  })
 
   it('a última resposta entra UMA vez, mesmo com um segundo toque na janela do fim', () => {
     const items = itens()
     let relatorio: RoundReport | null = null
-    render(<BlitzGame items={items} ageProfile="pro" onFinish={r => { relatorio = r }} onExit={() => {}} />)
+    render(
+      <BlitzGame
+        items={items}
+        ageProfile="pro"
+        onFinish={(r) => {
+          relatorio = r
+        }}
+        onExit={() => {}}
+      />,
+    )
 
     /* Responde os dois primeiros (a revelação do acerto dura 420 ms) e o último SEM avançar. */
     for (let i = 0; i < items.length - 1; i++) {
@@ -138,19 +159,28 @@ describe('BlitzGame — a rodada congela quando acaba', () => {
   it('nenhum cardId aparece duas vezes no relatório — é isso que dobrava a revisão', () => {
     const items = itens()
     let relatorio: RoundReport | null = null
-    render(<BlitzGame items={items} ageProfile="pro" onFinish={r => { relatorio = r }} onExit={() => {}} />)
+    render(
+      <BlitzGame
+        items={items}
+        ageProfile="pro"
+        onFinish={(r) => {
+          relatorio = r
+        }}
+        onExit={() => {}}
+      />,
+    )
 
     for (let i = 0; i < items.length - 1; i++) {
       responderCerto(items)
       avancar(560)
     }
     responderCerto(items)
-    clicar('cat')          // toque extra na janela da revelação, deve ser ignorado
-    clicar('dog')          // e outro, em alternativa diferente
+    clicar('cat') // toque extra na janela da revelação, deve ser ignorado
+    clicar('dog') // e outro, em alternativa diferente
     avancar(500)
     clicar('Continuar')
 
-    const ids = relatorio!.items.map(o => o.cardId)
+    const ids = relatorio!.items.map((o) => o.cardId)
     expect(ids).toHaveLength(3)
     expect(new Set(ids).size).toBe(3)
   })
@@ -160,7 +190,16 @@ describe('BlitzGame — a rodada congela quando acaba', () => {
   it('não existe outcome com ms perto de zero vindo de toque reflexo', () => {
     const items = itens()
     let relatorio: RoundReport | null = null
-    render(<BlitzGame items={items} ageProfile="pro" onFinish={r => { relatorio = r }} onExit={() => {}} />)
+    render(
+      <BlitzGame
+        items={items}
+        ageProfile="pro"
+        onFinish={(r) => {
+          relatorio = r
+        }}
+        onExit={() => {}}
+      />,
+    )
 
     for (let i = 0; i < items.length - 1; i++) {
       responderCerto(items)
@@ -176,7 +215,16 @@ describe('BlitzGame — a rodada congela quando acaba', () => {
   it('quando o tempo acaba, a pergunta não respondida deixa de ser clicável', () => {
     const items = itens()
     let relatorio: RoundReport | null = null
-    render(<BlitzGame items={items} ageProfile="pro" onFinish={r => { relatorio = r }} onExit={() => {}} />)
+    render(
+      <BlitzGame
+        items={items}
+        ageProfile="pro"
+        onFinish={(r) => {
+          relatorio = r
+        }}
+        onExit={() => {}}
+      />,
+    )
 
     /* Deixa o relógio inteiro correr sem responder nada. 60 s no perfil `pro`, 1 s por tique. */
     esgotarOTempo()

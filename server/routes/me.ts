@@ -1,18 +1,24 @@
 /** Rota do usuário atual (montada em `/api/me`, atrás do authMiddleware). */
 import { Router } from 'express'
+import { z } from 'zod'
 
 import { contaRepo } from '../db/repositories/conta'
+import { idadesRepo } from '../db/repositories/idades'
 import { perfilRepo } from '../db/repositories/perfil'
 import { subscriptionsRepo } from '../db/repositories/subscriptions'
 import { usageCountersRepo } from '../db/repositories/usageCounters'
 import { usersRepo } from '../db/repositories/users'
+import { vinculosRepo } from '../db/repositories/vinculos'
 import { asaasConfigurado } from '../lib/asaas'
 import { authRequired } from '../lib/auth'
 import { adminDoSupabase } from '../lib/config'
+import { enviadorAtual, linkDoConvite, mostrarLinkNaTela } from '../lib/conviteDoResponsavel'
 import { encerrarAssinatura } from '../lib/encerramentoDeAssinatura'
 import { getEntitlementsForUser, getPlanForUser } from '../lib/entitlements'
 import { erroDeRota } from '../lib/erroDeRota'
+import { estadoDeProtecao, mascararEmail, validarNascimento } from '../lib/idade'
 import { log } from '../lib/logger'
+import { responderErro } from '../lib/respostaDeErro'
 import { capDeArmazenamento, reconciliarSeVencido, usoDeArmazenamento } from '../lib/storageQuota'
 import {
   capForPlan,
@@ -61,6 +67,93 @@ meRouter.patch('/', async (req, res) => {
     res.json(await perfilRepo.atualizar(req.userId, patch))
   } catch (err) {
     res.status(500).json({ error: erroDeRota(err, { status: 500, event: 'me_perfil_patch_error' }) })
+  }
+})
+
+/**
+ * IDADE E PERFIL PROTEGIDO (Fase 4 — ECA Digital e LGPD art. 14). O cliente pergunta a data de
+ * nascimento no primeiro acesso com conta (e na próxima entrada das contas antigas) e lê daqui a
+ * faixa, se a conta está protegida e se ela precisa do responsável. A régua é `server/lib/idade.ts`.
+ */
+meRouter.get('/idade', async (req, res) => {
+  try {
+    res.json(await estadoDeProtecao(req.userId))
+  } catch (err) {
+    res.status(500).json({ error: erroDeRota(err, { status: 500, event: 'me_idade_error', requestId: req.requestId }) })
+  }
+})
+
+/** Declara a data UMA vez. Trocar depois é recusado (409): corrigir é pelo suporte. */
+meRouter.put('/idade', async (req, res) => {
+  const nascimento = validarNascimento((req.body as { nascimento?: unknown } | undefined)?.nascimento)
+  if (!nascimento) {
+    responderErro(res, 400, 'data de nascimento inválida (AAAA-MM-DD, no passado)', 'nascimento_invalido')
+    return
+  }
+  try {
+    const r = await idadesRepo.declarar(req.userId, nascimento)
+    if (r === 'divergente') {
+      responderErro(
+        res,
+        409,
+        'a data de nascimento já foi informada; para corrigir, fale com o suporte',
+        'nascimento_ja_informado',
+      )
+      return
+    }
+    res.json(await estadoDeProtecao(req.userId))
+  } catch (err) {
+    res.status(500).json({ error: erroDeRota(err, { status: 500, event: 'me_idade_error', requestId: req.requestId }) })
+  }
+})
+
+/**
+ * O MENOR CONVIDA O RESPONSÁVEL (ECA Digital art. 24). Só quem precisa de vínculo (menor de 16)
+ * convida. O token vai no link — enviado pelo `EnviadorDeConvite`, que hoje só registra (ver
+ * `server/lib/conviteDoResponsavel.ts`); em desenvolvimento o link volta na resposta.
+ */
+meRouter.post('/responsavel/convite', async (req, res) => {
+  const email = z
+    .string()
+    .trim()
+    .toLowerCase()
+    .email()
+    .max(200)
+    .safeParse((req.body as { email?: unknown } | undefined)?.email)
+  if (!email.success) {
+    responderErro(res, 400, 'e-mail do responsável inválido', 'email_invalido')
+    return
+  }
+  try {
+    const estado = await estadoDeProtecao(req.userId)
+    if (!estado.exigeResponsavel) {
+      responderErro(res, 409, 'esta conta não precisa de vínculo com um responsável', 'vinculo_desnecessario')
+      return
+    }
+    if (estado.vinculo.estado === 'aceito' && !estado.restrita) {
+      responderErro(res, 409, 'esta conta já está vinculada a um responsável', 'ja_vinculada')
+      return
+    }
+    const { token, expiraEm } = await vinculosRepo.convidar(req.userId, email.data)
+    const link = linkDoConvite(token)
+    const perfil = await usersRepo.get(req.userId)
+    const envio = await enviadorAtual().enviar({
+      para: email.data,
+      link,
+      nomeDoMenor: perfil?.displayName ?? null,
+      exigeConsentimentoEspecifico: estado.exigeConsentimentoEspecifico,
+    })
+    res.status(201).json({
+      enviado: envio.enviado,
+      modo: envio.modo,
+      expiraEm,
+      emailMascarado: mascararEmail(email.data),
+      ...(mostrarLinkNaTela() ? { linkDeTeste: link } : {}),
+    })
+  } catch (err) {
+    res
+      .status(500)
+      .json({ error: erroDeRota(err, { status: 500, event: 'me_convite_error', requestId: req.requestId }) })
   }
 })
 

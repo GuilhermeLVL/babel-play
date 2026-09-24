@@ -38,20 +38,30 @@ let migrarLeitnerParaFsrs: () => Promise<number>
 let entradasDoJournal: number
 
 beforeAll(async () => {
-  const mod = await import('../../server/db/db') as any
+  const mod = (await import('../../server/db/db')) as any
   client = mod.client
   dbReady = mod.dbReady
   ;({ aplicarMigrations, migrarLeitnerParaFsrs } = await import('../../server/db/manutencao'))
   entradasDoJournal = (JSON.parse(readFileSync(JOURNAL, 'utf8')) as { entries: unknown[] }).entries.length
 })
 afterAll(() => {
-  try { client?.close?.() } catch { /* ja fechado */ }
-  try { rmSync(dir, { recursive: true, force: true }) } catch { /* OneDrive/AV pode segurar */ }
+  try {
+    client?.close?.()
+  } catch {
+    /* ja fechado */
+  }
+  try {
+    rmSync(dir, { recursive: true, force: true })
+  } catch {
+    /* OneDrive/AV pode segurar */
+  }
 })
 
-const linhas = async (sql: string, args: any[] = []) => (await client.execute({ sql, args })).rows as Record<string, unknown>[]
+const linhas = async (sql: string, args: any[] = []) =>
+  (await client.execute({ sql, args })).rows as Record<string, unknown>[]
 const contar = async (t: string) => Number(Object.values((await linhas(`SELECT COUNT(*) AS n FROM "${t}"`))[0])[0])
-const hashesDoDiario = async () => (await linhas('SELECT hash FROM __drizzle_migrations ORDER BY created_at')).map((r) => String(r.hash))
+const hashesDoDiario = async () =>
+  (await linhas('SELECT hash FROM __drizzle_migrations ORDER BY created_at')).map((r) => String(r.hash))
 const colunas = async (t: string) => (await linhas(`PRAGMA table_info("${t}")`)).map((r) => String(r.name))
 const temTabela = async (t: string) =>
   (await linhas("SELECT name FROM sqlite_master WHERE type='table' AND name = ?", [t])).length > 0
@@ -96,10 +106,12 @@ describe('migrations sobre o estado atual — caminho do boot', () => {
 })
 
 describe('migrations sobre o estado atual — caracterizacao do diario', () => {
-  it('apagar a linha da ULTIMA migration e reaplicar: idempotente, porque a 0027 e toda IF NOT EXISTS', async () => {
+  it('apagar a linha da ULTIMA migration e reaplicar: idempotente, porque a 0028 (como a 0027) e toda IF NOT EXISTS', async () => {
     const total = await contar('__drizzle_migrations')
     const rankAntes = await contar('rank')
-    const ultima = (await linhas('SELECT hash, created_at FROM __drizzle_migrations ORDER BY created_at DESC LIMIT 1'))[0]
+    const ultima = (
+      await linhas('SELECT hash, created_at FROM __drizzle_migrations ORDER BY created_at DESC LIMIT 1')
+    )[0]
 
     await client.execute({ sql: 'DELETE FROM __drizzle_migrations WHERE created_at = ?', args: [ultima.created_at] })
     expect(await contar('__drizzle_migrations')).toBe(total - 1)
@@ -108,7 +120,9 @@ describe('migrations sobre o estado atual — caracterizacao do diario', () => {
 
     // A linha voltou com o mesmo hash, e o dado que a tabela ja tinha nao foi tocado.
     expect(await contar('__drizzle_migrations')).toBe(total)
-    const reposta = (await linhas('SELECT hash, created_at FROM __drizzle_migrations ORDER BY created_at DESC LIMIT 1'))[0]
+    const reposta = (
+      await linhas('SELECT hash, created_at FROM __drizzle_migrations ORDER BY created_at DESC LIMIT 1')
+    )[0]
     expect(reposta).toEqual(ultima)
     expect(await contar('rank')).toBe(rankAntes)
 
@@ -120,31 +134,34 @@ describe('migrations sobre o estado atual — caracterizacao do diario', () => {
     )
   })
 
-  it('apagar as linhas das DUAS ultimas e reaplicar: a 0026 (DROP COLUMN) nao e reexecutavel, o lote volta atras e o boot SEGUE', async () => {
+  it('apagar as linhas das TRES ultimas e reaplicar: a 0026 (DROP COLUMN) nao e reexecutavel, o lote volta atras e o boot SEGUE', async () => {
     const total = await contar('__drizzle_migrations')
-    const duasUltimas = await linhas('SELECT created_at FROM __drizzle_migrations ORDER BY created_at DESC LIMIT 2')
-    for (const r of duasUltimas) {
+    // TRES desde a 0028 (Fase 4): 0027 e 0028 sao reexecutaveis, e a caracterizacao e sobre a 0026.
+    const tresUltimas = await linhas('SELECT created_at FROM __drizzle_migrations ORDER BY created_at DESC LIMIT 3')
+    for (const r of tresUltimas) {
       await client.execute({ sql: 'DELETE FROM __drizzle_migrations WHERE created_at = ?', args: [r.created_at] })
     }
-    expect(await contar('__drizzle_migrations')).toBe(total - 2)
+    expect(await contar('__drizzle_migrations')).toBe(total - 3)
 
     // `mockRestore()` do vitest tambem zera `mock.calls`; as asserções sobre o aviso ficam ANTES.
     const aviso = vi.spyOn(console, 'warn').mockImplementation(() => {})
     try {
       // caracterizacao: `ALTER TABLE vocab_cards DROP COLUMN frequency` falha na segunda vez ("no such
       // column"), o @libsql/client roda o lote inteiro numa transacao e faz ROLLBACK — a 0027 nem
-      // chega a rodar. `aplicarMigrations` ve o schema presente (`sessions` existe) e ENGOLE o erro
+      // chega a rodar (nem a 0028). `aplicarMigrations` ve o schema presente (`sessions` existe) e ENGOLE o erro
       // com console.warn (P1-N1). O processo sobe, o diario fica dois passos atras, e cada boot
       // seguinte repete a falha em silencio. Nao e "falha alto": e "segue como se nada".
       await expect(aplicarMigrations()).resolves.not.toThrow()
       expect(aviso).toHaveBeenCalledTimes(1)
-      expect(String(aviso.mock.calls[0][0])).toMatch(/migrations não aplicadas .*no such column.*schema já está presente/)
+      expect(String(aviso.mock.calls[0][0])).toMatch(
+        /migrations não aplicadas .*no such column.*schema já está presente/,
+      )
     } finally {
       aviso.mockRestore()
     }
 
     // O diario nao andou e o schema ficou como estava: rank continua, frequency continua ausente.
-    expect(await contar('__drizzle_migrations')).toBe(total - 2)
+    expect(await contar('__drizzle_migrations')).toBe(total - 3)
     expect(await temTabela('rank')).toBe(true)
     expect(await colunas('vocab_cards')).not.toContain('frequency')
     expect((await linhas('PRAGMA integrity_check'))[0]).toEqual({ integrity_check: 'ok' })

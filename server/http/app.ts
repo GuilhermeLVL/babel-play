@@ -30,9 +30,11 @@ import rateLimit from 'express-rate-limit'
 import helmet from 'helmet'
 
 import { audioRouter } from '../audio/loopback'
+import { abertura, portaDoCadastro } from '../lib/abertura'
 import { authMiddleware, authRequired } from '../lib/auth'
 import { metricasHabilitadas } from '../lib/config'
 import { capturarAssincrono } from '../lib/erroGlobal'
+import { exigirAdultoDeclarado, exigirContaLiberada } from '../lib/idade'
 import {
   chaveDoRequest,
   createDbRateLimitStore,
@@ -54,6 +56,7 @@ import { importRouter } from '../routes/import'
 import { meRouter } from '../routes/me'
 import { metricsRouter } from '../routes/metrics'
 import { rankRouter } from '../routes/rank'
+import { responsavelRouter } from '../routes/responsavel'
 import { sessionsRouter } from '../routes/sessions'
 import { settingsRouter } from '../routes/settings'
 import { vocabRouter } from '../routes/vocab'
@@ -289,7 +292,17 @@ export function criarApp(opcoes: OpcoesDoApp = {}): express.Express {
      webhook: estando antes do auth, ele ficaria sem teto nenhum, e o POST escreve no banco. A trava
      de um envio por minuto por origem, dentro da rota, é sobre o placar; esta é sobre o servidor. */
   if (authRequired()) app.use('/api/rank', writeLimiter)
+  /* PERFIL PROTEGIDO (Fase 4 — ECA Digital): no modo público, PUBLICAR no placar exige conta de
+     adulto declarado. Ler continua público. Menor — ou quem ainda não disse a idade, inclusive sem
+     conta — não aparece num ranking público; o recorde dele continua salvo no aparelho. */
+  if (authRequired()) {
+    app.post('/api/rank/:jogo', opcoes.autenticacao ?? authMiddleware, exigirAdultoDeclarado)
+  }
   app.use('/api/rank', capturarAssincrono(rankRouter))
+
+  /* AS PORTAS DE EMERGÊNCIA (Fase 3): a tela de login e a de planos perguntam aqui, antes de
+     haver sessão, se o cadastro e a venda estão abertos. Pública pelo mesmo motivo do health. */
+  app.get('/api/abertura', abertura)
 
   /**
    * FORÇA BRUTA CONTRA O TOKEN — o balde que faltava (Fase 4).
@@ -328,8 +341,32 @@ export function criarApp(opcoes: OpcoesDoApp = {}): express.Express {
 
   app.use('/api', opcoes.autenticacao ?? authMiddleware)
 
+  /* `SIGNUP_ENABLED=0` (Fase 3): conta que o banco ainda não conhece é recusada em qualquer rota
+     (403 `cadastro_fechado`). Ligado, este middleware não faz nem consulta. */
+  app.use('/api', portaDoCadastro)
+
   // Rate-limit por tenant — DEPOIS do auth, para a chave ser o usuário e não o IP.
   app.use(['/api/ai', '/api/import', '/api/gemini'], expensiveLimiter)
+
+  /* MENOR DE 16 SEM RESPONSÁVEL FICA SEM NUVEM (Fase 4 — ECA Digital art. 24, LGPD art. 14): as
+     rotas que guardam ou processam dados na nuvem respondem 403 `responsavel_pendente` até o
+     responsável aceitar (e consentir, abaixo de 12). A conta (`/api/me`: idade, convite, exportar,
+     excluir), a cobrança e o `/api/responsavel` ficam de fora: direitos do titular nunca travam. */
+  app.use(
+    [
+      '/api/ai',
+      '/api/sessions',
+      '/api/import',
+      '/api/vocab',
+      '/api/anki',
+      '/api/metrics',
+      '/api/exercises',
+      '/api/settings',
+      '/api/images',
+      '/api/gemini',
+    ],
+    exigirContaLiberada,
+  )
 
   // F4-02: as rotas de escrita também. Só em modo público — ver `writeLimiter`.
   if (authRequired()) {
@@ -365,6 +402,7 @@ export function criarApp(opcoes: OpcoesDoApp = {}): express.Express {
         '/api/anki',
         '/api/admin',
         '/api/audio',
+        '/api/responsavel',
       ],
       writeLimiter,
     )
@@ -394,6 +432,8 @@ export function criarApp(opcoes: OpcoesDoApp = {}): express.Express {
   app.use('/api/images', capturarAssincrono(imagesRouter))
   // SaaS Fatia 1a — entitlements do usuário atual (read-only; a autoridade do plano é o servidor).
   app.use('/api/me', capturarAssincrono(meRouter))
+  // Fase 4 — o lado do responsável: ver e aceitar o convite do menor, listar os vinculados.
+  app.use('/api/responsavel', capturarAssincrono(responsavelRouter))
   // SaaS Fatia 2 — RBAC: endpoints admin cross-tenant (cada rota gateada por requireRole internamente).
   app.use('/api/admin', capturarAssincrono(adminRouter))
   // E4 — erros do NAVEGADOR entram no mesmo funil do diário; teto por usuário dentro da rota.

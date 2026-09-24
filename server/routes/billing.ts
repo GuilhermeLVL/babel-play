@@ -25,6 +25,8 @@ import { billingEventsRepo } from '../db/repositories/billingEvents'
 import { creditsRepo } from '../db/repositories/credits'
 import { economiaDoUsuario } from '../db/repositories/metrics'
 import { subscriptionsRepo } from '../db/repositories/subscriptions'
+import { vinculosRepo } from '../db/repositories/vinculos'
+import { MENSAGEM_CHECKOUT_DESLIGADO } from '../lib/abertura'
 import {
   asaasConfigurado,
   criarAssinatura,
@@ -34,10 +36,15 @@ import {
   primeiraCobranca,
   webhookToken,
 } from '../lib/asaas'
+import { authRequired } from '../lib/auth'
+import { asUserId, type UserId } from '../lib/authContext'
 import { aplicarEvento, eventoSchema, providerRefDoEvento, referenciaDoEvento } from '../lib/billingEventos'
+import { checkoutLigado } from '../lib/config'
 import { encerrarAssinatura } from '../lib/encerramentoDeAssinatura'
 import { erroDeRota } from '../lib/erroDeRota'
+import { ehAdultoDeclarado } from '../lib/idade'
 import { log } from '../lib/logger'
+import { responderErro } from '../lib/respostaDeErro'
 import { parseOr400 } from '../validation'
 
 /* ------------------------------------------------------------------ rotas do usuário (atrás do auth) */
@@ -65,8 +72,55 @@ const assinarSchema = z
     nome: z.string().min(2).max(120),
     cpfCnpj: z.string().regex(/^\d{11}$|^\d{14}$/, 'CPF (11 dígitos) ou CNPJ (14), só números'),
     email: z.string().email().max(200).optional(),
+    /** O RESPONSÁVEL paga pelo menor vinculado: a assinatura nasce na conta do menor. */
+    paraUsuario: z.string().min(1).max(128).optional(),
   })
   .strip()
+
+/**
+ * QUEM PAGA E PARA QUEM (Fases 3 e 4 do lançamento) — a porta comum de `/assinar` e `/comprar`.
+ *
+ * 1. `CHECKOUT_ENABLED=0` fecha a venda com mensagem clara (503 `checkout_desligado`).
+ * 2. Quem PAGA é adulto declarado (18+): menor não compra nada com dinheiro (ECA Digital art. 18,
+ *    II), e sem data declarada também não — a configuração protetiva é a padrão.
+ * 3. `paraUsuario` = o responsável pagando pelo menor. Só vale com vínculo ACEITO entre os dois;
+ *    a assinatura/compra nasce na conta do menor (é para ela que o webhook concede).
+ *
+ * Self-host não passa pelas regras 2 e 3 (não há idade nem venda de verdade). Devolve o id de
+ * quem RECEBE, ou `null` depois de já ter respondido o erro.
+ */
+async function autorizarPagamento(
+  req: import('express').Request,
+  res: import('express').Response,
+  paraUsuario: string | undefined,
+): Promise<UserId | null> {
+  if (!checkoutLigado()) {
+    responderErro(res, 503, MENSAGEM_CHECKOUT_DESLIGADO, 'checkout_desligado')
+    return null
+  }
+  if (!authRequired()) return req.userId
+  const pagador = await ehAdultoDeclarado(req.userId)
+  if (!pagador.informado) {
+    responderErro(res, 403, 'informe a sua data de nascimento antes de pagar', 'idade_nao_informada')
+    return null
+  }
+  if (!pagador.adulto) {
+    responderErro(
+      res,
+      403,
+      'contas de menores de 18 anos não fazem compras: peça ao seu responsável para assinar por você',
+      'menor_nao_compra',
+    )
+    return null
+  }
+  if (!paraUsuario || paraUsuario === req.userId) return req.userId
+  const menor = asUserId(paraUsuario)
+  if (!(await vinculosRepo.ehResponsavelDe(req.userId, menor))) {
+    responderErro(res, 403, 'você não está vinculado como responsável por esta conta', 'sem_vinculo')
+    return null
+  }
+  return menor
+}
 
 /**
  * COMPRAR CRÉDITOS OU O PASSE — cobrança avulsa (mudança economia-legivel-e-moedas).
@@ -80,11 +134,14 @@ const comprarSchema = z.object({
   nome: z.string().min(2).max(120),
   cpfCnpj: z.string().regex(/^\d{11}$|^\d{14}$/, 'CPF (11) ou CNPJ (14) dígitos'),
   email: z.string().email().max(160).optional(),
+  paraUsuario: z.string().min(1).max(128).optional(),
 })
 
 billingRouter.post('/comprar', async (req, res) => {
   const dados = parseOr400(comprarSchema, req.body, res)
   if (!dados) return
+  const destino = await autorizarPagamento(req, res, dados.paraUsuario)
+  if (!destino) return
   if (!asaasConfigurado()) {
     res.status(501).json({ error: 'cobrança não configurada no servidor (ASAAS_API_KEY ausente)' })
     return
@@ -97,17 +154,17 @@ billingRouter.post('/comprar', async (req, res) => {
 
   try {
     // Mesmo cliente Asaas da assinatura, quando já existe: um CPF, um cadastro no provedor.
-    const atual = await subscriptionsRepo.getActive(req.userId)
+    const atual = await subscriptionsRepo.getActive(destino)
     const clienteId =
-      atual?.providerCustomerId ?? (await criarCliente(req.userId, dados.nome, dados.cpfCnpj, dados.email)).id
+      atual?.providerCustomerId ?? (await criarCliente(destino, dados.nome, dados.cpfCnpj, dados.email)).id
 
     const cobranca = await criarCobrancaAvulsa(
-      req.userId,
+      destino,
       clienteId,
       centavosParaReais(pacote.precoCentavos),
       `Babel Play — ${pacote.nome}`,
     )
-    await creditsRepo.registrarCompra(req.userId, {
+    await creditsRepo.registrarCompra(destino, {
       sku: pacote.sku as import('../db/repositories/credits').SkuDeCredito,
       creditos: pacote.creditos,
       valorCentavos: pacote.precoCentavos,
@@ -243,6 +300,8 @@ billingRouter.post('/creditar-passe', async (req, res) => {
 billingRouter.post('/assinar', async (req, res) => {
   const dados = parseOr400(assinarSchema, req.body, res)
   if (!dados) return
+  const destino = await autorizarPagamento(req, res, dados.paraUsuario)
+  if (!destino) return
   if (!asaasConfigurado()) {
     res.status(501).json({ error: 'cobrança não configurada no servidor (ASAAS_API_KEY ausente)' })
     return
@@ -256,11 +315,11 @@ billingRouter.post('/assinar', async (req, res) => {
 
   try {
     // Reusa o cliente Asaas já criado numa tentativa anterior — recomeçar o checkout não duplica.
-    const atual = await subscriptionsRepo.getActive(req.userId)
+    const atual = await subscriptionsRepo.getActive(destino)
     const clienteId =
-      atual?.providerCustomerId ?? (await criarCliente(req.userId, dados.nome, dados.cpfCnpj, dados.email)).id
+      atual?.providerCustomerId ?? (await criarCliente(destino, dados.nome, dados.cpfCnpj, dados.email)).id
 
-    const assinatura = await criarAssinatura(req.userId, clienteId, preco, `Babel Play ${PLAN_MATRIX[plano].rotulo}`)
+    const assinatura = await criarAssinatura(destino, clienteId, preco, `Babel Play ${PLAN_MATRIX[plano].rotulo}`)
     /* NÃO conceder aqui (GAP-001, auditoria 2026-09-13): a promoção é EXCLUSIVA do webhook, quando o
        pagamento confirmar. O webhook decide o plano pelo VALOR pago (billingEventos.ts), então
        iniciar o checkout nunca pode dar plano de graça.
@@ -270,7 +329,7 @@ billingRouter.post('/assinar', async (req, res) => {
          plan/status. Sobrescrever `plan` de um assinante ativo o promoveria sem pagar (escalada
          essencial→pro); baixá-lo para `trialing` revogaria o que ele já paga. */
     await subscriptionsRepo.upsert(
-      req.userId,
+      destino,
       atual
         ? { provider: 'asaas', providerCustomerId: clienteId, providerSubscriptionId: assinatura.id }
         : {

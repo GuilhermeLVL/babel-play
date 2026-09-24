@@ -163,3 +163,32 @@ export async function primeiraCobranca(assinaturaId: string): Promise<CobrancaAs
 export async function cancelarAssinatura(assinaturaId: string): Promise<void> {
   await chamar(`/subscriptions/${assinaturaId}`, { method: 'DELETE' })
 }
+
+/** O pagamento como o ASAAS o conhece — a verdade autoritativa, não o payload do webhook. */
+export interface PagamentoAsaas {
+  id: string
+  status: string
+  value: number
+  subscription?: string
+  externalReference?: string
+  /** Vencimento autoritativo: o payload forjado com data distante estenderia o período pago. */
+  dueDate?: string
+}
+
+/**
+ * GAP-011 (auditoria 2026-09-13): busca o pagamento na API do Asaas para o webhook CONFERIR o que o
+ * payload afirma. O webhook chega autenticado só por um token estático; se ele vazar, um atacante
+ * forja `value`/`status`/`subscription` e concede a si mesmo um plano. A API, autenticada pela nossa
+ * `ASAAS_API_KEY`, é a fonte da verdade: aqui `value` e `status` vêm do provedor, não do atacante.
+ *
+ * 404 → `null` (pagamento inexistente = evento forjado ou ainda não propagado): o chamador trata como
+ * não-aplicado, sem 500. Erro real (rede/5xx) sobe, o webhook responde 500 e o Asaas reentrega.
+ */
+export async function buscarPagamento(id: string): Promise<PagamentoAsaas | null> {
+  try {
+    return await chamar<PagamentoAsaas>(`/payments/${encodeURIComponent(id)}`)
+  } catch (err) {
+    if (String(err).includes('HTTP 404')) return null
+    throw err
+  }
+}

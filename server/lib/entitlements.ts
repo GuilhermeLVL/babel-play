@@ -28,11 +28,18 @@ export interface Entitlements {
    linha ao adicionar o plano. */
 const isPlan = ehPlanoDeAssinatura
 
-/** A assinatura CONCEDE o plano? active/trialing sempre; past_due só na graça (até o fim do período). */
+/**
+ * A assinatura CONCEDE o plano? Só com LASTRO de pagamento: `active` (webhook confirmou) sempre, e
+ * `past_due` na graça (já pagou o período corrente). `trialing` NÃO concede (GAP-001): é o estado
+ * que `POST /api/billing/assinar` grava ao INICIAR o checkout, antes de qualquer pagamento — tratá-lo
+ * como concessão deixava qualquer conta virar o plano pedido só por clicar em assinar, sem pagar
+ * (provado em openspec/audits/2026-09-13-pre-deploy/evidencias/poc-billing.txt). Nada legítimo produz
+ * `trialing` como direito: o webhook e a rota admin gravam `active`.
+ */
 function subConcede(sub: Subscription): boolean {
-  if (sub.status === 'active' || sub.status === 'trialing') return true
+  if (sub.status === 'active') return true
   if (sub.status === 'past_due' && sub.currentPeriodEnd != null && sub.currentPeriodEnd > Date.now()) return true
-  return false // 'canceled' ou graça expirada → cai para free
+  return false // 'trialing' (não pago), 'canceled' ou graça expirada → cai para free
 }
 
 /** O plano EFETIVO do usuário, resolvido no servidor. */

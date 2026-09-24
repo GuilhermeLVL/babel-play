@@ -28,6 +28,19 @@ export function authRequired(): boolean {
   return process.env.NODE_ENV === 'production'
 }
 
+/**
+ * GAP-003: em produção, auth desligada é FAIL-OPEN — todo request vira o dono local. Antes o boot
+ * só avisava (`console.warn`) e seguia; a imagem Docker faz bind em `0.0.0.0`, então um
+ * `AUTH_REQUIRED=0` esquecido expunha o app inteiro sem login. Retorna a mensagem de aborto, ou
+ * `null` quando a postura é segura. O boot (`startServer`) aborta como faz com multi-réplica.
+ */
+export function erroDeAuthEmProducao(): string | null {
+  if (process.env.NODE_ENV === 'production' && !authRequired()) {
+    return 'AUTH_REQUIRED=1 é obrigatório em produção (NODE_ENV=production): recusando subir com autenticação desligada — seria acesso total ao app sem login.'
+  }
+  return null
+}
+
 type VerifyKey = Parameters<typeof jwtVerify>[1]
 
 export interface VerifierOptions {
@@ -119,6 +132,10 @@ export function createVerifier(opts: VerifierOptions = {}): (token: string) => P
     const { payload } = await jwtVerify(token, key, {
       audience: 'authenticated',
       algorithms: [...algoritmos],
+      // GAP-021 (auditoria 2026-09-13): exige `exp`. Sem isto, um token SEM expiração nunca vencia —
+      // se a chave/segredo vazasse, o token roubado valeria para sempre. Tokens do Supabase (e os de
+      // teste) sempre trazem `exp`; a `jose` já rejeita `exp` vencido.
+      requiredClaims: ['exp'],
       ...(issuer ? { issuer } : {}),
     })
     if (typeof payload.sub !== 'string' || payload.sub.length === 0) {

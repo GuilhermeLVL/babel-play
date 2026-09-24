@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Política de Privacidade — Babel Play</title>
-  <meta name="description" content="O que o Babel Play processa no seu navegador, o que vai para o servidor em cada plano, e como exportar ou excluir tudo." />
+  <meta name="description" content="Que dados o Babel Play processa no navegador e no servidor, quais serviços de nuvem podem ser usados, e como exportar ou excluir tudo." />
   <style>
     :root { color-scheme: light dark; --ink: #1a1a1a; --muted: #555; --bg: #fafaf8; --panel: #fff; --border: #e4e2dd; --accent: #7c5cff; }
     @media (prefers-color-scheme: dark) { :root { --ink: #ececec; --muted: #a8a8a8; --bg: #131313; --panel: #1c1c1c; --border: #2c2c2c; } }
@@ -23,48 +23,82 @@
 <main>
   <p class="kicker">Babel Play</p>
   <h1>Política de Privacidade</h1>
-  <p class="muted">Última atualização: 31 de agosto de 2026.</p>
+  <p class="muted">Última atualização: 13 de setembro de 2026.</p>
 
   <p>O Babel Play foi desenhado para processar o máximo possível <strong>no seu próprio
-  navegador</strong>. Esta página diz, plano a plano, o que sai do seu dispositivo, para onde vai e
-  por quê — e como você exporta ou apaga tudo.</p>
+  navegador</strong>. Ainda assim, algumas funções usam serviços de nuvem — de tradução, de
+  transcrição e de IA. Esta página diz, com honestidade, o que roda localmente, o que sai do seu
+  dispositivo, para <em>quem</em> vai, e como você controla, exporta ou apaga tudo.</p>
 
-  <h2>O que fica só no seu navegador</h2>
-  <p>No plano <strong>Grátis</strong>, a transcrição da sua fala e a tradução rodam em modelos
-  locais, dentro do navegador. O áudio capturado do microfone ou do sistema <strong>não é enviado a
-  servidor nenhum</strong>. No modo sem conta, nem os seus dados de estudo saem do navegador — tudo
-  vive no armazenamento local do dispositivo.</p>
+  <h2>Serviço para maiores de 18 anos</h2>
+  <p>O Babel Play é destinado a <strong>maiores de 18 anos</strong>. Ao usar o serviço, você declara
+  ter 18 anos ou mais. Não coletamos intencionalmente dados de menores; se soubermos que uma conta é
+  de um menor, ela será removida.</p>
 
-  <h2>O que vai para o servidor, por plano</h2>
+  <h2>O que roda no seu navegador</h2>
+  <p>A transcrição da fala (Whisper) e a tradução (Opus-MT) podem rodar em modelos que baixam para o
+  seu navegador e executam <strong>no seu dispositivo</strong>. Os pesos desses modelos são baixados
+  do <strong>Hugging Face</strong> na primeira vez. No modo <strong>sem conta</strong>, os seus dados
+  de estudo (sessões, vocabulário, progresso) ficam apenas no armazenamento local do dispositivo e
+  não são enviados a nós.</p>
+
+  <h2>Serviços de nuvem que podem ser usados</h2>
+  <p>Dependendo do navegador, do plano e das engines escolhidas, algumas funções enviam dados a
+  serviços de terceiros. Você vê e controla quais engines estão ativas dentro do app
+  (<strong>painel de engines de IA</strong> e <strong>Ajustes</strong>):</p>
+  <ul>
+    <li><strong>Reconhecimento de fala do navegador (Web Speech)</strong>: em alguns navegadores
+      (por exemplo, Chrome), a transcrição por essa via envia o <strong>áudio do microfone ao
+      Google</strong>. É uma das engines disponíveis no perfil web padrão.</li>
+    <li><strong>Tradução rápida (MyMemory)</strong>: quando essa engine é usada, o <strong>texto a
+      traduzir é enviado ao serviço MyMemory</strong> (terceiro).</li>
+    <li><strong>IA de nuvem (transcrição/tradução gerenciadas e o tutor iChat)</strong>: nos planos
+      pagos e no tutor, os trechos enviados são processados por provedores de inferência contratados
+      por nós — hoje <strong>Groq</strong> (transcrição/tradução) e <strong>Google Gemini</strong>
+      (tutor) — apenas para gerar a resposta daquela chamada. O provedor em uso aparece no selo de
+      procedência dentro do app.</li>
+    <li><strong>Imagens</strong>: a busca de imagens usa o <strong>Openverse</strong>; o termo
+      buscado é enviado a esse serviço.</li>
+  </ul>
+
+  <h2>O que vai para o nosso servidor (com conta)</h2>
   <table>
-    <tr><th>Plano</th><th>Áudio (voz)</th><th>Texto transcrito</th></tr>
-    <tr><td>Grátis / sem conta</td><td>não sai do navegador</td><td>não sai do navegador*</td></tr>
-    <tr><td>Essencial</td><td>não sai do navegador</td><td>enviado para tradução na nuvem</td></tr>
+    <tr><th>Plano</th><th>Áudio (voz) para tradução/transcrição na nuvem</th><th>Texto transcrito</th></tr>
+    <tr><td>Grátis</td><td>não usa nossa IA de nuvem (mas veja Web Speech acima)</td><td>—</td></tr>
+    <tr><td>Essencial</td><td>não</td><td>enviado para tradução na nuvem</td></tr>
     <tr><td>Pro</td><td>enviado para transcrição na nuvem</td><td>enviado para tradução na nuvem</td></tr>
   </table>
-  <p class="muted">* Com conta, as sessões que você salva (transcrições, vocabulário, progresso)
-  ficam no nosso banco de dados, para você acessá-las de qualquer dispositivo.</p>
+  <p class="muted">Com conta, as sessões que você <strong>salva</strong> — incluindo o
+  <strong>áudio gravado da sessão</strong>, as transcrições, o vocabulário e o progresso — ficam no
+  nosso banco de dados, para você acessá-las de qualquer dispositivo.</p>
 
-  <h2>Quem processa o quê</h2>
+  <h2>Dados que guardamos</h2>
   <ul>
-    <li><strong>Identidade e login</strong>: Supabase (autenticação). Guardamos o identificador da
-      conta; o e-mail fica com o provedor de login.</li>
-    <li><strong>IA de nuvem (planos pagos)</strong>: os trechos enviados (texto no Essencial; áudio
-      e texto no Pro) são processados por provedores de inferência contratados por nós, apenas para
-      gerar a transcrição/tradução daquela chamada. O provedor em uso está sempre declarado no selo
-      de procedência dentro do app.</li>
-    <li><strong>Pagamento</strong>: Asaas. Seu nome e CPF vão <strong>direto ao processador de
-      pagamento</strong> no ato da assinatura — <strong>não guardamos CPF</strong> no nosso banco.</li>
+    <li><strong>Conta</strong>: identificador do usuário e o <strong>seu e-mail</strong>, além de
+      nome de exibição, idioma e preferências. O login é feito via <strong>Supabase</strong>.</li>
+    <li><strong>Conteúdo de estudo</strong>: sessões, transcrições, áudio salvo, vocabulário,
+      histórico de revisão e resultados de exercícios.</li>
+    <li><strong>Pagamento</strong>: usamos o <strong>Asaas</strong>. Seu nome e CPF vão
+      <strong>direto ao Asaas</strong> no ato da assinatura e <strong>não guardamos o CPF</strong>;
+      guardamos os identificadores da assinatura e o registro dos eventos de cobrança.</li>
+    <li><strong>Ranking</strong>: apelido público e uma versão <strong>anonimizada (hash)</strong> do
+      seu IP, para evitar abuso do placar.</li>
+    <li><strong>Relatórios de erro</strong> do app: a mensagem técnica do erro e a tela onde ocorreu
+      — nunca o que você falou ou digitou.</li>
   </ul>
 
   <h2>O que NÃO fazemos</h2>
   <ul>
-    <li><strong>Não há analytics nem telemetria de uso.</strong> Nenhum rastreador, nenhum pixel,
-      nenhuma estatística de comportamento é coletada ou enviada.</li>
-    <li><strong>Não vendemos nem compartilhamos dados</strong> com terceiros para publicidade.</li>
-    <li>Relatórios automáticos de <em>erro</em> (falha do app) contêm apenas a mensagem técnica do
-      erro e a tela onde ocorreu — nunca o que você falou ou digitou.</li>
+    <li><strong>Não há analytics nem telemetria de comportamento.</strong> Nenhum rastreador de uso,
+      nenhum pixel.</li>
+    <li><strong>Não vendemos</strong> seus dados nem os compartilhamos para publicidade. Os terceiros
+      listados acima recebem apenas o necessário para executar a função que você acionou.</li>
   </ul>
+
+  <h2>Retenção</h2>
+  <p>Cópias de segurança do banco são rotacionadas (as mais antigas são apagadas automaticamente); os
+  dados que você excluir desaparecem das cópias no ciclo de rotação. Os relatórios de erro são
+  mantidos por 14 dias.</p>
 
   <h2>Seus direitos (LGPD, art. 18)</h2>
   <p>Dentro do app, em <strong>Perfil → Seus dados</strong>, você pode:</p>
@@ -74,8 +108,6 @@
       arquivos de mídia, incluindo o desvínculo do login. Se qualquer parte falhar, o app mostra
       exatamente o que não foi apagado, em vez de confirmar o que não aconteceu.</li>
   </ul>
-  <p>Cópias de segurança do banco são rotacionadas (as mais antigas são apagadas automaticamente);
-  dados excluídos desaparecem das cópias no ciclo de rotação.</p>
 
   <h2>Contato</h2>
   <p>Dúvidas ou solicitações: <a href="mailto:guigui.cruzeiro@gmail.com">guigui.cruzeiro@gmail.com</a>.</p>

@@ -17,8 +17,12 @@ import { z } from 'zod'
 import { ehPlanoDeAssinatura, PLAN_MATRIX, type PlanoDeAssinatura,planoPeloPreco } from '../../src/core/planos'
 import { creditsRepo } from '../db/repositories/credits'
 import { subscriptionsRepo } from '../db/repositories/subscriptions'
+import { asaasConfigurado, buscarPagamento, type PagamentoAsaas } from './asaas'
 import { asUserId } from './authContext'
 import { log } from './logger'
+
+/** GAP-011: confere um pagamento contra a fonte autoritativa (a API do Asaas). Injetável p/ teste. */
+export type VerificadorDePagamento = (id: string) => Promise<PagamentoAsaas | null>
 
 export const eventoSchema = z.object({
   id: z.string().min(4).max(80),
@@ -60,7 +64,13 @@ export function providerRefDoEvento(ev: EventoAsaas): string | null {
  * Aplica o evento. NÃO decide idempotência (isso é da marca em `billing_events`, antes daqui) e
  * NÃO engole falha: exceção sobe para o chamador desmarcar e responder 500, como sempre.
  */
-export async function aplicarEvento(ev: EventoAsaas, requestId?: string): Promise<ResultadoDoEvento> {
+export async function aplicarEvento(
+  ev: EventoAsaas,
+  requestId?: string,
+  /* GAP-011: por padrão confere na API do Asaas quando configurada; os testes injetam um stub, e sem
+     `ASAAS_API_KEY` (self-host, ou o webhook desligado) fica `undefined` e cai no comportamento antigo. */
+  verificar: VerificadorDePagamento | undefined = asaasConfigurado() ? buscarPagamento : undefined,
+): Promise<ResultadoDoEvento> {
   const referencia = referenciaDoEvento(ev)
   if (!referencia) {
     // Evento sem usuário (ex.: cobrança avulsa criada no painel) — auditado, sem efeito.
@@ -75,22 +85,48 @@ export async function aplicarEvento(ev: EventoAsaas, requestId?: string): Promis
     case 'PAYMENT_CONFIRMED':
     case 'PAYMENT_RECEIVED': {
       /**
-       * ASSINATURA OU COMPRA AVULSA? `payment.subscription` é o discriminador do próprio provedor:
-       * presente = parcela de uma assinatura; ausente = cobrança avulsa (créditos, passe). Sem
-       * esta pergunta, uma compra de R$ 9,90 em moeda daria um plano de R$ 9,90/mês de graça.
+       * GAP-011: CONFERE o pagamento na API do Asaas antes de qualquer efeito. O payload do webhook
+       * chega autenticado só por um token estático — se ele vazar, `value`/`status`/`subscription`
+       * são atacáveis. A API (nossa `ASAAS_API_KEY`) é a verdade: `value`, `status`, `subscription`,
+       * `dueDate` e o dono (`externalReference`) passam a vir dela, não do atacante. Sem verificador
+       * (self-host / webhook desligado / testes), cai no comportamento anterior baseado no payload.
        */
-      if (!ev.payment?.subscription && ev.payment?.id) {
-        const compra = await creditsRepo.confirmarPagamento(ev.payment.id)
+      const vId = ev.payment?.id
+      let vValor = ev.payment?.value
+      let vSub = ev.payment?.subscription
+      let vVenc = ev.payment?.dueDate
+      let userIdEfetivo = userId
+      if (verificar && vId) {
+        const real = await verificar(vId)
+        if (!real) {
+          return { estado: 'nao-aplicado', motivo: `pagamento ${vId} não encontrado no Asaas (evento não confere)` }
+        }
+        if (real.status !== 'CONFIRMED' && real.status !== 'RECEIVED') {
+          return { estado: 'nao-aplicado', motivo: `pagamento ${vId} com status ${real.status} no Asaas (não confirmado)` }
+        }
+        vValor = real.value
+        vSub = real.subscription
+        vVenc = real.dueDate ?? vVenc
+        if (real.externalReference) userIdEfetivo = asUserId(real.externalReference)
+      }
+
+      /**
+       * ASSINATURA OU COMPRA AVULSA? `subscription` é o discriminador do provedor: presente = parcela
+       * de assinatura; ausente = cobrança avulsa (créditos, passe). Sem esta pergunta, uma compra de
+       * R$ 9,90 em moeda daria um plano de R$ 9,90/mês de graça.
+       */
+      if (!vSub && vId) {
+        const compra = await creditsRepo.confirmarPagamento(vId)
         if (compra) {
           log('info', { event: 'billing_credito_confirmado', requestId })
           return { estado: 'aplicado', motivo: null }
         }
         // Avulso que não é compra nossa: NÃO promove plano nenhum — e fica pendente, não some.
-        return { estado: 'nao-aplicado', motivo: `avulso-desconhecido: pagamento ${ev.payment.id} sem compra registrada` }
+        return { estado: 'nao-aplicado', motivo: `avulso-desconhecido: pagamento ${vId} sem compra registrada` }
       }
 
-      const atual = await subscriptionsRepo.getActive(userId)
-      const planoPago = planoPeloPreco(ev.payment?.value)
+      const atual = await subscriptionsRepo.getActive(userIdEfetivo)
+      const planoPago = planoPeloPreco(vValor)
       const planoDaIntencao: PlanoDeAssinatura =
         atual && ehPlanoDeAssinatura(atual.plan) && PLAN_MATRIX[atual.plan].precoMensalBrl !== null
           ? atual.plan
@@ -99,15 +135,12 @@ export async function aplicarEvento(ev: EventoAsaas, requestId?: string): Promis
       /**
        * A ASSINATURA QUE PAGOU TEM DE SER A QUE ESTÁ REGISTRADA — `POST /api/billing/assinar`
        * grava a intenção e é DE GRAÇA, então uma parcela de assinatura antiga não pode confirmar
-       * a intenção mais recente. Antes isto era um `break` mudo. Agora: se o VALOR PAGO casa com
-       * um plano, o pagante recebe exatamente o que pagou (o dinheiro entrou para este usuário)
-       * e a divergência fica escrita; sem valor no evento, não há como saber o que foi pago e o
-       * evento fica pendente para revisão humana.
+       * a intenção mais recente. Se o VALOR PAGO casa com um plano, o pagante recebe o que pagou e a
+       * divergência fica escrita; sem valor, o evento fica pendente para revisão humana.
        */
       let motivo: string | null = null
-      if (atual?.providerSubscriptionId && ev.payment?.subscription
-          && atual.providerSubscriptionId !== ev.payment.subscription) {
-        const divergencia = `assinatura-divergente: pago ${ev.payment.subscription}, registrado ${atual.providerSubscriptionId}`
+      if (atual?.providerSubscriptionId && vSub && atual.providerSubscriptionId !== vSub) {
+        const divergencia = `assinatura-divergente: pago ${vSub}, registrado ${atual.providerSubscriptionId}`
         if (!planoPago) {
           return { estado: 'nao-aplicado', motivo: `${divergencia}; evento sem valor para deduzir o plano` }
         }
@@ -117,21 +150,21 @@ export async function aplicarEvento(ev: EventoAsaas, requestId?: string): Promis
 
       /**
        * O PLANO SAI DO VALOR PAGO, não da intenção (fecha a escalada assinar-pro-pagar-essencial).
-       * Sem valor no evento, cai na intenção: é o comportamento anterior, e recusar toda promoção
-       * por falta de um campo opcional trocaria uma escalada por uma negação de serviço a quem pagou.
+       * Sem valor no evento, cai na intenção: recusar toda promoção por falta de um campo trocaria
+       * uma escalada por uma negação de serviço a quem pagou.
        */
       const plano: PlanoDeAssinatura = planoPago ?? planoDaIntencao
       if (planoPago && planoPago !== planoDaIntencao) {
-        const nota = `plano-divergente: pago ${planoPago} (R$ ${ev.payment?.value}), intenção ${planoDaIntencao} — vale o pago`
+        const nota = `plano-divergente: pago ${planoPago} (R$ ${vValor}), intenção ${planoDaIntencao} — vale o pago`
         log('warn', { event: 'billing_plano_divergente', error: nota, requestId })
         motivo = motivo ? `${motivo}; ${nota}` : nota
       }
 
       /* A validade sai do VENCIMENTO da parcela paga quando ele vem, com cinco dias de folga
          para a próxima cobrança compensar. Sem `dueDate`, o mês redondo de antes. */
-      const vencimento = ev.payment?.dueDate ? Date.parse(`${ev.payment.dueDate}T12:00:00Z`) : NaN
+      const vencimento = vVenc ? Date.parse(`${vVenc}T12:00:00Z`) : NaN
       const base = Number.isFinite(vencimento) ? vencimento : Date.now()
-      await subscriptionsRepo.upsert(userId, {
+      await subscriptionsRepo.upsert(userIdEfetivo, {
         plan: plano,
         status: 'active',
         currentPeriodEnd: base + 35 * 86_400_000,

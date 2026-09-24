@@ -142,4 +142,67 @@ describe('cancelar', () => {
     expect(chamadas.filter((c) => c.url === '/api/billing/cancelar')).toHaveLength(1)
     expect(screen.getAllByText(/22\/10\/2026/).length).toBeGreaterThan(0)
   })
+
+  const hojeIso = () => new Date().toISOString().slice(0, 10)
+  const faturaRecente = [
+    {
+      id: 'pay_1',
+      data: hojeIso(),
+      descricao: 'Pro · mensal',
+      valor: 39.9,
+      metodo: 'cartao',
+      status: 'paga',
+      recibo: null,
+      link: null,
+    },
+  ]
+  const passarAteConfirmar = () => {
+    fireEvent.click(screen.getByRole('button', { name: /Continuar cancelamento/ }))
+    fireEvent.click(screen.getByRole('button', { name: 'Pular' }))
+  }
+
+  it('dentro dos 7 dias avisa que o cancelamento devolve tudo, e confirma o pedido na hora com protocolo', async () => {
+    mockApi({
+      '/api/billing/cancelar': {
+        ok: true,
+        valeAte: null,
+        arrependimento: { valor: 39.9, estornado: true, protocolo: 'arrependimento:pay_1', registradoEm: Date.now() },
+      },
+    })
+    const { default: Cancelar } = await import('../src/components/views/planos/Cancelar')
+    render(
+      <Cancelar conta={contaAtiva} faturas={faturaRecente as never} aoCancelado={() => {}} aoReativar={() => {}} />,
+    )
+    passarAteConfirmar()
+    expect(screen.getByText(/reembolso integral/i)).toBeTruthy()
+    expect(screen.queryByText(/peça ao suporte/i), 'o estorno é automático, não pelo suporte').toBeNull()
+    fireEvent.click(screen.getByRole('button', { name: /Confirmar cancelamento/ }))
+    expect(await screen.findByRole('heading', { name: 'Reembolso solicitado' })).toBeTruthy()
+    expect(screen.getByText('arrependimento:pay_1')).toBeTruthy()
+    expect(screen.getAllByText(/R\$ 39,90/).length).toBeGreaterThan(0)
+  })
+
+  it('estorno que falhou: a tela diz que o reembolso será feito manualmente, com prazo', async () => {
+    mockApi({
+      '/api/billing/cancelar': {
+        ok: true,
+        valeAte: null,
+        arrependimento: {
+          valor: 39.9,
+          estornado: false,
+          protocolo: 'arrependimento:pay_1',
+          registradoEm: Date.now(),
+          prazoManualDias: 7,
+        },
+      },
+    })
+    const { default: Cancelar } = await import('../src/components/views/planos/Cancelar')
+    render(
+      <Cancelar conta={contaAtiva} faturas={faturaRecente as never} aoCancelado={() => {}} aoReativar={() => {}} />,
+    )
+    passarAteConfirmar()
+    fireEvent.click(screen.getByRole('button', { name: /Confirmar cancelamento/ }))
+    expect(await screen.findByRole('heading', { name: 'Reembolso solicitado' })).toBeTruthy()
+    expect(screen.getByText(/manualmente em até 7 dias/i)).toBeTruthy()
+  })
 })

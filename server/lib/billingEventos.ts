@@ -14,33 +14,39 @@
  */
 import { z } from 'zod'
 
-import { ehPlanoDeAssinatura, PLAN_MATRIX, type PlanoDeAssinatura,planoPeloPreco } from '../../src/core/planos'
+import { ehPlanoDeAssinatura, PLAN_MATRIX, type PlanoDeAssinatura, planoPeloPreco } from '../../src/core/planos'
 import { creditsRepo } from '../db/repositories/credits'
 import { subscriptionsRepo } from '../db/repositories/subscriptions'
-import { asaasConfigurado, buscarPagamento, type PagamentoAsaas } from './asaas'
+import { asaasConfigurado, buscarPagamento, estornarCobranca, type PagamentoAsaas } from './asaas'
 import { asUserId } from './authContext'
 import { log } from './logger'
 
 /** GAP-011: confere um pagamento contra a fonte autoritativa (a API do Asaas). Injetável p/ teste. */
 export type VerificadorDePagamento = (id: string) => Promise<PagamentoAsaas | null>
 
-export const eventoSchema = z.object({
-  id: z.string().min(4).max(80),
-  event: z.string().min(3).max(60),
-  payment: z.object({
-    id: z.string().optional(),
-    subscription: z.string().optional(),
-    externalReference: z.string().optional(),
-    dueDate: z.string().optional(),
-    /* O VALOR PAGO. Entrou em 01/09: sem ele, o webhook não tinha como saber se a parcela que
+export const eventoSchema = z
+  .object({
+    id: z.string().min(4).max(80),
+    event: z.string().min(3).max(60),
+    payment: z
+      .object({
+        id: z.string().optional(),
+        subscription: z.string().optional(),
+        externalReference: z.string().optional(),
+        dueDate: z.string().optional(),
+        /* O VALOR PAGO. Entrou em 01/09: sem ele, o webhook não tinha como saber se a parcela que
        confirmou era a do plano que ele estava prestes a conceder. */
-    value: z.number().optional(),
-  }).optional(),
-  subscription: z.object({
-    id: z.string().optional(),
-    externalReference: z.string().optional(),
-  }).optional(),
-}).passthrough()
+        value: z.number().optional(),
+      })
+      .optional(),
+    subscription: z
+      .object({
+        id: z.string().optional(),
+        externalReference: z.string().optional(),
+      })
+      .optional(),
+  })
+  .passthrough()
 
 export type EventoAsaas = z.infer<typeof eventoSchema>
 export type EstadoDoEvento = 'aplicado' | 'nao-aplicado' | 'ignorado'
@@ -70,7 +76,15 @@ export async function aplicarEvento(
   /* GAP-011: por padrão confere na API do Asaas quando configurada; os testes injetam um stub, e sem
      `ASAAS_API_KEY` (self-host, ou o webhook desligado) fica `undefined` e cai no comportamento antigo. */
   verificar: VerificadorDePagamento | undefined = asaasConfigurado() ? buscarPagamento : undefined,
+  /* Eventos INTERNOS (os que o nosso servidor grava, como o estorno do arrependimento) só são
+     aplicados quando quem chama é o próprio servidor — a rota admin de reprocessamento. O webhook
+     chama com `false`: um token vazado não pode disparar estornos. */
+  interno = false,
 ): Promise<ResultadoDoEvento> {
+  if (ev.event.startsWith('ESTORNO_') && !interno) {
+    log('warn', { event: 'billing_evento_interno_no_webhook', error: ev.event, requestId })
+    return { estado: 'ignorado', motivo: `evento interno não aceito pelo webhook: ${ev.event}` }
+  }
   const referencia = referenciaDoEvento(ev)
   if (!referencia) {
     // Evento sem usuário (ex.: cobrança avulsa criada no painel) — auditado, sem efeito.
@@ -102,7 +116,10 @@ export async function aplicarEvento(
           return { estado: 'nao-aplicado', motivo: `pagamento ${vId} não encontrado no Asaas (evento não confere)` }
         }
         if (real.status !== 'CONFIRMED' && real.status !== 'RECEIVED') {
-          return { estado: 'nao-aplicado', motivo: `pagamento ${vId} com status ${real.status} no Asaas (não confirmado)` }
+          return {
+            estado: 'nao-aplicado',
+            motivo: `pagamento ${vId} com status ${real.status} no Asaas (não confirmado)`,
+          }
         }
         vValor = real.value
         vSub = real.subscription
@@ -182,9 +199,24 @@ export async function aplicarEvento(
         await creditsRepo.cancelarCompra(ev.payment.id)
         return { estado: 'aplicado', motivo: null }
       }
-      // Estorno de assinatura cancela o plano, como antes.
-      await subscriptionsRepo.upsert(userId, { status: 'canceled' })
+      /* Estorno de parcela: o dinheiro voltou, então não há período pago — o acesso termina AGORA.
+         Sem zerar `currentPeriodEnd`, o "cancelado mantém até o fim do período" (entitlements)
+         deixaria quem foi reembolsado com o mês de graça. */
+      await subscriptionsRepo.upsert(userId, { status: 'canceled', currentPeriodEnd: Date.now(), cancelAtPeriodEnd: 0 })
       return { estado: 'aplicado', motivo: null }
+    case 'ESTORNO_ARREPENDIMENTO': {
+      /* REAPLICAÇÃO de um arrependimento cujo estorno o Asaas recusou (fila do admin). Tenta o
+         estorno de novo; falhando outra vez, continua pendente com o motivo novo. */
+      const pagamentoId = ev.payment?.id
+      if (!pagamentoId) return { estado: 'nao-aplicado', motivo: 'estorno sem id de pagamento' }
+      try {
+        await estornarCobranca(pagamentoId, 'Arrependimento em 7 dias (CDC art. 49) — reprocessado')
+      } catch (err) {
+        return { estado: 'nao-aplicado', motivo: `estorno falhou de novo: ${String(err).slice(0, 200)}` }
+      }
+      await subscriptionsRepo.upsert(userId, { status: 'canceled', currentPeriodEnd: Date.now(), cancelAtPeriodEnd: 0 })
+      return { estado: 'aplicado', motivo: 'estorno reprocessado' }
+    }
     case 'SUBSCRIPTION_DELETED':
       await subscriptionsRepo.upsert(userId, { status: 'canceled' })
       return { estado: 'aplicado', motivo: null }

@@ -15,7 +15,15 @@ import {
 } from 'lucide-react';
 import { useState } from 'react';
 
-import { brl, cancelarRenovacao, type Conta, dataCurta, type Fatura, precoMensal } from '../../../lib/assinatura';
+import {
+  type Arrependimento,
+  brl,
+  cancelarRenovacao,
+  type Conta,
+  dataCurta,
+  type Fatura,
+  precoMensal,
+} from '../../../lib/assinatura';
 import { navegarPara } from '../../../lib/rotas';
 import { CabecalhoDeTela, IconeEmBloco, Tela } from '../../ui';
 import { irAjuda, irSub, PLANO_NOME, planoPorId } from './dados';
@@ -27,11 +35,14 @@ import Etapas, { rolarAoTopo } from './Etapas';
  * peso da oferta.
  *
  * O CANCELAMENTO É O REAL: `POST /api/billing/cancelar` para a renovação no Asaas, e o que já foi
- * pago vale até o fim do período. As ofertas (Essencial, pausa, suporte) levam ao suporte, porque
- * trocar de plano e pausar não têm rota no servidor. O reembolso dos 7 dias (CDC, art. 49) também
- * é pelo suporte: o servidor não estorna sozinho, então a tela não oferece um botão que estorne.
+ * pago vale até o fim do período (a data vem do Asaas). As ofertas (Essencial, pausa, suporte) levam
+ * ao suporte, porque trocar de plano e pausar não têm rota no servidor.
  *
- * O "protocolo" do protótipo não existe no app; no lugar dele fica a data e a hora do registro.
+ * ARREPENDIMENTO (CDC art. 49; Decreto 7.962/2013 art. 5º): dentro de 7 dias do primeiro pagamento,
+ * o MESMO botão faz o servidor cancelar e estornar o valor integral, e o acesso termina na hora. A
+ * tela avisa ANTES de confirmar e, depois, confirma o recebimento do pedido na hora, com o protocolo
+ * que o servidor registrou. Se o Asaas recusar o estorno, o servidor o põe na fila do admin e a
+ * tela diz que o reembolso sai manualmente, com prazo — nunca some.
  */
 
 const MOTIVOS: [string, string][] = [
@@ -64,6 +75,7 @@ export default function Cancelar({
   const [registradoEm, setRegistradoEm] = useState<Date | null>(null);
   // O fim do período que o servidor devolveu ao cancelar vence o do status (que pode ainda não ter chegado).
   const [valeAteDoCancelamento, setValeAte] = useState<number | null>(null);
+  const [arrependimento, setArrependimento] = useState<Arrependimento | null>(null);
   const valeAte = valeAteDoCancelamento ?? conta.valeAte;
 
   const ir = (n: typeof passo) => {
@@ -76,7 +88,9 @@ export default function Cancelar({
   const ate = valeAte ? dataCurta(valeAte) : 'o fim do período pago';
   const pagas = (faturas ?? []).filter((f) => f.status === 'paga' && f.data);
   const primeira = pagas.length ? pagas[pagas.length - 1].data : null;
-  const dentro7 = !!primeira && Date.now() - new Date(`${primeira}T00:00:00`).getTime() < SETE_DIAS;
+  // A mesma régua do servidor (encerramentoDeAssinatura.ts): até o fim do 7º dia após o pagamento.
+  const dentro7 = !!primeira && Date.now() - new Date(`${primeira}T00:00:00`).getTime() < SETE_DIAS + 86_400_000;
+  const valorPago = pagas.reduce((s, f) => s + f.valor, 0) || precoMensal(plano);
 
   const ofertas: Record<string, [LucideIcon, string, string][]> = {
     caro:
@@ -104,7 +118,8 @@ export default function Cancelar({
       return;
     }
     if (r.valeAte) setValeAte(r.valeAte);
-    setRegistradoEm(new Date());
+    setArrependimento(r.arrependimento ?? null);
+    setRegistradoEm(r.arrependimento ? new Date(r.arrependimento.registradoEm) : new Date());
     ir(5);
     aoCancelado();
   };
@@ -279,7 +294,7 @@ export default function Cancelar({
           </div>
           <div>
             <dt>Acesso ao {p} até</dt>
-            <dd className="tn">{ate}</dd>
+            <dd className="tn">{dentro7 ? 'Termina agora, com o reembolso' : ate}</dd>
           </div>
           <div>
             <dt>Novas cobranças</dt>
@@ -294,9 +309,8 @@ export default function Cancelar({
           <div className="aviso-info reembolso">
             <BadgeCheck aria-hidden />
             <span>
-              Você assinou há menos de 7 dias. Se preferir, peça ao suporte o{' '}
-              <b>reembolso de {brl(precoMensal(plano))}</b> no mesmo meio de pagamento (CDC, art. 49); aí o acesso ao{' '}
-              {p} termina quando o reembolso sair.
+              Você assinou há 7 dias ou menos: ao confirmar, você recebe o <b>reembolso integral de {brl(valorPago)}</b>{' '}
+              no mesmo meio de pagamento (CDC, art. 49), sem precisar pedir a ninguém, e o acesso ao {p} termina agora.
             </span>
           </div>
         )}
@@ -311,6 +325,47 @@ export default function Cancelar({
             <X aria-hidden /> {ocupado ? 'Cancelando…' : 'Confirmar cancelamento'}
           </button>
         </div>
+      </section>
+    );
+  } else if (passo === 5 && arrependimento) {
+    const quando = registradoEm ?? new Date();
+    corpo = (
+      <section className="cartao p6 sucesso entra">
+        <div className="selo-ok" aria-hidden>
+          <BadgeCheck />
+        </div>
+        <h1 style={{ fontSize: 28, fontWeight: 900, margin: '8px 0 6px' }}>Reembolso solicitado</h1>
+        <p className="mut" style={{ maxWidth: '54ch', margin: '0 auto' }}>
+          {arrependimento.estornado
+            ? `Recebemos o seu pedido de arrependimento. O estorno de ${brl(arrependimento.valor)} já foi enviado ao meio de pagamento; no cartão, ele aparece na fatura em até 10 dias úteis.`
+            : `Recebemos o seu pedido de arrependimento. O estorno automático não passou agora, então o reembolso de ${brl(arrependimento.valor)} será feito manualmente em até ${arrependimento.prazoManualDias ?? 7} dias, no mesmo meio de pagamento.`}{' '}
+          A assinatura está cancelada e nada mais será cobrado.
+        </p>
+        <dl className="dados centro">
+          <div>
+            <dt>Protocolo</dt>
+            <dd className="tn">{arrependimento.protocolo}</dd>
+          </div>
+          <div>
+            <dt>Registrado em</dt>
+            <dd className="tn">
+              {dataCurta(quando.getTime())} · {String(quando.getHours()).padStart(2, '0')}:
+              {String(quando.getMinutes()).padStart(2, '0')}
+            </dd>
+          </div>
+          <div>
+            <dt>Valor</dt>
+            <dd className="tn">{brl(arrependimento.valor)}</dd>
+          </div>
+        </dl>
+        <div className="linha" style={{ gap: 10, justifyContent: 'center', flexWrap: 'wrap', marginTop: 18 }}>
+          <button type="button" className="btn btn-solid" onClick={() => navegarPara({ view: 'hub' })}>
+            Voltar ao início
+          </button>
+        </div>
+        <p className="mut" style={{ fontSize: 12.5, marginTop: 14 }}>
+          Guarde o protocolo. Suas sessões e palavras continuam aqui, no plano Grátis.
+        </p>
       </section>
     );
   } else if (passo === 5) {

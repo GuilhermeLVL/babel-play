@@ -9,8 +9,8 @@
  *
  * Sem `Date.now()` proibido aqui — é módulo Node normal (não script de workflow).
  */
-import { ehPlanoDeAssinatura,PLAN_MATRIX } from '../../src/core/planos'
-import { type Plan, type Subscription,subscriptionsRepo } from '../db/repositories/subscriptions'
+import { ehPlanoDeAssinatura, PLAN_MATRIX } from '../../src/core/planos'
+import { type Plan, type Subscription, subscriptionsRepo } from '../db/repositories/subscriptions'
 import { authRequired } from './auth'
 import type { UserId } from './authContext'
 import { log } from './logger'
@@ -35,11 +35,17 @@ const isPlan = ehPlanoDeAssinatura
  * como concessão deixava qualquer conta virar o plano pedido só por clicar em assinar, sem pagar
  * (provado em openspec/audits/2026-09-13-pre-deploy/evidencias/poc-billing.txt). Nada legítimo produz
  * `trialing` como direito: o webhook e a rota admin gravam `active`.
+ *
+ * `canceled` com `currentPeriodEnd` no FUTURO também concede (Fase 3 do lançamento, Decreto
+ * 11.034/2022): cancelar para a RENOVAÇÃO, e o mês que já foi pago continua valendo até o fim. Antes
+ * o cancelamento cortava o acesso na hora enquanto a tela prometia "você continua até o fim do
+ * período". Quem zera o período é o arrependimento (reembolso = sem período pago) e o estorno.
  */
 function subConcede(sub: Subscription): boolean {
   if (sub.status === 'active') return true
-  if (sub.status === 'past_due' && sub.currentPeriodEnd != null && sub.currentPeriodEnd > Date.now()) return true
-  return false // 'trialing' (não pago), 'canceled' ou graça expirada → cai para free
+  const periodoPagoAFrente = sub.currentPeriodEnd != null && sub.currentPeriodEnd > Date.now()
+  if ((sub.status === 'past_due' || sub.status === 'canceled') && periodoPagoAFrente) return true
+  return false // 'trialing' (não pago), cancelada sem período à frente ou graça expirada → free
 }
 
 /** O plano EFETIVO do usuário, resolvido no servidor. */

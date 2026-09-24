@@ -27,7 +27,6 @@ import { economiaDoUsuario } from '../db/repositories/metrics'
 import { subscriptionsRepo } from '../db/repositories/subscriptions'
 import {
   asaasConfigurado,
-  cancelarAssinatura,
   criarAssinatura,
   criarCliente,
   criarCobrancaAvulsa,
@@ -36,6 +35,7 @@ import {
   webhookToken,
 } from '../lib/asaas'
 import { aplicarEvento, eventoSchema, providerRefDoEvento, referenciaDoEvento } from '../lib/billingEventos'
+import { encerrarAssinatura } from '../lib/encerramentoDeAssinatura'
 import { erroDeRota } from '../lib/erroDeRota'
 import { log } from '../lib/logger'
 import { parseOr400 } from '../validation'
@@ -182,22 +182,18 @@ billingRouter.post('/gastar', async (req, res) => {
       { conferirSaldo: true },
     )
     if (recusadoPorSaldo || !linha) {
-      res
-        .status(402)
-        .json({
-          error: 'saldo de Créditos insuficiente',
-          falta: autorizacao.preco,
-          saldo: await creditsRepo.saldo(req.userId),
-        })
+      res.status(402).json({
+        error: 'saldo de Créditos insuficiente',
+        falta: autorizacao.preco,
+        saldo: await creditsRepo.saldo(req.userId),
+      })
       return
     }
     res.json({ jaExistia, gasto: autorizacao.preco, saldo: await creditsRepo.saldo(req.userId) })
   } catch (err) {
-    res
-      .status(400)
-      .json({
-        error: erroDeRota(err, { status: 400, event: 'billing_error', route: req.path, requestId: req.requestId }),
-      })
+    res.status(400).json({
+      error: erroDeRota(err, { status: 400, event: 'billing_error', route: req.path, requestId: req.requestId }),
+    })
   }
 })
 
@@ -238,11 +234,9 @@ billingRouter.post('/creditar-passe', async (req, res) => {
     }
     res.json({ creditado, temPasse: true, saldo: await creditsRepo.saldo(req.userId) })
   } catch (err) {
-    res
-      .status(500)
-      .json({
-        error: erroDeRota(err, { status: 500, event: 'billing_error', route: req.path, requestId: req.requestId }),
-      })
+    res.status(500).json({
+      error: erroDeRota(err, { status: 500, event: 'billing_error', route: req.path, requestId: req.requestId }),
+    })
   }
 })
 
@@ -279,7 +273,13 @@ billingRouter.post('/assinar', async (req, res) => {
       req.userId,
       atual
         ? { provider: 'asaas', providerCustomerId: clienteId, providerSubscriptionId: assinatura.id }
-        : { provider: 'asaas', providerCustomerId: clienteId, providerSubscriptionId: assinatura.id, plan: plano, status: 'trialing' },
+        : {
+            provider: 'asaas',
+            providerCustomerId: clienteId,
+            providerSubscriptionId: assinatura.id,
+            plan: plano,
+            status: 'trialing',
+          },
     )
 
     const cobranca = await primeiraCobranca(assinatura.id)
@@ -367,19 +367,27 @@ billingRouter.get('/faturas', async (req, res) => {
   }
 })
 
+/**
+ * CANCELAR — o mesmo canal da assinatura, em poucos cliques (Decreto 11.034/2022).
+ *
+ * Toda a regra mora em `encerrarAssinatura` (server/lib/encerramentoDeAssinatura.ts), que a
+ * exclusão de conta também usa: dentro de 7 dias do primeiro pagamento é ARREPENDIMENTO (cancela,
+ * estorna tudo e o acesso acaba agora, com protocolo); depois, para a renovação e o período pago
+ * vale até o próximo vencimento informado pelo Asaas.
+ */
 billingRouter.post('/cancelar', async (req, res) => {
-  const atual = await subscriptionsRepo.getActive(req.userId)
-  if (!atual?.providerSubscriptionId) {
-    res.status(404).json({ error: 'nenhuma assinatura ativa para cancelar' })
+  if (!asaasConfigurado()) {
+    res.status(501).json({ error: 'cobrança não configurada no servidor (ASAAS_API_KEY ausente)' })
     return
   }
   try {
-    await cancelarAssinatura(atual.providerSubscriptionId)
-    /* Cancelou = para de RENOVAR; o que já foi pago vale até o fim do período (a graça de
-       `subConcede` em entitlements.ts cuida do resto). Rebaixar na hora puniria quem pagou. */
-    await subscriptionsRepo.upsert(req.userId, { status: 'canceled', cancelAtPeriodEnd: 1 })
+    const r = await encerrarAssinatura(req.userId, { requestId: req.requestId })
+    if (r.semAssinatura) {
+      res.status(404).json({ error: 'nenhuma assinatura ativa para cancelar' })
+      return
+    }
     log('info', { event: 'billing_cancelada', route: '/api/billing/cancelar', requestId: req.requestId })
-    res.json({ ok: true, valeAte: atual.currentPeriodEnd })
+    res.json({ ok: true, valeAte: r.valeAte, arrependimento: r.arrependimento })
   } catch (err) {
     res.status(502).json({ error: `falha ao cancelar: ${erroDeRota(err, { event: 'billing_error' })}` })
   }

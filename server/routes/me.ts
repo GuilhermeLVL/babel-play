@@ -3,16 +3,25 @@ import { Router } from 'express'
 
 import { contaRepo } from '../db/repositories/conta'
 import { perfilRepo } from '../db/repositories/perfil'
+import { subscriptionsRepo } from '../db/repositories/subscriptions'
 import { usageCountersRepo } from '../db/repositories/usageCounters'
 import { usersRepo } from '../db/repositories/users'
+import { asaasConfigurado } from '../lib/asaas'
 import { authRequired } from '../lib/auth'
 import { adminDoSupabase } from '../lib/config'
+import { encerrarAssinatura } from '../lib/encerramentoDeAssinatura'
 import { getEntitlementsForUser, getPlanForUser } from '../lib/entitlements'
 import { erroDeRota } from '../lib/erroDeRota'
 import { log } from '../lib/logger'
-import { capDeArmazenamento, reconciliarSeVencido,usoDeArmazenamento } from '../lib/storageQuota'
-import { capForPlan, capSegundosParaPlano, METRIC_LLM_TOKENS,METRIC_MANAGED, METRIC_STT_SEGUNDOS } from '../lib/usageQuota'
-import { excluirContaSchema, parseOr400,perfilPatchSchema } from '../validation'
+import { capDeArmazenamento, reconciliarSeVencido, usoDeArmazenamento } from '../lib/storageQuota'
+import {
+  capForPlan,
+  capSegundosParaPlano,
+  METRIC_LLM_TOKENS,
+  METRIC_MANAGED,
+  METRIC_STT_SEGUNDOS,
+} from '../lib/usageQuota'
+import { excluirContaSchema, parseOr400, perfilPatchSchema } from '../validation'
 // O store de mídia é um só; importar daqui evita uma segunda resolução de `AUDIO_DIR` que
 // poderia divergir da que grava e serve os arquivos.
 import { armazenamentoDeMidia } from './sessions'
@@ -71,7 +80,9 @@ meRouter.get('/exportar', async (req, res) => {
     res.setHeader('Cache-Control', 'no-store')
     res.json(dados)
   } catch (err) {
-    res.status(500).json({ error: erroDeRota(err, { status: 500, event: 'me_exportar_error', route: req.path, requestId: req.requestId }) })
+    res.status(500).json({
+      error: erroDeRota(err, { status: 500, event: 'me_exportar_error', route: req.path, requestId: req.requestId }),
+    })
   }
 })
 
@@ -129,6 +140,34 @@ async function removerVinculoDeLogin(sub: string): Promise<ResultadoDoVinculo> {
 meRouter.delete('/', async (req, res) => {
   const body = parseOr400(excluirContaSchema, req.body, res)
   if (!body) return
+
+  /* A COBRANÇA ANTES DOS DADOS (Fase 3 do lançamento). Apagar a conta deixava o Asaas cobrando todo
+     mês — e, sem a linha em `subscriptions`, nem o suporte saberia de quem era o cartão. Cancela
+     PRIMEIRO pelo mesmo caminho do botão Cancelar (inclusive o arrependimento, se couber); se o
+     Asaas não confirmar, NADA é apagado e o titular é avisado para tentar de novo. */
+  let assinatura: { cancelada: boolean; arrependimento?: unknown } = { cancelada: false }
+  const sub = await subscriptionsRepo.getActive(req.userId)
+  if (sub?.providerSubscriptionId) {
+    if (!asaasConfigurado()) {
+      res.status(503).json({
+        error:
+          'não consegui cancelar a sua assinatura (cobrança indisponível neste servidor), então nada foi apagado. Fale com o suporte.',
+        code: 'assinatura_nao_cancelada',
+      })
+      return
+    }
+    try {
+      const r = await encerrarAssinatura(req.userId, { requestId: req.requestId })
+      assinatura = { cancelada: true, ...(r.arrependimento ? { arrependimento: r.arrependimento } : {}) }
+    } catch (err) {
+      res.status(502).json({
+        error: `não consegui cancelar a sua assinatura no provedor de pagamento, então nada foi apagado — tente de novo em alguns minutos (${erroDeRota(err, { event: 'me_excluir_cancelamento_falhou', requestId: req.requestId })})`,
+        code: 'assinatura_nao_cancelada',
+      })
+      return
+    }
+  }
+
   try {
     // Os arquivos ANTES das linhas: depois da exclusão não há mais como saber quais eram.
     const arquivos = await contaRepo.midia(req.userId)
@@ -156,11 +195,14 @@ meRouter.delete('/', async (req, res) => {
 
     const login = {
       desvinculado: vinculo.removido,
-      ...(vinculo.removido ? {} : {
-        motivo: vinculo.motivo,
-        // Doutrina do P1-9: dizer o que NÃO aconteceu, não confirmar o que não ocorreu.
-        aviso: 'os dados foram apagados, mas o login continua válido — ao entrar de novo, uma conta nova e VAZIA será criada com o mesmo acesso',
-      }),
+      ...(vinculo.removido
+        ? {}
+        : {
+            motivo: vinculo.motivo,
+            // Doutrina do P1-9: dizer o que NÃO aconteceu, não confirmar o que não ocorreu.
+            aviso:
+              'os dados foram apagados, mas o login continua válido — ao entrar de novo, uma conta nova e VAZIA será criada com o mesmo acesso',
+          }),
     }
 
     if (falhas.length || !vinculo.removido) {
@@ -172,14 +214,22 @@ meRouter.delete('/', async (req, res) => {
         ok: false,
         ...relatorio,
         arquivos: { apagados, falhas },
+        assinatura,
         login,
         error: `conta excluída, mas ${partes.join(' e ')}`,
       })
       return
     }
-    res.json({ ok: true, ...relatorio, arquivos: { apagados, falhas: [] }, login })
+    res.json({ ok: true, ...relatorio, arquivos: { apagados, falhas: [] }, login, assinatura })
   } catch (err) {
-    res.status(500).json({ error: erroDeRota(err, { status: 500, event: 'me_excluir_conta_error', route: req.path, requestId: req.requestId }) })
+    res.status(500).json({
+      error: erroDeRota(err, {
+        status: 500,
+        event: 'me_excluir_conta_error',
+        route: req.path,
+        requestId: req.requestId,
+      }),
+    })
   }
 })
 
@@ -229,10 +279,7 @@ meRouter.get('/entitlements', async (req, res) => {
   try {
     // Provisiona a conta no 1º acesso (idempotente) — assim o usuário aparece na gestão admin.
     await usersRepo.ensure(req.userId)
-    const [entitlements, plano] = await Promise.all([
-      getEntitlementsForUser(req.userId),
-      getPlanForUser(req.userId),
-    ])
+    const [entitlements, plano] = await Promise.all([getEntitlementsForUser(req.userId), getPlanForUser(req.userId)])
     const teto = capDeArmazenamento(plano)
     /*
      * F9-02: aqui é o chamador de `reconciliarArmazenamento`. É a rota por onde todo usuário ativo
@@ -240,9 +287,7 @@ meRouter.get('/entitlements', async (req, res) => {
      * A varredura só roda se o contador estiver vencido (24h por padrão) e nunca lança.
      * Plano sem teto (selfhost) não contabiliza nada, então não há o que reconciliar.
      */
-    const usados = Number.isFinite(teto)
-      ? await reconciliarSeVencido(req.userId)
-      : await usoDeArmazenamento(req.userId)
+    const usados = Number.isFinite(teto) ? await reconciliarSeVencido(req.userId) : await usoDeArmazenamento(req.userId)
     // `Infinity` não sobrevive ao JSON (vira null); `null` diz "sem teto" de forma explícita.
     res.json({ ...entitlements, armazenamento: { usados, teto: Number.isFinite(teto) ? teto : null } })
   } catch (err) {

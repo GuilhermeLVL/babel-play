@@ -143,12 +143,39 @@ export async function iniciarAssinatura(dados: {
   }
 }
 
-/** Cancela a RENOVAÇÃO: o que já foi pago vale até o fim do período. */
-export async function cancelarRenovacao(): Promise<{ ok: boolean; valeAte?: number | null; erro?: string }> {
+/**
+ * O arrependimento que o servidor registrou ao cancelar (CDC art. 49): o valor devolvido, se o
+ * Asaas já aceitou o estorno ou se ele virou manual, e o protocolo que a tela mostra na hora.
+ */
+export interface Arrependimento {
+  valor: number;
+  estornado: boolean;
+  protocolo: string;
+  registradoEm: number;
+  prazoManualDias?: number;
+}
+
+/**
+ * Cancela a assinatura. Depois dos 7 dias, para a RENOVAÇÃO e o pago vale até `valeAte`; dentro
+ * dos 7 dias do primeiro pagamento, o servidor faz o arrependimento (estorno integral, acesso
+ * termina agora) e devolve `arrependimento`.
+ */
+export async function cancelarRenovacao(): Promise<{
+  ok: boolean;
+  valeAte?: number | null;
+  arrependimento?: Arrependimento | null;
+  erro?: string;
+}> {
   try {
     const r = await apiFetch('/api/billing/cancelar', { method: 'POST' });
-    const corpo = (await r.json().catch(() => ({}))) as { valeAte?: number | null; error?: string };
-    return r.ok ? { ok: true, valeAte: corpo.valeAte ?? null } : { ok: false, erro: corpo.error ?? `HTTP ${r.status}` };
+    const corpo = (await r.json().catch(() => ({}))) as {
+      valeAte?: number | null;
+      arrependimento?: Arrependimento | null;
+      error?: string;
+    };
+    return r.ok
+      ? { ok: true, valeAte: corpo.valeAte ?? null, arrependimento: corpo.arrependimento ?? null }
+      : { ok: false, erro: corpo.error ?? `HTTP ${r.status}` };
   } catch {
     return { ok: false, erro: 'não consegui falar com o servidor.' };
   }

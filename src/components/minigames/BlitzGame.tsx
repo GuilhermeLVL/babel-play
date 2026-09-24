@@ -29,6 +29,7 @@ import {
 } from '../../lib/juice';
 import { direcaoDoTexto } from '../../lib/languages';
 import type { AgeProfileType } from '../../lib/profile';
+import { perfilProtegido } from '../../lib/protecaoDoMenor';
 import { apelidoValido, enviarParaRanking, lerApelido, salvarApelido } from '../../lib/ranking';
 import { play } from '../../lib/soundFx';
 import { speak } from '../../lib/tts';
@@ -407,8 +408,9 @@ export default function BlitzGame({ items, ageProfile, onFinish }: BlitzGameProp
               </b>
             </span>
           </div>
-          {/* Ranking global: opt-in, com apelido — só pontos e combo saem daqui. */}
-          {pontosRef.current > 0 && (
+          {/* Ranking global: opt-in, com apelido — só pontos e combo saem daqui. No perfil protegido
+              (menor, ou idade desconhecida — ECA Digital) o envio nem é oferecido. */}
+          {pontosRef.current > 0 && !perfilProtegido() && (
             <div className="mt-6 pt-5 border-t border-border-subtle text-start">
               <p className="text-[11px] font-bold uppercase tracking-wider text-ink-faint mb-2">Ranking global</p>
               {envio === 'ok' ? (

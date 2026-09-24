@@ -819,5 +819,11 @@
   "Com mais {n} palavras desta sessão, estes abrem.": "{n} more words from this session and these open.",
   "Com mais material desta sessão, estes abrem. Cada um diz o que falta.": "With more material from this session, these open. Each one says what it needs.",
   "Nenhum jogo abre só com este baralho ainda. Os jogos dizem o que falta.": "No game opens with just this deck yet. The games say what they need.",
-  "Jogando só com este baralho": "Playing with this deck only"
+  "Jogando só com este baralho": "Playing with this deck only",
+  "Usar IA de nuvem": "Use cloud AI",
+  "Tradução, transcrição e tutor por servidores de IA (Groq, OpenRouter) e o tradutor público MyMemory. Desligado, tudo roda no seu aparelho.": "Translation, transcription and tutor through AI servers (Groq, OpenRouter) and the public MyMemory translator. When off, everything runs on your device.",
+  "Seu plano inclui IA de nuvem, mas ela está desligada porque você ainda não autorizou. Enquanto isso, tudo roda no seu aparelho.": "Your plan includes cloud AI, but it is off because you haven't allowed it yet. Meanwhile, everything runs on your device.",
+  "Autorizar IA de nuvem": "Allow cloud AI",
+  "Não consegui registrar a autorização agora.": "I couldn't record the permission right now.",
+  "No perfil protegido não há ranking público: os seus recordes ficam só com você.": "Protected profiles have no public leaderboard: your records stay with you."
 }

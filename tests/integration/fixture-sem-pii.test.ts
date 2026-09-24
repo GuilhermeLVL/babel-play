@@ -14,8 +14,8 @@ import { copyFileSync, existsSync, mkdtempSync, readFileSync, rmSync, statSync }
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 
-import { type Client,createClient } from '@libsql/client'
-import { afterAll,beforeAll, describe, expect, it } from 'vitest'
+import { type Client, createClient } from '@libsql/client'
+import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
 const FIXTURE = path.resolve(process.cwd(), 'tests', 'fixtures', 'banco-estado-atual.db')
 const JOURNAL = path.resolve(process.cwd(), 'server', 'db', 'migrations', 'meta', '_journal.json')
@@ -39,12 +39,18 @@ beforeAll(() => {
 })
 afterAll(() => {
   c.close()
-  try { rmSync(dir, { recursive: true, force: true }) } catch { /* OneDrive/AV pode segurar */ }
+  try {
+    rmSync(dir, { recursive: true, force: true })
+  } catch {
+    /* OneDrive/AV pode segurar */
+  }
 })
 
 const linhas = async (sql: string) => (await c.execute(sql)).rows as Record<string, unknown>[]
 const tabelas = async () =>
-  (await linhas("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' ORDER BY name")).map((r) => String(r.name))
+  (await linhas("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' ORDER BY name")).map(
+    (r) => String(r.name),
+  )
 const colunasDeTexto = async (t: string) =>
   (await linhas(`PRAGMA table_info("${t}")`))
     .filter((col) => String(col.type ?? '') === '' || /^(text|char|clob|varchar)/i.test(String(col.type)))
@@ -62,12 +68,17 @@ describe('fixture do estado atual — forma do arquivo', () => {
     expect(String(Object.values((await linhas('PRAGMA integrity_check'))[0])[0]).toLowerCase()).toBe('ok')
   })
 
-  it('carrega o diario de migrations inteiro — e o estado ATUAL, nao um banco antigo', async () => {
+  it('carrega o diario de migrations da foto (ate a 0028) — o estado de producao no dia do deploy', async () => {
+    /* A foto foi refeita na Fase 4 com a 0028 aplicada. Migration nova NAO refaz a foto: ela e o estado sobre o
+       qual a migration nova precisa se aplicar (ver `migracoes-sobre-estado-atual.test.ts`). */
+    const ENTRADAS_NA_FOTO = 29
     const journal = JSON.parse(readFileSync(JOURNAL, 'utf8')) as { entries: Array<{ when: number }> }
-    expect(await contar('__drizzle_migrations')).toBe(journal.entries.length)
+    expect(await contar('__drizzle_migrations')).toBe(ENTRADAS_NA_FOTO)
     const ultima = (await linhas('SELECT max(created_at) AS w FROM __drizzle_migrations'))[0]
-    expect(Number(ultima.w)).toBe(journal.entries[journal.entries.length - 1].when)
-    expect(await tabelas()).toEqual(expect.arrayContaining(['users', 'rank', 'sessions', 'utterances', 'vocab_cards', 'anki_notes']))
+    expect(Number(ultima.w)).toBe(journal.entries[ENTRADAS_NA_FOTO - 1].when)
+    expect(await tabelas()).toEqual(
+      expect.arrayContaining(['users', 'rank', 'sessions', 'utterances', 'vocab_cards', 'anki_notes']),
+    )
   })
 
   it('tem dado de verdade para as migrations encontrarem (nao e um banco vazio migrado)', async () => {
@@ -110,7 +121,10 @@ describe('fixture do estado atual — colunas de identificacao', () => {
   })
 
   it('anki: nome do arquivo sem caminho (o caminho traz o usuario do SO)', async () => {
-    for (const v of [...await valores('anki_decks', 'arquivo_origem'), ...await valores('anki_imports', 'arquivo')]) {
+    for (const v of [
+      ...(await valores('anki_decks', 'arquivo_origem')),
+      ...(await valores('anki_imports', 'arquivo')),
+    ]) {
       expect(v).not.toMatch(/[\\/]/)
     }
   })

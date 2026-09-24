@@ -8,7 +8,7 @@
  * `profiles` entra apenas pelas linhas do usuário — as builtin têm `user_id` NULL e são globais
  * (mesma exceção documentada em `tenancy.ts`); um filtro por `user_id` já as preserva.
  */
-import { eq, getTableColumns,inArray, is } from 'drizzle-orm'
+import { eq, getTableColumns, inArray, is } from 'drizzle-orm'
 import { SQLiteTable } from 'drizzle-orm/sqlite-core'
 
 import type { UserId } from '../../lib/authContext'
@@ -22,6 +22,7 @@ import {
   creditPurchases,
   creditSpends,
   exerciseResults,
+  idadesDeclaradas,
   presencas,
   providerCredentials,
   reviewLogs,
@@ -35,6 +36,7 @@ import {
   userInterests,
   users,
   utterances,
+  vinculosDeResponsavel,
   vocabCards,
   vocabOccurrences,
 } from '../schema'
@@ -87,6 +89,10 @@ const TABELAS_DO_TITULAR: ReadonlyArray<readonly [string, any]> = [
      idempotência do webhook não sofre: o evento de uma conta apagada não tem mais a quem promover. */
   ['billingEvents', billingEvents],
   ['usageCounters', usageCounters],
+  /* O vínculo com o responsável é do MENOR (o titular): convite, aceite e o consentimento
+     específico registrado. Sai com a conta do menor, como todo dado dele. */
+  ['vinculosDeResponsavel', vinculosDeResponsavel],
+  ['idadesDeclaradas', idadesDeclaradas],
 ]
 
 /** Os nomes, para o teste de invariante e para quem precise listar sem tocar nas tabelas. */

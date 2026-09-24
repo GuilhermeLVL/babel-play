@@ -1,55 +1,61 @@
 /**
- * REGRESSÃO — S-06 / M-02: /api/gemini/chat sem teto (systemInstruction livre + maxTokens ilimitado).
+ * REGRESSÃO — S-06 / M-02: o tutor sem teto (systemInstruction livre + maxTokens ilimitado).
  *
- * S-06: qualquer chamador (a rota usa a chave do dono, sem auth) ditava prompt gigante e max_tokens
- * ilimitado — custo/DoS. Correção: teto de tamanho do prompt + clamp de max_tokens no servidor.
- * M-02: o caminho Gemini fixava temperature 0.7 e ignorava maxTokens; agora prepareLlmRequest entrega
- * os valores (clampados) para os dois caminhos.
- *
- * A lógica foi extraída para server/ai/llmRequest.ts — testável sem subir o servidor.
+ * S-06 pôs teto de tamanho do prompt e clamp de `max_tokens` no servidor. A Fase 2 do lançamento
+ * foi além: o cliente não escreve mais prompt nenhum (ver `funcoes-de-ia.test.ts`). O que este
+ * arquivo guarda é o contrato de S-06 sob a regra nova — teto e clamp continuam valendo, agora POR
+ * FUNÇÃO, e o M-02 (temperatura do cliente preservada) foi REVERTIDO de propósito: temperatura é
+ * decisão de produto por função, não parâmetro de quem chama.
  */
-import { describe, expect,it } from 'vitest'
+import { describe, expect, it } from 'vitest'
 
-import { MAX_OUTPUT_TOKENS, MAX_PROMPT_CHARS,prepareLlmRequest } from '../../server/ai/llmRequest'
+import { FUNCOES_DE_IA } from '../../server/ai/funcoesDeIa'
+import { MAX_PROMPT_CHARS } from '../../server/ai/llmClient'
+import { prepareLlmRequest } from '../../server/ai/llmRequest'
 
-describe('S-06/M-02 — preparo do /api/gemini/chat', () => {
+describe('S-06 — preparo do /api/tutor/chat', () => {
   it('rejeita corpo sem array de mensagens (400)', () => {
     const r = prepareLlmRequest({ messages: 'não é array' })
     expect(r.ok).toBe(false)
-    if (!r.ok) expect(r.status).toBe(400)
+    expect(r.status).toBe(400)
   })
 
-  it('CORRIGIDO (S-06): clampa max_tokens no servidor mesmo pedindo muito', () => {
+  it('max_tokens pedido pelo cliente não passa do teto da função', () => {
     const r = prepareLlmRequest({ messages: [{ role: 'user', content: 'oi' }], maxTokens: 999999 })
     expect(r.ok).toBe(true)
-    if (r.ok) expect(r.maxTokens).toBeLessThanOrEqual(MAX_OUTPUT_TOKENS)
+    expect(r.maxTokens).toBe(FUNCOES_DE_IA.tutor.maxTokens)
   })
 
-  it('CORRIGIDO (S-06): sem max_tokens → cai no teto do servidor (não ilimitado)', () => {
-    const r = prepareLlmRequest({ messages: [{ role: 'user', content: 'oi' }] })
-    expect(r.ok).toBe(true)
-    if (r.ok) expect(r.maxTokens).toBe(MAX_OUTPUT_TOKENS)
-  })
-
-  it('CORRIGIDO (S-06): rejeita prompt gigante (413) — teto de tamanho', () => {
-    const huge = 'x'.repeat(MAX_PROMPT_CHARS + 1)
+  it('rejeita prompt gigante (413) — teto de tamanho da função', () => {
+    const huge = 'x'.repeat(FUNCOES_DE_IA.tutor.tetoEntrada + 1)
     const r = prepareLlmRequest({ messages: [{ role: 'user', content: huge }] })
     expect(r.ok).toBe(false)
-    if (!r.ok) expect(r.status).toBe(413)
+    expect(r.status).toBe(413)
   })
 
-  it('CORRIGIDO (M-02): a temperature do cliente é preservada (não fixada em 0.7)', () => {
+  it('o teto absoluto do cliente de LLM cobre o maior pedido legítimo (conteúdo + system)', () => {
+    const cheio = prepareLlmRequest({
+      messages: [{ role: 'user', content: 'x'.repeat(FUNCOES_DE_IA.tutor.tetoEntrada) }],
+    })
+    const total = cheio.messages.reduce((n, m) => n + m.content.length, 0)
+    expect(total).toBeLessThanOrEqual(MAX_PROMPT_CHARS)
+  })
+
+  it('M-02 revertido: a temperatura é a da função, não a do cliente', () => {
     const r = prepareLlmRequest({ messages: [{ role: 'user', content: 'oi' }], temperature: 0 })
-    expect(r.ok).toBe(true)
-    if (r.ok) expect(r.temperature).toBe(0)
+    expect(r.temperature).toBe(FUNCOES_DE_IA.tutor.temperatura)
   })
 
   it('normaliza role e content (assistant/user; content não-string → vazio)', () => {
-    const r = prepareLlmRequest({ messages: [{ role: 'assistant', content: 'a' }, { role: 'x', content: 42 }] })
+    const r = prepareLlmRequest({
+      messages: [
+        { role: 'assistant', content: 'a' },
+        { role: 'x', content: 42 },
+      ],
+    })
     expect(r.ok).toBe(true)
-    if (r.ok) {
-      expect(r.messages[0]).toEqual({ role: 'assistant', content: 'a' })
-      expect(r.messages[1]).toEqual({ role: 'user', content: '' })
-    }
+    // [0] é o system do servidor.
+    expect(r.messages[1]).toEqual({ role: 'assistant', content: 'a' })
+    expect(r.messages[2]).toEqual({ role: 'user', content: '' })
   })
 })

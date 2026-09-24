@@ -5,10 +5,10 @@
  * REMOVIDAS do ambiente para o arquivo: o que se caracteriza e o servidor sem provedor
  * configurado, que e o estado de qualquer CI — e as respostas mudam com a chave presente.
  */
-import { afterAll,beforeAll, describe, expect, it } from 'vitest'
+import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
 import { PLAN_MATRIX } from '../../src/core/planos'
-import { type AppDeTeste,resposta, subirApp } from './_app'
+import { type AppDeTeste, resposta, subirApp } from './_app'
 
 const CHAVES_DE_IA = ['LLM_API_KEY', 'GROQ_API_KEY', 'STT_API_KEY', 'PRO_MONTHLY_MANAGED_CALLS'] as const
 const salvo: Partial<Record<(typeof CHAVES_DE_IA)[number], string | undefined>> = {}
@@ -23,14 +23,20 @@ describe('planos e quotas (modo publico)', () => {
   const B = 'usuario-livre'
 
   beforeAll(async () => {
-    for (const k of CHAVES_DE_IA) { salvo[k] = process.env[k]; delete process.env[k] }
+    for (const k of CHAVES_DE_IA) {
+      salvo[k] = process.env[k]
+      delete process.env[k]
+    }
     s = await subirApp({ modo: 'publico' })
     tokenA = await s.token(A)
     tokenB = await s.token(B)
   })
   afterAll(async () => {
     await s.encerrar()
-    for (const k of CHAVES_DE_IA) { if (salvo[k] === undefined) delete process.env[k]; else process.env[k] = salvo[k] }
+    for (const k of CHAVES_DE_IA) {
+      if (salvo[k] === undefined) delete process.env[k]
+      else process.env[k] = salvo[k]
+    }
   })
 
   it('GET /api/me/entitlements de conta nova: plano free com a forma conhecida', async () => {
@@ -39,7 +45,9 @@ describe('planos e quotas (modo publico)', () => {
     const corpo = await r.clone().json()
     expect(corpo).toMatchObject({ plan: 'free', ...PLAN_MATRIX.free.entitlements })
     expect(corpo.armazenamento).toEqual({ usados: 0, teto: PLAN_MATRIX.free.quotas.armazenamentoMb! * 1024 * 1024 })
-    await expect(JSON.stringify(await resposta(r), null, 2)).toMatchFileSnapshot('__snapshots__/get.me.entitlements.json')
+    await expect(JSON.stringify(await resposta(r), null, 2)).toMatchFileSnapshot(
+      '__snapshots__/get.me.entitlements.json',
+    )
   })
 
   it('GET /api/me/uso de conta free: tetos da matriz, tudo zerado', async () => {
@@ -50,7 +58,7 @@ describe('planos e quotas (modo publico)', () => {
       plano: 'free',
       chamadas: { usado: 0, teto: PLAN_MATRIX.free.quotas.chamadasMes },
       segundosDeAudio: { usado: 0, teto: PLAN_MATRIX.free.quotas.sttSegundosMes },
-      tokensDeLlm: { usado: 0, teto: null },
+      tokensDeLlm: { usado: 0, teto: PLAN_MATRIX.free.quotas.tokensMes },
     })
     expect(corpo.janela).toMatch(/^\d{4}-\d{2}$/)
     await expect(JSON.stringify(await resposta(r), null, 2)).toMatchFileSnapshot('__snapshots__/get.me.uso.json')
@@ -61,7 +69,10 @@ describe('planos e quotas (modo publico)', () => {
     expect(r.status).toBe(402)
     // caracterizacao: comportamento atual — a recusa por plano nao usa o envelope `code`; traz
     // `entitlement` solto no topo, diferente do 402 de quota que usa `code: 'quota_exceeded'`
-    expect(await r.clone().json()).toEqual({ error: 'tradução por IA gerenciada requer plano Pro', entitlement: 'managedCloudLlm' })
+    expect(await r.clone().json()).toEqual({
+      error: 'tradução por IA gerenciada requer um plano pago',
+      entitlement: 'managedCloudLlm',
+    })
     await expect(JSON.stringify(await resposta(r), null, 2)).toMatchFileSnapshot('__snapshots__/post.ai.mt.402.json')
   })
 
@@ -69,7 +80,9 @@ describe('planos e quotas (modo publico)', () => {
     const r = await s.get('/api/ai/stt/available', tokenA)
     expect(r.status).toBe(501)
     expect(await r.clone().json()).toEqual({ available: false })
-    await expect(JSON.stringify(await resposta(r), null, 2)).toMatchFileSnapshot('__snapshots__/get.ai.stt.available.json')
+    await expect(JSON.stringify(await resposta(r), null, 2)).toMatchFileSnapshot(
+      '__snapshots__/get.ai.stt.available.json',
+    )
   })
 
   it('settings.ui.plan="pro" gravado pelo cliente NAO muda os entitlements', async () => {
@@ -86,10 +99,21 @@ describe('planos e quotas (modo publico)', () => {
   it('assinatura pro ativa em `subscriptions` muda os entitlements e o uso', async () => {
     const { subscriptionsRepo } = await s.load('../../server/db/repositories/subscriptions')
     const { asUserId } = await s.load('../../server/lib/authContext')
-    await subscriptionsRepo.upsert(asUserId(A), { plan: 'pro', status: 'active', currentPeriodEnd: Date.now() + 30 * 86_400_000 })
+    await subscriptionsRepo.upsert(asUserId(A), {
+      plan: 'pro',
+      status: 'active',
+      currentPeriodEnd: Date.now() + 30 * 86_400_000,
+    })
 
     const ent = await (await s.get('/api/me/entitlements', tokenA)).json()
-    expect(ent).toMatchObject({ plan: 'pro', managedCloudLlm: true, managedCloudStt: true, youtubeImport: true, largerModels: true })
+    expect(ent).toMatchObject({
+      plan: 'pro',
+      managedCloudLlm: true,
+      managedCloudStt: true,
+      // Fase 2 do lançamento: YouTube só no self-host (no hospedado a rota responde 403).
+      youtubeImport: false,
+      largerModels: true,
+    })
     expect(ent.armazenamento.teto).toBe(PLAN_MATRIX.pro.quotas.armazenamentoMb! * 1024 * 1024)
 
     const uso = await (await s.get('/api/me/uso', tokenA)).json()
@@ -107,7 +131,9 @@ describe('planos e quotas (modo publico)', () => {
   it('pro sem provedor configurado: POST /api/ai/mt e 501, e nao consome quota', async () => {
     const r = await s.post('/api/ai/mt', CORPO_MT, tokenA)
     expect(r.status).toBe(501)
-    expect(await r.clone().json()).toEqual({ error: 'tradução por LLM não configurada no servidor (defina LLM_API_KEY)' })
+    expect(await r.clone().json()).toEqual({
+      error: 'tradução por LLM não configurada no servidor (defina LLM_API_KEY)',
+    })
     await expect(JSON.stringify(await resposta(r), null, 2)).toMatchFileSnapshot('__snapshots__/post.ai.mt.501.json')
     expect((await (await s.get('/api/me/uso', tokenA)).json()).chamadas.usado).toBe(0)
   })
@@ -145,12 +171,15 @@ describe('planos e quotas (modo publico)', () => {
     expect(await reserveManagedCall(asUserId(B))).toBe(false)
   })
 
-  it('assinatura cancelada volta a free; past_due com periodo vigente ainda concede', async () => {
+  it('past_due com periodo vigente concede; cancelada mantem ate o fim do periodo pago e depois volta a free', async () => {
     const { subscriptionsRepo } = await s.load('../../server/db/repositories/subscriptions')
     const { asUserId } = await s.load('../../server/lib/authContext')
     await subscriptionsRepo.upsert(asUserId(A), { status: 'past_due', currentPeriodEnd: Date.now() + 86_400_000 })
     expect((await (await s.get('/api/me/entitlements', tokenA)).json()).plan).toBe('pro')
+    // Fase 3 do lancamento (Decreto 11.034/2022): cancelar para a renovacao, o pago continua valendo.
     await subscriptionsRepo.upsert(asUserId(A), { status: 'canceled' })
+    expect((await (await s.get('/api/me/entitlements', tokenA)).json()).plan).toBe('pro')
+    await subscriptionsRepo.upsert(asUserId(A), { status: 'canceled', currentPeriodEnd: Date.now() - 1000 })
     expect((await (await s.get('/api/me/entitlements', tokenA)).json()).plan).toBe('free')
   })
 })

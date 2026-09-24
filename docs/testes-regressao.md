@@ -9,11 +9,11 @@
 
 ## 1. Suíte estática (roda em ~1 min)
 
-| Comando | O que cobre | Estado 2026-07-24 |
-|---|---|---|
-| `npm run typecheck` | Tipos de todo o app | ✅ |
-| `npm test` | Engine de exercícios (normalização, similaridade, progressão, elegibilidade) | ✅ |
-| `tsx verify-backend.ts` / `verify-data.ts` / `verify-gateway.ts` | Contratos do backend/gateway | (rodar sob demanda) |
+| Comando                                                          | O que cobre                                                                  | Estado 2026-07-24   |
+| ---------------------------------------------------------------- | ---------------------------------------------------------------------------- | ------------------- |
+| `npm run typecheck`                                              | Tipos de todo o app                                                          | ✅                  |
+| `npm test`                                                       | Engine de exercícios (normalização, similaridade, progressão, elegibilidade) | ✅                  |
+| `tsx verify-backend.ts` / `verify-data.ts` / `verify-gateway.ts` | Contratos do backend/gateway                                                 | (rodar sob demanda) |
 
 ## 2. Smoke de navegação
 
@@ -24,8 +24,8 @@ Clicar Início → Biblioteca → Conteúdo da Sessão → Meu Vocabulário → 
 No console da tela **Capturar**:
 
 ```js
-await window.__simSystem()        // injeta JFK.wav no pipeline VAD→STT→MT
-await window.__simBench(6, 6)     // benchmark decode/tradução em regime
+await window.__simSystem(); // injeta JFK.wav no pipeline VAD→STT→MT
+await window.__simBench(6, 6); // benchmark decode/tradução em regime
 ```
 
 Esperado: balão "Sistema / Outros" com transcrição + tradução; decode ~470ms p/ 6s de áudio (WebGPU). ✅
@@ -51,7 +51,7 @@ Esperado: balão "Sistema / Outros" com transcrição + tradução; decode ~470m
 
 ## 7. iChat
 
-Enviar mensagem em qualquer tela → resposta via cascata Groq→Gemini→Ollama citando o CONTEXTO real da tela (ex.: transcrição ao vivo, métricas). ✅ (com `GROQ_API_KEY`)
+Enviar mensagem em qualquer tela → resposta via cascata Groq→OpenRouter (Ollama só no self-host) citando o CONTEXTO real da tela (ex.: transcrição ao vivo, métricas). ✅ (com `GROQ_API_KEY`)
 
 ## Achados conhecidos (não regressões)
 

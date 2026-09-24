@@ -7,6 +7,7 @@ import { buildGateway } from '../gateway';
 import { CREDENTIAL_KEY, setProviderChoice } from '../gateway/activeProfile';
 import { DEFAULT_PROFILE_ID, getBuiltinProfile } from '../gateway/profiles';
 import { getSttQuality, MODEL_DOWNLOAD_MB, routeStt } from '../gateway/sttRouter';
+import { consentiuNuvem } from '../lib/consentimentoDeNuvem';
 import { t } from '../lib/i18n';
 import { toast } from './Toast';
 import { Dialogo, fecharDialogoDe, IconeEmBloco, TituloDeSecao } from './ui';
@@ -97,7 +98,7 @@ export default function AiEnginePanel({
 
   const profile = getBuiltinProfile(activeId);
   const gateway = useMemo(
-    () => buildGateway({ profile: getBuiltinProfile(activeId), cloudConsent: () => true }),
+    () => buildGateway({ profile: getBuiltinProfile(activeId), cloudConsent: consentiuNuvem }),
     [activeId],
   );
 

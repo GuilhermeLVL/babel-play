@@ -7,8 +7,9 @@
  * reserva serve quando o primário cai; sem reserva o comportamento é o antigo; e a QUOTA é cobrada
  * uma vez só por tradução entregue, nunca por tentativa.
  */
-import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { esvaziarCacheDeTraducao } from '../../server/ai/cacheDeTraducao'
 import { esquecerDisjuntores } from '../../server/ai/disjuntor'
 import { asUserId } from '../../server/lib/authContext'
 import { type EphemeralDb, setupEphemeralDb } from '../harness/ephemeralDb'
@@ -85,6 +86,10 @@ function configurarReserva() {
   process.env.LLM_RESERVA_BASE_URL = 'https://reserva.exemplo/v1'
   process.env.LLM_RESERVA_MODEL = 'modelo-pago'
 }
+
+/* O cache de tradução (Fase 2 do lançamento) é do processo: sem esvaziar, a frase repetida de um
+   caso seria servida do cache no seguinte, e o provedor que o caso encena nem seria chamado. */
+beforeEach(() => esvaziarCacheDeTraducao())
 
 describe('cascata de MT com reserva', () => {
   it('primário responde → reserva nem é chamada, procedência diz o modelo primário', async () => {

@@ -17,9 +17,29 @@
  * `anonimo` NÃO está aqui: é identidade do cliente sem conta, não um plano que o servidor possa
  * atribuir a uma assinatura. O tipo do cliente o acrescenta por união.
  *
- * OS NÚMEROS DO ESSENCIAL têm motivo, não gosto (docs/auditoria/decisao-infraestrutura-v1.md):
- * ele vende a TRADUÇÃO de nuvem — a maior queixa medida (idiomático 27%→83%) — mantendo a
- * transcrição local. `sttSegundosMes: 0` é o que faz o plano custar menos de R$ 1/usuário/mês.
+ * OS NÚMEROS DO LANÇAMENTO (Fase 2, decisão do dono em 24/09/2026) — a conta de custo, para que
+ * nenhum plano dê prejuízo no PIOR caso (assinante que usa o teto inteiro):
+ *
+ *   Preços (Groq, 24/09/2026): whisper-large-v3-turbo US$ 0,04/h, mínimo de 10 s por requisição
+ *   (já contado em `segundosFaturaveis`); gpt-oss-120b US$ 0,15 por 1M tokens de entrada e US$ 0,60
+ *   de saída. Câmbio de planejamento R$ 5,60/US$. Líquido = preço − Asaas (R$ 1,09) − Simples (~6%).
+ *   Tradução medida: ~350 tokens de entrada + ~90 de saída por fala (US$ 0,107 por mil falas).
+ *
+ *   ESSENCIAL R$ 19,90 → líquido ≈ R$ 17,62
+ *     STT   54.000 s = 15 h × US$ 0,04                                  = US$ 0,60
+ *     LLM   3.000.000 tokens: pior caso tudo saída 3M × 0,60            = US$ 1,80
+ *           (típico, 80% entrada: 3M × (0,8 × 0,15 + 0,2 × 0,60) / 1M  = US$ 0,72)
+ *     PIOR CASO US$ 2,40 ≈ R$ 13,44 < R$ 17,62. 3M tokens ≈ 6.800 falas traduzidas + tutor.
+ *     Chamadas 20.000: 15 h ÷ 6 s ≈ 9.000 falas × 2 (transcrever + traduzir) = 18.000, com folga
+ *     para o tutor. Quem limita dinheiro são segundos e tokens; chamadas é fair-use.
+ *
+ *   PRO R$ 39,90 → líquido ≈ R$ 36,42
+ *     STT   72.000 s = 20 h × US$ 0,04                                  = US$ 0,80
+ *     LLM   5.000.000 tokens: pior caso 5M × 0,60                       = US$ 3,00
+ *     PIOR CASO US$ 3,80 ≈ R$ 21,28 < R$ 36,42. Chamadas 26.000 (20 h ÷ 6 s × 2 = 24.000 + folga).
+ *     O MODELO MAIOR (`LLM_MODEL_GRANDE`) muda a conta: para o pior caso não passar do líquido, ele
+ *     pode custar até ~US$ 1,10 por 1M tokens de SAÍDA ((36,42 ÷ 5,60 − 0,80) ÷ 5M). Acima disso,
+ *     baixe `PRO_MONTHLY_LLM_TOKENS`. O orçamento global (`AI_BUDGET_USD_MONTH`) cobre o resto.
  */
 
 /** Planos que o servidor pode atribuir. Derive listas com `PLANOS_DE_ASSINATURA`, nunca à mão. */
@@ -41,6 +61,8 @@ export interface QuotasDoPlano {
   chamadasMes: number | null;
   /** Segundos de áudio FATURÁVEIS no STT de nuvem por mês. É o teto de gasto real. `null` = sem teto. */
   sttSegundosMes: number | null;
+  /** Tokens (entrada + saída) no LLM de nuvem por mês — tradução e tutor dividem. `null` = sem teto. */
+  tokensMes: number | null;
   /** Armazenamento de sessões/mídia, em MB. `null` = sem teto. */
   armazenamentoMb: number | null;
 }
@@ -59,30 +81,30 @@ export const PLAN_MATRIX: Record<PlanoDeAssinatura, DefinicaoDePlano> = {
     precoMensalBrl: null,
     entitlements: { youtubeImport: false, managedCloudStt: false, managedCloudLlm: false, largerModels: false },
     // Chamadas 0: o free já é barrado antes, pelo entitlement — o teto só reafirma.
-    quotas: { chamadasMes: 0, sttSegundosMes: 0, armazenamentoMb: 500 },
+    quotas: { chamadasMes: 0, sttSegundosMes: 0, tokensMes: 0, armazenamentoMb: 500 },
   },
   essencial: {
     rotulo: 'Essencial',
-    precoMensalBrl: 9.9,
-    /* Tradução de nuvem SIM, STT de nuvem NÃO — os dois gates são independentes nos proxies
-       (mtProxy.ts:46, sttProxy.ts:44), e essa independência é o que torna o plano viável. */
-    entitlements: { youtubeImport: false, managedCloudStt: false, managedCloudLlm: true, largerModels: false },
-    quotas: { chamadasMes: 12_000, sttSegundosMes: 0, armazenamentoMb: 1_000 },
+    precoMensalBrl: 19.9,
+    /* LLM e transcrição de nuvem, com o modelo padrão. YouTube fica de fora em TODO plano vendido:
+       no modo hospedado a importação responde 403 (o yt-dlp roda no servidor; só o self-host a
+       libera) — vender o que a rota recusa seria cobrar por uma promessa. */
+    entitlements: { youtubeImport: false, managedCloudStt: true, managedCloudLlm: true, largerModels: false },
+    quotas: { chamadasMes: 20_000, sttSegundosMes: 54_000, tokensMes: 3_000_000, armazenamentoMb: 1_000 },
   },
   pro: {
     rotulo: 'Pro',
-    precoMensalBrl: 19.9,
-    entitlements: { youtubeImport: true, managedCloudStt: true, managedCloudLlm: true, largerModels: true },
-    /* 12.000 ≈ 6.000 falas ≈ 10 h de conversa/mês (cada fala usa 2 chamadas); 36.000 s = 10 h
-       faturadas de STT. Orçamento explícito em docs/auditoria/viabilidade-producao-v1.md. */
-    quotas: { chamadasMes: 12_000, sttSegundosMes: 36_000, armazenamentoMb: 5_000 },
+    precoMensalBrl: 39.9,
+    entitlements: { youtubeImport: false, managedCloudStt: true, managedCloudLlm: true, largerModels: true },
+    /* 20 h de transcrição e o modelo maior. A conta de cada número está no topo do arquivo. */
+    quotas: { chamadasMes: 26_000, sttSegundosMes: 72_000, tokensMes: 5_000_000, armazenamentoMb: 5_000 },
   },
   selfhost: {
     rotulo: 'Self-host (tudo liberado)',
     precoMensalBrl: null,
     // A chave de IA é do próprio dono da instância: não há custo nosso, nada a gatear.
     entitlements: { youtubeImport: true, managedCloudStt: true, managedCloudLlm: true, largerModels: true },
-    quotas: { chamadasMes: null, sttSegundosMes: null, armazenamentoMb: null },
+    quotas: { chamadasMes: null, sttSegundosMes: null, tokensMes: null, armazenamentoMb: null },
   },
 };
 
@@ -134,6 +156,15 @@ export function menorPrecoDeAssinatura(): string | null {
         .toFixed(2)
         .replace('.', ',')
     : null;
+}
+
+/**
+ * Horas de transcrição de nuvem por mês, derivadas da quota em segundos — a tela escreve "15 h"
+ * a partir daqui, nunca à mão. `null` = sem teto (self-host).
+ */
+export function horasDeTranscricao(plano: PlanoDeAssinatura): number | null {
+  const s = PLAN_MATRIX[plano].quotas.sttSegundosMes;
+  return s === null ? null : Math.round((s / 3600) * 10) / 10;
 }
 
 /** "500 MB" / "1 GB" — o teto de armazenamento em texto, derivado da quota. */

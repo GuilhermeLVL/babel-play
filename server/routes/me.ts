@@ -1,18 +1,35 @@
 /** Rota do usuário atual (montada em `/api/me`, atrás do authMiddleware). */
 import { Router } from 'express'
+import { z } from 'zod'
 
 import { contaRepo } from '../db/repositories/conta'
+import { idadesRepo } from '../db/repositories/idades'
 import { perfilRepo } from '../db/repositories/perfil'
+import { subscriptionsRepo } from '../db/repositories/subscriptions'
 import { usageCountersRepo } from '../db/repositories/usageCounters'
 import { usersRepo } from '../db/repositories/users'
+import { vinculosRepo } from '../db/repositories/vinculos'
+import { asaasConfigurado } from '../lib/asaas'
 import { authRequired } from '../lib/auth'
 import { adminDoSupabase } from '../lib/config'
+import { enviadorAtual, linkDoConvite, mostrarLinkNaTela } from '../lib/conviteDoResponsavel'
+import { encerrarAssinatura } from '../lib/encerramentoDeAssinatura'
 import { getEntitlementsForUser, getPlanForUser } from '../lib/entitlements'
 import { erroDeRota } from '../lib/erroDeRota'
+import { estadoDeProtecao, mascararEmail, validarNascimento } from '../lib/idade'
 import { log } from '../lib/logger'
-import { capDeArmazenamento, reconciliarSeVencido,usoDeArmazenamento } from '../lib/storageQuota'
-import { capForPlan, capSegundosParaPlano, METRIC_LLM_TOKENS,METRIC_MANAGED, METRIC_STT_SEGUNDOS } from '../lib/usageQuota'
-import { excluirContaSchema, parseOr400,perfilPatchSchema } from '../validation'
+import { portaoDaNuvem } from '../lib/orcamentoDeIa'
+import { responderErro } from '../lib/respostaDeErro'
+import { capDeArmazenamento, reconciliarSeVencido, usoDeArmazenamento } from '../lib/storageQuota'
+import {
+  capForPlan,
+  capSegundosParaPlano,
+  capTokensParaPlano,
+  METRIC_LLM_TOKENS,
+  METRIC_MANAGED,
+  METRIC_STT_SEGUNDOS,
+} from '../lib/usageQuota'
+import { excluirContaSchema, parseOr400, perfilPatchSchema } from '../validation'
 // O store de mídia é um só; importar daqui evita uma segunda resolução de `AUDIO_DIR` que
 // poderia divergir da que grava e serve os arquivos.
 import { armazenamentoDeMidia } from './sessions'
@@ -56,6 +73,93 @@ meRouter.patch('/', async (req, res) => {
 })
 
 /**
+ * IDADE E PERFIL PROTEGIDO (Fase 4 — ECA Digital e LGPD art. 14). O cliente pergunta a data de
+ * nascimento no primeiro acesso com conta (e na próxima entrada das contas antigas) e lê daqui a
+ * faixa, se a conta está protegida e se ela precisa do responsável. A régua é `server/lib/idade.ts`.
+ */
+meRouter.get('/idade', async (req, res) => {
+  try {
+    res.json(await estadoDeProtecao(req.userId))
+  } catch (err) {
+    res.status(500).json({ error: erroDeRota(err, { status: 500, event: 'me_idade_error', requestId: req.requestId }) })
+  }
+})
+
+/** Declara a data UMA vez. Trocar depois é recusado (409): corrigir é pelo suporte. */
+meRouter.put('/idade', async (req, res) => {
+  const nascimento = validarNascimento((req.body as { nascimento?: unknown } | undefined)?.nascimento)
+  if (!nascimento) {
+    responderErro(res, 400, 'data de nascimento inválida (AAAA-MM-DD, no passado)', 'nascimento_invalido')
+    return
+  }
+  try {
+    const r = await idadesRepo.declarar(req.userId, nascimento)
+    if (r === 'divergente') {
+      responderErro(
+        res,
+        409,
+        'a data de nascimento já foi informada; para corrigir, fale com o suporte',
+        'nascimento_ja_informado',
+      )
+      return
+    }
+    res.json(await estadoDeProtecao(req.userId))
+  } catch (err) {
+    res.status(500).json({ error: erroDeRota(err, { status: 500, event: 'me_idade_error', requestId: req.requestId }) })
+  }
+})
+
+/**
+ * O MENOR CONVIDA O RESPONSÁVEL (ECA Digital art. 24). Só quem precisa de vínculo (menor de 16)
+ * convida. O token vai no link — enviado pelo `EnviadorDeConvite`, que hoje só registra (ver
+ * `server/lib/conviteDoResponsavel.ts`); em desenvolvimento o link volta na resposta.
+ */
+meRouter.post('/responsavel/convite', async (req, res) => {
+  const email = z
+    .string()
+    .trim()
+    .toLowerCase()
+    .email()
+    .max(200)
+    .safeParse((req.body as { email?: unknown } | undefined)?.email)
+  if (!email.success) {
+    responderErro(res, 400, 'e-mail do responsável inválido', 'email_invalido')
+    return
+  }
+  try {
+    const estado = await estadoDeProtecao(req.userId)
+    if (!estado.exigeResponsavel) {
+      responderErro(res, 409, 'esta conta não precisa de vínculo com um responsável', 'vinculo_desnecessario')
+      return
+    }
+    if (estado.vinculo.estado === 'aceito' && !estado.restrita) {
+      responderErro(res, 409, 'esta conta já está vinculada a um responsável', 'ja_vinculada')
+      return
+    }
+    const { token, expiraEm } = await vinculosRepo.convidar(req.userId, email.data)
+    const link = linkDoConvite(token)
+    const perfil = await usersRepo.get(req.userId)
+    const envio = await enviadorAtual().enviar({
+      para: email.data,
+      link,
+      nomeDoMenor: perfil?.displayName ?? null,
+      exigeConsentimentoEspecifico: estado.exigeConsentimentoEspecifico,
+    })
+    res.status(201).json({
+      enviado: envio.enviado,
+      modo: envio.modo,
+      expiraEm,
+      emailMascarado: mascararEmail(email.data),
+      ...(mostrarLinkNaTela() ? { linkDeTeste: link } : {}),
+    })
+  } catch (err) {
+    res
+      .status(500)
+      .json({ error: erroDeRota(err, { status: 500, event: 'me_convite_error', requestId: req.requestId }) })
+  }
+})
+
+/**
  * EXPORTAÇÃO dos dados do titular (LGPD art. 18, II/V — F5-03). Um JSON com tudo o que o sistema
  * guarda sobre a pessoa, em formato legível por máquina.
  *
@@ -71,7 +175,9 @@ meRouter.get('/exportar', async (req, res) => {
     res.setHeader('Cache-Control', 'no-store')
     res.json(dados)
   } catch (err) {
-    res.status(500).json({ error: erroDeRota(err, { status: 500, event: 'me_exportar_error', route: req.path, requestId: req.requestId }) })
+    res.status(500).json({
+      error: erroDeRota(err, { status: 500, event: 'me_exportar_error', route: req.path, requestId: req.requestId }),
+    })
   }
 })
 
@@ -129,6 +235,34 @@ async function removerVinculoDeLogin(sub: string): Promise<ResultadoDoVinculo> {
 meRouter.delete('/', async (req, res) => {
   const body = parseOr400(excluirContaSchema, req.body, res)
   if (!body) return
+
+  /* A COBRANÇA ANTES DOS DADOS (Fase 3 do lançamento). Apagar a conta deixava o Asaas cobrando todo
+     mês — e, sem a linha em `subscriptions`, nem o suporte saberia de quem era o cartão. Cancela
+     PRIMEIRO pelo mesmo caminho do botão Cancelar (inclusive o arrependimento, se couber); se o
+     Asaas não confirmar, NADA é apagado e o titular é avisado para tentar de novo. */
+  let assinatura: { cancelada: boolean; arrependimento?: unknown } = { cancelada: false }
+  const sub = await subscriptionsRepo.getActive(req.userId)
+  if (sub?.providerSubscriptionId) {
+    if (!asaasConfigurado()) {
+      res.status(503).json({
+        error:
+          'não consegui cancelar a sua assinatura (cobrança indisponível neste servidor), então nada foi apagado. Fale com o suporte.',
+        code: 'assinatura_nao_cancelada',
+      })
+      return
+    }
+    try {
+      const r = await encerrarAssinatura(req.userId, { requestId: req.requestId })
+      assinatura = { cancelada: true, ...(r.arrependimento ? { arrependimento: r.arrependimento } : {}) }
+    } catch (err) {
+      res.status(502).json({
+        error: `não consegui cancelar a sua assinatura no provedor de pagamento, então nada foi apagado — tente de novo em alguns minutos (${erroDeRota(err, { event: 'me_excluir_cancelamento_falhou', requestId: req.requestId })})`,
+        code: 'assinatura_nao_cancelada',
+      })
+      return
+    }
+  }
+
   try {
     // Os arquivos ANTES das linhas: depois da exclusão não há mais como saber quais eram.
     const arquivos = await contaRepo.midia(req.userId)
@@ -156,11 +290,14 @@ meRouter.delete('/', async (req, res) => {
 
     const login = {
       desvinculado: vinculo.removido,
-      ...(vinculo.removido ? {} : {
-        motivo: vinculo.motivo,
-        // Doutrina do P1-9: dizer o que NÃO aconteceu, não confirmar o que não ocorreu.
-        aviso: 'os dados foram apagados, mas o login continua válido — ao entrar de novo, uma conta nova e VAZIA será criada com o mesmo acesso',
-      }),
+      ...(vinculo.removido
+        ? {}
+        : {
+            motivo: vinculo.motivo,
+            // Doutrina do P1-9: dizer o que NÃO aconteceu, não confirmar o que não ocorreu.
+            aviso:
+              'os dados foram apagados, mas o login continua válido — ao entrar de novo, uma conta nova e VAZIA será criada com o mesmo acesso',
+          }),
     }
 
     if (falhas.length || !vinculo.removido) {
@@ -172,14 +309,22 @@ meRouter.delete('/', async (req, res) => {
         ok: false,
         ...relatorio,
         arquivos: { apagados, falhas },
+        assinatura,
         login,
         error: `conta excluída, mas ${partes.join(' e ')}`,
       })
       return
     }
-    res.json({ ok: true, ...relatorio, arquivos: { apagados, falhas: [] }, login })
+    res.json({ ok: true, ...relatorio, arquivos: { apagados, falhas: [] }, login, assinatura })
   } catch (err) {
-    res.status(500).json({ error: erroDeRota(err, { status: 500, event: 'me_excluir_conta_error', route: req.path, requestId: req.requestId }) })
+    res.status(500).json({
+      error: erroDeRota(err, {
+        status: 500,
+        event: 'me_excluir_conta_error',
+        route: req.path,
+        requestId: req.requestId,
+      }),
+    })
   }
 })
 
@@ -206,10 +351,11 @@ meRouter.get('/uso', async (req, res) => {
   try {
     const plano = await getPlanForUser(req.userId)
     const janela = new Date().toISOString().slice(0, 7)
-    const [chamadas, segundos, tokens] = await Promise.all([
+    const [chamadas, segundos, tokens, portao] = await Promise.all([
       usageCountersRepo.get(req.userId, METRIC_MANAGED, janela),
       usageCountersRepo.get(req.userId, METRIC_STT_SEGUNDOS, janela),
       usageCountersRepo.get(req.userId, METRIC_LLM_TOKENS, janela),
+      portaoDaNuvem(),
     ])
     const finito = (n: number): number | null => (Number.isFinite(n) ? n : null)
     res.json({
@@ -217,8 +363,12 @@ meRouter.get('/uso', async (req, res) => {
       janela,
       chamadas: { usado: chamadas, teto: finito(capForPlan(plano)) },
       segundosDeAudio: { usado: segundos, teto: finito(capSegundosParaPlano(plano)) },
-      // Tokens são CONTABILIDADE, não teto: só se conhecem depois da resposta do provedor.
-      tokensDeLlm: { usado: tokens, teto: null },
+      // Tokens viraram TETO na Fase 2 do lançamento: reservados antes da chamada, acertados depois.
+      tokensDeLlm: { usado: tokens, teto: finito(capTokensParaPlano(plano)) },
+      /* O PORTÃO GLOBAL (chave de emergência e orçamento do mês), para a tela dizer POR QUE a nuvem
+         não está respondendo. Só o estado e o motivo: o valor em dólares é do operador
+         (`GET /api/admin/ia`), não de cada assinante. */
+      iaDeNuvem: { disponivel: portao.ok, motivo: portao.motivo ?? null, mensagem: portao.mensagem ?? null },
     })
   } catch (err) {
     res.status(500).json({ error: erroDeRota(err, { status: 500, event: 'me_route_error' }) })
@@ -229,10 +379,7 @@ meRouter.get('/entitlements', async (req, res) => {
   try {
     // Provisiona a conta no 1º acesso (idempotente) — assim o usuário aparece na gestão admin.
     await usersRepo.ensure(req.userId)
-    const [entitlements, plano] = await Promise.all([
-      getEntitlementsForUser(req.userId),
-      getPlanForUser(req.userId),
-    ])
+    const [entitlements, plano] = await Promise.all([getEntitlementsForUser(req.userId), getPlanForUser(req.userId)])
     const teto = capDeArmazenamento(plano)
     /*
      * F9-02: aqui é o chamador de `reconciliarArmazenamento`. É a rota por onde todo usuário ativo
@@ -240,9 +387,7 @@ meRouter.get('/entitlements', async (req, res) => {
      * A varredura só roda se o contador estiver vencido (24h por padrão) e nunca lança.
      * Plano sem teto (selfhost) não contabiliza nada, então não há o que reconciliar.
      */
-    const usados = Number.isFinite(teto)
-      ? await reconciliarSeVencido(req.userId)
-      : await usoDeArmazenamento(req.userId)
+    const usados = Number.isFinite(teto) ? await reconciliarSeVencido(req.userId) : await usoDeArmazenamento(req.userId)
     // `Infinity` não sobrevive ao JSON (vira null); `null` diz "sem teto" de forma explícita.
     res.json({ ...entitlements, armazenamento: { usados, teto: Number.isFinite(teto) ? teto : null } })
   } catch (err) {

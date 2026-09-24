@@ -13,6 +13,10 @@ import { Dialogo } from '../../ui';
  * para o endereço que a política oficial publica (`/privacidade.html`), e não para um endereço
  * que ainda não existe. O documento que vale juridicamente continua sendo a página completa — é ela
  * que "Baixar PDF" abre para imprimir/salvar.
+ *
+ * UMA POLÍTICA SÓ (Fase 3 do lançamento): até 24/09 este resumo, `/termos.html` e a política de
+ * privacidade diziam três coisas diferentes (idade mínima, reembolso, cancelamento). O resumo agora
+ * só RESUME `/termos.html` v4 e `/privacidade.html` — se um mudar, o outro muda no mesmo commit.
  */
 
 export type Documento = 'privacidade' | 'termos';
@@ -20,7 +24,7 @@ export type Documento = 'privacidade' | 'termos';
 const LEGAL: Record<Documento, { titulo: string; versao: string; pagina: string; secoes: Array<[string, string]> }> = {
   privacidade: {
     titulo: 'Política de privacidade',
-    versao: 'Versão 2 · 18/09/2026',
+    versao: 'Versão 3 · 24/09/2026 · para revisão jurídica',
     pagina: '/privacidade.html',
     secoes: [
       [
@@ -29,23 +33,38 @@ const LEGAL: Record<Documento, { titulo: string; versao: string; pagina: string;
       ],
       [
         'O que vai para o servidor',
-        'Conta (e-mail e senha cifrada), plano e pagamento, e métricas de uso só se você autorizar.',
+        'Com conta: e-mail, data de nascimento, plano e pagamento, e as sessões que você salva. Sem analytics e sem publicidade.',
       ],
-      ['Menores de 12 anos', 'A conta é criada por um responsável, que autoriza e pode apagar tudo (LGPD, art. 14).'],
+      [
+        'Crianças e adolescentes',
+        'Menores de 18 ficam no perfil protegido. Abaixo de 16, os dados só vão para a nuvem depois que um responsável vincula a conta; abaixo de 12, com o consentimento específico dele, registrado (LGPD, art. 14).',
+      ],
       ['Seus direitos', 'Ver, corrigir, baixar e apagar os seus dados em Ajustes → Privacidade (LGPD, art. 18).'],
       ['Contato', `${CRIADOR.contatoDePrivacidade}. Resposta em até 15 dias.`],
     ],
   },
   termos: {
     titulo: 'Termos de uso',
-    versao: 'Versão 3 · 18/09/2026',
+    versao: 'Versão 4 · 24/09/2026 · para revisão jurídica',
     pagina: '/termos.html',
     secoes: [
-      ['Quem pode usar', 'A partir de 18 anos, ou com um responsável que aceita estes termos.'],
       [
-        'Planos e cancelamento',
-        'Cancele quando quiser em Planos. Nos primeiros 7 dias, o dinheiro volta inteiro (CDC, art. 49).',
+        'Quem pode usar',
+        'Todas as idades. Menores de 18 ficam no perfil protegido e não compram; abaixo de 16, a conta é vinculada a um responsável, que paga por eles.',
       ],
+      [
+        'Preço',
+        'Só mensal. O preço do mês pago não muda; reajuste só na renovação, com aviso de 30 dias e a opção de cancelar antes.',
+      ],
+      [
+        'Cancelamento',
+        'Em Planos → Sua assinatura, quando quiser. A renovação para e o plano vale até o fim do período já pago.',
+      ],
+      [
+        'Arrependimento',
+        'Nos 7 dias depois do primeiro pagamento, cancelar devolve o valor inteiro, na hora e sem pedir a ninguém (CDC, art. 49).',
+      ],
+      ['Se o serviço acabar ou piorar', 'Reembolso proporcional aos dias restantes do período pago.'],
       ['O conteúdo que você captura', 'É seu. O app não publica nem usa para treinar modelos.'],
       ['Uso justo', 'Não use o app para gravar pessoas sem que elas saibam.'],
     ],

@@ -6,10 +6,10 @@
  * `sttRouter` e só descobria o 402 AO ENVIAR ÁUDIO — no meio da captura ao vivo, a pior hora
  * possível. É o espelho do defeito já corrigido no MT (`serverLlmMt.ts:42-44`).
  */
-import { afterAll,beforeAll, describe, expect, it } from 'vitest'
+import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
 import { asUserId } from '../../server/lib/authContext'
-import { type EphemeralDb,setupEphemeralDb } from '../harness/ephemeralDb'
+import { type EphemeralDb, setupEphemeralDb } from '../harness/ephemeralDb'
 
 let h: EphemeralDb
 let aiRouter: any
@@ -18,17 +18,21 @@ let creds: any
 
 /** Encontra o handler GET /stt/available dentro do router do Express. */
 function handlerDeAvailable(): (req: any, res: any) => Promise<void> {
-  const camada = aiRouter.stack.find(
-    (l: any) => l.route?.path === '/stt/available' && l.route?.methods?.get
-  )
+  const camada = aiRouter.stack.find((l: any) => l.route?.path === '/stt/available' && l.route?.methods?.get)
   if (!camada) throw new Error('rota /stt/available não encontrada no router')
   return camada.route.stack[0].handle
 }
 
 function mockRes(): any {
   const r: any = { statusCode: 200, body: undefined }
-  r.status = (c: number) => { r.statusCode = c; return r }
-  r.json = (b: any) => { r.body = b; return r }
+  r.status = (c: number) => {
+    r.statusCode = c
+    return r
+  }
+  r.json = (b: any) => {
+    r.body = b
+    return r
+  }
   return r
 }
 
@@ -56,12 +60,11 @@ describe('/stt/available por plano', () => {
     expect(res.body?.available).toBe(true)
   })
 
-  it('essencial sem BYOK → INDISPONÍVEL, mesmo com chave no servidor', async () => {
-    // É o cenário que motivou a correção: sem isto, o Essencial levava 402 no meio da captura.
+  it('essencial → disponível: desde a Fase 2 do lançamento o Essencial tem 15 h de transcrição de nuvem', async () => {
     const res = mockRes()
     await handlerDeAvailable()({ userId: asUserId('u-essencial') }, res)
-    expect(res.statusCode).toBe(501)
-    expect(res.body?.available).toBe(false)
+    expect(res.statusCode).toBe(200)
+    expect(res.body?.available).toBe(true)
   })
 
   it('free sem BYOK → indisponível', async () => {
@@ -73,8 +76,11 @@ describe('/stt/available por plano', () => {
 
   it('essencial COM credencial BYOK → disponível (a chave é dele, o custo é dele)', async () => {
     await creds.create(asUserId('u-essencial'), {
-      kind: 'groq', label: 'minha chave', baseUrl: 'https://api.groq.com/openai/v1',
-      defaultModel: 'whisper-large-v3-turbo', secret: 'sk-do-usuario',
+      kind: 'groq',
+      label: 'minha chave',
+      baseUrl: 'https://api.groq.com/openai/v1',
+      defaultModel: 'whisper-large-v3-turbo',
+      secret: 'sk-do-usuario',
     })
     const res = mockRes()
     await handlerDeAvailable()({ userId: asUserId('u-essencial') }, res)

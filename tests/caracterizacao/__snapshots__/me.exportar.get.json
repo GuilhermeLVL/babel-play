@@ -10,6 +10,7 @@
       "creditPurchases": [],
       "creditSpends": [],
       "exerciseResults": [],
+      "idadesDeclaradas": [],
       "presencas": [],
       "providerCredentials": [],
       "reviewLogs": [],
@@ -22,6 +23,7 @@
       "usageCounters": [],
       "userInterests": [],
       "utterances": [],
+      "vinculosDeResponsavel": [],
       "vocabCards": [],
       "vocabOccurrences": []
     },

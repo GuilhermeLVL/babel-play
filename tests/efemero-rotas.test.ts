@@ -15,19 +15,32 @@ import { CODIGO_EXIGE_CONTA, EVENTO_EXIGE_CONTA, servidorEfemero } from '../src/
 import { fecharStore } from '../src/data/efemero/store'
 
 const ACOES: Array<[string, string]> = [
-  ['POST', '/api/import/youtube'], ['POST', '/api/import/web'], ['POST', '/api/import/document'],
-  ['POST', '/api/import/anki'], ['POST', '/api/import/anki/export'],
-  ['POST', '/api/ai/credentials'], ['POST', '/api/ai/providers/test'], ['POST', '/api/gemini/chat'],
-  ['POST', '/api/sessions/utterances/relabel'], ['POST', '/api/vocab/relabel'],
-  ['PATCH', '/api/me'], ['DELETE', '/api/me'],
+  ['POST', '/api/import/youtube'],
+  ['POST', '/api/import/web'],
+  ['POST', '/api/import/document'],
+  ['POST', '/api/import/anki'],
+  ['POST', '/api/import/anki/export'],
+  ['POST', '/api/ai/credentials'],
+  ['POST', '/api/ai/providers/test'],
+  ['POST', '/api/tutor/chat'],
+  ['POST', '/api/sessions/utterances/relabel'],
+  ['POST', '/api/vocab/relabel'],
+  ['PATCH', '/api/me'],
+  ['DELETE', '/api/me'],
 ]
 const SONDAS: Array<[string, string]> = [
-  ['GET', '/api/ai/stt/available'], ['POST', '/api/ai/stt'], ['POST', '/api/ai/mt'], ['POST', '/api/ai/llm/chat/completions'],
+  ['GET', '/api/ai/stt/available'],
+  ['POST', '/api/ai/stt'],
+  ['POST', '/api/ai/mt'],
+  ['POST', '/api/ai/llm/chat/completions'],
   /* `GET /api/sessions/utterances/all` SAIU desta lista em 07/09: ele passou a ser ESPELHADO.
      As falas vivem no IndexedDB, então "quais são as suas falas guardadas?" tem resposta sem
      conta — e devolvê-la é melhor que devolver 501 e obrigar o cliente a tratar o vazio. */
-  ['GET', '/api/ai/credentials'], ['GET', '/api/images/search?q=x'],
-  ['GET', '/api/me'], ['GET', '/api/admin/users'], ['GET', '/api/inventada'],
+  ['GET', '/api/ai/credentials'],
+  ['GET', '/api/images/search?q=x'],
+  ['GET', '/api/me'],
+  ['GET', '/api/admin/users'],
+  ['GET', '/api/inventada'],
 ]
 
 async function chamar(metodo: string, rota: string) {
@@ -40,7 +53,9 @@ async function chamar(metodo: string, rota: string) {
 }
 
 describe('rotas do servidor efêmero', () => {
-  afterAll(async () => { await fecharStore() })
+  afterAll(async () => {
+    await fecharStore()
+  })
   afterEach(() => vi.unstubAllGlobals())
 
   it.each(ACOES)('AÇÃO %s %s → 501 EXIGE_CONTA e AVISA o App', async (metodo, rota) => {
@@ -65,7 +80,9 @@ describe('rotas do servidor efêmero', () => {
 
   it('id inexistente é 404, não 501', async () => {
     expect((await servidorEfemero('/api/sessions/nao-existe')).status).toBe(404)
-    expect((await servidorEfemero('/api/vocab/nao-existe/review', { method: 'POST', body: '{"grade":3}' })).status).toBe(404)
+    expect(
+      (await servidorEfemero('/api/vocab/nao-existe/review', { method: 'POST', body: '{"grade":3}' })).status,
+    ).toBe(404)
   })
 
   it('captura do sistema pelo servidor LOCAL passa direto ao servidor real (única exceção)', async () => {

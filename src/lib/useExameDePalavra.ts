@@ -20,6 +20,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { buildGateway } from '../gateway';
 import { getActiveProfile } from '../gateway/activeProfile';
 import type { VocabCard, VocabWord } from '../types';
+import { consentiuNuvem } from './consentimentoDeNuvem';
 import { DEFAULT_LANG_CONFIG, fetchLangConfig, type LangConfig, onLangConfigChange } from './langConfig';
 import { baseLang } from './languages';
 import { speak as ttsSpeak } from './tts';
@@ -115,7 +116,7 @@ export function useExameDePalavra(cartoes: VocabCard[], cartoesVotantes: VocabCa
     return { src: baseLang(langCfg.studying), tgt: baseLang(langCfg.mine) };
   }, [cartoesVotantes, langCfg]);
 
-  const gateway = useMemo(() => buildGateway({ profile: getActiveProfile(), cloudConsent: () => true }), []);
+  const gateway = useMemo(() => buildGateway({ profile: getActiveProfile(), cloudConsent: consentiuNuvem }), []);
 
   const falar = (word: string) => {
     const lang = langPairOf(cardFor(word)).src;

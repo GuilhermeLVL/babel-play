@@ -13,12 +13,16 @@ import {
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
-import { armazenamentoEmTexto } from '../../../core/planos';
+import { armazenamentoEmTexto, horasDeTranscricao } from '../../../core/planos';
+import { lerAbertura } from '../../../data/rotas/idade';
 import {
+  type Beneficiario,
   brl,
   carregarStatusDeBilling,
   type Conta,
+  definirBeneficiario,
   iniciarAssinatura,
+  lerBeneficiario,
   type PlanoPago,
   PLANOS_PAGOS,
   precoMensal,
@@ -26,6 +30,7 @@ import {
   temAssinatura,
 } from '../../../lib/assinatura';
 import { carregarEntitlements, type Plan } from '../../../lib/entitlements';
+import { estadoDaProtecao } from '../../../lib/protecaoDoMenor';
 import { CabecalhoDeTela, IconeEmBloco, Tela } from '../../ui';
 import { irSub, PLANO_ICO, PLANO_NOME } from './dados';
 import Etapas, { rolarAoTopo } from './Etapas';
@@ -42,6 +47,11 @@ import Etapas, { rolarAoTopo } from './Etapas';
  *
  * O QUE O PROTÓTIPO TEM E O APP NÃO: período anual e parcelas (o servidor só cobra por mês), cupom
  * (não há cupom no servidor) e o QR code do Pix dentro do app (ele está na página do Asaas).
+ *
+ * QUEM PAGA É ADULTO (Fases 3 e 4 do lançamento): conta de menor não chega ao formulário — a tela
+ * explica que o responsável assina por ela; o responsável vinculado assina PELO menor
+ * (`paraUsuario`, escolhido na tela de aceite do convite). Com `CHECKOUT_ENABLED=0` no servidor, a
+ * venda aparece pausada. O servidor confere tudo de novo; aqui é só não oferecer o que ele recusa.
  */
 
 type Metodo = 'cartao' | 'pix' | 'boleto';
@@ -64,7 +74,26 @@ function validar(c: Record<Campo, string>): Partial<Record<Campo, string>> {
 }
 
 /** Por que não dá para pagar aqui — cada caso com a sua frase. `null` = dá. */
-function impedimento(plan: Plan, conta: Conta, status: StatusDeBilling | null): [string, string] | null {
+function impedimento(
+  plan: Plan,
+  conta: Conta,
+  status: StatusDeBilling | null,
+  extra: { vendaAberta: boolean; menor: boolean; paraOutro: boolean } = {
+    vendaAberta: true,
+    menor: false,
+    paraOutro: false,
+  },
+): [string, string] | null {
+  if (!extra.vendaAberta)
+    return [
+      'As assinaturas estão pausadas',
+      'As assinaturas e compras estão pausadas temporariamente. Quem já assina continua com tudo; tente de novo mais tarde.',
+    ];
+  if (extra.menor)
+    return [
+      'Quem assina é o seu responsável',
+      'Contas de menores de 18 anos não fazem compras. Peça ao seu responsável: pela conta dele, vinculada à sua, ele assina por você.',
+    ];
   if (conta.estado === 'selfhost')
     return [
       'Nada a pagar no self-host',
@@ -77,7 +106,7 @@ function impedimento(plan: Plan, conta: Conta, status: StatusDeBilling | null): 
       'Nesta instalação não há cobrança',
       'Sem cobrança configurada no servidor, não existe o que pagar aqui. O Grátis é o app inteiro.',
     ];
-  if (temAssinatura(conta.estado))
+  if (temAssinatura(conta.estado) && !extra.paraOutro)
     return [
       'Você já tem uma assinatura',
       'Para trocar de plano ou de forma de pagamento, use Planos → Sua assinatura.',
@@ -105,10 +134,28 @@ export default function Checkout({
   const [ocupado, setOcupado] = useState(false);
   const [erroServidor, setErroServidor] = useState('');
   const [link, setLink] = useState<string | null>(null);
+  const [vendaAberta, setVendaAberta] = useState(true);
+  const [beneficiario, setBeneficiario] = useState<Beneficiario | null>(lerBeneficiario);
+
+  useEffect(() => {
+    let vivo = true;
+    void lerAbertura().then((a) => {
+      if (vivo) setVendaAberta(a.checkout);
+    });
+    return () => {
+      vivo = false;
+    };
+  }, []);
 
   const preco = precoMensal(plano);
   const P = PLANO_NOME[plano];
-  const bloqueio = impedimento(plan, conta, status);
+  const protecao = estadoDaProtecao();
+  const menor = !!protecao && protecao.faixa !== 'adulto' && protecao.nascimentoInformado;
+  const bloqueio = impedimento(plan, conta, status, { vendaAberta, menor, paraOutro: !!beneficiario });
+  const assinarParaMim = () => {
+    definirBeneficiario(null);
+    setBeneficiario(null);
+  };
 
   /* Espera a CONFIRMAÇÃO DO SERVIDOR: o webhook promove o plano quando o Asaas avisa o pagamento. */
   useEffect(() => {
@@ -151,6 +198,7 @@ export default function Checkout({
       nome: campos.nome.trim(),
       cpfCnpj: campos.cpf.replace(/\D/g, ''),
       email: campos.email.trim(),
+      ...(beneficiario ? { paraUsuario: beneficiario.id } : {}),
     });
     setOcupado(false);
     if (!r.link) {
@@ -201,8 +249,8 @@ export default function Checkout({
                 <h3>{PLANO_NOME[id]}</h3>
                 <p>
                   {id === 'pro'
-                    ? `Tudo no servidor, YouTube, ${armazenamentoEmTexto('pro')}`
-                    : `Tradução com IA de nuvem, ${armazenamentoEmTexto('essencial')}`}
+                    ? `${horasDeTranscricao('pro')} h de transcrição de nuvem, limite maior de IA, ${armazenamentoEmTexto('pro')}`
+                    : `Tradução e ${horasDeTranscricao('essencial')} h de transcrição de nuvem, ${armazenamentoEmTexto('essencial')}`}
                 </p>
               </span>
               <b className="tn">
@@ -296,6 +344,18 @@ export default function Checkout({
     </section>
   ) : (
     <section className="cartao p6">
+      {beneficiario && (
+        <p className="aviso-info" style={{ marginBottom: 12 }}>
+          <UserRound aria-hidden />
+          <span>
+            Você está assinando para <b>{beneficiario.nome ?? 'a conta vinculada a você'}</b>, como responsável. O plano
+            vale na conta dele.{' '}
+            <button type="button" className="link" onClick={assinarParaMim} disabled={!!link}>
+              Assinar para mim
+            </button>
+          </span>
+        </p>
+      )}
       <fieldset className="escolha">
         <legend className="label-mono">Forma de pagamento</legend>
         <div className="seg metodos" role="radiogroup" aria-label="Forma de pagamento">

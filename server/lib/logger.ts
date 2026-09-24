@@ -36,6 +36,10 @@ export interface LogFields {
      vazia: o modelo consome o `max_tokens` inteiro pensando e devolve HTTP 200 sem conteúdo. É
      número agregado do provedor, sem nada do usuário. */
   raciocinio?: number
+  /* Orçamento global de IA (Fase 2 do lançamento): gasto e teto do MÊS, em US$. Números do serviço,
+     sem nada do usuário — é o que o alerta de 80%/100% precisa carregar para virar alerta externo. */
+  gastoUsd?: number
+  tetoUsd?: number
 }
 
 const ALLOWED = new Set([
@@ -54,6 +58,8 @@ const ALLOWED = new Set([
   'total',
   'raciocinio',
   'stack',
+  'gastoUsd',
+  'tetoUsd',
 ])
 
 /**

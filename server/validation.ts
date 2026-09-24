@@ -674,7 +674,7 @@ export const ankiPurgarSchema = z
 
 /** Teto de mensagens por requisição de chat. Nenhuma tela do app monta conversa maior. */
 const MAX_MENSAGENS_DE_CHAT = 200
-/** Teto por mensagem, o mesmo `MAX_PROMPT_CHARS` de `server/ai/llmRequest.ts` (custo/DoS). */
+/** Teto por mensagem (custo/DoS). Esta rota é BYOK: a chave e a conta são do próprio usuário. */
 const MAX_CONTEUDO_DE_MENSAGEM = 100_000
 
 /**

@@ -18,7 +18,7 @@ import {
 } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 
-import { armazenamentoEmTexto, precoDoPlano } from '../../core/planos';
+import { armazenamentoEmTexto, horasDeTranscricao, precoDoPlano } from '../../core/planos';
 import {
   carregarFaturas,
   carregarStatusDeBilling,
@@ -45,7 +45,7 @@ import { Abas, CabecalhoDeTela, IconeEmBloco, PainelDeAba, Tela, TituloDeSecao }
 import Assinado from './planos/Assinado';
 import Cancelar from './planos/Cancelar';
 import Checkout from './planos/Checkout';
-import { irAjuda, irSub, MODELOS, type Plano, PLANO_NOME, PLANOS } from './planos/dados';
+import { irAjuda, irSub, type Plano, PLANO_NOME, PLANOS } from './planos/dados';
 import { DialogoFatura, DialogoMudarPlano, DialogoPagamento, DialogoPausar } from './planos/DialogosDaAssinatura';
 import FaixaDaConta from './planos/FaixaDaConta';
 import SuaAssinatura, { type DialogoDaAssinatura, metodoAtual } from './planos/SuaAssinatura';
@@ -66,7 +66,7 @@ import SuaAssinatura, { type DialogoDaAssinatura, metodoAtual } from './planos/S
  *
  * O QUE DO PROTÓTIPO FICOU DE FORA, E POR QUÊ: o seletor Mensal/Anual (o servidor só cobra por
  * mês — não se cria plano novo numa tela), cupom e parcelas (não existem no servidor), e as
- * operações que o servidor não tem — trocar de plano, trocar o cartão, pausar e estornar — que
+ * operações que o servidor não tem — trocar de plano, trocar o cartão e pausar — que
  * aparecem com a forma do protótipo e o caminho honesto: o suporte.
  */
 
@@ -81,7 +81,12 @@ const COMPARA: [grupo: string, linhas: Linha[]][] = [
     [
       ['Captura ao vivo (mic + sistema)', ['ok', 'ok', 'ok']],
       ['Jogos, vocabulário e revisão', ['ok', 'ok', 'ok']],
-      ['Importar do YouTube', ['nao', 'nao', 'ok']],
+      ['Tutor de IA (iChat)', ['nao', 'ok', 'ok']],
+      /* Derivado da quota: mudar `sttSegundosMes` e esquecer esta linha prometeria outro teto. */
+      [
+        'Transcrição de nuvem por mês',
+        ['nao', `${horasDeTranscricao('essencial')} h`, `${horasDeTranscricao('pro')} h`],
+      ],
       ['Sua própria chave de IA (BYOK)', ['ok', 'ok', 'ok']],
     ],
   ],
@@ -90,13 +95,12 @@ const COMPARA: [grupo: string, linhas: Linha[]][] = [
     [
       ['Qualidade de tradução (geral)', [57, 85, 85], 'maior é melhor'],
       ['Expressões idiomáticas', [27, 83, 83], 'maior é melhor'],
-      ['Erro de transcrição em PT falado', [57, 57, 24], 'menor é melhor', true],
+      ['Erro de transcrição em PT falado', [57, 24, 24], 'menor é melhor', true],
     ],
   ],
   [
-    'Espaço e download',
+    'Espaço',
     [
-      ['Modelos para baixar no primeiro uso', [MODELOS.gratis, MODELOS.essencial, MODELOS.pro]],
       /* Derivado da quota, não escrito à mão: mudar `armazenamentoMb` na matriz e esquecer esta
          linha faria a tabela prometer um teto que o servidor não aplica. */
       [
@@ -145,7 +149,7 @@ function CelulaDaTabela({ x, invertido }: { x: Celula; invertido?: boolean }) {
 
 /**
  * As perguntas do protótipo, com as respostas que o app cumpre. Onde o protótipo promete o que o
- * servidor ainda não faz (anual, troca de plano na hora, estorno automático), a resposta diz como
+ * servidor ainda não faz (anual, troca de plano na hora), a resposta diz como
  * é hoje.
  */
 const FAQ: [string, string][] = [
@@ -159,11 +163,11 @@ const FAQ: [string, string][] = [
   ],
   [
     'Posso cancelar quando quiser?',
-    'Sim, em Planos → Sua assinatura, em poucos cliques. Você mantém o acesso até o fim do período pago e seus dados continuam salvos.',
+    'Sim, em Planos → Sua assinatura, em poucos cliques. A renovação para na hora, você mantém o acesso até o último dia do período já pago (a data aparece na confirmação) e seus dados continuam salvos.',
   ],
   [
     'E se eu me arrepender?',
-    'Nos primeiros 7 dias depois de assinar, você tem direito ao valor de volta, inteiro, no mesmo meio de pagamento (CDC, art. 49). Cancele em Planos → Sua assinatura e peça o reembolso ao suporte.',
+    'Nos primeiros 7 dias depois do primeiro pagamento, cancelar em Planos → Sua assinatura já devolve o valor inteiro, no mesmo meio de pagamento (CDC, art. 49), sem precisar pedir a ninguém. A tela confirma o pedido na hora, com protocolo, e o acesso ao plano termina ali.',
   ],
   [
     'Como cada número foi medido?',
@@ -401,6 +405,15 @@ export default function Planos() {
           fracao(uso.chamadas),
           uso.chamadas.teto === null ? 'chamadas' : `de ${numero(uso.chamadas.teto)}`,
         ],
+        /* Os tokens viraram TETO na Fase 2 do lançamento (antes só eram contados): a linha mostra o
+           limite como as outras, em vez de "registrados só para acompanhar custo". */
+        [
+          Languages,
+          'Tokens de IA (tradução e tutor)',
+          numero(uso.tokensDeLlm.usado),
+          fracao(uso.tokensDeLlm),
+          uso.tokensDeLlm.teto === null ? 'tokens' : `de ${numero(uso.tokensDeLlm.teto)}`,
+        ],
         ...(arm
           ? [
               [
@@ -411,15 +424,7 @@ export default function Planos() {
                 arm.teto === null ? 'usados' : `de ${mb(arm.teto)}`,
               ] as [LucideIcon, string, string, number | null, string],
             ]
-          : [
-              [Languages, 'Tokens de tradução', numero(uso.tokensDeLlm.usado), null, 'tokens'] as [
-                LucideIcon,
-                string,
-                string,
-                number | null,
-                string,
-              ],
-            ]),
+          : []),
       ]
     : [];
 
@@ -597,11 +602,15 @@ export default function Planos() {
                 <p>
                   {semTeto
                     ? 'Os números acima são só para você acompanhar; o custo da IA de nuvem é seu, pela sua própria chave. Os limites valem nos planos em nuvem.'
-                    : 'Zera na virada do mês. Transcrição, tradução e tutor dividem o limite de chamadas: cada fala ao microfone usa duas. O provedor cobra no mínimo 10 segundos por trecho de áudio enviado.'}
-                  {arm &&
-                    uso.tokensDeLlm.usado > 0 &&
-                    ` ${numero(uso.tokensDeLlm.usado)} tokens de tradução usados neste mês, registrados só para acompanhar custo.`}
+                    : 'Zera na virada do mês. Transcrição, tradução e tutor dividem o limite de chamadas: cada fala transcrita e traduzida usa duas. Tradução e tutor também dividem o limite de tokens. O provedor cobra no mínimo 10 segundos por trecho de áudio enviado.'}
                 </p>
+                {/* O portão GLOBAL (chave de emergência ou orçamento do mês): sem esta linha, a nuvem
+                    fechada parecia defeito do plano do assinante. */}
+                {uso.iaDeNuvem && !uso.iaDeNuvem.disponivel && uso.iaDeNuvem.mensagem && (
+                  <p role="status" style={{ marginTop: 8 }}>
+                    <b>{uso.iaDeNuvem.mensagem}</b>
+                  </p>
+                )}
               </div>
             </div>
           </>

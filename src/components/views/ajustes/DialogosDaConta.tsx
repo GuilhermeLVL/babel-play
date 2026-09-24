@@ -341,7 +341,7 @@ function ExcluirConta({ aoFechar, aoIrParaPrivacidade }: { aoFechar: () => void;
               {[
                 'Tudo sai do servidor na hora: sessões, transcrições, palavras, progresso e áudios',
                 'Não dá para desfazer, e não guardamos cópia',
-                'Assinatura ativa não é cancelada por aqui: cancele antes em Planos',
+                'Se você assina, a assinatura é cancelada antes (nos primeiros 7 dias, com reembolso integral); se o cancelamento falhar, nada é apagado',
               ].map((t) => (
                 <li key={t}>
                   <Info aria-hidden />

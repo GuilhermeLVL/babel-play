@@ -12,12 +12,19 @@
  * vem no espaço de layout zoomado), o zoom entra aqui simplesmente dividindo a viewport — que é
  * exatamente o que o navegador faz.
  */
-import { describe, expect,it } from 'vitest'
+import { describe, expect, it } from 'vitest'
 
 import {
-CELULA_CONFORTAVEL, CELULA_MAX,   CELULA_MIN, GAP_CELULA, GAP_TABULEIRO,
-larguraDoTabuleiro,
-  layoutDoTermo, } from '../src/core/minigames/termoLayout'
+  CELULA_CONFORTAVEL,
+  CELULA_MAX,
+  CELULA_MIN,
+  GAP_CELULA,
+  GAP_TABULEIRO,
+  GEOMETRIA_DO_PROTOTIPO,
+  GEOMETRIA_PADRAO,
+  larguraDoTabuleiro,
+  layoutDoTermo,
+} from '../src/core/minigames/termoLayout'
 
 /** Telas reais, da menor à maior. */
 const TELAS: Array<[string, number, number]> = [
@@ -40,8 +47,10 @@ function espaco(larguraTela: number, alturaTela: number, zoom: number, tabuleiro
   const alturaLayout = alturaTela / zoom
   return {
     largura: Math.min(1152, larguraLayout - 32), // padding lateral da tela do jogo
-    altura: alturaLayout - 330,                  // cabeçalho + teclado + folgas, medidos
-    tabuleiros, colunas, linhas: tabuleiros >= 4 ? 9 : tabuleiros === 2 ? 7 : 6,
+    altura: alturaLayout - 330, // cabeçalho + teclado + folgas, medidos
+    tabuleiros,
+    colunas,
+    linhas: tabuleiros >= 4 ? 9 : tabuleiros === 2 ? 7 : 6,
     cabecalho: 44,
   }
 }
@@ -127,15 +136,17 @@ describe('a célula fica dentro dos limites do legível', () => {
         for (const tabuleiros of TABULEIROS) {
           const e = espaco(w, h, zoom, tabuleiros, 6)
           const { celula, porFileira, moldura } = layoutDoTermo(e)
-          const cabeNaLargura = larguraDoTabuleiro(CELULA_CONFORTAVEL, 6, moldura) * porFileira
-            + GAP_TABULEIRO * (porFileira - 1) <= e.largura
+          const cabeNaLargura =
+            larguraDoTabuleiro(CELULA_CONFORTAVEL, 6, moldura) * porFileira + GAP_TABULEIRO * (porFileira - 1) <=
+            e.largura
           if (cabeNaLargura) {
             expect(celula, `${nome} z${zoom} ${tabuleiros} tab`).toBeGreaterThanOrEqual(CELULA_CONFORTAVEL)
           }
         }
       }
     }
-  })})
+  })
+})
 
 describe('o quarteto fica em UMA fileira sempre que der', () => {
   /* Não é estética: o palpite é um só e vale para os quatro tabuleiros: quem não vê metade das
@@ -158,5 +169,45 @@ describe('o quarteto fica em UMA fileira sempre que der', () => {
       expect(layoutDoTermo(espaco(w, h, 1, 2, 6)).porFileira).toBe(2)
       expect(layoutDoTermo(espaco(w, h, 1, 1, 6)).porFileira).toBe(1)
     }
+  })
+})
+
+/* A GEOMETRIA DO PROTÓTIPO (`.tabs-termo` > `.tab-termo`): o mesmo contrato, com as folgas e a
+   moldura do CSS aprovado. É a que o `TermoGame` usa — se a conta falasse de outras folgas, o
+   Quarteto voltaria a estourar. */
+describe('com a geometria do protótipo, o mesmo contrato vale', () => {
+  const G = GEOMETRIA_DO_PROTOTIPO
+  it('cabe no espaço que recebeu, em toda tela, zoom e degrau — ou declara aperto', () => {
+    for (const [nome, w, h] of TELAS) {
+      for (const zoom of ZOOMS) {
+        for (const tabuleiros of TABULEIROS) {
+          for (const colunas of COLUNAS) {
+            const e = espaco(w, h, zoom, tabuleiros, colunas)
+            const { celula, porFileira, moldura, apertado } = layoutDoTermo(e, G)
+            const usada =
+              larguraDoTabuleiro(celula, colunas, moldura, G.gapCelula) * porFileira +
+              G.gapTabuleiro(tabuleiros) * (porFileira - 1)
+            if (apertado) expect(celula, `${nome} z${zoom} ${tabuleiros}×${colunas}`).toBe(G.minimo)
+            else expect(usada, `${nome} z${zoom} ${tabuleiros}×${colunas}`).toBeLessThanOrEqual(e.largura + 0.5)
+            expect(celula).toBeLessThanOrEqual(G.maximo)
+          }
+        }
+      }
+    }
+  })
+
+  it('todo tabuleiro é cartão (moldura de 22px = 10px de respiro + 1px de borda, dos dois lados)', () => {
+    for (const t of TABULEIROS) expect(layoutDoTermo(espaco(1440, 900, 1, t, 5), G).moldura).toBe(22)
+  })
+
+  it('o quarteto segue em uma fileira no computador e em 2×2 no celular', () => {
+    expect(layoutDoTermo(espaco(1440, 900, 1, 4, 6), G).porFileira).toBe(4)
+    expect(layoutDoTermo(espaco(390, 844, 1, 4, 5), G).porFileira).toBe(2)
+    expect(layoutDoTermo(espaco(390, 844, 1, 4, 5), G).apertado).toBe(false)
+  })
+
+  it('o padrão continua o de antes (a geometria é opcional)', () => {
+    const e = espaco(1280, 720, 1, 4, 6)
+    expect(layoutDoTermo(e)).toEqual(layoutDoTermo(e, GEOMETRIA_PADRAO))
   })
 })

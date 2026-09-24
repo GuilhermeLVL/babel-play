@@ -134,10 +134,10 @@ test.describe('Sessao de jogo', () => {
     await expect(tabuleiro).toBeVisible()
     await expect(page.getByRole('button', { name: 'Enviar palpite' })).toBeVisible()
 
-    /* Cada tabuleiro mostra a pista (traducao) enquanto aberto e a palavra em maiusculas quando
-       fecha. O laco digita a palavra do primeiro tabuleiro aberto e repete ate a rodada acabar.
-       Doze voltas cobrem a escada mais longa (1 + 2 + 4 tabuleiros) com folga. */
-    const pistas = page.locator('[data-tour="tabuleiro"] > div > div > p:first-of-type')
+    /* Cada tabuleiro (`.tab-termo`) mostra a pista (traducao) no cabecalho; fechado, ganha
+       `.resolvido` (ou `.falhou`). O laco digita a palavra do primeiro tabuleiro aberto e repete
+       ate a rodada acabar. Doze voltas cobrem a escada mais longa (1 + 2 + 4) com folga. */
+    const pistas = page.locator('[data-tour="tabuleiro"] .tab-termo:not(.resolvido):not(.falhou) .pista')
     let digitadas = 0
     for (let volta = 0; volta < 12; volta++) {
       if (

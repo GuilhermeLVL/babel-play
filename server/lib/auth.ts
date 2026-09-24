@@ -15,7 +15,7 @@
  * O verificador aceita uma CHAVE INJETÁVEL, então os testes assinam/verificam offline.
  */
 import type { NextFunction, Request, Response } from 'express'
-import { createRemoteJWKSet, jwtVerify } from 'jose'
+import { createRemoteJWKSet, decodeJwt, jwtVerify } from 'jose'
 
 import { asUserId, LOCAL_OWNER, type UserId } from './authContext'
 import { log } from './logger'
@@ -151,6 +151,18 @@ export function createVerifier(opts: VerifierOptions = {}): (token: string) => P
   }
 }
 
+/**
+ * O nível de garantia (`aal`) de um token JÁ VERIFICADO — Fase 6, ver `server/lib/aal.ts`.
+ * Qualquer coisa que não seja `aal2` conta como `aal1`.
+ */
+export function nivelDoToken(token: string): 'aal1' | 'aal2' {
+  try {
+    return decodeJwt(token).aal === 'aal2' ? 'aal2' : 'aal1'
+  } catch {
+    return 'aal1'
+  }
+}
+
 const BEARER = /^Bearer\s+(.+)$/i
 
 /**
@@ -191,6 +203,9 @@ export function makeAuthMiddleware(
       return
     }
     req.userId = userId
+    /* Fase 6 (2FA de verdade): o `aal` do token já VERIFICADO acima. Decodificar de novo é barato e
+       evita mudar a assinatura do verificador, que os testes injetam. Ver `server/lib/aal.ts`. */
+    req.aal = nivelDoToken(m[1])
     // Revogação (Fatia 4): conta suspensa é barrada mesmo com JWT válido. Fail-closed: erro ao checar → nega.
     try {
       if (await isSuspended(userId)) {

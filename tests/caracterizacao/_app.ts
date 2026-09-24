@@ -36,10 +36,10 @@
  */
 import type { Server } from 'node:http'
 
-import { generateKeyPair,SignJWT } from 'jose'
+import { generateKeyPair, SignJWT } from 'jose'
 
 type Chave = Awaited<ReturnType<typeof generateKeyPair>>['privateKey']
-import { type EphemeralDb,setupEphemeralDb } from '../harness/ephemeralDb'
+import { type EphemeralDb, setupEphemeralDb } from '../harness/ephemeralDb'
 
 export type Modo = 'self-host' | 'publico'
 
@@ -48,14 +48,18 @@ export interface AppDeTeste {
   base: string
   modo: Modo
   /** `fetch` relativo à base, com `Authorization` quando `token` é dado. */
-  chamar: (metodo: string, caminho: string, opts?: { body?: unknown; token?: string; headers?: Record<string, string>; raw?: Buffer | string }) => Promise<Response>
+  chamar: (
+    metodo: string,
+    caminho: string,
+    opts?: { body?: unknown; token?: string; headers?: Record<string, string>; raw?: Buffer | string },
+  ) => Promise<Response>
   get: (caminho: string, token?: string) => Promise<Response>
   post: (caminho: string, body?: unknown, token?: string) => Promise<Response>
   put: (caminho: string, body?: unknown, token?: string) => Promise<Response>
   patch: (caminho: string, body?: unknown, token?: string) => Promise<Response>
   del: (caminho: string, token?: string) => Promise<Response>
-  /** Só no modo público: token ES256 válido para o `sub` dado. */
-  token: (sub: string) => Promise<string>
+  /** Só no modo público: token ES256 válido para o `sub` dado (`claims` extras, ex.: `{ aal: 'aal2' }`). */
+  token: (sub: string, claims?: Record<string, unknown>) => Promise<string>
   /** Import dinâmico de um módulo de servidor já ligado ao banco efêmero. */
   load: <T = any>(spec: string) => Promise<T>
   encerrar: () => Promise<void>
@@ -129,14 +133,23 @@ export async function subirApp(opts: { modo: Modo } = { modo: 'self-host' }): Pr
    * do Supabase por HTTP, e aqui os tokens são assinados com um par gerado neste processo. O resto
    * — ordem, limitadores, stubs de modo público, todos os routers — vem do `criarApp()`.
    */
-  const app = criarApp(opts.modo === 'publico'
-    ? { autenticacao: makeAuthMiddleware(createVerifier({ key: chavePublica, supabaseUrl: URL_SUPABASE_TESTE }), (u: string) => usersRepo.isSuspended(u)) }
-    : {})
+  const app = criarApp(
+    opts.modo === 'publico'
+      ? {
+          autenticacao: makeAuthMiddleware(
+            createVerifier({ key: chavePublica, supabaseUrl: URL_SUPABASE_TESTE }),
+            (u: string) => usersRepo.isSuspended(u),
+          ),
+        }
+      : {},
+  )
 
   /* Como no `server.ts`: o `erroGlobal` é o ÚLTIMO, e por isso não está dentro do `criarApp()`. */
   app.use(erroGlobal)
 
-  const server: Server = await new Promise((r) => { const s = app.listen(0, '127.0.0.1', () => r(s)) })
+  const server: Server = await new Promise((r) => {
+    const s = app.listen(0, '127.0.0.1', () => r(s))
+  })
   const addr = server.address()
   const base = `http://127.0.0.1:${typeof addr === 'object' && addr ? addr.port : 0}`
 
@@ -145,21 +158,34 @@ export async function subirApp(opts: { modo: Modo } = { modo: 'self-host' }): Pr
     if (o.token) headers.authorization = `Bearer ${o.token}`
     let body: BodyInit | undefined
     if (o.raw !== undefined) body = o.raw as BodyInit
-    else if (o.body !== undefined) { headers['content-type'] = headers['content-type'] ?? 'application/json'; body = JSON.stringify(o.body) }
+    else if (o.body !== undefined) {
+      headers['content-type'] = headers['content-type'] ?? 'application/json'
+      body = JSON.stringify(o.body)
+    }
     return fetch(base + caminho, { method: metodo, headers, body })
   }
 
   return {
-    h, base, modo: opts.modo, chamar, load,
+    h,
+    base,
+    modo: opts.modo,
+    chamar,
+    load,
     get: (c, t) => chamar('GET', c, { token: t }),
     post: (c, b, t) => chamar('POST', c, { body: b, token: t }),
     put: (c, b, t) => chamar('PUT', c, { body: b, token: t }),
     patch: (c, b, t) => chamar('PATCH', c, { body: b, token: t }),
     del: (c, t) => chamar('DELETE', c, { token: t }),
-    token: async (sub) => {
+    token: async (sub, claims = {}) => {
       if (!chavePrivada) throw new Error('token() só existe no modo publico')
-      return new SignJWT({}).setProtectedHeader({ alg: 'ES256' }).setSubject(sub)
-        .setAudience('authenticated').setIssuer(`${URL_SUPABASE_TESTE}/auth/v1`).setIssuedAt().setExpirationTime('1h').sign(chavePrivada)
+      return new SignJWT(claims)
+        .setProtectedHeader({ alg: 'ES256' })
+        .setSubject(sub)
+        .setAudience('authenticated')
+        .setIssuer(`${URL_SUPABASE_TESTE}/auth/v1`)
+        .setIssuedAt()
+        .setExpirationTime('1h')
+        .sign(chavePrivada)
     },
     encerrar: async () => {
       await new Promise<void>((r) => server.close(() => r()))
@@ -183,7 +209,11 @@ export function forma(v: unknown): unknown {
     return [acumulado]
   }
   if (typeof v === 'object') {
-    return Object.fromEntries(Object.entries(v as Record<string, unknown>).sort(([a], [b]) => a.localeCompare(b)).map(([k, x]) => [k, forma(x)]))
+    return Object.fromEntries(
+      Object.entries(v as Record<string, unknown>)
+        .sort(([a], [b]) => a.localeCompare(b))
+        .map(([k, x]) => [k, forma(x)]),
+    )
   }
   return typeof v
 }
@@ -195,7 +225,8 @@ export function forma(v: unknown): unknown {
  * `GET /api/vocab/pagina` oscilava entre `cefrLevel: string` e `cefrLevel: null`.
  */
 function mesclar(a: unknown, b: unknown): unknown {
-  if (typeof a === 'string' && typeof b === 'string') return [...new Set([...a.split('|'), ...b.split('|')])].sort().join('|')
+  if (typeof a === 'string' && typeof b === 'string')
+    return [...new Set([...a.split('|'), ...b.split('|')])].sort().join('|')
   if (Array.isArray(a) && Array.isArray(b)) {
     if (!a.length) return b
     if (!b.length) return a
@@ -205,11 +236,13 @@ function mesclar(a: unknown, b: unknown): unknown {
     const oa = a as Record<string, unknown>
     const ob = b as Record<string, unknown>
     const chaves = [...new Set([...Object.keys(oa), ...Object.keys(ob)])].sort()
-    return Object.fromEntries(chaves.map((k) => {
-      if (!(k in oa)) return [k, mesclar('ausente', ob[k])]
-      if (!(k in ob)) return [k, mesclar(oa[k], 'ausente')]
-      return [k, mesclar(oa[k], ob[k])]
-    }))
+    return Object.fromEntries(
+      chaves.map((k) => {
+        if (!(k in oa)) return [k, mesclar('ausente', ob[k])]
+        if (!(k in ob)) return [k, mesclar(oa[k], 'ausente')]
+        return [k, mesclar(oa[k], ob[k])]
+      }),
+    )
   }
   // tipos de natureza diferente (objeto x primitivo): registra os dois lados
   return `${typeof a === 'string' ? a : 'objeto'}|${typeof b === 'string' ? b : 'objeto'}`.split('|').sort().join('|')
@@ -219,7 +252,11 @@ function mesclar(a: unknown, b: unknown): unknown {
 export async function resposta(r: Response): Promise<{ status: number; forma: unknown }> {
   const texto = await r.text()
   let corpo: unknown = texto
-  try { corpo = JSON.parse(texto) } catch { /* texto cru */ }
+  try {
+    corpo = JSON.parse(texto)
+  } catch {
+    /* texto cru */
+  }
   return { status: r.status, forma: forma(corpo) }
 }
 
@@ -239,13 +276,44 @@ export async function semear(s: AppDeTeste, userId: string) {
     { word: 'bridge', srcLang: 'en', back: 'ponte', sentence: 'Cross the bridge.' },
   ])
   const cartoes = await vocabRepo.list(U)
-  const sessao = await sessionsRepo.createWithUtterances(U, { title: 'Sessão semeada', kind: 'live', sourceLang: 'en', targetLang: 'pt', status: 'done', durationMs: 60_000 }, [
-    { idx: 0, source: 'mic', speakerName: 'A', sourceLang: 'en', sourceText: 'The harvest was good.', targetLang: 'pt', translatedText: 'A colheita foi boa.', tStartMs: 0, tEndMs: 1500 },
-    { idx: 1, source: 'mic', speakerName: 'B', sourceLang: 'en', sourceText: 'Drink water.', targetLang: 'pt', translatedText: 'Beba água.', tStartMs: 1500, tEndMs: 2500 },
-  ])
+  const sessao = await sessionsRepo.createWithUtterances(
+    U,
+    { title: 'Sessão semeada', kind: 'live', sourceLang: 'en', targetLang: 'pt', status: 'done', durationMs: 60_000 },
+    [
+      {
+        idx: 0,
+        source: 'mic',
+        speakerName: 'A',
+        sourceLang: 'en',
+        sourceText: 'The harvest was good.',
+        targetLang: 'pt',
+        translatedText: 'A colheita foi boa.',
+        tStartMs: 0,
+        tEndMs: 1500,
+      },
+      {
+        idx: 1,
+        source: 'mic',
+        speakerName: 'B',
+        sourceLang: 'en',
+        sourceText: 'Drink water.',
+        targetLang: 'pt',
+        translatedText: 'Beba água.',
+        tStartMs: 1500,
+        tEndMs: 2500,
+      },
+    ],
+  )
   await exerciseResultsRepo.addRodada(U, {
-    roundId: 'semente-1', exerciseKind: 'memory', origem: 'baralho', sessionId: sessao.id, score: 80, melhorSequencia: 2,
-    itens: cartoes.slice(0, 2).map((c: any) => ({ cardId: c.id, itemRef: c.word, correct: 1, attempts: 1, ms: 900, hinted: 0, kind: 'srs' })),
+    roundId: 'semente-1',
+    exerciseKind: 'memory',
+    origem: 'baralho',
+    sessionId: sessao.id,
+    score: 80,
+    melhorSequencia: 2,
+    itens: cartoes
+      .slice(0, 2)
+      .map((c: any) => ({ cardId: c.id, itemRef: c.word, correct: 1, attempts: 1, ms: 900, hinted: 0, kind: 'srs' })),
   })
   return { U, cartoes, sessao }
 }

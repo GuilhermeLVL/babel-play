@@ -30,6 +30,7 @@ import rateLimit from 'express-rate-limit'
 import helmet from 'helmet'
 
 import { audioRouter } from '../audio/loopback'
+import { exigirAal2SeTiver2fa } from '../lib/aal'
 import { authMiddleware, authRequired } from '../lib/auth'
 import { metricasHabilitadas, segredoDeOrigem } from '../lib/config'
 import { capturarAssincrono } from '../lib/erroGlobal'
@@ -333,6 +334,10 @@ export function criarApp(opcoes: OpcoesDoApp = {}): express.Express {
 
   // GAP-015: o corpo grande só é lido depois de o token ser aceito (ver `limitesDeCorpo.ts`).
   app.use([...ROTAS_DE_CORPO_GRANDE], jsonDepoisDoAuth())
+
+  /* Fase 6 — 2FA de verdade: quem ativou a verificação em duas etapas precisa de sessão AAL2 nas
+     rotas de cobrança, exclusão/exportação de conta, credencial BYOK e admin (`server/lib/aal.ts`). */
+  app.use('/api', exigirAal2SeTiver2fa())
 
   // Rate-limit por tenant — DEPOIS do auth, para a chave ser o usuário e não o IP.
   app.use(['/api/ai', '/api/import', '/api/gemini'], expensiveLimiter)

@@ -32,6 +32,8 @@ declare global {
     interface Request {
       userId: UserId
       requestId?: string
+      /** Nível de garantia da sessão (claim `aal` do JWT do Supabase). Ausente = `aal1`. Ver `server/lib/aal.ts`. */
+      aal?: 'aal1' | 'aal2'
     }
   }
 }

@@ -25,6 +25,7 @@ const NaoEncontrado = lazyComRecarga(() => import('./components/views/NaoEncontr
 const Loja = lazyComRecarga(() => import('./components/views/Loja'));
 const Login = lazyComRecarga(() => import('./components/Login'));
 const ResetPassword = lazyComRecarga(() => import('./components/auth/ResetPassword'));
+const DesafioSegundoFator = lazyComRecarga(() => import('./components/auth/DesafioSegundoFator'));
 // O tour de boas-vindas só existe para quem AINDA não passou por ele (`onboarded === false`) —
 // para todo mundo mais era peso morto no arranque (25 kB de fonte no chunk de entrada). Enquanto
 // `onboarded` é `null` a tela já mostrava "Carregando…", então o fallback do Suspense abaixo é a
@@ -71,7 +72,8 @@ export default function App() {
   const [resumingRecordingId, setResumingRecordingId] = useState<string | null>(null);
   const [onboarded, setOnboarded] = useState<boolean | null>(null);
 
-  const { session, recovery, setRecovery, processingCallback } = useSessaoSupabase();
+  const { session, recovery, setRecovery, processingCallback, segundoFatorPendente, reconferirSegundoFator } =
+    useSessaoSupabase();
 
   const {
     anonimo,
@@ -252,6 +254,22 @@ export default function App() {
         }
       >
         <ResetPassword onDone={() => setRecovery(false)} />
+        <Toaster />
+      </Suspense>
+    );
+  }
+  /* Fase 6 — 2FA de verdade: com app autenticador ativo, a sessão de senha/Google é aal1 e o servidor
+     recusa as rotas sensíveis. O código é pedido aqui, logo depois do login. */
+  if (authRequired && session && segundoFatorPendente) {
+    return (
+      <Suspense
+        fallback={
+          <div className="flex h-tela w-full items-center justify-center bg-canvas text-ink-muted text-sm">
+            Carregando…
+          </div>
+        }
+      >
+        <DesafioSegundoFator onConcluido={reconferirSegundoFator} />
         <Toaster />
       </Suspense>
     );

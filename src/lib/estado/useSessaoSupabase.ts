@@ -1,15 +1,20 @@
 import { useEffect, useState } from 'react';
 
-import { clearAuthCallbackUrl,isOnAuthCallback } from '../authCallback';
+import { precisaDoSegundoFator } from '../auth';
+import { clearAuthCallbackUrl, isOnAuthCallback } from '../authCallback';
 import { limparEntitlements } from '../entitlements';
 import { armarIdentidade, definirIdentidade } from '../identidade';
-import { authRequired,carregarSupabase } from '../supabase';
+import { authRequired, carregarSupabase } from '../supabase';
 
 export interface EstadoDaSessaoSupabase {
   session: { user?: unknown } | null | undefined;
   recovery: boolean;
   setRecovery: (v: boolean) => void;
   processingCallback: boolean;
+  /** Conta com 2FA e sessão ainda `aal1`: o App mostra o desafio do código antes de entrar. */
+  segundoFatorPendente: boolean;
+  /** Reconfere o nível da sessão (depois de o código ser aceito). */
+  reconferirSegundoFator: () => void;
 }
 
 /**
@@ -24,6 +29,22 @@ export function useSessaoSupabase(): EstadoDaSessaoSupabase {
   const [recovery, setRecovery] = useState(false);
   // OAuth/recuperação voltam em /auth/callback: mostra um spinner até a sessão resolver e limpa a URL.
   const [processingCallback, setProcessingCallback] = useState(authRequired && isOnAuthCallback());
+  // Fase 6 — 2FA de verdade: senha/Google dão sessão aal1; com fator ativo, falta o código.
+  const [segundoFatorPendente, setSegundoFatorPendente] = useState(false);
+  const [conferencia, setConferencia] = useState(0);
+  useEffect(() => {
+    if (!authRequired || !session) {
+      setSegundoFatorPendente(false);
+      return;
+    }
+    let vivo = true;
+    void precisaDoSegundoFator().then((p) => {
+      if (vivo) setSegundoFatorPendente(p);
+    });
+    return () => {
+      vivo = false;
+    };
+  }, [session, conferencia]);
   /**
    * O pacote do Supabase agora chega por `import()` (ver lib/supabase — ele era 96% código não
    * executado no arranque de quem não usa login). Isso custa um `await` aqui, porque
@@ -44,32 +65,59 @@ export function useSessaoSupabase(): EstadoDaSessaoSupabase {
     let inscricao: { unsubscribe: () => void } | null = null;
     // Sem resposta do Supabase a identidade é `anonimo`, não `carregando`: ficar carregando para
     // sempre deixaria todo `apiFetch` pendurado.
-    const semSessao = () => { if (vivo) { setSession(null); definirIdentidade('anonimo'); } };
+    const semSessao = () => {
+      if (vivo) {
+        setSession(null);
+        definirIdentidade('anonimo');
+      }
+    };
     void (async () => {
       try {
         const sb = await carregarSupabase();
-        if (!sb || !vivo) { if (!sb) semSessao(); return; }
-        sb.auth.getSession().then(({ data }) => {
-          if (!vivo) return;
-          setSession(data.session);
-          definirIdentidade(data.session ? 'conta' : 'anonimo');
-          clearAuthCallbackUrl();
-          setProcessingCallback(false);
-        }).catch(semSessao);
+        if (!sb || !vivo) {
+          if (!sb) semSessao();
+          return;
+        }
+        sb.auth
+          .getSession()
+          .then(({ data }) => {
+            if (!vivo) return;
+            setSession(data.session);
+            definirIdentidade(data.session ? 'conta' : 'anonimo');
+            clearAuthCallbackUrl();
+            setProcessingCallback(false);
+          })
+          .catch(semSessao);
         const { data: sub } = sb.auth.onAuthStateChange((event, s) => {
           if (event === 'PASSWORD_RECOVERY') setRecovery(true);
           setSession(s);
           if (s) definirIdentidade('conta');
-          else if (event === 'SIGNED_OUT') { definirIdentidade('anonimo'); limparEntitlements(); }
+          else if (event === 'SIGNED_OUT') {
+            definirIdentidade('anonimo');
+            limparEntitlements();
+          }
         });
-        if (!vivo) { sub.subscription.unsubscribe(); return; }
+        if (!vivo) {
+          sub.subscription.unsubscribe();
+          return;
+        }
         inscricao = sub.subscription;
       } catch {
         semSessao();
       }
     })();
-    return () => { vivo = false; inscricao?.unsubscribe(); };
+    return () => {
+      vivo = false;
+      inscricao?.unsubscribe();
+    };
   }, []);
 
-  return { session, recovery, setRecovery, processingCallback };
+  return {
+    session,
+    recovery,
+    setRecovery,
+    processingCallback,
+    segundoFatorPendente,
+    reconferirSegundoFator: () => setConferencia((n) => n + 1),
+  };
 }

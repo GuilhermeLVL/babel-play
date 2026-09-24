@@ -7,8 +7,8 @@ import { clicarRobusto, fecharSobreposicoes, irParaPraticar } from './_helpers'
  * UMA SESSAO DE JOGO INTEIRA, do lobby ao fim da rodada — tres jogos, tres mecanicas.
  *
  * O que nenhuma suite cobria: o clique na carta do lobby chegar a um jogo montado com o baralho
- * de verdade, o jogo produzir um `RoundReport` e a tela de fim de rodada (`ScratchReward`, com o
- * "N de N" e "Voltar aos jogos") aparecer. Os testes unitarios provam cada peca; este prova a
+ * de verdade, o jogo produzir um `RoundReport` e a tela de fim de rodada (`ResultadoDaRodada`, com o
+ * "N de N <unidade>" e "Voltar aos jogos") aparecer. Os testes unitarios provam cada peca; este prova a
  * costura, e nos tres viewports — a mesa da Memoria vira 3 colunas no celular e o Termo troca o
  * teclado fisico pelo de tela.
  *
@@ -63,18 +63,18 @@ async function abrirJogo(page: Page, titulo: RegExp) {
   await clicarRobusto(page, carta)
 }
 
-/** A tela de fim de rodada — `ScratchReward`, que vem antes do resumo detalhado. */
+/** A tela de fim de rodada — `ResultadoDaRodada` (estrelas, raspadinha e o resumo na mesma tela). */
 function fimDaRodada(page: Page) {
   return page.getByText(/Fim da rodada|Rodada concluída/).first()
 }
 
 async function voltarAoLobby(page: Page) {
-  /* A raspadinha (`ScratchReward`) so mostra as saidas DEPOIS de revelada. O link de texto
-     "revelar sem raspar" e a saida por teclado, e a unica deterministica — raspar exige mover o
-     ponteiro ate 55% do canvas ficar transparente. */
-  const revelar = page.getByRole('button', { name: 'revelar sem raspar' })
+  /* A raspadinha so mostra as saidas DEPOIS de revelada. O link "Revelar sem raspar" e a saida
+     por teclado, e a unica deterministica — raspar exige mover o ponteiro ate 45% do canvas
+     ficar transparente. */
+  const revelar = page.getByRole('button', { name: 'Revelar sem raspar' })
   if (await revelar.isVisible().catch(() => false)) await clicarRobusto(page, revelar)
-  await clicarRobusto(page, page.getByRole('button', { name: 'Voltar aos jogos' }))
+  await clicarRobusto(page, page.getByRole('button', { name: /Voltar aos jogos/ }))
   await fecharSobreposicoes(page)
   await expect(page.getByRole('button', { name: 'Fonte' })).toBeVisible({ timeout: 15_000 })
 }
@@ -85,9 +85,10 @@ test.describe('Sessao de jogo', () => {
     await irParaPraticar(page)
     await abrirJogo(page, /^(Jogo da memória|Memória: palavra e tradução)$/)
 
-    await expect(page.getByRole('button', { name: 'Sair do jogo' })).toBeVisible({ timeout: 10_000 })
-    const placar = page.getByText(/^0\/\d+ pares$/)
-    await expect(placar, 'o placar deveria nascer em 0/N pares').toBeVisible()
+    /* A casca comum (casca/CascaDaRodada): o topo e o de toda rodada, e o placar comum diz os pares. */
+    await expect(page.getByRole('button', { name: 'Pausar' })).toBeVisible({ timeout: 10_000 })
+    const placar = page.getByRole('group', { name: 'Placar da rodada' }).getByText(/^0 de \d+ pares$/)
+    await expect(placar, 'o placar deveria nascer em 0 de N pares').toBeVisible()
 
     const cartas = page.locator('[data-tour="mesa"] > button')
     const total = await cartas.count()
@@ -118,9 +119,11 @@ test.describe('Sessao de jogo', () => {
       await page.waitForTimeout(150)
     }
 
-    await expect(page.getByText(new RegExp(`^${total / 2}/${total / 2} pares$`))).toBeVisible({ timeout: 5000 })
+    await expect(page.getByText(new RegExp(`^${total / 2} de ${total / 2} pares$`)).first()).toBeVisible({
+      timeout: 5000,
+    })
     await expect(fimDaRodada(page), 'a tela de fim de rodada deveria aparecer').toBeVisible({ timeout: 15_000 })
-    await expect(page.getByRole('heading', { name: new RegExp(`^${total / 2} de ${total / 2}$`) })).toBeVisible()
+    await expect(page.getByRole('heading', { name: new RegExp(`^${total / 2} de ${total / 2} pares$`) })).toBeVisible()
     await voltarAoLobby(page)
   })
 
@@ -129,7 +132,7 @@ test.describe('Sessao de jogo', () => {
     await irParaPraticar(page)
     await abrirJogo(page, /^(Escrever a palavra|Escreva a palavra|Soletrar \(Termo\))$/)
 
-    await expect(page.getByRole('button', { name: 'Sair do jogo' })).toBeVisible({ timeout: 10_000 })
+    await expect(page.getByRole('button', { name: 'Pausar' })).toBeVisible({ timeout: 10_000 })
     const tabuleiro = page.locator('[data-tour="tabuleiro"]')
     await expect(tabuleiro).toBeVisible()
     await expect(page.getByRole('button', { name: 'Enviar palpite' })).toBeVisible()
@@ -167,7 +170,7 @@ test.describe('Sessao de jogo', () => {
     await expect(fimDaRodada(page), 'a escada deveria terminar na tela de fim de rodada').toBeVisible({
       timeout: 15_000,
     })
-    await expect(page.getByRole('heading', { name: /^\d+ de \d+$/ })).toBeVisible()
+    await expect(page.getByRole('heading', { name: /^\d+ de \d+ palavras$/ })).toBeVisible()
     await voltarAoLobby(page)
   })
 

@@ -18,7 +18,7 @@ import { useRodada } from './CascaDaRodada';
  */
 
 /** O nome da sequência, na régua do protótipo (`rotuloSeq`). */
-export function rotuloDaSequencia(seq: number): string {
+function rotuloDaSequencia(seq: number): string {
   return seq >= SEQUENCIA_FEVER
     ? 'FEVER'
     : seq >= 6
@@ -50,6 +50,8 @@ interface HudDaRodadaProps {
   mult?: number;
   /** `data-tour` do tempo, quando o tour do jogo aponta para o relógio. */
   tourDoTempo?: string;
+  /** `data-tour` do placar inteiro, quando o tour do jogo aponta para ele. */
+  tour?: string;
 }
 
 export default function HudDaRodada({
@@ -63,6 +65,7 @@ export default function HudDaRodada({
   ajudas,
   mult: multDoJogo,
   tourDoTempo,
+  tour,
 }: HudDaRodadaProps) {
   const { placar } = useRodada();
   placar.current = { pontos, acertos };
@@ -87,7 +90,7 @@ export default function HudDaRodada({
   const pct = Math.round(Math.max(0, Math.min(1, progresso)) * 100);
   const comTempo = tempo !== undefined;
   return (
-    <div className="hud" role="group" aria-label="Placar da rodada">
+    <div className="hud" role="group" aria-label="Placar da rodada" data-tour={tour}>
       <div className="hud-bloco">
         <small>Pontos</small>
         <b ref={ptsRef} className="tn">

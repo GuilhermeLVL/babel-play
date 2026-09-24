@@ -84,6 +84,8 @@ interface CascaDaRodadaProps {
   onRecomecar: () => void;
   /** Sai sem terminar — só é chamado depois da confirmação. */
   onSair: () => void;
+  /** P também pausa (padrão). Falso onde P é letra do tabuleiro (Termo): aí só o Esc pausa. */
+  pausaComP?: boolean;
   /** Tela cheia de largura para tabuleiros que precisam (padrão `larga`, como no protótipo). */
   children: ReactNode;
 }
@@ -102,6 +104,7 @@ export default function CascaDaRodada({
   ageProfile,
   onRecomecar,
   onSair,
+  pausaComP = true,
   children,
 }: CascaDaRodadaProps) {
   const palcoRef = useRef<HTMLElement | null>(null);
@@ -130,7 +133,7 @@ export default function CascaDaRodada({
   useEffect(() => {
     const aoTeclar = (e: KeyboardEvent) => {
       if (explicando || e.ctrlKey || e.metaKey || e.altKey) return;
-      const p = e.key === 'p' || e.key === 'P';
+      const p = pausaComP && (e.key === 'p' || e.key === 'P');
       if (passo) {
         if (p && passo === 'menu') {
           e.preventDefault();
@@ -145,7 +148,7 @@ export default function CascaDaRodada({
     };
     window.addEventListener('keydown', aoTeclar);
     return () => window.removeEventListener('keydown', aoTeclar);
-  }, [passo, explicando, pausar, continuar]);
+  }, [passo, explicando, pausar, continuar, pausaComP]);
 
   const estado = useMemo<EstadoDaRodada>(
     () => ({ ativo: pronto && !passo && !explicando, pausado: !!passo || explicando, placar }),
@@ -185,6 +188,7 @@ export default function CascaDaRodada({
       {passo && (
         <DialogoDePausa
           passo={passo}
+          pausaComP={pausaComP}
           titulo={titulo}
           placar={placar.current}
           aoContinuar={continuar}
@@ -223,6 +227,7 @@ export default function CascaDaRodada({
  */
 function DialogoDePausa({
   passo,
+  pausaComP,
   titulo,
   placar,
   aoContinuar,
@@ -233,6 +238,7 @@ function DialogoDePausa({
   aoSair,
 }: {
   passo: 'menu' | 'sair';
+  pausaComP: boolean;
   titulo: string;
   placar: { pontos: number; acertos: number };
   aoContinuar: () => void;
@@ -287,7 +293,14 @@ function DialogoDePausa({
             </button>
           </div>
           <p className="mut" style={{ fontSize: 12, marginTop: 12 }}>
-            <kbd>Esc</kbd> ou <kbd>P</kbd> pausa e continua
+            <kbd>Esc</kbd>
+            {pausaComP && (
+              <>
+                {' '}
+                ou <kbd>P</kbd>
+              </>
+            )}{' '}
+            pausa e continua
           </p>
         </div>
       ) : (

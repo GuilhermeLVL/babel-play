@@ -1,7 +1,6 @@
 import type { ItemOutcome, MinigameItem, RoundReport } from '@core';
 import { scoreRound } from '@core';
-import { Eye, X } from 'lucide-react';
-import { Flame, Sparkles } from 'lucide-react';
+import { Eye } from 'lucide-react';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 
 import { emitBurst } from '../../lib/effects';
@@ -11,6 +10,8 @@ import { direcaoDoTexto } from '../../lib/languages';
 import type { AgeProfileType } from '../../lib/profile';
 import { play } from '../../lib/soundFx';
 import { speak } from '../../lib/tts';
+import { useRodada } from './casca/CascaDaRodada';
+import HudDaRodada, { BotaoDeAjuda } from './casca/HudDaRodada';
 
 interface MemoryGameProps {
   items: MinigameItem[];
@@ -28,7 +29,9 @@ interface Carta {
   lang: string;
 }
 
-export default function MemoryGame({ items, ageProfile, onFinish, onExit }: MemoryGameProps) {
+export default function MemoryGame({ items, ageProfile: _ageProfile, onFinish }: MemoryGameProps) {
+  /** A casca diz quando a rodada anda (fora da contagem 3-2-1 e da pausa). */
+  const { ativo } = useRodada();
   /** Baralho embaralhado UMA vez (por rodada) — reembaralhar a cada render arruinaria o jogo. */
   const cartas = useMemo<Carta[]>(() => {
     const baralho: Carta[] = [];
@@ -89,7 +92,7 @@ export default function MemoryGame({ items, ageProfile, onFinish, onExit }: Memo
   }, [fechados, total, items, onFinish]);
 
   const virar = (carta: Carta, el: HTMLElement | null) => {
-    if (travado || espiando || viradas.includes(carta.id) || fechados.has(carta.itemIndex)) return;
+    if (!ativo || travado || espiando || viradas.includes(carta.id) || fechados.has(carta.itemIndex)) return;
     if (!inicioItemRef.current.has(carta.itemIndex)) inicioItemRef.current.set(carta.itemIndex, Date.now());
 
     triggerHaptic('soft');
@@ -139,7 +142,7 @@ export default function MemoryGame({ items, ageProfile, onFinish, onExit }: Memo
 
   /** ESPIAR: abre a mesa inteira por 1,2s. Cobra a nota de todos os itens (ver `gradeFor`). */
   const espiar = (el: HTMLElement | null) => {
-    if (espiando || travado || espiadasRef.current >= ESPIADAS) return;
+    if (!ativo || espiando || travado || espiadasRef.current >= ESPIADAS) return;
     espiadasRef.current += 1;
     comDicaRef.current = true;
     setSequencia(0); // a sequência é mérito; com ajuda ela recomeça
@@ -149,8 +152,6 @@ export default function MemoryGame({ items, ageProfile, onFinish, onExit }: Memo
     pontosDoElemento(`${ESPIADAS - espiadasRef.current} espiadas`, el, 'neutro');
     setTimeout(() => setEspiando(false), 1200);
   };
-
-  const mult = multiplicador(sequencia);
 
   /**
    * QUATRO COLUNAS QUANDO A MESA É GRANDE. O `.tabuleiro` do protótipo tem três colunas porque a
@@ -177,126 +178,84 @@ export default function MemoryGame({ items, ageProfile, onFinish, onExit }: Memo
     ...(quatroColunas ? { gridTemplateColumns: 'repeat(4, 1fr)', maxWidth: 720 } : null),
   };
 
+  /* A CASCA COMUM desenha o cabeçalho, a pausa e a contagem; aqui ficam o placar comum e a mesa
+     da Memória, que é dela. */
   return (
-    <div className="fixed inset-0 z-50 flex flex-col bg-canvas text-ink select-none overflow-hidden animate-in fade-in duration-200">
+    <>
       {/* Topo unificado */}
-      <header className="flex items-center justify-between px-6 py-4 border-b border-border-subtle bg-surface/85 backdrop-blur-md shrink-0">
-        <div className="flex items-center gap-3">
-          <button
-            onClick={onExit}
-            className="p-2 rounded-xl border border-border-subtle bg-surface-hover hover:bg-border-subtle transition-colors cursor-pointer"
-            title="Sair do Jogo da Memória"
-            aria-label="Sair do jogo"
-          >
-            <X className="w-5 h-5 text-ink" />
-          </button>
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="font-display font-black text-lg tracking-wide uppercase text-accent">
-                {ageProfile === 'kids' ? 'Ache os Pares' : 'Jogo da Memória'}
-              </span>
-              <span className="text-xs px-2 py-0.5 rounded-full bg-accent-soft text-accent-ink font-semibold">
-                Pares & Sinapses 🧠
-              </span>
-            </div>
-            <p className="text-xs text-ink-muted">
-              Encontre todos os pares combinando termos e significados correspondentes!
-            </p>
-          </div>
-        </div>
 
-        {/* Ações, Espiar, Combo, Pontos e Pares */}
-        <div className="flex items-center gap-2.5 sm:gap-3">
-          <button
-            onClick={(e) => espiar(e.currentTarget)}
-            disabled={espiadasRef.current >= ESPIADAS || espiando}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-2xl border border-border-subtle bg-surface hover:bg-surface-hover text-xs font-bold text-ink transition-all disabled:opacity-40 disabled:cursor-not-allowed shadow-sm cursor-pointer"
+      <HudDaRodada
+        tour="placar"
+        pontos={pontos}
+        sequencia={sequencia}
+        acertos={fechados.size}
+        rotulo={`${fechados.size} de ${total} pares`}
+        progresso={fechados.size / Math.max(1, total)}
+        ajudas={
+          <BotaoDeAjuda
+            icone={Eye}
+            rotulo="Espiar"
+            resta={ESPIADAS - espiadasRef.current}
+            disabled={espiando}
             data-tour="espiar"
-            aria-label="Espiar a mesa"
+            onClick={(e) => espiar(e.currentTarget)}
             title={`Espiar todas as cartas (${ESPIADAS - espiadasRef.current} restantes)`}
-          >
-            <Eye className="w-3.5 h-3.5 text-warn" />
-            <span>Espiar ({ESPIADAS - espiadasRef.current})</span>
-          </button>
-
-          {mult > 1 && (
-            <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-gradient-to-r from-orange-500 to-amber-500 text-white font-black text-xs shadow-md animate-bounce">
-              <Flame className="w-4 h-4 fill-current" />
-              <span>×{mult}</span>
-            </div>
-          )}
-
-          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-border-subtle bg-surface">
-            <Sparkles className="w-4 h-4 text-accent" />
-            <span className="font-mono font-bold text-base">{pontos} pts</span>
-          </div>
-
-          <div
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-border-subtle bg-surface"
-            data-tour="placar"
-          >
-            <span className="font-mono font-bold text-base text-ink">
-              {fechados.size}/{total} pares
-            </span>
-          </div>
-        </div>
-      </header>
-
-      <main className="flex-1 flex flex-col items-center p-4 lg:p-8 overflow-y-auto custom-scrollbar">
-        {/* A MESA — a marcação do protótipo aprovado (`montarMemoria` em
+          />
+        }
+      />
+      {/* A MESA — a marcação do protótipo aprovado (`montarMemoria` em
           docs/prototipos/consistencia-telas.html): `.tabuleiro` > `button.carta`, com o verso "?"
           em `.verso` e os estados `virada` / `par` / `errou` / `espiando`. O CSS é o dele
           (src/styles/prototipo.css): três colunas, cartas 4:3, entrada em cascata por `--i`. */}
-        <div ref={mesaRef} data-tour="mesa" className="tabuleiro w-full" style={estiloDaMesa} aria-label="Tabuleiro">
-          {cartas.map((carta, n) => {
-            const fechada = fechados.has(carta.itemIndex);
-            const virada = viradas.includes(carta.id);
-            // Espiar abre só as que estavam de costas; as já viradas ou fechadas seguem como estão.
-            const espiada = espiando && !virada && !fechada;
-            const aberta = virada || fechada || espiada;
-            // O par errado fica aberto por 850ms com a marca de erro antes de desvirar.
-            const errou = travado && virada;
-            const classes = [
-              'carta',
-              aberta && !fechada ? 'virada' : '',
-              fechada ? 'par' : '',
-              errou ? 'errou' : '',
-              espiada ? 'espiando' : '',
-            ]
-              .filter(Boolean)
-              .join(' ');
-            return (
-              <button
-                key={carta.id}
-                type="button"
-                onClick={(e) => virar(carta, e.currentTarget)}
-                aria-disabled={fechada || undefined}
-                aria-label={aberta ? carta.texto : 'Carta virada'}
-                className={classes}
-                style={{ '--i': n } as React.CSSProperties}
-                data-texto={carta.texto}
-              >
-                {aberta ? (
-                  /* A pista pode ter até 160 caracteres (baralho Anki curado): o clamp segura o texto
+      <div ref={mesaRef} data-tour="mesa" className="tabuleiro w-full" style={estiloDaMesa} aria-label="Tabuleiro">
+        {cartas.map((carta, n) => {
+          const fechada = fechados.has(carta.itemIndex);
+          const virada = viradas.includes(carta.id);
+          // Espiar abre só as que estavam de costas; as já viradas ou fechadas seguem como estão.
+          const espiada = espiando && !virada && !fechada;
+          const aberta = virada || fechada || espiada;
+          // O par errado fica aberto por 850ms com a marca de erro antes de desvirar.
+          const errou = travado && virada;
+          const classes = [
+            'carta',
+            aberta && !fechada ? 'virada' : '',
+            fechada ? 'par' : '',
+            errou ? 'errou' : '',
+            espiada ? 'espiando' : '',
+          ]
+            .filter(Boolean)
+            .join(' ');
+          return (
+            <button
+              key={carta.id}
+              type="button"
+              onClick={(e) => virar(carta, e.currentTarget)}
+              aria-disabled={fechada || undefined}
+              aria-label={aberta ? carta.texto : 'Carta virada'}
+              className={classes}
+              style={{ '--i': n } as React.CSSProperties}
+              data-texto={carta.texto}
+            >
+              {aberta ? (
+                /* A pista pode ter até 160 caracteres (baralho Anki curado): o clamp segura o texto
                    dentro da carta 4:3 e o `title` guarda a string inteira. Acima de 45 caracteres
                    a fonte desce um passo; abaixo vale a do protótipo (800 15px). */
-                  <span
-                    className={`${carta.texto.length > 45 ? 'text-[11px] line-clamp-4' : 'line-clamp-3'} break-words`}
-                    dir={direcaoDoTexto(carta.lang)}
-                    title={carta.texto}
-                  >
-                    {carta.texto}
-                  </span>
-                ) : (
-                  <span className="verso" aria-hidden="true">
-                    ?
-                  </span>
-                )}
-              </button>
-            );
-          })}
-        </div>
-      </main>
-    </div>
+                <span
+                  className={`${carta.texto.length > 45 ? 'text-[11px] line-clamp-4' : 'line-clamp-3'} break-words`}
+                  dir={direcaoDoTexto(carta.lang)}
+                  title={carta.texto}
+                >
+                  {carta.texto}
+                </span>
+              ) : (
+                <span className="verso" aria-hidden="true">
+                  ?
+                </span>
+              )}
+            </button>
+          );
+        })}
+      </div>
+    </>
   );
 }

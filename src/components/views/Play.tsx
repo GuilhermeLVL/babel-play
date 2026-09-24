@@ -180,6 +180,7 @@ import type { Recording, VocabCard } from '../../types';
 import AntessalaDaRodada from '../minigames/AntessalaDaRodada';
 import { FAMILIAS, tomDoJogo } from '../minigames/ArteDosJogos';
 import CascaDaRodada from '../minigames/casca/CascaDaRodada';
+import { unidadeDaRodada } from '../minigames/casca/regras';
 import CoberturaDosIdiomas from '../minigames/CoberturaDosIdiomas';
 import ComoSeJoga from '../minigames/ComoSeJoga';
 import ConectoresGame from '../minigames/ConectoresGame';
@@ -187,10 +188,9 @@ import DitadoGame from '../minigames/DitadoGame';
 import EscutaGame from '../minigames/EscutaGame';
 import KaraokeGame, { type FalaKaraoke } from '../minigames/KaraokeGame';
 import { jaFezTour, marcarTourFeito, PASSOS_DOS_JOGOS } from '../minigames/passosDosJogos';
-import ResumoDaRodada, { type ItemDaRodada } from '../minigames/ResumoDaRodada';
+import ResultadoDaRodada, { type ItemDaRodada } from '../minigames/ResultadoDaRodada';
 import SalaDeEscolha from '../minigames/SalaDeEscolha';
 import ScrambleGame from '../minigames/ScrambleGame';
-import ScratchReward from '../minigames/ScratchReward';
 import SeletorDeConteudo from '../minigames/SeletorDeConteudo';
 import TermoGame from '../minigames/TermoGame';
 import TourGuiado from '../minigames/TourGuiado';
@@ -583,8 +583,6 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
   const [estrategia, setEstrategia] = useState<EstrategiaDaUI>('auto');
   const [composicao, setComposicao] = useState<Composicao | null>(null);
 
-  /** F6: passo 2 (resumo com os erros) antes de voltar. Ligado ao fim de cada rodada. */
-  const [verResumo, setVerResumo] = useState(false);
   /**
    * TOUR em curso: o jogo já está na tela e o tour aponta os elementos DELE, um por vez.
    *
@@ -2250,20 +2248,14 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
    */
   /**
    * A CASCA COMUM DA RODADA (`T.jogo` do protótipo): cabeçalho, pausa com confirmação de saída,
-   * contagem 3-2-1 e o palco onde o tabuleiro do jogo mora. Termo e Memória ficam FORA por ora —
-   * os tabuleiros deles estão sendo refeitos à parte e ainda desenham o próprio topo em tela cheia.
-   * "Recomeçar" remonta a casca e o jogo (chave nova) com os MESMOS itens.
+   * contagem 3-2-1 e o palco onde o tabuleiro do jogo mora — a mesma para todos os jogos.
+   * "Recomeçar" remonta a casca e o jogo (chave nova) com os MESMOS itens. No Termo o P é letra,
+   * então só o Esc pausa.
    */
   const [chaveDaRodada, setChaveDaRodada] = useState(0);
   const naCasca = (tela: React.ReactNode, jogo: MinigameId, total: number, sair: () => void) => {
-    if (jogo === 'termo' || jogo === 'memory') return tela;
     const j = JOGOS.find((x) => x.id === jogo);
-    const unidade =
-      jogo === 'escuta' || jogo === 'ditado' || jogo === 'karaoke'
-        ? 'falas'
-        : jogo === 'scramble' || jogo === 'conectores'
-          ? 'frases'
-          : 'palavras';
+    const unidade = unidadeDaRodada(jogo);
     return (
       <CascaDaRodada
         key={chaveDaRodada}
@@ -2274,6 +2266,7 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
         ageProfile={ageProfile}
         onRecomecar={() => setChaveDaRodada((k) => k + 1)}
         onSair={sair}
+        pausaComP={jogo !== 'termo'}
       >
         {tela}
       </CascaDaRodada>
@@ -2501,12 +2494,17 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
   // Rodada em curso ou recompensa a revelar ocupam a tela inteira — jogo não divide atenção.
   if (rodadaTermo) {
     return comTour(
-      <TermoGame
-        rodadas={rodadaTermo}
-        ageProfile={ageProfile}
-        onFinish={aoTerminar}
-        onExit={sairDaRodada(() => setRodadaTermo(null))}
-      />,
+      naCasca(
+        <TermoGame
+          rodadas={rodadaTermo}
+          ageProfile={ageProfile}
+          onFinish={aoTerminar}
+          onExit={sairDaRodada(() => setRodadaTermo(null))}
+        />,
+        'termo',
+        rodadaTermo.length,
+        sairDaRodada(() => setRodadaTermo(null)),
+      ),
       'termo',
     );
   }
@@ -2604,11 +2602,11 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
     if (Tela)
       return comTour(naCasca(<Tela {...comuns} />, rodada.jogo, rodada.itens.length, comuns.onExit), rodada.jogo);
   }
-  /* F6 — PASSO 2, depois da raspadinha.
-     A raspadinha funciona como recompensa e continua onde estava; o defeito era ser o FIM DA
-     LINHA. Quais palavras você errou era gravado (uma linha por item em `exercise_results`) e
-     nunca mostrado. */
-  if (resultado && verResumo) {
+  /* O FIM DA RODADA (`T.resultado` do protótipo): estrelas, raspadinha e o que escapou num cartão
+     só. Era a raspadinha e, atrás de um botão, o resumo dos erros noutra tela; o resumo agora abre
+     logo abaixo, na mesma. Quais palavras você errou era gravado (uma linha por item em
+     `exercise_results`) e nunca mostrado — continua aqui, com tradução e nível do baralho. */
+  if (resultado) {
     const porRef = new Map((deck ?? []).map((c) => [String(c.word).toLowerCase(), c]));
     const itensResumo: ItemDaRodada[] = resultado.items.map((o) => {
       const c = porRef.get(String(o.itemRef).toLowerCase());
@@ -2624,22 +2622,21 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
         occurrences: (c as { occurrences?: number | null } | undefined)?.occurrences ?? null,
       };
     });
-    const acertos = itensResumo.filter((i) => i.correct).length;
     return telaCheia(
-      <ResumoDaRodada
+      <ResultadoDaRodada
+        report={resultado}
         jogo={((j) => (j ? tituloDoJogo(j, ageProfile) : resultado.gameId))(
           JOGOS.find((j) => j.id === resultado.gameId),
         )}
-        fonte={rotuloDaFonte(fonte, sessaoEmUso?.title)}
+        ageProfile={ageProfile}
+        sequencia={resumir(sequencia)}
+        recorde={recordeDoJogo(resultado.gameId)}
         itens={itensResumo}
-        tempoMs={resultado.items.reduce((a, o) => a + (o.ms ?? 0), 0)}
-        xp={xpFromRound(resultado)}
-        combo={sequencia?.rodadas ?? undefined}
-        anterior={null}
-        /* Só com desempenho bom: botão que falha ao ser clicado é pior que botão ausente. */
-        podeSubirDificuldade={acertos / Math.max(itensResumo.length, 1) >= 0.8}
-        aoRefazerErradas={(erradas) => {
-          setVerResumo(false);
+        progress={progress}
+        onContinuar={continuarSequencia}
+        /* Sem `item_ref` gravado não há como remontar — e botão inerte ensina que a tela quebrou. */
+        onRepetir={refsDoResultado.length ? repetirSequencia : null}
+        onRefazerErradas={(erradas) => {
           /* Mesmo recorte de `refsDoResultado` lá em cima: item sem `itemRef` não identifica nada
              e, dentro de `montarRodada`, só seria comparado com `has(<string>)` — nunca casaria. */
           const refs = new Set(erradas.map((e) => e.itemRef).filter((r): r is string => !!r));
@@ -2649,44 +2646,11 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
           if (nova) setAntessala(nova);
           else continuarSequencia();
         }}
-        aoSubirDificuldade={() => {
-          setVerResumo(false);
-          continuarSequencia();
-        }}
-        aoMaisUma={() => {
-          setVerResumo(false);
-          continuarSequencia();
-        }}
-        aoVoltar={() => {
-          setVerResumo(false);
-          sairDaSequencia();
-        }}
-      />,
-      'resumo',
-    );
-  }
-
-  if (resultado) {
-    /* A raspadinha é a tela de CONTINUAÇÃO — não ganhou posição nova na cascata porque já
-       ocupava esta, e já passa pelo `telaCheia` que resolve o portal no modo embutido. */
-    return telaCheia(
-      <ScratchReward
-        report={resultado}
-        ageProfile={ageProfile}
-        sequencia={resumir(sequencia)}
-        recorde={recordeDoJogo(resultado.gameId)}
-        onContinuar={continuarSequencia}
-        /* Sem `item_ref` gravado não há como remontar — e botão inerte ensina que a tela quebrou. */
-        onRepetir={refsDoResultado.length ? repetirSequencia : null}
-        /* A porta para o resumo, e só quando ela tem o que mostrar. As palavras erradas eram
-           gravadas item a item em `exercise_results` desde sempre e nunca chegavam a ninguém. */
-        onVerErros={resultado.items.some((o) => !o.correct) ? () => setVerResumo(true) : null}
         onDone={sairDaSequencia}
         semMaterial={semMaterial}
         onPularVez={saldoSeeds >= CUSTO_PULAR && !gastando ? pularVez : null}
         custoPular={CUSTO_PULAR}
         saldoSeeds={saldoSeeds}
-        progress={progress}
         onVerProgressao={() => onChangeView('loja', { aba: 'progressao' })}
       />,
     );

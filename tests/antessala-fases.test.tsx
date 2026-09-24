@@ -5,7 +5,6 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 afterEach(cleanup)
 import AntessalaDaRodada from '../src/components/minigames/AntessalaDaRodada'
-import ScratchReward from '../src/components/minigames/ScratchReward'
 import type { FaseJogada } from '../src/core/minigames/fases'
 
 vi.mock('../src/data/api', () => ({
@@ -223,60 +222,5 @@ describe('a tabela de fases', () => {
   it('sem amostra, cai no placar da fase — nunca inventa conteúdo', () => {
     montar({ fases: [fase(1)], onJogarFase: () => {} })
     expect(screen.getByText(/3 de 4 nesta fase/)).toBeTruthy()
-  })
-})
-
-describe('fim de rodada (raspadinha)', () => {
-  const report = {
-    gameId: 'memory' as const,
-    items: [
-      { itemRef: 'a', correct: true },
-      { itemRef: 'b', correct: true },
-      { itemRef: 'c', correct: true },
-      { itemRef: 'd', correct: false },
-    ],
-    score: 150,
-    durationMs: 42_000,
-  }
-
-  it('mostra as estrelas da rodada e as estatísticas com a mesma régua do mapa de fases', () => {
-    render(
-      <ScratchReward
-        report={report as never}
-        ageProfile="pro"
-        sequencia={null}
-        recorde={null}
-        onContinuar={() => {}}
-        onRepetir={null}
-        onDone={() => {}}
-        onPularVez={null}
-        custoPular={10}
-        saldoSeeds={0}
-      />,
-    )
-    // 3/4 = 75% → 2 estrelas
-    expect(screen.getByLabelText('2 de 3 estrelas')).toBeTruthy()
-    expect(screen.getByText('150')).toBeTruthy()
-    expect(screen.getByText('75%')).toBeTruthy()
-    expect(screen.getByText('42s')).toBeTruthy()
-  })
-
-  it('com o recorde ao alcance, diz a distância depois de revelar', () => {
-    render(
-      <ScratchReward
-        report={report as never}
-        ageProfile="pro"
-        sequencia={{ rodadas: 2, pontos: 300, precisao: 80, combo: 2 } as never}
-        recorde={320}
-        onContinuar={() => {}}
-        onRepetir={null}
-        onDone={() => {}}
-        onPularVez={null}
-        custoPular={10}
-        saldoSeeds={0}
-      />,
-    )
-    fireEvent.click(screen.getByText('revelar sem raspar'))
-    expect(screen.getByText(/faltam 20 pts para o seu recorde/)).toBeTruthy()
   })
 })

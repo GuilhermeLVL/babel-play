@@ -22,6 +22,13 @@ const REGRA: Partial<Record<MinigameId, string>> = {
   scramble: 'Sem relógio · toque nas palavras na ordem',
 };
 
+/** O nome do que a rodada conta: "palavras", "falas" (os de áudio), "frases" (os de montar frase). */
+export function unidadeDaRodada(jogo: MinigameId | string): string {
+  if (jogo === 'escuta' || jogo === 'ditado' || jogo === 'karaoke') return 'falas';
+  if (jogo === 'scramble' || jogo === 'conectores') return 'frases';
+  return 'palavras';
+}
+
 /** A regra do jogo, seguida da regra do combo, que é a mesma para todos (`multiplicador`). */
 export function regraDaRodada(jogo: MinigameId | string | undefined): string {
   const r = (jogo && REGRA[jogo as MinigameId]) || 'Rodada curta';

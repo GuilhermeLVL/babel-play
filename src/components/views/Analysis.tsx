@@ -2,25 +2,23 @@ import {
   Activity,
   AlertTriangle,
   ArrowLeft,
-  BarChart2,
+  AudioLines,
   BarChart3,
   BookMarked,
   BookOpen,
   Brain,
   Check,
   CheckCircle2,
-  Clock,
   Cpu,
-  Crosshair,
   Download,
   FileAudio,
   FileText,
   Gamepad2,
+  KeyRound,
   LayoutGrid,
   Loader2,
   Lock,
   MessageSquare,
-  MessageSquareWarning,
   MessagesSquare,
   Mic,
   Pencil,
@@ -33,7 +31,6 @@ import {
   Volume2,
   X,
   Youtube,
-  Zap,
 } from 'lucide-react';
 import React, { lazy, Suspense, useEffect, useRef, useState } from 'react';
 import { CartesianGrid, ResponsiveContainer, Scatter, ScatterChart, Tooltip, XAxis, YAxis, ZAxis } from 'recharts';
@@ -726,402 +723,208 @@ export default function Analysis({
             canResizeHeight={false}
             defaultHeight={0}
           >
-            <div className="animate-in fade-in slide-in-from-bottom-2 space-y-6">
-              <div className="flex gap-4 border-b border-border-subtle mb-6">
-                <button
-                  onClick={() => setOverviewSubTab('dashboard')}
-                  className={`pb-3 px-4 text-[13px] font-bold border-b-2 transition-colors flex items-center gap-2 ${overviewSubTab === 'dashboard' ? 'border-accent text-ink' : 'border-transparent text-ink-muted hover:text-ink'}`}
-                >
-                  <LayoutGrid className="w-4 h-4" /> Visão Geral
-                </button>
-                <button
-                  onClick={() => setOverviewSubTab('lexical')}
-                  className={`pb-3 px-4 text-[13px] font-bold border-b-2 transition-colors flex items-center gap-2 ${overviewSubTab === 'lexical' ? 'border-accent text-ink' : 'border-transparent text-ink-muted hover:text-ink'}`}
-                >
-                  <Brain className="w-4 h-4" /> Vocabulário da Sessão
-                </button>
-                {recording.type !== 'document' && (
-                  <button
-                    onClick={() => setOverviewSubTab('fluency')}
-                    className={`pb-3 px-4 text-[13px] font-bold border-b-2 transition-colors flex items-center gap-2 ${overviewSubTab === 'fluency' ? 'border-accent text-ink' : 'border-transparent text-ink-muted hover:text-ink'}`}
-                  >
-                    <Mic className="w-4 h-4" /> Desempenho & Fluência
-                  </button>
-                )}
-              </div>
-
-              {overviewSubTab === 'dashboard' && (
-                <div className="space-y-6 animate-in fade-in">
-                  {/* KPIs */}
-                  <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
-                    {recording.type === 'document' ? (
-                      <>
-                        <div
-                          className="card-panel p-4 cursor-pointer hover:border-accent hover:shadow-md transition-all"
-                          onClick={() => setExpandedAnalysisKpi('words_read')}
-                        >
-                          <span className="label-mono block mb-1 font-semibold text-ink-muted flex items-center gap-1.5">
-                            <BookOpen className="w-3.5 h-3.5" /> Palavras Lidas
-                          </span>
-                          <div className="font-display font-black text-2xl tracking-tight">
-                            {numero(recording.wordCount)}
-                          </div>
-                          <div className="text-[11.5px] text-ink-muted mt-1 font-medium">
-                            Extraídas do arquivo original
-                          </div>
-                        </div>
-                        <div
-                          className="card-panel p-4 cursor-pointer hover:border-accent hover:shadow-md transition-all"
-                          onClick={() => setExpandedAnalysisKpi('study_time')}
-                        >
-                          <span className="label-mono block mb-1 font-semibold text-ink-muted flex items-center gap-1.5">
-                            <Clock className="w-3.5 h-3.5" /> Tempo de Estudo
-                          </span>
-                          <div className="font-display font-black text-2xl tracking-tight">
-                            {Math.max(1, Math.floor(recording.wordCount / 250))}
-                            <span className="text-[14px] text-ink-faint ms-0.5">min</span>
-                          </div>
-                          <div className="text-[11.5px] text-ink-muted mt-1 font-medium">
-                            Estimativa de leitura ativa
-                          </div>
-                        </div>
-                        <div
-                          className="card-panel p-4 cursor-pointer hover:border-accent hover:shadow-md transition-all"
-                          onClick={() => setExpandedAnalysisKpi('flesch')}
-                        >
-                          <span className="label-mono block mb-1 font-semibold text-ink-muted flex items-center gap-1.5">
-                            <Crosshair className="w-3.5 h-3.5" /> Complexidade (Flesch)
-                          </span>
-                          <div className="font-display font-black text-2xl tracking-tight text-accent-ink">
-                            {stats.readingEase != null ? stats.readingEase : '-'}
-                            {stats.readingEase != null && (
-                              <span className="text-[14px] text-ink-faint ms-0.5">pts</span>
-                            )}
-                          </div>
-                          <div className="text-[11.5px] text-ink-muted mt-1 font-medium">
-                            {stats.readingEase != null
-                              ? 'Flesch Reading Ease (maior = mais fácil)'
+            <div className="entra">
+              {/* Marcação do protótipo aprovado (`abaVisao`): sub-abas em pílula e, no Painel, os
+                  ladrilhos com a métrica e a explicação embaixo — todos com dado real desta sessão
+                  (ou o motivo de não haver). Clicar num ladrilho abre o detalhe. */}
+              <Abas
+                variante="pilula"
+                rotuloDoGrupo="Seções da visão geral"
+                ativo={overviewSubTab}
+                aoTrocar={(id) => setOverviewSubTab(id as typeof overviewSubTab)}
+                itens={[
+                  { id: 'dashboard', rotulo: 'Painel', icone: <LayoutGrid aria-hidden /> },
+                  { id: 'lexical', rotulo: 'Inteligência lexical', icone: <Brain aria-hidden /> },
+                  ...(recording.type === 'document'
+                    ? []
+                    : [{ id: 'fluency', rotulo: 'Fluência', icone: <AudioLines aria-hidden /> }]),
+                ]}
+              />
+              <div
+                style={{ marginTop: 18 }}
+                role="tabpanel"
+                id={`painel-${overviewSubTab}`}
+                aria-labelledby={`aba-${overviewSubTab}`}
+              >
+                {overviewSubTab === 'dashboard' && (
+                  <>
+                    <div className="ladrilhos">
+                      {(
+                        [
+                          [
+                            'words_read',
+                            'Palavras',
+                            stats.wordCount > 0 ? numero(stats.wordCount) : '—',
+                            'na transcrição inteira',
+                            '',
+                          ],
+                          [
+                            'study_time',
+                            'Minutos de leitura',
+                            stats.wordCount > 0 ? numero(Math.max(1, Math.round(stats.wordCount / 250))) : '—',
+                            'no ritmo médio de leitura',
+                            '',
+                          ],
+                          [
+                            'flesch',
+                            'Facilidade de leitura',
+                            stats.readingEase != null ? String(stats.readingEase) : '—',
+                            stats.readingEase != null
+                              ? 'de 100 (maior = mais fácil)'
                               : stats.syllableCount == null
                                 ? `sem régua de legibilidade para ${langLabel(stats.idioma)}`
-                                : 'requer +texto'}
-                          </div>
-                        </div>
-                        <div
-                          className="card-panel p-4 cursor-pointer hover:border-accent hover:shadow-md transition-all"
-                          onClick={() => setExpandedAnalysisKpi('density')}
+                                : 'precisa de mais texto',
+                            'acc',
+                          ],
+                          [
+                            'density',
+                            'Densidade lexical',
+                            stats.lexicalDensityPct != null ? `${stats.lexicalDensityPct}%` : '—',
+                            stats.lexicalDensityPct != null
+                              ? 'palavras de conteúdo'
+                              : `sem lista de stopwords para ${langLabel(stats.idioma)}`,
+                            '',
+                          ],
+                          [
+                            'jargons',
+                            'Palavras únicas',
+                            stats.wordCount > 0 ? numero(stats.uniqueWords) : '—',
+                            'sem repetir',
+                            'good',
+                          ],
+                          ...(recording.type === 'document'
+                            ? []
+                            : [
+                                [
+                                  'ppm',
+                                  'Palavras por minuto',
+                                  realWpm != null ? String(realWpm) : '—',
+                                  realWpm != null ? 'ritmo da fala (timing real)' : 'requer timing das falas',
+                                  'acc',
+                                ],
+                                [
+                                  'fillers',
+                                  'Vícios de linguagem',
+                                  realVicios.palavras > 0 ? String(realVicios.total) : '—',
+                                  realVicios.palavras > 0
+                                    ? `${realVicios.porMilPalavras} a cada 1000 palavras`
+                                    : 'requer fala em português ou inglês',
+                                  '',
+                                ],
+                              ]),
+                          [
+                            'lexical_richness',
+                            'Riqueza (TTR)',
+                            stats.wordCount > 0 ? `${Math.round(stats.typeTokenRatio * 100)}%` : '—',
+                            'variedade do vocabulário',
+                            '',
+                          ],
+                          ...(recording.type === 'document'
+                            ? []
+                            : [
+                                [
+                                  'long_pauses',
+                                  'Pausas longas',
+                                  realLongPauses != null ? String(realLongPauses) : '—',
+                                  realLongPauses != null ? 'acima de 3 segundos' : 'requer timing das falas',
+                                  'warn',
+                                ],
+                              ]),
+                        ] as [NonNullable<AnalysisKpiType>, string, string, string, string][]
+                      ).map(([id, rotulo, valor, dica, tom]) => (
+                        <button
+                          key={id}
+                          type="button"
+                          className="cartao ladrilho clicavel"
+                          style={{ textAlign: 'left' }}
+                          onClick={() => setExpandedAnalysisKpi(id)}
+                          title={dica}
                         >
-                          <span className="label-mono block mb-1 font-semibold text-ink-muted flex items-center gap-1.5">
-                            <BarChart2 className="w-3.5 h-3.5" /> Densidade Lexical
-                          </span>
-                          <div className="font-display font-black text-2xl tracking-tight">
-                            {stats.lexicalDensityPct != null ? stats.lexicalDensityPct : '-'}
-                            {stats.lexicalDensityPct != null && (
-                              <span className="text-[14px] text-ink-faint ms-0.5">%</span>
-                            )}
-                          </div>
-                          <div className="text-[11.5px] text-ink-muted mt-1 font-medium">
-                            {stats.lexicalDensityPct != null
-                              ? 'Palavras de conteúdo'
-                              : `sem lista de stopwords para ${langLabel(stats.idioma)}`}
-                          </div>
+                          <span className="label-mono">{rotulo}</span>
+                          <span className={`v ${tom}`}>{valor}</span>
+                          <p className="mut" style={{ fontSize: 12, marginTop: 4 }}>
+                            {dica}
+                          </p>
+                        </button>
+                      ))}
+                    </div>
+                    <section className="cartao p5 secao">
+                      <TituloDeSecao icone={KeyRound} titulo="Palavras-chave da sessão" nivel="h3" />
+                      {topKeywords.length > 0 ? (
+                        <div className="chips">
+                          {topKeywords.map((kw) => (
+                            <button
+                              key={kw}
+                              type="button"
+                              className="pill"
+                              onClick={() => examineWord(kw.toLowerCase(), kw)}
+                            >
+                              {kw}
+                            </button>
+                          ))}
                         </div>
+                      ) : (
+                        <p className="mut" style={{ fontSize: 12.5 }}>
+                          Sem transcrição real para extrair palavras-chave.
+                        </p>
+                      )}
+                      <p className="mut" style={{ fontSize: 12.5, marginTop: 10 }}>
+                        Termos de maior saliência na transcrição real. São termos, não tópicos: agrupá-los sob um nome
+                        de assunto exigiria um modelo de linguagem.
+                      </p>
+                    </section>
+                  </>
+                )}
+
+                {overviewSubTab === 'lexical' && (
+                  <div className="flex flex-col lg:flex-row gap-6 animate-in fade-in slide-in-from-right-4 items-start">
+                    <div className="flex-1 flex flex-col space-y-6 min-w-0 w-full">
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div
-                          className="card-panel p-4 cursor-pointer hover:border-accent hover:shadow-md transition-all"
-                          onClick={() => setExpandedAnalysisKpi('jargons')}
-                        >
-                          <span className="label-mono block mb-1 font-semibold text-ink-muted flex items-center gap-1.5">
-                            <Zap className="w-3.5 h-3.5" /> Vocábulos Únicos
-                          </span>
-                          <div className="font-display font-black text-2xl tracking-tight text-good">
-                            {stats.wordCount > 0 ? numero(stats.uniqueWords) : '-'}
-                          </div>
-                          <div className="text-[11.5px] text-ink-muted mt-1 font-medium">
-                            Palavras distintas no texto
-                          </div>
-                        </div>
-                      </>
-                    ) : (
-                      <>
-                        <div
-                          className="card-panel p-4 cursor-pointer hover:border-accent hover:shadow-md transition-all"
-                          onClick={() => setExpandedAnalysisKpi('ppm')}
-                        >
-                          <span className="label-mono block mb-1 font-semibold text-ink-muted flex items-center gap-1.5">
-                            <Activity className="w-3.5 h-3.5" /> Ritmo de Fala (PPM)
-                          </span>
-                          <div className="font-display font-black text-2xl tracking-tight text-accent-ink">
-                            {realWpm != null ? realWpm : '-'}
-                            {realWpm != null && <span className="text-[14px] text-ink-faint ms-0.5">ppm</span>}
-                          </div>
-                          <div className="text-[11.5px] text-ink-muted mt-1 font-medium">
-                            {realWpm != null ? 'Palavras/min (timing real)' : 'requer timing das falas'}
-                          </div>
-                        </div>
-                        <div
-                          className="card-panel p-4 cursor-pointer hover:border-accent hover:shadow-md transition-all"
-                          onClick={() => setExpandedAnalysisKpi('fillers')}
-                        >
-                          <span className="label-mono block mb-1 font-semibold text-ink-muted flex items-center gap-1.5">
-                            <MessageSquareWarning className="w-3.5 h-3.5" /> Vícios de Linguagem
-                          </span>
-                          <div className="font-display font-black text-2xl tracking-tight text-ink">
-                            {realVicios.palavras > 0 ? realVicios.total : '-'}
-                          </div>
-                          <div className="text-[11.5px] text-ink-muted mt-1 font-medium">
-                            {realVicios.palavras > 0
-                              ? `${realVicios.porMilPalavras}/1000 palavras (${realVicios.idiomas.join(', ')})`
-                              : 'requer fala em português ou inglês'}
-                          </div>
-                        </div>
-                        <div
-                          className="card-panel p-4 cursor-pointer hover:border-accent hover:shadow-md transition-all"
+                          className="card-panel p-5 bg-gradient-to-br from-rare/10 to-transparent border-rare/20 cursor-pointer hover:border-rare/40 hover:shadow-md transition-all"
                           onClick={() => setExpandedAnalysisKpi('lexical_richness')}
                         >
-                          <span className="label-mono block mb-1 font-semibold text-ink-muted flex items-center gap-1.5">
-                            <Crosshair className="w-3.5 h-3.5" /> Riqueza Lexical (TTR)
+                          <span className="label-mono block mb-2 font-semibold text-rare-ink">
+                            Total de Vocábulos Únicos
                           </span>
-                          <div className="font-display font-black text-2xl tracking-tight">
-                            {stats.wordCount > 0 ? Math.round(stats.typeTokenRatio * 100) : '-'}
-                            {stats.wordCount > 0 && <span className="text-[14px] text-ink-faint ms-0.5">/100</span>}
+                          <div className="font-display font-black text-3xl tracking-tight text-ink">
+                            {stats.wordCount > 0 ? numero(stats.uniqueWords) : '-'}
                           </div>
-                          <div className="text-[11.5px] text-ink-muted mt-1 font-medium">Razão tipo/token do texto</div>
+                          <p className="text-[12px] text-ink-muted mt-2">
+                            Palavras distintas na transcrição desta sessão.
+                          </p>
                         </div>
-                        {/* F7 — "Tom Vocal Predominante" SAIU da faixa de herói.
-                      Ocupava 1/5 da faixa mais nobre da tela exibindo "-", porque o app não
-                      analisa pitch do áudio (achado C2). A honestidade estava certa; a POSIÇÃO
-                      estava errada, um dado que não existe não disputa espaço com os que
-                      existem. Ele continua na tela, com o motivo, na faixa de baixo. */}
-                        <div
-                          className="card-panel p-4 cursor-pointer hover:border-accent hover:shadow-md transition-all"
-                          onClick={() => setExpandedAnalysisKpi('long_pauses')}
-                        >
-                          <span className="label-mono block mb-1 font-semibold text-ink-muted flex items-center gap-1.5">
-                            <AlertTriangle className="w-3.5 h-3.5" /> Pausas Longas (&gt;3s)
-                          </span>
-                          <div className="font-display font-black text-2xl tracking-tight text-error">
-                            {realLongPauses != null ? realLongPauses : '-'}
-                          </div>
-                          <div className="text-[11.5px] text-ink-muted mt-1 font-medium">
-                            {realLongPauses != null ? 'Entre falas (timing real)' : 'requer timing das falas'}
-                          </div>
-                        </div>
-                      </>
-                    )}
-                  </div>
-
-                  {/* ── AINDA SEM DADOS SUFICIENTES ──
-                A faixa que recebe o que saiu do herói. Nada é escondido: o dado continua na tela,
-                com o motivo pelo qual não existe. O que muda é o que a tela GRITA. */}
-                  {recording.type !== 'document' && (
-                    <SemDado
-                      compacto
-                      className="mb-6"
-                      motivo="Tom vocal predominante: exige análise de pitch do áudio, que este app não faz."
-                    />
-                  )}
-
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    {/* Left Column: Text Analysis */}
-                    <div className="space-y-6 flex flex-col">
-                      <div className="card-panel flex flex-col flex-1">
-                        <div className="px-5 py-4 border-b border-border-subtle bg-surface flex justify-between items-center">
-                          <span className="font-display font-extrabold text-[14px]">Abertura da Transcrição</span>
-                          {/* Este 🔊 não tinha `onClick`. Agora fala o que está logo abaixo — a primeira
-                        fala REAL, no idioma dela. O título mudou junto: "Resumo Executivo Bilíngue"
-                        prometia um resumo, e o que o painel mostra é a abertura crua do transcrito. */}
-                          <button
-                            onClick={() => {
-                              const primeira = parsedSentences[0];
-                              if (primeira) speakWord(primeira.original, primeira.lang);
-                            }}
-                            disabled={!isTtsSupported() || parsedSentences.length === 0}
-                            title={
-                              parsedSentences.length === 0
-                                ? 'Sem transcrição para ouvir'
-                                : 'Ouvir a abertura da transcrição'
-                            }
-                            aria-label="Ouvir a abertura da transcrição"
-                            className="w-11 h-11 rounded bg-canvas border border-border-subtle flex items-center justify-center hover:border-accent group transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-                          >
-                            <Volume2 className="w-4 h-4 text-ink-muted group-hover:text-accent" />
-                          </button>
-                        </div>
-                        <div className="p-5 space-y-4 flex-1 flex flex-col justify-center">
-                          <div className="bg-canvas border border-border-subtle rounded-xl p-4">
-                            {parsedSentences.length > 0 ? (
-                              <>
-                                {/* Sem fabricar um "resumo": mostramos a 1ª fala real como abertura + aviso honesto. */}
-                                <p className="text-[13.5px] leading-relaxed font-medium mb-2 text-ink">
-                                  {parsedSentences[0].original}
-                                </p>
-                                {parsedSentences[0].translation && (
-                                  <p className="text-[13px] leading-relaxed text-ink-muted italic mb-3">
-                                    {parsedSentences[0].translation}
-                                  </p>
-                                )}
-                                <div className="h-[1px] bg-border-subtle w-full mb-3"></div>
-                                <p className="text-[12px] leading-relaxed text-ink-faint">
-                                  {/* Sem "em breve": resumir exige um modelo de linguagem, que gastaria token
-                                do provedor a cada abertura de tela e não funcionaria no perfil
-                                Privado/Local. É uma feature com custo e consentimento a decidir, não
-                                algo que está a caminho. */}
-                                  Acima, a abertura REAL da transcrição, não um resumo. Resumo automático exige um
-                                  modelo de linguagem, que este painel não chama. A transcrição completa está na aba
-                                  correspondente.
-                                </p>
-                              </>
-                            ) : (
-                              <p className="text-[13px] text-ink-muted">Sem transcrição real para resumir ainda.</p>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-
-                      <div
-                        className="card-panel p-5 cursor-pointer hover:border-accent hover:shadow-md transition-all"
-                        onClick={() => setExpandedAnalysisKpi('articulatory_pauses')}
-                      >
-                        <span className="font-display font-extrabold text-[14px] block mb-3">
-                          Palavras-chave da Sessão
-                        </span>
-                        <div className="flex flex-wrap gap-2 mb-3">
-                          {topKeywords.length > 0 ? (
-                            topKeywords.map((kw, i) => (
-                              <span
-                                key={kw}
-                                className={`badge-tag font-bold ${i === 0 ? 'ok border border-good' : 'bg-surface border border-border-subtle'}`}
-                              >
-                                {kw}
-                              </span>
-                            ))
-                          ) : (
-                            <span className="text-[12.5px] text-ink-muted">
-                              Sem transcrição real para extrair palavras-chave.
-                            </span>
-                          )}
-                        </div>
-                        <p className="text-[12.5px] text-ink-muted leading-relaxed">
-                          Termos de maior saliência extraídos da transcrição real (determinístico). O vocabulário
-                          formará a base dos seus exercícios.
-                          {/* Estes termos são REAIS (extração determinística). O que não existe é agrupá-los
-                        em tópicos nomeados, isso exige um modelo de linguagem. Sem "em breve". */}
-                          <span className="text-ink-faint">
-                            {' '}
-                            São termos, não tópicos: agrupá-los sob um nome de assunto exigiria um modelo de linguagem.
-                          </span>
-                        </p>
-                      </div>
-
-                      {recording.type !== 'document' && (
                         <div
                           className="card-panel p-5 cursor-pointer hover:border-accent hover:shadow-md transition-all"
-                          onClick={() => setExpandedAnalysisKpi('dominant_tone')}
+                          onClick={() => setExpandedAnalysisKpi('jargons')}
                         >
-                          <span className="font-display font-extrabold text-[14px] block mb-3">Pausas e Monólogos</span>
-                          <div className="space-y-3">
-                            <div className="flex items-center justify-between border-b border-border-subtle pb-2">
-                              <span className="text-[13px] text-ink-muted">Pausas longas (&gt;3s)</span>
-                              <span className="font-bold text-[13px] text-ink">
-                                {realLongPauses != null ? `${realLongPauses} (timing real)` : '-'}
-                              </span>
-                            </div>
-                            <div className="flex items-center justify-between border-b border-border-subtle pb-2">
-                              <span className="text-[13px] text-ink-muted">Maior monólogo</span>
-                              <span className="font-bold text-[13px] text-ink">
-                                {realMonologue != null ? formatSeconds(Math.round(realMonologue / 1000)) : '-'}
-                              </span>
-                            </div>
-                            <div className="flex items-center justify-between pb-1">
-                              <span className="text-[13px] text-ink-muted">Interrupções (sobreposição)</span>
-                              {/* Era "requer diarização — em breve". A diarização existe; faltava a conta. */}
-                              <span
-                                className={`font-bold text-[13px] ${realSobreposicao ? 'text-ink' : 'text-ink-faint'}`}
-                              >
-                                {realSobreposicao
-                                  ? `${realSobreposicao.total} (${formatSeconds(Math.round(realSobreposicao.msSobrepostos / 1000))})`
-                                  : 'requer 2 falantes com timing'}
-                              </span>
-                            </div>
-                            {realSobreposicao && (
-                              <p className="text-[11px] text-ink-faint leading-relaxed pt-1">
-                                Entre {realSobreposicao.falantes.length} falantes (
-                                {realSobreposicao.falantes.join(', ')}); a mais longa durou{' '}
-                                {formatSeconds(Math.round(realSobreposicao.maiorMs / 1000))}.
-                                {/* Sem isto o total parece cobrir a gravação inteira quando não cobre. */}
-                                {realSobreposicao.falasSemTiming > 0 &&
-                                  ` ${realSobreposicao.falasSemTiming} falas ficaram fora, sem timing ou sem falante.`}
-                              </p>
-                            )}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Right Column: Visual Charts & Analytics */}
-                    <div className="space-y-6">
-                      {/* O painel "Benchmarking: Você vs. Perfil Executivo" saiu. Comparar alguém com um
-                    "perfil executivo" exige um CORPUS DE REFERÊNCIA que o projeto não tem, não é
-                    questão de ligar uma IA, é que a régua não existe. Prometê-lo como "em breve"
-                    anunciava uma comparação que nunca foi possível fazer. */}
-
-                      {/* F7 — era `EvolucaoSemanal` com `metrics.vocabByWeek`, ou seja, a série da
-                    CONTA INTEIRA dentro da aba de uma gravação (achado D1). Uma sessão única não
-                    tem evolução semanal; a pergunta certa neste escopo é a composição de nível. */}
-                      <NiveisDoConjunto metricas={metricasDaSessao} titulo="Níveis desta sessão" />
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {overviewSubTab === 'lexical' && (
-                <div className="flex flex-col lg:flex-row gap-6 animate-in fade-in slide-in-from-right-4 items-start">
-                  <div className="flex-1 flex flex-col space-y-6 min-w-0 w-full">
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                      <div
-                        className="card-panel p-5 bg-gradient-to-br from-rare/10 to-transparent border-rare/20 cursor-pointer hover:border-rare/40 hover:shadow-md transition-all"
-                        onClick={() => setExpandedAnalysisKpi('lexical_richness')}
-                      >
-                        <span className="label-mono block mb-2 font-semibold text-rare-ink">
-                          Total de Vocábulos Únicos
-                        </span>
-                        <div className="font-display font-black text-3xl tracking-tight text-ink">
-                          {stats.wordCount > 0 ? numero(stats.uniqueWords) : '-'}
-                        </div>
-                        <p className="text-[12px] text-ink-muted mt-2">
-                          Palavras distintas na transcrição desta sessão.
-                        </p>
-                      </div>
-                      <div
-                        className="card-panel p-5 cursor-pointer hover:border-accent hover:shadow-md transition-all"
-                        onClick={() => setExpandedAnalysisKpi('jargons')}
-                      >
-                        <span className="label-mono block mb-2 font-semibold text-ink-muted">
-                          Termos Técnicos/Jargões
-                        </span>
-                        {/* Jargão exige um LÉXICO DE DOMÍNIO que o projeto não tem — separar termo
+                          <span className="label-mono block mb-2 font-semibold text-ink-muted">
+                            Termos Técnicos/Jargões
+                          </span>
+                          {/* Jargão exige um LÉXICO DE DOMÍNIO que o projeto não tem — separar termo
                           técnico de palavra comum depende de saber o assunto. Não é "em breve". */}
-                        <div className="font-display font-black text-3xl tracking-tight text-ink-muted">-</div>
-                        <p className="text-[12px] text-ink-muted mt-2">
-                          Distinguir jargão de palavra comum exige um léxico do domínio, que o app não tem.
-                        </p>
-                      </div>
-                      <div
-                        className="card-panel p-5 cursor-pointer hover:border-accent hover:shadow-md transition-all"
-                        onClick={() => setExpandedAnalysisKpi('study_time')}
-                      >
-                        <span className="label-mono block mb-2 font-semibold text-ink-muted">
-                          Cards desta Sessão (SRS)
-                        </span>
-                        <div className="font-display font-black text-3xl tracking-tight text-accent">
-                          {vocabCards.filter((c) => c.sourceSessionId === recording.id).length}
+                          <div className="font-display font-black text-3xl tracking-tight text-ink-muted">-</div>
+                          <p className="text-[12px] text-ink-muted mt-2">
+                            Distinguir jargão de palavra comum exige um léxico do domínio, que o app não tem.
+                          </p>
                         </div>
-                        <p className="text-[12px] text-ink-muted mt-2">
-                          Termos já enviados ao deck de revisão espaçada.
-                        </p>
+                        <div
+                          className="card-panel p-5 cursor-pointer hover:border-accent hover:shadow-md transition-all"
+                          onClick={() => setExpandedAnalysisKpi('study_time')}
+                        >
+                          <span className="label-mono block mb-2 font-semibold text-ink-muted">
+                            Cards desta Sessão (SRS)
+                          </span>
+                          <div className="font-display font-black text-3xl tracking-tight text-accent">
+                            {vocabCards.filter((c) => c.sourceSessionId === recording.id).length}
+                          </div>
+                          <p className="text-[12px] text-ink-muted mt-2">
+                            Termos já enviados ao deck de revisão espaçada.
+                          </p>
+                        </div>
                       </div>
-                    </div>
 
-                    {/* C1 — AQUI HAVIA UMA TABELA FABRICADA, o pior defeito que este produto podia ter.
+                      {/* C1 — AQUI HAVIA UMA TABELA FABRICADA, o pior defeito que este produto podia ter.
                       "Termo / Expressão · Tradução Contextual · Categoria · Ocorrências", com três
                       linhas cravadas no JSX (uma delas dizendo "5×"), idênticas para toda sessão de
                       todo usuário, contagens de ocorrência inventadas, apresentadas como análise
@@ -1135,304 +938,344 @@ export default function Analysis({
 
                       A Topologia Lexical logo abaixo CONTINUA: ela é alimentada por `vocabCards`,
                       dado real do deck. Remover as duas seria trocar um erro por outro. */}
-                    <SemDado motivo="Lista de expressoes-chave: exige extracao de termos com peso de dominio, que este painel nao calcula. Abaixo, a topologia lexical construida a partir dos cartoes REAIS do seu deck." />
+                      <SemDado motivo="Lista de expressoes-chave: exige extracao de termos com peso de dominio, que este painel nao calcula. Abaixo, a topologia lexical construida a partir dos cartoes REAIS do seu deck." />
 
-                    {/* ESCOPO HONESTO (spec metricas-honestas-consertos): o título dizia "da Sessão"
+                      {/* ESCOPO HONESTO (spec metricas-honestas-consertos): o título dizia "da Sessão"
                       e o scatter plotava o deck INTEIRO — ao contrário do KPI logo acima, que
                       filtra por sourceSessionId. Agora o filtro existe e, quando a sessão não tem
                       cartões, o vazio diz isso em vez de mostrar dados de outro escopo. */}
-                    <div className="card-panel p-0 overflow-hidden">
-                      <div className="p-5 border-b border-border-subtle bg-surface">
-                        <h3 className="font-display font-extrabold text-[15px] text-ink flex items-center gap-2">
-                          <Brain className="w-4 h-4 text-rare" /> Topologia Lexical da Sessão
-                        </h3>
-                        <p className="text-[12px] text-ink-muted mt-1">
-                          Cada ponto é um card salvo A PARTIR desta sessão: caixa Leitner (x) × estabilidade FSRS em
-                          dias (y), tamanho pela dificuldade.
-                        </p>
-                      </div>
-                      <div className="p-5 bg-canvas">
-                        {vocabCards.filter((c) => c.sourceSessionId === recording.id).length > 0 ? (
-                          <div className="w-full" style={{ height: 300 }}>
-                            <ResponsiveContainer width="100%" height="100%">
-                              <ScatterChart
-                                margin={{ top: 20, right: 20, bottom: 20, left: -20 }}
-                                onClick={(e: any) => {
-                                  if (e && e.activePayload && e.activePayload.length > 0) {
-                                    setSelectedLexicalWord(e.activePayload[0].payload.name);
-                                  }
-                                }}
-                              >
-                                <CartesianGrid strokeDasharray="3 3" stroke="var(--border-subtle)" opacity={0.5} />
-                                <XAxis
-                                  type="number"
-                                  dataKey="x"
-                                  name="Caixa Leitner"
-                                  stroke="var(--ink-muted)"
-                                  tick={{ fontSize: 11 }}
-                                  domain={[0, 6]}
-                                  allowDecimals={false}
-                                />
-                                <YAxis
-                                  type="number"
-                                  dataKey="y"
-                                  name="Estabilidade (dias)"
-                                  stroke="var(--ink-muted)"
-                                  tick={{ fontSize: 11 }}
-                                />
-                                <ZAxis type="number" dataKey="z" range={[60, 320]} name="Dificuldade" />
-                                <Tooltip
-                                  cursor={{ strokeDasharray: '3 3', stroke: 'var(--accent)', opacity: 0.5 }}
-                                  contentStyle={{
-                                    backgroundColor: 'var(--surface)',
-                                    borderColor: 'var(--border-subtle)',
-                                    borderRadius: '8px',
-                                    color: 'var(--ink)',
+                      <div className="card-panel p-0 overflow-hidden">
+                        <div className="p-5 border-b border-border-subtle bg-surface">
+                          <h3 className="font-display font-extrabold text-[15px] text-ink flex items-center gap-2">
+                            <Brain className="w-4 h-4 text-rare" /> Topologia Lexical da Sessão
+                          </h3>
+                          <p className="text-[12px] text-ink-muted mt-1">
+                            Cada ponto é um card salvo A PARTIR desta sessão: caixa Leitner (x) × estabilidade FSRS em
+                            dias (y), tamanho pela dificuldade.
+                          </p>
+                        </div>
+                        <div className="p-5 bg-canvas">
+                          {vocabCards.filter((c) => c.sourceSessionId === recording.id).length > 0 ? (
+                            <div className="w-full" style={{ height: 300 }}>
+                              <ResponsiveContainer width="100%" height="100%">
+                                <ScatterChart
+                                  margin={{ top: 20, right: 20, bottom: 20, left: -20 }}
+                                  onClick={(e: any) => {
+                                    if (e && e.activePayload && e.activePayload.length > 0) {
+                                      setSelectedLexicalWord(e.activePayload[0].payload.name);
+                                    }
                                   }}
-                                  itemStyle={{ fontSize: '12px', fontWeight: 'bold' }}
-                                />
-                                <Scatter
-                                  name="Vocabulário"
-                                  data={vocabCards
-                                    .filter((c) => c.sourceSessionId === recording.id)
-                                    .map((c) => ({
-                                      name: c.word,
-                                      x: c.leitnerBox ?? 1,
-                                      y: Math.round(((c.fsrsStability ?? c.stability ?? 0) as number) * 10) / 10,
-                                      z: c.fsrsDifficulty ?? 5,
-                                    }))}
-                                  fill="var(--rare)"
-                                  fillOpacity={0.7}
-                                  className="cursor-pointer"
-                                />
-                              </ScatterChart>
-                            </ResponsiveContainer>
-                          </div>
-                        ) : (
-                          <div
-                            className="flex flex-col items-center justify-center text-center gap-3 text-ink-muted"
-                            style={{ height: 300 }}
-                          >
-                            <div className="w-12 h-12 rounded-xl bg-surface-hover flex items-center justify-center">
-                              <Brain className="w-6 h-6" />
+                                >
+                                  <CartesianGrid strokeDasharray="3 3" stroke="var(--border-subtle)" opacity={0.5} />
+                                  <XAxis
+                                    type="number"
+                                    dataKey="x"
+                                    name="Caixa Leitner"
+                                    stroke="var(--ink-muted)"
+                                    tick={{ fontSize: 11 }}
+                                    domain={[0, 6]}
+                                    allowDecimals={false}
+                                  />
+                                  <YAxis
+                                    type="number"
+                                    dataKey="y"
+                                    name="Estabilidade (dias)"
+                                    stroke="var(--ink-muted)"
+                                    tick={{ fontSize: 11 }}
+                                  />
+                                  <ZAxis type="number" dataKey="z" range={[60, 320]} name="Dificuldade" />
+                                  <Tooltip
+                                    cursor={{ strokeDasharray: '3 3', stroke: 'var(--accent)', opacity: 0.5 }}
+                                    contentStyle={{
+                                      backgroundColor: 'var(--surface)',
+                                      borderColor: 'var(--border-subtle)',
+                                      borderRadius: '8px',
+                                      color: 'var(--ink)',
+                                    }}
+                                    itemStyle={{ fontSize: '12px', fontWeight: 'bold' }}
+                                  />
+                                  <Scatter
+                                    name="Vocabulário"
+                                    data={vocabCards
+                                      .filter((c) => c.sourceSessionId === recording.id)
+                                      .map((c) => ({
+                                        name: c.word,
+                                        x: c.leitnerBox ?? 1,
+                                        y: Math.round(((c.fsrsStability ?? c.stability ?? 0) as number) * 10) / 10,
+                                        z: c.fsrsDifficulty ?? 5,
+                                      }))}
+                                    fill="var(--rare)"
+                                    fillOpacity={0.7}
+                                    className="cursor-pointer"
+                                  />
+                                </ScatterChart>
+                              </ResponsiveContainer>
                             </div>
-                            <p className="text-[13px] font-medium max-w-xs leading-relaxed">
-                              {vocabCards.length > 0
-                                ? 'Nenhum cartão do seu deck veio DESTA sessão. Passe o mouse sobre um termo na transcrição e adicione-o para ver a topologia dela.'
-                                : 'Nenhum vocábulo no deck ainda. Passe o mouse sobre um termo na transcrição e adicione-o para ver a topologia real.'}
-                            </p>
-                          </div>
-                        )}
+                          ) : (
+                            <div
+                              className="flex flex-col items-center justify-center text-center gap-3 text-ink-muted"
+                              style={{ height: 300 }}
+                            >
+                              <div className="w-12 h-12 rounded-xl bg-surface-hover flex items-center justify-center">
+                                <Brain className="w-6 h-6" />
+                              </div>
+                              <p className="text-[13px] font-medium max-w-xs leading-relaxed">
+                                {vocabCards.length > 0
+                                  ? 'Nenhum cartão do seu deck veio DESTA sessão. Passe o mouse sobre um termo na transcrição e adicione-o para ver a topologia dela.'
+                                  : 'Nenhum vocábulo no deck ainda. Passe o mouse sobre um termo na transcrição e adicione-o para ver a topologia real.'}
+                              </p>
+                            </div>
+                          )}
+                        </div>
                       </div>
                     </div>
-                  </div>
 
-                  {selectedLexicalWord && (
-                    <div
-                      className="w-full lg:w-[350px] xl:w-[400px] shrink-0 bg-canvas border border-border-subtle rounded-2xl shadow-sm flex flex-col sticky top-6 animate-in slide-in-from-right-4"
-                      style={{ maxHeight: 'calc(100vh - 48px)' }}
-                    >
-                      <div className="flex items-center justify-between p-5 border-b border-border-subtle shrink-0">
-                        <h2 className="font-display font-extrabold text-[16px] text-ink flex items-center gap-2">
-                          <BookMarked className="w-4 h-4 text-accent" /> Microdados Lexicais
-                        </h2>
-                        <button
-                          onClick={() => setSelectedLexicalWord(null)}
-                          className="p-1.5 hover:bg-surface-hover rounded-full transition-colors text-ink-muted hover:text-ink"
-                        >
-                          <X className="w-4 h-4" />
-                        </button>
-                      </div>
+                    {selectedLexicalWord && (
+                      <div
+                        className="w-full lg:w-[350px] xl:w-[400px] shrink-0 bg-canvas border border-border-subtle rounded-2xl shadow-sm flex flex-col sticky top-6 animate-in slide-in-from-right-4"
+                        style={{ maxHeight: 'calc(100vh - 48px)' }}
+                      >
+                        <div className="flex items-center justify-between p-5 border-b border-border-subtle shrink-0">
+                          <h2 className="font-display font-extrabold text-[16px] text-ink flex items-center gap-2">
+                            <BookMarked className="w-4 h-4 text-accent" /> Microdados Lexicais
+                          </h2>
+                          <button
+                            onClick={() => setSelectedLexicalWord(null)}
+                            className="p-1.5 hover:bg-surface-hover rounded-full transition-colors text-ink-muted hover:text-ink"
+                          >
+                            <X className="w-4 h-4" />
+                          </button>
+                        </div>
 
-                      <div className="flex-1 p-5 space-y-6 pb-6 overflow-y-auto custom-scrollbar">
-                        <div className="flex items-start justify-between gap-3">
-                          <div className="min-w-0">
-                            <h3 className="font-display font-black text-2xl tracking-tight text-ink break-words">
-                              {selectedLexicalWord}
-                            </h3>
-                            <div className="flex items-center gap-2 mt-1.5 flex-wrap">
-                              {/* A fonética só aparece quando o cartão TEM `phonetics`. O app não tem
+                        <div className="flex-1 p-5 space-y-6 pb-6 overflow-y-auto custom-scrollbar">
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="min-w-0">
+                              <h3 className="font-display font-black text-2xl tracking-tight text-ink break-words">
+                                {selectedLexicalWord}
+                              </h3>
+                              <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+                                {/* A fonética só aparece quando o cartão TEM `phonetics`. O app não tem
                                 dicionário fonético para preencher o resto, e chutar IPA é inventar. */}
-                              {lexicalDetail?.fonetica && (
-                                <span className="text-[13px] text-ink-muted font-mono bg-surface px-2 py-0.5 rounded">
-                                  {lexicalDetail.fonetica}
-                                </span>
+                                {lexicalDetail?.fonetica && (
+                                  <span className="text-[13px] text-ink-muted font-mono bg-surface px-2 py-0.5 rounded">
+                                    {lexicalDetail.fonetica}
+                                  </span>
+                                )}
+                                <button
+                                  onClick={() => speakWord(selectedLexicalWord, lexicalDetail?.lang)}
+                                  disabled={!isTtsSupported()}
+                                  title={
+                                    isTtsSupported()
+                                      ? `Ouvir "${selectedLexicalWord}"`
+                                      : 'Este navegador não tem voz sintetizada'
+                                  }
+                                  aria-label={`Ouvir a pronúncia de ${selectedLexicalWord}`}
+                                  className="text-accent hover:text-accent/80 transition-colors disabled:opacity-40 disabled:cursor-not-allowed p-1.5 -m-1.5"
+                                >
+                                  <Volume2 className="w-4 h-4" />
+                                </button>
+                              </div>
+                              {lexicalDetail?.traducao && (
+                                <p className="text-[13px] text-ink-muted mt-2">{lexicalDetail.traducao}</p>
                               )}
-                              <button
-                                onClick={() => speakWord(selectedLexicalWord, lexicalDetail?.lang)}
-                                disabled={!isTtsSupported()}
-                                title={
-                                  isTtsSupported()
-                                    ? `Ouvir "${selectedLexicalWord}"`
-                                    : 'Este navegador não tem voz sintetizada'
-                                }
-                                aria-label={`Ouvir a pronúncia de ${selectedLexicalWord}`}
-                                className="text-accent hover:text-accent/80 transition-colors disabled:opacity-40 disabled:cursor-not-allowed p-1.5 -m-1.5"
-                              >
-                                <Volume2 className="w-4 h-4" />
-                              </button>
                             </div>
-                            {lexicalDetail?.traducao && (
-                              <p className="text-[13px] text-ink-muted mt-2">{lexicalDetail.traducao}</p>
-                            )}
-                          </div>
-                          {lexicalDetail?.nivel && (
-                            <div className="flex flex-col items-end shrink-0">
-                              <span className="text-[10px] font-bold uppercase tracking-wider text-ink-muted mb-1">
-                                Nível
-                              </span>
-                              <span className="px-2.5 py-0.5 rounded text-[11px] font-bold bg-surface text-ink-muted border border-border-subtle">
-                                {lexicalDetail.nivel}
-                              </span>
-                              {/* A estimativa CEFR é heurística de baixa confiança — o docstring de
+                            {lexicalDetail?.nivel && (
+                              <div className="flex flex-col items-end shrink-0">
+                                <span className="text-[10px] font-bold uppercase tracking-wider text-ink-muted mb-1">
+                                  Nível
+                                </span>
+                                <span className="px-2.5 py-0.5 rounded text-[11px] font-bold bg-surface text-ink-muted border border-border-subtle">
+                                  {lexicalDetail.nivel}
+                                </span>
+                                {/* A estimativa CEFR é heurística de baixa confiança — o docstring de
                                 `estimateCefr` pede que a UI diga isso, e antes ela dizia "C2 (Master)".
 
                                 F3, aqui havia um limiar próprio de 0,6, contra 0,5 no resto do app.
                                 Uma estimativa de 55% saía rotulada "estimativa" NESTA tela e sem
                                 rótulo nenhum em Analytics. Agora o selo e o limiar são os mesmos
                                 em todo lugar, e o percentual fica visível em vez de implícito. */}
-                              {lexicalDetail.nivelConfianca != null && (
-                                <Confianca valor={lexicalDetail.nivelConfianca} estimativa className="mt-1" />
-                              )}
+                                {lexicalDetail.nivelConfianca != null && (
+                                  <Confianca valor={lexicalDetail.nivelConfianca} estimativa className="mt-1" />
+                                )}
+                              </div>
+                            )}
+                          </div>
+
+                          <div className="grid grid-cols-2 gap-3">
+                            <div className="bg-surface border border-border-subtle rounded-xl p-3">
+                              <span className="text-[11px] text-ink-muted font-semibold uppercase tracking-wider block mb-1">
+                                Ocorrências
+                              </span>
+                              <span className="font-mono text-lg font-bold text-ink">
+                                {lexicalDetail?.ocorrencias ?? 0}
+                              </span>
+                              <span className="block text-[10px] text-ink-faint mt-0.5">nesta transcrição</span>
                             </div>
-                          )}
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-3">
-                          <div className="bg-surface border border-border-subtle rounded-xl p-3">
-                            <span className="text-[11px] text-ink-muted font-semibold uppercase tracking-wider block mb-1">
-                              Ocorrências
-                            </span>
-                            <span className="font-mono text-lg font-bold text-ink">
-                              {lexicalDetail?.ocorrencias ?? 0}
-                            </span>
-                            <span className="block text-[10px] text-ink-faint mt-0.5">nesta transcrição</span>
+                            <div className="bg-surface border border-border-subtle rounded-xl p-3">
+                              <span className="text-[11px] text-ink-muted font-semibold uppercase tracking-wider block mb-1">
+                                Retenção (FSRS)
+                              </span>
+                              <span
+                                className={`font-mono text-lg font-bold ${lexicalDetail?.retencao != null ? 'text-accent' : 'text-ink-muted'}`}
+                              >
+                                {lexicalDetail?.retencao != null ? `${lexicalDetail.retencao}%` : '-'}
+                              </span>
+                              <span className="block text-[10px] text-ink-faint mt-0.5">
+                                {lexicalDetail?.retencao != null ? 'na data de hoje' : 'só após a 1ª revisão'}
+                              </span>
+                            </div>
                           </div>
-                          <div className="bg-surface border border-border-subtle rounded-xl p-3">
-                            <span className="text-[11px] text-ink-muted font-semibold uppercase tracking-wider block mb-1">
-                              Retenção (FSRS)
-                            </span>
-                            <span
-                              className={`font-mono text-lg font-bold ${lexicalDetail?.retencao != null ? 'text-accent' : 'text-ink-muted'}`}
-                            >
-                              {lexicalDetail?.retencao != null ? `${lexicalDetail.retencao}%` : '-'}
-                            </span>
-                            <span className="block text-[10px] text-ink-faint mt-0.5">
-                              {lexicalDetail?.retencao != null ? 'na data de hoje' : 'só após a 1ª revisão'}
-                            </span>
-                          </div>
-                        </div>
 
-                        <div className="space-y-3">
-                          <h4 className="text-[13px] font-bold text-ink flex items-center gap-2">
-                            <MessageSquare className="w-4 h-4 text-ink-muted" /> Trechos da Sessão
-                          </h4>
-                          {/* Era uma frase inventada em inglês ("We need to <palavra> our existing user
+                          <div className="space-y-3">
+                            <h4 className="text-[13px] font-bold text-ink flex items-center gap-2">
+                              <MessageSquare className="w-4 h-4 text-ink-muted" /> Trechos da Sessão
+                            </h4>
+                            {/* Era uma frase inventada em inglês ("We need to <palavra> our existing user
                             base…") mostrada para QUALQUER palavra, inclusive portuguesa. Agora são as
                             falas reais do transcrito, e o play vai para o instante certo. */}
-                          {lexicalDetail && lexicalDetail.trechos.length > 0 ? (
-                            <div className="space-y-2">
-                              {lexicalDetail.trechos.map((t, i) => (
-                                <div
-                                  key={i}
-                                  className="p-3 bg-surface/50 border border-border-subtle/50 rounded-xl relative group"
-                                >
-                                  <p className="text-[13px] leading-relaxed text-ink-muted italic pe-9">"{t.texto}"</p>
-                                  <button
-                                    onClick={() => playFrom(t.startTime)}
-                                    title="Ouvir este trecho"
-                                    aria-label={`Ouvir o trecho a partir de ${formatSeconds(t.startTime)}`}
-                                    className="absolute right-2 top-2 p-2 bg-canvas rounded-full shadow-sm text-ink-muted hover:text-accent transition-all border border-border-subtle"
+                            {lexicalDetail && lexicalDetail.trechos.length > 0 ? (
+                              <div className="space-y-2">
+                                {lexicalDetail.trechos.map((t, i) => (
+                                  <div
+                                    key={i}
+                                    className="p-3 bg-surface/50 border border-border-subtle/50 rounded-xl relative group"
                                   >
-                                    <Play className="w-3 h-3 ms-0.5" />
-                                  </button>
-                                </div>
-                              ))}
-                            </div>
-                          ) : (
-                            <p className="text-[12px] text-ink-faint leading-relaxed p-3 bg-surface/50 border border-border-subtle/50 rounded-xl">
-                              Esta palavra está no seu baralho, mas não aparece na transcrição desta sessão.
-                            </p>
-                          )}
-                        </div>
+                                    <p className="text-[13px] leading-relaxed text-ink-muted italic pe-9">
+                                      "{t.texto}"
+                                    </p>
+                                    <button
+                                      onClick={() => playFrom(t.startTime)}
+                                      title="Ouvir este trecho"
+                                      aria-label={`Ouvir o trecho a partir de ${formatSeconds(t.startTime)}`}
+                                      className="absolute right-2 top-2 p-2 bg-canvas rounded-full shadow-sm text-ink-muted hover:text-accent transition-all border border-border-subtle"
+                                    >
+                                      <Play className="w-3 h-3 ms-0.5" />
+                                    </button>
+                                  </div>
+                                ))}
+                              </div>
+                            ) : (
+                              <p className="text-[12px] text-ink-faint leading-relaxed p-3 bg-surface/50 border border-border-subtle/50 rounded-xl">
+                                Esta palavra está no seu baralho, mas não aparece na transcrição desta sessão.
+                              </p>
+                            )}
+                          </div>
 
-                        {/* O botão era um "Enviar para SRS" sem `onClick`. E para a maioria das palavras
+                          {/* O botão era um "Enviar para SRS" sem `onClick`. E para a maioria das palavras
                           deste painel ele não faria sentido nenhum: elas JÁ estão no baralho, foi de
                           lá que vieram para o gráfico. Agora ele só existe quando há o que fazer. */}
-                        {lexicalDetail?.noDeck ? (
-                          <p className="text-[12px] text-ink-faint text-center flex items-center justify-center gap-1.5">
-                            <Check className="w-3.5 h-3.5 text-good" /> Já está no seu baralho de revisão.
+                          {lexicalDetail?.noDeck ? (
+                            <p className="text-[12px] text-ink-faint text-center flex items-center justify-center gap-1.5">
+                              <Check className="w-3.5 h-3.5 text-good" /> Já está no seu baralho de revisão.
+                            </p>
+                          ) : (
+                            <button
+                              onClick={() => handleAddWordToDeck(selectedLexicalWord)}
+                              className="w-full py-2.5 rounded-xl bg-ink text-canvas font-bold text-[13px] hover:bg-ink-hover transition-colors shadow-sm flex items-center justify-center gap-2"
+                            >
+                              <Sparkles className="w-4 h-4" /> Enviar para o baralho
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {overviewSubTab === 'fluency' && recording.type !== 'document' && (
+                  <div className="space-y-6 animate-in fade-in slide-in-from-right-4">
+                    <div className="cartao p5 clicavel" onClick={() => setExpandedAnalysisKpi('dominant_tone')}>
+                      <TituloDeSecao icone={AudioLines} titulo="Pausas e monólogos" nivel="h3" />
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between border-b border-border-subtle pb-2">
+                          <span className="text-[13px] text-ink-muted">Pausas longas (&gt;3s)</span>
+                          <span className="font-bold text-[13px] text-ink">
+                            {realLongPauses != null ? `${realLongPauses} (timing real)` : '-'}
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between border-b border-border-subtle pb-2">
+                          <span className="text-[13px] text-ink-muted">Maior monólogo</span>
+                          <span className="font-bold text-[13px] text-ink">
+                            {realMonologue != null ? formatSeconds(Math.round(realMonologue / 1000)) : '-'}
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between pb-1">
+                          <span className="text-[13px] text-ink-muted">Interrupções (sobreposição)</span>
+                          {/* Era "requer diarização — em breve". A diarização existe; faltava a conta. */}
+                          <span className={`font-bold text-[13px] ${realSobreposicao ? 'text-ink' : 'text-ink-faint'}`}>
+                            {realSobreposicao
+                              ? `${realSobreposicao.total} (${formatSeconds(Math.round(realSobreposicao.msSobrepostos / 1000))})`
+                              : 'requer 2 falantes com timing'}
+                          </span>
+                        </div>
+                        {realSobreposicao && (
+                          <p className="text-[11px] text-ink-faint leading-relaxed pt-1">
+                            Entre {realSobreposicao.falantes.length} falantes ({realSobreposicao.falantes.join(', ')});
+                            a mais longa durou {formatSeconds(Math.round(realSobreposicao.maiorMs / 1000))}.
+                            {/* Sem isto o total parece cobrir a gravação inteira quando não cobre. */}
+                            {realSobreposicao.falasSemTiming > 0 &&
+                              ` ${realSobreposicao.falasSemTiming} falas ficaram fora, sem timing ou sem falante.`}
                           </p>
-                        ) : (
-                          <button
-                            onClick={() => handleAddWordToDeck(selectedLexicalWord)}
-                            className="w-full py-2.5 rounded-xl bg-ink text-canvas font-bold text-[13px] hover:bg-ink-hover transition-colors shadow-sm flex items-center justify-center gap-2"
-                          >
-                            <Sparkles className="w-4 h-4" /> Enviar para o baralho
-                          </button>
                         )}
                       </div>
                     </div>
-                  )}
-                </div>
-              )}
-
-              {overviewSubTab === 'fluency' && recording.type !== 'document' && (
-                <div className="space-y-6 animate-in fade-in slide-in-from-right-4">
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    {/* Silêncio MEDIDO entre as falas. Onde havia "45 seg · representa 12% da gravação,
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      {/* Silêncio MEDIDO entre as falas. Onde havia "45 seg · representa 12% da gravação,
                       ritmo saudável" cravado no JSX, número inventado apresentado como medição. O
                       juízo ("ritmo saudável") não volta: não há norma no app com que comparar. */}
-                    <div className="card-panel p-5">
-                      <span className="label-mono block mb-2 font-semibold text-ink-muted">Pausas Articulatórias</span>
-                      <div className="font-display font-black text-3xl tracking-tight text-ink">
-                        {realSilencio != null ? Math.round(realSilencio.ms / 1000) : '-'}
-                        {realSilencio != null && <span className="text-[14px] text-ink-faint ms-1">seg</span>}
+                      <div className="card-panel p-5">
+                        <span className="label-mono block mb-2 font-semibold text-ink-muted">
+                          Pausas Articulatórias
+                        </span>
+                        <div className="font-display font-black text-3xl tracking-tight text-ink">
+                          {realSilencio != null ? Math.round(realSilencio.ms / 1000) : '-'}
+                          {realSilencio != null && <span className="text-[14px] text-ink-faint ms-1">seg</span>}
+                        </div>
+                        <p className="text-[12px] text-ink-muted mt-2">
+                          {realSilencio != null
+                            ? `Soma dos intervalos entre falas, ${realSilencio.pct}% do trecho falado (timing real).`
+                            : 'Requer timing das falas; esta gravação não tem.'}
+                        </p>
                       </div>
-                      <p className="text-[12px] text-ink-muted mt-2">
-                        {realSilencio != null
-                          ? `Soma dos intervalos entre falas, ${realSilencio.pct}% do trecho falado (timing real).`
-                          : 'Requer timing das falas; esta gravação não tem.'}
-                      </p>
-                    </div>
-                    <div
-                      className="card-panel p-5 cursor-pointer hover:border-accent hover:shadow-md transition-all"
-                      onClick={() => setExpandedAnalysisKpi('fillers')}
-                    >
-                      <span className="label-mono block mb-2 font-semibold text-ink-muted">Vícios Identificados</span>
-                      <div className="font-display font-black text-3xl tracking-tight text-ink">
-                        {realVicios.palavras > 0 ? realVicios.total : '-'}
+                      <div
+                        className="card-panel p-5 cursor-pointer hover:border-accent hover:shadow-md transition-all"
+                        onClick={() => setExpandedAnalysisKpi('fillers')}
+                      >
+                        <span className="label-mono block mb-2 font-semibold text-ink-muted">Vícios Identificados</span>
+                        <div className="font-display font-black text-3xl tracking-tight text-ink">
+                          {realVicios.palavras > 0 ? realVicios.total : '-'}
+                        </div>
+                        <p className="text-[12px] text-ink-muted mt-2">
+                          {realVicios.palavras === 0
+                            ? 'Nenhuma fala em idioma com lista de marcadores (só português e inglês).'
+                            : realVicios.total === 0
+                              ? `Nenhum marcador de hesitação em ${realVicios.palavras} palavras.`
+                              : `${realVicios.porMilPalavras} por mil palavras, ${realVicios.detalhe
+                                  .slice(0, 3)
+                                  .map((d) => `"${d.marcador}" ${d.vezes}×`)
+                                  .join(', ')}.`}
+                        </p>
                       </div>
-                      <p className="text-[12px] text-ink-muted mt-2">
-                        {realVicios.palavras === 0
-                          ? 'Nenhuma fala em idioma com lista de marcadores (só português e inglês).'
-                          : realVicios.total === 0
-                            ? `Nenhum marcador de hesitação em ${realVicios.palavras} palavras.`
-                            : `${realVicios.porMilPalavras} por mil palavras, ${realVicios.detalhe
-                                .slice(0, 3)
-                                .map((d) => `"${d.marcador}" ${d.vezes}×`)
-                                .join(', ')}.`}
-                      </p>
+                      <div className="card-panel p-5">
+                        <span className="label-mono block mb-2 font-semibold text-ink-muted">Tom Predominante</span>
+                        <div className="font-display font-black text-3xl tracking-tight text-ink-muted">-</div>
+                        <p className="text-[12px] text-ink-muted mt-2">
+                          Depende de variação de pitch, que exige análise acústica do áudio, o app não faz. Nada foi
+                          estimado.
+                        </p>
+                      </div>
                     </div>
-                    <div className="card-panel p-5">
-                      <span className="label-mono block mb-2 font-semibold text-ink-muted">Tom Predominante</span>
-                      <div className="font-display font-black text-3xl tracking-tight text-ink-muted">-</div>
-                      <p className="text-[12px] text-ink-muted mt-2">
-                        Depende de variação de pitch, que exige análise acústica do áudio, o app não faz. Nada foi
-                        estimado.
-                      </p>
-                    </div>
-                  </div>
 
-                  {/* Este painel se chamava "Assinatura Acústica & Densidade" e mostrava, embaixo do
+                    {/* Este painel se chamava "Assinatura Acústica & Densidade" e mostrava, embaixo do
                     título, um aviso sobre "evolução ao longo do tempo", título de uma coisa,
                     conteúdo de outra. Assinatura acústica exige análise do áudio, que o app não faz,
                     então o título saiu junto: manter o título de um gráfico que nunca vai existir é
                     prometer pelo cabeçalho. O que ficou é a evolução, que é real. */}
-                  {/* F7 — idem: dado da conta num painel de sessão. */}
-                  <NiveisDoConjunto metricas={metricasDaSessao} titulo="Níveis desta sessão" />
-                </div>
-              )}
+                    {/* F7 — idem: dado da conta num painel de sessão. */}
+                    <NiveisDoConjunto metricas={metricasDaSessao} titulo="Níveis desta sessão" />
+                  </div>
+                )}
+              </div>
             </div>
           </EditablePanel>
         )}

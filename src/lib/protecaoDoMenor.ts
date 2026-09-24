@@ -9,12 +9,12 @@
  * funil de volta seria um ciclo, que o `madge` barra no CI. Quem busca no servidor é
  * `data/rotas/idade.ts`.
  *
- * AS TRÊS PERGUNTAS QUE AS TELAS FAZEM:
+ * AS PERGUNTAS QUE AS TELAS FAZEM:
  *  - `perfilProtegido()`: sem ranking público, sem pressão de ofensiva, sem compra. Verdadeiro para
  *    menor de 18 E para quem ainda não declarou a idade — inclusive quem usa SEM CONTA no modo
  *    público: a configuração mais protetiva é a padrão. No self-host, falso (o dono da máquina).
- *  - `contaRestrita()`: menor de 16 sem vínculo aceito → a nuvem fica desligada e o app roda local.
- *  - `precisaDeclararIdade()`: conta logada que ainda não disse a data → a pergunta aparece.
+ *  - `estadoDaProtecao()?.restrita`: menor de 16 sem vínculo aceito → a nuvem fica desligada e o
+ *    app roda local; `nascimentoInformado === false` → o App pergunta a data.
  */
 import { estadoDeIdentidade } from './identidade';
 import { authRequired } from './supabase';
@@ -90,14 +90,6 @@ export function perfilProtegido(): boolean {
   return estado ? estado.protegido : true;
 }
 
-export function contaRestrita(): boolean {
-  return !!estado?.restrita;
-}
-
-export function precisaDeclararIdade(): boolean {
-  return authRequired && estadoDeIdentidade() === 'conta' && !!estado && !estado.nascimentoInformado;
-}
-
 /**
  * Com a conta restrita, estas rotas continuam indo ao servidor: a própria conta (idade, convite,
  * exportar, excluir), o responsável, a cobrança (o status; comprar o servidor recusa) e o diário
@@ -113,12 +105,4 @@ const LIBERADAS_NA_RESTRICAO = [
 export function rotaLiberadaNaRestricao(caminho: string): boolean {
   const so = caminho.replace(/^https?:\/\/[^/]+/, '');
   return LIBERADAS_NA_RESTRICAO.some((r) => r.test(so));
-}
-
-/** Só para testes. */
-export function _reiniciarProtecao(): void {
-  estado = null;
-  armada = false;
-  resolver = null;
-  pronta = null;
 }

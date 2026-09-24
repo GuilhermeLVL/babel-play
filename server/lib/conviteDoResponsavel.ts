@@ -45,16 +45,9 @@ export const enviadorPorLog: EnviadorDeConvite = {
   },
 }
 
-let atual: EnviadorDeConvite = enviadorPorLog
-
 /** O enviador em uso. Trocar aqui quando o Resend/SMTP existir. */
 export function enviadorAtual(): EnviadorDeConvite {
-  return atual
-}
-
-/** Só para testes. */
-export function _definirEnviador(e: EnviadorDeConvite): void {
-  atual = e
+  return enviadorPorLog
 }
 
 /** O link que o responsável abre. Absoluto com `APP_URL`; relativo sem ele (serve só na tela). */

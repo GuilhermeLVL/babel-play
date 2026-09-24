@@ -1,9 +1,9 @@
-import { type Dispatch, type SetStateAction,useEffect, useRef, useState } from 'react';
+import { type Dispatch, type SetStateAction, useEffect, useRef, useState } from 'react';
 
-import type { Recording,ViewType } from '../../types';
+import type { Recording, ViewType } from '../../types';
 import { isOnAuthCallback } from '../authCallback';
 import { askNavGuard } from '../navGuard';
-import { type EstadoDeRota,lerUrlAtual, publicarUrl, type ViewDeRota } from '../rotas';
+import { type EstadoDeRota, irParaSubTelaDePlanos, lerUrlAtual, publicarUrl, type ViewDeRota } from '../rotas';
 import type { PracticeSeed } from '../sentences';
 
 export interface DependenciasDaNavegacao {
@@ -40,9 +40,15 @@ export interface EstadoDaNavegacao {
  */
 export function useNavegacao(deps: DependenciasDaNavegacao): EstadoDaNavegacao {
   const {
-    activeView, setActiveView,
-    selectedRecordingId, setSelectedRecordingId, setResumingRecordingId,
-    recordings, lojaAba, setLojaAba, setPedindoLogin,
+    activeView,
+    setActiveView,
+    selectedRecordingId,
+    setSelectedRecordingId,
+    setResumingRecordingId,
+    recordings,
+    lojaAba,
+    setLojaAba,
+    setPedindoLogin,
   } = deps;
 
   const [analysisSubTab, setAnalysisSubTab] = useState<string>('transcript');
@@ -67,7 +73,10 @@ export function useNavegacao(deps: DependenciasDaNavegacao): EstadoDaNavegacao {
   const navigateTo = (view: string, data?: any) => {
     // Sem conta: a porta de entrada é um destino ("Entrar" no menu), e o que exige conta abre o
     // convite em vez de navegar — a tela atual fica como está.
-    if (view === 'login') { setPedindoLogin(true); return; }
+    if (view === 'login') {
+      setPedindoLogin(true);
+      return;
+    }
     // Tela que exige conta NAVEGA normalmente: lá o CartaoDeConvite (inline) explica. O modal
     // fica só para ações (importar, iChat) — navegação abrindo modal era convite demais.
     // A tela atual pode ter trabalho em risco (uma captura em andamento, por exemplo). Ela
@@ -90,6 +99,9 @@ export function useNavegacao(deps: DependenciasDaNavegacao): EstadoDaNavegacao {
       setActiveView(view as ViewType);
       // v3: Personalizar aceita a aba de destino ("progressao" do fim de rodada, "loja" do cadeado).
       if (view === 'loja') setLojaAba(typeof data?.aba === 'string' ? data.aba : null);
+      // Planos tem sub-telas (checkout, confirmação, cancelamento) que não são views: o menu
+      // leva à tela principal, e o "voltar" do navegador à sub-tela que estava na URL.
+      if (view === 'planos') irParaSubTelaDePlanos(data?.planosTela ?? null);
       // `capture` com `resumeId` retoma uma sessão existente (Biblioteca → "Retomar
       // Captura"). Sem o id, é uma captura nova — limpar, senão a próxima gravação
       // sobrescreveria a sessão retomada anteriormente.
@@ -139,7 +151,12 @@ export function useNavegacao(deps: DependenciasDaNavegacao): EstadoDaNavegacao {
     if (isOnAuthCallback()) return; // o callback tem dono; não é rota de tela
     const e = lerUrlAtual();
     if (e.view === 'hub' && window.location.pathname === '/') return;
-    doNavigate(e.subTab === 'study' ? 'study' : e.view, { id: e.sessionId, subTab: e.subTab, aba: e.lojaTab });
+    doNavigate(e.subTab === 'study' ? 'study' : e.view, {
+      id: e.sessionId,
+      subTab: e.subTab,
+      aba: e.lojaTab,
+      planosTela: e.planosTela,
+    });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -159,7 +176,12 @@ export function useNavegacao(deps: DependenciasDaNavegacao): EstadoDaNavegacao {
   useEffect(() => {
     const aoVoltar = () => {
       const e = lerUrlAtual();
-      navigateTo(e.subTab === 'study' ? 'study' : e.view, { id: e.sessionId, subTab: e.subTab, aba: e.lojaTab });
+      navigateTo(e.subTab === 'study' ? 'study' : e.view, {
+        id: e.sessionId,
+        subTab: e.subTab,
+        aba: e.lojaTab,
+        planosTela: e.planosTela,
+      });
     };
     window.addEventListener('popstate', aoVoltar);
     return () => window.removeEventListener('popstate', aoVoltar);
@@ -172,12 +194,18 @@ export function useNavegacao(deps: DependenciasDaNavegacao): EstadoDaNavegacao {
   }, []);
 
   return {
-    analysisSubTab, setAnalysisSubTab,
-    liveTranscription, setLiveTranscription,
-    isChatOpen, setIsChatOpen,
-    isChatDocked, setIsChatDocked,
-    isChatMaximized, setIsChatMaximized,
-    practiceSeed, setPracticeSeed,
+    analysisSubTab,
+    setAnalysisSubTab,
+    liveTranscription,
+    setLiveTranscription,
+    isChatOpen,
+    setIsChatOpen,
+    isChatDocked,
+    setIsChatDocked,
+    isChatMaximized,
+    setIsChatMaximized,
+    practiceSeed,
+    setPracticeSeed,
     navigateTo,
   };
 }

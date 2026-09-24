@@ -56,7 +56,19 @@ export interface EstadoDeRota {
    * tudo o mais continua no caminho (decisão do docblock acima).
    */
   jogarQuery?: string;
+  /**
+   * Só para `planos`: a sub-tela de pagamento (protótipo aprovado: `T.checkout`, `T.assinado`,
+   * `T.cancelar` e a aba "Sua assinatura"). Não são views do App — o menu continua em Planos e
+   * quem desenha é `Planos.tsx`. A sub-rota é DA TELA, como a query é da tela de Jogar: o App
+   * espelhar "estou em Planos" não a apaga (ver `publicarUrl`).
+   */
+  planosTela?: SubTelaDePlanos;
 }
+
+export const SUBTELAS_DE_PLANOS = ['assinar', 'assinado', 'cancelar', 'assinatura'] as const;
+export type SubTelaDePlanos = (typeof SUBTELAS_DE_PLANOS)[number];
+const ehSubTelaDePlanos = (s: string | undefined): s is SubTelaDePlanos =>
+  !!s && (SUBTELAS_DE_PLANOS as readonly string[]).includes(s);
 
 /** View de topo → segmento. `analysis` é tratada à parte porque carrega id e aba. */
 const SEGMENTO: Record<Exclude<ViewDeRota, 'analysis'>, string> = {
@@ -168,6 +180,7 @@ export function estadoParaUrl(e: EstadoDeRota): string {
     return canonica ? `/loja/${ABA_DA_LOJA[canonica]}` : '/loja';
   }
   if (e.view === 'play' && e.jogarQuery) return `/jogar?${e.jogarQuery}`;
+  if (e.view === 'planos' && ehSubTelaDePlanos(e.planosTela)) return `/${SEGMENTO.planos}/${e.planosTela}`;
   const seg = SEGMENTO[e.view];
   return seg ? `/${seg}` : '/';
 }
@@ -213,6 +226,10 @@ export function urlParaEstado(caminho: string): EstadoDeRota {
   }
 
   const alias = ALIAS_DE_SEGMENTO[partes[0]];
+  // Sub-tela de Planos (singular canônico ou plural de leitura). Desconhecida degrada para Planos.
+  if ((alias?.view ?? VIEW_DE_SEGMENTO[partes[0]]) === 'planos' && partes[1]) {
+    return ehSubTelaDePlanos(partes[1]) ? { view: 'planos', planosTela: partes[1] } : { view: 'planos' };
+  }
   if (alias) return alias.lojaTab ? { view: alias.view, lojaTab: alias.lojaTab } : { view: alias.view };
 
   const view = VIEW_DE_SEGMENTO[partes[0]];
@@ -235,6 +252,10 @@ export function publicarUrl(e: EstadoDeRota, push = true): void {
   // dono dela (Play) acabou de escrever.
   const atual = alvo.includes('?') ? window.location.pathname + window.location.search : window.location.pathname;
   if (atual === alvo) return;
+  /* A sub-tela de Planos é da tela, não do App: quem espelha só "estou em Planos" (sem
+     `planosTela`) não a apaga. Sem isto, recarregar `/plano/assinado` — a volta do pagamento —
+     caía em `/plano` no primeiro render. */
+  if (e.view === 'planos' && !e.planosTela && urlParaEstado(window.location.pathname).planosTela) return;
   // `replaceState` na restauração inicial: entrar no app não deve criar uma entrada de histórico
   // para trás que devolveria o usuário para fora.
   window.history[push ? 'pushState' : 'replaceState']({}, '', alvo);
@@ -253,6 +274,35 @@ export function publicarQueryDoJogar(query: string): void {
   window.history.replaceState({}, '', window.location.pathname + alvo);
 }
 
+/**
+ * NAVEGA SEM PROP DO APP — escreve o endereço e avisa quem escuta a URL (`popstate`).
+ *
+ * É o caminho das telas que precisam levar a outra (Planos → Ajuda, Captura, Ajustes) sem que o
+ * App lhes passe um `navigateTo`: `useNavegacao` escuta o `popstate` e troca a view, e a própria
+ * tela de Planos escuta para trocar de sub-tela.
+ */
+export function navegarPara(e: EstadoDeRota): void {
+  if (typeof window === 'undefined') return;
+  const alvo = estadoParaUrl(e);
+  if (window.location.pathname + window.location.search !== alvo) window.history.pushState({}, '', alvo);
+  window.dispatchEvent(new PopStateEvent('popstate'));
+}
+
+/** Evento que a tela de Planos escuta para trocar de sub-tela (além do `popstate`). */
+export const EVENTO_SUBTELA_DE_PLANOS = 'babel:planos-subtela';
+
+/**
+ * LEVA PLANOS À SUB-TELA PEDIDA (`null` = a tela principal). É o que faz o "Planos" do menu, com
+ * a pessoa no checkout, voltar à tela de planos como no protótipo: para o App a view não muda, e
+ * sem isto o clique não fazia nada. Escreve o endereço (se mudou) e avisa a tela.
+ */
+export function irParaSubTelaDePlanos(planosTela: SubTelaDePlanos | null): void {
+  if (typeof window === 'undefined') return;
+  const alvo = estadoParaUrl(planosTela ? { view: 'planos', planosTela } : { view: 'planos' });
+  if (window.location.pathname !== alvo) window.history.pushState({}, '', alvo);
+  window.dispatchEvent(new Event(EVENTO_SUBTELA_DE_PLANOS));
+}
+
 export function lerUrlAtual(): EstadoDeRota {
   if (typeof window === 'undefined') return { view: 'hub' };
   return urlParaEstado(window.location.pathname + window.location.search);
@@ -269,6 +319,22 @@ let queryDoBoot =
   typeof window === 'undefined'
     ? ''
     : (urlParaEstado(window.location.pathname + window.location.search).jogarQuery ?? '');
+
+/**
+ * A SUB-TELA DE PLANOS COMO ELA CHEGOU — pelo mesmo motivo da query do /jogar acima: na dança de
+ * boot o App espelha a view antiga (`/`) antes de restaurar, e o caminho volta como `/plano`, sem
+ * a sub-tela. É assim que `/plano/assinado` (a volta do pagamento) sobrevive a um recarregamento.
+ * Consumo único, mas só quando a tela MONTA de verdade (no efeito): o React pode descartar uma
+ * renderização (Suspense, StrictMode), e consumir na renderização perderia o valor.
+ */
+let planosTelaDoBoot: SubTelaDePlanos | null =
+  typeof window === 'undefined' ? null : (urlParaEstado(window.location.pathname).planosTela ?? null);
+
+export const lerPlanosTelaDoBoot = (): SubTelaDePlanos | null => planosTelaDoBoot;
+
+export function esquecerPlanosTelaDoBoot(): void {
+  planosTelaDoBoot = null;
+}
 
 export function consumirQueryDoBoot(): string {
   const q = queryDoBoot;

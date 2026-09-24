@@ -68,6 +68,7 @@ describe('Encerrar a sessão (C8)', () => {
   function montar() {
     const props = {
       resumo: '3 falas · 01:20',
+      nFalas: 3,
       retomada: false,
       titulo: 'Reunião',
       aoTrocarTitulo: vi.fn(),

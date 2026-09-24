@@ -93,7 +93,6 @@ export interface DepsDeSalvarSessao {
   speakerProfilesRef: RefObject<SpeakerProfile[]>;
   /* --- estado da tela --- */
   setIsRecording: Dispatch<SetStateAction<boolean>>;
-  setIsFocusMode: Dispatch<SetStateAction<boolean>>;
   setTimer: Dispatch<SetStateAction<number>>;
   setSpeechSegments: Dispatch<SetStateAction<SpeechSegment[]>>;
   setIdiomaObservado: Dispatch<SetStateAction<string>>;
@@ -105,6 +104,11 @@ export interface DepsDeSalvarSessao {
   setCustomSessionImage: Dispatch<SetStateAction<string>>;
   setImgQuery: Dispatch<SetStateAction<string>>;
   setFeedbackMsg: (msg: string) => void;
+  /**
+   * "Salvar e ficar aqui" (protótipo): as falas continuam na tela com "Abrir a sessão salva" e
+   * quantas palavras foram para o caderno (`null` enquanto o vocabulário é fichado).
+   */
+  setSessaoSalva: (s: { id: string; palavras: number | null } | null) => void;
 }
 
 export function criarSalvarSessao(deps: DepsDeSalvarSessao) {
@@ -148,7 +152,6 @@ export function criarSalvarSessao(deps: DepsDeSalvarSessao) {
     provisionalUttsRef,
     speakerProfilesRef,
     setIsRecording,
-    setIsFocusMode,
     setTimer,
     setSpeechSegments,
     setIdiomaObservado,
@@ -160,6 +163,7 @@ export function criarSalvarSessao(deps: DepsDeSalvarSessao) {
     setCustomSessionImage,
     setImgQuery,
     setFeedbackMsg,
+    setSessaoSalva,
   } = deps;
 
   const handleStartRecording = () => {
@@ -177,9 +181,7 @@ export function criarSalvarSessao(deps: DepsDeSalvarSessao) {
     burstFromElement(document.activeElement, 'record');
     clog('▶ START, microfone:', micEnabled, '| sistema:', systemEnabled, resuming ? '| RETOMANDO' : '');
     setIsRecording(true);
-    /* Gravou → FOCO CHEIO na hora (pedido do dono, 2026-08-27): a tela de acompanhar é a melhor
-       casa da legenda ao vivo; a barra do topo do Foco oferece as outras rotas. */
-    setIsFocusMode(true);
+    setSessaoSalva(null);
     isRecordingRef.current = true;
     sessionStartMsRef.current = resuming ? Date.now() - timer * 1000 : Date.now();
     shouldAnchorClockRef.current = !resuming; // sessão nova → o relógio será re-ancorado ao recorder
@@ -425,10 +427,13 @@ export function criarSalvarSessao(deps: DepsDeSalvarSessao) {
       onSave(recording, shouldRedirect);
       recordedAudioRef.current = null;
       setResumeId(null);
-      setSpeechSegments([]);
-      setTimer(0);
+      // Ficando na tela, as falas continuam à vista (protótipo); indo para a análise, a tela zera.
+      if (shouldRedirect) {
+        setSpeechSegments([]);
+        setTimer(0);
+      } else setSessaoSalva({ id: recording.id, palavras: null });
       setCustomSessionImage('');
-      setFeedbackMsg('Sessão salva · fichando vocabulário…');
+      setFeedbackMsg(`“${title}” salva na Biblioteca`);
 
       // Monta a lista de palavras únicas. O idioma da PALAVRA é o da fala de onde ela veio.
       const seen = new Set<string>();
@@ -484,6 +489,7 @@ export function criarSalvarSessao(deps: DepsDeSalvarSessao) {
       const entrada = cards.length ? await bulkAddCards(cards) : { cards: [], skipped: [] };
 
       const salvos = entrada.cards.length;
+      if (!shouldRedirect) setSessaoSalva({ id: recording.id, palavras: salvos });
       const pulados = resumoDosPulados(entrada.skipped);
       // A parada da tradução entra na mensagem: "sem verso" por falta de tradutor é um fato
       // sobre o resultado, e omiti-lo faria a contagem parecer um limite do texto capturado.

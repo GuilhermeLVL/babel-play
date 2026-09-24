@@ -17,6 +17,7 @@ import SeletorDeCapa from '../../ui/SeletorDeCapa';
  */
 export default function EncerrarSessao({
   resumo,
+  nFalas,
   retomada,
   titulo,
   aoTrocarTitulo,
@@ -30,6 +31,8 @@ export default function EncerrarSessao({
 }: {
   /** "N falas · mm:ss" */
   resumo: string;
+  /** Quantas falas somem se descartar. */
+  nFalas: number;
   /** Sessão retomada: salvar atualiza o mesmo item da Biblioteca. */
   retomada: boolean;
   titulo: string;
@@ -51,7 +54,7 @@ export default function EncerrarSessao({
       <Dialogo
         icone={Trash2}
         titulo="Descartar esta captura?"
-        sub="As falas desta captura somem. Não dá para desfazer."
+        sub={`${nFalas === 1 ? 'A fala desta captura some' : `As ${nFalas} falas desta captura somem`}. Não dá para desfazer.`}
         largura=""
         aoFechar={() => setDescartando(false)}
       >

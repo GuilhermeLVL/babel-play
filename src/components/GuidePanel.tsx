@@ -1,11 +1,11 @@
 /**
  * GUIA RÁPIDO — o `dialogoGuia()` do protótipo aprovado (C2): `<dialog class="largo">` com seis
  * cartões `.g-guia`, o "Bom saber" e o rodapé "Mais ajuda" / "Entendi". Aberto pelo "?" da tela
- * Capturar e pelos artigos da Ajuda.
+ * Capturar, pela Ajuda e pelos Ajustes.
  *
- * Os TEXTOS são os que o app já tinha (e que já estão traduzidos no catálogo de i18n): trocá-los
- * pelos do protótipo exige podar e acrescentar chaves em `public/i18n/*`, o que fica para quem
- * cuida das traduções.
+ * Os TEXTOS são os do protótipo (decisão do dono, 24/09) e passam por `t()`: o catálogo de i18n
+ * tem as mesmas frases. O tamanho do modelo no "Bom saber" vem de quem abre (a Captura sabe qual
+ * modelo vai usar); sem ele, a frase sai sem o número.
  */
 import type { LucideIcon } from 'lucide-react';
 import { BookOpen, CircleHelp, LifeBuoy, MessageCircle, Mic, MonitorPlay, PictureInPicture2, Plus } from 'lucide-react';
@@ -16,58 +16,56 @@ import { Dialogo, fecharDialogoDe, IconeEmBloco } from './ui';
 const FLUXOS: Array<{ icone: LucideIcon; titulo: string; passos: string }> = [
   {
     icone: MonitorPlay,
-    titulo: 'Traduzir um vídeo/chamada ao vivo',
-    passos:
-      'Capturar → escolha o cenário (Assistir mídia · Conversa/chamada · Minha voz) → Iniciar Captura. A legenda bilíngue aparece em tempo real; ao parar, a sessão inteira vira material de estudo.',
+    titulo: 'Traduzir um vídeo ou chamada',
+    passos: 'Dê play em qualquer app e clique em Iniciar captura. O som do computador entra sozinho.',
   },
   {
     icone: Mic,
     titulo: 'Praticar a sua fala',
-    passos:
-      'Capturar → deixe o Microfone ligado e fale. Sua voz é transcrita e traduzida para o idioma que você estuda, bom para ensaiar frases antes de uma reunião.',
+    passos: 'Ligue o microfone: o app separa a sua voz da dos outros e dá nota de pronúncia na Sessão.',
   },
   {
     icone: Plus,
-    titulo: 'Importar conteúdo (YouTube, artigo, PDF, áudio)',
-    passos:
-      'Biblioteca → Importar → escolha a fonte. Tudo vira uma sessão com transcrição, tradução, vocabulário e exercícios.',
+    titulo: 'Importar conteúdo',
+    passos: 'Biblioteca → Importar: YouTube, PDF, artigo da web ou áudio viram sessão.',
   },
   {
     icone: PictureInPicture2,
-    titulo: 'Legendas por cima do jogo/da chamada',
-    passos:
-      'Capturar → "Relay de Legendas" abre uma janelinha flutuante sempre-no-topo. Jogando? Ligue o "Modo desempenho" nos ajustes avançados para pesar menos.',
+    titulo: 'Legendas por cima do jogo',
+    passos: 'Legendas flutuantes abrem uma janelinha sempre no topo. Trave o clique para ela não atrapalhar.',
   },
   {
     icone: MessageCircle,
-    titulo: 'Perguntar ao tutor (iChat)',
-    passos:
-      'O balão no canto abre um tutor que enxerga o conteúdo da tela atual, dá para fixar um contexto (ex.: um vídeo) e seguir conversando sobre ele em qualquer tela.',
+    titulo: 'Perguntar ao tutor',
+    passos: 'O iChat sabe o que está na tela. Pergunte "o que é leverage?" no meio da captura.',
   },
   {
     icone: BookOpen,
     titulo: 'Estudar o que capturou',
-    passos:
-      'Conteúdo da Sessão → abas Leitura (narração) e Prática (deck de revisão espaçada + 8 exercícios). Clique em qualquer palavra para ver tradução e pronúncia e salvar no deck.',
+    passos: 'Ao parar, a sessão vai para a Biblioteca com transcrição, vocabulário e jogos.',
   },
-];
-
-const PEGADINHAS: string[] = [
-  'Primeira captura: o modelo de transcrição baixa uma única vez (~30MB), a fala dita durante o download fica guardada e aparece assim que ele termina.',
-  'Compartilhando uma ABA, marque "compartilhar áudio da guia" no popup do navegador, sem isso não há som.',
-  'Abra o app sempre pelo MESMO endereço (localhost e a mesma porta), senão o navegador baixa o modelo de novo.',
 ];
 
 export default function GuidePanel({
   onClose,
   sub = 'Seis coisas que dá para fazer a partir desta tela.',
   aoMaisAjuda,
+  mbDoModelo,
 }: {
   onClose: () => void;
   sub?: string;
   /** "Mais ajuda" leva à tela Ajuda; sem ele (já na Ajuda), o botão não aparece. */
   aoMaisAjuda?: () => void;
+  /** Tamanho do modelo de transcrição que a captura baixa (MB), quando quem abre sabe. */
+  mbDoModelo?: number;
 }) {
+  const bomSaber = [
+    mbDoModelo
+      ? t('O modelo de transcrição baixa uma vez só ({mb} MB) e depois funciona sem internet.', { mb: mbDoModelo })
+      : t('O modelo de transcrição baixa uma vez só e depois funciona sem internet.'),
+    t('Nada do áudio sai do computador no modo local. A tradução também roda aqui.'),
+    t('Legenda sumindo? Em Ajustes da captura, use "Testar a captura".'),
+  ];
   return (
     <Dialogo icone={CircleHelp} titulo="Guia rápido" sub={sub} largura="largo" aoFechar={onClose}>
       <div className="dlg-corpo rola-dlg" tabIndex={0} role="region" aria-label="Conteúdo">
@@ -83,7 +81,7 @@ export default function GuidePanel({
         <div className="cartao p5 sutil" style={{ marginTop: 14 }}>
           <span className="label-mono">Bom saber</span>
           <ul className="bom-saber">
-            {PEGADINHAS.map((p) => (
+            {bomSaber.map((p) => (
               <li key={p}>{p}</li>
             ))}
           </ul>

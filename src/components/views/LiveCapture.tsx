@@ -2,6 +2,7 @@ import {
   Activity,
   AlertCircle,
   ArrowDown,
+  ArrowLeftRight,
   ArrowRight,
   AudioLines,
   Check,
@@ -9,7 +10,6 @@ import {
   CircleCheck,
   CircleHelp,
   Cpu,
-  Edit2,
   Eye,
   Gamepad2,
   Headphones,
@@ -20,20 +20,21 @@ import {
   MicOff,
   Minimize2,
   MonitorSpeaker,
+  Pencil,
   PictureInPicture2,
-  Plus,
   RefreshCw,
-  Sliders,
+  Save,
   SlidersHorizontal,
   Square,
   TriangleAlert,
   Type,
+  UserPlus,
   Users,
   VolumeX,
   WandSparkles,
   X,
 } from 'lucide-react';
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { fetchSessionTranscript, fetchSettings, patchUiSettings } from '../../data/api';
 import { buildGateway } from '../../gateway';
@@ -97,7 +98,6 @@ import {
   onLangConfigChange,
   saveLangConfig,
 } from '../../lib/langConfig';
-import { langShortLabel } from '../../lib/langFlag';
 import { baseLang, langLabel, mtCoverage, toBcp47 } from '../../lib/languages';
 import { setNavGuard } from '../../lib/navGuard';
 import { OrdemDasTraducoes } from '../../lib/ordemDaTraducao';
@@ -132,7 +132,7 @@ import VocabularyPanel from '../VocabularyPanel';
 import EncerrarSessao from './captura/EncerrarSessao';
 import IdiomasDaSessao, { type Lado } from './captura/IdiomasDaSessao';
 import ModeloNoDispositivo, { type ModeloDaCaptura } from './captura/ModeloNoDispositivo';
-import TranscriptVisualSettings from './captura/TranscriptVisualSettings';
+import TranscriptVisualSettings, { TEMA } from './captura/TranscriptVisualSettings';
 import { CampoLinha, Interruptor, Segmentos } from './vocab/Dialogo';
 
 export default function LiveCapture({
@@ -155,7 +155,11 @@ export default function LiveCapture({
   // 'transparent' e não '#000000': o padrão do overlay é fundo invisível, e começar em preto
   // fazia a janela flutuante abrir PRETA e só depois clarear, quando o Overlay montava.
   const [overlayBgColor, setOverlayBgColor] = useState('transparent');
-  const [feedbackMsg, setFeedbackMsg] = useState('');
+  /* AVISOS DA TELA pelo toast global do app (o `.toast` do protótipo). A captura tinha um balão
+     próprio no topo; as chamadas de "apagar" (`setFeedbackMsg('')`) viram nada. */
+  const setFeedbackMsg = useCallback((msg: string) => {
+    if (msg) toast.info(msg);
+  }, []);
   // Diagnóstico de captura do áudio do sistema (botão "Testar").
   const [probe, setProbe] = useState<SystemAudioProbe | null>(null);
   const [probing, setProbing] = useState(false);
@@ -275,6 +279,8 @@ export default function LiveCapture({
   const [showAdvancedRoutes, setShowAdvancedRoutes] = useState(false);
   const [showGuide, setShowGuide] = useState(false);
   // Rota STT ativa (selo honesto do header) + preferência de qualidade (roteador).
+  /* A rota do STT (ex.: "Whisper small · local") — o selo do protótipo mostra o tamanho do modelo, e
+     a rota aparece no diálogo "Modelo no dispositivo". */
   const [sttRouteLabel, setSttRouteLabel] = useState('');
   const [sttQuality, setSttQuality] = useState<SttQuality>(() => getSttQuality());
 
@@ -287,21 +293,23 @@ export default function LiveCapture({
     { id: 'system', name: 'Outros', color: UNKNOWN_VOICE_COLOR, isActive: false },
   ]);
   const [editingSpeakerId, setEditingSpeakerId] = useState<string | null>(null);
+  /** A sessão que acabou de ser salva ficando na tela: o "Abrir a sessão salva" do protótipo. */
+  const [sessaoSalva, setSessaoSalva] = useState<{ id: string; palavras: number | null } | null>(null);
+  /* O foco do teclado acompanha o Foco cheio (protótipo): entra em "Tela normal", volta a "Foco cheio". */
+  const entrarNoFocoRef = useRef<HTMLButtonElement>(null);
+  const sairDoFocoRef = useRef<HTMLButtonElement>(null);
   const [editingSpeakerName, setEditingSpeakerName] = useState('');
 
   const handleAddSpeaker = () => {
-    const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
-    const nextLetter = letters[speakerProfiles.length % letters.length];
     const newId = `speaker_${Date.now()}`;
+    const outros = speakerProfiles.filter((p) => p.id !== 'user').length;
     const newSpeaker: SpeakerProfile = {
       id: newId,
-      name: `Falante ${nextLetter}`,
+      name: `Falante ${outros + 1}`,
       color: SPEAKER_COLORS[speakerProfiles.length % SPEAKER_COLORS.length],
       isActive: false,
     };
     setSpeakerProfiles((prev) => [...prev, newSpeaker]);
-    setFeedbackMsg(`Novo orador "${newSpeaker.name}" adicionado!`);
-    setTimeout(() => setFeedbackMsg(''), 2000);
   };
 
   // ── IDENTIFICAÇÃO AUTOMÁTICA DE VOZ (cenário Conversa) ─────────────────────────────
@@ -469,6 +477,14 @@ export default function LiveCapture({
     window.addEventListener('keydown', aoTeclar);
     return () => window.removeEventListener('keydown', aoTeclar);
   }, [isFocusMode]);
+  // O teclado vai junto: entrar põe o foco em "Tela normal"; sair o devolve a "Foco cheio".
+  const focoJaAbriu = useRef(false);
+  useEffect(() => {
+    if (isFocusMode) {
+      focoJaAbriu.current = true;
+      requestAnimationFrame(() => sairDoFocoRef.current?.focus());
+    } else if (focoJaAbriu.current) requestAnimationFrame(() => entrarNoFocoRef.current?.focus());
+  }, [isFocusMode]);
   /**
    * O SOM DO COMPUTADOR ENTRA SEMPRE — deixou de ser estado porque deixou de ser escolha.
    *
@@ -592,7 +608,7 @@ export default function LiveCapture({
       );
       setTimeout(() => setFeedbackMsg(''), 8000);
     })();
-  }, [serverCaptureAvailable, systemSource]);
+  }, [serverCaptureAvailable, systemSource, setFeedbackMsg]);
   // Preparação do modelo local (Whisper + opus-mt) — cache-aware, com barras e erro/retry.
   // null = ocioso; caso contrário, o painel ModelPrepPanel é exibido.
   const [modelPrep, setModelPrep] = useState<ModelPrepState | null>(null);
@@ -1309,7 +1325,6 @@ export default function LiveCapture({
       provisionalUttsRef,
       speakerProfilesRef,
       setIsRecording,
-      setIsFocusMode,
       setTimer,
       setSpeechSegments,
       setIdiomaObservado,
@@ -1321,6 +1336,7 @@ export default function LiveCapture({
       setCustomSessionImage,
       setImgQuery,
       setFeedbackMsg,
+      setSessaoSalva,
     });
 
   // --- RETOMAR SESSÃO: reidrata o transcript REAL do backend (não usa mock) ---
@@ -1690,11 +1706,6 @@ export default function LiveCapture({
         role="switch"
         aria-checked={micEnabled}
         disabled={micAbrindo}
-        title={
-          micEnabled
-            ? 'Sua fala está entrando na gravação. Clique para mutar.'
-            : 'Sua fala está fora da gravação. Clique para entrar — vale a qualquer momento, inclusive gravando.'
-        }
         className={`btn btn-outline ${micEnabled ? 'mic-on' : ''}`}
       >
         {micAbrindo ? (
@@ -1732,13 +1743,19 @@ export default function LiveCapture({
    */
   const botaoDasLegendas = () => (
     <button
-      onClick={() => setShowOverlay(!showOverlay)}
-      aria-pressed={showOverlay}
-      title={
-        isDocumentPiPSupported()
-          ? 'Legendas ao vivo numa janela flutuante sempre-no-topo (por cima de jogo/vídeo/chamada)'
-          : 'Janela flutuante requer Chrome/Edge; aqui o overlay abre embutido na tela'
-      }
+      onClick={() => {
+        const abrir = !showOverlay;
+        setShowOverlay(abrir);
+        toast.info(
+          abrir
+            ? isDocumentPiPSupported()
+              ? 'Legendas flutuantes abertas: a janelinha fica por cima de tudo'
+              : 'Legendas flutuantes abertas nesta tela (a janela por cima de tudo precisa do Chrome ou do Edge)'
+            : 'Legendas flutuantes fechadas',
+        );
+      }}
+      role="switch"
+      aria-checked={showOverlay}
       className={`btn btn-outline ${showOverlay ? 'mic-on' : ''} ${isRecording && !showOverlay ? 'pulsa' : ''}`}
     >
       <PictureInPicture2 aria-hidden />
@@ -1760,16 +1777,14 @@ export default function LiveCapture({
   const mesmoIdioma = baseLang(sourceLang) === baseLang(targetLang);
 
   /** O conteúdo do chip do par — o mesmo na tela normal e no Foco Cheio. */
+  const doisLados = captureScenario !== 'media';
   const rotuloDoPar = (
     <>
-      {/* O aviso não pode depender só da cor da borda (o app tem 7 temas). */}
-      {mesmoIdioma && <span className="w-1.5 h-1.5 rounded-full bg-warn shrink-0" aria-hidden />}
       {parResumido.auto ? <WandSparkles aria-hidden /> : <LangFlag code={parResumido.de} className="w-4 h-3" />}
-      {parResumido.auto ? 'Detectar' : langShortLabel(parResumido.de)}
-      <ArrowRight aria-hidden />
+      {parResumido.auto ? 'Detectar' : langLabel(parResumido.de)}
+      {doisLados ? <ArrowLeftRight aria-hidden /> : <ArrowRight aria-hidden />}
       <LangFlag code={parResumido.para} className="w-4 h-3" />
       {langLabel(parResumido.para)}
-      <ChevronDown aria-hidden />
     </>
   );
 
@@ -1833,6 +1848,8 @@ export default function LiveCapture({
         : { id, titulo: `Tradutor (${id.split('/').pop()})` },
     );
   }, [targetLang, sourceLang, micEnabled, micEngine, autoDetectLang, autoDetectMyLang, sttQuality]);
+  /** O tamanho do modelo que a captura baixa (o selo "modelo local · N MB" do protótipo). */
+  const mbDoModelo = modelosDaCaptura.reduce((soma, m) => soma + (m.mbEstimado ?? 0), 0);
 
   return (
     <div className="flex-1 flex flex-col h-full bg-canvas text-ink overflow-hidden relative font-body">
@@ -1849,13 +1866,6 @@ export default function LiveCapture({
            aqui as cores eram fixas em rgba(0,0,0,…), invisíveis no escuro, e a regra
            só existia enquanto ESTA tela estava montada. */
       `}</style>
-
-      {/* FEEDBACK POPUP */}
-      {feedbackMsg && (
-        <div className="absolute top-20 left-1/2 -translate-x-1/2 z-50 bg-accent text-white font-bold text-[13px] px-6 py-3 rounded-full shadow-lg flex items-center gap-2 animate-in fade-in slide-in-from-top-4 duration-300">
-          <Check className="w-4 h-4 stroke-[3]" /> {feedbackMsg}
-        </div>
-      )}
 
       {/* --- AVISO DE MODO RETOMAR --- */}
       {resumeId && (
@@ -2256,29 +2266,27 @@ export default function LiveCapture({
                     type="button"
                     className="badge neu badge-botao"
                     onClick={() => setModeloAberto(true)}
-                    title={`Detalhe técnico, sistema: Whisper local · microfone: ${micEngine === 'browser' ? 'Web Speech (rede)' : 'Whisper local'} · perfil de IA: ${activeProfileName}`}
-                    aria-label="Modelo no dispositivo: ver detalhes"
+                    aria-label={
+                      mbDoModelo
+                        ? `Modelo no dispositivo, ${mbDoModelo} MB: ver detalhes`
+                        : 'Modelo no dispositivo: ver detalhes'
+                    }
                   >
-                    <Cpu aria-hidden /> {sttRouteLabel ? sttRouteLabel : 'modelo local'}
+                    <Cpu aria-hidden /> modelo local{mbDoModelo ? ` · ${mbDoModelo} MB` : ''}
                   </button>
                   <button
                     type="button"
                     className="btn btn-outline peq"
-                    onClick={() => {
-                      play(showConfigPanel ? 'close' : 'open');
-                      setShowConfigPanel(!showConfigPanel);
-                    }}
+                    onClick={() => setShowConfigPanel(!showConfigPanel)}
                     aria-label="Ajustes da captura"
-                    title="Configurações de dispositivos e modelos de IA"
                   >
-                    <Sliders aria-hidden />
+                    <SlidersHorizontal aria-hidden />
                   </button>
                   <button
                     type="button"
                     className="btn btn-outline peq"
                     onClick={() => setShowGuide(true)}
                     aria-label="Ajuda"
-                    title="Guia rápido: como capturar, importar e estudar"
                   >
                     <CircleHelp aria-hidden />
                   </button>
@@ -2310,14 +2318,14 @@ export default function LiveCapture({
                     <div className="estudio-topo">
                       <h2>
                         <span className={`ponto ${isRecording ? 'vivo' : ''}`} />
-                        {isRecording ? 'Gravando…' : 'Espaço de gravação'}
+                        Espaço de gravação
                       </h2>
                       <div className="linha" style={{ gap: 8 }}>
                         <button
+                          ref={entrarNoFocoRef}
                           type="button"
                           className="btn btn-outline peq"
                           onClick={() => setIsFocusMode(true)}
-                          title="Expandir para o modo focado em tela cheia"
                         >
                           <Maximize2 aria-hidden /> Foco cheio
                         </button>
@@ -2367,58 +2375,10 @@ export default function LiveCapture({
                         type="button"
                         onClick={() => setIdiomasAbertos(true)}
                         aria-haspopup="dialog"
-                        title="Ver e trocar os idiomas da sessão"
-                        className={`btn btn-outline peq ${mesmoIdioma ? 'pulsa' : ''}`}
+                        className="btn btn-outline peq"
                       >
-                        {rotuloDoPar}
+                        {rotuloDoPar} <ChevronDown aria-hidden />
                       </button>
-                      {/* IDIOMAS IGUAIS = CARTÃO SEM VERSO (spec entrega-honesta). Ajustes já avisa
-                          quem passa por lá; quem vai direto gravar não via nada, e o caderno enchia
-                          de palavras sem tradução — 198 de 201 na conta do dono. O aviso mora aqui
-                          porque é aqui que a palavra é fichada. */}
-                      {baseLang(sourceLang) === baseLang(targetLang) && (
-                        <p className="text-[9px] text-warn-ink md:text-end leading-tight">
-                          ⚠ Os dois idiomas são o mesmo: não há o que traduzir, e as palavras fichadas ficam{' '}
-                          <b>sem verso</b> (não servem para revisar).{' '}
-                          <button
-                            onClick={() => setIdiomasAbertos(true)}
-                            className="underline font-bold cursor-pointer"
-                          >
-                            trocar um dos dois
-                          </button>
-                        </p>
-                      )}
-                      {/* Limite honesto: a Web Speech (motor padrão do mic) não detecta idioma. */}
-                      {autoDetectMyLang && captureScenario !== 'media' && micEngine === 'browser' && (
-                        <p className="text-[9px] text-warn-ink md:text-end leading-tight">
-                          ⚠ No microfone, a detecção automática exige o motor Whisper (ajustes avançados), no motor
-                          navegador vale o idioma escolhido.
-                        </p>
-                      )}
-                      {/* Cobertura REAL do par (única tela do app que avisa sobre isso). 'online' =
-                          funciona, mas depende de rede; 'unknown' = não há motor nenhum para o par,
-                          um aviso bem diferente, porque nem com internet vai traduzir. */}
-                      {!autoDetectLang &&
-                        (() => {
-                          const coverage = mtCoverage(sourceLang, targetLang);
-                          if (coverage === 'online') {
-                            return (
-                              <p className="text-[9px] text-warn-ink md:text-end leading-tight">
-                                ⚠ {langLabel(sourceLang)}↔{langLabel(targetLang)} exige internet (o tradutor local
-                                cobre só ↔ inglês).
-                              </p>
-                            );
-                          }
-                          if (coverage === 'unknown') {
-                            return (
-                              <p className="text-[9px] text-warn-ink md:text-end leading-tight">
-                                ⚠ Não há tradutor para {langLabel(sourceLang)}↔{langLabel(targetLang)}, as falas serão
-                                transcritas, mas ficarão sem tradução.
-                              </p>
-                            );
-                          }
-                          return null;
-                        })()}
                     </div>
                     <div className="linha">
                       <span className="relogio">{isRecording ? formatTime(timer) : '00:00'}</span>
@@ -2443,18 +2403,118 @@ export default function LiveCapture({
                       de adivinhar. Agora que a fonte muda no meio da sessão, é durante a gravação
                       que a pessoa precisa ler, em palavras, se a própria voz está entrando. */}
                     <p className="mut" style={{ fontSize: 12.5, marginTop: 6 }}>
-                      {isRecording
-                        ? micEnabled
-                          ? 'Gravando o som do computador e a sua voz. Cada voz é identificada e traduzida na direção certa.'
-                          : 'Gravando o som do computador. Sua voz está fora — ligue o microfone quando quiser entrar.'
-                        : micEnabled
-                          ? 'O som do computador e a sua voz entram juntos. Dê play no vídeo, aula ou chamada e clique em Iniciar.'
-                          : 'O som do computador entra sozinho. Dê play no vídeo, aula ou chamada e clique em Iniciar. A legenda bilíngue aparece aqui e nas Legendas flutuantes.'}
+                      O som do computador entra sozinho. Dê play no vídeo, aula ou chamada e clique em Iniciar. A
+                      legenda bilíngue aparece aqui e nas Legendas flutuantes.
                     </p>
 
                     {/* Linha 5 — preparo dos modelos locais (progresso transitório; não é configuração) */}
                     {modelPrep && <ModelPrepPanel state={modelPrep} onRetry={prepareModels} compact />}
                   </section>
+
+                  {/* ══════════════ FALANTES (C5 do protótipo) ══════════════
+                    Antes da conversa, no cenário Conversa: as vozes que o identificador local
+                    separou (WeSpeaker, beta), com o % de fala real, renomear e adicionar. Sem a
+                    separação automática, clicar num falante diz quem fala a seguir. */}
+                  {captureScenario === 'conversation' && (
+                    <section className="cartao escuro p6 falantes entra" aria-label="Falantes">
+                      <div className="entre">
+                        <h2 className="h-escuro">
+                          <Users aria-hidden /> Quem está falando
+                        </h2>
+                        <div className="op-linha escuro-op">
+                          <span>Separar vozes sozinho</span>
+                          <Interruptor
+                            ligado={speakerAutoId}
+                            rotulo="Separar vozes automaticamente"
+                            aoTrocar={() => {
+                              const liga = !speakerAutoId;
+                              setSpeakerAutoId(liga);
+                              if (!liga) setSpeakerIdStatus('off');
+                              toast.info(liga ? 'O app separa as vozes sozinho' : 'Você marca quem fala');
+                            }}
+                          />
+                        </div>
+                      </div>
+                      <div className="linha" style={{ gap: 8, flexWrap: 'wrap', marginTop: 12 }}>
+                        {speakerProfiles
+                          .filter((f) => f.id !== 'user')
+                          .map((f) =>
+                            editingSpeakerId === f.id ? (
+                              <form
+                                key={f.id}
+                                className="chip-falante"
+                                onSubmit={(e) => {
+                                  e.preventDefault();
+                                  handleSaveSpeakerName(f.id);
+                                }}
+                              >
+                                <label className="sr" htmlFor={`ren-${f.id}`}>
+                                  Nome do falante
+                                </label>
+                                <input
+                                  id={`ren-${f.id}`}
+                                  className="campo"
+                                  style={{ minHeight: 30, width: 110 }}
+                                  value={editingSpeakerName}
+                                  onChange={(e) => setEditingSpeakerName(e.target.value)}
+                                  onKeyDown={(e) => {
+                                    if (e.key === 'Escape') setEditingSpeakerId(null);
+                                  }}
+                                  autoFocus
+                                />
+                                <button className="btn btn-solid peq">OK</button>
+                              </form>
+                            ) : (
+                              <span
+                                key={f.id}
+                                className="chip-falante"
+                                aria-current={!speakerAutoId && f.isActive ? 'true' : undefined}
+                                onClick={() => !speakerAutoId && handleSelectActiveSpeaker(f.id)}
+                              >
+                                <b>{f.name}</b>
+                                {talkTimePct?.[f.id] != null && <span className="tn">{talkTimePct[f.id]}%</span>}
+                                <button
+                                  type="button"
+                                  className="icone-min"
+                                  aria-label={`Renomear ${f.name}`}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleStartRenameSpeaker(f.id, f.name);
+                                  }}
+                                >
+                                  <Pencil aria-hidden />
+                                </button>
+                              </span>
+                            ),
+                          )}
+                        <span
+                          className="chip-falante voce"
+                          aria-current={
+                            !speakerAutoId && speakerProfiles.find((f) => f.id === 'user')?.isActive
+                              ? 'true'
+                              : undefined
+                          }
+                          onClick={() => !speakerAutoId && handleSelectActiveSpeaker('user')}
+                        >
+                          <b>Você</b>
+                          <span className="tn">microfone</span>
+                        </span>
+                        <button type="button" className="btn btn-outline peq" onClick={handleAddSpeaker}>
+                          <UserPlus aria-hidden /> Adicionar falante
+                        </button>
+                      </div>
+                      {speakerAutoId && speakerIdStatus === 'loading' && (
+                        <p className="mut" style={{ fontSize: 12, marginTop: 10 }}>
+                          Carregando o separador de vozes (6,7 MB, uma vez)…
+                        </p>
+                      )}
+                      {speakerAutoId && speakerIdStatus === 'unavailable' && (
+                        <p className="mut" style={{ fontSize: 12, marginTop: 10 }}>
+                          O separador de vozes não carregou: clique num nome para dizer quem fala.
+                        </p>
+                      )}
+                    </section>
+                  )}
 
                   {/* ══════════════ TRANSCRIÇÃO AO VIVO ══════════════ */}
                   <section
@@ -2506,6 +2566,25 @@ export default function LiveCapture({
                       </div>
                     </div>
 
+                    {!isRecording && sessaoSalva && speechSegments.length > 0 && (
+                      <div className="linha" style={{ marginTop: 18, gap: 10, flexWrap: 'wrap' }}>
+                        <button
+                          type="button"
+                          className="btn btn-solid"
+                          onClick={() => onChangeView?.('analysis', { id: sessaoSalva.id })}
+                        >
+                          <Save aria-hidden /> Abrir a sessão salva
+                        </button>
+                        <span className="mut" style={{ fontSize: 12.5 }}>
+                          {sessaoSalva.palavras === null
+                            ? 'Fichando o vocabulário…'
+                            : sessaoSalva.palavras === 1
+                              ? '1 palavra foi para o seu vocabulário.'
+                              : `${sessaoSalva.palavras} palavras foram para o seu vocabulário.`}
+                        </span>
+                      </div>
+                    )}
+
                     {/* Simulador de fala — FERRAMENTA DE DEV/TESTE, não de usuário final. Só aparece
                     com localStorage['babel.devTools']='1' (o harness __simSystem segue sempre
                     disponível no console p/ a bateria de regressão MCP). */}
@@ -2537,143 +2616,6 @@ export default function LiveCapture({
                 </div>
               </EditablePanel>
             }
-
-            {/* FALANTES — identificação AUTOMÁTICA de voz (WeSpeaker local, beta) + correção
-              manual. Cada voz nova do som do computador vira "Pessoa N" com cor própria; o
-              usuário renomeia com um clique. Só no cenário CONVERSA (nos outros há um falante
-              por lado, era ruído). */}
-            {captureScenario === 'conversation' && (
-              <EditablePanel
-                viewKey="capture"
-                panelKey="diarization"
-                title="Falantes"
-                canResizeWidth={false}
-                canResizeHeight={false}
-                defaultHeight={0} // auto height
-              >
-                <section className="bg-surface border border-border-subtle rounded-2xl p-4 shadow-card">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                    <div className="shrink-0">
-                      <span className="text-xs font-bold tracking-wider text-ink-muted uppercase flex items-center gap-2">
-                        <Users className="w-4 h-4 text-accent" /> Falantes
-                        {/* Toggle da identificação automática — persiste; desligado = só manual. */}
-                        <button
-                          onClick={() => {
-                            setSpeakerAutoId((v) => !v);
-                            if (speakerAutoId) setSpeakerIdStatus('off');
-                          }}
-                          aria-pressed={speakerAutoId}
-                          title={
-                            speakerAutoId
-                              ? 'Desativar a identificação automática de voz'
-                              : 'Ativar a identificação automática de voz'
-                          }
-                          className={`normal-case tracking-normal text-[9px] font-bold px-2 py-0.5 rounded-full border transition-colors cursor-pointer ${
-                            speakerAutoId
-                              ? 'bg-accent-soft border-accent/40 text-accent-ink'
-                              : 'bg-canvas border-border-subtle text-ink-faint hover:text-ink'
-                          }`}
-                        >
-                          {speakerAutoId ? 'Auto: ligado' : 'Auto: desligado'}
-                        </button>
-                      </span>
-                      <p className="text-[10px] text-ink-faint leading-tight mt-0.5 max-w-[280px]">
-                        {!speakerAutoId &&
-                          'Atribuição manual: clique num nome antes de falar para etiquetar as próximas falas.'}
-                        {speakerAutoId &&
-                          speakerIdStatus === 'loading' &&
-                          'Carregando o identificador de vozes (6,7MB, uma vez)… as falas são etiquetadas assim que ele ficar pronto.'}
-                        {speakerAutoId &&
-                          speakerIdStatus === 'ready' &&
-                          'Cada voz do som do computador vira uma pessoa com cor própria (beta). Clique no lápis para dar nome; vozes parecidas podem se fundir.'}
-                        {speakerAutoId &&
-                          speakerIdStatus === 'unavailable' &&
-                          'O identificador de vozes não carregou (sem internet no 1º uso?), atribuição manual nesta sessão.'}
-                        {speakerAutoId &&
-                          speakerIdStatus === 'off' &&
-                          'Ao iniciar a captura, cada voz do som do computador vira uma pessoa com cor própria (beta). O % é o tempo de fala real.'}
-                      </p>
-                    </div>
-
-                    <div className="flex flex-wrap items-center gap-3">
-                      {speakerProfiles.map((speaker) => (
-                        <div
-                          key={speaker.id}
-                          onClick={() => {
-                            if (editingSpeakerId !== speaker.id) {
-                              handleSelectActiveSpeaker(speaker.id);
-                            }
-                          }}
-                          className={`flex items-center gap-2 px-3 py-1.5 rounded-full border text-xs font-semibold cursor-pointer transition-all ${
-                            speaker.isActive
-                              ? 'bg-accent/10 border-accent text-accent shadow-sm scale-[1.02]'
-                              : 'bg-canvas border-border-subtle hover:bg-surface-hover text-ink-muted'
-                          }`}
-                        >
-                          <span
-                            className={`w-2 h-2 rounded-full ${speaker.isActive ? 'animate-pulse' : ''}`}
-                            style={{ backgroundColor: speaker.color }}
-                          ></span>
-
-                          {editingSpeakerId === speaker.id ? (
-                            <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
-                              <input
-                                type="text"
-                                value={editingSpeakerName}
-                                onChange={(e) => setEditingSpeakerName(e.target.value)}
-                                className="bg-surface text-ink text-xs font-bold px-2 py-0.5 rounded border border-accent outline-none w-24"
-                                onKeyDown={(e) => {
-                                  if (e.key === 'Enter') handleSaveSpeakerName(speaker.id);
-                                  if (e.key === 'Escape') setEditingSpeakerId(null);
-                                }}
-                                autoFocus
-                              />
-                              <button
-                                onClick={() => handleSaveSpeakerName(speaker.id)}
-                                className="text-[10px] bg-accent text-white px-1.5 py-0.5 rounded font-bold hover:bg-accent-ink"
-                                title="Confirmar"
-                              >
-                                OK
-                              </button>
-                            </div>
-                          ) : (
-                            <div className="flex items-center gap-1">
-                              <span>{speaker.name}</span>
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleStartRenameSpeaker(speaker.id, speaker.name);
-                                }}
-                                className="p-0.5 hover:bg-black/10 rounded text-ink-muted hover:text-accent transition-colors"
-                                title="Clique para definir o nome"
-                              >
-                                <Edit2 className="w-3 h-3" />
-                              </button>
-                            </div>
-                          )}
-
-                          {talkTimePct?.[speaker.id] != null && (
-                            <span className="text-[10px] font-mono opacity-80 bg-black/5 px-1.5 py-0.5 rounded-full">
-                              {talkTimePct[speaker.id]}%
-                            </span>
-                          )}
-                        </div>
-                      ))}
-
-                      {/* Dynamic Add Speaker trigger */}
-                      <button
-                        onClick={handleAddSpeaker}
-                        className="flex items-center gap-1 px-3 py-1.5 rounded-full border border-dashed border-border-subtle bg-canvas hover:bg-surface-hover text-ink-muted hover:text-accent text-xs font-bold transition-all cursor-pointer"
-                        title="Adicionar novo falante detectado"
-                      >
-                        <Plus className="w-3.5 h-3.5" />
-                        <span>Adicionar Falante</span>
-                      </button>
-                    </div>
-                  </div>
-                </section>
-              </EditablePanel>
-            )}
           </div>
         </div>
 
@@ -2698,6 +2640,7 @@ export default function LiveCapture({
 
       {showGuide && (
         <GuidePanel
+          mbDoModelo={mbDoModelo || undefined}
           onClose={() => setShowGuide(false)}
           aoMaisAjuda={onChangeView ? () => onChangeView('ajuda') : undefined}
         />
@@ -2719,6 +2662,7 @@ export default function LiveCapture({
       )}
       {modeloAberto && (
         <ModeloNoDispositivo
+          rota={sttRouteLabel}
           modelos={modelosDaCaptura}
           nuvem={getProviderMode() === 'cloud'}
           aoFechar={() => setModeloAberto(false)}
@@ -2805,15 +2749,15 @@ export default function LiveCapture({
               <Type aria-hidden /> Ajustar visual
             </button>
             {/* O par de idiomas, o mesmo chip da tela normal: trocar o idioma sem sair do foco. */}
-            <button
-              type="button"
-              className="btn btn-outline peq"
-              onClick={() => setIdiomasAbertos(true)}
-              title="Ver e trocar os idiomas da sessão"
-            >
+            <button type="button" className="btn btn-outline peq" onClick={() => setIdiomasAbertos(true)}>
               {rotuloDoPar}
             </button>
-            <button type="button" className="btn btn-outline peq" onClick={() => setIsFocusMode(false)}>
+            <button
+              ref={sairDoFocoRef}
+              type="button"
+              className="btn btn-outline peq"
+              onClick={() => setIsFocusMode(false)}
+            >
               <Minimize2 aria-hidden /> Tela normal <kbd>Esc</kbd>
             </button>
           </div>
@@ -2831,7 +2775,7 @@ export default function LiveCapture({
             <div
               ref={focusScrollRef}
               onScroll={handleFocusScroll}
-              className="foco-conversa"
+              className={`foco-conversa tema-${TEMA[tsSettings.textColor] ?? 'padrao'}`}
               style={{ minHeight: 0 }}
               aria-live="polite"
             >
@@ -2940,6 +2884,7 @@ export default function LiveCapture({
       <input type="file" ref={coverFileRef} onChange={handleCoverUpload} accept="image/*" className="hidden" />
       {showSaveModal && (
         <EncerrarSessao
+          nFalas={speechSegments.length}
           resumo={`${speechSegments.length} ${speechSegments.length === 1 ? 'fala' : 'falas'} · ${formatTime(timer)}`}
           retomada={!!resumeId}
           titulo={customSessionTitle}

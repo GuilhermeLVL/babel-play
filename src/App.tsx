@@ -20,6 +20,8 @@ const Perfil = lazyComRecarga(() => import('./components/views/Perfil'));
 const Planos = lazyComRecarga(() => import('./components/views/Planos'));
 const Sobre = lazyComRecarga(() => import('./components/views/Sobre'));
 const Estatisticas = lazyComRecarga(() => import('./components/views/Estatisticas'));
+const Ajuda = lazyComRecarga(() => import('./components/views/Ajuda'));
+const NaoEncontrado = lazyComRecarga(() => import('./components/views/NaoEncontrado'));
 const Loja = lazyComRecarga(() => import('./components/views/Loja'));
 const Login = lazyComRecarga(() => import('./components/Login'));
 const ResetPassword = lazyComRecarga(() => import('./components/auth/ResetPassword'));
@@ -437,6 +439,10 @@ export default function App() {
             {activeView === 'planos' && <Planos />}
             {activeView === 'estatisticas' && (
               <Estatisticas metrics={metrics} onChangeView={(v) => navigateTo(v as ViewType)} />
+            )}
+            {activeView === 'ajuda' && <Ajuda />}
+            {activeView === 'naoencontrado' && (
+              <NaoEncontrado onChangeView={(v) => navigateTo(v as ViewType)} onBuscar={() => setBuscaAberta(true)} />
             )}
             {activeView === 'sobre' && <Sobre onVerPlanos={(v) => navigateTo(v)} />}
             {activeView === 'loja' && (

@@ -1,4 +1,4 @@
-import { CreditCard,LogIn, LogOut, Settings as SettingsIcon, User } from 'lucide-react';
+import { CreditCard, LifeBuoy, LogIn, LogOut, Settings as SettingsIcon, User } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 
@@ -59,7 +59,10 @@ export default function MenuDaConta({ onIr, orientation }: MenuDaContaProps) {
     const medir = () => {
       const r = gatilho.current?.getBoundingClientRect();
       if (!r) return;
-      const LARGURA = 236, ALTURA = 210, FOLGA = 8, MARGEM = 8;
+      const LARGURA = 236,
+        ALTURA = 210,
+        FOLGA = 8,
+        MARGEM = 8;
 
       const cabeAbaixo = window.innerHeight - r.bottom >= ALTURA + FOLGA;
       const top = cabeAbaixo ? r.bottom + FOLGA : Math.max(MARGEM, r.top - ALTURA - FOLGA);
@@ -74,7 +77,10 @@ export default function MenuDaConta({ onIr, orientation }: MenuDaContaProps) {
     medir();
     window.addEventListener('resize', medir);
     window.addEventListener('scroll', medir, true);
-    return () => { window.removeEventListener('resize', medir); window.removeEventListener('scroll', medir, true); };
+    return () => {
+      window.removeEventListener('resize', medir);
+      window.removeEventListener('scroll', medir, true);
+    };
   }, [aberto, orientation]);
 
   // Fecha ao clicar fora e no Escape — um menu que só fecha no próprio botão prende quem errou o alvo.
@@ -84,23 +90,31 @@ export default function MenuDaConta({ onIr, orientation }: MenuDaContaProps) {
       const alvo = e.target as Node;
       if (!painel.current?.contains(alvo) && !gatilho.current?.contains(alvo)) setAberto(false);
     };
-    const escape = (e: KeyboardEvent) => { if (e.key === 'Escape') setAberto(false); };
+    const escape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setAberto(false);
+    };
     document.addEventListener('mousedown', foraDaqui);
     document.addEventListener('keydown', escape);
-    return () => { document.removeEventListener('mousedown', foraDaqui); document.removeEventListener('keydown', escape); };
+    return () => {
+      document.removeEventListener('mousedown', foraDaqui);
+      document.removeEventListener('keydown', escape);
+    };
   }, [aberto]);
 
   const nome = perfil?.displayName?.trim() || null;
   const email = perfil?.email?.trim() || null;
 
-  const ir = (view: string) => { setAberto(false); onIr(view); };
+  const ir = (view: string) => {
+    setAberto(false);
+    onIr(view);
+  };
 
   return (
     <>
       <button
         ref={gatilho}
         type="button"
-        onClick={() => setAberto(a => !a)}
+        onClick={() => setAberto((a) => !a)}
         aria-haspopup="menu"
         aria-expanded={aberto}
         aria-label={nome ? `Conta de ${nome}` : 'Sua conta'}
@@ -111,61 +125,97 @@ export default function MenuDaConta({ onIr, orientation }: MenuDaContaProps) {
         {iniciais || <User className="w-4 h-4" aria-hidden />}
       </button>
 
-      {aberto && coords && createPortal(
-        <div
-          ref={painel}
-          role="menu"
-          style={{ top: coords.top, left: coords.left }}
-          className="fixed z-[60] w-[236px] card-panel bg-surface shadow-card p-1.5 animate-in fade-in zoom-in-95 duration-150"
-        >
-          {/* A IDENTIDADE, que não existia em lugar nenhum da interface. */}
-          <div className="px-2.5 py-2 border-b border-border-subtle mb-1">
-            <p className="font-bold text-[13px] text-ink truncate">{nome ?? 'Sua conta'}</p>
-            {email
-              ? <p className="text-[11.5px] text-ink-muted truncate" title={email}>{email}</p>
-              /* Sem e-mail não se inventa um: o servidor não retém o e-mail do JWT, e dizer
+      {aberto &&
+        coords &&
+        createPortal(
+          <div
+            ref={painel}
+            role="menu"
+            style={{ top: coords.top, left: coords.left }}
+            className="fixed z-[60] w-[236px] card-panel bg-surface shadow-card p-1.5 animate-in fade-in zoom-in-95 duration-150"
+          >
+            {/* A IDENTIDADE, que não existia em lugar nenhum da interface. */}
+            <div className="px-2.5 py-2 border-b border-border-subtle mb-1">
+              <p className="font-bold text-[13px] text-ink truncate">{nome ?? 'Sua conta'}</p>
+              {email ? (
+                <p className="text-[11.5px] text-ink-muted truncate" title={email}>
+                  {email}
+                </p>
+              ) : (
+                /* Sem e-mail não se inventa um: o servidor não retém o e-mail do JWT, e dizer
                  "conta local" é a verdade sobre o que está acontecendo. */
-              : <p className="text-[11.5px] text-ink-faint">{anonimo ? 'sem conta · dados só neste navegador' : authRequired ? 'sessão ativa' : 'conta local'}</p>}
-          </div>
+                <p className="text-[11.5px] text-ink-faint">
+                  {anonimo ? 'sem conta · dados só neste navegador' : authRequired ? 'sessão ativa' : 'conta local'}
+                </p>
+              )}
+            </div>
 
-          {anonimo ? (
-            <button role="menuitem" onClick={() => ir('login')} className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-[13px] text-accent-ink font-semibold hover:bg-accent-soft cursor-pointer">
-              <LogIn className="w-4 h-4" aria-hidden /> Entrar ou criar conta
-            </button>
-          ) : (
-            <button role="menuitem" onClick={() => ir('profile')} className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-[13px] text-ink hover:bg-surface-hover cursor-pointer">
-              <User className="w-4 h-4 text-ink-muted" aria-hidden /> Meu perfil
-            </button>
-          )}
-          {/* Plano e consumo entram AQUI, e não na navegação principal: são assunto de conta, e
-              monetização no menu de uso diário pediria atenção que o produto não precisa pedir. */}
-          <button role="menuitem" onClick={() => ir('planos')} className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-[13px] text-ink hover:bg-surface-hover cursor-pointer">
-            <CreditCard className="w-4 h-4 text-ink-muted" aria-hidden />
-            <span className="flex-1 text-start">Plano e consumo</span>
-            {/* O preço só aparece para quem TEM o que comprar (spec planos-visiveis); para o
-                assinante o item volta a ser neutro. */}
-            {planoAnunciavel() && <span className="text-[11px] text-accent-ink font-semibold">R$ {menorPrecoDeAssinatura()}+</span>}
-          </button>
-          <button role="menuitem" onClick={() => ir('settings')} className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-[13px] text-ink hover:bg-surface-hover cursor-pointer">
-            <SettingsIcon className="w-4 h-4 text-ink-muted" aria-hidden /> Ajustes
-          </button>
-
-          {/* Só com login de verdade. Sem sessão não há o que encerrar. */}
-          {authRequired && !anonimo && (
-            <>
-              <div className="h-px bg-border-subtle my-1" />
+            {anonimo ? (
               <button
                 role="menuitem"
-                onClick={() => { setAberto(false); void auth.signOut(); }}
-                className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-[13px] text-error-ink hover:bg-error-soft cursor-pointer"
+                onClick={() => ir('login')}
+                className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-[13px] text-accent-ink font-semibold hover:bg-accent-soft cursor-pointer"
               >
-                <LogOut className="w-4 h-4" aria-hidden /> Sair da conta
+                <LogIn className="w-4 h-4" aria-hidden /> Entrar ou criar conta
               </button>
-            </>
-          )}
-        </div>,
-        document.body,
-      )}
+            ) : (
+              <button
+                role="menuitem"
+                onClick={() => ir('profile')}
+                className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-[13px] text-ink hover:bg-surface-hover cursor-pointer"
+              >
+                <User className="w-4 h-4 text-ink-muted" aria-hidden /> Meu perfil
+              </button>
+            )}
+            {/* Plano e consumo entram AQUI, e não na navegação principal: são assunto de conta, e
+              monetização no menu de uso diário pediria atenção que o produto não precisa pedir. */}
+            <button
+              role="menuitem"
+              onClick={() => ir('planos')}
+              className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-[13px] text-ink hover:bg-surface-hover cursor-pointer"
+            >
+              <CreditCard className="w-4 h-4 text-ink-muted" aria-hidden />
+              <span className="flex-1 text-start">Plano e consumo</span>
+              {/* O preço só aparece para quem TEM o que comprar (spec planos-visiveis); para o
+                assinante o item volta a ser neutro. */}
+              {planoAnunciavel() && (
+                <span className="text-[11px] text-accent-ink font-semibold">R$ {menorPrecoDeAssinatura()}+</span>
+              )}
+            </button>
+            <button
+              role="menuitem"
+              onClick={() => ir('ajuda')}
+              className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-[13px] text-ink hover:bg-surface-hover cursor-pointer"
+            >
+              <LifeBuoy className="w-4 h-4 text-ink-muted" aria-hidden /> Ajuda
+            </button>
+            <button
+              role="menuitem"
+              onClick={() => ir('settings')}
+              className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-[13px] text-ink hover:bg-surface-hover cursor-pointer"
+            >
+              <SettingsIcon className="w-4 h-4 text-ink-muted" aria-hidden /> Ajustes
+            </button>
+
+            {/* Só com login de verdade. Sem sessão não há o que encerrar. */}
+            {authRequired && !anonimo && (
+              <>
+                <div className="h-px bg-border-subtle my-1" />
+                <button
+                  role="menuitem"
+                  onClick={() => {
+                    setAberto(false);
+                    void auth.signOut();
+                  }}
+                  className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-[13px] text-error-ink hover:bg-error-soft cursor-pointer"
+                >
+                  <LogOut className="w-4 h-4" aria-hidden /> Sair da conta
+                </button>
+              </>
+            )}
+          </div>,
+          document.body,
+        )}
     </>
   );
 }

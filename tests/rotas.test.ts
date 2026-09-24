@@ -83,8 +83,8 @@ describe('urlParaEstado', () => {
     expect(urlParaEstado('/JOGAR/')).toEqual({ view: 'play' })
   })
 
-  it('caminho desconhecido cai no Hub em vez de tela em branco', () => {
-    expect(urlParaEstado('/nao-existe')).toEqual({ view: 'hub' })
+  it('caminho desconhecido abre o 404 em vez de tela em branco (e não cai calado no Hub)', () => {
+    expect(urlParaEstado('/nao-existe')).toEqual({ view: 'naoencontrado' })
     expect(urlParaEstado('')).toEqual({ view: 'hub' })
   })
 

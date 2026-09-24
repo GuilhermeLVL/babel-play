@@ -31,7 +31,9 @@ export type ViewDeRota =
   | 'sobre'
   | 'loja'
   | 'planos'
-  | 'estatisticas';
+  | 'estatisticas'
+  | 'ajuda'
+  | 'naoencontrado';
 
 export interface EstadoDeRota {
   view: ViewDeRota;
@@ -69,6 +71,8 @@ const SEGMENTO: Record<Exclude<ViewDeRota, 'analysis'>, string> = {
   loja: 'loja',
   planos: 'plano',
   estatisticas: 'estatisticas',
+  ajuda: 'ajuda',
+  naoencontrado: 'nao-encontrado',
 };
 
 /**
@@ -211,8 +215,9 @@ export function urlParaEstado(caminho: string): EstadoDeRota {
 
   const view = VIEW_DE_SEGMENTO[partes[0]];
   if (view === 'play' && query) return { view, jogarQuery: query };
-  // Caminho desconhecido cai no Hub: uma URL errada não pode virar tela em branco.
-  return view ? { view } : { view: 'hub' };
+  // Caminho desconhecido abre o 404 (protótipo aprovado, 23/09/2026): uma URL errada não vira tela
+  // em branco NEM cai calada no Início — diz o que houve e oferece o caminho de volta.
+  return view ? { view } : { view: 'naoencontrado' };
 }
 
 /* ── Ligação com o navegador ──────────────────────────────────────────────

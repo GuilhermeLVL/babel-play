@@ -1,4 +1,4 @@
-import { Ellipsis, UserRound } from 'lucide-react';
+import { Ellipsis, LifeBuoy, UserRound } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 
 import { t } from '../../lib/i18n';
@@ -21,7 +21,8 @@ export default function MobileNav({ activeView, onChangeView, ageProfile }: Mobi
   const [maisAberto, setMaisAberto] = useState(false);
   const principais = NAV_ITEMS.filter((i) => !i.secondary);
   const secundarios = NAV_ITEMS.filter((i) => i.secondary);
-  const secundarioAtivo = secundarios.some((i) => i.id === activeView) || activeView === 'profile';
+  const secundarioAtivo =
+    secundarios.some((i) => i.id === activeView) || activeView === 'profile' || activeView === 'ajuda';
 
   // Trocar de tela fecha a folha.
   useEffect(() => setMaisAberto(false), [activeView]);
@@ -86,6 +87,16 @@ export default function MobileNav({ activeView, onChangeView, ageProfile }: Mobi
         >
           <UserRound aria-hidden />
           {t('Seu perfil')}
+        </button>
+        <button
+          type="button"
+          className="item"
+          onClick={() => ir('ajuda' as ViewType)}
+          aria-current={activeView === 'ajuda' ? 'page' : undefined}
+          tabIndex={maisAberto ? 0 : -1}
+        >
+          <LifeBuoy aria-hidden />
+          {t('Ajuda')}
         </button>
       </div>
     </>

@@ -169,4 +169,6 @@ export type ViewType =
   | 'sobre'
   | 'loja'
   | 'planos'
-  | 'estatisticas';
+  | 'estatisticas'
+  | 'ajuda'
+  | 'naoencontrado';

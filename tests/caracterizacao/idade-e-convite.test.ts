@@ -10,11 +10,16 @@
  * 4. O convite é um token de USO ÚNICO e com EXPIRAÇÃO de 7 dias; convidar de novo substitui o
  *    anterior. Fora de produção o link volta na resposta (`linkDeTeste`) — é o que permite testar.
  * 5. A resposta nunca devolve o e-mail em claro, só mascarado.
+ * 6. No máximo 5 convites por conta em 24 h (429 `limite_de_convites`): o convite dispara e-mail
+ *    para um endereço que o menor digita, e sem teto a rota vira canal de spam.
+ * 7. Com o Resend configurado, o convite sai por e-mail; se o envio falha, 502
+ *    `convite_nao_enviado` com mensagem clara, o convite novo é descartado (não conta no limite)
+ *    e o anterior, que já tinha saído, continua valendo.
  *
  * O fluxo completo do aceite (adulto, consentimento de menor de 12, faixas) está em
  * `tests/integration/menores-e-responsavel.test.ts`; aqui fica o contrato das duas rotas.
  */
-import { afterAll, beforeAll, describe, expect, it } from 'vitest'
+import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
 
 import { type AppDeTeste, resposta, subirApp } from './_app'
 
@@ -164,6 +169,120 @@ describe('idade e convite ao responsavel (modo publico)', () => {
       )
       expect(r.status).toBe(410)
       expect((await r.json()).code).toBe('convite_expirado')
+    })
+
+    it('limite por conta: 5 convites em 24 h; o sexto e 429, e outra conta nao e afetada', async () => {
+      await s.put('/api/me/idade', { nascimento: nascidoHa(14) }, await tk('menor-insistente'))
+      for (let n = 1; n <= 5; n++) {
+        const r = await s.post(
+          '/api/me/responsavel/convite',
+          { email: `resp${n}@exemplo.com` },
+          await tk('menor-insistente'),
+        )
+        expect(r.status, `convite ${n}`).toBe(201)
+      }
+      const sexto = await s.post(
+        '/api/me/responsavel/convite',
+        { email: 'r6@exemplo.com' },
+        await tk('menor-insistente'),
+      )
+      expect(sexto.status).toBe(429)
+      expect(sexto.headers.get('retry-after')).toBeTruthy()
+      const corpo = await sexto.json()
+      expect(corpo.code).toBe('limite_de_convites')
+      expect(corpo.error).toMatch(/24 horas/)
+
+      await s.put('/api/me/idade', { nascimento: nascidoHa(13) }, await tk('menor-vizinho'))
+      expect(
+        (await s.post('/api/me/responsavel/convite', { email: 'v@exemplo.com' }, await tk('menor-vizinho'))).status,
+      ).toBe(201)
+    })
+
+    it('o limite olha as ultimas 24 h: convites mais antigos nao contam', async () => {
+      const { db } = await s.load('../../server/db/db')
+      const { vinculosDeResponsavel } = await s.load('../../server/db/schema')
+      const { eq } = await s.load('drizzle-orm')
+      await db
+        .update(vinculosDeResponsavel)
+        .set({ createdAt: Date.now() - 25 * 3_600_000 })
+        .where(eq(vinculosDeResponsavel.userId, 'menor-insistente'))
+      const r = await s.post('/api/me/responsavel/convite', { email: 'r7@exemplo.com' }, await tk('menor-insistente'))
+      expect(r.status).toBe(201)
+    })
+  })
+
+  describe('POST /api/me/responsavel/convite com o Resend configurado', () => {
+    const real = globalThis.fetch
+    let pedidosAoResend: Array<{ url: string; corpo: Record<string, unknown> }> = []
+
+    function simularResend(status: number) {
+      pedidosAoResend = []
+      process.env.RESEND_API_KEY = 're_teste'
+      process.env.EMAIL_REMETENTE = 'Babel Play <nao-responda@exemplo.com>'
+      vi.spyOn(globalThis, 'fetch').mockImplementation(async (entrada, init) => {
+        const url = String(entrada instanceof Request ? entrada.url : entrada)
+        if (url.startsWith(s.base)) return real(entrada, init)
+        pedidosAoResend.push({ url, corpo: JSON.parse(String(init?.body)) })
+        return new Response(status < 300 ? '{"id":"e1"}' : '{"message":"falhou"}', { status })
+      })
+    }
+    afterEach(() => {
+      vi.restoreAllMocks()
+      delete process.env.RESEND_API_KEY
+      delete process.env.EMAIL_REMETENTE
+    })
+
+    it('sucesso: 201 enviado por e-mail, para o endereco informado', async () => {
+      await s.put('/api/me/idade', { nascimento: nascidoHa(15) }, await tk('menor-com-email'))
+      simularResend(200)
+      const r = await s.post('/api/me/responsavel/convite', { email: 'Pai@Exemplo.com' }, await tk('menor-com-email'))
+      expect(r.status).toBe(201)
+      expect(await r.json()).toMatchObject({ enviado: true, modo: 'email' })
+      expect(pedidosAoResend).toHaveLength(1)
+      expect(pedidosAoResend[0].url).toBe('https://api.resend.com/emails')
+      expect(pedidosAoResend[0].corpo.to).toEqual(['pai@exemplo.com'])
+    })
+
+    it('o Resend falha: 502 com mensagem clara, e o convite anterior continua valendo', async () => {
+      await s.put('/api/me/idade', { nascimento: nascidoHa(14) }, await tk('menor-sem-sorte'))
+      const anterior = tokenDoLink(
+        (
+          await (
+            await s.post('/api/me/responsavel/convite', { email: 'antigo@exemplo.com' }, await tk('menor-sem-sorte'))
+          ).json()
+        ).linkDeTeste,
+      )
+
+      simularResend(500)
+      const r = await s.post('/api/me/responsavel/convite', { email: 'novo@exemplo.com' }, await tk('menor-sem-sorte'))
+      expect(r.status).toBe(502)
+      const corpo = await r.json()
+      expect(corpo.code).toBe('convite_nao_enviado')
+      expect(corpo.error).toMatch(/tente de novo em alguns minutos/i)
+      expect(JSON.stringify(corpo)).not.toContain('novo@exemplo.com')
+      expect(corpo.linkDeTeste, 'convite que nao saiu nao tem link').toBeUndefined()
+      vi.restoreAllMocks()
+
+      const estado = await (await s.get('/api/me/idade', await tk('menor-sem-sorte'))).json()
+      expect(estado.vinculo.emailMascarado).toMatch(/^an/)
+      const aceite = await s.post(
+        '/api/responsavel/aceitar',
+        { token: anterior, nomeDoResponsavel: 'Maria', declaroSerResponsavelLegal: true },
+        tokens.mae,
+      )
+      expect(aceite.status, 'a falha nao revogou o convite que ja tinha saido').toBe(200)
+    })
+
+    it('envio que falhou nao conta no limite diario', async () => {
+      await s.put('/api/me/idade', { nascimento: nascidoHa(13) }, await tk('menor-resend-fora'))
+      simularResend(503)
+      for (let n = 0; n < 6; n++) {
+        const r = await s.post('/api/me/responsavel/convite', { email: 'x@exemplo.com' }, await tk('menor-resend-fora'))
+        expect(r.status).toBe(502)
+      }
+      simularResend(200)
+      const r = await s.post('/api/me/responsavel/convite', { email: 'x@exemplo.com' }, await tk('menor-resend-fora'))
+      expect(r.status).toBe(201)
     })
   })
 })

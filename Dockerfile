@@ -33,9 +33,17 @@ RUN node scripts/copiar-assets-runtime.mjs --exigir
 ARG VITE_SUPABASE_URL
 ARG VITE_SUPABASE_ANON_KEY
 ARG VITE_AUTH_REQUIRED=1
+# Fase 5 (todas opcionais): o domínio público (canonical/og do index.html), o bucket R2 dos pesos
+# dos modelos (`https://…`, ou `1` para /models no mesmo domínio) e o DSN do Sentry do navegador.
+ARG VITE_PUBLIC_URL
+ARG VITE_SELF_HOST_MODELS
+ARG VITE_SENTRY_DSN
 ENV VITE_SUPABASE_URL=$VITE_SUPABASE_URL \
     VITE_SUPABASE_ANON_KEY=$VITE_SUPABASE_ANON_KEY \
-    VITE_AUTH_REQUIRED=$VITE_AUTH_REQUIRED
+    VITE_AUTH_REQUIRED=$VITE_AUTH_REQUIRED \
+    VITE_PUBLIC_URL=$VITE_PUBLIC_URL \
+    VITE_SELF_HOST_MODELS=$VITE_SELF_HOST_MODELS \
+    VITE_SENTRY_DSN=$VITE_SENTRY_DSN
 
 # Falha CEDO e com mensagem clara, em vez de produzir uma SPA sem login.
 RUN test -n "$VITE_SUPABASE_URL" && test -n "$VITE_SUPABASE_ANON_KEY" || \
@@ -44,6 +52,30 @@ RUN test -n "$VITE_SUPABASE_URL" && test -n "$VITE_SUPABASE_ANON_KEY" || \
 
 # Produz dist/ (SPA) e dist-server/server.cjs (servidor empacotado, deps externas).
 RUN npm run build
+
+# ─── litestream ───────────────────────────────────────────────────────────────
+# O binário OFICIAL do Litestream (github.com/benbjohnson/litestream), versão FIXADA e conferida
+# pelo sha256 que o próprio GitHub publica para o asset da release (campo `digest` da API). Estágio
+# próprio para o `curl` não ir parar na imagem de runtime. Atualizar = trocar a versão E os dois
+# sha256 no mesmo commit; checksum que não bate derruba o build, que é o ponto.
+FROM debian:bookworm-slim AS litestream
+ARG LITESTREAM_VERSAO=0.5.17
+ARG LITESTREAM_SHA256_AMD64=cfb371176d164437ae869f8351cfde49bd1804ae71c61923f75c9cba9c9c006d
+ARG LITESTREAM_SHA256_ARM64=f8ca4a050095c1efbda2c4365172e61bf9d955ea0d9ac42f448b52e51819baa5
+ARG TARGETARCH
+RUN set -eu; \
+    apt-get update; apt-get install -y --no-install-recommends ca-certificates curl; \
+    case "${TARGETARCH:-amd64}" in \
+      amd64) arq=x86_64; soma="$LITESTREAM_SHA256_AMD64" ;; \
+      arm64) arq=arm64;  soma="$LITESTREAM_SHA256_ARM64" ;; \
+      *) echo "arquitetura sem checksum fixado: $TARGETARCH" >&2; exit 1 ;; \
+    esac; \
+    curl -fsSL -o /tmp/litestream.tar.gz \
+      "https://github.com/benbjohnson/litestream/releases/download/v${LITESTREAM_VERSAO}/litestream-${LITESTREAM_VERSAO}-linux-${arq}.tar.gz"; \
+    echo "${soma}  /tmp/litestream.tar.gz" | sha256sum -c -; \
+    mkdir /tmp/ls; tar -xzf /tmp/litestream.tar.gz -C /tmp/ls; \
+    install -m 0755 "$(find /tmp/ls -type f -name litestream | head -n 1)" /usr/local/bin/litestream; \
+    /usr/local/bin/litestream version
 
 # ─── runtime ──────────────────────────────────────────────────────────────────
 FROM node:22-slim AS runtime
@@ -94,6 +126,28 @@ COPY --from=build /app/dist-server ./dist-server
 # Sem esta linha o boot falha com "no such table: sessions" num volume novo.
 COPY --from=build /app/server/db/migrations ./server/db/migrations
 
+# Fase 5 — operação do banco DENTRO da imagem (antes, `scripts/backup.mjs` ficava fora dela e o
+# backup só rodava onde houvesse o repositório):
+#   - `scripts/backup.mjs` só importa `@libsql/client`, que é dependência de produção e fica acima;
+#   - `dist-server/operacao.cjs` (snapshot / restaurar-snapshot / verificar) já veio com o
+#     `dist-server` do build;
+#   - o Litestream, a configuração dele e o entrypoint que decide se ele entra.
+COPY --from=build /app/scripts/backup.mjs ./scripts/backup.mjs
+COPY --from=litestream /usr/local/bin/litestream /usr/local/bin/litestream
+COPY litestream.yml /etc/litestream.yml
+COPY --chmod=0755 scripts/iniciar-container.sh /usr/local/bin/iniciar-container.sh
+
+# O que a CSP do servidor precisa enxergar das VITE_* (server/http/csp.ts) e a versão que o
+# Sentry mostra. Repetidas aqui porque ARG não atravessa estágio sozinho.
+ARG VITE_SUPABASE_URL
+ARG VITE_SELF_HOST_MODELS
+ARG VITE_SENTRY_DSN
+ARG VERSAO
+ENV VITE_SUPABASE_URL=$VITE_SUPABASE_URL \
+    VITE_SELF_HOST_MODELS=$VITE_SELF_HOST_MODELS \
+    VITE_SENTRY_DSN=$VITE_SENTRY_DSN \
+    SENTRY_RELEASE=$VERSAO
+
 # Diretório do banco e dos áudios. Em produção AMBOS devem ser volume — ver
 # docker-compose.yml. Sem volume, o dado morre com o container.
 #
@@ -131,4 +185,7 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=40s --retries=3 \
   CMD node -e "fetch('http://127.0.0.1:'+(process.env.PORT||3000)+'/api/ready').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
 
 USER node
-CMD ["node", "dist-server/server.cjs"]
+# Com as LITESTREAM_* no ambiente: restaura o banco do R2 se o volume estiver vazio e sobe o Node
+# como filho do `litestream replicate` (que repassa o SIGTERM). Sem elas: `node` direto, como antes.
+# Ver scripts/iniciar-container.sh.
+ENTRYPOINT ["/usr/local/bin/iniciar-container.sh"]

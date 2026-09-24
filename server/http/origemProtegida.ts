@@ -19,7 +19,7 @@ import type { RequestHandler } from 'express'
 
 export const CABECALHO_DE_ORIGEM = 'x-origem-segredo'
 
-/* `/metrics` tem token próprio e é raspado pela rede privada do Fly (`[metrics]` no `fly.toml`). */
+/* `/metrics` tem token próprio (obrigatório em produção) e pode ser raspado de dentro da rede privada do Fly. */
 const LIVRES = new Set(['/api/health', '/api/ready', '/metrics'])
 
 function iguais(a: string, b: string): boolean {

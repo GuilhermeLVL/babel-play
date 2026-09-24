@@ -1,0 +1,3 @@
+# Script de shell que roda DENTRO do container Linux: com CRLF o `#!/bin/sh` vira `/bin/sh\r` e o
+# container não sobe ("not found"). O checkout no Windows não pode convertê-lo.
+*.sh text eol=lf

@@ -1,0 +1,89 @@
+# Babel Play no Fly.io — região GRU (São Paulo). Passo a passo completo em docs/LANCAMENTO.md.
+#
+# UMA máquina (shared-cpu, 1 GB) com UM volume em /data: o SQLite mora no volume e o Litestream o
+# replica para o R2 continuamente. SQLite não é banco de várias máquinas — `fly scale count 2`
+# daria dois bancos divergentes. Para crescer, suba o tamanho da máquina (vertical) antes de pensar
+# em réplica (ver docs/deploy.md, "Escalar").
+#
+# Criar (uma vez):
+#   fly apps create babel-play
+#   fly volumes create babel_dados --region gru --size 3 --app babel-play
+#   fly secrets set --app babel-play SECRET_KEY=... SUPABASE_URL=... (a lista em .env.production.example)
+#   fly deploy --app babel-play --build-arg VITE_SUPABASE_URL=... --build-arg VITE_SUPABASE_ANON_KEY=...
+# (o workflow .github/workflows/deploy.yml faz o deploy por imagem com tag imutável)
+
+app = "babel-play"
+primary_region = "gru"
+
+# 30 s entre o SIGTERM e o SIGKILL. A conta: o Node drena por até DESLIGAMENTO_TIMEOUT_MS (20 s,
+# abaixo) e faz o checkpoint do WAL; depois o Litestream — que é o processo principal e repassou o
+# sinal — faz a última sincronização com o R2 e sai. O padrão do Fly (5 s) cortaria as duas coisas.
+kill_signal = "SIGTERM"
+kill_timeout = 30
+
+# SEM `[deploy] release_command` de propósito: as migrações já rodam no BOOT, antes do `listen`
+# (server.ts, `aplicarMigrations()`), e o boot aborta se elas falharem. Um release_command rodaria
+# numa máquina EFÊMERA sem o volume /data — migraria um banco que não é o de produção e ainda
+# deixaria o deploy verde. A segurança de "não servir com schema velho" é o /api/ready (checks abaixo).
+
+[build]
+  # O workflow de deploy usa `fly deploy --image <tag>`; este bloco vale para `fly deploy` local.
+  dockerfile = "Dockerfile"
+
+[env]
+  NODE_ENV = "production"
+  AUTH_REQUIRED = "1"
+  # Cloudflare (proxy laranja) → proxy do Fly → app: dois saltos confiáveis. Com um só, todo
+  # visitante viraria o IP do Cloudflare no limitador. Obrigatória em produção (o boot aborta sem).
+  TRUST_PROXY = "2"
+  HOST = "0.0.0.0"
+  PORT = "3000"
+  DATABASE_URL = "file:/data/babel.db"
+  AUDIO_DIR = "/data/audio"
+  DESLIGAMENTO_TIMEOUT_MS = "20000"
+  BACKUP_DIARIO = "1"
+  BACKUP_HORA_UTC = "6"
+  SENTRY_ENVIRONMENT = "production"
+
+[[mounts]]
+  source = "babel_dados"
+  destination = "/data"
+  # Aviso quando o volume passar de 80%; o banco, o WAL, a cópia temporária do snapshot diário e o
+  # estado local do Litestream moram todos aqui.
+  initial_size = "3gb"
+  auto_extend_size_threshold = 80
+  auto_extend_size_increment = "1gb"
+  auto_extend_size_limit = "10gb"
+
+[http_service]
+  internal_port = 3000
+  force_https = true
+  # SEMPRE LIGADA. Com auto-stop, a primeira requisição depois de um tempo parado espera o boot
+  # (migrações + Litestream restore check): o webhook do Asaas tem timeout curto e reentrega com
+  # atraso, e o usuário vê a tela girar. Uma máquina de 1 GB ligada o mês inteiro é o custo fixo.
+  auto_stop_machines = "off"
+  auto_start_machines = true
+  min_machines_running = 1
+
+  [http_service.concurrency]
+    type = "requests"
+    soft_limit = 200
+    hard_limit = 250
+
+  # PRONTIDÃO, não vivacidade: /api/ready diz "consigo atender" (banco, migrações aplicadas, R2
+  # alcançável). O Fly tira do roteamento a máquina que responde 503. `grace_period` cobre o boot
+  # com restauração do Litestream num volume novo.
+  [[http_service.checks]]
+    grace_period = "60s"
+    interval = "15s"
+    method = "GET"
+    path = "/api/ready"
+    timeout = "5s"
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "1gb"
+
+# SEM `[metrics]`: o raspador gerenciado do Fly não manda `Authorization`, e em produção o `/metrics`
+# exige `METRICS_TOKEN` (o boot aborta sem, GAP-013). Para ter métricas, ligue METRICS_ENABLED=1 +
+# METRICS_TOKEN como secrets e raspe com um agente que envie o token (docs/LANCAMENTO.md).

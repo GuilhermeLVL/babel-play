@@ -1,0 +1,116 @@
+# DEPLOY NO FLY.IO — manual, por imagem com TAG IMUTÁVEL, com rollback pelo mesmo botão.
+#
+# Actions → "Deploy (Fly.io)" → Run workflow:
+#   - ambiente: staging ou production (cada um é um Environment do GitHub com as próprias variáveis
+#     e secrets — em production, ligue "Required reviewers" para o deploy pedir aprovação);
+#   - imagem: VAZIO = constrói o commit escolhido e publica como `registry.fly.io/<app>:<sha>`;
+#             PREENCHIDO = ROLLBACK: reimplanta uma imagem que já existe, sem construir nada.
+#
+# ROLLBACK EM 1 MINUTO: `fly releases --image --app <app>` lista as imagens de cada release; rode
+# este workflow com `imagem: registry.fly.io/<app>:<sha-anterior>`. Nada é reconstruído — é a MESMA
+# imagem que já esteve no ar. (Migração de banco não volta junto: ver docs/runbook.md, "Rollback".)
+#
+# Variáveis do Environment (Settings → Environments → <ambiente>):
+#   vars.FLY_APP                  nome do app no Fly (babel-play / babel-play-staging)
+#   vars.URL_PUBLICA              https://… do ambiente (fumaça pós-deploy e canonical)
+#   vars.VITE_SUPABASE_URL        URL do projeto Supabase (pública)
+#   vars.VITE_SUPABASE_ANON_KEY   anon key (pública por desenho)
+#   vars.VITE_SELF_HOST_MODELS    https://<bucket público dos modelos> (opcional)
+#   vars.VITE_SENTRY_DSN          DSN do Sentry do navegador (opcional; é público por desenho)
+#   secrets.FLY_API_TOKEN         `fly tokens create deploy --app <app>` (só deploy, só este app)
+#
+# Toda entrada do formulário e toda variável chega aos `run:` por `env:`, nunca por `${{ }}` dentro
+# do script: o campo `imagem` é texto livre, e interpolado direto no shell viraria injeção de comando.
+name: Deploy (Fly.io)
+
+on:
+  workflow_dispatch:
+    inputs:
+      ambiente:
+        description: 'Para onde'
+        type: choice
+        options: [staging, production]
+        default: staging
+      imagem:
+        description: 'Rollback: imagem já publicada (registry.fly.io/<app>:<sha>). Vazio = construir este commit.'
+        type: string
+        required: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-${{ inputs.ambiente }}
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.ambiente }}
+    timeout-minutes: 30
+    env:
+      FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+      FLY_APP: ${{ vars.FLY_APP }}
+      AMBIENTE: ${{ inputs.ambiente }}
+      IMAGEM_INFORMADA: ${{ inputs.imagem }}
+      URL_PUBLICA: ${{ vars.URL_PUBLICA }}
+      VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
+      VITE_SUPABASE_ANON_KEY: ${{ vars.VITE_SUPABASE_ANON_KEY }}
+      VITE_SELF_HOST_MODELS: ${{ vars.VITE_SELF_HOST_MODELS }}
+      VITE_SENTRY_DSN: ${{ vars.VITE_SENTRY_DSN }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: superfly/flyctl-actions/setup-flyctl@fc53c09e1bc3be6f54706524e3b82c4f462f77be # 1.5
+
+      - name: Conferir configuração do ambiente
+        run: |
+          test -n "$FLY_API_TOKEN" || { echo "::error::secret FLY_API_TOKEN ausente no environment $AMBIENTE"; exit 1; }
+          test -n "$FLY_APP" || { echo "::error::variável FLY_APP ausente no environment $AMBIENTE"; exit 1; }
+          if [ -n "$IMAGEM_INFORMADA" ]; then
+            # Só aceita imagem do registro do PRÓPRIO app, com tag de commit — nada de imagem de fora.
+            echo "$IMAGEM_INFORMADA" | grep -Eq "^registry\.fly\.io/${FLY_APP}:[0-9a-f]{7,40}$" \
+              || { echo "::error::imagem de rollback deve ser registry.fly.io/${FLY_APP}:<sha>"; exit 1; }
+          fi
+
+      - name: Construir e publicar a imagem (tag = commit)
+        if: inputs.imagem == ''
+        run: |
+          flyctl deploy --app "$FLY_APP" --remote-only --build-only --push \
+            --image-label "$GITHUB_SHA" \
+            --build-arg VITE_SUPABASE_URL="$VITE_SUPABASE_URL" \
+            --build-arg VITE_SUPABASE_ANON_KEY="$VITE_SUPABASE_ANON_KEY" \
+            --build-arg VITE_PUBLIC_URL="$URL_PUBLICA" \
+            --build-arg VITE_SELF_HOST_MODELS="$VITE_SELF_HOST_MODELS" \
+            --build-arg VITE_SENTRY_DSN="$VITE_SENTRY_DSN" \
+            --build-arg VERSAO="$GITHUB_SHA"
+          echo "IMAGEM=registry.fly.io/${FLY_APP}:${GITHUB_SHA}" >> "$GITHUB_ENV"
+
+      - name: Rollback — usar a imagem informada
+        if: inputs.imagem != ''
+        run: echo "IMAGEM=$IMAGEM_INFORMADA" >> "$GITHUB_ENV"
+
+      - name: Implantar
+        run: |
+          echo "implantando $IMAGEM em $FLY_APP"
+          flyctl deploy --app "$FLY_APP" --image "$IMAGEM" --strategy immediate --wait-timeout 300
+
+      - name: Fumaça pós-deploy (/api/ready pelo domínio público)
+        if: vars.URL_PUBLICA != ''
+        run: |
+          for i in $(seq 1 30); do
+            codigo=$(curl -s -o /dev/null -w '%{http_code}' "$URL_PUBLICA/api/ready" || true)
+            [ "$codigo" = "200" ] && { echo "pronto"; exit 0; }
+            sleep 5
+          done
+          echo "::error::/api/ready não respondeu 200 — considere o rollback (rode este workflow com a imagem anterior)"
+          exit 1
+
+      - name: Resumo
+        if: always()
+        run: |
+          {
+            echo "### Deploy $AMBIENTE"
+            echo "- app: \`$FLY_APP\`"
+            echo "- imagem: \`${IMAGEM:-(não chegou a ser definida)}\`"
+            echo "- rollback: rode este workflow com \`imagem\` = a imagem da release anterior (\`fly releases --image --app $FLY_APP\`)"
+          } >> "$GITHUB_STEP_SUMMARY"

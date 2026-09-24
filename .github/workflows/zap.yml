@@ -1,0 +1,46 @@
+# ZAP BASELINE contra o STAGING (Fase 5 do lançamento).
+#
+# Varredura PASSIVA do OWASP ZAP: navega o site (spider por 1 minuto) e aponta cabeçalho faltando,
+# cookie inseguro, vazamento de informação, CSP fraca. Não ataca nada — é seguro contra staging, e o
+# `production` fica de fora do formulário de propósito.
+#
+# Actions → "ZAP Baseline (staging)" → Run workflow → a URL do staging (https://…).
+# O relatório (HTML e Markdown) sai como artefato. A regra de cada alerta pode ser silenciada, com
+# motivo escrito, em `.zap/regras.tsv` (IGNORE/WARN/FAIL por id).
+#
+# `fail_action: false` na primeira rodada, e é decisão: o baseline nunca rodou contra este app, e
+# um gate que nasce vermelho por alerta informativo ensina a ignorar o vermelho. Depois da triagem
+# da primeira rodada (registrar no regras.tsv o que é aceito e por quê), troque para `true`.
+name: ZAP Baseline (staging)
+
+on:
+  workflow_dispatch:
+    inputs:
+      url:
+        description: 'URL do staging (https://…)'
+        type: string
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  zap:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: Conferir a URL
+        env:
+          ALVO: ${{ inputs.url }}
+        run: |
+          echo "$ALVO" | grep -Eq '^https://[A-Za-z0-9.-]+(/.*)?$' || { echo "::error::URL inválida: use https://…"; exit 1; }
+      - name: ZAP Baseline
+        uses: zaproxy/action-baseline@de8ad967d3548d44ef623df22cf95c3b0baf8b25 # v0.15.0
+        with:
+          target: ${{ inputs.url }}
+          rules_file_name: .zap/regras.tsv
+          cmd_options: '-a -j'
+          fail_action: false
+          allow_issue_writing: false
+          artifact_name: zap-baseline

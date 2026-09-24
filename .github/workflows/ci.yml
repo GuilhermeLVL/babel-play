@@ -136,3 +136,130 @@ jobs:
         run: |
           ./node_modules/.bin/ast-grep test -c sgconfig.yml
           ./node_modules/.bin/ast-grep scan -c sgconfig.yml src server server.ts
+
+  # E2E NO MODO PÚBLICO (Fase 5 do lançamento). A suíte acima roda sem login; esta sobe o app com
+  # AUTH_REQUIRED=1 contra um Supabase Auth FALSO (tests/e2e-publico/_supabase-falso.mjs) — login pelo
+  # supabase-js no navegador, token ES256 verificado pelo JWKS, 2FA elevando a sessão para aal2.
+  # Sem segredo e sem rede externa.
+  e2e-publico:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Navegador do Playwright
+        run: npx playwright install --with-deps chromium
+      - name: E2E com AUTH_REQUIRED=1
+        run: npx playwright test -c playwright.publico.config.ts
+      - name: Artefato do e2e público
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: playwright-publico
+          path: test-results/
+          if-no-files-found: ignore
+
+  # A IMAGEM DE PRODUÇÃO (Fase 5). Constrói o Dockerfile de verdade e sobe o container como o Fly
+  # sobe: NODE_ENV=production, AUTH_REQUIRED=1, TRUST_PROXY declarada. Depois confere o que só a
+  # imagem pode provar: /api/ready 200, a API fechada sem token, os cabeçalhos de cache e de CSP da
+  # SPA, e o desligamento gracioso (docker stop sai com 0).
+  imagem:
+    runs-on: ubuntu-latest
+    env:
+      DOCKER_BUILDKIT: '1'
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: docker build
+        run: |
+          docker build -t babel-play:ci \
+            --build-arg VITE_SUPABASE_URL=https://ci-exemplo.supabase.co \
+            --build-arg VITE_SUPABASE_ANON_KEY=anon-publica-de-ci \
+            --build-arg VITE_PUBLIC_URL=https://ci.exemplo.com.br \
+            --build-arg VERSAO="$GITHUB_SHA" .
+      - name: Litestream fixado está na imagem
+        run: docker run --rm --entrypoint litestream babel-play:ci version
+      - name: Fumaça do container
+        run: |
+          docker run -d --name app -p 3000:3000 \
+            -e SECRET_KEY=chave-de-ci-com-mais-de-32-caracteres-xx \
+            -e SUPABASE_URL=https://ci-exemplo.supabase.co \
+            -e AUTH_REQUIRED=1 -e TRUST_PROXY=false -e NODE_ENV=production \
+            babel-play:ci
+          for i in $(seq 1 60); do
+            codigo=$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:3000/api/ready || true)
+            [ "$codigo" = "200" ] && break
+            sleep 2
+          done
+          docker logs app | tail -30
+          test "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:3000/api/ready)" = "200"
+          test "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:3000/api/sessions)" = "401"
+          curl -sI http://127.0.0.1:3000/ | tee cabecalhos.txt
+          grep -qi '^cache-control: no-cache' cabecalhos.txt
+          grep -qi '^content-security-policy:' cabecalhos.txt
+          grep -qi 'rel="canonical" href="https://ci.exemplo.com.br/"' <(curl -s http://127.0.0.1:3000/)
+          ativo=$(curl -s http://127.0.0.1:3000/ | grep -o '/assets/index-[^"]*\.js' | head -n 1)
+          curl -sI "http://127.0.0.1:3000$ativo" | grep -qi 'cache-control: public, max-age=31536000, immutable'
+      - name: Desligamento gracioso (docker stop → saída 0)
+        run: |
+          docker stop -t 30 app
+          test "$(docker inspect -f '{{.State.ExitCode}}' app)" = "0"
+
+  # RESTAURAÇÃO DO LITESTREAM, DE VERDADE (Fase 5). Um MinIO faz o papel do R2: o container grava,
+  # replica e para; um SEGUNDO container, com volume VAZIO, restaura sozinho no boot (entrypoint) e o
+  # dado precisa estar lá, com integrity_check ok. Backup que nunca foi restaurado não é backup.
+  restauracao-litestream:
+    runs-on: ubuntu-latest
+    env:
+      DOCKER_BUILDKIT: '1'
+      AWS_ACCESS_KEY_ID: minio-ci
+      AWS_SECRET_ACCESS_KEY: minio-ci-segredo
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: docker build
+        run: |
+          docker build -t babel-play:ci \
+            --build-arg VITE_SUPABASE_URL=https://ci-exemplo.supabase.co \
+            --build-arg VITE_SUPABASE_ANON_KEY=anon-publica-de-ci .
+      - name: MinIO no lugar do R2
+        run: |
+          docker network create rede
+          docker run -d --name minio --network rede -p 9000:9000 \
+            -e MINIO_ROOT_USER=$AWS_ACCESS_KEY_ID -e MINIO_ROOT_PASSWORD=$AWS_SECRET_ACCESS_KEY \
+            minio/minio:RELEASE.2025-04-22T22-12-26Z server /data
+          for i in $(seq 1 30); do curl -sf http://127.0.0.1:9000/minio/health/live && break; sleep 1; done
+          aws --endpoint-url http://127.0.0.1:9000 s3 mb s3://litestream-ci
+      - name: Primeiro container grava e replica
+        run: |
+          comum="-e SECRET_KEY=chave-de-ci-com-mais-de-32-caracteres-xx -e SUPABASE_URL=https://ci-exemplo.supabase.co \
+                 -e AUTH_REQUIRED=1 -e TRUST_PROXY=false -e NODE_ENV=production \
+                 -e LITESTREAM_BUCKET=litestream-ci -e LITESTREAM_ENDPOINT=http://minio:9000 \
+                 -e LITESTREAM_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID -e LITESTREAM_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY"
+          echo "comum=$comum" >> "$GITHUB_ENV"
+          docker run -d --name um --network rede -v dados-um:/data $comum babel-play:ci
+          for i in $(seq 1 60); do docker exec um node -e "fetch('http://127.0.0.1:3000/api/ready').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))" && break; sleep 2; done
+          docker exec -e MARCA="$GITHUB_SHA" um node -e "
+            const { createClient } = require('@libsql/client');
+            const c = createClient({ url: 'file:/data/babel.db' });
+            (async () => {
+              await c.execute('CREATE TABLE IF NOT EXISTS marca_ci (valor TEXT)');
+              await c.execute({ sql: 'INSERT INTO marca_ci VALUES (?)', args: [process.env.MARCA] });
+              c.close();
+            })();"
+          sleep 10
+          docker stop -t 30 um
+          docker logs um | tail -20
+          aws --endpoint-url http://127.0.0.1:9000 s3 ls --recursive s3://litestream-ci | head
+      - name: Segundo container, volume vazio, restaura sozinho
+        run: |
+          docker run -d --name dois --network rede -v dados-dois:/data $comum babel-play:ci
+          for i in $(seq 1 60); do docker exec dois node -e "fetch('http://127.0.0.1:3000/api/ready').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))" && break; sleep 2; done
+          docker logs dois | head -20
+          docker exec dois node dist-server/operacao.cjs verificar --arquivo=/data/babel.db
+          valor=$(docker exec dois node -e "
+            const { createClient } = require('@libsql/client');
+            createClient({ url: 'file:/data/babel.db' }).execute('SELECT valor FROM marca_ci').then(r => console.log(r.rows[0].valor));")
+          echo "restaurado: $valor"
+          test "$valor" = "$GITHUB_SHA"

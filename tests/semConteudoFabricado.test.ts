@@ -23,11 +23,10 @@
 import { readFileSync } from 'node:fs'
 import path from 'node:path'
 
-import { describe, expect,it } from 'vitest'
+import { describe, expect, it } from 'vitest'
 
 /** Remove comentários de bloco, de linha e os JSX `{/* … *\/}`. */
-const semComentarios = (txt: string) =>
-  txt.replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/(^|[^:])\/\/[^\n]*/g, '$1')
+const semComentarios = (txt: string) => txt.replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/(^|[^:])\/\/[^\n]*/g, '$1')
 
 /**
  * As palavras do painel de demonstração original. Não é lista de palavras proibidas — é a
@@ -53,16 +52,18 @@ describe('nenhuma palavra de demonstração sobrevive no código de tela', () =>
 })
 
 describe('a alternativa honesta continua disponível', () => {
-  it('Analysis usa a primitiva <SemDado> em vez de preencher o vazio', () => {
-    const src = readFileSync(path.join(process.cwd(), 'src/components/views/Analysis.tsx'), 'utf8')
-    expect(semComentarios(src)).toMatch(/<SemDado/)
+  it('Analysis diz que o dado falta em vez de preencher o vazio', () => {
+    /* A Visão geral seguiu o protótipo aprovado (ladrilhos e "Ritmo por falante"): sem o tempo das
+       falas, o ladrilho mostra "—" e o cartão diz o motivo, em vez de um número. */
+    const vivo = semComentarios(readFileSync(path.join(process.cwd(), 'src/components/views/Analysis.tsx'), 'utf8'))
+    expect(vivo).toMatch(/Requer o tempo de cada fala/)
+    expect(vivo).toMatch(/: '—'/)
   })
 
-  it('o painel de topologia lexical continua vivo — ele usa dado REAL do deck', () => {
-    // Guarda contra a correção exagerada: `selectedLexicalWord` e o ScatterChart são alimentados
-    // por `vocabCards`, e apagá-los junto com a tabela falsa perderia informação verdadeira.
+  it('a topologia lexical continua sobre dado REAL do deck e da transcrição', () => {
+    // "No seu caderno" conta os cartões da sessão; os microdados são as falas em que a palavra aparece.
     const vivo = semComentarios(readFileSync(path.join(process.cwd(), 'src/components/views/Analysis.tsx'), 'utf8'))
-    expect(vivo).toMatch(/ScatterChart/)
-    expect(vivo).toMatch(/setSelectedLexicalWord/)
+    expect(vivo).toMatch(/palavrasDaSessao\.length/)
+    expect(vivo).toMatch(/ocorrenciasDoMicro/)
   })
 })

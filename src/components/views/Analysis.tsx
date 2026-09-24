@@ -14,7 +14,6 @@ import {
   KeyRound,
   LayoutGrid,
   Loader2,
-  MessageSquare,
   MessagesSquare,
   Mic,
   Pencil,
@@ -22,17 +21,14 @@ import {
   Plus,
   Search,
   SlidersHorizontal,
-  Sparkles,
   Target,
   Volume2,
-  X,
   Youtube,
 } from 'lucide-react';
 import React, { lazy, Suspense, useEffect, useRef, useState } from 'react';
-import { CartesianGrid, ResponsiveContainer, Scatter, ScatterChart, Tooltip, XAxis, YAxis, ZAxis } from 'recharts';
 
 import type { AppMetrics, UtteranceRow } from '../../data/api';
-import { fetchDeck, fetchMetrics, fetchSessionTranscript, fetchSettings } from '../../data/api';
+import { fetchDeck, fetchSessionTranscript, fetchSettings } from '../../data/api';
 import { applyOutputDevice } from '../../lib/audioDevices';
 import { useLangConfig } from '../../lib/langConfig';
 import { baseLang, langLabel } from '../../lib/languages';
@@ -40,17 +36,13 @@ import { usePopoverDePalavra } from '../../lib/popoverDePalavra';
 import { copyDoPerfil } from '../../lib/profile';
 import type { PracticeSeed, Sentence } from '../../lib/sentences';
 import { toSentences } from '../../lib/sentences';
-import { isTtsSupported, speak as ttsSpeak } from '../../lib/tts';
+import { speak as ttsSpeak } from '../../lib/tts';
 import type { WordOrigin } from '../../lib/vocabWord';
 import { tokenizarTexto } from '../../lib/vocabWord';
 import type { VocabWord } from '../../types';
 import { Recording } from '../../types';
-import { Confianca, SemDado } from '../Honestidade';
-import NiveisDoConjunto from '../metrics/NiveisDoConjunto';
 import PopoverFlutuante from '../PopoverFlutuante';
 import TokensClicaveis from '../TokensClicaveis';
-import VocabularyPanel from '../VocabularyPanel';
-import AnalysisExpandedKpi, { AnalysisKpiType } from './AnalysisExpandedKpi';
 import Reading from './Reading';
 import Study from './Study';
 /**
@@ -76,9 +68,12 @@ import { numero } from '../../lib/i18n';
 import type { DerivedProgress } from '../../lib/progress';
 import { TranscriptSettings } from '../../lib/transcriptUtils';
 import EditablePanel from '../EditablePanel';
+import { toast } from '../Toast';
 import { Abas, CabecalhoDeTela, TituloDeSecao } from '../ui';
+import AnalistaDaSessao from './analise/AnalistaDaSessao';
 import ExportarSessao from './analise/ExportarSessao';
 import PlayerInterativo from './analise/PlayerInterativo';
+import SombraDaFala from './analise/SombraDaFala';
 
 /** Selo de PROCEDÊNCIA da transcrição (honestidade): de onde vieram as falas desta sessão. */
 function provenanceLabel(engine?: string | null): string | null {
@@ -162,20 +157,8 @@ export default function Analysis({
 
   // Shadowing interactive tool states
   const [shadowingSentenceIndex, setShadowingSentenceIndex] = useState<number | null>(null);
-  const [shadowingStep, setShadowingStep] = useState<'idle' | 'recording' | 'processing' | 'result'>('idle');
-  const [shadowingScore, setShadowingScore] = useState<{
-    fluency: number;
-    accuracy: number;
-    speed: number;
-    feedback: string;
-    transcript?: string;
-  } | null>(null);
-  // Reconhecimento de fala real (Web Speech) para o shadowing — sem simulação.
-  const shadowRecRef = useRef<any>(null);
-  const shadowStartRef = useRef<number>(0);
+
   const [overviewSubTab, setOverviewSubTab] = useState<'dashboard' | 'lexical' | 'fluency'>('dashboard');
-  const [selectedLexicalWord, setSelectedLexicalWord] = useState<string | null>(null);
-  const [expandedAnalysisKpi, setExpandedAnalysisKpi] = useState<AnalysisKpiType>(null);
 
   // Player REAL: áudio gravado (<audio>) quando existe; senão, narração TTS sincronizada.
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -264,9 +247,8 @@ export default function Analysis({
       (realUtterances as UtteranceRow[]).map((u) => [u.id, u.tStartMs != null]),
     );
     return sentences.map((s) => {
-      const startTime = hasStart.get(s.id) ? Math.round(s.startMs / 1000) : s.index * 8;
-      const mm = Math.floor(startTime / 60);
-      const ss = startTime % 60;
+      const temTempo = !!hasStart.get(s.id);
+      const startTime = temTempo ? Math.round(s.startMs / 1000) : s.index * 8;
       return {
         id: s.id as string | undefined,
         original: s.text,
@@ -274,7 +256,8 @@ export default function Analysis({
         // Idioma REAL do texto `original` desta fala (o TTS/STT desta tela segue este campo).
         lang: s.lang,
         speaker: s.speaker || '-',
-        time: `${String(mm).padStart(2, '0')}:${String(ss).padStart(2, '0')}`,
+        // Sem `tStartMs` gravado, o tempo NÃO aparece: os 8 s por frase são só o passo do player.
+        time: temTempo ? formatSeconds(startTime) : '',
         words: [] as string[],
         startTime,
         index: s.index,
@@ -338,8 +321,6 @@ export default function Analysis({
     setAudioDuration,
     setPeaks,
     setShadowingSentenceIndex,
-    setShadowingStep,
-    setShadowingScore,
   });
 
   // Text Interactive Settings & Hover Popover State
@@ -358,33 +339,6 @@ export default function Analysis({
 
   // Deck do BACKEND (mesmo deck do Study/FSRS), não mais localStorage.
   const [vocabCards, setVocabCards] = useState<any[]>([]);
-
-  /**
-   * F7 — MÉTRICAS DESTA SESSÃO, e não da conta.
-   *
-   * A prop `metrics` que esta tela recebe é do perfil INTEIRO. Enquanto não existia endpoint com
-   * escopo, os painéis daqui usavam essa prop e exibiam dado da conta sob um cabeçalho que
-   * anunciava uma gravação — o gráfico chegava a dizer "6 semanas do seu histórico" (achado D1).
-   * Com `?sessao=<id>` (F4), a aba passa a perguntar o que ela realmente quer saber.
-   */
-  const [metricasDaSessao, setMetricasDaSessao] = useState<AppMetrics | null>(null);
-  useEffect(() => {
-    if (!recording?.id) {
-      setMetricasDaSessao(null);
-      return;
-    }
-    let vivo = true;
-    fetchMetrics(recording.id)
-      .then((m) => {
-        if (vivo) setMetricasDaSessao(m);
-      })
-      .catch(() => {
-        if (vivo) setMetricasDaSessao(null);
-      });
-    return () => {
-      vivo = false;
-    };
-  }, [recording?.id]);
 
   // ── Analista de Vocabulário (painel compartilhado) ──
   // `selectedExamWord` = palavra clicada no transcript. null → painel não monta.
@@ -459,24 +413,52 @@ export default function Analysis({
    * PURA com teste próprio (`tests/metricasDaSessao.test.ts`). A ordem dos hooks é a mesma: o
    * bloco era contíguo e foi movido como bloco.
    */
-  const {
-    stats,
-    realWpm,
-    realLongPauses,
-    realSobreposicao,
-    lexicalDetail,
-    realVicios,
-    realSilencio,
-    realMonologue,
-    topKeywords,
-  } = useMetricasDaSessao({
+  const { stats, realWpm, realLongPauses, realVicios, realSilencio, topKeywords } = useMetricasDaSessao({
     realUtterances,
     sentences,
     parsedSentences,
     ttsLang,
-    selectedLexicalWord,
+    selectedLexicalWord: null,
     vocabCards,
   });
+
+  /* MICRODADOS LEXICAIS (Visão geral → Inteligência lexical): as palavras desta sessão que estão no
+     caderno (sem nenhuma, as palavras-chave) e as falas em que a escolhida aparece. */
+  const [microPalavra, setMicroPalavra] = useState<string | null>(null);
+  const palavrasDoMicro = React.useMemo(() => {
+    const doCaderno = [
+      ...new Set(vocabCards.filter((c) => c.sourceSessionId === recording.id).map((c) => c.word.toLowerCase())),
+    ];
+    return (doCaderno.length ? doCaderno : topKeywords.map((k) => k.toLowerCase())).slice(0, 12);
+  }, [vocabCards, recording.id, topKeywords]);
+  const microAtual = microPalavra ?? palavrasDoMicro[0] ?? '';
+  const ocorrenciasDoMicro = React.useMemo(() => {
+    if (!microAtual) return [];
+    const alvo = microAtual.replace(
+      /[.*+?^${}()|[\]\\]/g,
+      '\\  // Dados reais do hover: imagem (Openverse), tradução (gateway) e frase de contexto, com cache',
+    );
+    const re = new RegExp(`(^|[^\\p{L}])${alvo}(?=$|[^\\p{L}])`, 'iu');
+    return parsedSentences.filter((f) => re.test(f.original));
+  }, [microAtual, parsedSentences]);
+
+  /* RITMO POR FALANTE (Fluência): palavras por minuto de cada um, só com o tempo REAL das falas. */
+  const ritmoPorFalante = React.useMemo(() => {
+    const porNome = new Map<string, { ms: number; palavras: number }>();
+    for (const u of realUtterances as UtteranceRow[]) {
+      if (u.tStartMs == null || u.tEndMs == null || u.tEndMs <= u.tStartMs) continue;
+      const nome = u.speakerName || 'Sem nome';
+      const acc = porNome.get(nome) ?? { ms: 0, palavras: 0 };
+      acc.ms += u.tEndMs - u.tStartMs;
+      acc.palavras += (u.sourceText ?? '').trim().split(/\s+/).filter(Boolean).length;
+      porNome.set(nome, acc);
+    }
+    const lista = [...porNome.entries()]
+      .filter(([, v]) => v.ms >= 3000 && v.palavras > 0)
+      .map(([nome, v]) => ({ nome, ppm: Math.round(v.palavras / (v.ms / 60000)) }));
+    const maior = Math.max(1, ...lista.map((f) => f.ppm));
+    return lista.map((f) => ({ ...f, pct: Math.round((f.ppm / maior) * 100) }));
+  }, [realUtterances]);
 
   // Dados reais do hover: imagem (Openverse), tradução (gateway) e frase de contexto, com cache
   // por palavra. Em `lib/analise/palavraDaAnalise.ts`, junto do resto do vocabulário desta tela.
@@ -488,23 +470,22 @@ export default function Analysis({
    * registra, item a item, por que NÃO compartilha código com `lib/captura/palavraDaFala.ts`, que
    * é o equivalente do outro lado (as quatro funções homônimas divergem no comportamento).
    */
-  const { examineWord, handleAddWordToDeck, isWordAdded, handlePracticeWord, speakWord, playWordTTS } =
-    criarPalavraDaAnalise({
-      gateway,
-      originOfWord,
-      vocabCards,
-      setVocabCards,
-      addedWords,
-      setAddedWords,
-      setSelectedExamWord,
-      setExamMtNote,
-      selectedExamWordLang: selectedExamWord?.lang,
-      ttsSpeed,
-      ttsLang,
-      recordingId: recording.id,
-      recordingTitle: recording.title,
-      onChangeView,
-    });
+  const { examineWord, handleAddWordToDeck, handlePracticeWord, speakWord, playWordTTS } = criarPalavraDaAnalise({
+    gateway,
+    originOfWord,
+    vocabCards,
+    setVocabCards,
+    addedWords,
+    setAddedWords,
+    setSelectedExamWord,
+    setExamMtNote,
+    selectedExamWordLang: selectedExamWord?.lang,
+    ttsSpeed,
+    ttsLang,
+    recordingId: recording.id,
+    recordingTitle: recording.title,
+    onChangeView,
+  });
 
   const handleMouseEnter = (e: React.MouseEvent<HTMLSpanElement>, cleanWord: string) => {
     popover.cancelarFechamento();
@@ -677,7 +658,7 @@ export default function Analysis({
         <CabecalhoDeTela
           voltar={{ rotulo: 'Biblioteca', aoClicar: () => onChangeView('library') }}
           icone={IconeDoTipo}
-          sobrancelha={`Sessão de ${recording.type === 'video' ? 'vídeo' : recording.type === 'document' ? 'documento' : 'áudio'} · ${recording.type === 'document' ? 'texto' : recording.durationStr}${procedencia ? ` · ${procedencia}` : ''}`}
+          sobrancelha={`Sessão de ${recording.type === 'video' ? 'vídeo' : recording.type === 'document' ? 'documento' : 'áudio'} · ${recording.type === 'document' ? 'texto' : recording.durationStr}`}
           titulo={recording.title}
           sub="Análise do texto, prática ativa e exercícios criados a partir desta mídia."
           acoes={
@@ -689,7 +670,11 @@ export default function Analysis({
                 className="campo"
                 style={{ width: 'auto', minWidth: 200 }}
                 value={recording.id}
-                onChange={(e) => onChangeView('analysis', { id: e.target.value })}
+                onChange={(e) => {
+                  const alvo = allRecordings.find((r) => r.id === e.target.value);
+                  onChangeView('analysis', { id: e.target.value });
+                  if (alvo) toast.info(`Sessão trocada: ${alvo.title}`);
+                }}
               >
                 {allRecordings.map((r) => (
                   <option key={r.id} value={r.id}>
@@ -720,14 +705,6 @@ export default function Analysis({
         id={`painel-${currentTab}`}
         aria-labelledby={`aba-${currentTab}`}
       >
-        {expandedAnalysisKpi && (
-          <AnalysisExpandedKpi
-            kpi={expandedAnalysisKpi}
-            onClose={() => setExpandedAnalysisKpi(null)}
-            utterances={realUtterances}
-            vicios={realVicios}
-          />
-        )}
         {currentTab === 'overview' && (
           <EditablePanel
             viewKey="analysis"
@@ -782,9 +759,9 @@ export default function Analysis({
                           [
                             'flesch',
                             'Facilidade de leitura',
-                            stats.readingEase != null ? String(stats.readingEase) : '—',
+                            stats.readingEase != null ? numero(Math.round(stats.readingEase)) : '—',
                             stats.readingEase != null
-                              ? 'de 100 (maior = mais fácil)'
+                              ? `de 100: texto ${stats.readingEase >= 70 ? 'fácil' : stats.readingEase >= 50 ? 'médio' : 'difícil'}`
                               : stats.syllableCount == null
                                 ? `sem régua de legibilidade para ${langLabel(stats.idioma)}`
                                 : 'precisa de mais texto',
@@ -793,7 +770,7 @@ export default function Analysis({
                           [
                             'density',
                             'Densidade lexical',
-                            stats.lexicalDensityPct != null ? `${stats.lexicalDensityPct}%` : '—',
+                            stats.lexicalDensityPct != null ? `${Math.round(stats.lexicalDensityPct)}%` : '—',
                             stats.lexicalDensityPct != null
                               ? 'palavras de conteúdo'
                               : `sem lista de stopwords para ${langLabel(stats.idioma)}`,
@@ -813,16 +790,14 @@ export default function Analysis({
                                   'ppm',
                                   'Palavras por minuto',
                                   realWpm != null ? String(realWpm) : '—',
-                                  realWpm != null ? 'ritmo da fala (timing real)' : 'requer timing das falas',
+                                  realWpm != null ? 'ritmo da fala' : 'requer timing das falas',
                                   'acc',
                                 ],
                                 [
                                   'fillers',
                                   'Vícios de linguagem',
                                   realVicios.palavras > 0 ? String(realVicios.total) : '—',
-                                  realVicios.palavras > 0
-                                    ? `${realVicios.porMilPalavras} a cada 1000 palavras`
-                                    : 'requer fala em português ou inglês',
+                                  realVicios.palavras > 0 ? '“tipo”, “né”, “uh”' : 'requer fala em português ou inglês',
                                   '',
                                 ],
                               ]),
@@ -844,22 +819,15 @@ export default function Analysis({
                                   'warn',
                                 ],
                               ]),
-                        ] as [NonNullable<AnalysisKpiType>, string, string, string, string][]
+                        ] as [string, string, string, string, string][]
                       ).map(([id, rotulo, valor, dica, tom]) => (
-                        <button
-                          key={id}
-                          type="button"
-                          className="cartao ladrilho clicavel"
-                          style={{ textAlign: 'left' }}
-                          onClick={() => setExpandedAnalysisKpi(id)}
-                          title={dica}
-                        >
+                        <div key={id} className="cartao ladrilho" title={dica}>
                           <span className="label-mono">{rotulo}</span>
                           <span className={`v ${tom}`}>{valor}</span>
                           <p className="mut" style={{ fontSize: 12, marginTop: 4 }}>
                             {dica}
                           </p>
-                        </button>
+                        </div>
                       ))}
                     </div>
                     <section className="cartao p5 secao">
@@ -871,7 +839,10 @@ export default function Analysis({
                               key={kw}
                               type="button"
                               className="pill"
-                              onClick={() => examineWord(kw.toLowerCase(), kw)}
+                              onClick={() => {
+                                setMicroPalavra(kw.toLowerCase());
+                                setOverviewSubTab('lexical');
+                              }}
                             >
                               {kw}
                             </button>
@@ -882,412 +853,129 @@ export default function Analysis({
                           Sem transcrição real para extrair palavras-chave.
                         </p>
                       )}
-                      <p className="mut" style={{ fontSize: 12.5, marginTop: 10 }}>
-                        Termos de maior saliência na transcrição real. São termos, não tópicos: agrupá-los sob um nome
-                        de assunto exigiria um modelo de linguagem.
-                      </p>
                     </section>
                   </>
                 )}
 
                 {overviewSubTab === 'lexical' && (
-                  <div className="flex flex-col lg:flex-row gap-6 animate-in fade-in slide-in-from-right-4 items-start">
-                    <div className="flex-1 flex flex-col space-y-6 min-w-0 w-full">
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <div
-                          className="card-panel p-5 bg-gradient-to-br from-rare/10 to-transparent border-rare/20 cursor-pointer hover:border-rare/40 hover:shadow-md transition-all"
-                          onClick={() => setExpandedAnalysisKpi('lexical_richness')}
-                        >
-                          <span className="label-mono block mb-2 font-semibold text-rare-ink">
-                            Total de Vocábulos Únicos
-                          </span>
-                          <div className="font-display font-black text-3xl tracking-tight text-ink">
-                            {stats.wordCount > 0 ? numero(stats.uniqueWords) : '-'}
-                          </div>
-                          <p className="text-[12px] text-ink-muted mt-2">
-                            Palavras distintas na transcrição desta sessão.
-                          </p>
+                  /* INTELIGÊNCIA LEXICAL (protótipo): a topologia (palavras únicas × as que já estão no
+                     caderno) e os microdados de uma palavra — onde ela aparece nesta sessão. */
+                  <div className="g2" style={{ alignItems: 'start' }}>
+                    <section className="cartao p5">
+                      <TituloDeSecao icone={Brain} titulo="Topologia lexical da sessão" nivel="h3" />
+                      <div className="ladrilhos" style={{ gridTemplateColumns: '1fr 1fr' }}>
+                        <div className="cartao ladrilho">
+                          <span className="label-mono">Palavras únicas</span>
+                          <span className="v">{stats.wordCount > 0 ? numero(stats.uniqueWords) : '—'}</span>
                         </div>
-                        <div
-                          className="card-panel p-5 cursor-pointer hover:border-accent hover:shadow-md transition-all"
-                          onClick={() => setExpandedAnalysisKpi('jargons')}
-                        >
-                          <span className="label-mono block mb-2 font-semibold text-ink-muted">
-                            Termos Técnicos/Jargões
-                          </span>
-                          {/* Jargão exige um LÉXICO DE DOMÍNIO que o projeto não tem — separar termo
-                          técnico de palavra comum depende de saber o assunto. Não é "em breve". */}
-                          <div className="font-display font-black text-3xl tracking-tight text-ink-muted">-</div>
-                          <p className="text-[12px] text-ink-muted mt-2">
-                            Distinguir jargão de palavra comum exige um léxico do domínio, que o app não tem.
-                          </p>
-                        </div>
-                        <div
-                          className="card-panel p-5 cursor-pointer hover:border-accent hover:shadow-md transition-all"
-                          onClick={() => setExpandedAnalysisKpi('study_time')}
-                        >
-                          <span className="label-mono block mb-2 font-semibold text-ink-muted">
-                            Cards desta Sessão (SRS)
-                          </span>
-                          <div className="font-display font-black text-3xl tracking-tight text-accent">
-                            {vocabCards.filter((c) => c.sourceSessionId === recording.id).length}
-                          </div>
-                          <p className="text-[12px] text-ink-muted mt-2">
-                            Termos já enviados ao deck de revisão espaçada.
-                          </p>
+                        <div className="cartao ladrilho">
+                          <span className="label-mono">No seu caderno</span>
+                          <span className="v acc">{numero(palavrasDaSessao.length)}</span>
                         </div>
                       </div>
-
-                      {/* C1 — AQUI HAVIA UMA TABELA FABRICADA, o pior defeito que este produto podia ter.
-                      "Termo / Expressão · Tradução Contextual · Categoria · Ocorrências", com três
-                      linhas cravadas no JSX (uma delas dizendo "5×"), idênticas para toda sessão de
-                      todo usuário, contagens de ocorrência inventadas, apresentadas como análise
-                      lexical do que a pessoa acabou de gravar.
-
-                      Extrair expressões-chave exige reconhecimento de termo com peso de domínio, e
-                      este painel não chama modelo nenhum. A resposta honesta é dizer isso, não
-                      preencher o vazio com algo plausível, e era justamente a plausibilidade que
-                      tornava a tabela difícil de notar: uma sessão sobre tecnologia bem que poderia
-                      conter aquelas palavras.
-
-                      A Topologia Lexical logo abaixo CONTINUA: ela é alimentada por `vocabCards`,
-                      dado real do deck. Remover as duas seria trocar um erro por outro. */}
-                      <SemDado motivo="Lista de expressoes-chave: exige extracao de termos com peso de dominio, que este painel nao calcula. Abaixo, a topologia lexical construida a partir dos cartoes REAIS do seu deck." />
-
-                      {/* ESCOPO HONESTO (spec metricas-honestas-consertos): o título dizia "da Sessão"
-                      e o scatter plotava o deck INTEIRO — ao contrário do KPI logo acima, que
-                      filtra por sourceSessionId. Agora o filtro existe e, quando a sessão não tem
-                      cartões, o vazio diz isso em vez de mostrar dados de outro escopo. */}
-                      <div className="card-panel p-0 overflow-hidden">
-                        <div className="p-5 border-b border-border-subtle bg-surface">
-                          <h3 className="font-display font-extrabold text-[15px] text-ink flex items-center gap-2">
-                            <Brain className="w-4 h-4 text-rare" /> Topologia Lexical da Sessão
-                          </h3>
-                          <p className="text-[12px] text-ink-muted mt-1">
-                            Cada ponto é um card salvo A PARTIR desta sessão: caixa Leitner (x) × estabilidade FSRS em
-                            dias (y), tamanho pela dificuldade.
+                      <p className="mut" style={{ fontSize: 12.5, marginTop: 12 }}>
+                        {stats.wordCount > 0
+                          ? `${numero(palavrasDaSessao.length)} das ${numero(stats.uniqueWords)} palavras únicas já estão no seu vocabulário. Clique numa palavra do texto para guardar outras.`
+                          : 'Sem transcrição ainda: as contas aparecem quando houver texto.'}
+                      </p>
+                    </section>
+                    <section className="cartao p5">
+                      <TituloDeSecao icone={BookMarked} titulo="Microdados lexicais" nivel="h3" />
+                      {palavrasDoMicro.length ? (
+                        <>
+                          <div className="chips">
+                            {palavrasDoMicro.map((w) => (
+                              <button
+                                key={w}
+                                type="button"
+                                className="pill"
+                                aria-pressed={microAtual === w}
+                                onClick={() => setMicroPalavra(w)}
+                              >
+                                {w}
+                              </button>
+                            ))}
+                          </div>
+                          <h3 style={{ font: '900 24px var(--font-display)', margin: '14px 0 4px' }}>{microAtual}</h3>
+                          <p className="mut" style={{ fontSize: 12.5 }}>
+                            {ocorrenciasDoMicro.length === 1
+                              ? '1 ocorrência nesta sessão'
+                              : `${ocorrenciasDoMicro.length} ocorrências nesta sessão`}
                           </p>
-                        </div>
-                        <div className="p-5 bg-canvas">
-                          {vocabCards.filter((c) => c.sourceSessionId === recording.id).length > 0 ? (
-                            <div className="w-full" style={{ height: 300 }}>
-                              <ResponsiveContainer width="100%" height="100%">
-                                <ScatterChart
-                                  margin={{ top: 20, right: 20, bottom: 20, left: -20 }}
-                                  onClick={(e: any) => {
-                                    if (e && e.activePayload && e.activePayload.length > 0) {
-                                      setSelectedLexicalWord(e.activePayload[0].payload.name);
+                          <div className="pilha" style={{ marginTop: 10 }}>
+                            {ocorrenciasDoMicro.map((f) => (
+                              <div key={f.index} className="ocorre">
+                                <button
+                                  type="button"
+                                  className="btn btn-outline peq"
+                                  aria-label={f.time ? `Ouvir o trecho a partir de ${f.time}` : 'Ouvir o trecho'}
+                                  onClick={() => {
+                                    if (recording.type === 'document') {
+                                      ttsSpeak(f.original, { lang: f.lang || ttsLang, rate: 0.9 });
+                                      return;
                                     }
+                                    onSubTabChange('transcript');
+                                    playFrom(f.startTime);
                                   }}
                                 >
-                                  <CartesianGrid strokeDasharray="3 3" stroke="var(--border-subtle)" opacity={0.5} />
-                                  <XAxis
-                                    type="number"
-                                    dataKey="x"
-                                    name="Caixa Leitner"
-                                    stroke="var(--ink-muted)"
-                                    tick={{ fontSize: 11 }}
-                                    domain={[0, 6]}
-                                    allowDecimals={false}
-                                  />
-                                  <YAxis
-                                    type="number"
-                                    dataKey="y"
-                                    name="Estabilidade (dias)"
-                                    stroke="var(--ink-muted)"
-                                    tick={{ fontSize: 11 }}
-                                  />
-                                  <ZAxis type="number" dataKey="z" range={[60, 320]} name="Dificuldade" />
-                                  <Tooltip
-                                    cursor={{ strokeDasharray: '3 3', stroke: 'var(--accent)', opacity: 0.5 }}
-                                    contentStyle={{
-                                      backgroundColor: 'var(--surface)',
-                                      borderColor: 'var(--border-subtle)',
-                                      borderRadius: '8px',
-                                      color: 'var(--ink)',
-                                    }}
-                                    itemStyle={{ fontSize: '12px', fontWeight: 'bold' }}
-                                  />
-                                  <Scatter
-                                    name="Vocabulário"
-                                    data={vocabCards
-                                      .filter((c) => c.sourceSessionId === recording.id)
-                                      .map((c) => ({
-                                        name: c.word,
-                                        x: c.leitnerBox ?? 1,
-                                        y: Math.round(((c.fsrsStability ?? c.stability ?? 0) as number) * 10) / 10,
-                                        z: c.fsrsDifficulty ?? 5,
-                                      }))}
-                                    fill="var(--rare)"
-                                    fillOpacity={0.7}
-                                    className="cursor-pointer"
-                                  />
-                                </ScatterChart>
-                              </ResponsiveContainer>
-                            </div>
-                          ) : (
-                            <div
-                              className="flex flex-col items-center justify-center text-center gap-3 text-ink-muted"
-                              style={{ height: 300 }}
-                            >
-                              <div className="w-12 h-12 rounded-xl bg-surface-hover flex items-center justify-center">
-                                <Brain className="w-6 h-6" />
-                              </div>
-                              <p className="text-[13px] font-medium max-w-xs leading-relaxed">
-                                {vocabCards.length > 0
-                                  ? 'Nenhum cartão do seu deck veio DESTA sessão. Passe o mouse sobre um termo na transcrição e adicione-o para ver a topologia dela.'
-                                  : 'Nenhum vocábulo no deck ainda. Passe o mouse sobre um termo na transcrição e adicione-o para ver a topologia real.'}
-                              </p>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-
-                    {selectedLexicalWord && (
-                      <div
-                        className="w-full lg:w-[350px] xl:w-[400px] shrink-0 bg-canvas border border-border-subtle rounded-2xl shadow-sm flex flex-col sticky top-6 animate-in slide-in-from-right-4"
-                        style={{ maxHeight: 'calc(100vh - 48px)' }}
-                      >
-                        <div className="flex items-center justify-between p-5 border-b border-border-subtle shrink-0">
-                          <h2 className="font-display font-extrabold text-[16px] text-ink flex items-center gap-2">
-                            <BookMarked className="w-4 h-4 text-accent" /> Microdados Lexicais
-                          </h2>
-                          <button
-                            onClick={() => setSelectedLexicalWord(null)}
-                            className="p-1.5 hover:bg-surface-hover rounded-full transition-colors text-ink-muted hover:text-ink"
-                          >
-                            <X className="w-4 h-4" />
-                          </button>
-                        </div>
-
-                        <div className="flex-1 p-5 space-y-6 pb-6 overflow-y-auto custom-scrollbar">
-                          <div className="flex items-start justify-between gap-3">
-                            <div className="min-w-0">
-                              <h3 className="font-display font-black text-2xl tracking-tight text-ink break-words">
-                                {selectedLexicalWord}
-                              </h3>
-                              <div className="flex items-center gap-2 mt-1.5 flex-wrap">
-                                {/* A fonética só aparece quando o cartão TEM `phonetics`. O app não tem
-                                dicionário fonético para preencher o resto, e chutar IPA é inventar. */}
-                                {lexicalDetail?.fonetica && (
-                                  <span className="text-[13px] text-ink-muted font-mono bg-surface px-2 py-0.5 rounded">
-                                    {lexicalDetail.fonetica}
-                                  </span>
-                                )}
-                                <button
-                                  onClick={() => speakWord(selectedLexicalWord, lexicalDetail?.lang)}
-                                  disabled={!isTtsSupported()}
-                                  title={
-                                    isTtsSupported()
-                                      ? `Ouvir "${selectedLexicalWord}"`
-                                      : 'Este navegador não tem voz sintetizada'
-                                  }
-                                  aria-label={`Ouvir a pronúncia de ${selectedLexicalWord}`}
-                                  className="text-accent hover:text-accent/80 transition-colors disabled:opacity-40 disabled:cursor-not-allowed p-1.5 -m-1.5"
-                                >
-                                  <Volume2 className="w-4 h-4" />
+                                  <Play aria-hidden /> {f.time}
                                 </button>
+                                <span>{f.original}</span>
                               </div>
-                              {lexicalDetail?.traducao && (
-                                <p className="text-[13px] text-ink-muted mt-2">{lexicalDetail.traducao}</p>
-                              )}
-                            </div>
-                            {lexicalDetail?.nivel && (
-                              <div className="flex flex-col items-end shrink-0">
-                                <span className="text-[10px] font-bold uppercase tracking-wider text-ink-muted mb-1">
-                                  Nível
-                                </span>
-                                <span className="px-2.5 py-0.5 rounded text-[11px] font-bold bg-surface text-ink-muted border border-border-subtle">
-                                  {lexicalDetail.nivel}
-                                </span>
-                                {/* A estimativa CEFR é heurística de baixa confiança — o docstring de
-                                `estimateCefr` pede que a UI diga isso, e antes ela dizia "C2 (Master)".
-
-                                F3, aqui havia um limiar próprio de 0,6, contra 0,5 no resto do app.
-                                Uma estimativa de 55% saía rotulada "estimativa" NESTA tela e sem
-                                rótulo nenhum em Analytics. Agora o selo e o limiar são os mesmos
-                                em todo lugar, e o percentual fica visível em vez de implícito. */}
-                                {lexicalDetail.nivelConfianca != null && (
-                                  <Confianca valor={lexicalDetail.nivelConfianca} estimativa className="mt-1" />
-                                )}
-                              </div>
-                            )}
+                            ))}
                           </div>
-
-                          <div className="grid grid-cols-2 gap-3">
-                            <div className="bg-surface border border-border-subtle rounded-xl p-3">
-                              <span className="text-[11px] text-ink-muted font-semibold uppercase tracking-wider block mb-1">
-                                Ocorrências
-                              </span>
-                              <span className="font-mono text-lg font-bold text-ink">
-                                {lexicalDetail?.ocorrencias ?? 0}
-                              </span>
-                              <span className="block text-[10px] text-ink-faint mt-0.5">nesta transcrição</span>
-                            </div>
-                            <div className="bg-surface border border-border-subtle rounded-xl p-3">
-                              <span className="text-[11px] text-ink-muted font-semibold uppercase tracking-wider block mb-1">
-                                Retenção (FSRS)
-                              </span>
-                              <span
-                                className={`font-mono text-lg font-bold ${lexicalDetail?.retencao != null ? 'text-accent' : 'text-ink-muted'}`}
-                              >
-                                {lexicalDetail?.retencao != null ? `${lexicalDetail.retencao}%` : '-'}
-                              </span>
-                              <span className="block text-[10px] text-ink-faint mt-0.5">
-                                {lexicalDetail?.retencao != null ? 'na data de hoje' : 'só após a 1ª revisão'}
-                              </span>
-                            </div>
-                          </div>
-
-                          <div className="space-y-3">
-                            <h4 className="text-[13px] font-bold text-ink flex items-center gap-2">
-                              <MessageSquare className="w-4 h-4 text-ink-muted" /> Trechos da Sessão
-                            </h4>
-                            {/* Era uma frase inventada em inglês ("We need to <palavra> our existing user
-                            base…") mostrada para QUALQUER palavra, inclusive portuguesa. Agora são as
-                            falas reais do transcrito, e o play vai para o instante certo. */}
-                            {lexicalDetail && lexicalDetail.trechos.length > 0 ? (
-                              <div className="space-y-2">
-                                {lexicalDetail.trechos.map((t, i) => (
-                                  <div
-                                    key={i}
-                                    className="p-3 bg-surface/50 border border-border-subtle/50 rounded-xl relative group"
-                                  >
-                                    <p className="text-[13px] leading-relaxed text-ink-muted italic pe-9">
-                                      "{t.texto}"
-                                    </p>
-                                    <button
-                                      onClick={() => playFrom(t.startTime)}
-                                      title="Ouvir este trecho"
-                                      aria-label={`Ouvir o trecho a partir de ${formatSeconds(t.startTime)}`}
-                                      className="absolute right-2 top-2 p-2 bg-canvas rounded-full shadow-sm text-ink-muted hover:text-accent transition-all border border-border-subtle"
-                                    >
-                                      <Play className="w-3 h-3 ms-0.5" />
-                                    </button>
-                                  </div>
-                                ))}
-                              </div>
-                            ) : (
-                              <p className="text-[12px] text-ink-faint leading-relaxed p-3 bg-surface/50 border border-border-subtle/50 rounded-xl">
-                                Esta palavra está no seu baralho, mas não aparece na transcrição desta sessão.
-                              </p>
-                            )}
-                          </div>
-
-                          {/* O botão era um "Enviar para SRS" sem `onClick`. E para a maioria das palavras
-                          deste painel ele não faria sentido nenhum: elas JÁ estão no baralho, foi de
-                          lá que vieram para o gráfico. Agora ele só existe quando há o que fazer. */}
-                          {lexicalDetail?.noDeck ? (
-                            <p className="text-[12px] text-ink-faint text-center flex items-center justify-center gap-1.5">
-                              <Check className="w-3.5 h-3.5 text-good" /> Já está no seu baralho de revisão.
-                            </p>
-                          ) : (
-                            <button
-                              onClick={() => handleAddWordToDeck(selectedLexicalWord)}
-                              className="w-full py-2.5 rounded-xl bg-ink text-canvas font-bold text-[13px] hover:bg-ink-hover transition-colors shadow-sm flex items-center justify-center gap-2"
-                            >
-                              <Sparkles className="w-4 h-4" /> Enviar para o baralho
-                            </button>
-                          )}
-                        </div>
-                      </div>
-                    )}
+                        </>
+                      ) : (
+                        <p className="mut" style={{ fontSize: 12.5 }}>
+                          Nenhuma palavra desta sessão no caderno ainda: guarde uma pela transcrição para ver onde ela
+                          aparece.
+                        </p>
+                      )}
+                    </section>
                   </div>
                 )}
 
                 {overviewSubTab === 'fluency' && recording.type !== 'document' && (
-                  <div className="space-y-6 animate-in fade-in slide-in-from-right-4">
-                    <div className="cartao p5 clicavel" onClick={() => setExpandedAnalysisKpi('dominant_tone')}>
-                      <TituloDeSecao icone={AudioLines} titulo="Pausas e monólogos" nivel="h3" />
-                      <div className="space-y-3">
-                        <div className="flex items-center justify-between border-b border-border-subtle pb-2">
-                          <span className="text-[13px] text-ink-muted">Pausas longas (&gt;3s)</span>
-                          <span className="font-bold text-[13px] text-ink">
-                            {realLongPauses != null ? `${realLongPauses} (timing real)` : '-'}
-                          </span>
-                        </div>
-                        <div className="flex items-center justify-between border-b border-border-subtle pb-2">
-                          <span className="text-[13px] text-ink-muted">Maior monólogo</span>
-                          <span className="font-bold text-[13px] text-ink">
-                            {realMonologue != null ? formatSeconds(Math.round(realMonologue / 1000)) : '-'}
-                          </span>
-                        </div>
-                        <div className="flex items-center justify-between pb-1">
-                          <span className="text-[13px] text-ink-muted">Interrupções (sobreposição)</span>
-                          {/* Era "requer diarização — em breve". A diarização existe; faltava a conta. */}
-                          <span className={`font-bold text-[13px] ${realSobreposicao ? 'text-ink' : 'text-ink-faint'}`}>
-                            {realSobreposicao
-                              ? `${realSobreposicao.total} (${formatSeconds(Math.round(realSobreposicao.msSobrepostos / 1000))})`
-                              : 'requer 2 falantes com timing'}
-                          </span>
-                        </div>
-                        {realSobreposicao && (
-                          <p className="text-[11px] text-ink-faint leading-relaxed pt-1">
-                            Entre {realSobreposicao.falantes.length} falantes ({realSobreposicao.falantes.join(', ')});
-                            a mais longa durou {formatSeconds(Math.round(realSobreposicao.maiorMs / 1000))}.
-                            {/* Sem isto o total parece cobrir a gravação inteira quando não cobre. */}
-                            {realSobreposicao.falasSemTiming > 0 &&
-                              ` ${realSobreposicao.falasSemTiming} falas ficaram fora, sem timing ou sem falante.`}
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                      {/* Silêncio MEDIDO entre as falas. Onde havia "45 seg · representa 12% da gravação,
-                      ritmo saudável" cravado no JSX, número inventado apresentado como medição. O
-                      juízo ("ritmo saudável") não volta: não há norma no app com que comparar. */}
-                      <div className="card-panel p-5">
-                        <span className="label-mono block mb-2 font-semibold text-ink-muted">
-                          Pausas Articulatórias
+                  <>
+                    <div className="ladrilhos">
+                      <div className="cartao ladrilho">
+                        <span className="label-mono">Silêncio total</span>
+                        <span className="v">
+                          {realSilencio != null ? `${Math.round(realSilencio.ms / 1000)} s` : '—'}
                         </span>
-                        <div className="font-display font-black text-3xl tracking-tight text-ink">
-                          {realSilencio != null ? Math.round(realSilencio.ms / 1000) : '-'}
-                          {realSilencio != null && <span className="text-[14px] text-ink-faint ms-1">seg</span>}
-                        </div>
-                        <p className="text-[12px] text-ink-muted mt-2">
-                          {realSilencio != null
-                            ? `Soma dos intervalos entre falas, ${realSilencio.pct}% do trecho falado (timing real).`
-                            : 'Requer timing das falas; esta gravação não tem.'}
-                        </p>
                       </div>
-                      <div
-                        className="card-panel p-5 cursor-pointer hover:border-accent hover:shadow-md transition-all"
-                        onClick={() => setExpandedAnalysisKpi('fillers')}
-                      >
-                        <span className="label-mono block mb-2 font-semibold text-ink-muted">Vícios Identificados</span>
-                        <div className="font-display font-black text-3xl tracking-tight text-ink">
-                          {realVicios.palavras > 0 ? realVicios.total : '-'}
-                        </div>
-                        <p className="text-[12px] text-ink-muted mt-2">
-                          {realVicios.palavras === 0
-                            ? 'Nenhuma fala em idioma com lista de marcadores (só português e inglês).'
-                            : realVicios.total === 0
-                              ? `Nenhum marcador de hesitação em ${realVicios.palavras} palavras.`
-                              : `${realVicios.porMilPalavras} por mil palavras, ${realVicios.detalhe
-                                  .slice(0, 3)
-                                  .map((d) => `"${d.marcador}" ${d.vezes}×`)
-                                  .join(', ')}.`}
-                        </p>
+                      <div className="cartao ladrilho">
+                        <span className="label-mono">Vícios de linguagem</span>
+                        <span className="v good">{realVicios.palavras > 0 ? numero(realVicios.total) : '—'}</span>
                       </div>
-                      <div className="card-panel p-5">
-                        <span className="label-mono block mb-2 font-semibold text-ink-muted">Tom Predominante</span>
-                        <div className="font-display font-black text-3xl tracking-tight text-ink-muted">-</div>
-                        <p className="text-[12px] text-ink-muted mt-2">
-                          Depende de variação de pitch, que exige análise acústica do áudio, o app não faz. Nada foi
-                          estimado.
-                        </p>
+                      <div className="cartao ladrilho">
+                        <span className="label-mono">Pausas longas</span>
+                        <span className="v warn">{realLongPauses != null ? numero(realLongPauses) : '—'}</span>
                       </div>
                     </div>
-
-                    {/* Este painel se chamava "Assinatura Acústica & Densidade" e mostrava, embaixo do
-                    título, um aviso sobre "evolução ao longo do tempo", título de uma coisa,
-                    conteúdo de outra. Assinatura acústica exige análise do áudio, que o app não faz,
-                    então o título saiu junto: manter o título de um gráfico que nunca vai existir é
-                    prometer pelo cabeçalho. O que ficou é a evolução, que é real. */}
-                    {/* F7 — idem: dado da conta num painel de sessão. */}
-                    <NiveisDoConjunto metricas={metricasDaSessao} titulo="Níveis desta sessão" />
-                  </div>
+                    <section className="cartao p5 secao">
+                      <TituloDeSecao icone={AudioLines} titulo="Ritmo por falante" nivel="h3" />
+                      {ritmoPorFalante.length ? (
+                        <div className="pilha">
+                          {ritmoPorFalante.map((f) => (
+                            <div key={f.nome}>
+                              <div className="entre" style={{ fontSize: 13 }}>
+                                <b>{f.nome}</b>
+                                <span className="mut tn">{f.ppm} palavras/min</span>
+                              </div>
+                              <div className="barra" style={{ marginTop: 6 }}>
+                                <span style={{ width: `${f.pct}%` }} />
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="mut" style={{ fontSize: 12.5 }}>
+                          Requer o tempo de cada fala; esta gravação não tem.
+                        </p>
+                      )}
+                    </section>
+                  </>
                 )}
               </div>
             </div>
@@ -1322,17 +1010,6 @@ export default function Analysis({
               setLoopMode={setLoopMode}
               activeSentenceIndex={activeSentenceIndex}
               seekTo={seekTo}
-              playFrom={playFrom}
-              shadowingSentenceIndex={shadowingSentenceIndex}
-              setShadowingSentenceIndex={setShadowingSentenceIndex}
-              shadowingStep={shadowingStep}
-              setShadowingStep={setShadowingStep}
-              shadowingScore={shadowingScore}
-              setShadowingScore={setShadowingScore}
-              shadowRecRef={shadowRecRef}
-              shadowStartRef={shadowStartRef}
-              langOfSentence={langOfSentence}
-              playWordTTS={playWordTTS}
               mostrarExib={showSettings}
               aoAlternarExib={() => setShowSettings(!showSettings)}
               exib={painelDeExibicao}
@@ -1405,7 +1082,7 @@ export default function Analysis({
                       >
                         <div className="fala-cab">
                           <span className="quem-s">{sentence.speaker}</span>
-                          <span className="tempo tn">{sentence.time}</span>
+                          {sentence.time && <span className="tempo tn">{sentence.time}</span>}
                           <div className="fala-acoes">
                             <button
                               type="button"
@@ -1427,9 +1104,7 @@ export default function Analysis({
                                 aria-pressed={shadowingSentenceIndex === sentence.index}
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  setShadowingSentenceIndex(sentence.index);
-                                  setShadowingStep('idle');
-                                  setShadowingScore(null);
+                                  setShadowingSentenceIndex((v) => (v === sentence.index ? null : sentence.index));
                                 }}
                               >
                                 <Mic aria-hidden />
@@ -1543,6 +1218,14 @@ export default function Analysis({
                             </>
                           )}
                         </div>
+                        {shadowingSentenceIndex === sentence.index && recording.type !== 'document' && (
+                          <SombraDaFala
+                            key={sentence.index}
+                            texto={sentence.original}
+                            idioma={langOfSentence(sentence.index)}
+                            aoOuvirOriginal={() => playFrom(sentence.startTime)}
+                          />
+                        )}
                       </div>
                     );
                   })}
@@ -1550,21 +1233,22 @@ export default function Analysis({
               </EditablePanel>
 
               {selectedExamWord ? (
-                /* O Analista de Vocabulário (compartilhado com Captura, Leitura, Estudo e Métricas). */
-                <VocabularyPanel
-                  viewKey="analysis"
-                  word={selectedExamWord}
-                  mtNote={examMtNote}
-                  onClose={() => {
+                /* O analista do protótipo, ao lado da transcrição (`aside.analista`). */
+                <AnalistaDaSessao
+                  palavra={selectedExamWord}
+                  nivel={
+                    vocabCards.find((c) => c.word.toLowerCase() === selectedExamWord.word.toLowerCase())?.cefrLevel
+                  }
+                  nota={examMtNote}
+                  velocidade={ttsSpeed}
+                  aoTrocarVelocidade={setTtsSpeed}
+                  aoOuvir={() => speakWord(selectedExamWord.word)}
+                  aoFechar={() => {
                     setSelectedExamWord(null);
                     setExamMtNote(null);
                   }}
-                  onSpeak={speakWord}
-                  onAddToDeck={handleAddWordToDeck}
-                  isAdded={isWordAdded(selectedExamWord)}
-                  ttsSpeed={ttsSpeed}
-                  setTtsSpeed={setTtsSpeed}
-                  onPractice={handlePracticeWord}
+                  aoRevisar={() => void handlePracticeWord(selectedExamWord, 'review')}
+                  aoDuelo={() => void handlePracticeWord(selectedExamWord, 'blitz')}
                 />
               ) : (
                 <aside className="cartao p5 analista" aria-label="Palavras desta sessão">
@@ -1773,8 +1457,13 @@ export default function Analysis({
       {showExportModal && (
         <ExportarSessao
           recording={recording}
-          vocabCards={vocabCards}
+          vocabCards={palavrasDaSessao}
           stats={stats}
+          ritmo={{
+            ppm: realWpm,
+            pausasLongas: realLongPauses,
+            vicios: realVicios.palavras > 0 ? realVicios.total : null,
+          }}
           aoFechar={() => setShowExportModal(false)}
         />
       )}

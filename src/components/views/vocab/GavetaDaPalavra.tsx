@@ -320,7 +320,7 @@ export default function GavetaDaPalavra({
             </section>
             <section>
               <span className="label-mono">Dicionário</span>
-              <ol className="sentidos" style={{ listStyle: 'decimal' }}>
+              <ol className="sentidos">
                 {!verbete && lang ? (
                   <li className="mut">consultando o verbete…</li>
                 ) : achado && achado.senses.length ? (

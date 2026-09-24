@@ -65,9 +65,8 @@ test.describe('Baralhos do Anki (condicional a haver baralho já importado)', ()
     })
     await clicarRobusto(page, botaoBaralhos)
 
-    await expect(
-      page.getByText('O que já foi trazido de fora, e quanto de cada um está de fato jogando com você.'),
-    ).toBeVisible()
+    /* "Gerenciar" é uma ABA da tela do Anki (protótipo `T.anki`), e a porta da gaveta abre nela. */
+    await expect(page.getByRole('tab', { name: /Gerenciar/ })).toHaveAttribute('aria-selected', 'true')
 
     // O saldo é a promessa central da tela: "N de M ativadas", nunca um total bruto sozinho.
     /* `.first()`: com MAIS DE UM baralho importado o locator casa vários botões, e o modo
@@ -89,10 +88,10 @@ test.describe('Baralhos do Anki (condicional a haver baralho já importado)', ()
     )
 
     // Lê o nome no cartão ANTES de clicar, para conferir que é ele que aparece na faixa depois.
-    const cartao = page.locator('.card-panel').filter({ has: jogarSoComEste }).first()
+    const cartao = page.locator('.cartao.baralho').filter({ has: jogarSoComEste }).first()
     const nomeBaralho = (
       await cartao
-        .locator('p')
+        .locator('h3')
         .first()
         .textContent()
         .catch(() => null)

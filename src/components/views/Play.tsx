@@ -251,6 +251,9 @@ interface PlayProps {
    * — ela fala de nível/streak/seeds, e a aba fala de UMA sessão.
    */
   embutido?: boolean;
+  /** O som do app (App.tsx): o interruptor "Sons" da pausa liga e desliga o mesmo som. */
+  soundEnabled?: boolean;
+  toggleSound?: () => void;
 }
 
 /**
@@ -328,7 +331,17 @@ interface RodadaPronta {
   aplicar: () => void;
 }
 
-export default function Play({ onChangeView, ageProfile, progress, metrics, recording, seed, embutido }: PlayProps) {
+export default function Play({
+  onChangeView,
+  ageProfile,
+  progress,
+  metrics,
+  recording,
+  seed,
+  embutido,
+  soundEnabled,
+  toggleSound,
+}: PlayProps) {
   const [deck, setDeck] = useState<VocabCard[] | null>(null);
   /* Preferência de ordem/fixados, lida do `localStorage` na montagem. `lerOrdem` já é defensiva:
      um storage corrompido devolve a ordem padrão em vez de derrubar a grade. */
@@ -2267,6 +2280,7 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
         onRecomecar={() => setChaveDaRodada((k) => k + 1)}
         onSair={sair}
         pausaComP={jogo !== 'termo'}
+        som={soundEnabled !== undefined && toggleSound ? { ligado: soundEnabled, alternar: toggleSound } : undefined}
       >
         {tela}
       </CascaDaRodada>

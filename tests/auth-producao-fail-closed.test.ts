@@ -7,11 +7,13 @@ import { afterEach, describe, expect, it } from 'vitest'
 
 import { erroDeAuthEmProducao } from '../server/lib/auth'
 
-const orig = { node: process.env.NODE_ENV, auth: process.env.AUTH_REQUIRED }
+const orig = { node: process.env.NODE_ENV, auth: process.env.AUTH_REQUIRED, self: process.env.SELF_HOST }
 afterEach(() => {
   process.env.NODE_ENV = orig.node
   if (orig.auth === undefined) delete process.env.AUTH_REQUIRED
   else process.env.AUTH_REQUIRED = orig.auth
+  if (orig.self === undefined) delete process.env.SELF_HOST
+  else process.env.SELF_HOST = orig.self
 })
 
 describe('GAP-003 — auth fail-closed em produção', () => {
@@ -37,5 +39,22 @@ describe('GAP-003 — auth fail-closed em produção', () => {
     process.env.NODE_ENV = 'development'
     process.env.AUTH_REQUIRED = '0'
     expect(erroDeAuthEmProducao()).toBeNull()
+  })
+
+  /* A instalação pessoal SEM login também roda o build de produção (a imagem Docker fixa
+     NODE_ENV=production). Ela continua possível, mas só com DUAS escolhas explícitas: um
+     `AUTH_REQUIRED=0` esquecido sozinho ainda aborta — que é o erro que o GAP-003 fecha. */
+  it('produção + AUTH_REQUIRED=0 + SELF_HOST=1 → ok (instalação pessoal declarada)', () => {
+    process.env.NODE_ENV = 'production'
+    process.env.AUTH_REQUIRED = '0'
+    process.env.SELF_HOST = '1'
+    expect(erroDeAuthEmProducao()).toBeNull()
+  })
+
+  it('produção + AUTH_REQUIRED=0 + SELF_HOST com outro valor → aborta', () => {
+    process.env.NODE_ENV = 'production'
+    process.env.AUTH_REQUIRED = '0'
+    process.env.SELF_HOST = 'true'
+    expect(erroDeAuthEmProducao()).toMatch(/SELF_HOST=1/)
   })
 })

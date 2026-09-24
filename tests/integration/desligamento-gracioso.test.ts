@@ -95,6 +95,7 @@ async function subirServidor(extra: Record<string, string> = {}): Promise<Servid
         DATA_DIR: dados,
         DATABASE_URL: `file:${dbPath.replace(/\\/g, '/')}`,
         AUTH_REQUIRED: '0',
+        SELF_HOST: '1', // instalação pessoal declarada (GAP-003 aceita sem login só assim)
         // O diário em disco não é o assunto aqui, e ligá-lo só acrescentaria I/O ao dreno.
         ERROS_DIR: 'off',
         ...extra,

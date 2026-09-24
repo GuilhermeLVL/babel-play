@@ -103,6 +103,7 @@ function subirServidor(env: Record<string, string>, prazoMs = 60_000) {
       // desconhecido como "ligado" e fail-safe, e aceitar 'false' tornaria mais facil
       // desligar a auth por engano num deploy.
       AUTH_REQUIRED: '0',
+      SELF_HOST: '1', // instalação pessoal declarada (GAP-003 aceita sem login só assim)
       ...env,
     },
   })

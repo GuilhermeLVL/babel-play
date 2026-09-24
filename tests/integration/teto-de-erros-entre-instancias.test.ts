@@ -64,6 +64,7 @@ async function subirInstancia(url: string, dirDeErros: string): Promise<{ porta:
       DATA_DIR: dados,
       DATABASE_URL: url,
       AUTH_REQUIRED: '0',
+      SELF_HOST: '1', // instalação pessoal declarada (GAP-003 aceita sem login só assim)
       /* Diário PRÓPRIO por instância. Dois processos fora do modo cluster escreveriam no MESMO
          `<dia>.jsonl` (ver `diarioDeErros.ts`), e o teste passaria a depender de `appendFileSync`
          intercalar linhas de dois processos sem se atrapalhar — que não é o que está sendo

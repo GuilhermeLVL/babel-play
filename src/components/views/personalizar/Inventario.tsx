@@ -3,6 +3,7 @@ import {
   ArrowRight,
   Check,
   Lock,
+  Moon,
   MousePointer2,
   Palette,
   PanelLeft,
@@ -11,6 +12,7 @@ import {
   ShoppingBag,
   Sparkles,
   Sprout,
+  Sun,
   Trash2,
   Trophy,
   Wand2,
@@ -22,6 +24,7 @@ import { comprarPecaComSeeds } from '../../../lib/galeria/comprarPeca';
 import { cromaEquipado } from '../../../lib/galeria/cromas';
 import { type ContextoDeEquipar, equiparItem, equipavel } from '../../../lib/galeria/equipar';
 import { paletaPorId } from '../../../lib/galeria/paletas';
+import { PAR_DO_TEMA } from '../../../lib/galeria/parDoTema';
 import type { Perfil } from '../../../lib/galeria/perfis';
 import { estadoDaColecao } from '../../../lib/galeria/progressao';
 import { comemorar } from '../../../lib/juice';
@@ -91,6 +94,21 @@ function Paleta({ cores }: { cores: string[] }) {
       {cores.map((c, n) => (
         <span key={n} style={{ background: c }} />
       ))}
+    </div>
+  );
+}
+
+/** Metade clara, metade escura (`.paleta.duas` do protótipo): o tema é um par, não uma cor só. */
+function PaletaDupla({ claro, escuro }: { claro: string[]; escuro: string[] }) {
+  return (
+    <div className="paleta duas" title="Claro e escuro">
+      {[...claro, ...escuro].map((c, n) => (
+        <span key={n} style={{ background: c }} />
+      ))}
+      <b className="tag-par">
+        <Sun aria-hidden />
+        <Moon aria-hidden />
+      </b>
     </div>
   );
 }
@@ -189,6 +207,7 @@ export default function Inventario({
     }
     if (equiparItem(i, ctx)) {
       comemorar('acerto', el ?? null, { texto: i.nome });
+      toast.ok('Equipado');
       rerender();
     } else {
       const { motivo } = estadoDoItem(i, nivel, saldo);
@@ -257,7 +276,13 @@ export default function Inventario({
         }}
       >
         <div className="vis">
-          {i.previa?.length ? <Paleta cores={i.previa} /> : <MiniaturaDoItem item={i} tam="grande" />}
+          {i.tipo === 'tema' && PAR_DO_TEMA[i.alvo] ? (
+            <PaletaDupla claro={PAR_DO_TEMA[i.alvo].claro} escuro={PAR_DO_TEMA[i.alvo].escuro} />
+          ) : i.previa?.length ? (
+            <Paleta cores={i.previa} />
+          ) : (
+            <MiniaturaDoItem item={i} tam="grande" />
+          )}
         </div>
         <h3>
           {/* O cadeado carrega informação que nenhum outro elemento do cartão repete. */}

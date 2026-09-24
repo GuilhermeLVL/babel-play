@@ -825,5 +825,7 @@
   "Seu plano inclui IA de nuvem, mas ela está desligada porque você ainda não autorizou. Enquanto isso, tudo roda no seu aparelho.": "Your plan includes cloud AI, but it is off because you haven't allowed it yet. Meanwhile, everything runs on your device.",
   "Autorizar IA de nuvem": "Allow cloud AI",
   "Não consegui registrar a autorização agora.": "I couldn't record the permission right now.",
-  "No perfil protegido não há ranking público: os seus recordes ficam só com você.": "Protected profiles have no public leaderboard: your records stay with you."
+  "No perfil protegido não há ranking público: os seus recordes ficam só com você.": "Protected profiles have no public leaderboard: your records stay with you.",
+  "Não conseguimos enviar o convite agora. Tente de novo em alguns minutos.": "We couldn't send the invitation right now. Please try again in a few minutes.",
+  "Você já enviou muitos convites hoje. Tente de novo amanhã.": "You've already sent too many invitations today. Please try again tomorrow."
 }

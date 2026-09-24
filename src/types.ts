@@ -114,6 +114,8 @@ export interface VocabCard {
    *  "nunca vistas"). `fsrsDueAt` acima é string de EXIBIÇÃO; filtrar por ela exigiria parse de
    *  rótulo, que é como contadores passam a mentir. `null` = nunca agendado. */
   dueAtMs?: number | null;
+  /** Quando o cartão entrou no caderno, em ms (a curva "palavras no caderno" das Estatísticas). */
+  createdAtMs?: number | null;
   inDeck: boolean;
   stability?: number; // mapped or alternative for fsrsStability
   /**
@@ -153,5 +155,18 @@ export type SchedulerType = 'fsrs' | 'leitner';
  * porque minigame vive do BARALHO, que é global — sob a Análise ele herdaria a exigência de uma
  * sessão gravada e, sem nenhuma, a tela renderizava em branco.
  */
-export type ViewType = 'hub' | 'capture' | 'study' | 'play' | 'library' | 'analysis' | 'settings' | 'reading' | 'metrics' | 'profile' | 'sobre' | 'loja' | 'planos';
-
+export type ViewType =
+  | 'hub'
+  | 'capture'
+  | 'study'
+  | 'play'
+  | 'library'
+  | 'analysis'
+  | 'settings'
+  | 'reading'
+  | 'metrics'
+  | 'profile'
+  | 'sobre'
+  | 'loja'
+  | 'planos'
+  | 'estatisticas';

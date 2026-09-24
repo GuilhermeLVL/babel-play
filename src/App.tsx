@@ -1,4 +1,4 @@
-import React, { Suspense,useEffect, useState } from 'react';
+import React, { Suspense, useEffect, useState } from 'react';
 
 import LayoutEditorToolbar from './components/LayoutEditorToolbar';
 import PracticeMenu from './components/PracticeMenu';
@@ -19,6 +19,7 @@ const LayoutStudio = lazyComRecarga(() => import('./components/LayoutStudio'));
 const Perfil = lazyComRecarga(() => import('./components/views/Perfil'));
 const Planos = lazyComRecarga(() => import('./components/views/Planos'));
 const Sobre = lazyComRecarga(() => import('./components/views/Sobre'));
+const Estatisticas = lazyComRecarga(() => import('./components/views/Estatisticas'));
 const Loja = lazyComRecarga(() => import('./components/views/Loja'));
 const Login = lazyComRecarga(() => import('./components/Login'));
 const ResetPassword = lazyComRecarga(() => import('./components/auth/ResetPassword'));
@@ -54,7 +55,7 @@ import { equiparItem } from './lib/galeria/equipar';
 import { useIdiomaDaInterfaceEscolhido } from './lib/langConfig';
 import { play } from './lib/soundFx';
 import { authRequired } from './lib/supabase';
-import { Recording,ViewType } from './types';
+import { Recording, ViewType } from './types';
 
 export default function App() {
   /* A interface acompanha "meu idioma" do perfil — um lugar só, no topo, para não haver tela que
@@ -70,17 +71,45 @@ export default function App() {
   const { session, recovery, setRecovery, processingCallback } = useSessaoSupabase();
 
   const {
-    anonimo, semContaAceito, setSemContaAceito, pedindoLogin, setPedindoLogin,
-    gate, migracao, setMigracao, fecharGate,
+    anonimo,
+    semContaAceito,
+    setSemContaAceito,
+    pedindoLogin,
+    setPedindoLogin,
+    gate,
+    migracao,
+    setMigracao,
+    fecharGate,
   } = useGateDeConta();
 
   const {
-    theme, setTheme, fonte, setFonte, darkMode, toggleDarkMode,
-    isStudioOpen, setIsStudioOpen, buscaAberta, setBuscaAberta,
-    ageProfile, setAgeProfile, menuPosition, setMenuPosition,
-    soundEnabled, toggleSound, animationsEnabled, toggleAnimations,
-    performanceMode, togglePerformanceMode, fontScale, setFontScale, cycleFontScale,
-    setThemeState, setFonteState, setDarkMode, setAgeProfileState,
+    theme,
+    setTheme,
+    fonte,
+    setFonte,
+    darkMode,
+    toggleDarkMode,
+    isStudioOpen,
+    setIsStudioOpen,
+    buscaAberta,
+    setBuscaAberta,
+    ageProfile,
+    setAgeProfile,
+    menuPosition,
+    setMenuPosition,
+    soundEnabled,
+    toggleSound,
+    animationsEnabled,
+    toggleAnimations,
+    performanceMode,
+    togglePerformanceMode,
+    fontScale,
+    setFontScale,
+    cycleFontScale,
+    setThemeState,
+    setFonteState,
+    setDarkMode,
+    setAgeProfileState,
   } = useAparencia();
 
   // Entitlements: o servidor decide o plano; o cliente só cacheia para pintar. Recarrega quando a
@@ -99,28 +128,44 @@ export default function App() {
 
   const { metrics, recordes, progress, setVersaoDasMetricas } = useMetricas(recordings.length);
 
-  const {
-    ctxConquistas, filaDeRecompensas, setFilaDeRecompensas,
-    lojaAba, setLojaAba, abrirEstudio, equiparCtx,
-  } = useRecompensas({
-    metrics, recordes, progress, setVersaoDasMetricas,
-    setTheme, setFonte, setMenuPosition, setIsStudioOpen,
-  });
+  const { ctxConquistas, filaDeRecompensas, setFilaDeRecompensas, lojaAba, setLojaAba, abrirEstudio, equiparCtx } =
+    useRecompensas({
+      metrics,
+      recordes,
+      progress,
+      setVersaoDasMetricas,
+      setTheme,
+      setFonte,
+      setMenuPosition,
+      setIsStudioOpen,
+    });
 
   useHidratacaoDeAjustes({ setThemeState, setDarkMode, setFonteState, setAgeProfileState, setOnboarded });
 
   const {
-    analysisSubTab, setAnalysisSubTab,
-    liveTranscription, setLiveTranscription,
-    isChatOpen, setIsChatOpen,
-    isChatDocked, setIsChatDocked,
-    isChatMaximized, setIsChatMaximized,
-    practiceSeed, setPracticeSeed,
+    analysisSubTab,
+    setAnalysisSubTab,
+    liveTranscription,
+    setLiveTranscription,
+    isChatOpen,
+    setIsChatOpen,
+    isChatDocked,
+    setIsChatDocked,
+    isChatMaximized,
+    setIsChatMaximized,
+    practiceSeed,
+    setPracticeSeed,
     navigateTo,
   } = useNavegacao({
-    activeView, setActiveView,
-    selectedRecordingId, setSelectedRecordingId, setResumingRecordingId,
-    recordings, lojaAba, setLojaAba, setPedindoLogin,
+    activeView,
+    setActiveView,
+    selectedRecordingId,
+    setSelectedRecordingId,
+    setResumingRecordingId,
+    recordings,
+    lojaAba,
+    setLojaAba,
+    setPedindoLogin,
   });
 
   /**
@@ -129,10 +174,10 @@ export default function App() {
    * a duplicaria na Biblioteca.
    */
   const handleSaveRecording = (recording: Recording, shouldRedirect: boolean = true) => {
-    setRecordings(prev =>
-      prev.some(r => r.id === recording.id)
-        ? prev.map(r => (r.id === recording.id ? recording : r))
-        : [recording, ...prev]
+    setRecordings((prev) =>
+      prev.some((r) => r.id === recording.id)
+        ? prev.map((r) => (r.id === recording.id ? recording : r))
+        : [recording, ...prev],
     );
     setSelectedRecordingId(recording.id);
     setResumingRecordingId(null);
@@ -140,30 +185,46 @@ export default function App() {
     play('success');
     if (shouldRedirect) {
       // Sem conta a análise não existe; o destino natural é jogar com o que acabou de ser gravado.
-      if (anonimo) { setActiveView('play'); return; }
+      if (anonimo) {
+        setActiveView('play');
+        return;
+      }
       setAnalysisSubTab('transcript');
       setActiveView('analysis');
     }
   };
 
-  const selectedRecording = recordings.find(r => r.id === selectedRecordingId) || recordings[0];
+  const selectedRecording = recordings.find((r) => r.id === selectedRecordingId) || recordings[0];
 
   // Map sub tabs like reading and study to distinct views for precise iChat context matching
-  const mappedActiveViewForChat = activeView === 'analysis'
-    ? (analysisSubTab === 'study' ? 'study' : analysisSubTab === 'reading' ? 'reading' : 'analysis') as ViewType
-    : activeView;
+  const mappedActiveViewForChat =
+    activeView === 'analysis'
+      ? ((analysisSubTab === 'study' ? 'study' : analysisSubTab === 'reading' ? 'reading' : 'analysis') as ViewType)
+      : activeView;
 
   // Marco 1: OAuth/recuperação voltando em /auth/callback — aguarda o supabase-js processar a URL.
   if (authRequired && processingCallback) {
-    return <div className="flex h-tela w-full items-center justify-center bg-canvas text-ink-muted text-sm">Concluindo login…</div>;
+    return (
+      <div className="flex h-tela w-full items-center justify-center bg-canvas text-ink-muted text-sm">
+        Concluindo login…
+      </div>
+    );
   }
   // Marco 1: porta de login. Só no modo público (authRequired); no local é pulada inteira.
   if (authRequired && session === undefined) {
-    return <div className="flex h-tela w-full items-center justify-center bg-canvas text-ink-muted text-sm">Carregando…</div>;
+    return (
+      <div className="flex h-tela w-full items-center justify-center bg-canvas text-ink-muted text-sm">Carregando…</div>
+    );
   }
   if (authRequired && recovery) {
     return (
-      <Suspense fallback={<div className="flex h-tela w-full items-center justify-center bg-canvas text-ink-muted text-sm">Carregando…</div>}>
+      <Suspense
+        fallback={
+          <div className="flex h-tela w-full items-center justify-center bg-canvas text-ink-muted text-sm">
+            Carregando…
+          </div>
+        }
+      >
         <ResetPassword onDone={() => setRecovery(false)} />
         <Toaster />
       </Suspense>
@@ -171,19 +232,39 @@ export default function App() {
   }
   if (porta({ authRequired, temSessao: !!session, anonimoAceito: semContaAceito, pedindoLogin }) === 'login') {
     return (
-      <Suspense fallback={<div className="flex h-tela w-full items-center justify-center bg-canvas text-ink-muted text-sm">Carregando…</div>}>
-        <Login onContinuarSemConta={() => { aceitarAnonimo(); setSemContaAceito(true); setPedindoLogin(false); }} />
+      <Suspense
+        fallback={
+          <div className="flex h-tela w-full items-center justify-center bg-canvas text-ink-muted text-sm">
+            Carregando…
+          </div>
+        }
+      >
+        <Login
+          onContinuarSemConta={() => {
+            aceitarAnonimo();
+            setSemContaAceito(true);
+            setPedindoLogin(false);
+          }}
+        />
         <Toaster />
       </Suspense>
     );
   }
 
   if (onboarded === null) {
-    return <div className="flex h-tela w-full items-center justify-center bg-canvas text-ink-muted text-sm">Carregando…</div>;
+    return (
+      <div className="flex h-tela w-full items-center justify-center bg-canvas text-ink-muted text-sm">Carregando…</div>
+    );
   }
   if (onboarded === false) {
     return (
-      <Suspense fallback={<div className="flex h-tela w-full items-center justify-center bg-canvas text-ink-muted text-sm">Carregando…</div>}>
+      <Suspense
+        fallback={
+          <div className="flex h-tela w-full items-center justify-center bg-canvas text-ink-muted text-sm">
+            Carregando…
+          </div>
+        }
+      >
         <Onboarding onComplete={() => setOnboarded(true)} />
         <Toaster />
       </Suspense>
@@ -220,18 +301,28 @@ export default function App() {
   );
 
   const mobileControls = {
-    theme, setTheme, darkMode, toggleDarkMode,
+    theme,
+    setTheme,
+    darkMode,
+    toggleDarkMode,
     onOpenStudio: abrirEstudio,
-    ageProfile, setAgeProfile,
-    fontScale, cycleFontScale,
-    menuPosition, setMenuPosition,
-    fonte, setFonte,
+    ageProfile,
+    setAgeProfile,
+    fontScale,
+    cycleFontScale,
+    menuPosition,
+    setMenuPosition,
+    fonte,
+    setFonte,
     nivel: progress.available ? progress.level : 99,
-    soundEnabled, toggleSound,
-    animationsEnabled, toggleAnimations,
-    performanceMode, togglePerformanceMode,
+    soundEnabled,
+    toggleSound,
+    animationsEnabled,
+    toggleAnimations,
+    performanceMode,
+    togglePerformanceMode,
     onOpenSearch: () => setBuscaAberta(true),
-    onChangeView: navigateTo
+    onChangeView: navigateTo,
   };
 
   /**
@@ -251,7 +342,9 @@ export default function App() {
       <div className="flex-1 flex min-h-0 w-full">
         {menuPosition === 'left' && shell}
 
-        <main className={`@container/conteudo flex-1 min-w-0 flex flex-col h-full relative overflow-hidden bg-canvas age-${ageProfile}`}>
+        <main
+          className={`@container/conteudo flex-1 min-w-0 flex flex-col h-full relative overflow-hidden bg-canvas age-${ageProfile}`}
+        >
           {/* O AMBIENTE fica fora do perfil sênior de propósito: movimento contínuo de fundo é
               exatamente o que atrapalha quem já tem dificuldade de leitura. As RAJADAS continuam
               para os três, são curtas e confirmam uma ação que a pessoa acabou de fazer. */}
@@ -268,167 +361,199 @@ export default function App() {
           {/* Os números que sobem ("+10", "×3") — camada própria, no topo da árvore, para não
               serem cortados pelo `overflow` de nenhum container de jogo. */}
           <FloatingScoreLayer />
-        <LayoutEditorToolbar />
-        <Suspense fallback={<div className="flex-1 flex items-center justify-center text-ink-muted text-sm">Carregando…</div>}>
-          {anonimo && exigeConta(activeView) && (
-            <CartaoDeConvite view={activeView} onEntrar={() => setPedindoLogin(true)} onVoltar={() => setActiveView('hub')} />
-          )}
-          {activeView === 'hub' && (
-            <Hub onChangeView={navigateTo} recordings={recordings} ageProfile={ageProfile} progress={progress} metrics={metrics} />
-          )}
-          {activeView === 'capture' && (
-            <LiveCapture
-              onSave={handleSaveRecording}
-              onTranscriptChange={setLiveTranscription}
-              resumingRecordingId={resumingRecordingId}
-              recordings={recordings}
-              onChangeView={navigateTo}
-              ageProfile={ageProfile}
-            />
-          )}
-          {activeView === 'library' && !anonimo && (
-            <Library onChangeView={navigateTo} recordings={recordings} onRecordingsChange={setRecordings} ageProfile={ageProfile} />
-          )}
-          {/* `selectedRecordingId` e NÃO `selectedRecording`: este último cai na gravação mais
+          <LayoutEditorToolbar />
+          <Suspense
+            fallback={<div className="flex-1 flex items-center justify-center text-ink-muted text-sm">Carregando…</div>}
+          >
+            {anonimo && exigeConta(activeView) && (
+              <CartaoDeConvite
+                view={activeView}
+                onEntrar={() => setPedindoLogin(true)}
+                onVoltar={() => setActiveView('hub')}
+              />
+            )}
+            {activeView === 'hub' && (
+              <Hub
+                onChangeView={navigateTo}
+                recordings={recordings}
+                ageProfile={ageProfile}
+                progress={progress}
+                metrics={metrics}
+              />
+            )}
+            {activeView === 'capture' && (
+              <LiveCapture
+                onSave={handleSaveRecording}
+                onTranscriptChange={setLiveTranscription}
+                resumingRecordingId={resumingRecordingId}
+                recordings={recordings}
+                onChangeView={navigateTo}
+                ageProfile={ageProfile}
+              />
+            )}
+            {activeView === 'library' && !anonimo && (
+              <Library
+                onChangeView={navigateTo}
+                recordings={recordings}
+                onRecordingsChange={setRecordings}
+                ageProfile={ageProfile}
+              />
+            )}
+            {/* `selectedRecordingId` e NÃO `selectedRecording`: este último cai na gravação mais
               recente quando não há id, e o filtro de sessão ligaria sozinho sem ninguém pedir. */}
-          {activeView === 'play' && (
-            <Play
-              onChangeView={navigateTo}
-              ageProfile={ageProfile}
-              progress={progress}
-              metrics={metrics}
-              recording={selectedRecordingId ? selectedRecording : null}
-              seed={practiceSeed}
-            />
-          )}
-          {activeView === 'analysis' && !anonimo && (
-            <Analysis
-              onChangeView={navigateTo}
-              recording={selectedRecording}
-              allRecordings={recordings}
-              subTab={analysisSubTab}
-              onSubTabChange={setAnalysisSubTab}
-              practiceSeed={practiceSeed}
-              onSeedConsumed={() => setPracticeSeed(null)}
-              ageProfile={ageProfile}
-              /* A aba "Jogos" da sessão monta o mesmo lobby do `<Play>` acima; os números têm de vir
+            {activeView === 'play' && (
+              <Play
+                onChangeView={navigateTo}
+                ageProfile={ageProfile}
+                progress={progress}
+                metrics={metrics}
+                recording={selectedRecordingId ? selectedRecording : null}
+                seed={practiceSeed}
+              />
+            )}
+            {activeView === 'analysis' && !anonimo && (
+              <Analysis
+                onChangeView={navigateTo}
+                recording={selectedRecording}
+                allRecordings={recordings}
+                subTab={analysisSubTab}
+                onSubTabChange={setAnalysisSubTab}
+                practiceSeed={practiceSeed}
+                onSeedConsumed={() => setPracticeSeed(null)}
+                ageProfile={ageProfile}
+                /* A aba "Jogos" da sessão monta o mesmo lobby do `<Play>` acima; os números têm de vir
                  da MESMA fonte, senão nível/ofensiva apareceriam diferentes nas duas telas. */
-              progress={progress}
-              metrics={metrics}
-            />
-          )}
-          {activeView === 'metrics' && !anonimo && <Metrics recordings={recordings} onChangeView={navigateTo} ageProfile={ageProfile} metrics={metrics} />}
+                progress={progress}
+                metrics={metrics}
+              />
+            )}
+            {activeView === 'metrics' && !anonimo && (
+              <Metrics recordings={recordings} onChangeView={navigateTo} ageProfile={ageProfile} metrics={metrics} />
+            )}
 
-          {activeView === 'profile' && !anonimo && <Perfil progress={progress} ageProfile={ageProfile} />}
-          {/* Plano e consumo. Diferente do Perfil, aparece TAMBÉM sem conta: é justamente
+            {activeView === 'profile' && !anonimo && <Perfil progress={progress} ageProfile={ageProfile} />}
+            {/* Plano e consumo. Diferente do Perfil, aparece TAMBÉM sem conta: é justamente
               quem não tem conta que precisa saber o que um plano daria. */}
-          {activeView === 'planos' && <Planos />}
-          {activeView === 'sobre' && <Sobre onVerPlanos={(v) => navigateTo(v)} />}
-          {activeView === 'loja' && (
-            <Loja
-              ctxConquistas={ctxConquistas}
-              progress={progress}
-              theme={theme}
-              setTheme={setTheme}
-              fonte={fonte}
-              setFonte={setFonte}
-              menuPosition={menuPosition}
-              setMenuPosition={setMenuPosition}
-              onOpenStudio={abrirEstudio}
-              ageProfile={ageProfile}
-              setAgeProfile={setAgeProfile}
-              abaInicial={lojaAba}
-              onEntrar={() => setPedindoLogin(true)}
-              aoTrocarDeAba={setLojaAba}
-              equiparCtx={equiparCtx}
+            {activeView === 'planos' && <Planos />}
+            {activeView === 'estatisticas' && (
+              <Estatisticas metrics={metrics} onChangeView={(v) => navigateTo(v as ViewType)} />
+            )}
+            {activeView === 'sobre' && <Sobre onVerPlanos={(v) => navigateTo(v)} />}
+            {activeView === 'loja' && (
+              <Loja
+                ctxConquistas={ctxConquistas}
+                progress={progress}
+                theme={theme}
+                setTheme={setTheme}
+                fonte={fonte}
+                setFonte={setFonte}
+                menuPosition={menuPosition}
+                setMenuPosition={setMenuPosition}
+                onOpenStudio={abrirEstudio}
+                ageProfile={ageProfile}
+                setAgeProfile={setAgeProfile}
+                abaInicial={lojaAba}
+                onEntrar={() => setPedindoLogin(true)}
+                aoTrocarDeAba={setLojaAba}
+                equiparCtx={equiparCtx}
+              />
+            )}
+            {/* v3: recompensa entregue na hora — em qualquer tela, esperando a rodada fechar. */}
+            <RecompensaDesbloqueada
+              fila={filaDeRecompensas}
+              onEquipar={(item) => equiparItem(item, equiparCtx)}
+              onFechar={(r) => setFilaDeRecompensas((f) => tirarDaFila(f, r))}
+              onVerPersonalizar={() => navigateTo('loja', { aba: 'personalizar' })}
             />
-          )}
-          {/* v3: recompensa entregue na hora — em qualquer tela, esperando a rodada fechar. */}
-          <RecompensaDesbloqueada
-            fila={filaDeRecompensas}
-            onEquipar={(item) => equiparItem(item, equiparCtx)}
-            onFechar={(r) => setFilaDeRecompensas((f) => tirarDaFila(f, r))}
-            onVerPersonalizar={() => navigateTo('loja', { aba: 'personalizar' })}
-          />
-          {activeView === 'settings' && (
-            <Settings
-              theme={theme}
-              darkMode={darkMode}
-              onOpenStudio={abrirEstudio}
-              onReplayTour={() => setOnboarded(false)}
-              onAbrirSobre={() => setActiveView('sobre')}
-              onChangeView={navigateTo}
-              /* Era 99 enquanto as métricas não chegavam: um clique rápido nos Ajustes abria tudo
+            {activeView === 'settings' && (
+              <Settings
+                theme={theme}
+                darkMode={darkMode}
+                onOpenStudio={abrirEstudio}
+                onReplayTour={() => setOnboarded(false)}
+                onAbrirSobre={() => setActiveView('sobre')}
+                onChangeView={navigateTo}
+                /* Era 99 enquanto as métricas não chegavam: um clique rápido nos Ajustes abria tudo
                  como nível 99. Sem métrica, nível 1 — a régua nunca é generosa por engano. */
-              nivel={progress.available ? progress.level : 1}
-              ageProfile={ageProfile}
-              setAgeProfile={setAgeProfile}
-              menuPosition={menuPosition}
-              setMenuPosition={setMenuPosition}
-              fontScale={fontScale}
-              setFontScale={setFontScale}
-              soundEnabled={soundEnabled}
-              toggleSound={toggleSound}
-              animationsEnabled={animationsEnabled}
-              toggleAnimations={toggleAnimations}
-              performanceMode={performanceMode}
-              togglePerformanceMode={togglePerformanceMode}
-            />
-          )}
-        </Suspense>
-      </main>
+                nivel={progress.available ? progress.level : 1}
+                ageProfile={ageProfile}
+                setAgeProfile={setAgeProfile}
+                menuPosition={menuPosition}
+                setMenuPosition={setMenuPosition}
+                fontScale={fontScale}
+                setFontScale={setFontScale}
+                soundEnabled={soundEnabled}
+                toggleSound={toggleSound}
+                animationsEnabled={animationsEnabled}
+                toggleAnimations={toggleAnimations}
+                performanceMode={performanceMode}
+                togglePerformanceMode={togglePerformanceMode}
+              />
+            )}
+          </Suspense>
+        </main>
 
-      {/* Menu de prática GLOBAL: selecione texto em qualquer tela → botão direito → praticar.
+        {/* Menu de prática GLOBAL: selecione texto em qualquer tela → botão direito → praticar.
           É o que elimina o maior atrito da app, antes, para praticar um trecho, o usuário tinha de
           sair da tela, achar a Central de Exercícios (que nem view de primeiro nível era) e ainda
           assim o exercício rodava num texto fixo, não no dele. Agora o conteúdo vai até o exercício. */}
-      <GateDeConta aberto={gate !== null} motivo={gate ?? ''} onFechar={fecharGate} onEntrar={() => { fecharGate(); setPedindoLogin(true); }} />
-      <ModalDeMigracao
-        aberto={migracao}
-        onFechar={() => setMigracao(false)}
-        onMigrou={() => { fetchSessions().then(setRecordings).catch(() => {}); void carregarEntitlements(); }}
-      />
-
-      <PracticeMenu
-        onChangeView={navigateTo}
-        sessionId={selectedRecording?.id}
-      />
-
-      {/* Overlays globais (chat + estúdio de layout) — lazy: não pesam no primeiro paint. */}
-      <Suspense fallback={null}>
-        {/* Global iChat assistant with layout capabilities */}
-        <IChat
-          activeView={mappedActiveViewForChat}
-          selectedRecording={selectedRecording}
-          liveTranscription={liveTranscription}
-          onChangeView={navigateTo}
-          isOpen={isChatOpen}
-          setIsOpen={setIsChatOpen}
-          isDocked={isChatDocked}
-          setIsDocked={(docked) => {
-            setIsChatDocked(docked);
-            localStorage.setItem('ichat_docked', docked ? 'true' : 'false');
+        <GateDeConta
+          aberto={gate !== null}
+          motivo={gate ?? ''}
+          onFechar={fecharGate}
+          onEntrar={() => {
+            fecharGate();
+            setPedindoLogin(true);
           }}
-          isMaximized={isChatMaximized}
-          setIsMaximized={setIsChatMaximized}
-          practiceSeed={practiceSeed?.text}
-          recordings={recordings}
-          ageProfile={ageProfile}
+        />
+        <ModalDeMigracao
+          aberto={migracao}
+          onFechar={() => setMigracao(false)}
+          onMigrou={() => {
+            fetchSessions()
+              .then(setRecordings)
+              .catch(() => {});
+            void carregarEntitlements();
+          }}
         />
 
-        {isStudioOpen && (
-          <LayoutStudio
-            isOpen={isStudioOpen}
-            onClose={() => setIsStudioOpen(false)}
-            theme={theme}
-            setTheme={setTheme}
-            darkMode={darkMode}
-            toggleDarkMode={toggleDarkMode}
-            nivel={progress.available ? progress.level : 1}
-            saldo={progress.available ? progress.seeds : 0}
+        <PracticeMenu onChangeView={navigateTo} sessionId={selectedRecording?.id} />
+
+        {/* Overlays globais (chat + estúdio de layout) — lazy: não pesam no primeiro paint. */}
+        <Suspense fallback={null}>
+          {/* Global iChat assistant with layout capabilities */}
+          <IChat
+            activeView={mappedActiveViewForChat}
+            selectedRecording={selectedRecording}
+            liveTranscription={liveTranscription}
+            onChangeView={navigateTo}
+            isOpen={isChatOpen}
+            setIsOpen={setIsChatOpen}
+            isDocked={isChatDocked}
+            setIsDocked={(docked) => {
+              setIsChatDocked(docked);
+              localStorage.setItem('ichat_docked', docked ? 'true' : 'false');
+            }}
+            isMaximized={isChatMaximized}
+            setIsMaximized={setIsChatMaximized}
+            practiceSeed={practiceSeed?.text}
+            recordings={recordings}
+            ageProfile={ageProfile}
           />
-        )}
-      </Suspense>
+
+          {isStudioOpen && (
+            <LayoutStudio
+              isOpen={isStudioOpen}
+              onClose={() => setIsStudioOpen(false)}
+              theme={theme}
+              setTheme={setTheme}
+              darkMode={darkMode}
+              toggleDarkMode={toggleDarkMode}
+              nivel={progress.available ? progress.level : 1}
+              saldo={progress.available ? progress.seeds : 0}
+            />
+          )}
+        </Suspense>
 
         {/* O rail da direita fica DEPOIS do chat acoplado, para encostar de fato na borda da tela. */}
         {menuPosition === 'right' && shell}

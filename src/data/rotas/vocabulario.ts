@@ -23,6 +23,8 @@ interface VocabRow {
   clozeAnswer: string | null
   box: number | null
   dueAt: number | null
+  /** Quando o cartão entrou no caderno (ms). Opcional: respostas antigas podem não trazer. */
+  createdAt?: number | null
   stability: number | null
   difficulty: number | null
   reps: number | null
@@ -90,6 +92,7 @@ export function rowToVocabCard(row: VocabRow): VocabCard {
     fsrsDueAt: dueIso,
     // O cru em ms, para o filtro facetado — a string acima é exibição (ver docblock no tipo).
     dueAtMs: row.dueAt ?? null,
+    createdAtMs: row.createdAt ?? null,
     /* LIDO DO BANCO, não mais fixo em `true`.
        Enquanto era constante, TODO `filter(c => c.inDeck)` do app era um no-op, inclusive o da
        tela de jogos, e arquivar um cartão não tinha efeito nenhum. A coluna sempre existiu

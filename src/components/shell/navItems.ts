@@ -1,5 +1,6 @@
 import {
   BookOpen,
+  ChartColumn,
   CreditCard,
   Gamepad2,
   Heart,
@@ -8,7 +9,8 @@ import {
   type LucideIcon,
   Mic,
   Settings as SettingsIcon,
-  Shirt} from 'lucide-react';
+  Shirt,
+} from 'lucide-react';
 
 import { t } from '../../lib/i18n';
 import type { ViewType } from '../../types';
@@ -45,26 +47,26 @@ const TODOS_OS_ITENS: NavItemDef[] = [
     id: 'hub',
     icon: LayoutDashboard,
     short: 'Início',
-    labels: { kids: 'Início', pro: 'Início', senior: 'Página Inicial' }
+    labels: { kids: 'Início', pro: 'Início', senior: 'Página Inicial' },
   },
   {
     id: 'capture',
     icon: Mic,
     short: 'Capturar',
-    labels: { kids: 'Gravar', pro: 'Capturar', senior: 'Gravar Áudio' }
+    labels: { kids: 'Gravar', pro: 'Capturar', senior: 'Gravar Áudio' },
   },
   {
     // Logo depois de Capturar: é a sequência real de uso — grava, e joga com o que gravou.
     id: 'play',
     icon: Gamepad2,
     short: 'Jogar',
-    labels: { kids: 'Jogar', pro: 'Jogar', senior: 'Praticar' }
+    labels: { kids: 'Jogar', pro: 'Jogar', senior: 'Praticar' },
   },
   {
     id: 'library',
     icon: Library,
     short: 'Biblioteca',
-    labels: { kids: 'Biblioteca', pro: 'Biblioteca', senior: 'Minhas Mídias' }
+    labels: { kids: 'Biblioteca', pro: 'Biblioteca', senior: 'Minhas Mídias' },
   },
   /* 'analysis' SAIU do menu de topo (decisão do dono, 31/08): uma aula/sessão sempre vive
      DENTRO de uma mídia capturada — o caminho é Biblioteca → mídia → aula. A rota continua
@@ -73,7 +75,15 @@ const TODOS_OS_ITENS: NavItemDef[] = [
     id: 'metrics',
     icon: BookOpen,
     short: 'Vocabulário',
-    labels: { kids: 'Palavras', pro: 'Vocabulário', senior: 'Minhas Palavras' }
+    labels: { kids: 'Palavras', pro: 'Vocabulário', senior: 'Minhas Palavras' },
+  },
+  {
+    // Estatísticas (protótipo aprovado, 23/09/2026): o primeiro do grupo "Mais".
+    id: 'estatisticas',
+    icon: ChartColumn,
+    short: 'Estatísticas',
+    labels: { kids: 'Meu progresso', pro: 'Estatísticas', senior: 'Estatísticas' },
+    secondary: true,
   },
   {
     // A vitrine da progressão: desbloqueios por nível e compras com Seeds.
@@ -84,7 +94,7 @@ const TODOS_OS_ITENS: NavItemDef[] = [
     short: 'Personalizar',
     /* A tela ÚNICA de personalização (2026-08-28): visual, loja e conquistas num lugar só. */
     labels: { kids: 'Meu visual', pro: 'Personalizar', senior: 'Personalizar' },
-    secondary: true
+    secondary: true,
   },
   {
     // Quem fez o app, contato e apoio — identidade de projeto independente à vista.
@@ -92,7 +102,7 @@ const TODOS_OS_ITENS: NavItemDef[] = [
     icon: Heart,
     short: 'Sobre',
     labels: { kids: 'Sobre', pro: 'Sobre', senior: 'Sobre o App' },
-    secondary: true
+    secondary: true,
   },
   {
     /* PLANOS ENTRA NA NAVEGAÇÃO (mudança vender-onde-se-ve). Existia só por três atalhos —
@@ -104,7 +114,7 @@ const TODOS_OS_ITENS: NavItemDef[] = [
     icon: CreditCard,
     short: 'Planos',
     labels: { kids: 'Planos', pro: 'Planos', senior: 'Planos e preços' },
-    secondary: true
+    secondary: true,
   },
   {
     // POR ÚLTIMO de propósito (pedido do dono, 2026-08-28): configuração é o que menos se abre;
@@ -113,8 +123,8 @@ const TODOS_OS_ITENS: NavItemDef[] = [
     icon: SettingsIcon,
     short: 'Ajustes',
     labels: { kids: 'Ajustes', pro: 'Ajustes', senior: 'Configurações' },
-    secondary: true
-  }
+    secondary: true,
+  },
 ];
 
 /**

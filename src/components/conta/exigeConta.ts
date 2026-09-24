@@ -7,7 +7,15 @@
  */
 import type { ViewType } from '../../types';
 
-export const EXIGE_CONTA: ReadonlySet<ViewType> = new Set<ViewType>(['library', 'analysis', 'study', 'reading', 'metrics', 'profile']);
+export const EXIGE_CONTA: ReadonlySet<ViewType> = new Set<ViewType>([
+  'library',
+  'analysis',
+  'study',
+  'reading',
+  'metrics',
+  'profile',
+  'estatisticas',
+]);
 
 export function exigeConta(view: string): boolean {
   return EXIGE_CONTA.has(view as ViewType);
@@ -32,11 +40,19 @@ export function exigeConta(view: string): boolean {
 export const CHAVE_ANONIMO_ACEITO = 'babel.anonimo_aceito';
 
 export function anonimoAceito(): boolean {
-  try { return localStorage.getItem(CHAVE_ANONIMO_ACEITO) === '1'; } catch { return false; }
+  try {
+    return localStorage.getItem(CHAVE_ANONIMO_ACEITO) === '1';
+  } catch {
+    return false;
+  }
 }
 
 export function aceitarAnonimo(): void {
-  try { localStorage.setItem(CHAVE_ANONIMO_ACEITO, '1'); } catch { /* best-effort */ }
+  try {
+    localStorage.setItem(CHAVE_ANONIMO_ACEITO, '1');
+  } catch {
+    /* best-effort */
+  }
 }
 
 export interface EstadoDaPorta {
@@ -75,22 +91,56 @@ export function motivoDoGate(origem: string): string {
   if (c) return c.titulo + '.';
   if (origem.includes('/api/import/youtube')) return 'Importar do YouTube precisa de conta (e do plano Pro).';
   if (origem.includes('/api/import/')) return 'Importar conteúdo para a biblioteca precisa de conta.';
-  if (origem.includes('/api/ai/') || origem.includes('/api/gemini/')) return 'A inteligência artificial de nuvem precisa de conta. A transcrição e a tradução locais continuam livres.';
+  if (origem.includes('/api/ai/') || origem.includes('/api/gemini/'))
+    return 'A inteligência artificial de nuvem precisa de conta. A transcrição e a tradução locais continuam livres.';
   if (origem.includes('/api/images/')) return 'Buscar capas precisa de conta.';
   return 'Esta ação guarda dados na sua conta.';
 }
 
 /** Texto do convite por tela — diz o que a conta desbloqueia ALI, não genericamente. */
 export const CONVITE: Record<string, { titulo: string; explicacao: string }> = {
-  library: { titulo: 'Sua biblioteca fica na sua conta', explicacao: 'Sem conta, cada sessão vive só neste navegador. Com conta, suas gravações ficam guardadas, organizadas e disponíveis em qualquer aparelho.' },
-  analysis: { titulo: 'A análise da sessão precisa de conta', explicacao: 'Transcrição editável, leitura guiada, métricas por sessão e os jogos sobre o que você gravou, tudo salvo na sua conta.' },
-  study: { titulo: 'A revisão precisa de conta', explicacao: 'A repetição espaçada só faz sentido quando o progresso é lembrado de um dia para o outro.' },
-  reading: { titulo: 'A leitura guiada precisa de conta', explicacao: 'Anotações e progresso de leitura ficam na sua conta.' },
-  metrics: { titulo: 'Seu vocabulário fica na sua conta', explicacao: 'As palavras que você captura viram um baralho com revisão espaçada, e isso precisa ser lembrado entre visitas.' },
-  profile: { titulo: 'O perfil é da conta', explicacao: 'Nome, objetivo, nível e histórico de XP existem a partir do momento em que você cria a conta.' },
+  library: {
+    titulo: 'Sua biblioteca fica na sua conta',
+    explicacao:
+      'Sem conta, cada sessão vive só neste navegador. Com conta, suas gravações ficam guardadas, organizadas e disponíveis em qualquer aparelho.',
+  },
+  analysis: {
+    titulo: 'A análise da sessão precisa de conta',
+    explicacao:
+      'Transcrição editável, leitura guiada, métricas por sessão e os jogos sobre o que você gravou, tudo salvo na sua conta.',
+  },
+  study: {
+    titulo: 'A revisão precisa de conta',
+    explicacao: 'A repetição espaçada só faz sentido quando o progresso é lembrado de um dia para o outro.',
+  },
+  reading: {
+    titulo: 'A leitura guiada precisa de conta',
+    explicacao: 'Anotações e progresso de leitura ficam na sua conta.',
+  },
+  metrics: {
+    titulo: 'Seu vocabulário fica na sua conta',
+    explicacao:
+      'As palavras que você captura viram um baralho com revisão espaçada, e isso precisa ser lembrado entre visitas.',
+  },
+  profile: {
+    titulo: 'O perfil é da conta',
+    explicacao: 'Nome, objetivo, nível e histórico de XP existem a partir do momento em que você cria a conta.',
+  },
   /* As três abas da economia. O texto diz o que a conta destrava ALI, e por que — saldo que vive
      só no navegador é saldo que se edita. */
-  loja: { titulo: 'A Loja precisa de conta', explicacao: 'Seeds, compras e o que você já tem são guardados no servidor — é o que impede o saldo de ser inventado, e o que faz o que você comprou continuar seu em qualquer aparelho.' },
-  passe: { titulo: 'O Passe precisa de conta', explicacao: 'A trilha de 100 casas acompanha o seu nível ao longo da temporada, e isso só existe quando o progresso é lembrado entre visitas.' },
-  conquistas: { titulo: 'Os Desafios precisam de conta', explicacao: 'Conquista é um feito registrado: sem conta não há onde registrar, e as Seeds que ela paga não teriam de onde vir.' },
+  loja: {
+    titulo: 'A Loja precisa de conta',
+    explicacao:
+      'Seeds, compras e o que você já tem são guardados no servidor — é o que impede o saldo de ser inventado, e o que faz o que você comprou continuar seu em qualquer aparelho.',
+  },
+  passe: {
+    titulo: 'O Passe precisa de conta',
+    explicacao:
+      'A trilha de 100 casas acompanha o seu nível ao longo da temporada, e isso só existe quando o progresso é lembrado entre visitas.',
+  },
+  conquistas: {
+    titulo: 'Os Desafios precisam de conta',
+    explicacao:
+      'Conquista é um feito registrado: sem conta não há onde registrar, e as Seeds que ela paga não teriam de onde vir.',
+  },
 };

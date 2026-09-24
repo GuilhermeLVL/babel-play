@@ -30,7 +30,8 @@ export type ViewDeRota =
   | 'profile'
   | 'sobre'
   | 'loja'
-  | 'planos';
+  | 'planos'
+  | 'estatisticas';
 
 export interface EstadoDeRota {
   view: ViewDeRota;
@@ -67,6 +68,7 @@ const SEGMENTO: Record<Exclude<ViewDeRota, 'analysis'>, string> = {
   sobre: 'sobre',
   loja: 'loja',
   planos: 'plano',
+  estatisticas: 'estatisticas',
 };
 
 /**

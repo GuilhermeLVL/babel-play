@@ -249,61 +249,94 @@ async function startCaptureFromStream(
     return out;
   };
 
+  /* DESFAZ o que já foi aberto se o detector não subir. Sem isto, uma falha no `MicVAD.new`
+     (assets do VAD/ONNX ausentes — 404 em `/silero_vad_legacy.onnx`) deixava o gravador, a sonda
+     de nível e o compartilhamento de tela vivos: a tela voltava a "Iniciar captura", a barra do
+     navegador seguia "compartilhando", e a sonda órfã avisava "faixa SILENCIOSA" 2,5 s depois,
+     apontando o problema no lugar errado. Ver `tests/captura-vad-falha.test.ts`. */
+  const desfazerAbertura = async (): Promise<void> => {
+    if (levelTimer) clearInterval(levelTimer);
+    try {
+      if (recorder && recorder.state !== 'inactive') recorder.stop();
+    } catch {
+      /* já parado */
+    }
+    try {
+      await levelCtx?.close();
+    } catch {
+      /* já fechado */
+    }
+    cb.onLevel?.(0);
+    fullStream.getTracks().forEach((t) => t.stop());
+  };
+
   vlog(label, 'criando Silero VAD sobre o áudio…');
-  /* A regra `prefer-const` aponta a ATRIBUIÇÃO, não a declaração — ver o motivo lá em cima. */
-  // eslint-disable-next-line prefer-const
-  vad = await MicVAD.new({
-    baseAssetPath: '/',
-    onnxWASMBasePath: '/',
-    model: 'legacy', // usa /silero_vad_legacy.onnx
-    getStream: () => Promise.resolve(audioStream),
-    pauseStream: async () => {},
-    resumeStream: async (s) => s,
-    submitUserSpeechOnPause: true, // pause() entrega o áudio acumulado, usado no corte forçado
-    positiveSpeechThreshold: 0.5,
-    negativeSpeechThreshold: 0.35,
-    redemptionMs: 450, // fecha ~0,45s após o silêncio → limite de frase mais natural
-    preSpeechPadMs: 300, // prepende 0,3s → não corta o INÍCIO das sentenças
-    minSpeechMs: 400, // descarta ruídos < 0,4s (era 250: ruído curto virava frase inventada)
-    onSpeechStart: () => {
-      speechStartTs = performance.now();
-      currentSeq = ++seqCounter;
-      speaking = true;
-      resetUtterance();
-      vlog(label, 'VAD → início de fala (seq', currentSeq, ')');
-      cb.onSpeechStart?.(currentSeq);
-    },
-    onFrameProcessed: (_probs, frame) => {
-      if (speaking && frame && frame.length) {
-        frameChunks.push(frame.slice());
-        accumSamples += frame.length;
-      }
-      if (!forcingCut && speechStartTs && performance.now() - speechStartTs >= MAX_SPEECH_MS) {
-        forcingCut = true;
+  try {
+    vad = await criarVad();
+  } catch (e) {
+    vlog(label, 'Silero VAD NÃO subiu:', String(e));
+    await desfazerAbertura();
+    throw new Error(
+      'O detector de fala não pôde ser carregado, então a captura não começou. Os arquivos dele ' +
+        '(silero_vad_legacy.onnx e ort-wasm) não estão sendo servidos pelo app. Recarregue a página; ' +
+        'se continuar, quem instalou o app precisa rodar "npm install" (que os copia para public/).',
+    );
+  }
+
+  async function criarVad(): Promise<MicVAD> {
+    return MicVAD.new({
+      baseAssetPath: '/',
+      onnxWASMBasePath: '/',
+      model: 'legacy', // usa /silero_vad_legacy.onnx
+      getStream: () => Promise.resolve(audioStream),
+      pauseStream: async () => {},
+      resumeStream: async (s) => s,
+      submitUserSpeechOnPause: true, // pause() entrega o áudio acumulado, usado no corte forçado
+      positiveSpeechThreshold: 0.5,
+      negativeSpeechThreshold: 0.35,
+      redemptionMs: 450, // fecha ~0,45s após o silêncio → limite de frase mais natural
+      preSpeechPadMs: 300, // prepende 0,3s → não corta o INÍCIO das sentenças
+      minSpeechMs: 400, // descarta ruídos < 0,4s (era 250: ruído curto virava frase inventada)
+      onSpeechStart: () => {
         speechStartTs = performance.now();
-        vlog(label, 'VAD → corte forçado (fala contínua > ' + MAX_SPEECH_MS + 'ms)');
-        Promise.resolve(vad.pause())
-          .then(() => vad.start())
-          .catch(() => {})
-          .finally(() => {
-            forcingCut = false;
-          });
-      }
-    },
-    onVADMisfire: () => {
-      speaking = false;
-      vlog(label, 'VAD → misfire (ruído curto, ignorado), seq', currentSeq);
-      cb.onMisfire?.(currentSeq);
-      resetUtterance();
-    },
-    onSpeechEnd: (audio: Float32Array) => {
-      speaking = false;
-      speechStartTs = 0;
-      vlog(label, 'VAD → fim de fala (seq', currentSeq, '):', audio.length, 'amostras');
-      cb.onUtterance(audio, 16000, currentSeq);
-      resetUtterance();
-    },
-  });
+        currentSeq = ++seqCounter;
+        speaking = true;
+        resetUtterance();
+        vlog(label, 'VAD → início de fala (seq', currentSeq, ')');
+        cb.onSpeechStart?.(currentSeq);
+      },
+      onFrameProcessed: (_probs, frame) => {
+        if (speaking && frame && frame.length) {
+          frameChunks.push(frame.slice());
+          accumSamples += frame.length;
+        }
+        if (!forcingCut && speechStartTs && performance.now() - speechStartTs >= MAX_SPEECH_MS) {
+          forcingCut = true;
+          speechStartTs = performance.now();
+          vlog(label, 'VAD → corte forçado (fala contínua > ' + MAX_SPEECH_MS + 'ms)');
+          Promise.resolve(vad.pause())
+            .then(() => vad.start())
+            .catch(() => {})
+            .finally(() => {
+              forcingCut = false;
+            });
+        }
+      },
+      onVADMisfire: () => {
+        speaking = false;
+        vlog(label, 'VAD → misfire (ruído curto, ignorado), seq', currentSeq);
+        cb.onMisfire?.(currentSeq);
+        resetUtterance();
+      },
+      onSpeechEnd: (audio: Float32Array) => {
+        speaking = false;
+        speechStartTs = 0;
+        vlog(label, 'VAD → fim de fala (seq', currentSeq, '):', audio.length, 'amostras');
+        cb.onUtterance(audio, 16000, currentSeq);
+        resetUtterance();
+      },
+    });
+  }
 
   vad.start();
   vlog(label, 'VAD iniciado ✓');

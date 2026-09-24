@@ -1,3 +1,5 @@
+import { execFileSync } from 'node:child_process'
+
 import tailwindcss from '@tailwindcss/vite'
 import react from '@vitejs/plugin-react'
 import path from 'path'
@@ -15,6 +17,15 @@ function serveVadOnnxAssets(): Plugin {
     /\/(ort-wasm-[^/?]+\.(mjs|wasm)|silero_vad_[^/?]+\.onnx|vad\.worklet\.bundle\.min\.js)(\?|$)/.test(u)
   return {
     name: 'serve-vad-onnx-assets',
+    /* GARANTE os assets em `public/` antes de servir ou empacotar. Eles não são versionados e só
+       o `postinstall` os copiava: uma instalação sem ele (worktree nova, `npm ci --ignore-scripts`)
+       subia o app com 404 em `/silero_vad_legacy.onnx`, e "Iniciar captura" falhava sem dizer por
+       quê (24/09/2026). A cópia é idempotente — pula o que já existe com o mesmo tamanho. */
+    buildStart() {
+      execFileSync(process.execPath, [path.join(__dirname, 'scripts', 'copiar-assets-runtime.mjs')], {
+        stdio: 'inherit',
+      })
+    },
     configureServer(server) {
       server.middlewares.use((req, res, next) => {
         const url = req.url || ''

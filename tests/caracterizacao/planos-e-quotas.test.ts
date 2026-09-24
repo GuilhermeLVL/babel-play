@@ -10,7 +10,18 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { PLAN_MATRIX } from '../../src/core/planos'
 import { type AppDeTeste, resposta, subirApp } from './_app'
 
-const CHAVES_DE_IA = ['LLM_API_KEY', 'GROQ_API_KEY', 'STT_API_KEY', 'PRO_MONTHLY_MANAGED_CALLS'] as const
+/* Toda chave que resolveria um provedor de nuvem — inclusive o atalho da reserva (OPENROUTER_API_KEY)
+   e a reserva explícita: sem isto, um .env de desenvolvedor com chave real muda o resultado. */
+const CHAVES_DE_IA = [
+  'LLM_API_KEY',
+  'GROQ_API_KEY',
+  'STT_API_KEY',
+  'OPENROUTER_API_KEY',
+  'LLM_RESERVA_API_KEY',
+  'LLM_RESERVA_BASE_URL',
+  'LLM_RESERVA_MODEL',
+  'PRO_MONTHLY_MANAGED_CALLS',
+] as const
 const salvo: Partial<Record<(typeof CHAVES_DE_IA)[number], string | undefined>> = {}
 
 const CORPO_MT = { text: 'good morning', tgt: 'pt' }
@@ -25,7 +36,11 @@ describe('planos e quotas (modo publico)', () => {
   beforeAll(async () => {
     for (const k of CHAVES_DE_IA) {
       salvo[k] = process.env[k]
-      delete process.env[k]
+      /* As chaves que um .env de desenvolvedor pode trazer (a da OpenRouter e a da reserva) ficam
+         VAZIAS, não apagadas: o dotenv do servidor repõe do .env toda variável ausente (ver
+         ia.test.ts). As demais seguem apagadas. */
+      if (k === 'OPENROUTER_API_KEY' || k === 'LLM_RESERVA_API_KEY') process.env[k] = ''
+      else delete process.env[k]
     }
     s = await subirApp({ modo: 'publico' })
     tokenA = await s.token(A)

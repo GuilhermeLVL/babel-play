@@ -36,6 +36,8 @@ const ENV_ZERADO = [
   'STT_API_KEY',
   'STT_BASE_URL',
   'STT_MODEL',
+  // Atalho da reserva (Fase 2): um .env com a chave real da OpenRouter viraria uma reserva de verdade.
+  'OPENROUTER_API_KEY',
   ...Object.keys(ENV_RESERVA),
 ]
 
@@ -67,6 +69,11 @@ function fixar(nome: string, valor: string | undefined) {
 beforeAll(async () => {
   for (const [k, v] of Object.entries(ENV_PRIMARIO)) fixar(k, v)
   for (const k of ENV_ZERADO) fixar(k, undefined)
+  /* As chaves de PROVEDOR ficam VAZIAS, não apagadas: o `dotenv.config()` do servidor repõe do .env
+     toda variável AUSENTE, e um .env de desenvolvedor com a chave real da OpenRouter viraria uma
+     reserva de verdade no meio do teste. Vazia, o dotenv não sobrescreve e `llmDeReserva` a trata
+     como não configurada. (Endereços e modelos seguem apagados: vazios, quebrariam o STT.) */
+  for (const k of ['OPENROUTER_API_KEY', 'LLM_RESERVA_API_KEY']) fixar(k, '')
   s = await subirApp({ modo: 'self-host' })
 
   const real = globalThis.fetch

@@ -1,0 +1,47 @@
+# Operadores de dados pessoais — checklist de DPA, retenção e transferência
+
+O Babel Play é o **controlador** (LGPD art. 5º, VI). Cada serviço abaixo trata dado pessoal em nome
+dele e é **operador** (art. 5º, VII; art. 39): só pode tratar segundo as instruções do controlador,
+e isso precisa estar escrito num contrato — o DPA (_Data Processing Agreement_) do fornecedor.
+
+Quase todos estão fora do Brasil, então há **transferência internacional** (art. 33). A via que
+serve para uma empresa pequena é a das **cláusulas-padrão contratuais** da ANPD
+(Resolução CD/ANPD nº 19/2024, com o anexo de cláusulas): o contrato com o operador precisa trazê-las
+(ou cláusulas equivalentes aprovadas). Prazo de adequação dos contratos já existentes: **agosto de
+2025** — ou seja, para contratos novos, desde o primeiro dia. Na prática:
+
+1. aceitar o DPA do fornecedor (quase sempre é um clique no painel, ou um PDF para assinar);
+2. conferir se ele já inclui as cláusulas-padrão da ANPD (alguns incluem desde 2025); se não
+   incluir, pedir ao suporte o aditivo com as cláusulas da Res. 19/2024 — muitos já têm o texto
+   pronto por causa das SCCs europeias, que são o mesmo modelo;
+3. guardar o PDF assinado/aceito numa pasta (`contratos/operadores/`, fora do repositório público),
+   com a data;
+4. marcar a linha abaixo.
+
+A retenção e a região são as que se configura no painel; o que depende de ligar está em **negrito**.
+
+| operador                               | o que trata (RoPA)                                                     | região                                                     | retenção                                                               | DPA / cláusulas                                                                                                               | o que ligar no painel                                                                                                                                          | feito |
+| -------------------------------------- | ---------------------------------------------------------------------- | ---------------------------------------------------------- | ---------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----- |
+| **Supabase** (login)                   | e-mail, hash de senha, fatores de 2FA, sessões (T01, T10)              | projeto em **sa-east-1 (São Paulo)**; empresa nos EUA      | enquanto a conta existir                                               | DPA em supabase.com/legal/dpa (aceite no painel, Organization → Legal Documents); pedir as cláusulas da Res. 19/2024          | região sa-east-1 na criação do projeto (não muda depois); **SMTP próprio (Resend)**; **MFA TOTP ligado**; **leaked password protection**                       | [ ]   |
+| **Resend** (e-mail do login)           | e-mail do titular, conteúdo do e-mail de confirmação/recuperação (T01) | EUA (escolher região `sa-east-1` se oferecida)             | logs de envio conforme o plano                                         | DPA em resend.com/legal/dpa                                                                                                   | domínio verificado (SPF, DKIM, DMARC); **desligar open/click tracking**                                                                                        | [ ]   |
+| **Groq** (IA principal)                | áudio de trechos, texto a traduzir, mensagens ao tutor (T04)           | EUA                                                        | **zero (ZDR)** quando ligado                                           | DPA nos termos de serviço da GroqCloud (Trust Center)                                                                         | **Data retention → Zero Data Retention**; **Spend limit mensal**                                                                                               | [ ]   |
+| **OpenRouter** (IA reserva)            | idem T04, só quando a Groq falha                                       | EUA; roteia para o provedor do modelo                      | **zero** com ZDR ligado e só provedores ZDR                            | Termos + Privacy (pedir DPA ao suporte)                                                                                       | **Privacy → "Zero data retention" e "no training"**; **crédito pré-pago SEM auto top-up**; **limite de crédito por chave**                                     | [ ]   |
+| **Asaas** (cobrança)                   | nome, CPF/CNPJ, e-mail, cartão (tokenizado lá) (T05)                   | Brasil                                                     | 5 anos (obrigação fiscal) — do lado deles                              | contrato de conta PJ; o Asaas é controlador dos dados de pagamento que ele exige por regulação (Bacen) e operador no restante | webhook com authToken; **notificações por e-mail do Asaas ao cliente desligadas** se o app já avisa                                                            | [ ]   |
+| **Fly.io** (servidor e banco)          | tudo que o servidor guarda (T02, T03, T06, T07)                        | máquina e volume em **GRU (São Paulo)**; empresa nos EUA   | o volume é nosso; logs do Fly ~30 dias                                 | DPA em fly.io/legal/dpa (aceite no painel)                                                                                    | região gru; organização com **2FA obrigatório**                                                                                                                | [ ]   |
+| **Cloudflare** (DNS, WAF, R2)          | IP e cabeçalhos na borda (T07); áudio e backups no R2 (T02, T03)       | global na borda; R2 com **jurisdição** escolhida no bucket | logs da borda conforme o plano; R2 conforme as regras de ciclo de vida | DPA em cloudflare.com/cloudflare-customer-dpa (já incorporado aos termos)                                                     | buckets **privados** (menos o dos modelos); **lifecycle de 30 dias** no bucket de backups                                                                      | [ ]   |
+| **Sentry** (erros)                     | mensagem técnica redigida, tela, id da requisição (T06)                | EUA ou **UE** (escolher na criação da organização)         | 30 dias (Developer)                                                    | DPA em sentry.io/legal/dpa                                                                                                    | **Security & Privacy → "Prevent Storing of IP Addresses"** e **"Data Scrubber" ligados**; alerta de cota                                                       | [ ]   |
+| **UptimeRobot** (disponibilidade)      | nenhum dado pessoal (só sondas em /api/ready e o heartbeat) (T09)      | UE                                                         | —                                                                      | termos padrão (não trata dado pessoal)                                                                                        | —                                                                                                                                                              | [ ]   |
+| **Google Fonts** (fontes da interface) | IP e user-agent de quem abre o app                                     | EUA                                                        | conforme a política do Google Fonts                                    | não há DPA para uso gratuito                                                                                                  | **pendente:** hospedar as fontes no próprio domínio e tirar `fonts.googleapis.com` da CSP (`src/index.css`, `server/http/csp.ts`) — elimina esta transferência | [ ]   |
+
+## O que a política de privacidade precisa refletir
+
+`public/privacidade.html` (última atualização 13/09) ainda cita o **Google Gemini** como provedor do
+tutor e **não** cita Fly.io, Cloudflare/R2, OpenRouter, Resend, Sentry nem o Google Fonts — e fala
+em "maiores de 18 anos", o que mudou com a decisão de abrir o app a menores. A atualização está com
+a frente de Termos/idade (Fase 3/4); esta tabela é a lista do que ela precisa nomear.
+
+## Encarregado (DPO)
+
+Agente de pequeno porte (Res. CD/ANPD 2/2022) pode dispensar a indicação formal do encarregado,
+mas **precisa manter um canal de comunicação com o titular** — hoje é o e-mail na política de
+privacidade. Recomendação: um endereço do domínio (`privacidade@<domínio>`) em vez do pessoal.

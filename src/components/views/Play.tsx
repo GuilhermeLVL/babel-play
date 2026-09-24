@@ -3427,7 +3427,6 @@ export default function Play({
                       : sessoesDoIdioma.map((s) => ({
                           id: s.id,
                           rotulo: s.title || t('gravação sem título'),
-                          icone: <Mic className="w-3.5 h-3.5" aria-hidden />,
                         })),
                 },
                 {

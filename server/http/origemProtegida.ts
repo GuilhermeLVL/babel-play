@@ -41,6 +41,6 @@ export function exigirOrigem(segredo: string): RequestHandler {
     }
     /* Resposta seca e sem dizer o que falta: quem chegou pelo endereço direto não precisa saber
        que existe um cabeçalho a adivinhar. */
-    res.status(403).type('text/plain').send('acesso direto não permitido')
+    res.status(403).json({ error: 'acesso direto não permitido' })
   }
 }

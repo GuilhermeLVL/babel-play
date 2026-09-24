@@ -42,7 +42,7 @@ const FLUXOS: Array<{ icone: LucideIcon; titulo: string; passos: string }> = [
     icone: MessageCircle,
     titulo: 'Perguntar ao tutor (iChat)',
     passos:
-      'O balão no canto abre um tutor que enxerga o conteúdo da tela atual, dá para fixar um contexto (ex.: um vídeo) e seguir conversando sobre ele em qualquer tela.',
+      'O balão no canto abre um tutor que enxerga a tela atual. Use @palavra, #sessão e !ação para dar contexto; as conversas ficam salvas para retomar de qualquer tela.',
   },
   {
     icone: BookOpen,

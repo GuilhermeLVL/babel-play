@@ -153,8 +153,6 @@ export default function App() {
     setIsChatOpen,
     isChatDocked,
     setIsChatDocked,
-    isChatMaximized,
-    setIsChatMaximized,
     practiceSeed,
     setPracticeSeed,
     navigateTo,
@@ -544,10 +542,9 @@ export default function App() {
               setIsChatDocked(docked);
               localStorage.setItem('ichat_docked', docked ? 'true' : 'false');
             }}
-            isMaximized={isChatMaximized}
-            setIsMaximized={setIsChatMaximized}
             practiceSeed={practiceSeed?.text}
             recordings={recordings}
+            metrics={metrics}
             ageProfile={ageProfile}
           />
 

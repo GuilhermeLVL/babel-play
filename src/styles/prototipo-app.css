@@ -18,6 +18,21 @@
   .fab { bottom: 80px; right: 14px; }
 }
 
+/* A janela flutuante do iChat e o aviso dele: no protótipo a moldura não tem menu à direita nem barra
+   embaixo; no app têm, e os dois recuam dela como o botão. Fixo na lateral (`.chat-fixo`) e no
+   celular valem as regras do protótipo, que são mais específicas ou vêm abaixo. */
+.painel-chat {
+  right: calc(22px + var(--shell-inset-right, 0px));
+  bottom: calc(22px + var(--shell-inset-bottom, 0px));
+}
+.toast { right: calc(22px + var(--shell-inset-right, 0px)); }
+@container app (max-width: 760px) {
+  /* z-index: no protótipo as partículas moram dentro do conteúdo; no app são uma camada fixa
+     (`ParticleCanvas`, z 38) e passariam por cima do chat em tela cheia (z do protótipo: dock + 5). */
+  .painel-chat { right: 0; bottom: 0; z-index: var(--z-pop); }
+  .toast { right: 14px; }
+}
+
 /* O reset do Tailwind (preflight) põe `svg { display: block }`; o protótipo não tem reset, então lá
    o ícone dentro de um botão segmentado fica na linha do texto. Aqui ele volta a ficar. */
 .seg button svg { display: inline-block; vertical-align: -2px; }

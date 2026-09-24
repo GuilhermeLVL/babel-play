@@ -100,6 +100,18 @@ describe('entrada não confiável vai cercada como DADO (LLM01)', () => {
     expect(system).toMatch(/crianças|menores/i)
   })
 
+  it('a instrução de público menor vai no fim do system do tutor e do corretor', () => {
+    const inst = 'REGRA-DE-MENOR'
+    const tutor = prepareLlmRequest({ messages: oi }, { instrucaoParaMenor: inst }).messages[0].content
+    const corretor = prepareLlmRequest(
+      { funcao: 'corretor', frase: 'x', palavra: 'casa', resposta: 'casa' },
+      { instrucaoParaMenor: inst },
+    ).messages[0].content
+    expect(tutor.endsWith(inst)).toBe(true)
+    expect(corretor.endsWith(inst)).toBe(true)
+    expect(prepareLlmRequest({ messages: oi }).messages[0].content).not.toContain(inst)
+  })
+
   it('o perfil escolhe o registro; perfil desconhecido cai no padrão', () => {
     const kids = prepareLlmRequest({ messages: oi, perfil: 'kids' }).messages[0].content
     const pro = prepareLlmRequest({ messages: oi, perfil: 'pro' }).messages[0].content

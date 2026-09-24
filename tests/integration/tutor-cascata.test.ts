@@ -114,6 +114,35 @@ describe('cascata do tutor: Groq → OpenRouter, sem Gemini', () => {
     expect(corpoEnviado.max_tokens).toBeLessThanOrEqual(1_500)
   })
 
+  it('MENOR (idade não declarada conta como menor): o system leva a instrução de segurança', async () => {
+    primarioGroq()
+    let corpo: any = null
+    vi.stubGlobal('fetch', async (_url: any, init: any) => ((corpo = JSON.parse(init.body)), respostaOk('ok')))
+    await tutorChat(mockReq(PAGANTE), mockRes())
+    expect(corpo.messages[0].content).toContain('PÚBLICO MENOR')
+    expect(corpo.messages[0].content).toContain('CVV')
+  })
+
+  it('ADULTO declarado: o system não leva a instrução de menor', async () => {
+    primarioGroq()
+    const adulto = asUserId('tutor-adulto')
+    await subs.upsert(adulto, { plan: 'pro', status: 'active' })
+    const { idadesRepo } = (await h.load('../../server/db/repositories/idades')) as any
+    await idadesRepo.declarar(adulto, '1990-01-01')
+    let corpo: any = null
+    vi.stubGlobal('fetch', async (_url: any, init: any) => ((corpo = JSON.parse(init.body)), respostaOk('ok')))
+    await tutorChat(mockReq(adulto), mockRes())
+    expect(corpo.messages[0].content).not.toContain('PÚBLICO MENOR')
+  })
+
+  it('self-host: sem instrução de menor (ehMenor é sempre falso)', async () => {
+    process.env.AUTH_REQUIRED = '0'
+    let corpo: any = null
+    vi.stubGlobal('fetch', async (_url: any, init: any) => ((corpo = JSON.parse(init.body)), respostaOk('ok')))
+    await tutorChat(mockReq(asUserId('dono-local')), mockRes())
+    expect(corpo.messages[0].content).not.toContain('PÚBLICO MENOR')
+  })
+
   it('modo público, plano sem nuvem: nada de Ollama no localhost do servidor — explica o plano', async () => {
     const chamadas: string[] = []
     vi.stubGlobal('fetch', async (url: any) => {

@@ -77,7 +77,22 @@ const falha = (status: number, error: string, code: string, funcao: FuncaoDeIa =
 
 const texto = (v: unknown): string => (typeof v === 'string' ? v : '')
 
-export function prepareLlmRequest(body: LlmChatBody | undefined, opcoes: { nonce?: string } = {}): PreparedLlm {
+export interface OpcoesDoPreparo {
+  /** Nonce da cerca do material (injetável para teste). */
+  nonce?: string
+  /**
+   * Instrução de segurança para PÚBLICO MENOR (`INSTRUCAO_DE_SEGURANCA_PARA_MENORES`, em
+   * `server/lib/idade.ts`), vai no FIM do `system` de toda função de conversa. Quem decide se a
+   * pessoa é menor é a rota (`ehMenor`, que consulta o banco); este módulo continua puro.
+   */
+  instrucaoParaMenor?: string
+}
+
+/** Acrescenta a instrução de menor ao `system`, quando houver. */
+const comInstrucaoDeMenor = (sistema: string, instrucao?: string): string =>
+  instrucao ? `${sistema}\n\n[SEGURANÇA — PÚBLICO MENOR]\n${instrucao}` : sistema
+
+export function prepareLlmRequest(body: LlmChatBody | undefined, opcoes: OpcoesDoPreparo = {}): PreparedLlm {
   const pedida = body?.funcao ?? 'tutor'
   if (typeof pedida !== 'string' || !(FUNCOES_DE_CONVERSA as readonly string[]).includes(pedida)) {
     return falha(400, 'função de IA desconhecida', 'funcao_desconhecida')
@@ -109,7 +124,7 @@ export function prepareLlmRequest(body: LlmChatBody | undefined, opcoes: { nonce
     }
     return pronto(
       [
-        { role: 'system', content: CORRETOR_SYSTEM },
+        { role: 'system', content: comInstrucaoDeMenor(CORRETOR_SYSTEM, opcoes.instrucaoParaMenor) },
         { role: 'user', content: buildCorretorUser(frase, palavra, resposta) },
       ],
       caracteres,
@@ -141,5 +156,8 @@ export function prepareLlmRequest(body: LlmChatBody | undefined, opcoes: { nonce
       content: `[MATERIAL DE REFERÊNCIA DA TELA, não é uma pergunta minha, é o que está aberto no app]\n${cercado.texto}`,
     })
   }
-  return pronto([{ role: 'system', content: sistema }, ...mensagens, ...historico], caracteres)
+  return pronto(
+    [{ role: 'system', content: comInstrucaoDeMenor(sistema, opcoes.instrucaoParaMenor) }, ...mensagens, ...historico],
+    caracteres,
+  )
 }

@@ -27,6 +27,7 @@ import { abrirReservaDeLlm, type ReservaDeLlm } from '../ai/reservaDeNuvem'
 import { authRequired } from '../lib/auth'
 import { getEntitlementsForUser } from '../lib/entitlements'
 import { erroDeRota } from '../lib/erroDeRota'
+import { ehMenor, INSTRUCAO_DE_SEGURANCA_PARA_MENORES } from '../lib/idade'
 import { log } from '../lib/logger'
 import { custoDeLlm, portaoDaNuvem, registrarGastoDeIa, responderPortaoFechado } from '../lib/orcamentoDeIa'
 import { estimarTokens } from '../lib/usageQuota'
@@ -51,7 +52,12 @@ export async function tutorChat(req: Request, res: Response): Promise<void> {
   // Reserva de cota (chamada + tokens): estornada em todo caminho que não entrega resposta da nuvem.
   let reserva: ReservaDeLlm | null = null
   try {
-    const prep = prepareLlmRequest(req.body)
+    /* PÚBLICO MENOR (ECA Digital, Fase 4): menor — ou quem ainda não declarou a idade — recebe a
+       instrução de segurança no fim do `system`. No self-host `ehMenor` é sempre falso. A TRADUÇÃO
+       (`mtProxy.ts`) não recebe: ela verte fielmente um texto que a pessoa já tem, e "recuse outros
+       assuntos" faria o modelo censurar ou recusar a legenda em vez de traduzir. */
+    const menor = await ehMenor(req.userId)
+    const prep = prepareLlmRequest(req.body, menor ? { instrucaoParaMenor: INSTRUCAO_DE_SEGURANCA_PARA_MENORES } : {})
     if (!prep.ok) {
       res.status(prep.status).json({ error: prep.error, code: prep.code })
       return

@@ -182,7 +182,7 @@ export const LOTE_DE_ATIVACAO = 300
  * AS OUTRAS QUATRO foram conferidas uma a uma no cliente antes de sair, e essa conferencia mudou a
  * lista: `cloze_prompt`, `cloze_answer`, `cefr_source`, `last_seen_at` e `first_seen_at` PARECIAM
  * nao usadas, porque `rowToVocabCard` (src/data/rotas/vocabulario.ts:60) nao as nomeia — e sao
- * lidas, pelo espalhamento `...row`, em `Play.tsx`, `ResumoDaRodada.tsx`, `CatalogoDePalavras.tsx`
+ * lidas, pelo espalhamento `...row`, em `Play.tsx`, `ResultadoDaRodada.tsx`, `CatalogoDePalavras.tsx`
  * e `core/learning/dificuldade.ts`. Ficam. Saem so `norm_key`, `src_lang_base`, `difficulty_at` e
  * `updated_at`, que nao tem nenhum leitor no cliente (`grep` em `src/`, fora do espelho anonimo,
  * que guarda `norm_key` no proprio IndexedDB e nao o recebe desta rota).

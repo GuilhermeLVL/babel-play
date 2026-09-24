@@ -10,79 +10,108 @@
 //     (no app o tema é escolhido pelos tokens, e o celular é a largura real).
 //
 // Uso: node docs/prototipos/gerar-css-do-prototipo.mjs
-import { readFileSync, writeFileSync } from 'node:fs'
+import { readFileSync, writeFileSync } from 'node:fs';
 
-const html = readFileSync(new URL('./consistencia-telas.html', import.meta.url), 'utf8')
-const css = html.slice(html.indexOf('<style>') + 7, html.indexOf('</style>'))
+const html = readFileSync(new URL('./consistencia-telas.html', import.meta.url), 'utf8');
+const css = html.slice(html.indexOf('<style>') + 7, html.indexOf('</style>'));
 
 /** Divide o CSS em blocos de topo: { prelude, corpo } (corpo null para @import etc.). */
 function blocos(src) {
-  const out = []
-  let i = 0
+  const out = [];
+  let i = 0;
   while (i < src.length) {
     // pula espaço e comentários
-    const resto = src.slice(i)
-    const ws = resto.match(/^(\s+|\/\*[\s\S]*?\*\/)/)
-    if (ws) { i += ws[0].length; continue }
-    const abre = src.indexOf('{', i)
-    const pv = src.indexOf(';', i)
-    if (abre < 0) break
-    if (pv >= 0 && pv < abre) { out.push({ prelude: src.slice(i, pv).trim(), corpo: null }); i = pv + 1; continue }
-    let nivel = 0, j = abre
-    for (; j < src.length; j++) {
-      if (src[j] === '{') nivel++
-      else if (src[j] === '}') { nivel--; if (nivel === 0) break }
+    const resto = src.slice(i);
+    const ws = resto.match(/^(\s+|\/\*[\s\S]*?\*\/)/);
+    if (ws) {
+      i += ws[0].length;
+      continue;
     }
-    out.push({ prelude: src.slice(i, abre).trim(), corpo: src.slice(abre + 1, j) })
-    i = j + 1
+    const abre = src.indexOf('{', i);
+    const pv = src.indexOf(';', i);
+    if (abre < 0) break;
+    if (pv >= 0 && pv < abre) {
+      out.push({ prelude: src.slice(i, pv).trim(), corpo: null });
+      i = pv + 1;
+      continue;
+    }
+    let nivel = 0,
+      j = abre;
+    for (; j < src.length; j++) {
+      if (src[j] === '{') nivel++;
+      else if (src[j] === '}') {
+        nivel--;
+        if (nivel === 0) break;
+      }
+    }
+    out.push({ prelude: src.slice(i, abre).trim(), corpo: src.slice(abre + 1, j) });
+    i = j + 1;
   }
-  return out
+  return out;
 }
 
 const DESCARTA = [
-  /^\.proto\b/, /^\.palco\b/, /^\.app$/, /^body$/, /^html,\s*body$/, /^:root$/, /^body\.celular\b/,
-  /\[data-tema=/, /\[data-fonte=/, /^\.notas\b/, /^#notas\b/, /^:root\[data-escuro\]\s*body$/,
-]
+  // `(?![\w-])` e não `\b`: o `\b` casa no hífen e descartava junto `.palco-jogo` (o palco dos jogos).
+  /^\.proto(?![\w-])/,
+  /^\.palco(?![\w-])/,
+  /^\.app$/,
+  /^body$/,
+  /^html,\s*body$/,
+  /^:root$/,
+  /^body\.celular\b/,
+  /\[data-tema=/,
+  /\[data-fonte=/,
+  /^\.notas\b/,
+  /^#notas\b/,
+  /^:root\[data-escuro\]\s*body$/,
+];
 
 function traduzSeletor(sel) {
-  sel = sel.trim()
-  if (DESCARTA.some((re) => re.test(sel))) return null
-  if (/^:root\[data-escuro\]$/.test(sel)) return null // bloco de tokens do escuro: está no index.css
-  if (/^:root(\[[^\]]+\])*$/.test(sel)) return null // qualquer bloco de tokens
-  sel = sel.replace(/:root\[data-escuro\]\s*/g, '.dark ')
-  sel = sel.replace(/^body\.celular\s+/, '')
-  return sel
+  sel = sel.trim();
+  if (DESCARTA.some((re) => re.test(sel))) return null;
+  if (/^:root\[data-escuro\]$/.test(sel)) return null; // bloco de tokens do escuro: está no index.css
+  if (/^:root(\[[^\]]+\])*$/.test(sel)) return null; // qualquer bloco de tokens
+  sel = sel.replace(/:root\[data-escuro\]\s*/g, '.dark ');
+  sel = sel.replace(/^body\.celular\s+/, '');
+  return sel;
 }
 
 function traduz(lista, dentroDeKeyframes = false) {
-  let out = ''
+  let out = '';
   for (const b of lista) {
-    if (b.corpo === null) continue
+    if (b.corpo === null) continue;
     if (b.prelude.startsWith('@keyframes') || b.prelude.startsWith('@font-face')) {
-      out += `${b.prelude}{${b.corpo}}\n`
-      continue
+      out += `${b.prelude}{${b.corpo}}\n`;
+      continue;
     }
     if (b.prelude.startsWith('@')) {
-      const dentro = traduz(blocos(b.corpo))
-      if (dentro.trim()) out += `${b.prelude}{\n${dentro}}\n`
-      continue
+      const dentro = traduz(blocos(b.corpo));
+      if (dentro.trim()) out += `${b.prelude}{\n${dentro}}\n`;
+      continue;
     }
-    if (dentroDeKeyframes) { out += `${b.prelude}{${b.corpo}}\n`; continue }
+    if (dentroDeKeyframes) {
+      out += `${b.prelude}{${b.corpo}}\n`;
+      continue;
+    }
     // Do `body` do protótipo fica a tipografia (14px/1.5, Inter, tinta, suavização); o fundo cinza
     // é da moldura do protótipo, não do app.
     if (b.prelude.trim() === 'body') {
-      const tipo = b.corpo.split(';').filter((d) => /^\s*(font|color|-webkit-font-smoothing)\s*:/.test(d))
-      out += `body{${tipo.join(';')}}\n`
-      continue
+      const tipo = b.corpo.split(';').filter((d) => /^\s*(font|color|-webkit-font-smoothing)\s*:/.test(d));
+      out += `body{${tipo.join(';')}}\n`;
+      continue;
     }
-    const seletores = b.prelude.split(/,(?![^(]*\))/).map(traduzSeletor).filter(Boolean)
-    if (!seletores.length) continue
-    out += `${seletores.join(',')}{${b.corpo.trim()}}\n`
+    const seletores = b.prelude
+      .split(/,(?![^(]*\))/)
+      .map(traduzSeletor)
+      .filter(Boolean);
+    if (!seletores.length) continue;
+    out += `${seletores.join(',')}{${b.corpo.trim()}}\n`;
   }
-  return out
+  return out;
 }
 
-const saida = `/* GERADO por docs/prototipos/gerar-css-do-prototipo.mjs — não edite à mão.
-   Fonte: docs/prototipos/consistencia-telas.html (protótipo aprovado, o "Figma" do app). */\n` + traduz(blocos(css))
-writeFileSync(new URL('../../src/styles/prototipo.css', import.meta.url), saida)
-console.log('src/styles/prototipo.css:', saida.split('\n').length, 'linhas')
+const saida =
+  `/* GERADO por docs/prototipos/gerar-css-do-prototipo.mjs — não edite à mão.
+   Fonte: docs/prototipos/consistencia-telas.html (protótipo aprovado, o "Figma" do app). */\n` + traduz(blocos(css));
+writeFileSync(new URL('../../src/styles/prototipo.css', import.meta.url), saida);
+console.log('src/styles/prototipo.css:', saida.split('\n').length, 'linhas');

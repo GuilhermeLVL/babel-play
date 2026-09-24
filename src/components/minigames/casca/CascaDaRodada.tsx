@@ -2,7 +2,6 @@ import type { MinigameId } from '@core';
 import { CircleHelp, DoorOpen, Gamepad2, LogOut, Pause, Play, RotateCcw, X } from 'lucide-react';
 import {
   createContext,
-  type CSSProperties,
   type ReactNode,
   useCallback,
   useContext,
@@ -52,25 +51,6 @@ const Contexto = createContext<EstadoDaRodada>(RODADA_SOLTA);
 export function useRodada(): EstadoDaRodada {
   return useContext(Contexto);
 }
-
-/**
- * O fundo do palco, escrito aqui enquanto o gerador do CSS não o traz: `gerar-css-do-prototipo.mjs`
- * descarta `/^\.palco\b/` (a moldura do protótipo) e o `\b` casa também `.palco-jogo`, então a regra
- * base e o pontilhado (`::before`) do palco nunca chegaram a `src/styles/prototipo.css`. Os mesmos
- * valores do protótipo; o pontilhado vira a primeira camada do fundo (9% × opacidade .6 ≈ 5,4%).
- */
-const ESTILO_DO_PALCO: CSSProperties = {
-  position: 'relative',
-  borderRadius: 22,
-  padding: 22,
-  backgroundImage:
-    'radial-gradient(color-mix(in srgb, var(--ink) 5.4%, transparent) 1px, transparent 1.5px), radial-gradient(120% 90% at 50% 0%, color-mix(in srgb, var(--accent-soft) 60%, var(--surface)), var(--surface) 70%)',
-  backgroundSize: '22px 22px, auto',
-  border: 'var(--bw-card) solid var(--border-subtle)',
-  boxShadow: 'var(--shadow-card)',
-  overflow: 'hidden',
-  isolation: 'isolate',
-};
 
 interface CascaDaRodadaProps {
   jogo: MinigameId;
@@ -179,7 +159,7 @@ export default function CascaDaRodada({
           className="palco-jogo"
           id="palco"
           aria-busy={!pronto}
-          style={{ ...ESTILO_DO_PALCO, ...(pronto ? null : { pointerEvents: 'none' }) }}
+          style={pronto ? undefined : { pointerEvents: 'none' }}
         >
           {children}
         </section>

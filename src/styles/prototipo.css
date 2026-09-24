@@ -1317,6 +1317,9 @@ dialog.gaveta{margin:auto 0 0;width:100%;max-width:100%;height:auto;max-height:8
 .fx-contagem span{font:900 min(26vw,140px)/1 var(--font-display);color:var(--accent-ink);text-shadow:0 6px 0 color-mix(in srgb,var(--accent) 25%,transparent);animation:conta .6s cubic-bezier(.34,1.56,.64,1) both}
 .fx-contagem span.vai{color:var(--good-ink);font-size:min(20vw,110px)}
 @keyframes conta{0%{transform:scale(2.4);opacity:0;filter:blur(8px)}35%{transform:scale(1);opacity:1;filter:blur(0)}80%{transform:scale(.92);opacity:1}100%{transform:scale(.6);opacity:0}}
+.palco-jogo{position:relative;border-radius:22px;padding:22px;background:radial-gradient(120% 90% at 50% 0%,color-mix(in srgb,var(--accent-soft) 60%,var(--surface)),var(--surface) 70%);border:var(--bw-card) solid var(--border-subtle);box-shadow:var(--shadow-card);overflow:hidden;isolation:isolate}
+.palco-jogo::before{content:"";position:absolute;inset:0;z-index:-1;background-image:radial-gradient(color-mix(in srgb,var(--ink) 9%,transparent) 1px,transparent 1.5px);background-size:22px 22px;opacity:.6}
+.palco-jogo.tenso{animation:tenso 1s ease-in-out infinite}
 @keyframes tenso{50%{box-shadow:var(--shadow-card),inset 0 0 0 3px color-mix(in srgb,var(--error) 45%,transparent)}}
 .hud{display:grid;grid-template-columns:auto 1fr auto auto;align-items:center;gap:14px;margin-bottom:16px}
 .hud-bloco{display:flex;flex-direction:column;align-items:flex-start;min-width:64px}
@@ -1464,7 +1467,7 @@ dialog.gaveta{margin:auto 0 0;width:100%;max-width:100%;height:auto;max-height:8
 .jogo.clicavel:hover .arte svg{transform:scale(1.12) rotate(-4deg)}
 .jogo.clicavel:active{transform:scale(.98)}
 @media (prefers-reduced-motion:reduce){
-.fx-contagem span,.carta,.tabuleiro .carta,.letra,.opcoes-blitz button,.grade-caca span,.fim .estrelas-fim span.on,.fim-numeros div,.carimbo,.ante-heroi .arte-flutua,.ante-heroi .brilho,.btn-jogar-grande::after,.nuvem-palavras span,.auth-form,.onb-palco *,.onb-passo,.combo.quente::after,.selo-combo{animation:none!important;transition:none!important}
+.fx-contagem span,.carta,.tabuleiro .carta,.letra,.opcoes-blitz button,.grade-caca span,.fim .estrelas-fim span.on,.fim-numeros div,.carimbo,.ante-heroi .arte-flutua,.ante-heroi .brilho,.btn-jogar-grande::after,.nuvem-palavras span,.auth-form,.onb-palco *,.onb-passo,.combo.quente::after,.selo-combo,.palco-jogo.tenso{animation:none!important;transition:none!important}
 .nuvem-palavras{display:none}
 }
 .letra.cheia{animation:none}
@@ -1481,6 +1484,7 @@ dialog.gaveta{margin:auto 0 0;width:100%;max-width:100%;height:auto;max-height:8
 .combo em:empty{display:none}
 .selo-combo.erro{color:var(--error-ink)}
 .selo-combo.fever{color:var(--accent-ink);font-size:clamp(34px,7vw,64px)}
+.palco-jogo.fever{box-shadow:var(--shadow-card),0 0 0 3px color-mix(in srgb,var(--warn) 55%,transparent),0 0 40px -6px color-mix(in srgb,var(--accent) 70%,transparent);animation:fever-brilho 1.2s ease-in-out infinite}
 @keyframes fever-brilho{50%{box-shadow:var(--shadow-card),0 0 0 3px color-mix(in srgb,var(--accent) 70%,transparent),0 0 60px -4px color-mix(in srgb,var(--warn) 70%,transparent)}}
 .faixa-fever{display:flex;align-items:center;justify-content:center;gap:8px;margin:-4px auto 8px;width:max-content;padding:6px 14px;border-radius:99px;background:linear-gradient(90deg,var(--warn),var(--accent));color:#1d1a16;font:900 13px var(--font-display);letter-spacing:.08em;animation:pisca-leve 1s ease-in-out infinite}
 .faixa-fever svg{width:16px;height:16px}
@@ -1490,7 +1494,7 @@ dialog.gaveta{margin:auto 0 0;width:100%;max-width:100%;height:auto;max-height:8
 .hud-ajudas{grid-column:1/-1;justify-content:flex-start;order:5}
 }
 @media (prefers-reduced-motion:reduce){
-.faixa-fever,.grade-caca span.dica{animation:none!important}
+.palco-jogo.fever,.faixa-fever,.grade-caca span.dica{animation:none!important}
 }
 .fim.visto .estrelas-fim span.on,.fim.visto .fim-numeros div,.fim.visto .carimbo{animation:none}
 .g-onb{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:14px}

@@ -1,6 +1,6 @@
 import { sorteDeEventos } from './aprimoramentos';
-import { type BurstKind,emitBurst } from './effects';
-import { type EfeitoComposto,eventosCondicionais, marcarEventoVisto, sortearEventoRaro } from './eventosDeJogo';
+import { type BurstKind, emitBurst } from './effects';
+import { type EfeitoComposto, eventosCondicionais, marcarEventoVisto, sortearEventoRaro } from './eventosDeJogo';
 import { play } from './soundFx';
 
 /**
@@ -26,10 +26,10 @@ import { play } from './soundFx';
 
 /** Acontecimentos que merecem retorno. O nome descreve o FATO, não o efeito. */
 export type Comemoracao =
-  | 'acerto'        // acertou um item, o mais frequente, e por isso o mais contido
-  | 'sequencia'     // emendou acertos (combo), faísca quente
-  | 'rodadaBoa'     // terminou bem, confete no ponto
-  | 'rodadaPerfeita'// terminou sem erro, chuva de confete na tela toda
+  | 'acerto' // acertou um item, o mais frequente, e por isso o mais contido
+  | 'sequencia' // emendou acertos (combo), faísca quente
+  | 'rodadaBoa' // terminou bem, confete no ponto
+  | 'rodadaPerfeita' // terminou sem erro, chuva de confete na tela toda
   | 'subiuNivel'
   | 'erro';
 
@@ -147,6 +147,26 @@ export function pontosDoElemento(texto: string, el: Element | null, tom: PontoFl
   pontosFlutuantes(texto, x, y, tom);
 }
 
+/**
+ * O "+5 XP" QUE SOBE DE ONDE A PESSOA GANHOU — o `ganho()` do protótipo aprovado, com a MESMA
+ * marcação (`span.ganho` fixo no `body`, CSS em `prototipo.css`): nasce em cima do elemento, sobe e
+ * some em 1,2 s. Diferente de `pontosDoElemento` (a camada dos jogos), este não depende de a tela
+ * montar o `FloatingScoreLayer`. Com movimento reduzido não aparece — o número já está no resumo.
+ */
+export function ganho(el: Element | DOMRect | null | undefined, texto: string, tom: '' | 'good' | 'erro' = ''): void {
+  if (typeof document === 'undefined' || !el || movimentoReduzido()) return;
+  // Um retângulo já medido serve quando o elemento some antes do ganho (a nota troca o cartão).
+  const r = 'getBoundingClientRect' in el ? el.getBoundingClientRect() : el;
+  const g = document.createElement('span');
+  g.className = `ganho ${tom}`.trim();
+  g.textContent = texto;
+  g.setAttribute('aria-hidden', 'true');
+  g.style.left = `${r.left + r.width / 2}px`;
+  g.style.top = `${r.top - 4}px`;
+  document.body.appendChild(g);
+  setTimeout(() => g.remove(), 1200);
+}
+
 /* ─────────────────────────── TREMOR ───────────────────────────
    Um empurrãozinho de 3–6px. É o efeito mais fácil de exagerar: acima disso a tela parece
    quebrada e dá enjoo. Curto (200ms), sem repetição, e só no elemento do acontecimento,
@@ -228,7 +248,11 @@ export function vibrar(padrao: number[]): void {
   if (movimentoReduzido()) return;
   if (typeof navigator === 'undefined' || typeof navigator.vibrate !== 'function') return;
   if (!window.matchMedia?.('(pointer: coarse)').matches) return;
-  try { navigator.vibrate(padrao); } catch { /* bloqueado */ }
+  try {
+    navigator.vibrate(padrao);
+  } catch {
+    /* bloqueado */
+  }
 }
 
 /** Rajadas em N pontos ALEATORIOS da viewport — a festa deixa de ser sempre no centro. */
@@ -309,7 +333,12 @@ export async function contagem321(rotuloFinal: string, alvo?: HTMLElement | null
 export function contarAte(
   el: HTMLElement | null,
   ate: number,
-  { de = 0, dur = 700, sufixo = '', formatar = (n: number) => String(Math.round(n)) }: {
+  {
+    de = 0,
+    dur = 700,
+    sufixo = '',
+    formatar = (n: number) => String(Math.round(n)),
+  }: {
     de?: number;
     dur?: number;
     sufixo?: string;

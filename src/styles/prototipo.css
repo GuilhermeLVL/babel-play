@@ -569,13 +569,14 @@ kbd{font:600 11px var(--font-mono);padding:2px 6px;border-radius:6px;border:1px 
 #tela-desenho{position:absolute;inset:0;pointer-events:none;border-radius:inherit}
 .leitura-texto.desenhando #tela-desenho{pointer-events:auto;cursor:crosshair}
 .leitura-texto.desenhando{outline:2px dashed color-mix(in srgb,var(--accent) 40%,transparent);outline-offset:-6px}
+.notas-l{position:sticky;top:16px}
 .nota-item{display:grid;grid-template-columns:1fr auto;gap:6px;padding:10px;border:1px solid var(--border-subtle);border-radius:12px;background:var(--canvas);align-items:start}
 .nota-item p{grid-column:1;font-size:13px}
 .nota-item .btn{grid-row:1/3;grid-column:2}
 .ocorre{display:flex;align-items:center;gap:10px;font-size:13.5px}
 @container (max-width: 760px){
 .sessao-grade,.leitura-grade{grid-template-columns:1fr}
-.analista{position:static}
+.analista,.notas-l{position:static}
 }
 @container (max-width: 760px){
 .leitura .lado{grid-template-columns:1fr}
@@ -1120,6 +1121,7 @@ dialog.gaveta{margin:auto 0 0;width:100%;max-width:100%;height:auto;max-height:8
 .amostra{list-style:none;margin:8px 0 0;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:6px 18px;font-size:13.5px}
 .previa-txt{margin:0;padding:12px 14px;border-radius:12px;background:var(--canvas);border:1px solid var(--border-subtle);font:12px/1.6 var(--font-mono);color:var(--ink-muted);white-space:pre-wrap;overflow-wrap:anywhere}
 .baralho.off{opacity:.72}
+.notas-baralho{margin-top:16px;padding-top:14px;border-top:1px solid var(--border-subtle)}
 .barra .enche{animation:enche 1.4s var(--ease) forwards;width:0}
 @keyframes enche{to{width:100%}}
 .pe-ante{position:sticky;bottom:0;z-index:2;display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:24px;padding:14px 170px 6px 0;background:linear-gradient(transparent,var(--canvas) 30%)}

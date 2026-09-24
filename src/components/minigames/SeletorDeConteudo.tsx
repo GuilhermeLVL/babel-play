@@ -51,6 +51,11 @@ export interface SeletorDeConteudoProps {
   detalheDasAcoes?: ReactNode;
   /** Ações da faixa escura (Recordes, Mapa, Curadoria, Diagnóstico). */
   acoesBarra?: ReactNode;
+  /**
+   * Só a gaveta, sem a faixa escura: o "Trocar a fonte" do Mapa abre a gaveta POR CIMA do Mapa
+   * (`#btn-fonte` do protótipo), e a faixa é do lobby.
+   */
+  soGaveta?: boolean;
 }
 
 function SeletorDeConteudo({
@@ -65,6 +70,7 @@ function SeletorDeConteudo({
   acoes,
   detalheDasAcoes,
   acoesBarra,
+  soGaveta = false,
 }: SeletorDeConteudoProps) {
   const idTitulo = useId();
   const gaveta = useRef<HTMLDialogElement>(null);
@@ -75,33 +81,35 @@ function SeletorDeConteudo({
 
   return (
     <div>
-      <section className="cartao escuro faixa-escura" aria-label={t('O que você vai praticar')}>
-        <div className="resumo">
-          <span className="label-mono" style={{ color: 'inherit', opacity: 0.8 }}>
-            {t('Jogando com')}
-          </span>
-          <b className="tn">{numero(total)}</b> {tp(total, 'palavra', 'palavras')}
-          {nomeDaFonte && (
-            <>
-              {' · '}
-              <b style={{ font: '700 13.5px var(--font-display)' }}>{nomeDaFonte}</b>
-            </>
-          )}
-          {idioma && <> · {idioma}</>}
-        </div>
-        <div className="linha" style={{ gap: 8, flexWrap: 'wrap' }}>
-          {acoesBarra}
-          <button
-            type="button"
-            className="btn btn-outline peq"
-            onClick={aoAlternar}
-            aria-haspopup="dialog"
-            aria-expanded={aberta}
-          >
-            <SlidersIcon aria-hidden /> {t('Fonte')} <ChevronRight aria-hidden />
-          </button>
-        </div>
-      </section>
+      {!soGaveta && (
+        <section className="cartao escuro faixa-escura" aria-label={t('O que você vai praticar')}>
+          <div className="resumo">
+            <span className="label-mono" style={{ color: 'inherit', opacity: 0.8 }}>
+              {t('Jogando com')}
+            </span>
+            <b className="tn">{numero(total)}</b> {tp(total, 'palavra', 'palavras')}
+            {nomeDaFonte && (
+              <>
+                {' · '}
+                <b style={{ font: '700 13.5px var(--font-display)' }}>{nomeDaFonte}</b>
+              </>
+            )}
+            {idioma && <> · {idioma}</>}
+          </div>
+          <div className="linha" style={{ gap: 8, flexWrap: 'wrap' }}>
+            {acoesBarra}
+            <button
+              type="button"
+              className="btn btn-outline peq"
+              onClick={aoAlternar}
+              aria-haspopup="dialog"
+              aria-expanded={aberta}
+            >
+              <SlidersIcon aria-hidden /> {t('Fonte')} <ChevronRight aria-hidden />
+            </button>
+          </div>
+        </section>
+      )}
 
       {aberta && (
         <DialogoBase classe="gaveta" rotuloId={idTitulo} aoFechar={aoAlternar} refDialogo={gaveta}>

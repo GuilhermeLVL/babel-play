@@ -1,4 +1,4 @@
-import { computeTextStats, detectarVozPassiva, estimativaDeMinutos, rotuloDeDuracao } from '@core';
+import { computeTextStats, detectarVozPassiva, estimativaDeMinutos, FILTRO_PADRAO, rotuloDeDuracao } from '@core';
 import {
   Activity,
   AudioLines,
@@ -34,6 +34,7 @@ import {
   type UtteranceRow,
 } from '../../data/api';
 import { ficharPalavraDoAnalista } from '../../lib/adicionarAoDeck';
+import { gravarFiltro } from '../../lib/filtroDaPratica';
 import { numero } from '../../lib/i18n';
 import { baseLang, langLabelNaUI } from '../../lib/languages';
 import { copyDoPerfil, coreOnly } from '../../lib/profile';
@@ -442,6 +443,18 @@ export default function Metrics({
 
   /* "Trazer do Anki" abre a tela do Anki que o Jogar já usava, no lugar desta — ela importa, ativa
      e exporta; ao voltar, o deck e o catálogo recarregam. */
+  const recarregarDoAnki = async () => {
+    try {
+      setVocabCards(await fetchDeck());
+      setVersaoDoCatalogo((v) => v + 1);
+    } catch {
+      /* mantém o deck em tela */
+    }
+  };
+  const jogarComBaralho = (deckId: string) => {
+    gravarFiltro({ ...FILTRO_PADRAO, fontes: ['baralho'], baralhos: [deckId] });
+    onChangeView?.('play');
+  };
   if (noAnki) {
     return (
       <BaralhoAnki
@@ -451,14 +464,12 @@ export default function Metrics({
         ageProfile={ageProfile}
         rotuloVoltar="Vocabulário"
         onVoltar={() => setNoAnki(false)}
-        onImportou={async () => {
-          try {
-            setVocabCards(await fetchDeck());
-            setVersaoDoCatalogo((v) => v + 1);
-          } catch {
-            /* mantém o deck em tela */
-          }
-        }}
+        onImportou={recarregarDoAnki}
+        onMudouBaralhos={recarregarDoAnki}
+        /* Daqui, jogar com um baralho é ir ao Jogar com o recorte já escolhido: o filtro guardado é
+           o mesmo que a gaveta Fonte grava, e o Jogar o restaura ao abrir. */
+        onJogarCom={jogarComBaralho}
+        onJogarSoCom={jogarComBaralho}
       />
     );
   }

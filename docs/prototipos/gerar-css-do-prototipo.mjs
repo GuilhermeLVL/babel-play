@@ -61,8 +61,9 @@ const DESCARTA = [
   /^body\.celular\b/,
   /\[data-tema=/,
   /\[data-fonte=/,
-  /^\.notas\b/,
-  /^#notas\b/,
+  // Idem: o painel `.notas` do protótipo sai, mas `.notas-baralho` e `.notas-l` são de tela.
+  /^\.notas(?![\w-])/,
+  /^#notas(?![\w-])/,
   /^:root\[data-escuro\]\s*body$/,
 ];
 

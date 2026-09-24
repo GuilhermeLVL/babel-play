@@ -1,4 +1,4 @@
-import { countDue, type Grade, isDueNow, makeFsrs5 } from '@core';
+import { countDue, type Grade, isDueNow, makeFsrs5, PESOS_XP } from '@core';
 import {
   Brain,
   ChartColumn,
@@ -28,6 +28,7 @@ import {
   updateCard,
 } from '../../data/api';
 import { ActiveProductionExercise, similarityPercentage, stabilityThreshold } from '../../lib/exercicios';
+import { ganho } from '../../lib/juice';
 import { type AgeProfileType, copyDoPerfil, showsPowerUserAffordances } from '../../lib/profile';
 import type { PracticeSeed, Sentence } from '../../lib/sentences';
 import { speak as ttsSpeak } from '../../lib/tts';
@@ -177,8 +178,12 @@ export default function Study({
   );
   const [scheduler] = useState<SchedulerType>('fsrs');
 
-  /** XP por cartão revisado. Regra DECLARADA (não é medição) — e é o número que o resumo exibe. */
-  const XP_PER_REVIEWED_CARD = 5;
+  /**
+   * O XP QUE A REVISÃO CREDITA DE VERDADE: `PESOS_XP` do núcleo, a mesma conta que o servidor faz
+   * sobre `review_logs` (`revisao` por nota, mais `revisaoCerta` quando a nota é Bom ou Fácil,
+   * `grade >= 3` em `metrics.ts`). O "+10 XP" fixo do protótipo seria um número inventado.
+   */
+  const xpDaNota = (nota: number) => PESOS_XP.revisao + (nota >= 3 ? PESOS_XP.revisaoCerta : 0);
 
   // Review Session State
   const [reviewing, setReviewing] = useState(false);
@@ -216,7 +221,9 @@ export default function Study({
   const [opcoesAbertas, setOpcoesAbertas] = useState(false);
   const [editando, setEditando] = useState<VocabCard | null>(null);
   /** As notas desta rodada, com o estado de ANTES de cada uma — o "Desfazer" (Z) volta uma a uma. */
-  const [historico, setHistorico] = useState<Array<{ card: VocabCard; antes: EstadoAntesDaNota; indice: number }>>([]);
+  const [historico, setHistorico] = useState<
+    Array<{ card: VocabCard; antes: EstadoAntesDaNota; indice: number; xp: number }>
+  >([]);
 
   // States for interactive typing/mc exercises within review session
   const [typingAttempt, setTypingAttempt] = useState('');
@@ -248,21 +255,33 @@ export default function Study({
    * Revisão: manda a nota para o servidor e adota o cartão que ele devolve. O FSRS roda SÓ no
    * servidor — a aproximação local que já existiu aqui mostrava um agendamento que não era o do deck.
    */
-  const handleFsrsFeedback = async (cardId: string, rating: 1 | 2 | 3 | 4, exerciseKind?: ExerciseKind) => {
+  const handleFsrsFeedback = async (
+    cardId: string,
+    rating: 1 | 2 | 3 | 4,
+    exerciseKind?: ExerciseKind,
+    /** De onde o "+N XP" sobe (o botão da nota, como no protótipo). */
+    origem?: Element | null,
+  ) => {
     let effectiveRating = rating;
     if (exerciseKind === 'active-production' && rating === 3) {
       effectiveRating = 4; // produção ativa é mais difícil: um acerto vale Easy
     }
     setNotasDaRodada((prev) => [...prev, effectiveRating]);
     const antes = vocabCards.find((c) => c.id === cardId);
-    if (antes) setHistorico((h) => [...h, { card: antes, antes: estadoDoCartao(antes), indice: currentReviewIndex }]);
-
+    const indice = currentReviewIndex;
+    /* O retângulo é lido ANTES do await: depois dele o cartão já pode ter trocado. */
+    const rect = (origem ?? document.querySelector('.flash'))?.getBoundingClientRect();
+    let xp = 0;
     try {
       const updated = await reviewCard(cardId, effectiveRating, retencao / 100);
       setVocabCards((prev) => prev.map((c) => (c.id === cardId ? updated : c)));
+      // Só depois de o servidor gravar: o XP que sobe é o que de fato entrou na conta.
+      xp = xpDaNota(effectiveRating);
+      if (rect) ganho(rect, `+${xp} XP`);
     } catch {
       // Offline/erro: não inventamos um agendamento novo. O cartão fica como está.
     }
+    if (antes) setHistorico((h) => [...h, { card: antes, antes: estadoDoCartao(antes), indice, xp }]);
 
     /* PELO MESMO FUNIL DOS JOGOS (auditoria de 2026-09-07, achado A53): uma revisão vira uma rodada
        de um item em `/rodada`, com `roundId` — uma porta só para o mesmo dado. */
@@ -498,7 +517,13 @@ export default function Study({
       }
       if (showAnswer && ['1', '2', '3', '4'].includes(e.key)) {
         e.preventDefault();
-        void handleFsrsFeedback(currentCard.id, Number(e.key) as 1 | 2 | 3 | 4);
+        const nota = Number(e.key) as 1 | 2 | 3 | 4;
+        void handleFsrsFeedback(
+          currentCard.id,
+          nota,
+          undefined,
+          document.querySelectorAll('.flash .fsrs button')[nota - 1] ?? null,
+        );
       }
     };
     window.addEventListener('keydown', aoTeclar);
@@ -681,7 +706,7 @@ export default function Study({
     const feitas = notasDaRodada.length;
     const acertos = notasDaRodada.filter((n) => n > 1).length;
     const seg = inicioDaRodada && fimDaRodada ? Math.round((fimDaRodada - inicioDaRodada) / 1000) : 0;
-    const xp = feitas * XP_PER_REVIEWED_CARD;
+    const xp = historico.reduce((soma, h) => soma + h.xp, 0);
     /* Quando abre a próxima rodada: o vencimento mais próximo e quantas vencem naquele dia. */
     const proxima = (() => {
       const dues = activeVocabCards.filter((c) => c.inDeck && c.dueAtMs).map((c) => c.dueAtMs as number);
@@ -801,8 +826,8 @@ export default function Study({
     [3, 'b', 'Bom'],
     [4, 'f', 'Fácil'],
   ];
-  const avancar = (kind: ExerciseKind) => {
-    if (scheduler === 'fsrs') void handleFsrsFeedback(currentCard.id, typingCorrect ? 3 : 1, kind);
+  const avancar = (kind: ExerciseKind, origem?: Element | null) => {
+    if (scheduler === 'fsrs') void handleFsrsFeedback(currentCard.id, typingCorrect ? 3 : 1, kind, origem);
     else handleLeitnerFeedback(currentCard.id, typingCorrect, kind);
   };
   const verificarDigitacao = () => {
@@ -823,7 +848,7 @@ export default function Study({
         type="button"
         className="btn btn-solid"
         style={{ marginTop: 14, minWidth: 220 }}
-        onClick={() => avancar(format === 'mc' ? 'mc' : 'typing')}
+        onClick={(e) => avancar(format === 'mc' ? 'mc' : 'typing', e.currentTarget)}
       >
         Avançar
       </button>
@@ -1007,7 +1032,7 @@ export default function Study({
                         key={nota}
                         type="button"
                         className={cls}
-                        onClick={() => void handleFsrsFeedback(currentCard.id, nota)}
+                        onClick={(e) => void handleFsrsFeedback(currentCard.id, nota, undefined, e.currentTarget)}
                       >
                         {rotulo}
                         <small>{intervaloDaNota(currentCard, nota, agora, retencao)}</small>

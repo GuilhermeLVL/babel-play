@@ -814,5 +814,10 @@
   "O modelo de transcrição baixa uma vez só ({mb} MB) e depois funciona sem internet.": "The transcription model downloads only once ({mb} MB) and then works offline.",
   "O modelo de transcrição baixa uma vez só e depois funciona sem internet.": "The transcription model downloads only once and then works offline.",
   "Nada do áudio sai do computador no modo local. A tradução também roda aqui.": "No audio leaves the computer in local mode. Translation runs here too.",
-  "Legenda sumindo? Em Ajustes da captura, use \"Testar a captura\".": "Captions disappearing? In Capture settings, use \"Test the capture\"."
+  "Legenda sumindo? Em Ajustes da captura, use \"Testar a captura\".": "Captions disappearing? In Capture settings, use \"Test the capture\".",
+  "Com mais uma palavra desta sessão, estes abrem.": "One more word from this session and these open.",
+  "Com mais {n} palavras desta sessão, estes abrem.": "{n} more words from this session and these open.",
+  "Com mais material desta sessão, estes abrem. Cada um diz o que falta.": "With more material from this session, these open. Each one says what it needs.",
+  "Nenhum jogo abre só com este baralho ainda. Os jogos dizem o que falta.": "No game opens with just this deck yet. The games say what they need.",
+  "Jogando só com este baralho": "Playing with this deck only"
 }

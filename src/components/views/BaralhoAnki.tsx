@@ -13,16 +13,22 @@ import {
   Play,
   Upload,
 } from 'lucide-react';
-import React, { useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 
 import { apiFetch, exportarApkg } from '../../data/api';
-import { ativarNotasDoBaralho, type ResultadoAtivar } from '../../data/apiAnki';
+import {
+  ativarNotasDoBaralho,
+  type BaralhoAnkiResumo,
+  listarBaralhosAnki,
+  type ResultadoAtivar,
+} from '../../data/apiAnki';
 import { numero, t } from '../../lib/i18n';
 import { langLabelNaUI } from '../../lib/languages';
 import type { AgeProfileType } from '../../lib/profile';
 import type { VocabCard } from '../../types';
 import { toast } from '../Toast';
 import { Abas, CabecalhoDeTela, IconeEmBloco, type ItemDeAba, PainelDeAba, Tela } from '../ui';
+import GerenciarBaralhos from './BaralhosAnki';
 
 /**
  * BARALHOS DO ANKI — trazer e levar.
@@ -56,13 +62,17 @@ interface BaralhoAnkiProps {
    * tinha vindo do Vocabulário lia que ia para outro lugar.
    */
   rotuloVoltar?: string;
-  /** A aba "Gerenciar" leva à tela de baralhos (`BaralhosAnki`); sem isto a aba não aparece. */
-  onGerenciar?: () => void;
-  /** Quantos baralhos já foram trazidos — a contagem da aba "Gerenciar". */
-  nBaralhos?: number;
-  /** "Jogar com este baralho" depois de ativar: recorta os jogos pelo baralho recém-trazido. */
+  /** A aba em que a tela abre: "Gerenciar baralhos" (gaveta Fonte) abre direto em `baralhos`. */
+  abaInicial?: AbaDoAnki;
+  /** "Jogar com este baralho" depois de ativar: recorta os jogos pelo baralho e abre o jogo. */
   onJogarCom?: (deckId: string, nome: string) => void;
+  /** "Jogar só com este" (aba Gerenciar): recorta os jogos por aquele baralho. */
+  onJogarSoCom?: (deckId: string, nome: string, lang?: string) => void;
+  /** Ativar, desativar ou apagar na aba Gerenciar mudaram o acervo jogável. */
+  onMudouBaralhos?: () => void | Promise<void>;
 }
+
+type AbaDoAnki = 'trazer' | 'levar' | 'baralhos';
 
 /** Quantas notas oferecer para ativar de uma vez. Mais que isso de uma vez inundaria a fila de
  *  revisão — a pessoa abriria o app com milhares de cartões vencendo no mesmo dia. */
@@ -84,7 +94,8 @@ interface ImportAnkiResposta {
   resumo: ResumoImportAnki;
   campos: string[];
   notetype: string | null;
-  baralhos: string[];
+  /** Só o `.apkg` declara nomes de baralho; texto e CSV não trazem. */
+  baralhos?: string[];
   formato: string;
   truncado: boolean;
   totalNoArquivo: number;
@@ -132,11 +143,30 @@ export default function BaralhoAnki({
   onVoltar,
   onImportou,
   rotuloVoltar = 'Jogar',
-  onGerenciar,
-  nBaralhos,
+  abaInicial = 'trazer',
   onJogarCom,
+  onJogarSoCom,
+  onMudouBaralhos,
 }: BaralhoAnkiProps) {
-  const [aba, setAba] = useState<'trazer' | 'levar'>('trazer');
+  const [aba, setAba] = useState<AbaDoAnki>(abaInicial);
+  /* OS BARALHOS JÁ TRAZIDOS moram aqui, e não na aba Gerenciar: a contagem da aba precisa deles
+     antes de a pessoa abri-la, e trazer um arquivo novo muda a lista. */
+  const [baralhos, setBaralhos] = useState<BaralhoAnkiResumo[]>([]);
+  const [carregandoBaralhos, setCarregandoBaralhos] = useState(true);
+  const [erroBaralhos, setErroBaralhos] = useState<string | null>(null);
+  const recarregarBaralhos = useCallback(async () => {
+    setErroBaralhos(null);
+    try {
+      setBaralhos(await listarBaralhosAnki());
+    } catch (e) {
+      setErroBaralhos(String((e as Error)?.message ?? e));
+    } finally {
+      setCarregandoBaralhos(false);
+    }
+  }, []);
+  useEffect(() => {
+    void recarregarBaralhos();
+  }, [recarregarBaralhos]);
   const [enviando, setEnviando] = useState(false);
   /** Gerando o `.apkg` para levar — separado de `enviando` (importar), que muda a aba "Trazer". */
   const [gerando, setGerando] = useState(false);
@@ -200,6 +230,7 @@ export default function BaralhoAnki({
     try {
       const resp = await importarBaralhoAnki(await soAColecao(arquivo), idioma, idiomaNativo);
       setResultado(resp);
+      void recarregarBaralhos();
       await onImportou();
     } catch (e) {
       setErro((e as Error).message);
@@ -219,6 +250,7 @@ export default function BaralhoAnki({
     try {
       const r = await ativarNotasDoBaralho(resultado.deckId, sugestaoAtivar);
       setAtivacao(r);
+      void recarregarBaralhos();
       await onImportou();
       if (r.ativadas)
         toast.ok(`${r.ativadas} ${r.ativadas === 1 ? 'palavra entrou' : 'palavras entraram'} na sua fila`);
@@ -508,16 +540,14 @@ export default function BaralhoAnki({
                   <button
                     type="button"
                     className="btn btn-solid"
-                    onClick={() => onJogarCom(resultado.deckId, resultado.baralhos[0] || nomeArquivo)}
+                    onClick={() => onJogarCom(resultado.deckId, resultado.baralhos?.[0] || nomeArquivo)}
                   >
                     <Play aria-hidden /> Jogar com este baralho
                   </button>
                 )}
-                {onGerenciar && (
-                  <button type="button" className="btn btn-outline" onClick={onGerenciar}>
-                    <Layers aria-hidden /> Ver em Gerenciar
-                  </button>
-                )}
+                <button type="button" className="btn btn-outline" onClick={() => setAba('baralhos')}>
+                  <Layers aria-hidden /> Ver em Gerenciar
+                </button>
                 <button type="button" className="btn btn-outline" onClick={() => inputRef.current?.click()}>
                   Trazer outro arquivo
                 </button>
@@ -615,9 +645,12 @@ export default function BaralhoAnki({
   const abas: ItemDeAba[] = [
     { id: 'trazer', rotulo: 'Trazer', icone: <Upload aria-hidden /> },
     { id: 'levar', rotulo: 'Levar embora', icone: <Download aria-hidden /> },
-    ...(onGerenciar
-      ? [{ id: 'baralhos', rotulo: 'Gerenciar', icone: <Layers aria-hidden />, contagem: nBaralhos }]
-      : []),
+    {
+      id: 'baralhos',
+      rotulo: 'Gerenciar',
+      icone: <Layers aria-hidden />,
+      contagem: carregandoBaralhos ? undefined : baralhos.length,
+    },
   ];
 
   return (
@@ -629,16 +662,7 @@ export default function BaralhoAnki({
         titulo={ageProfile === 'kids' ? 'Trazer palavras de fora' : 'Baralhos do Anki'}
         sub="Traga o que você já estuda no Anki, leve o seu caderno embora, e escolha o que entra nos jogos."
         abas={
-          <Abas
-            itens={abas}
-            ativo={aba}
-            rotuloDoGrupo="Baralhos do Anki"
-            aoTrocar={(id) => {
-              // "Gerenciar" é a tela de baralhos que já existe (`BaralhosAnki`): a aba leva até ela.
-              if (id === 'baralhos') onGerenciar?.();
-              else setAba(id as 'trazer' | 'levar');
-            }}
-          />
+          <Abas itens={abas} ativo={aba} rotuloDoGrupo="Baralhos do Anki" aoTrocar={(id) => setAba(id as AbaDoAnki)} />
         }
       />
       <PainelDeAba id="trazer" ativo={aba}>
@@ -646,6 +670,18 @@ export default function BaralhoAnki({
       </PainelDeAba>
       <PainelDeAba id="levar" ativo={aba}>
         {levar}
+      </PainelDeAba>
+      <PainelDeAba id="baralhos" ativo={aba}>
+        <GerenciarBaralhos
+          baralhos={baralhos}
+          carregando={carregandoBaralhos}
+          erro={erroBaralhos}
+          recarregar={() => void recarregarBaralhos()}
+          aoTrocarLista={setBaralhos}
+          aoTrazer={() => setAba('trazer')}
+          onJogarSoCom={onJogarSoCom}
+          onMudou={() => void onMudouBaralhos?.()}
+        />
       </PainelDeAba>
     </Tela>
   );

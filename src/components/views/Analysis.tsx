@@ -146,6 +146,13 @@ export default function Analysis({
    * normalização acima e os deep-links já gravados.
    */
   const modoRevisao = subTab === 'study';
+  /**
+   * Quantos jogos abrem com esta sessão — o número da aba "Jogos" (protótipo: `n` na aba). Quem
+   * conta é o próprio lobby embutido (`aoContarProntos`), com a mesma regra da grade; guardado com o
+   * id da sessão para não mostrar o número de outra depois de trocar.
+   */
+  const [prontosDaSessao, setProntosDaSessao] = useState<{ id: string; n: number } | null>(null);
+  const contarProntos = React.useCallback((n: number) => setProntosDaSessao({ id: recording.id, n }), [recording.id]);
 
   // Real-time Simulated Media Player states
   const [isPlaying, setIsPlaying] = useState<boolean>(false);
@@ -627,6 +634,7 @@ export default function Analysis({
       id: 'practice',
       rotulo: pro ? 'Jogos' : copyDoPerfil('sessionTab.practice', ageProfile),
       icone: <Gamepad2 aria-hidden />,
+      contagem: prontosDaSessao?.id === recording.id ? prontosDaSessao.n : undefined,
     },
     {
       id: 'overview',
@@ -1352,6 +1360,7 @@ export default function Analysis({
                     metrics={metrics}
                     recording={recording}
                     seed={practiceSeed}
+                    aoContarProntos={contarProntos}
                   />
                 </Suspense>
               </>

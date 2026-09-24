@@ -204,6 +204,10 @@ export default function App() {
       ? ((analysisSubTab === 'study' ? 'study' : analysisSubTab === 'reading' ? 'reading' : 'analysis') as ViewType)
       : activeView;
 
+  // Item aceso no menu (protótipo): a sessão vive na Biblioteca; a revisão, no Vocabulário.
+  const viewDoMenu: ViewType =
+    activeView === 'analysis' ? (analysisSubTab === 'study' ? 'metrics' : 'library') : activeView;
+
   // Marco 1: OAuth/recuperação voltando em /auth/callback — aguarda o supabase-js processar a URL.
   if (authRequired && processingCallback) {
     return (
@@ -287,7 +291,7 @@ export default function App() {
       setAgeProfile={setAgeProfile}
       fontScale={fontScale}
       cycleFontScale={cycleFontScale}
-      activeView={activeView}
+      activeView={viewDoMenu}
       onChangeView={navigateTo}
       menuPosition={menuPosition}
       setMenuPosition={setMenuPosition}
@@ -569,7 +573,7 @@ export default function App() {
 
       {/* Dock do celular — sempre presente abaixo de `md`, seja qual for a posição escolhida
           para a tela grande. Sem ela a app ficava literalmente sem navegação no telefone. */}
-      <MobileNav activeView={activeView} onChangeView={navigateTo} ageProfile={ageProfile} />
+      <MobileNav activeView={viewDoMenu} onChangeView={navigateTo} ageProfile={ageProfile} />
 
       {/* Busca global (Ctrl/⌘+K). Renderizada AQUI, na raiz, e não dentro do shell: as quatro
           posições de menu montam shells diferentes, e um diálogo que muda de dono conforme a

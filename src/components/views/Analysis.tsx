@@ -1,7 +1,6 @@
 import {
   Activity,
   AlertTriangle,
-  ArrowLeft,
   AudioLines,
   BarChart3,
   BookMarked,
@@ -656,6 +655,23 @@ export default function Analysis({
       icone: <BarChart3 aria-hidden />,
     },
   ];
+
+  /* `/revisar` é uma tela própria no protótipo (`T.revisao`): cabeçalho "Revisão · 1 de N" e o
+     cartão, sem o cabeçalho e as abas da sessão por cima (eram dois h1 na mesma página). A `key`
+     pelo id da sessão remonta a fila ao trocar de sessão — ver o comentário na aba Jogos. */
+  if (modoRevisao) {
+    return (
+      <Study
+        key={recording.id}
+        recording={recording}
+        sentences={sentences}
+        onChangeView={onChangeView}
+        practiceSeed={practiceSeed}
+        onSeedConsumed={onSeedConsumed}
+        ageProfile={ageProfile}
+      />
+    );
+  }
 
   return (
     <div className="rolagem flex-1 h-full">
@@ -1595,29 +1611,7 @@ export default function Analysis({
 
         {currentTab === 'practice' && (
           <div className="animate-in fade-in slide-in-from-bottom-2 h-full flex-1 flex flex-col min-h-0">
-            {modoRevisao ? (
-              <>
-                {/* Saída explícita da revisão. Sem ela, o único caminho de volta seria clicar na aba
-                    que já está destacada como ativa, ninguém tenta clicar no que parece selecionado. */}
-                <button onClick={() => onSubTabChange('practice')} type="button" className="voltar">
-                  <ArrowLeft aria-hidden /> Voltar aos jogos
-                </button>
-                {/* `key` pelo id da sessão: sem ela, trocar de sessão REUSA a mesma instância e o
-                    estado interno sobrevive, a fila de revisão (`reviewCards`), o índice, o
-                    "mostrar resposta". Quando as contagens das duas sessões coincidem, nada na tela
-                    denuncia, e a pessoa revisa os cartões da sessão anterior achando que são desta.
-                    Remontar é o comportamento certo: a sessão é a identidade desta tela. */}
-                <Study
-                  key={recording.id}
-                  recording={recording}
-                  sentences={sentences}
-                  onChangeView={onChangeView}
-                  practiceSeed={practiceSeed}
-                  onSeedConsumed={onSeedConsumed}
-                  ageProfile={ageProfile}
-                />
-              </>
-            ) : (
+            {
               /* `embutido`: o lobby aqui é conteúdo de aba, não tela — sem cabeçalho próprio nem
                  voltar duplicado. `recording` filtra os jogos pelo material desta sessão.
                  O esqueleto do `Suspense` imita a grade de cartas em vez de um "carregando…": é o
@@ -1679,7 +1673,7 @@ export default function Analysis({
                   />
                 </Suspense>
               </>
-            )}
+            }
           </div>
         )}
       </div>

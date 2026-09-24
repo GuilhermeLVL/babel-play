@@ -11,9 +11,14 @@ import type { Dispatch, RefObject, SetStateAction } from 'react';
 
 import type { ModelPrepState } from '../../components/ModelPrepPanel';
 import {
-bulkAddCards,   createSession, type ImageResult, type NewUtterancePayload,
-patchSessionMeta,   replaceSessionUtterances, updateSession,
-uploadSessionAudio, } from '../../data/api';
+  bulkAddCards,
+  createSession,
+  type NewUtterancePayload,
+  patchSessionMeta,
+  replaceSessionUtterances,
+  updateSession,
+  uploadSessionAudio,
+} from '../../data/api';
 import type { SttSession } from '../../gateway/capabilities';
 import { capMetrics } from '../../gateway/capture/captureMetrics';
 import type { AudioCapture } from '../../gateway/capture/systemAudio';
@@ -21,17 +26,21 @@ import { Recording } from '../../types';
 import { DominantLangTracker } from '../convoLang';
 import { burstFromElement } from '../effects';
 import { dataHora } from '../i18n';
-import { baseLang,toBcp47 } from '../languages';
+import { baseLang, toBcp47 } from '../languages';
 import { misturarAudios } from '../misturarAudios';
 import { OrdemDasTraducoes } from '../ordemDaTraducao';
 import { PerfilAdaptativoDeIdioma } from '../perfilDeIdioma';
 import { play } from '../soundFx';
 import { SpeakerClusterer } from '../speakerCluster';
 import { preloadSpeakerId } from '../speakerId';
-import { explicarParada,traduzirVersos } from '../versosDoVocabulario';
+import { explicarParada, traduzirVersos } from '../versosDoVocabulario';
 import {
-  type CaptureScenario,   clog, formatTime,
-type GatewayDaCaptura, type SpeakerProfile, type SpeechSegment,
+  type CaptureScenario,
+  clog,
+  formatTime,
+  type GatewayDaCaptura,
+  type SpeakerProfile,
+  type SpeechSegment,
 } from './tiposDaFala';
 
 /** Estado honesto da identificação de voz, exibido no painel Falantes. */
@@ -95,25 +104,62 @@ export interface DepsDeSalvarSessao {
   setCustomSessionTitle: Dispatch<SetStateAction<string>>;
   setCustomSessionImage: Dispatch<SetStateAction<string>>;
   setImgQuery: Dispatch<SetStateAction<string>>;
-  setImgResults: Dispatch<SetStateAction<ImageResult[]>>;
   setFeedbackMsg: (msg: string) => void;
 }
 
 export function criarSalvarSessao(deps: DepsDeSalvarSessao) {
   const {
-    gateway, onSave, recordings,
-    speechSegments, timer, sourceLang, targetLang, micEnabled, systemEnabled, micEngine,
-    captureScenario, speakerAutoId, resumeId, customSessionTitle, customSessionImage,
-    startMic, handleStartSystemCapture,
-    systemCaptureRef, micCaptureRef, webSpeechRef, webSpeechPartialIdRef, meterRef,
+    gateway,
+    onSave,
+    recordings,
+    speechSegments,
+    timer,
+    sourceLang,
+    targetLang,
+    micEnabled,
+    systemEnabled,
+    micEngine,
+    captureScenario,
+    speakerAutoId,
+    resumeId,
+    customSessionTitle,
+    customSessionImage,
+    startMic,
+    handleStartSystemCapture,
+    systemCaptureRef,
+    micCaptureRef,
+    webSpeechRef,
+    webSpeechPartialIdRef,
+    meterRef,
     recordedAudioRef,
-    isRecordingRef, sessionStartMsRef, shouldAnchorClockRef, micStartedAtRef, partialIdRef,
-    seqToSegmentRef, lastPartialTextRef, ordemMtRef,
-    clustererRef, dominantLangRef, perfilIdiomaRef, altTargetNotifiedRef, lastVoiceIdRef,
-    provisionalUttsRef, speakerProfilesRef,
-    setIsRecording, setIsFocusMode, setTimer, setSpeechSegments, setIdiomaObservado,
-    setSpeakerIdStatus, setModelPrep, setResumeId, setShowSaveModal, setCustomSessionTitle,
-    setCustomSessionImage, setImgQuery, setImgResults, setFeedbackMsg,
+    isRecordingRef,
+    sessionStartMsRef,
+    shouldAnchorClockRef,
+    micStartedAtRef,
+    partialIdRef,
+    seqToSegmentRef,
+    lastPartialTextRef,
+    ordemMtRef,
+    clustererRef,
+    dominantLangRef,
+    perfilIdiomaRef,
+    altTargetNotifiedRef,
+    lastVoiceIdRef,
+    provisionalUttsRef,
+    speakerProfilesRef,
+    setIsRecording,
+    setIsFocusMode,
+    setTimer,
+    setSpeechSegments,
+    setIdiomaObservado,
+    setSpeakerIdStatus,
+    setModelPrep,
+    setResumeId,
+    setShowSaveModal,
+    setCustomSessionTitle,
+    setCustomSessionImage,
+    setImgQuery,
+    setFeedbackMsg,
   } = deps;
 
   const handleStartRecording = () => {
@@ -160,15 +206,23 @@ export function criarSalvarSessao(deps: DepsDeSalvarSessao) {
       setSpeakerIdStatus('loading');
       void preloadSpeakerId().then((ok) => {
         setSpeakerIdStatus(ok ? 'ready' : 'unavailable');
-        clog(ok ? 'identificação de voz PRONTA ✓ (WeSpeaker q8, WASM)' : 'identificação de voz INDISPONÍVEL, segue com atribuição manual');
+        clog(
+          ok
+            ? 'identificação de voz PRONTA ✓ (WeSpeaker q8, WASM)'
+            : 'identificação de voz INDISPONÍVEL, segue com atribuição manual',
+        );
       });
     } else {
       setSpeakerIdStatus('off');
     }
     // Aquece o MT local (opus-mt) para as DUAS direções (mic: fonte→alvo; sistema: alvo→fonte),
     // em background — assim já está pronto quando as traduções começarem (sem aquecer no meio).
-    const s = sourceLang.split('-')[0], t = targetLang.split('-')[0];
-    gateway.mt.warmup([[s, t], [t, s]]);
+    const s = sourceLang.split('-')[0],
+      t = targetLang.split('-')[0];
+    gateway.mt.warmup([
+      [s, t],
+      [t, s],
+    ]);
     if (!resuming) setTimer(0);
     if (micEnabled) void startMic();
     if (systemEnabled) void handleStartSystemCapture();
@@ -202,21 +256,30 @@ export function criarSalvarSessao(deps: DepsDeSalvarSessao) {
     setModelPrep(null);
     clog('■ STOP');
     if (webSpeechRef.current) {
-      try { webSpeechRef.current.stop(); } catch {}
+      try {
+        webSpeechRef.current.stop();
+      } catch {}
       webSpeechRef.current = null;
       webSpeechPartialIdRef.current = null;
     }
-    if (meterRef.current) { meterRef.current.stop(); meterRef.current = null; }
+    if (meterRef.current) {
+      meterRef.current.stop();
+      meterRef.current = null;
+    }
     let sysBlob: Blob | null = null;
     let micBlob: Blob | null = null;
     let sysInicioMs = 0;
     if (systemCaptureRef.current) {
       sysInicioMs = systemCaptureRef.current.startedAtMs ?? 0;
-      try { sysBlob = await systemCaptureRef.current.stop(); } catch {}
+      try {
+        sysBlob = await systemCaptureRef.current.stop();
+      } catch {}
       systemCaptureRef.current = null;
     }
     if (micCaptureRef.current) {
-      try { micBlob = await micCaptureRef.current.stop(); } catch {}
+      try {
+        micBlob = await micCaptureRef.current.stop();
+      } catch {}
       micCaptureRef.current = null;
     }
     // Player do Analysis: com as DUAS fontes, mistura (a sua voz também fica na sessão — antes o
@@ -243,8 +306,8 @@ export function criarSalvarSessao(deps: DepsDeSalvarSessao) {
 
     // Pré-preenche o modal: retomando → título/capa existentes; senão, título por data.
     if (resumeId) {
-      const existing = (recordings ?? []).find(r => r.id === resumeId);
-      setCustomSessionTitle(prev => prev.trim() || existing?.title || `Captura ao vivo, ${dataHora(new Date())}`);
+      const existing = (recordings ?? []).find((r) => r.id === resumeId);
+      setCustomSessionTitle((prev) => prev.trim() || existing?.title || `Captura ao vivo, ${dataHora(new Date())}`);
       setCustomSessionImage(existing?.imageUrl ?? '');
       setImgQuery(existing?.title ?? '');
     } else {
@@ -252,7 +315,6 @@ export function criarSalvarSessao(deps: DepsDeSalvarSessao) {
       setCustomSessionImage('');
       setImgQuery('');
     }
-    setImgResults([]);
     setShowSaveModal(true);
   };
 
@@ -279,7 +341,7 @@ export function criarSalvarSessao(deps: DepsDeSalvarSessao) {
     setShowSaveModal(false);
     setFeedbackMsg('Salvando sessão…');
     try {
-      const nameOf = (id: string) => speakerProfilesRef.current.find(p => p.id === id)?.name ?? id;
+      const nameOf = (id: string) => speakerProfilesRef.current.find((p) => p.id === id)?.name ?? id;
       // Idiomas POR FALA (não por sessão): as duas fontes são INVERSAS — o áudio do SISTEMA
       // vem no idioma-ALVO e é traduzido para o seu; o MIC é o contrário (ver `langs()` em
       // makeCaptureHandlers). Gravar `sourceLang` fixo aqui fazia a Análise/Leitura narrarem o
@@ -291,10 +353,10 @@ export function criarSalvarSessao(deps: DepsDeSalvarSessao) {
           source: isSys ? 'system' : 'mic',
           speakerName: nameOf(s.speakerId),
           // Idioma REAL detectado (multi-idioma) vence; senão, o da config.
-          sourceLang: s.lang ? (toBcp47(s.lang) || s.lang) : (isSys ? targetLang : sourceLang),
+          sourceLang: s.lang ? toBcp47(s.lang) || s.lang : isSys ? targetLang : sourceLang,
           engine: s.engine ?? (isSys ? 'whisper-local' : micEngine === 'browser' ? 'web-speech' : 'whisper-local'),
           sourceText: s.originalText,
-          targetLang: isSys ? sourceLang : targetLang,   // idioma de `translatedText`
+          targetLang: isSys ? sourceLang : targetLang, // idioma de `translatedText`
           translatedText: s.translatedText,
           tStartMs: s.tStartMs,
           tEndMs: s.tEndMs,
@@ -308,10 +370,13 @@ export function criarSalvarSessao(deps: DepsDeSalvarSessao) {
         recording = await replaceSessionUtterances(resumeId, utterances);
         const upd = await updateSession(resumeId, { title, durationMs: timer * 1000 });
         if (upd) recording = upd;
-        if (cover) { const r = await patchSessionMeta(resumeId, { imageUrl: cover }); if (r) recording = r; }
+        if (cover) {
+          const r = await patchSessionMeta(resumeId, { imageUrl: cover });
+          if (r) recording = r;
+        }
         if (!recording) {
           // Fallback honesto se o backend não devolveu a linha: reusa o que já existia.
-          const existing = (recordings ?? []).find(r => r.id === resumeId);
+          const existing = (recordings ?? []).find((r) => r.id === resumeId);
           recording = {
             id: resumeId,
             title,
@@ -338,7 +403,10 @@ export function criarSalvarSessao(deps: DepsDeSalvarSessao) {
           durationMs: timer * 1000,
           utterances,
         });
-        if (cover) { const r = await patchSessionMeta(recording.id, { imageUrl: cover }); if (r) recording = r; }
+        if (cover) {
+          const r = await patchSessionMeta(recording.id, { imageUrl: cover });
+          if (r) recording = r;
+        }
         if (recordedAudioRef.current) {
           const url = await uploadSessionAudio(recording.id, recordedAudioRef.current);
           if (url) recording.audioUrl = url;
@@ -368,14 +436,20 @@ export function criarSalvarSessao(deps: DepsDeSalvarSessao) {
       const pendentes: Pendente[] = [];
       for (const s of segs) {
         const isSys = s.source === 'system';
-        const wordLang = isSys ? targetLang : sourceLang;  // idioma da palavra capturada
-        const backLang = isSys ? sourceLang : targetLang;  // idioma do verso (tradução)
+        const wordLang = isSys ? targetLang : sourceLang; // idioma da palavra capturada
+        const backLang = isSys ? sourceLang : targetLang; // idioma do verso (tradução)
         for (const w of s.words as any[]) {
           const word = String(w?.word ?? '');
           const key = word.toLowerCase();
           if (!key || seen.has(key)) continue;
           seen.add(key);
-          pendentes.push({ word, back: String(w?.translation ?? ''), sentence: s.originalText, srcLang: wordLang, tgtLang: backLang });
+          pendentes.push({
+            word,
+            back: String(w?.translation ?? ''),
+            sentence: s.originalText,
+            srcLang: wordLang,
+            tgtLang: backLang,
+          });
         }
       }
 
@@ -416,9 +490,9 @@ export function criarSalvarSessao(deps: DepsDeSalvarSessao) {
       const parada = explicarParada(traducao);
       setFeedbackMsg(
         salvos || entrada.skipped.length
-          ? `Sessão salva · ${salvos} palavra(s) fichada(s)`
-            + (pulados ? ` · ${entrada.skipped.length} pulada(s): ${pulados}` : '')
-            + (parada ? ` · ${parada}` : '')
+          ? `Sessão salva · ${salvos} palavra(s) fichada(s)` +
+              (pulados ? ` · ${entrada.skipped.length} pulada(s): ${pulados}` : '') +
+              (parada ? ` · ${parada}` : '')
           : 'Sessão salva.',
       );
       // Mais tempo quando há motivo para ler: a linha ficou maior que "salvo com N cards".
@@ -433,7 +507,10 @@ export function criarSalvarSessao(deps: DepsDeSalvarSessao) {
   /* `handleStartRecording` fica DENTRO: a tela chama sempre `handleStartOrResume` (que decide se
      o transcript anterior sai) e `handleCancelStop` (continuar gravando). */
   return {
-    handleStartOrResume, handleExitResume,
-    handleStopRecording, handleCancelStop, handleFinalizeSave,
+    handleStartOrResume,
+    handleExitResume,
+    handleStopRecording,
+    handleCancelStop,
+    handleFinalizeSave,
   };
 }

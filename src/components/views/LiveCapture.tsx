@@ -35,7 +35,7 @@ import {
 } from 'lucide-react';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 
-import { fetchSessionTranscript, fetchSettings, type ImageResult, patchUiSettings, searchImages } from '../../data/api';
+import { fetchSessionTranscript, fetchSettings, patchUiSettings } from '../../data/api';
 import { buildGateway } from '../../gateway';
 import { getActiveProfile, getProviderMode } from '../../gateway/activeProfile';
 import type { SttSession } from '../../gateway/capabilities';
@@ -183,8 +183,6 @@ export default function LiveCapture({
   const [customSessionTitle, setCustomSessionTitle] = useState('');
   const [customSessionImage, setCustomSessionImage] = useState(''); // capa escolhida (URL ou data URL)
   const [imgQuery, setImgQuery] = useState('');
-  const [imgResults, setImgResults] = useState<ImageResult[]>([]);
-  const [imgLoading, setImgLoading] = useState(false);
   const coverFileRef = useRef<HTMLInputElement>(null);
   // Áudio real gravado nesta sessão — guardado até o usuário confirmar o save no modal.
   const recordedAudioRef = useRef<Blob | null>(null);
@@ -1322,7 +1320,6 @@ export default function LiveCapture({
       setCustomSessionTitle,
       setCustomSessionImage,
       setImgQuery,
-      setImgResults,
       setFeedbackMsg,
     });
 
@@ -1412,18 +1409,6 @@ export default function LiveCapture({
     window.addEventListener('paste', onPaste);
     return () => window.removeEventListener('paste', onPaste);
   }, [showSaveModal]);
-
-  // Busca capas keyless (Openverse) — mesmo padrão do modal de capa da Biblioteca.
-  const searchCovers = async () => {
-    const q = imgQuery.trim();
-    if (!q) return;
-    setImgLoading(true);
-    try {
-      setImgResults(await searchImages(q));
-    } finally {
-      setImgLoading(false);
-    }
-  };
 
   const handleCoverUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -2961,11 +2946,7 @@ export default function LiveCapture({
           aoTrocarTitulo={setCustomSessionTitle}
           capa={customSessionImage}
           aoTrocarCapa={setCustomSessionImage}
-          busca={imgQuery}
-          aoTrocarBusca={setImgQuery}
-          aoBuscar={() => void searchCovers()}
-          buscando={imgLoading}
-          resultados={imgResults}
+          buscaInicial={imgQuery}
           aoEscolherArquivo={() => coverFileRef.current?.click()}
           aoContinuar={handleCancelStop}
           aoSalvar={(ir) => void handleFinalizeSave(ir)}

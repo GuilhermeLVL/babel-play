@@ -46,20 +46,58 @@ async function chamar<T>(caminho: string, init?: RequestInit): Promise<T> {
   return (await r.json()) as T
 }
 
-export interface ClienteAsaas { id: string }
-export interface AssinaturaAsaas { id: string }
-export interface CobrancaAsaas { id: string; invoiceUrl?: string }
+export interface ClienteAsaas {
+  id: string
+}
+export interface AssinaturaAsaas {
+  id: string
+}
+export interface CobrancaAsaas {
+  id: string
+  invoiceUrl?: string
+}
 
 /**
  * Garante um cliente no Asaas para este usuário. O Asaas exige nome e CPF/CNPJ do pagador; eles
  * vêm do formulário de assinatura (não guardamos CPF no nosso banco — ele segue direto para o
  * processador, que é quem tem obrigação regulatória de tê-lo).
  */
-export async function criarCliente(userId: UserId, nome: string, cpfCnpj: string, email?: string): Promise<ClienteAsaas> {
+export async function criarCliente(
+  userId: UserId,
+  nome: string,
+  cpfCnpj: string,
+  email?: string,
+): Promise<ClienteAsaas> {
   return chamar<ClienteAsaas>('/customers', {
     method: 'POST',
     body: JSON.stringify({ name: nome, cpfCnpj, email, externalReference: String(userId) }),
   })
+}
+
+/** Uma cobrança como a listagem do Asaas a devolve — só os campos que a tela de faturas lê. */
+export interface CobrancaListadaAsaas {
+  id: string
+  status: string
+  value: number
+  billingType?: string
+  dueDate?: string
+  paymentDate?: string
+  clientPaymentDate?: string
+  invoiceUrl?: string
+  transactionReceiptUrl?: string
+}
+
+/**
+ * AS COBRANÇAS DE UMA ASSINATURA — só LEITURA (tela "Sua assinatura", lista de faturas).
+ *
+ * É o mesmo endpoint de `primeiraCobranca`, com mais linhas. Quem escolhe QUAL assinatura é o
+ * chamador, e ele lê o id do nosso banco (a assinatura do próprio usuário), nunca do cliente.
+ */
+export async function listarCobrancasDaAssinatura(assinaturaId: string, limite = 24): Promise<CobrancaListadaAsaas[]> {
+  const r = await chamar<{ data?: CobrancaListadaAsaas[] }>(
+    `/subscriptions/${encodeURIComponent(assinaturaId)}/payments?limit=${limite}`,
+  )
+  return r.data ?? []
 }
 
 /** Cria a assinatura mensal. `billingType: 'UNDEFINED'` deixa o pagador escolher Pix ou cartão. */

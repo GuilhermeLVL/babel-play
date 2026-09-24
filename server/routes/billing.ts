@@ -14,19 +14,27 @@
  */
 import { timingSafeEqual } from 'node:crypto'
 
-import { json,Router } from 'express'
+import { json, Router } from 'express'
 import { z } from 'zod'
 
-import { centavosParaReais,pacotePorSku } from '../../src/core/creditos'
+import { centavosParaReais, pacotePorSku } from '../../src/core/creditos'
 import { autorizarGastoDeCredito, ehRecusa } from '../../src/core/economiaAutoridade'
 import { passeNivel, premiumDoNivel, TEMPORADA_ATUAL } from '../../src/core/passe'
-import { ehPlanoDeAssinatura,PLAN_MATRIX } from '../../src/core/planos'
+import { ehPlanoDeAssinatura, PLAN_MATRIX } from '../../src/core/planos'
 import { billingEventsRepo } from '../db/repositories/billingEvents'
 import { creditsRepo } from '../db/repositories/credits'
 import { economiaDoUsuario } from '../db/repositories/metrics'
 import { subscriptionsRepo } from '../db/repositories/subscriptions'
-import { asaasConfigurado, cancelarAssinatura, criarAssinatura,
-criarCliente,   criarCobrancaAvulsa, primeiraCobranca, webhookToken } from '../lib/asaas'
+import {
+  asaasConfigurado,
+  cancelarAssinatura,
+  criarAssinatura,
+  criarCliente,
+  criarCobrancaAvulsa,
+  listarCobrancasDaAssinatura,
+  primeiraCobranca,
+  webhookToken,
+} from '../lib/asaas'
 import { aplicarEvento, eventoSchema, providerRefDoEvento, referenciaDoEvento } from '../lib/billingEventos'
 import { erroDeRota } from '../lib/erroDeRota'
 import { log } from '../lib/logger'
@@ -41,20 +49,24 @@ export const billingRouter = Router()
  * e o servidor recusa quando não bate, em vez de cobrar em silêncio um valor que a pessoa não viu.
  * Mesma decisão do gasto de Seeds.
  */
-const gastarCreditoSchema = z.object({
-  spendId: z.string().min(8).max(64),
-  amount: z.number().int().min(1).max(100_000),
-  reason: z.string().min(1).max(80),
-  ref: z.string().max(120).optional(),
-}).strip()
+const gastarCreditoSchema = z
+  .object({
+    spendId: z.string().min(8).max(64),
+    amount: z.number().int().min(1).max(100_000),
+    reason: z.string().min(1).max(80),
+    ref: z.string().max(120).optional(),
+  })
+  .strip()
 
-const assinarSchema = z.object({
-  plano: z.string(),
-  /** Nome e CPF/CNPJ vão DIRETO ao Asaas (obrigação regulatória é dele); não guardamos CPF. */
-  nome: z.string().min(2).max(120),
-  cpfCnpj: z.string().regex(/^\d{11}$|^\d{14}$/, 'CPF (11 dígitos) ou CNPJ (14), só números'),
-  email: z.string().email().max(200).optional(),
-}).strip()
+const assinarSchema = z
+  .object({
+    plano: z.string(),
+    /** Nome e CPF/CNPJ vão DIRETO ao Asaas (obrigação regulatória é dele); não guardamos CPF. */
+    nome: z.string().min(2).max(120),
+    cpfCnpj: z.string().regex(/^\d{11}$|^\d{14}$/, 'CPF (11 dígitos) ou CNPJ (14), só números'),
+    email: z.string().email().max(200).optional(),
+  })
+  .strip()
 
 /**
  * COMPRAR CRÉDITOS OU O PASSE — cobrança avulsa (mudança economia-legivel-e-moedas).
@@ -90,7 +102,10 @@ billingRouter.post('/comprar', async (req, res) => {
       atual?.providerCustomerId ?? (await criarCliente(req.userId, dados.nome, dados.cpfCnpj, dados.email)).id
 
     const cobranca = await criarCobrancaAvulsa(
-      req.userId, clienteId, centavosParaReais(pacote.precoCentavos), `Babel Play — ${pacote.nome}`,
+      req.userId,
+      clienteId,
+      centavosParaReais(pacote.precoCentavos),
+      `Babel Play — ${pacote.nome}`,
     )
     await creditsRepo.registrarCompra(req.userId, {
       sku: pacote.sku as import('../db/repositories/credits').SkuDeCredito,
@@ -167,12 +182,22 @@ billingRouter.post('/gastar', async (req, res) => {
       { conferirSaldo: true },
     )
     if (recusadoPorSaldo || !linha) {
-      res.status(402).json({ error: 'saldo de Créditos insuficiente', falta: autorizacao.preco, saldo: await creditsRepo.saldo(req.userId) })
+      res
+        .status(402)
+        .json({
+          error: 'saldo de Créditos insuficiente',
+          falta: autorizacao.preco,
+          saldo: await creditsRepo.saldo(req.userId),
+        })
       return
     }
     res.json({ jaExistia, gasto: autorizacao.preco, saldo: await creditsRepo.saldo(req.userId) })
   } catch (err) {
-    res.status(400).json({ error: erroDeRota(err, { status: 400, event: 'billing_error', route: req.path, requestId: req.requestId }) })
+    res
+      .status(400)
+      .json({
+        error: erroDeRota(err, { status: 400, event: 'billing_error', route: req.path, requestId: req.requestId }),
+      })
   }
 })
 
@@ -213,7 +238,11 @@ billingRouter.post('/creditar-passe', async (req, res) => {
     }
     res.json({ creditado, temPasse: true, saldo: await creditsRepo.saldo(req.userId) })
   } catch (err) {
-    res.status(500).json({ error: erroDeRota(err, { status: 500, event: 'billing_error', route: req.path, requestId: req.requestId }) })
+    res
+      .status(500)
+      .json({
+        error: erroDeRota(err, { status: 500, event: 'billing_error', route: req.path, requestId: req.requestId }),
+      })
   }
 })
 
@@ -265,6 +294,72 @@ billingRouter.get('/status', async (req, res) => {
       ? { plano: sub.plan, status: sub.status, valeAte: sub.currentPeriodEnd, provedor: sub.provider }
       : null,
   })
+})
+
+/* ------------------------------------------------------------------ faturas (só leitura) */
+
+type StatusDeFatura = 'paga' | 'pendente' | 'falhou' | 'estornada'
+
+/** O status do Asaas na língua da tela. O que não se conhece fica `pendente`: não promete "paga". */
+function statusDaFatura(s: string): StatusDeFatura {
+  if (s === 'RECEIVED' || s === 'CONFIRMED' || s === 'RECEIVED_IN_CASH') return 'paga'
+  if (s === 'OVERDUE' || s.startsWith('DUNNING')) return 'falhou'
+  if (s.startsWith('REFUND') || s.startsWith('CHARGEBACK') || s === 'AWAITING_CHARGEBACK_REVERSAL') return 'estornada'
+  return 'pendente'
+}
+
+const METODO: Record<string, 'cartao' | 'pix' | 'boleto'> = { CREDIT_CARD: 'cartao', PIX: 'pix', BOLETO: 'boleto' }
+
+/**
+ * Link que o cliente vai ABRIR: só https num domínio do Asaas. A resposta do provedor é confiável,
+ * mas o botão "Baixar recibo" faz `window.open` do valor — um `javascript:` ali seria execução.
+ */
+function linkDoAsaas(u: string | undefined): string | null {
+  if (!u) return null
+  try {
+    const url = new URL(u)
+    const host = url.hostname.toLowerCase()
+    return url.protocol === 'https:' && (host === 'asaas.com' || host.endsWith('.asaas.com')) ? url.href : null
+  } catch {
+    return null
+  }
+}
+
+/**
+ * AS FATURAS DA ASSINATURA — o que a aba "Sua assinatura" lista.
+ *
+ * Só LEITURA e só da PRÓPRIA conta: o id da assinatura sai de `subscriptions` pelo `req.userId`,
+ * e a rota não aceita parâmetro nenhum que aponte para outra. Nada aqui muda plano, status ou
+ * período — quem muda é o webhook.
+ */
+billingRouter.get('/faturas', async (req, res) => {
+  if (!asaasConfigurado()) {
+    res.status(501).json({ error: 'cobrança não configurada no servidor (ASAAS_API_KEY ausente)' })
+    return
+  }
+  const sub = await subscriptionsRepo.getActive(req.userId)
+  if (!sub?.providerSubscriptionId) {
+    res.json({ faturas: [] })
+    return
+  }
+  try {
+    const descricao = ehPlanoDeAssinatura(sub.plan) ? `${PLAN_MATRIX[sub.plan].rotulo} · mensal` : 'Assinatura'
+    const cobrancas = await listarCobrancasDaAssinatura(sub.providerSubscriptionId)
+    res.json({
+      faturas: cobrancas.map((c) => ({
+        id: c.id,
+        data: c.paymentDate ?? c.clientPaymentDate ?? c.dueDate ?? null,
+        descricao,
+        valor: c.value,
+        metodo: (c.billingType && METODO[c.billingType]) || null,
+        status: statusDaFatura(c.status),
+        recibo: linkDoAsaas(c.transactionReceiptUrl),
+        link: linkDoAsaas(c.invoiceUrl),
+      })),
+    })
+  } catch (err) {
+    res.status(502).json({ error: `falha ao buscar faturas: ${erroDeRota(err, { event: 'billing_error' })}` })
+  }
 })
 
 billingRouter.post('/cancelar', async (req, res) => {
@@ -341,7 +436,12 @@ asaasWebhookRouter.post('/', async (req, res) => {
     const r = await aplicarEvento(ev, req.requestId)
     await billingEventsRepo.registrarResultado(ev.id, r.estado, r.motivo)
     if (r.estado === 'nao-aplicado') {
-      log('error', { event: 'billing_evento_nao_aplicado', provider: 'asaas', error: `${ev.id}: ${r.motivo}`, requestId: req.requestId })
+      log('error', {
+        event: 'billing_evento_nao_aplicado',
+        provider: 'asaas',
+        error: `${ev.id}: ${r.motivo}`,
+        requestId: req.requestId,
+      })
     }
     log('info', { event: 'billing_webhook_ok', provider: 'asaas', error: `${ev.event} → ${r.estado}` })
     res.status(200).json({

@@ -2416,8 +2416,10 @@ export default function LiveCapture({
                       legenda bilíngue aparece aqui e nas Legendas flutuantes.
                     </p>
 
-                    {/* Linha 5 — preparo dos modelos locais (progresso transitório; não é configuração) */}
-                    {modelPrep && <ModelPrepPanel state={modelPrep} onRetry={prepareModels} compact />}
+                    {/* Linha 5 — preparo dos modelos locais (progresso transitório; não é configuração).
+                      Gravando, o progresso aparece na conversa (abaixo), onde a pessoa olha: mostrar
+                      aqui também repetia o mesmo painel duas vezes na tela. */}
+                    {modelPrep && !isRecording && <ModelPrepPanel state={modelPrep} onRetry={prepareModels} compact />}
                   </section>
 
                   {/* ══════════════ FALANTES (C5 do protótipo) ══════════════

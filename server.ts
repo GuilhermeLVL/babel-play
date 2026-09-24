@@ -21,7 +21,7 @@ import { seedIfEmpty } from './server/db/seed'
 import { criarApp } from './server/http/app'
 import { authRequired, erroDeAuthEmProducao, mecanismoDe } from './server/lib/auth'
 import { registrarFalhaDeBoot, registrarSucessoDeBoot } from './server/lib/bootStatus'
-import { erroDeMetricasEmProducao, verificarConfiguracaoNoBoot } from './server/lib/config'
+import { erroDeMetricasEmProducao, erroDeTrustProxyEmProducao, verificarConfiguracaoNoBoot } from './server/lib/config'
 import { registrarDesligamento } from './server/lib/desligamento'
 /* `diretorioGravavel` morava aqui e o `crypto.ts` tinha a sua propria versao divergente — a chave
    de segredos ia parar no disco efemero do conteiner enquanto o diario ia para o volume. Uma
@@ -66,6 +66,13 @@ async function startServer({ prepararDados = true } = {}) {
   const authInsegura = erroDeAuthEmProducao()
   if (authInsegura) {
     console.error(`[boot] ABORTADO: ${authInsegura}`)
+    process.exit(1)
+  }
+  /* GAP-004: em produção, quantos proxies há na frente é decisão declarada — errar para qualquer
+     lado desliga o limitador por IP em silêncio (ver `erroDeTrustProxyEmProducao`). */
+  const proxyIndeclarado = erroDeTrustProxyEmProducao()
+  if (proxyIndeclarado) {
+    console.error(`[boot] ABORTADO: ${proxyIndeclarado}`)
     process.exit(1)
   }
   /* GAP-013 (auditoria 2026-09-13): em produção, /metrics ligado sem token é scrape aberto. */

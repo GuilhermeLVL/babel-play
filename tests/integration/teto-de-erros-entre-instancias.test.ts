@@ -56,6 +56,8 @@ async function subirInstancia(url: string, dirDeErros: string): Promise<{ porta:
     env: {
       ...process.env,
       NODE_ENV: 'production',
+      // GAP-004: em produção o boot exige a decisão sobre proxy; aqui não há proxy nenhum.
+      TRUST_PROXY: 'false',
       SECRET_KEY: 'chave-de-teste-somente-para-o-teto-entre-instancias-32+',
       PORT: String(porta),
       HOST: '127.0.0.1',

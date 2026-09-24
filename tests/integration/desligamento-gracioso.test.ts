@@ -87,6 +87,8 @@ async function subirServidor(extra: Record<string, string> = {}): Promise<Servid
       env: {
         ...process.env,
         NODE_ENV: 'production',
+        // GAP-004: em produção o boot exige a decisão sobre proxy; aqui não há proxy nenhum.
+        TRUST_PROXY: 'false',
         SECRET_KEY: 'chave-de-teste-somente-para-o-desligamento-32+chars',
         PORT: String(porta),
         HOST: '127.0.0.1',

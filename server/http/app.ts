@@ -31,7 +31,7 @@ import helmet from 'helmet'
 
 import { audioRouter } from '../audio/loopback'
 import { authMiddleware, authRequired } from '../lib/auth'
-import { metricasHabilitadas } from '../lib/config'
+import { metricasHabilitadas, segredoDeOrigem } from '../lib/config'
 import { capturarAssincrono } from '../lib/erroGlobal'
 import {
   chaveDoRequest,
@@ -59,6 +59,7 @@ import { settingsRouter } from '../routes/settings'
 import { vocabRouter } from '../routes/vocab'
 import { jsonAntesDoAuth, jsonDepoisDoAuth, ROTAS_DE_CORPO_GRANDE } from './limitesDeCorpo'
 import { handlerDeMetricas, middlewareDeMetricas } from './metricas'
+import { exigirOrigem } from './origemProtegida'
 
 /**
  * A ÚNICA COSTURA da montagem, e ela existe para os testes: o `authMiddleware` de produção resolve
@@ -121,6 +122,12 @@ export function criarApp(opcoes: OpcoesDoApp = {}): express.Express {
   // qualquer log emitido no ciclo do request pode ser amarrado a ele, inclusive falhas de
   // parsing do corpo. Volta ao cliente no header `x-request-id`.
   app.use(requestIdMiddleware)
+
+  /* ORIGEM PROTEGIDA (GAP-004): com `ORIGEM_SEGREDO`, só quem passou pelo Cloudflare entra — o acesso
+     direto a `<app>.fly.dev` pularia o WAF e forjaria o `X-Forwarded-For` em que o `TRUST_PROXY`
+     confia. Ver `server/http/origemProtegida.ts`. */
+  const segredo = segredoDeOrigem()
+  if (segredo) app.use(exigirOrigem(segredo))
 
   /**
    * MÉTRICAS PROMETHEUS (Fase 5) — o middleware ANTES de tudo, a rota ANTES do auth.

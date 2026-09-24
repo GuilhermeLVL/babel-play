@@ -22,6 +22,7 @@ import { auditDeck, type AuditReport, auditUtterances, type LangFinding, targetF
 import { fetchLangConfig, type LangConfig } from '../../lib/langConfig';
 import { baseLang, knownShorts, langLabel } from '../../lib/languages';
 import { askConfirm, toast } from '../Toast';
+import { TituloDeSecao } from '../ui';
 
 type Mode = 'cards' | 'utterances';
 
@@ -62,7 +63,7 @@ interface ModeCopy {
 const COPY: Record<Mode, ModeCopy> = {
   cards: {
     tab: 'Cartões',
-    scanBtn: 'Analisar meus cartões',
+    scanBtn: 'Conferir agora',
     headerTitle: 'Conferir o idioma dos meus cartões',
     headerIntro: 'Compara o idioma gravado em cada cartão com a frase de onde a palavra saiu, e mostra o que não bate.',
     emptyMsg: 'Você ainda não tem cartões no baralho, não há nada para auditar.',
@@ -88,7 +89,7 @@ const COPY: Record<Mode, ModeCopy> = {
   },
   utterances: {
     tab: 'Falas',
-    scanBtn: 'Analisar minhas falas',
+    scanBtn: 'Conferir agora',
     headerTitle: 'Conferir o idioma das minhas falas',
     headerIntro:
       'Compara o idioma gravado em cada fala das suas transcrições com o texto dela, e mostra o que não bate.',
@@ -168,6 +169,37 @@ function Evidence({ finding, emptyMsg }: { finding: LangFinding; emptyMsg: strin
   );
 }
 
+const chaveDoResumo = (m: Mode) => `babel.auditoriaDeIdioma.${m}`;
+
+function lerResumo(m: Mode): string | null {
+  try {
+    return localStorage.getItem(chaveDoResumo(m));
+  } catch {
+    return null;
+  }
+}
+
+function gravarResumo(m: Mode, texto: string) {
+  try {
+    localStorage.setItem(chaveDoResumo(m), texto);
+  } catch {
+    /* sem armazenamento: o resumo vale só nesta visita */
+  }
+}
+
+/** A frase do protótipo ("3 palavras conferidas, nenhuma fora do idioma."), com os números reais. */
+function resumoDe(m: Mode, total: number, fora: number): string {
+  const coisa =
+    m === 'cards'
+      ? total === 1
+        ? 'palavra conferida'
+        : 'palavras conferidas'
+      : total === 1
+        ? 'fala conferida'
+        : 'falas conferidas';
+  return `${total} ${coisa}, ${fora === 0 ? 'nenhuma fora do idioma.' : `${fora} fora do idioma.`}`;
+}
+
 export default function LangAudit() {
   const [mode, setMode] = useState<Mode>('cards');
   const [running, setRunning] = useState(false);
@@ -182,6 +214,13 @@ export default function LangAudit() {
   const [manual, setManual] = useState<Record<string, string>>({});
 
   const copy = COPY[mode];
+
+  /** O resumo da ÚLTIMA conferência de cada modo — fica guardado para a próxima visita. */
+  const [resumos, setResumos] = useState<Record<Mode, string | null>>(() => ({
+    cards: lerResumo('cards'),
+    utterances: lerResumo('utterances'),
+  }));
+  const resumo = resumos[mode];
 
   /** Zera o resultado — ao trocar de modo, ou antes de uma nova varredura. */
   const resetResult = () => {
@@ -226,6 +265,9 @@ export default function LangAudit() {
       }
 
       setReport(result);
+      const texto = resumoDe(mode, size, (result.counts.confiante ?? 0) + (result.counts.ambiguo ?? 0));
+      gravarResumo(mode, texto);
+      setResumos((r) => ({ ...r, [mode]: texto }));
       // 'confiante' já vem marcado: é a faixa em que o texto contradiz o rótulo COM confiança.
       setChecked(new Set(result.findings.filter((f) => f.verdict === 'confiante' && f.proposed).map((f) => f.cardId)));
       setManual({});
@@ -303,45 +345,25 @@ export default function LangAudit() {
 
   return (
     <section className="secao">
-      {/* Marcação do protótipo (`TituloDeSecao` + `.cartao.p5.entre`); o seletor de modo — o mesmo
-          reparo, duas fontes de dados — vai à direita, como `.seg`. Trocar de modo zera o resultado. */}
-      <div className="tsec">
-        <div className="tsec-l">
-          <div className="tsec-t">
-            <ScanSearch aria-hidden />
-            <h2>Auditoria de idioma</h2>
-          </div>
-          <p className="desc">Confere se as palavras do seu caderno estão mesmo no idioma certo.</p>
-        </div>
-        <div className="seg" role="group" aria-label="O que auditar">
-          {(['cards', 'utterances'] as Mode[]).map((m) => (
-            <button
-              key={m}
-              type="button"
-              onClick={() => switchMode(m)}
-              disabled={running || applying}
-              aria-pressed={mode === m}
-            >
-              {COPY[m].tab}
-            </button>
-          ))}
-        </div>
-      </div>
+      {/* Marcação do protótipo: `TituloDeSecao` + `.cartao.p5.entre` com o resumo da última conferência
+          e "Conferir de novo". As falas (o mesmo reparo sobre as transcrições) viram um link embaixo. */}
+      <TituloDeSecao
+        icone={ScanSearch}
+        titulo="Auditoria de idioma"
+        desc="Confere se as palavras do seu caderno estão mesmo no idioma certo."
+      />
 
       <div className="cartao">
         <div
           className="p5 entre"
           style={running || report || deckSize === 0 ? { borderBottom: '1px solid var(--border-subtle)' } : undefined}
         >
-          <div style={{ flex: 1, minWidth: 200 }}>
-            <h3 style={{ font: '700 14px var(--font-body)', marginBottom: 2 }}>{copy.headerTitle}</h3>
-            <p className="mut" style={{ fontSize: 13 }}>
-              {copy.headerIntro} Nada é alterado sem a sua confirmação.
-            </p>
-          </div>
-          <button onClick={() => void run()} disabled={running || applying} className="btn btn-outline">
-            {running ? <Loader2 className="w-4 h-4 animate-spin" /> : <ScanSearch className="w-4 h-4" />}
-            {running ? 'Analisando…' : report || deckSize === 0 ? 'Analisar de novo' : copy.scanBtn}
+          <p className="mut" style={{ fontSize: 13, flex: 1, minWidth: 200 }}>
+            {resumo ?? `${copy.headerIntro} Nada é alterado sem a sua confirmação.`}
+          </p>
+          <button type="button" onClick={() => void run()} disabled={running || applying} className="btn btn-outline">
+            {running ? <Loader2 className="gira" aria-hidden /> : <ScanSearch aria-hidden />}
+            {running ? 'Conferindo…' : resumo || report || deckSize === 0 ? 'Conferir de novo' : copy.scanBtn}
           </button>
         </div>
 
@@ -544,6 +566,16 @@ export default function LangAudit() {
           </>
         )}
       </div>
+      {/* O MESMO reparo sobre as transcrições: o protótipo desenha só o caderno, e as falas ficam a um clique. */}
+      <button
+        type="button"
+        className="link"
+        style={{ marginTop: 10, fontSize: 12.5 }}
+        onClick={() => switchMode(mode === 'cards' ? 'utterances' : 'cards')}
+        disabled={running || applying}
+      >
+        {mode === 'cards' ? 'Conferir também as falas das transcrições' : 'Voltar às palavras do caderno'}
+      </button>
     </section>
   );
 }

@@ -28,19 +28,63 @@ type Estado = 'parado' | 'exportando' | 'excluindo';
  * servidor não gerou o arquivo. Usada aqui e em Ajustes → Privacidade — a mesma rota, um caminho só.
  */
 export async function baixarMeusDados(): Promise<boolean> {
-  const blob = await exportarConta();
-  if (!blob) return false;
+  const copia = await prepararCopia('json');
+  if (!copia) return false;
+  baixarArquivo(copia.blob, 'meus-dados.json');
+  return true;
+}
+
+/** Dispara o download de um blob já materializado. */
+export function baixarArquivo(blob: Blob, nome: string): void {
   /* A rota exige o header de autenticação, então não dá para apontar um link direto para ela:
-     o blob é materializado aqui e o object URL é revogado logo depois de disparar o download. */
+     o blob é materializado e o object URL é revogado logo depois de disparar o download. */
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = 'meus-dados.json';
+  a.download = nome;
   document.body.appendChild(a);
   a.click();
   a.remove();
   URL.revokeObjectURL(url);
-  return true;
+}
+
+const celulaCsv = (v: unknown): string => {
+  const s = v === null || v === undefined ? '' : typeof v === 'object' ? JSON.stringify(v) : String(v);
+  return /[",\n\r;]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+};
+
+/**
+ * A MESMA exportação (`GET /api/me/exportar`) em CSV. As tabelas têm colunas diferentes, então o
+ * CSV vai no formato longo — `tabela,linha,campo,valor`, uma linha por campo — que qualquer planilha
+ * abre e filtra sem perder nada do JSON.
+ */
+export function exportacaoEmCsv(json: unknown): string {
+  const linhas: string[] = ['tabela,linha,campo,valor'];
+  const exp = (json ?? {}) as { usuario?: unknown; dados?: Record<string, unknown> };
+  const empilhar = (tabela: string, i: number, obj: unknown) => {
+    if (obj && typeof obj === 'object' && !Array.isArray(obj)) {
+      for (const [k, v] of Object.entries(obj as Record<string, unknown>))
+        linhas.push([tabela, i, k, v].map(celulaCsv).join(','));
+    } else linhas.push([tabela, i, 'valor', obj].map(celulaCsv).join(','));
+  };
+  if (exp.usuario) empilhar('usuario', 0, exp.usuario);
+  for (const [tabela, itens] of Object.entries(exp.dados ?? {})) {
+    if (Array.isArray(itens)) itens.forEach((it, i) => empilhar(tabela, i, it));
+  }
+  return linhas.join('\n');
+}
+
+/** Pede a cópia ao servidor e a devolve no formato escolhido. `null` = o servidor não gerou. */
+export async function prepararCopia(formato: 'json' | 'csv'): Promise<{ blob: Blob; nome: string } | null> {
+  const blob = await exportarConta();
+  if (!blob) return null;
+  if (formato === 'json') return { blob, nome: 'babel-play-dados.json' };
+  try {
+    const csv = exportacaoEmCsv(JSON.parse(await blob.text()));
+    return { blob: new Blob([csv], { type: 'text/csv;charset=utf-8' }), nome: 'babel-play-dados.csv' };
+  } catch {
+    return null;
+  }
 }
 
 const PALAVRA = 'EXCLUIR';
@@ -167,7 +211,7 @@ export default function AbaDados() {
  * O QUE ACONTECEU DE VERDADE. O servidor responde 500 com o corpo cheio quando a exclusão sai
  * pela metade; repassar só "deu erro" jogaria fora justamente a informação que o titular precisa.
  */
-function RelatorioDaExclusao({ resultado }: { resultado: ResultadoDaExclusao }) {
+export function RelatorioDaExclusao({ resultado }: { resultado: ResultadoDaExclusao }) {
   const tabelas = Object.entries(resultado.linhasPorTabela ?? {}).filter(([, n]) => n > 0);
   const falhas = resultado.arquivos?.falhas ?? [];
   const parcial = !resultado.ok || falhas.length > 0 || resultado.login?.desvinculado === false;

@@ -16,12 +16,15 @@ export const CRIADOR = {
   github: 'https://github.com/GuilhermeLVL',
   portfolio: 'https://full-stack-ai-portfolio.vercel.app/',
   linkedin: 'LINKEDIN_AQUI',
+  instagram: 'INSTAGRAM_AQUI',
   email: 'EMAIL_AQUI',
   /** Chave Pix para apoio — aparece com botão de copiar na tela Sobre. */
   pix: 'PIX_AQUI',
   /** Onde deixar comentários/sugestões públicas. */
   comentarios: 'https://github.com/GuilhermeLVL/babel-play/discussions',
   issues: 'https://github.com/GuilhermeLVL/babel-play/issues',
+  /** O contato de privacidade que a política oficial publica (/privacidade.html). */
+  contatoDePrivacidade: 'guigui.cruzeiro@gmail.com',
 } as const;
 
 /** Um campo preenchido de verdade (não placeholder, não vazio)? */

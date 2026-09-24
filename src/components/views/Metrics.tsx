@@ -2,21 +2,22 @@ import { computeTextStats, detectarVozPassiva, estimativaDeMinutos, retrievabili
 import {
   Activity,
   AlertCircle,
-  ArrowUpRight,
   BarChart2,
   BookOpen,
   Brain,
   Clock,
   Download,
   Eye,
-  Headphones,
   LayoutGrid,
   MessageSquareWarning,
   Mic,
   MoreHorizontal,
+  PartyPopper,
   PieChart as PieChartIcon,
+  Plus,
   Sprout,
   Target,
+  Upload,
 } from 'lucide-react';
 import React, { useEffect, useMemo, useState } from 'react';
 import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from 'recharts';
@@ -33,18 +34,19 @@ import { ficharPalavraDoAnalista } from '../../lib/adicionarAoDeck';
 import { numero } from '../../lib/i18n';
 import { baseLang, langLabelNaUI } from '../../lib/languages';
 import { copyDoPerfil, coreOnly } from '../../lib/profile';
-import { baixarRelatorio } from '../../lib/relatorioDeProgresso';
 import type { ExerciseId, PracticeSeed } from '../../lib/sentences';
 import { seedFromSelection, telaDoExercicio } from '../../lib/sentences';
 import { useExameDePalavra } from '../../lib/useExameDePalavra';
 import { Recording, VocabCard, VocabWord } from '../../types';
-import EditablePanel from '../EditablePanel';
 import { Confianca, ehBaixaConfianca, SemDado } from '../Honestidade';
 import EvolucaoSemanal from '../metrics/EvolucaoSemanal';
-import { Abas, Barra, PainelDeAba } from '../ui';
+import { Abas, Barra, CabecalhoDeTela, IconeEmBloco, PainelDeAba, Tela, TituloDeSecao } from '../ui';
 import VocabularyPanel from '../VocabularyPanel';
+import BaralhoAnki from './BaralhoAnki';
 import MetricsExpandedKpi, { KpiType } from './MetricsExpandedKpi';
+import AdicionarPalavra from './vocab/AdicionarPalavra';
 import CatalogoDePalavras from './vocab/CatalogoDePalavras';
+import ExportarVocabulario from './vocab/ExportarVocabulario';
 
 // --- HELPERS ---
 
@@ -410,298 +412,346 @@ export default function Metrics({
     };
   }, []);
 
+  /* Os três botões do cabeçalho (protótipo: "+ Palavra", "Trazer do Anki", "Exportar"). */
+  const [adicionando, setAdicionando] = useState(false);
+  const [exportando, setExportando] = useState(false);
+  const [noAnki, setNoAnki] = useState(false);
+  /** Muda quando o deck muda por aqui — o catálogo (paginado no servidor) recarrega junto. */
+  const [versaoDoCatalogo, setVersaoDoCatalogo] = useState(0);
+
+  /* "Trazer do Anki" abre a tela do Anki que o Jogar já usava, no lugar desta — ela importa, ativa
+     e exporta; ao voltar, o deck e o catálogo recarregam. */
+  if (noAnki) {
+    return (
+      <BaralhoAnki
+        deck={vocabCards}
+        idioma={baseLang(langCfg.studying)}
+        idiomaNativo={baseLang(langCfg.mine)}
+        ageProfile={ageProfile}
+        onVoltar={() => setNoAnki(false)}
+        onImportou={async () => {
+          try {
+            setVocabCards(await fetchDeck());
+            setVersaoDoCatalogo((v) => v + 1);
+          } catch {
+            /* mantém o deck em tela */
+          }
+        }}
+      />
+    );
+  }
+
+  const titulo =
+    ageProfile === 'kids' ? (
+      <>
+        Jardim de Palavras &amp; Recompensas <Sprout className="inline" style={{ width: 28, height: 28 }} aria-hidden />
+      </>
+    ) : ageProfile === 'senior' ? (
+      <>
+        Seu Caderno de Palavras &amp; Frases <Eye className="inline" style={{ width: 28, height: 28 }} aria-hidden />
+      </>
+    ) : (
+      'Vocabulário'
+    );
+  const sub =
+    ageProfile === 'kids'
+      ? 'Suas palavras salvas prontas para regar! Revise suas cartas para ganhar Seeds e subir de nível.'
+      : ageProfile === 'senior'
+        ? 'Veja todas as palavras salvas das suas gravações com botão de pronúncia em áudio e explicações fáceis.'
+        : 'As palavras que você guardou, com revisão espaçada: cada acerto empurra a próxima revisão para mais longe.';
+
+  /* Abas — em Kids/Sênior as três de análise ficam atrás de "Mais". Continuam a UM clique; o que
+     muda é não abrirem três frentes de análise de uma vez para quem só quer ver as próprias
+     palavras. "Mais" NÃO é uma aba: não tem painel, revela as outras — por isso fica fora de
+     `Abas` (senão se anunciaria como aba selecionável e as setas parariam nele à toa). */
+  const mostrarMais = coreOnly(ageProfile) && !showAllTabs && mainTab === 'palavras';
+  const abas = (
+    <Abas
+      rotuloDoGrupo="Seções do vocabulário"
+      ativo={mainTab}
+      aoTrocar={(id) => setMainTab(id as typeof mainTab)}
+      itens={[
+        {
+          id: 'palavras',
+          rotulo: ageProfile === 'kids' ? 'Minhas cartas' : 'Minhas palavras',
+          icone: <BookOpen aria-hidden />,
+        },
+        ...(!mostrarMais
+          ? [
+              {
+                id: 'dashboard',
+                rotulo: copyDoPerfil('metricsTab.dashboard', ageProfile),
+                icone: <LayoutGrid aria-hidden />,
+              },
+              { id: 'lexical', rotulo: copyDoPerfil('metricsTab.lexical', ageProfile), icone: <Brain aria-hidden /> },
+              { id: 'fluency', rotulo: copyDoPerfil('metricsTab.fluency', ageProfile), icone: <Mic aria-hidden /> },
+            ]
+          : []),
+      ]}
+    />
+  );
+
+  const ladrilhoDeKpi = (
+    kpi: Exclude<KpiType, null>,
+    rotulo: string,
+    valor: React.ReactNode,
+    detalhe: React.ReactNode,
+    ariaLabel: string,
+    tom = '',
+  ) => (
+    <button
+      type="button"
+      className="cartao ladrilho clicavel"
+      style={{ textAlign: 'left' }}
+      onClick={() => setExpandedKpi(kpi)}
+      aria-label={ariaLabel}
+    >
+      <span className="label-mono">{rotulo}</span>
+      <span className={`v ${tom}`}>{valor}</span>
+      <small className="mut" style={{ display: 'block', marginTop: 4, fontSize: 12 }}>
+        {detalhe}
+      </small>
+    </button>
+  );
+
   return (
-    <div className="flex-1 flex flex-col lg:flex-row h-full min-h-0 bg-surface">
-      <div className="flex-1 min-w-0 flex flex-col h-full bg-surface overflow-y-auto relative custom-scrollbar">
+    <div className="flex-1 flex flex-col lg:flex-row h-full min-h-0">
+      <div className="flex-1 min-w-0 flex flex-col h-full min-h-0 relative">
         {/* KPI DEEP DIVE MODAL */}
         <MetricsExpandedKpi kpi={expandedKpi} onClose={() => setExpandedKpi(null)} metrics={metrics} />
+        {adicionando && (
+          <AdicionarPalavra
+            cartoes={vocabCards}
+            langCfg={langCfg}
+            aoFechar={() => setAdicionando(false)}
+            aoAdicionar={(criados) => {
+              setVocabCards((prev) => [...prev, ...criados]);
+              setVersaoDoCatalogo((v) => v + 1);
+            }}
+          />
+        )}
+        {exportando && (
+          <ExportarVocabulario
+            cartoes={vocabCards}
+            metrics={metrics}
+            idioma={baseLang(langCfg.studying)}
+            aoFechar={() => setExportando(false)}
+          />
+        )}
 
-        {/* Main Header */}
-        <EditablePanel
-          viewKey="metrics"
-          panelKey="header"
-          title="Cabeçalho Métricas"
-          canResizeWidth={false}
-          canResizeHeight={false}
-          defaultHeight={0}
-        >
-          <div className="px-6 md:px-10 pt-8 pb-4 bg-canvas shrink-0">
-            <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
-              <div>
-                <h1 className="font-display font-black text-2xl md:text-3xl text-ink tracking-tight mb-2 flex items-center gap-2">
-                  {ageProfile === 'kids' ? (
-                    <>
-                      <Sprout className="w-7 h-7 text-good inline" />
-                      <span>Jardim de Palavras &amp; Recompensas</span>
-                    </>
-                  ) : ageProfile === 'senior' ? (
-                    <>
-                      <Eye className="w-7 h-7 text-accent inline" />
-                      <span>Seu Caderno de Palavras &amp; Frases</span>
-                    </>
-                  ) : (
-                    /* "Analytics & Inteligência Lexical" era o nome do PAINEL, não o da tela: o
-                       item de menu diz "Vocabulário" e a pessoa chegava num título que não
-                       existe em lugar nenhum da navegação. A análise segue aqui, numa aba. */
-                    <span>Vocabulário</span>
-                  )}
-                </h1>
-                {ageProfile !== 'pro' && (
-                  <p className="text-xs md:text-sm text-ink-muted max-w-2xl">
-                    {ageProfile === 'kids' ? (
-                      <span className="flex items-center gap-1 flex-wrap">
-                        <span>Suas palavras salvas prontas para regar! Revise suas cartas para ganhar Seeds</span>
-                        <Sprout className="w-3.5 h-3.5 text-good inline" />
-                        <span>e subir de nível.</span>
-                      </span>
-                    ) : (
-                      'Veja todas as palavras salvas das suas gravações com botão de pronúncia em áudio e explicações fáceis.'
-                    )}
-                  </p>
-                )}
-              </div>
-              {/* Este botão existia SEM onClick — controle falso (achado da spec
-                progresso-de-idioma). Agora exporta de verdade: um .txt gerado dos dados reais
-                (palavras difíceis, tempo ativo × passivo, ritmo), pensado para sair do app. */}
-              <button
-                onClick={() => {
-                  if (metrics) {
-                    baixarRelatorio(metrics, vocabCards);
-                  }
-                }}
-                disabled={!metrics}
-                className="btn-outline disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <Download className="w-4 h-4" />{' '}
-                {ageProfile === 'kids'
-                  ? 'Baixar Palavras'
-                  : ageProfile === 'senior'
-                    ? 'Exportar Meu Caderno'
-                    : 'Exportar Relatório'}
-              </button>
-            </div>
-
-            {/* Abas — em Kids/Sênior as duas mais densas ficam atrás de "Mais". Elas continuam
-              existindo e a UM clique; o que muda é não abrirem três frentes de análise de uma vez
-              para quem só quer ver as próprias palavras. */}
-            {/* "Mais" NÃO é uma aba: ele não tem painel, ele revela as outras duas. Passá-lo por
-              `Abas` o faria anunciar-se como aba selecionável para quem usa leitor de tela, e as
-              setas do teclado parariam nele à toa. Fica ao lado, como o botão que sempre foi. */}
-            <div className="flex gap-2 border-b border-border-subtle mt-4">
-              <Abas
-                rotuloDoGrupo="Seções do vocabulário"
-                ativo={mainTab}
-                aoTrocar={(id) => setMainTab(id as typeof mainTab)}
-                className="border-b-0"
-                itens={[
-                  {
-                    id: 'palavras',
-                    rotulo: ageProfile === 'kids' ? 'Minhas cartas' : 'Minhas palavras',
-                    icone: <BookOpen className="w-4 h-4" />,
-                  },
-                  /* As três abas de ANÁLISE ficam atrás de "Mais" em Kids/Sênior — e agora também
-                     o painel principal, que antes era a aba de entrada. Continuam a um clique. */
-                  ...(!coreOnly(ageProfile) || showAllTabs || mainTab !== 'palavras'
-                    ? [
-                        {
-                          id: 'dashboard',
-                          rotulo: copyDoPerfil('metricsTab.dashboard', ageProfile),
-                          icone: <LayoutGrid className="w-4 h-4" />,
-                        },
-                        {
-                          id: 'lexical',
-                          rotulo: copyDoPerfil('metricsTab.lexical', ageProfile),
-                          icone: <Brain className="w-4 h-4" />,
-                        },
-                        {
-                          id: 'fluency',
-                          rotulo: copyDoPerfil('metricsTab.fluency', ageProfile),
-                          icone: <Mic className="w-4 h-4" />,
-                        },
-                      ]
-                    : []),
-                ]}
-              />
-              {coreOnly(ageProfile) && !showAllTabs && mainTab === 'palavras' && (
-                <button
-                  onClick={() => setShowAllTabs(true)}
-                  className="pb-3 px-4 text-[13px] font-bold border-b-2 border-transparent text-ink-muted hover:text-ink transition-colors flex items-center gap-2 cursor-pointer"
-                >
-                  <MoreHorizontal className="w-4 h-4" /> Mais
+        <Tela largura="larga">
+          <CabecalhoDeTela
+            sobrancelha="Seu caderno"
+            icone={BookOpen}
+            titulo={titulo}
+            sub={sub}
+            acoes={
+              <>
+                <button type="button" className="btn btn-outline" onClick={() => setAdicionando(true)}>
+                  <Plus aria-hidden /> Palavra
                 </button>
-              )}
+                <button type="button" className="btn btn-outline" onClick={() => setNoAnki(true)}>
+                  <Upload aria-hidden /> Trazer do Anki
+                </button>
+                {/* O antigo "Exportar relatório" (o .txt de progresso) é um dos formatos do diálogo. */}
+                <button type="button" className="btn btn-solid" onClick={() => setExportando(true)}>
+                  <Download aria-hidden />{' '}
+                  {ageProfile === 'kids'
+                    ? 'Baixar Palavras'
+                    : ageProfile === 'senior'
+                      ? 'Exportar Meu Caderno'
+                      : 'Exportar'}
+                </button>
+              </>
+            }
+            abas={
+              mostrarMais ? (
+                <div className="linha" style={{ gap: 0, alignItems: 'stretch' }}>
+                  <div style={{ flex: 1, minWidth: 0 }}>{abas}</div>
+                  <button type="button" className="aba" onClick={() => setShowAllTabs(true)}>
+                    <MoreHorizontal aria-hidden /> Mais
+                  </button>
+                </div>
+              ) : (
+                abas
+              )
+            }
+          />
+
+          {/* --- MINHAS PALAVRAS (aba de entrada) ---
+              O ACERVO, na tela que leva o nome dele: o que revisar, quantas em cada fase, e a
+              lista inteira. A análise é o que fica atrás de uma aba, não o contrário. */}
+          <PainelDeAba id="palavras" ativo={mainTab}>
+            {/* O CONVITE DA REVISÃO — só com o que revisar. Sem vencidas, o estado vazio do
+                protótipo diz que está tudo em dia, em vez de um "0 prontas". */}
+            {metrics && metrics.dueToday > 0 ? (
+              <section
+                className="cartao faixa-rev"
+                style={{
+                  borderColor: 'color-mix(in srgb,var(--accent) 45%,var(--border-subtle))',
+                  borderTopWidth: 'var(--bw-card)',
+                }}
+              >
+                <span className="contador">{metrics.dueToday}</span>
+                <div style={{ flex: 1, minWidth: 180 }}>
+                  <h2 style={{ fontSize: 17, fontWeight: 800 }}>
+                    {ageProfile === 'kids' ? 'Cartas prontas para regar' : 'Prontas para revisar'}
+                  </h2>
+                  <p className="mut" style={{ fontSize: 13 }}>
+                    {rotuloDeDuracao(estimativaDeMinutos(metrics.dueToday, temposMedidos))}
+                    {' · '}
+                    {numero(metrics.newCards)} {metrics.newCards === 1 ? 'nova' : 'novas'}
+                    {' · '}
+                    {numero(metrics.deckSize)} no total
+                  </p>
+                </div>
+                <button type="button" className="btn btn-solid" onClick={() => onChangeView?.('study')}>
+                  <Target aria-hidden /> {ageProfile === 'kids' ? 'Regar agora' : 'Revisar agora'}
+                </button>
+              </section>
+            ) : metrics && metrics.deckSize > 0 ? (
+              <section className="cartao">
+                <div className="vazio">
+                  <IconeEmBloco icone={PartyPopper} />
+                  <h3>Tudo revisado por hoje</h3>
+                  <p>Nada vence agora. Que tal um jogo com as mesmas palavras?</p>
+                  <button type="button" className="btn btn-outline" onClick={() => onChangeView?.('play')}>
+                    Abrir Jogar
+                  </button>
+                </div>
+              </section>
+            ) : null}
+
+            {/* AS QUATRO FASES, do `fsrsState` real de cada cartão (ver `fasesDoBaralho`). */}
+            <div className="ladrilhos" style={{ marginTop: 20 }}>
+              {[
+                { rotulo: 'Guardadas', valor: fasesDoBaralho.total, tom: '' },
+                { rotulo: 'Novas', valor: fasesDoBaralho.novas, tom: 'acc' },
+                { rotulo: 'Aprendendo', valor: fasesDoBaralho.aprendendo, tom: 'warn' },
+                { rotulo: 'Em revisão', valor: fasesDoBaralho.revisao, tom: 'good' },
+              ].map((f) => (
+                <div key={f.rotulo} className="cartao ladrilho">
+                  <span className="label-mono">{f.rotulo}</span>
+                  <span className={`v ${f.tom}`}>{numero(f.valor)}</span>
+                </div>
+              ))}
             </div>
-          </div>
-        </EditablePanel>
 
-        {/* Main Content Area */}
-        <div className="flex-1 p-6 md:p-10 bg-surface min-h-full">
-          {/* --- DASHBOARD TAB --- */}
-          <PainelDeAba id="dashboard" ativo={mainTab} className="animate-in fade-in space-y-8 max-w-7xl mx-auto">
-            {/* Top Level KPIs */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              <div
-                className="card-panel p-6 relative overflow-hidden cursor-pointer hover:shadow-md transition-all group"
-                onClick={() => setExpandedKpi('volume')}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' || e.key === ' ') {
-                    e.preventDefault();
-                    setExpandedKpi('volume');
-                  }
-                }}
-                role="button"
-                tabIndex={0}
-                aria-label="Abrir o detalhamento do volume lexical"
-              >
-                <div className="flex items-center gap-2 mb-3 text-ink-muted group-hover:text-ink transition-colors">
-                  <BookOpen className="w-4 h-4 text-accent" />
-                  <span className="text-[11px] font-bold uppercase tracking-wider font-mono">
-                    {copyDoPerfil('metric.deckSize', ageProfile)}
-                  </span>
-                </div>
-                <div className="font-display font-black text-4xl tracking-tight text-ink mb-1">
-                  {numero(metrics?.deckSize ?? 0)}
-                </div>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-1 text-[12px] text-ink-muted font-bold">
-                    {metrics?.newCards ?? 0} novos • {metrics?.dueToday ?? 0} p/ revisar
-                  </div>
-                  <ArrowUpRight className="w-4 h-4 text-ink-muted opacity-0 group-hover:opacity-100 transition-opacity" />
-                </div>
-              </div>
+            <CatalogoDePalavras
+              key={versaoDoCatalogo}
+              cartoes={vocabCards}
+              aoAbrirPalavra={(id) => {
+                const c = vocabCards.find((x) => x.id === id);
+                if (c) void examineWord(c.word, c.sentence);
+              }}
+              rodape={
+                semVerso > 0 && (
+                  <p className="mut" style={{ fontSize: 12.5, marginTop: 12, color: 'var(--warn-ink)' }}>
+                    <b>
+                      {numero(semVerso)} {semVerso === 1 ? 'palavra está' : 'palavras estão'} sem tradução.
+                    </b>{' '}
+                    Isso acontece quando o idioma que você aprende e o seu idioma são o mesmo — não há o que traduzir, e
+                    o cartão fica sem verso.{' '}
+                    <button type="button" className="link" onClick={() => onChangeView?.('settings')}>
+                      Conferir os dois idiomas
+                    </button>
+                  </p>
+                )
+              }
+            />
+          </PainelDeAba>
 
-              <div
-                className="card-panel p-6 relative overflow-hidden cursor-pointer hover:shadow-md transition-all group"
-                onClick={() => setExpandedKpi('retention')}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' || e.key === ' ') {
-                    e.preventDefault();
-                    setExpandedKpi('retention');
-                  }
-                }}
-                role="button"
-                tabIndex={0}
-                aria-label="Abrir o detalhamento da taxa de retenção"
-              >
-                <div className="flex items-center gap-2 mb-3 text-ink-muted group-hover:text-ink transition-colors">
-                  <Activity className="w-4 h-4 text-good" />
-                  <span className="text-[11px] font-bold uppercase tracking-wider font-mono">
-                    {copyDoPerfil('metric.retention', ageProfile)}
-                  </span>
-                </div>
-                <div className="font-display font-black text-4xl tracking-tight text-ink mb-1">
-                  {metrics && metrics.avgRetentionConfidence > 0 ? Math.round(metrics.avgRetention * 100) + '%' : '-'}
-                </div>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-1 text-[12px] text-ink-muted font-bold">
-                    {metrics && metrics.avgRetentionConfidence > 0 ? (
-                      <Confianca valor={metrics.avgRetentionConfidence} estimativa />
-                    ) : (
-                      'sem revisões ainda'
-                    )}
-                  </div>
-                  <ArrowUpRight className="w-4 h-4 text-ink-muted opacity-0 group-hover:opacity-100 transition-opacity" />
-                </div>
-              </div>
-
-              <div
-                className="card-panel p-6 relative overflow-hidden cursor-pointer hover:shadow-md transition-all group"
-                onClick={() => setExpandedKpi('time')}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' || e.key === ' ') {
-                    e.preventDefault();
-                    setExpandedKpi('time');
-                  }
-                }}
-                role="button"
-                tabIndex={0}
-                aria-label="Abrir o detalhamento das revisões feitas"
-              >
-                <div className="flex items-center gap-2 mb-3 text-ink-muted group-hover:text-ink transition-colors">
-                  <Clock className="w-4 h-4 text-rare" />
-                  <span className="text-[11px] font-bold uppercase tracking-wider font-mono">
-                    {copyDoPerfil('metric.reviews', ageProfile)}
-                  </span>
-                </div>
-                <div className="font-display font-black text-4xl tracking-tight text-ink mb-1">
-                  {metrics?.reviews ?? 0}
-                </div>
-                <div className="flex items-center justify-between mt-1">
-                  <div className="text-[12px] text-ink-muted">
-                    {metrics?.sessions ?? 0} sessões • {metrics?.streakDays ?? 0} dias seguidos
-                  </div>
-                  <ArrowUpRight className="w-4 h-4 text-ink-muted opacity-0 group-hover:opacity-100 transition-opacity" />
-                </div>
-              </div>
-
-              {/* TEMPO COM O IDIOMA — `listeningMs` e `speakingMs` eram computados pelo servidor e
-                  não tinham lugar em tela nenhuma (só no .txt exportado). É o número que cresce
-                  desde o primeiro dia, mesmo antes da primeira revisão. */}
-              <div className="card-panel p-6 relative overflow-hidden">
-                <div className="flex items-center gap-2 mb-3 text-ink-muted">
-                  <Headphones className="w-4 h-4 text-rare" />
-                  <span className="text-[11px] font-bold uppercase tracking-wider font-mono">Tempo com o idioma</span>
-                </div>
-                <div className="font-display font-black text-4xl tracking-tight text-ink mb-1">
-                  {minutosDoIdioma}
-                  <span className="text-2xl"> min</span>
-                </div>
-                <div className="text-[12px] text-ink-muted font-bold">
+          {/* --- VISÃO GERAL --- os números reais do acervo. O gráfico "revisadas por dia" do
+              protótipo fica de fora: o servidor não guarda a série diária, só a semanal. */}
+          <PainelDeAba id="dashboard" ativo={mainTab}>
+            <div className="ladrilhos">
+              {ladrilhoDeKpi(
+                'volume',
+                copyDoPerfil('metric.deckSize', ageProfile),
+                numero(metrics?.deckSize ?? 0),
+                <>
+                  {metrics?.newCards ?? 0} novos • {metrics?.dueToday ?? 0} p/ revisar
+                </>,
+                'Abrir o detalhamento do volume lexical',
+              )}
+              {ladrilhoDeKpi(
+                'retention',
+                copyDoPerfil('metric.retention', ageProfile),
+                metrics && metrics.avgRetentionConfidence > 0 ? Math.round(metrics.avgRetention * 100) + '%' : '—',
+                metrics && metrics.avgRetentionConfidence > 0 ? (
+                  <Confianca valor={metrics.avgRetentionConfidence} estimativa />
+                ) : (
+                  'sem revisões ainda'
+                ),
+                'Abrir o detalhamento da taxa de retenção',
+                'good',
+              )}
+              {ladrilhoDeKpi(
+                'time',
+                copyDoPerfil('metric.reviews', ageProfile),
+                metrics?.reviews ?? 0,
+                <>
+                  {metrics?.sessions ?? 0} sessões • {metrics?.streakDays ?? 0} dias seguidos
+                </>,
+                'Abrir o detalhamento das revisões feitas',
+              )}
+              {/* TEMPO COM O IDIOMA — `listeningMs` e `speakingMs` do servidor. É o número que
+                  cresce desde o primeiro dia, mesmo antes da primeira revisão. */}
+              <div className="cartao ladrilho">
+                <span className="label-mono">Tempo com o idioma</span>
+                <span className="v warn">{minutosDoIdioma} min</span>
+                <small className="mut" style={{ display: 'block', marginTop: 4, fontSize: 12 }}>
                   {numero(metrics?.wordsCaptured ?? 0)} palavras ouvidas
                   {(metrics?.speakingMs ?? 0) > 0 && ` • ${Math.round((metrics!.speakingMs ?? 0) / 60000)} min falando`}
-                </div>
+                </small>
               </div>
-
-              {/* C1 — "NÍVEL PREDOMINANTE" SAIU DA FAIXA DE HERÓI.
-                  Exibia "N/D" com o selo "estimativa · confiança 12%" ocupando um quarto da faixa
-                  mais nobre da tela. A honestidade estava impecável, o produto sabe que não sabe,
-                  e diz, mas a POSIÇÃO estava errada: 88% do acervo está fora da wordlist CEFR, ou
-                  seja, não há base para um nível único, e um dado que não existe não disputa
-                  espaço com os que existem. Ele continua na tela, logo abaixo, com o motivo.
-                  Mesmo tratamento dado ao "Tom Vocal" na aba da Sessão. */}
             </div>
 
+            {/* C1 — o nível predominante não disputa a faixa de herói: sem base, ele aparece aqui,
+                com o motivo. */}
             {niveisSemBase && (
               <SemDado
                 compacto
-                className="mb-6"
+                className="mt-5"
                 motivo={`Nível predominante: só ${niveisComCefr} de ${metrics?.deckSize ?? 0} palavras têm nível CEFR conhecido, o resto está fora da wordlist, e nível fora dela não é estimado. Sem essa base, um nível único do acervo não significaria nada.`}
               />
             )}
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              {/* Evolução do vocabulário — componente ÚNICO (era renderizado por três
-                  implementações diferentes, que divergiram em margem, eixo, formato de data e
-                  rodapé). A transformação da série mora dentro do componente. */}
-              <div className="lg:col-span-2">
-                <EvolucaoSemanal serie={metrics?.vocabByWeek} titulo="Evolução do Vocabulário" altura={280} />
-              </div>
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit,minmax(min(100%,340px),1fr))',
+                gap: 20,
+                marginTop: 20,
+              }}
+            >
+              <EvolucaoSemanal serie={metrics?.vocabByWeek} titulo="Evolução do Vocabulário" altura={280} />
 
-              {/* Attention Required — retenção REAL por cartão (FSRS puro, `retrievability` de `@core`) */}
-              <div className="card-panel p-6 h-[380px] flex flex-col">
-                <div className="flex justify-between items-center mb-4 shrink-0">
-                  <h3 className="font-display font-extrabold text-[16px] text-ink flex items-center gap-2">
-                    <AlertCircle className="w-5 h-5 text-warn" /> Requer Atenção
-                  </h3>
-                </div>
+              {/* Requer atenção — retenção REAL por cartão (FSRS puro, `retrievability` de `@core`). */}
+              <section className="cartao p5" style={{ display: 'flex', flexDirection: 'column', minHeight: 380 }}>
+                <TituloDeSecao
+                  icone={AlertCircle}
+                  titulo="Requer atenção"
+                  desc={
+                    lowRetentionAnalysis.totalCalculavel > 0 ? (
+                      <>
+                        Termos com menor retenção prevista agora (FSRS). Calculado sobre{' '}
+                        <b>{lowRetentionAnalysis.totalCalculavel}</b> de <b>{lowRetentionAnalysis.totalDeck}</b>{' '}
+                        cartões.
+                      </>
+                    ) : undefined
+                  }
+                />
                 {lowRetentionAnalysis.totalCalculavel > 0 ? (
                   <>
-                    {/* F8 — A BASE SOBE PARA JUNTO DO TÍTULO.
-                        Ela existia, mas como nota de rodapé em cinza de 10,5px no fim do card,
-                        e, no inventário, estava parcialmente COBERTA pelo balão do iChat. O
-                        usuário lia quatro termos "que precisam de atenção" sem saber que 92% do
-                        acervo não entrou na conta. A ressalva não mudou de texto; mudou de lugar. */}
-                    <p className="text-[12px] text-ink-muted mb-1 shrink-0">
-                      Termos com menor retenção prevista agora (FSRS).
-                    </p>
-                    <p className="text-[11.5px] text-ink-faint mb-3 shrink-0">
-                      Calculado sobre <strong className="text-ink-muted">{lowRetentionAnalysis.totalCalculavel}</strong>{' '}
-                      de <strong className="text-ink-muted">{lowRetentionAnalysis.totalDeck}</strong> cartões.
-                    </p>
-                    <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar space-y-1.5 pe-1">
+                    <div
+                      className="flex-1 min-h-0 overflow-y-auto custom-scrollbar space-y-1.5 pe-1"
+                      style={{ maxHeight: 260 }}
+                    >
                       {lowRetentionAnalysis.piores.map(({ card, retencaoPct }) => (
                         <button
                           key={card.id}
+                          type="button"
                           onClick={() => void examineWord(card.word, card.sentence)}
                           className="w-full text-start p-2.5 rounded-lg border border-border-subtle bg-surface hover:bg-surface-hover transition-colors cursor-pointer flex items-center justify-between gap-3"
                           title="Analisar termo no Analista de Vocabulário"
@@ -712,13 +762,7 @@ export default function Metrics({
                               <span className="block text-[11px] text-ink-muted truncate">{card.translation}</span>
                             )}
                           </span>
-
-                          {/* A BARRA, e por que ela vale a pena ao lado de um número já escrito.
-                              "18%" e "34%" são dois números que exigem ser comparados de cabeça,
-                              linha a linha. A barra torna a ordem, e a distância entre a pior e a
-                              menos pior, legível de relance, que é para isso que a lista existe.
-                              O número fica: é ele que permite conferir, e a barra sozinha não diz
-                              quanto. */}
+                          {/* A barra torna a ordem legível de relance; o número fica para conferir. */}
                           <span className="shrink-0 flex items-center gap-2.5">
                             <Barra
                               pct={retencaoPct}
@@ -727,16 +771,12 @@ export default function Metrics({
                               rotuloAcessivel={`Chance de lembrar ${card.word} agora`}
                               className="w-16 sm:w-24"
                             />
-                            {/* C9 — `-ink` e não a cor cheia: `--error`/`--warn` são de
-                                PREENCHIMENTO e como texto sobre o card davam 2,54:1. */}
+                            {/* C9 — `-ink` e não a cor cheia: `--error`/`--warn` são de preenchimento. */}
                             <span
                               className={`text-[12px] font-bold font-mono w-9 text-end ${retencaoPct < 50 ? 'text-error-ink' : 'text-warn-ink'}`}
                             >
                               {retencaoPct}%
                             </span>
-                            {/* "há 21 dias" responde a pergunta seguinte — por que esta caiu tanto
-                               , e vem de `lastReview`, que o banco sempre gravou. Só aparece
-                                quando existe: um traço em branco não informa nada. */}
                             <span className="hidden md:block text-[11px] text-ink-faint font-mono w-20 text-end">
                               {desdeAUltimaRevisao(card.lastReview)}
                             </span>
@@ -744,18 +784,19 @@ export default function Metrics({
                         </button>
                       ))}
                     </div>
-                    {/* F8 — A PONTE QUE FALTAVA.
-                        Esta tela identificava os termos em risco e não oferecia caminho nenhum
-                        para agir sobre eles: o único botão da página era "Exportar Relatório".
-                        Informar sem conduzir é o que fazia dela um beco, não estava escondida
-                        (1 clique do menu), estava sem saída. */}
-                    <button onClick={() => onChangeView?.('study')} className="btn-solid w-full mt-3 shrink-0">
-                      <Target className="w-4 h-4" aria-hidden />
+                    {/* F8 — a ponte: identificar os termos em risco e oferecer o caminho para agir. */}
+                    <button
+                      type="button"
+                      onClick={() => onChangeView?.('study')}
+                      className="btn btn-solid bloco"
+                      style={{ marginTop: 12 }}
+                    >
+                      <Target aria-hidden />
                       Revisar {lowRetentionAnalysis.piores.length} agora
                     </button>
 
                     {(lowRetentionAnalysis.semRevisao > 0 || lowRetentionAnalysis.semEstabilidade > 0) && (
-                      <p className="text-[10.5px] text-ink-muted mt-3 pt-3 border-t border-border-subtle shrink-0">
+                      <p className="mut" style={{ fontSize: 11.5, marginTop: 12 }}>
                         {lowRetentionAnalysis.semRevisao + lowRetentionAnalysis.semEstabilidade} de{' '}
                         {lowRetentionAnalysis.totalDeck} cartões ficaram FORA do cálculo, sem revisão FSRS, retenção não
                         existe: {lowRetentionAnalysis.semRevisao} nunca revisados,{' '}
@@ -779,27 +820,24 @@ export default function Metrics({
                     />
                   </div>
                 )}
-              </div>
+              </section>
             </div>
 
-            {/* SUAS PALAVRAS DIFÍCEIS (spec progresso-de-idioma): o schema gravava lapses,
-                dificuldade FSRS e o grade de cada revisão — e nada mostrava. O ranking vem
-                pronto do servidor (>= 2 revisões por cartão; base fraca fica de fora e o vazio
-                diz isso). Diferente do "Requer Atenção" (retenção decaindo AGORA), este é o
-                histórico do que o usuário mais ERRA. */}
+            {/* SUAS PALAVRAS DIFÍCEIS: o histórico do que o usuário mais ERRA (>= 2 revisões por
+                cartão; base fraca fica de fora). Diferente de "Requer atenção" (retenção caindo
+                AGORA). */}
             {(metrics?.palavrasDificeis?.length ?? 0) > 0 && (
-              <div className="card-panel p-6">
-                <div className="flex justify-between items-center mb-1 flex-wrap gap-2">
-                  <h3 className="font-display font-extrabold text-[16px] text-ink flex items-center gap-2">
-                    <Target className="w-5 h-5 text-error-ink" /> Suas palavras difíceis
-                  </h3>
-                  <button onClick={() => onChangeView?.('study')} className="btn-outline">
-                    Praticar estas agora
-                  </button>
-                </div>
-                <p className="text-[12px] text-ink-muted mb-4">
-                  As que você mais esquece e erra, pelo histórico real de revisões (só entram cartões com 2+ revisões).
-                </p>
+              <section className="cartao p5 secao" style={{ marginTop: 20 }}>
+                <TituloDeSecao
+                  icone={Target}
+                  titulo="Suas palavras difíceis"
+                  desc="As que você mais esquece e erra, pelo histórico real de revisões (só entram cartões com 2+ revisões)."
+                  direita={
+                    <button type="button" onClick={() => onChangeView?.('study')} className="btn btn-outline peq">
+                      Praticar estas agora
+                    </button>
+                  }
+                />
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
                   {metrics!.palavrasDificeis!.map((p) => (
                     <div
@@ -814,120 +852,27 @@ export default function Metrics({
                     </div>
                   ))}
                 </div>
-              </div>
-            )}
-          </PainelDeAba>
-
-          {/* --- MINHAS PALAVRAS (aba de entrada) ---
-              O ACERVO, na tela que leva o nome dele (spec entrega-honesta), agora como PRIMEIRA
-              coisa: o que revisar, quantas em cada fase, e a lista inteira. A análise é o que
-              fica atrás de uma aba, não o contrário. */}
-          <PainelDeAba id="palavras" ativo={mainTab} className="animate-in fade-in space-y-6 max-w-7xl mx-auto">
-            {/* O CONVITE DA REVISÃO — só existe quando há o que revisar. Sem vencidas ele some
-                inteiro, em vez de virar um "0 prontas", que ocuparia o lugar mais nobre da tela
-                para não dizer nada (mesma regra do cartão do Início). */}
-            {metrics && metrics.dueToday > 0 && (
-              <section className="card-panel bg-surface border-accent/40 p-5 md:p-6 flex flex-col sm:flex-row sm:items-center gap-5">
-                <div
-                  className="w-16 h-16 rounded-full bg-accent-soft flex items-center justify-center shrink-0 mx-auto sm:mx-0"
-                  aria-hidden
-                >
-                  <span className="font-display font-black text-2xl text-accent-ink leading-none tabular-nums">
-                    {metrics.dueToday}
-                  </span>
-                </div>
-                <div className="min-w-0 flex-1 text-center sm:text-start">
-                  <h2 className="font-display font-black text-lg md:text-xl text-ink tracking-tight">
-                    {ageProfile === 'kids' ? 'Cartas prontas para regar' : 'Prontas para revisar'}
-                  </h2>
-                  <p className="text-[13px] text-ink-muted mt-1">
-                    {rotuloDeDuracao(estimativaDeMinutos(metrics.dueToday, temposMedidos))}
-                    {' · '}
-                    {numero(metrics.newCards)} {metrics.newCards === 1 ? 'nova' : 'novas'}
-                    {' · '}
-                    {numero(metrics.deckSize)} no total
-                  </p>
-                </div>
-                <button onClick={() => onChangeView?.('study')} className="btn-solid shrink-0 py-3 px-6">
-                  <Target className="w-4 h-4" aria-hidden />
-                  {ageProfile === 'kids' ? 'Regar agora' : 'Revisar agora'}
-                </button>
               </section>
             )}
-
-            {/* AS QUATRO FASES, do `fsrsState` real de cada cartão (ver `fasesDoBaralho`). */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-              {[
-                { rotulo: 'Guardadas', valor: fasesDoBaralho.total, tom: 'text-ink' },
-                { rotulo: 'Novas', valor: fasesDoBaralho.novas, tom: 'text-accent-ink' },
-                { rotulo: 'Aprendendo', valor: fasesDoBaralho.aprendendo, tom: 'text-warn-ink' },
-                { rotulo: 'Em revisão', valor: fasesDoBaralho.revisao, tom: 'text-good-ink' },
-              ].map((f) => (
-                <div key={f.rotulo} className="card-panel bg-surface p-4">
-                  <span className="label-mono block mb-1">{f.rotulo}</span>
-                  <span className={`font-display font-black text-2xl tabular-nums ${f.tom}`}>{numero(f.valor)}</span>
-                </div>
-              ))}
-            </div>
-
-            <div className="card-panel p-6 flex flex-col">
-              <div className="flex justify-between items-center mb-1 flex-wrap gap-2">
-                <h3 className="font-display font-extrabold text-[16px] text-ink flex items-center gap-2">
-                  <BookOpen className="w-5 h-5 text-accent" /> Todas as palavras
-                </h3>
-                {/* O TAMANHO DO ACERVO ao lado do título. Saiu sem querer quando a lista mudou de
-                    lugar e o `justify-between` ficou com um filho só — e é o número que responde
-                    "quantas eu tenho", a pergunta que traz a pessoa a esta tela. Os ladrilhos
-                    acima contam por FASE (novas, aprendendo, em revisão); nenhum deles diz o
-                    total. */}
-                <span className="text-[12px] text-ink-muted font-bold tabular-nums">
-                  {numero(metrics?.deckSize ?? 0)} no caderno
-                </span>
-              </div>
-              <p className="text-[12px] text-ink-muted mb-4">
-                Busque, filtre por nível e origem, ordene. Clique num termo para ouvir a pronúncia e ver a explicação.
-              </p>
-              <CatalogoDePalavras
-                aoAbrirPalavra={(id) => {
-                  const c = vocabCards.find((x) => x.id === id);
-                  if (c) void examineWord(c.word, c.sentence);
-                }}
-              />
-              {semVerso > 0 && (
-                <p className="text-[12px] text-warn-ink mt-3 leading-relaxed">
-                  <b>
-                    {numero(semVerso)} {semVerso === 1 ? 'palavra está' : 'palavras estão'} sem tradução.
-                  </b>{' '}
-                  Isso acontece quando o idioma que você aprende e o seu idioma são o mesmo — não há o que traduzir, e o
-                  cartão fica sem verso.{' '}
-                  <button
-                    onClick={() => onChangeView?.('settings')}
-                    className="underline font-bold hover:text-ink cursor-pointer"
-                  >
-                    Conferir os dois idiomas
-                  </button>
-                </p>
-              )}
-            </div>
           </PainelDeAba>
 
           {/* --- LEXICAL INTELLIGENCE TAB --- */}
-          <PainelDeAba id="lexical" ativo={mainTab} className="animate-in fade-in space-y-6 max-w-7xl mx-auto">
+          <PainelDeAba id="lexical" ativo={mainTab} className="space-y-6">
             {/* Resumo lexical real */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <div className="card-panel p-6">
+              <div className="cartao p5">
                 <div className="text-[11px] font-bold uppercase tracking-wider font-mono text-ink-muted mb-2">
                   Palavras Distintas
                 </div>
                 <div className="font-display font-black text-3xl text-ink">{numero(metrics?.uniqueWords ?? 0)}</div>
               </div>
-              <div className="card-panel p-6">
+              <div className="cartao p5">
                 <div className="text-[11px] font-bold uppercase tracking-wider font-mono text-ink-muted mb-2">
                   Cartões no Deck
                 </div>
                 <div className="font-display font-black text-3xl text-ink">{numero(metrics?.deckSize ?? 0)}</div>
               </div>
-              <div className="card-panel p-6">
+              <div className="cartao p5">
                 <div className="text-[11px] font-bold uppercase tracking-wider font-mono text-ink-muted mb-2">
                   Palavras Capturadas
                 </div>
@@ -937,7 +882,7 @@ export default function Metrics({
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {/* Level Distribution — ESTIMATIVA */}
-              <div className="card-panel p-6">
+              <div className="cartao p5">
                 <div className="flex items-center justify-between mb-1 flex-wrap gap-2">
                   <h3 className="font-display font-extrabold text-[16px] text-ink flex items-center gap-2">
                     <PieChartIcon className="w-5 h-5 text-rare" /> Distribuição por Nível (CEFR)
@@ -1007,10 +952,10 @@ export default function Metrics({
           </PainelDeAba>
 
           {/* --- FLUENCY TAB --- */}
-          <PainelDeAba id="fluency" ativo={mainTab} className="animate-in fade-in space-y-6 max-w-7xl mx-auto">
+          <PainelDeAba id="fluency" ativo={mainTab} className="space-y-6">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {/* Acoustic competences radar — requer IA */}
-              <div className="card-panel p-6 flex flex-col h-[400px]">
+              <div className="cartao p5 flex flex-col h-[400px]">
                 <h3 className="font-display font-extrabold text-[16px] text-ink mb-2">
                   Radar de Competências Acústicas
                 </h3>
@@ -1029,7 +974,7 @@ export default function Metrics({
 
               <div className="space-y-6">
                 {/* Speech Pace (WPM) — dado real */}
-                <div className="card-panel p-6">
+                <div className="cartao p5">
                   <h3 className="font-display font-extrabold text-[16px] text-ink flex items-center gap-2 mb-4">
                     <Activity className="w-5 h-5 text-accent" /> Ritmo de Fala (WPM)
                   </h3>
@@ -1071,7 +1016,7 @@ export default function Metrics({
                 </div>
 
                 {/* Speaking Time — dado real */}
-                <div className="card-panel p-6">
+                <div className="cartao p5">
                   <h3 className="font-display font-extrabold text-[16px] text-ink flex items-center gap-2 mb-4">
                     <Clock className="w-5 h-5 text-rare" /> Tempo Total de Fala
                   </h3>
@@ -1097,7 +1042,7 @@ export default function Metrics({
               passiva precisa do padrao "be + participio". O que nao se aplica aparece como "sem
               regua para <idioma>" — e nao como zero, que era o que a tela mostrava antes.
             */}
-            <div className="card-panel p-6 space-y-6">
+            <div className="cartao p5 space-y-6">
               <div>
                 <h3 className="font-display font-extrabold text-[16px] text-ink flex items-center gap-2 mb-1">
                   <BarChart2 className="w-5 h-5 text-accent" /> Complexidade Gramatical
@@ -1226,7 +1171,7 @@ export default function Metrics({
               </div>
             </div>
           </PainelDeAba>
-        </div>
+        </Tela>
       </div>
 
       {/* Analista de Vocabulário — coluna à direita; só monta quando há palavra selecionada. */}

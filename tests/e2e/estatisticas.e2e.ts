@@ -35,9 +35,9 @@ test.describe('Estatisticas do vocabulario', () => {
 
     const kpi = page.getByRole('button', { name: 'Abrir o detalhamento do volume lexical' })
     await expect(kpi).toBeVisible({ timeout: 15_000 })
-    /* O numero grande do KPI e o elemento `text-4xl`; o texto do cartao inteiro emenda o rotulo
-       e o "N novos • M p/ revisar" sem espaco ("Palavras guardadas1515 novos"). */
-    const grande = kpi.locator('.text-4xl').first()
+    /* O numero grande do KPI e o `.v` do ladrilho (marcacao do prototipo); o texto do cartao
+       inteiro emenda o rotulo e o "N novos • M p/ revisar" sem espaco. */
+    const grande = kpi.locator('.v').first()
     await expect(grande).toContainText(/\d/)
     const texto = (await grande.textContent()) ?? ''
     const numeroGrande = Number(texto.replace(/\./g, '').replace(/\D/g, ''))
@@ -48,9 +48,11 @@ test.describe('Estatisticas do vocabulario', () => {
        teste volta para la. As duas contagens continuam vindo de caminhos diferentes, que e o
        ponto do arquivo; o que mudou foi so em qual aba cada uma aparece. */
     await clicarRobusto(page, page.getByRole('tab', { name: /Minhas palavras|Minhas cartas/ }))
-    const linha = page.getByText(/mostrando \d+ de \d+/)
+    /* "N de M no caderno", ao lado do titulo "Todas as palavras" (prototipo). Sem filtro, N e o
+       total que o servidor achou para a pagina — e e ele que tem de bater com o acervo. */
+    const linha = page.getByText(/^\d+ de \d+ no caderno$/)
     await expect(linha).toBeVisible({ timeout: 15_000 })
-    const total = Number(((await linha.textContent()) ?? '').match(/de (\d+)/)?.[1])
+    const total = Number(((await linha.textContent()) ?? '').match(/^(\d+) de/)?.[1])
     expect(total, 'o total do catalogo deveria ser o do acervo').toBe(cartoes.length)
   })
 })

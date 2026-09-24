@@ -3,13 +3,13 @@ import React, { useEffect, useMemo, useState } from 'react';
 
 import { CRIADOR, preenchido } from '../../lib/criador';
 import GuidePanel from '../GuidePanel';
-import { CabecalhoDeTela, IconeEmBloco, Tela, TituloDeSecao } from '../ui';
+import { CabecalhoDeTela, Dialogo, IconeEmBloco, Tela, TituloDeSecao } from '../ui';
 
 /**
  * AJUDA E SUPORTE — a tela do protótipo aprovado (`T.ajuda`).
  *
  * Só o que existe de verdade: os artigos abrem o guia rápido do app; os atalhos são os que o app
- * tem (Ctrl+K, Ctrl+B, Esc); o contato usa os canais preenchidos em `lib/criador` — o app não tem
+ * tem (Ctrl+K, Ctrl+B, Esc e os da revisão), e "Ver todos" abre o diálogo `dialogoAtalhos()`; o contato usa os canais preenchidos em `lib/criador` — o app não tem
  * servidor de mensagens, então não há formulário fingindo enviar; e o status vem de `/api/health`.
  */
 
@@ -19,16 +19,37 @@ const ARTIGOS = [
   { Icone: Cpu, titulo: 'IA no aparelho ou na nuvem', desc: 'Diferenças de qualidade, privacidade e custo.' },
 ];
 
+/** Os atalhos que o app TEM (o protótipo lista também `?` e `G I/J/V`, que o app não tem). */
 const ATALHOS: [string[], string][] = [
   [['Ctrl', 'K'], 'Buscar gravação, palavra ou tela'],
   [['Ctrl', 'B'], 'Recolher ou abrir o menu lateral'],
+  [['Espaço'], 'Mostrar a resposta (revisão)'],
+  [['1', '–', '4'], 'Responder a revisão'],
   [['Esc'], 'Fechar painel ou diálogo'],
 ];
+
+/** Uma linha `.atalho`: a descrição e as teclas; o "–" de um intervalo vira "a", como no protótipo. */
+function LinhaDeAtalho({ teclas, desc }: { teclas: string[]; desc: string }) {
+  return (
+    <div className="entre atalho">
+      <span>{desc}</span>
+      <span>
+        {teclas.map((t, i) => (
+          <React.Fragment key={t}>
+            {i > 0 && ' '}
+            {t === '–' ? <span className="mut">a</span> : <kbd>{t}</kbd>}
+          </React.Fragment>
+        ))}
+      </span>
+    </div>
+  );
+}
 
 type Status = 'verificando' | 'ok' | 'problema';
 
 export default function Ajuda() {
   const [guiaAberto, setGuiaAberto] = useState(false);
+  const [atalhosAbertos, setAtalhosAbertos] = useState(false);
   const [busca, setBusca] = useState('');
   const [status, setStatus] = useState<Status>('verificando');
 
@@ -98,20 +119,18 @@ export default function Ajuda() {
       </section>
 
       <section className="secao">
-        <TituloDeSecao icone={Keyboard} titulo="Atalhos de teclado" />
+        <TituloDeSecao
+          icone={Keyboard}
+          titulo="Atalhos de teclado"
+          direita={
+            <button type="button" className="link" onClick={() => setAtalhosAbertos(true)}>
+              Ver todos
+            </button>
+          }
+        />
         <div className="cartao p5">
-          {ATALHOS.map(([teclas, desc]) => (
-            <div key={desc} className="entre atalho">
-              <span>{desc}</span>
-              <span>
-                {teclas.map((t, i) => (
-                  <React.Fragment key={t}>
-                    {i > 0 && ' '}
-                    <kbd>{t}</kbd>
-                  </React.Fragment>
-                ))}
-              </span>
-            </div>
+          {ATALHOS.slice(0, 4).map(([teclas, desc]) => (
+            <LinhaDeAtalho key={desc} teclas={teclas} desc={desc} />
           ))}
         </div>
       </section>
@@ -167,6 +186,21 @@ export default function Ajuda() {
       </section>
 
       {guiaAberto && <GuidePanel onClose={() => setGuiaAberto(false)} />}
+      {atalhosAbertos && (
+        <Dialogo
+          icone={Keyboard}
+          titulo="Atalhos de teclado"
+          sub="Funcionam em qualquer tela, fora de campos de texto."
+          largura=""
+          aoFechar={() => setAtalhosAbertos(false)}
+        >
+          <div className="dlg-corpo">
+            {ATALHOS.map(([teclas, desc]) => (
+              <LinhaDeAtalho key={desc} teclas={teclas} desc={desc} />
+            ))}
+          </div>
+        </Dialogo>
+      )}
     </Tela>
   );
 }

@@ -1,0 +1,109 @@
+/**
+ * AS DIRETIVAS DA CSP — Fase 6 do plano de lançamento.
+ *
+ * Até aqui `connect-src` e `img-src` eram `https:`: qualquer host da internet. Para `connect-src`
+ * isso anulava a CSP como barreira contra exfiltração — um script injetado mandava o que quisesse
+ * para onde quisesse. A lista abaixo é a dos hosts que o CLIENTE chama de fato, levantada lendo o
+ * código em 2026-09-24 (todo `fetch` absoluto de `src/`, e os que as bibliotecas fazem por ele):
+ *
+ *   huggingface.co, *.huggingface.co, *.hf.co   pesos do Whisper/opus-mt/WeSpeaker (transformers.js
+ *                                               baixa do Hub e o Hub redireciona para a CDN) e a
+ *                                               consulta de versão (`src/gateway/modelManifest.ts`)
+ *   cdn.jsdelivr.net                            o runtime WASM do ONNX: sem `wasmPaths` próprio, o
+ *                                               transformers.js baixa `ort-wasm-*.{mjs,wasm}` de lá
+ *                                               (node_modules/@huggingface/transformers/src/backends/onnx.js)
+ *   *.wiktionary.org                            o verbete do dicionário (`src/lib/dictionary.ts`)
+ *   api.openverse.org                           a busca de imagem direta, quando a API cai
+ *                                               (`src/data/rotas/imagens.ts`)
+ *   api.mymemory.translated.net                 a tradução de reserva do cliente
+ *                                               (`src/gateway/adapters/mymemory.ts`)
+ *   localhost:11434 / 127.0.0.1:11434           o Ollama LOCAL de quem o tem (`src/gateway/profiles.ts`)
+ *
+ * E os que dependem do deploy, lidos do ambiente (origem só — caminho e chave não entram):
+ *
+ *   SUPABASE_URL / VITE_SUPABASE_URL            o login (supabase-js)
+ *   VITE_SELF_HOST_MODELS (quando é URL)        o bucket R2 dos pesos dos modelos
+ *   VITE_SENTRY_DSN                             o envio de erro do navegador
+ *
+ * As `VITE_*` são embutidas no bundle em BUILD; o `Dockerfile` as repete como `ENV` do runtime para
+ * a CSP enxergar os mesmos valores que o bundle usa.
+ *
+ * `img-src` CONTINUA com `https:`, e é decisão, não esquecimento: a capa de sessão escolhida no
+ * Openverse é gravada com a URL ORIGINAL da imagem (`src/components/ui/SeletorDeCapa.tsx`), que
+ * pode estar em qualquer acervo (Flickr, Wikimedia, museus). Fechar `img-src` apagaria capas já
+ * gravadas. Imagem é conteúdo passivo; o canal de exfiltração que importa é `connect-src`.
+ *
+ * As fontes do Google entram em `style-src`/`font-src`: `src/index.css` importa a folha de
+ * `fonts.googleapis.com`, e a CSP anterior (`style-src 'self' 'unsafe-inline'`) a bloqueava em
+ * produção — o app caía na fonte do sistema sem ninguém notar, porque em dev a CSP só relata.
+ */
+
+/** O que o `helmet` recebe em `contentSecurityPolicy.directives`. */
+export interface DiretivasDeCsp {
+  defaultSrc: string[]
+  scriptSrc: string[]
+  workerSrc: string[]
+  connectSrc: string[]
+  imgSrc: string[]
+  mediaSrc: string[]
+  styleSrc: string[]
+  fontSrc: string[]
+  objectSrc: string[]
+  frameAncestors: string[]
+  baseUri: string[]
+  formAction: string[]
+}
+
+const CONEXOES_FIXAS = [
+  'https://huggingface.co',
+  'https://*.huggingface.co',
+  'https://*.hf.co',
+  'https://cdn.jsdelivr.net',
+  'https://*.wiktionary.org',
+  'https://api.openverse.org',
+  'https://api.mymemory.translated.net',
+  'http://localhost:11434',
+  'http://127.0.0.1:11434',
+]
+
+/** A ORIGEM (`https://host[:porta]`) de uma URL, ou `null` se ela não for http(s) válida. */
+function origemDe(valor: string | undefined): string | null {
+  const v = valor?.trim()
+  if (!v) return null
+  try {
+    const u = new URL(v)
+    if (u.protocol !== 'https:' && u.protocol !== 'http:') return null
+    return u.origin
+  } catch {
+    return null
+  }
+}
+
+export function diretivasDeCsp(env: NodeJS.ProcessEnv = process.env): DiretivasDeCsp {
+  const doDeploy = [
+    origemDe(env.SUPABASE_URL),
+    origemDe(env.VITE_SUPABASE_URL),
+    /* `VITE_SELF_HOST_MODELS=1` significa "mesmo domínio" e não acrescenta nada; só uma URL traz
+       host novo (o bucket R2 público dos pesos). */
+    origemDe(env.VITE_SELF_HOST_MODELS),
+    /* O DSN tem a chave pública no userinfo; `origin` a descarta e fica só o host de ingestão. */
+    origemDe(env.VITE_SENTRY_DSN),
+  ].filter((o): o is string => o !== null)
+
+  const conexoes = [...new Set(["'self'", 'blob:', 'data:', ...CONEXOES_FIXAS, ...doDeploy])]
+
+  return {
+    defaultSrc: ["'self'"],
+    scriptSrc: ["'self'", "'wasm-unsafe-eval'", 'blob:'],
+    workerSrc: ["'self'", 'blob:'],
+    connectSrc: conexoes,
+    imgSrc: ["'self'", 'https:', 'data:', 'blob:'],
+    mediaSrc: ["'self'", 'blob:', 'data:'],
+    styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
+    fontSrc: ["'self'", 'data:', 'https://fonts.gstatic.com'],
+    objectSrc: ["'none'"],
+    frameAncestors: ["'self'"],
+    baseUri: ["'self'"],
+    formAction: ["'self'"],
+  }
+}

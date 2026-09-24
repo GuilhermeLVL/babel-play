@@ -57,6 +57,7 @@ import { rankRouter } from '../routes/rank'
 import { sessionsRouter } from '../routes/sessions'
 import { settingsRouter } from '../routes/settings'
 import { vocabRouter } from '../routes/vocab'
+import { diretivasDeCsp } from './csp'
 import { jsonAntesDoAuth, jsonDepoisDoAuth, ROTAS_DE_CORPO_GRANDE } from './limitesDeCorpo'
 import { handlerDeMetricas, middlewareDeMetricas } from './metricas'
 import { exigirOrigem } from './origemProtegida'
@@ -194,17 +195,9 @@ export function criarApp(opcoes: OpcoesDoApp = {}): express.Express {
       contentSecurityPolicy: {
         // Em dev, relatar; em produção, bloquear. As diretivas são as mesmas de propósito.
         reportOnly: process.env.NODE_ENV !== 'production',
-        directives: {
-          defaultSrc: ["'self'"],
-          scriptSrc: ["'self'", "'wasm-unsafe-eval'", 'blob:'],
-          workerSrc: ["'self'", 'blob:'],
-          connectSrc: ["'self'", 'https:', 'blob:', 'data:'],
-          imgSrc: ["'self'", 'https:', 'data:', 'blob:'],
-          mediaSrc: ["'self'", 'blob:', 'data:'],
-          styleSrc: ["'self'", "'unsafe-inline'"],
-          objectSrc: ["'none'"],
-          frameAncestors: ["'self'"],
-        },
+        /* Fase 6: `connect-src` deixou de ser `https:` — a lista, e o porquê de cada host, está
+           em `server/http/csp.ts`. */
+        directives: { ...diretivasDeCsp() },
       },
       crossOriginEmbedderPolicy: false, // COEP é opt-in via CROSS_ORIGIN_ISOLATION (abaixo)
     }),

@@ -354,6 +354,13 @@ export const VARIAVEIS: readonly VariavelDeclarada[] = [
     paraQue: 'cifra os segredos de credencial de IA guardados no banco (server/crypto.ts)',
   },
   {
+    nome: 'SELF_HOST',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue:
+      '1 declara instalação pessoal: é a ÚNICA forma de subir com NODE_ENV=production e AUTH_REQUIRED=0 (GAP-003). Nunca no SaaS público',
+  },
+  {
     nome: 'STORAGE_RECONCILE_HOURS',
     exigencia: 'opcional',
     criticidade: 'degrada-capacidade',
@@ -404,6 +411,27 @@ export const VARIAVEIS: readonly VariavelDeclarada[] = [
     criticidade: 'degrada-capacidade',
     paraQue:
       'em quantos saltos de proxy reverso confiar para resolver `req.ip` (`1`, `true`, `false`, `loopback` ou lista de sub-redes). OBRIGATÓRIA com NODE_ENV=production — o boot aborta sem ela (GAP-004); Cloudflare → Fly.io são 2 saltos. Ausente fora de produção, o Express não confia em `X-Forwarded-For` — atrás de proxy isso faz TODA origem virar a mesma chave do limitador e da trava do ranking; ligada sem proxy à frente, o cliente escolhe a própria chave e o limitador deixa de existir',
+  },
+  /* As três `VITE_*` abaixo são de BUILD (o Vite as embute no bundle). O servidor as lê só para a
+     CSP enxergar os mesmos hosts que o bundle chama; o `Dockerfile` as repete como `ENV` do runtime. */
+  {
+    nome: 'VITE_SELF_HOST_MODELS',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue:
+      'de onde o navegador baixa os pesos dos modelos locais: `1` = mesmo domínio (`/models`), uma URL = o bucket R2 público. A CSP libera a origem da URL em `connect-src`',
+  },
+  {
+    nome: 'VITE_SENTRY_DSN',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue: 'DSN do Sentry do NAVEGADOR; a CSP libera o host de ingestão dele em `connect-src`',
+  },
+  {
+    nome: 'VITE_SUPABASE_URL',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue: 'projeto Supabase do login no navegador; a CSP libera a origem dele em `connect-src`',
   },
   {
     nome: 'YTDLP_PATH',

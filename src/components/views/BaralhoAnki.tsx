@@ -18,6 +18,7 @@ import React, { useRef, useState } from 'react';
 import { apiFetch, exportarApkg } from '../../data/api';
 import { ativarNotasDoBaralho, type ResultadoAtivar } from '../../data/apiAnki';
 import { numero, t } from '../../lib/i18n';
+import { langLabelNaUI } from '../../lib/languages';
 import type { AgeProfileType } from '../../lib/profile';
 import type { VocabCard } from '../../types';
 import { toast } from '../Toast';
@@ -139,7 +140,9 @@ export default function BaralhoAnki({
   const [enviando, setEnviando] = useState(false);
   /** Gerando o `.apkg` para levar — separado de `enviando` (importar), que muda a aba "Trazer". */
   const [gerando, setGerando] = useState(false);
-  const [nomeExp, setNomeExp] = useState(`Babel Play ${idioma || ''}`.trim());
+  // "Babel Play inglês" (protótipo): o nome do idioma, não o código.
+  const nomePadrao = `Babel Play ${idioma ? langLabelNaUI(idioma).toLowerCase() : ''}`.trim();
+  const [nomeExp, setNomeExp] = useState(nomePadrao);
   const [incluirFrase, setIncluirFrase] = useState(true);
   const [nomeArquivo, setNomeArquivo] = useState('');
   const [erro, setErro] = useState<string | null>(null);
@@ -253,10 +256,10 @@ export default function BaralhoAnki({
           verso: c.translation,
           exemplo: incluirFrase ? c.sentence : undefined,
         })),
-        nomeExp.trim() || `Babel Play ${idioma || ''}`.trim(),
+        nomeExp.trim() || nomePadrao,
       );
       baixar(blob, `babel-${idioma || 'deck'}-${new Date().toISOString().slice(0, 10)}.apkg`);
-      toast.ok(`${exportaveis.length} palavras no arquivo`);
+      toast.ok(`Baixando “${nomeExp.trim() || nomePadrao}” (.apkg, ${exportaveis.length} cartões)`);
     } catch (e) {
       toast.error(`Não consegui gerar o .apkg: ${(e as Error).message}`);
     } finally {
@@ -286,7 +289,7 @@ export default function BaralhoAnki({
       new Blob([conteudo], { type: 'text/plain;charset=utf-8' }),
       `babel-${idioma || 'deck'}-${new Date().toISOString().slice(0, 10)}.txt`,
     );
-    toast.ok(`${linhas.length} palavras exportadas`);
+    toast.ok(`Baixando babel-${idioma || 'deck'}-${new Date().toISOString().slice(0, 10)}.txt`);
   };
 
   /** O dia de hoje no nome do arquivo (`babel-en-2026-09-23.apkg`), como no protótipo. */
@@ -339,7 +342,9 @@ export default function BaralhoAnki({
             <span>
               <b>Solte o arquivo aqui</b> ou clique para escolher
             </span>
-            <small className="mut">.apkg (Anki, inclusive os novos, comprimidos), .txt, .csv ou .tsv</small>
+            <small className="mut">
+              .apkg (Anki, inclusive os novos, comprimidos), .txt, .csv ou .tsv · até 200 MB
+            </small>
           </label>
           <div className="aviso-info" style={{ marginTop: 14 }}>
             <Info aria-hidden />

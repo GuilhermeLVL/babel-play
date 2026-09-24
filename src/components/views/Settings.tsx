@@ -1,15 +1,25 @@
 import {
   AlertTriangle,
+  BookOpen,
+  Check,
+  CreditCard,
+  Database,
+  Download,
   Eye,
   Gamepad2,
+  Info,
   Languages,
+  Loader2,
+  Moon,
   Palette,
-  PlayCircle,
+  RotateCcw,
   Server,
-  Shield,
+  ShieldCheck,
   Sparkles,
+  Sun,
   Target,
   User,
+  Wrench,
   Zap,
 } from 'lucide-react';
 import React, { useEffect, useRef, useState } from 'react';
@@ -35,30 +45,33 @@ import GuidePanel from '../GuidePanel';
 import LangPicker from '../LangPicker';
 import type { FontScale } from '../shell/ControlCluster';
 import type { AgeProfileType, MenuPositionType } from '../shell/navItems';
-import { Abas, CabecalhoDeTela, PainelDeAba, Tela, TituloDeSecao } from '../ui';
+import { toast } from '../Toast';
+import { Abas, CabecalhoDeTela, IconeEmBloco, PainelDeAba, Tela, TituloDeSecao } from '../ui';
 import LangAudit from './LangAudit';
+import { baixarMeusDados } from './perfil/AbaDados';
 
 /**
- * AS QUATRO ABAS, e por que esta tela deixou de ser uma rolagem só.
+ * AJUSTES — na forma do protótipo aprovado (`T.ajustes` em `docs/prototipos/consistencia-telas.html`):
+ * abas Idiomas · Aparência · Processamento · Privacidade · Conta, linhas `.ajuste` dentro de
+ * `.cartao`, `.seg` para escolhas curtas.
  *
- * Ajustes acumulou onze assuntos numa página única: conta, os dois idiomas, perfil de IA, plano,
- * guia, tour, reconfiguração, meta de fala, aparência, desempenho, persona, privacidade e motores.
- * Quem entrava para trocar o idioma rolava por cima de tudo isso, e quem entrava para conferir se a
- * nuvem estava ligada não tinha como saber que a resposta estava lá embaixo.
+ * O QUE DO PROTÓTIPO FICOU DE FORA, e por quê: a aba Notificações (o app não envia lembrete,
+ * e-mail nem push), os consentimentos de Privacidade (não existe telemetria nem uso de trechos
+ * para treino), e em Conta a troca de e-mail, aparelhos conectados, atividade recente e a zona de
+ * exclusão (a exclusão real, com a palavra digitada, vive em Perfil → Seus dados). Um controle
+ * que não faz nada não entra. Senha, 2FA e sair continuam no `AccountSecuritySection`, que só
+ * existe no modo com login.
  *
- * O AGRUPAMENTO SEGUE A PERGUNTA QUE TRAZ A PESSOA AQUI, não a arquitetura do código:
- *  - "o que eu estudo?"        → Idiomas
- *  - "como isto se parece?"    → Como o app se parece
- *  - "onde isto processa?"     → Onde as contas rodam
- *  - "e a minha conta?"        → Conta e recomeço
- *
- * Nada foi removido. Cada seção que existia continua existindo, na aba onde alguém a procuraria.
+ * O QUE DO APP O PROTÓTIPO NÃO DESENHA e ficou, discreto: a auditoria de idioma completa, a meta de
+ * comunicação com o ritmo medido, o plano atual, os perfis de IA com o teste ao vivo, o guia, o
+ * Sobre e o "Reconfigurar".
  */
 const ABAS = [
-  { id: 'idiomas', rotulo: 'Idiomas', icone: <Languages className="w-4 h-4" /> },
-  { id: 'aparencia', rotulo: 'Como o app se parece', icone: <Palette className="w-4 h-4" /> },
-  { id: 'motores', rotulo: 'Onde as contas rodam', icone: <Server className="w-4 h-4" /> },
-  { id: 'conta', rotulo: 'Conta e recomeço', icone: <User className="w-4 h-4" /> },
+  { id: 'idiomas', rotulo: 'Idiomas', icone: <Languages aria-hidden /> },
+  { id: 'aparencia', rotulo: 'Aparência', icone: <Palette aria-hidden /> },
+  { id: 'contas', rotulo: 'Processamento', icone: <Server aria-hidden /> },
+  { id: 'privacidade', rotulo: 'Privacidade', icone: <ShieldCheck aria-hidden /> },
+  { id: 'conta', rotulo: 'Conta', icone: <User aria-hidden /> },
 ];
 
 const PROFILE_STORAGE_KEY = 'babel.activeProfileId';
@@ -72,6 +85,21 @@ const GOAL_TARGETS: Record<string, { ppm: number | null; badge: string; badgeCla
   tedx: { ppm: null, badge: 'Alvo: Riqueza Lexical', badgeClass: 'rare' },
   tech: { ppm: null, badge: 'Alvo: Termos Híbridos', badgeClass: 'acc' },
 };
+
+const METAS: { id: string; titulo: string; desc: string }[] = [
+  { id: 'executivo', titulo: 'Comunicação Executiva', desc: 'Foco em concisão, clareza e ritmo pausado.' },
+  { id: 'creator', titulo: 'Criador / YouTuber', desc: 'Foco em energia, retenção e vocabulário acessível.' },
+  { id: 'tedx', titulo: 'Estilo Palestrante (TED)', desc: 'Pausas, vocabulário raro e storytelling.' },
+  { id: 'tech', titulo: 'Tech / Developer', desc: 'Inglês/Português misto, termos técnicos sem tradução.' },
+];
+
+/** Tamanho do texto: as quatro escalas reais do app (o protótipo desenha três). */
+const TAMANHOS: [FontScale, string, string][] = [
+  ['sm', 'P', 'Pequeno'],
+  ['md', 'M', 'Médio'],
+  ['lg', 'G', 'Grande'],
+  ['xl', 'GG', 'Muito grande'],
+];
 
 /**
  * Preferências de uso guardadas no blob `settings.ui`. A APARÊNCIA (tema,
@@ -98,8 +126,7 @@ interface SettingsProps {
   nivel?: number;
   ageProfile?: AgeProfileType;
   // Preferências de shell. Vivem no App (localStorage) porque o shell é renderizado fora
-  // desta view; aqui esta tela é o lugar CANÔNICO de mexer nelas — o popover da paleta é
-  // só o atalho.
+  // desta view.
   setAgeProfile: (p: AgeProfileType) => void;
   menuPosition: MenuPositionType;
   setMenuPosition: (p: MenuPositionType) => void;
@@ -115,16 +142,56 @@ interface SettingsProps {
   onChangeView: (view: string) => void;
 }
 
-/* As props de aparência/efeitos continuam no contrato (o App as passa), mas esta tela NÃO as
-   edita mais — ver o bloco "Aparência" abaixo. Só o que é usado é desestruturado. */
-export default function Settings({ onReplayTour, onAbrirSobre, ageProfile = 'pro', onChangeView }: SettingsProps) {
+/**
+ * CLARO/ESCURO SEM UM SEGUNDO DONO. O estado vive no App (`useAparencia`) e esta tela não recebe o
+ * setter — só `darkMode`. Em vez de duplicar a gravação (localStorage + servidor), o seletor aciona
+ * o mesmo botão da barra de controles, que é o dono da preferência.
+ */
+function definirEscuro(querEscuro: boolean, atual: boolean) {
+  if (querEscuro === atual) return;
+  const alvo = document.querySelector<HTMLButtonElement>(
+    `button[title="${querEscuro ? 'Mudar para o modo escuro' : 'Mudar para o modo claro'}"]`,
+  );
+  if (alvo) alvo.click();
+  else toast.warn(t('Use o botão de claro/escuro na barra de controles.'));
+}
+
+/** Uma linha `.ajuste` com o texto à esquerda e o controle à direita (marcação do protótipo). */
+function Linha({
+  titulo,
+  desc,
+  children,
+}: {
+  titulo: React.ReactNode;
+  desc: React.ReactNode;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="ajuste ajuste-l">
+      <div>
+        <h3>{titulo}</h3>
+        <p className="mut">{desc}</p>
+      </div>
+      {children}
+    </div>
+  );
+}
+
+export default function Settings({
+  darkMode,
+  onReplayTour,
+  onAbrirSobre,
+  ageProfile = 'pro',
+  onChangeView,
+  fontScale,
+  setFontScale,
+  animationsEnabled,
+  toggleAnimations,
+}: SettingsProps) {
   /**
    * Idiomas do usuário — a configuração REAL, lida e escrita por `lib/langConfig`.
-   *
-   * O ÓRFÃO: esta tela salvava `settings.targetLanguage` e NENHUMA linha do app lia esse campo. O
-   * usuário escolhia o idioma que estuda numa tela sem efeito nenhum — as outras telas usavam o par
-   * escondido da Captura (e ainda por cima o liam invertido entre si). Agora `targetLanguage` é a
-   * fonte autoritativa de `studying`, e `saveLangConfig` mantém a Captura em sincronia.
+   * `targetLanguage` é a fonte autoritativa de `studying`, e `saveLangConfig` mantém a Captura em
+   * sincronia.
    */
   const [langCfg, setLangCfg] = useState<LangConfig>(DEFAULT_LANG_CONFIG);
   const [activeProfileId, setActiveProfileId] = useState<string>(
@@ -137,12 +204,12 @@ export default function Settings({ onReplayTour, onAbrirSobre, ageProfile = 'pro
   useEffect(() => onPlanChange(() => setEntitlements(getEntitlements())), []);
   const [showGuide, setShowGuide] = useState(false);
   const [aba, setAba] = useState('idiomas');
+  const [exportando, setExportando] = useState(false);
+  const [erroExport, setErroExport] = useState('');
   const loaded = useRef(false);
 
   /**
-   * Erro REAL de gravação. Antes tudo aqui era `void saveSettings(...)`: se a chamada falhasse, a tela
-   * seguia exibindo o valor novo e o servidor ficava com o antigo — mentira silenciosa. Agora cada
-   * escrita é aguardada e, ao falhar, a UI VOLTA ao valor do servidor e diz o que houve.
+   * Erro REAL de gravação. Se a chamada falhar, a UI VOLTA ao valor do servidor e diz o que houve.
    */
   const [saveError, setSaveError] = useState<string | null>(null);
 
@@ -194,12 +261,8 @@ export default function Settings({ onReplayTour, onAbrirSobre, ageProfile = 'pro
   }, []);
 
   /**
-   * Grava um dos idiomas e CONFIRMA que a gravação valeu.
-   *
-   * `saveLangConfig` escreve nos dois lugares (o campo autoritativo e o blob da Captura) e avisa as
-   * telas abertas. Mas a camada de API devolve `null` em vez de LANÇAR quando a rede falha — então
-   * "não explodiu" não prova nada. Relemos a configuração do servidor: só o que voltou de lá pode ser
-   * exibido como salvo.
+   * Grava um dos idiomas e CONFIRMA que a gravação valeu: a camada de API devolve `null` em vez de
+   * LANÇAR quando a rede falha, então relemos a configuração do servidor.
    */
   const changeLang = async (patch: Partial<LangConfig>) => {
     const previous = langCfg;
@@ -258,8 +321,14 @@ export default function Settings({ onReplayTour, onAbrirSobre, ageProfile = 'pro
     void persistUi({ ...ui, goal });
   };
 
-  /* Uma leitura só: o `GOAL_TARGETS[ui.goal]?.ppm` aparecia duas vezes (na guarda e no texto) e o
-     compilador não carrega a narrowing de uma para a outra através do índice. */
+  async function exportar() {
+    setExportando(true);
+    setErroExport('');
+    const ok = await baixarMeusDados();
+    setExportando(false);
+    if (!ok) setErroExport(t('Não consegui gerar o arquivo agora. Tente de novo em instantes.'));
+  }
+
   const ppmAlvo = GOAL_TARGETS[ui.goal]?.ppm ?? null;
 
   return (
@@ -287,41 +356,37 @@ export default function Settings({ onReplayTour, onAbrirSobre, ageProfile = 'pro
             ? t('Escolha os idiomas que você quer praticar e personalize o visual do seu jogo.')
             : ageProfile === 'senior'
               ? t('Configure o idioma que você deseja aprender e altere opções de leitura de forma simples.')
-              : t('Preferências de interface, processamento e integrações.')
+              : t('Idiomas, aparência, privacidade e a sua conta.')
+        }
+        abas={
+          <Abas
+            itens={ABAS.map((a) => ({ ...a, rotulo: t(a.rotulo) }))}
+            ativo={aba}
+            aoTrocar={setAba}
+            rotuloDoGrupo={t('Seções dos ajustes')}
+          />
         }
       />
 
       {/* Erro HONESTO de gravação — o valor exibido volta ao do servidor, e o usuário sabe por quê. */}
       {saveError && (
-        <div
-          role="status"
-          className="mb-6 flex items-start gap-2 rounded-xl border border-border-subtle bg-warn-soft px-4 py-3 text-[12.5px] text-warn-ink"
-        >
-          <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
-          <span>{saveError}</span>
+        <div role="status" className="cartao p5 linha" style={{ gap: 12, marginBottom: 24 }}>
+          <IconeEmBloco icone={AlertTriangle} tom="warn" />
+          <span style={{ fontSize: 13 }}>{saveError}</span>
         </div>
       )}
 
-      <Abas
-        itens={ABAS.map((a) => ({ ...a, rotulo: t(a.rotulo) }))}
-        ativo={aba}
-        aoTrocar={setAba}
-        rotuloDoGrupo={t('Seções dos ajustes')}
-        className="mb-8"
-      />
-
-      {/* ═════════════ IDIOMAS — o que eu estudo ═════════════ */}
-      <PainelDeAba id="idiomas" ativo={aba} className="space-y-8">
+      {/* ═════════════ IDIOMAS ═════════════ */}
+      <PainelDeAba id="idiomas" ativo={aba}>
         <section>
           <TituloDeSecao icone={Languages} titulo={t('Os dois idiomas')} />
-          <div className="card-panel">
+          <div className="cartao">
             {/* Os DOIS idiomas, com nomes que não admitem inversão: o que você fala e o que estuda.
-                O "meu idioma" deixou de ser um detalhe escondido na tela de Captura, ele decide a
-                DIREÇÃO da tradução de todo cartão de vocabulário. */}
-            <div className="p-5 border-b border-border-subtle">
-              <div className="font-bold text-[14px] mb-1">{t('Idioma que estou aprendendo')}</div>
-              <p className="text-[12px] text-ink-muted mb-3">
-                {t('O idioma do áudio/texto estrangeiro. É o idioma das palavras que vão para o seu deck.')}
+                O "meu idioma" decide a DIREÇÃO da tradução de todo cartão de vocabulário. */}
+            <div className="ajuste">
+              <h3>{t('Idioma que estou aprendendo')}</h3>
+              <p className="mut">
+                {t('O idioma do áudio ou texto estrangeiro. É o idioma das palavras que vão para o seu deck.')}
               </p>
               {/* Lista ÚNICA (`lib/languages`, 32 idiomas) com bandeira e busca — ver LangPicker. */}
               <LangPicker
@@ -334,11 +399,9 @@ export default function Settings({ onReplayTour, onAbrirSobre, ageProfile = 'pro
                 }}
               />
             </div>
-            <div className="p-5">
-              <div className="font-bold text-[14px] mb-1">{t('Meu idioma')}</div>
-              <p className="text-[12px] text-ink-muted mb-3">
-                {t('O idioma que você já fala, o do seu microfone e o das traduções que você lê.')}
-              </p>
+            <div className="ajuste">
+              <h3>{t('Meu idioma')}</h3>
+              <p className="mut">{t('O que você já fala: o do seu microfone e o das traduções que você lê.')}</p>
               <LangPicker
                 id="settings-mine-lang"
                 ariaLabel={t('Meu idioma')}
@@ -350,21 +413,15 @@ export default function Settings({ onReplayTour, onAbrirSobre, ageProfile = 'pro
               />
               {/* Aviso honesto: com os dois iguais não há o que traduzir (`mtCoverage` = 'same'). */}
               {baseLang(langCfg.mine) === baseLang(langCfg.studying) && (
-                <p className="text-[12px] text-warn-ink mt-2">
+                <p className="mut" style={{ color: 'var(--warn-ink)', marginTop: 8, marginBottom: 0 }}>
                   {t('Os dois idiomas são o mesmo, não há tradução a fazer, e os cartões ficarão sem verso.')}
                 </p>
               )}
             </div>
-
-            {/* O TERCEIRO EIXO — a tela, que até 2026-09-07 seguia "Meu idioma" sem alternativa.
-                Quem fala português e quer a interface em inglês precisava dizer que fala inglês, e
-                com isso invertia a direção do microfone e da tradução de todo cartão. A lista é
-                curta de propósito: só entra idioma cujo catálogo passou do piso de cobertura. */}
-            <div className="p-5 border-t border-border-subtle">
-              <div className="font-bold text-[14px] mb-1">{t('Idioma da interface')}</div>
-              <p className="text-[12px] text-ink-muted mb-3">
-                {t('O idioma dos textos do app. Não muda o microfone nem a direção da tradução.')}
-              </p>
+            {/* O TERCEIRO EIXO — a tela. Só entra idioma cujo catálogo passou do piso de cobertura. */}
+            <div className="ajuste">
+              <h3>{t('Idioma da interface')}</h3>
+              <p className="mut">{t('O idioma dos textos do app. Não muda o microfone nem a direção da tradução.')}</p>
               <LangPicker
                 id="settings-ui-lang"
                 ariaLabel={t('Idioma da interface')}
@@ -375,10 +432,9 @@ export default function Settings({ onReplayTour, onAbrirSobre, ageProfile = 'pro
                   if (code) void changeLang({ daInterface: code });
                 }}
               />
-              {/* Dizer o que NÃO está na lista, e por quê — um seletor de dois itens sem explicação
-                  parece o catálogo inteiro do produto. */}
+              {/* Dizer o que NÃO está na lista, e por quê. */}
               {idiomasAbaixoDoPiso().length > 0 && (
-                <p className="text-[11.5px] text-ink-faint mt-2">
+                <p className="mut" style={{ fontSize: 12, marginTop: 8, marginBottom: 0 }}>
                   {t('Traduções em andamento, ainda fora da lista: {langs}.', {
                     langs: idiomasAbaixoDoPiso()
                       .map((i) => `${langLabelNaUI(i.lang)} (${Math.round(i.cobertura * 100)}%)`)
@@ -390,277 +446,259 @@ export default function Settings({ onReplayTour, onAbrirSobre, ageProfile = 'pro
           </div>
         </section>
 
-        {/* Auditoria de idioma — conserta o passivo de cartões rotulados pelo código antigo.
-            Fica logo abaixo dos seletores porque depende deles: o par proposto é derivado
-            de `mine`/`studying`. */}
+        {/* Auditoria de idioma — depende dos seletores acima: o par proposto vem de `mine`/`studying`. */}
         <LangAudit />
 
-        {/* Goals — preferência salva (persistida como JSON) */}
-        <section>
-          <TituloDeSecao icone={Target} titulo={t('Meta de Comunicação')} />
-          <div className="card-panel p-5">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <button
-                onClick={() => setGoal('executivo')}
-                className={`p-4 border-2 rounded-xl text-start transition-colors ${ui.goal === 'executivo' ? 'border-accent bg-accent-soft' : 'border-border-subtle bg-surface hover:border-accent'}`}
-              >
-                <div className="font-bold text-[14px] text-ink mb-1">{t('Comunicação Executiva')}</div>
-                <p className="text-[12px] text-ink-muted mb-2">{t('Foco em concisão, clareza e ritmo pausado.')}</p>
-                <span className={`badge-tag ${GOAL_TARGETS.executivo.badgeClass}`}>
-                  {t(GOAL_TARGETS.executivo.badge)}
-                </span>
-              </button>
-              <button
-                onClick={() => setGoal('creator')}
-                className={`p-4 border-2 rounded-xl text-start transition-colors ${ui.goal === 'creator' ? 'border-accent bg-accent-soft' : 'border-border-subtle bg-surface hover:border-accent'}`}
-              >
-                <div className="font-bold text-[14px] text-ink mb-1">{t('Criador / YouTuber')}</div>
-                <p className="text-[12px] text-ink-muted mb-2">
-                  {t('Foco em energia, retenção e vocabulário acessível.')}
-                </p>
-                <span className={`badge-tag ${GOAL_TARGETS.creator.badgeClass}`}>{t(GOAL_TARGETS.creator.badge)}</span>
-              </button>
-              <button
-                onClick={() => setGoal('tedx')}
-                className={`p-4 border-2 rounded-xl text-start transition-colors ${ui.goal === 'tedx' ? 'border-accent bg-accent-soft' : 'border-border-subtle bg-surface hover:border-accent'}`}
-              >
-                <div className="font-bold text-[14px] text-ink mb-1">{t('Estilo Palestrante (TED)')}</div>
-                <p className="text-[12px] text-ink-muted mb-2">{t('Pausas, vocabulário raro e storytelling.')}</p>
-                <span className={`badge-tag ${GOAL_TARGETS.tedx.badgeClass}`}>{t(GOAL_TARGETS.tedx.badge)}</span>
-              </button>
-              <button
-                onClick={() => setGoal('tech')}
-                className={`p-4 border-2 rounded-xl text-start transition-colors ${ui.goal === 'tech' ? 'border-accent bg-accent-soft' : 'border-border-subtle bg-surface hover:border-accent'}`}
-              >
-                <div className="font-bold text-[14px] text-ink mb-1">{t('Tech / Developer')}</div>
-                <p className="text-[12px] text-ink-muted mb-2">
-                  {t('Inglês/Português misto, termos técnicos sem tradução.')}
-                </p>
-                <span className={`badge-tag ${GOAL_TARGETS.tech.badgeClass}`}>{t(GOAL_TARGETS.tech.badge)}</span>
-              </button>
-            </div>
-
-            {/* Benchmark: alvo declarado da meta escolhida × ppm REALMENTE medido nas sessões */}
-            <div className="mt-5 pt-4 border-t border-border-subtle flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-              <div>
-                <div className="text-[12px] font-bold text-ink flex items-center gap-2">
-                  {t('Seu ritmo medido')}
-                  {wpmMeasured != null && wpmLowConf && (
-                    <span className="kpi-pill opacity-60 cursor-default text-[11px]">{t('estimativa')}</span>
-                  )}
-                </div>
-                <p className="text-[11.5px] text-ink-muted mt-0.5">
-                  {wpmMeasured != null
-                    ? t('Comparado ao alvo da meta selecionada ({alvo}).', {
-                        alvo: t(GOAL_TARGETS[ui.goal]?.badge ?? 'sem alvo de ppm'),
-                      })
-                    : t('Grave ou faça Shadowing para medir seu ritmo, ainda sem dados suficientes.')}
-                </p>
-              </div>
-              <div className="flex items-baseline gap-1.5 shrink-0">
-                <span className="font-mono font-black text-2xl text-accent">
-                  {wpmMeasured != null ? wpmMeasured : '-'}
-                </span>
-                <span className="text-[11px] font-bold text-ink-muted">{t('ppm')}</span>
-                {wpmMeasured != null && ppmAlvo != null && (
-                  <span className="text-[11px] text-ink-faint font-mono ms-1">{t('/ {n} alvo', { n: ppmAlvo })}</span>
-                )}
-              </div>
-            </div>
-          </div>
-        </section>
-      </PainelDeAba>
-
-      {/* ═════════════ COMO O APP SE PARECE ═════════════ */}
-      <PainelDeAba id="aparencia" ativo={aba} className="space-y-8">
-        {/* CENTRALIZAÇÃO (2026-08-28): tema, perfil de exibição, posição do menu, tamanho do texto,
-            som, animações e desempenho SAÍRAM daqui. Cada um tem agora UM dono: o visual inteiro
-            vive em Personalizar; os interruptores de acessibilidade (texto, som, animações,
-            desempenho, claro/escuro) vivem só na barra de controles, visíveis em toda tela. Dois
-            controles para a mesma preferência era a confusão (e a brecha) que o dono pediu para
-            remover. */}
-        <section>
-          <TituloDeSecao icone={Palette} titulo={t('Aparência')} />
-          <div className="card-panel p-5 space-y-3">
-            <p className="text-[13px] text-ink">
-              <T txt="Tudo que muda a cara do app mora numa tela só: <b>Personalizar</b> (no menu). Tema e paletas, fonte, partículas, emojis, cursor, rastro, perfil de exibição, posição do menu, perfis prontos, a Loja e as conquistas." />
-            </p>
-            <p className="text-[12.5px] text-ink-muted">
-              {t(
-                'Tamanho do texto, som, animações, modo desempenho e claro/escuro ficam nos botões da barra de controles, sempre à vista.',
-              )}
-            </p>
-            <button onClick={() => onChangeView('loja')} className="btn-solid">
-              <Sparkles className="w-4 h-4" /> {t('Abrir Personalizar')}
-            </button>
-          </div>
-        </section>
-      </PainelDeAba>
-
-      {/* ═════════════ ONDE AS CONTAS RODAM ═════════════ */}
-      <PainelDeAba id="motores" ativo={aba} className="space-y-8">
-        {/* O perfil e o plano vêm ANTES do painel de motores porque é o perfil que decide o que o
-            painel mostra: escolher aqui e ver o efeito logo abaixo é a ordem que a tela ensina. */}
-        <section>
-          <TituloDeSecao icone={Server} titulo={t('Onde as contas rodam')} />
-          <div className="card-panel">
-            {/* UM SELETOR, UM DONO (auditoria de UX, 31/08): aqui vivia um <select> "Perfil de IA
-                ativo" que escolhia A MESMA coisa que os três cartões do painel logo abaixo — dois
-                controles para um estado. O painel assumiu a persistência e o gate Pro via props. */}
-            {/* Plano do usuário — leitura: quem decide é o servidor (GET /api/me/entitlements). */}
-            <div className="p-5" data-testid="settings-plano">
-              <div className="font-bold text-[14px] mb-1">{t('Plano')}</div>
-              <p className="text-[13px] mb-1">
-                <T txt="Seu plano: <b>{plano}</b>" val={{ plano: t(PLAN_LABELS[entitlements.plan]) }} />
-              </p>
-              {entitlements.armazenamento && (
-                <p className="text-[12px] text-ink-muted mb-2">
-                  {t('Armazenamento: {n} MB', { n: Math.round(entitlements.armazenamento.usados / 1_048_576) })}
-                  {entitlements.armazenamento.teto === null
-                    ? ` ${t('(sem teto)')}`
-                    : ` ${t('de {n} MB', { n: Math.round(entitlements.armazenamento.teto / 1_048_576) })}`}
-                </p>
-              )}
-              {/* DESCOBRIBILIDADE (auditoria de UX, 31/08): a tela de Planos existia e o próprio
-                  dono do produto não a encontrou — ela só vivia atrás do menu do avatar. Este é o
-                  primeiro dos dois caminhos visíveis (o outro está no Hub). */}
-              <button onClick={() => onChangeView('planos')} className="btn-outline mt-1 mb-2">
-                {t('Ver planos e preços')}
-              </button>
-              <p className="text-[11px] text-ink-faint mt-2">
-                {t(
-                  'No plano Grátis, a importação do YouTube e a nuvem gerenciada aparecem com o selo “Pro” — nada some, e com a SUA chave de API (BYOK, abaixo) a nuvem é liberada em qualquer plano. Rodando no seu computador (self-host), tudo é liberado.',
-                )}
-              </p>
-            </div>
-          </div>
-        </section>
-
-        {/* AI Engines — a matriz de capacidades e o teste ao vivo vivem aqui dentro. */}
-        <section>
-          <TituloDeSecao icone={Server} titulo={t('Motores de Inteligência Artificial')} />
-          <AiEnginePanel
-            activeId={activeProfileId}
-            onSelect={(id) => void changeProfile(id)}
-            bloqueados={entitlements.managedCloudStt ? [] : ['cloud-quality']}
+        {/* Meta de comunicação — do app, não do protótipo: guarda o alvo e compara com o ritmo MEDIDO. */}
+        <section className="secao">
+          <TituloDeSecao
+            icone={Target}
+            titulo={t('Meta de Comunicação')}
+            desc={t('O alvo com que o seu ritmo medido é comparado.')}
           />
-        </section>
-
-        {/* Privacy & Processing */}
-        <section>
-          <TituloDeSecao icone={Shield} titulo={t('Privacidade e Processamento')} />
-          <div className="card-panel">
-            <div className="p-5 border-b border-border-subtle flex justify-between items-center">
+          <div className="cartao">
+            <div className="ajuste ajuste-l">
               <div>
-                <div className="font-bold text-[14px]">{t('Processamento local por padrão')}</div>
-                <div className="text-[12px] text-ink-muted mt-1">
-                  {t(
-                    'O perfil "Grátis/Web" e "Privado/Local" transcrevem e traduzem no dispositivo sempre que possível.',
-                  )}
-                </div>
+                <h3>{t('Meta')}</h3>
+                <p className="mut">{t(METAS.find((m) => m.id === ui.goal)?.desc ?? '')}</p>
               </div>
-              <span className="badge-tag ok shrink-0">{t('Ativo')}</span>
+              <span className="linha" style={{ gap: 8, flexWrap: 'wrap' }}>
+                <span className={`badge ${GOAL_TARGETS[ui.goal]?.badgeClass ?? 'neu'}`}>
+                  {t(GOAL_TARGETS[ui.goal]?.badge ?? 'sem alvo de ppm')}
+                </span>
+                <select
+                  className="campo"
+                  style={{ width: 'auto' }}
+                  aria-label={t('Meta de Comunicação')}
+                  value={ui.goal}
+                  onChange={(e) => setGoal(e.target.value)}
+                >
+                  {METAS.map((m) => (
+                    <option key={m.id} value={m.id}>
+                      {t(m.titulo)}
+                    </option>
+                  ))}
+                </select>
+              </span>
             </div>
-            <div className="p-5 border-b border-border-subtle flex justify-between items-center">
-              <div>
-                <div className="font-bold text-[14px]">{t('Sessões salvas na Biblioteca')}</div>
-                <div className="text-[12px] text-ink-muted mt-1">
-                  {t('As capturas ficam gravadas localmente e aparecem na sua Biblioteca.')}
-                </div>
-              </div>
-              <span className="badge-tag ok shrink-0">{t('Ativo')}</span>
-            </div>
-            {/* A linha "Estatísticas anônimas de uso" saiu: não existe nenhuma telemetria implementada
-                no projeto (nem coleta, nem envio, nem opt-in), e "Em breve" é uma promessa de data que
-                ninguém pode cumprir. Volta quando existir a feature de verdade. */}
+            {/* Benchmark: alvo declarado da meta escolhida × ppm REALMENTE medido nas sessões */}
+            <Linha
+              titulo={
+                <>
+                  {t('Seu ritmo medido')}{' '}
+                  {wpmMeasured != null && wpmLowConf && <span className="badge neu">{t('estimativa')}</span>}
+                </>
+              }
+              desc={
+                wpmMeasured != null
+                  ? t('Comparado ao alvo da meta selecionada ({alvo}).', {
+                      alvo: t(GOAL_TARGETS[ui.goal]?.badge ?? 'sem alvo de ppm'),
+                    })
+                  : t('Grave ou faça Shadowing para medir seu ritmo, ainda sem dados suficientes.')
+              }
+            >
+              <span className="linha" style={{ alignItems: 'baseline', gap: 6 }}>
+                <b className="tn" style={{ font: '900 24px var(--font-display)', color: 'var(--accent-ink)' }}>
+                  {wpmMeasured != null ? wpmMeasured : '-'}
+                </b>
+                <span className="mut">{t('ppm')}</span>
+                {wpmMeasured != null && ppmAlvo != null && (
+                  <span className="mut tn">{t('/ {n} alvo', { n: ppmAlvo })}</span>
+                )}
+              </span>
+            </Linha>
           </div>
         </section>
-
-        {/* A seção "Integrações de Mídia" saiu inteira (Google Calendar & Meet, Notion, Figma/FigJam):
-            não existe nenhuma infraestrutura de integração com serviços externos no projeto, nem
-            OAuth, nem API client, nem endpoint, e "Em breve" é uma promessa de data que ninguém pode
-            cumprir. Volta quando existir a primeira integração de verdade. */}
       </PainelDeAba>
 
-      {/* ═════════════ CONTA E RECOMEÇO ═════════════ */}
-      <PainelDeAba id="conta" ativo={aba} className="space-y-8">
-        {/* Conta e Segurança — só no modo com login (authRequired); no self-host não renderiza */}
-        <AccountSecuritySection />
-
-        {/* A seção "Seu Perfil de Uso" (6 botões de persona) saiu inteira: `ui.persona` não é
-            lido por NENHUM outro código — era um controle que prometia "organizar o foco do seu
-            uso" e não fazia nada. Mesmo critério das seções de clonagem de voz e integrações:
-            controle falso não fica. O campo persistido antigo é ignorado sem erro. */}
-
-        {/* A seção "Sua Voz & Clonagem" saiu inteira: não existe nenhuma infraestrutura de clonagem de
-            voz no projeto (nem modelo, nem pipeline de treino), e "Em breve" é uma promessa de data
-            que ninguém pode cumprir. Volta quando existir a feature de verdade. */}
-
-        {/* Ajuda e recomeço. "Reconfigurar" é a única linha destrutiva desta tela — fica por último,
-            separada por borda, e diz o que apaga ANTES de ser clicada. */}
+      {/* ═════════════ APARÊNCIA ═════════════ */}
+      <PainelDeAba id="aparencia" ativo={aba}>
         <section>
-          <TituloDeSecao icone={PlayCircle} titulo={t('Ajuda e recomeço')} />
-          <div className="card-panel">
-            <div className="p-5 flex items-center justify-between gap-3 border-b border-border-subtle">
-              <div>
-                <div className="font-bold text-[14px] mb-1">{t('Guia rápido')}</div>
-                <p className="text-[12px] text-ink-muted">
-                  {t('Os fluxos principais do app em uma página: capturar, importar, overlay, tutor e estudo.')}
-                </p>
-              </div>
-              <button
-                onClick={() => setShowGuide(true)}
-                className="shrink-0 px-4 py-2 rounded-xl border border-border-subtle bg-surface hover:border-accent text-[13px] font-bold cursor-pointer"
-              >
-                {t('Abrir guia')}
-              </button>
-            </div>
-            {onAbrirSobre && (
-              <div className="p-5 flex items-center justify-between gap-3 border-b border-border-subtle">
-                <div>
-                  <div className="font-bold text-[14px] mb-1">{t('Sobre o Babel Play')}</div>
-                  <p className="text-[12px] text-ink-muted">
-                    {t('Quem fez o app, como entrar em contato e como apoiar o projeto.')}
-                  </p>
-                </div>
-                <button
-                  onClick={onAbrirSobre}
-                  className="shrink-0 px-4 py-2 rounded-xl border border-border-subtle bg-surface hover:border-accent text-[13px] font-bold cursor-pointer"
-                >
-                  {t('Abrir')}
+          <TituloDeSecao icone={Palette} titulo={t('Como o app se parece')} />
+          <div className="cartao">
+            <Linha titulo={t('Tema')} desc={t('Claro ou escuro. O tema de cores você troca em Personalizar.')}>
+              <div className="seg" role="group" aria-label={t('Tema')}>
+                <button type="button" aria-pressed={!darkMode} onClick={() => definirEscuro(false, darkMode)}>
+                  <Sun aria-hidden style={{ display: 'inline', width: 14, height: 14, verticalAlign: -2 }} />{' '}
+                  {t('Claro')}
+                </button>
+                <button type="button" aria-pressed={darkMode} onClick={() => definirEscuro(true, darkMode)}>
+                  <Moon aria-hidden style={{ display: 'inline', width: 14, height: 14, verticalAlign: -2 }} />{' '}
+                  {t('Escuro')}
                 </button>
               </div>
+            </Linha>
+            <Linha titulo={t('Tamanho do texto')} desc={t('Vale para o app inteiro.')}>
+              <div className="seg" role="group" aria-label={t('Tamanho do texto')}>
+                {TAMANHOS.map(([id, rotulo, nome]) => (
+                  <button
+                    key={id}
+                    type="button"
+                    aria-pressed={fontScale === id}
+                    aria-label={t(nome)}
+                    onClick={() => setFontScale(id)}
+                  >
+                    {rotulo}
+                  </button>
+                ))}
+              </div>
+            </Linha>
+            <Linha titulo={t('Reduzir movimento')} desc={t('Desliga partículas e animações.')}>
+              <label className="check">
+                <input type="checkbox" checked={!animationsEnabled} onChange={toggleAnimations} /> {t('Reduzir')}
+              </label>
+            </Linha>
+            {/* Tudo o mais que muda a cara do app mora em Personalizar — um dono por preferência. */}
+            <Linha
+              titulo={t('Tema de cores, fonte e efeitos')}
+              desc={
+                <T txt="Paletas, partículas, cursor, posição do menu e perfis prontos ficam em <b>Personalizar</b>." />
+              }
+            >
+              <button type="button" onClick={() => onChangeView('loja')} className="btn btn-outline">
+                <Sparkles aria-hidden /> {t('Abrir Personalizar')}
+              </button>
+            </Linha>
+          </div>
+        </section>
+      </PainelDeAba>
+
+      {/* ═════════════ PROCESSAMENTO ═════════════ */}
+      <PainelDeAba id="contas" ativo={aba}>
+        {/* UM SELETOR, UM DONO: o painel de perfis é o único controle; aqui ele recebe a
+            persistência e o gate Pro. */}
+        <AiEnginePanel
+          activeId={activeProfileId}
+          onSelect={(id) => void changeProfile(id)}
+          bloqueados={entitlements.managedCloudStt ? [] : ['cloud-quality']}
+        />
+
+        {/* Plano do usuário — leitura: quem decide é o servidor (GET /api/me/entitlements). */}
+        <section className="secao">
+          <TituloDeSecao icone={CreditCard} titulo={t('Seu plano')} />
+          <div className="cartao" data-testid="settings-plano">
+            <Linha
+              titulo={<T txt="Seu plano: <b>{plano}</b>" val={{ plano: t(PLAN_LABELS[entitlements.plan]) }} />}
+              desc={
+                entitlements.armazenamento
+                  ? `${t('Armazenamento: {n} MB', { n: Math.round(entitlements.armazenamento.usados / 1_048_576) })}${
+                      entitlements.armazenamento.teto === null
+                        ? ` ${t('(sem teto)')}`
+                        : ` ${t('de {n} MB', { n: Math.round(entitlements.armazenamento.teto / 1_048_576) })}`
+                    }`
+                  : t(
+                      'Com a SUA chave de API (BYOK) a nuvem é liberada em qualquer plano. Rodando no seu computador (self-host), tudo é liberado.',
+                    )
+              }
+            >
+              {/* DESCOBRIBILIDADE (auditoria de UX, 31/08): um dos caminhos visíveis até Planos. */}
+              <button type="button" onClick={() => onChangeView('planos')} className="btn btn-outline">
+                {t('Ver planos e preços')}
+              </button>
+            </Linha>
+          </div>
+        </section>
+      </PainelDeAba>
+
+      {/* ═════════════ PRIVACIDADE ═════════════ */}
+      <PainelDeAba id="privacidade" ativo={aba}>
+        {/* LGPD art. 18, V: a mesma exportação de Perfil → Seus dados (`GET /api/me/exportar`). */}
+        <section>
+          <TituloDeSecao
+            icone={Download}
+            titulo={t('Baixar os seus dados')}
+            desc={t(
+              'Uma cópia de tudo o que o app guarda sobre você: perfil, sessões, transcrições, vocabulário e histórico de revisão.',
             )}
-            <div className="p-5 flex items-center justify-between gap-3 border-b border-border-subtle">
-              <div>
-                <div className="font-bold text-[14px] mb-1">{t('Rever apresentação')}</div>
-                {/* Só reabre o tour nesta sessão — não apaga a escolha local/nuvem já salva. */}
-                <p className="text-[12px] text-ink-muted">
-                  {t('Reveja a introdução do app. Não altera sua configuração atual.')}
-                </p>
-              </div>
-              <button
-                onClick={onReplayTour}
-                className="shrink-0 flex items-center gap-1.5 px-4 py-2 rounded-xl border border-border-subtle bg-surface hover:border-accent text-[13px] font-bold cursor-pointer"
-              >
-                <PlayCircle className="w-4 h-4" /> {t('Rever apresentação')}
+          />
+          <div className="cartao p5">
+            <div className="linha" style={{ gap: 10, flexWrap: 'wrap' }}>
+              <button type="button" className="btn btn-outline" onClick={() => void exportar()} disabled={exportando}>
+                {exportando ? <Loader2 className="animate-spin" aria-hidden /> : <Download aria-hidden />}{' '}
+                {exportando ? t('Preparando…') : t('Baixar meus dados')}
               </button>
+              <span className="mut" style={{ fontSize: 12.5 }}>
+                {t('Arquivo JSON. Chaves de API saem só como registro de que existem, nunca o valor.')}
+              </span>
             </div>
-            <div className="p-5 flex items-center justify-between gap-3">
-              <div>
-                <div className="font-bold text-[14px] mb-1">{t('Configuração inicial (local vs nuvem)')}</div>
-                {/* "Reconfigurar" APAGA a escolha (onboarded:false no servidor) e recarrega. */}
-                <p className="text-[12px] text-ink-muted">
-                  {t('Refaça a escolha de rodar local ou usar sua chave de API. Apaga a configuração atual.')}
-                </p>
-              </div>
-              <button
-                onClick={reconfigureAi}
-                className="shrink-0 px-4 py-2 rounded-xl border border-border-subtle bg-surface hover:border-accent text-[13px] font-bold cursor-pointer"
-              >
-                {t('Reconfigurar')}
+            {erroExport && (
+              <p role="alert" style={{ marginTop: 10, fontSize: 12.5, color: 'var(--error-ink)' }}>
+                {erroExport}
+              </p>
+            )}
+          </div>
+        </section>
+
+        <section className="secao">
+          <TituloDeSecao
+            icone={Database}
+            titulo={t('Onde ficam')}
+            desc={t('O que roda e o que fica guardado, do jeito que o app faz hoje.')}
+          />
+          <div className="cartao p5">
+            <ul className="lista-check">
+              {[
+                t(
+                  'Processamento local por padrão: os perfis "Grátis/Web" e "Privado/Local" transcrevem e traduzem no dispositivo sempre que possível.',
+                ),
+                t('Sessões salvas na Biblioteca: as capturas ficam gravadas localmente.'),
+                t('Chave de IA (se usar): cifrada no servidor, nunca volta ao navegador.'),
+              ].map((x) => (
+                <li key={x}>
+                  <Check aria-hidden />
+                  {x}
+                </li>
+              ))}
+            </ul>
+          </div>
+        </section>
+      </PainelDeAba>
+
+      {/* ═════════════ CONTA ═════════════ */}
+      <PainelDeAba id="conta" ativo={aba}>
+        {/* Senha, 2FA e sair — só no modo com login (authRequired); no self-host não renderiza. */}
+        <AccountSecuritySection />
+
+        <section className="secao">
+          <TituloDeSecao icone={RotateCcw} titulo={t('Recomeçar')} />
+          <div className="cartao">
+            <Linha
+              titulo={t('Rever a apresentação')}
+              desc={t('Os passos do primeiro uso, de novo. Não altera sua configuração atual.')}
+            >
+              {/* Só reabre o tour nesta sessão — não apaga a escolha local/nuvem já salva. */}
+              <button type="button" onClick={onReplayTour} className="btn btn-outline peq">
+                <RotateCcw aria-hidden /> {t('Rever')}
               </button>
-            </div>
+            </Linha>
+            <Linha
+              titulo={t('Guia rápido')}
+              desc={t('Os fluxos principais do app em uma página: capturar, importar, overlay, tutor e estudo.')}
+            >
+              <button type="button" onClick={() => setShowGuide(true)} className="btn btn-outline peq">
+                <BookOpen aria-hidden /> {t('Abrir guia')}
+              </button>
+            </Linha>
+            {onAbrirSobre && (
+              <Linha
+                titulo={t('Sobre o Babel Play')}
+                desc={t('Quem fez o app, como entrar em contato e como apoiar o projeto.')}
+              >
+                <button type="button" onClick={onAbrirSobre} className="btn btn-outline peq">
+                  <Info aria-hidden /> {t('Abrir')}
+                </button>
+              </Linha>
+            )}
+            {/* "Reconfigurar" APAGA a escolha (onboarded:false no servidor) e recarrega — por isso por
+                último, dizendo o que apaga ANTES de ser clicado. */}
+            <Linha
+              titulo={t('Configuração inicial (local vs nuvem)')}
+              desc={t('Refaça a escolha de rodar local ou usar sua chave de API. Apaga a configuração atual.')}
+            >
+              <button type="button" onClick={() => void reconfigureAi()} className="btn btn-outline peq">
+                <Wrench aria-hidden /> {t('Reconfigurar')}
+              </button>
+            </Linha>
           </div>
         </section>
       </PainelDeAba>

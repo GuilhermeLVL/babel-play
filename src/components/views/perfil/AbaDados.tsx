@@ -21,6 +21,26 @@ import { excluirConta, exportarConta, type ResultadoDaExclusao } from '../../../
 
 type Estado = 'parado' | 'exportando' | 'excluindo';
 
+/**
+ * Baixa a cópia dos dados (`GET /api/me/exportar`) como `meus-dados.json`. Devolve `false` se o
+ * servidor não gerou o arquivo. Usada aqui e em Ajustes → Privacidade — a mesma rota, um caminho só.
+ */
+export async function baixarMeusDados(): Promise<boolean> {
+  const blob = await exportarConta();
+  if (!blob) return false;
+  /* A rota exige o header de autenticação, então não dá para apontar um link direto para ela:
+     o blob é materializado aqui e o object URL é revogado logo depois de disparar o download. */
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'meus-dados.json';
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+  return true;
+}
+
 const PALAVRA = 'EXCLUIR';
 
 export default function AbaDados() {
@@ -32,22 +52,9 @@ export default function AbaDados() {
   async function baixar() {
     setEstado('exportando');
     setErroExport('');
-    const blob = await exportarConta();
+    const ok = await baixarMeusDados();
     setEstado('parado');
-    if (!blob) {
-      setErroExport('Não consegui gerar o arquivo agora. Tente de novo em instantes.');
-      return;
-    }
-    /* A rota exige o header de autenticação, então não dá para apontar um link direto para ela:
-       o blob é materializado aqui e o object URL é revogado logo depois de disparar o download. */
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'meus-dados.json';
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    URL.revokeObjectURL(url);
+    if (!ok) setErroExport('Não consegui gerar o arquivo agora. Tente de novo em instantes.');
   }
 
   async function excluir() {
@@ -62,7 +69,6 @@ export default function AbaDados() {
 
   return (
     <div className="flex flex-col gap-8">
-
       {/* ── PORTABILIDADE ─────────────────────────────────────────────────────────────── */}
       <section className="card-panel p-5">
         <div className="flex items-center gap-2 mb-2 text-ink">
@@ -70,10 +76,9 @@ export default function AbaDados() {
           <h2 className="font-display font-bold text-lg">Baixar os seus dados</h2>
         </div>
         <p className="text-[13px] text-ink-muted leading-relaxed max-w-[62ch] mb-4">
-          Um arquivo JSON com tudo o que guardamos sobre você: perfil, sessões, transcrições,
-          vocabulário e histórico de revisão. Os áudios entram como <strong>nomes de arquivo</strong> —
-          o som em si continua sendo baixado sessão a sessão. Chaves de API saem apenas como
-          registro de que existem, <strong>nunca o valor</strong>.
+          Um arquivo JSON com tudo o que guardamos sobre você: perfil, sessões, transcrições, vocabulário e histórico de
+          revisão. Os áudios entram como <strong>nomes de arquivo</strong> — o som em si continua sendo baixado sessão a
+          sessão. Chaves de API saem apenas como registro de que existem, <strong>nunca o valor</strong>.
         </p>
         <button
           type="button"
@@ -81,12 +86,20 @@ export default function AbaDados() {
           disabled={estado !== 'parado'}
           className="btn-outline disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          {estado === 'exportando'
-            ? <><Loader2 className="w-4 h-4 animate-spin" aria-hidden /> Preparando…</>
-            : <><Download className="w-4 h-4" aria-hidden /> Baixar meus dados</>}
+          {estado === 'exportando' ? (
+            <>
+              <Loader2 className="w-4 h-4 animate-spin" aria-hidden /> Preparando…
+            </>
+          ) : (
+            <>
+              <Download className="w-4 h-4" aria-hidden /> Baixar meus dados
+            </>
+          )}
         </button>
         {erroExport && (
-          <p role="alert" className="mt-3 text-[12.5px] text-error-ink">{erroExport}</p>
+          <p role="alert" className="mt-3 text-[12.5px] text-error-ink">
+            {erroExport}
+          </p>
         )}
       </section>
 
@@ -97,9 +110,9 @@ export default function AbaDados() {
           <h2 className="font-display font-bold text-lg">Excluir a conta</h2>
         </div>
         <p className="text-[13px] text-ink-muted leading-relaxed max-w-[62ch] mb-4">
-          Apaga o perfil, as sessões, as transcrições, o vocabulário, o progresso e os arquivos de
-          áudio. <strong className="text-ink">Não há como desfazer</strong> e não guardamos cópia.
-          Se quiser ficar com o seu histórico, baixe os dados acima antes.
+          Apaga o perfil, as sessões, as transcrições, o vocabulário, o progresso e os arquivos de áudio.{' '}
+          <strong className="text-ink">Não há como desfazer</strong> e não guardamos cópia. Se quiser ficar com o seu
+          histórico, baixe os dados acima antes.
         </p>
 
         {!resultado && (
@@ -124,9 +137,15 @@ export default function AbaDados() {
                 disabled={!podeExcluir}
                 className="btn-outline border-error text-error-ink hover:border-error disabled:opacity-40 disabled:cursor-not-allowed"
               >
-                {estado === 'excluindo'
-                  ? <><Loader2 className="w-4 h-4 animate-spin" aria-hidden /> Excluindo…</>
-                  : <><Trash2 className="w-4 h-4" aria-hidden /> Excluir a minha conta</>}
+                {estado === 'excluindo' ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" aria-hidden /> Excluindo…
+                  </>
+                ) : (
+                  <>
+                    <Trash2 className="w-4 h-4" aria-hidden /> Excluir a minha conta
+                  </>
+                )}
               </button>
             </div>
           </>
@@ -156,9 +175,7 @@ function RelatorioDaExclusao({ resultado }: { resultado: ResultadoDaExclusao }) 
         </p>
       </div>
 
-      {resultado.error && (
-        <p className="text-[12.5px] text-ink-muted">{resultado.error}</p>
-      )}
+      {resultado.error && <p className="text-[12.5px] text-ink-muted">{resultado.error}</p>}
 
       {resultado.login?.aviso && (
         <p className="text-[12.5px] text-warn-ink bg-warn-soft border border-warn-soft rounded-lg p-3">
@@ -171,7 +188,9 @@ function RelatorioDaExclusao({ resultado }: { resultado: ResultadoDaExclusao }) 
           <div className="label-mono mb-1.5">O que foi apagado</div>
           <ul className="text-[12.5px] text-ink-muted flex flex-wrap gap-x-4 gap-y-1">
             {tabelas.map(([nome, n]) => (
-              <li key={nome}><span className="font-mono text-ink">{n}</span> em {nome}</li>
+              <li key={nome}>
+                <span className="font-mono text-ink">{n}</span> em {nome}
+              </li>
             ))}
           </ul>
         </div>
@@ -181,7 +200,11 @@ function RelatorioDaExclusao({ resultado }: { resultado: ResultadoDaExclusao }) 
         <div>
           <div className="label-mono mb-1.5 text-warn-ink">Arquivos que resistiram</div>
           <ul className="text-[12px] text-ink-muted font-mono flex flex-col gap-1">
-            {falhas.map((f) => <li key={f.arquivo}>{f.arquivo} — {f.erro}</li>)}
+            {falhas.map((f) => (
+              <li key={f.arquivo}>
+                {f.arquivo} — {f.erro}
+              </li>
+            ))}
           </ul>
         </div>
       )}

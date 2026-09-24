@@ -1,31 +1,44 @@
 import type { Capability } from '@core';
-import { AlertTriangle, Check, Cloud, HardDrive, Languages,Loader2, ShieldCheck, Zap } from 'lucide-react';
-import React, { useMemo, useState } from 'react';
+import {
+  AlertTriangle,
+  Check,
+  Cloud,
+  FlaskConical,
+  HardDrive,
+  Languages,
+  ListChecks,
+  Loader2,
+  Server,
+  Zap,
+} from 'lucide-react';
+import { type LucideIcon } from 'lucide-react';
+import { useMemo, useState } from 'react';
 
 import { buildGateway } from '../gateway';
 import { BUILTIN_PROFILES, DEFAULT_PROFILE_ID, getBuiltinProfile } from '../gateway/profiles';
 import { t } from '../lib/i18n';
+import { IconeEmBloco, TituloDeSecao } from './ui';
 
 const PROFILE_STORAGE_KEY = 'babel.activeProfileId';
 
-const PROFILE_META: Record<string, { desc: string; icon: React.ReactNode; badge: string; badgeClass: string }> = {
+const PROFILE_META: Record<string, { desc: string; icone: LucideIcon; badge: string; badgeClass: string }> = {
   'free-web': {
     desc: 'APIs gratuitas e nativas do navegador. Sem chave, sem custo.',
-    icon: <Languages className="w-4 h-4" />,
+    icone: Languages,
     badge: 'Grátis',
     badgeClass: 'ok',
   },
   'local-private': {
     desc: 'Sua IA local (Ollama/LM Studio). Nada sai da máquina.',
-    icon: <HardDrive className="w-4 h-4" />,
+    icone: HardDrive,
     badge: 'Privado',
-    badgeClass: 'rare',
+    badgeClass: 'ok',
   },
   'cloud-quality': {
-    desc: 'Provedores de nuvem com sua chave (BYO). Melhor qualidade.',
-    icon: <Cloud className="w-4 h-4" />,
-    badge: 'Nuvem',
-    badgeClass: 'acc',
+    desc: 'Provedores de nuvem com sua chave (BYO). Melhor qualidade. A chave fica cifrada no servidor.',
+    icone: Cloud,
+    badge: 'BYO key',
+    badgeClass: 'rare',
   },
 };
 
@@ -48,11 +61,15 @@ const CAPACIDADE: Record<Capability, { titulo: string; onde: string }> = {
 };
 
 /**
- * UM SELETOR, UM DONO (auditoria de UX, 31/08). A aba de Ajustes tinha DOIS controles para a mesma
- * escolha: um <select> que persistia no servidor e respeitava o gate Pro, e estes três cartões,
- * que só escreviam localStorage. Duas portas com fidelidades diferentes para o mesmo estado. Agora
- * o painel aceita ser CONTROLADO (`activeId`/`onSelect`/`bloqueados`) — o Settings injeta a
- * persistência e o gate — e o modo interno fica só como fallback para uso avulso.
+ * ONDE AS CONTAS RODAM — a aba "Processamento" de Ajustes, na marcação do protótipo aprovado
+ * (`.cartao.opcao` com `.radio`, linhas `.ajuste`).
+ *
+ * UM SELETOR, UM DONO (auditoria de UX, 31/08). O painel aceita ser CONTROLADO
+ * (`activeId`/`onSelect`/`bloqueados`) — o Settings injeta a persistência e o gate — e o modo
+ * interno fica só como fallback para uso avulso.
+ *
+ * O protótipo desenha duas opções (aparelho / sua chave); o app tem três perfis reais, e os três
+ * aparecem. A lista do que cada perfil consegue fazer e o teste ao vivo são do app e ficam, abaixo.
  */
 export default function AiEnginePanel({
   activeId: controladoId,
@@ -64,7 +81,7 @@ export default function AiEnginePanel({
   bloqueados?: string[];
 } = {}) {
   const [internoId, setInternoId] = useState<string>(
-    () => localStorage.getItem(PROFILE_STORAGE_KEY) ?? DEFAULT_PROFILE_ID
+    () => localStorage.getItem(PROFILE_STORAGE_KEY) ?? DEFAULT_PROFILE_ID,
   );
   const activeId = controladoId ?? internoId;
   const [text, setText] = useState('Good morning, my friend. How are you today?');
@@ -75,7 +92,7 @@ export default function AiEnginePanel({
   const profile = getBuiltinProfile(activeId);
   const gateway = useMemo(
     () => buildGateway({ profile: getBuiltinProfile(activeId), cloudConsent: () => true }),
-    [activeId]
+    [activeId],
   );
 
   const selectProfile = (id: string) => {
@@ -113,147 +130,138 @@ export default function AiEnginePanel({
   };
 
   return (
-    <div className="card-panel">
-      <div className="p-5 bg-surface-hover border-b border-border-subtle flex items-center justify-between gap-3">
-        {/* "Provider-agnóstico" e "sem lock-in" eram jargão de vendedor numa tela que todos os
-            perfis leem; a promessa que importa cabe em português. */}
-        <p className="text-[12.5px] text-ink-muted">
-          Escolha o <strong className="text-ink">perfil</strong> que alimenta cada capacidade. Trocar
-          não apaga nada: suas gravações e palavras ficam.
-        </p>
-        <span className="badge-tag acc shrink-0">
-          <ShieldCheck className="w-3 h-3" /> Reversível
-        </span>
-      </div>
-
-      {/* Seletor de perfil */}
-      <div className="p-5 grid grid-cols-1 sm:grid-cols-3 gap-3 border-b border-border-subtle">
-        {BUILTIN_PROFILES.map((p) => {
-          const meta = PROFILE_META[p.id];
-          const active = p.id === activeId;
-          const bloqueado = bloqueados.includes(p.id);
-          return (
-            <button
-              key={p.id}
-              onClick={() => selectProfile(p.id)}
-              disabled={bloqueado}
-              aria-disabled={bloqueado}
-              className={`p-4 border-2 rounded-xl text-start transition-colors ${
-                active ? 'border-accent bg-accent-soft' : 'border-border-subtle bg-surface'
-              } ${bloqueado ? 'opacity-60 cursor-not-allowed' : 'hover:border-accent'}`}
-            >
-              <div className="flex items-center justify-between mb-1.5">
-                <span className="flex items-center gap-2 font-bold text-[13.5px] text-ink">
-                  {meta?.icon}
-                  {p.name}
+    <>
+      <section>
+        <TituloDeSecao
+          icone={Server}
+          titulo={t('Onde as contas rodam')}
+          desc={t('Você pode mudar quando quiser. Trocar não apaga nada: suas gravações e palavras ficam.')}
+        />
+        <div className="pilha">
+          {BUILTIN_PROFILES.map((p) => {
+            const meta = PROFILE_META[p.id];
+            const active = p.id === activeId;
+            const bloqueado = bloqueados.includes(p.id);
+            return (
+              <button
+                key={p.id}
+                type="button"
+                onClick={() => selectProfile(p.id)}
+                disabled={bloqueado}
+                aria-disabled={bloqueado}
+                aria-pressed={active}
+                className={`cartao opcao ${active ? 'sel' : ''}`}
+                style={bloqueado ? { opacity: 0.6, cursor: 'not-allowed' } : undefined}
+              >
+                <span className="radio" aria-hidden />
+                <IconeEmBloco icone={meta?.icone ?? Server} />
+                <span style={{ flex: 1 }}>
+                  <h3>
+                    {p.name}{' '}
+                    <span className={`badge ${meta?.badgeClass ?? 'ok'}`} style={{ marginLeft: 6 }}>
+                      {bloqueado ? 'Pro' : meta?.badge}
+                    </span>
+                  </h3>
+                  <p>{meta?.desc}</p>
                 </span>
-                <span className={`badge-tag ${meta?.badgeClass ?? 'ok'}`}>{bloqueado ? 'Pro' : meta?.badge}</span>
-              </div>
-              <p className="text-[12px] text-ink-muted">{meta?.desc}</p>
-            </button>
-          );
-        })}
-      </div>
+              </button>
+            );
+          })}
+        </div>
+      </section>
 
       {/* ── O QUE ESTE JEITO CONSEGUE FAZER ──────────────────────────────────────────────────
-          Antes esta grade dizia `STT · whisper-local`, `VLM ·,`. Os dois lados eram opacos: a
-          sigla não diz o que a capacidade FAZ, e o travessão não diz que a coisa não funciona
-          naquele perfil, parecia campo vazio, não recurso ausente. Quem escolhia "Privado/Local"
-          descobria que a busca por sentido não funcionava ao tentar usá-la.
-
-          Agora cada linha diz a capacidade em português, o que ela alimenta na tela, e o VEREDITO.
-          O nome técnico do motor continua ali, à direita: era a informação útil da versão antiga e
-          continua sendo, para quem depura, é a única que importa. */}
-      <div className="p-5 border-b border-border-subtle">
-        <div className="label-mono mb-3">O que este jeito consegue fazer</div>
-        <ul className="flex flex-col gap-1.5">
+          Cada linha diz a capacidade em português, o que ela alimenta na tela, e o VEREDITO. O
+          veredito sai do PERFIL, não de uma tabela escrita à mão: sem binding declarado, a
+          capacidade não roda. O nome técnico do motor fica à direita, para quem depura. */}
+      <section className="secao">
+        <TituloDeSecao icone={ListChecks} titulo={t('O que este jeito consegue fazer')} />
+        <div className="cartao">
           {CAPS.map((cap) => {
             const meta = CAPACIDADE[cap];
             const motor = bindingLabel(cap);
-            /* O veredito sai do PERFIL, não de uma tabela escrita à mão: sem binding declarado, a
-               capacidade não roda, e é isso que a linha diz. Uma tabela paralela sairia de sincronia
-               com `gateway/profiles.ts` no primeiro perfil novo. */
             const atende = motor !== '-';
             return (
-              <li
-                key={cap}
-                className="flex items-center justify-between gap-3 bg-surface border border-border-subtle rounded-lg px-3 py-2.5"
-              >
-                <span className="flex items-start gap-2.5 min-w-0">
-                  <span
-                    className={`mt-1.5 w-1.5 h-1.5 rounded-full shrink-0 ${atende ? 'bg-good' : 'bg-warn'}`}
-                    aria-hidden
-                  />
-                  <span className="min-w-0">
-                    <span className="block font-bold text-[13px] text-ink">{t(meta.titulo)}</span>
-                    <span className="block text-[11.5px] text-ink-muted leading-snug">{t(meta.onde)}</span>
-                  </span>
-                </span>
-                <span className="shrink-0 text-end">
-                  <span className={`block text-[12px] font-bold ${atende ? 'text-good-ink' : 'text-warn-ink'}`}>
-                    {atende ? 'funciona aqui' : 'não dá neste jeito'}
-                  </span>
+              <div key={cap} className="ajuste ajuste-l">
+                <div>
+                  <h3>{t(meta.titulo)}</h3>
+                  <p className="mut">{t(meta.onde)}</p>
+                </div>
+                <span className="linha" style={{ gap: 8 }}>
                   {atende && (
-                    <span className="block text-[10.5px] font-mono text-ink-faint truncate max-w-[16ch]" title={motor}>
+                    <small className="mut" style={{ fontFamily: 'var(--font-mono)' }} title={motor}>
                       {motor}
-                    </span>
+                    </small>
                   )}
+                  <span className={`badge ${atende ? 'ok' : 'warn'}`}>
+                    {atende ? t('funciona aqui') : t('não dá neste jeito')}
+                  </span>
                 </span>
-              </li>
+              </div>
             );
           })}
-        </ul>
-      </div>
-
-      {/* Teste ao vivo pelo gateway */}
-      <div className="p-5">
-        <div className="label-mono mb-1 flex items-center gap-1.5">
-          <Languages className="w-3.5 h-3.5" /> Testar antes de confiar · Tradução EN → PT
         </div>
-        {/* Que o teste não grava nada é a pergunta silenciosa de quem escolheu um perfil local por
-            privacidade. Responder aqui custa uma linha; não responder custa o teste não ser feito. */}
-        <p className="text-[11.5px] text-ink-muted mb-2">
-          Traduza uma frase agora e veja o que este jeito devolve. Nada é salvo no seu caderno.
-        </p>
-        {/* C2 — o rótulo acima é um `div`, não um `<label for>`: visualmente identifica o campo,
-            para o leitor de tela não identifica nada. `aria-label` fecha a lacuna sem mexer no
-            layout (axe: regra `label`, WCAG 4.1.2). */}
-        <textarea
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-          rows={2}
-          aria-label="Texto em inglês para testar a tradução ao vivo"
-          className="w-full bg-canvas border border-border-subtle rounded-xl p-3 text-[13px] outline-none focus:border-accent transition-colors resize-none"
+      </section>
+
+      {/* Teste ao vivo pelo gateway. Que o teste não grava nada é a pergunta silenciosa de quem
+          escolheu um perfil local por privacidade. */}
+      <section className="secao">
+        <TituloDeSecao
+          icone={FlaskConical}
+          titulo={t('Testar antes de confiar')}
+          desc={t(
+            'Traduza uma frase agora (inglês → português) e veja o que este jeito devolve. Nada é salvo no seu caderno.',
+          )}
         />
-        <div className="flex items-center gap-3 mt-3">
-          <button onClick={runTest} disabled={status === 'loading' || !text.trim()} className="btn-solid py-2 disabled:opacity-50">
-            {status === 'loading' ? <Loader2 className="w-4 h-4 animate-spin" /> : <Zap className="w-4 h-4" />}
-            Traduzir pelo gateway
-          </button>
-          <span className="text-[11.5px] text-ink-faint font-mono">perfil: {profile.name}</span>
-        </div>
+        <div className="cartao p5">
+          <textarea
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            rows={2}
+            aria-label="Texto em inglês para testar a tradução ao vivo"
+            className="campo"
+          />
+          <div className="linha" style={{ gap: 12, marginTop: 12, flexWrap: 'wrap' }}>
+            <button
+              type="button"
+              onClick={runTest}
+              disabled={status === 'loading' || !text.trim()}
+              className="btn btn-solid"
+            >
+              {status === 'loading' ? <Loader2 className="animate-spin" aria-hidden /> : <Zap aria-hidden />}
+              {t('Traduzir pelo gateway')}
+            </button>
+            <small className="mut" style={{ fontFamily: 'var(--font-mono)' }}>
+              perfil: {profile.name}
+            </small>
+          </div>
 
-        {result && (
-          <div className="mt-4 ap-result-correct text-start">
-            <div className="ap-validation-label text-good mb-1.5">
-              <Check className="w-3.5 h-3.5" /> Resultado · engine: {result.engine}
+          {result && (
+            <div className="linha" style={{ gap: 12, marginTop: 16, alignItems: 'flex-start' }}>
+              <IconeEmBloco icone={Check} tom="good" />
+              <div>
+                <span className="label-mono">Resultado · engine: {result.engine}</span>
+                <p style={{ fontSize: 15, marginTop: 2 }}>{result.text}</p>
+              </div>
             </div>
-            <p className="text-[15px] text-ink font-medium">{result.text}</p>
-          </div>
-        )}
-        {status === 'error' && (
-          <div className="mt-4 ap-result-error text-start">
-            <div className="ap-validation-label text-error mb-1.5">
-              <AlertTriangle className="w-3.5 h-3.5" /> Falhou
+          )}
+          {status === 'error' && (
+            <div className="linha" style={{ gap: 12, marginTop: 16, alignItems: 'flex-start' }}>
+              <IconeEmBloco icone={AlertTriangle} tom="warn" />
+              <div style={{ minWidth: 0 }}>
+                <span className="label-mono">Falhou</span>
+                <p className="mut" style={{ fontSize: 13, overflowWrap: 'anywhere' }}>
+                  {error}
+                </p>
+                <p className="mut" style={{ fontSize: 12, marginTop: 4 }}>
+                  O perfil “Grátis/Web” traduz via MyMemory sem chave. Perfis local/nuvem exigem Ollama rodando ou uma
+                  credencial, configurada em Ajustes.
+                </p>
+              </div>
             </div>
-            <p className="text-[13px] text-ink-muted break-words">{error}</p>
-            <p className="text-[11.5px] text-ink-faint mt-1">
-              O perfil “Grátis/Web” traduz via MyMemory sem chave. Perfis local/nuvem exigem Ollama rodando ou uma
-              credencial, configurada em Ajustes.
-            </p>
-          </div>
-        )}
-      </div>
-    </div>
+          )}
+        </div>
+      </section>
+    </>
   );
 }

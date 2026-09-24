@@ -18,7 +18,7 @@ import { AlertTriangle, ArrowRight, Ban, CheckCircle2, HelpCircle, Loader2, Scan
 import { useState } from 'react';
 
 import { fetchAllUtterances, fetchDeck, relabelCards, relabelUtterances } from '../../data/api';
-import { auditDeck, type AuditReport, auditUtterances, type LangFinding,targetFor } from '../../lib/langAudit';
+import { auditDeck, type AuditReport, auditUtterances, type LangFinding, targetFor } from '../../lib/langAudit';
 import { fetchLangConfig, type LangConfig } from '../../lib/langConfig';
 import { baseLang, knownShorts, langLabel } from '../../lib/languages';
 import { askConfirm, toast } from '../Toast';
@@ -64,8 +64,7 @@ const COPY: Record<Mode, ModeCopy> = {
     tab: 'Cartões',
     scanBtn: 'Analisar meus cartões',
     headerTitle: 'Conferir o idioma dos meus cartões',
-    headerIntro:
-      'Compara o idioma gravado em cada cartão com a frase de onde a palavra saiu, e mostra o que não bate.',
+    headerIntro: 'Compara o idioma gravado em cada cartão com a frase de onde a palavra saiu, e mostra o que não bate.',
     emptyMsg: 'Você ainda não tem cartões no baralho, não há nada para auditar.',
     analyzing: (n) =>
       `Analisando ${n} ${n === 1 ? 'cartão' : 'cartões'}. A detecção roda um texto de cada vez, em baralhos grandes isso leva alguns segundos.`,
@@ -253,15 +252,16 @@ export default function LangAudit() {
    * O que de fato vai para a API. O `tgtLang` NUNCA é escolhido aqui: é derivado por `targetFor`, a
    * mesma função que o `langAudit` usa para propor — se a regra mudar lá, esta tela acompanha.
    */
-  const pending: Relabel[] = !report || !cfg
-    ? []
-    : report.findings.flatMap((f) => {
-        // 'sem-sinal' não tem checkbox: só entra se o usuário escolher o idioma à mão.
-        const wanted = f.verdict === 'sem-sinal' ? manual[f.cardId] : checked.has(f.cardId) ? srcFor(f) : '';
-        if (!wanted) return [];
-        const src = baseLang(wanted);
-        return [{ id: f.cardId, srcLang: src, tgtLang: targetFor(src, cfg) }];
-      });
+  const pending: Relabel[] =
+    !report || !cfg
+      ? []
+      : report.findings.flatMap((f) => {
+          // 'sem-sinal' não tem checkbox: só entra se o usuário escolher o idioma à mão.
+          const wanted = f.verdict === 'sem-sinal' ? manual[f.cardId] : checked.has(f.cardId) ? srcFor(f) : '';
+          if (!wanted) return [];
+          const src = baseLang(wanted);
+          return [{ id: f.cardId, srcLang: src, tgtLang: targetFor(src, cfg) }];
+        });
 
   const apply = async () => {
     if (!pending.length) return;
@@ -302,42 +302,44 @@ export default function LangAudit() {
   const counts = report?.counts;
 
   return (
-    <section>
-      <div className="flex items-center gap-2 mb-4 text-ink">
-        <ScanSearch className="w-5 h-5" />
-        <h2 className="font-display font-bold text-lg">Auditoria de idioma</h2>
+    <section className="secao">
+      {/* Marcação do protótipo (`TituloDeSecao` + `.cartao.p5.entre`); o seletor de modo — o mesmo
+          reparo, duas fontes de dados — vai à direita, como `.seg`. Trocar de modo zera o resultado. */}
+      <div className="tsec">
+        <div className="tsec-l">
+          <div className="tsec-t">
+            <ScanSearch aria-hidden />
+            <h2>Auditoria de idioma</h2>
+          </div>
+          <p className="desc">Confere se as palavras do seu caderno estão mesmo no idioma certo.</p>
+        </div>
+        <div className="seg" role="group" aria-label="O que auditar">
+          {(['cards', 'utterances'] as Mode[]).map((m) => (
+            <button
+              key={m}
+              type="button"
+              onClick={() => switchMode(m)}
+              disabled={running || applying}
+              aria-pressed={mode === m}
+            >
+              {COPY[m].tab}
+            </button>
+          ))}
+        </div>
       </div>
 
-      {/* Seletor de modo: o mesmo reparo, duas fontes de dados. Trocar de modo zera o resultado. */}
-      <div className="inline-flex rounded-xl bg-surface border border-border-subtle p-1 mb-4">
-        {(['cards', 'utterances'] as Mode[]).map((m) => (
-          <button
-            key={m}
-            onClick={() => switchMode(m)}
-            disabled={running || applying}
-            aria-pressed={mode === m}
-            className={`px-4 py-1.5 rounded-lg text-[12.5px] font-bold transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
-              mode === m ? 'btn-solid' : 'text-ink-muted hover:text-ink'
-            }`}
-          >
-            {COPY[m].tab}
-          </button>
-        ))}
-      </div>
-
-      <div className="card-panel">
-        <div className="p-5 flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-border-subtle">
-          <div className="min-w-0">
-            <div className="font-bold text-[14px] mb-1">{copy.headerTitle}</div>
-            <p className="text-[12px] text-ink-muted">
-              {copy.headerIntro} <span className="text-ink">Nada é alterado sem a sua confirmação.</span>
+      <div className="cartao">
+        <div
+          className="p5 entre"
+          style={running || report || deckSize === 0 ? { borderBottom: '1px solid var(--border-subtle)' } : undefined}
+        >
+          <div style={{ flex: 1, minWidth: 200 }}>
+            <h3 style={{ font: '700 14px var(--font-body)', marginBottom: 2 }}>{copy.headerTitle}</h3>
+            <p className="mut" style={{ fontSize: 13 }}>
+              {copy.headerIntro} Nada é alterado sem a sua confirmação.
             </p>
           </div>
-          <button
-            onClick={() => void run()}
-            disabled={running || applying}
-            className="btn-solid shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
+          <button onClick={() => void run()} disabled={running || applying} className="btn btn-outline">
             {running ? <Loader2 className="w-4 h-4 animate-spin" /> : <ScanSearch className="w-4 h-4" />}
             {running ? 'Analisando…' : report || deckSize === 0 ? 'Analisar de novo' : copy.scanBtn}
           </button>
@@ -347,16 +349,12 @@ export default function LangAudit() {
           <div className="p-5 border-b border-border-subtle flex items-center gap-3 text-[12.5px] text-ink-muted">
             <Loader2 className="w-4 h-4 shrink-0 animate-spin text-accent" />
             <span>
-              {deckSize != null
-                ? copy.analyzing(deckSize)
-                : 'Carregando os dados e a sua configuração de idiomas…'}
+              {deckSize != null ? copy.analyzing(deckSize) : 'Carregando os dados e a sua configuração de idiomas…'}
             </span>
           </div>
         )}
 
-        {!running && deckSize === 0 && (
-          <div className="p-5 text-[12.5px] text-ink-muted">{copy.emptyMsg}</div>
-        )}
+        {!running && deckSize === 0 && <div className="p-5 text-[12.5px] text-ink-muted">{copy.emptyMsg}</div>}
 
         {!running && report && (
           <>
@@ -390,7 +388,10 @@ export default function LangAudit() {
                 <p className="text-[12px] text-ink-muted mb-4">{copy.proposedIntro}</p>
                 <ul className="space-y-3">
                   {confident.map((f) => (
-                    <li key={f.cardId} className="flex items-start gap-3 rounded-xl bg-surface border border-border-subtle p-3">
+                    <li
+                      key={f.cardId}
+                      className="flex items-start gap-3 rounded-xl bg-surface border border-border-subtle p-3"
+                    >
                       <input
                         type="checkbox"
                         checked={checked.has(f.cardId)}
@@ -426,7 +427,10 @@ export default function LangAudit() {
                   {ambiguous.map((f) => {
                     const src = srcFor(f);
                     return (
-                      <li key={f.cardId} className="flex items-start gap-3 rounded-xl bg-surface border border-border-subtle p-3">
+                      <li
+                        key={f.cardId}
+                        className="flex items-start gap-3 rounded-xl bg-surface border border-border-subtle p-3"
+                      >
                         <input
                           type="checkbox"
                           checked={checked.has(f.cardId)}
@@ -445,17 +449,19 @@ export default function LangAudit() {
                               onChange={(v) => {
                                 setManual((m) => ({ ...m, [f.cardId]: v }));
                                 // Sem idioma escolhido não há o que gravar — desmarca sozinho.
-                                if (!v) setChecked((prev) => {
-                                  const next = new Set(prev);
-                                  next.delete(f.cardId);
-                                  return next;
-                                });
+                                if (!v)
+                                  setChecked((prev) => {
+                                    const next = new Set(prev);
+                                    next.delete(f.cardId);
+                                    return next;
+                                  });
                               }}
                               placeholder="Escolher idioma…"
                             />
                             {src && cfg && (
                               <span className="text-[11.5px] text-ink-muted">
-                                traduz para <span className="font-mono text-ink">{langLabel(targetFor(baseLang(src), cfg))}</span>
+                                traduz para{' '}
+                                <span className="font-mono text-ink">{langLabel(targetFor(baseLang(src), cfg))}</span>
                               </span>
                             )}
                           </div>
@@ -489,7 +495,9 @@ export default function LangAudit() {
                         {manual[f.cardId] && cfg && (
                           <span className="text-[11.5px] text-ink-muted">
                             traduz para{' '}
-                            <span className="font-mono text-ink">{langLabel(targetFor(baseLang(manual[f.cardId]), cfg))}</span>
+                            <span className="font-mono text-ink">
+                              {langLabel(targetFor(baseLang(manual[f.cardId]), cfg))}
+                            </span>
                           </span>
                         )}
                       </div>

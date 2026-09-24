@@ -29,7 +29,7 @@ test.describe('Transcricao (captura)', () => {
        IA", o mesmo do dialogo). Kids e senior seguem com a palavra escrita. Procurar pelo
        `aria-label` cobre os tres perfis de uma vez, e e o nome que o leitor de tela anuncia. */
     const abrirPainel = page.getByRole('button', {
-      name: /Configurações de dispositivos e modelos de IA|Configurações Simples|Ajustes de Áudio/,
+      name: /Ajustes da captura|Configurações de dispositivos e modelos de IA|Configurações Simples|Ajustes de Áudio/,
     })
     await expect(abrirPainel).toBeVisible()
     await clicarRobusto(page, abrirPainel)

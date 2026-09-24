@@ -5,6 +5,7 @@ import {
   ArrowRight,
   Check,
   ChevronDown,
+  CircleHelp,
   Cpu,
   Edit2,
   Eye,
@@ -12,20 +13,21 @@ import {
   Headphones,
   Image as ImageIcon,
   Layout,
-  LayoutGrid,
   Loader2,
   Maximize2,
   Mic,
   MicOff,
   Minimize2,
   Monitor,
+  PictureInPicture2,
   Plus,
   RefreshCw,
   Settings2,
   Sliders,
-  Sparkles,
+  Square,
   StopCircle,
   Users,
+  WandSparkles,
   X,
 } from 'lucide-react';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
@@ -113,10 +115,10 @@ import EditablePanel from '../EditablePanel';
 import GuidePanel from '../GuidePanel';
 // Bandeira SVG do idioma (nunca emoji: o Windows renderiza 🇧🇷 como "BR") + o rótulo curto.
 import { LangFlag } from '../LangFlag';
-import BingoPanel from '../minigames/BingoPanel';
 import ModelPrepPanel, { type ModelPrepState } from '../ModelPrepPanel';
 import Overlay, { OverlayCaption } from '../Overlay';
 import { toast } from '../Toast';
+import { CabecalhoDeTela } from '../ui';
 import VocabularyPanel from '../VocabularyPanel';
 import LangSelect from './captura/LangSelect';
 import SetaDoPar from './captura/SetaDoPar';
@@ -140,8 +142,6 @@ export default function LiveCapture({
   ageProfile?: 'kids' | 'pro' | 'senior';
 }) {
   const [showOverlay, setShowOverlay] = useState(false);
-  /** BINGO DA ESCUTA: cartela que acende com as palavras ouvidas (ver minigames/BingoPanel). */
-  const [showBingo, setShowBingo] = useState(false);
   // 'transparent' e não '#000000': o padrão do overlay é fundo invisível, e começar em preto
   // fazia a janela flutuante abrir PRETA e só depois clarear, quando o Overlay montava.
   const [overlayBgColor, setOverlayBgColor] = useState('transparent');
@@ -1752,17 +1752,21 @@ export default function LiveCapture({
             ? 'Sua fala está entrando na gravação. Clique para mutar.'
             : 'Sua fala está fora da gravação. Clique para entrar — vale a qualquer momento, inclusive gravando.'
         }
-        className={`flex items-center gap-2 rounded-xl transition-all cursor-pointer shrink-0 disabled:cursor-wait ${
-          variante === 'foco'
-            ? 'py-3 px-6 text-xs font-bold border'
-            : 'py-3 px-5 text-xs md:text-sm font-extrabold border-2 min-h-[48px]'
-        } ${
-          micEnabled
-            ? 'bg-accent-soft border-accent text-accent-ink shadow-btn'
-            : variante === 'foco'
-              ? 'bg-canvas border-border-subtle text-ink-muted hover:text-ink hover:border-ink-faint'
-              : 'bg-white/10 border-white/15 text-ink-contrast/70 hover:text-ink-contrast hover:border-white/30'
-        }`}
+        className={
+          variante === 'tela'
+            ? `btn btn-outline ${micEnabled ? 'mic-on' : ''}`
+            : `flex items-center gap-2 rounded-xl transition-all cursor-pointer shrink-0 disabled:cursor-wait ${
+                variante === 'foco'
+                  ? 'py-3 px-6 text-xs font-bold border'
+                  : 'py-3 px-5 text-xs md:text-sm font-extrabold border-2 min-h-[48px]'
+              } ${
+                micEnabled
+                  ? 'bg-accent-soft border-accent text-accent-ink shadow-btn'
+                  : variante === 'foco'
+                    ? 'bg-canvas border-border-subtle text-ink-muted hover:text-ink hover:border-ink-faint'
+                    : 'bg-white/10 border-white/15 text-ink-contrast/70 hover:text-ink-contrast hover:border-white/30'
+              }`
+        }
       >
         {micAbrindo ? (
           <Loader2 className={`${iconeCls} animate-spin`} />
@@ -1808,19 +1812,23 @@ export default function LiveCapture({
             ? 'Legendas ao vivo numa janela flutuante sempre-no-topo (por cima de jogo/vídeo/chamada)'
             : 'Janela flutuante requer Chrome/Edge; aqui o overlay abre embutido na tela'
         }
-        className={`flex items-center gap-2 rounded-xl transition-all cursor-pointer shrink-0 ${
-          foco
-            ? 'py-3 px-6 text-xs font-bold border'
-            : 'py-3 px-5 text-xs md:text-sm font-extrabold border-2 min-h-[48px]'
-        } ${
-          showOverlay
-            ? 'bg-good text-white border-good shadow-btn'
-            : isRecording
-              ? 'bg-warn text-white border-warn shadow-btn animate-pulse'
-              : 'bg-warn-soft text-warn-ink border-warn hover:brightness-105'
-        }`}
+        className={
+          !foco
+            ? `btn btn-outline ${showOverlay ? 'mic-on' : ''} ${isRecording && !showOverlay ? 'pulsa' : ''}`
+            : `flex items-center gap-2 rounded-xl transition-all cursor-pointer shrink-0 ${
+                foco
+                  ? 'py-3 px-6 text-xs font-bold border'
+                  : 'py-3 px-5 text-xs md:text-sm font-extrabold border-2 min-h-[48px]'
+              } ${
+                showOverlay
+                  ? 'bg-good text-white border-good shadow-btn'
+                  : isRecording
+                    ? 'bg-warn text-white border-warn shadow-btn animate-pulse'
+                    : 'bg-warn-soft text-warn-ink border-warn hover:brightness-105'
+              }`
+        }
       >
-        <Layout className={foco ? 'w-4 h-4' : 'w-5 h-5'} />
+        {foco ? <Layout className="w-4 h-4" /> : <PictureInPicture2 aria-hidden />}
         {showOverlay ? (foco ? 'Flutuantes ativas' : 'Legendas flutuantes ativas') : 'Legendas flutuantes'}
       </button>
     );
@@ -1861,75 +1869,6 @@ export default function LiveCapture({
           <Check className="w-4 h-4 stroke-[3]" /> {feedbackMsg}
         </div>
       )}
-
-      {/* --- HEADER: identidade da tela à esquerda; utilidades à direita.
-          O botão do Relay saiu daqui (canto morto) e foi para o hero, junto das ações
-          de gravação, onde o usuário realmente trabalha. --- */}
-      {/* Barra de ferramentas em UMA linha. A descrição da tela saiu daqui e desceu para o topo
-          da coluna de trabalho (rolável): ela orienta na chegada e depois libera a altura, em vez
-          de custar ~30px fixos em toda sessão de gravação. */}
-      <header className="px-4 md:px-6 py-2.5 bg-surface border-b border-border-subtle flex items-center justify-between gap-3 shrink-0 z-30">
-        <h2 className="font-display font-black text-base md:text-lg text-ink leading-tight flex items-center gap-2 min-w-0">
-          {ageProfile === 'kids' ? (
-            <>
-              <Gamepad2 className="w-5 h-5 text-accent shrink-0" aria-hidden />
-              <span className="truncate">Gravador de jogos e legendas</span>
-            </>
-          ) : ageProfile === 'senior' ? (
-            <>
-              <Eye className="w-5 h-5 text-accent shrink-0" aria-hidden />
-              <span className="truncate">Gravação com tradução direta</span>
-            </>
-          ) : (
-            <span className="truncate">Captura ao vivo</span>
-          )}
-        </h2>
-
-        {/* Live Status Indicators */}
-        <div className="flex items-center gap-3">
-          {/* Collapse/Expand Inline configurations panel */}
-          <button
-            onClick={() => {
-              play(showConfigPanel ? 'close' : 'open');
-              setShowConfigPanel(!showConfigPanel);
-            }}
-            title="Configurações de dispositivos e modelos de IA"
-            aria-label="Configurações de dispositivos e modelos de IA"
-            className={`flex items-center justify-center gap-2 rounded-xl text-xs font-bold border transition-all cursor-pointer ${
-              ageProfile === 'pro' ? 'w-9 h-9 shrink-0' : 'px-4 py-2'
-            } ${showConfigPanel ? 'bg-canvas border-accent text-ink' : 'border-border-subtle bg-surface text-ink-muted hover:text-ink hover:bg-surface-hover'}`}
-          >
-            <Sliders className="w-4 h-4 text-accent" />
-            {/* Kids/Sênior precisam da palavra escrita; no perfil Produtividade o ícone basta —
-                é o que o design faz com os botões utilitários de 38px do cabeçalho. */}
-            {ageProfile === 'kids' ? 'Ajustes de Áudio' : ageProfile === 'senior' ? 'Configurações Simples' : null}
-          </button>
-
-          <button
-            onClick={() => setShowGuide(true)}
-            title="Guia rápido: como capturar, importar e estudar"
-            aria-label="Abrir guia rápido"
-            className="flex items-center justify-center w-8 h-8 shrink-0 rounded-lg border border-border-subtle bg-canvas text-ink-muted hover:text-accent hover:border-accent transition-colors cursor-pointer font-bold text-[13px]"
-          >
-            ?
-          </button>
-          <span
-            className="hidden md:inline-flex items-center gap-2 bg-canvas text-rare-ink border border-rare/20 text-[11px] px-3 py-1.5 rounded-lg font-bold"
-            title={`Detalhe técnico, sistema: Whisper local · microfone: ${micEngine === 'browser' ? 'Web Speech (rede)' : 'Whisper local'} · perfil de IA: ${activeProfileName}`}
-          >
-            <Cpu className="w-3.5 h-3.5 animate-pulse text-accent" />
-            {ageProfile === 'kids'
-              ? 'Legenda inteligente ativa'
-              : ageProfile === 'senior'
-                ? 'Reconhecimento Automático Pronto'
-                : sttRouteLabel
-                  ? `Transcrição: ${sttRouteLabel}`
-                  : micEngine === 'browser'
-                    ? 'Transcrição no dispositivo · mic via navegador'
-                    : 'Transcrição 100% no dispositivo'}
-          </span>
-        </div>
-      </header>
 
       {/* --- AVISO DE MODO RETOMAR --- */}
       {resumeId && (
@@ -2438,21 +2377,65 @@ export default function LiveCapture({
         {/* ============================================== */}
         {/* LEFT COLUMN: PRIMARY WORKSPACE & STREAMS       */}
         {/* ============================================== */}
-        <div className="flex-1 flex flex-col lg:overflow-y-auto custom-scrollbar border-b lg:border-b-0 lg:border-e border-border-subtle p-4 lg:p-6 space-y-6">
-          {/* SEM `-mb-2`: a margem negativa puxava o painel 8px PARA CIMA DO TEXTO — medido,
-              o parágrafo terminava em 151px e o painel começava em 143px. Daí a sobreposição. */}
-          <p className="text-[13px] text-ink-muted max-w-[68ch]">
-            {ageProfile === 'kids'
-              ? 'Grave o som do Roblox, de vídeos ou do microfone e veja a legenda aparecer em tempo real.'
-              : ageProfile === 'senior'
-                ? 'Siga os passos abaixo para gravar o som do computador ou a sua voz e ver o texto em português.'
-                : 'Transcreve e traduz o que você ouve e fala, em tempo real.'}
-          </p>
-
+        <div className="rolagem flex-1">
           {/* ============================================== */}
           {/* WORKSPACE VIEWPORTS (SEPARATE AREAS)          */}
           {/* ============================================== */}
-          <div className="w-full">
+          <div className="tela larga entra">
+            {/* Cabeçalho no molde do protótipo aprovado (`T.capturar`): rótulo, título, apoio e, à
+                direita, o modelo local, os ajustes da captura e o guia. */}
+            <CabecalhoDeTela
+              icone={ageProfile === 'kids' ? Gamepad2 : ageProfile === 'senior' ? Eye : Cpu}
+              sobrancelha="Transcrição no dispositivo"
+              titulo={
+                ageProfile === 'kids'
+                  ? 'Gravador de jogos e legendas'
+                  : ageProfile === 'senior'
+                    ? 'Gravação com tradução direta'
+                    : 'Capturar'
+              }
+              sub={
+                ageProfile === 'kids'
+                  ? 'Grave o som do Roblox, de vídeos ou do microfone e veja a legenda aparecer em tempo real.'
+                  : ageProfile === 'senior'
+                    ? 'Siga os passos abaixo para gravar o som do computador ou a sua voz e ver o texto em português.'
+                    : 'Transcreve e traduz o que você ouve e fala, em tempo real.'
+              }
+              acoes={
+                <>
+                  <button
+                    type="button"
+                    className="badge neu badge-botao"
+                    onClick={() => setShowConfigPanel(true)}
+                    title={`Detalhe técnico, sistema: Whisper local · microfone: ${micEngine === 'browser' ? 'Web Speech (rede)' : 'Whisper local'} · perfil de IA: ${activeProfileName}`}
+                    aria-label="Modelo no dispositivo: ver detalhes"
+                  >
+                    <Cpu aria-hidden /> {sttRouteLabel ? sttRouteLabel : 'modelo local'}
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-outline peq"
+                    onClick={() => {
+                      play(showConfigPanel ? 'close' : 'open');
+                      setShowConfigPanel(!showConfigPanel);
+                    }}
+                    aria-label="Ajustes da captura"
+                    title="Configurações de dispositivos e modelos de IA"
+                  >
+                    <Sliders aria-hidden />
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-outline peq"
+                    onClick={() => setShowGuide(true)}
+                    aria-label="Ajuda"
+                    title="Guia rápido: como capturar, importar e estudar"
+                  >
+                    <CircleHelp aria-hidden />
+                  </button>
+                </>
+              }
+            />
             {/* TRANSCRIÇÃO AO VIVO (modo único da tela) */}
             {
               <EditablePanel
@@ -2474,280 +2457,200 @@ export default function LiveCapture({
                     Resultado: iniciar uma captura = 1 clique.
                     FUNDO ESCURO (extensão do padrão do Hub/redesign): esta é a ação PRIMÁRIA da
                     tela inteira — o mesmo peso visual que o card "Escutar e traduzir" tem no Hub. */}
-                  <div
-                    className={`bg-ink text-ink-contrast border rounded-2xl p-5 shadow-xl space-y-4 shrink-0 transition-colors ${isRecording ? 'border-accent/50 ring-1 ring-accent/30' : 'border-white/10'}`}
-                  >
-                    {/* Linha 1 — status da sessão + atalhos de visualização */}
-                    <div className="flex items-center justify-between border-b border-white/10 pb-3">
-                      <div className="flex items-center gap-2.5">
-                        <span className="flex h-3 w-3 relative">
-                          {isRecording && (
-                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-accent opacity-75"></span>
-                          )}
-                          <span
-                            className={`relative inline-flex rounded-full h-3 w-3 ${isRecording ? 'bg-accent' : 'bg-white/30'}`}
-                          ></span>
-                        </span>
-                        <span className="font-display font-black text-[15px] uppercase tracking-wide text-ink-contrast">
-                          {isRecording ? 'Gravando…' : 'Espaço de Gravação'}
-                        </span>
-                      </div>
-
-                      <div className="flex items-center gap-2">
-                        {/* O Relay ("Legendas flutuantes") mudou de casa: é o botão de destaque ao
-                          lado do Iniciar/Parar — funcionalidade essencial não mora em atalho pequeno. */}
+                  <section className="cartao escuro estudio" aria-label="Espaço de gravação">
+                    <div className="estudio-topo">
+                      <h2>
+                        <span className={`ponto ${isRecording ? 'vivo' : ''}`} />
+                        {isRecording ? 'Gravando…' : 'Espaço de gravação'}
+                      </h2>
+                      <div className="linha" style={{ gap: 8 }}>
                         <button
+                          type="button"
+                          className="btn btn-outline peq"
                           onClick={() => setIsFocusMode(true)}
-                          className="p-1.5 px-2 bg-white/10 border border-white/15 rounded-xl text-ink-contrast hover:text-accent hover:border-accent transition-all flex items-center gap-1 font-bold text-[11px] cursor-pointer"
                           title="Expandir para o modo focado em tela cheia"
                         >
-                          <Maximize2 className="w-3.5 h-3.5" />
-                          <span>Foco Cheio</span>
+                          <Maximize2 aria-hidden /> Foco cheio
                         </button>
-
-                        {/* BINGO — transforma assistir em jogo sem atrapalhar a captura. */}
-                        <button
-                          onClick={() => setShowBingo((v) => !v)}
-                          aria-pressed={showBingo}
-                          title="Cartela de palavras que acende quando você as ouve"
-                          className={`p-1.5 px-2 border rounded-xl transition-all flex items-center gap-1 font-bold text-[11px] cursor-pointer ${
-                            showBingo
-                              ? 'bg-accent border-accent text-white shadow-btn'
-                              : 'bg-white/10 border-white/15 text-ink-contrast/70 hover:text-ink-contrast hover:border-accent'
-                          }`}
-                        >
-                          <LayoutGrid className="w-3.5 h-3.5" />
-                          <span>Bingo</span>
-                        </button>
-
-                        {/* O botão "Visual" saiu daqui: eram três botões disputando a mesma linha, e
-                          o ajuste de fontes/tamanhos da transcrição pertence ao mesmo lugar que os
-                          outros ajustes. Virou uma seção do modal de configurações, mesmo
-                          componente (`TranscriptVisualSettings`), nenhum recurso perdido. */}
                       </div>
                     </div>
-
-                    {/* Linha 3 — CTA + timer (esquerda) · idiomas (direita) */}
-                    <div className="grid grid-cols-1 md:grid-cols-3 items-center gap-4">
-                      <div className="flex flex-wrap items-center gap-3 md:col-span-2">
-                        {isRecording ? (
-                          <button
-                            onClick={handleStopRecording}
-                            data-sfx="none"
-                            className="flex items-center gap-2 py-3 px-6 bg-error text-white font-extrabold text-xs md:text-sm rounded-xl shadow-btn transition-all hover:scale-[1.02] cursor-pointer shrink-0 min-h-[48px]"
-                          >
-                            <StopCircle className="w-5 h-5" />
-                            {ageProfile === 'senior'
-                              ? 'Parar e salvar a gravação'
-                              : ageProfile === 'kids'
-                                ? 'Parar gravação'
-                                : 'Parar & Salvar'}
-                          </button>
-                        ) : (
-                          <button
-                            onClick={handleStartOrResume}
-                            disabled={!micEnabled && !systemEnabled}
-                            className="flex items-center gap-2 py-3.5 px-7 bg-accent hover:bg-accent-ink disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-xl font-extrabold text-xs md:text-sm shadow-btn transition-all hover:scale-[1.02] cursor-pointer shrink-0 min-h-[50px]"
-                          >
-                            <Mic className="w-5 h-5" />
-                            {ageProfile === 'senior'
+                    <div className="estudio-acoes">
+                      {isRecording ? (
+                        <button type="button" className="btn btn-outline" onClick={handleStopRecording} data-sfx="none">
+                          <Square aria-hidden />
+                          {ageProfile === 'senior'
+                            ? 'Parar e salvar a gravação'
+                            : ageProfile === 'kids'
+                              ? 'Parar gravação'
+                              : 'Parar captura'}
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          className="btn btn-solid"
+                          onClick={handleStartOrResume}
+                          disabled={!micEnabled && !systemEnabled}
+                        >
+                          <Mic aria-hidden />
+                          {ageProfile === 'senior'
+                            ? resumeId
+                              ? 'Continuar a gravação da aula'
+                              : 'Iniciar a gravação de áudio'
+                            : ageProfile === 'kids'
                               ? resumeId
-                                ? 'Continuar a gravação da aula'
-                                : 'Iniciar a gravação de áudio'
-                              : ageProfile === 'kids'
-                                ? resumeId
-                                  ? 'Continuar gravação'
-                                  : 'Começar a gravar'
-                                : resumeId
-                                  ? 'Continuar captura'
-                                  : 'Iniciar captura'}
-                          </button>
-                        )}
-
-                        {/* O MICROFONE — a única fonte que a pessoa escolhe, e o único controle que
-                          vale ANTES e DURANTE a sessão. Vive ao lado do gesto principal justamente
-                          porque é um gesto de mesma ordem: no meio de uma aula dá vontade de repetir
-                          a frase em voz alta, e isso não pode exigir parar e recomeçar a gravação.
-                          A mecânica (abrir tarde, mutar sem fechar) está em `alternarMicrofone`. */}
-                        {botaoDoMicrofone()}
-
-                        {/* LEGENDAS FLUTUANTES — a porta de destaque. É o que permite usar o app por
-                          cima de jogo/chamada; por isso vive AQUI, ao lado do gesto principal, com
-                          cor própria e pulso quando está gravando sem elas. */}
-                        {botaoDasLegendas()}
-
-                        <div className="flex items-baseline gap-1">
-                          <span className="font-mono text-2xl font-black text-ink-contrast tracking-widest">
-                            {isRecording ? formatTime(timer) : '00:00'}
-                          </span>
-                        </div>
-                      </div>
-
-                      {/* Idiomas CONTEXTUAIS por cenário — a mesma dupla sourceLang/targetLang de
-                        sempre, com rótulos que fazem sentido para o que o usuário está fazendo.
-                        A direção da tradução por fonte (sistema ↔ mic) continua automática. */}
-                      <div className="flex flex-col md:items-end gap-1 md:col-span-1">
-                        {/* O PAR NUM CHIP. Os dois seletores e a explicação da direção ocupavam três
+                                ? 'Continuar gravação'
+                                : 'Começar a gravar'
+                              : resumeId
+                                ? 'Continuar captura'
+                                : 'Iniciar captura'}
+                        </button>
+                      )}
+                      {botaoDoMicrofone()}
+                      {botaoDasLegendas()}
+                      <span style={{ flex: 1 }} />
+                      {/* O PAR NUM CHIP. Os dois seletores e a explicação da direção ocupavam três
                           linhas fixas da tela — informação que se lê UMA vez e se muda quase nunca,
                           disputando espaço com o único gesto que importa aqui. Agora o chip mostra
                           o par (com bandeira, como no resto do app) e a gaveta guarda a edição.
                           Os AVISOS ficaram de fora dela de propósito: são a parte que a pessoa
                           precisa ver sem clicar em nada. */}
-                        <button
-                          ref={gatilhoIdiomas}
-                          type="button"
-                          onClick={() => setIdiomasAbertos((a) => !a)}
-                          aria-haspopup="dialog"
-                          aria-expanded={idiomasAbertos}
-                          title="Ver e trocar os idiomas da sessão"
-                          className={`flex items-center gap-2 px-2.5 py-2 rounded-xl border bg-white/10 cursor-pointer transition-colors min-h-10 ${
-                            mesmoIdioma ? 'border-warn' : 'border-white/15 hover:border-accent'
-                          }`}
-                        >
-                          {/* O aviso não pode depender só da cor da borda (o app tem 7 temas). */}
-                          {mesmoIdioma && <span className="w-1.5 h-1.5 rounded-full bg-warn shrink-0" aria-hidden />}
-                          <span className="flex items-center gap-1.5 text-[11px] font-bold text-ink-contrast">
-                            {parResumido.auto ? (
-                              <Sparkles className="w-3.5 h-3.5 text-accent shrink-0" aria-hidden />
-                            ) : (
-                              <LangFlag code={parResumido.de} className="w-4 h-3" />
-                            )}
-                            {parResumido.auto ? 'Detectar' : langShortLabel(parResumido.de)}
-                          </span>
-                          <ArrowRight className="w-3 h-3 text-ink-contrast/50 shrink-0" aria-hidden />
-                          <span className="flex items-center gap-1.5 text-[11px] font-bold text-ink-contrast">
-                            <LangFlag code={parResumido.para} className="w-4 h-3" />
-                            {langLabel(parResumido.para)}
-                          </span>
-                          <ChevronDown
-                            className={`w-3.5 h-3.5 text-ink-contrast/50 shrink-0 transition-transform ${idiomasAbertos ? 'rotate-180' : ''}`}
-                            aria-hidden
-                          />
-                        </button>
+                      <button
+                        ref={gatilhoIdiomas}
+                        type="button"
+                        onClick={() => setIdiomasAbertos((a) => !a)}
+                        aria-haspopup="dialog"
+                        aria-expanded={idiomasAbertos}
+                        title="Ver e trocar os idiomas da sessão"
+                        className={`btn btn-outline peq ${mesmoIdioma ? 'pulsa' : ''}`}
+                      >
+                        {/* O aviso não pode depender só da cor da borda (o app tem 7 temas). */}
+                        {mesmoIdioma && <span className="w-1.5 h-1.5 rounded-full bg-warn shrink-0" aria-hidden />}
+                        {parResumido.auto ? (
+                          <WandSparkles aria-hidden />
+                        ) : (
+                          <LangFlag code={parResumido.de} className="w-4 h-3" />
+                        )}
+                        {parResumido.auto ? 'Detectar' : langShortLabel(parResumido.de)}
+                        <ArrowRight aria-hidden />
+                        <LangFlag code={parResumido.para} className="w-4 h-3" />
+                        {langLabel(parResumido.para)}
+                        <ChevronDown aria-hidden />
+                      </button>
 
-                        {/* Portal no `body`: o card da captura entra com `animate-in`, e um `fixed`
+                      {/* Portal no `body`: o card da captura entra com `animate-in`, e um `fixed`
                           sob um ancestral com `transform` passa a ser medido a partir dele — o
                           mesmo conserto já documentado em LangPicker e PopoverFlutuante.
                           z-65 fica ABAIXO do z-70 da lista do LangPicker, senão a lista de idiomas
                           abriria atrás da própria gaveta que a contém. */}
-                        {idiomasAbertos &&
-                          caixaIdiomas &&
-                          createPortal(
-                            <div
-                              ref={painelIdiomas}
-                              data-lang-ui=""
-                              role="dialog"
-                              aria-label="Idiomas da sessão"
-                              style={{ top: caixaIdiomas.top, left: caixaIdiomas.left, width: caixaIdiomas.largura }}
-                              className="fixed z-[65] bg-surface border border-border-subtle rounded-xl shadow-2xl p-3.5 space-y-2.5 animate-in fade-in slide-in-from-top-1 duration-150"
-                            >
-                              <span className="block text-[9px] font-mono font-bold uppercase tracking-wider text-ink-faint">
-                                Idiomas da sessão
-                              </span>
-                              {seletoresDeIdioma('pop-', true)}
-                              {/* RESUMO HUMANO da direção — o fluxo fica óbvio sem jargão (público leigo). */}
-                              <p className="text-[10px] text-ink-muted leading-snug">{resumoDaDirecao()}</p>
-                            </div>,
-                            document.body,
-                          )}
-                        {/* IDIOMAS IGUAIS = CARTÃO SEM VERSO (spec entrega-honesta). Ajustes já avisa
+                      {idiomasAbertos &&
+                        caixaIdiomas &&
+                        createPortal(
+                          <div
+                            ref={painelIdiomas}
+                            data-lang-ui=""
+                            role="dialog"
+                            aria-label="Idiomas da sessão"
+                            style={{ top: caixaIdiomas.top, left: caixaIdiomas.left, width: caixaIdiomas.largura }}
+                            className="fixed z-[65] bg-surface border border-border-subtle rounded-xl shadow-2xl p-3.5 space-y-2.5 animate-in fade-in slide-in-from-top-1 duration-150"
+                          >
+                            <span className="block text-[9px] font-mono font-bold uppercase tracking-wider text-ink-faint">
+                              Idiomas da sessão
+                            </span>
+                            {seletoresDeIdioma('pop-', true)}
+                            {/* RESUMO HUMANO da direção — o fluxo fica óbvio sem jargão (público leigo). */}
+                            <p className="text-[10px] text-ink-muted leading-snug">{resumoDaDirecao()}</p>
+                          </div>,
+                          document.body,
+                        )}
+                      {/* IDIOMAS IGUAIS = CARTÃO SEM VERSO (spec entrega-honesta). Ajustes já avisa
                           quem passa por lá; quem vai direto gravar não via nada, e o caderno enchia
                           de palavras sem tradução — 198 de 201 na conta do dono. O aviso mora aqui
                           porque é aqui que a palavra é fichada. */}
-                        {baseLang(sourceLang) === baseLang(targetLang) && (
-                          <p className="text-[9px] text-warn-ink md:text-end leading-tight">
-                            ⚠ Os dois idiomas são o mesmo: não há o que traduzir, e as palavras fichadas ficam{' '}
-                            <b>sem verso</b> (não servem para revisar).{' '}
-                            <button
-                              onClick={() => setShowConfigPanel(true)}
-                              className="underline font-bold cursor-pointer"
-                            >
-                              trocar um dos dois
-                            </button>
-                          </p>
-                        )}
-                        {/* Limite honesto: a Web Speech (motor padrão do mic) não detecta idioma. */}
-                        {autoDetectMyLang && captureScenario !== 'media' && micEngine === 'browser' && (
-                          <p className="text-[9px] text-warn-ink md:text-end leading-tight">
-                            ⚠ No microfone, a detecção automática exige o motor Whisper (ajustes avançados), no motor
-                            navegador vale o idioma escolhido.
-                          </p>
-                        )}
-                        {/* Cobertura REAL do par (única tela do app que avisa sobre isso). 'online' =
+                      {baseLang(sourceLang) === baseLang(targetLang) && (
+                        <p className="text-[9px] text-warn-ink md:text-end leading-tight">
+                          ⚠ Os dois idiomas são o mesmo: não há o que traduzir, e as palavras fichadas ficam{' '}
+                          <b>sem verso</b> (não servem para revisar).{' '}
+                          <button
+                            onClick={() => setShowConfigPanel(true)}
+                            className="underline font-bold cursor-pointer"
+                          >
+                            trocar um dos dois
+                          </button>
+                        </p>
+                      )}
+                      {/* Limite honesto: a Web Speech (motor padrão do mic) não detecta idioma. */}
+                      {autoDetectMyLang && captureScenario !== 'media' && micEngine === 'browser' && (
+                        <p className="text-[9px] text-warn-ink md:text-end leading-tight">
+                          ⚠ No microfone, a detecção automática exige o motor Whisper (ajustes avançados), no motor
+                          navegador vale o idioma escolhido.
+                        </p>
+                      )}
+                      {/* Cobertura REAL do par (única tela do app que avisa sobre isso). 'online' =
                           funciona, mas depende de rede; 'unknown' = não há motor nenhum para o par,
                           um aviso bem diferente, porque nem com internet vai traduzir. */}
-                        {!autoDetectLang &&
-                          (() => {
-                            const coverage = mtCoverage(sourceLang, targetLang);
-                            if (coverage === 'online') {
-                              return (
-                                <p className="text-[9px] text-warn-ink md:text-end leading-tight">
-                                  ⚠ {langLabel(sourceLang)}↔{langLabel(targetLang)} exige internet (o tradutor local
-                                  cobre só ↔ inglês).
-                                </p>
-                              );
-                            }
-                            if (coverage === 'unknown') {
-                              return (
-                                <p className="text-[9px] text-warn-ink md:text-end leading-tight">
-                                  ⚠ Não há tradutor para {langLabel(sourceLang)}↔{langLabel(targetLang)}, as falas
-                                  serão transcritas, mas ficarão sem tradução.
-                                </p>
-                              );
-                            }
-                            return null;
-                          })()}
-                      </div>
+                      {!autoDetectLang &&
+                        (() => {
+                          const coverage = mtCoverage(sourceLang, targetLang);
+                          if (coverage === 'online') {
+                            return (
+                              <p className="text-[9px] text-warn-ink md:text-end leading-tight">
+                                ⚠ {langLabel(sourceLang)}↔{langLabel(targetLang)} exige internet (o tradutor local
+                                cobre só ↔ inglês).
+                              </p>
+                            );
+                          }
+                          if (coverage === 'unknown') {
+                            return (
+                              <p className="text-[9px] text-warn-ink md:text-end leading-tight">
+                                ⚠ Não há tradutor para {langLabel(sourceLang)}↔{langLabel(targetLang)}, as falas serão
+                                transcritas, mas ficarão sem tradução.
+                              </p>
+                            );
+                          }
+                          return null;
+                        })()}
+                    </div>
+                    <div className="linha">
+                      <span className="relogio">{isRecording ? formatTime(timer) : '00:00'}</span>
+                      {/* As ondas seguem o nível REAL do áudio capturado (sonda RMS), não uma animação. */}
+                      {isRecording && (
+                        <span className="ondas" aria-hidden>
+                          {[0, 1, 2, 3, 4].map((k) => {
+                            const lvl = levels[Math.floor((k * levels.length) / 5)] ?? 0;
+                            return (
+                              <i
+                                key={k}
+                                style={{ height: `${Math.max(18, Math.min(100, lvl * 120))}%`, animation: 'none' }}
+                              />
+                            );
+                          })}
+                        </span>
+                      )}
                     </div>
 
                     {/* UMA linha de orientação, e ela vale GRAVANDO TAMBÉM.
                       Antes só aparecia antes de iniciar — justamente quando o estado era mais fácil
                       de adivinhar. Agora que a fonte muda no meio da sessão, é durante a gravação
                       que a pessoa precisa ler, em palavras, se a própria voz está entrando. */}
-                    <p className="text-[10px] text-ink-faint leading-tight">
+                    <p className="mut" style={{ fontSize: 12.5, marginTop: 6 }}>
                       {isRecording
                         ? micEnabled
                           ? 'Gravando o som do computador e a sua voz. Cada voz é identificada e traduzida na direção certa.'
                           : 'Gravando o som do computador. Sua voz está fora — ligue o microfone quando quiser entrar.'
                         : micEnabled
-                          ? 'O som do computador e a sua voz entram juntos. Dê o play no vídeo, aula ou chamada e clique em Iniciar.'
-                          : 'O som do computador entra sozinho. Dê o play no vídeo, aula ou chamada e clique em Iniciar — a legenda bilíngue aparece aqui e nas Legendas flutuantes.'}
+                          ? 'O som do computador e a sua voz entram juntos. Dê play no vídeo, aula ou chamada e clique em Iniciar.'
+                          : 'O som do computador entra sozinho. Dê play no vídeo, aula ou chamada e clique em Iniciar. A legenda bilíngue aparece aqui e nas Legendas flutuantes.'}
                     </p>
-
-                    {/* Linha 4 — WAVEFORM REAL: as barras seguem o nível de áudio efetivamente capturado
-                      (sonda RMS), não uma animação decorativa. */}
-                    {isRecording && (
-                      <div className="pointer-events-none h-10 flex items-end justify-center gap-[3px] bg-canvas/40 border border-border-subtle/40 rounded-xl p-2 select-none">
-                        {levels.map((lvl, i) => {
-                          const h = Math.max(5, Math.min(100, lvl * 120));
-                          return (
-                            <div
-                              key={i}
-                              className="w-[3.5px] bg-accent rounded-full"
-                              /* scaleY no lugar de animar `height`: mesma leitura visual sem
-                               re-layout a cada frame do medidor (ux-v2 §1.13). */
-                              style={{
-                                height: '100%',
-                                transformOrigin: 'bottom',
-                                transform: `scaleY(${h / 100})`,
-                                opacity: 0.3 + lvl * 0.7,
-                                transition: 'transform 70ms linear',
-                              }}
-                            />
-                          );
-                        })}
-                      </div>
-                    )}
 
                     {/* Linha 5 — preparo dos modelos locais (progresso transitório; não é configuração) */}
                     {modelPrep && <ModelPrepPanel state={modelPrep} onRetry={prepareModels} compact />}
-                  </div>
+                  </section>
 
                   {/* ══════════════ TRANSCRIÇÃO AO VIVO ══════════════ */}
-                  <div
-                    className={`rounded-2xl p-6 shadow-card flex flex-col flex-1 min-h-0 border ${
-                      transcricaoEscura ? 'bg-ink border-ink text-ink-contrast' : 'bg-surface border-border-subtle'
-                    }`}
+                  <section
+                    className={`cartao ${transcricaoEscura ? 'escuro' : ''} conversa flex flex-col flex-1 min-h-0`}
+                    aria-label="Conversa"
+                    aria-live="polite"
                   >
                     {/* Inline Visual Settings Panel */}
                     {showVisualSettings && (
@@ -2830,21 +2733,10 @@ export default function LiveCapture({
                         </button>
                       </form>
                     )}
-                  </div>
+                  </section>
                 </div>
               </EditablePanel>
             }
-
-            {/* BINGO DA ESCUTA — só quando ligado; recebe as falas já transcritas. */}
-            {showBingo && (
-              <div className="mb-4">
-                <BingoPanel
-                  falas={speechSegments.filter((x) => x.originalText.trim()).map((x) => x.originalText)}
-                  ageProfile={ageProfile}
-                  onClose={() => setShowBingo(false)}
-                />
-              </div>
-            )}
 
             {/* FALANTES — identificação AUTOMÁTICA de voz (WeSpeaker local, beta) + correção
               manual. Cada voz nova do som do computador vira "Pessoa N" com cor própria; o

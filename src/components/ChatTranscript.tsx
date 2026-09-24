@@ -5,7 +5,7 @@ import { toBcp47 } from '../lib/languages';
 import type { AgeProfileType } from '../lib/profile';
 import { getTranscriptStyleClasses, type TranscriptSettings } from '../lib/transcriptUtils';
 import type { VocabWord } from '../types';
-import { LangChip } from './LangFlag';
+import { IconeEmBloco } from './ui';
 
 /**
  * A CONVERSA — transcrição ao vivo em balões, com os dois lados em posições opostas
@@ -122,72 +122,54 @@ function EmptyState({
     scenario === 'media'
       ? [
           {
-            icon: <Play className="w-4 h-4" />,
+            icon: Play,
             txt: ageProfile === 'kids' ? 'Abra o vídeo ou o jogo' : 'Abra o vídeo, aula ou podcast em qualquer app',
           },
-          { icon: <MonitorPlay className="w-4 h-4" />, txt: 'Clique em iniciar, pegamos o som do computador' },
+          { icon: MonitorPlay, txt: 'Clique em Iniciar captura, pegamos o som do computador' },
           {
-            icon: <Headphones className="w-4 h-4" />,
+            icon: Headphones,
             txt: 'A legenda bilíngue aparece aqui e nas Legendas flutuantes',
           },
         ]
       : scenario === 'conversation'
         ? [
             {
-              icon: <Play className="w-4 h-4" />,
+              icon: Play,
               txt:
                 ageProfile === 'senior' ? 'Abra a sua chamada (WhatsApp, Zoom…)' : 'Entre na call, reunião ou partida',
             },
             {
-              icon: <MessagesSquare className="w-4 h-4" />,
+              icon: MessagesSquare,
               txt: 'Clique em iniciar, capturamos você e os outros ao mesmo tempo',
             },
-            { icon: <Mic className="w-4 h-4" />, txt: 'Cada voz vira uma pessoa, com cor e lado próprios' },
+            { icon: Mic, txt: 'Cada voz vira uma pessoa, com cor e lado próprios' },
           ]
         : [
-            { icon: <Mic className="w-4 h-4" />, txt: 'Clique em iniciar e fale ao microfone' },
-            { icon: <MessagesSquare className="w-4 h-4" />, txt: 'Sua fala vira texto na hora' },
-            { icon: <Headphones className="w-4 h-4" />, txt: 'A tradução aparece embaixo, para você conferir' },
+            { icon: Mic, txt: 'Clique em iniciar e fale ao microfone' },
+            { icon: MessagesSquare, txt: 'Sua fala vira texto na hora' },
+            { icon: Headphones, txt: 'A tradução aparece embaixo, para você conferir' },
           ];
 
+  // Marcação do protótipo aprovado (`T.capturar`): `.vazio` com o ícone em bloco, o título e os três
+  // passos em `.pilha` > `.passo`.
+  const IconeDoCenario = scenario === 'media' ? MonitorPlay : scenario === 'conversation' ? MessagesSquare : Mic;
   return (
-    <div className="h-full flex flex-col items-center justify-center gap-5 text-center px-6 select-none">
-      <div
-        className={`w-14 h-14 rounded-2xl flex items-center justify-center ${escuro ? 'bg-white/10' : 'bg-accent-soft'}`}
-      >
-        {scenario === 'media' ? (
-          <MonitorPlay className="w-7 h-7 text-accent" />
-        ) : scenario === 'conversation' ? (
-          <MessagesSquare className="w-7 h-7 text-accent" />
-        ) : (
-          <Mic className="w-7 h-7 text-accent" />
-        )}
-      </div>
-      <div>
-        <p className={`text-[15px] font-bold ${tituloCls}`}>
-          {ageProfile === 'kids' ? 'A legenda aparece aqui' : 'Sua conversa aparece aqui'}
-        </p>
-        <p className={`text-[12px] ${apoioCls} mt-1`}>Três passos e pronto:</p>
-      </div>
-      <ol className="flex flex-col gap-2.5 text-start">
+    <div className="vazio">
+      <IconeEmBloco icone={IconeDoCenario} />
+      <h3 style={{ color: 'inherit' }}>
+        {ageProfile === 'kids' ? 'A legenda aparece aqui' : 'Sua conversa aparece aqui'}
+      </h3>
+      <p className="mut">Três passos e pronto:</p>
+      <div className="pilha" style={{ textAlign: 'left', marginTop: 6 }}>
         {passos.map((p, i) => (
-          <li key={i} className={`flex items-center gap-3 text-[12.5px] ${apoioCls}`}>
-            <span
-              className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${
-                escuro
-                  ? 'bg-white/10 border border-white/15 text-white/70'
-                  : 'bg-canvas border border-border-subtle text-ink-faint'
-              }`}
-            >
-              {p.icon}
-            </span>
+          <div className="passo" key={i}>
+            <IconeEmBloco icone={p.icon} />
             <span>
-              <b className={`font-mono text-[10px] me-1.5 ${escuro ? 'text-white/50' : 'text-ink-faint'}`}>{i + 1}</b>
-              {p.txt}
+              {i + 1} · {p.txt}
             </span>
-          </li>
+          </div>
         ))}
-      </ol>
+      </div>
     </div>
   );
 }
@@ -202,18 +184,13 @@ export default function ChatTranscript({
   targetLang,
   observedLang,
   isRecording,
-  dense = true,
   escuro = false,
   selectedWord,
   addedWords,
   onExamineWord,
   onSpeakWord,
 }: ChatTranscriptProps) {
-  const { sizeClasses, fontClass, colorClasses } = getTranscriptStyleClasses(tsSettings);
-  // "Mídia" tem uma fonte só — não há dois lados a distinguir; o balão ocupa a linha toda.
-  const usaLados = scenario !== 'media';
-  // Kids/Sênior respiram mais: alvo de toque maior e menos densidade visual.
-  const folgado = ageProfile !== 'pro' || !dense;
+  const { sizeClasses, fontClass } = getTranscriptStyleClasses(tsSettings);
 
   if (!segments.length) {
     return <EmptyState scenario={scenario} ageProfile={ageProfile} isRecording={isRecording} escuro={escuro} />;
@@ -236,172 +213,91 @@ export default function ChatTranscript({
     return s.source === 'system' ? targetLang : sourceLang;
   };
 
+  /* Marcação do protótipo aprovado (`T.capturar`): cada fala é uma `.fala` — quem falou, o original
+     com as palavras do caderno clicáveis (`.palavra`) e a tradução embaixo. A ordem e o "esconder o
+     original" das configurações da legenda continuam valendo; a cor da pessoa vai no nome. */
   return (
-    <div className={`flex flex-col ${folgado ? 'gap-3' : 'gap-2'} ${fontClass}`}>
-      {segments.map((segment, i) => {
+    <div className={fontClass}>
+      {segments.map((segment) => {
         const speaker = speakerOf(segment.speakerId);
-        const isMic = segment.source === 'mic';
         const lineLang = langOf(segment);
-        // AGRUPAMENTO: falas seguidas da MESMA pessoa não repetem avatar e nome — é o que
-        // transforma uma lista de linhas numa conversa legível (e economiza altura de tela).
-        const anterior = segments[i - 1];
-        const primeiraDaSequencia =
-          !anterior || anterior.speakerId !== segment.speakerId || anterior.source !== segment.source;
 
-        const palavras = !tsSettings.hideOriginal && (
-          <div className="flex flex-wrap items-center gap-x-1.5 gap-y-1">
+        const original = !tsSettings.hideOriginal && (
+          <span className={`orig ${sizeClasses.original}`} style={{ gridColumn: 2 }}>
             {segment.originalText.split(' ').map((wordStr, wIdx) => {
               const cleanWord = wordStr.replace(/[,.:?!]/g, '').toLowerCase();
               const vocabMatch = segment.words.find((vw) => vw.word.toLowerCase() === cleanWord);
               if (vocabMatch) {
+                const selecionada = selectedWord?.toLowerCase() === cleanWord;
+                const guardada = addedWords.includes(vocabMatch.word);
                 return (
-                  <button
-                    key={wIdx}
-                    onClick={() => onExamineWord(vocabMatch, lineLang, segment.originalText)}
-                    className={`font-bold px-1.5 py-0.5 rounded border border-dashed transition-all cursor-pointer ${sizeClasses.original} ${
-                      selectedWord?.toLowerCase() === cleanWord
-                        ? 'bg-accent text-white border-accent shadow-btn'
-                        : addedWords.includes(vocabMatch.word)
-                          ? 'bg-good-soft border-good/50 text-good-ink'
-                          : escuro
-                            ? 'bg-white/10 border-white/25 text-ink-contrast hover:bg-white/20'
-                            : 'bg-canvas/80 border-border-subtle text-ink hover:bg-surface-hover'
-                    }`}
-                    title="Clique para pronúncia nativa e detalhes"
-                  >
-                    {wordStr}
-                  </button>
+                  <React.Fragment key={wIdx}>
+                    <button
+                      type="button"
+                      className="palavra"
+                      onClick={() => onExamineWord(vocabMatch, lineLang, segment.originalText)}
+                      title="Clique para pronúncia nativa e detalhes"
+                      aria-pressed={selecionada}
+                      style={
+                        selecionada
+                          ? { background: 'color-mix(in srgb,var(--accent) 28%,transparent)', borderRadius: 4 }
+                          : guardada
+                            ? { borderBottomColor: 'var(--good)' }
+                            : undefined
+                      }
+                    >
+                      {wordStr}
+                    </button>{' '}
+                  </React.Fragment>
                 );
               }
               return (
-                <span
-                  key={wIdx}
-                  className={`cursor-pointer hover:text-accent transition-colors font-medium ${sizeClasses.original}`}
-                  onClick={() => onSpeakWord(wordStr, lineLang)}
-                  title="Clique para ouvir"
-                >
-                  {wordStr}
-                </span>
+                <React.Fragment key={wIdx}>
+                  <span
+                    className="w"
+                    onClick={() => onSpeakWord(wordStr, lineLang)}
+                    title="Clique para ouvir"
+                    style={{ cursor: 'pointer' }}
+                  >
+                    {wordStr}
+                  </span>{' '}
+                </React.Fragment>
               );
             })}
-          </div>
+            {/* Fala ainda em andamento: três pontos vivos. */}
+            {segment.isPartial && !segment.originalText && (
+              <span className="inline-flex items-center gap-1 py-0.5" aria-label="transcrevendo">
+                {[0, 150, 300].map((d) => (
+                  <span
+                    key={d}
+                    className="w-1.5 h-1.5 rounded-full animate-bounce"
+                    style={{ animationDelay: `${d}ms`, background: 'currentColor', opacity: 0.5 }}
+                  />
+                ))}
+              </span>
+            )}
+          </span>
         );
-
         const traducao = segment.translatedText && (
-          <p
-            className={`leading-relaxed font-semibold ${sizeClasses.translated} ${
-              escuro ? 'text-white/70 italic' : colorClasses.translated
-            } ${
-              tsSettings.hideOriginal
-                ? ''
-                : `mt-1 pt-1 border-t ${escuro ? 'border-white/15' : 'border-border-subtle/60'}`
-            }`}
-          >
-            {segment.translatedText}
-          </p>
-        );
-
-        const avatar = (
-          <div
-            className={`${folgado ? 'w-8 h-8 text-[11px]' : 'w-7 h-7 text-[10px]'} rounded-full shrink-0 flex items-center justify-center font-black text-white shadow-sm`}
-            style={{ backgroundColor: speaker.color }}
-            title={speaker.name}
-            aria-hidden
-          >
-            {initials(speaker.name)}
-          </div>
+          <span className={`trad mut ${sizeClasses.translated}`}>{segment.translatedText}</span>
         );
 
         return (
-          <div
-            key={segment.id}
-            className={`flex items-end gap-2 animate-in fade-in ${
-              usaLados
-                ? isMic
-                  ? 'flex-row-reverse slide-in-from-right-2'
-                  : 'slide-in-from-left-2'
-                : 'slide-in-from-bottom-1'
-            } ${primeiraDaSequencia ? '' : folgado ? '-mt-1.5' : '-mt-1'}`}
-          >
-            {/* Avatar só na primeira fala da sequência; nas seguintes, um vão do mesmo tamanho
-                mantém os balões alinhados (sem "degrau" na coluna). */}
-            {usaLados &&
-              (primeiraDaSequencia ? (
-                avatar
-              ) : (
-                <div className={folgado ? 'w-8 shrink-0' : 'w-7 shrink-0'} aria-hidden />
-              ))}
-
-            <div
-              className={`min-w-0 ${usaLados ? 'max-w-[82%]' : 'w-full'} flex flex-col ${isMic && usaLados ? 'items-end' : 'items-start'}`}
-            >
-              {/* Cabeçalho: nome (só na 1ª da sequência), idioma da fala e hora. */}
-              {(primeiraDaSequencia || !usaLados) && (
-                <div className={`flex items-center gap-1.5 mb-0.5 px-1 ${isMic && usaLados ? 'flex-row-reverse' : ''}`}>
-                  {usaLados && (
-                    <span className="text-[11px] font-bold truncate" style={{ color: speaker.color }}>
-                      {speaker.name}
-                    </span>
-                  )}
-                  {/* O chip é uma pastilha clara por padrão; sobre o balão escuro ela virava um
-                      adesivo branco. `!` porque as duas classes disputam a mesma propriedade. */}
-                  <LangChip code={lineLang} className={escuro ? '!bg-white/10 !border-white/20 !text-white/70' : ''} />
-                  <span className={`text-[9px] font-mono ${escuro ? 'text-white/45' : 'text-ink-faint'}`}>
-                    {segment.timestamp}
-                  </span>
-                </div>
-              )}
-
-              {/* BALÃO. Superfície do TEMA nos dois lados (nunca `bg-accent` com texto branco: nos
-                  temas de destaque claro isso vira texto branco em fundo branco). A identidade vem
-                  da faixa colorida da pessoa e do lado, não de um fundo colorido ilegível. */}
-              <div
-                className={`relative px-3 py-2 shadow-sm ${colorClasses.container} ${
-                  escuro ? 'text-ink-contrast' : ''
-                } ${
-                  usaLados
-                    ? isMic
-                      ? escuro
-                        ? 'bg-accent/20 border border-accent/40 rounded-2xl rounded-br-sm'
-                        : 'bg-accent-soft/60 border border-accent/25 rounded-2xl rounded-br-sm'
-                      : escuro
-                        ? 'bg-white/[0.07] border border-white/15 rounded-2xl rounded-bl-sm'
-                        : 'bg-surface border border-border-subtle rounded-2xl rounded-bl-sm'
-                    : escuro
-                      ? 'bg-white/[0.07] border border-white/15 rounded-xl w-full'
-                      : 'bg-surface border border-border-subtle rounded-xl w-full'
-                } ${segment.isPartial ? 'opacity-90' : ''}`}
-                style={!usaLados || !isMic ? { borderLeftWidth: 3, borderLeftColor: speaker.color } : undefined}
-              >
-                {tsSettings.displayOrder === 'original-first' ? (
-                  <>
-                    {palavras}
-                    {traducao}
-                  </>
-                ) : (
-                  <>
-                    {traducao}
-                    {palavras}
-                  </>
-                )}
-
-                {/* Fala ainda em andamento: três pontos vivos, como num app de mensagens. */}
-                {segment.isPartial && !segment.originalText && (
-                  <span className="flex items-center gap-1 py-0.5" aria-label="transcrevendo">
-                    {[0, 150, 300].map((d) => (
-                      <span
-                        key={d}
-                        /* `ink-faint` sobre `ink` dá ~2,6:1 — os três pontos de "transcrevendo"
-                           praticamente sumiam no painel escuro, que é justamente o momento em que
-                           a pessoa está esperando a fala aparecer. */
-                        className={`w-1.5 h-1.5 rounded-full animate-bounce ${escuro ? 'bg-white/50' : 'bg-ink-faint'}`}
-                        style={{ animationDelay: `${d}ms` }}
-                      />
-                    ))}
-                  </span>
-                )}
-              </div>
-            </div>
+          <div key={segment.id} className={`fala ${segment.isPartial ? 'nova' : ''}`}>
+            <span className="quem" style={{ color: speaker.color }}>
+              {speaker.name}
+            </span>
+            {tsSettings.displayOrder === 'original-first' ? (
+              <>
+                {original}
+                {traducao}
+              </>
+            ) : (
+              <>
+                {traducao}
+                {original}
+              </>
+            )}
           </div>
         );
       })}

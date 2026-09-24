@@ -3,7 +3,7 @@ import { createRequire } from 'node:module'
 
 import { expect, type Page, test } from '@playwright/test'
 
-import { fecharSobreposicoes } from './_helpers'
+import { clicarRobusto, fecharSobreposicoes } from './_helpers'
 
 /**
  * FUNDAÇÃO (23/09/2026) — o que o shell novo promete e o que as duas telas-molde garantem.
@@ -101,7 +101,7 @@ test.describe('shell de tela grande', () => {
     await expect(rail).toBeVisible()
     const larguraAberta = (await rail.boundingBox())!.width
 
-    await page.getByRole('button', { name: /^Recolher o menu lateral/ }).click()
+    await clicarRobusto(page, page.getByRole('button', { name: /^Recolher o menu lateral/ }))
     await expect.poll(async () => (await rail.boundingBox())!.width).toBeLessThan(larguraAberta)
 
     // Recolhido, o item mostra o nome numa dica visível ao passar o mouse (CSS do protótipo,
@@ -131,7 +131,7 @@ test.describe('shell de tela grande', () => {
       localStorage.setItem('ichat_largura', '400')
     })
     await abrir(page)
-    await page.getByRole('button', { name: 'Abrir o iChat, seu tutor de estudos' }).click()
+    await clicarRobusto(page, page.getByRole('button', { name: 'Abrir o iChat, seu tutor de estudos' }))
 
     const alca = page.getByRole('separator', { name: 'Largura do iChat' })
     await expect(alca).toBeVisible()

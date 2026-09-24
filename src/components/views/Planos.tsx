@@ -4,75 +4,82 @@ import {
   ChevronDown,
   CircleHelp,
   Clock,
-  Cloud,
-  Cpu,
   CreditCard,
-  Download,
   Gauge,
   HardDrive,
   Infinity as Infinito,
   Languages,
   ListChecks,
   type LucideIcon,
-  MessageSquareQuote,
-  Mic,
-  Server,
-  Settings as Engrenagem,
+  Receipt,
   ShieldCheck,
-  Sparkles,
   Star,
   Table2,
-  Youtube,
 } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 
-import { armazenamentoEmTexto, type PlanoDeAssinatura, precoDoPlano } from '../../core/planos';
+import { armazenamentoEmTexto, precoDoPlano } from '../../core/planos';
+import {
+  carregarFaturas,
+  carregarStatusDeBilling,
+  estadoDaConta,
+  type Fatura,
+  faturaEmAberto,
+  type PlanoPago,
+  type StatusDeBilling,
+  temAssinatura,
+} from '../../lib/assinatura';
 import { getEntitlements, onPlanChange, PLAN_LABELS } from '../../lib/entitlements';
 import { numero, t } from '../../lib/i18n';
+import {
+  esquecerPlanosTelaDoBoot,
+  EVENTO_SUBTELA_DE_PLANOS,
+  lerPlanosTelaDoBoot,
+  lerUrlAtual,
+  publicarUrl,
+  type SubTelaDePlanos,
+} from '../../lib/rotas';
 import { carregarUso, duracaoLegivel, fracao, type UsoDoMes } from '../../lib/uso';
 import { toast } from '../Toast';
 import { Abas, CabecalhoDeTela, IconeEmBloco, PainelDeAba, Tela, TituloDeSecao } from '../ui';
-import Assinar from './planos/Assinar';
+import Assinado from './planos/Assinado';
+import Cancelar from './planos/Cancelar';
+import Checkout from './planos/Checkout';
+import { irAjuda, irSub, MODELOS, type Plano, PLANO_NOME, PLANOS } from './planos/dados';
+import { DialogoFatura, DialogoMudarPlano, DialogoPagamento, DialogoPausar } from './planos/DialogosDaAssinatura';
+import FaixaDaConta from './planos/FaixaDaConta';
+import SuaAssinatura, { type DialogoDaAssinatura, metodoAtual } from './planos/SuaAssinatura';
 
 /**
- * PLANOS E USO — o que cada plano dá, e quanto do seu já foi usado.
+ * PLANOS E ASSINATURA — o que cada plano dá, quanto do seu já foi usado, e a assinatura inteira:
+ * checkout, confirmação, faturas e cancelamento.
  *
- * A FORMA É A DO PROTÓTIPO APROVADO (`T.planos` em `docs/prototipos/consistencia-telas.html`):
- * faixa "Seu plano agora", três cartões `.plano2` com o Pro em destaque escuro, "Tudo do anterior,
- * e:", tabela "Comparar em detalhe" agrupada com barras de qualidade e perguntas frequentes.
+ * A FORMA É A DO PROTÓTIPO APROVADO (`T.planos`, `abaSuaAssinatura`, `T.checkout`, `T.assinado`,
+ * `T.cancelar` e os diálogos da assinatura em `docs/prototipos/consistencia-telas.html`). As
+ * sub-telas têm endereço (`/plano/assinar`, `/plano/assinado`, `/plano/cancelar`,
+ * `/plano/assinatura` — ver `lib/rotas`) sem virar views do App: o menu continua em Planos.
  *
- * OS NÚMEROS SÃO DO APP, NÃO DO PROTÓTIPO. Preço vem de `PLAN_MATRIX` (`precoDoPlano`),
- * armazenamento da quota (`armazenamentoEmTexto`) e qualidade de `docs/auditoria/eval-producao-v1.md`
- * (WER no CORAA, chrF++ no gold set). O protótipo tinha números ilustrativos (880 MB, faturas,
- * datas de renovação) que aqui não entram.
+ * OS NÚMEROS SÃO DO APP. Preço de `PLAN_MATRIX`, armazenamento da quota, qualidade de
+ * `docs/auditoria/eval-producao-v1.md`; o estado da conta de `/api/billing/status` e as faturas
+ * de `/api/billing/faturas`. O dinheiro não passa por aqui: o checkout abre a página de pagamento
+ * do Asaas, e quem concede o plano é o webhook do servidor.
  *
- * O QUE FICOU DE FORA, DE PROPÓSITO. Período anual (o app só tem preço mensal), a aba "Sua
- * assinatura" com faturas, pausa e troca de plano, o checkout e a promessa de reembolso em 7 dias:
- * nada disso existe no app, e desenhar o controle sem a função seria vender o que não há. A compra
- * e o cancelamento de verdade continuam no bloco `#assinar` (`planos/Assinar`).
- *
- * O BOTÃO DO CARTÃO NÃO COBRA — ele LEVA ao `#assinar`, que ou tem o formulário real (modo público
- * com billing) ou diz por que não há o que assinar nesta instalação.
+ * O QUE DO PROTÓTIPO FICOU DE FORA, E POR QUÊ: o seletor Mensal/Anual (o servidor só cobra por
+ * mês — não se cria plano novo numa tela), cupom e parcelas (não existem no servidor), e as
+ * operações que o servidor não tem — trocar de plano, trocar o cartão, pausar e estornar — que
+ * aparecem com a forma do protótipo e o caminho honesto: o suporte.
  */
 
-type Coluna = 'gratis' | 'essencial' | 'pro';
 type Celula = 'ok' | 'nao' | number | string;
 
 /** Uma linha do comparativo: rótulo, um valor por plano, nota e se "menor é melhor". */
 type Linha = [rotulo: string, valores: [Celula, Celula, Celula], nota?: string, invertido?: boolean];
 
-const MODELOS: Record<Coluna, string> = { gratis: '230–413 MB', essencial: '230–300 MB', pro: 'nenhum' };
-
-/*
- * O ESSENCIAL vende UMA coisa, e é a maior queixa medida: tradução contextualizada (idiomático
- * 27%→83%). A transcrição continua local — é isso que o deixa a R$ 9,90.
- */
 const COMPARA: [grupo: string, linhas: Linha[]][] = [
   [
     'Captura e estudo',
     [
       ['Captura ao vivo (mic + sistema)', ['ok', 'ok', 'ok']],
-      ['Identificação de falantes', ['ok', 'ok', 'ok']],
       ['Jogos, vocabulário e revisão', ['ok', 'ok', 'ok']],
       ['Importar do YouTube', ['nao', 'nao', 'ok']],
       ['Sua própria chave de IA (BYOK)', ['ok', 'ok', 'ok']],
@@ -100,69 +107,7 @@ const COMPARA: [grupo: string, linhas: Linha[]][] = [
   ],
 ];
 
-interface Plano {
-  id: Coluna;
-  /** A chave do plano na matriz do servidor. */
-  chave: PlanoDeAssinatura;
-  icone: LucideIcon;
-  nome: string;
-  tag: string;
-  para: string;
-  base: string | null;
-  itens: [LucideIcon, string][];
-  destaque?: boolean;
-}
-
-const PLANOS: Plano[] = [
-  {
-    id: 'gratis',
-    chave: 'free',
-    icone: Cpu,
-    nome: 'Grátis',
-    tag: 'Tudo local, sem custo',
-    para: 'Para estudar no seu computador, sem conta e sem pagar.',
-    base: null,
-    itens: [
-      [Cpu, 'Tudo roda no seu aparelho'],
-      [ShieldCheck, 'Nada do que você fala sai do computador'],
-      [Download, `Baixa ${MODELOS.gratis} de modelos uma vez`],
-      [HardDrive, `${armazenamentoEmTexto('free')} para sessões`],
-    ],
-  },
-  {
-    id: 'essencial',
-    chave: 'essencial',
-    icone: Sparkles,
-    nome: 'Essencial',
-    tag: 'Tradução com IA de nuvem',
-    para: 'Para quem quer traduções melhores sem trocar de computador.',
-    base: 'Grátis',
-    itens: [
-      [Languages, 'Tradução com IA de nuvem: 85% de qualidade'],
-      [MessageSquareQuote, 'Expressões idiomáticas: 83%'],
-      [Download, `Download menor: ${MODELOS.essencial}`],
-      [HardDrive, `${armazenamentoEmTexto('essencial')} para sessões`],
-    ],
-  },
-  {
-    id: 'pro',
-    chave: 'pro',
-    icone: Cloud,
-    nome: 'Pro',
-    tag: 'Tudo processado no servidor',
-    para: 'Para quem estuda todo dia, em qualquer aparelho.',
-    base: 'Essencial',
-    itens: [
-      [Cloud, 'Nada para baixar: roda no servidor'],
-      [Mic, 'Transcrição com menos erro: 24% no português falado'],
-      [Youtube, 'Importar do YouTube'],
-      [HardDrive, `${armazenamentoEmTexto('pro')} para sessões`],
-    ],
-    destaque: true,
-  },
-];
-
-const precoMensal = (p: Plano) => (p.id === 'gratis' ? '0' : (precoDoPlano(p.chave) ?? '—'));
+const precoDoCartao = (p: Plano) => (p.id === 'gratis' ? '0' : (precoDoPlano(p.chave) ?? '—'));
 
 /** Barra de qualidade da tabela (`medidor` do protótipo). */
 function Medidor({ v, invertido }: { v: number; invertido?: boolean }) {
@@ -198,38 +143,79 @@ function CelulaDaTabela({ x, invertido }: { x: Celula; invertido?: boolean }) {
   return <b className="tn">{x}</b>;
 }
 
-/** Leva a Ajustes sem depender de prop do App: a navegação do app escuta a URL (`popstate`). */
-function irParaAjustes() {
-  window.history.pushState({}, '', '/ajustes');
-  window.dispatchEvent(new PopStateEvent('popstate'));
-}
-
-const FAQ: [string, React.ReactNode][] = [
+/**
+ * As perguntas do protótipo, com as respostas que o app cumpre. Onde o protótipo promete o que o
+ * servidor ainda não faz (anual, troca de plano na hora, estorno automático), a resposta diz como
+ * é hoje.
+ */
+const FAQ: [string, string][] = [
   [
-    'Onde cada plano processa?',
-    'O Grátis roda tudo no seu computador: nada do que você fala sai do navegador. O Essencial manda só a tradução para a nuvem, e a fala continua transcrita localmente. O Pro processa tudo no servidor, o que traz a qualidade acima e dispensa o download dos modelos.',
+    'Qual a diferença entre mensal e anual?',
+    'Por enquanto só existe o mensal: você paga todo mês e pode cancelar a qualquer momento. O plano anual ainda não está à venda.',
+  ],
+  [
+    'Posso trocar de plano depois?',
+    'Sim. Por enquanto a troca é feita pelo suporte, que ajusta a sua assinatura para o outro plano sem você perder o que já pagou.',
   ],
   [
     'Posso cancelar quando quiser?',
-    'Sim. Cancelar para a renovação; o que já foi pago vale até o fim do período, e seus dados continuam salvos.',
+    'Sim, em Planos → Sua assinatura, em poucos cliques. Você mantém o acesso até o fim do período pago e seus dados continuam salvos.',
+  ],
+  [
+    'E se eu me arrepender?',
+    'Nos primeiros 7 dias depois de assinar, você tem direito ao valor de volta, inteiro, no mesmo meio de pagamento (CDC, art. 49). Cancele em Planos → Sua assinatura e peça o reembolso ao suporte.',
   ],
   [
     'Como cada número foi medido?',
-    'Transcrição: taxa de erro de palavras (WER) medida em 48 falas espontâneas do corpus CORAA de fala brasileira. Tradução: chrF++ num conjunto anotado por fenômeno (pronome, gênero, idiomático, registro). Os números são medidos, não estimados; o método completo está publicado no repositório do projeto, com o link na tela Sobre.',
+    'Transcrição: taxa de erro de palavras (WER) no corpus CORAA de fala espontânea brasileira. Tradução: chrF++ num conjunto anotado por fenômeno. Os números são medidos, não estimados.',
   ],
-  [
-    'O que é o self-host?',
-    'É o Babel Play rodando no seu próprio computador. Ali tudo fica liberado e não há cota; o custo da IA de nuvem, se usar, é seu, pela sua própria chave.',
-  ],
+  ['O que é o self-host?', 'É o Babel Play rodando no seu próprio computador. Ali tudo fica liberado e não há cota.'],
 ];
+
+const CHAVE_DO_CHECKOUT = 'babel.checkout.plano';
+function planoGuardado(): PlanoPago {
+  try {
+    return sessionStorage.getItem(CHAVE_DO_CHECKOUT) === 'essencial' ? 'essencial' : 'pro';
+  } catch {
+    return 'pro';
+  }
+}
 
 export default function Planos() {
   const [entitlements, setEntitlements] = useState(() => getEntitlements());
+  const [status, setStatus] = useState<StatusDeBilling | null>(null);
+  const [faturas, setFaturas] = useState<Fatura[] | null>(null);
+  const [carregandoFaturas, setCarregandoFaturas] = useState(false);
   const [uso, setUso] = useState<UsoDoMes | null>(null);
   const [carregando, setCarregando] = useState(true);
-  const [aba, setAba] = useState('planos');
+  const [sub, setSub] = useState<SubTelaDePlanos | null>(() => lerUrlAtual().planosTela ?? lerPlanosTelaDoBoot());
+  const [abaLocal, setAbaLocal] = useState<'planos' | 'consumo'>('planos');
+  const [planoDoCheckout, setPlanoDoCheckout] = useState<PlanoPago>(planoGuardado);
+  const [dialogo, setDialogo] = useState<DialogoDaAssinatura | null>(null);
 
   useEffect(() => onPlanChange(() => setEntitlements(getEntitlements())), []);
+
+  /* A sub-tela segue a URL: o "voltar" do navegador e os botões das sub-telas passam por ela. Se
+     ela veio do boot (o App já tinha reescrito a barra para /plano), devolve-a à barra. */
+  useEffect(() => {
+    esquecerPlanosTelaDoBoot();
+    if (sub && lerUrlAtual().planosTela !== sub) publicarUrl({ view: 'planos', planosTela: sub }, false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  useEffect(() => {
+    const aoMudar = () => setSub(lerUrlAtual().planosTela ?? null);
+    window.addEventListener('popstate', aoMudar);
+    window.addEventListener(EVENTO_SUBTELA_DE_PLANOS, aoMudar);
+    return () => {
+      window.removeEventListener('popstate', aoMudar);
+      window.removeEventListener(EVENTO_SUBTELA_DE_PLANOS, aoMudar);
+    };
+  }, []);
+
+  const recarregarStatus = useCallback(() => {
+    void carregarStatusDeBilling().then(setStatus);
+  }, []);
+  useEffect(recarregarStatus, [recarregarStatus]);
 
   useEffect(() => {
     let vivo = true;
@@ -244,64 +230,105 @@ export default function Planos() {
   }, []);
 
   const meuPlano = entitlements.plan;
-  /** Só um plano PAGO ganha o selo "Seu plano" no cartão — como no protótipo. */
-  const pago = meuPlano === 'essencial' || meuPlano === 'pro' ? meuPlano : null;
+  const conta = estadoDaConta(meuPlano, status);
+  const assina = temAssinatura(conta.estado);
 
-  /* ── Faixa "Seu plano agora" ── */
-  const faixa =
-    meuPlano === 'selfhost' ? (
-      <section className="cartao agora" aria-label="Seu plano agora">
-        <IconeEmBloco icone={Server} tom="good" />
-        <div style={{ flex: 1, minWidth: 220 }}>
-          <span className="label-mono">Seu plano agora</span>
-          <h2>
-            Self-host{' '}
-            <span className="badge ok">
-              <Check aria-hidden /> Tudo liberado
-            </span>
-          </h2>
-          <p className="mut">
-            O app roda no seu computador: nada de cota, nada de cobrança. Os planos abaixo são para usar na nuvem.
-          </p>
-        </div>
-        <button type="button" className="btn btn-outline" onClick={irParaAjustes}>
-          <Engrenagem aria-hidden /> Onde as contas rodam
-        </button>
-      </section>
-    ) : pago ? (
-      <section className="cartao agora" aria-label="Seu plano agora">
-        <IconeEmBloco icone={pago === 'pro' ? Cloud : Sparkles} />
-        <div style={{ flex: 1, minWidth: 220 }}>
-          <span className="label-mono">Seu plano agora</span>
-          <h2>
-            {t(PLAN_LABELS[meuPlano])} · mensal{' '}
-            <span className="badge ok">
-              <Check aria-hidden /> Ativa
-            </span>
-          </h2>
-          <p className="mut">R$ {precoDoPlano(pago)} por mês. O status da cobrança está logo abaixo dos planos.</p>
-        </div>
-        <a className="btn btn-outline" href="#assinar">
-          <Engrenagem aria-hidden /> Gerenciar
-        </a>
-      </section>
-    ) : (
-      <section className="cartao agora" aria-label="Seu plano agora">
-        <IconeEmBloco icone={Cpu} />
-        <div style={{ flex: 1, minWidth: 220 }}>
-          <span className="label-mono">Seu plano agora</span>
-          <h2>
-            {meuPlano === 'anonimo' ? t(PLAN_LABELS[meuPlano]) : 'Grátis'}{' '}
-            <span className="badge neu">Plano atual</span>
-          </h2>
-          <p className="mut">Tudo roda no seu aparelho. Assine para usar a IA de nuvem e estudar em qualquer lugar.</p>
-        </div>
-      </section>
+  /* Faturas só para quem assina — e só depois de saber que assina. */
+  useEffect(() => {
+    if (!assina) return;
+    let vivo = true;
+    setCarregandoFaturas(true);
+    void carregarFaturas().then((f) => {
+      if (!vivo) return;
+      setFaturas(f);
+      setCarregandoFaturas(false);
+    });
+    return () => {
+      vivo = false;
+    };
+  }, [assina]);
+
+  const escolherPlano = (p: PlanoPago) => {
+    setPlanoDoCheckout(p);
+    try {
+      sessionStorage.setItem(CHAVE_DO_CHECKOUT, p);
+    } catch {
+      /* sem armazenamento, o checkout só não lembra a escolha ao recarregar */
+    }
+  };
+
+  const reativar = () => {
+    toast.info(
+      `Para reativar o ${conta.plano ? PLANO_NOME[conta.plano] : 'plano'} sem pagar duas vezes, fale com o suporte.`,
     );
+    irAjuda();
+  };
+
+  const aberta = faturaEmAberto(faturas);
+  const dialogos = dialogo && (
+    <>
+      {dialogo === 'mudar-plano' && <DialogoMudarPlano conta={conta} aoFechar={() => setDialogo(null)} />}
+      {dialogo === 'pagamento' && (
+        <DialogoPagamento
+          conta={conta}
+          aberta={aberta}
+          metodoAtual={metodoAtual(faturas)}
+          aoFechar={() => setDialogo(null)}
+        />
+      )}
+      {dialogo === 'pausar' && <DialogoPausar conta={conta} aoFechar={() => setDialogo(null)} />}
+      {typeof dialogo === 'object' && <DialogoFatura fatura={dialogo.fatura} aoFechar={() => setDialogo(null)} />}
+    </>
+  );
+
+  /* ── Sub-telas ── */
+  if (sub === 'assinar')
+    return (
+      <Checkout plano={planoDoCheckout} aoTrocarPlano={escolherPlano} plan={meuPlano} conta={conta} status={status} />
+    );
+  if (sub === 'assinado') return <Assinado />;
+  if (sub === 'cancelar')
+    return <Cancelar conta={conta} faturas={faturas} aoCancelado={recarregarStatus} aoReativar={reativar} />;
+
+  /* A aba "Sua assinatura" só existe para quem assina (como no protótipo). */
+  const aba = sub === 'assinatura' && assina ? 'assinatura' : abaLocal;
+  const trocarAba = (id: string) => {
+    if (id === 'assinatura') {
+      irSub('assinatura');
+      return;
+    }
+    setAbaLocal(id as 'planos' | 'consumo');
+    if (sub === 'assinatura') irSub(null);
+  };
+
+  /* ── O botão de cada cartão (`ctaDe` do protótipo) ── */
+  const cta = (p: Plano): { rot: string; solido: boolean; off?: boolean; acao: () => void } => {
+    if (!assina) {
+      if (p.id === 'gratis')
+        return { rot: 'Continuar grátis', solido: false, acao: () => toast.ok('Você continua no Grátis. Nada muda.') };
+      return {
+        rot: `Assinar ${p.nome}`,
+        solido: !!p.destaque,
+        acao: () => {
+          escolherPlano(p.id as PlanoPago);
+          irSub('assinar');
+        },
+      };
+    }
+    if (p.id === conta.plano) return { rot: 'Seu plano', solido: false, off: true, acao: () => {} };
+    if (p.id === 'gratis') return { rot: 'Voltar ao Grátis', solido: false, acao: () => irSub('cancelar') };
+    const sobe = p.id === 'pro' && conta.plano === 'essencial';
+    return {
+      rot: `${sobe ? 'Subir' : 'Mudar'} para ${p.nome}`,
+      solido: !!p.destaque,
+      acao: () => setDialogo('mudar-plano'),
+    };
+  };
 
   const cartao = (p: Plano) => {
-    const atual = pago === p.chave;
+    const atual = assina && p.id === conta.plano;
     const Icone = p.icone;
+    const c = cta(p);
     return (
       <article key={p.id} className={`cartao plano2 ${p.destaque ? 'escuro destaque' : ''} ${atual ? 'atual' : ''}`}>
         {p.destaque && (
@@ -323,37 +350,22 @@ export default function Planos() {
         </div>
         <div className="preco2">
           <span className="moeda">R$</span>
-          <span className="valor tn">{precoMensal(p)}</span>
+          <span className="valor tn">{precoDoCartao(p)}</span>
           <span className="per mut">{p.id === 'gratis' ? 'para sempre' : 'por mês'}</span>
         </div>
         <p className="cobranca mut">
           {p.id === 'gratis' ? 'Sem cartão, sem conta.' : 'cobrado todo mês, cancele quando quiser'}
         </p>
         <p className="para mut">{p.para}</p>
-        {atual ? (
-          <button type="button" className="btn btn-outline bloco" disabled>
-            Seu plano
-          </button>
-        ) : p.id === 'gratis' ? (
-          pago ? (
-            <a className="btn btn-outline bloco" href="#assinar">
-              Voltar ao Grátis
-            </a>
-          ) : (
-            <button
-              type="button"
-              className="btn btn-outline bloco"
-              onClick={() => toast.ok('Você continua no Grátis. Nada muda.')}
-            >
-              Continuar grátis
-            </button>
-          )
-        ) : (
-          <a className={`btn ${p.destaque ? 'btn-solid' : 'btn-outline'} bloco`} href="#assinar">
-            {pago ? `Mudar para ${p.nome}` : `Assinar ${p.nome}`}
-            {p.destaque && <ArrowRight aria-hidden />}
-          </a>
-        )}
+        <button
+          type="button"
+          className={`btn ${c.solido ? 'btn-solid' : 'btn-outline'} bloco`}
+          disabled={c.off}
+          onClick={c.acao}
+        >
+          {c.rot}
+          {c.solido && <ArrowRight aria-hidden />}
+        </button>
         <div className="inclui">
           <span className="label-mono">{p.base ? `Tudo do ${p.base}, e:` : 'O que você tem'}</span>
           <ul>
@@ -422,26 +434,29 @@ export default function Planos() {
           <Abas
             itens={[
               { id: 'planos', rotulo: 'Planos', icone: <ListChecks aria-hidden /> },
+              ...(assina ? [{ id: 'assinatura', rotulo: 'Sua assinatura', icone: <Receipt aria-hidden /> }] : []),
               { id: 'consumo', rotulo: 'Consumo do mês', icone: <Gauge aria-hidden /> },
             ]}
             ativo={aba}
-            aoTrocar={setAba}
+            aoTrocar={trocarAba}
             rotuloDoGrupo="Seções de Planos"
           />
         }
       />
 
       <PainelDeAba id="planos" ativo={aba}>
-        {faixa}
+        <FaixaDaConta
+          conta={conta}
+          rotuloGratis={meuPlano === 'anonimo' ? t(PLAN_LABELS[meuPlano]) : 'Grátis'}
+          aoGerenciar={() => irSub('assinatura')}
+          aoAtualizarPagamento={() => setDialogo('pagamento')}
+          aoReativar={reativar}
+        />
+        {/* Sem o seletor Mensal/Anual do protótipo: o servidor só cobra por mês. */}
         <div className="planos-grade">{PLANOS.map(cartao)}</div>
         <p className="mut garantia">
-          <ShieldCheck aria-hidden /> Pagamento pelo Asaas, por Pix ou cartão · cancele a renovação quando quiser
+          <ShieldCheck aria-hidden /> Pagamento seguro · 7 dias para desistir com reembolso · cancele quando quiser
         </p>
-
-        {/* Destino do "Assinar" dos cartões — a compra e o cancelamento de verdade. */}
-        <div id="assinar" className="secao" style={{ scrollMarginTop: 16 }}>
-          <Assinar />
-        </div>
 
         <section className="secao">
           <TituloDeSecao
@@ -464,7 +479,7 @@ export default function Planos() {
                           <I aria-hidden style={{ width: 15, height: 15 }} />
                           {p.nome}
                         </span>
-                        <small className="mut tn">{p.id === 'gratis' ? 'R$ 0' : `R$ ${precoMensal(p)}/mês`}</small>
+                        <small className="mut tn">{p.id === 'gratis' ? 'R$ 0' : `R$ ${precoDoCartao(p)}/mês`}</small>
                       </th>
                     );
                   })}
@@ -510,6 +525,18 @@ export default function Planos() {
             ))}
           </div>
         </section>
+      </PainelDeAba>
+
+      <PainelDeAba id="assinatura" ativo={aba}>
+        <SuaAssinatura
+          conta={conta}
+          faturas={faturas}
+          carregandoFaturas={carregandoFaturas}
+          abrir={setDialogo}
+          aoCancelar={() => irSub('cancelar')}
+          aoTentarDeNovo={(f) => window.open(f.link!, '_blank', 'noopener')}
+          aoReativar={reativar}
+        />
       </PainelDeAba>
 
       <PainelDeAba id="consumo" ativo={aba}>
@@ -580,6 +607,7 @@ export default function Planos() {
           </>
         )}
       </PainelDeAba>
+      {dialogos}
     </Tela>
   );
 }

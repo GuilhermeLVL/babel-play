@@ -2,7 +2,7 @@ import type { LucideIcon } from 'lucide-react';
 import { X } from 'lucide-react';
 import { type ReactNode, type RefObject, useEffect, useId, useRef } from 'react';
 
-import IconeEmBloco from './IconeEmBloco';
+import IconeEmBloco, { type TomDoIcone } from './IconeEmBloco';
 
 /**
  * O DIÁLOGO DO PROTÓTIPO — `abrirDialogo()`/`dlg()` + `cabDlg()` de `docs/prototipos/consistencia-telas.html`.
@@ -94,6 +94,7 @@ export function fecharDialogoDe(el: Element | null): void {
 /** O diálogo com o cabeçalho padrão (`.dlg-cab`: ícone em bloco, título, subtítulo, fechar). */
 export default function Dialogo({
   icone,
+  tom,
   titulo,
   sub,
   largura = 'medio',
@@ -101,6 +102,8 @@ export default function Dialogo({
   children,
 }: {
   icone: LucideIcon;
+  /** Tom do ícone em bloco (o IconeEmBloco(ico, 'rare') do protótipo). */
+  tom?: TomDoIcone;
   titulo: ReactNode;
   sub?: ReactNode;
   largura?: 'medio' | 'largo' | '';
@@ -112,7 +115,7 @@ export default function Dialogo({
   return (
     <DialogoBase classe={largura} rotuloId={idTitulo} aoFechar={aoFechar} refDialogo={ref}>
       <div className="dlg-cab">
-        <IconeEmBloco icone={icone} />
+        <IconeEmBloco icone={icone} tom={tom} />
         <div style={{ minWidth: 0 }}>
           <h2 id={idTitulo}>{titulo}</h2>
           {sub && (

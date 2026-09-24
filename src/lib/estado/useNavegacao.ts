@@ -3,7 +3,7 @@ import { type Dispatch, type SetStateAction, useEffect, useRef, useState } from 
 import type { Recording, ViewType } from '../../types';
 import { isOnAuthCallback } from '../authCallback';
 import { askNavGuard } from '../navGuard';
-import { type EstadoDeRota, lerUrlAtual, publicarUrl, type ViewDeRota } from '../rotas';
+import { type EstadoDeRota, irParaSubTelaDePlanos, lerUrlAtual, publicarUrl, type ViewDeRota } from '../rotas';
 import type { PracticeSeed } from '../sentences';
 
 export interface DependenciasDaNavegacao {
@@ -96,6 +96,9 @@ export function useNavegacao(deps: DependenciasDaNavegacao): EstadoDaNavegacao {
       setActiveView(view as ViewType);
       // v3: Personalizar aceita a aba de destino ("progressao" do fim de rodada, "loja" do cadeado).
       if (view === 'loja') setLojaAba(typeof data?.aba === 'string' ? data.aba : null);
+      // Planos tem sub-telas (checkout, confirmação, cancelamento) que não são views: o menu
+      // leva à tela principal, e o "voltar" do navegador à sub-tela que estava na URL.
+      if (view === 'planos') irParaSubTelaDePlanos(data?.planosTela ?? null);
       // `capture` com `resumeId` retoma uma sessão existente (Biblioteca → "Retomar
       // Captura"). Sem o id, é uma captura nova — limpar, senão a próxima gravação
       // sobrescreveria a sessão retomada anteriormente.
@@ -145,7 +148,12 @@ export function useNavegacao(deps: DependenciasDaNavegacao): EstadoDaNavegacao {
     if (isOnAuthCallback()) return; // o callback tem dono; não é rota de tela
     const e = lerUrlAtual();
     if (e.view === 'hub' && window.location.pathname === '/') return;
-    doNavigate(e.subTab === 'study' ? 'study' : e.view, { id: e.sessionId, subTab: e.subTab, aba: e.lojaTab });
+    doNavigate(e.subTab === 'study' ? 'study' : e.view, {
+      id: e.sessionId,
+      subTab: e.subTab,
+      aba: e.lojaTab,
+      planosTela: e.planosTela,
+    });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -165,7 +173,12 @@ export function useNavegacao(deps: DependenciasDaNavegacao): EstadoDaNavegacao {
   useEffect(() => {
     const aoVoltar = () => {
       const e = lerUrlAtual();
-      navigateTo(e.subTab === 'study' ? 'study' : e.view, { id: e.sessionId, subTab: e.subTab, aba: e.lojaTab });
+      navigateTo(e.subTab === 'study' ? 'study' : e.view, {
+        id: e.sessionId,
+        subTab: e.subTab,
+        aba: e.lojaTab,
+        planosTela: e.planosTela,
+      });
     };
     window.addEventListener('popstate', aoVoltar);
     return () => window.removeEventListener('popstate', aoVoltar);

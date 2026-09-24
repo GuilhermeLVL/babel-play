@@ -11,16 +11,21 @@
  */
 import { readFileSync } from 'node:fs'
 
-import { describe, expect,it } from 'vitest'
+import { describe, expect, it } from 'vitest'
 
-import { armazenamentoEmTexto,menorPrecoDeAssinatura, precoDoPlano } from '../src/core/planos'
+import { armazenamentoEmTexto, menorPrecoDeAssinatura, precoDoPlano } from '../src/core/planos'
 
 const TELAS = [
   'src/components/views/Planos.tsx',
   'src/components/shell/MenuDaConta.tsx',
   'src/components/CardDePlanos.tsx',
   'src/components/views/loja/ComprarCreditos.tsx',
-  'src/components/views/planos/Assinar.tsx',
+  'src/components/views/planos/Checkout.tsx',
+  'src/components/views/planos/Assinado.tsx',
+  'src/components/views/planos/Cancelar.tsx',
+  'src/components/views/planos/SuaAssinatura.tsx',
+  'src/components/views/planos/FaixaDaConta.tsx',
+  'src/components/views/planos/DialogosDaAssinatura.tsx',
   'src/components/views/Sobre.tsx',
 ]
 

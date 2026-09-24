@@ -1,0 +1,155 @@
+/**
+ * ASSINATURA NO CLIENTE — o estado da conta que as telas de pagamento desenham, e as chamadas
+ * ao servidor que elas fazem.
+ *
+ * O CLIENTE NÃO DECIDE NADA DE DINHEIRO. Preço vem de `PLAN_MATRIX`; se a assinatura está ativa,
+ * atrasada ou cancelada vem de `GET /api/billing/status`; as faturas, de `GET /api/billing/faturas`.
+ * Quem promove o plano é só o webhook do servidor, quando o Asaas confirma o pagamento — por isso
+ * a tela "Assinatura confirmada" pergunta ao servidor, e nunca confia num parâmetro da URL.
+ *
+ * O protótipo aprovado simula sete estados de conta (`ESTADOS_CONTA`). O app tem cinco de
+ * verdade: self-host, grátis, ativa, pagamento pendente e cancelada. "Pausada" não existe (a
+ * cobrança não tem pausa) e "Pro anual" também não (o servidor só cobra por mês).
+ */
+import { PLAN_MATRIX } from '../core/planos';
+import { apiFetch } from '../data/api';
+import type { Plan } from './entitlements';
+
+export type PlanoPago = 'essencial' | 'pro';
+export const PLANOS_PAGOS: readonly PlanoPago[] = ['essencial', 'pro'];
+export const ehPlanoPago = (p: unknown): p is PlanoPago => p === 'essencial' || p === 'pro';
+
+export interface StatusDeBilling {
+  configurado: boolean;
+  assinatura: { plano: string; status: string; valeAte: number | null; provedor: string | null } | null;
+}
+
+export interface Fatura {
+  id: string;
+  /** `AAAA-MM-DD` (pagamento, ou vencimento se ainda não pago). */
+  data: string | null;
+  descricao: string;
+  valor: number;
+  metodo: 'cartao' | 'pix' | 'boleto' | null;
+  status: 'paga' | 'pendente' | 'falhou' | 'estornada';
+  /** Comprovante do Asaas (só quando pago). */
+  recibo: string | null;
+  /** A página da fatura no Asaas — onde se paga a que está em aberto. */
+  link: string | null;
+}
+
+export type EstadoDaConta = 'selfhost' | 'gratis' | 'ativa' | 'falhou' | 'cancelada';
+
+export interface Conta {
+  estado: EstadoDaConta;
+  /** O plano pago da assinatura (quando há uma). */
+  plano: PlanoPago | null;
+  /** Até quando o período pago vale (ms). `null` = o servidor não sabe ainda. */
+  valeAte: number | null;
+}
+
+/**
+ * O estado da conta, derivado do que o SERVIDOR disse (entitlements + status da cobrança).
+ *
+ * `trialing` é só a intenção gravada ao iniciar o checkout (não concede nada no servidor): para a
+ * tela, a conta continua no Grátis até o webhook confirmar o pagamento.
+ */
+export function estadoDaConta(plan: Plan, status: StatusDeBilling | null, agora = Date.now()): Conta {
+  if (plan === 'selfhost') return { estado: 'selfhost', plano: null, valeAte: null };
+  const s = status?.assinatura;
+  if (s && ehPlanoPago(s.plano)) {
+    if (s.status === 'active') return { estado: 'ativa', plano: s.plano, valeAte: s.valeAte };
+    if (s.status === 'past_due') return { estado: 'falhou', plano: s.plano, valeAte: s.valeAte };
+    if (s.status === 'canceled' && s.valeAte !== null && s.valeAte > agora)
+      return { estado: 'cancelada', plano: s.plano, valeAte: s.valeAte };
+  }
+  // Plano pago sem cobrança no provedor (concedido pelo administrador): ativo, sem data.
+  if (ehPlanoPago(plan)) return { estado: 'ativa', plano: plan, valeAte: null };
+  return { estado: 'gratis', plano: null, valeAte: null };
+}
+
+export const temAssinatura = (e: EstadoDaConta): boolean => e === 'ativa' || e === 'falhou' || e === 'cancelada';
+
+/** Preço mensal do plano, da matriz — nunca escrito à mão numa tela. */
+export const precoMensal = (p: PlanoPago): number => PLAN_MATRIX[p].precoMensalBrl ?? 0;
+
+/** "R$ 19,90" — a formatação do protótipo (`brl`). */
+export const brl = (v: number): string => 'R$ ' + v.toFixed(2).replace('.', ',');
+
+/** "22/10/2026" a partir de ms ou de `AAAA-MM-DD` (sem fuso: a data do Asaas é de calendário). */
+export function dataCurta(x: number | string | null | undefined): string {
+  if (x === null || x === undefined || x === '') return '—';
+  if (typeof x === 'string') {
+    const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(x);
+    return m ? `${m[3]}/${m[2]}/${m[1]}` : '—';
+  }
+  const d = new Date(x);
+  const dd = String(d.getDate()).padStart(2, '0');
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  return `${dd}/${mm}/${d.getFullYear()}`;
+}
+
+export const ROTULO_DO_METODO: Record<NonNullable<Fatura['metodo']>, string> = {
+  cartao: 'Cartão',
+  pix: 'Pix',
+  boleto: 'Boleto',
+};
+
+/** A fatura em aberto (atrasada ou pendente) que tem página para pagar. */
+export const faturaEmAberto = (fs: Fatura[] | null): Fatura | null =>
+  fs?.find((f) => (f.status === 'falhou' || f.status === 'pendente') && f.link) ?? null;
+
+/* ── Chamadas ao servidor ─────────────────────────────────────────────────── */
+
+export async function carregarStatusDeBilling(): Promise<StatusDeBilling | null> {
+  try {
+    const r = await apiFetch('/api/billing/status');
+    return r.ok ? ((await r.json()) as StatusDeBilling) : null;
+  } catch {
+    return null;
+  }
+}
+
+/** `null` = não deu para saber (sem cobrança configurada ou servidor fora) — NUNCA vira "zero faturas". */
+export async function carregarFaturas(): Promise<Fatura[] | null> {
+  try {
+    const r = await apiFetch('/api/billing/faturas');
+    if (!r.ok) return null;
+    const corpo = (await r.json()) as { faturas?: Fatura[] };
+    return Array.isArray(corpo.faturas) ? corpo.faturas : null;
+  } catch {
+    return null;
+  }
+}
+
+/** Cria a assinatura no Asaas e devolve o link da página de pagamento (quem concede é o webhook). */
+export async function iniciarAssinatura(dados: {
+  plano: PlanoPago;
+  nome: string;
+  cpfCnpj: string;
+  email?: string;
+}): Promise<{ link: string | null; erro?: string }> {
+  try {
+    const r = await apiFetch('/api/billing/assinar', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(dados),
+    });
+    const corpo = (await r.json().catch(() => ({}))) as { linkDePagamento?: string | null; error?: string };
+    if (!r.ok) return { link: null, erro: corpo.error ?? `falha (HTTP ${r.status})` };
+    return { link: corpo.linkDePagamento ?? null };
+  } catch {
+    return { link: null, erro: 'não consegui falar com o servidor.' };
+  }
+}
+
+/** Cancela a RENOVAÇÃO: o que já foi pago vale até o fim do período. */
+export async function cancelarRenovacao(): Promise<{ ok: boolean; valeAte?: number | null; erro?: string }> {
+  try {
+    const r = await apiFetch('/api/billing/cancelar', { method: 'POST' });
+    const corpo = (await r.json().catch(() => ({}))) as { valeAte?: number | null; error?: string };
+    return r.ok ? { ok: true, valeAte: corpo.valeAte ?? null } : { ok: false, erro: corpo.error ?? `HTTP ${r.status}` };
+  } catch {
+    return { ok: false, erro: 'não consegui falar com o servidor.' };
+  }
+}

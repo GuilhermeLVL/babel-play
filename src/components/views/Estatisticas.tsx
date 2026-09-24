@@ -4,13 +4,16 @@ import {
   CalendarClock,
   CalendarDays,
   ChartColumn,
+  ChevronDown,
   Clock,
   Download,
+  FileText,
   Flame,
   Gamepad2,
   GraduationCap,
   Info,
   Minus,
+  Sheet,
   Sprout,
   Table2,
   Target,
@@ -21,8 +24,10 @@ import React, { type ReactNode, useEffect, useMemo, useState } from 'react';
 
 import type { AppMetrics } from '../../data/api';
 import { type ExerciseResultRow, fetchDeck, fetchExerciseResults } from '../../data/api';
+import { usePreferencias } from '../../lib/preferencias';
 import type { VocabCard } from '../../types';
 import { CabecalhoDeTela, Tela } from '../ui';
+import MetaDeNivel from './estatisticas/MetaDeNivel';
 
 /**
  * ESTATÍSTICAS — a tela do protótipo aprovado (`T.estatisticas`), sobre dado REAL.
@@ -33,8 +38,11 @@ import { CabecalhoDeTela, Tela } from '../ui';
  * série por gráfico na cor do destaque; eixo único; grade recessiva; dica em cada marca; tabela
  * alternativa em todo gráfico; variação com ícone + texto, nunca só cor.
  *
- * FICOU DE FORA o que o app não tem: o relatório semanal por e-mail, o filtro por idioma (os
- * resultados não guardam idioma) e a linha de meta diária (não existe meta configurada).
+ * A META DIÁRIA é a de Perfil → Você (`lib/preferencias`, `metaMin`): a linha tracejada do gráfico
+ * de minutos e as barras mais escuras que a bateram.
+ *
+ * FICOU DE FORA o que o app não tem: o relatório semanal por e-mail e o filtro por idioma (os
+ * resultados não guardam idioma).
  */
 
 interface EstatisticasProps {
@@ -125,6 +133,7 @@ function GraficoDeBarras<T>({
   valor,
   unidade,
   altura = 180,
+  meta,
 }: {
   rotuloDoGrafico: string;
   dados: T[];
@@ -132,13 +141,15 @@ function GraficoDeBarras<T>({
   valor: (d: T) => number;
   unidade: string;
   altura?: number;
+  /** A meta (a linha tracejada); a barra que a alcança fica mais escura. */
+  meta?: number;
 }) {
   const W = 480,
     H = Math.round(altura * 0.8),
     m = { t: 14, r: 6, b: 24, l: 30 },
     iw = W - m.l - m.r,
     ih = H - m.t - m.b;
-  const max = Math.max(1, ...dados.map(valor)) * 1.15;
+  const max = Math.max(1, meta ?? 0, ...dados.map(valor)) * 1.15;
   const bw = iw / Math.max(1, dados.length),
     gap = Math.min(6, bw * 0.28);
   const y = (v: number) => m.t + ih - (v / max) * ih;
@@ -165,8 +176,14 @@ function GraficoDeBarras<T>({
           <g key={i}>
             <title>{`${rotulo(d)}: ${v} ${unidade}`}</title>
             <rect x={m.l + i * bw} y={m.t} width={bw} height={ih} className="g-alvo" />
-            {/* Sem meta configurada não há "bateu/não bateu": a série inteira vai no acento. */}
-            {v > 0 && <path d={barraArred(x, y(v), w, h)} className="g-barra" style={{ fill: 'var(--accent)' }} />}
+            {/* Sem meta não há "bateu/não bateu": a série inteira vai no acento. */}
+            {v > 0 && (
+              <path
+                d={barraArred(x, y(v), w, h)}
+                className={`g-barra ${meta && v >= meta ? 'bateu' : ''}`}
+                style={meta ? undefined : { fill: 'var(--accent)' }}
+              />
+            )}
             {i % passo === 0 && (
               <text x={x + w / 2} y={H - 8} className="g-eixo" textAnchor="middle">
                 {rotulo(d).split(' · ')[0]}
@@ -175,6 +192,14 @@ function GraficoDeBarras<T>({
           </g>
         );
       })}
+      {meta ? (
+        <>
+          <line x1={m.l} x2={W - m.r} y1={y(meta)} y2={y(meta)} className="g-meta" />
+          <text x={W - m.r} y={y(meta) - 6} className="g-eixo forte" textAnchor="end">
+            meta {meta} {unidade}
+          </text>
+        </>
+      ) : null}
     </svg>
   );
 }
@@ -413,6 +438,22 @@ export default function Estatisticas({ metrics, onChangeView }: EstatisticasProp
   const [periodo, setPeriodo] = useState<7 | 30 | 90>(30);
   const [resultados, setResultados] = useState<ExerciseResultRow[] | null>(null);
   const [cartoes, setCartoes] = useState<VocabCard[] | null>(null);
+  const [menuExportar, setMenuExportar] = useState(false);
+  const { metaMin } = usePreferencias();
+  // O menu fecha no clique fora e no Esc, como o `.menu-midia` do protótipo.
+  useEffect(() => {
+    if (!menuExportar) return;
+    const fora = (e: MouseEvent) => {
+      if (!(e.target as HTMLElement).closest?.('[data-exportar]')) setMenuExportar(false);
+    };
+    const esc = (e: KeyboardEvent) => e.key === 'Escape' && setMenuExportar(false);
+    document.addEventListener('mousedown', fora);
+    document.addEventListener('keydown', esc);
+    return () => {
+      document.removeEventListener('mousedown', fora);
+      document.removeEventListener('keydown', esc);
+    };
+  }, [menuExportar]);
 
   useEffect(() => {
     let vivo = true;
@@ -498,9 +539,46 @@ export default function Estatisticas({ metrics, onChangeView }: EstatisticasProp
         titulo="Estatísticas"
         sub="Quanto você estudou, o que aprendeu e o que vem pela frente."
         acoes={
-          <button type="button" className="btn btn-outline" onClick={exportarCsv} disabled={!dias}>
-            <Download aria-hidden /> Exportar CSV
-          </button>
+          /* "Exportar ▾" do protótipo com o que o app sabe gerar: os dados em CSV e a página
+             impressa (o navegador salva em PDF). Relatório por e-mail e imagem não existem aqui. */
+          <div className="linha" style={{ gap: 8, position: 'relative' }} data-exportar>
+            <button
+              type="button"
+              className="btn btn-outline"
+              aria-haspopup="menu"
+              aria-expanded={menuExportar}
+              disabled={!dias}
+              onClick={() => setMenuExportar((v) => !v)}
+            >
+              <Download aria-hidden /> Exportar <ChevronDown aria-hidden />
+            </button>
+            {menuExportar && (
+              <div className="menu-midia cartao" role="menu" style={{ top: 46 }}>
+                <button
+                  type="button"
+                  role="menuitem"
+                  onClick={() => {
+                    setMenuExportar(false);
+                    window.setTimeout(() => window.print(), 50);
+                  }}
+                >
+                  <FileText aria-hidden />
+                  Imprimir ou salvar em PDF
+                </button>
+                <button
+                  type="button"
+                  role="menuitem"
+                  onClick={() => {
+                    setMenuExportar(false);
+                    exportarCsv();
+                  }}
+                >
+                  <Sheet aria-hidden />
+                  Dados em CSV
+                </button>
+              </div>
+            )}
+          </div>
         }
       />
       {filtros}
@@ -612,7 +690,7 @@ export default function Estatisticas({ metrics, onChangeView }: EstatisticasProp
           id="minutos"
           Icone={Clock}
           titulo={periodo === 90 ? 'Minutos por semana' : 'Minutos por dia'}
-          desc="Tempo cronometrado nas rodadas e revisões."
+          desc={`A linha tracejada é a sua meta de ${metaMin} min${periodo === 90 ? ' por dia (×7 por semana)' : ''}. Barras mais escuras bateram a meta.`}
           grafico={
             <GraficoDeBarras
               rotuloDoGrafico="Minutos de estudo"
@@ -620,6 +698,7 @@ export default function Estatisticas({ metrics, onChangeView }: EstatisticasProp
               rotulo={(d) => d.rotulo}
               valor={(d) => d.min}
               unidade="min"
+              meta={periodo === 90 ? metaMin * 7 : metaMin}
             />
           }
           tabela={
@@ -724,6 +803,8 @@ export default function Estatisticas({ metrics, onChangeView }: EstatisticasProp
           tabela={<Tabela cab={['Nível', 'Palavras']} linhas={porNivel} />}
         />
       </div>
+
+      <MetaDeNivel metrics={metrics} />
     </Tela>
   );
 }

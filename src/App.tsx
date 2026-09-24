@@ -48,6 +48,7 @@ import { useAparencia, useHidratacaoDeAjustes } from './lib/estado/useAparencia'
 import { useGateDeConta } from './lib/estado/useGateDeConta';
 import { useMetricas } from './lib/estado/useMetricas';
 import { useNavegacao } from './lib/estado/useNavegacao';
+import { notificarSessaoSalva, useNotificacoes } from './lib/estado/useNotificacoes';
 import { useRecompensas } from './lib/estado/useRecompensas';
 /* ESTADO POR DOMÍNIO — cada bloco que o App concentrava virou um hook em `lib/estado`. A ORDEM
    das chamadas abaixo é a ordem em que os efeitos rodavam antes da divisão, e é por isso que os
@@ -142,6 +143,9 @@ export default function App() {
       setIsStudioOpen,
     });
 
+  // O sino: os fatos que o app já produz viram notificação (ver lib/estado/useNotificacoes).
+  useNotificacoes({ metrics, progress, filaDeRecompensas });
+
   useHidratacaoDeAjustes({ setThemeState, setDarkMode, setFonteState, setAgeProfileState, setOnboarded });
 
   const {
@@ -168,6 +172,23 @@ export default function App() {
     setPedindoLogin,
   });
 
+  /* A ABA DE AJUSTES pedida por um atalho do shell: "Som, animações e desempenho" (rodapé do menu)
+     abre Aparência; a engrenagem do sino abre Notificações. Zera antes de repor, para pedir a mesma
+     aba de novo reabri-la mesmo que a pessoa tenha trocado de aba no meio; e zera ao sair de
+     Ajustes, para a próxima entrada pelo menu cair na aba padrão. */
+  const [abaDosAjustes, setAbaDosAjustes] = useState<string | null>(null);
+  useEffect(() => {
+    if (activeView !== 'settings') setAbaDosAjustes(null);
+  }, [activeView]);
+  const irPeloShell = (view: string, data?: Record<string, string>) => {
+    if (view === 'settings' && data?.aba) {
+      const aba = data.aba;
+      setAbaDosAjustes(null);
+      window.setTimeout(() => setAbaDosAjustes(aba), 0);
+    }
+    navigateTo(view, data);
+  };
+
   /**
    * `shouldRedirect=false` = "salvar e continuar na tela" (o usuário segue capturando).
    * O UPSERT importa: uma sessão retomada volta com o MESMO id, então um prepend cego
@@ -181,6 +202,7 @@ export default function App() {
     );
     setSelectedRecordingId(recording.id);
     setResumingRecordingId(null);
+    notificarSessaoSalva(recording);
     // Salvar uma sessão é a conclusão mais concreta da app — é o momento que merece o acorde.
     play('success');
     if (shouldRedirect) {
@@ -290,7 +312,7 @@ export default function App() {
       fontScale={fontScale}
       cycleFontScale={cycleFontScale}
       activeView={viewDoMenu}
-      onChangeView={navigateTo}
+      onChangeView={irPeloShell}
       menuPosition={menuPosition}
       setMenuPosition={setMenuPosition}
       soundEnabled={soundEnabled}
@@ -326,7 +348,7 @@ export default function App() {
     performanceMode,
     togglePerformanceMode,
     onOpenSearch: () => setBuscaAberta(true),
-    onChangeView: navigateTo,
+    onChangeView: irPeloShell,
   };
 
   /**
@@ -339,7 +361,7 @@ export default function App() {
   return (
     // `h-dvh`: com 100vh a raiz cinza (bg-surface) ficava maior que a viewport dinamica e o
     // overflow-hidden cortava o rodape, a "faixa cinza" que escondia conteudo na Captura.
-    <div className="@container/app flex flex-col h-tela w-full bg-canvas overflow-hidden relative">
+    <div data-raiz-do-app className="@container/app flex flex-col h-tela w-full bg-canvas overflow-hidden relative">
       {/* Barra do topo: a de desktop quando a preferência é "topo"; senão, só a do celular. */}
       {menuPosition === 'top' ? shell : <MobileTopBar progress={progress} controls={mobileControls} />}
 
@@ -413,6 +435,8 @@ export default function App() {
                 metrics={metrics}
                 recording={selectedRecordingId ? selectedRecording : null}
                 seed={practiceSeed}
+                soundEnabled={soundEnabled}
+                toggleSound={toggleSound}
               />
             )}
             {activeView === 'analysis' && !anonimo && (
@@ -481,6 +505,12 @@ export default function App() {
                 onReplayTour={() => setOnboarded(false)}
                 onAbrirSobre={() => setActiveView('sobre')}
                 onChangeView={navigateTo}
+                /* Claro/escuro de Ajustes → Aparência pelo MESMO dono da preferência (o toggle
+                   persiste; o setter cru de estado não gravaria). */
+                setDarkMode={(escuro) => {
+                  if (escuro !== darkMode) toggleDarkMode();
+                }}
+                abaInicial={abaDosAjustes}
                 /* Era 99 enquanto as métricas não chegavam: um clique rápido nos Ajustes abria tudo
                  como nível 99. Sem métrica, nível 1 — a régua nunca é generosa por engano. */
                 nivel={progress.available ? progress.level : 1}

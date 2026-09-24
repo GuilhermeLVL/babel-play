@@ -1,9 +1,10 @@
 import type { MinigameId } from '@core';
-import { AlertTriangle,GraduationCap, Lightbulb, Play, Target, X } from 'lucide-react';
-import React, { useEffect, useRef } from 'react';
+import { LifeBuoy, Play, TriangleAlert, X } from 'lucide-react';
+import { useId, useRef } from 'react';
 
 import type { AgeProfileType } from '../../lib/profile';
-import ArteDoJogo from './ArteDosJogos';
+import { DialogoBase } from '../ui/Dialogo';
+import { IconePixel } from '../views/play/IconesPixel';
 
 /**
  * COMO SE JOGA — a explicação que aparece ANTES da primeira rodada de cada jogo.
@@ -47,9 +48,6 @@ export interface ConteudoComoSeJoga {
   ajudas: AjudaDoJogo[];
 }
 
-
-
-
 /* ─────────────────────────── O CONTEÚDO ───────────────────────────
    Escrito jogo a jogo, e não gerado: cada um tem uma razão de existir diferente, e é isso que a
    pessoa precisa entender antes de começar. O campo `limites` é onde a honestidade mora. */
@@ -62,10 +60,15 @@ export const COMO_SE_JOGA: Record<MinigameId, ConteudoComoSeJoga> = {
       'Se as duas forem a mesma palavra e a tradução dela, o par fecha.',
       'Errou? As cartas voltam, e a repetição é justamente o que fixa.',
     ],
-    avaliacao: 'Fechar o par de primeira vale "bom"; com duas ou três tentativas, "difícil". Nunca vale "fácil": aqui você tem tempo para pensar, e tempo não prova fluência.',
-    limites: 'Ver a tradução na mesa é reconhecimento, não produção. Você pode fechar todos os pares e ainda não conseguir usar a palavra ao falar.',
+    avaliacao:
+      'Fechar o par de primeira vale "bom"; com duas ou três tentativas, "difícil". Nunca vale "fácil": aqui você tem tempo para pensar, e tempo não prova fluência.',
+    limites:
+      'Ver a tradução na mesa é reconhecimento, não produção. Você pode fechar todos os pares e ainda não conseguir usar a palavra ao falar.',
     ajudas: [
-      { o_que: 'Espiar a mesa abre todas as cartas por um instante (duas por rodada).', custo: 'limita a nota a "difícil"' },
+      {
+        o_que: 'Espiar a mesa abre todas as cartas por um instante (duas por rodada).',
+        custo: 'limita a nota a "difícil"',
+      },
     ],
   },
   wordsearch: {
@@ -75,8 +78,10 @@ export const COMO_SE_JOGA: Record<MinigameId, ConteudoComoSeJoga> = {
       'Lembre qual é a palavra e arraste sobre as letras no quadro.',
       'O traço pode ir em qualquer direção, inclusive na diagonal.',
     ],
-    avaliacao: 'Achar sem ajuda vale "bom". Errar o traço não conta como erro de memória, isso é mira, e mira não estraga a sua revisão.',
-    limites: 'A palavra está escrita no quadro. Isso ajuda quem quase lembrava, mas não treina escrever do zero, para isso existe o Soletrar.',
+    avaliacao:
+      'Achar sem ajuda vale "bom". Errar o traço não conta como erro de memória, isso é mira, e mira não estraga a sua revisão.',
+    limites:
+      'A palavra está escrita no quadro. Isso ajuda quem quase lembrava, mas não treina escrever do zero, para isso existe o Soletrar.',
     ajudas: [
       { o_que: 'O radar faz as duas pontas de uma palavra pulsarem no quadro (três por rodada).', custo: null },
       { o_que: 'A dica revela a primeira letra e diz a direção do traço.', custo: 'limita a nota a "difícil"' },
@@ -92,12 +97,17 @@ export const COMO_SE_JOGA: Record<MinigameId, ConteudoComoSeJoga> = {
       'Na última tentativa, errar por UMA letra não gasta a jogada (avisa "quase", uma vez por tabuleiro).',
       'Acertou? O próximo degrau tem duas palavras ao mesmo tempo. E depois, quatro. Se as tentativas acabarem, a palavra é mostrada e a rodada fecha.',
     ],
-    avaliacao: 'Acertar de primeira vale "fácil", é a evidência mais forte de domínio que dá para coletar por escrito. Da segunda tentativa em diante você já tem as cores ajudando, então vale menos. Palavras com hífen ou espaço ficam fora deste jogo (a antessala diz quantas).',
-    limites: 'Mede grafia, não pronúncia. Escrever certo e falar certo são duas habilidades, e esta só cobre a primeira.',
+    avaliacao:
+      'Acertar de primeira vale "fácil", é a evidência mais forte de domínio que dá para coletar por escrito. Da segunda tentativa em diante você já tem as cores ajudando, então vale menos. Palavras com hífen ou espaço ficam fora deste jogo (a antessala diz quantas).',
+    limites:
+      'Mede grafia, não pronúncia. Escrever certo e falar certo são duas habilidades, e esta só cobre a primeira.',
     ajudas: [
       { o_que: 'A varinha preenche as letras que você JÁ descobriu nas tentativas anteriores.', custo: null },
       { o_que: 'Ouvir toca a palavra em voz alta.', custo: null },
-      { o_que: 'A lâmpada revela uma letra que você ainda não achou.', custo: 'limita a nota a "difícil" só naquele tabuleiro' },
+      {
+        o_que: 'A lâmpada revela uma letra que você ainda não achou.',
+        custo: 'limita a nota a "difícil" só naquele tabuleiro',
+      },
     ],
   },
   scramble: {
@@ -107,8 +117,10 @@ export const COMO_SE_JOGA: Record<MinigameId, ConteudoComoSeJoga> = {
       'Clique nas palavras na ordem certa; clicar de novo devolve a palavra.',
       'Confira. Se errar, o jogo diz quantas estão no lugar, sem dizer quais.',
     ],
-    avaliacao: 'Este jogo usa falas da sua gravação, que não têm cartão no baralho. Por isso ele não mexe na sua agenda de revisão, vale pelos pontos e pela prática.',
-    limites: 'A frase vem do reconhecimento de voz. Se a captura cortou no meio, a ordem "certa" é a que foi transcrita, não necessariamente a que foi dita.',
+    avaliacao:
+      'Este jogo usa falas da sua gravação, que não têm cartão no baralho. Por isso ele não mexe na sua agenda de revisão, vale pelos pontos e pela prática.',
+    limites:
+      'A frase vem do reconhecimento de voz. Se a captura cortou no meio, a ordem "certa" é a que foi transcrita, não necessariamente a que foi dita.',
     ajudas: [
       { o_que: 'A dica encaixa a próxima palavra certa no lugar.', custo: 'limita a nota a "difícil"' },
       { o_que: 'Pular passa para a frase seguinte.', custo: 'conta como não consegui' },
@@ -121,8 +133,10 @@ export const COMO_SE_JOGA: Record<MinigameId, ConteudoComoSeJoga> = {
       'Toque em Falar e repita.',
       'A nota compara o que o reconhecedor entendeu com o que estava escrito.',
     ],
-    avaliacao: 'A nota é de SEMELHANÇA DE TEXTO, não de fonemas: o reconhecedor transcreve o que você falou e comparamos as palavras.',
-    limites: 'Por causa disso, uma palavra bem pronunciada pode aparecer como erro se o reconhecedor entender outra, e um sotaque diferente do esperado derruba a nota sem que a fala esteja errada. Trate como termômetro, nunca como veredito.',
+    avaliacao:
+      'A nota é de SEMELHANÇA DE TEXTO, não de fonemas: o reconhecedor transcreve o que você falou e comparamos as palavras.',
+    limites:
+      'Por causa disso, uma palavra bem pronunciada pode aparecer como erro se o reconhecedor entender outra, e um sotaque diferente do esperado derruba a nota sem que a fala esteja errada. Trate como termômetro, nunca como veredito.',
     ajudas: [
       { o_que: 'Ouvir devagar toca a 0,6× sem deixar a voz esquisita, dá para separar as palavras.', custo: null },
       { o_que: 'Pular passa para a próxima fala.', custo: null },
@@ -135,8 +149,10 @@ export const COMO_SE_JOGA: Record<MinigameId, ConteudoComoSeJoga> = {
       'Leia as alternativas e escolha qual frase você ouviu.',
       'Ouça de novo quantas vezes precisar antes de responder.',
     ],
-    avaliacao: 'As alternativas erradas são outras falas da MESMA gravação, com tamanho parecido, mesmo assunto, mesmo sotaque. Não dá para eliminar por dedução: é preciso ouvir.',
-    limites: 'Escolher entre quatro é mais fácil que entender do zero. Acertar aqui não garante que você pegaria a frase no meio de uma conversa.',
+    avaliacao:
+      'As alternativas erradas são outras falas da MESMA gravação, com tamanho parecido, mesmo assunto, mesmo sotaque. Não dá para eliminar por dedução: é preciso ouvir.',
+    limites:
+      'Escolher entre quatro é mais fácil que entender do zero. Acertar aqui não garante que você pegaria a frase no meio de uma conversa.',
     ajudas: [
       { o_que: 'Ouvir de novo, sem limite.', custo: null },
       { o_que: 'Ouvir devagar, a 0,6× e sem deixar a voz esquisita.', custo: null },
@@ -149,8 +165,10 @@ export const COMO_SE_JOGA: Record<MinigameId, ConteudoComoSeJoga> = {
       'Escreva o que você entendeu na linha.',
       'Confira: a correção mostra cada palavra, e o que você escreveu no lugar.',
     ],
-    avaliacao: 'A conferência é palavra a palavra, não uma porcentagem solta, você vê exatamente onde errou. Acerto a partir de 80% das palavras.',
-    limites: 'Pontuação e acento NÃO contam, porque o jogo é de ouvido. Isso significa que ele não verifica a sua escrita formal, para grafia exata, o Soletrar é o lugar.',
+    avaliacao:
+      'A conferência é palavra a palavra, não uma porcentagem solta, você vê exatamente onde errou. Acerto a partir de 80% das palavras.',
+    limites:
+      'Pontuação e acento NÃO contam, porque o jogo é de ouvido. Isso significa que ele não verifica a sua escrita formal, para grafia exata, o Soletrar é o lugar.',
     ajudas: [
       { o_que: 'Ouvir de novo e ouvir devagar, sem limite.', custo: null },
       { o_que: 'A lâmpada escreve a próxima palavra para você.', custo: 'limita a nota a "difícil"' },
@@ -164,11 +182,11 @@ export const COMO_SE_JOGA: Record<MinigameId, ConteudoComoSeJoga> = {
       'Toque nas palavras que ligam uma ideia à outra ("porém", "porque", "however").',
       'Confira. As que passaram batido aparecem contornadas.',
     ],
-    avaliacao: 'A nota pesa os DOIS erros: deixar conector passar e marcar palavra que não é. Por isso clicar em tudo não garante nota boa, o contrário, aliás.',
-    limites: 'A lista de conectores é fixa e existe só para alguns idiomas. Ela não cobre toda expressão de ligação possível, e uma que falte não é erro seu.',
-    ajudas: [
-      { o_que: 'Dá para marcar e desmarcar à vontade antes de conferir.', custo: null },
-    ],
+    avaliacao:
+      'A nota pesa os DOIS erros: deixar conector passar e marcar palavra que não é. Por isso clicar em tudo não garante nota boa, o contrário, aliás.',
+    limites:
+      'A lista de conectores é fixa e existe só para alguns idiomas. Ela não cobre toda expressão de ligação possível, e uma que falte não é erro seu.',
+    ajudas: [{ o_que: 'Dá para marcar e desmarcar à vontade antes de conferir.', custo: null }],
   },
   blitz: {
     treina: 'Recuperação RÁPIDA, o sinal de que a palavra está firme, e não só acessível.',
@@ -177,8 +195,10 @@ export const COMO_SE_JOGA: Record<MinigameId, ConteudoComoSeJoga> = {
       'Responda antes de o tempo acabar.',
       'Acertos seguidos multiplicam os pontos.',
     ],
-    avaliacao: 'É o único jogo em que a velocidade conta: responder em menos de três segundos vale "fácil"; acima disso, "bom". Nos outros jogos o teto é "bom" justamente porque lá dá para pensar.',
-    limites: 'Escolher entre quatro é mais fácil que lembrar do zero. Acertar aqui não garante que você produziria a palavra numa conversa.',
+    avaliacao:
+      'É o único jogo em que a velocidade conta: responder em menos de três segundos vale "fácil"; acima disso, "bom". Nos outros jogos o teto é "bom" justamente porque lá dá para pensar.',
+    limites:
+      'Escolher entre quatro é mais fácil que lembrar do zero. Acertar aqui não garante que você produziria a palavra numa conversa.',
     ajudas: [
       { o_que: 'A tesoura corta duas alternativas erradas (duas por rodada).', custo: 'limita a nota a "difícil"' },
     ],
@@ -192,22 +212,14 @@ export const COMO_SE_JOGA: Record<MinigameId, ConteudoComoSeJoga> = {
     ],
     avaliacao: 'Acertar de primeira vale "bom"; com tentativas, "dificil".',
     limites: 'A pista e falada: sem audio, o jogo perde a metade que o distingue do Duelo.',
-    ajudas: [
-      { o_que: 'Repetir a fala da pista.', custo: 'nao custa nota' },
-    ],
+    ajudas: [{ o_que: 'Repetir a fala da pista.', custo: 'nao custa nota' }],
   },
   choseong: {
     treina: 'Escrever a palavra a partir do significado, com as consoantes a vista.',
-    passos: [
-      'A pista e o significado.',
-      'As consoantes aparecem; as vogais ficam escondidas.',
-      'Complete as vogais.',
-    ],
+    passos: ['A pista e o significado.', 'As consoantes aparecem; as vogais ficam escondidas.', 'Complete as vogais.'],
     avaliacao: 'Completar sem erro vale "facil"; com erro, "dificil".',
     limites: 'So funciona com alfabeto latino: a mecanica separa consoante de vogal.',
-    ajudas: [
-      { o_que: 'Revelar uma vogal.', custo: 'limita a nota a "dificil"' },
-    ],
+    ajudas: [{ o_que: 'Revelar uma vogal.', custo: 'limita a nota a "dificil"' }],
   },
   tenis: {
     treina: 'Recuperar a palavra sob pressao de tempo, em rali.',
@@ -218,22 +230,14 @@ export const COMO_SE_JOGA: Record<MinigameId, ConteudoComoSeJoga> = {
     ],
     avaliacao: 'Devolver dentro do tempo vale "facil"; no limite, "bom".',
     limites: 'O relogio favorece quem digita rapido, e digitar rapido nao e saber mais.',
-    ajudas: [
-      { o_que: 'Uma dica revela a primeira letra da palavra.', custo: 'limita a nota a "bom"' },
-    ],
+    ajudas: [{ o_que: 'Uma dica revela a primeira letra da palavra.', custo: 'limita a nota a "bom"' }],
   },
   koffer: {
     treina: 'Guardar uma sequencia crescente de palavras na ordem.',
-    passos: [
-      'A cada nivel entra uma palavra na mala.',
-      'Reconstrua de memoria tudo que ja esta la.',
-      'A ordem conta.',
-    ],
+    passos: ['A cada nivel entra uma palavra na mala.', 'Reconstrua de memoria tudo que ja esta la.', 'A ordem conta.'],
     avaliacao: 'Reconstruir a mala inteira sem erro vale "facil".',
     limites: 'Testa memoria de sequencia, que nao e a mesma coisa que saber usar a palavra.',
-    ajudas: [
-      { o_que: 'Ver a mala por um instante.', custo: 'limita a nota a "dificil"' },
-    ],
+    ajudas: [{ o_que: 'Ver a mala por um instante.', custo: 'limita a nota a "dificil"' }],
   },
   bao: {
     treina: 'Montar a palavra a partir dos pedacos dela.',
@@ -244,9 +248,7 @@ export const COMO_SE_JOGA: Record<MinigameId, ConteudoComoSeJoga> = {
     ],
     avaliacao: 'Montar de primeira vale "bom".',
     limites: 'Partir a palavra em pedacos so faz sentido em alfabeto latino.',
-    ajudas: [
-      { o_que: 'Semear a primeira peca.', custo: 'limita a nota a "dificil"' },
-    ],
+    ajudas: [{ o_que: 'Semear a primeira peca.', custo: 'limita a nota a "dificil"' }],
   },
   vitendawili: {
     treina: 'Reconhecer a palavra pelo contexto da sua propria frase.',
@@ -257,9 +259,7 @@ export const COMO_SE_JOGA: Record<MinigameId, ConteudoComoSeJoga> = {
     ],
     avaliacao: 'Acertar de primeira vale "bom".',
     limites: 'Sem frase gravada o enigma nao existe: o item cai fora da rodada.',
-    ajudas: [
-      { o_que: 'Ouvir a frase de novo.', custo: 'nao custa nota' },
-    ],
+    ajudas: [{ o_que: 'Ouvir a frase de novo.', custo: 'nao custa nota' }],
   },
   shiritori: {
     treina: 'Recuperar palavras encadeadas pela ultima letra.',
@@ -270,9 +270,7 @@ export const COMO_SE_JOGA: Record<MinigameId, ConteudoComoSeJoga> = {
     ],
     avaliacao: 'Acertar de primeira vale "bom".',
     limites: 'Precisa de uma corrente valida no seu baralho; sem ela a rodada nao nasce.',
-    ajudas: [
-      { o_que: 'Ver a letra inicial exigida.', custo: 'nao custa nota' },
-    ],
+    ajudas: [{ o_que: 'Ver a letra inicial exigida.', custo: 'nao custa nota' }],
   },
   cadavre: {
     treina: 'Usar as palavras da leva numa frase sua.',
@@ -283,9 +281,7 @@ export const COMO_SE_JOGA: Record<MinigameId, ConteudoComoSeJoga> = {
     ],
     avaliacao: 'Nao ha nota: escrever uma frase nao e evidencia de que voce recuperou a palavra.',
     limites: 'NAO agenda revisao. Vale como producao livre, nao como memoria.',
-    ajudas: [
-      { o_que: 'Trocar uma palavra da leva.', custo: 'nao custa nota' },
-    ],
+    ajudas: [{ o_que: 'Trocar uma palavra da leva.', custo: 'nao custa nota' }],
   },
   taboo: {
     treina: 'Reconhecer a palavra por uma definicao que evita os termos obvios.',
@@ -296,9 +292,7 @@ export const COMO_SE_JOGA: Record<MinigameId, ConteudoComoSeJoga> = {
     ],
     avaliacao: 'Acertar de primeira vale "bom".',
     limites: 'As proibidas sao derivadas do texto: em item curto pode sobrar pouca definicao.',
-    ajudas: [
-      { o_que: 'Liberar uma palavra proibida.', custo: 'limita a nota a "dificil"' },
-    ],
+    ajudas: [{ o_que: 'Liberar uma palavra proibida.', custo: 'limita a nota a "dificil"' }],
   },
 };
 
@@ -310,130 +304,80 @@ interface ComoSeJogaProps {
   onFechar: () => void;
 }
 
+/**
+ * O diálogo `dialogoComo()` do protótipo aprovado: `<dialog class="medio">` com a arte do jogo no
+ * `.dlg-cab`, os campos em `.dlg-corpo.como` (rótulo mono + texto), as ajudas em `ul.ajudas` com
+ * o preço de cada uma, o aviso `.aviso-info.warn` do que o jogo não mede e o rodapé `.dlg-pe`.
+ * Esc (o `cancel` nativo) fecha; o foco começa em "Começar" — quem já sabe aperta Enter e segue.
+ */
 export default function ComoSeJoga({ jogo, titulo, ageProfile, onJogar, onFechar }: ComoSeJogaProps) {
   const conteudo = COMO_SE_JOGA[jogo];
-  const jogarRef = useRef<HTMLButtonElement | null>(null);
-
-  /**
-   * Esc fecha, e o foco começa no botão de jogar — quem já sabe aperta Enter e segue.
-   *
-   * `preventScroll` NÃO é detalhe: sem ele o navegador rola o diálogo até o botão, que fica no
-   * fim, e a explicação abre com a arte e os primeiros campos já fora da tela. Ou seja, o gesto
-   * de dar acesso pelo teclado escondia justamente o que a pessoa veio ler.
-   */
-  useEffect(() => {
-    jogarRef.current?.focus({ preventScroll: true });
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onFechar(); };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [onFechar]);
-
+  const idTitulo = useId();
+  const ref = useRef<HTMLDialogElement>(null);
   if (!conteudo) return null;
 
   return (
-    <div
-      className="fixed inset-0 z-[90] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200"
-      onClick={onFechar}
-    >
-      <div
-        role="dialog"
-        aria-modal="true"
-        aria-label={`Como se joga: ${titulo}`}
-        onClick={e => e.stopPropagation()}
-        className="card-panel bg-surface w-full max-w-lg max-h-[88vh] overflow-y-auto custom-scrollbar animate-in zoom-in-95 duration-200"
-      >
-        {/* A mesma miniatura da carta: a pessoa reconhece de onde veio. */}
-        <div className="aspect-[16/7] bg-canvas border-b border-border-subtle" aria-hidden>
-          <ArteDoJogo jogo={jogo} />
+    <DialogoBase classe="medio" rotuloId={idTitulo} aoFechar={onFechar} refDialogo={ref}>
+      <div className="dlg-cab">
+        <span className="ib" style={{ background: 'var(--surface-hover)' }} aria-hidden>
+          <IconePixel id={jogo} className="w-7 h-7" />
+        </span>
+        <div style={{ minWidth: 0 }}>
+          <span className="label-mono">Como se joga</span>
+          <h2 id={idTitulo}>{titulo}</h2>
         </div>
-
-        <div className="p-5 flex flex-col gap-4">
-          <div className="flex items-start justify-between gap-3">
-            <div className="min-w-0">
-              <span className="label-mono">Como se joga</span>
-              <h2 className="font-display font-black text-xl text-ink leading-tight">{titulo}</h2>
-            </div>
-            <button
-              onClick={onFechar}
-              className="p-2 -me-2 -mt-1 rounded-lg text-ink-muted hover:bg-surface-hover hover:text-ink cursor-pointer shrink-0"
-              aria-label="Fechar"
-            >
-              <X className="w-5 h-5" />
-            </button>
-          </div>
-
-          <Campo icone={<GraduationCap className="w-4 h-4" />} rotulo="O que treina">
-            <p className="text-[13px] text-ink-muted leading-relaxed">{conteudo.treina}</p>
-          </Campo>
-
-          <Campo icone={<Play className="w-4 h-4" />} rotulo="Como jogar">
-            <ol className="flex flex-col gap-1.5">
-              {conteudo.passos.map((p, i) => (
-                <li key={i} className="flex gap-2.5 text-[13px] text-ink-muted leading-relaxed">
-                  <span className="shrink-0 w-4 h-4 mt-0.5 rounded-full bg-accent-soft text-accent-ink font-mono font-bold text-[9px] flex items-center justify-center">
-                    {i + 1}
-                  </span>
-                  <span>{p}</span>
-                </li>
-              ))}
-            </ol>
-          </Campo>
-
-          {/* O CAMPO QUE SÓ EXISTE AQUI: as ajudas, com o preço de cada uma. Sem ele, a pessoa
-              joga na dificuldade máxima sem saber que havia socorro no canto da tela. */}
-          <Campo icone={<Lightbulb className="w-4 h-4" />} rotulo="O que você tem aí">
-            <ul className="flex flex-col gap-1.5">
-              {conteudo.ajudas.map((a, i) => (
-                <li key={i} className="text-[13px] text-ink-muted leading-relaxed">
-                  {a.o_que}{' '}
-                  {a.custo
-                    ? <span className="text-warn-ink font-bold">({a.custo})</span>
-                    : <span className="text-good-ink font-bold">(de graça)</span>}
-                </li>
-              ))}
-            </ul>
-          </Campo>
-
-          <Campo icone={<Target className="w-4 h-4" />} rotulo="Como conta na sua memória">
-            <p className="text-[13px] text-ink-muted leading-relaxed">{conteudo.avaliacao}</p>
-          </Campo>
-
-          {/* Destacado de propósito: é a informação que evita a conclusão errada de uma nota baixa. */}
-          <Campo icone={<AlertTriangle className="w-4 h-4" />} rotulo="O que este jogo não mede">
-            <p className="text-[13px] text-warn-ink leading-relaxed bg-warn-soft border border-warn/20 rounded-lg p-3">
-              {conteudo.limites}
-            </p>
-          </Campo>
-
-          <div className="flex items-center gap-3 pt-1">
-            <button
-              ref={jogarRef}
-              onClick={onJogar}
-              className="flex-1 py-3 px-5 bg-accent hover:bg-accent-ink text-white rounded-xl font-bold text-[14px] shadow-btn transition-all cursor-pointer"
-            >
-              {ageProfile === 'kids' ? 'Bora jogar!' : 'Começar'}
-            </button>
-            <button
-              onClick={onFechar}
-              className="py-3 px-4 text-[13px] text-ink-muted hover:text-ink cursor-pointer"
-            >
-              Agora não
-            </button>
-          </div>
+        <button type="button" className="x" aria-label="Fechar" onClick={() => ref.current?.close()}>
+          <X aria-hidden />
+        </button>
+      </div>
+      <div className="dlg-corpo pilha como">
+        <div>
+          <span className="label-mono">O que treina</span>
+          <p>{conteudo.treina}</p>
+        </div>
+        <div>
+          <span className="label-mono">Como jogar</span>
+          {/* `decimal` explícito: o reset do Tailwind tira a numeração que o protótipo tem. */}
+          <ol style={{ listStyle: 'decimal' }}>
+            {conteudo.passos.map((p, i) => (
+              <li key={i}>{p}</li>
+            ))}
+          </ol>
+        </div>
+        {/* O CAMPO QUE SÓ EXISTE AQUI: as ajudas, com o preço de cada uma. Sem ele, a pessoa
+            joga na dificuldade máxima sem saber que havia socorro no canto da tela. */}
+        <div>
+          <span className="label-mono">O que você tem aí</span>
+          <ul className="ajudas">
+            {conteudo.ajudas.map((a, i) => (
+              <li key={i}>
+                <LifeBuoy aria-hidden />
+                <span>{a.o_que}</span>
+                <small className="mut">{a.custo ?? 'de graça'}</small>
+              </li>
+            ))}
+          </ul>
+        </div>
+        <div>
+          <span className="label-mono">Como conta na sua memória</span>
+          <p>{conteudo.avaliacao}</p>
+        </div>
+        {/* Destacado de propósito: é a informação que evita a conclusão errada de uma nota baixa. */}
+        <div className="aviso-info warn">
+          <TriangleAlert aria-hidden />
+          <span>
+            <b style={{ color: 'var(--ink)' }}>O que este jogo não mede.</b> {conteudo.limites}
+          </span>
         </div>
       </div>
-    </div>
-  );
-}
-
-function Campo({ icone, rotulo, children }: { icone: React.ReactNode; rotulo: string; children: React.ReactNode }) {
-  return (
-    <div className="flex flex-col gap-1.5">
-      <span className="label-mono flex items-center gap-1.5">
-        <span className="text-accent" aria-hidden>{icone}</span>
-        {rotulo}
-      </span>
-      {children}
-    </div>
+      <div className="dlg-pe">
+        <button type="button" className="btn btn-outline" onClick={() => ref.current?.close()}>
+          Agora não
+        </button>
+        <button type="button" className="btn btn-solid" data-autofocus onClick={onJogar}>
+          <Play aria-hidden /> {ageProfile === 'kids' ? 'Bora jogar!' : 'Começar'}
+        </button>
+      </div>
+    </DialogoBase>
   );
 }

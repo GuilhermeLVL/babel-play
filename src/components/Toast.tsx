@@ -18,10 +18,11 @@
  * `askConfirm()` devolve `Promise<boolean>` — é o substituto honesto do `confirm()` nativo, que os
  * toasts não podem substituir (um toast não espera resposta; uma exclusão precisa esperar).
  */
-import { AlertTriangle, CheckCircle2, Info, X, XCircle } from 'lucide-react';
-import React, { useCallback,useEffect, useState } from 'react';
+import { X } from 'lucide-react';
+import { useCallback, useEffect, useId, useState } from 'react';
 
 import { play } from '../lib/soundFx';
+import { DialogoBase } from './ui/Dialogo';
 
 export type ToastKind = 'error' | 'warn' | 'ok' | 'info';
 
@@ -81,7 +82,7 @@ function push(kind: ToastKind, message: string, opts: ToastOptions = {}): number
     action: opts.action,
     // Erro fica até o usuário dispensar: se some sozinho, volta a ser invisível — que é o bug que
     // este módulo existe para corrigir.
-    duration: opts.duration ?? (kind === 'error' ? 0 : 4000),
+    duration: opts.duration ?? (kind === 'error' ? 0 : 2600),
   };
   items = [...items, item];
   emit();
@@ -139,94 +140,90 @@ function closeConfirm(ok: boolean) {
 
 /* ─────────────────────────────────── UI ──────────────────────────────────── */
 
-const STYLE: Record<ToastKind, { icon: typeof Info; ring: string; tint: string }> = {
-  error: { icon: XCircle, ring: 'text-error', tint: 'bg-error-soft text-error-ink' },
-  warn: { icon: AlertTriangle, ring: 'text-warn', tint: 'bg-warn-soft text-warn-ink' },
-  ok: { icon: CheckCircle2, ring: 'text-good', tint: 'bg-good-soft text-good-ink' },
-  info: { icon: Info, ring: 'text-accent', tint: 'bg-accent-soft text-accent-ink' },
-};
-
-function ToastCard({ item }: { item: ToastItem }) {
-  const { icon: Icon, ring, tint } = STYLE[item.kind];
-
+/**
+ * O AVISO — `.toast` do protótipo aprovado (`toast()`): a pílula escura no alto, à direita (no
+ * celular, a faixa de largura inteira), com a barra que mostra o tempo que falta. Um de cada vez,
+ * como no protótipo: o próximo entra quando o atual sai. Erro fica até ser dispensado (tem o "x").
+ */
+function AvisoAtual({ item }: { item: ToastItem | undefined }) {
   useEffect(() => {
-    if (!item.duration) return;
-    const t = window.setTimeout(() => dismissToast(item.id), item.duration);
+    if (!item?.duration) return;
+    const id = item.id;
+    const t = window.setTimeout(() => dismissToast(id), item.duration);
     return () => window.clearTimeout(t);
-  }, [item.id, item.duration]);
+  }, [item?.id, item?.duration]);
 
   return (
-    <div
-      role={item.kind === 'error' ? 'alert' : 'status'}
-      className="babel-toast card-panel flex w-80 items-start gap-3 p-3 shadow-lg"
-    >
-      <span className={`grid size-7 shrink-0 place-items-center rounded-md ${tint}`}>
-        <Icon size={15} className={ring} />
-      </span>
-      <div className="min-w-0 flex-1">
-        <p className="text-sm leading-snug text-ink">{item.message}</p>
-        {item.detail && (
-          <p className="mt-1 break-words font-mono text-[11px] leading-snug text-ink-faint">{item.detail}</p>
-        )}
-        {item.action && (
-          <button
-            type="button"
-            onClick={() => {
-              item.action?.onClick();
-              dismissToast(item.id);
-            }}
-            className="btn-ink mt-2 text-xs"
-          >
-            {item.action.label}
-          </button>
-        )}
-      </div>
-      <button
-        type="button"
-        aria-label="Fechar aviso"
-        onClick={() => dismissToast(item.id)}
-        className="shrink-0 rounded p-1 text-ink-faint transition-colors hover:bg-surface-hover hover:text-ink"
-      >
-        <X size={14} />
-      </button>
+    <div className={`toast ${item ? 'on' : ''}`} role={item?.kind === 'error' ? 'alert' : 'status'} aria-live="polite">
+      {item && (
+        <>
+          <span>
+            {item.message}
+            {item.detail && (
+              <small style={{ display: 'block', opacity: 0.75, fontFamily: 'var(--font-mono)', fontSize: 11 }}>
+                {item.detail}
+              </small>
+            )}
+          </span>
+          {item.action && (
+            <button
+              type="button"
+              className="link"
+              style={{ color: 'inherit' }}
+              onClick={() => {
+                item.action?.onClick();
+                dismissToast(item.id);
+              }}
+            >
+              {item.action.label}
+            </button>
+          )}
+          {!item.duration && (
+            <button
+              type="button"
+              className="link"
+              style={{ color: 'inherit', display: 'grid', placeItems: 'center' }}
+              aria-label="Fechar aviso"
+              onClick={() => dismissToast(item.id)}
+            >
+              <X size={14} aria-hidden />
+            </button>
+          )}
+        </>
+      )}
     </div>
   );
 }
 
+/** A confirmação — o `<dialog>` do protótipo (`.dlg-cab` + `.dlg-pe`). Esc cancela. */
 function ConfirmDialog({ req }: { req: PendingConfirm }) {
-  // Esc cancela. Um diálogo modal sem saída pelo teclado é uma armadilha.
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') closeConfirm(false);
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, []);
-
+  const idTitulo = useId();
   return (
-    <div className="fixed inset-0 z-[100] grid place-items-center bg-black/40 p-4">
-      <div
-        role="alertdialog"
-        aria-modal="true"
-        className="babel-toast card-panel w-full max-w-sm p-5 shadow-xl"
-      >
-        <h2 className="text-base font-semibold text-ink">{req.title}</h2>
-        {req.detail && <p className="mt-2 text-sm leading-relaxed text-ink-muted">{req.detail}</p>}
-        <div className="mt-5 flex justify-end gap-2">
-          <button type="button" onClick={() => closeConfirm(false)} className="btn-outline text-sm">
-            {req.cancelLabel ?? 'Cancelar'}
-          </button>
-          <button
-            type="button"
-            autoFocus
-            onClick={() => closeConfirm(true)}
-            className={`btn-solid text-sm ${req.danger ? 'bg-error text-white hover:opacity-90' : ''}`}
-          >
-            {req.confirmLabel ?? 'Confirmar'}
-          </button>
+    <DialogoBase rotuloId={idTitulo} aoFechar={() => closeConfirm(false)}>
+      <div className="dlg-cab">
+        <div style={{ minWidth: 0 }}>
+          <h2 id={idTitulo}>{req.title}</h2>
+          {req.detail && (
+            <p className="mut" style={{ fontSize: 13 }}>
+              {req.detail}
+            </p>
+          )}
         </div>
       </div>
-    </div>
+      <div className="dlg-pe">
+        <button type="button" className="btn btn-outline" onClick={() => closeConfirm(false)}>
+          {req.cancelLabel ?? 'Cancelar'}
+        </button>
+        <button
+          type="button"
+          data-autofocus
+          className={`btn ${req.danger ? 'perigo-solid' : 'btn-solid'}`}
+          onClick={() => closeConfirm(true)}
+        >
+          {req.confirmLabel ?? 'Confirmar'}
+        </button>
+      </div>
+    </DialogoBase>
   );
 }
 
@@ -246,19 +243,11 @@ export default function Toaster() {
     };
   }, [onToasts]);
 
+  // O mais recente aparece; ao sair, o anterior (ainda válido) volta — nada se perde.
   return (
     <>
-      {confirmReq && <ConfirmDialog req={confirmReq} />}
-      <div
-        aria-live="polite"
-        className="pointer-events-none fixed bottom-4 right-4 z-[90] flex flex-col items-end gap-2"
-      >
-        {list.map((item) => (
-          <div key={item.id} className="pointer-events-auto">
-            <ToastCard item={item} />
-          </div>
-        ))}
-      </div>
+      {confirmReq && <ConfirmDialog key={confirmReq.title} req={confirmReq} />}
+      <AvisoAtual item={list[list.length - 1]} />
     </>
   );
 }

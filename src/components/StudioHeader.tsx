@@ -27,7 +27,7 @@ interface StudioHeaderProps {
   activeView: ViewType;
   /* `string`, e não `ViewType`: o menu da conta (via `ControlCluster`) navega para 'login', que é
      um destino do `navigateTo` do App e NÃO é uma view. Quem recebe aqui já era `(view: string)`. */
-  onChangeView: (view: string) => void;
+  onChangeView: (view: string, data?: Record<string, string>) => void;
   menuPosition: MenuPositionType;
   setMenuPosition: (pos: MenuPositionType) => void;
   soundEnabled: boolean;

@@ -96,7 +96,7 @@ export default function MobileNav({ activeView, onChangeView, ageProfile }: Mobi
           tabIndex={maisAberto ? 0 : -1}
         >
           <LifeBuoy aria-hidden />
-          {t('Ajuda')}
+          {t('Ajuda e suporte')}
         </button>
       </div>
     </>

@@ -1,75 +1,57 @@
-import { ChevronRight, SlidersHorizontal as SlidersIcon } from 'lucide-react';
-import { type ReactNode, useEffect, useRef } from 'react';
+import { Check, ChevronRight, SlidersHorizontal as SlidersIcon, X } from 'lucide-react';
+import { type ReactNode, useId, useRef } from 'react';
 
-import { empilharCamada } from '../../lib/camadasDeEscape';
 import { numero, t, tp } from '../../lib/i18n';
-import Segmentado from '../ui/Segmentado';
+import { DialogoBase } from '../ui/Dialogo';
+import IconeEmBloco from '../ui/IconeEmBloco';
 
 /**
- * O SELETOR DE CONTEÚDO — três linhas de controle viradas uma, com uma gaveta atrás do «Trocar».
+ * O SELETOR DE CONTEÚDO — a faixa escura "Jogando com…" e a GAVETA "O que você vai praticar".
  *
- * O DEFEITO QUE ISTO CONSERTA. A tela de jogar tinha abas de fonte, chips de baralho e uma faixa de
- * recorte como três linhas que não se conheciam: mudar a fonte não atualizava o que os chips de
- * baralho contavam, e um chip podia acender sem que nada mudasse no jogo. Ver
- * `docs/prototipos/praticar-v2.html`, seção "JOGANDO COM" — o protótipo aprovado reduz isso a UMA
- * linha de resumo ("jogando com N palavras · fonte · idioma") com um botão «Trocar» que abre uma
- * gaveta com as facetas. Este componente é a versão em React dessa peça.
+ * Marcação do protótipo aprovado (`T.jogar` + `gavetaFonte()`): a faixa é `.cartao.escuro.faixa-escura`
+ * com o resumo e os botões (Recordes, Mapa, Curadoria, diagnóstico, Fonte); "Fonte" abre a gaveta
+ * lateral `dialog.gaveta` (de baixo, no celular) com o cabeçalho `.dlg-cab`, as facetas em
+ * `.gav-corpo.pilha-g` (rótulo mono, a frase de apoio `.aj` e os chips `.pill` com contagem `.n`), o
+ * cartão "Trazer ou gerenciar" e o rodapé `.gav-pe` com o total do recorte, "Limpar tudo" e "Pronto".
  *
- * A FUSÃO VISUAL É PROPOSITAL. No protótipo, `.fonte-linha.aberta` perde a borda inferior e os
- * cantos de baixo, e `.gaveta` não tem borda superior e só arredonda embaixo — as duas metades viram
- * uma peça só. Uma emenda visível entre resumo e gaveta foi o defeito original do protótipo (borda
- * dupla, cantos nos dois blocos), por isso as classes abaixo replicam a fusão em vez de duas caixas
- * separadas com `gap`.
- *
- * REUSO: cada faceta é um `Segmentado` — os chips com contagem, `aria-pressed` e motivo de bloqueio
- * já vivem lá (ver `ui/Segmentado.tsx`). Este componente não desenha chip nenhum, só monta a moldura
- * (resumo, gaveta, rodapé) ao redor da lista de facetas que a tela chamadora decide.
+ * Cada faceta é UMA decisão sobre o mesmo conjunto: o total do rodapé e o da faixa são o mesmo
+ * número-verdade, e a tela inteira deriva dele. Opção sem material fica desabilitada e diz por quê
+ * (`title`), nunca clicável e inerte.
  */
 
 export interface FacetaDoSeletor {
   /** Chave estável para o React e para o `aoTrocar`. */
   id: string;
-  /** Rótulo curto, minúsculo: "de onde vêm", "quais baralhos", "recorte". */
+  /** Rótulo da faceta: "Idioma", "De onde vêm", "Quais baralhos", "Recorte". */
   rotulo: string;
-  /** Frase de apoio à direita do rótulo, ex.: "escolha uma ou várias — elas se somam". */
+  /** Frase de apoio sob o rótulo, ex.: "Marque quantas quiser: elas se somam na rodada." */
   ajuda?: string;
   opcoes: Array<{ id: string; rotulo: string; contagem?: number; motivoBloqueio?: string; icone?: ReactNode }>;
   valor: string[];
   aoTrocar: (idDaOpcao: string) => void;
-  /**
-   * Faceta de escolha ÚNICA (radiogroup) em vez de múltipla.
-   *
-   * Existe porque "de onde vêm" ainda é exclusiva nesta etapa: o filtro já sabe somar fontes, mas
-   * a trilha tem tratamento próprio em vários pontos da tela, e ligar a soma junto com o
-   * redesenho misturaria duas mudanças de comportamento numa só. A multi-seleção de fontes entra
-   * com a distribuição por cota (`core/minigames/distribuicao.ts`, já pronta e testada).
-   */
+  /** Escolha única (o idioma, o nível). Continua um chip com `aria-pressed`, como no protótipo. */
   exclusiva?: boolean;
 }
 
 export interface SeletorDeConteudoProps {
   /** Total do recorte — o número-verdade do qual a tela toda deriva. */
   total: number;
-  /** Nome da fonte dominante ("4000 Essential English Words" ou "Curso de palavras"). */
+  /** Nome da fonte dominante ("Minhas gravações", "4000 Essential English Words"). */
   nomeDaFonte: string;
   idioma?: string;
   facetas: FacetaDoSeletor[];
   aberta: boolean;
   aoAlternar: () => void;
   aoLimpar: () => void;
-  /** Mensagem de vazio útil, quando total === 0. Ex.: "nenhum item passa; desligue um recorte". */
+  /** Aviso curto do rodapé quando nada passa. Ex.: "nenhum item passa; desligue um recorte". */
   avisoDeVazio?: string;
-  /**
-   * Ações que TRAZEM ou GERENCIAM material (importar do Anki, abrir os baralhos), no rodapé.
-   */
+  /** Os botões do cartão "Trazer ou gerenciar" (Trazer do Anki, Gerenciar baralhos, idiomas). */
   acoes?: ReactNode;
-  /**
-   * Ações rápidas exibidas na barra de resumo (Recordes, Mapa, Curadoria, Diagnóstico).
-   */
+  /** O que abre embaixo dos botões de "Trazer ou gerenciar" (a tabela dos idiomas). */
+  detalheDasAcoes?: ReactNode;
+  /** Ações da faixa escura (Recordes, Mapa, Curadoria, Diagnóstico). */
   acoesBarra?: ReactNode;
 }
-
-const ID_DA_GAVETA = 'seletor-de-conteudo-gaveta';
 
 function SeletorDeConteudo({
   total,
@@ -81,33 +63,19 @@ function SeletorDeConteudo({
   aoLimpar,
   avisoDeVazio,
   acoes,
+  detalheDasAcoes,
   acoesBarra,
 }: SeletorDeConteudoProps) {
-  // Escape fecha, mas só enquanto a gaveta está aberta — do contrário este seletor roubaria o Esc
-  // de outras camadas da tela (diálogos, tour) mesmo fechado.
-  const aoAlternarRef = useRef(aoAlternar);
-  aoAlternarRef.current = aoAlternar;
-  useEffect(() => {
-    if (!aberta) return;
-    return empilharCamada(() => aoAlternarRef.current());
-  }, [aberta]);
-
+  const idTitulo = useId();
+  const gaveta = useRef<HTMLDialogElement>(null);
   const facetasVisiveis = facetas.filter((f) => f.opcoes.length > 0);
+  /* Fechar pela gaveta (Esc nativo, "x", "Pronto") sempre passa pelo `close` do `<dialog>`, e é
+     ele que avisa a tela: um caminho só, sem o risco de alternar duas vezes. */
+  const fechar = () => gaveta.current?.close();
 
   return (
     <div>
-      {/* ── Linha de resumo ──────────────────────────────────────────────────────────────────
-          FUNDO ESCURO (extensão do padrão do Hub/Capturar): esta faixa é o resumo da ação em
-          curso ("com o que eu vou jogar agora") — mesmo peso visual que o "Espaço de Gravação"
-          da Captura e o card-herói do Hub. A gaveta abaixo continua clara, como os demais cards
-          de apoio da tela. */}
-      {/* Marcação do protótipo aprovado (`T.jogar`): `.cartao.escuro.faixa-escura` com o resumo e os
-          botões `.btn.btn-outline.peq`. Aberta, a borda acende para ligar a faixa à gaveta. */}
-      <section
-        className="cartao escuro faixa-escura"
-        aria-label={t('O que você vai praticar')}
-        style={aberta ? { borderColor: 'var(--accent)' } : undefined}
-      >
+      <section className="cartao escuro faixa-escura" aria-label={t('O que você vai praticar')}>
         <div className="resumo">
           <span className="label-mono" style={{ color: 'inherit', opacity: 0.8 }}>
             {t('Jogando com')}
@@ -120,7 +88,6 @@ function SeletorDeConteudo({
             </>
           )}
           {idioma && <> · {idioma}</>}
-          {avisoDeVazio && <span style={{ color: 'var(--warn)', fontWeight: 600 }}> — {avisoDeVazio}</span>}
         </div>
         <div className="linha" style={{ gap: 8, flexWrap: 'wrap' }}>
           {acoesBarra}
@@ -128,70 +95,83 @@ function SeletorDeConteudo({
             type="button"
             className="btn btn-outline peq"
             onClick={aoAlternar}
+            aria-haspopup="dialog"
             aria-expanded={aberta}
-            aria-controls={ID_DA_GAVETA}
           >
             <SlidersIcon aria-hidden /> {t('Fonte')} <ChevronRight aria-hidden />
           </button>
         </div>
       </section>
 
-      {/* ── Gaveta ───────────────────────────────────────────────────────────────────────────
-          `hidden`, não uma classe de exibição: é o atributo que o protótipo usa (`.gaveta[hidden]`)
-          e o que garante que leitor de tela e navegação por Tab pulem o conteúdo fechado sem que a
-          gente precise repetir a lógica em `tabIndex`. */}
-      <div
-        id={ID_DA_GAVETA}
-        hidden={!aberta}
-        className="card-panel bg-surface border-2 border-t-0 border-ink rounded-t-none px-4 pb-4 pt-1"
-      >
-        {facetasVisiveis.map((faceta, i) => (
-          <div
-            key={faceta.id}
-            className={`py-3.5 ${i < facetasVisiveis.length - 1 ? 'border-b border-dashed border-border-subtle' : ''}`}
-          >
-            <div className="flex items-baseline gap-2.5 mb-2.5">
-              <span className="label-mono">{faceta.rotulo}</span>
-              {faceta.ajuda && <span className="text-[12px] text-ink-faint">{faceta.ajuda}</span>}
+      {aberta && (
+        <DialogoBase classe="gaveta" rotuloId={idTitulo} aoFechar={aoAlternar} refDialogo={gaveta}>
+          <div className="dlg-cab">
+            <IconeEmBloco icone={SlidersIcon} />
+            <div style={{ minWidth: 0 }}>
+              <h2 id={idTitulo}>{t('O que você vai praticar')}</h2>
+              <p className="mut" style={{ fontSize: 13 }}>
+                {t('A escolha fica salva para as próximas rodadas.')}
+              </p>
             </div>
-            <Segmentado
-              rotuloDoGrupo={faceta.rotulo}
-              variante="chip"
-              multiplo={!faceta.exclusiva}
-              valor={faceta.valor}
-              aoTrocar={faceta.aoTrocar}
-              opcoes={faceta.opcoes}
-            />
-          </div>
-        ))}
-
-        {acoes && (
-          <div className="flex items-center gap-2 flex-wrap pt-3.5 mt-1 border-t border-dashed border-border-subtle">
-            <span className="label-mono me-1">{t('trazer ou gerenciar')}</span>
-            {acoes}
-          </div>
-        )}
-
-        <div className="flex items-center justify-between gap-3 flex-wrap mt-4 pt-3.5 border-t border-border-subtle">
-          <span className="label-mono">{t('{n} no recorte', { n: numero(total) })}</span>
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={aoLimpar}
-              className="text-[12.5px] text-ink-muted hover:text-accent-ink underline decoration-dotted underline-offset-4 cursor-pointer"
-            >
-              {t('limpar tudo')}
-            </button>
-            <button
-              type="button"
-              onClick={aoAlternar}
-              className="px-3.5 py-1.5 rounded-lg text-[13px] font-semibold border-2 border-border-subtle bg-surface hover:bg-surface-hover cursor-pointer text-ink"
-            >
-              {t('Pronto')}
+            <button type="button" className="x" aria-label={t('Fechar')} onClick={fechar}>
+              <X aria-hidden />
             </button>
           </div>
-        </div>
-      </div>
+
+          <div className="gav-corpo pilha-g">
+            {facetasVisiveis.map((faceta) => (
+              <div key={faceta.id}>
+                <span className="label-mono">{faceta.rotulo}</span>
+                {faceta.ajuda && <p className="mut aj">{faceta.ajuda}</p>}
+                <div className="chips" role="group" aria-label={faceta.rotulo}>
+                  {faceta.opcoes.map((o) => {
+                    const ligado = faceta.valor.includes(o.id);
+                    const travado = !!o.motivoBloqueio && !ligado;
+                    return (
+                      <button
+                        key={o.id}
+                        type="button"
+                        className="pill"
+                        aria-pressed={ligado}
+                        disabled={travado}
+                        title={travado ? o.motivoBloqueio : undefined}
+                        onClick={() => faceta.aoTrocar(o.id)}
+                      >
+                        {o.icone}
+                        {o.rotulo}
+                        {o.contagem !== undefined && <span className="n">{numero(o.contagem)}</span>}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
+
+            {acoes && (
+              <div className="cartao p5 sutil">
+                <span className="label-mono">{t('Trazer ou gerenciar')}</span>
+                <div className="linha" style={{ gap: 8, flexWrap: 'wrap', marginTop: 10 }}>
+                  {acoes}
+                </div>
+                {detalheDasAcoes}
+              </div>
+            )}
+          </div>
+
+          <div className="gav-pe">
+            <span className="tn" aria-live="polite">
+              <b>{numero(total)}</b> {t('no recorte')}
+              {avisoDeVazio && <span className="aviso-curto">{avisoDeVazio}</span>}
+            </span>
+            <button type="button" className="link" onClick={aoLimpar}>
+              {t('Limpar tudo')}
+            </button>
+            <button type="button" className="btn btn-solid" onClick={fechar}>
+              <Check aria-hidden /> {t('Pronto')}
+            </button>
+          </div>
+        </DialogoBase>
+      )}
     </div>
   );
 }

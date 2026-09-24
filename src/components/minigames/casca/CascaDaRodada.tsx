@@ -1,5 +1,5 @@
 import type { MinigameId } from '@core';
-import { CircleHelp, DoorOpen, Gamepad2, LogOut, Pause, Play, RotateCcw, X } from 'lucide-react';
+import { CircleHelp, DoorOpen, Gamepad2, LogOut, Pause, Play, RotateCcw, Volume2, X } from 'lucide-react';
 import {
   createContext,
   type ReactNode,
@@ -66,6 +66,8 @@ interface CascaDaRodadaProps {
   onSair: () => void;
   /** P também pausa (padrão). Falso onde P é letra do tabuleiro (Termo): aí só o Esc pausa. */
   pausaComP?: boolean;
+  /** O som do app (soundEnabled/toggleSound do App): o interruptor "Sons" da pausa. */
+  som?: { ligado: boolean; alternar: () => void };
   /** Tela cheia de largura para tabuleiros que precisam (padrão `larga`, como no protótipo). */
   children: ReactNode;
 }
@@ -85,6 +87,7 @@ export default function CascaDaRodada({
   onRecomecar,
   onSair,
   pausaComP = true,
+  som,
   children,
 }: CascaDaRodadaProps) {
   const palcoRef = useRef<HTMLElement | null>(null);
@@ -169,6 +172,7 @@ export default function CascaDaRodada({
         <DialogoDePausa
           passo={passo}
           pausaComP={pausaComP}
+          som={som}
           titulo={titulo}
           placar={placar.current}
           aoContinuar={continuar}
@@ -208,6 +212,7 @@ export default function CascaDaRodada({
 function DialogoDePausa({
   passo,
   pausaComP,
+  som,
   titulo,
   placar,
   aoContinuar,
@@ -219,6 +224,7 @@ function DialogoDePausa({
 }: {
   passo: 'menu' | 'sair';
   pausaComP: boolean;
+  som?: { ligado: boolean; alternar: () => void };
   titulo: string;
   placar: { pontos: number; acertos: number };
   aoContinuar: () => void;
@@ -268,6 +274,24 @@ function DialogoDePausa({
             <button type="button" className="btn btn-outline bloco" onClick={aoComoSeJoga}>
               <CircleHelp aria-hidden /> Como se joga
             </button>
+            {som && (
+              <div className="op-linha" style={{ padding: '6px 4px' }}>
+                <b>
+                  <Volume2 aria-hidden style={{ display: 'inline-block', width: 16, height: 16, verticalAlign: -3 }} />{' '}
+                  Sons
+                </b>
+                <button
+                  type="button"
+                  className={`interruptor ${som.ligado ? 'on' : ''}`}
+                  role="switch"
+                  aria-checked={som.ligado}
+                  aria-label="Sons do jogo"
+                  onClick={som.alternar}
+                >
+                  <span />
+                </button>
+              </div>
+            )}
             <button type="button" className="btn btn-outline bloco perigo" onClick={aoPedirSair}>
               <LogOut aria-hidden /> Sair da rodada
             </button>

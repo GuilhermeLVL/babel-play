@@ -1,28 +1,29 @@
 /**
- * MEUS RECORDES + RANKING GLOBAL — o lugar onde a gamificação "fica".
+ * MEUS RECORDES + RANKING GLOBAL — `dialogoRecordes()` do protótipo aprovado, sobre dado real.
  *
- * Pontos, combos e bônus só valem alguma coisa se puderem ser REVISITADOS: esta tela mostra, por
- * jogo, o melhor placar, o combo máximo, a precisão e o volume de rodadas (do IndexedDB, via o
- * mesmo `/api/exercises/recordes` que a tela de fim de rodada usa) — e a aba de ranking global
- * (`/api/rank`) com o top da comunidade.
+ * `<dialog class="medio">` com o cabeçalho `.dlg-cab` (troféu), o `.seg` "Meus recordes / Ranking
+ * global", três ladrilhos, a tabela `.tabela.compacta` com a mini-arte de cada jogo e o `ol.ranking`
+ * com medalhas. Os números vêm de `/api/exercises/recordes` (o mesmo da tela de fim de rodada) e do
+ * ranking do servidor (`/api/rank`); os eventos raros, do que este navegador já viu.
  *
- * O ranking morava numa Pages Function do Cloudflare contra um banco D1, e esta tela dizia "vive
- * na versão publicada" — uma versão que nunca foi publicada. Ele veio para o servidor do app em
- * 07/09, com a edição leve. O estado vazio continua existindo, mas agora ele significa o que
- * qualquer estado vazio significa: não deu para falar com o servidor agora.
+ * O estado vazio diz o que significa: sem rodada ainda, ou sem conseguir falar com o servidor.
  */
-import { Globe2, Medal,Target, X, Zap } from 'lucide-react';
+import { Globe2, Medal, Shield, Trophy } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 import { fetchRecordes, type RecordeDoJogo } from '../../../data/api';
 import { eventosVistos, todosOsEventos } from '../../../lib/eventosDeJogo';
+import { t } from '../../../lib/i18n';
 import type { AgeProfileType } from '../../../lib/profile';
 import { lerApelido, lerRanking, type LinhaDoRanking } from '../../../lib/ranking';
+import Dialogo from '../../ui/Dialogo';
+import IconeEmBloco from '../../ui/IconeEmBloco';
+import { IconePixel } from './IconesPixel';
 import { JOGOS } from './jogos';
 
 function tituloDoJogo(id: string, ageProfile: AgeProfileType): string {
   const j = JOGOS.find((x) => x.id === id);
-  return j ? j.titulo[ageProfile] : id;
+  return j ? j.titulo[ageProfile].split(':')[0] : id;
 }
 
 export default function Recordes({ ageProfile, onFechar }: { ageProfile: AgeProfileType; onFechar: () => void }) {
@@ -31,7 +32,9 @@ export default function Recordes({ ageProfile, onFechar }: { ageProfile: AgeProf
   const [jogoGlobal, setJogoGlobal] = useState('blitz');
   const [ranking, setRanking] = useState<LinhaDoRanking[] | null | 'carregando'>('carregando');
 
-  useEffect(() => { void fetchRecordes().then(setRecordes); }, []);
+  useEffect(() => {
+    void fetchRecordes().then(setRecordes);
+  }, []);
   useEffect(() => {
     if (aba !== 'global') return;
     setRanking('carregando');
@@ -42,107 +45,158 @@ export default function Recordes({ ageProfile, onFechar }: { ageProfile: AgeProf
   const totalEventos = todosOsEventos().length;
   const apelido = lerApelido();
   const geral = (recordes ?? []).reduce((m, r) => Math.max(m, r.melhorPontos), 0);
+  const rodadas = (recordes ?? []).reduce((s, r) => s + r.rodadas, 0);
 
   return (
-    <div className="fixed inset-0 z-50 bg-ink/40 backdrop-blur-sm flex items-center justify-center p-4" role="dialog" aria-label="Recordes">
-      <div className="card-panel bg-surface w-full max-w-2xl max-h-[85vh] overflow-y-auto custom-scrollbar p-6">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="flex items-center gap-2 font-marca font-bold text-xl text-ink">
-            <Medal className="w-6 h-6 text-warn" /> Recordes
-          </h2>
-          <button onClick={onFechar} className="p-2 rounded-lg text-ink-muted hover:bg-surface-hover hover:text-ink cursor-pointer" aria-label="Fechar">
-            <X className="w-5 h-5" />
-          </button>
-        </div>
-
-        <div className="flex gap-1 p-1 bg-surface-hover/70 border border-border-subtle rounded-xl mb-5 w-fit">
-          <button onClick={() => setAba('meus')} aria-pressed={aba === 'meus'} className={`px-4 py-1.5 rounded-lg text-[12.5px] font-bold cursor-pointer ${aba === 'meus' ? 'bg-accent text-accent-contrast' : 'text-ink-muted hover:text-ink'}`}>Meus recordes</button>
-          <button onClick={() => setAba('global')} aria-pressed={aba === 'global'} className={`flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-[12.5px] font-bold cursor-pointer ${aba === 'global' ? 'bg-accent text-accent-contrast' : 'text-ink-muted hover:text-ink'}`}><Globe2 className="w-3.5 h-3.5" /> Ranking global</button>
+    <Dialogo
+      icone={Trophy}
+      titulo={t('Recordes')}
+      sub={t('Seus melhores resultados e o placar de quem joga o mesmo jogo.')}
+      aoFechar={onFechar}
+    >
+      <div className="dlg-corpo pilha">
+        <div className="seg" role="radiogroup" aria-label={t('Qual recorde')}>
+          {(
+            [
+              ['meus', t('Meus recordes')],
+              ['global', t('Ranking global')],
+            ] as const
+          ).map(([v, r]) => (
+            <button key={v} type="button" role="radio" aria-checked={aba === v} onClick={() => setAba(v)}>
+              {r}
+            </button>
+          ))}
         </div>
 
         {aba === 'meus' ? (
-          <div className="space-y-4">
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-              <div className="card-panel bg-canvas p-4 text-center">
-                <p className="font-display font-black text-3xl text-warn-ink tabular-nums">{geral}</p>
-                <p className="text-[11px] text-ink-muted mt-0.5">melhor placar geral</p>
+          <>
+            <div className="ladrilhos" style={{ gridTemplateColumns: 'repeat(3,1fr)' }}>
+              <div className="cartao ladrilho">
+                <span className="label-mono">{t('Melhor placar')}</span>
+                <span className="v acc tn">{recordes ? geral : '—'}</span>
               </div>
-              <div className="card-panel bg-canvas p-4 text-center">
-                <p className="font-display font-black text-3xl text-accent-ink tabular-nums">{(recordes ?? []).reduce((s, r) => s + r.rodadas, 0)}</p>
-                <p className="text-[11px] text-ink-muted mt-0.5">rodadas jogadas</p>
+              <div className="cartao ladrilho">
+                <span className="label-mono">{t('Rodadas')}</span>
+                <span className="v tn">{recordes ? rodadas : '—'}</span>
               </div>
-              <div className="card-panel bg-canvas p-4 text-center col-span-2 sm:col-span-1">
-                <p className="font-display font-black text-3xl text-good tabular-nums">{vistos}/{totalEventos}</p>
-                <p className="text-[11px] text-ink-muted mt-0.5">eventos raros vistos</p>
+              <div className="cartao ladrilho">
+                <span className="label-mono">{t('Eventos raros')}</span>
+                <span className="v tn">{t('{a} de {b}', { a: vistos, b: totalEventos })}</span>
               </div>
             </div>
-
             {recordes === null ? (
-              <div className="h-32 rounded-2xl bg-surface-hover/50 animate-pulse" aria-hidden />
+              <div className="cartao esqueleto" style={{ height: 160 }} aria-hidden />
             ) : recordes.length === 0 ? (
-              <p className="text-[13px] text-ink-muted text-center py-8">Nenhuma rodada ainda. Jogue uma e o seu histórico nasce aqui.</p>
+              <div className="vazio">
+                <IconeEmBloco icone={Trophy} />
+                <h3>{t('Nenhuma rodada ainda')}</h3>
+                <p>{t('Jogue uma e o seu histórico nasce aqui.')}</p>
+              </div>
             ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-[13px]">
+              <div className="tabela-rola" tabIndex={0} role="region" aria-label={t('Recordes por jogo')}>
+                <table className="tabela compacta">
                   <thead>
-                    <tr className="text-start text-[10px] uppercase tracking-wider text-ink-faint border-b border-border-subtle">
-                      <th className="py-2 pe-3 font-bold">Jogo</th>
-                      <th className="py-2 pe-3 font-bold text-end">Melhor</th>
-                      <th className="py-2 pe-3 font-bold text-end"><span className="inline-flex items-center gap-1"><Zap className="w-3 h-3" />combo</span></th>
-                      <th className="py-2 pe-3 font-bold text-end"><span className="inline-flex items-center gap-1"><Target className="w-3 h-3" />precisão</span></th>
-                      <th className="py-2 font-bold text-end">rodadas</th>
+                    <tr>
+                      <th className="label-mono">{t('Jogo')}</th>
+                      <th className="label-mono tn">{t('Melhor')}</th>
+                      <th className="label-mono tn">{t('Combo')}</th>
+                      <th className="label-mono tn">{t('Precisão')}</th>
+                      <th className="label-mono tn">{t('Rodadas')}</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {[...recordes].sort((a, b) => b.melhorPontos - a.melhorPontos).map((r) => (
-                      <tr key={r.exerciseKind} className="border-b border-border-subtle/50">
-                        <td className="py-2.5 pe-3 font-bold text-ink">{tituloDoJogo(r.exerciseKind, ageProfile)}</td>
-                        <td className="py-2.5 pe-3 text-end font-black text-warn-ink tabular-nums">{r.melhorPontos}</td>
-                        <td className="py-2.5 pe-3 text-end tabular-nums text-ink">{r.melhorCombo || '-'}</td>
-                        <td className="py-2.5 pe-3 text-end tabular-nums text-ink">{r.precisao != null ? `${r.precisao}%` : '-'}</td>
-                        <td className="py-2.5 text-end tabular-nums text-ink-muted">{r.rodadas}</td>
-                      </tr>
-                    ))}
+                    {[...recordes]
+                      .sort((a, b) => b.melhorPontos - a.melhorPontos)
+                      .map((r) => (
+                        <tr key={r.exerciseKind}>
+                          <td>
+                            <span className="linha" style={{ gap: 8 }}>
+                              <span className="mini-arte" aria-hidden>
+                                {JOGOS.some((j) => j.id === r.exerciseKind) && (
+                                  <IconePixel id={r.exerciseKind as (typeof JOGOS)[number]['id']} />
+                                )}
+                              </span>
+                              {tituloDoJogo(r.exerciseKind, ageProfile)}
+                            </span>
+                          </td>
+                          <td className="tn">
+                            <b>{r.melhorPontos}</b>
+                          </td>
+                          <td className="tn">{r.melhorCombo ? `×${r.melhorCombo}` : '—'}</td>
+                          <td className="tn">{r.precisao != null ? `${r.precisao}%` : '—'}</td>
+                          <td className="tn">{r.rodadas}</td>
+                        </tr>
+                      ))}
                   </tbody>
                 </table>
               </div>
             )}
-          </div>
+          </>
         ) : (
-          <div className="space-y-4">
-            <div className="flex flex-wrap gap-1.5">
+          <>
+            <div className="chips" role="radiogroup" aria-label={t('Jogo do ranking')}>
               {JOGOS.map((j) => (
-                <button key={j.id} onClick={() => setJogoGlobal(j.id)} aria-pressed={jogoGlobal === j.id}
-                  className={`px-3 py-1.5 rounded-lg text-[12px] font-bold cursor-pointer border ${jogoGlobal === j.id ? 'bg-accent text-accent-contrast border-accent' : 'bg-canvas border-border-subtle text-ink-muted hover:text-ink'}`}>
-                  {j.titulo[ageProfile]}
+                <button
+                  key={j.id}
+                  type="button"
+                  className="pill"
+                  role="radio"
+                  aria-checked={jogoGlobal === j.id}
+                  onClick={() => setJogoGlobal(j.id)}
+                >
+                  {j.titulo[ageProfile].split(':')[0]}
                 </button>
               ))}
             </div>
             {ranking === 'carregando' ? (
-              <div className="h-40 rounded-2xl bg-surface-hover/50 animate-pulse" aria-hidden />
+              <div className="cartao esqueleto" style={{ height: 200 }} aria-hidden />
             ) : ranking === null ? (
-              <div className="text-center py-10 px-6">
-                <Globe2 className="w-10 h-10 text-ink-faint mx-auto mb-3" aria-hidden />
-                <p className="font-bold text-[14px] text-ink">Não deu para carregar o ranking agora.</p>
-                <p className="text-[12.5px] text-ink-muted mt-1.5">O top 20 de cada jogo aparece aqui, com o seu apelido. Tente de novo em instantes.</p>
+              <div className="vazio">
+                <IconeEmBloco icone={Globe2} />
+                <h3>{t('Não deu para carregar o ranking agora')}</h3>
+                <p>{t('O top 20 de cada jogo aparece aqui, com o seu apelido. Tente de novo em instantes.')}</p>
               </div>
             ) : ranking.length === 0 ? (
-              <p className="text-[13px] text-ink-muted text-center py-8">Ninguém enviou pontuação neste jogo ainda. Seja a primeira pessoa do placar!</p>
+              <div className="vazio">
+                <IconeEmBloco icone={Globe2} />
+                <h3>{t('Ninguém no placar deste jogo ainda')}</h3>
+                <p>{t('Seja a primeira pessoa do placar.')}</p>
+              </div>
             ) : (
-              <ol className="space-y-1">
-                {ranking.map((l, i) => (
-                  <li key={l.apelido + i} className={`flex items-center gap-3 px-3 py-2 rounded-xl ${l.apelido === apelido ? 'bg-accent-soft border border-accent/40' : i % 2 === 0 ? 'bg-canvas' : ''}`}>
-                    <span className="w-7 text-center font-black tabular-nums text-ink-muted">{i < 3 ? <Medal className={`w-4 h-4 inline ${i === 0 ? 'text-warn' : i === 1 ? 'text-ink-faint' : 'text-accent'}`} /> : i + 1}</span>
-                    <span className="flex-1 min-w-0 truncate font-bold text-[13px] text-ink">{l.apelido}{l.apelido === apelido && <span className="text-accent-ink"> (você)</span>}</span>
-                    <span className="flex items-center gap-1 text-[12px] text-ink-muted tabular-nums"><Zap className="w-3 h-3" />{l.combo}</span>
-                    <span className="font-black text-[14px] text-warn-ink tabular-nums">{l.pontos}</span>
-                  </li>
-                ))}
+              <ol className="ranking">
+                {ranking.map((l, i) => {
+                  const voce = !!apelido && l.apelido === apelido;
+                  return (
+                    <li key={l.apelido + i} className={voce ? 'voce' : ''}>
+                      <span className="pos tn">
+                        {i < 3 ? (
+                          <span className={`medalha m${i + 1}`} role="img" aria-label={t('{n}º lugar', { n: i + 1 })}>
+                            <Medal aria-hidden />
+                          </span>
+                        ) : (
+                          `${i + 1}º`
+                        )}
+                      </span>
+                      <span className="nome">
+                        {l.apelido}
+                        {voce && <small> {t('(você)')}</small>}
+                      </span>
+                      <span className="mut tn" style={{ fontSize: 12 }}>
+                        combo ×{l.combo}
+                      </span>
+                      <b className="tn">{l.pontos}</b>
+                    </li>
+                  );
+                })}
               </ol>
             )}
-          </div>
+            <p className="mut" style={{ fontSize: 12, marginTop: 10 }}>
+              <Shield aria-hidden style={{ width: 13, height: 13, verticalAlign: -2 }} />{' '}
+              {t('No ranking aparece só o seu apelido.')}
+            </p>
+          </>
         )}
       </div>
-    </div>
+    </Dialogo>
   );
 }

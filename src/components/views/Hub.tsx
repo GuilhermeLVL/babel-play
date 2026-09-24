@@ -1,7 +1,6 @@
 import { estimativaDeMinutos, rotuloDeDuracao } from '@core';
 import {
   ArrowRight,
-  ChevronUp,
   Eye,
   FileText,
   Gamepad2,
@@ -11,28 +10,20 @@ import {
   Sparkles,
   Sprout,
   Target,
-  TrendingUp,
   Upload,
   Youtube,
 } from 'lucide-react';
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 
-import { type AppMetrics, fetchExerciseResults, fetchSettings, patchUiSettings } from '../../data/api';
+import { type AppMetrics, fetchExerciseResults } from '../../data/api';
 import { numero, t, tp } from '../../lib/i18n';
 import { type DerivedProgress, type Mission } from '../../lib/progress';
 import { Recording } from '../../types';
 import CardDePlanos from '../CardDePlanos';
 import AvisoDeConta from '../conta/AvisoDeConta';
 import EditablePanel from '../EditablePanel';
-import { ehBaixaConfianca } from '../Honestidade';
 import FaixaDeProgresso from '../progress/FaixaDeProgresso';
 import { Abas, CabecalhoDeTela, IconeEmBloco, Tela, TituloDeSecao, Vazio } from '../ui';
-
-// Metas de ritmo DECLARADAS por nível (benchmark, não medição). O valor MEDIDO
-// vem sempre de metrics.wpm; aqui só guardamos o alvo com que comparar.
-const LEVEL_TARGET_WPM: Record<'B2' | 'C1' | 'C2', number> = { B2: 130, C1: 150, C2: 160 };
-// Ordem CEFR para calcular "quanto do vocabulário está no nível-alvo ou acima".
-const CEFR_RANK: Record<string, number> = { A1: 1, A2: 2, B1: 3, B2: 4, C1: 5, C2: 6 };
 
 type AgeProfile = 'kids' | 'pro' | 'senior';
 
@@ -85,63 +76,6 @@ export default function Hub({ onChangeView, recordings, ageProfile = 'pro', prog
     };
   }, []);
   const filteredRecs = recordings.filter((r) => filterCategory === 'all' || r.type === filterCategory).slice(0, 6);
-  const [showDetailedStats, setShowDetailedStats] = useState<boolean>(false);
-
-  const fmtNum = (n: number) => (n >= 1000 ? (n / 1000).toFixed(1) + 'k' : String(n));
-
-  // Nível-alvo CEFR: é uma META ESCOLHIDA pelo usuário (não uma medição). Persiste no
-  // blob settings.ui via MERGE. Chave distinta de `ui.goal` (essa pertence à tela de
-  // Configurações, que guarda executivo/creator/…) para os dois não se sobrescreverem.
-  const [selectedLevel, setSelectedLevel] = useState<'B2' | 'C1' | 'C2'>('C1');
-  const levelLoaded = useRef(false);
-  useEffect(() => {
-    let alive = true;
-    (async () => {
-      const s = await fetchSettings();
-      if (alive && s?.ui) {
-        try {
-          const parsed = JSON.parse(s.ui) as { cefrGoal?: string };
-          if (parsed.cefrGoal === 'B2' || parsed.cefrGoal === 'C1' || parsed.cefrGoal === 'C2') {
-            setSelectedLevel(parsed.cefrGoal);
-          }
-        } catch {
-          /* ui inválido, ignora */
-        }
-      }
-      levelLoaded.current = true;
-    })();
-    return () => {
-      alive = false;
-    };
-  }, []);
-  const chooseLevel = (lvl: 'B2' | 'C1' | 'C2') => {
-    setSelectedLevel(lvl);
-    if (levelLoaded.current) void patchUiSettings({ cefrGoal: lvl });
-  };
-
-  // Nível CEFR ESTIMADO derivado da distribuição real de níveis do deck (não é avaliação oficial).
-  const levelDist = metrics?.levelDistribution ?? [];
-  const levelTotal = levelDist.reduce((s, l) => s + l.count, 0);
-  const topLevel = levelDist.length ? levelDist.reduce((a, b) => (b.count > a.count ? b : a)).level : null;
-  const levelBars =
-    levelTotal > 0
-      ? [...levelDist]
-          .sort((a, b) => b.count - a.count)
-          .map((l) => ({ level: l.level, count: l.count, pct: Math.round((l.count / levelTotal) * 100) }))
-      : [];
-
-  // Comparação "alvo declared × valor medido" para o card de nível-alvo.
-  const targetWpm = LEVEL_TARGET_WPM[selectedLevel];
-  const wpmMeasured = metrics && metrics.speakingMs > 0 && metrics.wpm > 0 ? Math.round(metrics.wpm) : null;
-  // F3 — o limiar vem da primitiva compartilhada; antes era um `0.5` solto aqui, um `0.5` em
-  // Metrics e um `0.6` em Analysis, e as telas discordavam sobre a mesma estimativa.
-  const wpmLowConf = !metrics || ehBaixaConfianca(metrics.wpmConfidence);
-  const pacePct = wpmMeasured != null ? Math.min(100, Math.round((wpmMeasured / targetWpm) * 100)) : 0;
-  // Aderência do vocabulário ao nível-alvo: % das palavras classificadas no nível escolhido ou acima.
-  const targetRank = CEFR_RANK[selectedLevel];
-  const atOrAbove = levelDist.filter((l) => (CEFR_RANK[l.level] ?? 0) >= targetRank).reduce((s, l) => s + l.count, 0);
-  const vocabAdherence = levelTotal > 0 ? Math.round((atOrAbove / levelTotal) * 100) : null;
-
   return (
     <Tela largura="larga">
       {/* Cabeçalho — a linguagem muda por perfil; a estrutura, não. O protótipo aprovado
@@ -240,15 +174,11 @@ export default function Hub({ onChangeView, recordings, ageProfile = 'pro', prog
         )}
       </FaixaDeProgresso>
 
+      {/* "Ver estatísticas detalhadas" leva à tela Estatísticas (decisão do dono, 24/09). O bloco
+          inline que abria aqui saiu; a meta de nível foi junto para Estatísticas. */}
       <div style={{ marginTop: 14 }}>
-        <button
-          type="button"
-          className="link"
-          onClick={() => setShowDetailedStats(!showDetailedStats)}
-          aria-expanded={showDetailedStats}
-        >
-          {t('Ver estatísticas detalhadas')}{' '}
-          {showDetailedStats ? <ChevronUp aria-hidden /> : <ArrowRight aria-hidden />}
+        <button type="button" className="link" onClick={() => onChangeView('estatisticas')}>
+          {t('Ver estatísticas detalhadas')} <ArrowRight aria-hidden />
         </button>
       </div>
 
@@ -262,360 +192,6 @@ export default function Hub({ onChangeView, recordings, ageProfile = 'pro', prog
       <AvisoDeConta metrics={metrics} onEntrar={() => onChangeView('login')} />
 
       <CardDePlanos onVerPlanos={() => onChangeView('planos')} />
-
-      {/* Progress Dashboard & Metrics — só quando expandido */}
-      {showDetailedStats && (
-        <EditablePanel
-          viewKey="hub"
-          panelKey="statsDashboard"
-          title={t('Dashboard de Estatísticas')}
-          canResizeWidth={false}
-          canResizeHeight={false}
-          defaultHeight={0}
-        >
-          <section className="mb-8 animate-in slide-in-from-top-2 duration-300">
-            <TituloDeSecao icone={TrendingUp} titulo={t('Métricas do Perfil')} />
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-              <button
-                className="card-panel p-5 text-start hover:border-accent hover:shadow-card transition-all group"
-                onClick={() => ir('metrics')}
-              >
-                <span className="label-mono block mb-1 text-ink-muted group-hover:text-accent transition-colors">
-                  {t('Palavras Produzidas')}
-                </span>
-                <div className="font-display font-black text-2xl tracking-tight text-ink mb-1">
-                  {metrics ? fmtNum(metrics.wordsCaptured) : '-'}
-                </div>
-                <div className="text-[11.5px] font-semibold text-ink-muted flex items-center gap-1">
-                  <TrendingUp className="w-3.5 h-3.5" />{' '}
-                  {tp(metrics?.sessions ?? 0, '{n} sessão capturada', '{n} sessões capturadas')}
-                </div>
-              </button>
-
-              <button
-                className="card-panel p-5 text-start hover:border-accent hover:shadow-card transition-all group"
-                onClick={() => ir('metrics')}
-              >
-                <span className="label-mono block mb-1 text-ink-muted group-hover:text-accent transition-colors">
-                  {t('Vocabulário no Deck')}
-                </span>
-                <div className="font-display font-black text-2xl tracking-tight text-ink mb-1">
-                  {metrics ? fmtNum(metrics.deckSize) : '-'}
-                </div>
-                <div className="text-[11.5px] font-medium text-ink-muted">
-                  {t('{revisar} para revisar hoje • {novos} novos', {
-                    revisar: metrics?.dueToday ?? 0,
-                    novos: metrics?.newCards ?? 0,
-                  })}
-                </div>
-              </button>
-
-              <div className="card-panel p-5 text-start relative overflow-hidden flex flex-col justify-between border-dashed border-accent-soft/60 hover:border-accent transition-colors bg-surface">
-                <div>
-                  <div className="flex justify-between items-start">
-                    <span className="label-mono block mb-1 text-ink-muted">{t('Ritmo de Fala')}</span>
-                    <span className="text-[9px] bg-accent-soft text-accent-ink px-1.5 py-0.5 rounded font-mono font-bold uppercase">
-                      WPM
-                    </span>
-                  </div>
-                  {metrics && metrics.speakingMs > 0 ? (
-                    <>
-                      <div className="font-display font-bold text-sm text-ink mt-2 mb-1">
-                        {t('{n} palavras/min', { n: Math.round(metrics.wpm) })}
-                        {wpmLowConf ? ` ${t('(estimativa)')}` : ''}
-                      </div>
-                      <p className="text-[11px] leading-snug text-ink-muted">
-                        {t('Baseado em {n} min de fala capturada.', { n: (metrics.speakingMs / 60000).toFixed(1) })}
-                      </p>
-                    </>
-                  ) : (
-                    <>
-                      <div className="font-display font-bold text-sm text-ink mt-2 mb-1">
-                        {t('Sem medição recente')}
-                      </div>
-                      <p className="text-[11px] leading-snug text-ink-muted">
-                        {t('Grave ou faça Shadowing para medir seu ritmo de fala.')}
-                      </p>
-                    </>
-                  )}
-                </div>
-                <button
-                  onClick={() => ir('study')}
-                  className="mt-3 text-xs font-bold text-accent hover:text-accent-ink flex items-center gap-1 transition-colors group/btn self-start"
-                >
-                  {t('Medir agora')}{' '}
-                  <ArrowRight className="w-3.5 h-3.5 transform group-hover/btn:translate-x-1 transition-transform" />
-                </button>
-              </div>
-
-              <div className="card-panel p-5 text-start group bg-surface">
-                <span className="label-mono block mb-1 text-ink-muted">{t('Vícios de Linguagem')}</span>
-                {/* A contagem de vícios (marcadores de hesitação) é REAL desde src/core/learning/fillers.ts
-               , não requer processamento de linguagem, é busca de token por idioma. Ela já aparece
-                por sessão na tela de Análise (aba "Desempenho & Fluência"). O que falta é só o
-                SOMATÓRIO entre todas as sessões: exigiria campo novo em AppMetrics (src/data/api.ts)
-                mais agregação no servidor, fora do escopo desta correção, por isso o card mostra
-                onde o número já existe em vez de fingir que a contagem em si está pendente. */}
-                <div className="font-display font-bold text-sm text-ink mt-2 mb-1 flex items-center gap-2">
-                  {t('Por sessão')}
-                  <span className="kpi-pill opacity-60 cursor-default text-[11px]">{t('Sem agregado')}</span>
-                </div>
-                <div className="text-[11.5px] font-medium text-ink-muted leading-snug">
-                  {t(
-                    'Contagem real por sessão, na aba "Desempenho & Fluência" da tela de Análise. O somatório entre todas as sessões ainda não existe.',
-                  )}
-                </div>
-              </div>
-            </div>
-
-            {/* Nível CEFR estimado a partir da distribuição real de níveis do deck */}
-            <div className="card-panel p-6 mb-8 bg-surface">
-              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
-                <div>
-                  <h3 className="font-display font-extrabold text-[15px] text-ink">
-                    {t('Nível Estimado do Vocabulário (CEFR)')}
-                  </h3>
-                  <p className="text-[12px] text-ink-muted mt-1">
-                    {t(
-                      'Estimativa derivada da distribuição de níveis das palavras do seu deck. Não é uma avaliação oficial.',
-                    )}
-                  </p>
-                </div>
-                {topLevel && (
-                  <div className="flex items-center gap-2 bg-canvas border border-border-subtle rounded-xl px-3 py-1.5 self-start sm:self-auto">
-                    <span className="text-[10px] font-mono uppercase tracking-wider text-ink-muted">
-                      {t('Estimativa')}
-                    </span>
-                    <span className="text-sm font-extrabold text-accent">{topLevel}</span>
-                    {metrics && metrics.levelConfidence > 0 && (
-                      <span className="text-[10px] text-ink-muted">
-                        {t('· conf. {n}%', { n: Math.round(metrics.levelConfidence * 100) })}
-                      </span>
-                    )}
-                  </div>
-                )}
-              </div>
-
-              {levelBars.length === 0 ? (
-                <p className="text-[12px] text-ink-muted leading-snug">
-                  {t(
-                    'Sem palavras suficientes para estimar o nível. Capture sessões e adicione palavras ao deck para gerar a estimativa.',
-                  )}
-                </p>
-              ) : (
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  {levelBars.map((b) => (
-                    <div key={b.level}>
-                      <div className="flex justify-between items-center text-[12px] mb-2">
-                        <span className="font-bold text-ink-muted">{b.level}</span>
-                        <span className="font-extrabold text-accent">{tp(b.count, '{n} palavra', '{n} palavras')}</span>
-                      </div>
-                      <div className="w-full h-2 bg-canvas rounded-full overflow-hidden border border-border-subtle">
-                        <div
-                          className="h-full bg-accent transition-all duration-500 rounded-full"
-                          style={{ width: `${b.pct}%` }}
-                        ></div>
-                      </div>
-                      <span className="text-[11px] text-ink-muted mt-2 block leading-snug">
-                        {t('{n}% do vocabulário classificado neste nível.', { n: b.pct })}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {/* Nível-alvo declarado × valor medido (o seletor persiste em ui.cefrGoal) */}
-            <div className="card-panel p-6 mb-8 bg-surface">
-              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
-                <div>
-                  <h3 className="font-display font-extrabold text-[15px] text-ink">
-                    {t('Nível de Comunicação Corporativa & Alinhamento')}
-                  </h3>
-                  <p className="text-[12px] text-ink-muted mt-1">
-                    {t('Escolha um nível-alvo. Comparamos o alvo declarado com o que foi medido nas suas sessões.')}
-                  </p>
-                </div>
-                <div className="flex gap-1 bg-canvas border border-border-subtle/50 rounded-xl p-0.5 self-start sm:self-auto shadow-inner">
-                  {(['B2', 'C1', 'C2'] as const).map((lvl) => (
-                    <button
-                      key={lvl}
-                      onClick={() => chooseLevel(lvl)}
-                      className={`px-3.5 py-1.5 text-xs font-bold rounded-lg transition-all duration-200 active:scale-95 cursor-pointer ${
-                        selectedLevel === lvl
-                          ? 'bg-accent text-accent-contrast shadow-sm'
-                          : 'text-ink-muted hover:text-ink hover:bg-surface-hover/30'
-                      }`}
-                    >
-                      {lvl === 'B2' ? t('B2 - Gerente') : lvl === 'C1' ? t('C1 - Executivo') : t('C2 - Conselheiro')}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                {/* Ritmo: alvo declarado × wpm medido (real) */}
-                <div>
-                  <div className="flex justify-between items-center text-[12px] mb-2">
-                    <span className="font-bold text-ink-muted">{t('Ritmo de Fala')}</span>
-                    <span className="font-mono font-extrabold text-accent">
-                      {wpmMeasured != null ? `${wpmMeasured}` : '-'}{' '}
-                      <span className="text-ink-faint font-normal">{t('/ {n} ppm', { n: targetWpm })}</span>
-                    </span>
-                  </div>
-                  <div className="w-full h-2.5 bg-canvas overflow-hidden border border-border-subtle/40 rounded-full">
-                    <div
-                      className="h-full bg-accent transition-all duration-500 rounded-full"
-                      style={{ width: `${pacePct}%` }}
-                    ></div>
-                  </div>
-                  <span className="text-[11px] text-ink-muted mt-2 block leading-snug">
-                    {wpmMeasured != null ? (
-                      <>
-                        {t('Medido: {n} ppm', { n: wpmMeasured })}
-                        {wpmLowConf ? ` ${t('(estimativa, poucas sessões)')}` : ''}
-                        {' · '}
-                        {t('alvo declarado {n} ppm.', { n: targetWpm })}
-                      </>
-                    ) : (
-                      <>
-                        {t('Alvo declarado {n} ppm. Sem fala capturada suficiente para medir seu ritmo.', {
-                          n: targetWpm,
-                        })}
-                      </>
-                    )}
-                  </span>
-                </div>
-
-                {/* Vocabulário: aderência real ao nível-alvo (derivada da distribuição) */}
-                <div>
-                  <div className="flex justify-between items-center text-[12px] mb-2">
-                    <span className="font-bold text-ink-muted">{t('Vocabulário no Nível-Alvo')}</span>
-                    <span className="font-mono font-extrabold text-good">
-                      {vocabAdherence != null ? `${vocabAdherence}%` : '-'}
-                    </span>
-                  </div>
-                  <div className="w-full h-2.5 bg-canvas overflow-hidden border border-border-subtle/40 rounded-full">
-                    <div
-                      className="h-full bg-good transition-all duration-500 rounded-full"
-                      style={{ width: `${vocabAdherence ?? 0}%` }}
-                    ></div>
-                  </div>
-                  <span className="text-[11px] text-ink-muted mt-2 block leading-snug">
-                    {vocabAdherence != null ? (
-                      <>
-                        {t('{pct}% do seu vocabulário está classificado em {nivel} ou acima', {
-                          pct: vocabAdherence,
-                          nivel: selectedLevel,
-                        })}
-                        {topLevel ? (
-                          <>
-                            {' · '}
-                            {t('nível estimado {n}', { n: topLevel })}
-                          </>
-                        ) : null}
-                        .
-                      </>
-                    ) : (
-                      <>
-                        {t('Sem palavras suficientes no deck para medir a aderência ao nível {n}.', {
-                          n: selectedLevel,
-                        })}
-                      </>
-                    )}
-                  </span>
-                </div>
-
-                {/* Clareza & Concisão: a metade "vícios" já é medida (fillers.ts, por sessão), mas esta
-                caixa é uma comparação alvo × medido AGREGADA como as duas irmãs acima, e o
-                agregado entre sessões não existe (ver comentário do card "Vícios de Linguagem"
-                mais acima). "Pausas preenchidas" (duração de silêncio) também nunca foi medido;
-                fillers.ts conta MARCADORES de hesitação (palavras), não pausas. Por isso o pill
-                não diz "Em breve": não é uma feature no roadmap, são dois dados que faltam. */}
-                <div>
-                  <div className="flex justify-between items-center text-[12px] mb-2">
-                    <span className="font-bold text-ink-muted">{t('Clareza & Concisão')}</span>
-                    <span className="kpi-pill opacity-60 cursor-default text-[11px]">{t('Sem agregado')}</span>
-                  </div>
-                  <div className="w-full h-2.5 bg-canvas overflow-hidden border border-border-subtle/40 rounded-full opacity-50">
-                    <div className="h-full bg-border-subtle" style={{ width: '0%' }}></div>
-                  </div>
-                  <span className="text-[11px] text-ink-muted mt-2 block leading-snug">
-                    {t(
-                      'A contagem de vícios já existe por sessão (aba "Desempenho & Fluência" na tela de Análise). Faltam aqui o somatório entre sessões e a medição de pausas preenchidas, que ainda não existe.',
-                    )}
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            {/* Recomendações e Próximos Passos — CTAs com dado real, sem números fabricados */}
-            <h3 className="font-display font-extrabold text-[15px] text-ink mb-4">
-              {t('Recomendações e Próximos Passos')}
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-              {/* Shadowing — CTA genérico honesto (sem alegar que você "não treinou hoje") */}
-              <div className="card-panel p-5 flex flex-col justify-between min-h-[160px] bg-rare-soft/10 border-rare/20 hover:border-rare/40">
-                <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-[9px] px-1.5 py-0.5 rounded font-mono font-bold uppercase tracking-wider bg-rare-soft text-rare">
-                      {t('Precisão Acústica')}
-                    </span>
-                    <Sparkles className="w-4 h-4 text-rare" />
-                  </div>
-                  <h4 className="font-display font-bold text-[13.5px] text-ink mb-1">{t('Exercício de Shadowing')}</h4>
-                  <p className="text-[12px] text-ink-muted leading-relaxed">
-                    {t('Pratique Shadowing para medir e elevar a fidelidade da sua pronúncia.')}
-                  </p>
-                </div>
-                <button
-                  onClick={() => ir('study')}
-                  className="mt-4 w-full py-2 text-[11.5px] font-bold rounded-xl bg-surface transition-all duration-200 cursor-pointer text-center border border-rare/30 text-rare hover:bg-rare-soft hover:text-rare-ink"
-                >
-                  {t('Medir precisão')}
-                </button>
-              </div>
-
-              {/* Vocabulário — copy ligada a dado real (deckSize / uniqueWords / nível estimado) */}
-              <div className="card-panel p-5 flex flex-col justify-between min-h-[160px] bg-rare-soft/10 border-rare/20 hover:border-rare/40">
-                <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-[9px] px-1.5 py-0.5 rounded font-mono font-bold uppercase tracking-wider bg-rare-soft text-rare">
-                      {t('Vocabulário')}
-                    </span>
-                    <TrendingUp className="w-4 h-4 text-rare" />
-                  </div>
-                  <h4 className="font-display font-bold text-[13.5px] text-ink mb-1">{t('Seu Vocabulário')}</h4>
-                  <p className="text-[12px] text-ink-muted leading-relaxed">
-                    {t('Seu deck tem {cartas} cartas, com {unicas} palavras únicas capturadas', {
-                      cartas: metrics ? fmtNum(metrics.deckSize) : '0',
-                      unicas: metrics ? fmtNum(metrics.uniqueWords) : '0',
-                    })}
-                    {topLevel ? (
-                      <>
-                        {' · '}
-                        {t('nível estimado {n}', { n: topLevel })}
-                      </>
-                    ) : null}
-                    .
-                  </p>
-                </div>
-                <button
-                  onClick={() => ir('study')}
-                  className="mt-4 w-full py-2 text-[11.5px] font-bold rounded-xl bg-surface transition-all duration-200 cursor-pointer text-center border border-rare/30 text-rare hover:bg-rare-soft hover:text-rare-ink"
-                >
-                  {t('Estudar deck')}
-                </button>
-              </div>
-
-              {/* O cartão "Revisão de Hoje" SAIU daqui (auditoria de UX, 31/08): era o TERCEIRO lugar
-              da mesma tela com um botão "Revisar agora" para o mesmo destino — o cartão-herói e o
-              pilar já cobrem a revisão. Painel de estatísticas mostra estatística. */}
-            </div>
-          </section>
-        </EditablePanel>
-      )}
 
       {/* Sessões recentes — marcação do protótipo: título de seção, abas em pílula por tipo e as
           sessões como `.sessao-mini`. */}
@@ -832,8 +408,6 @@ const PILLARS: PillarDef[] = [
     cta: { kids: 'Regar palavras', pro: 'Abrir vocabulário', senior: 'Ver minhas palavras' },
   },
 ];
-
-
 
 interface PillarCardProps {
   pillar: PillarDef;

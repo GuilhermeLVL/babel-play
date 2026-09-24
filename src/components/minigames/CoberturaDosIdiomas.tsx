@@ -37,14 +37,14 @@ const COR: Record<Nivel, string> = {
 
 const base = (lang: string) => (lang || '').toLowerCase().split('-')[0];
 
-export default function CoberturaDosIdiomas({ baralho }: Props) {
-  const linhas = useMemo(() => {
+function useLinhas(baralho: Props['baralho']) {
+  return useMemo(() => {
     const indice = indiceDaTrilha();
-    const doBaralho = new Map(baralho.map(b => [base(b.lang), b.total]));
+    const doBaralho = new Map(baralho.map((b) => [base(b.lang), b.total]));
 
     /* Só os idiomas que a pessoa pode encontrar: os do seletor. Listar os 28 sempre daria uma
        tabela que ninguém lê; listar só os que têm trilha esconderia justamente a desigualdade. */
-    return LANGUAGES.map(l => {
+    return LANGUAGES.map((l) => {
       const idioma = base(l.code);
       const entrada = indice[idioma];
       const nivel: Nivel = !entrada ? 'seu-conteudo' : entrada.escala === 'cefr' ? 'completo' : 'parcial';
@@ -57,9 +57,54 @@ export default function CoberturaDosIdiomas({ baralho }: Props) {
         meu: doBaralho.get(idioma) ?? 0,
       };
     })
-      .filter((l, i, todas) => todas.findIndex(o => o.idioma === l.idioma) === i)
-      .sort((a, b) => (b.trilha - a.trilha) || (b.meu - a.meu) || a.nome.localeCompare(b.nome, 'pt'));
+      .filter((l, i, todas) => todas.findIndex((o) => o.idioma === l.idioma) === i)
+      .sort((a, b) => b.trilha - a.trilha || b.meu - a.meu || a.nome.localeCompare(b.nome, 'pt'));
   }, [baralho]);
+}
+
+/**
+ * A tabela do protótipo (gavetaFonte → "O que cada idioma tem"): .tabela-rola com
+ * .tabela.compacta. Trilha "sim" quando há vocabulário pronto (por nível ou por frequência).
+ */
+export function TabelaDaCobertura({ baralho }: Props) {
+  const linhas = useLinhas(baralho);
+  return (
+    <div
+      className="tabela-rola entra"
+      tabIndex={0}
+      role="region"
+      aria-label={t('Cobertura dos idiomas')}
+      style={{ marginTop: 12 }}
+    >
+      <table className="tabela compacta">
+        <thead>
+          <tr>
+            <th className="label-mono">{t('Idioma')}</th>
+            <th className="label-mono">{t('Trilha')}</th>
+            <th className="label-mono tn">{t('Palavras')}</th>
+            <th className="label-mono">{t('Voz')}</th>
+            <th className="label-mono tn">{t('Suas')}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {linhas.map((l) => (
+            <tr key={l.idioma}>
+              <td>{l.nome}</td>
+              <td title={t(ROTULO[l.nivel])}>{l.trilha ? t('sim') : t('não')}</td>
+              <td className="tn">{l.trilha ? numero(l.trilha) : '—'}</td>
+              {/* A voz é do NAVEGADOR de quem lê, não do app: por isso é medida aqui, na hora. */}
+              <td>{l.voz ? t('sim') : t('não')}</td>
+              <td className="tn">{numero(l.meu)}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+export default function CoberturaDosIdiomas({ baralho }: Props) {
+  const linhas = useLinhas(baralho);
 
   return (
     <details className="mt-3 group">
@@ -79,18 +124,14 @@ export default function CoberturaDosIdiomas({ baralho }: Props) {
             </tr>
           </thead>
           <tbody>
-            {linhas.map(l => (
+            {linhas.map((l) => (
               <tr key={l.idioma} className="border-t border-border-subtle">
                 <td className="py-1 pe-2 text-ink">{l.nome}</td>
                 <td className={`py-1 pe-2 ${COR[l.nivel]}`}>{t(ROTULO[l.nivel])}</td>
-                <td className="py-1 pe-2 text-end tabular-nums text-ink-muted">
-                  {l.trilha ? numero(l.trilha) : '—'}
-                </td>
+                <td className="py-1 pe-2 text-end tabular-nums text-ink-muted">{l.trilha ? numero(l.trilha) : '—'}</td>
                 {/* A voz é do NAVEGADOR de quem lê, não do app: por isso é medida aqui, na hora. */}
                 <td className="py-1 pe-2 text-ink-muted">{l.voz ? 'sim' : 'não'}</td>
-                <td className="py-1 text-end tabular-nums text-ink-muted">
-                  {l.meu ? numero(l.meu) : '—'}
-                </td>
+                <td className="py-1 text-end tabular-nums text-ink-muted">{l.meu ? numero(l.meu) : '—'}</td>
               </tr>
             ))}
           </tbody>
@@ -98,8 +139,8 @@ export default function CoberturaDosIdiomas({ baralho }: Props) {
       </div>
 
       <p className="text-[11px] text-ink-faint mt-2 leading-relaxed">
-        Sem trilha, o idioma joga com o que você gravou ou importou. A voz depende do seu
-        sistema: sem ela, os jogos de escuta ficam de fora até você gravar a sua.
+        Sem trilha, o idioma joga com o que você gravou ou importou. A voz depende do seu sistema: sem ela, os jogos de
+        escuta ficam de fora até você gravar a sua.
       </p>
     </details>
   );

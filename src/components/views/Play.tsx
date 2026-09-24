@@ -70,11 +70,13 @@ import {
   BarChart2,
   BookOpen,
   Brain,
-  CalendarClock,
+  Check,
   ChevronLeft,
   ChevronRight,
+  CircleDashed,
   CircleHelp,
   CirclePlay,
+  Filter,
   Flame,
   Gamepad2,
   Globe,
@@ -85,20 +87,22 @@ import {
   ListChecks,
   Lock,
   Map as MapIcon,
-  MessageSquareText,
   Mic,
   Package,
   PackageOpen,
   Pin,
   Play as IconePlay,
   Puzzle,
+  Quote,
   Search,
   Shuffle,
+  Sparkle,
   Sparkles,
   Star,
   Target,
   Timer,
   Trophy as TrophyIcon,
+  Upload,
   Zap,
 } from 'lucide-react';
 import React, { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
@@ -177,11 +181,12 @@ import { type PracticeSeed, type Sentence, toSentences } from '../../lib/sentenc
 import { T } from '../../lib/T';
 import { aoMudarVozes, hasVoiceFor, isTtsSupported, vozesCarregadas } from '../../lib/tts';
 import type { Recording, VocabCard } from '../../types';
+import { LangFlag } from '../LangFlag';
 import AntessalaDaRodada from '../minigames/AntessalaDaRodada';
 import { FAMILIAS, tomDoJogo } from '../minigames/ArteDosJogos';
 import CascaDaRodada from '../minigames/casca/CascaDaRodada';
 import { unidadeDaRodada } from '../minigames/casca/regras';
-import CoberturaDosIdiomas from '../minigames/CoberturaDosIdiomas';
+import { TabelaDaCobertura } from '../minigames/CoberturaDosIdiomas';
 import ComoSeJoga from '../minigames/ComoSeJoga';
 import ConectoresGame from '../minigames/ConectoresGame';
 import DitadoGame from '../minigames/DitadoGame';
@@ -313,11 +318,28 @@ const ABAS_DE_FONTE: Array<{
  * volta a grade quando tem def em `MINIGAMES`, nasce em `montarRodada` e termina em `aoTerminar`.
  */
 
+/* A HABILIDADE É A FAMÍLIA DO JOGO — a mesma que pinta o ponto da carta (`tomDoJogo`). Antes os
+   nove culturais caíam todos em "Sintaxe & frases", e o filtro "Vocabulário" escondia o Bao e o
+   Tabu, que são de palavra. */
 const habilidadeDoJogoClassico = (id: MinigameId): 'vocab' | 'escuta_fala' | 'frase_gramatica' => {
-  if (id === 'memory' || id === 'wordsearch' || id === 'termo') return 'vocab';
-  if (id === 'escuta' || id === 'ditado' || id === 'karaoke') return 'escuta_fala';
-  return 'frase_gramatica'; // scramble, blitz, conectores
+  const m = MINIGAMES[id].modalidade;
+  if (m === 'palavra') return 'vocab';
+  if (m === 'frase') return 'frase_gramatica';
+  return 'escuta_fala';
 };
+
+/** A aba "Clássicos" do protótipo: os nove jogos de base (os outros nove são os culturais). */
+const CLASSICOS: ReadonlySet<MinigameId> = new Set<MinigameId>([
+  'memory',
+  'wordsearch',
+  'termo',
+  'scramble',
+  'ditado',
+  'escuta',
+  'karaoke',
+  'conectores',
+  'blitz',
+]);
 
 /**
  * Uma rodada JÁ MONTADA, esperando a pessoa decidir. É o que a antessala mostra.
@@ -388,6 +410,8 @@ export default function Play({
   /* A gaveta do seletor nasce FECHADA: quem chega quer jogar, não configurar. Ela é a resposta
      ao «Trocar», e o resumo acima dela já diz o que está valendo sem precisar abrir nada. */
   const [seletorAberto, setSeletorAberto] = useState(false);
+  /** "O que cada idioma tem", dentro da gaveta: a tabela abre e fecha no próprio botão. */
+  const [verCobertura, setVerCobertura] = useState(false);
   const fonte = useMemo<FonteDeItens>(() => ({ ...fonteDominante(filtro), lang: filtro.idiomas[0] ?? '' }), [filtro]);
   const setFonte = useCallback((upd: FonteDeItens | ((f: FonteDeItens) => FonteDeItens)) => {
     setFiltro((prev) => {
@@ -483,7 +507,6 @@ export default function Play({
    */
   const [decksAnki, setDecksAnki] = useState<Array<{ id: string; nome: string; lang: string | null }>>([]);
   const [decksCarregados, setDecksCarregados] = useState(false);
-  const temBaralhosAnki = decksAnki.length > 0;
   const recarregarBaralhosAnki = useCallback(async () => {
     try {
       const lista = await listarBaralhosAnki();
@@ -2244,6 +2267,7 @@ export default function Play({
   const jogosClassicosFiltrados = useMemo(() => {
     return listaDeJogos.filter((j) => {
       if (categoriaAtiva === 'favoritos' && !ordem.fixados.includes(j.id)) return false;
+      if (categoriaAtiva === 'classicos' && !CLASSICOS.has(j.id)) return false;
       if (filtroHabilidade !== 'todas' && habilidadeDoJogoClassico(j.id) !== filtroHabilidade) return false;
       if (buscaNormalizada) {
         const titulo = tituloDoJogo(j, ageProfile).toLowerCase();
@@ -3077,11 +3101,10 @@ export default function Play({
               <button
                 type="button"
                 onClick={partidaRapida}
-                className="btn-solid min-h-10 px-4 rounded-xl font-display font-bold text-[13px] flex items-center gap-2 active:scale-95 cursor-pointer"
+                className="btn btn-solid"
                 title={t('Sorteia um jogo aleatório dentre os disponíveis e inicia imediatamente')}
               >
-                <Zap className="w-4 h-4" aria-hidden />
-                <span>{t('Partida rápida')}</span>
+                <Zap aria-hidden /> {t('Partida rápida')}
               </button>
             }
             abas={
@@ -3095,12 +3118,12 @@ export default function Play({
                     playJuicedHit(1);
                   }}
                   itens={[
-                    { id: 'todos', rotulo: t('Todos'), icone: <Sparkles aria-hidden />, contagem: jogosProntos.length },
+                    { id: 'todos', rotulo: t('Todos'), icone: <Sparkles aria-hidden />, contagem: listaDeJogos.length },
                     {
                       id: 'classicos',
                       rotulo: t('Clássicos'),
                       icone: <Zap aria-hidden />,
-                      contagem: jogosProntos.length,
+                      contagem: listaDeJogos.filter((j) => CLASSICOS.has(j.id)).length,
                     },
                     {
                       id: 'favoritos',
@@ -3197,7 +3220,7 @@ export default function Play({
                   filtro.midia.comTraducao ||
                   filtro.midia.comFrase ||
                   filtro.baralhos.length > 0)
-                  ? t('nenhum item passa; desligue um recorte para voltar a ter material')
+                  ? t('nenhum item passa; desligue um recorte')
                   : undefined
               }
               acoesBarra={
@@ -3213,15 +3236,18 @@ export default function Play({
                   <button type="button" className="btn btn-outline peq" onClick={() => setVendoMapa(true)}>
                     <MapIcon aria-hidden /> {t('Mapa')}
                   </button>
-                  <button
-                    type="button"
-                    className="btn btn-outline peq"
-                    onClick={() => setCurando(true)}
-                    title={resumoDosPulados(triagem.fora) || t('Ver itens fora do recorte')}
-                  >
-                    <ListChecks aria-hidden /> {t('Curadoria')}
-                    {triagem.fora.length > 0 && <span className="n">{triagem.fora.length}</span>}
-                  </button>
+                  {/* Curadoria só quando há o que curar (no protótipo, só com baralho do Anki na
+                      fonte): um botão para uma lista vazia seria uma porta para lugar nenhum. */}
+                  {triagem.fora.length > 0 && (
+                    <button
+                      type="button"
+                      className="btn btn-outline peq"
+                      onClick={() => setCurando(true)}
+                      title={resumoDosPulados(triagem.fora) || t('Ver itens fora do recorte')}
+                    >
+                      <ListChecks aria-hidden /> {t('Curadoria')} <span className="n">{triagem.fora.length}</span>
+                    </button>
+                  )}
                   <button
                     type="button"
                     className="btn btn-outline peq icone"
@@ -3235,39 +3261,42 @@ export default function Play({
                 </>
               }
               acoes={
+                /* O cartão "Trazer ou gerenciar" do protótipo: sair para o Anki fecha a gaveta
+                   antes (`fecharGaveta()`), senão ela reabriria ao voltar. */
                 <>
                   <button
-                    onClick={() => setImportando(true)}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border-subtle bg-surface text-[12.5px] font-semibold text-ink hover:border-accent transition-colors cursor-pointer"
+                    type="button"
+                    className="btn btn-outline peq"
+                    onClick={() => {
+                      setSeletorAberto(false);
+                      setImportando(true);
+                    }}
                   >
-                    <Package className="w-3.5 h-3.5" aria-hidden />
-                    {ageProfile === 'kids' ? t('Palavras de fora') : t('Trazer do Anki')}
+                    <Upload aria-hidden /> {ageProfile === 'kids' ? t('Palavras de fora') : t('Trazer do Anki')}
                   </button>
-                  {temBaralhosAnki && (
-                    <button
-                      onClick={() => setVendoBaralhos(true)}
-                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border-subtle bg-surface text-[12.5px] font-semibold text-ink hover:border-accent transition-colors cursor-pointer"
-                    >
-                      <Layers className="w-3.5 h-3.5" aria-hidden />
-                      {t('Gerenciar baralhos')}
-                    </button>
-                  )}
-                  {/* A Sala só sobra para o que a gaveta não cobre: começar num idioma que ainda
-                    não tem palavra nenhuma (a faceta lista só os que têm material). */}
                   <button
-                    onClick={() => setSalaAberta(true)}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border-subtle bg-surface text-[12.5px] font-semibold text-ink hover:border-accent transition-colors cursor-pointer"
+                    type="button"
+                    className="btn btn-outline peq"
+                    onClick={() => {
+                      setSeletorAberto(false);
+                      setVendoBaralhos(true);
+                    }}
                   >
-                    <Globe className="w-3.5 h-3.5" aria-hidden />
-                    {t('Outro idioma')}
+                    <Layers aria-hidden /> {t('Gerenciar baralhos')}
                   </button>
-                  {/* Ao lado de "outro idioma", que é a pergunta que ela responde: o app oferece 28
-                    e não entrega 28 experiências iguais. */}
-                  <div className="w-full">
-                    <CoberturaDosIdiomas baralho={idiomasDoBaralho} />
-                  </div>
+                  <button
+                    type="button"
+                    className="btn btn-outline peq"
+                    aria-expanded={verCobertura}
+                    onClick={() => setVerCobertura((v) => !v)}
+                  >
+                    <Globe aria-hidden /> {t('O que cada idioma tem')}
+                  </button>
                 </>
               }
+              /* O app oferece 28 idiomas e não entrega 28 experiências iguais: a tabela diz o que
+                 cada um tem antes de a pessoa escolher. */
+              detalheDasAcoes={verCobertura ? <TabelaDaCobertura baralho={idiomasDoBaralho} /> : undefined}
               facetas={[
                 {
                   /* IDIOMA É A PRIMEIRA FACETA porque manda em todas as outras: trocar de idioma
@@ -3276,7 +3305,7 @@ export default function Play({
                    da tela era a mais escondida. A lista completa continua na Sala, para quem
                    estuda um idioma que ainda não tem palavra nenhuma. */
                   id: 'idioma',
-                  rotulo: t('idioma'),
+                  rotulo: t('Idioma'),
                   exclusiva: true,
                   valor: fonte.lang ? [baseLang(fonte.lang)] : [],
                   aoTrocar: (lang) => {
@@ -3295,15 +3324,15 @@ export default function Play({
                     id: i.lang,
                     rotulo: langLabelNaUI(i.lang),
                     contagem: i.jogaveis,
-                    icone: <Globe className="w-3.5 h-3.5" aria-hidden />,
+                    icone: <LangFlag code={i.lang} className="w-4 h-3" />,
                     motivoBloqueio:
                       i.jogaveis === 0 ? t('nenhuma palavra pronta para jogar neste idioma ainda') : undefined,
                   })),
                 },
                 {
                   id: 'fonte',
-                  rotulo: t('de onde vêm'),
-                  ajuda: t('marque quantas quiser — elas se somam na rodada'),
+                  rotulo: t('De onde vêm'),
+                  ajuda: t('Marque quantas quiser: elas se somam na rodada.'),
                   valor: filtro.fontes.map((f) => (f === 'trilha' ? 'trilha' : 'gravacoes')),
                   aoTrocar: (origem) => {
                     const alvo = origem === 'trilha' ? ('trilha' as const) : ('baralho' as const);
@@ -3317,29 +3346,31 @@ export default function Play({
                   /* A fonte sem material continua VISÍVEL, travada e com o porquê — some da tela
                    era pior: "As que mais escapam" desaparecia sem explicação assim que a pessoa
                    revisava bem, que é justamente quando ela merece saber por que sumiu. */
-                  opcoes: ABAS_DE_FONTE.filter((aba) => aba.origem !== 'dificeis').map((aba) => {
-                    const contagem =
-                      aba.origem === 'trilha'
-                        ? totalDaTrilhaAtual
-                        : aba.origem === 'dificeis'
-                          ? rankingDeDificeis.length
-                          : palavrasDasGravacoes;
-                    const oferecida = aba.fontes.some((f) => fontesOferecidas.includes(f));
-                    return {
-                      id: aba.origem,
-                      rotulo: t(aba.rotulo[ageProfile]),
-                      contagem,
-                      icone:
-                        aba.origem === 'trilha' ? (
-                          <GraduationCap className="w-3.5 h-3.5" aria-hidden />
-                        ) : aba.origem === 'dificeis' ? (
-                          <Flame className="w-3.5 h-3.5" aria-hidden />
-                        ) : (
-                          <Mic className="w-3.5 h-3.5" aria-hidden />
-                        ),
-                      motivoBloqueio: oferecida ? undefined : t(aba.semMaterial),
-                    };
-                  }),
+                  opcoes: ABAS_DE_FONTE.filter((aba) => aba.origem !== 'dificeis')
+                    .sort((a, b) => Number(a.origem === 'trilha') - Number(b.origem === 'trilha'))
+                    .map((aba) => {
+                      const contagem =
+                        aba.origem === 'trilha'
+                          ? totalDaTrilhaAtual
+                          : aba.origem === 'dificeis'
+                            ? rankingDeDificeis.length
+                            : palavrasDasGravacoes;
+                      const oferecida = aba.fontes.some((f) => fontesOferecidas.includes(f));
+                      return {
+                        id: aba.origem,
+                        rotulo: t(aba.rotulo[ageProfile]),
+                        contagem,
+                        icone:
+                          aba.origem === 'trilha' ? (
+                            <GraduationCap className="w-3.5 h-3.5" aria-hidden />
+                          ) : aba.origem === 'dificeis' ? (
+                            <Flame className="w-3.5 h-3.5" aria-hidden />
+                          ) : (
+                            <Mic className="w-3.5 h-3.5" aria-hidden />
+                          ),
+                        motivoBloqueio: oferecida ? undefined : t(aba.semMaterial),
+                      };
+                    }),
                 },
                 {
                   /* A VISÃO DA TRILHA, que não existia. Com o Curso escolhido a gaveta mostrava
@@ -3349,11 +3380,11 @@ export default function Play({
                    cada etapa à vista. "Todos os níveis" é a ausência de recorte, e por isso vem
                    primeiro: é o estado em que a trilha nasce. */
                   id: 'nivel',
-                  rotulo: trilha?.escala === 'frequencia' ? t('faixa do curso') : t('nível do curso'),
+                  rotulo: trilha?.escala === 'frequencia' ? t('Faixa do curso') : t('Nível do curso'),
                   ajuda:
                     trilha?.escala === 'frequencia'
-                      ? t('por frequência de uso — a faixa 1 traz as mais comuns')
-                      : t('cada etapa tem o seu vocabulário'),
+                      ? t('Por frequência de uso: a faixa 1 traz as mais comuns.')
+                      : t('Cada etapa tem o seu vocabulário.'),
                   exclusiva: true,
                   valor: [fonte.nivel ?? 'todos'],
                   aoTrocar: (n) =>
@@ -3380,8 +3411,8 @@ export default function Play({
                    ela repetia idioma, fonte e nível, que já vivem aqui. Como faceta, a escolha
                    fica ao lado das outras e a Sala deixa de ser caminho obrigatório. */
                   id: 'gravacao',
-                  rotulo: t('quais gravações'),
-                  ajuda: t('nenhuma marcada = todas'),
+                  rotulo: t('Quais gravações'),
+                  ajuda: t('Nenhuma marcada = todas.'),
                   valor: filtro.sessoes,
                   aoTrocar: (id) =>
                     setFiltro((prev) => ({
@@ -3400,8 +3431,8 @@ export default function Play({
                 },
                 {
                   id: 'baralho',
-                  rotulo: t('quais baralhos'),
-                  ajuda: t('nenhum marcado = todos'),
+                  rotulo: t('Quais baralhos'),
+                  ajuda: t('Nenhum marcado = todos.'),
                   valor: filtro.baralhos,
                   aoTrocar: (id) =>
                     setBaralhoAnki(filtro.baralhos.includes(id) ? null : (decksAnki.find((d) => d.id === id) ?? null)),
@@ -3437,8 +3468,7 @@ export default function Play({
                 },
                 {
                   id: 'recorte',
-                  rotulo: t('recorte'),
-                  ajuda: t('filtra dentro do que você escolheu acima'),
+                  rotulo: t('Recorte'),
                   valor: [
                     ...(filtro.recorte.dificeis ? ['dificeis'] : []),
                     ...(filtro.recorte.pedindoRevisao ? ['pedindoRevisao'] : []),
@@ -3464,10 +3494,7 @@ export default function Play({
                       : [
                           {
                             id: 'dificeis',
-                            rotulo: t(
-                              ABAS_DE_FONTE.find((a) => a.origem === 'dificeis')?.rotulo[ageProfile] ??
-                                'As que mais escapam',
-                            ),
+                            rotulo: t('As que mais escapam'),
                             contagem: rankingDeDificeis.length,
                             icone: <Flame className="w-3.5 h-3.5" aria-hidden />,
                             motivoBloqueio:
@@ -3479,7 +3506,7 @@ export default function Play({
                             id: 'pedindoRevisao',
                             rotulo: t('Pedindo revisão'),
                             contagem: contagemRecortes.pedindo,
-                            icone: <CalendarClock className="w-3.5 h-3.5" aria-hidden />,
+                            icone: <Target aria-hidden />,
                             motivoBloqueio:
                               contagemRecortes.pedindo === 0 ? t('nada vencido neste acervo agora') : undefined,
                           },
@@ -3487,7 +3514,7 @@ export default function Play({
                             id: 'nuncaVistas',
                             rotulo: t('Nunca vistas'),
                             contagem: contagemRecortes.nunca,
-                            icone: <Sparkles className="w-3.5 h-3.5" aria-hidden />,
+                            icone: <Sparkle aria-hidden />,
                             motivoBloqueio:
                               contagemRecortes.nunca === 0 ? t('tudo aqui já foi visto ao menos uma vez') : undefined,
                           },
@@ -3505,7 +3532,7 @@ export default function Play({
                             id: 'comFrase',
                             rotulo: t('Com frase'),
                             contagem: contagemRecortes.frase,
-                            icone: <MessageSquareText className="w-3.5 h-3.5" aria-hidden />,
+                            icone: <Quote aria-hidden />,
                             motivoBloqueio:
                               contagemRecortes.frase === 0
                                 ? t('nenhum item deste acervo tem frase de exemplo')
@@ -3522,40 +3549,34 @@ export default function Play({
 
         {/* ── DIAGNÓSTICO TÉCNICO EXPANSÍVEL (ativado pelo botão de gráfico da barra de acervo) ── */}
         {detalhes && (
-          <section
-            aria-label={t('Diagnóstico do baralho')}
-            className="card-panel bg-surface border border-border-subtle px-4 py-2.5 mb-4 text-[12px] text-ink-muted flex flex-wrap items-center gap-x-4 gap-y-1.5 rounded-xl animate-in fade-in duration-200"
-          >
-            <span className="label-mono flex items-center gap-1.5 text-ink font-bold">
-              <BarChart2 className="w-3.5 h-3.5 text-accent" />
-              {t('Diagnóstico')}
-            </span>
-            <span
-              className="font-bold text-good-ink"
-              title={t('{n} palavras do idioma escolhido passaram na régua de qualidade.', { n: contagem.total })}
-            >
-              ✓ {t('{n} no idioma', { n: contagem.total })}
+          <div className="diag entra" role="status" aria-label={t('Diagnóstico do material')}>
+            <span title={t('{n} palavras do idioma escolhido passaram na régua de qualidade.', { n: contagem.total })}>
+              <Check aria-hidden />
+              {t('{n} no idioma', { n: numero(contagem.total) })}
             </span>
             <span title={t('Jogos de par precisam de tradução.')}>
-              · {t('{n} com tradução', { n: pistas.comTraducao.length })}
+              <Languages aria-hidden />
+              {t('{n} com tradução', { n: numero(pistas.comTraducao.length) })}
             </span>
-            {pistas.soComFrase.length > 0 && (
-              <span title={t('Sem tradução, mas com frase real.')}>
-                · {t('{n} só com frase', { n: pistas.soComFrase.length })}
-              </span>
-            )}
-            {!coreOnly(ageProfile) && triagem.outroIdioma.length > 0 && (
+            <span title={t('Sem tradução, mas com frase real.')}>
+              <Quote aria-hidden />
+              {t('{n} só com frase', { n: numero(pistas.soComFrase.length) })}
+            </span>
+            {!coreOnly(ageProfile) && (
               <span title={t('Existem e prestam, mas são de outro idioma')}>
-                · {t('{n} em outro idioma', { n: triagem.outroIdioma.length })}
+                <Globe aria-hidden />
+                {t('{n} em outro idioma', { n: numero(triagem.outroIdioma.length) })}
               </span>
             )}
-            {triagem.fora.length > 0 && (
-              <span className="text-warn-ink font-semibold">
-                · {t('{n} fora do recorte', { n: triagem.fora.length })}
-              </span>
-            )}
-            {nuncaCairam > 0 && <span>· {t('{n} nunca caíram', { n: numero(nuncaCairam) })}</span>}
-          </section>
+            <span>
+              <Filter aria-hidden />
+              {t('{n} fora do recorte', { n: numero(triagem.fora.length) })}
+            </span>
+            <span>
+              <CircleDashed aria-hidden />
+              {t('{n} nunca caíram', { n: numero(nuncaCairam) })}
+            </span>
+          </div>
         )}
 
         {fonte.id === 'trilha' && trilha && (
@@ -3796,20 +3817,6 @@ export default function Play({
       {/* O progresso mora no CABEÇALHO (ver acima): uma linha, ao lado do título, onde o olho
           passa antes de jogar, e não empurra a primeira carta. Fora quando embutido: nível,
           streak e seeds são do PERFIL; a aba da sessão fala de UMA sessão. */}
-
-      <div className="mt-6 flex flex-wrap items-center gap-4">
-        {/* O Anki saiu daqui e subiu para a faixa de fontes: era a única porta para trazer
-            vocabulário de fora e estava no rodapé, abaixo de nove cartas e da faixa de progresso. */}
-        {/* Dizia "Exercícios completos", prometendo os doze legados. Sobraram dois, e os dois são
-            de MEMÓRIA (revisão espaçada e produção ativa), o resto virou jogo e mora aqui. O
-            rótulo passa a dizer para onde leva de verdade. */}
-        <button
-          onClick={() => onChangeView('study')}
-          className="text-[12px] text-ink-muted hover:text-accent underline cursor-pointer py-1"
-        >
-          {ageProfile === 'kids' ? t('Revisar minhas palavras') : t('Revisão espaçada e produção ativa')}
-        </button>
-      </div>
     </div>
   );
 }

@@ -1,9 +1,9 @@
-import tailwindcss from '@tailwindcss/vite';
-import react from '@vitejs/plugin-react';
-import path from 'path';
-import fs from 'fs';
-import os from 'os';
-import { defineConfig, type Plugin } from 'vite';
+import tailwindcss from '@tailwindcss/vite'
+import react from '@vitejs/plugin-react'
+import path from 'path'
+import fs from 'fs'
+import os from 'os'
+import { defineConfig, type Plugin } from 'vite'
 
 /**
  * Serve os assets do onnxruntime-web (usado pelo @ricky0123/vad-web) + modelo Silero + worklet
@@ -12,33 +12,29 @@ import { defineConfig, type Plugin } from 'vite';
  */
 function serveVadOnnxAssets(): Plugin {
   const isAsset = (u: string) =>
-    /\/(ort-wasm-[^/?]+\.(mjs|wasm)|silero_vad_[^/?]+\.onnx|vad\.worklet\.bundle\.min\.js)(\?|$)/.test(u);
+    /\/(ort-wasm-[^/?]+\.(mjs|wasm)|silero_vad_[^/?]+\.onnx|vad\.worklet\.bundle\.min\.js)(\?|$)/.test(u)
   return {
     name: 'serve-vad-onnx-assets',
     configureServer(server) {
       server.middlewares.use((req, res, next) => {
-        const url = req.url || '';
+        const url = req.url || ''
         if (isAsset(url)) {
-          const base = url.split('?')[0].split('/').pop()!;
-          const file = path.join(__dirname, 'public', base);
+          const base = url.split('?')[0].split('/').pop()!
+          const file = path.join(__dirname, 'public', base)
           if (fs.existsSync(file)) {
-            const ext = path.extname(file);
+            const ext = path.extname(file)
             res.setHeader(
               'Content-Type',
-              ext === '.wasm'
-                ? 'application/wasm'
-                : ext === '.onnx'
-                  ? 'application/octet-stream'
-                  : 'text/javascript'
-            );
-            fs.createReadStream(file).pipe(res);
-            return;
+              ext === '.wasm' ? 'application/wasm' : ext === '.onnx' ? 'application/octet-stream' : 'text/javascript',
+            )
+            fs.createReadStream(file).pipe(res)
+            return
           }
         }
-        next();
-      });
+        next()
+      })
     },
-  };
+  }
 }
 
 export default defineConfig(() => {
@@ -46,7 +42,9 @@ export default defineConfig(() => {
     // Cache de pré-bundle (optimizeDeps/esbuild) FORA do OneDrive: sobre a pasta sincronizada
     // o filtro do OneDrive estrangula/trava o churn de arquivos do otimizador no boot do dev.
     // Em disco local (tmp) o optimize completa em segundos. (Cross-platform via os.tmpdir().)
-    cacheDir: path.join(os.tmpdir(), 'babel-play-web-vite'),
+    // `VITE_CACHE_DIR` separa o cache quando várias worktrees sobem servidor ao mesmo tempo —
+    // com uma pasta só, um servidor invalida o pré-bundle do outro.
+    cacheDir: process.env.VITE_CACHE_DIR || path.join(os.tmpdir(), 'babel-play-web-vite'),
     plugins: [react(), tailwindcss(), serveVadOnnxAssets()],
     resolve: {
       alias: {
@@ -80,9 +78,9 @@ export default defineConfig(() => {
            * alguém reintroduzir um import estático.
            */
           manualChunks(id: string) {
-            if (!id.includes('node_modules')) return;
-            if (/[\\/]node_modules[\\/](react-dom|react|scheduler)[\\/]/.test(id)) return 'vendor-react';
-            if (/[\\/]node_modules[\\/](@supabase[\\/][^\\/]+|iceberg-js)[\\/]/.test(id)) return 'vendor-supabase';
+            if (!id.includes('node_modules')) return
+            if (/[\\/]node_modules[\\/](react-dom|react|scheduler)[\\/]/.test(id)) return 'vendor-react'
+            if (/[\\/]node_modules[\\/](@supabase[\\/][^\\/]+|iceberg-js)[\\/]/.test(id)) return 'vendor-supabase'
           },
         },
       },
@@ -99,5 +97,5 @@ export default defineConfig(() => {
       hmr: process.env.DISABLE_HMR !== 'true',
       watch: process.env.DISABLE_HMR === 'true' ? null : {},
     },
-  };
-});
+  }
+})

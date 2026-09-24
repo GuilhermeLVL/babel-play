@@ -36,26 +36,40 @@ test.describe('Revisao FSRS', () => {
 
     /* A tela abre na gravacao mais recente (`recordings[0]`), que e a da fixture. `/revisar` e tela
        propria (prototipo `T.revisao`): sem o cabecalho da sessao, entao quem prova que e a sessao
-       certa e a palavra no cartao, conferida contra os cartoes da fixture mais abaixo. */
+       certa e a palavra no cartao, conferida contra os cartoes vencidos no servidor mais abaixo. */
     await expect(page.getByRole('heading', { level: 1 })).toHaveCount(1, { timeout: 15_000 })
 
     /* `/revisar` E o "Revisar agora" (prototipo aprovado): a rodada abre sozinha, sem menu antes.
-       Cartao recem-criado vence na hora, entao a fila tem os cartoes da sessao. Se ela nao abrir
+       A fila traz os VENCIDOS primeiro (e o baralho inteiro so quando nada venceu). Se ela nao abrir
        sozinha, o botao "Revisar agora" da faixa e a porta — e o teste reprova se nenhum dos dois. */
     const progresso = page.getByText(/^Revisão · \d+ de \d+$/)
-    if (!(await progresso.isVisible({ timeout: 5_000 }).catch(() => false))) {
+    // `waitFor`, não `isVisible`: este não espera (o `timeout` dele é ignorado) e perdia a tela carregando.
+    const abriuSozinha = await progresso
+      .waitFor({ state: 'visible', timeout: 8_000 })
+      .then(() => true)
+      .catch(() => false)
+    if (!abriuSozinha) {
       await clicarRobusto(page, page.getByRole('button', { name: /Começar a repetir|Revisar agora|Treinar agora/ }))
     }
     await expect(progresso, 'a revisao deveria abrir no cartao 1').toBeVisible({ timeout: 10_000 })
     const textoAntes = (await progresso.textContent()) ?? ''
     const totalNaFila = Number(textoAntes.match(/de (\d+)/)?.[1] ?? 0)
-    expect(totalNaFila, 'a fila deveria ter os cartoes da sessao').toBeGreaterThanOrEqual(cartoes.length)
+    expect(totalNaFila, 'a fila deveria ter ao menos um cartao').toBeGreaterThanOrEqual(1)
+    /* Vencido = no baralho e com `dueAt` no passado (mesma regra de `isDueNow`). Outros testes da
+       mesma execucao (e o outro viewport) avaliam cartoes deste servidor, entao a fila NAO e sempre
+       "todos os cartoes da sessao": e o que deles estiver vencido quando a tela abre. */
+    const agora = Date.now()
+    const daSessao = new Set(cartoes.map((c) => c.id))
+    const vencidos = antes.filter((c) => daSessao.has(c.id) && c.inDeck && c.dueAt != null && c.dueAt <= agora)
+    if (vencidos.length > 0)
+      expect(totalNaFila, 'a fila deveria trazer todos os vencidos').toBeGreaterThanOrEqual(vencidos.length)
     expect(textoAntes).toMatch(/^Revisão · 1 de/)
 
     /* Qual cartao esta na tela: a palavra aparece no corpo em qualquer formato. */
     const corpo = page.getByRole('main')
     let alvo: CartaoNoServidor | undefined
-    for (const c of cartoes) {
+    const candidatos = vencidos.length > 0 ? vencidos : antes.filter((c) => daSessao.has(c.id) && c.inDeck)
+    for (const c of candidatos) {
       if (
         await corpo
           .getByText(new RegExp(`\\b${c.word}\\b`, 'i'))
@@ -67,7 +81,10 @@ test.describe('Revisao FSRS', () => {
         break
       }
     }
-    expect(alvo, 'nenhuma palavra da sessao esta no cartao aberto').toBeTruthy()
+    expect(
+      alvo,
+      vencidos.length > 0 ? 'o cartao aberto deveria ser um vencido' : 'nenhuma palavra do baralho no cartao aberto',
+    ).toBeTruthy()
 
     const mostrar = page.getByRole('button', { name: /Mostrar resposta/i })
     const digitar = page.getByPlaceholder('Digite a palavra...')
@@ -84,9 +101,14 @@ test.describe('Revisao FSRS', () => {
       await clicarRobusto(page, page.getByRole('button', { name: 'Avançar' }))
     }
 
-    await expect(progresso, 'o indicador deveria avancar para o cartao 2').toHaveText(/^Revisão · 2 de/, {
-      timeout: 10_000,
-    })
+    if (totalNaFila > 1)
+      await expect(progresso, 'o indicador deveria avancar para o cartao 2').toHaveText(/^Revisão · 2 de/, {
+        timeout: 10_000,
+      })
+    else
+      await expect(page.getByText('Rodada concluída').first(), 'fila de um: a rodada fecha').toBeVisible({
+        timeout: 10_000,
+      })
 
     /* O SERVIDOR E A FONTE: o cartao avaliado tem de ter `reps` maior e `dueAt` no futuro. */
     await expect
@@ -106,5 +128,6 @@ test.describe('Revisao FSRS', () => {
       )
       .toBe('ok')
     expect(sessionId).not.toBe('')
+    expect(cartoes.length, 'a fixture deveria ter semeado os cartoes').toBeGreaterThan(0)
   })
 })

@@ -2,6 +2,7 @@ import { Check, ImagePlus, Loader2, Search } from 'lucide-react';
 import { type ReactNode, useState } from 'react';
 
 import { type ImageResult, searchImages } from '../../data/api';
+import { CAPAS_PRONTAS } from '../../lib/capasProntas';
 
 /**
  * A FILEIRA DE CAPAS — `seletorDeCapa()` do protótipo aprovado, usada ao encerrar a captura (C8) e
@@ -9,30 +10,15 @@ import { type ImageResult, searchImages } from '../../data/api';
  *
  * As quatro capas do protótipo são gradientes. Aqui elas são IMAGENS de verdade: "Padrão" é a capa
  * sem imagem (o card mostra o ícone do tipo de mídia sobre o gradiente da marca) e as outras três
- * viram um SVG em data URL — o mesmo `imageUrl` que uma foto buscada ou colada, então a capa aparece
+ * (`lib/capasProntas`) são um SVG em data URL — o mesmo `imageUrl` que uma foto buscada ou colada, então a capa aparece
  * igual na Biblioteca, no Início e na busca sem nenhum caso especial.
  *
  * O botão de imagem abre a busca no Openverse (sem chave); o que foi escolhido fora da fileira
  * (foto buscada, colada ou de arquivo) entra nela como mais uma opção marcada.
  */
-const GRADIENTES: Array<[string, string]> = [
-  ['#3E5C76', '#7FA7C9'],
-  ['#4F7A3A', '#A8C686'],
-  ['#6B4E9B', '#C3A6E8'],
-];
-
-const capaDeGradiente = ([a, b]: [string, string]) =>
-  'data:image/svg+xml,' +
-  encodeURIComponent(
-    `<svg xmlns="http://www.w3.org/2000/svg" width="640" height="360" viewBox="0 0 640 360" preserveAspectRatio="none"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${a}"/><stop offset="1" stop-color="${b}"/></linearGradient></defs><rect width="640" height="360" fill="url(#g)"/></svg>`,
-  );
-
-/** As três capas prontas (a quarta, "Padrão", é a ausência de imagem). */
-export const CAPAS_PRONTAS = GRADIENTES.map(capaDeGradiente);
-
 /** O fundo CSS de uma capa, para a miniatura de prévia (`.capa-mini`) e para as opções. */
 export function fundoDaCapa(url: string): string {
-  if (!url) return 'linear-gradient(135deg,#E8542B,#F2A65A)';
+  if (!url) return 'linear-gradient(135deg,var(--accent),var(--warn))';
   return `center / cover no-repeat url("${url.replace(/"/g, '%22')}")`;
 }
 

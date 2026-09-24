@@ -585,6 +585,9 @@ export default function App() {
         recordings={recordings}
         aoNavegar={navigateTo}
         vencidasAgora={metrics?.dueToday ?? null}
+        escuro={darkMode}
+        aoAlternarTema={toggleDarkMode}
+        perfil={ageProfile}
       />
 
       {/* Host único dos avisos e das confirmações. Sem ele, `toast()` e `askConfirm()` não têm onde

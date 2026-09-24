@@ -1,13 +1,17 @@
-import { CornerDownLeft,Search } from 'lucide-react';
-import React, { useEffect, useMemo, useRef,useState } from 'react';
+import { CornerDownLeft, Search, SearchX } from 'lucide-react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+
+import { DialogoBase, IconeEmBloco } from './ui';
 
 /**
- * PALETA DE COMANDOS (Ctrl/⌘ + K).
+ * PALETA DE COMANDOS (Ctrl/⌘ + K) — a busca `paletaCmd()` do protótipo aprovado.
  *
  * Existe porque a queixa central da Central de Exercícios era "sempre é um desafio encontrar as
  * funcionalidades". Navegar por abas e cards é uma busca visual; digitar o nome é uma busca direta.
- * Este é o gesto que torna a tela MEMORÁVEL: você não precisa lembrar ONDE fica um exercício, só
- * COMO ele se chama.
+ *
+ * Marcação do protótipo (`dialog.paleta-cmd` > `.cmd` > `.cmd-busca`, `.cmd-lista`, `.cmd-pe`): o
+ * `<dialog>` nativo dá o Esc e o foco preso; UM destaque (`.cmd-item.foco`) anda pelas setas, com
+ * volta do fim para o começo, e o mouse o arrasta junto. O trecho digitado vem marcado (`<mark>`).
  *
  * Componente genérico — recebe os comandos de quem monta. Não conhece exercício nenhum.
  */
@@ -22,7 +26,7 @@ export interface Command {
   /** Quando presente, o comando aparece desabilitado com este motivo (honesto, não some da lista). */
   disabledReason?: string;
   /**
-   * Cabeçalho sob o qual o comando aparece ("suas gravações", "suas palavras", "ir para").
+   * Cabeçalho sob o qual o comando aparece ("Gravações", "Palavras", "Ir para").
    *
    * Existe porque a busca global mistura coisas de naturezas diferentes: uma gravação, uma palavra
    * do caderno e um destino de navegação são três respostas para "chav" e não se leem como lista
@@ -38,43 +42,61 @@ interface CommandPaletteProps {
   onClose: () => void;
   commands: Command[];
   placeholder?: string;
+  /**
+   * O que mostrar ANTES de digitar. Sem isto, a lista vazia mostra todos os comandos. A busca
+   * global passa as sugestões do protótipo (revisar, continuar, capturar, as primeiras telas);
+   * digitando, a busca corre sobre `commands`.
+   */
+  sugestoes?: Command[];
 }
 
-export default function CommandPalette({ open, onClose, commands, placeholder = 'Buscar exercício…' }: CommandPaletteProps) {
+/** Sem acento e em minúsculas: "vocabulario" acha "Vocabulário", como no protótipo. */
+const normalizar = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+
+/** O trecho que casou, marcado — `marca()` do protótipo. */
+function Marcado({ texto, termo }: { texto: string; termo: string }) {
+  if (!termo) return <>{texto}</>;
+  // Letra a letra, para o índice no texto sem acento valer no texto original.
+  const base = texto
+    .split('')
+    .map((ch) => normalizar(ch)[0] ?? ch)
+    .join('');
+  const i = base.indexOf(normalizar(termo));
+  if (i < 0) return <>{texto}</>;
+  return (
+    <>
+      {texto.slice(0, i)}
+      <mark>{texto.slice(i, i + termo.length)}</mark>
+      {texto.slice(i + termo.length)}
+    </>
+  );
+}
+
+export default function CommandPalette(props: CommandPaletteProps) {
+  if (!props.open) return null;
+  return <Paleta {...props} />;
+}
+
+function Paleta({ onClose, commands, placeholder = 'Buscar exercício…', sugestoes }: CommandPaletteProps) {
   const [query, setQuery] = useState('');
   const [cursor, setCursor] = useState(0);
-  const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    if (open) {
-      setQuery('');
-      setCursor(0);
-      // O foco tem de esperar o elemento existir no DOM.
-      requestAnimationFrame(() => inputRef.current?.focus());
-    }
-  }, [open]);
-
+  const termo = query.trim();
   const results = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    if (!q) return commands;
-    return commands.filter(c =>
-      c.label.toLowerCase().includes(q) ||
-      (c.hint ?? '').toLowerCase().includes(q) ||
-      (c.keywords ?? '').toLowerCase().includes(q)
-    );
-  }, [commands, query]);
+    if (!termo) return sugestoes ?? commands;
+    const q = normalizar(termo);
+    return commands.filter((c) => normalizar(`${c.label} ${c.hint ?? ''} ${c.keywords ?? ''}`).includes(q));
+  }, [commands, sugestoes, termo]);
 
-  // Mantém o cursor dentro dos resultados quando a busca muda.
-  useEffect(() => { setCursor(0); }, [query]);
+  // O destaque volta ao topo quando a busca muda, e nunca aponta para fora da lista.
+  useEffect(() => setCursor(0), [termo]);
+  const foco = Math.min(cursor, Math.max(0, results.length - 1));
 
-  // Rola o item selecionado para a vista (navegação por teclado tem de funcionar de verdade).
+  // Rola o item destacado para a vista (navegação por teclado tem de funcionar de verdade).
   useEffect(() => {
-    listRef.current?.querySelector<HTMLElement>(`[data-idx="${cursor}"]`)
-      ?.scrollIntoView({ block: 'nearest' });
-  }, [cursor]);
-
-  if (!open) return null;
+    listRef.current?.querySelector<HTMLElement>(`[data-idx="${foco}"]`)?.scrollIntoView?.({ block: 'nearest' });
+  }, [foco]);
 
   const runAt = (i: number) => {
     const cmd = results[i];
@@ -84,80 +106,109 @@ export default function CommandPalette({ open, onClose, commands, placeholder = 
   };
 
   const onKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'ArrowDown') { e.preventDefault(); setCursor(c => Math.min(c + 1, results.length - 1)); }
-    else if (e.key === 'ArrowUp') { e.preventDefault(); setCursor(c => Math.max(c - 1, 0)); }
-    else if (e.key === 'Enter') { e.preventDefault(); runAt(cursor); }
-    else if (e.key === 'Escape') { e.preventDefault(); onClose(); }
+    const n = Math.max(1, results.length);
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      setCursor((foco + 1) % n);
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      setCursor((foco - 1 + n) % n);
+    } else if (e.key === 'Enter') {
+      e.preventDefault();
+      runAt(foco);
+    }
   };
 
   return (
-    <div
-      /* z-[100] fica acima de TODA a pilha do app (dock 30 · partida 35 · partículas 38 · score 40 ·
-         ComoSeJoga 90 · tour 95). A busca é sempre deliberada, alguém apertou ⌘K, e um diálogo de
-         digitação escondido atrás de uma cortina é pior do que um que cobre a cortina: este último
-         sai com Esc, o primeiro engole o que se digita sem dar sinal. */
-      className="fixed inset-0 z-[100] flex items-start justify-center pt-[12vh] px-4 bg-black/40 animate-in fade-in duration-150"
-      onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}
-    >
-      <div className="w-full max-w-lg bg-surface border border-border-subtle rounded-2xl shadow-card overflow-hidden animate-in zoom-in-95 slide-in-from-top-2 duration-150">
-        <div className="flex items-center gap-2.5 px-4 border-b border-border-subtle">
-          <Search className="w-4 h-4 text-ink-faint shrink-0" />
+    <DialogoBase classe="paleta-cmd" rotulo="Busca" aoFechar={onClose}>
+      <div className="cmd">
+        <div className="cmd-busca">
+          <Search aria-hidden />
+          <label className="sr" htmlFor="cmd-q">
+            Buscar
+          </label>
           <input
-            ref={inputRef}
+            id="cmd-q"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={onKeyDown}
             placeholder={placeholder}
-            className="flex-1 bg-transparent py-3.5 text-sm text-ink placeholder-ink-faint outline-none"
+            autoComplete="off"
+            autoFocus
+            role="combobox"
+            aria-expanded="true"
+            aria-controls="cmd-l"
+            aria-activedescendant={results.length ? `cmd-${foco}` : undefined}
           />
-          <kbd className="text-[10px] font-mono text-ink-faint border border-border-subtle rounded px-1.5 py-0.5">esc</kbd>
+          <kbd>Esc</kbd>
         </div>
 
-        <div ref={listRef} className="max-h-[46vh] overflow-y-auto custom-scrollbar py-1.5">
+        <div ref={listRef} className="cmd-lista" id="cmd-l" role="listbox" aria-label="Resultados">
           {results.length === 0 ? (
-            <p className="px-4 py-8 text-center text-xs text-ink-muted">
-              Nada encontrado para "<span className="font-bold text-ink">{query}</span>".
-            </p>
+            <div className="cmd-vazio">
+              <IconeEmBloco icone={SearchX} />
+              <b>Nada encontrado para “{termo}”</b>
+              <span>Tente uma palavra do caderno, o nome de uma gravação ou de uma tela.</span>
+            </div>
           ) : (
             results.map((c, i) => {
-              const disabled = !!c.disabledReason;
+              const desabilitado = !!c.disabledReason;
               /* Cabeçalho quando o grupo muda. Como `results` preserva a ordem dos comandos, isto
                  basta para agrupar, sem uma segunda estrutura de dados que possa sair de sincronia
-                 com o índice do cursor, que é o que a navegação por teclado usa. */
+                 com o índice do destaque, que é o que a navegação por teclado usa. */
               const abreGrupo = c.grupo && c.grupo !== results[i - 1]?.grupo;
+              const ativo = i === foco;
+              const meta = c.disabledReason ?? c.hint;
               return (
                 <React.Fragment key={c.id}>
-                {abreGrupo && (
-                  <div className="label-mono px-4 pt-3 pb-1.5 text-ink-faint">{c.grupo}</div>
-                )}
-                <button
-                  data-idx={i}
-                  onMouseEnter={() => setCursor(i)}
-                  onClick={() => runAt(i)}
-                  disabled={disabled}
-                  className={`w-full flex items-center gap-3 px-4 py-2.5 text-start transition-colors ${
-                    disabled ? 'opacity-45 cursor-not-allowed' : 'cursor-pointer'
-                  } ${i === cursor && !disabled ? 'bg-accent-soft' : ''}`}
-                >
-                  {c.icon && (
-                    <span className={`shrink-0 ${i === cursor && !disabled ? 'text-accent' : 'text-ink-muted'}`}>{c.icon}</span>
+                  {abreGrupo && (
+                    <div className="cmd-grupo" role="presentation">
+                      {c.grupo}
+                    </div>
                   )}
-                  <span className="min-w-0 flex-1">
-                    <span className="block text-[13px] font-bold text-ink leading-tight">{c.label}</span>
-                    {/* Motivo do bloqueio vence a dica: é a informação que o usuário precisa. */}
-                    <span className={`block text-[11px] leading-tight ${disabled ? 'text-warn-ink' : 'text-ink-faint'}`}>
-                      {c.disabledReason ?? c.hint}
+                  <button
+                    type="button"
+                    role="option"
+                    id={`cmd-${i}`}
+                    data-idx={i}
+                    className={`cmd-item ${ativo ? 'foco' : ''}`}
+                    aria-selected={ativo}
+                    aria-disabled={desabilitado || undefined}
+                    style={desabilitado ? { opacity: 0.55, cursor: 'not-allowed' } : undefined}
+                    onPointerMove={() => i !== foco && setCursor(i)}
+                    onClick={() => runAt(i)}
+                  >
+                    <span className="cmd-ico">{c.icon}</span>
+                    <span className="cmd-t">
+                      <Marcado texto={c.label} termo={termo} />
                     </span>
-                  </span>
-                  {i === cursor && !disabled && <CornerDownLeft className="w-3.5 h-3.5 text-accent shrink-0" />}
-                </button>
+                    {meta && <span className="cmd-meta">{meta}</span>}
+                    {ativo && (
+                      <span className="cmd-enter" aria-hidden>
+                        <CornerDownLeft />
+                      </span>
+                    )}
+                  </button>
                 </React.Fragment>
               );
             })
           )}
         </div>
+
+        <div className="cmd-pe">
+          <span>
+            <kbd>↑</kbd>
+            <kbd>↓</kbd> navegar
+          </span>
+          <span>
+            <kbd>Enter</kbd> abrir
+          </span>
+          <span>
+            <kbd>Esc</kbd> fechar
+          </span>
+        </div>
       </div>
-    </div>
+    </DialogoBase>
   );
 }
 
@@ -203,7 +254,7 @@ export function useCommandPalette(ativo = true, prioridade = 0): [boolean, (v: b
 
   useEffect(() => {
     if (!ativo) return;
-    const dono: DonoDoAtalho = { alternar: () => setOpen(o => !o), prioridade };
+    const dono: DonoDoAtalho = { alternar: () => setOpen((o) => !o), prioridade };
     donosDoAtalho.push(dono);
     if (!ouvinteInstalado) {
       ouvinteInstalado = aoTeclarAtalho;
@@ -220,7 +271,9 @@ export function useCommandPalette(ativo = true, prioridade = 0): [boolean, (v: b
   }, [ativo, prioridade]);
 
   // Suspender fecha o que estiver aberto: deixar a paleta na tela sem atalho para fechá-la seria pior.
-  useEffect(() => { if (!ativo) setOpen(false); }, [ativo]);
+  useEffect(() => {
+    if (!ativo) setOpen(false);
+  }, [ativo]);
 
   return [open, setOpen];
 }

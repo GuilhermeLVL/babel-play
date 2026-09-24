@@ -15,6 +15,7 @@ export type { ItemDeAba } from './Abas';
 export { default as Abas, PainelDeAba } from './Abas';
 export { default as Barra } from './Barra';
 export { default as CabecalhoDeTela } from './CabecalhoDeTela';
+export { default as Dialogo, DialogoBase, fecharDialogoDe } from './Dialogo';
 export type { TomDoIcone } from './IconeEmBloco';
 export { default as IconeEmBloco } from './IconeEmBloco';
 export { default as Ladrilho } from './Ladrilho';

@@ -1,35 +1,35 @@
-import { BarChart3, BookOpen, FileText, Gamepad2, Headphones, LayoutGrid, Library, Mic, Settings as SettingsIcon, Timer,Video } from 'lucide-react';
+import { BookOpen, FileAudio, FileText, Mic, Moon, Plus, Sun, Target, UserRound, Youtube } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 
 import { fetchDeck } from '../data/api';
 import type { Recording, VocabCard } from '../types';
 import CommandPalette, { type Command } from './CommandPalette';
+import { type AgeProfileType, NAV_ITEMS, navLabel } from './shell/navItems';
 
 /**
- * BUSCA GLOBAL — achar pelo nome, de qualquer tela.
+ * BUSCA GLOBAL — achar pelo nome, de qualquer tela. É a `itensDaBusca()` do protótipo aprovado.
  *
- * O DEFEITO QUE ISTO CONSERTA. A paleta de comandos existia desde a Central de Exercícios e resolvia
- * bem o problema de "encontrar as funcionalidades" — mas só dentro do Study. Em qualquer outra tela
- * o ⌘K não fazia nada, e achar uma gravação de três semanas atrás exigia ir à Biblioteca, escolher a
- * categoria certa e rolar. O componente genérico já estava pronto; faltava alguém montá-lo por cima
- * do app inteiro.
+ * SEM DIGITAR, SUGESTÕES: revisar (só se houver o que revisar), continuar a última sessão, iniciar
+ * captura e as primeiras telas. DIGITANDO, GRUPOS: "Ir para", "Palavras", "Gravações", "Ações".
  *
  * O BARALHO SÓ É BUSCADO QUANDO A BUSCA ABRE. `fetchDeck()` traz o baralho inteiro, e pagá-lo no
  * carregamento do app para uma tela que talvez ninguém abra seria trocar o custo de todo mundo pelo
  * benefício de alguns. A primeira abertura tem uma espera curta; as seguintes não têm nenhuma.
  *
  * AS PALAVRAS NÃO SÃO FILTRADAS AQUI. A paleta já casa por `label`, `hint` e `keywords`; mandar as
- * 1.900 e deixar o filtro dela trabalhar evita ter duas regras de busca que podem discordar. O teto
- * de `MAX_PALAVRAS` existe só para a lista inicial (sem consulta) não virar uma parede.
+ * 1.900 e deixar o filtro dela trabalhar evita ter duas regras de busca que podem discordar.
+ *
+ * Fora do protótipo, de propósito: "Jogar Memória" (o app não tem porta direta para um jogo; "Jogar"
+ * está em "Ir para") e a abertura da palavra num diálogo próprio (a palavra leva ao Vocabulário).
  */
 
-/** Sem consulta digitada, mostrar mil palavras não ajuda ninguém a escolher. */
+/** Com uma consulta, casar em 1.900 palavras é barato; sem ela, ninguém lê uma parede. */
 const MAX_PALAVRAS = 400;
 
 const ICONE_DE_MIDIA = {
-  audio: <Headphones className="w-4 h-4" />,
-  video: <Video className="w-4 h-4" />,
-  document: <FileText className="w-4 h-4" />,
+  audio: <FileAudio />,
+  video: <Youtube />,
+  document: <FileText />,
 } as const;
 
 interface BuscaGlobalProps {
@@ -40,6 +40,11 @@ interface BuscaGlobalProps {
   aoNavegar: (view: string, data?: unknown) => void;
   /** Quantas palavras estão vencidas agora. `null` enquanto as métricas não chegaram. */
   vencidasAgora: number | null;
+  /** O tema atual e como trocá-lo — a ação "Mudar para o modo escuro/claro". */
+  escuro: boolean;
+  aoAlternarTema: () => void;
+  /** Os rótulos das telas são os do menu, no perfil da pessoa. */
+  perfil: AgeProfileType;
 }
 
 export default function BuscaGlobal({
@@ -48,6 +53,9 @@ export default function BuscaGlobal({
   recordings,
   aoNavegar,
   vencidasAgora,
+  escuro,
+  aoAlternarTema,
+  perfil,
 }: BuscaGlobalProps) {
   const [baralho, setBaralho] = useState<VocabCard[] | null>(null);
 
@@ -55,73 +63,126 @@ export default function BuscaGlobal({
     if (!aberta || baralho) return;
     let vivo = true;
     fetchDeck()
-      .then((cards) => { if (vivo) setBaralho(cards); })
+      .then((cards) => {
+        if (vivo) setBaralho(cards);
+      })
       // Falhar aqui não pode derrubar a busca: as gravações e os destinos continuam achaveis.
-      .catch(() => { if (vivo) setBaralho([]); });
-    return () => { vivo = false; };
+      .catch(() => {
+        if (vivo) setBaralho([]);
+      });
+    return () => {
+      vivo = false;
+    };
   }, [aberta, baralho]);
 
-  const comandos = useMemo<Command[]>(() => {
-    const lista: Command[] = [];
-
-    for (const r of recordings) {
-      lista.push({
-        id: `sessao:${r.id}`,
-        grupo: 'suas gravações',
-        label: r.title,
-        // `date` e `durationStr` já vêm redigidos pela camada que monta `Recording`.
-        hint: `${r.date} · ${r.durationStr}`,
-        keywords: r.tags.join(' '),
-        icon: ICONE_DE_MIDIA[r.type],
-        run: () => aoNavegar('analysis', { id: r.id }),
-      });
-    }
+  const { comandos, sugestoes } = useMemo(() => {
+    const telas: Command[] = [
+      ...NAV_ITEMS.map(
+        (n): Command => ({
+          id: `ir:${n.id}`,
+          grupo: 'Ir para',
+          label: navLabel(n, perfil),
+          icon: <n.icon />,
+          run: () => aoNavegar(n.id),
+        }),
+      ),
+      { id: 'ir:profile', grupo: 'Ir para', label: 'Seu perfil', icon: <UserRound />, run: () => aoNavegar('profile') },
+    ];
 
     /* Só o que está NO baralho. Um cartão arquivado pela curadoria saiu das rodadas de propósito;
-       trazê-lo de volta pela busca desfaria em silêncio uma decisão que a pessoa tomou. */
-    for (const c of (baralho ?? []).filter((c) => c.inDeck).slice(0, MAX_PALAVRAS)) {
-      lista.push({
+       trazê-lo de volta pela busca desfaria em silêncio uma decisão que a pessoa tomou. A dica é a
+       TRADUÇÃO, e só: a contagem de ocorrências vive no servidor e não chega ao `VocabCard`. */
+    const palavras: Command[] = (baralho ?? [])
+      .filter((c) => c.inDeck)
+      .slice(0, MAX_PALAVRAS)
+      .map((c) => ({
         id: `palavra:${c.id}`,
-        grupo: 'suas palavras',
+        grupo: 'Palavras',
         label: c.word,
-        /* A dica é a TRADUÇÃO, e só. O mockup trazia "apareceu 11 vezes", mas a contagem de
-           ocorrências vive em `vocab_occurrences` no servidor e não chega ao `VocabCard` do
-           cliente, exibi-la aqui exigiria inventar o número ou uma segunda ida à rede por palavra. */
         hint: c.translation || undefined,
-        keywords: c.translation,
-        icon: <BookOpen className="w-4 h-4" />,
+        icon: <BookOpen />,
         run: () => aoNavegar('metrics'),
-      });
-    }
+      }));
 
-    lista.push(
-      { id: 'ir:hub', grupo: 'ir para', label: 'Início', icon: <LayoutGrid className="w-4 h-4" />, keywords: 'home painel', run: () => aoNavegar('hub') },
-      { id: 'ir:capture', grupo: 'ir para', label: 'Gravar', icon: <Mic className="w-4 h-4" />, keywords: 'capturar captura áudio microfone', run: () => aoNavegar('capture') },
-      { id: 'ir:play', grupo: 'ir para', label: 'Jogar', icon: <Gamepad2 className="w-4 h-4" />, keywords: 'jogos exercícios praticar', run: () => aoNavegar('play') },
-      { id: 'ir:library', grupo: 'ir para', label: 'Biblioteca', icon: <Library className="w-4 h-4" />, keywords: 'sessões importar youtube', run: () => aoNavegar('library') },
-      { id: 'ir:metrics', grupo: 'ir para', label: 'Palavras', icon: <BarChart3 className="w-4 h-4" />, keywords: 'vocabulário caderno métricas', run: () => aoNavegar('metrics') },
+    // "Quando · N palavras", como no protótipo; sem contagem, a duração. `date` já vem redigido.
+    const gravacoes: Command[] = recordings.map((r) => ({
+      id: `sessao:${r.id}`,
+      grupo: 'Gravações',
+      label: r.title,
+      hint: [r.date, r.wordCount ? `${r.wordCount} palavras` : r.durationStr].filter(Boolean).join(' · '),
+      keywords: r.tags.join(' '),
+      icon: ICONE_DE_MIDIA[r.type],
+      run: () => aoNavegar('analysis', { id: r.id }),
+    }));
+
+    const revisar: Command = {
+      id: 'acao:revisar',
+      grupo: 'Ações',
+      label: 'Revisar agora',
+      // Sem métrica ainda, a linha fica sem promessa — em vez de dizer "nada pendente" e mentir.
+      hint: vencidasAgora === null ? undefined : vencidasAgora ? `${vencidasAgora} pendentes` : 'nada pendente',
+      icon: <Target />,
+      keywords: 'revisão srs vencidas',
+      run: () => aoNavegar('study'),
+    };
+    const capturar: Command = {
+      id: 'acao:capturar',
+      grupo: 'Ações',
+      label: 'Iniciar captura',
+      hint: 'áudio do sistema ou microfone',
+      icon: <Mic />,
+      run: () => aoNavegar('capture'),
+    };
+    const acoes: Command[] = [
+      revisar,
+      capturar,
       {
-        id: 'ir:study',
-        grupo: 'ir para',
-        label: vencidasAgora ? `Revisar as ${vencidasAgora} que venceram` : 'Revisar',
-        // Sem métrica ainda, a linha fica sem promessa — em vez de dizer "0 vencidas" e mentir.
-        hint: vencidasAgora === null ? undefined : vencidasAgora === 0 ? 'nada vencido agora' : undefined,
-        icon: <Timer className="w-4 h-4" />,
-        keywords: 'revisão srs vencidas due',
-        run: () => aoNavegar('study'),
+        id: 'acao:importar',
+        grupo: 'Ações',
+        label: 'Importar mídia ou documento',
+        hint: 'YouTube, PDF, web, áudio',
+        icon: <Plus />,
+        run: () => aoNavegar('library'),
       },
-      { id: 'ir:settings', grupo: 'ir para', label: 'Ajustes', icon: <SettingsIcon className="w-4 h-4" />, keywords: 'configurações idioma tema conta', run: () => aoNavegar('settings') },
-    );
+      {
+        id: 'acao:tema',
+        grupo: 'Ações',
+        label: escuro ? 'Mudar para o modo claro' : 'Mudar para o modo escuro',
+        hint: 'tema',
+        icon: escuro ? <Sun /> : <Moon />,
+        run: aoAlternarTema,
+      },
+    ];
 
-    return lista;
-  }, [recordings, baralho, aoNavegar, vencidasAgora]);
+    const ultima = recordings[0];
+    const sugestoes: Command[] = [
+      ...(vencidasAgora ? [{ ...revisar, id: 'sug:revisar', grupo: 'Sugestões' }] : []),
+      ...(ultima
+        ? [
+            {
+              id: 'sug:continuar',
+              grupo: 'Sugestões',
+              label: `Continuar: ${ultima.title}`,
+              hint: 'última sessão',
+              icon: ICONE_DE_MIDIA[ultima.type],
+              run: () => aoNavegar('analysis', { id: ultima.id }),
+            },
+          ]
+        : []),
+      { ...capturar, id: 'sug:capturar', grupo: 'Sugestões' },
+      ...telas.slice(0, 5),
+    ];
+
+    return { comandos: [...telas, ...palavras, ...gravacoes, ...acoes], sugestoes };
+  }, [recordings, baralho, aoNavegar, vencidasAgora, escuro, aoAlternarTema, perfil]);
 
   return (
     <CommandPalette
       open={aberta}
       onClose={aoFechar}
       commands={comandos}
-      placeholder="Buscar gravação, palavra ou tela…"
+      sugestoes={sugestoes}
+      placeholder="Buscar gravação, palavra ou tela"
     />
   );
 }

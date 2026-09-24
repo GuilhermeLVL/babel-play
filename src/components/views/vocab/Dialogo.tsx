@@ -1,72 +1,10 @@
-import type { LucideIcon } from 'lucide-react';
-import { X } from 'lucide-react';
-import { type ReactNode, useEffect, useId, useRef } from 'react';
-
-import { IconeEmBloco } from '../../ui';
+import type { ReactNode } from 'react';
 
 /**
- * O DIÁLOGO DO PROTÓTIPO — `dlg()` + `cabDlg()` de `docs/prototipos/consistencia-telas.html`.
- *
- * `<dialog>` nativo aberto com `showModal()` (foco preso, Esc fecha, fundo inerte), com a marcação
- * dele: `.dlg-cab` (ícone em bloco, título, subtítulo, fechar), e o corpo e o pé que o chamador
- * escreve (`.dlg-corpo`, `.dlg-pe`). O CSS é o do protótipo (`src/styles/prototipo.css`).
- *
- * Monta aberto e fecha pelo `aoFechar` — quem controla se ele existe é o chamador.
+ * O diálogo do protótipo mora em `src/components/ui/Dialogo.tsx` (várias telas o usam). Aqui ficam
+ * só as peças de formulário dos diálogos do Vocabulário e da Revisão.
  */
-export default function Dialogo({
-  icone,
-  titulo,
-  sub,
-  largura = 'medio',
-  aoFechar,
-  children,
-}: {
-  icone: LucideIcon;
-  titulo: ReactNode;
-  sub?: ReactNode;
-  largura?: 'medio' | 'largo' | '';
-  aoFechar: () => void;
-  children: ReactNode;
-}) {
-  const ref = useRef<HTMLDialogElement>(null);
-  const idTitulo = useId();
-  // O `aoFechar` mais recente, sem reabrir o diálogo a cada render do pai.
-  const fechar = useRef(aoFechar);
-  fechar.current = aoFechar;
-
-  useEffect(() => {
-    const d = ref.current;
-    if (!d) return;
-    if (!d.open) d.showModal?.();
-    const aoFecharNativo = () => fechar.current();
-    d.addEventListener('close', aoFecharNativo);
-    /* Sem `d.close()` aqui, de propósito: o evento `close` é despachado DEPOIS, numa tarefa, e o
-       StrictMode desmonta e remonta o efeito na hora — o ouvinte novo o receberia e fecharia o
-       diálogo que acabou de abrir. Sair do DOM já tira o diálogo da camada modal. */
-    return () => d.removeEventListener('close', aoFecharNativo);
-  }, []);
-
-  return (
-    // `m-auto`: o preflight do Tailwind zera a margem que centraliza o `<dialog>` modal no navegador.
-    <dialog ref={ref} className={`${largura} m-auto`} aria-labelledby={idTitulo}>
-      <div className="dlg-cab">
-        <IconeEmBloco icone={icone} />
-        <div style={{ minWidth: 0 }}>
-          <h2 id={idTitulo}>{titulo}</h2>
-          {sub && (
-            <p className="mut" style={{ fontSize: 13 }}>
-              {sub}
-            </p>
-          )}
-        </div>
-        <button type="button" className="x" aria-label="Fechar" onClick={() => ref.current?.close()}>
-          <X aria-hidden />
-        </button>
-      </div>
-      {children}
-    </dialog>
-  );
-}
+export { default } from '../../ui/Dialogo';
 
 /** `campoLinha()` do protótipo: rótulo e descrição à esquerda, o controle à direita. */
 export function CampoLinha({ rotulo, desc, children }: { rotulo: ReactNode; desc?: ReactNode; children: ReactNode }) {

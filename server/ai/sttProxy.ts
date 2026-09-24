@@ -158,7 +158,7 @@ export async function sttTranscribeProxy(req: Request, res: Response): Promise<v
     /**
      * RETENTATIVA COM ESPERA CRESCENTE — e só aqui, não na tradução (Fase 5).
      *
-     * A diferença entre os dois proxies é que a tradução TEM cascata (`cascataDeTraducao`): um 429
+     * A diferença entre os dois proxies é que a tradução TEM cascata (`cascataDeNuvem`): um 429
      * do primário já cai na reserva, e insistir antes disso só somaria espera ao caminho em que
      * alguém aguarda legenda na tela. O STT não tem para onde cair — sem reserva configurada, um
      * 429 momentâneo do provedor simplesmente perdia a fala do usuário, e o áudio de um enunciado

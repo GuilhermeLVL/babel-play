@@ -111,9 +111,12 @@ describe('iChat', () => {
     expect(campo.disabled).toBe(true)
 
     const corpo = JSON.parse(apiFetch.mock.calls[0][1].body as string)
-    expect(corpo.messages[0].content).toContain('[PALAVRA DO CADERNO] leverage = alavancar; nível B2')
+    expect(apiFetch.mock.calls[0][0]).toBe('/api/tutor/chat')
+    expect(corpo.funcao).toBe('tutor')
+    expect(corpo.material).toContain('[PALAVRA DO CADERNO] leverage = alavancar; nível B2')
     expect(corpo.messages.at(-1)).toEqual({ role: 'user', content: 'o que significa?' })
-    expect(corpo.systemInstruction).toContain('[SEGURANÇA')
+    /* O prompt é do servidor (Fase 2 do lançamento): a tela não manda mais `system`. */
+    expect(corpo.systemInstruction).toBeUndefined()
 
     await act(async () =>
       soltar({

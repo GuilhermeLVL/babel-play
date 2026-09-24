@@ -4,7 +4,7 @@
  * O que a auditoria mediu: `express.raw` bufferiza o corpo inteiro antes do handler, cada upload
  * de áudio no teto custa 120,02 MB de RSS, e o container tem 1 GB. Oito requisições simultâneas
  * bastam — e `/api/sessions` não passava por limitador nenhum, porque a montagem só cobria
- * `/api/ai`, `/api/import` e `/api/gemini`.
+ * `/api/ai`, `/api/import`, `/api/tutor` e o alias `/api/gemini`.
  *
  * Lê `server/http/app.ts`: a montagem saiu do `server.ts` quando a Fase 3 extraiu `criarApp()`.
  *

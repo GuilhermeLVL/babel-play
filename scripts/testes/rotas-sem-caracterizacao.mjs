@@ -28,6 +28,8 @@ const SEM_CARACTERIZACAO = {
     'dispositivo da máquina (WASAPI); só existe no self-host e o 403 do modo público está em auth-e-conta',
   'POST /api/billing/comprar':
     'Asaas em sandbox é dependência do dono; `tests/integration/billing-webhook.test.ts` cobre o webhook e a idempotência',
+  'POST /api/tutor/chat':
+    'cascata com provedor falso em `tests/integration/tutor-cascata.test.ts` (Groq → OpenRouter, system do cliente descartado, Ollama só no self-host) e preparo do pedido em `funcoes-de-ia.test.ts`',
   'GET /api/billing/creditos': 'idem',
   'POST /api/billing/gastar': 'idem',
   'POST /api/billing/creditar-passe': 'idem',
@@ -86,6 +88,9 @@ const PREFIXOS = {
   'server/routes/rank.ts': '/api/rank',
   'server/routes/health.ts': '/api/health',
   'server/audio/loopback.ts': '/api/audio',
+  /* O tutor (antes `server/routes/gemini.ts`) nunca esteve nesta lista — era invisivel ao portao.
+     Entrou na Fase 2 do lancamento, quando virou `tutor.ts`. */
+  'server/routes/tutor.ts': '/api/tutor',
 }
 
 function rotasDoServidor() {

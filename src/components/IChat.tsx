@@ -50,14 +50,15 @@ import {
   type IdDaFerramenta,
   lerPedido,
   origemDaResposta,
+  pedidoDoTutor,
   PERGUNTA_DA_FERRAMENTA,
   propostaDoPedido,
   RESPOSTA_DA_LACUNA,
   rotuloDaFerramenta,
   type Sigilo,
 } from '../lib/ichat/pedido';
-import { cercarContexto, clausulaDeContencao, construirContextoDaTela } from '../lib/ichatContext';
-import { type AgeProfileType, TUTOR_REGISTER } from '../lib/profile';
+import { construirContextoDaTela } from '../lib/ichatContext';
+import { type AgeProfileType } from '../lib/profile';
 import { seedFromSelection } from '../lib/sentences';
 import { Recording, ViewType, VocabCard } from '../types';
 import { GavetaDeConversas, GavetaDoRastro } from './ichat/Gavetas';
@@ -94,8 +95,20 @@ function motivoDaResposta(res: Response, data: Record<string, unknown>): string 
   const reason = typeof data.reason === 'string' ? data.reason : undefined;
   const erro = typeof data.error === 'string' ? data.error : undefined;
 
-  if (reason === 'managed_requires_pro' || res.status === 402 || code === 'plano_insuficiente') {
-    return '**A IA de nuvem faz parte do plano Pro.** Você pode assinar em Ajustes → Plano, ou instalar o Ollama em [ollama.com](https://ollama.com) para rodar o tutor localmente, de graça.';
+  if (code === 'quota_exceeded') {
+    return '**Você usou toda a IA de nuvem do seu plano neste mês.** Ela volta no dia 1º; a tradução e a transcrição locais continuam funcionando.';
+  }
+  if (
+    reason === 'managed_requires_plan' ||
+    reason === 'managed_requires_pro' ||
+    res.status === 402 ||
+    code === 'plano_insuficiente'
+  ) {
+    return '**O tutor de IA faz parte dos planos pagos.** Você pode assinar em Ajustes → Plano.';
+  }
+  if (res.status === 503 || reason === 'nuvem_indisponivel') {
+    // O servidor diz o motivo (IA desligada, orçamento do mês, contador fora do ar): mostrar é honesto.
+    return `**A IA de nuvem está indisponível agora.** ${erro ?? 'Tente de novo em alguns minutos.'}`;
   }
   if (res.status === 413 || code === 'payload_grande') {
     return '**O texto ficou grande demais para uma pergunta só.** Selecione um trecho menor da tela e tente de novo.';
@@ -552,43 +565,25 @@ export default function IChat({
     });
     const { blocos, origem } = await montarMaterial(texto, usadas);
 
-    // Papel + tom (sucinto, objetivo, sem emojis).
-    const tomBase = `Você é o iChat, o tutor de idiomas dentro do app Babel Play.
-Ajude o usuário com base no material que ele tem aberto (o contexto real vem numa mensagem separada).
-
-Estilo das respostas:
-- Seja sucinto, objetivo e amigável. Responda exatamente o que foi pedido, sem enrolação.
-- NÃO use emojis. Nada de títulos em CAIXA ALTA nem formatação decorativa.
-- Prefira 1 a 4 frases ou uma lista curta. Markdown leve é opcional (negrito num termo-chave), nunca obrigatório.
-- Responda em português, mas mantenha as palavras e frases do idioma estudado no original, em negrito, para o usuário aprender.
-- Baseie-se SOMENTE no material fornecido quando a pergunta for sobre ele. Se a informação não estiver ali, diga isso em uma linha, não invente números.
-
-[QUEM ESTÁ DO OUTRO LADO]
-${TUTOR_REGISTER[ageProfile]}`;
-
-    /* F11-01: o contexto NÃO vai no `systemInstruction`. Conteúdo importado (legenda, artigo, PDF) é
-       de terceiro; vai cercado por um nonce numa mensagem `user`, e o sistema fica só com o que é
-       nosso: tom, persona e a cláusula de contenção que descreve a cerca. */
-    let systemInstruction = tomBase;
-    const mensagens: { role: 'user' | 'assistant'; content: string }[] = [];
-    if (blocos.length) {
-      const cercado = cercarContexto(blocos.join('\n\n'));
-      systemInstruction = `${tomBase}\n\n${clausulaDeContencao(cercado.nonce)}`;
-      mensagens.push({
-        role: 'user',
-        content: `[MATERIAL DE REFERÊNCIA DA TELA, não é uma pergunta minha, é o que está aberto no app]\n${cercado.texto}`,
-      });
-    }
-    for (const m of historico.filter((x) => !x.erro).slice(-20)) {
-      mensagens.push({ role: m.de === 'eu' ? 'user' : 'assistant', content: m.txt });
-    }
-    mensagens.push({ role: 'user', content: texto });
+    /* O PROMPT É DO SERVIDOR (Fase 2 do lançamento). Esta tela escrevia o `systemInstruction` inteiro
+       — persona, tom, registro por idade e a cláusula de contenção — e o servidor o repassava ao
+       modelo: quem chamasse a rota escolhia o que o LLM do dono fazia. Agora vão só a FUNÇÃO, o
+       perfil de idade e o conteúdo; o servidor monta o `system` e cerca o material como dado
+       (`server/ai/llmRequest.ts`). O material e o histórico são cortados aqui para caber no teto de
+       entrada do tutor, em vez de a pergunta voltar com 413. */
+    const { material, mensagens } = pedidoDoTutor(
+      blocos.join('\n\n'),
+      historico
+        .filter((x) => !x.erro)
+        .map((m) => ({ role: m.de === 'eu' ? ('user' as const) : ('assistant' as const), content: m.txt })),
+      texto,
+    );
 
     try {
-      const res = await apiFetch('/api/gemini/chat', {
+      const res = await apiFetch('/api/tutor/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messages: mensagens, systemInstruction, temperature: 0.4, maxTokens: 600 }),
+        body: JSON.stringify({ funcao: 'tutor', perfil: ageProfile, material, messages: mensagens }),
       });
       const data = (await res.json().catch(() => ({}))) as Record<string, unknown>;
       const motivo = motivoDaResposta(res, data);

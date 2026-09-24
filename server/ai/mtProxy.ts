@@ -9,7 +9,7 @@ import { responderErro } from '../lib/respostaDeErro'
 import { refundManagedCall, registrarTokensDeLlm, reserveManagedCall } from '../lib/usageQuota'
 import { chaveDoProvedor, disjuntorPermite, registrarFalha, registrarSucesso } from './disjuntor'
 import { chamarChat, type MensagemDeChat, type RespostaDeChat } from './llmClient'
-import { cascataDeTraducao } from './provedores'
+import { cascataDeNuvem } from './provedores'
 
 /**
  * Tradução via LLM (Groq) no SERVIDOR — o elo que faltava na cadeia de MT.
@@ -76,7 +76,7 @@ export async function mtTranslateProxy(req: Request, res: Response): Promise<voi
      de modelo estavam escritos aqui, no `server.ts` e no gateway, com ordens ligeiramente
      diferentes — e um default corrigido num lugar deixava os outros dois com o modelo antigo
      (achado A31). A explicacao de POR QUE existe reserva mora la, junto da funcao. */
-  const provedores = cascataDeTraducao({ modelosGrandes: planoDoUsuario.largerModels })
+  const provedores = cascataDeNuvem({ modelosGrandes: planoDoUsuario.largerModels })
   if (provedores.length === 0) {
     res.status(501).json({ error: 'tradução por LLM não configurada no servidor (defina LLM_API_KEY)' })
     return

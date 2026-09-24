@@ -15,7 +15,7 @@
  */
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 
-import { cascataDeTraducao, llmDeNuvem, MODELO_LLM_PADRAO } from '../../server/ai/provedores'
+import { cascataDeNuvem, llmDeNuvem, MODELO_LLM_PADRAO } from '../../server/ai/provedores'
 import { getEntitlements } from '../../server/lib/entitlements'
 import { PLAN_MATRIX } from '../../src/core/planos'
 
@@ -71,8 +71,8 @@ describe('a cascata de tradução repassa o plano ao primário', () => {
   it('o primário segue o entitlement', () => {
     process.env.LLM_MODEL = 'modelo-de-todo-dia'
     process.env.LLM_MODEL_GRANDE = 'modelo-caro'
-    expect(cascataDeTraducao({ modelosGrandes: true })[0].model).toBe('modelo-caro')
-    expect(cascataDeTraducao({ modelosGrandes: false })[0].model).toBe('modelo-de-todo-dia')
+    expect(cascataDeNuvem({ modelosGrandes: true })[0].model).toBe('modelo-caro')
+    expect(cascataDeNuvem({ modelosGrandes: false })[0].model).toBe('modelo-de-todo-dia')
   })
 
   /**
@@ -87,7 +87,7 @@ describe('a cascata de tradução repassa o plano ao primário', () => {
     process.env.LLM_RESERVA_API_KEY = 'chave-reserva'
     process.env.LLM_RESERVA_MODEL = 'modelo-da-reserva'
 
-    const cascata = cascataDeTraducao({ modelosGrandes: true })
+    const cascata = cascataDeNuvem({ modelosGrandes: true })
     expect(cascata).toHaveLength(2)
     expect(cascata[1].model).toBe('modelo-da-reserva')
   })

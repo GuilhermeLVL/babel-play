@@ -183,18 +183,6 @@ export const VARIAVEIS: readonly VariavelDeclarada[] = [
     paraQue: 'diário de erros em disco (F5-04)',
   },
   {
-    nome: 'GEMINI_API_KEY',
-    exigencia: 'opcional',
-    criticidade: 'degrada-capacidade',
-    paraQue: 'LLM de nuvem via Google; ausente, a cadeia cai para o próximo binding',
-  },
-  {
-    nome: 'GEMINI_MODEL',
-    exigencia: 'opcional',
-    criticidade: 'degrada-capacidade',
-    paraQue: 'modelo do Gemini; sem ela, gemini-2.0-flash',
-  },
-  {
     nome: 'GROQ_API_KEY',
     exigencia: 'opcional',
     criticidade: 'degrada-capacidade',
@@ -300,7 +288,15 @@ export const VARIAVEIS: readonly VariavelDeclarada[] = [
     nome: 'OLLAMA_URL',
     exigencia: 'opcional',
     criticidade: 'degrada-capacidade',
-    paraQue: 'endereço do Ollama local; sem ela, http://localhost:11434/v1',
+    paraQue:
+      'endereço do Ollama local (só self-host: com AUTH_REQUIRED o tutor não tenta o Ollama); sem ela, http://localhost:11434/v1',
+  },
+  {
+    nome: 'OPENROUTER_API_KEY',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue:
+      'atalho da RESERVA do LLM: base do OpenRouter e o modelo de LLM_RESERVA_MODEL (ou o padrão). As três LLM_RESERVA_* completas vencem o atalho',
   },
   { nome: 'PORT', exigencia: 'opcional', criticidade: 'degrada-capacidade', paraQue: 'porta de escuta' },
   {
@@ -463,24 +459,6 @@ export function verificarConfiguracaoNoBoot(): ResultadoDaConferencia {
 }
 
 /* ─────────────── as leituras que estavam dentro de handler ─────────────── */
-
-/**
- * A CHAVE e o MODELO do Gemini — passaram por aqui na Fase 3 do saneamento.
- *
- * As duas eram lidas direto do `process.env` dentro do `server.ts`, onde nenhuma regra alcançava.
- * Quando `/api/gemini/chat` virou `server/routes/gemini.ts`, a regra `env-fora-de-config`
- * (`audit/rules/ast-grep/`) passou a alcançá-las — e está certa: uma variável lida no handler não
- * aparece em inventário nenhum, e as duas JÁ estão declaradas na lista acima. O valor não muda;
- * muda o lugar de onde ele é lido.
- */
-export function chaveDoGemini(env: NodeJS.ProcessEnv = process.env): string | undefined {
-  return env.GEMINI_API_KEY
-}
-
-/** O modelo do Gemini, ou `undefined` — o default (`MODELO_GEMINI_PADRAO`) é de quem chama. */
-export function modeloDoGemini(env: NodeJS.ProcessEnv = process.env): string | undefined {
-  return env.GEMINI_MODEL
-}
 
 /**
  * `GET /metrics` deve EXISTIR? (Fase 5.)

@@ -64,13 +64,13 @@ flowchart TB
         RI["/api/import (youtube/web/document)"]
         RV["/api/vocab · /api/metrics · /api/exercises · /api/settings"]
         RA["/api/ai (proxy LLM/STT + credenciais cifradas)"]
-        RG["/api/gemini/chat\nGroq → Gemini → Ollama"]
+        RG["/api/tutor/chat\nGroq → OpenRouter (Ollama só self-host)"]
     end
 
     DB[("SQLite (Drizzle/libsql)\nsessions · utterances · cards\nreview_logs · settings · secrets")]
 
     YT["yt-dlp (binário externo)"]
-    CLOUD["Nuvem: Groq · Gemini · MyMemory\nWiktionary · Openverse · HF CDN"]
+    CLOUD["Nuvem: Groq · OpenRouter · MyMemory\nWiktionary · Openverse · HF CDN"]
 
     Hub & LC & Lib & Ana & Met & Set & IChat --> API
     API --> RS & RI & RV & RA & RG

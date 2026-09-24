@@ -91,7 +91,7 @@ export function motivoDoGate(origem: string): string {
   if (c) return c.titulo + '.';
   if (origem.includes('/api/import/youtube')) return 'Importar do YouTube precisa de conta (e do plano Pro).';
   if (origem.includes('/api/import/')) return 'Importar conteúdo para a biblioteca precisa de conta.';
-  if (origem.includes('/api/ai/') || origem.includes('/api/gemini/'))
+  if (origem.includes('/api/ai/') || origem.includes('/api/tutor/'))
     return 'A inteligência artificial de nuvem precisa de conta. A transcrição e a tradução locais continuam livres.';
   if (origem.includes('/api/images/')) return 'Buscar capas precisa de conta.';
   return 'Esta ação guarda dados na sua conta.';

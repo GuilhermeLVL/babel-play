@@ -23,8 +23,6 @@
  * local; primário falha, tenta a reserva —, e cascata feita de `try/catch` esconde qual perna
  * quebrou. O resultado carrega a causa em texto, que é o que vai para o log e para a decisão.
  */
-import { MAX_PROMPT_CHARS } from './llmRequest'
-
 export interface MensagemDeChat {
   role: 'system' | 'user' | 'assistant'
   content: string
@@ -55,11 +53,22 @@ export interface RespostaDeChat {
   ok: boolean
   /** Presente quando `ok`. */
   texto?: string
+  /** Entrada + saída — o que a cota do usuário conta. */
   tokens?: number
+  /** Separados porque o PREÇO é separado: saída custa 4× a entrada nos `gpt-oss`. */
+  tokensEntrada?: number
+  tokensSaida?: number
   /** Presentes quando falhou: o código HTTP (0 = rede/timeout) e a causa legível. */
   status?: number
   causa?: string
 }
+
+/**
+ * Teto ABSOLUTO do prompt (system + mensagens), em caracteres — a rede de segurança abaixo dos tetos
+ * por função (`funcoesDeIa.ts`). Era 100 mil e morava em `llmRequest.ts`, quando o cliente escrevia
+ * o prompt; hoje o maior pedido legítimo é o tutor (10 mil de conteúdo + ~3 mil de `system` e cerca).
+ */
+export const MAX_PROMPT_CHARS = 16_000
 
 /** Teto de saída. Sem ele um provedor caro decide sozinho quanto gastar. */
 export const MAX_TOKENS_PADRAO = 1200
@@ -108,7 +117,11 @@ export async function chamarChat(p: PedidoDeChat): Promise<RespostaDeChat> {
     })
 
     if (!r.ok) {
-      return { ok: false, status: r.status, causa: `HTTP ${r.status}: ${(await r.text().catch(() => '')).slice(0, 160)}` }
+      return {
+        ok: false,
+        status: r.status,
+        causa: `HTTP ${r.status}: ${(await r.text().catch(() => '')).slice(0, 160)}`,
+      }
     }
 
     const data = (await r.json()) as {
@@ -130,16 +143,15 @@ export async function chamarChat(p: PedidoDeChat): Promise<RespostaDeChat> {
       return {
         ok: false,
         status: 200,
-        causa: raciocinio > 0
-          ? `resposta vazia — gastou ${raciocinio} tokens raciocinando dentro do teto de ${p.maxTokens ?? MAX_TOKENS_PADRAO}`
-          : 'resposta vazia do provedor',
+        causa:
+          raciocinio > 0
+            ? `resposta vazia — gastou ${raciocinio} tokens raciocinando dentro do teto de ${p.maxTokens ?? MAX_TOKENS_PADRAO}`
+            : 'resposta vazia do provedor',
       }
     }
-    return {
-      ok: true,
-      texto,
-      tokens: (data.usage?.prompt_tokens ?? 0) + (data.usage?.completion_tokens ?? 0),
-    }
+    const tokensEntrada = data.usage?.prompt_tokens ?? 0
+    const tokensSaida = data.usage?.completion_tokens ?? 0
+    return { ok: true, texto, tokens: tokensEntrada + tokensSaida, tokensEntrada, tokensSaida }
   } catch (err) {
     const msg = String((err as Error)?.message ?? err)
     // `TimeoutError` do `AbortSignal.timeout` vira uma causa legível: "falhou" e "demorou demais"

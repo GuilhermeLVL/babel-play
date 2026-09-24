@@ -2,7 +2,7 @@
  * A MONTAGEM DO SERVIDOR — e só ela.
  *
  * O `server.ts` tinha 703 linhas e misturava três coisas: montar o Express, servir uma rota de
- * negócio inteira (`/api/gemini/chat`) e subir o processo (migrations, Vite, cluster, `listen`).
+ * negócio inteira (o tutor, hoje `/api/tutor/chat`) e subir o processo (migrations, Vite, cluster, `listen`).
  * A Fase 3 da rodada de saneamento separou as três. Aqui fica a PRIMEIRA: quem entra na pilha de
  * middlewares, e em que ORDEM — porque a ordem é o comportamento. Um router antes do
  * `authMiddleware` é público; o mesmo router depois dele é privado. Um limitador antes do auth
@@ -47,7 +47,6 @@ import { ankiRouter } from '../routes/anki'
 import { asaasWebhookRouter, billingRouter } from '../routes/billing'
 import { errosRouter } from '../routes/erros'
 import { exercisesRouter } from '../routes/exercises'
-import { geminiRouter, iniciarClienteGemini } from '../routes/gemini'
 import { healthHandler, readyHandler } from '../routes/health'
 import { imagesRouter } from '../routes/images'
 import { importRouter } from '../routes/import'
@@ -56,6 +55,7 @@ import { metricsRouter } from '../routes/metrics'
 import { rankRouter } from '../routes/rank'
 import { sessionsRouter } from '../routes/sessions'
 import { settingsRouter } from '../routes/settings'
+import { tutorRouter } from '../routes/tutor'
 import { vocabRouter } from '../routes/vocab'
 import { handlerDeMetricas, middlewareDeMetricas } from './metricas'
 
@@ -269,7 +269,7 @@ export function criarApp(opcoes: OpcoesDoApp = {}): express.Express {
   app.get('/api/ready', readyHandler)
 
   // Auth (Marco 1) — montada UMA vez, após o health e antes de todo router. Cobre todos os
-  // routers /api E o /api/gemini/chat (registrado mais abaixo). Modo aberto (self-host):
+  // routers /api E o /api/tutor/chat (registrado mais abaixo). Modo aberto (self-host):
   // injeta LOCAL_OWNER sem token nem tela. Modo público (AUTH_REQUIRED=1): exige JWT do Supabase.
   /* E3 — o WEBHOOK de billing vem ANTES do auth de usuário: o Asaas não tem JWT de ninguém. A
      autenticação dele é própria (header asaas-access-token, comparação em tempo constante) e sem o
@@ -329,7 +329,7 @@ export function criarApp(opcoes: OpcoesDoApp = {}): express.Express {
   app.use('/api', opcoes.autenticacao ?? authMiddleware)
 
   // Rate-limit por tenant — DEPOIS do auth, para a chave ser o usuário e não o IP.
-  app.use(['/api/ai', '/api/import', '/api/gemini'], expensiveLimiter)
+  app.use(['/api/ai', '/api/import', '/api/tutor', '/api/gemini'], expensiveLimiter)
 
   // F4-02: as rotas de escrita também. Só em modo público — ver `writeLimiter`.
   if (authRequired()) {
@@ -411,11 +411,12 @@ export function criarApp(opcoes: OpcoesDoApp = {}): express.Express {
     app.use('/api/audio', capturarAssincrono(audioRouter))
   }
 
-  // Tutor de chat (cascata Groq → Gemini → Ollama). O cliente do Gemini é resolvido AQUI, e não no
-  // import do módulo: o `.env` do bootstrap já foi carregado quando `criarApp()` roda — é o mesmo
-  // ponto do boot em que a inicialização acontecia quando esta rota morava no `server.ts`.
-  iniciarClienteGemini()
-  app.use('/api/gemini', capturarAssincrono(geminiRouter))
+  // Tutor (cascata Groq → OpenRouter; Ollama só no self-host). `/api/gemini` é ALIAS TEMPORÁRIO:
+  // o cliente em cache de antes da Fase 2 do lançamento ainda chama `/api/gemini/chat`, e o corpo
+  // antigo (com `systemInstruction`) é aceito — o system dele é descartado. Remover o alias quando
+  // o service worker/cache do cliente antigo tiver expirado.
+  app.use('/api/tutor', capturarAssincrono(tutorRouter))
+  app.use('/api/gemini', capturarAssincrono(tutorRouter))
 
   return app
 }

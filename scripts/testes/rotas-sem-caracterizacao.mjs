@@ -58,10 +58,6 @@ const SEM_CARACTERIZACAO = {
     'upload binário de áudio (120 MB); coberto por `delete-sessao-audio.test.ts` e `cota-armazenamento.test.ts`',
   'GET /api/sessions/:id/audio': 'idem',
   'POST /api/sessions/utterances/relabel': 'reetiquetagem em lote; coberto por `tests/integration/sessions-*`',
-  'PATCH /api/sessions/:id/meta': 'coberto por `audit-s13-image-url.test.ts`',
-  'POST /api/vocab/relabel': 'reetiquetagem em lote; coberto por `mt1-tenant-vocab.test.ts`',
-  'POST /api/vocab/para-jogo':
-    'variante POST para filtro acima de 6 KB; mesma função da GET (`filtro-composicao.test.ts`)',
 }
 
 const PREFIXOS = {

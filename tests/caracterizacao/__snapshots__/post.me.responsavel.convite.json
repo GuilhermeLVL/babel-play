@@ -1,0 +1,10 @@
+{
+  "status": 201,
+  "forma": {
+    "emailMascarado": "string",
+    "enviado": "boolean",
+    "expiraEm": "number",
+    "linkDeTeste": "string",
+    "modo": "string"
+  }
+}

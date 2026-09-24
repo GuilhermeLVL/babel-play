@@ -1,0 +1,15 @@
+{
+  "status": 200,
+  "forma": {
+    "confianca": "string",
+    "exigeConsentimentoEspecifico": "boolean",
+    "exigeResponsavel": "boolean",
+    "faixa": "null",
+    "nascimentoInformado": "boolean",
+    "protegido": "boolean",
+    "restrita": "boolean",
+    "vinculo": {
+      "estado": "string"
+    }
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "status": 200,
+  "forma": {
+    "faturas": [
+      {
+        "data": "string",
+        "descricao": "string",
+        "id": "string",
+        "link": "string",
+        "metodo": "string",
+        "recibo": "null",
+        "status": "string",
+        "valor": "number"
+      }
+    ]
+  }
+}

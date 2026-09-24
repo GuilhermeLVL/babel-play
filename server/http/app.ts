@@ -57,6 +57,7 @@ import { rankRouter } from '../routes/rank'
 import { sessionsRouter } from '../routes/sessions'
 import { settingsRouter } from '../routes/settings'
 import { vocabRouter } from '../routes/vocab'
+import { jsonAntesDoAuth, jsonDepoisDoAuth, ROTAS_DE_CORPO_GRANDE } from './limitesDeCorpo'
 import { handlerDeMetricas, middlewareDeMetricas } from './metricas'
 
 /**
@@ -150,7 +151,9 @@ export function criarApp(opcoes: OpcoesDoApp = {}): express.Express {
     app.get('/metrics', handlerDeMetricas())
   }
 
-  app.use(express.json({ limit: '5mb' }))
+  /* GAP-015: o teto de 5 MB valia ANTES do login. Agora o topo aceita só 100 KB, e as poucas rotas
+     de corpo grande são lidas depois do `authMiddleware` — ver `server/http/limitesDeCorpo.ts`. */
+  app.use(jsonAntesDoAuth())
 
   // C3 — COMPRESSÃO. Medido com Lighthouse sobre o build de produção: LCP entre 10,7 s e 23,3 s em
   // todas as rotas, com o limiar "ruim" do Google em 4 s. O diagnóstico não foi "o bundle é grande":
@@ -327,6 +330,9 @@ export function criarApp(opcoes: OpcoesDoApp = {}): express.Express {
   }
 
   app.use('/api', opcoes.autenticacao ?? authMiddleware)
+
+  // GAP-015: o corpo grande só é lido depois de o token ser aceito (ver `limitesDeCorpo.ts`).
+  app.use([...ROTAS_DE_CORPO_GRANDE], jsonDepoisDoAuth())
 
   // Rate-limit por tenant — DEPOIS do auth, para a chave ser o usuário e não o IP.
   app.use(['/api/ai', '/api/import', '/api/gemini'], expensiveLimiter)

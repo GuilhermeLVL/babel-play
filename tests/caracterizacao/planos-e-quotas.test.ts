@@ -110,7 +110,8 @@ describe('planos e quotas (modo publico)', () => {
       plan: 'pro',
       managedCloudLlm: true,
       managedCloudStt: true,
-      youtubeImport: true,
+      // Fase 2 do lançamento: YouTube só no self-host (no hospedado a rota responde 403).
+      youtubeImport: false,
       largerModels: true,
     })
     expect(ent.armazenamento.teto).toBe(PLAN_MATRIX.pro.quotas.armazenamentoMb! * 1024 * 1024)

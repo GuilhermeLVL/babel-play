@@ -508,7 +508,7 @@ export default function Library({ onChangeView, recordings, onRecordingsChange, 
                           <>
                             {' '}
                             <span className="badge warn" style={{ marginLeft: 4 }}>
-                              Pro
+                              Self-host
                             </span>
                           </>
                         )}
@@ -536,8 +536,8 @@ export default function Library({ onChangeView, recordings, onRecordingsChange, 
                     <div className="aviso-info" style={{ flex: 1 }}>
                       <Lock aria-hidden />
                       <span>
-                        Importar do YouTube é um recurso <b style={{ color: 'var(--ink)' }}>Pro</b>: o download roda no
-                        servidor. No self-host ele é liberado.
+                        Importar do YouTube só existe no <b style={{ color: 'var(--ink)' }}>self-host</b>: o download
+                        roda no servidor de quem hospeda. Aqui, toque o vídeo e use Capturar com o áudio do sistema.
                       </span>
                     </div>
                   ) : importSource === 'youtube' || importSource === 'web' ? (

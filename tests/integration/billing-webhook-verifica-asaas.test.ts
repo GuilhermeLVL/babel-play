@@ -14,8 +14,16 @@ let aplicarEvento: any
 let subs: any
 
 const evento = (over: Record<string, unknown> = {}) => ({
-  id: 'evt_ver', event: 'PAYMENT_CONFIRMED',
-  payment: { id: 'pay_ver', subscription: 'sub_1', externalReference: 'u-ver', value: 19.9, dueDate: '2026-10-01', ...over },
+  id: 'evt_ver',
+  event: 'PAYMENT_CONFIRMED',
+  payment: {
+    id: 'pay_ver',
+    subscription: 'sub_1',
+    externalReference: 'u-ver',
+    value: 39.9,
+    dueDate: '2026-10-01',
+    ...over,
+  },
 })
 
 beforeAll(async () => {
@@ -30,21 +38,33 @@ afterAll(async () => {
 })
 
 describe('GAP-011 — o webhook confere o pagamento na API do Asaas', () => {
-  it('vale o VALOR REAL da API, não o do payload (payload mente 9,90; Asaas diz 19,90 → pro)', async () => {
+  it('vale o VALOR REAL da API, não o do payload (payload mente 19,90; Asaas diz 39,90 → pro)', async () => {
     const u = asUserId('u-ver')
     await subs.upsert(u, { plan: 'pro', status: 'trialing', provider: 'asaas', providerSubscriptionId: 'sub_1' })
-    const verificar = async () => ({ id: 'pay_ver', status: 'CONFIRMED', value: 19.9, subscription: 'sub_1', externalReference: 'u-ver' })
-    const r = await aplicarEvento(evento({ value: 9.9 }), 'req-t', verificar)
+    const verificar = async () => ({
+      id: 'pay_ver',
+      status: 'CONFIRMED',
+      value: 39.9,
+      subscription: 'sub_1',
+      externalReference: 'u-ver',
+    })
+    const r = await aplicarEvento(evento({ value: 19.9 }), 'req-t', verificar)
     expect(r.estado).toBe('aplicado')
     const s = await subs.getActive(u)
     expect(s.status).toBe('active')
-    expect(s.plan, 'o valor autoritativo (19,90) decide o plano, não o payload (9,90)').toBe('pro')
+    expect(s.plan, 'o valor autoritativo (39,90) decide o plano, não o payload (19,90)').toBe('pro')
   })
 
   it('payload forja CONFIRMED, mas o Asaas diz PENDING → não aplica, não concede', async () => {
     const u = asUserId('u-ver')
     await subs.upsert(u, { plan: 'pro', status: 'trialing', provider: 'asaas', providerSubscriptionId: 'sub_1' })
-    const verificar = async () => ({ id: 'pay_ver', status: 'PENDING', value: 19.9, subscription: 'sub_1', externalReference: 'u-ver' })
+    const verificar = async () => ({
+      id: 'pay_ver',
+      status: 'PENDING',
+      value: 39.9,
+      subscription: 'sub_1',
+      externalReference: 'u-ver',
+    })
     const r = await aplicarEvento(evento(), 'req-t', verificar)
     expect(r.estado).toBe('nao-aplicado')
     expect(r.motivo).toMatch(/status PENDING/)
@@ -62,7 +82,11 @@ describe('GAP-011 — o webhook confere o pagamento na API do Asaas', () => {
     const u = asUserId('u-sem-ver')
     await subs.upsert(u, { plan: 'essencial', status: 'trialing', provider: 'asaas', providerSubscriptionId: 'sub_2' })
     const r = await aplicarEvento(
-      { id: 'evt_sv', event: 'PAYMENT_CONFIRMED', payment: { id: 'pay_sv', subscription: 'sub_2', externalReference: 'u-sem-ver', value: 9.9 } },
+      {
+        id: 'evt_sv',
+        event: 'PAYMENT_CONFIRMED',
+        payment: { id: 'pay_sv', subscription: 'sub_2', externalReference: 'u-sem-ver', value: 19.9 },
+      },
       'req-t',
       undefined,
     )

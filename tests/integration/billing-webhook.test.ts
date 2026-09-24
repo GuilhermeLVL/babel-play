@@ -13,7 +13,7 @@
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
 
 import { asUserId } from '../../server/lib/authContext'
-import { type EphemeralDb,setupEphemeralDb } from '../harness/ephemeralDb'
+import { type EphemeralDb, setupEphemeralDb } from '../harness/ephemeralDb'
 
 let h: EphemeralDb
 let asaasWebhookRouter: any
@@ -29,8 +29,14 @@ function handler(): (req: any, res: any) => Promise<void> {
 }
 function mockRes(): any {
   const r: any = { statusCode: 200, body: undefined }
-  r.status = (c: number) => { r.statusCode = c; return r }
-  r.json = (b: any) => { r.body = b; return r }
+  r.status = (c: number) => {
+    r.statusCode = c
+    return r
+  }
+  r.json = (b: any) => {
+    r.body = b
+    return r
+  }
   return r
 }
 const req = (body: unknown, token: string | undefined = SEGREDO) => ({
@@ -41,15 +47,19 @@ const req = (body: unknown, token: string | undefined = SEGREDO) => ({
  * PAGAMENTO DE ASSINATURA — carrega `payment.subscription`, e é isso que o distingue de uma
  * compra avulsa. Este helper não tinha o campo, o que significa que os testes vinham
  * exercitando a forma AVULSA e recebendo promoção de plano: exatamente o bug que a venda de
- * créditos ia expor em produção (uma compra de R$ 9,90 virava assinatura de graça).
+ * créditos ia expor em produção (uma compra de R$ 19,90 virava assinatura de graça).
  */
 const evento = (id: string, event: string, userId: string) => ({
-  id, event, payment: { id: `pay_${id}`, subscription: `sub_${userId}`, externalReference: userId },
+  id,
+  event,
+  payment: { id: `pay_${id}`, subscription: `sub_${userId}`, externalReference: userId },
 })
 
 /** O outro tipo que chega no MESMO webhook: cobrança avulsa (créditos, passe). Sem `subscription`. */
 const eventoAvulso = (id: string, event: string, userId: string, paymentId: string) => ({
-  id, event, payment: { id: paymentId, externalReference: userId },
+  id,
+  event,
+  payment: { id: paymentId, externalReference: userId },
 })
 
 beforeAll(async () => {
@@ -91,7 +101,7 @@ describe('autenticação do webhook', () => {
  *
  * O `case PAYMENT_CONFIRMED` tratava TODO pagamento como mensalidade e promovia o pagador ao
  * plano 'essencial'. Enquanto só existiam assinaturas, funcionava. Com créditos à venda, uma
- * compra de R$ 9,90 em moeda daria um plano de R$ 9,90/mês de graça — e os dois tipos de evento
+ * compra de R$ 19,90 em moeda daria um plano de R$ 19,90/mês de graça — e os dois tipos de evento
  * chegam pelo MESMO webhook.
  */
 describe('compra avulsa não vira assinatura', () => {
@@ -120,7 +130,12 @@ describe('compra avulsa não vira assinatura', () => {
 
     // A compra e registrada DEPOIS (ex.: o checkout gravou tarde). Reaplicar o payload guardado
     // com a logica atual credita o pacote — e o estado muda, para nao creditar duas vezes.
-    await creditsRepo.registrarCompra(u, { sku: 'c100', creditos: 100, valorCentavos: 990, providerPaymentId: 'pay_tardio' })
+    await creditsRepo.registrarCompra(u, {
+      sku: 'c100',
+      creditos: 100,
+      valorCentavos: 990,
+      providerPaymentId: 'pay_tardio',
+    })
     const linha = await eventos.ler('evt_av3')
     const r = await aplicarEvento(eventoSchema.parse(JSON.parse(linha.payload)))
     expect(r.estado).toBe('aplicado')
@@ -138,7 +153,12 @@ describe('compra avulsa não vira assinatura', () => {
   it('e a compra registrada é confirmada, creditando o pacote', async () => {
     const { creditsRepo } = (await h.load('../../server/db/repositories/credits')) as any
     const u = asUserId('u-comprador')
-    await creditsRepo.registrarCompra(u, { sku: 'c300', creditos: 300, valorCentavos: 2490, providerPaymentId: 'pay_credito' })
+    await creditsRepo.registrarCompra(u, {
+      sku: 'c300',
+      creditos: 300,
+      valorCentavos: 2490,
+      providerPaymentId: 'pay_credito',
+    })
     expect(await creditsRepo.saldo(u)).toBe(0)
 
     const res = mockRes()
@@ -157,10 +177,10 @@ describe('compra avulsa não vira assinatura', () => {
  * quiser no provedor. O webhook concedia `atual.plan` sem conferir NEM qual assinatura pagou NEM
  * quanto foi pago. A sequência era:
  *
- *   1. assinar `essencial` (R$ 9,90) — o provedor cria a assinatura S1
- *   2. assinar `pro` (R$ 19,90) — cria S2 e a intenção gravada vira `pro`
+ *   1. assinar `essencial` (R$ 19,90) — o provedor cria a assinatura S1
+ *   2. assinar `pro` (R$ 39,90) — cria S2 e a intenção gravada vira `pro`
  *   3. pagar SÓ a parcela de S1
- *   4. o webhook lê a intenção (`pro`) e concede Pro por R$ 9,90
+ *   4. o webhook lê a intenção (`pro`) e concede Pro por R$ 19,90
  *
  * As duas defesas: a assinatura que pagou tem de ser a registrada, e o PLANO SAI DO VALOR PAGO.
  */
@@ -168,23 +188,29 @@ describe('a assinatura concedida é a que foi paga', () => {
   /**
    * A05 (auditoria de 2026-09-07): este caso caía num `break` e respondia 200 — o pagante tinha
    * pago e ficava sem plano, sem reentrega e sem trilha. Agora o plano sai do VALOR PAGO (a
-   * intenção `pro` não vale nada: pagou 9,90, recebe essencial) e a divergência fica escrita no
+   * intenção `pro` não vale nada: pagou 19,90, recebe essencial) e a divergência fica escrita no
    * evento. Só quando não há valor para deduzir o plano é que o evento fica pendente.
    */
   it('parcela de OUTRA assinatura concede o plano do valor pago e registra a divergência', async () => {
     const u = asUserId('u-esc1')
     await subs.upsert(u, { plan: 'pro', status: 'trialing', provider: 'asaas', providerSubscriptionId: 'sub_S2' })
     const res = mockRes()
-    await handler()(req({
-      id: 'evt_esc1', event: 'PAYMENT_CONFIRMED',
-      payment: { id: 'pay_esc1', subscription: 'sub_S1', externalReference: 'u-esc1', value: 9.9 },
-    }), res)
+    await handler()(
+      req({
+        id: 'evt_esc1',
+        event: 'PAYMENT_CONFIRMED',
+        payment: { id: 'pay_esc1', subscription: 'sub_S1', externalReference: 'u-esc1', value: 19.9 },
+      }),
+      res,
+    )
     expect(res.statusCode).toBe(200)
     expect(res.body.estado).toBe('aplicado')
     expect(res.body.motivo).toMatch(/assinatura-divergente/)
     const sub = await subs.getActive(u)
     expect(sub.status).toBe('active')
-    expect(sub.plan, 'pagou 9,90 pela outra assinatura — recebe o que pagou, nunca o pro da intenção').toBe('essencial')
+    expect(sub.plan, 'pagou 19,90 pela outra assinatura — recebe o que pagou, nunca o pro da intenção').toBe(
+      'essencial',
+    )
     expect((await eventos.ler('evt_esc1')).estado).toBe('aplicado')
   })
 
@@ -192,10 +218,14 @@ describe('a assinatura concedida é a que foi paga', () => {
     const u = asUserId('u-esc4')
     await subs.upsert(u, { plan: 'pro', status: 'trialing', provider: 'asaas', providerSubscriptionId: 'sub_S9' })
     const res = mockRes()
-    await handler()(req({
-      id: 'evt_esc4', event: 'PAYMENT_CONFIRMED',
-      payment: { id: 'pay_esc4', subscription: 'sub_S8', externalReference: 'u-esc4' },
-    }), res)
+    await handler()(
+      req({
+        id: 'evt_esc4',
+        event: 'PAYMENT_CONFIRMED',
+        payment: { id: 'pay_esc4', subscription: 'sub_S8', externalReference: 'u-esc4' },
+      }),
+      res,
+    )
     expect(res.statusCode).toBe(200) // 200 para o provedor não reentregar; o efeito é a fila
     expect(res.body.estado).toBe('nao-aplicado')
     expect((await subs.getActive(u))?.status).not.toBe('active')
@@ -207,24 +237,32 @@ describe('a assinatura concedida é a que foi paga', () => {
     const u = asUserId('u-esc2')
     await subs.upsert(u, { plan: 'pro', status: 'trialing', provider: 'asaas', providerSubscriptionId: 'sub_S1' })
     const res = mockRes()
-    await handler()(req({
-      id: 'evt_esc2', event: 'PAYMENT_CONFIRMED',
-      payment: { id: 'pay_esc2', subscription: 'sub_S1', externalReference: 'u-esc2', value: 9.9 },
-    }), res)
+    await handler()(
+      req({
+        id: 'evt_esc2',
+        event: 'PAYMENT_CONFIRMED',
+        payment: { id: 'pay_esc2', subscription: 'sub_S1', externalReference: 'u-esc2', value: 19.9 },
+      }),
+      res,
+    )
     expect(res.statusCode).toBe(200)
     const sub = await subs.getActive(u)
     expect(sub.status).toBe('active')
-    expect(sub.plan, 'pagou 9,90 — não pode receber Pro').toBe('essencial')
+    expect(sub.plan, 'pagou 19,90 — não pode receber Pro').toBe('essencial')
   })
 
   it('pagar o preço do Pro concede PRO', async () => {
     const u = asUserId('u-esc3')
     await subs.upsert(u, { plan: 'essencial', status: 'trialing', provider: 'asaas', providerSubscriptionId: 'sub_S3' })
     const res = mockRes()
-    await handler()(req({
-      id: 'evt_esc3', event: 'PAYMENT_CONFIRMED',
-      payment: { id: 'pay_esc3', subscription: 'sub_S3', externalReference: 'u-esc3', value: 19.9 },
-    }), res)
+    await handler()(
+      req({
+        id: 'evt_esc3',
+        event: 'PAYMENT_CONFIRMED',
+        payment: { id: 'pay_esc3', subscription: 'sub_S3', externalReference: 'u-esc3', value: 39.9 },
+      }),
+      res,
+    )
     expect((await subs.getActive(u)).plan).toBe('pro')
   })
 })

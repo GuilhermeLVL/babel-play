@@ -18,7 +18,7 @@ import {
 } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 
-import { armazenamentoEmTexto, precoDoPlano } from '../../core/planos';
+import { armazenamentoEmTexto, horasDeTranscricao, precoDoPlano } from '../../core/planos';
 import {
   carregarFaturas,
   carregarStatusDeBilling,
@@ -45,7 +45,7 @@ import { Abas, CabecalhoDeTela, IconeEmBloco, PainelDeAba, Tela, TituloDeSecao }
 import Assinado from './planos/Assinado';
 import Cancelar from './planos/Cancelar';
 import Checkout from './planos/Checkout';
-import { irAjuda, irSub, MODELOS, type Plano, PLANO_NOME, PLANOS } from './planos/dados';
+import { irAjuda, irSub, type Plano, PLANO_NOME, PLANOS } from './planos/dados';
 import { DialogoFatura, DialogoMudarPlano, DialogoPagamento, DialogoPausar } from './planos/DialogosDaAssinatura';
 import FaixaDaConta from './planos/FaixaDaConta';
 import SuaAssinatura, { type DialogoDaAssinatura, metodoAtual } from './planos/SuaAssinatura';
@@ -81,7 +81,12 @@ const COMPARA: [grupo: string, linhas: Linha[]][] = [
     [
       ['Captura ao vivo (mic + sistema)', ['ok', 'ok', 'ok']],
       ['Jogos, vocabulário e revisão', ['ok', 'ok', 'ok']],
-      ['Importar do YouTube', ['nao', 'nao', 'ok']],
+      ['Tutor de IA (iChat)', ['nao', 'ok', 'ok']],
+      /* Derivado da quota: mudar `sttSegundosMes` e esquecer esta linha prometeria outro teto. */
+      [
+        'Transcrição de nuvem por mês',
+        ['nao', `${horasDeTranscricao('essencial')} h`, `${horasDeTranscricao('pro')} h`],
+      ],
       ['Sua própria chave de IA (BYOK)', ['ok', 'ok', 'ok']],
     ],
   ],
@@ -90,13 +95,12 @@ const COMPARA: [grupo: string, linhas: Linha[]][] = [
     [
       ['Qualidade de tradução (geral)', [57, 85, 85], 'maior é melhor'],
       ['Expressões idiomáticas', [27, 83, 83], 'maior é melhor'],
-      ['Erro de transcrição em PT falado', [57, 57, 24], 'menor é melhor', true],
+      ['Erro de transcrição em PT falado', [57, 24, 24], 'menor é melhor', true],
     ],
   ],
   [
-    'Espaço e download',
+    'Espaço',
     [
-      ['Modelos para baixar no primeiro uso', [MODELOS.gratis, MODELOS.essencial, MODELOS.pro]],
       /* Derivado da quota, não escrito à mão: mudar `armazenamentoMb` na matriz e esquecer esta
          linha faria a tabela prometer um teto que o servidor não aplica. */
       [

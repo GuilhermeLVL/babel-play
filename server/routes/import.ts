@@ -13,18 +13,18 @@ import { createHash } from 'node:crypto'
 import { readFile, rm } from 'node:fs/promises'
 import path from 'node:path'
 
-import { type ErrorRequestHandler, raw, type Request, type Response,Router } from 'express'
+import { type ErrorRequestHandler, raw, type Request, type Response, Router } from 'express'
 
 import { vazaResposta } from '../../src/core/learning/pistaDeJogo'
 import { avaliarCartao } from '../../src/core/learning/quality'
 import { ankiRepo } from '../db/repositories/anki'
 import { sessionsRepo } from '../db/repositories/sessions'
 import { vocabRepo } from '../db/repositories/vocab'
-import { contagemDeEscritas, type EscritaDominante,escritaDominante, lerApkg, lerTextoAnki } from '../import/anki'
+import { contagemDeEscritas, type EscritaDominante, escritaDominante, lerApkg, lerTextoAnki } from '../import/anki'
 import { montarApkg } from '../import/ankiExport'
 import { extractDocument } from '../import/document'
 import { extractArticle } from '../import/web'
-import { downloadAudio,fetchCaptions, hasYtDlp, resolveYouTube } from '../import/youtube'
+import { downloadAudio, fetchCaptions, hasYtDlp, resolveYouTube } from '../import/youtube'
 import { hasEntitlement } from '../lib/entitlements'
 import { erroDeRota } from '../lib/erroDeRota'
 import {
@@ -37,7 +37,7 @@ import {
 } from '../lib/storageQuota'
 // F11-04: schemas de corpo e de cabeçalho das rotas de importação.
 import { ankiExportSchema, importUrlSchema, parseOr400, uploadHeadersSchema } from '../validation'
-import { armazenamentoDeMidia,AUDIO_DIR } from './sessions'
+import { armazenamentoDeMidia, AUDIO_DIR } from './sessions'
 
 export const importRouter = Router()
 
@@ -446,20 +446,20 @@ importRouter.post('/youtube', async (req, res) => {
    */
   try {
     if (!(await hasEntitlement(req.userId, 'youtubeImport'))) {
-      res.status(402).json({ error: 'importar do YouTube requer plano Pro', entitlement: 'youtubeImport' })
+      res
+        .status(402)
+        .json({ error: 'importar do YouTube só está disponível no self-host', entitlement: 'youtubeImport' })
       return
     }
   } catch (err) {
-    res
-      .status(502)
-      .json({
-        error: erroDeRota(err, {
-          status: 502,
-          event: 'import_entitlement_error',
-          route: req.path,
-          requestId: req.requestId,
-        }),
-      })
+    res.status(502).json({
+      error: erroDeRota(err, {
+        status: 502,
+        event: 'import_entitlement_error',
+        route: req.path,
+        requestId: req.requestId,
+      }),
+    })
     return
   }
 

@@ -27,6 +27,13 @@ vi.mock('../src/data/rotas/vocabulario', () => ({
   ],
   exportarApkg: vi.fn(),
 }))
+/* O tutor é nuvem e exige o consentimento de Ajustes → Privacidade (Fase 2 do lançamento). Os casos
+   daqui supõem o "sim"; o caso sem consentimento liga a chave abaixo. */
+let consentiu = true
+vi.mock('../src/lib/consentimentoDeNuvem', () => ({
+  consentiuNuvem: () => consentiu,
+  useConsentimentoDeNuvem: () => ({ consentiu, autorizar: async () => true }),
+}))
 vi.mock('../src/lib/ichatContext', async (orig) => ({
   ...(await orig<typeof import('../src/lib/ichatContext')>()),
   construirContextoDaTela: async () => 'Tela: Vocabulário (conteúdo real).',
@@ -156,6 +163,20 @@ describe('iChat', () => {
     await waitFor(() => expect(campo.disabled).toBe(false), { timeout: 3000 })
     expect(screen.queryByText(/Origem:/)).toBeNull()
     expect(screen.queryByRole('button', { name: /Não faz sentido aqui/ })).toBeNull()
+  })
+
+  it('sem consentimento de nuvem, a pergunta não sai do aparelho e a resposta diz onde autorizar', async () => {
+    consentiu = false
+    try {
+      const campo = await abrir()
+      apiFetch.mockClear()
+      fireEvent.change(campo, { target: { value: 'o que é leverage?' } })
+      fireEvent.keyDown(campo, { key: 'Enter' })
+      expect(await screen.findByText(/ainda não autorizou/, {}, { timeout: 3000 })).toBeTruthy()
+      expect(apiFetch.mock.calls.some((c) => String(c[0]).includes('/api/tutor'))).toBe(false)
+    } finally {
+      consentiu = true
+    }
   })
 
   it('conversas: a pergunta dá o título, e nova/renomear/apagar ficam salvos', async () => {

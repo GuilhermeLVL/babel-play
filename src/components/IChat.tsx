@@ -28,6 +28,7 @@ import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useSta
 import type { AppMetrics } from '../core/learning/contract';
 import { apiFetch } from '../data/api';
 import { exportarApkg, fetchDeck } from '../data/rotas/vocabulario';
+import { consentiuNuvem } from '../lib/consentimentoDeNuvem';
 import { t } from '../lib/i18n';
 import {
   carregarConversas,
@@ -578,6 +579,17 @@ export default function IChat({
         .map((m) => ({ role: m.de === 'eu' ? ('user' as const) : ('assistant' as const), content: m.txt })),
       texto,
     );
+
+    /* O tutor É nuvem: sem o consentimento (Ajustes → Privacidade), a pergunta não sai do aparelho.
+       A resposta diz o motivo e onde autorizar, em vez de um erro genérico (Fase 2 do lançamento). */
+    if (!consentiuNuvem()) {
+      responderNaConversa(id, {
+        de: 'ia',
+        txt: '**O tutor usa IA de nuvem, e você ainda não autorizou.** Autorize em Ajustes → Privacidade → "Usar IA de nuvem" e pergunte de novo.',
+        erro: true,
+      });
+      return;
+    }
 
     try {
       const res = await apiFetch('/api/tutor/chat', {

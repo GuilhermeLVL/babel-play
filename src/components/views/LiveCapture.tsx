@@ -88,6 +88,7 @@ import {
 // Relógio da sessão + pipeline de MT (retradução de degradados incluída).
 import { criarRelogioDaSessao, criarTraducaoDaFala } from '../../lib/captura/traducaoDaFala';
 import { cenarioDasFontes } from '../../lib/cenarioDeCaptura';
+import { consentiuNuvem } from '../../lib/consentimentoDeNuvem';
 import { DominantLangTracker } from '../../lib/convoLang';
 // Configuração de idioma: fonte ÚNICA (`mine` = o que VOCÊ fala no mic; `studying` = o que você
 // ESTUDA, o áudio estrangeiro). Antes os defaults nasciam aqui, em `useState`.
@@ -115,6 +116,7 @@ import { speak as ttsSpeak } from '../../lib/tts';
 // Cenário conversa sem fone: a caixa de som entra pelo mic — detecta e descarta.
 import { type Intervalo } from '../../lib/vazamento';
 import { Recording, type VocabWord } from '../../types';
+import AvisoDeNuvemSemConsentimento from '../AvisoDeNuvemSemConsentimento';
 // A conversa em balões (lados opostos, agrupamento por pessoa, estado vazio que ensina).
 // Um componente só serve a tela embutida E o Modo Foco — antes eram dois blocos que divergiam.
 import ChatTranscript from '../ChatTranscript';
@@ -611,7 +613,7 @@ export default function LiveCapture({
     () =>
       buildGateway({
         profile: getActiveProfile(),
-        cloudConsent: () => true,
+        cloudConsent: consentiuNuvem,
       }),
     [],
   );
@@ -2250,6 +2252,7 @@ export default function LiveCapture({
           {/* WORKSPACE VIEWPORTS (SEPARATE AREAS)          */}
           {/* ============================================== */}
           <div className="tela larga entra">
+            <AvisoDeNuvemSemConsentimento />
             {/* Cabeçalho no molde do protótipo aprovado (`T.capturar`): rótulo, título, apoio e, à
                 direita, o modelo local, os ajustes da captura e o guia. */}
             <CabecalhoDeTela

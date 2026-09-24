@@ -98,7 +98,7 @@ import {
   onLangConfigChange,
   saveLangConfig,
 } from '../../lib/langConfig';
-import { baseLang, langLabel, mtCoverage, toBcp47 } from '../../lib/languages';
+import { baseLang, langLabel, mtCoverage } from '../../lib/languages';
 import { setNavGuard } from '../../lib/navGuard';
 import { OrdemDasTraducoes } from '../../lib/ordemDaTraducao';
 import { destinoDaTraducao, PerfilAdaptativoDeIdioma } from '../../lib/perfilDeIdioma';
@@ -124,13 +124,13 @@ import GuidePanel from '../GuidePanel';
 // Bandeira SVG do idioma (nunca emoji: o Windows renderiza 🇧🇷 como "BR") + o rótulo curto.
 import { LangFlag } from '../LangFlag';
 import ModelPrepPanel, { type ModelPrepState } from '../ModelPrepPanel';
-import Overlay, { OverlayCaption } from '../Overlay';
 import { toast } from '../Toast';
 import { CabecalhoDeTela, Dialogo, fecharDialogoDe } from '../ui';
 import VocabularyPanel from '../VocabularyPanel';
 // Subcomponentes locais da captura (um arquivo por componente, em `views/captura/`).
 import EncerrarSessao from './captura/EncerrarSessao';
 import IdiomasDaSessao, { type Lado } from './captura/IdiomasDaSessao';
+import LegendasFlutuantes, { type LegendaAoVivo } from './captura/LegendasFlutuantes';
 import ModeloNoDispositivo, { type ModeloDaCaptura } from './captura/ModeloNoDispositivo';
 import TranscriptVisualSettings, { TEMA } from './captura/TranscriptVisualSettings';
 import { CampoLinha, Interruptor, Segmentos } from './vocab/Dialogo';
@@ -152,9 +152,6 @@ export default function LiveCapture({
   ageProfile?: 'kids' | 'pro' | 'senior';
 }) {
   const [showOverlay, setShowOverlay] = useState(false);
-  // 'transparent' e não '#000000': o padrão do overlay é fundo invisível, e começar em preto
-  // fazia a janela flutuante abrir PRETA e só depois clarear, quando o Overlay montava.
-  const [overlayBgColor, setOverlayBgColor] = useState('transparent');
   /* AVISOS DA TELA pelo toast global do app (o `.toast` do protótipo). A captura tinha um balão
      próprio no topo; as chamadas de "apagar" (`setFeedbackMsg('')`) viram nada. */
   const setFeedbackMsg = useCallback((msg: string) => {
@@ -381,6 +378,9 @@ export default function LiveCapture({
 
   // --- REAL-TIME VOICE TRANSCRIPTION STREAM ---
   const [isRecording, setIsRecording] = useState(false);
+  /** Gravação PAUSADA pelo Parar enquanto o Encerrar está aberto (fontes vivas, relógio parado). */
+  const [pausado, setPausado] = useState(false);
+  const pausaInicioRef = useRef(0);
   const [timer, setTimer] = useState(0);
   // `sourceLang` ≡ config.mine (o idioma que VOCÊ fala) e `targetLang` ≡ config.studying (o que você
   // ESTUDA). Os valores iniciais vêm de `langConfig.ts` — este arquivo não é mais o dono do padrão de
@@ -423,29 +423,22 @@ export default function LiveCapture({
     return pct;
   }, [speechSegments]);
 
-  // Legendas do relay (overlay), derivadas das falas REAIS. Cronológico; sem parciais
-  // vazios. 'system' = eles (áudio da aba/sistema), o resto = você (microfone).
-  const overlayCaptions: OverlayCaption[] = useMemo(() => {
-    const profileOf = (id: string) => speakerProfiles.find((p) => p.id === id);
+  // As falas das LEGENDAS FLUTUANTES, derivadas das falas REAIS (sem parciais vazios). 'system' =
+  // eles (áudio da aba/sistema), o resto = você (microfone).
+  const legendasAoVivo: LegendaAoVivo[] = useMemo(() => {
+    const nomeDe = (id: string) => speakerProfiles.find((p) => p.id === id)?.name ?? id;
     return speechSegments
       .filter((s) => s.originalText && s.originalText.trim())
-      .slice(-200)
-      .map((s) => {
-        const isSys = s.source === 'system';
-        return {
-          id: s.id,
-          speaker: profileOf(s.speakerId)?.name ?? s.speakerId,
-          original: s.originalText,
-          translated: s.translatedText,
-          side: (isSys ? 'inbound' : 'outbound') as 'inbound' | 'outbound',
-          // Cor da PESSOA identificada + idiomas REAIS da linha (multi-idioma) — o overlay
-          // usa para colorir o balão por pessoa e para o TTS falar no idioma certo.
-          speakerColor: profileOf(s.speakerId)?.color,
-          origLang: s.lang ? toBcp47(s.lang) || s.lang : isSys ? targetLang : sourceLang,
-          transLang: isSys ? sourceLang : targetLang,
-        };
-      });
-  }, [speechSegments, speakerProfiles, sourceLang, targetLang]);
+      .slice(-2)
+      .map((s) => ({
+        id: s.id,
+        quem: nomeDe(s.speakerId),
+        original: s.originalText,
+        // O "…" é o marcador de tradução a caminho: na legenda, some até a tradução chegar.
+        traducao: s.translatedText === '…' ? '' : s.translatedText,
+        lado: s.source === 'system' ? ('eles' as const) : ('voce' as const),
+      }));
+  }, [speechSegments, speakerProfiles]);
 
   // Dispositivos de loopback candidatos (Stereo Mix / VB-Cable) entre os inputs enumerados.
   // `detected` = casou por heurística; se false, é o fallback com todos os inputs.
@@ -703,7 +696,7 @@ export default function LiveCapture({
   // Timer run loop
   useEffect(() => {
     let interval: any;
-    if (isRecording) {
+    if (isRecording && !pausado) {
       interval = setInterval(() => {
         setTimer((t) => t + 1);
       }, 1000);
@@ -711,7 +704,7 @@ export default function LiveCapture({
       clearInterval(interval);
     }
     return () => clearInterval(interval);
-  }, [isRecording]);
+  }, [isRecording, pausado]);
 
   // Stable tracking refs to avoid rapid Web Speech API restarts
   const timerRef = useRef(timer);
@@ -883,7 +876,7 @@ export default function LiveCapture({
   // Amostrador do waveform: enquanto grava, desloca o histórico a ~20fps lendo o peak-hold das
   // fontes (com decaimento suave). Fora de gravação, zera. Barato: um setInterval + array de 48.
   useEffect(() => {
-    if (!isRecording) {
+    if (!isRecording || pausado) {
       setLevels(new Array(48).fill(0));
       currentLevelRef.current = 0;
       return;
@@ -894,7 +887,7 @@ export default function LiveCapture({
       setLevels((prev) => [...prev.slice(1), v]);
     }, 50);
     return () => clearInterval(iv);
-  }, [isRecording]);
+  }, [isRecording, pausado]);
 
   // Sessões de captura (getDisplayMedia/getUserMedia + VAD); null quando não ativas.
   const systemCaptureRef = useRef<AudioCapture | null>(null);
@@ -1284,60 +1277,68 @@ export default function LiveCapture({
   /* O CICLO DA SESSÃO — começar, retomar, parar e SALVAR — mora em `lib/captura/salvarSessao.ts`.
      Fábrica por render, como as closures que substituiu: `handleStartRecording` e
      `handleFinalizeSave` leem `timer`, `speechSegments` e o par de idiomas do render corrente. */
-  const { handleStartOrResume, handleExitResume, handleStopRecording, handleCancelStop, handleFinalizeSave } =
-    criarSalvarSessao({
-      gateway,
-      onSave,
-      recordings,
-      speechSegments,
-      timer,
-      sourceLang,
-      targetLang,
-      micEnabled,
-      systemEnabled,
-      micEngine,
-      captureScenario,
-      speakerAutoId,
-      resumeId,
-      customSessionTitle,
-      customSessionImage,
-      startMic,
-      handleStartSystemCapture,
-      systemCaptureRef,
-      micCaptureRef,
-      webSpeechRef,
-      webSpeechPartialIdRef,
-      meterRef,
-      recordedAudioRef,
-      isRecordingRef,
-      sessionStartMsRef,
-      shouldAnchorClockRef,
-      micStartedAtRef,
-      partialIdRef,
-      seqToSegmentRef,
-      lastPartialTextRef,
-      ordemMtRef,
-      clustererRef,
-      dominantLangRef,
-      perfilIdiomaRef,
-      altTargetNotifiedRef,
-      lastVoiceIdRef,
-      provisionalUttsRef,
-      speakerProfilesRef,
-      setIsRecording,
-      setTimer,
-      setSpeechSegments,
-      setIdiomaObservado,
-      setSpeakerIdStatus,
-      setModelPrep,
-      setResumeId,
-      setShowSaveModal,
-      setCustomSessionTitle,
-      setCustomSessionImage,
-      setImgQuery,
-      setFeedbackMsg,
-      setSessaoSalva,
-    });
+  const {
+    handleStartOrResume,
+    handleExitResume,
+    handleStopRecording,
+    handleCancelStop,
+    handleFinalizeSave,
+    encerrarFontes,
+  } = criarSalvarSessao({
+    gateway,
+    onSave,
+    recordings,
+    speechSegments,
+    timer,
+    sourceLang,
+    targetLang,
+    micEnabled,
+    systemEnabled,
+    micEngine,
+    captureScenario,
+    speakerAutoId,
+    resumeId,
+    customSessionTitle,
+    customSessionImage,
+    startMic,
+    handleStartSystemCapture,
+    systemCaptureRef,
+    micCaptureRef,
+    webSpeechRef,
+    webSpeechPartialIdRef,
+    meterRef,
+    recordedAudioRef,
+    isRecordingRef,
+    sessionStartMsRef,
+    shouldAnchorClockRef,
+    micStartedAtRef,
+    partialIdRef,
+    seqToSegmentRef,
+    lastPartialTextRef,
+    ordemMtRef,
+    clustererRef,
+    dominantLangRef,
+    perfilIdiomaRef,
+    altTargetNotifiedRef,
+    lastVoiceIdRef,
+    provisionalUttsRef,
+    speakerProfilesRef,
+    setIsRecording,
+    setTimer,
+    setSpeechSegments,
+    setIdiomaObservado,
+    setSpeakerIdStatus,
+    setModelPrep,
+    setResumeId,
+    setShowSaveModal,
+    setCustomSessionTitle,
+    setCustomSessionImage,
+    setImgQuery,
+    setFeedbackMsg,
+    setSessaoSalva,
+    setPausado,
+    pausaInicioRef,
+  });
 
   // --- RETOMAR SESSÃO: reidrata o transcript REAL do backend (não usa mock) ---
   useEffect(() => {
@@ -1391,8 +1392,10 @@ export default function LiveCapture({
   }, [resumingRecordingId]);
 
   /** "Descartar" do encerramento (com confirmação no diálogo): a captura parada some sem salvar. */
-  const descartarCaptura = () => {
+  const descartarCaptura = async () => {
     setShowSaveModal(false);
+    // Descartar de dentro da pausa: as fontes fecham de verdade antes de a tela zerar.
+    if (isRecordingRef.current) await encerrarFontes();
     recordedAudioRef.current = null;
     setSpeechSegments([]);
     setTimer(0);
@@ -1512,10 +1515,6 @@ export default function LiveCapture({
   // palavras clicadas é do conteúdo estrangeiro. Quem sabe o idioma da linha passa explicitamente.
   const speakWord = (word: string, lang?: string) => {
     ttsSpeak(word, { lang: lang || targetLangRef.current, rate: ttsSpeed });
-  };
-  // Fala genérica (frase inteira) num idioma específico — usada pelo overlay.
-  const speakText = (text: string, lang: string) => {
-    ttsSpeak(text, { lang, rate: ttsSpeed });
   };
 
   // --- ACTIVE WORD EXAMINATION INTERACTION ---
@@ -2895,44 +2894,27 @@ export default function LiveCapture({
           aoEscolherArquivo={() => coverFileRef.current?.click()}
           aoContinuar={handleCancelStop}
           aoSalvar={(ir) => void handleFinalizeSave(ir)}
-          aoDescartar={descartarCaptura}
+          aoDescartar={() => void descartarCaptura()}
         />
       )}
 
-      {/* Relay de legendas ao vivo — alimentado pelas falas REAIS capturadas.
-          "Eles" = última fala do áudio do sistema/aba; "Você" = última fala do microfone.
-          Sem fala ainda → props null → o Overlay mostra o estado vazio honesto. */}
-      {(() => {
-        const overlayEl = (
-          <Overlay
-            isVisible={showOverlay}
-            onClose={() => setShowOverlay(false)}
-            bgColor={overlayBgColor}
-            onBgColorChange={setOverlayBgColor}
-            captions={overlayCaptions}
-            myLang={sourceLang}
-            theirLang={targetLang}
-            onSpeak={speakText}
-          />
-        );
-
-        // Janela flutuante sempre-no-topo (Chromium). Sem suporte → overlay embutido.
-        return isDocumentPiPSupported() ? (
-          <DocumentPiP
-            isVisible={showOverlay}
-            onClose={() => setShowOverlay(false)}
-            backgroundColor={overlayBgColor}
-            // Sem estes, valiam os 520×340 padrão — e o painel de personalização (288px) comia
-            // mais da metade da largura, deixando a legenda espremida enquanto se ajustava.
-            width={760}
-            height={440}
-          >
-            {overlayEl}
-          </DocumentPiP>
-        ) : (
-          overlayEl
-        );
-      })()}
+      {/* LEGENDAS FLUTUANTES (C6), alimentadas pelas falas REAIS. No Chrome/Edge numa janela
+          sempre-no-topo (Document PiP); sem a API, flutuando no canto do app como no protótipo. */}
+      {isDocumentPiPSupported() ? (
+        <DocumentPiP
+          isVisible={showOverlay}
+          onClose={() => setShowOverlay(false)}
+          backgroundColor="#141210"
+          width={440}
+          height={300}
+        >
+          <LegendasFlutuantes falas={legendasAoVivo} emJanela aoFechar={() => setShowOverlay(false)} />
+        </DocumentPiP>
+      ) : (
+        showOverlay && (
+          <LegendasFlutuantes falas={legendasAoVivo} emJanela={false} aoFechar={() => setShowOverlay(false)} />
+        )
+      )}
     </div>
   );
 }

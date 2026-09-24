@@ -1,10 +1,9 @@
 # Lançamento — o passo a passo do dono
 
 Este é o roteiro para colocar o Babel Play no ar pela primeira vez, na arquitetura aprovada em
-24/09/2026: \*\*Fly.io (GRU) + SQLite no volume com Litestream → Cloudflare R2 + Supabase Pro (login)
-
-- Cloudflare na frente + Resend + Sentry + UptimeRobot**, IA com **Groq** e **OpenRouter** de reserva,
-  cobrança pelo **Asaas\*\*.
+24/09/2026: **Fly.io (GRU)**, SQLite no volume com **Litestream** para o **Cloudflare R2**, **Supabase Pro**
+só para o login, **Cloudflare** na frente, **Resend**, **Sentry** e **UptimeRobot**; IA com **Groq** e
+**OpenRouter** de reserva; cobrança pelo **Asaas**.
 
 Tudo o que é código já está pronto e testado; o que falta são as **contas**, os **painéis** e as
 **chaves**. Siga a ordem — cada passo usa o que o anterior criou. Nenhuma chave vai para o

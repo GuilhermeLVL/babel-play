@@ -1,50 +1,68 @@
 import {
-  Activity,
-  ArrowRight,
-  BarChart2,
-  Bookmark,
   BookOpen,
-  Edit2,
+  Check,
+  ChevronDown,
+  Database,
+  Eye,
   FileText,
-  GraduationCap,
-  HelpCircle,
+  Gamepad2,
   History,
-  LayoutDashboard,
-  Maximize2,
-  MessageSquare,
-  Mic,
-  Minimize2,
-  Paperclip,
-  Pin,
+  Languages,
+  Layers,
+  LoaderCircle,
+  type LucideIcon,
+  PanelRight,
+  PenLine,
+  PictureInPicture2,
   Plus,
-  RefreshCw,
+  Route,
   Send,
   Sparkles,
-  Trash2,
+  Target,
+  ThumbsDown,
+  ThumbsUp,
   X,
-  Youtube,
 } from 'lucide-react';
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 
+import type { AppMetrics } from '../core/learning/contract';
 import { apiFetch } from '../data/api';
+import { exportarApkg, fetchDeck } from '../data/rotas/vocabulario';
+import { t } from '../lib/i18n';
+import {
+  carregarConversas,
+  type Conversa,
+  type MensagemDoChat,
+  novaConversa,
+  type Proposta,
+  rastrear,
+  salvarConversas,
+  TITULO_NOVA,
+  tituloDaPergunta,
+} from '../lib/ichat/conversas';
+import {
+  ACOES_DO_CHAT,
+  CLASSE_DO_SIGILO,
+  ehTelaDeSessao,
+  ferramentasDaTela,
+  type Ficha,
+  focoNaPalavra,
+  type IdDaFerramenta,
+  lerPedido,
+  origemDaResposta,
+  PERGUNTA_DA_FERRAMENTA,
+  propostaDoPedido,
+  RESPOSTA_DA_LACUNA,
+  rotuloDaFerramenta,
+  type Sigilo,
+} from '../lib/ichat/pedido';
 import { cercarContexto, clausulaDeContencao, construirContextoDaTela } from '../lib/ichatContext';
 import { type AgeProfileType, TUTOR_REGISTER } from '../lib/profile';
-import { Recording, ViewType } from '../types';
-import { askConfirm, toast } from './Toast';
-
-interface ContextoFixado {
-  view: ViewType;
-  recordingId: string | null;
-  label: string;
-}
-
-export interface ChatSession {
-  id: string;
-  title: string;
-  messages: { role: 'user' | 'assistant'; content: string; timestamp: string }[];
-  navigationHistory: { timestamp: string; view: string; details?: string }[];
-  createdAt: string;
-}
+import { seedFromSelection } from '../lib/sentences';
+import { Recording, ViewType, VocabCard } from '../types';
+import { GavetaDeConversas, GavetaDoRastro } from './ichat/Gavetas';
+import { camposDaTela, nomeDaTela } from './ichat/telaDoChat';
+import { TextoDoChat } from './ichat/textoDoChat';
 
 interface IChatProps {
   activeView: ViewType;
@@ -53,12 +71,13 @@ interface IChatProps {
   onChangeView: (view: ViewType, data?: any) => void;
   isOpen: boolean;
   setIsOpen: (isOpen: boolean) => void;
+  /** A PREFERÊNCIA de fixar na lateral. Sem espaço, o chat flutua sem apagá-la. */
   isDocked: boolean;
   setIsDocked: (isDocked: boolean) => void;
-  isMaximized: boolean;
-  setIsMaximized: (isMaximized: boolean) => void;
   practiceSeed?: string;
   recordings?: Recording[];
+  /** As métricas do App: os campos de contexto e as propostas usam os números reais daqui. */
+  metrics?: AppMetrics | null;
   /** Registro de linguagem do tutor. Sem isto ele responde igual a uma criança e a um executivo. */
   ageProfile?: AgeProfileType;
 }
@@ -97,1224 +116,1109 @@ function motivoDaResposta(res: Response, data: Record<string, unknown>): string 
   return null;
 }
 
-/* MODO FIXO: largura arrastável e volta automática a flutuar.
-   Fixo ao lado, o chat divide a linha com o conteúdo; numa janela estreita ele espremia a tela até
-   ela ficar ilegível. Abaixo de CONTEUDO_MINIMO o chat passa a flutuar SOZINHO, sem apagar a escolha
-   do usuário (`ichat_docked` continua `true`): quando a janela voltar a ter espaço, ele volta a fixar. */
+/* O CHAT FIXO NA LATERAL (protótipo, rodada 14): vira uma coluna ao lado do conteúdo, que encolhe em
+   vez de ficar por baixo. Borda esquerda arrastável (320–560 px); sem espaço para o conteúdo seguir
+   legível (440 px), ou no celular, volta a flutuar SOZINHO — sem apagar a escolha de fixar. */
+const DOCA = { min: 320, max: 560, conteudoMin: 440 };
 const LARGURA_KEY = 'ichat_largura';
-const LARGURA_MIN = 320;
-const LARGURA_MAX = 560;
-const CONTEUDO_MINIMO = 440;
-const limitarLargura = (px: number) => Math.min(LARGURA_MAX, Math.max(LARGURA_MIN, Math.round(px)));
+const TAMANHO_KEY = 'ichat_tamanho';
+/* A janela flutuante: redimensiona pelo canto, 340–640 × 420–820 (os limites do protótipo). */
+const JANELA = { wMin: 340, wMax: 640, hMin: 420, hMax: 820 };
+const limitar = (v: number, a: number, b: number) => Math.min(b, Math.max(a, Math.round(v)));
+
+const ICONE_DA_FERRAMENTA: Record<IdDaFerramenta, LucideIcon> = {
+  explicar: BookOpen,
+  traduzir: Languages,
+  revisar: Target,
+  jogar: Gamepad2,
+  frase: PenLine,
+  resumir: FileText,
+  anki: Layers,
+};
+
+const SUGESTOES = [
+  'O que revisar hoje?',
+  'Resumir esta sessão',
+  'Qual jogo começo?',
+  'Crie uma frase com as minhas palavras',
+];
+
+const semMovimento = () =>
+  typeof window !== 'undefined' && !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+
+function lerJson<T>(chave: string, padrao: T): T {
+  try {
+    const v = localStorage.getItem(chave);
+    return v ? (JSON.parse(v) as T) : padrao;
+  } catch {
+    return padrao;
+  }
+}
+
+function baixar(blob: Blob, nome: string) {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = nome;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+}
+
+interface Pendente {
+  conversa: string;
+  ferramenta: string | null;
+}
+/* A resposta sendo revelada é identificada pela PRÓPRIA mensagem (referência), e não por índice:
+   o índice só se sabe depois que o estado aplica o acréscimo, e esperar por ele fazia a origem e a
+   proposta piscarem antes de a revelação começar. */
+interface Revelando {
+  msg: MensagemDoChat;
+  k: number;
+}
 
 export default function IChat({
   activeView,
   selectedRecording,
   liveTranscription,
+  onChangeView,
   isOpen,
   setIsOpen,
   isDocked,
   setIsDocked,
-  isMaximized,
-  setIsMaximized,
   practiceSeed,
   recordings = [],
+  metrics = null,
   ageProfile = 'pro',
 }: IChatProps) {
-  const [showSessionSelector, setShowSessionSelector] = useState(false);
-  const [largura, setLargura] = useState(() => limitarLargura(Number(localStorage.getItem(LARGURA_KEY)) || 420));
-  const [semEspaco, setSemEspaco] = useState(false);
-  const fixado = isDocked && !semEspaco;
-  const ocupandoRef = useRef(false);
-  ocupandoRef.current = isOpen && fixado && !isMaximized;
+  /* ── Conversas (persistidas) ── */
+  const [estado, setEstado] = useState(() => carregarConversas());
+  const { conversas, atual } = estado;
+  const conv = conversas.find((c) => c.id === atual) ?? conversas[0];
+  useEffect(() => salvarConversas(conversas, atual), [conversas, atual]);
+  const atualRef = useRef(atual);
+  atualRef.current = atual;
+
+  const mudarConversa = useCallback((id: string, fn: (c: Conversa) => Conversa) => {
+    setEstado((e) => ({ ...e, conversas: e.conversas.map((c) => (c.id === id ? fn(c) : c)) }));
+  }, []);
+  const naAtual = useCallback((fn: (c: Conversa) => Conversa) => mudarConversa(atualRef.current, fn), [mudarConversa]);
+
+  /* ── Estado da interface ── */
+  const [painel, setPainel] = useState<null | 'conversas' | 'rastro'>(null);
+  const [auto, setAuto] = useState(true);
+  const [ctxAberto, setCtxAberto] = useState(false);
+  const [ferramentas, setFerramentas] = useState(false);
+  const [fichas, setFichas] = useState<Ficha[]>([]);
+  const [mencao, setMencao] = useState<Sigilo | null>(null);
+  const [mencaoQ, setMencaoQ] = useState('');
+  const [rascunho, setRascunho] = useState('');
+  const [busca, setBusca] = useState('');
+  const [renomeando, setRenomeando] = useState<string | null>(null);
+  const [pendente, setPendente] = useState<Pendente | null>(null);
+  const [revelando, setRevelando] = useState<Revelando | null>(null);
+  const digitando = !!pendente || !!revelando;
+
+  const [deck, setDeck] = useState<VocabCard[] | null>(null);
+  const noCaderno = useMemo(() => (deck ?? []).filter((c) => c.inDeck !== false), [deck]);
+
+  const nome = nomeDaTela(activeView, ageProfile);
+  /* O idioma que domina o caderno, dito como no protótipo ("idioma: inglês"). */
+  const idioma = useMemo(() => {
+    const conta = new Map<string, number>();
+    for (const c of noCaderno) if (c.srcLang) conta.set(c.srcLang, (conta.get(c.srcLang) ?? 0) + 1);
+    const [codigo] = [...conta.entries()].sort((a, b) => b[1] - a[1])[0] ?? [];
+    if (!codigo) return null;
+    try {
+      return new Intl.DisplayNames(['pt-BR'], { type: 'language' }).of(codigo.split('-')[0])?.toLowerCase() ?? null;
+    } catch {
+      return null;
+    }
+  }, [noCaderno]);
+  const campos = camposDaTela({ view: activeView, metrics, recordings, selectedRecording, liveTranscription, idioma });
+  const pendentes = metrics?.dueToday ?? 0;
+
+  const entradaRef = useRef<HTMLInputElement>(null);
+  const fabRef = useRef<HTMLButtonElement>(null);
+  const msgsRef = useRef<HTMLDivElement>(null);
+  const focarEntrada = () => setTimeout(() => entradaRef.current?.focus(), 0);
+
+  /* ── Aviso (`.toast` do protótipo): "iChat sintonizado com", "Conversa apagada"… ── */
+  const [aviso, setAviso] = useState<{ n: number; conteudo: React.ReactNode; chat: boolean } | null>(null);
+  const [avisoVisivel, setAvisoVisivel] = useState(false);
+  const avisar = useCallback((conteudo: React.ReactNode, chat = false) => {
+    setAviso((a) => ({ n: (a?.n ?? 0) + 1, conteudo, chat }));
+    setAvisoVisivel(true);
+  }, []);
   useEffect(() => {
-    const conteudo = document.querySelector('main');
-    if (!isDocked || !conteudo) {
-      setSemEspaco(false);
+    if (!aviso) return;
+    const id = setTimeout(() => setAvisoVisivel(false), 2600);
+    return () => clearTimeout(id);
+  }, [aviso]);
+
+  /* ── Rastro da tela: toda troca de tela entra na conversa atual (aberta ou não). ── */
+  const avisadas = useRef(new Set<ViewType>());
+  const primeiraTela = useRef(true);
+  useEffect(() => {
+    naAtual((c) => rastrear(c, 'tela', nome));
+    // Aviso do iChat: nome da tela, não o id; uma vez por tela, e nunca no Início.
+    if (primeiraTela.current) {
+      primeiraTela.current = false;
       return;
     }
-    // O total disponível não depende do estado atual: é o `main` mais a coluna do chat, se ela
-    // estiver na linha. Assim a decisão não oscila quando o chat sai e o `main` cresce.
+    if (!isOpen && !avisadas.current.has(activeView) && activeView !== 'hub') {
+      avisadas.current.add(activeView);
+      avisar(
+        <>
+          {t('iChat sintonizado com:')} <b>{nome}</b>
+        </>,
+        true,
+      );
+    }
+    // Só a troca de TELA dispara: abrir/fechar o chat não é navegação.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeView]);
+
+  /* ── Abrir: registra a tela, carrega o caderno (para @palavra) e põe o foco na caixa. ── */
+  useEffect(() => {
+    if (!isOpen) return;
+    naAtual((c) => rastrear(c, 'tela', nome));
+    let vivo = true;
+    fetchDeck()
+      .then((d) => vivo && setDeck(d))
+      .catch(() => vivo && setDeck([]));
+    focarEntrada();
+    return () => {
+      vivo = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen]);
+
+  const fechar = useCallback(() => {
+    setIsOpen(false);
+    setTimeout(() => fabRef.current?.focus(), 0);
+  }, [setIsOpen]);
+
+  // Esc fecha o chat de qualquer lugar (a caixa de texto trata o dela antes, ver `aoTeclar`).
+  useEffect(() => {
+    if (!isOpen) return;
+    const aoTeclar = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape' || e.defaultPrevented || document.querySelector('dialog[open],[role="alertdialog"]'))
+        return;
+      fechar();
+    };
+    window.addEventListener('keydown', aoTeclar);
+    return () => window.removeEventListener('keydown', aoTeclar);
+  }, [isOpen, fechar]);
+
+  /* ── Doca: medir se cabe e com que largura. ── */
+  const [largura, setLargura] = useState(() =>
+    limitar(Number(localStorage.getItem(LARGURA_KEY)) || 380, DOCA.min, DOCA.max),
+  );
+  const [tamanho, setTamanho] = useState(() => lerJson(TAMANHO_KEY, { w: 400, h: 660 }));
+  const [medida, setMedida] = useState({ app: 0, menu: 0 });
+  const ocupandoRef = useRef(0);
+  useLayoutEffect(() => {
+    const principal = document.querySelector('main');
+    const linha = principal?.parentElement;
+    if (!principal || !linha) return;
     const medir = () => {
-      const total = conteudo.clientWidth + (ocupandoRef.current ? largura : 0);
-      setSemEspaco(total - largura < CONTEUDO_MINIMO);
+      const app = linha.clientWidth;
+      setMedida({ app, menu: Math.max(0, app - principal.clientWidth - ocupandoRef.current) });
     };
     medir();
     const ro = new ResizeObserver(medir);
-    ro.observe(conteudo);
+    ro.observe(linha);
+    ro.observe(principal);
     window.addEventListener('resize', medir);
     return () => {
       ro.disconnect();
       window.removeEventListener('resize', medir);
     };
-  }, [isDocked, largura]);
+  }, []);
+  const cabe = medida.app > 760 && medida.app - medida.menu - DOCA.min >= DOCA.conteudoMin;
+  const larguraDaDoca = Math.max(DOCA.min, Math.min(largura, DOCA.max, medida.app - medida.menu - DOCA.conteudoMin));
+  const naDoca = isDocked && isOpen && cabe;
+  ocupandoRef.current = naDoca ? larguraDaDoca : 0;
+
   const guardarLargura = (px: number) => {
-    const conteudo = document.querySelector('main');
-    const total = (conteudo?.clientWidth ?? Infinity) + largura;
-    const nova = limitarLargura(Math.min(px, total - CONTEUDO_MINIMO));
+    const nova = limitar(px, DOCA.min, DOCA.max);
     setLargura(nova);
-    localStorage.setItem(LARGURA_KEY, String(nova));
+    try {
+      localStorage.setItem(LARGURA_KEY, String(nova));
+    } catch {
+      /* só não lembra da largura */
+    }
   };
+
   const arrastar = (e: React.PointerEvent<HTMLDivElement>) => {
     e.preventDefault();
-    const inicioX = e.clientX;
-    const inicioL = largura;
-    const alvo = e.currentTarget;
-    alvo.setPointerCapture(e.pointerId);
-    const mover = (ev: PointerEvent) => guardarLargura(inicioL + (inicioX - ev.clientX));
+    const alca = e.currentTarget;
+    alca.setPointerCapture(e.pointerId);
     const soltar = () => {
-      alvo.removeEventListener('pointermove', mover);
-      alvo.removeEventListener('pointerup', soltar);
-      alvo.removeEventListener('pointercancel', soltar);
+      alca.removeEventListener('pointermove', mover);
+      document.body.style.removeProperty('cursor');
+      document.body.style.removeProperty('user-select');
     };
-    alvo.addEventListener('pointermove', mover);
-    alvo.addEventListener('pointerup', soltar);
-    alvo.addEventListener('pointercancel', soltar);
-  };
-  const [sessions, setSessions] = useState<ChatSession[]>([]);
-  const [activeSessionId, setActiveSessionId] = useState<string>('default');
-  const [chatInput, setChatInput] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [editingSessionId, setEditingSessionId] = useState<string | null>(null);
-  const [renameInput, setRenameInput] = useState('');
-  const [showContextSyncNotification, setShowContextSyncNotification] = useState<string | null>(null);
-  const [showTools, setShowTools] = useState(false);
-  const [contextosFixados, setContextosFixados] = useState<ContextoFixado[]>(() => {
-    try {
-      return JSON.parse(localStorage.getItem('ichat_pinned_contexts') || '[]');
-    } catch {
-      return [];
-    }
-  });
-
-  const messagesEndRef = useRef<HTMLDivElement>(null);
-
-  const persistFixados = (lista: ContextoFixado[]) => {
-    setContextosFixados(lista);
-    try {
-      localStorage.setItem('ichat_pinned_contexts', JSON.stringify(lista));
-    } catch {
-      /* ignore */
-    }
-  };
-
-  // Initialize sessions from localStorage
-  useEffect(() => {
-    const saved = localStorage.getItem('ichat_sessions');
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved) as ChatSession[];
-        if (parsed.length > 0) {
-          setSessions(parsed);
-          const lastActive = localStorage.getItem('ichat_active_session_id') || parsed[0].id;
-          setActiveSessionId(lastActive);
-          return;
+    let mover: (ev: PointerEvent) => void;
+    if (naDoca) {
+      const direita = (document.querySelector('main')?.parentElement ?? document.body).getBoundingClientRect().right;
+      const menuADireita = Math.max(0, direita - (alca.parentElement?.getBoundingClientRect().right ?? direita));
+      document.body.style.cursor = 'ew-resize';
+      mover = (ev) => guardarLargura(direita - menuADireita - ev.clientX);
+    } else {
+      const x0 = e.clientX;
+      const y0 = e.clientY;
+      const { w: w0, h: h0 } = tamanho;
+      document.body.style.cursor = 'nwse-resize';
+      mover = (ev) => {
+        const novo = {
+          w: limitar(w0 + (x0 - ev.clientX), JANELA.wMin, JANELA.wMax),
+          h: limitar(h0 + (y0 - ev.clientY), JANELA.hMin, JANELA.hMax),
+        };
+        setTamanho(novo);
+        try {
+          localStorage.setItem(TAMANHO_KEY, JSON.stringify(novo));
+        } catch {
+          /* só não lembra do tamanho */
         }
-      } catch (e) {
-        console.error('Error loading iChat sessions', e);
-      }
-    }
-
-    // Default session creation if none exists
-    const defaultSession: ChatSession = {
-      id: 'default',
-      title: 'Conversa Babel Principal',
-      messages: [
-        {
-          role: 'assistant',
-          content:
-            'Olá! Sou seu Babel iChat, o assistente inteligente onipresente que te acompanha por toda a plataforma. Eu analiso o contexto de qual tela você está usando e te dou ferramentas sob medida! Como posso te ajudar hoje?',
-          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        },
-      ],
-      navigationHistory: [
-        {
-          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-          view: 'hub',
-          details: 'Sessão iniciada na Home',
-        },
-      ],
-      createdAt: new Date().toISOString(),
-    };
-    setSessions([defaultSession]);
-    setActiveSessionId('default');
-    localStorage.setItem('ichat_sessions', JSON.stringify([defaultSession]));
-    localStorage.setItem('ichat_active_session_id', 'default');
-  }, []);
-
-  // Sync to local storage whenever sessions change
-  const saveSessions = (updatedSessions: ChatSession[]) => {
-    setSessions(updatedSessions);
-    localStorage.setItem('ichat_sessions', JSON.stringify(updatedSessions));
-  };
-
-  const getActiveSession = (): ChatSession | undefined => {
-    return sessions.find((s) => s.id === activeSessionId) || sessions[0];
-  };
-
-  /**
-   * Espelho de `sessions` para o efeito de histórico de navegação.
-   *
-   * Aquele efeito monta a lista INTEIRA e a manda para `saveSessions`, que sobrescreve o
-   * localStorage. Com um `sessions` capturado numa render antiga, uma mensagem recém-chegada seria
-   * apagada pela gravação do histórico. O efeito não pode simplesmente depender de `sessions`: ele
-   * grava `sessions`, então isso o faria disparar a si mesmo.
-   */
-  const sessionsRef = useRef<ChatSession[]>(sessions);
-  useEffect(() => {
-    sessionsRef.current = sessions;
-  }, [sessions]);
-
-  // Scroll to bottom when message or drawer state changes
-  useEffect(() => {
-    if (messagesEndRef.current) {
-      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
-    }
-  }, [sessions, activeSessionId, isOpen]);
-
-  /**
-   * O TRECHO da transcrição ao vivo que aparece no histórico — e é ele, não a transcrição inteira,
-   * que serve de dependência.
-   *
-   * O ramo que enriquece o histórico com a transcrição era CÓDIGO MORTO no fluxo normal: o efeito
-   * abaixo só reagia a `activeView`, e quando alguém navega para a Captura a transcrição ainda está
-   * vazia. Quando o texto finalmente chega, o efeito não roda de novo — então a mensagem com o
-   * trecho nunca era gravada.
-   *
-   * Depender de `liveTranscription` cru resolveria isso e criaria outro problema: cada parcial do
-   * reconhecimento dispararia o efeito, inundando `navigationHistory` e reescrevendo o localStorage
-   * a cada palavra falada. O recorte de 40 caracteres é ESTÁVEL — para de mudar assim que os
-   * primeiros 40 caracteres são transcritos —, então o efeito roda uma vez por gravação. E é
-   * exatamente o valor exibido, o que faz a dependência e o conteúdo serem a mesma coisa.
-   */
-  const trechoAoVivo = useMemo(
-    () => (liveTranscription ? liveTranscription.substring(0, 40) : ''),
-    [liveTranscription],
-  );
-
-  // Track navigation changes and append to the active session history
-  useEffect(() => {
-    if (sessions.length === 0) return;
-
-    const currentSession = getActiveSession();
-    if (!currentSession) return;
-
-    let viewLabel: string;
-    let details = undefined;
-
-    switch (activeView) {
-      case 'hub':
-        viewLabel = 'Painel Inicial (Dashboard)';
-        break;
-      case 'capture':
-        viewLabel = 'Captura de Áudio em Tempo Real';
-        if (trechoAoVivo) {
-          details = `Sessão de gravação ativa. Transcrição capturada: "${trechoAoVivo}..."`;
-        }
-        break;
-      case 'library':
-        viewLabel = 'Biblioteca de Estudos';
-        break;
-      case 'analysis':
-        if (selectedRecording) {
-          const isVideo = selectedRecording.type === 'video';
-          viewLabel = isVideo
-            ? 'YouTube / Vídeo Aula'
-            : selectedRecording.type === 'document'
-              ? 'PDF / Documento'
-              : 'Áudio Gravado';
-          details = `Analisando: "${selectedRecording.title}"`;
-        } else {
-          viewLabel = 'Análise de Conteúdo';
-        }
-        break;
-      case 'reading':
-        viewLabel = 'Modo Leitura';
-        if (selectedRecording) details = `Lendo documento: "${selectedRecording.title}"`;
-        break;
-      case 'study':
-        viewLabel = 'Sessão de Exercícios (Treinamento)';
-        if (selectedRecording) details = `Exercícios de: "${selectedRecording.title}"`;
-        break;
-      case 'metrics':
-        viewLabel = 'Vocabulário & Métricas';
-        break;
-      case 'settings':
-        viewLabel = 'Configurações do Usuário';
-        break;
-      default:
-        viewLabel = activeView;
-    }
-
-    // Check if the last log in the navigation history is already this view to avoid redundant entries
-    const history = currentSession.navigationHistory || [];
-    const lastEntry = history[history.length - 1];
-
-    if (!lastEntry || lastEntry.view !== activeView || (details && lastEntry.details !== details)) {
-      const newEntry = {
-        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        view: activeView,
-        details: details || `Aba aberta: ${viewLabel}`,
       };
-
-      /* `sessionsRef.current`, não `sessions`: ver o docstring do ref. Ler o estado capturado aqui
-         faria a gravação do histórico apagar mensagens que chegaram depois desta render. */
-      const updatedSessions = sessionsRef.current.map((s) => {
-        if (s.id === currentSession.id) {
-          return {
-            ...s,
-            navigationHistory: [...(s.navigationHistory || []), newEntry],
-          };
-        }
-        return s;
-      });
-
-      saveSessions(updatedSessions);
-
-      // Trigger user context notification
-      setShowContextSyncNotification(viewLabel);
-      const timer = setTimeout(() => {
-        setShowContextSyncNotification(null);
-      }, 3500);
-      return () => clearTimeout(timer);
     }
-    /* `sessions` e `getActiveSession` ficam FORA de propósito: este efeito GRAVA `sessions`, então
-       depender dele o faria disparar a si mesmo em laço. O valor atual chega por `sessionsRef`.
-       `trechoAoVivo` está aqui porque sem ele o ramo da transcrição nunca rodava, ver o memo. */
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeView, selectedRecording, activeSessionId, trechoAoVivo]);
-
-  // Handle creating a new chat session
-  const handleCreateNewSession = () => {
-    const newId = `session_${Date.now()}`;
-    const newSession: ChatSession = {
-      id: newId,
-      title: `Nova Conversa ${sessions.length + 1}`,
-      messages: [
-        {
-          role: 'assistant',
-          content: `Iniciei um novo contexto de conversação com você! Estou ciente de que você está na tela de **${getFriendlyViewName(activeView)}**. O que gostaria de praticar ou traduzir agora?`,
-          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        },
-      ],
-      navigationHistory: [
-        {
-          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-          view: activeView,
-          details: 'Iniciada nova sessão',
-        },
-      ],
-      createdAt: new Date().toISOString(),
-    };
-
-    const updated = [newSession, ...sessions];
-    saveSessions(updated);
-    setActiveSessionId(newId);
-    localStorage.setItem('ichat_active_session_id', newId);
-    setShowSessionSelector(false);
+    document.body.style.userSelect = 'none';
+    alca.addEventListener('pointermove', mover);
+    alca.addEventListener('pointerup', soltar, { once: true });
+    alca.addEventListener('pointercancel', soltar, { once: true });
   };
 
-  // Handle switching chat sessions
-  const handleSelectSession = (id: string) => {
-    setActiveSessionId(id);
-    localStorage.setItem('ichat_active_session_id', id);
-    setShowSessionSelector(false);
+  const alternarDoca = () => {
+    const fixo = !isDocked;
+    setIsDocked(fixo);
+    if (fixo && !cabe)
+      avisar(t('Pouco espaço nesta janela: o iChat fica flutuante. Recolha o menu (Ctrl+B) ou aumente a janela.'));
+    else
+      avisar(
+        fixo
+          ? t('iChat fixo na lateral direita. Arraste a borda para mudar a largura.')
+          : t('iChat solto: volta a flutuar sobre a tela.'),
+      );
   };
 
-  // Delete chat session
-  const handleDeleteSession = async (id: string, e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (sessions.length <= 1) {
-      toast.warn('Você deve manter pelo menos uma sessão do iChat ativa.');
+  /* ── Mensagens: rolar para o fim a cada mudança, e revelar a resposta aos poucos. ── */
+  useLayoutEffect(() => {
+    const m = msgsRef.current;
+    if (m) m.scrollTop = m.scrollHeight;
+  });
+  useEffect(() => {
+    if (!revelando) return;
+    if (revelando.k >= revelando.msg.txt.split(' ').length) {
+      setRevelando(null);
       return;
     }
-    const ok = await askConfirm({
-      title: 'Apagar esta sessão?',
-      detail: 'A sessão e todo o histórico de mensagens dela serão removidos. Não há como desfazer.',
-      confirmLabel: 'Apagar',
-      danger: true,
-    });
-    if (!ok) return;
+    const id = setTimeout(() => setRevelando((r) => (r ? { ...r, k: r.k + 3 } : r)), 40);
+    return () => clearTimeout(id);
+  }, [revelando]);
 
-    const updated = sessions.filter((s) => s.id !== id);
-    saveSessions(updated);
-    if (activeSessionId === id) {
-      const nextId = updated[0].id;
-      setActiveSessionId(nextId);
-      localStorage.setItem('ichat_active_session_id', nextId);
+  const responderNaConversa = (id: string, m: MensagemDoChat) => {
+    mudarConversa(id, (c) => ({ ...c, msgs: [...c.msgs, m], quando: Date.now() }));
+    setPendente(null);
+    if (!semMovimento()) setRevelando({ msg: m, k: 3 });
+  };
+
+  /* Terminada a resposta, o foco volta à caixa (como no protótipo) — a não ser que a pessoa esteja
+     na busca de conversas ou renomeando uma. */
+  useEffect(() => {
+    if (!isOpen || digitando) return;
+    const ativo = document.activeElement?.id;
+    if (ativo === 'ch-busca' || ativo === 'ch-renome') return;
+    entradaRef.current?.focus();
+  }, [digitando, isOpen]);
+
+  /* ── O material que vai ao tutor: a tela (se Auto), as fichas e o que a ação precisa. ── */
+  const montarMaterial = async (pergunta: string, usadas: Ficha[]) => {
+    const pedido = lerPedido(
+      pergunta,
+      usadas,
+      noCaderno.map((c) => c.word),
+    );
+    const blocos: string[] = [];
+    if (auto) {
+      const tela = await construirContextoDaTela(activeView, selectedRecording, liveTranscription, { practiceSeed });
+      blocos.push(`[CONTEXTO ATUAL DA TELA]\nTela: ${nome}.${campos.length ? ` ${campos.join('; ')}.` : ''}\n${tela}`);
     }
-  };
-
-  // Rename session
-  const startRenameSession = (id: string, currentTitle: string, e: React.MouseEvent) => {
-    e.stopPropagation();
-    setEditingSessionId(id);
-    setRenameInput(currentTitle);
-  };
-
-  const handleSaveRename = (id: string) => {
-    if (!renameInput.trim()) return;
-    const updated = sessions.map((s) => {
-      if (s.id === id) {
-        return { ...s, title: renameInput.trim() };
-      }
-      return s;
-    });
-    saveSessions(updated);
-    setEditingSessionId(null);
-  };
-
-  // Get Friendly View Name
-  const getFriendlyViewName = (view: ViewType): string => {
-    switch (view) {
-      case 'hub':
-        return 'Início (Dashboard)';
-      case 'capture':
-        return 'Captura de Áudio';
-      case 'library':
-        return 'Biblioteca de Documentos';
-      case 'analysis':
-        if (selectedRecording) {
-          return selectedRecording.type === 'video'
-            ? 'YouTube / Vídeo Aula'
-            : selectedRecording.type === 'document'
-              ? 'Leitura de Documento'
-              : 'Análise de Áudio';
-        }
-        return 'Análise de Sessão';
-      case 'reading':
-        return 'Modo Leitura';
-      case 'study':
-        return 'Prática & Treinos';
-      case 'metrics':
-        return 'Vocabulário & Métricas';
-      case 'settings':
-        return 'Configurações';
-      default:
-        return 'Painel Executivo';
-    }
-  };
-
-  // ── Contextos fixados (pin) ────────────────────────────────────────────────
-  const rotuloContextoAtual = () => {
-    const base = getFriendlyViewName(activeView);
-    return selectedRecording?.title ? `${base} · ${selectedRecording.title}` : base;
-  };
-  const estaFixado = contextosFixados.some(
-    (c) => c.view === activeView && c.recordingId === (selectedRecording?.id ?? null),
-  );
-  const alternarFixarAtual = () => {
-    if (estaFixado) {
-      persistFixados(
-        contextosFixados.filter((c) => !(c.view === activeView && c.recordingId === (selectedRecording?.id ?? null))),
+    const palavrasEmFoco = [...usadas.filter((f) => f.sig === '@').map((f) => f.rot)];
+    if (pedido.palavra && !palavrasEmFoco.includes(pedido.palavra)) palavrasEmFoco.push(pedido.palavra);
+    for (const w of palavrasEmFoco) {
+      const c = noCaderno.find((x) => x.word === w);
+      if (!c) continue;
+      const origemDaPalavra = recordings.find((r) => r.id === c.sourceSessionId)?.title;
+      blocos.push(
+        `[PALAVRA DO CADERNO] ${c.word} = ${c.translation || '(sem tradução)'}` +
+          `${c.cefrLevel ? `; nível ${c.cefrLevel}` : ''}${c.sentence ? `; frase da gravação: "${c.sentence}"` : ''}` +
+          `${origemDaPalavra ? `; veio da sessão "${origemDaPalavra}"` : ''}`,
       );
-    } else {
-      if (contextosFixados.length >= 3) {
-        toast.info('Máximo de 3 contextos fixados. Remova um para fixar outro.');
-        return;
-      }
-      persistFixados([
-        ...contextosFixados,
-        { view: activeView, recordingId: selectedRecording?.id ?? null, label: rotuloContextoAtual() },
-      ]);
     }
+    const sessoesDasFichas = usadas
+      .filter((f) => f.sig === '#')
+      .map((f) => recordings.find((r) => r.id === f.id))
+      .filter((r): r is Recording => !!r);
+    const sessaoDoResumo =
+      pedido.acao === 'resumir' && !sessoesDasFichas.length && ehTelaDeSessao(activeView) ? selectedRecording : null;
+    for (const r of [...sessoesDasFichas, ...(sessaoDoResumo && !auto ? [sessaoDoResumo] : [])]) {
+      blocos.push(`[SESSÃO "${r.title}"]\n${await construirContextoDaTela('analysis', r, '', {})}`);
+    }
+    if (pedido.acao === 'revisar') {
+      const agora = Date.now();
+      const devidas = noCaderno.filter((c) => c.dueAtMs != null && c.dueAtMs <= agora).map((c) => c.word);
+      blocos.push(
+        `[FILA DE REVISÃO] ${pendentes} palavra(s) pendente(s) hoje${devidas.length ? `: ${devidas.slice(0, 30).join(', ')}` : ''}.`,
+      );
+    }
+    if (pedido.acao === 'jogar' || pedido.acao === 'frase') {
+      const base = conv.palavras.length ? conv.palavras : noCaderno.slice(0, 20).map((c) => c.word);
+      blocos.push(`[CADERNO] ${metrics?.deckSize ?? noCaderno.length} palavra(s). Palavras: ${base.join(', ')}.`);
+    }
+    const sessao = sessoesDasFichas[0]?.title ?? (pedido.acao === 'resumir' ? selectedRecording?.title : null) ?? null;
+    return {
+      pedido,
+      blocos,
+      origem: origemDaResposta({
+        pedido,
+        sessao,
+        palavrasNoCaderno: metrics?.deckSize ?? noCaderno.length,
+        auto,
+        nomeDaTela: nome,
+      }),
+    };
   };
-  const removerFixado = (idx: number) => persistFixados(contextosFixados.filter((_, i) => i !== idx));
 
-  // Send Message to Gemini Endpoint
-  const handleSendMessage = async (textToSend?: string) => {
-    const text = textToSend || chatInput;
-    if (!text.trim() || loading) return;
-
-    const currentSession = getActiveSession();
-    if (!currentSession) return;
-
-    const userTimestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    const userMsg = { role: 'user' as const, content: text, timestamp: userTimestamp };
-
-    // Update state instantly for user message
-    const updatedMessages = [...currentSession.messages, userMsg];
-    const updatedSessions = sessions.map((s) => {
-      if (s.id === currentSession.id) {
-        return { ...s, messages: updatedMessages };
+  /* ── Enviar: pergunta + fichas → etapa "consultando…" → resposta real do tutor. ── */
+  const enviar = async (bruto: string, usadas: Ficha[] = fichas) => {
+    const texto = bruto.trim();
+    if (!texto || digitando) return;
+    const id = conv.id;
+    const historico = conv.msgs;
+    const pedido = lerPedido(
+      texto,
+      usadas,
+      noCaderno.map((c) => c.word),
+    );
+    mudarConversa(id, (c) => {
+      let n: Conversa = {
+        ...c,
+        msgs: [...c.msgs, { de: 'eu', txt: texto, tokens: usadas.map((f) => f.sig + f.rot) }],
+        titulo: c.titulo === TITULO_NOVA ? tituloDaPergunta(texto) : c.titulo,
+        quando: Date.now(),
+        sessoes: [...new Set([...c.sessoes, ...usadas.filter((f) => f.sig === '#').map((f) => f.id)])],
+      };
+      n = rastrear(n, 'pergunta', texto.length > 48 ? `${texto.slice(0, 48)}…` : texto, `na tela ${nome}`);
+      if (focoNaPalavra(pedido) && pedido.palavra) {
+        const card = noCaderno.find((x) => x.word === pedido.palavra);
+        const de = recordings.find((r) => r.id === card?.sourceSessionId)?.title;
+        n = rastrear(
+          n,
+          'palavra',
+          pedido.palavra,
+          [card?.cefrLevel, de ?? card?.translation].filter(Boolean).join(' · '),
+        );
       }
-      return s;
+      if (pedido.acao === 'revisar') n = rastrear(n, 'acao', '!revisar', `${pendentes} palavras`);
+      if (pedido.acao === 'jogar') n = rastrear(n, 'acao', '!jogar');
+      if (pedido.acao === 'frase') n = rastrear(n, 'acao', '!frase');
+      if (pedido.acao === 'resumir') {
+        const s = usadas.find((f) => f.sig === '#')?.rot ?? selectedRecording?.title ?? '';
+        n = rastrear(n, 'acao', '!resumir', s);
+        if (s) n = rastrear(n, 'sessao', s);
+      }
+      return n;
     });
-    saveSessions(updatedSessions);
-    setChatInput('');
-    setLoading(true);
+    setFichas([]);
+    setMencao(null);
+    setRascunho('');
 
-    // Papel + tom (sucinto, objetivo, sem emojis) — as diretrizes de formatação antigas
-    // (que exigiam emojis e headers em caixa alta) foram removidas de propósito.
-    const tomBase = `Você é o Babel iChat, um tutor de comunicação e idiomas dentro do app Babel Play.
-Ajude o usuário com base no que está na tela dele (o contexto real vem abaixo).
+    // P3: o que o iChat não enxerga não vai ao modelo — "não sei" é resposta.
+    if (pedido.lacuna) {
+      setPendente({ conversa: id, ferramenta: null });
+      setTimeout(
+        () => responderNaConversa(id, { de: 'ia', txt: RESPOSTA_DA_LACUNA, origem: 'lacuna conhecida' }),
+        semMovimento() ? 0 : 250,
+      );
+      return;
+    }
+
+    setPendente({
+      conversa: id,
+      ferramenta: rotuloDaFerramenta(
+        pedido,
+        usadas.some((f) => f.sig === '#'),
+      ),
+    });
+    const { blocos, origem } = await montarMaterial(texto, usadas);
+
+    // Papel + tom (sucinto, objetivo, sem emojis).
+    const tomBase = `Você é o iChat, o tutor de idiomas dentro do app Babel Play.
+Ajude o usuário com base no material que ele tem aberto (o contexto real vem numa mensagem separada).
 
 Estilo das respostas:
 - Seja sucinto, objetivo e amigável. Responda exatamente o que foi pedido, sem enrolação.
 - NÃO use emojis. Nada de títulos em CAIXA ALTA nem formatação decorativa.
-- Prefira 1 a 4 frases ou uma lista curta. Markdown leve é opcional (negrito num termo-chave, bullets curtos), nunca obrigatório.
-- Responda em português, mas mantenha termos e frases de negócio/idioma em inglês, destacados (ex.: **leverage**, **align**), para o usuário aprender.
-- Baseie-se SOMENTE no contexto fornecido. Se a informação não estiver ali, diga isso em uma linha, não invente.
+- Prefira 1 a 4 frases ou uma lista curta. Markdown leve é opcional (negrito num termo-chave), nunca obrigatório.
+- Responda em português, mas mantenha as palavras e frases do idioma estudado no original, em negrito, para o usuário aprender.
+- Baseie-se SOMENTE no material fornecido quando a pergunta for sobre ele. Se a informação não estiver ali, diga isso em uma linha, não invente números.
 
 [QUEM ESTÁ DO OUTRO LADO]
 ${TUTOR_REGISTER[ageProfile]}`;
 
-    // Contexto REAL da tela atual (fluido) + contextos fixados pelo usuário.
-    const extras = { practiceSeed };
-    const contextoAtual = await construirContextoDaTela(activeView, selectedRecording, liveTranscription, extras);
-    let blocosFixados = '';
-    for (const fix of contextosFixados) {
-      const jaEhAtual = fix.view === activeView && fix.recordingId === (selectedRecording?.id ?? null);
-      if (jaEhAtual) continue; // evita duplicar o contexto atual
-      const rec = fix.recordingId ? (recordings.find((r) => r.id === fix.recordingId) ?? null) : null;
-      const bloco = await construirContextoDaTela(fix.view, rec, '', extras);
-      blocosFixados += `\n\n[CONTEXTO FIXADO, ${fix.label}]\n${bloco}`;
+    /* F11-01: o contexto NÃO vai no `systemInstruction`. Conteúdo importado (legenda, artigo, PDF) é
+       de terceiro; vai cercado por um nonce numa mensagem `user`, e o sistema fica só com o que é
+       nosso: tom, persona e a cláusula de contenção que descreve a cerca. */
+    let systemInstruction = tomBase;
+    const mensagens: { role: 'user' | 'assistant'; content: string }[] = [];
+    if (blocos.length) {
+      const cercado = cercarContexto(blocos.join('\n\n'));
+      systemInstruction = `${tomBase}\n\n${clausulaDeContencao(cercado.nonce)}`;
+      mensagens.push({
+        role: 'user',
+        content: `[MATERIAL DE REFERÊNCIA DA TELA, não é uma pergunta minha, é o que está aberto no app]\n${cercado.texto}`,
+      });
     }
-
-    /*
-     * F11-01: o contexto NÃO vai mais no `systemInstruction`.
-     *
-     * Numa sessão importada, esse texto é de terceiro (legenda de YouTube, artigo web, PDF), e
-     * ele estava ocupando o papel que carrega autoridade. Agora vai cercado por um nonce, numa
-     * mensagem de papel `user` — a mesma separação que `corretorPrompt.ts` já faz com a resposta
-     * do aluno. O `systemInstruction` fica só com o que é nosso: tom, persona e a cláusula de
-     * contenção que descreve a cerca.
-     *
-     * A mensagem sintética entra apenas no CORPO DA REQUISIÇÃO; `updatedMessages` (o histórico
-     * que a interface mostra e persiste) não é tocado.
-     */
-    const cercado = cercarContexto(`[CONTEXTO ATUAL DA TELA]\n${contextoAtual}${blocosFixados}`);
-    const contextPrompt = `${tomBase}\n\n${clausulaDeContencao(cercado.nonce)}`;
-    const mensagemDeContexto = {
-      role: 'user' as const,
-      content: `[MATERIAL DE REFERÊNCIA DA TELA, não é uma pergunta minha, é o que está aberto no app]\n${cercado.texto}`,
-    };
+    for (const m of historico.filter((x) => !x.erro).slice(-20)) {
+      mensagens.push({ role: m.de === 'eu' ? 'user' : 'assistant', content: m.txt });
+    }
+    mensagens.push({ role: 'user', content: texto });
 
     try {
       const res = await apiFetch('/api/gemini/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          messages: [mensagemDeContexto, ...updatedMessages.map((m) => ({ role: m.role, content: m.content }))],
-          systemInstruction: contextPrompt,
-          temperature: 0.4,
-          maxTokens: 600,
-        }),
+        body: JSON.stringify({ messages: mensagens, systemInstruction, temperature: 0.4, maxTokens: 600 }),
       });
-
-      const data = await res.json().catch(() => ({}) as Record<string, unknown>);
-      const aiTimestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-
-      /**
-       * O MOTIVO REAL, e não "instale o Ollama" para tudo (auditoria de 2026-09-07, achado A22).
-       *
-       * Este bloco não olhava `res.ok`: um 402 (cota de plano), um 413 (prompt grande demais) ou
-       * um 501 caíam todos na mesma frase, mandando a pessoa instalar um programa que não tem
-       * nada a ver com o problema dela. E o servidor JÁ mandava o motivo — em `reason`, no caso
-       * do indisponível, e no envelope de erro nos demais. A informação existia e morria aqui.
-       */
-      /* O `?? ''` do fim é INALCANÇÁVEL: `motivoDaResposta` só devolve null quando `data.text`
-         existe (ela mesma trata o "não veio resposta"). Está escrito porque o compilador não
-         enxerga essa invariante, e `content` é string — a tela faz `content.split('\n')`. */
-      const replyContent =
-        motivoDaResposta(res, data as Record<string, unknown>) ?? (data as { text?: string }).text ?? '';
-
-      const finalSessions = sessions.map((s) => {
-        if (s.id === currentSession.id) {
-          return {
-            ...s,
-            messages: [
-              ...updatedMessages,
-              { role: 'assistant' as const, content: replyContent, timestamp: aiTimestamp },
-            ],
-          };
-        }
-        return s;
+      const data = (await res.json().catch(() => ({}))) as Record<string, unknown>;
+      const motivo = motivoDaResposta(res, data);
+      responderNaConversa(
+        id,
+        motivo
+          ? { de: 'ia', txt: motivo, erro: true }
+          : {
+              de: 'ia',
+              txt: String(data.text ?? ''),
+              origem,
+              proposta: propostaDoPedido(pedido, pendentes),
+            },
+      );
+    } catch {
+      responderNaConversa(id, {
+        de: 'ia',
+        txt: '**Não consegui falar com o servidor agora.** Verifique a conexão e tente de novo.',
+        erro: true,
       });
-      saveSessions(finalSessions);
-    } catch (err) {
-      console.error(err);
-      const errTimestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-      const finalSessions = sessions.map((s) => {
-        if (s.id === currentSession.id) {
-          return {
-            ...s,
-            messages: [
-              ...updatedMessages,
-              {
-                role: 'assistant' as const,
-                content:
-                  'Não consegui falar com o servidor da Babel agora. Verifique se o servidor está rodando e tente novamente.',
-                timestamp: errTimestamp,
-              },
-            ],
-          };
-        }
-        return s;
-      });
-      saveSessions(finalSessions);
-    } finally {
-      setLoading(false);
     }
   };
 
-  const activeSession = getActiveSession();
+  /* ── Ações da interface ── */
+  const nova = () => {
+    const c = rastrear(novaConversa(), 'tela', nome);
+    setEstado((e) => ({ conversas: [c, ...e.conversas], atual: c.id }));
+    setPainel(null);
+    focarEntrada();
+  };
 
-  // Define tools and recommendations based on view
-  const getViewToolsAndSuggestions = () => {
-    switch (activeView) {
-      case 'hub':
-        return {
-          title: 'Ferramentas da Home',
-          icon: <LayoutDashboard className="w-3.5 h-3.5 text-accent" />,
-          desc: 'Metas de XP, Streak diário e planos de evolução profissional.',
-          tools: [
-            {
-              label: 'Analisar Meu Progresso',
-              text: 'Como posso aprimorar meu progresso atual para alcançar o nível executivo mais rápido?',
-            },
-            {
-              label: 'Plano de Estudos de Hoje',
-              text: 'Gere um plano de estudos personalizado para mim hoje com base no meu histórico de atividades.',
-            },
-            {
-              label: 'Dicas de Consistência',
-              text: 'Quais são as melhores heurísticas de aprendizagem para manter meu streak de fluência ativo?',
-            },
-          ],
-        };
-      case 'capture':
-        return {
-          title: 'Ferramentas de Captura',
-          icon: <Mic className="w-3.5 h-3.5 text-error animate-pulse" />,
-          desc: 'Suporte em tempo real durante suas chamadas e reuniões.',
-          tools: [
-            { label: 'Resumir discussão atual', text: 'Resuma em tópicos curtos a discussão capturada até agora.' },
-            {
-              label: 'Extrair action items',
-              text: 'Liste as decisões, atribuições e prazos implícitos na fala capturada.',
-            },
-            {
-              label: 'Upgrades de vocabulário',
-              text: 'Aponte 5 termos da transcrição e dê uma versão mais executiva em inglês para cada.',
-            },
-          ],
-        };
-      case 'library':
-        return {
-          title: 'Ferramentas da Biblioteca',
-          icon: <BookOpen className="w-3.5 h-3.5 text-rare" />,
-          desc: 'Gestão inteligente de livros, PDFs e termos corporativos.',
-          tools: [
-            {
-              label: 'Extrair Termos Executivos',
-              text: 'Quais os termos de Business English mais essenciais que eu deveria catalogar na minha biblioteca de vocabulário?',
-            },
-            {
-              label: 'Sugestões de Leitura',
-              text: 'Recomende 3 livros clássicos de negócios perfeitos para enriquecer o vocabulário de negociação e liderança.',
-            },
-            {
-              label: 'Prática Ativa de Cloze',
-              text: 'Crie um exercício rápido de preenchimento de lacunas (Cloze) focado em termos de finanças e investimentos corporativos.',
-            },
-          ],
-        };
-      case 'metrics':
-        return {
-          title: 'Ferramentas de Métricas',
-          icon: <BarChart2 className="w-3.5 h-3.5 text-accent" />,
-          desc: 'Análise profunda de dados de desempenho e insights.',
-          tools: [
-            {
-              label: 'Análise de Vícios',
-              text: 'Com base nas minhas métricas de vícios de linguagem, quais exercícios práticos de fala posso fazer para reduzi-los?',
-            },
-            {
-              label: 'Plano de Redução de Pausas',
-              text: 'Meus dados mostram muitas pausas de hesitação. Como posso treinar transições mais suaves no discurso?',
-            },
-            {
-              label: 'Interpretação do Radar',
-              text: 'Como devo interpretar meu Radar de Competências e o que ele diz sobre minha prontidão para reuniões em inglês?',
-            },
-          ],
-        };
-      case 'analysis':
-      case 'reading':
-      case 'study':
-        if (selectedRecording) {
-          if (selectedRecording.type === 'video') {
-            return {
-              title: 'Ferramentas do YouTube',
-              icon: <Youtube className="w-3.5 h-3.5 text-error" />,
-              desc: 'Análise técnica do vídeo, captions sincronizados e vocabulário.',
-              tools: [
-                {
-                  label: 'Resumo do Vídeo Aula',
-                  text: `Gere um resumo estruturado em português das ideias ensinadas no vídeo "${selectedRecording.title}".`,
-                },
-                {
-                  label: '5 Lições de Expressão',
-                  text: 'Quais são 5 expressões nativas interessantes de negócios usadas no vídeo e como posso usá-las?',
-                },
-                {
-                  label: 'Análise de Ritmo Vocálico',
-                  text: 'O orador do vídeo fala com velocidade típica de negócios? Me dê dicas para imitar essa cadência.',
-                },
-              ],
-            };
-          } else if (selectedRecording.type === 'document') {
-            return {
-              title: 'Ferramentas de Documento',
-              icon: <FileText className="w-3.5 h-3.5 text-good" />,
-              desc: 'Glossário avançado, gramática empresarial e sínteses.',
-              tools: [
-                {
-                  label: 'Estruturas Gramaticais Úteis',
-                  text: `Extraia as 3 estruturas de gramática executiva mais avançadas encontradas no texto "${selectedRecording.title}" e ensine a usá-las.`,
-                },
-                {
-                  label: 'Sinônimos de Alto Impacto',
-                  text: "Sugira 5 verbos fortes para substituir expressões simples como 'make', 'do' ou 'show' presentes no documento.",
-                },
-                {
-                  label: 'Síntese em Parágrafo Único',
-                  text: 'Escreva uma síntese em inglês de alto nível do texto para que eu possa mandar por e-mail para meu time.',
-                },
-              ],
-            };
-          } else {
-            return {
-              title: 'Ferramentas de Áudio',
-              icon: <Activity className="w-3.5 h-3.5 text-accent" />,
-              desc: 'Métricas de voz, tom executivo e feedbacks de pronúncia.',
-              tools: [
-                {
-                  label: 'Avaliação de Pronúncia',
-                  text: "Com base no áudio capturado, quais são os erros mais comuns de brasileiros na pronúncia de termos como 'milestones', 'executive' e 'heuristics'?",
-                },
-                {
-                  label: 'Refinar Cadência e Tom',
-                  text: "Como falar com mais autoridade, reduzindo pausas como 'humm' ou 'eh' em apresentações?",
-                },
-                {
-                  label: 'Frases de Boardroom',
-                  text: 'Me dê 3 modelos de frases polidas para propor um redirecionamento de estratégia em um conselho executivo.',
-                },
-              ],
-            };
-          }
-        }
-        return {
-          title: 'Ferramentas de Análise',
-          icon: <GraduationCap className="w-3.5 h-3.5 text-accent" />,
-          desc: 'Prática focada no seu portfólio de gravações.',
-          tools: [
-            {
-              label: 'Gerar Simulação de Roleplay',
-              text: 'Crie um roteiro rápido de simulação de roleplay de negócios com base no meu portfólio de gravações.',
-            },
-            {
-              label: 'Explicar Termos Gerais',
-              text: "Explique a diferença corporativa entre 'milestones', 'timeframes' e 'roadmaps'.",
-            },
-          ],
-        };
-      default:
-        return {
-          title: 'Suporte de Comunicação',
-          icon: <HelpCircle className="w-3.5 h-3.5 text-ink-muted" />,
-          desc: 'Tutor inteligente sempre ativo ao seu dispor.',
-          tools: [
-            {
-              label: 'Explicar Expressões Corporativas',
-              text: 'Quais expressões idiomáticas são indispensáveis no inglês de negócios hoje?',
-            },
-          ],
-        };
+  const apagar = (id: string) => {
+    setEstado((e) => {
+      let resto = e.conversas.filter((c) => c.id !== id);
+      if (!resto.length) resto = [novaConversa()];
+      return { conversas: resto, atual: e.atual === id ? resto[0].id : e.atual };
+    });
+    avisar(t('Conversa apagada'));
+  };
+
+  const copiarRastro = () => {
+    const dados = {
+      conversa: conv.titulo,
+      id: conv.id,
+      palavras: conv.palavras,
+      sessoes: conv.sessoes,
+      rastro: conv.rastro,
+    };
+    navigator.clipboard?.writeText(JSON.stringify(dados, null, 2)).catch(() => {});
+    avisar(t('Rastro da conversa copiado como JSON'));
+  };
+
+  const escolherFicha = (sig: Sigilo, id: string, rot: string) => {
+    setFichas((f) => [...f, { sig, id, rot }]);
+    setMencao(null);
+    setRascunho((r) => r.replace(/[@#!][\wÀ-ÿ-]*$/, ''));
+    if (sig === '#') naAtual((c) => rastrear(c, 'sessao', rot));
+    focarEntrada();
+  };
+
+  const usarFerramenta = (f: IdDaFerramenta) => {
+    setFerramentas(false);
+    if (f === 'explicar') {
+      setMencao('@');
+      setMencaoQ('');
+      setRascunho('@');
+      focarEntrada();
+      return;
+    }
+    if (f === 'traduzir') {
+      void enviar('Traduza a fala ativa');
+      return;
+    }
+    if (f === 'anki') {
+      const n = conv.palavras.length || noCaderno.length;
+      naAtual((c) => ({
+        ...rastrear(c, 'acao', '!anki'),
+        msgs: [
+          ...c.msgs,
+          {
+            de: 'ia',
+            txt: `Posso exportar ${n === 1 ? 'a palavra' : `as ${n} palavras`} para o Anki, com a frase de exemplo.`,
+            origem: `seu caderno · ${n} ${n === 1 ? 'palavra' : 'palavras'}`,
+            proposta: { rot: 'Exportar para o Anki', tipo: 'anki', palavras: c.palavras },
+          },
+        ],
+      }));
+      return;
+    }
+    const ficha: Ficha = { sig: '!', id: f, rot: f };
+    void enviar(PERGUNTA_DA_FERRAMENTA[f], [...fichas, ficha]);
+  };
+
+  /* P4: a proposta só roda aqui, depois do clique em confirmar. */
+  const confirmar = async (idx: number, p: Proposta) => {
+    naAtual((c) => ({
+      ...rastrear(c, 'acao', p.rot, 'confirmada'),
+      msgs: c.msgs.map((m, i) => (i === idx ? { ...m, decidida: 'ok' as const } : m)),
+    }));
+    if (p.tipo === 'revisar') onChangeView('study');
+    if (p.tipo === 'palavra' && p.palavra) {
+      const card = noCaderno.find((c) => c.word === p.palavra);
+      onChangeView('study', {
+        seed: { ...seedFromSelection(p.palavra, card?.srcLang ?? '', 'review'), word: p.palavra },
+      });
+    }
+    if (p.tipo === 'jogar') onChangeView('play', { seed: { text: '', lang: '', exercise: 'memory' } });
+    if (p.tipo === 'anki') {
+      const saem = p.palavras?.length ? noCaderno.filter((c) => p.palavras?.includes(c.word)) : noCaderno;
+      try {
+        const blob = await exportarApkg(
+          saem.map((c) => ({ frente: c.word, verso: c.translation, exemplo: c.sentence })),
+          'Babel Play',
+        );
+        baixar(blob, `babel-ichat-${new Date().toISOString().slice(0, 10)}.apkg`);
+        avisar(`${t('Baralho do Anki exportado:')} ${saem.length} ${t('cartões')}`);
+      } catch (e) {
+        avisar(`${t('Não consegui gerar o .apkg:')} ${(e as Error).message}`);
+      }
     }
   };
 
-  const contextTools = getViewToolsAndSuggestions();
+  const avaliar = (idx: number, v: 'bom' | 'ruim') => {
+    const m = conv.msgs[idx];
+    const novo = m.av === v ? null : v;
+    naAtual((c) => ({ ...c, msgs: c.msgs.map((x, i) => (i === idx ? { ...x, av: novo } : x)) }));
+    if (novo === 'ruim') {
+      // A "lista de casos para melhorar" é local: não existe rota de servidor para receber isto.
+      const casos = lerJson<unknown[]>('ichat_avaliacoes', []);
+      casos.push({
+        pergunta: conv.msgs[idx - 1]?.txt ?? '',
+        resposta: m.txt,
+        origem: m.origem,
+        tela: activeView,
+        em: Date.now(),
+      });
+      try {
+        localStorage.setItem('ichat_avaliacoes', JSON.stringify(casos.slice(-200)));
+      } catch {
+        /* só não guarda o caso */
+      }
+      avisar(t('Obrigado. Essa resposta entra na lista de casos para melhorar o iChat.'));
+    }
+  };
+
+  /* ── Entrada de texto: @ # ! abrem a lista; Enter envia; Backspace tira a última ficha. ── */
+  const aoDigitar = (v: string) => {
+    setRascunho(v);
+    const m = v.match(/([@#!])([\wÀ-ÿ-]*)$/);
+    setMencao(m ? (m[1] as Sigilo) : null);
+    setMencaoQ(m ? m[2].toLowerCase() : '');
+    if (m) setFerramentas(false);
+  };
+
+  const itensDaMencao = !mencao
+    ? []
+    : mencao === '@'
+      ? noCaderno
+          .filter((c) => c.word.toLowerCase().includes(mencaoQ))
+          .slice(0, 40)
+          .map((c) => ({ id: c.word, rot: c.word, meta: [c.translation, c.cefrLevel].filter(Boolean).join(' · ') }))
+      : mencao === '#'
+        ? recordings
+            .filter((r) => r.title.toLowerCase().includes(mencaoQ))
+            .slice(0, 40)
+            .map((r) => ({ id: r.id, rot: r.title, meta: `${r.durationStr || 'texto'} · ${r.wordCount} palavras` }))
+        : ACOES_DO_CHAT.filter((a) => a.t.includes(mencaoQ)).map((a) => ({ id: a.id, rot: a.t, meta: t(a.d) }));
+
+  const aoTeclar = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter' && mencao) {
+      e.preventDefault();
+      const x = itensDaMencao[0];
+      if (x) escolherFicha(mencao, x.id, x.rot);
+      return;
+    }
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      void enviar(rascunho);
+      return;
+    }
+    if (e.key === 'Backspace' && !rascunho && fichas.length) setFichas((f) => f.slice(0, -1));
+    if (e.key === 'Escape') {
+      e.preventDefault();
+      e.stopPropagation();
+      if (mencao || ferramentas) {
+        setMencao(null);
+        setFerramentas(false);
+      } else fechar();
+    }
+  };
+
+  /* ── Render ── */
+  const linhaDoContexto = [
+    ...(auto ? [`${t('tela')} ${nome}`, ...campos.slice(0, 1)] : []),
+    ...fichas.map((f) => f.sig + f.rot),
+  ];
+  const pendenteAqui = pendente?.conversa === conv.id ? pendente : null;
+  const ultima = conv.msgs.length - 1;
+
+  const estiloDoPainel: React.CSSProperties & Record<'--ch-w' | '--ch-h', string> = {
+    '--ch-w': `${tamanho.w}px`,
+    '--ch-h': `${tamanho.h}px`,
+    ...(naDoca ? { width: larguraDaDoca, flex: 'none' } : {}),
+  };
 
   return (
-    <>
-      {/* Floating Status Bar Context Badge notification */}
-      {showContextSyncNotification && (
-        <div
-          /* `--shell-inset-right` é publicado pelo App: vale a largura do rail quando o menu
-             está à direita, e 0 nas outras posições. Sem isso, o balão e o botão flutuante
-             caíam EM CIMA dos controles do rail.
+    /* `display: contents`: a caixa não existe para o layout — o painel fixo continua sendo uma coluna
+       da linha do App. As classes `app chat-fixo` são só o gancho dos seletores do protótipo
+       (`.app.chat-fixo .painel-chat.on`), que lá ficam na moldura inteira. */
+    <div
+      className={`app ${naDoca ? 'chat-fixo' : ''}`}
+      style={{ display: 'contents', ...(naDoca ? { '--ch-doca': `${larguraDaDoca}px` } : {}) } as React.CSSProperties}
+    >
+      <div className={`toast ${avisoVisivel ? 'on' : ''}`} role="status" aria-live="polite">
+        {aviso?.chat && <span className="dot" />}
+        <span>{aviso?.conteudo}</span>
+      </div>
 
-             F9, O TOAST SUBIU PARA O TOPO.
-             Ancorado embaixo, ele cobria justamente o rodapé dos painéis, e o rodapé é onde
-             este produto põe as ressalvas. No inventário, ele estava por cima de "1753 de 1902
-             cartões ficaram FORA do cálculo", que é a frase que menos pode ser escondida, e por
-             cima do primeiro card de jogo no mobile.
-
-             Entre um aviso transitório de sintonia e uma ressalva estatística, quem cede espaço
-             é o aviso. */
-          style={{
-            right: 'calc(1.5rem + var(--shell-inset-right, 0px))',
-            top: 'calc(4.5rem + var(--shell-inset-top, 0px))',
-          }}
-          className="fixed z-40 bg-ink text-surface px-4 py-2 rounded-xl shadow-2xl flex items-center gap-2 border border-border-subtle text-xs font-semibold animate-in slide-in-from-top-5 duration-300"
-        >
-          <div className="w-2 h-2 rounded-full bg-rare animate-pulse" />
-          <span>
-            iChat sintonizado com: <strong className="text-rare">{showContextSyncNotification}</strong>
-          </span>
-        </div>
-      )}
-
-      {/* Botão flutuante do iChat — marcação do protótipo aprovado (`.fab`: ícone, "iChat" e o chip
-          "Context"). A posição fixa e o recuo do menu estão em src/styles/prototipo-app.css. */}
-      {!isOpen && (
-        <button
-          type="button"
-          className="fab"
-          onClick={() => setIsOpen(true)}
-          title="iChat — seu tutor de estudos"
-          aria-label="Abrir o iChat, seu tutor de estudos"
-          aria-expanded={false}
-        >
-          <Sparkles aria-hidden />
-          <span className="rot">iChat</span>
-          <span className="ctx">Context</span>
-        </button>
-      )}
-
-      {/* Drawer Overlay Backdrop */}
-      {isOpen && !fixado && !isMaximized && (
-        <div
-          className="fixed inset-0 z-40 bg-black/40 backdrop-blur-xs transition-opacity animate-in fade-in duration-200"
-          onClick={() => setIsOpen(false)}
-        />
-      )}
-
-      {/* Slide-out Sidebar Drawer Container */}
-      <div
-        className={
-          !isOpen
-            ? 'hidden'
-            : isMaximized && !fixado
-              ? 'fixed inset-0 w-full h-full max-w-none bg-canvas z-50 flex flex-col transition-all duration-300 animate-in fade-in duration-300'
-              : fixado
-                ? 'relative h-full bg-canvas border-s border-border-subtle shrink-0 flex flex-col z-30 transition-all duration-300 animate-in slide-in-from-right duration-300'
-                : 'fixed top-0 right-0 h-full w-full max-w-md bg-canvas border-s border-border-subtle shadow-3xl flex flex-col z-50 transition-all duration-300 animate-in slide-in-from-right duration-300'
-        }
-        style={fixado && isOpen ? { width: largura } : undefined}
+      <button
+        type="button"
+        ref={fabRef}
+        className={`fab ${isOpen ? 'esconde' : ''}`}
+        id="fab"
+        aria-label={t('Abrir o iChat')}
+        aria-expanded={isOpen}
+        aria-controls="painel-chat"
+        onClick={() => setIsOpen(!isOpen)}
       >
-        {/* Alça de largura do modo fixo: arrasta com o ponteiro, ou ←/→ pelo teclado. */}
-        {fixado && (
-          <div
-            role="separator"
-            aria-orientation="vertical"
-            aria-label="Largura do iChat"
-            aria-valuemin={LARGURA_MIN}
-            aria-valuemax={LARGURA_MAX}
-            aria-valuenow={largura}
-            tabIndex={0}
-            onPointerDown={arrastar}
-            onKeyDown={(e) => {
-              if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
-                e.preventDefault();
-                guardarLargura(largura + (e.key === 'ArrowLeft' ? 16 : -16));
-              }
-            }}
-            className="absolute inset-y-0 -start-1 w-2 z-10 cursor-col-resize touch-none hover:bg-accent/30 focus-visible:bg-accent/40 focus-visible:outline-none transition-colors"
-          />
-        )}
-        {/* Drawer Header */}
-        <div className="px-5 py-4 border-b border-border-subtle bg-surface flex items-center justify-between shrink-0">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-rare-soft/20 flex items-center justify-center text-rare">
-              <Sparkles className="w-4.5 h-4.5" />
-            </div>
-            <div>
-              <div className="flex items-center gap-1.5">
-                <h3 className="font-display font-black text-sm text-ink leading-tight">Babel iChat</h3>
-                <span className="text-[9px] font-mono bg-accent-soft text-accent-ink font-bold px-1 rounded uppercase tracking-tight">
-                  Active
-                </span>
-              </div>
-              <p className="text-[10px] text-ink-muted font-mono flex items-center gap-1">
-                <span>Contexto:</span>
-                <span className="font-semibold text-rare truncate max-w-[180px]">
-                  {getFriendlyViewName(activeView)}
-                </span>
-              </p>
-            </div>
-          </div>
+        <Sparkles aria-hidden />
+        <span className="rot">iChat</span>
+        <span className="ctx">Context</span>
+      </button>
 
-          <div className="flex items-center gap-1.5">
-            {/* Fixar CONTEXTO atual (mantém no papo mesmo trocando de aba) */}
-            <button
-              onClick={alternarFixarAtual}
-              className={`p-2 rounded-lg transition-colors cursor-pointer ${
-                estaFixado ? 'bg-rare-soft/20 text-rare' : 'text-ink-muted hover:text-ink hover:bg-surface-hover'
-              }`}
-              title={estaFixado ? 'Desafixar este contexto' : 'Fixar o contexto desta tela na conversa'}
-              aria-label={estaFixado ? 'Desafixar este contexto' : 'Fixar o contexto desta tela na conversa'}
-              aria-pressed={estaFixado}
-            >
-              <Bookmark className={`w-4 h-4 ${estaFixado ? 'fill-rare text-rare' : ''}`} />
-            </button>
-
-            {/* Dock/Pin Toggle button */}
-            <button
-              onClick={() => setIsDocked(!isDocked)}
-              className={`p-2 rounded-lg transition-colors cursor-pointer ${
-                isDocked ? 'bg-rare-soft/20 text-rare' : 'text-ink-muted hover:text-ink hover:bg-surface-hover'
-              }`}
-              title={isDocked ? 'Desafixar do lado (Modo Flutuante)' : 'Fixar na lateral (Modo Lado a Lado)'}
-              aria-label="Fixar o iChat na lateral direita"
-              aria-pressed={isDocked}
-            >
-              <Pin className={`w-4 h-4 ${isDocked ? 'fill-rare rotate-45 text-rare' : ''}`} />
-            </button>
-
-            {/* Maximize Toggle button */}
-            {!fixado && (
-              <button
-                onClick={() => setIsMaximized(!isMaximized)}
-                aria-label="Maximizar o iChat"
-                aria-pressed={isMaximized}
-                className={`p-2 rounded-lg transition-colors cursor-pointer ${
-                  isMaximized ? 'bg-rare-soft/20 text-rare' : 'text-ink-muted hover:text-ink hover:bg-surface-hover'
-                }`}
-                title={isMaximized ? 'Restaurar tamanho do Chat' : 'Maximizar Chat para Tela Inteira'}
-              >
-                {isMaximized ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
-              </button>
+      <section
+        className={`painel-chat cartao ${isOpen ? 'on' : ''}`}
+        id="painel-chat"
+        aria-label="iChat"
+        style={estiloDoPainel}
+      >
+        {isOpen && (
+          <>
+            {naDoca ? (
+              <div
+                className="ch-redim"
+                role="separator"
+                aria-orientation="vertical"
+                aria-label={t('Largura do iChat')}
+                aria-valuemin={DOCA.min}
+                aria-valuemax={DOCA.max}
+                aria-valuenow={larguraDaDoca}
+                tabIndex={0}
+                title={t('Arraste para redimensionar')}
+                onPointerDown={arrastar}
+                onKeyDown={(e) => {
+                  if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+                    e.preventDefault();
+                    guardarLargura(larguraDaDoca + (e.key === 'ArrowLeft' ? 16 : -16));
+                  }
+                }}
+              />
+            ) : (
+              <div className="ch-redim" title={t('Arraste para redimensionar')} aria-hidden onPointerDown={arrastar} />
             )}
-
-            {/* Session Selector Toggle */}
-            <button
-              onClick={() => setShowSessionSelector((prev) => !prev)}
-              className={`p-2 rounded-lg text-ink-muted hover:text-ink hover:bg-surface-hover transition-colors cursor-pointer relative ${
-                showSessionSelector ? 'bg-surface-hover text-ink' : ''
-              }`}
-              title="Histórico de Conversas (Sessões)"
-              aria-label="Histórico de conversas"
-              aria-expanded={showSessionSelector}
-            >
-              <History className="w-4 h-4" />
-              <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-accent border-2 border-canvas"></span>
-            </button>
-
-            {/* Close button */}
-            <button
-              onClick={() => setIsOpen(false)}
-              aria-label="Fechar o iChat"
-              title="Fechar o iChat"
-              className="p-2 hover:bg-surface-hover rounded-lg text-ink-muted hover:text-ink transition-colors cursor-pointer"
-            >
-              <X className="w-4.5 h-4.5" />
-            </button>
-          </div>
-        </div>
-
-        {/* Faixa de contextos fixados (pin) */}
-        {contextosFixados.length > 0 && (
-          <div className="px-4 py-2 border-b border-border-subtle bg-canvas shrink-0 flex items-center gap-1.5 flex-wrap">
-            <span className="text-[9px] font-mono uppercase tracking-wider text-ink-faint flex items-center gap-1">
-              <Bookmark className="w-3 h-3" /> Fixados:
-            </span>
-            {contextosFixados.map((c, i) => (
-              <span
-                key={`${c.view}:${c.recordingId}:${i}`}
-                className="inline-flex items-center gap-1 bg-rare-soft/15 text-rare border border-rare/25 rounded-full ps-2 pe-1 py-0.5 text-[10px] font-semibold max-w-[180px]"
-              >
-                <span className="truncate">{c.label}</span>
-                <button
-                  onClick={() => removerFixado(i)}
-                  className="hover:bg-rare/20 rounded-full p-0.5 cursor-pointer"
-                  title="Remover contexto fixado"
-                >
-                  <X className="w-2.5 h-2.5" />
-                </button>
+            <header className="ch-cab">
+              <span className="ib rare" style={{ width: 36, height: 36, borderRadius: 12 }}>
+                <Sparkles aria-hidden style={{ width: 17, height: 17 }} />
               </span>
-            ))}
-          </div>
-        )}
-
-        {/* Sessions & Conversational History Sub-Panel Overlay */}
-        {showSessionSelector && (
-          <div className="absolute inset-0 top-[65px] bg-canvas/95 backdrop-blur-sm z-30 flex flex-col p-5 animate-in fade-in slide-in-from-top-4 duration-200">
-            <div className="flex items-center justify-between mb-4 border-b border-border-subtle pb-2 shrink-0">
-              <span className="text-xs font-display font-extrabold text-ink uppercase tracking-wider flex items-center gap-2">
-                <MessageSquare className="w-4 h-4 text-rare" /> Suas Conversas (Sessões)
-              </span>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <b>iChat</b>
+                <small title={t('A navegação continua liberada enquanto o iChat está aberto')}>
+                  {t('vendo a tela')} {nome}
+                </small>
+              </div>
               <button
-                onClick={handleCreateNewSession}
-                className="bg-rare-soft hover:brightness-95 active:scale-95 text-rare-ink px-3 py-1.5 rounded-lg flex items-center gap-1 text-[11px] font-bold cursor-pointer transition-all shadow-sm"
+                type="button"
+                className="ch-btn"
+                aria-pressed={painel === 'conversas'}
+                aria-label={t('Conversas')}
+                onClick={() => setPainel((p) => (p === 'conversas' ? null : 'conversas'))}
               >
-                <Plus className="w-3.5 h-3.5" /> Nova Conversa
+                <History aria-hidden />
               </button>
-            </div>
+              <button
+                type="button"
+                className="ch-btn"
+                aria-pressed={painel === 'rastro'}
+                aria-label={t('Rastro da conversa')}
+                onClick={() => setPainel((p) => (p === 'rastro' ? null : 'rastro'))}
+              >
+                <Route aria-hidden />
+              </button>
+              <button type="button" className="ch-btn" aria-label={t('Nova conversa')} onClick={nova}>
+                <Plus aria-hidden />
+              </button>
+              <button
+                type="button"
+                className="ch-btn"
+                data-ch-doca
+                aria-pressed={isDocked}
+                aria-label={isDocked ? t('Soltar o iChat (janela flutuante)') : t('Fixar o iChat na lateral direita')}
+                title={isDocked ? t('Soltar o iChat (janela flutuante)') : t('Fixar o iChat na lateral direita')}
+                onClick={alternarDoca}
+              >
+                {isDocked ? <PictureInPicture2 aria-hidden /> : <PanelRight aria-hidden />}
+              </button>
+              <button type="button" className="ch-btn" aria-label={t('Fechar o iChat')} onClick={fechar}>
+                <X aria-hidden />
+              </button>
+            </header>
 
-            {/* Session List Feed */}
-            <div className="flex-1 overflow-y-auto space-y-2.5 pe-1">
-              {sessions.map((sess) => {
-                const isActive = sess.id === activeSessionId;
-                const isEditing = sess.id === editingSessionId;
+            {painel === 'conversas' && (
+              <GavetaDeConversas
+                conversas={conversas}
+                atual={conv.id}
+                busca={busca}
+                renomeando={renomeando}
+                naSessao={ehTelaDeSessao(activeView)}
+                onBusca={setBusca}
+                onNova={nova}
+                onAbrir={(id) => {
+                  setEstado((e) => ({ ...e, atual: id }));
+                  setPainel(null);
+                  focarEntrada();
+                }}
+                onFixar={(id) => mudarConversa(id, (c) => ({ ...c, fixada: !c.fixada }))}
+                onRenomear={setRenomeando}
+                onSalvarNome={(id, v) => {
+                  if (v.trim()) mudarConversa(id, (c) => ({ ...c, titulo: v.trim() }));
+                  setRenomeando(null);
+                }}
+                onApagar={apagar}
+              />
+            )}
+            {painel === 'rastro' && <GavetaDoRastro conversa={conv} onJson={copiarRastro} />}
 
-                return (
-                  <div
-                    key={sess.id}
-                    onClick={() => !isEditing && handleSelectSession(sess.id)}
-                    className={`p-3.5 rounded-xl border transition-all flex items-center justify-between gap-2 group cursor-pointer ${
-                      isActive
-                        ? 'bg-rare-soft/10 border-rare text-ink shadow-sm font-semibold'
-                        : 'bg-surface border-border-subtle text-ink-muted hover:text-ink hover:border-rare-soft/40'
-                    }`}
-                  >
-                    <div className="flex-1 min-w-0 flex items-center gap-2.5">
-                      <div className={`w-2.5 h-2.5 rounded-full ${isActive ? 'bg-rare' : 'bg-ink-muted/30'}`} />
-
-                      {isEditing ? (
-                        <div className="flex items-center gap-1.5 flex-1" onClick={(e) => e.stopPropagation()}>
-                          <input
-                            id="ichat-rename-session"
-                            name="ichat-rename-session"
-                            type="text"
-                            value={renameInput}
-                            onChange={(e) => setRenameInput(e.target.value)}
-                            onKeyDown={(e) => e.key === 'Enter' && handleSaveRename(sess.id)}
-                            className="bg-canvas border border-rare text-xs rounded px-2 py-1 outline-none text-ink w-full font-normal"
-                            autoFocus
-                          />
-                          <button
-                            onClick={() => handleSaveRename(sess.id)}
-                            className="text-[10px] font-bold text-rare hover:underline px-1 shrink-0"
-                          >
-                            Salvar
-                          </button>
-                        </div>
-                      ) : (
-                        <div className="min-w-0">
-                          <span className="text-xs truncate block font-display">{sess.title}</span>
-                          <span className="text-[9.5px] text-ink-faint block font-mono">
-                            {sess.messages.length} mensagens • Criado em {new Date(sess.createdAt).toLocaleDateString()}
-                          </span>
-                        </div>
-                      )}
-                    </div>
-
-                    {!isEditing && (
-                      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <button
-                          onClick={(e) => startRenameSession(sess.id, sess.title, e)}
-                          className="p-1 hover:bg-surface-hover rounded text-ink-muted hover:text-ink cursor-pointer"
-                          title="Renomear conversa"
-                        >
-                          <Edit2 className="w-3 h-3" />
-                        </button>
-                        <button
-                          onClick={(e) => handleDeleteSession(sess.id, e)}
-                          className="p-1 hover:bg-surface-hover rounded text-ink-muted hover:text-error cursor-pointer"
-                          title="Apagar conversa"
-                        >
-                          <Trash2 className="w-3 h-3" />
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-
-            <button
-              onClick={() => setShowSessionSelector(false)}
-              className="mt-4 w-full text-center text-xs font-bold font-display p-2 bg-surface hover:bg-surface-hover text-ink-muted hover:text-ink border border-border-subtle rounded-xl cursor-pointer transition-colors"
-            >
-              Voltar para o Chat
-            </button>
-          </div>
-        )}
-
-        {/* Messages Feed panel */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-4 min-h-0 bg-canvas/20">
-          {activeSession &&
-            activeSession.messages.map((msg, index) => {
-              const isUser = msg.role === 'user';
-              return (
-                <div
-                  key={index}
-                  className={`flex gap-3 ${isUser ? 'justify-end' : 'justify-start'} animate-in fade-in duration-200`}
+            <div className="ch-ctx">
+              <div className="linha" style={{ gap: 8 }}>
+                <button
+                  type="button"
+                  className="ch-ctx-linha"
+                  aria-expanded={ctxAberto}
+                  onClick={() => setCtxAberto((v) => !v)}
                 >
-                  {!isUser && (
-                    <div className="w-7 h-7 rounded-full bg-rare-soft text-rare-ink flex items-center justify-center shrink-0 mt-1 shadow-sm">
-                      <Sparkles className="w-3.5 h-3.5" />
+                  <Eye
+                    aria-hidden
+                    style={{
+                      width: 14,
+                      height: 14,
+                      color: linhaDoContexto.length ? 'var(--rare-ink)' : 'var(--ink-faint)',
+                    }}
+                  />
+                  <span>
+                    {linhaDoContexto.length
+                      ? `${t('Contexto:')} ${linhaDoContexto.join(' + ')}`
+                      : t('Sem contexto: pergunta geral')}
+                  </span>
+                  <ChevronDown
+                    aria-hidden
+                    style={{
+                      width: 13,
+                      height: 13,
+                      transition: 'transform .2s',
+                      transform: ctxAberto ? 'rotate(180deg)' : undefined,
+                    }}
+                  />
+                </button>
+                <button
+                  type="button"
+                  className={`ch-auto ${auto ? 'on' : ''}`}
+                  role="switch"
+                  aria-checked={auto}
+                  title={t('Seguir o contexto da tela')}
+                  onClick={() => setAuto((v) => !v)}
+                >
+                  <span className="ch-trilho">
+                    <span />
+                  </span>
+                  Auto
+                </button>
+              </div>
+              {ctxAberto && (
+                <div className="ch-ctx-det entra">
+                  <span className="label-mono">{t('O iChat está considerando')}</span>
+                  {auto &&
+                    [`${t('tela')} ${nome}`, ...campos].map((x) => (
+                      <p key={x}>
+                        <i />
+                        {x}
+                      </p>
+                    ))}
+                  {fichas.map((f, i) => (
+                    <p key={`${i}${f.sig}${f.id}`}>
+                      <i />
+                      {f.sig + f.rot}
+                    </p>
+                  ))}
+                  {!auto && !fichas.length && (
+                    <p className="mut">{t('Nada fixado. Ligue o Auto ou use @palavra, #sessão, !ação.')}</p>
+                  )}
+                </div>
+              )}
+              {fichas.length > 0 && (
+                <div className="chips" style={{ marginTop: 8 }}>
+                  {fichas.map((f, i) => (
+                    <span className={`ch-chip ${CLASSE_DO_SIGILO[f.sig]}`} key={`${i}${f.sig}${f.id}`}>
+                      {f.sig + f.rot}
+                      <button
+                        type="button"
+                        aria-label={`${t('Tirar')} ${f.rot}`}
+                        onClick={() => setFichas((l) => l.filter((_, j) => j !== i))}
+                      >
+                        <X aria-hidden />
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="ch-msgs" id="ch-msgs" aria-live="polite" ref={msgsRef}>
+              {conv.msgs.length || pendenteAqui ? (
+                <>
+                  {conv.msgs.map((m, k) => {
+                    if (m.de === 'eu')
+                      return (
+                        <div className="ch-msg eu" key={k}>
+                          {!!m.tokens?.length && (
+                            <div className="ch-tokens-msg">
+                              {m.tokens.map((tk, j) => (
+                                <span key={j}>{tk}</span>
+                              ))}
+                            </div>
+                          )}
+                          {m.txt}
+                        </div>
+                      );
+                    const revelandoEsta = revelando?.msg === m;
+                    const texto = revelandoEsta ? m.txt.split(' ').slice(0, revelando.k).join(' ') : m.txt;
+                    const extras = !revelandoEsta && (k < ultima || !digitando);
+                    return (
+                      <div className="ch-msg ia" key={k}>
+                        <TextoDoChat texto={texto} />
+                        {extras && !m.erro && (
+                          <>
+                            {m.origem && (
+                              <>
+                                {' '}
+                                <span className="ch-origem">
+                                  <Database aria-hidden style={{ width: 12, height: 12 }} /> {t('Origem:')} {m.origem}
+                                </span>
+                              </>
+                            )}
+                            {m.proposta && !m.decidida && (
+                              <div className="ch-proposta">
+                                <span className="label-mono">{t('Proposta · só acontece se você confirmar')}</span>
+                                <div className="linha" style={{ gap: 8, flexWrap: 'wrap', marginTop: 6 }}>
+                                  <button
+                                    type="button"
+                                    className="btn btn-solid peq"
+                                    onClick={() => m.proposta && void confirmar(k, m.proposta)}
+                                  >
+                                    <Check aria-hidden /> {m.proposta.rot}
+                                  </button>
+                                  <button
+                                    type="button"
+                                    className="btn btn-outline peq"
+                                    onClick={() =>
+                                      naAtual((c) => ({
+                                        ...c,
+                                        msgs: c.msgs.map((x, i) => (i === k ? { ...x, decidida: 'nao' as const } : x)),
+                                      }))
+                                    }
+                                  >
+                                    {t('Agora não')}
+                                  </button>
+                                </div>
+                              </div>
+                            )}
+                            {m.decidida && (
+                              <span className="ch-origem">
+                                {m.decidida === 'ok' ? (
+                                  <Check aria-hidden style={{ width: 12, height: 12 }} />
+                                ) : (
+                                  <X aria-hidden style={{ width: 12, height: 12 }} />
+                                )}{' '}
+                                {m.decidida === 'ok' ? t('Feito') : t('Recusado')}
+                              </span>
+                            )}
+                            <div className="ch-avaliar">
+                              <button
+                                type="button"
+                                aria-pressed={m.av === 'bom'}
+                                aria-label={t('Resposta útil')}
+                                onClick={() => avaliar(k, 'bom')}
+                              >
+                                <ThumbsUp aria-hidden />
+                              </button>
+                              <button type="button" aria-pressed={m.av === 'ruim'} onClick={() => avaliar(k, 'ruim')}>
+                                <ThumbsDown aria-hidden /> {t('Não faz sentido aqui')}
+                              </button>
+                            </div>
+                          </>
+                        )}
+                      </div>
+                    );
+                  })}
+                  {pendenteAqui && (
+                    <div className="ch-msg ia">
+                      <span className="ch-ferramenta">
+                        <LoaderCircle aria-hidden className="gira" /> {pendenteAqui.ferramenta ?? t('pensando')}…
+                      </span>
                     </div>
                   )}
-                  <div className="max-w-[82%] flex flex-col space-y-1">
-                    <div
-                      className={`p-3.5 rounded-2xl text-xs leading-relaxed border shadow-xs ${
-                        isUser
-                          ? 'bg-rare-soft text-rare-ink border-rare rounded-tr-none font-semibold'
-                          : 'bg-surface text-ink border-border-subtle rounded-tl-none font-medium'
-                      }`}
-                    >
-                      {/* Preserve line breaks and output lists nicely */}
-                      {msg.content.split('\n').map((para, pIdx) => {
-                        // Basic markdown rendering helper for bold or bullet points
-                        if (para.trim().startsWith('* ') || para.trim().startsWith('- ')) {
-                          return (
-                            <li key={pIdx} className="ms-3 list-disc mt-1 text-inherit">
-                              {para.replace(/^[\s*-]+/, '')}
-                            </li>
-                          );
-                        }
-                        if (para.trim().startsWith('###')) {
-                          return (
-                            <h5
-                              key={pIdx}
-                              className="font-display font-extrabold text-[12.5px] mt-2.5 mb-1 text-inherit first:mt-0"
-                            >
-                              {para.replace('###', '').trim()}
-                            </h5>
-                          );
-                        }
-                        if (para.trim().startsWith('**')) {
-                          return (
-                            <p key={pIdx} className="font-bold mt-1.5 text-inherit first:mt-0">
-                              {para.replace(/\*\*/g, '').trim()}
-                            </p>
-                          );
-                        }
+                </>
+              ) : (
+                <div className="ch-msg ia">
+                  {t(
+                    'Oi! Sou o iChat do seu estudo. Enxergo a tela em que você está e respondo sobre as suas palavras e sessões.',
+                  )}{' '}
+                  <Sparkles aria-hidden style={{ width: 13, height: 13, display: 'inline-block', verticalAlign: -2 }} />
+                  <div className="chips" style={{ marginTop: 10 }}>
+                    {SUGESTOES.map((s) => (
+                      <button type="button" className="pill" key={s} onClick={() => void enviar(t(s), [])}>
+                        {t(s)}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="ch-compor">
+              {mencao && (
+                <div className="ch-pop" role="listbox" aria-label={t('Sugestões')}>
+                  <div className="ch-pop-cab">
+                    {mencao === '@'
+                      ? t('Palavras do caderno')
+                      : mencao === '#'
+                        ? t('Sessões da biblioteca')
+                        : t('Ações')}
+                  </div>
+                  {itensDaMencao.length ? (
+                    itensDaMencao.map((x, i) => (
+                      <button
+                        type="button"
+                        role="option"
+                        aria-selected={i === 0}
+                        className={i === 0 ? 'foco' : ''}
+                        key={x.id}
+                        onClick={() => escolherFicha(mencao, x.id, x.rot)}
+                      >
+                        <span className={`ch-sig ${CLASSE_DO_SIGILO[mencao]}`}>{mencao}</span>
+                        <span style={{ flex: 1, minWidth: 0 }}>
+                          <b>{x.rot}</b>
+                          <small>{x.meta}</small>
+                        </span>
+                      </button>
+                    ))
+                  ) : (
+                    <p className="mut" style={{ padding: 12, fontSize: 12.5 }}>
+                      {mencao === '@' && deck === null ? t('Carregando o caderno…') : t('Nenhum resultado.')}
+                    </p>
+                  )}
+                </div>
+              )}
+              {ferramentas && (
+                <div className="ch-pop ch-ferr" role="menu">
+                  <div className="ch-pop-cab destaque">
+                    <Sparkles aria-hidden style={{ width: 14, height: 14 }} /> {t('Ferramentas para')} <b>{nome}</b>
+                  </div>
+                  {ferramentasDaTela(activeView).map(([sec, itens]) => (
+                    <React.Fragment key={sec}>
+                      <div className="ch-sec">{t(sec)}</div>
+                      {itens.map((f) => {
+                        const Icone = ICONE_DA_FERRAMENTA[f.id];
                         return (
-                          <p key={pIdx} className={pIdx > 0 ? 'mt-1.5' : ''}>
-                            {para}
-                          </p>
+                          <button type="button" role="menuitem" key={f.id} onClick={() => usarFerramenta(f.id)}>
+                            <span className="ib" style={{ width: 30, height: 30, borderRadius: 9 }}>
+                              <Icone aria-hidden style={{ width: 15, height: 15 }} />
+                            </span>
+                            <span style={{ flex: 1, minWidth: 0 }}>
+                              <b>{t(f.t)}</b>
+                              <small>{t(f.d)}</small>
+                            </span>
+                          </button>
                         );
                       })}
-                    </div>
-                    <span className={`text-[8.5px] font-mono text-ink-faint ${isUser ? 'text-end' : 'text-start'}`}>
-                      {msg.timestamp}
-                    </span>
-                  </div>
-                  {isUser && (
-                    <div className="w-7 h-7 rounded-full bg-accent text-white flex items-center justify-center text-xs font-bold shrink-0 mt-1 shadow-sm">
-                      U
-                    </div>
-                  )}
+                    </React.Fragment>
+                  ))}
                 </div>
-              );
-            })}
-
-          {/* AI Loader bubble */}
-          {loading && (
-            <div className="flex gap-3 justify-start animate-pulse">
-              <div className="w-7 h-7 rounded-full bg-rare-soft text-rare-ink flex items-center justify-center shrink-0 mt-1">
-                <Sparkles className="w-3.5 h-3.5" />
-              </div>
-              <div className="p-3 bg-surface text-ink-muted border border-border-subtle rounded-2xl rounded-tl-none text-xs flex items-center gap-1.5 shadow-sm font-semibold">
-                <RefreshCw className="w-3.5 h-3.5 animate-spin text-rare" />
-                <span>Analisando contexto do Babel...</span>
-              </div>
+              )}
+              <button
+                type="button"
+                className="ch-mais"
+                aria-expanded={ferramentas}
+                aria-label={t('Ferramentas do iChat')}
+                onClick={() => {
+                  setFerramentas((v) => !v);
+                  setMencao(null);
+                }}
+              >
+                <Plus aria-hidden />
+              </button>
+              <label className="sr" htmlFor="ch-input">
+                {t('Pergunte ao iChat')}
+              </label>
+              <input
+                id="ch-input"
+                ref={entradaRef}
+                className="campo"
+                autoComplete="off"
+                placeholder={t('Pergunte algo: use @palavra, #sessão, !ação')}
+                disabled={digitando}
+                value={rascunho}
+                onChange={(e) => aoDigitar(e.target.value)}
+                onKeyDown={aoTeclar}
+              />
+              <button
+                type="button"
+                className="ch-enviar"
+                aria-label={t('Enviar')}
+                disabled={digitando}
+                onClick={() => void enviar(rascunho)}
+              >
+                <Send aria-hidden />
+              </button>
             </div>
-          )}
-
-          <div ref={messagesEndRef} />
-        </div>
-
-        {/* Dynamic Navigation History Log (registered navigation tracking) drawer footer expansion */}
-        {activeSession && activeSession.navigationHistory && activeSession.navigationHistory.length > 1 && (
-          <div className="px-4 py-2 border-t border-border-subtle bg-canvas shrink-0 flex items-center justify-between text-[10px]">
-            <span className="text-ink-faint font-mono flex items-center gap-1">
-              <History className="w-3 h-3" />
-              <span>Log de Navegação:</span>
-              <strong className="text-ink-muted truncate max-w-[150px]">
-                {activeSession.navigationHistory[activeSession.navigationHistory.length - 1].view}
-              </strong>
-            </span>
-            <span className="text-rare font-mono font-bold text-[9px] uppercase">
-              {contextosFixados.length > 0 ? `${contextosFixados.length} contexto(s) fixado(s)` : 'Contexto fluido'}
-            </span>
-          </div>
+          </>
         )}
-
-        {/* Chat Input form bar with paperclip tool launcher */}
-        <div className="p-4 border-t border-border-subtle bg-surface shrink-0 relative">
-          {/* Popover/collapsed tools above input */}
-          {showTools && (
-            <div className="absolute bottom-18 left-4 right-4 bg-surface rounded-2xl border border-border-subtle p-3.5 shadow-2xl z-50 animate-in slide-in-from-bottom-2 duration-200">
-              <div className="flex items-center justify-between mb-2">
-                <div className="flex items-center gap-1.5">
-                  {contextTools.icon}
-                  <span className="text-xs font-display font-extrabold text-ink uppercase tracking-wider">
-                    {contextTools.title}
-                  </span>
-                </div>
-                <button
-                  onClick={() => setShowTools(false)}
-                  className="p-1 hover:bg-canvas rounded-lg text-ink-muted hover:text-ink cursor-pointer"
-                >
-                  <X className="w-3.5 h-3.5" />
-                </button>
-              </div>
-
-              <p className="text-[10.5px] text-ink-muted mb-2.5 leading-relaxed font-semibold">{contextTools.desc}</p>
-
-              {/* Context Tool Action pills */}
-              <div className="flex flex-col gap-1.5 max-h-[140px] overflow-y-auto custom-scrollbar">
-                {contextTools.tools.map((tool, index) => (
-                  <button
-                    key={index}
-                    onClick={() => {
-                      handleSendMessage(tool.text);
-                      setShowTools(false);
-                    }}
-                    className="w-full text-start bg-canvas hover:bg-rare-soft/5 border border-border-subtle hover:border-rare/30 px-3 py-2 rounded-lg text-[11px] text-ink hover:text-rare font-bold transition-all flex items-center justify-between group cursor-pointer shadow-btn"
-                  >
-                    <span className="truncate pe-2">{tool.label}</span>
-                    <ArrowRight className="w-3.5 h-3.5 shrink-0 opacity-40 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all text-rare" />
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-
-          <div className="flex gap-2 items-center">
-            {/* Paperclip collapse action */}
-            <button
-              onClick={() => setShowTools((prev) => !prev)}
-              className={`p-2.5 rounded-xl border transition-all cursor-pointer flex items-center justify-center ${
-                showTools
-                  ? 'bg-rare-soft/20 border-rare/30 text-rare'
-                  : 'bg-canvas border-border-subtle text-ink-muted hover:text-ink hover:bg-surface-hover'
-              }`}
-              title="Ferramentas de Contexto (Clipe)"
-            >
-              <Paperclip className="w-4 h-4" />
-            </button>
-
-            <input
-              id="ichat-message"
-              name="ichat-message"
-              type="text"
-              value={chatInput}
-              onChange={(e) => setChatInput(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') handleSendMessage();
-              }}
-              placeholder={`Sussurre uma dúvida sobre ${getFriendlyViewName(activeView)}...`}
-              className="flex-1 px-4 py-2.5 bg-canvas text-xs border border-border-subtle rounded-xl outline-none focus:border-rare text-ink placeholder:text-ink-muted font-medium shadow-inner animate-in duration-200"
-            />
-
-            <button
-              onClick={() => handleSendMessage()}
-              disabled={!chatInput.trim() || loading}
-              className="px-4 py-2.5 bg-rare-soft hover:brightness-95 disabled:opacity-50 text-rare-ink rounded-xl flex items-center justify-center cursor-pointer transition-colors text-xs font-bold font-display shadow-btn self-stretch"
-            >
-              <Send className="w-4 h-4" />
-            </button>
-          </div>
-        </div>
-      </div>
-    </>
+      </section>
+    </div>
   );
 }

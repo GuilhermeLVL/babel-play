@@ -21,6 +21,7 @@ import type { DerivedProgress } from '../../../lib/progress';
 import type { VocabCard } from '../../../types';
 import { Confianca, rotuloDaBase } from '../../Honestidade';
 import { Barra, TituloDeSecao } from '../../ui';
+import ConquistasRecentes from './ConquistasRecentes';
 
 /**
  * O PROGRESSO — nível, a curva no tempo, e a fluência estimada.
@@ -138,6 +139,9 @@ export default function AbaProgresso({ progress }: AbaProgressoProps) {
           </div>
         ))}
       </div>
+
+      {/* ── CONQUISTAS RECENTES ── a seção do protótipo, logo abaixo dos ladrilhos. */}
+      <ConquistasRecentes />
 
       {/* ── A CURVA ──────────────────────────────────────────────────────────────────────────
           Reconstruída dos carimbos de tempo que já existem (sessões, revisões, itens de jogo),

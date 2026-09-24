@@ -1,9 +1,9 @@
-import { type Dispatch, type SetStateAction,useEffect, useRef, useState } from 'react';
+import { type Dispatch, type SetStateAction, useEffect, useRef, useState } from 'react';
 
-import type { Recording,ViewType } from '../../types';
+import type { Recording, ViewType } from '../../types';
 import { isOnAuthCallback } from '../authCallback';
 import { askNavGuard } from '../navGuard';
-import { type EstadoDeRota,lerUrlAtual, publicarUrl, type ViewDeRota } from '../rotas';
+import { type EstadoDeRota, lerUrlAtual, publicarUrl, type ViewDeRota } from '../rotas';
 import type { PracticeSeed } from '../sentences';
 
 export interface DependenciasDaNavegacao {
@@ -27,8 +27,6 @@ export interface EstadoDaNavegacao {
   setIsChatOpen: Dispatch<SetStateAction<boolean>>;
   isChatDocked: boolean;
   setIsChatDocked: Dispatch<SetStateAction<boolean>>;
-  isChatMaximized: boolean;
-  setIsChatMaximized: Dispatch<SetStateAction<boolean>>;
   practiceSeed: PracticeSeed | null;
   setPracticeSeed: Dispatch<SetStateAction<PracticeSeed | null>>;
   navigateTo: (view: string, data?: any) => void;
@@ -40,9 +38,15 @@ export interface EstadoDaNavegacao {
  */
 export function useNavegacao(deps: DependenciasDaNavegacao): EstadoDaNavegacao {
   const {
-    activeView, setActiveView,
-    selectedRecordingId, setSelectedRecordingId, setResumingRecordingId,
-    recordings, lojaAba, setLojaAba, setPedindoLogin,
+    activeView,
+    setActiveView,
+    selectedRecordingId,
+    setSelectedRecordingId,
+    setResumingRecordingId,
+    recordings,
+    lojaAba,
+    setLojaAba,
+    setPedindoLogin,
   } = deps;
 
   const [analysisSubTab, setAnalysisSubTab] = useState<string>('transcript');
@@ -53,7 +57,6 @@ export function useNavegacao(deps: DependenciasDaNavegacao): EstadoDaNavegacao {
   const [isChatDocked, setIsChatDocked] = useState<boolean>(() => {
     return localStorage.getItem('ichat_docked') === 'true';
   });
-  const [isChatMaximized, setIsChatMaximized] = useState<boolean>(false);
 
   /**
    * SEMENTE DE PRÁTICA — o canal que faz "praticar este trecho" funcionar de qualquer tela.
@@ -67,7 +70,10 @@ export function useNavegacao(deps: DependenciasDaNavegacao): EstadoDaNavegacao {
   const navigateTo = (view: string, data?: any) => {
     // Sem conta: a porta de entrada é um destino ("Entrar" no menu), e o que exige conta abre o
     // convite em vez de navegar — a tela atual fica como está.
-    if (view === 'login') { setPedindoLogin(true); return; }
+    if (view === 'login') {
+      setPedindoLogin(true);
+      return;
+    }
     // Tela que exige conta NAVEGA normalmente: lá o CartaoDeConvite (inline) explica. O modal
     // fica só para ações (importar, iChat) — navegação abrindo modal era convite demais.
     // A tela atual pode ter trabalho em risco (uma captura em andamento, por exemplo). Ela
@@ -172,12 +178,16 @@ export function useNavegacao(deps: DependenciasDaNavegacao): EstadoDaNavegacao {
   }, []);
 
   return {
-    analysisSubTab, setAnalysisSubTab,
-    liveTranscription, setLiveTranscription,
-    isChatOpen, setIsChatOpen,
-    isChatDocked, setIsChatDocked,
-    isChatMaximized, setIsChatMaximized,
-    practiceSeed, setPracticeSeed,
+    analysisSubTab,
+    setAnalysisSubTab,
+    liveTranscription,
+    setLiveTranscription,
+    isChatOpen,
+    setIsChatOpen,
+    isChatDocked,
+    setIsChatDocked,
+    practiceSeed,
+    setPracticeSeed,
     navigateTo,
   };
 }

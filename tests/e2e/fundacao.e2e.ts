@@ -108,9 +108,7 @@ test.describe('shell de tela grande', () => {
     // `[data-rot]::after`).
     const item = rail.getByRole('button', { name: /^(Início|Página Inicial)$/ })
     await item.hover()
-    await expect
-      .poll(() => item.evaluate((el) => getComputedStyle(el, '::after').opacity))
-      .toBe('1')
+    await expect.poll(() => item.evaluate((el) => getComputedStyle(el, '::after').opacity)).toBe('1')
     expect(await item.getAttribute('data-rot')).toMatch(/Início|Página Inicial/)
 
     await page.reload()
@@ -131,7 +129,7 @@ test.describe('shell de tela grande', () => {
       localStorage.setItem('ichat_largura', '400')
     })
     await abrir(page)
-    await clicarRobusto(page, page.getByRole('button', { name: 'Abrir o iChat, seu tutor de estudos' }))
+    await clicarRobusto(page, page.getByRole('button', { name: 'Abrir o iChat' }))
 
     const alca = page.getByRole('separator', { name: 'Largura do iChat' })
     await expect(alca).toBeVisible()
@@ -145,10 +143,11 @@ test.describe('shell de tela grande', () => {
     await expect.poll(async () => (await principal.boundingBox())!.width).toBeLessThan(antes)
     expect(await semRolagemLateral(page)).toBe(true)
 
-    // Janela estreita: 800 − rail − 432 deixaria o conteúdo abaixo de 440 px → o chat flutua.
+    // Janela estreita: 800 − rail − 432 deixaria o conteúdo abaixo de 440 px → o chat flutua,
+    // e a escolha de fixar continua marcada (o botão segue oferecendo "Soltar", como no protótipo).
     await page.setViewportSize({ width: 800, height: 800 })
     await expect(alca).toBeHidden()
-    await expect(page.getByRole('button', { name: 'Fixar o iChat na lateral direita' })).toHaveAttribute(
+    await expect(page.getByRole('button', { name: 'Soltar o iChat (janela flutuante)' })).toHaveAttribute(
       'aria-pressed',
       'true',
     )

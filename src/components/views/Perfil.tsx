@@ -35,7 +35,12 @@ export default function Perfil({ progress, ageProfile }: PerfilProps) {
         sobrancelha="Sua conta"
         icone={UserRound}
         titulo="Seu perfil"
-        sub="Como o app te chama, o que você quer alcançar e onde está em cada idioma."
+        /* O protótipo troca o subtítulo por aba: "Você" fala do formulário; as outras duas, do resto. */
+        sub={
+          aba === 'voce'
+            ? 'Como o app te chama, o que você quer alcançar e onde está em cada idioma.'
+            : 'Os seus dados, o que você já conquistou e onde você está no idioma.'
+        }
         abas={
           <Abas
             rotuloDoGrupo="Seções do perfil"

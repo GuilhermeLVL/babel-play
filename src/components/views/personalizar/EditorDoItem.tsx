@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 
 import { gastarSeeds } from '../../../data/api';
-import { applyCustomColors, THEME_OPTIONS, type ThemeType } from '../../../lib/appearance';
+import { applyCustomColors, readCustomColors, THEME_OPTIONS, type ThemeType } from '../../../lib/appearance';
 import {
   type Intensidade,
   intensidadeMaxima,
@@ -28,7 +28,7 @@ import {
   temOCroma,
 } from '../../../lib/galeria/cromas';
 import { MATIZES } from '../../../lib/galeria/paletas';
-import type { ItemDaLoja } from '../../../lib/loja';
+import { CATALOGO_DA_LOJA, estadoDoItem, type ItemDaLoja } from '../../../lib/loja';
 import { lerPackCustom, PACK_CUSTOM, readPack, setPack, setPackCustom } from '../../../lib/particulas';
 import {
   FORMAS_DE_RASTRO,
@@ -37,8 +37,10 @@ import {
   readRastro,
   setRastro,
 } from '../../../lib/rastroDoMouse';
+import { persistTheme } from '../../../lib/theme';
 import { toast } from '../../Toast';
 import { IconeEmBloco } from '../../ui';
+import CoresDoTema, { corCalculada, type CoresLivres } from './CoresDoTema';
 import SeletorDeEmojis from './SeletorDeEmojis';
 import SeletorDePaletas from './SeletorDePaletas';
 
@@ -153,6 +155,57 @@ export default function EditorDoItem({
         ? item.alvo
         : FORMAS_DE_RASTRO[0].id;
   });
+
+  /**
+   * "EDITAR O TEMA" (protótipo): as quatro cores e os cantos, partindo do que está na tela agora.
+   * Aplicar = Tema Customizado com essas cores (peça da Loja — sem ela, a prévia funciona e o botão
+   * diz onde liberar).
+   */
+  const ehTema = item.tipo === 'tema';
+  const [cores, setCores] = useState<CoresLivres>(() => ({
+    destaque: corCalculada('--accent', '#E8542B'),
+    fundo: corCalculada('--canvas', '#F4F1EA'),
+    cartao: corCalculada('--surface', '#FBFAF6'),
+    texto: corCalculada('--ink', '#26241F'),
+    cantos: readCustomColors().cantos ?? 'suaves',
+  }));
+  const temaCustom = CATALOGO_DA_LOJA.find((i) => i.id === 'tema-custom');
+  const podeCoresLivres = !!temaCustom && estadoDoItem(temaCustom, nivel, saldo).estado === 'equipavel';
+
+  const aplicarCores = () => {
+    if (!podeCoresLivres) {
+      toast.warn('As cores livres vêm com o Tema Customizado. Ele está na Loja.');
+      onIrParaLoja?.();
+      return;
+    }
+    persistTheme({
+      customColors: {
+        canvas: cores.fundo,
+        surface: cores.cartao,
+        ink: cores.texto,
+        accent: cores.destaque,
+        cantos: cores.cantos,
+      },
+    });
+    setTheme('custom');
+    toast.ok('Tema aplicado. Restaure em Personalizar → Editar o tema.');
+    aoFechar();
+  };
+
+  const restaurarPadrao = () => {
+    const base = THEME_OPTIONS.find((t) => t.id === item.alvo)?.swatches;
+    persistTheme({ customColors: { ...readCustomColors(), cantos: undefined } });
+    aoEquipar();
+    if (base)
+      setCores({
+        destaque: base.accent.toUpperCase(),
+        fundo: base.canvas.toUpperCase(),
+        cartao: base.surface.toUpperCase(),
+        texto: base.ink.toUpperCase(),
+        cantos: 'suaves',
+      });
+    toast.ok('Tema de volta ao padrão');
+  };
 
   /**
    * O CROMA PRECISA APARECER. Comprar uma cor e não ver nada mudar seria o pior tipo de controle
@@ -282,9 +335,9 @@ export default function EditorDoItem({
         <div className="dlg-cab">
           <IconeEmBloco icone={Palette} />
           <div style={{ minWidth: 0 }}>
-            <h2 id="dlg-editor-titulo">Personalizar {item.nome}</h2>
+            <h2 id="dlg-editor-titulo">{ehTema ? 'Editar o tema' : `Personalizar ${item.nome}`}</h2>
             <p className="mut" style={{ fontSize: 13 }}>
-              {item.desc}
+              {ehTema ? 'As mudanças aparecem na prévia. Aplicar vale para o app todo.' : item.desc}
             </p>
           </div>
           <button type="button" className="x" aria-label="Fechar" onClick={aoFechar}>
@@ -292,6 +345,19 @@ export default function EditorDoItem({
           </button>
         </div>
         <div className="dlg-corpo pilha-g">
+          {/* ── EDITAR O TEMA: as quatro cores, os cantos, a prévia e o contraste (protótipo) ── */}
+          {ehTema && (
+            <div className="pilha">
+              <CoresDoTema cores={cores} aoMudar={setCores} />
+              {!podeCoresLivres && (
+                <p className="mut" style={{ fontSize: 12.5 }}>
+                  <Lock aria-hidden style={{ width: 13, height: 13, display: 'inline', verticalAlign: -2 }} /> A prévia
+                  é livre; aplicar cores livres pede o Tema Customizado (Loja). Os cromas e as paletas abaixo já valem.
+                </p>
+              )}
+            </div>
+          )}
+
           {/* ── CROMAS ─────────────────────────────────────────────────────── */}
           {cromas.length > 0 && (
             <section>
@@ -346,7 +412,7 @@ export default function EditorDoItem({
           {/* ── TEMA: as 200 paletas, a profundidade que o croma não alcança ── */}
           {item.tipo === 'tema' && (
             <section>
-              <p className="label-mono mb-2">Paletas — trocar as quatro cores, não só o acento</p>
+              <p className="label-mono mb-2">Paletas prontas — trocar as quatro cores de uma vez</p>
               <SeletorDePaletas
                 nivel={nivel}
                 saldo={saldo}
@@ -548,6 +614,11 @@ export default function EditorDoItem({
           )}
         </div>
         <div className="dlg-pe">
+          {ehTema && (
+            <button type="button" className="link" style={{ marginRight: 'auto' }} onClick={restaurarPadrao}>
+              Restaurar o padrão
+            </button>
+          )}
           <button type="button" className="btn btn-outline" onClick={aoFechar}>
             Cancelar
           </button>
@@ -555,11 +626,12 @@ export default function EditorDoItem({
             type="button"
             className="btn btn-solid"
             onClick={() => {
+              if (ehTema) return aplicarCores();
               aoEquipar();
               aoFechar();
             }}
           >
-            <Check aria-hidden /> Aplicar e equipar
+            <Check aria-hidden /> {ehTema ? 'Aplicar' : 'Aplicar e equipar'}
           </button>
         </div>
       </dialog>

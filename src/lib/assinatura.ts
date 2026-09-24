@@ -70,6 +70,33 @@ export function estadoDaConta(plan: Plan, status: StatusDeBilling | null, agora 
 
 export const temAssinatura = (e: EstadoDaConta): boolean => e === 'ativa' || e === 'falhou' || e === 'cancelada';
 
+/**
+ * PARA QUEM É O CHECKOUT (Fase 4): o responsável que aceitou o convite pode assinar pelo menor. A
+ * tela de aceite guarda aqui o menor escolhido; o checkout lê, mostra "assinando para…" e manda
+ * `paraUsuario`. O servidor confere o vínculo — isto é só a lembrança da escolha.
+ */
+const CHAVE_DO_BENEFICIARIO = 'babel.checkout.para';
+export interface Beneficiario {
+  id: string;
+  nome: string | null;
+}
+export function lerBeneficiario(): Beneficiario | null {
+  try {
+    const b = JSON.parse(sessionStorage.getItem(CHAVE_DO_BENEFICIARIO) ?? 'null') as Beneficiario | null;
+    return b && typeof b.id === 'string' ? b : null;
+  } catch {
+    return null;
+  }
+}
+export function definirBeneficiario(b: Beneficiario | null): void {
+  try {
+    if (b) sessionStorage.setItem(CHAVE_DO_BENEFICIARIO, JSON.stringify(b));
+    else sessionStorage.removeItem(CHAVE_DO_BENEFICIARIO);
+  } catch {
+    /* sem armazenamento, o responsável escolhe de novo */
+  }
+}
+
 /** Preço mensal do plano, da matriz — nunca escrito à mão numa tela. */
 export const precoMensal = (p: PlanoPago): number => PLAN_MATRIX[p].precoMensalBrl ?? 0;
 
@@ -128,6 +155,8 @@ export async function iniciarAssinatura(dados: {
   nome: string;
   cpfCnpj: string;
   email?: string;
+  /** O responsável assinando pelo menor vinculado (Fase 4): a assinatura nasce na conta dele. */
+  paraUsuario?: string;
 }): Promise<{ link: string | null; erro?: string }> {
   try {
     const r = await apiFetch('/api/billing/assinar', {

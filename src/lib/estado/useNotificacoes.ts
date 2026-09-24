@@ -5,6 +5,7 @@ import type { AppMetrics } from '../../data/api';
 import { t, tp } from '../i18n';
 import { jaNotificado, notificar } from '../notificacoes';
 import type { DerivedProgress } from '../progress';
+import { perfilProtegido } from '../protecaoDoMenor';
 
 /** Dia local "2026-09-24" — a chave das notificações que valem por dia. */
 function hojeLocal(agora = new Date()): string {
@@ -96,6 +97,9 @@ export function useNotificacoes({
   useEffect(() => {
     if (!available || streakDays <= 0 || practicedToday) return;
     const verificar = () => {
+      /* PERFIL PROTEGIDO (Fase 4 — ECA Digital): sem pressão por sequência para menor (ou idade
+         desconhecida). Conferido a cada verificação porque a idade pode chegar depois da montagem. */
+      if (perfilProtegido()) return;
       const agora = new Date();
       if (agora.getHours() < HORA_DO_RISCO) return;
       const chave = `ofensiva:${hojeLocal(agora)}`;

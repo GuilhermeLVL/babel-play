@@ -15,6 +15,7 @@ import { fetchRecordes, type RecordeDoJogo } from '../../../data/api';
 import { eventosVistos, todosOsEventos } from '../../../lib/eventosDeJogo';
 import { t } from '../../../lib/i18n';
 import type { AgeProfileType } from '../../../lib/profile';
+import { perfilProtegido } from '../../../lib/protecaoDoMenor';
 import { lerApelido, lerRanking, type LinhaDoRanking } from '../../../lib/ranking';
 import Dialogo from '../../ui/Dialogo';
 import IconeEmBloco from '../../ui/IconeEmBloco';
@@ -41,6 +42,8 @@ export default function Recordes({ ageProfile, onFechar }: { ageProfile: AgeProf
     void lerRanking(jogoGlobal).then((r) => setRanking(r));
   }, [aba, jogoGlobal]);
 
+  /* Perfil protegido (Fase 4 — ECA Digital): sem ranking público, nem para ver. */
+  const protegido = perfilProtegido();
   const vistos = eventosVistos().length;
   const totalEventos = todosOsEventos().length;
   const apelido = lerApelido();
@@ -55,20 +58,27 @@ export default function Recordes({ ageProfile, onFechar }: { ageProfile: AgeProf
       aoFechar={onFechar}
     >
       <div className="dlg-corpo pilha">
-        <div className="seg" role="radiogroup" aria-label={t('Qual recorde')}>
-          {(
-            [
-              ['meus', t('Meus recordes')],
-              ['global', t('Ranking global')],
-            ] as const
-          ).map(([v, r]) => (
-            <button key={v} type="button" role="radio" aria-checked={aba === v} onClick={() => setAba(v)}>
-              {r}
-            </button>
-          ))}
-        </div>
+        {protegido ? (
+          <p className="mut" style={{ fontSize: 12.5 }}>
+            <Shield aria-hidden style={{ width: 13, height: 13, verticalAlign: -2 }} />{' '}
+            {t('No perfil protegido não há ranking público: os seus recordes ficam só com você.')}
+          </p>
+        ) : (
+          <div className="seg" role="radiogroup" aria-label={t('Qual recorde')}>
+            {(
+              [
+                ['meus', t('Meus recordes')],
+                ['global', t('Ranking global')],
+              ] as const
+            ).map(([v, r]) => (
+              <button key={v} type="button" role="radio" aria-checked={aba === v} onClick={() => setAba(v)}>
+                {r}
+              </button>
+            ))}
+          </div>
+        )}
 
-        {aba === 'meus' ? (
+        {aba === 'meus' || protegido ? (
           <>
             <div className="ladrilhos" style={{ gridTemplateColumns: 'repeat(3,1fr)' }}>
               <div className="cartao ladrilho">

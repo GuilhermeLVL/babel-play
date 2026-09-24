@@ -819,5 +819,6 @@
   "Com mais {n} palavras desta sessão, estes abrem.": "{n} more words from this session and these open.",
   "Com mais material desta sessão, estes abrem. Cada um diz o que falta.": "With more material from this session, these open. Each one says what it needs.",
   "Nenhum jogo abre só com este baralho ainda. Os jogos dizem o que falta.": "No game opens with just this deck yet. The games say what they need.",
-  "Jogando só com este baralho": "Playing with this deck only"
+  "Jogando só com este baralho": "Playing with this deck only",
+  "No perfil protegido não há ranking público: os seus recordes ficam só com você.": "Protected profiles have no public leaderboard: your records stay with you."
 }

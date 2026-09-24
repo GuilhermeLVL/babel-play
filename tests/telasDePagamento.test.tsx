@@ -103,6 +103,62 @@ describe('checkout', () => {
   }
 })
 
+describe('quem paga é adulto (Fase 4)', () => {
+  it('conta de menor não vê o formulário: a tela diz que o responsável assina por ela', async () => {
+    mockApi({})
+    const { definirProtecao } = await import('../src/lib/protecaoDoMenor')
+    definirProtecao({
+      nascimentoInformado: true,
+      faixa: '16-17',
+      protegido: true,
+      exigeResponsavel: false,
+      exigeConsentimentoEspecifico: false,
+      vinculo: { estado: 'nenhum' },
+      restrita: false,
+    })
+    const { default: Checkout } = await import('../src/components/views/planos/Checkout')
+    render(
+      <Checkout
+        plano="pro"
+        aoTrocarPlano={() => {}}
+        plan="free"
+        conta={contaGratis}
+        status={{ configurado: true, assinatura: null }}
+      />,
+    )
+    fireEvent.click(screen.getByRole('button', { name: /Ir para o pagamento/ }))
+    expect(screen.getByRole('heading', { name: 'Quem assina é o seu responsável' })).toBeTruthy()
+    expect(screen.queryByRole('button', { name: /Assinar e pagar/ })).toBeNull()
+    definirProtecao(null)
+  })
+
+  it('o responsável assinando pelo menor manda `paraUsuario`', async () => {
+    const chamadas = mockApi({ '/api/billing/assinar': { linkDePagamento: 'https://sandbox.asaas.com/i/9' } })
+    vi.spyOn(window, 'open').mockReturnValue(null)
+    sessionStorage.setItem('babel.checkout.para', JSON.stringify({ id: 'menor-1', nome: 'Bia' }))
+    const { default: Checkout } = await import('../src/components/views/planos/Checkout')
+    render(
+      <Checkout
+        plano="essencial"
+        aoTrocarPlano={() => {}}
+        plan="free"
+        conta={contaGratis}
+        status={{ configurado: true, assinatura: null }}
+      />,
+    )
+    fireEvent.click(screen.getByRole('button', { name: /Ir para o pagamento/ }))
+    expect(screen.getByText(/assinando para/i)).toBeTruthy()
+    fireEvent.change(screen.getByLabelText('Nome completo'), { target: { value: 'Maria Souza' } })
+    fireEvent.change(screen.getByLabelText('CPF'), { target: { value: '12345678901' } })
+    fireEvent.change(screen.getByLabelText('E-mail para o recibo'), { target: { value: 'maria@exemplo.com' } })
+    fireEvent.click(screen.getByRole('button', { name: /Assinar e pagar/ }))
+    await waitFor(() => expect(chamadas.some((c) => c.url === '/api/billing/assinar')).toBe(true))
+    const pedido = chamadas.find((c) => c.url === '/api/billing/assinar')!
+    expect(JSON.parse(String(pedido.init?.body)).paraUsuario).toBe('menor-1')
+    sessionStorage.removeItem('babel.checkout.para')
+  })
+})
+
 describe('assinatura confirmada', () => {
   it('não comemora se o servidor não disser active', async () => {
     mockApi({

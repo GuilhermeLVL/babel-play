@@ -4,13 +4,16 @@ import {
   CalendarClock,
   CalendarDays,
   ChartColumn,
+  ChevronDown,
   Clock,
   Download,
+  FileText,
   Flame,
   Gamepad2,
   GraduationCap,
   Info,
   Minus,
+  Sheet,
   Sprout,
   Table2,
   Target,
@@ -23,6 +26,7 @@ import type { AppMetrics } from '../../data/api';
 import { type ExerciseResultRow, fetchDeck, fetchExerciseResults } from '../../data/api';
 import type { VocabCard } from '../../types';
 import { CabecalhoDeTela, Tela } from '../ui';
+import MetaDeNivel from './estatisticas/MetaDeNivel';
 
 /**
  * ESTATÍSTICAS — a tela do protótipo aprovado (`T.estatisticas`), sobre dado REAL.
@@ -413,6 +417,21 @@ export default function Estatisticas({ metrics, onChangeView }: EstatisticasProp
   const [periodo, setPeriodo] = useState<7 | 30 | 90>(30);
   const [resultados, setResultados] = useState<ExerciseResultRow[] | null>(null);
   const [cartoes, setCartoes] = useState<VocabCard[] | null>(null);
+  const [menuExportar, setMenuExportar] = useState(false);
+  // O menu fecha no clique fora e no Esc, como o `.menu-midia` do protótipo.
+  useEffect(() => {
+    if (!menuExportar) return;
+    const fora = (e: MouseEvent) => {
+      if (!(e.target as HTMLElement).closest?.('[data-exportar]')) setMenuExportar(false);
+    };
+    const esc = (e: KeyboardEvent) => e.key === 'Escape' && setMenuExportar(false);
+    document.addEventListener('mousedown', fora);
+    document.addEventListener('keydown', esc);
+    return () => {
+      document.removeEventListener('mousedown', fora);
+      document.removeEventListener('keydown', esc);
+    };
+  }, [menuExportar]);
 
   useEffect(() => {
     let vivo = true;
@@ -498,9 +517,46 @@ export default function Estatisticas({ metrics, onChangeView }: EstatisticasProp
         titulo="Estatísticas"
         sub="Quanto você estudou, o que aprendeu e o que vem pela frente."
         acoes={
-          <button type="button" className="btn btn-outline" onClick={exportarCsv} disabled={!dias}>
-            <Download aria-hidden /> Exportar CSV
-          </button>
+          /* "Exportar ▾" do protótipo com o que o app sabe gerar: os dados em CSV e a página
+             impressa (o navegador salva em PDF). Relatório por e-mail e imagem não existem aqui. */
+          <div className="linha" style={{ gap: 8, position: 'relative' }} data-exportar>
+            <button
+              type="button"
+              className="btn btn-outline"
+              aria-haspopup="menu"
+              aria-expanded={menuExportar}
+              disabled={!dias}
+              onClick={() => setMenuExportar((v) => !v)}
+            >
+              <Download aria-hidden /> Exportar <ChevronDown aria-hidden />
+            </button>
+            {menuExportar && (
+              <div className="menu-midia cartao" role="menu" style={{ top: 46 }}>
+                <button
+                  type="button"
+                  role="menuitem"
+                  onClick={() => {
+                    setMenuExportar(false);
+                    window.setTimeout(() => window.print(), 50);
+                  }}
+                >
+                  <FileText aria-hidden />
+                  Imprimir ou salvar em PDF
+                </button>
+                <button
+                  type="button"
+                  role="menuitem"
+                  onClick={() => {
+                    setMenuExportar(false);
+                    exportarCsv();
+                  }}
+                >
+                  <Sheet aria-hidden />
+                  Dados em CSV
+                </button>
+              </div>
+            )}
+          </div>
         }
       />
       {filtros}
@@ -724,6 +780,8 @@ export default function Estatisticas({ metrics, onChangeView }: EstatisticasProp
           tabela={<Tabela cab={['Nível', 'Palavras']} linhas={porNivel} />}
         />
       </div>
+
+      <MetaDeNivel metrics={metrics} />
     </Tela>
   );
 }

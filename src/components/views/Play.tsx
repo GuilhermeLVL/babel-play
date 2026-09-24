@@ -2745,6 +2745,10 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
         nivelAtivo={fonte.nivel}
         onEscolherNivel={fonte.id === 'trilha' ? (n) => setFonte((f) => ({ ...f, nivel: n as CefrLevel })) : undefined}
         historicoDesde={historicoDesde}
+        onTrocarFonte={() => {
+          setVendoMapa(false);
+          setSeletorAberto(true);
+        }}
       />,
     );
   }

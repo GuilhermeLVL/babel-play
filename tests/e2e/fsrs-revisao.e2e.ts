@@ -34,9 +34,10 @@ test.describe('Revisao FSRS', () => {
     await expect(page.getByRole('main')).toBeVisible()
     await fecharSobreposicoes(page)
 
-    /* A tela abre na gravacao mais recente (`recordings[0]`), que e a da fixture. */
-    /* `.first()`: o titulo aparece duas vezes (cabecalho da sessao e cabecalho do treino). */
-    await expect(page.getByRole('heading', { name: 'Sessao e2e de revisao' }).first()).toBeVisible({ timeout: 15_000 })
+    /* A tela abre na gravacao mais recente (`recordings[0]`), que e a da fixture. `/revisar` e tela
+       propria (prototipo `T.revisao`): sem o cabecalho da sessao, entao quem prova que e a sessao
+       certa e a palavra no cartao, conferida contra os cartoes da fixture mais abaixo. */
+    await expect(page.getByRole('heading', { level: 1 })).toHaveCount(1, { timeout: 15_000 })
 
     /* `/revisar` E o "Revisar agora" (prototipo aprovado): a rodada abre sozinha, sem menu antes.
        Cartao recem-criado vence na hora, entao a fila tem os cartoes da sessao. Se ela nao abrir

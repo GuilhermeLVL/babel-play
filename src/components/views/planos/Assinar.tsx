@@ -26,7 +26,7 @@ interface StatusDeBilling {
   assinatura: { plano: string; status: string; valeAte: number | null; provedor: string | null } | null;
 }
 
-const VENDAVEIS = (['essencial', 'pro'] as const) satisfies readonly PlanoDeAssinatura[];
+const VENDAVEIS = ['essencial', 'pro'] as const satisfies readonly PlanoDeAssinatura[];
 
 export default function Assinar() {
   const [status, setStatus] = useState<StatusDeBilling | null>(null);
@@ -41,9 +41,15 @@ export default function Assinar() {
     let vivo = true;
     void apiFetch('/api/billing/status')
       .then(async (r) => (r.ok ? ((await r.json()) as StatusDeBilling) : null))
-      .then((s) => { if (vivo && s) setStatus(s); })
-      .catch(() => { /* sem status, o bloco não renderiza — nunca inventa estado */ });
-    return () => { vivo = false; };
+      .then((s) => {
+        if (vivo && s) setStatus(s);
+      })
+      .catch(() => {
+        /* sem status, o bloco não renderiza — nunca inventa estado */
+      });
+    return () => {
+      vivo = false;
+    };
   }, []);
 
   // Self-host e modo sem conta não têm o que comprar; sem billing configurado, nada a prometer.
@@ -56,11 +62,10 @@ export default function Assinar() {
    */
   if (!authRequired || !status?.configurado) {
     return (
-      <section className="card-panel bg-surface p-5" data-testid="assinar">
-        <p className="text-[12.5px] text-ink-muted max-w-[68ch] leading-relaxed">
-          Nesta instalação não há assinatura — sem conta e sem cobrança configurada, não existe o
-          que cobrar. <b className="text-ink">O plano Grátis é o que está rodando aqui</b>, e ele
-          é o app inteiro rodando no seu computador.
+      <section className="cartao p5" data-testid="assinar">
+        <p className="mut" style={{ fontSize: 13, maxWidth: '68ch' }}>
+          Nesta instalação não há assinatura — sem conta e sem cobrança configurada, não existe o que cobrar.{' '}
+          <b>O plano Grátis é o que está rodando aqui</b>, e ele é o app inteiro rodando no seu computador.
         </p>
       </section>
     );
@@ -68,7 +73,8 @@ export default function Assinar() {
   const ativa = status.assinatura && (status.assinatura.status === 'active' || status.assinatura.status === 'past_due');
 
   const assinar = async () => {
-    setErro(''); setOcupado(true);
+    setErro('');
+    setOcupado(true);
     try {
       const r = await apiFetch('/api/billing/assinar', {
         method: 'POST',
@@ -76,7 +82,10 @@ export default function Assinar() {
         body: JSON.stringify({ plano, nome: nome.trim(), cpfCnpj: cpf.replace(/\D/g, '') }),
       });
       const corpo = (await r.json()) as { linkDePagamento?: string | null; error?: string };
-      if (!r.ok) { setErro(corpo.error ?? `falha (HTTP ${r.status})`); return; }
+      if (!r.ok) {
+        setErro(corpo.error ?? `falha (HTTP ${r.status})`);
+        return;
+      }
       if (corpo.linkDePagamento) {
         window.open(corpo.linkDePagamento, '_blank', 'noopener');
         setLinkAberto(true);
@@ -91,10 +100,14 @@ export default function Assinar() {
   };
 
   const cancelar = async () => {
-    setErro(''); setOcupado(true);
+    setErro('');
+    setOcupado(true);
     try {
       const r = await apiFetch('/api/billing/cancelar', { method: 'POST' });
-      if (!r.ok) { setErro('não consegui cancelar — tente de novo.'); return; }
+      if (!r.ok) {
+        setErro('não consegui cancelar — tente de novo.');
+        return;
+      }
       await carregarEntitlements();
       setStatus((s) => (s?.assinatura ? { ...s, assinatura: { ...s.assinatura, status: 'canceled' } } : s));
     } catch {
@@ -105,17 +118,20 @@ export default function Assinar() {
   };
 
   return (
-    <div className="card-panel bg-surface p-5 mt-4" data-testid="planos-assinar">
+    <div className="cartao p5" data-testid="planos-assinar">
       {ativa ? (
         <>
           <p className="text-[13px] text-ink">
             Sua assinatura <strong>{status.assinatura!.plano}</strong> está{' '}
             {status.assinatura!.status === 'past_due' ? 'com pagamento pendente' : 'ativa'}
-            {status.assinatura!.valeAte
-              ? ` — válida até ${data(new Date(status.assinatura!.valeAte))}`
-              : ''}.
+            {status.assinatura!.valeAte ? ` — válida até ${data(new Date(status.assinatura!.valeAte))}` : ''}.
           </p>
-          <button onClick={() => void cancelar()} disabled={ocupado} className="btn-outline mt-3">
+          <button
+            onClick={() => void cancelar()}
+            disabled={ocupado}
+            className="btn btn-outline"
+            style={{ marginTop: 12 }}
+          >
             <XCircle className="w-4 h-4" aria-hidden /> Cancelar renovação
           </button>
           <p className="text-[12px] text-ink-muted mt-2">
@@ -124,23 +140,22 @@ export default function Assinar() {
         </>
       ) : linkAberto ? (
         <p className="text-[13px] text-ink">
-          Abrimos o link de pagamento numa nova aba. Assim que o pagamento confirmar, seu plano
-          ativa sozinho — pode levar alguns minutos. Nada muda até lá, e é assim mesmo.
+          Abrimos o link de pagamento numa nova aba. Assim que o pagamento confirmar, seu plano ativa sozinho — pode
+          levar alguns minutos. Nada muda até lá, e é assim mesmo.
         </p>
       ) : (
         <>
-          <p className="font-bold text-[14px] text-ink mb-3">
-            <CreditCard size={15} className="inline me-1.5" aria-hidden />Assinar
-          </p>
-          <div className="flex flex-wrap gap-2 mb-3" role="radiogroup" aria-label="Plano a assinar">
+          <div className="tsec">
+            <div className="tsec-l">
+              <div className="tsec-t">
+                <CreditCard aria-hidden />
+                <h2>Assinar</h2>
+              </div>
+            </div>
+          </div>
+          <div className="chips" style={{ marginBottom: 12 }} role="radiogroup" aria-label="Plano a assinar">
             {VENDAVEIS.map((p) => (
-              <button
-                key={p}
-                role="radio"
-                aria-checked={plano === p}
-                onClick={() => setPlano(p)}
-                className={plano === p ? 'btn-solid' : 'btn-outline'}
-              >
+              <button key={p} role="radio" aria-checked={plano === p} onClick={() => setPlano(p)} className="pill">
                 {PLAN_MATRIX[p].rotulo} · R$ {PLAN_MATRIX[p].precoMensalBrl!.toFixed(2).replace('.', ',')}/mês
               </button>
             ))}
@@ -151,7 +166,7 @@ export default function Assinar() {
               onChange={(e) => setNome(e.target.value)}
               placeholder="Nome completo"
               aria-label="Nome completo"
-              className="w-full bg-canvas border border-border-subtle rounded-lg px-3 py-2 text-ink text-sm"
+              className="campo"
             />
             <input
               value={cpf}
@@ -159,24 +174,28 @@ export default function Assinar() {
               placeholder="CPF (só números)"
               aria-label="CPF"
               inputMode="numeric"
-              className="w-full bg-canvas border border-border-subtle rounded-lg px-3 py-2 text-ink text-sm"
+              className="campo"
             />
           </div>
           <button
             onClick={() => void assinar()}
             disabled={ocupado || nome.trim().length < 2 || cpf.replace(/\D/g, '').length < 11}
-            className="btn-solid"
+            className="btn btn-solid"
           >
             <ExternalLink className="w-4 h-4" aria-hidden />
             {ocupado ? 'Criando…' : 'Continuar para o pagamento'}
           </button>
           <p className="text-[12px] text-ink-muted mt-2">
-            Pagamento por Pix ou cartão, processado pelo Asaas. Seu CPF vai direto ao processador —
-            não fica no nosso banco.
+            Pagamento por Pix ou cartão, processado pelo Asaas. Seu CPF vai direto ao processador — não fica no nosso
+            banco.
           </p>
         </>
       )}
-      {erro && <p className="text-[12px] text-error-ink mt-2" role="alert">{erro}</p>}
+      {erro && (
+        <p className="text-[12px] text-error-ink mt-2" role="alert">
+          {erro}
+        </p>
+      )}
     </div>
   );
 }

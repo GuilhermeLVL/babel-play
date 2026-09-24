@@ -30,14 +30,16 @@ test.describe('Rota de aquisição no Inventário', () => {
        tenho". Se o padrão inverter, a tela de Personalizar abre cheia de cadeado — e o link
        estaria oferecendo a volta em vez da ida. */
     await expect(alternar, 'a tela deveria abrir no acervo próprio').toHaveText(/^Ver tudo que existe/)
-    await expect(page.getByText(/mostrando as \d+ peças que já são suas/)).toBeVisible()
 
+    /* O acervo próprio é contado na aba "Meu visual" (o protótipo tirou a legenda "mostrando as N
+       peças" de junto do link); o catálogo, no próprio link. */
     const quantosExistem = Number((await alternar.textContent())!.match(/\((\d+)\)/)![1])
-    const quantosMeus = Number((await page.getByText(/mostrando as \d+ peças/).textContent())!.match(/(\d+)/)![1])
+    const quantosMeus = Number(await page.locator('#aba-personalizar .n').textContent())
+    expect(quantosMeus, 'a aba Meu visual deveria contar o acervo próprio').toBeGreaterThan(0)
     expect(quantosExistem, 'o catálogo tem de ser maior que o acervo de quem começa').toBeGreaterThan(quantosMeus)
 
     await clicarRobusto(page, alternar)
-    await expect(page.getByText('mostrando o catálogo inteiro')).toBeVisible()
+    await expect(alternar).toHaveText(`Ver só o meu acervo (${quantosMeus})`)
   })
 
   test('a peça trancada diz o canal e leva à tela que entrega', async ({ page }) => {

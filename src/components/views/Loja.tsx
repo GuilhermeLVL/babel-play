@@ -2,15 +2,18 @@
  * PERSONALIZAR — a casca com DUAS áreas (decisão do dono, 2026-09-12):
  *
  *   · Meu visual → o que já é seu, para equipar (o inventário e o editor por peça).
- *   · Desafios   → tudo o que ainda dá para conseguir, em três seções, na ordem da prioridade
- *                  da tela: o que vem só fazendo (conquistas), o que a temporada entrega por
- *                  estudar (Passe), e por último o que se compra (Loja).
+ *   · Desafios   → tudo o que ainda dá para conseguir, na ordem da prioridade da tela: o que vem
+ *                  só fazendo (como ganhar, como subir, conquistas), o que a temporada entrega
+ *                  por estudar (Passe), e por último o que se compra (Loja).
  *
- * ERAM QUATRO ABAS (Meu visual · Loja · Passe · Desafios) e a barra descrevia CANAIS DE
- * AQUISIÇÃO — comprar com Seeds, ganhar no Passe, ganhar por conquista. São três formas de
- * responder a MESMA pergunta ("o que ainda dá para eu conseguir?"), e quem chega não sabe em qual
- * das três está o item que quer: tinha de procurar nas três. Agora a barra separa o que a pessoa
- * TEM do que ela PODE TER, e a divisão por canal virou ordem de seção dentro da segunda.
+ * A MARCAÇÃO É A DO PROTÓTIPO APROVADO (`T.personalizar` em
+ * `docs/prototipos/consistencia-telas.html`), que o dono trata como o Figma do app: cabeçalho no
+ * molde com o saldo de Seeds como ação, e as duas abas embaixo dele. O CSS é o do protótipo
+ * (`src/styles/prototipo.css`).
+ *
+ * A LOJA NÃO ESTÁ NO PROTÓTIPO, e fica: é o único lugar onde se compra com Seeds e Créditos. Ela
+ * vem por último em Desafios, com o mesmo vocabulário do resto da tela (`.cartao.peca`, `.chips`,
+ * `.btn`), para não parecer outro app no fim da página.
  *
  * Loja e Passe continuam endereçáveis: os nomes antigos de aba resolvem para `conquistas` em
  * `lib/rotas`, e os atalhos internos rolam até a seção (`irParaSecao`).
@@ -19,8 +22,8 @@
  * caminho que equipa no app. Os textos dos estados vêm de `lib/galeria/textos`.
  */
 import { type ContextoDeConquistas, REGRAS } from '@core';
-import { Check, Coins, Crown, Lock, Shirt, Sparkles, Sprout, Trophy } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import { Check, Coins, Crown, Lock, Map as MapIcon, Shirt, ShoppingBag, Sparkles, Sprout, Trophy } from 'lucide-react';
+import { Fragment, useEffect, useMemo, useState } from 'react';
 
 import { gastarCreditos, gastarSeeds } from '../../data/api';
 import type { FonteType, ThemeType } from '../../lib/appearance';
@@ -52,7 +55,7 @@ import CartaoDeConvite from '../conta/CartaoDeConvite';
 import MiniaturaDoItem from '../MiniaturaDoItem';
 import type { AgeProfileType, MenuPositionType } from '../shell/navItems';
 import { toast } from '../Toast';
-import { Abas, PainelDeAba } from '../ui';
+import { Abas, CabecalhoDeTela, PainelDeAba, Tela, TituloDeSecao } from '../ui';
 import Conquistas from './Conquistas';
 import CabecalhoDeTemporada from './loja/CabecalhoDeTemporada';
 import ComprarCreditos from './loja/ComprarCreditos';
@@ -68,7 +71,7 @@ interface LojaProps {
   menuPosition: MenuPositionType;
   setMenuPosition: (p: MenuPositionType) => void;
   onOpenStudio: () => void;
-  /** Contexto das conquistas (montado no App), para a aba "Conquistas" desta tela. */
+  /** Contexto das conquistas (montado no App), para a aba "Desafios" desta tela. */
   ctxConquistas: ContextoDeConquistas | null;
   /** Perfil de exibição — editado na aba Meu visual (único dono desde 2026-08-28). */
   ageProfile: AgeProfileType;
@@ -95,10 +98,10 @@ const FILTROS = [
   { id: 'galeria', nome: 'Galeria' },
 ] as const;
 
-/* v4 (spec personalizar-v4, protótipo aprovado 31/08): 'progressao' virou o PASSE — a mesma
-   informação (o que cada nível libera) na lente de 100 posições aprovada pelo dono. O id antigo
-   segue aceito como alias para navegação gravada/links não quebrarem. */
-/* A tabela de abas validas e a de apelidos mudaram para `lib/rotas.ts`: sao do vocabulario de
+/* A linha de preço do cartão, na mesma letra da linha de progresso das conquistas do protótipo. */
+const LINHA_DE_PRECO = { font: '600 11.5px var(--font-mono)', color: 'var(--ink-muted)' } as const;
+
+/* A tabela de abas validas e a de apelidos moram em `lib/rotas.ts`: sao do vocabulario de
    ROTAS, e mante-las aqui fazia a Loja abrir na aba certa enquanto a URL mostrava
    `/loja/undefined` (achado A16). `normalizarAbaDaLoja` responde pelas duas. */
 
@@ -149,7 +152,7 @@ export default function Loja({
    * A ECONOMIA EXIGE CONTA — e a acessibilidade não (mudança porta-de-entrada).
    *
    * O recorte é por ABA porque esta tela guarda duas coisas de natureza diferente: a economia
-   * (Loja, Passe, Desafios), que só é confiável com o servidor arbitrando, e a acessibilidade
+   * (Desafios, Passe, Loja), que só é confiável com o servidor arbitrando, e a acessibilidade
    * (equipar o que já é seu, o perfil de exibição), que é direito declarado e não se tranca atrás
    * de cadastro. Gatear a view inteira trancaria "Leitura ampliada" junto.
    */
@@ -176,10 +179,7 @@ export default function Loja({
     [filtro, nivel, saldo, comprando], // eslint-disable-line react-hooks/exhaustive-deps
   );
   /* A ORDEM DA VITRINE, e o critério é literal: "dá para levar agora" quer dizer que o SALDO
-     paga. A primeira versão desta divisão usava "não está bloqueado por nível", e aí um item de
-     50 Seeds aparecia como disponível para quem tinha 0 — a prateleira mentia no título, que é
-     pior do que a parede de cadeados que ela veio consertar.
-     A segunda vem ordenada pelo que falta: o mais perto primeiro, porque é ele que responde
+     paga. A segunda vem ordenada pelo que falta: o mais perto primeiro, porque é ele que responde
      "o que eu consigo a seguir". */
   const custoDe = (i: ItemDaLoja): number | null =>
     i.tipo === 'aprimoramento'
@@ -188,8 +188,7 @@ export default function Loja({
         ? (i.precoSeeds ?? null)
         : null;
   /* A PRATELEIRA PAGA sai das duas de Seeds: misturar as moedas na mesma grade faria o preço
-     em Créditos parecer preço em Seeds, que é exatamente a confusão que a régua das quatro
-     origens existe para evitar. */
+     em Créditos parecer preço em Seeds. */
   const premium = itens.filter((i) => i.precoCreditos !== undefined);
   const deSeeds = itens.filter((i) => i.precoCreditos === undefined);
   const podeAgora = deSeeds.filter((i) => {
@@ -209,13 +208,11 @@ export default function Loja({
       return a.nivel - b.nivel;
     });
   /* A PEÇA DA VITRINE, por regra e não por sorteio: o mais caro que o saldo paga hoje; sem
-     nada ao alcance, o que falta menos. Destaque aleatório mudaria a cada render e a pessoa
-     nunca reencontraria o que viu. */
+     nada ao alcance, o que falta menos. */
   const emDestaque = podeAgora.length
     ? [...podeAgora].sort((a, b) => (custoDe(b) ?? 0) - (custoDe(a) ?? 0))[0]
     : aindaNao[0];
-  /* E ele SAI das prateleiras: o mesmo cartão duas vezes, um logo abaixo do outro, faz a
-     vitrine parecer defeito em vez de destaque. */
+  /* E ele SAI das prateleiras: o mesmo cartão duas vezes seguidas parece defeito. */
   const naPrateleira = (lista: ItemDaLoja[]) => lista.filter((i) => i.id !== emDestaque?.id);
   const proxima = proximaRecompensa(nivel);
 
@@ -231,15 +228,10 @@ export default function Loja({
   };
 
   /**
-   * IR A UMA SEÇÃO DE "DESAFIOS" — as duas portas viraram duas seções (decisão do dono,
-   * 2026-09-12).
-   *
-   * Loja e Passe deixaram de ser abas: tudo o que se ganha, se compra ou se desbloqueia mora
-   * numa página só, a de Desafios, em seções. Os atalhos de dentro do app ("Ver na Loja", "Ver
-   * no Passe", a rota de aquisição de uma peça trancada no inventário) continuam válidos porque
-   * o destino continua existindo — mudou de aba para âncora. Sem o `scrollIntoView` o botão
-   * trocaria a aba e deixaria a pessoa no topo, com a seção certa fora da tela: o clique teria
-   * funcionado e parecido quebrado.
+   * IR A UMA SEÇÃO DE "DESAFIOS". Os atalhos de dentro do app ("Ver na Loja", "Ver no Passe", a
+   * rota de aquisição de uma peça trancada no inventário) continuam válidos porque o destino
+   * continua existindo — como âncora. Sem o `scrollIntoView` o botão trocaria a aba e deixaria a
+   * pessoa no topo, com a seção certa fora da tela.
    */
   const irParaSecao = (secao: 'desafios' | 'passe' | 'loja') => {
     setAba('conquistas');
@@ -290,11 +282,8 @@ export default function Loja({
   };
 
   /**
-   * COMPRA COM CRÉDITOS — a moeda que custou dinheiro.
-   *
-   * Gêmea de `comprar`, com uma diferença que importa: a posse do que se paga NÃO é marcada
-   * localmente. Ela vem do servidor na próxima leitura da carteira (`credit_spends`), porque nada
-   * comprado com dinheiro pode viver em localStorage. Por isso o `recarregar()` no fim.
+   * COMPRA COM CRÉDITOS — a moeda que custou dinheiro. A posse do que se paga NÃO é marcada
+   * localmente: ela vem do servidor na próxima leitura da carteira (`credit_spends`).
    */
   const comprarComCreditos = async (item: ItemDaLoja, el: HTMLElement | null) => {
     if (item.precoCreditos === undefined) return;
@@ -332,12 +321,10 @@ export default function Loja({
     setComprando(item.id);
     try {
       /* A transação mora em `comprarPecaComSeeds` porque o cartão do inventário compra pela
-         MESMA porta desde que ganhou o botão "Comprar · N" do design. O `spendId` fixo por item
-         é compartilhado de propósito: o mesmo item comprado nas duas telas debita uma vez só. */
+         MESMA porta. O `spendId` fixo por item é compartilhado de propósito: o mesmo item
+         comprado nas duas telas debita uma vez só. */
       const compra = await comprarPecaComSeeds(item);
       if (!compra.ok) {
-        /* O MOTIVO, quando o servidor manda um: "faltam 12 Seeds" é acionável, "tente de novo"
-           não. E o "nada foi cobrado" importa — sem ele a pessoa não sabe se perdeu o saldo. */
         toast.warn(
           compra.faltam > 0
             ? `Faltam ${compra.faltam} Seeds para levar ${item.nome}. Nada foi cobrado.`
@@ -356,20 +343,11 @@ export default function Loja({
   };
 
   /**
-   * UM CARTÃO DA PRATELEIRA — compacto, com o PREÇO legível de longe.
-   *
-   * O QUE MUDOU (pedido do dono, 01/09: "os produtos não estão sendo exibidos de forma
-   * atrativa"): o cartão anterior era alto e falava por texto — nome, descrição inteira, e o
-   * preço escondido dentro da frase "Nível 9 ou 550 Seeds" num botão cinza de cadeado. Numa
-   * loja, o preço é a segunda coisa que se lê depois da arte, e a MOEDA precisa ter cara.
-   *
-   * Agora: arte, nome, e uma linha de preço com OS DOIS CAMINHOS lado a lado e iconados — a
-   * Seed (verde, estudo) e o nível (cadeado). A pessoa vê de relance o que custa e como se
-   * consegue sem comprar.
+   * UM CARTÃO DA PRATELEIRA — o `.cartao.peca` do protótipo (o mesmo de Meu visual), com a linha
+   * de preço e os dois caminhos lado a lado: a Seed (estudo) e o nível (cadeado).
    */
-  const CartaoDaLoja = ({ item, destaque }: { item: ItemDaLoja; destaque?: boolean }) => {
+  const cartaoDaLoja = (item: ItemDaLoja) => {
     const { estado } = estadoDoItem(item, nivel, saldo);
-    const raridade = COR_DA_RARIDADE[item.raridade];
     const equipado = estado === 'equipavel' && equipadoAtual(item);
     const preco = item.precoSeeds;
     const falta = preco !== undefined ? preco - saldo : 0;
@@ -377,10 +355,8 @@ export default function Loja({
     const custoApr = apr ? custoDoProximoNivel(item.alvo) : null;
 
     return (
-      <div
-        className={`rounded-2xl border-2 ${raridade.borda} bg-surface overflow-hidden flex flex-col transition-transform hover:-translate-y-1 ${
-          estado === 'bloqueado' && !apr ? 'opacity-75' : ''
-        } ${destaque ? 'sm:flex-row' : ''}`}
+      <article
+        className="cartao peca"
         onMouseEnter={(e) => {
           // Prévia VIVA: partículas soltam uma amostra ao passar o mouse no cartão delas.
           if (item.tipo === 'particulas' && estado !== 'bloqueado') {
@@ -389,273 +365,225 @@ export default function Loja({
           }
         }}
       >
-        <div
-          className={`${raridade.fundo} flex items-center justify-center relative shrink-0 ${
-            destaque ? 'h-32 sm:h-auto sm:w-48' : 'h-20'
-          }`}
-        >
+        <div className="vis">
           <MiniaturaDoItem item={item} tam="grande" />
-          <span className="absolute top-1.5 right-1.5 font-mono text-[8px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded-md bg-canvas/75 text-ink-muted">
-            {raridade.rotulo}
-          </span>
         </div>
+        <span className="label-mono">{COR_DA_RARIDADE[item.raridade].rotulo}</span>
+        <h3>{item.nome}</h3>
+        <p>{item.desc}</p>
 
-        <div className="p-3 flex flex-col gap-1.5 flex-1 min-w-0">
-          <h3
-            className={`font-display font-black text-ink leading-tight ${destaque ? 'text-[17px]' : 'text-[13px] line-clamp-2'}`}
-          >
-            {item.nome}
-          </h3>
-          <p className={`text-[11.5px] text-ink-muted leading-snug flex-1 ${destaque ? '' : 'line-clamp-2'}`}>
-            {item.desc}
-          </p>
-
-          {apr ? (
-            (() => {
-              const nv = nivelDoAprimoramento(item.alvo);
-              const pct = progressoDoAprimoramento(item.alvo);
-              return (
-                <>
-                  <div>
-                    <div className="flex items-center justify-between text-[10.5px] font-black mb-1">
-                      <span className="text-ink">
-                        Nv. {nv} / {NIVEL_MAXIMO}
-                      </span>
-                      <span className="text-ink-muted tabular-nums">{pct}%</span>
-                    </div>
-                    <div className="h-1.5 rounded-full bg-canvas border border-border-subtle overflow-hidden">
-                      <div
-                        className="h-full rounded-full bg-warn transition-all duration-500"
-                        style={{ width: `${pct}%` }}
-                      />
-                    </div>
-                  </div>
-                  {custoApr === null ? (
-                    <div className="w-full py-2 rounded-xl bg-warn/15 border border-warn text-center text-[12px] font-black text-warn-ink">
-                      ★ Dominado
-                    </div>
-                  ) : (
-                    <button
-                      onClick={(e) => void aprimorar(item, e.currentTarget)}
-                      disabled={comprando === item.id || saldo < custoApr}
-                      className="w-full py-2 rounded-xl bg-warn hover:brightness-110 text-white font-bold text-[12.5px] shadow-btn cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      <span className="inline-flex items-center gap-1.5">
-                        <Sprout className="w-3.5 h-3.5" aria-hidden />
-                        {comprando === item.id
-                          ? 'Aprimorando…'
-                          : saldo < custoApr
-                            ? `Faltam ${custoApr - saldo}`
-                            : `Aprimorar · ${custoApr}`}
-                      </span>
-                    </button>
-                  )}
-                </>
-              );
-            })()
-          ) : estado === 'equipavel' ? (
-            <button
-              onClick={(e) => equiparAgora(item, e.currentTarget)}
-              className={`w-full py-2 rounded-xl font-bold text-[12.5px] cursor-pointer ${
-                equipado ? 'bg-good-soft text-good-ink' : 'bg-accent text-accent-contrast hover:brightness-110'
-              }`}
-            >
-              {equipado ? (
-                <span className="inline-flex items-center gap-1.5">
-                  <Check className="w-3.5 h-3.5" aria-hidden /> {TEXTOS.emUso}
-                </span>
-              ) : item.tipo === 'estudio' ? (
-                'Abrir o Estúdio'
-              ) : equipavel(item) ? (
-                <span className="inline-flex items-center gap-1.5">
-                  <Check className="w-3.5 h-3.5" aria-hidden /> {TEXTOS.equiparAgora}
-                </span>
-              ) : (
-                <span className="inline-flex items-center gap-1.5">
-                  <Check className="w-3.5 h-3.5" aria-hidden /> usar no Meu visual
-                </span>
-              )}
-            </button>
-          ) : item.precoCreditos !== undefined ? (
-            /* PREMIUM: uma via só, e a tela diz qual. Nível e Seeds não abrem — como o
-                 exclusivo de conquista, misturar as moedas apagaria a diferença entre
-                 "ganhei estudando" e "paguei". */
-            <>
-              <div className="flex items-center justify-between gap-2 pt-1 border-t border-border-subtle">
-                <span className="inline-flex items-center gap-1 font-mono font-bold text-[13px] text-premium tabular-nums">
-                  <Coins className="w-3.5 h-3.5" aria-hidden /> {item.precoCreditos}
-                </span>
-                <span className="inline-flex items-center gap-1 font-mono text-[11px] text-ink-faint">
-                  <Crown className="w-3 h-3" aria-hidden /> ou no Passe
-                </span>
-              </div>
-              {carteira.disponivel ? (
-                <button
-                  onClick={(e) => void comprarComCreditos(item, e.currentTarget)}
-                  disabled={comprando === item.id}
-                  className="w-full py-2 rounded-xl bg-premium hover:brightness-110 text-white font-bold text-[12.5px] shadow-btn cursor-pointer disabled:opacity-60"
-                >
-                  {comprando === item.id
-                    ? 'Comprando…'
-                    : (carteira.creditos ?? 0) < item.precoCreditos
-                      ? `Faltam ${item.precoCreditos - (carteira.creditos ?? 0)}`
-                      : 'Comprar com Créditos'}
-                </button>
-              ) : (
-                <div className="w-full py-2 rounded-xl bg-canvas border border-border-subtle text-center text-[11.5px] font-bold text-ink-muted">
-                  Sem compra nesta instalação
-                </div>
-              )}
-            </>
-          ) : (
-            <>
-              {/* OS DOIS CAMINHOS, lado a lado e iconados. Antes viviam colados numa frase
-                  ("Nível 9 ou 550 Seeds") dentro de um botão cinza — e o cinza dizia
-                  "indisponível" sobre a informação que mais importa numa loja. */}
-              <div className="flex items-center justify-between gap-2 pt-1 border-t border-border-subtle">
-                {preco !== undefined ? (
-                  <span className="inline-flex items-center gap-1 font-mono font-bold text-[13px] text-good tabular-nums">
-                    <Sprout className="w-3.5 h-3.5" aria-hidden /> {preco}
+        {apr ? (
+          (() => {
+            const nv = nivelDoAprimoramento(item.alvo);
+            const pct = progressoDoAprimoramento(item.alvo);
+            return (
+              <>
+                <div className="entre" style={LINHA_DE_PRECO}>
+                  <span>
+                    Nv. {nv} / {NIVEL_MAXIMO}
                   </span>
-                ) : (
-                  <span className="text-[11.5px] text-ink-faint">só por nível</span>
-                )}
-                <span className="inline-flex items-center gap-1 font-mono text-[11px] text-ink-faint">
-                  <Lock className="w-3 h-3" aria-hidden /> nv. {item.nivel}
-                </span>
-              </div>
-              {estado === 'compravel' ? (
-                <button
-                  onClick={(e) => void comprar(item, e.currentTarget)}
-                  disabled={comprando === item.id}
-                  className="w-full py-2 rounded-xl bg-good hover:brightness-110 text-white font-bold text-[12.5px] shadow-btn cursor-pointer disabled:opacity-60"
-                >
-                  {comprando === item.id ? 'Comprando…' : 'Comprar com Seeds'}
-                </button>
-              ) : (
-                <div className="w-full py-2 rounded-xl bg-canvas border border-border-subtle text-center text-[11.5px] font-bold text-ink-muted">
-                  {preco !== undefined && falta > 0 ? `Faltam ${falta} Seeds` : `Chega no nível ${item.nivel}`}
+                  <span>{pct}%</span>
                 </div>
+                <div className="barra">
+                  <span style={{ width: `${pct}%` }} />
+                </div>
+                {custoApr === null ? (
+                  <span className="badge warn">★ Dominado</span>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={(e) => void aprimorar(item, e.currentTarget)}
+                    disabled={comprando === item.id || saldo < custoApr}
+                    className="btn btn-outline bloco"
+                  >
+                    <Sprout aria-hidden style={{ color: 'var(--good)' }} />
+                    {comprando === item.id
+                      ? 'Aprimorando…'
+                      : saldo < custoApr
+                        ? `Faltam ${custoApr - saldo}`
+                        : `Aprimorar · ${custoApr}`}
+                  </button>
+                )}
+              </>
+            );
+          })()
+        ) : estado === 'equipavel' ? (
+          <button
+            type="button"
+            onClick={(e) => equiparAgora(item, e.currentTarget)}
+            className={`btn ${equipado ? 'equipado' : 'btn-outline'} bloco`}
+            aria-pressed={equipado || undefined}
+          >
+            {equipado ? (
+              <>
+                <Check aria-hidden /> {TEXTOS.emUso}
+              </>
+            ) : item.tipo === 'estudio' ? (
+              'Abrir o Estúdio'
+            ) : equipavel(item) ? (
+              TEXTOS.equiparAgora
+            ) : (
+              'usar no Meu visual'
+            )}
+          </button>
+        ) : item.precoCreditos !== undefined ? (
+          /* PREMIUM: uma via só, e a tela diz qual. Nível e Seeds não abrem — misturar as moedas
+             apagaria a diferença entre "ganhei estudando" e "paguei". */
+          <>
+            <div className="entre" style={LINHA_DE_PRECO}>
+              <span className="linha" style={{ gap: 4, color: 'var(--premium)' }}>
+                <Coins aria-hidden style={{ width: 13, height: 13 }} /> {item.precoCreditos}
+              </span>
+              <span className="linha" style={{ gap: 4 }}>
+                <Crown aria-hidden style={{ width: 12, height: 12 }} /> ou no Passe
+              </span>
+            </div>
+            {carteira.disponivel ? (
+              <button
+                type="button"
+                onClick={(e) => void comprarComCreditos(item, e.currentTarget)}
+                disabled={comprando === item.id}
+                className="btn btn-solid bloco"
+              >
+                {comprando === item.id
+                  ? 'Comprando…'
+                  : (carteira.creditos ?? 0) < item.precoCreditos
+                    ? `Faltam ${item.precoCreditos - (carteira.creditos ?? 0)}`
+                    : 'Comprar com Créditos'}
+              </button>
+            ) : (
+              <button type="button" className="btn btn-outline bloco" disabled>
+                Sem compra nesta instalação
+              </button>
+            )}
+          </>
+        ) : (
+          <>
+            <div className="entre" style={LINHA_DE_PRECO}>
+              {preco !== undefined ? (
+                <span className="linha tn" data-preco-seeds style={{ gap: 4, color: 'var(--good-ink)' }}>
+                  <Sprout aria-hidden style={{ width: 13, height: 13 }} /> {preco}
+                </span>
+              ) : (
+                <span>só por nível</span>
               )}
-            </>
-          )}
-        </div>
-      </div>
+              <span className="linha" style={{ gap: 4 }}>
+                <Lock aria-hidden style={{ width: 12, height: 12 }} /> nv. {item.nivel}
+              </span>
+            </div>
+            {estado === 'compravel' ? (
+              <button
+                type="button"
+                onClick={(e) => void comprar(item, e.currentTarget)}
+                disabled={comprando === item.id}
+                className="btn btn-solid bloco"
+              >
+                {comprando === item.id ? 'Comprando…' : 'Comprar com Seeds'}
+              </button>
+            ) : (
+              <button type="button" className="btn btn-outline bloco" disabled>
+                {preco !== undefined && falta > 0 ? `Faltam ${falta} Seeds` : `Chega no nível ${item.nivel}`}
+              </button>
+            )}
+          </>
+        )}
+      </article>
     );
   };
 
+  const nDesafios = colecao.compraveis.length + colecao.porNivel.length + colecao.porConquista.length;
+
   return (
-    <div className="flex-1 h-full min-h-0 overflow-y-auto custom-scrollbar" aria-label="Personalizar">
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 py-8 space-y-8 animate-in fade-in duration-300">
-        {/* ── CABEÇALHO DE TEMPORADA (protótipo aprovado 01/09) ──
-             O herói anterior era um cartão de configuração: título em `font-marca` (a família
-             fora do tema que fazia esta tela parecer de outro app), dois blobs e três parágrafos
-             de explicação. Passe de jogo abre com temporada, carteira e barra — e a explicação
-             desce para onde a dúvida aparece. A "próxima recompensa" saiu daqui porque o Passe
-             agora responde isso melhor: a casa atual vem com anel e a página abre nela. */}
-        {/* NA ABA "MEU VISUAL" O TOPO É SÓ O TÍTULO E O SALDO, como no design de Personalizar.
-             Temporada, barra de XP e carteira das duas moedas são o cabeçalho de uma tela de
-             ECONOMIA — e continuam nas três abas que são sobre economia (Loja, Passe, Desafios).
-             Em cima do inventário eles custavam ~110px de peso visual antes de qualquer coisa
-             que a pessoa veio fazer aqui, que é vestir o que já é dela. */}
-        {aba === 'personalizar' ? (
-          <header className="flex items-center gap-3">
-            <h2 className="font-display font-black text-2xl text-ink tracking-tight">Personalizar</h2>
-            <span className="ms-auto kpi-pill inline-flex items-center gap-1.5 text-[13px] font-bold">
-              <Sprout className="w-3.5 h-3.5 text-good" aria-hidden />
+    <Tela largura="larga">
+      <CabecalhoDeTela
+        sobrancelha="Seu visual"
+        icone={Shirt}
+        titulo="Personalizar"
+        sub="Temas, efeitos e letras que você já ganhou, e os desafios que liberam os próximos."
+        acoes={
+          <span className="pill" style={{ cursor: 'default' }}>
+            <Sprout aria-hidden style={{ color: 'var(--good)' }} />
+            <b className="tn" style={{ color: 'var(--ink)' }}>
               {saldo}
-            </span>
-          </header>
-        ) : (
-          <CabecalhoDeTemporada
-            progress={progress}
-            saldo={saldo}
-            carteira={carteira}
-            temporada={{ numero: 1, nome: 'Fundação' }}
-            aoComprarCreditos={() => irParaSecao('loja')}
-          />
-        )}
-
-        {/*
-        DUAS PORTAS: o que é meu, e o que dá para conseguir (decisão do dono, 2026-09-12).
-
-        Eram quatro (Meu visual · Loja · Passe · Desafios), e a barra descrevia CANAIS de
-        aquisição — comprar com Seeds, ganhar no Passe, ganhar por conquista — que são três formas
-        de responder a mesma pergunta: "o que ainda dá para eu conseguir?". Quem chega não sabe em
-        qual das três o item que quer está, e tinha de procurar nas três.
-
-        Agora a barra lê: **o que é meu · o que dá para conseguir**. Loja e Passe não sumiram —
-        viraram SEÇÕES dentro de Desafios, na ordem da prioridade da tela (o que se ganha
-        estudando primeiro, o que se paga por último), e os atalhos internos passaram a ser
-        âncoras (ver `irParaSecao`).
-      */}
-        <Abas
-          rotuloDoGrupo="Áreas de Personalizar"
-          ativo={aba}
-          aoTrocar={setAba}
-          itens={[
-            // "Meu visual", não "Biblioteca": biblioteca já é a tela de mídias (rota /biblioteca)
-            // — mesmo nome para dois lugares confundia (ux-v2 §1.2); o cabeçalho desta tela já
-            // chama o que é seu de "Meu visual".
-            {
-              id: 'personalizar',
-              rotulo: `Meu visual · ${colecao.possuidos.length}`,
-              icone: <Shirt className="w-4 h-4" />,
-            },
-            {
-              id: 'conquistas',
+            </b>{' '}
+            Seeds
+          </span>
+        }
+        abas={
+          /* DUAS PORTAS: o que é meu, e o que dá para conseguir (decisão do dono, 2026-09-12).
+             Os ids seguem `personalizar`/`conquistas` porque são os da rota (`/loja/<área>`). */
+          <Abas
+            rotuloDoGrupo="Seções de Personalizar"
+            ativo={aba}
+            aoTrocar={setAba}
+            itens={[
+              {
+                id: 'personalizar',
+                rotulo: 'Meu visual',
+                icone: <Shirt aria-hidden />,
+                contagem: colecao.possuidos.length,
+              },
               /* A contagem é de TUDO que ainda dá para desbloquear, e não só do que vem por
                  conquista: a aba deixou de ser só sobre conquistas. */
-              rotulo: `Desafios · ${colecao.compraveis.length + colecao.porNivel.length + colecao.porConquista.length}`,
-              icone: <Trophy className="w-4 h-4" />,
-            },
-          ]}
-        />
-
-        <PainelDeAba id="personalizar" ativo={aba}>
-          <Personalizar
-            theme={theme}
-            setTheme={setTheme}
-            fonte={fonte}
-            setFonte={setFonte}
-            nivel={nivel}
-            saldo={saldo}
-            ageProfile={ageProfile}
-            setAgeProfile={setAgeProfile}
-            menuPosition={menuPosition}
-            setMenuPosition={setMenuPosition}
-            onOpenStudio={onOpenStudio}
-            onIrParaLoja={() => {
-              setFiltro('galeria');
-              irParaSecao('loja');
-            }}
-            onIrParaPasse={() => irParaSecao('passe')}
-            onIrParaConquistas={() => irParaSecao('desafios')}
+              { id: 'conquistas', rotulo: 'Desafios', icone: <Trophy aria-hidden />, contagem: nDesafios },
+            ]}
           />
-        </PainelDeAba>
+        }
+      />
 
-        {/* ── DESAFIOS: TUDO O QUE AINDA DÁ PARA CONSEGUIR, numa página ──────────────────────
-               Três seções, na ordem da prioridade da tela: o que se ganha fazendo (Desafios), o
-               que a temporada entrega por estudar (Passe), e por último o que se compra (Loja).
-               A antiga aba Progressão (grade nível-a-nível) já havia sido absorvida pelo Passe. */}
-        <PainelDeAba id="conquistas" ativo={aba}>
-          {semConta ? (
-            <CartaoDeConvite view="conquistas" onEntrar={() => onEntrar?.()} onVoltar={() => setAba('personalizar')} />
-          ) : (
-            <div className="space-y-12">
-              <section id="secao-desafios" className="scroll-mt-4">
-                <h3 className="font-display font-black text-[19px] text-ink tracking-tight mb-1">Desafios</h3>
-                <p className="text-[12.5px] text-ink-muted mb-4 max-w-[70ch]">
-                  O que vem só fazendo. Não se compra com Seeds nem com Créditos.
-                </p>
-                <Conquistas progress={progress} ctx={ctxConquistas} />
-              </section>
+      <PainelDeAba id="personalizar" ativo={aba}>
+        <Personalizar
+          theme={theme}
+          setTheme={setTheme}
+          fonte={fonte}
+          setFonte={setFonte}
+          nivel={nivel}
+          saldo={saldo}
+          ageProfile={ageProfile}
+          setAgeProfile={setAgeProfile}
+          menuPosition={menuPosition}
+          setMenuPosition={setMenuPosition}
+          onOpenStudio={onOpenStudio}
+          onIrParaLoja={() => {
+            setFiltro('galeria');
+            irParaSecao('loja');
+          }}
+          onIrParaPasse={() => irParaSecao('passe')}
+          onIrParaConquistas={() => irParaSecao('desafios')}
+        />
+      </PainelDeAba>
 
-              <section id="secao-passe" className="scroll-mt-4">
-                <h3 className="font-display font-black text-[19px] text-ink tracking-tight mb-1">Passe da temporada</h3>
-                <p className="text-[12.5px] text-ink-muted mb-4 max-w-[70ch]">
-                  A trilha do que cada nível entrega. Subir de nível é de graça — estudar é o único requisito.
-                </p>
+      {/* ── DESAFIOS: TUDO O QUE AINDA DÁ PARA CONSEGUIR, numa página ──────────────────────────
+             Na ordem da prioridade da tela: o que se ganha fazendo, o que a temporada entrega por
+             estudar (Passe), e por último o que se compra (Loja). */}
+      <PainelDeAba id="conquistas" ativo={aba}>
+        {semConta ? (
+          <CartaoDeConvite view="conquistas" onEntrar={() => onEntrar?.()} onVoltar={() => setAba('personalizar')} />
+        ) : (
+          <>
+            <div id="secao-desafios" style={{ scrollMarginTop: 16 }}>
+              <Conquistas progress={progress} ctx={ctxConquistas} />
+            </div>
+
+            {/* O PASSE fica como está: o destino dele está em aberto com o dono, e a aparência da
+                trilha é dele (`passe/PasseDeTemporada`). Aqui só o título no molde da tela. */}
+            <section id="secao-passe" className="secao" style={{ scrollMarginTop: 16 }}>
+              <TituloDeSecao
+                icone={MapIcon}
+                titulo="Passe da temporada"
+                desc="A trilha do que cada nível entrega. Subir de nível é de graça: estudar é o único requisito."
+              />
+              {/* O cabeçalho de temporada (temporada, barra de XP e as duas carteiras) era o topo da
+                  aba inteira; o protótipo abre a tela com o cabeçalho único e o saldo de Seeds.
+                  Ele desce para cá, onde a temporada é o assunto. */}
+              <CabecalhoDeTemporada
+                progress={progress}
+                saldo={saldo}
+                carteira={carteira}
+                temporada={{ numero: 1, nome: 'Fundação' }}
+                aoComprarCreditos={() => irParaSecao('loja')}
+              />
+              <div style={{ marginTop: 16 }}>
                 <PasseDeTemporada
                   progress={progress}
                   ctxEquipar={ctxEquipar}
@@ -670,207 +598,173 @@ export default function Loja({
                       : undefined
                   }
                 />
-              </section>
+              </div>
+            </section>
 
-              <section id="secao-loja" className="scroll-mt-4">
-                <h3 className="font-display font-black text-[19px] text-ink tracking-tight mb-1">Loja</h3>
-                <p className="text-[12.5px] text-ink-muted mb-4 max-w-[70ch]">
-                  O atalho pago: o que o nível entregaria mais tarde, agora, com a moeda de estudo.
-                </p>
-                <div className="space-y-8">
-                  {/* ── AS DUAS MOEDAS, DECLARADAS ────────────────────────────────────────────────
-             O dono: "não estamos informando os dois tipos de moeda". A carteira do cabeçalho
-             mostra os SALDOS, mas em lugar nenhum a loja dizia o que cada moeda É, de onde ela
-             vem e o que ela compra — e essa é a primeira pergunta de quem chega numa loja com
-             duas moedas. A linha que separa as duas é a que separa este app de um pay-to-win,
-             então ela fica escrita, e não subentendida. */}
-                  <section className="grid sm:grid-cols-2 gap-3">
-                    <div className="rounded-2xl border-2 border-good/40 bg-good-soft p-4">
-                      <p className="flex items-center justify-between gap-2 mb-1.5">
-                        <span className="inline-flex items-center gap-2 font-display font-black text-[15px] text-ink">
-                          <Sprout className="w-4 h-4 text-good" aria-hidden /> Seeds
-                        </span>
-                        <b className="font-mono font-bold text-[17px] text-good tabular-nums">{saldo}</b>
-                      </p>
-                      <p className="text-[12px] text-ink-muted leading-relaxed">
-                        Vêm de <b className="text-ink">estudar</b>: revisar, jogar, aparecer no dia. Compram tudo o que
-                        está nesta página. <b className="text-ink">Não se compram com dinheiro</b> — nunca vão estar à
-                        venda.
-                      </p>
-                    </div>
+            <section id="secao-loja" className="secao" style={{ scrollMarginTop: 16 }}>
+              <TituloDeSecao
+                icone={ShoppingBag}
+                titulo="Loja"
+                desc="O atalho pago: o que o nível entregaria mais tarde, agora, com a moeda de estudo."
+              />
 
-                    <div className="rounded-2xl border-2 border-premium/40 bg-premium-soft p-4">
-                      <p className="flex items-center justify-between gap-2 mb-1.5">
-                        <span className="inline-flex items-center gap-2 font-display font-black text-[15px] text-ink">
-                          <Coins className="w-4 h-4 text-premium" aria-hidden /> Créditos
-                        </span>
-                        <b className="font-mono font-bold text-[17px] text-premium tabular-nums">
-                          {carteira.disponivel ? (carteira.creditos ?? '—') : '—'}
-                        </b>
-                      </p>
-                      <p className="text-[12px] text-ink-muted leading-relaxed">
-                        Compram-se com dinheiro e pagam o <b className="text-ink">Passe Premium</b> e a prateleira paga.{' '}
-                        <b className="text-ink">Não compram progresso</b>: nível, XP, Seeds e conquista só saem
-                        estudando.
-                      </p>
-                      {!carteira.disponivel && (
-                        <p className="text-[11.5px] text-ink-faint mt-2 leading-snug">
-                          Nesta instalação não há compra com dinheiro — sem conta e sem cobrança configurada, não existe
-                          o que vender.
-                        </p>
-                      )}
-                    </div>
-                  </section>
-
-                  {/* O CAMINHO GRÁTIS, numa linha. Aqui havia uma parede de chips com os 8 itens do
-          próximo nível — a mesma informação que o Passe mostra inteira e melhor. A frase fica
-          (é ela que lembra que subir de nível entrega coisa sem pagar nada) e o wall vai
-          embora, com um atalho para onde ela é desenhada. */}
-                  {proxima && (
-                    <p className="text-[12.5px] text-ink-muted flex items-center gap-2 flex-wrap">
-                      <Sparkles className="w-4 h-4 text-accent shrink-0" aria-hidden />
-                      No nível {proxima.nivel} você libera{' '}
-                      <b className="text-ink">{proxima.itens.length} peças de graça</b>, só estudando.
-                      <button onClick={() => irParaSecao('passe')} className="underline text-accent-ink cursor-pointer">
-                        Ver no Passe
-                      </button>
-                    </p>
-                  )}
-
-                  {/* ── O DESTAQUE — uma vitrine tem uma peça na frente ────────────────────────────
-             Escolhido por regra, não por sorteio: o mais caro que o SALDO paga hoje; sem nada
-             ao alcance, o que falta menos. Assim o destaque é sempre acionável ou quase — que é
-             o que uma vitrine tem de ser. */}
-                  {emDestaque && (
-                    <section>
-                      <p className="label-mono mb-2 flex items-center gap-1.5">
-                        <Sparkles className="w-3.5 h-3.5 text-accent" aria-hidden /> Em destaque
-                      </p>
-                      <CartaoDaLoja item={emDestaque} destaque />
-                    </section>
-                  )}
-
-                  {/* ── FILTROS ── */}
-                  <div className="flex flex-wrap gap-1.5">
-                    {FILTROS.map((f) => (
-                      <button
-                        key={f.id}
-                        onClick={() => setFiltro(f.id)}
-                        aria-pressed={filtro === f.id}
-                        className={`px-3.5 py-1.5 rounded-xl text-[12px] font-bold cursor-pointer border transition-colors ${
-                          filtro === f.id
-                            ? 'bg-accent text-accent-contrast border-accent'
-                            : 'bg-surface border-border-subtle text-ink-muted hover:text-ink hover:border-accent'
-                        }`}
-                      >
-                        {f.nome}
-                      </button>
-                    ))}
+              {/* ── AS DUAS MOEDAS, DECLARADAS. A linha que separa as duas é a que separa este app
+                   de um pay-to-win, então ela fica escrita, e não subentendida. */}
+              <div className="g2">
+                <div className="cartao p5">
+                  <div className="entre">
+                    <h3 className="linha" style={{ gap: 8, fontSize: 15, fontWeight: 800 }}>
+                      <Sprout aria-hidden style={{ width: 16, height: 16, color: 'var(--good)' }} /> Seeds
+                    </h3>
+                    <b className="tn" style={{ font: '800 17px var(--font-mono)', color: 'var(--good-ink)' }}>
+                      {saldo}
+                    </b>
                   </div>
-
-                  {itens.length === 0 && (
-                    <p className="text-center text-[13px] text-ink-muted py-6">
-                      Nada para comprar neste filtro: tudo já é seu. Veja em{' '}
-                      <button
-                        onClick={() => setAba('personalizar')}
-                        className="underline text-accent-ink cursor-pointer"
-                      >
-                        Meu visual
-                      </button>
-                      .
-                    </p>
-                  )}
-
-                  {/* ── AS DUAS PRATELEIRAS (mudança inventario-e-cromas, tarefa 3.3) ──────────────
-             A Loja mostrava 51 itens numa grade só, quase todos trancados: no nível 1 a tela era
-             uma parede de cadeados, e conforme a pessoa comprava ela ESVAZIAVA. Separar por "dá
-             para levar agora" e "ainda não" resolve os dois lados — a primeira prateleira nunca
-             é a mais longa, e a segunda vira vitrine do que vem, que é o que faz querer voltar. */}
-                  {naPrateleira(podeAgora).length === 0 && podeAgora.length === 0 ? (
-                    <p className="text-[13px] text-ink-muted flex items-start gap-2 max-w-[70ch]">
-                      <Sprout className="w-4 h-4 text-good shrink-0 mt-0.5" aria-hidden />
-                      <span>
-                        Nada cabe no saldo de {saldo} Seeds agora. Elas vêm de estudar — revisar, jogar, aparecer — e o
-                        que está logo abaixo é o que falta menos.
-                      </span>
-                    </p>
-                  ) : naPrateleira(podeAgora).length > 0 ? (
-                    <section>
-                      <p className="label-mono mb-3 flex items-center gap-1.5">
-                        <Sprout className="w-3.5 h-3.5 text-good" aria-hidden /> Dá para levar agora ·{' '}
-                        {naPrateleira(podeAgora).length}
-                      </p>
-                      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-                        {naPrateleira(podeAgora).map((item) => (
-                          <CartaoDaLoja key={item.id} item={item} />
-                        ))}
-                      </div>
-                    </section>
-                  ) : null}
-
-                  {aindaNao.length > 0 && (
-                    <section>
-                      <p className="label-mono mb-3 flex items-center gap-1.5 flex-wrap">
-                        <Lock className="w-3.5 h-3.5" aria-hidden /> Ainda não · {naPrateleira(aindaNao).length}
-                        <span className="font-sans normal-case tracking-normal text-ink-faint">
-                          — o que falta menos vem primeiro; nada aqui expira
-                        </span>
-                      </p>
-                      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-                        {naPrateleira(aindaNao).map((item) => (
-                          <CartaoDaLoja key={item.id} item={item} />
-                        ))}
-                      </div>
-                    </section>
-                  )}
-
-                  {/* ── A PRATELEIRA PAGA ─────────────────────────────────────────────────────────
-             `ORIGEM.creditos` anunciava "Passe Premium e prateleira paga" desde a régua das
-             quatro origens — e a prateleira não existia: nenhum item tinha preço em Créditos, e
-             `creditsRepo.debitar` nunca era chamado. Quem pagasse R$ 49,90 recebia um número que
-             não comprava nada. Aqui ele passa a comprar. */}
-                  {premium.length > 0 && (
-                    <section>
-                      <p className="label-mono mb-3 flex items-center gap-1.5 flex-wrap">
-                        <Coins className="w-3.5 h-3.5 text-premium" aria-hidden /> Com Créditos · {premium.length}
-                        <span className="font-sans normal-case tracking-normal text-ink-faint">
-                          — vêm de graça no Passe da temporada, ou avulsos aqui
-                        </span>
-                      </p>
-                      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-                        {premium.map((item) => (
-                          <CartaoDaLoja key={item.id} item={item} />
-                        ))}
-                      </div>
-                    </section>
-                  )}
-
-                  {/* ── O QUE SE PAGA COM DINHEIRO. Fica DEPOIS de tudo que se ganha estudando, e não
-             antes: a ordem da tela é a ordem da prioridade. */}
-                  <ComprarCreditos />
-
-                  {/* O rodapé lê das REGRAS: o que a Loja diz sobre ganhar Seeds é o que o sistema credita. */}
-                  <p className="text-center text-[11.5px] text-ink-faint pb-4">
-                    Seeds se ganham fazendo:{' '}
-                    {REGRAS.filter((r) => r.seeds > 0)
-                      .slice(0, 4)
-                      .map((r) => `${r.seeds} ${r.unidade}`)
-                      .join(' · ')}
-                    .{' '}
-                    <button
-                      onClick={() => irParaSecao('desafios')}
-                      className="underline hover:text-accent cursor-pointer"
-                    >
-                      Ver todas as regras
-                    </button>
-                    . Seeds não se compram com dinheiro: só estudando.
+                  <p className="mut" style={{ fontSize: 12.5, marginTop: 6, lineHeight: 1.55 }}>
+                    Vêm de <b style={{ color: 'var(--ink)' }}>estudar</b>: revisar, jogar, aparecer no dia. Compram tudo
+                    o que está nesta página. <b style={{ color: 'var(--ink)' }}>Não se compram com dinheiro</b>: nunca
+                    vão estar à venda.
                   </p>
                 </div>
-              </section>
-            </div>
-          )}
-        </PainelDeAba>
-      </div>
-    </div>
+                <div className="cartao p5">
+                  <div className="entre">
+                    <h3 className="linha" style={{ gap: 8, fontSize: 15, fontWeight: 800 }}>
+                      <Coins aria-hidden style={{ width: 16, height: 16, color: 'var(--premium)' }} /> Créditos
+                    </h3>
+                    <b className="tn" style={{ font: '800 17px var(--font-mono)', color: 'var(--premium)' }}>
+                      {carteira.disponivel ? (carteira.creditos ?? '—') : '—'}
+                    </b>
+                  </div>
+                  <p className="mut" style={{ fontSize: 12.5, marginTop: 6, lineHeight: 1.55 }}>
+                    Compram-se com dinheiro e pagam o <b style={{ color: 'var(--ink)' }}>Passe Premium</b> e a
+                    prateleira paga. <b style={{ color: 'var(--ink)' }}>Não compram progresso</b>: nível, XP, Seeds e
+                    conquista só saem estudando.
+                  </p>
+                  {!carteira.disponivel && (
+                    <p className="mut" style={{ fontSize: 12, marginTop: 8 }}>
+                      Nesta instalação não há compra com dinheiro: sem conta e sem cobrança configurada, não existe o
+                      que vender.
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              {/* O CAMINHO GRÁTIS, numa linha, com o atalho para onde ele é desenhado inteiro. */}
+              {proxima && (
+                <p className="mut linha" style={{ gap: 6, fontSize: 12.5, marginTop: 14, flexWrap: 'wrap' }}>
+                  <Sparkles aria-hidden style={{ width: 15, height: 15, color: 'var(--accent)' }} />
+                  No nível {proxima.nivel} você libera{' '}
+                  <b style={{ color: 'var(--ink)' }}>{proxima.itens.length} peças de graça</b>, só estudando.
+                  <button type="button" className="link" onClick={() => irParaSecao('passe')}>
+                    Ver no Passe
+                  </button>
+                </p>
+              )}
+
+              {/* ── O DESTAQUE — escolhido por regra: o mais caro que o saldo paga hoje. */}
+              {emDestaque && (
+                <>
+                  <div className="label-mono" style={{ margin: '20px 0 10px' }}>
+                    Em destaque
+                  </div>
+                  <div className="gauto">{cartaoDaLoja(emDestaque)}</div>
+                </>
+              )}
+
+              {/* ── FILTROS ── */}
+              <div className="chips" role="group" aria-label="Filtrar a Loja" style={{ marginTop: 20 }}>
+                {FILTROS.map((f) => (
+                  <button
+                    key={f.id}
+                    type="button"
+                    className="pill"
+                    aria-pressed={filtro === f.id}
+                    onClick={() => setFiltro(f.id)}
+                  >
+                    {f.nome}
+                  </button>
+                ))}
+              </div>
+
+              {itens.length === 0 && (
+                <p className="mut" style={{ fontSize: 13, marginTop: 16 }}>
+                  Nada para comprar neste filtro: tudo já é seu. Veja em{' '}
+                  <button type="button" className="link" onClick={() => setAba('personalizar')}>
+                    Meu visual
+                  </button>
+                  .
+                </p>
+              )}
+
+              {/* ── AS DUAS PRATELEIRAS: "dá para levar agora" e "ainda não". */}
+              {naPrateleira(podeAgora).length === 0 && podeAgora.length === 0 ? (
+                <p className="mut" style={{ fontSize: 13, marginTop: 16, maxWidth: '70ch' }}>
+                  Nada cabe no saldo de {saldo} Seeds agora. Elas vêm de estudar (revisar, jogar, aparecer) e o que está
+                  logo abaixo é o que falta menos.
+                </p>
+              ) : naPrateleira(podeAgora).length > 0 ? (
+                <>
+                  <div className="label-mono" style={{ margin: '20px 0 10px' }}>
+                    Dá para levar agora · {naPrateleira(podeAgora).length}
+                  </div>
+                  <div className="gauto">
+                    {naPrateleira(podeAgora).map((item) => (
+                      <Fragment key={item.id}>{cartaoDaLoja(item)}</Fragment>
+                    ))}
+                  </div>
+                </>
+              ) : null}
+
+              {aindaNao.length > 0 && (
+                <>
+                  <div className="label-mono" style={{ margin: '20px 0 10px' }}>
+                    Ainda não · {naPrateleira(aindaNao).length} · o que falta menos vem primeiro; nada aqui expira
+                  </div>
+                  <div className="gauto">
+                    {naPrateleira(aindaNao).map((item) => (
+                      <Fragment key={item.id}>{cartaoDaLoja(item)}</Fragment>
+                    ))}
+                  </div>
+                </>
+              )}
+
+              {/* ── A PRATELEIRA PAGA: o que os Créditos compram. */}
+              {premium.length > 0 && (
+                <>
+                  <div className="label-mono" style={{ margin: '20px 0 10px' }}>
+                    Com Créditos · {premium.length} · vêm de graça no Passe da temporada, ou avulsos aqui
+                  </div>
+                  <div className="gauto">
+                    {premium.map((item) => (
+                      <Fragment key={item.id}>{cartaoDaLoja(item)}</Fragment>
+                    ))}
+                  </div>
+                </>
+              )}
+
+              {/* ── O QUE SE PAGA COM DINHEIRO. Fica DEPOIS de tudo que se ganha estudando. A
+                   aparência dele é do Passe/Créditos, fora desta rodada. */}
+              <div style={{ marginTop: 24 }}>
+                <ComprarCreditos />
+              </div>
+
+              {/* O rodapé lê das REGRAS: o que a Loja diz sobre ganhar Seeds é o que o sistema credita. */}
+              <p className="mut" style={{ fontSize: 12.5, marginTop: 18 }}>
+                Seeds se ganham fazendo:{' '}
+                {REGRAS.filter((r) => r.seeds > 0)
+                  .slice(0, 4)
+                  .map((r) => `${r.seeds} ${r.unidade}`)
+                  .join(' · ')}
+                .{' '}
+                <button type="button" className="link" onClick={() => irParaSecao('desafios')}>
+                  Ver todas as regras
+                </button>
+                . Seeds não se compram com dinheiro: só estudando.
+              </p>
+            </section>
+          </>
+        )}
+      </PainelDeAba>
+    </Tela>
   );
 }

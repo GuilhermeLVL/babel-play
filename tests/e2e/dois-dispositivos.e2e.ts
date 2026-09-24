@@ -68,7 +68,7 @@ async function saldoNaLoja(browser: Browser, viewport: { width: number; height: 
      e varias linhas dela tambem contem o texto exato "Seeds" ("+15 Seeds"). Um `.first()` no
      documento inteiro passou a casar uma delas, e o teste lia como saldo um numero que nao era. */
   const cartaoSeeds = page
-    .locator('#secao-loja p')
+    .locator('#secao-loja .cartao')
     .filter({ has: page.getByText('Seeds', { exact: true }) })
     .first()
   await expect(cartaoSeeds).toBeVisible({ timeout: 15_000 })
@@ -151,12 +151,10 @@ test.describe('Dois dispositivos, uma conta', () => {
     }
     expect(saldo, 'nao consegui juntar Seeds para uma compra').toBeGreaterThanOrEqual(maisCaro)
     const cabemAsDuas = saldo >= itemA.preco + itemB.preco
-    test
-      .info()
-      .annotations.push({
-        type: 'corrida',
-        description: `saldo ${saldo}; itens ${itemA.id} (${itemA.preco}) + ${itemB.id} (${itemB.preco}); ${cabemAsDuas ? 'cabem as duas' : 'so cabe uma'}`,
-      })
+    test.info().annotations.push({
+      type: 'corrida',
+      description: `saldo ${saldo}; itens ${itemA.id} (${itemA.preco}) + ${itemB.id} (${itemB.preco}); ${cabemAsDuas ? 'cabem as duas' : 'so cabe uma'}`,
+    })
 
     /* O RETRATO DE ANTES, e nao so o saldo: a compra faz a tela avaliar conquistas, e uma
        conquista credita Seeds por `POST /seeds/creditar` no MEIO da corrida. Sem separar as duas
@@ -193,12 +191,10 @@ test.describe('Dois dispositivos, uma conta', () => {
       const ant = antes[k]
       if (typeof dep === 'number' && typeof ant === 'number' && dep !== ant) delta[String(k)] = dep - ant
     }
-    test
-      .info()
-      .annotations.push({
-        type: 'saldo',
-        description: `antes ${saldoAntes}, gasto ${gastoAgora}, final ${final}; campos que mudaram: ${JSON.stringify(delta)}`,
-      })
+    test.info().annotations.push({
+      type: 'saldo',
+      description: `antes ${saldoAntes}, gasto ${gastoAgora}, final ${final}; campos que mudaram: ${JSON.stringify(delta)}`,
+    })
     const creditoNoMeio = (p.seedsCreditadas ?? 0) - (antes.seedsCreditadas ?? 0)
     expect(creditoNoMeio, 'credito nunca e negativo').toBeGreaterThanOrEqual(0)
     expect(final, 'saldo final = saldo de antes da corrida − gasto + credito recebido no meio').toBe(

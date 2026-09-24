@@ -1,23 +1,44 @@
-import { Check, Crown, Lock, ShoppingBag,Sprout, Trophy, X } from 'lucide-react';
-import { useState } from 'react';
+import { Check, Crown, Lock, Palette, ShoppingBag, Sprout, Trophy, X } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 
 import { gastarSeeds } from '../../../data/api';
 import { applyCustomColors, THEME_OPTIONS, type ThemeType } from '../../../lib/appearance';
 import {
-type Intensidade,
-intensidadeMaxima,   lerIntensidade, nivelDoAprimoramento, setIntensidade, } from '../../../lib/aprimoramentos';
-import { idDeCursorDeEmoji,readCursor, setCursor } from '../../../lib/cursores';
-import { type Acesso,acessoAoCursorDeEmoji, acessoAoEditorDePack, acessoAoRastroDeEmojis } from '../../../lib/galeria/acesso';
+  type Intensidade,
+  intensidadeMaxima,
+  lerIntensidade,
+  nivelDoAprimoramento,
+  setIntensidade,
+} from '../../../lib/aprimoramentos';
+import { idDeCursorDeEmoji, readCursor, setCursor } from '../../../lib/cursores';
+import {
+  type Acesso,
+  acessoAoCursorDeEmoji,
+  acessoAoEditorDePack,
+  acessoAoRastroDeEmojis,
+} from '../../../lib/galeria/acesso';
 import {
   type Croma,
-cromaEquipado,   cromasDaPeca, equiparCroma,
-idDoCroma, marcarCroma, temOCroma, } from '../../../lib/galeria/cromas';
+  cromaEquipado,
+  cromasDaPeca,
+  equiparCroma,
+  idDoCroma,
+  marcarCroma,
+  temOCroma,
+} from '../../../lib/galeria/cromas';
 import { MATIZES } from '../../../lib/galeria/paletas';
 import type { ItemDaLoja } from '../../../lib/loja';
-import { lerPackCustom,PACK_CUSTOM, readPack, setPack, setPackCustom } from '../../../lib/particulas';
-import { FORMAS_DE_RASTRO, idDeRastroDeCroma, idDeRastroDeEmojis,readRastro, setRastro } from '../../../lib/rastroDoMouse';
+import { lerPackCustom, PACK_CUSTOM, readPack, setPack, setPackCustom } from '../../../lib/particulas';
+import {
+  FORMAS_DE_RASTRO,
+  idDeRastroDeCroma,
+  idDeRastroDeEmojis,
+  readRastro,
+  setRastro,
+} from '../../../lib/rastroDoMouse';
 import { toast } from '../../Toast';
+import { IconeEmBloco } from '../../ui';
 import SeletorDeEmojis from './SeletorDeEmojis';
 import SeletorDePaletas from './SeletorDePaletas';
 
@@ -76,7 +97,10 @@ function Cadeado({ a, onIrParaLoja }: { a: Acesso; onIrParaLoja?: () => void }) 
     <span className="inline-flex items-center gap-1.5 text-[11.5px] font-normal normal-case tracking-normal text-ink-muted">
       <Lock className="w-3 h-3" aria-hidden /> {a.motivo}
       {a.item && onIrParaLoja && (
-        <button onClick={onIrParaLoja} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg border border-border-subtle hover:border-accent text-ink font-bold text-[11px] cursor-pointer">
+        <button
+          onClick={onIrParaLoja}
+          className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg border border-border-subtle hover:border-accent text-ink font-bold text-[11px] cursor-pointer"
+        >
           <ShoppingBag className="w-3 h-3" aria-hidden /> ver na Loja
         </button>
       )}
@@ -84,9 +108,30 @@ function Cadeado({ a, onIrParaLoja }: { a: Acesso; onIrParaLoja?: () => void }) 
   );
 }
 
-export default function EditorDoItem({ item, nivel, saldo, aoFechar, aoEquipar, aoComprar, setTheme, onIrParaLoja }: Props) {
+export default function EditorDoItem({
+  item,
+  nivel,
+  saldo,
+  aoFechar,
+  aoEquipar,
+  aoComprar,
+  setTheme,
+  onIrParaLoja,
+}: Props) {
   const [, force] = useState(0);
   const rerender = () => force((n) => n + 1);
+  const dlgRef = useRef<HTMLDialogElement>(null);
+  /* Esc fecha, e o foco entra no diálogo ao abrir (sem showModal: ver o comentário do return). */
+  const fecharRef = useRef(aoFechar);
+  fecharRef.current = aoFechar;
+  useEffect(() => {
+    dlgRef.current?.focus();
+    const aoTeclar = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') fecharRef.current();
+    };
+    window.addEventListener('keydown', aoTeclar);
+    return () => window.removeEventListener('keydown', aoTeclar);
+  }, []);
   const [comprando, setComprando] = useState<string | null>(null);
 
   const cromas = temCroma(item) ? cromasDaPeca(item.id, item.raridade) : [];
@@ -102,9 +147,11 @@ export default function EditorDoItem({ item, nivel, saldo, aoFechar, aoEquipar, 
      escolhas que se combinam, e guardar só a cor faria trocar de croma perder a forma. */
   const [forma, setForma] = useState(() => {
     const partes = readRastro().split(':');
-    return partes.length === 3 && (partes[0] === 'croma' || partes[0] === 'gen') ? partes[1]
-      : FORMAS_DE_RASTRO.some((f) => f.id === item.alvo) ? item.alvo
-      : FORMAS_DE_RASTRO[0].id;
+    return partes.length === 3 && (partes[0] === 'croma' || partes[0] === 'gen')
+      ? partes[1]
+      : FORMAS_DE_RASTRO.some((f) => f.id === item.alvo)
+        ? item.alvo
+        : FORMAS_DE_RASTRO[0].id;
   });
 
   /**
@@ -128,8 +175,16 @@ export default function EditorDoItem({ item, nivel, saldo, aoFechar, aoEquipar, 
       const base = THEME_OPTIONS.find((t) => t.id === item.alvo);
       const m = matiz ? MATIZES.find((x) => x.id === matiz) : null;
       if (!base) return;
-      if (!m) { aoEquipar(); return; } // sem croma: volta ao tema de fábrica, pelo caminho único
-      applyCustomColors({ canvas: base.swatches.canvas, surface: base.swatches.surface, ink: base.swatches.ink, accent: `hsl(${m.h} 72% 52%)` });
+      if (!m) {
+        aoEquipar();
+        return;
+      } // sem croma: volta ao tema de fábrica, pelo caminho único
+      applyCustomColors({
+        canvas: base.swatches.canvas,
+        surface: base.swatches.surface,
+        ink: base.swatches.ink,
+        accent: `hsl(${m.h} 72% 52%)`,
+      });
     }
   };
 
@@ -138,8 +193,14 @@ export default function EditorDoItem({ item, nivel, saldo, aoFechar, aoEquipar, 
    * o duplo clique não cobra duas vezes. A posse local só é marcada DEPOIS do servidor aceitar.
    */
   const comprarCroma = async (c: Croma) => {
-    if (c.via === 'conquista') { toast.ok(`${c.nome}: sai de conquista — não está à venda.`); return; }
-    if (c.via === 'premium') { toast.ok(`${c.nome}: vem no Passe Premium, não com Seeds.`); return; }
+    if (c.via === 'conquista') {
+      toast.ok(`${c.nome}: sai de conquista — não está à venda.`);
+      return;
+    }
+    if (c.via === 'premium') {
+      toast.ok(`${c.nome}: vem no Passe Premium, não com Seeds.`);
+      return;
+    }
     if (c.via !== 'seeds' || !c.preco) return;
     if (saldo < c.preco) {
       toast.warn(`Faltam ${c.preco - saldo} Seeds. Elas vêm de estudar: revisar, jogar, aparecer.`);
@@ -149,7 +210,10 @@ export default function EditorDoItem({ item, nivel, saldo, aoFechar, aoEquipar, 
     setComprando(c.matiz);
     try {
       const r = await gastarSeeds({ spendId: id, amount: c.preco, reason: id });
-      if (r && (r as { ok?: boolean }).ok === false) { toast.warn('Não deu para desbloquear agora.'); return; }
+      if (r && (r as { ok?: boolean }).ok === false) {
+        toast.warn('Não deu para desbloquear agora.');
+        return;
+      }
       marcarCroma(id);
       equiparCroma(item.id, c.matiz);
       aplicarCroma(c.matiz);
@@ -179,7 +243,12 @@ export default function EditorDoItem({ item, nivel, saldo, aoFechar, aoEquipar, 
     if (temOCroma(c)) return <Check className="w-3 h-3 text-good" aria-hidden />;
     if (c.via === 'conquista') return <Trophy className="w-3 h-3 text-warn" aria-hidden />;
     if (c.via === 'premium') return <Crown className="w-3 h-3 text-premium" aria-hidden />;
-    return <span className="flex items-center gap-0.5 text-[9px] font-bold text-good"><Sprout className="w-2.5 h-2.5" aria-hidden />{c.preco}</span>;
+    return (
+      <span className="flex items-center gap-0.5 text-[9px] font-bold text-good">
+        <Sprout className="w-2.5 h-2.5" aria-hidden />
+        {c.preco}
+      </span>
+    );
   };
 
   const meus = cromas.filter(temOCroma).length;
@@ -187,232 +256,313 @@ export default function EditorDoItem({ item, nivel, saldo, aoFechar, aoEquipar, 
   const cursorDeEmoji = acessoAoCursorDeEmoji(nivel, saldo);
   const rastroDeEmojis = acessoAoRastroDeEmojis(nivel, saldo);
 
-  /* PORTAL PARA O BODY, como `RecompensaDesbloqueada` já fazia. Dentro da árvore da Loja o
-     `fixed inset-0` caía num bloco de contenção e o véu esticava a altura INTEIRA do documento,
-     com o cartão centralizado no meio do nada — visível no DOM, invisível na tela. */
+  /* O DIÁLOGO DO PROTÓTIPO (`dlg()` + `cabDlg()`): `<dialog class="medio">` com `.dlg-cab` (ícone
+     em bloco, título, subtítulo, X), `.dlg-corpo` e `.dlg-pe`, sobre o véu escuro do protótipo.
+     NÃO é `showModal()` de propósito: o modal nativo sobe para a camada do topo e cobriria os
+     avisos (`toast`) que a compra de croma e as paletas mostram enquanto ele está aberto.
+     PORTAL PARA O BODY, como `RecompensaDesbloqueada`: dentro da árvore da Loja o `fixed` cairia
+     num bloco de contenção. */
   return createPortal(
-    <div className="fixed inset-0 z-[70] bg-canvas/85 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200"
-      role="dialog" aria-modal="true" aria-label={`Personalizar ${item.nome}`}
-      onClick={(e) => { if (e.target === e.currentTarget) aoFechar(); }}>
-      <div className="card-panel bg-surface w-full max-w-2xl max-h-[88vh] overflow-y-auto custom-scrollbar p-5">
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <h3 className="font-display font-black text-lg text-ink">{item.nome}</h3>
-            <p className="text-[12.5px] text-ink-muted mt-0.5 max-w-[52ch]">{item.desc}</p>
+    <div
+      className="fixed inset-0 z-[70] flex items-center justify-center"
+      style={{ background: 'color-mix(in srgb,#1b140e 58%,transparent)', backdropFilter: 'blur(4px) saturate(.9)' }}
+      onClick={(e) => {
+        if (e.target === e.currentTarget) aoFechar();
+      }}
+    >
+      <dialog
+        ref={dlgRef}
+        open
+        tabIndex={-1}
+        className="medio"
+        aria-modal="true"
+        aria-labelledby="dlg-editor-titulo"
+        style={{ position: 'relative', margin: 0, maxHeight: 'calc(100% - 40px)', overflowY: 'auto' }}
+      >
+        <div className="dlg-cab">
+          <IconeEmBloco icone={Palette} />
+          <div style={{ minWidth: 0 }}>
+            <h2 id="dlg-editor-titulo">Personalizar {item.nome}</h2>
+            <p className="mut" style={{ fontSize: 13 }}>
+              {item.desc}
+            </p>
           </div>
-          <button onClick={aoFechar} aria-label="Fechar" className="btn-outline shrink-0 !px-2 !py-2">
-            <X className="w-4 h-4" aria-hidden />
+          <button type="button" className="x" aria-label="Fechar" onClick={aoFechar}>
+            <X aria-hidden />
           </button>
         </div>
-
-        {/* ── CROMAS ─────────────────────────────────────────────────────── */}
-        {cromas.length > 0 && (
-          <section className="mt-5">
-            <p className="label-mono mb-2">
-              Cromas — a peça vem com uma cor; as outras você desbloqueia
-              <span className="text-ink-faint"> ({meus} de {cromas.length} seus)</span>
-            </p>
-            <div className="grid grid-cols-4 sm:grid-cols-6 lg:grid-cols-9 gap-2">
-              {cromas.map((c) => {
-                const tem = temOCroma(c);
-                const ativo = equipado === c.matiz || (!equipado && c.via === 'incluso');
-                return (
-                  <button
-                    key={c.matiz}
-                    onClick={() => escolher(c)}
-                    disabled={comprando === c.matiz}
-                    title={tem ? c.nome : c.via === 'seeds' ? `${c.nome} · ${c.preco} Seeds` : `${c.nome} · ${c.via === 'premium' ? 'Passe Premium' : 'conquista'}`}
-                    aria-pressed={ativo}
-                    className={`rounded-xl border-2 p-1.5 cursor-pointer flex flex-col items-center gap-1 transition-colors ${
-                      ativo ? 'border-accent bg-accent-soft' : 'border-border-subtle hover:border-accent/60'
-                    } ${tem ? '' : 'opacity-90'}`}
-                  >
-                    {/* A COR TRANCADA APARECE INTEIRA. Dessaturar o bloqueado escondia justamente o
+        <div className="dlg-corpo pilha-g">
+          {/* ── CROMAS ─────────────────────────────────────────────────────── */}
+          {cromas.length > 0 && (
+            <section>
+              <p className="label-mono mb-2">
+                Cromas — a peça vem com uma cor; as outras você desbloqueia
+                <span className="text-ink-faint">
+                  {' '}
+                  ({meus} de {cromas.length} seus)
+                </span>
+              </p>
+              <div className="grid grid-cols-4 sm:grid-cols-6 lg:grid-cols-9 gap-2">
+                {cromas.map((c) => {
+                  const tem = temOCroma(c);
+                  const ativo = equipado === c.matiz || (!equipado && c.via === 'incluso');
+                  return (
+                    <button
+                      key={c.matiz}
+                      onClick={() => escolher(c)}
+                      disabled={comprando === c.matiz}
+                      title={
+                        tem
+                          ? c.nome
+                          : c.via === 'seeds'
+                            ? `${c.nome} · ${c.preco} Seeds`
+                            : `${c.nome} · ${c.via === 'premium' ? 'Passe Premium' : 'conquista'}`
+                      }
+                      aria-pressed={ativo}
+                      className={`rounded-xl border-2 p-1.5 cursor-pointer flex flex-col items-center gap-1 transition-colors ${
+                        ativo ? 'border-accent bg-accent-soft' : 'border-border-subtle hover:border-accent/60'
+                      } ${tem ? '' : 'opacity-90'}`}
+                    >
+                      {/* A COR TRANCADA APARECE INTEIRA. Dessaturar o bloqueado escondia justamente o
                         que se está vendendo — trinta quadrados cinzas idênticos, impossível dizer
                         turquesa de ciano. O que marca o bloqueio é o preço no selo, não apagar a
                         cor: em loja de croma, ver o que falta É o argumento. */}
-                    <span className="w-full h-7 rounded-md" style={{ background: `hsl(${c.h} 78% 62%)` }} aria-hidden />
-                    <span className="text-[8.5px] font-bold text-ink-muted leading-none truncate w-full text-center">{c.nome}</span>
-                    <span className="h-3 flex items-center">{selo(c)}</span>
-                  </button>
-                );
-              })}
-            </div>
-          </section>
-        )}
+                      <span
+                        className="w-full h-7 rounded-md"
+                        style={{ background: `hsl(${c.h} 78% 62%)` }}
+                        aria-hidden
+                      />
+                      <span className="text-[8.5px] font-bold text-ink-muted leading-none truncate w-full text-center">
+                        {c.nome}
+                      </span>
+                      <span className="h-3 flex items-center">{selo(c)}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </section>
+          )}
 
-        {/* ── TEMA: as 200 paletas, a profundidade que o croma não alcança ── */}
-        {item.tipo === 'tema' && (
-          <section className="mt-5">
-            <p className="label-mono mb-2">Paletas — trocar as quatro cores, não só o acento</p>
-            <SeletorDePaletas
-              nivel={nivel}
-              saldo={saldo}
-              setTheme={setTheme}
-              aoAplicar={() => { aoComprar?.(); rerender(); }}
-              onIrParaLoja={onIrParaLoja}
-            />
-          </section>
-        )}
+          {/* ── TEMA: as 200 paletas, a profundidade que o croma não alcança ── */}
+          {item.tipo === 'tema' && (
+            <section>
+              <p className="label-mono mb-2">Paletas — trocar as quatro cores, não só o acento</p>
+              <SeletorDePaletas
+                nivel={nivel}
+                saldo={saldo}
+                setTheme={setTheme}
+                aoAplicar={() => {
+                  aoComprar?.();
+                  rerender();
+                }}
+                onIrParaLoja={onIrParaLoja}
+              />
+            </section>
+          )}
 
-        {/* ── PARTÍCULAS: o controle que pertence a ESTE tipo ──────────────── */}
-        {item.tipo === 'particulas' && (
-          <section className="mt-5">
-            <p className="label-mono mb-2">Comportamento</p>
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="text-[11px] font-mono uppercase tracking-wider text-ink-faint w-20">Intensidade</span>
-              {(['pequena', 'media', 'grande'] as Intensidade[]).map((i) => {
-                /* A intensidade JÁ existia em `aprimoramentos.ts` (grátis e reversível) e não
+          {/* ── PARTÍCULAS: o controle que pertence a ESTE tipo ──────────────── */}
+          {item.tipo === 'particulas' && (
+            <section>
+              <p className="label-mono mb-2">Comportamento</p>
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-[11px] font-mono uppercase tracking-wider text-ink-faint w-20">Intensidade</span>
+                {(['pequena', 'media', 'grande'] as Intensidade[]).map((i) => {
+                  /* A intensidade JÁ existia em `aprimoramentos.ts` (grátis e reversível) e não
                    tinha onde aparecer. O TETO já era regra: `intensidadeMaxima` limita pelo nível
                    do aprimoramento — a mesma de antes, agora visível onde se quer usá-la. */
-                const travada = i === 'grande' && intensidadeMaxima(nivelApr) !== 'grande';
-                const atual = lerIntensidade() === i;
-                return (
-                  <button
-                    key={i}
-                    onClick={() => { if (travada) { toast.warn('A intensidade grande abre no Nv.2 de Explosão de Partículas.'); return; } setIntensidade(i); rerender(); }}
-                    aria-pressed={atual}
-                    className={`px-3 py-1.5 rounded-lg border text-[12px] font-bold cursor-pointer ${
-                      atual ? 'bg-accent text-accent-contrast border-accent' : 'bg-canvas border-border-subtle text-ink-muted hover:text-ink'
-                    } ${travada ? 'opacity-60' : ''}`}
-                  >
-                    {travada && <Lock className="w-3 h-3 inline me-1" aria-hidden />}{i}
-                  </button>
-                );
-              })}
-            </div>
-            <p className="text-[11.5px] text-ink-muted mt-2">
-              Quantas partículas e de que tamanho. Nível {nivelApr} de 3 do aprimoramento —
-              cada nível aumenta o teto.
-            </p>
-          </section>
-        )}
-
-        {/* ── RASTRO: forma, e os emojis escolhidos um a um ────────────────── */}
-        {item.tipo === 'rastro' && (
-          <>
-            <section className="mt-5">
-              <p className="label-mono mb-2">Forma — a outra metade da peça</p>
-              <div className="flex flex-wrap gap-2">
-                {FORMAS_DE_RASTRO.map((f) => (
-                  <button
-                    key={f.id}
-                    onClick={() => {
-                      setForma(f.id);
-                      aplicarCroma(equipado, f.id);
-                      toast.ok(`Rastro ${f.nome} aplicado.`);
-                      rerender();
-                    }}
-                    aria-pressed={forma === f.id}
-                    className={`px-3 py-1.5 rounded-lg border text-[12px] font-bold cursor-pointer ${
-                      forma === f.id ? 'bg-accent text-accent-contrast border-accent' : 'bg-canvas border-border-subtle text-ink-muted hover:text-ink'
-                    }`}
-                  >
-                    {f.nome}
-                  </button>
-                ))}
+                  const travada = i === 'grande' && intensidadeMaxima(nivelApr) !== 'grande';
+                  const atual = lerIntensidade() === i;
+                  return (
+                    <button
+                      key={i}
+                      onClick={() => {
+                        if (travada) {
+                          toast.warn('A intensidade grande abre no Nv.2 de Explosão de Partículas.');
+                          return;
+                        }
+                        setIntensidade(i);
+                        rerender();
+                      }}
+                      aria-pressed={atual}
+                      className="pill"
+                    >
+                      {travada && <Lock className="w-3 h-3 inline me-1" aria-hidden />}
+                      {i}
+                    </button>
+                  );
+                })}
               </div>
               <p className="text-[11.5px] text-ink-muted mt-2">
-                Forma e cor se combinam: {FORMAS_DE_RASTRO.length} formas × {cromas.length} cores
-                nesta peça. Sem croma, o rastro sai nas cores do tema.
+                Quantas partículas e de que tamanho. Nível {nivelApr} de 3 do aprimoramento — cada nível aumenta o teto.
               </p>
             </section>
+          )}
 
-            <section className="mt-5">
+          {/* ── RASTRO: forma, e os emojis escolhidos um a um ────────────────── */}
+          {item.tipo === 'rastro' && (
+            <>
+              <section>
+                <p className="label-mono mb-2">Forma — a outra metade da peça</p>
+                <div className="flex flex-wrap gap-2">
+                  {FORMAS_DE_RASTRO.map((f) => (
+                    <button
+                      key={f.id}
+                      onClick={() => {
+                        setForma(f.id);
+                        aplicarCroma(equipado, f.id);
+                        toast.ok(`Rastro ${f.nome} aplicado.`);
+                        rerender();
+                      }}
+                      aria-pressed={forma === f.id}
+                      className="pill"
+                    >
+                      {f.nome}
+                    </button>
+                  ))}
+                </div>
+                <p className="text-[11.5px] text-ink-muted mt-2">
+                  Forma e cor se combinam: {FORMAS_DE_RASTRO.length} formas × {cromas.length} cores nesta peça. Sem
+                  croma, o rastro sai nas cores do tema.
+                </p>
+              </section>
+
+              <section>
+                <p className="label-mono mb-2 flex flex-wrap items-center gap-2">
+                  Só estes emojis {emojisDoRastro.length ? `(${emojisDoRastro.length})` : ''}
+                  <Cadeado a={rastroDeEmojis} onIrParaLoja={onIrParaLoja} />
+                </p>
+                {rastroDeEmojis.liberado ? (
+                  <SeletorDeEmojis
+                    nivel={nivel}
+                    saldo={saldo}
+                    selecionados={new Set(emojisDoRastro)}
+                    onIrParaLoja={onIrParaLoja}
+                    aoTocar={(e) => {
+                      const nova = emojisDoRastro.includes(e)
+                        ? emojisDoRastro.filter((x) => x !== e)
+                        : [...emojisDoRastro, e];
+                      setEmojisDoRastro(nova);
+                      setRastro(nova.length ? idDeRastroDeEmojis(nova) : item.alvo);
+                      rerender();
+                    }}
+                  />
+                ) : (
+                  <p className="text-[12px] text-ink-muted">
+                    Com o Rastro Emoji da Loja você escolhe exatamente quais emojis seguem o mouse.
+                  </p>
+                )}
+              </section>
+            </>
+          )}
+
+          {/* ── PACK: montar o pack emoji a emoji ────────────────────────────── */}
+          {item.tipo === 'pack' && (
+            <section>
               <p className="label-mono mb-2 flex flex-wrap items-center gap-2">
-                Só estes emojis {emojisDoRastro.length ? `(${emojisDoRastro.length})` : ''}
-                <Cadeado a={rastroDeEmojis} onIrParaLoja={onIrParaLoja} />
+                Meu pack {packCustom.length ? `(${packCustom.length})` : ''}
+                <Cadeado a={editorDePack} onIrParaLoja={onIrParaLoja} />
+                {editorDePack.liberado && packCustom.length > 0 && (
+                  <>
+                    <button
+                      onClick={() => {
+                        setPack(PACK_CUSTOM);
+                        rerender();
+                      }}
+                      aria-pressed={readPack() === PACK_CUSTOM}
+                      className={`px-2 py-1 rounded-lg text-[11.5px] font-bold normal-case tracking-normal border cursor-pointer ${
+                        readPack() === PACK_CUSTOM
+                          ? 'bg-accent text-accent-contrast border-accent'
+                          : 'bg-canvas border-border-subtle text-ink-muted'
+                      }`}
+                    >
+                      usar o meu
+                    </button>
+                    <button
+                      onClick={() => {
+                        setPackCustom([]);
+                        rerender();
+                      }}
+                      className="text-[11.5px] font-normal normal-case tracking-normal text-ink-faint hover:text-error cursor-pointer"
+                    >
+                      limpar
+                    </button>
+                  </>
+                )}
               </p>
-              {rastroDeEmojis.liberado ? (
+              {editorDePack.liberado ? (
+                <>
+                  <SeletorDeEmojis
+                    nivel={nivel}
+                    saldo={saldo}
+                    selecionados={new Set(packCustom)}
+                    onIrParaLoja={onIrParaLoja}
+                    aoTocar={(e) => {
+                      const a = lerPackCustom();
+                      setPackCustom(a.includes(e) ? a.filter((x) => x !== e) : [...a, e]);
+                      rerender();
+                    }}
+                    aoAdicionarCategoria={(emojis) => {
+                      setPackCustom([...new Set([...lerPackCustom(), ...emojis])]);
+                      rerender();
+                    }}
+                  />
+                  {packCustom.length > 0 && (
+                    <p className="text-[12px] text-ink mt-2 leading-relaxed">{packCustom.join(' ')}</p>
+                  )}
+                  <p className="text-[11.5px] text-ink-faint mt-1">
+                    Toque para incluir ou tirar. "Adicionar categoria inteira" e depois tirar um é o jeito rápido de
+                    "todos menos esse".
+                  </p>
+                </>
+              ) : (
+                <p className="text-[12px] text-ink-muted">
+                  Com o editor você escolhe emoji por emoji, categoria inteira, ou tira só um.
+                </p>
+              )}
+            </section>
+          )}
+
+          {/* ── CURSOR: qualquer emoji do catálogo vira ponteiro ─────────────── */}
+          {item.tipo === 'cursor' && (
+            <section>
+              <p className="label-mono mb-2 flex flex-wrap items-center gap-2">
+                Qualquer emoji <Cadeado a={cursorDeEmoji} onIrParaLoja={onIrParaLoja} />
+              </p>
+              {cursorDeEmoji.liberado ? (
                 <SeletorDeEmojis
                   nivel={nivel}
                   saldo={saldo}
-                  selecionados={new Set(emojisDoRastro)}
+                  selecionados={new Set(cursorAtual.startsWith('emoji:') ? [cursorAtual.slice(6)] : [])}
                   onIrParaLoja={onIrParaLoja}
                   aoTocar={(e) => {
-                    const nova = emojisDoRastro.includes(e) ? emojisDoRastro.filter((x) => x !== e) : [...emojisDoRastro, e];
-                    setEmojisDoRastro(nova);
-                    setRastro(nova.length ? idDeRastroDeEmojis(nova) : item.alvo);
+                    setCursor(idDeCursorDeEmoji(e));
                     rerender();
                   }}
                 />
               ) : (
-                <p className="text-[12px] text-ink-muted">Com o Rastro Emoji da Loja você escolhe exatamente quais emojis seguem o mouse.</p>
+                <p className="text-[12px] text-ink-muted">
+                  Libere e todo emoji do catálogo (das categorias abertas) vira ponteiro.
+                </p>
               )}
             </section>
-          </>
-        )}
-
-        {/* ── PACK: montar o pack emoji a emoji ────────────────────────────── */}
-        {item.tipo === 'pack' && (
-          <section className="mt-5">
-            <p className="label-mono mb-2 flex flex-wrap items-center gap-2">
-              Meu pack {packCustom.length ? `(${packCustom.length})` : ''}
-              <Cadeado a={editorDePack} onIrParaLoja={onIrParaLoja} />
-              {editorDePack.liberado && packCustom.length > 0 && (
-                <>
-                  <button
-                    onClick={() => { setPack(PACK_CUSTOM); rerender(); }}
-                    aria-pressed={readPack() === PACK_CUSTOM}
-                    className={`px-2 py-1 rounded-lg text-[11.5px] font-bold normal-case tracking-normal border cursor-pointer ${
-                      readPack() === PACK_CUSTOM ? 'bg-accent text-accent-contrast border-accent' : 'bg-canvas border-border-subtle text-ink-muted'
-                    }`}
-                  >
-                    usar o meu
-                  </button>
-                  <button onClick={() => { setPackCustom([]); rerender(); }} className="text-[11.5px] font-normal normal-case tracking-normal text-ink-faint hover:text-error cursor-pointer">limpar</button>
-                </>
-              )}
-            </p>
-            {editorDePack.liberado ? (
-              <>
-                <SeletorDeEmojis
-                  nivel={nivel}
-                  saldo={saldo}
-                  selecionados={new Set(packCustom)}
-                  onIrParaLoja={onIrParaLoja}
-                  aoTocar={(e) => { const a = lerPackCustom(); setPackCustom(a.includes(e) ? a.filter((x) => x !== e) : [...a, e]); rerender(); }}
-                  aoAdicionarCategoria={(emojis) => { setPackCustom([...new Set([...lerPackCustom(), ...emojis])]); rerender(); }}
-                />
-                {packCustom.length > 0 && <p className="text-[12px] text-ink mt-2 leading-relaxed">{packCustom.join(' ')}</p>}
-                <p className="text-[11.5px] text-ink-faint mt-1">
-                  Toque para incluir ou tirar. "Adicionar categoria inteira" e depois tirar um é o
-                  jeito rápido de "todos menos esse".
-                </p>
-              </>
-            ) : (
-              <p className="text-[12px] text-ink-muted">Com o editor você escolhe emoji por emoji, categoria inteira, ou tira só um.</p>
-            )}
-          </section>
-        )}
-
-        {/* ── CURSOR: qualquer emoji do catálogo vira ponteiro ─────────────── */}
-        {item.tipo === 'cursor' && (
-          <section className="mt-5">
-            <p className="label-mono mb-2 flex flex-wrap items-center gap-2">
-              Qualquer emoji <Cadeado a={cursorDeEmoji} onIrParaLoja={onIrParaLoja} />
-            </p>
-            {cursorDeEmoji.liberado ? (
-              <SeletorDeEmojis
-                nivel={nivel}
-                saldo={saldo}
-                selecionados={new Set(cursorAtual.startsWith('emoji:') ? [cursorAtual.slice(6)] : [])}
-                onIrParaLoja={onIrParaLoja}
-                aoTocar={(e) => { setCursor(idDeCursorDeEmoji(e)); rerender(); }}
-              />
-            ) : (
-              <p className="text-[12px] text-ink-muted">Libere e todo emoji do catálogo (das categorias abertas) vira ponteiro.</p>
-            )}
-          </section>
-        )}
-
-        <div className="flex flex-wrap gap-2 mt-6">
-          <button onClick={() => { aoEquipar(); aoFechar(); }} className="btn-solid flex-1 min-w-[160px] justify-center">
-            <Check className="w-4 h-4" aria-hidden /> Aplicar e equipar
-          </button>
-          <button onClick={aoFechar} className="btn-outline">Sair sem salvar</button>
+          )}
         </div>
-      </div>
+        <div className="dlg-pe">
+          <button type="button" className="btn btn-outline" onClick={aoFechar}>
+            Cancelar
+          </button>
+          <button
+            type="button"
+            className="btn btn-solid"
+            onClick={() => {
+              aoEquipar();
+              aoFechar();
+            }}
+          >
+            <Check aria-hidden /> Aplicar e equipar
+          </button>
+        </div>
+      </dialog>
     </div>,
     document.body,
   );

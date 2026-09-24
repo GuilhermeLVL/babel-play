@@ -73,12 +73,13 @@ test.describe('As duas superfícies de Personalizar', () => {
     await page.goto('/loja/meu-visual')
     await expect(page.getByRole('main')).toBeVisible()
     await fecharSobreposicoes(page)
-    /* `allTextContents()` NÃO espera: ele lê o DOM do instante e devolve `[]` se as abas ainda
+    /* A contagem vem no `.n` do protótipo, colada ao rótulo (era " · N" no texto).
+       `allTextContents()` NÃO espera: ele lê o DOM do instante e devolve `[]` se as abas ainda
        não renderizaram. Esperar uma delas primeiro é o que torna a leitura determinística. */
-    await expect(page.getByRole('tab', { name: /^Desafios · \d+$/ })).toBeVisible()
+    await expect(page.getByRole('tab', { name: /^Desafios\s*\d+$/ })).toBeVisible()
     const rotulos = await page.getByRole('tab').allTextContents()
     const daTela = rotulos.filter((r) => /Meu visual|Desafios/.test(r))
-    expect(daTela.map((r) => r.replace(/ · \d+$/, '').trim())).toEqual(['Meu visual', 'Desafios'])
+    expect(daTela.map((r) => r.replace(/\s*\d+$/, '').trim())).toEqual(['Meu visual', 'Desafios'])
   })
 
   test('dá para ir de uma à outra sem sair da tela', async ({ page }) => {
@@ -87,10 +88,10 @@ test.describe('As duas superfícies de Personalizar', () => {
     await expect(page.getByRole('main')).toBeVisible()
     await fecharSobreposicoes(page)
 
-    await clicarRobusto(page, page.getByRole('tab', { name: /^Desafios · \d+$/ }))
+    await clicarRobusto(page, page.getByRole('tab', { name: /^Desafios\s*\d+$/ }))
     await expect(page).toHaveURL(/\/loja\/desafios$/)
 
-    await clicarRobusto(page, page.getByRole('tab', { name: /^Meu visual · \d+$/ }))
+    await clicarRobusto(page, page.getByRole('tab', { name: /^Meu visual\s*\d+$/ }))
     await expect(page).toHaveURL(/\/loja\/meu-visual$/)
   })
 })

@@ -32,7 +32,7 @@ test.describe('Seeds na Loja', () => {
     /* Ancorado na secao da Loja pelo mesmo motivo de `dois-dispositivos`: desde 12/09 ela vive
        dentro de Desafios, depois da lista de conquistas, que tambem diz "Seeds". */
     const cartaoSeeds = page
-      .locator('#secao-loja p')
+      .locator('#secao-loja .cartao')
       .filter({ has: page.getByText('Seeds', { exact: true }) })
       .first()
     await expect(cartaoSeeds).toBeVisible({ timeout: 15_000 })
@@ -55,7 +55,7 @@ test.describe('Seeds na Loja', () => {
     expect(esperado).toBeGreaterThanOrEqual(0)
 
     /* O ITEM MAIS BARATO da prateleira de Seeds: o menor numero ao lado do broto. */
-    const precos = await page.locator('span.text-good.tabular-nums').allTextContents()
+    const precos = await page.locator('#secao-loja [data-preco-seeds]').allTextContents()
     const valores = precos.map((t) => Number(t.replace(/\D/g, ''))).filter((n) => Number.isFinite(n) && n > 0)
     expect(valores.length, 'a Loja deveria listar itens com preco em Seeds').toBeGreaterThan(0)
     const maisBarato = Math.min(...valores)

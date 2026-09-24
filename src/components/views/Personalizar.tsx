@@ -1,7 +1,20 @@
-import { Eye, Gamepad2, Undo2, Zap } from 'lucide-react';
+import {
+  Accessibility,
+  Eye,
+  Gamepad2,
+  MousePointer2,
+  Palette,
+  PanelLeft,
+  Smile,
+  Sparkles,
+  Type,
+  Undo2,
+  Waypoints,
+  Zap,
+} from 'lucide-react';
 import { useState } from 'react';
 
-import { applyCustomColors, FONTE_OPTIONS, type FonteType, type ThemeType } from '../../lib/appearance';
+import { applyCustomColors, FONTE_OPTIONS, type FonteType, THEME_OPTIONS, type ThemeType } from '../../lib/appearance';
 import { CURSORES, emojiDoCursor, readCursor, setCursor } from '../../lib/cursores';
 import { acessoAoEstilo, faltaParaOPerfil } from '../../lib/galeria/acesso';
 import { CATEGORIAS_DE_EMOJI } from '../../lib/galeria/emojis';
@@ -31,29 +44,19 @@ import {
 import { estiloDeRastro, readRastro, setRastro } from '../../lib/rastroDoMouse';
 import type { AgeProfileType, MenuPositionType } from '../shell/navItems';
 import { toast } from '../Toast';
+import { IconeEmBloco, TituloDeSecao } from '../ui';
 import Inventario from './personalizar/Inventario';
 
 /**
  * MEU VISUAL — o inventário e o perfil de exibição. Só isso.
  *
- * O QUE SAIU DAQUI (e para onde foi), na limpeza pedida pelo dono em 01/09: "está tendo um
- * acúmulo de conteúdo legado; remova o que é passado e deixe o novo".
- *
- * PRIMEIRA RODADA — o acordeão de OITO seções ("Monte o seu, peça por peça"). Sete delas
- * ofereciam de novo o que a grade do inventário já faz — escolher tema, fonte, partícula, pack,
- * cursor, rastro, posição do menu — só que numa lista de chips, com outro desenho e outra régua
- * de cadeado. O que era PROFUNDIDADE (as 200 paletas, o editor do pack, o cursor de qualquer
- * emoji, o rastro de emojis) mudou de lugar em vez de sumir: abre pelo botão "Personalizar" da
- * peça, em `personalizar/EditorDoItem`.
- *
- * SEGUNDA RODADA — a grade de 19 perfis, que era o último pedaço com layout próprio fora do
- * inventário. Virou uma CATEGORIA lá dentro, ao lado de Temas e Rastros: perfil é um loadout
- * inteiro em vez de uma peça, e uma aba é exatamente como jogo trata loadout. Junto com ela foi
- * o campo "salvar este visual", que agora mora na categoria a que pertence.
+ * O inventário (`personalizar/Inventario`) é o desenho do protótipo aprovado: o que está equipado
+ * no topo e as peças em seções. Os perfis de visual moram lá, como uma seção.
  *
  * O QUE FICOU AQUI: o PERFIL DE EXIBIÇÃO. Não é peça de catálogo nem cosmético — é
- * acessibilidade, sempre grátis. Fica sem cadeado e sem acordeão, porque direito não se esconde
- * atrás de um clique (ux-v2 §4.4).
+ * acessibilidade, sempre grátis. O protótipo não desenha esta seção em Personalizar; ela fica
+ * porque é o único dono do ajuste (desde 2026-08-28), no molde de escolha do protótipo
+ * (`.cartao.opcao`), sem cadeado e sem acordeão: direito não se esconde atrás de um clique.
  */
 interface PersonalizarProps {
   theme: ThemeType;
@@ -74,6 +77,13 @@ interface PersonalizarProps {
   setMenuPosition: (p: MenuPositionType) => void;
   onOpenStudio: () => void;
 }
+
+const POSICAO_DO_MENU: Record<MenuPositionType, string> = {
+  left: 'À esquerda',
+  top: 'No topo',
+  right: 'À direita',
+  bottom: 'Embaixo',
+};
 
 export default function Personalizar({
   theme,
@@ -176,7 +186,10 @@ export default function Personalizar({
     } else toast.warn('O nome não pode ficar vazio.');
   };
 
-  const paletaNome = theme === 'custom' && paletaAtiva ? (paletaPorId(paletaAtiva)?.nome ?? 'Paleta') : `Tema ${theme}`;
+  const temaNome =
+    theme === 'custom' && paletaAtiva
+      ? (paletaPorId(paletaAtiva)?.nome ?? 'Paleta')
+      : (THEME_OPTIONS.find((t) => t.id === theme)?.name ?? theme);
   const packNome =
     readPack() === PACK_CUSTOM
       ? `Meu pack (${packCustom.length})`
@@ -185,10 +198,7 @@ export default function Personalizar({
   const perfis = [...perfisSalvos(), ...PRESETS];
 
   return (
-    <div className="space-y-6">
-      {/* ── O INVENTÁRIO ────────────────────────────────────────────────────────────────
-             Loadout, categorias (peças E perfis), o acervo inteiro e a prévia com origem,
-             equipar e personalizar. É o único lugar da tela onde se troca alguma coisa. */}
+    <>
       <Inventario
         nivel={nivel}
         saldo={saldoAgora}
@@ -210,36 +220,35 @@ export default function Personalizar({
                         ? rastroAtual === i.alvo
                         : false
         }
+        /* A ordem do protótipo (Tema, Partículas, Fonte, Menu, Cursor, Emojis), mais o Rastro,
+           que o protótipo não tem e o app tem. */
         loadout={[
-          { chave: 'tema', rotulo: 'Tema', valor: paletaNome, icone: '🎨', categoria: 'tema' },
+          { chave: 'tema', rotulo: 'Tema', valor: temaNome, icone: Palette },
           {
             chave: 'particulas',
             rotulo: 'Partículas',
             valor: PARTICULAS_OPTIONS.find((o) => o.id === readParticulas())?.name ?? '—',
-            icone: '✨',
-            categoria: 'particulas',
+            icone: Sparkles,
           },
-          {
-            chave: 'rastro',
-            rotulo: 'Rastro',
-            valor: estiloDeRastro(rastroAtual)?.nome ?? 'sem rastro',
-            icone: '💫',
-            categoria: 'rastro',
-          },
-          {
-            chave: 'cursor',
-            rotulo: 'Cursor',
-            valor: CURSORES.find((c) => c.id === cursorAtual)?.nome ?? 'Emoji',
-            icone: emojiDoCursor(cursorAtual) ?? '🖱️',
-            categoria: 'cursor',
-          },
-          { chave: 'pack', rotulo: 'Emojis', valor: packNome, icone: '😀', categoria: 'pack' },
           {
             chave: 'fonte',
             rotulo: 'Fonte',
             valor: FONTE_OPTIONS.find((f) => f.id === fonte)?.name ?? fonte,
-            icone: '🔤',
-            categoria: 'fonte',
+            icone: Type,
+          },
+          { chave: 'menu', rotulo: 'Menu', valor: POSICAO_DO_MENU[menuPosition] ?? menuPosition, icone: PanelLeft },
+          {
+            chave: 'cursor',
+            rotulo: 'Cursor',
+            valor: CURSORES.find((c) => c.id === cursorAtual)?.nome ?? 'Emoji',
+            icone: MousePointer2,
+          },
+          { chave: 'pack', rotulo: 'Emojis', valor: packNome, icone: Smile },
+          {
+            chave: 'rastro',
+            rotulo: 'Rastro',
+            valor: estiloDeRastro(rastroAtual)?.nome ?? 'sem rastro',
+            icone: Waypoints,
           },
         ]}
         onIrParaLoja={onIrParaLoja}
@@ -255,32 +264,29 @@ export default function Personalizar({
           rerender();
         }}
         aoSalvarPerfil={salvarAtual}
+        /* DIREITO, não recompensa: desfazer o visual nunca depende de nível nem de Seeds. */
+        acaoDosPerfis={
+          <button type="button" className="link" onClick={voltarAoOriginal}>
+            <Undo2 aria-hidden /> Voltar ao visual original
+          </button>
+        }
       />
 
-      {/* A única ação que sobrou fora do inventário. "Salvar" foi para a categoria Perfis, que é
-          sobre isso, e "Liberar mais na Loja" saiu porque o "Ir à Loja" do inventário já leva ao
-          mesmo lugar — e leva com contexto, dizendo quantas peças faltam.
-          DIREITO, não recompensa: desfazer o visual nunca depende de nível nem de Seeds. */}
-      <div className="flex flex-wrap items-center gap-2">
-        <button onClick={voltarAoOriginal} className="btn-outline">
-          <Undo2 className="w-4 h-4" aria-hidden /> Voltar ao visual original
-        </button>
-      </div>
-
-      {/* ── PERFIL DE EXIBIÇÃO ───────────────────────────────────────────────────────────
-             DIREITO declarado onde mora (ux-v2 §4.4): a seção vive numa tela de recompensas e o
-             leigo lia o perfil como mais um cosmético trancável. Sem cadeado, sem acordeão. */}
-      <section className="card-panel bg-canvas p-4">
-        {/* Título de seção de verdade (como no design), não um rótulo mono em caixa alta: isto
-            não é metadado de um cartão, é o cabeçalho de um ajuste que a pessoa vem procurar. */}
-        <h3 className="font-display font-bold text-[14px] text-ink mb-1">Perfil de exibição</h3>
-        <p className="text-[12px] text-ink-muted mb-3 max-w-[72ch]">
-          Muda a linguagem e a densidade das telas. Não muda o tema nem esconde recurso nenhum.{' '}
-          <b className="text-ink">
-            Isto é acessibilidade: sempre grátis, em qualquer {palavraDeNivel().toLowerCase()}.
-          </b>
-        </p>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+      {/* ── PERFIL DE EXIBIÇÃO: DIREITO declarado onde mora (ux-v2 §4.4). ── */}
+      <section className="secao">
+        <TituloDeSecao
+          icone={Accessibility}
+          titulo="Perfil de exibição"
+          desc={
+            <>
+              Muda a linguagem e a densidade das telas. Não muda o tema nem esconde recurso nenhum.{' '}
+              <b style={{ color: 'var(--ink)' }}>
+                Isto é acessibilidade: sempre grátis, em qualquer {palavraDeNivel().toLowerCase()}.
+              </b>
+            </>
+          }
+        />
+        <div className="g3">
           {[
             {
               id: 'kids' as const,
@@ -298,38 +304,21 @@ export default function Personalizar({
           ].map((opt) => (
             <button
               key={opt.id}
-              onClick={() => setAgeProfile(opt.id)}
+              type="button"
+              className={`cartao opcao ${ageProfile === opt.id ? 'sel' : ''}`}
               aria-pressed={ageProfile === opt.id}
-              className={`p-3 rounded-xl border text-start cursor-pointer transition-colors flex items-start gap-3 ${
-                ageProfile === opt.id
-                  ? 'border-accent bg-accent-soft'
-                  : 'border-border-subtle bg-surface hover:border-accent'
-              }`}
+              onClick={() => setAgeProfile(opt.id)}
             >
-              {/* Selo laranja quadrado, como no design: o ícone deixa de ser um detalhe dentro da
-                  frase e passa a identificar a opção de longe. */}
-              <span
-                className="w-8 h-8 shrink-0 rounded-[10px] bg-accent text-accent-contrast flex items-center justify-center"
-                aria-hidden
-              >
-                <opt.icon className="w-4 h-4" />
-              </span>
-              <span className="min-w-0">
-                <span
-                  className={`block font-display font-bold text-[12.5px] ${ageProfile === opt.id ? 'text-accent-ink' : 'text-ink'}`}
-                >
-                  {opt.label}
-                </span>
-                <span className="block text-[11px] text-ink-muted mt-0.5 leading-snug">{opt.desc}</span>
+              <span className="radio" aria-hidden="true" />
+              <IconeEmBloco icone={opt.icon} />
+              <span style={{ flex: 1 }}>
+                <h3>{opt.label}</h3>
+                <p>{opt.desc}</p>
               </span>
             </button>
           ))}
         </div>
-        <p className="text-[11.5px] text-ink-faint mt-3">
-          A posição do menu virou peça de inventário: está na categoria <b className="text-ink-muted">Layout</b>, ali em
-          cima.
-        </p>
       </section>
-    </div>
+    </>
   );
 }

@@ -169,6 +169,33 @@ export const VARIAVEIS: readonly VariavelDeclarada[] = [
     paraQue: '1 liga o modo público, 0 desliga; sem valor, liga só em produção',
   },
   {
+    nome: 'BACKUP_DIARIO',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue:
+      '1 liga o snapshot diário do banco (VACUUM INTO + integrity_check + gzip) enviado ao R2 em `backups/diario/AAAA-MM-DD.db.gz` (server/operacao/snapshot.ts). Exige as `S3_*`',
+  },
+  {
+    nome: 'BACKUP_HEARTBEAT_URL',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue:
+      'URL chamada (GET) só depois de um snapshot diário enviado E conferido — o heartbeat do UptimeRobot alerta quando ela deixa de ser chamada',
+  },
+  {
+    nome: 'BACKUP_HORA_UTC',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue: 'hora UTC (0–23) do snapshot diário; sem ela, 6 (03h em Brasília, o vale do tráfego)',
+  },
+  {
+    nome: 'BACKUP_S3_BUCKET',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue:
+      'bucket dos snapshots diários; sem ela, o mesmo `S3_BUCKET` da mídia. Um bucket próprio deixa a regra de retenção (30 dias) separada da mídia',
+  },
+  {
     nome: 'CHECKOUT_ENABLED',
     exigencia: 'opcional',
     criticidade: 'degrada-capacidade',
@@ -341,6 +368,13 @@ export const VARIAVEIS: readonly VariavelDeclarada[] = [
     paraQue:
       'atalho da RESERVA do LLM: base do OpenRouter e o modelo de LLM_RESERVA_MODEL (ou o padrão). As três LLM_RESERVA_* completas vencem o atalho',
   },
+  {
+    nome: 'ORIGEM_SEGREDO',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue:
+      'segredo que o Cloudflare injeta no cabeçalho `x-origem-segredo` (Transform Rule). Definido, requisição sem ele é recusada com 403 — fecha o acesso direto a `<app>.fly.dev`, que pularia o WAF e forjaria o `X-Forwarded-For`. `/api/health` e `/api/ready` ficam de fora (as sondas do Fly não passam pelo Cloudflare)',
+  },
   { nome: 'PORT', exigencia: 'opcional', criticidade: 'degrada-capacidade', paraQue: 'porta de escuta' },
   {
     nome: 'REPLICAS',
@@ -391,6 +425,25 @@ export const VARIAVEIS: readonly VariavelDeclarada[] = [
     criticidade: 'degrada-capacidade',
     paraQue:
       '1 declara a instalação pessoal sem login: só com ela o build de produção sobe com AUTH_REQUIRED=0 (GAP-003 recusa o AUTH_REQUIRED=0 esquecido sozinho)',
+  },
+  {
+    nome: 'SENTRY_DSN',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue:
+      'DSN do Sentry do SERVIDOR. Definido, todo `log(error)` já saneado (allowlist + redação) vira evento — inclusive os erros do navegador que chegam por /api/erros-do-cliente. Sem e-mail, IP, prompt ou transcrição, por construção (server/lib/sentry.ts)',
+  },
+  {
+    nome: 'SENTRY_ENVIRONMENT',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue: 'ambiente no Sentry (production, staging); sem ela, o NODE_ENV',
+  },
+  {
+    nome: 'SENTRY_RELEASE',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue: 'versão no Sentry; o Dockerfile a preenche com o commit da imagem (build arg VERSAO)',
   },
   {
     nome: 'SIGNUP_ENABLED',
@@ -449,7 +502,28 @@ export const VARIAVEIS: readonly VariavelDeclarada[] = [
     exigencia: 'opcional',
     criticidade: 'degrada-capacidade',
     paraQue:
-      'em quantos saltos de proxy reverso confiar para resolver `req.ip` (`1`, `true`, `false`, `loopback` ou lista de sub-redes). Ausente, o Express não confia em `X-Forwarded-For` — atrás de proxy isso faz TODA origem virar a mesma chave do limitador e da trava do ranking; ligada sem proxy à frente, o cliente escolhe a própria chave e o limitador deixa de existir',
+      'em quantos saltos de proxy reverso confiar para resolver `req.ip` (`1`, `true`, `false`, `loopback` ou lista de sub-redes). OBRIGATÓRIA com NODE_ENV=production — o boot aborta sem ela (GAP-004); Cloudflare → Fly.io são 2 saltos. Ausente fora de produção, o Express não confia em `X-Forwarded-For` — atrás de proxy isso faz TODA origem virar a mesma chave do limitador e da trava do ranking; ligada sem proxy à frente, o cliente escolhe a própria chave e o limitador deixa de existir',
+  },
+  /* As três `VITE_*` abaixo são de BUILD (o Vite as embute no bundle). O servidor as lê só para a
+     CSP enxergar os mesmos hosts que o bundle chama; o `Dockerfile` as repete como `ENV` do runtime. */
+  {
+    nome: 'VITE_SELF_HOST_MODELS',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue:
+      'de onde o navegador baixa os pesos dos modelos locais: `1` = mesmo domínio (`/models`), uma URL = o bucket R2 público. A CSP libera a origem da URL em `connect-src`',
+  },
+  {
+    nome: 'VITE_SENTRY_DSN',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue: 'DSN do Sentry do NAVEGADOR; a CSP libera o host de ingestão dele em `connect-src`',
+  },
+  {
+    nome: 'VITE_SUPABASE_URL',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue: 'projeto Supabase do login no navegador; a CSP libera a origem dele em `connect-src`',
   },
   {
     nome: 'YTDLP_PATH',
@@ -556,6 +630,67 @@ export function erroDeMetricasEmProducao(env: NodeJS.ProcessEnv = process.env): 
     return 'METRICS_ENABLED=1 em produção exige METRICS_TOKEN: recusando expor /metrics sem autenticação.'
   }
   return null
+}
+
+/**
+ * GAP-004 (auditoria 2026-09-13): em produção, `TRUST_PROXY` precisa ser uma DECISÃO declarada.
+ *
+ * Os dois erros possíveis desligam proteção em silêncio, e nenhum falha alto: sem `TRUST_PROXY`
+ * atrás de proxy, todo visitante vira o IP do proxy e divide um balde só do limitador (um atacante
+ * esgota a cota do planeta inteiro); ligada sem proxy à frente, o cliente escolhe a própria chave.
+ * Não há como o processo descobrir sozinho quantos saltos existem na frente dele — então, em
+ * produção, ele se recusa a adivinhar. Quem roda exposto direto declara `TRUST_PROXY=false`.
+ *
+ * Devolve a mensagem de aborto de boot, ou `null` quando a postura foi declarada.
+ */
+export function erroDeTrustProxyEmProducao(env: NodeJS.ProcessEnv = process.env): string | null {
+  if (env.NODE_ENV !== 'production') return null
+  if (env.TRUST_PROXY?.trim()) return null
+  return (
+    'TRUST_PROXY é obrigatória em produção (NODE_ENV=production): declare quantos proxies há na frente ' +
+    '(ex.: 2 para Cloudflare → Fly.io, 1 para um Caddy/Nginx) ou TRUST_PROXY=false se o app recebe a ' +
+    'conexão direto. Sem ela, o limitador por IP enxerga todo mundo como o proxy.'
+  )
+}
+
+/**
+ * O segredo que o proxy da frente (Cloudflare) injeta em toda requisição, ou `undefined`.
+ *
+ * Existe porque `TRUST_PROXY` confia no `X-Forwarded-For` montado pela cadeia da frente — e quem
+ * chega DIRETO no endereço do Fly (`<app>.fly.dev`), pulando o Cloudflare, monta o cabeçalho que
+ * quiser. Com o segredo definido, requisição sem ele é recusada (ver `server/http/origemProtegida.ts`).
+ */
+export function segredoDeOrigem(env: NodeJS.ProcessEnv = process.env): string | undefined {
+  const bruto = env.ORIGEM_SEGREDO?.trim()
+  return bruto ? bruto : undefined
+}
+
+/** Sentry do servidor: `null` sem `SENTRY_DSN`. O DSN é validado por quem monta o sink. */
+export function configDoSentry(
+  env: NodeJS.ProcessEnv = process.env,
+): { dsn: string; ambiente?: string; release?: string } | null {
+  const dsn = env.SENTRY_DSN?.trim()
+  if (!dsn) return null
+  return {
+    dsn,
+    ambiente: env.SENTRY_ENVIRONMENT?.trim() || env.NODE_ENV || undefined,
+    release: env.SENTRY_RELEASE?.trim() || undefined,
+  }
+}
+
+/**
+ * O snapshot diário está ligado? Devolve a hora UTC e o heartbeat, ou `null`.
+ *
+ * `'1'` exato, pelo mesmo motivo de `metricasHabilitadas`: `BACKUP_DIARIO=0` é como se DESLIGA.
+ * Hora fora de 0–23 cai no padrão em vez de virar um temporizador de horas negativas.
+ */
+export function configDoBackupDiario(
+  env: NodeJS.ProcessEnv = process.env,
+): { horaUtc: number; heartbeatUrl?: string } | null {
+  if (env.BACKUP_DIARIO !== '1') return null
+  const hora = Number(env.BACKUP_HORA_UTC)
+  const heartbeatUrl = env.BACKUP_HEARTBEAT_URL?.trim() || undefined
+  return { horaUtc: Number.isInteger(hora) && hora >= 0 && hora <= 23 ? hora : 6, heartbeatUrl }
 }
 
 /**

@@ -30,9 +30,10 @@ import rateLimit from 'express-rate-limit'
 import helmet from 'helmet'
 
 import { audioRouter } from '../audio/loopback'
+import { exigirAal2SeTiver2fa } from '../lib/aal'
 import { abertura, portaDoCadastro } from '../lib/abertura'
 import { authMiddleware, authRequired } from '../lib/auth'
-import { metricasHabilitadas } from '../lib/config'
+import { metricasHabilitadas, segredoDeOrigem } from '../lib/config'
 import { capturarAssincrono } from '../lib/erroGlobal'
 import { exigirAdultoDeclarado, exigirContaLiberada } from '../lib/idade'
 import {
@@ -60,7 +61,10 @@ import { sessionsRouter } from '../routes/sessions'
 import { settingsRouter } from '../routes/settings'
 import { tutorRouter } from '../routes/tutor'
 import { vocabRouter } from '../routes/vocab'
+import { diretivasDeCsp } from './csp'
+import { jsonAntesDoAuth, jsonDepoisDoAuth, ROTAS_DE_CORPO_GRANDE } from './limitesDeCorpo'
 import { handlerDeMetricas, middlewareDeMetricas } from './metricas'
+import { exigirOrigem } from './origemProtegida'
 
 /**
  * A ÚNICA COSTURA da montagem, e ela existe para os testes: o `authMiddleware` de produção resolve
@@ -124,6 +128,12 @@ export function criarApp(opcoes: OpcoesDoApp = {}): express.Express {
   // parsing do corpo. Volta ao cliente no header `x-request-id`.
   app.use(requestIdMiddleware)
 
+  /* ORIGEM PROTEGIDA (GAP-004): com `ORIGEM_SEGREDO`, só quem passou pelo Cloudflare entra — o acesso
+     direto a `<app>.fly.dev` pularia o WAF e forjaria o `X-Forwarded-For` em que o `TRUST_PROXY`
+     confia. Ver `server/http/origemProtegida.ts`. */
+  const segredo = segredoDeOrigem()
+  if (segredo) app.use(exigirOrigem(segredo))
+
   /**
    * MÉTRICAS PROMETHEUS (Fase 5) — o middleware ANTES de tudo, a rota ANTES do auth.
    *
@@ -153,7 +163,9 @@ export function criarApp(opcoes: OpcoesDoApp = {}): express.Express {
     app.get('/metrics', handlerDeMetricas())
   }
 
-  app.use(express.json({ limit: '5mb' }))
+  /* GAP-015: o teto de 5 MB valia ANTES do login. Agora o topo aceita só 100 KB, e as poucas rotas
+     de corpo grande são lidas depois do `authMiddleware` — ver `server/http/limitesDeCorpo.ts`. */
+  app.use(jsonAntesDoAuth())
 
   // C3 — COMPRESSÃO. Medido com Lighthouse sobre o build de produção: LCP entre 10,7 s e 23,3 s em
   // todas as rotas, com o limiar "ruim" do Google em 4 s. O diagnóstico não foi "o bundle é grande":
@@ -187,17 +199,9 @@ export function criarApp(opcoes: OpcoesDoApp = {}): express.Express {
       contentSecurityPolicy: {
         // Em dev, relatar; em produção, bloquear. As diretivas são as mesmas de propósito.
         reportOnly: process.env.NODE_ENV !== 'production',
-        directives: {
-          defaultSrc: ["'self'"],
-          scriptSrc: ["'self'", "'wasm-unsafe-eval'", 'blob:'],
-          workerSrc: ["'self'", 'blob:'],
-          connectSrc: ["'self'", 'https:', 'blob:', 'data:'],
-          imgSrc: ["'self'", 'https:', 'data:', 'blob:'],
-          mediaSrc: ["'self'", 'blob:', 'data:'],
-          styleSrc: ["'self'", "'unsafe-inline'"],
-          objectSrc: ["'none'"],
-          frameAncestors: ["'self'"],
-        },
+        /* Fase 6: `connect-src` deixou de ser `https:` — a lista, e o porquê de cada host, está
+           em `server/http/csp.ts`. */
+        directives: { ...diretivasDeCsp() },
       },
       crossOriginEmbedderPolicy: false, // COEP é opt-in via CROSS_ORIGIN_ISOLATION (abaixo)
     }),
@@ -344,6 +348,13 @@ export function criarApp(opcoes: OpcoesDoApp = {}): express.Express {
   /* `SIGNUP_ENABLED=0` (Fase 3): conta que o banco ainda não conhece é recusada em qualquer rota
      (403 `cadastro_fechado`). Ligado, este middleware não faz nem consulta. */
   app.use('/api', portaDoCadastro)
+
+  // GAP-015: o corpo grande só é lido depois de o token ser aceito (ver `limitesDeCorpo.ts`).
+  app.use([...ROTAS_DE_CORPO_GRANDE], jsonDepoisDoAuth())
+
+  /* Fase 6 — 2FA de verdade: quem ativou a verificação em duas etapas precisa de sessão AAL2 nas
+     rotas de cobrança, exclusão/exportação de conta, credencial BYOK e admin (`server/lib/aal.ts`). */
+  app.use('/api', exigirAal2SeTiver2fa())
 
   // Rate-limit por tenant — DEPOIS do auth, para a chave ser o usuário e não o IP.
   app.use(['/api/ai', '/api/import', '/api/tutor', '/api/gemini'], expensiveLimiter)

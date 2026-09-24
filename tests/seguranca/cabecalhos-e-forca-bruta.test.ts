@@ -71,6 +71,16 @@ describe('cabeçalhos de hardening', () => {
     expect(relatorio).toContain('worker-src')
     expect(relatorio).toContain("object-src 'none'")
   })
+
+  /* Fase 6: o header que sai de verdade não pode ter `https:` solto em `connect-src` — era o
+     curinga que deixava um script injetado mandar dados para qualquer host. */
+  it('connect-src sai com a lista de hosts, sem o curinga https:', async () => {
+    const r = await s.get('/api/health')
+    const relatorio = r.headers.get('content-security-policy-report-only') ?? ''
+    const connect = relatorio.split(';').find((d) => d.trim().startsWith('connect-src')) ?? ''
+    expect(connect).toContain('https://huggingface.co')
+    expect(connect.split(/\s+/)).not.toContain('https:')
+  })
 })
 
 describe('origem cruzada', () => {

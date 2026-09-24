@@ -10,12 +10,12 @@ o que falta, e em que ordem. Atualizado em 2026-08-31 (pós E1–E5).
 **Funciona e está medido.** As duas metades do plano pago têm vantagem comprovada em número, não em
 promessa:
 
-| | grátis (navegador) | pago (nuvem) |
-|---|---|---|
-| Erro de transcrição (WER) | 57% | **24%** |
-| Tradução (chrF++) | 57% | **85%** |
-| Expressão idiomática | 27% | **83%** |
-| Download inicial | 230–413 MB | nenhum |
+|                           | grátis (navegador) | pago (nuvem) |
+| ------------------------- | ------------------ | ------------ |
+| Erro de transcrição (WER) | 57%                | **24%**      |
+| Tradução (chrF++)         | 57%                | **85%**      |
+| Expressão idiomática      | 27%                | **83%**      |
+| Download inicial          | 230–413 MB         | nenhum       |
 
 Método e ressalvas: `docs/auditoria/eval-producao-v1.md`.
 
@@ -103,14 +103,14 @@ divergências de sistema de design fora da economia (Hub, Library, Analysis — 
 
 ### A — Não depende de nada seu
 
-| # | Tarefa | Por que importa |
-|---|---|---|
-| A1 | ~~Backup do banco~~ — **JÁ EXISTE e funciona** | `npm run backup` faz `VACUUM INTO` (não cópia de arquivo, que sob WAL corromperia), verifica `integrity_check`, confere contagens, inclui a mídia e rotaciona. Rodado em 31/08: OK. Falta só **agendar** em produção. |
-| A2 | ~~Varredura de segurança~~ — **FEITA** | gitleaks, Trivy e as regras `ast-grep` do projeto. Resultado em `docs/auditoria/seguranca-v1.md`. Só o Semgrep ficou de fora (Docker parado). |
-| A3 | ~~Workflow de deploy~~ — **FEITO (31/08)** | `.github/workflows/deploy-pages.yml`: manual (workflow_dispatch), desarmado até os secrets `CLOUDFLARE_API_TOKEN`/`CLOUDFLARE_ACCOUNT_ID` existirem; valida (typecheck+testes+audit) antes de publicar `build:leve` via wrangler (mantém o binding D1 do ranking). |
-| A4 | ~~Cascata com gratuito primário~~ — **FEITA** | `LLM_RESERVA_*` no mtProxy: falha do primário cai para a reserva; quota debitada uma vez, testado. Falta só APONTAR as envs. |
-| A5 | ~~Rótulo `engine`~~ — **FEITO (31/08)** | `'server-llm-mt'` no lugar de `'groq-llm'`; VocabularyPanel mantém as duas chaves para sessões antigas. |
-| A6 | ~~Teste de carga~~ — **FEITO no build de produção (31/08)** | `node dist-server/server.cjs` + sonda de 10s por rota: `/api/health` 4.560 req/s (p95 12ms), estático `/` 878 req/s (p95 42ms), `POST /presenca` 2.136 req/s (p95 12ms), zero falhas (429 do rate limiter conta como tratado). Os 26 req/s antigos eram o Vite no meio. Para o lançamento indie, capacidade não é gargalo. |
+| #   | Tarefa                                                      | Por que importa                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
+| --- | ----------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| A1  | ~~Backup do banco~~ — **JÁ EXISTE e funciona**              | `npm run backup` faz `VACUUM INTO` (não cópia de arquivo, que sob WAL corromperia), verifica `integrity_check`, confere contagens, inclui a mídia e rotaciona. Rodado em 31/08: OK. **Agendado (24/09, Fase 5 do lançamento):** em produção o Litestream replica o banco para o R2 continuamente e o servidor envia um snapshot diário conferido (`BACKUP_DIARIO=1`), com heartbeat no UptimeRobot — ver `docs/deploy.md`, "Backup em produção".                                                                               |
+| A2  | ~~Varredura de segurança~~ — **FEITA**                      | gitleaks, Trivy e as regras `ast-grep` do projeto. Resultado em `docs/auditoria/seguranca-v1.md`. Só o Semgrep ficou de fora (Docker parado).                                                                                                                                                                                                                                                                                                                                                                                  |
+| A3  | ~~Workflow de deploy~~ — **REFEITO (24/09)**                | A edição leve no Cloudflare Pages foi encerrada (07/09) e o `deploy-pages.yml` saiu com ela. O deploy agora é `.github/workflows/deploy.yml`: Fly.io, imagem com tag imutável por commit e rollback pela imagem anterior (`docs/LANCAMENTO.md`). Histórico: `.github/workflows/deploy-pages.yml`: manual (workflow_dispatch), desarmado até os secrets `CLOUDFLARE_API_TOKEN`/`CLOUDFLARE_ACCOUNT_ID` existirem; valida (typecheck+testes+audit) antes de publicar `build:leve` via wrangler (mantém o binding D1 do ranking). |
+| A4  | ~~Cascata com gratuito primário~~ — **FEITA**               | `LLM_RESERVA_*` no mtProxy: falha do primário cai para a reserva; quota debitada uma vez, testado. Falta só APONTAR as envs.                                                                                                                                                                                                                                                                                                                                                                                                   |
+| A5  | ~~Rótulo `engine`~~ — **FEITO (31/08)**                     | `'server-llm-mt'` no lugar de `'groq-llm'`; VocabularyPanel mantém as duas chaves para sessões antigas.                                                                                                                                                                                                                                                                                                                                                                                                                        |
+| A6  | ~~Teste de carga~~ — **FEITO no build de produção (31/08)** | `node dist-server/server.cjs` + sonda de 10s por rota: `/api/health` 4.560 req/s (p95 12ms), estático `/` 878 req/s (p95 42ms), `POST /presenca` 2.136 req/s (p95 12ms), zero falhas (429 do rate limiter conta como tratado). Os 26 req/s antigos eram o Vite no meio. Para o lançamento indie, capacidade não é gargalo.                                                                                                                                                                                                     |
 
 ### A7 — ~~economia v2 sem metade servidor~~ — **FEITO (31/08)**
 
@@ -125,11 +125,11 @@ primeiro carregamento o app creditou sozinho as conquistas represadas pelos 404.
 Encontrado em 2026-08-30, verificando a tela nova no navegador: duas rotas que o cliente chama
 **não existem no servidor Express** e respondem 404.
 
-| chamada do cliente | servidor real | servidor efêmero (modo sem conta) |
-|---|---|---|
-| `POST /api/metrics/presenca` | **404** | existe (`efemero/servidor.ts:627`) |
-| `POST /api/metrics/seeds/creditar` | **404** | existe (`efemero/servidor.ts:626`) |
-| `POST /api/metrics/seeds/gastar` | existe | existe |
+| chamada do cliente                 | servidor real | servidor efêmero (modo sem conta)  |
+| ---------------------------------- | ------------- | ---------------------------------- |
+| `POST /api/metrics/presenca`       | **404**       | existe (`efemero/servidor.ts:627`) |
+| `POST /api/metrics/seeds/creditar` | **404**       | existe (`efemero/servidor.ts:626`) |
+| `POST /api/metrics/seeds/gastar`   | existe        | existe                             |
 
 O servidor expõe só `/profile`, `/xp` e `/seeds/gastar` (`server/routes/metrics.ts:20,38,59`).
 
@@ -151,37 +151,37 @@ conquista credita, se o saldo passa a ser evento ou continua derivado). O client
 
 Três módulos que ninguém importa (`docs/auditoria/grafo-v1.md` §2):
 
-| módulo | linhas | o que fazer |
-|---|---|---|
-| `src/gateway/ocr.ts` | 128 | OCR real e funcional (Tesseract.js), **desligado**. Ligar ou remover |
-| `src/gateway/adapters/streamingCloudStt.ts` | 67 | Stub nunca registrado em perfil nenhum. Remover |
-| `server/db/repositories/index.ts` | 27 | Barril que ninguém importa. Remover |
+| módulo                                      | linhas | o que fazer                                                          |
+| ------------------------------------------- | ------ | -------------------------------------------------------------------- |
+| `src/gateway/ocr.ts`                        | 128    | OCR real e funcional (Tesseract.js), **desligado**. Ligar ou remover |
+| `src/gateway/adapters/streamingCloudStt.ts` | 67     | Stub nunca registrado em perfil nenhum. Remover                      |
+| `server/db/repositories/index.ts`           | 27     | Barril que ninguém importa. Remover                                  |
 
 ### B — Cobrança — **FEITA em código (2026-08-31)**
 
-| # | Tarefa | Estado |
-|---|---|---|
-| B1 | Webhook Asaas → `subscriptions` | ✅ idempotente por id de evento, com desmarque em falha (os dois lados testados) |
-| B2 | Tela de assinatura | ✅ `views/planos/Assinar.tsx` — inicia e abre o link; quem promove é só o webhook |
-| B3 | Testes de idempotência | ✅ 7 cenários em `tests/integration/billing-webhook.test.ts` |
-| B4 | **Ponta a ponta no sandbox real** | ⏳ depende da conta Asaas (item 3 acima) |
+| #   | Tarefa                            | Estado                                                                            |
+| --- | --------------------------------- | --------------------------------------------------------------------------------- |
+| B1  | Webhook Asaas → `subscriptions`   | ✅ idempotente por id de evento, com desmarque em falha (os dois lados testados)  |
+| B2  | Tela de assinatura                | ✅ `views/planos/Assinar.tsx` — inicia e abre o link; quem promove é só o webhook |
+| B3  | Testes de idempotência            | ✅ 7 cenários em `tests/integration/billing-webhook.test.ts`                      |
+| B4  | **Ponta a ponta no sandbox real** | ⏳ depende da conta Asaas (item 3 acima)                                          |
 
 ### C — Depende de crédito no OpenRouter
 
-| # | Tarefa |
-|---|---|
-| C1 | Finalistas no FLORES-200 e no gold set de 60 (parou na 84ª de 800 chamadas, HTTP 402) |
-| C2 | Trocar o roteador para OpenRouter (3,7× mais barato, mesmo modelo) |
-| C3 | Registrar a política de uso de dados do provedor recomendado |
+| #   | Tarefa                                                                                |
+| --- | ------------------------------------------------------------------------------------- |
+| C1  | Finalistas no FLORES-200 e no gold set de 60 (parou na 84ª de 800 chamadas, HTTP 402) |
+| C2  | Trocar o roteador para OpenRouter (3,7× mais barato, mesmo modelo)                    |
+| C3  | Registrar a política de uso de dados do provedor recomendado                          |
 
 ### D — Melhorias de qualidade já identificadas
 
-| # | Tarefa | Estado |
-|---|---|---|
-| D1 | Fala de 1-2 palavras: 167% de WER no modelo local | É segmentação, não modelo. Alvo mais alto. |
-| D2 | Banda estreita (telefone, 8 kHz): DER 25% | Pior caso de microfone, em aberto. |
-| D3 | Áudio do microfone não é diarizado | Várias pessoas no mic caem todas em "Você". |
-| D4 | Importação usa Whisper local (57% WER) | Poderia usar a nuvem (24%) — agrupar ali é livre. Decisão de produto. |
+| #   | Tarefa                                            | Estado                                                                |
+| --- | ------------------------------------------------- | --------------------------------------------------------------------- |
+| D1  | Fala de 1-2 palavras: 167% de WER no modelo local | É segmentação, não modelo. Alvo mais alto.                            |
+| D2  | Banda estreita (telefone, 8 kHz): DER 25%         | Pior caso de microfone, em aberto.                                    |
+| D3  | Áudio do microfone não é diarizado                | Várias pessoas no mic caem todas em "Você".                           |
+| D4  | Importação usa Whisper local (57% WER)            | Poderia usar a nuvem (24%) — agrupar ali é livre. Decisão de produto. |
 
 ---
 
@@ -201,21 +201,21 @@ torná-la legível na tela. Ver a armadilha logo abaixo.
 
 Estes quebram promessas que a tela faz. Valem conserto isolado, na ordem que der.
 
-| # | Defeito | Onde |
-|---|---|---|
-| F02 | O botão **"Jogar"** da Sala de Escolha **não joga** — ícone de play, foco inicial, e só troca a fonte | `SalaDeEscolha.tsx:364` → `aplicarEscolha` (`Play.tsx:1136`) |
-| F08 | Escolher "Trilha" **sem nível entrega zero itens**; a tela promete 2.784, depois 704, depois nada | recorte por `fonte.nivel` |
-| F11 | **Na trilha, acertar não conta na memória** — e o cabeçalho e as fichas prometem que conta | cartão de trilha nasce com `id:''` (`trilha.ts:147`) |
-| F10 | Os jogos de frase **ignoram a fonte escolhida**; a alavanca para trocar a gravação é código morto | `Play.tsx:437`; seção `:2188-2210` inalcançável |
-| F45 | **Falha de rede aparece como "Você ainda não salvou palavras"** | `Play.tsx:937-952`: no ramo de erro `deck` fica `null` |
-| — | A **fonte guardada nunca é restaurada** para quem não tem gravações (escolheu "Trilha B1", volta em "Minhas palavras") | `Play.tsx:972-985`, guard `!sessoes.length` |
-| F29 | A conquista **"Colecionador" é matematicamente impossível**; 8 dos 9 jogos não têm festa de combo | `eventosDeJogo.ts:89-92` × os 3 call sites de `executarEfeito` |
-| F30 | A única explicação de moeda na tela **ensina uma regra revogada** ("4 por revisão certa"; a tabela viva diz 2) | `Play.tsx:1997` × `xp.ts:61-69` |
-| F34 | A chama de dias seguidos **não pode ser movida por jogar**, e o texto afirma que pode | `metrics.ts:279` |
-| F25 | O portão de áudio pergunta se o navegador **tem voz**, nunca se há voz **naquele idioma** — e `hasVoiceFor` existe e nunca é chamada | `estadoDosJogos.ts` × `tts.ts:171` |
-| F43 | **Dois diálogos modais empilhados** na entrada, e o de cima não move o foco | `App.tsx:879` sobre `SalaDeEscolha` |
-| F44 | **Esc dentro da Sala fecha a Sala inteira**, e o seletor de idioma vaza a armadilha de foco | `LangPicker.tsx:150,190` × `SalaDeEscolha.tsx:117` |
-| — | **Código inerte** que qualquer refatoração carregaria: a seção `:2188-2210` e o paginador `:2337-2359` (`POR_PAGINA=9` para 9 jogos) | `Play.tsx` |
+| #   | Defeito                                                                                                                              | Onde                                                           |
+| --- | ------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------- |
+| F02 | O botão **"Jogar"** da Sala de Escolha **não joga** — ícone de play, foco inicial, e só troca a fonte                                | `SalaDeEscolha.tsx:364` → `aplicarEscolha` (`Play.tsx:1136`)   |
+| F08 | Escolher "Trilha" **sem nível entrega zero itens**; a tela promete 2.784, depois 704, depois nada                                    | recorte por `fonte.nivel`                                      |
+| F11 | **Na trilha, acertar não conta na memória** — e o cabeçalho e as fichas prometem que conta                                           | cartão de trilha nasce com `id:''` (`trilha.ts:147`)           |
+| F10 | Os jogos de frase **ignoram a fonte escolhida**; a alavanca para trocar a gravação é código morto                                    | `Play.tsx:437`; seção `:2188-2210` inalcançável                |
+| F45 | **Falha de rede aparece como "Você ainda não salvou palavras"**                                                                      | `Play.tsx:937-952`: no ramo de erro `deck` fica `null`         |
+| —   | A **fonte guardada nunca é restaurada** para quem não tem gravações (escolheu "Trilha B1", volta em "Minhas palavras")               | `Play.tsx:972-985`, guard `!sessoes.length`                    |
+| F29 | A conquista **"Colecionador" é matematicamente impossível**; 8 dos 9 jogos não têm festa de combo                                    | `eventosDeJogo.ts:89-92` × os 3 call sites de `executarEfeito` |
+| F30 | A única explicação de moeda na tela **ensina uma regra revogada** ("4 por revisão certa"; a tabela viva diz 2)                       | `Play.tsx:1997` × `xp.ts:61-69`                                |
+| F34 | A chama de dias seguidos **não pode ser movida por jogar**, e o texto afirma que pode                                                | `metrics.ts:279`                                               |
+| F25 | O portão de áudio pergunta se o navegador **tem voz**, nunca se há voz **naquele idioma** — e `hasVoiceFor` existe e nunca é chamada | `estadoDosJogos.ts` × `tts.ts:171`                             |
+| F43 | **Dois diálogos modais empilhados** na entrada, e o de cima não move o foco                                                          | `App.tsx:879` sobre `SalaDeEscolha`                            |
+| F44 | **Esc dentro da Sala fecha a Sala inteira**, e o seletor de idioma vaza a armadilha de foco                                          | `LangPicker.tsx:150,190` × `SalaDeEscolha.tsx:117`             |
+| —   | **Código inerte** que qualquer refatoração carregaria: a seção `:2188-2210` e o paginador `:2337-2359` (`POR_PAGINA=9` para 9 jogos) | `Play.tsx`                                                     |
 
 #### E2 — Redesenho da tela
 
@@ -223,15 +223,15 @@ Medido na tela de hoje: **317 palavras, 57 botões, 27 deles (47%) só para reor
 palavras antes de "Escolha um jogo", 3 telas cheias até jogar. O protótipo entrega **189 palavras e
 32 botões** no estado padrão, com o mesmo conjunto de recursos.
 
-| # | Tarefa | Por que importa |
-|---|---|---|
-| E2.1 | Abas de fonte no topo (Trilha · Minhas gravações · Difíceis), com faixa de contexto por fonte | Torna a separação a primeira leitura, em vez de um segredo atrás de "trocar". Resolve F09, F12, F13 |
-| E2.2 | Inverter dois defaults: `salaAberta` só quando a fonte guardada não rende rodada, e `pularSempre` ligado | Um clique até jogar. **As duas saídas já existem** (`Play.tsx:2054` e `:2479`) — é default, não construção |
-| E2.3 | Reordenar/fixar viram o modo "Organizar" da grade | Tira 27 botões da leitura padrão sem perder o recurso (F07, F47) |
-| E2.4 | Refazer as 9 artes: cor = família (palavra/frase/escuta), silhueta = jogo, **uma** metáfora por carta | Hoje 3 artes são o mesmo desenho, Memória e Termo desenham no fundo, e cada carta mostra 2 metáforas (F14–F18) |
-| E2.5 | Bloqueio pela porta, não pela falta; descrição e motivo mudam com a fonte | Hoje 4 descrições e 5 fichas afirmam "sua gravação" no meio da trilha (F09, F37) |
-| E2.6 | Ficha + antessala viram uma folha de detalhe só, com fatos ≠ zero | "Como se joga" tem 1.203 palavras, 28% delas repetindo o tour (F36, F40) |
-| E2.7 | Raspadinha e caminho para a economia na jornada | O único clímax de recompensa do app não chega à tela (F28, F32) |
+| #    | Tarefa                                                                                                   | Por que importa                                                                                                |
+| ---- | -------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| E2.1 | Abas de fonte no topo (Trilha · Minhas gravações · Difíceis), com faixa de contexto por fonte            | Torna a separação a primeira leitura, em vez de um segredo atrás de "trocar". Resolve F09, F12, F13            |
+| E2.2 | Inverter dois defaults: `salaAberta` só quando a fonte guardada não rende rodada, e `pularSempre` ligado | Um clique até jogar. **As duas saídas já existem** (`Play.tsx:2054` e `:2479`) — é default, não construção     |
+| E2.3 | Reordenar/fixar viram o modo "Organizar" da grade                                                        | Tira 27 botões da leitura padrão sem perder o recurso (F07, F47)                                               |
+| E2.4 | Refazer as 9 artes: cor = família (palavra/frase/escuta), silhueta = jogo, **uma** metáfora por carta    | Hoje 3 artes são o mesmo desenho, Memória e Termo desenham no fundo, e cada carta mostra 2 metáforas (F14–F18) |
+| E2.5 | Bloqueio pela porta, não pela falta; descrição e motivo mudam com a fonte                                | Hoje 4 descrições e 5 fichas afirmam "sua gravação" no meio da trilha (F09, F37)                               |
+| E2.6 | Ficha + antessala viram uma folha de detalhe só, com fatos ≠ zero                                        | "Como se joga" tem 1.203 palavras, 28% delas repetindo o tour (F36, F40)                                       |
+| E2.7 | Raspadinha e caminho para a economia na jornada                                                          | O único clímax de recompensa do app não chega à tela (F28, F32)                                                |
 
 #### E3 — Trilhas em outros idiomas
 
@@ -240,28 +240,28 @@ de CEFR o que não foi medido. CEFR-J é inglês-only e Goethe/Cervantes não t�
 Tradução por Wikidata Lexemes (CC0) + Wikcionário/kaikki (CC BY-SA 3.0); frases do Tatoeba
 (CC BY 2.0 FR, **exige nomear os autores**). Manter a validação ida-e-volta.
 
-| # | Tarefa | Estado |
-|---|---|---|
-| E3.1 | Versionar o script de geração da trilha | Hoje só a saída é versionada (`FONTES.md:178-188`). Repetir isto à mão em 7 idiomas não se sustenta |
-| E3.2 | Carga sob demanda da trilha | `en.json` já é chunk de 237 KB, mas **três rotas o puxam**; o caminho ingênuo multiplica por N |
-| E3.3 | Registrar o **idioma nativo** na estrutura | A trilha é "inglês para quem fala português", não "inglês" (F26) |
-| E3.4 | Espanhol e Francês | O pipeline roda como está |
-| E3.5 | Alemão e Italiano | Alemão estoura o teto de 6 letras do Termo (`LETRAS_POR_FAIXA`), agora com folga menor |
-| E3.6 | Japonês, Chinês, Coreano | **Bloqueado**: sem espaço entre palavras, os 5 jogos de frase morrem (`quality.ts:225`, `scramble.ts:31`, `escuta.ts:112`, `pronunciation.ts:34`). Precisa de `Intl.Segmenter` e teclado próprio antes |
+| #    | Tarefa                                     | Estado                                                                                                                                                                                                 |
+| ---- | ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| E3.1 | Versionar o script de geração da trilha    | Hoje só a saída é versionada (`FONTES.md:178-188`). Repetir isto à mão em 7 idiomas não se sustenta                                                                                                    |
+| E3.2 | Carga sob demanda da trilha                | `en.json` já é chunk de 237 KB, mas **três rotas o puxam**; o caminho ingênuo multiplica por N                                                                                                         |
+| E3.3 | Registrar o **idioma nativo** na estrutura | A trilha é "inglês para quem fala português", não "inglês" (F26)                                                                                                                                       |
+| E3.4 | Espanhol e Francês                         | O pipeline roda como está                                                                                                                                                                              |
+| E3.5 | Alemão e Italiano                          | Alemão estoura o teto de 6 letras do Termo (`LETRAS_POR_FAIXA`), agora com folga menor                                                                                                                 |
+| E3.6 | Japonês, Chinês, Coreano                   | **Bloqueado**: sem espaço entre palavras, os 5 jogos de frase morrem (`quality.ts:225`, `scramble.ts:31`, `escuta.ts:112`, `pronunciation.ts:34`). Precisa de `Intl.Segmenter` e teclado próprio antes |
 
 #### E4 — Jogos multi-idioma e rodada mista
 
 Fase A (trocar sem fricção) depende só do conserto da fonte guardada. Fase B (rodada mista) tem
 pré-requisitos duros:
 
-| # | Barreira | Onde |
-|---|---|---|
-| E4.1 | `normalizarPalavra` só aceita A–Z → grade **vazia** em ru/el/ja/zh/ar/he | `wordsearch.ts:55-57,111` |
-| E4.2 | Teclado do Termo é QWERTY latino fixo | `TermoGame.tsx:42,392` |
-| E4.3 | TTS cai em `en-US` quando o cartão não tem `srcLang` | `tts.ts:237`, `TermoGame.tsx:365`, `KaraokeGame.tsx:124` |
-| E4.4 | Numa rodada mista o Duelo **entrega a resposta pelo idioma** — regressão de um bug já consertado | `source.ts:17`, `itemSource.ts:230` |
-| E4.5 | `MinigameItem.lang` promete decidir voz e teclado e está **morto** em 4 jogos | `types.ts:25-38` |
-| E4.6 | Conectores e régua gramatical só en/pt/es | `escuta.ts:204-224`, `quality.ts:72-112` |
+| #    | Barreira                                                                                         | Onde                                                     |
+| ---- | ------------------------------------------------------------------------------------------------ | -------------------------------------------------------- |
+| E4.1 | `normalizarPalavra` só aceita A–Z → grade **vazia** em ru/el/ja/zh/ar/he                         | `wordsearch.ts:55-57,111`                                |
+| E4.2 | Teclado do Termo é QWERTY latino fixo                                                            | `TermoGame.tsx:42,392`                                   |
+| E4.3 | TTS cai em `en-US` quando o cartão não tem `srcLang`                                             | `tts.ts:237`, `TermoGame.tsx:365`, `KaraokeGame.tsx:124` |
+| E4.4 | Numa rodada mista o Duelo **entrega a resposta pelo idioma** — regressão de um bug já consertado | `source.ts:17`, `itemSource.ts:230`                      |
+| E4.5 | `MinigameItem.lang` promete decidir voz e teclado e está **morto** em 4 jogos                    | `types.ts:25-38`                                         |
+| E4.6 | Conectores e régua gramatical só en/pt/es                                                        | `escuta.ts:204-224`, `quality.ts:72-112`                 |
 
 ### F — Motor de ingestão e ludificação de baralhos Anki (01/09)
 
@@ -270,27 +270,27 @@ Pesquisa em `docs/pesquisa/motor-anki/G0-relatorio.md`; specs em `openspec/chang
 A decisão que atravessa tudo: **acervo Anki próprio + projeção em `vocab_cards`**, sem 5ª `FonteId`
 — o filtro por baralho entra pelo `fonte.ref` que já existia, e `vocab_cards` não muda de forma.
 
-| # | O quê | Estado |
-|---|---|---|
-| F0 | ~~`origemDe()` reconhece `anki:`~~ — cada import destruía a procedência; `origin_kind='anki'` estava documentado e nunca era escrito | **FEITO** (`a524f56`) |
-| F1 | ~~Parser lê mídia, cloze, nome de baralho/tipo de nota, hash de estrutura, e ganha teto de notas~~ | **FEITO** — medido no baralho real: 3.600 notas, 6 sub-baralhos, 3.600 com mídia referenciada que antes era apagada |
-| F2 | ~~Perfil de qualidade por origem~~ — `pistaUtil` (42 chars/5 palavras) foi calibrada para fala capturada e recusava definição de dicionário | **FEITO** — 61 de 3.600 viraram **3.590** |
-| F3 | ~~Acervo (`anki_decks`/`anki_notes`/`anki_imports`) + projeção em lotes de 300~~ | **FEITO** — inclui a armadilha do índice parcial (desativar+reimportar rachava o histórico FSRS em dois cartões) |
-| F4 | ~~Exclusão de conta (LGPD) quebrava com a FK nova~~ — `SQLITE_CONSTRAINT` no batch inteiro | **FEITO** — e o baralho importado deixou de sobreviver a um pedido de eliminação |
-| F5 | ~~Rotas do acervo + tela Biblioteca › Baralhos~~ | **FEITO** — importar grava o acervo; listar/ativar/desativar/purgar; a tela mostra "299 de 3600 ativadas" |
-| F6 | ~~Mídia: mapa (JSON e protobuf), zstd por arquivo, tabelas com dedupe **por usuário**~~ | **FEITO até o storage** — falta a negociação de upload e a cota (F6b) |
-| F7 | ~~Filtro por baralho no lobby~~ | **FEITO** — via o `fonte.ref` que já existia; provado com baralho inexistente devolvendo 0 itens |
-| F8 | Corpus de 10+ baralhos reais medidos (`scripts/corpus-anki/`) — baralhos ficam FORA do repo | 1 de 10 medido: depende de baixar os arquivos (lista pronta em `scripts/corpus-anki/baixar.md`) |
+| #   | O quê                                                                                                                                       | Estado                                                                                                              |
+| --- | ------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| F0  | ~~`origemDe()` reconhece `anki:`~~ — cada import destruía a procedência; `origin_kind='anki'` estava documentado e nunca era escrito        | **FEITO** (`a524f56`)                                                                                               |
+| F1  | ~~Parser lê mídia, cloze, nome de baralho/tipo de nota, hash de estrutura, e ganha teto de notas~~                                          | **FEITO** — medido no baralho real: 3.600 notas, 6 sub-baralhos, 3.600 com mídia referenciada que antes era apagada |
+| F2  | ~~Perfil de qualidade por origem~~ — `pistaUtil` (42 chars/5 palavras) foi calibrada para fala capturada e recusava definição de dicionário | **FEITO** — 61 de 3.600 viraram **3.590**                                                                           |
+| F3  | ~~Acervo (`anki_decks`/`anki_notes`/`anki_imports`) + projeção em lotes de 300~~                                                            | **FEITO** — inclui a armadilha do índice parcial (desativar+reimportar rachava o histórico FSRS em dois cartões)    |
+| F4  | ~~Exclusão de conta (LGPD) quebrava com a FK nova~~ — `SQLITE_CONSTRAINT` no batch inteiro                                                  | **FEITO** — e o baralho importado deixou de sobreviver a um pedido de eliminação                                    |
+| F5  | ~~Rotas do acervo + tela Biblioteca › Baralhos~~                                                                                            | **FEITO** — importar grava o acervo; listar/ativar/desativar/purgar; a tela mostra "299 de 3600 ativadas"           |
+| F6  | ~~Mídia: mapa (JSON e protobuf), zstd por arquivo, tabelas com dedupe **por usuário**~~                                                     | **FEITO até o storage** — falta a negociação de upload e a cota (F6b)                                               |
+| F7  | ~~Filtro por baralho no lobby~~                                                                                                             | **FEITO** — via o `fonte.ref` que já existia; provado com baralho inexistente devolvendo 0 itens                    |
+| F8  | Corpus de 10+ baralhos reais medidos (`scripts/corpus-anki/`) — baralhos ficam FORA do repo                                                 | 1 de 10 medido: depende de baixar os arquivos (lista pronta em `scripts/corpus-anki/baixar.md`)                     |
 
 **O que sobrou, em ordem de valor:**
 
-| # | O quê | Por que ainda não |
-|---|---|---|
-| F6b | Upload de mídia negociado por hash + cota | O storage e o parser estão prontos; falta a rota e ligar `somarBytesEmDisco` — que precisa entrar no MESMO passo, senão o contador de cota passa a mentir |
-| F9 | Mapeador de campos (UI de override) | O mapeamento por nome já acerta os baralhos medidos; a UI é para quando ele errar. `camposBrutos` já é guardado, então remapear não vai pedir o arquivo de novo |
-| F10 | Frase do baralho alimentando os 5 jogos de frase | Hoje eles vivem das gravações; o caminho existe (o ramo de TTS da trilha já ensina como) |
-| F11 | Chip de origem na PRÉVIA da rodada | O chip do lobby está feito; a prévia ainda não diz a origem item a item |
-| F12 | Paridade offline do filtro por baralho | Sem servidor, o recorte degrada para "todos" — a spec manda DIZER isso, e ainda não diz |
+| #   | O quê                                            | Por que ainda não                                                                                                                                               |
+| --- | ------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| F6b | Upload de mídia negociado por hash + cota        | O storage e o parser estão prontos; falta a rota e ligar `somarBytesEmDisco` — que precisa entrar no MESMO passo, senão o contador de cota passa a mentir       |
+| F9  | Mapeador de campos (UI de override)              | O mapeamento por nome já acerta os baralhos medidos; a UI é para quando ele errar. `camposBrutos` já é guardado, então remapear não vai pedir o arquivo de novo |
+| F10 | Frase do baralho alimentando os 5 jogos de frase | Hoje eles vivem das gravações; o caminho existe (o ramo de TTS da trilha já ensina como)                                                                        |
+| F11 | Chip de origem na PRÉVIA da rodada               | O chip do lobby está feito; a prévia ainda não diz a origem item a item                                                                                         |
+| F12 | Paridade offline do filtro por baralho           | Sem servidor, o recorte degrada para "todos" — a spec manda DIZER isso, e ainda não diz                                                                         |
 
 **Aberto para você decidir:** os cartões importados pelo funil antigo (ocorrência `manual`, sem
 baralho) ficam como estão — não há dado para reconstruir de qual baralho vieram. O funil novo vale
@@ -309,7 +309,6 @@ daqui pra frente.
   com o servidor concordando em `server/db/repositories/vocab.ts:476-486`). O que faltava era ela
   aparecer na tela. Duas vezes seguidas o mesmo erro: a diferença entre "não existe" e "existe e não
   aparece" é a diferença entre um mês de trabalho e uma tarde.
-
 
 Estas custaram tempo. Estão aqui para não custarem de novo.
 

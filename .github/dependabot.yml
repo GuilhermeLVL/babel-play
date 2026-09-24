@@ -1,3 +1,10 @@
+# Dependabot — Fase 5 do lançamento ampliou para a imagem Docker.
+#
+# npm: produção e desenvolvimento em PRs separados (um bump de devDependency não pode segurar uma
+# correção de segurança de runtime). github-actions: as actions são fixadas por SHA, e é o
+# Dependabot que as atualiza (o comentário ao lado do SHA diz a versão). docker: as imagens-base do
+# Dockerfile (node:22-slim, debian:bookworm-slim) — o Litestream é fixado por versão+sha256 no
+# próprio Dockerfile e atualizado à mão, com `docs/runbook.md` ao lado.
 version: 2
 updates:
   - package-ecosystem: npm
@@ -8,7 +15,14 @@ updates:
     groups:
       dev:
         dependency-type: development
+      producao:
+        dependency-type: production
+        update-types: [minor, patch]
   - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+  - package-ecosystem: docker
     directory: /
     schedule:
       interval: weekly

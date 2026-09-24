@@ -3,6 +3,10 @@
 Container genérico (Docker), sem amarra a fornecedor: roda em VPS, Fly, Railway, Render,
 Coolify ou Kubernetes. Os números e limites citados aqui vêm de `docs/audit/04-scalability.md`.
 
+**A produção do Babel Play roda no Fly.io (região GRU)** — `fly.toml`, `.env.production.example`
+e o passo a passo do dono em [`docs/LANCAMENTO.md`](LANCAMENTO.md). Este documento cobre a imagem
+em si e o `docker compose` de quem hospeda por conta própria.
+
 ## Subir
 
 ```bash
@@ -19,16 +23,26 @@ embutido no bundle do cliente.
 
 ### Obrigatórias
 
-| Variável | Onde é usada | Se faltar |
-|---|---|---|
-| `SECRET_KEY` | cifra os segredos BYOK em repouso | **o boot ABORTA** (`server/crypto.ts`) |
-| `SUPABASE_URL` + `SUPABASE_JWT_SECRET` | verificação do JWT no servidor | nenhum token valida → 401 em tudo |
-| `VITE_SUPABASE_URL` + `VITE_SUPABASE_ANON_KEY` | **build time** — o Vite embute na SPA | a tela de login nunca aparece |
+| Variável                                       | Onde é usada                                                                                     | Se faltar                                             |
+| ---------------------------------------------- | ------------------------------------------------------------------------------------------------ | ----------------------------------------------------- |
+| `SECRET_KEY`                                   | cifra os segredos BYOK em repouso                                                                | **o boot ABORTA** (`server/crypto.ts`)                |
+| `SUPABASE_URL`                                 | JWKS assimétrico (ES256) que verifica o JWT, e o `iss` exigido                                   | nenhum token valida → 401 em tudo                     |
+| `SUPABASE_SERVICE_ROLE_KEY`                    | Admin API: exclusão de conta (LGPD art. 18, VI) e o 2FA exigido nas rotas sensíveis              | exclusão não desfaz o login; o AAL2 não é cobrado     |
+| `TRUST_PROXY`                                  | quantos proxies há na frente (`1` atrás de Caddy/Nginx, `2` Cloudflare → Fly, `false` sem proxy) | **o boot ABORTA** com `NODE_ENV=production` (GAP-004) |
+| `VITE_SUPABASE_URL` + `VITE_SUPABASE_ANON_KEY` | **build time** — o Vite embute na SPA                                                            | a tela de login nunca aparece                         |
+
+`SUPABASE_JWT_SECRET` **não** entra: com `SUPABASE_URL` a verificação é pelo JWKS e o segredo fica
+inerte (o boot avisa). Ele só serve a projeto Supabase legado HS256, sem URL.
+
+**Sem login, em produção, só declarado.** `AUTH_REQUIRED=0` com `NODE_ENV=production` aborta o boot
+(GAP-003) — a não ser que `SELF_HOST=1` esteja declarado junto, que é a instalação pessoal de quem
+roda a imagem só para si. As duas juntas, sempre; nunca no SaaS público.
 
 As `VITE_*` são **build args**, não variáveis de runtime. O Dockerfile falha cedo, com
 mensagem, se faltarem — em vez de produzir uma SPA sem login que sobe e não deixa ninguém entrar.
 
 Gerar a `SECRET_KEY`:
+
 ```bash
 node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 ```
@@ -36,7 +50,12 @@ node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 ### Definidas na imagem
 
 `DATABASE_URL=file:/data/babel.db` · `AUDIO_DIR=/data/audio` · `HOST=0.0.0.0` · `PORT=3000`
-· `NODE_ENV=production` · `AUTH_REQUIRED=1`
+· `NODE_ENV=production`. (`AUTH_REQUIRED=1` vem do `docker-compose.yml` e do `fly.toml`; com
+`NODE_ENV=production` e sem valor ela já liga.)
+
+O entrypoint é `scripts/iniciar-container.sh`: com as quatro `LITESTREAM_*` ele restaura o banco do
+R2 se o volume estiver vazio e sobe o Node sob `litestream replicate` (§Backup); sem elas, sobe o
+Node direto, como sempre.
 
 `HOST=0.0.0.0` é obrigatório **dentro** do container: o default do app é `127.0.0.1` (decisão
 de segurança para uso local) e por ele nada entraria de fora. Aqui a fronteira é a rede do
@@ -51,10 +70,11 @@ container mais o `AUTH_REQUIRED=1`, não o bind.
       (sem schema o app não serve nada). Idempotente. A `0005` deduplica `settings` antes de criar
       o índice único, então rodar por cima de um banco antigo é seguro.
 - [ ] **Backup do SQLite.** Em WAL há três arquivos (`.db`, `.db-wal`, `.db-shm`) — copiar só o
-      `.db` com o app rodando dá backup **corrompido**. Use `VACUUM INTO`:
-      `sqlite3 /data/babel.db "VACUUM INTO '/backup/babel-$(date +%F).db'"`
-- [ ] **`PRO_MONTHLY_MANAGED_CALLS`** coerente com o que você aceita gastar. A reserva é atômica
-      (20 requisições simultâneas contra teto 5 aceitam 5, não 20), mas o teto é seu.
+      `.db` com o app rodando dá backup **corrompido**. Use o Litestream + snapshot diário (§Backup)
+      ou, à mão, `node scripts/backup.mjs` (que faz `VACUUM INTO` e confere).
+- [ ] **Tetos por plano** (`PRO_*`/`ESSENCIAL_*`, defaults em `src/core/planos.ts`) coerentes com o
+      que você aceita gastar. A reserva é atômica (20 requisições simultâneas contra teto 5 aceitam
+      5, não 20), mas o teto é seu.
 - [ ] **`/api/health` no monitor externo.** Ele reporta banco **e** boot: um passo de migração
       que falhou deixa a probe em 503 em vez de o app subir mudo.
 
@@ -137,8 +157,10 @@ npm run backup                     # banco + mídia, verificado, guardando 7 có
 npm run backup -- --manter=14      # quantas cópias guardar
 npm run backup -- --sem-midia      # só o banco (use se a mídia já vai para object storage)
 npm run backup -- --destino=/backup
-npm run backup:verificar           # restaura numa cópia temporária e confere
+node dist-server/operacao.cjs verificar --arquivo=backups/<pasta>/babel.db   # confere uma cópia
 ```
+
+Dentro da imagem o script também existe: `node scripts/backup.mjs --sem-midia --destino=/data/backups`.
 
 **O que ele faz que um `cp` não faz:**
 
@@ -150,7 +172,26 @@ npm run backup:verificar           # restaura numa cópia temporária e confere
 3. **Inclui a mídia.** `data/audio` pesa 33× o banco; um backup só do banco restaura ponteiros para
    arquivos que não existem mais.
 
-### Agendar
+### Backup em produção (Fase 5): Litestream + snapshot diário, os dois no R2
+
+1. **Litestream, contínuo.** Com `LITESTREAM_BUCKET`, `LITESTREAM_ENDPOINT`,
+   `LITESTREAM_ACCESS_KEY_ID` e `LITESTREAM_SECRET_ACCESS_KEY`, o entrypoint sobe o Node como filho
+   do `litestream replicate` (config em `litestream.yml`, versão e sha256 fixados no `Dockerfile`):
+   cada escrita chega ao R2 em ~1 s. Num volume vazio, o boot restaura sozinho
+   (`-if-db-not-exists -if-replica-exists`). O CI prova isso a cada push (job `restauracao-litestream`).
+2. **Snapshot diário, independente.** `BACKUP_DIARIO=1` faz o processo primário rodar, às
+   `BACKUP_HORA_UTC`, `VACUUM INTO` + `integrity_check` + gzip e enviar
+   `backups/diario/AAAA-MM-DD.db.gz` ao `BACKUP_S3_BUCKET` (ou `S3_BUCKET`). Ele existe porque o
+   Litestream copia o ERRO também: um `DELETE` sem `WHERE` chega à réplica em um segundo, e a foto de
+   ontem não muda. Dentro do processo, e não num cron externo, porque o volume do Fly monta numa
+   máquina só (o porquê completo em `server/operacao/snapshot.ts`).
+3. **Alarme.** Depois de cada snapshot enviado E conferido, o servidor chama
+   `BACKUP_HEARTBEAT_URL` (heartbeat do UptimeRobot, que avisa quando a chamada não vem em 25 h).
+   A falha vira `log('error', { event: 'backup_diario_falhou' })`, que chega ao Sentry.
+
+Restaurar (os dois caminhos): [`docs/runbook.md`](runbook.md), "Restaurar o banco".
+
+### Agendar fora do Fly (self-host)
 
 No host, com `cron` (diário às 3h, log em arquivo):
 
@@ -158,18 +199,20 @@ No host, com `cron` (diário às 3h, log em arquivo):
 0 3 * * * cd /caminho/do/app && /usr/bin/node scripts/backup.mjs >> /var/log/babel-backup.log 2>&1
 ```
 
-Dentro do container, com um sidecar no `docker-compose.yml`:
+Dentro do container, com um sidecar no `docker-compose.yml` (mesma imagem do `app`; o `entrypoint`
+troca o servidor pelo laço de backup):
 
 ```yaml
-  backup:
-    image: tradutorweb-app
-    entrypoint: ["sh", "-c", "while true; do node scripts/backup.mjs --destino=/backup; sleep 86400; done"]
-    volumes: [babel-data:/data, ./backups:/backup]
-    depends_on: [app]
+backup:
+  build: .
+  entrypoint:
+    ['sh', '-c', 'while true; do node scripts/backup.mjs --destino=/backup; sleep 86400; done']
+  volumes: [babel-data:/data, ./backups:/backup]
+  depends_on: [app]
 ```
 
-**Sem monitorar o código de saída, isto não é backup — é uma pasta.** O item que fecha o ciclo é
-alertar quando `npm run backup` sair diferente de zero (achado F5-04, monitoramento de erro).
+**Sem monitorar o código de saída, isto não é backup — é uma pasta.** Em produção quem fecha o
+ciclo é o heartbeat acima; aqui, alerte quando `scripts/backup.mjs` sair diferente de zero.
 
 ## Mídia em object storage
 

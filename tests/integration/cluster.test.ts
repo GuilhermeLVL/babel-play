@@ -85,6 +85,8 @@ function subirServidor(env: Record<string, string>, prazoMs = 60_000) {
     env: {
       ...process.env,
       NODE_ENV: 'production',
+      // GAP-004: em produção o boot exige a decisão sobre proxy; aqui não há proxy nenhum.
+      TRUST_PROXY: 'false',
       // Em produção `server/crypto.ts` recusa subir sem chave — guarda correta, e o teste tem de
       // honrá-la em vez de contorná-la rodando em desenvolvimento.
       SECRET_KEY: 'chave-de-teste-somente-para-o-cluster-32+chars',

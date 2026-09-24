@@ -5,9 +5,158 @@ agora? Ele não substitui [`docs/deploy.md`](deploy.md), que explica como **subi
 variável faz — aqui é o que se lê com o serviço já rodando, e às vezes já quebrado.
 
 Tudo abaixo foi verificado por execução na rodada de saneamento de 2026-09-09, salvo onde estiver
-escrito "inferido".
+escrito "inferido". As seções 0, 0.1 a 0.5 e 12 entraram na Fase 6 do lançamento (2026-09-24), para
+a produção no Fly.io + Cloudflare + R2.
 
 ---
+
+## 0. INCIDENTE — uma página
+
+Algo quebrou, vazou, ou está gastando dinheiro sem parar. Faça nesta ordem, e anote a HORA de cada
+passo num arquivo (`incidentes/AAAA-MM-DD.md` fora do repositório público) — a ANPD e o pós-mortem
+vão pedir a linha do tempo.
+
+**1. DETECTAR — o que está errado, desde quando, quem é afetado.**
+
+- Sinais: e-mail do UptimeRobot (queda ou heartbeat do backup), issue `producao-caiu` aberta pelo
+  `uptime.yml`, alerta do Sentry, alerta de gasto do Groq/OpenRouter, reclamação de usuário.
+- Primeiro olhar: `curl -s https://<domínio>/api/ready | jq .` · `fly status --app babel-play` ·
+  `fly logs --app babel-play | jq -c 'select(.level=="error")'` · Sentry → Issues das últimas 24 h.
+
+**2. CONTER — as chaves de emergência** (cada uma é `fly secrets set X=… --app babel-play`; o Fly
+reinicia a máquina em ~20 s):
+
+| situação                                                       | chave                                               |
+| -------------------------------------------------------------- | --------------------------------------------------- |
+| IA gastando demais, abuso de prompt, provedor respondendo lixo | `AI_ENABLED=0` (o app volta para os modelos locais) |
+| cobrança errada, webhook suspeito, preço errado na tela        | `CHECKOUT_ENABLED=0` (quem já assina segue)         |
+| enxurrada de contas falsas, ataque de cadastro                 | `SIGNUP_ENABLED=0`                                  |
+
+O que cada chave faz, exatamente (as três ficam no inventário `server/lib/config.ts`; ausente = ligada):
+
+- `AI_ENABLED=0` — desliga TODA IA de nuvem na hora (tradução, transcrição, tutor em `/api/tutor/chat`,
+  com `/api/gemini/chat` como alias temporário); o app segue com os modelos locais. Volte com `1`.
+- `CHECKOUT_ENABLED=0` — assinar e comprar respondem 503 com mensagem clara; quem já paga continua
+  com o plano e o webhook do Asaas continua processando o que chegar.
+- `SIGNUP_ENABLED=0` — conta que o banco ainda não conhece recebe 403 `cadastro_fechado` em qualquer
+  rota e a tela esconde `Criar conta`. **Desligue também o cadastro no painel do Supabase**
+  (Authentication → Providers → _Allow new users to sign up_), senão o login cria a identidade lá.
+  | deploy novo quebrou | rollback (§0.3) |
+  | suspeita de vazamento de chave | trocar a chave NO PROVEDOR primeiro, depois `fly secrets set` (§6) |
+  | tráfego hostil | Cloudflare → Security → "Under Attack Mode"; bloquear o país/ASN/IP na WAF |
+
+**3. COMUNICAR.**
+
+- Página de status do UptimeRobot: incidente aberto com uma frase ("tradução por IA indisponível;
+  transcrição local funciona") — sem culpar ninguém, sem prometer hora.
+- **Incidente com dado pessoal** (vazamento, acesso indevido, perda): isto é um incidente de
+  segurança da LGPD (art. 48). O Babel Play é **agente de pequeno porte** (Res. CD/ANPD 2/2022), e a
+  Res. CD/ANPD 15/2024 dá a ele prazo **em dobro: 6 dias úteis** a partir de quando se soube do
+  incidente para comunicar a ANPD (formulário no site da ANPD) e os titulares afetados — quando o
+  incidente puder causar risco ou dano relevante. Na dúvida, comunique. A comunicação diz: o que
+  aconteceu, quais dados, quantos titulares, o que foi feito, o que o titular pode fazer, e o contato
+  do encarregado. Guarde o registro do incidente por **5 anos**, mesmo o que não for comunicado.
+- Operador envolvido (Supabase, Groq, Asaas…): abra chamado com o operador e peça o relatório dele.
+
+**4. CORRIGIR** — a causa, não só o sintoma. Teste que reproduz o defeito ANTES do conserto (TDD),
+deploy pelo workflow, e só então desligue a chave de emergência.
+
+**5. PÓS-MORTEM** em até 5 dias úteis, sem culpados: linha do tempo, impacto (usuários, minutos,
+reais), causa raiz, o que detectou (e o que deveria ter detectado antes), ações com dono e data.
+
+### 0.1 SLO e os dois alertas
+
+- **SLO: 99,5 % de disponibilidade por mês** (≈ 3 h 36 min de indisponibilidade tolerada), medido
+  pelo UptimeRobot em `GET /api/ready` a cada 5 min, de fora (passa pelo Cloudflare).
+- **Alerta 1 — indisponibilidade:** o monitor HTTP do UptimeRobot em `/api/ready` falhou 2 vezes
+  seguidas → e-mail + app. (O `uptime.yml` do GitHub, com `HEALTH_URL`, é o segundo par de olhos.)
+- **Alerta 2 — backup parado:** o monitor _heartbeat_ do UptimeRobot não recebeu a chamada de
+  `BACKUP_HEARTBEAT_URL` em 25 h → e-mail. Backup que falha em silêncio é o pior tipo de falha.
+
+Os erros de aplicação (Sentry) não são alerta de página: são revisados todo dia útil.
+
+### 0.2 Restaurar o banco
+
+Há duas fontes, as duas no R2:
+
+**A. Litestream (réplica contínua, perda de ~1 s).** Para perda da máquina ou do volume.
+O caminho automático: criar um volume novo e subir a máquina — o entrypoint restaura sozinho quando
+`/data/babel.db` não existe. À mão, para CONFERIR sem tocar no banco vivo:
+
+```bash
+fly ssh console --app babel-play
+litestream restore -config /etc/litestream.yml -o /data/restauro.db -integrity-check full /data/babel.db
+node dist-server/operacao.cjs verificar --arquivo=/data/restauro.db    # integrity_check + contagens
+rm /data/restauro.db
+```
+
+Para um momento específico (antes de um erro): `-timestamp 2026-09-24T14:05:00Z` no `restore`.
+
+**B. Snapshot diário (uma foto por dia, 30 dias).** Para erro LÓGICO que o Litestream já replicou
+(um `DELETE` sem `WHERE`, uma migração ruim):
+
+```bash
+fly ssh console --app babel-play
+node dist-server/operacao.cjs restaurar-snapshot --dia=2026-09-23 --destino=/data/restauro.db
+```
+
+**Trocar o banco vivo** (qualquer das duas fontes), depois de o `verificar` dizer `ok`:
+
+1. `fly secrets set CHECKOUT_ENABLED=0 SIGNUP_ENABLED=0` (ninguém escreve algo que vai se perder);
+2. `fly ssh console` → `mv /data/babel.db /data/babel.db.antes && mv /data/restauro.db /data/babel.db && rm -f /data/babel.db-wal /data/babel.db-shm`;
+3. `fly machine restart` — o Litestream passa a replicar o banco restaurado;
+4. conferir `/api/ready`, religar as chaves, e anotar no pós-mortem o intervalo de dados perdido.
+
+O CI restaura o Litestream a cada push (job `restauracao-litestream`) e a suíte restaura o snapshot
+(`tests/integration/snapshot-e-restauracao.test.ts`). **Uma vez por mês, faça o caminho A à mão** e
+registre a data aqui: _(ainda não feito em produção)_.
+
+### 0.3 Rollback de deploy
+
+GitHub → Actions → **Deploy (Fly.io)** → Run workflow → `imagem = registry.fly.io/babel-play:<sha anterior>`
+(a lista sai de `fly releases --image --app babel-play`). É a MESMA imagem que já esteve no ar —
+nada é reconstruído. Pelo terminal: `fly deploy --app babel-play --image registry.fly.io/babel-play:<sha>`.
+
+**O banco não volta junto.** As migrações rodam no boot e são só para a frente; uma versão velha
+sobre um banco migrado continua funcionando enquanto a migração nova só ACRESCENTOU coluna/tabela
+(é a regra da casa). Se uma migração destrutiva estiver no meio, o rollback é restaurar o banco
+(§0.2) também — por isso migração destrutiva vai sozinha num deploy próprio.
+
+### 0.4 Quando um fornecedor cai
+
+| cai                      | o que o usuário vê                                                                   | o que fazer                                                                                                                                |
+| ------------------------ | ------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Groq**                 | tradução/tutor ficam mais lentos por 30 s e passam para a reserva                    | nada — o disjuntor (§5) manda para a OpenRouter. Se a reserva também cair: `AI_ENABLED=0` e aviso na página de status                      |
+| **OpenRouter** (reserva) | nada, enquanto a Groq estiver de pé                                                  | conferir o crédito pré-pago (sem recarga automática, ele acaba)                                                                            |
+| **Asaas**                | checkout e cancelamento falham com mensagem; quem assina continua com acesso         | `CHECKOUT_ENABLED=0` se passar de 30 min; o Asaas reentrega os webhooks que não receberam 200 (idempotente)                                |
+| **Supabase**             | ninguém novo entra; quem está logado segue até o token vencer (1 h)                  | nada a fazer do nosso lado; página de status. O servidor valida o token pelo JWKS em cache                                                 |
+| **Fly.io** (região GRU)  | fora do ar                                                                           | status.flyio.net; se passar de 2 h, subir em outra região restaurando do Litestream (volume novo + `fly deploy`)                           |
+| **Cloudflare**           | fora do ar                                                                           | status do Cloudflare; em último caso, DNS direto para o Fly (tira o WAF: religue assim que voltar) e remova `ORIGEM_SEGREDO` enquanto isso |
+| **R2**                   | áudio novo não grava (`/api/ready` 503 → a máquina sai do roteamento); backup atrasa | página de status; o banco segue local no volume e o Litestream reenvia quando o R2 voltar                                                  |
+| **Resend** (e-mail)      | e-mail de confirmação, recuperação de senha e o convite ao responsável não chegam    | status do Resend; o Supabase reenvia pelo botão "reenviar"; se passar de horas, troque o SMTP do Supabase para outro provedor (SES)        |
+
+### 0.5 Custo fora do previsto — o orçamento de IA
+
+`AI_BUDGET_USD_MONTH` é o teto de gasto **estimado** com IA de nuvem no mês, em US$ (padrão US$ 20 no
+modo público; `0` desliga a nuvem). Cada chamada entregue soma tokens ou segundos × preço do modelo
+na tabela `gasto_de_ia` (`server/lib/orcamentoDeIa.ts`; preços embutidos, sobreponíveis por
+`AI_PRECOS_MODELOS`). Dois eventos de log, um de cada por mês:
+
+| evento                   | nível | o que significa                                                                  | alerta                                                                   |
+| ------------------------ | ----- | -------------------------------------------------------------------------------- | ------------------------------------------------------------------------ |
+| `ia_orcamento_alerta_80` | warn  | 80 % do orçamento gasto                                                          | chega ao Sentry como _warning_ (é um dos `AVISOS_QUE_ALERTAM` do logger) |
+| `ia_orcamento_esgotado`  | error | 100 %: a nuvem fecha sozinha até o mês virar; o app volta para os modelos locais | chega ao Sentry como _error_                                             |
+
+No Sentry, crie **uma regra de alerta** no projeto do servidor: _"A new issue is created" OU "The
+issue changes state"_ com o filtro `tags.event` em `ia_orcamento_alerta_80, ia_orcamento_esgotado`
+→ e-mail imediato. (No Axiom, se entrar: monitor de contagem `event == "ia_orcamento_*"` > 0 em 5 min.)
+
+Ao receber o de 80 %: olhe o painel do Groq/OpenRouter (quem está gastando? abuso?) e decida entre
+subir o orçamento (`fly secrets set AI_BUDGET_USD_MONTH=…`) ou deixar fechar. O teto do painel do
+Groq e o crédito pré-pago sem recarga da OpenRouter são a segunda e a terceira barreira: mesmo que a
+estimativa erre, o provedor corta.
+
+## Fly, Supabase e Sentry têm alerta de fatura no painel — ligue os três (LANCAMENTO.md).
 
 ## 1. As duas perguntas de saúde, e por que são duas
 
@@ -170,11 +319,11 @@ entrada só, a constante de teste `segredo-e2e-hs256-marco1`, que nunca foi chav
 
 ## 7. Limites que respondem 429, e o que cada um protege
 
-| balde                                                 | teto               | chave  | protege              |
-| ----------------------------------------------------- | ------------------ | ------ | -------------------- |
-| autenticação                                          | 30 falhas / 15 min | IP     | adivinhação de token |
-| rotas caras (`/api/ai`, `/api/import`, `/api/gemini`) | 60 / min           | tenant | gasto com terceiros  |
-| escrita (CRUD, admin, áudio)                          | 120 / min          | tenant | memória do processo  |
+| balde                                                | teto               | chave  | protege              |
+| ---------------------------------------------------- | ------------------ | ------ | -------------------- |
+| autenticação                                         | 30 falhas / 15 min | IP     | adivinhação de token |
+| rotas caras (`/api/ai`, `/api/import`, `/api/tutor`) | 60 / min           | tenant | gasto com terceiros  |
+| escrita (CRUD, admin, áudio)                         | 120 / min          | tenant | memória do processo  |
 
 Os três contam **no banco**, não no heap: em memória o teto viraria "teto × número de réplicas", e
 atrás de proxy a chave seria a do proxy, fazendo um visitante esgotar a cota de todos.
@@ -247,5 +396,18 @@ req/s no banco já engordado. Comparar corridas sobre bancos de tamanhos diferen
 - **Tracing distribuído.** Não há OpenTelemetry. A correlação existente é o `request_id` no log e o
   histograma por rota no `/metrics`; ligar spans é decisão aberta, e o arranque já custa ~400 ms a
   mais desde a Fase 5.
-- **Alertas.** Não há regra de alerta escrita; o `/metrics` existe, quem consome ainda não.
+- **Alertas sobre métricas.** Os dois alertas de página são os do §0.1 (UptimeRobot); o `/metrics`
+  existe, mas ninguém o raspa em produção ainda.
 - **Agregação de métricas em cluster** (§3).
+
+---
+
+## 12. Segurança que o servidor passou a cobrar (Fase 6)
+
+| o quê                                                                      | onde                             | sintoma quando falta                                                                  |
+| -------------------------------------------------------------------------- | -------------------------------- | ------------------------------------------------------------------------------------- |
+| `TRUST_PROXY` declarada em produção                                        | `server/lib/config.ts`           | boot aborta com a instrução                                                           |
+| `ORIGEM_SEGREDO` (cabeçalho do Cloudflare)                                 | `server/http/origemProtegida.ts` | acesso direto a `*.fly.dev` recebe 403; as sondas passam                              |
+| corpo JSON de 100 KB antes do login, 5 MB só em rotas listadas depois dele | `server/http/limitesDeCorpo.ts`  | `413 corpo_grande_demais`                                                             |
+| 2FA (AAL2) nas rotas sensíveis para quem o ativou                          | `server/lib/aal.ts`              | `403 aal2_requerido`; `503 aal_indisponivel` se a Admin API do Supabase não responder |
+| CSP com `connect-src` fechado                                              | `server/http/csp.ts`             | recurso bloqueado no console do navegador — um host novo precisa entrar na lista      |

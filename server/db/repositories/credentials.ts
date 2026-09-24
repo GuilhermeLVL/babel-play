@@ -2,9 +2,8 @@ import { randomUUID } from 'node:crypto'
 
 import { and, eq, isNull } from 'drizzle-orm'
 
-import { decryptSecretEx, encryptSecret } from '../../crypto'
+import { decryptSecret, encryptSecret } from '../../crypto'
 import type { UserId } from '../../lib/authContext'
-import { log } from '../../lib/logger'
 import { db } from '../db'
 import { providerCredentials, secrets } from '../schema'
 
@@ -27,7 +26,9 @@ export interface NewCredential {
  */
 export const credentialsRepo = {
   async list(userId: UserId): Promise<Credential[]> {
-    return db.select().from(providerCredentials)
+    return db
+      .select()
+      .from(providerCredentials)
       .where(and(eq(providerCredentials.userId, userId), isNull(providerCredentials.deletedAt)))
   },
 
@@ -74,14 +75,26 @@ export const credentialsRepo = {
     const alvo = await db
       .select({ secretRef: providerCredentials.secretRef })
       .from(providerCredentials)
-      .where(and(eq(providerCredentials.id, id), eq(providerCredentials.userId, userId), isNull(providerCredentials.deletedAt)))
+      .where(
+        and(
+          eq(providerCredentials.id, id),
+          eq(providerCredentials.userId, userId),
+          isNull(providerCredentials.deletedAt),
+        ),
+      )
       .limit(1)
     if (!alvo.length) return false
 
     const apagarCredencial = db
       .update(providerCredentials)
       .set({ deletedAt: now, updatedAt: now })
-      .where(and(eq(providerCredentials.id, id), eq(providerCredentials.userId, userId), isNull(providerCredentials.deletedAt)))
+      .where(
+        and(
+          eq(providerCredentials.id, id),
+          eq(providerCredentials.userId, userId),
+          isNull(providerCredentials.deletedAt),
+        ),
+      )
     const ref = alvo[0].secretRef
     if (!ref) {
       const r = await apagarCredencial
@@ -89,7 +102,9 @@ export const credentialsRepo = {
     }
     await db.batch([
       apagarCredencial,
-      db.update(secrets).set({ deletedAt: now, updatedAt: now })
+      db
+        .update(secrets)
+        .set({ deletedAt: now, updatedAt: now })
         .where(and(eq(secrets.ref, ref), isNull(secrets.deletedAt))),
     ])
     return true
@@ -103,7 +118,10 @@ export const credentialsRepo = {
    * a coluna serve à exclusão/exportação por titular, não à autorização. O `deleted_at` do segredo
    * é respeitado — segredo de credencial removida não volta a ser resolvido.
    */
-  async getSecret(userId: UserId, credentialId: string): Promise<{
+  async getSecret(
+    userId: UserId,
+    credentialId: string,
+  ): Promise<{
     baseUrl: string | null
     defaultModel: string | null
     kind: string | null
@@ -118,18 +136,15 @@ export const credentialsRepo = {
     if (!cred) throw new Error('credencial não encontrada')
     let secret: string | null = null
     if (cred.secretRef) {
-      const s = await db.select().from(secrets)
-        .where(and(eq(secrets.ref, cred.secretRef), isNull(secrets.deletedAt))).limit(1)
+      const s = await db
+        .select()
+        .from(secrets)
+        .where(and(eq(secrets.ref, cred.secretRef), isNull(secrets.deletedAt)))
+        .limit(1)
       if (s[0]) {
-        const { value, migratedBlob } = decryptSecretEx(s[0].valueEncrypted)
-        secret = value
-        // S-11: segredo estava cifrado com a chave legada → re-grava com a chave atual (migração no 1º uso).
-        if (migratedBlob) {
-          await db.update(secrets)
-            .set({ valueEncrypted: migratedBlob, updatedAt: Date.now() })
-            .where(eq(secrets.ref, cred.secretRef))
-          log('info', { event: 'segredo_recifrado_chave_atual' })
-        }
+        /* A recifra no 1º uso (S-11) saiu com a chave legada (Fase 6): blob antigo agora é migrado
+           por `scripts/db/recifrar-segredos-legados.ts`, fora do servidor. */
+        secret = decryptSecret(s[0].valueEncrypted)
       }
     }
     return { baseUrl: cred.baseUrl, defaultModel: cred.defaultModel, kind: cred.kind, secret }

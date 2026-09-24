@@ -13,15 +13,21 @@
  * arquivo. Montado antes deles, ele deixaria de ser alcançado.
  */
 import dotenv from 'dotenv'
-import express from 'express'
 import path from 'path'
 
 import { dbReady } from './server/db/db'
 import { seedIfEmpty } from './server/db/seed'
 import { criarApp } from './server/http/app'
+import { montarSpa } from './server/http/estaticos'
 import { authRequired, erroDeAuthEmProducao, mecanismoDe } from './server/lib/auth'
 import { registrarFalhaDeBoot, registrarSucessoDeBoot } from './server/lib/bootStatus'
-import { erroDeMetricasEmProducao, verificarConfiguracaoNoBoot } from './server/lib/config'
+import {
+  configDoBackupDiario,
+  configDoSentry,
+  erroDeMetricasEmProducao,
+  erroDeTrustProxyEmProducao,
+  verificarConfiguracaoNoBoot,
+} from './server/lib/config'
 import { registrarDesligamento } from './server/lib/desligamento'
 /* `diretorioGravavel` morava aqui e o `crypto.ts` tinha a sua propria versao divergente — a chave
    de segredos ia parar no disco efemero do conteiner enquanto o diario ia para o volume. Uma
@@ -68,6 +74,13 @@ async function startServer({ prepararDados = true } = {}) {
     console.error(`[boot] ABORTADO: ${authInsegura}`)
     process.exit(1)
   }
+  /* GAP-004: em produção, quantos proxies há na frente é decisão declarada — errar para qualquer
+     lado desliga o limitador por IP em silêncio (ver `erroDeTrustProxyEmProducao`). */
+  const proxyIndeclarado = erroDeTrustProxyEmProducao()
+  if (proxyIndeclarado) {
+    console.error(`[boot] ABORTADO: ${proxyIndeclarado}`)
+    process.exit(1)
+  }
   /* GAP-013 (auditoria 2026-09-13): em produção, /metrics ligado sem token é scrape aberto. */
   const metricasInseguras = erroDeMetricasEmProducao()
   if (metricasInseguras) {
@@ -106,6 +119,22 @@ async function startServer({ prepararDados = true } = {}) {
        * em produção e não conta onde falhou é pior do que não tê-la: dá a sensação de cobertura.
        */
       console.error(`[erros] diário em disco INDISPONÍVEL em ${dirDeErros}; seguindo só com stdout:`, err)
+    }
+  }
+
+  /* SENTRY (Fase 5): mais um destino para o `log('error')` já saneado — nada além da linha do
+     diário sai daqui (ver `server/lib/sentry.ts`). Ligado antes das migrações pelo mesmo motivo do
+     diário: o erro do boot é o que mais precisa chegar a alguém. */
+  const sentry = configDoSentry()
+  if (sentry) {
+    const { sinkDoSentry } = await import('./server/lib/sentry')
+    const { registrarSinkDeErro } = await import('./server/lib/logger')
+    const sink = sinkDoSentry(sentry)
+    if (sink) {
+      registrarSinkDeErro(sink)
+      console.log(`[sentry] erros do servidor vão para o Sentry (ambiente ${sentry.ambiente ?? '—'})`)
+    } else {
+      console.warn('[sentry] SENTRY_DSN inválido — seguindo sem Sentry')
     }
   }
 
@@ -225,11 +254,9 @@ async function startServer({ prepararDados = true } = {}) {
     app.use(vite.middlewares)
     console.log('Vite dev server mounted as middleware.')
   } else {
-    const distPath = path.join(process.cwd(), 'dist')
-    app.use(express.static(distPath))
-    app.get('*', (req, res) => {
-      res.sendFile(path.join(distPath, 'index.html'))
-    })
+    /* Fase 5: chunk com hash fica 1 ano no navegador; o `index.html` sempre revalida. Ver
+       `server/http/estaticos.ts`. */
+    montarSpa(app, path.join(process.cwd(), 'dist'))
     console.log('Serving static assets from dist/ in production.')
   }
 
@@ -283,6 +310,26 @@ async function startServer({ prepararDados = true } = {}) {
    * `iniciar()`, mais abaixo, para o porquê de o respawn precisar ser desligado junto.
    */
   registrarDesligamento({ servidor: server, antes: () => repassarSinalAosWorkers?.() })
+
+  /* SNAPSHOT DIÁRIO NO R2 (Fase 5) — só no processo que prepara os dados (o primário, no cluster):
+     N processos fariam N cópias do mesmo banco na mesma hora. O porquê de ser dentro do processo, e
+     não num cron externo, está em `server/operacao/snapshot.ts`. */
+  const backup = prepararDados ? configDoBackupDiario() : null
+  if (backup) {
+    const { agendarSnapshotDiario, destinoDoBackup, fazerSnapshot } = await import('./server/operacao/snapshot')
+    const destino = destinoDoBackup()
+    const urlDoBanco = process.env.DATABASE_URL ?? 'file:./data/babel.db'
+    if (!destino || !urlDoBanco.startsWith('file:')) {
+      console.error('[backup] BACKUP_DIARIO=1 mas faltam as S3_* ou o banco não é arquivo — snapshot diário DESLIGADO')
+    } else {
+      agendarSnapshotDiario({
+        horaUtc: backup.horaUtc,
+        heartbeatUrl: backup.heartbeatUrl,
+        executar: () => fazerSnapshot({ urlDoBanco, dirTemporario: path.dirname(urlDoBanco.slice(5)), destino }),
+      })
+      console.log(`[backup] snapshot diário às ${backup.horaUtc}h UTC para ${destino.cfg.bucket}/${destino.prefixo}`)
+    }
+  }
 
   server.on('error', (err: NodeJS.ErrnoException) => {
     if (err.code === 'EADDRINUSE') {

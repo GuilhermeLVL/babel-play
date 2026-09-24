@@ -1,0 +1,38 @@
+# Litestream — replicação CONTÍNUA do SQLite para o Cloudflare R2 (Fase 5 do lançamento).
+#
+# Copiado para /etc/litestream.yml na imagem (Dockerfile). Só entra em ação quando as quatro
+# variáveis LITESTREAM_* existem — sem elas o `scripts/iniciar-container.sh` sobe o servidor direto
+# (dev, self-host). Nada de credencial aqui: o Litestream expande ${VAR} do ambiente ao ler o arquivo,
+# e LITESTREAM_ACCESS_KEY_ID / LITESTREAM_SECRET_ACCESS_KEY ele lê sozinho.
+#
+#   LITESTREAM_BUCKET             bucket R2 só da réplica (NÃO o da mídia: retenção e permissão próprias)
+#   LITESTREAM_ENDPOINT           https://<conta>.r2.cloudflarestorage.com
+#   LITESTREAM_ACCESS_KEY_ID      token R2 com permissão de leitura e escrita SÓ nesse bucket
+#   LITESTREAM_SECRET_ACCESS_KEY
+#
+# O caminho do banco é o da imagem (DATABASE_URL=file:/data/babel.db). Mudou lá, muda aqui.
+#
+# O que isto garante: perda máxima de ~1 s de escrita se a máquina ou o volume sumirem, e o
+# `litestream restore` recria o banco num volume novo (o entrypoint faz isso sozinho no boot).
+# O que NÃO garante: voltar no tempo depois de um erro lógico (um DELETE sem WHERE chega à réplica
+# em um segundo). Para isso existe o snapshot diário independente (server/operacao/snapshot.ts).
+dbs:
+  - path: /data/babel.db
+    replica:
+      type: s3
+      bucket: ${LITESTREAM_BUCKET}
+      path: babel.db
+      endpoint: ${LITESTREAM_ENDPOINT}
+      region: auto
+      force-path-style: true
+
+# Snapshot completo por dia, guardado por 7 dias: dá restauração a qualquer ponto da última
+# semana. Mais que isso é trabalho do snapshot diário da aplicação (30 dias, regra de ciclo de vida
+# do bucket de backups — ver docs/LANCAMENTO.md).
+snapshot:
+  interval: 24h
+  retention: 168h
+
+logging:
+  level: info
+  type: json

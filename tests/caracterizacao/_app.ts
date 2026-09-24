@@ -58,8 +58,8 @@ export interface AppDeTeste {
   put: (caminho: string, body?: unknown, token?: string) => Promise<Response>
   patch: (caminho: string, body?: unknown, token?: string) => Promise<Response>
   del: (caminho: string, token?: string) => Promise<Response>
-  /** Só no modo público: token ES256 válido para o `sub` dado. */
-  token: (sub: string) => Promise<string>
+  /** Só no modo público: token ES256 válido para o `sub` dado (`claims` extras, ex.: `{ aal: 'aal2' }`). */
+  token: (sub: string, claims?: Record<string, unknown>) => Promise<string>
   /** Import dinâmico de um módulo de servidor já ligado ao banco efêmero. */
   load: <T = any>(spec: string) => Promise<T>
   encerrar: () => Promise<void>
@@ -178,9 +178,9 @@ export async function subirApp(opts: { modo: Modo } = { modo: 'self-host' }): Pr
     put: (c, b, t) => chamar('PUT', c, { body: b, token: t }),
     patch: (c, b, t) => chamar('PATCH', c, { body: b, token: t }),
     del: (c, t) => chamar('DELETE', c, { token: t }),
-    token: async (sub) => {
+    token: async (sub, claims = {}) => {
       if (!chavePrivada) throw new Error('token() só existe no modo publico')
-      return new SignJWT({})
+      return new SignJWT(claims)
         .setProtectedHeader({ alg: 'ES256' })
         .setSubject(sub)
         .setAudience('authenticated')

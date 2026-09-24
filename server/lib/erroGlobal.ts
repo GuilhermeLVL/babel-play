@@ -63,6 +63,40 @@ export function capturarAssincrono(router: Router): Router {
  * de erro — remover o `_next` o transformaria num middleware comum, em silêncio.
  */
 export function erroGlobal(err: unknown, req: Request, res: Response, _next: NextFunction): void {
+  /*
+   * ERRO DO CLIENTE NO CORPO NÃO É ERRO DO SERVIDOR (GAP-015).
+   *
+   * O `body-parser` sinaliza corpo grande demais (`entity.too.large`) e JSON malformado
+   * (`entity.parse.failed`) com `status` 4xx. Tratados como 500, cada um virava um `error` no
+   * diário — e no Sentry —, o que deixa um atacante encher o alerta de erro com requisições
+   * baratas. Aqui eles respondem o status certo e ficam num `warn`.
+   */
+  const deCorpo = err as { type?: unknown; status?: unknown }
+  if (typeof deCorpo?.type === 'string' && deCorpo.type.startsWith('entity.') && typeof deCorpo.status === 'number') {
+    const grande = deCorpo.type === 'entity.too.large'
+    const status = grande ? 413 : deCorpo.status >= 400 && deCorpo.status < 500 ? deCorpo.status : 400
+    log('warn', {
+      event: 'corpo_recusado',
+      route: req.path,
+      status,
+      error: deCorpo.type,
+      requestId: (req as Request & { requestId?: string }).requestId,
+    })
+    if (res.headersSent) {
+      res.end()
+      return
+    }
+    res
+      .status(status)
+      .json(
+        envelopeDeErro(
+          grande ? 'corpo da requisição grande demais' : 'corpo da requisição inválido',
+          grande ? 'corpo_grande_demais' : 'corpo_invalido',
+          { requestId: (req as Request & { requestId?: string }).requestId ?? null },
+        ),
+      )
+    return
+  }
   const causa = cadeiaDeCausas(err, ' <- ')
   log('error', {
     event: 'erro_nao_tratado',
@@ -96,11 +130,9 @@ export function erroGlobal(err: unknown, req: Request, res: Response, _next: Nex
    * Nunca a causa no `error`: ela carrega nome de coluna, caminho de arquivo e às vezes o valor
    * que falhou. Quem investiga usa o `requestId` para achar a linha no log.
    */
-  res
-    .status(500)
-    .json(
-      envelopeDeErro('erro interno', 'erro_interno', {
-        requestId: (req as Request & { requestId?: string }).requestId ?? null,
-      }),
-    )
+  res.status(500).json(
+    envelopeDeErro('erro interno', 'erro_interno', {
+      requestId: (req as Request & { requestId?: string }).requestId ?? null,
+    }),
+  )
 }

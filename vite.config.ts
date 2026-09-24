@@ -5,7 +5,9 @@ import react from '@vitejs/plugin-react'
 import path from 'path'
 import fs from 'fs'
 import os from 'os'
-import { defineConfig, type Plugin } from 'vite'
+import { defineConfig, loadEnv, type Plugin } from 'vite'
+
+import { aplicarUrlPublica } from './scripts/vite/urlPublica'
 
 /**
  * Serve os assets do onnxruntime-web (usado pelo @ricky0123/vad-web) + modelo Silero + worklet
@@ -48,7 +50,19 @@ function serveVadOnnxAssets(): Plugin {
   }
 }
 
-export default defineConfig(() => {
+/**
+ * Canonical e og do `index.html` a partir de `VITE_PUBLIC_URL` — ou fora do HTML, sem ela.
+ * `order: 'pre'` roda antes da troca de `%VAR%` do próprio Vite. Ver `scripts/vite/urlPublica.ts`.
+ */
+function urlPublica(url: string | undefined): Plugin {
+  return {
+    name: 'url-publica',
+    transformIndexHtml: { order: 'pre', handler: (html) => aplicarUrlPublica(html, url) },
+  }
+}
+
+export default defineConfig(({ mode }) => {
+  const env = loadEnv(mode, process.cwd(), 'VITE_')
   return {
     // Cache de pré-bundle (optimizeDeps/esbuild) FORA do OneDrive: sobre a pasta sincronizada
     // o filtro do OneDrive estrangula/trava o churn de arquivos do otimizador no boot do dev.
@@ -56,7 +70,7 @@ export default defineConfig(() => {
     // `VITE_CACHE_DIR` separa o cache quando várias worktrees sobem servidor ao mesmo tempo —
     // com uma pasta só, um servidor invalida o pré-bundle do outro.
     cacheDir: process.env.VITE_CACHE_DIR || path.join(os.tmpdir(), 'babel-play-web-vite'),
-    plugins: [react(), tailwindcss(), serveVadOnnxAssets()],
+    plugins: [react(), tailwindcss(), serveVadOnnxAssets(), urlPublica(env.VITE_PUBLIC_URL)],
     resolve: {
       alias: {
         '@': path.resolve(__dirname, '.'),

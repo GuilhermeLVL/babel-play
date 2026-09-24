@@ -44,6 +44,8 @@ const CHAMADOR_EXTERNO = {
   'GET /metrics':
     'scrape do Prometheus — quem chama e o coletor, nao o nosso codigo, como no webhook do Asaas. Este script a marca como "viva" por acidente: o padrao `/metrics` casa com as fontes que chamam `/api/metrics`, que e a rota de NEGOCIO e nao tem relacao com esta',
   'GET /api/admin/users': 'console de administração — operação manual por `curl`/navegador com token de admin',
+  'GET /api/admin/ia':
+    'painel do OPERADOR para o orçamento de IA do mês (gasto estimado, teto, limiares de 80%/100%): é a leitura para decidir "subir `AI_BUDGET_USD_MONTH`, desligar com `AI_ENABLED=0` ou esperar o mês virar" (`docs/LANCAMENTO.md` §11). O cliente não tem tela de admin e não deve ganhar uma só para calar este portão; o assinante vê só se a nuvem está disponível, por `GET /api/me/uso` (`iaDeNuvem`), nunca o valor em dólares. Operação manual por `curl` com token de admin/support, como as outras rotas admin de leitura',
   'GET /api/admin/users/:id': 'idem',
   'PATCH /api/admin/users/:id': 'idem',
   'PATCH /api/admin/users/:id/plan': 'idem',

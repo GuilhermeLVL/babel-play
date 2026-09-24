@@ -244,7 +244,7 @@ https://<domínio>/api/health` (liga o `uptime.yml`, o segundo par de olhos, que
 
 | quando           | o quê                                                                                              |
 | ---------------- | -------------------------------------------------------------------------------------------------- |
-| todo dia útil    | olhar o Sentry (issues novas) e o gasto de IA                                                      |
+| todo dia útil    | olhar o Sentry (issues novas) e o gasto de IA (`GET /api/admin/ia` com token de admin)             |
 | toda semana      | revisar e aplicar os PRs do Dependabot (CI verde → deploy staging → production)                    |
 | todo mês         | restaurar o Litestream à mão (runbook §0.2-A) e anotar; conferir as faturas contra esta tabela     |
 | a cada trimestre | `node scripts/modelos/revisoes.mjs` (modelos novos no Hub?); revisar a RoPA (`docs/lgpd/ropa.csv`) |

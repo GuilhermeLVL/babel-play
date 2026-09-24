@@ -1,6 +1,6 @@
-import { expect,test } from '@playwright/test';
+import { expect, test } from '@playwright/test'
 
-import { abrirSeletor,apareceEmAte, baralhosNoServidor, clicarRobusto, irParaPraticar } from './_helpers';
+import { abrirSeletor, apareceEmAte, baralhosNoServidor, clicarRobusto, irParaPraticar } from './_helpers'
 
 /**
  * Baralhos do Anki: cobre o caminho novo (ingestão de baralhos) além da casca já coberta por
@@ -15,26 +15,28 @@ import { abrirSeletor,apareceEmAte, baralhosNoServidor, clicarRobusto, irParaPra
  */
 
 test.describe('Anki: importar', () => {
-  test('o botão Anki abre a importação, e "Voltar aos jogos" retorna ao lobby', async ({ page }) => {
-    test.slow();
-    await irParaPraticar(page);
+  test('o botão Anki abre a importação, e o voltar ("Jogar") retorna ao lobby', async ({ page }) => {
+    test.slow()
+    await irParaPraticar(page)
 
     /* O ANKI MUDOU DE LUGAR E DE NOME: vive no rodapé da gaveta do seletor, como «Trazer do
        Anki». O caminho até ele é parte do que este teste cobre agora. */
-    await abrirSeletor(page);
-    const botaoAnki = page.getByRole('button', { name: 'Trazer do Anki' });
+    await abrirSeletor(page)
+    const botaoAnki = page.getByRole('button', { name: 'Trazer do Anki' })
     // Prazo maior que o padrão: sob a suíte inteira em paralelo o primeiro carregamento pode
     // legitimamente demorar mais que os 5s padrão do Playwright (ver `irParaPraticar`).
-    await expect(botaoAnki).toBeVisible({ timeout: 15_000 });
-    await clicarRobusto(page, botaoAnki);
+    await expect(botaoAnki).toBeVisible({ timeout: 15_000 })
+    await clicarRobusto(page, botaoAnki)
 
-    await expect(page.getByRole('button', { name: 'Escolher arquivo' })).toBeVisible();
+    /* A tela do protótipo (`T.anki`): a área de soltar o arquivo, e o voltar do cabeçalho com o
+       nome da tela de origem. */
+    await expect(page.getByText('Solte o arquivo aqui')).toBeVisible()
 
-    await clicarRobusto(page, page.getByRole('button', { name: 'Voltar aos jogos' }));
-    await abrirSeletor(page);
-    await expect(page.getByRole('button', { name: 'Trazer do Anki' })).toBeVisible();
-  });
-});
+    await clicarRobusto(page, page.locator('.cab .voltar'))
+    await abrirSeletor(page)
+    await expect(page.getByRole('button', { name: 'Trazer do Anki' })).toBeVisible()
+  })
+})
 
 test.describe('Baralhos do Anki (condicional a haver baralho já importado)', () => {
   /**
@@ -46,57 +48,65 @@ test.describe('Baralhos do Anki (condicional a haver baralho já importado)', ()
    * Uma ida cobre as duas coisas, porque a segunda parte começa exatamente onde a primeira termina.
    */
   test('abre a tela, mostra o saldo, e "Jogar só com este" volta ao lobby com o baralho na faixa', async ({ page }) => {
-    test.slow();
-    await irParaPraticar(page);
+    test.slow()
+    await irParaPraticar(page)
 
     /* O PULO PRECISA DIZER O MOTIVO REAL. "Não há baralho neste ambiente" é a explicação certa só
        quando o servidor de fato não tem nenhum; quando a chamada falha ou responde outra coisa, a
        mesma frase esconde um defeito atrás de uma justificativa tranquilizadora. */
-    const acervo = await baralhosNoServidor(page);
-    test.skip(
-      acervo.quantos === 0,
-      `Caso não alcançável sem criar dado (o que este teste não faz) — ${acervo.porque}`,
-    );
+    const acervo = await baralhosNoServidor(page)
+    test.skip(acervo.quantos === 0, `Caso não alcançável sem criar dado (o que este teste não faz) — ${acervo.porque}`)
 
     // Há baralho no servidor: a porta TEM de existir. Se não existir, é defeito, não falta de dado.
-    await abrirSeletor(page);
-    const botaoBaralhos = page.getByRole('button', { name: 'Gerenciar baralhos' });
-    await expect(botaoBaralhos, 'o servidor tem baralho, então a porta "Baralhos" deveria estar na faixa').toBeVisible({ timeout: 10_000 });
-    await clicarRobusto(page, botaoBaralhos);
+    await abrirSeletor(page)
+    const botaoBaralhos = page.getByRole('button', { name: 'Gerenciar baralhos' })
+    await expect(botaoBaralhos, 'o servidor tem baralho, então a porta "Baralhos" deveria estar na faixa').toBeVisible({
+      timeout: 10_000,
+    })
+    await clicarRobusto(page, botaoBaralhos)
 
     await expect(
       page.getByText('O que já foi trazido de fora, e quanto de cada um está de fato jogando com você.'),
-    ).toBeVisible();
+    ).toBeVisible()
 
     // O saldo é a promessa central da tela: "N de M ativadas", nunca um total bruto sozinho.
     /* `.first()`: com MAIS DE UM baralho importado o locator casa vários botões, e o modo
        estrito do Playwright faz `waitFor` estourar — o teste então pulava dizendo "nenhum baralho
        tem palavra ativada" numa tela que mostrava 1.795 ativadas. Um skip que mente sobre o
        ambiente é pior que uma falha: esconde cobertura que se acredita ter. */
-    const jogarSoComEste = page.getByRole('button', { name: 'Jogar só com este' }).first();
-    const saldoAtivadas = page.getByText(/\d+\s+de\s+\d+\s+ativadas/);
-    const temRecorte = await apareceEmAte(jogarSoComEste);
-    const temSaldo = (await saldoAtivadas.count().catch(() => 0)) > 0;
-    expect(temRecorte || temSaldo, 'esperava o botão "Jogar só com este" ou o saldo "N de M ativadas" no cartão do baralho').toBe(true);
+    const jogarSoComEste = page.getByRole('button', { name: 'Jogar só com este' }).first()
+    const saldoAtivadas = page.getByText(/\d+\s+de\s+\d+\s+ativadas/)
+    const temRecorte = await apareceEmAte(jogarSoComEste)
+    const temSaldo = (await saldoAtivadas.count().catch(() => 0)) > 0
+    expect(
+      temRecorte || temSaldo,
+      'esperava o botão "Jogar só com este" ou o saldo "N de M ativadas" no cartão do baralho',
+    ).toBe(true)
 
     test.skip(
       !temRecorte,
       'O baralho do servidor não tem palavra ativada, então não há o que recortar — a segunda metade deste caso não é alcançável sem criar dado.',
-    );
+    )
 
     // Lê o nome no cartão ANTES de clicar, para conferir que é ele que aparece na faixa depois.
-    const cartao = page.locator('.card-panel').filter({ has: jogarSoComEste }).first();
-    const nomeBaralho = (await cartao.locator('p').first().textContent().catch(() => null))?.trim();
+    const cartao = page.locator('.card-panel').filter({ has: jogarSoComEste }).first()
+    const nomeBaralho = (
+      await cartao
+        .locator('p')
+        .first()
+        .textContent()
+        .catch(() => null)
+    )?.trim()
 
-    await clicarRobusto(page, jogarSoComEste);
-    await abrirSeletor(page);
-    await expect(page.getByRole('button', { name: 'Trazer do Anki' })).toBeVisible();
+    await clicarRobusto(page, jogarSoComEste)
+    await abrirSeletor(page)
+    await expect(page.getByRole('button', { name: 'Trazer do Anki' })).toBeVisible()
 
     if (nomeBaralho) {
-      await expect(page.getByText(nomeBaralho, { exact: false }).first()).toBeVisible();
+      await expect(page.getByText(nomeBaralho, { exact: false }).first()).toBeVisible()
     } else {
       // Sem o nome, ao menos prova que a porta genérica "Baralhos" virou o chip do recorte.
-      await expect(page.getByRole('button', { name: 'Gerenciar baralhos' })).not.toBeVisible();
+      await expect(page.getByRole('button', { name: 'Gerenciar baralhos' })).not.toBeVisible()
     }
-  });
-});
+  })
+})

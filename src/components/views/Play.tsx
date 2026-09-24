@@ -2646,11 +2646,23 @@ export default function Play({ onChangeView, ageProfile, progress, metrics, reco
         ageProfile={ageProfile}
         onVoltar={() => setImportando(false)}
         onImportou={async () => {
+          void recarregarBaralhosAnki();
           try {
             setDeck((await fetchDeck()).filter((c) => c.inDeck));
           } catch {
             /* mantém */
           }
+        }}
+        /* As abas do protótipo: "Gerenciar" é a tela de baralhos que já existe, e depois de ativar
+           "Jogar com este baralho" recorta os jogos pelo baralho recém-trazido. */
+        nBaralhos={decksAnki.length}
+        onGerenciar={() => {
+          setImportando(false);
+          setVendoBaralhos(true);
+        }}
+        onJogarCom={(id, nome) => {
+          setBaralhoAnki({ id, nome });
+          setImportando(false);
         }}
       />,
     );

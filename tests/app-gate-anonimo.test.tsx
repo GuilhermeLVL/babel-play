@@ -9,7 +9,10 @@ import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 vi.mock('../src/lib/supabase', () => ({
-  supabase: null, authRequired: true, carregarSupabase: async () => null, getAccessToken: async () => null,
+  supabase: null,
+  authRequired: true,
+  carregarSupabase: async () => null,
+  getAccessToken: async () => null,
 }))
 
 import CartaoDeConvite from '../src/components/conta/CartaoDeConvite'
@@ -38,9 +41,11 @@ describe('a regra da porta', () => {
     expect(porta({ authRequired: true, temSessao: false, anonimoAceito: true, pedindoLogin: true })).toBe('login')
   })
   it('o que exige conta é o que persiste; capturar, jogar, início e ajustes ficam livres', () => {
-    for (const v of ['library', 'analysis', 'study', 'reading', 'metrics', 'profile']) expect(exigeConta(v), v).toBe(true)
-    for (const v of ['hub', 'capture', 'play', 'settings']) expect(exigeConta(v), v).toBe(false)
-    expect(EXIGE_CONTA.size).toBe(6)
+    for (const v of ['library', 'analysis', 'study', 'reading', 'metrics', 'profile', 'estatisticas'])
+      expect(exigeConta(v), v).toBe(true)
+    for (const v of ['hub', 'capture', 'play', 'settings', 'ajuda', 'naoencontrado'])
+      expect(exigeConta(v), v).toBe(false)
+    expect(EXIGE_CONTA.size).toBe(7)
   })
 })
 
@@ -58,7 +63,8 @@ describe('as telas do gate', () => {
   })
 
   it('o convite diz o que a conta desbloqueia NAQUELA tela e tem as duas saídas', () => {
-    const entrar = vi.fn(); const voltar = vi.fn()
+    const entrar = vi.fn()
+    const voltar = vi.fn()
     render(<CartaoDeConvite view="library" onEntrar={entrar} onVoltar={voltar} />)
     expect(screen.getByText('Sua biblioteca fica na sua conta')).toBeTruthy()
     fireEvent.click(screen.getByRole('button', { name: 'Entrar ou criar conta' }))
@@ -68,7 +74,8 @@ describe('as telas do gate', () => {
   })
 
   it('o gate é um diálogo com o motivo, fecha no Escape e não perde a tela', () => {
-    const fechar = vi.fn(); const entrar = vi.fn()
+    const fechar = vi.fn()
+    const entrar = vi.fn()
     render(<GateDeConta aberto motivo="Importar do YouTube precisa de conta." onFechar={fechar} onEntrar={entrar} />)
     const dialogo = screen.getByRole('dialog')
     expect(dialogo.textContent).toContain('Importar do YouTube precisa de conta.')

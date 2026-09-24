@@ -17,12 +17,12 @@
  */
 import 'fake-indexeddb/auto'
 
-import { readdirSync,readFileSync } from 'node:fs'
+import { readdirSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 
-import { describe, expect,it } from 'vitest'
+import { describe, expect, it } from 'vitest'
 
-import { CODIGO_EXIGE_CONTA,servidorEfemero } from '../../src/data/efemero/servidor'
+import { CODIGO_EXIGE_CONTA, servidorEfemero } from '../../src/data/efemero/servidor'
 
 /**
  * AS ROTAS QUE O MODO SEM CONTA NÃO ESPELHA — cada uma com o motivo, e o motivo é sempre o mesmo
@@ -34,9 +34,11 @@ import { CODIGO_EXIGE_CONTA,servidorEfemero } from '../../src/data/efemero/servi
    `codigo-morto-removido`, e a terceira asserção deste arquivo é quem impediu que ela ficasse
    escondida atrás de uma justificativa. */
 const SO_COM_CONTA: Record<string, string> = {
-  '/api/ai': 'gateway de IA: transcrição, tradução e LLM dependem de chave, cota e plano do servidor. A credencial é cifrada lá, nunca no navegador',
+  '/api/ai':
+    'gateway de IA: transcrição, tradução e LLM dependem de chave, cota e plano do servidor. A credencial é cifrada lá, nunca no navegador',
   '/api/gemini': 'o tutor depende da chave do servidor',
-  '/api/import': 'importar exige o servidor: yt-dlp, busca de página (CORS e SSRF), extração de PDF/DOCX e um .apkg de dezenas de MB',
+  '/api/import':
+    'importar exige o servidor: yt-dlp, busca de página (CORS e SSRF), extração de PDF/DOCX e um .apkg de dezenas de MB',
   '/api/anki': 'o acervo Anki nasce da importação, que não existe sem conta',
   '/api/images': 'proxy de imagens: o cliente já cai direto no Openverse quando ele falha',
   '/api/me': 'a conta é justamente o que não existe aqui — inclusive a cota e a exportação',
@@ -44,9 +46,13 @@ const SO_COM_CONTA: Record<string, string> = {
   '/api/erros-do-cliente': 'diário de erros do servidor; sem conta o erro fica no console',
   '/api/sessions/utterances/relabel': 'reetiquetagem em lote: escrita cruzada de sessões',
   '/api/vocab/relabel': 'idem, no acervo',
-  '/api/vocab/para-jogo': 'NÃO precisa de espelho: `compor` cai em `composicaoLocal`, a MESMA ordenação do core rodando no cliente. Espelhá-la criaria uma segunda verdade onde hoje há uma',
+  '/api/vocab/para-jogo':
+    'NÃO precisa de espelho: `compor` cai em `composicaoLocal`, a MESMA ordenação do core rodando no cliente. Espelhá-la criaria uma segunda verdade onde hoje há uma',
+  '/api/health':
+    'status do servidor na Ajuda: é a pergunta "o servidor está no ar?", que um espelho local responderia sempre sim. Sem servidor, a tela diz que ele não responde',
   '/api/rank': 'placar público: fala com o servidor real por `fetch` cru, fora do funil, com e sem conta',
-  '/api/audio': 'captura do áudio do sistema por WASAPI: PASSA DIRETO (está em `PASSAM_DIRETO`) porque depende de um dispositivo da máquina, e só existe no self-host',
+  '/api/audio':
+    'captura do áudio do sistema por WASAPI: PASSA DIRETO (está em `PASSAM_DIRETO`) porque depende de um dispositivo da máquina, e só existe no self-host',
 }
 
 /**
@@ -64,7 +70,10 @@ function rotasChamadasPeloCliente(): string[] {
   const varrer = (dir: string) => {
     for (const nome of readdirSync(dir, { withFileTypes: true })) {
       const caminho = join(dir, nome.name)
-      if (nome.isDirectory()) { varrer(caminho); continue }
+      if (nome.isDirectory()) {
+        varrer(caminho)
+        continue
+      }
       if (!/\.tsx?$/.test(nome.name)) continue
       if (caminho.split(String.fromCharCode(92)).join('/').endsWith('src/data/efemero/servidor.ts')) continue
       arquivos.push(caminho)
@@ -96,7 +105,7 @@ async function espelhada(rota: string): Promise<boolean> {
   for (const method of ['GET', 'POST', 'PATCH', 'DELETE']) {
     const res = await servidorEfemero(rota, { method, body: method === 'GET' ? undefined : '{}' })
     if (res.status !== 501) return true
-    const corpo = await res.json().catch(() => ({} as Record<string, unknown>))
+    const corpo = await res.json().catch(() => ({}) as Record<string, unknown>)
     if ((corpo as { codigo?: string }).codigo !== CODIGO_EXIGE_CONTA) return true
   }
   return false

@@ -9,7 +9,7 @@ import { authRequired } from '../../../lib/supabase';
 /**
  * COMPRAR CRÉDITOS E O PASSE — a única tela do app onde entra dinheiro por escolha do usuário.
  *
- * O DESENHO É O MESMO DE `planos/Assinar.tsx`, e isso é deliberado: o formulário só INICIA a
+ * O DESENHO É O MESMO DO CHECKOUT DE PLANOS (`planos/Checkout.tsx`), e isso é deliberado: o formulário só INICIA a
  * cobrança e abre o link do Asaas. Quem concede o crédito é o webhook, quando o pagamento
  * confirma. Por isso o estado pós-envio diz "aguardando pagamento" em vez de fingir sucesso —
  * conceder no clique seria dar moeda a quem abandonou o checkout.

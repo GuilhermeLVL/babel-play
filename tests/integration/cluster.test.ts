@@ -19,20 +19,32 @@
  * serializa escritor único e vários processos passam a competir por lock. Subir "saudável" nessa
  * condição é pior do que não subir.
  */
-import { type ChildProcess,spawn } from 'node:child_process'
+import { type ChildProcess, spawn } from 'node:child_process'
 import { mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 
-import { afterEach,describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it } from 'vitest'
 
 const RAIZ = path.resolve(import.meta.dirname, '..', '..')
 const vivos: ChildProcess[] = []
 const temporarios: string[] = []
 
 afterEach(() => {
-  for (const p of vivos.splice(0)) { try { p.kill('SIGKILL') } catch { /* já morreu */ } }
-  for (const d of temporarios.splice(0)) { try { rmSync(d, { recursive: true, force: true }) } catch { /* ignora */ } }
+  for (const p of vivos.splice(0)) {
+    try {
+      p.kill('SIGKILL')
+    } catch {
+      /* já morreu */
+    }
+  }
+  for (const d of temporarios.splice(0)) {
+    try {
+      rmSync(d, { recursive: true, force: true })
+    } catch {
+      /* ignora */
+    }
+  }
 })
 
 /**
@@ -76,7 +88,9 @@ function subirServidor(env: Record<string, string>, prazoMs = 60_000) {
       // Em produção `server/crypto.ts` recusa subir sem chave — guarda correta, e o teste tem de
       // honrá-la em vez de contorná-la rodando em desenvolvimento.
       SECRET_KEY: 'chave-de-teste-somente-para-o-cluster-32+chars',
-      PORT: String(porta), HOST: '127.0.0.1', DATA_DIR: dados,
+      PORT: String(porta),
+      HOST: '127.0.0.1',
+      DATA_DIR: dados,
       // `'0'`, nao `'false'`: `authRequired()` so reconhece '1' e '0' e trata QUALQUER outro
       // valor como o padrao (ligado em producao). Com `'false'` este teste rodava com auth
       // LIGADA sem que ninguem percebesse, porque `/api/health` nao passa pelo middleware.
@@ -87,23 +101,39 @@ function subirServidor(env: Record<string, string>, prazoMs = 60_000) {
       // desconhecido como "ligado" e fail-safe, e aceitar 'false' tornaria mais facil
       // desligar a auth por engano num deploy.
       AUTH_REQUIRED: '0',
+      SELF_HOST: '1', // instalação pessoal declarada (GAP-003 aceita sem login só assim)
       ...env,
     },
   })
   vivos.push(filho)
 
   let saida = ''
-  filho.stdout?.on('data', (b) => { saida += String(b) })
-  filho.stderr?.on('data', (b) => { saida += String(b) })
+  filho.stdout?.on('data', (b) => {
+    saida += String(b)
+  })
+  filho.stderr?.on('data', (b) => {
+    saida += String(b)
+  })
 
   const pronto = new Promise<{ porta: number; saida: () => string; codigo: number | null }>((resolve) => {
     let terminou = false
-    const fim = (codigo: number | null) => { if (!terminou) { terminou = true; resolve({ porta, saida: () => saida, codigo }) } }
+    const fim = (codigo: number | null) => {
+      if (!terminou) {
+        terminou = true
+        resolve({ porta, saida: () => saida, codigo })
+      }
+    }
     filho.on('exit', (c) => fim(c))
     const t0 = Date.now()
     const olhar = setInterval(() => {
-      if (terminou) { clearInterval(olhar); return }
-      if (/rodando em|ABORTADO/.test(saida) || Date.now() - t0 > prazoMs) { clearInterval(olhar); fim(null) }
+      if (terminou) {
+        clearInterval(olhar)
+        return
+      }
+      if (/rodando em|ABORTADO/.test(saida) || Date.now() - t0 > prazoMs) {
+        clearInterval(olhar)
+        fim(null)
+      }
     }, 250)
   })
   return pronto
@@ -117,7 +147,9 @@ async function pidsQueAtenderam(porta: number, tentativas: number): Promise<Set<
       const r = await fetch(`http://127.0.0.1:${porta}/api/health`)
       const pid = r.headers.get('x-pid')
       if (pid) pids.add(pid)
-    } catch { /* ainda subindo */ }
+    } catch {
+      /* ainda subindo */
+    }
     await new Promise((r) => setTimeout(r, 120))
   }
   return pids

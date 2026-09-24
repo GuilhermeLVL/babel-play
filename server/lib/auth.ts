@@ -14,8 +14,8 @@
  *  - fallback: segredo compartilhado HS256 (SUPABASE_JWT_SECRET), para projeto legado.
  * O verificador aceita uma CHAVE INJETÁVEL, então os testes assinam/verificam offline.
  */
-import type { NextFunction,Request, Response } from 'express'
-import { createRemoteJWKSet,jwtVerify } from 'jose'
+import type { NextFunction, Request, Response } from 'express'
+import { createRemoteJWKSet, jwtVerify } from 'jose'
 
 import { asUserId, LOCAL_OWNER, type UserId } from './authContext'
 import { log } from './logger'
@@ -33,10 +33,14 @@ export function authRequired(): boolean {
  * só avisava (`console.warn`) e seguia; a imagem Docker faz bind em `0.0.0.0`, então um
  * `AUTH_REQUIRED=0` esquecido expunha o app inteiro sem login. Retorna a mensagem de aborto, ou
  * `null` quando a postura é segura. O boot (`startServer`) aborta como faz com multi-réplica.
+ *
+ * A instalação pessoal sem login (self-host) também roda o build de produção — a imagem Docker fixa
+ * NODE_ENV=production. Ela continua possível com uma SEGUNDA escolha explícita, `SELF_HOST=1`: o
+ * que o GAP-003 fecha é o `AUTH_REQUIRED=0` esquecido sozinho, não a instalação declarada.
  */
 export function erroDeAuthEmProducao(): string | null {
-  if (process.env.NODE_ENV === 'production' && !authRequired()) {
-    return 'AUTH_REQUIRED=1 é obrigatório em produção (NODE_ENV=production): recusando subir com autenticação desligada — seria acesso total ao app sem login.'
+  if (process.env.NODE_ENV === 'production' && !authRequired() && process.env.SELF_HOST !== '1') {
+    return 'AUTH_REQUIRED=1 é obrigatório em produção (NODE_ENV=production): recusando subir com autenticação desligada — seria acesso total ao app sem login. Para uma instalação pessoal sem login, declare também SELF_HOST=1.'
   }
   return null
 }
@@ -127,7 +131,9 @@ export function createVerifier(opts: VerifierOptions = {}): (token: string) => P
      * por outro. Agora só alcança o caso medido: segredo compartilhado, sem origem, em modo público.
      */
     if (!issuer && authRequired() && jwtSecret && !opts.key) {
-      throw new Error('auth mal configurada: SUPABASE_URL é obrigatória no modo público quando a verificação usa SUPABASE_JWT_SECRET (sem ela o `iss` do token não é validado)')
+      throw new Error(
+        'auth mal configurada: SUPABASE_URL é obrigatória no modo público quando a verificação usa SUPABASE_JWT_SECRET (sem ela o `iss` do token não é validado)',
+      )
     }
     const { payload } = await jwtVerify(token, key, {
       audience: 'authenticated',

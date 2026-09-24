@@ -1,5 +1,5 @@
 /**
- * O GASTO DE IA DO MÊS (tabela `gasto_de_ia`, migração 0028) — só aritmética atômica no banco.
+ * O GASTO DE IA DO MÊS (tabela `gasto_de_ia`, migração 0029) — só aritmética atômica no banco.
  * A política (teto, alerta, preços) mora em `server/lib/orcamentoDeIa.ts`.
  */
 import { and, eq, isNull, sql } from 'drizzle-orm'

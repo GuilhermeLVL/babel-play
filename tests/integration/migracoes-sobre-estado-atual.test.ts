@@ -38,12 +38,12 @@ let migrarLeitnerParaFsrs: () => Promise<number>
 let entradasDoJournal: number
 
 /**
- * QUANTAS MIGRATIONS A FOTO CARREGA. A fixture foi tirada com a 0027 aplicada (28 entradas no
- * diário). Migration nova NÃO exige refazer a foto — pelo contrário: a foto antiga é o estado que o
+ * QUANTAS MIGRATIONS A FOTO CARREGA. A fixture foi refeita na Fase 4 com a 0028 (menores) aplicada
+ * (29 entradas no diário). Migration nova NÃO exige refazer a foto — pelo contrário: a foto antiga é o estado que o
  * banco de produção terá no dia do deploy, e é sobre ele que a migration nova precisa se aplicar.
- * A primeira a chegar depois da foto foi a 0028 (gasto de IA, Fase 2 do lançamento).
+ * A primeira a chegar depois da foto foi a 0029 (gasto de IA, Fase 2 do lançamento).
  */
-const ENTRADAS_NA_FOTO = 28
+const ENTRADAS_NA_FOTO = 29
 /** A primeira migration NÃO reexecutável (DROP COLUMN) — idx 26 no journal. */
 const IDX_DA_0026 = 26
 
@@ -152,7 +152,7 @@ describe('migrations sobre o estado atual — caracterizacao do diario', () => {
 
   it('apagar as linhas DESDE a 0026 e reaplicar: a 0026 (DROP COLUMN) nao e reexecutavel, o lote volta atras e o boot SEGUE', async () => {
     const total = await contar('__drizzle_migrations')
-    // Da 0026 em diante: com a 0027 e a 0028 depois dela, são as TRÊS últimas.
+    // Da 0026 em diante: com a 0027, a 0028 e a 0029 depois dela, são as QUATRO últimas.
     const desdeA0026 = total - IDX_DA_0026
     const ultimas = await linhas(
       `SELECT created_at FROM __drizzle_migrations ORDER BY created_at DESC LIMIT ${desdeA0026}`,
@@ -167,7 +167,7 @@ describe('migrations sobre o estado atual — caracterizacao do diario', () => {
     try {
       // caracterizacao: `ALTER TABLE vocab_cards DROP COLUMN frequency` falha na segunda vez ("no such
       // column"), o @libsql/client roda o lote inteiro numa transacao e faz ROLLBACK — a 0027 nem
-      // chega a rodar. `aplicarMigrations` ve o schema presente (`sessions` existe) e ENGOLE o erro
+      // chega a rodar (nem a 0028). `aplicarMigrations` ve o schema presente (`sessions` existe) e ENGOLE o erro
       // com console.warn (P1-N1). O processo sobe, o diario fica dois passos atras, e cada boot
       // seguinte repete a falha em silencio. Nao e "falha alto": e "segue como se nada".
       await expect(aplicarMigrations()).resolves.not.toThrow()

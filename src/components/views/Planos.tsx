@@ -66,7 +66,7 @@ import SuaAssinatura, { type DialogoDaAssinatura, metodoAtual } from './planos/S
  *
  * O QUE DO PROTÓTIPO FICOU DE FORA, E POR QUÊ: o seletor Mensal/Anual (o servidor só cobra por
  * mês — não se cria plano novo numa tela), cupom e parcelas (não existem no servidor), e as
- * operações que o servidor não tem — trocar de plano, trocar o cartão, pausar e estornar — que
+ * operações que o servidor não tem — trocar de plano, trocar o cartão e pausar — que
  * aparecem com a forma do protótipo e o caminho honesto: o suporte.
  */
 
@@ -149,7 +149,7 @@ function CelulaDaTabela({ x, invertido }: { x: Celula; invertido?: boolean }) {
 
 /**
  * As perguntas do protótipo, com as respostas que o app cumpre. Onde o protótipo promete o que o
- * servidor ainda não faz (anual, troca de plano na hora, estorno automático), a resposta diz como
+ * servidor ainda não faz (anual, troca de plano na hora), a resposta diz como
  * é hoje.
  */
 const FAQ: [string, string][] = [
@@ -163,11 +163,11 @@ const FAQ: [string, string][] = [
   ],
   [
     'Posso cancelar quando quiser?',
-    'Sim, em Planos → Sua assinatura, em poucos cliques. Você mantém o acesso até o fim do período pago e seus dados continuam salvos.',
+    'Sim, em Planos → Sua assinatura, em poucos cliques. A renovação para na hora, você mantém o acesso até o último dia do período já pago (a data aparece na confirmação) e seus dados continuam salvos.',
   ],
   [
     'E se eu me arrepender?',
-    'Nos primeiros 7 dias depois de assinar, você tem direito ao valor de volta, inteiro, no mesmo meio de pagamento (CDC, art. 49). Cancele em Planos → Sua assinatura e peça o reembolso ao suporte.',
+    'Nos primeiros 7 dias depois do primeiro pagamento, cancelar em Planos → Sua assinatura já devolve o valor inteiro, no mesmo meio de pagamento (CDC, art. 49), sem precisar pedir a ninguém. A tela confirma o pedido na hora, com protocolo, e o acesso ao plano termina ali.',
   ],
   [
     'Como cada número foi medido?',

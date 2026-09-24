@@ -70,6 +70,33 @@ export function estadoDaConta(plan: Plan, status: StatusDeBilling | null, agora 
 
 export const temAssinatura = (e: EstadoDaConta): boolean => e === 'ativa' || e === 'falhou' || e === 'cancelada';
 
+/**
+ * PARA QUEM É O CHECKOUT (Fase 4): o responsável que aceitou o convite pode assinar pelo menor. A
+ * tela de aceite guarda aqui o menor escolhido; o checkout lê, mostra "assinando para…" e manda
+ * `paraUsuario`. O servidor confere o vínculo — isto é só a lembrança da escolha.
+ */
+const CHAVE_DO_BENEFICIARIO = 'babel.checkout.para';
+export interface Beneficiario {
+  id: string;
+  nome: string | null;
+}
+export function lerBeneficiario(): Beneficiario | null {
+  try {
+    const b = JSON.parse(sessionStorage.getItem(CHAVE_DO_BENEFICIARIO) ?? 'null') as Beneficiario | null;
+    return b && typeof b.id === 'string' ? b : null;
+  } catch {
+    return null;
+  }
+}
+export function definirBeneficiario(b: Beneficiario | null): void {
+  try {
+    if (b) sessionStorage.setItem(CHAVE_DO_BENEFICIARIO, JSON.stringify(b));
+    else sessionStorage.removeItem(CHAVE_DO_BENEFICIARIO);
+  } catch {
+    /* sem armazenamento, o responsável escolhe de novo */
+  }
+}
+
 /** Preço mensal do plano, da matriz — nunca escrito à mão numa tela. */
 export const precoMensal = (p: PlanoPago): number => PLAN_MATRIX[p].precoMensalBrl ?? 0;
 
@@ -128,6 +155,8 @@ export async function iniciarAssinatura(dados: {
   nome: string;
   cpfCnpj: string;
   email?: string;
+  /** O responsável assinando pelo menor vinculado (Fase 4): a assinatura nasce na conta dele. */
+  paraUsuario?: string;
 }): Promise<{ link: string | null; erro?: string }> {
   try {
     const r = await apiFetch('/api/billing/assinar', {
@@ -143,12 +172,39 @@ export async function iniciarAssinatura(dados: {
   }
 }
 
-/** Cancela a RENOVAÇÃO: o que já foi pago vale até o fim do período. */
-export async function cancelarRenovacao(): Promise<{ ok: boolean; valeAte?: number | null; erro?: string }> {
+/**
+ * O arrependimento que o servidor registrou ao cancelar (CDC art. 49): o valor devolvido, se o
+ * Asaas já aceitou o estorno ou se ele virou manual, e o protocolo que a tela mostra na hora.
+ */
+export interface Arrependimento {
+  valor: number;
+  estornado: boolean;
+  protocolo: string;
+  registradoEm: number;
+  prazoManualDias?: number;
+}
+
+/**
+ * Cancela a assinatura. Depois dos 7 dias, para a RENOVAÇÃO e o pago vale até `valeAte`; dentro
+ * dos 7 dias do primeiro pagamento, o servidor faz o arrependimento (estorno integral, acesso
+ * termina agora) e devolve `arrependimento`.
+ */
+export async function cancelarRenovacao(): Promise<{
+  ok: boolean;
+  valeAte?: number | null;
+  arrependimento?: Arrependimento | null;
+  erro?: string;
+}> {
   try {
     const r = await apiFetch('/api/billing/cancelar', { method: 'POST' });
-    const corpo = (await r.json().catch(() => ({}))) as { valeAte?: number | null; error?: string };
-    return r.ok ? { ok: true, valeAte: corpo.valeAte ?? null } : { ok: false, erro: corpo.error ?? `HTTP ${r.status}` };
+    const corpo = (await r.json().catch(() => ({}))) as {
+      valeAte?: number | null;
+      arrependimento?: Arrependimento | null;
+      error?: string;
+    };
+    return r.ok
+      ? { ok: true, valeAte: corpo.valeAte ?? null, arrependimento: corpo.arrependimento ?? null }
+      : { ok: false, erro: corpo.error ?? `HTTP ${r.status}` };
   } catch {
     return { ok: false, erro: 'não consegui falar com o servidor.' };
   }

@@ -86,6 +86,7 @@ export const ROUTERS_PRIVADOS: Array<[string, string, string]> = [
   ['/api/settings', '../../server/routes/settings', 'settingsRouter'],
   ['/api/images', '../../server/routes/images', 'imagesRouter'],
   ['/api/me', '../../server/routes/me', 'meRouter'],
+  ['/api/responsavel', '../../server/routes/responsavel', 'responsavelRouter'],
   ['/api/admin', '../../server/routes/admin', 'adminRouter'],
   ['/api/erros-do-cliente', '../../server/routes/erros', 'errosRouter'],
   ['/api/billing', '../../server/routes/billing', 'billingRouter'],

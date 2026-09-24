@@ -68,10 +68,10 @@ describe('fixture do estado atual — forma do arquivo', () => {
     expect(String(Object.values((await linhas('PRAGMA integrity_check'))[0])[0]).toLowerCase()).toBe('ok')
   })
 
-  it('carrega o diario de migrations da foto (ate a 0027) — o estado de producao no dia do deploy', async () => {
-    /* A foto foi tirada com a 0027 aplicada. Migration nova NAO refaz a foto: ela e o estado sobre o
+  it('carrega o diario de migrations da foto (ate a 0028) — o estado de producao no dia do deploy', async () => {
+    /* A foto foi refeita na Fase 4 com a 0028 aplicada. Migration nova NAO refaz a foto: ela e o estado sobre o
        qual a migration nova precisa se aplicar (ver `migracoes-sobre-estado-atual.test.ts`). */
-    const ENTRADAS_NA_FOTO = 28
+    const ENTRADAS_NA_FOTO = 29
     const journal = JSON.parse(readFileSync(JOURNAL, 'utf8')) as { entries: Array<{ when: number }> }
     expect(await contar('__drizzle_migrations')).toBe(ENTRADAS_NA_FOTO)
     const ultima = (await linhas('SELECT max(created_at) AS w FROM __drizzle_migrations'))[0]

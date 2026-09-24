@@ -83,6 +83,8 @@ export interface CobrancaListadaAsaas {
   dueDate?: string
   paymentDate?: string
   clientPaymentDate?: string
+  /** Quando o cartão foi confirmado (antes de o dinheiro cair) — o marco do arrependimento. */
+  confirmedDate?: string
   invoiceUrl?: string
   transactionReceiptUrl?: string
 }
@@ -160,8 +162,45 @@ export async function primeiraCobranca(assinaturaId: string): Promise<CobrancaAs
   return r.data?.[0] ?? null
 }
 
+/**
+ * Cancela a assinatura no Asaas (para de gerar cobranças). 404 = já não existe lá, o que para
+ * quem pediu o cancelamento é o mesmo resultado — cancelar de novo não pode virar erro.
+ */
 export async function cancelarAssinatura(assinaturaId: string): Promise<void> {
-  await chamar(`/subscriptions/${assinaturaId}`, { method: 'DELETE' })
+  try {
+    await chamar(`/subscriptions/${encodeURIComponent(assinaturaId)}`, { method: 'DELETE' })
+  } catch (err) {
+    if (String(err).includes('HTTP 404')) return
+    throw err
+  }
+}
+
+/** O que a assinatura diz de si mesma — só o que o cancelamento precisa. */
+export interface AssinaturaDetalhadaAsaas {
+  id: string
+  /** O próximo vencimento: até lá o mês pago vale. `YYYY-MM-DD`. */
+  nextDueDate?: string
+  status?: string
+}
+
+export async function buscarAssinatura(assinaturaId: string): Promise<AssinaturaDetalhadaAsaas> {
+  return chamar<AssinaturaDetalhadaAsaas>(`/subscriptions/${encodeURIComponent(assinaturaId)}`)
+}
+
+/**
+ * ESTORNO INTEGRAL de uma cobrança (arrependimento, CDC art. 49).
+ *
+ * `POST /v3/payments/{id}/refund` sem `value` estorna o valor inteiro
+ * (docs.asaas.com/reference/estornar-cobranca, conferido em 24/09/2026). Vale para cartão
+ * (confirmado ou recebido; a fatura do pagador mostra em até 10 dias úteis) e Pix. Boleto NÃO se
+ * estorna pela API, e Pix recém-recebido pode esbarrar em saldo insuficiente (400): nos dois
+ * casos a exceção sobe, e quem chama manda o pedido para a fila do admin — nunca some.
+ */
+export async function estornarCobranca(pagamentoId: string, descricao: string): Promise<void> {
+  await chamar(`/payments/${encodeURIComponent(pagamentoId)}/refund`, {
+    method: 'POST',
+    body: JSON.stringify({ description: descricao.slice(0, 200) }),
+  })
 }
 
 /** O pagamento como o ASAAS o conhece — a verdade autoritativa, não o payload do webhook. */

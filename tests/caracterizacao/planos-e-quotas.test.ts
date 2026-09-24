@@ -171,12 +171,15 @@ describe('planos e quotas (modo publico)', () => {
     expect(await reserveManagedCall(asUserId(B))).toBe(false)
   })
 
-  it('assinatura cancelada volta a free; past_due com periodo vigente ainda concede', async () => {
+  it('past_due com periodo vigente concede; cancelada mantem ate o fim do periodo pago e depois volta a free', async () => {
     const { subscriptionsRepo } = await s.load('../../server/db/repositories/subscriptions')
     const { asUserId } = await s.load('../../server/lib/authContext')
     await subscriptionsRepo.upsert(asUserId(A), { status: 'past_due', currentPeriodEnd: Date.now() + 86_400_000 })
     expect((await (await s.get('/api/me/entitlements', tokenA)).json()).plan).toBe('pro')
+    // Fase 3 do lancamento (Decreto 11.034/2022): cancelar para a renovacao, o pago continua valendo.
     await subscriptionsRepo.upsert(asUserId(A), { status: 'canceled' })
+    expect((await (await s.get('/api/me/entitlements', tokenA)).json()).plan).toBe('pro')
+    await subscriptionsRepo.upsert(asUserId(A), { status: 'canceled', currentPeriodEnd: Date.now() - 1000 })
     expect((await (await s.get('/api/me/entitlements', tokenA)).json()).plan).toBe('free')
   })
 })

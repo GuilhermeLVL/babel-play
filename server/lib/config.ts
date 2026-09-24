@@ -125,6 +125,13 @@ export const VARIAVEIS: readonly VariavelDeclarada[] = [
       'JSON com o preço por modelo que o orçamento usa: {"modelo": {"entrada": US$/1M, "saida": US$/1M}} para LLM e {"modelo": {"hora": US$}} para STT. Sobrepõe a tabela oficial embutida',
   },
   {
+    nome: 'APP_URL',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue:
+      'endereço público do app (https://…) para montar links absolutos, como o do convite ao responsável; sem ela o link sai relativo e só serve na tela',
+  },
+  {
     nome: 'ARMAZENAMENTO_COMPARTILHADO',
     exigencia: 'opcional',
     criticidade: 'degrada-capacidade',
@@ -162,10 +169,24 @@ export const VARIAVEIS: readonly VariavelDeclarada[] = [
     paraQue: '1 liga o modo público, 0 desliga; sem valor, liga só em produção',
   },
   {
+    nome: 'CHECKOUT_ENABLED',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue:
+      'chave de emergência da VENDA: `0` fecha assinar e comprar (503 com mensagem clara); quem já paga continua com o plano. Ausente = ligada',
+  },
+  {
     nome: 'CLUSTER_WORKERS',
     exigencia: 'opcional',
     criticidade: 'degrada-capacidade',
     paraQue: 'nº de processos do cluster; sem ela, processo único (ver F6-01)',
+  },
+  {
+    nome: 'CONVITE_LINK_NA_TELA',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue:
+      '`1` devolve o link do convite ao responsável na resposta (desenvolvimento/testes, enquanto não há envio de e-mail). Ausente = ligado fora de produção, desligado em produção',
   },
   {
     nome: 'CROSS_ORIGIN_ISOLATION',
@@ -363,6 +384,20 @@ export const VARIAVEIS: readonly VariavelDeclarada[] = [
     exigencia: 'producao',
     criticidade: 'impede-servico',
     paraQue: 'cifra os segredos de credencial de IA guardados no banco (server/crypto.ts)',
+  },
+  {
+    nome: 'SELF_HOST',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue:
+      '1 declara a instalação pessoal sem login: só com ela o build de produção sobe com AUTH_REQUIRED=0 (GAP-003 recusa o AUTH_REQUIRED=0 esquecido sozinho)',
+  },
+  {
+    nome: 'SIGNUP_ENABLED',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue:
+      'chave de emergência do CADASTRO: `0` recusa contas novas (403 `cadastro_fechado`) e esconde "Criar conta"; quem já tem conta segue. Desligue também o cadastro no painel do Supabase. Ausente = ligada',
   },
   {
     nome: 'STORAGE_RECONCILE_HOURS',
@@ -613,4 +648,40 @@ export function precosDeModelosDoEnv(env: NodeJS.ProcessEnv = process.env): Reco
     })
     return {}
   }
+}
+
+/* ─────────────── chaves de emergência e menores (Fases 3 e 4 do lançamento) ─────────────── */
+
+/**
+ * A VENDA está aberta? `CHECKOUT_ENABLED=0` (ou `false`) fecha assinar e comprar. Ausente = aberta:
+ * é chave de EMERGÊNCIA, e nascer desligada seria um lançamento que não vende sem ninguém saber
+ * por quê. Lida em tempo de chamada.
+ */
+export function checkoutLigado(env: NodeJS.ProcessEnv = process.env): boolean {
+  const v = env.CHECKOUT_ENABLED?.trim().toLowerCase()
+  return !(v === '0' || v === 'false')
+}
+
+/** O CADASTRO de contas novas está aberto? `SIGNUP_ENABLED=0` fecha. Ausente = aberto. */
+export function cadastroLigado(env: NodeJS.ProcessEnv = process.env): boolean {
+  const v = env.SIGNUP_ENABLED?.trim().toLowerCase()
+  return !(v === '0' || v === 'false')
+}
+
+/** O endereço público do app, sem barra final, ou `null`. */
+export function lerAppUrl(env: NodeJS.ProcessEnv = process.env): string | null {
+  const v = env.APP_URL?.trim()
+  return v ? v.replace(/\/+$/, '') : null
+}
+
+/**
+ * O link do convite ao responsável pode voltar na resposta? Enquanto não há envio de e-mail, é o
+ * único jeito de testar o fluxo. Em PRODUÇÃO só com `CONVITE_LINK_NA_TELA=1` explícito: mostrar o
+ * link ao próprio menor deixaria ele mesmo "aceitar" com outra conta.
+ */
+export function linkNaTelaLigado(env: NodeJS.ProcessEnv = process.env): boolean {
+  const v = env.CONVITE_LINK_NA_TELA?.trim()
+  if (v === '1') return true
+  if (v === '0') return false
+  return env.NODE_ENV !== 'production'
 }

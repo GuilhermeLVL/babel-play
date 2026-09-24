@@ -190,7 +190,9 @@ adminRouter.post('/billing/reprocessar/:id', requireRole('admin'), async (req, r
     res.status(409).json({ error: 'payload guardado fora da forma esperada' })
     return
   }
-  const r = await aplicarEvento(ev, req.requestId)
+  // `undefined` mantém o verificador padrão (GAP-011); `true` autoriza os eventos internos, como o
+  // estorno do arrependimento que o Asaas recusou na primeira tentativa.
+  const r = await aplicarEvento(ev, req.requestId, undefined, true)
   await billingEventsRepo.registrarResultado(linha.id, r.estado, r.motivo)
   res.json({ ok: r.estado === 'aplicado', estado: r.estado, motivo: r.motivo })
 })

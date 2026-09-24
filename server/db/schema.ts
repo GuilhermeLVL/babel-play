@@ -579,6 +579,53 @@ export const users = sqliteTable('users', {
 })
 
 /**
+ * DATA DE NASCIMENTO DECLARADA (migração 0028, Fase 4 — ECA Digital e LGPD art. 14). Uma linha por
+ * conta; `nascimento` em `AAAA-MM-DD`. Sem linha = "ainda não perguntamos", nunca "adulto".
+ * Imutável pelo titular (índice único + INSERT … DO NOTHING): corrigir é pelo suporte, senão um
+ * menor viraria adulto trocando a data. A faixa etária é DERIVADA (server/lib/idade.ts), nunca
+ * guardada — ela muda com o tempo. `createdAt` é quando a pessoa declarou.
+ */
+export const idadesDeclaradas = sqliteTable(
+  'idades_declaradas',
+  {
+    id: text('id').primaryKey(),
+    ...meta,
+    nascimento: text('nascimento').notNull(),
+  },
+  (t) => [uniqueIndex('uq_idade_user').on(t.userId)],
+)
+
+/**
+ * VÍNCULO COM O RESPONSÁVEL (migração 0028). `userId` é o MENOR (o titular). Nasce como CONVITE
+ * (e-mail do responsável + hash de um token de uso único com expiração) e vira VÍNCULO quando um
+ * adulto logado o aceita (`usadoEm`, `responsavelUserId`). Para menores de 12, o aceite grava o
+ * consentimento ESPECÍFICO: quem, quando e o texto aceito (LGPD art. 14 §1º).
+ */
+export const vinculosDeResponsavel = sqliteTable(
+  'vinculos_de_responsavel',
+  {
+    id: text('id').primaryKey(),
+    ...meta,
+    emailDoResponsavel: text('email_do_responsavel').notNull(),
+    /** SHA-256 do token do convite. O token em si só existe no link enviado. */
+    tokenHash: text('token_hash').notNull(),
+    expiraEm: integer('expira_em').notNull(),
+    usadoEm: integer('usado_em'),
+    responsavelUserId: text('responsavel_user_id'),
+    nomeDoResponsavel: text('nome_do_responsavel'),
+    consentimentoVersao: text('consentimento_versao'),
+    consentimentoTexto: text('consentimento_texto'),
+    consentimentoEm: integer('consentimento_em'),
+    revogadoEm: integer('revogado_em'),
+  },
+  (t) => [
+    uniqueIndex('uq_vinculo_token').on(t.tokenHash),
+    index('idx_vinculo_menor').on(t.userId, t.usadoEm),
+    index('idx_vinculo_responsavel').on(t.responsavelUserId),
+  ],
+)
+
+/**
  * INTERESSES do usuário (migração 0008) — tabela, e não uma coluna JSON.
  *
  * O caminho barato seria enfiar um array no blob `settings.ui`. Três razões contra: aquele blob é
@@ -860,7 +907,7 @@ export const rank = sqliteTable(
 )
 
 /**
- * GASTO DE IA DO MÊS — o orçamento global da nuvem (Fase 2 do lançamento; migração 0028).
+ * GASTO DE IA DO MÊS — o orçamento global da nuvem (Fase 2 do lançamento; migração 0029).
  *
  * Uma linha por mês, sem `user_id`: é conta do serviço, não dado de titular. Microdólares inteiros
  * porque a soma de milhares de custos minúsculos em ponto flutuante acumula erro, e o gatilho de

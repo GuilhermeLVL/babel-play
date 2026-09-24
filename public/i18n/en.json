@@ -824,5 +824,6 @@
   "Tradução, transcrição e tutor por servidores de IA (Groq, OpenRouter) e o tradutor público MyMemory. Desligado, tudo roda no seu aparelho.": "Translation, transcription and tutor through AI servers (Groq, OpenRouter) and the public MyMemory translator. When off, everything runs on your device.",
   "Seu plano inclui IA de nuvem, mas ela está desligada porque você ainda não autorizou. Enquanto isso, tudo roda no seu aparelho.": "Your plan includes cloud AI, but it is off because you haven't allowed it yet. Meanwhile, everything runs on your device.",
   "Autorizar IA de nuvem": "Allow cloud AI",
-  "Não consegui registrar a autorização agora.": "I couldn't record the permission right now."
+  "Não consegui registrar a autorização agora.": "I couldn't record the permission right now.",
+  "No perfil protegido não há ranking público: os seus recordes ficam só com você.": "Protected profiles have no public leaderboard: your records stay with you."
 }

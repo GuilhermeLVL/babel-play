@@ -36,7 +36,9 @@ const PUBLICAS_POR_DESENHO: Record<string, string> = {
   'GET /api/rank/:jogo':
     'placar global, anônimo por desenho: sai apelido, pontos e combo, e precisa funcionar igual com e sem conta. Exigir token o quebraria no modo para o qual ele foi feito.',
   'POST /api/rank/:jogo':
-    'o envio do mesmo placar anônimo. Sem identidade para checar, as guardas são as de um fliperama (teto de pontos, apelido saneado, um envio por minuto por origem) — elas não impedem trapaça, impedem que a trapaça quebre a tabela.',
+    'o envio do mesmo placar. Montado antes do auth geral, mas no modo público ele passa por um auth PRÓPRIO + adulto declarado (perfil protegido, Fase 4 — ECA Digital): menor e idade desconhecida não publicam. No self-host segue sem identidade, com as guardas de fliperama (teto de pontos, apelido saneado, um envio por minuto por origem).',
+  'GET /api/abertura':
+    'as chaves de emergência CHECKOUT_ENABLED/SIGNUP_ENABLED, lidas pela tela de login ANTES de existir sessão (para esconder "Criar conta" com o cadastro fechado). Responde só dois booleanos, sem dado de ninguém.',
 }
 
 /**

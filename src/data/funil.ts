@@ -22,6 +22,7 @@
  */
 import { authHeaders } from '../lib/authHeaders'
 import { aguardarIdentidade } from '../lib/identidade'
+import { aguardarProtecao, rotaLiberadaNaRestricao } from '../lib/protecaoDoMenor'
 import { authRequired,supabase } from '../lib/supabase'
 import { servidorEfemero } from './efemero/servidor'
 
@@ -37,7 +38,16 @@ export async function apiFetch(input: string, init?: ApiInit): Promise<Response>
   const { timeoutMs, ...rest } = init ?? {}
   // Sem conta, NADA sai para a rede: o servidor em memória responde (ver data/efemero). Este é o
   // único ponto de corte — toda a camada de dados passa por aqui.
-  if ((await aguardarIdentidade()) === 'anonimo') return servidorEfemero(input, rest)
+  const identidade = await aguardarIdentidade()
+  if (identidade === 'anonimo') return servidorEfemero(input, rest)
+  /* CONTA DE MENOR SEM O RESPONSÁVEL (Fase 4 — ECA Digital art. 24): até o vínculo ser aceito, os
+     dados ficam no aparelho, pelo MESMO servidor em memória do modo sem conta. A conta, o convite e
+     a cobrança seguem para a rede. O servidor também recusa (403 `responsavel_pendente`) — aqui é a
+     experiência, lá é a garantia. */
+  if (identidade === 'conta' && !rotaLiberadaNaRestricao(input)) {
+    const protecao = await aguardarProtecao()
+    if (protecao?.restrita) return servidorEfemero(input, rest)
+  }
   const signal = rest.signal ?? AbortSignal.timeout(timeoutMs ?? DEFAULT_TIMEOUT_MS)
   const send = async (): Promise<Response> => {
     // Marco 1: injeta o Authorization quando há sessão (no-op no uso local sem login).

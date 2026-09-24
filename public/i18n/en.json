@@ -806,5 +806,11 @@
   "Grátis · privado": "Free · private",
   "Usar a sua chave (nuvem)": "Use your own key (cloud)",
   "OpenAI, Groq, OpenRouter… Melhor qualidade, sem baixar modelo. A chave fica cifrada no servidor.": "OpenAI, Groq, OpenRouter… Better quality, no model to download. The key stays encrypted on the server.",
-  "Trocar a chave": "Change the key"
+  "Trocar a chave": "Change the key",
+  "Sons": "Sounds",
+  "Efeitos sonoros dos jogos e das conquistas.": "Sound effects for games and achievements.",
+  "Ligados": "On",
+  "Modo desempenho": "Performance mode",
+  "Menos efeitos visuais, para computadores mais simples.": "Fewer visual effects, for simpler computers.",
+  "Ligado": "On"
 }

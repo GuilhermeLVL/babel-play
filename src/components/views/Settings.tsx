@@ -128,6 +128,10 @@ export default function Settings({
   setFontScale,
   animationsEnabled,
   toggleAnimations,
+  soundEnabled,
+  toggleSound,
+  performanceMode,
+  togglePerformanceMode,
 }: SettingsProps) {
   const [langCfg, setLangCfg] = useState<LangConfig>(DEFAULT_LANG_CONFIG);
   const [activeProfileId, setActiveProfileId] = useState<string>(
@@ -356,6 +360,19 @@ export default function Settings({
             <Linha titulo={t('Reduzir movimento')} desc={t('Desliga partículas e animações.')}>
               <label className="check">
                 <input type="checkbox" checked={!animationsEnabled} onChange={toggleAnimations} /> {t('Reduzir')}
+              </label>
+            </Linha>
+            {/* Fora do protótipo, de propósito: sem estas duas linhas o som do app só se ligaria pela
+                pausa de um jogo, e o modo desempenho (partículas e efeitos pesados desligados) ficaria
+                sem controle nenhum — o antigo popover "Som, animações e desempenho" saiu do rodapé. */}
+            <Linha titulo={t('Sons')} desc={t('Efeitos sonoros dos jogos e das conquistas.')}>
+              <label className="check">
+                <input type="checkbox" checked={soundEnabled} onChange={toggleSound} /> {t('Ligados')}
+              </label>
+            </Linha>
+            <Linha titulo={t('Modo desempenho')} desc={t('Menos efeitos visuais, para computadores mais simples.')}>
+              <label className="check">
+                <input type="checkbox" checked={performanceMode} onChange={togglePerformanceMode} /> {t('Ligado')}
               </label>
             </Linha>
           </div>
